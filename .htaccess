@@ -17,4 +17,6 @@ RewriteRule ^ - [F,L]
   Header always set X-Frame-Options "DENY"
   Header always set Referrer-Policy "no-referrer"
   Header always set X-Robots-Tag "noindex, nofollow"
+  Header always unset X-Powered-By
+  Header unset X-Powered-By
 </IfModule>
