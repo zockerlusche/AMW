@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import sys
+from datetime import datetime
 
 from . import betrieb, db, kern, wissen
 
@@ -29,7 +30,13 @@ def _von(a):
 
 
 def _zeit(t):
-    return (t or "")[5:16].replace("T", " ")
+    """UTC aus der Datenbank → Ortszeit des PCs, kurz (TT.MM. HH:MM) wie im alten Bus."""
+    if not t:
+        return ""
+    try:
+        return datetime.fromisoformat(t.replace("Z", "+00:00")).astimezone().strftime("%d.%m. %H:%M")
+    except ValueError:
+        return t[5:16].replace("T", " ")
 
 
 # --- Befehle -------------------------------------------------------------------------------------
