@@ -14,3 +14,5 @@ Chronik der Vorgaben des Entwicklers zur AMW. Nur Datum, Kern und Ort, an dem de
 | 01.11. 08:42 | Externe DB (Supabase zu teuer, Neon nach Nutzung – Rechnung), allgemein für andere Projekte, installierbar, skalierbar, lokal oder Webserver, lokale SQLite je Anwendung mit zentralem Abgleich, Release Notes/Blog auf die Homepage, umfangreiche Einstellungen, Web-Sicherheit | 01 Produktbild, 02 §1/§9, 05 §6–§8, 06 |
 | 01.11. 08:43 | Alles Besprochene zur AMW in der Markdown-Doku festhalten, nichts darf verloren gehen | diese Chronik |
 | 01.11. 08:47 | AMW komplett an CCamw; Aufzählungen und TL-Vorschlag sind nur Vorschläge, begründet abweichen erwünscht | 10, 07 |
+| 01.11. 08:5x | Frage an CCamw: Wie arbeiten wir zusammen, wie trennt sich CCamw von LayerIT? Freie Wahl der Technik (lokal, Web, Zusammenarbeit der Agenten) | 07 E1, 10 |
+| 01.11. 08:58 | Entscheidungen E1 (Ablage in F:mw\doc), E2 (C in Stufen), E3 (Proben + Bau Stufe 1 frei) – im Chat mit CCamw | 07 Entscheidungen |

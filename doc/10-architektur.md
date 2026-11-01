@@ -1,6 +1,6 @@
 # 10 · Architektur und Stufen (Vorschlag CCamw)
 
-**Status: Vorschlag, Entscheidung Marcel** (Fragen → 07 „Offene Entscheidungen“). Stand 01.11.2026.
+**Status: Grundrichtung und Stufen entschieden** (Marcel 01.11. 08:58, → 07 E2/E3); Einzelheiten bleiben Vorschlag und werden beim Bau verfeinert. Stand 01.11.2026.
 Grundlage: Anforderungen 02/05, Probleme 04, Optionen und Kosten 06. Die Vorgaben aus 01 „Produktbild“ und der TL-Vorschlag (06 §7) sind laut Übergabe (Marcel 01.11. 08:47) **Vorschläge**. Dieses Dokument sagt, wie CCamw es bauen würde, und wo und warum es abweicht.
 
 ## 1 Leitentscheidungen
