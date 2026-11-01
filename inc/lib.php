@@ -1,9 +1,8 @@
 <?php
-/* AMW online (Stufe 2, doc/12-online.md): gemeinsame Teile für index.php und api.php.
+/* AMW online (Stufe 2, doc/12-online.md): gemeinsame Teile für index.php, api.php und die Einrichtung.
  *
- * Konfiguration liegt AUSSERHALB des Web-Ordners (nie im Repo): Umgebungsvariable AMW_KONFIG oder
- * <Ordner über dem Web-Ordner>/amw-konfig.php. Vorlage: inc/konfig.beispiel.php.
- * Speicher: Turso über HTTP (/v2/pipeline) oder für die Probe am PC eine SQLite-Datei.
+ * Konfiguration (Turso-Zugang, Benutzer, Passwort-Hash) schreibt der Einrichtungs-Assistent selbst – außerhalb des
+ * Web-/Deploy-Ordners, nie ins Repo. Speicher: Turso über HTTP (/v2/pipeline) oder für Proben am PC eine SQLite-Datei.
  */
 declare(strict_types=1);
 
@@ -12,6 +11,16 @@ const SITZUNG_HOECHSTENS_S = 43200;  // spätestens nach 12 h
 const FEHL_JE_IP = 5;                // Fehlversuche je Adresse in 15 min
 const FEHL_GESAMT = 20;              // Fehlversuche insgesamt in 60 min (verteilte Versuche)
 const SCHREIBEN_JE_STUNDE = 120;     // Briefkasten-Zeilen je Stunde
+
+/* Tabellen im Online-Speicher – dieselben wie amw/abgleich.py SCHEMA (ein Test vergleicht beide). */
+const ONLINE_SCHEMA = [
+    "CREATE TABLE IF NOT EXISTS ansicht (weg TEXT PRIMARY KEY, inhalt TEXT NOT NULL, pruef TEXT NOT NULL, stand_utc TEXT NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS eingang (id INTEGER PRIMARY KEY, zeit_utc TEXT NOT NULL, weg TEXT NOT NULL, daten TEXT NOT NULL, ip TEXT, status TEXT NOT NULL DEFAULT 'neu', ergebnis TEXT, erledigt_utc TEXT)",
+    "CREATE INDEX IF NOT EXISTS eingang_neu ON eingang (status, id)",
+    "CREATE TABLE IF NOT EXISTS versuch (id INTEGER PRIMARY KEY, zeit_utc TEXT NOT NULL, ip TEXT, ok INTEGER NOT NULL)",
+    "CREATE INDEX IF NOT EXISTS versuch_zeit ON versuch (zeit_utc)",
+    "CREATE TABLE IF NOT EXISTS zustand (schluessel TEXT PRIMARY KEY, wert TEXT)",
+];
 
 /** Orte außerhalb des Web-/Deploy-Ordners: dort löscht ein Git-Deploy nichts und niemand kann sie abrufen. */
 function konfig_orte(): array {
@@ -25,38 +34,57 @@ function konfig_orte(): array {
 
 $GLOBALS['konfig_warnung'] = '';
 
-/* Konfiguration laden. Hochgeladen wird sie nach inc/ (der Dateimanager zeigt oft nur den Web-Ordner); beim ersten
- * Aufruf verschiebt die Seite sie selbst nach außerhalb des Deploy-Ordners – sonst löscht der nächste Git-Deploy sie. */
-function konfig(): array {
-    static $k = null;
-    if ($k !== null) return $k;
-    $fehlt = function (string $text): never { header_remove('X-Powered-By'); http_response_code(503); exit($text); };
-    $pruefen = function ($d) use ($fehlt): array {
-        if (!is_array($d) || empty($d['benutzer']) || empty($d['passwort_hash'])) $fehlt('AMW: Konfiguration unvollständig.');
-        return $d;
-    };
-    foreach (konfig_orte() as $ort) if (is_file($ort)) return $k = $pruefen(require $ort);
+/** Konfiguration oder null (dann zeigt index.php den Einrichtungs-Assistenten). Eine von Hand nach inc/ hochgeladene
+ *  Datei wird beim ersten Aufruf nach außerhalb des Deploy-Ordners verschoben – der nächste Deploy löscht inc/. */
+function konfig_laden(): ?array {
+    static $k = false;
+    if ($k !== false) return $k;
+    foreach (konfig_orte() as $ort) if (is_file($ort)) return $k = konfig_gueltig(require $ort);
     $hochgeladen = __DIR__ . '/amw-konfig.php';
-    if (!is_file($hochgeladen)) $fehlt('AMW: Konfiguration fehlt – Datei amw-konfig.php in den Ordner inc hochladen und die Seite neu laden.');
-    $k = $pruefen(require $hochgeladen);
-    $inhalt = file_get_contents($hochgeladen);
+    if (!is_file($hochgeladen)) return $k = null;
+    $k = konfig_gueltig(require $hochgeladen);
+    if ($k !== null && konfig_schreiben_roh(file_get_contents($hochgeladen)) === 'aussen') @unlink($hochgeladen);
+    elseif ($k !== null) $GLOBALS['konfig_warnung'] = 'Hinweis: Die Konfiguration liegt im Web-Ordner (inc) – der nächste Deploy löscht sie.';
+    return $k;
+}
+
+function konfig_gueltig($d): ?array {
+    return is_array($d) && !empty($d['benutzer']) && !empty($d['passwort_hash']) ? $d : null;
+}
+
+/** Für api.php: ohne Konfiguration gibt es nichts zu liefern. */
+function konfig(): array {
+    $k = konfig_laden();
+    if ($k === null) { header_remove('X-Powered-By'); http_response_code(503); exit('AMW: noch nicht eingerichtet.'); }
+    return $k;
+}
+
+/** Schreibt die Konfiguration: erst außerhalb des Deploy-Ordners ('aussen'), sonst inc/ ('inc'), sonst ''. */
+function konfig_schreiben_roh(string $inhalt): string {
     foreach (konfig_orte() as $ort) {
         if (!is_dir(dirname($ort)) || !is_writable(dirname($ort))) continue;
         $tmp = $ort . '.neu';
         if (@file_put_contents($tmp, $inhalt) === false) continue;
         @chmod($tmp, 0600);
-        if (!@rename($tmp, $ort) || @file_get_contents($ort) !== $inhalt) { @unlink($tmp); continue; }
-        @unlink($hochgeladen);                            // gesichert: die Kopie im Web-Ordner wird nicht mehr gebraucht
-        return $k;
+        if (@rename($tmp, $ort) && @file_get_contents($ort) === $inhalt) return 'aussen';
+        @unlink($tmp);
     }
-    $GLOBALS['konfig_warnung'] = 'Hinweis: Die Konfiguration liegt noch im Web-Ordner (inc) – der nächste Deploy löscht sie. '
-        . 'Bitte zusätzlich eine Ebene über dem Web-Ordner ablegen.';
-    return $k;
+    $inc = __DIR__ . '/amw-konfig.php';
+    return @file_put_contents($inc, $inhalt) !== false ? 'inc' : '';
+}
+
+function konfig_schreiben(array $d): string {
+    return konfig_schreiben_roh("<?php\n// AMW online – angelegt " . gmdate('Y-m-d H:i') . " UTC vom Einrichtungs-Assistenten. Nie ins Repo.\nreturn "
+        . var_export($d, true) . ";\n");
 }
 
 function ist_https(): bool {
     return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+}
+
+function ist_lokal(): bool {                              // Probe am PC (php -S 127.0.0.1) – dort ohne HTTPS
+    return in_array(parse_url('//' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST), ['127.0.0.1', 'localhost'], true);
 }
 
 function kopfzeilen(bool $html): void {
@@ -75,21 +103,29 @@ function kopfzeilen(bool $html): void {
 
 /* --- Speicher --------------------------------------------------------------------------------- */
 
-/** Führt Anweisungen aus; Rückgabe je Anweisung die Zeilen als Listen. Wirft RuntimeException. */
-function sql(array $anweisungen): array {
-    $k = konfig();
+/** Nur Turso-Adressen – der Assistent ruft keine beliebigen Ziele auf (kein Umweg ins interne Netz). */
+function turso_url(string $eingabe): ?string {
+    $u = strtolower(trim($eingabe));
+    if (!preg_match('#^(?:libsql|https)://([a-z0-9-]+(?:\.[a-z0-9-]+)*\.turso\.io)/?$#', $u, $m)) return null;
+    return 'https://' . $m[1];
+}
+
+/** Führt Anweisungen aus; Rückgabe je Anweisung die Zeilen als Listen. Wirft RuntimeException (Code = HTTP-Status).
+ *  $zugang: ['turso_url', 'turso_token'] oder ['sqlite'] – sonst aus der Konfiguration. */
+function sql(array $anweisungen, ?array $zugang = null): array {
+    $k = $zugang ?? konfig();
     if (!empty($k['sqlite'])) {                              // Probe am PC
-        static $pdo = null;
-        $pdo ??= new PDO('sqlite:' . $k['sqlite'], null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        static $pdo = [];
+        $pdo[$k['sqlite']] ??= new PDO('sqlite:' . $k['sqlite'], null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
         $aus = [];
         foreach ($anweisungen as [$s, $args]) {
-            $st = $pdo->prepare($s);
+            $st = $pdo[$k['sqlite']]->prepare($s);
             $st->execute($args);
             $aus[] = $st->columnCount() ? $st->fetchAll(PDO::FETCH_NUM) : [];
         }
         return $aus;
     }
-    $url = preg_replace('#^libsql://#', 'https://', rtrim($k['turso_url'], '/')) . '/v2/pipeline';
+    $url = (turso_url((string)$k['turso_url']) ?? throw new RuntimeException('Turso-Adresse ungültig', 400)) . '/v2/pipeline';
     $req = [];
     foreach ($anweisungen as [$s, $args]) {
         $req[] = ['type' => 'execute', 'stmt' => ['sql' => $s, 'args' => array_map(function ($v) {
@@ -104,13 +140,13 @@ function sql(array $anweisungen): array {
         CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $k['turso_token'], 'Content-Type: application/json'],
         CURLOPT_POSTFIELDS => json_encode(['requests' => $req], JSON_UNESCAPED_UNICODE)]);
     $roh = curl_exec($c);
-    $code = curl_getinfo($c, CURLINFO_RESPONSE_CODE);
+    $code = (int)curl_getinfo($c, CURLINFO_RESPONSE_CODE);
     curl_close($c);
-    if ($roh === false || $code !== 200) throw new RuntimeException("Speicher nicht erreichbar ($code)");
+    if ($roh === false || $code !== 200) throw new RuntimeException("Speicher nicht erreichbar ($code)", $code);
     $antwort = json_decode($roh, true);
     $aus = [];
     foreach (array_slice($antwort['results'] ?? [], 0, count($anweisungen)) as $r) {
-        if (($r['type'] ?? '') !== 'ok') throw new RuntimeException('Speicher: ' . ($r['error']['message'] ?? 'Fehler'));
+        if (($r['type'] ?? '') !== 'ok') throw new RuntimeException('Speicher: ' . ($r['error']['message'] ?? 'Fehler'), 500);
         $aus[] = array_map(fn($z) => array_map(fn($w) => $w['value'] ?? null, $z), $r['response']['result']['rows'] ?? []);
     }
     return $aus;
@@ -120,16 +156,16 @@ function jetzt_utc(int $verschub = 0): string {
     return gmdate('Y-m-d\TH:i:s\Z', time() + $verschub);
 }
 
-function zustand_lesen(string $schluessel): ?string {
-    $z = sql([['SELECT wert FROM zustand WHERE schluessel = ?', [$schluessel]]])[0];
+function zustand_lesen(string $schluessel, ?array $zugang = null): ?string {
+    $z = sql([['SELECT wert FROM zustand WHERE schluessel = ?', [$schluessel]]], $zugang)[0];
     return $z ? $z[0][0] : null;
 }
 
 /* --- Sitzung ---------------------------------------------------------------------------------- */
 
 function sitzung_starten(): void {
-    $k = konfig();
-    if (($k['nur_https'] ?? true) && !ist_https()) {
+    $k = konfig_laden();
+    if (($k['nur_https'] ?? true) && !ist_https() && !ist_lokal()) {
         header('Location: https://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '/'), true, 301);
         exit;
     }
@@ -140,6 +176,36 @@ function sitzung_starten(): void {
         'samesite' => 'Strict']);
     session_start();
     if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
+}
+
+/* --- Seitenrahmen für Anmeldung und Einrichtung ------------------------------------------------- */
+
+function seite_anfang(string $titel, string $unterzeile): void {
+    header('Content-Type: text/html; charset=utf-8');
+    $e = fn(string $s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+    echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<meta name="robots" content="noindex, nofollow"><title>AMW · ' . $e($titel) . '</title><style>'
+        . ':root{--grund:#f3f1ec;--flaeche:#fffdf8;--text:#1d1b16;--leise:#6b665c;--linie:#d9d4c8;--bernstein:#b86e00;--rot:#b3261e;--gruen:#2e7d32}'
+        . '@media (prefers-color-scheme:dark){:root{--grund:#12110e;--flaeche:#1b1a16;--text:#ece8dd;--leise:#9a9486;--linie:#34312a;--bernstein:#f0a020;--rot:#ff6b5e;--gruen:#7bc47f}}'
+        . '*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:16px;background:var(--grund);color:var(--text);font:15px/1.5 Bahnschrift,"Segoe UI",system-ui,sans-serif}'
+        . 'form{width:100%;max-width:400px;background:var(--flaeche);border:1px solid var(--linie);border-top:3px solid var(--bernstein);border-radius:4px;padding:24px;display:grid;gap:14px}'
+        . 'h1{margin:0;font-size:20px;letter-spacing:.06em}h1 b{color:var(--bernstein)}p{margin:0}'
+        . '.leise{color:var(--leise);font-size:13px}.unter{color:var(--leise);font-size:13px;margin:-8px 0 4px}'
+        . 'label{display:grid;gap:4px;font-size:13px;color:var(--leise);text-transform:uppercase;letter-spacing:.06em}'
+        . 'input{font:inherit;font-size:16px;padding:10px 12px;min-height:46px;border:1px solid var(--linie);border-radius:3px;background:var(--grund);color:var(--text);text-transform:none;letter-spacing:normal;width:100%}'
+        . 'input:focus{outline:2px solid var(--bernstein);outline-offset:1px}'
+        . 'button{font:600 14px Bahnschrift,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;min-height:46px;border:0;border-radius:3px;background:var(--bernstein);color:#1d1b16;cursor:pointer}'
+        . '.fehler{color:var(--rot);font-size:14px}.gut{color:var(--gruen);font-size:14px}'
+        . '.schritte{margin:0;padding-left:20px;font-size:14px}.schritte li{margin:4px 0}'
+        . '.qr{display:grid;place-items:center}.qr svg{width:100%;max-width:260px;height:auto;border-radius:3px}'
+        . 'details{font-size:13px;color:var(--leise)}details code{display:block;margin-top:6px;font:15px Consolas,monospace;color:var(--text);letter-spacing:.05em;word-break:break-all}'
+        . '.stufe{display:flex;gap:6px}.stufe span{flex:1;height:4px;border-radius:2px;background:var(--linie)}.stufe span.an{background:var(--bernstein)}'
+        . '</style></head><body><form method="post" action="./" autocomplete="on">'
+        . '<h1><b>AMW</b> Workbench</h1><p class="unter">' . $e($unterzeile) . '</p>';
+}
+
+function seite_ende(): void {
+    echo '</form></body></html>';
 }
 
 function angemeldet(): bool {
