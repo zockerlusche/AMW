@@ -71,3 +71,17 @@ def status(port):
     zeilen.append(f"Datenbank: {db.db_pfad()}" + ("" if os.path.exists(db.db_pfad()) else " (gibt es noch nicht)"))
     zeilen.append(f"Sperrdatei: {sperre}" + (" vorhanden" if os.path.exists(sperre) else " fehlt"))
     return "\n".join(zeilen)
+
+
+def hook_einstellungen():
+    """Ausschnitt für .claude/settings.local.json eines Agenten-Projektordners (→ doc/10 §5, §6). Nur Vorschlag –
+    eingetragen wird beim Umschalten (doc/07 E6) gemeinsam mit dem Entwickler. AMW_AGENT setzt der Startbefehl je Agent."""
+    befehl = f'"{pythonw().replace("pythonw.exe", "python.exe")}" -X utf8 -m amw.hook'
+    hook = {"type": "command", "command": befehl, "timeout": 30}
+    return {
+        "env": {"PYTHONPATH": WURZEL},
+        "crossSessionInbound": "accept",
+        "hooks": {"SessionStart": [{"matcher": "startup|resume|compact", "hooks": [hook]}]},
+        "permissions": {"deny": [f"Bash(schtasks*{AUFGABE}*)", f"PowerShell(*ScheduledTask*{AUFGABE}*)",
+                                 "Bash(*taskkill*pythonw*)", "PowerShell(*Stop-Process*pythonw*)"]},
+    }

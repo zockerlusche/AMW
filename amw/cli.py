@@ -294,6 +294,16 @@ def cmd_dienst(a):
     return rc
 
 
+def cmd_hook(a):
+    from . import einrichtung
+    print("In .claude/settings.local.json des Projektordners zusammenführen (nicht überschreiben):")
+    print(json.dumps(einrichtung.hook_einstellungen(), ensure_ascii=False, indent=2))
+    print()
+    print("Im Startbefehl je Agent (z. B. layerit-agenten.ps1) vor `claude …` setzen:")
+    print(f"  $env:AMW_AGENT = '{a.agent}'")
+    return 0
+
+
 # --- Aufbau --------------------------------------------------------------------------------------
 
 def parser():
@@ -470,6 +480,11 @@ def parser():
     x.add_argument("--port", type=int, default=8780)
     x.add_argument("--ja", action="store_true", help="wirklich ausführen (sonst nur anzeigen)")
     x.set_defaults(f=cmd_dienst, ohne_db=True)
+
+    x = s.add_parser("hook", help="zeigt die Einstellungen für einen Agenten-Projektordner (schreibt nichts)")
+    x.add_argument("aktion", choices=["zeige"])
+    x.add_argument("--agent", default="CC1", help="nur für die Beispielzeile des Startbefehls")
+    x.set_defaults(f=cmd_hook, ohne_db=True)
 
     x = s.add_parser("release", help="Release Notes: je Merge eine Zeile, Version fasst zusammen")
     x.add_argument("aktion", choices=["merge", "version", "liste"])

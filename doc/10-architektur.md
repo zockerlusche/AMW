@@ -107,3 +107,13 @@ Jede Tabelle hat zusätzlich: `projekt`, `herkunft` (Rechner), `uid` (global ein
 2. Ein Übernahme-Skript liest bus.db **nur lesend** und schreibt amw.db nach der Zuordnung in §3; wiederholbar, mit Zählvergleich je Tabelle.
 3. Umschalten in einem Schritt (Marcels Wort): Agenten benutzen ab dann `amw` statt `bus.py`; bus.db bleibt als Archiv lesbar.
 4. Tote Teile (→ 03: Alt-Tabellen, alte HTML-Dateien, wach_alarm, bus_backup_vor_klartext) werden nicht übernommen.
+
+**Ablauf beim Umschalten (07 E6, gemeinsam mit dem Entwickler, ruhige Zeit ohne laufende Läufe):**
+1. Halt im alten Bus für alle (TL), offene Merges/Läufe abwarten.
+2. Übernahme in `F:\amw\daten\amw.db` (`python -m amw.uebernahme`), Zählvergleich prüfen; Altbestand offener Empfänge nach E6-Entscheidung behandeln.
+3. Rollen nachtragen (`agent` ist nach der Übernahme nur bei TL gesetzt), Rezepte und geltende Anweisungen aus `tl_stand`/Nachrichten als Daten anlegen.
+4. Wächter einrichten (`amw dienst einrichten --ja`, E7), Status prüfen (`amw dienst status`).
+5. Je Agenten-Projektordner die Einstellungen aus `amw hook zeige` zusammenführen (Hook, `crossSessionInbound`, Sperr-Regeln), im Startbefehl je Agent `AMW_AGENT` setzen. **Vorher prüfen:** ob `crossSessionInbound` aus der Projekt-Einstellung gilt (sonst Benutzer-Einstellung) und ob die Sperr-Regeln greifen (Probe an CCamw).
+6. Alte Wachen nicht mehr starten; Startsätze/Arbeitsregeln der Agenten auf `amw` umstellen (eine Nachricht an alle über den alten Bus, danach nur noch AMW).
+7. Agenten neu starten → Hook meldet an → Workbench zeigt „läuft“; erster Takt an den TL.
+8. Halt aufheben (in der Workbench). Ein Tag Beobachtung; Rückweg: Agenten wieder mit `bus.py`, amw.db bleibt als Stand erhalten.
