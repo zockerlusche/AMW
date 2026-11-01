@@ -236,6 +236,7 @@ CREATE TABLE lauf (
   speicher_frei_gb  REAL,
   ergebnis          TEXT,
   aufgabe_id        INTEGER REFERENCES aufgabe(id),
+  rang              INTEGER NOT NULL DEFAULT 0,      -- Warteschlange: > 0 = vorgezogen (Lead/Entwickler)
   uid               TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft          TEXT NOT NULL DEFAULT '',
   geaendert_utc     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))

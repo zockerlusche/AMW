@@ -4,6 +4,19 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist (Stufe 3, → doc/10 §4). Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 0.9.0 – 01.11.2026 · Warteschlange für Rechen-Läufe
+- `amw lauf start … --warten`: Ist der Platz belegt (ein schwerer Lauf, ein Schirm-Lauf zur Zeit) oder der Speicher
+  knapp, wird der Lauf eingereiht statt abgelehnt. Sobald er dran ist, startet der Wächter ihn und weckt den Agenten mit
+  einer Freigabe „Lx ist dran“. Niemand überholt: Wer ohne `--warten` startet, während jemand für denselben Platz
+  wartet, wird abgelehnt (TL #16445: CC5 kam vorher 4× nicht dran).
+- `amw lauf vorziehen <nr>` (Lead/Entwickler, auch über die Brücke), `amw lauf liste` zeigt die Schlange,
+  `amw lauf ende <nr> --abgebrochen` nimmt einen Lauf aus der Schlange oder gibt einen reservierten Platz frei.
+  Agenten ohne laufende Sitzung werden übersprungen, bis sie wieder da sind.
+- Agenten-Kachel: „offen“ zählt nur, was eine Handlung braucht (weckende Arten); reine Info zählt nicht mehr
+  (Wunsch Marcel). Die Übersicht zeigt weiter alles.
+- Korrektur: offene Prüfbitten erschienen in der Agenten-Übersicht nie.
+- Datenbank-Schema 3 (`lauf.rang`, `amw/migration_3.sql`).
+
 ## 0.8.0 – 01.11.2026 · Gesprächsverlauf je Frage
 - Jede Frage hat einen Verlauf wie im Chat (Fragesteller links, du rechts): Rückfragen, Antworten des Fragestellers,
   deine Antwort – nichts wird mehr überschrieben (Wunsch Marcel). Online erscheint eine Rückfrage sofort als „unterwegs“.

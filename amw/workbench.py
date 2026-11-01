@@ -61,8 +61,9 @@ def daten_start(con, pid):
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
         "SELECT g.kennung, g.rolle, g.soll, g.grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc, s.taetigkeit,"
-        " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
-        "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen' AND n.id > :alt) AS offen,"
+        " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
+        "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen' AND n.id > :alt"
+        "   AND k.weckt = 1) AS offen,"                  # nur was eine Handlung braucht; Info weckt nicht und zählt nicht
         " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
         "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen' AND n.id <= :alt) AS offen_alt,"
         " (SELECT kurz FROM nachricht WHERE projekt_id = g.projekt_id AND von = g.kennung ORDER BY id DESC LIMIT 1) AS zuletzt,"
@@ -151,11 +152,11 @@ def daten_agent(con, pid, kennung):
         "offen_alt": con.execute("SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE n.projekt_id = ?"
                                  " AND e.agent = ? AND e.status = 'offen' AND n.id <= ?", (pid, kennung, alt)).fetchone()[0],
         "laeufe": zeilen(con.execute(
-            "SELECT id, beschreibung, status, start_utc, aufgabe_id FROM lauf WHERE projekt_id = ? AND agent = ?"
+            "SELECT id, beschreibung, status, coalesce(start_utc, angemeldet_utc) AS start_utc, aufgabe_id FROM lauf WHERE projekt_id = ? AND agent = ?"
             " AND status IN ('angemeldet','laeuft') ORDER BY id DESC", (pid, kennung))),
         "pruefungen": zeilen(con.execute(
             "SELECT id, aufgabe_id, zweig, sha, bauer, pruefer, angefragt_utc FROM pruefung WHERE projekt_id = ?"
-            " AND ergebnis IS NULL AND (pruefer = ? OR bauer = ?) ORDER BY id DESC LIMIT 8", (pid, kennung, kennung))),
+            " AND ergebnis = 'offen' AND (pruefer = ? OR bauer = ?) ORDER BY id DESC LIMIT 8", (pid, kennung, kennung))),
     }
 
 

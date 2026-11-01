@@ -56,6 +56,20 @@ class Workbench(unittest.TestCase):
         fragen = json.loads(self.anfrage("GET", "/api/fragen")[1])
         self.assertEqual(fragen[0]["empfehlung"], "A")
 
+    def test_kachel_zaehlt_nur_was_handlung_braucht(self):
+        from amw import betrieb
+        con = db.verbinde()
+        kern.agent_neu(con, self.pid, "CC1")
+        kern.posten(con, self.pid, "TL", "CC1", "info", "Lob an alle")              # Info weckt nicht → zählt nicht
+        kern.posten(con, self.pid, "TL", "CC1", "auftrag", "Bitte bauen")
+        betrieb.pruefbitte(con, self.pid, "TL", "CC1", "tl-x", "abcdef1234")
+        con.close()
+        cc1 = next(a for a in json.loads(self.anfrage("GET", "/api/start")[1])["agenten"] if a["kennung"] == "CC1")
+        self.assertEqual(cc1["offen"], 2)
+        d = json.loads(self.anfrage("GET", "/api/agent?kennung=CC1")[1])
+        self.assertEqual(len(d["an_ihn"]), 3)                                   # die Übersicht zeigt alles
+        self.assertEqual(len(d["pruefungen"]), 1)                               # offene Prüfbitte erscheint
+
     def test_schreiben_nur_mit_schluessel(self):
         status, _ = self.anfrage("POST", f"/api/frage/{self.fid}/antwort", {"art": "option", "wert": "A"})
         self.assertEqual(status, 403)

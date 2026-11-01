@@ -48,6 +48,59 @@ class Laeufe(Grund):
             betrieb.lauf_start(self.con, self.pid, "CC1", "Build", speicher_frei=20)
 
 
+class Warteschlange(Grund):
+    """lauf start --warten (TL #16445): Reihenfolge der Anmeldung, niemand überholt, Freigabe weckt den Agenten."""
+    def setUp(self):
+        super().setUp()
+        kern.agent_neu(self.con, self.pid, "CC3")
+        with db.schreiben(self.con):
+            for k in ("CC1", "CC2", "CC3"):
+                aid = self.con.execute("SELECT id FROM agent WHERE kennung = ?", (k,)).fetchone()[0]
+                db.einfuegen(self.con, "sitzung", agent_id=aid, gestartet_utc=db.jetzt())
+
+    def status(self, lid):
+        return self.con.execute("SELECT status FROM lauf WHERE id = ?", (lid,)).fetchone()[0]
+
+    def start(self, agent, warten=False, frei=20, **k):
+        return betrieb.lauf_start(self.con, self.pid, agent, "Lauf " + agent, speicher_frei=frei, warten=warten, **k)
+
+    def test_reihenfolge_freigabe_und_kein_ueberholen(self):
+        l1 = self.start("CC1")
+        with self.assertRaises(kern.AmwFehler) as e:
+            self.start("CC2")
+        self.assertIn("--warten", str(e.exception))
+        l2, l3 = self.start("CC2", True), self.start("CC3", True)
+        self.assertEqual((self.status(l2), self.status(l3)), ("angemeldet", "angemeldet"))
+        self.start("CC1", schwer=False)                                   # leichte Läufe warten nie
+        self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "CC1", l1, 0, speicher_frei=20), [l2])
+        self.assertEqual((self.status(l2), self.status(l3)), ("laeuft", "angemeldet"))
+        frei = kern.offene(self.con, self.pid, "CC2")[0]
+        self.assertEqual((frei["art"], frei["von"]), ("freigabe", "AMW"))
+        self.assertIn(f"L{l2} ist dran", frei["kurz"])
+        self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "CC2", l2, 0, speicher_frei=2), [])   # Speicher knapp
+        with self.assertRaises(kern.AmwFehler) as e:                      # der Schnellste überholt nicht mehr
+            self.start("CC1")
+        self.assertIn(f"L{l3} von CC3", str(e.exception))
+        self.assertEqual(betrieb.warteschlange(self.con, self.pid, speicher_frei=20), [l3])   # Wächter-Durchgang
+
+    def test_vorziehen_nur_lead_und_aus_der_schlange_nehmen(self):
+        l1 = self.start("CC1")
+        l2, l3 = self.start("CC2", True), self.start("CC3", True)
+        with self.assertRaises(kern.AmwFehler):
+            betrieb.lauf_vorziehen(self.con, self.pid, "CC3", l3)
+        betrieb.lauf_vorziehen(self.con, self.pid, "TL", l3)
+        self.assertEqual([r["id"] for r in betrieb.wartende(self.con, self.pid)], [l3, l2])
+        betrieb.lauf_ende(self.con, self.pid, "CC3", l3, None, speicher_frei=20)   # zurückziehen
+        self.assertEqual(self.status(l3), "abgebrochen")
+        self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "CC1", l1, 0, speicher_frei=20), [l2])
+
+    def test_agent_ohne_sitzung_wird_uebersprungen(self):
+        l1 = self.start("CC1")
+        l2, l3 = self.start("TL", True), self.start("CC2", True)             # TL hat hier keine Sitzung
+        self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "CC1", l1, 0, speicher_frei=20), [l3])
+        self.assertEqual(self.status(l2), "angemeldet")
+
+
 class Pruefungen(Grund):
     def test_bitte_ergebnis_und_ist_gruen(self):
         prid = betrieb.pruefbitte(self.con, self.pid, "CC1", "CC2", "cc1-x", "abcdef1234", "P1–P3")

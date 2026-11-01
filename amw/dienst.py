@@ -20,7 +20,7 @@ import os
 import sys
 import time
 
-from . import db, kern, pipe
+from . import betrieb, db, kern, pipe
 
 AUFSICHT_S = 30           # Puls-Prüfung und Wiederholung fehlgeschlagener Zustellungen
 NUR_IM_HALT = ("stopp", "freigabe")
@@ -169,6 +169,9 @@ class Dienst:
                     log.info("Brücken-Sitzung %s beendet (kein Puls)", s["id"])
                 continue
             self.pruefe_sitzung(s)
+        for p in self.con.execute("SELECT id FROM projekt").fetchall():   # Warteschlange: Speicher wieder frei, Agent wieder da
+            for lid in betrieb.warteschlange(self.con, p["id"]):
+                log.info("Warteschlange: L%s freigegeben", lid)
 
 
 def _sekunden(utc):

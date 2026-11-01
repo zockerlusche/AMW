@@ -54,7 +54,7 @@ Arten (9 + info): auftrag, frage, antwort, korrektur, stopp, freigabe, pruefbitt
 
 ## 4 Was bleibt, wie es ist
 - **Objekt-Editor (Port 8766)** und die LayerIT-Fachtabellen bleiben in bus.db: objekt_entwurf, objekt_vorgang, wunsch, aera_durchgang, devlog_post, asset_herkunft, geraet_inventur, bewertung, auftrag_entwurf, nutzung_log, marcel_* (Seitenzustand). Das sind Projektdaten, keine Agenten-Kommunikation; `bus.py objekte` und `serve` sind nicht gesperrt. Umzug dieser Daten wäre LayerIT-Arbeit (später als Projekt-Erweiterung, 10 L10).
-- **Marcel antwortet ab jetzt in der Workbench** http://127.0.0.1:8780 (auch auf dem Handy am PC). Die alte Seite 8765 läuft noch mit altem Stand; Antworten dort landen nur im Archiv.
+- **Marcel antwortet ab jetzt in der Workbench** http://127.0.0.1:8780 (auch auf dem Handy am PC). Die alte Seite 8765 läuft noch mit altem Stand; Antworten dort landen nur im Archiv. *Nachtrag 01.11. 18:30:* auf Wunsch Marcel beendet; geplante Aufgabe „Netly Bus-Ansicht“ deaktiviert (nicht gelöscht – Rückweg: `Enable-ScheduledTask -TaskName "Netly Bus-Ansicht"`), eine zweite Kopie auf Port 8766 ebenfalls beendet.
 - **Offene Empfänge** aus dem alten Bus bleiben offen (nichts wird stillschweigend erledigt); `amw lesen` zeigt die neuesten zuerst. Altbestand wurde nicht neu geweckt.
 
 ## 5 Rückweg

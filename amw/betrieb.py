@@ -37,10 +37,39 @@ def speicher_frei_gb():
 
 # --- Läufe ---------------------------------------------------------------------------------------
 
+def _grenze(con, pid, braucht_gb, schwer):
+    if braucht_gb:
+        return float(braucht_gb)
+    return float(_einstellung(con, pid, "speicher_grenze_gb", SPEICHER_GRENZE_GB)) if schwer else 0.0
+
+
+def _plaetze(schwer, schirm):
+    return {p for p, n in (("schwer", schwer), ("schirm", schirm)) if n}
+
+
+def _besetzt(con, pid, plaetze):
+    """Grund, wenn ein laufender Lauf einen der Plätze belegt (schwer: einer zur Zeit, Schirm: einer zur Zeit)."""
+    for spalte, name in (("schwer", "schwerer Lauf"), ("schirm", "Schirm-Lauf")):
+        if spalte in plaetze:                    # Spaltenname kommt nur aus dieser Liste
+            b = con.execute(f"SELECT id, agent, beschreibung FROM lauf WHERE projekt_id = ? AND status = 'laeuft'"
+                            f" AND {spalte} = 1", (pid,)).fetchone()
+            if b:
+                return f"{name} L{b['id']} von {b['agent']} läuft noch: {b['beschreibung']}"
+    return None
+
+
+def wartende(con, pid):
+    """Warteschlange: Rang (vorgezogen) vor Reihenfolge der Anmeldung."""
+    return con.execute("SELECT l.*, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
+                       " WHERE l.projekt_id = ? AND l.status = 'angemeldet' ORDER BY l.rang DESC, l.id", (pid,)).fetchall()
+
+
 def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=False, aufgabe_id=None,
-               speicher_frei=None):
-    """Meldet einen Lauf an und startet ihn, wenn er darf. Sonst AmwFehler mit Grund (nichts wird angelegt).
-    Regeln: kein Halt; schwere Läufe nur einer zur Zeit; Schirm-Läufe nur einer zur Zeit; freier Speicher ≥ Grenze."""
+               speicher_frei=None, warten=False):
+    """Meldet einen Lauf an und startet ihn, wenn er darf. Regeln: kein Halt; schwere Läufe nur einer zur Zeit;
+    Schirm-Läufe nur einer zur Zeit; freier Speicher ≥ Grenze; niemand überholt die Warteschlange.
+    Darf er nicht: ohne warten AmwFehler mit Grund (nichts wird angelegt), mit warten eingereiht (status
+    'angemeldet'); warteschlange() startet ihn, sobald er dran ist, und weckt den Agenten mit einer Freigabe."""
     if kern.halt_gilt(con, pid, agent):
         raise kern.AmwFehler("HALT gilt – keine Läufe starten")
     rez = None
@@ -49,36 +78,83 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
         if not rez:
             raise kern.AmwFehler(f"Rezept „{rezept}“ gibt es nicht")
         schwer, schirm = bool(rez["schwer"]), bool(rez["braucht_schirm"])
-    grenze = float(rez["braucht_speicher_gb"]) if rez and rez["braucht_speicher_gb"] else \
-        float(_einstellung(con, pid, "speicher_grenze_gb", SPEICHER_GRENZE_GB)) if schwer else 0.0
+    grenze = _grenze(con, pid, rez["braucht_speicher_gb"] if rez else None, schwer)
     if speicher_frei is None:
         speicher_frei = speicher_frei_gb()[0]
-    if grenze and speicher_frei is not None and speicher_frei < grenze:
-        raise kern.AmwFehler(f"nur {speicher_frei} GB frei, Grenze {grenze:g} GB – später erneut versuchen")
-    pruefen = ([("schwer", "schwerer Lauf")] if schwer else []) + ([("schirm", "Schirm-Lauf")] if schirm else [])
+    plaetze = _plaetze(schwer, schirm)
     with db.schreiben(con):
-        for spalte, name in pruefen:            # Spaltenname kommt nur aus dieser Liste
-            besetzt = con.execute(f"SELECT id, agent, beschreibung FROM lauf WHERE projekt_id = ? AND status = 'laeuft'"
-                                  f" AND {spalte} = 1", (pid,)).fetchone()
-            if besetzt:
-                raise kern.AmwFehler(f"{name} L{besetzt['id']} von {besetzt['agent']} läuft noch: {besetzt['beschreibung']}")
+        grund = _besetzt(con, pid, plaetze)
+        vor = [w for w in wartende(con, pid) if _plaetze(w["schwer"], w["schirm"]) & plaetze]
+        if not grund and vor:
+            grund = "Warteschlange: " + ", ".join(f"L{w['id']} von {w['agent']}" for w in vor) + " wartet schon"
+        if not grund and grenze and speicher_frei is not None and speicher_frei < grenze:
+            grund = f"nur {speicher_frei} GB frei, Grenze {grenze:g} GB"
+        if grund and not warten:
+            raise kern.AmwFehler(grund + " – mit --warten einreihen")
         t = db.jetzt()
         return db.einfuegen(con, "lauf", projekt_id=pid, agent=agent, rezept_id=rez["id"] if rez else None,
-                            beschreibung=beschreibung, schwer=int(schwer), schirm=int(schirm), status="laeuft",
-                            angemeldet_utc=t, start_utc=t, speicher_frei_gb=speicher_frei, aufgabe_id=aufgabe_id)
+                            beschreibung=beschreibung, schwer=int(schwer), schirm=int(schirm),
+                            status="angemeldet" if grund else "laeuft", angemeldet_utc=t, start_utc=None if grund else t,
+                            speicher_frei_gb=speicher_frei, aufgabe_id=aufgabe_id)
 
 
-def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False):
+def warteschlange(con, pid, speicher_frei=None):
+    """Startet wartende Läufe der Reihe nach, sobald ihr Platz frei ist, und weckt den Agenten (Freigabe).
+    Wer warten muss, hält alle hinter sich auf, die denselben Platz brauchen – niemand überholt. Agenten ohne
+    lebende Sitzung oder im Halt werden übersprungen, bis sie wieder da sind. Rückgabe: gestartete Lauf-Nummern."""
+    if not wartende(con, pid):
+        return []
+    if speicher_frei is None:
+        speicher_frei = speicher_frei_gb()[0]
+    gestartet, gesperrt = [], set()
+    with db.schreiben(con):
+        for l in wartende(con, pid):
+            plaetze = _plaetze(l["schwer"], l["schirm"])
+            if plaetze & gesperrt:
+                continue
+            lebt = con.execute("SELECT 1 FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
+                               " AND a.kennung = ? AND s.zustand = 'aktiv'", (pid, l["agent"])).fetchone()
+            if not lebt or kern.halt_gilt(con, pid, l["agent"]):
+                continue
+            grenze = _grenze(con, pid, l["braucht_speicher_gb"], l["schwer"])
+            if _besetzt(con, pid, plaetze) or (grenze and speicher_frei is not None and speicher_frei < grenze):
+                gesperrt |= plaetze
+                continue
+            con.execute("UPDATE lauf SET status = 'laeuft', start_utc = ?, speicher_frei_gb = ? WHERE id = ?",
+                        (db.jetzt(), speicher_frei, l["id"]))
+            kern._posten(con, pid, "AMW", l["agent"], "freigabe", f"L{l['id']} ist dran – jetzt starten: {l['beschreibung']}",
+                         f"Der Platz ist für dich reserviert. Am Ende: amw lauf ende {l['id']} --rc <Code>. "
+                         f"Kannst du gerade nicht: amw lauf ende {l['id']} --abgebrochen (gibt den Platz frei).",
+                         aufgabe_id=l["aufgabe_id"])
+            gestartet.append(l["id"])
+    return gestartet
+
+
+def lauf_vorziehen(con, pid, von, lid):
+    """Lead/Entwickler stellt einen wartenden Lauf an die Spitze der Warteschlange."""
+    if not kern.ist_lead(con, pid, von):
+        raise kern.AmwFehler("vorziehen dürfen nur Lead und Entwickler")
+    with db.schreiben(con):
+        l = con.execute("SELECT status FROM lauf WHERE id = ? AND projekt_id = ?", (lid, pid)).fetchone()
+        if not l or l["status"] != "angemeldet":
+            raise kern.AmwFehler(f"L{lid} wartet nicht")
+        con.execute("UPDATE lauf SET rang = (SELECT coalesce(max(rang), 0) + 1 FROM lauf WHERE projekt_id = ?"
+                    " AND status = 'angemeldet') WHERE id = ?", (pid, lid))
+
+
+def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speicher_frei=None):
+    """Beendet einen Lauf (oder nimmt einen wartenden aus der Schlange) und startet den nächsten wartenden."""
     with db.schreiben(con):
         l = con.execute("SELECT * FROM lauf WHERE id = ? AND projekt_id = ?", (lid, pid)).fetchone()
         if not l:
             raise kern.AmwFehler(f"Lauf L{lid} gibt es nicht")
         if l["agent"] != agent and not kern.ist_lead(con, pid, agent):
             raise kern.AmwFehler(f"L{lid} gehört {l['agent']}")
-        if l["status"] != "laeuft":
+        if l["status"] not in ("laeuft", "angemeldet"):
             raise kern.AmwFehler(f"L{lid} ist schon {l['status']}")
         con.execute("UPDATE lauf SET status = ?, ende_utc = ?, rc = ?, ergebnis = ? WHERE id = ?",
-                    ("abgebrochen" if abgebrochen else "fertig", db.jetzt(), rc, ergebnis, lid))
+                    ("abgebrochen" if abgebrochen or l["status"] == "angemeldet" else "fertig", db.jetzt(), rc, ergebnis, lid))
+    return warteschlange(con, pid, speicher_frei)
 
 
 # --- Prüfungen -----------------------------------------------------------------------------------

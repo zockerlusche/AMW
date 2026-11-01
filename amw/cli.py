@@ -206,12 +206,33 @@ def cmd_lauf(a, con):
     if a.aktion == "start":
         if not a.beschreibung and not a.rezept:
             raise kern.AmwFehler("--beschreibung oder --rezept angeben")
-        lid = betrieb.lauf_start(con, pid, _von(a), a.beschreibung or a.rezept, a.rezept, not a.leicht, a.schirm, a.aufgabe)
-        print(f"L{lid} läuft – am Ende: amw lauf ende {lid} --rc <Code>")
+        lid = betrieb.lauf_start(con, pid, _von(a), a.beschreibung or a.rezept, a.rezept, not a.leicht, a.schirm, a.aufgabe,
+                                 warten=a.warten)
+        w = [r["id"] for r in betrieb.wartende(con, pid)]
+        if lid in w:
+            print(f"L{lid} eingereiht (Platz {w.index(lid) + 1} von {len(w)}) – noch nicht rechnen. Der Wächter weckt dich mit"
+                  f" einer Freigabe, sobald L{lid} dran ist. Aus der Schlange nehmen: amw lauf ende {lid} --abgebrochen")
+        else:
+            print(f"L{lid} läuft – am Ende: amw lauf ende {lid} --rc <Code>")
     elif a.aktion == "ende":
-        betrieb.lauf_ende(con, pid, _von(a), a.id, a.rc, a.ergebnis, a.abgebrochen)
-        print(f"L{a.id} beendet")
+        if not a.id:
+            raise kern.AmwFehler("lauf ende <nr> --rc <Code>")
+        weiter = betrieb.lauf_ende(con, pid, _von(a), a.id, a.rc, a.ergebnis, a.abgebrochen)
+        print(f"L{a.id} beendet" + (f" – als Nächstes freigegeben: {', '.join(f'L{x}' for x in weiter)}" if weiter else ""))
+    elif a.aktion == "vorziehen":
+        if not a.id:
+            raise kern.AmwFehler("lauf vorziehen <nr>")
+        betrieb.lauf_vorziehen(con, pid, _von(a), a.id)
+        weiter = betrieb.warteschlange(con, pid)
+        print(f"L{a.id} steht vorn in der Warteschlange" + (f" – freigegeben: {', '.join(f'L{x}' for x in weiter)}" if weiter else ""))
     else:
+        w = betrieb.wartende(con, pid)
+        if w:
+            print("Warteschlange:")
+            for i, r in enumerate(w, 1):
+                print(f"  {i}. L{r['id']:<5} {r['agent']:<8}{' schwer' if r['schwer'] else ''}{' Schirm' if r['schirm'] else ''}"
+                      f"{' (vorgezogen)' if r['rang'] else ''} seit {_zeit(r['angemeldet_utc'])}  {r['beschreibung']}")
+            print()
         for r in con.execute("SELECT * FROM lauf WHERE projekt_id = ? ORDER BY id DESC LIMIT ?", (pid, a.grenze)):
             print(f"L{r['id']:<5} {r['agent']:<8} [{r['status']}]{' schwer' if r['schwer'] else ''}{' Schirm' if r['schirm'] else ''}"
                   f" {_zeit(r['start_utc'])}–{_zeit(r['ende_utc']) or '…'} rc {r['rc'] if r['rc'] is not None else '–'}  {r['beschreibung']}")
@@ -536,9 +557,10 @@ def parser():
     x = s.add_parser("regeln")
     x.set_defaults(f=cmd_regeln)
 
-    x = s.add_parser("lauf", help="Rechen-Läufe: start prüft Halt, Speicher, einen schweren/Schirm-Lauf zur Zeit")
-    x.add_argument("aktion", choices=["start", "ende", "liste"])
+    x = s.add_parser("lauf", help="Rechen-Läufe: start [--warten] prüft Halt, Speicher, einen schweren/Schirm-Lauf zur Zeit, Warteschlange")
+    x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen"])
     x.add_argument("id", type=int, nargs="?")
+    x.add_argument("--warten", action="store_true", help="ist der Platz belegt: einreihen statt ablehnen; Freigabe weckt dich")
     x.add_argument("--beschreibung")
     x.add_argument("--rezept")
     x.add_argument("--leicht", action="store_true", help="kein schwerer Lauf (keine Speicher-Grenze)")

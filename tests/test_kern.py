@@ -177,6 +177,7 @@ class Verlauf(unittest.TestCase):
         fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Alt?", [("A", "a")], "A", "weil")
         self.con.execute("DROP TABLE frage_verlauf")                 # wie eine Datenbank mit Schema 1
         self.con.execute("UPDATE frage SET antwort_art = 'rueckfrage', antwort = 'Wie gemeint?' WHERE id = ?", (fid,))
+        self.con.execute("ALTER TABLE lauf DROP COLUMN rang")          # Schema 2 kannte die Warteschlange nicht
         self.con.execute("PRAGMA user_version = 1")
         self.con.close()
         self.con = db.verbinde(self.pfad)

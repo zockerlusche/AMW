@@ -28,7 +28,7 @@ EINGANG = os.path.join(WURZEL, "eingang-tl")
 KOPIE_S = 60
 BEFEHLE_S = 5
 VON = "TL"
-ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "pruefung", "taetigkeit",
+ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "lauf", "pruefung", "taetigkeit",
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent"}
 
 
