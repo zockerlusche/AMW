@@ -133,10 +133,30 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .kachel.tot { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); }
 .kachel.aus { opacity: .55; }
 .kachel.klickbar { cursor: pointer; } .kachel.klickbar:hover { border-color: var(--leise); }
-.agent-dialog { width: min(760px, 100%); max-height: 86vh; overflow-y: auto; }
-.agent-dialog .abschnitt { margin-top: 14px; }
-.agent-dialog h4 { font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin: 0 0 6px; }
-.agent-dialog .zeile { padding: 4px 0; border-bottom: 1px solid var(--linie); font-size: 13.5px; overflow-wrap: anywhere; }
+.dialog.agent-dialog { width: min(1180px, 66vw); max-height: 88vh; overflow-y: auto; padding: 22px 26px; }   /* .dialog allein: 520 px */
+@media (max-width: 1400px) { .dialog.agent-dialog { width: 88vw; } }
+@media (max-width: 1000px) { .agent-spalten { grid-template-columns: minmax(0, 1fr); } }
+.agent-kopf { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--linie); }
+.dialog .agent-kopf h3 { color: var(--tinte); margin: 0; font-size: 26px; }
+.agent-spalten { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; }
+.agent-dialog .abschnitt { margin-top: 18px; }
+.agent-dialog h4 { display: flex; align-items: center; gap: 8px; font: 12px var(--titel); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--leise); margin: 0 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--linie); }
+.agent-dialog h4 .anzahl { font: 11px var(--mono); color: var(--sehrleise); background: var(--grund); padding: 0 6px; border-radius: 8px; }
+.agent-dialog .eintraege { display: grid; gap: 8px; }
+.agent-dialog .eintrag { background: var(--grund); border: 1px solid var(--linie); border-left: 3px solid var(--sehrleise);
+  border-radius: 3px; padding: 8px 12px; font-size: 13.5px; line-height: 1.45; overflow-wrap: anywhere; }
+.agent-dialog .eintrag-kopf { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.agent-dialog .eintrag-meta { margin-left: auto; font-size: 12px; white-space: nowrap; }
+.agent-dialog .eintrag-zusatz { font-size: 12px; margin-top: 3px; }
+.agent-dialog .eintrag-text.gross { font-size: 15px; font-weight: 600; }
+.agent-dialog .leer-klein { font-size: 13px; padding: 2px 0; }
+/* Rand nach Status bzw. Art */
+.eintrag.laeuft, .eintrag.lauf { border-left-color: var(--gruen); }
+.eintrag.wartet, .eintrag.vermutet, .eintrag.frage, .eintrag.pruefbitte { border-left-color: var(--bernstein); }
+.eintrag.blockiert, .eintrag.stopp, .eintrag.korrektur { border-left-color: var(--rot); }
+.eintrag.auftrag, .eintrag.freigabe { border-left-color: var(--tinte); }
+.eintrag.meldung, .eintrag.antwort, .eintrag.info, .eintrag.takt { border-left-color: var(--leise); }
 
 .frage { padding: 18px 20px; margin-bottom: 16px; }
 .frage .meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--leise); font-size: 12.5px; }
@@ -245,6 +265,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   .wartet, .agenten { grid-template-columns: 1fr 1fr; gap: 8px; }
   .wartet { grid-template-columns: 1fr; }
   .kachel { padding: 12px; } .kachel .name { font-size: 21px; } .kachel .info { min-height: 0; }
+  .dialog.agent-dialog { width: 100%; padding: 16px; }
   .frage { padding: 14px; } .frage h3 { font-size: 18px; }
   .option { min-height: 52px; padding: 12px; grid-template-columns: 26px 1fr; }
   .option .etikett { grid-column: 2; justify-self: start; }
@@ -566,33 +587,42 @@ function kachel(a) {
 }
 async function agentDialog(kennung) {
   let d; try { d = await holen("/api/agent?kennung=" + encodeURIComponent(kennung)); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
-  const abschnitt = (titel, liste, zeile, leer) => el("div", { class: "abschnitt" }, el("h4", {}, titel),
-    liste && liste.length ? el("div", {}, liste.map(zeile)) : el("div", { class: "sehrleise" }, leer || t("k_nichts")));
-  const ref = x => el("span", { class: "ref" }, x);
+  /* Ein Eintrag = eigener Block: Kopfzeile (Nummer, Kennzeichen, Zeit), darunter der Text; farbiger Rand nach Art/Status */
+  const eintrag = (art, ref, etikett, meta, text, zusatz) => el("div", { class: "eintrag " + art },
+    el("div", { class: "eintrag-kopf" }, el("span", { class: "ref" }, ref), etikett ? el("span", { class: "etikett" }, etikett) : null,
+      meta ? el("span", { class: "sehrleise eintrag-meta" }, meta) : null),
+    el("div", { class: "eintrag-text" }, text), zusatz ? el("div", { class: "sehrleise eintrag-zusatz" }, zusatz) : null);
+  const abschnitt = (titel, liste, bauen, leer) => el("section", { class: "abschnitt" },
+    el("h4", {}, titel, liste && liste.length ? el("span", { class: "anzahl" }, String(liste.length)) : null),
+    liste && liste.length ? el("div", { class: "eintraege" }, liste.map(bauen)) : el("div", { class: "sehrleise leer-klein" }, leer || t("k_nichts")));
+  const macht = el("section", { class: "abschnitt macht" }, el("h4", {}, t("k_macht")),
+    d.gerade ? el("div", { class: "eintrag " + (d.gerade_quelle === "angabe" ? "laeuft" : "vermutet") },
+      el("div", { class: "eintrag-text gross" }, d.gerade), el("div", { class: "sehrleise eintrag-zusatz" }, t("k_quelle_" + d.gerade_quelle)))
+      : el("div", { class: "sehrleise leer-klein" }, t("k_unbekannt")));
+  const links = [
+    abschnitt(t("k_kommt"), d.naechste, x => eintrag(x.status, `A${x.id}`, t("sp_" + x.status) || x.status, `Rang ${x.rang}`, x.titel,
+      x.wartet_auf ? `${t("k_wartet_auf")} ${x.wartet_auf}` : null)),
+    abschnitt(t("k_laeufe"), d.laeufe, x => eintrag("lauf", `L${x.id}`, x.status, seit(x.start_utc), x.beschreibung, x.aufgabe_id ? `A${x.aufgabe_id}` : null)),
+    abschnitt(t("k_pruefungen"), d.pruefungen, x => eintrag("pruefbitte", `P${x.id}`, x.aufgabe_id ? `A${x.aufgabe_id}` : null, seit(x.angefragt_utc),
+      x.pruefer === d.kennung ? t("k_soll_pruefen", { x: x.bauer }) : t("k_wartet_pruefung", { x: x.pruefer }), x.zweig ? `${x.zweig} ${x.sha || ""}` : null)),
+  ];
+  const rechts = [
+    abschnitt(t("k_an_ihn", { n: d.an_ihn.length }), d.an_ihn, x => eintrag(x.art, `#${x.id}`, t("art_" + x.art) || x.art, `${x.von} · ${seit(x.zeit_utc)}`, x.kurz),
+      t("k_nichts_neu") + (d.offen_alt ? " " + t("k_alt", { n: d.offen_alt }) : "")),
+    abschnitt(t("k_meldungen"), d.meldungen, x => eintrag(x.art, `#${x.id}`, t("art_" + x.art) || x.art, seit(x.zeit_utc), x.kurz)),
+  ];
   const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
     el("div", { class: "karte dialog agent-dialog" },
-      el("div", { style: "display:flex;align-items:baseline;gap:12px" }, el("h3", { style: "color:var(--tinte);margin:0" }, d.kennung),
+      el("div", { class: "agent-kopf" }, el("h3", {}, d.kennung),
         el("span", { class: "leise" }, `${d.rolle || t("agent")} · ${d.zustand === "aktiv" ? t("laeuft") : (d.zustand || t("nie_gestartet"))}` +
           (d.letzter_puls_utc ? ` · ${t("puls", { t: seit(d.letzter_puls_utc) })}` : "")),
-        el("button", { class: "klein-knopf", type: "button", style: "margin-left:auto", onclick: () => hg.remove() }, "×")),
-      abschnitt(t("k_macht"), d.gerade ? [d] : [], x => el("div", {}, x.gerade,
-        el("div", { class: "sehrleise" }, t("k_quelle_" + x.gerade_quelle)))),
-      abschnitt(t("k_kommt"), d.naechste, x => el("div", { class: "zeile" }, ref(`A${x.id}`), " ",
-        el("span", { class: "etikett" }, t("sp_" + x.status) || x.status), " ", x.titel,
-        x.wartet_auf ? el("span", { class: "sehrleise" }, ` – ${t("k_wartet_auf")} ${x.wartet_auf}`) : null)),
-      abschnitt(t("k_laeufe"), d.laeufe, x => el("div", { class: "zeile" }, ref(`L${x.id}`), " ", x.beschreibung, " ",
-        el("span", { class: "sehrleise" }, `${x.status} · ${seit(x.start_utc)}`))),
-      abschnitt(t("k_pruefungen"), d.pruefungen, x => el("div", { class: "zeile" }, ref(`P${x.id}`), " ",
-        x.pruefer === d.kennung ? t("k_soll_pruefen", { x: x.bauer }) : t("k_wartet_pruefung", { x: x.pruefer }),
-        x.aufgabe_id ? ` · A${x.aufgabe_id}` : "", el("span", { class: "sehrleise" }, ` · ${seit(x.angefragt_utc)}`))),
-      abschnitt(t("k_an_ihn", { n: d.an_ihn.length }), d.an_ihn, x => el("div", { class: "zeile" }, ref(`#${x.id}`), " ",
-        el("b", {}, x.von), " ", x.kurz, el("span", { class: "sehrleise" }, ` · ${seit(x.zeit_utc)}`)),
-        t("k_nichts_neu") + (d.offen_alt ? " " + t("k_alt", { n: d.offen_alt }) : "")),
-      abschnitt(t("k_meldungen"), d.meldungen, x => el("div", { class: "zeile" }, ref(`#${x.id}`), " ",
-        el("span", { class: "sehrleise" }, `${t("art_" + x.art) || x.art} · ${seit(x.zeit_utc)}: `), x.kurz)),
-      d.offen_alt && d.an_ihn.length ? el("p", { class: "sehrleise", style: "margin-top:10px" }, t("k_alt", { n: d.offen_alt })) : null,
-      el("div", { class: "aktionen" }, el("button", { class: "knopf", type: "button", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht")))));
+        el("button", { class: "knopf", type: "button", style: "margin-left:auto", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht")),
+        el("button", { class: "klein-knopf", type: "button", "aria-label": "schließen", onclick: () => hg.remove() }, "×")),
+      macht,
+      el("div", { class: "agent-spalten" }, el("div", {}, ...links), el("div", {}, ...rechts)),
+      d.offen_alt && d.an_ihn.length ? el("p", { class: "sehrleise", style: "margin-top:12px" }, t("k_alt", { n: d.offen_alt })) : null));
   document.body.append(hg);
+  document.addEventListener("keydown", function weg(e) { if (e.key === "Escape") { hg.remove(); document.removeEventListener("keydown", weg); } });
 }
 function nachrichtDialog(an) {
   const art = el("select", {}, ["auftrag", "frage", "korrektur", "info"].map(k => el("option", { value: k }, t("art_" + k))));
