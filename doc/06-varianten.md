@@ -122,6 +122,13 @@ Speicher kostet bei Launch ≈ 0,01–0,07 $/Monat (25–200 MB).
 - Zentraler Speicher: beide passen preislich (§6). **Turso**, wenn sich die lokalen Kopien unter Windows/Python bewähren (§8 P6) – gleiche SQL-Sprache lokal und zentral, Kosten unabhängig vom Takt. Sonst **Neon** mit Abgleich-Takt 15 min.
 - Der Pflicht-Kontext nach Komprimierung (→ 05 §4) gehört in den Dienst-Umfang: Der vorhandene Hook bleibt, sein Inhalt wird aus den Daten erzeugt (→ 04 #20).
 
+**Entscheidung zentrale Datenbank (CCamw, 01.11., → 07 E4): Turso.**
+1. **Gleiche Sprache wie lokal:** SQLite-Dialekt – dasselbe `schema.sql`, dieselben Abfragen; die Datenzugriffs-Schicht braucht nur einen zweiten Weg, keine Übersetzung nach Postgres.
+2. **Kosten unabhängig vom Takt:** Abrechnung nach Zeilen, nicht nach wacher Zeit. Unser Bedarf (~85 000 Schreib-Zeilen/Monat) liegt bei < 1 % des Free-Rahmens. Die häufige Halt-Abfrage aus dem Netz (10 §5) kostet praktisch nichts – bei Neon hielte genau sie die Datenbank dauernd wach.
+3. **Keine Zusatzbibliothek:** HTTP-Schnittstelle `POST /v2/pipeline` mit Bearer-Schlüssel, parametrisierte Abfragen, Transaktionen – mit `urllib` aus der Standardbibliothek erreichbar ([HTTP-Referenz](https://docs.turso.tech/sdk/http/reference), geprüft 01.11.). Damit erledigt sich P6 für unsere Bauform: Stufe 2 braucht keine „Embedded Replicas“, weil der eigene Abgleich-Dienst nur spiegelt und Antworten als neue Zeilen zurückholt (10 L3).
+4. **Ausweg bleibt offen:** Wechsel auf Neon/Postgres ändert nur die Datenzugriffs-Schicht.
+Grenzen: Transaktion über HTTP max. 5 s, Verbindung schließt nach 10 s Leerlauf – Abgleich in kleinen Paketen.
+
 ## 8 Offene Prüfpunkte (vor Phase 3)
 | | Frage | Stand |
 |---|---|---|
@@ -130,7 +137,7 @@ Speicher kostet bei Launch ≈ 0,01–0,07 $/Monat (25–200 MB).
 | P3 | Weckt eine Nachricht eine angehaltene Hintergrund-Sitzung? | offen (nur für W6) |
 | P4 | Warum kamen die Weckrufe trotz Bypass an? | geklärt: Sender auch im Bypass; `accept` festschreiben |
 | P5 | Unterliegen Monitor (W2) und asyncRewake-Hook (W3) denselben Abbrüchen? | offen – Versuch |
-| P6 | Turso: Abgleich lokaler Kopien unter Windows/Python, Schreiben ohne Netz, Konflikte | offen – Anbieter-Seite beschreibt es nicht; Doku/Probe nötig |
+| P6 | Turso: Abgleich lokaler Kopien unter Windows/Python, Schreiben ohne Netz, Konflikte | für unsere Bauform hinfällig: eigener Abgleich über die HTTP-Schnittstelle (§7 Entscheidung), keine lokalen Kopien von Turso nötig; Probe der HTTP-Schnittstelle zu Beginn von Stufe 2 |
 | P7 | Neon: kleinste Rechengröße (0,25 CU angenommen) und ob der Free-Rahmen je Projekt für mehrere Rechner gilt | offen – Anbieter-Doku lesen |
 
 ## 9 Bewertung
