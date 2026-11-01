@@ -89,6 +89,13 @@ Jede Tabelle hat zusätzlich: `projekt`, `herkunft` (Rechner), `uid` (global ein
 
 **Windows-Neustart:** Nach dem Hochfahren läuft nur der Dienst (wenige MB, liefert die Workbench); Agenten startet er **nie von selbst** (Tokens, Kontrolle). Alte Sitzungen werden als `beendet` geführt, ihre Schlüssel sind ungültig; niemand wird ins Leere geweckt. Nachrichten bleiben offen, bis der Agent gestartet ist und sein Hook ihn anmeldet – dann stellt der Dienst das Offene zu. Die Workbench zeigt je Agent `soll` gegen Ist („CC2: soll laufen, läuft nicht, 3 offen“); ein Startknopf startet später nur auf Klick des Entwicklers.
 
+**Start und Steuerung ohne Systemkenntnis** (Marcel 01.11. 09:28: „was, wenn ein Benutzer sich mit der Aufgabenplanung nicht auskennt?“):
+- Kein Benutzer bedient die Aufgabenplanung selbst: `amw dienst einrichten` (Stufe 1) bzw. Installer/Einrichtungs-Assistent (Stufe 3) richtet den Autostart ein, Deinstallieren entfernt ihn; die Workbench zeigt den Zustand („Wächter läuft seit …“).
+- **Stufe 1:** Starter = geplante Aufgabe (bei Anmeldung, Neustart nach Absturz, ohne Fenster) – robust, ohne Zusatzbibliothek.
+- **Stufe 3:** Starter = kleiner **Wächter mit Symbol im Infobereich** (Status, Halt, Weiter, Workbench öffnen, Beenden), gestartet über den Autostart-Eintrag des Benutzers (keine Administratorrechte, im Task-Manager unter „Autostart“ sichtbar und schaltbar); er startet den Dienst und startet ihn nach Absturz neu. Nur der Starter wechselt, der Dienst bleibt gleich.
+- **Steuern über Datenbank/Homepage:** Der Dienst holt Befehle aus der Datenbank (er wird nie von außen angesprochen) und führt nur eine feste Liste aus: Halt, Weiter, Agent wecken, Einstellungen neu laden, sich selbst neu starten (z. B. nach Update). Keine freien Befehle.
+- **Grenze:** Läuft auf dem PC gar nichts mehr, kann ihn keine Homepage starten – irgendein Programm muss dort laufen und zuhören. Deshalb ist der Starter minimal und startet automatisch.
+
 **Kontrolle über den Dienst** (Marcel 01.11. 09:27):
 - **Hart, nur lokal:** Geplante Aufgabe und Dienst-Prozess gehören dem Windows-Benutzer des Entwicklers. Ein-/Ausschalten, Löschen, Beenden nur am PC selbst (Aufgabenplanung, Task-Manager).
 - **Weich, auch aus dem Netz:** Die Weboberfläche – lokal oder später auf einem Webserver – hat **keinen Befehlsweg** zum PC, nur Daten in der Datenbank. Sie steuert das Verhalten des Dienstes (Halt/Weiter), nicht den Dienst selbst. Ein Angriff auf die Webseite kann so höchstens Daten ändern, nichts auf dem PC ausführen.
