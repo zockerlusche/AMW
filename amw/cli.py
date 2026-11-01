@@ -151,8 +151,8 @@ def cmd_frage(a, con):
         art, wert = ("option", a.option[0]) if a.option else ("rueckfrage", a.rueckfrage) if a.rueckfrage else ("text", a.text)
         if not wert:
             raise kern.AmwFehler("--option, --text oder --rueckfrage angeben")
-        von = a.von or os.environ.get("AMW_AGENT") or kern.ENTWICKLER
-        print(f"F{a.id} → {kern.frage_antworten(con, pid, a.id, art, wert, 'cli', von)}")
+        # kein stilles „Entwickler“ als Absender: Marcel antwortet in der Workbench, wer hier antwortet, nennt sich
+        print(f"F{a.id} → {kern.frage_antworten(con, pid, a.id, art, wert, 'cli', _von(a))}")
 
 
 def cmd_halt(a, con):
@@ -292,6 +292,18 @@ def cmd_dienst(a):
     rc, aus = einrichtung.powershell(skript)
     print(aus)
     return rc
+
+
+def cmd_anmelden(a, con):
+    """Laufende Sitzung ohne Neustart anmelden (Umschalten, doc/10 §6): wie der Hook bei startup, aus der eigenen
+    Umgebung der Claude-Code-Shell. Der Schlüssel landet nur in der Sitzungsdatei, nie in der Ausgabe."""
+    from . import hook
+    kennung = _von(a)
+    hinweis = hook.anmelden(con, _projekt(con, a), kennung,
+                            {"session_id": os.environ.get("CLAUDE_CODE_SESSION_ID"), "cwd": os.getcwd()})
+    if hinweis:
+        raise kern.AmwFehler(hinweis)
+    print(f"{kennung} angemeldet – der Wächter weckt diese Sitzung ab jetzt bei neuen Nachrichten")
 
 
 def cmd_hook(a):
@@ -481,6 +493,9 @@ def parser():
     x.add_argument("--ja", action="store_true", help="wirklich ausführen (sonst nur anzeigen)")
     x.set_defaults(f=cmd_dienst, ohne_db=True)
 
+    x = s.add_parser("anmelden", help="laufende Sitzung beim Wächter anmelden (ohne Neustart)")
+    x.set_defaults(f=cmd_anmelden)
+
     x = s.add_parser("hook", help="zeigt die Einstellungen für einen Agenten-Projektordner (schreibt nichts)")
     x.add_argument("aktion", choices=["zeige"])
     x.add_argument("--agent", default="CC1", help="nur für die Beispielzeile des Startbefehls")
@@ -495,6 +510,12 @@ def parser():
     x.add_argument("--text")
     x.add_argument("--text-datei")
     x.set_defaults(f=cmd_release)
+
+    # --von/--projekt auch hinter dem Befehl (`amw lesen --von CC1`); SUPPRESS lässt sonst den Wert von vorn stehen
+    for unter in s.choices.values():
+        for name in ("--von", "--projekt"):
+            if name not in unter._option_string_actions:
+                unter.add_argument(name, default=argparse.SUPPRESS)
     return p
 
 
