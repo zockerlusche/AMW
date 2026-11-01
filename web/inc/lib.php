@@ -27,7 +27,7 @@ function konfig(): array {
     foreach ($kandidaten as $kandidat) if ($kandidat && is_file($kandidat)) { $pfad = $kandidat; break; }
     if (!is_file($pfad)) { header_remove('X-Powered-By'); http_response_code(503); exit('AMW: Konfiguration fehlt.'); }
     $k = require $pfad;
-    foreach (['benutzer', 'passwort_hash', 'totp_geheim'] as $pflicht) {
+    foreach (['benutzer', 'passwort_hash'] as $pflicht) {
         if (empty($k[$pflicht])) { http_response_code(503); exit('AMW: Konfiguration unvollständig.'); }
     }
     return $k;
@@ -144,7 +144,16 @@ function csrf_ok(?string $wert): bool {
 
 function herkunft_ok(): bool {                          // Anfragen von fremden Seiten abweisen
     $o = $_SERVER['HTTP_ORIGIN'] ?? '';
-    return $o === '' || parse_url($o, PHP_URL_HOST) === parse_url('//' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST);
+    if ($o === '' || $o === 'null') return $o === '';
+    // Hinter dem CDN des Hosters kann Host anders aussehen (Port, weitergeleiteter Host) – alle eigenen Namen zulassen
+    $eigen = [];
+    foreach (['HTTP_HOST', 'HTTP_X_FORWARDED_HOST', 'SERVER_NAME'] as $s) {
+        foreach (explode(',', (string)($_SERVER[$s] ?? '')) as $h) {
+            $h = strtolower(trim((string)parse_url('//' . trim($h), PHP_URL_HOST)));
+            if ($h !== '') $eigen[] = $h;
+        }
+    }
+    return in_array(strtolower((string)parse_url($o, PHP_URL_HOST)), $eigen, true);
 }
 
 /* --- Anmeldung: Passwort + Einmalcode (TOTP, RFC 6238) ------------------------------------------ */
@@ -186,24 +195,74 @@ function gesperrt(string $ip): bool {
     return (int)$je_ip[0][0] >= FEHL_JE_IP || (int)$gesamt[0][0] >= FEHL_GESAMT;
 }
 
-/** Prüft Benutzer, Passwort und Code. Rückgabe: '' bei Erfolg, sonst ein Hinweis (absichtlich unspezifisch). */
-function anmelden(string $benutzer, string $passwort, string $code): string {
-    $k = konfig();
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '?';
-    if (gesperrt($ip)) return 'Zu viele Fehlversuche – bitte später erneut versuchen.';
-    $ok = hash_equals($k['benutzer'], $benutzer) & password_verify($passwort, $k['passwort_hash']);
-    $schritt = $ok ? totp_pruefen($k['totp_geheim'], $code) : null;
-    $anw = [['INSERT INTO versuch (zeit_utc, ip, ok) VALUES (?, ?, ?)', [jetzt_utc(), $ip, $schritt !== null ? 1 : 0]],
+const EINRICHTEN_S = 600;            // so lange gilt der QR-Code beim ersten Anmelden
+
+/** Geheimnis des zweiten Faktors – liegt im Online-Speicher, wird beim ersten Anmelden per QR-Code eingerichtet. */
+function totp_geheim(): ?string {
+    return zustand_lesen('totp_geheim');
+}
+
+function neues_geheim(): string {
+    $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    $g = '';
+    foreach (str_split(random_bytes(32)) as $b) $g .= $alphabet[ord($b) % 32];   // 32 Zeichen = 160 Bit
+    return $g;
+}
+
+function versuch_merken(string $ip, bool $ok, ?int $schritt = null): void {
+    $anw = [['INSERT INTO versuch (zeit_utc, ip, ok) VALUES (?, ?, ?)', [jetzt_utc(), $ip, $ok ? 1 : 0]],
             ['DELETE FROM versuch WHERE zeit_utc < ?', [jetzt_utc(-30 * 86400)]]];
     if ($schritt !== null) {
         $anw[] = ["INSERT INTO zustand (schluessel, wert) VALUES ('totp_letzt', ?) ON CONFLICT(schluessel)"
                   . ' DO UPDATE SET wert = excluded.wert', [(string)$schritt]];
     }
     sql($anw);
-    if ($schritt === null) { usleep(400000); return 'Anmeldung fehlgeschlagen.'; }
+}
+
+function sitzung_anmelden(): void {
     session_regenerate_id(true);
+    unset($_SESSION['einrichten']);
     $_SESSION['angemeldet'] = true;
     $_SESSION['seit'] = $_SESSION['zuletzt'] = time();
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
+}
+
+/** Prüft Benutzer, Passwort und Code. Rückgabe: '' angemeldet, 'einrichten' = Passwort stimmt, zweiter Faktor fehlt
+ *  noch (QR-Code zeigen), sonst ein Hinweis (absichtlich unspezifisch). */
+function anmelden(string $benutzer, string $passwort, string $code): string {
+    $k = konfig();
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '?';
+    if (gesperrt($ip)) return 'Zu viele Fehlversuche – bitte später erneut versuchen.';
+    $ok = (bool)(hash_equals($k['benutzer'], $benutzer) & password_verify($passwort, $k['passwort_hash']));
+    $geheim = $ok ? totp_geheim() : null;
+    if ($ok && $geheim === null) {                       // erstes Anmelden: zweiten Faktor einrichten
+        session_regenerate_id(true);
+        $_SESSION['einrichten'] = ['geheim' => neues_geheim(), 'seit' => time(), 'benutzer' => $benutzer];
+        return 'einrichten';
+    }
+    $schritt = $ok ? totp_pruefen($geheim, $code) : null;
+    versuch_merken($ip, $schritt !== null, $schritt);
+    if ($schritt === null) { usleep(400000); return 'Anmeldung fehlgeschlagen.'; }
+    sitzung_anmelden();
+    return '';
+}
+
+/** Zweiter Schritt beim ersten Anmelden: erster Code aus der App bestätigt den gescannten QR-Code. */
+function einrichten_abschliessen(string $code): string {
+    $e = $_SESSION['einrichten'] ?? null;
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '?';
+    if (!$e || time() - $e['seit'] > EINRICHTEN_S) { unset($_SESSION['einrichten']); return 'Zeit abgelaufen – bitte neu anmelden.'; }
+    if (gesperrt($ip)) return 'Zu viele Fehlversuche – bitte später erneut versuchen.';
+    $schritt = null;
+    if (preg_match('/^\d{6}$/', $code)) {
+        $jetzt = intdiv(time(), 30);
+        foreach ([$jetzt, $jetzt - 1, $jetzt + 1] as $s) if (hash_equals(totp($e['geheim'], $s), $code)) { $schritt = $s; break; }
+    }
+    if ($schritt === null) { versuch_merken($ip, false); usleep(400000); return 'Code stimmt nicht – bitte die aktuelle Zahl aus der App.'; }
+    // nur wenn noch keiner eingerichtet ist (nie ein bestehendes Geheimnis überschreiben)
+    sql([["INSERT INTO zustand (schluessel, wert) VALUES ('totp_geheim', ?) ON CONFLICT(schluessel) DO NOTHING", [$e['geheim']]]]);
+    if (totp_geheim() !== $e['geheim']) { unset($_SESSION['einrichten']); return 'Zweiter Faktor ist schon eingerichtet – bitte normal anmelden.'; }
+    versuch_merken($ip, true, $schritt);
+    sitzung_anmelden();
     return '';
 }

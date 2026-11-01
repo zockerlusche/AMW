@@ -302,6 +302,9 @@ def cmd_web(a, con):
     if a.aktion == "schema":
         ab.schema()
         print("Online-Speicher: Tabellen ansicht, eingang, versuch, zustand bereit")
+    elif a.aktion == "zweitfaktor-neu":       # Handy weg/neu: beim nächsten Anmelden gibt es wieder einen QR-Code
+        sp.ausfuehren([("DELETE FROM zustand WHERE schluessel IN ('totp_geheim', 'totp_letzt')", [])])
+        print("Zweiter Faktor zurückgesetzt – beim nächsten Anmelden (Code leer lassen) kommt ein neuer QR-Code")
     elif a.aktion == "einmal":
         ab.schema()
         print(f"Briefkasten: {ab.eingang()} Zeile(n) bearbeitet · Ansichten hochgeladen: {ab.hochladen()}")
@@ -530,7 +533,7 @@ def parser():
     x.set_defaults(f=cmd_dienst, ohne_db=True)
 
     x = s.add_parser("web", help="Stufe 2: bauen (Seite für Hostinger) | schema | einmal (Abgleich) | status")
-    x.add_argument("aktion", choices=["bauen", "schema", "einmal", "status"])
+    x.add_argument("aktion", choices=["bauen", "schema", "einmal", "status", "zweitfaktor-neu"])
     x.set_defaults(f=cmd_web)
 
     x = s.add_parser("anmelden", help="laufende Sitzung beim Wächter anmelden (ohne Neustart)")

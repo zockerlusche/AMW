@@ -17,7 +17,7 @@ PC (AMW Dienst)                          Turso (EU, Frankfurt)                 H
 ## 2 Sicherheit
 | Punkt | Umsetzung |
 |---|---|
-| Anmeldung | Benutzer + Passwort (≥ 14 Zeichen, `password_hash`) **und** 6-stelliger Code aus einer Authenticator-App (TOTP, RFC 6238, ±30 s); jeder Code gilt nur einmal |
+| Anmeldung | Benutzer + Passwort (≥ 14 Zeichen, `password_hash`) **und** 6-stelliger Code aus einer Authenticator-App (TOTP, RFC 6238, ±30 s); jeder Code gilt nur einmal. **Einrichtung beim ersten Anmelden:** Code-Feld leer lassen → die Seite zeigt einen QR-Code (eigener Erzeuger `inc/qr.php`, mit einem QR-Leser geprüft) → scannen → erste Zahl bestätigt; das Geheimnis (160 Bit) liegt danach im Online-Speicher, eine zweite Einrichtung ist gesperrt. Neues Handy: `amw web zweitfaktor-neu` am PC |
 | Fehlversuche | Sperre nach 5 Fehlversuchen je Adresse in 15 min oder 20 insgesamt in 60 min; Meldung absichtlich unspezifisch |
 | Sitzung | Cookie `__Host-amw`: nur HTTPS, HttpOnly, SameSite=Strict; neue Sitzungs-ID beim Login; Abmeldung nach 30 min ohne Klick, spätestens nach 12 h |
 | Schreibschutz | Jede Aktion braucht den Sitzungsschlüssel im Kopf (`X-AMW-Token`) und gleiche Herkunft (Origin); höchstens 120 Einträge je Stunde; Körper ≤ 32 KB |
@@ -28,7 +28,7 @@ PC (AMW Dienst)                          Turso (EU, Frankfurt)                 H
 
 **Öffentlicher Code:** Das Repo ist öffentlich. Die Sicherheit hängt nur an den Zugangsdaten (Passwort, TOTP-Geheimnis, Turso-Schlüssel), die nie im Repo stehen – nie daran, dass der Code unbekannt ist.
 
-**Restrisiken (bewusst):** Wer Marcels Hostinger-Konto, GitHub-Konto (Auslieferung) oder den Turso-Schlüssel der Seite hat, kann im Namen des Entwicklers antworten, Nachrichten schicken oder Halt setzen – darum zweiter Faktor auch bei Hostinger, GitHub und Turso. Die Ansichten (Fragen, Aufgaben, Beschlüsse, Wortlaut, Release Notes, Agentenstand) liegen bei Turso in Frankfurt; Geheimnisse gehören nach den Grundregeln ohnehin nicht hinein. Noch nicht gebaut: Suche online, mehrere Benutzer/Rollen, Passkeys, Anzeige des Briefkasten-Protokolls.
+**Restrisiken (bewusst):** Bis zur ersten Einrichtung genügt das Passwort, um den zweiten Faktor einzurichten – darum gleich nach dem Hochladen der Konfiguration selbst anmelden. Wer Marcels Hostinger-Konto, GitHub-Konto (Auslieferung) oder den Turso-Schlüssel der Seite hat, kann im Namen des Entwicklers antworten, Nachrichten schicken oder Halt setzen – darum zweiter Faktor auch bei Hostinger, GitHub und Turso. Die Ansichten (Fragen, Aufgaben, Beschlüsse, Wortlaut, Release Notes, Agentenstand) liegen bei Turso in Frankfurt; Geheimnisse gehören nach den Grundregeln ohnehin nicht hinein. Noch nicht gebaut: Suche online, mehrere Benutzer/Rollen, Passkeys, Anzeige des Briefkasten-Protokolls.
 
 ## 3 Kosten (Turso, kostenloser Rahmen)
 Hochladen: je Änderungsschub höchstens alle 30 s ein paar Ansichten → grob ≤ 300 000 Schreibzeilen im Monat; Briefkasten: 5 760 Abfragen am Tag auf einem Index. Beides weit im freien Rahmen (→ 06 §6).

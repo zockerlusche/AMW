@@ -4,10 +4,9 @@
  *   php F:\amw\werkzeug\web_zugang.php            → schreibt F:\amw\daten\amw-konfig.php (daten/ ist nicht im Repo)
  *   php F:\amw\werkzeug\web_zugang.php <datei>    → an einen anderen Ort
  *
- * Fragt Benutzer und Passwort ab (Passwort wird nicht angezeigt), erzeugt ein neues TOTP-Geheimnis und schreibt
- * die fertige amw-konfig.php. Turso-Adresse und -Schlüssel werden abgefragt (leer lassen = später eintragen).
- * Das TOTP-Geheimnis wird EINMAL angezeigt (für die Authenticator-App) – darum im eigenen Terminal ausführen,
- * nicht über Claude Code (`!`), sonst landet es im Gesprächsverlauf.
+ * Fragt Benutzer, Passwort (verdeckt), Turso-Adresse und -Schlüssel (verdeckt) ab und schreibt amw-konfig.php.
+ * Den zweiten Faktor richtet die Seite beim ersten Anmelden per QR-Code ein (Geheimnis liegt dann im Online-Speicher).
+ * Im eigenen Terminal ausführen (verdeckte Eingabe), nicht über Claude Code (`!`).
  */
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
@@ -37,19 +36,18 @@ if (frage('Passwort wiederholen: ', true) !== $pw) { fwrite(STDERR, "stimmt nich
 $url = frage('Turso-Adresse (leer = später): ');
 $token = $url !== '' ? frage('Turso-Schlüssel nur für die Seite (wird nicht angezeigt): ', true) : '';
 
-$alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-$geheim = '';
-foreach (str_split(random_bytes(20)) as $b) $geheim .= $alphabet[ord($b) % 32];
-
 $inhalt = "<?php\n// AMW online – erzeugt " . gmdate('Y-m-d H:i') . " UTC von werkzeug/web_zugang.php. Nie ins Repo.\nreturn "
     . var_export(['turso_url' => $url, 'turso_token' => $token, 'benutzer' => $benutzer,
-        'passwort_hash' => password_hash($pw, PASSWORD_DEFAULT), 'totp_geheim' => $geheim, 'nur_https' => true], true)
+        'passwort_hash' => password_hash($pw, PASSWORD_DEFAULT), 'nur_https' => true], true)
     . ";\n";
 if (file_put_contents($ziel, $inhalt) === false || !is_file($ziel)) {
     fwrite(STDERR, "FEHLER: konnte $ziel nicht schreiben – nichts angelegt.\n");
     exit(1);
 }
 $ziel = realpath($ziel);
-$link = 'otpauth://totp/AMW:' . rawurlencode($benutzer) . '?secret=' . $geheim . '&issuer=AMW&digits=6&period=30';
-fwrite(STDOUT, "\ngeschrieben: $ziel\nIn die Authenticator-App (Konto manuell hinzufügen, Schlüssel unten) oder als QR:\n$link\n"
-    . "Schlüssel: " . implode(' ', str_split($geheim, 4)) . "\n");
+fwrite(STDOUT, "
+geschrieben: $ziel
+Diese Datei in den Ordner inc der Seite hochladen. Beim ersten Anmelden (Feld Code leer lassen)
+"
+    . "zeigt die Seite einen QR-Code für die Authenticator-App.
+");
