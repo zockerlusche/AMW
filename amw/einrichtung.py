@@ -127,7 +127,7 @@ def _hat_amw(eintraege, starter):
     return any(starter in (h.get("command") or "") for e in eintraege or [] for h in e.get("hooks", []))
 
 
-def agenten_ordner_einrichten(ordner, schreiben=True):
+def agenten_ordner_einrichten(ordner, schreiben=True, sperren=True):
     """Führt hook_einstellungen() in <ordner>/.claude/settings.local.json zusammen – vorhandene Einträge bleiben,
     AMW-Einträge werden nur ergänzt, nie doppelt. Eine fremde Statusline wird nicht ersetzt, sondern als
     „statusline_weiter“ hinter die Brücke gehängt. Vorher eine Sicherung der Datei. Rückgabe: Liste der Änderungen."""
@@ -160,11 +160,12 @@ def agenten_ordner_einrichten(ordner, schreiben=True):
             aenderungen.append(f"bisherige Statusline wird weitergereicht: {alt}")
         d["statusLine"] = soll["statusLine"]
         aenderungen.append("Statusline-Brücke")
-    sperren = d.setdefault("permissions", {}).setdefault("deny", [])
-    neu = [s for s in soll["permissions"]["deny"] if s not in sperren]
-    if neu:
-        sperren.extend(neu)
-        aenderungen.append(f"{len(neu)} Sperr-Regel(n)")
+    if sperren:                                           # nicht im Ordner dessen, der den Wächter betreut
+        liste = d.setdefault("permissions", {}).setdefault("deny", [])
+        neu = [s for s in soll["permissions"]["deny"] if s not in liste]
+        if neu:
+            liste.extend(neu)
+            aenderungen.append(f"{len(neu)} Sperr-Regel(n)")
     if aenderungen and schreiben:
         os.makedirs(os.path.dirname(datei), exist_ok=True)
         if os.path.exists(datei):

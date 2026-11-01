@@ -488,7 +488,8 @@ def cmd_einrichten(a):
     if a.aktion == "agenten-ordner":
         if not a.pfad:
             raise kern.AmwFehler("amw einrichten agenten-ordner <pfad> [--nur-zeigen]")
-        aenderungen = einrichtung.agenten_ordner_einrichten(os.path.abspath(a.pfad), schreiben=not a.nur_zeigen)
+        aenderungen = einrichtung.agenten_ordner_einrichten(os.path.abspath(a.pfad), schreiben=not a.nur_zeigen,
+                                                            sperren=not a.ohne_sperren)
         if not aenderungen:
             print("schon eingerichtet – nichts zu tun")
         for x in aenderungen:
@@ -775,6 +776,7 @@ def parser():
     x.add_argument("aktion", choices=["agenten-ordner"])
     x.add_argument("pfad", nargs="?")
     x.add_argument("--nur-zeigen", action="store_true")
+    x.add_argument("--ohne-sperren", action="store_true", help="keine Sperr-Regeln (Ordner dessen, der den Wächter betreut)")
     x.set_defaults(f=cmd_einrichten, ohne_db=True)
 
     x = s.add_parser("push", help="Benachrichtigungen aufs Handy: status | probe | an | aus | ntfy | pushover | telegram |"
