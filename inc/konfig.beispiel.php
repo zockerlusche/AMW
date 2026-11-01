@@ -1,6 +1,6 @@
 <?php
 /* Vorlage für amw-konfig.php – die echte Datei liegt AUSSERHALB des Web-Ordners (bei Hostinger eine Ebene über
- * public_html) und nie im Repo. Erzeugen: php F:\amw\werkzeug\web_zugang.php (fragt das Passwort ab).
+ * public_html) oder, wenn der Dateimanager nur den Web-Ordner zeigt, in inc/ (von außen gesperrt) – nie im Repo. Erzeugen: php F:\amw\werkzeug\web_zugang.php (fragt das Passwort ab).
  */
 return [
     'turso_url'     => 'https://amw-<name>.aws-eu-central-1.turso.io',

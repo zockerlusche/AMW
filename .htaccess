@@ -12,6 +12,10 @@ RewriteRule (^|/)\. - [F,L]
 RewriteCond %{REQUEST_URI} !(^|/)(index\.php|api\.php)?$
 RewriteRule ^ - [F,L]
 
+<Files "amw-konfig.php">
+  Require all denied
+</Files>
+
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
   Header always set X-Frame-Options "DENY"

@@ -16,10 +16,15 @@ const SCHREIBEN_JE_STUNDE = 120;     // Briefkasten-Zeilen je Stunde
 function konfig(): array {
     static $k = null;
     if ($k !== null) return $k;
-    // Standard: neben public_html (nie darin, auch wenn die Seite in einem Unterordner/einer Subdomain liegt)
+    // Gesucht wird außerhalb des Web-Ordners (neben public_html), sonst in inc/ – das ist von außen gesperrt
+    // (.htaccess) und wird von Git-Deploys nicht angefasst, weil die Datei nicht im Repo ist.
     $wurzel = str_replace('\\', '/', (string)($_SERVER['DOCUMENT_ROOT'] ?? dirname(__DIR__)));
-    $basis = ($p = strpos($wurzel, '/public_html')) !== false ? substr($wurzel, 0, $p) : dirname($wurzel);
-    $pfad = getenv('AMW_KONFIG') ?: $basis . '/amw-konfig.php';
+    $kandidaten = [getenv('AMW_KONFIG') ?: null];
+    if (($p = strpos($wurzel, '/public_html')) !== false) $kandidaten[] = substr($wurzel, 0, $p) . '/amw-konfig.php';
+    else $kandidaten[] = dirname($wurzel) . '/amw-konfig.php';
+    $kandidaten[] = __DIR__ . '/amw-konfig.php';
+    $pfad = '';
+    foreach ($kandidaten as $kandidat) if ($kandidat && is_file($kandidat)) { $pfad = $kandidat; break; }
     if (!is_file($pfad)) { header_remove('X-Powered-By'); http_response_code(503); exit('AMW: Konfiguration fehlt.'); }
     $k = require $pfad;
     foreach (['benutzer', 'passwort_hash', 'totp_geheim'] as $pflicht) {
