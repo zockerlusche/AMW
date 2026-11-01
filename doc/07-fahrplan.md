@@ -20,9 +20,10 @@
 | E1 | Ablage der AMW-Entscheidungen: in F:\amw\doc (07 + 09, git), nicht im LayerIT-Bus; später in der AMW-Datenbank | **entschieden** 01.11. 08:58 |
 | E2 | Grundrichtung: Variante C (eigenes Produkt) in Stufen – erst lokal, dann unterwegs, dann Produkt für andere (→ 06 §3, 10 §1/§4) | **entschieden** 01.11. 08:58 |
 | E3 | Freigabe Stufe 0 (Proben nur an CCamws eigener Sitzung) und Bau von Stufe 1 in F:\amw, ohne Eingriff in LayerIT und den heutigen Bus; Umschalten der LayerIT-Agenten nur mit Marcels Wort | **entschieden** 01.11. 08:58 |
-| E4 | Zentrale Datenbank für Stufe 2: Turso oder Neon (→ 06 §5–§6) | offen, bis Stufe 2 |
+| E4 | Zentrale Datenbank für Stufe 2: CCamw wählt die Plattform mit Begründung, Marcel legt das Konto an (Marcel 01.11. 09:19) | Verfahren entschieden; Wahl bis Stufe 2 |
 | E5 | Zeitpunkt eigenes Repo (Stufe 3) | offen |
-| E6 | Umschalten LayerIT auf die AMW (Phase 5) | offen, nach Stufe 1 |
+| E7 | amw-dienst als geplante Aufgabe unter Marcels Benutzer anlegen (ersetzt die Wachen je Agent) | grundsätzlich klar (Marcel 01.11. 09:19); Anlegen erst nach Rückfrage, Ende Stufe 1 |
+| E6 | Umschalten LayerIT auf die AMW (Phase 5): entscheiden Marcel und CCamw gemeinsam; CCamw meldet, wenn der Punkt erreicht ist | offen, nach Stufe 1 |
 
 ## Regeln für diese Doku
 → README „Leseregel“.

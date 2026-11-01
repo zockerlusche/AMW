@@ -17,3 +17,4 @@ Chronik der Vorgaben des Entwicklers zur AMW. Nur Datum, Kern und Ort, an dem de
 | 01.11. 08:5x | Frage an CCamw: Wie arbeiten wir zusammen, wie trennt sich CCamw von LayerIT? Freie Wahl der Technik (lokal, Web, Zusammenarbeit der Agenten) | 07 E1, 10 |
 | 01.11. 08:58 | Entscheidungen E1 (Ablage in F:\amw\doc), E2 (C in Stufen), E3 (Proben + Bau Stufe 1 frei) – im Chat mit CCamw | 07 Entscheidungen |
 | 01.11. 09:16 | Projekt an CCamw übergeben mit dem Auftrag, es korrekt umzusetzen; technische Fragen beantwortet CCamw selbst, Marcel nur bei echten Blockaden fragen | 07, 10 |
+| 01.11. 09:19 | Dienst = Wächter auf Marcels Rechner, übernimmt später das Wecken; Umschalten LayerIT gemeinsam entscheiden, CCamw meldet den Zeitpunkt; zentrale Plattform wählt CCamw, Marcel legt das Konto an | 07 E4, E6, E7 |
