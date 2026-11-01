@@ -89,6 +89,12 @@ Jede Tabelle hat zusätzlich: `projekt`, `herkunft` (Rechner), `uid` (global ein
 
 **Windows-Neustart:** Nach dem Hochfahren läuft nur der Dienst (wenige MB, liefert die Workbench); Agenten startet er **nie von selbst** (Tokens, Kontrolle). Alte Sitzungen werden als `beendet` geführt, ihre Schlüssel sind ungültig; niemand wird ins Leere geweckt. Nachrichten bleiben offen, bis der Agent gestartet ist und sein Hook ihn anmeldet – dann stellt der Dienst das Offene zu. Die Workbench zeigt je Agent `soll` gegen Ist („CC2: soll laufen, läuft nicht, 3 offen“); ein Startknopf startet später nur auf Klick des Entwicklers.
 
+**Kontrolle über den Dienst** (Marcel 01.11. 09:27):
+- **Hart, nur lokal:** Geplante Aufgabe und Dienst-Prozess gehören dem Windows-Benutzer des Entwicklers. Ein-/Ausschalten, Löschen, Beenden nur am PC selbst (Aufgabenplanung, Task-Manager).
+- **Weich, auch aus dem Netz:** Die Weboberfläche – lokal oder später auf einem Webserver – hat **keinen Befehlsweg** zum PC, nur Daten in der Datenbank. Sie steuert das Verhalten des Dienstes (Halt/Weiter), nicht den Dienst selbst. Ein Angriff auf die Webseite kann so höchstens Daten ändern, nichts auf dem PC ausführen.
+- **Stufe 2:** Ein Halt aus dem Netz erreicht den PC über den Abgleich. Der Dienst fragt den zentralen Speicher dafür häufiger ab, aber nur nach Halt und Freigabe (→ 06 §6: bei Turso ohne nennenswerte Kosten, bei Neon hielte es die Datenbank wach – Kriterium für E4).
+- **Agenten:** Sie laufen unter dem Benutzer des Entwicklers im Bypass-Modus und hätten die Rechte, Aufgabe oder Prozess anzufassen. Regel: kein Agent tut das ohne Wort des Entwicklers. Beim Umschalten (07 E6) zusätzlich Sperr-Regeln in den Agenten-Einstellungen gegen `schtasks`, `Disable-ScheduledTask`, `Unregister-ScheduledTask` und das Beenden des Dienst-Prozesses.
+
 ## 6 Übergang vom heutigen Bus
 1. bus.db läuft während Stufe 1 unverändert weiter; nichts wird dort umgebaut.
 2. Ein Übernahme-Skript liest bus.db **nur lesend** und schreibt amw.db nach der Zuordnung in §3; wiederholbar, mit Zählvergleich je Tabelle.
