@@ -12,7 +12,9 @@ Stand: Stufe 1 im Bau (lokal, nur Python-Standardbibliothek, SQLite).
 | `amw/kern.py` | Fachlogik: Nachrichten, Aufgaben, Fragen, Halt, Pflicht-Kontext |
 | `amw/cli.py`, `amw.cmd` | Kommandozeile `amw` |
 | `amw/hook.py` | SessionStart-Hook: Sitzung anmelden, Pflicht-Kontext einspielen |
-| `amw/dienst.py`, `amw/pipe.py` | Wächter: weckt Agenten über die Pipe ihrer Sitzung |
+| `amw/dienst.py`, `amw/pipe.py` | Wächter: weckt Agenten über die Pipe ihrer Sitzung, startet die Workbench |
+| `amw/workbench.py`, `amw/workbench.html` | Workbench-Oberfläche auf http://127.0.0.1:8780 (Start, Fragen, Aufgaben, Wissen, Betrieb, Release Notes, Halt) |
+| `amw/uebernahme.py` | Übernahme des LayerIT-Busses (bus.db nur lesend) in eine neue amw.db |
 | `tests/` | `python -m unittest discover -s tests` |
 | `daten/` | Datenbank `amw.db`, `dienst.log` (nicht im git) |
 

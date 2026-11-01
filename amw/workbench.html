@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMW Workbench</title>
+<style>
+:root {
+  --grund: #13120e; --flaeche: #1c1a15; --flaeche2: #24211b; --linie: #353026; --linie2: #4a4335;
+  --tinte: #ece5d3; --leise: #a39a86; --sehrleise: #6f6858;
+  --bernstein: #f0a93a; --bernstein-weich: rgba(240,169,58,.12);
+  --gruen: #86b46f; --rot: #e5583a; --rot-weich: rgba(229,88,58,.14); --blau: #7ea6d8;
+  --schatten: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 30px -18px rgba(0,0,0,.8);
+  --titel: "Bahnschrift", "DIN Alternate", "Barlow Semi Condensed", "Arial Narrow", sans-serif;
+  --text: "Segoe UI Variable Text", "Segoe UI", "Source Sans 3", sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+}
+:root[data-thema="hell"] {
+  --grund: #efe9da; --flaeche: #f8f4ea; --flaeche2: #f1ebdc; --linie: #d8cfba; --linie2: #c4b99f;
+  --tinte: #211e17; --leise: #6b6250; --sehrleise: #9a907b;
+  --bernstein: #b46d07; --bernstein-weich: rgba(180,109,7,.10);
+  --gruen: #4c7d36; --rot: #b8381c; --rot-weich: rgba(184,56,28,.10); --blau: #3d6ea8;
+  --schatten: 0 10px 24px -18px rgba(60,45,10,.45);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--grund); color: var(--tinte); font: 14px/1.45 var(--text);
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(255,255,255,.018) 31px 32px),
+    radial-gradient(1200px 500px at 85% -10%, var(--bernstein-weich), transparent 60%);
+}
+:root[data-thema="hell"] body { background-image: repeating-linear-gradient(0deg, transparent 0 31px, rgba(0,0,0,.03) 31px 32px); }
+button, input, select, textarea { font: inherit; color: inherit; }
+.mono { font-family: var(--mono); font-size: 12.5px; letter-spacing: -.01em; }
+.leise { color: var(--leise); }
+.sehrleise { color: var(--sehrleise); }
+
+/* --- Rahmen ------------------------------------------------------------------------------- */
+.rahmen { display: grid; grid-template-columns: 216px 1fr; grid-template-rows: 58px 1fr; height: 100vh; }
+header {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; padding: 0 18px 0 0;
+  border-bottom: 1px solid var(--linie); background: color-mix(in srgb, var(--grund) 85%, transparent);
+  backdrop-filter: blur(6px); position: relative; z-index: 2;
+}
+.marke { width: 216px; height: 100%; display: flex; align-items: center; gap: 10px; padding-left: 18px; border-right: 1px solid var(--linie); }
+.marke b { font: 600 22px/1 var(--titel); letter-spacing: .14em; }
+.marke span { font: 10.5px/1.15 var(--titel); letter-spacing: .05em; color: var(--leise); text-transform: uppercase; }
+.signale { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.signal { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border: 1px solid var(--linie);
+  border-radius: 3px; font: 12px var(--titel); letter-spacing: .05em; text-transform: uppercase; color: var(--leise); background: var(--flaeche); }
+.punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--sehrleise); flex: none; }
+.punkt.gruen { background: var(--gruen); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gruen) 20%, transparent); }
+.punkt.bernstein { background: var(--bernstein); box-shadow: 0 0 0 3px var(--bernstein-weich); }
+.punkt.rot { background: var(--rot); box-shadow: 0 0 0 3px var(--rot-weich); animation: puls 1.6s infinite; }
+@keyframes puls { 50% { opacity: .35; } }
+.suche { margin-left: auto; position: relative; }
+.suche input { width: min(34vw, 380px); padding: 8px 12px 8px 30px; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; outline: none; }
+.suche input:focus { border-color: var(--bernstein); }
+.suche::before { content: "⌕"; position: absolute; left: 10px; top: 6px; color: var(--sehrleise); font-size: 16px; }
+.schalter-halt { font: 600 13px var(--titel); letter-spacing: .12em; text-transform: uppercase; padding: 9px 16px; border-radius: 3px;
+  border: 1px solid var(--rot); background: transparent; color: var(--rot); cursor: pointer; }
+.schalter-halt:hover { background: var(--rot-weich); }
+.schalter-halt.aktiv { background: var(--rot); color: #fff; }
+
+nav { border-right: 1px solid var(--linie); padding: 14px 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+nav .gruppe { font: 11px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--sehrleise); padding: 14px 18px 6px; }
+nav a { display: flex; align-items: baseline; gap: 10px; padding: 8px 18px; color: var(--leise); text-decoration: none; cursor: pointer;
+  border-left: 3px solid transparent; font: 15px var(--titel); letter-spacing: .02em; }
+nav a:hover { color: var(--tinte); background: var(--flaeche); }
+nav a.an { color: var(--tinte); border-left-color: var(--bernstein); background: linear-gradient(90deg, var(--bernstein-weich), transparent); }
+nav a .zahl { margin-left: auto; font: 12px var(--mono); color: var(--sehrleise); }
+nav a .zahl.heiss { color: #1b1408; background: var(--bernstein); padding: 0 7px; border-radius: 9px; font-weight: 600; }
+nav .fuss { margin-top: auto; padding: 14px 18px; display: flex; gap: 8px; }
+.klein-knopf { font: 12px var(--titel); letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border: 1px solid var(--linie2);
+  background: transparent; border-radius: 3px; cursor: pointer; color: var(--leise); }
+.klein-knopf:hover { color: var(--tinte); border-color: var(--leise); }
+
+main { overflow-y: auto; padding: 26px 30px 60px; }
+.kopf { display: flex; align-items: baseline; gap: 14px; margin: 0 0 18px; }
+h1 { font: 600 28px/1.1 var(--titel); letter-spacing: .03em; margin: 0; }
+h2 { font: 600 13px var(--titel); letter-spacing: .16em; text-transform: uppercase; color: var(--leise); margin: 30px 0 12px;
+  display: flex; align-items: center; gap: 10px; }
+h2::after { content: ""; flex: 1; height: 1px; background: var(--linie); }
+.zeile-reveal > * { animation: auf .45s cubic-bezier(.2,.7,.2,1) both; }
+.zeile-reveal > *:nth-child(2) { animation-delay: .04s } .zeile-reveal > *:nth-child(3) { animation-delay: .08s }
+.zeile-reveal > *:nth-child(4) { animation-delay: .12s } .zeile-reveal > *:nth-child(5) { animation-delay: .16s }
+.zeile-reveal > *:nth-child(n+6) { animation-delay: .2s }
+@keyframes auf { from { opacity: 0; transform: translateY(6px); } }
+
+/* --- Bausteine ---------------------------------------------------------------------------- */
+.karte { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 4px; box-shadow: var(--schatten); }
+.ref { font: 12.5px var(--mono); color: var(--bernstein); }
+.etikett { display: inline-block; font: 11px var(--titel); letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px;
+  border: 1px solid var(--linie2); border-radius: 2px; color: var(--leise); }
+.etikett.rot { border-color: var(--rot); color: var(--rot); }
+.etikett.bernstein { border-color: var(--bernstein); color: var(--bernstein); }
+.etikett.gruen { border-color: var(--gruen); color: var(--gruen); }
+.leer { padding: 22px; color: var(--sehrleise); border: 1px dashed var(--linie); border-radius: 4px; text-align: center; }
+
+.band-halt { display: flex; gap: 14px; align-items: center; padding: 14px 18px; border: 1px solid var(--rot); background: var(--rot-weich);
+  border-radius: 4px; margin-bottom: 18px; }
+.band-halt b { font: 600 18px var(--titel); letter-spacing: .1em; color: var(--rot); }
+
+.wartet { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.wartet .karte { padding: 14px 16px; border-left: 3px solid var(--bernstein); cursor: pointer; transition: transform .15s, border-color .15s; }
+.wartet .karte:hover { transform: translateY(-2px); border-color: var(--bernstein); }
+.wartet .karte p { margin: 6px 0 0; }
+
+.agenten { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.kachel { padding: 14px 16px 12px; position: relative; overflow: hidden; }
+.kachel .name { font: 600 26px/1 var(--titel); letter-spacing: .04em; }
+.kachel .rolle { font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin-top: 2px; }
+.kachel .zustand { display: flex; align-items: center; gap: 8px; margin-top: 12px; font: 13px var(--titel); letter-spacing: .04em; }
+.kachel .info { margin-top: 8px; color: var(--leise); font-size: 12.5px; min-height: 36px; }
+.kachel .offen { position: absolute; top: 12px; right: 14px; font: 600 13px var(--mono); }
+.kachel.tot { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); }
+.kachel.aus { opacity: .55; }
+
+.frage { padding: 18px 20px; margin-bottom: 16px; }
+.frage .meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--leise); font-size: 12.5px; }
+.frage h3 { font: 600 19px/1.3 var(--titel); letter-spacing: .01em; margin: 10px 0 6px; }
+.frage .worum { color: var(--leise); margin: 0 0 12px; white-space: pre-wrap; }
+.optionen { display: grid; gap: 8px; margin: 12px 0; }
+.option { text-align: left; padding: 10px 14px; background: var(--flaeche2); border: 1px solid var(--linie); border-radius: 3px; cursor: pointer;
+  display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: start; transition: border-color .12s, background .12s; }
+.option:hover { border-color: var(--leise); }
+.option .kenn { font: 600 15px var(--titel); color: var(--leise); }
+.option.empfohlen { border-color: var(--bernstein); background: linear-gradient(90deg, var(--bernstein-weich), var(--flaeche2) 70%); }
+.option.empfohlen .kenn { color: var(--bernstein); }
+.option.gewaehlt { outline: 2px solid var(--tinte); outline-offset: 1px; }
+.option[disabled] { cursor: default; }
+.grund { border-left: 2px solid var(--bernstein); padding: 2px 0 2px 12px; margin: 10px 0; color: var(--leise); }
+.grund b { color: var(--tinte); font-weight: 600; }
+textarea { width: 100%; min-height: 64px; resize: vertical; padding: 10px 12px; background: var(--grund); border: 1px solid var(--linie);
+  border-radius: 3px; outline: none; }
+textarea:focus { border-color: var(--bernstein); }
+.aktionen { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.knopf { font: 600 13px var(--titel); letter-spacing: .08em; text-transform: uppercase; padding: 8px 14px; border-radius: 3px; cursor: pointer;
+  border: 1px solid var(--linie2); background: var(--flaeche2); }
+.knopf:hover { border-color: var(--leise); }
+.knopf.haupt { background: var(--bernstein); border-color: var(--bernstein); color: #1b1408; }
+.knopf[disabled] { opacity: .4; cursor: default; }
+.rueckmeldung { font-size: 12.5px; }
+details.vor { margin-top: 14px; border-top: 1px solid var(--linie); padding-top: 10px; }
+details.vor summary { cursor: pointer; color: var(--leise); font: 12px var(--titel); letter-spacing: .1em; text-transform: uppercase; list-style: none; }
+details.vor summary::before { content: "▸ "; } details.vor[open] summary::before { content: "▾ "; }
+.vor-eintrag { display: grid; grid-template-columns: 74px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--linie); }
+.vor-eintrag:last-child { border-bottom: 0; }
+.vor-eintrag .text { color: var(--leise); white-space: pre-wrap; font-size: 12.5px; margin-top: 2px; max-height: 9em; overflow: auto; }
+
+.reiter { display: flex; gap: 2px; border-bottom: 1px solid var(--linie); margin-bottom: 16px; align-items: flex-end; flex-wrap: wrap; }
+.reiter button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 14px; cursor: pointer; color: var(--leise);
+  font: 14px var(--titel); letter-spacing: .04em; }
+.reiter button.an { color: var(--tinte); border-bottom-color: var(--bernstein); }
+.reiter .rechts { margin-left: auto; display: flex; gap: 8px; padding-bottom: 6px; }
+.reiter select, .reiter input { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; padding: 5px 8px; }
+
+.board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.spalte h4 { font: 600 12px var(--titel); letter-spacing: .14em; text-transform: uppercase; margin: 0 0 8px; color: var(--leise); display: flex; gap: 8px; }
+.aufgabe { padding: 10px 12px; margin-bottom: 8px; }
+.aufgabe .t { margin: 3px 0; overflow-wrap: anywhere; }
+.aufgabe .w { font-size: 12px; color: var(--bernstein); overflow-wrap: anywhere; }
+.liste .zeile { display: grid; grid-template-columns: 78px 70px 1fr 110px; gap: 12px; padding: 8px 4px; border-bottom: 1px solid var(--linie); align-items: baseline; }
+.liste .zeile > :nth-child(3) { overflow-wrap: anywhere; }
+
+.wissen-eintrag { padding: 12px 14px; margin-bottom: 8px; }
+.wissen-eintrag .kopfzeile { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.wissen-eintrag .inhalt { margin-top: 6px; white-space: pre-wrap; color: var(--leise); max-height: 12em; overflow: auto; font-size: 13px; }
+
+.messer { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.messer .karte { padding: 14px 16px; }
+.messer .wert { font: 600 30px/1.1 var(--titel); margin-top: 6px; }
+.balken { height: 6px; background: var(--flaeche2); border-radius: 3px; margin-top: 10px; overflow: hidden; }
+.balken > i { display: block; height: 100%; background: var(--gruen); }
+pre.log { background: var(--grund); border: 1px solid var(--linie); border-radius: 4px; padding: 12px; overflow: auto; max-height: 360px; font: 12px/1.5 var(--mono); color: var(--leise); }
+table.tab { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.tab th { text-align: left; font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); padding: 6px 8px; border-bottom: 1px solid var(--linie); }
+table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical-align: top; }
+
+.release { display: grid; grid-template-columns: 120px 1fr; gap: 18px; padding: 14px 0; border-bottom: 1px solid var(--linie); }
+.release .ver { font: 600 20px var(--titel); letter-spacing: .03em; }
+.release .text { white-space: pre-wrap; color: var(--leise); margin-top: 6px; font-size: 13px; }
+
+.dialog-hg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 10; }
+.dialog { width: min(520px, 92vw); padding: 22px; }
+.dialog h3 { font: 600 20px var(--titel); margin: 0 0 10px; color: var(--rot); letter-spacing: .06em; }
+.toast { position: fixed; bottom: 18px; right: 18px; padding: 10px 14px; z-index: 20; animation: auf .3s both; }
+
+@media (max-width: 900px) {
+  .rahmen { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
+  .marke { width: auto; border-right: 0; }
+  nav { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--linie); padding: 0; }
+  nav .gruppe, nav .fuss { display: none; }
+  .board { grid-template-columns: 1fr; }
+  .suche input { width: 40vw; }
+  main { padding: 18px 16px 50px; }
+}
+</style>
+</head>
+<body>
+<div class="rahmen">
+  <header>
+    <div class="marke"><b>AMW</b><span>Agentenmanagement<br>Workbench</span></div>
+    <div class="signale" id="signale"></div>
+    <div class="suche"><input id="suche" placeholder="Suchen: Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten" autocomplete="off"></div>
+    <button class="schalter-halt" id="halt-knopf" type="button">Halt</button>
+  </header>
+  <nav id="nav">
+    <div class="gruppe">Für dich</div>
+    <a data-sicht="start">Start</a>
+    <a data-sicht="fragen">Fragen <span class="zahl" data-zahl="fragen"></span></a>
+    <div class="gruppe">Arbeit</div>
+    <a data-sicht="arbeit">Aufgaben <span class="zahl" data-zahl="offen"></span></a>
+    <a data-sicht="releases">Release Notes <span class="zahl" data-zahl="releases"></span></a>
+    <div class="gruppe">Wissen</div>
+    <a data-sicht="wissen">Beschlüsse · Regeln · Wortlaut <span class="zahl" data-zahl="beschluesse"></span></a>
+    <div class="gruppe">Betrieb</div>
+    <a data-sicht="betrieb">Dienst · Sitzungen · Läufe</a>
+    <div class="fuss"><button class="klein-knopf" id="thema" type="button">Hell / Dunkel</button></div>
+  </nav>
+  <main id="inhalt"></main>
+</div>
+
+<script>
+"use strict";
+const TOKEN = "__AMW_TOKEN__";
+const $ = (s, w = document) => w.querySelector(s);
+let zustand = { sicht: "start", start: null, fragenAlle: false, arbeit: { sicht: "offen", agent: "", q: "" }, wissenQ: "", wissenReiter: "beschluesse" };
+
+/* Elemente nur über textContent – Inhalte aus der Datenbank werden nie als HTML gesetzt. */
+function el(tag, attr, ...kinder) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attr || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kinder.flat()) if (k != null && k !== false) e.append(k instanceof Node ? k : document.createTextNode(String(k)));
+  return e;
+}
+const zeit = t => { if (!t) return "–"; const d = new Date(t); return d.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); };
+function seit(t) {
+  if (!t) return "nie"; const s = (Date.now() - new Date(t)) / 1000;
+  if (s < 90) return "gerade eben"; if (s < 3600) return `vor ${Math.round(s / 60)} min`;
+  if (s < 86400) return `vor ${Math.round(s / 3600)} h`; return `vor ${Math.round(s / 86400)} T`;
+}
+async function holen(weg) { const r = await fetch(weg, { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return r.json(); }
+async function schicken(weg, daten) {
+  const r = await fetch(weg, { method: "POST", headers: { "Content-Type": "application/json", "X-AMW-Token": TOKEN }, body: JSON.stringify(daten) });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.fehler || r.status); return j;
+}
+function toast(text, fehler) {
+  const t = el("div", { class: "karte toast" }, text); if (fehler) t.style.borderColor = "var(--rot)";
+  document.body.append(t); setTimeout(() => t.remove(), 3800);
+}
+
+/* --- Kopf, Navigation ---------------------------------------------------------------------- */
+async function kopfAktualisieren() {
+  try {
+    const d = await holen("/api/start"); zustand.start = d;
+    const lebend = d.agenten.filter(a => a.zustand === "aktiv").length;
+    const sp = d.speicher.frei;
+    $("#signale").replaceChildren(
+      el("span", { class: "signal" }, el("span", { class: "punkt gruen" }), "Dienst"),
+      el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), `${lebend}/${d.agenten.filter(a => a.soll === "an").length} Agenten`),
+      el("span", { class: "signal" }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? "Speicher ?" : `${sp} GB frei`),
+    );
+    for (const z of document.querySelectorAll("[data-zahl]")) {
+      const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", z.dataset.zahl === "fragen" && n > 0);
+    }
+    const hk = $("#halt-knopf"); const aktiv = d.halt.length > 0;
+    hk.classList.toggle("aktiv", aktiv); hk.textContent = aktiv ? "Weiter" : "Halt";
+  } catch (e) {
+    $("#signale").replaceChildren(el("span", { class: "signal" }, el("span", { class: "punkt rot" }), "Dienst nicht erreichbar"));
+  }
+}
+function zeige(sicht) {
+  zustand.sicht = sicht;
+  for (const a of document.querySelectorAll("nav a")) a.classList.toggle("an", a.dataset.sicht === sicht);
+  try { localStorage.setItem("amw-sicht", sicht); } catch (e) {}
+  ({ start: sichtStart, fragen: sichtFragen, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases }[sicht] || sichtStart)();
+}
+function rahmen(titel, ...rest) { const m = $("#inhalt"); m.replaceChildren(el("div", { class: "kopf" }, el("h1", {}, titel), ...rest)); return m; }
+
+/* --- Start --------------------------------------------------------------------------------- */
+async function sichtStart() {
+  await kopfAktualisieren(); const d = zustand.start; if (!d) return;
+  const m = rahmen("Start", el("span", { class: "leise" }, `Stand ${zeit(d.zeit)}`));
+  if (d.halt.length) m.append(el("div", { class: "band-halt" }, el("b", {}, "HALT"),
+    el("div", {}, d.halt.map(h => `#${h.id} ${h.gilt_fuer === "alle" ? "alle Agenten" : h.gilt_fuer} · ${h.von}: ${h.text} (${seit(h.seit_utc)})`).join(" | ")),
+    el("button", { class: "knopf", style: "margin-left:auto", onclick: () => weiterGeben() }, "Weiter")));
+  m.append(el("h2", {}, "Wartet auf dich"));
+  m.append(d.fragen.length
+    ? el("div", { class: "wartet zeile-reveal" }, d.fragen.slice(0, 6).map(f => el("div", { class: "karte", onclick: () => zeige("fragen") },
+        el("div", { class: "frage-meta" }, el("span", { class: "ref" }, `F${f.id}`), " ", el("span", { class: "leise" }, `${f.von} · ${seit(f.zeit_utc)}`),
+          f.blockiert ? el("span", { class: "etikett rot", style: "margin-left:8px" }, "blockiert") : null),
+        el("p", {}, f.kurz.length > 180 ? f.kurz.slice(0, 180) + " …" : f.kurz))))
+    : el("div", { class: "leer" }, "Nichts offen – keine Frage wartet auf dich."));
+  m.append(el("h2", {}, "Agenten"));
+  m.append(el("div", { class: "agenten zeile-reveal" }, d.agenten.map(kachel)));
+}
+/* „1204 · A1204 Titel“ → „A1204 Titel“ (alte Titel tragen die Nummer schon) */
+function ohneDoppel(t) { const [nr, ...rest] = t.split(" · "); const titel = rest.join(" · "); return titel.startsWith("A" + nr) ? titel : `A${nr} · ${titel}`; }
+function kachel(a) {
+  const lebt = a.zustand === "aktiv"; const soll = a.soll === "an";
+  const zust = lebt ? ["gruen", "läuft"] : soll ? ["rot", a.zustand ? "beendet – soll laufen" : "nie gestartet"] : ["", a.soll === "ruht" ? "ruht" : "aus"];
+  return el("div", { class: `karte kachel ${!lebt && soll ? "tot" : ""} ${!soll ? "aus" : ""}` },
+    a.offen ? el("span", { class: "offen", style: `color:var(${a.offen > 20 ? "--bernstein" : "--leise"})` }, `${a.offen} offen`) : null,
+    el("div", { class: "name" }, a.kennung), el("div", { class: "rolle" }, a.rolle || "Agent"),
+    el("div", { class: "zustand" }, el("span", { class: "punkt " + zust[0] }), zust[1]),
+    el("div", { class: "info" }, a.laeuft ? ohneDoppel(a.laeuft) : el("span", { class: "sehrleise" }, "keine laufende Aufgabe"),
+      el("div", { class: "sehrleise mono" }, lebt ? `Puls ${seit(a.letzter_puls_utc)}` : a.grenzen || "")));
+}
+
+/* --- Fragen -------------------------------------------------------------------------------- */
+async function sichtFragen() {
+  const m = rahmen("Fragen", el("label", { class: "leise" },
+    el("input", { type: "checkbox", ...(zustand.fragenAlle ? { checked: true } : {}), onchange: e => { zustand.fragenAlle = e.target.checked; sichtFragen(); } }),
+    " geparkte zeigen"));
+  let liste; try { liste = await holen("/api/fragen" + (zustand.fragenAlle ? "?alle=1" : "")); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  if (!liste.length) { m.append(el("div", { class: "leer" }, "Keine offenen Fragen.")); return; }
+  m.append(el("div", { class: "zeile-reveal" }, liste.map(frageKarte)));
+}
+function frageKarte(f) {
+  const echteOptionen = f.optionen.filter(o => o.kenn && o.kenn !== "alt");
+  const notiz = el("textarea", { placeholder: echteOptionen.length ? "Anmerkung zur gewählten Option (optional) – oder eigene Antwort / Rückfrage" : "Deine Antwort oder Rückfrage" });
+  const meldung = el("span", { class: "rueckmeldung leise" });
+  const karte = el("div", { class: "karte frage" });
+  const sperren = text => { for (const b of karte.querySelectorAll("button")) b.disabled = true; notiz.disabled = true; meldung.textContent = text; };
+  async function antworten(art, wert, anmerkung) {
+    try { const r = await schicken(`/api/frage/${f.id}/antwort`, { art, wert, anmerkung });
+      sperren(r.status === "offen" ? "Rückfrage gesendet – der Fragesteller wird geweckt." : "Beantwortet – der Fragesteller wird geweckt.");
+      kopfAktualisieren(); } catch (e) { toast("Fehler: " + e.message, true); }
+  }
+  karte.append(
+    el("div", { class: "meta" }, el("span", { class: "ref" }, `F${f.id}`), `von ${f.von}`, el("span", { class: "sehrleise" }, `${zeit(f.zeit_utc)} · ${seit(f.zeit_utc)}`),
+      f.blockiert ? el("span", { class: "etikett rot" }, "blockiert Arbeit") : null,
+      f.aufgabe_id ? el("span", { class: "etikett" }, `A${f.aufgabe_id}`) : null),
+    el("h3", {}, f.kurz),
+    f.worum ? el("p", { class: "worum" }, f.worum) : null);
+  if (echteOptionen.length) {
+    karte.append(el("div", { class: "optionen" }, echteOptionen.map(o => el("button", {
+      type: "button", class: "option" + (o.kenn === f.empfehlung ? " empfohlen" : ""),
+      onclick: e => { e.currentTarget.classList.add("gewaehlt"); antworten("option", o.kenn, notiz.value); } },
+      el("span", { class: "kenn" }, o.kenn), el("span", {}, o.text), o.kenn === f.empfehlung ? el("span", { class: "etikett bernstein" }, "Empfehlung") : el("span")))));
+  } else if (f.optionen.length) {
+    karte.append(el("div", { class: "grund" }, el("b", {}, "Optionen: "), f.optionen.map(o => o.text).join(" · ")));
+  }
+  if (f.grund) karte.append(el("div", { class: "grund" }, el("b", {}, f.empfehlung ? `Warum ${f.empfehlung}: ` : ""), f.grund));
+  if (f.fundstellen) karte.append(el("div", { class: "sehrleise mono", style: "margin:6px 0" }, "Fundstellen: " + f.fundstellen));
+  karte.append(notiz, el("div", { class: "aktionen" },
+    el("button", { class: "knopf" + (echteOptionen.length ? "" : " haupt"), type: "button", onclick: () => notiz.value.trim() ? antworten("text", notiz.value) : toast("Bitte Text eingeben", true) }, "Eigene Antwort"),
+    el("button", { class: "knopf", type: "button", onclick: () => notiz.value.trim() ? antworten("rueckfrage", notiz.value) : toast("Bitte die Rückfrage eingeben", true) }, "Rückfrage"),
+    meldung));
+  if (f.vorgeschichte.length) karte.append(el("details", { class: "vor" }, el("summary", {}, `Vorgeschichte (${f.vorgeschichte.length})`),
+    f.vorgeschichte.map(v => el("div", { class: "vor-eintrag" }, el("div", {}, el("span", { class: "ref" }, v.ref), el("div", { class: "sehrleise" }, v.art)),
+      el("div", {}, el("div", {}, v.titel, v.zusatz ? el("span", { class: "sehrleise" }, `  · ${v.zusatz}`) : null, v.zeit ? el("span", { class: "sehrleise" }, `  · ${zeit(v.zeit)}`) : null),
+        v.text ? el("div", { class: "text" }, v.text) : null)))));
+  return karte;
+}
+
+/* --- Arbeit -------------------------------------------------------------------------------- */
+async function sichtArbeit() {
+  const a = zustand.arbeit; const m = rahmen("Aufgaben");
+  const agenten = (zustand.start?.agenten || []).map(x => x.kennung);
+  const suche = el("input", { placeholder: "filtern …", value: a.q, onkeydown: e => { if (e.key === "Enter") { a.q = e.target.value; sichtArbeit(); } } });
+  m.append(el("div", { class: "reiter" },
+    ["offen", "geparkt", "pool", "erledigt"].map(s => el("button", { class: s === a.sicht ? "an" : "", type: "button", onclick: () => { a.sicht = s; sichtArbeit(); } },
+      { offen: "Offen", geparkt: "Geparkt", pool: "Brainstorming / Pool", erledigt: "Abgeschlossen" }[s])),
+    el("div", { class: "rechts" },
+      el("select", { onchange: e => { a.agent = e.target.value; sichtArbeit(); } }, el("option", { value: "" }, "alle Agenten"),
+        agenten.map(k => el("option", { value: k, ...(k === a.agent ? { selected: true } : {}) }, k))), suche)));
+  let liste; try { liste = await holen(`/api/aufgaben?sicht=${a.sicht}&agent=${encodeURIComponent(a.agent)}&q=${encodeURIComponent(a.q)}`); }
+  catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  if (!liste.length) { m.append(el("div", { class: "leer" }, "Keine Aufgaben in dieser Sicht.")); return; }
+  if (a.sicht === "offen") {
+    const sp = { laeuft: [], wartet: [], blockiert: [] }; for (const x of liste) (sp[x.status] || sp.wartet).push(x);
+    m.append(el("div", { class: "board" }, [["laeuft", "Läuft"], ["wartet", "Wartet"], ["blockiert", "Blockiert"]].map(([k, t]) =>
+      el("div", { class: "spalte" }, el("h4", {}, t, el("span", { class: "sehrleise mono" }, sp[k].length)),
+        sp[k].slice(0, 120).map(x => el("div", { class: "karte aufgabe" },
+          el("div", {}, el("span", { class: "ref" }, `A${x.id}`), " ", el("span", { class: "leise" }, x.agent || "–"),
+            x.einstufung === "keine_prio" ? el("span", { class: "etikett", style: "margin-left:6px" }, "keine Prio") : null),
+          el("div", { class: "t" }, x.titel.length > 200 ? x.titel.slice(0, 200) + " …" : x.titel),
+          x.wartet_auf ? el("div", { class: "w" }, "⇢ " + x.wartet_auf.slice(0, 160)) : null))))));
+  } else {
+    m.append(el("div", { class: "liste" }, liste.map(x => el("div", { class: "zeile" }, el("span", { class: "ref" }, `A${x.id}`),
+      el("span", { class: "leise" }, x.agent || "–"), el("span", {}, x.titel), el("span", { class: "sehrleise mono" }, zeit(x.fertig_utc || x.angelegt_utc))))));
+  }
+}
+
+/* --- Wissen -------------------------------------------------------------------------------- */
+async function sichtWissen() {
+  const m = rahmen("Wissen");
+  const such = el("input", { placeholder: "in Beschlüssen, Regeln, Wortlaut suchen …", value: zustand.wissenQ, style: "width:300px",
+    onkeydown: e => { if (e.key === "Enter") { zustand.wissenQ = e.target.value; sichtWissen(); } } });
+  let d; try { d = await holen("/api/wissen?q=" + encodeURIComponent(zustand.wissenQ)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  const r = zustand.wissenReiter;
+  m.append(el("div", { class: "reiter" }, [["beschluesse", `Beschlüsse (${d.beschluesse.length})`], ["regeln", `Regeln (${d.regeln.length})`], ["wortlaut", `Wortlaut (${d.wortlaut.length})`]]
+    .map(([k, t]) => el("button", { class: k === r ? "an" : "", type: "button", onclick: () => { zustand.wissenReiter = k; sichtWissen(); } }, t)),
+    el("div", { class: "rechts" }, such)));
+  const box = el("div", { class: "zeile-reveal" });
+  if (r === "beschluesse") box.append(...d.beschluesse.map(b => el("div", { class: "karte wissen-eintrag" },
+    el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `B${b.id}`), el("b", {}, b.stichwort),
+      el("span", { class: "etikett " + (b.status === "gilt" ? "gruen" : b.status === "unklar" ? "bernstein" : "") }, b.status),
+      el("span", { class: "sehrleise" }, `${zeit(b.zeit_utc)} · ${b.quelle}`)), el("div", { class: "inhalt" }, b.regel))));
+  if (r === "regeln") box.append(...d.regeln.map(x => el("div", { class: "karte wissen-eintrag" },
+    el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, (x.ebene === "arbeit" ? "KR" : "PR") + x.nr),
+      el("span", { class: "etikett" }, x.ebene === "arbeit" ? "Arbeitsregel" : "Projektregel" + (x.teil ? " · " + x.teil : "")),
+      el("span", { class: "sehrleise" }, "Stand " + zeit(x.stand_utc))), el("div", { class: "inhalt" }, x.text))));
+  if (r === "wortlaut") box.append(...d.wortlaut.map(w => el("div", { class: "karte wissen-eintrag" },
+    el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `W${w.id}`), el("span", { class: "sehrleise" }, `${zeit(w.zeit_utc)} · ${w.kanal}`)),
+    el("div", { class: "inhalt", style: "color:var(--tinte)" }, w.text))));
+  if (!box.children.length) box.append(el("div", { class: "leer" }, "Nichts gefunden."));
+  m.append(box);
+}
+
+/* --- Betrieb ------------------------------------------------------------------------------- */
+async function sichtBetrieb() {
+  const m = rahmen("Betrieb"); let d; try { d = await holen("/api/betrieb"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  const anteil = d.speicher.frei && d.speicher.gesamt ? d.speicher.frei / d.speicher.gesamt : 0;
+  m.append(el("div", { class: "messer zeile-reveal" },
+    el("div", { class: "karte" }, el("div", { class: "leise" }, "Arbeitsspeicher frei"), el("div", { class: "wert" }, d.speicher.frei == null ? "?" : `${d.speicher.frei} GB`),
+      el("div", { class: "sehrleise" }, `von ${d.speicher.gesamt} GB · Grenze für Läufe 8 GB`),
+      el("div", { class: "balken" }, el("i", { style: `width:${Math.round(anteil * 100)}%;background:var(${d.speicher.frei < 8 ? "--bernstein" : "--gruen"})` }))),
+    el("div", { class: "karte" }, el("div", { class: "leise" }, "Aktive Sitzungen"), el("div", { class: "wert" }, d.sitzungen.filter(s => s.zustand === "aktiv").length),
+      el("div", { class: "sehrleise" }, "angemeldet über den Hook")),
+    el("div", { class: "karte" }, el("div", { class: "leise" }, "Sperren"), el("div", { class: "wert" }, d.sperren.length), el("div", { class: "sehrleise" }, "Halt und Anweisungen")),
+    el("div", { class: "karte" }, el("div", { class: "leise" }, "Datenbank"), el("div", { class: "mono", style: "margin-top:10px;overflow-wrap:anywhere" }, d.db))));
+  m.append(el("h2", {}, "Sperren"), d.sperren.length ? tabelle(["#", "Art", "Für", "Von", "Text", "Seit"], d.sperren.map(s => [s.id, s.art, s.gilt_fuer, s.von, s.text, zeit(s.seit_utc)]))
+    : el("div", { class: "leer" }, "Keine Sperren."));
+  m.append(el("h2", {}, "Sitzungen"), d.sitzungen.length ? tabelle(["Agent", "Zustand", "Gestartet", "Puls", "Beendet"], d.sitzungen.map(s => [s.kennung, s.zustand, zeit(s.gestartet_utc), seit(s.letzter_puls_utc), zeit(s.beendet_utc)]))
+    : el("div", { class: "leer" }, "Noch keine Sitzung angemeldet."));
+  m.append(el("h2", {}, "Rechen-Läufe"), d.laeufe.length ? tabelle(["#", "Agent", "Lauf", "Status", "Start", "Ende", "rc"], d.laeufe.map(l => [l.id, l.agent, l.beschreibung, l.status, zeit(l.start_utc), zeit(l.ende_utc), l.rc ?? ""]))
+    : el("div", { class: "leer" }, "Keine Läufe."));
+  m.append(el("h2", {}, "Protokoll des Dienstes"), el("pre", { class: "log" }, d.log.join("\n") || "(leer)"));
+}
+function tabelle(kopf, zeilen) {
+  return el("table", { class: "tab" }, el("thead", {}, el("tr", {}, kopf.map(k => el("th", {}, k)))), el("tbody", {}, zeilen.map(z => el("tr", {}, z.map(w => el("td", {}, w ?? ""))))));
+}
+
+/* --- Release Notes ------------------------------------------------------------------------- */
+async function sichtReleases() {
+  const m = rahmen("Release Notes"); let l; try { l = await holen("/api/releases"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  if (!l.length) { m.append(el("div", { class: "leer" }, "Noch keine Release Notes.")); return; }
+  m.append(el("div", {}, l.map(r => el("div", { class: "release" },
+    el("div", {}, el("div", { class: "ver" }, r.version || "Merge"), el("div", { class: "sehrleise mono" }, zeit(r.zeit_utc)),
+      el("span", { class: "etikett " + (r.veroeffentlicht_utc ? "gruen" : "") }, r.veroeffentlicht_utc ? "öffentlich" : "intern")),
+    el("div", {}, el("b", {}, r.titel), r.commit_sha ? el("span", { class: "ref", style: "margin-left:8px" }, r.commit_sha.slice(0, 8)) : null,
+      r.text_intern ? el("div", { class: "text" }, r.text_intern) : null, r.aufgaben ? el("div", { class: "sehrleise mono", style: "margin-top:6px" }, "Aufgaben: " + r.aufgaben) : null)))));
+}
+
+/* --- Suche, Halt, Thema -------------------------------------------------------------------- */
+async function suchen(q) {
+  const m = rahmen("Suche", el("span", { class: "leise" }, `„${q}“`)); let l; try { l = await holen("/api/suche?q=" + encodeURIComponent(q)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  for (const a of document.querySelectorAll("nav a")) a.classList.remove("an");
+  if (!l.length) { m.append(el("div", { class: "leer" }, "Nichts gefunden.")); return; }
+  m.append(el("div", { class: "liste" }, l.map(x => el("div", { class: "zeile" }, el("span", { class: "ref" }, x.ref), el("span", { class: "leise" }, x.art),
+    el("span", {}, x.titel || ""), el("span", { class: "sehrleise mono" }, zeit(x.zeit))))));
+}
+function haltDialog() {
+  const agenten = (zustand.start?.agenten || []).filter(a => a.soll !== "aus").map(a => a.kennung);
+  const fuer = el("select", {}, el("option", { value: "alle" }, "alle Agenten"), agenten.map(k => el("option", { value: k }, k)));
+  const text = el("textarea", { placeholder: "Grund (erscheint bei den Agenten)" });
+  const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
+    el("div", { class: "karte dialog" }, el("h3", {}, "Halt setzen"),
+      el("p", { class: "leise" }, "Laufende Agenten bekommen sofort ein STOPP und beenden ihre aktuelle Arbeit sauber. Danach weckt der Dienst nur noch für Stopp und Freigabe – bis „Weiter“. Gilt auch nach einem Neustart."),
+      el("div", { style: "margin:10px 0" }, fuer), text,
+      el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", style: "background:var(--rot);border-color:var(--rot);color:#fff", type: "button", onclick: async () => {
+        try { await schicken("/api/halt", { fuer: fuer.value, text: text.value.trim() || "Halt vom Entwickler" }); hg.remove(); toast("Halt gesetzt"); zeige(zustand.sicht); }
+        catch (e) { toast("Fehler: " + e.message, true); } } }, "Halt setzen"),
+        el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, "Abbrechen"))));
+  document.body.append(hg); text.focus();
+}
+async function weiterGeben() {
+  const halte = zustand.start?.halt || []; const fuer = [...new Set(halte.map(h => h.gilt_fuer))];
+  try { let n = 0; for (const f of fuer) n += (await schicken("/api/weiter", { fuer: f })).aufgehoben; toast(`${n} Halt aufgehoben`); zeige(zustand.sicht); }
+  catch (e) { toast("Fehler: " + e.message, true); }
+}
+$("#halt-knopf").addEventListener("click", () => (zustand.start?.halt || []).length ? weiterGeben() : haltDialog());
+$("#suche").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.value.trim().length > 1) suchen(e.target.value.trim()); });
+for (const a of document.querySelectorAll("nav a")) a.addEventListener("click", () => zeige(a.dataset.sicht));
+function thema(t) { document.documentElement.dataset.thema = t; try { localStorage.setItem("amw-thema", t); } catch (e) {} }
+$("#thema").addEventListener("click", () => thema(document.documentElement.dataset.thema === "hell" ? "dunkel" : "hell"));
+try { thema(localStorage.getItem("amw-thema") || (matchMedia("(prefers-color-scheme: light)").matches ? "hell" : "dunkel")); } catch (e) { thema("dunkel"); }
+
+/* Selbst aktualisieren – nur Startseite und Betrieb, und nie während einer Eingabe. */
+setInterval(() => {
+  const tippt = ["TEXTAREA", "INPUT", "SELECT"].includes(document.activeElement?.tagName);
+  if (document.hidden || tippt || document.querySelector(".dialog-hg")) return;
+  if (zustand.sicht === "start" || zustand.sicht === "betrieb") zeige(zustand.sicht); else kopfAktualisieren();
+}, 15000);
+let startSicht = "start"; try { startSicht = localStorage.getItem("amw-sicht") || "start"; } catch (e) {}
+if (location.hash.length > 1) startSicht = location.hash.slice(1);
+kopfAktualisieren().then(() => zeige(startSicht));
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 Liest bus.db ausschließlich lesend (mode=ro) und schreibt eine neue Datenbank; eine vorhandene Zieldatei wird
 nie überschrieben. Wiederholbar: für das Umschalten (doc/07 E6) einfach neu in eine frische Datei laufen lassen.
 Nummern von Nachrichten, Aufgaben, Beschlüssen, Wortlaut und Fragen an den Entwickler bleiben gleich
-(#16160, A1207, B2362, Frage 334). Fragen an den TL bekommen 100000 + alte Nummer (T5 → F100005).
+(#16160, A1207, B2362, Frage 334). Fragen an den TL bekommen 5000 + alte Nummer (T5 → F5005); neue Fragen zählen danach weiter.
 Übernommene Empfänge gelten als schon geweckt, damit der Dienst den Altbestand nicht zustellt.
 Nicht übernommen: LayerIT-Fach-Tabellen (kommen als Projekt-Erweiterung), Alt-Tabellen (doc/03 §2), devlog_post.
 
@@ -18,7 +18,7 @@ import sys
 from . import db
 
 PROJEKT = "LayerIT"
-TL_FRAGE_VERSATZ = 100000
+TL_FRAGE_VERSATZ = 5000
 
 ART = {  # alte Art → neue Art (doc/04 #15: aus 35 Arten im Altbestand wird die eine Liste)
     "auftrag": "auftrag", "eilig": "auftrag", "dringend": "auftrag", "vorgabe": "auftrag", "richtung": "auftrag",

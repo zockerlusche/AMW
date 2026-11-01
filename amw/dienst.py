@@ -142,6 +142,8 @@ def main(argv=None):
     p = argparse.ArgumentParser(prog="amw-dienst")
     p.add_argument("--einmal", action="store_true", help="ein Durchgang (Test)")
     p.add_argument("--takt", type=float, default=1.0)
+    p.add_argument("--port", type=int, default=8780, help="Workbench-Oberfläche auf 127.0.0.1")
+    p.add_argument("--ohne-web", action="store_true")
     a = p.parse_args(argv)
     einrichten_log()
     sperre = einzige_instanz()
@@ -151,6 +153,13 @@ def main(argv=None):
     con = db.verbinde()
     d = Dienst(con)
     log.info("Dienst gestartet (PID %s, %s)", os.getpid(), db.db_pfad())
+    if not (a.einmal or a.ohne_web):
+        from . import workbench
+        try:
+            workbench.starten(a.port)
+            log.info("Workbench: http://127.0.0.1:%s/", a.port)
+        except OSError as e:                         # Port belegt – Wecker läuft trotzdem
+            log.error("Workbench nicht gestartet (Port %s): %s", a.port, e)
     d.aufsicht()
     d.zustellen()
     if a.einmal:

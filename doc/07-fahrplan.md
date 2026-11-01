@@ -6,7 +6,7 @@
 | 1 | Inventur (03), Erfahrungen (04), Befragung aller Agenten, Marktvergleich + Varianten + Kosten (06), Architektur + Stufen (10) | CCamw (seit 01.11. 08:47 allein verantwortlich) | erledigt 01.11. |
 | 2 | Entscheidungen des Entwicklers (unten) | Marcel | E1–E3 entschieden 01.11. 08:58 |
 | 3 | Stufe 0 Proben (→ 10 §4) | CCamw | P2 grün 01.11. 09:10; P1 zurückgestellt (Dienst macht sie hinfällig); P6/P7 vor Stufe 2 |
-| 4 | Stufe 1 Lokal: amw.db, CLI, amw-dienst, Hook, Workbench-Seite, Übernahme aus bus.db (→ 10 §4–§6) | CCamw; Auskünfte von CC3 (Bus/Wache) und CC5 (Oberfläche) | läuft – fertig 01.11.: Datenmodell, CLI, Hook, Wächter (Ende-zu-Ende an CCamw erprobt), 20 Tests; offen: Übernahme aus bus.db, Workbench-Seite, Einrichtung als geplante Aufgabe (E7) |
+| 4 | Stufe 1 Lokal: amw.db, CLI, amw-dienst, Hook, Workbench-Seite, Übernahme aus bus.db (→ 10 §4–§6) | CCamw; Auskünfte von CC3 (Bus/Wache) und CC5 (Oberfläche) | läuft – fertig 01.11.: Datenmodell, CLI, Hook, Wächter (Ende-zu-Ende an CCamw erprobt), Übernahme aus bus.db (Probe: alle Zählungen gleich), Workbench-Seite (Start, Fragen mit Antwort per Klick, Aufgaben, Wissen, Betrieb, Release Notes, Halt), 24 Tests; offen: Einrichtung als geplante Aufgabe (E7), Probebetrieb mit echten Daten |
 | 5 | Umschalten LayerIT auf die AMW (ohne Datenverlust) | Marcel gibt frei | nach Stufe 1 |
 | 6 | Stufe 2 Unterwegs (Spiegel, Anmeldung, Veröffentlichen) | CCamw | wenn Stufe 1 trägt |
 | 7 | Stufe 3 Produkt (Installer, mehrere Nutzer/Rechner, eigenes Repo privat; öffentlich erst, wenn es im Betrieb trägt) | CCamw, Marcel | später |
