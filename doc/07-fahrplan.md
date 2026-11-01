@@ -6,7 +6,7 @@
 | 1 | Inventur (03), Erfahrungen (04), Befragung aller Agenten, Marktvergleich + Varianten + Kosten (06), Architektur + Stufen (10) | CCamw (seit 01.11. 08:47 allein verantwortlich) | Papier fertig 01.11.; wartet auf Entscheidungen unten |
 | 2 | Entscheidungen des Entwicklers (unten) | Marcel | E1–E3 entschieden 01.11. 08:58 |
 | 3 | Stufe 0 Proben (→ 10 §4) | CCamw | läuft |
-| 4 | Stufe 1 Lokal: amw.db, CLI, amw-dienst, Hook, Workbench-Seite, Übernahme aus bus.db (→ 10 §4–§5) | CCamw; Auskünfte von CC3 (Bus/Wache) und CC5 (Oberfläche) | nach Proben |
+| 4 | Stufe 1 Lokal: amw.db, CLI, amw-dienst, Hook, Workbench-Seite, Übernahme aus bus.db (→ 10 §4–§6) | CCamw; Auskünfte von CC3 (Bus/Wache) und CC5 (Oberfläche) | nach Proben |
 | 5 | Umschalten LayerIT auf die AMW (ohne Datenverlust) | Marcel gibt frei | nach Stufe 1 |
 | 6 | Stufe 2 Unterwegs (Spiegel, Anmeldung, Veröffentlichen) | CCamw | wenn Stufe 1 trägt |
 | 7 | Stufe 3 Produkt (Installer, mehrere Nutzer/Rechner, eigenes Repo privat; öffentlich erst, wenn es im Betrieb trägt) | CCamw, Marcel | später |
