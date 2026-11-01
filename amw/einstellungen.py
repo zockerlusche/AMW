@@ -40,6 +40,13 @@ def _wahr(v):
     raise ValueError("an oder aus")
 
 
+def _befehl(v):
+    v = str(v).strip()
+    if len(v) > 500 or "\n" in v:
+        raise ValueError("ein Befehl in einer Zeile (bis 500 Zeichen)")
+    return v
+
+
 def _kennung(v):
     v = str(v).strip()
     if not v or len(v) > 20 or not all(c.isalnum() or c in "-_" for c in v):
@@ -57,6 +64,7 @@ FELDER = {
     "bruecke_an": (True, _wahr),
     "bruecke_absender": ("TL", _kennung),
     "bruecke_kopie_s": (60, _ganz(15, 3600)),
+    "statusline_weiter": ("", _befehl),            # bisherige Statusline, die amw-statusline.py weiterreicht
 }
 
 

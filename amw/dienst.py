@@ -20,7 +20,7 @@ import os
 import sys
 import time
 
-from . import betrieb, db, kern, pipe, ueberwachung
+from . import betrieb, db, kern, pipe, push, statusline, ueberwachung
 
 AUFSICHT_S = 30           # Puls-Prüfung und Wiederholung fehlgeschlagener Zustellungen
 NUR_IM_HALT = ("stopp", "freigabe")
@@ -173,8 +173,15 @@ class Dienst:
         for p in self.con.execute("SELECT id FROM projekt").fetchall():   # Warteschlange: Speicher wieder frei, Agent wieder da
             for lid in betrieb.warteschlange(self.con, p["id"]):
                 log.info("Warteschlange: L%s freigegeben", lid)
+        statusline.uebernehmen(self.con)                                     # Kontext, Grenzen, Kosten je Sitzung
         for e in self.ueberwachung.runde():                                  # Projekt-Server, Stillstand
             log.info("Überwachung: %s", e)
+        try:                                                                 # Push aufs Handy (eigene Fehler nie störend)
+            for p in self.con.execute("SELECT id FROM projekt").fetchall():
+                for e in push.runde(self.con, p["id"]):
+                    log.info("Push: %s", e)
+        except Exception as e:
+            log.warning("Push: %s: %s", type(e).__name__, e)
 
 
 def _sekunden(utc):

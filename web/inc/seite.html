@@ -90,7 +90,8 @@ h2::after { content: ""; flex: 1; height: 1px; background: var(--linie); }
 .zeile-reveal > *:nth-child(n+6) { animation-delay: .2s }
 .still .zeile-reveal > * { animation: none; }
 nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise); letter-spacing: 0; }
-.einst { display: grid; gap: 16px; max-width: 980px; }
+.einst { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 980px; }
+.einst > * { min-width: 0; }   /* sonst zieht die breite Agenten-Tabelle alle Karten über den Handy-Rand */
 .einst .karte { padding: 16px 18px; }
 .einst h3 { font: 600 15px var(--titel); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; }
 .einst .feld { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 6px 14px; align-items: start; padding: 5px 0; }
@@ -124,6 +125,15 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .kurztext.auf { display: block; -webkit-line-clamp: unset; }
 .mehr { font: 12px var(--titel); letter-spacing: .06em; color: var(--sehrleise); cursor: pointer; background: none; border: 0; padding: 4px 0 0; }
 .nachtrag-neu { margin-left: 8px; }
+.mini-balken { display: grid; gap: 3px; margin-top: 8px; }
+.mb { display: grid; grid-template-columns: 54px 1fr 38px; gap: 6px; align-items: center; font-size: 11px; color: var(--sehrleise); }
+.mb-spur { height: 5px; background: var(--grund); border-radius: 3px; overflow: hidden; } .mb-spur i { display: block; height: 100%; }
+.push-gruppe { border-top: 1px solid var(--linie); margin-top: 12px; padding-top: 8px; }
+.push-gruppe h4 { font: 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--leise); margin: 4px 0; }
+.rot-text { color: var(--rot); } .bernstein-text { color: var(--bernstein); }
+.kachel .zustand { flex-wrap: wrap; row-gap: 2px; }
+.sprung { display: flex; gap: 8px 14px; flex-wrap: wrap; margin: -6px 0 14px; font-size: 13px; }
+.sprung a { color: var(--leise); cursor: pointer; border-bottom: 1px dotted var(--linie2); }
 
 .wartet { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
 .wartet .karte { padding: 14px 16px; border-left: 3px solid var(--bernstein); cursor: pointer; transition: transform .15s, border-color .15s; }
@@ -348,7 +358,7 @@ const TEXTE = {
     s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
     nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
     nicht_angemeldet_h: "Läuft, wird aber nicht geweckt – im Fenster: python F:/amw/amw-cli.py anmelden --von <Kennung>",
-    an_dich: "Nachrichten an dich", antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_freigabe: "Freigabe",
+    an_dich: "Nachrichten an dich", antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_pruefbitte: "Prüfbitte", art_stopp: "Stopp", art_freigabe: "Freigabe",
     k_details: "Klicken: was macht er, was kommt noch", k_offen_h: "neue offene Nachrichten (dazu {n} Altbestand aus dem alten Bus)",
     k_gerade: "Gerade:", k_vermutet: "(aus letzter Meldung)", k_unbekannt: "Tätigkeit unbekannt", k_zuletzt: "Zuletzt",
     k_macht: "Macht gerade", k_quelle_angabe: "eigene Angabe (amw taetigkeit)", k_quelle_aufgabe: "laufende Aufgabe", k_quelle_meldung: "abgeleitet aus seiner letzten Meldung",
@@ -384,6 +394,21 @@ const TEXTE = {
     text_fehlt: "Bitte Text eingeben", rueckfrage_fehlt: "Bitte die Rückfrage eingeben", fehler: "Fehler: {x}",
     aufgaben: "Aufgaben", t_offen: "Offen", t_geparkt: "Geparkt", t_pool: "Brainstorming / Pool", t_erledigt: "Abgeschlossen",
     filtern: "filtern …", keine_aufgaben: "Keine Aufgaben in dieser Sicht.", sp_laeuft: "Läuft", sp_wartet: "Wartet", sp_blockiert: "Blockiert", keine_prio: "keine Prio",
+    z_arbeitet: "arbeitet", z_frei: "frei", z_freigabe: "wartet auf Freigabe", z_eingabe: "wartet auf Eingabe", z_fehler: "Fehler", z_beendet: "beendet",
+    b_kontext: "Kontext", b_5h: "5 Std.", b_7t: "Woche", k_zustand: "Zustand und Verbrauch", k_zustand_leer: "Noch keine Daten – Hooks und Statusline-Brücke einrichten (amw einrichten agenten-ordner)",
+    k_denkstufe: "Denkstufe {x}", k_kosten: "Sitzung {x} $ (Schätzung)", k_reset: "5 Std. zurückgesetzt {x}", k_stand: "Stand {x}",
+    verbrauch: "Verbrauch je Tag (US-$, Schätzung)", verbrauch_h: "Aus der Statusline: Zuwachs der Sitzungskosten zum Listenpreis. Im Abo zählt eher die 5-Stunden-Grenze.",
+    verbrauch_leer: "Noch keine Messpunkte – die Statusline-Brücke liefert sie (amw einrichten agenten-ordner).", k_summe: "Summe",
+    k_zeit: "Zeit", k_titel: "Meldung", k_ergebnis: "Ergebnis",
+    p_titel: "Benachrichtigungen aufs Handy", p_h: "Zugangsdaten liegen nur auf diesem PC ({x}). Gemeldet werden nur Hinweise, nie Inhalte.",
+    p_an: "Benachrichtigen", p_an_h: "Hauptschalter; gemeldet wird, was ab dem Einschalten passiert", p_link: "Link in der Meldung",
+    p_link_h: "Adresse der Online-Seite, z. B. https://amw.example.de/", p_an_kurz: "an", p_server: "Server", p_kanal: "Kanal (Topic)",
+    p_kanal_h: "geheim wie ein Passwort; leer lassen = unverändert. Zufälligen Kanal: amw push ntfy", p_token: "Zugangstoken", p_optional: "optional",
+    p_app: "App-Token", p_user: "Benutzerschlüssel", p_bot: "Bot-Token", p_chat: "Chat-ID", p_chat_h: "herausfinden: amw push telegram --token …",
+    p_ereignisse: "Was gemeldet wird", pe_frage: "neue Frage an dich (und Erinnerung nach 60 min)", pe_nachricht: "Nachricht an dich",
+    pe_warnung: "Warnung (Server aus, Stillstand, Fehler, Grenzen)", pe_eingabe: "Agent wartet auf Freigabe/Eingabe (ab 5 min)", pe_halt: "Halt gesetzt/aufgehoben",
+    pe_rueckblick: "täglicher Rückblick", p_ruhe: "Ruhezeit", p_ruhe_h: "nur Dringendes (Halt, Server aus); der Rest kommt danach gesammelt",
+    p_von: "von", p_bis: "bis", p_max: "höchstens je Stunde", p_probe: "Probe {x}", p_protokoll: "Zuletzt verschickt", p_leer: "Noch nichts verschickt.",
     achtung: "Achtung", nachtrag_neu: "{n} neuer Nachtrag", aufklappen: "Klick: ganzer Text", s_extra: "{n} außerplanmäßig",
     jetzt_bei: "jetzt: {x}", geaendert: "geändert", notizen: "Notizen ({n})", server: "Projekt-Server", k_name: "Name", k_port: "Port",
     k_zustaendig: "Zuständig", k_neustart: "Neustart", k_ausfaelle: "Ausfälle", sz_laeuft: "läuft", sz_aus: "aus", sz_unbekannt: "noch nicht geprüft",
@@ -415,7 +440,7 @@ const TEXTE = {
     s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
     nicht_angemeldet_h: "Running but cannot be woken – in its window: python F:/amw/amw-cli.py anmelden --von <name>",
-    an_dich: "Messages for you", antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_freigabe: "Release",
+    an_dich: "Messages for you", antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_pruefbitte: "Review request", art_stopp: "Stop", art_freigabe: "Release",
     k_details: "Click: what is it doing, what is next", k_offen_h: "new open messages (plus {n} legacy from the old bus)",
     k_gerade: "Now:", k_vermutet: "(from last report)", k_unbekannt: "activity unknown", k_zuletzt: "Last",
     k_macht: "Doing now", k_quelle_angabe: "own statement (amw taetigkeit)", k_quelle_aufgabe: "running task", k_quelle_meldung: "derived from its last report",
@@ -451,6 +476,21 @@ const TEXTE = {
     text_fehlt: "Please enter a text", rueckfrage_fehlt: "Please enter your question", fehler: "Error: {x}",
     aufgaben: "Tasks", t_offen: "Open", t_geparkt: "Parked", t_pool: "Brainstorming / pool", t_erledigt: "Done",
     filtern: "filter …", keine_aufgaben: "No tasks in this view.", sp_laeuft: "Running", sp_wartet: "Waiting", sp_blockiert: "Blocked", keine_prio: "no priority",
+    z_arbeitet: "working", z_frei: "idle", z_freigabe: "waiting for permission", z_eingabe: "waiting for input", z_fehler: "error", z_beendet: "ended",
+    b_kontext: "Context", b_5h: "5 h", b_7t: "Week", k_zustand: "State and usage", k_zustand_leer: "No data yet – set up hooks and status line bridge (amw einrichten agenten-ordner)",
+    k_denkstufe: "effort {x}", k_kosten: "session {x} $ (estimate)", k_reset: "5 h resets {x}", k_stand: "as of {x}",
+    verbrauch: "Usage per day (US $, estimate)", verbrauch_h: "From the status line: increase of session cost at list price. On a subscription the 5-hour limit matters more.",
+    verbrauch_leer: "No samples yet – the status line bridge provides them (amw einrichten agenten-ordner).", k_summe: "Total",
+    k_zeit: "Time", k_titel: "Message", k_ergebnis: "Result",
+    p_titel: "Phone notifications", p_h: "Credentials stay on this PC only ({x}). Only hints are sent, never content.",
+    p_an: "Notify", p_an_h: "Master switch; only what happens after switching on is sent", p_link: "Link in the message",
+    p_link_h: "address of the online page, e.g. https://amw.example.com/", p_an_kurz: "on", p_server: "Server", p_kanal: "Topic",
+    p_kanal_h: "secret like a password; empty = unchanged. Random topic: amw push ntfy", p_token: "Access token", p_optional: "optional",
+    p_app: "App token", p_user: "User key", p_bot: "Bot token", p_chat: "Chat ID", p_chat_h: "find it: amw push telegram --token …",
+    p_ereignisse: "What is sent", pe_frage: "new question for you (reminder after 60 min)", pe_nachricht: "message for you",
+    pe_warnung: "warning (server down, stall, error, limits)", pe_eingabe: "agent waiting for permission/input (after 5 min)", pe_halt: "halt set/lifted",
+    pe_rueckblick: "daily summary", p_ruhe: "Quiet hours", p_ruhe_h: "only urgent (halt, server down); the rest is sent afterwards in one batch",
+    p_von: "from", p_bis: "until", p_max: "at most per hour", p_probe: "Test {x}", p_protokoll: "Recently sent", p_leer: "Nothing sent yet.",
     achtung: "Attention", nachtrag_neu: "{n} new follow-up", aufklappen: "Click: full text", s_extra: "{n} unplanned",
     jetzt_bei: "now: {x}", geaendert: "changed", notizen: "Notes ({n})", server: "Project servers", k_name: "Name", k_port: "Port",
     k_zustaendig: "Owner", k_neustart: "Restart", k_ausfaelle: "Outages", sz_laeuft: "running", sz_aus: "down", sz_unbekannt: "not checked yet",
@@ -612,22 +652,58 @@ function ohneDoppel(x) { const [nr, ...rest] = x.split(" · "); const titel = re
    letzte Meldung, neue offene Nachrichten (Altbestand aus dem alten Bus getrennt). Klick → Übersicht. */
 function kachel(a) {
   const lebt = a.zustand === "aktiv"; const soll = a.soll === "an";
-  const zust = lebt ? ["gruen", t("laeuft")] : soll ? ["rot", a.zustand ? t("beendet_soll") : t("nie_gestartet")] : ["", a.soll === "ruht" ? t("ruht") : t("aus")];
+  /* läuft → genauer aus den Hooks: arbeitet / frei / wartet auf Freigabe oder Eingabe / Fehler */
+  const ez = { arbeitet: ["gruen", t("z_arbeitet")], frei: ["gruen", t("z_frei")], wartet_freigabe: ["bernstein", t("z_freigabe")],
+               wartet_eingabe: ["bernstein", t("z_eingabe")], fehler: ["rot", t("z_fehler")] }[a.ereignis];
+  const dauer = lebt && ez && ["wartet_freigabe", "wartet_eingabe", "fehler"].includes(a.ereignis) && a.ereignis_utc ? seit(a.ereignis_utc) : null;
+  const zust = lebt ? (ez || ["gruen", t("laeuft")])
+    : soll ? ["rot", a.zustand ? t("beendet_soll") : t("nie_gestartet")] : ["", a.soll === "ruht" ? t("ruht") : t("aus")];
   const kurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : x;
   const karte = el("div", { class: `karte kachel klickbar ${!lebt && soll ? "tot" : ""} ${!soll ? "aus" : ""}`, title: t("k_details") },
     a.offen ? el("span", { class: "offen", style: `color:var(${a.offen > 10 ? "--bernstein" : "--leise"})`, title: t("k_offen_h", { n: a.offen_alt || 0 }) }, t("offen_n", { n: a.offen })) : null,
     el("div", { class: "name" }, a.kennung), el("div", { class: "rolle" }, a.rolle || t("agent")),
-    el("div", { class: "zustand" }, el("span", { class: "punkt " + zust[0] }), zust[1],
-      lebt ? el("span", { class: "sehrleise mono", style: "margin-left:auto;font-size:11px" }, t("puls", { t: seit(a.letzter_puls_utc) })) : null),
+    el("div", { class: "zustand" }, el("span", { class: "punkt " + zust[0] }), el("span", { class: zust[0] === "bernstein" ? "bernstein-text" : zust[0] === "rot" && lebt ? "rot-text" : "" }, zust[1]),
+      dauer ? el("span", { class: "sehrleise", style: "font-size:11px" }, dauer) : null,
+      lebt ? el("span", { class: "sehrleise mono", style: "margin-left:auto;font-size:11px;white-space:nowrap", title: t("puls", { t: seit(a.letzter_puls_utc) }) },
+        "♥ " + seit(a.letzter_puls_utc)) : null),
     el("div", { class: "info" },
       a.gerade ? el("div", {}, el("span", { class: "sehrleise" }, t("k_gerade") + " "), kurz(a.gerade, 90),
         a.gerade_quelle === "meldung" ? el("span", { class: "sehrleise" }, " " + t("k_vermutet")) : null)
         : el("span", { class: "sehrleise" }, soll ? t("k_unbekannt") : (a.grenzen || "")),
       a.zuletzt ? el("div", { class: "sehrleise", style: "margin-top:4px" }, `${t("k_zuletzt")} ${seit(a.zuletzt_utc)}: ${kurz(a.zuletzt, 70)}`) : null),
+    lebt && (a.kontext_prozent != null || a.limit_5h != null) ? el("div", { class: "mini-balken" },
+      a.kontext_prozent != null ? balken(t("b_kontext"), a.kontext_prozent) : null, a.limit_5h != null ? balken(t("b_5h"), a.limit_5h) : null) : null,
     soll ? el("button", { class: "klein-knopf", type: "button", style: "margin-top:8px",
       onclick: e => { e.stopPropagation(); nachrichtDialog(a.kennung); } }, t("nachricht")) : null);
   karte.addEventListener("click", () => agentDialog(a.kennung));
   return karte;
+}
+/* Übersicht: Zustand aus Hooks und Statusline – Modell, Denkstufe, Kontext, Grenzen (mit Rücksetzzeit), Kosten */
+function zustandAbschnitt(d) {
+  if (d.zustand !== "aktiv" || (!d.status_utc && !d.ereignis)) return el("section", { class: "abschnitt" }, el("h4", {}, t("k_zustand")),
+    el("div", { class: "sehrleise leer-klein" }, t("k_zustand_leer")));
+  const z = [];
+  if (d.ereignis) z.push(el("div", {}, el("b", {}, t("z_" + { arbeitet: "arbeitet", frei: "frei", wartet_freigabe: "freigabe", wartet_eingabe: "eingabe",
+    fehler: "fehler", beendet: "beendet" }[d.ereignis] || d.ereignis)), " ", el("span", { class: "sehrleise" }, seit(d.ereignis_utc)),
+    d.ereignis_text ? el("div", { class: "sehrleise" }, d.ereignis_text) : null));
+  const balk = [];
+  if (d.kontext_prozent != null) balk.push(balken(t("b_kontext"), d.kontext_prozent));
+  if (d.limit_5h != null) balk.push(balken(t("b_5h"), d.limit_5h));
+  if (d.limit_7t != null) balk.push(balken(t("b_7t"), d.limit_7t));
+  const neben = [d.modell, d.denkstufe ? t("k_denkstufe", { x: d.denkstufe }) : null,
+    d.kosten_usd != null ? t("k_kosten", { x: d.kosten_usd.toFixed(2) }) : null,
+    d.limit_5h_reset_utc ? t("k_reset", { x: zeit(d.limit_5h_reset_utc) }) : null].filter(Boolean).join(" · ");
+  return el("section", { class: "abschnitt" }, el("h4", {}, t("k_zustand")),
+    el("div", { class: "eintrag " + (d.ereignis === "fehler" ? "blockiert" : d.ereignis?.startsWith("wartet") ? "wartet" : "laeuft") },
+      ...z, balk.length ? el("div", { class: "mini-balken", style: "max-width:420px" }, ...balk) : null,
+      neben ? el("div", { class: "sehrleise eintrag-zusatz" }, neben, d.status_utc ? ` · ${t("k_stand", { x: seit(d.status_utc) })}` : "") : null));
+}
+/* schmaler Füllstandsbalken: grün < 60 %, bernstein < 85 %, sonst rot */
+function balken(name, p) {
+  const farbe = p < 60 ? "--gruen" : p < 85 ? "--bernstein" : "--rot";
+  return el("div", { class: "mb", title: `${name} ${Math.round(p)} %` }, el("span", {}, name),
+    el("div", { class: "mb-spur" }, el("i", { style: `width:${Math.min(100, Math.max(0, p))}%;background:var(${farbe})` })),
+    el("span", { class: "mono" }, `${Math.round(p)} %`));
 }
 async function agentDialog(kennung) {
   let d; try { d = await holen("/api/agent?kennung=" + encodeURIComponent(kennung)); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
@@ -662,7 +738,7 @@ async function agentDialog(kennung) {
           (d.letzter_puls_utc ? ` · ${t("puls", { t: seit(d.letzter_puls_utc) })}` : "")),
         el("button", { class: "knopf", type: "button", style: "margin-left:auto", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht")),
         el("button", { class: "klein-knopf", type: "button", "aria-label": "schließen", onclick: () => hg.remove() }, "×")),
-      macht,
+      macht, zustandAbschnitt(d),
       el("div", { class: "agent-spalten" }, el("div", {}, ...links), el("div", {}, ...rechts)),
       d.offen_alt && d.an_ihn.length ? el("p", { class: "sehrleise", style: "margin-top:12px" }, t("k_alt", { n: d.offen_alt })) : null));
   document.body.append(hg);
@@ -818,16 +894,27 @@ async function sichtBetrieb() {
     ? tabelle(["k_name", "k_port", "k_zustand", "k_seit", "k_zustaendig", "k_neustart", "k_ausfaelle"],
         d.server.map(s => [s.name, s.port, punkt(s.zustand), seit(s.seit_utc), s.zustaendig, s.neustart ? t("ja") : t("nein"), s.ausfaelle]))
     : el("div", { class: "leer" }, t("keine_server")));
+  /* Verbrauch je Agent und Tag (Schätzung zum Listenpreis aus der Statusline) */
+  const v = d.verbrauch || { tage: [], agenten: {} }, namen = Object.keys(v.agenten).sort();
+  const tagKurz = x => x.slice(8, 10) + "." + x.slice(5, 7) + ".";
+  m.append(el("h2", {}, t("verbrauch")), namen.length
+    ? el("div", {}, tabelle(["k_agent", ...v.tage.map(tagKurz), "k_summe"].map(k => k.startsWith("k_") ? k : "#" + k),
+        [...namen.map(n => [n, ...v.tage.map(x => (v.agenten[n][x] ?? 0).toFixed(2)), Object.values(v.agenten[n]).reduce((a, b) => a + b, 0).toFixed(2)]),
+         [t("k_summe"), ...v.tage.map(x => namen.reduce((a, n) => a + (v.agenten[n][x] || 0), 0).toFixed(2)),
+          namen.reduce((a, n) => a + Object.values(v.agenten[n]).reduce((s, w) => s + w, 0), 0).toFixed(2)]]),
+      el("p", { class: "sehrleise", style: "font-size:12px" }, t("verbrauch_h")))
+    : el("div", { class: "leer" }, t("verbrauch_leer")));
   m.append(el("h2", {}, t("sperren")), d.sperren.length ? tabelle(["k_nr", "k_art", "k_fuer", "k_von", "k_text", "k_seit"], d.sperren.map(s => [s.id, s.art, s.gilt_fuer, s.von, s.text, zeit(s.seit_utc)]))
     : el("div", { class: "leer" }, t("keine_sperren")));
-  m.append(el("h2", {}, t("sitzungen")), d.sitzungen.length ? tabelle(["k_agent", "k_zustand", "k_gestartet", "k_puls", "k_beendet"], d.sitzungen.map(s => [s.kennung, s.zustand, zeit(s.gestartet_utc), seit(s.letzter_puls_utc), zeit(s.beendet_utc)]))
+  const sitz = [...d.sitzungen.filter(s => s.zustand === "aktiv"), ...d.sitzungen.filter(s => s.zustand !== "aktiv").slice(0, 8)];
+  m.append(el("h2", {}, t("sitzungen")), sitz.length ? tabelle(["k_agent", "k_zustand", "k_gestartet", "k_puls", "k_beendet"], sitz.map(s => [s.kennung, s.zustand, zeit(s.gestartet_utc), seit(s.letzter_puls_utc), zeit(s.beendet_utc)]))
     : el("div", { class: "leer" }, t("keine_sitzung")));
   m.append(el("h2", {}, t("laeufe")), d.laeufe.length ? tabelle(["k_nr", "k_agent", "k_lauf", "k_status", "k_start", "k_ende", "k_rc"], d.laeufe.map(l => [l.id, l.agent, l.beschreibung, l.status, zeit(l.start_utc), zeit(l.ende_utc), l.rc ?? ""]))
     : el("div", { class: "leer" }, t("keine_laeufe")));
   m.append(el("h2", {}, t("protokoll")), el("pre", { class: "log" }, d.log.join("\n") || t("leer")));
 }
 function tabelle(kopf, zeilen) {
-  return el("div", { class: "tab-huelle" }, el("table", { class: "tab" }, el("thead", {}, el("tr", {}, kopf.map(k => el("th", {}, t(k))))),
+  return el("div", { class: "tab-huelle" }, el("table", { class: "tab" }, el("thead", {}, el("tr", {}, kopf.map(k => el("th", {}, k.startsWith("#") ? k.slice(1) : t(k))))),
     el("tbody", {}, zeilen.map(z => el("tr", {}, z.map(w => el("td", {}, w ?? "")))))));
 }
 
@@ -968,7 +1055,58 @@ async function sichtEinstellungen() {
   box.append(block(t("e_turso"), API ? t("nur_pc") : t("e_turso_h"),
     [[t("e_url"), tu.url], [t("e_token"), tu.token], [t("e_abgleich"), tu.abgleich]],
     "turso", () => ({ url: wert(tu.url), token: tu.token.value.trim() || undefined, abgleich: tu.abgleich.checked }), !!API));
+
+  // Benachrichtigungen aufs Handy – nur am PC (Zugangsdaten liegen nur dort)
+  if (API) box.append(el("div", { class: "karte gesperrt" }, el("h3", {}, t("p_titel")), el("p", { class: "leise" }, t("nur_pc"))));
+  else box.append(await pushBlock(feld, text, zahl, schalter, wert, speichern));
+  /* Sprungmarken: die Seite ist lang – jeder Abschnitt mit einem Klick erreichbar */
+  m.append(el("div", { class: "sprung" }, [...box.children].map(k => { const h = k.querySelector("h3");
+    return h ? el("a", { onclick: () => k.scrollIntoView({ behavior: "smooth", block: "start" }) }, h.textContent) : null; }).filter(Boolean)));
   m.append(box);
+}
+/* Zahnrad „Benachrichtigungen“: Hauptschalter, Anbieter (Geheimnisse nur als „gespeichert“), Ereignisse, Ruhezeit,
+   Probe je Anbieter mit Antwort der API, Versandprotokoll. */
+async function pushBlock(feld, text, zahl, schalter, wert, speichern) {
+  let d; try { d = await holen("/api/push"); } catch (e) { return el("div", { class: "karte" }, el("h3", {}, t("p_titel")), String(e)); }
+  const c = d.einstellungen, geheim = (gespeichert) => { const x = text("", "password"); x.placeholder = gespeichert ? t("e_token_da") : ""; return x; };
+  const f = {
+    an: schalter(c.an), link: text(c.link), max: zahl(c.max_je_stunde, 1, 60),
+    ruhe_an: schalter(c.ruhe.an), ruhe_von: text(c.ruhe.von, "time"), ruhe_bis: text(c.ruhe.bis, "time"),
+    ntfy_an: schalter(c.ntfy.an), ntfy_server: text(c.ntfy.server), ntfy_topic: geheim(c.ntfy.topic_gespeichert), ntfy_token: geheim(c.ntfy.token_gespeichert),
+    po_an: schalter(c.pushover.an), po_app: geheim(c.pushover.app_token_gespeichert), po_user: geheim(c.pushover.user_key_gespeichert),
+    tg_an: schalter(c.telegram.an), tg_token: geheim(c.telegram.bot_token_gespeichert), tg_chat: text(c.telegram.chat_id),
+  };
+  f.link.placeholder = "https://…  (sonst lokale Workbench – vom Handy nicht erreichbar)";
+  const ereig = Object.fromEntries(d.ereignisse.map(e => [e, schalter(c.ereignisse[e])]));
+  const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
+  knopf.addEventListener("click", () => speichern("push", {
+    an: f.an.checked, link: wert(f.link), max_je_stunde: wert(f.max),
+    ruhe: { an: f.ruhe_an.checked, von: f.ruhe_von.value, bis: f.ruhe_bis.value },
+    ntfy: { an: f.ntfy_an.checked, server: wert(f.ntfy_server), topic: f.ntfy_topic.value.trim(), token: f.ntfy_token.value.trim() },
+    pushover: { an: f.po_an.checked, app_token: f.po_app.value.trim(), user_key: f.po_user.value.trim() },
+    telegram: { an: f.tg_an.checked, bot_token: f.tg_token.value.trim(), chat_id: wert(f.tg_chat) },
+    ereignisse: Object.fromEntries(Object.entries(ereig).map(([k, x]) => [k, x.checked])),
+  }, knopf));
+  const ergebnis = el("div", { class: "sehrleise mono", style: "margin-top:8px;white-space:pre-wrap" });
+  const probe = anbieter => { const b = el("button", { class: "klein-knopf", type: "button" }, t("p_probe", { x: anbieter }));
+    b.addEventListener("click", async () => { b.disabled = true; ergebnis.textContent = "…";
+      try { const r = await schicken("/api/push/probe", { anbieter }); ergebnis.textContent = Object.entries(r.probe).map(([a, x]) => `${a}: ${x}`).join("\n"); }
+      catch (e) { ergebnis.textContent = e.message; } finally { b.disabled = false; } }); return b; };
+  const gruppe = (titel, felder, anbieter) => el("div", { class: "push-gruppe" }, el("h4", {}, titel),
+    ...felder.map(([b, x, h]) => feld(b, x, h)), anbieter ? probe(anbieter) : null);
+  const protokoll = d.protokoll.length ? el("table", { class: "tab" }, el("tr", {}, ["k_zeit", "k_titel", "k_ergebnis"].map(k => el("th", {}, t(k)))),
+      ...d.protokoll.slice(0, 12).map(p => el("tr", {}, el("td", {}, zeit(p.geaendert_utc)), el("td", {}, p.titel),
+        el("td", { class: p.ergebnis === "gesendet" ? "" : "rot-text" }, p.ergebnis + (p.fehler ? ` – ${p.fehler}` : "")))))
+    : el("div", { class: "sehrleise" }, t("p_leer"));
+  return el("div", { class: "karte" }, el("h3", {}, t("p_titel")), el("p", { class: "leise", style: "margin:0 0 12px" }, t("p_h", { x: c.datei })),
+    feld(t("p_an"), f.an, t("p_an_h")), feld(t("p_link"), f.link, t("p_link_h")),
+    gruppe("ntfy", [[t("p_an_kurz"), f.ntfy_an], [t("p_server"), f.ntfy_server], [t("p_kanal"), f.ntfy_topic, t("p_kanal_h")], [t("p_token"), f.ntfy_token, t("p_optional")]], "ntfy"),
+    gruppe("Pushover", [[t("p_an_kurz"), f.po_an], [t("p_app"), f.po_app], [t("p_user"), f.po_user]], "pushover"),
+    gruppe("Telegram", [[t("p_an_kurz"), f.tg_an], [t("p_bot"), f.tg_token], [t("p_chat"), f.tg_chat, t("p_chat_h")]], "telegram"),
+    gruppe(t("p_ereignisse"), d.ereignisse.map(e => [t("pe_" + e), ereig[e]])),
+    gruppe(t("p_ruhe"), [[t("p_an_kurz"), f.ruhe_an, t("p_ruhe_h")], [t("p_von"), f.ruhe_von], [t("p_bis"), f.ruhe_bis], [t("p_max"), f.max]]),
+    el("div", { style: "margin-top:12px" }, knopf), ergebnis,
+    el("h4", { style: "margin-top:18px" }, t("p_protokoll")), el("div", { style: "overflow-x:auto" }, protokoll));
 }
 
 /* Selbst aktualisieren – nur Startseite und Betrieb, und nie während einer Eingabe. */

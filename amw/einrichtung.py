@@ -96,15 +96,82 @@ def status(port):
     return "\n".join(zeilen)
 
 
+def befehl(starter):
+    """Aufruf eines Starters aus dem AMW-Ordner (amw-hook.py, amw-statusline.py) mit dem Python dieses PCs."""
+    py = pythonw().replace("pythonw.exe", "python.exe")
+    return f'"{py}" -X utf8 "{os.path.join(WURZEL, starter).replace(os.sep, "/")}"'
+
+
+ZUSTANDS_HOOKS = ("Notification", "Stop", "StopFailure", "UserPromptSubmit", "SessionEnd")
+SPERREN = [f"Bash(*schtasks*{AUFGABE}*)", f"PowerShell(*schtasks*{AUFGABE}*)", f"PowerShell(*ScheduledTask*{AUFGABE}*)",
+           f"Bash(*ScheduledTask*{AUFGABE}*)", "Bash(*amw*dienst entfernen*)", "PowerShell(*amw*dienst entfernen*)",
+           "Bash(*amw*dienst einrichten*)", "PowerShell(*amw*dienst einrichten*)"]
+
+
 def hook_einstellungen():
-    """Ausschnitt für .claude/settings.local.json eines Agenten-Projektordners (→ doc/10 §5, §6). Nur Vorschlag –
-    eingetragen wird beim Umschalten (doc/07 E6) gemeinsam mit dem Entwickler. AMW_AGENT setzt der Startbefehl je Agent."""
-    befehl = f'"{pythonw().replace("pythonw.exe", "python.exe")}" -X utf8 -m amw.hook'
-    hook = {"type": "command", "command": befehl, "timeout": 30}
+    """Was ein Agenten-Projektordner in .claude/settings.local.json braucht (→ doc/13 §4):
+    SessionStart meldet an und gibt den Pflicht-Kontext; die Zustands-Hooks laufen im Hintergrund (async) und setzen
+    „arbeitet / frei / wartet auf Freigabe / Fehler“; die Statusline-Brücke merkt sich Kontext, Grenzen, Kosten und reicht
+    die bisherige Statusline weiter; die Sperren schützen den Wächter vor Versehen."""
+    hook = {"type": "command", "command": befehl("amw-hook.py"), "timeout": 30}
+    still = {**hook, "async": True}
     return {
-        "env": {"PYTHONPATH": WURZEL},
-        "crossSessionInbound": "accept",
-        "hooks": {"SessionStart": [{"matcher": "startup|resume|compact", "hooks": [hook]}]},
-        "permissions": {"deny": [f"Bash(schtasks*{AUFGABE}*)", f"PowerShell(*ScheduledTask*{AUFGABE}*)",
-                                 "Bash(*taskkill*pythonw*)", "PowerShell(*Stop-Process*pythonw*)"]},
+        "hooks": {"SessionStart": [{"matcher": "startup|resume|compact", "hooks": [hook]}],
+                  **{e: [{"hooks": [still]}] for e in ZUSTANDS_HOOKS}},
+        "statusLine": {"type": "command", "command": befehl("amw-statusline.py"), "padding": 0},
+        "permissions": {"deny": SPERREN},
     }
+
+
+def _hat_amw(eintraege, starter):
+    return any(starter in (h.get("command") or "") for e in eintraege or [] for h in e.get("hooks", []))
+
+
+def agenten_ordner_einrichten(ordner, schreiben=True):
+    """Führt hook_einstellungen() in <ordner>/.claude/settings.local.json zusammen – vorhandene Einträge bleiben,
+    AMW-Einträge werden nur ergänzt, nie doppelt. Eine fremde Statusline wird nicht ersetzt, sondern als
+    „statusline_weiter“ hinter die Brücke gehängt. Vorher eine Sicherung der Datei. Rückgabe: Liste der Änderungen."""
+    from . import einstellungen
+    if not os.path.isdir(ordner):
+        raise FileNotFoundError(f"Ordner {ordner} gibt es nicht")
+    datei = os.path.join(ordner, ".claude", "settings.local.json")
+    try:
+        with open(datei, encoding="utf-8") as f:
+            d = json.load(f)
+    except FileNotFoundError:
+        d = {}
+    soll, aenderungen = hook_einstellungen(), []
+    hooks = d.setdefault("hooks", {})
+    for ereignis, eintraege in soll["hooks"].items():
+        if not _hat_amw(hooks.get(ereignis), "amw-hook.py"):
+            hooks.setdefault(ereignis, []).extend(eintraege)
+            aenderungen.append(f"Hook {ereignis}")
+    alt = (d.get("statusLine") or {}).get("command", "")
+    if "amw-statusline.py" not in alt:
+        if not alt:                                       # sonst gälte die des Benutzers – auch die weiterreichen
+            try:
+                with open(os.path.join(os.path.expanduser("~"), ".claude", "settings.json"), encoding="utf-8") as f:
+                    alt = (json.load(f).get("statusLine") or {}).get("command", "")
+            except (OSError, ValueError):
+                alt = ""
+        if alt and "amw-statusline.py" not in alt and not einstellungen.wert("statusline_weiter"):
+            if schreiben:
+                einstellungen.speichern({"statusline_weiter": alt})
+            aenderungen.append(f"bisherige Statusline wird weitergereicht: {alt}")
+        d["statusLine"] = soll["statusLine"]
+        aenderungen.append("Statusline-Brücke")
+    sperren = d.setdefault("permissions", {}).setdefault("deny", [])
+    neu = [s for s in soll["permissions"]["deny"] if s not in sperren]
+    if neu:
+        sperren.extend(neu)
+        aenderungen.append(f"{len(neu)} Sperr-Regel(n)")
+    if aenderungen and schreiben:
+        os.makedirs(os.path.dirname(datei), exist_ok=True)
+        if os.path.exists(datei):
+            import shutil
+            shutil.copy2(datei, datei + f".vor-amw-{db.jetzt()[:10]}")
+        with open(datei + ".neu", "w", encoding="utf-8", newline="\n") as f:
+            json.dump(d, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+        os.replace(datei + ".neu", datei)
+    return aenderungen

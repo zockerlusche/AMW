@@ -36,24 +36,45 @@ Bildschirmfotos (Desktop 1440 px, Handy 390 px mit echter Geräte-Emulation), Re
 - [x] Überwachung Projekt-Server: `amw server anmelden|abmelden|liste|pruefen`, Wächter prüft je Runde, meldet Ausfall und Wiederkehr, Neustart nach zwei Runden „aus“, höchstens 3 je Stunde; Betrieb zeigt die Server.
 - [x] Stillstand: Weckruf unbeantwortet (Vorgabe 30 min), Lauf über erwarteter Dauer (`lauf start --dauer`); Warnband auf der Startseite, Meldung an den Lead; Schwellen im Zahnrad.
 
-## 3 Stufe B – Benachrichtigen (0.11.0)
-- [ ] Push über **ntfy**, **Pushover** oder **Telegram** (wählbar, mehrere gleichzeitig möglich); Zugangsdaten nur in den PC-Einstellungen, nie in DB/Repo.
-- [ ] Ereignisse wählbar: neue Frage an dich, Warnung (Server/Stillstand/Lauf), Agent wartet auf Eingabe, Halt, Rückblick.
-- [ ] Nur Hinweise im Text („Neue Frage F123 von TL“), keine Inhalte; Link öffnet die Workbench bzw. Online-Seite.
-- [ ] Ruhezeiten (z. B. 23–7 Uhr nur dringende), Probe-Knopf im Zahnrad.
+## 3 Stufe B – Benachrichtigen (0.11.0, zusammen mit C; Recherche: recherche/push.md) ✔ 02.11.2026
+**Konzept.** Modul `amw/push.py`. Zugangsdaten und Vorlieben in `%LOCALAPPDATA%\amw\push.json` (nur dieser Benutzer;
+nie Repo, nie Datenbank, nie Online-Speicher; im Zahnrad nur „gespeichert“). Anbieter ntfy (JSON an die Wurzel-URL,
+Token optional), Pushover (Formular), Telegram (JSON, HTML-Maskierung) – jeder einzeln an/aus. Der Wächter sammelt je
+Runde **Ereignisse** aus der Datenbank (neue Frage an den Menschen, neue Nachricht an ihn, Warnungen, Agent wartet auf
+Freigabe/Eingabe seit ≥ 5 min, Halt gesetzt/aufgehoben) und schreibt sie mit eindeutigem Schlüssel in `push_versand`
+(keine Doppelten). Erst ab dem Einschalten (kein Nachholen alter Dinge). Versand je Runde: Bündeln gleicher Art
+(„3 neue Fragen“), Obergrenze 10 je Stunde (Rest als Sammelmeldung), gleiche Warnung frühestens nach 30 min erneut,
+Ruhezeiten in lokaler Zeit (Vorgabe aus; während der Ruhe nur Priorität 5, Rest wird danach gesammelt zugestellt),
+Erinnerung an eine unbeantwortete Frage einmal nach 60 min. Wiederholung nur bei Netzfehler/5xx/429 (≤ 3, Abstand
+wachsend); Pushover-4xx nie. Text nur Metadaten + Link (Online-Seite, sonst Workbench). Versandprotokoll in Betrieb.
+Bedienung: Zahnrad „Benachrichtigungen“ (nur am PC), Probe-Knopf je Anbieter mit Antwort der API;
+`amw push status|probe|einrichten`. Gefundene Lücken: Telegram-Chat-ID ermitteln → `amw push telegram-chat` liest
+getUpdates; ntfy-Topic erzeugen → zufällig beim Einrichten; Tagesrückblick → Stufe F.
+- [x] push.json, Anbieter, Versand mit Wiederholung, Protokoll, Bündeln, Grenze, Ruhezeiten, Erinnerung
+- [x] Ereignisquellen im Wächter; Zahnrad-Abschnitt mit Probe; CLI; Tests; Doku für das Handy (App, Abo)
 
-## 4 Stufe C – Zustand, Kontext und Verbrauch je Agent (0.12.0)
-- [ ] Claude-Code-Hooks `Notification` (wartet auf Eingabe/Freigabe), `Stop`, `StopFailure` (API-Fehler) → `amw hook ereignis`; die Kachel zeigt „wartet auf Eingabe seit …“, „Fehler“, „fertig“.
-- [ ] Statusline-Brücke `amw statusline`: Kontext-Füllstand, 5-Stunden-Grenze, Kosten der Sitzung je Agent; Kachel und Übersicht zeigen Balken; Warnung bei hoher Füllung.
-- [ ] Verbrauch je Agent und Tag (Kosten-Schätzung zum Listenpreis, Tokens) in Betrieb; Summe je Projekt.
+## 4 Stufe C – Zustand, Kontext und Verbrauch je Agent (0.11.0; Recherche: recherche/workbenches.md) ✔ 02.11.2026
+**Konzept.** (1) `amw-statusline.py` wird vor die vorhandene Statusline gehängt: merkt sich je Sitzung Kontext %,
+5-h-/7-Tage-Grenze, Kosten, Modell, Denkstufe in `%LOCALAPPDATA%\amw\zustand\<sitzung>.json` (kein DB-Zugriff, weil
+sehr häufig aufgerufen) und gibt die bisherige Statusline (Einstellung `statusline_weiter`) unverändert aus. (2) Der
+Wächter übernimmt die Dateien je Runde in `sitzung` und schreibt höchstens alle 5 min einen Messpunkt in `verbrauch`.
+(3) Hooks `Notification`, `Stop`, `StopFailure`, `UserPromptSubmit`, `SessionEnd` (async) → `amw-hook.py` setzt
+`sitzung.ereignis`: arbeitet | frei | wartet_freigabe | wartet_eingabe | fehler (mit Text, z. B. „rate_limit“).
+Warnungen: wartet auf Freigabe ≥ 2 min, Fehler, Kontext ≥ 90 %, 5-h-Grenze ≥ 90 %. (4) Anzeige: Kachel mit Zustand
+und Balken (Kontext, 5 h), Übersicht mit allen Werten, Betrieb „Verbrauch“ je Agent und Tag (Kosten-Schätzung, letzte
+7 Tage). (5) Einbau der Hooks/Statusline: `amw einrichten agenten-ordner <pfad>` führt die Einträge zusammen.
+Lücken: Kosten sind Schätzungen (Listenpreis) – so beschriftet; Sitzungs-Neustart setzt Kosten zurück → Tageswerte
+aus Differenzen der Messpunkte, Rücksprung = neue Zählung.
+- [x] Statusline-Brücke, Wächter-Übernahme, Messpunkte, Hook-Ereignisse, Warnungen
+- [x] Kachel/Übersicht/Betrieb; Einbau in die Agenten-Ordner; Tests; Bildschirmfotos
 
-## 5 Stufe D – Agenten steuern (0.13.0)
+## 5 Stufe D – Agenten steuern (0.12.0)
 - [ ] Agenten-Profil: Ordner, Zusatzordner, Denkstufe, Modell, Startsatz, Rechte-Modus (im Zahnrad).
 - [ ] „Starten“/„Beenden“ per Klick in der Workbench am PC (nie über die Online-Seite): neuer Terminal-Tab mit Claude, Kennung, Hook; Beenden der Sitzung des Agenten.
 - [ ] Automatischer Neustart (Resume derselben Sitzung) eines abgestürzten Agenten mit Soll „an“, höchstens 3 je Stunde, mit Meldung.
 - [ ] `amw agenten-start` erzeugt das Startskript aus den Profilen (ersetzt handgeschriebene Skripte).
 
-## 6 Stufe E – Projektplanung (0.14.0)
+## 6 Stufe E – Projektplanung (0.13.0)
 Nach Kiro, GitHub Spec Kit, Taskmaster, Backlog.md, Claude Code Agent Teams, Linear (Agenten) – §9.
 - [ ] **Leitbild** je Projekt: Ziel, Nicht-Ziele, Prinzipien mit Prüffrage; Teil des Pflicht-Kontexts der Agenten.
 - [ ] **Bögen** (Meilensteine): Ziel, Reihenfolge, Status, Fortschritt (erledigt/gesamt, blockiert), Zieldatum.
@@ -65,7 +86,7 @@ Nach Kiro, GitHub Spec Kit, Taskmaster, Backlog.md, Claude Code Agent Teams, Lin
 - [ ] **Ansicht „Planung“**: Leitbild, Bögen mit Fortschrittsbalken, Bogen-Detail mit Spezifikation und Schritten in Wellen (was parallel geht), Bahnen je Agent.
 - [ ] **Prognose-Zeitleiste (senkrecht)**: voraussichtliches Ende je Schritt und Bogen aus dem Durchsatz der letzten Tage (P50/P85), eigene Schritte des Menschen mit eigener Taktung.
 
-## 7 Stufe F – Rückblick und Verlauf (0.15.0)
+## 7 Stufe F – Rückblick und Verlauf (0.14.0)
 - [ ] **Rückblick je Bogen**: gut / schlecht / Maßnahme; eine Maßnahme kann als Beschluss oder Regel übernommen werden.
 - [ ] **Verlauf (senkrecht)**: was wann passiert ist – Nachrichten, erledigte Schritte, Läufe, Prüfungen, Freigaben – je Tag und Agent filterbar.
 - [ ] **„Seit du weg warst“**: Zusammenfassung seit dem letzten Besuch auf der Startseite (und als Push).

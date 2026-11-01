@@ -140,6 +140,12 @@ def main():
         eingabe = json.loads(sys.stdin.read() or "{}")
     except ValueError:
         eingabe = {}
+    if eingabe.get("hook_event_name", "SessionStart") != "SessionStart":
+        try:                                        # Zustands-Hooks: still, schnell, nie störend
+            ereignis(eingabe)
+        except Exception:
+            pass
+        return 0
     kennung = os.environ.get("AMW_AGENT")           # Startskript; fehlt sie (Resume von Hand), zählt die Sitzungs-ID
     quelle = eingabe.get("source", "startup")
     teile, meldung = [], None                       # meldung: sichtbar im Fenster (systemMessage)
@@ -175,6 +181,42 @@ def main():
         aus["systemMessage"] = meldung
     print(json.dumps(aus, ensure_ascii=False))
     return 0
+
+
+# Zustand aus den Hook-Ereignissen (→ code.claude.com/docs/en/hooks): was der Agent gerade tut bzw. worauf er wartet.
+NOTIFICATION = {"permission_prompt": "wartet_freigabe", "elicitation_dialog": "wartet_eingabe",
+                "elicitation_url_dialog": "wartet_eingabe", "agent_needs_input": "wartet_eingabe", "idle_prompt": "frei"}
+
+
+def zustand_aus(eingabe):
+    """Hook-Eingabe → (ereignis, text) oder None (nichts ändern)."""
+    art = eingabe.get("hook_event_name")
+    if art == "UserPromptSubmit":
+        return "arbeitet", None
+    if art == "Stop":
+        return "frei", None
+    if art == "StopFailure":
+        fehler = eingabe.get("error_type") or eingabe.get("error") or eingabe.get("reason") or "unbekannt"
+        return "fehler", str(fehler)[:200]
+    if art == "Notification":
+        z = NOTIFICATION.get(eingabe.get("notification_type"))
+        return (z, (eingabe.get("message") or "")[:200] or None) if z else None
+    if art == "SessionEnd":
+        return "beendet", (eingabe.get("reason") or None)
+    return None
+
+
+def ereignis(eingabe):
+    z = zustand_aus(eingabe)
+    if not z or not eingabe.get("session_id"):
+        return
+    con = db.verbinde()
+    try:
+        with db.schreiben(con):
+            con.execute("UPDATE sitzung SET ereignis = ?, ereignis_text = ?, ereignis_utc = ? WHERE claude_sitzung = ?"
+                        " AND zustand = 'aktiv'", (z[0], z[1], db.jetzt(), eingabe["session_id"]))
+    finally:
+        con.close()
 
 
 def agenten_ordner(con, ordner):

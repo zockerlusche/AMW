@@ -475,11 +475,94 @@ def cmd_anmelden(a, con):
 
 def cmd_hook(a):
     from . import einrichtung
-    print("In .claude/settings.local.json des Projektordners zusammenführen (nicht überschreiben):")
+    print("Für .claude/settings.local.json eines Agenten-Ordners (zusammenführen: amw einrichten agenten-ordner <pfad>):")
     print(json.dumps(einrichtung.hook_einstellungen(), ensure_ascii=False, indent=2))
     print()
-    print("Im Startbefehl je Agent (z. B. layerit-agenten.ps1) vor `claude …` setzen:")
+    print("Im Startbefehl je Agent vor `claude …` setzen (oder nach dem ersten Start: amw anmelden --von <Kennung>):")
     print(f"  $env:AMW_AGENT = '{a.agent}'")
+    return 0
+
+
+def cmd_einrichten(a):
+    from . import einrichtung
+    if a.aktion == "agenten-ordner":
+        if not a.pfad:
+            raise kern.AmwFehler("amw einrichten agenten-ordner <pfad> [--nur-zeigen]")
+        aenderungen = einrichtung.agenten_ordner_einrichten(os.path.abspath(a.pfad), schreiben=not a.nur_zeigen)
+        if not aenderungen:
+            print("schon eingerichtet – nichts zu tun")
+        for x in aenderungen:
+            print(("würde ergänzen: " if a.nur_zeigen else "ergänzt: ") + x)
+        if aenderungen and not a.nur_zeigen:
+            print("Wirkt in neuen bzw. fortgesetzten Sitzungen (Hooks) und sofort (Statusline). Sicherung: *.vor-amw-<Datum>")
+    return 0
+
+
+def cmd_push(a):
+    from . import push
+    if a.aktion == "status":
+        cfg = push.oeffentlich()
+        print(f"Push {'AN' if cfg['an'] else 'aus'} (seit {cfg.get('seit_utc') or '–'}) · Datei {cfg['datei']}")
+        for an in push.ANBIETER:
+            c = cfg[an]
+            print(f"  {an:<9} {'an ' if c['an'] else 'aus'} " + ", ".join(f"{k}={v}" for k, v in c.items() if k != "an"))
+        print("  Ereignisse: " + ", ".join(f"{k} {'an' if v else 'aus'}" for k, v in cfg["ereignisse"].items()))
+        r = cfg["ruhe"]
+        print(f"  Ruhezeit: {r['von']}–{r['bis']} {'an' if r['an'] else 'aus'} · höchstens {cfg['max_je_stunde']} je Stunde"
+              f" · Link {cfg.get('link') or '(lokale Workbench)'}")
+        con = db.verbinde(nur_lesen=True)
+        try:
+            for p in push.protokoll(con, 10):
+                print(f"  {_zeit(p['geaendert_utc'])} {p['ergebnis']:<10} {p['titel']}" + (f"  ({p['fehler']})" if p["fehler"] else ""))
+        finally:
+            con.close()
+    elif a.aktion == "probe":
+        for an, ergebnis in push.probe(a.wert).items():
+            print(f"{an}: {ergebnis}")
+    elif a.aktion in ("an", "aus"):
+        push.speichern({"an": a.aktion == "an"})
+        print(f"Push {a.aktion}" + (" – gemeldet wird nur, was ab jetzt passiert" if a.aktion == "an" else ""))
+    elif a.aktion == "ntfy":
+        cfg = push.laden()
+        kanal = a.kanal or cfg["ntfy"]["topic"] or push.neuer_ntfy_kanal()
+        server = (a.server or cfg["ntfy"]["server"]).rstrip("/")
+        push.speichern({"ntfy": {"an": True, "topic": kanal, "server": server, "token": a.token or ""}})
+        print(f"ntfy an. In der ntfy-App abonnieren: Server {server}, Kanal {kanal}")
+        print(f"  (Link: ntfy://{server.split('://', 1)[1]}/{kanal}) – der Kanalname ist geheim wie ein Passwort.")
+    elif a.aktion == "pushover":
+        if not (a.app_token and a.user_key):
+            raise kern.AmwFehler("amw push pushover --app-token … --user-key …")
+        push.speichern({"pushover": {"an": True, "app_token": a.app_token, "user_key": a.user_key}})
+        print("Pushover an")
+    elif a.aktion == "telegram":
+        if not a.token:
+            raise kern.AmwFehler("amw push telegram --token <Bot-Token> [--chat <ID>]  (ohne --chat: Chat-IDs anzeigen)")
+        if not a.chat:
+            chats = push.telegram_chats(a.token)
+            if not chats:
+                print("Keine Chats gefunden – schreib deinem Bot zuerst eine Nachricht, dann erneut.")
+            for cid, name in chats.items():
+                print(f"Chat {cid} ({name}) → amw push telegram --token … --chat {cid}")
+            return 0
+        push.speichern({"telegram": {"an": True, "bot_token": a.token, "chat_id": str(a.chat)}})
+        print("Telegram an")
+    elif a.aktion == "ruhe":
+        if a.wert in ("aus", None):
+            push.speichern({"ruhe": {"an": False}})
+            print("Ruhezeit aus")
+        else:
+            von, _, bis = a.wert.partition("-")
+            push.speichern({"ruhe": {"an": True, "von": von, "bis": bis}})
+            print(f"Ruhezeit {von}–{bis}: nur Dringendes (Priorität 5), der Rest danach gesammelt")
+    elif a.aktion == "link":
+        push.speichern({"link": a.wert or ""})
+        print(f"Link: {a.wert or '(lokale Workbench)'}")
+    elif a.aktion == "ereignis":
+        art, _, wert = (a.wert or "").partition("=")
+        if not wert:
+            raise kern.AmwFehler("amw push ereignis <art>=an|aus  (Arten: " + ", ".join(push.EREIGNISSE) + ")")
+        push.speichern({"ereignisse": {art: wert == "an"}})
+        print(f"{art}: {wert}")
     return 0
 
 
@@ -688,6 +771,24 @@ def parser():
     x.add_argument("--ersetzen", action="store_true", help="eine noch lebende andere Sitzung derselben Kennung ablösen")
     x.set_defaults(f=cmd_anmelden)
 
+    x = s.add_parser("einrichten", help="agenten-ordner <pfad>: Hooks, Statusline-Brücke, Sperren in einen Agenten-Ordner")
+    x.add_argument("aktion", choices=["agenten-ordner"])
+    x.add_argument("pfad", nargs="?")
+    x.add_argument("--nur-zeigen", action="store_true")
+    x.set_defaults(f=cmd_einrichten, ohne_db=True)
+
+    x = s.add_parser("push", help="Benachrichtigungen aufs Handy: status | probe | an | aus | ntfy | pushover | telegram |"
+                                  " ruhe 22:00-07:00|aus | link URL | ereignis art=an|aus")
+    x.add_argument("aktion", choices=["status", "probe", "an", "aus", "ntfy", "pushover", "telegram", "ruhe", "link", "ereignis"])
+    x.add_argument("wert", nargs="?", help="ruhe: 22:00-07:00 oder aus · link: URL · ereignis: frage=aus · probe: Anbieter")
+    x.add_argument("--kanal", help="ntfy: eigener Kanalname (sonst zufällig)")
+    x.add_argument("--server", help="ntfy: eigener Server (https://…)")
+    x.add_argument("--token", help="ntfy-Zugangstoken bzw. Telegram-Bot-Token")
+    x.add_argument("--chat", help="Telegram: Chat-ID")
+    x.add_argument("--app-token", help="Pushover: App-Token")
+    x.add_argument("--user-key", help="Pushover: Benutzerschlüssel")
+    x.set_defaults(f=cmd_push, ohne_db=True)
+
     x = s.add_parser("hook", help="zeigt die Einstellungen für einen Agenten-Projektordner (schreibt nichts)")
     x.add_argument("aktion", choices=["zeige"])
     x.add_argument("--agent", default="CC1", help="nur für die Beispielzeile des Startbefehls")
@@ -728,7 +829,7 @@ def main(argv=None):
             finally:
                 con.close()
             return rc or 0
-    except (kern.AmwFehler, LookupError, FileNotFoundError, FileExistsError) as e:
+    except (kern.AmwFehler, LookupError, FileNotFoundError, FileExistsError, ValueError) as e:
         print(f"FEHLER: {e}", file=sys.stderr)
         return 1
     return 0

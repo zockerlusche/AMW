@@ -62,6 +62,7 @@ def daten_start(con, pid):
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
         "SELECT g.kennung, g.rolle, g.soll, g.grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc, s.taetigkeit,"
+        " s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc,"
         " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
         "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen' AND n.id > :alt"
         "   AND k.weckt = 1) AS offen,"                  # nur was eine Handlung braucht; Info weckt nicht und zählt nicht
@@ -113,6 +114,12 @@ def daten_start(con, pid):
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 
+def daten_push(con):
+    """Push-Einstellungen ohne Geheimnisse und das Versandprotokoll (nur am PC; nicht im Online-Spiegel)."""
+    from . import push
+    return {"einstellungen": push.oeffentlich(), "protokoll": push.protokoll(con, 30), "ereignisse": list(push.EREIGNISSE)}
+
+
 def daten_einstellungen(con, pid, speicher=None):
     """Zahnrad: alles, was einstellbar ist – nie Schlüssel oder Passwörter (der Turso-Schlüssel nur als „gespeichert“)."""
     from . import __version__, abgleich, einstellungen, ueberwachung
@@ -146,7 +153,7 @@ def daten_einstellungen(con, pid, speicher=None):
 def daten_agent(con, pid, kennung):
     """Klick auf die Kachel: was macht er, was kommt noch, was liegt bei ihm."""
     a = con.execute("SELECT g.kennung, g.rolle, g.soll, g.grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc,"
-                    " s.taetigkeit FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
+                    " s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc, s.taetigkeit FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
                     " WHERE g.projekt_id = ? AND g.kennung = ?", (pid, kennung)).fetchone()
     if not a:
         raise LookupError(kennung)
@@ -330,7 +337,9 @@ def daten_betrieb(con, pid):
         with open(logdatei, encoding="utf-8", errors="replace") as f:
             log = f.readlines()[-25:]
     frei, gesamt = speicher_frei_gb()
+    from . import statusline
     return {"sitzungen": sitz, "laeufe": laeufe, "sperren": sperren, "server": server, "log": [z.rstrip() for z in log],
+            "verbrauch": statusline.verbrauch_tage(con, pid, 7),
             "speicher": {"frei": frei, "gesamt": gesamt}, "db": db.db_pfad()}
 
 
@@ -391,6 +400,7 @@ def baue_handler(port, token):
                     "/api/releases": lambda c, p: daten_releases(c, p),
                     "/api/einstellungen": lambda c, p: daten_einstellungen(c, p),
                     "/api/agent": lambda c, p: daten_agent(c, p, q.get("kennung", [""])[0]),
+                    "/api/push": lambda c, p: daten_push(c),
                     "/api/projekte": lambda c, p: zeilen(c.execute("SELECT id, name FROM projekt ORDER BY id"))}
             weg = wege.get(u.path)
             if not weg:

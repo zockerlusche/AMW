@@ -55,6 +55,18 @@ CREATE TABLE sitzung (
   taetigkeit        TEXT,
   aufgabe_id        INTEGER REFERENCES aufgabe(id),
   beendet_utc       TEXT,
+  kontext_prozent   REAL,
+  limit_5h          REAL,
+  limit_5h_reset_utc TEXT,
+  limit_7t          REAL,
+  limit_7t_reset_utc TEXT,
+  kosten_usd        REAL,
+  modell            TEXT,
+  denkstufe         TEXT,
+  status_utc        TEXT,
+  ereignis          TEXT,
+  ereignis_text     TEXT,
+  ereignis_utc      TEXT,
   uid               TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft          TEXT NOT NULL DEFAULT '',
   geaendert_utc     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
@@ -277,6 +289,42 @@ CREATE TABLE sperre (
   uid             TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft        TEXT NOT NULL DEFAULT '',
   geaendert_utc   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- Messpunkte für den Verbrauch je Agent und Tag (der Wächter schreibt höchstens alle 5 Minuten einen je Sitzung).
+CREATE TABLE verbrauch (
+  id               INTEGER PRIMARY KEY,
+  sitzung_id       INTEGER NOT NULL REFERENCES sitzung(id),
+  agent            TEXT NOT NULL,
+  zeit_utc         TEXT NOT NULL,
+  kosten_usd       REAL,
+  kontext_prozent  REAL,
+  limit_5h         REAL,
+  limit_7t         REAL,
+  uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft         TEXT NOT NULL DEFAULT '',
+  geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+CREATE INDEX verbrauch_agent_zeit ON verbrauch (agent, zeit_utc);
+
+-- Push-Benachrichtigungen: was wann an wen ging (schluessel verhindert Doppelte).
+CREATE TABLE push_versand (
+  id               INTEGER PRIMARY KEY,
+  zeit_utc         TEXT NOT NULL,
+  ereignis         TEXT NOT NULL,                  -- frage | nachricht | warnung | eingabe | halt | rueckblick | probe
+  schluessel       TEXT NOT NULL UNIQUE,
+  titel            TEXT NOT NULL,
+  text             TEXT,
+  prioritaet       INTEGER NOT NULL DEFAULT 3,     -- 1 (leise) … 5 (dringend)
+  sicht            TEXT,                           -- Ansicht, die der Link öffnet
+  kanaele          TEXT,                           -- ntfy,pushover,telegram
+  buendel          INTEGER,                        -- gemeinsam gesendet: id des ersten Eintrags
+  ergebnis         TEXT NOT NULL DEFAULT 'offen' CHECK (ergebnis IN ('offen', 'gesendet', 'teilweise', 'fehler', 'unterdrueckt')),
+  fehler           TEXT,
+  versuche         INTEGER NOT NULL DEFAULT 0,
+  uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft         TEXT NOT NULL DEFAULT '',
+  geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
 -- Projekt-Server, die der Wächter überwacht (Port antwortet?) und auf Wunsch neu startet (→ amw/ueberwachung.py).

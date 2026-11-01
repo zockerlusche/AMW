@@ -49,6 +49,14 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         return {"erledigt": kern.erledigt(con, pid, kern.ENTWICKLER, ids[:100])}
     if weg.startswith("/api/einstellungen/"):
         return einstellen(con, pid, weg.rsplit("/", 1)[1], daten, kanal, speicher)
+    if weg == "/api/push/probe":                     # nur am PC: verschickt wirklich
+        if kanal != "seite":
+            raise Ungueltig("Die Probe geht nur am PC")
+        from . import push
+        try:
+            return {"probe": push.probe(daten.get("anbieter") or None)}
+        except kern.AmwFehler as e:
+            raise Ungueltig(str(e)) from None
     if weg == "/api/halt":
         return {"halt": kern.halt(con, pid, kern.ENTWICKLER, daten.get("fuer") or "alle",
                                   (daten.get("text") or "Halt vom Entwickler").strip()[:2000])}
@@ -57,7 +65,7 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
     raise LookupError("unbekannt")
 
 
-NUR_AM_PC = ("pc", "turso")
+NUR_AM_PC = ("pc", "turso", "push")
 
 
 def einstellen(con, pid, teil, daten, kanal, speicher=None):
@@ -80,6 +88,9 @@ def einstellen(con, pid, teil, daten, kanal, speicher=None):
             return {"pc": einstellungen.speichern(werte), "hinweis": "wirkt beim nächsten Start des Wächters"}
         if teil == "turso":
             return {"turso": turso_einstellen(daten), "hinweis": "wirkt beim nächsten Start des Wächters"}
+        if teil == "push":
+            from . import push
+            return {"push": push.speichern(daten), "hinweis": "wirkt in der nächsten Runde des Wächters"}
     except ValueError as e:
         raise Ungueltig(str(e)) from None
     raise LookupError("unbekannt")

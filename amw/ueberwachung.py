@@ -23,6 +23,9 @@ from . import db, kern
 NEUSTARTS_JE_STUNDE = 3
 STILLSTAND_MIN = 30
 LAUF_OHNE_ANGABE_MIN = 90
+FREIGABE_MIN = 2           # Agent hängt an einer Berechtigungsabfrage
+KONTEXT_GRENZE = 90        # % des Kontextfensters
+LIMIT_GRENZE = 90          # % der 5-Stunden-Grenze
 
 
 def _sek(utc):
@@ -178,6 +181,23 @@ def warnungen(con, pid, jetzt=None):
             aus.append({"art": "stillstand", "schluessel": f"still:{r['agent']}:{r['erste']}", "an": r["agent"],
                         "text": f"{r['agent']} reagiert nicht: {r['n']} Weckruf(e) unbeantwortet seit "
                                 f"{int((jetzt - _sek(r['seit'])) // 60)} min (ab #{r['erste']})"})
+    for s in con.execute(
+            "SELECT s.id, a.kennung, s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.status_utc"
+            " FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ? AND s.zustand = 'aktiv'", (pid,)):
+        if s["ereignis"] == "wartet_freigabe" and jetzt - _sek(s["ereignis_utc"]) >= FREIGABE_MIN * 60:
+            aus.append({"art": "freigabe", "schluessel": f"freigabe:{s['id']}:{s['ereignis_utc']}", "an": s["kennung"],
+                        "text": f"{s['kennung']} wartet seit {int((jetzt - _sek(s['ereignis_utc'])) // 60)} min auf eine Freigabe"
+                                " im eigenen Fenster" + (f": {s['ereignis_text']}" if s["ereignis_text"] else "")})
+        if s["ereignis"] == "fehler":
+            aus.append({"art": "fehler", "schluessel": f"fehler:{s['id']}:{s['ereignis_utc']}", "an": s["kennung"],
+                        "text": f"{s['kennung']}: Abbruch mit Fehler ({s['ereignis_text'] or 'unbekannt'}) – arbeitet erst nach neuer Eingabe weiter"})
+        frisch = s["status_utc"] and jetzt - _sek(s["status_utc"]) < 1800
+        if frisch and (s["kontext_prozent"] or 0) >= KONTEXT_GRENZE:
+            aus.append({"art": "kontext", "schluessel": f"kontext:{s['id']}", "an": s["kennung"],
+                        "text": f"{s['kennung']}: Kontext zu {s['kontext_prozent']:.0f} % voll – Kompaktierung steht bevor"})
+        if frisch and (s["limit_5h"] or 0) >= LIMIT_GRENZE:
+            aus.append({"art": "limit", "schluessel": f"limit:{s['id']}:{int(s['limit_5h'] // 5)}", "an": s["kennung"],
+                        "text": f"{s['kennung']}: 5-Stunden-Grenze zu {s['limit_5h']:.0f} % ausgeschöpft"})
     ohne = _einstellung(con, pid, "lauf_ohne_angabe_min", LAUF_OHNE_ANGABE_MIN)
     for l in con.execute("SELECT id, agent, beschreibung, start_utc, erwartet_min FROM lauf WHERE projekt_id = ?"
                          " AND status = 'laeuft' AND start_utc IS NOT NULL", (pid,)):

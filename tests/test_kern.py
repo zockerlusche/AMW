@@ -180,11 +180,27 @@ class Verlauf(unittest.TestCase):
         self.con.execute("ALTER TABLE lauf DROP COLUMN rang")          # Schema 2 kannte die Warteschlange nicht
         self.con.execute("ALTER TABLE lauf DROP COLUMN erwartet_min")  # … und keine Überwachung (Schema 4)
         self.con.execute("DROP TABLE server")
+        for t in ("verbrauch", "push_versand"):                       # … und keinen Zustand/Push (Schema 5)
+            self.con.execute(f"DROP TABLE {t}")
+        for sp in ("kontext_prozent", "limit_5h", "limit_5h_reset_utc", "limit_7t", "limit_7t_reset_utc", "kosten_usd",
+                   "modell", "denkstufe", "status_utc", "ereignis", "ereignis_text", "ereignis_utc"):
+            self.con.execute(f"ALTER TABLE sitzung DROP COLUMN {sp}")
         self.con.execute("PRAGMA user_version = 1")
         self.con.close()
         self.con = db.verbinde(self.pfad)
         self.assertEqual(self.con.execute("PRAGMA user_version").fetchone()[0], db.SCHEMA_VERSION)
         self.assertEqual(self.verlauf(fid), [("Entwickler", "rueckfrage")])
+        # umgestellt == frisch angelegt: gleiche Tabellen, gleiche Spalten mit gleichem Typ (fängt Tippfehler in schema.sql)
+        frisch = db.anlegen(self.pfad + ".frisch.db")
+        try:
+            bau = lambda c: {t: [(r[1], r[2]) for r in c.execute(f"PRAGMA table_info({t})")]
+                             for (t,) in c.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()}
+            alt, neu = bau(self.con), bau(frisch)
+            self.assertEqual(sorted(alt), sorted(neu))
+            for t in neu:
+                self.assertEqual(sorted(alt[t]), sorted(neu[t]), t)
+        finally:
+            frisch.close()
 
 
 if __name__ == "__main__":
