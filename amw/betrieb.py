@@ -65,7 +65,7 @@ def wartende(con, pid):
 
 
 def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=False, aufgabe_id=None,
-               speicher_frei=None, warten=False):
+               speicher_frei=None, warten=False, erwartet_min=None):
     """Meldet einen Lauf an und startet ihn, wenn er darf. Regeln: kein Halt; schwere Läufe nur einer zur Zeit;
     Schirm-Läufe nur einer zur Zeit; freier Speicher ≥ Grenze; niemand überholt die Warteschlange.
     Darf er nicht: ohne warten AmwFehler mit Grund (nichts wird angelegt), mit warten eingereiht (status
@@ -95,7 +95,7 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
         return db.einfuegen(con, "lauf", projekt_id=pid, agent=agent, rezept_id=rez["id"] if rez else None,
                             beschreibung=beschreibung, schwer=int(schwer), schirm=int(schirm),
                             status="angemeldet" if grund else "laeuft", angemeldet_utc=t, start_utc=None if grund else t,
-                            speicher_frei_gb=speicher_frei, aufgabe_id=aufgabe_id)
+                            speicher_frei_gb=speicher_frei, aufgabe_id=aufgabe_id, erwartet_min=erwartet_min)
 
 
 def warteschlange(con, pid, speicher_frei=None):

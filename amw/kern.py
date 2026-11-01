@@ -39,10 +39,11 @@ def agent_neu(con, pid, kennung, rolle=None, grenzen=None, startbefehl=None, emp
 
 
 def projekt_einstellen(con, pid, von, **werte):
-    """Zahnrad „Projekt“: takt_min (0 = aus, bis 1440), speicher_grenze_gb (1–512). Nur Lead und Entwickler."""
+    """Zahnrad „Projekt“: takt_min (0 = aus, bis 1440), speicher_grenze_gb (1–512), stillstand_min und
+    lauf_ohne_angabe_min (Warnungen, 5–1440). Nur Lead und Entwickler."""
     if not ist_lead(con, pid, von):
         raise AmwFehler("Projekt-Einstellungen dürfen nur Lead und Entwickler ändern")
-    grenzen = {"takt_min": (0, 1440), "speicher_grenze_gb": (1, 512)}
+    grenzen = {"takt_min": (0, 1440), "speicher_grenze_gb": (1, 512), "stillstand_min": (5, 1440), "lauf_ohne_angabe_min": (5, 1440)}
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         for k, v in werte.items():

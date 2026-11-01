@@ -20,7 +20,7 @@ import os
 import sys
 import time
 
-from . import betrieb, db, kern, pipe
+from . import betrieb, db, kern, pipe, ueberwachung
 
 AUFSICHT_S = 30           # Puls-Prüfung und Wiederholung fehlgeschlagener Zustellungen
 NUR_IM_HALT = ("stopp", "freigabe")
@@ -78,6 +78,7 @@ class Dienst:
     def __init__(self, con):
         self.con = con
         self.sperre_bis = {}      # (projekt_id, agent) → Zeitpunkt des nächsten Versuchs nach Fehlschlag
+        self.ueberwachung = ueberwachung.Waechter(con)
 
     def takt(self):
         """Ersetzt die händische Erinnerungskette des TL (→ doc/04 #13): je Projekt alle takt_min Minuten eine
@@ -172,6 +173,8 @@ class Dienst:
         for p in self.con.execute("SELECT id FROM projekt").fetchall():   # Warteschlange: Speicher wieder frei, Agent wieder da
             for lid in betrieb.warteschlange(self.con, p["id"]):
                 log.info("Warteschlange: L%s freigegeben", lid)
+        for e in self.ueberwachung.runde():                                  # Projekt-Server, Stillstand
+            log.info("Überwachung: %s", e)
 
 
 def _sekunden(utc):

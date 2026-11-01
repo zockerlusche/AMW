@@ -9,7 +9,7 @@ import os
 import sys
 from datetime import datetime
 
-from . import betrieb, db, kern, wissen
+from . import betrieb, db, kern, ueberwachung, wissen
 
 
 def _projekt(con, a):
@@ -207,7 +207,7 @@ def cmd_lauf(a, con):
         if not a.beschreibung and not a.rezept:
             raise kern.AmwFehler("--beschreibung oder --rezept angeben")
         lid = betrieb.lauf_start(con, pid, _von(a), a.beschreibung or a.rezept, a.rezept, not a.leicht, a.schirm, a.aufgabe,
-                                 warten=a.warten)
+                                 warten=a.warten, erwartet_min=a.dauer)
         w = [r["id"] for r in betrieb.wartende(con, pid)]
         if lid in w:
             print(f"L{lid} eingereiht (Platz {w.index(lid) + 1} von {len(w)}) – noch nicht rechnen. Der Wächter weckt dich mit"
@@ -255,6 +255,31 @@ def cmd_pruefung(a, con):
                              (pid, int(a.alle))):
             print(f"P{r['id']:<5} [{r['ergebnis']}] {r['zweig']}@{r['sha'][:8]} {r['bauer']} → {r['pruefer']}"
                   + (f" A{r['aufgabe_id']}" if r["aufgabe_id"] else ""))
+
+
+def cmd_server(a, con):
+    """Projekt-Server, die der Wächter überwacht (Port antwortet?) und auf Wunsch neu startet."""
+    pid = _projekt(con, a)
+    if a.aktion == "anmelden":
+        if not (a.name and a.port):
+            raise kern.AmwFehler("server anmelden <name> --port N [--start \"Befehl\" --ordner Pfad --neustart --zustaendig X]")
+        print(f"Server {a.name}: " + ueberwachung.server_anmelden(con, pid, _von(a), a.name, a.port, a.start, a.ordner,
+                                                                  a.neustart, a.zustaendig)
+              + (" – der Wächter startet ihn bei Ausfall neu" if a.neustart else " – Ausfall wird gemeldet"))
+    elif a.aktion == "abmelden":
+        ueberwachung.server_abmelden(con, pid, _von(a), a.name)
+        print(f"Server {a.name} wird nicht mehr überwacht")
+    elif a.aktion == "pruefen":
+        for s in con.execute("SELECT name, port FROM server WHERE projekt_id = ? AND aktiv = 1 ORDER BY name", (pid,)):
+            print(f"{s['name']:<20} Port {s['port']:<6} " + ("antwortet" if ueberwachung.antwortet(s["port"]) else "ANTWORTET NICHT"))
+    else:
+        zeilen = con.execute("SELECT * FROM server WHERE projekt_id = ? AND aktiv = 1 ORDER BY name", (pid,)).fetchall()
+        if not zeilen:
+            print("keine Server angemeldet – amw server anmelden <name> --port N …")
+        for s in zeilen:
+            print(f"{s['name']:<20} Port {s['port']:<6} {s['zustand']:<9} seit {_zeit(s['seit_utc']) or '–'}"
+                  f"  zuständig {s['zustaendig']}  Neustart {'ja' if s['neustart'] else 'nein'}  Ausfälle {s['ausfaelle']}"
+                  + (f"\n    {s['startbefehl']}" if s["startbefehl"] else ""))
 
 
 def cmd_hinweis(a, con):
@@ -564,6 +589,7 @@ def parser():
     x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen"])
     x.add_argument("id", type=int, nargs="?")
     x.add_argument("--warten", action="store_true", help="ist der Platz belegt: einreihen statt ablehnen; Freigabe weckt dich")
+    x.add_argument("--dauer", type=float, help="erwartete Dauer in Minuten; doppelt so lang → Warnung an den Lead")
     x.add_argument("--beschreibung")
     x.add_argument("--rezept")
     x.add_argument("--leicht", action="store_true", help="kein schwerer Lauf (keine Speicher-Grenze)")
@@ -574,6 +600,16 @@ def parser():
     x.add_argument("--abgebrochen", action="store_true")
     x.add_argument("--grenze", type=int, default=20)
     x.set_defaults(f=cmd_lauf)
+
+    x = s.add_parser("server", help="Projekt-Server überwachen: anmelden | abmelden | liste | pruefen")
+    x.add_argument("aktion", choices=["anmelden", "abmelden", "liste", "pruefen"])
+    x.add_argument("name", nargs="?")
+    x.add_argument("--port", type=int)
+    x.add_argument("--start", help="Startbefehl, z. B. \"pythonw C:/pfad/server.py --port 8766\"")
+    x.add_argument("--ordner", help="Arbeitsordner für den Startbefehl")
+    x.add_argument("--neustart", action="store_true", help="bei Ausfall automatisch neu starten")
+    x.add_argument("--zustaendig", help="wer bei Ausfall benachrichtigt wird (Vorgabe: du)")
+    x.set_defaults(f=cmd_server)
 
     x = s.add_parser("pruefung", help="Prüfbitte je Stand (SHA), Ergebnis grün/rot")
     x.add_argument("aktion", choices=["bitte", "gruen", "rot", "ist-gruen", "liste"])
