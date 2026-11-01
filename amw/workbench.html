@@ -252,6 +252,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
 .dialog-hg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 10; padding: 16px; }
 .dialog { width: min(520px, 100%); padding: 22px; }
 .dialog h3 { font: 600 20px var(--titel); margin: 0 0 10px; color: var(--rot); letter-spacing: .06em; }
+.dialog.einst h3 { color: var(--tinte); }   /* Profil ist keine Warnung */
 .dialog select { width: 100%; padding: 8px; background: var(--grund); border: 1px solid var(--linie); border-radius: 3px; }
 .toast { position: fixed; bottom: 18px; right: 18px; left: auto; padding: 10px 14px; z-index: 20; animation: auf .3s both; }
 
@@ -409,6 +410,19 @@ const TEXTE = {
     pe_warnung: "Warnung (Server aus, Stillstand, Fehler, Grenzen)", pe_eingabe: "Agent wartet auf Freigabe/Eingabe (ab 5 min)", pe_halt: "Halt gesetzt/aufgehoben",
     pe_rueckblick: "täglicher Rückblick", p_ruhe: "Ruhezeit", p_ruhe_h: "nur Dringendes (Halt, Server aus); der Rest kommt danach gesammelt",
     p_von: "von", p_bis: "bis", p_max: "höchstens je Stunde", p_probe: "Probe {x}", p_protokoll: "Zuletzt verschickt", p_leer: "Noch nichts verschickt.",
+    st_starten: "Starten", st_fortsetzen: "Fortsetzen", st_neu: "Neu beginnen", st_beenden: "Beenden", st_profil: "Profil anlegen",
+    st_profil_h: "Zum Starten braucht der Agent ein Profil (Ordner …) – Zahnrad › Agenten › Profil",
+    st_starten_frage: "{x} in einem neuen Terminal-Tab starten?", st_fortsetzen_frage: "{x} starten und die letzte Sitzung fortsetzen?",
+    st_neu_frage: "{x} mit einer NEUEN Sitzung starten (ohne bisherigen Gesprächsverlauf)?",
+    st_beenden_frage: "Claude-Sitzung von {x} beenden? Das Fenster bleibt offen; Fortsetzen geht später.",
+    pr_knopf: "Profil", pr_knopf_leer: "Profil anlegen", pr_titel: "Profil {x}",
+    pr_h: "Daraus baut „Starten“ den Befehl im Terminal-Tab. Nur am PC änderbar.", pr_vorgabe: "Vorgabe",
+    pr_ordner: "Arbeitsordner", pr_zusatz: "Zusatzordner", pr_zusatz_h: "mit ; getrennt (--add-dir)", pr_denkstufe: "Denkstufe",
+    pr_modell: "Modell", pr_rechte: "Rechte", pr_r_vorgabe: "Nachfragen (Vorgabe)", pr_r_auto: "Automatisch (auto)",
+    pr_r_umgehen: "Alles erlauben (umgehen)", pr_rechte_h: "„Alles erlauben“ nur, wenn du den Agenten vertraust; Sperr-Regeln gelten weiter",
+    pr_fern: "Fernsteuerung", pr_fern_h: "Remote Control mit der Kennung als Namen (Steuern vom Handy/claude.ai)",
+    pr_neustart: "Nach Absturz fortsetzen", pr_neustart_h: "nur wenn Claude abstürzt und das Fenster offen bleibt; höchstens 3-mal je Stunde",
+    pr_startsatz: "Startsatz", pr_startsatz_h: "erste Anweisung einer neuen Sitzung (beim Fortsetzen nicht)",
     achtung: "Achtung", nachtrag_neu: "{n} neuer Nachtrag", aufklappen: "Klick: ganzer Text", s_extra: "{n} außerplanmäßig",
     jetzt_bei: "jetzt: {x}", geaendert: "geändert", notizen: "Notizen ({n})", server: "Projekt-Server", k_name: "Name", k_port: "Port",
     k_zustaendig: "Zuständig", k_neustart: "Neustart", k_ausfaelle: "Ausfälle", sz_laeuft: "läuft", sz_aus: "aus", sz_unbekannt: "noch nicht geprüft",
@@ -491,6 +505,19 @@ const TEXTE = {
     pe_warnung: "warning (server down, stall, error, limits)", pe_eingabe: "agent waiting for permission/input (after 5 min)", pe_halt: "halt set/lifted",
     pe_rueckblick: "daily summary", p_ruhe: "Quiet hours", p_ruhe_h: "only urgent (halt, server down); the rest is sent afterwards in one batch",
     p_von: "from", p_bis: "until", p_max: "at most per hour", p_probe: "Test {x}", p_protokoll: "Recently sent", p_leer: "Nothing sent yet.",
+    st_starten: "Start", st_fortsetzen: "Resume", st_neu: "Start fresh", st_beenden: "Stop", st_profil: "Create profile",
+    st_profil_h: "To start, the agent needs a profile (folder …) – Settings › Agents › Profile",
+    st_starten_frage: "Start {x} in a new terminal tab?", st_fortsetzen_frage: "Start {x} and resume its last session?",
+    st_neu_frage: "Start {x} with a NEW session (no previous conversation)?",
+    st_beenden_frage: "Stop the Claude session of {x}? The window stays open; you can resume later.",
+    pr_knopf: "Profile", pr_knopf_leer: "Create profile", pr_titel: "Profile {x}",
+    pr_h: "Start builds the command in the terminal tab from this. Editable on the PC only.", pr_vorgabe: "default",
+    pr_ordner: "Working folder", pr_zusatz: "Extra folders", pr_zusatz_h: "separated by ; (--add-dir)", pr_denkstufe: "Effort",
+    pr_modell: "Model", pr_rechte: "Permissions", pr_r_vorgabe: "Ask (default)", pr_r_auto: "Automatic (auto)",
+    pr_r_umgehen: "Allow everything (bypass)", pr_rechte_h: "“Allow everything” only if you trust the agent; deny rules still apply",
+    pr_fern: "Remote control", pr_fern_h: "Remote Control named after the agent (steer from phone/claude.ai)",
+    pr_neustart: "Resume after crash", pr_neustart_h: "only if Claude crashes and the window stays open; at most 3 times per hour",
+    pr_startsatz: "First prompt", pr_startsatz_h: "first instruction of a new session (not when resuming)",
     achtung: "Attention", nachtrag_neu: "{n} new follow-up", aufklappen: "Click: full text", s_extra: "{n} unplanned",
     jetzt_bei: "now: {x}", geaendert: "changed", notizen: "Notes ({n})", server: "Project servers", k_name: "Name", k_port: "Port",
     k_zustaendig: "Owner", k_neustart: "Restart", k_ausfaelle: "Outages", sz_laeuft: "running", sz_aus: "down", sz_unbekannt: "not checked yet",
@@ -678,6 +705,24 @@ function kachel(a) {
   karte.addEventListener("click", () => agentDialog(a.kennung));
   return karte;
 }
+/* Starten / Fortsetzen / Neu / Beenden – nur am PC (online gibt es keine Knöpfe), immer mit Rückfrage */
+function steuerKnoepfe(d, schliessen) {
+  if (API || !d.profil) return [];
+  const aktion = async (weg, daten, frage) => {
+    if (!confirm(frage)) return;
+    try { const r = await schicken(weg, { kennung: d.kennung, ...daten }); toast(r.text || t("gespeichert")); schliessen(); setTimeout(() => zeige(zustand.sicht, true), 4000); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); }
+  };
+  if (!d.profil.ordner) return [el("button", { class: "klein-knopf", type: "button", title: t("st_profil_h"), onclick: () => { schliessen(); zeige("einstellungen"); } }, t("st_profil"))];
+  if (d.prozess_laeuft) return [el("button", { class: "klein-knopf", type: "button",
+    onclick: () => aktion("/api/agent/stop", {}, t("st_beenden_frage", { x: d.kennung })) }, t("st_beenden"))];
+  const knoepfe = [el("button", { class: "knopf haupt", type: "button",
+    onclick: () => aktion("/api/agent/start", {}, t(d.fortsetzbar ? "st_fortsetzen_frage" : "st_starten_frage", { x: d.kennung })) },
+    t(d.fortsetzbar ? "st_fortsetzen" : "st_starten"))];
+  if (d.fortsetzbar) knoepfe.push(el("button", { class: "klein-knopf", type: "button",
+    onclick: () => aktion("/api/agent/start", { neu: true }, t("st_neu_frage", { x: d.kennung })) }, t("st_neu")));
+  return knoepfe;
+}
 /* Übersicht: Zustand aus Hooks und Statusline – Modell, Denkstufe, Kontext, Grenzen (mit Rücksetzzeit), Kosten */
 function zustandAbschnitt(d) {
   if (d.zustand !== "aktiv" || (!d.status_utc && !d.ereignis)) return el("section", { class: "abschnitt" }, el("h4", {}, t("k_zustand")),
@@ -736,7 +781,8 @@ async function agentDialog(kennung) {
       el("div", { class: "agent-kopf" }, el("h3", {}, d.kennung),
         el("span", { class: "leise" }, `${d.rolle || t("agent")} · ${d.zustand === "aktiv" ? t("laeuft") : (d.zustand || t("nie_gestartet"))}` +
           (d.letzter_puls_utc ? ` · ${t("puls", { t: seit(d.letzter_puls_utc) })}` : "")),
-        el("button", { class: "knopf", type: "button", style: "margin-left:auto", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht")),
+        el("span", { style: "margin-left:auto;display:flex;gap:8px;flex-wrap:wrap" }, ...steuerKnoepfe(d, () => hg.remove()),
+          el("button", { class: "knopf", type: "button", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht"))),
         el("button", { class: "klein-knopf", type: "button", "aria-label": "schließen", onclick: () => hg.remove() }, "×")),
       macht, zustandAbschnitt(d),
       el("div", { class: "agent-spalten" }, el("div", {}, ...links), el("div", {}, ...rechts)),
@@ -1015,8 +1061,11 @@ async function sichtEinstellungen() {
     const knopf = el("button", { class: "klein-knopf", type: "button" }, t("speichern"));
     knopf.addEventListener("click", () => speichern("agent", { kennung: a.kennung, rolle: wert(f.rolle), soll: f.soll.value, grenzen: wert(f.grenzen),
       empfaengt_rund: f.empfaengt_rund.checked, puls_grenze_s: (wert(f.puls) || 2) * 60 }, knopf));
+    const profil = API ? null : el("button", { class: "klein-knopf", type: "button", title: t("pr_h"), onclick: () => profilDialog(a) },
+      a.ordner ? t("pr_knopf") : t("pr_knopf_leer"));
     return el("tr", {}, el("td", { class: "mono" }, a.kennung), el("td", {}, f.rolle), el("td", {}, f.soll), el("td", {}, f.grenzen),
-      el("td", { style: "text-align:center" }, f.empfaengt_rund), el("td", {}, f.puls), el("td", {}, knopf));
+      el("td", { style: "text-align:center" }, f.empfaengt_rund), el("td", {}, f.puls),
+      el("td", { style: "white-space:nowrap" }, knopf, profil ? " " : null, profil));
   };
   const neuKennung = text("");
   neuKennung.placeholder = "CC9";
@@ -1066,6 +1115,37 @@ async function sichtEinstellungen() {
 }
 /* Zahnrad „Benachrichtigungen“: Hauptschalter, Anbieter (Geheimnisse nur als „gespeichert“), Ereignisse, Ruhezeit,
    Probe je Anbieter mit Antwort der API, Versandprotokoll. */
+/* Profil eines Agenten (nur am PC): woraus „Starten“ den Befehl baut */
+function profilDialog(a) {
+  const ein = (wert, ph) => { const x = el("input", { type: "text", value: wert ?? "", autocomplete: "off" }); if (ph) x.placeholder = ph; return x; };
+  const wahl = (werte, aktuell) => { const s = el("select", {}, werte.map(([v, l]) => el("option", { value: v }, l))); s.value = aktuell ?? werte[0][0]; return s; };
+  const kasten = an => { const x = el("input", { type: "checkbox" }); x.checked = !!an; return x; };
+  const f = { ordner: ein(a.ordner, "F:\\projekt"), zusatz: ein((a.zusatzordner || []).join("; "), "F:\\a; F:\\b"),
+    denkstufe: wahl([["", t("pr_vorgabe")], ["low", "low"], ["medium", "medium"], ["high", "high"], ["xhigh", "xhigh"], ["max", "max"]], a.denkstufe || ""),
+    modell: ein(a.modell, "opus, sonnet … (leer = Vorgabe)"),
+    rechte: wahl([["vorgabe", t("pr_r_vorgabe")], ["auto", t("pr_r_auto")], ["umgehen", t("pr_r_umgehen")]], a.rechte || "vorgabe"),
+    fern: kasten(a.fernsteuerung ?? 1), neustart: kasten(a.neustart_auto),
+    startsatz: el("textarea", { rows: 4 }, a.startsatz || "") };
+  const zeile = (b, x, h) => el("div", { class: "feld" }, el("label", {}, b), el("div", {}, x, h ? el("div", { class: "sehrleise", style: "font-size:12px" }, h) : null));
+  const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
+  const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
+    el("div", { class: "karte dialog einst", style: "width:min(760px,94vw)" }, el("h3", {}, t("pr_titel", { x: a.kennung })),
+      el("p", { class: "leise", style: "margin-top:0" }, t("pr_h")),
+      zeile(t("pr_ordner"), f.ordner), zeile(t("pr_zusatz"), f.zusatz, t("pr_zusatz_h")), zeile(t("pr_denkstufe"), f.denkstufe),
+      zeile(t("pr_modell"), f.modell), zeile(t("pr_rechte"), f.rechte, t("pr_rechte_h")), zeile(t("pr_fern"), f.fern, t("pr_fern_h")),
+      zeile(t("pr_neustart"), f.neustart, t("pr_neustart_h")), zeile(t("pr_startsatz"), f.startsatz, t("pr_startsatz_h")),
+      el("div", { class: "aktionen" }, el("button", { class: "klein-knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")), knopf)));
+  knopf.addEventListener("click", async () => {
+    knopf.disabled = true;
+    try {
+      await schicken("/api/einstellungen/profil", { kennung: a.kennung, ordner: f.ordner.value.trim(), zusatzordner: f.zusatz.value,
+        denkstufe: f.denkstufe.value, modell: f.modell.value.trim(), rechte: f.rechte.value, fernsteuerung: f.fern.checked,
+        neustart_auto: f.neustart.checked, startsatz: f.startsatz.value.trim() });
+      toast(t("gespeichert")); hg.remove(); zeige("einstellungen", true);
+    } catch (e) { toast(t("fehler", { x: e.message }), true); } finally { knopf.disabled = false; }
+  });
+  document.body.append(hg);
+}
 async function pushBlock(feld, text, zahl, schalter, wert, speichern) {
   let d; try { d = await holen("/api/push"); } catch (e) { return el("div", { class: "karte" }, el("h3", {}, t("p_titel")), String(e)); }
   const c = d.einstellungen, geheim = (gespeichert) => { const x = text("", "password"); x.placeholder = gespeichert ? t("e_token_da") : ""; return x; };

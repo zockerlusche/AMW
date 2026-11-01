@@ -123,11 +123,18 @@ def anmelden(con, pid, kennung, eingabe, ersetzen=False, streng=False):
     os.replace(neu, datei)
     a = kern.agent_zeile(con, pid, kennung)
     t = db.jetzt()
+    claude_pid = ich["pid"] if ich else None
+    try:                                            # Fenster = Elternprozess von Claude (Absturz-Erkennung, Stufe D)
+        from . import steuerung
+        fenster_pid = steuerung.eltern(claude_pid) if claude_pid else None
+    except (OSError, AttributeError, ValueError):
+        fenster_pid = None
     with db.schreiben(con):
         con.execute("UPDATE sitzung SET zustand = 'beendet', beendet_utc = ? WHERE agent_id = ? AND zustand IN"
                     " ('aktiv', 'ruht')", (t, a["id"]))
         db.einfuegen(con, "sitzung", agent_id=a["id"], claude_sitzung=eingabe.get("session_id"),
-                     arbeitsordner=eingabe.get("cwd"), schluessel_datei=datei, gestartet_utc=t, letzter_puls_utc=t)
+                     arbeitsordner=eingabe.get("cwd"), schluessel_datei=datei, gestartet_utc=t, letzter_puls_utc=t,
+                     claude_pid=claude_pid, fenster_pid=fenster_pid)
     return None
 
 

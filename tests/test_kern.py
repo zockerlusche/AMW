@@ -185,6 +185,10 @@ class Verlauf(unittest.TestCase):
         for sp in ("kontext_prozent", "limit_5h", "limit_5h_reset_utc", "limit_7t", "limit_7t_reset_utc", "kosten_usd",
                    "modell", "denkstufe", "status_utc", "ereignis", "ereignis_text", "ereignis_utc"):
             self.con.execute(f"ALTER TABLE sitzung DROP COLUMN {sp}")
+        for sp in ("claude_pid", "fenster_pid"):                     # … und kein Steuern (Schema 6)
+            self.con.execute(f"ALTER TABLE sitzung DROP COLUMN {sp}")
+        for sp in ("ordner", "zusatzordner", "denkstufe", "modell", "startsatz", "rechte", "fernsteuerung", "neustart_auto"):
+            self.con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")
         self.con.execute("PRAGMA user_version = 1")
         self.con.close()
         self.con = db.verbinde(self.pfad)

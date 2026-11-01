@@ -33,6 +33,14 @@ CREATE TABLE agent (
   soll             TEXT NOT NULL DEFAULT 'an' CHECK (soll IN ('an', 'aus', 'ruht')),
   empfaengt_rund   INTEGER NOT NULL DEFAULT 1,   -- bekommt Rundschreiben („alle“)
   puls_grenze_s    INTEGER NOT NULL DEFAULT 120,
+  ordner           TEXT,                         -- Profil zum Starten (→ amw/steuerung.py)
+  zusatzordner     TEXT,                         -- JSON-Liste (--add-dir)
+  denkstufe        TEXT,
+  modell           TEXT,
+  startsatz        TEXT,
+  rechte           TEXT,                         -- vorgabe | auto | umgehen
+  fernsteuerung    INTEGER NOT NULL DEFAULT 1,
+  neustart_auto    INTEGER NOT NULL DEFAULT 0,
   angelegt_utc     TEXT NOT NULL,
   uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft         TEXT NOT NULL DEFAULT '',
@@ -67,6 +75,8 @@ CREATE TABLE sitzung (
   ereignis          TEXT,
   ereignis_text     TEXT,
   ereignis_utc      TEXT,
+  claude_pid        INTEGER,
+  fenster_pid       INTEGER,
   uid               TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft          TEXT NOT NULL DEFAULT '',
   geaendert_utc     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))

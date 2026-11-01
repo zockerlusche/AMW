@@ -20,7 +20,7 @@ import os
 import sys
 import time
 
-from . import betrieb, db, kern, pipe, push, statusline, ueberwachung
+from . import betrieb, db, kern, pipe, push, statusline, steuerung, ueberwachung
 
 AUFSICHT_S = 30           # Puls-Prüfung und Wiederholung fehlgeschlagener Zustellungen
 NUR_IM_HALT = ("stopp", "freigabe")
@@ -79,6 +79,7 @@ class Dienst:
         self.con = con
         self.sperre_bis = {}      # (projekt_id, agent) → Zeitpunkt des nächsten Versuchs nach Fehlschlag
         self.ueberwachung = ueberwachung.Waechter(con)
+        self.neustarter = steuerung.Neustarter(con)
 
     def takt(self):
         """Ersetzt die händische Erinnerungskette des TL (→ doc/04 #13): je Projekt alle takt_min Minuten eine
@@ -174,6 +175,11 @@ class Dienst:
             for lid in betrieb.warteschlange(self.con, p["id"]):
                 log.info("Warteschlange: L%s freigegeben", lid)
         statusline.uebernehmen(self.con)                                     # Kontext, Grenzen, Kosten je Sitzung
+        try:                                                                 # abgestürzte Agenten fortsetzen (Profil)
+            for e in self.neustarter.runde():
+                log.info("Neustart: %s", e)
+        except Exception as e:
+            log.warning("Neustart: %s: %s", type(e).__name__, e)
         for e in self.ueberwachung.runde():                                  # Projekt-Server, Stillstand
             log.info("Überwachung: %s", e)
         try:                                                                 # Push aufs Handy (eigene Fehler nie störend)

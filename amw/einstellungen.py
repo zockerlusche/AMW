@@ -65,6 +65,7 @@ FELDER = {
     "bruecke_absender": ("TL", _kennung),
     "bruecke_kopie_s": (60, _ganz(15, 3600)),
     "statusline_weiter": ("", _befehl),            # bisherige Statusline, die amw-statusline.py weiterreicht
+    "claude_befehl": ("claude", _befehl),          # Claude Code starten (falls anders installiert: voller Pfad)
 }
 
 

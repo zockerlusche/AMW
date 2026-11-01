@@ -67,6 +67,32 @@ def cmd_agent(a, con):
         kern.agent_neu(con, pid, a.kennung, a.rolle, a.grenzen, a.startbefehl, not a.ohne_rund)
         print(f"Agent {a.kennung} angelegt")
         return
+    if a.aktion in ("profil", "starten", "beenden", "startskript"):
+        from . import steuerung
+        if a.aktion == "startskript":
+            text = steuerung.startskript(con, pid, [a.kennung] if a.kennung else None)
+            if a.datei:
+                with open(a.datei, "w", encoding="utf-8-sig") as f:
+                    f.write(text)
+                print(f"geschrieben: {a.datei} – mit Rechtsklick „Mit PowerShell ausführen“ starten")
+            else:
+                print(text)
+            return
+        if not a.kennung:
+            raise kern.AmwFehler(f"amw agent {a.aktion} <kennung>")
+        if a.aktion == "starten":
+            print(steuerung.starten(con, pid, a.kennung, neu=a.neu))
+        elif a.aktion == "beenden":
+            print(steuerung.beenden(con, pid, a.kennung))
+        else:
+            schalter = lambda an, aus: True if an else False if aus else None
+            p = steuerung.profil_setzen(con, pid, _von(a), a.kennung, ordner=a.ordner, zusatzordner=a.zusatz,
+                                        denkstufe=a.denkstufe, modell=a.modell, startsatz=a.startsatz, rechte=a.rechte,
+                                        fernsteuerung=schalter(a.fernsteuerung, a.keine_fernsteuerung),
+                                        neustart_auto=schalter(a.neustart, a.kein_neustart))
+            for k, v in p.items():
+                print(f"{k:<14} {v}")
+        return
     for r in con.execute(
             "SELECT g.kennung, g.rolle, g.soll, s.zustand, s.letzter_puls_utc,"
             " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
@@ -587,9 +613,21 @@ def parser():
     x.add_argument("--beschreibung")
     x.set_defaults(f=cmd_projekt)
 
-    x = s.add_parser("agent")
-    x.add_argument("aktion", choices=["neu", "liste"])
+    x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript")
+    x.add_argument("aktion", choices=["neu", "liste", "profil", "starten", "beenden", "startskript"])
     x.add_argument("kennung", nargs="?")
+    x.add_argument("--ordner", help="profil: Arbeitsordner")
+    x.add_argument("--zusatz", help="profil: weitere Ordner, mit ; getrennt")
+    x.add_argument("--denkstufe", help="profil: low | medium | high | xhigh | max")
+    x.add_argument("--modell", help="profil: z. B. opus, sonnet (leer = Vorgabe)")
+    x.add_argument("--startsatz", help="profil: erste Anweisung einer neuen Sitzung")
+    x.add_argument("--rechte", help="profil: vorgabe | auto | umgehen")
+    x.add_argument("--fernsteuerung", action="store_true", help="profil: Remote Control an")
+    x.add_argument("--keine-fernsteuerung", action="store_true")
+    x.add_argument("--neustart", action="store_true", help="profil: nach Absturz automatisch fortsetzen")
+    x.add_argument("--kein-neustart", action="store_true")
+    x.add_argument("--neu", action="store_true", help="starten: frische Sitzung statt Fortsetzen")
+    x.add_argument("--datei", help="startskript: in diese Datei schreiben")
     x.add_argument("--rolle")
     x.add_argument("--grenzen")
     x.add_argument("--startbefehl")

@@ -127,8 +127,14 @@ def daten_einstellungen(con, pid, speicher=None):
     pe = json.loads(p["einstellungen"] or "{}")
     from .betrieb import SPEICHER_GRENZE_GB
     from .dienst import TAKT_MIN
-    agenten = zeilen(con.execute("SELECT kennung, rolle, soll, grenzen, empfaengt_rund, puls_grenze_s FROM agent"
+    agenten = zeilen(con.execute("SELECT kennung, rolle, soll, grenzen, empfaengt_rund, puls_grenze_s, ordner, zusatzordner,"
+                                 " denkstufe, modell, startsatz, rechte, fernsteuerung, neustart_auto FROM agent"
                                  " WHERE projekt_id = ? ORDER BY id", (pid,)))
+    for a in agenten:
+        try:
+            a["zusatzordner"] = json.loads(a["zusatzordner"] or "[]")
+        except ValueError:
+            a["zusatzordner"] = []
     try:
         with open(abgleich.zugang_pfad(), encoding="utf-8") as f:
             z = json.load(f)
@@ -159,8 +165,14 @@ def daten_agent(con, pid, kennung):
         raise LookupError(kennung)
     alt = altbestand_bis(con, pid)
     text, aid, quelle = gerade(con, pid, kennung, a["taetigkeit"] if a["zustand"] == "aktiv" else None)
+    from . import steuerung
+    try:
+        steuern = {"profil": steuerung.profil(con, pid, kennung), "prozess_laeuft": steuerung.laeuft(con, pid, kennung),
+                   "fortsetzbar": bool(steuerung.letzte_sitzung(con, pid, kennung))}
+    except Exception:                      # z. B. ohne Windows-API (Tests anderswo) – Anzeige geht trotzdem
+        steuern = {}
     return {
-        **dict(a), "gerade": text, "gerade_aufgabe": aid, "gerade_quelle": quelle,
+        **dict(a), **steuern, "gerade": text, "gerade_aufgabe": aid, "gerade_quelle": quelle,
         "naechste": zeilen(con.execute(
             "SELECT id, titel, status, einstufung, rang, wartet_auf FROM aufgabe WHERE projekt_id = ? AND agent = ?"
             " AND status IN ('laeuft','wartet','blockiert') AND einstufung IN ('aktiv','keine_prio')"

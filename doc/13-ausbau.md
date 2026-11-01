@@ -68,11 +68,28 @@ aus Differenzen der Messpunkte, Rücksprung = neue Zählung.
 - [x] Statusline-Brücke, Wächter-Übernahme, Messpunkte, Hook-Ereignisse, Warnungen
 - [x] Kachel/Übersicht/Betrieb; Einbau in die Agenten-Ordner; Tests; Bildschirmfotos
 
-## 5 Stufe D – Agenten steuern (0.12.0)
-- [ ] Agenten-Profil: Ordner, Zusatzordner, Denkstufe, Modell, Startsatz, Rechte-Modus (im Zahnrad).
-- [ ] „Starten“/„Beenden“ per Klick in der Workbench am PC (nie über die Online-Seite): neuer Terminal-Tab mit Claude, Kennung, Hook; Beenden der Sitzung des Agenten.
-- [ ] Automatischer Neustart (Resume derselben Sitzung) eines abgestürzten Agenten mit Soll „an“, höchstens 3 je Stunde, mit Meldung.
-- [ ] `amw agenten-start` erzeugt das Startskript aus den Profilen (ersetzt handgeschriebene Skripte).
+## 5 Stufe D – Agenten steuern (0.12.0) ✔ 02.11.2026
+**Grundlage.** Bewährtes Startskript (Windows-Terminal-Tab je Agent: `wt new-tab --title X -d Ordner pwsh -NoExit
+-EncodedCommand …`, darin `$env:AMW_AGENT='X'; claude --remote-control X --effort … --add-dir … '<Startsatz>'`) und die
+Optionen von Claude Code 2.1.309 (`--resume <id>`, `--session-id <uuid>`, `--model`, `--effort`, `--permission-mode`,
+`--dangerously-skip-permissions`, `--add-dir`, `--remote-control`, `-n`).
+**Konzept.** Profil je Agent in der Tabelle `agent`: Ordner, Zusatzordner, Denkstufe, Modell, Startsatz, Rechte
+(Vorgabe/auto/umgehen), Fernsteuerung (Remote Control), Auto-Neustart. Der Befehl „claude“ ist eine PC-Einstellung
+(`claude_befehl`, falls anders installiert). **Starten** (Workbench am PC, CLI): setzt die letzte Sitzung des Agenten
+fort (`--resume`), sonst neue Sitzung mit eigener `--session-id` – so ist die Zuordnung Sitzung ↔ Agent sofort eindeutig.
+Ohne Windows Terminal: eigenes Konsolenfenster. Startet nicht, wenn der Agent schon läuft. **Beenden**: beendet den
+Claude-Prozess dieser Sitzung (nicht das Fenster) und vermerkt „durch AMW beendet“. **Auto-Neustart** nur, wenn
+eindeutig ein Absturz vorliegt: Claude-Prozess weg, sein Fenster (die Shell) lebt noch, kein bewusstes Ende
+(SessionEnd „prompt_input_exit/logout/clear“, AMW-Beenden), Soll „an“, Auto-Neustart im Profil an; höchstens 3 je Stunde,
+mit Meldung an den Lead. Wer ein Fenster schließt, beendet bewusst – das wird nie neu geöffnet. Dafür merkt sich die
+Anmeldung Prozess- und Fenster-PID. **Startskript**: `amw agent startskript` schreibt ein PowerShell-Skript für alle
+Agenten mit Soll „an“ (zum Doppelklicken), erzeugt aus den Profilen. Nie über die Online-Seite.
+Lücken: Profile aus dem bisherigen Skript übernehmen (einmalig per CLI); fehlt Windows Terminal → Konsole; der erste
+Start ohne Sitzungs-ID → neue ID.
+- [x] Profil (Schema 6), CLI `amw agent profil|starten|beenden|startskript`, PC-Einstellung `claude_befehl`
+- [x] Prozess-/Fenster-PID bei der Anmeldung, Auto-Neustart im Wächter mit Absturz-Erkennung und Grenze
+- [x] Workbench: Starten/Fortsetzen/Neu/Beenden in Kachel und Übersicht (nur am PC, mit Rückfrage), Profil im Zahnrad
+- [x] Tests, Bildschirmfotos, Profile der vorhandenen Agenten übernehmen
 
 ## 6 Stufe E – Projektplanung (0.13.0)
 Nach Kiro, GitHub Spec Kit, Taskmaster, Backlog.md, Claude Code Agent Teams, Linear (Agenten) – §9.

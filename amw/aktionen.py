@@ -49,6 +49,16 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         return {"erledigt": kern.erledigt(con, pid, kern.ENTWICKLER, ids[:100])}
     if weg.startswith("/api/einstellungen/"):
         return einstellen(con, pid, weg.rsplit("/", 1)[1], daten, kanal, speicher)
+    if weg in ("/api/agent/start", "/api/agent/stop"):     # nur am PC: startet/beendet Programme auf diesem PC
+        if kanal != "seite":
+            raise Ungueltig("Agenten starten und beenden geht nur am PC")
+        from . import steuerung
+        try:
+            if weg.endswith("start"):
+                return {"text": steuerung.starten(con, pid, daten.get("kennung") or "", neu=bool(daten.get("neu")))}
+            return {"text": steuerung.beenden(con, pid, daten.get("kennung") or "")}
+        except (kern.AmwFehler, LookupError, OSError) as e:
+            raise Ungueltig(str(e)) from None
     if weg == "/api/push/probe":                     # nur am PC: verschickt wirklich
         if kanal != "seite":
             raise Ungueltig("Die Probe geht nur am PC")
@@ -65,7 +75,7 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
     raise LookupError("unbekannt")
 
 
-NUR_AM_PC = ("pc", "turso", "push")
+NUR_AM_PC = ("pc", "turso", "push", "profil")   # Profil: Ordner/Startsatz landen in einem Befehl auf diesem PC
 
 
 def einstellen(con, pid, teil, daten, kanal, speicher=None):
@@ -88,6 +98,10 @@ def einstellen(con, pid, teil, daten, kanal, speicher=None):
             return {"pc": einstellungen.speichern(werte), "hinweis": "wirkt beim nächsten Start des Wächters"}
         if teil == "turso":
             return {"turso": turso_einstellen(daten), "hinweis": "wirkt beim nächsten Start des Wächters"}
+        if teil == "profil":
+            from . import steuerung
+            return {"profil": steuerung.profil_setzen(con, pid, kern.ENTWICKLER, daten.get("kennung"),
+                                                       **{k: v for k, v in werte.items()})}
         if teil == "push":
             from . import push
             return {"push": push.speichern(daten), "hinweis": "wirkt in der nächsten Runde des Wächters"}
