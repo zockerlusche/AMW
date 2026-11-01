@@ -251,6 +251,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
     <div class="signale" id="signale"></div>
     <div class="suche"><input id="suche" autocomplete="off" data-t-ph="suche"></div>
     <button class="schalter-halt" id="halt-knopf" type="button"></button>
+    <button class="knopf" id="abmelden" type="button" data-t="abmelden" hidden></button>
   </header>
   <nav id="nav">
     <div class="gruppe" data-t="g_fuerdich"></div>
@@ -274,6 +275,9 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
 <script>
 "use strict";
 const TOKEN = "__AMW_TOKEN__";
+/* Online (Hostinger, doc/12): API = "api.php?weg=", sonst leer = lokale Workbench am PC */
+const API = "__AMW_API__".startsWith("__") ? "" : "__AMW_API__";
+const ziel = weg => API ? API + encodeURIComponent(weg) : weg;
 const $ = (s, w = document) => w.querySelector(s);
 
 /* --- Sprachen: alle festen Texte der Oberfläche; Inhalte aus der Datenbank bleiben in ihrer Sprache. --- */
@@ -284,6 +288,8 @@ const TEXTE = {
     n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_releases: "Release Notes", n_releases_kurz: "Releases", n_wissen: "Wissen", n_betrieb: "Betrieb",
     thema: "Hell / Dunkel", halt: "Halt", weiter: "Weiter",
     s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
+    s_pc: "PC-Stand {x}", s_pc_weg: "PC zuletzt {x}", s_briefkasten: "{n} unterwegs", abmelden: "Abmelden",
+    unterwegs: "Übermittelt – der PC übernimmt es beim nächsten Abgleich (meist unter 1 Minute).",
     stand: "Stand {t}", wartet_auf_dich: "Wartet auf dich", nichts_offen: "Nichts offen – keine Frage wartet auf dich.", agenten: "Agenten",
     alle_agenten: "alle Agenten", agent: "Agent", blockiert: "blockiert", blockiert_arbeit: "blockiert Arbeit",
     laeuft: "läuft", beendet_soll: "beendet – soll laufen", nie_gestartet: "nie gestartet", ruht: "ruht", aus: "aus",
@@ -319,6 +325,8 @@ const TEXTE = {
     n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_releases: "Release notes", n_releases_kurz: "Releases", n_wissen: "Knowledge", n_betrieb: "Operations",
     thema: "Light / Dark", halt: "Halt", weiter: "Resume",
     s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
+    s_pc: "PC data {x}", s_pc_weg: "PC last seen {x}", s_briefkasten: "{n} pending", abmelden: "Log out",
+    unterwegs: "Sent – your PC picks it up at the next sync (usually within a minute).",
     stand: "As of {t}", wartet_auf_dich: "Waiting for you", nichts_offen: "Nothing pending – no question is waiting for you.", agenten: "Agents",
     alle_agenten: "all agents", agent: "Agent", blockiert: "blocked", blockiert_arbeit: "blocks work",
     laeuft: "running", beendet_soll: "stopped – should run", nie_gestartet: "never started", ruht: "resting", aus: "off",
@@ -373,10 +381,11 @@ function seit(x) {
   if (s < 90) return t("gerade"); if (s < 3600) return t("vor_min", { n: Math.round(s / 60) });
   if (s < 86400) return t("vor_h", { n: Math.round(s / 3600) }); return t("vor_t", { n: Math.round(s / 86400) });
 }
-async function holen(weg) { const r = await fetch(weg, { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return r.json(); }
+async function holen(weg) { const r = await fetch(ziel(weg), { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return r.json(); }
 async function schicken(weg, daten) {
-  const r = await fetch(weg, { method: "POST", headers: { "Content-Type": "application/json", "X-AMW-Token": TOKEN }, body: JSON.stringify(daten) });
-  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.fehler || r.status); return j;
+  const r = await fetch(ziel(weg), { method: "POST", headers: { "Content-Type": "application/json", "X-AMW-Token": TOKEN }, body: JSON.stringify(daten) });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.fehler || r.status);
+  if (j.unterwegs) toast(t("unterwegs")); return j;
 }
 function toast(text, fehler) {
   const x = el("div", { class: "karte toast" }, text); if (fehler) x.style.borderColor = "var(--rot)";
@@ -401,7 +410,9 @@ async function kopfAktualisieren() {
     const lebend = d.agenten.filter(a => a.zustand === "aktiv").length;
     const sp = d.speicher.frei;
     $("#signale").replaceChildren(
-      el("span", { class: "signal unwichtig" }, el("span", { class: "punkt gruen" }), t("s_dienst")),
+      d.online ? el("span", { class: "signal" + (d.online.pc_frisch ? " unwichtig" : "") }, el("span", { class: "punkt " + (d.online.pc_frisch ? "gruen" : "bernstein") }),
+        t(d.online.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online.pc_gesehen_utc) }) + (d.online.briefkasten ? " · " + t("s_briefkasten", { n: d.online.briefkasten }) : ""))
+        : el("span", { class: "signal unwichtig" }, el("span", { class: "punkt gruen" }), t("s_dienst")),
       el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: d.agenten.filter(a => a.soll === "an").length })),
       el("span", { class: "signal unwichtig" }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: sp })),
     );
@@ -630,9 +641,11 @@ function haltDialog() {
 }
 async function weiterGeben() {
   const halte = zustand.start?.halt || []; const fuer = [...new Set(halte.map(h => h.gilt_fuer))];
-  try { let n = 0; for (const f of fuer) n += (await schicken("/api/weiter", { fuer: f })).aufgehoben; toast(t("halt_aufgehoben", { n })); zeige(zustand.sicht); }
+  try { let n = 0; for (const f of fuer) n += (await schicken("/api/weiter", { fuer: f })).aufgehoben; if (!API) toast(t("halt_aufgehoben", { n })); zeige(zustand.sicht); }
   catch (e) { toast(t("fehler", { x: e.message }), true); }
 }
+if (API) { const b = $("#abmelden"); b.hidden = false; b.addEventListener("click", async () => {
+  await fetch("index.php?abmelden=1", { method: "POST", headers: { "X-AMW-Token": TOKEN } }).catch(() => {}); location.reload(); }); }
 $("#halt-knopf").addEventListener("click", () => (zustand.start?.halt || []).length ? weiterGeben() : haltDialog());
 $("#suche").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.value.trim().length > 1) suchen(e.target.value.trim()); });
 for (const a of document.querySelectorAll("nav a")) a.addEventListener("click", () => zeige(a.dataset.sicht));

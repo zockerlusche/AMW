@@ -7,8 +7,8 @@
 | 2 | Entscheidungen des Entwicklers (unten) | Marcel | E1–E3 entschieden 01.11. 08:58 |
 | 3 | Stufe 0 Proben (→ 10 §4) | CCamw | P2 grün 01.11. 09:10; P6 grün 01.11. 10:17 (Turso, Frankfurt); P1 zurückgestellt (Dienst macht sie hinfällig); P7 entfällt |
 | 4 | Stufe 1 Lokal: amw.db, CLI, amw-dienst, Hook, Workbench-Seite, Übernahme aus bus.db (→ 10 §4–§6) | CCamw; Auskünfte von CC3 (Bus/Wache) und CC5 (Oberfläche) | läuft – fertig 01.11.: Datenmodell, CLI, Hook, Wächter (Ende-zu-Ende an CCamw erprobt), Übernahme aus bus.db (Probe: alle Zählungen gleich), Workbench-Seite (Start, Fragen mit Antwort per Klick, Aufgaben, Wissen, Betrieb, Release Notes, Halt, Nachricht an Agent; DE/EN; Handy), CLI vollständig für TL und Agenten (Läufe, Prüfungen, Anweisungen, Rezepte, Wortlaut, Beschlüsse, Regeln, Notizen, Release), Takt für den Lead, Ablauf des Umschaltens (10 §6), 37 Tests; **umgezogen 01.11. 11:59** (→ 11) |
-| 5 | Umschalten LayerIT auf die AMW (ohne Datenverlust) | Marcel gibt frei | nach Stufe 1 |
-| 6 | Stufe 2 Unterwegs (Spiegel, Anmeldung, Veröffentlichen) | CCamw | wenn Stufe 1 trägt |
+| 5 | Umschalten LayerIT auf die AMW (ohne Datenverlust) | Marcel gibt frei | **erledigt 01.11. 11:59** (→ 11) |
+| 6 | Stufe 2 Unterwegs (Spiegel, Anmeldung, Veröffentlichen) | CCamw; Konten Marcel | läuft – Online-Workbench über Hostinger/GitHub gebaut und am PC erprobt (Schaufenster + Briefkasten über Turso, Login mit Passwort + Code, → 12); offen: Schritte 12 §5 (Konten Marcel), Veröffentlichen von Release Notes/Blog |
 | 7 | Stufe 3 Produkt (Installer, mehrere Nutzer/Rechner, eigenes Repo privat; öffentlich erst, wenn es im Betrieb trägt) | CCamw, Marcel | später |
 
 ## Brücke bis dahin

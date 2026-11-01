@@ -219,6 +219,9 @@ def main(argv=None):
             log.info("Workbench: http://127.0.0.1:%s/", a.port)
         except OSError as e:                         # Port belegt – Wecker läuft trotzdem
             log.error("Workbench nicht gestartet (Port %s): %s", a.port, e)
+        from . import abgleich                        # Stufe 2: nur mit "abgleich": true in turso.json
+        if abgleich.starten():
+            log.info("Abgleich mit dem Online-Speicher an")
     d.aufsicht()
     d.zustellen()
     if a.einmal:

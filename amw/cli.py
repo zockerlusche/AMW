@@ -285,6 +285,35 @@ def cmd_release(a, con):
             print(f"R{r['id']:<5} {r['art']:<7} {r['version'] or '(offen)':<9} {_zeit(r['zeit_utc'])} {r['titel']}")
 
 
+def cmd_web(a, con):
+    """Stufe 2 (doc/12): Seite für Hostinger bauen, Online-Speicher einrichten, einen Abgleich von Hand."""
+    from . import abgleich
+    if a.aktion == "bauen":
+        quelle = os.path.join(os.path.dirname(__file__), "workbench.html")
+        ziel = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "inc", "seite.html")
+        with open(quelle, encoding="utf-8") as f, open(ziel, "w", encoding="utf-8", newline="\n") as g:
+            g.write(f.read())
+        print(f"gebaut: {ziel}")
+        return 0
+    sp = abgleich.speicher_aus_zugang(nur_wenn_an=False)
+    if sp is None:
+        raise kern.AmwFehler(f"kein Zugang in {abgleich.zugang_pfad()}")
+    ab = abgleich.Abgleich(con, sp, _projekt(con, a))
+    if a.aktion == "schema":
+        ab.schema()
+        print("Online-Speicher: Tabellen ansicht, eingang, versuch, zustand bereit")
+    elif a.aktion == "einmal":
+        ab.schema()
+        print(f"Briefkasten: {ab.eingang()} Zeile(n) bearbeitet · Ansichten hochgeladen: {ab.hochladen()}")
+    else:
+        neu, pc = sp.ausfuehren([("SELECT count(*) FROM eingang WHERE status = 'neu'", []),
+                                 ("SELECT wert FROM zustand WHERE schluessel = 'pc_gesehen_utc'", [])])
+        an = abgleich.speicher_aus_zugang() is not None
+        print(f"Abgleich im Dienst: {'an' if an else 'aus'} · PC zuletzt hochgeladen: {_zeit(pc[0][0]) if pc else '–'}"
+              f" · Briefkasten offen: {neu[0][0]}")
+    return 0
+
+
 def cmd_dienst(a):
     from . import einrichtung
     if a.aktion == "status":
@@ -499,6 +528,10 @@ def parser():
     x.add_argument("--port", type=int, default=8780)
     x.add_argument("--ja", action="store_true", help="wirklich ausführen (sonst nur anzeigen)")
     x.set_defaults(f=cmd_dienst, ohne_db=True)
+
+    x = s.add_parser("web", help="Stufe 2: bauen (Seite für Hostinger) | schema | einmal (Abgleich) | status")
+    x.add_argument("aktion", choices=["bauen", "schema", "einmal", "status"])
+    x.set_defaults(f=cmd_web)
 
     x = s.add_parser("anmelden", help="laufende Sitzung beim Wächter anmelden (ohne Neustart)")
     x.set_defaults(f=cmd_anmelden)

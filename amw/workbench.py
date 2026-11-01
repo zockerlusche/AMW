@@ -15,7 +15,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import db, kern
+from . import aktionen, db, kern
 from .betrieb import speicher_frei_gb
 
 STANDARD_PORT = 8780
@@ -263,38 +263,10 @@ def baue_handler(port, token):
             try:
                 con = db.verbinde()
                 try:
-                    pid = self._projekt(con, q)
-                    teile = u.path.strip("/").split("/")
-                    if teile[:2] == ["api", "frage"] and len(teile) == 4 and teile[3] == "antwort":
-                        art = daten.get("art")
-                        wert = (daten.get("wert") or "").strip()
-                        if art not in ("option", "text", "rueckfrage") or not wert:
-                            return self._senden(400, {"fehler": "art/wert fehlt"})
-                        st = kern.frage_antworten(con, pid, int(teile[2]), art, wert, "seite")
-                        if art == "option" and (daten.get("anmerkung") or "").strip():
-                            with db.schreiben(con):
-                                t = db.jetzt()
-                                db.einfuegen(con, "wortlaut", projekt_id=pid, zeit_utc=t, text=daten["anmerkung"].strip(),
-                                             kanal="seite", erfasst_von="amw", erfasst_utc=t,
-                                             bemerkung=f"Anmerkung zur Antwort auf F{teile[2]} (Option {wert})")
-                        return self._senden(200, {"status": st})
-                    if u.path == "/api/nachricht":
-                        art = daten.get("art") or "auftrag"
-                        if art not in ("auftrag", "frage", "info", "korrektur", "freigabe"):
-                            return self._senden(400, {"fehler": "Art nicht erlaubt"})
-                        kurz = (daten.get("kurz") or "").strip()
-                        if not kurz or not (daten.get("an") or "").strip():
-                            return self._senden(400, {"fehler": "an/kurz fehlt"})
-                        nid, namen = kern.posten(con, pid, kern.ENTWICKLER, daten["an"], art, kurz[:300],
-                                                 (daten.get("text") or "").strip() or None)
-                        return self._senden(200, {"nachricht": nid, "an": namen})
-                    if u.path == "/api/halt":
-                        sid = kern.halt(con, pid, kern.ENTWICKLER, daten.get("fuer") or "alle",
-                                        (daten.get("text") or "Halt vom Entwickler").strip())
-                        return self._senden(200, {"halt": sid})
-                    if u.path == "/api/weiter":
-                        return self._senden(200, {"aufgehoben": kern.weiter(con, pid, kern.ENTWICKLER,
-                                                                            daten.get("fuer") or "alle")})
+                    return self._senden(200, aktionen.ausfuehren(con, self._projekt(con, q), u.path, daten))
+                except aktionen.Ungueltig as e:
+                    return self._senden(400, {"fehler": str(e)})
+                except LookupError:
                     return self._senden(404, {"fehler": "unbekannt"})
                 finally:
                     con.close()

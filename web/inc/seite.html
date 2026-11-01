@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#13120e">
+<title>AMW Workbench</title>
+<style>
+:root {
+  --grund: #13120e; --flaeche: #1c1a15; --flaeche2: #24211b; --linie: #353026; --linie2: #4a4335;
+  --tinte: #ece5d3; --leise: #a39a86; --sehrleise: #6f6858;
+  --bernstein: #f0a93a; --bernstein-weich: rgba(240,169,58,.12);
+  --gruen: #86b46f; --rot: #e5583a; --rot-weich: rgba(229,88,58,.14);
+  --schatten: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 30px -18px rgba(0,0,0,.8);
+  --titel: "Bahnschrift", "DIN Alternate", "Barlow Semi Condensed", "Arial Narrow", sans-serif;
+  --text: "Segoe UI Variable Text", "Segoe UI", "Source Sans 3", -apple-system, "Roboto", sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", "JetBrains Mono", "SF Mono", Consolas, monospace;
+}
+:root[data-thema="hell"] {
+  --grund: #efe9da; --flaeche: #f8f4ea; --flaeche2: #f1ebdc; --linie: #d8cfba; --linie2: #c4b99f;
+  --tinte: #211e17; --leise: #6b6250; --sehrleise: #9a907b;
+  --bernstein: #b46d07; --bernstein-weich: rgba(180,109,7,.10);
+  --gruen: #4c7d36; --rot: #b8381c; --rot-weich: rgba(184,56,28,.10);
+  --schatten: 0 10px 24px -18px rgba(60,45,10,.45);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--grund); color: var(--tinte); font: 14px/1.45 var(--text);
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(255,255,255,.018) 31px 32px),
+    radial-gradient(1200px 500px at 85% -10%, var(--bernstein-weich), transparent 60%);
+}
+:root[data-thema="hell"] body { background-image: repeating-linear-gradient(0deg, transparent 0 31px, rgba(0,0,0,.03) 31px 32px); }
+button, input, select, textarea { font: inherit; color: inherit; }
+.mono { font-family: var(--mono); font-size: 12.5px; letter-spacing: -.01em; }
+.leise { color: var(--leise); }
+.sehrleise { color: var(--sehrleise); }
+
+/* --- Rahmen ------------------------------------------------------------------------------- */
+.rahmen { display: grid; grid-template-columns: 216px 1fr; grid-template-rows: 58px 1fr; height: 100vh; height: 100dvh; }
+header {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; padding: 0 18px 0 0;
+  border-bottom: 1px solid var(--linie); background: color-mix(in srgb, var(--grund) 85%, transparent);
+  backdrop-filter: blur(6px); position: relative; z-index: 2;
+}
+.marke { width: 216px; height: 100%; display: flex; align-items: center; gap: 10px; padding-left: 18px; border-right: 1px solid var(--linie); flex: none; }
+.marke b { font: 600 22px/1 var(--titel); letter-spacing: .14em; }
+.marke span { font: 10.5px/1.15 var(--titel); letter-spacing: .05em; color: var(--leise); text-transform: uppercase; }
+.signale { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.signal { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border: 1px solid var(--linie);
+  border-radius: 3px; font: 12px var(--titel); letter-spacing: .05em; text-transform: uppercase; color: var(--leise); background: var(--flaeche); white-space: nowrap; }
+.punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--sehrleise); flex: none; }
+.punkt.gruen { background: var(--gruen); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gruen) 20%, transparent); }
+.punkt.bernstein { background: var(--bernstein); box-shadow: 0 0 0 3px var(--bernstein-weich); }
+.punkt.rot { background: var(--rot); box-shadow: 0 0 0 3px var(--rot-weich); animation: puls 1.6s infinite; }
+@keyframes puls { 50% { opacity: .35; } }
+.suche { margin-left: auto; position: relative; }
+.suche input { width: min(34vw, 380px); padding: 8px 12px 8px 30px; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; outline: none; }
+.suche input:focus { border-color: var(--bernstein); }
+.suche::before { content: "⌕"; position: absolute; left: 10px; top: 6px; color: var(--sehrleise); font-size: 16px; }
+.schalter-halt { font: 600 13px var(--titel); letter-spacing: .12em; text-transform: uppercase; padding: 9px 16px; border-radius: 3px;
+  border: 1px solid var(--rot); background: transparent; color: var(--rot); cursor: pointer; flex: none; }
+.schalter-halt:hover { background: var(--rot-weich); }
+.schalter-halt.aktiv { background: var(--rot); color: #fff; }
+
+nav { border-right: 1px solid var(--linie); padding: 14px 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+nav .gruppe { font: 11px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--sehrleise); padding: 14px 18px 6px; }
+nav a { display: flex; align-items: baseline; gap: 10px; padding: 8px 18px; color: var(--leise); text-decoration: none; cursor: pointer;
+  border-left: 3px solid transparent; font: 15px var(--titel); letter-spacing: .02em; }
+nav a .sym { display: none; }
+nav a:hover { color: var(--tinte); background: var(--flaeche); }
+nav a.an { color: var(--tinte); border-left-color: var(--bernstein); background: linear-gradient(90deg, var(--bernstein-weich), transparent); }
+nav a .zahl { margin-left: auto; font: 12px var(--mono); color: var(--sehrleise); }
+nav a .zahl.heiss { color: #1b1408; background: var(--bernstein); padding: 0 7px; border-radius: 9px; font-weight: 600; }
+nav .fuss { margin-top: auto; padding: 14px 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+.klein-knopf { font: 12px var(--titel); letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border: 1px solid var(--linie2);
+  background: transparent; border-radius: 3px; cursor: pointer; color: var(--leise); }
+.klein-knopf:hover { color: var(--tinte); border-color: var(--leise); }
+
+main { overflow-y: auto; padding: 26px 30px 60px; }
+.kopf { display: flex; align-items: baseline; gap: 14px; margin: 0 0 18px; flex-wrap: wrap; }
+h1 { font: 600 28px/1.1 var(--titel); letter-spacing: .03em; margin: 0; }
+h2 { font: 600 13px var(--titel); letter-spacing: .16em; text-transform: uppercase; color: var(--leise); margin: 30px 0 12px;
+  display: flex; align-items: center; gap: 10px; }
+h2::after { content: ""; flex: 1; height: 1px; background: var(--linie); }
+.zeile-reveal > * { animation: auf .45s cubic-bezier(.2,.7,.2,1) both; }
+.zeile-reveal > *:nth-child(2) { animation-delay: .04s } .zeile-reveal > *:nth-child(3) { animation-delay: .08s }
+.zeile-reveal > *:nth-child(4) { animation-delay: .12s } .zeile-reveal > *:nth-child(5) { animation-delay: .16s }
+.zeile-reveal > *:nth-child(n+6) { animation-delay: .2s }
+@keyframes auf { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* --- Bausteine ---------------------------------------------------------------------------- */
+.karte { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 4px; box-shadow: var(--schatten); }
+.ref { font: 12.5px var(--mono); color: var(--bernstein); }
+.etikett { display: inline-block; font: 11px var(--titel); letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px;
+  border: 1px solid var(--linie2); border-radius: 2px; color: var(--leise); white-space: nowrap; }
+.etikett.rot { border-color: var(--rot); color: var(--rot); }
+.etikett.bernstein { border-color: var(--bernstein); color: var(--bernstein); }
+.etikett.gruen { border-color: var(--gruen); color: var(--gruen); }
+.leer { padding: 22px; color: var(--sehrleise); border: 1px dashed var(--linie); border-radius: 4px; text-align: center; }
+
+.band-halt { display: flex; gap: 14px; align-items: center; padding: 14px 18px; border: 1px solid var(--rot); background: var(--rot-weich);
+  border-radius: 4px; margin-bottom: 18px; flex-wrap: wrap; }
+.band-halt b { font: 600 18px var(--titel); letter-spacing: .1em; color: var(--rot); }
+
+.wartet { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.wartet .karte { padding: 14px 16px; border-left: 3px solid var(--bernstein); cursor: pointer; transition: transform .15s, border-color .15s; }
+.wartet .karte:hover { transform: translateY(-2px); border-color: var(--bernstein); }
+.wartet .karte p { margin: 6px 0 0; }
+
+.agenten { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.kachel { padding: 14px 16px 12px; position: relative; overflow: hidden; }
+.kachel .name { font: 600 26px/1 var(--titel); letter-spacing: .04em; }
+.kachel .rolle { font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin-top: 2px; }
+.kachel .zustand { display: flex; align-items: center; gap: 8px; margin-top: 12px; font: 13px var(--titel); letter-spacing: .04em; }
+.kachel .info { margin-top: 8px; color: var(--leise); font-size: 12.5px; min-height: 36px; overflow-wrap: anywhere; }
+.kachel .offen { position: absolute; top: 12px; right: 14px; font: 600 13px var(--mono); }
+.kachel.tot { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); }
+.kachel.aus { opacity: .55; }
+
+.frage { padding: 18px 20px; margin-bottom: 16px; }
+.frage .meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--leise); font-size: 12.5px; }
+.frage h3 { font: 600 19px/1.3 var(--titel); letter-spacing: .01em; margin: 10px 0 6px; overflow-wrap: anywhere; }
+.frage .worum { color: var(--leise); margin: 0 0 12px; white-space: pre-wrap; }
+.optionen { display: grid; gap: 8px; margin: 12px 0; }
+.option { text-align: left; padding: 10px 14px; min-height: 44px; background: var(--flaeche2); border: 1px solid var(--linie); border-radius: 3px; cursor: pointer;
+  display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: start; transition: border-color .12s, background .12s; }
+.option:hover { border-color: var(--leise); }
+.option .kenn { font: 600 15px var(--titel); color: var(--leise); }
+.option.empfohlen { border-color: var(--bernstein); background: linear-gradient(90deg, var(--bernstein-weich), var(--flaeche2) 70%); }
+.option.empfohlen .kenn { color: var(--bernstein); }
+.option.gewaehlt { outline: 2px solid var(--tinte); outline-offset: 1px; }
+.option[disabled] { cursor: default; }
+.grund { border-left: 2px solid var(--bernstein); padding: 2px 0 2px 12px; margin: 10px 0; color: var(--leise); }
+.grund b { color: var(--tinte); font-weight: 600; }
+textarea { width: 100%; min-height: 64px; resize: vertical; padding: 10px 12px; background: var(--grund); border: 1px solid var(--linie);
+  border-radius: 3px; outline: none; }
+textarea:focus { border-color: var(--bernstein); }
+.aktionen { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.knopf { font: 600 13px var(--titel); letter-spacing: .08em; text-transform: uppercase; padding: 8px 14px; min-height: 38px; border-radius: 3px; cursor: pointer;
+  border: 1px solid var(--linie2); background: var(--flaeche2); }
+.knopf:hover { border-color: var(--leise); }
+.knopf.haupt { background: var(--bernstein); border-color: var(--bernstein); color: #1b1408; }
+.knopf[disabled] { opacity: .4; cursor: default; }
+.rueckmeldung { font-size: 12.5px; }
+details.vor { margin-top: 14px; border-top: 1px solid var(--linie); padding-top: 10px; }
+details.vor summary { cursor: pointer; color: var(--leise); font: 12px var(--titel); letter-spacing: .1em; text-transform: uppercase; list-style: none; padding: 4px 0; }
+details.vor summary::before { content: "▸ "; } details.vor[open] summary::before { content: "▾ "; }
+.vor-eintrag { display: grid; grid-template-columns: 74px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--linie); }
+.vor-eintrag:last-child { border-bottom: 0; }
+.vor-eintrag .text { color: var(--leise); white-space: pre-wrap; font-size: 12.5px; margin-top: 2px; max-height: 9em; overflow: auto; overflow-wrap: anywhere; }
+
+.reiter { display: flex; gap: 2px; border-bottom: 1px solid var(--linie); margin-bottom: 16px; align-items: flex-end; flex-wrap: wrap; }
+.reiter button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 14px; cursor: pointer; color: var(--leise);
+  font: 14px var(--titel); letter-spacing: .04em; white-space: nowrap; }
+.reiter button.an { color: var(--tinte); border-bottom-color: var(--bernstein); }
+.reiter .rechts { margin-left: auto; display: flex; gap: 8px; padding-bottom: 6px; }
+.reiter select, .reiter input { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; padding: 5px 8px; min-width: 0; }
+
+.board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.spalte h4 { font: 600 12px var(--titel); letter-spacing: .14em; text-transform: uppercase; margin: 0 0 8px; color: var(--leise); display: flex; gap: 8px; }
+.aufgabe { padding: 10px 12px; margin-bottom: 8px; }
+.aufgabe .t { margin: 3px 0; overflow-wrap: anywhere; }
+.aufgabe .w { font-size: 12px; color: var(--bernstein); overflow-wrap: anywhere; }
+.liste .zeile { display: grid; grid-template-columns: 78px 70px 1fr 110px; gap: 12px; padding: 8px 4px; border-bottom: 1px solid var(--linie); align-items: baseline; }
+.liste .zeile > :nth-child(3) { overflow-wrap: anywhere; }
+
+.wissen-eintrag { padding: 12px 14px; margin-bottom: 8px; }
+.wissen-eintrag .kopfzeile { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.wissen-eintrag .inhalt { margin-top: 6px; white-space: pre-wrap; color: var(--leise); max-height: 12em; overflow: auto; font-size: 13px; overflow-wrap: anywhere; }
+
+.messer { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.messer .karte { padding: 14px 16px; }
+.messer .wert { font: 600 30px/1.1 var(--titel); margin-top: 6px; }
+.balken { height: 6px; background: var(--flaeche2); border-radius: 3px; margin-top: 10px; overflow: hidden; }
+.balken > i { display: block; height: 100%; background: var(--gruen); }
+pre.log { background: var(--grund); border: 1px solid var(--linie); border-radius: 4px; padding: 12px; overflow: auto; max-height: 360px; font: 12px/1.5 var(--mono); color: var(--leise); }
+.tab-huelle { overflow-x: auto; }
+table.tab { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.tab th { text-align: left; font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); padding: 6px 8px; border-bottom: 1px solid var(--linie); white-space: nowrap; }
+table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical-align: top; }
+
+.release { display: grid; grid-template-columns: 120px 1fr; gap: 18px; padding: 14px 0; border-bottom: 1px solid var(--linie); }
+.release .ver { font: 600 20px var(--titel); letter-spacing: .03em; }
+.release .text { white-space: pre-wrap; color: var(--leise); margin-top: 6px; font-size: 13px; overflow-wrap: anywhere; }
+
+.dialog-hg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 10; padding: 16px; }
+.dialog { width: min(520px, 100%); padding: 22px; }
+.dialog h3 { font: 600 20px var(--titel); margin: 0 0 10px; color: var(--rot); letter-spacing: .06em; }
+.dialog select { width: 100%; padding: 8px; background: var(--grund); border: 1px solid var(--linie); border-radius: 3px; }
+.toast { position: fixed; bottom: 18px; right: 18px; left: auto; padding: 10px 14px; z-index: 20; animation: auf .3s both; }
+
+/* --- Handy ---------------------------------------------------------------------------------
+   Unten eine Leiste mit den Bereichen (Daumen), oben nur Marke, Zustand und Halt; Suche als eigene Zeile.
+   Tippflächen mindestens 44 px, Fragen in voller Breite. */
+@media (max-width: 760px) {
+  body { font-size: 15px; }
+  .rahmen { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; }
+  header, nav, main { min-width: 0; }
+  header { flex-wrap: wrap; gap: 8px 10px; padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
+  .marke { width: auto; height: auto; border-right: 0; padding-left: 0; }
+  .marke span { display: none; }
+  .signale { order: 2; flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow: hidden; }
+  .signale .signal { padding: 3px 7px; font-size: 11px; }
+  .signale .signal.unwichtig { display: none; }
+  .schalter-halt { margin-left: auto; padding: 8px 14px; min-height: 40px; }
+  .suche { order: 3; flex: 1 0 100%; margin: 0; }
+  .suche input { width: 100%; padding: 10px 12px 10px 30px; }
+  .suche::before { top: 8px; }
+  nav { grid-row: 4; flex-direction: row; justify-content: space-around; border-right: 0; border-top: 1px solid var(--linie);
+    padding: 4px 4px max(4px, env(safe-area-inset-bottom)); background: var(--flaeche); overflow-x: auto; gap: 0; }
+  nav .gruppe, nav .fuss { display: none; }
+  nav a { flex: 1 1 0; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; min-width: 0; border-left: 0; border-top: 2px solid transparent;
+    font-size: 10.5px; letter-spacing: .02em; position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  nav a [data-t-lang] { display: none; }
+  nav a [data-t-kurz] { display: inline !important; }
+  nav a .sym { display: block; font-size: 18px; line-height: 1.1; }
+  nav a.an { border-top-color: var(--bernstein); background: none; }
+  nav a .zahl { position: absolute; top: 2px; right: 6px; margin: 0; font-size: 10px; }
+  nav a .zahl:not(.heiss) { display: none; }
+  main { padding: 16px 14px 24px; }
+  h1 { font-size: 24px; }
+  .wartet, .agenten { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .wartet { grid-template-columns: 1fr; }
+  .kachel { padding: 12px; } .kachel .name { font-size: 21px; } .kachel .info { min-height: 0; }
+  .frage { padding: 14px; } .frage h3 { font-size: 18px; }
+  .option { min-height: 52px; padding: 12px; grid-template-columns: 26px 1fr; }
+  .option .etikett { grid-column: 2; justify-self: start; }
+  .knopf { min-height: 46px; flex: 1 1 auto; }
+  textarea { font-size: 16px; }   /* iOS zoomt sonst beim Tippen */
+  .board { grid-template-columns: 1fr; }
+  .reiter { flex-wrap: nowrap; overflow-x: auto; }
+  .reiter .rechts { margin-left: 0; flex: 1 0 100%; padding: 8px 0; }
+  .reiter .rechts input { flex: 1; }
+  .liste .zeile { grid-template-columns: 70px 1fr; gap: 2px 10px; }
+  .liste .zeile > :nth-child(2) { justify-self: end; }
+  .liste .zeile > :nth-child(3) { grid-column: 1 / -1; }
+  .liste .zeile > :nth-child(4) { grid-column: 1 / -1; }
+  .release { grid-template-columns: 1fr; gap: 6px; }
+  .vor-eintrag { grid-template-columns: 1fr; gap: 2px; }
+  .toast { left: 12px; right: 12px; bottom: 80px; }
+}
+</style>
+</head>
+<body>
+<div class="rahmen">
+  <header>
+    <div class="marke"><b>AMW</b><span data-t="marke"></span></div>
+    <div class="signale" id="signale"></div>
+    <div class="suche"><input id="suche" autocomplete="off" data-t-ph="suche"></div>
+    <button class="schalter-halt" id="halt-knopf" type="button"></button>
+    <button class="knopf" id="abmelden" type="button" data-t="abmelden" hidden></button>
+  </header>
+  <nav id="nav">
+    <div class="gruppe" data-t="g_fuerdich"></div>
+    <a data-sicht="start"><span class="sym">◉</span><span data-t="n_start"></span></a>
+    <a data-sicht="fragen"><span class="sym">?</span><span data-t="n_fragen"></span> <span class="zahl" data-zahl="fragen"></span></a>
+    <div class="gruppe" data-t="g_arbeit"></div>
+    <a data-sicht="arbeit"><span class="sym">▤</span><span data-t="n_aufgaben"></span> <span class="zahl" data-zahl="offen"></span></a>
+    <a data-sicht="releases"><span class="sym">✦</span><span data-t="n_releases" data-t-lang></span><span data-t="n_releases_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="releases"></span></a>
+    <div class="gruppe" data-t="g_wissen"></div>
+    <a data-sicht="wissen"><span class="sym">§</span><span data-t="n_wissen"></span> <span class="zahl" data-zahl="beschluesse"></span></a>
+    <div class="gruppe" data-t="g_betrieb"></div>
+    <a data-sicht="betrieb"><span class="sym">⚙</span><span data-t="n_betrieb"></span></a>
+    <div class="fuss">
+      <button class="klein-knopf" id="thema" type="button" data-t="thema"></button>
+      <button class="klein-knopf" id="sprache" type="button">DE / EN</button>
+    </div>
+  </nav>
+  <main id="inhalt"></main>
+</div>
+
+<script>
+"use strict";
+const TOKEN = "__AMW_TOKEN__";
+/* Online (Hostinger, doc/12): API = "api.php?weg=", sonst leer = lokale Workbench am PC */
+const API = "__AMW_API__".startsWith("__") ? "" : "__AMW_API__";
+const ziel = weg => API ? API + encodeURIComponent(weg) : weg;
+const $ = (s, w = document) => w.querySelector(s);
+
+/* --- Sprachen: alle festen Texte der Oberfläche; Inhalte aus der Datenbank bleiben in ihrer Sprache. --- */
+const TEXTE = {
+  de: {
+    marke: "Agentenmanagement Workbench", suche: "Suchen: Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten",
+    g_fuerdich: "Für dich", g_arbeit: "Arbeit", g_wissen: "Wissen", g_betrieb: "Betrieb",
+    n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_releases: "Release Notes", n_releases_kurz: "Releases", n_wissen: "Wissen", n_betrieb: "Betrieb",
+    thema: "Hell / Dunkel", halt: "Halt", weiter: "Weiter",
+    s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
+    s_pc: "PC-Stand {x}", s_pc_weg: "PC zuletzt {x}", s_briefkasten: "{n} unterwegs", abmelden: "Abmelden",
+    unterwegs: "Übermittelt – der PC übernimmt es beim nächsten Abgleich (meist unter 1 Minute).",
+    stand: "Stand {t}", wartet_auf_dich: "Wartet auf dich", nichts_offen: "Nichts offen – keine Frage wartet auf dich.", agenten: "Agenten",
+    alle_agenten: "alle Agenten", agent: "Agent", blockiert: "blockiert", blockiert_arbeit: "blockiert Arbeit",
+    laeuft: "läuft", beendet_soll: "beendet – soll laufen", nie_gestartet: "nie gestartet", ruht: "ruht", aus: "aus",
+    keine_aufgabe: "keine laufende Aufgabe", puls: "Puls {t}", offen_n: "{n} offen",
+    fragen: "Fragen", geparkte_zeigen: "geparkte zeigen", keine_fragen: "Keine offenen Fragen.", von: "von {x}",
+    anmerkung_ph: "Anmerkung zur gewählten Option (optional) – oder eigene Antwort / Rückfrage", antwort_ph: "Deine Antwort oder Rückfrage",
+    empfehlung: "Empfehlung", warum: "Warum {k}: ", optionen: "Optionen: ", fundstellen: "Fundstellen: ",
+    eigene_antwort: "Eigene Antwort", rueckfrage: "Rückfrage", vorgeschichte: "Vorgeschichte ({n})",
+    beantwortet: "Beantwortet – der Fragesteller wird geweckt.", rueckfrage_gesendet: "Rückfrage gesendet – der Fragesteller wird geweckt.",
+    text_fehlt: "Bitte Text eingeben", rueckfrage_fehlt: "Bitte die Rückfrage eingeben", fehler: "Fehler: {x}",
+    aufgaben: "Aufgaben", t_offen: "Offen", t_geparkt: "Geparkt", t_pool: "Brainstorming / Pool", t_erledigt: "Abgeschlossen",
+    filtern: "filtern …", keine_aufgaben: "Keine Aufgaben in dieser Sicht.", sp_laeuft: "Läuft", sp_wartet: "Wartet", sp_blockiert: "Blockiert", keine_prio: "keine Prio",
+    wissen: "Wissen", wissen_ph: "in Beschlüssen, Regeln, Wortlaut suchen …", beschluesse: "Beschlüsse ({n})", regeln: "Regeln ({n})", wortlaut: "Wortlaut ({n})",
+    arbeitsregel: "Arbeitsregel", projektregel: "Projektregel", nichts_gefunden: "Nichts gefunden.",
+    betrieb: "Betrieb", speicher_frei: "Arbeitsspeicher frei", von_gb: "von {n} GB · Grenze für Läufe 8 GB", aktive_sitzungen: "Aktive Sitzungen",
+    ueber_hook: "angemeldet über den Hook", sperren: "Sperren", halt_anweisungen: "Halt und Anweisungen", datenbank: "Datenbank",
+    keine_sperren: "Keine Sperren.", sitzungen: "Sitzungen", keine_sitzung: "Noch keine Sitzung angemeldet.", laeufe: "Rechen-Läufe", keine_laeufe: "Keine Läufe.",
+    protokoll: "Protokoll des Dienstes", leer: "(leer)",
+    k_nr: "#", k_art: "Art", k_fuer: "Für", k_von: "Von", k_text: "Text", k_seit: "Seit", k_agent: "Agent", k_zustand: "Zustand",
+    k_gestartet: "Gestartet", k_puls: "Puls", k_beendet: "Beendet", k_lauf: "Lauf", k_status: "Status", k_start: "Start", k_ende: "Ende", k_rc: "rc",
+    releases: "Release Notes", keine_releases: "Noch keine Release Notes.", merge: "Merge", oeffentlich: "öffentlich", intern: "intern", aufgaben_x: "Aufgaben: {x}",
+    suche_titel: "Suche", halt_setzen: "Halt setzen",
+    halt_erkl: "Laufende Agenten bekommen sofort ein STOPP und beenden ihre aktuelle Arbeit sauber. Danach weckt der Dienst nur noch für Stopp und Freigabe – bis „Weiter“. Gilt auch nach einem Neustart.",
+    grund_ph: "Grund (erscheint bei den Agenten)", abbrechen: "Abbrechen", halt_gesetzt: "Halt gesetzt", halt_aufgehoben: "{n} Halt aufgehoben",
+    halt_band: "alle Agenten", halt_vom: "Halt vom Entwickler",
+    nachricht: "Nachricht", nachricht_an: "Nachricht an {x}", n_kurz_ph: "Kurz: worum geht es (eine Zeile)", n_text_ph: "Text (optional)",
+    senden: "Senden", gesendet: "Gesendet an {x} – wird geweckt, wenn die Sitzung läuft.", art_auftrag: "Auftrag", art_frage: "Frage", art_info: "Info (weckt nicht)", art_korrektur: "Korrektur",
+    gerade: "gerade eben", vor_min: "vor {n} min", vor_h: "vor {n} h", vor_t: "vor {n} T", nie: "nie",
+  },
+  en: {
+    marke: "Agent Management Workbench", suche: "Search: tasks, decisions, questions, statements, messages",
+    g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
+    n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_releases: "Release notes", n_releases_kurz: "Releases", n_wissen: "Knowledge", n_betrieb: "Operations",
+    thema: "Light / Dark", halt: "Halt", weiter: "Resume",
+    s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
+    s_pc: "PC data {x}", s_pc_weg: "PC last seen {x}", s_briefkasten: "{n} pending", abmelden: "Log out",
+    unterwegs: "Sent – your PC picks it up at the next sync (usually within a minute).",
+    stand: "As of {t}", wartet_auf_dich: "Waiting for you", nichts_offen: "Nothing pending – no question is waiting for you.", agenten: "Agents",
+    alle_agenten: "all agents", agent: "Agent", blockiert: "blocked", blockiert_arbeit: "blocks work",
+    laeuft: "running", beendet_soll: "stopped – should run", nie_gestartet: "never started", ruht: "resting", aus: "off",
+    keine_aufgabe: "no running task", puls: "pulse {t}", offen_n: "{n} open",
+    fragen: "Questions", geparkte_zeigen: "show parked", keine_fragen: "No open questions.", von: "from {x}",
+    anmerkung_ph: "Note on the chosen option (optional) – or your own answer / follow-up question", antwort_ph: "Your answer or follow-up question",
+    empfehlung: "Recommended", warum: "Why {k}: ", optionen: "Options: ", fundstellen: "Sources: ",
+    eigene_antwort: "Own answer", rueckfrage: "Ask back", vorgeschichte: "History ({n})",
+    beantwortet: "Answered – the asker is being woken.", rueckfrage_gesendet: "Follow-up sent – the asker is being woken.",
+    text_fehlt: "Please enter a text", rueckfrage_fehlt: "Please enter your question", fehler: "Error: {x}",
+    aufgaben: "Tasks", t_offen: "Open", t_geparkt: "Parked", t_pool: "Brainstorming / pool", t_erledigt: "Done",
+    filtern: "filter …", keine_aufgaben: "No tasks in this view.", sp_laeuft: "Running", sp_wartet: "Waiting", sp_blockiert: "Blocked", keine_prio: "no priority",
+    wissen: "Knowledge", wissen_ph: "search decisions, rules, statements …", beschluesse: "Decisions ({n})", regeln: "Rules ({n})", wortlaut: "Statements ({n})",
+    arbeitsregel: "Working rule", projektregel: "Project rule", nichts_gefunden: "Nothing found.",
+    betrieb: "Operations", speicher_frei: "Free memory", von_gb: "of {n} GB · limit for runs 8 GB", aktive_sitzungen: "Active sessions",
+    ueber_hook: "registered by the hook", sperren: "Locks", halt_anweisungen: "Halts and instructions", datenbank: "Database",
+    keine_sperren: "No locks.", sitzungen: "Sessions", keine_sitzung: "No session registered yet.", laeufe: "Compute runs", keine_laeufe: "No runs.",
+    protokoll: "Service log", leer: "(empty)",
+    k_nr: "#", k_art: "Kind", k_fuer: "For", k_von: "By", k_text: "Text", k_seit: "Since", k_agent: "Agent", k_zustand: "State",
+    k_gestartet: "Started", k_puls: "Pulse", k_beendet: "Ended", k_lauf: "Run", k_status: "Status", k_start: "Start", k_ende: "End", k_rc: "rc",
+    releases: "Release notes", keine_releases: "No release notes yet.", merge: "Merge", oeffentlich: "public", intern: "internal", aufgaben_x: "Tasks: {x}",
+    suche_titel: "Search", halt_setzen: "Set halt",
+    halt_erkl: "Running agents immediately receive a STOP and finish their current work cleanly. After that the service only wakes agents for stop and release – until “Resume”. Survives restarts.",
+    grund_ph: "Reason (shown to the agents)", abbrechen: "Cancel", halt_gesetzt: "Halt set", halt_aufgehoben: "{n} halt(s) lifted",
+    halt_band: "all agents", halt_vom: "Halt by the developer",
+    nachricht: "Message", nachricht_an: "Message to {x}", n_kurz_ph: "Short: what is it about (one line)", n_text_ph: "Text (optional)",
+    senden: "Send", gesendet: "Sent to {x} – will be woken if the session is running.", art_auftrag: "Task", art_frage: "Question", art_info: "Info (no wake)", art_korrektur: "Correction",
+    gerade: "just now", vor_min: "{n} min ago", vor_h: "{n} h ago", vor_t: "{n} d ago", nie: "never",
+  },
+};
+let sprache = "de";
+const t = (k, v = {}) => (TEXTE[sprache][k] ?? TEXTE.de[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => v[n] ?? "");
+
+let zustand = { sicht: "start", start: null, fragenAlle: false, arbeit: { sicht: "offen", agent: "", q: "" }, wissenQ: "", wissenReiter: "beschluesse" };
+
+/* Elemente nur über textContent – Inhalte aus der Datenbank werden nie als HTML gesetzt. */
+function el(tag, attr, ...kinder) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attr || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kinder.flat()) if (k != null && k !== false) e.append(k instanceof Node ? k : document.createTextNode(String(k)));
+  return e;
+}
+const gebiet = () => (sprache === "en" ? "en-GB" : "de-DE");
+const zeit = x => { if (!x) return "–"; return new Date(x).toLocaleString(gebiet(), { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); };
+function seit(x) {
+  if (!x) return t("nie"); const s = (Date.now() - new Date(x)) / 1000;
+  if (s < 90) return t("gerade"); if (s < 3600) return t("vor_min", { n: Math.round(s / 60) });
+  if (s < 86400) return t("vor_h", { n: Math.round(s / 3600) }); return t("vor_t", { n: Math.round(s / 86400) });
+}
+async function holen(weg) { const r = await fetch(ziel(weg), { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return r.json(); }
+async function schicken(weg, daten) {
+  const r = await fetch(ziel(weg), { method: "POST", headers: { "Content-Type": "application/json", "X-AMW-Token": TOKEN }, body: JSON.stringify(daten) });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.fehler || r.status);
+  if (j.unterwegs) toast(t("unterwegs")); return j;
+}
+function toast(text, fehler) {
+  const x = el("div", { class: "karte toast" }, text); if (fehler) x.style.borderColor = "var(--rot)";
+  document.body.append(x); setTimeout(() => x.remove(), 3800);
+}
+
+/* --- Sprache anwenden ---------------------------------------------------------------------- */
+function feste_texte() {
+  document.documentElement.lang = sprache;
+  for (const e of document.querySelectorAll("[data-t]")) e.textContent = t(e.dataset.t);
+  for (const e of document.querySelectorAll("[data-t-ph]")) e.placeholder = t(e.dataset.tPh);
+}
+function sprache_setzen(s) {
+  sprache = s; try { localStorage.setItem("amw-sprache", s); } catch (e) {}
+  feste_texte(); kopfAktualisieren(); zeige(zustand.sicht);
+}
+
+/* --- Kopf, Navigation ---------------------------------------------------------------------- */
+async function kopfAktualisieren() {
+  try {
+    const d = await holen("/api/start"); zustand.start = d;
+    const lebend = d.agenten.filter(a => a.zustand === "aktiv").length;
+    const sp = d.speicher.frei;
+    $("#signale").replaceChildren(
+      d.online ? el("span", { class: "signal" + (d.online.pc_frisch ? " unwichtig" : "") }, el("span", { class: "punkt " + (d.online.pc_frisch ? "gruen" : "bernstein") }),
+        t(d.online.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online.pc_gesehen_utc) }) + (d.online.briefkasten ? " · " + t("s_briefkasten", { n: d.online.briefkasten }) : ""))
+        : el("span", { class: "signal unwichtig" }, el("span", { class: "punkt gruen" }), t("s_dienst")),
+      el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: d.agenten.filter(a => a.soll === "an").length })),
+      el("span", { class: "signal unwichtig" }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: sp })),
+    );
+    for (const z of document.querySelectorAll("[data-zahl]")) {
+      const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", z.dataset.zahl === "fragen" && n > 0);
+    }
+    const hk = $("#halt-knopf"); const aktiv = d.halt.length > 0;
+    hk.classList.toggle("aktiv", aktiv); hk.textContent = aktiv ? t("weiter") : t("halt");
+  } catch (e) {
+    $("#signale").replaceChildren(el("span", { class: "signal" }, el("span", { class: "punkt rot" }), t("s_dienst_weg")));
+  }
+}
+function zeige(sicht) {
+  zustand.sicht = sicht;
+  for (const a of document.querySelectorAll("nav a")) a.classList.toggle("an", a.dataset.sicht === sicht);
+  try { localStorage.setItem("amw-sicht", sicht); } catch (e) {}
+  if (location.hash !== "#" + sicht) history.replaceState(null, "", "#" + sicht);
+  ({ start: sichtStart, fragen: sichtFragen, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases }[sicht] || sichtStart)();
+  $("#inhalt").scrollTop = 0;
+}
+function rahmen(titel, ...rest) { const m = $("#inhalt"); m.replaceChildren(el("div", { class: "kopf" }, el("h1", {}, titel), ...rest)); return m; }
+
+/* --- Start --------------------------------------------------------------------------------- */
+async function sichtStart() {
+  await kopfAktualisieren(); const d = zustand.start; if (!d) return;
+  const m = rahmen(t("n_start"), el("span", { class: "leise" }, t("stand", { t: zeit(d.zeit) })));
+  if (d.halt.length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("halt").toUpperCase()),
+    el("div", {}, d.halt.map(h => `#${h.id} ${h.gilt_fuer === "alle" ? t("halt_band") : h.gilt_fuer} · ${h.von}: ${h.text} (${seit(h.seit_utc)})`).join(" | ")),
+    el("button", { class: "knopf", style: "margin-left:auto", onclick: () => weiterGeben() }, t("weiter"))));
+  m.append(el("h2", {}, t("wartet_auf_dich")));
+  m.append(d.fragen.length
+    ? el("div", { class: "wartet zeile-reveal" }, d.fragen.slice(0, 6).map(f => el("div", { class: "karte", onclick: () => zeige("fragen") },
+        el("div", {}, el("span", { class: "ref" }, `F${f.id}`), " ", el("span", { class: "leise" }, `${f.von} · ${seit(f.zeit_utc)}`),
+          f.blockiert ? el("span", { class: "etikett rot", style: "margin-left:8px" }, t("blockiert")) : null),
+        el("p", {}, f.kurz.length > 180 ? f.kurz.slice(0, 180) + " …" : f.kurz))))
+    : el("div", { class: "leer" }, t("nichts_offen")));
+  m.append(el("h2", {}, t("agenten")));
+  m.append(el("div", { class: "agenten zeile-reveal" }, d.agenten.map(kachel)));
+}
+/* „1204 · A1204 Titel“ → „A1204 Titel“ (alte Titel tragen die Nummer schon) */
+function ohneDoppel(x) { const [nr, ...rest] = x.split(" · "); const titel = rest.join(" · "); return titel.startsWith("A" + nr) ? titel : `A${nr} · ${titel}`; }
+function kachel(a) {
+  const lebt = a.zustand === "aktiv"; const soll = a.soll === "an";
+  const zust = lebt ? ["gruen", t("laeuft")] : soll ? ["rot", a.zustand ? t("beendet_soll") : t("nie_gestartet")] : ["", a.soll === "ruht" ? t("ruht") : t("aus")];
+  return el("div", { class: `karte kachel ${!lebt && soll ? "tot" : ""} ${!soll ? "aus" : ""}` },
+    a.offen ? el("span", { class: "offen", style: `color:var(${a.offen > 20 ? "--bernstein" : "--leise"})` }, t("offen_n", { n: a.offen })) : null,
+    el("div", { class: "name" }, a.kennung), el("div", { class: "rolle" }, a.rolle || t("agent")),
+    el("div", { class: "zustand" }, el("span", { class: "punkt " + zust[0] }), zust[1]),
+    el("div", { class: "info" }, a.laeuft ? ohneDoppel(a.laeuft) : el("span", { class: "sehrleise" }, t("keine_aufgabe")),
+      el("div", { class: "sehrleise mono" }, lebt ? t("puls", { t: seit(a.letzter_puls_utc) }) : a.grenzen || "")),
+    soll ? el("button", { class: "klein-knopf", type: "button", style: "margin-top:8px", onclick: () => nachrichtDialog(a.kennung) }, t("nachricht")) : null);
+}
+function nachrichtDialog(an) {
+  const art = el("select", {}, ["auftrag", "frage", "korrektur", "info"].map(k => el("option", { value: k }, t("art_" + k))));
+  const kurz = el("input", { placeholder: t("n_kurz_ph"), style: "width:100%;padding:8px;margin:8px 0;background:var(--grund);border:1px solid var(--linie);border-radius:3px" });
+  const text = el("textarea", { placeholder: t("n_text_ph") });
+  const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
+    el("div", { class: "karte dialog" }, el("h3", { style: "color:var(--tinte)" }, t("nachricht_an", { x: an })), art, kurz, text,
+      el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: async () => {
+        if (!kurz.value.trim()) { toast(t("text_fehlt"), true); return; }
+        try { const r = await schicken("/api/nachricht", { an, art: art.value, kurz: kurz.value.trim(), text: text.value.trim() });
+          hg.remove(); toast(t("gesendet", { x: r.an.join(", ") })); kopfAktualisieren(); }
+        catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("senden")),
+        el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")))));
+  document.body.append(hg); kurz.focus();
+}
+
+/* --- Fragen -------------------------------------------------------------------------------- */
+async function sichtFragen() {
+  const m = rahmen(t("fragen"), el("label", { class: "leise" },
+    el("input", { type: "checkbox", ...(zustand.fragenAlle ? { checked: true } : {}), onchange: e => { zustand.fragenAlle = e.target.checked; sichtFragen(); } }),
+    " " + t("geparkte_zeigen")));
+  let liste; try { liste = await holen("/api/fragen" + (zustand.fragenAlle ? "?alle=1" : "")); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  if (!liste.length) { m.append(el("div", { class: "leer" }, t("keine_fragen"))); return; }
+  m.append(el("div", { class: "zeile-reveal" }, liste.map(frageKarte)));
+}
+function frageKarte(f) {
+  const echteOptionen = f.optionen.filter(o => o.kenn && o.kenn !== "alt");
+  const notiz = el("textarea", { placeholder: echteOptionen.length ? t("anmerkung_ph") : t("antwort_ph") });
+  const meldung = el("span", { class: "rueckmeldung leise" });
+  const karte = el("div", { class: "karte frage" });
+  const sperren = text => { for (const b of karte.querySelectorAll("button")) b.disabled = true; notiz.disabled = true; meldung.textContent = text; };
+  async function antworten(art, wert, anmerkung) {
+    try { const r = await schicken(`/api/frage/${f.id}/antwort`, { art, wert, anmerkung });
+      sperren(r.status === "offen" ? t("rueckfrage_gesendet") : t("beantwortet"));
+      kopfAktualisieren(); } catch (e) { toast(t("fehler", { x: e.message }), true); }
+  }
+  karte.append(
+    el("div", { class: "meta" }, el("span", { class: "ref" }, `F${f.id}`), t("von", { x: f.von }), el("span", { class: "sehrleise" }, `${zeit(f.zeit_utc)} · ${seit(f.zeit_utc)}`),
+      f.blockiert ? el("span", { class: "etikett rot" }, t("blockiert_arbeit")) : null,
+      f.aufgabe_id ? el("span", { class: "etikett" }, `A${f.aufgabe_id}`) : null),
+    el("h3", {}, f.kurz),
+    f.worum ? el("p", { class: "worum" }, f.worum) : null);
+  if (echteOptionen.length) {
+    karte.append(el("div", { class: "optionen" }, echteOptionen.map(o => el("button", {
+      type: "button", class: "option" + (o.kenn === f.empfehlung ? " empfohlen" : ""),
+      onclick: e => { e.currentTarget.classList.add("gewaehlt"); antworten("option", o.kenn, notiz.value); } },
+      el("span", { class: "kenn" }, o.kenn), el("span", {}, o.text), o.kenn === f.empfehlung ? el("span", { class: "etikett bernstein" }, t("empfehlung")) : el("span")))));
+  } else if (f.optionen.length) {
+    karte.append(el("div", { class: "grund" }, el("b", {}, t("optionen")), f.optionen.map(o => o.text).join(" · ")));
+  }
+  if (f.grund) karte.append(el("div", { class: "grund" }, el("b", {}, f.empfehlung ? t("warum", { k: f.empfehlung }) : ""), f.grund));
+  if (f.fundstellen) karte.append(el("div", { class: "sehrleise mono", style: "margin:6px 0;overflow-wrap:anywhere" }, t("fundstellen") + f.fundstellen));
+  karte.append(notiz, el("div", { class: "aktionen" },
+    el("button", { class: "knopf" + (echteOptionen.length ? "" : " haupt"), type: "button", onclick: () => notiz.value.trim() ? antworten("text", notiz.value) : toast(t("text_fehlt"), true) }, t("eigene_antwort")),
+    el("button", { class: "knopf", type: "button", onclick: () => notiz.value.trim() ? antworten("rueckfrage", notiz.value) : toast(t("rueckfrage_fehlt"), true) }, t("rueckfrage")),
+    meldung));
+  if (f.vorgeschichte.length) karte.append(el("details", { class: "vor" }, el("summary", {}, t("vorgeschichte", { n: f.vorgeschichte.length })),
+    f.vorgeschichte.map(v => el("div", { class: "vor-eintrag" }, el("div", {}, el("span", { class: "ref" }, v.ref), " ", el("span", { class: "sehrleise" }, v.art)),
+      el("div", {}, el("div", {}, v.titel, v.zusatz ? el("span", { class: "sehrleise" }, `  · ${v.zusatz}`) : null, v.zeit ? el("span", { class: "sehrleise" }, `  · ${zeit(v.zeit)}`) : null),
+        v.text ? el("div", { class: "text" }, v.text) : null)))));
+  return karte;
+}
+
+/* --- Arbeit -------------------------------------------------------------------------------- */
+async function sichtArbeit() {
+  const a = zustand.arbeit; const m = rahmen(t("aufgaben"));
+  const agenten = (zustand.start?.agenten || []).map(x => x.kennung);
+  const suche = el("input", { placeholder: t("filtern"), value: a.q, onkeydown: e => { if (e.key === "Enter") { a.q = e.target.value; sichtArbeit(); } } });
+  m.append(el("div", { class: "reiter" },
+    ["offen", "geparkt", "pool", "erledigt"].map(s => el("button", { class: s === a.sicht ? "an" : "", type: "button", onclick: () => { a.sicht = s; sichtArbeit(); } }, t("t_" + s))),
+    el("div", { class: "rechts" },
+      el("select", { onchange: e => { a.agent = e.target.value; sichtArbeit(); } }, el("option", { value: "" }, t("alle_agenten")),
+        agenten.map(k => el("option", { value: k, ...(k === a.agent ? { selected: true } : {}) }, k))), suche)));
+  let liste; try { liste = await holen(`/api/aufgaben?sicht=${a.sicht}&agent=${encodeURIComponent(a.agent)}&q=${encodeURIComponent(a.q)}`); }
+  catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  if (!liste.length) { m.append(el("div", { class: "leer" }, t("keine_aufgaben"))); return; }
+  if (a.sicht === "offen") {
+    const sp = { laeuft: [], wartet: [], blockiert: [] }; for (const x of liste) (sp[x.status] || sp.wartet).push(x);
+    m.append(el("div", { class: "board" }, [["laeuft", "sp_laeuft"], ["wartet", "sp_wartet"], ["blockiert", "sp_blockiert"]].map(([k, titel]) =>
+      el("div", { class: "spalte" }, el("h4", {}, t(titel), el("span", { class: "sehrleise mono" }, sp[k].length)),
+        sp[k].slice(0, 120).map(x => el("div", { class: "karte aufgabe" },
+          el("div", {}, el("span", { class: "ref" }, `A${x.id}`), " ", el("span", { class: "leise" }, x.agent || "–"),
+            x.einstufung === "keine_prio" ? el("span", { class: "etikett", style: "margin-left:6px" }, t("keine_prio")) : null),
+          el("div", { class: "t" }, x.titel.length > 200 ? x.titel.slice(0, 200) + " …" : x.titel),
+          x.wartet_auf ? el("div", { class: "w" }, "⇢ " + x.wartet_auf.slice(0, 160)) : null))))));
+  } else {
+    m.append(el("div", { class: "liste" }, liste.map(x => el("div", { class: "zeile" }, el("span", { class: "ref" }, `A${x.id}`),
+      el("span", { class: "leise" }, x.agent || "–"), el("span", {}, x.titel), el("span", { class: "sehrleise mono" }, zeit(x.fertig_utc || x.angelegt_utc))))));
+  }
+}
+
+/* --- Wissen -------------------------------------------------------------------------------- */
+async function sichtWissen() {
+  const m = rahmen(t("wissen"));
+  const such = el("input", { placeholder: t("wissen_ph"), value: zustand.wissenQ, style: "width:300px;max-width:100%",
+    onkeydown: e => { if (e.key === "Enter") { zustand.wissenQ = e.target.value; sichtWissen(); } } });
+  let d; try { d = await holen("/api/wissen?q=" + encodeURIComponent(zustand.wissenQ)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  const r = zustand.wissenReiter;
+  m.append(el("div", { class: "reiter" }, [["beschluesse", d.beschluesse.length], ["regeln", d.regeln.length], ["wortlaut", d.wortlaut.length]]
+    .map(([k, n]) => el("button", { class: k === r ? "an" : "", type: "button", onclick: () => { zustand.wissenReiter = k; sichtWissen(); } }, t(k, { n }))),
+    el("div", { class: "rechts" }, such)));
+  const box = el("div", { class: "zeile-reveal" });
+  if (r === "beschluesse") box.append(...d.beschluesse.map(b => el("div", { class: "karte wissen-eintrag" },
+    el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `B${b.id}`), el("b", {}, b.stichwort),
+      el("span", { class: "etikett " + (b.status === "gilt" ? "gruen" : b.status === "unklar" ? "bernstein" : "") }, b.status),
+      el("span", { class: "sehrleise" }, `${zeit(b.zeit_utc)} · ${b.quelle}`)), el("div", { class: "inhalt" }, b.regel))));
+  if (r === "regeln") box.append(...d.regeln.map(x => el("div", { class: "karte wissen-eintrag" },
+    el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, (x.ebene === "arbeit" ? "KR" : "PR") + x.nr),
+      el("span", { class: "etikett" }, x.ebene === "arbeit" ? t("arbeitsregel") : t("projektregel") + (x.teil ? " · " + x.teil : "")),
+      el("span", { class: "sehrleise" }, t("stand", { t: zeit(x.stand_utc) }))), el("div", { class: "inhalt" }, x.text))));
+  if (r === "wortlaut") box.append(...d.wortlaut.map(w => el("div", { class: "karte wissen-eintrag" },
+    el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `W${w.id}`), el("span", { class: "sehrleise" }, `${zeit(w.zeit_utc)} · ${w.kanal}`)),
+    el("div", { class: "inhalt", style: "color:var(--tinte)" }, w.text))));
+  if (!box.children.length) box.append(el("div", { class: "leer" }, t("nichts_gefunden")));
+  m.append(box);
+}
+
+/* --- Betrieb ------------------------------------------------------------------------------- */
+async function sichtBetrieb() {
+  const m = rahmen(t("betrieb")); let d; try { d = await holen("/api/betrieb"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  const anteil = d.speicher.frei && d.speicher.gesamt ? d.speicher.frei / d.speicher.gesamt : 0;
+  m.append(el("div", { class: "messer zeile-reveal" },
+    el("div", { class: "karte" }, el("div", { class: "leise" }, t("speicher_frei")), el("div", { class: "wert" }, d.speicher.frei == null ? "?" : `${d.speicher.frei} GB`),
+      el("div", { class: "sehrleise" }, t("von_gb", { n: d.speicher.gesamt })),
+      el("div", { class: "balken" }, el("i", { style: `width:${Math.round(anteil * 100)}%;background:var(${d.speicher.frei < 8 ? "--bernstein" : "--gruen"})` }))),
+    el("div", { class: "karte" }, el("div", { class: "leise" }, t("aktive_sitzungen")), el("div", { class: "wert" }, d.sitzungen.filter(s => s.zustand === "aktiv").length),
+      el("div", { class: "sehrleise" }, t("ueber_hook"))),
+    el("div", { class: "karte" }, el("div", { class: "leise" }, t("sperren")), el("div", { class: "wert" }, d.sperren.length), el("div", { class: "sehrleise" }, t("halt_anweisungen"))),
+    el("div", { class: "karte" }, el("div", { class: "leise" }, t("datenbank")), el("div", { class: "mono", style: "margin-top:10px;overflow-wrap:anywhere" }, d.db))));
+  m.append(el("h2", {}, t("sperren")), d.sperren.length ? tabelle(["k_nr", "k_art", "k_fuer", "k_von", "k_text", "k_seit"], d.sperren.map(s => [s.id, s.art, s.gilt_fuer, s.von, s.text, zeit(s.seit_utc)]))
+    : el("div", { class: "leer" }, t("keine_sperren")));
+  m.append(el("h2", {}, t("sitzungen")), d.sitzungen.length ? tabelle(["k_agent", "k_zustand", "k_gestartet", "k_puls", "k_beendet"], d.sitzungen.map(s => [s.kennung, s.zustand, zeit(s.gestartet_utc), seit(s.letzter_puls_utc), zeit(s.beendet_utc)]))
+    : el("div", { class: "leer" }, t("keine_sitzung")));
+  m.append(el("h2", {}, t("laeufe")), d.laeufe.length ? tabelle(["k_nr", "k_agent", "k_lauf", "k_status", "k_start", "k_ende", "k_rc"], d.laeufe.map(l => [l.id, l.agent, l.beschreibung, l.status, zeit(l.start_utc), zeit(l.ende_utc), l.rc ?? ""]))
+    : el("div", { class: "leer" }, t("keine_laeufe")));
+  m.append(el("h2", {}, t("protokoll")), el("pre", { class: "log" }, d.log.join("\n") || t("leer")));
+}
+function tabelle(kopf, zeilen) {
+  return el("div", { class: "tab-huelle" }, el("table", { class: "tab" }, el("thead", {}, el("tr", {}, kopf.map(k => el("th", {}, t(k))))),
+    el("tbody", {}, zeilen.map(z => el("tr", {}, z.map(w => el("td", {}, w ?? "")))))));
+}
+
+/* --- Release Notes ------------------------------------------------------------------------- */
+async function sichtReleases() {
+  const m = rahmen(t("releases")); let l; try { l = await holen("/api/releases"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  if (!l.length) { m.append(el("div", { class: "leer" }, t("keine_releases"))); return; }
+  m.append(el("div", {}, l.map(r => el("div", { class: "release" },
+    el("div", {}, el("div", { class: "ver" }, r.version || t("merge")), el("div", { class: "sehrleise mono" }, zeit(r.zeit_utc)),
+      el("span", { class: "etikett " + (r.veroeffentlicht_utc ? "gruen" : "") }, r.veroeffentlicht_utc ? t("oeffentlich") : t("intern"))),
+    el("div", {}, el("b", {}, r.titel), r.commit_sha ? el("span", { class: "ref", style: "margin-left:8px" }, r.commit_sha.slice(0, 8)) : null,
+      r.text_intern ? el("div", { class: "text" }, r.text_intern) : null, r.aufgaben ? el("div", { class: "sehrleise mono", style: "margin-top:6px" }, t("aufgaben_x", { x: r.aufgaben })) : null)))));
+}
+
+/* --- Suche, Halt, Thema, Sprache ----------------------------------------------------------- */
+async function suchen(q) {
+  const m = rahmen(t("suche_titel"), el("span", { class: "leise" }, `„${q}“`)); let l; try { l = await holen("/api/suche?q=" + encodeURIComponent(q)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  for (const a of document.querySelectorAll("nav a")) a.classList.remove("an");
+  if (!l.length) { m.append(el("div", { class: "leer" }, t("nichts_gefunden"))); return; }
+  m.append(el("div", { class: "liste" }, l.map(x => el("div", { class: "zeile" }, el("span", { class: "ref" }, x.ref), el("span", { class: "leise" }, x.art),
+    el("span", {}, x.titel || ""), el("span", { class: "sehrleise mono" }, zeit(x.zeit))))));
+}
+function haltDialog() {
+  const agenten = (zustand.start?.agenten || []).filter(a => a.soll !== "aus").map(a => a.kennung);
+  const fuer = el("select", {}, el("option", { value: "alle" }, t("alle_agenten")), agenten.map(k => el("option", { value: k }, k)));
+  const text = el("textarea", { placeholder: t("grund_ph") });
+  const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
+    el("div", { class: "karte dialog" }, el("h3", {}, t("halt_setzen")),
+      el("p", { class: "leise" }, t("halt_erkl")),
+      el("div", { style: "margin:10px 0" }, fuer), text,
+      el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", style: "background:var(--rot);border-color:var(--rot);color:#fff", type: "button", onclick: async () => {
+        try { await schicken("/api/halt", { fuer: fuer.value, text: text.value.trim() || t("halt_vom") }); hg.remove(); toast(t("halt_gesetzt")); zeige(zustand.sicht); }
+        catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("halt_setzen")),
+        el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")))));
+  document.body.append(hg); text.focus();
+}
+async function weiterGeben() {
+  const halte = zustand.start?.halt || []; const fuer = [...new Set(halte.map(h => h.gilt_fuer))];
+  try { let n = 0; for (const f of fuer) n += (await schicken("/api/weiter", { fuer: f })).aufgehoben; if (!API) toast(t("halt_aufgehoben", { n })); zeige(zustand.sicht); }
+  catch (e) { toast(t("fehler", { x: e.message }), true); }
+}
+if (API) { const b = $("#abmelden"); b.hidden = false; b.addEventListener("click", async () => {
+  await fetch("index.php?abmelden=1", { method: "POST", headers: { "X-AMW-Token": TOKEN } }).catch(() => {}); location.reload(); }); }
+$("#halt-knopf").addEventListener("click", () => (zustand.start?.halt || []).length ? weiterGeben() : haltDialog());
+$("#suche").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.value.trim().length > 1) suchen(e.target.value.trim()); });
+for (const a of document.querySelectorAll("nav a")) a.addEventListener("click", () => zeige(a.dataset.sicht));
+function thema(x) { document.documentElement.dataset.thema = x; try { localStorage.setItem("amw-thema", x); } catch (e) {} }
+$("#thema").addEventListener("click", () => thema(document.documentElement.dataset.thema === "hell" ? "dunkel" : "hell"));
+$("#sprache").addEventListener("click", () => sprache_setzen(sprache === "de" ? "en" : "de"));
+try { thema(localStorage.getItem("amw-thema") || (matchMedia("(prefers-color-scheme: light)").matches ? "hell" : "dunkel")); } catch (e) { thema("dunkel"); }
+try { sprache = localStorage.getItem("amw-sprache") || ((navigator.language || "de").startsWith("de") ? "de" : "en"); } catch (e) {}
+if (new URLSearchParams(location.search).get("sprache") in TEXTE) sprache = new URLSearchParams(location.search).get("sprache");
+feste_texte();
+
+/* Selbst aktualisieren – nur Startseite und Betrieb, und nie während einer Eingabe. */
+setInterval(() => {
+  const tippt = ["TEXTAREA", "INPUT", "SELECT"].includes(document.activeElement?.tagName);
+  if (document.hidden || tippt || document.querySelector(".dialog-hg")) return;
+  if (zustand.sicht === "start" || zustand.sicht === "betrieb") zeige(zustand.sicht); else kopfAktualisieren();
+}, 15000);
+let startSicht = "start"; try { startSicht = localStorage.getItem("amw-sicht") || "start"; } catch (e) {}
+if (location.hash.length > 1) startSicht = location.hash.slice(1);
+kopfAktualisieren().then(() => zeige(startSicht));
+</script>
+</body>
+</html>
