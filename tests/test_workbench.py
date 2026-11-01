@@ -120,6 +120,16 @@ class Workbench(unittest.TestCase):
         r = subprocess.run([node, "--check", datei], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr[-800:])
 
+    def test_verlauf_heute_beginnt_lokal_um_mitternacht(self):
+        import datetime
+        con = db.verbinde()
+        kern.posten(con, self.pid, "Entwickler", "TL", "info", "gerade eben")
+        con.close()
+        d = json.loads(self.anfrage("GET", "/api/verlauf?tage=1")[1])
+        mitternacht = datetime.datetime.combine(datetime.date.today(), datetime.time.min).astimezone(datetime.timezone.utc)
+        self.assertEqual(d["ab"], mitternacht.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        self.assertTrue(any(e["text"] == "gerade eben" for e in d["ereignisse"]))
+
     def test_belegter_port_wird_abgelehnt(self):
         with self.assertRaises(OSError):
             workbench.starten(self.port)

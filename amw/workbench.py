@@ -159,8 +159,9 @@ def daten_verlauf(con, pid, q):
         tage = max(1, min(14, int(q.get("tage", ["3"])[0])))
     except ValueError:
         tage = 3
-    # ab Tagesbeginn – ein sekundengenauer Start änderte den Inhalt bei jedem Abgleich (ständiges Hochladen)
-    ab = (datetime.date.today() - datetime.timedelta(days=tage - 1)).isoformat() + "T00:00:00Z"
+    # ab lokaler Mitternacht (in UTC umgerechnet) – ein sekundengenauer Start änderte den Inhalt bei jedem Abgleich
+    tag = datetime.date.today() - datetime.timedelta(days=tage - 1)
+    ab = datetime.datetime.combine(tag, datetime.time.min).astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return {"tage": tage, "ab": ab, "ereignisse": verlauf.verlauf(con, pid, ab, grenze=2500),
             "agenten": [r[0] for r in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? ORDER BY id", (pid,))]}
 
