@@ -64,7 +64,22 @@ try {
         antwort(200, $form + ['unterwegs' => true]);
     }
 
-    if ($pfad === '/api/suche') antwort(404, ['fehler' => 'Die Suche gibt es online noch nicht – bitte am PC suchen.']);
+    if ($pfad === '/api/suche') {                         // im Suchindex vom PC (Nachrichten: die letzten 2000, nur Kurztext)
+        $such = mb_strtolower(trim((string)($q['q'] ?? '')));
+        if (mb_strlen($such) < 2) antwort(200, []);
+        $z = sql([["SELECT inhalt FROM ansicht WHERE weg = '/api/suchindex'", []]])[0];
+        if (!$z) antwort(404, ['fehler' => 'Noch kein Suchindex vom PC – bitte in ein paar Minuten noch einmal.']);
+        $eintraege = json_decode((string)gzuncompress(base64_decode(json_decode($z[0][0], true)['gepackt'] ?? '')), true) ?: [];
+        $treffer = [];
+        $je_art = [];
+        foreach ($eintraege as [$art, $ref, $titel, $text, $zusatz, $zeit]) {
+            if (($je_art[$art] ?? 0) >= 25) continue;
+            if (mb_stripos((string)$titel . ' ' . (string)$text, $such) === false) continue;
+            $je_art[$art] = ($je_art[$art] ?? 0) + 1;
+            $treffer[] = ['art' => $art, 'ref' => $ref, 'titel' => $titel, 'zusatz' => $zusatz, 'zeit' => $zeit];
+        }
+        antwort(200, $treffer);
+    }
     $schluessel = $pfad === '/api/aufgaben' ? '/api/aufgaben?sicht=' . (string)($q['sicht'] ?? 'offen')
         : ($pfad === '/api/fragen' && ($q['alle'] ?? '') === '1' ? '/api/fragen?alle=1' : $pfad);
     [$zeile, $pc, $offen] = sql([
