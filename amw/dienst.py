@@ -222,6 +222,9 @@ def main(argv=None):
         from . import abgleich                        # Stufe 2: nur mit "abgleich": true in turso.json
         if abgleich.starten():
             log.info("Abgleich mit dem Online-Speicher an")
+        from . import bruecke                         # Lesekopie + Befehlsdateien für den TL (FUSE, kein WAL)
+        bruecke.starten()
+        log.info("Brücke für den TL an: %s", bruecke.EINGANG)
     d.aufsicht()
     d.zustellen()
     if a.einmal:

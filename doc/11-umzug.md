@@ -30,6 +30,8 @@ Nachrichten, Aufgaben, Fragen, Beschlüsse, Wortlaut und Regeln laufen ab dem Um
 Arten (9 + info): auftrag, frage, antwort, korrektur, stopp, freigabe, pruefbitte, meldung, takt, info. Alte Arten sind beim Übernehmen zugeordnet (eilig/vorgabe/push_bitte → auftrag, befund/fertig/abnahme → meldung, entscheidung/push_ok → freigabe …).
 
 ## 3 Für den TL (Cloud-Sitzung, nicht per Postfach weckbar)
+**Nachtrag 01.11. 14:26 – Datei-Brücke:** Die Shell des TL ist eine Linux-VM, F:mw dort per FUSE eingehängt; SQLite mit WAL scheitert darüber (`disk I/O error`, TL-Übergabe 12:35). Darum liest der TL `daten/tl_lesen.db` (Kopie ohne WAL, höchstens minütlich, `?immutable=1`) und schreibt über Befehlsdateien `eingang-tl/befehle/*.json`, die der Wächter als `--von TL` ausführt (`amw/bruecke.py`, Anleitung im Briefkasten `eingang-tl/`, der nicht ins Repo gehört). Später zusätzlich möglich: ein SQLite-MCP auf amw.db zum Lesen (Variante B, Marcel).
+
 - **Datenbank:** `F:\amw\daten\amw.db` (SQLite, WAL). **Schreiben nur über `amw`** (Trigger prüfen Belege, Wächter weckt die Empfänger). **Lesen** über `amw` oder direkt per SQLite **nur lesend** (`file:F:/amw/daten/amw.db?mode=ro`), gezielte SELECTs wie bisher (KR26/KR30).
 - **Wecken:** Dein Stunden-Takt (send_later) bleibt; je Takt `amw kontext --von TL` und `amw lesen --von TL`. Der Takt des Wächters geht nur an Leads mit Postfach – an dich also nicht, es gibt keinen doppelten Takt.
 - **Halt/Weiter:** `amw halt --fuer alle --text …` / `amw weiter --fuer alle` (TL ist Lead) oder in der Workbench.
