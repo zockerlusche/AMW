@@ -22,3 +22,4 @@ Chronik der Vorgaben des Entwicklers zur AMW. Nur Datum, Kern und Ort, an dem de
 | 01.11. 09:27 | Die Aufgabenplanung bleibt Systemeingriff: Eine Weboberfläche (auch auf einem Webserver im Netz) tauscht sich nur über die Datenbank aus; die Kontrolle über die Aufgabe liegt bei Marcel bzw. einem Agenten mit Rechten | 10 §5 Kontrolle |
 | 01.11. 09:28 | Bedenken: Benutzer ohne Kenntnis der Aufgabenplanung – gibt es einen Ersatz, damit ein Agent über Homepage/Datenbank steuern kann? | 10 §5 Start und Steuerung |
 | 01.11. 10:03 | Frage: Welche DB-Plattform nehmen wir? → CCamw wählt Turso | 06 §7, 07 E4 |
+| 01.11. 10:18 | Marcel hat sich bei Turso angemeldet und die Datenbank amw angelegt (Region Frankfurt); Zugang lokal hinterlegt | 07 E4, 06 §8 P6 |
