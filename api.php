@@ -86,7 +86,7 @@ try {
         $d = array_values(array_filter($d, fn($f) => !in_array("/api/frage/{$f['id']}/antwort", $unterwegs, true)));
     } elseif ($pfad === '/api/start') {
         $gesehen = $pc ? $pc[0][0] : null;
-        $d['online'] = ['pc_gesehen_utc' => $gesehen, 'stand_utc' => $zeile[0][1], 'briefkasten' => count($unterwegs),
+        $d['online'] = ['web_version' => trim((string)@file_get_contents(__DIR__ . '/inc/VERSION')), 'pc_gesehen_utc' => $gesehen, 'stand_utc' => $zeile[0][1], 'briefkasten' => count($unterwegs),
                         'pc_frisch' => $gesehen !== null && strtotime($gesehen) > time() - 420];
         $offeneFragen = count(array_filter($unterwegs, fn($w) => str_starts_with($w, '/api/frage/')));
         if (isset($d['zaehler']['fragen'])) $d['zaehler']['fragen'] = max(0, $d['zaehler']['fragen'] - $offeneFragen);
