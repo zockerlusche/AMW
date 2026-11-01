@@ -13,3 +13,4 @@ Chronik der Vorgaben des Entwicklers zur AMW. Nur Datum, Kern und Ort, an dem de
 | 01.11. 08:32 | Frage, wie die UI aussieht, welche Funktionen, welche Technik, ob schon entschieden | 02 §0, 06 TL-Vorschlag |
 | 01.11. 08:42 | Externe DB (Supabase zu teuer, Neon nach Nutzung – Rechnung), allgemein für andere Projekte, installierbar, skalierbar, lokal oder Webserver, lokale SQLite je Anwendung mit zentralem Abgleich, Release Notes/Blog auf die Homepage, umfangreiche Einstellungen, Web-Sicherheit | 01 Produktbild, 02 §1/§9, 05 §6–§8, 06 |
 | 01.11. 08:43 | Alles Besprochene zur AMW in der Markdown-Doku festhalten, nichts darf verloren gehen | diese Chronik |
+| 01.11. 08:47 | AMW komplett an CCamw; Aufzählungen und TL-Vorschlag sind nur Vorschläge, begründet abweichen erwünscht | 10, 07 |
