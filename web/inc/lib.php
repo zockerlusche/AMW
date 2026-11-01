@@ -20,7 +20,7 @@ function konfig(): array {
     $wurzel = str_replace('\\', '/', (string)($_SERVER['DOCUMENT_ROOT'] ?? dirname(__DIR__)));
     $basis = ($p = strpos($wurzel, '/public_html')) !== false ? substr($wurzel, 0, $p) : dirname($wurzel);
     $pfad = getenv('AMW_KONFIG') ?: $basis . '/amw-konfig.php';
-    if (!is_file($pfad)) { http_response_code(503); exit('AMW: Konfiguration fehlt.'); }
+    if (!is_file($pfad)) { header_remove('X-Powered-By'); http_response_code(503); exit('AMW: Konfiguration fehlt.'); }
     $k = require $pfad;
     foreach (['benutzer', 'passwort_hash', 'totp_geheim'] as $pflicht) {
         if (empty($k[$pflicht])) { http_response_code(503); exit('AMW: Konfiguration unvollständig.'); }
@@ -34,6 +34,7 @@ function ist_https(): bool {
 }
 
 function kopfzeilen(bool $html): void {
+    header_remove('X-Powered-By');
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('Referrer-Policy: no-referrer');
