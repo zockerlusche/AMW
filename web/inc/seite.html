@@ -117,6 +117,13 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .band-halt { display: flex; gap: 14px; align-items: center; padding: 14px 18px; border: 1px solid var(--rot); background: var(--rot-weich);
   border-radius: 4px; margin-bottom: 18px; flex-wrap: wrap; }
 .band-halt b { font: 600 18px var(--titel); letter-spacing: .1em; color: var(--rot); }
+.band-warn { display: grid; gap: 4px; padding: 12px 18px; border: 1px solid var(--bernstein); background: var(--bernstein-weich);
+  border-radius: 4px; margin-bottom: 18px; }
+.band-warn b { font: 600 14px var(--titel); letter-spacing: .1em; color: var(--bernstein); }
+.kurztext { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.kurztext.auf { display: block; -webkit-line-clamp: unset; }
+.mehr { font: 12px var(--titel); letter-spacing: .06em; color: var(--sehrleise); cursor: pointer; background: none; border: 0; padding: 4px 0 0; }
+.nachtrag-neu { margin-left: 8px; }
 
 .wartet { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
 .wartet .karte { padding: 14px 16px; border-left: 3px solid var(--bernstein); cursor: pointer; transition: transform .15s, border-color .15s; }
@@ -135,10 +142,11 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .kachel.klickbar { cursor: pointer; } .kachel.klickbar:hover { border-color: var(--leise); }
 .dialog.agent-dialog { width: min(1180px, 66vw); max-height: 88vh; overflow-y: auto; padding: 22px 26px; }   /* .dialog allein: 520 px */
 @media (max-width: 1400px) { .dialog.agent-dialog { width: 88vw; } }
-@media (max-width: 1000px) { .agent-spalten { grid-template-columns: minmax(0, 1fr); } }
 .agent-kopf { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--linie); }
 .dialog .agent-kopf h3 { color: var(--tinte); margin: 0; font-size: 26px; }
 .agent-spalten { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; }
+@media (max-width: 1000px) { .agent-spalten { grid-template-columns: minmax(0, 1fr); } }   /* nach der Grundregel, sonst gilt sie nie */
+.agent-dialog .ref { white-space: nowrap; }
 .agent-dialog .abschnitt { margin-top: 18px; }
 .agent-dialog h4 { display: flex; align-items: center; gap: 8px; font: 12px var(--titel); letter-spacing: .12em; text-transform: uppercase;
   color: var(--leise); margin: 0 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--linie); }
@@ -312,7 +320,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
     <a data-sicht="wissen"><span class="sym">§</span><span data-t="n_wissen"></span> <span class="zahl" data-zahl="beschluesse"></span></a>
     <div class="gruppe" data-t="g_betrieb"></div>
     <a data-sicht="betrieb"><span class="sym">◈</span><span data-t="n_betrieb"></span></a>
-    <a data-sicht="einstellungen"><span class="sym">⚙</span><span data-t="n_einst"></span></a>
+    <a data-sicht="einstellungen"><span class="sym">⚙</span><span data-t="n_einst" data-t-lang></span><span data-t="n_einst_kurz" data-t-kurz hidden></span></a>
     <div class="fuss">
       <div class="version" id="version"></div>
       <button class="klein-knopf" id="thema" type="button" data-t="thema"></button>
@@ -348,7 +356,7 @@ const TEXTE = {
     k_soll_pruefen: "soll prüfen für {x}", k_wartet_pruefung: "wartet auf Prüfung durch {x}", k_an_ihn: "Neue Nachrichten an ihn ({n})",
     k_meldungen: "Seine letzten Meldungen", k_nichts: "nichts", k_nichts_neu: "keine neuen", k_alt: "– dazu {n} offene aus dem alten Bus (Altbestand)",
     du: "Du", v_rueckfrage: "Rückfrage", v_nachtrag: "Antwort", v_antwort: "Antwort", wartet_auf_x: "wartet auf {x}",
-    n_einst: "Einstellungen", speichern: "Speichern", gespeichert: "Gespeichert",
+    n_einst: "Einstellungen", n_einst_kurz: "Setup", speichern: "Speichern", gespeichert: "Gespeichert",
     e_projekt: "Projekt {x}", e_takt: "Takt für den Lead (Minuten)", e_takt_h: "Zusammenfassung an den Lead; 0 = aus",
     e_speicher: "Speicher-Grenze für Rechen-Läufe (GB frei)", e_speicher_h: "Läufe starten erst, wenn so viel RAM frei ist",
     e_agenten: "Agenten", e_agenten_h: "Soll „aus“: wird nicht erwartet und bekommt keine Rundschreiben; „ruht“: pausiert.",
@@ -376,6 +384,12 @@ const TEXTE = {
     text_fehlt: "Bitte Text eingeben", rueckfrage_fehlt: "Bitte die Rückfrage eingeben", fehler: "Fehler: {x}",
     aufgaben: "Aufgaben", t_offen: "Offen", t_geparkt: "Geparkt", t_pool: "Brainstorming / Pool", t_erledigt: "Abgeschlossen",
     filtern: "filtern …", keine_aufgaben: "Keine Aufgaben in dieser Sicht.", sp_laeuft: "Läuft", sp_wartet: "Wartet", sp_blockiert: "Blockiert", keine_prio: "keine Prio",
+    achtung: "Achtung", nachtrag_neu: "{n} neuer Nachtrag", aufklappen: "Klick: ganzer Text", s_extra: "{n} außerplanmäßig",
+    jetzt_bei: "jetzt: {x}", geaendert: "geändert", notizen: "Notizen ({n})", server: "Projekt-Server", k_name: "Name", k_port: "Port",
+    k_zustaendig: "Zuständig", k_neustart: "Neustart", k_ausfaelle: "Ausfälle", sz_laeuft: "läuft", sz_aus: "aus", sz_unbekannt: "noch nicht geprüft",
+    ja: "ja", nein: "nein", keine_server: "Keine Server angemeldet – amw server anmelden <name> --port N [--start … --neustart]",
+    e_stillstand: "Warnung: Weckruf unbeantwortet nach (min)", e_stillstand_h: "Agent mit laufender Sitzung reagiert nicht",
+    e_lauf_ohne: "Warnung: Lauf ohne Dauer-Angabe nach (min)", e_lauf_ohne_h: "mit lauf start --dauer N: Warnung nach 2 × N",
     wissen: "Wissen", wissen_ph: "in Beschlüssen, Regeln, Wortlaut suchen …", beschluesse: "Beschlüsse ({n})", regeln: "Regeln ({n})", wortlaut: "Wortlaut ({n})",
     arbeitsregel: "Arbeitsregel", projektregel: "Projektregel", nichts_gefunden: "Nichts gefunden.",
     betrieb: "Betrieb", speicher_frei: "Arbeitsspeicher frei", von_gb: "von {n} GB · Grenze für Läufe 8 GB", aktive_sitzungen: "Aktive Sitzungen",
@@ -409,7 +423,7 @@ const TEXTE = {
     k_soll_pruefen: "to review for {x}", k_wartet_pruefung: "waiting for review by {x}", k_an_ihn: "New messages to it ({n})",
     k_meldungen: "Its latest reports", k_nichts: "nothing", k_nichts_neu: "none new", k_alt: "– plus {n} open from the old bus (legacy)",
     du: "You", v_rueckfrage: "Follow-up question", v_nachtrag: "Reply", v_antwort: "Answer", wartet_auf_x: "waiting for {x}",
-    n_einst: "Settings", speichern: "Save", gespeichert: "Saved",
+    n_einst: "Settings", n_einst_kurz: "Setup", speichern: "Save", gespeichert: "Saved",
     e_projekt: "Project {x}", e_takt: "Lead pulse (minutes)", e_takt_h: "Summary to the lead; 0 = off",
     e_speicher: "Memory limit for compute runs (GB free)", e_speicher_h: "Runs start only with this much free RAM",
     e_agenten: "Agents", e_agenten_h: "Target “off”: not expected, no broadcasts; “resting”: paused.",
@@ -437,6 +451,12 @@ const TEXTE = {
     text_fehlt: "Please enter a text", rueckfrage_fehlt: "Please enter your question", fehler: "Error: {x}",
     aufgaben: "Tasks", t_offen: "Open", t_geparkt: "Parked", t_pool: "Brainstorming / pool", t_erledigt: "Done",
     filtern: "filter …", keine_aufgaben: "No tasks in this view.", sp_laeuft: "Running", sp_wartet: "Waiting", sp_blockiert: "Blocked", keine_prio: "no priority",
+    achtung: "Attention", nachtrag_neu: "{n} new follow-up", aufklappen: "Click: full text", s_extra: "{n} unplanned",
+    jetzt_bei: "now: {x}", geaendert: "changed", notizen: "Notes ({n})", server: "Project servers", k_name: "Name", k_port: "Port",
+    k_zustaendig: "Owner", k_neustart: "Restart", k_ausfaelle: "Outages", sz_laeuft: "running", sz_aus: "down", sz_unbekannt: "not checked yet",
+    ja: "yes", nein: "no", keine_server: "No servers registered – amw server anmelden <name> --port N [--start … --neustart]",
+    e_stillstand: "Warn: wake-up unanswered after (min)", e_stillstand_h: "agent with a live session does not react",
+    e_lauf_ohne: "Warn: run without duration after (min)", e_lauf_ohne_h: "with lauf start --dauer N: warning after 2 × N",
     wissen: "Knowledge", wissen_ph: "search decisions, rules, statements …", beschluesse: "Decisions ({n})", regeln: "Rules ({n})", wortlaut: "Statements ({n})",
     arbeitsregel: "Working rule", projektregel: "Project rule", nichts_gefunden: "Nothing found.",
     betrieb: "Operations", speicher_frei: "Free memory", von_gb: "of {n} GB · limit for runs 8 GB", aktive_sitzungen: "Active sessions",
@@ -507,13 +527,14 @@ async function kopfAktualisieren() {
     const d = await holen("/api/start"); zustand.start = d;
     const wv = d.online?.web_version;
     $("#version").textContent = d.version ? `v${d.version}` + (wv && wv !== d.version ? ` · Web v${wv}` : "") : "";
-    const lebend = d.agenten.filter(a => a.zustand === "aktiv").length;
+    const sollen = d.agenten.filter(a => a.soll === "an"), lebend = sollen.filter(a => a.zustand === "aktiv").length;
+    const extra = d.agenten.filter(a => a.soll !== "an" && a.zustand === "aktiv").length;     /* laufen, ohne zu sollen */
     const sp = d.speicher.frei;
     $("#signale").replaceChildren(
       d.online ? el("span", { class: "signal" + (d.online.pc_frisch ? " unwichtig" : "") }, el("span", { class: "punkt " + (d.online.pc_frisch ? "gruen" : "bernstein") }),
         t(d.online.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online.pc_gesehen_utc) }) + (d.online.briefkasten ? " · " + t("s_briefkasten", { n: d.online.briefkasten }) : ""))
         : el("span", { class: "signal unwichtig" }, el("span", { class: "punkt gruen" }), t("s_dienst")),
-      el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: d.agenten.filter(a => a.soll === "an").length })),
+      el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: sollen.length }) + (extra ? " · " + t("s_extra", { n: extra }) : "")),
       el("span", { class: "signal unwichtig" }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: sp })),
     );
     for (const z of document.querySelectorAll("[data-zahl]")) {
@@ -533,7 +554,7 @@ function zeige(sicht, still = false) {
   zustand.sicht = sicht;
   for (const a of document.querySelectorAll("nav a")) a.classList.toggle("an", a.dataset.sicht === sicht);
   try { localStorage.setItem("amw-sicht", sicht); } catch (e) {}
-  if (location.hash !== "#" + sicht) history.replaceState(null, "", "#" + sicht);
+  if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
   const fertig = ({ start: sichtStart, fragen: sichtFragen, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return; }
   Promise.resolve(fertig).then(() => { $("#inhalt").scrollTop = pos[0]; window.scrollTo(0, pos[1]); });
@@ -554,13 +575,29 @@ async function sichtStart() {
   if ((d.unangemeldet || []).length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("nicht_angemeldet")),
     el("div", {}, d.unangemeldet.map(u => `${u.kennung || "?"} · ${t("sitzung_pid", { s: u.sitzung, p: u.pid })} · ${u.ordner}`).join(" | ")),
     el("span", { class: "leise" }, t("nicht_angemeldet_h"))));
+  /* Reihenfolge nach Dringlichkeit: Warnungen → Fragen an dich → Agenten → Nachrichten (gekürzt) */
+  if ((d.warnungen || []).length) m.append(el("div", { class: "band-warn" }, el("b", {}, t("achtung").toUpperCase()),
+    d.warnungen.map(w => el("div", {}, w.text))));
+  m.append(el("h2", {}, t("wartet_auf_dich")));
+  m.append(d.fragen.length
+    ? el("div", { class: "wartet zeile-reveal" }, d.fragen.slice(0, 6).map(f => el("div", { class: "karte", onclick: () => zeige("fragen") },
+        el("div", {}, el("span", { class: "ref" }, `F${f.id}`), " ", el("span", { class: "leise" }, `${f.von} · ${seit(f.zeit_utc)}`),
+          f.blockiert ? el("span", { class: "etikett rot", style: "margin-left:8px" }, t("blockiert")) : null,
+          f.nachtraege ? el("span", { class: "etikett bernstein nachtrag-neu" }, t("nachtrag_neu", { n: f.nachtraege })) : null),
+        el("p", {}, f.kurz.length > 180 ? f.kurz.slice(0, 180) + " …" : f.kurz))))
+    : el("div", { class: "leer" }, t("nichts_offen")));
+  m.append(el("h2", {}, t("agenten")));
+  const rang = a => (a.soll === "an" ? 0 : a.zustand === "aktiv" ? 1 : 2);     /* erst die, die laufen sollen */
+  m.append(el("div", { class: "agenten zeile-reveal" }, [...d.agenten].sort((x, y) => rang(x) - rang(y)).map(kachel)));
   if ((d.an_dich || []).length) {
     m.append(el("h2", {}, t("an_dich")));
     m.append(el("div", { class: "wartet zeile-reveal" }, d.an_dich.map(n => {
+      const text = n.text ? el("p", { class: "leise kurztext", style: "white-space:pre-wrap", title: t("aufklappen"),
+        onclick: e => e.currentTarget.classList.toggle("auf") }, n.text) : null;
       const karte = el("div", { class: "karte" },
         el("div", {}, el("span", { class: "ref" }, `#${n.id}`), " ", el("b", {}, n.von), " ",
           el("span", { class: "leise" }, `${t("art_" + n.art) || n.art} · ${seit(n.zeit_utc)}`)),
-        el("p", {}, el("b", {}, n.kurz)), n.text ? el("p", { class: "leise", style: "white-space:pre-wrap" }, n.text) : null,
+        el("p", {}, el("b", {}, n.kurz)), text,
         el("div", { style: "display:flex;gap:8px;margin-top:8px" },
           el("button", { class: "klein-knopf", type: "button", onclick: () => nachrichtDialog(n.von) }, t("antworten")),
           el("button", { class: "klein-knopf", type: "button", onclick: async () => {
@@ -568,15 +605,6 @@ async function sichtStart() {
             catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("gelesen"))));
       return karte; })));
   }
-  m.append(el("h2", {}, t("wartet_auf_dich")));
-  m.append(d.fragen.length
-    ? el("div", { class: "wartet zeile-reveal" }, d.fragen.slice(0, 6).map(f => el("div", { class: "karte", onclick: () => zeige("fragen") },
-        el("div", {}, el("span", { class: "ref" }, `F${f.id}`), " ", el("span", { class: "leise" }, `${f.von} · ${seit(f.zeit_utc)}`),
-          f.blockiert ? el("span", { class: "etikett rot", style: "margin-left:8px" }, t("blockiert")) : null),
-        el("p", {}, f.kurz.length > 180 ? f.kurz.slice(0, 180) + " …" : f.kurz))))
-    : el("div", { class: "leer" }, t("nichts_offen")));
-  m.append(el("h2", {}, t("agenten")));
-  m.append(el("div", { class: "agenten zeile-reveal" }, d.agenten.map(kachel)));
 }
 /* „1204 · A1204 Titel“ → „A1204 Titel“ (alte Titel tragen die Nummer schon) */
 function ohneDoppel(x) { const [nr, ...rest] = x.split(" · "); const titel = rest.join(" · "); return titel.startsWith("A" + nr) ? titel : `A${nr} · ${titel}`; }
@@ -724,12 +752,16 @@ async function sichtArbeit() {
   catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   if (!liste.length) { m.append(el("div", { class: "leer" }, t("keine_aufgaben"))); return; }
   if (a.sicht === "offen") {
-    const sp = { laeuft: [], wartet: [], blockiert: [] }; for (const x of liste) (sp[x.status] || sp.wartet).push(x);
+    /* „Läuft“ = Status läuft oder ein Agent arbeitet gerade daran (Tätigkeit/letzte Meldung) */
+    const sp = { laeuft: [], wartet: [], blockiert: [] }; for (const x of liste) (x.jetzt ? sp.laeuft : sp[x.status] || sp.wartet).push(x);
     m.append(el("div", { class: "board" }, [["laeuft", "sp_laeuft"], ["wartet", "sp_wartet"], ["blockiert", "sp_blockiert"]].map(([k, titel]) =>
       el("div", { class: "spalte" }, el("h4", {}, t(titel), el("span", { class: "sehrleise mono" }, sp[k].length)),
         sp[k].slice(0, 120).map(x => el("div", { class: "karte aufgabe" },
           el("div", {}, el("span", { class: "ref" }, `A${x.id}`), " ", el("span", { class: "leise" }, x.agent || "–"),
-            x.einstufung === "keine_prio" ? el("span", { class: "etikett", style: "margin-left:6px" }, t("keine_prio")) : null),
+            x.einstufung === "keine_prio" ? el("span", { class: "etikett", style: "margin-left:6px" }, t("keine_prio")) : null,
+            x.jetzt ? el("span", { class: "etikett gruen", style: "margin-left:6px" }, t("jetzt_bei", { x: x.jetzt })) : null,
+            el("span", { class: "sehrleise", style: "float:right;font-size:12px", title: t("geaendert") + " " + zeit(x.geaendert_utc) },
+              seit(x.geaendert_utc || x.angelegt_utc))),
           el("div", { class: "t" }, x.titel.length > 200 ? x.titel.slice(0, 200) + " …" : x.titel),
           x.wartet_auf ? el("div", { class: "w" }, "⇢ " + x.wartet_auf.slice(0, 160)) : null))))));
   } else {
@@ -745,7 +777,8 @@ async function sichtWissen() {
     onkeydown: e => { if (e.key === "Enter") { zustand.wissenQ = e.target.value; sichtWissen(); } } });
   let d; try { d = await holen("/api/wissen?q=" + encodeURIComponent(zustand.wissenQ)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   const r = zustand.wissenReiter;
-  m.append(el("div", { class: "reiter" }, [["beschluesse", d.beschluesse.length], ["regeln", d.regeln.length], ["wortlaut", d.wortlaut.length]]
+  m.append(el("div", { class: "reiter" }, [["beschluesse", d.beschluesse.length], ["regeln", d.regeln.length], ["wortlaut", d.wortlaut.length],
+    ["notizen", (d.notizen || []).length]]
     .map(([k, n]) => el("button", { class: k === r ? "an" : "", type: "button", onclick: () => { zustand.wissenReiter = k; sichtWissen(); } }, t(k, { n }))),
     el("div", { class: "rechts" }, such)));
   const box = el("div", { class: "zeile-reveal" });
@@ -760,6 +793,9 @@ async function sichtWissen() {
   if (r === "wortlaut") box.append(...d.wortlaut.map(w => el("div", { class: "karte wissen-eintrag" },
     el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `W${w.id}`), el("span", { class: "sehrleise" }, `${zeit(w.zeit_utc)} · ${w.kanal}`)),
     el("div", { class: "inhalt", style: "color:var(--tinte)" }, w.text))));
+  if (r === "notizen") box.append(...(d.notizen || []).map(n => el("div", { class: "karte wissen-eintrag" },
+    el("div", { class: "kopfzeile" }, el("b", { class: "mono" }, n.schluessel), el("span", { class: "sehrleise" }, t("stand", { t: zeit(n.geaendert_utc) }))),
+    el("div", { class: "inhalt", style: "white-space:pre-wrap" }, n.wert))));
   if (!box.children.length) box.append(el("div", { class: "leer" }, t("nichts_gefunden")));
   m.append(box);
 }
@@ -777,6 +813,11 @@ async function sichtBetrieb() {
       el("div", { class: "sehrleise" }, t("ueber_hook"))),
     el("div", { class: "karte" }, el("div", { class: "leise" }, t("sperren")), el("div", { class: "wert" }, d.sperren.length), el("div", { class: "sehrleise" }, t("halt_anweisungen"))),
     el("div", { class: "karte" }, el("div", { class: "leise" }, t("datenbank")), el("div", { class: "mono", style: "margin-top:10px;overflow-wrap:anywhere" }, d.db))));
+  const punkt = z => el("span", {}, el("span", { class: "punkt " + (z === "laeuft" ? "gruen" : z === "aus" ? "rot" : "") }), " ", t("sz_" + z));
+  m.append(el("h2", {}, t("server")), (d.server || []).length
+    ? tabelle(["k_name", "k_port", "k_zustand", "k_seit", "k_zustaendig", "k_neustart", "k_ausfaelle"],
+        d.server.map(s => [s.name, s.port, punkt(s.zustand), seit(s.seit_utc), s.zustaendig, s.neustart ? t("ja") : t("nein"), s.ausfaelle]))
+    : el("div", { class: "leer" }, t("keine_server")));
   m.append(el("h2", {}, t("sperren")), d.sperren.length ? tabelle(["k_nr", "k_art", "k_fuer", "k_von", "k_text", "k_seit"], d.sperren.map(s => [s.id, s.art, s.gilt_fuer, s.von, s.text, zeit(s.seit_utc)]))
     : el("div", { class: "leer" }, t("keine_sperren")));
   m.append(el("h2", {}, t("sitzungen")), d.sitzungen.length ? tabelle(["k_agent", "k_zustand", "k_gestartet", "k_puls", "k_beendet"], d.sitzungen.map(s => [s.kennung, s.zustand, zeit(s.gestartet_utc), seit(s.letzter_puls_utc), zeit(s.beendet_utc)]))
@@ -871,10 +912,13 @@ async function sichtEinstellungen() {
   const box = el("div", { class: "einst" + (ruhig ? "" : " zeile-reveal") });
 
   // Projekt
-  const pf = { takt_min: zahl(d.projekt.takt_min, 0, 1440), speicher_grenze_gb: zahl(d.projekt.speicher_grenze_gb, 1, 512, 0.5) };
+  const pf = { takt_min: zahl(d.projekt.takt_min, 0, 1440), speicher_grenze_gb: zahl(d.projekt.speicher_grenze_gb, 1, 512, 0.5),
+    stillstand_min: zahl(d.projekt.stillstand_min, 5, 1440), lauf_ohne_angabe_min: zahl(d.projekt.lauf_ohne_angabe_min, 5, 1440) };
   box.append(block(t("e_projekt", { x: d.projekt.name }), null,
-    [[t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")]],
-    "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb) })));
+    [[t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")],
+     [t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")], [t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")]],
+    "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
+      stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min) })));
 
   // Agenten
   const zeile = a => {
@@ -933,6 +977,8 @@ setInterval(() => {
   if (document.hidden || tippt || document.querySelector(".dialog-hg")) return;
   if (zustand.sicht === "start" || zustand.sicht === "betrieb") zeige(zustand.sicht, true); else kopfAktualisieren();
 }, 15000);
+window.addEventListener("popstate", () => { const s = location.hash.slice(1); if (s && s !== zustand.sicht) zeige(s); });
+window.addEventListener("hashchange", () => { const s = location.hash.slice(1); if (s && s !== zustand.sicht) zeige(s); });
 let startSicht = "start"; try { startSicht = localStorage.getItem("amw-sicht") || "start"; } catch (e) {}
 if (location.hash.length > 1) startSicht = location.hash.slice(1);
 kopfAktualisieren().then(() => zeige(startSicht));

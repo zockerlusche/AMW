@@ -11,6 +11,7 @@ import json
 import re
 import os
 import secrets
+import socket
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -73,12 +74,16 @@ def daten_start(con, pid):
     for a in agenten:
         a["gerade"], a["gerade_aufgabe"], a["gerade_quelle"] = gerade(con, pid, a["kennung"],
                                                                       a["taetigkeit"] if a["zustand"] == "aktiv" else None)
-    fragen = zeilen(con.execute(
-        "SELECT id, kurz, von, zeit_utc, blockiert FROM frage WHERE projekt_id = ? AND an = 'entwickler'"
-        " AND status = 'offen' AND kurz NOT LIKE 'GEPARKT%' ORDER BY blockiert DESC, id DESC LIMIT 20", (pid,)))
-    an_dich = zeilen(con.execute(
+    fragen = zeilen(con.execute(           # nachtraege: ungelesene Nachträge im Verlauf der Frage (stehen dort, nicht doppelt)
+        "SELECT f.id, f.kurz, f.von, f.zeit_utc, f.blockiert, (SELECT count(*) FROM frage_verlauf v JOIN empfang e"
+        "   ON e.nachricht_id = v.nachricht_id AND e.agent = :e AND e.status = 'offen' WHERE v.frage_id = f.id) AS nachtraege"
+        " FROM frage f WHERE f.projekt_id = :p AND f.an = 'entwickler' AND f.status = 'offen' AND f.kurz NOT LIKE 'GEPARKT%'"
+        " ORDER BY f.blockiert DESC, f.id DESC LIMIT 20", {"p": pid, "e": kern.ENTWICKLER}))
+    an_dich = zeilen(con.execute(           # ohne Nachträge zu offenen Fragen – die zeigt die Frage selbst
         "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf FROM empfang e JOIN nachricht n"
         " ON n.id = e.nachricht_id WHERE n.projekt_id = ? AND e.agent = ? AND e.status != 'erledigt'"
+        " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v JOIN frage f ON f.id = v.frage_id"
+        "   WHERE f.status = 'offen' AND v.nachricht_id IS NOT NULL)"
         " ORDER BY n.id DESC LIMIT 30", (pid, kern.ENTWICKLER)))
     halte = [dict(s) for s in kern.aktive_sperren(con, pid, art="halt")]
     zaehler = dict(con.execute(
@@ -94,19 +99,23 @@ def daten_start(con, pid):
         " (SELECT count(*) FROM release WHERE projekt_id = :p) AS releases", {"p": pid}).fetchone())
     frei, gesamt = speicher_frei_gb()
     zaehler["an_dich"] = len(an_dich)
-    from . import __version__, hook
+    from . import __version__, hook, ueberwachung
     try:
         unangemeldet = hook.unangemeldet(con, pid)     # laufende Agenten-Sitzungen, die der Wächter nicht wecken kann
     except Exception:
         unangemeldet = []
+    try:
+        warnungen = ueberwachung.warnungen(con, pid)   # Server aus, Weckruf unbeantwortet, Lauf überfällig
+    except Exception:
+        warnungen = []
     return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "zaehler": zaehler,
-            "unangemeldet": unangemeldet,
+            "unangemeldet": unangemeldet, "warnungen": warnungen,
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 
 def daten_einstellungen(con, pid, speicher=None):
     """Zahnrad: alles, was einstellbar ist – nie Schlüssel oder Passwörter (der Turso-Schlüssel nur als „gespeichert“)."""
-    from . import __version__, abgleich, einstellungen
+    from . import __version__, abgleich, einstellungen, ueberwachung
     p = con.execute("SELECT name, einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
     pe = json.loads(p["einstellungen"] or "{}")
     from .betrieb import SPEICHER_GRENZE_GB
@@ -125,7 +134,9 @@ def daten_einstellungen(con, pid, speicher=None):
         web = None
     return {"version": __version__,
             "projekt": {"name": p["name"], "takt_min": pe.get("takt_min", TAKT_MIN),
-                        "speicher_grenze_gb": pe.get("speicher_grenze_gb", SPEICHER_GRENZE_GB)},
+                        "speicher_grenze_gb": pe.get("speicher_grenze_gb", SPEICHER_GRENZE_GB),
+                        "stillstand_min": pe.get("stillstand_min", ueberwachung.STILLSTAND_MIN),
+                        "lauf_ohne_angabe_min": pe.get("lauf_ohne_angabe_min", ueberwachung.LAUF_OHNE_ANGABE_MIN)},
             "agenten": agenten,
             "pc": {**einstellungen.laden(), "datei": einstellungen.pfad()},
             "turso": {"url": z.get("url", ""), "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(z.get("token"))},
@@ -218,7 +229,7 @@ def daten_fragen(con, pid, alle=False):
 
 
 def daten_aufgaben(con, pid, q):
-    sql = ("SELECT id, titel, agent, status, einstufung, rang, wartet_auf, angelegt_utc, fertig_utc FROM aufgabe"
+    sql = ("SELECT id, titel, agent, status, einstufung, rang, wartet_auf, angelegt_utc, fertig_utc, geaendert_utc FROM aufgabe"
            " WHERE projekt_id = ?")
     par = [pid]
     sicht = q.get("sicht", ["offen"])[0]
@@ -237,7 +248,29 @@ def daten_aufgaben(con, pid, q):
         sql += " AND (titel LIKE ? OR bemerkung LIKE ?)"
         par += [f"%{q['q'][0]}%"] * 2
     ordnung = " ORDER BY fertig_utc DESC" if sicht == "erledigt" else " ORDER BY rang, id DESC"
-    return zeilen(con.execute(sql + ordnung + " LIMIT 400", par))
+    liste = zeilen(con.execute(sql + ordnung + " LIMIT 400", par))
+    if sicht == "offen":                    # „läuft jetzt“: woran ein Agent mit laufender Sitzung gerade arbeitet
+        jetzt = aktuelle_aufgaben(con, pid)
+        for x in liste:
+            x["jetzt"] = jetzt.get(x["id"])
+    return liste
+
+
+def aktuelle_aufgaben(con, pid):
+    """Aufgabe → Agent, an der eine laufende Sitzung gerade arbeitet (Tätigkeit mit A1234, laufende Aufgabe, letzte Meldung).
+    Agenten setzen den Aufgaben-Status selten auf „läuft“; so bleibt die Spalte trotzdem nicht leer."""
+    erg = {}
+    for a in con.execute("SELECT g.kennung, s.taetigkeit FROM agent g JOIN sitzung s ON s.agent_id = g.id AND s.zustand = 'aktiv'"
+                         " WHERE g.projekt_id = ?", (pid,)).fetchall():
+        aid = None
+        m = AUFGABE_IN_TEXT.search(a["taetigkeit"] or "")
+        if m:
+            aid = int(m.group(1))
+        else:
+            aid = gerade(con, pid, a["kennung"])[1]
+        if aid:
+            erg.setdefault(aid, a["kennung"])
+    return erg
 
 
 def daten_wissen(con, pid, q):
@@ -255,7 +288,10 @@ def daten_wissen(con, pid, q):
                         (pid,))
     r = con.execute("SELECT ebene, nr, teil, text, stand_utc FROM regel WHERE (ebene = 'arbeit' OR projekt_id = ?)"
                     + (" AND text LIKE ?" if such else "") + " ORDER BY ebene, nr", (pid, muster) if such else (pid,))
-    return {"beschluesse": zeilen(b), "wortlaut": zeilen(w), "regeln": zeilen(r)}
+    n = con.execute("SELECT schluessel, wert, geaendert_utc FROM notiz WHERE projekt_id = ?"
+                    + (" AND (schluessel LIKE ? OR wert LIKE ?)" if such else "") + " ORDER BY schluessel",
+                    (pid, muster, muster) if such else (pid,))
+    return {"beschluesse": zeilen(b), "wortlaut": zeilen(w), "regeln": zeilen(r), "notizen": zeilen(n)}
 
 
 def daten_suche(con, pid, q):
@@ -286,13 +322,15 @@ def daten_betrieb(con, pid):
     laeufe = zeilen(con.execute("SELECT id, agent, beschreibung, status, angemeldet_utc, start_utc, ende_utc, rc"
                                 " FROM lauf WHERE projekt_id = ? ORDER BY id DESC LIMIT 30", (pid,)))
     sperren = [dict(s) for s in kern.aktive_sperren(con, pid)]
+    server = zeilen(con.execute("SELECT name, port, zustand, seit_utc, geprueft_utc, zustaendig, neustart, ausfaelle,"
+                                " letzter_neustart_utc FROM server WHERE projekt_id = ? AND aktiv = 1 ORDER BY name", (pid,)))
     logdatei = os.path.join(os.path.dirname(db.db_pfad()), "dienst.log")
     log = []
     if os.path.exists(logdatei):
         with open(logdatei, encoding="utf-8", errors="replace") as f:
             log = f.readlines()[-25:]
     frei, gesamt = speicher_frei_gb()
-    return {"sitzungen": sitz, "laeufe": laeufe, "sperren": sperren, "log": [z.rstrip() for z in log],
+    return {"sitzungen": sitz, "laeufe": laeufe, "sperren": sperren, "server": server, "log": [z.rstrip() for z in log],
             "speicher": {"frei": frei, "gesamt": gesamt}, "db": db.db_pfad()}
 
 
@@ -396,9 +434,20 @@ def baue_handler(port, token):
     return Handler
 
 
+class Server(ThreadingHTTPServer):
+    """Ohne SO_REUSEADDR: unter Windows ließe es den Port eines anderen Programms mitbenutzen – die Workbench liefe
+    dann still „neben“ einem fremden Server, und der Browser sähe den fremden. Belegter Port → OSError beim Start."""
+    allow_reuse_address = False
+
+    def server_bind(self):
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def starten(port=STANDARD_PORT, im_hintergrund=True):
     token = secrets.token_urlsafe(24)
-    srv = ThreadingHTTPServer(("127.0.0.1", port), baue_handler(port, token))
+    srv = Server(("127.0.0.1", port), baue_handler(port, token))
     srv.daemon_threads = True
     if im_hintergrund:
         threading.Thread(target=srv.serve_forever, name="workbench", daemon=True).start()

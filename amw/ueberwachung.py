@@ -170,6 +170,9 @@ def warnungen(con, pid, jetzt=None):
             " JOIN nachricht n ON n.id = e.nachricht_id JOIN agent a ON a.kennung = e.agent AND a.projekt_id = n.projekt_id"
             " WHERE n.projekt_id = ? AND e.status = 'offen' AND e.geweckt_utc IS NOT NULL AND a.soll = 'an'"
             " AND EXISTS (SELECT 1 FROM sitzung s WHERE s.agent_id = a.id AND s.zustand = 'aktiv')"
+            # wer seit dem Weckruf etwas gemeldet hat, lebt – nur nicht abgehakt (alte Weckprobe o. Ä.)
+            " AND NOT EXISTS (SELECT 1 FROM nachricht m WHERE m.projekt_id = n.projekt_id AND m.von = e.agent"
+            "   AND m.zeit_utc >= e.geweckt_utc)"
             " GROUP BY e.agent", (pid,)):
         if jetzt - _sek(r["seit"]) >= grenze:
             aus.append({"art": "stillstand", "schluessel": f"still:{r['agent']}:{r['erste']}", "an": r["agent"],

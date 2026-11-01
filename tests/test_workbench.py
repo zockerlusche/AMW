@@ -56,6 +56,36 @@ class Workbench(unittest.TestCase):
         fragen = json.loads(self.anfrage("GET", "/api/fragen")[1])
         self.assertEqual(fragen[0]["empfehlung"], "A")
 
+    def test_nachtrag_nur_in_der_frage_und_beim_antworten_erledigt(self):
+        con = db.verbinde()
+        kern.frage_nachtrag(con, self.pid, "TL", self.fid, "Noch ein Gedanke")
+        kern.posten(con, self.pid, "TL", "Entwickler", "meldung", "Bericht")
+        d = workbench.daten_start(con, self.pid)
+        self.assertEqual([n["kurz"] for n in d["an_dich"]], ["Bericht"])          # Nachtrag steht nur in der Frage
+        self.assertEqual(d["fragen"][0]["nachtraege"], 1)
+        kern.frage_antworten(con, self.pid, self.fid, "option", "A", "seite")
+        offen = con.execute("SELECT count(*) FROM empfang WHERE agent = 'Entwickler' AND status != 'erledigt'").fetchone()[0]
+        con.close()
+        self.assertEqual(offen, 1)                                                 # nur noch der Bericht
+
+    def test_board_zeigt_woran_agenten_gerade_arbeiten_und_notizen(self):
+        from amw import wissen
+        con = db.verbinde()
+        kern.agent_neu(con, self.pid, "CC1")
+        with db.schreiben(con):
+            aid = db.einfuegen(con, "aufgabe", projekt_id=self.pid, titel="Bauen", agent="CC1", angelegt_utc=db.jetzt(), angelegt_von="TL", id=1234)
+            db.einfuegen(con, "sitzung", agent_id=con.execute("SELECT id FROM agent WHERE kennung = 'CC1'").fetchone()[0],
+                         gestartet_utc=db.jetzt(), taetigkeit=f"A{aid} baut")
+        wissen.notiz_setzen(con, self.pid, "TL", "stand", "alles gut")
+        con.close()
+        liste = json.loads(self.anfrage("GET", "/api/aufgaben?sicht=offen")[1])
+        self.assertEqual(next(x for x in liste if x["id"] == aid)["jetzt"], "CC1")
+        self.assertEqual(json.loads(self.anfrage("GET", "/api/wissen")[1])["notizen"][0]["schluessel"], "stand")
+
+    def test_belegter_port_wird_abgelehnt(self):
+        with self.assertRaises(OSError):
+            workbench.starten(self.port)
+
     def test_kachel_zaehlt_nur_was_handlung_braucht(self):
         from amw import betrieb
         con = db.verbinde()
