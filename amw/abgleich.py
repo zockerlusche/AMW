@@ -40,6 +40,32 @@ SCHEMA = [
 ]
 SICHTEN = ("offen", "geparkt", "pool", "erledigt")
 
+# Online-Seite (web/inc/lib.php liest dieselben Werte mit denselben Grenzen)
+WEB_EINSTELLUNGEN = {"leerlauf_min": (30, 5, 240), "hoechstens_h": (12, 1, 72), "fehl_je_ip": (5, 3, 20),
+                     "fehl_gesamt": (20, 5, 200)}
+
+
+def web_einstellungen(speicher):
+    """Aktuelle Werte der Online-Seite (Vorgaben, wo nichts gesetzt ist)."""
+    roh = speicher.ausfuehren([("SELECT wert FROM zustand WHERE schluessel = 'web_einstellungen'", [])])[0]
+    d = json.loads(roh[0][0]) if roh else {}
+    return {k: (int(d[k]) if k in d and lo <= int(d[k]) <= hi else v) for k, (v, lo, hi) in WEB_EINSTELLUNGEN.items()}
+
+
+def web_einstellungen_setzen(speicher, neu):
+    d = web_einstellungen(speicher)
+    for k, v in neu.items():
+        if k not in WEB_EINSTELLUNGEN:
+            raise ValueError(f"unbekannte Einstellung: {k}")
+        _, lo, hi = WEB_EINSTELLUNGEN[k]
+        v = int(v)
+        if not lo <= v <= hi:
+            raise ValueError(f"{k}: zwischen {lo} und {hi}")
+        d[k] = v
+    speicher.ausfuehren([("INSERT INTO zustand (schluessel, wert) VALUES ('web_einstellungen', ?) ON CONFLICT(schluessel)"
+                          " DO UPDATE SET wert = excluded.wert", [json.dumps(d)])])
+    return d
+
 
 # --- Speicher ------------------------------------------------------------------------------------
 
@@ -113,7 +139,7 @@ def speicher_aus_zugang(nur_wenn_an=True):
 
 # --- Abgleich ------------------------------------------------------------------------------------
 
-def ansichten(con, pid):
+def ansichten(con, pid, speicher=None):
     """Dieselben Antworten wie die lokale Workbench, Schlüssel = Weg, wie ihn die Seite anfragt."""
     leer = {"agent": [""], "q": [""]}
     a = {"/api/start": workbench.daten_start(con, pid),
@@ -122,7 +148,8 @@ def ansichten(con, pid):
          "/api/wissen": workbench.daten_wissen(con, pid, {"q": [""]}),
          "/api/betrieb": workbench.daten_betrieb(con, pid),
          "/api/releases": workbench.daten_releases(con, pid),
-         "/api/projekte": workbench.zeilen(con.execute("SELECT id, name FROM projekt ORDER BY id"))}
+         "/api/projekte": workbench.zeilen(con.execute("SELECT id, name FROM projekt ORDER BY id")),
+         "/api/einstellungen": workbench.daten_einstellungen(con, pid, speicher)}
     for s in SICHTEN:
         a[f"/api/aufgaben?sicht={s}"] = workbench.daten_aufgaben(con, pid, {"sicht": [s], **leer})
     return a
@@ -143,6 +170,9 @@ class Abgleich:
         self.letzt_hoch = self.letzt_puls = 0.0
         self.con.execute("CREATE TABLE IF NOT EXISTS netz_eingang (id INTEGER PRIMARY KEY, ergebnis TEXT,"
                          " zeit_utc TEXT NOT NULL)")
+        # Merkmal = Zeit + Weg + Inhalt: eine neue Online-Datenbank zählt wieder ab 1 – die Nummer allein reicht nicht
+        if "merkmal" not in [r[1] for r in self.con.execute("PRAGMA table_info(netz_eingang)")]:
+            self.con.execute("ALTER TABLE netz_eingang ADD COLUMN merkmal TEXT")
 
     def schema(self):
         self.sp.ausfuehren([(s, []) for s in SCHEMA])
@@ -151,7 +181,7 @@ class Abgleich:
     def hochladen(self, alle=False):
         t = db.jetzt()
         neu = []
-        for weg, inhalt in ansichten(self.con, self.pid).items():
+        for weg, inhalt in ansichten(self.con, self.pid, self.sp).items():
             p = _pruef(inhalt)
             if alle or self.bekannt.get(weg) != p:
                 neu.append((weg, json.dumps(inhalt, ensure_ascii=False), p))
@@ -167,11 +197,17 @@ class Abgleich:
 
     def eingang(self):
         """Neue Zeilen aus dem Briefkasten ausführen. Gibt die Zahl der bearbeiteten Zeilen zurück."""
-        zeilen = self.sp.ausfuehren([("SELECT id, weg, daten FROM eingang WHERE status = 'neu' ORDER BY id LIMIT 20",
-                                      [])])[0]
-        for eid, weg, roh in zeilen:
+        zeilen = self.sp.ausfuehren([("SELECT id, weg, daten, zeit_utc FROM eingang WHERE status = 'neu' ORDER BY id"
+                                      " LIMIT 20", [])])[0]
+        for eid, weg, roh, zeit in zeilen:
             eid = int(eid)
-            schon = self.con.execute("SELECT ergebnis FROM netz_eingang WHERE id = ?", (eid,)).fetchone()
+            merkmal = hashlib.sha256(f"{zeit}|{weg}|{roh}".encode("utf-8")).hexdigest()[:24]
+            schon = self.con.execute("SELECT ergebnis, merkmal FROM netz_eingang WHERE id = ?", (eid,)).fetchone()
+            # gleiche Nummer, anderer Eintrag (neue Online-Datenbank) – alte Zeilen ohne Merkmal gelten nicht als Beleg:
+            # abgeholt werden nur Einträge im Status „neu“, erledigte kommen ohnehin nie wieder
+            if schon and schon[1] != merkmal:
+                self.con.execute("DELETE FROM netz_eingang WHERE id = ?", (eid,))
+                schon = None
             if schon:                                  # schon ausgeführt, nur die Rückmeldung fehlte
                 status, ergebnis = json.loads(schon[0])
             else:
@@ -179,11 +215,12 @@ class Abgleich:
                     daten = json.loads(roh)
                     if not isinstance(daten, dict):
                         raise aktionen.Ungueltig("Daten")
-                    status, ergebnis = "erledigt", aktionen.ausfuehren(self.con, self.pid, weg, daten, kanal="netz")
+                    status, ergebnis = "erledigt", aktionen.ausfuehren(self.con, self.pid, weg, daten, kanal="netz",
+                                                                        speicher=self.sp)
                 except (aktionen.Ungueltig, kern.AmwFehler, LookupError, ValueError) as e:
                     status, ergebnis = "fehler", {"fehler": str(e) or type(e).__name__}
-                self.con.execute("INSERT INTO netz_eingang (id, ergebnis, zeit_utc) VALUES (?, ?, ?)",
-                                 (eid, json.dumps([status, ergebnis], ensure_ascii=False), db.jetzt()))
+                self.con.execute("INSERT INTO netz_eingang (id, ergebnis, zeit_utc, merkmal) VALUES (?, ?, ?, ?)",
+                                 (eid, json.dumps([status, ergebnis], ensure_ascii=False), db.jetzt(), merkmal))
                 log.info("Briefkasten #%s %s → %s", eid, weg, status)
             self.sp.ausfuehren([("UPDATE eingang SET status = ?, ergebnis = ?, erledigt_utc = ? WHERE id = ?",
                                  [status, json.dumps(ergebnis, ensure_ascii=False), db.jetzt(), eid])])

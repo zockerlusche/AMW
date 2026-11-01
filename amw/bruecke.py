@@ -88,11 +88,11 @@ def argumente(befehl):
     return args + ["--von", VON]
 
 
-def puls(kennung=VON, taetigkeit=None):
+def puls(kennung=None, taetigkeit=None):
     """Brücken-Sitzung des TL: ohne Postfach (schluessel_datei leer), der Wächter weckt sie nie; zeigt „läuft“."""
     con = db.verbinde()
     try:
-        a = con.execute("SELECT id FROM agent WHERE kennung = ? ORDER BY id LIMIT 1", (kennung,)).fetchone()
+        a = con.execute("SELECT id FROM agent WHERE kennung = ? ORDER BY id LIMIT 1", (kennung or VON,)).fetchone()
         if not a:
             return
         t = db.jetzt()

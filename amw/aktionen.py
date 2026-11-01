@@ -1,6 +1,8 @@
 """Was der Entwickler über eine Seite tun darf – ein Schreibweg für die lokale Workbench und den Briefkasten aus dem
 Netz (→ doc/10 §4 Stufe 2, doc/12). Absender ist immer der Entwickler; erlaubt sind nur diese Aktionen:
-Frage beantworten, Nachricht an Agenten, Nachrichten an dich als gelesen markieren, Halt, Weiter.
+Frage beantworten, Nachricht an Agenten, Nachrichten an dich als gelesen markieren, Halt, Weiter, Einstellungen.
+Einstellungen „pc“ (Datenbank-Pfad, Port, Takte) und „turso“ (Zugang) nur am PC (kanal „seite“), nie aus dem Netz:
+wer sich online anmeldet, soll die AMW nicht auf eine andere Datenbank umbiegen oder den Zugang aussperren können.
 """
 from . import db, kern
 
@@ -11,7 +13,7 @@ class Ungueltig(ValueError):
     """Eingabe unvollständig oder nicht erlaubt (HTTP 400)."""
 
 
-def ausfuehren(con, pid, weg, daten, kanal="seite"):
+def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
     teile = weg.strip("/").split("/")
     if teile[:2] == ["api", "frage"] and len(teile) == 4 and teile[3] == "antwort":
         art = daten.get("art")
@@ -45,9 +47,69 @@ def ausfuehren(con, pid, weg, daten, kanal="seite"):
         if not isinstance(ids, list) or not ids or not all(isinstance(i, int) for i in ids):
             raise Ungueltig("ids fehlen")
         return {"erledigt": kern.erledigt(con, pid, kern.ENTWICKLER, ids[:100])}
+    if weg.startswith("/api/einstellungen/"):
+        return einstellen(con, pid, weg.rsplit("/", 1)[1], daten, kanal, speicher)
     if weg == "/api/halt":
         return {"halt": kern.halt(con, pid, kern.ENTWICKLER, daten.get("fuer") or "alle",
                                   (daten.get("text") or "Halt vom Entwickler").strip()[:2000])}
     if weg == "/api/weiter":
         return {"aufgehoben": kern.weiter(con, pid, kern.ENTWICKLER, daten.get("fuer") or "alle")}
     raise LookupError("unbekannt")
+
+
+NUR_AM_PC = ("pc", "turso")
+
+
+def einstellen(con, pid, teil, daten, kanal, speicher=None):
+    from . import abgleich, einstellungen
+    if teil in NUR_AM_PC and kanal != "seite":
+        raise Ungueltig("Diese Einstellung lässt sich nur am PC ändern")
+    werte = {k: v for k, v in daten.items() if k not in ("kennung", "neu")}
+    try:
+        if teil == "projekt":
+            return {"projekt": kern.projekt_einstellen(con, pid, kern.ENTWICKLER, **werte)}
+        if teil == "agent":
+            return {"agent": kern.agent_einstellen(con, pid, kern.ENTWICKLER, daten.get("kennung"),
+                                                   neu=bool(daten.get("neu")), **werte)}
+        if teil == "web":
+            sp = speicher or abgleich.speicher_aus_zugang(nur_wenn_an=False)   # aus dem Briefkasten: derselbe Speicher
+            if sp is None:
+                raise Ungueltig("Kein Online-Speicher eingerichtet")
+            return {"web": abgleich.web_einstellungen_setzen(sp, werte)}
+        if teil == "pc":
+            return {"pc": einstellungen.speichern(werte), "hinweis": "wirkt beim nächsten Start des Wächters"}
+        if teil == "turso":
+            return {"turso": turso_einstellen(daten), "hinweis": "wirkt beim nächsten Start des Wächters"}
+    except ValueError as e:
+        raise Ungueltig(str(e)) from None
+    raise LookupError("unbekannt")
+
+
+def turso_einstellen(daten):
+    """Adresse/Schlüssel/Abgleich am PC. Neue Adresse oder neuer Schlüssel werden vor dem Speichern geprüft."""
+    import json
+    import os
+    from . import abgleich
+    pfad = abgleich.zugang_pfad()
+    try:
+        with open(pfad, encoding="utf-8") as f:
+            z = json.load(f)
+    except (OSError, ValueError):
+        z = {}
+    url = (daten.get("url") or z.get("url") or "").strip()
+    token = (daten.get("token") or "").strip() or z.get("token", "")
+    if url != z.get("url") or token != z.get("token"):
+        if not url.startswith(("libsql://", "https://")) or ".turso.io" not in url or not token:
+            raise Ungueltig("Adresse libsql://….turso.io und Schlüssel nötig")
+        try:
+            abgleich.TursoSpeicher(url, token).ausfuehren([(s, []) for s in abgleich.SCHEMA])
+        except OSError as e:
+            raise Ungueltig(f"Turso nicht erreichbar oder Schlüssel abgelehnt ({e}) – nichts gespeichert") from None
+    z.update({"url": url, "token": token})
+    if "abgleich" in daten:
+        z["abgleich"] = bool(daten["abgleich"])
+    os.makedirs(os.path.dirname(pfad), exist_ok=True)
+    with open(pfad + ".neu", "w", encoding="utf-8") as f:
+        json.dump(z, f, indent=2)
+    os.replace(pfad + ".neu", pfad)
+    return {"url": url, "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(token)}

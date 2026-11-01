@@ -63,6 +63,34 @@ def daten_start(con, pid):
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 
+def daten_einstellungen(con, pid, speicher=None):
+    """Zahnrad: alles, was einstellbar ist – nie Schlüssel oder Passwörter (der Turso-Schlüssel nur als „gespeichert“)."""
+    from . import __version__, abgleich, einstellungen
+    p = con.execute("SELECT name, einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    pe = json.loads(p["einstellungen"] or "{}")
+    from .betrieb import SPEICHER_GRENZE_GB
+    from .dienst import TAKT_MIN
+    agenten = zeilen(con.execute("SELECT kennung, rolle, soll, grenzen, empfaengt_rund, puls_grenze_s FROM agent"
+                                 " WHERE projekt_id = ? ORDER BY id", (pid,)))
+    try:
+        with open(abgleich.zugang_pfad(), encoding="utf-8") as f:
+            z = json.load(f)
+    except (OSError, ValueError):
+        z = {}
+    sp = speicher or abgleich.speicher_aus_zugang(nur_wenn_an=False)
+    try:
+        web = abgleich.web_einstellungen(sp) if sp else None
+    except (OSError, ValueError, KeyError):
+        web = None
+    return {"version": __version__,
+            "projekt": {"name": p["name"], "takt_min": pe.get("takt_min", TAKT_MIN),
+                        "speicher_grenze_gb": pe.get("speicher_grenze_gb", SPEICHER_GRENZE_GB)},
+            "agenten": agenten,
+            "pc": {**einstellungen.laden(), "datei": einstellungen.pfad()},
+            "turso": {"url": z.get("url", ""), "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(z.get("token"))},
+            "web": web, "web_grenzen": {k: [lo, hi] for k, (_, lo, hi) in abgleich.WEB_EINSTELLUNGEN.items()}}
+
+
 def vorgeschichte(con, pid, f):
     v = []
     if f["aufgabe_id"]:
@@ -241,6 +269,7 @@ def baue_handler(port, token):
                     "/api/suche": lambda c, p: daten_suche(c, p, q),
                     "/api/betrieb": lambda c, p: daten_betrieb(c, p),
                     "/api/releases": lambda c, p: daten_releases(c, p),
+                    "/api/einstellungen": lambda c, p: daten_einstellungen(c, p),
                     "/api/projekte": lambda c, p: zeilen(c.execute("SELECT id, name FROM projekt ORDER BY id"))}
             weg = wege.get(u.path)
             if not weg:

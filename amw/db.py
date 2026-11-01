@@ -16,7 +16,10 @@ STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
 
 
 def db_pfad():
-    return os.environ.get("AMW_DB") or STANDARD_DB
+    if os.environ.get("AMW_DB"):
+        return os.environ["AMW_DB"]
+    from . import einstellungen                  # Einstellung „db_pfad“ (Zahnrad), sonst F:\amw\daten\amw.db
+    return einstellungen.wert("db_pfad") or STANDARD_DB
 
 
 def jetzt():

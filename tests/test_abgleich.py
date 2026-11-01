@@ -70,6 +70,16 @@ class Abgleich(unittest.TestCase):
         self.assertEqual(self.con.execute("SELECT count(*) FROM nachricht WHERE kurz = 'einmal'").fetchone()[0], 1)
         self.assertEqual(self.online_zeilen("SELECT status FROM eingang")[0][0], "erledigt")
 
+    def test_neue_online_datenbank_mit_gleichen_nummern_wird_ausgefuehrt(self):
+        self.einwerfen("/api/nachricht", {"an": "CC1", "art": "auftrag", "kurz": "erste DB"})
+        self.ab.eingang()
+        os.remove(self.online)                               # neue Online-Datenbank: zählt wieder ab 1
+        self.ab.schema()
+        self.einwerfen("/api/nachricht", {"an": "CC1", "art": "auftrag", "kurz": "zweite DB"})
+        self.ab.eingang()
+        kurz = [r[0] for r in self.con.execute("SELECT kurz FROM nachricht WHERE kurz LIKE '%DB' ORDER BY id")]
+        self.assertEqual(kurz, ["erste DB", "zweite DB"])
+
     def test_ohne_freigabe_kein_abgleich(self):
         alt = os.environ.get("LOCALAPPDATA")
         os.environ["LOCALAPPDATA"] = self.ordner.name

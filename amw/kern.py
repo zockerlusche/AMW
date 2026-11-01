@@ -38,6 +38,72 @@ def agent_neu(con, pid, kennung, rolle=None, grenzen=None, startbefehl=None, emp
                             startbefehl=startbefehl, empfaengt_rund=int(empfaengt_rund), angelegt_utc=db.jetzt())
 
 
+def projekt_einstellen(con, pid, von, **werte):
+    """Zahnrad „Projekt“: takt_min (0 = aus, bis 1440), speicher_grenze_gb (1–512). Nur Lead und Entwickler."""
+    if not ist_lead(con, pid, von):
+        raise AmwFehler("Projekt-Einstellungen dürfen nur Lead und Entwickler ändern")
+    grenzen = {"takt_min": (0, 1440), "speicher_grenze_gb": (1, 512)}
+    with db.schreiben(con):
+        e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
+        for k, v in werte.items():
+            if k not in grenzen:
+                raise AmwFehler(f"unbekannte Projekt-Einstellung: {k}")
+            try:
+                v = float(v)
+            except (TypeError, ValueError):
+                raise AmwFehler(f"{k}: Zahl erwartet") from None
+            lo, hi = grenzen[k]
+            if not lo <= v <= hi:
+                raise AmwFehler(f"{k}: zwischen {lo} und {hi}")
+            e[k] = int(v) if v == int(v) else v
+        con.execute("UPDATE projekt SET einstellungen = ? WHERE id = ?", (json.dumps(e), pid))
+    return e
+
+
+def agent_einstellen(con, pid, von, kennung, neu=False, **werte):
+    """Zahnrad „Agenten“: rolle, soll (an/aus/ruht), grenzen, empfaengt_rund, puls_grenze_s. Nur Lead und Entwickler."""
+    if not ist_lead(con, pid, von):
+        raise AmwFehler("Agenten dürfen nur Lead und Entwickler einstellen")
+    kennung = (kennung or "").strip()
+    if not kennung or len(kennung) > 20 or not all(c.isalnum() or c in "-_" for c in kennung) or kennung.lower() == ENTWICKLER.lower():
+        raise AmwFehler("Kennung: bis 20 Zeichen, Buchstaben/Ziffern/-/_, nicht „Entwickler“")
+    felder = {}
+    for k, v in werte.items():
+        if k == "rolle":
+            v = (v or "").strip() or None
+            if v and len(v) > 20:
+                raise AmwFehler("rolle: höchstens 20 Zeichen")
+        elif k == "soll":
+            if v not in ("an", "aus", "ruht"):
+                raise AmwFehler("soll: an, aus oder ruht")
+        elif k == "grenzen":
+            v = (v or "").strip()[:200] or None
+        elif k == "empfaengt_rund":
+            v = 1 if v in (True, 1, "1", "true", "ja", "an") else 0
+        elif k == "puls_grenze_s":
+            try:
+                v = int(v)
+            except (TypeError, ValueError):
+                raise AmwFehler("puls_grenze_s: ganze Zahl") from None
+            if not 60 <= v <= 86400:
+                raise AmwFehler("puls_grenze_s: zwischen 60 und 86400")
+        else:
+            raise AmwFehler(f"unbekannte Agenten-Einstellung: {k}")
+        felder[k] = v
+    da = con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, kennung)).fetchone()
+    if neu and da:
+        raise AmwFehler(f"{kennung} gibt es schon")
+    if not neu and not da:
+        raise AmwFehler(f"Agent {kennung} gibt es nicht")
+    if neu:
+        agent_neu(con, pid, kennung)
+    if felder:
+        with db.schreiben(con):
+            con.execute(f"UPDATE agent SET {', '.join(k + ' = ?' for k in felder)} WHERE projekt_id = ? AND kennung = ?",
+                        (*felder.values(), pid, kennung))
+    return kennung
+
+
 # --- Halt und Sperren ----------------------------------------------------------------------------
 
 def aktive_sperren(con, pid, kennung=None, art=None):

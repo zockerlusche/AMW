@@ -203,9 +203,15 @@ def main(argv=None):
     p = argparse.ArgumentParser(prog="amw-dienst")
     p.add_argument("--einmal", action="store_true", help="ein Durchgang (Test)")
     p.add_argument("--takt", type=float, default=1.0)
-    p.add_argument("--port", type=int, default=8780, help="Workbench-Oberfläche auf 127.0.0.1")
+    p.add_argument("--port", type=int, default=None, help="Workbench-Oberfläche auf 127.0.0.1 (Vorgabe: Einstellung „port“)")
     p.add_argument("--ohne-web", action="store_true")
     a = p.parse_args(argv)
+    global AUFSICHT_S
+    from . import einstellungen                      # Zahnrad: Einstellungen dieses PCs (wirken beim Start)
+    e = einstellungen.laden()
+    AUFSICHT_S = e["aufsicht_s"]
+    # die Einstellung geht vor dem Startparameter der geplanten Aufgabe (die immer --port 8780 mitgibt)
+    port = e["port"] if "port" in einstellungen._datei() or a.port is None else a.port
     einrichten_log()
     sperre = einzige_instanz()
     if sperre is None:
@@ -223,16 +229,19 @@ def main(argv=None):
     if not (a.einmal or a.ohne_web):
         from . import workbench
         try:
-            workbench.starten(a.port)
-            log.info("Workbench: http://127.0.0.1:%s/", a.port)
-        except OSError as e:                         # Port belegt – Wecker läuft trotzdem
-            log.error("Workbench nicht gestartet (Port %s): %s", a.port, e)
+            workbench.starten(port)
+            log.info("Workbench: http://127.0.0.1:%s/", port)
+        except OSError as x:                         # Port belegt – Wecker läuft trotzdem
+            log.error("Workbench nicht gestartet (Port %s): %s", port, x)
         from . import abgleich                        # Stufe 2: nur mit "abgleich": true in turso.json
+        abgleich.HOCH_S, abgleich.PULS_S, abgleich.EINGANG_S = e["abgleich_hoch_s"], e["abgleich_puls_s"], e["abgleich_eingang_s"]
         if abgleich.starten():
             log.info("Abgleich mit dem Online-Speicher an")
         from . import bruecke                         # Lesekopie + Befehlsdateien für den TL (FUSE, kein WAL)
-        bruecke.starten()
-        log.info("Brücke für den TL an: %s", bruecke.EINGANG)
+        if e["bruecke_an"]:
+            bruecke.KOPIE_S, bruecke.VON = e["bruecke_kopie_s"], e["bruecke_absender"]
+            bruecke.starten()
+            log.info("Brücke an: %s (Absender %s)", bruecke.EINGANG, bruecke.VON)
     d.aufsicht()
     d.zustellen()
     if a.einmal:

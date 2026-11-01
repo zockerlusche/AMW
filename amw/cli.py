@@ -373,8 +373,16 @@ def cmd_web(a, con):
 def cmd_dienst(a):
     from . import einrichtung
     if a.aktion == "status":
-        print(einrichtung.status(a.port))
+        from . import einstellungen
+        print(einrichtung.status(einstellungen.wert("port")))
         return 0
+    if a.aktion == "neustart":                      # z. B. nach geänderten Einstellungen (Zahnrad „Dieser PC“)
+        rc, aus = einrichtung.powershell(
+            f"$x = Get-ScheduledTask -TaskName '{einrichtung.AUFGABE}' -ErrorAction SilentlyContinue; if ($x) "
+            f"{{ Stop-ScheduledTask -TaskName '{einrichtung.AUFGABE}'; Start-Sleep 2; Start-ScheduledTask -TaskName "
+            f"'{einrichtung.AUFGABE}'; 'Wächter neu gestartet' }} else {{ 'Wächter ist nicht eingerichtet (amw dienst einrichten)' }}")
+        print(aus)
+        return rc
     skript = einrichtung.skript_einrichten(a.port) if a.aktion == "einrichten" else einrichtung.skript_entfernen()
     if not a.ja:
         print(f"Würde ausführen (PowerShell, Benutzer {os.environ.get('USERNAME')}) – mit --ja wirklich tun:")
@@ -582,8 +590,8 @@ def parser():
     x.add_argument("--text-datei")
     x.set_defaults(f=cmd_notiz)
 
-    x = s.add_parser("dienst", help="Wächter als geplante Windows-Aufgabe: einrichten | entfernen | status")
-    x.add_argument("aktion", choices=["einrichten", "entfernen", "status"])
+    x = s.add_parser("dienst", help="Wächter als geplante Windows-Aufgabe: einrichten | entfernen | status | neustart")
+    x.add_argument("aktion", choices=["einrichten", "entfernen", "status", "neustart"])
     x.add_argument("--port", type=int, default=8780)
     x.add_argument("--ja", action="store_true", help="wirklich ausführen (sonst nur anzeigen)")
     x.set_defaults(f=cmd_dienst, ohne_db=True)

@@ -33,6 +33,17 @@ PC (AMW Dienst)                          Turso (EU, Frankfurt)                 H
 ## 3 Kosten (Turso, kostenloser Rahmen)
 Hochladen: je Änderungsschub höchstens alle 30 s ein paar Ansichten → grob ≤ 300 000 Schreibzeilen im Monat; Briefkasten: 5 760 Abfragen am Tag auf einem Index. Beides weit im freien Rahmen (→ 06 §6).
 
+## 4a Einstellungen (Zahnrad, ab 0.5.0)
+| Bereich | Wo gespeichert | Lokal | Online |
+|---|---|---|---|
+| Projekt (Takt, Speicher-Grenze) | amw.db, projekt.einstellungen | ändern | ändern (Briefkasten) |
+| Agenten | amw.db, agent | ändern | ändern (Briefkasten) |
+| Online-Seite (Leerlauf, Sitzung, Sperren) | Online-Speicher, zustand „web_einstellungen“ | ändern | ändern (Briefkasten) |
+| Dieser PC (Datenbank, Port, Takte, Brücke) | `%LOCALAPPDATA%\amw\einstellungen.json` | ändern, wirkt nach `amw dienst neustart` | nur ansehen |
+| Online-Speicher (Adresse, Schlüssel, Abgleich) | `%LOCALAPPDATA%\amw\turso.json` | ändern (neuer Zugang wird vorher geprüft) | nur ansehen, Schlüssel nie |
+
+Warum PC und Zugang nicht online: Wer sich online anmeldet, soll die AMW nicht auf eine andere Datenbank umbiegen oder den Zugang aussperren können (api.php weist es ab, der PC zusätzlich).
+
 ## 4 Bausteine
 | Datei | Zweck |
 |---|---|
