@@ -1,0 +1,15 @@
+# 09 · Verlauf der Vorgaben
+
+Chronik der Vorgaben des Entwicklers zur AMW. Nur Datum, Kern und Ort, an dem der Inhalt steht – der Inhalt selbst steht genau einmal in 01–08. Wortlaut vollständig: Bus-DB `marcel_wort`.
+
+| Datum (Ortszeit) | Vorgabe | Steht in |
+|---|---|---|
+| 01.11. 08:08 | Projekt Agenten-Workbench: Analyse, Altlasten, Fluss, eine DB-Struktur, UI, Release Notes, Kernregeln | 01, 02, 07 |
+| 01.11. 08:10 | Wache (Python) und Python-Server gehören dazu; alle Agenten schauen sich das an | 03 §5, 04, 05 §1/§3 |
+| 01.11. 08:12 | Alles in Frage stellen (auch DB), Brainstorming, Name „Agentenmanagement Workbench“, wie ein Produkt, eigenes GitHub-Projekt? | 01, 06, 07 Phase 6 |
+| 01.11. 08:16 | Verzeichnis F:\amw, Einstellungen, Agenten-Menü, Projektübersicht, Timeline, Fragen mit Empfehlung/Rückfrage; Doku als Markdown, jeder Punkt einmal (Ausnahme nur AMW) | README, 02 |
+| 01.11. 08:19 | Eigener neuer Agent CCamw | 03 §1, 07 |
+| 01.11. 08:24 | CCamw hat nichts mit LayerIT zu tun, nur AMW | 03 §1, 07 |
+| 01.11. 08:32 | Frage, wie die UI aussieht, welche Funktionen, welche Technik, ob schon entschieden | 02 §0, 06 TL-Vorschlag |
+| 01.11. 08:42 | Externe DB (Supabase zu teuer, Neon nach Nutzung – Rechnung), allgemein für andere Projekte, installierbar, skalierbar, lokal oder Webserver, lokale SQLite je Anwendung mit zentralem Abgleich, Release Notes/Blog auf die Homepage, umfangreiche Einstellungen, Web-Sicherheit | 01 Produktbild, 02 §1/§9, 05 §6–§8, 06 |
+| 01.11. 08:43 | Alles Besprochene zur AMW in der Markdown-Doku festhalten, nichts darf verloren gehen | diese Chronik |
