@@ -28,7 +28,7 @@ try {
         $daten = json_decode((string)$roh, true);
         if (!is_array($daten)) antwort(400, ['fehler' => 'JSON']);
         $frage = preg_match('#^/api/frage/(\d{1,9})/antwort$#', $pfad, $m);
-        if (!$frage && !in_array($pfad, ['/api/nachricht', '/api/halt', '/api/weiter'], true)) {
+        if (!$frage && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter'], true)) {
             antwort(404, ['fehler' => 'unbekannt']);
         }
         // Prüfen, was der PC sowieso prüft, schon hier – damit Fehler sofort sichtbar sind
@@ -41,6 +41,9 @@ try {
         if ($pfad === '/api/nachricht' && !in_array($daten['art'] ?? 'auftrag', ['auftrag', 'frage', 'info', 'korrektur', 'freigabe'], true)) {
             antwort(400, ['fehler' => 'Art nicht erlaubt']);
         }
+        if ($pfad === '/api/gelesen' && (!is_array($daten['ids'] ?? null) || !$daten['ids'] || array_filter($daten['ids'], fn($i) => !is_int($i)))) {
+            antwort(400, ['fehler' => 'ids fehlen']);
+        }
         $n = (int)sql([['SELECT count(*) FROM eingang WHERE zeit_utc > ?', [jetzt_utc(-3600)]]])[0][0][0];
         if ($n >= SCHREIBEN_JE_STUNDE) antwort(429, ['fehler' => 'zu viele Einträge in der letzten Stunde']);
         sql([['INSERT INTO eingang (zeit_utc, weg, daten, ip) VALUES (?, ?, ?, ?)',
@@ -49,6 +52,7 @@ try {
         $form = match (true) {
             (bool)$frage => ['status' => ($daten['art'] === 'rueckfrage') ? 'offen' : 'beantwortet'],
             $pfad === '/api/nachricht' => ['an' => array_map('trim', explode(',', (string)$daten['an']))],
+            $pfad === '/api/gelesen' => ['erledigt' => count($daten['ids'])],
             $pfad === '/api/halt' => ['halt' => 0],
             default => ['aufgehoben' => 0],
         };
@@ -61,7 +65,7 @@ try {
     [$zeile, $pc, $offen] = sql([
         ['SELECT inhalt, stand_utc FROM ansicht WHERE weg = ?', [$schluessel]],
         ["SELECT wert FROM zustand WHERE schluessel = 'pc_gesehen_utc'", []],
-        ["SELECT weg FROM eingang WHERE status = 'neu'", []],
+        ["SELECT weg, daten FROM eingang WHERE status = 'neu'", []],
     ]);
     if (!$zeile) antwort(404, ['fehler' => 'Noch keine Daten vom PC – läuft der AMW-Dienst mit Abgleich?']);
     $d = json_decode($zeile[0][0], true);
@@ -86,6 +90,9 @@ try {
                         'pc_frisch' => $gesehen !== null && strtotime($gesehen) > time() - 420];
         $offeneFragen = count(array_filter($unterwegs, fn($w) => str_starts_with($w, '/api/frage/')));
         if (isset($d['zaehler']['fragen'])) $d['zaehler']['fragen'] = max(0, $d['zaehler']['fragen'] - $offeneFragen);
+        $gelesen = [];                                    // schon als gelesen markiert, aber noch im Briefkasten
+        foreach ($offen as [$w, $dat]) if ($w === '/api/gelesen') $gelesen = array_merge($gelesen, json_decode($dat, true)['ids'] ?? []);
+        if (isset($d['an_dich'])) $d['an_dich'] = array_values(array_filter($d['an_dich'], fn($n) => !in_array($n['id'], $gelesen, true)));
     }
     antwort(200, $d);
 } catch (RuntimeException $e) {
