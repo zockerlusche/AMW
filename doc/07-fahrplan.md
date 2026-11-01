@@ -23,7 +23,7 @@
 | E4 | Zentrale Datenbank für Stufe 2: CCamw wählt die Plattform mit Begründung, Marcel legt das Konto an (Marcel 01.11. 09:19) | Verfahren entschieden; Wahl bis Stufe 2 |
 | E5 | Zeitpunkt eigenes Repo (Stufe 3) | offen |
 | E7 | amw-dienst als geplante Aufgabe unter Marcels Benutzer anlegen (ersetzt die Wachen je Agent) | grundsätzlich klar (Marcel 01.11. 09:19); Anlegen erst nach Rückfrage, Ende Stufe 1 |
-| E6 | Umschalten LayerIT auf die AMW (Phase 5): entscheiden Marcel und CCamw gemeinsam; CCamw meldet, wenn der Punkt erreicht ist | offen, nach Stufe 1 |
+| E6 | Umschalten LayerIT auf die AMW (Phase 5): entscheiden Marcel und CCamw gemeinsam; CCamw meldet, wenn der Punkt erreicht ist. Dabei mit zu klären: Altbestand offener Empfänge (Probe-Übernahme 01.11.: TL 2 767, CC4 461, CC2 322 …, → 04 #16) – übernehmen wie er ist oder vor einem Stichtag als „gelesen“ führen | offen, nach Stufe 1 |
 
 ## Regeln für diese Doku
 → README „Leseregel“.

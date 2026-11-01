@@ -119,12 +119,19 @@ def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id
         return _posten(con, pid, von, an, art, kurz, text, antwort_auf, aufgabe_id)
 
 
-def offene(con, pid, kennung, grenze=50):
+def offene(con, pid, kennung, grenze=50, neueste_zuerst=False):
     return con.execute(
         "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.aufgabe_id, e.status, a.weckt"
         " FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art a ON a.art = n.art"
-        " WHERE n.projekt_id = ? AND e.agent = ? AND e.status != 'erledigt' ORDER BY n.id LIMIT ?",
+        " WHERE n.projekt_id = ? AND e.agent = ? AND e.status != 'erledigt'"
+        f" ORDER BY n.id {'DESC' if neueste_zuerst else ''} LIMIT ?",
         (pid, kennung, grenze)).fetchall()
+
+
+def anzahl_offen(con, pid, kennung):
+    return con.execute("SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
+                       " WHERE n.projekt_id = ? AND e.agent = ? AND e.status != 'erledigt'",
+                       (pid, kennung)).fetchone()[0]
 
 
 def lesen(con, pid, kennung, nid):
@@ -311,11 +318,12 @@ def kontext(con, pid, kennung):
     if laeufe:
         z.append("Deine Läufe: " + "; ".join(f"L{x['id']} [{x['status']}] {x['beschreibung']}" for x in laeufe))
 
-    nachr = offene(con, pid, kennung, 200)
-    if nachr:
-        z.append(f"Offene Nachrichten ({len(nachr)}): " + "; ".join(
-            f"#{x['id']} {x['von']} [{x['art']}] {x['kurz'][:80]}" for x in nachr[:8])
-            + (" …" if len(nachr) > 8 else "") + " → `amw lesen`")
+    zahl = anzahl_offen(con, pid, kennung)
+    if zahl:
+        nachr = offene(con, pid, kennung, 8, neueste_zuerst=True)
+        z.append(f"Offene Nachrichten ({zahl}, neueste zuerst): " + "; ".join(
+            f"#{x['id']} {x['von']} [{x['art']}] {x['kurz'][:80]}" for x in nachr)
+            + (" …" if zahl > 8 else "") + " → `amw lesen`")
 
     regeln = con.execute("SELECT nr, text, stand_utc, ebene FROM regel WHERE (ebene = 'arbeit' OR projekt_id = ?)"
                          " ORDER BY ebene, nr", (pid,)).fetchall()

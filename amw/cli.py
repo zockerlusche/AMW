@@ -141,7 +141,7 @@ def cmd_frage(a, con):
         for r in kern.offene_fragen(con, pid, a.an):
             opt = " · ".join(f"{o['kenn']}) {o['text']}" for o in json.loads(r["optionen"]))
             print(f"F{r['id']} an {r['an']} von {r['von']}{' BLOCKIERT' if r['blockiert'] else ''}: {r['kurz']}"
-                  + (f"\n   {opt}  → Empfehlung {r['empfehlung']}" if opt else ""))
+                  + (f"\n   {opt}" if opt else "") + (f"  → Empfehlung {r['empfehlung']}" if r["empfehlung"] else ""))
     elif a.aktion == "antworten":
         art, wert = ("option", a.option[0]) if a.option else ("rueckfrage", a.rueckfrage) if a.rueckfrage else ("text", a.text)
         if not wert:

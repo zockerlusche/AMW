@@ -131,7 +131,9 @@ class Kontext(Grund):
         kern.aufgabe_status(self.con, self.pid, "CC2", aid, "blockiert", wartet_auf="CC1 Antwort")
         for i in range(300):
             kern.posten(self.con, self.pid, "TL", "CC1", "info", "lange Zeile " * 20)
+        kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "die neueste")
         k = kern.kontext(self.con, self.pid, "CC1")
+        self.assertIn("Offene Nachrichten (301, neueste zuerst): #301 TL [auftrag] die neueste", k)
         self.assertIn("A1 [wartet] Eigenes", k)
         self.assertIn("Wartet auf dich: A2 (CC2) Fremdes", k)
         self.assertLessEqual(len(k), kern.KONTEXT_MAX)
