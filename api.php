@@ -28,11 +28,13 @@ try {
         $daten = json_decode((string)$roh, true);
         if (!is_array($daten)) antwort(400, ['fehler' => 'JSON']);
         $frage = preg_match('#^/api/frage/(\d{1,9})/antwort$#', $pfad, $m);
-        if (in_array($pfad, ['/api/einstellungen/pc', '/api/einstellungen/turso'], true)) {
-            antwort(403, ['fehler' => 'Diese Einstellung lässt sich nur am PC ändern.']);
+        if (in_array($pfad, ['/api/einstellungen/pc', '/api/einstellungen/turso', '/api/einstellungen/push', '/api/einstellungen/profil',
+                '/api/agent/start', '/api/agent/stop', '/api/push/probe'], true)) {
+            antwort(403, ['fehler' => 'Das geht nur am PC.']);
         }
         if (!$frage && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter',
-                '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web'], true)) {
+                '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web',
+                '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko'], true)) {
             antwort(404, ['fehler' => 'unbekannt']);
         }
         // Prüfen, was der PC sowieso prüft, schon hier – damit Fehler sofort sichtbar sind
@@ -57,7 +59,7 @@ try {
             (bool)$frage => ['status' => ($daten['art'] === 'rueckfrage') ? 'offen' : 'beantwortet'],
             $pfad === '/api/nachricht' => ['an' => array_map('trim', explode(',', (string)$daten['an']))],
             $pfad === '/api/gelesen' => ['erledigt' => count($daten['ids'])],
-            str_starts_with($pfad, '/api/einstellungen/') => [],
+            str_starts_with($pfad, '/api/einstellungen/'), str_starts_with($pfad, '/api/plan/') => [],
             $pfad === '/api/halt' => ['halt' => 0],
             default => ['aufgehoben' => 0],
         };
