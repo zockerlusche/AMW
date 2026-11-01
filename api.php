@@ -80,6 +80,13 @@ try {
         }
         antwort(200, $treffer);
     }
+    if ($pfad === '/api/agent') {                          // Übersicht je Agent: aus dem Schaufenster „/api/agenten“
+        $z = sql([["SELECT inhalt FROM ansicht WHERE weg = '/api/agenten'", []]])[0];
+        $alle = $z ? json_decode($z[0][0], true) : [];
+        $k = (string)($q['kennung'] ?? '');
+        if (!isset($alle[$k])) antwort(404, ['fehler' => 'Zu diesem Agenten liegen online noch keine Daten vor.']);
+        antwort(200, $alle[$k]);
+    }
     $schluessel = $pfad === '/api/aufgaben' ? '/api/aufgaben?sicht=' . (string)($q['sicht'] ?? 'offen')
         : ($pfad === '/api/fragen' && ($q['alle'] ?? '') === '1' ? '/api/fragen?alle=1' : $pfad);
     [$zeile, $pc, $offen] = sql([
