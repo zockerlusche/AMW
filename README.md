@@ -2,7 +2,9 @@
 
 Ein Werkzeug, mit dem ein Entwickler ein Team aus Claude-Code-Agenten über Tage führt. Konzept und Entscheidungen: [doc/README.md](doc/README.md) (Architektur: [doc/10-architektur.md](doc/10-architektur.md)).
 
-Stand: Stufe 1 im Bau (lokal, nur Python-Standardbibliothek, SQLite).
+Stand 01.11.2026: Stufe 1 in Betrieb (lokal, nur Python-Standardbibliothek, SQLite; das LayerIT-Team läuft darüber, → [doc/11](doc/11-umzug.md)). Stufe 2 vorbereitet: Workbench im Netz über PHP-Hosting + Turso, Login mit Passwort und Einmalcode (→ [doc/12](doc/12-online.md)).
+
+Lizenz: [MIT](LICENSE) – frei zu benutzen, zu ändern und weiterzugeben. Zweig `web` enthält nur den Online-Teil (für das Hosting).
 
 ## Aufbau
 | Pfad | Inhalt |
@@ -15,6 +17,9 @@ Stand: Stufe 1 im Bau (lokal, nur Python-Standardbibliothek, SQLite).
 | `amw/dienst.py`, `amw/pipe.py` | Wächter: weckt Agenten über die Pipe ihrer Sitzung, startet die Workbench |
 | `amw/workbench.py`, `amw/workbench.html` | Workbench-Oberfläche auf http://127.0.0.1:8780 (Start, Fragen, Aufgaben, Wissen, Betrieb, Release Notes, Halt) |
 | `amw/uebernahme.py` | Übernahme des LayerIT-Busses (bus.db nur lesend) in eine neue amw.db |
+| `amw/aktionen.py`, `amw/abgleich.py` | Stufe 2: erlaubte Aktionen der Seite; Abgleich mit Turso (Schaufenster + Briefkasten) |
+| `web/` | Online-Teil (PHP): Login mit Passwort + TOTP, Ansichten, Briefkasten |
+| `amw-cli.py` | Start ohne PYTHONPATH: `python amw-cli.py lesen --von CC1` |
 | `tests/` | `python -m unittest discover -s tests` |
 | `daten/` | Datenbank `amw.db`, `dienst.log` (nicht im git) |
 

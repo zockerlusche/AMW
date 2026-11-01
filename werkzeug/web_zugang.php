@@ -27,7 +27,9 @@ function frage(string $text, bool $verdeckt = false): string {
 $ziel = $argv[1] ?? '';
 if ($ziel === '' || file_exists($ziel)) { fwrite(STDERR, "Ausgabedatei angeben (darf noch nicht existieren).\n"); exit(1); }
 
-$benutzer = frage('Benutzer [marcel]: ') ?: 'marcel';
+$benutzer = frage('Benutzer (frei wählen, nicht der Vorname): ');
+if (strlen($benutzer) < 4) { fwrite(STDERR, "Benutzer: mindestens 4 Zeichen
+"); exit(1); }
 $pw = frage('Passwort (mind. 14 Zeichen): ', true);
 if (strlen($pw) < 14) { fwrite(STDERR, "zu kurz\n"); exit(1); }
 if (frage('Passwort wiederholen: ', true) !== $pw) { fwrite(STDERR, "stimmt nicht überein\n"); exit(1); }

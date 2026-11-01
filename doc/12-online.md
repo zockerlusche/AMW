@@ -26,7 +26,9 @@ PC (AMW Dienst)                          Turso (EU, Frankfurt)                 H
 | Wirkung | Absender ist immer „Entwickler“, Kanal `netz` – in Antworten und Nachrichten nachvollziehbar; die Adresse steht je Eintrag im Briefkasten |
 | Kein Fernzugriff | Keine Befehle, keine Dateien, kein Start/Stopp von Agenten oder Dienst aus dem Netz – nur die vier Aktionen; der Dienst bleibt Marcels Sache (10 §5) |
 
-**Restrisiken (bewusst):** Wer Marcels Hostinger-Konto, GitHub-Konto oder den Turso-Schlüssel der Seite hat, kann im Namen des Entwicklers antworten, Nachrichten schicken oder Halt setzen – darum zweiter Faktor auch bei Hostinger, GitHub und Turso. Die Ansichten (Fragen, Aufgaben, Beschlüsse, Wortlaut, Release Notes, Agentenstand) liegen bei Turso in Frankfurt; Geheimnisse gehören nach den Grundregeln ohnehin nicht hinein. Noch nicht gebaut: Suche online, mehrere Benutzer/Rollen, Passkeys, Anzeige des Briefkasten-Protokolls.
+**Öffentlicher Code:** Das Repo ist öffentlich. Die Sicherheit hängt nur an den Zugangsdaten (Passwort, TOTP-Geheimnis, Turso-Schlüssel), die nie im Repo stehen – nie daran, dass der Code unbekannt ist.
+
+**Restrisiken (bewusst):** Wer Marcels Hostinger-Konto, GitHub-Konto (Auslieferung) oder den Turso-Schlüssel der Seite hat, kann im Namen des Entwicklers antworten, Nachrichten schicken oder Halt setzen – darum zweiter Faktor auch bei Hostinger, GitHub und Turso. Die Ansichten (Fragen, Aufgaben, Beschlüsse, Wortlaut, Release Notes, Agentenstand) liegen bei Turso in Frankfurt; Geheimnisse gehören nach den Grundregeln ohnehin nicht hinein. Noch nicht gebaut: Suche online, mehrere Benutzer/Rollen, Passkeys, Anzeige des Briefkasten-Protokolls.
 
 ## 3 Kosten (Turso, kostenloser Rahmen)
 Hochladen: je Änderungsschub höchstens alle 30 s ein paar Ansichten → grob ≤ 300 000 Schreibzeilen im Monat; Briefkasten: 5 760 Abfragen am Tag auf einem Index. Beides weit im freien Rahmen (→ 06 §6).
@@ -47,8 +49,8 @@ Am PC erprobt (01.11., Kopien, `php -S`): Login-Seite; API ohne Login gesperrt; 
 | # | Wer | Schritt |
 |---|---|---|
 | 1 | Marcel | Hostinger: Tarif mit PHP ≥ 8.1; Adresse festlegen (Vorschlag: Subdomain `amw.<deine-domain>`), SSL an. Zweiter Faktor für Hostinger, GitHub, Turso an. |
-| 2 | CCamw (nach Marcels Ja) | Privates GitHub-Repo `amw-web` anlegen (Konto zockerlusche) und **nur `web/`** hineinschieben: `git subtree split --prefix web -b web-ausgabe` → `git push <repo> web-ausgabe:main`. Der übrige Code und die Doku bleiben lokal. |
-| 3 | Marcel | Hostinger → Website → Erweitert → GIT: Repo `git@github.com:zockerlusche/amw-web.git`, Zweig `main`, Ordner der Subdomain; den angezeigten Deploy-Schlüssel bei GitHub im Repo unter Settings → Deploy keys eintragen (nur lesen). |
+| 2 | CCamw | Öffentliches Repo https://github.com/zockerlusche/AMW (Marcel 01.11.: „Public, wer es benötigt, kann sich bedienen“): Zweig `main` = ganze AMW, Zweig `web` = nur `web/` für Hostinger (`git subtree split --prefix web -b web` → `git push origin web`). |
+| 3 | Marcel | Hostinger → Website → Erweitert → GIT: Repo `https://github.com/zockerlusche/AMW.git`, Zweig **`web`** (nicht main), Ordner der Subdomain. Öffentliches Repo: kein Deploy-Schlüssel nötig. |
 | 4 | Marcel | **Im eigenen Terminal** (nicht über Claude Code – das TOTP-Geheimnis würde sonst im Verlauf stehen): `php F:\amw\werkzeug\web_zugang.php %USERPROFILE%\Desktop\amw-konfig.php` → Passwort festlegen, Turso-Adresse + Schlüssel für die Seite eintragen, Code in die Authenticator-App. Datei mit dem Hostinger-Dateimanager **eine Ebene über public_html** ablegen, dann vom Desktop löschen. |
 | 5 | CCamw | `amw web schema` (Tabellen bei Turso), `"abgleich": true` in `%LOCALAPPDATA%\amw\turso.json`, Dienst neu starten; `amw web status` zeigt „PC zuletzt hochgeladen“. |
 | 6 | Marcel | Seite öffnen, anmelden, eine Frage beantworten → CCamw prüft den Weg bis zum Agenten. |
