@@ -5,7 +5,7 @@
 return [
     'turso_url'     => 'https://amw-<name>.aws-eu-central-1.turso.io',
     'turso_token'   => '<eigener Datenbank-Schlüssel nur für die Seite>',
-    'benutzer'      => 'marcel',
+    'benutzer'      => '<frei gewählt>',
     'passwort_hash' => '<password_hash(), von web_zugang.php>',
     'totp_geheim'   => '<Base32, von web_zugang.php – in die Authenticator-App>',
     'nur_https'     => true,
