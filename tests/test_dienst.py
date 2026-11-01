@@ -115,5 +115,50 @@ class Wecker(unittest.TestCase):
         self.assertEqual(self.con.execute("SELECT zustand FROM sitzung").fetchone()[0], "beendet")
 
 
+class Anmelden(unittest.TestCase):
+    """Doppelte Anmeldung (TL #16500): eine Hintergrund-Sitzung hatte sich als CC5 angemeldet."""
+    def setUp(self):
+        from amw import hook
+        self.hook = hook
+        self.ordner = tempfile.TemporaryDirectory()
+        self.con = db.anlegen(os.path.join(self.ordner.name, "t.db"))
+        with db.schreiben(self.con):
+            self.pid = db.einfuegen(self.con, "projekt", name="P", angelegt_utc=db.jetzt())
+        kern.agent_neu(self.con, self.pid, "CC5")
+        self.prozesse = {}                                         # Postfach → Eintrag aus ~/.claude/sessions
+        for p in (mock.patch.dict(os.environ, {"LOCALAPPDATA": self.ordner.name}),
+                  mock.patch.object(hook, "claude_prozess", side_effect=lambda pipe: self.prozesse.get(pipe))):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def tearDown(self):
+        self.con.close()
+        self.ordner.cleanup()
+
+    def als(self, pipe, art, **k):
+        self.prozesse[pipe] = {"pid": len(self.prozesse) + 100, "art": art, "name": pipe, "sitzung": pipe + "-sitzung"}
+        with mock.patch.dict(os.environ, {"CLAUDE_CODE_MESSAGING_SOCKET": pipe, "CLAUDE_CODE_MESSAGING_TOKEN": "t"}):
+            return self.hook.anmelden(self.con, self.pid, "CC5", {"session_id": pipe + "-sitzung"}, **k)
+
+    def aktiv(self):
+        return [r[0] for r in self.con.execute("SELECT claude_sitzung FROM sitzung WHERE zustand = 'aktiv'")]
+
+    def test_hintergrund_sitzung_wird_nie_angemeldet(self):
+        self.assertIn("Hintergrund", self.als("bg", "bg", streng=True))
+        self.assertIn("Hintergrund", self.als("bg", "bg"))                        # auch nicht über den Hook
+        self.assertEqual(self.aktiv(), [])
+
+    def test_lebende_andere_sitzung_nur_mit_ersetzen(self):
+        self.assertIsNone(self.als("fenster1", "interactive", streng=True))
+        grund = self.als("fenster2", "interactive", streng=True)
+        self.assertIn("--ersetzen", grund)
+        self.assertEqual(self.aktiv(), ["fenster1-sitzung"])
+        self.assertIsNone(self.als("fenster2", "interactive", streng=True, ersetzen=True))
+        self.assertEqual(self.aktiv(), ["fenster2-sitzung"])
+        del self.prozesse["fenster2"]                                              # Prozess beendet → frei
+        self.assertIsNone(self.als("fenster3", "interactive", streng=True))
+        self.assertIsNone(self.als("fenster4", "interactive"))                    # Hook (Neustart) löst immer ab
+
+
 if __name__ == "__main__":
     unittest.main()

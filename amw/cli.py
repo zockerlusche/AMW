@@ -439,10 +439,13 @@ def cmd_anmelden(a, con):
     from . import hook
     kennung = _von(a)
     hinweis = hook.anmelden(con, _projekt(con, a), kennung,
-                            {"session_id": os.environ.get("CLAUDE_CODE_SESSION_ID"), "cwd": os.getcwd()})
+                            {"session_id": os.environ.get("CLAUDE_CODE_SESSION_ID"), "cwd": os.getcwd()},
+                            ersetzen=a.ersetzen, streng=True)
     if hinweis:
         raise kern.AmwFehler(hinweis)
-    print(f"{kennung} angemeldet – der Wächter weckt diese Sitzung ab jetzt bei neuen Nachrichten")
+    ich = hook.claude_prozess(os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET"))
+    print(f"{kennung} angemeldet" + (f" ({hook.beschreibung(ich)})" if ich else "")
+          + " – der Wächter weckt diese Sitzung ab jetzt bei neuen Nachrichten")
 
 
 def cmd_hook(a):
@@ -646,6 +649,7 @@ def parser():
     x.set_defaults(f=cmd_web)
 
     x = s.add_parser("anmelden", help="laufende Sitzung beim Wächter anmelden (ohne Neustart)")
+    x.add_argument("--ersetzen", action="store_true", help="eine noch lebende andere Sitzung derselben Kennung ablösen")
     x.set_defaults(f=cmd_anmelden)
 
     x = s.add_parser("hook", help="zeigt die Einstellungen für einen Agenten-Projektordner (schreibt nichts)")

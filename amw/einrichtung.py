@@ -5,6 +5,7 @@ danach alle 5 min erneut angestoßen (nur eine Instanz: läuft er, passiert nich
 zusätzlich Neustart bei Startfehler, keine Laufzeitgrenze. Keine Administratorrechte.
 Ohne `--ja` wird nur angezeigt, was passieren würde. Angelegt wird erst nach Zustimmung des Entwicklers.
 """
+import json
 import os
 import subprocess
 import sys
@@ -70,6 +71,19 @@ def status(port):
         zeilen.append(f"Workbench: auf Port {port} keine Antwort")
     zeilen.append(f"Datenbank: {db.db_pfad()}" + ("" if os.path.exists(db.db_pfad()) else " (gibt es noch nicht)"))
     zeilen.append(f"Sperrdatei: {sperre}" + (" vorhanden" if os.path.exists(sperre) else " fehlt"))
+    zeilen.append("Angemeldete Sitzungen (Postfach → Claude-Prozess):")     # doppelte/Hintergrund-Anmeldung erkennen
+    from . import hook
+    try:
+        namen = sorted(n for n in os.listdir(hook.schluessel_ordner()) if n.endswith(".json"))
+    except OSError:
+        namen = []
+    for n in namen:
+        try:
+            with open(os.path.join(hook.schluessel_ordner(), n), encoding="utf-8") as f:
+                p = hook.claude_prozess(json.load(f).get("pipe"))
+        except (OSError, ValueError):
+            p = None
+        zeilen.append(f"  {n[:-5]:<8} " + (hook.beschreibung(p) + ("  ← PRÜFEN" if p["art"] == "bg" else "") if p else "Prozess beendet"))
     return "\n".join(zeilen)
 
 
