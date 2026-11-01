@@ -154,6 +154,19 @@ def cmd_frage(a, con):
             opt = " · ".join(f"{o['kenn']}) {o['text']}" for o in json.loads(r["optionen"]))
             print(f"F{r['id']} an {r['an']} von {r['von']}{' BLOCKIERT' if r['blockiert'] else ''}: {r['kurz']}"
                   + (f"\n   {opt}" if opt else "") + (f"  → Empfehlung {r['empfehlung']}" if r["empfehlung"] else ""))
+    elif a.aktion == "nachtrag":                    # Fragesteller: Antwort auf eine Rückfrage oder Ergänzung
+        if not a.id or not a.text:
+            raise kern.AmwFehler("frage nachtrag <nr> --text \"…\"")
+        print(f"Nachtrag zu F{a.id} – Nachricht #{kern.frage_nachtrag(con, pid, _von(a), a.id, a.text)}")
+    elif a.aktion == "verlauf":
+        if not a.id:
+            raise kern.AmwFehler("frage verlauf <nr>")
+        f = con.execute("SELECT von, zeit_utc, kurz, status FROM frage WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
+        if not f:
+            raise kern.AmwFehler(f"F{a.id} gibt es nicht")
+        print(f"F{a.id} ({f['status']}) {_zeit(f['zeit_utc'])} {f['von']}: {f['kurz']}")
+        for v in con.execute("SELECT zeit_utc, von, art, text FROM frage_verlauf WHERE frage_id = ? ORDER BY id", (a.id,)):
+            print(f"  {_zeit(v['zeit_utc'])} {v['von']} [{v['art']}]: {v['text']}")
     elif a.aktion == "antworten":
         art, wert = ("option", a.option[0]) if a.option else ("rueckfrage", a.rueckfrage) if a.rueckfrage else ("text", a.text)
         if not wert:
@@ -487,7 +500,7 @@ def parser():
     x.set_defaults(f=cmd_aufgabe)
 
     x = s.add_parser("frage")
-    x.add_argument("aktion", choices=["neu", "liste", "antworten"])
+    x.add_argument("aktion", choices=["neu", "liste", "antworten", "nachtrag", "verlauf"])
     x.add_argument("id", type=int, nargs="?")
     x.add_argument("--an", choices=["entwickler", "tl"])
     x.add_argument("--kurz")

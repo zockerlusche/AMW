@@ -139,5 +139,50 @@ class Kontext(Grund):
         self.assertLessEqual(len(k), kern.KONTEXT_MAX)
 
 
+class Verlauf(unittest.TestCase):
+    """Gespräch zu einer Frage: Rückfrage, Nachtrag (auch per Antwort auf die Rückfrage), Antwort."""
+    def setUp(self):
+        self.ordner = tempfile.TemporaryDirectory()
+        self.pfad = os.path.join(self.ordner.name, "v.db")
+        self.con = db.anlegen(self.pfad)
+        with db.schreiben(self.con):
+            self.pid = db.einfuegen(self.con, "projekt", name="P", angelegt_utc=db.jetzt())
+        kern.agent_neu(self.con, self.pid, "TL", rolle="lead")
+        kern.agent_neu(self.con, self.pid, "CC1")
+
+    def tearDown(self):
+        self.con.close()
+        self.ordner.cleanup()
+
+    def verlauf(self, fid):
+        return [(r[0], r[1]) for r in self.con.execute("SELECT von, art FROM frage_verlauf WHERE frage_id = ? ORDER BY id", (fid,))]
+
+    def test_gespraech(self):
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Lücke?", [("A", "füllen"), ("B", "lassen")], "A", "weil")
+        self.assertEqual(kern.frage_antworten(self.con, self.pid, fid, "rueckfrage", "Ist mit A die Lücke gefüllt?", "seite"), "offen")
+        rf = self.con.execute("SELECT nachricht_id FROM frage_verlauf WHERE frage_id = ?", (fid,)).fetchone()[0]
+        kern.posten(self.con, self.pid, "TL", "Entwickler", "antwort", "Ja, A füllt beide Lücken", antwort_auf=rf)
+        kern.frage_nachtrag(self.con, self.pid, "TL", fid, "Ergänzung: Quellen kommen ab Ä2")
+        with self.assertRaises(kern.AmwFehler):
+            kern.frage_nachtrag(self.con, self.pid, "CC1", fid, "fremd")
+        kern.frage_antworten(self.con, self.pid, fid, "option", "A", "seite")
+        self.assertEqual(self.verlauf(fid), [("Entwickler", "rueckfrage"), ("TL", "nachtrag"), ("TL", "nachtrag"), ("Entwickler", "antwort")])
+        self.assertEqual(self.con.execute("SELECT text FROM frage_verlauf WHERE art = 'antwort'").fetchone()[0], "A) füllen")
+        an_dich = self.con.execute("SELECT count(*) FROM empfang WHERE agent = 'Entwickler'").fetchone()[0]
+        self.assertEqual(an_dich, 2)                                  # Antwort auf die Rückfrage + Nachtrag
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("DELETE FROM frage_verlauf")
+
+    def test_alte_datenbank_wird_umgestellt(self):
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Alt?", [("A", "a")], "A", "weil")
+        self.con.execute("DROP TABLE frage_verlauf")                 # wie eine Datenbank mit Schema 1
+        self.con.execute("UPDATE frage SET antwort_art = 'rueckfrage', antwort = 'Wie gemeint?' WHERE id = ?", (fid,))
+        self.con.execute("PRAGMA user_version = 1")
+        self.con.close()
+        self.con = db.verbinde(self.pfad)
+        self.assertEqual(self.con.execute("PRAGMA user_version").fetchone()[0], db.SCHEMA_VERSION)
+        self.assertEqual(self.verlauf(fid), [("Entwickler", "rueckfrage")])
+
+
 if __name__ == "__main__":
     unittest.main()

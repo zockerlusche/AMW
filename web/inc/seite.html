@@ -151,6 +151,13 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .agent-dialog .eintrag-zusatz { font-size: 12px; margin-top: 3px; }
 .agent-dialog .eintrag-text.gross { font-size: 15px; font-weight: 600; }
 .agent-dialog .leer-klein { font-size: 13px; padding: 2px 0; }
+.verlauf { display: grid; gap: 8px; margin: 12px 0 14px; }
+.blase { max-width: 82%; padding: 8px 12px; border-radius: 10px 10px 10px 2px; background: var(--grund); border: 1px solid var(--linie);
+  justify-self: start; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
+.blase.ich { justify-self: end; border-radius: 10px 10px 2px 10px; background: var(--bernstein-weich);
+  border-color: color-mix(in srgb, var(--bernstein) 45%, var(--linie)); }
+.blase.unterwegs { opacity: .7; border-style: dashed; }
+.blase .wer { font: 11px var(--titel); letter-spacing: .06em; text-transform: uppercase; color: var(--sehrleise); margin-bottom: 2px; white-space: normal; }
 /* Rand nach Status bzw. Art */
 .eintrag.laeuft, .eintrag.lauf { border-left-color: var(--gruen); }
 .eintrag.wartet, .eintrag.vermutet, .eintrag.frage, .eintrag.pruefbitte { border-left-color: var(--bernstein); }
@@ -338,6 +345,7 @@ const TEXTE = {
     k_kommt: "Kommt noch (Aufgaben nach Rang)", k_wartet_auf: "wartet auf", k_laeufe: "Rechen-Läufe", k_pruefungen: "Prüfbitten",
     k_soll_pruefen: "soll prüfen für {x}", k_wartet_pruefung: "wartet auf Prüfung durch {x}", k_an_ihn: "Neue Nachrichten an ihn ({n})",
     k_meldungen: "Seine letzten Meldungen", k_nichts: "nichts", k_nichts_neu: "keine neuen", k_alt: "– dazu {n} offene aus dem alten Bus (Altbestand)",
+    du: "Du", v_rueckfrage: "Rückfrage", v_nachtrag: "Antwort", v_antwort: "Antwort", wartet_auf_x: "wartet auf {x}",
     n_einst: "Einstellungen", speichern: "Speichern", gespeichert: "Gespeichert",
     e_projekt: "Projekt {x}", e_takt: "Takt für den Lead (Minuten)", e_takt_h: "Zusammenfassung an den Lead; 0 = aus",
     e_speicher: "Speicher-Grenze für Rechen-Läufe (GB frei)", e_speicher_h: "Läufe starten erst, wenn so viel RAM frei ist",
@@ -396,6 +404,7 @@ const TEXTE = {
     k_kommt: "Coming up (tasks by rank)", k_wartet_auf: "waiting for", k_laeufe: "Compute runs", k_pruefungen: "Review requests",
     k_soll_pruefen: "to review for {x}", k_wartet_pruefung: "waiting for review by {x}", k_an_ihn: "New messages to it ({n})",
     k_meldungen: "Its latest reports", k_nichts: "nothing", k_nichts_neu: "none new", k_alt: "– plus {n} open from the old bus (legacy)",
+    du: "You", v_rueckfrage: "Follow-up question", v_nachtrag: "Reply", v_antwort: "Answer", wartet_auf_x: "waiting for {x}",
     n_einst: "Settings", speichern: "Save", gespeichert: "Saved",
     e_projekt: "Project {x}", e_takt: "Lead pulse (minutes)", e_takt_h: "Summary to the lead; 0 = off",
     e_speicher: "Memory limit for compute runs (GB free)", e_speicher_h: "Runs start only with this much free RAM",
@@ -657,14 +666,22 @@ function frageKarte(f) {
   async function antworten(art, wert, anmerkung) {
     try { const r = await schicken(`/api/frage/${f.id}/antwort`, { art, wert, anmerkung });
       sperren(r.status === "offen" ? t("rueckfrage_gesendet") : t("beantwortet"));
-      kopfAktualisieren(); } catch (e) { toast(t("fehler", { x: e.message }), true); }
+      kopfAktualisieren(); if (art === "rueckfrage" && !API) setTimeout(() => zeige("fragen", true), 400); } catch (e) { toast(t("fehler", { x: e.message }), true); }
   }
   karte.append(
     el("div", { class: "meta" }, el("span", { class: "ref" }, `F${f.id}`), t("von", { x: f.von }), el("span", { class: "sehrleise" }, `${zeit(f.zeit_utc)} · ${seit(f.zeit_utc)}`),
       f.blockiert ? el("span", { class: "etikett rot" }, t("blockiert_arbeit")) : null,
-      f.aufgabe_id ? el("span", { class: "etikett" }, `A${f.aufgabe_id}`) : null),
+      f.aufgabe_id ? el("span", { class: "etikett" }, `A${f.aufgabe_id}`) : null,
+      f.wartet_auf_fragesteller ? el("span", { class: "etikett bernstein" }, t("wartet_auf_x", { x: f.von })) : null),
     el("h3", {}, f.kurz),
     f.worum ? el("p", { class: "worum" }, f.worum) : null);
+  /* Gesprächsverlauf wie im Chat: Fragesteller links, du (Entwickler) rechts */
+  if ((f.verlauf || []).length) karte.append(el("div", { class: "verlauf" }, f.verlauf.map(v => {
+    const ich = v.von === "Entwickler";
+    return el("div", { class: "blase" + (ich ? " ich" : "") + (v.unterwegs ? " unterwegs" : "") },
+      el("div", { class: "wer" }, `${ich ? t("du") : v.von} · ${t("v_" + v.art)} · ${v.unterwegs ? t("s_briefkasten", { n: 1 }) : seit(v.zeit_utc)}`),
+      el("div", { class: "was" }, v.text));
+  })));
   if (echteOptionen.length) {
     karte.append(el("div", { class: "optionen" }, echteOptionen.map(o => el("button", {
       type: "button", class: "option" + (o.kenn === f.empfehlung ? " empfohlen" : ""),

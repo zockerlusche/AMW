@@ -191,6 +191,12 @@ def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_i
                        text=text, antwort_auf=antwort_auf, aufgabe_id=aufgabe_id)
     for n in namen:
         db.einfuegen(con, "empfang", nachricht_id=nid, agent=n)
+    if antwort_auf:                                    # Antwort auf eine Rückfrage → Nachtrag im Verlauf der Frage
+        r = con.execute("SELECT frage_id FROM frage_verlauf WHERE nachricht_id = ? AND art = 'rueckfrage'",
+                        (antwort_auf,)).fetchone()
+        if r:
+            db.einfuegen(con, "frage_verlauf", frage_id=r["frage_id"], zeit_utc=db.jetzt(), von=von, art="nachtrag",
+                         text=(kurz + ("\n" + text if text else "")).strip(), nachricht_id=nid)
     return nid, namen
 
 
@@ -338,10 +344,38 @@ def frage_antworten(con, pid, fid, antwort_art, antwort, kanal, von=ENTWICKLER):
             db.einfuegen(con, "wortlaut", projekt_id=pid, zeit_utc=t, text=antwort, kanal=kanal,
                          erfasst_von="amw", erfasst_utc=t, bemerkung=f"Antwort auf F{fid}")
         art = "frage" if antwort_art == "rueckfrage" else "antwort"
+        nid = None
         if f["von"] != von:
-            _posten(con, pid, von, f["von"], art, f"{'Rückfrage' if art == 'frage' else 'Antwort'} zu F{fid}: {antwort[:120]}",
-                    aufgabe_id=f["aufgabe_id"])
+            nid, _ = _posten(con, pid, von, f["von"], art, f"{'Rückfrage' if art == 'frage' else 'Antwort'} zu F{fid}: {antwort[:120]}",
+                             text=antwort if len(antwort) > 120 else None, aufgabe_id=f["aufgabe_id"])
+        if antwort_art == "option":                    # im Verlauf mit dem Text der Option
+            antwort = next((f"{o['kenn']}) {o['text']}" for o in json.loads(f["optionen"]) if o["kenn"] == antwort), antwort)
+        db.einfuegen(con, "frage_verlauf", frage_id=fid, zeit_utc=t, von=von,
+                     art="rueckfrage" if antwort_art == "rueckfrage" else "antwort", text=antwort, nachricht_id=nid)
     return status
+
+
+def frage_nachtrag(con, pid, von, fid, text):
+    """Der Fragesteller ergänzt seine Frage oder antwortet auf eine Rückfrage. Die Frage bleibt offen; wer gefragt
+    wurde (Entwickler bzw. Lead), bekommt eine Nachricht – beim Entwickler unter „Nachrichten an dich“."""
+    f = con.execute("SELECT * FROM frage WHERE id = ? AND projekt_id = ?", (fid, pid)).fetchone()
+    if not f:
+        raise AmwFehler(f"Frage F{fid} gibt es nicht")
+    if f["status"] != "offen":
+        raise AmwFehler(f"F{fid} ist schon {f['status']}")
+    if von != f["von"] and not ist_lead(con, pid, von):
+        raise AmwFehler(f"Nachträge zu F{fid} schreibt der Fragesteller ({f['von']}) oder der Lead")
+    text = (text or "").strip()
+    if not text:
+        raise AmwFehler("Text fehlt")
+    an = ENTWICKLER if f["an"] == "entwickler" else ",".join(
+        r[0] for r in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead'", (pid,))) or ENTWICKLER
+    with db.schreiben(con):
+        nid, _ = _posten(con, pid, von, an, "antwort", f"Nachtrag zu F{fid}: {text[:120]}",
+                         text=text if len(text) > 120 else None, aufgabe_id=f["aufgabe_id"])
+        db.einfuegen(con, "frage_verlauf", frage_id=fid, zeit_utc=db.jetzt(), von=von, art="nachtrag", text=text,
+                     nachricht_id=nid)
+    return nid
 
 
 def offene_fragen(con, pid, an=None):

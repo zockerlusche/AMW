@@ -109,8 +109,21 @@ try {
         $d['beschluesse'] = array_values(array_filter($d['beschluesse'], fn($b) => $hat($b['stichwort'], $b['regel'])));
         $d['wortlaut'] = array_values(array_filter($d['wortlaut'], fn($w) => $hat($w['text'])));
         $d['regeln'] = array_values(array_filter($d['regeln'], fn($r) => $hat($r['text'])));
-    } elseif ($pfad === '/api/fragen') {                  // schon beantwortet, aber noch im Briefkasten → ausblenden
-        $d = array_values(array_filter($d, fn($f) => !in_array("/api/frage/{$f['id']}/antwort", $unterwegs, true)));
+    } elseif ($pfad === '/api/fragen') {
+        // Antworten im Briefkasten: beantwortet → ausblenden; Rückfrage → als Blase „unterwegs“ an den Verlauf hängen
+        $wartend = [];
+        foreach ($offen as [$w, $dat]) if (preg_match('#^/api/frage/(\d+)/antwort$#', $w, $m)) $wartend[(int)$m[1]][] = json_decode($dat, true);
+        $aus = [];
+        foreach ($d as $f) {
+            $liste = $wartend[(int)$f['id']] ?? [];
+            if (array_filter($liste, fn($x) => ($x['art'] ?? '') !== 'rueckfrage')) continue;
+            foreach ($liste as $x) {
+                $f['verlauf'][] = ['zeit_utc' => jetzt_utc(), 'von' => 'Entwickler', 'art' => 'rueckfrage', 'text' => (string)($x['wert'] ?? ''), 'unterwegs' => true];
+                $f['wartet_auf_fragesteller'] = true;
+            }
+            $aus[] = $f;
+        }
+        $d = $aus;
     } elseif ($pfad === '/api/einstellungen') {          // Online-Seite: aktuelle Werte, nicht der Stand des Schaufensters
         $d['web'] = web_einst_alle(true);
     } elseif ($pfad === '/api/start') {

@@ -204,6 +204,9 @@ def daten_fragen(con, pid, alle=False):
         d = dict(f)
         d["optionen"] = json.loads(f["optionen"] or "[]")
         d["vorgeschichte"] = vorgeschichte(con, pid, f)
+        d["verlauf"] = zeilen(con.execute("SELECT zeit_utc, von, art, text FROM frage_verlauf WHERE frage_id = ?"
+                                          " ORDER BY id", (f["id"],)))
+        d["wartet_auf_fragesteller"] = bool(d["verlauf"]) and d["verlauf"][-1]["art"] == "rueckfrage"
         aus.append(d)
     return aus
 

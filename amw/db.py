@@ -10,7 +10,7 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2          # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
 HIER = os.path.dirname(os.path.abspath(__file__))
 STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
 
@@ -43,7 +43,32 @@ def verbinde(pfad=None, nur_lesen=False):
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA busy_timeout = 30000")
     con.execute("PRAGMA foreign_keys = ON")
+    if not nur_lesen:
+        migrieren(con)
     return con
+
+
+def migrieren(con):
+    """Bringt eine ältere Datenbank auf SCHEMA_VERSION (je Stufe eine Datei migration_<n>.sql, in einer Transaktion)."""
+    v = con.execute("PRAGMA user_version").fetchone()[0]
+    if v == 0 or v >= SCHEMA_VERSION:              # 0 = gerade angelegt bzw. leer: anlegen() setzt die Version
+        return
+    con.execute("BEGIN IMMEDIATE")
+    try:
+        v = con.execute("PRAGMA user_version").fetchone()[0]   # inzwischen von einem anderen Prozess erledigt?
+        for n in range(v + 1, SCHEMA_VERSION + 1):
+            with open(os.path.join(HIER, f"migration_{n}.sql"), encoding="utf-8") as f:
+                stueck = ""
+                for zeile in f:                     # zeilenweise sammeln, bis SQLite eine ganze Anweisung sieht
+                    stueck += zeile                 # (auch Trigger mit „…; END;“ bleiben ganz)
+                    if sqlite3.complete_statement(stueck):
+                        con.execute(stueck)
+                        stueck = ""
+            con.execute(f"PRAGMA user_version = {n}")
+        con.execute("COMMIT")
+    except Exception:
+        con.execute("ROLLBACK")
+        raise
 
 
 def anlegen(pfad=None):
