@@ -77,6 +77,7 @@ p { margin: 0; }
   <h1><b>AMW</b> Workbench</h1>
   <p class="leise">Anmeldung · Sign in</p>
   <?php if ($hinweis !== ''): ?><p class="fehler" role="alert"><?= $e($hinweis) ?></p><?php endif; ?>
+  <?php if ($GLOBALS['konfig_warnung'] !== ''): ?><p class="fehler"><?= $e($GLOBALS['konfig_warnung']) ?></p><?php endif; ?>
 <?php if ($einrichten):
     require __DIR__ . '/inc/qr.php';
     $link = 'otpauth://totp/AMW:' . rawurlencode($einrichten['benutzer']) . '?secret=' . $einrichten['geheim']

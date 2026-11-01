@@ -13,23 +13,44 @@ const FEHL_JE_IP = 5;                // Fehlversuche je Adresse in 15 min
 const FEHL_GESAMT = 20;              // Fehlversuche insgesamt in 60 min (verteilte Versuche)
 const SCHREIBEN_JE_STUNDE = 120;     // Briefkasten-Zeilen je Stunde
 
+/** Orte außerhalb des Web-/Deploy-Ordners: dort löscht ein Git-Deploy nichts und niemand kann sie abrufen. */
+function konfig_orte(): array {
+    $wurzel = rtrim(str_replace(chr(92), '/', (string)($_SERVER['DOCUMENT_ROOT'] ?? dirname(__DIR__))), '/');
+    $orte = [];
+    if ($e = getenv('AMW_KONFIG')) $orte[] = $e;
+    $orte[] = (($p = strpos($wurzel, '/public_html')) !== false ? substr($wurzel, 0, $p) : dirname($wurzel)) . '/amw-konfig.php';
+    if (($p = strpos($wurzel, '/domains/')) !== false) $orte[] = substr($wurzel, 0, $p) . '/amw-konfig.php';  // Benutzer-Stamm
+    return array_values(array_unique($orte));
+}
+
+$GLOBALS['konfig_warnung'] = '';
+
+/* Konfiguration laden. Hochgeladen wird sie nach inc/ (der Dateimanager zeigt oft nur den Web-Ordner); beim ersten
+ * Aufruf verschiebt die Seite sie selbst nach außerhalb des Deploy-Ordners – sonst löscht der nächste Git-Deploy sie. */
 function konfig(): array {
     static $k = null;
     if ($k !== null) return $k;
-    // Gesucht wird außerhalb des Web-Ordners (neben public_html), sonst in inc/ – das ist von außen gesperrt
-    // (.htaccess) und wird von Git-Deploys nicht angefasst, weil die Datei nicht im Repo ist.
-    $wurzel = str_replace('\\', '/', (string)($_SERVER['DOCUMENT_ROOT'] ?? dirname(__DIR__)));
-    $kandidaten = [getenv('AMW_KONFIG') ?: null];
-    if (($p = strpos($wurzel, '/public_html')) !== false) $kandidaten[] = substr($wurzel, 0, $p) . '/amw-konfig.php';
-    else $kandidaten[] = dirname($wurzel) . '/amw-konfig.php';
-    $kandidaten[] = __DIR__ . '/amw-konfig.php';
-    $pfad = '';
-    foreach ($kandidaten as $kandidat) if ($kandidat && is_file($kandidat)) { $pfad = $kandidat; break; }
-    if (!is_file($pfad)) { header_remove('X-Powered-By'); http_response_code(503); exit('AMW: Konfiguration fehlt.'); }
-    $k = require $pfad;
-    foreach (['benutzer', 'passwort_hash'] as $pflicht) {
-        if (empty($k[$pflicht])) { http_response_code(503); exit('AMW: Konfiguration unvollständig.'); }
+    $fehlt = function (string $text): never { header_remove('X-Powered-By'); http_response_code(503); exit($text); };
+    $pruefen = function ($d) use ($fehlt): array {
+        if (!is_array($d) || empty($d['benutzer']) || empty($d['passwort_hash'])) $fehlt('AMW: Konfiguration unvollständig.');
+        return $d;
+    };
+    foreach (konfig_orte() as $ort) if (is_file($ort)) return $k = $pruefen(require $ort);
+    $hochgeladen = __DIR__ . '/amw-konfig.php';
+    if (!is_file($hochgeladen)) $fehlt('AMW: Konfiguration fehlt – Datei amw-konfig.php in den Ordner inc hochladen und die Seite neu laden.');
+    $k = $pruefen(require $hochgeladen);
+    $inhalt = file_get_contents($hochgeladen);
+    foreach (konfig_orte() as $ort) {
+        if (!is_dir(dirname($ort)) || !is_writable(dirname($ort))) continue;
+        $tmp = $ort . '.neu';
+        if (@file_put_contents($tmp, $inhalt) === false) continue;
+        @chmod($tmp, 0600);
+        if (!@rename($tmp, $ort) || @file_get_contents($ort) !== $inhalt) { @unlink($tmp); continue; }
+        @unlink($hochgeladen);                            // gesichert: die Kopie im Web-Ordner wird nicht mehr gebraucht
+        return $k;
     }
+    $GLOBALS['konfig_warnung'] = 'Hinweis: Die Konfiguration liegt noch im Web-Ordner (inc) – der nächste Deploy löscht sie. '
+        . 'Bitte zusätzlich eine Ebene über dem Web-Ordner ablegen.';
     return $k;
 }
 

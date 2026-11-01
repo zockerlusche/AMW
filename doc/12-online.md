@@ -22,7 +22,7 @@ PC (AMW Dienst)                          Turso (EU, Frankfurt)                 H
 | Sitzung | Cookie `__Host-amw`: nur HTTPS, HttpOnly, SameSite=Strict; neue Sitzungs-ID beim Login; Abmeldung nach 30 min ohne Klick, spätestens nach 12 h |
 | Schreibschutz | Jede Aktion braucht den Sitzungsschlüssel im Kopf (`X-AMW-Token`) und gleiche Herkunft (Origin); höchstens 120 Einträge je Stunde; Körper ≤ 32 KB |
 | Transport | `.htaccess` erzwingt HTTPS, HSTS; CSP wie lokal, `frame-ancestors 'none'`, `noindex` |
-| Dateien | Nur `index.php` und `api.php` sind erreichbar; `inc/` und versteckte Dateien gesperrt; **Zugangsdaten liegen außerhalb von public_html** (`amw-konfig.php`), nie im Repo |
+| Dateien | Nur `index.php` und `api.php` sind erreichbar; `inc/` und versteckte Dateien gesperrt. Zugangsdaten (`amw-konfig.php`, nie im Repo) werden nach `inc/` hochgeladen; beim ersten Aufruf verschiebt die Seite sie selbst **aus dem Deploy-Ordner hinaus** (neben public_html), weil ein Git-Deploy den Ordner ersetzt (beobachtet 01.11.). Klappt das Verschieben nicht, zeigt die Anmeldeseite einen Hinweis |
 | Wirkung | Absender ist immer „Entwickler“, Kanal `netz` – in Antworten und Nachrichten nachvollziehbar; die Adresse steht je Eintrag im Briefkasten |
 | Kein Fernzugriff | Keine Befehle, keine Dateien, kein Start/Stopp von Agenten oder Dienst aus dem Netz – nur die vier Aktionen; der Dienst bleibt Marcels Sache (10 §5) |
 
