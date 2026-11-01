@@ -87,6 +87,11 @@ class Abgleich(unittest.TestCase):
         with open(os.path.join(wurzel, "amw", "workbench.html"), encoding="utf-8") as a, \
                 open(os.path.join(wurzel, "web", "inc", "seite.html"), encoding="utf-8") as b:
             self.assertEqual(a.read(), b.read(), "web/inc/seite.html veraltet – `amw web bauen`")
+        from amw import __version__
+        with open(os.path.join(wurzel, "web", "inc", "VERSION"), encoding="utf-8") as v:
+            self.assertEqual(v.read().strip(), __version__, "web/inc/VERSION veraltet – `amw web bauen`")
+        with open(os.path.join(wurzel, "CHANGELOG.md"), encoding="utf-8") as c:
+            self.assertIn(f"## {__version__} ", c.read(), "CHANGELOG.md ohne Eintrag für die aktuelle Version")
 
     def test_php_legt_dieselben_tabellen_an(self):
         wurzel = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

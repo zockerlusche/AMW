@@ -88,6 +88,8 @@ h2::after { content: ""; flex: 1; height: 1px; background: var(--linie); }
 .zeile-reveal > *:nth-child(2) { animation-delay: .04s } .zeile-reveal > *:nth-child(3) { animation-delay: .08s }
 .zeile-reveal > *:nth-child(4) { animation-delay: .12s } .zeile-reveal > *:nth-child(5) { animation-delay: .16s }
 .zeile-reveal > *:nth-child(n+6) { animation-delay: .2s }
+.still .zeile-reveal > * { animation: none; }
+.marke .version { margin-left: 8px; font: 11px var(--mono, monospace); color: var(--leise); letter-spacing: 0; }   /* stilles Aktualisieren: nichts blendet neu ein */
 @keyframes auf { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
@@ -247,7 +249,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
 <body>
 <div class="rahmen">
   <header>
-    <div class="marke"><b>AMW</b><span data-t="marke"></span></div>
+    <div class="marke"><b>AMW</b><span data-t="marke"></span><span class="version" id="version"></span></div>
     <div class="signale" id="signale"></div>
     <div class="suche"><input id="suche" autocomplete="off" data-t-ph="suche"></div>
     <button class="schalter-halt" id="halt-knopf" type="button"></button>
@@ -409,6 +411,8 @@ function sprache_setzen(s) {
 async function kopfAktualisieren() {
   try {
     const d = await holen("/api/start"); zustand.start = d;
+    const wv = d.online?.web_version;
+    $("#version").textContent = d.version ? `v${d.version}` + (wv && wv !== d.version ? ` · Web v${wv}` : "") : "";
     const lebend = d.agenten.filter(a => a.zustand === "aktiv").length;
     const sp = d.speicher.frei;
     $("#signale").replaceChildren(
@@ -427,15 +431,24 @@ async function kopfAktualisieren() {
     $("#signale").replaceChildren(el("span", { class: "signal" }, el("span", { class: "punkt rot" }), t("s_dienst_weg")));
   }
 }
-function zeige(sicht) {
+/* ruhig = Selbst-Aktualisierung: keine Einblend-Animation, Scrollposition bleibt (sonst „springen“ die Kacheln) */
+let ruhig = false;
+function zeige(sicht, still = false) {
+  ruhig = still;
+  const pos = [$("#inhalt").scrollTop, window.scrollY];
   zustand.sicht = sicht;
   for (const a of document.querySelectorAll("nav a")) a.classList.toggle("an", a.dataset.sicht === sicht);
   try { localStorage.setItem("amw-sicht", sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history.replaceState(null, "", "#" + sicht);
-  ({ start: sichtStart, fragen: sichtFragen, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases }[sicht] || sichtStart)();
-  $("#inhalt").scrollTop = 0;
+  const fertig = ({ start: sichtStart, fragen: sichtFragen, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases }[sicht] || sichtStart)();
+  if (!still) { $("#inhalt").scrollTop = 0; return; }
+  Promise.resolve(fertig).then(() => { $("#inhalt").scrollTop = pos[0]; window.scrollTo(0, pos[1]); });
 }
-function rahmen(titel, ...rest) { const m = $("#inhalt"); m.replaceChildren(el("div", { class: "kopf" }, el("h1", {}, titel), ...rest)); return m; }
+/* Klasse „still“ erst hier setzen, im selben Schritt wie das Ersetzen – sonst liefe die Animation am alten Inhalt */
+function rahmen(titel, ...rest) {
+  const m = $("#inhalt"); m.classList.toggle("still", ruhig);
+  m.replaceChildren(el("div", { class: "kopf" }, el("h1", {}, titel), ...rest)); return m;
+}
 
 /* --- Start --------------------------------------------------------------------------------- */
 async function sichtStart() {
@@ -599,7 +612,8 @@ async function sichtWissen() {
 
 /* --- Betrieb ------------------------------------------------------------------------------- */
 async function sichtBetrieb() {
-  const m = rahmen(t("betrieb")); let d; try { d = await holen("/api/betrieb"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  let d; try { d = await holen("/api/betrieb"); } catch (e) { rahmen(t("betrieb")).append(el("div", { class: "leer" }, String(e))); return; }
+  const m = rahmen(t("betrieb"));     /* erst laden, dann ersetzen – sonst steht kurz eine leere Seite da */
   const anteil = d.speicher.frei && d.speicher.gesamt ? d.speicher.frei / d.speicher.gesamt : 0;
   m.append(el("div", { class: "messer zeile-reveal" },
     el("div", { class: "karte" }, el("div", { class: "leise" }, t("speicher_frei")), el("div", { class: "wert" }, d.speicher.frei == null ? "?" : `${d.speicher.frei} GB`),
@@ -677,7 +691,7 @@ feste_texte();
 setInterval(() => {
   const tippt = ["TEXTAREA", "INPUT", "SELECT"].includes(document.activeElement?.tagName);
   if (document.hidden || tippt || document.querySelector(".dialog-hg")) return;
-  if (zustand.sicht === "start" || zustand.sicht === "betrieb") zeige(zustand.sicht); else kopfAktualisieren();
+  if (zustand.sicht === "start" || zustand.sicht === "betrieb") zeige(zustand.sicht, true); else kopfAktualisieren();
 }, 15000);
 let startSicht = "start"; try { startSicht = localStorage.getItem("amw-sicht") || "start"; } catch (e) {}
 if (location.hash.length > 1) startSicht = location.hash.slice(1);

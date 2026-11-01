@@ -58,7 +58,8 @@ def daten_start(con, pid):
         " (SELECT count(*) FROM release WHERE projekt_id = :p) AS releases", {"p": pid}).fetchone())
     frei, gesamt = speicher_frei_gb()
     zaehler["an_dich"] = len(an_dich)
-    return {"agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "zaehler": zaehler,
+    from . import __version__
+    return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "zaehler": zaehler,
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 

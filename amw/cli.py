@@ -331,7 +331,10 @@ def cmd_web(a, con):
         ziel = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "inc", "seite.html")
         with open(quelle, encoding="utf-8") as f, open(ziel, "w", encoding="utf-8", newline="\n") as g:
             g.write(f.read())
-        print(f"gebaut: {ziel}")
+        from . import __version__
+        with open(os.path.join(os.path.dirname(ziel), "VERSION"), "w", encoding="utf-8", newline="\n") as g:
+            g.write(__version__ + "\n")
+        print(f"gebaut: {ziel} (Version {__version__})")
         return 0
     if a.aktion == "einrichten":
         return web_einrichten(abgleich)
@@ -398,7 +401,9 @@ def cmd_hook(a):
 # --- Aufbau --------------------------------------------------------------------------------------
 
 def parser():
+    from . import __version__
     p = argparse.ArgumentParser(prog="amw", description="Agentenmanagement Workbench")
+    p.add_argument("--version", action="version", version=f"AMW {__version__}")
     p.add_argument("--projekt")
     p.add_argument("--von")
     s = p.add_subparsers(dest="cmd", required=True)

@@ -4,7 +4,7 @@ Ein Werkzeug, mit dem ein Entwickler ein Team aus Claude-Code-Agenten über Tage
 
 Stand 01.11.2026: Stufe 1 in Betrieb (lokal, nur Python-Standardbibliothek, SQLite; das LayerIT-Team läuft darüber, → [doc/11](doc/11-umzug.md)). Stufe 2 vorbereitet: Workbench im Netz über PHP-Hosting + Turso, Login mit Passwort und Einmalcode (→ [doc/12](doc/12-online.md)).
 
-Lizenz: [MIT](LICENSE) – frei zu benutzen, zu ändern und weiterzugeben. Zweig `web` enthält nur den Online-Teil (für das Hosting).
+Version: siehe [CHANGELOG.md](CHANGELOG.md) (`amw --version`, Git-Tags `vX.Y.Z`). Lizenz: [MIT](LICENSE) – frei zu benutzen, zu ändern und weiterzugeben. Zweig `web` enthält nur den Online-Teil (für das Hosting).
 
 ## Aufbau
 | Pfad | Inhalt |
