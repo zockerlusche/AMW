@@ -17,9 +17,9 @@
 ## Entscheidungen (Marcel)
 | Nr | Entscheidung | Stand |
 |---|---|---|
-| E1 | Ablage der AMW-Entscheidungen: in F:mw\doc (07 + 09, git), nicht im LayerIT-Bus; später in der AMW-Datenbank | **entschieden** 01.11. 08:58 |
+| E1 | Ablage der AMW-Entscheidungen: in F:\amw\doc (07 + 09, git), nicht im LayerIT-Bus; später in der AMW-Datenbank | **entschieden** 01.11. 08:58 |
 | E2 | Grundrichtung: Variante C (eigenes Produkt) in Stufen – erst lokal, dann unterwegs, dann Produkt für andere (→ 06 §3, 10 §1/§4) | **entschieden** 01.11. 08:58 |
-| E3 | Freigabe Stufe 0 (Proben nur an CCamws eigener Sitzung) und Bau von Stufe 1 in F:mw, ohne Eingriff in LayerIT und den heutigen Bus; Umschalten der LayerIT-Agenten nur mit Marcels Wort | **entschieden** 01.11. 08:58 |
+| E3 | Freigabe Stufe 0 (Proben nur an CCamws eigener Sitzung) und Bau von Stufe 1 in F:\amw, ohne Eingriff in LayerIT und den heutigen Bus; Umschalten der LayerIT-Agenten nur mit Marcels Wort | **entschieden** 01.11. 08:58 |
 | E4 | Zentrale Datenbank für Stufe 2: Turso oder Neon (→ 06 §5–§6) | offen, bis Stufe 2 |
 | E5 | Zeitpunkt eigenes Repo (Stufe 3) | offen |
 | E6 | Umschalten LayerIT auf die AMW (Phase 5) | offen, nach Stufe 1 |
