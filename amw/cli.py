@@ -278,6 +278,22 @@ def cmd_release(a, con):
             print(f"R{r['id']:<5} {r['art']:<7} {r['version'] or '(offen)':<9} {_zeit(r['zeit_utc'])} {r['titel']}")
 
 
+def cmd_dienst(a):
+    from . import einrichtung
+    if a.aktion == "status":
+        print(einrichtung.status(a.port))
+        return 0
+    skript = einrichtung.skript_einrichten(a.port) if a.aktion == "einrichten" else einrichtung.skript_entfernen()
+    if not a.ja:
+        print(f"Würde ausführen (PowerShell, Benutzer {os.environ.get('USERNAME')}) – mit --ja wirklich tun:")
+        print()
+        print(skript)
+        return 0
+    rc, aus = einrichtung.powershell(skript)
+    print(aus)
+    return rc
+
+
 # --- Aufbau --------------------------------------------------------------------------------------
 
 def parser():
@@ -449,6 +465,12 @@ def parser():
     x.add_argument("--text-datei")
     x.set_defaults(f=cmd_notiz)
 
+    x = s.add_parser("dienst", help="Wächter als geplante Windows-Aufgabe: einrichten | entfernen | status")
+    x.add_argument("aktion", choices=["einrichten", "entfernen", "status"])
+    x.add_argument("--port", type=int, default=8780)
+    x.add_argument("--ja", action="store_true", help="wirklich ausführen (sonst nur anzeigen)")
+    x.set_defaults(f=cmd_dienst, ohne_db=True)
+
     x = s.add_parser("release", help="Release Notes: je Merge eine Zeile, Version fasst zusammen")
     x.add_argument("aktion", choices=["merge", "version", "liste"])
     x.add_argument("--titel")
@@ -470,7 +492,7 @@ def main(argv=None):
     a = parser().parse_args(argv)
     try:
         if getattr(a, "ohne_db", False):
-            a.f(a)
+            return a.f(a) or 0
         else:
             con = db.verbinde()
             try:

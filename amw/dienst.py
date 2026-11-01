@@ -150,6 +150,12 @@ def main(argv=None):
     if sperre is None:
         log.info("Dienst läuft schon – Ende")
         return 0
+    while not os.path.exists(db.db_pfad()):        # vor der Übernahme: warten statt abstürzen
+        if a.einmal:
+            log.error("Datenbank %s fehlt", db.db_pfad())
+            return 1
+        log.warning("Datenbank %s fehlt – warte (amw init oder Übernahme)", db.db_pfad())
+        time.sleep(AUFSICHT_S)
     con = db.verbinde()
     d = Dienst(con)
     log.info("Dienst gestartet (PID %s, %s)", os.getpid(), db.db_pfad())

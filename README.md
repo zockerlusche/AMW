@@ -32,5 +32,5 @@ amw kontext                           # Pflicht-Kontext
 Andere Datenbank: Umgebungsvariable `AMW_DB`.
 
 ## Wächter und Hook
-- Dienst: `python -X utf8 -m amw.dienst` (mit `PYTHONPATH=F:\amw`). Läuft genau einmal (Sperre `daten/dienst.lock`), Protokoll `daten/dienst.log`. Einrichtung als geplante Aufgabe: erst nach Rückfrage beim Entwickler (doc/07 E7).
+- Dienst: `python -X utf8 -m amw.dienst` (mit `PYTHONPATH=F:\amw`). Läuft genau einmal (Sperre `daten/dienst.lock`), Protokoll `daten/dienst.log`. Einrichtung als geplante Aufgabe „AMW Dienst“: `amw dienst einrichten` zeigt nur an, `--ja` richtet ein (erst nach Rückfrage beim Entwickler, doc/07 E7); `amw dienst status`, `amw dienst entfernen --ja`. Starter ohne Fenster: `start_dienst.pyw`.
 - Hook je Agent (Projekt-Einstellung, SessionStart, Matcher `startup|resume|compact`): `python -X utf8 -m amw.hook` mit `AMW_AGENT` und `PYTHONPATH`. Pipe-Pfad und Schlüssel landen in `%LOCALAPPDATA%\amw\sitzungen\<Agent>.json`, nie in der Datenbank.
