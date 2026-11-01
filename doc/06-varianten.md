@@ -137,7 +137,7 @@ Grenzen: Transaktion über HTTP max. 5 s, Verbindung schließt nach 10 s Leerlau
 | P3 | Weckt eine Nachricht eine angehaltene Hintergrund-Sitzung? | offen (nur für W6) |
 | P4 | Warum kamen die Weckrufe trotz Bypass an? | geklärt: Sender auch im Bypass; `accept` festschreiben |
 | P5 | Unterliegen Monitor (W2) und asyncRewake-Hook (W3) denselben Abbrüchen? | offen – Versuch |
-| P6 | Turso: Abgleich lokaler Kopien unter Windows/Python, Schreiben ohne Netz, Konflikte | **geklärt, Probe grün 01.11. 10:17:** eigener Abgleich über die HTTP-Schnittstelle (§7 Entscheidung), keine lokalen Kopien von Turso nötig. Datenbank `amw` in aws-eu-central-1 (Frankfurt), SQLite 3.47.0; Tabelle anlegen, parametrisiert schreiben (Umlaute ok), lesen, löschen in einem Durchgang 442 ms; Einzelabfrage 47–64 ms. Schlüssel nur in `%LOCALAPPDATA%mw	urso.json`. Skript: `F:mw\proben\p6_turso.py` |
+| P6 | Turso: Abgleich lokaler Kopien unter Windows/Python, Schreiben ohne Netz, Konflikte | **geklärt, Probe grün 01.11. 10:17:** eigener Abgleich über die HTTP-Schnittstelle (§7 Entscheidung), keine lokalen Kopien von Turso nötig. Datenbank `amw` in aws-eu-central-1 (Frankfurt), SQLite 3.47.0; Tabelle anlegen, parametrisiert schreiben (Umlaute ok), lesen, löschen in einem Durchgang 442 ms; Einzelabfrage 47–64 ms. Schlüssel nur in `%LOCALAPPDATA%\amw\turso.json`. Skript: `F:\amw\proben\p6_turso.py` |
 | P7 | Neon: kleinste Rechengröße (0,25 CU angenommen) und ob der Free-Rahmen je Projekt für mehrere Rechner gilt | offen – Anbieter-Doku lesen |
 
 ## 9 Bewertung
