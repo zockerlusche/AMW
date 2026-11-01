@@ -1,4 +1,4 @@
-# AMW online (Hostinger, Apache/LiteSpeed)
+# AMW online (PHP-Webhoster, Apache/LiteSpeed)
 Options -Indexes
 DirectoryIndex index.php
 

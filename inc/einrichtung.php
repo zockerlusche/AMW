@@ -1,5 +1,5 @@
 <?php
-/* Einrichtungs-Assistent (doc/12 §5): erscheint nur, solange es keine Konfiguration gibt.
+/* Einrichtungs-Assistent (doc/online.md §2): erscheint nur, solange es keine Konfiguration gibt.
  *
  * 1. Turso-Adresse + Schlüssel – wer den Schlüssel hat, darf einrichten (ein Fremder, der die frische Seite zuerst
  *    aufruft, hat ihn nicht). Die Seite prüft die Verbindung und legt ihre Tabellen an.

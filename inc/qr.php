@@ -1,5 +1,5 @@
 <?php
-/* QR-Code als SVG, ohne fremde Bibliothek (für die Einrichtung des zweiten Faktors, doc/12).
+/* QR-Code als SVG, ohne fremde Bibliothek (für die Einrichtung des zweiten Faktors, doc/online.md).
  * Byte-Modus, Fehlerkorrektur M, Version 1–10 (bis 213 Bytes). Ablauf nach ISO/IEC 18004, aufgebaut wie der
  * „QR Code generator“ von Project Nayuki (MIT): Daten → Reed-Solomon → Verschränken → Muster → Maske → SVG.
  */
