@@ -49,7 +49,7 @@ class Laeufe(Grund):
 
 
 class Warteschlange(Grund):
-    """lauf start --warten (TL #16445): Reihenfolge der Anmeldung, niemand überholt, Freigabe weckt den Agenten."""
+    """lauf start --warten : Reihenfolge der Anmeldung, niemand überholt, Freigabe weckt den Agenten."""
     def setUp(self):
         super().setUp()
         kern.agent_neu(self.con, self.pid, "CC3")
@@ -131,9 +131,9 @@ class Wissen(Grund):
     def test_regel_nur_mit_beschluss_und_an_ort_und_stelle(self):
         with self.assertRaises(kern.AmwFehler):
             wissen.regel_setzen(self.con, self.pid, "TL", "arbeit", 1, "Text", 999)
-        b1 = wissen.beschluss_neu(self.con, self.pid, "TL", "Regel 1", "erste Fassung", "Marcel")
+        b1 = wissen.beschluss_neu(self.con, self.pid, "TL", "Regel 1", "erste Fassung", "Entwickler")
         self.assertEqual(wissen.regel_setzen(self.con, self.pid, "TL", "arbeit", 1, "erste Fassung", b1), "angelegt")
-        b2 = wissen.beschluss_neu(self.con, self.pid, "TL", "Regel 1 neu", "zweite Fassung", "Marcel", ersetzt=b1)
+        b2 = wissen.beschluss_neu(self.con, self.pid, "TL", "Regel 1 neu", "zweite Fassung", "Entwickler", ersetzt=b1)
         self.assertEqual(wissen.regel_setzen(self.con, self.pid, "TL", "arbeit", 1, "zweite Fassung", b2), "geändert")
         r = self.con.execute("SELECT count(*), text, beleg FROM regel").fetchone()
         self.assertEqual(tuple(r), (1, "zweite Fassung", f"B{b2}"))
@@ -191,7 +191,7 @@ class NotizEntfernen(Grund):
         wissen.notiz_setzen(self.con, self.pid, "TL", "bleibt", "z")
         with self.assertRaises(kern.AmwFehler):
             wissen.notiz_entfernen(self.con, self.pid, "CC1", ["alt_1"])
-        b = wissen.beschluss_neu(self.con, self.pid, "TL", "Notizen aufräumen", "alt_* weg", "Marcel")
+        b = wissen.beschluss_neu(self.con, self.pid, "TL", "Notizen aufräumen", "alt_* weg", "Entwickler")
         weg, fehlt = wissen.notiz_entfernen(self.con, self.pid, "CC1", ["alt_1", "gibtsnicht"], beschluss=b)
         self.assertEqual((weg, fehlt), (["alt_1"], ["gibtsnicht"]))
         self.assertEqual(wissen.notiz_entfernen(self.con, self.pid, "TL", ["alt_2"])[0], ["alt_2"])

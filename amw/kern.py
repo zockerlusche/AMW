@@ -1,7 +1,7 @@
 """Fachlogik der AMW: Nachrichten, Aufgaben, Fragen, Halt, Pflicht-Kontext.
 
 Jede Funktion bekommt eine offene Verbindung und schreibt über db.schreiben/db.einfuegen.
-Regeln, die hier geprüft werden, stehen in doc/10-architektur.md §3/§5 und doc/04 (#15, #16, #18, #20).
+Regeln, die hier geprüft werden, beschreibt doc/architektur.md.
 Die Prüfungen schützen vor Versehen, nicht vor Absicht: Agenten laufen unter dem Benutzer des Entwicklers.
 """
 import json
@@ -233,7 +233,7 @@ def lesen(con, pid, kennung, nid):
 
 
 def erledigt(con, pid, kennung, nids, bemerkung=None):
-    """Mehrere Nachrichten auf einmal erledigen (→ 04 #16). Gibt die Zahl der geänderten Empfänge zurück."""
+    """Mehrere Nachrichten auf einmal erledigen . Gibt die Zahl der geänderten Empfänge zurück."""
     with db.schreiben(con):
         n = 0
         for nid in nids:
@@ -314,7 +314,7 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
     if empfehlung and empfehlung not in kenn:
         raise AmwFehler(f"Empfehlung „{empfehlung}“ ist keine der Optionen {kenn}")
     if an == "entwickler" and optionen and not (empfehlung and grund):
-        raise AmwFehler("Fragen an den Entwickler brauchen Empfehlung und Grund (→ 02 §6)")
+        raise AmwFehler("Fragen an den Entwickler brauchen Empfehlung und Grund")
     with db.schreiben(con):
         fid = db.einfuegen(con, "frage", projekt_id=pid, an=an, von=von, zeit_utc=db.jetzt(), kurz=kurz,
                            worum=worum, optionen=json.dumps([{"kenn": k, "text": t} for k, t in optionen],
@@ -396,7 +396,7 @@ def offene_fragen(con, pid, an=None):
     return con.execute(sql + " ORDER BY blockiert DESC, id", par).fetchall()
 
 
-# --- Pflicht-Kontext (→ 04 #20, 10 L6) -----------------------------------------------------------
+# --- Pflicht-Kontext --------------------------------------------------------------------------
 
 KONTEXT_MAX = 9000   # Hook-Grenze 10 000 Zeichen, mit Luft
 

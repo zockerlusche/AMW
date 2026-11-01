@@ -89,6 +89,11 @@ class Starten(Grund):
         self.assertEqual(getroffen, [os.getpid()])
         self.assertEqual(self.con.execute("SELECT ereignis, ereignis_text FROM sitzung").fetchone()[:], ("beendet", "amw"))
 
+    def test_fremden_agenten_beenden_nur_in_der_workbench(self):
+        from amw import cli
+        with mock.patch.dict(os.environ, {"AMW_DB": os.path.join(self.ordner.name, "t.db")}),                 mock.patch.object(steuerung, "beenden", side_effect=AssertionError("darf nicht laufen")):
+            self.assertEqual(cli.main(["agent", "beenden", "CC1", "--von", "TL"]), 1)
+
     def test_prozessabfragen(self):
         self.assertTrue(steuerung.lebt(os.getpid()))
         self.assertFalse(steuerung.lebt(0))

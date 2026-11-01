@@ -1,4 +1,4 @@
--- Schema 7: Projektplanung (→ doc/13 §6, doc/recherche/planung.md).
+-- Schema 7: Projektplanung (→ doc/ausbau.md §6, doc/recherche/planung.md).
 ALTER TABLE projekt ADD COLUMN leitbild TEXT;               -- JSON: ziel, kennzahlen[], nicht_ziele[], prinzipien[{text, pruefung}]
 ALTER TABLE projekt ADD COLUMN dod TEXT;                    -- JSON-Liste: Definition of Done für jeden Schritt
 

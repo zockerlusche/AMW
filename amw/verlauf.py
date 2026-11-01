@@ -1,4 +1,4 @@
-"""Rückblick und Verlauf (Stufe F, → doc/13 §7).
+"""Rückblick und Verlauf (Stufe F, → doc/ausbau.md §7).
 
 - Rückblick je Bogen: „Was lief gut / was nicht / was ändern wir / was haben wir gelernt“. Eine Maßnahme wird mit einem
   Schritt zur Aufgabe oder (Lead/Entwickler) zum Beschluss – der Bezug bleibt erhalten.

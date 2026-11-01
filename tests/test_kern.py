@@ -162,7 +162,7 @@ class Verlauf(unittest.TestCase):
         self.assertEqual(kern.frage_antworten(self.con, self.pid, fid, "rueckfrage", "Ist mit A die Lücke gefüllt?", "seite"), "offen")
         rf = self.con.execute("SELECT nachricht_id FROM frage_verlauf WHERE frage_id = ?", (fid,)).fetchone()[0]
         kern.posten(self.con, self.pid, "TL", "Entwickler", "antwort", "Ja, A füllt beide Lücken", antwort_auf=rf)
-        kern.frage_nachtrag(self.con, self.pid, "TL", fid, "Ergänzung: Quellen kommen ab Ä2")
+        kern.frage_nachtrag(self.con, self.pid, "TL", fid, "Ergänzung: Quellen kommen ab Version 2")
         with self.assertRaises(kern.AmwFehler):
             kern.frage_nachtrag(self.con, self.pid, "CC1", fid, "fremd")
         kern.frage_antworten(self.con, self.pid, fid, "option", "A", "seite")

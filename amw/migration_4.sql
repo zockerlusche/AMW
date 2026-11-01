@@ -1,4 +1,4 @@
--- Schema 4: Überwachung (Marcel 01.11.2026): Projekt-Server und erwartete Lauf-Dauer.
+-- Schema 4: Überwachung: Projekt-Server und erwartete Lauf-Dauer.
 ALTER TABLE lauf ADD COLUMN erwartet_min REAL;
 -- Projekt-Server, die der Wächter überwacht (Port antwortet?) und auf Wunsch neu startet (→ amw/ueberwachung.py).
 -- Startbefehl nur über die Kommandozeile am PC, nie über Brücke oder Online-Seite.

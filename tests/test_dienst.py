@@ -116,7 +116,7 @@ class Wecker(unittest.TestCase):
 
 
 class Anmelden(unittest.TestCase):
-    """Doppelte Anmeldung (TL #16500): eine Hintergrund-Sitzung hatte sich als CC5 angemeldet."""
+    """Doppelte Anmeldung: eine Hintergrund-Sitzung darf sich nie als Agent anmelden."""
     def setUp(self):
         from amw import hook
         self.hook = hook
@@ -176,16 +176,16 @@ class Anmelden(unittest.TestCase):
         return json.loads(aus.getvalue()) if aus.getvalue().strip() else None
 
     def test_resume_ohne_amw_agent_erkennt_die_sitzung(self):
-        """TL #16525: Resume von Hand (ohne Startskript, kein AMW_AGENT) – die Sitzungs-ID war schon als CC5 angemeldet."""
-        self.assertIn("als CC5 angemeldet", self.hook_lauf({"session_id": "abc", "source": "startup", "cwd": "F:\\layerit"}, "CC5")["systemMessage"])
+        """Resume von Hand (ohne Startskript, kein AMW_AGENT) – die Sitzungs-ID war schon als CC5 angemeldet."""
+        self.assertIn("als CC5 angemeldet", self.hook_lauf({"session_id": "abc", "source": "startup", "cwd": "C:\\projekt"}, "CC5")["systemMessage"])
         self.con.execute("UPDATE sitzung SET zustand = 'beendet'")
-        aus = self.hook_lauf({"session_id": "abc", "source": "resume", "cwd": "F:\\layerit"})
+        aus = self.hook_lauf({"session_id": "abc", "source": "resume", "cwd": "C:\\projekt"})
         self.assertIn("erkannt", aus["systemMessage"])
         self.assertEqual(self.aktiv(), ["abc"])
 
     def test_unbekannte_sitzung_im_agenten_ordner_meldet_laut_sonst_still(self):
-        self.hook_lauf({"session_id": "abc", "source": "startup", "cwd": "F:\\layerit"}, "CC5")
-        aus = self.hook_lauf({"session_id": "neu", "source": "startup", "cwd": "f:\\LAYERIT"})
+        self.hook_lauf({"session_id": "abc", "source": "startup", "cwd": "C:\\projekt"}, "CC5")
+        aus = self.hook_lauf({"session_id": "neu", "source": "startup", "cwd": "c:\\PROJEKT"})
         self.assertIn("NICHT angemeldet", aus["systemMessage"])
         self.assertIsNone(self.hook_lauf({"session_id": "fremd", "source": "startup", "cwd": "D:\\anderes"}))
         self.assertEqual(self.aktiv(), ["abc"])

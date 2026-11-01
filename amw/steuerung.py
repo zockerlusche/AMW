@@ -1,4 +1,4 @@
-"""Agenten steuern (Stufe D, → doc/13 §5): Profil, Starten, Beenden, Auto-Neustart nach Absturz, Startskript.
+"""Agenten steuern (Stufe D, → doc/ausbau.md §5): Profil, Starten, Beenden, Auto-Neustart nach Absturz, Startskript.
 
 Ein Agent startet in einem eigenen Windows-Terminal-Tab (sonst Konsolenfenster): PowerShell setzt AMW_AGENT und ruft
 Claude Code mit dem Profil auf. Gibt es eine frühere Sitzung des Agenten, wird sie fortgesetzt (--resume), sonst

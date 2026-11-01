@@ -411,7 +411,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
 <script>
 "use strict";
 const TOKEN = "__AMW_TOKEN__";
-/* Online (Hostinger, doc/12): API = "api.php?weg=", sonst leer = lokale Workbench am PC */
+/* Online (doc/online.md): API = "api.php?weg=", sonst leer = lokale Workbench am PC */
 const API = "__AMW_API__".startsWith("__") ? "" : "__AMW_API__";
 const ziel = weg => API ? API + encodeURIComponent(weg) : weg;
 const $ = (s, w = document) => w.querySelector(s);

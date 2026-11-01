@@ -1,5 +1,5 @@
 """Was der Entwickler über eine Seite tun darf – ein Schreibweg für die lokale Workbench und den Briefkasten aus dem
-Netz (→ doc/10 §4 Stufe 2, doc/12). Absender ist immer der Entwickler; erlaubt sind nur diese Aktionen:
+Netz (→ doc/architektur.md, doc/online.md). Absender ist immer der Entwickler; erlaubt sind nur diese Aktionen:
 Frage beantworten, Nachricht an Agenten, Nachrichten an dich als gelesen markieren, Halt, Weiter, Einstellungen.
 Einstellungen „pc“ (Datenbank-Pfad, Port, Takte) und „turso“ (Zugang) nur am PC (kanal „seite“), nie aus dem Netz:
 wer sich online anmeldet, soll die AMW nicht auf eine andere Datenbank umbiegen oder den Zugang aussperren können.

@@ -1,4 +1,4 @@
-"""Einstellungen dieses PCs (→ doc/12 §6): Datenbank-Pfad, Port, Takte des Wächters, Brücke.
+"""Einstellungen dieses PCs (→ doc/installation.md): Datenbank-Pfad, Port, Takte des Wächters, Brücke.
 
 Datei: %LOCALAPPDATA%\\amw\\einstellungen.json (je Windows-Benutzer, nie im Repo; der Turso-Zugang liegt getrennt in
 turso.json). Fehlt ein Wert, gilt die Vorgabe unten. Die Umgebungsvariable AMW_DB geht dem Datenbank-Pfad vor (Tests).

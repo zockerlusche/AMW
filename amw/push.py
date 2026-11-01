@@ -1,4 +1,4 @@
-"""Push-Benachrichtigungen aufs Handy (Stufe B, → doc/13 §3, doc/recherche/push.md).
+"""Push-Benachrichtigungen aufs Handy (Stufe B, → doc/ausbau.md §3, doc/recherche/push.md).
 
 Drei Anbieter, einzeln an/aus: ntfy (ntfy.sh oder eigener Server), Pushover, Telegram-Bot. Zugangsdaten und Vorlieben
 liegen in %LOCALAPPDATA%\\amw\\push.json – nie im Repo, nie in der Datenbank, nie im Online-Speicher.

@@ -6,3 +6,7 @@ eingang-tl/
 
 # lokale Claude-Code-Einstellungen (Start-Hook für CCamw), nicht öffentlich
 .claude/settings.local.json
+
+# projektbezogene Unterlagen (Entstehung, Entscheidungen, Übernahme) – nur lokal, nicht öffentlich
+intern/
+agenten-start.ps1

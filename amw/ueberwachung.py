@@ -1,10 +1,10 @@
-"""Überwachung: Projekt-Server und Stillstand (Marcel 01.11.2026, Punkte 1 und 2 der Workbench-Durchsicht).
+"""Überwachung: Projekt-Server und Stillstand (→ doc/ausbau.md §2).
 
 - Server: Ein Projekt meldet seine Dienste an (Name, Port, Startbefehl, Ordner, Zuständiger, Neustart ja/nein). Der
   Wächter prüft in jeder Aufsichtsrunde, ob der Port antwortet. Fällt einer aus, meldet er es dem Zuständigen und den
   Leads; mit Neustart startet er ihn selbst – erst wenn er zwei Runden in Folge aus war (ein Agent, der gerade selbst
   neu startet, kommt so nicht ins Gehege), höchstens NEUSTARTS_JE_STUNDE Mal je Stunde, danach nur noch Meldung.
-  Anlass: der Objekt-Editor auf 8766 war am 01.11. stundenlang aus, ohne dass es jemand merkte (TL #16492).
+  Anlass: ein Projekt-Server fiel stundenlang unbemerkt aus.
 - Stillstand: Weckruf seit stillstand_min unbeantwortet; Lauf länger als erwartet (doppelte Angabe, sonst
   lauf_ohne_angabe_min).
 

@@ -1,7 +1,7 @@
--- AMW – Agentenmanagement Workbench · Datenmodell Stufe 1 (→ doc/10-architektur.md §3)
+-- AMW – Agentenmanagement Workbench · Datenmodell Stufe 1 (→ doc/architektur.md)
 -- Schema-Version steht in PRAGMA user_version (kein eigener Meta-Tisch).
 --
--- Gemeinsame Spalten jeder Tabelle (Abgleich-fähig, → 10 L4):
+-- Gemeinsame Spalten jeder Tabelle (Abgleich-fähig):
 --   uid           global eindeutig, wird beim Anlegen erzeugt
 --   herkunft      Rechner, auf dem die Zeile entstand (setzt die Datenzugriffs-Schicht)
 --   geaendert_utc letzte Änderung, Trigger hält sie aktuell
@@ -51,7 +51,7 @@ CREATE TABLE agent (
 );
 
 -- Eine Claude-Code-Sitzung eines Agenten. Der Weck-Schlüssel steht NIE hier, nur der Pfad der
--- geschützten Datei, in die der SessionStart-Hook Pipe-Pfad und Schlüssel schreibt (→ 05 §6).
+-- geschützten Datei, in die der SessionStart-Hook Pipe-Pfad und Schlüssel schreibt.
 CREATE TABLE sitzung (
   id                INTEGER PRIMARY KEY,
   agent_id          INTEGER NOT NULL REFERENCES agent(id),
@@ -84,7 +84,7 @@ CREATE TABLE sitzung (
   geaendert_utc     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
--- Die EINE Liste der Nachrichten-Arten (→ 04 #15). weckt: 1 = Empfänger wird geweckt,
+-- Die EINE Liste der Nachrichten-Arten. weckt: 1 = Empfänger wird geweckt,
 -- 0 = bleibt liegen bis zum nächsten Lesen.
 CREATE TABLE nachricht_art (
   art           TEXT PRIMARY KEY,
@@ -262,7 +262,7 @@ CREATE TABLE rueckblick (
   geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
--- Fragen an den Entwickler oder an den TL, festes Format (→ 02 §6).
+-- Fragen an den Entwickler oder an den TL, festes Format.
 CREATE TABLE frage (
   id             INTEGER PRIMARY KEY,
   projekt_id     INTEGER NOT NULL REFERENCES projekt(id),
@@ -305,7 +305,7 @@ CREATE TABLE wortlaut (
 CREATE TABLE beschluss (
   id             INTEGER PRIMARY KEY,
   projekt_id     INTEGER NOT NULL REFERENCES projekt(id),
-  zeit_utc       TEXT NOT NULL,                   -- Pflicht (→ 04 #19)
+  zeit_utc       TEXT NOT NULL,                   -- Pflicht
   thema          TEXT,
   stichwort      TEXT NOT NULL,
   regel          TEXT NOT NULL,
@@ -322,7 +322,7 @@ CREATE TABLE beschluss (
 );
 
 -- Arbeitsregeln (ebene arbeit, projekt_id NULL = gilt für alle Projekte) und Projektregeln.
--- Nur der gültige Text; Änderungen über beschluss belegt (→ 02 §7).
+-- Nur der gültige Text; Änderungen über beschluss belegt.
 CREATE TABLE regel (
   id            INTEGER PRIMARY KEY,
   ebene         TEXT NOT NULL CHECK (ebene IN ('arbeit', 'projekt')),
@@ -397,7 +397,7 @@ CREATE TABLE pruefung (
 );
 
 -- Anweisungen, die für einen Agenten oder alle gelten (z. B. „keine Rechen-Jobs“).
--- art 'halt' = Halt (→ 10 §5): Dienst stellt sofort ein STOPP zu und weckt danach nur noch für
+-- art 'halt' = Halt: Dienst stellt sofort ein STOPP zu und weckt danach nur noch für
 -- stopp/freigabe; amw verweigert neue Läufe und Aufgaben-Starts; gilt über Neustarts hinweg bis aufgehoben.
 CREATE TABLE sperre (
   id              INTEGER PRIMARY KEY,
@@ -576,7 +576,7 @@ CREATE TRIGGER lauf_nie_loeschen      BEFORE DELETE ON lauf      BEGIN SELECT RA
 CREATE TRIGGER pruefung_nie_loeschen  BEFORE DELETE ON pruefung  BEGIN SELECT RAISE(ABORT, 'Verlauf: pruefung wird nicht gelöscht'); END;
 CREATE TRIGGER release_nie_loeschen   BEFORE DELETE ON release   BEGIN SELECT RAISE(ABORT, 'Verlauf: release wird nicht gelöscht'); END;
 
--- Wortlaut bleibt unverändert (→ 02 §7).
+-- Wortlaut bleibt unverändert.
 CREATE TRIGGER wortlaut_unveraendert BEFORE UPDATE OF text ON wortlaut BEGIN SELECT RAISE(ABORT, 'Wortlaut wird nicht geändert'); END;
 
 -- Fertig/verworfen nur mit Beleg (→ KR26 heute, 02 §4).

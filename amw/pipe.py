@@ -1,4 +1,4 @@
-"""Zustellen einer Nachricht in die Pipe einer Claude-Code-Sitzung (→ doc/06 §8 P2, Probe 01.11.2026).
+"""Zustellen einer Nachricht in die Pipe einer Claude-Code-Sitzung (→ doc/architektur.md „Wecken“).
 
 Protokoll (Claude Code 2.1.309, nicht dokumentiert, aus dem Programm gelesen):
   Zeile 1: {"type":"auth","token":"<CLAUDE_CODE_MESSAGING_TOKEN>"}   – unter Windows Pflicht

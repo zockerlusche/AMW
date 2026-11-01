@@ -1,4 +1,4 @@
-"""Workbench-Oberfläche: kleiner HTTP-Server nur auf 127.0.0.1 (→ doc/02 §0, doc/10 §2, doc/05 §6).
+"""Workbench-Oberfläche: kleiner HTTP-Server nur auf 127.0.0.1 (→ doc/architektur.md).
 
 Liefert eine Seite (workbench.html) und eine JSON-Schnittstelle. Läuft als Faden im amw-dienst oder allein:
   python -X utf8 -m amw.workbench [--port 8780]

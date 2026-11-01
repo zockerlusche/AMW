@@ -102,7 +102,7 @@ class Abgleich(unittest.TestCase):
         finally:
             os.environ["LOCALAPPDATA"] = alt
 
-    def test_seite_fuer_hostinger_ist_aktuell(self):
+    def test_seite_fuer_webhoster_ist_aktuell(self):
         wurzel = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         with open(os.path.join(wurzel, "amw", "workbench.html"), encoding="utf-8") as a, \
                 open(os.path.join(wurzel, "web", "inc", "seite.html"), encoding="utf-8") as b:

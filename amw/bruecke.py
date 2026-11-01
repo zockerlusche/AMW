@@ -1,4 +1,4 @@
-"""Datei-Brücke für Sitzungen, die amw.db nicht direkt öffnen können (→ doc/11 §3, TL-Übergabe 01.11. 12:35).
+"""Datei-Brücke für Sitzungen, die amw.db nicht direkt öffnen können (→ doc/architektur.md „Datei-Brücke“).
 
 Der TL arbeitet in einer Linux-VM, F:\\amw ist dort per FUSE eingehängt; SQLite im WAL-Modus scheitert darüber
 („disk I/O error“). Darum:
@@ -85,6 +85,8 @@ def argumente(befehl):
                     args += [name, str(x)]
     if not args or args[0] not in ERLAUBT:
         raise ValueError(f"Befehl „{args[0] if args else ''}“ ist über die Brücke nicht erlaubt; erlaubt: {', '.join(sorted(ERLAUBT))}")
+    if args[0] == "agent" and len(args) > 1 and args[1] in ("starten", "beenden", "profil", "startskript"):
+        raise ValueError("Agenten starten, beenden und Profile ändern geht nur am PC (Workbench)")
     if any(a in ("--von", "--projekt") for a in args):
         raise ValueError("--von/--projekt setzt die Brücke selbst")
     return args + ["--von", VON]

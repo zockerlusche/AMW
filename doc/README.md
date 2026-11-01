@@ -1,24 +1,21 @@
-# AMW – Agentenmanagement Workbench · Dokumentation
+# Dokumentation
 
-Stand: 01.11.2026 · Schreibt: CCamw (allein, seit 01.11. 08:45, TL #16176) · Inhalte des TL kommen als Bus-Nachricht · Freigabe: Marcel (Entwickler)
+**Für Anwender**
+1. [Überblick](ueberblick.md) – Begriffe, wie die Teile zusammenspielen, ein Tag mit AMW
+2. [Installation](installation.md) – Voraussetzungen, `amw einrichten`, erster Start, Aktualisieren, Entfernen
+3. [Betrieb](betrieb.md) – Workbench, mit Agenten arbeiten, Überwachung, Sicherung
+4. [Planung](anleitung-planung.md) – Leitbild, Bögen, Spezifikation, Schritte, Prognose, Rückblick
+5. [Push aufs Handy](anleitung-push.md) – ntfy, Pushover, Telegram
+6. [Online](online.md) – die Workbench im Netz (PHP-Webhoster + Turso)
+7. [Fehlerbehebung](fehlerbehebung.md)
+8. [Befehle](befehle.md) – alle `amw`-Befehle (aus der Kommandozeile erzeugt)
 
-## Leseregel
-- Jede Information steht in **genau einem** Dokument. Andere Dokumente verweisen nur darauf (`→ 03 §2`).
-- Geändert wird an Ort und Stelle; es gibt keine „alt“-Abschnitte. Der Verlauf liegt im git dieses Ordners.
-- Diese Markdown-Doku ist eine **Ausnahme nur für die AMW** (Marcel 01.11. 08:16), Ablage F:\amw\doc. Im Projekt LayerIT bleibt alles Wissen in der Bus-DB.
+**Hintergrund**
+- [Architektur](architektur.md) – Bausteine, Abläufe, Datenmodell, Grenzen
+- [Sicherheit](sicherheit.md) – Vertrauensmodell, wo Geheimnisse liegen, was AMW selbst startet
+- [Ausbau](ausbau.md) – Plan und Stand des Ausbaus zum vollständigen Lead-Werkzeug
+- Recherchen: [Projektplanung](recherche/planung.md) · [Agenten-Workbenches](recherche/workbenches.md) · [Push-Dienste](recherche/push.md)
 
-## Inhalt
-| Nr | Dokument | Worum es geht |
-|---|---|---|
-| 01 | [Zielbild](01-zielbild.md) | Was die AMW ist, Rollen, Grundsätze, Nicht-Ziele |
-| 02 | [Funktionen](02-funktionen.md) | Alle Funktionsbereiche aus Sicht des Entwicklers |
-| 03 | [Ist-Stand](03-ist-stand.md) | Das heutige System im Projekt LayerIT (Bus-DB, Wache, Server, Seiten, Ablagen) |
-| 04 | [Erfahrungen](04-erfahrungen.md) | Was im Betrieb schiefging, mit Beleg – und was das System daraus können muss |
-| 05 | [Betrieb](05-betrieb.md) | Anforderungen an Wecken, Speicher, Server, Datenhaltung, Sicherheit, Abgleich, Installation |
-| 06 | [Varianten](06-varianten.md) | Lösungswege A/B/C, Marktvergleich, Wecken, Datenbank, Kostenrechnung, TL-Vorschlag |
-| 07 | [Fahrplan](07-fahrplan.md) | Phasen, Zuständigkeiten, offene Entscheidungen |
-| 08 | [Begriffe](08-begriffe.md) | Glossar |
-| 09 | [Verlauf](09-verlauf.md) | Chronik der Vorgaben des Entwicklers mit Verweis, wo sie stehen |
-| 10 | [Architektur](10-architektur.md) | Vorschlag CCamw: Leitentscheidungen, Bausteine, Datenmodell, Stufen, Übergang |
-| 11 | [Umzug](11-umzug.md) | Umzug LayerIT-Bus → AMW am 01.11.: Anleitung für Agenten und TL, Entsprechung alt → neu, Rückweg |
-| 12 | [Online](12-online.md) | Stufe 2: Workbench im Netz (Hostinger über GitHub), Schaufenster + Briefkasten über Turso, Login, Sicherheit, Schritte bis online |
+Für Entwickler an AMW: Tests mit `python -m unittest discover -s tests`; neue Datenbank-Versionen als
+`amw/migration_<n>.sql` und `SCHEMA_VERSION` in `amw/db.py`; nach Änderungen an `amw/workbench.html` `amw web bauen`,
+nach Änderungen an Befehlen `amw befehle > doc/befehle.md` (beides prüfen Tests).

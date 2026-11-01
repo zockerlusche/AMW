@@ -1,4 +1,4 @@
-"""Einrichtung des Wächters als geplante Windows-Aufgabe (→ doc/10 §5 „Start und Steuerung“, doc/07 E7).
+"""Einrichtung des Wächters als geplante Windows-Aufgabe (→ doc/installation.md).
 
 Stufe 1: Aufgabe „AMW Dienst“ unter dem angemeldeten Benutzer – Start bei Anmeldung, ohne Fenster (pythonw),
 danach alle 5 min erneut angestoßen (nur eine Instanz: läuft er, passiert nichts; ist er weg, startet er neu),
@@ -39,7 +39,7 @@ def skript_einrichten(port):
         " -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries",
         "$p = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited",
         f"Register-ScheduledTask -TaskName {q(AUFGABE)} -Action $a -Trigger $t -Settings $s -Principal $p"
-        f" -Description {q('AMW-Wächter: weckt Agenten, liefert die Workbench (127.0.0.1). Doku: F:\\amw\\doc\\10-architektur.md §5')}"
+        f" -Description {q('AMW-Wächter: weckt Agenten, liefert die Workbench (127.0.0.1). Doku: ' + os.path.join(WURZEL, 'doc', 'betrieb.md'))}"
         " | Out-Null",
         f"Start-ScheduledTask -TaskName {q(AUFGABE)}",
         f"'eingerichtet und gestartet: ' + {q(AUFGABE)}",
@@ -109,7 +109,7 @@ SPERREN = [f"Bash(*schtasks*{AUFGABE}*)", f"PowerShell(*schtasks*{AUFGABE}*)", f
 
 
 def hook_einstellungen():
-    """Was ein Agenten-Projektordner in .claude/settings.local.json braucht (→ doc/13 §4):
+    """Was ein Agenten-Projektordner in .claude/settings.local.json braucht (→ doc/ausbau.md §4):
     SessionStart meldet an und gibt den Pflicht-Kontext; die Zustands-Hooks laufen im Hintergrund (async) und setzen
     „arbeitet / frei / wartet auf Freigabe / Fehler“; die Statusline-Brücke merkt sich Kontext, Grenzen, Kosten und reicht
     die bisherige Statusline weiter; die Sperren schützen den Wächter vor Versehen."""

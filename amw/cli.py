@@ -1,7 +1,7 @@
-"""Kommandozeile `amw` – einziger Schreibweg der Agenten (→ doc/10-architektur.md §2).
+"""Kommandozeile `amw` – einziger Schreibweg der Agenten (→ doc/architektur.md).
 
 Wer bin ich: --von oder Umgebungsvariable AMW_AGENT. Welches Projekt: --projekt, AMW_PROJEKT oder das
-einzige vorhandene. Ausgabe immer UTF-8 (→ 04: cp1252-Abbrüche).
+einzige vorhandene. Ausgabe immer UTF-8 (sonst brechen Umlaute in der Windows-Konsole ab).
 """
 import argparse
 import json
@@ -83,6 +83,10 @@ def cmd_agent(a, con):
         if a.aktion == "starten":
             print(steuerung.starten(con, pid, a.kennung, neu=a.neu))
         elif a.aktion == "beenden":
+            # Prozesse beendet nur der Mensch (Workbench am PC); ein Agent darf nur seine eigene Sitzung beenden
+            if _von(a).casefold() != a.kennung.casefold():
+                raise kern.AmwFehler(f"{_von(a)} darf {a.kennung} nicht beenden – andere Agenten beendet nur der Entwickler"
+                                     " in der Workbench am PC (Kachel › Beenden)")
             print(steuerung.beenden(con, pid, a.kennung))
         else:
             schalter = lambda an, aus: True if an else False if aus else None
@@ -373,7 +377,7 @@ def cmd_frage(a, con):
         art, wert = ("option", a.option[0]) if a.option else ("rueckfrage", a.rueckfrage) if a.rueckfrage else ("text", a.text)
         if not wert:
             raise kern.AmwFehler("--option, --text oder --rueckfrage angeben")
-        # kein stilles „Entwickler“ als Absender: Marcel antwortet in der Workbench, wer hier antwortet, nennt sich
+        # kein stilles „Entwickler“ als Absender: der Entwickler antwortet in der Workbench, wer hier antwortet, nennt sich
         print(f"F{a.id} → {kern.frage_antworten(con, pid, a.id, art, wert, 'cli', _von(a))}")
 
 
@@ -600,7 +604,7 @@ def web_einrichten(abgleich):
 
 
 def cmd_web(a, con):
-    """Stufe 2 (doc/12): Seite für Hostinger bauen, Online-Speicher einrichten, einen Abgleich von Hand."""
+    """Online-Teil (doc/online.md): Seite für den Webhoster bauen, Online-Speicher einrichten, einen Abgleich von Hand."""
     from . import abgleich
     if a.aktion == "bauen":
         quelle = os.path.join(os.path.dirname(__file__), "workbench.html")
@@ -661,7 +665,7 @@ def cmd_dienst(a):
 
 
 def cmd_anmelden(a, con):
-    """Laufende Sitzung ohne Neustart anmelden (Umschalten, doc/10 §6): wie der Hook bei startup, aus der eigenen
+    """Laufende Sitzung ohne Neustart anmelden (Umschalten): wie der Hook bei startup, aus der eigenen
     Umgebung der Claude-Code-Shell. Der Schlüssel landet nur in der Sitzungsdatei, nie in der Ausgabe."""
     from . import hook
     kennung = _von(a)
@@ -685,8 +689,23 @@ def cmd_hook(a):
     return 0
 
 
+def cmd_sichern(a):
+    print(f"gesichert: {db.sichern(a.ziel)}")
+    return 0
+
+
 def cmd_einrichten(a):
-    from . import einrichtung
+    from . import assistent, einrichtung
+    if a.aktion == "assistent":
+        assistent.interaktiv()
+        return 0
+    if a.aktion == "schnell":
+        if not a.projekt_name:
+            raise kern.AmwFehler("amw einrichten schnell --projekt-name … [--lead TL] [--agenten CC1,CC2] [--ordner Pfad] …")
+        assistent.schnell(a.projekt_name, a.lead, [x.strip() for x in (a.agenten or "").split(",") if x.strip()],
+                          os.path.abspath(a.ordner) if a.ordner else None, a.rechte, a.denkstufe, a.mit_dienst,
+                          hooks=not a.ohne_hooks)
+        return 0
     if a.aktion == "agenten-ordner":
         if not a.pfad:
             raise kern.AmwFehler("amw einrichten agenten-ordner <pfad> [--nur-zeigen]")
@@ -783,7 +802,7 @@ def parser():
     x.add_argument("--projekt", dest="projekt_init", help="gleich ein erstes Projekt anlegen")
     x.set_defaults(f=cmd_init, ohne_db=True)
 
-    x = s.add_parser("projekt")
+    x = s.add_parser("projekt", help="Projekte: neu <name> | liste")
     x.add_argument("aktion", choices=["neu", "liste"])
     x.add_argument("name", nargs="?")
     x.add_argument("--beschreibung")
@@ -810,7 +829,7 @@ def parser():
     x.add_argument("--ohne-rund", action="store_true", help="bekommt keine Rundschreiben")
     x.set_defaults(f=cmd_agent)
 
-    x = s.add_parser("posten")
+    x = s.add_parser("posten", help="Nachricht schicken: --an CC2 (oder alle, Entwickler) --art auftrag|frage|info|… --kurz …")
     x.add_argument("--an", required=True)
     x.add_argument("--art", required=True)
     x.add_argument("--kurz", required=True)
@@ -825,7 +844,7 @@ def parser():
     x.add_argument("--grenze", type=int, default=50)
     x.set_defaults(f=cmd_lesen)
 
-    x = s.add_parser("erledigt")
+    x = s.add_parser("erledigt", help="Nachrichten als erledigt markieren: amw erledigt 12 13")
     x.add_argument("ids", type=int, nargs="+")
     x.add_argument("--bemerkung")
     x.set_defaults(f=cmd_erledigt)
@@ -862,7 +881,7 @@ def parser():
     x.add_argument("--kommentar")
     x.set_defaults(f=cmd_aufgabe)
 
-    x = s.add_parser("frage")
+    x = s.add_parser("frage", help="Fragen an den Entwickler oder Lead: neu | liste | antworten | nachtrag | verlauf")
     x.add_argument("aktion", choices=["neu", "liste", "antworten", "nachtrag", "verlauf"])
     x.add_argument("id", type=int, nargs="?")
     x.add_argument("--an", choices=["entwickler", "tl"])
@@ -887,7 +906,7 @@ def parser():
     x.add_argument("--fuer", default="alle")
     x.set_defaults(f=cmd_weiter)
 
-    x = s.add_parser("taetigkeit", help="was ich gerade tue (zeigt die Workbench), z. B. taetigkeit \"A1215 Chips umbrechen\"")
+    x = s.add_parser("taetigkeit", help="was ich gerade tue (zeigt die Workbench), z. B. taetigkeit \"A12 Login-Formular\"")
     x.add_argument("text", nargs="*")
     x.add_argument("--aufgabe", type=int)
     x.set_defaults(f=cmd_taetigkeit)
@@ -896,7 +915,7 @@ def parser():
     x.add_argument("agent", nargs="?")
     x.set_defaults(f=cmd_kontext)
 
-    x = s.add_parser("regeln")
+    x = s.add_parser("regeln", help="alle geltenden Regeln (Arbeits- und Projektregeln)")
     x.set_defaults(f=cmd_regeln)
 
     x = s.add_parser("leitbild", help="Projektziel, Kennzahlen, Nicht-Ziele, Prinzipien, Definition of Done: zeigen | setzen")
@@ -1069,7 +1088,7 @@ def parser():
     x.add_argument("--ja", action="store_true", help="wirklich ausführen (sonst nur anzeigen)")
     x.set_defaults(f=cmd_dienst, ohne_db=True)
 
-    x = s.add_parser("web", help="Stufe 2: einrichten (Turso-Zugang, einmal) | status | einmal (Abgleich) | zweitfaktor-neu | bauen | schema")
+    x = s.add_parser("web", help="Online-Teil: einrichten (Turso-Zugang, einmal) | status | einmal (Abgleich) | zweitfaktor-neu | bauen | schema")
     x.add_argument("aktion", choices=["einrichten", "bauen", "schema", "einmal", "status", "zweitfaktor-neu"])
     x.set_defaults(f=cmd_web)
 
@@ -1077,12 +1096,28 @@ def parser():
     x.add_argument("--ersetzen", action="store_true", help="eine noch lebende andere Sitzung derselben Kennung ablösen")
     x.set_defaults(f=cmd_anmelden)
 
-    x = s.add_parser("einrichten", help="agenten-ordner <pfad>: Hooks, Statusline-Brücke, Sperren in einen Agenten-Ordner")
-    x.add_argument("aktion", choices=["agenten-ordner"])
+    x = s.add_parser("einrichten", help="ohne Angabe: geführte Einrichtung (fragt nach) | schnell --projekt-name … (ohne Fragen) |"
+                                        " agenten-ordner <pfad> (Hooks, Statusline-Brücke, Sperren)")
+    x.add_argument("aktion", nargs="?", choices=["assistent", "schnell", "agenten-ordner"], default="assistent")
     x.add_argument("pfad", nargs="?")
     x.add_argument("--nur-zeigen", action="store_true")
     x.add_argument("--ohne-sperren", action="store_true", help="keine Sperr-Regeln (Ordner dessen, der den Wächter betreut)")
+    x.add_argument("--projekt-name", help="schnell: Name des Projekts")
+    x.add_argument("--lead", default="TL", help="schnell: Kennung des Lead-Agenten (leer = keiner)")
+    x.add_argument("--agenten", default="CC1", help="schnell: Kennungen, mit Komma")
+    x.add_argument("--ordner", help="schnell: Projektordner der Agenten")
+    x.add_argument("--rechte", default="vorgabe", choices=["vorgabe", "auto", "umgehen"])
+    x.add_argument("--denkstufe", choices=["low", "medium", "high", "xhigh", "max"])
+    x.add_argument("--mit-dienst", action="store_true", help="schnell: Wächter als geplante Aufgabe einrichten")
+    x.add_argument("--ohne-hooks", action="store_true", help="schnell: Projektordner nicht anfassen")
     x.set_defaults(f=cmd_einrichten, ohne_db=True)
+
+    x = s.add_parser("befehle", help="Befehlsreferenz als Markdown (für doc/befehle.md)")
+    x.set_defaults(f=lambda a: print(befehle_markdown(), end="") or 0, ohne_db=True)
+
+    x = s.add_parser("sichern", help="Sicherung der Datenbank (vollständige Kopie, auch während des Betriebs)")
+    x.add_argument("--ziel", help="Datei oder Ordner (Vorgabe: daten/sicherung-<Datum>.db)")
+    x.set_defaults(f=cmd_sichern, ohne_db=True)
 
     x = s.add_parser("push", help="Benachrichtigungen aufs Handy: status | probe | an | aus | ntfy | pushover | telegram |"
                                   " ruhe 22:00-07:00|aus | link URL | ereignis art=an|aus")
@@ -1117,6 +1152,24 @@ def parser():
             if name not in unter._option_string_actions:
                 unter.add_argument(name, default=argparse.SUPPRESS)
     return p
+
+
+def befehle_markdown():
+    """Befehlsreferenz aus dem Parser (doc/befehle.md – ein Test prüft, dass sie aktuell ist)."""
+    import argparse
+    p = parser()
+    unter = next(a for a in p._actions if isinstance(a, argparse._SubParsersAction))
+    hilfe = {c.dest: c.help for c in unter._choices_actions}
+    z = ["# Befehle", "", "Erzeugt aus der Kommandozeile (`amw befehle > doc/befehle.md`). Jeder Befehl zeigt mit `--help` dasselbe.",
+         "Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--projekt <Name>` (sonst das erste Projekt).", ""]
+    z.append("| Befehl | Zweck |")
+    z.append("|---|---|")
+    for name in unter.choices:
+        z.append(f"| [`{name}`](#{name}) | {(hilfe.get(name) or '').replace('|', '¦')} |")
+    for name, sp in unter.choices.items():
+        sp.prog = f"amw {name}"
+        z += ["", f"## {name}", "```", sp.format_help().rstrip().replace("\r", ""), "```"]
+    return "\n".join(z) + "\n"
 
 
 def main(argv=None):

@@ -1,4 +1,4 @@
-"""Stufe 2: Abgleich mit dem Online-Speicher (Turso) – Schaufenster + Briefkasten (→ doc/12-online.md).
+"""Stufe 2: Abgleich mit dem Online-Speicher (Turso) – Schaufenster + Briefkasten (→ doc/online.md).
 
 Schaufenster: Der PC berechnet die Ansichten der Workbench (dieselben wie lokal) und legt sie als fertiges JSON in
 `ansicht` ab, nur wenn sich etwas geändert hat. Die Seite im Netz zeigt nur diese Ansichten – sie sieht keine

@@ -1,4 +1,4 @@
-"""amw-dienst – der Wächter (→ doc/10-architektur.md §2, §5).
+"""amw-dienst – der Wächter (→ doc/architektur.md).
 
 Läuft außerhalb von Claude Code (gestartet von der Windows-Aufgabenplanung, Stufe 1). Aufgaben:
 - Wecker: neue Empfänge, deren Art weckt, werden dem Empfänger über die Pipe seiner angemeldeten Sitzung
@@ -82,7 +82,7 @@ class Dienst:
         self.neustarter = steuerung.Neustarter(con)
 
     def takt(self):
-        """Ersetzt die händische Erinnerungskette des TL (→ doc/04 #13): je Projekt alle takt_min Minuten eine
+        """Regelmäßige Zusammenfassung an den Lead: je Projekt alle takt_min Minuten eine
         weckende Takt-Nachricht an jeden Lead mit lebender Sitzung. Im Halt nicht (weckt dann ohnehin nicht)."""
         jetzt = time.time()
         for p in self.con.execute("SELECT id, einstellungen FROM projekt").fetchall():

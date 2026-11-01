@@ -1,7 +1,7 @@
 """Wissen und Projektführung: Wortlaut, Beschlüsse, Regeln, Notizen, Release Notes, Einstufung von Aufgaben.
 
 Heute schreibt der TL das per SQL in den Bus (KR26); in der AMW geht es über diese Funktionen bzw. `amw`.
-Regeln zeigen nur den gültigen Text; jede Regeländerung nennt den Beschluss, der sie begründet (→ doc/02 §7).
+Regeln zeigen nur den gültigen Text; jede Regeländerung nennt den Beschluss, der sie begründet.
 """
 from . import db, kern
 
@@ -98,7 +98,7 @@ def einstufen(con, pid, von, aid, einstufung):
 
 
 def release_merge(con, pid, von, titel, commit_sha, text=None, aufgaben=None):
-    """Eine Zeile je Merge (→ 04: Lücke zwischen den Pushes). Version bleibt leer bis release_version."""
+    """Eine Zeile je Merge (damit zwischen zwei Pushes nichts verloren geht). Version bleibt leer bis release_version."""
     with db.schreiben(con):
         return db.einfuegen(con, "release", projekt_id=pid, art="merge", zeit_utc=db.jetzt(), commit_sha=commit_sha,
                             titel=titel, text_intern=text, aufgaben=aufgaben, eingetragen_von=von)

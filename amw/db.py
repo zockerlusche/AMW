@@ -1,4 +1,4 @@
-"""Datenzugriffs-Schicht der AMW (→ doc/10-architektur.md L4, 06 §5).
+"""Datenzugriffs-Schicht der AMW (→ doc/architektur.md).
 
 Alles, was die Datenbank anfasst, geht hier durch: Verbindung (WAL, Wartezeit), Anlegen des Schemas,
 Zeitstempel, Herkunft. Wird die Datenbank später gewechselt (Stufe 2/3), ändert sich nur dieses Modul.
@@ -85,6 +85,23 @@ def anlegen(pfad=None):
     con.commit()
     con.close()
     return verbinde(pfad)
+
+
+def sichern(ziel=None, pfad=None):
+    """Vollständige Kopie der Datenbank (VACUUM INTO – geht auch, während Agenten schreiben). Rückgabe: Zielpfad."""
+    pfad = pfad or db_pfad()
+    if not ziel:
+        ziel = os.path.join(os.path.dirname(pfad), f"sicherung-{datetime.now().strftime('%Y-%m-%d-%H%M')}.db")
+    elif os.path.isdir(ziel):
+        ziel = os.path.join(ziel, f"amw-sicherung-{datetime.now().strftime('%Y-%m-%d-%H%M')}.db")
+    if os.path.exists(ziel):
+        raise FileExistsError(f"{ziel} gibt es schon")
+    q = sqlite3.connect(f"file:{pfad}?mode=ro", uri=True, timeout=30)
+    try:
+        q.execute("VACUUM INTO ?", (ziel,))
+    finally:
+        q.close()
+    return ziel
 
 
 @contextmanager

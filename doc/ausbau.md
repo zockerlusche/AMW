@@ -1,4 +1,4 @@
-# 13 · Ausbau zum vollständigen Lead-Werkzeug
+# Ausbau zum vollständigen Lead-Werkzeug
 
 **Status: in Arbeit.** Stand 01.11.2026. Auftrag: AMW soll aus Sicht des Anwenders alles abdecken, was ein Lead braucht,
 der Projekte mit einem KI-Assistenten (Team-Lead-Agent) und mehreren Coding-Agenten baut – lieber etwas mehr als zu wenig.

@@ -1,4 +1,4 @@
-"""SessionStart-Hook: Sitzung anmelden und Pflicht-Kontext einspielen (→ doc/10-architektur.md §5, L6).
+"""SessionStart-Hook: Sitzung anmelden und Pflicht-Kontext einspielen (→ doc/architektur.md).
 
 Eintrag in der Projekt-Einstellung des Agenten (.claude/settings.local.json), Matcher startup|resume|compact:
   python -X utf8 -m amw.hook        (mit PYTHONPATH=F:\\amw, AMW_AGENT=<Kennung>, ggf. AMW_PROJEKT)
@@ -47,8 +47,8 @@ def claude_prozess(pipe):
 
 
 def bekannte_kennung(con, pid, sitzung):
-    """Kennung, unter der diese Claude-Sitzung schon angemeldet war – ein Resume behält die Sitzungs-ID (TL #16525:
-    nach Marcels Resume-Neustart ohne Startskript fehlte AMW_AGENT, niemand wurde angemeldet)."""
+    """Kennung, unter der diese Claude-Sitzung schon angemeldet war – ein Resume behält die Sitzungs-ID (nach einem
+    Resume von Hand ohne Startskript fehlt AMW_AGENT – trotzdem soll die Sitzung angemeldet werden)."""
     if not sitzung:
         return None
     r = con.execute("SELECT a.kennung FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
@@ -93,8 +93,8 @@ def beschreibung(p):
 
 
 def anmelden(con, pid, kennung, eingabe, ersetzen=False, streng=False):
-    """Trägt die Sitzung ein. Hintergrund-Sitzungen (kind=bg, kein Fenster) nie – eine solche hatte sich am 01.11.
-    als CC5 angemeldet (TL #16500). streng (amw anmelden): eine noch lebende andere Sitzung derselben Kennung wird
+    """Trägt die Sitzung ein. Hintergrund-Sitzungen (kind=bg, kein Fenster) nie – sonst gingen Weckrufe in
+    eine Sitzung ohne Fenster. streng (amw anmelden): eine noch lebende andere Sitzung derselben Kennung wird
     nur mit ersetzen übernommen. Rückgabe: None oder Grund, warum nicht angemeldet wurde."""
     pipe = os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET")
     schluessel = os.environ.get("CLAUDE_CODE_MESSAGING_TOKEN")

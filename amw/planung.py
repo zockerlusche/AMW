@@ -1,4 +1,4 @@
-"""Projektplanung (Stufe E, → doc/13 §6, Methode: doc/recherche/planung.md).
+"""Projektplanung (Stufe E, → doc/ausbau.md §6, Methode: doc/recherche/planung.md).
 
 Leitbild (Ziel, Kennzahlen, Nicht-Ziele, Prinzipien mit Prüffrage, Definition of Done) → Bögen (Meilensteine mit
 prüfbarem Abnahmekriterium, Zieldatum, Baseline) → Spezifikation je Bogen in drei Teilen mit Freigabe durch den

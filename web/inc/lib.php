@@ -1,5 +1,5 @@
 <?php
-/* AMW online (Stufe 2, doc/12-online.md): gemeinsame Teile für index.php, api.php und die Einrichtung.
+/* AMW online (doc/online.md): gemeinsame Teile für index.php, api.php und die Einrichtung.
  *
  * Konfiguration (Turso-Zugang, Benutzer, Passwort-Hash) schreibt der Einrichtungs-Assistent selbst – außerhalb des
  * Web-/Deploy-Ordners, nie ins Repo. Speicher: Turso über HTTP (/v2/pipeline) oder für Proben am PC eine SQLite-Datei.
