@@ -63,7 +63,7 @@ function kopfzeilen(bool $html): void {
     header_remove('X-Powered-By');
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
-    header('Referrer-Policy: no-referrer');
+    header('Referrer-Policy: same-origin');   // no-referrer liesse Formulare mit „Origin: null“ senden (Edge geprüft)
     header('Cache-Control: no-store');
     header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
     if (ist_https()) header('Strict-Transport-Security: max-age=31536000');
