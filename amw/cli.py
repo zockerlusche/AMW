@@ -8,7 +8,7 @@ import json
 import os
 import sys
 
-from . import db, kern
+from . import betrieb, db, kern, wissen
 
 
 def _projekt(con, a):
@@ -120,6 +120,11 @@ def cmd_aufgabe(a, con):
         for k in r.keys():
             if r[k] not in (None, "") and k not in ("uid", "herkunft"):
                 print(f"{k}: {r[k]}")
+    elif a.aktion in ("parken", "aktiv", "keine_prio", "pool"):
+        if not a.id:
+            raise kern.AmwFehler("Aufgaben-Nummer fehlt")
+        wissen.einstufen(con, pid, _von(a), a.id, "geparkt" if a.aktion == "parken" else a.aktion)
+        print(f"A{a.id} → {'geparkt' if a.aktion == 'parken' else a.aktion}")
     else:
         if not a.id:
             raise kern.AmwFehler("Aufgaben-Nummer fehlt")
@@ -171,6 +176,108 @@ def cmd_regeln(a, con):
         print(f"{'KR' if r['ebene'] == 'arbeit' else 'PR'}{r['nr']} (Stand {_zeit(r['stand_utc'])}): {r['text']}\n")
 
 
+def cmd_lauf(a, con):
+    pid = _projekt(con, a)
+    if a.aktion == "start":
+        if not a.beschreibung and not a.rezept:
+            raise kern.AmwFehler("--beschreibung oder --rezept angeben")
+        lid = betrieb.lauf_start(con, pid, _von(a), a.beschreibung or a.rezept, a.rezept, not a.leicht, a.schirm, a.aufgabe)
+        print(f"L{lid} läuft – am Ende: amw lauf ende {lid} --rc <Code>")
+    elif a.aktion == "ende":
+        betrieb.lauf_ende(con, pid, _von(a), a.id, a.rc, a.ergebnis, a.abgebrochen)
+        print(f"L{a.id} beendet")
+    else:
+        for r in con.execute("SELECT * FROM lauf WHERE projekt_id = ? ORDER BY id DESC LIMIT ?", (pid, a.grenze)):
+            print(f"L{r['id']:<5} {r['agent']:<8} [{r['status']}]{' schwer' if r['schwer'] else ''}{' Schirm' if r['schirm'] else ''}"
+                  f" {_zeit(r['start_utc'])}–{_zeit(r['ende_utc']) or '…'} rc {r['rc'] if r['rc'] is not None else '–'}  {r['beschreibung']}")
+
+
+def cmd_pruefung(a, con):
+    pid = _projekt(con, a)
+    if a.aktion == "bitte":
+        prid = betrieb.pruefbitte(con, pid, _von(a), a.pruefer, a.zweig, a.sha, a.punkte, a.aufgabe)
+        print(f"P{prid} an {a.pruefer}")
+    elif a.aktion in ("gruen", "rot"):
+        betrieb.pruefung_ergebnis(con, pid, _von(a), a.id, a.aktion, a.bemerkung)
+        print(f"P{a.id} → {a.aktion}")
+    elif a.aktion == "ist-gruen":
+        r = betrieb.ist_gruen(con, pid, a.sha)
+        print(f"grün: P{r['id']}" if r else "NICHT grün")
+        return 0 if r else 3
+    else:
+        for r in con.execute("SELECT * FROM pruefung WHERE projekt_id = ? AND (? OR ergebnis = 'offen') ORDER BY id DESC LIMIT 50",
+                             (pid, int(a.alle))):
+            print(f"P{r['id']:<5} [{r['ergebnis']}] {r['zweig']}@{r['sha'][:8]} {r['bauer']} → {r['pruefer']}"
+                  + (f" A{r['aufgabe_id']}" if r["aufgabe_id"] else ""))
+
+
+def cmd_hinweis(a, con):
+    pid = _projekt(con, a)
+    if a.aktion == "setzen":
+        print(f"Anweisung #{betrieb.hinweis(con, pid, _von(a), a.fuer, a.text, a.bis)} gesetzt")
+    else:
+        print(f"{betrieb.sperre_aufheben(con, pid, _von(a), a.id)} aufgehoben")
+
+
+def cmd_rezept(a, con):
+    pid = _projekt(con, a)
+    if a.aktion == "setzen":
+        print(betrieb.rezept_setzen(con, pid, a.name, a.befehl, a.beschreibung, a.schirm, a.speicher or 0.0, not a.leicht))
+    elif a.aktion == "zeige":
+        r = con.execute("SELECT * FROM rezept WHERE projekt_id = ? AND name = ?", (pid, a.name)).fetchone()
+        if not r:
+            raise kern.AmwFehler(f"Rezept „{a.name}“ gibt es nicht")
+        print(f"{r['name']} (Stand {_zeit(r['stand_utc'])}){' · Schirm' if r['braucht_schirm'] else ''}"
+              f"{' · schwer' if r['schwer'] else ''} · ≥ {r['braucht_speicher_gb']:g} GB frei\n{r['beschreibung'] or ''}\n{r['befehl']}")
+    else:
+        for r in con.execute("SELECT name, beschreibung FROM rezept WHERE projekt_id = ? ORDER BY name", (pid,)):
+            print(f"{r['name']:<24} {r['beschreibung'] or ''}")
+
+
+def _text(a):
+    if getattr(a, "text_datei", None):
+        with open(a.text_datei, encoding="utf-8") as f:
+            return f.read()
+    return a.text or ""
+
+
+def cmd_wortlaut(a, con):
+    wid = wissen.wortlaut_neu(con, _projekt(con, a), _von(a), _text(a), a.kanal, a.zeit, a.bemerkung)
+    print(f"W{wid} erfasst")
+
+
+def cmd_beschluss(a, con):
+    bid = wissen.beschluss_neu(con, _projekt(con, a), _von(a), a.stichwort, _text(a), a.quelle, a.thema, a.zeit,
+                               a.wortlaut, a.aufgaben, a.ersetzt)
+    print(f"B{bid} angelegt" + (f", B{a.ersetzt} überholt" if a.ersetzt else ""))
+
+
+def cmd_regel(a, con):
+    print(wissen.regel_setzen(con, _projekt(con, a), _von(a), a.ebene, a.nr, _text(a), a.beschluss, a.teil))
+
+
+def cmd_notiz(a, con):
+    pid = _projekt(con, a)
+    if a.aktion == "setzen":
+        print(wissen.notiz_setzen(con, pid, _von(a), a.schluessel, _text(a)))
+    else:
+        sql = "SELECT schluessel, wert, geaendert_utc FROM notiz WHERE projekt_id = ?" + (" AND schluessel = ?" if a.schluessel else "")
+        for r in con.execute(sql + " ORDER BY schluessel", (pid, a.schluessel) if a.schluessel else (pid,)):
+            print(f"[{r['schluessel']}] {_zeit(r['geaendert_utc'])}\n{r['wert'] if a.schluessel else r['wert'][:160]}\n")
+
+
+def cmd_release(a, con):
+    pid = _projekt(con, a)
+    if a.aktion == "merge":
+        print(f"R{wissen.release_merge(con, pid, _von(a), a.titel, a.commit, _text(a) or None, a.aufgaben)} eingetragen")
+    elif a.aktion == "version":
+        rid, n = wissen.release_version(con, pid, _von(a), a.version, a.titel, a.commit, _text(a) or None)
+        print(f"Version {a.version} (R{rid}) aus {n} Merge(s)")
+    else:
+        for r in con.execute("SELECT * FROM release WHERE projekt_id = ? ORDER BY zeit_utc DESC LIMIT 30", (pid,)):
+            print(f"R{r['id']:<5} {r['art']:<7} {r['version'] or '(offen)':<9} {_zeit(r['zeit_utc'])} {r['titel']}")
+
+
 # --- Aufbau --------------------------------------------------------------------------------------
 
 def parser():
@@ -219,7 +326,8 @@ def parser():
     x.set_defaults(f=cmd_erledigt)
 
     x = s.add_parser("aufgabe")
-    x.add_argument("aktion", choices=["neu", "liste", "zeige", "start", "blockiert", "wartet", "fertig", "verwerfen"])
+    x.add_argument("aktion", choices=["neu", "liste", "zeige", "start", "blockiert", "wartet", "fertig", "verwerfen",
+                                       "parken", "aktiv", "keine_prio", "pool"])
     x.add_argument("id", type=int, nargs="?")
     x.add_argument("--titel")
     x.add_argument("--agent")
@@ -264,6 +372,92 @@ def parser():
 
     x = s.add_parser("regeln")
     x.set_defaults(f=cmd_regeln)
+
+    x = s.add_parser("lauf", help="Rechen-Läufe: start prüft Halt, Speicher, einen schweren/Schirm-Lauf zur Zeit")
+    x.add_argument("aktion", choices=["start", "ende", "liste"])
+    x.add_argument("id", type=int, nargs="?")
+    x.add_argument("--beschreibung")
+    x.add_argument("--rezept")
+    x.add_argument("--leicht", action="store_true", help="kein schwerer Lauf (keine Speicher-Grenze)")
+    x.add_argument("--schirm", action="store_true")
+    x.add_argument("--aufgabe", type=int)
+    x.add_argument("--rc", type=int)
+    x.add_argument("--ergebnis")
+    x.add_argument("--abgebrochen", action="store_true")
+    x.add_argument("--grenze", type=int, default=20)
+    x.set_defaults(f=cmd_lauf)
+
+    x = s.add_parser("pruefung", help="Prüfbitte je Stand (SHA), Ergebnis grün/rot")
+    x.add_argument("aktion", choices=["bitte", "gruen", "rot", "ist-gruen", "liste"])
+    x.add_argument("id", type=int, nargs="?")
+    x.add_argument("--pruefer")
+    x.add_argument("--zweig")
+    x.add_argument("--sha")
+    x.add_argument("--punkte")
+    x.add_argument("--aufgabe", type=int)
+    x.add_argument("--bemerkung")
+    x.add_argument("--alle", action="store_true")
+    x.set_defaults(f=cmd_pruefung)
+
+    x = s.add_parser("hinweis", help="Anweisung an einen Agenten oder alle (z. B. „keine Rechen-Jobs“)")
+    x.add_argument("aktion", choices=["setzen", "aufheben"])
+    x.add_argument("id", type=int, nargs="?")
+    x.add_argument("--fuer", default="alle")
+    x.add_argument("--text")
+    x.add_argument("--bis", help="UTC, z. B. 2026-11-02T06:00:00Z")
+    x.set_defaults(f=cmd_hinweis)
+
+    x = s.add_parser("rezept", help="Lauf-Rezepte als Daten")
+    x.add_argument("aktion", choices=["setzen", "zeige", "liste"])
+    x.add_argument("name", nargs="?")
+    x.add_argument("--befehl")
+    x.add_argument("--beschreibung")
+    x.add_argument("--schirm", action="store_true")
+    x.add_argument("--speicher", type=float)
+    x.add_argument("--leicht", action="store_true")
+    x.set_defaults(f=cmd_rezept)
+
+    for name, f, hilfe in (("wortlaut", cmd_wortlaut, "Aussage des Entwicklers wörtlich erfassen"),
+                           ("beschluss", cmd_beschluss, "Beschluss anlegen (optional einen alten ersetzen)"),
+                           ("regel", cmd_regel, "Regel anlegen/ändern – nur mit Beschluss")):
+        x = s.add_parser(name, help=hilfe)
+        x.add_argument("--text")
+        x.add_argument("--text-datei")
+        x.set_defaults(f=f)
+        if name == "wortlaut":
+            x.add_argument("--kanal", default="chat-tl")
+            x.add_argument("--zeit", help="UTC der Aussage")
+            x.add_argument("--bemerkung")
+        elif name == "beschluss":
+            x.add_argument("--stichwort", required=True)
+            x.add_argument("--quelle", required=True)
+            x.add_argument("--thema")
+            x.add_argument("--zeit")
+            x.add_argument("--wortlaut")
+            x.add_argument("--aufgaben")
+            x.add_argument("--ersetzt", type=int)
+        else:
+            x.add_argument("--ebene", choices=["arbeit", "projekt"], required=True)
+            x.add_argument("--nr", type=int, required=True)
+            x.add_argument("--beschluss", type=int, required=True)
+            x.add_argument("--teil")
+
+    x = s.add_parser("notiz", help="gepflegte Notizen (Schlüssel/Wert)")
+    x.add_argument("aktion", choices=["setzen", "zeige"])
+    x.add_argument("schluessel", nargs="?")
+    x.add_argument("--text")
+    x.add_argument("--text-datei")
+    x.set_defaults(f=cmd_notiz)
+
+    x = s.add_parser("release", help="Release Notes: je Merge eine Zeile, Version fasst zusammen")
+    x.add_argument("aktion", choices=["merge", "version", "liste"])
+    x.add_argument("--titel")
+    x.add_argument("--commit")
+    x.add_argument("--version")
+    x.add_argument("--aufgaben")
+    x.add_argument("--text")
+    x.add_argument("--text-datei")
+    x.set_defaults(f=cmd_release)
     return p
 
 
@@ -280,9 +474,10 @@ def main(argv=None):
         else:
             con = db.verbinde()
             try:
-                a.f(a, con)
+                rc = a.f(a, con)
             finally:
                 con.close()
+            return rc or 0
     except (kern.AmwFehler, LookupError, FileNotFoundError, FileExistsError) as e:
         print(f"FEHLER: {e}", file=sys.stderr)
         return 1

@@ -7,7 +7,6 @@ Serverstart neu) und passendem Host/Origin; nur parametrisierte Abfragen; die Se
 Schreibt ausschließlich über kern (als „Entwickler“).
 """
 import argparse
-import ctypes
 import json
 import os
 import secrets
@@ -17,25 +16,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from . import db, kern
+from .betrieb import speicher_frei_gb
 
 STANDARD_PORT = 8780
 HIER = os.path.dirname(os.path.abspath(__file__))
-
-
-def speicher_frei_gb():
-    class MS(ctypes.Structure):
-        _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
-                    ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
-                    ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
-                    ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
-                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
-    try:
-        m = MS()
-        m.dwLength = ctypes.sizeof(MS)
-        ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
-        return round(m.ullAvailPhys / 2**30, 1), round(m.ullTotalPhys / 2**30, 1)
-    except (AttributeError, OSError):
-        return None, None
 
 
 def zeilen(cur):
