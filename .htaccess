@@ -1,0 +1,20 @@
+# AMW online (Hostinger, Apache/LiteSpeed)
+Options -Indexes
+DirectoryIndex index.php
+
+RewriteEngine On
+# immer HTTPS
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+# versteckte Dateien (.git, .htaccess …) und alles außer den beiden Einstiegen sperren
+RewriteRule (^|/)\. - [F,L]
+RewriteCond %{REQUEST_URI} !(^|/)(index\.php|api\.php)?$
+RewriteRule ^ - [F,L]
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "no-referrer"
+  Header always set X-Robots-Tag "noindex, nofollow"
+</IfModule>

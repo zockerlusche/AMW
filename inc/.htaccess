@@ -1,0 +1,2 @@
+# Nur für index.php/api.php per include – nie direkt aus dem Netz
+Require all denied
