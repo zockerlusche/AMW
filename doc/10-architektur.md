@@ -75,7 +75,21 @@ Jede Tabelle hat zusätzlich: `projekt`, `herkunft` (Rechner), `uid` (global ein
 | **2 Unterwegs** | Spiegel nach zentral (Turso, sonst Neon, → 06 §6), Antworten von unterwegs als angehängte Zeilen zurück; Anmeldung mit zweitem Faktor, HTTPS, Rollen; Veröffentlichen von Release Notes/Blog auf die Homepage | Marcel sieht und beantwortet alles von überall | Stufe 1 trägt im Betrieb |
 | **3 Produkt** | Installer + Einrichtungs-Assistent, mehrere Benutzer und Projekte, Container für den Webserver, Zwei-Wege-Abgleich für mehrere Agenten-Rechner, eigenes Repo (privat) | andere Nutzer können die AMW einsetzen | Stufe 2 trägt; Marcels Wort zum Repo |
 
-## 5 Übergang vom heutigen Bus
+## 5 Ablauf Wecken, Halt und Neustart
+**Wecken:** Die Windows-Aufgabenplanung startet `amw-dienst` bei der Anmeldung und startet ihn nach einem Absturz neu; sie schaut selbst nicht in die Datenbank. Der Dienst erkennt Änderungen wie die heutige Wache über `PRAGMA data_version` (alle 1–2 s). Bei einer neuen Nachricht, deren Art laut `nachricht_art.weckt` weckt, liest er Pipe-Adresse und Schlüssel des Empfängers aus dessen Schlüssel-Datei und legt eine kurze Zeile in die Pipe: Eine ruhende Sitzung beginnt eine neue Runde, eine arbeitende bekommt die Zeile zwischen zwei Schritten. `empfang.geweckt_utc` wird gesetzt. Kein Neustart nach dem Wecken; Claude Code kann den Dienst nicht beenden, weil er nicht sein Kind ist.
+
+**Anmelden:** Ein SessionStart-Hook (startup, resume) schreibt bei jedem Sitzungsstart Pipe-Adresse und Schlüssel in eine nur für den Benutzer lesbare Datei und trägt die Sitzung in `sitzung` ein (ohne Schlüssel). Nur angemeldete, lebende Sitzungen werden geweckt.
+
+**Halt** (Marcel 01.11. 09:25): Entwickler (Workbench) oder TL (`amw halt`) setzt eine `sperre` mit art `halt` für alle oder einzelne Agenten.
+- Der Dienst stellt sofort jedem betroffenen laufenden Agenten ein STOPP zu („aktuelle Arbeit sauber beenden, nichts Neues anfangen“).
+- Solange der Halt gilt, weckt er nur noch für `stopp` und `freigabe`; `amw` verweigert neue Läufe und Aufgaben-Starts; der Pflicht-Kontext zeigt den Halt zuerst.
+- „Weiter“ hebt den Halt auf; liegengebliebene Nachrichten werden danach der Reihe nach zugestellt.
+- Der Dienst beendet **keine** Claude-Code-Sitzungen (Abbruch mitten in Commit oder Schreibvorgang wäre gefährlicher als der Nutzen; → 05 §2 „Nichts Fremdes beenden“). Hartes Beenden bleibt Hand des Entwicklers.
+- Der Halt steht in der Datenbank und gilt deshalb über Neustarts hinweg.
+
+**Windows-Neustart:** Nach dem Hochfahren läuft nur der Dienst (wenige MB, liefert die Workbench); Agenten startet er **nie von selbst** (Tokens, Kontrolle). Alte Sitzungen werden als `beendet` geführt, ihre Schlüssel sind ungültig; niemand wird ins Leere geweckt. Nachrichten bleiben offen, bis der Agent gestartet ist und sein Hook ihn anmeldet – dann stellt der Dienst das Offene zu. Die Workbench zeigt je Agent `soll` gegen Ist („CC2: soll laufen, läuft nicht, 3 offen“); ein Startknopf startet später nur auf Klick des Entwicklers.
+
+## 6 Übergang vom heutigen Bus
 1. bus.db läuft während Stufe 1 unverändert weiter; nichts wird dort umgebaut.
 2. Ein Übernahme-Skript liest bus.db **nur lesend** und schreibt amw.db nach der Zuordnung in §3; wiederholbar, mit Zählvergleich je Tabelle.
 3. Umschalten in einem Schritt (Marcels Wort): Agenten benutzen ab dann `amw` statt `bus.py`; bus.db bleibt als Archiv lesbar.

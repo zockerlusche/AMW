@@ -260,9 +260,12 @@ CREATE TABLE pruefung (
 );
 
 -- Anweisungen, die für einen Agenten oder alle gelten (z. B. „keine Rechen-Jobs“).
+-- art 'halt' = Halt (→ 10 §5): Dienst stellt sofort ein STOPP zu und weckt danach nur noch für
+-- stopp/freigabe; amw verweigert neue Läufe und Aufgaben-Starts; gilt über Neustarts hinweg bis aufgehoben.
 CREATE TABLE sperre (
   id              INTEGER PRIMARY KEY,
   projekt_id      INTEGER NOT NULL REFERENCES projekt(id),
+  art             TEXT NOT NULL DEFAULT 'hinweis' CHECK (art IN ('hinweis', 'halt')),
   gilt_fuer       TEXT NOT NULL,                  -- Agent-Kennung oder 'alle'
   von             TEXT NOT NULL,
   text            TEXT NOT NULL,
