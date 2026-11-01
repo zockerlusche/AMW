@@ -39,7 +39,7 @@ class Abgleich(unittest.TestCase):
 
     def test_hochladen_nur_bei_aenderung(self):
         n = self.ab.hochladen()
-        self.assertEqual(n, len(abgleich.ansichten(self.con, self.pid)))
+        self.assertEqual(n, len(abgleich.ansichten(self.con, self.pid)) + 1)      # + Suchindex beim ersten Mal
         self.assertEqual(self.ab.hochladen(), 0)
         kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Neu?", [("A", "a")], "A", "weil")
         self.assertGreaterEqual(self.ab.hochladen(), 2)          # Start (Zähler) und Fragen
@@ -79,6 +79,16 @@ class Abgleich(unittest.TestCase):
         self.ab.eingang()
         kurz = [r[0] for r in self.con.execute("SELECT kurz FROM nachricht WHERE kurz LIKE '%DB' ORDER BY id")]
         self.assertEqual(kurz, ["erste DB", "zweite DB"])
+
+    def test_suchindex_gepackt_und_vollstaendig(self):
+        import base64, zlib
+        kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Brückenfrage?", [("A", "a")], "A", "weil")
+        x = abgleich.suchindex(self.con, self.pid)
+        eintraege = json.loads(zlib.decompress(base64.b64decode(x["gepackt"])))
+        self.assertEqual(x["anzahl"], len(eintraege))
+        self.assertIn(["frage", "F" + str(eintraege[0][1][1:]), "Brückenfrage?"], [e[:3] for e in eintraege])
+        self.ab.hochladen(alle=True)
+        self.assertEqual(len(self.online_zeilen("SELECT 1 FROM ansicht WHERE weg = '/api/suchindex'")), 1)
 
     def test_ohne_freigabe_kein_abgleich(self):
         alt = os.environ.get("LOCALAPPDATA")

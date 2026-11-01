@@ -10,6 +10,7 @@ trägt das Ergebnis zurück. Jede Zeile wirkt höchstens einmal (lokale Liste `n
 Zugang: %LOCALAPPDATA%\\amw\\turso.json {"url", "token", "abgleich": true}. Ohne "abgleich": true bleibt alles aus.
 Der Schlüssel wird nie ausgegeben oder protokolliert.
 """
+import base64
 import hashlib
 import json
 import logging
@@ -19,6 +20,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import zlib
 
 from . import aktionen, db, kern, workbench
 
@@ -155,6 +157,28 @@ def ansichten(con, pid, speicher=None):
     return a
 
 
+INDEX_S = 900        # Suchindex höchstens alle 15 min (gepackt ~1 MB; nur bei Änderung)
+
+
+def suchindex(con, pid):
+    """Für die Suche online (web/api.php): Aufgaben, Beschlüsse, Fragen, Wortlaut vollständig, Nachrichten die
+    letzten 2000 (nur Kurztext). Je Eintrag [art, ref, titel, suchtext, zusatz, zeit]; gepackt (zlib + Base64)."""
+    teile = [
+        ("aufgabe", "SELECT 'A' || id, titel, substr(coalesce(bemerkung, ''), 1, 300), status, angelegt_utc FROM aufgabe"
+                    " WHERE projekt_id = ? ORDER BY id DESC"),
+        ("beschluss", "SELECT 'B' || id, stichwort, substr(regel, 1, 400), status, zeit_utc FROM beschluss WHERE projekt_id = ?"
+                      " ORDER BY id DESC"),
+        ("frage", "SELECT 'F' || id, kurz, substr(coalesce(antwort, ''), 1, 300), status, zeit_utc FROM frage"
+                  " WHERE projekt_id = ? ORDER BY id DESC"),
+        ("wortlaut", "SELECT 'W' || id, substr(text, 1, 200), substr(text, 201, 400), kanal, zeit_utc FROM wortlaut"
+                     " WHERE projekt_id = ? ORDER BY id DESC"),
+        ("nachricht", "SELECT '#' || id, kurz, '', von, zeit_utc FROM nachricht WHERE projekt_id = ? ORDER BY id DESC LIMIT 2000"),
+    ]
+    eintraege = [[art, *r] for art, sql in teile for r in con.execute(sql, (pid,))]
+    roh = json.dumps(eintraege, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return {"gepackt": base64.b64encode(zlib.compress(roh, 9)).decode("ascii"), "anzahl": len(eintraege)}
+
+
 def _pruef(inhalt):
     # Zeitstempel und freier Speicher ändern sich ständig – sie allein lösen kein Hochladen aus
     if isinstance(inhalt, dict):
@@ -167,7 +191,7 @@ class Abgleich:
         self.con, self.sp = con, speicher
         self.pid = pid or con.execute("SELECT min(id) FROM projekt").fetchone()[0]
         self.bekannt = {}                      # weg → Prüfsumme, wie sie online liegt
-        self.letzt_hoch = self.letzt_puls = 0.0
+        self.letzt_hoch = self.letzt_puls = self.letzt_index = 0.0
         self.con.execute("CREATE TABLE IF NOT EXISTS netz_eingang (id INTEGER PRIMARY KEY, ergebnis TEXT,"
                          " zeit_utc TEXT NOT NULL)")
         # Merkmal = Zeit + Weg + Inhalt: eine neue Online-Datenbank zählt wieder ab 1 – die Nummer allein reicht nicht
@@ -181,7 +205,11 @@ class Abgleich:
     def hochladen(self, alle=False):
         t = db.jetzt()
         neu = []
-        for weg, inhalt in ansichten(self.con, self.pid, self.sp).items():
+        alle_ansichten = ansichten(self.con, self.pid, self.sp)
+        if alle or time.time() - self.letzt_index >= INDEX_S:
+            alle_ansichten["/api/suchindex"] = suchindex(self.con, self.pid)
+            self.letzt_index = time.time()
+        for weg, inhalt in alle_ansichten.items():
             p = _pruef(inhalt)
             if alle or self.bekannt.get(weg) != p:
                 neu.append((weg, json.dumps(inhalt, ensure_ascii=False), p))
