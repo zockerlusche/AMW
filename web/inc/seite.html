@@ -132,6 +132,11 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .kachel .offen { position: absolute; top: 12px; right: 14px; font: 600 13px var(--mono); }
 .kachel.tot { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); }
 .kachel.aus { opacity: .55; }
+.kachel.klickbar { cursor: pointer; } .kachel.klickbar:hover { border-color: var(--leise); }
+.agent-dialog { width: min(760px, 100%); max-height: 86vh; overflow-y: auto; }
+.agent-dialog .abschnitt { margin-top: 14px; }
+.agent-dialog h4 { font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin: 0 0 6px; }
+.agent-dialog .zeile { padding: 4px 0; border-bottom: 1px solid var(--linie); font-size: 13.5px; overflow-wrap: anywhere; }
 
 .frage { padding: 18px 20px; margin-bottom: 16px; }
 .frage .meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--leise); font-size: 12.5px; }
@@ -306,6 +311,12 @@ const TEXTE = {
     thema: "Hell / Dunkel", halt: "Halt", weiter: "Weiter",
     s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
     an_dich: "Nachrichten an dich", antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_freigabe: "Freigabe",
+    k_details: "Klicken: was macht er, was kommt noch", k_offen_h: "neue offene Nachrichten (dazu {n} Altbestand aus dem alten Bus)",
+    k_gerade: "Gerade:", k_vermutet: "(aus letzter Meldung)", k_unbekannt: "Tätigkeit unbekannt", k_zuletzt: "Zuletzt",
+    k_macht: "Macht gerade", k_quelle_angabe: "eigene Angabe (amw taetigkeit)", k_quelle_aufgabe: "laufende Aufgabe", k_quelle_meldung: "abgeleitet aus seiner letzten Meldung",
+    k_kommt: "Kommt noch (Aufgaben nach Rang)", k_wartet_auf: "wartet auf", k_laeufe: "Rechen-Läufe", k_pruefungen: "Prüfbitten",
+    k_soll_pruefen: "soll prüfen für {x}", k_wartet_pruefung: "wartet auf Prüfung durch {x}", k_an_ihn: "Neue Nachrichten an ihn ({n})",
+    k_meldungen: "Seine letzten Meldungen", k_nichts: "nichts", k_nichts_neu: "keine neuen", k_alt: "– dazu {n} offene aus dem alten Bus (Altbestand)",
     n_einst: "Einstellungen", speichern: "Speichern", gespeichert: "Gespeichert",
     e_projekt: "Projekt {x}", e_takt: "Takt für den Lead (Minuten)", e_takt_h: "Zusammenfassung an den Lead; 0 = aus",
     e_speicher: "Speicher-Grenze für Rechen-Läufe (GB frei)", e_speicher_h: "Läufe starten erst, wenn so viel RAM frei ist",
@@ -358,6 +369,12 @@ const TEXTE = {
     thema: "Light / Dark", halt: "Halt", weiter: "Resume",
     s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
     an_dich: "Messages for you", antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_freigabe: "Release",
+    k_details: "Click: what is it doing, what is next", k_offen_h: "new open messages (plus {n} legacy from the old bus)",
+    k_gerade: "Now:", k_vermutet: "(from last report)", k_unbekannt: "activity unknown", k_zuletzt: "Last",
+    k_macht: "Doing now", k_quelle_angabe: "own statement (amw taetigkeit)", k_quelle_aufgabe: "running task", k_quelle_meldung: "derived from its last report",
+    k_kommt: "Coming up (tasks by rank)", k_wartet_auf: "waiting for", k_laeufe: "Compute runs", k_pruefungen: "Review requests",
+    k_soll_pruefen: "to review for {x}", k_wartet_pruefung: "waiting for review by {x}", k_an_ihn: "New messages to it ({n})",
+    k_meldungen: "Its latest reports", k_nichts: "nothing", k_nichts_neu: "none new", k_alt: "– plus {n} open from the old bus (legacy)",
     n_einst: "Settings", speichern: "Save", gespeichert: "Saved",
     e_projekt: "Project {x}", e_takt: "Lead pulse (minutes)", e_takt_h: "Summary to the lead; 0 = off",
     e_speicher: "Memory limit for compute runs (GB free)", e_speicher_h: "Runs start only with this much free RAM",
@@ -526,16 +543,56 @@ async function sichtStart() {
 }
 /* „1204 · A1204 Titel“ → „A1204 Titel“ (alte Titel tragen die Nummer schon) */
 function ohneDoppel(x) { const [nr, ...rest] = x.split(" · "); const titel = rest.join(" · "); return titel.startsWith("A" + nr) ? titel : `A${nr} · ${titel}`; }
+/* Kachel: Zustand, was er gerade macht (eigene Angabe › laufende Aufgabe › Aufgabe aus der letzten Meldung),
+   letzte Meldung, neue offene Nachrichten (Altbestand aus dem alten Bus getrennt). Klick → Übersicht. */
 function kachel(a) {
   const lebt = a.zustand === "aktiv"; const soll = a.soll === "an";
   const zust = lebt ? ["gruen", t("laeuft")] : soll ? ["rot", a.zustand ? t("beendet_soll") : t("nie_gestartet")] : ["", a.soll === "ruht" ? t("ruht") : t("aus")];
-  return el("div", { class: `karte kachel ${!lebt && soll ? "tot" : ""} ${!soll ? "aus" : ""}` },
-    a.offen ? el("span", { class: "offen", style: `color:var(${a.offen > 20 ? "--bernstein" : "--leise"})` }, t("offen_n", { n: a.offen })) : null,
+  const kurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : x;
+  const karte = el("div", { class: `karte kachel klickbar ${!lebt && soll ? "tot" : ""} ${!soll ? "aus" : ""}`, title: t("k_details") },
+    a.offen ? el("span", { class: "offen", style: `color:var(${a.offen > 10 ? "--bernstein" : "--leise"})`, title: t("k_offen_h", { n: a.offen_alt || 0 }) }, t("offen_n", { n: a.offen })) : null,
     el("div", { class: "name" }, a.kennung), el("div", { class: "rolle" }, a.rolle || t("agent")),
-    el("div", { class: "zustand" }, el("span", { class: "punkt " + zust[0] }), zust[1]),
-    el("div", { class: "info" }, a.laeuft ? ohneDoppel(a.laeuft) : el("span", { class: "sehrleise" }, t("keine_aufgabe")),
-      el("div", { class: "sehrleise mono" }, lebt ? t("puls", { t: seit(a.letzter_puls_utc) }) : a.grenzen || "")),
-    soll ? el("button", { class: "klein-knopf", type: "button", style: "margin-top:8px", onclick: () => nachrichtDialog(a.kennung) }, t("nachricht")) : null);
+    el("div", { class: "zustand" }, el("span", { class: "punkt " + zust[0] }), zust[1],
+      lebt ? el("span", { class: "sehrleise mono", style: "margin-left:auto;font-size:11px" }, t("puls", { t: seit(a.letzter_puls_utc) })) : null),
+    el("div", { class: "info" },
+      a.gerade ? el("div", {}, el("span", { class: "sehrleise" }, t("k_gerade") + " "), kurz(a.gerade, 90),
+        a.gerade_quelle === "meldung" ? el("span", { class: "sehrleise" }, " " + t("k_vermutet")) : null)
+        : el("span", { class: "sehrleise" }, soll ? t("k_unbekannt") : (a.grenzen || "")),
+      a.zuletzt ? el("div", { class: "sehrleise", style: "margin-top:4px" }, `${t("k_zuletzt")} ${seit(a.zuletzt_utc)}: ${kurz(a.zuletzt, 70)}`) : null),
+    soll ? el("button", { class: "klein-knopf", type: "button", style: "margin-top:8px",
+      onclick: e => { e.stopPropagation(); nachrichtDialog(a.kennung); } }, t("nachricht")) : null);
+  karte.addEventListener("click", () => agentDialog(a.kennung));
+  return karte;
+}
+async function agentDialog(kennung) {
+  let d; try { d = await holen("/api/agent?kennung=" + encodeURIComponent(kennung)); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
+  const abschnitt = (titel, liste, zeile, leer) => el("div", { class: "abschnitt" }, el("h4", {}, titel),
+    liste && liste.length ? el("div", {}, liste.map(zeile)) : el("div", { class: "sehrleise" }, leer || t("k_nichts")));
+  const ref = x => el("span", { class: "ref" }, x);
+  const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
+    el("div", { class: "karte dialog agent-dialog" },
+      el("div", { style: "display:flex;align-items:baseline;gap:12px" }, el("h3", { style: "color:var(--tinte);margin:0" }, d.kennung),
+        el("span", { class: "leise" }, `${d.rolle || t("agent")} · ${d.zustand === "aktiv" ? t("laeuft") : (d.zustand || t("nie_gestartet"))}` +
+          (d.letzter_puls_utc ? ` · ${t("puls", { t: seit(d.letzter_puls_utc) })}` : "")),
+        el("button", { class: "klein-knopf", type: "button", style: "margin-left:auto", onclick: () => hg.remove() }, "×")),
+      abschnitt(t("k_macht"), d.gerade ? [d] : [], x => el("div", {}, x.gerade,
+        el("div", { class: "sehrleise" }, t("k_quelle_" + x.gerade_quelle)))),
+      abschnitt(t("k_kommt"), d.naechste, x => el("div", { class: "zeile" }, ref(`A${x.id}`), " ",
+        el("span", { class: "etikett" }, t("sp_" + x.status) || x.status), " ", x.titel,
+        x.wartet_auf ? el("span", { class: "sehrleise" }, ` – ${t("k_wartet_auf")} ${x.wartet_auf}`) : null)),
+      abschnitt(t("k_laeufe"), d.laeufe, x => el("div", { class: "zeile" }, ref(`L${x.id}`), " ", x.beschreibung, " ",
+        el("span", { class: "sehrleise" }, `${x.status} · ${seit(x.start_utc)}`))),
+      abschnitt(t("k_pruefungen"), d.pruefungen, x => el("div", { class: "zeile" }, ref(`P${x.id}`), " ",
+        x.pruefer === d.kennung ? t("k_soll_pruefen", { x: x.bauer }) : t("k_wartet_pruefung", { x: x.pruefer }),
+        x.aufgabe_id ? ` · A${x.aufgabe_id}` : "", el("span", { class: "sehrleise" }, ` · ${seit(x.angefragt_utc)}`))),
+      abschnitt(t("k_an_ihn", { n: d.an_ihn.length }), d.an_ihn, x => el("div", { class: "zeile" }, ref(`#${x.id}`), " ",
+        el("b", {}, x.von), " ", x.kurz, el("span", { class: "sehrleise" }, ` · ${seit(x.zeit_utc)}`)),
+        t("k_nichts_neu") + (d.offen_alt ? " " + t("k_alt", { n: d.offen_alt }) : "")),
+      abschnitt(t("k_meldungen"), d.meldungen, x => el("div", { class: "zeile" }, ref(`#${x.id}`), " ",
+        el("span", { class: "sehrleise" }, `${t("art_" + x.art) || x.art} · ${seit(x.zeit_utc)}: `), x.kurz)),
+      d.offen_alt && d.an_ihn.length ? el("p", { class: "sehrleise", style: "margin-top:10px" }, t("k_alt", { n: d.offen_alt })) : null,
+      el("div", { class: "aktionen" }, el("button", { class: "knopf", type: "button", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht")))));
+  document.body.append(hg);
 }
 function nachrichtDialog(an) {
   const art = el("select", {}, ["auftrag", "frage", "korrektur", "info"].map(k => el("option", { value: k }, t("art_" + k))));

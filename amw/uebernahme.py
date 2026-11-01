@@ -60,7 +60,9 @@ def uebernehmen(quelle, ziel, ausgabe=print):
         zahlen[tabelle] = zahlen.get(tabelle, 0) + 1
 
     with db.schreiben(z):
+        # altbestand_bis: offene Empfänge bis hierher sind Altbestand aus dem alten Bus (Workbench zählt sie getrennt)
         ein("projekt", name=PROJEKT, beschreibung="Godot-Spiel; übernommen aus dem LayerIT-Bus",
+            einstellungen=json.dumps({"altbestand_bis": q.execute("SELECT max(id) FROM nachricht").fetchone()[0] or 0}),
             pfad_repo="F:\\layerit", angelegt_utc=t)
         pid = z.execute("SELECT id FROM projekt WHERE name = ?", (PROJEKT,)).fetchone()[0]
 

@@ -28,7 +28,7 @@ EINGANG = os.path.join(WURZEL, "eingang-tl")
 KOPIE_S = 60
 BEFEHLE_S = 5
 VON = "TL"
-ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "pruefung",
+ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "pruefung", "taetigkeit",
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent"}
 
 
@@ -70,6 +70,8 @@ def argumente(befehl):
         args = [str(b.pop("befehl", ""))]
         if "aktion" in b:
             args.append(str(b.pop("aktion")))
+        if args[0] == "taetigkeit" and "text" in b:      # bei taetigkeit ist der Text die Positionsangabe
+            args.append(str(b.pop("text")))
         for k in ("kennung", "schluessel", "id", "ids"):
             if k in b:
                 v = b.pop(k)
@@ -136,12 +138,12 @@ def befehle(eingang=EINGANG):
             if not isinstance(befehl, dict):
                 raise ValueError("Befehlsdatei muss ein JSON-Objekt sein")
             taetigkeit = befehl.pop("taetigkeit", None)   # optional: was der TL gerade tut (zeigt die Workbench)
+            puls(taetigkeit=taetigkeit)                   # zuerst: die Sitzung lebt, bevor der Befehl sie braucht
             if befehl.get("befehl") == "puls":           # nur Lebenszeichen (Stundentakt des TL)
                 args, rc, aus, fehler = ["puls"], 0, "Puls gesetzt\n", ""
             else:
                 args = argumente(befehl)
                 rc, aus, fehler = ausfuehren(args)
-            puls(taetigkeit=taetigkeit)
         except (ValueError, OSError) as e:
             args, rc, aus, fehler = None, 2, "", str(e)
         ergebnis = {"datei": name, "zeit_utc": db.jetzt(), "args": args, "rc": rc, "ausgabe": aus, "fehler": fehler}

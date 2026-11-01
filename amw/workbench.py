@@ -8,6 +8,7 @@ Schreibt ausschließlich über kern (als „Entwickler“).
 """
 import argparse
 import json
+import re
 import os
 import secrets
 import sys
@@ -28,15 +29,49 @@ def zeilen(cur):
 
 # --- Lesen ---------------------------------------------------------------------------------------
 
+def altbestand_bis(con, pid):
+    """Letzte Nachricht aus dem alten Bus (Übernahme); offene Empfänge davor zählen als Altbestand."""
+    e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
+    return int(e.get("altbestand_bis", 0))
+
+
+AUFGABE_IN_TEXT = re.compile(r"\bA(\d{3,5})\b")
+
+
+def gerade(con, pid, kennung, sitzung_taetigkeit=None):
+    """Was der Agent gerade macht: eigene Angabe (amw taetigkeit), sonst laufende Aufgabe, sonst die Aufgabe aus
+    seiner letzten Meldung (Nummer oder A1234 im Text). Rückgabe: (text, aufgabe_id, quelle)."""
+    if sitzung_taetigkeit:
+        return sitzung_taetigkeit, None, "angabe"
+    a = con.execute("SELECT id, titel FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'laeuft'"
+                    " ORDER BY begonnen_utc DESC LIMIT 1", (pid, kennung)).fetchone()
+    if a:
+        return f"A{a['id']} · {a['titel']}", a["id"], "aufgabe"
+    m = con.execute("SELECT aufgabe_id, kurz FROM nachricht WHERE projekt_id = ? AND von = ? ORDER BY id DESC LIMIT 1",
+                    (pid, kennung)).fetchone()
+    if m:
+        aid = m["aufgabe_id"] or (int(AUFGABE_IN_TEXT.search(m["kurz"] or "").group(1)) if AUFGABE_IN_TEXT.search(m["kurz"] or "") else None)
+        t = con.execute("SELECT titel FROM aufgabe WHERE projekt_id = ? AND id = ?", (pid, aid)).fetchone() if aid else None
+        if t:
+            return f"A{aid} · {t['titel']}", aid, "meldung"
+    return None, None, None
+
+
 def daten_start(con, pid):
+    alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
-        "SELECT g.kennung, g.rolle, g.soll, g.grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc,"
+        "SELECT g.kennung, g.rolle, g.soll, g.grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc, s.taetigkeit,"
         " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
-        "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen') AS offen,"
-        " (SELECT id || ' · ' || titel FROM aufgabe WHERE projekt_id = g.projekt_id AND agent = g.kennung"
-        "   AND status = 'laeuft' ORDER BY begonnen_utc DESC LIMIT 1) AS laeuft"
+        "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen' AND n.id > :alt) AS offen,"
+        " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
+        "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen' AND n.id <= :alt) AS offen_alt,"
+        " (SELECT kurz FROM nachricht WHERE projekt_id = g.projekt_id AND von = g.kennung ORDER BY id DESC LIMIT 1) AS zuletzt,"
+        " (SELECT zeit_utc FROM nachricht WHERE projekt_id = g.projekt_id AND von = g.kennung ORDER BY id DESC LIMIT 1) AS zuletzt_utc"
         " FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
-        " WHERE g.projekt_id = ? ORDER BY g.id", (pid,)))
+        " WHERE g.projekt_id = :p ORDER BY g.id", {"p": pid, "alt": alt}))
+    for a in agenten:
+        a["gerade"], a["gerade_aufgabe"], a["gerade_quelle"] = gerade(con, pid, a["kennung"],
+                                                                      a["taetigkeit"] if a["zustand"] == "aktiv" else None)
     fragen = zeilen(con.execute(
         "SELECT id, kurz, von, zeit_utc, blockiert FROM frage WHERE projekt_id = ? AND an = 'entwickler'"
         " AND status = 'offen' AND kurz NOT LIKE 'GEPARKT%' ORDER BY blockiert DESC, id DESC LIMIT 20", (pid,)))
@@ -89,6 +124,44 @@ def daten_einstellungen(con, pid, speicher=None):
             "pc": {**einstellungen.laden(), "datei": einstellungen.pfad()},
             "turso": {"url": z.get("url", ""), "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(z.get("token"))},
             "web": web, "web_grenzen": {k: [lo, hi] for k, (_, lo, hi) in abgleich.WEB_EINSTELLUNGEN.items()}}
+
+
+def daten_agent(con, pid, kennung):
+    """Klick auf die Kachel: was macht er, was kommt noch, was liegt bei ihm."""
+    a = con.execute("SELECT g.kennung, g.rolle, g.soll, g.grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc,"
+                    " s.taetigkeit FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
+                    " WHERE g.projekt_id = ? AND g.kennung = ?", (pid, kennung)).fetchone()
+    if not a:
+        raise LookupError(kennung)
+    alt = altbestand_bis(con, pid)
+    text, aid, quelle = gerade(con, pid, kennung, a["taetigkeit"] if a["zustand"] == "aktiv" else None)
+    return {
+        **dict(a), "gerade": text, "gerade_aufgabe": aid, "gerade_quelle": quelle,
+        "naechste": zeilen(con.execute(
+            "SELECT id, titel, status, einstufung, rang, wartet_auf FROM aufgabe WHERE projekt_id = ? AND agent = ?"
+            " AND status IN ('laeuft','wartet','blockiert') AND einstufung IN ('aktiv','keine_prio')"
+            " AND id != coalesce(?, -1) ORDER BY CASE status WHEN 'laeuft' THEN 0 WHEN 'wartet' THEN 1 ELSE 2 END, rang, id LIMIT 8",
+            (pid, kennung, aid))),
+        "meldungen": zeilen(con.execute(
+            "SELECT id, zeit_utc, art, kurz FROM nachricht WHERE projekt_id = ? AND von = ? ORDER BY id DESC LIMIT 5", (pid, kennung))),
+        "an_ihn": zeilen(con.execute(
+            "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
+            " WHERE n.projekt_id = ? AND e.agent = ? AND e.status = 'offen' AND n.id > ? ORDER BY n.id DESC LIMIT 8",
+            (pid, kennung, alt))),
+        "offen_alt": con.execute("SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE n.projekt_id = ?"
+                                 " AND e.agent = ? AND e.status = 'offen' AND n.id <= ?", (pid, kennung, alt)).fetchone()[0],
+        "laeufe": zeilen(con.execute(
+            "SELECT id, beschreibung, status, start_utc, aufgabe_id FROM lauf WHERE projekt_id = ? AND agent = ?"
+            " AND status IN ('angemeldet','laeuft') ORDER BY id DESC", (pid, kennung))),
+        "pruefungen": zeilen(con.execute(
+            "SELECT id, aufgabe_id, zweig, sha, bauer, pruefer, angefragt_utc FROM pruefung WHERE projekt_id = ?"
+            " AND ergebnis IS NULL AND (pruefer = ? OR bauer = ?) ORDER BY id DESC LIMIT 8", (pid, kennung, kennung))),
+    }
+
+
+def daten_agenten_alle(con, pid):
+    return {r["kennung"]: daten_agent(con, pid, r["kennung"])
+            for r in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND soll != 'aus'", (pid,))}
 
 
 def vorgeschichte(con, pid, f):
@@ -270,6 +343,7 @@ def baue_handler(port, token):
                     "/api/betrieb": lambda c, p: daten_betrieb(c, p),
                     "/api/releases": lambda c, p: daten_releases(c, p),
                     "/api/einstellungen": lambda c, p: daten_einstellungen(c, p),
+                    "/api/agent": lambda c, p: daten_agent(c, p, q.get("kennung", [""])[0]),
                     "/api/projekte": lambda c, p: zeilen(c.execute("SELECT id, name FROM projekt ORDER BY id"))}
             weg = wege.get(u.path)
             if not weg:

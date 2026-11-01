@@ -172,6 +172,11 @@ def cmd_weiter(a, con):
     print(f"{n} Halt aufgehoben" if n else "kein Halt aktiv")
 
 
+def cmd_taetigkeit(a, con):
+    kern.taetigkeit(con, _projekt(con, a), _von(a), " ".join(a.text), a.aufgabe)
+    print("Tätigkeit gesetzt" if a.text else "Tätigkeit gelöscht")
+
+
 def cmd_kontext(a, con):
     print(kern.kontext(con, _projekt(con, a), a.agent or _von(a)))
 
@@ -505,6 +510,11 @@ def parser():
     x = s.add_parser("weiter", help="Halt aufheben")
     x.add_argument("--fuer", default="alle")
     x.set_defaults(f=cmd_weiter)
+
+    x = s.add_parser("taetigkeit", help="was ich gerade tue (zeigt die Workbench), z. B. taetigkeit \"A1215 Chips umbrechen\"")
+    x.add_argument("text", nargs="*")
+    x.add_argument("--aufgabe", type=int)
+    x.set_defaults(f=cmd_taetigkeit)
 
     x = s.add_parser("kontext", help="Pflicht-Kontext für einen Agenten")
     x.add_argument("agent", nargs="?")

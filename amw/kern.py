@@ -104,6 +104,18 @@ def agent_einstellen(con, pid, von, kennung, neu=False, **werte):
     return kennung
 
 
+def taetigkeit(con, pid, kennung, text, aufgabe_id=None):
+    """Was der Agent gerade tut (zeigt die Workbench auf seiner Kachel); leerer Text löscht die Angabe."""
+    a = agent_zeile(con, pid, kennung)
+    with db.schreiben(con):
+        s = con.execute("SELECT id FROM sitzung WHERE agent_id = ? AND zustand = 'aktiv' ORDER BY id DESC LIMIT 1",
+                        (a["id"],)).fetchone()
+        if not s:
+            raise AmwFehler(f"{kennung} hat keine aktive Sitzung – erst: amw anmelden --von {kennung}")
+        con.execute("UPDATE sitzung SET taetigkeit = ?, aufgabe_id = ?, letzter_puls_utc = ? WHERE id = ?",
+                    ((text or "").strip()[:200] or None, aufgabe_id, db.jetzt(), s["id"]))
+
+
 # --- Halt und Sperren ----------------------------------------------------------------------------
 
 def aktive_sperren(con, pid, kennung=None, art=None):

@@ -104,6 +104,21 @@ class Bruecke(unittest.TestCase):
         with self.assertRaises(aktionen.Ungueltig):
             aktionen.ausfuehren(self.con, self.pid, "/api/gelesen", {"ids": "1"})
 
+    def test_taetigkeit_und_kachel(self):
+        from amw import workbench
+        self.einwerfen("t.json", {"befehl": "taetigkeit", "text": "Takt 16:00 – Sync"})
+        bruecke.befehle(self.eingang)
+        self.assertEqual(self.ergebnis("t")["rc"], 0)
+        tl = next(a for a in workbench.daten_start(self.con, self.pid)["agenten"] if a["kennung"] == "TL")
+        self.assertEqual((tl["gerade"], tl["gerade_quelle"]), ("Takt 16:00 – Sync", "angabe"))
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Chips umbrechen", agent="CC1")
+        kern.posten(self.con, self.pid, "CC1", "TL", "meldung", f"A{aid} Teil 1 fertig", aufgabe_id=aid)
+        cc1 = workbench.daten_agent(self.con, self.pid, "CC1")
+        self.assertEqual((cc1["gerade_aufgabe"], cc1["gerade_quelle"]), (aid, "meldung"))
+        self.assertEqual(cc1["meldungen"][0]["kurz"], f"A{aid} Teil 1 fertig")
+        with self.assertRaises(kern.AmwFehler):                       # ohne Sitzung keine Tätigkeit
+            kern.taetigkeit(self.con, self.pid, "CC1", "x")
+
 
 if __name__ == "__main__":
     unittest.main()
