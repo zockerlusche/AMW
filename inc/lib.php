@@ -6,10 +6,33 @@
  */
 declare(strict_types=1);
 
-const SITZUNG_LEERLAUF_S = 1800;     // 30 min ohne Klick → neu anmelden
-const SITZUNG_HOECHSTENS_S = 43200;  // spätestens nach 12 h
-const FEHL_JE_IP = 5;                // Fehlversuche je Adresse in 15 min
-const FEHL_GESAMT = 20;              // Fehlversuche insgesamt in 60 min (verteilte Versuche)
+/* Einstellungen der Online-Seite (Zahnrad „Online-Seite“): Vorgabe, kleinster, größter Wert – dieselben wie
+ * amw/abgleich.py WEB_EINSTELLUNGEN. Gespeichert im Online-Speicher, zustand „web_einstellungen“. */
+const WEB_EINSTELLUNGEN = ['leerlauf_min' => [30, 5, 240], 'hoechstens_h' => [12, 1, 72], 'fehl_je_ip' => [5, 3, 20],
+                           'fehl_gesamt' => [20, 5, 200]];
+
+/** Alle Werte der Online-Seite (geprüft). In der Sitzung 5 min zwischengespeichert, damit nicht jede Anfrage den
+ *  Speicher fragt; $frisch = true liest neu (Seite „Einstellungen“). */
+function web_einst_alle(bool $frisch = false): array {
+    static $d = null;
+    if ($d === null || $frisch) {
+        if (!$frisch && isset($_SESSION['web_einst']) && time() - $_SESSION['web_einst']['zeit'] < 300) $roh = $_SESSION['web_einst']['werte'];
+        else {
+            try { $roh = json_decode((string)zustand_lesen('web_einstellungen'), true) ?: []; } catch (RuntimeException $x) { $roh = []; }
+            if (session_status() === PHP_SESSION_ACTIVE) $_SESSION['web_einst'] = ['zeit' => time(), 'werte' => $roh];
+        }
+        $d = [];
+        foreach (WEB_EINSTELLUNGEN as $k => [$vorgabe, $lo, $hi]) {
+            $v = isset($roh[$k]) ? (int)$roh[$k] : $vorgabe;
+            $d[$k] = $v >= $lo && $v <= $hi ? $v : $vorgabe;
+        }
+    }
+    return $d;
+}
+
+function web_einst(string $k): int {
+    return web_einst_alle()[$k];
+}
 const SCHREIBEN_JE_STUNDE = 120;     // Briefkasten-Zeilen je Stunde
 
 /* Tabellen im Online-Speicher – dieselben wie amw/abgleich.py SCHEMA (ein Test vergleicht beide). */
@@ -211,7 +234,7 @@ function seite_ende(): void {
 function angemeldet(): bool {
     if (empty($_SESSION['angemeldet'])) return false;
     $t = time();
-    if ($t - ($_SESSION['seit'] ?? 0) > SITZUNG_HOECHSTENS_S || $t - ($_SESSION['zuletzt'] ?? 0) > SITZUNG_LEERLAUF_S) {
+    if ($t - ($_SESSION['seit'] ?? 0) > web_einst('hoechstens_h') * 3600 || $t - ($_SESSION['zuletzt'] ?? 0) > web_einst('leerlauf_min') * 60) {
         abmelden();
         return false;
     }
@@ -279,7 +302,7 @@ function gesperrt(string $ip): bool {
         ['SELECT count(*) FROM versuch WHERE ok = 0 AND ip = ? AND zeit_utc > ?', [$ip, jetzt_utc(-900)]],
         ['SELECT count(*) FROM versuch WHERE ok = 0 AND zeit_utc > ?', [jetzt_utc(-3600)]],
     ]);
-    return (int)$je_ip[0][0] >= FEHL_JE_IP || (int)$gesamt[0][0] >= FEHL_GESAMT;
+    return (int)$je_ip[0][0] >= web_einst('fehl_je_ip') || (int)$gesamt[0][0] >= web_einst('fehl_gesamt');
 }
 
 const EINRICHTEN_S = 600;            // so lange gilt der QR-Code beim ersten Anmelden

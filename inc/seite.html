@@ -89,7 +89,18 @@ h2::after { content: ""; flex: 1; height: 1px; background: var(--linie); }
 .zeile-reveal > *:nth-child(4) { animation-delay: .12s } .zeile-reveal > *:nth-child(5) { animation-delay: .16s }
 .zeile-reveal > *:nth-child(n+6) { animation-delay: .2s }
 .still .zeile-reveal > * { animation: none; }
-.marke .version { margin-left: 8px; font: 11px var(--mono, monospace); color: var(--leise); letter-spacing: 0; }   /* stilles Aktualisieren: nichts blendet neu ein */
+nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise); letter-spacing: 0; }
+.einst { display: grid; gap: 16px; max-width: 980px; }
+.einst .karte { padding: 16px 18px; }
+.einst h3 { font: 600 15px var(--titel); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; }
+.einst .feld { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 6px 14px; align-items: start; padding: 5px 0; }
+.einst .feld > label { color: var(--leise); font-size: 13px; padding-top: 7px; }
+.einst input:not([type=checkbox]), .einst select { width: 100%; max-width: 420px; padding: 7px 9px; background: var(--grund); color: var(--tinte);
+  border: 1px solid var(--linie); border-radius: 3px; font: inherit; font-size: 14px; }
+.einst input[type=checkbox] { width: 18px; height: 18px; margin-top: 8px; accent-color: var(--bernstein); }
+.einst table.tab input:not([type=checkbox]), .einst table.tab select { min-width: 70px; }
+.einst table.tab td { vertical-align: middle; }
+.einst .gesperrt { opacity: .65; }
 @keyframes auf { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
@@ -214,6 +225,8 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   nav { grid-row: 4; flex-direction: row; justify-content: space-around; border-right: 0; border-top: 1px solid var(--linie);
     padding: 4px 4px max(4px, env(safe-area-inset-bottom)); background: var(--flaeche); overflow-x: auto; gap: 0; }
   nav .gruppe, nav .fuss { display: none; }
+  .einst .feld { grid-template-columns: minmax(0, 1fr); }
+  .einst .feld > label { padding-top: 0; }
   nav a { flex: 1 1 0; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; min-width: 0; border-left: 0; border-top: 2px solid transparent;
     font-size: 10.5px; letter-spacing: .02em; position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   nav a [data-t-lang] { display: none; }
@@ -249,7 +262,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
 <body>
 <div class="rahmen">
   <header>
-    <div class="marke"><b>AMW</b><span data-t="marke"></span><span class="version" id="version"></span></div>
+    <div class="marke"><b>AMW</b><span data-t="marke"></span></div>
     <div class="signale" id="signale"></div>
     <div class="suche"><input id="suche" autocomplete="off" data-t-ph="suche"></div>
     <button class="schalter-halt" id="halt-knopf" type="button"></button>
@@ -265,8 +278,10 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
     <div class="gruppe" data-t="g_wissen"></div>
     <a data-sicht="wissen"><span class="sym">§</span><span data-t="n_wissen"></span> <span class="zahl" data-zahl="beschluesse"></span></a>
     <div class="gruppe" data-t="g_betrieb"></div>
-    <a data-sicht="betrieb"><span class="sym">⚙</span><span data-t="n_betrieb"></span></a>
+    <a data-sicht="betrieb"><span class="sym">◈</span><span data-t="n_betrieb"></span></a>
+    <a data-sicht="einstellungen"><span class="sym">⚙</span><span data-t="n_einst"></span></a>
     <div class="fuss">
+      <div class="version" id="version"></div>
       <button class="klein-knopf" id="thema" type="button" data-t="thema"></button>
       <button class="klein-knopf" id="sprache" type="button">DE / EN</button>
     </div>
@@ -291,6 +306,20 @@ const TEXTE = {
     thema: "Hell / Dunkel", halt: "Halt", weiter: "Weiter",
     s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
     an_dich: "Nachrichten an dich", antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_freigabe: "Freigabe",
+    n_einst: "Einstellungen", speichern: "Speichern", gespeichert: "Gespeichert",
+    e_projekt: "Projekt {x}", e_takt: "Takt für den Lead (Minuten)", e_takt_h: "Zusammenfassung an den Lead; 0 = aus",
+    e_speicher: "Speicher-Grenze für Rechen-Läufe (GB frei)", e_speicher_h: "Läufe starten erst, wenn so viel RAM frei ist",
+    e_agenten: "Agenten", e_agenten_h: "Soll „aus“: wird nicht erwartet und bekommt keine Rundschreiben; „ruht“: pausiert.",
+    e_kennung: "Kennung", e_rolle: "Rolle", e_soll: "Soll", e_grenzen: "Grenzen", e_rund: "Rundschreiben", e_puls: "Puls-Grenze (min)",
+    e_anlegen: "Anlegen", e_neu_h: "neuer Agent – danach Rolle usw. einstellen", soll_an: "an", soll_ruht: "ruht", soll_aus: "aus",
+    e_web: "Online-Seite", e_web_h: "Gilt für die Anmeldung im Netz.", e_leerlauf: "Abmelden nach Leerlauf (min)",
+    e_hoechstens: "Längste Sitzung (h)", e_fehl_ip: "Sperre nach Fehlversuchen je Adresse (15 min)", e_fehl_ges: "Sperre nach Fehlversuchen gesamt (60 min)",
+    e_pc: "Dieser PC", e_pc_h: "Wirkt beim nächsten Start des Wächters (amw dienst neustart). Datei: {x}", nur_pc: "Nur am PC änderbar – hier zur Ansicht.",
+    e_db: "Datenbank", e_port: "Port der Workbench", e_aufsicht: "Aufsicht der Sitzungen (s)", e_hoch: "Abgleich: hochladen höchstens alle (s)",
+    e_puls_pc: "Abgleich: Lebenszeichen alle (s)", e_eingang: "Abgleich: Briefkasten leeren alle (s)", e_bruecke: "Brücke für den TL",
+    e_absender: "Brücke: Absender", e_kopie: "Brücke: Lesekopie höchstens alle (s)",
+    e_turso: "Online-Speicher (Turso)", e_turso_h: "Neue Adresse oder neuer Schlüssel werden vor dem Speichern geprüft. Wirkt beim nächsten Start des Wächters.",
+    e_url: "Adresse", e_token: "Schlüssel", e_token_da: "gespeichert – leer lassen = behalten", e_token_neu: "noch keiner", e_abgleich: "Abgleich an",
     s_pc: "PC-Stand {x}", s_pc_weg: "PC zuletzt {x}", s_briefkasten: "{n} unterwegs", abmelden: "Abmelden",
     unterwegs: "Übermittelt – der PC übernimmt es beim nächsten Abgleich (meist unter 1 Minute).",
     stand: "Stand {t}", wartet_auf_dich: "Wartet auf dich", nichts_offen: "Nichts offen – keine Frage wartet auf dich.", agenten: "Agenten",
@@ -329,6 +358,20 @@ const TEXTE = {
     thema: "Light / Dark", halt: "Halt", weiter: "Resume",
     s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
     an_dich: "Messages for you", antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_freigabe: "Release",
+    n_einst: "Settings", speichern: "Save", gespeichert: "Saved",
+    e_projekt: "Project {x}", e_takt: "Lead pulse (minutes)", e_takt_h: "Summary to the lead; 0 = off",
+    e_speicher: "Memory limit for compute runs (GB free)", e_speicher_h: "Runs start only with this much free RAM",
+    e_agenten: "Agents", e_agenten_h: "Target “off”: not expected, no broadcasts; “resting”: paused.",
+    e_kennung: "ID", e_rolle: "Role", e_soll: "Target", e_grenzen: "Limits", e_rund: "Broadcasts", e_puls: "Pulse limit (min)",
+    e_anlegen: "Add", e_neu_h: "new agent – then set role etc.", soll_an: "on", soll_ruht: "resting", soll_aus: "off",
+    e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after idle (min)",
+    e_hoechstens: "Longest session (h)", e_fehl_ip: "Lock after failed attempts per address (15 min)", e_fehl_ges: "Lock after failed attempts total (60 min)",
+    e_pc: "This PC", e_pc_h: "Takes effect on the next service start (amw dienst neustart). File: {x}", nur_pc: "Only changeable on the PC – shown here for reference.",
+    e_db: "Database", e_port: "Workbench port", e_aufsicht: "Session supervision (s)", e_hoch: "Sync: upload at most every (s)",
+    e_puls_pc: "Sync: heartbeat every (s)", e_eingang: "Sync: empty mailbox every (s)", e_bruecke: "Bridge for the TL",
+    e_absender: "Bridge: sender", e_kopie: "Bridge: read copy at most every (s)",
+    e_turso: "Online store (Turso)", e_turso_h: "A new URL or token is checked before saving. Takes effect on the next service start.",
+    e_url: "URL", e_token: "Token", e_token_da: "saved – leave empty to keep", e_token_neu: "none yet", e_abgleich: "Sync on",
     s_pc: "PC data {x}", s_pc_weg: "PC last seen {x}", s_briefkasten: "{n} pending", abmelden: "Log out",
     unterwegs: "Sent – your PC picks it up at the next sync (usually within a minute).",
     stand: "As of {t}", wartet_auf_dich: "Waiting for you", nichts_offen: "Nothing pending – no question is waiting for you.", agenten: "Agents",
@@ -440,7 +483,7 @@ function zeige(sicht, still = false) {
   for (const a of document.querySelectorAll("nav a")) a.classList.toggle("an", a.dataset.sicht === sicht);
   try { localStorage.setItem("amw-sicht", sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history.replaceState(null, "", "#" + sicht);
-  const fertig = ({ start: sichtStart, fragen: sichtFragen, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases }[sicht] || sichtStart)();
+  const fertig = ({ start: sichtStart, fragen: sichtFragen, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return; }
   Promise.resolve(fertig).then(() => { $("#inhalt").scrollTop = pos[0]; window.scrollTo(0, pos[1]); });
 }
@@ -686,6 +729,92 @@ try { thema(localStorage.getItem("amw-thema") || (matchMedia("(prefers-color-sch
 try { sprache = localStorage.getItem("amw-sprache") || ((navigator.language || "de").startsWith("de") ? "de" : "en"); } catch (e) {}
 if (new URLSearchParams(location.search).get("sprache") in TEXTE) sprache = new URLSearchParams(location.search).get("sprache");
 feste_texte();
+
+/* --- Einstellungen (Zahnrad) ------------------------------------------------------------------
+   Projekt, Agenten und Online-Seite: am PC und online änderbar. „Dieser PC“ und „Online-Speicher“: nur am PC
+   (online nur sichtbar) – sonst könnte, wer sich online anmeldet, die AMW auf eine andere Datenbank umbiegen. */
+async function sichtEinstellungen() {
+  let d; try { d = await holen("/api/einstellungen"); } catch (e) { rahmen(t("n_einst")).append(el("div", { class: "leer" }, String(e))); return; }
+  const wv = zustand.start?.online?.web_version;
+  const m = rahmen(t("n_einst"), el("span", { class: "leise mono" }, `AMW v${d.version}` + (wv && wv !== d.version ? ` · Web v${wv}` : "")));
+  const feld = (beschriftung, eingabe, hilfe) => el("div", { class: "feld" }, el("label", {}, beschriftung),
+    el("div", {}, eingabe, hilfe ? el("div", { class: "sehrleise", style: "font-size:12px;margin-top:2px" }, hilfe) : null));
+  const zahl = (wert, min, max, schritt) => el("input", { type: "number", value: wert ?? "", min, max, step: schritt || 1 });
+  const text = (wert, art) => el("input", { type: art || "text", value: wert ?? "", autocomplete: "off" });
+  const schalter = an => { const x = el("input", { type: "checkbox" }); x.checked = !!an; return x; };
+  const wert = x => x.type === "checkbox" ? x.checked : x.type === "number" ? (x.value === "" ? null : Number(x.value)) : x.value.trim();
+  async function speichern(teil, daten, knopf) {
+    knopf.disabled = true;
+    try { const r = await schicken(`/api/einstellungen/${teil}`, daten); if (!r.unterwegs) toast(r.hinweis ? `${t("gespeichert")} – ${r.hinweis}` : t("gespeichert")); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); }
+    finally { knopf.disabled = false; }
+  }
+  function block(titel, hinweis, felder, teil, sammeln, gesperrt) {
+    const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
+    knopf.addEventListener("click", () => speichern(teil, sammeln(), knopf));
+    if (gesperrt) { for (const [, x] of felder) x.disabled = true; knopf.disabled = true; }
+    return el("div", { class: "karte" + (gesperrt ? " gesperrt" : "") }, el("h3", {}, titel),
+      hinweis ? el("p", { class: "leise", style: "margin:0 0 12px" }, hinweis) : null,
+      ...felder.map(([b, x, h]) => feld(b, x, h)), el("div", { style: "margin-top:12px" }, knopf));
+  }
+  const box = el("div", { class: "einst" + (ruhig ? "" : " zeile-reveal") });
+
+  // Projekt
+  const pf = { takt_min: zahl(d.projekt.takt_min, 0, 1440), speicher_grenze_gb: zahl(d.projekt.speicher_grenze_gb, 1, 512, 0.5) };
+  box.append(block(t("e_projekt", { x: d.projekt.name }), null,
+    [[t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")]],
+    "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb) })));
+
+  // Agenten
+  const zeile = a => {
+    const f = { rolle: text(a.rolle), soll: el("select", {}, ["an", "ruht", "aus"].map(s => el("option", { value: s }, t("soll_" + s)))),
+                grenzen: text(a.grenzen), empfaengt_rund: schalter(a.empfaengt_rund), puls: zahl(Math.round((a.puls_grenze_s || 120) / 60), 1, 1440) };
+    f.soll.value = a.soll || "an";
+    const knopf = el("button", { class: "klein-knopf", type: "button" }, t("speichern"));
+    knopf.addEventListener("click", () => speichern("agent", { kennung: a.kennung, rolle: wert(f.rolle), soll: f.soll.value, grenzen: wert(f.grenzen),
+      empfaengt_rund: f.empfaengt_rund.checked, puls_grenze_s: (wert(f.puls) || 2) * 60 }, knopf));
+    return el("tr", {}, el("td", { class: "mono" }, a.kennung), el("td", {}, f.rolle), el("td", {}, f.soll), el("td", {}, f.grenzen),
+      el("td", { style: "text-align:center" }, f.empfaengt_rund), el("td", {}, f.puls), el("td", {}, knopf));
+  };
+  const neuKennung = text("");
+  neuKennung.placeholder = "CC9";
+  const neuKnopf = el("button", { class: "klein-knopf", type: "button" }, t("e_anlegen"));
+  neuKnopf.addEventListener("click", async () => { if (!neuKennung.value.trim()) return;
+    await speichern("agent", { kennung: neuKennung.value.trim(), neu: true }, neuKnopf); if (!API) zeige("einstellungen"); });
+  box.append(el("div", { class: "karte" }, el("h3", {}, t("e_agenten")), el("p", { class: "leise", style: "margin:0 0 12px" }, t("e_agenten_h")),
+    el("div", { style: "overflow-x:auto" }, el("table", { class: "tab" },
+      el("tr", {}, ...["e_kennung", "e_rolle", "e_soll", "e_grenzen", "e_rund", "e_puls", ""].map(k => el("th", {}, k ? t(k) : ""))),
+      ...d.agenten.map(zeile),
+      el("tr", {}, el("td", {}, neuKennung), el("td", { colspan: 5, class: "leise" }, t("e_neu_h")), el("td", {}, neuKnopf))))));
+
+  // Online-Seite
+  if (d.web) {
+    const g = d.web_grenzen, w = {};
+    for (const k of ["leerlauf_min", "hoechstens_h", "fehl_je_ip", "fehl_gesamt"]) w[k] = zahl(d.web[k], g[k][0], g[k][1]);
+    box.append(block(t("e_web"), t("e_web_h"), [[t("e_leerlauf"), w.leerlauf_min], [t("e_hoechstens"), w.hoechstens_h],
+      [t("e_fehl_ip"), w.fehl_je_ip], [t("e_fehl_ges"), w.fehl_gesamt]], "web",
+      () => Object.fromEntries(Object.entries(w).map(([k, x]) => [k, wert(x)]))));
+  }
+
+  // Dieser PC – nur am PC
+  const p = d.pc, pc = { db_pfad: text(p.db_pfad), port: zahl(p.port, 1024, 65535), aufsicht_s: zahl(p.aufsicht_s, 5, 600),
+    abgleich_hoch_s: zahl(p.abgleich_hoch_s, 10, 3600), abgleich_puls_s: zahl(p.abgleich_puls_s, 60, 3600),
+    abgleich_eingang_s: zahl(p.abgleich_eingang_s, 5, 600), bruecke_an: schalter(p.bruecke_an),
+    bruecke_absender: text(p.bruecke_absender), bruecke_kopie_s: zahl(p.bruecke_kopie_s, 15, 3600) };
+  box.append(block(t("e_pc"), API ? t("nur_pc") : t("e_pc_h", { x: p.datei }), [
+    [t("e_db"), pc.db_pfad], [t("e_port"), pc.port], [t("e_aufsicht"), pc.aufsicht_s], [t("e_hoch"), pc.abgleich_hoch_s],
+    [t("e_puls_pc"), pc.abgleich_puls_s], [t("e_eingang"), pc.abgleich_eingang_s], [t("e_bruecke"), pc.bruecke_an],
+    [t("e_absender"), pc.bruecke_absender], [t("e_kopie"), pc.bruecke_kopie_s]],
+    "pc", () => Object.fromEntries(Object.entries(pc).map(([k, x]) => [k, wert(x)])), !!API));
+
+  // Online-Speicher – nur am PC; der Schlüssel wird nie angezeigt
+  const tu = { url: text(d.turso.url), token: text("", "password"), abgleich: schalter(d.turso.abgleich) };
+  tu.token.placeholder = d.turso.schluessel_gespeichert ? t("e_token_da") : t("e_token_neu");
+  box.append(block(t("e_turso"), API ? t("nur_pc") : t("e_turso_h"),
+    [[t("e_url"), tu.url], [t("e_token"), tu.token], [t("e_abgleich"), tu.abgleich]],
+    "turso", () => ({ url: wert(tu.url), token: tu.token.value.trim() || undefined, abgleich: tu.abgleich.checked }), !!API));
+  m.append(box);
+}
 
 /* Selbst aktualisieren – nur Startseite und Betrieb, und nie während einer Eingabe. */
 setInterval(() => {

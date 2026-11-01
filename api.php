@@ -28,7 +28,11 @@ try {
         $daten = json_decode((string)$roh, true);
         if (!is_array($daten)) antwort(400, ['fehler' => 'JSON']);
         $frage = preg_match('#^/api/frage/(\d{1,9})/antwort$#', $pfad, $m);
-        if (!$frage && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter'], true)) {
+        if (in_array($pfad, ['/api/einstellungen/pc', '/api/einstellungen/turso'], true)) {
+            antwort(403, ['fehler' => 'Diese Einstellung lässt sich nur am PC ändern.']);
+        }
+        if (!$frage && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter',
+                '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web'], true)) {
             antwort(404, ['fehler' => 'unbekannt']);
         }
         // Prüfen, was der PC sowieso prüft, schon hier – damit Fehler sofort sichtbar sind
@@ -53,6 +57,7 @@ try {
             (bool)$frage => ['status' => ($daten['art'] === 'rueckfrage') ? 'offen' : 'beantwortet'],
             $pfad === '/api/nachricht' => ['an' => array_map('trim', explode(',', (string)$daten['an']))],
             $pfad === '/api/gelesen' => ['erledigt' => count($daten['ids'])],
+            str_starts_with($pfad, '/api/einstellungen/') => [],
             $pfad === '/api/halt' => ['halt' => 0],
             default => ['aufgehoben' => 0],
         };
@@ -84,6 +89,8 @@ try {
         $d['regeln'] = array_values(array_filter($d['regeln'], fn($r) => $hat($r['text'])));
     } elseif ($pfad === '/api/fragen') {                  // schon beantwortet, aber noch im Briefkasten → ausblenden
         $d = array_values(array_filter($d, fn($f) => !in_array("/api/frage/{$f['id']}/antwort", $unterwegs, true)));
+    } elseif ($pfad === '/api/einstellungen') {          // Online-Seite: aktuelle Werte, nicht der Stand des Schaufensters
+        $d['web'] = web_einst_alle(true);
     } elseif ($pfad === '/api/start') {
         $gesehen = $pc ? $pc[0][0] : null;
         $d['online'] = ['web_version' => trim((string)@file_get_contents(__DIR__ . '/inc/VERSION')), 'pc_gesehen_utc' => $gesehen, 'stand_utc' => $zeile[0][1], 'briefkasten' => count($unterwegs),
