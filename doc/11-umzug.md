@@ -63,9 +63,9 @@ Wenn etwas hakt: Schalter `F:\agent-bus\projekt-netly\umgezogen.txt` umbenennen 
 |---|---|---|
 | 1 | Sicherung bus.db (VACUUM INTO, integrity ok) | ✓ 11:47 |
 | 2 | Rechen-Jobs: CC1, CC5 – keiner läuft | ✓ 11:49 |
-| 3 | Halt im alten Bus an alle, Quittungen sammeln | |
-| 4 | zweite Sicherung, Übernahme nach daten/amw.db, Zählvergleich | |
-| 5 | Wächter einrichten (E7), eigene Anmeldung, Weckprobe an CCamw | |
-| 6 | Anleitung (diese Seite) als letzte Nachricht im alten Bus, dann Schalter `umgezogen.txt` | |
-| 7 | Agenten melden sich an und bestätigen in der AMW; Weckprobe je Agent | |
+| 3 | Halt im alten Bus an alle (#16287), Quittungen sammeln | ✓ 11:57 CC1–CC5; CC7 ohne Wache (seit 30.10.) |
+| 4 | zweite Sicherung, Übernahme nach daten/amw.db, Zählvergleich | ✓ 11:58 alle Zählungen gleich (bis #16293) |
+| 5 | Wächter einrichten (E7), eigene Anmeldung, Weckprobe an CCamw | ✓ 11:58 eingerichtet, Workbench 200; CCamw durch die erste Bestätigung geweckt |
+| 6 | Anleitung (diese Seite) als letzte Nachricht im alten Bus, dann Schalter `umgezogen.txt` | ✓ 11:59 (#16294 alt und neu) |
+| 7 | Agenten melden sich an und bestätigen in der AMW; Weckprobe je Agent | CC1, CC2, CC4, CC5 umgezogen + geweckt (12:00–12:01); CC3 offen (Wache nach Halt nicht neu gestartet, braucht einen Anstoß); TL im Stundentakt |
 | 8 | TL-Übergabe bestätigt → Weiter | |

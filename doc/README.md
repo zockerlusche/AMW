@@ -20,3 +20,4 @@ Stand: 01.11.2026 · Schreibt: CCamw (allein, seit 01.11. 08:45, TL #16176) · I
 | 08 | [Begriffe](08-begriffe.md) | Glossar |
 | 09 | [Verlauf](09-verlauf.md) | Chronik der Vorgaben des Entwicklers mit Verweis, wo sie stehen |
 | 10 | [Architektur](10-architektur.md) | Vorschlag CCamw: Leitentscheidungen, Bausteine, Datenmodell, Stufen, Übergang |
+| 11 | [Umzug](11-umzug.md) | Umzug LayerIT-Bus → AMW am 01.11.: Anleitung für Agenten und TL, Entsprechung alt → neu, Rückweg |
