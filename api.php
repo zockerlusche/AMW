@@ -34,7 +34,8 @@ try {
         }
         if (!$frage && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter',
                 '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web',
-                '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko'], true)) {
+                '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko',
+                '/api/plan/rueckblick', '/api/plan/uebernehmen'], true)) {
             antwort(404, ['fehler' => 'unbekannt']);
         }
         // Prüfen, was der PC sowieso prüft, schon hier – damit Fehler sofort sichtbar sind
