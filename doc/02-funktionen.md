@@ -6,6 +6,8 @@ Sicht des Entwicklers. Jede Funktion steht einmal; Betriebsanforderungen → 05.
 - **Startseite:** oben die Leiste „wartet auf dich“ (offene Fragen, Freigaben, Abnahmen) – in 10 Sekunden klar, was der Entwickler tun muss. Darunter je Agent eine Kachel: Zustand, aktuelle Aufgabe, letzter Puls.
 - **Navigation:** Fragen · Arbeit (Board) · Zeitleiste · Regeln · Agenten · Release Notes · Projekt-Werkzeuge · Einstellungen; Projekt-Wahl oben.
 - **Grundsatz:** Inhalte für den Menschen strukturiert – kurze Karten, Details aufklappbar, keine Roh-Tabellen.
+- **Sprachen:** Oberfläche auf Deutsch und Englisch, umschaltbar (Marcel 01.11.). Inhalte aus der Datenbank (Fragen, Beschlüsse, Wortlaut) bleiben in ihrer Originalsprache.
+- **Handy:** Die Oberfläche ist für Handy-Bildschirme optimiert – vor allem Fragen beantworten, Start, Halt (Marcel 01.11.). Erreichbar von unterwegs erst mit Stufe 2 (→ 10 §4); in Stufe 1 nur am PC selbst (Server nur auf 127.0.0.1).
 
 ## 1 Einstellungen
 - **Einrichtungs-Assistent** beim ersten Start: Betriebsart (nur lokal / lokal + zentral / zentral), Datenbank, Administrator-Konto.

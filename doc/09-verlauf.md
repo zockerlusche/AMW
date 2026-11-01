@@ -23,3 +23,4 @@ Chronik der Vorgaben des Entwicklers zur AMW. Nur Datum, Kern und Ort, an dem de
 | 01.11. 09:28 | Bedenken: Benutzer ohne Kenntnis der Aufgabenplanung – gibt es einen Ersatz, damit ein Agent über Homepage/Datenbank steuern kann? | 10 §5 Start und Steuerung |
 | 01.11. 10:03 | Frage: Welche DB-Plattform nehmen wir? → CCamw wählt Turso | 06 §7, 07 E4 |
 | 01.11. 10:18 | Marcel hat sich bei Turso angemeldet und die Datenbank amw angelegt (Region Frankfurt); Zugang lokal hinterlegt | 07 E4, 06 §8 P6 |
+| 01.11. 10:23 | Ergänzung: Die Seite soll auf EN/DE existieren und für das Handy optimiert sein (Fragen/Antworten unterwegs) | 02 §0 |
