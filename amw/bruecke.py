@@ -6,8 +6,8 @@ Der TL arbeitet in einer Linux-VM, F:\\amw ist dort per FUSE eingehängt; SQLite
   daten/tl_lesen.db (journal_mode=DELETE). Lesen mit `file:…/tl_lesen.db?immutable=1`. Stand in daten/tl_lesen.stand.
 - Schreiben: Befehlsdateien eingang-tl/befehle/*.json (erst als .tmp schreiben, dann umbenennen). Inhalt entweder
   {"args": ["posten", "--an", "CC1", "--art", "auftrag", "--kurz", "…"]} oder
-  {"befehl": "posten", "an": "CC1", "art": "auftrag", "kurz": "…"} (Schlüssel = CLI-Optionen; "aktion" und "id"/"ids"
-  sind die Positionsangaben). Der Wächter führt sie als `--von TL` aus und legt Ergebnis + Befehl in eingang-tl/erledigt/.
+  {"befehl": "posten", "an": "CC1", "art": "auftrag", "kurz": "…"} (Schlüssel = CLI-Optionen; "aktion", "kennung",
+  "schluessel", "id"/"ids" sind die Positionsangaben). Der Wächter führt sie als `--von TL` aus und legt Ergebnis + Befehl in eingang-tl/erledigt/.
 Vertrauensmodell wie die CLI in Stufe 1: wer auf diesem PC Dateien schreiben kann, kann auch `amw --von TL` aufrufen.
 """
 import contextlib
@@ -70,7 +70,7 @@ def argumente(befehl):
         args = [str(b.pop("befehl", ""))]
         if "aktion" in b:
             args.append(str(b.pop("aktion")))
-        for k in ("id", "ids"):
+        for k in ("kennung", "schluessel", "id", "ids"):
             if k in b:
                 v = b.pop(k)
                 args += [str(x) for x in (v if isinstance(v, list) else [v])]
