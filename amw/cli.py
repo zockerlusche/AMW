@@ -295,6 +295,32 @@ def cmd_risiko(a, con):
                   f" · {r['strategie'] or '–'}: {r['massnahme'] or '–'} · {r['verantwortlich'] or '–'}")
 
 
+def cmd_rueckblick(a, con):
+    from . import verlauf
+    pid = _projekt(con, a)
+    neu = [(art, getattr(a, art)) for art in verlauf.ARTEN if getattr(a, art)]
+    for art, text in neu:
+        verlauf.rueckblick_neu(con, pid, _von(a), a.bogen, art, text)
+    if a.uebernehmen:
+        print(f"→ {a.als} {verlauf.massnahme_uebernehmen(con, pid, _von(a), a.uebernehmen, a.als, a.agent)}")
+    for r in verlauf.rueckblicke(con, pid, a.bogen):
+        print(f"{r['id']:<4} {r['art']:<10} {r['text']}  ({r['von']}"
+              + (f", → A{r['aufgabe_id']}" if r["aufgabe_id"] else "") + (f", → B{r['beschluss_id']}" if r["beschluss_id"] else "") + ")")
+
+
+def cmd_verlauf(a, con):
+    import datetime
+    from . import verlauf
+    pid = _projekt(con, a)
+    ab = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=a.stunden)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if a.zusammenfassung:
+        print(verlauf.kurztext(verlauf.zusammenfassung(con, pid, ab)))
+        return
+    for x in reversed(verlauf.verlauf(con, pid, ab, agent=a.agent, arten=a.art, grenze=a.grenze)):
+        print(f"{_zeit(x['zeit'])}  {x['art']:<9} {x['wer'] or '–':<10} {x['ref']:<7} {x['text'][:110]}"
+              + (f"  [{x['zusatz']}]" if x["zusatz"] and x["art"] != "nachricht" else ""))
+
+
 def cmd_plan(a, con):
     from . import planung
     pid = _projekt(con, a)
@@ -925,6 +951,24 @@ def parser():
     x.add_argument("--status", choices=["offen", "eingetreten", "erledigt"])
     x.add_argument("--bogen", type=int)
     x.set_defaults(f=cmd_risiko)
+
+    x = s.add_parser("rueckblick", help="Rückblick je Bogen: amw rueckblick <bogen> [--gut … --schlecht … --massnahme … --gelernt …]"
+                                        " | --uebernehmen <nr> --als aufgabe|beschluss")
+    x.add_argument("bogen", type=int, nargs="?")
+    for art in ("gut", "schlecht", "massnahme", "gelernt"):
+        x.add_argument("--" + art)
+    x.add_argument("--uebernehmen", type=int, help="Nummer eines Maßnahmen-Eintrags")
+    x.add_argument("--als", choices=["aufgabe", "beschluss"], default="aufgabe")
+    x.add_argument("--agent", help="Bearbeiter, wenn eine Maßnahme zur Aufgabe wird")
+    x.set_defaults(f=cmd_rueckblick)
+
+    x = s.add_parser("verlauf", help="was passiert ist: amw verlauf [--stunden 24] [--agent CC1] [--art erledigt --art pruefung] [--zusammenfassung]")
+    x.add_argument("--stunden", type=int, default=24)
+    x.add_argument("--agent")
+    x.add_argument("--art", action="append", choices=["nachricht", "erledigt", "lauf", "pruefung", "frage", "beschluss", "plan", "sitzung"])
+    x.add_argument("--grenze", type=int, default=200)
+    x.add_argument("--zusammenfassung", action="store_true", help="nur Zahlen")
+    x.set_defaults(f=cmd_verlauf)
 
     x = s.add_parser("plan", help="pruefen (Lücken) | prognose (P50/P85 je Schritt und Bogen) | status (Ampel je Dimension)")
     x.add_argument("aktion", choices=["pruefen", "prognose", "status"])

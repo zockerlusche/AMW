@@ -102,6 +102,12 @@ def planen(con, pid, was, d):
             planung.bogen_aendern(con, pid, e, zahl("bogen"), d.get("titel"), d.get("ziel"), d.get("abnahme"),
                                   d.get("zieldatum"), zahl("nr"), d.get("grund"))
             return {"ok": True}
+        if was == "rueckblick":
+            from . import verlauf
+            return {"rueckblick": verlauf.rueckblick_neu(con, pid, e, zahl("bogen"), d.get("art"), d.get("text"))}
+        if was == "uebernehmen":
+            from . import verlauf
+            return {"nr": verlauf.massnahme_uebernehmen(con, pid, e, zahl("id"), d.get("als"), d.get("agent") or None)}
         if was == "risiko":
             felder = {k: d.get(k) for k in ("titel", "ursache", "wirkung", "strategie", "massnahme", "verantwortlich", "ausloeser", "status")}
             felder.update(wahrscheinlichkeit=zahl("wahrscheinlichkeit"), auswirkung=zahl("auswirkung"), bogen_id=zahl("bogen"))

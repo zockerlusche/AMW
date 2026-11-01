@@ -10,7 +10,7 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = 7          # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
+SCHEMA_VERSION = 8          # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
 HIER = os.path.dirname(os.path.abspath(__file__))
 STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
 

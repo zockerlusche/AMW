@@ -124,7 +124,7 @@ def daten_start(con, pid):
 def daten_planung(con, pid):
     """Ansicht „Planung“: Leitbild, Bögen mit Fortschritt/Prognose/Spezifikation, Schritte in Wellen, Risiken,
     Plan-Check, Status (Ampel je Dimension), was auf den Menschen wartet, Planungs-Protokoll."""
-    from . import planung
+    from . import planung, verlauf
     prog = planung.prognose(con, pid, laeufe=600)
     boegen = planung.boegen(con, pid)
     for b in boegen:
@@ -144,11 +144,34 @@ def daten_planung(con, pid):
             s["kriterien"] = planung._json(s["kriterien"], [])
             s["prognose"] = prog["schritte"].get(s["id"])
         b["schritte"] = schritte
+        b["rueckblick"] = verlauf.rueckblicke(con, pid, b["id"])
     return {"leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
             "pruefung": planung.pruefen(con, pid, prog), "status": planung.status(con, pid, prog),
             "wartet": planung.freigaben_offen(con, pid), "heute": datetime.date.today().isoformat(),   # lokales Datum für die Heute-Linie
             "ereignisse": zeilen(con.execute("SELECT zeit_utc, von, art, bogen_id, aufgabe_id, text FROM plan_ereignis"
                                              " WHERE projekt_id = ? ORDER BY id DESC LIMIT 80", (pid,)))}
+
+
+def daten_verlauf(con, pid, q):
+    """Verlauf der letzten `tage` Tage (1–14, Vorgabe 3); gefiltert wird auf der Seite (geht so auch online)."""
+    from . import verlauf
+    try:
+        tage = max(1, min(14, int(q.get("tage", ["3"])[0])))
+    except ValueError:
+        tage = 3
+    # ab Tagesbeginn – ein sekundengenauer Start änderte den Inhalt bei jedem Abgleich (ständiges Hochladen)
+    ab = (datetime.date.today() - datetime.timedelta(days=tage - 1)).isoformat() + "T00:00:00Z"
+    return {"tage": tage, "ab": ab, "ereignisse": verlauf.verlauf(con, pid, ab, grenze=2500),
+            "agenten": [r[0] for r in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? ORDER BY id", (pid,))]}
+
+
+def daten_seit(con, pid, q):
+    """Zusammenfassung seit dem letzten Besuch (Zeitpunkt kommt von der Seite)."""
+    from . import verlauf
+    ab = q.get("ab", [""])[0]
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", ab):
+        raise LookupError("ab")
+    return verlauf.zusammenfassung(con, pid, ab)
 
 
 def daten_push(con):
@@ -451,6 +474,8 @@ def baue_handler(port, token):
                     "/api/agent": lambda c, p: daten_agent(c, p, q.get("kennung", [""])[0]),
                     "/api/push": lambda c, p: daten_push(c),
                     "/api/planung": lambda c, p: daten_planung(c, p),
+                    "/api/verlauf": lambda c, p: daten_verlauf(c, p, q),
+                    "/api/seit": lambda c, p: daten_seit(c, p, q),
                     "/api/projekte": lambda c, p: zeilen(c.execute("SELECT id, name FROM projekt ORDER BY id"))}
             weg = wege.get(u.path)
             if not weg:

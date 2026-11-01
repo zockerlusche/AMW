@@ -139,10 +139,22 @@ Agenten-Befehle: `amw leitbild`, `amw bogen`, `amw spec`, `amw aufgabe … --bog
 - [x] Ansicht „Planung“ (Zeitleiste, Bogen-Detail, Freigaben, Risiken, Leitbild, Plan-Check), „Wartet auf dich“, Push für Freigaben
 - [x] Online-Spiegel und Freigaben über den Briefkasten; Tests; Bildschirmfotos Desktop/Handy
 
-## 7 Stufe F – Rückblick und Verlauf (0.14.0)
-- [ ] **Rückblick je Bogen**: gut / schlecht / Maßnahme; eine Maßnahme kann als Beschluss oder Regel übernommen werden.
-- [ ] **Verlauf (senkrecht)**: was wann passiert ist – Nachrichten, erledigte Schritte, Läufe, Prüfungen, Freigaben – je Tag und Agent filterbar.
-- [ ] **„Seit du weg warst“**: Zusammenfassung seit dem letzten Besuch auf der Startseite (und als Push).
+## 7 Stufe F – Rückblick und Verlauf (0.14.0) ✔ 02.11.2026
+**Konzept.** (1) **Rückblick je Bogen** nach dem bewährten Muster „Was lief gut / was nicht / was ändern wir“
+(Start-Stop-Continue, 4L – recherche/planung.md §1.16): Einträge mit Art gut | schlecht | massnahme | gelernt, Verfasser,
+Zeit. Eine Maßnahme wird mit einem Klick zur Aufgabe (mit Bezug) oder zum Beschluss (Lessons Learned fließen ins Wissen);
+der Bezug bleibt sichtbar. Agenten können beitragen (`amw rueckblick <bogen> --gut …`); nach dem Abschluss eines Bogens
+erinnert die Karte daran. (2) **Verlauf**: eine senkrechte Zeitleiste aller Ereignisse aus vorhandenen Daten (keine neue
+Erfassung): Nachrichten, erledigte Aufgaben/Schritte, Läufe (Start/Ende), Prüfungen (grün/rot), Fragen (gestellt/
+beantwortet), Beschlüsse, Planungs-Ereignisse (Freigaben, Bögen, Baseline), Sitzungen (Start/Ende) – je Tag gruppiert,
+filterbar nach Agent und Art, Zeitraum wählbar. (3) **„Seit du weg warst“**: die Startseite merkt sich (je Gerät) den
+letzten Besuch und zeigt eine Zusammenfassung seither in Zahlen mit Link in den Verlauf; täglich zur gewählten Uhrzeit
+als Push (Ereignis „rueckblick“, Vorgabe 08:00, nur Zahlen).
+Lücken: Verlauf liest viele Tabellen → Grenze je Abfrage (300) und Zeitraum; Rückblick-Maßnahmen als Beschluss nur durch
+Lead/Entwickler (Beschlüsse sind verbindlich).
+- [x] Schema 8 (`rueckblick`), Modul `verlauf.py` (Rückblick, Verlauf, Zusammenfassung seit), CLI `amw rueckblick`, `amw verlauf`
+- [x] Ansicht „Verlauf“ (Tag-Gruppen, Filter), Rückblick-Dialog am Bogen, Banner „Seit du weg warst“, Push-Rückblick
+- [x] Tests, Bildschirmfotos Desktop/Handy
 
 ## 8 Stufe G – Für jeden Anwender (1.0.0)
 - [ ] Repo neutral: keine Bezüge auf ein bestimmtes Projekt in Code, Doku, Changelog; projektbezogene Doku lokal in `intern/` (nicht veröffentlicht).

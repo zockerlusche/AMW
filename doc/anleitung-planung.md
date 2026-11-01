@@ -74,4 +74,11 @@ Ursache, Wirkung, Wahrscheinlichkeit × Auswirkung (je 1–5; ab 15 rot, ab 8 ge
 2. Der TL hält Bögen und Schritte aktuell (Plan-Check sauber), legt Spezifikationen vor, gibt Pläne frei.
 3. Agenten holen sich mit `amw schritt naechster --nehmen` Arbeit und schließen mit Kriterien + Zusammenfassung ab.
 4. Wird ein Bogen gelb/rot: Umfang kürzen (Nicht-Ziele!), Schritte umverteilen oder Zieldatum mit Grund verschieben.
-5. Bogen fertig → Abnahmekriterium prüfen → „Abschließen“ → Rückblick (Stufe F).
+5. Bogen fertig → Abnahmekriterium prüfen → „Abschließen“ → Rückblick.
+
+## 9 Rückblick und Verlauf
+- **Rückblick** am Bogen: was lief gut, was nicht, was ändern wir, was haben wir gelernt. Maßnahmen werden zur Aufgabe
+  oder – als Lessons Learned – zum Beschluss, damit sie beim nächsten Bogen gelten. Agenten tragen bei mit
+  `amw rueckblick <bogen> --schlecht "…"`.
+- **Verlauf** zeigt, was wann passiert ist; die Startseite fasst zusammen, was seit deinem letzten Besuch geschah, und
+  morgens kommt der Rückblick der letzten 24 Stunden aufs Handy.

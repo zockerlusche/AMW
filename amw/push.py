@@ -41,6 +41,7 @@ VORGABE = {
     "ereignisse": {k: v[0] for k, v in EREIGNISSE.items()},
     "ruhe": {"an": False, "von": "22:00", "bis": "07:00"},
     "max_je_stunde": 10,
+    "rueckblick_uhr": "08:00",          # täglicher Rückblick (Zahlen der letzten 24 h)
 }
 GEHEIM = {"ntfy": ("token",), "pushover": ("app_token", "user_key"), "telegram": ("bot_token",)}
 
@@ -121,6 +122,8 @@ def speichern(werte):
             for f in ("von", "bis"):
                 if f in v:
                     cfg["ruhe"][f] = _uhrzeit(v[f])
+        elif k == "rueckblick_uhr":
+            cfg[k] = _uhrzeit(v)
         elif k == "max_je_stunde":
             n = int(v)
             if not 1 <= n <= 60:
@@ -310,6 +313,12 @@ def ereignisse(con, pid, cfg):
     for a in con.execute("SELECT id, agent, geaendert_utc FROM aufgabe WHERE projekt_id = ? AND plan_status = 'vorgelegt'"
                          " AND verantwortlich = ? AND geaendert_utc >= ?", (pid, kern.ENTWICKLER, seit)):
         aus.append(("freigabe", f"plan:{a['id']}:{a['geaendert_utc']}", f"Plan A{a['id']} zur Freigabe", f"von {a['agent'] or '–'}", "planung"))
+    jetzt = datetime.datetime.now()
+    if jetzt.strftime("%H:%M") >= cfg.get("rueckblick_uhr", "08:00"):    # täglicher Rückblick, einmal je Tag
+        from . import verlauf
+        vor24 = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        aus.append(("rueckblick", f"rueckblick:{jetzt.date().isoformat()}", "Rückblick der letzten 24 Stunden",
+                    verlauf.kurztext(verlauf.zusammenfassung(con, pid, vor24)), "verlauf"))
     return [{"ereignis": e, "schluessel": k, "titel": t, "text": x, "sicht": s} for e, k, t, x, s in aus
             if cfg["ereignisse"].get(e, True)]
 

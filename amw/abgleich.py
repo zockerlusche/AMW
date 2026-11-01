@@ -153,7 +153,8 @@ def ansichten(con, pid, speicher=None):
          "/api/projekte": workbench.zeilen(con.execute("SELECT id, name FROM projekt ORDER BY id")),
          "/api/einstellungen": workbench.daten_einstellungen(con, pid, speicher),
          "/api/agenten": workbench.daten_agenten_alle(con, pid),
-         "/api/planung": workbench.daten_planung(con, pid)}
+         "/api/planung": workbench.daten_planung(con, pid),
+         "/api/verlauf": workbench.daten_verlauf(con, pid, {"tage": ["3"]})}
     for s in SICHTEN:
         a[f"/api/aufgaben?sicht={s}"] = workbench.daten_aufgaben(con, pid, {"sicht": [s], **leer})
     return a

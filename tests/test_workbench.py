@@ -105,6 +105,21 @@ class Workbench(unittest.TestCase):
         self.assertEqual(d["boegen"][0]["specs"]["anforderungen"]["status"], "frei")
         self.assertEqual(d["heute"], __import__("datetime").date.today().isoformat())
 
+    def test_skript_der_seite_ist_gueltiges_javascript(self):
+        """Ein Syntaxfehler lässt die ganze Seite leer – mit node prüfen, wenn vorhanden."""
+        import shutil
+        import subprocess
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node nicht installiert")
+        html = open(os.path.join(os.path.dirname(workbench.__file__), "workbench.html"), encoding="utf-8").read()
+        skript = html[html.index("<script>") + 8:html.rindex("</script>")]
+        datei = os.path.join(self.ordner.name, "seite.js")
+        with open(datei, "w", encoding="utf-8") as f:
+            f.write(skript)
+        r = subprocess.run([node, "--check", datei], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr[-800:])
+
     def test_belegter_port_wird_abgelehnt(self):
         with self.assertRaises(OSError):
             workbench.starten(self.port)

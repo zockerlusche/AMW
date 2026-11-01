@@ -170,6 +170,26 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .risiko { padding: 10px 14px; cursor: pointer; } .risiko.status-erledigt { opacity: .55; }
 @media (max-width: 760px) { .zeitleiste { padding-left: 20px; } .tl-punkt { left: -19px; } .tl-heute { margin-left: -20px; }
   .schritt { grid-template-columns: 54px minmax(0, 1fr); } .schritt > .etikett { grid-column: 2; justify-self: start; } .tl-knoepfe { margin-left: 0; } }
+/* Rückblick und Verlauf */
+.rb-raster { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.rb-spalte { background: var(--grund); border: 1px solid var(--linie); border-top: 3px solid var(--linie2); border-radius: 4px; padding: 8px 10px; min-height: 80px; }
+.rb-spalte h4 { display: flex; gap: 8px; align-items: center; font: 12px var(--titel); letter-spacing: .1em; text-transform: uppercase; color: var(--leise); margin: 0 0 6px; }
+.rb-gut { border-top-color: var(--gruen); } .rb-schlecht { border-top-color: var(--rot); } .rb-massnahme { border-top-color: var(--bernstein); } .rb-gelernt { border-top-color: var(--tinte); }
+.rb-eintrag { padding: 6px 0; border-bottom: 1px dashed var(--linie); font-size: 13.5px; overflow-wrap: anywhere; }
+.rb-eintrag .klein-knopf { white-space: nowrap; padding: 3px 7px; font-size: 11px; }
+.rb-neu { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 8px; margin-top: 12px; align-items: start; }
+.band-seit { display: grid; gap: 4px; padding: 12px 18px; border: 1px solid var(--linie2); background: var(--flaeche); border-radius: 4px; margin-bottom: 18px; }
+.band-seit b { font: 600 14px var(--titel); letter-spacing: .08em; text-transform: uppercase; color: var(--leise); }
+.vl-filter { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.vl-filter select { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; padding: 5px 8px; color: var(--tinte); }
+.vl-chip { font: 12px var(--titel); letter-spacing: .04em; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--linie2); background: var(--grund); color: var(--leise); cursor: pointer; }
+.vl-chip.an { border-color: var(--bernstein); color: var(--bernstein); }
+.vl-tag { position: relative; display: grid; gap: 2px; padding-left: 4px; }
+.vl-zeile { display: grid; grid-template-columns: 46px 10px 90px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--linie); font-size: 13.5px; }
+.vl-wer { font: 12.5px var(--mono); color: var(--leise); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-text { overflow-wrap: anywhere; }
+@media (max-width: 760px) { .rb-raster { grid-template-columns: minmax(0, 1fr); } .rb-neu { grid-template-columns: minmax(0, 1fr); }
+  .vl-zeile { grid-template-columns: 42px 10px minmax(0, 1fr); } .vl-wer { display: none; } nav a.nur-breit { display: none !important; } }
 .mini-balken { display: grid; gap: 3px; margin-top: 8px; }
 .mb { display: grid; grid-template-columns: 54px 1fr 38px; gap: 6px; align-items: center; font-size: 11px; color: var(--sehrleise); }
 .mb-spur { height: 5px; background: var(--grund); border-radius: 3px; overflow: hidden; } .mb-spur i { display: block; height: 100%; }
@@ -372,6 +392,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
     <div class="gruppe" data-t="g_arbeit"></div>
     <a data-sicht="planung"><span class="sym">◇</span><span data-t="n_planung" data-t-lang></span><span data-t="n_planung_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="freigaben"></span></a>
     <a data-sicht="arbeit"><span class="sym">▤</span><span data-t="n_aufgaben"></span> <span class="zahl" data-zahl="offen"></span></a>
+    <a data-sicht="verlauf" class="nur-breit"><span class="sym">⌛</span><span data-t="n_verlauf"></span></a>
     <a data-sicht="releases"><span class="sym">✦</span><span data-t="n_releases" data-t-lang></span><span data-t="n_releases_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="releases"></span></a>
     <div class="gruppe" data-t="g_wissen"></div>
     <a data-sicht="wissen"><span class="sym">§</span><span data-t="n_wissen"></span> <span class="zahl" data-zahl="beschluesse"></span></a>
@@ -498,6 +519,19 @@ const TEXTE = {
     rs_strategie: "Strategie", rs_massnahme: "Maßnahme", rs_verantwortlich: "Verantwortlich", rs_ausloeser: "Auslöser", rst_offen: "offen",
     rst_eingetreten: "eingetreten", rst_erledigt: "erledigt", str_vermeiden: "vermeiden", str_mindern: "mindern", str_uebertragen: "übertragen",
     str_akzeptieren: "akzeptieren", pe_freigabe: "Freigaben für dich (Spezifikation, Pläne)",
+    n_verlauf: "Verlauf", rb_knopf: "Rückblick ({n})", rb_gut: "lief gut", rb_schlecht: "lief nicht gut", rb_massnahme: "ändern wir",
+    rb_gelernt: "gelernt", rb_ph: "Was war gut / schlecht, was ändern wir, was haben wir gelernt?", rb_hinzu: "Hinzufügen",
+    rb_titel: "Rückblick Bogen {b} „{x}“",
+    rb_h: "Nach dem Muster gut · schlecht · ändern wir · gelernt. Maßnahmen werden zur Aufgabe oder zum Beschluss (Lessons Learned).",
+    rb_zu_aufgabe: "→ Aufgabe", rb_zu_beschluss: "→ Beschluss", rb_als_aufgabe: "Aufgabe A{n} angelegt", rb_als_beschluss: "Beschluss B{n} angelegt",
+    seit_titel: "Seit du weg warst ({x})", seit_boegen: "{n} Bogen fertig", seit_erledigt: "{n} erledigt", seit_laeufe: "{n} Läufe",
+    seit_pruefungen: "Prüfungen {g} grün / {r} rot", seit_fragen: "{n} neue Fragen", seit_beschluesse: "{n} Beschlüsse", seit_verlauf: "Verlauf ansehen",
+    seit_weg: "Ausblenden", vl_zeitraum: "letzte {n} Tage", vl_tage: "{n} Tag(e)", vl_nachricht: "Nachrichten", vl_erledigt: "Erledigt",
+    vl_lauf: "Läufe", vl_pruefung: "Prüfungen", vl_frage: "Fragen", vl_beschluss: "Beschlüsse", vl_plan: "Planung", vl_sitzung: "Sitzungen",
+    vl_leer: "Nichts in diesem Zeitraum.", vl_grenze: "Nur die neuesten 2 500 Ereignisse – Zeitraum oder Filter verkleinern.", vz_fertig: "fertig",
+    vz_verworfen: "verworfen", vz_gruen: "grün", vz_rot: "rot", vz_gestellt: "gestellt", vz_beantwortet: "beantwortet", vz_start: "Start",
+    vz_ende: "Ende", vz_gilt: "gilt",
+    vz_bogen_neu: "Bogen neu", vz_bogen_status: "Bogen-Status", vz_bogen_aendern: "Bogen geändert", vz_baseline: "Baseline verschoben", vz_spec_geschrieben: "Spezifikation geschrieben", vz_spec_vorgelegt: "zur Freigabe", vz_spec_frei: "freigegeben", vz_spec_zurueck: "zurückgegeben", vz_plan_vorgelegt: "Plan vorgelegt", vz_plan_frei: "Plan freigegeben", vz_plan_zurueck: "Plan zurück", vz_schritt_genommen: "Schritt übernommen", vz_risiko_neu: "Risiko neu", vz_risiko_status: "Risiko-Status", vz_leitbild: "Leitbild", vz_abgebrochen: "abgebrochen",
     achtung: "Achtung", nachtrag_neu: "{n} neuer Nachtrag", aufklappen: "Klick: ganzer Text", s_extra: "{n} außerplanmäßig",
     jetzt_bei: "jetzt: {x}", geaendert: "geändert", notizen: "Notizen ({n})", server: "Projekt-Server", k_name: "Name", k_port: "Port",
     k_zustaendig: "Zuständig", k_neustart: "Neustart", k_ausfaelle: "Ausfälle", sz_laeuft: "läuft", sz_aus: "aus", sz_unbekannt: "noch nicht geprüft",
@@ -620,6 +654,17 @@ const TEXTE = {
     rs_ohne: "no response", rs_titel: "Risk", rs_ursache: "Cause", rs_wirkung: "Effect", rs_strategie: "Strategy", rs_massnahme: "Response",
     rs_verantwortlich: "Owner", rs_ausloeser: "Trigger", rst_offen: "open", rst_eingetreten: "occurred", rst_erledigt: "closed", str_vermeiden: "avoid",
     str_mindern: "mitigate", str_uebertragen: "transfer", str_akzeptieren: "accept", pe_freigabe: "approvals for you (specs, plans)",
+    n_verlauf: "History", rb_knopf: "Retro ({n})", rb_gut: "went well", rb_schlecht: "went badly", rb_massnahme: "we change", rb_gelernt: "learned",
+    rb_ph: "What went well / badly, what do we change, what did we learn?", rb_hinzu: "Add", rb_titel: "Retro arc {b} “{x}”",
+    rb_h: "Pattern: good · bad · change · learned. Actions become a task or a decision (lessons learned).", rb_zu_aufgabe: "→ Task",
+    rb_zu_beschluss: "→ Decision", rb_als_aufgabe: "Task A{n} created", rb_als_beschluss: "Decision B{n} created",
+    seit_titel: "Since you were away ({x})", seit_boegen: "{n} arc(s) done", seit_erledigt: "{n} done", seit_laeufe: "{n} runs",
+    seit_pruefungen: "reviews {g} green / {r} red", seit_fragen: "{n} new questions", seit_beschluesse: "{n} decisions", seit_verlauf: "Open history",
+    seit_weg: "Hide", vl_zeitraum: "last {n} days", vl_tage: "{n} day(s)", vl_nachricht: "Messages", vl_erledigt: "Done", vl_lauf: "Runs",
+    vl_pruefung: "Reviews", vl_frage: "Questions", vl_beschluss: "Decisions", vl_plan: "Planning", vl_sitzung: "Sessions",
+    vl_leer: "Nothing in this period.", vl_grenze: "Only the newest 2,500 events – narrow period or filter.", vz_fertig: "done", vz_verworfen: "dropped",
+    vz_gruen: "green", vz_rot: "red", vz_gestellt: "asked", vz_beantwortet: "answered", vz_start: "start", vz_ende: "end", vz_gilt: "valid",
+    vz_bogen_neu: "arc created", vz_bogen_status: "arc status", vz_bogen_aendern: "arc changed", vz_baseline: "baseline moved", vz_spec_geschrieben: "spec written", vz_spec_vorgelegt: "for approval", vz_spec_frei: "approved", vz_spec_zurueck: "returned", vz_plan_vorgelegt: "plan submitted", vz_plan_frei: "plan approved", vz_plan_zurueck: "plan returned", vz_schritt_genommen: "step taken", vz_risiko_neu: "risk added", vz_risiko_status: "risk status", vz_leitbild: "charter", vz_abgebrochen: "aborted",
     achtung: "Attention", nachtrag_neu: "{n} new follow-up", aufklappen: "Click: full text", s_extra: "{n} unplanned",
     jetzt_bei: "now: {x}", geaendert: "changed", notizen: "Notes ({n})", server: "Project servers", k_name: "Name", k_port: "Port",
     k_zustaendig: "Owner", k_neustart: "Restart", k_ausfaelle: "Outages", sz_laeuft: "running", sz_aus: "down", sz_unbekannt: "not checked yet",
@@ -724,7 +769,7 @@ function zeige(sicht, still = false) {
   for (const a of document.querySelectorAll("nav a")) a.classList.toggle("an", a.dataset.sicht === sicht);
   try { localStorage.setItem("amw-sicht", sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
-  const fertig = ({ start: sichtStart, fragen: sichtFragen, planung: sichtPlanung, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
+  const fertig = ({ start: sichtStart, fragen: sichtFragen, planung: sichtPlanung, verlauf: sichtVerlauf, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return; }
   Promise.resolve(fertig).then(() => { $("#inhalt").scrollTop = pos[0]; window.scrollTo(0, pos[1]); });
 }
@@ -738,6 +783,26 @@ function rahmen(titel, ...rest) {
 async function sichtStart() {
   await kopfAktualisieren(); const d = zustand.start; if (!d) return;
   const m = rahmen(t("n_start"), el("span", { class: "leise" }, t("stand", { t: zeit(d.zeit) })));
+  /* „Seit du weg warst“: letzter Besuch je Gerät (localStorage); in dieser Sitzung bleibt der Wert stehen */
+  let seitBesuch = null;
+  try {
+    if (sessionStorage.getItem("amw-seit") === null) { sessionStorage.setItem("amw-seit", localStorage.getItem("amw-besuch") || ""); }
+    localStorage.setItem("amw-besuch", new Date().toISOString().slice(0, 19) + "Z");
+    seitBesuch = sessionStorage.getItem("amw-seit") || null;
+  } catch (e) {}
+  if (seitBesuch && Date.now() - new Date(seitBesuch) > 30 * 60 * 1000) {
+    holen("/api/seit?ab=" + encodeURIComponent(seitBesuch)).then(z => {
+      const band = el("div", { class: "band-seit" }, el("b", {}, t("seit_titel", { x: seit(seitBesuch) })),
+        el("div", {}, [z.boegen_fertig ? t("seit_boegen", { n: z.boegen_fertig }) : null, t("seit_erledigt", { n: z.erledigt }),
+          t("seit_laeufe", { n: z.laeufe }), t("seit_pruefungen", { g: z.gruen, r: z.rot }), t("seit_fragen", { n: z.fragen_neu }),
+          z.beschluesse ? t("seit_beschluesse", { n: z.beschluesse }) : null].filter(Boolean).join(" · ")),
+        z.highlights.length ? el("div", { class: "sehrleise" }, z.highlights.slice(0, 3).map(h => `A${h.id} ` + (h.titel.length > 60 ? h.titel.slice(0, 60) + " …" : h.titel)).join(" · ")) : null,
+        el("span", { style: "display:flex;gap:8px;margin-top:4px" },
+          el("button", { class: "klein-knopf", type: "button", onclick: () => zeige("verlauf") }, t("seit_verlauf")),
+          el("button", { class: "klein-knopf", type: "button", onclick: () => { try { sessionStorage.setItem("amw-seit", ""); } catch (e) {} band.remove(); } }, t("seit_weg"))));
+      m.querySelector(".kopf")?.after(band);
+    }).catch(() => {});                                     /* online gibt es /api/seit nicht – dann eben ohne */
+  }
   if (d.halt.length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("halt").toUpperCase()),
     el("div", {}, d.halt.map(h => `#${h.id} ${h.gilt_fuer === "alle" ? t("halt_band") : h.gilt_fuer} · ${h.von}: ${h.text} (${seit(h.seit_utc)})`).join(" | ")),
     el("button", { class: "knopf", style: "margin-left:auto", onclick: () => weiterGeben() }, t("weiter"))));
@@ -1101,6 +1166,7 @@ function bogenKarte(b) {
       el("span", { class: "tl-knoepfe" },
         b.status === "geplant" ? knopf(t("pl_aktivieren"), () => statusSetzen("aktiv", t("pl_aktivieren_frage"))) : null,
         aktiv ? knopf(t("pl_abschliessen"), () => statusSetzen("fertig", t("pl_abschliessen_frage", { x: b.abnahme || "–" }))) : null,
+        knopf(t("rb_knopf", { n: (b.rueckblick || []).length }), () => rueckblickDialog(b), b.status === "fertig" && !(b.rueckblick || []).length),
         knopf(t("bearbeiten"), () => bogenDialog(b)))),
     b.ziel ? el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_ziel") + " "), b.ziel) : null,
     el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_abnahme") + " "), b.abnahme || el("span", { class: "rot-text" }, t("pl_fehlt"))),
@@ -1229,6 +1295,61 @@ function risikoDialog(r) {
       verantwortlich: f.verantwortlich.value.trim(), ausloeser: f.ausloeser.value.trim(), status: f.status.value });
       hg.remove(); zeige("planung", true); } catch (e) { toast(t("fehler", { x: e.message }), true); }
   });
+}
+
+/* Rückblick je Bogen: gut / schlecht / Maßnahme / gelernt; Maßnahme → Aufgabe oder Beschluss */
+function rueckblickDialog(b) {
+  const arten = ["gut", "schlecht", "massnahme", "gelernt"];
+  const liste = b.rueckblick || [];
+  const art = el("select", {}, arten.map(a => el("option", { value: a }, t("rb_" + a))));
+  const text = el("textarea", { rows: 2, placeholder: t("rb_ph") });
+  const neu = el("button", { class: "knopf haupt", type: "button" }, t("rb_hinzu"));
+  const uebernehmen = async (r, als) => {
+    try { const x = await schicken("/api/plan/uebernehmen", { id: r.id, als }); toast(t(als === "aufgabe" ? "rb_als_aufgabe" : "rb_als_beschluss", { n: x.nr ?? "" }));
+      hg.remove(); zeige("planung", true); } catch (e) { toast(t("fehler", { x: e.message }), true); } };
+  const spalte = a => el("div", { class: "rb-spalte rb-" + a }, el("h4", {}, t("rb_" + a), el("span", { class: "anzahl" }, liste.filter(r => r.art === a).length)),
+    ...liste.filter(r => r.art === a).map(r => el("div", { class: "rb-eintrag" }, el("div", {}, r.text),
+      el("div", { class: "sehrleise", style: "font-size:12px" }, `${r.von} · ${seit(r.zeit_utc)}`,
+        r.aufgabe_id ? ` · → A${r.aufgabe_id}` : "", r.beschluss_id ? ` · → B${r.beschluss_id}` : ""),
+      a === "massnahme" && !r.aufgabe_id && !r.beschluss_id ? el("div", { style: "display:flex;gap:6px;margin-top:4px;flex-wrap:wrap" },
+        el("button", { class: "klein-knopf", type: "button", onclick: () => uebernehmen(r, "aufgabe") }, t("rb_zu_aufgabe")),
+        el("button", { class: "klein-knopf", type: "button", onclick: () => uebernehmen(r, "beschluss") }, t("rb_zu_beschluss"))) : null)));
+  const hg = dialog(t("rb_titel", { b: b.id, x: b.titel }), el("p", { class: "leise", style: "margin-top:0" }, t("rb_h")),
+    el("div", { class: "rb-raster" }, arten.map(spalte)),
+    el("div", { class: "rb-neu" }, art, text, neu));
+  neu.addEventListener("click", async () => {
+    if (!text.value.trim()) return;
+    try { await schicken("/api/plan/rueckblick", { bogen: b.id, art: art.value, text: text.value.trim() }); hg.remove(); zeige("planung", true); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); }
+  });
+}
+
+/* --- Verlauf: was wann passiert ist (aus den vorhandenen Daten), je Tag, filterbar ------------- */
+async function sichtVerlauf() {
+  const f = zustand.verlauf ||= { tage: 3, agent: "", arten: [] };
+  let d; try { d = await holen("/api/verlauf?tage=" + f.tage); } catch (e) { rahmen(t("n_verlauf")).append(el("div", { class: "leer" }, String(e))); return; }
+  const m = rahmen(t("n_verlauf"), el("span", { class: "leise" }, t("vl_zeitraum", { n: d.tage })));
+  const arten = ["nachricht", "erledigt", "lauf", "pruefung", "frage", "beschluss", "plan", "sitzung"];
+  const tage = el("select", { onchange: e => { f.tage = Number(e.target.value); sichtVerlauf(); } }, [1, 3, 7, 14].map(n => el("option", { value: n, ...(n === f.tage ? { selected: true } : {}) }, t("vl_tage", { n }))));
+  const agent = el("select", { onchange: e => { f.agent = e.target.value; sichtVerlauf(); } }, el("option", { value: "" }, t("alle_agenten")),
+    [...d.agenten, "Entwickler", "AMW"].map(k => el("option", { value: k, ...(k === f.agent ? { selected: true } : {}) }, k)));
+  const chips = arten.map(a => el("button", { class: "vl-chip" + (f.arten.includes(a) ? " an" : ""), type: "button",
+    onclick: () => { f.arten = f.arten.includes(a) ? f.arten.filter(x => x !== a) : [...f.arten, a]; sichtVerlauf(); } }, t("vl_" + a)));
+  m.append(el("div", { class: "vl-filter" }, tage, agent, ...chips));
+  const liste = d.ereignisse.filter(x => (!f.agent || x.wer === f.agent) && (!f.arten.length || f.arten.includes(x.art)));
+  if (!liste.length) { m.append(el("div", { class: "leer" }, t("vl_leer"))); return; }
+  const gruppen = {};
+  for (const x of liste) (gruppen[new Date(x.zeit).toLocaleDateString(gebiet(), { weekday: "long", day: "2-digit", month: "2-digit" })] ||= []).push(x);
+  const farbe = x => x.art === "pruefung" ? (x.zusatz === "rot" ? "rot" : "gruen") : x.art === "erledigt" ? (x.zusatz === "fertig" ? "gruen" : "") :
+    x.art === "frage" ? "bernstein" : x.art === "plan" ? "bernstein" : x.art === "lauf" && /rc [1-9]|abgebrochen/.test(x.zusatz || "") ? "rot" : "";
+  m.append(el("div", { class: "vl" }, Object.entries(gruppen).map(([tag, xs]) => el("section", {}, el("h2", {}, tag, el("span", { class: "sehrleise mono", style: "margin-left:8px" }, xs.length)),
+    el("div", { class: "vl-tag" }, xs.slice(0, 400).map(x => el("div", { class: "vl-zeile" },
+      el("span", { class: "mono sehrleise" }, new Date(x.zeit).toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" })),
+      el("span", { class: "punkt " + farbe(x) }),
+      el("span", { class: "vl-wer" }, x.wer || "–"),
+      el("span", { class: "vl-text" }, el("span", { class: "ref" }, x.ref), " ", x.text,
+        x.zusatz && !["nachricht"].includes(x.art) ? el("span", { class: "etikett", style: "margin-left:6px" }, t("vz_" + x.zusatz) !== "vz_" + x.zusatz ? t("vz_" + x.zusatz) : x.zusatz) : null))))))));
+  if (liste.length >= 2500) m.append(el("p", { class: "sehrleise" }, t("vl_grenze")));
 }
 
 /* --- Betrieb ------------------------------------------------------------------------------- */
