@@ -88,6 +88,13 @@ class Abgleich(unittest.TestCase):
                 open(os.path.join(wurzel, "web", "inc", "seite.html"), encoding="utf-8") as b:
             self.assertEqual(a.read(), b.read(), "web/inc/seite.html veraltet – `amw web bauen`")
 
+    def test_php_legt_dieselben_tabellen_an(self):
+        wurzel = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(wurzel, "web", "inc", "lib.php"), encoding="utf-8") as f:
+            php = f.read()
+        for s in abgleich.SCHEMA:
+            self.assertIn(f'"{s}"', php, "ONLINE_SCHEMA in web/inc/lib.php weicht von abgleich.SCHEMA ab")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -40,19 +40,23 @@ Hochladen: je Änderungsschub höchstens alle 30 s ein paar Ansichten → grob �
 | `amw/aktionen.py` | die vier erlaubten Aktionen – gemeinsam für lokale Seite und Briefkasten |
 | `amw web bauen \| schema \| einmal \| status` | Seite kopieren, Tabellen online anlegen, ein Abgleich von Hand, Stand |
 | `web/index.php`, `web/api.php`, `web/inc/lib.php`, `web/.htaccess` | Online-Teil für Hostinger (PHP ≥ 8.1 mit curl, mbstring) |
-| `werkzeug/web_zugang.php` | erzeugt `amw-konfig.php` (fragt Passwort verdeckt ab, erzeugt das TOTP-Geheimnis) |
+| `web/inc/einrichtung.php` | Einrichtungs-Assistent (Turso, Zugang, QR-Code); schreibt die Konfiguration selbst |
+| `amw web einrichten` | am PC: Turso-Zugang (Schlüssel verdeckt), Abgleich an, Wächter neu starten |
 | `tests/test_abgleich.py` | Hochladen nur bei Änderung, Briefkasten einmalig, Fehler zurückgemeldet, Seite aktuell |
 
 Am PC erprobt (01.11., Kopien, `php -S`): Login-Seite; API ohne Login gesperrt; falsches Passwort / falscher Code abgewiesen; Login mit Code; Ansichten mit PC-Stand; Aufgaben-Filter; Antwort ohne Schlüssel und von fremder Herkunft abgewiesen; Antwort → Briefkasten → am PC beantwortet (Kanal netz); beantwortete Frage online ausgeblendet; Nachricht kommt an; „stopp“ aus dem Netz abgewiesen; Rückmeldung je Zeile; kein Doppel; Abmelden; Sperre nach Fehlversuchen – alles grün.
 
-## 5 Bis online – Schritte
-| # | Wer | Schritt |
+## 5 Einrichtung (für jeden Anwender, ohne Dateien und Terminal-Geheimnisse)
+Wie in der README „Online in 4 Schritten“: Turso-Datenbank + Schlüssel → am PC `amw web einrichten` → beim Hoster Git-Bereitstellung aus Zweig `web` → Seite öffnen, **Einrichtungs-Assistent** (`web/inc/einrichtung.php`):
+
+| Schritt | Was passiert | Schutz |
 |---|---|---|
-| 1 | Marcel | Hostinger: Tarif mit PHP ≥ 8.1; Adresse festlegen (Vorschlag: Subdomain `amw.<deine-domain>`), SSL an. Zweiter Faktor für Hostinger, GitHub, Turso an. |
-| 2 | CCamw | Öffentliches Repo https://github.com/zockerlusche/AMW (Marcel 01.11.: „Public, wer es benötigt, kann sich bedienen“): Zweig `main` = ganze AMW, Zweig `web` = nur `web/` für Hostinger (`git subtree split --prefix web -b web` → `git push origin web`). |
-| 3 | Marcel | Hostinger → Website → Erweitert → GIT: Repo `https://github.com/zockerlusche/AMW.git`, Zweig **`web`** (nicht main), Ordner der Subdomain. Öffentliches Repo: kein Deploy-Schlüssel nötig. |
-| 4 | Marcel | **Im eigenen Terminal** (nicht über Claude Code – das TOTP-Geheimnis würde sonst im Verlauf stehen): `php F:\amw\werkzeug\web_zugang.php` (schreibt `F:\amw\daten\amw-konfig.php`; `daten/` ist nicht im Repo) → Passwort festlegen, Turso-Adresse + Schlüssel für die Seite eintragen, Code in die Authenticator-App. Datei mit dem Hostinger-Dateimanager in den Ordner **`inc`** der Seite hochladen (von außen gesperrt, bleibt bei Deploys erhalten), danach lokal löschen. |
-| 5 | CCamw | `amw web schema` (Tabellen bei Turso), `"abgleich": true` in `%LOCALAPPDATA%\amw\turso.json`, Dienst neu starten; `amw web status` zeigt „PC zuletzt hochgeladen“. |
-| 6 | Marcel | Seite öffnen, anmelden, eine Frage beantworten → CCamw prüft den Weg bis zum Agenten. |
+| 1 Turso verbinden | Adresse + Schlüssel; die Seite prüft die Verbindung und legt ihre Tabellen an | Nur wer den Schlüssel hat, kann eine frisch bereitgestellte Seite einrichten. Es werden nur `*.turso.io`-Adressen angefragt (kein Umweg ins interne Netz). |
+| 2 Zugang | Benutzer (4–40 Zeichen) + Passwort (≥ 14, zweimal) | gespeichert nur als `password_hash` |
+| 3 Zweiter Faktor | QR-Code (eigener Erzeuger, mit QR-Leser geprüft) scannen, erste Zahl bestätigt; gibt es schon einen zweiten Faktor (Umzug, verlorene Konfiguration): Zahl aus der vorhandenen App | 5 falsche Zahlen → von vorn; Assistent verfällt nach 30 min |
+
+Danach schreibt die Seite ihre Konfiguration selbst **außerhalb des Deploy-Ordners** (der Hoster ersetzt den Ordner bei jedem Deploy – beobachtet 01.11.) und meldet an. Darf sie dort nicht schreiben, legt sie die Datei in `inc/` ab (von außen gesperrt) und sagt deutlich, dass der nächste Deploy sie löscht. Der Assistent erscheint nur, solange keine Konfiguration da ist.
+
+Geprüft (01.11., `php -S` mit Ordnern wie beim Hoster, QR mit zxing gelesen): frische Seite → Assistent; Turso verbunden; zu kurzes / ungleiches Passwort abgewiesen; QR gelesen; falsche Zahl abgewiesen; richtige Zahl → eingerichtet + angemeldet; Konfiguration außerhalb, nur Hash; Neu-Deploy → Anmeldung statt Assistent; Login mit Passwort + Zahl; verlorene Konfiguration bei vorhandenem zweiten Faktor → kein neuer QR, Zahl aus der App; 5 falsche Zahlen → Anfang. Turso-Weg der Seite gegen die echte Datenbank: richtiger Schlüssel → Tabellen gefunden, falscher → abgelehnt (Turso antwortet 400). TOTP gegen RFC-6238-Prüfwerte. Herkunft im echten Browser (Edge): Formulare senden mit `Referrer-Policy: same-origin` die richtige Herkunft (mit `no-referrer` „null“ – darum umgestellt).
 
 Abschalten jederzeit: `"abgleich": false` (PC lädt nichts mehr hoch und holt nichts mehr ab); online sperren: Hostinger-Ordner leeren oder in Turso „Block Reads/Writes“.

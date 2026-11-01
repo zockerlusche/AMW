@@ -285,6 +285,44 @@ def cmd_release(a, con):
             print(f"R{r['id']:<5} {r['art']:<7} {r['version'] or '(offen)':<9} {_zeit(r['zeit_utc'])} {r['titel']}")
 
 
+def web_einrichten(abgleich):
+    """Einmal am PC: Turso-Zugang abfragen (Schlüssel verdeckt), prüfen, speichern, Abgleich an, Wächter neu starten."""
+    import getpass
+    from . import einrichtung
+    pfad = abgleich.zugang_pfad()
+    try:
+        with open(pfad, encoding="utf-8") as f:
+            alt = json.load(f)
+    except (OSError, ValueError):
+        alt = {}
+    if alt.get("url") and alt.get("token"):
+        print(f"Vorhanden: {alt['url']} (Schlüssel gespeichert). Enter = behalten.")
+    url = input("Turso-Adresse (libsql://….turso.io): ").strip() or alt.get("url", "")
+    token = getpass.getpass("Turso-Schlüssel (wird nicht angezeigt): ").strip() or alt.get("token", "")
+    if not url.startswith(("libsql://", "https://")) or ".turso.io" not in url or not token:
+        raise kern.AmwFehler("Adresse muss libsql://….turso.io sein, Schlüssel darf nicht leer sein")
+    sp = abgleich.TursoSpeicher(url, token)
+    try:
+        sp.ausfuehren([(s, []) for s in abgleich.SCHEMA])
+    except OSError as e:
+        raise kern.AmwFehler(f"Turso nicht erreichbar oder Schlüssel abgelehnt ({e}) – nichts gespeichert")
+    os.makedirs(os.path.dirname(pfad), exist_ok=True)
+    neu = pfad + ".neu"
+    with open(neu, "w", encoding="utf-8") as f:
+        json.dump({**alt, "url": url, "token": token, "abgleich": True}, f, indent=2)
+    os.replace(neu, pfad)
+    print(f"✓ Turso verbunden, Tabellen bereit, Zugang gespeichert in {pfad} (nur für deinen Windows-Benutzer)")
+    rc, aus = einrichtung.powershell(f"if (Get-ScheduledTask -TaskName '{einrichtung.AUFGABE}' -ErrorAction SilentlyContinue) "
+                                     f"{{ Stop-ScheduledTask -TaskName '{einrichtung.AUFGABE}'; Start-Sleep 2; "
+                                     f"Start-ScheduledTask -TaskName '{einrichtung.AUFGABE}'; 'neu gestartet' }} else {{ 'fehlt' }}")
+    if "neu gestartet" in aus:
+        print("✓ Wächter neu gestartet – er lädt die Ansichten in den nächsten Sekunden hoch")
+    else:
+        print("! Wächter ist nicht eingerichtet: zuerst `amw dienst einrichten --ja`")
+    print("Jetzt die Seite beim Hoster öffnen – der Assistent fragt nach derselben Adresse und einem Schlüssel.")
+    return 0
+
+
 def cmd_web(a, con):
     """Stufe 2 (doc/12): Seite für Hostinger bauen, Online-Speicher einrichten, einen Abgleich von Hand."""
     from . import abgleich
@@ -295,6 +333,8 @@ def cmd_web(a, con):
             g.write(f.read())
         print(f"gebaut: {ziel}")
         return 0
+    if a.aktion == "einrichten":
+        return web_einrichten(abgleich)
     sp = abgleich.speicher_aus_zugang(nur_wenn_an=False)
     if sp is None:
         raise kern.AmwFehler(f"kein Zugang in {abgleich.zugang_pfad()}")
@@ -532,8 +572,8 @@ def parser():
     x.add_argument("--ja", action="store_true", help="wirklich ausführen (sonst nur anzeigen)")
     x.set_defaults(f=cmd_dienst, ohne_db=True)
 
-    x = s.add_parser("web", help="Stufe 2: bauen (Seite für Hostinger) | schema | einmal (Abgleich) | status")
-    x.add_argument("aktion", choices=["bauen", "schema", "einmal", "status", "zweitfaktor-neu"])
+    x = s.add_parser("web", help="Stufe 2: einrichten (Turso-Zugang, einmal) | status | einmal (Abgleich) | zweitfaktor-neu | bauen | schema")
+    x.add_argument("aktion", choices=["einrichten", "bauen", "schema", "einmal", "status", "zweitfaktor-neu"])
     x.set_defaults(f=cmd_web)
 
     x = s.add_parser("anmelden", help="laufende Sitzung beim Wächter anmelden (ohne Neustart)")
