@@ -40,6 +40,10 @@ def daten_start(con, pid):
     fragen = zeilen(con.execute(
         "SELECT id, kurz, von, zeit_utc, blockiert FROM frage WHERE projekt_id = ? AND an = 'entwickler'"
         " AND status = 'offen' AND kurz NOT LIKE 'GEPARKT%' ORDER BY blockiert DESC, id DESC LIMIT 20", (pid,)))
+    an_dich = zeilen(con.execute(
+        "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf FROM empfang e JOIN nachricht n"
+        " ON n.id = e.nachricht_id WHERE n.projekt_id = ? AND e.agent = ? AND e.status != 'erledigt'"
+        " ORDER BY n.id DESC LIMIT 30", (pid, kern.ENTWICKLER)))
     halte = [dict(s) for s in kern.aktive_sperren(con, pid, art="halt")]
     zaehler = dict(con.execute(
         "SELECT"
@@ -53,7 +57,8 @@ def daten_start(con, pid):
         " (SELECT count(*) FROM regel WHERE ebene = 'arbeit' OR projekt_id = :p) AS regeln,"
         " (SELECT count(*) FROM release WHERE projekt_id = :p) AS releases", {"p": pid}).fetchone())
     frei, gesamt = speicher_frei_gb()
-    return {"agenten": agenten, "fragen": fragen, "halt": halte, "zaehler": zaehler,
+    zaehler["an_dich"] = len(an_dich)
+    return {"agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "zaehler": zaehler,
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 

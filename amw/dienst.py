@@ -41,7 +41,7 @@ def weckzeile(agent, zeilen, halt):
 def aktive_sitzung(con, pid, kennung):
     return con.execute(
         "SELECT s.* FROM sitzung s JOIN agent g ON g.id = s.agent_id WHERE g.projekt_id = ? AND g.kennung = ?"
-        " AND s.zustand = 'aktiv' ORDER BY s.id DESC LIMIT 1", (pid, kennung)).fetchone()
+        " AND s.zustand = 'aktiv' AND s.schluessel_datei IS NOT NULL ORDER BY s.id DESC LIMIT 1", (pid, kennung)).fetchone()
 
 
 def lies_schluessel(sitzung):
@@ -160,6 +160,14 @@ class Dienst:
 
     def aufsicht(self):
         for s in self.con.execute("SELECT * FROM sitzung WHERE zustand = 'aktiv'").fetchall():
+            if s["schluessel_datei"] is None:            # Brücken-Sitzung (TL): kein Postfach, lebt vom Puls
+                grenze = self.con.execute("SELECT puls_grenze_s FROM agent WHERE id = ?", (s["agent_id"],)).fetchone()[0]
+                if time.time() - _sekunden(s["letzter_puls_utc"] or s["gestartet_utc"]) > (grenze or 10800):
+                    with db.schreiben(self.con):
+                        self.con.execute("UPDATE sitzung SET zustand = 'beendet', beendet_utc = ? WHERE id = ?",
+                                         (db.jetzt(), s["id"]))
+                    log.info("Brücken-Sitzung %s beendet (kein Puls)", s["id"])
+                continue
             self.pruefe_sitzung(s)
 
 

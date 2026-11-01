@@ -80,6 +80,30 @@ class Bruecke(unittest.TestCase):
             f.write('{"befehl": "posten"')                     # gerade erst geschrieben (mtime jetzt)
         self.assertEqual(bruecke.befehle(self.eingang), 0)
 
+    def test_puls_zeigt_tl_als_laufend_und_wird_nie_geweckt(self):
+        from amw import dienst, workbench
+        self.einwerfen("p.json", {"befehl": "puls", "taetigkeit": "Takt 15:00"})
+        bruecke.befehle(self.eingang)
+        start = workbench.daten_start(self.con, self.pid)
+        tl = next(a for a in start["agenten"] if a["kennung"] == "TL")
+        self.assertEqual(tl["zustand"], "aktiv")
+        kern.posten(self.con, self.pid, "CC1", "TL", "auftrag", "x")
+        self.assertEqual(dienst.Dienst(self.con).zustellen(), 0)          # kein Postfach → kein Weckversuch
+        dienst.Dienst(self.con).aufsicht()                                # frischer Puls → bleibt aktiv
+        self.assertEqual(self.con.execute("SELECT zustand FROM sitzung").fetchone()[0], "aktiv")
+
+    def test_antwort_an_den_entwickler_sichtbar_und_gelesen(self):
+        from amw import aktionen, workbench
+        self.einwerfen("e.json", {"befehl": "posten", "an": "Entwickler", "art": "antwort", "kurz": "PONG"})
+        bruecke.befehle(self.eingang)
+        self.assertEqual(self.ergebnis("e")["rc"], 0)
+        an_dich = workbench.daten_start(self.con, self.pid)["an_dich"]
+        self.assertEqual([(n["von"], n["kurz"]) for n in an_dich], [("TL", "PONG")])
+        aktionen.ausfuehren(self.con, self.pid, "/api/gelesen", {"ids": [an_dich[0]["id"]]})
+        self.assertEqual(workbench.daten_start(self.con, self.pid)["an_dich"], [])
+        with self.assertRaises(aktionen.Ungueltig):
+            aktionen.ausfuehren(self.con, self.pid, "/api/gelesen", {"ids": "1"})
+
 
 if __name__ == "__main__":
     unittest.main()

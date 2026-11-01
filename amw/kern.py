@@ -93,6 +93,8 @@ def empfaenger(con, pid, an, von):
             namen += [r["kennung"] for r in con.execute(
                 "SELECT kennung FROM agent WHERE projekt_id = ? AND empfaengt_rund = 1 AND soll != 'aus'"
                 " ORDER BY id", (pid,))]
+        elif teil.lower() == ENTWICKLER.lower():         # der Mensch: liest in der Workbench, wird nie geweckt
+            namen.append(ENTWICKLER)
         else:
             agent_zeile(con, pid, teil)
             namen.append(teil)

@@ -1,5 +1,6 @@
 """Was der Entwickler über eine Seite tun darf – ein Schreibweg für die lokale Workbench und den Briefkasten aus dem
-Netz (→ doc/10 §4 Stufe 2, doc/12). Absender ist immer der Entwickler; erlaubt sind nur diese vier Aktionen.
+Netz (→ doc/10 §4 Stufe 2, doc/12). Absender ist immer der Entwickler; erlaubt sind nur diese Aktionen:
+Frage beantworten, Nachricht an Agenten, Nachrichten an dich als gelesen markieren, Halt, Weiter.
 """
 from . import db, kern
 
@@ -39,6 +40,11 @@ def ausfuehren(con, pid, weg, daten, kanal="seite"):
         nid, namen = kern.posten(con, pid, kern.ENTWICKLER, daten["an"], art, kurz[:300],
                                  (daten.get("text") or "").strip()[:20000] or None)
         return {"nachricht": nid, "an": namen}
+    if weg == "/api/gelesen":
+        ids = daten.get("ids")
+        if not isinstance(ids, list) or not ids or not all(isinstance(i, int) for i in ids):
+            raise Ungueltig("ids fehlen")
+        return {"erledigt": kern.erledigt(con, pid, kern.ENTWICKLER, ids[:100])}
     if weg == "/api/halt":
         return {"halt": kern.halt(con, pid, kern.ENTWICKLER, daten.get("fuer") or "alle",
                                   (daten.get("text") or "Halt vom Entwickler").strip()[:2000])}

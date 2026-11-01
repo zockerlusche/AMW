@@ -288,6 +288,7 @@ const TEXTE = {
     n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_releases: "Release Notes", n_releases_kurz: "Releases", n_wissen: "Wissen", n_betrieb: "Betrieb",
     thema: "Hell / Dunkel", halt: "Halt", weiter: "Weiter",
     s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
+    an_dich: "Nachrichten an dich", antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_freigabe: "Freigabe",
     s_pc: "PC-Stand {x}", s_pc_weg: "PC zuletzt {x}", s_briefkasten: "{n} unterwegs", abmelden: "Abmelden",
     unterwegs: "Übermittelt – der PC übernimmt es beim nächsten Abgleich (meist unter 1 Minute).",
     stand: "Stand {t}", wartet_auf_dich: "Wartet auf dich", nichts_offen: "Nichts offen – keine Frage wartet auf dich.", agenten: "Agenten",
@@ -325,6 +326,7 @@ const TEXTE = {
     n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_releases: "Release notes", n_releases_kurz: "Releases", n_wissen: "Knowledge", n_betrieb: "Operations",
     thema: "Light / Dark", halt: "Halt", weiter: "Resume",
     s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
+    an_dich: "Messages for you", antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_freigabe: "Release",
     s_pc: "PC data {x}", s_pc_weg: "PC last seen {x}", s_briefkasten: "{n} pending", abmelden: "Log out",
     unterwegs: "Sent – your PC picks it up at the next sync (usually within a minute).",
     stand: "As of {t}", wartet_auf_dich: "Waiting for you", nichts_offen: "Nothing pending – no question is waiting for you.", agenten: "Agents",
@@ -442,6 +444,20 @@ async function sichtStart() {
   if (d.halt.length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("halt").toUpperCase()),
     el("div", {}, d.halt.map(h => `#${h.id} ${h.gilt_fuer === "alle" ? t("halt_band") : h.gilt_fuer} · ${h.von}: ${h.text} (${seit(h.seit_utc)})`).join(" | ")),
     el("button", { class: "knopf", style: "margin-left:auto", onclick: () => weiterGeben() }, t("weiter"))));
+  if ((d.an_dich || []).length) {
+    m.append(el("h2", {}, t("an_dich")));
+    m.append(el("div", { class: "wartet zeile-reveal" }, d.an_dich.map(n => {
+      const karte = el("div", { class: "karte" },
+        el("div", {}, el("span", { class: "ref" }, `#${n.id}`), " ", el("b", {}, n.von), " ",
+          el("span", { class: "leise" }, `${t("art_" + n.art) || n.art} · ${seit(n.zeit_utc)}`)),
+        el("p", {}, el("b", {}, n.kurz)), n.text ? el("p", { class: "leise", style: "white-space:pre-wrap" }, n.text) : null,
+        el("div", { style: "display:flex;gap:8px;margin-top:8px" },
+          el("button", { class: "klein-knopf", type: "button", onclick: () => nachrichtDialog(n.von) }, t("antworten")),
+          el("button", { class: "klein-knopf", type: "button", onclick: async () => {
+            try { await schicken("/api/gelesen", { ids: [n.id] }); karte.remove(); kopfAktualisieren(); }
+            catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("gelesen"))));
+      return karte; })));
+  }
   m.append(el("h2", {}, t("wartet_auf_dich")));
   m.append(d.fragen.length
     ? el("div", { class: "wartet zeile-reveal" }, d.fragen.slice(0, 6).map(f => el("div", { class: "karte", onclick: () => zeige("fragen") },

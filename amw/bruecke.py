@@ -88,6 +88,27 @@ def argumente(befehl):
     return args + ["--von", VON]
 
 
+def puls(kennung=VON, taetigkeit=None):
+    """Brücken-Sitzung des TL: ohne Postfach (schluessel_datei leer), der Wächter weckt sie nie; zeigt „läuft“."""
+    con = db.verbinde()
+    try:
+        a = con.execute("SELECT id FROM agent WHERE kennung = ? ORDER BY id LIMIT 1", (kennung,)).fetchone()
+        if not a:
+            return
+        t = db.jetzt()
+        with db.schreiben(con):
+            s = con.execute("SELECT id FROM sitzung WHERE agent_id = ? AND zustand = 'aktiv' AND schluessel_datei IS NULL",
+                            (a["id"],)).fetchone()
+            if s:
+                con.execute("UPDATE sitzung SET letzter_puls_utc = ?, taetigkeit = coalesce(?, taetigkeit) WHERE id = ?",
+                            (t, taetigkeit, s["id"]))
+            else:
+                db.einfuegen(con, "sitzung", agent_id=a["id"], arbeitsordner="brücke", gestartet_utc=t,
+                             letzter_puls_utc=t, taetigkeit=taetigkeit)
+    finally:
+        con.close()
+
+
 def ausfuehren(args):
     aus, fehler = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(aus), contextlib.redirect_stderr(fehler):
@@ -112,8 +133,15 @@ def befehle(eingang=EINGANG):
         try:
             with open(pfad, encoding="utf-8") as f:
                 befehl = json.load(f)
-            args = argumente(befehl)
-            rc, aus, fehler = ausfuehren(args)
+            if not isinstance(befehl, dict):
+                raise ValueError("Befehlsdatei muss ein JSON-Objekt sein")
+            taetigkeit = befehl.pop("taetigkeit", None)   # optional: was der TL gerade tut (zeigt die Workbench)
+            if befehl.get("befehl") == "puls":           # nur Lebenszeichen (Stundentakt des TL)
+                args, rc, aus, fehler = ["puls"], 0, "Puls gesetzt\n", ""
+            else:
+                args = argumente(befehl)
+                rc, aus, fehler = ausfuehren(args)
+            puls(taetigkeit=taetigkeit)
         except (ValueError, OSError) as e:
             args, rc, aus, fehler = None, 2, "", str(e)
         ergebnis = {"datei": name, "zeit_utc": db.jetzt(), "args": args, "rc": rc, "ausgabe": aus, "fehler": fehler}
