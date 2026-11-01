@@ -84,6 +84,15 @@ def status(port):
         except (OSError, ValueError):
             p = None
         zeilen.append(f"  {n[:-5]:<8} " + (hook.beschreibung(p) + ("  ← PRÜFEN" if p["art"] == "bg" else "") if p else "Prozess beendet"))
+    try:
+        con = db.verbinde(nur_lesen=True)
+        fehlt = hook.unangemeldet(con, con.execute("SELECT min(id) FROM projekt").fetchone()[0])
+        con.close()
+    except Exception:
+        fehlt = []
+    for u in fehlt:
+        zeilen.append(f"  NICHT ANGEMELDET: {u['kennung'] or '?'} · Sitzung {u['sitzung']}, PID {u['pid']}, {u['ordner']}"
+                      f" – im Fenster: python F:/amw/amw-cli.py anmelden --von {u['kennung'] or '<Kennung>'}")
     return "\n".join(zeilen)
 
 

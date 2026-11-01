@@ -159,6 +159,37 @@ class Anmelden(unittest.TestCase):
         self.assertIsNone(self.als("fenster3", "interactive", streng=True))
         self.assertIsNone(self.als("fenster4", "interactive"))                    # Hook (Neustart) löst immer ab
 
+    def hook_lauf(self, eingabe, agent=None):
+        """Startet hook.main wie Claude Code: JSON auf stdin, Ausgabe auf stdout; Postfach dieser Sitzung = pipe-x."""
+        import io
+        self.prozesse["pipe-x"] = {"pid": 7, "art": "interactive", "name": "x", "sitzung": eingabe["session_id"]}
+        umg = {"AMW_DB": os.path.join(self.ordner.name, "t.db"), "CLAUDE_CODE_MESSAGING_SOCKET": "pipe-x",
+               "CLAUDE_CODE_MESSAGING_TOKEN": "t"}
+        if agent:
+            umg["AMW_AGENT"] = agent
+        aus = io.StringIO()
+        with mock.patch.dict(os.environ, umg), mock.patch("sys.stdin", io.StringIO(json.dumps(eingabe))), \
+                mock.patch("sys.stdout", aus):
+            if not agent:
+                os.environ.pop("AMW_AGENT", None)
+            self.hook.main()
+        return json.loads(aus.getvalue()) if aus.getvalue().strip() else None
+
+    def test_resume_ohne_amw_agent_erkennt_die_sitzung(self):
+        """TL #16525: Resume von Hand (ohne Startskript, kein AMW_AGENT) – die Sitzungs-ID war schon als CC5 angemeldet."""
+        self.assertIn("als CC5 angemeldet", self.hook_lauf({"session_id": "abc", "source": "startup", "cwd": "F:\\layerit"}, "CC5")["systemMessage"])
+        self.con.execute("UPDATE sitzung SET zustand = 'beendet'")
+        aus = self.hook_lauf({"session_id": "abc", "source": "resume", "cwd": "F:\\layerit"})
+        self.assertIn("erkannt", aus["systemMessage"])
+        self.assertEqual(self.aktiv(), ["abc"])
+
+    def test_unbekannte_sitzung_im_agenten_ordner_meldet_laut_sonst_still(self):
+        self.hook_lauf({"session_id": "abc", "source": "startup", "cwd": "F:\\layerit"}, "CC5")
+        aus = self.hook_lauf({"session_id": "neu", "source": "startup", "cwd": "f:\\LAYERIT"})
+        self.assertIn("NICHT angemeldet", aus["systemMessage"])
+        self.assertIsNone(self.hook_lauf({"session_id": "fremd", "source": "startup", "cwd": "D:\\anderes"}))
+        self.assertEqual(self.aktiv(), ["abc"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -21,23 +21,71 @@ def schluessel_ordner():
     return os.path.join(basis, "amw", "sitzungen")
 
 
-def claude_prozess(pipe):
-    """Claude Code führt je laufendem Prozess ~/.claude/sessions/<pid>.json (pid, kind interactive|bg, name, Postfach).
-    Gibt den Eintrag zu diesem Postfach zurück, sonst None (Prozess beendet oder Datei unbekannt)."""
+def claude_prozesse():
+    """Claude Code führt je laufendem Prozess ~/.claude/sessions/<pid>.json (pid, kind interactive|bg, name, Ordner,
+    Postfach). Nur lesen – die Schlüssel daneben fasst die AMW nie an."""
     ordner = os.path.join(os.path.expanduser("~"), ".claude", "sessions")
     try:
         namen = [n for n in os.listdir(ordner) if n.endswith(".json")]
     except OSError:
-        return None
+        return []
+    erg = []
     for n in namen:
         try:
             with open(os.path.join(ordner, n), encoding="utf-8") as f:
                 d = json.load(f)
         except (OSError, ValueError):
             continue
-        if pipe and d.get("messagingSocketPath") == pipe:
-            return {"pid": d.get("pid"), "art": d.get("kind"), "name": d.get("name"), "sitzung": d.get("sessionId") or ""}
-    return None
+        erg.append({"pid": d.get("pid"), "art": d.get("kind"), "name": d.get("name"), "sitzung": d.get("sessionId") or "",
+                    "ordner": d.get("cwd"), "pipe": d.get("messagingSocketPath")})
+    return erg
+
+
+def claude_prozess(pipe):
+    """Eintrag zu diesem Postfach, sonst None (Prozess beendet oder Datei unbekannt)."""
+    return next((p for p in claude_prozesse() if pipe and p["pipe"] == pipe), None)
+
+
+def bekannte_kennung(con, pid, sitzung):
+    """Kennung, unter der diese Claude-Sitzung schon angemeldet war – ein Resume behält die Sitzungs-ID (TL #16525:
+    nach Marcels Resume-Neustart ohne Startskript fehlte AMW_AGENT, niemand wurde angemeldet)."""
+    if not sitzung:
+        return None
+    r = con.execute("SELECT a.kennung FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
+                    " AND s.claude_sitzung = ? ORDER BY s.id DESC LIMIT 1", (pid, sitzung)).fetchone()
+    return r["kennung"] if r else None
+
+
+def angemeldete_postfaecher():
+    ordner = schluessel_ordner()
+    try:
+        namen = [n for n in os.listdir(ordner) if n.endswith(".json")]
+    except OSError:
+        return {}
+    erg = {}
+    for n in namen:
+        try:
+            with open(os.path.join(ordner, n), encoding="utf-8") as f:
+                erg[json.load(f).get("pipe")] = n[:-5]
+        except (OSError, ValueError):
+            continue
+    return erg
+
+
+def unangemeldet(con, pid):
+    """Laufende Sitzungen mit Fenster, die nicht angemeldet sind, aber zu einem Agenten gehören: Sitzungs-ID war schon
+    angemeldet (Resume) oder sie läuft im selben Ordner wie ein angemeldeter Agent. Für Workbench und dienst status."""
+    postfach = angemeldete_postfaecher()
+    alle = claude_prozesse()
+    live_ordner = {p["ordner"] for p in alle if p["pipe"] in postfach}
+    erg = []
+    for p in alle:
+        if p["pipe"] in postfach or p["art"] == "bg":
+            continue
+        k = bekannte_kennung(con, pid, p["sitzung"])
+        if k or p["ordner"] in live_ordner or agenten_ordner(con, p["ordner"]):
+            erg.append({"kennung": k, "pid": p["pid"], "sitzung": p["sitzung"][:8], "ordner": p["ordner"], "name": p["name"]})
+    return erg
 
 
 def beschreibung(p):
@@ -92,27 +140,47 @@ def main():
         eingabe = json.loads(sys.stdin.read() or "{}")
     except ValueError:
         eingabe = {}
-    kennung = os.environ.get("AMW_AGENT")
-    if not kennung:
-        return 0                                   # Sitzung gehört zu keinem AMW-Agenten
-    teile = []
+    kennung = os.environ.get("AMW_AGENT")           # Startskript; fehlt sie (Resume von Hand), zählt die Sitzungs-ID
+    quelle = eingabe.get("source", "startup")
+    teile, meldung = [], None                       # meldung: sichtbar im Fenster (systemMessage)
     try:
         con = db.verbinde()
         try:
             name = os.environ.get("AMW_PROJEKT")
             pid = db.projekt_id(con, name) if name else con.execute("SELECT min(id) FROM projekt").fetchone()[0]
-            if eingabe.get("source", "startup") in ("startup", "resume"):
-                hinweis = anmelden(con, pid, kennung, eingabe)
-                if hinweis:
-                    teile.append(hinweis)
-            teile.insert(0, kern.kontext(con, pid, kennung))
+            erkannt = not kennung
+            kennung = kennung or bekannte_kennung(con, pid, eingabe.get("session_id"))
+            if not kennung:
+                if quelle in ("startup", "resume") and agenten_ordner(con, eingabe.get("cwd")):
+                    meldung = ("AMW: diese Sitzung ist NICHT angemeldet und wird nicht geweckt. Als Agent: "
+                               "python F:/amw/amw-cli.py anmelden --von <Kennung>")
+                    teile.append(meldung)
+                else:
+                    return 0                        # Sitzung gehört zu keinem AMW-Agenten
+            else:
+                if quelle in ("startup", "resume"):
+                    hinweis = anmelden(con, pid, kennung, eingabe)
+                    meldung = f"AMW: {hinweis}" if hinweis else \
+                        f"AMW: als {kennung} angemeldet" + (" (erkannt an der früheren Anmeldung dieser Sitzung)" if erkannt else "")
+                    if hinweis:
+                        teile.append(hinweis)
+                teile.insert(0, kern.kontext(con, pid, kennung))
         finally:
             con.close()
     except Exception as e:                          # Hook darf die Sitzung nie aufhalten
         teile.append(f"AMW-Hook-Fehler ({type(e).__name__}: {e}) – Kontext per `amw kontext` holen.")
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart",
-                                             "additionalContext": "\n".join(teile)}}, ensure_ascii=False))
+        meldung = teile[-1]
+    aus = {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "\n".join(teile)}}
+    if meldung:
+        aus["systemMessage"] = meldung
+    print(json.dumps(aus, ensure_ascii=False))
     return 0
+
+
+def agenten_ordner(con, ordner):
+    """Läuft hier schon einmal ein angemeldeter Agent? (Ordner aus der Sitzungstabelle, ohne Groß/klein.)"""
+    return bool(ordner) and con.execute("SELECT 1 FROM sitzung WHERE lower(arbeitsordner) = lower(?) LIMIT 1",
+                                        (ordner,)).fetchone() is not None
 
 
 if __name__ == "__main__":

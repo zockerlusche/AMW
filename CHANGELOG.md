@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist (Stufe 3, → doc/10 §4). Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 0.9.2 – 01.11.2026 · Anmelden auch nach Resume von Hand
+- Nach einem Neustart per Resume ohne Startskript fehlte `AMW_AGENT`; der Start-Hook meldete niemanden an, Weckrufe
+  kamen nicht an (TL #16525, Marcel 21:26). Jetzt erkennt der Hook die Kennung an der Sitzungs-ID (ein Resume behält
+  sie) und meldet automatisch an. Im Fenster steht sichtbar „AMW: als CC1 angemeldet“.
+- Unbekannte Sitzung in einem Agenten-Ordner: deutliche Meldung im Fenster mit dem Befehl zum Anmelden.
+- Workbench (Start) und `amw dienst status` warnen bei laufenden Agenten-Sitzungen, die nicht angemeldet sind.
+
 ## 0.9.1 – 01.11.2026 · Keine falschen Anmeldungen mehr
 - Eine Hintergrund-Sitzung ohne Fenster hatte sich beim Umzug als CC5 angemeldet; Weckrufe für CC5 gingen dorthin statt
   ins Fenster (TL #16500). Jetzt: Hintergrund-Sitzungen (Claude Code `kind=bg`) werden nie angemeldet, und

@@ -338,6 +338,8 @@ const TEXTE = {
     n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_releases: "Release Notes", n_releases_kurz: "Releases", n_wissen: "Wissen", n_betrieb: "Betrieb",
     thema: "Hell / Dunkel", halt: "Halt", weiter: "Weiter",
     s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
+    nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
+    nicht_angemeldet_h: "Läuft, wird aber nicht geweckt – im Fenster: python F:/amw/amw-cli.py anmelden --von <Kennung>",
     an_dich: "Nachrichten an dich", antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_freigabe: "Freigabe",
     k_details: "Klicken: was macht er, was kommt noch", k_offen_h: "neue offene Nachrichten (dazu {n} Altbestand aus dem alten Bus)",
     k_gerade: "Gerade:", k_vermutet: "(aus letzter Meldung)", k_unbekannt: "Tätigkeit unbekannt", k_zuletzt: "Zuletzt",
@@ -397,6 +399,8 @@ const TEXTE = {
     n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_releases: "Release notes", n_releases_kurz: "Releases", n_wissen: "Knowledge", n_betrieb: "Operations",
     thema: "Light / Dark", halt: "Halt", weiter: "Resume",
     s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
+    nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
+    nicht_angemeldet_h: "Running but cannot be woken – in its window: python F:/amw/amw-cli.py anmelden --von <name>",
     an_dich: "Messages for you", antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_freigabe: "Release",
     k_details: "Click: what is it doing, what is next", k_offen_h: "new open messages (plus {n} legacy from the old bus)",
     k_gerade: "Now:", k_vermutet: "(from last report)", k_unbekannt: "activity unknown", k_zuletzt: "Last",
@@ -547,6 +551,9 @@ async function sichtStart() {
   if (d.halt.length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("halt").toUpperCase()),
     el("div", {}, d.halt.map(h => `#${h.id} ${h.gilt_fuer === "alle" ? t("halt_band") : h.gilt_fuer} · ${h.von}: ${h.text} (${seit(h.seit_utc)})`).join(" | ")),
     el("button", { class: "knopf", style: "margin-left:auto", onclick: () => weiterGeben() }, t("weiter"))));
+  if ((d.unangemeldet || []).length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("nicht_angemeldet")),
+    el("div", {}, d.unangemeldet.map(u => `${u.kennung || "?"} · ${t("sitzung_pid", { s: u.sitzung, p: u.pid })} · ${u.ordner}`).join(" | ")),
+    el("span", { class: "leise" }, t("nicht_angemeldet_h"))));
   if ((d.an_dich || []).length) {
     m.append(el("h2", {}, t("an_dich")));
     m.append(el("div", { class: "wartet zeile-reveal" }, d.an_dich.map(n => {

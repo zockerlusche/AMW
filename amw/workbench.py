@@ -94,8 +94,13 @@ def daten_start(con, pid):
         " (SELECT count(*) FROM release WHERE projekt_id = :p) AS releases", {"p": pid}).fetchone())
     frei, gesamt = speicher_frei_gb()
     zaehler["an_dich"] = len(an_dich)
-    from . import __version__
+    from . import __version__, hook
+    try:
+        unangemeldet = hook.unangemeldet(con, pid)     # laufende Agenten-Sitzungen, die der Wächter nicht wecken kann
+    except Exception:
+        unangemeldet = []
     return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "zaehler": zaehler,
+            "unangemeldet": unangemeldet,
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 
