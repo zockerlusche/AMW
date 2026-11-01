@@ -125,6 +125,51 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .kurztext.auf { display: block; -webkit-line-clamp: unset; }
 .mehr { font: 12px var(--titel); letter-spacing: .06em; color: var(--sehrleise); cursor: pointer; background: none; border: 0; padding: 4px 0 0; }
 .nachtrag-neu { margin-left: 8px; }
+/* Planung: senkrechte Zeitleiste */
+.zeitleiste { position: relative; display: grid; gap: 14px; padding-left: 26px; margin-top: 8px; }
+.zeitleiste::before { content: ""; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: var(--linie2); }
+.tl-heute { position: relative; margin: 2px 0 -4px -26px; display: flex; align-items: center; gap: 8px; }
+.tl-heute::before { content: ""; width: 18px; height: 2px; background: var(--bernstein); }
+.tl-heute span { font: 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--bernstein); }
+.tl-heute::after { content: ""; flex: 1; height: 1px; background: color-mix(in srgb, var(--bernstein) 50%, transparent); }
+.tl-bogen { position: relative; padding: 14px 16px; display: grid; gap: 6px; }
+.tl-bogen.status-fertig { opacity: .75; } .tl-bogen.status-verworfen { opacity: .45; }
+.tl-punkt { position: absolute; left: -24px; top: 18px; width: 12px; height: 12px; border-radius: 50%; background: var(--sehrleise); border: 2px solid var(--grund); }
+.tl-punkt.gruen { background: var(--gruen); } .tl-punkt.bernstein { background: var(--bernstein); } .tl-punkt.rot { background: var(--rot); }
+.tl-kopf { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.tl-titel { font: 600 18px var(--titel); letter-spacing: .02em; }
+.tl-knoepfe { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.tl-zeile { font-size: 14px; overflow-wrap: anywhere; }
+.tl-fortschritt { display: grid; grid-template-columns: minmax(80px, 260px) auto; gap: 10px; align-items: center; }
+.tl-daten { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13.5px; }
+.tl-specs { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.spec-chip { font: 12px var(--titel); letter-spacing: .04em; padding: 3px 9px; border-radius: 12px; border: 1px solid var(--linie2); background: var(--grund); color: var(--leise); cursor: pointer; }
+.spec-chip.spec-frei { border-color: var(--gruen); color: var(--gruen); }
+.spec-chip.spec-vorgelegt { border-color: var(--bernstein); color: var(--bernstein); font-weight: 600; }
+.spec-chip.spec-zurueck { border-color: var(--rot); color: var(--rot); }
+.tl-schritte summary { cursor: pointer; font: 12px var(--titel); letter-spacing: .1em; text-transform: uppercase; color: var(--leise); margin-top: 4px; }
+.welle { margin-top: 8px; } .welle-kopf { font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin-bottom: 4px; }
+.schritt { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; padding: 6px 8px;
+  border-left: 3px solid var(--linie2); background: var(--grund); border-radius: 3px; margin-bottom: 4px; font-size: 13.5px; }
+.schritt.status-laeuft { border-left-color: var(--gruen); } .schritt.status-fertig { opacity: .6; } .schritt.status-blockiert { border-left-color: var(--rot); }
+.schritt.mensch { border-left-color: var(--bernstein); background: var(--bernstein-weich); }
+.schritt-titel { overflow-wrap: anywhere; } .schritt-meta { grid-column: 2 / 4; font-size: 12px; }
+.spec-text { white-space: pre-wrap; font: 13.5px/1.5 var(--mono); background: var(--grund); border: 1px solid var(--linie); border-radius: 4px; padding: 12px; max-height: 50vh; overflow: auto; }
+.verweis { cursor: pointer; color: var(--bernstein); border-bottom: 1px dotted currentColor; }
+.check { display: grid; gap: 6px; } .check > div { padding: 6px 0; border-bottom: 1px solid var(--linie); font-size: 14px; }
+.gruen-text { color: var(--gruen); }
+.rm-huelle { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+.rm { display: grid; grid-template-columns: 18px auto; grid-template-rows: auto 18px; gap: 4px; }
+.rm-y { writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; font-size: 11px; }
+.rm-x { grid-column: 2; text-align: center; font-size: 11px; }
+.rm-gitter { display: grid; grid-template-columns: 16px repeat(5, 38px); gap: 3px; }
+.rm-zelle { height: 30px; border-radius: 3px; display: grid; place-items: center; font: 600 13px var(--mono); color: var(--tinte); }
+.rm-gruen { background: color-mix(in srgb, var(--gruen) 25%, transparent); } .rm-gelb { background: color-mix(in srgb, var(--bernstein) 30%, transparent); }
+.rm-rot { background: color-mix(in srgb, var(--rot) 35%, transparent); }
+.rm-achse { font-size: 11px; display: grid; place-items: center; }
+.risiko { padding: 10px 14px; cursor: pointer; } .risiko.status-erledigt { opacity: .55; }
+@media (max-width: 760px) { .zeitleiste { padding-left: 20px; } .tl-punkt { left: -19px; } .tl-heute { margin-left: -20px; }
+  .schritt { grid-template-columns: 54px minmax(0, 1fr); } .schritt > .etikett { grid-column: 2; justify-self: start; } .tl-knoepfe { margin-left: 0; } }
 .mini-balken { display: grid; gap: 3px; margin-top: 8px; }
 .mb { display: grid; grid-template-columns: 54px 1fr 38px; gap: 6px; align-items: center; font-size: 11px; color: var(--sehrleise); }
 .mb-spur { height: 5px; background: var(--grund); border-radius: 3px; overflow: hidden; } .mb-spur i { display: block; height: 100%; }
@@ -325,6 +370,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
     <a data-sicht="start"><span class="sym">◉</span><span data-t="n_start"></span></a>
     <a data-sicht="fragen"><span class="sym">?</span><span data-t="n_fragen"></span> <span class="zahl" data-zahl="fragen"></span></a>
     <div class="gruppe" data-t="g_arbeit"></div>
+    <a data-sicht="planung"><span class="sym">◇</span><span data-t="n_planung" data-t-lang></span><span data-t="n_planung_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="freigaben"></span></a>
     <a data-sicht="arbeit"><span class="sym">▤</span><span data-t="n_aufgaben"></span> <span class="zahl" data-zahl="offen"></span></a>
     <a data-sicht="releases"><span class="sym">✦</span><span data-t="n_releases" data-t-lang></span><span data-t="n_releases_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="releases"></span></a>
     <div class="gruppe" data-t="g_wissen"></div>
@@ -423,6 +469,35 @@ const TEXTE = {
     pr_fern: "Fernsteuerung", pr_fern_h: "Remote Control mit der Kennung als Namen (Steuern vom Handy/claude.ai)",
     pr_neustart: "Nach Absturz fortsetzen", pr_neustart_h: "nur wenn Claude abstürzt und das Fenster offen bleibt; höchstens 3-mal je Stunde",
     pr_startsatz: "Startsatz", pr_startsatz_h: "erste Anweisung einer neuen Sitzung (beim Fortsetzen nicht)",
+    n_planung: "Planung", n_planung_kurz: "Plan", pl_termin: "Termin", pl_risiko: "Risiko", pl_qualitaet: "Qualität", ampel_gruen: "grün",
+    ampel_gelb: "gelb", ampel_rot: "rot", pl_freigaben: "{n} Freigabe(n) für dich", pl_spec_frei: "Bogen {b} „{x}“: {teil} (v{v}) freigeben",
+    pl_plan_frei: "Plan A{a} „{x}“ von {ag} freigeben", pr_zeitleiste: "Zeitleiste", pr_leitbild: "Leitbild", pr_risiken: "Risiken",
+    pr_check: "Plan-Check", pr_protokoll: "Protokoll", pl_bogen_neu: "Neuer Bogen", pl_check_ok: "Keine Lücken gefunden.", st_fehler: "Fehler",
+    st_warnung: "Warnung", st_hinweis: "Hinweis",
+    pl_keine_boegen: "Noch keine Bögen. Ein Bogen ist ein Meilenstein mit prüfbarem Abnahmekriterium – „Neuer Bogen“.", pl_heute: "heute · {x}",
+    pl_schritte: "{n} Schritte", pl_welle: "Welle {n}", pl_parallel: "parallel möglich", pl_keine_schritte: "noch keine Schritte", bs_geplant: "geplant",
+    bs_aktiv: "aktiv", bs_fertig: "fertig", bs_verworfen: "verworfen", pl_aktivieren: "Aktivieren",
+    pl_aktivieren_frage: "Bogen aktivieren? Das Zieldatum wird als Baseline eingefroren.", pl_abschliessen: "Abschließen",
+    pl_abschliessen_frage: "Ist das Abnahmekriterium erfüllt?\n{x}", bearbeiten: "Bearbeiten", pl_ziel: "Ziel", pl_abnahme: "Abnahme",
+    pl_fehlt: "fehlt – ohne prüfbares Kriterium ist ein Bogen nie wirklich fertig", pl_fortschritt: "{f}/{g} fertig", pl_laeuft: "{n} läuft",
+    pl_blockiert: "{n} blockiert", pl_zieldatum: "Zieldatum", pl_baseline: "Baseline", pl_prognose: "Prognose", teil_anforderungen: "Anforderungen",
+    teil_entwurf: "Entwurf", teil_schritte: "Schritte", ss_entwurf: "Entwurf", ss_vorgelegt: "zur Freigabe", ss_frei: "frei ✓", ss_zurueck: "zurück",
+    pl_klaerungen: "{n} Klärung(en) offen", pl_wartet_auf: "wartet auf {x}", pl_du: "du", pl_frei: "frei", pl_plan_fehlt: "Plan fehlt",
+    pl_kommentar_ph: "Kommentar – bei „Zurück“ Pflicht: was ist zu ändern?", pl_freigegeben: "Freigegeben", pl_zurueck_gegeben: "Zurückgegeben",
+    pl_letzter_kommentar: "Letzter Kommentar", pl_klaerungen_liste: "Klärungsfragen:", pl_leer_spec: "(noch leer)", pl_zurueck: "Zurück",
+    pl_freigeben: "Freigeben", pl_nicht_vorgelegt: "Noch nicht zur Freigabe vorgelegt.", pl_plan_von: "Plan von {x}", pl_titel: "Titel",
+    pl_abnahme_h: "Woran erkennt man, dass der Bogen fertig ist? (prüfbar)", pl_grund: "Grund der Änderung",
+    pl_grund_h: "Pflicht, wenn das Zieldatum von der Baseline ({x}) abweicht", pl_freigabe_noetig: "Freigabe", pl_dein_schritt: "dein Schritt",
+    lb_h: "Woran sich alle Bögen und Schritte messen. Die Agenten bekommen es in ihren Pflicht-Kontext.", lb_ziel: "Projektziel",
+    lb_ziel_h: "ein Satz, messbar", lb_kennzahlen: "Kennzahlen", lb_zeilen: "eine je Zeile", lb_nicht: "Nicht-Ziele",
+    lb_nicht_h: "was ausdrücklich nicht gebaut wird – bremst Agenten, die mehr bauen als verlangt", lb_prinzipien: "Prinzipien",
+    lb_prinzipien_h: "je Zeile: Prinzip | Prüffrage", lb_dod: "Definition of Done", lb_dod_h: "gilt für jeden Schritt, eine Bedingung je Zeile",
+    rs_auswirkung: "Auswirkung", rs_wahrscheinlichkeit: "Wahrscheinlichkeit",
+    rs_h: "Wert = Wahrscheinlichkeit × Auswirkung (1–5). Ab 15 rot, ab 8 gelb. Klick auf ein Risiko zum Bearbeiten.", rs_neu: "Neues Risiko",
+    rs_keine: "Keine Risiken erfasst.", rs_ohne: "ohne Maßnahme", rs_titel: "Risiko", rs_ursache: "Ursache", rs_wirkung: "Wirkung",
+    rs_strategie: "Strategie", rs_massnahme: "Maßnahme", rs_verantwortlich: "Verantwortlich", rs_ausloeser: "Auslöser", rst_offen: "offen",
+    rst_eingetreten: "eingetreten", rst_erledigt: "erledigt", str_vermeiden: "vermeiden", str_mindern: "mindern", str_uebertragen: "übertragen",
+    str_akzeptieren: "akzeptieren", pe_freigabe: "Freigaben für dich (Spezifikation, Pläne)",
     achtung: "Achtung", nachtrag_neu: "{n} neuer Nachtrag", aufklappen: "Klick: ganzer Text", s_extra: "{n} außerplanmäßig",
     jetzt_bei: "jetzt: {x}", geaendert: "geändert", notizen: "Notizen ({n})", server: "Projekt-Server", k_name: "Name", k_port: "Port",
     k_zustaendig: "Zuständig", k_neustart: "Neustart", k_ausfaelle: "Ausfälle", sz_laeuft: "läuft", sz_aus: "aus", sz_unbekannt: "noch nicht geprüft",
@@ -518,6 +593,33 @@ const TEXTE = {
     pr_fern: "Remote control", pr_fern_h: "Remote Control named after the agent (steer from phone/claude.ai)",
     pr_neustart: "Resume after crash", pr_neustart_h: "only if Claude crashes and the window stays open; at most 3 times per hour",
     pr_startsatz: "First prompt", pr_startsatz_h: "first instruction of a new session (not when resuming)",
+    n_planung: "Planning", n_planung_kurz: "Plan", pl_termin: "Schedule", pl_risiko: "Risk", pl_qualitaet: "Quality", ampel_gruen: "green",
+    ampel_gelb: "amber", ampel_rot: "red", pl_freigaben: "{n} approval(s) for you", pl_spec_frei: "Arc {b} “{x}”: approve {teil} (v{v})",
+    pl_plan_frei: "Approve plan A{a} “{x}” by {ag}", pr_zeitleiste: "Timeline", pr_leitbild: "Charter", pr_risiken: "Risks", pr_check: "Plan check",
+    pr_protokoll: "Log", pl_bogen_neu: "New arc", pl_check_ok: "No gaps found.", st_fehler: "Error", st_warnung: "Warning", st_hinweis: "Hint",
+    pl_keine_boegen: "No arcs yet. An arc is a milestone with a checkable acceptance criterion – “New arc”.", pl_heute: "today · {x}",
+    pl_schritte: "{n} steps", pl_welle: "Wave {n}", pl_parallel: "can run in parallel", pl_keine_schritte: "no steps yet", bs_geplant: "planned",
+    bs_aktiv: "active", bs_fertig: "done", bs_verworfen: "dropped", pl_aktivieren: "Activate",
+    pl_aktivieren_frage: "Activate arc? The target date is frozen as baseline.", pl_abschliessen: "Complete",
+    pl_abschliessen_frage: "Is the acceptance criterion met?\n{x}", bearbeiten: "Edit", pl_ziel: "Goal", pl_abnahme: "Acceptance",
+    pl_fehlt: "missing – without a checkable criterion an arc is never really done", pl_fortschritt: "{f}/{g} done", pl_laeuft: "{n} running",
+    pl_blockiert: "{n} blocked", pl_zieldatum: "Target", pl_baseline: "Baseline", pl_prognose: "Forecast", teil_anforderungen: "Requirements",
+    teil_entwurf: "Design", teil_schritte: "Steps", ss_entwurf: "draft", ss_vorgelegt: "for approval", ss_frei: "approved ✓", ss_zurueck: "returned",
+    pl_klaerungen: "{n} clarification(s) open", pl_wartet_auf: "waits for {x}", pl_du: "you", pl_frei: "unassigned", pl_plan_fehlt: "plan missing",
+    pl_kommentar_ph: "Comment – required when returning: what to change?", pl_freigegeben: "Approved", pl_zurueck_gegeben: "Returned",
+    pl_letzter_kommentar: "Last comment", pl_klaerungen_liste: "Clarifications:", pl_leer_spec: "(empty)", pl_zurueck: "Return", pl_freigeben: "Approve",
+    pl_nicht_vorgelegt: "Not submitted for approval yet.", pl_plan_von: "Plan by {x}", pl_titel: "Title",
+    pl_abnahme_h: "How do you know the arc is done? (checkable)", pl_grund: "Reason for change",
+    pl_grund_h: "required when the target date differs from the baseline ({x})", pl_freigabe_noetig: "Approval", pl_dein_schritt: "your step",
+    lb_h: "What all arcs and steps are measured against. Agents get it in their mandatory context.", lb_ziel: "Project goal",
+    lb_ziel_h: "one sentence, measurable", lb_kennzahlen: "Metrics", lb_zeilen: "one per line", lb_nicht: "Non-goals",
+    lb_nicht_h: "what is explicitly not built – stops agents from building more than asked", lb_prinzipien: "Principles",
+    lb_prinzipien_h: "per line: principle | check question", lb_dod: "Definition of Done", lb_dod_h: "applies to every step, one condition per line",
+    rs_auswirkung: "Impact", rs_wahrscheinlichkeit: "Likelihood",
+    rs_h: "Score = likelihood × impact (1–5). Red from 15, amber from 8. Click a risk to edit.", rs_neu: "New risk", rs_keine: "No risks recorded.",
+    rs_ohne: "no response", rs_titel: "Risk", rs_ursache: "Cause", rs_wirkung: "Effect", rs_strategie: "Strategy", rs_massnahme: "Response",
+    rs_verantwortlich: "Owner", rs_ausloeser: "Trigger", rst_offen: "open", rst_eingetreten: "occurred", rst_erledigt: "closed", str_vermeiden: "avoid",
+    str_mindern: "mitigate", str_uebertragen: "transfer", str_akzeptieren: "accept", pe_freigabe: "approvals for you (specs, plans)",
     achtung: "Attention", nachtrag_neu: "{n} new follow-up", aufklappen: "Click: full text", s_extra: "{n} unplanned",
     jetzt_bei: "now: {x}", geaendert: "changed", notizen: "Notes ({n})", server: "Project servers", k_name: "Name", k_port: "Port",
     k_zustaendig: "Owner", k_neustart: "Restart", k_ausfaelle: "Outages", sz_laeuft: "running", sz_aus: "down", sz_unbekannt: "not checked yet",
@@ -605,7 +707,7 @@ async function kopfAktualisieren() {
       el("span", { class: "signal unwichtig" }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: sp })),
     );
     for (const z of document.querySelectorAll("[data-zahl]")) {
-      const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", z.dataset.zahl === "fragen" && n > 0);
+      const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", ["fragen", "freigaben"].includes(z.dataset.zahl) && n > 0);
     }
     const hk = $("#halt-knopf"); const aktiv = d.halt.length > 0;
     hk.classList.toggle("aktiv", aktiv); hk.textContent = aktiv ? t("weiter") : t("halt");
@@ -622,7 +724,7 @@ function zeige(sicht, still = false) {
   for (const a of document.querySelectorAll("nav a")) a.classList.toggle("an", a.dataset.sicht === sicht);
   try { localStorage.setItem("amw-sicht", sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
-  const fertig = ({ start: sichtStart, fragen: sichtFragen, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
+  const fertig = ({ start: sichtStart, fragen: sichtFragen, planung: sichtPlanung, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return; }
   Promise.resolve(fertig).then(() => { $("#inhalt").scrollTop = pos[0]; window.scrollTo(0, pos[1]); });
 }
@@ -646,6 +748,15 @@ async function sichtStart() {
   if ((d.warnungen || []).length) m.append(el("div", { class: "band-warn" }, el("b", {}, t("achtung").toUpperCase()),
     d.warnungen.map(w => el("div", {}, w.text))));
   m.append(el("h2", {}, t("wartet_auf_dich")));
+  const pw = d.planung_wartet || { spezifikationen: [], plaene: [], eigene: [] };
+  const fr = [...pw.spezifikationen.map(s => el("div", { class: "karte", onclick: () => { zustand.planReiter = "zeitleiste"; zeige("planung"); } },
+      el("div", {}, el("span", { class: "ref" }, `Bogen ${s.bogen_id}`), " ", el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))),
+      el("p", {}, t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })))),
+    ...pw.plaene.map(p => el("div", { class: "karte", onclick: () => zeige("planung") }, el("div", {}, el("span", { class: "ref" }, `A${p.id}`), " ",
+      el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))), el("p", {}, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" })))),
+    ...pw.eigene.map(a => el("div", { class: "karte", onclick: () => zeige("planung") }, el("div", {}, el("span", { class: "ref" }, `A${a.id}`), " ",
+      el("span", { class: "etikett" }, t("pl_dein_schritt"))), el("p", {}, a.titel)))];
+  if (fr.length) m.append(el("div", { class: "wartet zeile-reveal", style: "margin-bottom:12px" }, fr));
   m.append(d.fragen.length
     ? el("div", { class: "wartet zeile-reveal" }, d.fragen.slice(0, 6).map(f => el("div", { class: "karte", onclick: () => zeige("fragen") },
         el("div", {}, el("span", { class: "ref" }, `F${f.id}`), " ", el("span", { class: "leise" }, `${f.von} · ${seit(f.zeit_utc)}`),
@@ -920,6 +1031,204 @@ async function sichtWissen() {
     el("div", { class: "inhalt", style: "white-space:pre-wrap" }, n.wert))));
   if (!box.children.length) box.append(el("div", { class: "leer" }, t("nichts_gefunden")));
   m.append(box);
+}
+
+/* --- Planung ------------------------------------------------------------------------------- */
+const datumKurz = x => x ? new Date(x + "T12:00:00").toLocaleDateString(gebiet(), { day: "2-digit", month: "2-digit" }) : "–";
+const ampelKlasse = a => a === "gruen" ? "gruen" : a === "gelb" ? "bernstein" : a === "rot" ? "rot" : "";
+async function sichtPlanung() {
+  let d; try { d = await holen("/api/planung"); } catch (e) { rahmen(t("n_planung")).append(el("div", { class: "leer" }, String(e))); return; }
+  const r = zustand.planReiter || "zeitleiste";
+  const chip = (name, wert, grund) => el("span", { class: "signal", title: grund || "" }, el("span", { class: "punkt " + ampelKlasse(wert) }),
+    `${t("pl_" + name)}: ${wert ? t("ampel_" + wert) : "–"}`);
+  const m = rahmen(t("n_planung"), el("span", { style: "display:flex;gap:8px;flex-wrap:wrap" },
+    chip("termin", d.status.termin, d.status.begruendung.termin), chip("risiko", d.status.risiko, d.status.begruendung.risiko),
+    chip("qualitaet", d.status.qualitaet, d.status.begruendung.qualitaet)));
+  /* was auf dich wartet, zuerst */
+  const w = d.wartet, offen = w.spezifikationen.length + w.plaene.length;
+  if (offen) m.append(el("div", { class: "band-warn" }, el("b", {}, t("pl_freigaben", { n: offen }).toUpperCase()),
+    ...w.spezifikationen.map(s => el("div", {}, el("a", { class: "verweis", onclick: () => specDialog(d.boegen.find(b => b.id === s.bogen_id), s.teil) },
+      t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })))),
+    ...w.plaene.map(p => el("div", {}, el("a", { class: "verweis", onclick: () => planDialog(p) }, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" }))))));
+  const reiter = ["zeitleiste", "leitbild", "risiken", "check", "protokoll"];
+  m.append(el("div", { class: "reiter" }, reiter.map(k => el("button", { class: k === r ? "an" : "", type: "button",
+      onclick: () => { zustand.planReiter = k; sichtPlanung(); } }, t("pr_" + k) + (k === "check" && d.pruefung.length ? ` (${d.pruefung.length})` : "")
+      + (k === "risiken" ? ` (${d.risiken.filter(x => x.status !== "erledigt").length})` : ""))),
+    r === "zeitleiste" ? el("div", { class: "rechts" }, el("button", { class: "klein-knopf", type: "button", onclick: () => bogenDialog(null) }, t("pl_bogen_neu"))) : null));
+  if (r === "zeitleiste") m.append(zeitleiste(d));
+  if (r === "leitbild") m.append(leitbildAnsicht(d.leitbild));
+  if (r === "risiken") m.append(risikoAnsicht(d));
+  if (r === "check") m.append(d.pruefung.length ? el("div", { class: "check" }, d.pruefung.map(x => el("div", { class: "check-" + x.stufe },
+    el("span", { class: "etikett " + (x.stufe === "fehler" ? "rot" : x.stufe === "warnung" ? "bernstein" : "") }, t("st_" + x.stufe)), " ", x.text)))
+    : el("div", { class: "leer" }, t("pl_check_ok")));
+  if (r === "protokoll") m.append(d.ereignisse.length ? tabelle(["k_zeit", "k_von", "k_art", "k_text"], d.ereignisse.map(x =>
+    [zeit(x.zeit_utc), x.von, x.art, (x.bogen_id ? `Bogen ${x.bogen_id} · ` : "") + (x.aufgabe_id ? `A${x.aufgabe_id} · ` : "") + (x.text || "")]))
+    : el("div", { class: "leer" }, t("leer")));
+}
+/* Senkrechte Zeitleiste: ein Bogen je Station, Heute-Linie, Zieldatum/Baseline/Prognose, Spezifikation, Schritte in Wellen */
+function zeitleiste(d) {
+  if (!d.boegen.length) return el("div", { class: "leer" }, t("pl_keine_boegen"));
+  const liste = el("div", { class: "zeitleiste" });
+  let heuteGesetzt = false;
+  for (const b of d.boegen) {
+    const bezug = b.status === "fertig" ? (b.fertig_utc || "").slice(0, 10) : (b.prognose?.p50 || b.zieldatum);
+    if (!heuteGesetzt && b.status !== "fertig" && b.status !== "verworfen" && (!bezug || bezug >= d.heute)) {
+      liste.append(el("div", { class: "tl-heute" }, el("span", {}, t("pl_heute", { x: datumKurz(d.heute) }))));
+      heuteGesetzt = true;
+    }
+    liste.append(bogenKarte(b));
+  }
+  if (!heuteGesetzt) liste.append(el("div", { class: "tl-heute" }, el("span", {}, t("pl_heute", { x: datumKurz(d.heute) }))));
+  return liste;
+}
+function bogenKarte(b) {
+  const p = b.prognose, aktiv = b.status === "aktiv", anteil = b.gesamt ? Math.round(100 * b.fertig / b.gesamt) : 0;
+  const knopf = (text, fn, haupt) => el("button", { class: haupt ? "knopf" : "klein-knopf", type: "button", onclick: fn }, text);
+  const statusSetzen = async (status, frage) => { if (frage && !confirm(frage)) return;
+    try { await schicken("/api/plan/bogen", { aktion: "status", bogen: b.id, status }); zeige("planung", true); } catch (e) { toast(t("fehler", { x: e.message }), true); } };
+  const specChip = teil => { const s = b.specs[teil] || { status: "entwurf" }; return el("button", { class: "spec-chip spec-" + s.status, type: "button",
+    onclick: () => specDialog(b, teil) }, `${t("teil_" + teil)}: ${t("ss_" + s.status)}`); };
+  const wellen = {};
+  for (const s of b.schritte) (wellen[s.welle] ||= []).push(s);
+  const schritte = el("details", { class: "tl-schritte", ...(aktiv ? { open: true } : {}) }, el("summary", {}, t("pl_schritte", { n: b.schritte.length })),
+    b.schritte.length ? Object.keys(wellen).sort((x, y) => x - y).map(n => el("div", { class: "welle" },
+      el("div", { class: "welle-kopf" }, t("pl_welle", { n }) + (wellen[n].length > 1 ? " · " + t("pl_parallel") : "")),
+      wellen[n].map(s => schrittZeile(s)))) : el("div", { class: "sehrleise" }, t("pl_keine_schritte")));
+  return el("div", { class: `tl-bogen karte status-${b.status}` },
+    el("span", { class: "tl-punkt " + (b.status === "fertig" ? "gruen" : ampelKlasse(p?.ampel)) }),
+    el("div", { class: "tl-kopf" }, el("span", { class: "ref" }, `Bogen ${b.id}`), el("b", { class: "tl-titel" }, b.titel),
+      el("span", { class: "etikett " + (aktiv ? "gruen" : b.status === "fertig" ? "" : "") }, t("bs_" + b.status)),
+      el("span", { class: "tl-knoepfe" },
+        b.status === "geplant" ? knopf(t("pl_aktivieren"), () => statusSetzen("aktiv", t("pl_aktivieren_frage"))) : null,
+        aktiv ? knopf(t("pl_abschliessen"), () => statusSetzen("fertig", t("pl_abschliessen_frage", { x: b.abnahme || "–" }))) : null,
+        knopf(t("bearbeiten"), () => bogenDialog(b)))),
+    b.ziel ? el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_ziel") + " "), b.ziel) : null,
+    el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_abnahme") + " "), b.abnahme || el("span", { class: "rot-text" }, t("pl_fehlt"))),
+    el("div", { class: "tl-fortschritt" }, el("div", { class: "mb-spur" }, el("i", { style: `width:${anteil}%;background:var(--gruen)` })),
+      el("span", { class: "sehrleise" }, t("pl_fortschritt", { f: b.fertig, g: b.gesamt }) + (b.laeuft ? ` · ${t("pl_laeuft", { n: b.laeuft })}` : "")
+        + (b.blockiert ? ` · ${t("pl_blockiert", { n: b.blockiert })}` : ""))),
+    el("div", { class: "tl-daten" },
+      el("span", {}, el("span", { class: "sehrleise" }, t("pl_zieldatum") + " "), datumKurz(b.zieldatum)),
+      b.baseline_datum && b.baseline_datum !== b.zieldatum ? el("span", { title: b.baseline_grund || "" }, el("span", { class: "sehrleise" }, t("pl_baseline") + " "), datumKurz(b.baseline_datum)) : null,
+      p ? el("span", { class: ampelKlasse(p.ampel) + "-text" }, el("span", { class: "sehrleise" }, t("pl_prognose") + " "), `${datumKurz(p.p50)} – ${datumKurz(p.p85)}`) : null),
+    el("div", { class: "tl-specs" }, ...["anforderungen", "entwurf", "schritte"].map(specChip),
+      b.klaerungen.filter(k => k.status === "offen").length ? el("a", { class: "verweis", onclick: () => zeige("fragen") },
+        t("pl_klaerungen", { n: b.klaerungen.filter(k => k.status === "offen").length })) : null),
+    schritte);
+}
+function schrittZeile(s) {
+  const k = s.kriterien || [], erfuellt = k.filter(x => x.erfuellt).length, mensch = s.agent === "Entwickler";
+  return el("div", { class: `schritt status-${s.status}${mensch ? " mensch" : ""}` },
+    el("span", { class: "ref" }, `A${s.id}`),
+    el("span", { class: "schritt-titel" }, s.titel),
+    el("span", { class: "etikett" + (s.status === "laeuft" ? " gruen" : s.blockiert_durch.length ? " rot" : "") },
+      s.blockiert_durch.length ? t("pl_wartet_auf", { x: s.blockiert_durch.map(x => "A" + x).join(", ") }) : t("sp_" + s.status) || s.status),
+    el("span", { class: "schritt-meta sehrleise" },
+      [mensch ? t("pl_du") : (s.agent || t("pl_frei")), k.length ? `✓ ${erfuellt}/${k.length}` : null,
+       s.komplexitaet ? `K${s.komplexitaet}` + (s.komplexitaet >= 7 ? (s.plan_status === "frei" ? " · Plan ✓" : " · " + t("pl_plan_fehlt")) : "") : null,
+       s.prognose && s.status !== "fertig" ? `≈ ${datumKurz(s.prognose.p50)}` : null, s.anforderungen].filter(Boolean).join(" · ")));
+}
+function dialog(titel, ...inhalt) {
+  const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
+    el("div", { class: "karte dialog einst", style: "width:min(820px,94vw);max-height:88vh;overflow-y:auto" }, el("h3", {}, titel), ...inhalt));
+  document.body.append(hg);
+  document.addEventListener("keydown", function weg(e) { if (e.key === "Escape") { hg.remove(); document.removeEventListener("keydown", weg); } });
+  return hg;
+}
+function specDialog(b, teil) {
+  const s = b.specs[teil] || { status: "entwurf", text: "" };
+  const kommentar = el("textarea", { rows: 3, placeholder: t("pl_kommentar_ph") });
+  const entscheiden = async frei => {
+    try { await schicken("/api/plan/spec", { bogen: b.id, teil, frei, kommentar: kommentar.value }); hg.remove(); toast(frei ? t("pl_freigegeben") : t("pl_zurueck_gegeben")); zeige("planung", true); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); } };
+  const klaer = b.klaerungen.filter(k => k.fundstellen === `bogen:${b.id}:${teil}`);
+  const hg = dialog(`Bogen ${b.id} · ${t("teil_" + teil)}`,
+    el("p", { class: "leise", style: "margin-top:0" }, `${t("ss_" + s.status)} · v${s.version || 1}` + (s.geschrieben_von ? ` · ${s.geschrieben_von}` : "")
+      + (s.geaendert_utc ? ` · ${seit(s.geaendert_utc)}` : "")),
+    s.kommentar ? el("div", { class: "band-warn" }, el("b", {}, t("pl_letzter_kommentar")), s.kommentar) : null,
+    klaer.length ? el("div", { class: "sehrleise" }, t("pl_klaerungen_liste") + " " + klaer.map(k => `F${k.id} (${k.status})`).join(", ")) : null,
+    el("pre", { class: "spec-text" }, s.text || t("pl_leer_spec")),
+    s.status === "vorgelegt" ? el("div", {}, kommentar, el("div", { class: "aktionen" },
+      el("button", { class: "klein-knopf", type: "button", onclick: () => entscheiden(false) }, t("pl_zurueck")),
+      el("button", { class: "knopf haupt", type: "button", onclick: () => entscheiden(true) }, t("pl_freigeben"))))
+      : el("p", { class: "sehrleise" }, t("pl_nicht_vorgelegt")));
+}
+function planDialog(p) {
+  const kommentar = el("textarea", { rows: 3, placeholder: t("pl_kommentar_ph") });
+  const entscheiden = async frei => {
+    try { await schicken("/api/plan/planfrei", { aufgabe: p.id, frei, kommentar: kommentar.value }); hg.remove(); zeige("planung", true); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); } };
+  const hg = dialog(`A${p.id} · ${p.titel}`, el("p", { class: "leise" }, t("pl_plan_von", { x: p.agent || "–" })),
+    el("pre", { class: "spec-text" }, p.plan || "…"), kommentar, el("div", { class: "aktionen" },
+      el("button", { class: "klein-knopf", type: "button", onclick: () => entscheiden(false) }, t("pl_zurueck")),
+      el("button", { class: "knopf haupt", type: "button", onclick: () => entscheiden(true) }, t("pl_freigeben"))));
+}
+function bogenDialog(b) {
+  const ein = (wert, art) => el("input", { type: art || "text", value: wert || "" });
+  const f = { titel: ein(b?.titel), ziel: ein(b?.ziel), abnahme: ein(b?.abnahme), zieldatum: ein(b?.zieldatum, "date"), grund: ein("") };
+  const zeile = (l, x, h) => el("div", { class: "feld" }, el("label", {}, l), el("div", {}, x, h ? el("div", { class: "sehrleise", style: "font-size:12px" }, h) : null));
+  const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
+  const hg = dialog(b ? `Bogen ${b.id}` : t("pl_bogen_neu"), zeile(t("pl_titel"), f.titel), zeile(t("pl_ziel"), f.ziel),
+    zeile(t("pl_abnahme"), f.abnahme, t("pl_abnahme_h")), zeile(t("pl_zieldatum"), f.zieldatum),
+    b?.baseline_datum ? zeile(t("pl_grund"), f.grund, t("pl_grund_h", { x: datumKurz(b.baseline_datum) })) : null,
+    el("div", { class: "aktionen" }, el("button", { class: "klein-knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")), knopf));
+  knopf.addEventListener("click", async () => {
+    const daten = { titel: f.titel.value.trim(), ziel: f.ziel.value.trim(), abnahme: f.abnahme.value.trim(), zieldatum: f.zieldatum.value || null };
+    try { await schicken("/api/plan/bogen", b ? { ...daten, bogen: b.id, grund: f.grund.value.trim() || null } : { ...daten, aktion: "neu" });
+      hg.remove(); zeige("planung", true); } catch (e) { toast(t("fehler", { x: e.message }), true); }
+  });
+}
+function leitbildAnsicht(lb) {
+  const feld = (wert, zeilen) => el("textarea", { rows: zeilen || 3 }, wert);
+  const f = { ziel: feld(lb.ziel, 2), kennzahlen: feld(lb.kennzahlen.join("\n")), nicht_ziele: feld(lb.nicht_ziele.join("\n")),
+    prinzipien: feld(lb.prinzipien.map(p => p.text + (p.pruefung ? " | " + p.pruefung : "")).join("\n"), 4), dod: feld(lb.dod.join("\n"), 4) };
+  const zeile = (l, x, h) => el("div", { class: "feld" }, el("label", {}, l), el("div", {}, x, h ? el("div", { class: "sehrleise", style: "font-size:12px" }, h) : null));
+  const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
+  knopf.addEventListener("click", async () => {
+    try { await schicken("/api/plan/leitbild", { ziel: f.ziel.value.trim(), kennzahlen: f.kennzahlen.value, nicht_ziele: f.nicht_ziele.value,
+      prinzipien: f.prinzipien.value.split("\n").map(z => z.replace(" | ", "|")).join("\n"), dod: f.dod.value }); toast(t("gespeichert")); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); }
+  });
+  return el("div", { class: "karte einst", style: "padding:16px 18px" }, el("p", { class: "leise", style: "margin-top:0" }, t("lb_h")),
+    zeile(t("lb_ziel"), f.ziel, t("lb_ziel_h")), zeile(t("lb_kennzahlen"), f.kennzahlen, t("lb_zeilen")), zeile(t("lb_nicht"), f.nicht_ziele, t("lb_nicht_h")),
+    zeile(t("lb_prinzipien"), f.prinzipien, t("lb_prinzipien_h")), zeile(t("lb_dod"), f.dod, t("lb_dod_h")), el("div", { style: "margin-top:12px" }, knopf));
+}
+function risikoAnsicht(d) {
+  const offen = d.risiken.filter(r => r.status !== "erledigt");
+  const zelle = (w, a) => { const n = offen.filter(r => r.wahrscheinlichkeit === w && r.auswirkung === a).length, wert = w * a;
+    return el("div", { class: "rm-zelle " + (wert >= 15 ? "rm-rot" : wert >= 8 ? "rm-gelb" : "rm-gruen"), title: `W${w} × A${a} = ${wert}` }, n || ""); };
+  const matrix = el("div", { class: "rm" }, el("div", { class: "rm-y sehrleise" }, t("rs_auswirkung")),
+    el("div", { class: "rm-gitter" }, [5, 4, 3, 2, 1].flatMap(a => [el("div", { class: "rm-achse sehrleise" }, a), ...[1, 2, 3, 4, 5].map(w => zelle(w, a))]),
+      el("div", {}), ...[1, 2, 3, 4, 5].map(w => el("div", { class: "rm-achse sehrleise" }, w))),
+    el("div", { class: "rm-x sehrleise" }, t("rs_wahrscheinlichkeit")));
+  return el("div", {}, el("div", { class: "rm-huelle" }, matrix, el("div", { class: "sehrleise", style: "max-width:360px" }, t("rs_h"))),
+    el("div", { style: "margin:12px 0" }, el("button", { class: "klein-knopf", type: "button", onclick: () => risikoDialog(null) }, t("rs_neu"))),
+    d.risiken.length ? el("div", { class: "eintraege" }, d.risiken.map(r => el("div", { class: "karte risiko status-" + r.status, onclick: () => risikoDialog(r) },
+      el("div", {}, el("span", { class: "ref" }, `R${r.id}`), " ", el("b", {}, r.titel), " ",
+        el("span", { class: "etikett " + (r.wert >= 15 ? "rot" : r.wert >= 8 ? "bernstein" : "gruen") }, `${r.wahrscheinlichkeit}×${r.auswirkung}=${r.wert}`), " ",
+        el("span", { class: "etikett" }, t("rst_" + r.status))),
+      el("div", { class: "sehrleise" }, [r.strategie ? t("str_" + r.strategie) : null, r.massnahme, r.verantwortlich].filter(Boolean).join(" · ") || t("rs_ohne"))))) : el("div", { class: "leer" }, t("rs_keine")));
+}
+function risikoDialog(r) {
+  const ein = v => el("input", { type: "text", value: v || "" });
+  const wahl = (werte, v) => { const s = el("select", {}, werte.map(([k, l]) => el("option", { value: k }, l))); s.value = v ?? werte[0][0]; return s; };
+  const skala = [1, 2, 3, 4, 5].map(x => [String(x), String(x)]);
+  const f = { titel: ein(r?.titel), ursache: ein(r?.ursache), wirkung: ein(r?.wirkung), w: wahl(skala, String(r?.wahrscheinlichkeit || 3)),
+    a: wahl(skala, String(r?.auswirkung || 3)), strategie: wahl([["", "–"], ...["vermeiden", "mindern", "uebertragen", "akzeptieren"].map(s => [s, t("str_" + s)])], r?.strategie || ""),
+    massnahme: ein(r?.massnahme), verantwortlich: ein(r?.verantwortlich), ausloeser: ein(r?.ausloeser),
+    status: wahl(["offen", "eingetreten", "erledigt"].map(s => [s, t("rst_" + s)]), r?.status || "offen") };
+  const zeile = (l, x) => el("div", { class: "feld" }, el("label", {}, l), el("div", {}, x));
+  const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
+  const hg = dialog(r ? `R${r.id}` : t("rs_neu"), zeile(t("rs_titel"), f.titel), zeile(t("rs_ursache"), f.ursache), zeile(t("rs_wirkung"), f.wirkung),
+    zeile(t("rs_wahrscheinlichkeit"), f.w), zeile(t("rs_auswirkung"), f.a), zeile(t("rs_strategie"), f.strategie), zeile(t("rs_massnahme"), f.massnahme),
+    zeile(t("rs_verantwortlich"), f.verantwortlich), zeile(t("rs_ausloeser"), f.ausloeser), zeile(t("k_status"), f.status),
+    el("div", { class: "aktionen" }, el("button", { class: "klein-knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")), knopf));
+  knopf.addEventListener("click", async () => {
+    try { await schicken("/api/plan/risiko", { id: r?.id ?? null, titel: f.titel.value.trim(), ursache: f.ursache.value.trim(), wirkung: f.wirkung.value.trim(),
+      wahrscheinlichkeit: Number(f.w.value), auswirkung: Number(f.a.value), strategie: f.strategie.value || null, massnahme: f.massnahme.value.trim(),
+      verantwortlich: f.verantwortlich.value.trim(), ausloeser: f.ausloeser.value.trim(), status: f.status.value });
+      hg.remove(); zeige("planung", true); } catch (e) { toast(t("fehler", { x: e.message }), true); }
+  });
 }
 
 /* --- Betrieb ------------------------------------------------------------------------------- */

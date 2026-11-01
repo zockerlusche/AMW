@@ -82,6 +82,29 @@ class Workbench(unittest.TestCase):
         self.assertEqual(next(x for x in liste if x["id"] == aid)["jetzt"], "CC1")
         self.assertEqual(json.loads(self.anfrage("GET", "/api/wissen")[1])["notizen"][0]["schluessel"], "stand")
 
+    def test_planung_lesen_bogen_anlegen_und_freigeben(self):
+        from amw import planung
+        kopf = {"X-AMW-Token": self.token}
+        status, text = self.anfrage("POST", "/api/plan/bogen", {"aktion": "neu", "titel": "Login", "abnahme": "Test grün",
+                                                                "zieldatum": "2026-12-01"}, kopf)
+        self.assertEqual(status, 200, text)
+        bid = json.loads(text)["bogen"]
+        con = db.verbinde()
+        planung.spec_schreiben(con, self.pid, "TL", bid, "anforderungen", "R1 Anmelden")
+        planung.spec_vorlegen(con, self.pid, "TL", bid, "anforderungen")
+        con.close()
+        d = json.loads(self.anfrage("GET", "/api/planung")[1])
+        self.assertEqual(d["boegen"][0]["specs"]["anforderungen"]["status"], "vorgelegt")
+        self.assertEqual(len(d["wartet"]["spezifikationen"]), 1)
+        self.assertEqual(json.loads(self.anfrage("GET", "/api/start")[1])["zaehler"]["freigaben"], 1)
+        status, text = self.anfrage("POST", "/api/plan/spec", {"bogen": bid, "teil": "anforderungen", "frei": False}, kopf)
+        self.assertEqual(status, 400)                                             # zurück nur mit Kommentar
+        status, _ = self.anfrage("POST", "/api/plan/spec", {"bogen": bid, "teil": "anforderungen", "frei": True}, kopf)
+        self.assertEqual(status, 200)
+        d = json.loads(self.anfrage("GET", "/api/planung")[1])
+        self.assertEqual(d["boegen"][0]["specs"]["anforderungen"]["status"], "frei")
+        self.assertEqual(d["heute"], __import__("datetime").date.today().isoformat())
+
     def test_belegter_port_wird_abgelehnt(self):
         with self.assertRaises(OSError):
             workbench.starten(self.port)

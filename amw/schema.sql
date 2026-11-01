@@ -17,6 +17,8 @@ CREATE TABLE projekt (
   pfad_repo     TEXT,
   pfad_arbeit   TEXT,
   einstellungen TEXT NOT NULL DEFAULT '{}',      -- JSON
+  leitbild         TEXT,                         -- JSON (→ amw/planung.py)
+  dod              TEXT,                         -- JSON-Liste
   angelegt_utc  TEXT NOT NULL,
   uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft      TEXT NOT NULL DEFAULT '',
@@ -122,6 +124,43 @@ CREATE TABLE empfang (
 );
 CREATE INDEX empfang_offen ON empfang (agent, status);
 
+-- Bogen = Meilenstein mit prüfbarem Abnahmekriterium; Zieldatum wird beim Aktivieren als Baseline eingefroren.
+CREATE TABLE bogen (
+  id               INTEGER PRIMARY KEY,
+  projekt_id       INTEGER NOT NULL REFERENCES projekt(id),
+  nr               INTEGER NOT NULL,                -- Reihenfolge
+  titel            TEXT NOT NULL,
+  ziel             TEXT,
+  abnahme          TEXT,                            -- prüfbares Kriterium (Gate)
+  status           TEXT NOT NULL DEFAULT 'geplant' CHECK (status IN ('geplant', 'aktiv', 'fertig', 'verworfen')),
+  zieldatum        TEXT,                            -- JJJJ-MM-TT
+  baseline_datum   TEXT,
+  baseline_grund   TEXT,
+  angelegt_von     TEXT NOT NULL,
+  angelegt_utc     TEXT NOT NULL,
+  fertig_utc       TEXT,
+  uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft         TEXT NOT NULL DEFAULT '',
+  geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- Spezifikation je Bogen in drei Teilen, jeder mit Freigabe durch den Menschen.
+CREATE TABLE spezifikation (
+  id               INTEGER PRIMARY KEY,
+  bogen_id         INTEGER NOT NULL REFERENCES bogen(id),
+  teil             TEXT NOT NULL CHECK (teil IN ('anforderungen', 'entwurf', 'schritte')),
+  text             TEXT NOT NULL DEFAULT '',
+  status           TEXT NOT NULL DEFAULT 'entwurf' CHECK (status IN ('entwurf', 'vorgelegt', 'frei', 'zurueck')),
+  version          INTEGER NOT NULL DEFAULT 1,
+  kommentar        TEXT,                            -- Rückmeldung des Menschen
+  geschrieben_von  TEXT,
+  freigabe_utc     TEXT,
+  uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft         TEXT NOT NULL DEFAULT '',
+  geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  UNIQUE (bogen_id, teil)
+);
+
 CREATE TABLE aufgabe (
   id             INTEGER PRIMARY KEY,
   projekt_id     INTEGER NOT NULL REFERENCES projekt(id),
@@ -143,11 +182,70 @@ CREATE TABLE aufgabe (
   fertig_utc     TEXT,
   geparkt_utc    TEXT,
   geparkt_von    TEXT,
+  bogen_id       INTEGER REFERENCES bogen(id),
+  kriterien      TEXT,
+  schaetzung_h   REAL,
+  komplexitaet   INTEGER,
+  verantwortlich TEXT,
+  pruefbefehl    TEXT,
+  dateibereich   TEXT,
+  plan           TEXT,
+  plan_status    TEXT,
+  zusammenfassung TEXT,
+  anforderungen  TEXT,
   uid            TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft       TEXT NOT NULL DEFAULT '',
   geaendert_utc  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 CREATE INDEX aufgabe_offen ON aufgabe (projekt_id, status, agent);
+
+CREATE TABLE abhaengigkeit (
+  vor              INTEGER NOT NULL REFERENCES aufgabe(id),
+  nach             INTEGER NOT NULL REFERENCES aufgabe(id),
+  art              TEXT NOT NULL DEFAULT 'FS' CHECK (art IN ('FS', 'SS', 'FF')),
+  extern           TEXT,                            -- Beschreibung einer Abhängigkeit außerhalb des Projekts
+  uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft         TEXT NOT NULL DEFAULT '',
+  geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  PRIMARY KEY (vor, nach)
+);
+
+CREATE TABLE risiko (
+  id               INTEGER PRIMARY KEY,
+  projekt_id       INTEGER NOT NULL REFERENCES projekt(id),
+  bogen_id         INTEGER REFERENCES bogen(id),
+  titel            TEXT NOT NULL,
+  ursache          TEXT,
+  wirkung          TEXT,
+  wahrscheinlichkeit INTEGER NOT NULL DEFAULT 3 CHECK (wahrscheinlichkeit BETWEEN 1 AND 5),
+  auswirkung       INTEGER NOT NULL DEFAULT 3 CHECK (auswirkung BETWEEN 1 AND 5),
+  strategie        TEXT CHECK (strategie IN ('vermeiden', 'mindern', 'uebertragen', 'akzeptieren')),
+  massnahme        TEXT,
+  verantwortlich   TEXT,
+  ausloeser        TEXT,
+  status           TEXT NOT NULL DEFAULT 'offen' CHECK (status IN ('offen', 'eingetreten', 'erledigt')),
+  angelegt_von     TEXT NOT NULL,
+  angelegt_utc     TEXT NOT NULL,
+  uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft         TEXT NOT NULL DEFAULT '',
+  geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- Protokoll der Planung: Freigaben, Statuswechsel, Baseline-Änderungen (Grundlage für Verlauf und Statusbericht).
+CREATE TABLE plan_ereignis (
+  id               INTEGER PRIMARY KEY,
+  projekt_id       INTEGER NOT NULL REFERENCES projekt(id),
+  zeit_utc         TEXT NOT NULL,
+  von              TEXT NOT NULL,
+  art              TEXT NOT NULL,                   -- z. B. bogen_status, spec_vorgelegt, spec_frei, spec_zurueck, plan_frei, baseline
+  bogen_id         INTEGER,
+  aufgabe_id       INTEGER,
+  text             TEXT,
+  uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft         TEXT NOT NULL DEFAULT '',
+  geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+CREATE INDEX plan_ereignis_zeit ON plan_ereignis (projekt_id, zeit_utc);
 
 -- Fragen an den Entwickler oder an den TL, festes Format (→ 02 §6).
 CREATE TABLE frage (

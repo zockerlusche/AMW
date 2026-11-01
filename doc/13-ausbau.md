@@ -91,17 +91,53 @@ Start ohne Sitzungs-ID → neue ID.
 - [x] Workbench: Starten/Fortsetzen/Neu/Beenden in Kachel und Übersicht (nur am PC, mit Rückfrage), Profil im Zahnrad
 - [x] Tests, Bildschirmfotos, Profile der vorhandenen Agenten übernehmen
 
-## 6 Stufe E – Projektplanung (0.13.0)
-Nach Kiro, GitHub Spec Kit, Taskmaster, Backlog.md, Claude Code Agent Teams, Linear (Agenten) – §9.
-- [ ] **Leitbild** je Projekt: Ziel, Nicht-Ziele, Prinzipien mit Prüffrage; Teil des Pflicht-Kontexts der Agenten.
-- [ ] **Bögen** (Meilensteine): Ziel, Reihenfolge, Status, Fortschritt (erledigt/gesamt, blockiert), Zieldatum.
-- [ ] **Spezifikation** je Bogen in drei Teilen – Anforderungen, Entwurf, Schritte – mit Freigabe je Teil durch den Menschen; offene Punkte `[KLÄREN: …]` werden automatisch Fragen und blockieren die Freigabe.
-- [ ] **Aufgaben erweitert**: Bogen, Abnahmekriterien (abhakbar), Abhängigkeiten (blockiert wird berechnet, Zyklusprüfung), Schätzung, Komplexität 1–10, Plan des Bearbeiters, Abschluss-Zusammenfassung, verantwortlich (Mensch/Agent).
-- [ ] **Plan-Freigabe**: großer Schritt → Agent legt Plan vor, Lead/Mensch gibt frei, erst dann Umsetzung.
-- [ ] **Nächster Schritt**: `amw schritt naechster` – der Agent nimmt sich atomar den nächsten freien Schritt seines Bogens/seiner Rolle.
-- [ ] **Abnahme-Regel (DoD)**: projektweite Liste; „fertig“ nur mit allen Abnahmekriterien und, wo verlangt, grüner Prüfung.
-- [ ] **Ansicht „Planung“**: Leitbild, Bögen mit Fortschrittsbalken, Bogen-Detail mit Spezifikation und Schritten in Wellen (was parallel geht), Bahnen je Agent.
-- [ ] **Prognose-Zeitleiste (senkrecht)**: voraussichtliches Ende je Schritt und Bogen aus dem Durchsatz der letzten Tage (P50/P85), eigene Schritte des Menschen mit eigener Taktung.
+## 6 Stufe E – Projektplanung (0.13.0; Recherche: recherche/planung.md) ✔ 02.11.2026 – Anleitung: anleitung-planung.md
+**Methode** (hybrid, für einen Menschen + KI-Agenten): Leitbild (Ziel mit Kennzahl, Nicht-Ziele, Prinzipien mit
+Prüffrage, Definition of Done) → Bögen = Meilensteine mit prüfbarem Abnahmekriterium und Zieldatum → je Bogen eine
+Spezifikation in drei Teilen (Anforderungen mit IDs `R1 …`, Entwurf, Schritte) mit Freigabe je Teil durch den Menschen
+(„spezifizieren → planen → zerlegen“ nach Spec Kit/Kiro; unklare Stellen `[KLÄREN: …]` werden Fragen und blockieren die
+Freigabe) → Schritte (vorhandene Aufgaben, erweitert) → Ausführung mit „nächster Schritt“, Plan-Freigabe bei großen
+Schritten, Abnahme gegen Kriterien und DoD → Prognose und Status → Rückblick (Stufe F). Der Mensch ist der Engpass:
+alles, was auf ihn wartet (Freigaben, Fragen, eigene Schritte), steht gesammelt in „Wartet auf dich“ und kommt als Push.
+
+**Datenmodell (Schema 7).** `projekt.leitbild` (JSON: ziel, kennzahlen[], nicht_ziele[], prinzipien[{text, pruefung}]),
+`projekt.dod` (JSON-Liste). `bogen` (nr, titel, ziel, abnahme, status geplant|aktiv|fertig|verworfen, zieldatum,
+baseline_datum, baseline_grund). `spezifikation` (bogen, teil anforderungen|entwurf|schritte, text, status
+entwurf|vorgelegt|frei|zurueck, version, kommentar, freigabe_utc). `aufgabe` + bogen_id, kriterien (JSON
+[{text, erfuellt}]), schaetzung_h, komplexitaet 1–10, verantwortlich, pruefbefehl, dateibereich, plan, plan_status
+keiner|vorgelegt|frei|zurueck, zusammenfassung, anforderungen (IDs). `abhaengigkeit` (vor, nach, art FS|SS|FF, extern) –
+das alte Textfeld wird übernommen. `risiko` (titel, ursache, wirkung, wahrscheinlichkeit 1–5, auswirkung 1–5, strategie
+vermeiden|mindern|uebertragen|akzeptieren, massnahme, verantwortlich, ausloeser, status offen|eingetreten|erledigt,
+bogen). `plan_ereignis` (Protokoll aller Planänderungen und Freigaben – Grundlage für Verlauf und Statusbericht).
+
+**Regeln** (nur für Schritte in einem Bogen – bestehende Aufgaben bleiben frei). Blockiert wird berechnet (offene Vorgänger), Zyklen werden beim Anlegen abgewiesen. Ein Schritt ist
+„bereit“ (Definition of Ready), wenn Kriterien, Bearbeiter und erledigte Vorgänger da sind. Komplexität ≥ 7 verlangt
+einen freigegebenen Plan, bevor er „läuft“. „Fertig“ nur, wenn alle Kriterien erfüllt sind und eine Zusammenfassung
+vorliegt (Beleg-Pflicht wie bisher). `amw schritt naechster` nimmt in einer Transaktion den nächsten bereiten Schritt
+(aktiver Bogen zuerst, dann Rang). Baseline: beim Aktivieren eines Bogens wird das Zieldatum eingefroren; spätere
+Änderung nur mit Grund (Änderungssteuerung).
+
+**Prognose.** Monte Carlo aus dem Tagesdurchsatz je Bearbeiter (letzte 14 Tage, mindestens 1 Erledigung angenommen,
+2 000 Läufe): für jeden offenen Schritt das Datum, an dem er mit 50 % bzw. 85 % fertig ist, in der Reihenfolge der
+Warteschlange des Bearbeiters und nie vor seinen Vorgängern; Bogen-Ende = spätester Schritt. Ampel je Bogen: grün, wenn
+P85 ≤ Zieldatum; gelb, wenn P50 ≤ Zieldatum < P85; rot, wenn P50 > Zieldatum. Der Mensch hat seinen eigenen Durchsatz.
+
+**Plan-Check** (Lückenprüfung, aus der Prüfliste der Recherche): fehlende Ziele/Nicht-Ziele/DoD; Bogen ohne
+Abnahmekriterium oder Zieldatum; Anforderung ohne Schritt; Schritt im aktiven Bogen ohne Kriterien/Bearbeiter;
+Komplexität ≥ 7 ohne Plan; Zyklen/verwaiste Vorgänger; erledigt ohne Zusammenfassung; Risiko ohne Maßnahme/Verantwortlichen;
+Bogen rot laut Prognose; Mensch überlastet (Schritte des Menschen > Durchsatz bis zum Zieldatum).
+
+**Ansicht „Planung“.** Senkrechte Zeitleiste der Bögen (Heute-Linie, Zieldatum, Baseline, P50/P85, Ampel,
+Fortschritt), darunter je Bogen Schritte in Wellen (was parallel geht) mit Bearbeiter und Prognose; Bogen-Detail mit
+Spezifikation (drei Teile, Freigabe/Zurück mit Kommentar), Risiken (Matrix 5 × 5 und Liste), Leitbild, Plan-Check.
+„Wartet auf dich“ zeigt Freigaben (Spezifikation, Pläne) und eigene Schritte. Online lesbar; Freigaben auch von unterwegs.
+Agenten-Befehle: `amw leitbild`, `amw bogen`, `amw spec`, `amw aufgabe … --bogen --kriterium --nach --schaetzung
+--komplexitaet`, `amw aufgabe kriterium|plan|planfrei|fertig`, `amw schritt naechster`, `amw risiko`, `amw plan pruefen|prognose`.
+- [x] Schema 7, Modul `planung.py` (Leitbild, Bögen, Spezifikation mit KLÄREN-Fragen, Abhängigkeiten, Kriterien, Plan-Gate, nächster Schritt, Risiken, Ereignisse)
+- [x] Prognose (Monte Carlo) und Plan-Check
+- [x] CLI für TL/Agenten; Pflicht-Kontext enthält Leitbild und aktiven Bogen
+- [x] Ansicht „Planung“ (Zeitleiste, Bogen-Detail, Freigaben, Risiken, Leitbild, Plan-Check), „Wartet auf dich“, Push für Freigaben
+- [x] Online-Spiegel und Freigaben über den Briefkasten; Tests; Bildschirmfotos Desktop/Handy
 
 ## 7 Stufe F – Rückblick und Verlauf (0.14.0)
 - [ ] **Rückblick je Bogen**: gut / schlecht / Maßnahme; eine Maßnahme kann als Beschluss oder Regel übernommen werden.

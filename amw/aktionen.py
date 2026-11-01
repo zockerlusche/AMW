@@ -59,6 +59,8 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             return {"text": steuerung.beenden(con, pid, daten.get("kennung") or "")}
         except (kern.AmwFehler, LookupError, OSError) as e:
             raise Ungueltig(str(e)) from None
+    if weg.startswith("/api/plan/"):                 # Planung – auch von unterwegs (Freigaben!)
+        return planen(con, pid, weg.rsplit("/", 1)[1], daten)
     if weg == "/api/push/probe":                     # nur am PC: verschickt wirklich
         if kanal != "seite":
             raise Ungueltig("Die Probe geht nur am PC")
@@ -72,6 +74,41 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
                                   (daten.get("text") or "Halt vom Entwickler").strip()[:2000])}
     if weg == "/api/weiter":
         return {"aufgehoben": kern.weiter(con, pid, kern.ENTWICKLER, daten.get("fuer") or "alle")}
+    raise LookupError("unbekannt")
+
+
+def planen(con, pid, was, d):
+    """Entscheidungen und Pflege der Planung durch den Entwickler (Gate-Rolle: Freigaben gibt nur er)."""
+    from . import planung
+    e = kern.ENTWICKLER
+    zahl = lambda k: int(d[k]) if d.get(k) not in (None, "") else None
+    try:
+        if was == "spec":
+            planung.spec_entscheiden(con, pid, e, zahl("bogen"), d.get("teil"), bool(d.get("frei")), (d.get("kommentar") or "").strip() or None)
+            return {"ok": True}
+        if was == "planfrei":
+            planung.plan_entscheiden(con, pid, e, zahl("aufgabe"), bool(d.get("frei")), (d.get("kommentar") or "").strip() or None)
+            return {"ok": True}
+        if was == "leitbild":
+            zeilen = lambda k: [x for x in (d.get(k) or "").splitlines()] if d.get(k) is not None else None
+            return {"leitbild": planung.leitbild_setzen(con, pid, e, d.get("ziel"), zeilen("kennzahlen"), zeilen("nicht_ziele"),
+                                                        zeilen("prinzipien"), zeilen("dod"))}
+        if was == "bogen":
+            if d.get("aktion") == "neu":
+                return {"bogen": planung.bogen_neu(con, pid, e, d.get("titel"), d.get("ziel"), d.get("abnahme"), d.get("zieldatum") or None)}
+            if d.get("aktion") == "status":
+                planung.bogen_status(con, pid, e, zahl("bogen"), d.get("status"), bool(d.get("erzwingen")))
+                return {"ok": True}
+            planung.bogen_aendern(con, pid, e, zahl("bogen"), d.get("titel"), d.get("ziel"), d.get("abnahme"),
+                                  d.get("zieldatum"), zahl("nr"), d.get("grund"))
+            return {"ok": True}
+        if was == "risiko":
+            felder = {k: d.get(k) for k in ("titel", "ursache", "wirkung", "strategie", "massnahme", "verantwortlich", "ausloeser", "status")}
+            felder.update(wahrscheinlichkeit=zahl("wahrscheinlichkeit"), auswirkung=zahl("auswirkung"), bogen_id=zahl("bogen"))
+            return {"risiko": planung.risiko_setzen(con, pid, e, zahl("id"), **{k: (v or None) if isinstance(v, str) else v
+                                                                               for k, v in felder.items()})}
+    except kern.AmwFehler as x:
+        raise Ungueltig(str(x)) from None
     raise LookupError("unbekannt")
 
 

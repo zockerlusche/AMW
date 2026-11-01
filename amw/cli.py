@@ -137,11 +137,38 @@ def cmd_erledigt(a, con):
     print(f"{n} erledigt")
 
 
+def _schritt_werte(a):
+    """Planungs-Optionen von aufgabe neu/aendern (None = nicht angegeben)."""
+    nr = lambda t: [int(x.strip().lstrip("Aa")) for x in t.split(",") if x.strip()] if t else None
+    return {"bogen_id": a.bogen, "kriterien": a.kriterium, "schaetzung_h": a.schaetzung, "komplexitaet": a.komplexitaet,
+            "verantwortlich": a.verantwortlich, "pruefbefehl": a.pruefbefehl, "dateibereich": a.dateien,
+            "anforderungen": a.anforderungen, "agent": a.agent, "auftrag": a.auftrag}, nr(a.nach)
+
+
 def cmd_aufgabe(a, con):
     pid = _projekt(con, a)
+    from . import planung
     if a.aktion == "neu":
-        aid = kern.aufgabe_neu(con, pid, _von(a), a.titel, a.agent, a.auftrag, a.rang, a.pruefer, a.abhaengig_von)
+        werte, nach = _schritt_werte(a)
+        if any(v is not None for k, v in werte.items() if k not in ("agent", "auftrag")) or nach:
+            aid = planung.schritt_setzen(con, pid, _von(a), titel=a.titel, nach=nach, rang=a.rang, **werte)
+        else:
+            aid = kern.aufgabe_neu(con, pid, _von(a), a.titel, a.agent, a.auftrag, a.rang, a.pruefer, a.abhaengig_von)
         print(f"A{aid} angelegt")
+    elif a.aktion == "aendern":
+        werte, nach = _schritt_werte(a)
+        planung.schritt_setzen(con, pid, _von(a), aid=a.id, titel=a.titel, nach=nach, **werte)
+        print(f"A{a.id} geändert")
+    elif a.aktion == "kriterium":
+        liste = planung.kriterium(con, pid, _von(a), a.id, a.nr, not a.nein)
+        for i, k in enumerate(liste, 1):
+            print(f"  {i}. [{'x' if k.get('erfuellt') else ' '}] {k['text']}")
+    elif a.aktion == "plan":
+        planung.plan_vorlegen(con, pid, _von(a), a.id, a.text or "")
+        print(f"Plan für A{a.id} vorgelegt – umsetzen erst nach Freigabe")
+    elif a.aktion == "planfrei":
+        planung.plan_entscheiden(con, pid, _von(a), a.id, not a.zurueck, a.kommentar)
+        print(f"Plan A{a.id} " + ("zurück" if a.zurueck else "freigegeben"))
     elif a.aktion == "liste":
         for r in kern.aufgaben(con, pid, a.agent, a.alle):
             print(f"A{r['id']:<5} {r['agent'] or '–':<8} [{r['status']}/{r['einstufung']}] {r['titel'][:110]}"
@@ -161,8 +188,131 @@ def cmd_aufgabe(a, con):
     else:
         if not a.id:
             raise kern.AmwFehler("Aufgaben-Nummer fehlt")
-        neu = kern.aufgabe_status(con, pid, _von(a), a.id, a.aktion, a.beleg, a.wartet_auf, a.bemerkung)
+        neu = kern.aufgabe_status(con, pid, _von(a), a.id, a.aktion, a.beleg, a.wartet_auf, a.bemerkung, a.zusammenfassung)
         print(f"A{a.id} → {neu}")
+
+
+def cmd_leitbild(a, con):
+    from . import planung
+    pid = _projekt(con, a)
+    if a.aktion == "setzen":
+        planung.leitbild_setzen(con, pid, _von(a), a.ziel, a.kennzahl, a.nicht_ziel, a.prinzip, a.dod)
+    lb = planung.leitbild(con, pid)
+    print(f"Ziel: {lb['ziel'] or '–'}")
+    for k, name in (("kennzahlen", "Kennzahl"), ("nicht_ziele", "Nicht-Ziel"), ("dod", "Definition of Done")):
+        for x in lb[k]:
+            print(f"{name}: {x}")
+    for p in lb["prinzipien"]:
+        print(f"Prinzip: {p['text']}" + (f"  (Prüffrage: {p['pruefung']})" if p.get("pruefung") else ""))
+
+
+def cmd_bogen(a, con):
+    from . import planung
+    pid = _projekt(con, a)
+    if a.aktion == "neu":
+        bid = planung.bogen_neu(con, pid, _von(a), a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr)
+        print(f"Bogen {bid} angelegt – Spezifikation: amw spec schreiben {bid} anforderungen --datei …")
+    elif a.aktion == "aendern":
+        planung.bogen_aendern(con, pid, _von(a), a.id, a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr, a.grund)
+        print(f"Bogen {a.id} geändert")
+    elif a.aktion == "status":
+        planung.bogen_status(con, pid, _von(a), a.id, a.wert, a.erzwingen)
+        print(f"Bogen {a.id} → {a.wert}")
+    elif a.aktion == "zeigen":
+        b = next((x for x in planung.boegen(con, pid) if x["id"] == a.id), None)
+        if not b:
+            raise kern.AmwFehler(f"Bogen {a.id} gibt es nicht")
+        print(f"Bogen {b['id']} [{b['status']}] {b['titel']} · Ziel: {b['ziel'] or '–'} · Abnahme: {b['abnahme'] or '–'}"
+              f" · Zieldatum {b['zieldatum'] or '–'} (Baseline {b['baseline_datum'] or '–'})")
+        print("Spezifikation: " + ", ".join(f"{t} {b['spec'].get(t, '–')}" for t in planung.TEILE))
+        stufe = planung.wellen(con, [r[0] for r in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ?", (a.id,))])
+        for r in con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? ORDER BY rang, id", (a.id,)):
+            print(f"  Welle {stufe.get(r['id'], 1)}  A{r['id']:<5} {r['agent'] or '–':<10} [{r['status']}] {r['titel'][:90]}"
+                  + (f"  ← {', '.join('A' + str(v) for v in planung.vorgaenger(con, r['id']))}" if planung.vorgaenger(con, r["id"]) else ""))
+    else:
+        prog = planung.prognose(con, pid, laeufe=300)
+        for b in planung.boegen(con, pid):
+            p = prog["boegen"].get(b["id"], {})
+            print(f"Bogen {b['id']:<3} [{b['status']:<9}] {b['fertig']}/{b['gesamt']} fertig"
+                  + (f", {b['blockiert']} blockiert" if b["blockiert"] else "")
+                  + (f" · Ziel {b['zieldatum']}" if b["zieldatum"] else "")
+                  + (f" · Prognose {p['p50']}/{p['p85']} ({p['ampel'] or '–'})" if p else "") + f"  {b['titel']}")
+
+
+def cmd_spec(a, con):
+    from . import planung
+    pid = _projekt(con, a)
+    if a.aktion == "schreiben":
+        text = a.text
+        if a.datei:
+            with open(a.datei, encoding="utf-8") as f:
+                text = f.read()
+        if not text:
+            raise kern.AmwFehler("--text oder --datei")
+        print(f"Bogen {a.bogen} {a.teil}: Version {planung.spec_schreiben(con, pid, _von(a), a.bogen, a.teil, text)} (Entwurf)")
+    elif a.aktion == "vorlegen":
+        fragen = planung.spec_vorlegen(con, pid, _von(a), a.bogen, a.teil)
+        print(f"Bogen {a.bogen} {a.teil} vorgelegt" + (f" – Klärungsfragen: {', '.join('F' + str(f) for f in fragen)}" if fragen else ""))
+    elif a.aktion in ("frei", "zurueck"):
+        planung.spec_entscheiden(con, pid, _von(a), a.bogen, a.teil, a.aktion == "frei", a.kommentar)
+        print(f"Bogen {a.bogen} {a.teil}: {a.aktion}")
+    else:
+        for t in ([a.teil] if a.teil else planung.TEILE):
+            s = planung.spec(con, a.bogen, t)
+            print(f"== {t} [{s['status']}, v{s['version']}]" + (f" Kommentar: {s['kommentar']}" if s["kommentar"] else ""))
+            print(s["text"] or "(leer)")
+
+
+def cmd_schritt(a, con):
+    from . import planung
+    pid = _projekt(con, a)
+    s = planung.naechster(con, pid, _von(a), nehmen=a.nehmen)
+    if not s:
+        print("kein bereiter Schritt – alles vergeben, blockiert oder kein aktiver Bogen")
+        return
+    print(f"A{s['id']} [{s.get('status')}] {s['titel']}" + (f" (Bogen {s['bogen_id']})" if s.get("bogen_id") else ""))
+    for k in planung._json(s.get("kriterien"), []):
+        print(f"  Kriterium: {k['text']}")
+    for k in ("pruefbefehl", "dateibereich", "hinweis"):
+        if s.get(k):
+            print(f"  {k}: {s[k]}")
+    if not a.nehmen:
+        print(f"  übernehmen: amw schritt naechster --nehmen --von {_von(a)}")
+
+
+def cmd_risiko(a, con):
+    from . import planung
+    pid = _projekt(con, a)
+    if a.aktion in ("neu", "setzen"):
+        rid = planung.risiko_setzen(con, pid, _von(a), None if a.aktion == "neu" else a.id, titel=a.titel, ursache=a.ursache,
+                                    wirkung=a.wirkung, wahrscheinlichkeit=a.w, auswirkung=a.a, strategie=a.strategie,
+                                    massnahme=a.massnahme, verantwortlich=a.verantwortlich, ausloeser=a.ausloeser,
+                                    status=a.status, bogen_id=a.bogen)
+        print(f"Risiko {rid} gespeichert")
+    else:
+        for r in planung.risiken(con, pid):
+            print(f"R{r['id']:<4} [{r['status']}] W{r['wahrscheinlichkeit']}×A{r['auswirkung']}={r['wert']:<3} {r['titel']}"
+                  f" · {r['strategie'] or '–'}: {r['massnahme'] or '–'} · {r['verantwortlich'] or '–'}")
+
+
+def cmd_plan(a, con):
+    from . import planung
+    pid = _projekt(con, a)
+    if a.aktion == "pruefen":
+        liste = planung.pruefen(con, pid)
+        for x in liste:
+            print(f"{x['stufe'].upper():<8} {x['text']}")
+        print(f"{len(liste)} Befund(e)" if liste else "keine Lücken gefunden")
+    elif a.aktion == "status":
+        s = planung.status(con, pid)
+        for k in ("termin", "risiko", "qualitaet"):
+            print(f"{k:<10} {s[k] or '–':<6} {s['begruendung'][k]}")
+    else:
+        prog = planung.prognose(con, pid)
+        for aid, p in sorted(prog["schritte"].items(), key=lambda x: x[1]["p50"]):
+            print(f"A{aid:<5} {p['bearbeiter'] or 'frei':<10} P50 {p['p50']}  P85 {p['p85']}")
+        for bid, p in prog["boegen"].items():
+            print(f"Bogen {bid}: P50 {p['p50']} P85 {p['p85']} Ampel {p['ampel'] or '–'}")
 
 
 def cmd_frage(a, con):
@@ -654,12 +804,14 @@ def parser():
     x.add_argument("--bemerkung")
     x.set_defaults(f=cmd_erledigt)
 
-    x = s.add_parser("aufgabe")
-    x.add_argument("aktion", choices=["neu", "liste", "zeige", "start", "blockiert", "wartet", "fertig", "verwerfen",
-                                       "parken", "aktiv", "keine_prio", "pool"])
+    x = s.add_parser("aufgabe", help="neu | aendern N | liste | zeige N | start | fertig | … | kriterium N nr | plan N --text |"
+                                     " planfrei N [--zurueck --kommentar]")
+    x.add_argument("aktion", choices=["neu", "aendern", "liste", "zeige", "start", "blockiert", "wartet", "fertig", "verwerfen",
+                                       "parken", "aktiv", "keine_prio", "pool", "kriterium", "plan", "planfrei"])
     x.add_argument("id", type=int, nargs="?")
+    x.add_argument("nr", type=int, nargs="?", help="kriterium: Nummer des Kriteriums")
     x.add_argument("--titel")
-    x.add_argument("--agent")
+    x.add_argument("--agent", help="Bearbeiter (auch „Entwickler“ für Schritte des Menschen)")
     x.add_argument("--auftrag")
     x.add_argument("--rang", type=int, default=50)
     x.add_argument("--pruefer")
@@ -668,6 +820,20 @@ def parser():
     x.add_argument("--wartet-auf")
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
+    x.add_argument("--bogen", type=int, help="Planung: gehört zu Bogen N")
+    x.add_argument("--kriterium", action="append", help="Planung: Abnahmekriterium, mehrfach (ersetzt die Liste)")
+    x.add_argument("--schaetzung", type=float, help="Planung: Stunden")
+    x.add_argument("--komplexitaet", type=int, help="Planung: 1–10; ab 7 braucht der Schritt einen freigegebenen Plan")
+    x.add_argument("--nach", help="Planung: Vorgänger, z. B. 1201,1203")
+    x.add_argument("--verantwortlich", help="Planung: wer abnimmt bzw. Pläne freigibt")
+    x.add_argument("--pruefbefehl", help="Planung: wie der Bearbeiter selbst prüft")
+    x.add_argument("--dateien", help="Planung: Dateibereich, den er anfassen darf")
+    x.add_argument("--anforderungen", help="Planung: abgedeckte Anforderungen, z. B. R1,R3")
+    x.add_argument("--zusammenfassung", help="fertig: Pflicht für Schritte in einem Bogen")
+    x.add_argument("--text", help="plan: der Plan")
+    x.add_argument("--nein", action="store_true", help="kriterium: wieder als offen markieren")
+    x.add_argument("--zurueck", action="store_true", help="planfrei: zurückweisen (mit --kommentar)")
+    x.add_argument("--kommentar")
     x.set_defaults(f=cmd_aufgabe)
 
     x = s.add_parser("frage")
@@ -706,6 +872,63 @@ def parser():
 
     x = s.add_parser("regeln")
     x.set_defaults(f=cmd_regeln)
+
+    x = s.add_parser("leitbild", help="Projektziel, Kennzahlen, Nicht-Ziele, Prinzipien, Definition of Done: zeigen | setzen")
+    x.add_argument("aktion", nargs="?", choices=["zeigen", "setzen"], default="zeigen")
+    x.add_argument("--ziel")
+    x.add_argument("--kennzahl", action="append", help="mehrfach; ersetzt die Liste")
+    x.add_argument("--nicht-ziel", action="append", help="mehrfach; ersetzt die Liste")
+    x.add_argument("--prinzip", action="append", help="\"Text|Prüffrage\", mehrfach; ersetzt die Liste")
+    x.add_argument("--dod", action="append", help="Definition of Done, mehrfach; ersetzt die Liste")
+    x.set_defaults(f=cmd_leitbild)
+
+    x = s.add_parser("bogen", help="Meilensteine: liste | neu | zeigen N | aendern N | status N aktiv|fertig|geplant|verworfen")
+    x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status"])
+    x.add_argument("id", type=int, nargs="?")
+    x.add_argument("wert", nargs="?", help="status: aktiv | fertig | geplant | verworfen")
+    x.add_argument("--titel")
+    x.add_argument("--ziel")
+    x.add_argument("--abnahme", help="prüfbares Abnahmekriterium")
+    x.add_argument("--zieldatum", help="JJJJ-MM-TT")
+    x.add_argument("--nr", type=int, help="Reihenfolge")
+    x.add_argument("--grund", help="nötig, wenn das Zieldatum nach der Baseline geändert wird")
+    x.add_argument("--erzwingen", action="store_true")
+    x.set_defaults(f=cmd_bogen)
+
+    x = s.add_parser("spec", help="Spezifikation je Bogen: zeigen N [teil] | schreiben N teil --text/--datei | vorlegen N teil |"
+                                  " frei N teil | zurueck N teil --kommentar  (teil: anforderungen | entwurf | schritte)")
+    x.add_argument("aktion", choices=["zeigen", "schreiben", "vorlegen", "frei", "zurueck"])
+    x.add_argument("bogen", type=int)
+    x.add_argument("teil", nargs="?", choices=["anforderungen", "entwurf", "schritte"])
+    x.add_argument("--text")
+    x.add_argument("--datei")
+    x.add_argument("--kommentar")
+    x.set_defaults(f=cmd_spec)
+
+    x = s.add_parser("schritt", help="naechster [--nehmen]: nächster bereiter Schritt (aktiver Bogen, ohne offene Vorgänger)")
+    x.add_argument("aktion", choices=["naechster"])
+    x.add_argument("--nehmen", action="store_true", help="gleich übernehmen (Bearbeiter = du, Status läuft)")
+    x.set_defaults(f=cmd_schritt)
+
+    x = s.add_parser("risiko", help="liste | neu --titel … | setzen N --status …")
+    x.add_argument("aktion", choices=["liste", "neu", "setzen"])
+    x.add_argument("id", type=int, nargs="?")
+    x.add_argument("--titel")
+    x.add_argument("--ursache")
+    x.add_argument("--wirkung")
+    x.add_argument("--w", type=int, help="Wahrscheinlichkeit 1–5")
+    x.add_argument("--a", type=int, help="Auswirkung 1–5")
+    x.add_argument("--strategie", choices=["vermeiden", "mindern", "uebertragen", "akzeptieren"])
+    x.add_argument("--massnahme")
+    x.add_argument("--verantwortlich")
+    x.add_argument("--ausloeser")
+    x.add_argument("--status", choices=["offen", "eingetreten", "erledigt"])
+    x.add_argument("--bogen", type=int)
+    x.set_defaults(f=cmd_risiko)
+
+    x = s.add_parser("plan", help="pruefen (Lücken) | prognose (P50/P85 je Schritt und Bogen) | status (Ampel je Dimension)")
+    x.add_argument("aktion", choices=["pruefen", "prognose", "status"])
+    x.set_defaults(f=cmd_plan)
 
     x = s.add_parser("lauf", help="Rechen-Läufe: start [--warten] prüft Halt, Speicher, einen schweren/Schirm-Lauf zur Zeit, Warteschlange")
     x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen"])

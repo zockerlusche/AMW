@@ -265,7 +265,7 @@ def _aufgabe_fuer_aenderung(con, pid, von, aid):
     return a
 
 
-def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, bemerkung=None):
+def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, bemerkung=None, zusammenfassung=None):
     neu = {"start": "laeuft", "blockiert": "blockiert", "wartet": "wartet", "fertig": "fertig",
            "verwerfen": "verworfen"}.get(status, status)
     if neu == "laeuft" and halt_gilt(con, pid, von):
@@ -274,8 +274,12 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
         raise AmwFehler("fertig/verworfen nur mit --beleg (Commit, Datei:Zeile oder Folgeaufgabe)")
     with db.schreiben(con):
         a = _aufgabe_fuer_aenderung(con, pid, von, aid)
+        from . import planung                       # Regeln der Planung: Vorgänger, Plan-Gate, Kriterien, Zusammenfassung
+        planung.pruefe_status(con, a, neu, zusammenfassung)
         t = db.jetzt()
         felder = {"status": neu}
+        if zusammenfassung:
+            felder["zusammenfassung"] = zusammenfassung
         if neu == "laeuft" and not a["begonnen_utc"]:
             felder["begonnen_utc"] = t
         if neu in ("fertig", "verworfen"):
@@ -413,6 +417,12 @@ def kontext(con, pid, kennung):
     hinweise = aktive_sperren(con, pid, kennung, "hinweis")
     if hinweise:
         z.append("Geltende Anweisungen: " + " | ".join(f"{s['von']}: {s['text']}" for s in hinweise))
+
+    try:                                            # Planung: Leitbild, aktive Bögen, nächster Schritt
+        from . import planung
+        z += planung.kontext_zeilen(con, pid, kennung)
+    except Exception:
+        pass
 
     eigene = aufgaben(con, pid, kennung)
     z.append(f"Deine offenen Aufgaben ({len(eigene)}): " + ("; ".join(

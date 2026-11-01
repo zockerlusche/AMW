@@ -7,6 +7,7 @@ Serverstart neu) und passendem Host/Origin; nur parametrisierte Abfragen; die Se
 Schreibt ausschließlich über kern (als „Entwickler“).
 """
 import argparse
+import datetime
 import json
 import re
 import os
@@ -100,6 +101,12 @@ def daten_start(con, pid):
         " (SELECT count(*) FROM release WHERE projekt_id = :p) AS releases", {"p": pid}).fetchone())
     frei, gesamt = speicher_frei_gb()
     zaehler["an_dich"] = len(an_dich)
+    from . import planung
+    try:
+        planung_wartet = planung.freigaben_offen(con, pid)
+    except Exception:
+        planung_wartet = {"spezifikationen": [], "plaene": [], "eigene": []}
+    zaehler["freigaben"] = sum(len(v) for v in planung_wartet.values())
     from . import __version__, hook, ueberwachung
     try:
         unangemeldet = hook.unangemeldet(con, pid)     # laufende Agenten-Sitzungen, die der Wächter nicht wecken kann
@@ -110,8 +117,38 @@ def daten_start(con, pid):
     except Exception:
         warnungen = []
     return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "zaehler": zaehler,
-            "unangemeldet": unangemeldet, "warnungen": warnungen,
+            "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet,
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
+
+
+def daten_planung(con, pid):
+    """Ansicht „Planung“: Leitbild, Bögen mit Fortschritt/Prognose/Spezifikation, Schritte in Wellen, Risiken,
+    Plan-Check, Status (Ampel je Dimension), was auf den Menschen wartet, Planungs-Protokoll."""
+    from . import planung
+    prog = planung.prognose(con, pid, laeufe=600)
+    boegen = planung.boegen(con, pid)
+    for b in boegen:
+        b["prognose"] = prog["boegen"].get(b["id"])
+        b["specs"] = {s["teil"]: {k: s[k] for k in ("status", "version", "kommentar", "text", "geaendert_utc", "geschrieben_von")}
+                      for s in con.execute("SELECT * FROM spezifikation WHERE bogen_id = ?", (b["id"],))}
+        b["klaerungen"] = zeilen(con.execute("SELECT id, kurz, status, fundstellen FROM frage WHERE projekt_id = ? AND fundstellen LIKE ?",
+                                             (pid, f"bogen:{b['id']}:%")))
+        schritte = zeilen(con.execute(
+            "SELECT id, titel, agent, status, einstufung, rang, kriterien, schaetzung_h, komplexitaet, plan_status, verantwortlich,"
+            " anforderungen, zusammenfassung, fertig_utc FROM aufgabe WHERE bogen_id = ? ORDER BY rang, id", (b["id"],)))
+        welle = planung.wellen(con, [s["id"] for s in schritte])
+        for s in schritte:
+            s["welle"] = welle.get(s["id"], 1)
+            s["vorgaenger"] = planung.vorgaenger(con, s["id"])
+            s["blockiert_durch"] = planung.offene_vorgaenger(con, s["id"]) if s["status"] not in ("fertig", "verworfen") else []
+            s["kriterien"] = planung._json(s["kriterien"], [])
+            s["prognose"] = prog["schritte"].get(s["id"])
+        b["schritte"] = schritte
+    return {"leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
+            "pruefung": planung.pruefen(con, pid, prog), "status": planung.status(con, pid, prog),
+            "wartet": planung.freigaben_offen(con, pid), "heute": datetime.date.today().isoformat(),   # lokales Datum für die Heute-Linie
+            "ereignisse": zeilen(con.execute("SELECT zeit_utc, von, art, bogen_id, aufgabe_id, text FROM plan_ereignis"
+                                             " WHERE projekt_id = ? ORDER BY id DESC LIMIT 80", (pid,)))}
 
 
 def daten_push(con):
@@ -413,6 +450,7 @@ def baue_handler(port, token):
                     "/api/einstellungen": lambda c, p: daten_einstellungen(c, p),
                     "/api/agent": lambda c, p: daten_agent(c, p, q.get("kennung", [""])[0]),
                     "/api/push": lambda c, p: daten_push(c),
+                    "/api/planung": lambda c, p: daten_planung(c, p),
                     "/api/projekte": lambda c, p: zeilen(c.execute("SELECT id, name FROM projekt ORDER BY id"))}
             weg = wege.get(u.path)
             if not weg:

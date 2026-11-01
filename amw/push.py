@@ -24,6 +24,7 @@ EREIGNISSE = {                       # Art → (Vorgabe an, Priorität 1–5, Ü
     "warnung": (True, 4, "Warnungen"),
     "eingabe": (True, 4, "Agenten warten auf Eingabe"),
     "halt": (True, 5, "Halt"),
+    "freigabe": (True, 4, "Freigaben für dich"),
     "rueckblick": (True, 2, "Rückblicke"),
 }
 ANBIETER = ("ntfy", "pushover", "telegram")
@@ -302,6 +303,13 @@ def ereignisse(con, pid, cfg):
             aus.append(("halt", f"halt:{h['id']}", f"HALT für {h['gilt_fuer']}", f"gesetzt von {h['von']}", "start"))
         if h["aufgehoben_utc"] and h["aufgehoben_utc"] >= seit:
             aus.append(("halt", f"weiter:{h['id']}", f"Halt aufgehoben ({h['gilt_fuer']})", "", "start"))
+    for s in con.execute("SELECT s.bogen_id, s.teil, s.version, s.geaendert_utc FROM spezifikation s JOIN bogen b ON b.id = s.bogen_id"
+                         " WHERE b.projekt_id = ? AND s.status = 'vorgelegt' AND s.geaendert_utc >= ?", (pid, seit)):
+        aus.append(("freigabe", f"spec:{s['bogen_id']}:{s['teil']}:{s['version']}", f"Freigabe: Bogen {s['bogen_id']} {s['teil']}",
+                    f"Version {s['version']} wartet auf dich", "planung"))
+    for a in con.execute("SELECT id, agent, geaendert_utc FROM aufgabe WHERE projekt_id = ? AND plan_status = 'vorgelegt'"
+                         " AND verantwortlich = ? AND geaendert_utc >= ?", (pid, kern.ENTWICKLER, seit)):
+        aus.append(("freigabe", f"plan:{a['id']}:{a['geaendert_utc']}", f"Plan A{a['id']} zur Freigabe", f"von {a['agent'] or '–'}", "planung"))
     return [{"ereignis": e, "schluessel": k, "titel": t, "text": x, "sicht": s} for e, k, t, x, s in aus
             if cfg["ereignisse"].get(e, True)]
 

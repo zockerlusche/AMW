@@ -189,6 +189,14 @@ class Verlauf(unittest.TestCase):
             self.con.execute(f"ALTER TABLE sitzung DROP COLUMN {sp}")
         for sp in ("ordner", "zusatzordner", "denkstufe", "modell", "startsatz", "rechte", "fernsteuerung", "neustart_auto"):
             self.con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")
+        for t in ("plan_ereignis", "risiko", "abhaengigkeit", "spezifikation"):   # … und keine Planung (Schema 7)
+            self.con.execute(f"DROP TABLE {t}")
+        for sp in ("bogen_id", "kriterien", "schaetzung_h", "komplexitaet", "verantwortlich", "pruefbefehl", "dateibereich",
+                   "plan", "plan_status", "zusammenfassung", "anforderungen"):
+            self.con.execute(f"ALTER TABLE aufgabe DROP COLUMN {sp}")
+        self.con.execute("DROP TABLE bogen")
+        for sp in ("leitbild", "dod"):
+            self.con.execute(f"ALTER TABLE projekt DROP COLUMN {sp}")
         self.con.execute("PRAGMA user_version = 1")
         self.con.close()
         self.con = db.verbinde(self.pfad)
