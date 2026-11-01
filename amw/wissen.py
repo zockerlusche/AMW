@@ -69,6 +69,21 @@ def notiz_setzen(con, pid, von, schluessel, wert):
         return "angelegt"
 
 
+def notiz_entfernen(con, pid, von, schluessel, beschluss=None):
+    """Veraltete Notizen löschen – nur der Lead oder mit einem geltenden Beschluss (wie Regeln ändern).
+    Notizen sind gepflegter Stand, keine Geschichte: vorher sichern, der Beschluss nennt die Sicherung."""
+    if not kern.ist_lead(con, pid, von):
+        b = con.execute("SELECT status FROM beschluss WHERE projekt_id = ? AND id = ?", (pid, beschluss)).fetchone() if beschluss else None
+        if not b or b["status"] != "gilt":
+            raise kern.AmwFehler("Notizen entfernen dürfen nur Lead und Entwickler – oder mit --beschluss auf einen geltenden Beschluss")
+    weg, fehlt = [], []
+    with db.schreiben(con):
+        for s in schluessel:
+            n = con.execute("DELETE FROM notiz WHERE projekt_id = ? AND schluessel = ?", (pid, s)).rowcount
+            (weg if n else fehlt).append(s)
+    return weg, fehlt
+
+
 def einstufen(con, pid, von, aid, einstufung):
     """aktiv | keine_prio | geparkt | pool. Parken stempelt Zeit und Person."""
     if einstufung not in ("aktiv", "keine_prio", "geparkt", "pool"):

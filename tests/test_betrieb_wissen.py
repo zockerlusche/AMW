@@ -131,5 +131,19 @@ class Kommandozeile(Grund):
             self.con = db.verbinde(os.path.join(self.ordner.name, "t.db"))
 
 
+class NotizEntfernen(Grund):
+    def test_nur_lead_oder_mit_beschluss(self):
+        wissen.notiz_setzen(self.con, self.pid, "TL", "alt_1", "x")
+        wissen.notiz_setzen(self.con, self.pid, "TL", "alt_2", "y")
+        wissen.notiz_setzen(self.con, self.pid, "TL", "bleibt", "z")
+        with self.assertRaises(kern.AmwFehler):
+            wissen.notiz_entfernen(self.con, self.pid, "CC1", ["alt_1"])
+        b = wissen.beschluss_neu(self.con, self.pid, "TL", "Notizen aufräumen", "alt_* weg", "Marcel")
+        weg, fehlt = wissen.notiz_entfernen(self.con, self.pid, "CC1", ["alt_1", "gibtsnicht"], beschluss=b)
+        self.assertEqual((weg, fehlt), (["alt_1"], ["gibtsnicht"]))
+        self.assertEqual(wissen.notiz_entfernen(self.con, self.pid, "TL", ["alt_2"])[0], ["alt_2"])
+        self.assertEqual([r[0] for r in self.con.execute("SELECT schluessel FROM notiz")], ["bleibt"])
+
+
 if __name__ == "__main__":
     unittest.main()

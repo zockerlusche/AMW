@@ -265,12 +265,22 @@ def cmd_regel(a, con):
 
 def cmd_notiz(a, con):
     pid = _projekt(con, a)
+    if a.aktion == "entfernen":
+        if not a.schluessel:
+            raise kern.AmwFehler("welche Schlüssel? (mehrere mit Leerzeichen)")
+        beschluss = int(str(a.beschluss).lstrip("Bb")) if a.beschluss else None
+        weg, fehlt = wissen.notiz_entfernen(con, pid, _von(a), a.schluessel, beschluss)
+        print(f"entfernt: {len(weg)}" + (f" · nicht vorhanden: {', '.join(fehlt)}" if fehlt else ""))
+        return
+    eins = a.schluessel[0] if a.schluessel else None
     if a.aktion == "setzen":
-        print(wissen.notiz_setzen(con, pid, _von(a), a.schluessel, _text(a)))
+        if not eins:
+            raise kern.AmwFehler("Schlüssel fehlt")
+        print(wissen.notiz_setzen(con, pid, _von(a), eins, _text(a)))
     else:
-        sql = "SELECT schluessel, wert, geaendert_utc FROM notiz WHERE projekt_id = ?" + (" AND schluessel = ?" if a.schluessel else "")
-        for r in con.execute(sql + " ORDER BY schluessel", (pid, a.schluessel) if a.schluessel else (pid,)):
-            print(f"[{r['schluessel']}] {_zeit(r['geaendert_utc'])}\n{r['wert'] if a.schluessel else r['wert'][:160]}\n")
+        sql = "SELECT schluessel, wert, geaendert_utc FROM notiz WHERE projekt_id = ?" + (" AND schluessel = ?" if eins else "")
+        for r in con.execute(sql + " ORDER BY schluessel", (pid, eins) if eins else (pid,)):
+            print(f"[{r['schluessel']}] {_zeit(r['geaendert_utc'])}\n{r['wert'] if eins else r['wert'][:160]}\n")
 
 
 def cmd_release(a, con):
@@ -565,8 +575,9 @@ def parser():
             x.add_argument("--teil")
 
     x = s.add_parser("notiz", help="gepflegte Notizen (Schlüssel/Wert)")
-    x.add_argument("aktion", choices=["setzen", "zeige"])
-    x.add_argument("schluessel", nargs="?")
+    x.add_argument("aktion", choices=["setzen", "zeige", "entfernen"])
+    x.add_argument("schluessel", nargs="*", help="entfernen: mehrere möglich")
+    x.add_argument("--beschluss", help="entfernen ohne Lead-Rolle: Nummer eines geltenden Beschlusses (z. B. B2376)")
     x.add_argument("--text")
     x.add_argument("--text-datei")
     x.set_defaults(f=cmd_notiz)
