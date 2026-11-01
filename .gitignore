@@ -1,3 +1,4 @@
 daten/
 __pycache__/
 *.pyc
+web/inc/amw-konfig.php
