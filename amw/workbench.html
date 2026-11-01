@@ -309,6 +309,8 @@ const TEXTE = {
     halt_erkl: "Laufende Agenten bekommen sofort ein STOPP und beenden ihre aktuelle Arbeit sauber. Danach weckt der Dienst nur noch für Stopp und Freigabe – bis „Weiter“. Gilt auch nach einem Neustart.",
     grund_ph: "Grund (erscheint bei den Agenten)", abbrechen: "Abbrechen", halt_gesetzt: "Halt gesetzt", halt_aufgehoben: "{n} Halt aufgehoben",
     halt_band: "alle Agenten", halt_vom: "Halt vom Entwickler",
+    nachricht: "Nachricht", nachricht_an: "Nachricht an {x}", n_kurz_ph: "Kurz: worum geht es (eine Zeile)", n_text_ph: "Text (optional)",
+    senden: "Senden", gesendet: "Gesendet an {x} – wird geweckt, wenn die Sitzung läuft.", art_auftrag: "Auftrag", art_frage: "Frage", art_info: "Info (weckt nicht)", art_korrektur: "Korrektur",
     gerade: "gerade eben", vor_min: "vor {n} min", vor_h: "vor {n} h", vor_t: "vor {n} T", nie: "nie",
   },
   en: {
@@ -342,6 +344,8 @@ const TEXTE = {
     halt_erkl: "Running agents immediately receive a STOP and finish their current work cleanly. After that the service only wakes agents for stop and release – until “Resume”. Survives restarts.",
     grund_ph: "Reason (shown to the agents)", abbrechen: "Cancel", halt_gesetzt: "Halt set", halt_aufgehoben: "{n} halt(s) lifted",
     halt_band: "all agents", halt_vom: "Halt by the developer",
+    nachricht: "Message", nachricht_an: "Message to {x}", n_kurz_ph: "Short: what is it about (one line)", n_text_ph: "Text (optional)",
+    senden: "Send", gesendet: "Sent to {x} – will be woken if the session is running.", art_auftrag: "Task", art_frage: "Question", art_info: "Info (no wake)", art_korrektur: "Correction",
     gerade: "just now", vor_min: "{n} min ago", vor_h: "{n} h ago", vor_t: "{n} d ago", nie: "never",
   },
 };
@@ -447,7 +451,22 @@ function kachel(a) {
     el("div", { class: "name" }, a.kennung), el("div", { class: "rolle" }, a.rolle || t("agent")),
     el("div", { class: "zustand" }, el("span", { class: "punkt " + zust[0] }), zust[1]),
     el("div", { class: "info" }, a.laeuft ? ohneDoppel(a.laeuft) : el("span", { class: "sehrleise" }, t("keine_aufgabe")),
-      el("div", { class: "sehrleise mono" }, lebt ? t("puls", { t: seit(a.letzter_puls_utc) }) : a.grenzen || "")));
+      el("div", { class: "sehrleise mono" }, lebt ? t("puls", { t: seit(a.letzter_puls_utc) }) : a.grenzen || "")),
+    soll ? el("button", { class: "klein-knopf", type: "button", style: "margin-top:8px", onclick: () => nachrichtDialog(a.kennung) }, t("nachricht")) : null);
+}
+function nachrichtDialog(an) {
+  const art = el("select", {}, ["auftrag", "frage", "korrektur", "info"].map(k => el("option", { value: k }, t("art_" + k))));
+  const kurz = el("input", { placeholder: t("n_kurz_ph"), style: "width:100%;padding:8px;margin:8px 0;background:var(--grund);border:1px solid var(--linie);border-radius:3px" });
+  const text = el("textarea", { placeholder: t("n_text_ph") });
+  const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
+    el("div", { class: "karte dialog" }, el("h3", { style: "color:var(--tinte)" }, t("nachricht_an", { x: an })), art, kurz, text,
+      el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: async () => {
+        if (!kurz.value.trim()) { toast(t("text_fehlt"), true); return; }
+        try { const r = await schicken("/api/nachricht", { an, art: art.value, kurz: kurz.value.trim(), text: text.value.trim() });
+          hg.remove(); toast(t("gesendet", { x: r.an.join(", ") })); kopfAktualisieren(); }
+        catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("senden")),
+        el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")))));
+  document.body.append(hg); kurz.focus();
 }
 
 /* --- Fragen -------------------------------------------------------------------------------- */

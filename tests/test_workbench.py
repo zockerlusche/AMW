@@ -73,6 +73,14 @@ class Workbench(unittest.TestCase):
         status, text = self.anfrage("POST", "/api/weiter", {"fuer": "alle"}, {"X-AMW-Token": self.token})
         self.assertEqual(json.loads(text)["aufgehoben"], 1)
 
+    def test_nachricht_an_agent(self):
+        status, text = self.anfrage("POST", "/api/nachricht", {"an": "TL", "art": "auftrag", "kurz": "Bitte prüfen"},
+                                    {"X-AMW-Token": self.token})
+        self.assertEqual((status, json.loads(text)["an"]), (200, ["TL"]))
+        status, _ = self.anfrage("POST", "/api/nachricht", {"an": "TL", "art": "stopp", "kurz": "x"},
+                                 {"X-AMW-Token": self.token})
+        self.assertEqual(status, 400)
+
     def test_fremder_host_abgewiesen(self):
         status, _ = self.anfrage("GET", "/api/start", kopf={"Host": "boese.example"})
         self.assertEqual(status, 403)

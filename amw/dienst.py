@@ -12,6 +12,7 @@ Der Dienst beendet nie Claude-Code-Sitzungen und startet keine Agenten.
 Aufruf: python -X utf8 -m amw.dienst [--einmal] [--takt 1.0]
 """
 import argparse
+import calendar
 import json
 import logging
 import logging.handlers
@@ -51,10 +52,58 @@ def lies_schluessel(sitzung):
     return d["pipe"], d["schluessel"]
 
 
+TAKT_MIN = 120            # Vorgabe; je Projekt: einstellungen {"takt_min": …}, 0 = aus
+
+
+def takt_text(con, pid, lead, seit):
+    """Kurze Zusammenfassung für den Lead seit dem letzten Takt – nur Zahlen und Nummern, Details per amw.
+    „>=“: Zeitstempel sind sekundengenau; lieber ein Ereignis an der Grenze doppelt zählen als eins verlieren."""
+    z = lambda sql, *p: con.execute(sql, (pid, *p)).fetchone()[0]
+    neu_an_lead = z("SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE n.projekt_id = ?"
+                    " AND e.agent = ? AND n.zeit_utc >= ? AND n.art != 'takt'", lead, seit)
+    beantwortet = con.execute("SELECT id FROM frage WHERE projekt_id = ? AND antwort_utc >= ? AND status = 'beantwortet'"
+                              " ORDER BY id", (pid, seit)).fetchall()
+    offen_entw = z("SELECT count(*) FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
+                   " AND kurz NOT LIKE 'GEPARKT%'")
+    fertig = z("SELECT count(*) FROM aufgabe WHERE projekt_id = ? AND fertig_utc >= ?", seit)
+    laeufe = z("SELECT count(*) FROM lauf WHERE projekt_id = ? AND status = 'laeuft'")
+    teile = [f"{neu_an_lead} neue Nachricht(en) an dich", f"{fertig} Aufgabe(n) abgeschlossen",
+             f"{offen_entw} Frage(n) warten auf den Entwickler", f"{laeufe} Lauf/Läufe aktiv"]
+    if beantwortet:
+        teile.insert(0, "beantwortet: " + ", ".join(f"F{r[0]}" for r in beantwortet) + " → abarbeiten")
+    return "Takt seit " + seit[11:16] + " UTC: " + " · ".join(teile)
+
+
 class Dienst:
     def __init__(self, con):
         self.con = con
         self.sperre_bis = {}      # (projekt_id, agent) → Zeitpunkt des nächsten Versuchs nach Fehlschlag
+
+    def takt(self):
+        """Ersetzt die händische Erinnerungskette des TL (→ doc/04 #13): je Projekt alle takt_min Minuten eine
+        weckende Takt-Nachricht an jeden Lead mit lebender Sitzung. Im Halt nicht (weckt dann ohnehin nicht)."""
+        jetzt = time.time()
+        for p in self.con.execute("SELECT id, einstellungen FROM projekt").fetchall():
+            try:
+                minuten = float(json.loads(p["einstellungen"] or "{}").get("takt_min", TAKT_MIN))
+            except ValueError:
+                minuten = TAKT_MIN
+            if minuten <= 0:
+                continue
+            for lead in self.con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead'", (p["id"],)):
+                kennung = lead["kennung"]
+                if not aktive_sitzung(self.con, p["id"], kennung) or kern.halt_gilt(self.con, p["id"], kennung):
+                    continue
+                letzte = self.con.execute("SELECT max(n.zeit_utc) FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id"
+                                          " WHERE n.projekt_id = ? AND n.art = 'takt' AND e.agent = ?",
+                                          (p["id"], kennung)).fetchone()[0]
+                if letzte and jetzt - _sekunden(letzte) < minuten * 60:
+                    continue
+                seit = letzte or self.con.execute("SELECT min(gestartet_utc) FROM sitzung s JOIN agent g ON g.id = s.agent_id"
+                                                  " WHERE g.projekt_id = ? AND g.kennung = ? AND s.zustand = 'aktiv'",
+                                                  (p["id"], kennung)).fetchone()[0] or db.jetzt()
+                kern.posten(self.con, p["id"], "AMW", kennung, "takt", takt_text(self.con, p["id"], kennung, seit))
+                log.info("Takt an %s", kennung)
 
     def zustellen(self):
         offen = self.con.execute(
@@ -112,6 +161,10 @@ class Dienst:
     def aufsicht(self):
         for s in self.con.execute("SELECT * FROM sitzung WHERE zustand = 'aktiv'").fetchall():
             self.pruefe_sitzung(s)
+
+
+def _sekunden(utc):
+    return calendar.timegm(time.strptime(utc, "%Y-%m-%dT%H:%M:%SZ"))
 
 
 def einrichten_log():
@@ -180,7 +233,8 @@ def main(argv=None):
             if time.time() - letzte_aufsicht >= AUFSICHT_S:
                 letzte_aufsicht = time.time()
                 d.aufsicht()
-                d.zustellen()                       # Wiederholung nach Fehlschlag, neue Anmeldungen
+                d.takt()
+                d.zustellen()                       # Wiederholung nach Fehlschlag, neue Anmeldungen, Takt
         except Exception:                           # nie sterben; Fehler protokollieren und weiter
             log.exception("Fehler im Durchgang")
         time.sleep(a.takt)

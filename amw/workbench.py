@@ -278,6 +278,16 @@ def baue_handler(port, token):
                                              kanal="seite", erfasst_von="amw", erfasst_utc=t,
                                              bemerkung=f"Anmerkung zur Antwort auf F{teile[2]} (Option {wert})")
                         return self._senden(200, {"status": st})
+                    if u.path == "/api/nachricht":
+                        art = daten.get("art") or "auftrag"
+                        if art not in ("auftrag", "frage", "info", "korrektur", "freigabe"):
+                            return self._senden(400, {"fehler": "Art nicht erlaubt"})
+                        kurz = (daten.get("kurz") or "").strip()
+                        if not kurz or not (daten.get("an") or "").strip():
+                            return self._senden(400, {"fehler": "an/kurz fehlt"})
+                        nid, namen = kern.posten(con, pid, kern.ENTWICKLER, daten["an"], art, kurz[:300],
+                                                 (daten.get("text") or "").strip() or None)
+                        return self._senden(200, {"nachricht": nid, "an": namen})
                     if u.path == "/api/halt":
                         sid = kern.halt(con, pid, kern.ENTWICKLER, daten.get("fuer") or "alle",
                                         (daten.get("text") or "Halt vom Entwickler").strip())

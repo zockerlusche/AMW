@@ -330,6 +330,7 @@ INSERT INTO nachricht_art (art, weckt, beschreibung) VALUES
   ('freigabe',  1, 'Freigabe, z. B. Push oder Werte'),
   ('pruefbitte',1, 'Bitte um Prüfung (Datensatz in pruefung)'),
   ('meldung',   1, 'Ergebnis oder Befund an einen bestimmten Empfänger'),
+  ('takt',      1, 'Regelmäßiger Takt des Dienstes an den Lead (Zusammenfassung seit dem letzten Takt)'),
   ('info',      0, 'Zur Kenntnis, weckt nicht');
 
 -- geaendert_utc aktuell halten (eine Zeile je Tabelle; recursive_triggers ist aus).

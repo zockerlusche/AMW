@@ -83,6 +83,27 @@ class Wecker(unittest.TestCase):
         z = self.con.execute("SELECT zustand FROM sitzung").fetchone()[0]
         self.assertEqual(z, "beendet")
 
+    def test_takt_an_lead_nur_mit_sitzung_und_nicht_doppelt(self):
+        self.d.takt()
+        self.assertEqual(self.con.execute("SELECT count(*) FROM nachricht WHERE art = 'takt'").fetchone()[0], 0)
+        self.anmelden("TL")
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x?", [("A", "a")], "A", "weil")
+        kern.frage_antworten(self.con, self.pid, fid, "option", "A", "seite")
+        self.d.takt()
+        self.d.takt()
+        takte = self.con.execute("SELECT kurz FROM nachricht WHERE art = 'takt'").fetchall()
+        self.assertEqual(len(takte), 1)
+        self.assertIn(f"beantwortet: F{fid}", takte[0][0])
+        self.d.zustellen()
+        self.assertTrue(any("[takt]" in t for _, t in self.gesendet))
+
+    def test_takt_abschaltbar(self):
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE projekt SET einstellungen = '{\"takt_min\": 0}'")
+        self.anmelden("TL")
+        self.d.takt()
+        self.assertEqual(self.con.execute("SELECT count(*) FROM nachricht WHERE art = 'takt'").fetchone()[0], 0)
+
     def test_aufsicht_setzt_puls_oder_beendet(self):
         self.anmelden("CC1")
         self.d.aufsicht()
