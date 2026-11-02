@@ -168,6 +168,66 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .rm-rot { background: color-mix(in srgb, var(--rot) 35%, transparent); }
 .rm-achse { font-size: 11px; display: grid; place-items: center; }
 .risiko { padding: 10px 14px; cursor: pointer; } .risiko.status-erledigt { opacity: .55; }
+/* Plan-Check: Befunde mit Bedeutung, Abhilfe, Wer; Gruppen je Bogen */
+.check-kopf { display: grid; gap: 8px; margin-bottom: 14px; }
+.check-kopf p { margin: 0; font-size: 14.5px; }
+.check-zahlen { display: flex; gap: 8px; flex-wrap: wrap; }
+.check-zahl { border: 1px solid var(--linie2); border-radius: 3px; padding: 4px 10px; font-size: 13.5px; }
+.check-zahl b { font: 600 16px var(--titel); }
+.check-zahl.fehler { border-color: var(--rot); } .check-zahl.fehler b { color: var(--rot); }
+.check-zahl.warnung { border-color: var(--bernstein); } .check-zahl.warnung b { color: var(--bernstein); }
+.check-legende { font-size: 13px; }
+.check-gruppe { margin: 18px 0 6px; }
+.check-gruppe h4 { margin: 0 0 8px; font: 600 13px var(--titel); letter-spacing: .1em; text-transform: uppercase; color: var(--leise); }
+.check-gruppe h4 .verweis { text-transform: none; letter-spacing: 0; font: 13px var(--text); margin-left: 8px; }
+.befund { border: 1px solid var(--linie); border-left: 3px solid var(--linie2); border-radius: 3px; padding: 10px 14px; display: grid; gap: 5px;
+  background: var(--flaeche); margin-bottom: 8px; }
+.befund-fehler { border-left-color: var(--rot); } .befund-warnung { border-left-color: var(--bernstein); }
+.befund-kopf { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; } .befund-kopf b { font-size: 15px; overflow-wrap: anywhere; }
+.befund-zeile { font-size: 14px; overflow-wrap: anywhere; }
+.befund-zeile > .sehrleise:first-child { display: inline-block; min-width: 74px; }
+.befund-knoepfe { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.befund-schluessel { font: 11.5px var(--mono); color: var(--sehrleise); margin-left: auto; }
+.akzeptiert-zeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--linie); font-size: 14px; }
+.blink { animation: blink 1.6s ease-out; }
+@keyframes blink { 0%, 30% { box-shadow: 0 0 0 2px var(--bernstein); } 100% { box-shadow: 0 0 0 2px transparent; } }
+/* Übersicht über der Zeitleiste: ein Balken je Bogen, Start bis Prognose, Klick springt zum Bogen */
+.ueb { border: 1px solid var(--linie); border-radius: 4px; background: var(--flaeche); padding: 12px 14px 10px; margin: 4px 0 14px; }
+.ueb-kopf { display: flex; gap: 10px 16px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
+.ueb-kopf b { font: 600 13px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--leise); }
+.ueb-kopf span { font-size: 14px; }
+.ueb-zeile { display: grid; grid-template-columns: minmax(120px, 230px) minmax(0, 1fr); align-items: center; width: 100%; padding: 0; margin: 0;
+  background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ueb-zeile:hover .ueb-name, .ueb-zeile:focus-visible .ueb-name { color: var(--bernstein); }
+.ueb-zeile:hover .ueb-spur { background: var(--bernstein-weich); }
+.ueb-name { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; }
+.ueb-name .ref { margin-right: 6px; }
+.ueb-spur { position: relative; height: 26px; }
+.ueb-achse .ueb-spur { height: 18px; }
+.ueb-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--linie); }
+.ueb-tick span { position: absolute; top: 0; left: 4px; font: 11px var(--titel); letter-spacing: .06em; color: var(--sehrleise); white-space: nowrap; }
+.ueb-heute { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--bernstein); z-index: 2; }
+.ueb-balken, .ueb-unsicher { position: absolute; top: 7px; height: 12px; border-radius: 2px; min-width: 3px; }
+.ueb-balken { background: color-mix(in srgb, var(--tinte) 40%, transparent); }
+.ueb-balken.aktiv { background: var(--bernstein); } .ueb-balken.fertig { background: var(--gruen); } .ueb-balken.rot { background: var(--rot); }
+.ueb-unsicher { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--tinte) 40%, transparent) 0 3px, transparent 3px 6px);
+  border-radius: 0 2px 2px 0; }
+.ueb-unsicher.aktiv { background: repeating-linear-gradient(135deg, var(--bernstein) 0 3px, transparent 3px 6px); }
+.ueb-unsicher.rot { background: repeating-linear-gradient(135deg, var(--rot) 0 3px, transparent 3px 6px); }
+.ueb-ziel { position: absolute; top: 6px; width: 10px; height: 10px; margin-left: -5px; transform: rotate(45deg); background: var(--grund);
+  border: 2px solid var(--tinte); z-index: 3; }
+.ueb-ziel.rot { border-color: var(--rot); }
+.ueb-du { position: absolute; top: 9px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--tinte);
+  box-shadow: 0 0 0 2px var(--flaeche); z-index: 3; }
+.ueb-ohne { position: absolute; left: 6px; top: 5px; font-size: 12.5px; }
+.ueb-legende { display: flex; gap: 6px 16px; flex-wrap: wrap; margin-top: 8px; font-size: 12.5px; color: var(--leise); }
+.ueb-legende i { display: inline-block; vertical-align: middle; margin-right: 5px; position: static; }
+.ueb-legende .ueb-balken, .ueb-legende .ueb-unsicher { width: 18px; height: 9px; }
+.ueb-legende .ueb-ziel { width: 8px; height: 8px; margin: 0 6px 0 2px; }
+.ueb-legende .ueb-heute { display: inline-block; height: 12px; width: 2px; margin: 0 6px 0 0; }
+.ueb-legende .ueb-du { margin: 0 5px 0 0; }
+@media (max-width: 760px) { .ueb-zeile { grid-template-columns: 44px minmax(0, 1fr); } .ueb-name .titel { display: none; }
+  .befund-schluessel { margin-left: 0; flex-basis: 100%; } .befund-zeile > .sehrleise:first-child { min-width: 0; } }
 @media (max-width: 760px) { .zeitleiste { padding-left: 20px; } .tl-punkt { left: -19px; } .tl-heute { margin-left: -20px; }
   .schritt { grid-template-columns: 54px minmax(0, 1fr); } .schritt > .etikett { grid-column: 2; justify-self: start; } .tl-knoepfe { margin-left: 0; } }
 /* Rückblick und Verlauf */
@@ -495,6 +555,19 @@ const TEXTE = {
     pl_plan_frei: "Plan A{a} „{x}“ von {ag} freigeben", pr_zeitleiste: "Zeitleiste", pr_leitbild: "Leitbild", pr_risiken: "Risiken",
     pr_check: "Plan-Check", pr_protokoll: "Protokoll", pl_bogen_neu: "Neuer Bogen", pl_check_ok: "Keine Lücken gefunden.", st_fehler: "Fehler",
     st_warnung: "Warnung", st_hinweis: "Hinweis",
+    ck_erklaerung: "Der Plan-Check sucht Lücken, die später Zeit oder Nacharbeit kosten. Jeder Befund sagt, was er bedeutet, was zu tun ist und wer es tut.",
+    ck_legende: "Fehler: so ist der Plan nicht belastbar – zuerst beheben. Warnung: schwächt Termin, Prognose oder Abnahme. Hinweis: Ordnung, kann warten. Warnungen und Hinweise kannst du mit Grund bewusst akzeptieren – sie zählen dann nicht mehr und lassen sich jederzeit wieder prüfen.",
+    ck_n_fehler: "Fehler", ck_n_warnung: "Warnungen", ck_n_hinweis: "Hinweise", ck_1_fehler: "Fehler", ck_1_warnung: "Warnung", ck_1_hinweis: "Hinweis", ck_n_ok: "bewusst akzeptiert", ck_bedeutet: "Bedeutet", ck_tun: "Tun",
+    ck_du: "du", ck_projekt: "Projekt", ck_risiken: "Risiken", ck_zum_bogen: "zum Bogen", ck_o_leitbild: "Leitbild öffnen", ck_o_bogen: "Bogen bearbeiten",
+    ck_o_spec: "Anforderungen öffnen", ck_o_risiko: "Risiko öffnen", ck_o_schritt: "In der Zeitleiste zeigen", ck_an_lead: "An {x} geben",
+    ck_gesendet: "An {x} geschickt", ck_akzeptieren: "Akzeptieren …", ck_akz_titel: "Bewusst so lassen",
+    ck_akz_text: "Der Befund zählt danach nicht mehr. Bitte kurz begründen – der Grund steht im Protokoll, und du kannst es jederzeit zurücknehmen.",
+    ck_grund_ph: "z. B. Termin hängt von einer externen Freigabe ab", ck_akz_ok: "Akzeptieren", ck_akz_fertig: "Akzeptiert",
+    ck_akzeptiert: "Bewusst akzeptiert ({n})", ck_grund: "Grund", ck_wieder: "Wieder prüfen", ck_alles_ok: "Alles Offene ist bewusst akzeptiert.",
+    ck_nicht_gefunden: "Nicht in der Zeitleiste gefunden",
+    ue_titel: "Übersicht", ue_summe: "Start {a} · voraussichtlich fertig {b}, sicher bis {c} · rund {n} Wochen ab heute",
+    ue_teilweise: "Noch nicht für alle Bögen eine Prognose", ue_start: "Start", ue_ohne: "keine offenen Schritte",
+    ue_l_p50: "bis zur Prognose (50 %)", ue_l_rot: "zu spät", ue_l_p85: "bis 85 % sicher", ue_l_du: "dein Schritt", ue_l_heute: "heute", ue_l_klick: "Klick auf eine Zeile springt zum Bogen",
     pl_keine_boegen: "Noch keine Bögen. Ein Bogen ist ein Meilenstein mit prüfbarem Abnahmekriterium – „Neuer Bogen“.", pl_heute: "heute · {x}",
     pl_schritte: "{n} Schritte", pl_welle: "Welle {n}", pl_parallel: "parallel möglich", pl_keine_schritte: "noch keine Schritte", bs_geplant: "geplant",
     bs_aktiv: "aktiv", bs_fertig: "fertig", bs_verworfen: "verworfen", pl_aktivieren: "Aktivieren",
@@ -631,6 +704,19 @@ const TEXTE = {
     ampel_gelb: "amber", ampel_rot: "red", pl_freigaben: "{n} approval(s) for you", pl_spec_frei: "Arc {b} “{x}”: approve {teil} (v{v})",
     pl_plan_frei: "Approve plan A{a} “{x}” by {ag}", pr_zeitleiste: "Timeline", pr_leitbild: "Charter", pr_risiken: "Risks", pr_check: "Plan check",
     pr_protokoll: "Log", pl_bogen_neu: "New arc", pl_check_ok: "No gaps found.", st_fehler: "Error", st_warnung: "Warning", st_hinweis: "Hint",
+    ck_erklaerung: "The plan check looks for gaps that cost time or rework later. Each finding says what it means, what to do and who does it.",
+    ck_legende: "Error: the plan is not reliable like this – fix first. Warning: weakens date, forecast or acceptance. Hint: housekeeping, can wait. You can deliberately accept warnings and hints with a reason – they no longer count and can be re-checked any time.",
+    ck_n_fehler: "errors", ck_n_warnung: "warnings", ck_n_hinweis: "hints", ck_1_fehler: "error", ck_1_warnung: "warning", ck_1_hinweis: "hint", ck_n_ok: "accepted", ck_bedeutet: "Means", ck_tun: "Do",
+    ck_du: "you", ck_projekt: "Project", ck_risiken: "Risks", ck_zum_bogen: "go to arc", ck_o_leitbild: "Open charter", ck_o_bogen: "Edit arc",
+    ck_o_spec: "Open requirements", ck_o_risiko: "Open risk", ck_o_schritt: "Show in timeline", ck_an_lead: "Hand to {x}",
+    ck_gesendet: "Sent to {x}", ck_akzeptieren: "Accept …", ck_akz_titel: "Leave it like this",
+    ck_akz_text: "The finding no longer counts afterwards. Please give a short reason – it is logged, and you can undo it any time.",
+    ck_grund_ph: "e.g. date depends on an external approval", ck_akz_ok: "Accept", ck_akz_fertig: "Accepted",
+    ck_akzeptiert: "Accepted ({n})", ck_grund: "Reason", ck_wieder: "Check again", ck_alles_ok: "Everything open is deliberately accepted.",
+    ck_nicht_gefunden: "Not found in the timeline",
+    ue_titel: "Overview", ue_summe: "Start {a} · expected done {b}, safe by {c} · about {n} weeks from today",
+    ue_teilweise: "No forecast for all arcs yet", ue_start: "Start", ue_ohne: "no open steps",
+    ue_l_p50: "to forecast (50 %)", ue_l_rot: "late", ue_l_p85: "to 85 % safe", ue_l_du: "your step", ue_l_heute: "today", ue_l_klick: "Click a row to jump to the arc",
     pl_keine_boegen: "No arcs yet. An arc is a milestone with a checkable acceptance criterion – “New arc”.", pl_heute: "today · {x}",
     pl_schritte: "{n} steps", pl_welle: "Wave {n}", pl_parallel: "can run in parallel", pl_keine_schritte: "no steps yet", bs_geplant: "planned",
     bs_aktiv: "active", bs_fertig: "done", bs_verworfen: "dropped", pl_aktivieren: "Activate",
@@ -1115,20 +1201,149 @@ async function sichtPlanung() {
     ...w.spezifikationen.map(s => el("div", {}, el("a", { class: "verweis", onclick: () => specDialog(d.boegen.find(b => b.id === s.bogen_id), s.teil) },
       t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })))),
     ...w.plaene.map(p => el("div", {}, el("a", { class: "verweis", onclick: () => planDialog(p) }, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" }))))));
-  const reiter = ["zeitleiste", "leitbild", "risiken", "check", "protokoll"];
+  const reiter = ["zeitleiste", "leitbild", "risiken", "check", "protokoll"], offeneBefunde = d.pruefung.filter(x => !x.akzeptiert).length;
   m.append(el("div", { class: "reiter" }, reiter.map(k => el("button", { class: k === r ? "an" : "", type: "button",
-      onclick: () => { zustand.planReiter = k; sichtPlanung(); } }, t("pr_" + k) + (k === "check" && d.pruefung.length ? ` (${d.pruefung.length})` : "")
+      onclick: () => { zustand.planReiter = k; sichtPlanung(); } }, t("pr_" + k) + (k === "check" && offeneBefunde ? ` (${offeneBefunde})` : "")
       + (k === "risiken" ? ` (${d.risiken.filter(x => x.status !== "erledigt").length})` : ""))),
     r === "zeitleiste" ? el("div", { class: "rechts" }, el("button", { class: "klein-knopf", type: "button", onclick: () => bogenDialog(null) }, t("pl_bogen_neu"))) : null));
-  if (r === "zeitleiste") m.append(zeitleiste(d));
+  if (r === "zeitleiste") m.append(uebersicht(d) || "", zeitleiste(d));
   if (r === "leitbild") m.append(leitbildAnsicht(d.leitbild));
   if (r === "risiken") m.append(risikoAnsicht(d));
-  if (r === "check") m.append(d.pruefung.length ? el("div", { class: "check" }, d.pruefung.map(x => el("div", { class: "check-" + x.stufe },
-    el("span", { class: "etikett " + (x.stufe === "fehler" ? "rot" : x.stufe === "warnung" ? "bernstein" : "") }, t("st_" + x.stufe)), " ", x.text)))
-    : el("div", { class: "leer" }, t("pl_check_ok")));
+  if (r === "check") m.append(checkAnsicht(d));
   if (r === "protokoll") m.append(d.ereignisse.length ? tabelle(["k_zeit", "k_von", "k_art", "k_text"], d.ereignisse.map(x =>
     [zeit(x.zeit_utc), x.von, x.art, (x.bogen_id ? `Bogen ${x.bogen_id} · ` : "") + (x.aufgabe_id ? `A${x.aufgabe_id} · ` : "") + (x.text || "")]))
     : el("div", { class: "leer" }, t("leer")));
+}
+/* Plan-Check: je Befund was los ist, was es bedeutet, was zu tun ist, wer; öffnen, an den Lead geben, bewusst akzeptieren */
+function checkText(d, x, i, spr = sprache) {
+  const k = d.check_texte[x.code] || {}, s = ((k[spr] || k.de || [])[i]) ?? (i ? "" : x.text);
+  return s.replace(/\{(\w+)\}/g, (_, n) => x.werte?.[n] ?? "");
+}
+function checkAnsicht(d) {
+  const offen = d.pruefung.filter(x => !x.akzeptiert), ok = d.pruefung.filter(x => x.akzeptiert);
+  const zahl = s => offen.filter(x => x.stufe === s).length;
+  const kopf = el("div", { class: "check-kopf" }, el("p", {}, t("ck_erklaerung")),
+    el("div", { class: "check-zahlen" }, ["fehler", "warnung", "hinweis"].map(s => el("span", { class: "check-zahl " + (zahl(s) ? s : "") },
+      el("b", {}, zahl(s)), " " + t((zahl(s) === 1 ? "ck_1_" : "ck_n_") + s))),
+      ok.length ? el("span", { class: "check-zahl" }, el("b", {}, ok.length), " " + t("ck_n_ok")) : null),
+    el("div", { class: "check-legende sehrleise" }, t("ck_legende")));
+  const aus = el("div", {}, kopf);
+  if (!offen.length) aus.append(el("div", { class: "leer" }, d.pruefung.length ? t("ck_alles_ok") : t("pl_check_ok")));
+  const reihe = ["projekt", ...d.boegen.map(b => "bogen:" + b.id), "risiken"];
+  const stufe = ["fehler", "warnung", "hinweis"];
+  for (const g of reihe) {
+    const liste = offen.filter(x => x.gruppe === g).sort((a, b) => stufe.indexOf(a.stufe) - stufe.indexOf(b.stufe));
+    if (!liste.length) continue;
+    const b = g.startsWith("bogen:") ? d.boegen.find(x => "bogen:" + x.id === g) : null;
+    aus.append(el("section", { class: "check-gruppe" },
+      el("h4", {}, b ? `Bogen ${b.id} · ${b.titel}` : t(g === "risiken" ? "ck_risiken" : "ck_projekt"),
+        b ? el("a", { class: "verweis", onclick: () => zuSchritt(null, b.id) }, t("ck_zum_bogen")) : null),
+      liste.map(x => befundKarte(d, x))));
+  }
+  if (ok.length) aus.append(el("details", { class: "check-gruppe" }, el("summary", { class: "tl-schritte" }, t("ck_akzeptiert", { n: ok.length })),
+    ok.map(x => el("div", { class: "akzeptiert-zeile" },
+      el("div", {}, el("span", { class: "etikett" }, t("st_" + x.stufe)), " ", checkText(d, x, 0),
+        el("div", { class: "sehrleise" }, `${t("ck_grund")}: ${x.akzeptiert.grund} · ${x.akzeptiert.von} · ${zeit(x.akzeptiert.zeit_utc)}`)),
+      el("button", { class: "klein-knopf", type: "button", onclick: async () => {
+        try { await schicken("/api/plan/check", { schluessel: x.schluessel, wieder: true }); zeige("planung", true); }
+        catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("ck_wieder"))))));
+  return aus;
+}
+function befundKarte(d, x) {
+  const b = d.boegen.find(y => y.id === x.bogen_id), wer = x.wer === "du" ? t("ck_du") : (d.lead || "Lead");
+  const knopf = (text, fn) => el("button", { class: "klein-knopf", type: "button", onclick: fn }, text);
+  const oeffnen = { leitbild: () => knopf(t("ck_o_leitbild"), () => { zustand.planReiter = "leitbild"; sichtPlanung(); }),
+    bogen: () => b && knopf(t("ck_o_bogen"), () => bogenDialog(b)),
+    spec_anforderungen: () => b && knopf(t("ck_o_spec"), () => specDialog(b, "anforderungen")),
+    risiko: () => { const r = d.risiken.find(y => y.id === x.risiko_id); return r && knopf(t("ck_o_risiko"), () => risikoDialog(r)); },
+    schritt: () => x.bogen_id && knopf(t("ck_o_schritt"), () => zuSchritt(x.aufgabe_id, x.bogen_id)),     // ohne Bogen nicht in der Zeitleiste
+    zeitleiste: () => knopf(t("pl_bogen_neu"), () => bogenDialog(null)) }[x.ziel];
+  const anLead = x.wer === "lead" && d.lead ? knopf(t("ck_an_lead", { x: d.lead }), async () => {
+    try { await schicken("/api/nachricht", { an: d.lead, art: "auftrag", kurz: ("Plan-Check: " + checkText(d, x, 0, "de")).slice(0, 300),
+      text: `${checkText(d, x, 1, "de")}\n\nTun: ${checkText(d, x, 2, "de")}\n\nSchlüssel: ${x.schluessel} (amw plan pruefen)` });
+      toast(t("ck_gesendet", { x: d.lead })); } catch (e) { toast(t("fehler", { x: e.message }), true); } }) : null;
+  return el("div", { class: "befund befund-" + x.stufe },
+    el("div", { class: "befund-kopf" }, el("span", { class: "etikett " + (x.stufe === "fehler" ? "rot" : x.stufe === "warnung" ? "bernstein" : "") }, t("st_" + x.stufe)),
+      el("b", {}, checkText(d, x, 0))),
+    el("div", { class: "befund-zeile" }, el("span", { class: "sehrleise" }, t("ck_bedeutet")), " ", checkText(d, x, 1)),
+    el("div", { class: "befund-zeile" }, el("span", { class: "sehrleise" }, `${t("ck_tun")} · ${wer}`), " ", checkText(d, x, 2)),
+    el("div", { class: "befund-knoepfe" }, oeffnen ? oeffnen() : null, anLead,
+      x.stufe !== "fehler" ? knopf(t("ck_akzeptieren"), () => akzeptierenDialog(d, x)) : null,
+      el("span", { class: "befund-schluessel", title: "amw plan akzeptieren <…> --grund …" }, x.schluessel)));
+}
+function akzeptierenDialog(d, x) {
+  const grund = el("textarea", { rows: 3, placeholder: t("ck_grund_ph") });
+  const hg = dialog(t("ck_akz_titel"), el("p", { style: "margin-top:0" }, el("b", {}, checkText(d, x, 0))),
+    el("p", { class: "leise" }, t("ck_akz_text")), grund,
+    el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: async () => {
+      if (!grund.value.trim()) { grund.focus(); return; }
+      try { await schicken("/api/plan/check", { schluessel: x.schluessel, grund: grund.value.trim() }); hg.remove(); toast(t("ck_akz_fertig")); zeige("planung", true); }
+      catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("ck_akz_ok"))));
+  grund.focus();
+}
+/* zum Bogen (und Schritt) in der Zeitleiste springen und kurz hervorheben */
+async function zuSchritt(aid, bid) {
+  if (zustand.planReiter !== "zeitleiste") { zustand.planReiter = "zeitleiste"; await sichtPlanung(); }
+  const ziel = (aid && document.getElementById("schritt-" + aid)) || (bid && document.getElementById("bogen-" + bid));
+  if (!ziel) { toast(t("ck_nicht_gefunden")); return; }
+  const det = ziel.closest("details"); if (det) det.open = true;
+  ziel.scrollIntoView({ behavior: "smooth", block: aid ? "center" : "start" });
+  ziel.classList.remove("blink"); void ziel.offsetWidth; ziel.classList.add("blink");
+}
+/* Übersicht: ein Balken je Bogen vom Start bis zur Prognose (fest bis P50, schraffiert bis P85), Zieldatum, deine Schritte, heute */
+function uebersicht(d) {
+  const tagNr = x => Math.round(Date.parse(x + "T12:00:00Z") / 864e5), datum = n => new Date(n * 864e5).toISOString().slice(0, 10);
+  const zeilen = d.boegen.filter(b => b.status !== "verworfen").map(b => {
+    const p = b.prognose, fertig = b.status === "fertig" ? (b.fertig_utc || "").slice(0, 10) || null : null;
+    const e50 = fertig || p?.p50 || null, e85 = fertig || p?.p85 || null;
+    let start = b.beginn_ist || p?.start || null;
+    if (start && e50 && start > e50) start = e50;
+    const du = b.schritte.filter(s => s.agent === "Entwickler" && !["fertig", "verworfen"].includes(s.status) && s.prognose)
+      .map(s => ({ id: s.id, titel: s.titel, tag: s.prognose.p50 }));
+    return { b, start, e50, e85, ziel: b.zieldatum, du };
+  });
+  const daten = zeilen.flatMap(z => [z.start, z.e85, z.ziel, ...z.du.map(x => x.tag)]).filter(Boolean);
+  if (!daten.length) return null;
+  daten.push(d.heute);
+  const von = Math.min(...daten.map(tagNr)) - 2, bis = Math.max(...daten.map(tagNr)) + 3, spanne = bis - von;
+  const pos = x => `${(100 * (tagNr(x) - von) / spanne).toFixed(2)}%`, breite = (a, b) => `${(100 * Math.max(0, tagNr(b) - tagNr(a)) / spanne).toFixed(2)}%`;
+  const ticks = [];
+  for (let n = von + 1; n < bis; n++) {
+    const x = datum(n), dt = new Date(x + "T12:00:00Z");
+    if (spanne <= 75 ? dt.getUTCDay() === 1 : dt.getUTCDate() === 1)
+      ticks.push({ x, text: spanne <= 75 ? datumKurz(x) : dt.toLocaleDateString(gebiet(), { month: "short", timeZone: "UTC",
+        ...(!ticks.length || dt.getUTCMonth() === 0 ? { year: "numeric" } : {}) }) });            // Jahr am Anfang und im Januar
+  }
+  const raster = () => [...ticks.map(k => el("i", { class: "ueb-tick", style: `left:${pos(k.x)}` })), el("i", { class: "ueb-heute", style: `left:${pos(d.heute)}`, title: t("pl_heute", { x: datumKurz(d.heute) }) })];
+  const offen = zeilen.filter(z => z.b.status !== "fertig");
+  const start = zeilen.map(z => z.start).filter(Boolean).sort()[0];
+  const ende50 = offen.map(z => z.e50).filter(Boolean).sort().pop(), ende85 = offen.map(z => z.e85).filter(Boolean).sort().pop();
+  return el("div", { class: "ueb" },
+    el("div", { class: "ueb-kopf" }, el("b", {}, t("ue_titel")),
+      el("span", {}, start && ende50 ? t("ue_summe", { a: datumKurz(start), b: datumKurz(ende50), c: datumKurz(ende85),
+        n: Math.max(1, Math.round((tagNr(ende85) - tagNr(start < d.heute ? start : d.heute)) / 7)) }) : t("ue_teilweise"))),
+    el("div", { class: "ueb-zeile ueb-achse", style: "cursor:default" }, el("span", {}),
+      el("span", { class: "ueb-spur" }, ticks.map(k => el("i", { class: "ueb-tick", style: `left:${pos(k.x)}` }, el("span", {}, k.text))))),
+    zeilen.map(z => {
+      const b = z.b, art = b.status === "fertig" ? "fertig" : z.b.prognose?.ampel === "rot" ? "rot" : b.status === "aktiv" ? "aktiv" : "";
+      const tip = [`Bogen ${b.id} · ${b.titel}`, z.start ? `${t("ue_start")} ${datumKurz(z.start)}` : null,
+        z.e50 ? (b.status === "fertig" ? `${t("bs_fertig")} ${datumKurz(z.e50)}` : `${t("pl_prognose")} ${datumKurz(z.e50)} – ${datumKurz(z.e85)}`) : null,
+        z.ziel ? `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` : null].filter(Boolean).join(" · ");
+      return el("button", { class: "ueb-zeile", type: "button", title: tip, onclick: () => zuSchritt(null, b.id) },
+        el("span", { class: "ueb-name" }, el("span", { class: "ref" }, "B" + b.id), el("span", { class: "titel" }, b.titel)),
+        el("span", { class: "ueb-spur" }, raster(),
+          z.start && z.e50 ? el("i", { class: "ueb-balken " + art, style: `left:${pos(z.start)};width:${breite(z.start, z.e50)}` }) : null,
+          z.e50 && z.e85 && z.e85 > z.e50 ? el("i", { class: "ueb-unsicher " + art, style: `left:${pos(z.e50)};width:${breite(z.e50, z.e85)}` }) : null,
+          z.ziel ? el("i", { class: "ueb-ziel" + (z.e50 && z.e50 > z.ziel && b.status !== "fertig" ? " rot" : ""), style: `left:${pos(z.ziel)}` }) : null,
+          z.du.map(x => el("i", { class: "ueb-du", style: `left:${pos(x.tag)}`, title: `A${x.id} ${x.titel} – ${t("ck_du")} ≈ ${datumKurz(x.tag)}` })),
+          !z.start && !z.e50 ? el("span", { class: "ueb-ohne sehrleise" }, t("ue_ohne")) : null));
+    }),
+    el("div", { class: "ueb-legende" },
+      el("span", {}, el("i", { class: "ueb-balken" }), t("ue_l_p50")), el("span", {}, el("i", { class: "ueb-unsicher" }), t("ue_l_p85")),
+      el("span", {}, el("i", { class: "ueb-balken aktiv" }), t("bs_aktiv")), el("span", {}, el("i", { class: "ueb-balken rot" }), t("ue_l_rot")),
+      el("span", {}, el("i", { class: "ueb-balken fertig" }), t("bs_fertig")), el("span", {}, el("i", { class: "ueb-ziel" }), t("pl_zieldatum")),
+      el("span", {}, el("i", { class: "ueb-du" }), t("ue_l_du")), el("span", {}, el("i", { class: "ueb-heute" }), t("ue_l_heute")),
+      el("span", { class: "sehrleise" }, t("ue_l_klick"))));
 }
 /* Senkrechte Zeitleiste: ein Bogen je Station, Heute-Linie, Zieldatum/Baseline/Prognose, Spezifikation, Schritte in Wellen */
 function zeitleiste(d) {
@@ -1159,7 +1374,7 @@ function bogenKarte(b) {
     b.schritte.length ? Object.keys(wellen).sort((x, y) => x - y).map(n => el("div", { class: "welle" },
       el("div", { class: "welle-kopf" }, t("pl_welle", { n }) + (wellen[n].length > 1 ? " · " + t("pl_parallel") : "")),
       wellen[n].map(s => schrittZeile(s)))) : el("div", { class: "sehrleise" }, t("pl_keine_schritte")));
-  return el("div", { class: `tl-bogen karte status-${b.status}` },
+  return el("div", { class: `tl-bogen karte status-${b.status}`, id: "bogen-" + b.id },
     el("span", { class: "tl-punkt " + (b.status === "fertig" ? "gruen" : ampelKlasse(p?.ampel)) }),
     el("div", { class: "tl-kopf" }, el("span", { class: "ref" }, `Bogen ${b.id}`), el("b", { class: "tl-titel" }, b.titel),
       el("span", { class: "etikett " + (aktiv ? "gruen" : b.status === "fertig" ? "" : "") }, t("bs_" + b.status)),
@@ -1184,7 +1399,7 @@ function bogenKarte(b) {
 }
 function schrittZeile(s) {
   const k = s.kriterien || [], erfuellt = k.filter(x => x.erfuellt).length, mensch = s.agent === "Entwickler";
-  return el("div", { class: `schritt status-${s.status}${mensch ? " mensch" : ""}` },
+  return el("div", { class: `schritt status-${s.status}${mensch ? " mensch" : ""}`, id: "schritt-" + s.id },
     el("span", { class: "ref" }, `A${s.id}`),
     el("span", { class: "schritt-titel" }, s.titel),
     el("span", { class: "etikett" + (s.status === "laeuft" ? " gruen" : s.blockiert_durch.length ? " rot" : "") },

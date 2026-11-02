@@ -68,9 +68,24 @@ eigenen Tempo in die Prognose.
   seinen Vorgängern.
 - **Ampel je Bogen**: grün, wenn P85 vor dem Zieldatum liegt; gelb zwischen P50 und P85; rot, wenn schon P50 danach liegt.
 - **Status je Dimension** (oben in der Planung): Termin, Risiko, Qualität – nach Regeln berechnet, mit Begründung.
-- **Plan-Check** findet Lücken: kein Ziel/Nicht-Ziel/DoD, Bogen ohne Abnahmekriterium oder Zieldatum, Anforderung ohne
-  Schritt, Schritt ohne Kriterien/Bearbeiter, Komplexität ohne Plan, Risiko ohne Maßnahme, Bogen rot, Abhängigkeit
-  auf verworfene Aufgabe. `amw plan pruefen`, `amw plan status`, `amw plan prognose`.
+- **Übersicht** (oben in der Zeitleiste): ein Balken je Bogen vom Start bis zur Prognose – fest bis P50, schraffiert
+  bis P85 –, dazu Zieldatum (◆), deine eigenen Schritte (●) und die Heute-Linie. Oben steht, wann alles startet und
+  wann voraussichtlich alles fertig ist. Ein Klick auf eine Zeile springt zum Bogen. Der Start eines Bogens ist der
+  früheste tatsächliche Beginn seiner Schritte, sonst der Tag, an dem nach der Prognose der erste Schritt beginnt.
+- **Plan-Check** sucht Lücken, die später Zeit oder Nacharbeit kosten – je Befund mit **Bedeutung** (was passiert,
+  wenn man es lässt), **Abhilfe** (was zu tun ist, mit Befehl) und **wer** handelt (du oder der Lead), gruppiert nach
+  Projekt, Bogen und Risiken. Stufen: *Fehler* – so ist der Plan nicht belastbar, zuerst beheben; *Warnung* – schwächt
+  Termin, Prognose oder Abnahme; *Hinweis* – Ordnung. Geprüft wird: kein Ziel/Nicht-Ziel/DoD, Bogen ohne Abnahme oder
+  Zieldatum, aktiver Bogen mit nicht freigegebenen Anforderungen, Termin rot/gelb, Anforderungen ohne Schritt, Schritt
+  ohne Kriterien/Bearbeiter, Komplexität ohne Plan oder zu groß, fertige Schritte ohne Zusammenfassung, Risiko ohne
+  Maßnahme oder eingetreten, Abhängigkeit auf verworfene Aufgabe.
+- **Einlenken**: In der Workbench je Befund *öffnen* (Bogen, Anforderungen, Leitbild, Risiko, Schritt in der
+  Zeitleiste), *An TL geben* (Auftrag mit Bedeutung und Abhilfe an den Lead) oder – bei Warnungen und Hinweisen –
+  *Akzeptieren* mit Grund: der Befund zählt dann nicht mehr, steht unter „Bewusst akzeptiert“ und im Protokoll und
+  lässt sich mit *Wieder prüfen* zurückholen. Fehler lassen sich nicht akzeptieren.
+- Kommandozeile: `amw plan pruefen [--kurz]` (mit Schlüssel je Befund), `amw plan akzeptieren <schlüssel> --grund …`,
+  `amw plan wieder <schlüssel>`, `amw plan status`, `amw plan prognose`. Abhängigkeit lösen:
+  `amw aufgabe aendern <nr> --ohne-vorgaenger <nr>`; Zusammenfassung nachtragen: `amw aufgabe aendern <nr> --zusammenfassung …`.
 
 ## 7 Risiken
 Ursache, Wirkung, Wahrscheinlichkeit × Auswirkung (je 1–5; ab 15 rot, ab 8 gelb), Strategie (vermeiden, mindern,

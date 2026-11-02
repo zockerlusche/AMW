@@ -151,6 +151,10 @@ def _schritt_werte(a):
             "anforderungen": a.anforderungen, "agent": a.agent, "auftrag": a.auftrag, "pruefer": a.pruefer}, nr(a.nach)
 
 
+def _ohne(a):
+    return [int(x.strip().lstrip("Aa")) for x in (a.ohne_vorgaenger or "").split(",") if x.strip()]
+
+
 def cmd_aufgabe(a, con):
     pid = _projekt(con, a)
     from . import planung
@@ -163,7 +167,10 @@ def cmd_aufgabe(a, con):
         print(f"A{aid} angelegt")
     elif a.aktion == "aendern":
         werte, nach = _schritt_werte(a)
+        werte["zusammenfassung"] = a.zusammenfassung              # auch nachträglich (Plan-Check)
         planung.schritt_setzen(con, pid, _von(a), aid=a.id, titel=a.titel, nach=nach, **werte)
+        if _ohne(a):
+            planung.abhaengigkeit_setzen(con, pid, _von(a), a.id, _ohne(a), entfernen=True)
         print(f"A{a.id} geändert")
     elif a.aktion == "kriterium":
         liste = planung.kriterium(con, pid, _von(a), a.id, a.nr, not a.nein)
@@ -332,10 +339,39 @@ def cmd_plan(a, con):
     from . import planung
     pid = _projekt(con, a)
     if a.aktion == "pruefen":
-        liste = planung.pruefen(con, pid)
-        for x in liste:
-            print(f"{x['stufe'].upper():<8} {x['text']}")
-        print(f"{len(liste)} Befund(e)" if liste else "keine Lücken gefunden")
+        alle = planung.pruefen(con, pid, mit_akzeptierten=True)
+        liste = [x for x in alle if not x["akzeptiert"]]
+        zahl = {s: sum(x["stufe"] == s for x in liste) for s in planung.STUFEN}
+        print(f"Plan-Check: {zahl['fehler']} Fehler · {zahl['warnung']} Warnung(en) · {zahl['hinweis']} Hinweis(e)"
+              + (f" · {len(alle) - len(liste)} bewusst akzeptiert" if len(alle) > len(liste) else ""))
+        if not liste:
+            print("keine offenen Lücken")
+        titel = {b["id"]: b["titel"] for b in planung.boegen(con, pid)}
+        lead = kern.lead(con, pid) or "Lead"
+        gruppe = None
+        for x in sorted(liste, key=lambda x: (x["gruppe"] != "projekt", x["bogen_id"] or 0, planung.STUFEN.index(x["stufe"]))):
+            if x["gruppe"] != gruppe:
+                gruppe = x["gruppe"]
+                print("\n" + (f"Bogen {x['bogen_id']} „{titel.get(x['bogen_id'], '')}“" if gruppe.startswith("bogen:")
+                              else "Risiken" if gruppe == "risiken" else "Projekt"))
+            print(f"  {x['stufe'].upper():<8} {x['text']}   [{x['schluessel']}]")
+            if not a.kurz:
+                _, wer, _, texte = planung.CHECKS[x["code"]]
+                _, bedeutung, tun = texte["de"]
+                print(f"           Bedeutet: {bedeutung.format(**x['werte'])}")
+                print(f"           Tun ({'du' if wer == 'du' else lead}): {tun.format(**x['werte'])}")
+        if liste and not a.kurz:
+            print("\nBewusst so lassen (Warnung/Hinweis): amw plan akzeptieren <schlüssel> --grund …")
+    elif a.aktion == "akzeptieren":
+        if not a.schluessel:
+            raise kern.AmwFehler("Schlüssel fehlt (steht in eckigen Klammern hinter dem Befund)")
+        planung.check_akzeptieren(con, pid, _von(a), a.schluessel, a.grund)
+        print(f"akzeptiert: {a.schluessel}")
+    elif a.aktion == "wieder":
+        if not a.schluessel:
+            raise kern.AmwFehler("Schlüssel fehlt")
+        planung.check_wieder(con, pid, _von(a), a.schluessel)
+        print(f"zählt wieder: {a.schluessel}")
     elif a.aktion == "status":
         s = planung.status(con, pid)
         for k in ("termin", "risiko", "qualitaet"):
@@ -892,7 +928,8 @@ def parser():
     x.add_argument("--pruefbefehl", help="Planung: wie der Bearbeiter selbst prüft")
     x.add_argument("--dateien", help="Planung: Dateibereich, den er anfassen darf")
     x.add_argument("--anforderungen", help="Planung: abgedeckte Anforderungen, z. B. R1,R3")
-    x.add_argument("--zusammenfassung", help="fertig: Pflicht für Schritte in einem Bogen")
+    x.add_argument("--zusammenfassung", help="fertig: Pflicht für Schritte in einem Bogen; aendern: nachtragen")
+    x.add_argument("--ohne-vorgaenger", help="aendern: diese Vorgänger lösen, z. B. 115")
     x.add_argument("--text", help="plan: der Plan")
     x.add_argument("--nein", action="store_true", help="kriterium: wieder als offen markieren")
     x.add_argument("--zurueck", action="store_true", help="planfrei: zurückweisen (mit --kommentar)")
@@ -1007,8 +1044,12 @@ def parser():
     x.add_argument("--zusammenfassung", action="store_true", help="nur Zahlen")
     x.set_defaults(f=cmd_verlauf)
 
-    x = s.add_parser("plan", help="pruefen (Lücken) | prognose (P50/P85 je Schritt und Bogen) | status (Ampel je Dimension)")
-    x.add_argument("aktion", choices=["pruefen", "prognose", "status"])
+    x = s.add_parser("plan", help="pruefen (Lücken mit Bedeutung und Abhilfe) | akzeptieren <schlüssel> --grund … | wieder <schlüssel>"
+                                  " | prognose (P50/P85 je Schritt und Bogen) | status (Ampel je Dimension)")
+    x.add_argument("aktion", choices=["pruefen", "prognose", "status", "akzeptieren", "wieder"])
+    x.add_argument("schluessel", nargs="?", help="akzeptieren/wieder: Schlüssel des Befunds, z. B. bogen_ohne_zieldatum:B3")
+    x.add_argument("--grund", help="akzeptieren: warum es so in Ordnung ist")
+    x.add_argument("--kurz", action="store_true", help="pruefen: nur eine Zeile je Befund")
     x.set_defaults(f=cmd_plan)
 
     x = s.add_parser("lauf", help="Rechen-Läufe: start [--warten] prüft Halt, Speicher, einen schweren/Schirm-Lauf zur Zeit, Warteschlange")

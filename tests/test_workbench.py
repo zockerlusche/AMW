@@ -104,6 +104,13 @@ class Workbench(unittest.TestCase):
         d = json.loads(self.anfrage("GET", "/api/planung")[1])
         self.assertEqual(d["boegen"][0]["specs"]["anforderungen"]["status"], "frei")
         self.assertEqual(d["heute"], __import__("datetime").date.today().isoformat())
+        befund = next(x for x in d["pruefung"] if x["code"] == "keine_dod")                 # Plan-Check: Texte + akzeptieren
+        self.assertEqual(d["check_texte"]["keine_dod"]["ziel"], "leitbild")
+        status, _ = self.anfrage("POST", "/api/plan/check", {"schluessel": befund["schluessel"], "grund": "kommt später"}, kopf)
+        self.assertEqual(status, 200)
+        d = json.loads(self.anfrage("GET", "/api/planung")[1])
+        self.assertEqual(next(x for x in d["pruefung"] if x["code"] == "keine_dod")["akzeptiert"]["grund"], "kommt später")
+        self.assertIn("start", d["boegen"][0]["prognose"] or {"start": None})
 
     def test_skript_der_seite_ist_gueltiges_javascript(self):
         """Ein Syntaxfehler lässt die ganze Seite leer – mit node prüfen, wenn vorhanden."""

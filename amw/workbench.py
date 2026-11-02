@@ -145,8 +145,11 @@ def daten_planung(con, pid):
             s["prognose"] = prog["schritte"].get(s["id"])
         b["schritte"] = schritte
         b["rueckblick"] = verlauf.rueckblicke(con, pid, b["id"])
+        b["beginn_ist"] = (con.execute("SELECT min(coalesce(begonnen_utc, fertig_utc)) FROM aufgabe WHERE bogen_id = ?"
+                                       " AND status != 'verworfen'", (b["id"],)).fetchone()[0] or "")[:10] or None   # Übersicht
     return {"leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
-            "pruefung": planung.pruefen(con, pid, prog), "status": planung.status(con, pid, prog),
+            "pruefung": planung.pruefen(con, pid, prog, mit_akzeptierten=True), "status": planung.status(con, pid, prog),
+            "check_texte": {k: {"wer": v[1], "ziel": v[2], **v[3]} for k, v in planung.CHECKS.items()}, "lead": kern.lead(con, pid),
             "wartet": planung.freigaben_offen(con, pid), "heute": datetime.date.today().isoformat(),   # lokales Datum für die Heute-Linie
             "ereignisse": zeilen(con.execute("SELECT zeit_utc, von, art, bogen_id, aufgabe_id, text FROM plan_ereignis"
                                              " WHERE projekt_id = ? AND art != 'aufgabe_abschluss' ORDER BY id DESC LIMIT 80",

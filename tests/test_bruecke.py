@@ -105,6 +105,19 @@ class Bruecke(unittest.TestCase):
         self.assertNotIn("SCHLUESSEL", planung.spec(self.con, 1, "entwurf")["text"] or "")
         self.assertEqual(tuple(self.con.execute("SELECT bogen_id, agent, pruefer FROM aufgabe").fetchone()), (1, "CC1", "TL"))
 
+    def test_plan_check_ueber_die_bruecke_akzeptieren(self):
+        from amw import planung
+        bid = planung.bogen_neu(self.con, self.pid, "TL", "Etappe")
+        self.einwerfen("k1.json", {"befehl": "plan", "aktion": "akzeptieren", "schluessel": f"bogen_ohne_zieldatum:B{bid}",
+                                   "grund": "Termin offen"})
+        self.einwerfen("k2.json", {"befehl": "plan", "aktion": "pruefen"})
+        bruecke.befehle(self.eingang)
+        self.assertEqual(self.ergebnis("k1")["rc"], 0, self.ergebnis("k1"))
+        aus = self.ergebnis("k2")["ausgabe"]
+        self.assertIn("Bedeutet:", aus)
+        self.assertIn("1 bewusst akzeptiert", aus)
+        self.assertNotIn(f"[bogen_ohne_zieldatum:B{bid}]", aus)
+
     def test_halb_geschriebene_datei_wartet(self):
         ordner = os.path.join(self.eingang, "befehle")
         os.makedirs(ordner)

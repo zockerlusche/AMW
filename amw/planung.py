@@ -291,7 +291,7 @@ def wellen(con, aids):
 # --- Schritte (Aufgaben erweitert) ---------------------------------------------------------------
 
 FELDER = ("bogen_id", "kriterien", "schaetzung_h", "komplexitaet", "verantwortlich", "pruefbefehl", "dateibereich",
-          "anforderungen", "auftrag", "rang", "titel", "agent", "pruefer")
+          "anforderungen", "auftrag", "rang", "titel", "agent", "pruefer", "zusammenfassung")
 
 
 def _bearbeiter(con, pid, x):
@@ -489,7 +489,8 @@ def _quantil(werte, q):
 
 
 def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
-    """{"schritte": {aid: {"p50","p85","bearbeiter"}}, "boegen": {bid: {"p50","p85","ampel"}}} – Daten als JJJJ-MM-TT.
+    """{"schritte": {aid: {"p50","p85","bearbeiter"}}, "boegen": {bid: {"start","p50","p85","ampel"}}} – Daten als JJJJ-MM-TT;
+    start = Median des Tages, an dem der erste offene Schritt des Bogens beginnt (Bearbeiter frei, Vorgänger fertig).
     Je Bearbeiter (Agent, Mensch, „frei“ = Team) eine Warteschlange in Planreihenfolge; je Lauf zieht jeder Tag einen
     zufälligen Tageswert aus seinem Durchsatz; ein Schritt endet nie vor seinen Vorgängern."""
     heute = heute or datetime.date.today()
@@ -507,23 +508,27 @@ def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
     ids = [a["id"] for a in offen]
     vor = {i: [v for v in vorgaenger(con, i) if v in set(ids)] for i in ids}
     ende = {i: [] for i in ids}
+    beginn = {i: [] for i in ids}
     for _ in range(laeufe):
-        tag = {}
+        tag, ab = {}, {}
         for b, schlange in schlangen.items():
-            d, rest = 0, list(schlange)
+            d, rest, frei = 0, list(schlange), 0
             while rest and d < 3650:
                 d += 1
                 for _ in range(zufall.choice(raten[b])):
                     if rest:
-                        tag[rest.pop(0)] = d
+                        x = rest.pop(0)
+                        tag[x], ab[x], frei = d, frei, d          # beginnt, wenn der Bearbeiter frei wird
             for x in rest:
-                tag[x] = 3650
+                tag[x], ab[x] = 3650, 3650
         for i in ids:                                    # Vorgänger: nie vor ihnen fertig (Reihenfolge der Liste genügt meist)
             for _ in range(2):
                 if vor[i]:
                     tag[i] = max(tag[i], max(tag[v] for v in vor[i]) + 1)
+                    ab[i] = max(ab[i], max(tag[v] for v in vor[i]))
         for i in ids:
             ende[i].append(tag[i])
+            beginn[i].append(ab[i])
     datum = lambda d: (heute + datetime.timedelta(days=d)).isoformat()
     schritte = {i: {"p50": datum(_quantil(ende[i], .5)), "p85": datum(_quantil(ende[i], .85)),
                     "bearbeiter": next(a["agent"] for a in offen if a["id"] == i) or ""} for i in ids}
@@ -534,72 +539,270 @@ def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
     for bid, liste in boegen_p.items():
         laeufe_max = [max(ende[i][k] for i in liste) for k in range(laeufe)]
         p50, p85 = datum(_quantil(laeufe_max, .5)), datum(_quantil(laeufe_max, .85))
+        start = datum(_quantil([min(beginn[i][k] for i in liste) for k in range(laeufe)], .5))
         ziel = con.execute("SELECT zieldatum FROM bogen WHERE id = ?", (bid,)).fetchone()[0]
         ampel = None if not ziel else "gruen" if p85 <= ziel else "gelb" if p50 <= ziel else "rot"
-        aus_b[bid] = {"p50": p50, "p85": p85, "ampel": ampel}
+        aus_b[bid] = {"start": start, "p50": p50, "p85": p85, "ampel": ampel}
     return {"schritte": schritte, "boegen": aus_b}
 
 
 # --- Plan-Check (Lückenprüfung) und Status -------------------------------------------------------
 
-def pruefen(con, pid, prog=None):
-    """Liste {"stufe": fehler|warnung|hinweis, "text", "ref"} – die Prüfliste aus doc/recherche/planung.md §3."""
+# Plan-Check: wie Jira Plans („Warnungen“: Art, Grund, betroffene Einträge) und MS Project („Task Inspector“: Problem,
+# Ursache, Abhilfe) – je Befund: was los ist, was es bedeutet, was zu tun ist und wer. Warnungen und Hinweise lassen
+# sich mit Begründung bewusst akzeptieren (plan_ereignis check_akzeptiert/check_wieder, letzter Eintrag gilt).
+# Je Art: Stufe, wer handelt (lead | du), wohin die Workbench springt, Texte de/en (Titel, Bedeutung, Abhilfe).
+CHECKS = {
+    "kein_ziel": ("fehler", "du", "leitbild", {
+        "de": ("Kein Projektziel im Leitbild",
+               "Ohne Ziel gibt es keinen Maßstab: Bögen, Nicht-Ziele und Abnahmen lassen sich nicht dagegen prüfen, Agenten wissen nicht, wofür sie bauen.",
+               "Im Leitbild das Ziel in einem prüfbaren Satz eintragen (was ist am Ende anders?)."),
+        "en": ("No project goal in the charter",
+               "Without a goal there is no yardstick: arcs, non-goals and acceptance can't be checked against it, agents don't know what they build for.",
+               "Enter the goal in the charter as one testable sentence (what is different at the end?).")}),
+    "keine_nicht_ziele": ("warnung", "du", "leitbild", {
+        "de": ("Keine Nicht-Ziele",
+               "Agenten bauen gern mehr als verlangt. Nicht-Ziele sind die Grenze, auf die sie und der Lead sich berufen können.",
+               "Im Leitbild 2–5 Dinge eintragen, die ausdrücklich nicht gemacht werden."),
+        "en": ("No non-goals",
+               "Agents tend to build more than asked. Non-goals are the boundary they and the lead can point to.",
+               "Add 2–5 things to the charter that are explicitly out of scope.")}),
+    "keine_dod": ("warnung", "du", "leitbild", {
+        "de": ("Keine Definition of Done",
+               "Ohne gemeinsame Definition entscheidet jeder Agent selbst, wann etwas „fertig“ ist – Prüfungen und Abnahmen werden beliebig.",
+               "Im Leitbild festlegen, was für jeden Schritt gilt (z. B. Tests grün, geprüft, Zusammenfassung geschrieben)."),
+        "en": ("No definition of done",
+               "Without a shared definition every agent decides on its own when something is “done” – reviews and acceptance become arbitrary.",
+               "Define in the charter what applies to every step (e.g. tests green, reviewed, summary written).")}),
+    "keine_boegen": ("hinweis", "lead", "zeitleiste", {
+        "de": ("Noch keine Bögen",
+               "Ohne Bögen (Etappen) gibt es keine Prognose, keine Zeitleiste und keinen Rückblick.",
+               "Den Plan in Etappen mit Ziel, Abnahme und Zieldatum gliedern („Neuer Bogen“)."),
+        "en": ("No arcs yet",
+               "Without arcs (milestones) there is no forecast, no timeline and no retrospective.",
+               "Split the plan into milestones with goal, acceptance and target date (“New arc”).")}),
+    "bogen_ohne_abnahme": ("fehler", "lead", "bogen", {
+        "de": ("Bogen {b} „{titel}“ hat kein Abnahmekriterium",
+               "Niemand kann sagen, wann der Bogen fertig ist – das Abschließen wird Bauchgefühl, und Agenten arbeiten ins Offene.",
+               "Im Bogen eine prüfbare Abnahme eintragen (wer prüft was, woran sieht man es)."),
+        "en": ("Arc {b} “{titel}” has no acceptance criterion",
+               "Nobody can tell when the arc is done – closing it becomes gut feeling and agents work open-ended.",
+               "Add a testable acceptance to the arc (who checks what, how can it be seen).")}),
+    "bogen_ohne_zieldatum": ("warnung", "du", "bogen", {
+        "de": ("Bogen {b} „{titel}“ hat kein Zieldatum",
+               "Die Prognose läuft ({p50} – {p85}), aber es gibt keinen Termin zum Vergleichen: die Termin-Ampel bleibt grau, Verzug fällt niemandem auf.",
+               "Ein Zieldatum setzen – realistisch ist der P85-Wert der Prognose. Ist der Bogen bewusst ohne Termin, akzeptieren."),
+        "en": ("Arc {b} “{titel}” has no target date",
+               "The forecast runs ({p50} – {p85}), but there is no date to compare with: the schedule light stays grey and nobody notices a slip.",
+               "Set a target date – the forecast's P85 is realistic. If the arc deliberately has no date, accept.")}),
+    "aktiv_ohne_anforderungen": ("warnung", "du", "spec_anforderungen", {
+        "de": ("Bogen {b} ist aktiv, die Anforderungen sind nicht freigegeben",
+               "Agenten arbeiten auf Anforderungen, die du noch nicht bestätigt hast – ändern sie sich, ist die Arbeit dafür verloren.",
+               "Anforderungen ansehen und freigeben oder zurückgeben."),
+        "en": ("Arc {b} is active but its requirements are not approved",
+               "Agents work on requirements you have not confirmed – if they change, that work is lost.",
+               "Review the requirements and approve or return them.")}),
+    "prognose_rot": ("fehler", "du", "bogen", {
+        "de": ("Bogen {b} „{titel}“ wird voraussichtlich zu spät fertig",
+               "Schon die mittlere Prognose ({p50}) liegt nach dem Zieldatum {ziel}: wahrscheinlicher verspätet als pünktlich.",
+               "Entscheiden: Umfang kürzen, Schritte auf mehr Agenten verteilen oder das Zieldatum mit Grund verschieben (die Baseline bleibt sichtbar)."),
+        "en": ("Arc {b} “{titel}” is likely to finish late",
+               "Even the median forecast ({p50}) is after the target date {ziel}: more likely late than on time.",
+               "Decide: cut scope, spread steps over more agents or move the target date with a reason (the baseline stays visible).")}),
+    "prognose_gelb": ("warnung", "du", "bogen", {
+        "de": ("Bogen {b} „{titel}“: Termin wackelt",
+               "Der Termin {ziel} ist nur zu 50–85 % zu halten (sicher erst {p85}). Kleine Störungen reichen für Verzug.",
+               "Beobachten; wenn es wichtig ist: Puffer schaffen (Umfang, Reihenfolge, Bearbeiter)."),
+        "en": ("Arc {b} “{titel}”: date at risk",
+               "The date {ziel} holds only with 50–85 % (safe from {p85}). Small disruptions are enough for a slip.",
+               "Keep an eye on it; if it matters: create buffer (scope, order, assignees).")}),
+    "anforderung_ungedeckt": ("warnung", "lead", "spec_anforderungen", {
+        "de": ("Bogen {b}: {n} Anforderung(en) ohne Schritt – {liste}",
+               "Für diese Anforderungen ist nach heutigem Plan keine Arbeit vorgesehen. Die Abnahme des Bogens würde daran scheitern.",
+               "Schritte dafür anlegen oder vorhandenen Schritten zuordnen (amw aufgabe aendern <Nr> --anforderungen R1,R2). Fällt eine weg: Anforderungen ändern."),
+        "en": ("Arc {b}: {n} requirement(s) without a step – {liste}",
+               "Today's plan has no work for these requirements. Accepting the arc would fail on them.",
+               "Create steps for them or assign them to existing steps (amw aufgabe aendern <no> --anforderungen R1,R2). If one is dropped: change the requirements.")}),
+    "schritt_ohne_kriterien": ("warnung", "lead", "schritt", {
+        "de": ("A{a} „{titel}“ hat keine Abnahmekriterien",
+               "Der Bearbeiter weiß nicht genau, wann er fertig ist, der Prüfer hat keinen Maßstab – typische Quelle für Nacharbeit.",
+               "2–4 prüfbare Kriterien ergänzen (amw aufgabe aendern {a} --kriterium … --kriterium …)."),
+        "en": ("A{a} “{titel}” has no acceptance criteria",
+               "The assignee doesn't know exactly when it's done, the reviewer has no yardstick – a typical source of rework.",
+               "Add 2–4 testable criteria (amw aufgabe aendern {a} --kriterium … --kriterium …).")}),
+    "schritt_ohne_bearbeiter": ("hinweis", "lead", "schritt", {
+        "de": ("A{a} „{titel}“ hat keinen Bearbeiter",
+               "Der Schritt liegt im freien Vorrat – irgendein Agent nimmt ihn mit „schritt naechster“. Die Prognose rechnet mit dem Team-Durchsatz.",
+               "Nur nötig, wenn ein bestimmter Agent ihn machen soll: Bearbeiter setzen."),
+        "en": ("A{a} “{titel}” has no assignee",
+               "The step is in the open pool – any agent picks it up with “schritt naechster”. The forecast uses team throughput.",
+               "Only needed if a particular agent should do it: set an assignee.")}),
+    "plan_fehlt": ("hinweis", "lead", "schritt", {
+        "de": ("A{a}: Komplexität {k} – Plan fehlt oder ist nicht freigegeben",
+               "Ab Komplexität {ab} darf der Schritt erst starten, wenn sein Plan freigegeben ist – sonst bleibt er stehen.",
+               "Der Bearbeiter legt den Plan vor (amw aufgabe plan {a} --text …), der Verantwortliche gibt ihn frei."),
+        "en": ("A{a}: complexity {k} – plan missing or not approved",
+               "From complexity {ab} the step may only start once its plan is approved – otherwise it stalls.",
+               "The assignee submits the plan (amw aufgabe plan {a} --text …), the responsible person approves it.")}),
+    "zu_komplex": ("warnung", "lead", "schritt", {
+        "de": ("A{a}: Komplexität {k} – besser teilen",
+               "Sehr große Schritte sind schwer zu schätzen und zu prüfen; sie laufen am häufigsten aus dem Ruder.",
+               "In 2–3 kleinere Schritte mit eigenen Kriterien teilen."),
+        "en": ("A{a}: complexity {k} – better split",
+               "Very large steps are hard to estimate and review; they are the most likely to get out of hand.",
+               "Split into 2–3 smaller steps with their own criteria.")}),
+    "ohne_zusammenfassung": ("hinweis", "lead", "schritt", {
+        "de": ("Bogen {b}: {n} fertige(r) Schritt(e) ohne Zusammenfassung – {liste}",
+               "Rückblick, Verlauf und „Seit du weg warst“ zeigen dann nicht, was herausgekommen ist.",
+               "Zusammenfassung nachtragen (amw aufgabe aendern <Nr> --zusammenfassung …) oder akzeptieren."),
+        "en": ("Arc {b}: {n} finished step(s) without summary – {liste}",
+               "Retrospective, history and “since you were away” then don't show what came out of it.",
+               "Add the summary (amw aufgabe aendern <no> --zusammenfassung …) or accept.")}),
+    "risiko_ohne_massnahme": ("warnung", "du", "risiko", {
+        "de": ("Risiko {r} „{titel}“ ohne Maßnahme oder Verantwortlichen",
+               "Ein erkanntes Risiko ohne Maßnahme ist nur eine Notiz – tritt es ein, ist niemand vorbereitet.",
+               "Maßnahme und Verantwortlichen eintragen – oder die Strategie „akzeptieren“ wählen."),
+        "en": ("Risk {r} “{titel}” without mitigation or owner",
+               "A known risk without mitigation is just a note – if it happens nobody is prepared.",
+               "Enter mitigation and owner – or choose the strategy “accept”.")}),
+    "risiko_eingetreten": ("fehler", "du", "risiko", {
+        "de": ("Risiko {r} „{titel}“ ist eingetreten",
+               "Das Risiko ist kein Risiko mehr, sondern ein Problem – Termine und Plan stimmen vermutlich nicht mehr.",
+               "Folgen bewerten, Plan anpassen (Schritte, Termine) und das Risiko danach auf „erledigt“ setzen."),
+        "en": ("Risk {r} “{titel}” has occurred",
+               "The risk is now a problem – dates and plan are probably no longer right.",
+               "Assess the impact, adjust the plan (steps, dates) and then set the risk to “done”.")}),
+    "haengt_an_verworfenem": ("warnung", "lead", "schritt", {
+        "de": ("A{a} „{titel}“ hängt an verworfener A{v}",
+               "Der Vorgänger wird nie fertig. Der Schritt wartet deshalb auf etwas, das es nicht mehr gibt.",
+               "Abhängigkeit lösen (amw aufgabe aendern {a} --ohne-vorgaenger {v}) oder durch den Ersatz-Schritt ersetzen (--nach <Nr>)."),
+        "en": ("A{a} “{titel}” depends on discarded A{v}",
+               "The predecessor will never be finished, so the step waits for something that no longer exists.",
+               "Remove the dependency (amw aufgabe aendern {a} --ohne-vorgaenger {v}) or replace it with the successor step (--nach <no>).")}),
+}
+STUFEN = ("fehler", "warnung", "hinweis")
+
+
+def check_entscheidungen(con, pid):
+    """{schluessel: {"grund", "von", "zeit_utc"}} – bewusst akzeptierte Befunde (letzter Eintrag je Schlüssel gilt)."""
+    aus = {}
+    for r in con.execute("SELECT zeit_utc, von, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN"
+                         " ('check_akzeptiert', 'check_wieder') ORDER BY id", (pid,)):
+        schluessel, _, grund = (r["text"] or "").partition(" – ")
+        if r["art"] == "check_akzeptiert":
+            aus[schluessel] = {"grund": grund, "von": r["von"], "zeit_utc": r["zeit_utc"]}
+        else:
+            aus.pop(schluessel, None)
+    return aus
+
+
+def pruefen(con, pid, prog=None, mit_akzeptierten=False):
+    """Befunde [{code, stufe, wer, ziel, text, werte, gruppe, ref, schluessel, bogen_id, aufgabe_id, risiko_id, akzeptiert}].
+    text = deutscher Titel (Kommandozeile); die Workbench setzt Titel/Bedeutung/Abhilfe aus CHECKS je Sprache zusammen.
+    Ohne mit_akzeptierten fehlen bewusst akzeptierte Befunde."""
     aus = []
-    add = lambda stufe, text, ref=None: aus.append({"stufe": stufe, "text": text, "ref": ref})
+
+    def add(code, ref, gruppe="projekt", bogen_id=None, aufgabe_id=None, risiko_id=None, **werte):
+        stufe, wer, ziel, texte = CHECKS[code]
+        aus.append({"code": code, "stufe": stufe, "wer": wer, "ziel": ziel, "text": texte["de"][0].format(**werte),
+                    "werte": werte, "gruppe": gruppe, "ref": ref, "schluessel": f"{code}:{ref}" if ref else code,
+                    "bogen_id": bogen_id, "aufgabe_id": aufgabe_id, "risiko_id": risiko_id, "akzeptiert": None})
+
     lb = leitbild(con, pid)
     if not lb["ziel"]:
-        add("fehler", "Kein Projektziel im Leitbild")
+        add("kein_ziel", None)
     if not lb["nicht_ziele"]:
-        add("warnung", "Keine Nicht-Ziele – sie bremsen Agenten, die mehr bauen als verlangt")
+        add("keine_nicht_ziele", None)
     if not lb["dod"]:
-        add("warnung", "Keine Definition of Done")
+        add("keine_dod", None)
     bs = boegen(con, pid)
     if not bs:
-        add("hinweis", "Noch keine Bögen (Meilensteine)")
+        add("keine_boegen", None)
     prog = prog if prog is not None else prognose(con, pid, laeufe=300)
     for b in bs:
         if b["status"] in ("fertig", "verworfen"):
             continue
-        r = f"Bogen {b['id']}"
+        g, bid, r = f"bogen:{b['id']}", b["id"], f"B{b['id']}"
+        p = prog["boegen"].get(b["id"]) or {}
+        tt = lambda x: f"{x[8:10]}.{x[5:7]}.{x[:4]}" if x else "–"          # Texte lesen Menschen: TT.MM.JJJJ
+        bw = {"b": b["id"], "titel": b["titel"], "ziel": tt(b["zieldatum"]), "p50": tt(p.get("p50")), "p85": tt(p.get("p85"))}
         if not (b["abnahme"] or "").strip():
-            add("fehler", f"{r} „{b['titel']}“ hat kein prüfbares Abnahmekriterium", r)
+            add("bogen_ohne_abnahme", r, g, bid, **bw)
         if not b["zieldatum"]:
-            add("warnung", f"{r} „{b['titel']}“ hat kein Zieldatum", r)
+            add("bogen_ohne_zieldatum", r, g, bid, **bw)
         if b["status"] == "aktiv" and b["spec"].get("anforderungen") != "frei":
-            add("warnung", f"{r} ist aktiv, die Anforderungen sind aber nicht freigegeben", r)
-        p = prog["boegen"].get(b["id"])
-        if p and p["ampel"] == "rot":
-            add("fehler", f"{r} „{b['titel']}“: Prognose {p['p50']} (P50) liegt nach dem Zieldatum {b['zieldatum']}", r)
-        elif p and p["ampel"] == "gelb":
-            add("warnung", f"{r}: Zieldatum nur zu 50–85 % erreichbar (P85 {p['p85']})", r)
+            add("aktiv_ohne_anforderungen", r, g, bid, **bw)
+        if p.get("ampel") == "rot":
+            add("prognose_rot", r, g, bid, **bw)
+        elif p.get("ampel") == "gelb":
+            add("prognose_gelb", r, g, bid, **bw)
         anf = set(ANFORDERUNG.findall(spec(con, b["id"], "anforderungen")["text"]))
         gedeckt = set()
-        for (x,) in con.execute("SELECT anforderungen FROM aufgabe WHERE bogen_id = ?", (b["id"],)):
+        for (x,) in con.execute("SELECT anforderungen FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (b["id"],)):
             gedeckt |= set(ANFORDERUNG.findall(x or ""))
-        for fehlt in sorted(anf - gedeckt, key=lambda x: int(x[1:])):
-            add("warnung", f"{r}: Anforderung {fehlt} wird von keinem Schritt abgedeckt", r)
-        for a in con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? AND status NOT IN ('fertig', 'verworfen')", (b["id"],)):
-            ref = f"A{a['id']}"
-            if b["status"] == "aktiv" and not _json(a["kriterien"], []):
-                add("warnung", f"{ref} hat keine Abnahmekriterien (nicht „bereit“)", ref)
-            if b["status"] == "aktiv" and not a["agent"]:
-                add("hinweis", f"{ref} hat noch keinen Bearbeiter", ref)
-            if (a["komplexitaet"] or 0) >= PLAN_AB_KOMPLEXITAET and a["plan_status"] != "frei":
-                add("hinweis", f"{ref}: Komplexität {a['komplexitaet']} – Plan fehlt oder ist nicht freigegeben", ref)
-            if (a["komplexitaet"] or 0) >= 9:
-                add("warnung", f"{ref}: Komplexität {a['komplexitaet']} – besser teilen", ref)
-        for a in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ? AND status = 'fertig' AND coalesce(zusammenfassung, '') = ''",
+        fehlt = sorted(anf - gedeckt, key=lambda x: int(x[1:]))
+        if fehlt:
+            add("anforderung_ungedeckt", f"{r}:{','.join(fehlt)}", g, bid, n=len(fehlt), liste=", ".join(fehlt), **bw)
+        for a in con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? AND status NOT IN ('fertig', 'verworfen') ORDER BY rang, id",
                              (b["id"],)):
-            add("hinweis", f"A{a['id']} ist fertig ohne Zusammenfassung", f"A{a['id']}")
-    for r in risiken(con, pid):
-        if r["status"] != "erledigt" and (not r["massnahme"] or not r["verantwortlich"]):
-            add("warnung", f"Risiko {r['id']} „{r['titel']}“ ohne Maßnahme oder Verantwortlichen", f"R{r['id']}")
-        if r["status"] == "eingetreten":
-            add("fehler", f"Risiko {r['id']} „{r['titel']}“ ist eingetreten", f"R{r['id']}")
-    for (nach, vor_) in con.execute("SELECT d.nach, d.vor FROM abhaengigkeit d JOIN aufgabe a ON a.id = d.vor JOIN aufgabe b ON b.id = d.nach"
-                                    " WHERE a.status = 'verworfen' AND b.status NOT IN ('fertig', 'verworfen') AND b.projekt_id = ?", (pid,)):
-        add("warnung", f"A{nach} hängt an verworfener A{vor_}", f"A{nach}")
+            aw = {"a": a["id"], "titel": a["titel"], "k": a["komplexitaet"], "ab": PLAN_AB_KOMPLEXITAET, "b": b["id"]}
+            ra = f"A{a['id']}"
+            if b["status"] == "aktiv" and not _json(a["kriterien"], []):
+                add("schritt_ohne_kriterien", ra, g, bid, a["id"], **aw)
+            if b["status"] == "aktiv" and not a["agent"]:
+                add("schritt_ohne_bearbeiter", ra, g, bid, a["id"], **aw)
+            if (a["komplexitaet"] or 0) >= PLAN_AB_KOMPLEXITAET and a["plan_status"] != "frei":
+                add("plan_fehlt", ra, g, bid, a["id"], **aw)
+            if (a["komplexitaet"] or 0) >= 9:
+                add("zu_komplex", ra, g, bid, a["id"], **aw)
+        ohne = [f"A{x}" for (x,) in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ? AND status = 'fertig'"
+                                               " AND coalesce(zusammenfassung, '') = '' ORDER BY id", (b["id"],))]
+        if ohne:
+            add("ohne_zusammenfassung", f"{r}:{','.join(ohne)}", g, bid, n=len(ohne), liste=", ".join(ohne), **bw)
+    for x in risiken(con, pid):
+        rw = {"r": x["id"], "titel": x["titel"]}
+        g = f"bogen:{x['bogen_id']}" if x["bogen_id"] else "risiken"
+        if x["status"] != "erledigt" and (not x["massnahme"] or not x["verantwortlich"]) and x["strategie"] != "akzeptieren":
+            add("risiko_ohne_massnahme", f"R{x['id']}", g, x["bogen_id"], risiko_id=x["id"], **rw)
+        if x["status"] == "eingetreten":
+            add("risiko_eingetreten", f"R{x['id']}", g, x["bogen_id"], risiko_id=x["id"], **rw)
+    for z in con.execute("SELECT b.id AS nach, b.titel, b.bogen_id, a.id AS vor FROM abhaengigkeit d JOIN aufgabe a ON a.id = d.vor"
+                         " JOIN aufgabe b ON b.id = d.nach WHERE a.status = 'verworfen' AND b.status NOT IN ('fertig', 'verworfen')"
+                         " AND b.projekt_id = ? ORDER BY b.id", (pid,)):
+        add("haengt_an_verworfenem", f"A{z['nach']}:A{z['vor']}", f"bogen:{z['bogen_id']}" if z["bogen_id"] else "projekt",
+            z["bogen_id"], z["nach"], a=z["nach"], v=z["vor"], titel=z["titel"])
+    akzeptiert = check_entscheidungen(con, pid)
+    for x in aus:
+        if x["stufe"] != "fehler":
+            x["akzeptiert"] = akzeptiert.get(x["schluessel"])
+    if not mit_akzeptierten:
+        aus = [x for x in aus if not x["akzeptiert"]]
     return aus
+
+
+def check_akzeptieren(con, pid, von, schluessel, grund):
+    """Befund bewusst so lassen (nur Warnungen/Hinweise, nur Lead/Entwickler, mit Grund) – er zählt dann nicht mehr."""
+    _lead(con, pid, von, "Befunde akzeptieren")
+    grund = (grund or "").strip()
+    if not grund:
+        raise kern.AmwFehler("Bitte einen Grund angeben – warum ist es so in Ordnung?")
+    x = next((x for x in pruefen(con, pid, mit_akzeptierten=True) if x["schluessel"] == schluessel), None)
+    if not x:
+        raise kern.AmwFehler(f"Befund „{schluessel}“ gibt es (nicht mehr)")
+    if x["stufe"] == "fehler":
+        raise kern.AmwFehler("Fehler lassen sich nicht akzeptieren – sie müssen behoben werden")
+    with db.schreiben(con):
+        _log(con, pid, von, "check_akzeptiert", f"{schluessel} – {grund}", bogen_id=x["bogen_id"], aufgabe_id=x["aufgabe_id"])
+    return x
+
+
+def check_wieder(con, pid, von, schluessel):
+    """Akzeptanz zurücknehmen – der Befund zählt wieder."""
+    _lead(con, pid, von, "Befunde wieder prüfen")
+    if schluessel not in check_entscheidungen(con, pid):
+        raise kern.AmwFehler(f"„{schluessel}“ ist nicht akzeptiert")
+    with db.schreiben(con):
+        _log(con, pid, von, "check_wieder", schluessel)
 
 
 def status(con, pid, prog=None):

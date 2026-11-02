@@ -25,7 +25,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`risiko`](#risiko) | liste ¦ neu --titel … ¦ setzen N --status … |
 | [`rueckblick`](#rueckblick) | Rückblick je Bogen: amw rueckblick <bogen> [--gut … --schlecht … --massnahme … --gelernt …] ¦ --uebernehmen <nr> --als aufgabe¦beschluss |
 | [`verlauf`](#verlauf) | was passiert ist: amw verlauf [--stunden 24] [--agent CC1] [--art erledigt --art pruefung] [--zusammenfassung] |
-| [`plan`](#plan) | pruefen (Lücken) ¦ prognose (P50/P85 je Schritt und Bogen) ¦ status (Ampel je Dimension) |
+| [`plan`](#plan) | pruefen (Lücken mit Bedeutung und Abhilfe) ¦ akzeptieren <schlüssel> --grund … ¦ wieder <schlüssel> ¦ prognose (P50/P85 je Schritt und Bogen) ¦ status (Ampel je Dimension) |
 | [`lauf`](#lauf) | Rechen-Läufe: start [--warten] prüft Halt, Speicher, einen schweren/Schirm-Lauf zur Zeit, Warteschlange |
 | [`server`](#server) | Projekt-Server überwachen: anmelden ¦ abmelden ¦ liste ¦ pruefen |
 | [`pruefung`](#pruefung) | Prüfbitte je Stand (SHA), Ergebnis grün/rot |
@@ -171,7 +171,8 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--nach NACH] [--verantwortlich VERANTWORTLICH]
                    [--pruefbefehl PRUEFBEFEHL] [--dateien DATEIEN]
                    [--anforderungen ANFORDERUNGEN]
-                   [--zusammenfassung ZUSAMMENFASSUNG] [--text TEXT] [--nein]
+                   [--zusammenfassung ZUSAMMENFASSUNG]
+                   [--ohne-vorgaenger OHNE_VORGAENGER] [--text TEXT] [--nein]
                    [--zurueck] [--kommentar KOMMENTAR] [--von VON]
                    [--projekt PROJEKT]
                    {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei}
@@ -214,7 +215,10 @@ options:
   --anforderungen ANFORDERUNGEN
                         Planung: abgedeckte Anforderungen, z. B. R1,R3
   --zusammenfassung ZUSAMMENFASSUNG
-                        fertig: Pflicht für Schritte in einem Bogen
+                        fertig: Pflicht für Schritte in einem Bogen; aendern:
+                        nachtragen
+  --ohne-vorgaenger OHNE_VORGAENGER
+                        aendern: diese Vorgänger lösen, z. B. 115
   --text TEXT           plan: der Plan
   --nein                kriterium: wieder als offen markieren
   --zurueck             planfrei: zurückweisen (mit --kommentar)
@@ -475,13 +479,18 @@ options:
 
 ## plan
 ```
-usage: amw plan [-h] [--von VON] [--projekt PROJEKT] {pruefen,prognose,status}
+usage: amw plan [-h] [--grund GRUND] [--kurz] [--von VON] [--projekt PROJEKT]
+                {pruefen,prognose,status,akzeptieren,wieder} [schluessel]
 
 positional arguments:
-  {pruefen,prognose,status}
+  {pruefen,prognose,status,akzeptieren,wieder}
+  schluessel            akzeptieren/wieder: Schlüssel des Befunds, z. B.
+                        bogen_ohne_zieldatum:B3
 
 options:
   -h, --help            show this help message and exit
+  --grund GRUND         akzeptieren: warum es so in Ordnung ist
+  --kurz                pruefen: nur eine Zeile je Befund
   --von VON
   --projekt PROJEKT
 ```

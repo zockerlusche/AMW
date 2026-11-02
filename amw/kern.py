@@ -29,6 +29,12 @@ def agent_zeile(con, pid, kennung):
     return r
 
 
+def lead(con, pid):
+    """Kennung des Lead-Agenten (oder None)."""
+    r = con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead' ORDER BY id LIMIT 1", (pid,)).fetchone()
+    return r["kennung"] if r else None
+
+
 def ist_lead(con, pid, kennung):
     if kennung == ENTWICKLER:
         return True
@@ -330,10 +336,8 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
                            empfehlung=empfehlung, grund=grund, fundstellen=fundstellen, aufgabe_id=aufgabe_id,
                            blockiert=int(blockiert), folge_von=folge_von)
         if an == "tl":
-            lead = con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead' LIMIT 1",
-                               (pid,)).fetchone()
-            if lead:
-                _posten(con, pid, von, lead["kennung"], "frage", f"Frage F{fid}: {kurz}", aufgabe_id=aufgabe_id)
+            if lead(con, pid):
+                _posten(con, pid, von, lead(con, pid), "frage", f"Frage F{fid}: {kurz}", aufgabe_id=aufgabe_id)
     return fid
 
 

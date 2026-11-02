@@ -201,12 +201,54 @@ class CheckUndEingang(Grund):
         planung.spec_schreiben(self.con, self.pid, "TL", bid, "anforderungen", "R1 a\nR2 b")
         self.schritt(bogen_id=bid, anforderungen="R1", komplexitaet=9)
         planung.risiko_setzen(self.con, self.pid, "TL", titel="Speicher knapp", wahrscheinlichkeit=4, auswirkung=4)
-        texte = " | ".join(x["text"] for x in planung.pruefen(self.con, self.pid))
-        for erwartet in ("Kein Projektziel", "kein prüfbares Abnahmekriterium", "Anforderung R2 wird von keinem Schritt",
-                         "keine Abnahmekriterien", "besser teilen", "ohne Maßnahme"):
-            self.assertIn(erwartet, texte)
-        self.assertNotIn("Anforderung R1", texte)
+        befunde = planung.pruefen(self.con, self.pid)
+        codes = {x["code"] for x in befunde}
+        for erwartet in ("kein_ziel", "bogen_ohne_abnahme", "anforderung_ungedeckt", "schritt_ohne_kriterien", "zu_komplex",
+                         "risiko_ohne_massnahme"):
+            self.assertIn(erwartet, codes)
+        ungedeckt = next(x for x in befunde if x["code"] == "anforderung_ungedeckt")
+        self.assertEqual((ungedeckt["werte"]["liste"], ungedeckt["gruppe"]), ("R2", f"bogen:{bid}"))   # R1 hat einen Schritt
+        for x in befunde:                                   # jeder Befund erklärt sich: Titel, Bedeutung, Abhilfe in beiden Sprachen
+            for spr in ("de", "en"):
+                titel, bedeutung, tun = planung.CHECKS[x["code"]][3][spr]
+                self.assertTrue(bedeutung and tun)
+                titel.format(**x["werte"]), bedeutung.format(**x["werte"]), tun.format(**x["werte"])
         self.assertEqual(planung.status(self.con, self.pid)["risiko"], "rot")
+
+    def test_befund_bewusst_akzeptieren_und_wieder(self):
+        bid = self.bogen()
+        schluessel = f"bogen_ohne_zieldatum:B{bid}"
+        with self.assertRaises(kern.AmwFehler):                                  # nur mit Grund
+            planung.check_akzeptieren(self.con, self.pid, "TL", schluessel, " ")
+        with self.assertRaises(kern.AmwFehler):                                  # nur Lead/Entwickler
+            planung.check_akzeptieren(self.con, self.pid, "CC1", schluessel, "weil")
+        with self.assertRaises(kern.AmwFehler):                                  # Fehler muss man beheben
+            planung.check_akzeptieren(self.con, self.pid, "TL", f"bogen_ohne_abnahme:B{bid}", "weil")
+        planung.check_akzeptieren(self.con, self.pid, "Entwickler", schluessel, "Termin kommt vom Verlag")
+        self.assertNotIn(schluessel, [x["schluessel"] for x in planung.pruefen(self.con, self.pid)])
+        x = next(x for x in planung.pruefen(self.con, self.pid, mit_akzeptierten=True) if x["schluessel"] == schluessel)
+        self.assertEqual((x["akzeptiert"]["grund"], x["akzeptiert"]["von"]), ("Termin kommt vom Verlag", "Entwickler"))
+        planung.check_wieder(self.con, self.pid, "TL", schluessel)
+        self.assertIn(schluessel, [x["schluessel"] for x in planung.pruefen(self.con, self.pid)])
+        with self.assertRaises(kern.AmwFehler):
+            planung.check_wieder(self.con, self.pid, "TL", schluessel)
+
+    def test_verworfener_vorgaenger_laesst_sich_loesen(self):
+        bid = self.bogen()
+        a = self.schritt(bogen_id=bid)
+        b = self.schritt(bogen_id=bid, nach=[a])
+        kern.aufgabe_status(self.con, self.pid, "TL", a, "verwerfen", beleg="überholt")
+        self.assertIn(f"haengt_an_verworfenem:A{b}:A{a}", [x["schluessel"] for x in planung.pruefen(self.con, self.pid)])
+        planung.abhaengigkeit_setzen(self.con, self.pid, "TL", b, [a], entfernen=True)
+        self.assertFalse([x for x in planung.pruefen(self.con, self.pid) if x["code"] == "haengt_an_verworfenem"])
+
+    def test_prognose_liefert_start_vor_dem_ende(self):
+        bid = self.bogen()
+        a = self.schritt(bogen_id=bid, agent="CC1")
+        self.schritt(bogen_id=bid, agent="CC1", nach=[a])
+        p = planung.prognose(self.con, self.pid, laeufe=100, zufall=random.Random(3))["boegen"][bid]
+        self.assertLessEqual(p["start"], p["p50"])
+        self.assertLessEqual(p["p50"], p["p85"])
 
     def test_wartet_auf_den_menschen(self):
         bid = self.bogen()

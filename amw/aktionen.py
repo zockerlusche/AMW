@@ -102,6 +102,12 @@ def planen(con, pid, was, d):
             planung.bogen_aendern(con, pid, e, zahl("bogen"), d.get("titel"), d.get("ziel"), d.get("abnahme"),
                                   d.get("zieldatum"), zahl("nr"), d.get("grund"))
             return {"ok": True}
+        if was == "check":                         # Befund bewusst akzeptieren oder wieder zählen lassen
+            if d.get("wieder"):
+                planung.check_wieder(con, pid, e, d.get("schluessel") or "")
+            else:
+                planung.check_akzeptieren(con, pid, e, d.get("schluessel") or "", d.get("grund"))
+            return {"ok": True}
         if was == "rueckblick":
             from . import verlauf
             return {"rueckblick": verlauf.rueckblick_neu(con, pid, e, zahl("bogen"), d.get("art"), d.get("text"))}
