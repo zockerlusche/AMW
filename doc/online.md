@@ -34,6 +34,12 @@ PC (Wächter)                               Online-Speicher (Turso)             
   Inhalt (Format, Geheimnis-Muster), legt das Dokument an und löscht die Teile. Die Kopie auf dem Webspace gilt als
   abgelegt, steht das Dokument nicht online, meldet der PC sie wieder ab. Grenzen: 25 MB je Datei, 100 MB unterwegs,
   60 Uploads je Stunde; Liegengebliebenes ist nach einem Tag weg.
+- **Gespräch je Agent** (nur auf Wunsch): Öffnest du online das Gespräch eines Agenten, setzt die Seite im Speicher
+  `zustand` „gespraech:<Agent>“ auf die Uhrzeit (höchstens einmal je Minute) und zeigt bis zur ersten Lieferung „Der PC holt
+  das Gespräch …“. Solange dieser Wunsch jünger als 10 Minuten ist, legt der PC alle 15 s die letzten 120 Einträge als
+  Ansicht ab. Das sind nur Texte und die Namen der Arbeitsschritte, ohne Eingaben und Ergebnisse, mit verdeckten
+  Geheimnissen. Danach löscht er die Ansicht wieder. Ältere Einträge gibt es nur am PC. *In Claude öffnen* steht online
+  genauso da, der Link funktioniert nur mit deinem Claude-Konto.
 - **Eine Seite für beide:** `amw/workbench.html`; `amw web bauen` kopiert sie nach `web/inc/seite.html`.
 
 ## 2 Einrichten (etwa 15 Minuten)
@@ -73,6 +79,7 @@ Ordner beim Hoster leeren oder in Turso Lesen/Schreiben blockieren.
 | Dateien | Nur `index.php` und `api.php` sind erreichbar; `inc/` und versteckte Dateien gesperrt |
 | Wirkung | Absender ist immer „Entwickler“, Kanal `netz`; der PC prüft jede Zeile noch einmal |
 | Dokument-Dateien | nur nach Anmeldung; Mockups (HTML) und SVG abgeschottet (CSP `sandbox`), Office nur als Download; Ablage außerhalb des Web-Ordners |
+| Gespräch je Agent | nur auf Wunsch und 10 Minuten lang, nur Text und Schrittnamen, Geheimnis-Muster verdeckt; die Kennung muss ein bekannter Agent sein |
 | Hochladen | nur angemeldet mit CSRF-Schlüssel; Formatliste, Größen- und Mengengrenzen auf der Seite, Prüfsumme und Geheimnis-Prüfung am PC |
 
 Der Code ist öffentlich; die Sicherheit hängt nur an den Zugangsdaten (Passwort, TOTP-Geheimnis, Turso-Schlüssel), die

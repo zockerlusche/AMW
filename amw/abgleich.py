@@ -34,6 +34,7 @@ from . import aktionen, db, kern, verlauf, workbench
 
 log = logging.getLogger("amw.abgleich")
 
+GESPRAECH_S = 600    # Gespräch eines Agenten online: nur auf Wunsch der Seite, so lange nach dem letzten Abruf
 HOCH_S = 30          # Ansichten höchstens so oft hochladen (nur bei Änderung)
 PULS_S = 300         # spätestens dann Start/Betrieb neu (zeigt online: „PC zuletzt gesehen“)
 EINGANG_S = 15       # Briefkasten so oft leeren
@@ -422,6 +423,40 @@ class Abgleich:
             self.oben_laden()                          # die Seite hat ihre Kopie schon abgelegt – nicht noch einmal hochladen
         return len(zeilen)
 
+    def gespraeche(self):
+        """Gesprächsansicht online nur auf Wunsch: Die Seite setzt beim Abruf zustand „gespraech:<Agent>“ (Zeit). Solange
+        der Wunsch jünger als GESPRAECH_S ist, hält der PC die Ansicht aktuell (nur Text, Werkzeugnamen, Geheimnisse
+        verdeckt); danach löscht er sie wieder. Rückgabe: Zahl der geänderten Ansichten."""
+        from . import gespraech
+        grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=GESPRAECH_S)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        zeilen = self.sp.ausfuehren([("SELECT schluessel, wert FROM zustand WHERE schluessel LIKE 'gespraech:%'", [])])[0]
+        bekannt = {k for (k,) in self.con.execute("SELECT kennung FROM agent WHERE projekt_id = ?", (self.pid,))}
+        wunsch = {k[10:] for k, w in zeilen if str(w) >= grenze and k[10:] in bekannt}
+        anw = [("DELETE FROM zustand WHERE schluessel = ?", [k]) for k, w in zeilen if k[10:] not in wunsch]
+        for weg in [w for w in self.bekannt if w.startswith("/api/gespraech?kennung=")]:
+            if weg.split("=", 1)[1] not in wunsch:
+                anw.append(("DELETE FROM ansicht WHERE weg = ?", [weg]))
+                self.bekannt.pop(weg)
+        t, n = db.jetzt(), len(anw)
+        for k in sorted(wunsch):
+            weg = f"/api/gespraech?kennung={k}"
+            try:
+                d = gespraech.daten(self.con, self.pid, k, online=True)
+            except (OSError, kern.AmwFehler, LookupError) as e:
+                d = {"kennung": k, "eintraege": [], "fehler": str(e)}
+            for x in ("ab", "vor", "sitzungen"):
+                d.pop(x, None)
+            p = _pruef(d)
+            if self.bekannt.get(weg) != p:
+                anw.append(("INSERT INTO ansicht (weg, inhalt, pruef, stand_utc) VALUES (?, ?, ?, ?) ON CONFLICT(weg) DO UPDATE"
+                            " SET inhalt = excluded.inhalt, pruef = excluded.pruef, stand_utc = excluded.stand_utc",
+                            [weg, json.dumps(d, ensure_ascii=False), p, t]))
+                self.bekannt[weg] = p
+                n += 1
+        if anw:
+            self.sp.ausfuehren(anw)
+        return n
+
     def hoch_weg(self, daten):
         """Teile eines Uploads im Speicher löschen – nach dem Übernehmen und auch, wenn er nicht übernommen wurde."""
         try:
@@ -436,6 +471,7 @@ class Abgleich:
         jetzt = time.time()
         if self.eingang():
             geaendert = True
+        self.gespraeche()
         if jetzt - self.letzt_oben >= PULS_S:       # die Seite meldet eine verlorene Kopie ab – dann neu hochladen
             self.oben_laden()
         self.dateien()

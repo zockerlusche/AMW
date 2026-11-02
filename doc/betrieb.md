@@ -24,6 +24,16 @@ Hell/Dunkel und Deutsch/Englisch unten links; die Seite aktualisiert Start und B
 - **Anhalten:** HALT oben rechts (alle oder einen Agenten); „Weiter“ hebt auf. Agenten beginnen nichts Neues, Läufe starten nicht.
 - **Starten, fortsetzen, beenden:** Kachel › Übersicht. „Fortsetzen“ setzt die letzte Sitzung fort (Gesprächsverlauf
   bleibt), „Neu beginnen“ startet frisch mit dem Startsatz. Profil im Zahnrad › Agenten › Profil.
+- **Mitlesen:** Kachel › „Gespräch“ (oder in der Übersicht der Reiter *Gespräch*) zeigt, was der Agent mit Claude Code
+  bespricht – live, ohne sein Fenster zu suchen. Deine Eingaben stehen rechts, Claudes Antworten links. Weckrufe der AMW,
+  Aufgabenmeldungen und Zusammenfassungen sind klein dazwischen. Die Arbeitsschritte (Werkzeuge) sind je Strecke
+  eingeklappt, „7 Arbeitsschritte · Bash, Read, Edit“. Aufgeklappt zeigt jeder Schritt Eingabe und Ergebnis, Fehler sind rot.
+  Der Schalter *Arbeitsschritte* blendet sie ganz aus. *Ältere laden* blättert zurück, eine frühere Sitzung wählst du oben.
+  Gelesen wird nur das Protokoll von Claude Code (`~/.claude/projects/…`), nichts wird dort geändert. Geheimnis-Muster
+  (Schlüssel, `password=…`) sind immer verdeckt.
+- **In Claude öffnen:** Läuft der Agent mit Fernsteuerung (Profil › Fernsteuerung, ab dem nächsten Start), öffnet der Knopf
+  seine Sitzung auf claude.ai bzw. in der Claude-App am Handy. Dort schreibst du direkt mit ihm, das Terminal am PC bleibt
+  gleichzeitig offen. Ohne Fernsteuerung oder bei beendeter Sitzung steht dort, was fehlt.
 - **Zustand verstehen:** *arbeitet* · *frei* (wartet auf Nachrichten) · *wartet auf Freigabe* (im Fenster des Agenten
   fragt Claude Code um Erlaubnis – dorthin schauen) · *wartet auf Eingabe* · *Fehler* (z. B. Nutzungsgrenze erreicht).
 

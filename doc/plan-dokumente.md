@@ -165,4 +165,4 @@ Aufräumen), Missbrauch online (Größen, Anmeldung, CSRF, Formatliste, Geheimni
 1. Plan und Schema 9 freigegeben, vorher Sicherung, Stufen D1–D3.
 2. Dateien auf dem Webspace des Hosters, online nur bei Bedarf; Turso für Liste, Metadaten und Text (§4a).
 3. Markdown als Standard; vor dem Einsammeln je Ablage eine Liste zur Freigabe (§4b), nichts automatisch.
-4. Gesprächsansicht je Agent und „In Claude öffnen“ einplanen (nach D1/D2).
+4. Gesprächsansicht je Agent und „In Claude öffnen“ einplanen (nach D1/D2). ✅ 1.5.0 (siehe betrieb.md › Mitlesen).

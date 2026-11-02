@@ -229,20 +229,24 @@ def daten_einstellungen(con, pid, speicher=None):
 def daten_agent(con, pid, kennung):
     """Klick auf die Kachel: was macht er, was kommt noch, was liegt bei ihm."""
     a = con.execute("SELECT g.kennung, g.rolle, g.soll, g.grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc,"
-                    " s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc, s.taetigkeit FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
+                    " s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc, s.taetigkeit, s.claude_sitzung FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
                     " WHERE g.projekt_id = ? AND g.kennung = ?", (pid, kennung)).fetchone()
     if not a:
         raise LookupError(kennung)
     alt = altbestand_bis(con, pid)
     text, aid, quelle = gerade(con, pid, kennung, a["taetigkeit"] if a["zustand"] == "aktiv" else None)
-    from . import steuerung
+    from . import gespraech, steuerung
     try:
         steuern = {"profil": steuerung.profil(con, pid, kennung), "prozess_laeuft": steuerung.laeuft(con, pid, kennung),
                    "fortsetzbar": bool(steuerung.letzte_sitzung(con, pid, kennung))}
     except Exception:                      # z. B. ohne Windows-API (Tests anderswo) – Anzeige geht trotzdem
         steuern = {}
+    try:                                   # „In Claude öffnen“: laufende Sitzung mit Fernsteuerung
+        steuern["claude_link"] = gespraech.link(a["claude_sitzung"]) if a["zustand"] == "aktiv" else None
+    except Exception:
+        steuern["claude_link"] = None
     return {
-        **dict(a), **steuern, "gerade": text, "gerade_aufgabe": aid, "gerade_quelle": quelle,
+        **{k: v for k, v in dict(a).items() if k != "claude_sitzung"}, **steuern, "gerade": text, "gerade_aufgabe": aid, "gerade_quelle": quelle,
         "naechste": zeilen(con.execute(
             "SELECT id, titel, status, einstufung, rang, wartet_auf FROM aufgabe WHERE projekt_id = ? AND agent = ?"
             " AND status IN ('laeuft','wartet','blockiert') AND einstufung IN ('aktiv','keine_prio')"
@@ -263,6 +267,12 @@ def daten_agent(con, pid, kennung):
             "SELECT id, aufgabe_id, zweig, sha, bauer, pruefer, angefragt_utc FROM pruefung WHERE projekt_id = ?"
             " AND ergebnis = 'offen' AND (pruefer = ? OR bauer = ?) ORDER BY id DESC LIMIT 8", (pid, kennung, kennung))),
     }
+
+
+def daten_gespraech(con, pid, q):
+    from . import gespraech
+    zahl = lambda k: int(q[k][0]) if q.get(k, [""])[0].isdigit() else None
+    return gespraech.daten(con, pid, q.get("kennung", [""])[0], q.get("sitzung", [""])[0] or None, vor=zahl("vor"), ab=zahl("ab"))
 
 
 def daten_agenten_alle(con, pid):
@@ -574,6 +584,7 @@ def baue_handler(port, token):
                     "/api/releases": lambda c, p: daten_releases(c, p),
                     "/api/einstellungen": lambda c, p: daten_einstellungen(c, p),
                     "/api/agent": lambda c, p: daten_agent(c, p, q.get("kennung", [""])[0]),
+                    "/api/gespraech": lambda c, p: daten_gespraech(c, p, q),
                     "/api/push": lambda c, p: daten_push(c),
                     "/api/planung": lambda c, p: daten_planung(c, p),
                     "/api/verlauf": lambda c, p: daten_verlauf(c, p, q),
@@ -590,6 +601,10 @@ def baue_handler(port, token):
                     return self._senden(200, weg(con, self._projekt(con, q)))
                 finally:
                     con.close()
+            except LookupError:
+                return self._senden(404, {"fehler": "unbekannt"})
+            except kern.AmwFehler as e:
+                return self._senden(409, {"fehler": str(e)})
             except Exception as e:
                 return self._senden(500, {"fehler": f"{type(e).__name__}: {e}"})
 

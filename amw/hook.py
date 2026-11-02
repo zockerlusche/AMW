@@ -24,7 +24,7 @@ def schluessel_ordner():
 def claude_prozesse():
     """Claude Code führt je laufendem Prozess ~/.claude/sessions/<pid>.json (pid, kind interactive|bg, name, Ordner,
     Postfach). Nur lesen – die Schlüssel daneben fasst die AMW nie an."""
-    ordner = os.path.join(os.path.expanduser("~"), ".claude", "sessions")
+    ordner = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude"), "sessions")
     try:
         namen = [n for n in os.listdir(ordner) if n.endswith(".json")]
     except OSError:

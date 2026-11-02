@@ -169,6 +169,22 @@ try {
         if (!isset($alle[$k])) antwort(404, ['fehler' => 'Zu diesem Agenten liegen online noch keine Daten vor.']);
         antwort(200, $alle[$k]);
     }
+    if ($pfad === '/api/gespraech') {                      // Gespräch je Agent: nur auf Wunsch, der PC hält es dann 10 min aktuell
+        $k = (string)($q['kennung'] ?? '');
+        $z = sql([["SELECT inhalt FROM ansicht WHERE weg = '/api/agenten'", []]])[0];
+        $alle = $z ? json_decode($z[0][0], true) : [];
+        if (!preg_match('/^[A-Za-z0-9_-]{1,40}$/', $k) || !isset($alle[$k])) antwort(404, ['fehler' => 'Diesen Agenten gibt es online nicht.']);
+        [$w, $g] = sql([
+            ['SELECT wert FROM zustand WHERE schluessel = ?', ['gespraech:' . $k]],
+            ['SELECT inhalt, stand_utc FROM ansicht WHERE weg = ?', ['/api/gespraech?kennung=' . $k]],
+        ]);
+        if (!$w || strcmp((string)$w[0][0], jetzt_utc(-60)) < 0) {
+            sql([['INSERT INTO zustand (schluessel, wert) VALUES (?, ?) ON CONFLICT(schluessel) DO UPDATE SET wert = excluded.wert',
+                  ['gespraech:' . $k, jetzt_utc()]]]);
+        }
+        if (!$g) antwort(200, ['kennung' => $k, 'warten' => true]);
+        antwort(200, json_decode($g[0][0], true) + ['stand_utc' => $g[0][1]]);
+    }
     $schluessel = match (true) {
         $pfad === '/api/aufgaben' => '/api/aufgaben?sicht=' . (string)($q['sicht'] ?? 'offen'),
         $pfad === '/api/fragen' && ($q['alle'] ?? '') === '1' => '/api/fragen?alle=1',

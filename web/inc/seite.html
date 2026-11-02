@@ -419,6 +419,73 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .agent-dialog .eintrag-zusatz { font-size: 12px; margin-top: 3px; }
 .agent-dialog .eintrag-text.gross { font-size: 15px; font-weight: 600; }
 .agent-dialog .leer-klein { font-size: 13px; padding: 2px 0; }
+/* --- Gespräch je Agent ------------------------------------------------------------------------- */
+.gs-tabs { display: flex; gap: 2px; margin-top: 12px; border-bottom: 1px solid var(--linie); }
+.gs-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 7px 14px 6px; cursor: pointer;
+  color: var(--leise); font: 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; }
+.gs-tabs button:hover { color: var(--tinte); }
+.gs-tabs button[aria-selected="true"] { color: var(--tinte); border-bottom-color: var(--bernstein); }
+.gs-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 14px 0 10px; }
+.gs-kopf select { background: var(--grund); border: 1px solid var(--linie); border-radius: 3px; padding: 5px 8px; max-width: 280px; }
+.gs-kopf label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--leise); cursor: pointer; }
+.gs-kopf .gs-rechts { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.gs-titel { flex-basis: 100%; font-size: 12px; color: var(--sehrleise); }
+.gs-hilfe { font-size: 12px; color: var(--sehrleise); max-width: 520px; }
+a.knopf { text-decoration: none; display: inline-flex; align-items: center; color: var(--tinte); }
+.gs-rahmen { position: relative; }
+.gs-liste { height: min(60vh, 760px); overflow-y: auto; background: var(--grund); border: 1px solid var(--linie); border-radius: 4px;
+  padding: 14px 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+.gs-zeile { display: flex; }
+.gs-mensch { justify-content: flex-end; }
+.gs-blase { max-width: min(80%, 780px); padding: 9px 12px 5px; border-radius: 6px; border: 1px solid var(--linie); background: var(--flaeche);
+  font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; min-width: 0; }
+.gs-mensch .gs-blase { background: var(--bernstein-weich); border-color: color-mix(in srgb, var(--bernstein) 35%, var(--linie)); white-space: pre-wrap; }
+.gs-claude .gs-blase { border-left: 3px solid var(--gruen); }
+.gs-claude .md > :first-child { margin-top: 0; } .gs-claude .md > :last-child { margin-bottom: 0; }
+.gs-claude .md pre { max-height: 320px; overflow: auto; }
+.gs-zeit { display: block; text-align: right; font: 11px var(--mono); color: var(--sehrleise); margin-top: 2px; }
+.gs-weckruf { gap: 8px; align-items: baseline; font-size: 13px; color: var(--leise); }
+.gs-weckruf .gs-text { white-space: pre-wrap; max-height: 2.9em; overflow: hidden; cursor: pointer; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.gs-weckruf .gs-text.auf { max-height: none; }
+.gs-weckruf .gs-zeit { margin: 0; }
+.gs-etikett { font: 11px var(--mono); color: var(--bernstein); border: 1px solid color-mix(in srgb, var(--bernstein) 40%, transparent);
+  border-radius: 8px; padding: 0 6px; white-space: nowrap; }
+.gs-hinweis { align-self: center; font-size: 12px; color: var(--sehrleise); text-align: center; max-width: 86%; overflow-wrap: anywhere; }
+.gs-hinweis.fehler { color: var(--rot); }
+.gs-tag { align-self: center; font: 11px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--sehrleise); margin: 4px 0 0; }
+.gs-gruppe { align-self: stretch; min-width: 0; }
+.gs-gruppe > summary { cursor: pointer; list-style: none; color: var(--sehrleise); font: 12px var(--mono); padding: 1px 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gs-gruppe > summary::-webkit-details-marker, .gs-schritt > summary::-webkit-details-marker { display: none; }
+.gs-gruppe > summary::before { content: "▸ "; } .gs-gruppe[open] > summary::before { content: "▾ "; }
+.gs-gruppe > summary:hover { color: var(--leise); }
+.gs-gruppe.fehler > summary { color: color-mix(in srgb, var(--rot) 80%, var(--leise)); }
+.gs-schritte { border-left: 1px dashed var(--linie2); margin: 4px 0 2px 5px; padding-left: 12px; display: grid; gap: 2px; min-width: 0; }
+.gs-schritt { min-width: 0; }
+.gs-schritt > summary, .gs-schritt.ohne { list-style: none; font: 12px var(--mono); color: var(--leise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gs-schritt > summary { cursor: pointer; }
+.gs-wz { color: var(--tinte); margin-right: 6px; }
+.gs-schritt.fehler .gs-wz { color: var(--rot); }
+.gs-pre { margin: 4px 0 6px; padding: 6px 8px; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px;
+  font: 11.5px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow-y: auto; }
+.gs-pre.fehler { border-color: var(--rot); }
+.gs-pre-titel { font: 10.5px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin-top: 4px; }
+.gs.ohne-schritte .gs-gruppe { display: none; }
+.gs-neu { position: absolute; right: 18px; bottom: 14px; box-shadow: var(--schatten); }
+.gs-neu[hidden] { display: none; }
+.gs-mehr { align-self: center; }
+.leer-gs { margin: auto; color: var(--sehrleise); font-size: 13px; text-align: center; max-width: 440px; }
+@media (max-width: 760px) {
+  .gs-liste { height: calc(100dvh - 330px); min-height: 300px; padding: 10px; }
+  .gs-blase { max-width: 94%; }
+  .gs-kopf .gs-rechts { margin-left: 0; }
+  .gs-tabs button { flex: 1; min-height: 40px; }
+  .agent-dialog { position: relative; }
+  .agent-kopf { padding-right: 40px; gap: 6px 12px; }
+  .agent-kopf > .klein-knopf:last-child { position: absolute; top: 14px; right: 14px; }
+  .agent-kopf > span:nth-of-type(2) { margin-left: 0 !important; width: 100%; }
+  .agent-kopf .knopf { flex: 1 1 auto; justify-content: center; padding: 8px 10px; font-size: 11px; }
+}
 .verlauf { display: grid; gap: 8px; margin: 12px 0 14px; }
 .blase { max-width: 82%; padding: 8px 12px; border-radius: 10px 10px 10px 2px; background: var(--grund); border: 1px solid var(--linie);
   justify-self: start; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
@@ -615,6 +682,16 @@ const TEXTE = {
     an_dich: "Nachrichten an dich", antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_pruefbitte: "Prüfbitte", art_stopp: "Stopp", art_freigabe: "Freigabe",
     k_details: "Klicken: was macht er, was kommt noch", k_offen_h: "neue offene Nachrichten (dazu {n} Altbestand aus dem alten Bus)",
     k_gerade: "Gerade:", k_vermutet: "(aus letzter Meldung)", k_unbekannt: "Tätigkeit unbekannt", k_zuletzt: "Zuletzt",
+    g_tab: "Gespräch", g_tab_uebersicht: "Übersicht", g_knopf_h: "Das Gespräch des Agenten mit Claude Code lesen (live)",
+    g_claude: "In Claude öffnen ↗", g_claude_h: "Öffnet die laufende Sitzung auf claude.ai bzw. in der Claude-App – dort schreibst du direkt mit dem Agenten",
+    g_kein_link_aus: "Fernsteuerung ist im Profil aus – eingeschaltet gibt es ab dem nächsten Start „In Claude öffnen“.",
+    g_kein_link_steht: "Die Sitzung läuft nicht – „Fortsetzen“ startet sie wieder.", g_kein_link: "Diese Sitzung läuft ohne Fernsteuerung.",
+    g_sitzung: "Sitzung", g_laeuft: "läuft", g_arbeitet: "arbeitet", g_bereit: "bereit", g_beendet: "Sitzung beendet",
+    g_schritte_zeigen: "Arbeitsschritte", g_schritt: "1 Arbeitsschritt", g_schritte: "{n} Arbeitsschritte", g_eingabe: "Eingabe", g_ergebnis: "Ergebnis",
+    g_fehler: "Fehler", g_weckruf: "Weckruf", g_neu: "↓ Neues", g_aeltere: "Ältere laden", g_anfang: "Anfang der Sitzung",
+    g_aelter_pc: "Ältere Einträge siehst du am PC", g_leer: "Zu diesem Agenten liegt auf diesem PC kein Gespräch vor (z. B. ein Lead, der über die Brücke arbeitet).",
+    g_fehlt: "Das Protokoll dieser Sitzung gibt es nicht mehr.", g_warten: "Der PC holt das Gespräch … (meist unter 30 Sekunden)",
+    g_online_h: "Online: nur Texte und Namen der Arbeitsschritte, Geheimnisse verdeckt; der PC hält das Gespräch nach dem letzten Abruf 10 Minuten aktuell",
     k_macht: "Macht gerade", k_quelle_angabe: "eigene Angabe (amw taetigkeit)", k_quelle_aufgabe: "laufende Aufgabe", k_quelle_meldung: "abgeleitet aus seiner letzten Meldung",
     k_kommt: "Kommt noch (Aufgaben nach Rang)", k_wartet_auf: "wartet auf", k_laeufe: "Rechen-Läufe", k_pruefungen: "Prüfbitten",
     k_soll_pruefen: "soll prüfen für {x}", k_wartet_pruefung: "wartet auf Prüfung durch {x}", k_an_ihn: "Neue Nachrichten an ihn ({n})",
@@ -799,6 +876,16 @@ const TEXTE = {
     an_dich: "Messages for you", antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_pruefbitte: "Review request", art_stopp: "Stop", art_freigabe: "Release",
     k_details: "Click: what is it doing, what is next", k_offen_h: "new open messages (plus {n} legacy from the old bus)",
     k_gerade: "Now:", k_vermutet: "(from last report)", k_unbekannt: "activity unknown", k_zuletzt: "Last",
+    g_tab: "Conversation", g_tab_uebersicht: "Overview", g_knopf_h: "Read the agent's conversation with Claude Code (live)",
+    g_claude: "Open in Claude ↗", g_claude_h: "Opens the running session on claude.ai or in the Claude app – write to the agent directly there",
+    g_kein_link_aus: "Remote control is off in the profile – turn it on and “Open in Claude” is available from the next start.",
+    g_kein_link_steht: "The session is not running – “Resume” starts it again.", g_kein_link: "This session runs without remote control.",
+    g_sitzung: "Session", g_laeuft: "running", g_arbeitet: "working", g_bereit: "ready", g_beendet: "session ended",
+    g_schritte_zeigen: "Work steps", g_schritt: "1 work step", g_schritte: "{n} work steps", g_eingabe: "Input", g_ergebnis: "Result",
+    g_fehler: "Error", g_weckruf: "Wake-up", g_neu: "↓ New", g_aeltere: "Load older", g_anfang: "Start of the session",
+    g_aelter_pc: "Older entries are available on the PC", g_leer: "There is no conversation for this agent on this PC (e.g. a lead working through the bridge).",
+    g_fehlt: "The log of this session no longer exists.", g_warten: "The PC is fetching the conversation … (usually under 30 seconds)",
+    g_online_h: "Online: texts and step names only, secrets masked; the PC keeps the conversation fresh for 10 minutes after the last view",
     k_macht: "Doing now", k_quelle_angabe: "own statement (amw taetigkeit)", k_quelle_aufgabe: "running task", k_quelle_meldung: "derived from its last report",
     k_kommt: "Coming up (tasks by rank)", k_wartet_auf: "waiting for", k_laeufe: "Compute runs", k_pruefungen: "Review requests",
     k_soll_pruefen: "to review for {x}", k_wartet_pruefung: "waiting for review by {x}", k_an_ihn: "New messages to it ({n})",
@@ -1156,8 +1243,10 @@ function kachel(a) {
       a.zuletzt ? el("div", { class: "sehrleise", style: "margin-top:4px" }, `${t("k_zuletzt")} ${seit(a.zuletzt_utc)}: ${kurz(a.zuletzt, 70)}`) : null),
     lebt && (a.kontext_prozent != null || a.limit_5h != null) ? el("div", { class: "mini-balken" },
       a.kontext_prozent != null ? balken(t("b_kontext"), a.kontext_prozent) : null, a.limit_5h != null ? balken(t("b_5h"), a.limit_5h) : null) : null,
-    soll ? el("button", { class: "klein-knopf", type: "button", style: "margin-top:8px",
-      onclick: e => { e.stopPropagation(); nachrichtDialog(a.kennung); } }, t("nachricht")) : null);
+    soll || a.zustand ? el("div", { style: "display:flex;gap:6px;margin-top:8px;flex-wrap:wrap" },
+      soll ? el("button", { class: "klein-knopf", type: "button", onclick: e => { e.stopPropagation(); nachrichtDialog(a.kennung); } }, t("nachricht")) : null,
+      a.zustand ? el("button", { class: "klein-knopf", type: "button", title: t("g_knopf_h"),
+        onclick: e => { e.stopPropagation(); agentDialog(a.kennung, "gespraech"); } }, t("g_tab")) : null) : null);
   karte.addEventListener("click", () => agentDialog(a.kennung));
   return karte;
 }
@@ -1206,7 +1295,150 @@ function balken(name, p) {
     el("div", { class: "mb-spur" }, el("i", { style: `width:${Math.min(100, Math.max(0, p))}%;background:var(${farbe})` })),
     el("span", { class: "mono" }, `${Math.round(p)} %`));
 }
-async function agentDialog(kennung) {
+/* Gespräch je Agent: das Protokoll von Claude Code, ruhig gelesen – du rechts, Claude links, Arbeitsschritte eingeklappt
+   (am PC mit Eingabe und Ergebnis), Weckrufe und Hinweise klein. Live: am PC alle 3 s das Neue, online alle 15 s alles. */
+function gespraechAnsicht(kennung, profil) {
+  const wurzel = el("div", { class: "gs" });
+  let sitzung = null, gewaehlt = false, ab = null, vor = null, stand = null, uhrwerk = null;
+  let schritteZeigen = true; try { schritteZeigen = localStorage.getItem("amw-gs-schritte") !== "0"; } catch (e) {}
+  wurzel.classList.toggle("ohne-schritte", !schritteZeigen);
+  const kopf = el("div", { class: "gs-kopf" });
+  const liste = el("div", { class: "gs-liste", role: "log", "aria-label": t("g_tab") });
+  const neuKnopf = el("button", { class: "klein-knopf gs-neu", type: "button", hidden: true,
+    onclick: () => { liste.scrollTop = liste.scrollHeight; neuKnopf.hidden = true; } }, t("g_neu"));
+  wurzel.append(kopf, el("div", { class: "gs-rahmen" }, liste, neuKnopf));
+  liste.addEventListener("scroll", () => { if (unten()) neuKnopf.hidden = true; });
+  const unten = () => liste.scrollHeight - liste.scrollTop - liste.clientHeight < 60;
+  const uhr = x => x ? new Date(x).toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" }) : "";
+  const tag = x => x ? new Date(x).toLocaleDateString(gebiet(), { weekday: "short", day: "2-digit", month: "2-digit" }) : "";
+  const ergebnisse = new Map();                                  /* Werkzeug-id → [Schritt, Platz für das Ergebnis] */
+  let letzterTag = null, gruppe = null;
+  const gruppeBeschriften = g => {
+    const namen = [...new Set(g.namen)];
+    g.kopf.textContent = (g.namen.length === 1 ? t("g_schritt") : t("g_schritte", { n: g.namen.length })) + " · " +
+      namen.slice(0, 5).join(", ") + (namen.length > 5 ? " …" : "");
+  };
+  /* Einträge → Knoten; ziel: Liste (anhängen) oder Fragment (Ältere, kommt nach oben) */
+  function bauen(eintraege, ziel) {
+    for (const e of eintraege) {
+      if (e.art === "ergebnis") {
+        const x = ergebnisse.get(e.id);
+        if (x) { x[1].append(el("div", { class: "gs-pre-titel" }, t(e.fehler ? "g_fehler" : "g_ergebnis")),
+          el("pre", { class: "gs-pre" + (e.fehler ? " fehler" : "") }, e.text || "–"));
+          if (e.fehler) { x[0].classList.add("fehler"); x[2]?.classList.add("fehler"); } }
+        continue;
+      }
+      const tg = tag(e.zeit);
+      if (tg && tg !== letzterTag) { ziel.append(el("div", { class: "gs-tag" }, tg)); letzterTag = tg; gruppe = null; }
+      if (e.art === "werkzeug") {
+        if (!gruppe) {
+          gruppe = { namen: [], kopf: el("summary"), koerper: el("div", { class: "gs-schritte" }) };
+          gruppe.knoten = el("details", { class: "gs-gruppe" }, gruppe.kopf, gruppe.koerper);
+          ziel.append(gruppe.knoten);
+        }
+        gruppe.namen.push(e.name); gruppeBeschriften(gruppe);
+        const zeile = [el("span", { class: "gs-wz" }, e.name), e.kurz || ""];
+        if (e.eingabe != null) {
+          const platz = el("div");
+          const schritt = el("details", { class: "gs-schritt" }, el("summary", { title: uhr(e.zeit) }, ...zeile),
+            el("div", { class: "gs-pre-titel" }, t("g_eingabe")), el("pre", { class: "gs-pre" }, e.eingabe), platz);
+          ergebnisse.set(e.id, [schritt, platz, gruppe.knoten]);
+          gruppe.koerper.append(schritt);
+        } else gruppe.koerper.append(el("div", { class: "gs-schritt ohne", title: uhr(e.zeit) }, ...zeile));
+        continue;
+      }
+      gruppe = null;
+      if (e.art === "mensch") ziel.append(el("div", { class: "gs-zeile gs-mensch" },
+        el("div", { class: "gs-blase" }, e.text, el("span", { class: "gs-zeit" }, uhr(e.zeit)))));
+      else if (e.art === "claude") ziel.append(el("div", { class: "gs-zeile gs-claude" },
+        el("div", { class: "gs-blase" }, markdown(e.text), el("span", { class: "gs-zeit" }, uhr(e.zeit)))));
+      else if (e.art === "weckruf") ziel.append(el("div", { class: "gs-zeile gs-weckruf" }, el("span", { class: "gs-etikett" }, t("g_weckruf")),
+        el("span", { class: "gs-text", title: t("aufklappen"), onclick: ev => ev.currentTarget.classList.toggle("auf") }, e.text),
+        el("span", { class: "gs-zeit" }, uhr(e.zeit))));
+      else ziel.append(el("div", { class: "gs-hinweis" + (e.art === "fehler" ? " fehler" : "") + (e.art === "befehl" ? " mono" : "") },
+        e.text, " · ", uhr(e.zeit)));
+    }
+  }
+  function kopfBauen(d) {
+    const teile = [];
+    if (!API && d.sitzungen.length > 1) {
+      const wahl = el("select", { "aria-label": t("g_sitzung"), onchange: () => { sitzung = wahl.value; gewaehlt = true; laden("voll"); } },
+        d.sitzungen.map(s => el("option", { value: s.sitzung, selected: s.sitzung === d.sitzung },
+          `${zeit(s.gestartet_utc)}${s.laeuft ? " · " + t("g_laeuft") : ""}`)));
+      teile.push(wahl);
+    }
+    const lebt = d.laeuft, busy = d.status === "busy";
+    teile.push(el("span", { class: "signal" }, el("span", { class: "punkt " + (lebt ? (busy ? "gruen" : "bernstein") : "") }),
+      lebt ? t(busy ? "g_arbeitet" : "g_bereit") : t("g_beendet")));
+    teile.push(el("label", {}, el("input", { type: "checkbox", checked: schritteZeigen, onchange: ev => {
+      schritteZeigen = ev.target.checked; wurzel.classList.toggle("ohne-schritte", !schritteZeigen);
+      try { localStorage.setItem("amw-gs-schritte", schritteZeigen ? "1" : "0"); } catch (e) {} } }), t("g_schritte_zeigen")));
+    const rechts = el("span", { class: "gs-rechts" });
+    if (!d.link && !API && d.sitzung) rechts.append(el("span", { class: "gs-hilfe" },
+      !lebt ? t("g_kein_link_steht") : profil && !profil.fernsteuerung ? t("g_kein_link_aus") : t("g_kein_link")));
+    teile.push(rechts);
+    if (d.titel) teile.push(el("div", { class: "gs-titel" }, d.titel));
+    if (API) teile.push(el("div", { class: "gs-titel" }, t("g_online_h") + (d.stand_utc ? " · " + t("k_stand", { x: seit(d.stand_utc) }) : "")));
+    kopf.replaceChildren(...teile);
+  }
+  function aeltereKnopf(d) {
+    if (d.anfang) return el("div", { class: "gs-hinweis" }, t("g_anfang"));
+    if (API) return el("div", { class: "gs-hinweis" }, t("g_aelter_pc"));
+    const k = el("button", { class: "klein-knopf gs-mehr", type: "button", onclick: () => laden("aelter", k) }, t("g_aeltere"));
+    return k;
+  }
+  async function laden(modus, knopf) {
+    let q = "/api/gespraech?kennung=" + encodeURIComponent(kennung);
+    if (!API) {
+      if (sitzung) q += "&sitzung=" + encodeURIComponent(sitzung);
+      if (modus === "neu") q += "&ab=" + ab;
+      if (modus === "aelter") q += "&vor=" + vor;
+    }
+    let d;
+    try { d = await holen(q); }
+    catch (e) { if (modus === "voll") liste.replaceChildren(el("div", { class: "leer-gs" }, t("fehler", { x: e.message }))); return; }
+    if (!wurzel.isConnected) return;
+    if (d.warten) { kopf.replaceChildren(); liste.replaceChildren(el("div", { class: "leer-gs" }, t("g_warten"))); uhrwerkStellen(5000); return; }
+    if (modus === "neu") {
+      if (!gewaehlt && d.sitzung !== sitzung) return laden("voll");      /* neue Sitzung (Neustart) – von vorn */
+      if (!d.eintraege.length) { ab = d.ab; return; }
+      const war = unten(); ab = d.ab; bauen(d.eintraege, liste);
+      if (war) liste.scrollTop = liste.scrollHeight; else neuKnopf.hidden = false;
+      return;
+    }
+    if (modus === "aelter") {
+      const frag = document.createDocumentFragment(), h0 = liste.scrollHeight, merk = [letzterTag, gruppe];
+      letzterTag = null; gruppe = null; vor = d.vor;
+      frag.append(aeltereKnopf(d)); bauen(d.eintraege, frag);
+      [letzterTag, gruppe] = merk; knopf.replaceWith(frag);
+      liste.scrollTop += liste.scrollHeight - h0;
+      return;
+    }
+    /* voll: online nur neu zeichnen, wenn sich etwas geändert hat; Leseposition bleibt, wenn du oben liest */
+    const merkmal = (d.sitzung || "") + "|" + d.eintraege.length + "|" + (d.eintraege.at(-1)?.zeit || "") + "|" + (d.stand_utc || "");
+    kopfBauen(d);
+    if (merkmal === stand) return;
+    stand = merkmal; sitzung = d.sitzung; ab = d.ab; vor = d.vor;
+    const war = unten(), pos = liste.scrollTop, erstes = !liste.childElementCount || !liste.querySelector(".gs-zeile, .gs-gruppe");
+    ergebnisse.clear(); letzterTag = null; gruppe = null;
+    if (!d.sitzung) { liste.replaceChildren(el("div", { class: "leer-gs" }, t("g_leer"))); return; }
+    if (d.fehlt) { liste.replaceChildren(el("div", { class: "leer-gs" }, t("g_fehlt"))); return; }
+    liste.replaceChildren(aeltereKnopf(d));
+    bauen(d.eintraege, liste);
+    if (erstes || war) liste.scrollTop = liste.scrollHeight; else { liste.scrollTop = pos; neuKnopf.hidden = false; }
+  }
+  function uhrwerkStellen(ms) {
+    clearTimeout(uhrwerk);
+    uhrwerk = setTimeout(async function weiter() {
+      if (!wurzel.isConnected) return;
+      if (!document.hidden) await (API || !sitzung ? laden("voll") : laden("neu"));
+      uhrwerk = setTimeout(weiter, API ? 15000 : 3000);
+    }, ms);
+  }
+  laden("voll").then(() => uhrwerkStellen(API ? 15000 : 3000));
+  return wurzel;
+}
+async function agentDialog(kennung, reiter) {
   let d; try { d = await holen("/api/agent?kennung=" + encodeURIComponent(kennung)); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
   /* Ein Eintrag = eigener Block: Kopfzeile (Nummer, Kennzeichen, Zeit), darunter der Text; farbiger Rand nach Art/Status */
   const eintrag = (art, ref, etikett, meta, text, zusatz) => el("div", { class: "eintrag " + art },
@@ -1232,18 +1464,32 @@ async function agentDialog(kennung) {
       t("k_nichts_neu") + (d.offen_alt ? " " + t("k_alt", { n: d.offen_alt }) : "")),
     abschnitt(t("k_meldungen"), d.meldungen, x => eintrag(x.art, `#${x.id}`, t("art_" + x.art) || x.art, seit(x.zeit_utc), x.kurz)),
   ];
+  /* zwei Reiter: Übersicht (was macht er, was kommt) und Gespräch (das Protokoll, erst beim Öffnen geladen) */
+  const uebersicht = el("div", { role: "tabpanel" }, macht, zustandAbschnitt(d),
+    el("div", { class: "agent-spalten" }, el("div", {}, ...links), el("div", {}, ...rechts)),
+    d.offen_alt && d.an_ihn.length ? el("p", { class: "sehrleise", style: "margin-top:12px" }, t("k_alt", { n: d.offen_alt })) : null);
+  const gespraech = el("div", { role: "tabpanel", hidden: true });
+  const knopfU = el("button", { type: "button", role: "tab", "aria-selected": "true", onclick: () => wechseln("uebersicht") }, t("g_tab_uebersicht"));
+  const knopfG = el("button", { type: "button", role: "tab", "aria-selected": "false", onclick: () => wechseln("gespraech") }, t("g_tab"));
+  const tabs = el("div", { class: "gs-tabs", role: "tablist" }, knopfU, knopfG);
+  function wechseln(r) {
+    const g = r === "gespraech";
+    uebersicht.hidden = g; gespraech.hidden = !g;
+    knopfU.setAttribute("aria-selected", String(!g)); knopfG.setAttribute("aria-selected", String(g));
+    if (g && !gespraech.firstChild) gespraech.append(gespraechAnsicht(d.kennung, d.profil));
+  }
   const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
     el("div", { class: "karte dialog agent-dialog" },
       el("div", { class: "agent-kopf" }, el("h3", {}, d.kennung),
         el("span", { class: "leise" }, `${d.rolle || t("agent")} · ${d.zustand === "aktiv" ? t("laeuft") : (d.zustand || t("nie_gestartet"))}` +
           (d.letzter_puls_utc ? ` · ${t("puls", { t: seit(d.letzter_puls_utc) })}` : "")),
         el("span", { style: "margin-left:auto;display:flex;gap:8px;flex-wrap:wrap" }, ...steuerKnoepfe(d, () => hg.remove()),
+          d.claude_link ? el("a", { class: "knopf", href: d.claude_link, target: "_blank", rel: "noopener noreferrer", title: t("g_claude_h") }, t("g_claude")) : null,
           el("button", { class: "knopf", type: "button", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht"))),
         el("button", { class: "klein-knopf", type: "button", "aria-label": "schließen", onclick: () => hg.remove() }, "×")),
-      macht, zustandAbschnitt(d),
-      el("div", { class: "agent-spalten" }, el("div", {}, ...links), el("div", {}, ...rechts)),
-      d.offen_alt && d.an_ihn.length ? el("p", { class: "sehrleise", style: "margin-top:12px" }, t("k_alt", { n: d.offen_alt })) : null));
+      tabs, uebersicht, gespraech));
   document.body.append(hg);
+  if (reiter === "gespraech") wechseln("gespraech");
   document.addEventListener("keydown", function weg(e) { if (e.key === "Escape") { hg.remove(); document.removeEventListener("keydown", weg); } });
 }
 function nachrichtDialog(an) {
