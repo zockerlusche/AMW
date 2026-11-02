@@ -45,6 +45,8 @@ const ONLINE_SCHEMA = [
     "CREATE TABLE IF NOT EXISTS zustand (schluessel TEXT PRIMARY KEY, wert TEXT)",
     "CREATE TABLE IF NOT EXISTS datei (sha TEXT PRIMARY KEY, endung TEXT NOT NULL, groesse INTEGER NOT NULL, teile INTEGER NOT NULL, status TEXT NOT NULL, zeit_utc TEXT NOT NULL)",
     "CREATE TABLE IF NOT EXISTS datei_teil (sha TEXT NOT NULL, nr INTEGER NOT NULL, inhalt TEXT NOT NULL, PRIMARY KEY (sha, nr))",
+    "CREATE TABLE IF NOT EXISTS hoch (id TEXT PRIMARY KEY, name TEXT NOT NULL, endung TEXT NOT NULL, groesse INTEGER NOT NULL, sha TEXT NOT NULL, teile INTEGER NOT NULL, zeit_utc TEXT NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS hoch_teil (id TEXT NOT NULL, nr INTEGER NOT NULL, inhalt TEXT NOT NULL, PRIMARY KEY (id, nr))",
 ];
 
 /** Orte außerhalb des Web-/Deploy-Ordners: dort löscht ein Git-Deploy nichts und niemand kann sie abrufen. */
@@ -318,6 +320,13 @@ const DATEI_FORMATE = ['.png' => ['image/png', 'bild'], '.jpg' => ['image/jpeg',
     '.xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'download']];
 const AUFRAEUMEN_S = 600;            // so oft höchstens nach Kopien schauen, die nicht mehr online stehen
 
+/* Hochladen vom Handy (Stufe D3): in Teilen wie amw/dokumente.py HOCH_TEIL; Texte dürfen auch (werden Dokument-Text). */
+const HOCH_TEIL = 192 * 1024;
+const HOCH_MAX = 25 * 1024 * 1024;   // je Datei, wie am PC
+const HOCH_UNTERWEGS_MAX = 100 * 1024 * 1024;   // so viel darf zugleich im Speicher auf den PC warten
+const HOCH_JE_STUNDE = 60;
+const HOCH_ENDUNGEN = ['.md', '.txt', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.html', '.htm', '.pdf', '.docx', '.xlsx'];
+
 /** Ablage auf dem Webspace: neben der Konfiguration, außerhalb des Deploy-Ordners – ein Deploy löscht dort nichts, und
  *  niemand ruft sie direkt ab. null: Konfiguration liegt noch in inc/ – dann kommt jede Datei frisch aus dem Speicher. */
 function datei_ordner(): ?string {
@@ -368,6 +377,9 @@ function dateien_nachholen(array $neu): void {
         $marke = "$ordner/.aufgeraeumt";
         if ($ordner === null || !is_dir($ordner) || (is_file($marke) && time() - filemtime($marke) < AUFRAEUMEN_S)) return;
         @touch($marke);
+        foreach (glob("$ordner/.hoch/*", GLOB_ONLYDIR) ?: [] as $d) {   // Uploads, die nie fertig wurden
+            if (time() - filemtime($d) > 86400) { array_map('unlink', glob("$d/*") ?: []); @rmdir($d); }
+        }
         $da = array_flip(array_column(sql([['SELECT sha FROM datei', []]])[0], 0));
         foreach (glob("$ordner/??/*") ?: [] as $p) {
             $sha = substr(basename($p), 0, 64);
@@ -375,6 +387,65 @@ function dateien_nachholen(array $neu): void {
         }
     } catch (Throwable $x) {
         // Speicher kurz weg: beim nächsten Aufruf noch einmal
+    }
+}
+
+/** Hochladen vom Handy, ein Schritt: start (anmelden) oder teil (ein Stück). Die Teile gehen in den Speicher (für den
+ *  PC) und zugleich in die eigene Ablage – so liegt die Datei gleich auf dem Webspace und muss nicht zurück. */
+function hochladen(array $d): array {
+    $schritt = (string)($d['schritt'] ?? '');
+    if ($schritt === 'start') {
+        $name = basename(str_replace(chr(92), '/', (string)($d['name'] ?? '')));
+        $endung = strtolower((string)strrchr($name, '.'));
+        $groesse = $d['groesse'] ?? null; $teile = $d['teile'] ?? null; $sha = (string)($d['sha'] ?? '');
+        if (!in_array($endung, HOCH_ENDUNGEN, true)) throw new InvalidArgumentException('Format nicht erlaubt');
+        if (!is_int($groesse) || $groesse < 1 || $groesse > HOCH_MAX || $teile !== intdiv($groesse + HOCH_TEIL - 1, HOCH_TEIL)
+            || !preg_match('/^[0-9a-f]{64}$/', $sha)) throw new InvalidArgumentException('Größe, Teile oder Prüfsumme passen nicht (höchstens 25 MB)');
+        [$wartet, $stunde] = sql([['SELECT coalesce(sum(groesse), 0) FROM hoch', []],
+                                  ['SELECT count(*) FROM hoch WHERE zeit_utc > ?', [jetzt_utc(-3600)]]]);
+        if ((int)$wartet[0][0] + $groesse > HOCH_UNTERWEGS_MAX || (int)$stunde[0][0] >= HOCH_JE_STUNDE) {
+            throw new LengthException('Gerade wartet zu viel auf den PC – bitte später noch einmal.');
+        }
+        $id = bin2hex(random_bytes(16));
+        sql([['INSERT INTO hoch (id, name, endung, groesse, sha, teile, zeit_utc) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              [$id, mb_substr($name, 0, 200), $endung, $groesse, $sha, $teile, jetzt_utc()]]]);
+        return ['id' => $id];
+    }
+    if ($schritt === 'teil') {
+        $id = (string)($d['id'] ?? ''); $nr = $d['nr'] ?? null;
+        $roh = base64_decode((string)($d['inhalt'] ?? ''), true);
+        if (!preg_match('/^[0-9a-f]{32}$/', $id) || !is_int($nr) || $roh === false || strlen($roh) > HOCH_TEIL) {
+            throw new InvalidArgumentException('Teil ungültig');
+        }
+        [$h] = sql([['SELECT teile FROM hoch WHERE id = ?', [$id]]]);
+        if (!$h || $nr < 0 || $nr >= (int)$h[0][0]) throw new InvalidArgumentException('Upload unbekannt – bitte neu hochladen');
+        sql([['INSERT INTO hoch_teil (id, nr, inhalt) VALUES (?, ?, ?) ON CONFLICT(id, nr) DO UPDATE SET inhalt = excluded.inhalt',
+              [$id, $nr, base64_encode($roh)]]]);
+        $ordner = datei_ordner();
+        if ($ordner !== null && (is_dir("$ordner/.hoch/$id") || @mkdir("$ordner/.hoch/$id", 0700, true))) @file_put_contents("$ordner/.hoch/$id/$nr", $roh);
+        return ['ok' => true];
+    }
+    throw new InvalidArgumentException('schritt start|teil');
+}
+
+/** Upload abgeschlossen (vor dem Briefkasten): alle Teile da? Dann die eigene Kopie prüfen, ablegen und als „abgelegt“
+ *  anmelden – der PC lädt sie dann nicht noch einmal hoch (steht das Dokument nicht online, meldet er sie wieder ab). */
+function hoch_abschliessen(string $id): void {
+    [$h, $n] = sql([['SELECT endung, groesse, sha, teile FROM hoch WHERE id = ?', [$id]], ['SELECT count(*) FROM hoch_teil WHERE id = ?', [$id]]]);
+    if (!$h) throw new InvalidArgumentException('Upload unbekannt – bitte neu hochladen');
+    [$endung, $groesse, $sha, $teile] = [(string)$h[0][0], (int)$h[0][1], (string)$h[0][2], (int)$h[0][3]];
+    if ((int)$n[0][0] !== $teile) throw new InvalidArgumentException('Upload unvollständig – bitte neu hochladen');
+    $ordner = datei_ordner();
+    if ($ordner === null || !is_dir("$ordner/.hoch/$id")) return;
+    $roh = '';
+    for ($i = 0; $i < $teile; $i++) $roh .= (string)@file_get_contents("$ordner/.hoch/$id/$i");
+    array_map('unlink', glob("$ordner/.hoch/$id/*") ?: []);
+    @rmdir("$ordner/.hoch/$id");
+    if (!isset(DATEI_FORMATE[$endung]) || strlen($roh) !== $groesse || !hash_equals($sha, hash('sha256', $roh))) return;
+    $p = datei_pfad($ordner, $sha, $endung);
+    if ((is_dir(dirname($p)) || @mkdir(dirname($p), 0700, true)) && @file_put_contents("$p.neu", $roh) === $groesse && @rename("$p.neu", $p)) {
+        sql([["INSERT INTO datei (sha, endung, groesse, teile, status, zeit_utc) VALUES (?, ?, ?, 0, 'abgelegt', ?) ON CONFLICT(sha) DO NOTHING",
+              [$sha, $endung, $groesse, jetzt_utc()]]]);
     }
 }
 

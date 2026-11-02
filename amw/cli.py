@@ -391,9 +391,12 @@ def cmd_frage(a, con):
         for o in a.option or []:
             kenn, _, text = o.partition("=")
             optionen.append((kenn.strip(), text.strip()))
+        from . import dokumente
+        anhaenge = dokumente.anhaenge_pruefen(con, pid, a.anhang or [], [k for k, _ in optionen])   # vor dem Anlegen
         fid = kern.frage_neu(con, pid, _von(a), a.an, a.kurz, optionen, a.empfehlung, a.grund, a.worum,
                              a.fundstellen, a.aufgabe, a.blockiert)
-        print(f"F{fid} angelegt")
+        zusatz = dokumente.anhaenge_setzen(con, pid, _von(a), fid, anhaenge)
+        print(f"F{fid} angelegt" + (" – Varianten: " + ", ".join(f"{k}=D{d}" for k, d in zusatz.items()) if zusatz else ""))
     elif a.aktion == "liste":
         for r in kern.offene_fragen(con, pid, a.an):
             opt = " · ".join(f"{o['kenn']}) {o['text']}" for o in json.loads(r["optionen"]))
@@ -583,6 +586,8 @@ def cmd_dokument(a, con):
         did = dokumente.ablegen(con, pid, _von(a), datei, a.titel, a.art or "ergebnis", a.notiz, a.online, **bezug)
         print(f"D{did} abgelegt – ansehen: Workbench › Dokumente oder `amw dokument zeigen {did}`")
         return
+    if a.aktion == "einsammeln":
+        return _einsammeln(a, con, pid)
     if a.aktion == "liste":
         b_art = next((k for k, v in bezug.items() if v), None)
         for d in dokumente.liste(con, pid, a.art, b_art, int(str(bezug[b_art]).lstrip("ABFabf")) if b_art else None,
@@ -625,6 +630,32 @@ def cmd_dokument(a, con):
         if not a.ja:
             raise kern.AmwFehler("Endgültig löschen mit --ja bestätigen (archivieren geht ohne)")
         print(f"D{nr} gelöscht ({dokumente.loeschen(con, pid, _von(a), nr)} Datei(en) entfernt)")
+
+
+def _einsammeln(a, con, pid):
+    from . import einsammeln
+    if a.uebernehmen:
+        if not a.frage:
+            raise kern.AmwFehler("--uebernehmen braucht --frage <F-nr> (die beantwortete Frage zur Liste)")
+        angelegt, weg = einsammeln.uebernehmen(con, pid, _von(a), int(str(a.frage).lstrip("Ff")), a.nur)
+        for rel, did in angelegt:
+            print(f"D{did}  {rel}")
+        for rel, grund in weg:
+            print(f"–      {rel}: {grund}")
+        print(f"{len(angelegt)} übernommen, {len(weg)} übersprungen")
+        return
+    ordner = a.datei or a.nr
+    if not ordner:
+        raise kern.AmwFehler("Ordner fehlt: amw dokument einsammeln <ordner> [--melden]")
+    liste = einsammeln.liste(con, pid, ordner)
+    if a.melden:
+        did, fid = einsammeln.melden(con, pid, _von(a), liste)
+        n, groesse = einsammeln.summe(liste)
+        print(f"Liste als D{did} abgelegt, Frage F{fid} an den Entwickler ({n} Dateien vorgeschlagen). Übernehmen erst nach"
+              f" der Antwort: amw dokument einsammeln --uebernehmen --frage {fid}")
+        return
+    print(einsammeln.bericht(liste).split("<details>")[0].rstrip())
+    print("\nNur gelesen. Zur Freigabe: dieselbe Zeile mit --melden (Liste als Dokument + Frage an den Entwickler).")
 
 
 def cmd_notiz(a, con):
@@ -1011,6 +1042,8 @@ def parser():
     x.add_argument("--blockiert", action="store_true")
     x.add_argument("--text")
     x.add_argument("--rueckfrage")
+    x.add_argument("--anhang", action="append", help="neu: Bild/Mockup zu einer Option, 'A=datei.png' oder 'A=D12' (mehrfach) –"
+                                                     " erscheint als Variante zum Anklicken, auch online")
     x.set_defaults(f=cmd_frage)
 
     x = s.add_parser("halt", help="alle oder einen Agenten anhalten")
@@ -1197,10 +1230,11 @@ def parser():
 
     x = s.add_parser("dokument", help="Ergebnisse ablegen und finden: ablegen <datei> | version <nr> <datei> | liste | zeigen <nr>"
                                       " | kommentar|ueberarbeiten <nr> --text … | zuordnen <nr> | archivieren|wiederherstellen <nr>"
-                                      " | online|offline <nr> | loeschen <nr> --ja")
+                                      " | online|offline <nr> | loeschen <nr> --ja | einsammeln <ordner> [--melden]"
+                                      " | einsammeln --uebernehmen --frage <nr>")
     x.add_argument("aktion", choices=["ablegen", "version", "liste", "zeigen", "kommentar", "ueberarbeiten", "zuordnen",
-                                      "archivieren", "wiederherstellen", "online", "offline", "loeschen"])
-    x.add_argument("nr", nargs="?", help="ablegen: die Datei; sonst Nummer des Dokuments (D12 oder 12)")
+                                      "archivieren", "wiederherstellen", "online", "offline", "loeschen", "einsammeln"])
+    x.add_argument("nr", nargs="?", help="ablegen: die Datei; einsammeln: der Ordner; sonst Nummer des Dokuments (D12 oder 12)")
     x.add_argument("pfad", nargs="?", help="version: die neue Datei")
     x.add_argument("--datei", help="statt der Positionsangabe (Brücke: nur aus eingang-tl/)")
     x.add_argument("--titel")
@@ -1215,6 +1249,9 @@ def parser():
     x.add_argument("--alle", action="store_true", help="liste: auch archivierte und gelöschte")
     x.add_argument("--text", help="kommentar/ueberarbeiten: was zu sagen ist")
     x.add_argument("--ja", action="store_true", help="loeschen: bestätigen")
+    x.add_argument("--melden", action="store_true", help="einsammeln: Liste als Dokument ablegen und den Entwickler fragen")
+    x.add_argument("--uebernehmen", action="store_true", help="einsammeln: nach der Antwort auf --frage übernehmen")
+    x.add_argument("--nur", action="append", help="einsammeln --uebernehmen: nur diese Ablage (Unterordner), mehrfach")
     x.set_defaults(f=cmd_dokument)
 
     x = s.add_parser("notiz", help="gepflegte Notizen (Schlüssel/Wert)")

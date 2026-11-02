@@ -34,7 +34,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`wortlaut`](#wortlaut) | Aussage des Entwicklers wörtlich erfassen |
 | [`beschluss`](#beschluss) | Beschluss anlegen (optional einen alten ersetzen) |
 | [`regel`](#regel) | Regel anlegen/ändern – nur mit Beschluss |
-| [`dokument`](#dokument) | Ergebnisse ablegen und finden: ablegen <datei> ¦ version <nr> <datei> ¦ liste ¦ zeigen <nr> ¦ kommentar¦ueberarbeiten <nr> --text … ¦ zuordnen <nr> ¦ archivieren¦wiederherstellen <nr> ¦ online¦offline <nr> ¦ loeschen <nr> --ja |
+| [`dokument`](#dokument) | Ergebnisse ablegen und finden: ablegen <datei> ¦ version <nr> <datei> ¦ liste ¦ zeigen <nr> ¦ kommentar¦ueberarbeiten <nr> --text … ¦ zuordnen <nr> ¦ archivieren¦wiederherstellen <nr> ¦ online¦offline <nr> ¦ loeschen <nr> --ja ¦ einsammeln <ordner> [--melden] ¦ einsammeln --uebernehmen --frage <nr> |
 | [`notiz`](#notiz) | gepflegte Notizen (Schlüssel/Wert) |
 | [`dienst`](#dienst) | Wächter als geplante Windows-Aufgabe: einrichten ¦ entfernen ¦ status ¦ neustart ¦ vordergrund (ohne Aufgabe in diesem Fenster, zum Ausprobieren) |
 | [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Abgleich) ¦ zweitfaktor-neu ¦ bauen ¦ schema |
@@ -233,8 +233,8 @@ options:
 usage: amw frage [-h] [--an {entwickler,tl}] [--kurz KURZ] [--worum WORUM]
                  [--option OPTION] [--empfehlung EMPFEHLUNG] [--grund GRUND]
                  [--fundstellen FUNDSTELLEN] [--aufgabe AUFGABE] [--blockiert]
-                 [--text TEXT] [--rueckfrage RUECKFRAGE] [--von VON]
-                 [--projekt PROJEKT]
+                 [--text TEXT] [--rueckfrage RUECKFRAGE] [--anhang ANHANG]
+                 [--von VON] [--projekt PROJEKT]
                  {neu,liste,antworten,nachtrag,verlauf} [id]
 
 positional arguments:
@@ -254,6 +254,9 @@ options:
   --blockiert
   --text TEXT
   --rueckfrage RUECKFRAGE
+  --anhang ANHANG       neu: Bild/Mockup zu einer Option, 'A=datei.png' oder
+                        'A=D12' (mehrfach) – erscheint als Variante zum
+                        Anklicken, auch online
   --von VON
   --projekt PROJEKT
 ```
@@ -681,14 +684,15 @@ usage: amw dokument [-h] [--datei DATEI] [--titel TITEL]
                     [--notiz NOTIZ] [--bogen BOGEN] [--aufgabe AUFGABE]
                     [--frage FRAGE] [--beschluss BESCHLUSS] [--loesen]
                     [--online] [--agent AGENT] [--suche SUCHE] [--alle]
-                    [--text TEXT] [--ja] [--von VON] [--projekt PROJEKT]
-                    {ablegen,version,liste,zeigen,kommentar,ueberarbeiten,zuordnen,archivieren,wiederherstellen,online,offline,loeschen}
+                    [--text TEXT] [--ja] [--melden] [--uebernehmen]
+                    [--nur NUR] [--von VON] [--projekt PROJEKT]
+                    {ablegen,version,liste,zeigen,kommentar,ueberarbeiten,zuordnen,archivieren,wiederherstellen,online,offline,loeschen,einsammeln}
                     [nr] [pfad]
 
 positional arguments:
-  {ablegen,version,liste,zeigen,kommentar,ueberarbeiten,zuordnen,archivieren,wiederherstellen,online,offline,loeschen}
-  nr                    ablegen: die Datei; sonst Nummer des Dokuments (D12
-                        oder 12)
+  {ablegen,version,liste,zeigen,kommentar,ueberarbeiten,zuordnen,archivieren,wiederherstellen,online,offline,loeschen,einsammeln}
+  nr                    ablegen: die Datei; einsammeln: der Ordner; sonst
+                        Nummer des Dokuments (D12 oder 12)
   pfad                  version: die neue Datei
 
 options:
@@ -711,6 +715,11 @@ options:
   --alle                liste: auch archivierte und gelöschte
   --text TEXT           kommentar/ueberarbeiten: was zu sagen ist
   --ja                  loeschen: bestätigen
+  --melden              einsammeln: Liste als Dokument ablegen und den
+                        Entwickler fragen
+  --uebernehmen         einsammeln: nach der Antwort auf --frage übernehmen
+  --nur NUR             einsammeln --uebernehmen: nur diese Ablage
+                        (Unterordner), mehrfach
   --von VON
   --projekt PROJEKT
 ```

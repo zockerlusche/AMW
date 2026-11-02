@@ -16,6 +16,7 @@ import io
 import json
 import logging
 import os
+import re
 import sqlite3
 import threading
 import time
@@ -98,13 +99,32 @@ def argumente(befehl, eingang=EINGANG):
     for i, a in enumerate(args):
         if a.startswith("--datei="):
             raise ValueError("--datei bitte als eigenen Schlüssel angeben")
+        if a.startswith("--anhang="):
+            raise ValueError("--anhang bitte als eigenen Schlüssel angeben")
         if a == "--datei" and i + 1 < len(args):           # relativ zu eingang-tl/, wird absolut weitergegeben
-            wurzel = os.path.realpath(eingang)
-            pfad = os.path.realpath(os.path.join(wurzel, args[i + 1]))
-            if os.path.commonpath([wurzel, pfad]) != wurzel:
-                raise ValueError("--datei über die Brücke nur aus eingang-tl/ (z. B. \"plan/spec-3.md\")")
-            args[i + 1] = pfad
+            args[i + 1] = _im_eingang(eingang, args[i + 1], "--datei")
+        if a == "--anhang" and i + 1 < len(args):          # A=datei (aus eingang-tl/) oder A=D12
+            kenn, _, ref = args[i + 1].partition("=")
+            if not re.fullmatch(r"[Dd]?\d+", ref.strip()):
+                args[i + 1] = f"{kenn}={_im_eingang(eingang, ref.strip(), '--anhang')}"
+    # Dateien nur über --datei (geprüft): sonst ginge eine Positionsangabe an der Prüfung vorbei
+    if args[0] == "dokument" and len(args) > 1 and args[1] in ("ablegen", "version"):
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                ns = cli.parser().parse_args(args)
+        except SystemExit:
+            ns = None                                      # falsch aufgerufen – meldet der Befehl selbst
+        if ns is not None and (args[1] == "ablegen" and ns.nr or args[1] == "version" and ns.pfad):
+            raise ValueError("Dateien über die Brücke nur mit --datei aus eingang-tl/")
     return args + ["--von", VON]
+
+
+def _im_eingang(eingang, rel, schalter):
+    wurzel = os.path.realpath(eingang)
+    pfad = os.path.realpath(os.path.join(wurzel, rel))
+    if os.path.commonpath([wurzel, pfad]) != wurzel:
+        raise ValueError(f"{schalter} über die Brücke nur aus eingang-tl/ (z. B. \"plan/spec-3.md\")")
+    return pfad
 
 
 def puls(kennung=None, taetigkeit=None):

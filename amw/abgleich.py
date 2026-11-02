@@ -17,10 +17,12 @@ Zugang: %LOCALAPPDATA%\\amw\\turso.json {"url", "token", "abgleich": true}. Ohne
 Der Schlüssel wird nie ausgegeben oder protokolliert.
 """
 import base64
+import datetime
 import hashlib
 import json
 import logging
 import os
+import re
 import sqlite3
 import threading
 import time
@@ -39,6 +41,7 @@ TEIL = 256 * 1024    # Datei-Teil in Bytes (Base64 ~350 KB je Zeile)
 TEILE_JE_ANFRAGE = 4             # ~1,4 MB je Anfrage an den Speicher
 DATEIEN_JE_SCHRITT = 8 << 20     # so viel höchstens je Durchgang hochladen, der Rest beim nächsten
 TEXT_MAX = 400_000   # Zeichen je Text-Version online (sehr lange Texte gekürzt, vollständig am PC)
+HOCH_ALT_S = 86400   # Uploads vom Handy, die nie fertig wurden, nach einem Tag aus dem Speicher
 
 SCHEMA = [
     "CREATE TABLE IF NOT EXISTS ansicht (weg TEXT PRIMARY KEY, inhalt TEXT NOT NULL, pruef TEXT NOT NULL,"
@@ -53,6 +56,9 @@ SCHEMA = [
     " teile INTEGER NOT NULL, status TEXT NOT NULL, zeit_utc TEXT NOT NULL)",
     "CREATE TABLE IF NOT EXISTS datei_teil (sha TEXT NOT NULL, nr INTEGER NOT NULL, inhalt TEXT NOT NULL,"
     " PRIMARY KEY (sha, nr))",
+    "CREATE TABLE IF NOT EXISTS hoch (id TEXT PRIMARY KEY, name TEXT NOT NULL, endung TEXT NOT NULL, groesse INTEGER NOT NULL,"
+    " sha TEXT NOT NULL, teile INTEGER NOT NULL, zeit_utc TEXT NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS hoch_teil (id TEXT NOT NULL, nr INTEGER NOT NULL, inhalt TEXT NOT NULL, PRIMARY KEY (id, nr))",
 ]
 SICHTEN = ("offen", "geparkt", "pool", "erledigt")
 
@@ -154,6 +160,25 @@ def speicher_aus_zugang(nur_wenn_an=True):
 
 
 # --- Abgleich ------------------------------------------------------------------------------------
+
+def hoch_holen(sp, hid):
+    """Upload vom Handy aus dem Speicher holen (die Seite hat ihn in Teilen abgelegt) → (roh, name). Prüft Größe und
+    Prüfsumme; die Teile löscht danach Abgleich.hoch_weg."""
+    from . import dokumente
+    hid = str(hid or "")
+    if not re.fullmatch(r"[0-9a-f]{32}", hid):
+        raise kern.AmwFehler("Upload-Kennung")
+    kopf = sp.ausfuehren([("SELECT name, groesse, sha, teile FROM hoch WHERE id = ?", [hid])])[0]
+    if not kopf:
+        raise kern.AmwFehler("Upload nicht (mehr) im Speicher – bitte neu hochladen")
+    name, groesse, sha, teile = kopf[0][0], int(kopf[0][1]), kopf[0][2], int(kopf[0][3])
+    roh = b""
+    for i in range(0, teile, 8):
+        for (b64,) in sp.ausfuehren([("SELECT inhalt FROM hoch_teil WHERE id = ? AND nr >= ? AND nr < ? ORDER BY nr",
+                                      [hid, i, i + 8])])[0]:
+            roh += base64.b64decode(b64)
+    return dokumente.hoch_pruefen(roh, groesse, sha), name
+
 
 def ansichten(con, pid, speicher=None):
     """Dieselben Antworten wie die lokale Workbench, Schlüssel = Weg, wie ihn die Seite anfragt."""
@@ -287,7 +312,12 @@ class Abgleich:
         self.oben_laden()
 
     def oben_laden(self):
-        self.oben = {s: st for s, st in self.sp.ausfuehren([("SELECT sha, status FROM datei", [])])[0]}
+        alt = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=HOCH_ALT_S)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        self.oben = {s: st for s, st in self.sp.ausfuehren([
+            ("SELECT sha, status FROM datei", []),
+            # Uploads vom Handy, die nie fertig wurden (Funkloch, Seite zu): nach einem Tag weg
+            ("DELETE FROM hoch_teil WHERE id IN (SELECT id FROM hoch WHERE zeit_utc < ?)", [alt]),
+            ("DELETE FROM hoch WHERE zeit_utc < ?", [alt])])[0]}
         self.letzt_oben = time.time()
 
     def dateien(self):
@@ -384,9 +414,22 @@ class Abgleich:
                 self.con.execute("INSERT INTO netz_eingang (id, ergebnis, zeit_utc, merkmal) VALUES (?, ?, ?, ?)",
                                  (eid, json.dumps([status, ergebnis], ensure_ascii=False), db.jetzt(), merkmal))
                 log.info("Briefkasten #%s %s → %s", eid, weg, status)
+                if weg == "/api/dokument/neu":
+                    self.hoch_weg(roh)
             self.sp.ausfuehren([("UPDATE eingang SET status = ?, ergebnis = ?, erledigt_utc = ? WHERE id = ?",
                                  [status, json.dumps(ergebnis, ensure_ascii=False), db.jetzt(), eid])])
+        if any(w == "/api/dokument/neu" for _, w, _, _ in zeilen):
+            self.oben_laden()                          # die Seite hat ihre Kopie schon abgelegt – nicht noch einmal hochladen
         return len(zeilen)
+
+    def hoch_weg(self, daten):
+        """Teile eines Uploads im Speicher löschen – nach dem Übernehmen und auch, wenn er nicht übernommen wurde."""
+        try:
+            hid = str(json.loads(daten).get("hoch") or "")
+        except (ValueError, AttributeError):
+            return
+        if re.fullmatch(r"[0-9a-f]{32}", hid):
+            self.sp.ausfuehren([("DELETE FROM hoch_teil WHERE id = ?", [hid]), ("DELETE FROM hoch WHERE id = ?", [hid])])
 
     def schritt(self, geaendert):
         """Ein Durchgang der Schleife; `geaendert`: die lokale Datenbank hat sich seit dem letzten Mal geändert."""

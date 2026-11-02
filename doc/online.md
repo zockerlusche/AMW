@@ -17,7 +17,7 @@ PC (Wächter)                               Online-Speicher (Turso)             
 - **Briefkasten:** Online erlaubt sind: Frage beantworten, Nachricht an Agenten (Auftrag, Frage, Info, Korrektur,
   Freigabe), Nachrichten an dich als gelesen markieren, Halt, Weiter, Projekt-/Agenten-/Seiten-Einstellungen,
   Planung (Freigaben, Leitbild, Bögen, Risiken, Rückblick), Dokumente (kommentieren, überarbeiten lassen, zuordnen,
-  archivieren, Datei online anfordern). Die Seite legt eine Zeile ab; der PC prüft und führt sie mit
+  archivieren, Datei online anfordern, Text berichtigen, hochgeladene Datei anlegen). Die Seite legt eine Zeile ab; der PC prüft und führt sie mit
   demselben Code aus wie lokal (`amw/aktionen.py`) – höchstens einmal – und meldet das Ergebnis zurück.
 - **Nur am PC** (online abgewiesen, auch vom PC selbst): Einstellungen dieses PCs, Online-Zugang, Push-Zugänge,
   Agenten-Profile, Agenten starten/beenden, Push-Probe, Dokument endgültig löschen.
@@ -28,6 +28,12 @@ PC (Wächter)                               Online-Speicher (Turso)             
   Ausgeliefert wird sie nur nach der Anmeldung, mit Browser-Cache. Steht ein Dokument wieder „nur am PC“, meldet der PC
   die Datei ab und die Seite löscht ihre Kopie (spätestens nach 10 min). Dafür braucht der PC weder die Adresse der Seite
   noch einen weiteren Schlüssel. Texte (Markdown) gehen immer als Ansicht mit.
+- **Hochladen vom Handy** (`hoch`, `hoch_teil`): Der Browser rechnet Fotos neu (ohne Standort/EXIF) und schickt die Datei in
+  Teilen zu 192 KB mit Prüfsumme an `/api/hochladen`. Die Seite legt die Teile in den Speicher und zugleich in ihre Ablage;
+  ist alles da, meldet `/api/dokument/neu` die Datei über den Briefkasten. Der PC holt die Teile, prüft Größe, Prüfsumme und
+  Inhalt (Format, Geheimnis-Muster), legt das Dokument an und löscht die Teile. Die Kopie auf dem Webspace gilt als
+  abgelegt, steht das Dokument nicht online, meldet der PC sie wieder ab. Grenzen: 25 MB je Datei, 100 MB unterwegs,
+  60 Uploads je Stunde; Liegengebliebenes ist nach einem Tag weg.
 - **Eine Seite für beide:** `amw/workbench.html`; `amw web bauen` kopiert sie nach `web/inc/seite.html`.
 
 ## 2 Einrichten (etwa 15 Minuten)
@@ -67,6 +73,7 @@ Ordner beim Hoster leeren oder in Turso Lesen/Schreiben blockieren.
 | Dateien | Nur `index.php` und `api.php` sind erreichbar; `inc/` und versteckte Dateien gesperrt |
 | Wirkung | Absender ist immer „Entwickler“, Kanal `netz`; der PC prüft jede Zeile noch einmal |
 | Dokument-Dateien | nur nach Anmeldung; Mockups (HTML) und SVG abgeschottet (CSP `sandbox`), Office nur als Download; Ablage außerhalb des Web-Ordners |
+| Hochladen | nur angemeldet mit CSRF-Schlüssel; Formatliste, Größen- und Mengengrenzen auf der Seite, Prüfsumme und Geheimnis-Prüfung am PC |
 
 Der Code ist öffentlich; die Sicherheit hängt nur an den Zugangsdaten (Passwort, TOTP-Geheimnis, Turso-Schlüssel), die
 nie im Repo stehen. Wer dein Hoster-, GitHub- oder Turso-Konto übernimmt, kann im Namen des Entwicklers handeln –

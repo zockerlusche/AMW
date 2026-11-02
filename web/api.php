@@ -63,9 +63,15 @@ if (!str_starts_with($pfad, '/api/')) antwort(404, ['fehler' => 'unbekannt']);
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!herkunft_ok() || !csrf_ok($_SERVER['HTTP_X_AMW_TOKEN'] ?? null)) antwort(403, ['fehler' => 'nicht erlaubt']);
-        $roh = file_get_contents('php://input', false, null, 0, 32768);
+        $grenze = match ($pfad) { '/api/hochladen' => 400000, '/api/dokument/text' => 2000000, default => 32768 };
+        $roh = file_get_contents('php://input', false, null, 0, $grenze);
         $daten = json_decode((string)$roh, true);
         if (!is_array($daten)) antwort(400, ['fehler' => 'JSON']);
+        if ($pfad === '/api/hochladen') {                  // Teile direkt in den Speicher, nicht über den Briefkasten
+            try { antwort(200, hochladen($daten)); }
+            catch (InvalidArgumentException $x) { antwort(400, ['fehler' => $x->getMessage()]); }
+            catch (LengthException $x) { antwort(429, ['fehler' => $x->getMessage()]); }
+        }
         $frage = preg_match('#^/api/frage/(\d{1,9})/antwort$#', $pfad, $m);
         if (in_array($pfad, ['/api/einstellungen/pc', '/api/einstellungen/turso', '/api/einstellungen/push', '/api/einstellungen/profil',
                 '/api/agent/start', '/api/agent/stop', '/api/push/probe'], true)) {
@@ -75,7 +81,8 @@ try {
                 '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web',
                 '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko',
                 '/api/plan/rueckblick', '/api/plan/uebernehmen', '/api/plan/check',
-                '/api/dokument/kommentar', '/api/dokument/setzen', '/api/dokument/status', '/api/dokument/online'], true)) {
+                '/api/dokument/kommentar', '/api/dokument/setzen', '/api/dokument/status', '/api/dokument/online',
+                '/api/dokument/text', '/api/dokument/neu'], true)) {
             antwort(404, ['fehler' => 'unbekannt']);
         }
         // Prüfen, was der PC sowieso prüft, schon hier – damit Fehler sofort sichtbar sind
@@ -88,7 +95,20 @@ try {
         if ($pfad === '/api/nachricht' && !in_array($daten['art'] ?? 'auftrag', ['auftrag', 'frage', 'info', 'korrektur', 'freigabe'], true)) {
             antwort(400, ['fehler' => 'Art nicht erlaubt']);
         }
-        if (str_starts_with($pfad, '/api/dokument/') && (!is_int($daten['id'] ?? null) || $daten['id'] < 1)) antwort(400, ['fehler' => 'id fehlt']);
+        if (str_starts_with($pfad, '/api/dokument/') && $pfad !== '/api/dokument/neu' && (!is_int($daten['id'] ?? null) || $daten['id'] < 1)) antwort(400, ['fehler' => 'id fehlt']);
+        if ($pfad === '/api/dokument/text') {               // berichtigen: Konflikt schon hier erkennen (der PC prüft noch einmal)
+            $text = $daten['text'] ?? null;
+            if (!is_string($text) || trim($text) === '' || mb_strlen($text) > 400000 || !is_int($daten['basis'] ?? null)) antwort(400, ['fehler' => 'Text oder Version fehlt']);
+            $z = sql([['SELECT inhalt FROM ansicht WHERE weg = ?', ['/api/dokument?id=' . $daten['id']]]])[0];
+            $neueste = $z ? max(array_column(json_decode($z[0][0], true)['versionen'] ?? [], 'nr') ?: [0]) : 0;
+            if ($neueste && $neueste !== $daten['basis']) antwort(409, ['fehler' => "Inzwischen gibt es v$neueste – nichts gespeichert. Dein Text bleibt im Editor; vergleiche mit der neuen Version und speichere dann erneut.", 'neueste' => $neueste]);
+        }
+        if ($pfad === '/api/dokument/neu') {
+            if (!preg_match('/^[0-9a-f]{32}$/', (string)($daten['hoch'] ?? '')) || mb_strlen((string)($daten['titel'] ?? '')) > 200
+                || !in_array($daten['art'] ?? '', ['', 'ergebnis', 'bericht', 'entwurf', 'mockup', 'bild', 'quelle'], true)) antwort(400, ['fehler' => 'Upload, Titel oder Art']);
+            try { hoch_abschliessen((string)$daten['hoch']); }
+            catch (InvalidArgumentException $x) { antwort(400, ['fehler' => $x->getMessage()]); }
+        }
         if ($pfad === '/api/dokument/kommentar' && trim((string)($daten['text'] ?? '')) === '') antwort(400, ['fehler' => 'Text fehlt']);
         if ($pfad === '/api/dokument/status' && !in_array($daten['status'] ?? '', ['aktuell', 'archiviert'], true)) antwort(400, ['fehler' => 'Status']);
         if ($pfad === '/api/gelesen' && (!is_array($daten['ids'] ?? null) || !$daten['ids'] || array_filter($daten['ids'], fn($i) => !is_int($i)))) {

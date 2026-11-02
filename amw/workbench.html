@@ -288,6 +288,60 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .md h1, .md h2, .md h3, .md h4 { text-transform: none; letter-spacing: .01em; color: var(--tinte); display: block; }
 .md h1::before, .md h1::after, .md h2::before, .md h2::after, .md h3::after { content: none; }
 .dk-aktionen a.klein-knopf { text-decoration: none; display: inline-flex; align-items: center; }
+/* D3: Varianten in Fragen, Versionsvergleich, Editor, Hochladen */
+.varianten { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: 12px 0 4px; }
+.variante { display: grid; grid-template-rows: 160px auto; padding: 0; border: 1px solid var(--linie); border-radius: 4px; background: var(--flaeche);
+  overflow: hidden; cursor: zoom-in; color: inherit; font: inherit; text-align: left; }
+.variante:hover, .variante:focus-visible { border-color: var(--leise); }
+.variante.empfohlen { border-color: var(--bernstein); }
+.variante-bild { position: relative; overflow: hidden; background: var(--flaeche2); display: grid; place-items: center; border-bottom: 1px solid var(--linie); }
+.variante-bild img { width: 100%; height: 100%; object-fit: cover; }
+.variante-bild iframe { position: absolute; left: 0; top: 0; width: 300%; height: 300%; transform: scale(.3334); transform-origin: 0 0; border: 0;
+  pointer-events: none; background: #fff; }
+.variante-text { padding: 8px 11px; display: flex; gap: 9px; align-items: baseline; font-size: 14px; }
+.variante-text .kenn { font: 600 15px var(--titel); color: var(--leise); }
+.variante.empfohlen .kenn { color: var(--bernstein); }
+.df { font: 12.5px/1.55 var(--mono); border: 1px solid var(--linie); border-radius: 3px; overflow: auto; max-height: 68vh; background: var(--flaeche2); }
+.df-z { display: grid; grid-template-columns: 42px 42px 18px minmax(0, 1fr); }
+.df-n { color: var(--sehrleise); text-align: right; padding-right: 7px; user-select: none; border-right: 1px solid var(--linie); font-size: 11.5px; }
+.df-z-zeichen { text-align: center; color: var(--leise); user-select: none; }
+.df-t { white-space: pre-wrap; overflow-wrap: anywhere; padding-right: 10px; }
+.df-weg { background: var(--rot-weich); }
+.df-neu { background: color-mix(in srgb, var(--gruen) 14%, transparent); }
+.df-weg mark { background: color-mix(in srgb, var(--rot) 38%, transparent); color: inherit; border-radius: 2px; }
+.df-neu mark { background: color-mix(in srgb, var(--gruen) 40%, transparent); color: inherit; border-radius: 2px; }
+.df-luecke { display: block; width: 100%; border: 0; border-block: 1px dashed var(--linie); background: var(--flaeche); color: var(--leise);
+  font: 12px var(--text); padding: 3px; cursor: pointer; }
+.df-luecke:hover { color: var(--tinte); }
+.df-plus { color: var(--gruen); font-weight: 600; } .df-minus { color: var(--rot); font-weight: 600; }
+.df-paar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.df-seite { display: grid; gap: 6px; align-content: start; }
+.df-seite img { display: block; max-width: 100%; border: 1px solid var(--linie); cursor: zoom-in; }
+.df-seite iframe { width: 100%; height: 62vh; border: 1px solid var(--linie); background: #fff; }
+.dk-editor { display: block; width: 100%; height: max(240px, calc(88vh - 320px)); box-sizing: border-box; resize: vertical; font: 13.5px/1.6 var(--mono); tab-size: 2;
+  background: var(--flaeche2); color: var(--tinte); border: 1px solid var(--linie); border-radius: 3px; padding: 12px 14px; }
+.dk-editor:focus { outline: none; border-color: var(--bernstein); }
+.dk-ed-vorschau { height: max(240px, calc(88vh - 320px)); max-height: none; }
+.dk-ed-unten { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+.dk-ed-unten input:not([type]) { flex: 1 1 320px; }
+.dk-ed-unten .aktionen { margin: 0 0 0 auto; }
+.reiter .rechts { margin-left: auto; padding: 0 4px 8px; }
+.dk-seite h4 .dk-vergleich-knopf { margin-left: 8px; padding: 1px 8px; font: 12px var(--text); letter-spacing: 0; text-transform: none; vertical-align: 1px; }
+.hl-zone { border: 2px dashed var(--linie2); border-radius: 4px; padding: 20px 14px; text-align: center; margin-bottom: 10px; transition: border-color .15s, background .15s; }
+.hl-zone.drueber { border-color: var(--bernstein); background: var(--bernstein-weich); }
+.hl-datei { display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--linie); }
+.hl-datei img, .hl-datei .dk-symbol { width: 60px; height: 44px; object-fit: cover; border-radius: 2px; display: grid; place-items: center; background: var(--flaeche2); font-size: 11px; }
+.hl-name { overflow-wrap: anywhere; font-size: 14px; }
+.hl-datei progress { width: 100%; height: 6px; accent-color: var(--bernstein); }
+.hl-schalter { display: block; margin: 6px 0; }
+@media (max-width: 760px) {
+  .df-paar { grid-template-columns: minmax(0, 1fr); }
+  .df-z { grid-template-columns: 30px 30px 14px minmax(0, 1fr); }
+  .varianten { grid-template-columns: minmax(0, 1fr); }
+  .variante { grid-template-rows: 190px auto; }
+  .dk-editor, .dk-ed-vorschau { height: max(220px, calc(100vh - 380px)); font-size: 14px; }
+  .dk-ed-unten .aktionen { margin: 0; width: 100%; justify-content: flex-end; }
+}
 .md p, .md ul, .md ol, .md pre, .md table, .md blockquote { margin: 0 0 .8em; }
 .md code { font: 13px var(--mono); background: var(--flaeche); padding: 1px 4px; border-radius: 2px; }
 .md pre { background: var(--flaeche); border: 1px solid var(--linie); padding: 10px 12px; overflow-x: auto; }
@@ -681,7 +735,22 @@ const TEXTE = {
     dk_oeffnen: "In neuem Tab", dk_herunterladen: "Herunterladen", dk_zuordnen: "Zuordnen …", dk_archivieren: "Archivieren", dk_archiviert: "Archiviert",
     dk_wiederherstellen: "Wiederherstellen", dk_online: "Auch online zeigen", dk_offline: "Nur am PC", dk_online_an: "Datei auch online", dk_online_aus: "Datei nur am PC",
     dk_nur_pc_text: "Die Datei liegt nur am PC. Auf Wunsch lädt der PC sie hoch – sie bleibt online, bis du sie wieder auf „Nur am PC“ stellst.",
-    dk_anfordern: "Online anfordern", dk_alle_anfordern: "Alle Dateien von {x} anfordern",
+    dk_anfordern: "Online anfordern",
+    dk_bearbeiten: "Bearbeiten", dk_als_neue: "Diese Fassung bearbeiten …", dk_schreiben: "Schreiben", dk_vorschau: "Vorschau",
+    dk_notiz_ph: "Was hast du geändert? (steht in der Versionsliste)", dk_melden_an: "{x} benachrichtigen", dk_speichern_als: "Als v{n} speichern",
+    dk_abbrechen: "Abbrechen", dk_verwerfen: "Änderungen verwerfen?", dk_nichts_geaendert: "Nichts geändert.", dk_gespeichert: "Gespeichert als v{n}.",
+    dk_zeichen: "{n} Zeichen", dk_geaendert: "geändert", dk_unterschiede: "Unterschiede zur neuesten Fassung", dk_trotzdem: "Meinen Text trotzdem als v{n} speichern",
+    dk_konflikt_titel: "Neueste Fassung v{a} → dein Text", dk_ed_hilfe: "Strg+S speichert · Esc schließt", dk_ed_basis: "Auf Grundlage von v{v} – wird v{n}",
+    dk_vergleichen: "Vergleichen", dk_vergleich: "Vergleich", dk_df_gleich: "Keine Unterschiede.", dk_df_luecke: "… {n} unveränderte Zeilen – zeigen",
+    dk_df_zeilen: "Zeilen", dk_laedt: "Lädt …",
+    dk_hochladen: "Hochladen", dk_hl_titel: "Dokument hochladen", dk_hl_zone: "Dateien hierher ziehen oder ein Bildschirmfoto mit Strg+V einfügen", dk_hl_zone_netz: "Foto aufnehmen oder Datei wählen",
+    dk_hl_waehlen: "Datei wählen", dk_hl_foto: "Foto aufnehmen", dk_hl_titel_mehr: "Mehrere Dateien: der Titel kommt je Datei aus dem Dateinamen.",
+    dk_art_auto: "nach Format", dk_bezug_ph: "z. B. A1234, F12, B5 oder Bogen 3 – leer: ohne Bezug", dk_bezug_falsch: "Bezug nicht erkannt – A1234, F12, B5 oder Bogen 3",
+    dk_hl_online: "Datei auch online zeigen", dk_hl_klein: "Fotos verkleinern (höchstens 2560 px). Standort und Kameradaten entfernt der Browser immer.",
+    dk_hl_los: "Hochladen", dk_hl_leer: "Keine Datei gewählt.", dk_hl_format: "Format nicht erlaubt – erlaubt: Markdown, Text, Bilder, HTML, PDF, DOCX, XLSX",
+    dk_hl_bereite: "wird vorbereitet …", dk_hl_fertig_pc: "{n} Dokument(e) angelegt.", dk_hl_fertig_netz: "Hochgeladen – der PC legt das Dokument gleich an.",
+    dk_kein_https: "Hochladen braucht eine sichere Verbindung (https).", dk_heic: "Dieses HEIC-Foto kann der Browser nicht lesen – bitte als JPEG senden.",
+    dk_anhaengen: "📎 Datei/Foto anhängen", dk_hl_bildschirmfoto: "Bildschirmfoto", dk_variante_tipp: "Groß ansehen – gewählt wird unten", dk_alle_anfordern: "Alle Dateien von {x} anfordern",
     dk_loeschen: "Endgültig löschen", dk_loeschen_frage: "„{x}“ endgültig löschen? Die Dateien werden entfernt – das lässt sich nicht rückgängig machen. (Archivieren reicht meist.)",
     dk_geloescht: "Gelöscht", dk_bild: "Bild", dk_anhaenge: "Anhänge", dk_n: "Dokumente ({n})", rb_knopf: "Rückblick ({n})", rb_gut: "lief gut", rb_schlecht: "lief nicht gut", rb_massnahme: "ändern wir",
     rb_gelernt: "gelernt", rb_ph: "Was war gut / schlecht, was ändern wir, was haben wir gelernt?", rb_hinzu: "Hinzufügen",
@@ -848,7 +917,22 @@ const TEXTE = {
     dk_oeffnen: "Open in new tab", dk_herunterladen: "Download", dk_zuordnen: "Assign …", dk_archivieren: "Archive", dk_archiviert: "Archived",
     dk_wiederherstellen: "Restore", dk_online: "Also show online", dk_offline: "PC only", dk_online_an: "file also online", dk_online_aus: "file on PC only",
     dk_nur_pc_text: "This file is on the PC only. On request the PC uploads it – it stays online until you set it back to “PC only”.",
-    dk_anfordern: "Request online", dk_alle_anfordern: "Request all files of {x}",
+    dk_anfordern: "Request online",
+    dk_bearbeiten: "Edit", dk_als_neue: "Edit this version …", dk_schreiben: "Write", dk_vorschau: "Preview",
+    dk_notiz_ph: "What did you change? (shown in the version list)", dk_melden_an: "notify {x}", dk_speichern_als: "Save as v{n}",
+    dk_abbrechen: "Cancel", dk_verwerfen: "Discard changes?", dk_nichts_geaendert: "Nothing changed.", dk_gespeichert: "Saved as v{n}.",
+    dk_zeichen: "{n} characters", dk_geaendert: "changed", dk_unterschiede: "Differences to the newest version", dk_trotzdem: "Save my text as v{n} anyway",
+    dk_konflikt_titel: "Newest version v{a} → your text", dk_ed_hilfe: "Ctrl+S saves · Esc closes", dk_ed_basis: "Based on v{v} – becomes v{n}",
+    dk_vergleichen: "Compare", dk_vergleich: "Comparison", dk_df_gleich: "No differences.", dk_df_luecke: "… {n} unchanged lines – show",
+    dk_df_zeilen: "lines", dk_laedt: "Loading …",
+    dk_hochladen: "Upload", dk_hl_titel: "Upload document", dk_hl_zone: "Drop files here or paste a screenshot with Ctrl+V", dk_hl_zone_netz: "Take a photo or choose a file",
+    dk_hl_waehlen: "Choose file", dk_hl_foto: "Take photo", dk_hl_titel_mehr: "Several files: each title comes from the file name.",
+    dk_art_auto: "by format", dk_bezug_ph: "e.g. A1234, F12, B5 or Bogen 3 – empty: none", dk_bezug_falsch: "Reference not recognised – A1234, F12, B5 or Bogen 3",
+    dk_hl_online: "Also show the file online", dk_hl_klein: "Shrink photos (at most 2560 px). The browser always removes location and camera data.",
+    dk_hl_los: "Upload", dk_hl_leer: "No file chosen.", dk_hl_format: "Format not allowed – allowed: Markdown, text, images, HTML, PDF, DOCX, XLSX",
+    dk_hl_bereite: "preparing …", dk_hl_fertig_pc: "{n} document(s) created.", dk_hl_fertig_netz: "Uploaded – the PC will create the document shortly.",
+    dk_kein_https: "Uploading needs a secure connection (https).", dk_heic: "The browser cannot read this HEIC photo – please send it as JPEG.",
+    dk_anhaengen: "📎 Attach file/photo", dk_hl_bildschirmfoto: "Screenshot", dk_variante_tipp: "View large – choose below", dk_alle_anfordern: "Request all files of {x}",
     dk_loeschen: "Delete for good", dk_loeschen_frage: "Delete “{x}” for good? The files are removed – this cannot be undone. (Archiving is usually enough.)",
     dk_geloescht: "Deleted", dk_bild: "Image", dk_anhaenge: "Attachments", dk_n: "Documents ({n})", rb_knopf: "Retro ({n})", rb_gut: "went well", rb_schlecht: "went badly", rb_massnahme: "we change", rb_gelernt: "learned",
     rb_ph: "What went well / badly, what do we change, what did we learn?", rb_hinzu: "Add", rb_titel: "Retro arc {b} “{x}”",
@@ -1197,7 +1281,7 @@ function frageKarte(f) {
       sperren(r.status === "offen" ? t("rueckfrage_gesendet") : t("beantwortet"));
       kopfAktualisieren(); if (art === "rueckfrage" && !API) setTimeout(() => zeige("fragen", true), 400); } catch (e) { toast(t("fehler", { x: e.message }), true); }
   }
-  karte.append(
+  karte.append(...[                                                        // DOM-append schriebe null als Text
     el("div", { class: "meta" }, el("span", { class: "ref" }, `F${f.id}`), t("von", { x: f.von }), el("span", { class: "sehrleise" }, `${zeit(f.zeit_utc)} · ${seit(f.zeit_utc)}`),
       f.blockiert ? el("span", { class: "etikett rot" }, t("blockiert_arbeit")) : null,
       f.aufgabe_id ? el("span", { class: "etikett" }, `A${f.aufgabe_id}`) : null,
@@ -1206,7 +1290,20 @@ function frageKarte(f) {
     f.worum ? el("p", { class: "worum" }, f.worum) : null,
     (f.dokumente || []).length ? el("div", { class: "dk-anhaenge" }, f.dokumente.map(x => el("button", { class: "dk-anhang", type: "button", onclick: () => dokumentDialog(x.id) },
       [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"].includes(x.endung) && (!API || x.online) ? el("img", { src: dokUrl(x.id), alt: "", loading: "lazy", onerror: e => e.target.remove() }) : null,
-      `D${x.id} · ${x.titel}`))) : null);
+      `D${x.id} · ${x.titel}`))) : null].filter(Boolean));
+  /* Varianten (amw frage neu --anhang A=…): groß ansehen per Klick, gewählt wird unten wie immer */
+  const varianten = echteOptionen.filter(o => o.anhang);
+  if (varianten.length) {
+    const zeigbar = x => !API || x.online;
+    const bilder = varianten.filter(o => o.anhang.vorschau === "bild" && zeigbar(o.anhang));
+    karte.append(el("div", { class: "varianten" }, varianten.map(o => { const x = o.anhang;
+      return el("button", { class: "variante" + (o.kenn === f.empfehlung ? " empfohlen" : ""), type: "button", title: t("dk_variante_tipp"),
+        onclick: () => x.vorschau === "bild" && zeigbar(x) ? bildVollbild(bilder.map(b => ({ id: b.anhang.id, titel: `${b.kenn} · ${b.text}` })), bilder.indexOf(o)) : dokumentDialog(x.id) },
+        el("div", { class: "variante-bild" }, x.vorschau === "bild" && zeigbar(x) ? el("img", { src: dokUrl(x.id), alt: "", loading: "lazy" })
+          : x.vorschau === "mockup" && zeigbar(x) ? el("iframe", { src: dokUrl(x.id), sandbox: "allow-scripts", tabindex: "-1", title: o.text, referrerpolicy: "no-referrer", loading: "lazy" })
+          : dokSymbol(x)),
+        el("div", { class: "variante-text" }, el("span", { class: "kenn" }, o.kenn), el("span", {}, o.text))); })));
+  }
   /* Gesprächsverlauf wie im Chat: Fragesteller links, du (Entwickler) rechts */
   if ((f.verlauf || []).length) karte.append(el("div", { class: "verlauf" }, f.verlauf.map(v => {
     const ich = v.von === "Entwickler";
@@ -1227,6 +1324,7 @@ function frageKarte(f) {
   karte.append(notiz, el("div", { class: "aktionen" },
     el("button", { class: "knopf" + (echteOptionen.length ? "" : " haupt"), type: "button", onclick: () => notiz.value.trim() ? antworten("text", notiz.value) : toast(t("text_fehlt"), true) }, t("eigene_antwort")),
     el("button", { class: "knopf", type: "button", onclick: () => notiz.value.trim() ? antworten("rueckfrage", notiz.value) : toast(t("rueckfrage_fehlt"), true) }, t("rueckfrage")),
+    el("button", { class: "klein-knopf", type: "button", onclick: () => dokHochladen({ bezug: `frage:${f.id}` }) }, t("dk_anhaengen")),
     meldung));
   if (f.vorgeschichte.length) karte.append(el("details", { class: "vor" }, el("summary", {}, t("vorgeschichte", { n: f.vorgeschichte.length })),
     f.vorgeschichte.map(v => el("div", { class: "vor-eintrag" }, el("div", {}, el("span", { class: "ref" }, v.ref), " ", el("span", { class: "sehrleise" }, v.art)),
@@ -1324,7 +1422,8 @@ async function sichtDokumente() {
     auswahl("bezug", t("dk_alle_bezuege"), bezugListe),
     el("select", { onchange: e => neu("status", e.target.value) }, ["aktuell", "archiviert", "alle"].map(s =>
       el("option", { value: s, ...(f.status === s ? { selected: true } : {}) }, t("dks_" + s) + (s === "archiviert" ? ` (${d.archiviert})` : "")))),
-    el("button", { class: "klein-knopf", type: "button", onclick: () => neu("liste", !f.liste) }, t(f.liste ? "dk_raster" : "dk_liste"))));
+    el("button", { class: "klein-knopf", type: "button", onclick: () => neu("liste", !f.liste) }, t(f.liste ? "dk_raster" : "dk_liste")),
+    el("button", { class: "knopf haupt", type: "button", onclick: () => dokHochladen({ bezug: f.bezug }) }, t("dk_hochladen"))));
   if (!d.dokumente.length) {
     m.append(el("div", { class: "leer" }, t(f.q || f.art || f.von || f.bezug || f.status !== "aktuell" ? "nichts_gefunden" : "dk_leer")),
       el("p", { class: "sehrleise mono", style: "font-size:13px" }, "amw dokument ablegen <datei> --titel … --art ergebnis|bericht|entwurf|mockup|bild --aufgabe <nr>"));
@@ -1374,7 +1473,11 @@ async function dokumentDialog(id, v) {
       el("div", { class: "dk-vorschau" }, vorschau),
       el("aside", { class: "dk-seite" },
         el("div", {}, el("h4", {}, t("dk_gehoert_zu")), bezug),
-        el("div", {}, el("h4", {}, t("dk_versionen", { n: d.versionen.length })), d.versionen.slice().reverse().map(x => el("button", {
+        el("div", {}, el("h4", {}, t("dk_versionen", { n: d.versionen.length }),
+          d.versionen.length > 1 ? el("button", { class: "klein-knopf dk-vergleich-knopf", type: "button", onclick: () => {
+            const i = d.versionen.findIndex(x => x.nr === ver.nr);                // gezeigte Fassung mit der davor (v1: mit v2)
+            dokVergleich(d, ...(i > 0 ? [d.versionen[i - 1].nr, ver.nr] : [ver.nr, d.versionen[1].nr])); } }, t("dk_vergleichen")) : null),
+          d.versionen.slice().reverse().map(x => el("button", {
           class: "dk-version" + (x.nr === ver.nr ? " an" : ""), type: "button", onclick: () => { hg.remove(); dokumentDialog(d.id, x.nr); } },
           `v${x.nr} · ${x.von} · ${zeit(x.zeit_utc)} · ${x.endung} · ${Math.max(1, Math.round(x.groesse / 1024))} KB` + (x.notiz ? ` – ${x.notiz}` : "")))),
         el("div", {}, el("h4", {}, t("dk_gespraech", { n: d.gespraech.length })),
@@ -1383,6 +1486,7 @@ async function dokumentDialog(id, v) {
           d.status !== "geloescht" ? el("div", { style: "margin-top:8px;display:grid;gap:6px" }, nachricht, el("div", { class: "dk-aktionen" },
             knopf(t("dk_kommentieren"), () => melden(false)), knopf(t("dk_ueberarbeiten"), () => melden(true), true))) : null),
         d.status !== "geloescht" ? el("div", { class: "dk-aktionen" },
+          ver.vorschau === "text" ? knopf(t(ver.nr === d.versionen[d.versionen.length - 1].nr ? "dk_bearbeiten" : "dk_als_neue"), () => { hg.remove(); dokBearbeiten(d, ver); }, true) : null,
           ["bild", "mockup", "pdf"].includes(ver.vorschau) && !nurPc ? knopf(t("vb_vollbild"), () => dokVollbild(d, ver, vorschau), true) : null,
           !nurPc && !(API && ver.vorschau === "text") ? el("a", { class: "klein-knopf", href: url, target: "_blank", rel: "noopener" }, t("dk_oeffnen")) : null,
           !nurPc ? el("a", { class: "klein-knopf", href: url, download: `D${d.id}-v${ver.nr}${ver.endung}` }, t("dk_herunterladen")) : null,
@@ -1493,6 +1597,316 @@ function dokZuordnen(d, alt) {
       try { await schicken("/api/dokument/setzen", daten); hg.remove(); alt.remove(); dokumentDialog(d.id); if (zustand.sicht === "dokumente") sichtDokumente(); }
       catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("speichern"))));
 }
+/* --- Stufe D3: selbst berichtigen, Versionen vergleichen, hochladen -------------------------------- */
+/* Unterschiede zweier Folgen (Zeilen oder Wörter) nach Myers: [[0|-1|1, Eintrag], …] – gleich, weg, neu. Gleicher Anfang und
+   gleiches Ende zählen nicht mit; sehr viele Änderungen (> 4000 Schritte) werden grob als „alles weg, alles neu“ gezeigt. */
+function diffFolge(a, b) {
+  let s = 0; while (s < a.length && s < b.length && a[s] === b[s]) s++;
+  let ea = a.length, eb = b.length; while (ea > s && eb > s && a[ea - 1] === b[eb - 1]) { ea--; eb--; }
+  const A = a.slice(s, ea), B = b.slice(s, eb), N = A.length, M = B.length;
+  let mitte = [];
+  if (!N || !M) mitte = [...A.map(x => [-1, x]), ...B.map(x => [1, x])];
+  else {
+    const off = N + M + 1, v = new Int32Array(2 * off + 2), spur = [];
+    let fertig = false;
+    for (let d = 0; d <= Math.min(N + M, 4000) && !fertig; d++) {
+      spur.push(v.slice(off - d - 1, off + d + 2));                 // Stand vor Schritt d, für k = -d-1 … d+1
+      for (let k = -d; k <= d; k += 2) {
+        let x = k === -d || (k !== d && v[off + k - 1] < v[off + k + 1]) ? v[off + k + 1] : v[off + k - 1] + 1, y = x - k;
+        while (x < N && y < M && A[x] === B[y]) { x++; y++; }
+        v[off + k] = x;
+        if (x >= N && y >= M) { fertig = true; break; }
+      }
+    }
+    if (!fertig) mitte = [...A.map(x => [-1, x]), ...B.map(x => [1, x])];
+    else {
+      let x = N, y = M;
+      for (let d = spur.length - 1; d > 0; d--) {
+        const w = spur[d], hol = k => w[k + d + 1], k = x - y;
+        const vk = k === -d || (k !== d && hol(k - 1) < hol(k + 1)) ? k + 1 : k - 1, vx = hol(vk), vy = vx - vk;
+        while (x > vx && y > vy) { mitte.push([0, A[--x]]); y--; }
+        if (vk === k + 1) mitte.push([1, B[--y]]); else mitte.push([-1, A[--x]]);
+      }
+      while (x > 0 && y > 0) { mitte.push([0, A[--x]]); y--; }
+      mitte.reverse();
+    }
+  }
+  /* in jedem Änderungsblock erst alles Weggefallene, dann alles Neue – liest sich wie ein Vorher/Nachher */
+  const aus = a.slice(0, s).map(x => [0, x]);
+  for (let i = 0; i < mitte.length;) {
+    if (!mitte[i][0]) { aus.push(mitte[i++]); continue; }
+    const weg = [], neu = [];
+    while (i < mitte.length && mitte[i][0]) (mitte[i][0] < 0 ? weg : neu).push(mitte[i++]);
+    aus.push(...weg, ...neu);
+  }
+  return aus.concat(a.slice(ea).map(x => [0, x]));
+}
+/* Zeilen-Vergleich als DOM: gelöscht/neu mit hervorgehobenen Wörtern, lange unveränderte Strecken eingeklappt */
+function diffAnsicht(alt, neu) {
+  const z = diffFolge(alt.replace(/\r\n/g, "\n").split("\n"), neu.replace(/\r\n/g, "\n").split("\n"));
+  const woerter = s => s.match(/\s+|[\p{L}\p{N}_]+|[^\s\p{L}\p{N}_]/gu) || [];
+  const zeilen = [];
+  let na = 0, nb = 0, plus = 0, minus = 0;
+  for (let i = 0; i < z.length;) {
+    if (!z[i][0]) { zeilen.push({ op: 0, text: z[i][1], na: ++na, nb: ++nb }); i++; continue; }
+    const weg = [], dazu = [];
+    while (i < z.length && z[i][0] < 0) weg.push(z[i++][1]);
+    while (i < z.length && z[i][0] > 0) dazu.push(z[i++][1]);
+    minus += weg.length; plus += dazu.length;
+    const w = weg.map(text => ({ op: -1, text, na: ++na })), n = dazu.map(text => ({ op: 1, text, nb: ++nb }));
+    for (let j = 0; j < Math.min(w.length, n.length); j++) {          // Zeile geändert: Wörter hervorheben, wenn genug gleich blieb
+      const d = diffFolge(woerter(w[j].text), woerter(n[j].text)), gleich = d.filter(x => !x[0]).reduce((s, x) => s + x[1].length, 0);
+      if (gleich >= 0.4 * Math.max(w[j].text.length, n[j].text.length)) {
+        w[j].teile = d.filter(x => x[0] <= 0); n[j].teile = d.filter(x => x[0] >= 0);
+      }
+    }
+    zeilen.push(...w, ...n);
+  }
+  if (!plus && !minus) return el("div", { class: "leer" }, t("dk_df_gleich"));
+  const zeile = x => el("div", { class: "df-z" + (x.op < 0 ? " df-weg" : x.op > 0 ? " df-neu" : "") },
+    el("span", { class: "df-n" }, x.op > 0 ? "" : x.na), el("span", { class: "df-n" }, x.op < 0 ? "" : x.nb),
+    el("span", { class: "df-z-zeichen" }, x.op < 0 ? "−" : x.op > 0 ? "+" : ""),
+    el("span", { class: "df-t" }, x.teile ? x.teile.map(([o, s]) => o ? el("mark", {}, s) : s) : x.text || "​"));
+  const kasten = el("div", { class: "df" });
+  const ROT = 3;                                                       // so viele unveränderte Zeilen um jede Änderung
+  const nah = zeilen.map((x, i) => zeilen.slice(Math.max(0, i - ROT), i + ROT + 1).some(y => y.op));
+  for (let i = 0; i < zeilen.length;) {
+    if (nah[i]) { kasten.append(zeile(zeilen[i++])); continue; }
+    const von = i; while (i < zeilen.length && !nah[i]) i++;
+    const strecke = zeilen.slice(von, i);
+    const luecke = el("button", { class: "df-luecke", type: "button", onclick: () => luecke.replaceWith(...strecke.map(zeile)) },
+      t("dk_df_luecke", { n: strecke.length }));
+    kasten.append(luecke);
+  }
+  return el("div", {}, el("p", { class: "leise", style: "margin:0 0 8px" }, el("span", { class: "df-plus" }, `+${plus}`), " ",
+    el("span", { class: "df-minus" }, `−${minus}`), " " + t("dk_df_zeilen")), kasten);
+}
+async function dokVergleich(d, a, b) {
+  const nrn = d.versionen.map(x => x.nr);
+  b = b || nrn[nrn.length - 1]; a = a || nrn[Math.max(0, nrn.indexOf(b) - 1)];
+  const wahl = (wert, fn) => el("select", { onchange: e => fn(+e.target.value) }, d.versionen.map(x =>
+    el("option", { value: x.nr, ...(x.nr === wert ? { selected: true } : {}) }, `v${x.nr} · ${x.von} · ${zeit(x.zeit_utc)}`)));
+  const inhalt = el("div", {}, el("div", { class: "leer" }, t("dk_laedt")));
+  const hg = dialog(`${t("dk_vergleich")} · D${d.id} · ${d.titel}`,
+    el("div", { class: "dk-filter" }, wahl(a, n => { hg.remove(); dokVergleich(d, n, b); }), el("span", { class: "leise" }, "→"),
+      wahl(b, n => { hg.remove(); dokVergleich(d, a, n); })), inhalt);
+  hg.querySelector(".dialog").style.width = "min(1280px,96vw)";
+  const va = d.versionen.find(x => x.nr === a), vb = d.versionen.find(x => x.nr === b);
+  if (va.vorschau === "text" && vb.vorschau === "text") {
+    try {
+      const [ta, tb] = await Promise.all([a, b].map(n => holen(`/api/dokument?id=${d.id}&v=${n}`).then(x => x.text || "")));
+      inhalt.replaceChildren(diffAnsicht(ta, tb));
+    } catch (e) { inhalt.replaceChildren(el("div", { class: "leer" }, t("fehler", { x: e.message }))); }
+    return;
+  }
+  const bilder = [va, vb].filter(v => v.vorschau === "bild" && !nurAmPc({ ...v, online: d.online })).map(v => ({ id: d.id, nr: v.nr, titel: `${d.titel} · v${v.nr}` }));
+  const seite = v => el("div", { class: "df-seite" },
+    el("div", { class: "sehrleise" }, `v${v.nr} · ${v.von} · ${zeit(v.zeit_utc)}` + (v.notiz ? ` – ${v.notiz}` : "")),
+    nurAmPc({ ...v, online: d.online }) ? el("div", { class: "leer" }, t("dk_online_aus"))
+      : v.vorschau === "bild" ? el("img", { src: dokUrl(d.id, v.nr), alt: "", title: t("vb_tipp"), onclick: () => bildVollbild(bilder, bilder.findIndex(x => x.nr === v.nr)) })
+      : v.vorschau === "mockup" ? el("iframe", { src: dokUrl(d.id, v.nr), sandbox: "allow-scripts", title: `v${v.nr}`, referrerpolicy: "no-referrer" })
+      : v.vorschau === "pdf" ? el("iframe", { src: dokUrl(d.id, v.nr), title: `v${v.nr}` })
+      : el("div", { class: "leer" }, t("dk_nur_download")));
+  inhalt.replaceChildren(el("div", { class: "df-paar" }, seite(va), seite(vb)));
+}
+/* Selbst berichtigen: Text der gezeigten Fassung im Editor, gespeichert als neue Version – aber nur, solange niemand
+   inzwischen eine neuere abgelegt hat (sonst Vergleich und bewusste Entscheidung). */
+function dokBearbeiten(d, ver) {
+  const letzte = d.versionen[d.versionen.length - 1], start = d.text || "";
+  let basis = letzte.nr;
+  const feld = el("textarea", { class: "dk-editor", spellcheck: "true", "aria-label": t("dk_schreiben") });
+  feld.value = start;
+  const vorschau = el("div", { class: "dk-vorschau dk-ed-vorschau", hidden: true });
+  const notiz = el("input", { placeholder: t("dk_notiz_ph"), maxlength: 500 });
+  const an = letzte.von !== "Entwickler" ? letzte.von : d.angelegt_von;
+  const melden = el("input", { type: "checkbox", checked: true });
+  const meldung = el("div");
+  const zaehler = el("span", { class: "sehrleise" });
+  const zaehlen = () => { zaehler.textContent = t("dk_zeichen", { n: feld.value.length.toLocaleString(gebiet()) }) + (feld.value !== start ? " · " + t("dk_geaendert") : ""); };
+  feld.addEventListener("input", zaehlen); zaehlen();
+  const reiterS = el("button", { type: "button", class: "an", onclick: () => umschalten(true) }, t("dk_schreiben"));
+  const reiterV = el("button", { type: "button", onclick: () => umschalten(false) }, t("dk_vorschau"));
+  function umschalten(schreiben) {
+    feld.hidden = !schreiben; vorschau.hidden = schreiben; reiterS.classList.toggle("an", schreiben); reiterV.classList.toggle("an", !schreiben);
+    if (!schreiben) vorschau.replaceChildren(ver.format === "markdown" ? markdown(feld.value) : el("pre", { class: "spec-text", style: "margin:0" }, feld.value));
+    else feld.focus();
+  }
+  const speicherKnopf = el("button", { class: "knopf haupt", type: "button", onclick: () => speichern() }, t("dk_speichern_als", { n: letzte.nr + 1 }));
+  async function speichern() {
+    if (feld.value === start && basis === letzte.nr) { toast(t("dk_nichts_geaendert"), true); return; }
+    speicherKnopf.disabled = true; meldung.replaceChildren();
+    try {
+      const r = await schicken("/api/dokument/text", { id: d.id, basis, text: feld.value, notiz: notiz.value.trim(), melden: an !== "Entwickler" && melden.checked });
+      zu(true); if (!r.unterwegs) toast(t("dk_gespeichert", { n: r.version }));
+      dokumentDialog(d.id); if (zustand.sicht === "dokumente") sichtDokumente();
+    } catch (e) {
+      speicherKnopf.disabled = false;
+      meldung.replaceChildren(el("div", { class: "band-warn" }, e.message, " ",
+        /Inzwischen|meanwhile/i.test(e.message) ? el("button", { class: "klein-knopf", type: "button", onclick: konflikt }, t("dk_unterschiede")) : null));
+    }
+  }
+  async function konflikt() {
+    let neu; try { neu = await holen(`/api/dokument?id=${d.id}`); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
+    const k = dialog(t("dk_konflikt_titel", { a: neu.gezeigt }), diffAnsicht(neu.text || "", feld.value),
+      el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => { basis = neu.gezeigt; k.remove(); speichern(); } },
+        t("dk_trotzdem", { n: neu.gezeigt + 1 }))));
+    k.querySelector(".dialog").style.width = "min(1280px,96vw)";
+  }
+  const hg = dialog(`${t("dk_bearbeiten")} · D${d.id} · ${d.titel}`,
+    el("p", { class: "leise", style: "margin-top:0" }, t("dk_ed_basis", { v: ver.nr, n: letzte.nr + 1 })
+      + (matchMedia("(pointer: coarse)").matches ? "" : " · " + t("dk_ed_hilfe"))),
+    el("div", { class: "reiter", style: "margin-bottom:8px" }, reiterS, reiterV, el("div", { class: "rechts" }, zaehler)),
+    feld, vorschau,
+    meldung,
+    el("div", { class: "dk-ed-unten" }, notiz,
+      an !== "Entwickler" ? el("label", { class: "leise" }, melden, " " + t("dk_melden_an", { x: an })) : null,
+      el("div", { class: "aktionen" }, el("button", { class: "klein-knopf", type: "button", onclick: () => zu() }, t("dk_abbrechen")), speicherKnopf)));
+  hg.querySelector(".dialog").style.width = "min(1100px,96vw)";
+  const warnen = e => { if (feld.value !== start) { e.preventDefault(); e.returnValue = ""; } };
+  const tasten = e => {
+    if (!hg.isConnected || document.querySelectorAll(".dialog-hg").length > 1 && hg !== [...document.querySelectorAll(".dialog-hg")].pop()) return;
+    if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); zu(); }
+    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); speichern(); }
+  };
+  function zu(ohneFrage) {
+    if (!ohneFrage && feld.value !== start && !confirm(t("dk_verwerfen"))) return;
+    window.removeEventListener("keydown", tasten, true); window.removeEventListener("beforeunload", warnen); hg.remove();
+  }
+  hg.addEventListener("click", e => { if (e.target === hg) { e.stopImmediatePropagation(); zu(); } }, true);
+  window.addEventListener("keydown", tasten, true); window.addEventListener("beforeunload", warnen);
+  feld.focus(); feld.setSelectionRange(0, 0); feld.scrollTop = 0;
+}
+/* Hochladen: Datei wählen, Foto aufnehmen, hineinziehen oder einfügen. Fotos rechnet der Browser neu (verkleinert, ohne
+   Standort/EXIF); dann in Teilen hoch (ein Funkloch kostet nur ein Teil), Prüfsumme aus dem Browser. */
+const HOCH_ENDUNGEN = [".md", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".html", ".htm", ".pdf", ".docx", ".xlsx", ".heic", ".heif"];
+const HOCH_TEIL = 192 * 1024, BILD_MAX = 2560;
+const endungVon = name => (/\.[^.]+$/.exec(name || "") || [""])[0].toLowerCase();
+async function bildVorbereiten(datei, verkleinern) {
+  const e = endungVon(datei.name);
+  if (![".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"].includes(e)) return { blob: datei, name: datei.name };
+  let bild;
+  try { bild = await createImageBitmap(datei, { imageOrientation: "from-image" }); }
+  catch (x) { if (e === ".heic" || e === ".heif") throw new Error(t("dk_heic")); return { blob: datei, name: datei.name }; }
+  const f = verkleinern ? Math.min(1, BILD_MAX / Math.max(bild.width, bild.height)) : 1;
+  const c = el("canvas", { width: Math.max(1, Math.round(bild.width * f)), height: Math.max(1, Math.round(bild.height * f)) });
+  c.getContext("2d").drawImage(bild, 0, 0, c.width, c.height); bild.close?.();
+  const typ = e === ".png" ? "image/png" : e === ".webp" ? "image/webp" : "image/jpeg";
+  const blob = await new Promise(r => c.toBlob(r, typ, 0.86));
+  if (!blob) return { blob: datei, name: datei.name };
+  if (e === ".png" && f === 1 && blob.size > datei.size) return { blob: datei, name: datei.name };   // Bildschirmfoto: Original ist kleiner
+  return { blob, name: datei.name.replace(/\.[^.]+$/, "") + { "image/png": ".png", "image/webp": ".webp", "image/jpeg": ".jpg" }[typ] };
+}
+async function hochladenTeile(blob, name, fortschritt) {
+  if (!crypto.subtle) throw new Error(t("dk_kein_https"));
+  const roh = new Uint8Array(await blob.arrayBuffer());
+  const sha = [...new Uint8Array(await crypto.subtle.digest("SHA-256", roh))].map(b => b.toString(16).padStart(2, "0")).join("");
+  const teile = Math.max(1, Math.ceil(roh.length / HOCH_TEIL));
+  const { id } = await schicken("/api/hochladen", { schritt: "start", name, groesse: roh.length, sha, teile });
+  for (let i = 0; i < teile; i++) {
+    const stueck = roh.subarray(i * HOCH_TEIL, (i + 1) * HOCH_TEIL);
+    let b = ""; for (let j = 0; j < stueck.length; j += 0x8000) b += String.fromCharCode.apply(null, stueck.subarray(j, j + 0x8000));
+    for (let versuch = 1; ; versuch++) {
+      try { await schicken("/api/hochladen", { schritt: "teil", id, nr: i, inhalt: btoa(b) }); break; }
+      catch (e) { if (versuch >= 3) throw e; await new Promise(r => setTimeout(r, 1500 * versuch)); }
+    }
+    fortschritt((i + 1) / teile);
+  }
+  return id;
+}
+const bezugKurz = b => !b ? "" : b.replace(/^aufgabe:/, "A").replace(/^frage:/, "F").replace(/^beschluss:/, "B").replace(/^bogen:/, "Bogen ");
+function bezugLesen(s) {
+  s = (s || "").trim();
+  if (!s) return {};
+  let m = /^(?:bogen|arc)\s*:?\s*(\d+)$/i.exec(s); if (m) return { bogen: +m[1] };
+  m = /^([AFB])\s*(\d+)$/i.exec(s); if (m) return { [{ a: "aufgabe", f: "frage", b: "beschluss" }[m[1].toLowerCase()]]: +m[2] };
+  return null;
+}
+function dokHochladen(vorgabe = {}) {
+  const dateien = [];
+  const liste = el("div", { class: "hl-liste" });
+  const titel = el("input", { placeholder: t("pl_titel"), maxlength: 200 });
+  const art = el("select", {}, el("option", { value: "" }, t("dk_art_auto")), ["ergebnis", "bericht", "entwurf", "mockup", "bild", "quelle"].map(a => el("option", { value: a }, t("dka_" + a))));
+  const bezug = el("input", { placeholder: t("dk_bezug_ph"), value: bezugKurz(vorgabe.bezug) });
+  const online = el("input", { type: "checkbox", ...(API ? { checked: true } : {}) });
+  const klein = el("input", { type: "checkbox", checked: true });
+  const annehmen = HOCH_ENDUNGEN.join(",") + ",image/*";
+  const wahl = el("input", { type: "file", multiple: true, accept: annehmen, hidden: true, onchange: e => { dazu([...e.target.files]); e.target.value = ""; } });
+  const kamera = el("input", { type: "file", accept: "image/*", capture: "environment", hidden: true, onchange: e => { dazu([...e.target.files]); e.target.value = ""; } });
+  const finger = matchMedia("(pointer: coarse)").matches;              // Handy/Tablet: Kamera statt Ziehen und Strg+V
+  const zone = el("div", { class: "hl-zone" }, el("p", { class: "leise", style: "margin:0 0 10px" }, t(finger ? "dk_hl_zone_netz" : "dk_hl_zone")),
+    el("div", { class: "dk-aktionen", style: "justify-content:center" },
+      el("button", { class: "knopf", type: "button", onclick: () => wahl.click() }, t("dk_hl_waehlen")),
+      finger ? el("button", { class: "knopf", type: "button", onclick: () => kamera.click() }, t("dk_hl_foto")) : null), wahl, kamera);
+  zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drueber"); });
+  zone.addEventListener("dragleave", () => zone.classList.remove("drueber"));
+  zone.addEventListener("drop", e => { e.preventDefault(); zone.classList.remove("drueber"); dazu([...e.dataTransfer.files]); });
+  const zustandDatei = new Map();
+  function dazu(neu) {
+    const ok = neu.filter(f => HOCH_ENDUNGEN.includes(endungVon(f.name)) || /^image\//.test(f.type));
+    if (ok.length < neu.length) toast(t("dk_hl_format"), true);
+    for (let f of ok) {
+      if (!HOCH_ENDUNGEN.includes(endungVon(f.name)) || /^image\.png$/i.test(f.name)) {   // eingefügt: „image.png“ → sprechender Name
+        const s = new Date().toLocaleString(gebiet(), { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(/[/:]/g, "-");
+        f = new File([f], `${t("dk_hl_bildschirmfoto")} ${s}${{ "image/jpeg": ".jpg", "image/webp": ".webp", "image/gif": ".gif" }[f.type] || ".png"}`, { type: f.type });
+      }
+      dateien.push(f);
+    }
+    if (dateien.length === 1 && !titel.value) titel.value = dateien[0].name.replace(/\.[^.]+$/, "");
+    zeigen();
+  }
+  function zeigen() {
+    liste.replaceChildren(...dateien.map((f, i) => {
+      const z = zustandDatei.get(f) || {};
+      return el("div", { class: "hl-datei" },
+        /^image\//.test(f.type) && endungVon(f.name) !== ".heic" ? el("img", { src: URL.createObjectURL(f), alt: "" }) : el("span", { class: "dk-symbol" }, el("small", {}, endungVon(f.name))),
+        el("div", {}, el("div", { class: "hl-name" }, f.name), el("div", { class: "sehrleise" }, `${Math.max(1, Math.round(f.size / 1024)).toLocaleString(gebiet())} KB` + (z.text ? ` · ${z.text}` : "")),
+          z.p != null ? el("progress", { max: 1, value: z.p }) : null),
+        z.p == null ? el("button", { class: "klein-knopf", type: "button", "aria-label": t("vb_schliessen"), onclick: () => { dateien.splice(i, 1); zeigen(); } }, "✕") : el("span"));
+    }));
+    titelFeld.hidden = dateien.length > 1; mehrHinweis.hidden = dateien.length < 2;
+  }
+  const titelFeld = el("div", { class: "feld" }, el("label", {}, t("pl_titel")), el("div", {}, titel));
+  const mehrHinweis = el("p", { class: "sehrleise", hidden: true }, t("dk_hl_titel_mehr"));
+  const los = el("button", { class: "knopf haupt", type: "button", onclick: hochladen }, t("dk_hl_los"));
+  async function hochladen() {
+    if (!dateien.length) { toast(t("dk_hl_leer"), true); return; }
+    const b = bezugLesen(bezug.value);
+    if (!b) { toast(t("dk_bezug_falsch"), true); bezug.focus(); return; }
+    los.disabled = true;
+    const neu = []; let fehler = false;
+    for (const f of [...dateien]) {
+      const setze = (p, text) => { zustandDatei.set(f, { p, text }); zeigen(); };
+      try {
+        setze(0, t("dk_hl_bereite"));
+        const { blob, name } = await bildVorbereiten(f, klein.checked);
+        const id = await hochladenTeile(blob, name, p => setze(p, `${Math.round(p * 100)} %`));
+        const r = await schicken("/api/dokument/neu", { hoch: id, titel: dateien.length === 1 ? titel.value.trim() : "", art: art.value, online: online.checked, ...b });
+        if (r.dokument) neu.push(r.dokument);
+        setze(1, "✓");
+      } catch (e) { fehler = true; setze(null, "✕ " + e.message); }
+    }
+    if (fehler) { los.disabled = false; dateien.splice(0, dateien.length, ...dateien.filter(f => zustandDatei.get(f)?.text !== "✓")); zeigen(); return; }
+    hg.remove(); window.removeEventListener("paste", einfuegen);
+    toast(API ? t("dk_hl_fertig_netz") : t("dk_hl_fertig_pc", { n: neu.length }));
+    if (zustand.sicht === "dokumente") sichtDokumente(); else if (zustand.sicht === "fragen") sichtFragen();
+    if (neu.length === 1) dokumentDialog(neu[0]);
+  }
+  const einfuegen = e => { const f = [...(e.clipboardData?.files || [])]; if (f.length && hg.isConnected) { e.preventDefault(); dazu(f); } };
+  window.addEventListener("paste", einfuegen);
+  const hg = dialog(t("dk_hl_titel"), zone, liste, titelFeld, mehrHinweis,
+    ...[[t("k_art"), art], [t("dk_gehoert_zu"), bezug]].map(([l, x]) => el("div", { class: "feld" }, el("label", {}, l), el("div", {}, x))),
+    el("label", { class: "leise hl-schalter" }, klein, " " + t("dk_hl_klein")),
+    el("label", { class: "leise hl-schalter" }, online, " " + t("dk_hl_online")),
+    el("div", { class: "aktionen" }, los));
+  new MutationObserver((_, b) => { if (!hg.isConnected) { window.removeEventListener("paste", einfuegen); b.disconnect(); } }).observe(document.body, { childList: true });
+  if (vorgabe.dateien?.length) dazu(vorgabe.dateien);
+}
+/* Bildschirmfoto mit Strg+V im Bereich Dokumente → gleich hochladen */
+document.addEventListener("paste", e => {
+  if (zustand.sicht !== "dokumente" || document.querySelector(".dialog-hg, .vb")) return;
+  const f = [...(e.clipboardData?.files || [])];
+  if (f.length) { e.preventDefault(); dokHochladen({ bezug: zustand.dok?.bezug, dateien: f }); }
+});
 /* Markdown sicher als DOM (nie innerHTML): Überschriften, Absätze, Listen, Code, Zitate, Tabellen, Links (nur http/https/mailto) */
 function markdown(text) {
   const inline = s => { const teile = []; const re = /(`[^`]+`)|(\*\*[^*]+\*\*|__[^_]+__)|(\*[^*\s][^*]*\*|_[^_\s][^_]*_)|(!?\[[^\]]*\]\([^)\s]+\))/g;

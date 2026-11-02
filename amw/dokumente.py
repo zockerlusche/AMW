@@ -4,11 +4,15 @@ Der PC ist die Quelle: Dateien liegen unter <Datenordner>/dokumente/<aa>/<sha256
 Ein Dokument hat Versionen (dokument_version); Kommentare und Überarbeitungs-Aufträge sind Nachrichten mit dokument_id
 an den Verfasser. Endgültig löschen nur am PC; sonst archivieren.
 """
+import base64
 import hashlib
 import html
+import json
 import os
 import re
+import secrets
 import shutil
+import time
 import zipfile
 
 from . import db, kern
@@ -27,6 +31,9 @@ FORMATE = {
 }
 GROESSE_MAX = 25 * 1024 * 1024
 SUCHTEXT_MAX = 200_000
+TEXT_MAX = 400_000                                  # Zeichen beim Berichtigen im Browser (wie online, abgleich.TEXT_MAX)
+HOCH_TEIL = 192 * 1024                              # Hochladen aus dem Browser in Teilen (base64 ≈ 256 KB je Anfrage)
+HOCH_ALT_S = 86400                                  # liegengebliebene Uploads nach einem Tag weg
 # Muster, die nach Schlüsseln/Zugangsdaten aussehen – solche Texte kommen nicht in die Ablage (und nie online)
 GEHEIM = re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(?:sk-(?:ant-)?[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}"
                     r"|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.)")
@@ -75,6 +82,13 @@ def _lesen(pfad):
         raise kern.AmwFehler(f"Datei ist größer als {GROESSE_MAX // 1024 // 1024} MB – bitte verkleinern oder aufteilen")
     with open(pfad, "rb") as f:
         roh = f.read()
+    return _pruefen(roh, endung)
+
+
+def _pruefen(roh, endung):
+    """Inhalt prüfen (Größe, Geheimnisse) → (roh, endung, suchtext)."""
+    if len(roh) > GROESSE_MAX:
+        raise kern.AmwFehler(f"Datei ist größer als {GROESSE_MAX // 1024 // 1024} MB – bitte verkleinern oder aufteilen")
     suchtext = _suchtext(roh, endung)
     probe = roh.decode("utf-8", errors="replace") if endung in (".md", ".txt", ".html", ".htm", ".svg") else suchtext
     if probe and GEHEIM.search(probe):                  # Rohtext: auch Skripte im Mockup
@@ -110,9 +124,26 @@ def ablegen(con, pid, von, pfad, titel=None, art="ergebnis", notiz=None, online=
     """Neues Dokument mit Version 1. bezug: bogen=, aufgabe=, frage= oder beschluss= (Nummer)."""
     if art not in ARTEN:
         raise kern.AmwFehler(f"Art {art} – erlaubt: {', '.join(ARTEN)}")
+    _bezug(con, pid, **bezug)                         # vor dem Lesen: ein falscher Bezug legt keine Datei ab
+    return _anlegen(con, pid, von, _lesen(pfad), titel or os.path.splitext(os.path.basename(pfad))[0], art, notiz, online,
+                    **bezug)
+
+
+def ablegen_inhalt(con, pid, von, roh, name, titel=None, art=None, notiz=None, online=False, **bezug):
+    """Wie ablegen, aber aus dem Inhalt (Hochladen aus dem Browser). Ohne Art: aus dem Format."""
+    endung = _format(name)
+    art = art or {"bild": "bild", "mockup": "mockup", "pdf": "quelle", "download": "quelle"}.get(FORMATE[endung][2], "entwurf")
+    if art not in ARTEN:
+        raise kern.AmwFehler(f"Art {art} – erlaubt: {', '.join(ARTEN)}")
+    _bezug(con, pid, **bezug)
+    return _anlegen(con, pid, von, _pruefen(roh, endung), titel or os.path.splitext(os.path.basename(name))[0], art, notiz,
+                    online, **bezug)
+
+
+def _anlegen(con, pid, von, gelesen, titel, art, notiz, online, **bezug):
+    roh, endung, suchtext = gelesen
     b_art, b_id = _bezug(con, pid, **bezug)
-    roh, endung, suchtext = _lesen(pfad)
-    titel = (titel or "").strip() or os.path.splitext(os.path.basename(pfad))[0]
+    titel = (titel or "").strip() or "Ohne Titel"
     sha = _speichern(roh, endung)
     t = db.jetzt()
     with db.schreiben(con):
@@ -140,6 +171,170 @@ def version(con, pid, von, did, pfad, notiz=None):
         if d["status"] == "archiviert":
             con.execute("UPDATE dokument SET status = 'aktuell' WHERE id = ?", (did,))
     return nr
+
+
+def text_version(con, pid, von, did, text, basis, notiz=None, melden=True):
+    """Selbst berichtigen (Markdown/Text im Browser): neue Version aus dem Text. basis = die bearbeitete Version – ist sie
+    nicht mehr die neueste, wird nichts gespeichert (sonst überschriebe man still die Arbeit eines Agenten).
+    melden: der Verfasser bekommt eine Nachricht. Rückgabe: neue Versionsnummer."""
+    d = dokument(con, pid, did)
+    if d["status"] == "geloescht":
+        raise kern.AmwFehler(f"D{did} ist gelöscht")
+    letzte = d["versionen"][-1]
+    if letzte["vorschau"] != "text":
+        raise kern.AmwFehler(f"D{did} ist kein Text – berichtigen geht nur bei Markdown/Text")
+    if int(basis or 0) != letzte["nr"]:
+        raise kern.AmwFehler(f"Inzwischen gibt es v{letzte['nr']} von {letzte['von']} – nichts gespeichert. Dein Text bleibt im"
+                             " Editor; vergleiche mit der neuen Version und speichere dann erneut.")
+    text = (text or "").replace("\r\n", "\n")
+    if not text.strip():
+        raise kern.AmwFehler("Text ist leer")
+    if len(text) > TEXT_MAX:
+        raise kern.AmwFehler(f"Text ist länger als {TEXT_MAX} Zeichen")
+    roh, endung, suchtext = _pruefen(text.encode("utf-8"), letzte["endung"])
+    sha = _speichern(roh, endung)
+    if sha == letzte["sha256"]:
+        raise kern.AmwFehler("Nichts geändert – keine neue Version")
+    notiz = (notiz or "").strip()[:500] or "im Browser berichtigt"
+    with db.schreiben(con):
+        nr = letzte["nr"] + 1
+        db.einfuegen(con, "dokument_version", dokument_id=did, nr=nr, sha256=sha, endung=endung, groesse=len(roh),
+                     notiz=notiz, von=von, zeit_utc=db.jetzt(), suchtext=suchtext)
+        if d["status"] == "archiviert":
+            con.execute("UPDATE dokument SET status = 'aktuell' WHERE id = ?", (did,))
+    an = letzte["von"] if letzte["von"] != von else d["angelegt_von"]
+    if melden and an != von:
+        with db.schreiben(con):
+            nid, _ = kern._posten(con, pid, von, an, "info", f"D{did} „{d['titel']}“ berichtigt: v{nr}"[:300],
+                                  f"{notiz}\n\n(Dokument D{did}: `amw dokument zeigen {did}` – bitte mit v{nr} weiterarbeiten)",
+                                  aufgabe_id=d["bezug_id"] if d["bezug_art"] == "aufgabe" else None)
+            con.execute("UPDATE nachricht SET dokument_id = ? WHERE id = ?", (did, nid))
+    return nr
+
+
+# --- Hochladen aus dem Browser am PC: in Teilen nach <Datenordner>/hoch/<kennung>/ (online: Speicher → abgleich) -----
+
+def hoch_ordner():
+    return os.path.join(os.path.dirname(ordner()), "hoch")
+
+
+def hoch_start(name, groesse, sha, teile):
+    """Upload anmelden → Kennung. Format und Größe vorab prüfen; liegengebliebene alte Uploads gehen dabei weg."""
+    endung = _format(str(name or ""))
+    groesse, teile = int(groesse), int(teile)
+    if not 0 < groesse <= GROESSE_MAX or teile != max(1, -(-groesse // HOCH_TEIL)):
+        raise kern.AmwFehler(f"Größe oder Teile passen nicht (höchstens {GROESSE_MAX // 1024 // 1024} MB)")
+    if not re.fullmatch(r"[0-9a-f]{64}", str(sha or "")):
+        raise kern.AmwFehler("Prüfsumme fehlt")
+    hoch_aufraeumen()
+    hid = secrets.token_hex(16)
+    os.makedirs(os.path.join(hoch_ordner(), hid))
+    with open(os.path.join(hoch_ordner(), hid, "info.json"), "w", encoding="utf-8") as f:
+        json.dump({"name": os.path.basename(str(name)), "endung": endung, "groesse": groesse, "sha": sha, "teile": teile}, f)
+    return hid
+
+
+def _hoch_info(hid):
+    if not re.fullmatch(r"[0-9a-f]{32}", str(hid or "")):
+        raise kern.AmwFehler("Upload-Kennung")
+    p = os.path.join(hoch_ordner(), hid)
+    try:
+        with open(os.path.join(p, "info.json"), encoding="utf-8") as f:
+            return p, json.load(f)
+    except OSError:
+        raise kern.AmwFehler("Diesen Upload gibt es nicht (mehr) – bitte neu hochladen") from None
+
+
+def hoch_teil(hid, nr, inhalt):
+    p, info = _hoch_info(hid)
+    nr = int(nr)
+    if not 0 <= nr < info["teile"]:
+        raise kern.AmwFehler("Teil-Nummer")
+    try:
+        roh = base64.b64decode(str(inhalt or ""), validate=True)
+    except ValueError:
+        raise kern.AmwFehler("Teil ist kein base64") from None
+    if len(roh) > HOCH_TEIL:
+        raise kern.AmwFehler("Teil zu groß")
+    with open(os.path.join(p, f"{nr}.teil"), "wb") as f:
+        f.write(roh)
+
+
+def hoch_fertig(hid):
+    """Teile zusammensetzen und prüfen → (roh, name). Der Upload-Ordner ist danach weg."""
+    p, info = _hoch_info(hid)
+    try:
+        teile = []
+        for i in range(info["teile"]):
+            with open(os.path.join(p, f"{i}.teil"), "rb") as f:
+                teile.append(f.read())
+    except OSError:
+        raise kern.AmwFehler("Upload unvollständig – bitte neu hochladen") from None
+    shutil.rmtree(p, ignore_errors=True)
+    return hoch_pruefen(b"".join(teile), info["groesse"], info["sha"]), info["name"]
+
+
+def hoch_pruefen(roh, groesse, sha):
+    if len(roh) != int(groesse) or hashlib.sha256(roh).hexdigest() != sha:
+        raise kern.AmwFehler("Upload beschädigt (Größe oder Prüfsumme passt nicht) – bitte neu hochladen")
+    return roh
+
+
+def hoch_aufraeumen():
+    wurzel = hoch_ordner()
+    if not os.path.isdir(wurzel):
+        return
+    for name in os.listdir(wurzel):
+        p = os.path.join(wurzel, name)
+        if os.path.isdir(p) and time.time() - os.path.getmtime(p) > HOCH_ALT_S:
+            shutil.rmtree(p, ignore_errors=True)
+
+
+def anhaenge_pruefen(con, pid, anhaenge, kennungen):
+    """Varianten zu Optionen einer Frage (`--anhang A=datei|D12`) prüfen, bevor die Frage entsteht.
+    Rückgabe: [(kenn, ("datei", pfad) | ("dokument", nr))]."""
+    aus = []
+    for x in anhaenge:
+        kenn, _, ref = str(x).partition("=")
+        kenn, ref = kenn.strip(), ref.strip()
+        if kenn not in kennungen:
+            raise kern.AmwFehler(f"--anhang {x}: „{kenn}“ ist keine der Optionen {kennungen}")
+        if re.fullmatch(r"[Dd]?\d+", ref) and not os.path.isfile(ref):
+            d = dokument(con, pid, int(ref.lstrip("Dd")))
+            if d["status"] == "geloescht":
+                raise kern.AmwFehler(f"D{d['id']} ist gelöscht")
+            aus.append((kenn, ("dokument", d["id"])))
+        else:
+            _lesen(ref)
+            aus.append((kenn, ("datei", ref)))
+    if len({k for k, _ in aus}) != len(aus):
+        raise kern.AmwFehler("Je Option höchstens ein Anhang")
+    return aus
+
+
+def anhaenge_setzen(con, pid, von, fid, anhaenge):
+    """Dateien als Dokument zur Frage ablegen (auch online – die Varianten sollen am Handy zu sehen sein) und je Option
+    die Nummer im Options-JSON vermerken. Rückgabe: {kenn: D-nr}."""
+    if not anhaenge:
+        return {}
+    zu = {}
+    for kenn, (art, ref) in anhaenge:
+        if art == "datei":
+            vorschau = FORMATE[_format(ref)][2]
+            zu[kenn] = ablegen(con, pid, von, ref, f"Variante {kenn}: " + os.path.splitext(os.path.basename(ref))[0],
+                               "mockup" if vorschau == "mockup" else "bild" if vorschau == "bild" else "entwurf",
+                               online=True, frage=fid)
+        else:
+            zu[kenn] = ref
+            online_setzen(con, pid, von, ref)
+    f = con.execute("SELECT optionen FROM frage WHERE id = ?", (fid,)).fetchone()
+    optionen = json.loads(f["optionen"] or "[]")
+    for o in optionen:
+        if o["kenn"] in zu:
+            o["dokument"] = zu[o["kenn"]]
+    with db.schreiben(con):
+        con.execute("UPDATE frage SET optionen = ? WHERE id = ?", (json.dumps(optionen, ensure_ascii=False), fid))
+    return zu
 
 
 def dokument(con, pid, did):

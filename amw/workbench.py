@@ -302,6 +302,7 @@ def vorgeschichte(con, pid, f):
 
 
 def daten_fragen(con, pid, alle=False):
+    from . import dokumente
     sql = "SELECT * FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
     if not alle:
         sql += " AND kurz NOT LIKE 'GEPARKT%'"
@@ -317,6 +318,20 @@ def daten_fragen(con, pid, alle=False):
             "SELECT d.id, d.titel, d.art, d.online, v.endung FROM dokument d JOIN dokument_version v ON v.dokument_id = d.id AND v.nr ="
             " (SELECT max(nr) FROM dokument_version WHERE dokument_id = d.id) WHERE d.projekt_id = ? AND d.bezug_art = 'frage'"
             " AND d.bezug_id = ? AND d.status = 'aktuell' ORDER BY d.id", (pid, f["id"])))
+        for x in d["dokumente"]:
+            x["vorschau"] = dokumente.FORMATE.get(x["endung"], ("", "", "download"))[2]
+        # Varianten: Dokument an einer Option (amw frage neu --anhang A=…) – auch eins, das woanders hängt
+        for o in d["optionen"]:
+            if o.get("dokument"):
+                x = next((x for x in d["dokumente"] if x["id"] == o["dokument"]), None) or (zeilen(con.execute(
+                    "SELECT d.id, d.titel, d.art, d.online, v.endung FROM dokument d JOIN dokument_version v ON v.dokument_id = d.id"
+                    " AND v.nr = (SELECT max(nr) FROM dokument_version WHERE dokument_id = d.id) WHERE d.id = ? AND d.projekt_id = ?"
+                    " AND d.status != 'geloescht'", (o["dokument"], pid))) or [None])[0]
+                if x:
+                    x["vorschau"] = dokumente.FORMATE.get(x["endung"], ("", "", "download"))[2]
+                o["anhang"] = x
+        varianten = {o["dokument"] for o in d["optionen"] if o.get("anhang")}
+        d["dokumente"] = [x for x in d["dokumente"] if x["id"] not in varianten]
         aus.append(d)
     return aus
 
@@ -500,7 +515,7 @@ def baue_handler(port, token):
             if typ.startswith("text/html"):
                 self.send_header("Content-Security-Policy",
                                  "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline';"
-                                 " connect-src 'self'; img-src 'self' data:; frame-src 'self'; base-uri 'none'; form-action 'none'")
+                                 " connect-src 'self'; img-src 'self' data: blob:; frame-src 'self'; base-uri 'none'; form-action 'none'")
             self.end_headers()
             self.wfile.write(body)
 
@@ -584,7 +599,7 @@ def baue_handler(port, token):
                     or (herkunft and herkunft.split("//", 1)[-1] not in erlaubt)):
                 return self._senden(403, {"fehler": "nicht erlaubt"})
             try:
-                laenge = min(int(self.headers.get("Content-Length") or 0), 100_000)
+                laenge = min(int(self.headers.get("Content-Length") or 0), 3_000_000)   # Text berichtigen bis 400 000 Zeichen
                 daten = json.loads(self.rfile.read(laenge) or b"{}")
             except ValueError:
                 return self._senden(400, {"fehler": "JSON"})

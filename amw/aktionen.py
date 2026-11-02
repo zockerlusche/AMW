@@ -60,7 +60,11 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         except (kern.AmwFehler, LookupError, OSError) as e:
             raise Ungueltig(str(e)) from None
     if weg.startswith("/api/dokument/"):             # Dokumente: kommentieren, zuordnen, archivieren; löschen nur am PC
-        return dokument(con, pid, weg.rsplit("/", 1)[1], daten, kanal)
+        return dokument(con, pid, weg.rsplit("/", 1)[1], daten, kanal, speicher)
+    if weg == "/api/hochladen":                      # am PC: Teile in den Datenordner (online legt die Seite sie in den Speicher)
+        if kanal != "seite":
+            raise Ungueltig("Hochladen läuft online über die Seite")
+        return hochladen(daten)
     if weg.startswith("/api/plan/"):                 # Planung – auch von unterwegs (Freigaben!)
         return planen(con, pid, weg.rsplit("/", 1)[1], daten)
     if weg == "/api/push/probe":                     # nur am PC: verschickt wirklich
@@ -79,11 +83,39 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
     raise LookupError("unbekannt")
 
 
-def dokument(con, pid, was, d, kanal):
+def hochladen(d):
+    from . import dokumente
+    try:
+        if d.get("schritt") == "start":
+            return {"id": dokumente.hoch_start(d.get("name"), d.get("groesse"), d.get("sha"), d.get("teile"))}
+        if d.get("schritt") == "teil":
+            dokumente.hoch_teil(d.get("id"), d.get("nr"), d.get("inhalt"))
+            return {"ok": True}
+    except (kern.AmwFehler, ValueError, TypeError) as x:
+        raise Ungueltig(str(x)) from None
+    raise Ungueltig("schritt start|teil")
+
+
+def dokument(con, pid, was, d, kanal, speicher=None):
     from . import dokumente
     e = kern.ENTWICKLER
     try:
+        if was == "neu":                              # hochgeladene Datei → Dokument (am PC aus hoch/, online aus dem Speicher)
+            if kanal == "seite":
+                roh, name = dokumente.hoch_fertig(d.get("hoch"))
+            else:
+                from . import abgleich
+                if speicher is None:
+                    raise Ungueltig("Kein Online-Speicher")
+                roh, name = abgleich.hoch_holen(speicher, d.get("hoch"))
+            bezug = {k: d.get(k) for k in ("bogen", "aufgabe", "frage", "beschluss") if d.get(k)}
+            did = dokumente.ablegen_inhalt(con, pid, e, roh, name, d.get("titel"), d.get("art") or None,
+                                           (d.get("notiz") or "").strip()[:500] or None, bool(d.get("online")), **bezug)
+            return {"dokument": did}
         did = int(d.get("id") or 0)
+        if was == "text":
+            return {"version": dokumente.text_version(con, pid, e, did, d.get("text"), d.get("basis"), d.get("notiz"),
+                                                      d.get("melden", True) is not False)}
         if was == "kommentar":
             nid, namen = dokumente.melden(con, pid, e, did, d.get("text"), bool(d.get("ueberarbeiten")))
             return {"nachricht": nid, "an": namen}
@@ -101,7 +133,7 @@ def dokument(con, pid, was, d, kanal):
             if kanal != "seite":
                 raise Ungueltig("Endgültig löschen geht nur am PC")
             return {"dateien": dokumente.loeschen(con, pid, e, did)}
-    except (kern.AmwFehler, ValueError) as x:
+    except (kern.AmwFehler, ValueError, TypeError) as x:
         raise Ungueltig(str(x)) from None
     raise LookupError("unbekannt")
 

@@ -427,7 +427,7 @@ def kontext(con, pid, kennung):
          " --zusammenfassung …` · Ergebnisse (Text als .md, Bilder, Mockup als eine .html) nie lose ablegen: `amw dokument"
          " ablegen <datei> --titel … --art ergebnis|bericht|entwurf|mockup|bild --aufgabe <nr>` (neue Fassung: `amw dokument"
          " version <D-nr> <datei> --notiz …`) · Frage an den Menschen: `amw frage neu --an entwickler --kurz … --option A=… --empfehlung A"
-         " --grund …` · Hilfe: `amw <befehl> --help`."]
+         " --grund …` (Varianten zum Ansehen: `--anhang A=bild.png`) · Hilfe: `amw <befehl> --help`."]
 
     halte = aktive_sperren(con, pid, kennung, "halt")
     if halte:
