@@ -68,10 +68,19 @@ eigenen Tempo in die Prognose.
   seinen Vorgängern.
 - **Ampel je Bogen**: grün, wenn P85 vor dem Zieldatum liegt; gelb zwischen P50 und P85; rot, wenn schon P50 danach liegt.
 - **Status je Dimension** (oben in der Planung): Termin, Risiko, Qualität – nach Regeln berechnet, mit Begründung.
-- **Übersicht** (oben in der Zeitleiste): ein Balken je Bogen vom Start bis zur Prognose – fest bis P50, schraffiert
-  bis P85 –, dazu Zieldatum (◆), deine eigenen Schritte (●) und die Heute-Linie. Oben steht, wann alles startet und
-  wann voraussichtlich alles fertig ist. Ein Klick auf eine Zeile springt zum Bogen. Der Start eines Bogens ist der
-  früheste tatsächliche Beginn seiner Schritte, sonst der Tag, an dem nach der Prognose der erste Schritt beginnt.
+- **Übersicht** (oben in der Zeitleiste): die ganze Laufzeit auf einer echten Zeitachse über die volle Breite. Jeder
+  Bogen ist ein Block vom Start bis zur Prognose, mit Namen. Der Balken unten im Block ist fest bis P50 und schraffiert
+  bis P85, gestrichelt geht es weiter bis zum Zieldatum (◆). Dazu kommen deine eigenen Schritte (●) und die
+  Heute-Linie. Die Farbe zeigt den Stand: grau geplant, gelb aktiv, rot zu spät, grün fertig.
+  - **Gepackt:** Bögen, die sich zeitlich nicht überschneiden, teilen sich eine Spur. Wie viele Spuren es sind, zeigt,
+    wie viel gleichzeitig läuft. Laufen laut Prognose fast alle Bögen ab heute parallel, bleiben es entsprechend
+    viele.
+  - **Zeitraum:** Normalerweise bis zum Ende der Prognose; ein Zieldatum dahinter steht am rechten Rand
+    („◆ 31.12. ›“). *Bis zum letzten Zieldatum* zeigt den ganzen Zeitraum.
+  - Bögen ohne offene Schritte haben keine Prognose und stehen darunter als eigene Liste.
+  - Oben steht, wann alles startet und wann voraussichtlich alles fertig ist. Ein Klick auf einen Block springt zum
+    Bogen. Der Start eines Bogens ist der früheste tatsächliche Beginn seiner Schritte, sonst der Tag, an dem nach der
+    Prognose der erste Schritt beginnt.
 - **Plan-Check** sucht Lücken, die später Zeit oder Nacharbeit kosten – je Befund mit **Bedeutung** (was passiert,
   wenn man es lässt), **Abhilfe** (was zu tun ist, mit Befehl) und **wer** handelt (du oder der Lead), gruppiert nach
   Projekt, Bogen und Risiken. Stufen: *Fehler* – so ist der Plan nicht belastbar, zuerst beheben; *Warnung* – schwächt

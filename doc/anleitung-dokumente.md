@@ -33,8 +33,11 @@ amw dokument version 12 bericht-v2.md --notiz "Speicherwarnung erklärt"
   - Suche in Titel und Text, auch in älteren Versionen und in DOCX.
   - Filter nach Art, Agent, Bogen, und ob ein Dokument aktuell oder archiviert ist.
 - **Detail:**
-  - Links die Vorschau: Markdown gerendert, Bild (Klick zoomt), Mockup klickbar, PDF. Office-Dateien nur zum
-    Herunterladen.
+  - Links die Vorschau: Markdown gerendert, Bild, Mockup klickbar, PDF. Office-Dateien nur zum Herunterladen.
+  - **Vollbild:** Ein Klick aufs Bild oder auf *Vollbild* öffnet es bildschirmfüllend. Mausrad oder zwei Finger zoomen
+    an der Stelle, Ziehen verschiebt, Doppelklick oder Doppeltippen wechselt zwischen 1:1 und eingepasst. Mit
+    ←/→ blätterst du durch die Bilder derselben Aufgabe oder desselben Bogens, Esc schließt. Tasten: `+` `−` `0`
+    (einpassen) `1` (1:1). Mockups und PDF gehen ebenfalls ins Vollbild.
   - Rechts: wozu es gehört, alle Versionen (anklicken zeigt die alte Fassung) und das Gespräch.
 - **Reagieren:**
   - *Kommentieren* oder *Überarbeiten lassen*: geht als Nachricht an den Verfasser und weckt ihn. Er legt eine neue Version

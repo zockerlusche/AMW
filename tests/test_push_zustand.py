@@ -39,6 +39,7 @@ class Push(Grund):
         push.speichern({"an": True})
         self.cfg = push.laden()
         self.cfg["seit_utc"] = "2000-01-01T00:00:00Z"      # alles im Test gilt als neu
+        self.cfg["ereignisse"]["rueckblick"] = False        # der tägliche Rückblick käme sonst ab 08:00 dazu (eigener Test)
         s = mock.patch.dict(push.SENDER, {"ntfy": self.senden})
         s.start()
         self.addCleanup(s.stop)

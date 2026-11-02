@@ -276,7 +276,7 @@ def db_sek(utc):
     return datetime.datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()
 
 
-def ereignisse(con, pid, cfg):
+def ereignisse(con, pid, cfg, jetzt=None):
     """Alles, was gemeldet werden soll, mit eindeutigem Schlüssel (nur Neues seit dem Einschalten)."""
     seit = cfg.get("seit_utc") or db.jetzt()
     aus = []
@@ -313,7 +313,7 @@ def ereignisse(con, pid, cfg):
     for a in con.execute("SELECT id, agent, geaendert_utc FROM aufgabe WHERE projekt_id = ? AND plan_status = 'vorgelegt'"
                          " AND verantwortlich = ? AND geaendert_utc >= ?", (pid, kern.ENTWICKLER, seit)):
         aus.append(("freigabe", f"plan:{a['id']}:{a['geaendert_utc']}", f"Plan A{a['id']} zur Freigabe", f"von {a['agent'] or '–'}", "planung"))
-    jetzt = datetime.datetime.now()
+    jetzt = jetzt or datetime.datetime.now()
     if jetzt.strftime("%H:%M") >= cfg.get("rueckblick_uhr", "08:00"):    # täglicher Rückblick, einmal je Tag
         from . import verlauf
         vor24 = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -337,7 +337,7 @@ def runde(con, pid, cfg=None, jetzt=None):
     if not cfg["an"] or not any(cfg[a]["an"] for a in ANBIETER):
         return []
     with db.schreiben(con):
-        for e in ereignisse(con, pid, cfg):
+        for e in ereignisse(con, pid, cfg, jetzt):
             con.execute("INSERT OR IGNORE INTO push_versand (zeit_utc, ereignis, schluessel, titel, text, prioritaet, sicht)"
                         " VALUES (?, ?, ?, ?, ?, ?, ?)", (db.jetzt(), e["ereignis"], e["schluessel"], e["titel"], e["text"],
                                                           EREIGNISSE[e["ereignis"]][1], e["sicht"]))
