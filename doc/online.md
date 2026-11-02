@@ -8,17 +8,26 @@ Freigaben, Nachrichten und Halt von unterwegs. Geschützt mit Passwort und zweit
 PC (Wächter)                               Online-Speicher (Turso)                Webhoster (PHP)
  amw.db ──fertige Ansichten (JSON)───────▶  ansicht   ◀────── liest ────────────  api.php ◀── Browser / Handy
         ◀──holt alle 15 s, führt aus─────  eingang   ◀────── legt Zeile ab ─────  (nach Anmeldung)
+ dokumente/ ──Dateien „auch online“─────▶  datei     ────── holt einmal ab ───▶  amw-dateien/ (neben der Konfiguration)
 ```
 - **Der PC ist aus dem Netz nicht erreichbar.** Er baut die Verbindung selbst nach außen auf.
 - **Schaufenster:** Der Wächter berechnet dieselben Ansichten wie die Workbench (Start, Fragen, Aufgaben, Planung,
-  Verlauf, Wissen, Betrieb, Release Notes, Agenten, Suchindex) und lädt sie nur bei Änderung hoch (höchstens alle 30 s,
+  Verlauf, Wissen, Betrieb, Release Notes, Agenten, Dokumente mit Texten, Suchindex) und lädt sie nur bei Änderung hoch (höchstens alle 30 s,
   sonst alle 5 min als Lebenszeichen). Online liegen keine Tabellen, nur diese Ansichten.
 - **Briefkasten:** Online erlaubt sind: Frage beantworten, Nachricht an Agenten (Auftrag, Frage, Info, Korrektur,
   Freigabe), Nachrichten an dich als gelesen markieren, Halt, Weiter, Projekt-/Agenten-/Seiten-Einstellungen,
-  Planung (Freigaben, Leitbild, Bögen, Risiken, Rückblick). Die Seite legt eine Zeile ab; der PC prüft und führt sie mit
+  Planung (Freigaben, Leitbild, Bögen, Risiken, Rückblick), Dokumente (kommentieren, überarbeiten lassen, zuordnen,
+  archivieren, Datei online anfordern). Die Seite legt eine Zeile ab; der PC prüft und führt sie mit
   demselben Code aus wie lokal (`amw/aktionen.py`) – höchstens einmal – und meldet das Ergebnis zurück.
 - **Nur am PC** (online abgewiesen, auch vom PC selbst): Einstellungen dieses PCs, Online-Zugang, Push-Zugänge,
-  Agenten-Profile, Agenten starten/beenden, Push-Probe.
+  Agenten-Profile, Agenten starten/beenden, Push-Probe, Dokument endgültig löschen.
+- **Dateien der Dokumente** (Bilder, Mockups, PDF, Office) sind nur online, wenn das Dokument auf „auch online“ steht
+  (am PC, vom Agenten mit `--online` oder unterwegs „Online anfordern“). Der PC legt die Datei in Teilen im Speicher ab
+  (`datei`, `datei_teil`); die Seite holt sie beim nächsten Aufruf einmal ab, prüft Größe und Prüfsumme, legt sie in
+  `amw-dateien/` neben ihre Konfiguration (außerhalb des Deploy-Ordners, per `.htaccess` gesperrt) und löscht die Teile.
+  Ausgeliefert wird sie nur nach der Anmeldung, mit Browser-Cache. Steht ein Dokument wieder „nur am PC“, meldet der PC
+  die Datei ab und die Seite löscht ihre Kopie (spätestens nach 10 min). Dafür braucht der PC weder die Adresse der Seite
+  noch einen weiteren Schlüssel. Texte (Markdown) gehen immer als Ansicht mit.
 - **Eine Seite für beide:** `amw/workbench.html`; `amw web bauen` kopiert sie nach `web/inc/seite.html`.
 
 ## 2 Einrichten (etwa 15 Minuten)
@@ -57,6 +66,7 @@ Ordner beim Hoster leeren oder in Turso Lesen/Schreiben blockieren.
 | Transport | `.htaccess` erzwingt HTTPS, HSTS; Content-Security-Policy, `frame-ancestors 'none'`, `noindex` |
 | Dateien | Nur `index.php` und `api.php` sind erreichbar; `inc/` und versteckte Dateien gesperrt |
 | Wirkung | Absender ist immer „Entwickler“, Kanal `netz`; der PC prüft jede Zeile noch einmal |
+| Dokument-Dateien | nur nach Anmeldung; Mockups (HTML) und SVG abgeschottet (CSP `sandbox`), Office nur als Download; Ablage außerhalb des Web-Ordners |
 
 Der Code ist öffentlich; die Sicherheit hängt nur an den Zugangsdaten (Passwort, TOTP-Geheimnis, Turso-Schlüssel), die
 nie im Repo stehen. Wer dein Hoster-, GitHub- oder Turso-Konto übernimmt, kann im Namen des Entwicklers handeln –
@@ -72,5 +82,5 @@ alle 15 s eine Abfrage auf einem Index.
 |---|---|
 | `web/index.php`, `web/api.php`, `web/inc/lib.php`, `web/.htaccess` | Anmeldung, Ansichten, Briefkasten |
 | `web/inc/einrichtung.php`, `web/inc/qr.php` | Einrichtungs-Assistent, QR-Code (eigener Erzeuger) |
-| `amw/abgleich.py` | Hochladen und Abholen im Wächter |
+| `amw/abgleich.py` | Hochladen und Abholen im Wächter, Dateien der Dokumente |
 | `amw web einrichten · bauen · schema · einmal · status · zweitfaktor-neu` | Zugang, Seite kopieren, Tabellen, ein Abgleich von Hand, Stand, neues Handy |

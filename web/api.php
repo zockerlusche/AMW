@@ -15,11 +15,50 @@ function antwort(int $code, $daten): never {
     exit;
 }
 
+/** Datei eines Dokuments, das am PC auf „auch online“ steht. Wie am PC: HTML (Mockup) und SVG abgeschottet (CSP sandbox),
+ *  Office nur als Download. Liegt sie noch nicht auf dem Webspace, wird sie jetzt aus dem Speicher geholt. */
+function datei_senden(array $q): never {
+    $id = (int)($q['id'] ?? 0);
+    [$z] = sql([["SELECT inhalt FROM ansicht WHERE weg = '/intern/dateien'", []]]);
+    $karte = $z ? json_decode($z[0][0], true) : [];
+    [$sha, $endung] = $karte[$id . ':' . (int)($q['v'] ?? 0)] ?? ['', ''];
+    if (!preg_match('/^[0-9a-f]{64}$/', $sha) || !isset(DATEI_FORMATE[$endung])) {
+        antwort(404, ['fehler' => 'Diese Datei liegt nur am PC.']);
+    }
+    $ordner = datei_ordner();
+    $p = $ordner === null ? null : datei_pfad($ordner, $sha, $endung);
+    $roh = null;
+    if ($p === null || !is_file($p)) {
+        [$r] = sql([['SELECT status, groesse, teile FROM datei WHERE sha = ?', [$sha]]]);
+        if ($r && $r[0][0] === 'abgelegt') sql([['DELETE FROM datei WHERE sha = ?', [$sha]]]);   // Kopie verloren: PC lädt neu
+        if (!$r || $r[0][0] === 'abgelegt') antwort(404, ['fehler' => 'Die Datei ist auf dem Weg vom PC – bitte gleich noch einmal.']);
+        $roh = datei_abholen($sha, $endung, (int)$r[0][1], (int)$r[0][2]);
+        if ($roh === null) antwort(404, ['fehler' => 'Die Datei kommt gleich neu vom PC.']);
+    }
+    [$typ, $vorschau] = DATEI_FORMATE[$endung];
+    header('Content-Type: ' . $typ);
+    header('Content-Length: ' . ($roh === null ? (string)filesize($p) : (string)strlen($roh)));
+    header('Cache-Control: private, max-age=86400');               // je Version unveränderlich
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: no-referrer');
+    if ($vorschau === 'mockup') {
+        header("Content-Security-Policy: sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline';"
+            . " img-src data: blob:; font-src data:; media-src data: blob:");
+    } elseif ($vorschau !== 'pdf') {
+        header("Content-Security-Policy: sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:");
+    }
+    header('Content-Disposition: ' . ($vorschau === 'download' ? 'attachment' : 'inline') . '; filename="D' . $id . $endung . '"');
+    if ($roh === null) readfile($p);
+    else echo $roh;
+    exit;
+}
+
 if (!angemeldet()) antwort(401, ['fehler' => 'Bitte neu anmelden (Seite neu laden).']);
 
 $weg = (string)($_GET['weg'] ?? '');
 $pfad = (string)parse_url($weg, PHP_URL_PATH);
 parse_str((string)parse_url($weg, PHP_URL_QUERY), $q);
+if (!str_starts_with($pfad, '/api/')) antwort(404, ['fehler' => 'unbekannt']);
 
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -35,7 +74,8 @@ try {
         if (!$frage && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter',
                 '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web',
                 '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko',
-                '/api/plan/rueckblick', '/api/plan/uebernehmen', '/api/plan/check'], true)) {
+                '/api/plan/rueckblick', '/api/plan/uebernehmen', '/api/plan/check',
+                '/api/dokument/kommentar', '/api/dokument/setzen', '/api/dokument/status', '/api/dokument/online'], true)) {
             antwort(404, ['fehler' => 'unbekannt']);
         }
         // Prüfen, was der PC sowieso prüft, schon hier – damit Fehler sofort sichtbar sind
@@ -48,6 +88,9 @@ try {
         if ($pfad === '/api/nachricht' && !in_array($daten['art'] ?? 'auftrag', ['auftrag', 'frage', 'info', 'korrektur', 'freigabe'], true)) {
             antwort(400, ['fehler' => 'Art nicht erlaubt']);
         }
+        if (str_starts_with($pfad, '/api/dokument/') && (!is_int($daten['id'] ?? null) || $daten['id'] < 1)) antwort(400, ['fehler' => 'id fehlt']);
+        if ($pfad === '/api/dokument/kommentar' && trim((string)($daten['text'] ?? '')) === '') antwort(400, ['fehler' => 'Text fehlt']);
+        if ($pfad === '/api/dokument/status' && !in_array($daten['status'] ?? '', ['aktuell', 'archiviert'], true)) antwort(400, ['fehler' => 'Status']);
         if ($pfad === '/api/gelesen' && (!is_array($daten['ids'] ?? null) || !$daten['ids'] || array_filter($daten['ids'], fn($i) => !is_int($i)))) {
             antwort(400, ['fehler' => 'ids fehlen']);
         }
@@ -60,7 +103,7 @@ try {
             (bool)$frage => ['status' => ($daten['art'] === 'rueckfrage') ? 'offen' : 'beantwortet'],
             $pfad === '/api/nachricht' => ['an' => array_map('trim', explode(',', (string)$daten['an']))],
             $pfad === '/api/gelesen' => ['erledigt' => count($daten['ids'])],
-            str_starts_with($pfad, '/api/einstellungen/'), str_starts_with($pfad, '/api/plan/') => [],
+            str_starts_with($pfad, '/api/einstellungen/'), str_starts_with($pfad, '/api/plan/'), str_starts_with($pfad, '/api/dokument/') => [],
             $pfad === '/api/halt' => ['halt' => 0],
             default => ['aufgehoben' => 0],
         };
@@ -98,6 +141,7 @@ try {
         $aus['highlights'] = array_map(fn($h) => ['id' => $h['id'], 'titel' => $h['titel'], 'agent' => $h['agent']], array_slice($hl, 0, 5));
         antwort(200, $aus);
     }
+    if ($pfad === '/api/dokument/datei') datei_senden($q);
     if ($pfad === '/api/agent') {                          // Übersicht je Agent: aus dem Schaufenster „/api/agenten“
         $z = sql([["SELECT inhalt FROM ansicht WHERE weg = '/api/agenten'", []]])[0];
         $alle = $z ? json_decode($z[0][0], true) : [];
@@ -105,13 +149,20 @@ try {
         if (!isset($alle[$k])) antwort(404, ['fehler' => 'Zu diesem Agenten liegen online noch keine Daten vor.']);
         antwort(200, $alle[$k]);
     }
-    $schluessel = $pfad === '/api/aufgaben' ? '/api/aufgaben?sicht=' . (string)($q['sicht'] ?? 'offen')
-        : ($pfad === '/api/fragen' && ($q['alle'] ?? '') === '1' ? '/api/fragen?alle=1' : $pfad);
-    [$zeile, $pc, $offen] = sql([
+    $schluessel = match (true) {
+        $pfad === '/api/aufgaben' => '/api/aufgaben?sicht=' . (string)($q['sicht'] ?? 'offen'),
+        $pfad === '/api/fragen' && ($q['alle'] ?? '') === '1' => '/api/fragen?alle=1',
+        $pfad === '/api/dokument' => '/api/dokument?id=' . (int)($q['id'] ?? 0),
+        default => $pfad,
+    };
+    [$zeile, $pc, $offen, $neu] = sql([
         ['SELECT inhalt, stand_utc FROM ansicht WHERE weg = ?', [$schluessel]],
         ["SELECT wert FROM zustand WHERE schluessel = 'pc_gesehen_utc'", []],
         ["SELECT weg, daten FROM eingang WHERE status = 'neu'", []],
+        ["SELECT sha, endung, groesse, teile FROM datei WHERE status = 'unterwegs' ORDER BY groesse LIMIT 3", []],
     ]);
+    register_shutdown_function('dateien_nachholen', $neu);
+    if (!$zeile && $pfad === '/api/dokument') antwort(404, ['fehler' => 'Dieses Dokument gibt es online (noch) nicht.']);
     if (!$zeile) antwort(404, ['fehler' => 'Noch keine Daten vom PC – läuft der AMW-Dienst mit Abgleich?']);
     $d = json_decode($zeile[0][0], true);
     $unterwegs = array_column($offen, 0);
@@ -142,6 +193,21 @@ try {
             $aus[] = $f;
         }
         $d = $aus;
+    } elseif ($pfad === '/api/dokumente') {               // Filter wie am PC (amw/dokumente.py liste), hier auf der ganzen Liste
+        $status = (string)($q['status'] ?? 'aktuell');
+        $such = mb_strtolower(trim((string)($q['q'] ?? '')));
+        $gleich = fn($x, string $k) => ($q[$k] ?? '') === '' || (string)$x === (string)$q[$k];
+        $d['dokumente'] = array_values(array_filter($d['dokumente'], fn($x) => ($status === 'alle' || $x['status'] === $status)
+            && $gleich($x['art'], 'art') && $gleich($x['angelegt_von'], 'von') && $gleich($x['bezug_art'], 'bezug_art')
+            && $gleich($x['bezug_id'], 'bezug_id') && ($such === '' || str_contains((string)$x['such'], $such))));
+        foreach ($d['dokumente'] as &$x) unset($x['such']);
+        unset($x);
+    } elseif ($pfad === '/api/dokument') {                 // gewählte Version; Texte liegen für alle Versionen bei
+        $nr = (int)($q['v'] ?? 0);
+        $nummern = array_column($d['versionen'], 'nr');
+        $d['gezeigt'] = in_array($nr, $nummern, true) ? $nr : max($nummern);
+        if (isset($d['texte'][(string)$d['gezeigt']])) $d['text'] = $d['texte'][(string)$d['gezeigt']];
+        unset($d['texte']);
     } elseif ($pfad === '/api/einstellungen') {          // Online-Seite: aktuelle Werte, nicht der Stand des Schaufensters
         $d['web'] = web_einst_alle(true);
     } elseif ($pfad === '/api/start') {

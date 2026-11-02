@@ -43,6 +43,8 @@ const ONLINE_SCHEMA = [
     "CREATE TABLE IF NOT EXISTS versuch (id INTEGER PRIMARY KEY, zeit_utc TEXT NOT NULL, ip TEXT, ok INTEGER NOT NULL)",
     "CREATE INDEX IF NOT EXISTS versuch_zeit ON versuch (zeit_utc)",
     "CREATE TABLE IF NOT EXISTS zustand (schluessel TEXT PRIMARY KEY, wert TEXT)",
+    "CREATE TABLE IF NOT EXISTS datei (sha TEXT PRIMARY KEY, endung TEXT NOT NULL, groesse INTEGER NOT NULL, teile INTEGER NOT NULL, status TEXT NOT NULL, zeit_utc TEXT NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS datei_teil (sha TEXT NOT NULL, nr INTEGER NOT NULL, inhalt TEXT NOT NULL, PRIMARY KEY (sha, nr))",
 ];
 
 /** Orte außerhalb des Web-/Deploy-Ordners: dort löscht ein Git-Deploy nichts und niemand kann sie abrufen. */
@@ -120,7 +122,7 @@ function kopfzeilen(bool $html): void {
     if (ist_https()) header('Strict-Transport-Security: max-age=31536000');
     if ($html) {
         header("Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline';"
-            . " connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+            . " connect-src 'self'; img-src 'self' data: blob:; frame-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
     }
 }
 
@@ -303,6 +305,77 @@ function gesperrt(string $ip): bool {
         ['SELECT count(*) FROM versuch WHERE ok = 0 AND zeit_utc > ?', [jetzt_utc(-3600)]],
     ]);
     return (int)$je_ip[0][0] >= web_einst('fehl_je_ip') || (int)$gesamt[0][0] >= web_einst('fehl_gesamt');
+}
+
+/* --- Dateien der Dokumente (Stufe D2, amw/abgleich.py) -------------------------------------------- */
+
+/* Endung → [Inhaltstyp, Vorschau] – wie amw/dokumente.py FORMATE, ohne Texte (die kommen als Ansicht). */
+const DATEI_FORMATE = ['.png' => ['image/png', 'bild'], '.jpg' => ['image/jpeg', 'bild'], '.jpeg' => ['image/jpeg', 'bild'],
+    '.webp' => ['image/webp', 'bild'], '.gif' => ['image/gif', 'bild'], '.svg' => ['image/svg+xml', 'bild'],
+    '.html' => ['text/html; charset=utf-8', 'mockup'], '.htm' => ['text/html; charset=utf-8', 'mockup'],
+    '.pdf' => ['application/pdf', 'pdf'],
+    '.docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'download'],
+    '.xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'download']];
+const AUFRAEUMEN_S = 600;            // so oft höchstens nach Kopien schauen, die nicht mehr online stehen
+
+/** Ablage auf dem Webspace: neben der Konfiguration, außerhalb des Deploy-Ordners – ein Deploy löscht dort nichts, und
+ *  niemand ruft sie direkt ab. null: Konfiguration liegt noch in inc/ – dann kommt jede Datei frisch aus dem Speicher. */
+function datei_ordner(): ?string {
+    if ($e = getenv('AMW_DATEIEN')) return rtrim(str_replace(chr(92), '/', $e), '/');
+    foreach (konfig_orte() as $ort) if (is_file($ort)) return dirname($ort) . '/amw-dateien';
+    return null;
+}
+
+function datei_pfad(string $ordner, string $sha, string $endung): string {
+    return $ordner . '/' . substr($sha, 0, 2) . '/' . $sha . $endung;
+}
+
+/** Holt eine vom PC angemeldete Datei aus ihren Teilen, prüft Größe und Prüfsumme und legt sie ab (dann sind die Teile
+ *  im Speicher überflüssig). Unvollständig: abmelden – der PC lädt sie neu. Rückgabe: der Inhalt oder null. */
+function datei_abholen(string $sha, string $endung, int $groesse, int $teile): ?string {
+    $roh = '';
+    for ($i = 0; $i < $teile; $i += 8) {
+        foreach (sql([['SELECT inhalt FROM datei_teil WHERE sha = ? AND nr >= ? AND nr < ? ORDER BY nr', [$sha, $i, $i + 8]]])[0] as [$b64]) {
+            $roh .= (string)base64_decode((string)$b64, true);
+        }
+    }
+    if (strlen($roh) !== $groesse || !hash_equals($sha, hash('sha256', $roh))) {
+        sql([['DELETE FROM datei WHERE sha = ?', [$sha]]]);
+        return null;
+    }
+    $ordner = datei_ordner();
+    if ($ordner !== null) {
+        $p = datei_pfad($ordner, $sha, $endung);
+        if (!is_dir($ordner) && @mkdir($ordner, 0700, true)) @file_put_contents("$ordner/.htaccess", "Require all denied\n");
+        if ((is_dir(dirname($p)) || @mkdir(dirname($p), 0700, true))
+            && @file_put_contents("$p.neu", $roh) === strlen($roh) && @rename("$p.neu", $p)) {
+            sql([["UPDATE datei SET status = 'abgelegt' WHERE sha = ?", [$sha]], ['DELETE FROM datei_teil WHERE sha = ?', [$sha]]]);
+        }
+    }
+    return $roh;
+}
+
+/** Nach der Antwort (der Aufrufer wartet nicht): neu angemeldete Dateien abholen und Kopien löschen, die nicht mehr
+ *  angemeldet sind – so liegt online nur, was am PC auf „auch online“ steht. */
+function dateien_nachholen(array $neu): void {
+    if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+    elseif (function_exists('litespeed_finish_request')) litespeed_finish_request();
+    try {
+        $ordner = datei_ordner();
+        foreach ($neu as [$sha, $endung, $groesse, $teile]) {
+            if (preg_match('/^[0-9a-f]{64}$/', (string)$sha) && isset(DATEI_FORMATE[$endung])) datei_abholen((string)$sha, (string)$endung, (int)$groesse, (int)$teile);
+        }
+        $marke = "$ordner/.aufgeraeumt";
+        if ($ordner === null || !is_dir($ordner) || (is_file($marke) && time() - filemtime($marke) < AUFRAEUMEN_S)) return;
+        @touch($marke);
+        $da = array_flip(array_column(sql([['SELECT sha FROM datei', []]])[0], 0));
+        foreach (glob("$ordner/??/*") ?: [] as $p) {
+            $sha = substr(basename($p), 0, 64);
+            if (!isset($da[$sha]) || str_ends_with($p, '.neu')) @unlink($p);
+        }
+    } catch (Throwable $x) {
+        // Speicher kurz weg: beim nächsten Aufruf noch einmal
+    }
 }
 
 const EINRICHTEN_S = 600;            // so lange gilt der QR-Code beim ersten Anmelden

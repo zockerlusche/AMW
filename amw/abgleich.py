@@ -7,6 +7,12 @@ Briefkasten: Was der Entwickler online tut (Antwort, Nachricht, Halt, Weiter), s
 `eingang`. Der PC holt neue Zeilen ab, führt sie über denselben Weg wie die lokale Seite aus (aktionen.py) und
 trägt das Ergebnis zurück. Jede Zeile wirkt höchstens einmal (lokale Liste `netz_eingang`).
 
+Dokumente (Stufe D2, → doc/plan-dokumente.md): Liste, Details und Texte gehen als Ansichten mit. Dateien nur, wenn ein
+Dokument „auch online“ steht: der PC legt sie in Teilen in `datei_teil` und meldet sie in `datei` an, die Seite holt sie
+beim nächsten Aufruf auf den Webspace (außerhalb des Deploy-Ordners) und löscht die Teile. Steht ein Dokument nicht mehr
+online, nimmt der PC die Zeile aus `datei` – die Seite löscht ihre Kopie dann selbst. Der PC braucht dafür weder die Adresse
+der Seite noch einen eigenen Schlüssel.
+
 Zugang: %LOCALAPPDATA%\\amw\\turso.json {"url", "token", "abgleich": true}. Ohne "abgleich": true bleibt alles aus.
 Der Schlüssel wird nie ausgegeben oder protokolliert.
 """
@@ -29,6 +35,10 @@ log = logging.getLogger("amw.abgleich")
 HOCH_S = 30          # Ansichten höchstens so oft hochladen (nur bei Änderung)
 PULS_S = 300         # spätestens dann Start/Betrieb neu (zeigt online: „PC zuletzt gesehen“)
 EINGANG_S = 15       # Briefkasten so oft leeren
+TEIL = 256 * 1024    # Datei-Teil in Bytes (Base64 ~350 KB je Zeile)
+TEILE_JE_ANFRAGE = 4             # ~1,4 MB je Anfrage an den Speicher
+DATEIEN_JE_SCHRITT = 8 << 20     # so viel höchstens je Durchgang hochladen, der Rest beim nächsten
+TEXT_MAX = 400_000   # Zeichen je Text-Version online (sehr lange Texte gekürzt, vollständig am PC)
 
 SCHEMA = [
     "CREATE TABLE IF NOT EXISTS ansicht (weg TEXT PRIMARY KEY, inhalt TEXT NOT NULL, pruef TEXT NOT NULL,"
@@ -39,6 +49,10 @@ SCHEMA = [
     "CREATE TABLE IF NOT EXISTS versuch (id INTEGER PRIMARY KEY, zeit_utc TEXT NOT NULL, ip TEXT, ok INTEGER NOT NULL)",
     "CREATE INDEX IF NOT EXISTS versuch_zeit ON versuch (zeit_utc)",
     "CREATE TABLE IF NOT EXISTS zustand (schluessel TEXT PRIMARY KEY, wert TEXT)",
+    "CREATE TABLE IF NOT EXISTS datei (sha TEXT PRIMARY KEY, endung TEXT NOT NULL, groesse INTEGER NOT NULL,"
+    " teile INTEGER NOT NULL, status TEXT NOT NULL, zeit_utc TEXT NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS datei_teil (sha TEXT NOT NULL, nr INTEGER NOT NULL, inhalt TEXT NOT NULL,"
+    " PRIMARY KEY (sha, nr))",
 ]
 SICHTEN = ("offen", "geparkt", "pool", "erledigt")
 
@@ -158,6 +172,70 @@ def ansichten(con, pid, speicher=None):
          "/api/seit": verlauf.seit_daten(con, pid)}
     for s in SICHTEN:
         a[f"/api/aufgaben?sicht={s}"] = workbench.daten_aufgaben(con, pid, {"sicht": [s], **leer})
+    a.update(dokument_ansichten(con, pid))
+    return a
+
+
+_texte = {}          # sha → Text (Inhalt je Prüfsumme unveränderlich)
+
+
+def _text(sha, endung):
+    from . import dokumente
+    if sha not in _texte:
+        with open(dokumente.datei_pfad(sha, endung), "rb") as f:
+            t = f.read().decode("utf-8", errors="replace")
+        _texte[sha] = t if len(t) <= TEXT_MAX else t[:TEXT_MAX] + "\n\n… (gekürzt – vollständig am PC)"
+    return _texte[sha]
+
+
+def dokument_ansichten(con, pid):
+    """Dokumente online: die ganze Liste mit Suchtext (gefiltert wird in web/api.php wie am PC), je Dokument die Details mit
+    den Texten aller Text-Versionen und – nie ausgeliefert – welche Datei zu welcher Version gehört (nur Dokumente, die
+    auch online stehen)."""
+    from . import dokumente
+    basis = workbench.daten_dokumente(con, pid, {"status": ["alle"]})
+    such = {r[0]: r[1] for r in con.execute(
+        "SELECT v.dokument_id, substr(group_concat(substr(coalesce(v.suchtext, ''), 1, 20000), ' '), 1, 30000)"
+        " FROM dokument_version v JOIN dokument d ON d.id = v.dokument_id WHERE d.projekt_id = ? GROUP BY v.dokument_id", (pid,))}
+    liste = []
+    for d in basis["dokumente"]:
+        if d["status"] != "geloescht":
+            liste.append({**d, "such": f"{d['titel']} {such.get(d['id']) or ''}".lower()})
+    a = {"/api/dokumente": {**basis, "dokumente": liste}}
+    dateien = {}
+    versionen = {}
+    for did, nr, sha, endung in con.execute(
+            "SELECT v.dokument_id, v.nr, v.sha256, v.endung FROM dokument_version v JOIN dokument d ON d.id = v.dokument_id"
+            " WHERE d.projekt_id = ? ORDER BY v.dokument_id, v.nr", (pid,)):
+        versionen.setdefault(did, []).append((nr, sha, endung))
+    gespraeche = {}
+    for r in con.execute(
+            "SELECT n.dokument_id, n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, (SELECT group_concat(agent, ', ') FROM empfang"
+            " WHERE nachricht_id = n.id) AS an FROM nachricht n WHERE n.projekt_id = ? AND n.dokument_id IS NOT NULL ORDER BY n.id", (pid,)):
+        gespraeche.setdefault(r[0], []).append(dict(zip(("id", "zeit_utc", "von", "art", "kurz", "text", "an"), tuple(r)[1:])))
+    for did, online, status in con.execute("SELECT id, online, status FROM dokument WHERE projekt_id = ?", (pid,)).fetchall():
+        try:
+            d = workbench.daten_dokument(con, pid, {"id": [str(did)]}, gespraeche.get(did, []))
+        except (kern.AmwFehler, OSError) as e:        # Datei fehlt in der Ablage: dieses Dokument online auslassen
+            log.warning("D%s nicht online: %s", did, e)
+            continue
+        d.pop("text", None)
+        d.pop("gezeigt", None)
+        if status != "geloescht":
+            texte = {}
+            for nr, sha, endung in versionen.get(did, []):
+                vorschau = dokumente.FORMATE.get(endung, ("", "", "download"))[2]
+                if vorschau == "text":
+                    try:
+                        texte[str(nr)] = _text(sha, endung)
+                    except OSError:
+                        pass
+                elif online:
+                    dateien[f"{did}:{nr}"] = [sha, endung]
+                    dateien[f"{did}:0"] = [sha, endung]
+            d["texte"] = texte
+        a[f"/api/dokument?id={did}"] = d
+    a["/intern/dateien"] = dateien
     return a
 
 
@@ -195,7 +273,8 @@ class Abgleich:
         self.con, self.sp = con, speicher
         self.pid = pid or con.execute("SELECT min(id) FROM projekt").fetchone()[0]
         self.bekannt = {}                      # weg → Prüfsumme, wie sie online liegt
-        self.letzt_hoch = self.letzt_puls = self.letzt_index = 0.0
+        self.letzt_hoch = self.letzt_puls = self.letzt_index = self.letzt_oben = 0.0
+        self.oben = {}                         # sha → Status der Dateien im Speicher (unterwegs | abgelegt)
         self.con.execute("CREATE TABLE IF NOT EXISTS netz_eingang (id INTEGER PRIMARY KEY, ergebnis TEXT,"
                          " zeit_utc TEXT NOT NULL)")
         # Merkmal = Zeit + Weg + Inhalt: eine neue Online-Datenbank zählt wieder ab 1 – die Nummer allein reicht nicht
@@ -205,6 +284,57 @@ class Abgleich:
     def schema(self):
         self.sp.ausfuehren([(s, []) for s in SCHEMA])
         self.bekannt = {w: p for w, p in self.sp.ausfuehren([("SELECT weg, pruef FROM ansicht", [])])[0]}
+        self.oben_laden()
+
+    def oben_laden(self):
+        self.oben = {s: st for s, st in self.sp.ausfuehren([("SELECT sha, status FROM datei", [])])[0]}
+        self.letzt_oben = time.time()
+
+    def dateien(self):
+        """Dateien der Dokumente, die auch online stehen, zum Webspace reichen; nicht mehr gebrauchte abmelden.
+        Gibt die Zahl der hochgeladenen und abgemeldeten Dateien zurück."""
+        from . import dokumente
+        soll = {}
+        for sha, endung, groesse in self.con.execute(
+                "SELECT DISTINCT v.sha256, v.endung, v.groesse FROM dokument_version v JOIN dokument d ON d.id = v.dokument_id"
+                " WHERE d.projekt_id = ? AND d.online = 1 AND d.status != 'geloescht'", (self.pid,)):
+            if dokumente.FORMATE.get(endung, ("", "", "download"))[2] != "text":   # Texte gehen als Ansicht mit
+                soll[sha] = (endung, groesse)
+        weg = [s for s in self.oben if s not in soll]
+        if weg:
+            self.sp.ausfuehren([a for s in weg for a in (("DELETE FROM datei WHERE sha = ?", [s]),
+                                                         ("DELETE FROM datei_teil WHERE sha = ?", [s]))])
+            for s in weg:
+                self.oben.pop(s)
+        budget, n = DATEIEN_JE_SCHRITT, 0
+        for sha, (endung, _) in sorted(soll.items(), key=lambda x: x[1][1]):       # kleine zuerst
+            if sha in self.oben:
+                continue
+            if budget <= 0:
+                break
+            try:
+                with open(dokumente.datei_pfad(sha, endung), "rb") as f:
+                    roh = f.read()
+            except OSError:
+                log.warning("Datei %s… fehlt in der Ablage – nicht hochgeladen", sha[:12])
+                continue
+            if hashlib.sha256(roh).hexdigest() != sha:
+                log.warning("Datei %s… passt nicht zur Prüfsumme – nicht hochgeladen", sha[:12])
+                continue
+            teile = [roh[i:i + TEIL] for i in range(0, len(roh), TEIL)] or [b""]
+            self.sp.ausfuehren([("DELETE FROM datei_teil WHERE sha = ?", [sha])])
+            for i in range(0, len(teile), TEILE_JE_ANFRAGE):
+                self.sp.ausfuehren([("INSERT INTO datei_teil (sha, nr, inhalt) VALUES (?, ?, ?)",
+                                     [sha, i + j, base64.b64encode(t).decode("ascii")])
+                                    for j, t in enumerate(teile[i:i + TEILE_JE_ANFRAGE])])
+            # erst wenn alle Teile da sind, erfährt die Seite von der Datei
+            self.sp.ausfuehren([("INSERT INTO datei (sha, endung, groesse, teile, status, zeit_utc) VALUES (?, ?, ?, ?,"
+                                 " 'unterwegs', ?) ON CONFLICT(sha) DO UPDATE SET status = 'unterwegs', teile = excluded.teile,"
+                                 " zeit_utc = excluded.zeit_utc", [sha, endung, len(roh), len(teile), db.jetzt()])])
+            self.oben[sha] = "unterwegs"
+            budget -= len(roh)
+            n += 1
+        return n + len(weg)
 
     def hochladen(self, alle=False):
         t = db.jetzt()
@@ -263,6 +393,9 @@ class Abgleich:
         jetzt = time.time()
         if self.eingang():
             geaendert = True
+        if jetzt - self.letzt_oben >= PULS_S:       # die Seite meldet eine verlorene Kopie ab – dann neu hochladen
+            self.oben_laden()
+        self.dateien()
         if (geaendert and jetzt - self.letzt_hoch >= HOCH_S) or jetzt - self.letzt_puls >= PULS_S:
             self.hochladen()
             self.letzt_hoch = self.letzt_puls = jetzt

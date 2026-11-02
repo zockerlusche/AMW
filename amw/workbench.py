@@ -314,7 +314,7 @@ def daten_fragen(con, pid, alle=False):
                                           " ORDER BY id", (f["id"],)))
         d["wartet_auf_fragesteller"] = bool(d["verlauf"]) and d["verlauf"][-1]["art"] == "rueckfrage"
         d["dokumente"] = zeilen(con.execute(
-            "SELECT d.id, d.titel, d.art, v.endung FROM dokument d JOIN dokument_version v ON v.dokument_id = d.id AND v.nr ="
+            "SELECT d.id, d.titel, d.art, d.online, v.endung FROM dokument d JOIN dokument_version v ON v.dokument_id = d.id AND v.nr ="
             " (SELECT max(nr) FROM dokument_version WHERE dokument_id = d.id) WHERE d.projekt_id = ? AND d.bezug_art = 'frage'"
             " AND d.bezug_id = ? AND d.status = 'aktuell' ORDER BY d.id", (pid, f["id"])))
         aus.append(d)
@@ -426,14 +426,15 @@ def daten_dokumente(con, pid, q):
             "boegen": [{"id": b["id"], "titel": b["titel"]} for b in planung.boegen(con, pid)]}
 
 
-def daten_dokument(con, pid, q):
-    """Ein Dokument: Versionen, Gespräch, wozu es gehört; bei Text-Formaten der Inhalt der gewählten Version."""
+def daten_dokument(con, pid, q, gespraech=None):
+    """Ein Dokument: Versionen, Gespräch, wozu es gehört; bei Text-Formaten der Inhalt der gewählten Version.
+    `gespraech`: schon geholt (der Abgleich holt die Gespräche aller Dokumente auf einmal)."""
     from . import dokumente
     did = int(q.get("id", ["0"])[0] or 0)
     d = dokumente.dokument(con, pid, did)
     for v in d["versionen"]:
         v.pop("sha256", None)
-    d["gespraech"] = dokumente.gespraech(con, pid, did)
+    d["gespraech"] = dokumente.gespraech(con, pid, did) if gespraech is None else gespraech
     if d["bezug_art"]:
         spalte = {"bogen": "titel", "aufgabe": "titel", "frage": "kurz", "beschluss": "stichwort"}[d["bezug_art"]]
         r = con.execute(f"SELECT {spalte} FROM {d['bezug_art']} WHERE id = ?", (d["bezug_id"],)).fetchone()

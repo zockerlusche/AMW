@@ -242,6 +242,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .dk-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
 .dk-karte { display: grid; grid-template-rows: 130px auto; border: 1px solid var(--linie); border-radius: 4px; background: var(--flaeche); overflow: hidden;
   cursor: pointer; text-align: left; padding: 0; color: inherit; font: inherit; }
+.dk-nurpc { border: 0; }
 .dk-karte:hover, .dk-karte:focus-visible { border-color: var(--bernstein); }
 .dk-bild { display: grid; place-items: center; background: var(--flaeche2); overflow: hidden; border-bottom: 1px solid var(--linie); }
 .dk-bild img { width: 100%; height: 100%; object-fit: cover; }
@@ -679,6 +680,8 @@ const TEXTE = {
     dk_kommentar_ph: "Kommentar oder was überarbeitet werden soll …", dk_kommentieren: "Kommentieren", dk_ueberarbeiten: "Überarbeiten lassen",
     dk_oeffnen: "In neuem Tab", dk_herunterladen: "Herunterladen", dk_zuordnen: "Zuordnen …", dk_archivieren: "Archivieren", dk_archiviert: "Archiviert",
     dk_wiederherstellen: "Wiederherstellen", dk_online: "Auch online zeigen", dk_offline: "Nur am PC", dk_online_an: "Datei auch online", dk_online_aus: "Datei nur am PC",
+    dk_nur_pc_text: "Die Datei liegt nur am PC. Auf Wunsch lädt der PC sie hoch – sie bleibt online, bis du sie wieder auf „Nur am PC“ stellst.",
+    dk_anfordern: "Online anfordern", dk_alle_anfordern: "Alle Dateien von {x} anfordern",
     dk_loeschen: "Endgültig löschen", dk_loeschen_frage: "„{x}“ endgültig löschen? Die Dateien werden entfernt – das lässt sich nicht rückgängig machen. (Archivieren reicht meist.)",
     dk_geloescht: "Gelöscht", dk_bild: "Bild", dk_anhaenge: "Anhänge", dk_n: "Dokumente ({n})", rb_knopf: "Rückblick ({n})", rb_gut: "lief gut", rb_schlecht: "lief nicht gut", rb_massnahme: "ändern wir",
     rb_gelernt: "gelernt", rb_ph: "Was war gut / schlecht, was ändern wir, was haben wir gelernt?", rb_hinzu: "Hinzufügen",
@@ -844,6 +847,8 @@ const TEXTE = {
     dk_kommentar_ph: "Comment or what should be reworked …", dk_kommentieren: "Comment", dk_ueberarbeiten: "Request rework",
     dk_oeffnen: "Open in new tab", dk_herunterladen: "Download", dk_zuordnen: "Assign …", dk_archivieren: "Archive", dk_archiviert: "Archived",
     dk_wiederherstellen: "Restore", dk_online: "Also show online", dk_offline: "PC only", dk_online_an: "file also online", dk_online_aus: "file on PC only",
+    dk_nur_pc_text: "This file is on the PC only. On request the PC uploads it – it stays online until you set it back to “PC only”.",
+    dk_anfordern: "Request online", dk_alle_anfordern: "Request all files of {x}",
     dk_loeschen: "Delete for good", dk_loeschen_frage: "Delete “{x}” for good? The files are removed – this cannot be undone. (Archiving is usually enough.)",
     dk_geloescht: "Deleted", dk_bild: "Image", dk_anhaenge: "Attachments", dk_n: "Documents ({n})", rb_knopf: "Retro ({n})", rb_gut: "went well", rb_schlecht: "went badly", rb_massnahme: "we change", rb_gelernt: "learned",
     rb_ph: "What went well / badly, what do we change, what did we learn?", rb_hinzu: "Add", rb_titel: "Retro arc {b} “{x}”",
@@ -1199,8 +1204,8 @@ function frageKarte(f) {
       f.wartet_auf_fragesteller ? el("span", { class: "etikett bernstein" }, t("wartet_auf_x", { x: f.von })) : null),
     el("h3", {}, f.kurz),
     f.worum ? el("p", { class: "worum" }, f.worum) : null,
-    !API && (f.dokumente || []).length ? el("div", { class: "dk-anhaenge" }, f.dokumente.map(x => el("button", { class: "dk-anhang", type: "button", onclick: () => dokumentDialog(x.id) },
-      [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"].includes(x.endung) ? el("img", { src: dokUrl(x.id), alt: "", loading: "lazy" }) : null,
+    (f.dokumente || []).length ? el("div", { class: "dk-anhaenge" }, f.dokumente.map(x => el("button", { class: "dk-anhang", type: "button", onclick: () => dokumentDialog(x.id) },
+      [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"].includes(x.endung) && (!API || x.online) ? el("img", { src: dokUrl(x.id), alt: "", loading: "lazy", onerror: e => e.target.remove() }) : null,
       `D${x.id} · ${x.titel}`))) : null);
   /* Gesprächsverlauf wie im Chat: Fragesteller links, du (Entwickler) rechts */
   if ((f.verlauf || []).length) karte.append(el("div", { class: "verlauf" }, f.verlauf.map(v => {
@@ -1294,10 +1299,11 @@ async function sichtWissen() {
 
 /* --- Dokumente ----------------------------------------------------------------------------- */
 const dokUrl = (id, v) => ziel(`/api/dokument/datei?id=${id}${v ? "&v=" + v : ""}`);
+const nurAmPc = d => API && d.vorschau !== "text" && !d.online;      // online: Datei nicht auf dem Webspace
 function dokSymbol(d) {
-  return d.vorschau === "bild" ? el("img", { src: dokUrl(d.id, d.version), alt: "", loading: "lazy" })
-    : el("span", { class: "dk-symbol" }, d.vorschau === "mockup" ? "Mockup" : d.vorschau === "pdf" ? "PDF" : d.format === "markdown" ? "Text" : d.format,
-      el("small", {}, d.endung));
+  const symbol = () => el("span", { class: "dk-symbol" }, d.vorschau === "mockup" ? "Mockup" : d.vorschau === "pdf" ? "PDF" : d.format === "markdown" ? "Text" : d.format,
+    el("small", {}, nurAmPc(d) ? `${d.endung} · ${t("dk_online_aus")}` : d.endung));
+  return d.vorschau === "bild" && !nurAmPc(d) ? el("img", { src: dokUrl(d.id, d.version), alt: "", loading: "lazy", onerror: e => e.target.replaceWith(symbol()) }) : symbol();
 }
 async function sichtDokumente() {
   const f = zustand.dok ||= { art: "", von: "", bezug: "", q: "", status: "aktuell", liste: false };
@@ -1335,25 +1341,35 @@ async function sichtDokumente() {
 }
 async function dokumentDialog(id, v) {
   let d; try { d = await holen(`/api/dokument?id=${id}` + (v ? `&v=${v}` : "")); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
-  const ver = d.versionen.find(x => x.nr === d.gezeigt), url = dokUrl(d.id, ver.nr);
+  const ver = d.versionen.find(x => x.nr === d.gezeigt), nurPc = nurAmPc({ ...ver, online: d.online });
+  /* online ist ein Text keine Datei auf dem Webspace – Herunterladen dann aus dem gezeigten Text */
+  const url = API && ver.vorschau === "text" ? URL.createObjectURL(new Blob([d.text || ""], { type: "text/plain;charset=utf-8" })) : dokUrl(d.id, ver.nr);
   const vorschau = d.status === "geloescht" ? el("div", { class: "leer" }, t("dks_geloescht"))
+    : nurPc ? el("div", { class: "leer dk-nurpc" }, el("p", {}, t("dk_nur_pc_text")),
+      el("div", { class: "dk-aktionen", style: "justify-content:center" },
+        el("button", { class: "knopf haupt", type: "button", onclick: () => tun("/api/dokument/online", { an: true }) }, t("dk_anfordern")),
+        d.bezug_art ? el("button", { class: "klein-knopf", type: "button", onclick: async e => { e.target.disabled = true;
+          try { const l = (await holen(`/api/dokumente?bezug_art=${d.bezug_art}&bezug_id=${d.bezug_id}`)).dokumente.filter(nurAmPc);
+            for (const x of l) await schicken("/api/dokument/online", { id: x.id, an: true }); hg.remove(); }
+          catch (x) { toast(t("fehler", { x: x.message }), true); e.target.disabled = false; } } },
+          t("dk_alle_anfordern", { x: ({ bogen: "Bogen ", aufgabe: "A", frage: "F", beschluss: "B" })[d.bezug_art] + d.bezug_id })) : null))
     : ver.vorschau === "bild" ? el("img", { src: url, alt: d.titel, title: t("vb_tipp"), onclick: () => dokVollbild(d, ver) })
     : ver.vorschau === "mockup" ? el("iframe", { src: url, sandbox: "allow-scripts", title: d.titel, referrerpolicy: "no-referrer" })
     : ver.vorschau === "pdf" ? el("iframe", { src: url, title: d.titel })
     : ver.vorschau === "text" ? (ver.format === "markdown" ? markdown(d.text || "") : el("pre", { class: "spec-text", style: "margin:0" }, d.text || ""))
     : el("div", { class: "leer" }, t("dk_nur_download"));
   const knopf = (text, fn, haupt) => el("button", { class: haupt ? "knopf haupt" : "klein-knopf", type: "button", onclick: fn }, text);
-  const tun = async (weg, daten, text) => { try { await schicken(weg, { id: d.id, ...daten }); if (text) toast(text); hg.remove(); dokumentDialog(d.id, v); if (zustand.sicht === "dokumente") sichtDokumente(); }
+  const tun = async (weg, daten, text) => { try { const r = await schicken(weg, { id: d.id, ...daten }); if (text && !r.unterwegs) toast(text); hg.remove(); dokumentDialog(d.id, v); if (zustand.sicht === "dokumente") sichtDokumente(); }
     catch (e) { toast(t("fehler", { x: e.message }), true); } };
   const nachricht = el("textarea", { rows: 3, placeholder: t("dk_kommentar_ph") });
   const melden = async ueberarbeiten => { if (!nachricht.value.trim()) { nachricht.focus(); return; }
-    try { const r = await schicken("/api/dokument/kommentar", { id: d.id, text: nachricht.value.trim(), ueberarbeiten }); toast(t("gesendet", { x: r.an.join(", ") })); hg.remove(); dokumentDialog(d.id, v); }
+    try { const r = await schicken("/api/dokument/kommentar", { id: d.id, text: nachricht.value.trim(), ueberarbeiten }); if (!r.unterwegs) toast(t("gesendet", { x: r.an.join(", ") })); hg.remove(); dokumentDialog(d.id, v); }
     catch (e) { toast(t("fehler", { x: e.message }), true); } };
   const bezug = d.bezug_art ? el("a", { class: "verweis", onclick: () => { hg.remove(); dokBezugOeffnen(d); } },
     `${({ bogen: "Bogen ", aufgabe: "A", frage: "F", beschluss: "B" })[d.bezug_art]}${d.bezug_id}` + (d.bezug_titel ? ` · ${d.bezug_titel}` : "")) : el("span", { class: "sehrleise" }, t("dk_ohne_bezug"));
   const hg = dialog(`D${d.id} · ${d.titel}`,
     el("p", { class: "leise", style: "margin-top:0" }, [t("dka_" + d.art), t("von", { x: d.angelegt_von }), zeit(d.angelegt_utc), t("dks_" + d.status),
-      d.online ? t("dk_online_an") : t("dk_online_aus")].join(" · ")),
+      ver.vorschau === "text" ? null : d.online ? t("dk_online_an") : t("dk_online_aus")].filter(Boolean).join(" · ")),
     el("div", { class: "dk-detail" },
       el("div", { class: "dk-vorschau" }, vorschau),
       el("aside", { class: "dk-seite" },
@@ -1367,13 +1383,13 @@ async function dokumentDialog(id, v) {
           d.status !== "geloescht" ? el("div", { style: "margin-top:8px;display:grid;gap:6px" }, nachricht, el("div", { class: "dk-aktionen" },
             knopf(t("dk_kommentieren"), () => melden(false)), knopf(t("dk_ueberarbeiten"), () => melden(true), true))) : null),
         d.status !== "geloescht" ? el("div", { class: "dk-aktionen" },
-          ["bild", "mockup", "pdf"].includes(ver.vorschau) ? knopf(t("vb_vollbild"), () => dokVollbild(d, ver, vorschau), true) : null,
-          !API ? el("a", { class: "klein-knopf", href: url, target: "_blank", rel: "noopener" }, t("dk_oeffnen")) : null,
-          el("a", { class: "klein-knopf", href: url, download: `D${d.id}-v${ver.nr}${ver.endung}` }, t("dk_herunterladen")),
+          ["bild", "mockup", "pdf"].includes(ver.vorschau) && !nurPc ? knopf(t("vb_vollbild"), () => dokVollbild(d, ver, vorschau), true) : null,
+          !nurPc && !(API && ver.vorschau === "text") ? el("a", { class: "klein-knopf", href: url, target: "_blank", rel: "noopener" }, t("dk_oeffnen")) : null,
+          !nurPc ? el("a", { class: "klein-knopf", href: url, download: `D${d.id}-v${ver.nr}${ver.endung}` }, t("dk_herunterladen")) : null,
           knopf(t("dk_zuordnen"), () => dokZuordnen(d, hg)),
           d.status === "aktuell" ? knopf(t("dk_archivieren"), () => tun("/api/dokument/status", { status: "archiviert" }, t("dk_archiviert")))
             : knopf(t("dk_wiederherstellen"), () => tun("/api/dokument/status", { status: "aktuell" })),
-          ver.vorschau !== "text" ? knopf(t(d.online ? "dk_offline" : "dk_online"), () => tun("/api/dokument/online", { an: !d.online })) : null,
+          ver.vorschau !== "text" && !nurPc ? knopf(t(d.online ? "dk_offline" : "dk_online"), () => tun("/api/dokument/online", { an: !d.online })) : null,
           !API ? knopf(t("dk_loeschen"), () => { if (confirm(t("dk_loeschen_frage", { x: d.titel }))) tun("/api/dokument/loeschen", {}, t("dk_geloescht")); }) : null) : null)));
   hg.querySelector(".dialog").style.width = "min(1280px,96vw)";
 }
@@ -1452,7 +1468,7 @@ async function dokVollbild(d, ver, rahmen) {
   }
   let bilder = [{ id: d.id, nr: ver.nr, titel: d.titel }];
   if (d.bezug_art) try {
-    const l = (await holen(`/api/dokumente?bezug_art=${d.bezug_art}&bezug_id=${d.bezug_id}`)).dokumente.filter(x => x.vorschau === "bild").reverse();
+    const l = (await holen(`/api/dokumente?bezug_art=${d.bezug_art}&bezug_id=${d.bezug_id}`)).dokumente.filter(x => x.vorschau === "bild" && !nurAmPc(x)).reverse();
     if (l.some(x => x.id === d.id)) bilder = l.map(x => x.id === d.id ? bilder[0] : { id: x.id, nr: x.version, titel: x.titel });
   } catch (e) { /* dann eben nur dieses Bild */ }
   bildVollbild(bilder, bilder.findIndex(x => x.id === d.id));
@@ -1771,7 +1787,7 @@ function bogenKarte(b) {
       b.baseline_datum && b.baseline_datum !== b.zieldatum ? el("span", { title: b.baseline_grund || "" }, el("span", { class: "sehrleise" }, t("pl_baseline") + " "), datumKurz(b.baseline_datum)) : null,
       p ? el("span", { class: ampelKlasse(p.ampel) + "-text" }, el("span", { class: "sehrleise" }, t("pl_prognose") + " "), `${datumKurz(p.p50)} – ${datumKurz(p.p85)}`) : null),
     el("div", { class: "tl-specs" }, ...["anforderungen", "entwurf", "schritte"].map(specChip),
-      b.dokumente && !API ? el("a", { class: "verweis", onclick: () => { zustand.dok = { status: "aktuell", bezug: `bogen:${b.id}` }; zeige("dokumente"); } }, t("dk_n", { n: b.dokumente })) : null,
+      b.dokumente ? el("a", { class: "verweis", onclick: () => { zustand.dok = { status: "aktuell", bezug: `bogen:${b.id}` }; zeige("dokumente"); } }, t("dk_n", { n: b.dokumente })) : null,
       b.klaerungen.filter(k => k.status === "offen").length ? el("a", { class: "verweis", onclick: () => zeige("fragen") },
         t("pl_klaerungen", { n: b.klaerungen.filter(k => k.status === "offen").length })) : null),
     schritte);
@@ -1787,7 +1803,7 @@ function schrittZeile(s) {
       [mensch ? t("pl_du") : (s.agent || t("pl_frei")), k.length ? `✓ ${erfuellt}/${k.length}` : null,
        s.komplexitaet ? `K${s.komplexitaet}` + (s.komplexitaet >= 7 ? (s.plan_status === "frei" ? " · Plan ✓" : " · " + t("pl_plan_fehlt")) : "") : null,
        s.prognose && s.status !== "fertig" ? `≈ ${datumKurz(s.prognose.p50)}` : null, s.anforderungen].filter(Boolean).join(" · "),
-      s.dokumente && !API ? el("a", { class: "verweis", style: "margin-left:6px", onclick: () => { zustand.dok = { status: "aktuell", bezug: `aufgabe:${s.id}` }; zeige("dokumente"); } }, `📎 ${s.dokumente}`) : null));
+      s.dokumente ? el("a", { class: "verweis", style: "margin-left:6px", onclick: () => { zustand.dok = { status: "aktuell", bezug: `aufgabe:${s.id}` }; zeige("dokumente"); } }, `📎 ${s.dokumente}`) : null));
 }
 function dialog(titel, ...inhalt) {
   const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
@@ -1945,7 +1961,7 @@ async function sichtVerlauf() {
       el("span", { class: "mono sehrleise" }, new Date(x.zeit).toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" })),
       el("span", { class: "punkt " + farbe(x) }),
       el("span", { class: "vl-wer" }, x.wer || "–"),
-      el("span", { class: "vl-text" }, x.art === "dokument" && !API ? el("a", { class: "ref verweis", onclick: () => dokumentDialog(+x.ref.slice(1)) }, x.ref) : el("span", { class: "ref" }, x.ref), " ", x.text,
+      el("span", { class: "vl-text" }, x.art === "dokument" ? el("a", { class: "ref verweis", onclick: () => dokumentDialog(+x.ref.slice(1)) }, x.ref) : el("span", { class: "ref" }, x.ref), " ", x.text,
         x.zusatz && !["nachricht"].includes(x.art) ? el("span", { class: "etikett", style: "margin-left:6px" }, t("vz_" + x.zusatz) !== "vz_" + x.zusatz ? t("vz_" + x.zusatz) : x.zusatz) : null))))))));
   if (liste.length >= 2500) m.append(el("p", { class: "sehrleise" }, t("vl_grenze")));
 }
@@ -2039,7 +2055,6 @@ for (const a of document.querySelectorAll("nav a")) a.addEventListener("click", 
 function thema(x) { document.documentElement.dataset.thema = x; try { localStorage.setItem("amw-thema", x); } catch (e) {} }
 $("#thema").addEventListener("click", () => thema(document.documentElement.dataset.thema === "hell" ? "dunkel" : "hell"));
 $("#sprache").addEventListener("click", () => sprache_setzen(sprache === "de" ? "en" : "de"));
-if (API) document.querySelector('nav a[data-sicht="dokumente"]')?.remove();   /* online erst mit Stufe D2 (doc/plan-dokumente.md) */
 try { thema(localStorage.getItem("amw-thema") || (matchMedia("(prefers-color-scheme: light)").matches ? "hell" : "dunkel")); } catch (e) { thema("dunkel"); }
 try { sprache = localStorage.getItem("amw-sprache") || ((navigator.language || "de").startsWith("de") ? "de" : "en"); } catch (e) {}
 if (new URLSearchParams(location.search).get("sprache") in TEXTE) sprache = new URLSearchParams(location.search).get("sprache");

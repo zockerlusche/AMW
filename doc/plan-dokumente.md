@@ -81,6 +81,13 @@ Daten. Echte Ergebnisse sind je Aufgabe typisch 1–20 MB, große Standbild-Läu
 - Unterwegs heißt es „anfordern“: Der Wächter lädt die Datei dann beim nächsten Abgleich hoch.
 - „Offline nehmen“ löscht nur die Kopie beim Hoster.
 
+**Umsetzung D2 (Abweichung vom Upload-Endpunkt):** Der PC schiebt eine Datei nicht direkt zum Hoster, sondern legt sie
+in Teilen in Turso ab (`datei_teil`, je 256 KB). Die Seite holt sie beim nächsten Aufruf **einmal** ab, prüft Größe und
+Prüfsumme, legt sie neben ihre Konfiguration und löscht die Teile; danach liefert PHP direkt vom Webspace mit
+Browser-Cache. Gründe: Der PC braucht weder die Adresse der Seite noch einen zweiten Schlüssel, beim Hoster muss niemand
+etwas von Hand ablegen, und es gibt keinen weiteren Endpunkt, der von außen Dateien annimmt. Turso trägt eine Datei nur
+kurz (Base64 einmal, nicht bei jedem Ansehen); das Gegenargument aus der Tabelle oben gilt damit nicht.
+
 ## 4b Einsammeln vorhandener Ergebnisse
 Nichts wird automatisch übernommen. `amw dokument einsammeln <ordner> --nur-liste` erstellt je Ablage eine Liste: Ordner,
 Anzahl, Größe, Zeitraum, Vorschlag behalten/weg und Grund, z. B. „Prüflauf-Einzelbilder“ oder „Arbeitskopie“. Sie geht an
@@ -106,7 +113,7 @@ Lead und Mensch. Übernommen wird erst nach Freigabe, und nur Ergebnisse; Arbeit
 | Stufe | Inhalt | Aufwand |
 |---|---|---|
 | D1 · am PC ✅ 1.2.0 | Schema 9, Ablage, `amw dokument …`, Standard im Pflicht-Kontext, Workbench-Bereich mit Vorschau, Bezüge an Bogen/Schritt/Frage, Suche, Kommentar → Nachricht, Tests, UI-Prüfung | ~1 Tag |
-| D2 · online | Metadaten/Text über Turso, Upload-Endpunkt und Dateiausgabe beim Hoster, Online-Ansicht, Aktionen über den Briefkasten | ~1 Tag |
+| D2 · online ✅ 1.3.0 | Metadaten/Text über Turso, Dateien zum Hoster (Durchreiche über Turso statt Upload-Endpunkt, siehe 4a), Dateiausgabe beim Hoster, Online-Ansicht, Aktionen über den Briefkasten | ~1 Tag |
 | D3 · Komfort | Berichtigen im Browser mit Versionsvergleich, Upload vom Handy (Foto → Dokument), vorhandene Dateien einsammeln (`amw dokument einsammeln <ordner>` mit Vorschlag zur Zuordnung), Mockup-Varianten in Fragen | ~1 Tag |
 
 ## 7 Entscheidungen (02.11.2026)

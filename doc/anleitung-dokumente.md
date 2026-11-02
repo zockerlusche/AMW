@@ -60,5 +60,11 @@ amw dokument version 12 bericht-v2.md --notiz "Speicherwarnung erklärt"
   einmal dort, auch wenn er in mehreren Dokumenten vorkommt.
 - **Sicherung:** `amw sichern` kopiert die Ablage neben die Datenbank-Sicherung nach `…-dokumente/`, jeweils nur, was dort
   noch fehlt.
-- **Online:** Texte werden online sichtbar, Dateien nur bei Bedarf („Auch online zeigen“). Das kommt mit Stufe D2 des
-  Plans, bis dahin sind Dokumente nur am PC zu sehen.
+- **Online** (wenn die Online-Seite eingerichtet ist, [online.md](online.md)):
+  - Liste, Details, Gespräch und **alle Texte** sind immer online, auch zum Durchsuchen.
+  - **Dateien** (Bilder, Mockups, PDF, Office) nur bei Bedarf: wenn das Dokument auf *Auch online zeigen* steht. Das
+    setzt du am PC, der Agent beim Ablegen mit `--online` (z. B. Mockups für eine Frage), oder du forderst sie unterwegs
+    an: *Online anfordern* im Dokument, *Alle Dateien von A… anfordern* für alle Dateien derselben Aufgabe. Der PC lädt sie
+    beim nächsten Abgleich hoch (meist unter 1 Minute).
+  - *Nur am PC* nimmt die Datei wieder vom Webspace. In der Liste steht bei solchen Dokumenten „Datei nur am PC“.
+  - Online kannst du kommentieren, überarbeiten lassen, zuordnen und archivieren; endgültig löschen geht nur am PC.
