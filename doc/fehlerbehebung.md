@@ -5,6 +5,9 @@ sind angemeldet) und das Protokoll `daten\dienst.log` (in der Workbench: Betrieb
 
 | Zeichen | Ursache | Abhilfe |
 |---|---|---|
+| `amw: command not found` (Git Bash) oder „Die Benennung amw wurde nicht … erkannt“ | `<AMW-Ordner>\bin` nicht im Pfad | Pfad ergänzen ([installation.md](installation.md) §2), neues Fenster – oder `python <AMW-Ordner>/amw-cli.py …` |
+| „wer bist du? --von oder AMW_AGENT setzen“ | Befehl ohne Absender | `--von Entwickler` (du) bzw. `--von CC1` (Agent) |
+| „Die Aufgabe „AMW Dienst“ gehört zu einer anderen AMW-Installation“ | zwei AMW-Ordner auf einem PC | dort entfernen (`amw dienst entfernen --ja` im anderen Ordner) oder dieses AMW mit `amw dienst vordergrund` betreiben |
 | Workbench nicht erreichbar | Wächter läuft nicht, oder der Port ist belegt | `amw dienst status`; `amw dienst neustart`; im Protokoll „Workbench nicht gestartet (Port …)“ → anderen Port im Zahnrad › Dieser PC oder in `einstellungen.json`, dann `amw dienst neustart` |
 | Agent wird nicht geweckt | Sitzung nicht angemeldet (Kachel rot „nicht angemeldet“ oder Band „NICHT ANGEMELDET“) | im Tab des Agenten `amw anmelden --von CC1`; dauerhaft: Hooks im Projektordner (`amw einrichten agenten-ordner <ordner>`) |
 | „… ist schon angemeldet und diese Sitzung lebt noch“ | zwei Sitzungen wollen dieselbe Kennung | im richtigen Fenster `amw anmelden --von CC1 --ersetzen` |

@@ -58,6 +58,24 @@ class Verlauf(Grund):
         self.assertEqual((z["erledigt"], z["fragen_neu"], z["fragen_offen"]), (1, 1, 1))
         self.assertIn("1 erledigt", verlauf.kurztext(z))
 
+    def test_seit_online_rechnet_wie_am_pc(self):
+        ab = db.jetzt()
+        kern.posten(self.con, self.pid, "TL", "entwickler", "info", "für dich")
+        for t in ("Eins", "Zwei"):
+            a = kern.aufgabe_neu(self.con, self.pid, "TL", t, "CC1")
+            kern.aufgabe_status(self.con, self.pid, "CC1", a, "fertig", beleg="abc")
+        kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Wie?", [("A", "so")], "A", "weil")
+        d = verlauf.seit_daten(self.con, self.pid)
+        for grenze in (ab, "2000-01-01T00:00:00Z", "2999-01-01T00:00:00Z"):
+            pc = verlauf.zusammenfassung(self.con, self.pid, grenze)
+            online = verlauf.seit_zaehlen(d, grenze)
+            self.assertEqual({k: pc[k] for k in online}, online, grenze)
+        self.assertEqual(verlauf.seit_zaehlen(d, ab)["erledigt"], 2)
+        wurzel = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(wurzel, "web", "api.php"), encoding="utf-8") as f:
+            php = f.read()
+        self.assertIn(str(list(verlauf.SEIT_ARTEN)).replace('"', "'"), php.replace("array_fill_keys(", "").replace(", 0)", ""))
+
     def test_taeglicher_push_rueckblick_einmal_ab_uhrzeit(self):
         cfg = push.laden()
         cfg.update(an=True, seit_utc="2000-01-01T00:00:00Z", rueckblick_uhr="00:00")

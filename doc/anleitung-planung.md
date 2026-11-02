@@ -5,6 +5,9 @@ Die Planung folgt einer bewährten Kette – angepasst an einen Menschen, einen 
 
 **Leitbild → Bögen → Spezifikation (mit deiner Freigabe) → Schritte → Ausführung → Abnahme → Prognose und Status.**
 
+Befehle in dieser Anleitung führt meist der Lead-Agent aus (`--von TL`); du selbst arbeitest in der Workbench oder an der
+Kommandozeile mit `--von Entwickler`. Beispiele ohne `--von` setzen voraus, dass `AMW_AGENT` gesetzt ist.
+
 Der Mensch ist der Engpass: alles, was auf dich wartet (Freigaben, Klärungsfragen, eigene Schritte), steht in der
 Workbench unter „Wartet auf dich“, in der Ansicht **Planung** oben und kommt als Push aufs Handy.
 
@@ -26,8 +29,12 @@ Protokoll (Änderungssteuerung).
 Jeder Bogen hat drei Teile, die nacheinander zur Freigabe kommen (wie GitHub Spec Kit / Kiro):
 1. **Anforderungen** – je Zeile eine mit ID (`R1 …`); unklare Stellen als `[KLÄREN: Frage?]` – daraus wird automatisch
    eine Frage an dich, und die Freigabe wartet, bis sie beantwortet ist (nicht raten!).
-2. **Entwurf** – wie es gebaut wird (erst nach freigegebenen Anforderungen).
-3. **Schritte** – die Zerlegung (erst nach freigegebenem Entwurf).
+2. **Entwurf** – wie es gebaut wird (vorlegen erst nach freigegebenen Anforderungen).
+3. **Schritte** – die Zerlegung als Text (vorlegen erst nach freigegebenem Entwurf).
+
+Die Reihenfolge gilt für das **Vorlegen** der Teile. Schritte als Aufgaben (`amw aufgabe neu --bogen …`) kann der Lead
+jederzeit anlegen – der Plan-Check (§6) meldet aktive Bögen, deren Anforderungen noch nicht freigegeben sind. In `amw bogen zeigen`
+steht je Teil der Stand: *in Arbeit* (noch nicht vorgelegt), *vorgelegt*, *frei*, *zurück*.
 
 Der TL schreibt und legt vor (`amw spec schreiben <n> anforderungen --datei a.md`, `amw spec vorlegen <n> anforderungen`),
 **du gibst frei oder gibst mit Kommentar zurück** (Workbench: Chip „zur Freigabe“ anklicken – auch online vom Handy).
@@ -41,6 +48,7 @@ anfassen darf) und die abgedeckten Anforderungen (`R1,R3`).
 amw aufgabe neu --titel "Login-Formular" --bogen 1 --agent CC1 --kriterium "Formular sendet" --kriterium "Fehler sichtbar" \
     --anforderungen R1 --schaetzung 3 --komplexitaet 4 --pruefbefehl "pytest tests/login" --nach 1201,1203
 ```
+(`--nach`: Nummern der Vorgänger-Schritte – die gibt es in deinem Projekt natürlich unter anderen Nummern.)
 Schritte für **dich** bekommen `--agent Entwickler` – sie erscheinen unter „Wartet auf dich“ und zählen mit deinem
 eigenen Tempo in die Prognose.
 

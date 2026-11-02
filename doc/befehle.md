@@ -35,7 +35,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`beschluss`](#beschluss) | Beschluss anlegen (optional einen alten ersetzen) |
 | [`regel`](#regel) | Regel anlegen/ändern – nur mit Beschluss |
 | [`notiz`](#notiz) | gepflegte Notizen (Schlüssel/Wert) |
-| [`dienst`](#dienst) | Wächter als geplante Windows-Aufgabe: einrichten ¦ entfernen ¦ status ¦ neustart |
+| [`dienst`](#dienst) | Wächter als geplante Windows-Aufgabe: einrichten ¦ entfernen ¦ status ¦ neustart ¦ vordergrund (ohne Aufgabe in diesem Fenster, zum Ausprobieren) |
 | [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Abgleich) ¦ zweitfaktor-neu ¦ bauen ¦ schema |
 | [`anmelden`](#anmelden) | laufende Sitzung beim Wächter anmelden (ohne Neustart) |
 | [`einrichten`](#einrichten) | ohne Angabe: geführte Einrichtung (fragt nach) ¦ schnell --projekt-name … (ohne Fragen) ¦ agenten-ordner <pfad> (Hooks, Statusline-Brücke, Sperren) |
@@ -688,14 +688,14 @@ options:
 ## dienst
 ```
 usage: amw dienst [-h] [--port PORT] [--ja] [--von VON] [--projekt PROJEKT]
-                  {einrichten,entfernen,status,neustart}
+                  {einrichten,entfernen,status,neustart,vordergrund}
 
 positional arguments:
-  {einrichten,entfernen,status,neustart}
+  {einrichten,entfernen,status,neustart,vordergrund}
 
 options:
   -h, --help            show this help message and exit
-  --port PORT
+  --port PORT           Vorgabe: Zahnrad › Dieser PC (8780)
   --ja                  wirklich ausführen (sonst nur anzeigen)
   --von VON
   --projekt PROJEKT
@@ -734,7 +734,8 @@ usage: amw einrichten [-h] [--nur-zeigen] [--ohne-sperren]
                       [--agenten AGENTEN] [--ordner ORDNER]
                       [--rechte {vorgabe,auto,umgehen}]
                       [--denkstufe {low,medium,high,xhigh,max}] [--mit-dienst]
-                      [--ohne-hooks] [--von VON] [--projekt PROJEKT]
+                      [--ohne-hooks] [--fernsteuerung] [--entfernen]
+                      [--von VON] [--projekt PROJEKT]
                       [{assistent,schnell,agenten-ordner}] [pfad]
 
 positional arguments:
@@ -755,6 +756,9 @@ options:
   --denkstufe {low,medium,high,xhigh,max}
   --mit-dienst          schnell: Wächter als geplante Aufgabe einrichten
   --ohne-hooks          schnell: Projektordner nicht anfassen
+  --fernsteuerung       schnell: Remote Control für die Agenten an (Vorgabe
+                        aus)
+  --entfernen           agenten-ordner: AMW-Einträge wieder herausnehmen
   --von VON
   --projekt PROJEKT
 ```
@@ -775,7 +779,8 @@ usage: amw sichern [-h] [--ziel ZIEL] [--von VON] [--projekt PROJEKT]
 
 options:
   -h, --help         show this help message and exit
-  --ziel ZIEL        Datei oder Ordner (Vorgabe: daten/sicherung-<Datum>.db)
+  --ziel ZIEL        Datei (*.db) oder Ordner (Vorgabe: sicherung-<Datum-
+                     Zeit>.db neben der Datenbank)
   --von VON
   --projekt PROJEKT
 ```

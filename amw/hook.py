@@ -166,7 +166,7 @@ def main():
             if not kennung:
                 if quelle in ("startup", "resume") and agenten_ordner(con, eingabe.get("cwd")):
                     meldung = ("AMW: diese Sitzung ist NICHT angemeldet und wird nicht geweckt. Als Agent: "
-                               "python F:/amw/amw-cli.py anmelden --von <Kennung>")
+                               f"{kern.BEFEHL} anmelden --von <Kennung>")
                     teile.append(meldung)
                 else:
                     return 0                        # Sitzung gehört zu keinem AMW-Agenten

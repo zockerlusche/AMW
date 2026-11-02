@@ -23,7 +23,7 @@ mit Freigaben und Prognose, Wissen, Überwachung und eine Workbench im Browser, 
 ## Schnellstart
 ```
 git clone https://github.com/zockerlusche/AMW.git C:\amw
-C:\amw\amw.cmd einrichten
+C:\amw\bin\amw.cmd einrichten
 ```
 Der Assistent legt Datenbank, Projekt und Agenten an, richtet deinen Projektordner ein (Hooks, Statusline-Brücke),
 schreibt ein Startskript und richtet den Wächter ein. Danach: http://127.0.0.1:8780/ öffnen.

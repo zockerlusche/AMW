@@ -240,7 +240,7 @@ def main(argv=None):
         if a.einmal:
             log.error("Datenbank %s fehlt", db.db_pfad())
             return 1
-        log.warning("Datenbank %s fehlt – warte (amw init oder Übernahme)", db.db_pfad())
+        log.warning("Datenbank %s fehlt – warte (amw einrichten)", db.db_pfad())
         time.sleep(AUFSICHT_S)
     con = db.verbinde()
     d = Dienst(con)

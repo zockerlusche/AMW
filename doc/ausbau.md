@@ -1,6 +1,6 @@
 # Ausbau zum vollständigen Lead-Werkzeug
 
-**Status: in Arbeit.** Stand 01.11.2026. Auftrag: AMW soll aus Sicht des Anwenders alles abdecken, was ein Lead braucht,
+**Status: abgeschlossen mit 1.0.0** (02.11.2026). Auftrag: AMW soll aus Sicht des Anwenders alles abdecken, was ein Lead braucht,
 der Projekte mit einem KI-Assistenten (Team-Lead-Agent) und mehreren Coding-Agenten baut – lieber etwas mehr als zu wenig.
 Grundlage: Durchsicht der Oberfläche (Desktop und Handy, Bildschirmfotos aller Ansichten) und zwei Recherchen zu
 Agenten-Workbenches und Projektplanung (Quellen §9).
@@ -157,12 +157,13 @@ Lead/Entwickler (Beschlüsse sind verbindlich).
 - [x] Tests, Bildschirmfotos Desktop/Handy
 
 ## 8 Stufe G – Für jeden Anwender (1.0.0)
-- [ ] Repo neutral: keine Bezüge auf ein bestimmtes Projekt in Code, Doku, Changelog; projektbezogene Doku lokal in `intern/` (nicht veröffentlicht).
-- [ ] Doku neu: Was AMW ist, Bausteine und Datenfluss (Agenten-Sitzungen, Hook, Kommandozeile, SQLite, Wächter, Workbench, Online-Speicher, Online-Seite), Reihenfolge der Einrichtung, Betrieb, Sicherheit, Fehlerbehebung.
-- [ ] `amw einrichten`: geführte Einrichtung (Projekt, Agenten, Hook-Eintrag, Startskript, Wächter-Aufgabe, optional Online).
-- [ ] Online-Teil Schritt für Schritt: Online-Speicher anlegen, Hoster per Git, Einrichtungs-Assistent, zweiter Faktor.
-- [ ] Probe: ein frischer Agent installiert nach der Anleitung in einen leeren Ordner; jede Stolperstelle wird behoben.
-- [ ] Online-Seite: alle neuen Ansichten im Spiegel, neue Schreibwege über den Briefkasten.
+- [x] Beenden nur durch den Menschen (Workbench); Kommandozeile nur die eigene Sitzung, Brücke gar nicht.
+- [x] Repo neutral: keine Bezüge auf ein bestimmtes Projekt in Code, Doku, Changelog; projektbezogene Doku lokal in `intern/` (nicht veröffentlicht).
+- [x] Doku neu (`doc/README.md`, Befehlsreferenz aus dem Parser): Was AMW ist, Bausteine und Datenfluss (Agenten-Sitzungen, Hook, Kommandozeile, SQLite, Wächter, Workbench, Online-Speicher, Online-Seite), Reihenfolge der Einrichtung, Betrieb, Sicherheit, Fehlerbehebung.
+- [x] `amw einrichten`: geführte Einrichtung (Projekt, Agenten, Hook-Eintrag, Startskript, Wächter-Aufgabe; Online verweist auf `amw web einrichten`), `amw einrichten schnell`, `amw sichern`.
+- [x] Online-Teil Schritt für Schritt (`doc/online.md`): Online-Speicher anlegen, Hoster per Git, Einrichtungs-Assistent, zweiter Faktor.
+- [x] Probe: ein frischer Agent installiert nach der Anleitung in einen leeren Ordner; jede Stolperstelle wird behoben (18 Befunde, alle bearbeitet; Nachprüfung der geänderten Wege selbst, isoliert).
+- [x] Online-Seite: alle neuen Ansichten im Spiegel (auch „Seit du weg warst“ – online je Gerät aus Zeitpunkten gezählt, Test vergleicht mit dem PC), neue Schreibwege über den Briefkasten.
 
 ## 9 Quellen der Recherche (Auswahl)
 Claude Code: agent-view, hooks, statusline, monitoring-usage, agent-teams, cross-session-messaging (code.claude.com/docs) ·

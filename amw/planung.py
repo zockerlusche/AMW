@@ -310,6 +310,9 @@ def schritt_setzen(con, pid, von, aid=None, titel=None, nach=None, **werte):
         bogen_zeile(con, pid, werte["bogen_id"])
     if werte.get("komplexitaet") is not None and not 1 <= int(werte["komplexitaet"]) <= 10:
         raise kern.AmwFehler("Komplexität 1–10")
+    for v in nach or []:                            # erst prüfen, dann anlegen – kein halber Schritt
+        if not con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND projekt_id = ?", (v, pid)).fetchone():
+            raise kern.AmwFehler(f"A{v} gibt es nicht (Vorgänger)")
     if aid is None:
         if not (titel or "").strip():
             raise kern.AmwFehler("Titel fehlt")
@@ -644,7 +647,7 @@ def kontext_zeilen(con, pid, kennung):
         z.append("Definition of Done: " + " | ".join(lb["dod"]))
     aktiv = [b for b in boegen(con, pid) if b["status"] == "aktiv"]
     if aktiv:
-        z.append("Aktive Bögen: " + "; ".join(f"Bogen {b['id']} „{b['titel']}“ {b['fertig']}/{b['gesamt']} fertig"
+        z.append("Aktive Bögen: " + "; ".join(f"Bogen {b['id']} „{b['titel']}“ {b['fertig']}/{b['gesamt'] - b['verworfen']} fertig"
                                                + (f", Ziel {b['zieldatum']}" if b["zieldatum"] else "") for b in aktiv)
                  + " – nächster Schritt: amw schritt naechster --von " + kennung)
     return z

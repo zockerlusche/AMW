@@ -51,10 +51,33 @@ def skript_entfernen():
             f"Unregister-ScheduledTask -TaskName '{AUFGABE}' -Confirm:$false; 'entfernt: {AUFGABE}'")
 
 
+def befehl_cli():
+    """So wird AMW aus jeder Shell aufgerufen (für Hinweise an den Benutzer)."""
+    return f"python {WURZEL.replace(os.sep, '/')}/amw-cli.py"
+
+
 def powershell(skript):
+    # Ausgabe als UTF-8 (sonst kommen Umlaute und · aus Windows PowerShell 5 verstümmelt an)
+    skript = "[Console]::OutputEncoding = [Text.Encoding]::UTF8; " + skript
     r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", skript],
                        capture_output=True, text=True, encoding="utf-8", errors="replace")
     return r.returncode, (r.stdout + r.stderr).strip()
+
+
+def aufgabe_ordner():
+    """Arbeitsordner der eingerichteten Wächter-Aufgabe (None = keine Aufgabe) – gehört sie zu dieser AMW?"""
+    rc, aus = powershell(f"$x = Get-ScheduledTask -TaskName '{AUFGABE}' -ErrorAction SilentlyContinue; "
+                         "if ($x) { $x.Actions[0].WorkingDirectory }")
+    return aus.strip() or None if rc == 0 else None
+
+
+def fremde_aufgabe():
+    """Text, wenn die Aufgabe „AMW Dienst“ zu einer anderen AMW-Installation gehört, sonst None."""
+    ordner = aufgabe_ordner()
+    if ordner and os.path.normcase(os.path.normpath(ordner)) != os.path.normcase(os.path.normpath(WURZEL)):
+        return (f"Die Aufgabe „{AUFGABE}“ gehört zu einer anderen AMW-Installation ({ordner}), nicht zu dieser ({WURZEL})."
+                " Dort ausführen oder sie dort erst entfernen.")
+    return None
 
 
 def status(port):
@@ -63,6 +86,12 @@ def status(port):
                          "'Aufgabe: ' + $x.State + ' · zuletzt ' + $i.LastRunTime + ' · Ergebnis ' + $i.LastTaskResult } "
                          "else { 'Aufgabe: nicht eingerichtet' }")
     zeilen = [aus]
+    fremd = fremde_aufgabe()
+    if fremd:
+        zeilen.append("ACHTUNG: " + fremd)
+    if os.environ.get("AMW_DB"):
+        zeilen.append("Hinweis: AMW_DB ist in diesem Fenster gesetzt – der Wächter sieht sie nur, wenn sie dauerhaft als"
+                      " Benutzervariable gesetzt ist; besser: Zahnrad › Dieser PC › Datenbank")
     sperre = os.path.join(os.path.dirname(db.db_pfad()), "dienst.lock")
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/projekte", timeout=3) as r:
@@ -92,7 +121,7 @@ def status(port):
         fehlt = []
     for u in fehlt:
         zeilen.append(f"  NICHT ANGEMELDET: {u['kennung'] or '?'} · Sitzung {u['sitzung']}, PID {u['pid']}, {u['ordner']}"
-                      f" – im Fenster: python F:/amw/amw-cli.py anmelden --von {u['kennung'] or '<Kennung>'}")
+                      f" – im Fenster: {befehl_cli()} anmelden --von {u['kennung'] or '<Kennung>'}")
     return "\n".join(zeilen)
 
 
@@ -125,6 +154,70 @@ def hook_einstellungen():
 
 def _hat_amw(eintraege, starter):
     return any(starter in (h.get("command") or "") for e in eintraege or [] for h in e.get("hooks", []))
+
+
+def _sichern_und_schreiben(datei, d):
+    os.makedirs(os.path.dirname(datei), exist_ok=True)
+    if os.path.exists(datei):
+        import shutil
+        shutil.copy2(datei, datei + f".vor-amw-{db.jetzt()[:10]}")
+    with open(datei + ".neu", "w", encoding="utf-8", newline="\n") as f:
+        json.dump(d, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    os.replace(datei + ".neu", datei)
+
+
+def _git_ausnehmen(ordner):
+    """settings.local.json enthält Pfade dieses PCs – im Git des Projekts lokal ausnehmen (.git/info/exclude, wird
+    nicht eingecheckt). Rückgabe: Text der Änderung oder None."""
+    info = os.path.join(ordner, ".git", "info")
+    if not os.path.isdir(os.path.join(ordner, ".git")):
+        return None
+    zeile = ".claude/settings.local.json"
+    datei = os.path.join(info, "exclude")
+    try:
+        with open(datei, encoding="utf-8") as f:
+            if zeile in f.read().split("\n"):
+                return None
+    except FileNotFoundError:
+        pass
+    os.makedirs(info, exist_ok=True)
+    with open(datei, "a", encoding="utf-8") as f:
+        f.write(f"\n{zeile}\n")
+    return "im Git des Projekts lokal ausgenommen (.git/info/exclude)"
+
+
+def agenten_ordner_entfernen(ordner, schreiben=True):
+    """Nimmt alle AMW-Einträge (Hooks, Statusline-Brücke, Sperr-Regeln) wieder aus settings.local.json."""
+    datei = os.path.join(ordner, ".claude", "settings.local.json")
+    try:
+        with open(datei, encoding="utf-8") as f:
+            d = json.load(f)
+    except FileNotFoundError:
+        return []
+    aenderungen = []
+    for ereignis, eintraege in list((d.get("hooks") or {}).items()):
+        rest = [e for e in eintraege if not any("amw-hook.py" in (h.get("command") or "") for h in e.get("hooks", []))]
+        if len(rest) != len(eintraege):
+            aenderungen.append(f"Hook {ereignis}")
+            if rest:
+                d["hooks"][ereignis] = rest
+            else:
+                del d["hooks"][ereignis]
+    if d.get("hooks") == {}:
+        del d["hooks"]
+    if "amw-statusline.py" in ((d.get("statusLine") or {}).get("command") or ""):
+        del d["statusLine"]
+        aenderungen.append("Statusline-Brücke (es gilt wieder deine eigene Statusline)")
+    liste = (d.get("permissions") or {}).get("deny")
+    if liste:
+        rest = [s for s in liste if s not in SPERREN]
+        if len(rest) != len(liste):
+            aenderungen.append(f"{len(liste) - len(rest)} Sperr-Regel(n)")
+            d["permissions"]["deny"] = rest
+    if aenderungen and schreiben:
+        _sichern_und_schreiben(datei, d)
+    return aenderungen
 
 
 def agenten_ordner_einrichten(ordner, schreiben=True, sperren=True):
@@ -167,12 +260,8 @@ def agenten_ordner_einrichten(ordner, schreiben=True, sperren=True):
             liste.extend(neu)
             aenderungen.append(f"{len(neu)} Sperr-Regel(n)")
     if aenderungen and schreiben:
-        os.makedirs(os.path.dirname(datei), exist_ok=True)
-        if os.path.exists(datei):
-            import shutil
-            shutil.copy2(datei, datei + f".vor-amw-{db.jetzt()[:10]}")
-        with open(datei + ".neu", "w", encoding="utf-8", newline="\n") as f:
-            json.dump(d, f, ensure_ascii=False, indent=2)
-            f.write("\n")
-        os.replace(datei + ".neu", datei)
+        _sichern_und_schreiben(datei, d)
+        git = _git_ausnehmen(ordner)
+        if git:
+            aenderungen.append(git)
     return aenderungen

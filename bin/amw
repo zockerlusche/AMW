@@ -1,0 +1,5 @@
+#!/bin/sh
+# AMW in Git Bash / sh (Windows): Ordner bin in den PATH nehmen, dann z. B. amw lesen --von CC1
+# pwd -W liefert in Git Bash den Windows-Pfad (python.exe versteht /f/... nicht)
+d="$(cd "$(dirname "$0")/.." && (pwd -W 2>/dev/null || pwd))"
+exec python -X utf8 "$d/amw-cli.py" "$@"

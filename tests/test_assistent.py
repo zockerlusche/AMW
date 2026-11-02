@@ -39,7 +39,8 @@ class Einrichten(unittest.TestCase):
         self.assertIn("war schon eingerichtet", " ".join(zweite))
 
     def test_interaktiv_mit_vorgaben(self):
-        antworten = iter(["Mein Spiel", "", "CC1", self.projekt, "vorgabe", "", "n", "n"])
+        # Projekt, Lead, Agenten, Ordner, Rechte (erst ungültig), Denkstufe, Remote Control, Hooks, Wächter
+        antworten = iter(["Mein Spiel", "", "CC1", self.projekt, "xyz", "vorgabe", "", "", "n", "n"])
         text = []
         with mock.patch.object(assistent, "STARTSKRIPT", self.skript):
             assistent.interaktiv(eingabe=lambda _: next(antworten), ausgabe=text.append)
@@ -49,6 +50,63 @@ class Einrichten(unittest.TestCase):
         con.close()
         self.assertFalse(os.path.exists(os.path.join(self.projekt, ".claude")))           # Hooks abgelehnt
         self.assertIn("Workbench öffnen", "\n".join(text))
+        self.assertIn("bitte eins von", "\n".join(text))
+        self.assertIn("amw dienst vordergrund", "\n".join(text))
+
+    def test_wiederholen_laesst_eigene_profile_stehen_und_lead_bekommt_eins(self):
+        from amw import steuerung
+        assistent.schnell("Demo", "TL", ["CC1"], self.projekt, startskript=self.skript, ausgabe=lambda x: None)
+        con = db.verbinde()
+        pid = con.execute("SELECT id FROM projekt").fetchone()[0]
+        tl = steuerung.profil(con, pid, "TL")
+        self.assertEqual(tl["ordner"], self.projekt)
+        self.assertIn("Team-Lead", tl["startsatz"])
+        self.assertFalse(tl["fernsteuerung"])                                          # Remote Control nur auf Wunsch
+        steuerung.profil_setzen(con, pid, "Entwickler", "CC1", startsatz="MEIN SATZ", rechte="auto")
+        con.close()
+        assistent.schnell("Demo", "TL", ["CC1"], self.projekt, rechte="vorgabe", startskript=self.skript, ausgabe=lambda x: None)
+        con = db.verbinde()
+        p = steuerung.profil(con, pid, "CC1")
+        con.close()
+        self.assertEqual((p["startsatz"], p["rechte"]), ("MEIN SATZ", "auto"))
+        with open(self.skript, encoding="utf-8-sig") as f:
+            self.assertIn("new-tab --title TL", f.read())
+
+    def test_ungueltiges_wird_vor_dem_anlegen_abgewiesen(self):
+        from amw import kern
+        with self.assertRaises(kern.AmwFehler):
+            assistent.schnell("Demo", "TL", ["CC1"], self.projekt, rechte="xyz", ausgabe=lambda x: None)
+        self.assertFalse(os.path.exists(os.environ["AMW_DB"]))
+
+    def test_agenten_ordner_entfernen_und_git_ausnahme(self):
+        from amw import einrichtung
+        os.makedirs(os.path.join(self.projekt, ".git", "info"))
+        datei = os.path.join(self.projekt, ".claude", "settings.local.json")
+        os.makedirs(os.path.dirname(datei))
+        with open(datei, "w", encoding="utf-8") as f:
+            json.dump({"permissions": {"deny": ["Bash(rm *)"]}, "hooks": {"Stop": [{"hooks": [{"type": "command", "command": "eigen"}]}]}}, f)
+        aenderungen = einrichtung.agenten_ordner_einrichten(self.projekt)
+        self.assertTrue(any("exclude" in x for x in aenderungen))
+        with open(os.path.join(self.projekt, ".git", "info", "exclude"), encoding="utf-8") as f:
+            self.assertIn(".claude/settings.local.json", f.read())
+        weg = einrichtung.agenten_ordner_entfernen(self.projekt)
+        self.assertTrue(weg)
+        with open(datei, encoding="utf-8") as f:
+            d = json.load(f)
+        self.assertEqual(d["permissions"]["deny"], ["Bash(rm *)"])                     # Eigenes bleibt
+        self.assertEqual(d["hooks"], {"Stop": [{"hooks": [{"type": "command", "command": "eigen"}]}]})
+        self.assertNotIn("statusLine", d)
+        self.assertEqual(einrichtung.agenten_ordner_entfernen(self.projekt), [])
+
+    def test_fremde_waechter_aufgabe_wird_nicht_angefasst(self):
+        from amw import cli, einrichtung
+        with mock.patch.object(einrichtung, "aufgabe_ordner", return_value="X:\\andere-amw"), \
+                mock.patch.object(einrichtung, "powershell", side_effect=AssertionError("darf nicht laufen")):
+            self.assertIn("anderen AMW-Installation", einrichtung.fremde_aufgabe())
+            self.assertEqual(cli.main(["dienst", "neustart"]), 1)
+            self.assertEqual(cli.main(["dienst", "entfernen", "--ja"]), 1)
+        with mock.patch.object(einrichtung, "aufgabe_ordner", return_value=einrichtung.WURZEL):
+            self.assertIsNone(einrichtung.fremde_aufgabe())
 
     def test_sichern(self):
         assistent.schnell("Demo", None, [], ausgabe=lambda x: None)
@@ -57,6 +115,8 @@ class Einrichten(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             db.sichern(ziel)
         self.assertTrue(db.sichern(self.ordner.name).startswith(os.path.join(self.ordner.name, "amw-sicherung-")))
+        neu = os.path.join(self.ordner.name, "neu", "Sicherung")                         # ohne .db = Ordner, wird angelegt
+        self.assertTrue(db.sichern(neu).startswith(os.path.join(neu, "amw-sicherung-")))
 
 
 class Doku(unittest.TestCase):

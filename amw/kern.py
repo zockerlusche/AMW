@@ -5,10 +5,14 @@ Regeln, die hier geprüft werden, beschreibt doc/architektur.md.
 Die Prüfungen schützen vor Versehen, nicht vor Absicht: Agenten laufen unter dem Benutzer des Entwicklers.
 """
 import json
+import os
 
 from . import db
 
 ENTWICKLER = "Entwickler"       # Absender für Eingaben über die Workbench
+WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# so ruft ein Agent AMW auf – in jeder Shell (Git Bash kennt amw.cmd nicht)
+BEFEHL = f"python {WURZEL.replace(os.sep, '/')}/amw-cli.py"
 OFFEN_STATUS = ("wartet", "laeuft", "blockiert")
 
 
@@ -35,7 +39,8 @@ def ist_lead(con, pid, kennung):
 def agent_neu(con, pid, kennung, rolle=None, grenzen=None, startbefehl=None, empfaengt_rund=True):
     with db.schreiben(con):
         return db.einfuegen(con, "agent", projekt_id=pid, kennung=kennung, rolle=rolle, grenzen=grenzen,
-                            startbefehl=startbefehl, empfaengt_rund=int(empfaengt_rund), angelegt_utc=db.jetzt())
+                            startbefehl=startbefehl, empfaengt_rund=int(empfaengt_rund), angelegt_utc=db.jetzt(),
+                            fernsteuerung=0)            # Remote Control nur auf Wunsch (Profil)
 
 
 def projekt_einstellen(con, pid, von, **werte):
@@ -408,7 +413,12 @@ def kontext(con, pid, kennung):
     vorher = con.execute("SELECT max(gestartet_utc) FROM sitzung WHERE agent_id = ? AND zustand != 'aktiv'",
                          (a["id"],)).fetchone()[0]
     z = [f"AMW-PFLICHTKONTEXT für {kennung} (Projekt {proj}, Stand {db.jetzt()}). "
-         f"Rolle: {a['rolle'] or '–'}" + (f" · Grenzen: {a['grenzen']}" if a["grenzen"] else "")]
+         f"Rolle: {a['rolle'] or '–'}" + (f" · Grenzen: {a['grenzen']}" if a["grenzen"] else ""),
+         f"AMW-Befehl: `{BEFEHL}` (unten kurz `amw`), immer mit `--von {kennung}`. Arbeitsweise: `amw lesen` → handeln →"
+         " `amw erledigt <nr>` · melden: `amw posten --an <Agent|Entwickler> --art info|auftrag|frage|antwort --kurz …`"
+         " · Arbeit holen: `amw schritt naechster --nehmen` · abschließen: `amw aufgabe fertig <nr> --beleg <commit>"
+         " --zusammenfassung …` · Frage an den Menschen: `amw frage neu --an entwickler --kurz … --option A=… --empfehlung A"
+         " --grund …` · Hilfe: `amw <befehl> --help`."]
 
     halte = aktive_sperren(con, pid, kennung, "halt")
     if halte:

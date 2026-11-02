@@ -34,6 +34,11 @@ Agenten können die geplante Aufgabe „AMW Dienst“ nicht beenden/ändern und 
   Projekt-Server werden nur gestartet, nie beendet.
 - Profile (Ordner, Startsatz, Rechte) sind nur am PC änderbar, weil sie in einen Befehl auf diesem PC eingehen.
 
+- **Remote Control** (Claude Codes Fernsteuerung über claude.ai/App) ist je Agent im Profil schaltbar und bei neuen
+  Agenten aus. Ist sie an, kann jeder mit Zugang zu deinem Claude-Konto die Sitzung steuern.
+- Die **Datei-Brücke** (für einen Agenten ohne direkten Datenbankzugriff) ist aus, bis du sie im Zahnrad einschaltest;
+  sie führt nur eine feste Liste von Befehlen aus, als die eingestellte Kennung, nie Starten/Beenden/Profile.
+
 ## 5 Push
 Meldungen enthalten nur Hinweise („Neue Frage F12 von TL“) und einen Link; der Inhalt steht hinter der Anmeldung.
 Der ntfy-Kanal wird zufällig erzeugt (≥ 128 Bit) und wirkt wie ein Passwort. Fehlertexte enthalten nie das Telegram-Token.

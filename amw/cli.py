@@ -90,7 +90,9 @@ def cmd_agent(a, con):
             print(steuerung.beenden(con, pid, a.kennung))
         else:
             schalter = lambda an, aus: True if an else False if aus else None
-            p = steuerung.profil_setzen(con, pid, _von(a), a.kennung, ordner=a.ordner, zusatzordner=a.zusatz,
+            aenderung = any(x is not None for x in (a.ordner, a.zusatz, a.denkstufe, a.modell, a.startsatz, a.rechte)) \
+                or a.fernsteuerung or a.keine_fernsteuerung or a.neustart or a.kein_neustart
+            p = steuerung.profil(con, pid, a.kennung) if not aenderung else steuerung.profil_setzen(con, pid, _von(a), a.kennung, ordner=a.ordner, zusatzordner=a.zusatz,
                                         denkstufe=a.denkstufe, modell=a.modell, startsatz=a.startsatz, rechte=a.rechte,
                                         fernsteuerung=schalter(a.fernsteuerung, a.keine_fernsteuerung),
                                         neustart_auto=schalter(a.neustart, a.kein_neustart))
@@ -228,7 +230,8 @@ def cmd_bogen(a, con):
             raise kern.AmwFehler(f"Bogen {a.id} gibt es nicht")
         print(f"Bogen {b['id']} [{b['status']}] {b['titel']} · Ziel: {b['ziel'] or '–'} · Abnahme: {b['abnahme'] or '–'}"
               f" · Zieldatum {b['zieldatum'] or '–'} (Baseline {b['baseline_datum'] or '–'})")
-        print("Spezifikation: " + ", ".join(f"{t} {b['spec'].get(t, '–')}" for t in planung.TEILE))
+        stand = {"entwurf": "in Arbeit", "zurueck": "zurück"}
+        print("Spezifikation: " + ", ".join(f"{t} {stand.get(b['spec'].get(t), b['spec'].get(t) or '–')}" for t in planung.TEILE))
         stufe = planung.wellen(con, [r[0] for r in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ?", (a.id,))])
         for r in con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? ORDER BY rang, id", (a.id,)):
             print(f"  Welle {stufe.get(r['id'], 1)}  A{r['id']:<5} {r['agent'] or '–':<10} [{r['status']}] {r['titel'][:90]}"
@@ -237,7 +240,7 @@ def cmd_bogen(a, con):
         prog = planung.prognose(con, pid, laeufe=300)
         for b in planung.boegen(con, pid):
             p = prog["boegen"].get(b["id"], {})
-            print(f"Bogen {b['id']:<3} [{b['status']:<9}] {b['fertig']}/{b['gesamt']} fertig"
+            print(f"Bogen {b['id']:<3} [{b['status']:<9}] {b['fertig']}/{b['gesamt'] - b['verworfen']} fertig"
                   + (f", {b['blockiert']} blockiert" if b["blockiert"] else "")
                   + (f" · Ziel {b['zieldatum']}" if b["zieldatum"] else "")
                   + (f" · Prognose {p['p50']}/{p['p85']} ({p['ampel'] or '–'})" if p else "") + f"  {b['titel']}")
@@ -642,10 +645,17 @@ def cmd_web(a, con):
 
 def cmd_dienst(a):
     from . import einrichtung
+    from . import einstellungen
+    a.port = a.port or einstellungen.wert("port")
     if a.aktion == "status":
-        from . import einstellungen
-        print(einrichtung.status(einstellungen.wert("port")))
+        print(einrichtung.status(a.port))
         return 0
+    if a.aktion == "vordergrund":                   # zum Ausprobieren ohne geplante Aufgabe; Strg+C beendet
+        from . import dienst
+        return dienst.main(["--port", str(a.port)])
+    fremd = einrichtung.fremde_aufgabe()
+    if fremd and a.aktion in ("neustart", "entfernen"):
+        raise kern.AmwFehler(fremd)
     if a.aktion == "neustart":                      # z. B. nach geänderten Einstellungen (Zahnrad „Dieser PC“)
         rc, aus = einrichtung.powershell(
             f"$x = Get-ScheduledTask -TaskName '{einrichtung.AUFGABE}' -ErrorAction SilentlyContinue; if ($x) "
@@ -697,18 +707,27 @@ def cmd_sichern(a):
 def cmd_einrichten(a):
     from . import assistent, einrichtung
     if a.aktion == "assistent":
-        assistent.interaktiv()
+        try:
+            assistent.interaktiv()
+        except (EOFError, KeyboardInterrupt):
+            print("\nabgebrochen – bis hierher Angelegtes bleibt; `amw einrichten` kann wiederholt werden")
+            return 1
         return 0
     if a.aktion == "schnell":
         if not a.projekt_name:
             raise kern.AmwFehler("amw einrichten schnell --projekt-name … [--lead TL] [--agenten CC1,CC2] [--ordner Pfad] …")
         assistent.schnell(a.projekt_name, a.lead, [x.strip() for x in (a.agenten or "").split(",") if x.strip()],
                           os.path.abspath(a.ordner) if a.ordner else None, a.rechte, a.denkstufe, a.mit_dienst,
-                          hooks=not a.ohne_hooks)
+                          hooks=not a.ohne_hooks, fernsteuerung=a.fernsteuerung)
         return 0
     if a.aktion == "agenten-ordner":
         if not a.pfad:
-            raise kern.AmwFehler("amw einrichten agenten-ordner <pfad> [--nur-zeigen]")
+            raise kern.AmwFehler("amw einrichten agenten-ordner <pfad> [--nur-zeigen] [--entfernen]")
+        if a.entfernen:
+            weg = einrichtung.agenten_ordner_entfernen(os.path.abspath(a.pfad), schreiben=not a.nur_zeigen)
+            for x in weg or ["keine AMW-Einträge gefunden"]:
+                print(("würde entfernen: " if a.nur_zeigen else "entfernt: ") + x if weg else x)
+            return 0
         aenderungen = einrichtung.agenten_ordner_einrichten(os.path.abspath(a.pfad), schreiben=not a.nur_zeigen,
                                                             sperren=not a.ohne_sperren)
         if not aenderungen:
@@ -1082,9 +1101,10 @@ def parser():
     x.add_argument("--text-datei")
     x.set_defaults(f=cmd_notiz)
 
-    x = s.add_parser("dienst", help="Wächter als geplante Windows-Aufgabe: einrichten | entfernen | status | neustart")
-    x.add_argument("aktion", choices=["einrichten", "entfernen", "status", "neustart"])
-    x.add_argument("--port", type=int, default=8780)
+    x = s.add_parser("dienst", help="Wächter als geplante Windows-Aufgabe: einrichten | entfernen | status | neustart |"
+                                    " vordergrund (ohne Aufgabe in diesem Fenster, zum Ausprobieren)")
+    x.add_argument("aktion", choices=["einrichten", "entfernen", "status", "neustart", "vordergrund"])
+    x.add_argument("--port", type=int, default=None, help="Vorgabe: Zahnrad › Dieser PC (8780)")
     x.add_argument("--ja", action="store_true", help="wirklich ausführen (sonst nur anzeigen)")
     x.set_defaults(f=cmd_dienst, ohne_db=True)
 
@@ -1110,13 +1130,15 @@ def parser():
     x.add_argument("--denkstufe", choices=["low", "medium", "high", "xhigh", "max"])
     x.add_argument("--mit-dienst", action="store_true", help="schnell: Wächter als geplante Aufgabe einrichten")
     x.add_argument("--ohne-hooks", action="store_true", help="schnell: Projektordner nicht anfassen")
+    x.add_argument("--fernsteuerung", action="store_true", help="schnell: Remote Control für die Agenten an (Vorgabe aus)")
+    x.add_argument("--entfernen", action="store_true", help="agenten-ordner: AMW-Einträge wieder herausnehmen")
     x.set_defaults(f=cmd_einrichten, ohne_db=True)
 
     x = s.add_parser("befehle", help="Befehlsreferenz als Markdown (für doc/befehle.md)")
     x.set_defaults(f=lambda a: print(befehle_markdown(), end="") or 0, ohne_db=True)
 
     x = s.add_parser("sichern", help="Sicherung der Datenbank (vollständige Kopie, auch während des Betriebs)")
-    x.add_argument("--ziel", help="Datei oder Ordner (Vorgabe: daten/sicherung-<Datum>.db)")
+    x.add_argument("--ziel", help="Datei (*.db) oder Ordner (Vorgabe: sicherung-<Datum-Zeit>.db neben der Datenbank)")
     x.set_defaults(f=cmd_sichern, ohne_db=True)
 
     x = s.add_parser("push", help="Benachrichtigungen aufs Handy: status | probe | an | aus | ntfy | pushover | telegram |"

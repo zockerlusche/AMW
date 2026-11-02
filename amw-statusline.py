@@ -1,6 +1,6 @@
 """Starter für die Statusline-Brücke ohne PYTHONPATH (→ amw/statusline.py):
 
-    "statusLine": {"type": "command", "command": "python -X utf8 F:/amw/amw-statusline.py"}
+    "statusLine": {"type": "command", "command": "python -X utf8 C:/amw/amw-statusline.py"}
 
 Merkt sich je Sitzung Kontext, Nutzungsgrenzen, Kosten und Modell für die AMW und gibt die bisherige Statusline
 (Einstellung „statusline_weiter“) unverändert aus. Fällt etwas aus, erscheint eine schlichte Zeile – nie ein Absturz.

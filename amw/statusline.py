@@ -6,7 +6,7 @@ Claude Code ruft den statusLine-Befehl sehr oft auf (bei jeder Änderung im Gesp
 %LOCALAPPDATA%\\amw\\zustand\\<session_id>.json; der Wächter übernimmt sie in die Datenbank.
 
 Einbau (je Agent bzw. Projektordner, `amw einrichten` macht das):
-  "statusLine": {"type": "command", "command": "python -X utf8 F:/amw/amw-statusline.py"}
+  "statusLine": {"type": "command", "command": "python -X utf8 C:/amw/amw-statusline.py"}
 Eine schon vorhandene Statusline bleibt erhalten: steht in den Einstellungen dieses PCs „statusline_weiter“, wird sie
 mit denselben Daten aufgerufen und ihre Ausgabe gezeigt; sonst druckt die Brücke selbst eine kurze Zeile.
 Nie abstürzen, nie hängen: jeder Fehler endet mit einer schlichten Zeile.

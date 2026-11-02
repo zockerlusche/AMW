@@ -67,7 +67,7 @@ weg, Fenster noch offen, kein bewusstes Ende, Soll „an“, im Profil erlaubt, 
 Online-Speicher; die PHP-Seite zeigt sie nach der Anmeldung. Schreiben online = eine Zeile in den Briefkasten; der PC
 holt sie (Vorgabe alle 15 s), prüft sie mit demselben Code wie lokal und führt sie höchstens einmal aus. Mehr: [online.md](online.md).
 
-**Datei-Brücke.** Für einen Agenten, der die Datenbank nicht direkt öffnen kann (z. B. in einer VM über eine
+**Datei-Brücke** (aus, bis `bruecke_an` gesetzt ist). Für einen Agenten, der die Datenbank nicht direkt öffnen kann (z. B. in einer VM über eine
 Freigabe, wo SQLite-WAL scheitert): Lesekopie `daten/tl_lesen.db` ohne WAL (höchstens jede Minute, nur nach Änderungen);
 Schreiben über JSON-Befehlsdateien in `eingang-tl/befehle/`, die der Wächter als dieser Agent ausführt.
 

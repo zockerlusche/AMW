@@ -18,7 +18,7 @@ STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
 def db_pfad():
     if os.environ.get("AMW_DB"):
         return os.environ["AMW_DB"]
-    from . import einstellungen                  # Einstellung „db_pfad“ (Zahnrad), sonst F:\amw\daten\amw.db
+    from . import einstellungen                  # Einstellung „db_pfad“ (Zahnrad), sonst <AMW-Ordner>\daten\amw.db
     return einstellungen.wert("db_pfad") or STANDARD_DB
 
 
@@ -38,7 +38,7 @@ def verbinde(pfad=None, nur_lesen=False):
         con = sqlite3.connect(f"file:{pfad}?mode=ro", uri=True, timeout=30, isolation_level=None)
     else:
         if not os.path.exists(pfad):
-            raise FileNotFoundError(f"{pfad} gibt es nicht – erst `amw init`")
+            raise FileNotFoundError(f"{pfad} gibt es nicht – erst `amw einrichten`")
         con = sqlite3.connect(pfad, timeout=30, isolation_level=None)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA busy_timeout = 30000")
@@ -92,7 +92,8 @@ def sichern(ziel=None, pfad=None):
     pfad = pfad or db_pfad()
     if not ziel:
         ziel = os.path.join(os.path.dirname(pfad), f"sicherung-{datetime.now().strftime('%Y-%m-%d-%H%M')}.db")
-    elif os.path.isdir(ziel):
+    elif os.path.isdir(ziel) or not ziel.lower().endswith(".db"):          # ein Ordner (wird angelegt)
+        os.makedirs(ziel, exist_ok=True)
         ziel = os.path.join(ziel, f"amw-sicherung-{datetime.now().strftime('%Y-%m-%d-%H%M')}.db")
     if os.path.exists(ziel):
         raise FileExistsError(f"{ziel} gibt es schon")

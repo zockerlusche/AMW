@@ -61,7 +61,7 @@ FELDER = {
     "abgleich_hoch_s": (30, _ganz(10, 3600)),
     "abgleich_puls_s": (300, _ganz(60, 3600)),
     "abgleich_eingang_s": (15, _ganz(5, 600)),
-    "bruecke_an": (True, _wahr),
+    "bruecke_an": (False, _wahr),           # Datei-Brücke für einen Agenten ohne direkten DB-Zugriff
     "bruecke_absender": ("TL", _kennung),
     "bruecke_kopie_s": (60, _ganz(15, 3600)),
     "statusline_weiter": ("", _befehl),            # bisherige Statusline, die amw-statusline.py weiterreicht

@@ -6,6 +6,8 @@
   Planung, Sitzungen) – nichts wird doppelt erfasst.
 - Zusammenfassung seit einem Zeitpunkt („Seit du weg warst“, täglicher Push-Rückblick): nur Zahlen.
 """
+import datetime
+
 from . import db, kern
 
 ARTEN = ("gut", "schlecht", "massnahme", "gelernt")
@@ -121,6 +123,43 @@ def zusammenfassung(con, pid, seit_utc):
     aus["highlights"] = [dict(r) for r in con.execute(
         "SELECT id, titel, agent FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND fertig_utc >= ? ORDER BY fertig_utc DESC LIMIT 5",
         (pid, seit_utc))]
+    return aus
+
+
+SEIT_ARTEN = ("an_dich", "erledigt", "laeufe", "gruen", "rot", "fragen_neu", "beschluesse", "boegen_fertig")
+
+
+def seit_daten(con, pid, tage=7):
+    """Für die Online-Seite: Zeitpunkte je Art der letzten Tage – dort wird „seit deinem Besuch“ je Gerät gezählt
+    (seit_zaehlen; dieselbe Rechnung macht web/api.php)."""
+    grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=tage)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    q = {"an_dich": ("SELECT n.zeit_utc FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE n.projekt_id = ?"
+                     " AND n.zeit_utc >= ? AND e.agent = ?", (kern.ENTWICKLER,)),
+         "erledigt": ("SELECT fertig_utc FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND fertig_utc >= ?", ()),
+         "laeufe": ("SELECT ende_utc FROM lauf WHERE projekt_id = ? AND ende_utc >= ?", ()),
+         "gruen": ("SELECT ergebnis_utc FROM pruefung WHERE projekt_id = ? AND ergebnis_utc >= ? AND ergebnis = 'gruen'", ()),
+         "rot": ("SELECT ergebnis_utc FROM pruefung WHERE projekt_id = ? AND ergebnis_utc >= ? AND ergebnis = 'rot'", ()),
+         "fragen_neu": ("SELECT zeit_utc FROM frage WHERE projekt_id = ? AND zeit_utc >= ? AND an = 'entwickler'", ()),
+         "beschluesse": ("SELECT angelegt_utc FROM beschluss WHERE projekt_id = ? AND angelegt_utc >= ?", ()),
+         "boegen_fertig": ("SELECT zeit_utc FROM plan_ereignis WHERE projekt_id = ? AND zeit_utc >= ? AND art = 'bogen_status'"
+                           " AND text LIKE '%→ fertig'", ())}
+    ereignisse = sorted([r[0], art] for art, (sql, extra) in q.items() for r in con.execute(sql, (pid, grenze, *extra)))
+    hl = [dict(r) for r in con.execute(
+        "SELECT id, titel, agent, fertig_utc AS zeit FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND fertig_utc >= ?"
+        " ORDER BY fertig_utc DESC LIMIT 30", (pid, grenze))]
+    offen = con.execute("SELECT count(*) FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
+                        " AND kurz NOT LIKE 'GEPARKT%'", (pid,)).fetchone()[0]
+    return {"ab": grenze, "ereignisse": ereignisse, "highlights": hl, "fragen_offen": offen}
+
+
+def seit_zaehlen(d, ab):
+    """Gegenstück zu zusammenfassung() aus seit_daten (Referenz für web/api.php)."""
+    aus = dict.fromkeys(SEIT_ARTEN, 0)
+    for zeit, art in d["ereignisse"]:
+        if zeit >= ab:
+            aus[art] += 1
+    aus["fragen_offen"] = d["fragen_offen"]
+    aus["highlights"] = [{k: h[k] for k in ("id", "titel", "agent")} for h in d["highlights"] if h["zeit"] >= ab][:5]
     return aus
 
 

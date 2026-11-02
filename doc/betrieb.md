@@ -42,6 +42,8 @@ amw taetigkeit "A1201 Login-Formular" --von CC1   # zeigt die Kachel „Gerade�
 amw kontext --von CC1                     # Pflicht-Kontext
 ```
 Alle Befehle: [befehle.md](befehle.md). `--von` kann entfallen, wenn `AMW_AGENT` gesetzt ist (Startskript, Hook).
+Du selbst nimmst `--von Entwickler`. Den genauen Befehl (`python <AMW-Ordner>/amw-cli.py`) bekommen die Agenten im
+Pflicht-Kontext; mit `<AMW-Ordner>\bin` im Pfad geht überall kurz `amw`.
 
 ## 4 Überwachung und Warnungen
 - **Projekt-Server** (Testseiten, Editoren …): `amw server anmelden editor --port 8766 --start "pythonw C:/pfad/server.py"
@@ -52,12 +54,27 @@ Alle Befehle: [befehle.md](befehle.md). `--von` kann entfallen, wenn `AMW_AGENT`
 - Warnungen stehen oben auf der Startseite, gehen einmal als Nachricht an den Lead und als Push an dich.
 
 ## 5 Sichern und wiederherstellen
-- `amw sichern` → `daten/sicherung-<Datum>.db` (vollständige Kopie, auch im laufenden Betrieb); `amw sichern --ziel D:\Sicherung`.
+- `amw sichern` → `sicherung-<Datum>-<Uhrzeit>.db` neben der Datenbank (vollständige Kopie, auch im laufenden Betrieb);
+  `amw sichern --ziel D:\Sicherung` legt sie in diesen Ordner (wird angelegt), `--ziel D:\x.db` als genau diese Datei.
 - Wiederherstellen: Wächter anhalten (`amw dienst entfernen --ja` oder die Aufgabe in der Aufgabenplanung beenden),
   `daten\amw.db` durch die Sicherung ersetzen (die Dateien `amw.db-wal` und `amw.db-shm` daneben löschen), Wächter wieder
   einrichten bzw. starten.
 - Vor jedem Update sichern (neue Versionen stellen die Datenbank beim ersten Schreibzugriff um).
 
 ## 6 Einstellungen dieses PCs
-Zahnrad › Dieser PC (oder `%LOCALAPPDATA%\amw\einstellungen.json`): Datenbank-Pfad, Port der Workbench, Takt der
-Aufsicht, Abgleich, Datei-Brücke, weitergereichte Statusline, Befehl für Claude Code. Wirkt nach `amw dienst neustart`.
+Zahnrad › Dieser PC, oder von Hand in `%LOCALAPPDATA%\amw\einstellungen.json` (JSON, nur Schlüssel, die von der
+Vorgabe abweichen, z. B. `{"port": 8790}`). Wirkt nach `amw dienst neustart`.
+
+| Schlüssel | Vorgabe | Bedeutung |
+|---|---|---|
+| `db_pfad` | `<AMW-Ordner>\daten\amw.db` | Datenbank (vollständiger Pfad, Ordner muss es geben) |
+| `port` | 8780 | Port der Workbench auf 127.0.0.1 |
+| `aufsicht_s` | 30 | Takt der Aufsicht in Sekunden (5–600) |
+| `abgleich_hoch_s` | 30 | Online: frühestens so oft hochladen |
+| `abgleich_puls_s` | 300 | Online: Lebenszeichen, auch ohne Änderung |
+| `abgleich_eingang_s` | 15 | Online: so oft den Briefkasten abholen |
+| `bruecke_an` | aus | Datei-Brücke für einen Agenten ohne direkten Datenbankzugriff (→ [architektur.md](architektur.md) §3) |
+| `bruecke_absender` | TL | Kennung, als die Befehle der Brücke ausgeführt werden |
+| `bruecke_kopie_s` | 60 | Lesekopie der Brücke höchstens so oft erneuern |
+| `statusline_weiter` | leer | bisherige Statusline, die die Statusline-Brücke weiterreicht (setzt `amw einrichten`) |
+| `claude_befehl` | `claude` | wie Claude Code gestartet wird (falls nötig mit vollem Pfad) |

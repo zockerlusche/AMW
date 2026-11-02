@@ -1,6 +1,6 @@
 """Starter für die Kommandozeile ohne PYTHONPATH – aus jeder Shell gleich (Bash, PowerShell):
 
-    python F:/amw/amw-cli.py lesen --von CC1
+    python C:/amw/amw-cli.py lesen --von CC1
 
 Der Bindestrich im Namen ist Absicht: die Datei ist nicht importierbar und verdeckt das Paket `amw` nicht.
 """

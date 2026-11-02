@@ -83,6 +83,21 @@ try {
         }
         antwort(200, $treffer);
     }
+    if ($pfad === '/api/seit') {                           // „Seit du weg warst“: Zeitpunkte vom PC, gezählt ab dem Besuch dieses Geräts
+        $ab = (string)($q['ab'] ?? '');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $ab)) antwort(400, ['fehler' => 'ab']);
+        $z = sql([["SELECT inhalt FROM ansicht WHERE weg = '/api/seit'", []]])[0];
+        if (!$z) antwort(404, ['fehler' => 'Noch keine Daten vom PC.']);
+        $d = json_decode($z[0][0], true);
+        $aus = array_fill_keys(['an_dich', 'erledigt', 'laeufe', 'gruen', 'rot', 'fragen_neu', 'beschluesse', 'boegen_fertig'], 0);
+        foreach ($d['ereignisse'] as [$zeit, $art]) {
+            if (strcmp((string)$zeit, $ab) >= 0 && isset($aus[$art])) $aus[$art]++;
+        }
+        $aus['fragen_offen'] = (int)$d['fragen_offen'];
+        $hl = array_values(array_filter($d['highlights'], fn($h) => strcmp((string)$h['zeit'], $ab) >= 0));
+        $aus['highlights'] = array_map(fn($h) => ['id' => $h['id'], 'titel' => $h['titel'], 'agent' => $h['agent']], array_slice($hl, 0, 5));
+        antwort(200, $aus);
+    }
     if ($pfad === '/api/agent') {                          // Übersicht je Agent: aus dem Schaufenster „/api/agenten“
         $z = sql([["SELECT inhalt FROM ansicht WHERE weg = '/api/agenten'", []]])[0];
         $alle = $z ? json_decode($z[0][0], true) : [];

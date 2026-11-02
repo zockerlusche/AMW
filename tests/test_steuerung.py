@@ -48,12 +48,14 @@ class Profil(Grund):
         self.assertEqual((p["denkstufe"], p["rechte"], p["zusatzordner"]), ("high", "umgehen", [self.ordner.name]))
 
     def test_befehl_neu_mit_session_id_fortsetzen_mit_resume(self):
-        p = self.profil(denkstufe="high", rechte="umgehen", startsatz="Du bist CC1. Lies 'amw lesen'.")
+        p = self.profil(denkstufe="high", rechte="umgehen", startsatz="Du bist CC1. Lies 'amw lesen'.", fernsteuerung=True)
         neu = steuerung.befehl(steuerung.profil(self.con, self.pid, "CC1"), None, "1111-2222")
         self.assertIn("$env:AMW_AGENT = 'CC1'", neu)
         self.assertIn("'--session-id' '1111-2222'", neu)
         self.assertIn("'--remote-control' 'CC1'", neu)
         self.assertIn("'--dangerously-skip-permissions'", neu)
+        kern.agent_neu(self.con, self.pid, "CC9")
+        self.assertFalse(steuerung.profil(self.con, self.pid, "CC9")["fernsteuerung"])        # neu: Remote Control aus
         self.assertIn("'Du bist CC1. Lies ''amw lesen''.'", neu)          # PowerShell-Quoting
         fort = steuerung.befehl(p, "abcd-ef", None)
         self.assertIn("'--resume' 'abcd-ef'", fort)

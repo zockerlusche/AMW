@@ -114,6 +114,10 @@ class Schritte(Grund):
         kern.aufgabe_status(self.con, self.pid, "TL", a1, "fertig", beleg="x", zusammenfassung="erledigt")
         kern.aufgabe_status(self.con, self.pid, "TL", a2, "start")
         self.assertEqual(planung.wellen(self.con, [a1, a2]), {a1: 1, a2: 2})
+        vorher = self.con.execute("SELECT count(*) FROM aufgabe").fetchone()[0]
+        with self.assertRaises(kern.AmwFehler):
+            self.schritt("C", bogen_id=bid, nach=[a1, 99999])                             # unbekannter Vorgänger
+        self.assertEqual(self.con.execute("SELECT count(*) FROM aufgabe").fetchone()[0], vorher)   # nichts halb angelegt
 
     def test_plan_gate_ab_komplexitaet_7(self):
         aid = self.schritt(komplexitaet=8, agent="CC1", bogen_id=self.bogen())
