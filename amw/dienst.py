@@ -200,10 +200,11 @@ def einrichten_log():
     h = logging.handlers.RotatingFileHandler(os.path.join(ordner, "dienst.log"), maxBytes=1_000_000,
                                              backupCount=3, encoding="utf-8")
     h.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-    log.addHandler(h)
-    log.setLevel(logging.INFO)
+    oben = logging.getLogger("amw")                   # auch Brücke und Abgleich (amw.bruecke, amw.abgleich) ins Log
+    oben.addHandler(h)
+    oben.setLevel(logging.INFO)
     if sys.stderr:
-        log.addHandler(logging.StreamHandler())
+        oben.addHandler(logging.StreamHandler())
 
 
 def einzige_instanz():

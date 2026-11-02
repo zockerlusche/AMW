@@ -18,6 +18,7 @@ import logging
 import os
 import re
 import sqlite3
+import sys
 import threading
 import time
 
@@ -149,12 +150,21 @@ def puls(kennung=None, taetigkeit=None):
 
 
 def ausfuehren(args):
+    """Ein Befehl im Dienst: nie auf Eingabe warten (stdin leer), jeder Fehler wird zum Ergebnis mit rc 1."""
     aus, fehler = io.StringIO(), io.StringIO()
-    with contextlib.redirect_stdout(aus), contextlib.redirect_stderr(fehler):
-        try:
-            rc = cli.main(args)
-        except SystemExit as e:                           # argparse-Fehler
-            rc = e.code if isinstance(e.code, int) else 2
+    stdin = sys.stdin
+    sys.stdin = io.StringIO()                             # input() → EOFError statt Warten
+    try:
+        with contextlib.redirect_stdout(aus), contextlib.redirect_stderr(fehler):
+            try:
+                rc = cli.main(args)
+            except SystemExit as e:                       # argparse-Fehler
+                rc = e.code if isinstance(e.code, int) else 2
+            except Exception as e:                        # z. B. Pflichtfeld leer (IntegrityError), EOFError
+                print(f"FEHLER: {type(e).__name__}: {e}", file=sys.stderr)
+                rc = 1
+    finally:
+        sys.stdin = stdin
     return rc, aus.getvalue(), fehler.getvalue()
 
 
@@ -183,6 +193,8 @@ def befehle(eingang=EINGANG):
                 rc, aus, fehler = ausfuehren(args)
         except (ValueError, OSError) as e:
             args, rc, aus, fehler = None, 2, "", str(e)
+        except Exception as e:                            # nie die Warteschlange anhalten: Fehler wird zum Ergebnis
+            args, rc, aus, fehler = None, 1, "", f"{type(e).__name__}: {e}"
         ergebnis = {"datei": name, "zeit_utc": db.jetzt(), "args": args, "rc": rc, "ausgabe": aus, "fehler": fehler}
         with open(os.path.join(erledigt, stamm + ".ergebnis.json"), "w", encoding="utf-8") as f:
             json.dump(ergebnis, f, ensure_ascii=False, indent=1)

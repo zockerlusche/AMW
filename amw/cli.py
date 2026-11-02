@@ -387,6 +387,9 @@ def cmd_plan(a, con):
 def cmd_frage(a, con):
     pid = _projekt(con, a)
     if a.aktion == "neu":
+        if not (a.an and (a.kurz or "").strip()):
+            raise kern.AmwFehler("frage neu braucht --an entwickler|tl und --kurz \"die Frage in einem Satz\""
+                                 " (--text gibt es nur bei antworten/nachtrag)")
         optionen = []
         for o in a.option or []:
             kenn, _, text = o.partition("=")

@@ -118,6 +118,32 @@ class Bruecke(unittest.TestCase):
         self.assertIn("1 bewusst akzeptiert", aus)
         self.assertNotIn(f"[bogen_ohne_zieldatum:B{bid}]", aus)
 
+    def test_fehlerhafter_befehl_haelt_die_warteschlange_nicht_an(self):
+        # 02.11.: „frage neu“ mit --text statt --kurz blieb als Datenbankfehler hängen, alles dahinter stand still
+        self.einwerfen("a.json", {"args": ["frage", "neu", "--an", "entwickler", "--text", "Ziel?", "--option", "A=x",
+                                           "--empfehlung", "A", "--grund", "g"]})
+        self.einwerfen("b.json", {"befehl": "posten", "an": "CC1", "art": "info", "kurz": "danach"})
+        self.assertEqual(bruecke.befehle(self.eingang), 2)
+        a = self.ergebnis("a")
+        self.assertEqual(a["rc"], 1)
+        self.assertIn("--kurz", a["fehler"])
+        self.assertEqual(self.ergebnis("b")["rc"], 0)
+        self.assertEqual(self.con.execute("SELECT count(*) FROM frage").fetchone()[0], 0)
+        self.assertEqual(os.listdir(os.path.join(self.eingang, "befehle")), [])
+
+    def test_unerwarteter_fehler_und_eingabe_werden_zum_ergebnis(self):
+        from unittest import mock
+        self.einwerfen("a.json", {"befehl": "posten", "an": "CC1", "art": "info", "kurz": "x"})
+        self.einwerfen("b.json", {"befehl": "posten", "an": "CC1", "art": "info", "kurz": "y"})
+        with mock.patch("amw.kern.posten", side_effect=[sqlite3.IntegrityError("NOT NULL"), (1, ["CC1"])]):
+            self.assertEqual(bruecke.befehle(self.eingang), 2)
+        self.assertEqual(self.ergebnis("a")["rc"], 1)
+        self.assertIn("IntegrityError", self.ergebnis("a")["fehler"])
+        with mock.patch("amw.cli.cmd_posten", side_effect=lambda a, con: input("?")):     # fragt nach → EOF, kein Warten
+            rc, _, fehler = bruecke.ausfuehren(["posten", "--an", "CC1", "--art", "info", "--kurz", "z", "--von", "TL"])
+        self.assertEqual(rc, 1)
+        self.assertIn("EOFError", fehler)
+
     def test_halb_geschriebene_datei_wartet(self):
         ordner = os.path.join(self.eingang, "befehle")
         os.makedirs(ordner)
