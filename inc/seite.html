@@ -228,6 +228,55 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .ueb-legende .ueb-du { margin: 0 5px 0 0; }
 @media (max-width: 760px) { .ueb-zeile { grid-template-columns: 44px minmax(0, 1fr); } .ueb-name .titel { display: none; }
   .befund-schluessel { margin-left: 0; flex-basis: 100%; } .befund-zeile > .sehrleise:first-child { min-width: 0; } }
+/* Dokumente: Raster mit Vorschau, Detail mit Vorschau links und Zuordnung/Versionen/Gespräch rechts */
+.dk-filter { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.dk-filter select, .dk-filter input { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; padding: 6px 8px; color: var(--tinte); font: inherit; font-size: 14px; min-width: 0; }
+.dk-filter input { flex: 1 1 220px; }
+.dk-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.dk-karte { display: grid; grid-template-rows: 130px auto; border: 1px solid var(--linie); border-radius: 4px; background: var(--flaeche); overflow: hidden;
+  cursor: pointer; text-align: left; padding: 0; color: inherit; font: inherit; }
+.dk-karte:hover, .dk-karte:focus-visible { border-color: var(--bernstein); }
+.dk-bild { display: grid; place-items: center; background: var(--flaeche2); overflow: hidden; border-bottom: 1px solid var(--linie); }
+.dk-bild img { width: 100%; height: 100%; object-fit: cover; }
+.dk-symbol { font: 600 22px var(--titel); letter-spacing: .12em; color: var(--leise); text-transform: uppercase; }
+.dk-symbol small { display: block; font: 11px var(--mono); letter-spacing: 0; text-align: center; color: var(--sehrleise); margin-top: 4px; }
+.dk-text { padding: 9px 11px; display: grid; gap: 3px; }
+.dk-text b { font-size: 14.5px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dk-text span { font-size: 12.5px; color: var(--leise); }
+.dk-liste .zeile { cursor: pointer; }
+.dk-detail { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.dk-vorschau { min-height: 200px; border: 1px solid var(--linie); border-radius: 3px; background: var(--flaeche2); overflow: auto; max-height: 70vh; }
+.dk-vorschau img { display: block; max-width: 100%; margin: 0 auto; cursor: zoom-in; }
+.dk-vorschau img.gross { max-width: none; cursor: zoom-out; }
+.dk-vorschau iframe { display: block; width: 100%; height: 68vh; border: 0; background: #fff; }
+.dk-vorschau .md { padding: 16px 20px; }
+.dk-seite { display: grid; gap: 14px; font-size: 14px; }
+.dk-seite h4 { margin: 0 0 6px; font: 600 12px var(--titel); letter-spacing: .1em; text-transform: uppercase; color: var(--leise); }
+.dk-version { display: block; width: 100%; text-align: left; background: none; border: 0; border-left: 2px solid var(--linie); padding: 4px 8px; color: var(--leise); cursor: pointer; font: inherit; font-size: 13px; }
+.dk-version.an { border-left-color: var(--bernstein); color: var(--tinte); }
+.dk-nachricht { border-left: 2px solid var(--linie2); padding: 2px 8px; margin-bottom: 6px; font-size: 13px; }
+.dk-aktionen { display: flex; gap: 6px; flex-wrap: wrap; }
+.dk-anhaenge { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.dk-anhang { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--linie); border-radius: 3px; padding: 4px 8px; cursor: pointer; background: var(--flaeche2); color: inherit; font: inherit; font-size: 13px; }
+.dk-anhang img { width: 64px; height: 44px; object-fit: cover; border-radius: 2px; }
+/* Markdown */
+.md { font-size: 15px; line-height: 1.55; overflow-wrap: anywhere; }
+.md h1, .md h2, .md h3, .md h4 { font-family: var(--titel); margin: 1.1em 0 .4em; line-height: 1.25; }
+.md h1 { font-size: 22px; } .md h2 { font-size: 19px; } .md h3 { font-size: 16.5px; } .md h4 { font-size: 15px; }
+.md h1, .md h2, .md h3, .md h4 { text-transform: none; letter-spacing: .01em; color: var(--tinte); display: block; }
+.md h1::before, .md h1::after, .md h2::before, .md h2::after, .md h3::after { content: none; }
+.dk-aktionen a.klein-knopf { text-decoration: none; display: inline-flex; align-items: center; }
+.md p, .md ul, .md ol, .md pre, .md table, .md blockquote { margin: 0 0 .8em; }
+.md code { font: 13px var(--mono); background: var(--flaeche); padding: 1px 4px; border-radius: 2px; }
+.md pre { background: var(--flaeche); border: 1px solid var(--linie); padding: 10px 12px; overflow-x: auto; }
+.md pre code { background: none; padding: 0; }
+.md blockquote { border-left: 3px solid var(--linie2); padding-left: 12px; color: var(--leise); }
+.md table { border-collapse: collapse; display: block; overflow-x: auto; }
+.md th, .md td { border: 1px solid var(--linie); padding: 4px 8px; text-align: left; vertical-align: top; }
+.md hr { border: 0; border-top: 1px solid var(--linie); margin: 1.2em 0; }
+.md a { color: var(--bernstein); }
+@media (max-width: 900px) { .dk-detail { grid-template-columns: minmax(0, 1fr); } .dk-vorschau iframe { height: 60vh; } }
+@media (max-width: 760px) { .dk-raster { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .dk-karte { grid-template-rows: 100px auto; } }
 @media (max-width: 760px) { .zeitleiste { padding-left: 20px; } .tl-punkt { left: -19px; } .tl-heute { margin-left: -20px; }
   .schritt { grid-template-columns: 54px minmax(0, 1fr); } .schritt > .etikett { grid-column: 2; justify-self: start; } .tl-knoepfe { margin-left: 0; } }
 /* Rückblick und Verlauf */
@@ -406,7 +455,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   nav a { flex: 1 1 0; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; min-width: 0; border-left: 0; border-top: 2px solid transparent;
     font-size: 10.5px; letter-spacing: .02em; position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   nav a [data-t-lang] { display: none; }
-  nav a [data-t-kurz] { display: inline !important; }
+  nav a [data-t-kurz] { display: block !important; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   nav a .sym { display: block; font-size: 18px; line-height: 1.1; }
   nav a.an { border-top-color: var(--bernstein); background: none; }
   nav a .zahl { position: absolute; top: 2px; right: 6px; margin: 0; font-size: 10px; }
@@ -451,11 +500,12 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
     <a data-sicht="fragen"><span class="sym">?</span><span data-t="n_fragen"></span> <span class="zahl" data-zahl="fragen"></span></a>
     <div class="gruppe" data-t="g_arbeit"></div>
     <a data-sicht="planung"><span class="sym">◇</span><span data-t="n_planung" data-t-lang></span><span data-t="n_planung_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="freigaben"></span></a>
-    <a data-sicht="arbeit"><span class="sym">▤</span><span data-t="n_aufgaben"></span> <span class="zahl" data-zahl="offen"></span></a>
+    <a data-sicht="arbeit"><span class="sym">▤</span><span data-t="n_aufgaben" data-t-lang></span><span data-t="n_aufgaben_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="offen"></span></a>
     <a data-sicht="verlauf" class="nur-breit"><span class="sym">⌛</span><span data-t="n_verlauf"></span></a>
     <a data-sicht="releases"><span class="sym">✦</span><span data-t="n_releases" data-t-lang></span><span data-t="n_releases_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="releases"></span></a>
     <div class="gruppe" data-t="g_wissen"></div>
     <a data-sicht="wissen"><span class="sym">§</span><span data-t="n_wissen"></span> <span class="zahl" data-zahl="beschluesse"></span></a>
+    <a data-sicht="dokumente"><span class="sym">▣</span><span data-t="n_dokumente" data-t-lang></span><span data-t="n_dokumente_kurz" data-t-kurz hidden></span></a>
     <div class="gruppe" data-t="g_betrieb"></div>
     <a data-sicht="betrieb"><span class="sym">◈</span><span data-t="n_betrieb"></span></a>
     <a data-sicht="einstellungen"><span class="sym">⚙</span><span data-t="n_einst" data-t-lang></span><span data-t="n_einst_kurz" data-t-kurz hidden></span></a>
@@ -481,7 +531,7 @@ const TEXTE = {
   de: {
     marke: "Agentenmanagement Workbench", suche: "Suchen: Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten",
     g_fuerdich: "Für dich", g_arbeit: "Arbeit", g_wissen: "Wissen", g_betrieb: "Betrieb",
-    n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_releases: "Release Notes", n_releases_kurz: "Releases", n_wissen: "Wissen", n_betrieb: "Betrieb",
+    n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_aufgaben_kurz: "Arbeit", n_releases: "Release Notes", n_releases_kurz: "Releases", n_wissen: "Wissen", n_betrieb: "Betrieb",
     thema: "Hell / Dunkel", halt: "Halt", weiter: "Weiter",
     s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
     nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
@@ -521,7 +571,7 @@ const TEXTE = {
     beantwortet: "Beantwortet – der Fragesteller wird geweckt.", rueckfrage_gesendet: "Rückfrage gesendet – der Fragesteller wird geweckt.",
     text_fehlt: "Bitte Text eingeben", rueckfrage_fehlt: "Bitte die Rückfrage eingeben", fehler: "Fehler: {x}",
     aufgaben: "Aufgaben", t_offen: "Offen", t_geparkt: "Geparkt", t_pool: "Brainstorming / Pool", t_erledigt: "Abgeschlossen",
-    filtern: "filtern …", keine_aufgaben: "Keine Aufgaben in dieser Sicht.", sp_laeuft: "Läuft", sp_wartet: "Wartet", sp_blockiert: "Blockiert", keine_prio: "keine Prio",
+    filtern: "filtern …", keine_aufgaben: "Keine Aufgaben in dieser Sicht.", sp_laeuft: "Läuft", sp_wartet: "Wartet", sp_fertig: "Fertig", sp_verworfen: "Verworfen", sp_blockiert: "Blockiert", keine_prio: "keine Prio",
     z_arbeitet: "arbeitet", z_frei: "frei", z_freigabe: "wartet auf Freigabe", z_eingabe: "wartet auf Eingabe", z_fehler: "Fehler", z_beendet: "beendet",
     b_kontext: "Kontext", b_5h: "5 Std.", b_7t: "Woche", k_zustand: "Zustand und Verbrauch", k_zustand_leer: "Noch keine Daten – Hooks und Statusline-Brücke einrichten (amw einrichten agenten-ordner)",
     k_denkstufe: "Denkstufe {x}", k_kosten: "Sitzung {x} $ (Schätzung)", k_reset: "5 Std. zurückgesetzt {x}", k_stand: "Stand {x}",
@@ -592,7 +642,19 @@ const TEXTE = {
     rs_strategie: "Strategie", rs_massnahme: "Maßnahme", rs_verantwortlich: "Verantwortlich", rs_ausloeser: "Auslöser", rst_offen: "offen",
     rst_eingetreten: "eingetreten", rst_erledigt: "erledigt", str_vermeiden: "vermeiden", str_mindern: "mindern", str_uebertragen: "übertragen",
     str_akzeptieren: "akzeptieren", pe_freigabe: "Freigaben für dich (Spezifikation, Pläne)",
-    n_verlauf: "Verlauf", rb_knopf: "Rückblick ({n})", rb_gut: "lief gut", rb_schlecht: "lief nicht gut", rb_massnahme: "ändern wir",
+    n_verlauf: "Verlauf", n_dokumente: "Dokumente", n_dokumente_kurz: "Doku", vl_dokument: "Dokumente",
+    dk_such_ph: "In Titel und Text suchen …", dk_alle_arten: "Alle Arten", dk_alle_bezuege: "Alle Bögen", dk_raster: "Raster", dk_liste: "Liste",
+    dks_aktuell: "aktuell", dks_archiviert: "archiviert", dks_alle: "alle", dks_geloescht: "gelöscht",
+    dka_ergebnis: "Ergebnis", dka_bericht: "Bericht", dka_entwurf: "Entwurf", dka_mockup: "Mockup", dka_bild: "Bild", dka_quelle: "Quelle",
+    dkb_bogen: "Bogen", dkb_aufgabe: "Aufgabe", dkb_frage: "Frage", dkb_beschluss: "Beschluss",
+    dk_leer: "Noch keine Dokumente. Agenten legen Ergebnisse mit diesem Befehl ab – dann erscheinen sie hier mit Vorschau:",
+    dk_nur_download: "Keine Vorschau für dieses Format – bitte herunterladen.", dk_gehoert_zu: "Gehört zu", dk_ohne_bezug: "ohne Bezug",
+    dk_versionen: "Versionen ({n})", dk_gespraech: "Gespräch ({n})", dk_kein_gespraech: "Noch kein Kommentar.",
+    dk_kommentar_ph: "Kommentar oder was überarbeitet werden soll …", dk_kommentieren: "Kommentieren", dk_ueberarbeiten: "Überarbeiten lassen",
+    dk_oeffnen: "In neuem Tab", dk_herunterladen: "Herunterladen", dk_zuordnen: "Zuordnen …", dk_archivieren: "Archivieren", dk_archiviert: "Archiviert",
+    dk_wiederherstellen: "Wiederherstellen", dk_online: "Auch online zeigen", dk_offline: "Nur am PC", dk_online_an: "Datei auch online", dk_online_aus: "Datei nur am PC",
+    dk_loeschen: "Endgültig löschen", dk_loeschen_frage: "„{x}“ endgültig löschen? Die Dateien werden entfernt – das lässt sich nicht rückgängig machen. (Archivieren reicht meist.)",
+    dk_geloescht: "Gelöscht", dk_bild: "Bild", dk_anhaenge: "Anhänge", dk_n: "Dokumente ({n})", rb_knopf: "Rückblick ({n})", rb_gut: "lief gut", rb_schlecht: "lief nicht gut", rb_massnahme: "ändern wir",
     rb_gelernt: "gelernt", rb_ph: "Was war gut / schlecht, was ändern wir, was haben wir gelernt?", rb_hinzu: "Hinzufügen",
     rb_titel: "Rückblick Bogen {b} „{x}“",
     rb_h: "Nach dem Muster gut · schlecht · ändern wir · gelernt. Maßnahmen werden zur Aufgabe oder zum Beschluss (Lessons Learned).",
@@ -631,7 +693,7 @@ const TEXTE = {
   en: {
     marke: "Agent Management Workbench", suche: "Search: tasks, decisions, questions, statements, messages",
     g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
-    n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_releases: "Release notes", n_releases_kurz: "Releases", n_wissen: "Knowledge", n_betrieb: "Operations",
+    n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_aufgaben_kurz: "Tasks", n_releases: "Release notes", n_releases_kurz: "Releases", n_wissen: "Knowledge", n_betrieb: "Operations",
     thema: "Light / Dark", halt: "Halt", weiter: "Resume",
     s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
@@ -671,7 +733,7 @@ const TEXTE = {
     beantwortet: "Answered – the asker is being woken.", rueckfrage_gesendet: "Follow-up sent – the asker is being woken.",
     text_fehlt: "Please enter a text", rueckfrage_fehlt: "Please enter your question", fehler: "Error: {x}",
     aufgaben: "Tasks", t_offen: "Open", t_geparkt: "Parked", t_pool: "Brainstorming / pool", t_erledigt: "Done",
-    filtern: "filter …", keine_aufgaben: "No tasks in this view.", sp_laeuft: "Running", sp_wartet: "Waiting", sp_blockiert: "Blocked", keine_prio: "no priority",
+    filtern: "filter …", keine_aufgaben: "No tasks in this view.", sp_laeuft: "Running", sp_wartet: "Waiting", sp_fertig: "Done", sp_verworfen: "Discarded", sp_blockiert: "Blocked", keine_prio: "no priority",
     z_arbeitet: "working", z_frei: "idle", z_freigabe: "waiting for permission", z_eingabe: "waiting for input", z_fehler: "error", z_beendet: "ended",
     b_kontext: "Context", b_5h: "5 h", b_7t: "Week", k_zustand: "State and usage", k_zustand_leer: "No data yet – set up hooks and status line bridge (amw einrichten agenten-ordner)",
     k_denkstufe: "effort {x}", k_kosten: "session {x} $ (estimate)", k_reset: "5 h resets {x}", k_stand: "as of {x}",
@@ -740,7 +802,19 @@ const TEXTE = {
     rs_ohne: "no response", rs_titel: "Risk", rs_ursache: "Cause", rs_wirkung: "Effect", rs_strategie: "Strategy", rs_massnahme: "Response",
     rs_verantwortlich: "Owner", rs_ausloeser: "Trigger", rst_offen: "open", rst_eingetreten: "occurred", rst_erledigt: "closed", str_vermeiden: "avoid",
     str_mindern: "mitigate", str_uebertragen: "transfer", str_akzeptieren: "accept", pe_freigabe: "approvals for you (specs, plans)",
-    n_verlauf: "History", rb_knopf: "Retro ({n})", rb_gut: "went well", rb_schlecht: "went badly", rb_massnahme: "we change", rb_gelernt: "learned",
+    n_verlauf: "History", n_dokumente: "Documents", n_dokumente_kurz: "Docs", vl_dokument: "Documents",
+    dk_such_ph: "Search title and text …", dk_alle_arten: "All kinds", dk_alle_bezuege: "All arcs", dk_raster: "Grid", dk_liste: "List",
+    dks_aktuell: "current", dks_archiviert: "archived", dks_alle: "all", dks_geloescht: "deleted",
+    dka_ergebnis: "Result", dka_bericht: "Report", dka_entwurf: "Draft", dka_mockup: "Mockup", dka_bild: "Image", dka_quelle: "Source",
+    dkb_bogen: "Arc", dkb_aufgabe: "Task", dkb_frage: "Question", dkb_beschluss: "Decision",
+    dk_leer: "No documents yet. Agents file their results with this command – they then show up here with a preview:",
+    dk_nur_download: "No preview for this format – please download.", dk_gehoert_zu: "Belongs to", dk_ohne_bezug: "no link",
+    dk_versionen: "Versions ({n})", dk_gespraech: "Conversation ({n})", dk_kein_gespraech: "No comment yet.",
+    dk_kommentar_ph: "Comment or what should be reworked …", dk_kommentieren: "Comment", dk_ueberarbeiten: "Request rework",
+    dk_oeffnen: "Open in new tab", dk_herunterladen: "Download", dk_zuordnen: "Assign …", dk_archivieren: "Archive", dk_archiviert: "Archived",
+    dk_wiederherstellen: "Restore", dk_online: "Also show online", dk_offline: "PC only", dk_online_an: "file also online", dk_online_aus: "file on PC only",
+    dk_loeschen: "Delete for good", dk_loeschen_frage: "Delete “{x}” for good? The files are removed – this cannot be undone. (Archiving is usually enough.)",
+    dk_geloescht: "Deleted", dk_bild: "Image", dk_anhaenge: "Attachments", dk_n: "Documents ({n})", rb_knopf: "Retro ({n})", rb_gut: "went well", rb_schlecht: "went badly", rb_massnahme: "we change", rb_gelernt: "learned",
     rb_ph: "What went well / badly, what do we change, what did we learn?", rb_hinzu: "Add", rb_titel: "Retro arc {b} “{x}”",
     rb_h: "Pattern: good · bad · change · learned. Actions become a task or a decision (lessons learned).", rb_zu_aufgabe: "→ Task",
     rb_zu_beschluss: "→ Decision", rb_als_aufgabe: "Task A{n} created", rb_als_beschluss: "Decision B{n} created",
@@ -855,7 +929,7 @@ function zeige(sicht, still = false) {
   for (const a of document.querySelectorAll("nav a")) a.classList.toggle("an", a.dataset.sicht === sicht);
   try { localStorage.setItem("amw-sicht", sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
-  const fertig = ({ start: sichtStart, fragen: sichtFragen, planung: sichtPlanung, verlauf: sichtVerlauf, arbeit: sichtArbeit, wissen: sichtWissen, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
+  const fertig = ({ start: sichtStart, fragen: sichtFragen, planung: sichtPlanung, verlauf: sichtVerlauf, arbeit: sichtArbeit, wissen: sichtWissen, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return; }
   Promise.resolve(fertig).then(() => { $("#inhalt").scrollTop = pos[0]; window.scrollTo(0, pos[1]); });
 }
@@ -1093,7 +1167,10 @@ function frageKarte(f) {
       f.aufgabe_id ? el("span", { class: "etikett" }, `A${f.aufgabe_id}`) : null,
       f.wartet_auf_fragesteller ? el("span", { class: "etikett bernstein" }, t("wartet_auf_x", { x: f.von })) : null),
     el("h3", {}, f.kurz),
-    f.worum ? el("p", { class: "worum" }, f.worum) : null);
+    f.worum ? el("p", { class: "worum" }, f.worum) : null,
+    !API && (f.dokumente || []).length ? el("div", { class: "dk-anhaenge" }, f.dokumente.map(x => el("button", { class: "dk-anhang", type: "button", onclick: () => dokumentDialog(x.id) },
+      [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"].includes(x.endung) ? el("img", { src: dokUrl(x.id), alt: "", loading: "lazy" }) : null,
+      `D${x.id} · ${x.titel}`))) : null);
   /* Gesprächsverlauf wie im Chat: Fragesteller links, du (Entwickler) rechts */
   if ((f.verlauf || []).length) karte.append(el("div", { class: "verlauf" }, f.verlauf.map(v => {
     const ich = v.von === "Entwickler";
@@ -1182,6 +1259,165 @@ async function sichtWissen() {
     el("div", { class: "inhalt", style: "white-space:pre-wrap" }, n.wert))));
   if (!box.children.length) box.append(el("div", { class: "leer" }, t("nichts_gefunden")));
   m.append(box);
+}
+
+/* --- Dokumente ----------------------------------------------------------------------------- */
+const dokUrl = (id, v) => ziel(`/api/dokument/datei?id=${id}${v ? "&v=" + v : ""}`);
+function dokSymbol(d) {
+  return d.vorschau === "bild" ? el("img", { src: dokUrl(d.id, d.version), alt: "", loading: "lazy" })
+    : el("span", { class: "dk-symbol" }, d.vorschau === "mockup" ? "Mockup" : d.vorschau === "pdf" ? "PDF" : d.format === "markdown" ? "Text" : d.format,
+      el("small", {}, d.endung));
+}
+async function sichtDokumente() {
+  const f = zustand.dok ||= { art: "", von: "", bezug: "", q: "", status: "aktuell", liste: false };
+  const qs = new URLSearchParams({ status: f.status });
+  if (f.art) qs.set("art", f.art); if (f.von) qs.set("von", f.von); if (f.q) qs.set("q", f.q);
+  if (f.bezug) { const [ba, bi] = f.bezug.split(":"); qs.set("bezug_art", ba); qs.set("bezug_id", bi); }
+  const m = rahmen(t("n_dokumente"));
+  let d; try { d = await holen("/api/dokumente?" + qs); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  const neu = (k, v) => { f[k] = v; sichtDokumente(); };
+  const auswahl = (k, leer, paare) => el("select", { onchange: e => neu(k, e.target.value) }, el("option", { value: "" }, leer),
+    paare.map(([v, text]) => el("option", { value: v, ...(String(f[k]) === String(v) ? { selected: true } : {}) }, text)));
+  const such = el("input", { type: "search", placeholder: t("dk_such_ph"), value: f.q, onkeydown: e => { if (e.key === "Enter") neu("q", e.target.value.trim()); } });
+  const bezugListe = d.boegen.map(b => [`bogen:${b.id}`, `Bogen ${b.id} · ${b.titel}`]);
+  if (f.bezug && !f.bezug.startsWith("bogen:")) bezugListe.unshift([f.bezug, f.bezug.replace("aufgabe:", "A").replace("frage:", "F").replace("beschluss:", "B")]);
+  m.append(el("div", { class: "dk-filter" }, such,
+    auswahl("art", t("dk_alle_arten"), Object.entries(d.arten).map(([a, n]) => [a, `${t("dka_" + a)} (${n})`])),
+    auswahl("von", t("alle_agenten"), Object.entries(d.von).map(([a, n]) => [a, `${a} (${n})`])),
+    auswahl("bezug", t("dk_alle_bezuege"), bezugListe),
+    el("select", { onchange: e => neu("status", e.target.value) }, ["aktuell", "archiviert", "alle"].map(s =>
+      el("option", { value: s, ...(f.status === s ? { selected: true } : {}) }, t("dks_" + s) + (s === "archiviert" ? ` (${d.archiviert})` : "")))),
+    el("button", { class: "klein-knopf", type: "button", onclick: () => neu("liste", !f.liste) }, t(f.liste ? "dk_raster" : "dk_liste"))));
+  if (!d.dokumente.length) {
+    m.append(el("div", { class: "leer" }, t(f.q || f.art || f.von || f.bezug || f.status !== "aktuell" ? "nichts_gefunden" : "dk_leer")),
+      el("p", { class: "sehrleise mono", style: "font-size:13px" }, "amw dokument ablegen <datei> --titel … --art ergebnis|bericht|entwurf|mockup|bild --aufgabe <nr>"));
+    return;
+  }
+  const bezugText = x => x.bezug_art ? ({ bogen: "Bogen ", aufgabe: "A", frage: "F", beschluss: "B" }[x.bezug_art] + x.bezug_id) : null;
+  const meta = x => [t("dka_" + x.art), x.angelegt_von, seit(x.version_utc), x.version > 1 ? "v" + x.version : null, bezugText(x),
+    x.status !== "aktuell" ? t("dks_" + x.status) : null].filter(Boolean).join(" · ");
+  if (f.liste) m.append(el("div", { class: "liste dk-liste" }, d.dokumente.map(x => el("div", { class: "zeile", onclick: () => dokumentDialog(x.id) },
+    el("span", { class: "ref" }, "D" + x.id), el("span", {}, x.titel), el("span", { class: "leise" }, meta(x)),
+    el("span", { class: "sehrleise mono" }, `${x.endung} · ${Math.max(1, Math.round(x.groesse / 1024))} KB`)))));
+  else m.append(el("div", { class: "dk-raster" }, d.dokumente.map(x => el("button", { class: "dk-karte", type: "button", title: x.titel, onclick: () => dokumentDialog(x.id) },
+    el("div", { class: "dk-bild" }, dokSymbol(x)), el("div", { class: "dk-text" }, el("b", {}, x.titel), el("span", {}, `D${x.id} · ${meta(x)}`))))));
+}
+async function dokumentDialog(id, v) {
+  let d; try { d = await holen(`/api/dokument?id=${id}` + (v ? `&v=${v}` : "")); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
+  const ver = d.versionen.find(x => x.nr === d.gezeigt), url = dokUrl(d.id, ver.nr);
+  const vorschau = d.status === "geloescht" ? el("div", { class: "leer" }, t("dks_geloescht"))
+    : ver.vorschau === "bild" ? el("img", { src: url, alt: d.titel, onclick: e => e.target.classList.toggle("gross") })
+    : ver.vorschau === "mockup" ? el("iframe", { src: url, sandbox: "allow-scripts", title: d.titel, referrerpolicy: "no-referrer" })
+    : ver.vorschau === "pdf" ? el("iframe", { src: url, title: d.titel })
+    : ver.vorschau === "text" ? (ver.format === "markdown" ? markdown(d.text || "") : el("pre", { class: "spec-text", style: "margin:0" }, d.text || ""))
+    : el("div", { class: "leer" }, t("dk_nur_download"));
+  const knopf = (text, fn, haupt) => el("button", { class: haupt ? "knopf haupt" : "klein-knopf", type: "button", onclick: fn }, text);
+  const tun = async (weg, daten, text) => { try { await schicken(weg, { id: d.id, ...daten }); if (text) toast(text); hg.remove(); dokumentDialog(d.id, v); if (zustand.sicht === "dokumente") sichtDokumente(); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); } };
+  const nachricht = el("textarea", { rows: 3, placeholder: t("dk_kommentar_ph") });
+  const melden = async ueberarbeiten => { if (!nachricht.value.trim()) { nachricht.focus(); return; }
+    try { const r = await schicken("/api/dokument/kommentar", { id: d.id, text: nachricht.value.trim(), ueberarbeiten }); toast(t("gesendet", { x: r.an.join(", ") })); hg.remove(); dokumentDialog(d.id, v); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); } };
+  const bezug = d.bezug_art ? el("a", { class: "verweis", onclick: () => { hg.remove(); dokBezugOeffnen(d); } },
+    `${({ bogen: "Bogen ", aufgabe: "A", frage: "F", beschluss: "B" })[d.bezug_art]}${d.bezug_id}` + (d.bezug_titel ? ` · ${d.bezug_titel}` : "")) : el("span", { class: "sehrleise" }, t("dk_ohne_bezug"));
+  const hg = dialog(`D${d.id} · ${d.titel}`,
+    el("p", { class: "leise", style: "margin-top:0" }, [t("dka_" + d.art), t("von", { x: d.angelegt_von }), zeit(d.angelegt_utc), t("dks_" + d.status),
+      d.online ? t("dk_online_an") : t("dk_online_aus")].join(" · ")),
+    el("div", { class: "dk-detail" },
+      el("div", { class: "dk-vorschau" }, vorschau),
+      el("aside", { class: "dk-seite" },
+        el("div", {}, el("h4", {}, t("dk_gehoert_zu")), bezug),
+        el("div", {}, el("h4", {}, t("dk_versionen", { n: d.versionen.length })), d.versionen.slice().reverse().map(x => el("button", {
+          class: "dk-version" + (x.nr === ver.nr ? " an" : ""), type: "button", onclick: () => { hg.remove(); dokumentDialog(d.id, x.nr); } },
+          `v${x.nr} · ${x.von} · ${zeit(x.zeit_utc)} · ${x.endung} · ${Math.max(1, Math.round(x.groesse / 1024))} KB` + (x.notiz ? ` – ${x.notiz}` : "")))),
+        el("div", {}, el("h4", {}, t("dk_gespraech", { n: d.gespraech.length })),
+          d.gespraech.length ? d.gespraech.map(n => el("div", { class: "dk-nachricht" }, el("div", { class: "sehrleise" }, `#${n.id} · ${n.von} → ${n.an || "–"} · ${seit(n.zeit_utc)}`),
+            el("div", {}, n.kurz), n.text ? el("div", { class: "leise", style: "white-space:pre-wrap" }, n.text.split("\n\n(Dokument D")[0]) : null)) : el("div", { class: "sehrleise" }, t("dk_kein_gespraech")),
+          d.status !== "geloescht" ? el("div", { style: "margin-top:8px;display:grid;gap:6px" }, nachricht, el("div", { class: "dk-aktionen" },
+            knopf(t("dk_kommentieren"), () => melden(false)), knopf(t("dk_ueberarbeiten"), () => melden(true), true))) : null),
+        d.status !== "geloescht" ? el("div", { class: "dk-aktionen" },
+          !API ? el("a", { class: "klein-knopf", href: url, target: "_blank", rel: "noopener" }, t("dk_oeffnen")) : null,
+          el("a", { class: "klein-knopf", href: url, download: `D${d.id}-v${ver.nr}${ver.endung}` }, t("dk_herunterladen")),
+          knopf(t("dk_zuordnen"), () => dokZuordnen(d, hg)),
+          d.status === "aktuell" ? knopf(t("dk_archivieren"), () => tun("/api/dokument/status", { status: "archiviert" }, t("dk_archiviert")))
+            : knopf(t("dk_wiederherstellen"), () => tun("/api/dokument/status", { status: "aktuell" })),
+          ver.vorschau !== "text" ? knopf(t(d.online ? "dk_offline" : "dk_online"), () => tun("/api/dokument/online", { an: !d.online })) : null,
+          !API ? knopf(t("dk_loeschen"), () => { if (confirm(t("dk_loeschen_frage", { x: d.titel }))) tun("/api/dokument/loeschen", {}, t("dk_geloescht")); }) : null) : null)));
+  hg.querySelector(".dialog").style.width = "min(1280px,96vw)";
+}
+function dokBezugOeffnen(d) {
+  if (d.bezug_art === "bogen") { zeige("planung"); zuSchritt(null, d.bezug_id); }
+  else if (d.bezug_art === "aufgabe") { zustand.dok = { ...(zustand.dok || {}), bezug: `aufgabe:${d.bezug_id}`, status: "aktuell" }; zeige("dokumente"); }
+  else if (d.bezug_art === "frage") zeige("fragen");
+  else zeige("wissen");
+}
+function dokZuordnen(d, alt) {
+  const art = el("select", {}, ["ergebnis", "bericht", "entwurf", "mockup", "bild", "quelle"].map(a => el("option", { value: a, ...(a === d.art ? { selected: true } : {}) }, t("dka_" + a))));
+  const typ = el("select", {}, ["", "bogen", "aufgabe", "frage", "beschluss"].map(a => el("option", { value: a, ...(a === (d.bezug_art || "") ? { selected: true } : {}) }, a ? t("dkb_" + a) : t("dk_ohne_bezug"))));
+  const nr = el("input", { type: "number", min: 1, value: d.bezug_id || "", placeholder: "Nr." });
+  const titel = el("input", { value: d.titel });
+  const hg = dialog(t("dk_zuordnen") + ` · D${d.id}`,
+    ...[[t("pl_titel"), titel], [t("k_art"), art], [t("dk_gehoert_zu"), el("div", { style: "display:flex;gap:6px" }, typ, nr)]].map(([l, x]) =>
+      el("div", { class: "feld" }, el("label", {}, l), el("div", {}, x))),
+    el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: async () => {
+      const daten = { id: d.id, titel: titel.value.trim(), art: art.value };
+      if (!typ.value) daten.loesen = true; else daten[typ.value] = nr.value;
+      try { await schicken("/api/dokument/setzen", daten); hg.remove(); alt.remove(); dokumentDialog(d.id); if (zustand.sicht === "dokumente") sichtDokumente(); }
+      catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("speichern"))));
+}
+/* Markdown sicher als DOM (nie innerHTML): Überschriften, Absätze, Listen, Code, Zitate, Tabellen, Links (nur http/https/mailto) */
+function markdown(text) {
+  const inline = s => { const teile = []; const re = /(`[^`]+`)|(\*\*[^*]+\*\*|__[^_]+__)|(\*[^*\s][^*]*\*|_[^_\s][^_]*_)|(!?\[[^\]]*\]\([^)\s]+\))/g;
+    let pos = 0, m;
+    while ((m = re.exec(s))) {
+      if (m.index > pos) teile.push(s.slice(pos, m.index));
+      const x = m[0];
+      if (m[1]) teile.push(el("code", {}, x.slice(1, -1)));
+      else if (m[2]) teile.push(el("strong", {}, ...inline(x.slice(2, -2))));
+      else if (m[3]) teile.push(el("em", {}, ...inline(x.slice(1, -1))));
+      else { const l = /^(!?)\[([^\]]*)\]\(([^)\s]+)\)$/.exec(x); const ok = /^(https?:|mailto:)/i.test(l[3]);
+        teile.push(l[1] ? el("span", { class: "sehrleise" }, `[${t("dk_bild")}: ${l[2] || l[3]}]`)
+          : ok ? el("a", { href: l[3], target: "_blank", rel: "noopener noreferrer" }, l[2] || l[3]) : l[2]); }
+      pos = m.index + x.length;
+    }
+    if (pos < s.length) teile.push(s.slice(pos));
+    return teile; };
+  const zeilen = text.replace(/\r\n?/g, "\n").split("\n"), aus = el("div", { class: "md" });
+  let i = 0;
+  const istListe = z => /^\s*([-*+]|\d+[.)])\s+/.test(z);
+  while (i < zeilen.length) {
+    const z = zeilen[i];
+    if (!z.trim()) { i++; continue; }
+    if (/^```/.test(z)) { const code = []; i++; while (i < zeilen.length && !/^```/.test(zeilen[i])) code.push(zeilen[i++]); i++;
+      aus.append(el("pre", {}, el("code", {}, code.join("\n")))); continue; }
+    const h = /^(#{1,6})\s+(.*)$/.exec(z);
+    if (h) { aus.append(el("h" + Math.min(4, h[1].length), {}, ...inline(h[2].replace(/\s+#+\s*$/, "")))); i++; continue; }
+    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(z)) { aus.append(el("hr")); i++; continue; }
+    if (/^\s*>/.test(z)) { const q = []; while (i < zeilen.length && /^\s*>/.test(zeilen[i])) q.push(zeilen[i++].replace(/^\s*>\s?/, ""));
+      const b = markdown(q.join("\n")); aus.append(el("blockquote", {}, ...b.childNodes)); continue; }
+    if (z.includes("|") && i + 1 < zeilen.length && /^\s*\|?\s*:?-{2,}/.test(zeilen[i + 1])) {
+      const zellen = r => r.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+      const kopf = zellen(z); i += 2; const reihen = [];
+      while (i < zeilen.length && zeilen[i].includes("|") && zeilen[i].trim()) reihen.push(zellen(zeilen[i++]));
+      aus.append(el("table", {}, el("thead", {}, el("tr", {}, kopf.map(c => el("th", {}, ...inline(c))))),
+        el("tbody", {}, reihen.map(r => el("tr", {}, r.map(c => el("td", {}, ...inline(c))))))));
+      continue; }
+    if (istListe(z)) {
+      const wurzel = el(/^\s*\d/.test(z) ? "ol" : "ul"); const stapel = [[wurzel, (/^\s*/.exec(z))[0].length]];
+      while (i < zeilen.length && (istListe(zeilen[i]) || (/^\s{2,}\S/.test(zeilen[i]) && stapel.length))) {
+        const r = zeilen[i++], tief = (/^\s*/.exec(r))[0].length;
+        if (!istListe(r)) { const li = stapel[stapel.length - 1][0].lastElementChild; if (li) li.append(" ", ...inline(r.trim())); continue; }
+        while (stapel.length > 1 && tief < stapel[stapel.length - 1][1]) stapel.pop();
+        if (tief > stapel[stapel.length - 1][1] + 1 && stapel[stapel.length - 1][0].lastElementChild) {
+          const neu = el(/^\s*\d/.test(r) ? "ol" : "ul"); stapel[stapel.length - 1][0].lastElementChild.append(neu); stapel.push([neu, tief]); }
+        stapel[stapel.length - 1][0].append(el("li", {}, ...inline(r.replace(/^\s*([-*+]|\d+[.)])\s+/, "").replace(/^\[( |x)\]\s*/i, (_, x) => x.trim() ? "☑ " : "☐ "))));
+      }
+      aus.append(wurzel); continue; }
+    const absatz = [];
+    while (i < zeilen.length && zeilen[i].trim() && !/^(#{1,6}\s|```|\s*>)/.test(zeilen[i]) && !istListe(zeilen[i])) absatz.push(zeilen[i++].trim());
+    aus.append(el("p", {}, ...inline(absatz.join(" "))));
+  }
+  return aus;
 }
 
 /* --- Planung ------------------------------------------------------------------------------- */
@@ -1393,6 +1629,7 @@ function bogenKarte(b) {
       b.baseline_datum && b.baseline_datum !== b.zieldatum ? el("span", { title: b.baseline_grund || "" }, el("span", { class: "sehrleise" }, t("pl_baseline") + " "), datumKurz(b.baseline_datum)) : null,
       p ? el("span", { class: ampelKlasse(p.ampel) + "-text" }, el("span", { class: "sehrleise" }, t("pl_prognose") + " "), `${datumKurz(p.p50)} – ${datumKurz(p.p85)}`) : null),
     el("div", { class: "tl-specs" }, ...["anforderungen", "entwurf", "schritte"].map(specChip),
+      b.dokumente && !API ? el("a", { class: "verweis", onclick: () => { zustand.dok = { status: "aktuell", bezug: `bogen:${b.id}` }; zeige("dokumente"); } }, t("dk_n", { n: b.dokumente })) : null,
       b.klaerungen.filter(k => k.status === "offen").length ? el("a", { class: "verweis", onclick: () => zeige("fragen") },
         t("pl_klaerungen", { n: b.klaerungen.filter(k => k.status === "offen").length })) : null),
     schritte);
@@ -1407,7 +1644,8 @@ function schrittZeile(s) {
     el("span", { class: "schritt-meta sehrleise" },
       [mensch ? t("pl_du") : (s.agent || t("pl_frei")), k.length ? `✓ ${erfuellt}/${k.length}` : null,
        s.komplexitaet ? `K${s.komplexitaet}` + (s.komplexitaet >= 7 ? (s.plan_status === "frei" ? " · Plan ✓" : " · " + t("pl_plan_fehlt")) : "") : null,
-       s.prognose && s.status !== "fertig" ? `≈ ${datumKurz(s.prognose.p50)}` : null, s.anforderungen].filter(Boolean).join(" · ")));
+       s.prognose && s.status !== "fertig" ? `≈ ${datumKurz(s.prognose.p50)}` : null, s.anforderungen].filter(Boolean).join(" · "),
+      s.dokumente && !API ? el("a", { class: "verweis", style: "margin-left:6px", onclick: () => { zustand.dok = { status: "aktuell", bezug: `aufgabe:${s.id}` }; zeige("dokumente"); } }, `📎 ${s.dokumente}`) : null));
 }
 function dialog(titel, ...inhalt) {
   const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
@@ -1547,7 +1785,7 @@ async function sichtVerlauf() {
   if (f.tage > d.tage) f.tage = d.tage;
   const beginn = new Date(); beginn.setHours(0, 0, 0, 0); beginn.setDate(beginn.getDate() - (f.tage - 1));
   const m = rahmen(t("n_verlauf"), el("span", { class: "leise" }, t("vl_zeitraum", { n: f.tage })));
-  const arten = ["nachricht", "erledigt", "lauf", "pruefung", "frage", "beschluss", "plan", "sitzung"];
+  const arten = ["nachricht", "erledigt", "lauf", "pruefung", "frage", "beschluss", "plan", "sitzung", "dokument"];
   const tage = el("select", { onchange: e => { f.tage = Number(e.target.value); sichtVerlauf(); } }, [1, 3, 7, 14].filter(n => !API || n <= d.tage).map(n => el("option", { value: n, ...(n === f.tage ? { selected: true } : {}) }, t("vl_tage", { n }))));
   const agent = el("select", { onchange: e => { f.agent = e.target.value; sichtVerlauf(); } }, el("option", { value: "" }, t("alle_agenten")),
     [...d.agenten, "Entwickler", "AMW"].map(k => el("option", { value: k, ...(k === f.agent ? { selected: true } : {}) }, k)));
@@ -1565,7 +1803,7 @@ async function sichtVerlauf() {
       el("span", { class: "mono sehrleise" }, new Date(x.zeit).toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" })),
       el("span", { class: "punkt " + farbe(x) }),
       el("span", { class: "vl-wer" }, x.wer || "–"),
-      el("span", { class: "vl-text" }, el("span", { class: "ref" }, x.ref), " ", x.text,
+      el("span", { class: "vl-text" }, x.art === "dokument" && !API ? el("a", { class: "ref verweis", onclick: () => dokumentDialog(+x.ref.slice(1)) }, x.ref) : el("span", { class: "ref" }, x.ref), " ", x.text,
         x.zusatz && !["nachricht"].includes(x.art) ? el("span", { class: "etikett", style: "margin-left:6px" }, t("vz_" + x.zusatz) !== "vz_" + x.zusatz ? t("vz_" + x.zusatz) : x.zusatz) : null))))))));
   if (liste.length >= 2500) m.append(el("p", { class: "sehrleise" }, t("vl_grenze")));
 }
@@ -1628,7 +1866,8 @@ async function suchen(q) {
   const m = rahmen(t("suche_titel"), el("span", { class: "leise" }, `„${q}“`)); let l; try { l = await holen("/api/suche?q=" + encodeURIComponent(q)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   for (const a of document.querySelectorAll("nav a")) a.classList.remove("an");
   if (!l.length) { m.append(el("div", { class: "leer" }, t("nichts_gefunden"))); return; }
-  m.append(el("div", { class: "liste" }, l.map(x => el("div", { class: "zeile" }, el("span", { class: "ref" }, x.ref), el("span", { class: "leise" }, x.art),
+  m.append(el("div", { class: "liste" }, l.map(x => el("div", { class: "zeile", ...(x.art === "dokument" ? { style: "cursor:pointer", onclick: () => dokumentDialog(+x.ref.slice(1)) } : {}) },
+    el("span", { class: "ref" }, x.ref), el("span", { class: "leise" }, x.art),
     el("span", {}, x.titel || ""), el("span", { class: "sehrleise mono" }, zeit(x.zeit))))));
 }
 function haltDialog() {
@@ -1658,6 +1897,7 @@ for (const a of document.querySelectorAll("nav a")) a.addEventListener("click", 
 function thema(x) { document.documentElement.dataset.thema = x; try { localStorage.setItem("amw-thema", x); } catch (e) {} }
 $("#thema").addEventListener("click", () => thema(document.documentElement.dataset.thema === "hell" ? "dunkel" : "hell"));
 $("#sprache").addEventListener("click", () => sprache_setzen(sprache === "de" ? "en" : "de"));
+if (API) document.querySelector('nav a[data-sicht="dokumente"]')?.remove();   /* online erst mit Stufe D2 (doc/plan-dokumente.md) */
 try { thema(localStorage.getItem("amw-thema") || (matchMedia("(prefers-color-scheme: light)").matches ? "hell" : "dunkel")); } catch (e) { thema("dunkel"); }
 try { sprache = localStorage.getItem("amw-sprache") || ((navigator.language || "de").startsWith("de") ? "de" : "en"); } catch (e) {}
 if (new URLSearchParams(location.search).get("sprache") in TEXTE) sprache = new URLSearchParams(location.search).get("sprache");
