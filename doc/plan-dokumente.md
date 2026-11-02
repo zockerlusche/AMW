@@ -1,6 +1,6 @@
 # Plan: Dokumente – Ausarbeitungen, Bilder und Mockups an einem Ort
 
-Stand 02.11.2026 · Entwurf zur Freigabe · Umsetzung in drei Stufen (je eine Version)
+Stand 02.11.2026 · **freigegeben** · Umsetzung in drei Stufen (je eine Version), danach Gesprächsansicht je Agent
 
 ## 1 Problem
 Agenten legen Ergebnisse irgendwo als Datei ab (txt, md, html, docx, png …). Der Mensch findet sie nicht, sieht nicht,
@@ -50,6 +50,42 @@ Die AMW kopiert die Datei in ihre Ablage. Wo der Agent sie danach hat, ist egal.
   `%LOCALAPPDATA%\amw`). Sie liegen dort **außerhalb** des Ordners, den das Git-Deploy überschreibt, und kommen nur nach
   dem Login über PHP heraus.
 
+## 4a Bedarf und Speicherort
+Grundlage: eine Messung der vorhandenen Ablagen im eigenen Projekt (nur gelesen). **Roh** liegt dort sehr viel, aber das
+meiste ist Arbeitsmaterial und wird nicht übernommen: Arbeitskopien, Prüfläufe mit Tausenden Einzelbildern, entpackte
+Daten. Echte Ergebnisse sind je Aufgabe typisch 1–20 MB, große Standbild-Läufe 70–150 MB.
+
+| Szenario | je Tag | je Jahr |
+|---|---|---|
+| sparsam: nur ausgewählte Ergebnisse | ~10 MB | ~3,6 GB |
+| mittel: alles aus den Ergebnis-Ablagen | ~50 MB | ~18 GB |
+| hoch: viele große Standbild-Läufe | ~100 MB | ~36 GB |
+
+**Online nur bei Bedarf** (Texte immer, Dateien nur ausgewählt, ≈ 10–20 %) senkt das auf wenige GB im Jahr.
+
+**Turso:**
+- Der Free-Tarif (5 GB, mit der Datenbank zusammen) wäre bei „alles online“ nach wenigen Monaten voll, bei Bedarf nach 1–2
+  Jahren.
+- Technisch läuft jede Datei als base64 (+33 %) durch SQL-über-HTTP und bei jedem Ansehen durch PHP, ohne Browser-Caching.
+
+**Webspace beim Hoster:**
+- Typisch 50–200 GB im Paket, ohne Zusatzkosten.
+- PHP liefert direkt mit Caching aus, die Sicherungen des Pakets nehmen die Dateien mit.
+
+**Entscheidung:** Turso für Liste, Metadaten und Text; Dateien auf dem Webspace, online nur bei Bedarf.
+
+**Online bei Bedarf:**
+- Texte (Markdown) sind immer online.
+- Dateien sind online, wenn der Agent sie zur Ansicht ablegt (`--online`, z. B. Mockups für eine Frage) oder der Mensch sie
+  am PC mit „online stellen“ freigibt.
+- Unterwegs heißt es „anfordern“: Der Wächter lädt die Datei dann beim nächsten Abgleich hoch.
+- „Offline nehmen“ löscht nur die Kopie beim Hoster.
+
+## 4b Einsammeln vorhandener Ergebnisse
+Nichts wird automatisch übernommen. `amw dokument einsammeln <ordner> --nur-liste` erstellt je Ablage eine Liste: Ordner,
+Anzahl, Größe, Zeitraum, Vorschlag behalten/weg und Grund, z. B. „Prüflauf-Einzelbilder“ oder „Arbeitskopie“. Sie geht an
+Lead und Mensch. Übernommen wird erst nach Freigabe, und nur Ergebnisse; Arbeitskopien und Code bleiben in ihren Ordnern.
+
 ## 5 Bedienung
 - **Neuer Bereich „Dokumente“** (unter Wissen):
   - Raster mit Vorschaubildern oder Liste.
@@ -73,8 +109,8 @@ Die AMW kopiert die Datei in ihre Ablage. Wo der Agent sie danach hat, ist egal.
 | D2 · online | Metadaten/Text über Turso, Upload-Endpunkt und Dateiausgabe beim Hoster, Online-Ansicht, Aktionen über den Briefkasten | ~1 Tag |
 | D3 · Komfort | Berichtigen im Browser mit Versionsvergleich, Upload vom Handy (Foto → Dokument), vorhandene Dateien einsammeln (`amw dokument einsammeln <ordner>` mit Vorschlag zur Zuordnung), Mockup-Varianten in Fragen | ~1 Tag |
 
-## 7 Offen für den Menschen
-1. Freigabe des Plans und der Schema-Änderung 9.
-2. Hostinger: welches Paket bzw. wie viel Platz frei ist (hPanel › Hosting › Ressourcen) – entscheidet nur die
-   Obergrenze, nicht den Weg.
-3. Markdown als einziges Textformat für Agenten-Ergebnisse (Empfehlung) – Ausnahme Office nur für Dateien von außen.
+## 7 Entscheidungen (02.11.2026)
+1. Plan und Schema 9 freigegeben, vorher Sicherung, Stufen D1–D3.
+2. Dateien auf dem Webspace des Hosters, online nur bei Bedarf; Turso für Liste, Metadaten und Text (§4a).
+3. Markdown als Standard; vor dem Einsammeln je Ablage eine Liste zur Freigabe (§4b), nichts automatisch.
+4. Gesprächsansicht je Agent und „In Claude öffnen“ einplanen (nach D1/D2).
