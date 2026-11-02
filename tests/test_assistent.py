@@ -89,6 +89,14 @@ class Einrichten(unittest.TestCase):
         self.assertTrue(any("exclude" in x for x in aenderungen))
         with open(os.path.join(self.projekt, ".git", "info", "exclude"), encoding="utf-8") as f:
             self.assertIn(".claude/settings.local.json.vor-amw-*", f.read().split("\n"))   # Sicherung auch
+        ausnahme = os.path.join(self.projekt, ".git", "info", "exclude")
+        with open(ausnahme, "w", encoding="utf-8") as f:                                # Stand vor 1.0.1
+            f.write(".claude/settings.local.json\n")
+        self.assertEqual(einrichtung.agenten_ordner_einrichten(self.projekt),
+                         ["im Git des Projekts lokal ausgenommen (.git/info/exclude)"])
+        with open(ausnahme, encoding="utf-8") as f:
+            self.assertIn(".claude/settings.local.json.vor-amw-*", f.read().split("\n"))
+        self.assertEqual(einrichtung.agenten_ordner_einrichten(self.projekt), [])
         weg = einrichtung.agenten_ordner_entfernen(self.projekt)
         self.assertTrue(weg)
         with open(datei, encoding="utf-8") as f:

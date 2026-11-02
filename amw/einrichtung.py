@@ -263,6 +263,7 @@ def agenten_ordner_einrichten(ordner, schreiben=True, sperren=True):
             aenderungen.append(f"{len(neu)} Sperr-Regel(n)")
     if aenderungen and schreiben:
         _sichern_und_schreiben(datei, d)
+    if schreiben and os.path.exists(datei):               # auch bei bestehender Einrichtung nachziehen
         git = _git_ausnehmen(ordner)
         if git:
             aenderungen.append(git)
