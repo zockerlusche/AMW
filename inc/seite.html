@@ -425,7 +425,7 @@ const TEXTE = {
     thema: "Hell / Dunkel", halt: "Halt", weiter: "Weiter",
     s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
     nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
-    nicht_angemeldet_h: "Läuft, wird aber nicht geweckt – im Fenster: python F:/amw/amw-cli.py anmelden --von <Kennung>",
+    nicht_angemeldet_h: "Läuft, wird aber nicht geweckt – im Fenster: amw anmelden --von <Kennung>",
     an_dich: "Nachrichten an dich", antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_pruefbitte: "Prüfbitte", art_stopp: "Stopp", art_freigabe: "Freigabe",
     k_details: "Klicken: was macht er, was kommt noch", k_offen_h: "neue offene Nachrichten (dazu {n} Altbestand aus dem alten Bus)",
     k_gerade: "Gerade:", k_vermutet: "(aus letzter Meldung)", k_unbekannt: "Tätigkeit unbekannt", k_zuletzt: "Zuletzt",
@@ -502,7 +502,7 @@ const TEXTE = {
     pl_abschliessen_frage: "Ist das Abnahmekriterium erfüllt?\n{x}", bearbeiten: "Bearbeiten", pl_ziel: "Ziel", pl_abnahme: "Abnahme",
     pl_fehlt: "fehlt – ohne prüfbares Kriterium ist ein Bogen nie wirklich fertig", pl_fortschritt: "{f}/{g} fertig", pl_laeuft: "{n} läuft",
     pl_blockiert: "{n} blockiert", pl_zieldatum: "Zieldatum", pl_baseline: "Baseline", pl_prognose: "Prognose", teil_anforderungen: "Anforderungen",
-    teil_entwurf: "Entwurf", teil_schritte: "Schritte", ss_entwurf: "Entwurf", ss_vorgelegt: "zur Freigabe", ss_frei: "frei ✓", ss_zurueck: "zurück",
+    teil_entwurf: "Entwurf", teil_schritte: "Schritte", ss_entwurf: "in Arbeit", ss_vorgelegt: "zur Freigabe", ss_frei: "frei ✓", ss_zurueck: "zurück",
     pl_klaerungen: "{n} Klärung(en) offen", pl_wartet_auf: "wartet auf {x}", pl_du: "du", pl_frei: "frei", pl_plan_fehlt: "Plan fehlt",
     pl_kommentar_ph: "Kommentar – bei „Zurück“ Pflicht: was ist zu ändern?", pl_freigegeben: "Freigegeben", pl_zurueck_gegeben: "Zurückgegeben",
     pl_letzter_kommentar: "Letzter Kommentar", pl_klaerungen_liste: "Klärungsfragen:", pl_leer_spec: "(noch leer)", pl_zurueck: "Zurück",
@@ -562,7 +562,7 @@ const TEXTE = {
     thema: "Light / Dark", halt: "Halt", weiter: "Resume",
     s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
-    nicht_angemeldet_h: "Running but cannot be woken – in its window: python F:/amw/amw-cli.py anmelden --von <name>",
+    nicht_angemeldet_h: "Running but cannot be woken – in its window: amw anmelden --von <name>",
     an_dich: "Messages for you", antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_pruefbitte: "Review request", art_stopp: "Stop", art_freigabe: "Release",
     k_details: "Click: what is it doing, what is next", k_offen_h: "new open messages (plus {n} legacy from the old bus)",
     k_gerade: "Now:", k_vermutet: "(from last report)", k_unbekannt: "activity unknown", k_zuletzt: "Last",
@@ -638,7 +638,7 @@ const TEXTE = {
     pl_abschliessen_frage: "Is the acceptance criterion met?\n{x}", bearbeiten: "Edit", pl_ziel: "Goal", pl_abnahme: "Acceptance",
     pl_fehlt: "missing – without a checkable criterion an arc is never really done", pl_fortschritt: "{f}/{g} done", pl_laeuft: "{n} running",
     pl_blockiert: "{n} blocked", pl_zieldatum: "Target", pl_baseline: "Baseline", pl_prognose: "Forecast", teil_anforderungen: "Requirements",
-    teil_entwurf: "Design", teil_schritte: "Steps", ss_entwurf: "draft", ss_vorgelegt: "for approval", ss_frei: "approved ✓", ss_zurueck: "returned",
+    teil_entwurf: "Design", teil_schritte: "Steps", ss_entwurf: "in progress", ss_vorgelegt: "for approval", ss_frei: "approved ✓", ss_zurueck: "returned",
     pl_klaerungen: "{n} clarification(s) open", pl_wartet_auf: "waits for {x}", pl_du: "you", pl_frei: "unassigned", pl_plan_fehlt: "plan missing",
     pl_kommentar_ph: "Comment – required when returning: what to change?", pl_freigegeben: "Approved", pl_zurueck_gegeben: "Returned",
     pl_letzter_kommentar: "Last comment", pl_klaerungen_liste: "Clarifications:", pl_leer_spec: "(empty)", pl_zurueck: "Return", pl_freigeben: "Approve",
@@ -801,7 +801,7 @@ async function sichtStart() {
           el("button", { class: "klein-knopf", type: "button", onclick: () => zeige("verlauf") }, t("seit_verlauf")),
           el("button", { class: "klein-knopf", type: "button", onclick: () => { try { sessionStorage.setItem("amw-seit", ""); } catch (e) {} band.remove(); } }, t("seit_weg"))));
       m.querySelector(".kopf")?.after(band);
-    }).catch(() => {});                                     /* online gibt es /api/seit nicht – dann eben ohne */
+    }).catch(() => {});                                     /* noch keine Daten (online: erster Abgleich) – dann eben ohne */
   }
   if (d.halt.length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("halt").toUpperCase()),
     el("div", {}, d.halt.map(h => `#${h.id} ${h.gilt_fuer === "alle" ? t("halt_band") : h.gilt_fuer} · ${h.von}: ${h.text} (${seit(h.seit_utc)})`).join(" | ")),
@@ -1147,7 +1147,7 @@ function zeitleiste(d) {
   return liste;
 }
 function bogenKarte(b) {
-  const p = b.prognose, aktiv = b.status === "aktiv", anteil = b.gesamt ? Math.round(100 * b.fertig / b.gesamt) : 0;
+  const p = b.prognose, aktiv = b.status === "aktiv", zahl = b.gesamt - (b.verworfen || 0), anteil = zahl ? Math.round(100 * b.fertig / zahl) : 0;
   const knopf = (text, fn, haupt) => el("button", { class: haupt ? "knopf" : "klein-knopf", type: "button", onclick: fn }, text);
   const statusSetzen = async (status, frage) => { if (frage && !confirm(frage)) return;
     try { await schicken("/api/plan/bogen", { aktion: "status", bogen: b.id, status }); zeige("planung", true); } catch (e) { toast(t("fehler", { x: e.message }), true); } };
@@ -1171,7 +1171,7 @@ function bogenKarte(b) {
     b.ziel ? el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_ziel") + " "), b.ziel) : null,
     el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_abnahme") + " "), b.abnahme || el("span", { class: "rot-text" }, t("pl_fehlt"))),
     el("div", { class: "tl-fortschritt" }, el("div", { class: "mb-spur" }, el("i", { style: `width:${anteil}%;background:var(--gruen)` })),
-      el("span", { class: "sehrleise" }, t("pl_fortschritt", { f: b.fertig, g: b.gesamt }) + (b.laeuft ? ` · ${t("pl_laeuft", { n: b.laeuft })}` : "")
+      el("span", { class: "sehrleise" }, t("pl_fortschritt", { f: b.fertig, g: zahl }) + (b.laeuft ? ` · ${t("pl_laeuft", { n: b.laeuft })}` : "")
         + (b.blockiert ? ` · ${t("pl_blockiert", { n: b.blockiert })}` : ""))),
     el("div", { class: "tl-daten" },
       el("span", {}, el("span", { class: "sehrleise" }, t("pl_zieldatum") + " "), datumKurz(b.zieldatum)),
@@ -1328,15 +1328,18 @@ function rueckblickDialog(b) {
 async function sichtVerlauf() {
   const f = zustand.verlauf ||= { tage: 3, agent: "", arten: [] };
   let d; try { d = await holen("/api/verlauf?tage=" + f.tage); } catch (e) { rahmen(t("n_verlauf")).append(el("div", { class: "leer" }, String(e))); return; }
-  const m = rahmen(t("n_verlauf"), el("span", { class: "leise" }, t("vl_zeitraum", { n: d.tage })));
+  /* online liegt ein fester Zeitraum (3 Tage) im Spiegel: dort nur kürzere Zeiträume anbieten und hier zuschneiden */
+  if (f.tage > d.tage) f.tage = d.tage;
+  const beginn = new Date(); beginn.setHours(0, 0, 0, 0); beginn.setDate(beginn.getDate() - (f.tage - 1));
+  const m = rahmen(t("n_verlauf"), el("span", { class: "leise" }, t("vl_zeitraum", { n: f.tage })));
   const arten = ["nachricht", "erledigt", "lauf", "pruefung", "frage", "beschluss", "plan", "sitzung"];
-  const tage = el("select", { onchange: e => { f.tage = Number(e.target.value); sichtVerlauf(); } }, [1, 3, 7, 14].map(n => el("option", { value: n, ...(n === f.tage ? { selected: true } : {}) }, t("vl_tage", { n }))));
+  const tage = el("select", { onchange: e => { f.tage = Number(e.target.value); sichtVerlauf(); } }, [1, 3, 7, 14].filter(n => !API || n <= d.tage).map(n => el("option", { value: n, ...(n === f.tage ? { selected: true } : {}) }, t("vl_tage", { n }))));
   const agent = el("select", { onchange: e => { f.agent = e.target.value; sichtVerlauf(); } }, el("option", { value: "" }, t("alle_agenten")),
     [...d.agenten, "Entwickler", "AMW"].map(k => el("option", { value: k, ...(k === f.agent ? { selected: true } : {}) }, k)));
   const chips = arten.map(a => el("button", { class: "vl-chip" + (f.arten.includes(a) ? " an" : ""), type: "button",
     onclick: () => { f.arten = f.arten.includes(a) ? f.arten.filter(x => x !== a) : [...f.arten, a]; sichtVerlauf(); } }, t("vl_" + a)));
   m.append(el("div", { class: "vl-filter" }, tage, agent, ...chips));
-  const liste = d.ereignisse.filter(x => (!f.agent || x.wer === f.agent) && (!f.arten.length || f.arten.includes(x.art)));
+  const liste = d.ereignisse.filter(x => new Date(x.zeit) >= beginn && (!f.agent || x.wer === f.agent) && (!f.arten.length || f.arten.includes(x.art)));
   if (!liste.length) { m.append(el("div", { class: "leer" }, t("vl_leer"))); return; }
   const gruppen = {};
   for (const x of liste) (gruppen[new Date(x.zeit).toLocaleDateString(gebiet(), { weekday: "long", day: "2-digit", month: "2-digit" })] ||= []).push(x);
