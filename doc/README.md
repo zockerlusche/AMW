@@ -14,6 +14,7 @@
 - [Architektur](architektur.md) – Bausteine, Abläufe, Datenmodell, Grenzen
 - [Sicherheit](sicherheit.md) – Vertrauensmodell, wo Geheimnisse liegen, was AMW selbst startet
 - [Ausbau](ausbau.md) – Plan und Stand des Ausbaus zum vollständigen Lead-Werkzeug
+- [Plan Dokumente](plan-dokumente.md) – Ausarbeitungen, Bilder und Mockups in der AMW (Entwurf zur Freigabe)
 - Recherchen: [Projektplanung](recherche/planung.md) · [Agenten-Workbenches](recherche/workbenches.md) · [Push-Dienste](recherche/push.md)
 
 Für Entwickler an AMW: Tests mit `python -m unittest discover -s tests`; neue Datenbank-Versionen als
