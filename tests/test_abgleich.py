@@ -3,6 +3,7 @@ import json
 import os
 import sqlite3
 import tempfile
+import time
 import unittest
 
 from amw import abgleich, db, kern
@@ -41,6 +42,10 @@ class Abgleich(unittest.TestCase):
         n = self.ab.hochladen()
         self.assertEqual(n, len(abgleich.ansichten(self.con, self.pid)) + 1)      # + Suchindex beim ersten Mal
         self.assertEqual(self.ab.hochladen(), 0)
+        s1 = abgleich.ansichten(self.con, self.pid)                  # keine Ansicht darf sich von selbst ändern
+        time.sleep(1.1)
+        s2 = abgleich.ansichten(self.con, self.pid)
+        self.assertEqual([w for w in s1 if abgleich._pruef(s1[w]) != abgleich._pruef(s2[w])], [])
         kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Neu?", [("A", "a")], "A", "weil")
         self.assertGreaterEqual(self.ab.hochladen(), 2)          # Start (Zähler) und Fragen
         fragen = json.loads(self.online_zeilen("SELECT inhalt FROM ansicht WHERE weg = '/api/fragen'")[0][0])

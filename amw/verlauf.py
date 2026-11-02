@@ -132,7 +132,8 @@ SEIT_ARTEN = ("an_dich", "erledigt", "laeufe", "gruen", "rot", "fragen_neu", "be
 def seit_daten(con, pid, tage=7):
     """Für die Online-Seite: Zeitpunkte je Art der letzten Tage – dort wird „seit deinem Besuch“ je Gerät gezählt
     (seit_zaehlen; dieselbe Rechnung macht web/api.php)."""
-    grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=tage)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # auf die volle Stunde: sonst ändert sich die Ansicht jede Sekunde und der Abgleich lädt sie jedes Mal hoch
+    grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=tage)).strftime("%Y-%m-%dT%H:00:00Z")
     q = {"an_dich": ("SELECT n.zeit_utc FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE n.projekt_id = ?"
                      " AND n.zeit_utc >= ? AND e.agent = ?", (kern.ENTWICKLER,)),
          "erledigt": ("SELECT fertig_utc FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND fertig_utc >= ?", ()),

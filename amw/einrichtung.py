@@ -173,17 +173,19 @@ def _git_ausnehmen(ordner):
     info = os.path.join(ordner, ".git", "info")
     if not os.path.isdir(os.path.join(ordner, ".git")):
         return None
-    zeile = ".claude/settings.local.json"
+    zeilen = [".claude/settings.local.json", ".claude/settings.local.json.vor-amw-*"]   # samt Sicherungen
     datei = os.path.join(info, "exclude")
     try:
         with open(datei, encoding="utf-8") as f:
-            if zeile in f.read().split("\n"):
-                return None
+            da = f.read().split("\n")
     except FileNotFoundError:
-        pass
+        da = []
+    fehlt = [z for z in zeilen if z not in da]
+    if not fehlt:
+        return None
     os.makedirs(info, exist_ok=True)
     with open(datei, "a", encoding="utf-8") as f:
-        f.write(f"\n{zeile}\n")
+        f.write("\n" + "\n".join(fehlt) + "\n")
     return "im Git des Projekts lokal ausgenommen (.git/info/exclude)"
 
 
