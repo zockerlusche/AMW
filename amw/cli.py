@@ -718,7 +718,8 @@ def cmd_web(a, con):
     ab = abgleich.Abgleich(con, sp, _projekt(con, a))
     if a.aktion == "schema":
         ab.schema()
-        print("Online-Speicher: Tabellen ansicht, eingang, versuch, zustand bereit")
+        namen = [s.split()[5] for s in abgleich.SCHEMA if s.startswith("CREATE TABLE")]
+        print(f"Online-Speicher: Tabellen {', '.join(namen)} bereit")
     elif a.aktion == "zweitfaktor-neu":       # Handy weg/neu: beim nächsten Anmelden gibt es wieder einen QR-Code
         sp.ausfuehren([("DELETE FROM zustand WHERE schluessel IN ('totp_geheim', 'totp_letzt')", [])])
         print("Zweiter Faktor zurückgesetzt – beim nächsten Anmelden (Code leer lassen) kommt ein neuer QR-Code")
