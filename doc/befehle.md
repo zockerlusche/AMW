@@ -34,6 +34,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`wortlaut`](#wortlaut) | Aussage des Entwicklers wörtlich erfassen |
 | [`beschluss`](#beschluss) | Beschluss anlegen (optional einen alten ersetzen) |
 | [`regel`](#regel) | Regel anlegen/ändern – nur mit Beschluss |
+| [`dokument`](#dokument) | Ergebnisse ablegen und finden: ablegen <datei> ¦ version <nr> <datei> ¦ liste ¦ zeigen <nr> ¦ kommentar¦ueberarbeiten <nr> --text … ¦ zuordnen <nr> ¦ archivieren¦wiederherstellen <nr> ¦ online¦offline <nr> ¦ loeschen <nr> --ja |
 | [`notiz`](#notiz) | gepflegte Notizen (Schlüssel/Wert) |
 | [`dienst`](#dienst) | Wächter als geplante Windows-Aufgabe: einrichten ¦ entfernen ¦ status ¦ neustart ¦ vordergrund (ohne Aufgabe in diesem Fenster, zum Ausprobieren) |
 | [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Abgleich) ¦ zweitfaktor-neu ¦ bauen ¦ schema |
@@ -462,7 +463,7 @@ options:
 ## verlauf
 ```
 usage: amw verlauf [-h] [--stunden STUNDEN] [--agent AGENT]
-                   [--art {nachricht,erledigt,lauf,pruefung,frage,beschluss,plan,sitzung}]
+                   [--art {nachricht,erledigt,lauf,pruefung,frage,beschluss,plan,sitzung,dokument}]
                    [--grenze GRENZE] [--zusammenfassung] [--von VON]
                    [--projekt PROJEKT]
 
@@ -470,7 +471,7 @@ options:
   -h, --help            show this help message and exit
   --stunden STUNDEN
   --agent AGENT
-  --art {nachricht,erledigt,lauf,pruefung,frage,beschluss,plan,sitzung}
+  --art {nachricht,erledigt,lauf,pruefung,frage,beschluss,plan,sitzung,dokument}
   --grenze GRENZE
   --zusammenfassung     nur Zahlen
   --von VON
@@ -669,6 +670,47 @@ options:
   --nr NR
   --beschluss BESCHLUSS
   --teil TEIL
+  --von VON
+  --projekt PROJEKT
+```
+
+## dokument
+```
+usage: amw dokument [-h] [--datei DATEI] [--titel TITEL]
+                    [--art {ergebnis,bericht,entwurf,mockup,bild,quelle}]
+                    [--notiz NOTIZ] [--bogen BOGEN] [--aufgabe AUFGABE]
+                    [--frage FRAGE] [--beschluss BESCHLUSS] [--loesen]
+                    [--online] [--agent AGENT] [--suche SUCHE] [--alle]
+                    [--text TEXT] [--ja] [--von VON] [--projekt PROJEKT]
+                    {ablegen,version,liste,zeigen,kommentar,ueberarbeiten,zuordnen,archivieren,wiederherstellen,online,offline,loeschen}
+                    [nr] [pfad]
+
+positional arguments:
+  {ablegen,version,liste,zeigen,kommentar,ueberarbeiten,zuordnen,archivieren,wiederherstellen,online,offline,loeschen}
+  nr                    ablegen: die Datei; sonst Nummer des Dokuments (D12
+                        oder 12)
+  pfad                  version: die neue Datei
+
+options:
+  -h, --help            show this help message and exit
+  --datei DATEI         statt der Positionsangabe (Brücke: nur aus eingang-
+                        tl/)
+  --titel TITEL
+  --art {ergebnis,bericht,entwurf,mockup,bild,quelle}
+  --notiz NOTIZ         was diese Version ist bzw. was sich geändert hat
+  --bogen BOGEN         Bezug: bogen (Nummer)
+  --aufgabe AUFGABE     Bezug: aufgabe (Nummer)
+  --frage FRAGE         Bezug: frage (Nummer)
+  --beschluss BESCHLUSS
+                        Bezug: beschluss (Nummer)
+  --loesen              zuordnen: Bezug entfernen
+  --online              ablegen: Datei auch online zeigen (Texte sind es
+                        immer)
+  --agent AGENT         liste: nur von diesem Agenten
+  --suche SUCHE         liste: in Titel und Text suchen
+  --alle                liste: auch archivierte und gelöschte
+  --text TEXT           kommentar/ueberarbeiten: was zu sagen ist
+  --ja                  loeschen: bestätigen
   --von VON
   --projekt PROJEKT
 ```

@@ -59,6 +59,8 @@ Pflicht-Kontext; mit `<AMW-Ordner>\bin` im Pfad geht überall kurz `amw`.
 - Wiederherstellen: Wächter anhalten (`amw dienst entfernen --ja` oder die Aufgabe in der Aufgabenplanung beenden),
   `daten\amw.db` durch die Sicherung ersetzen (die Dateien `amw.db-wal` und `amw.db-shm` daneben löschen), Wächter wieder
   einrichten bzw. starten.
+- Die Dokumenten-Ablage (`dokumente/` neben der Datenbank) kopiert `amw sichern` nach `…-dokumente/` neben die
+  Sicherung – nur, was dort noch fehlt ([anleitung-dokumente.md](anleitung-dokumente.md)).
 - Vor jedem Update sichern (neue Versionen stellen die Datenbank beim ersten Schreibzugriff um).
 
 ## 6 Einstellungen dieses PCs

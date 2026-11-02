@@ -31,7 +31,7 @@ BEFEHLE_S = 5
 VON = "TL"
 ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "lauf", "pruefung", "taetigkeit",
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
-           "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf"}   # Freigaben: nur der Mensch
+           "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf", "dokument"}   # Freigaben: nur der Mensch
 
 
 def lese_kopie(quelle=None, ziel=None):

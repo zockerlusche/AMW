@@ -40,6 +40,13 @@ Agenten können die geplante Aufgabe „AMW Dienst“ nicht beenden/ändern und 
   sie führt nur eine feste Liste von Befehlen aus, als die eingestellte Kennung, nie Starten/Beenden/Profile;
   Freigaben der Planung bleiben dem Menschen, Dateien liest sie nur aus `eingang-tl/`.
 
+- **Dokumente:**
+  - Nur Formate aus einer festen Liste, höchstens 25 MB.
+  - Texte, die wie Schlüssel oder Zugangsdaten aussehen, werden abgewiesen.
+  - Mockups (HTML) und SVG laufen abgeschottet (`Content-Security-Policy: sandbox`, eigener Ursprung) und kommen weder an
+    die Workbench noch an ihr Token. Office-Dateien gibt es nur als Download.
+  - Endgültig löschen nur am PC.
+
 ## 5 Push
 Meldungen enthalten nur Hinweise („Neue Frage F12 von TL“) und einen Link; der Inhalt steht hinter der Anmeldung.
 Der ntfy-Kanal wird zufällig erzeugt (≥ 128 Bit) und wirkt wie ein Passwort. Fehlertexte enthalten nie das Telegram-Token.

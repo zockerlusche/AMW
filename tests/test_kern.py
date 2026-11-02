@@ -189,6 +189,9 @@ class Verlauf(unittest.TestCase):
             self.con.execute(f"ALTER TABLE sitzung DROP COLUMN {sp}")
         for sp in ("ordner", "zusatzordner", "denkstufe", "modell", "startsatz", "rechte", "fernsteuerung", "neustart_auto"):
             self.con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")
+        for t in ("dokument_version", "dokument"):                         # … und keine Dokumente (Schema 9)
+            self.con.execute(f"DROP TABLE {t}")
+        self.con.execute("ALTER TABLE nachricht DROP COLUMN dokument_id")
         self.con.execute("DROP TABLE rueckblick")                         # … und keinen Rückblick (Schema 8)
         for t in ("plan_ereignis", "risiko", "abhaengigkeit", "spezifikation"):   # … und keine Planung (Schema 7)
             self.con.execute(f"DROP TABLE {t}")

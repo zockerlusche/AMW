@@ -105,7 +105,7 @@ Lead und Mensch. Übernommen wird erst nach Freigabe, und nur Ergebnisse; Arbeit
 ## 6 Stufen und Aufwand (Arbeitszeit CCamw, grob)
 | Stufe | Inhalt | Aufwand |
 |---|---|---|
-| D1 · am PC | Schema 9, Ablage, `amw dokument …`, Standard im Pflicht-Kontext, Workbench-Bereich mit Vorschau, Bezüge an Bogen/Schritt/Frage, Suche, Kommentar → Nachricht, Tests, UI-Prüfung | ~1 Tag |
+| D1 · am PC ✅ 1.2.0 | Schema 9, Ablage, `amw dokument …`, Standard im Pflicht-Kontext, Workbench-Bereich mit Vorschau, Bezüge an Bogen/Schritt/Frage, Suche, Kommentar → Nachricht, Tests, UI-Prüfung | ~1 Tag |
 | D2 · online | Metadaten/Text über Turso, Upload-Endpunkt und Dateiausgabe beim Hoster, Online-Ansicht, Aktionen über den Briefkasten | ~1 Tag |
 | D3 · Komfort | Berichtigen im Browser mit Versionsvergleich, Upload vom Handy (Foto → Dokument), vorhandene Dateien einsammeln (`amw dokument einsammeln <ordner>` mit Vorschlag zur Zuordnung), Mockup-Varianten in Fragen | ~1 Tag |
 

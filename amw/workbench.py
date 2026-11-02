@@ -145,6 +145,11 @@ def daten_planung(con, pid):
             s["prognose"] = prog["schritte"].get(s["id"])
         b["schritte"] = schritte
         b["rueckblick"] = verlauf.rueckblicke(con, pid, b["id"])
+        b["dokumente"] = con.execute("SELECT count(*) FROM dokument WHERE projekt_id = ? AND bezug_art = 'bogen' AND bezug_id = ?"
+                                     " AND status = 'aktuell'", (pid, b["id"])).fetchone()[0]
+        for s in schritte:
+            s["dokumente"] = con.execute("SELECT count(*) FROM dokument WHERE projekt_id = ? AND bezug_art = 'aufgabe'"
+                                         " AND bezug_id = ? AND status = 'aktuell'", (pid, s["id"])).fetchone()[0]
         b["beginn_ist"] = (con.execute("SELECT min(coalesce(begonnen_utc, fertig_utc)) FROM aufgabe WHERE bogen_id = ?"
                                        " AND status != 'verworfen'", (b["id"],)).fetchone()[0] or "")[:10] or None   # Übersicht
     return {"leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
@@ -308,6 +313,10 @@ def daten_fragen(con, pid, alle=False):
         d["verlauf"] = zeilen(con.execute("SELECT zeit_utc, von, art, text FROM frage_verlauf WHERE frage_id = ?"
                                           " ORDER BY id", (f["id"],)))
         d["wartet_auf_fragesteller"] = bool(d["verlauf"]) and d["verlauf"][-1]["art"] == "rueckfrage"
+        d["dokumente"] = zeilen(con.execute(
+            "SELECT d.id, d.titel, d.art, v.endung FROM dokument d JOIN dokument_version v ON v.dokument_id = d.id AND v.nr ="
+            " (SELECT max(nr) FROM dokument_version WHERE dokument_id = d.id) WHERE d.projekt_id = ? AND d.bezug_art = 'frage'"
+            " AND d.bezug_id = ? AND d.status = 'aktuell' ORDER BY d.id", (pid, f["id"])))
         aus.append(d)
     return aus
 
@@ -391,12 +400,51 @@ def daten_suche(con, pid, q):
         ("frage", "SELECT 'F' || id, kurz, status, zeit_utc FROM frage WHERE projekt_id = ? AND (kurz LIKE ? OR antwort LIKE ?)", 3),
         ("wortlaut", "SELECT 'W' || id, substr(text, 1, 200), kanal, zeit_utc FROM wortlaut WHERE projekt_id = ? AND text LIKE ?", 2),
         ("nachricht", "SELECT '#' || id, kurz, von, zeit_utc FROM nachricht WHERE projekt_id = ? AND (kurz LIKE ? OR text LIKE ?)", 3),
+        ("dokument", "SELECT 'D' || d.id, d.titel, d.art, d.angelegt_utc FROM dokument d WHERE d.projekt_id = ? AND d.status != 'geloescht'"
+                     " AND (d.titel LIKE ? OR EXISTS (SELECT 1 FROM dokument_version v WHERE v.dokument_id = d.id AND v.suchtext LIKE ?))", 3),
     ]
     aus = []
     for art, sql, n in teile:
         for r in con.execute(sql + " ORDER BY 4 DESC LIMIT 25", (pid, *[m] * (n - 1))):
             aus.append({"art": art, "ref": r[0], "titel": r[1], "zusatz": r[2], "zeit": r[3]})
     return aus
+
+
+def daten_dokumente(con, pid, q):
+    """Bereich „Dokumente“: Liste mit Filtern (Art, Bezug, Agent, Suche, Status) und was es zum Filtern gibt."""
+    from . import dokumente, planung
+    w = lambda k: (q.get(k, [""])[0] or "").strip() or None
+    status = w("status") or "aktuell"
+    liste = dokumente.liste(con, pid, w("art"), w("bezug_art"), int(w("bezug_id")) if (w("bezug_id") or "").isdigit() else None,
+                            w("von"), w("q"), None if status == "alle" else status)
+    for d in liste:
+        d.pop("sha256", None)
+    zahl = lambda sql: {r[0]: r[1] for r in con.execute(sql, (pid,))}
+    return {"dokumente": liste, "arten": zahl("SELECT art, count(*) FROM dokument WHERE projekt_id = ? AND status = 'aktuell' GROUP BY art"),
+            "von": zahl("SELECT angelegt_von, count(*) FROM dokument WHERE projekt_id = ? AND status = 'aktuell' GROUP BY angelegt_von"),
+            "archiviert": con.execute("SELECT count(*) FROM dokument WHERE projekt_id = ? AND status = 'archiviert'", (pid,)).fetchone()[0],
+            "boegen": [{"id": b["id"], "titel": b["titel"]} for b in planung.boegen(con, pid)]}
+
+
+def daten_dokument(con, pid, q):
+    """Ein Dokument: Versionen, Gespräch, wozu es gehört; bei Text-Formaten der Inhalt der gewählten Version."""
+    from . import dokumente
+    did = int(q.get("id", ["0"])[0] or 0)
+    d = dokumente.dokument(con, pid, did)
+    for v in d["versionen"]:
+        v.pop("sha256", None)
+    d["gespraech"] = dokumente.gespraech(con, pid, did)
+    if d["bezug_art"]:
+        spalte = {"bogen": "titel", "aufgabe": "titel", "frage": "kurz", "beschluss": "stichwort"}[d["bezug_art"]]
+        r = con.execute(f"SELECT {spalte} FROM {d['bezug_art']} WHERE id = ?", (d["bezug_id"],)).fetchone()
+        d["bezug_titel"] = r[0] if r else None
+    nr = int(q.get("v", ["0"])[0] or 0) or d["versionen"][-1]["nr"]
+    v = next((x for x in d["versionen"] if x["nr"] == nr), d["versionen"][-1])
+    d["gezeigt"] = v["nr"]
+    if v["vorschau"] == "text" and d["status"] != "geloescht":
+        roh, _ = dokumente.inhalt(con, pid, did, v["nr"])
+        d["text"] = roh.decode("utf-8", errors="replace")
+    return d
 
 
 def daten_betrieb(con, pid):
@@ -451,9 +499,40 @@ def baue_handler(port, token):
             if typ.startswith("text/html"):
                 self.send_header("Content-Security-Policy",
                                  "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline';"
-                                 " connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'")
+                                 " connect-src 'self'; img-src 'self' data:; frame-src 'self'; base-uri 'none'; form-action 'none'")
             self.end_headers()
             self.wfile.write(body)
+
+        def _datei(self, q):
+            """Datei eines Dokuments. HTML (Mockup) und SVG laufen abgeschottet (CSP sandbox, eigener Ursprung) – sie
+            kommen nicht an die Seite und ihr Token heran; Office nur als Download."""
+            from . import dokumente
+            try:
+                con = db.verbinde(nur_lesen=True)
+                try:
+                    roh, endung = dokumente.inhalt(con, self._projekt(con, q), int(q.get("id", ["0"])[0] or 0),
+                                                   int(q.get("v", ["0"])[0] or 0) or None)
+                finally:
+                    con.close()
+            except (kern.AmwFehler, ValueError) as e:
+                return self._senden(404, {"fehler": str(e)})
+            _, typ, vorschau = dokumente.FORMATE[endung]
+            self.send_response(200)
+            self.send_header("Content-Type", typ)
+            self.send_header("Content-Length", str(len(roh)))
+            self.send_header("Cache-Control", "private, max-age=3600")   # Inhalt je Version unveränderlich
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "SAMEORIGIN")
+            self.send_header("Referrer-Policy", "no-referrer")
+            if vorschau == "mockup":
+                self.send_header("Content-Security-Policy", "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline';"
+                                 " style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:")
+            elif vorschau != "pdf":
+                self.send_header("Content-Security-Policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:")
+            name = f"D{q.get('id', ['0'])[0]}{endung}"
+            self.send_header("Content-Disposition", f'{"attachment" if vorschau == "download" else "inline"}; filename="{name}"')
+            self.end_headers()
+            self.wfile.write(roh)
 
         def _projekt(self, con, q):
             name = q.get("projekt", [""])[0]
@@ -468,6 +547,8 @@ def baue_handler(port, token):
             q = parse_qs(u.query)
             if u.path in ("/", "/index.html"):
                 return self._senden(200, seite, "text/html; charset=utf-8")
+            if u.path == "/api/dokument/datei":
+                return self._datei(q)
             wege = {"/api/start": lambda c, p: daten_start(c, p),
                     "/api/fragen": lambda c, p: daten_fragen(c, p, q.get("alle", ["0"])[0] == "1"),
                     "/api/aufgaben": lambda c, p: daten_aufgaben(c, p, q),
@@ -481,6 +562,8 @@ def baue_handler(port, token):
                     "/api/planung": lambda c, p: daten_planung(c, p),
                     "/api/verlauf": lambda c, p: daten_verlauf(c, p, q),
                     "/api/seit": lambda c, p: daten_seit(c, p, q),
+                    "/api/dokumente": lambda c, p: daten_dokumente(c, p, q),
+                    "/api/dokument": lambda c, p: daten_dokument(c, p, q),
                     "/api/projekte": lambda c, p: zeilen(c.execute("SELECT id, name FROM projekt ORDER BY id"))}
             weg = wege.get(u.path)
             if not weg:

@@ -22,6 +22,7 @@
 | `amw/betrieb.py` | Rechen-Läufe mit Regeln und Warteschlange, Prüfungen, Rezepte |
 | `amw/planung.py` | Leitbild, Bögen, Spezifikation, Schritte, Abhängigkeiten, nächster Schritt, Risiken, Prognose, Plan-Check |
 | `amw/verlauf.py` | Rückblick je Bogen, Verlauf aller Ereignisse, Zusammenfassungen |
+| `amw/dokumente.py` | Dokumente: Ablage (Hash im Datenordner), Versionen, Formate und Schutz, Bezüge, Kommentar an den Verfasser |
 | `amw/cli.py` | Kommandozeile `amw` (`amw.cmd`, `amw-cli.py` starten sie ohne PYTHONPATH) |
 | `amw/hook.py` | Claude-Code-Hooks: Anmeldung beim Start, Pflicht-Kontext, Zustand (arbeitet/frei/wartet/Fehler) |
 | `amw/statusline.py` | Statusline-Brücke: Kontext, Nutzungsgrenzen, Kosten je Sitzung; reicht die bisherige Statusline weiter |
@@ -73,13 +74,14 @@ Schreiben über JSON-Befehlsdateien in `eingang-tl/befehle/`, die der Wächter a
 (`leitbild`, `bogen`, `spec`, `aufgabe … --bogen`, `risiko`, `rueckblick`); `--datei` nur aus `eingang-tl/`, z. B.
 `{"befehl": "spec", "aktion": "schreiben", "bogen": 3, "teil": "anforderungen", "datei": "plan/anf-3.md"}`.
 
-## 4 Datenmodell (Schema 8)
+## 4 Datenmodell (Schema 9)
 | Bereich | Tabellen |
 |---|---|
 | Projekt und Agenten | `projekt` (Einstellungen, Leitbild, DoD), `agent` (Rolle, Soll, Profil), `sitzung` (Claude-Sitzung, PIDs, Puls, Zustand, Kontext, Grenzen, Kosten) |
 | Kommunikation | `nachricht_art` (weckt ja/nein), `nachricht`, `empfang` (je Empfänger: offen/gelesen/erledigt, geweckt) |
 | Arbeit | `aufgabe` (Status, Einstufung, Rang, Bogen, Kriterien, Plan, Zusammenfassung …), `abhaengigkeit` |
 | Planung | `bogen`, `spezifikation`, `risiko`, `plan_ereignis`, `rueckblick` |
+| Dokumente | `dokument` (Titel, Art, Bezug, Status, online), `dokument_version` (Hash, Endung, Größe, Notiz, Suchtext); Kommentare: `nachricht.dokument_id`; Dateien unter `<Datenordner>/dokumente/` |
 | Fragen | `frage` (Optionen, Empfehlung, Antwort), `frage_verlauf` |
 | Wissen | `wortlaut`, `beschluss`, `regel`, `notiz`, `release` |
 | Betrieb | `lauf`, `rezept`, `pruefung`, `sperre` (Hinweis/Halt), `server`, `verbrauch`, `push_versand` |

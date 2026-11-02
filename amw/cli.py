@@ -572,6 +572,61 @@ def cmd_regel(a, con):
     print(wissen.regel_setzen(con, _projekt(con, a), _von(a), a.ebene, a.nr, _text(a), a.beschluss, a.teil))
 
 
+def cmd_dokument(a, con):
+    from . import dokumente
+    pid = _projekt(con, a)
+    bezug = {"bogen": a.bogen, "aufgabe": a.aufgabe, "frage": a.frage, "beschluss": a.beschluss}
+    if a.aktion == "ablegen":
+        datei = a.datei or a.nr
+        if not datei:
+            raise kern.AmwFehler("Datei fehlt: amw dokument ablegen <datei> --titel … --art … --aufgabe <nr>")
+        did = dokumente.ablegen(con, pid, _von(a), datei, a.titel, a.art or "ergebnis", a.notiz, a.online, **bezug)
+        print(f"D{did} abgelegt – ansehen: Workbench › Dokumente oder `amw dokument zeigen {did}`")
+        return
+    if a.aktion == "liste":
+        b_art = next((k for k, v in bezug.items() if v), None)
+        for d in dokumente.liste(con, pid, a.art, b_art, int(str(bezug[b_art]).lstrip("ABFabf")) if b_art else None,
+                                 a.agent, a.suche, None if a.alle else "aktuell"):
+            b = f"{d['bezug_art']} {d['bezug_id']}" if d["bezug_art"] else "–"
+            print(f"D{d['id']:<5} v{d['version']:<3} {d['art']:<9} {d['endung']:<6} {max(1, d['groesse'] // 1024):7d} KB"
+                  f"  {d['angelegt_von']:<10} {b:<16} {d['titel'][:80]}" + (f"  [{d['status']}]" if d["status"] != "aktuell" else ""))
+        return
+    if not a.nr:
+        raise kern.AmwFehler("Nummer des Dokuments fehlt (z. B. amw dokument zeigen 12)")
+    nr = int(str(a.nr).lstrip("Dd"))
+    datei = a.datei or a.pfad
+    if a.aktion == "zeigen":
+        d = dokumente.dokument(con, pid, nr)
+        print(f"D{d['id']} „{d['titel']}“ · {d['art']} · {d['status']}" + (" · online" if d["online"] else "")
+              + (f" · zu {d['bezug_art']} {d['bezug_id']}" if d["bezug_art"] else "") + f" · von {d['angelegt_von']}")
+        for v in d["versionen"]:
+            print(f"  v{v['nr']} {v['zeit_utc']} {v['von']:<10} {v['endung']} {max(1, v['groesse'] // 1024)} KB"
+                  + (f" – {v['notiz']}" if v["notiz"] else "") + f"\n     {dokumente.datei_pfad(v['sha256'], v['endung'])}")
+        for n in dokumente.gespraech(con, pid, nr):
+            print(f"  #{n['id']} {n['zeit_utc']} {n['von']} → {n['an']}: {n['kurz']}")
+    elif a.aktion == "version":
+        if not datei:
+            raise kern.AmwFehler("Datei fehlt: amw dokument version <nr> <datei> --notiz …")
+        print(f"D{nr} v{dokumente.version(con, pid, _von(a), nr, datei, a.notiz)} abgelegt")
+    elif a.aktion in ("kommentar", "ueberarbeiten"):
+        nid, namen = dokumente.melden(con, pid, _von(a), nr, a.text, a.aktion == "ueberarbeiten")
+        print(f"#{nid} an {', '.join(namen)}")
+    elif a.aktion == "zuordnen":
+        neu = {"bogen": None} if a.loesen else {k: v for k, v in bezug.items() if v}     # leer = Bezug unverändert
+        d = dokumente.setzen(con, pid, _von(a), nr, a.titel, a.art, **neu)
+        print(f"D{nr}: " + (f"zu {d['bezug_art']} {d['bezug_id']}" if d["bezug_art"] else "ohne Bezug") + f" · {d['art']} · {d['titel']}")
+    elif a.aktion in ("archivieren", "wiederherstellen"):
+        dokumente.status_setzen(con, pid, _von(a), nr, "archiviert" if a.aktion == "archivieren" else "aktuell")
+        print(f"D{nr} {'archiviert' if a.aktion == 'archivieren' else 'wieder aktuell'}")
+    elif a.aktion in ("online", "offline"):
+        dokumente.online_setzen(con, pid, _von(a), nr, a.aktion == "online")
+        print(f"D{nr}: Datei {'auch online' if a.aktion == 'online' else 'nur am PC'}")
+    elif a.aktion == "loeschen":
+        if not a.ja:
+            raise kern.AmwFehler("Endgültig löschen mit --ja bestätigen (archivieren geht ohne)")
+        print(f"D{nr} gelöscht ({dokumente.loeschen(con, pid, _von(a), nr)} Datei(en) entfernt)")
+
+
 def cmd_notiz(a, con):
     pid = _projekt(con, a)
     if a.aktion == "entfernen":
@@ -736,7 +791,12 @@ def cmd_hook(a):
 
 
 def cmd_sichern(a):
-    print(f"gesichert: {db.sichern(a.ziel)}")
+    from . import dokumente
+    ziel = db.sichern(a.ziel)
+    print(f"gesichert: {ziel}")
+    n = dokumente.sichern(os.path.splitext(ziel)[0] + "-dokumente")           # Ablage daneben, nur Fehlendes
+    if n:
+        print(f"Dokumente: {n} Datei(en) nach {os.path.splitext(ziel)[0]}-dokumente")
     return 0
 
 
@@ -1039,7 +1099,8 @@ def parser():
     x = s.add_parser("verlauf", help="was passiert ist: amw verlauf [--stunden 24] [--agent CC1] [--art erledigt --art pruefung] [--zusammenfassung]")
     x.add_argument("--stunden", type=int, default=24)
     x.add_argument("--agent")
-    x.add_argument("--art", action="append", choices=["nachricht", "erledigt", "lauf", "pruefung", "frage", "beschluss", "plan", "sitzung"])
+    x.add_argument("--art", action="append", choices=["nachricht", "erledigt", "lauf", "pruefung", "frage", "beschluss", "plan", "sitzung",
+                                                       "dokument"])
     x.add_argument("--grenze", type=int, default=200)
     x.add_argument("--zusammenfassung", action="store_true", help="nur Zahlen")
     x.set_defaults(f=cmd_verlauf)
@@ -1132,6 +1193,28 @@ def parser():
             x.add_argument("--nr", type=int, required=True)
             x.add_argument("--beschluss", type=int, required=True)
             x.add_argument("--teil")
+
+    x = s.add_parser("dokument", help="Ergebnisse ablegen und finden: ablegen <datei> | version <nr> <datei> | liste | zeigen <nr>"
+                                      " | kommentar|ueberarbeiten <nr> --text … | zuordnen <nr> | archivieren|wiederherstellen <nr>"
+                                      " | online|offline <nr> | loeschen <nr> --ja")
+    x.add_argument("aktion", choices=["ablegen", "version", "liste", "zeigen", "kommentar", "ueberarbeiten", "zuordnen",
+                                      "archivieren", "wiederherstellen", "online", "offline", "loeschen"])
+    x.add_argument("nr", nargs="?", help="ablegen: die Datei; sonst Nummer des Dokuments (D12 oder 12)")
+    x.add_argument("pfad", nargs="?", help="version: die neue Datei")
+    x.add_argument("--datei", help="statt der Positionsangabe (Brücke: nur aus eingang-tl/)")
+    x.add_argument("--titel")
+    x.add_argument("--art", choices=["ergebnis", "bericht", "entwurf", "mockup", "bild", "quelle"])
+    x.add_argument("--notiz", help="was diese Version ist bzw. was sich geändert hat")
+    for k in ("bogen", "aufgabe", "frage", "beschluss"):
+        x.add_argument("--" + k, help=f"Bezug: {k} (Nummer)")
+    x.add_argument("--loesen", action="store_true", help="zuordnen: Bezug entfernen")
+    x.add_argument("--online", action="store_true", help="ablegen: Datei auch online zeigen (Texte sind es immer)")
+    x.add_argument("--agent", help="liste: nur von diesem Agenten")
+    x.add_argument("--suche", help="liste: in Titel und Text suchen")
+    x.add_argument("--alle", action="store_true", help="liste: auch archivierte und gelöschte")
+    x.add_argument("--text", help="kommentar/ueberarbeiten: was zu sagen ist")
+    x.add_argument("--ja", action="store_true", help="loeschen: bestätigen")
+    x.set_defaults(f=cmd_dokument)
 
     x = s.add_parser("notiz", help="gepflegte Notizen (Schlüssel/Wert)")
     x.add_argument("aktion", choices=["setzen", "zeige", "entfernen"])

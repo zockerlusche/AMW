@@ -103,6 +103,7 @@ CREATE TABLE nachricht (
   antwort_auf   INTEGER REFERENCES nachricht(id),
   aufgabe_id    INTEGER REFERENCES aufgabe(id),
   anhang_id     INTEGER REFERENCES anhang(id),
+  dokument_id   INTEGER REFERENCES dokument(id),           -- Kommentar/Auftrag zu einem Dokument
   uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft      TEXT NOT NULL DEFAULT '',
   geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
@@ -534,6 +535,41 @@ CREATE TABLE anhang (
   geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
+-- Dokumente (Schema 9): Ergebnisse der Agenten mit Versionen; Dateien im Datenordner unter dokumente/.
+CREATE TABLE dokument (
+  id               INTEGER PRIMARY KEY,
+  projekt_id       INTEGER NOT NULL REFERENCES projekt(id),
+  titel            TEXT NOT NULL,
+  art              TEXT NOT NULL CHECK (art IN ('ergebnis', 'bericht', 'entwurf', 'mockup', 'bild', 'quelle')),
+  bezug_art        TEXT CHECK (bezug_art IN ('bogen', 'aufgabe', 'frage', 'beschluss')),
+  bezug_id         INTEGER,
+  status           TEXT NOT NULL DEFAULT 'aktuell' CHECK (status IN ('aktuell', 'archiviert', 'geloescht')),
+  online           INTEGER NOT NULL DEFAULT 0,          -- Datei auch online zeigen (Texte sind immer online)
+  angelegt_von     TEXT NOT NULL,
+  angelegt_utc     TEXT NOT NULL,
+  uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft         TEXT NOT NULL DEFAULT '',
+  geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+CREATE INDEX dokument_bezug ON dokument (projekt_id, bezug_art, bezug_id);
+
+CREATE TABLE dokument_version (
+  id               INTEGER PRIMARY KEY,
+  dokument_id      INTEGER NOT NULL REFERENCES dokument(id),
+  nr               INTEGER NOT NULL,
+  sha256           TEXT NOT NULL,
+  endung           TEXT NOT NULL,
+  groesse          INTEGER NOT NULL,
+  notiz            TEXT,
+  von              TEXT NOT NULL,
+  zeit_utc         TEXT NOT NULL,
+  suchtext         TEXT,
+  uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft         TEXT NOT NULL DEFAULT '',
+  geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  UNIQUE (dokument_id, nr)
+);
+
 -- Nachrichten-Arten: Weck-Wirkung an EINER Stelle.
 INSERT INTO nachricht_art (art, weckt, beschreibung) VALUES
   ('auftrag',   1, 'Arbeit für den Empfänger'),
@@ -583,3 +619,6 @@ CREATE TRIGGER wortlaut_unveraendert BEFORE UPDATE OF text ON wortlaut BEGIN SEL
 CREATE TRIGGER aufgabe_beleg BEFORE UPDATE OF status ON aufgabe
   WHEN NEW.status IN ('fertig', 'verworfen') AND coalesce(trim(NEW.beleg), '') = ''
   BEGIN SELECT RAISE(ABORT, 'fertig/verworfen nur mit Beleg'); END;
+CREATE TRIGGER dokument_geaendert AFTER UPDATE ON dokument BEGIN UPDATE dokument SET geaendert_utc = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = NEW.id; END;
+CREATE TRIGGER dokument_nie_loeschen BEFORE DELETE ON dokument BEGIN SELECT RAISE(ABORT, 'Verlauf: dokument wird nicht gelöscht (Status geloescht)'); END;
+CREATE TRIGGER dokument_version_nie_loeschen BEFORE DELETE ON dokument_version BEGIN SELECT RAISE(ABORT, 'Verlauf: dokument_version wird nicht gelöscht'); END;

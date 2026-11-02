@@ -11,7 +11,7 @@ import datetime
 from . import db, kern
 
 ARTEN = ("gut", "schlecht", "massnahme", "gelernt")
-VERLAUF_ARTEN = ("nachricht", "erledigt", "lauf", "pruefung", "frage", "beschluss", "plan", "sitzung")
+VERLAUF_ARTEN = ("nachricht", "erledigt", "lauf", "pruefung", "frage", "beschluss", "plan", "sitzung", "dokument")
 
 
 def rueckblick_neu(con, pid, von, bogen_id, art, text):
@@ -90,6 +90,10 @@ def verlauf(con, pid, ab_utc, bis_utc=None, agent=None, arten=None, grenze=300):
                   " JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ? AND s.gestartet_utc >= ? AND s.gestartet_utc < ?", p))
         q.append(("SELECT s.beendet_utc, 'sitzung', a.kennung, 'S' || s.id, 'Sitzung beendet', 'ende' FROM sitzung s"
                   " JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ? AND s.beendet_utc >= ? AND s.beendet_utc < ?", p))
+    if "dokument" in arten:
+        q.append(("SELECT v.zeit_utc, 'dokument', v.von, 'D' || d.id, d.titel, CASE WHEN v.nr = 1 THEN d.art ELSE 'v' || v.nr END"
+                  " FROM dokument_version v JOIN dokument d ON d.id = v.dokument_id WHERE d.projekt_id = ? AND v.zeit_utc >= ?"
+                  " AND v.zeit_utc < ?", p))
     if not q:
         return []
     # Spaltennamen fest vorgeben – sonst hängen sie davon ab, welche Teilabfrage zuerst kommt

@@ -59,6 +59,8 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             return {"text": steuerung.beenden(con, pid, daten.get("kennung") or "")}
         except (kern.AmwFehler, LookupError, OSError) as e:
             raise Ungueltig(str(e)) from None
+    if weg.startswith("/api/dokument/"):             # Dokumente: kommentieren, zuordnen, archivieren; löschen nur am PC
+        return dokument(con, pid, weg.rsplit("/", 1)[1], daten, kanal)
     if weg.startswith("/api/plan/"):                 # Planung – auch von unterwegs (Freigaben!)
         return planen(con, pid, weg.rsplit("/", 1)[1], daten)
     if weg == "/api/push/probe":                     # nur am PC: verschickt wirklich
@@ -74,6 +76,33 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
                                   (daten.get("text") or "Halt vom Entwickler").strip()[:2000])}
     if weg == "/api/weiter":
         return {"aufgehoben": kern.weiter(con, pid, kern.ENTWICKLER, daten.get("fuer") or "alle")}
+    raise LookupError("unbekannt")
+
+
+def dokument(con, pid, was, d, kanal):
+    from . import dokumente
+    e = kern.ENTWICKLER
+    try:
+        did = int(d.get("id") or 0)
+        if was == "kommentar":
+            nid, namen = dokumente.melden(con, pid, e, did, d.get("text"), bool(d.get("ueberarbeiten")))
+            return {"nachricht": nid, "an": namen}
+        if was == "setzen":
+            bezug = {"bogen": None} if d.get("loesen") else {k: d.get(k) for k in ("bogen", "aufgabe", "frage", "beschluss") if d.get(k)}
+            dokumente.setzen(con, pid, e, did, d.get("titel"), d.get("art"), **bezug)
+            return {"ok": True}
+        if was == "status":
+            dokumente.status_setzen(con, pid, e, did, d.get("status"))
+            return {"ok": True}
+        if was == "online":
+            dokumente.online_setzen(con, pid, e, did, bool(d.get("an")))
+            return {"ok": True}
+        if was == "loeschen":
+            if kanal != "seite":
+                raise Ungueltig("Endgültig löschen geht nur am PC")
+            return {"dateien": dokumente.loeschen(con, pid, e, did)}
+    except (kern.AmwFehler, ValueError) as x:
+        raise Ungueltig(str(x)) from None
     raise LookupError("unbekannt")
 
 
