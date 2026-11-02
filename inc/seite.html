@@ -191,42 +191,49 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .akzeptiert-zeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--linie); font-size: 14px; }
 .blink { animation: blink 1.6s ease-out; }
 @keyframes blink { 0%, 30% { box-shadow: 0 0 0 2px var(--bernstein); } 100% { box-shadow: 0 0 0 2px transparent; } }
-/* Übersicht über der Zeitleiste: ein Balken je Bogen, Start bis Prognose, Klick springt zum Bogen */
+/* Übersicht über der Zeitleiste: echte Zeitachse, gepackt – Bögen ohne Überschneidung teilen sich eine Spur; Klick springt zum Bogen */
 .ueb { border: 1px solid var(--linie); border-radius: 4px; background: var(--flaeche); padding: 12px 14px 10px; margin: 4px 0 14px; }
 .ueb-kopf { display: flex; gap: 10px 16px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
 .ueb-kopf b { font: 600 13px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--leise); }
 .ueb-kopf span { font-size: 14px; }
-.ueb-zeile { display: grid; grid-template-columns: minmax(120px, 230px) minmax(0, 1fr); align-items: center; width: 100%; padding: 0; margin: 0;
-  background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.ueb-zeile:hover .ueb-name, .ueb-zeile:focus-visible .ueb-name { color: var(--bernstein); }
-.ueb-zeile:hover .ueb-spur { background: var(--bernstein-weich); }
-.ueb-name { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; }
-.ueb-name .ref { margin-right: 6px; }
-.ueb-spur { position: relative; height: 26px; }
-.ueb-achse .ueb-spur { height: 18px; }
+.ueb-kopf .klein-knopf { margin-left: auto; }
+.ueb-achse { position: relative; height: 30px; overflow: hidden; }
+.ueb-achse span { position: absolute; top: 0; padding-left: 4px; border-left: 1px solid var(--linie2); font: 11px/1.3 var(--titel); letter-spacing: .06em;
+  color: var(--sehrleise); white-space: nowrap; }
+.ueb-achse small { display: block; font-size: 10.5px; color: var(--leise); }
+.ueb-flaeche { position: relative; overflow: hidden; }
 .ueb-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--linie); }
-.ueb-tick span { position: absolute; top: 0; left: 4px; font: 11px var(--titel); letter-spacing: .06em; color: var(--sehrleise); white-space: nowrap; }
-.ueb-heute { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--bernstein); z-index: 2; }
-.ueb-balken, .ueb-unsicher { position: absolute; top: 7px; height: 12px; border-radius: 2px; min-width: 3px; }
-.ueb-balken { background: color-mix(in srgb, var(--tinte) 40%, transparent); }
-.ueb-balken.aktiv { background: var(--bernstein); } .ueb-balken.fertig { background: var(--gruen); } .ueb-balken.rot { background: var(--rot); }
-.ueb-unsicher { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--tinte) 40%, transparent) 0 3px, transparent 3px 6px);
-  border-radius: 0 2px 2px 0; }
-.ueb-unsicher.aktiv { background: repeating-linear-gradient(135deg, var(--bernstein) 0 3px, transparent 3px 6px); }
-.ueb-unsicher.rot { background: repeating-linear-gradient(135deg, var(--rot) 0 3px, transparent 3px 6px); }
-.ueb-ziel { position: absolute; top: 6px; width: 10px; height: 10px; margin-left: -5px; transform: rotate(45deg); background: var(--grund);
-  border: 2px solid var(--tinte); z-index: 3; }
+.ueb-heute { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--bernstein); z-index: 1; pointer-events: none; }
+.ueb-block { --farbe: var(--leise); position: absolute; height: 22px; min-width: 34px; padding: 0; border: 0; border-radius: 2px; overflow: hidden;
+  cursor: pointer; background: color-mix(in srgb, var(--farbe) 20%, transparent); color: var(--tinte); font: inherit; text-align: left; z-index: 2; }
+.ueb-block.aktiv, .ueb-muster.aktiv { --farbe: var(--bernstein); } .ueb-block.rot, .ueb-muster.rot { --farbe: var(--rot); }
+.ueb-block.fertig, .ueb-muster.fertig { --farbe: var(--gruen); }
+.ueb-block:hover, .ueb-block:focus-visible { outline: 2px solid var(--bernstein); outline-offset: 0; z-index: 4; }
+.ueb-label { position: absolute; left: 5px; right: 3px; top: 1px; font-size: 12px; line-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ueb-label b { color: var(--farbe); margin-right: 4px; font-weight: 600; }
+.ueb-block:not(.aktiv):not(.rot):not(.fertig) .ueb-label b { color: var(--tinte); }
+.ueb-b50, .ueb-b85 { position: absolute; bottom: 0; height: 5px; }
+.ueb-b50 { left: 0; background: var(--farbe); }
+.ueb-b85 { right: 0; background: repeating-linear-gradient(135deg, var(--farbe) 0 3px, transparent 3px 6px); }
+.ueb-puffer { position: absolute; height: 0; border-top: 1px dashed var(--leise); z-index: 1; }
+.ueb-ziel { position: absolute; width: 9px; height: 9px; margin-left: -4.5px; transform: rotate(45deg); background: var(--flaeche);
+  border: 2px solid var(--tinte); z-index: 3; pointer-events: auto; }
 .ueb-ziel.rot { border-color: var(--rot); }
-.ueb-du { position: absolute; top: 9px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--tinte);
-  box-shadow: 0 0 0 2px var(--flaeche); z-index: 3; }
-.ueb-ohne { position: absolute; left: 6px; top: 5px; font-size: 12.5px; }
-.ueb-legende { display: flex; gap: 6px 16px; flex-wrap: wrap; margin-top: 8px; font-size: 12.5px; color: var(--leise); }
+.ueb-weiter { position: absolute; right: 3px; font-size: 11.5px; line-height: 15px; color: var(--leise); background: var(--flaeche); padding-left: 4px; z-index: 3; }
+.ueb-du { position: absolute; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: var(--tinte); box-shadow: 0 0 0 2px var(--flaeche); z-index: 3; }
+.ueb-ohne-liste { display: flex; gap: 6px 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; font-size: 13px; }
+.ueb-ohne-liste button { background: none; border: 1px dashed var(--linie2); border-radius: 2px; padding: 2px 8px; color: inherit; font: inherit; cursor: pointer; }
+.ueb-ohne-liste button:hover, .ueb-ohne-liste button:focus-visible { border-color: var(--bernstein); }
+.ueb-legende { display: flex; gap: 6px 16px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; color: var(--leise); }
 .ueb-legende i { display: inline-block; vertical-align: middle; margin-right: 5px; position: static; }
-.ueb-legende .ueb-balken, .ueb-legende .ueb-unsicher { width: 18px; height: 9px; }
+.ueb-muster { --farbe: var(--leise); width: 18px; height: 9px; border-radius: 1px; background: color-mix(in srgb, var(--farbe) 18%, var(--flaeche));
+  box-shadow: inset 0 -4px 0 var(--farbe); }
+.ueb-muster.schraffur { box-shadow: none; background: repeating-linear-gradient(135deg, var(--leise) 0 3px, transparent 3px 6px); }
+.ueb-legende .ueb-puffer { width: 18px; }
 .ueb-legende .ueb-ziel { width: 8px; height: 8px; margin: 0 6px 0 2px; }
 .ueb-legende .ueb-heute { display: inline-block; height: 12px; width: 2px; margin: 0 6px 0 0; }
 .ueb-legende .ueb-du { margin: 0 5px 0 0; }
-@media (max-width: 760px) { .ueb-zeile { grid-template-columns: 44px minmax(0, 1fr); } .ueb-name .titel { display: none; }
+@media (max-width: 760px) {
   .befund-schluessel { margin-left: 0; flex-basis: 100%; } .befund-zeile > .sehrleise:first-child { min-width: 0; } }
 /* Dokumente: Raster mit Vorschau, Detail mit Vorschau links und Zuordnung/Versionen/Gespräch rechts */
 .dk-filter { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
@@ -246,8 +253,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .dk-liste .zeile { cursor: pointer; }
 .dk-detail { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
 .dk-vorschau { min-height: 200px; border: 1px solid var(--linie); border-radius: 3px; background: var(--flaeche2); overflow: auto; max-height: 70vh; }
-.dk-vorschau img { display: block; max-width: 100%; margin: 0 auto; cursor: zoom-in; }
-.dk-vorschau img.gross { max-width: none; cursor: zoom-out; }
+.dk-vorschau img { display: block; max-width: 100%; margin: 0 auto; }
 .dk-vorschau iframe { display: block; width: 100%; height: 68vh; border: 0; background: #fff; }
 .dk-vorschau .md { padding: 16px 20px; }
 .dk-seite { display: grid; gap: 14px; font-size: 14px; }
@@ -259,6 +265,21 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .dk-anhaenge { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
 .dk-anhang { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--linie); border-radius: 3px; padding: 4px 8px; cursor: pointer; background: var(--flaeche2); color: inherit; font: inherit; font-size: 13px; }
 .dk-anhang img { width: 64px; height: 44px; object-fit: cover; border-radius: 2px; }
+/* Vollbild für Bilder */
+.vb { position: fixed; inset: 0; z-index: 30; background: #0b0a08; display: grid; grid-template-rows: minmax(0, 1fr) auto; color: #ece5d3; }
+.vb-buehne { position: relative; overflow: hidden; touch-action: none; cursor: grab; user-select: none; }
+.vb-buehne.zieht { cursor: grabbing; }
+.vb-buehne img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; image-rendering: auto; will-change: transform; }
+.vb-leiste { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  background: rgba(20,18,14,.92); border-top: 1px solid #353026; font-size: 13.5px; }
+.vb-titel { flex: 1 1 240px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vb-hilfe { color: #8a826f; font-size: 12.5px; }
+.vb-stufe { font: 12.5px var(--mono); color: #a39a86; min-width: 54px; text-align: right; }
+.vb-knopf { min-width: 38px; height: 34px; padding: 0 10px; border: 1px solid #4a4335; border-radius: 3px; background: #1c1a15; color: #ece5d3;
+  font: 600 14px var(--titel); letter-spacing: .04em; cursor: pointer; }
+.vb-knopf:hover, .vb-knopf:focus-visible { border-color: #f0a93a; color: #f0a93a; }
+.dk-vorschau img { cursor: zoom-in; }
+@media (max-width: 760px) { .vb-hilfe, .vb-stufe, .vb-eins { display: none; } .vb-titel { flex-basis: 100%; } .vb-knopf { flex: 1 0 auto; min-width: 44px; height: 44px; } }
 /* Markdown */
 .md { font-size: 15px; line-height: 1.55; overflow-wrap: anywhere; }
 .md h1, .md h2, .md h3, .md h4 { font-family: var(--titel); margin: 1.1em 0 .4em; line-height: 1.25; }
@@ -617,7 +638,12 @@ const TEXTE = {
     ck_nicht_gefunden: "Nicht in der Zeitleiste gefunden",
     ue_titel: "Übersicht", ue_summe: "Start {a} · voraussichtlich fertig {b}, sicher bis {c} · rund {n} Wochen ab heute",
     ue_teilweise: "Noch nicht für alle Bögen eine Prognose", ue_start: "Start", ue_ohne: "keine offenen Schritte",
-    ue_l_p50: "bis zur Prognose (50 %)", ue_l_rot: "zu spät", ue_l_p85: "bis 85 % sicher", ue_l_du: "dein Schritt", ue_l_heute: "heute", ue_l_klick: "Klick auf eine Zeile springt zum Bogen",
+    ue_l_p50: "bis zur Prognose (50 %)", ue_l_rot: "zu spät", ue_l_p85: "bis 85 % sicher", ue_l_du: "dein Schritt", ue_l_heute: "heute", ue_l_klick: "Klick auf einen Block springt zum Bogen",
+    ue_l_puffer: "Puffer bis zum Zieldatum", ue_weit: "Bis zum letzten Zieldatum", ue_eng: "Nur bis Prognose-Ende",
+    ue_spuren: "{n} Bögen auf {s} Spuren", ue_ohne_prognose: "Noch ohne Prognose:",
+    vb_vollbild: "Vollbild", vb_tipp: "Klick öffnet das Vollbild mit Zoom", vb_kleiner: "Verkleinern (−)", vb_groesser: "Vergrößern (+)",
+    vb_einpassen: "Einpassen", vb_original: "Originalgröße", vb_zurueck: "Voriges Bild (←)", vb_weiter: "Nächstes Bild (→)",
+    vb_schliessen: "Schließen (Esc)", vb_hilfe: "Mausrad oder zwei Finger zoomen · ziehen verschiebt · Doppelklick 1:1",
     pl_keine_boegen: "Noch keine Bögen. Ein Bogen ist ein Meilenstein mit prüfbarem Abnahmekriterium – „Neuer Bogen“.", pl_heute: "heute · {x}",
     pl_schritte: "{n} Schritte", pl_welle: "Welle {n}", pl_parallel: "parallel möglich", pl_keine_schritte: "noch keine Schritte", bs_geplant: "geplant",
     bs_aktiv: "aktiv", bs_fertig: "fertig", bs_verworfen: "verworfen", pl_aktivieren: "Aktivieren",
@@ -778,7 +804,12 @@ const TEXTE = {
     ck_nicht_gefunden: "Not found in the timeline",
     ue_titel: "Overview", ue_summe: "Start {a} · expected done {b}, safe by {c} · about {n} weeks from today",
     ue_teilweise: "No forecast for all arcs yet", ue_start: "Start", ue_ohne: "no open steps",
-    ue_l_p50: "to forecast (50 %)", ue_l_rot: "late", ue_l_p85: "to 85 % safe", ue_l_du: "your step", ue_l_heute: "today", ue_l_klick: "Click a row to jump to the arc",
+    ue_l_p50: "to forecast (50 %)", ue_l_rot: "late", ue_l_p85: "to 85 % safe", ue_l_du: "your step", ue_l_heute: "today", ue_l_klick: "Click a block to jump to the arc",
+    ue_l_puffer: "buffer to target date", ue_weit: "Up to the last target date", ue_eng: "Only to forecast end",
+    ue_spuren: "{n} arcs on {s} lanes", ue_ohne_prognose: "No forecast yet:",
+    vb_vollbild: "Full screen", vb_tipp: "Click opens full screen with zoom", vb_kleiner: "Zoom out (−)", vb_groesser: "Zoom in (+)",
+    vb_einpassen: "Fit", vb_original: "Actual size", vb_zurueck: "Previous image (←)", vb_weiter: "Next image (→)",
+    vb_schliessen: "Close (Esc)", vb_hilfe: "Wheel or two fingers zoom · drag pans · double-click 1:1",
     pl_keine_boegen: "No arcs yet. An arc is a milestone with a checkable acceptance criterion – “New arc”.", pl_heute: "today · {x}",
     pl_schritte: "{n} steps", pl_welle: "Wave {n}", pl_parallel: "can run in parallel", pl_keine_schritte: "no steps yet", bs_geplant: "planned",
     bs_aktiv: "active", bs_fertig: "done", bs_verworfen: "dropped", pl_aktivieren: "Activate",
@@ -1306,7 +1337,7 @@ async function dokumentDialog(id, v) {
   let d; try { d = await holen(`/api/dokument?id=${id}` + (v ? `&v=${v}` : "")); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
   const ver = d.versionen.find(x => x.nr === d.gezeigt), url = dokUrl(d.id, ver.nr);
   const vorschau = d.status === "geloescht" ? el("div", { class: "leer" }, t("dks_geloescht"))
-    : ver.vorschau === "bild" ? el("img", { src: url, alt: d.titel, onclick: e => e.target.classList.toggle("gross") })
+    : ver.vorschau === "bild" ? el("img", { src: url, alt: d.titel, title: t("vb_tipp"), onclick: () => dokVollbild(d, ver) })
     : ver.vorschau === "mockup" ? el("iframe", { src: url, sandbox: "allow-scripts", title: d.titel, referrerpolicy: "no-referrer" })
     : ver.vorschau === "pdf" ? el("iframe", { src: url, title: d.titel })
     : ver.vorschau === "text" ? (ver.format === "markdown" ? markdown(d.text || "") : el("pre", { class: "spec-text", style: "margin:0" }, d.text || ""))
@@ -1336,6 +1367,7 @@ async function dokumentDialog(id, v) {
           d.status !== "geloescht" ? el("div", { style: "margin-top:8px;display:grid;gap:6px" }, nachricht, el("div", { class: "dk-aktionen" },
             knopf(t("dk_kommentieren"), () => melden(false)), knopf(t("dk_ueberarbeiten"), () => melden(true), true))) : null),
         d.status !== "geloescht" ? el("div", { class: "dk-aktionen" },
+          ["bild", "mockup", "pdf"].includes(ver.vorschau) ? knopf(t("vb_vollbild"), () => dokVollbild(d, ver, vorschau), true) : null,
           !API ? el("a", { class: "klein-knopf", href: url, target: "_blank", rel: "noopener" }, t("dk_oeffnen")) : null,
           el("a", { class: "klein-knopf", href: url, download: `D${d.id}-v${ver.nr}${ver.endung}` }, t("dk_herunterladen")),
           knopf(t("dk_zuordnen"), () => dokZuordnen(d, hg)),
@@ -1344,6 +1376,86 @@ async function dokumentDialog(id, v) {
           ver.vorschau !== "text" ? knopf(t(d.online ? "dk_offline" : "dk_online"), () => tun("/api/dokument/online", { an: !d.online })) : null,
           !API ? knopf(t("dk_loeschen"), () => { if (confirm(t("dk_loeschen_frage", { x: d.titel }))) tun("/api/dokument/loeschen", {}, t("dk_geloescht")); }) : null) : null)));
   hg.querySelector(".dialog").style.width = "min(1280px,96vw)";
+}
+/* Bild im Vollbild: eingepasst, Mausrad oder zwei Finger zoomen an der Stelle, Ziehen verschiebt, Doppelklick 1:1 ↔ eingepasst,
+   ←/→ blättert durch die Bilder derselben Aufgabe/desselben Bogens, Esc schließt */
+function bildVollbild(bilder, i) {
+  let z = 1, x = 0, y = 0, passt = 1;
+  const img = el("img", { alt: "", draggable: "false" }), buehne = el("div", { class: "vb-buehne" }, img);
+  const titel = el("span", { class: "vb-titel" }), stufe = el("span", { class: "vb-stufe" });
+  const knopf = (text, tip, fn, k = "") => el("button", { class: "vb-knopf " + k, type: "button", title: tip, "aria-label": tip, onclick: e => { e.stopPropagation(); fn(); } }, text);
+  const zeigen = () => { img.style.transform = `translate(${x}px,${y}px) scale(${z})`; stufe.textContent = `${Math.round(z * 100)} %`; };
+  const setzen = (nz, px, py) => { nz = Math.min(8, Math.max(Math.min(passt, 1) / 4, nz)); x = px - (px - x) * nz / z; y = py - (py - y) * nz / z; z = nz; zeigen(); };
+  const mitte = () => { const r = buehne.getBoundingClientRect(); return [r.width / 2, r.height / 2]; };
+  const einpassen = () => { const r = buehne.getBoundingClientRect(), w = img.naturalWidth || 1, h = img.naturalHeight || 1;
+    passt = Math.min(r.width / w, r.height / h); z = Math.min(passt, 1); x = (r.width - w * z) / 2; y = (r.height - h * z) / 2; zeigen(); };
+  const laden = n => { i = (n + bilder.length) % bilder.length; const b = bilder[i];
+    titel.textContent = `D${b.id} · ${b.titel}` + (bilder.length > 1 ? `  (${i + 1}/${bilder.length})` : ""); img.onload = einpassen; img.src = dokUrl(b.id, b.nr); };
+  const hg = el("div", { class: "vb", role: "dialog", "aria-modal": "true", "aria-label": t("vb_vollbild") }, buehne,
+    el("div", { class: "vb-leiste" }, titel, el("span", { class: "vb-hilfe" }, t("vb_hilfe")), stufe,
+      knopf("−", t("vb_kleiner"), () => setzen(z / 1.25, ...mitte())), knopf("+", t("vb_groesser"), () => setzen(z * 1.25, ...mitte())),
+      knopf(t("vb_einpassen"), t("vb_einpassen") + " (0)", einpassen), knopf("1:1", t("vb_original") + " (1)", () => setzen(1, ...mitte()), "vb-eins"),
+      bilder.length > 1 ? knopf("‹", t("vb_zurueck"), () => laden(i - 1)) : null, bilder.length > 1 ? knopf("›", t("vb_weiter"), () => laden(i + 1)) : null,
+      knopf("✕", t("vb_schliessen"), () => schliessen())));
+  const zeiger = new Map();
+  let abstand = 0;
+  buehne.addEventListener("wheel", e => { e.preventDefault(); const r = buehne.getBoundingClientRect();
+    setzen(z * Math.exp(-Math.max(-60, Math.min(60, e.deltaY)) * 0.004), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  let tipp = null, letzterTipp = 0;
+  buehne.addEventListener("pointerdown", e => { buehne.setPointerCapture(e.pointerId); zeiger.set(e.pointerId, [e.clientX, e.clientY]); buehne.classList.add("zieht");
+    tipp = zeiger.size === 1 ? { x: e.clientX, y: e.clientY, t: Date.now() } : null; });
+  buehne.addEventListener("pointermove", e => {
+    if (!zeiger.has(e.pointerId)) return;
+    const [ax, ay] = zeiger.get(e.pointerId);
+    if (zeiger.size === 1) { x += e.clientX - ax; y += e.clientY - ay; zeigen(); }
+    zeiger.set(e.pointerId, [e.clientX, e.clientY]);
+    if (zeiger.size === 2) {                                    // zwei Finger: Abstand ändert die Stufe, um die Mitte
+      const [[x1, y1], [x2, y2]] = [...zeiger.values()], r = buehne.getBoundingClientRect(), neu = Math.hypot(x2 - x1, y2 - y1);
+      if (abstand) setzen(z * neu / abstand, (x1 + x2) / 2 - r.left, (y1 + y2) / 2 - r.top);
+      abstand = neu;
+    }
+  });
+  let geschaltet = 0;
+  const umschalten = (cx, cy) => { if (Date.now() - geschaltet < 500) return; geschaltet = Date.now(); const r = buehne.getBoundingClientRect();
+    if (Math.abs(z - Math.min(passt, 1)) < 0.01) setzen(Math.max(1, passt * 2), cx - r.left, cy - r.top); else einpassen(); };
+  const los = e => { zeiger.delete(e.pointerId); abstand = 0; if (!zeiger.size) buehne.classList.remove("zieht");
+    /* Doppeltippen am Handy (dort kommt kein dblclick, weil die Bühne die Gesten selbst behandelt) */
+    if (e.type === "pointerup" && e.pointerType !== "mouse" && tipp && Date.now() - tipp.t < 300 && Math.hypot(e.clientX - tipp.x, e.clientY - tipp.y) < 12) {
+      if (Date.now() - letzterTipp < 350) { umschalten(e.clientX, e.clientY); letzterTipp = 0; } else letzterTipp = Date.now();
+    } };
+  buehne.addEventListener("pointerup", los); buehne.addEventListener("pointercancel", los);
+  buehne.addEventListener("dblclick", e => umschalten(e.clientX, e.clientY));
+  const taste = e => {
+    const k = { Escape: schliessen, ArrowLeft: () => laden(i - 1), ArrowRight: () => laden(i + 1), "+": () => setzen(z * 1.25, ...mitte()),
+      "=": () => setzen(z * 1.25, ...mitte()), "-": () => setzen(z / 1.25, ...mitte()), "0": einpassen, "1": () => setzen(1, ...mitte()) }[e.key];
+    if (!k) return;
+    e.preventDefault(); e.stopImmediatePropagation(); k();          // Esc schließt nur das Vollbild, nicht den Dialog darunter
+  };
+  const groesse = () => einpassen();
+  function schliessen() {
+    window.removeEventListener("keydown", taste, true); window.removeEventListener("resize", groesse);
+    document.removeEventListener("fullscreenchange", raus);
+    if (document.fullscreenElement === hg) document.exitFullscreen().catch(() => {});
+    hg.remove();
+  }
+  function raus() { if (!document.fullscreenElement) schliessen(); }   // Esc im echten Vollbild verlässt es – dann ganz zu
+  window.addEventListener("keydown", taste, true); window.addEventListener("resize", groesse);
+  document.body.append(hg);
+  laden(i);
+  if (hg.requestFullscreen) hg.requestFullscreen({ navigationUI: "hide" }).then(() => document.addEventListener("fullscreenchange", raus)).catch(() => {});
+}
+async function dokVollbild(d, ver, rahmen) {
+  if (ver.vorschau !== "bild") {                                 // Mockup, PDF: der Rahmen selbst ins Vollbild
+    if (rahmen?.requestFullscreen) rahmen.requestFullscreen().catch(() => window.open(dokUrl(d.id, ver.nr), "_blank", "noopener"));
+    else window.open(dokUrl(d.id, ver.nr), "_blank", "noopener");
+    return;
+  }
+  let bilder = [{ id: d.id, nr: ver.nr, titel: d.titel }];
+  if (d.bezug_art) try {
+    const l = (await holen(`/api/dokumente?bezug_art=${d.bezug_art}&bezug_id=${d.bezug_id}`)).dokumente.filter(x => x.vorschau === "bild").reverse();
+    if (l.some(x => x.id === d.id)) bilder = l.map(x => x.id === d.id ? bilder[0] : { id: x.id, nr: x.version, titel: x.titel });
+  } catch (e) { /* dann eben nur dieses Bild */ }
+  bildVollbild(bilder, bilder.findIndex(x => x.id === d.id));
 }
 function dokBezugOeffnen(d) {
   if (d.bezug_art === "bogen") { zeige("planung"); zuSchritt(null, d.bezug_id); }
@@ -1526,60 +1638,90 @@ async function zuSchritt(aid, bid) {
   ziel.scrollIntoView({ behavior: "smooth", block: aid ? "center" : "start" });
   ziel.classList.remove("blink"); void ziel.offsetWidth; ziel.classList.add("blink");
 }
-/* Übersicht: ein Balken je Bogen vom Start bis zur Prognose (fest bis P50, schraffiert bis P85), Zieldatum, deine Schritte, heute */
+/* Übersicht: echte Zeitachse, gepackt. Ein Block je Bogen von Start bis Prognose (Balken fest bis P50, schraffiert bis P85),
+   gestrichelt weiter bis zum Zieldatum (◆). Bögen, die sich zeitlich nicht überschneiden, teilen sich eine Spur. ● deine Schritte, heute. */
 function uebersicht(d) {
   const tagNr = x => Math.round(Date.parse(x + "T12:00:00Z") / 864e5), datum = n => new Date(n * 864e5).toISOString().slice(0, 10);
-  const zeilen = d.boegen.filter(b => b.status !== "verworfen").map(b => {
+  const alle = d.boegen.filter(b => b.status !== "verworfen").map(b => {
     const p = b.prognose, fertig = b.status === "fertig" ? (b.fertig_utc || "").slice(0, 10) || null : null;
     const e50 = fertig || p?.p50 || null, e85 = fertig || p?.p85 || null;
-    let start = b.beginn_ist || p?.start || null;
+    let start = b.beginn_ist || p?.start || fertig;
     if (start && e50 && start > e50) start = e50;
     const du = b.schritte.filter(s => s.agent === "Entwickler" && !["fertig", "verworfen"].includes(s.status) && s.prognose)
       .map(s => ({ id: s.id, titel: s.titel, tag: s.prognose.p50 }));
     return { b, start, e50, e85, ziel: b.zieldatum, du };
   });
-  const daten = zeilen.flatMap(z => [z.start, z.e85, z.ziel, ...z.du.map(x => x.tag)]).filter(Boolean);
-  if (!daten.length) return null;
-  daten.push(d.heute);
+  const zeilen = alle.filter(z => z.start && z.e50), ohne = alle.filter(z => !(z.start && z.e50));
+  if (!zeilen.length) return null;
+  /* Zeitraum: bis zum Ende der Prognose – oder auf Wunsch bis zum letzten Zieldatum */
+  const weit = !!zustand.uebWeit, zielWeiter = zeilen.some(z => z.ziel && z.ziel > z.e85);
+  const daten = zeilen.flatMap(z => [z.start, z.e85, ...z.du.map(x => x.tag), weit ? z.ziel : null]).filter(Boolean).concat(d.heute);
   const von = Math.min(...daten.map(tagNr)) - 2, bis = Math.max(...daten.map(tagNr)) + 3, spanne = bis - von;
-  const pos = x => `${(100 * (tagNr(x) - von) / spanne).toFixed(2)}%`, breite = (a, b) => `${(100 * Math.max(0, tagNr(b) - tagNr(a)) / spanne).toFixed(2)}%`;
-  const ticks = [];
-  for (let n = von + 1; n < bis; n++) {
-    const x = datum(n), dt = new Date(x + "T12:00:00Z");
-    if (spanne <= 75 ? dt.getUTCDay() === 1 : dt.getUTCDate() === 1)
-      ticks.push({ x, text: spanne <= 75 ? datumKurz(x) : dt.toLocaleDateString(gebiet(), { month: "short", timeZone: "UTC",
-        ...(!ticks.length || dt.getUTCMonth() === 0 ? { year: "numeric" } : {}) }) });            // Jahr am Anfang und im Januar
+  const pxTag = Math.max(240, ($("#inhalt")?.clientWidth || innerWidth) - 100) / spanne, H = 26;
+  const pos = n => `${(100 * (n - von) / spanne).toFixed(3)}%`, breite = (a, b) => `${(100 * Math.max(0, b - a) / spanne).toFixed(3)}%`;
+  /* packen: jeder Block kommt in die erste Spur, in der der vorige Block (samt Name und Linie zum Zieldatum) schon vorbei ist */
+  const spuren = [];
+  for (const z of zeilen.slice().sort((a, b) => a.start.localeCompare(b.start) || a.e85.localeCompare(b.e85))) {
+    z.a = tagNr(z.start); z.m = tagNr(z.e50); z.e = Math.max(tagNr(z.e85), z.m); z.zn = z.ziel ? tagNr(z.ziel) : null;
+    const links = Math.min(z.a, z.zn ?? z.a), rechts = Math.max(z.e, z.zn === null ? 0 : Math.min(z.zn, bis), z.a + 36 / pxTag);
+    let s = spuren.findIndex(ende => ende + 6 / pxTag < links);
+    if (s < 0) { s = spuren.length; spuren.push(0); }
+    spuren[s] = rechts; z.spur = s;
   }
-  const raster = () => [...ticks.map(k => el("i", { class: "ueb-tick", style: `left:${pos(k.x)}` })), el("i", { class: "ueb-heute", style: `left:${pos(d.heute)}`, title: t("pl_heute", { x: datumKurz(d.heute) }) })];
+  /* Achse: Wochen bei kurzen Plänen, sonst Monate (bei wenig Platz jeder zweite oder jedes Quartal); Jahr am Anfang und im Januar */
+  const woche = spanne <= 75, alle_n = 30 * pxTag >= 44 ? 1 : 30 * pxTag >= 22 ? 2 : 3, ticks = [];
+  for (let n = von + 1; n < bis; n++) {
+    const dt = new Date(n * 864e5), mo = dt.getUTCMonth();
+    if (woche ? dt.getUTCDay() === 1 : dt.getUTCDate() === 1 && mo % alle_n === 0)
+      ticks.push({ n, text: woche ? datumKurz(datum(n)) : dt.toLocaleDateString(gebiet(), { month: "short", timeZone: "UTC" }),
+        jahr: !woche && (!ticks.length || mo === 0) ? dt.getUTCFullYear() : null });
+  }
   const offen = zeilen.filter(z => z.b.status !== "fertig");
-  const start = zeilen.map(z => z.start).filter(Boolean).sort()[0];
-  const ende50 = offen.map(z => z.e50).filter(Boolean).sort().pop(), ende85 = offen.map(z => z.e85).filter(Boolean).sort().pop();
+  const start = zeilen.map(z => z.start).sort()[0];
+  const ende50 = offen.map(z => z.e50).sort().pop(), ende85 = offen.map(z => z.e85).sort().pop();
+  const flaeche = el("div", { class: "ueb-flaeche", style: `height:${spuren.length * H}px` },
+    ticks.map(k => el("i", { class: "ueb-tick", style: `left:${pos(k.n)}` })),
+    el("i", { class: "ueb-heute", style: `left:${pos(tagNr(d.heute))}` }),
+    zeilen.flatMap(z => {
+      const b = z.b, oben = z.spur * H, art = b.status === "fertig" ? "fertig" : b.prognose?.ampel === "rot" ? "rot" : b.status === "aktiv" ? "aktiv" : "";
+      const lang = Math.max(z.e - z.a, 0), spaet = z.zn !== null && z.zn < z.m && b.status !== "fertig";
+      const tip = [`Bogen ${b.id} · ${b.titel}`, `${t("ue_start")} ${datumKurz(z.start)}`,
+        b.status === "fertig" ? `${t("bs_fertig")} ${datumKurz(z.e50)}` : `${t("pl_prognose")} ${datumKurz(z.e50)} – ${datumKurz(z.e85)}`,
+        z.ziel ? `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` : null].filter(Boolean).join(" · ");
+      const teile = [el("button", { class: "ueb-block " + art, type: "button", title: tip, onclick: () => zuSchritt(null, b.id),
+          style: `left:${pos(z.a)};top:${oben}px;width:${breite(z.a, z.e)}` },
+        el("i", { class: "ueb-b50", style: `width:${lang ? (100 * (z.m - z.a) / lang).toFixed(1) : 100}%` }),
+        z.e > z.m ? el("i", { class: "ueb-b85", style: `left:${(100 * (z.m - z.a) / lang).toFixed(1)}%` }) : null,
+        el("span", { class: "ueb-label" }, el("b", {}, "B" + b.id), b.titel))];
+      if (z.zn !== null) {
+        const bisZiel = Math.min(z.zn, bis);
+        if (bisZiel > z.e) teile.push(el("i", { class: "ueb-puffer", style: `left:${pos(z.e)};width:${breite(z.e, bisZiel)};top:${oben + 19}px` }));
+        teile.push(z.zn > bis
+          ? el("span", { class: "ueb-weiter", style: `top:${oben + 12}px`, title: `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` }, `◆ ${datumKurz(z.ziel)} ›`)
+          : el("i", { class: "ueb-ziel" + (spaet ? " rot" : ""), style: `left:${pos(z.zn)};top:${oben + 13}px`,
+              title: `Bogen ${b.id} · ${t("pl_zieldatum")} ${datumKurz(z.ziel)}` + (spaet ? ` · ${t("ue_l_rot")}` : "") }));
+      }
+      return teile.concat(z.du.map(x => el("i", { class: "ueb-du", style: `left:${pos(tagNr(x.tag))};top:${oben + 16}px`,
+        title: `A${x.id} ${x.titel} – ${t("ck_du")} ≈ ${datumKurz(x.tag)}` })));
+    }));
   return el("div", { class: "ueb" },
     el("div", { class: "ueb-kopf" }, el("b", {}, t("ue_titel")),
-      el("span", {}, start && ende50 ? t("ue_summe", { a: datumKurz(start), b: datumKurz(ende50), c: datumKurz(ende85),
-        n: Math.max(1, Math.round((tagNr(ende85) - tagNr(start < d.heute ? start : d.heute)) / 7)) }) : t("ue_teilweise"))),
-    el("div", { class: "ueb-zeile ueb-achse", style: "cursor:default" }, el("span", {}),
-      el("span", { class: "ueb-spur" }, ticks.map(k => el("i", { class: "ueb-tick", style: `left:${pos(k.x)}` }, el("span", {}, k.text))))),
-    zeilen.map(z => {
-      const b = z.b, art = b.status === "fertig" ? "fertig" : z.b.prognose?.ampel === "rot" ? "rot" : b.status === "aktiv" ? "aktiv" : "";
-      const tip = [`Bogen ${b.id} · ${b.titel}`, z.start ? `${t("ue_start")} ${datumKurz(z.start)}` : null,
-        z.e50 ? (b.status === "fertig" ? `${t("bs_fertig")} ${datumKurz(z.e50)}` : `${t("pl_prognose")} ${datumKurz(z.e50)} – ${datumKurz(z.e85)}`) : null,
-        z.ziel ? `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` : null].filter(Boolean).join(" · ");
-      return el("button", { class: "ueb-zeile", type: "button", title: tip, onclick: () => zuSchritt(null, b.id) },
-        el("span", { class: "ueb-name" }, el("span", { class: "ref" }, "B" + b.id), el("span", { class: "titel" }, b.titel)),
-        el("span", { class: "ueb-spur" }, raster(),
-          z.start && z.e50 ? el("i", { class: "ueb-balken " + art, style: `left:${pos(z.start)};width:${breite(z.start, z.e50)}` }) : null,
-          z.e50 && z.e85 && z.e85 > z.e50 ? el("i", { class: "ueb-unsicher " + art, style: `left:${pos(z.e50)};width:${breite(z.e50, z.e85)}` }) : null,
-          z.ziel ? el("i", { class: "ueb-ziel" + (z.e50 && z.e50 > z.ziel && b.status !== "fertig" ? " rot" : ""), style: `left:${pos(z.ziel)}` }) : null,
-          z.du.map(x => el("i", { class: "ueb-du", style: `left:${pos(x.tag)}`, title: `A${x.id} ${x.titel} – ${t("ck_du")} ≈ ${datumKurz(x.tag)}` })),
-          !z.start && !z.e50 ? el("span", { class: "ueb-ohne sehrleise" }, t("ue_ohne")) : null));
-    }),
+      el("span", {}, ende50 ? t("ue_summe", { a: datumKurz(start), b: datumKurz(ende50), c: datumKurz(ende85),
+        n: Math.max(1, Math.round((tagNr(ende85) - tagNr(start < d.heute ? start : d.heute)) / 7)) }) : t("ue_teilweise")),
+      el("span", { class: "sehrleise" }, t("ue_spuren", { n: zeilen.length, s: spuren.length })),
+      zielWeiter || weit ? el("button", { class: "klein-knopf", type: "button", onclick: () => { zustand.uebWeit = !weit; sichtPlanung(); } },
+        t(weit ? "ue_eng" : "ue_weit")) : null),
+    el("div", { class: "ueb-achse" }, ticks.map(k => el("span", { style: `left:${pos(k.n)}` }, k.text, k.jahr ? el("small", {}, k.jahr) : null))),
+    flaeche,
+    ohne.length ? el("div", { class: "ueb-ohne-liste" }, el("span", { class: "sehrleise" }, t("ue_ohne_prognose")),
+      ohne.map(z => el("button", { type: "button", title: z.ziel ? `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` : "", onclick: () => zuSchritt(null, z.b.id) },
+        el("span", { class: "ref" }, "B" + z.b.id), " " + z.b.titel))) : null,
     el("div", { class: "ueb-legende" },
-      el("span", {}, el("i", { class: "ueb-balken" }), t("ue_l_p50")), el("span", {}, el("i", { class: "ueb-unsicher" }), t("ue_l_p85")),
-      el("span", {}, el("i", { class: "ueb-balken aktiv" }), t("bs_aktiv")), el("span", {}, el("i", { class: "ueb-balken rot" }), t("ue_l_rot")),
-      el("span", {}, el("i", { class: "ueb-balken fertig" }), t("bs_fertig")), el("span", {}, el("i", { class: "ueb-ziel" }), t("pl_zieldatum")),
-      el("span", {}, el("i", { class: "ueb-du" }), t("ue_l_du")), el("span", {}, el("i", { class: "ueb-heute" }), t("ue_l_heute")),
-      el("span", { class: "sehrleise" }, t("ue_l_klick"))));
+      el("span", {}, el("i", { class: "ueb-muster" }), t("bs_geplant")), el("span", {}, el("i", { class: "ueb-muster aktiv" }), t("bs_aktiv")),
+      el("span", {}, el("i", { class: "ueb-muster rot" }), t("ue_l_rot")), el("span", {}, el("i", { class: "ueb-muster fertig" }), t("bs_fertig")),
+      el("span", {}, el("i", { class: "ueb-muster schraffur" }), t("ue_l_p85")), el("span", {}, el("i", { class: "ueb-puffer" }), t("ue_l_puffer")),
+      el("span", {}, el("i", { class: "ueb-ziel" }), t("pl_zieldatum")), el("span", {}, el("i", { class: "ueb-du" }), t("ue_l_du")),
+      el("span", {}, el("i", { class: "ueb-heute" }), t("ue_l_heute")), el("span", { class: "sehrleise" }, t("ue_l_klick"))));
 }
 /* Senkrechte Zeitleiste: ein Bogen je Station, Heute-Linie, Zieldatum/Baseline/Prognose, Spezifikation, Schritte in Wellen */
 function zeitleiste(d) {
