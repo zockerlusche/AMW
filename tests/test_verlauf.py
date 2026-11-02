@@ -58,6 +58,20 @@ class Verlauf(Grund):
         self.assertEqual((z["erledigt"], z["fragen_neu"], z["fragen_offen"]), (1, 1, 1))
         self.assertIn("1 erledigt", verlauf.kurztext(z))
 
+    def test_erledigt_zeigt_wer_abgeschlossen_hat(self):
+        from amw import cli
+        a1 = kern.aufgabe_neu(self.con, self.pid, "TL", "selbst", agent="CC1")
+        a2 = kern.aufgabe_neu(self.con, self.pid, "TL", "vom Lead", agent="CC1")
+        kern.aufgabe_status(self.con, self.pid, "CC1", a1, "fertig", beleg="abc")
+        kern.aufgabe_status(self.con, self.pid, "TL", a2, "fertig", beleg="def")
+        ab = "2000-01-01T00:00:00Z"
+        wer = {x["ref"]: x["wer"] for x in verlauf.verlauf(self.con, self.pid, ab, arten=["erledigt"])}
+        self.assertEqual((wer[f"A{a1}"], wer[f"A{a2}"]), ("CC1", "TL"))
+        self.assertFalse([x for x in verlauf.verlauf(self.con, self.pid, ab, arten=["plan"]) if x["zusatz"] == "aufgabe_abschluss"])
+        a = cli.parser().parse_args(["aufgabe", "neu", "--titel", "danach", "--abhaengig-von", f"{a1},A{a2}", "--pruefer", "TL"])
+        werte, nach = cli._schritt_werte(a)                                            # alter Name = --nach
+        self.assertEqual((nach, werte["pruefer"]), ([a1, a2], "TL"))
+
     def test_seit_online_rechnet_wie_am_pc(self):
         ab = db.jetzt()
         kern.posten(self.con, self.pid, "TL", "entwickler", "info", "für dich")

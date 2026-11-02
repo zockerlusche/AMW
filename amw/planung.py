@@ -291,7 +291,7 @@ def wellen(con, aids):
 # --- Schritte (Aufgaben erweitert) ---------------------------------------------------------------
 
 FELDER = ("bogen_id", "kriterien", "schaetzung_h", "komplexitaet", "verantwortlich", "pruefbefehl", "dateibereich",
-          "anforderungen", "auftrag", "rang", "titel", "agent")
+          "anforderungen", "auftrag", "rang", "titel", "agent", "pruefer")
 
 
 def _bearbeiter(con, pid, x):

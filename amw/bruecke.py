@@ -7,7 +7,8 @@ Der TL arbeitet in einer Linux-VM, F:\\amw ist dort per FUSE eingehängt; SQLite
 - Schreiben: Befehlsdateien eingang-tl/befehle/*.json (erst als .tmp schreiben, dann umbenennen). Inhalt entweder
   {"args": ["posten", "--an", "CC1", "--art", "auftrag", "--kurz", "…"]} oder
   {"befehl": "posten", "an": "CC1", "art": "auftrag", "kurz": "…"} (Schlüssel = CLI-Optionen; "aktion", "kennung",
-  "schluessel", "id"/"ids" sind die Positionsangaben). Der Wächter führt sie als `--von TL` aus und legt Ergebnis + Befehl in eingang-tl/erledigt/.
+  "schluessel", "id"/"ids" sind die Positionsangaben, bei spec/rueckblick auch "bogen" und "teil"). `--datei` nur aus
+  eingang-tl/ (sonst könnte ein Befehl beliebige Dateien dieses PCs in die Datenbank und online holen). Der Wächter führt sie als `--von TL` aus und legt Ergebnis + Befehl in eingang-tl/erledigt/.
 Vertrauensmodell wie die CLI in Stufe 1: wer auf diesem PC Dateien schreiben kann, kann auch `amw --von TL` aufrufen.
 """
 import contextlib
@@ -29,7 +30,8 @@ KOPIE_S = 60
 BEFEHLE_S = 5
 VON = "TL"
 ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "lauf", "pruefung", "taetigkeit",
-           "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent"}
+           "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
+           "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf"}   # Freigaben: nur der Mensch
 
 
 def lese_kopie(quelle=None, ziel=None):
@@ -61,7 +63,7 @@ def lese_kopie(quelle=None, ziel=None):
     return stand
 
 
-def argumente(befehl):
+def argumente(befehl, eingang=EINGANG):
     """Befehlsdatei → Argumente für cli.main; wirft ValueError bei Unerlaubtem."""
     if "args" in befehl:
         args = [str(x) for x in befehl["args"]]
@@ -72,6 +74,10 @@ def argumente(befehl):
             args.append(str(b.pop("aktion")))
         if args[0] == "taetigkeit" and "text" in b:      # bei taetigkeit ist der Text die Positionsangabe
             args.append(str(b.pop("text")))
+        if args[0] in ("spec", "rueckblick"):            # dort ist der Bogen die Positionsangabe (sonst --bogen)
+            for k in ("bogen", "teil"):
+                if k in b:
+                    args.append(str(b.pop(k)))
         for k in ("kennung", "schluessel", "id", "ids"):
             if k in b:
                 v = b.pop(k)
@@ -89,6 +95,15 @@ def argumente(befehl):
         raise ValueError("Agenten starten, beenden und Profile ändern geht nur am PC (Workbench)")
     if any(a in ("--von", "--projekt") for a in args):
         raise ValueError("--von/--projekt setzt die Brücke selbst")
+    for i, a in enumerate(args):
+        if a.startswith("--datei="):
+            raise ValueError("--datei bitte als eigenen Schlüssel angeben")
+        if a == "--datei" and i + 1 < len(args):           # relativ zu eingang-tl/, wird absolut weitergegeben
+            wurzel = os.path.realpath(eingang)
+            pfad = os.path.realpath(os.path.join(wurzel, args[i + 1]))
+            if os.path.commonpath([wurzel, pfad]) != wurzel:
+                raise ValueError("--datei über die Brücke nur aus eingang-tl/ (z. B. \"plan/spec-3.md\")")
+            args[i + 1] = pfad
     return args + ["--von", VON]
 
 
@@ -144,7 +159,7 @@ def befehle(eingang=EINGANG):
             if befehl.get("befehl") == "puls":           # nur Lebenszeichen (Stundentakt des TL)
                 args, rc, aus, fehler = ["puls"], 0, "Puls gesetzt\n", ""
             else:
-                args = argumente(befehl)
+                args = argumente(befehl, eingang)
                 rc, aus, fehler = ausfuehren(args)
         except (ValueError, OSError) as e:
             args, rc, aus, fehler = None, 2, "", str(e)

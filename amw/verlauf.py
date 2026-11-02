@@ -63,8 +63,9 @@ def verlauf(con, pid, ab_utc, bis_utc=None, agent=None, arten=None, grenze=300):
         q.append(("SELECT zeit_utc AS zeit, 'nachricht' AS art, von AS wer, '#' || id AS ref, kurz AS text, art AS zusatz"
                   " FROM nachricht WHERE projekt_id = ? AND zeit_utc >= ? AND zeit_utc < ?", p))
     if "erledigt" in arten:
-        q.append(("SELECT fertig_utc, 'erledigt', coalesce(agent, ''), 'A' || id, titel, status FROM aufgabe"
-                  " WHERE projekt_id = ? AND status IN ('fertig', 'verworfen') AND fertig_utc >= ? AND fertig_utc < ?", p))
+        q.append(("SELECT fertig_utc, 'erledigt', coalesce((SELECT e.von FROM plan_ereignis e WHERE e.aufgabe_id = aufgabe.id"
+                  " AND e.art = 'aufgabe_abschluss' ORDER BY e.id DESC LIMIT 1), agent, ''), 'A' || id, titel, status"
+                  " FROM aufgabe WHERE projekt_id = ? AND status IN ('fertig', 'verworfen') AND fertig_utc >= ? AND fertig_utc < ?", p))
     if "lauf" in arten:
         q.append(("SELECT start_utc, 'lauf', agent, 'L' || id, beschreibung, 'start' FROM lauf WHERE projekt_id = ?"
                   " AND start_utc >= ? AND start_utc < ?", p))
@@ -83,7 +84,7 @@ def verlauf(con, pid, ab_utc, bis_utc=None, agent=None, arten=None, grenze=300):
                   " WHERE projekt_id = ? AND angelegt_utc >= ? AND angelegt_utc < ?", p))
     if "plan" in arten:
         q.append(("SELECT zeit_utc, 'plan', von, coalesce('Bogen ' || bogen_id, 'A' || aufgabe_id, ''), coalesce(text, ''), art"
-                  " FROM plan_ereignis WHERE projekt_id = ? AND zeit_utc >= ? AND zeit_utc < ?", p))
+                  " FROM plan_ereignis WHERE projekt_id = ? AND zeit_utc >= ? AND zeit_utc < ? AND art != 'aufgabe_abschluss'", p))
     if "sitzung" in arten:
         q.append(("SELECT s.gestartet_utc, 'sitzung', a.kennung, 'S' || s.id, 'Sitzung gestartet', 'start' FROM sitzung s"
                   " JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ? AND s.gestartet_utc >= ? AND s.gestartet_utc < ?", p))

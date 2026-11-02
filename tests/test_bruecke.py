@@ -75,6 +75,36 @@ class Bruecke(unittest.TestCase):
         self.assertNotEqual(self.ergebnis("c")["rc"], 0)
         self.assertEqual(self.con.execute("SELECT count(*) FROM nachricht").fetchone()[0], 0)
 
+    def test_planung_ueber_die_bruecke_freigabe_bleibt_beim_menschen(self):
+        from amw import planung
+        os.makedirs(os.path.join(self.eingang, "plan"))
+        with open(os.path.join(self.eingang, "plan", "anf.md"), "w", encoding="utf-8") as f:
+            f.write("R1 Anmelden geht")
+        geheim = os.path.join(self.ordner.name, "geheim.json")
+        with open(geheim, "w", encoding="utf-8") as f:
+            f.write("SCHLUESSEL")
+        self.einwerfen("1.json", {"befehl": "leitbild", "aktion": "setzen", "ziel": "Spiel fertig", "prinzip": ["Klar|Ist es klar?"]})
+        self.einwerfen("2.json", {"befehl": "bogen", "aktion": "neu", "titel": "Etappe 1", "ziel": "Login", "zieldatum": "2026-12-01"})
+        self.einwerfen("3.json", {"befehl": "spec", "aktion": "schreiben", "bogen": 1, "teil": "anforderungen", "datei": "plan/anf.md"})
+        self.einwerfen("4.json", {"befehl": "spec", "aktion": "vorlegen", "bogen": 1, "teil": "anforderungen"})
+        self.einwerfen("5.json", {"befehl": "spec", "aktion": "frei", "bogen": 1, "teil": "anforderungen"})
+        self.einwerfen("6.json", {"befehl": "spec", "aktion": "schreiben", "bogen": 1, "teil": "entwurf", "datei": geheim})
+        self.einwerfen("7.json", {"befehl": "spec", "aktion": "schreiben", "bogen": 1, "teil": "entwurf", "datei": "../geheim.json"})
+        self.einwerfen("8.json", {"befehl": "aufgabe", "aktion": "neu", "titel": "Login bauen", "bogen": 1, "agent": "CC1",
+                                  "pruefer": "TL"})
+        bruecke.befehle(self.eingang)
+        for n in "1234":
+            self.assertEqual(self.ergebnis(n)["rc"], 0, self.ergebnis(n))
+        self.assertIn("nur der Entwickler", self.ergebnis("5")["fehler"])
+        self.assertIn("nur aus eingang-tl", self.ergebnis("6")["fehler"])
+        self.assertIn("nur aus eingang-tl", self.ergebnis("7")["fehler"])
+        self.assertEqual(self.ergebnis("8")["rc"], 0, self.ergebnis("8"))
+        self.assertEqual(planung.leitbild(self.con, self.pid)["ziel"], "Spiel fertig")
+        s = planung.spec(self.con, 1, "anforderungen")
+        self.assertEqual((s["text"], s["status"]), ("R1 Anmelden geht", "vorgelegt"))
+        self.assertNotIn("SCHLUESSEL", planung.spec(self.con, 1, "entwurf")["text"] or "")
+        self.assertEqual(tuple(self.con.execute("SELECT bogen_id, agent, pruefer FROM aufgabe").fetchone()), (1, "CC1", "TL"))
+
     def test_halb_geschriebene_datei_wartet(self):
         ordner = os.path.join(self.eingang, "befehle")
         os.makedirs(ordner)

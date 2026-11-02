@@ -69,7 +69,9 @@ holt sie (Vorgabe alle 15 s), prüft sie mit demselben Code wie lokal und führt
 
 **Datei-Brücke** (aus, bis `bruecke_an` gesetzt ist). Für einen Agenten, der die Datenbank nicht direkt öffnen kann (z. B. in einer VM über eine
 Freigabe, wo SQLite-WAL scheitert): Lesekopie `daten/tl_lesen.db` ohne WAL (höchstens jede Minute, nur nach Änderungen);
-Schreiben über JSON-Befehlsdateien in `eingang-tl/befehle/`, die der Wächter als dieser Agent ausführt.
+Schreiben über JSON-Befehlsdateien in `eingang-tl/befehle/`, die der Wächter als dieser Agent ausführt – auch die Planung
+(`leitbild`, `bogen`, `spec`, `aufgabe … --bogen`, `risiko`, `rueckblick`); `--datei` nur aus `eingang-tl/`, z. B.
+`{"befehl": "spec", "aktion": "schreiben", "bogen": 3, "teil": "anforderungen", "datei": "plan/anf-3.md"}`.
 
 ## 4 Datenmodell (Schema 8)
 | Bereich | Tabellen |

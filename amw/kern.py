@@ -296,6 +296,9 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
             felder["bemerkung"] = ((a["bemerkung"] + " || ") if a["bemerkung"] else "") + f"{von} {t}: {bemerkung}"
         satz = ", ".join(f"{k} = ?" for k in felder)
         con.execute(f"UPDATE aufgabe SET {satz} WHERE id = ?", (*felder.values(), aid))
+        if neu in ("fertig", "verworfen"):            # wer abgeschlossen hat (kann der Lead statt des Bearbeiters sein)
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=t, von=von, art="aufgabe_abschluss",
+                         bogen_id=a["bogen_id"], aufgabe_id=aid, text=neu)
     return neu
 
 

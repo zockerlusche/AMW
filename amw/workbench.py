@@ -149,7 +149,8 @@ def daten_planung(con, pid):
             "pruefung": planung.pruefen(con, pid, prog), "status": planung.status(con, pid, prog),
             "wartet": planung.freigaben_offen(con, pid), "heute": datetime.date.today().isoformat(),   # lokales Datum für die Heute-Linie
             "ereignisse": zeilen(con.execute("SELECT zeit_utc, von, art, bogen_id, aufgabe_id, text FROM plan_ereignis"
-                                             " WHERE projekt_id = ? ORDER BY id DESC LIMIT 80", (pid,)))}
+                                             " WHERE projekt_id = ? AND art != 'aufgabe_abschluss' ORDER BY id DESC LIMIT 80",
+                                             (pid,)))}
 
 
 def daten_verlauf(con, pid, q):

@@ -148,7 +148,7 @@ def _schritt_werte(a):
     nr = lambda t: [int(x.strip().lstrip("Aa")) for x in t.split(",") if x.strip()] if t else None
     return {"bogen_id": a.bogen, "kriterien": a.kriterium, "schaetzung_h": a.schaetzung, "komplexitaet": a.komplexitaet,
             "verantwortlich": a.verantwortlich, "pruefbefehl": a.pruefbefehl, "dateibereich": a.dateien,
-            "anforderungen": a.anforderungen, "agent": a.agent, "auftrag": a.auftrag}, nr(a.nach)
+            "anforderungen": a.anforderungen, "agent": a.agent, "auftrag": a.auftrag, "pruefer": a.pruefer}, nr(a.nach)
 
 
 def cmd_aufgabe(a, con):
@@ -156,10 +156,10 @@ def cmd_aufgabe(a, con):
     from . import planung
     if a.aktion == "neu":
         werte, nach = _schritt_werte(a)
-        if any(v is not None for k, v in werte.items() if k not in ("agent", "auftrag")) or nach:
+        if any(v is not None for k, v in werte.items() if k not in ("agent", "auftrag", "pruefer")) or nach:
             aid = planung.schritt_setzen(con, pid, _von(a), titel=a.titel, nach=nach, rang=a.rang, **werte)
         else:
-            aid = kern.aufgabe_neu(con, pid, _von(a), a.titel, a.agent, a.auftrag, a.rang, a.pruefer, a.abhaengig_von)
+            aid = kern.aufgabe_neu(con, pid, _von(a), a.titel, a.agent, a.auftrag, a.rang, a.pruefer)
         print(f"A{aid} angelegt")
     elif a.aktion == "aendern":
         werte, nach = _schritt_werte(a)
@@ -879,7 +879,6 @@ def parser():
     x.add_argument("--auftrag")
     x.add_argument("--rang", type=int, default=50)
     x.add_argument("--pruefer")
-    x.add_argument("--abhaengig-von")
     x.add_argument("--beleg")
     x.add_argument("--wartet-auf")
     x.add_argument("--bemerkung")
@@ -888,7 +887,7 @@ def parser():
     x.add_argument("--kriterium", action="append", help="Planung: Abnahmekriterium, mehrfach (ersetzt die Liste)")
     x.add_argument("--schaetzung", type=float, help="Planung: Stunden")
     x.add_argument("--komplexitaet", type=int, help="Planung: 1–10; ab 7 braucht der Schritt einen freigegebenen Plan")
-    x.add_argument("--nach", help="Planung: Vorgänger, z. B. 1201,1203")
+    x.add_argument("--nach", "--abhaengig-von", dest="nach", help="Vorgänger, z. B. 1201,1203 (startbar erst, wenn sie fertig sind)")
     x.add_argument("--verantwortlich", help="Planung: wer abnimmt bzw. Pläne freigibt")
     x.add_argument("--pruefbefehl", help="Planung: wie der Bearbeiter selbst prüft")
     x.add_argument("--dateien", help="Planung: Dateibereich, den er anfassen darf")
