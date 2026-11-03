@@ -7,7 +7,7 @@ freier Arbeitsspeicher, Suche (Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrich
 | Ansicht | Wofür |
 |---|---|
 | **Start** | „Seit du weg warst“, Warnungen, **Wartet auf dich** (Freigaben, eigene Schritte, Fragen), Agenten-Kacheln (Zustand, was er gerade tut, Kontext/5-Stunden-Grenze; Klick = Übersicht mit Starten/Beenden), Nachrichten an dich |
-| **Fragen** | Fragen an dich mit Optionen und Empfehlung; Antwort per Klick, eigener Text oder Rückfrage; Verlauf wie im Chat |
+| **Fragen** | Reiter *Offen* und *Geparkt*: Fragen an dich mit Optionen und Empfehlung; Antwort per Klick, eigener Text oder Rückfrage; Verlauf wie im Chat; parken und wieder aufnehmen |
 | **Planung** | Zeitleiste der Bögen mit Ampel und Prognose, Spezifikation freigeben, Leitbild, Risiken, Plan-Check, Protokoll |
 | **Aufgaben** | Board (läuft · wartet · blockiert), geparkt, Pool, abgeschlossen; Filter nach Agent und Text |
 | **Verlauf** | alles, was passiert ist, je Tag, filterbar |
@@ -21,6 +21,12 @@ Hell/Dunkel und Deutsch/Englisch unten links; die Seite aktualisiert Start und B
 ## 2 Mit den Agenten arbeiten
 - **Auftrag geben:** Kachel › „Nachricht“ (Art Auftrag weckt) – oder an den Lead, der verteilt.
 - **Fragen beantworten:** Start oder Fragen; eine Rückfrage geht zurück an den Fragesteller, dessen Antwort erscheint im Verlauf der Frage.
+- **Fragen parken:** Eine Frage, die du gerade nicht verfolgen willst, parkst du über *Parken* auf der Karte. Steht Text im
+  Feld, ist das der Grund. Die Frage bleibt offen, steht aber in keiner offenen Liste, in keinem Zähler und in keiner
+  Push-Erinnerung mehr. Unter *Geparkt* siehst du sie vollständig mit Zeit und Person und nimmst sie mit *Wieder aufnehmen*
+  zurück. Antworten geht auch geparkt. Der TL und die Agenten parken mit `amw frage parken <nr> --grund "…"` (der Lead und
+  der Fragesteller; auch über die TL-Brücke), `amw frage aufnehmen <nr>` holt sie zurück, `amw frage liste --geparkt`
+  zeigt sie. Parken und Aufnehmen stehen im Verlauf der Frage, der Fragesteller bekommt eine Info.
 - **Anhalten:** HALT oben rechts (alle oder einen Agenten); „Weiter“ hebt auf. Agenten beginnen nichts Neues, Läufe starten nicht.
 - **Starten, fortsetzen, beenden:** Kachel › Übersicht. „Fortsetzen“ setzt die letzte Sitzung fort (Gesprächsverlauf
   bleibt), „Neu beginnen“ startet frisch mit dem Startsatz. Profil im Zahnrad › Agenten › Profil.

@@ -206,6 +206,8 @@ class Verlauf(unittest.TestCase):
             self.con.execute(f"ALTER TABLE sitzung DROP COLUMN {sp}")
         for sp in ("ordner", "zusatzordner", "denkstufe", "modell", "startsatz", "rechte", "fernsteuerung", "neustart_auto"):
             self.con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")
+        for sp in ("geparkt_utc", "geparkt_von"):                          # … und kein Parken von Fragen (Schema 10)
+            self.con.execute(f"ALTER TABLE frage DROP COLUMN {sp}")
         for t in ("dokument_version", "dokument"):                         # … und keine Dokumente (Schema 9)
             self.con.execute(f"DROP TABLE {t}")
         self.con.execute("ALTER TABLE nachricht DROP COLUMN dokument_id")

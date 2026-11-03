@@ -79,19 +79,19 @@ def daten_start(con, pid):
     fragen = zeilen(con.execute(           # nachtraege: ungelesene Nachträge im Verlauf der Frage (stehen dort, nicht doppelt)
         "SELECT f.id, f.kurz, f.von, f.zeit_utc, f.blockiert, (SELECT count(*) FROM frage_verlauf v JOIN empfang e"
         "   ON e.nachricht_id = v.nachricht_id AND e.agent = :e AND e.status = 'offen' WHERE v.frage_id = f.id) AS nachtraege"
-        " FROM frage f WHERE f.projekt_id = :p AND f.an = 'entwickler' AND f.status = 'offen' AND f.kurz NOT LIKE 'GEPARKT%'"
+        " FROM frage f WHERE f.projekt_id = :p AND f.an = 'entwickler' AND f.status = 'offen' AND f.geparkt_utc IS NULL"
         " ORDER BY f.blockiert DESC, f.id DESC LIMIT 20", {"p": pid, "e": kern.ENTWICKLER}))
-    an_dich = zeilen(con.execute(           # ohne Nachträge zu offenen Fragen – die zeigt die Frage selbst
+    an_dich = zeilen(con.execute(           # ohne Nachträge zu offenen Fragen – die zeigt die Frage selbst (geparkte nicht)
         "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf FROM empfang e JOIN nachricht n"
         " ON n.id = e.nachricht_id WHERE n.projekt_id = ? AND e.agent = ? AND e.status != 'erledigt'"
         " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v JOIN frage f ON f.id = v.frage_id"
-        "   WHERE f.status = 'offen' AND v.nachricht_id IS NOT NULL)"
+        "   WHERE f.status = 'offen' AND f.geparkt_utc IS NULL AND v.nachricht_id IS NOT NULL)"
         " ORDER BY n.id DESC LIMIT 30", (pid, kern.ENTWICKLER)))
     halte = [dict(s) for s in kern.aktive_sperren(con, pid, art="halt")]
     zaehler = dict(con.execute(
         "SELECT"
         " (SELECT count(*) FROM frage WHERE projekt_id = :p AND an = 'entwickler' AND status = 'offen'"
-        "   AND kurz NOT LIKE 'GEPARKT%') AS fragen,"
+        "   AND geparkt_utc IS NULL) AS fragen,"
         " (SELECT count(*) FROM aufgabe WHERE projekt_id = :p AND status IN ('wartet','laeuft','blockiert')"
         "   AND einstufung IN ('aktiv','keine_prio')) AS offen,"
         " (SELECT count(*) FROM aufgabe WHERE projekt_id = :p AND einstufung = 'geparkt'"
@@ -315,9 +315,9 @@ def daten_fragen(con, pid, alle=False):
     from . import dokumente
     sql = "SELECT * FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
     if not alle:
-        sql += " AND kurz NOT LIKE 'GEPARKT%'"
+        sql += " AND geparkt_utc IS NULL"
     aus = []
-    for f in con.execute(sql + " ORDER BY blockiert DESC, id DESC LIMIT 60", (pid,)).fetchall():
+    for f in con.execute(sql + " ORDER BY geparkt_utc IS NOT NULL, blockiert DESC, id DESC LIMIT 80", (pid,)).fetchall():
         d = dict(f)
         d["optionen"] = json.loads(f["optionen"] or "[]")
         d["vorgeschichte"] = vorgeschichte(con, pid, f)

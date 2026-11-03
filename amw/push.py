@@ -281,7 +281,7 @@ def ereignisse(con, pid, cfg, jetzt=None):
     seit = cfg.get("seit_utc") or db.jetzt()
     aus = []
     for f in con.execute("SELECT id, von, zeit_utc FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
-                         " AND kurz NOT LIKE 'GEPARKT%' AND zeit_utc >= ?", (pid, seit)):
+                         " AND geparkt_utc IS NULL AND zeit_utc >= ?", (pid, seit)):
         aus.append(("frage", f"frage:{f['id']}", f"Neue Frage F{f['id']}", f"von {f['von']}", "fragen"))
         if _minuten_alt(f["zeit_utc"]) >= ERINNERN_NACH_MIN:
             aus.append(("frage", f"frage:{f['id']}:erinnerung", f"Frage F{f['id']} wartet seit {ERINNERN_NACH_MIN} min",

@@ -404,7 +404,15 @@ def cmd_frage(a, con):
                              a.fundstellen, a.aufgabe, a.blockiert)
         zusatz = dokumente.anhaenge_setzen(con, pid, _von(a), fid, anhaenge)
         print(f"F{fid} angelegt" + (" – Varianten: " + ", ".join(f"{k}=D{d}" for k, d in zusatz.items()) if zusatz else ""))
+    elif a.aktion in ("parken", "aufnehmen"):
+        if not a.id:
+            raise kern.AmwFehler(f"frage {a.aktion} <nr> [--grund \"…\"]")
+        print(f"F{a.id} → {kern.frage_parken(con, pid, _von(a), a.id, a.aktion == 'parken', a.grund)}")
     elif a.aktion == "liste":
+        if a.geparkt:
+            for r in kern.offene_fragen(con, pid, a.an, geparkt=True):
+                print(f"F{r['id']} an {r['an']} von {r['von']}: {r['kurz']}  (geparkt {_zeit(r['geparkt_utc'])} von {r['geparkt_von']})")
+            return
         for r in kern.offene_fragen(con, pid, a.an):
             opt = " · ".join(f"{o['kenn']}) {o['text']}" for o in json.loads(r["optionen"]))
             print(f"F{r['id']} an {r['an']} von {r['von']}{' BLOCKIERT' if r['blockiert'] else ''}: {r['kurz']}"
@@ -416,10 +424,12 @@ def cmd_frage(a, con):
     elif a.aktion == "verlauf":
         if not a.id:
             raise kern.AmwFehler("frage verlauf <nr>")
-        f = con.execute("SELECT von, zeit_utc, kurz, status FROM frage WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
+        f = con.execute("SELECT von, zeit_utc, kurz, status, geparkt_utc FROM frage WHERE id = ? AND projekt_id = ?",
+                        (a.id, pid)).fetchone()
         if not f:
             raise kern.AmwFehler(f"F{a.id} gibt es nicht")
-        print(f"F{a.id} ({f['status']}) {_zeit(f['zeit_utc'])} {f['von']}: {f['kurz']}")
+        status = f"geparkt seit {_zeit(f['geparkt_utc'])}" if f["geparkt_utc"] else f["status"]
+        print(f"F{a.id} ({status}) {_zeit(f['zeit_utc'])} {f['von']}: {f['kurz']}")
         for v in con.execute("SELECT zeit_utc, von, art, text FROM frage_verlauf WHERE frage_id = ? ORDER BY id", (a.id,)):
             print(f"  {_zeit(v['zeit_utc'])} {v['von']} [{v['art']}]: {v['text']}")
     elif a.aktion == "antworten":
@@ -1035,20 +1045,22 @@ def parser():
     x.add_argument("--kommentar")
     x.set_defaults(f=cmd_aufgabe)
 
-    x = s.add_parser("frage", help="Fragen an den Entwickler oder Lead: neu | liste | antworten | nachtrag | verlauf")
-    x.add_argument("aktion", choices=["neu", "liste", "antworten", "nachtrag", "verlauf"])
+    x = s.add_parser("frage", help="Fragen an den Entwickler oder Lead: neu | liste [--geparkt] | antworten | nachtrag | verlauf |"
+                                    " parken N [--grund] | aufnehmen N")
+    x.add_argument("aktion", choices=["neu", "liste", "antworten", "nachtrag", "verlauf", "parken", "aufnehmen"])
     x.add_argument("id", type=int, nargs="?")
     x.add_argument("--an", choices=["entwickler", "tl"])
     x.add_argument("--kurz")
     x.add_argument("--worum")
     x.add_argument("--option", action="append", help="neu: 'A=Text' (mehrfach); antworten: Kennung")
     x.add_argument("--empfehlung")
-    x.add_argument("--grund")
     x.add_argument("--fundstellen")
     x.add_argument("--aufgabe", type=int)
     x.add_argument("--blockiert", action="store_true")
     x.add_argument("--text")
     x.add_argument("--rueckfrage")
+    x.add_argument("--grund", help="neu: warum du das empfiehlst; parken/aufnehmen: warum (steht im Verlauf)")
+    x.add_argument("--geparkt", action="store_true", help="liste: nur die geparkten")
     x.add_argument("--anhang", action="append", help="neu: Bild/Mockup zu einer Option, 'A=datei.png' oder 'A=D12' (mehrfach) –"
                                                      " erscheint als Variante zum Anklicken, auch online")
     x.set_defaults(f=cmd_frage)

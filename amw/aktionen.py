@@ -1,6 +1,6 @@
 """Was der Entwickler über eine Seite tun darf – ein Schreibweg für die lokale Workbench und den Briefkasten aus dem
 Netz (→ doc/architektur.md, doc/online.md). Absender ist immer der Entwickler; erlaubt sind nur diese Aktionen:
-Frage beantworten, Nachricht an Agenten, Nachrichten an dich als gelesen markieren, Halt, Weiter, Einstellungen.
+Frage beantworten oder parken, Nachricht an Agenten, Nachrichten an dich als gelesen markieren, Halt, Weiter, Einstellungen.
 Einstellungen „pc“ (Datenbank-Pfad, Port, Takte) und „turso“ (Zugang) nur am PC (kanal „seite“), nie aus dem Netz:
 wer sich online anmeldet, soll die AMW nicht auf eine andere Datenbank umbiegen oder den Zugang aussperren können.
 """
@@ -32,6 +32,16 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
                              kanal=kanal, erfasst_von="amw", erfasst_utc=t,
                              bemerkung=f"Anmerkung zur Antwort auf F{fid} (Option {wert})")
         return {"status": st}
+    if teile[:2] == ["api", "frage"] and len(teile) == 4 and teile[3] in ("parken", "aufnehmen"):
+        try:
+            fid = int(teile[2])
+        except ValueError:
+            raise Ungueltig("Fragenummer")
+        try:
+            return {"status": kern.frage_parken(con, pid, kern.ENTWICKLER, fid, teile[3] == "parken",
+                                                (daten.get("grund") or "").strip()[:2000] or None)}
+        except kern.AmwFehler as e:                  # schon geparkt/beantwortet (z. B. doppelt aus dem Netz): kein Fehler-Stau
+            raise Ungueltig(str(e)) from None
     if weg == "/api/nachricht":
         art = daten.get("art") or "auftrag"
         if art not in NACHRICHT_ARTEN:

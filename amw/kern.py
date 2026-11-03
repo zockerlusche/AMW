@@ -362,8 +362,8 @@ def frage_antworten(con, pid, fid, antwort_art, antwort, kanal, von=ENTWICKLER):
     t = db.jetzt()
     with db.schreiben(con):
         status = "offen" if antwort_art == "rueckfrage" else "beantwortet"
-        con.execute("UPDATE frage SET status = ?, antwort_art = ?, antwort = ?, antwort_utc = ?, antwort_kanal = ?"
-                    " WHERE id = ?", (status, antwort_art, antwort, t, kanal, fid))
+        con.execute("UPDATE frage SET status = ?, antwort_art = ?, antwort = ?, antwort_utc = ?, antwort_kanal = ?,"
+                    " geparkt_utc = NULL, geparkt_von = NULL WHERE id = ?", (status, antwort_art, antwort, t, kanal, fid))
         if von == ENTWICKLER and antwort_art in ("text", "rueckfrage"):
             db.einfuegen(con, "wortlaut", projekt_id=pid, zeit_utc=t, text=antwort, kanal=kanal,
                          erfasst_von="amw", erfasst_utc=t, bemerkung=f"Antwort auf F{fid}")
@@ -406,8 +406,35 @@ def frage_nachtrag(con, pid, von, fid, text):
     return nid
 
 
-def offene_fragen(con, pid, an=None):
-    sql = "SELECT * FROM frage WHERE projekt_id = ? AND status = 'offen'"
+def frage_parken(con, pid, von, fid, parken=True, grund=None):
+    """Parken: die Frage bleibt offen, steht aber in keiner offenen Liste und in keinem Zähler (geparkt_utc/_von);
+    „wieder aufnehmen“ holt sie zurück. Beides steht im Verlauf der Frage. Parken darf der Entwickler, der Lead und
+    wer gefragt hat; der Fragesteller bekommt eine Info (weckt nicht)."""
+    f = con.execute("SELECT * FROM frage WHERE id = ? AND projekt_id = ?", (fid, pid)).fetchone()
+    if not f:
+        raise AmwFehler(f"Frage F{fid} gibt es nicht")
+    if f["status"] != "offen":
+        raise AmwFehler(f"F{fid} ist schon {f['status']}")
+    if von != f["von"] and not ist_lead(con, pid, von):
+        raise AmwFehler(f"F{fid} parken darf der Entwickler, der Lead oder der Fragesteller ({f['von']})")
+    if bool(f["geparkt_utc"]) == parken:
+        raise AmwFehler(f"F{fid} ist {'schon geparkt' if parken else 'nicht geparkt'}")
+    grund = (grund or "").strip()
+    text = ("Geparkt" if parken else "Wieder aufgenommen") + (f": {grund}" if grund else "")
+    t = db.jetzt()
+    with db.schreiben(con):
+        con.execute("UPDATE frage SET geparkt_utc = ?, geparkt_von = ? WHERE id = ?", (t if parken else None, von if parken else None, fid))
+        nid = None
+        if f["von"] != von:
+            nid, _ = _posten(con, pid, von, f["von"], "info", f"F{fid} {text[:1].lower() + text[1:120]}",
+                             text=text if len(text) > 120 else None, aufgabe_id=f["aufgabe_id"])
+        db.einfuegen(con, "frage_verlauf", frage_id=fid, zeit_utc=t, von=von, art="nachtrag", text=text, nachricht_id=nid)
+    return "geparkt" if parken else "offen"
+
+
+def offene_fragen(con, pid, an=None, geparkt=False):
+    """Offene Fragen; geparkte nur mit geparkt=True (dann nur die)."""
+    sql = "SELECT * FROM frage WHERE projekt_id = ? AND status = 'offen' AND geparkt_utc IS " + ("NOT NULL" if geparkt else "NULL")
     par = [pid]
     if an:
         sql += " AND an = ?"

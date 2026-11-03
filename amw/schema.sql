@@ -284,6 +284,8 @@ CREATE TABLE frage (
   antwort        TEXT,
   antwort_utc    TEXT,
   antwort_kanal  TEXT,                            -- seite, chat, cli
+  geparkt_utc    TEXT,                            -- geparkt: offen, aber nicht in der offenen Liste (Schema 10)
+  geparkt_von    TEXT,
   uid            TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft       TEXT NOT NULL DEFAULT '',
   geaendert_utc  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))

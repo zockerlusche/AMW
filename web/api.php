@@ -73,11 +73,12 @@ try {
             catch (LengthException $x) { antwort(429, ['fehler' => $x->getMessage()]); }
         }
         $frage = preg_match('#^/api/frage/(\d{1,9})/antwort$#', $pfad, $m);
+        $parken = preg_match('#^/api/frage/(\d{1,9})/(parken|aufnehmen)$#', $pfad);
         if (in_array($pfad, ['/api/einstellungen/pc', '/api/einstellungen/turso', '/api/einstellungen/push', '/api/einstellungen/profil',
                 '/api/agent/start', '/api/agent/stop', '/api/push/probe'], true)) {
             antwort(403, ['fehler' => 'Das geht nur am PC.']);
         }
-        if (!$frage && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter',
+        if (!$frage && !$parken && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter',
                 '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web',
                 '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko',
                 '/api/plan/rueckblick', '/api/plan/uebernehmen', '/api/plan/check',
@@ -121,6 +122,7 @@ try {
         // gleiche Form wie am PC, damit die Seite unverändert bleibt; „unterwegs“ = der PC übernimmt es gleich
         $form = match (true) {
             (bool)$frage => ['status' => ($daten['art'] === 'rueckfrage') ? 'offen' : 'beantwortet'],
+            (bool)$parken => ['status' => str_ends_with($pfad, '/parken') ? 'geparkt' : 'offen'],
             $pfad === '/api/nachricht' => ['an' => array_map('trim', explode(',', (string)$daten['an']))],
             $pfad === '/api/gelesen' => ['erledigt' => count($daten['ids'])],
             str_starts_with($pfad, '/api/einstellungen/'), str_starts_with($pfad, '/api/plan/'), str_starts_with($pfad, '/api/dokument/') => [],
@@ -216,12 +218,23 @@ try {
         $d['regeln'] = array_values(array_filter($d['regeln'], fn($r) => $hat($r['text'])));
     } elseif ($pfad === '/api/fragen') {
         // Antworten im Briefkasten: beantwortet → ausblenden; Rückfrage → als Blase „unterwegs“ an den Verlauf hängen
+        // Parken im Briefkasten: aus der offenen Liste nehmen bzw. (geparkte zeigen) schon als geparkt/offen kennzeichnen
         $wartend = [];
-        foreach ($offen as [$w, $dat]) if (preg_match('#^/api/frage/(\d+)/antwort$#', $w, $m)) $wartend[(int)$m[1]][] = json_decode($dat, true);
+        $park = [];
+        foreach ($offen as [$w, $dat]) {
+            if (preg_match('#^/api/frage/(\d+)/antwort$#', $w, $m)) $wartend[(int)$m[1]][] = json_decode($dat, true);
+            if (preg_match('#^/api/frage/(\d+)/(parken|aufnehmen)$#', $w, $m)) $park[(int)$m[1]] = $m[2] === 'parken';
+        }
+        $alle = ($q['alle'] ?? '') === '1';
         $aus = [];
         foreach ($d as $f) {
             $liste = $wartend[(int)$f['id']] ?? [];
             if (array_filter($liste, fn($x) => ($x['art'] ?? '') !== 'rueckfrage')) continue;
+            if (isset($park[(int)$f['id']])) {
+                if ($park[(int)$f['id']] && !$alle) continue;
+                $f['geparkt_utc'] = $park[(int)$f['id']] ? jetzt_utc() : null;
+                $f['geparkt_von'] = $park[(int)$f['id']] ? 'Entwickler' : null;
+            }
             foreach ($liste as $x) {
                 $f['verlauf'][] = ['zeit_utc' => jetzt_utc(), 'von' => 'Entwickler', 'art' => 'rueckfrage', 'text' => (string)($x['wert'] ?? ''), 'unterwegs' => true];
                 $f['wartet_auf_fragesteller'] = true;

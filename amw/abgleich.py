@@ -406,6 +406,8 @@ class Abgleich:
             else:
                 try:
                     daten = json.loads(roh)
+                    if daten == []:                    # PHP schreibt ein leeres Objekt als []
+                        daten = {}
                     if not isinstance(daten, dict):
                         raise aktionen.Ungueltig("Daten")
                     status, ergebnis = "erledigt", aktionen.ausfuehren(self.con, self.pid, weg, daten, kanal="netz",

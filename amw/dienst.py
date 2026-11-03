@@ -64,7 +64,7 @@ def takt_text(con, pid, lead, seit):
     beantwortet = con.execute("SELECT id FROM frage WHERE projekt_id = ? AND antwort_utc >= ? AND status = 'beantwortet'"
                               " ORDER BY id", (pid, seit)).fetchall()
     offen_entw = z("SELECT count(*) FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
-                   " AND kurz NOT LIKE 'GEPARKT%'")
+                   " AND geparkt_utc IS NULL")
     fertig = z("SELECT count(*) FROM aufgabe WHERE projekt_id = ? AND fertig_utc >= ?", seit)
     laeufe = z("SELECT count(*) FROM lauf WHERE projekt_id = ? AND status = 'laeuft'")
     teile = [f"{neu_an_lead} neue Nachricht(en) an dich", f"{fertig} Aufgabe(n) abgeschlossen",

@@ -12,7 +12,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummer: ganze Nachricht |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 |
 | [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] |
-| [`frage`](#frage) | Fragen an den Entwickler oder Lead: neu ¦ liste ¦ antworten ¦ nachtrag ¦ verlauf |
+| [`frage`](#frage) | Fragen an den Entwickler oder Lead: neu ¦ liste [--geparkt] ¦ antworten ¦ nachtrag ¦ verlauf ¦ parken N [--grund] ¦ aufnehmen N |
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
@@ -231,14 +231,14 @@ options:
 ## frage
 ```
 usage: amw frage [-h] [--an {entwickler,tl}] [--kurz KURZ] [--worum WORUM]
-                 [--option OPTION] [--empfehlung EMPFEHLUNG] [--grund GRUND]
+                 [--option OPTION] [--empfehlung EMPFEHLUNG]
                  [--fundstellen FUNDSTELLEN] [--aufgabe AUFGABE] [--blockiert]
-                 [--text TEXT] [--rueckfrage RUECKFRAGE] [--anhang ANHANG]
-                 [--von VON] [--projekt PROJEKT]
-                 {neu,liste,antworten,nachtrag,verlauf} [id]
+                 [--text TEXT] [--rueckfrage RUECKFRAGE] [--grund GRUND]
+                 [--geparkt] [--anhang ANHANG] [--von VON] [--projekt PROJEKT]
+                 {neu,liste,antworten,nachtrag,verlauf,parken,aufnehmen} [id]
 
 positional arguments:
-  {neu,liste,antworten,nachtrag,verlauf}
+  {neu,liste,antworten,nachtrag,verlauf,parken,aufnehmen}
   id
 
 options:
@@ -248,12 +248,14 @@ options:
   --worum WORUM
   --option OPTION       neu: 'A=Text' (mehrfach); antworten: Kennung
   --empfehlung EMPFEHLUNG
-  --grund GRUND
   --fundstellen FUNDSTELLEN
   --aufgabe AUFGABE
   --blockiert
   --text TEXT
   --rueckfrage RUECKFRAGE
+  --grund GRUND         neu: warum du das empfiehlst; parken/aufnehmen: warum
+                        (steht im Verlauf)
+  --geparkt             liste: nur die geparkten
   --anhang ANHANG       neu: Bild/Mockup zu einer Option, 'A=datei.png' oder
                         'A=D12' (mehrfach) – erscheint als Variante zum
                         Anklicken, auch online

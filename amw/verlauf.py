@@ -124,7 +124,7 @@ def zusammenfassung(con, pid, seit_utc):
         "nachrichten": z("SELECT count(*) FROM nachricht WHERE projekt_id = ? AND zeit_utc >= ?"),
     }
     aus["fragen_offen"] = con.execute("SELECT count(*) FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
-                                      " AND kurz NOT LIKE 'GEPARKT%'", (pid,)).fetchone()[0]
+                                      " AND geparkt_utc IS NULL", (pid,)).fetchone()[0]
     aus["highlights"] = [dict(r) for r in con.execute(
         "SELECT id, titel, agent FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND fertig_utc >= ? ORDER BY fertig_utc DESC LIMIT 5",
         (pid, seit_utc))]
@@ -154,7 +154,7 @@ def seit_daten(con, pid, tage=7):
         "SELECT id, titel, agent, fertig_utc AS zeit FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND fertig_utc >= ?"
         " ORDER BY fertig_utc DESC LIMIT 30", (pid, grenze))]
     offen = con.execute("SELECT count(*) FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
-                        " AND kurz NOT LIKE 'GEPARKT%'", (pid,)).fetchone()[0]
+                        " AND geparkt_utc IS NULL", (pid,)).fetchone()[0]
     return {"ab": grenze, "ereignisse": ereignisse, "highlights": hl, "fragen_offen": offen}
 
 

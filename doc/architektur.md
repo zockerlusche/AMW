@@ -18,7 +18,7 @@
 | `amw/db.py` | einziger Datenbankzugang: Verbindung (WAL, Wartezeit), Anlegen, Umstellen auf neue Schema-Versionen (`migration_<n>.sql` beim ersten Schreibzugriff), Sicherung |
 | `amw/schema.sql` | Datenmodell (§4) |
 | `amw/kern.py` | Nachrichten, Empfänger, Aufgaben, Fragen mit Verlauf, Halt/Hinweise, Pflicht-Kontext |
-| `amw/wissen.py` | Beschlüsse, Regeln (nur mit Beschluss), Wortlaut, Notizen, Release Notes, Einstufung (geparkt/Pool) |
+| `amw/wissen.py` | Beschlüsse, Regeln (nur mit Beschluss), Wortlaut, Notizen, Release Notes, Einstufung (geparkt/Pool) – Fragen parken: `kern.frage_parken` |
 | `amw/betrieb.py` | Rechen-Läufe mit Regeln und Warteschlange, Prüfungen, Rezepte |
 | `amw/planung.py` | Leitbild, Bögen, Spezifikation, Schritte, Abhängigkeiten, nächster Schritt, Risiken, Prognose, Plan-Check |
 | `amw/verlauf.py` | Rückblick je Bogen, Verlauf aller Ereignisse, Zusammenfassungen |
