@@ -610,9 +610,10 @@ def baue_handler(port, token):
 
         def do_POST(self):
             herkunft = self.headers.get("Origin")
-            if (self.headers.get("Host") not in erlaubt or self.headers.get("X-AMW-Token") != token
-                    or (herkunft and herkunft.split("//", 1)[-1] not in erlaubt)):
+            if self.headers.get("Host") not in erlaubt or (herkunft and herkunft.split("//", 1)[-1] not in erlaubt):
                 return self._senden(403, {"fehler": "nicht erlaubt"})
+            if self.headers.get("X-AMW-Token") != token:     # meist: Seite stammt von vor einem Neustart der Workbench
+                return self._senden(403, {"fehler": "nicht erlaubt", "neu_laden": True})
             try:
                 laenge = min(int(self.headers.get("Content-Length") or 0), 3_000_000)   # Text berichtigen bis 400 000 Zeichen
                 daten = json.loads(self.rfile.read(laenge) or b"{}")

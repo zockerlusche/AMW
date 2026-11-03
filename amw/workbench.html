@@ -573,6 +573,8 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
 .dialog h3 { font: 600 20px var(--titel); margin: 0 0 10px; color: var(--rot); letter-spacing: .06em; }
 .dialog.einst h3 { color: var(--tinte); }   /* Profil ist keine Warnung */
 .dialog select { width: 100%; padding: 8px; background: var(--grund); border: 1px solid var(--linie); border-radius: 3px; }
+.neu-laden { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px);
+  z-index: 30; display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-color: var(--rot); }
 .toast { position: fixed; bottom: 18px; right: 18px; left: auto; padding: 10px 14px; z-index: 20; animation: auf .3s both; }
 
 /* --- Handy ---------------------------------------------------------------------------------
@@ -715,6 +717,9 @@ const TEXTE = {
     e_url: "Adresse", e_token: "Schlüssel", e_token_da: "gespeichert – leer lassen = behalten", e_token_neu: "noch keiner", e_abgleich: "Abgleich an",
     s_pc: "PC-Stand {x}", s_pc_weg: "PC zuletzt {x}", s_briefkasten: "{n} unterwegs", abmelden: "Abmelden",
     unterwegs: "Übermittelt – der PC übernimmt es beim nächsten Abgleich (meist unter 1 Minute).",
+    neu_laden: "Die Workbench wurde neu gestartet – bitte die Seite neu laden, dann geht es wieder.", neu_laden_knopf: "Neu laden",
+    p_probe_laeuft: "Probe wird verschickt …", p_probe_gespeichert: "Änderungen gespeichert, dann Probe verschickt.",
+    p_probe_ok: "verschickt – kommt sie nicht an, den Kanal am Handy und hier vergleichen",
     stand: "Stand {t}", wartet_auf_dich: "Wartet auf dich", nichts_offen: "Nichts offen – keine Frage wartet auf dich.", agenten: "Agenten",
     alle_agenten: "alle Agenten", agent: "Agent", blockiert: "blockiert", blockiert_arbeit: "blockiert Arbeit",
     laeuft: "läuft", beendet_soll: "beendet – soll laufen", nie_gestartet: "nie gestartet", ruht: "ruht", aus: "aus",
@@ -912,6 +917,9 @@ const TEXTE = {
     e_url: "URL", e_token: "Token", e_token_da: "saved – leave empty to keep", e_token_neu: "none yet", e_abgleich: "Sync on",
     s_pc: "PC data {x}", s_pc_weg: "PC last seen {x}", s_briefkasten: "{n} pending", abmelden: "Log out",
     unterwegs: "Sent – your PC picks it up at the next sync (usually within a minute).",
+    neu_laden: "The workbench was restarted – please reload the page, then it works again.", neu_laden_knopf: "Reload",
+    p_probe_laeuft: "Sending test …", p_probe_gespeichert: "Changes saved, then test sent.",
+    p_probe_ok: "sent – if it does not arrive, compare the topic on your phone and here",
     stand: "As of {t}", wartet_auf_dich: "Waiting for you", nichts_offen: "Nothing pending – no question is waiting for you.", agenten: "Agents",
     alle_agenten: "all agents", agent: "Agent", blockiert: "blocked", blockiert_arbeit: "blocks work",
     laeuft: "running", beendet_soll: "stopped – should run", nie_gestartet: "never started", ruht: "resting", aus: "off",
@@ -1091,10 +1099,20 @@ function seit(x) {
 async function holen(weg) { const r = await fetch(ziel(weg), { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return r.json(); }
 async function schicken(weg, daten) {
   const r = await fetch(ziel(weg), { method: "POST", headers: { "Content-Type": "application/json", "X-AMW-Token": TOKEN }, body: JSON.stringify(daten) });
-  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.fehler || r.status);
+  const j = await r.json().catch(() => ({}));
+  if (j.neu_laden) { neuLadenLeiste(); throw new Error(t("neu_laden")); }
+  if (!r.ok) throw new Error(j.fehler || r.status);
   if (j.unterwegs) toast(t("unterwegs")); return j;
 }
+function neuLadenLeiste() {          // bleibt stehen, bis neu geladen wird – Eingaben auf der Seite bleiben bis dahin
+  if (document.getElementById("neu-laden")) return;
+  const k = el("button", { class: "knopf haupt", type: "button" }, t("neu_laden_knopf"));
+  k.addEventListener("click", () => location.reload());
+  document.body.append(el("div", { class: "karte neu-laden", id: "neu-laden", role: "alert" },
+    el("span", {}, t("neu_laden")), k));
+}
 function toast(text, fehler) {
+  if (text.includes(t("neu_laden")) && document.getElementById("neu-laden")) return;   // steht schon oben
   const x = el("div", { class: "karte toast" }, text); if (fehler) x.style.borderColor = "var(--rot)";
   document.body.append(x); setTimeout(() => x.remove(), 3800);
 }
@@ -2763,8 +2781,8 @@ async function sichtEinstellungen() {
   const wert = x => x.type === "checkbox" ? x.checked : x.type === "number" ? (x.value === "" ? null : Number(x.value)) : x.value.trim();
   async function speichern(teil, daten, knopf) {
     knopf.disabled = true;
-    try { const r = await schicken(`/api/einstellungen/${teil}`, daten); if (!r.unterwegs) toast(r.hinweis ? `${t("gespeichert")} – ${r.hinweis}` : t("gespeichert")); }
-    catch (e) { toast(t("fehler", { x: e.message }), true); }
+    try { const r = await schicken(`/api/einstellungen/${teil}`, daten); if (!r.unterwegs) toast(r.hinweis ? `${t("gespeichert")} – ${r.hinweis}` : t("gespeichert")); return true; }
+    catch (e) { toast(t("fehler", { x: e.message }), true); return false; }
     finally { knopf.disabled = false; }
   }
   function block(titel, hinweis, felder, teil, sammeln, gesperrt) {
@@ -2892,19 +2910,31 @@ async function pushBlock(feld, text, zahl, schalter, wert, speichern) {
   f.link.placeholder = "https://…  (sonst lokale Workbench – vom Handy nicht erreichbar)";
   const ereig = Object.fromEntries(d.ereignisse.map(e => [e, schalter(c.ereignisse[e])]));
   const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
-  knopf.addEventListener("click", () => speichern("push", {
+  const sammeln = () => ({
     an: f.an.checked, link: wert(f.link), max_je_stunde: wert(f.max),
     ruhe: { an: f.ruhe_an.checked, von: f.ruhe_von.value, bis: f.ruhe_bis.value },
     ntfy: { an: f.ntfy_an.checked, server: wert(f.ntfy_server), topic: f.ntfy_topic.value.trim(), token: f.ntfy_token.value.trim() },
     pushover: { an: f.po_an.checked, app_token: f.po_app.value.trim(), user_key: f.po_user.value.trim() },
     telegram: { an: f.tg_an.checked, bot_token: f.tg_token.value.trim(), chat_id: wert(f.tg_chat) },
     ereignisse: Object.fromEntries(Object.entries(ereig).map(([k, x]) => [k, x.checked])),
-  }, knopf));
-  const ergebnis = el("div", { class: "sehrleise mono", style: "margin-top:8px;white-space:pre-wrap" });
+  });
+  let stand = JSON.stringify(sammeln());
+  knopf.addEventListener("click", () => { const x = sammeln(); speichern("push", x, knopf).then(ok => { if (ok) stand = JSON.stringify(x); }); });
+  /* Probe: Ergebnis direkt unter dem Knopf; ungespeicherte Änderungen zuerst speichern – die Probe nimmt das Gespeicherte */
   const probe = anbieter => { const b = el("button", { class: "klein-knopf", type: "button" }, t("p_probe", { x: anbieter }));
-    b.addEventListener("click", async () => { b.disabled = true; ergebnis.textContent = "…";
-      try { const r = await schicken("/api/push/probe", { anbieter }); ergebnis.textContent = Object.entries(r.probe).map(([a, x]) => `${a}: ${x}`).join("\n"); }
-      catch (e) { ergebnis.textContent = e.message; } finally { b.disabled = false; } }); return b; };
+    const aus = el("div", { class: "mono", role: "status", style: "margin-top:6px;white-space:pre-wrap" });
+    b.addEventListener("click", async () => { b.disabled = true; aus.className = "sehrleise mono"; aus.textContent = t("p_probe_laeuft");
+      try {
+        const x = sammeln(), neu = JSON.stringify(x) !== stand;
+        if (neu) { await schicken("/api/einstellungen/push", x); stand = JSON.stringify(x); }
+        const r = await schicken("/api/push/probe", { anbieter }), fehler = Object.values(r.probe).find(v => v !== "ok");
+        aus.className = "mono";
+        aus.replaceChildren(neu ? el("div", { class: "leise" }, t("p_probe_gespeichert")) : "", ...Object.entries(r.probe).map(([a, v]) =>
+          el("div", { class: v === "ok" ? "" : "rot-text" }, `${a}: ${v === "ok" ? t("p_probe_ok") : v}`)));
+        toast(fehler ? `${anbieter}: ${fehler}` : `${anbieter}: ${t("p_probe_ok")}`, !!fehler);
+      } catch (e) { aus.className = "rot-text mono"; aus.textContent = e.message; toast(e.message, true); }
+      finally { b.disabled = false; } });
+    return el("div", {}, b, aus); };
   const gruppe = (titel, felder, anbieter) => el("div", { class: "push-gruppe" }, el("h4", {}, titel),
     ...felder.map(([b, x, h]) => feld(b, x, h)), anbieter ? probe(anbieter) : null);
   const protokoll = d.protokoll.length ? el("table", { class: "tab" }, el("tr", {}, ["k_zeit", "k_titel", "k_ergebnis"].map(k => el("th", {}, t(k)))),
@@ -2918,7 +2948,7 @@ async function pushBlock(feld, text, zahl, schalter, wert, speichern) {
     gruppe("Telegram", [[t("p_an_kurz"), f.tg_an], [t("p_bot"), f.tg_token], [t("p_chat"), f.tg_chat, t("p_chat_h")]], "telegram"),
     gruppe(t("p_ereignisse"), d.ereignisse.map(e => [t("pe_" + e), ereig[e]])),
     gruppe(t("p_ruhe"), [[t("p_an_kurz"), f.ruhe_an, t("p_ruhe_h")], [t("p_von"), f.ruhe_von], [t("p_bis"), f.ruhe_bis], [t("p_max"), f.max]]),
-    el("div", { style: "margin-top:12px" }, knopf), ergebnis,
+    el("div", { style: "margin-top:12px" }, knopf),
     el("h4", { style: "margin-top:18px" }, t("p_protokoll")), el("div", { style: "overflow-x:auto" }, protokoll));
 }
 

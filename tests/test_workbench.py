@@ -156,11 +156,12 @@ class Workbench(unittest.TestCase):
         self.assertEqual(len(d["pruefungen"]), 1)                               # offene Prüfbitte erscheint
 
     def test_schreiben_nur_mit_schluessel(self):
-        status, _ = self.anfrage("POST", f"/api/frage/{self.fid}/antwort", {"art": "option", "wert": "A"})
-        self.assertEqual(status, 403)
-        status, _ = self.anfrage("POST", f"/api/frage/{self.fid}/antwort", {"art": "option", "wert": "A"},
-                                 {"X-AMW-Token": self.token, "Origin": "http://boese.example"})
-        self.assertEqual(status, 403)
+        status, text = self.anfrage("POST", f"/api/frage/{self.fid}/antwort", {"art": "option", "wert": "A"},
+                                    {"X-AMW-Token": "von-vor-dem-neustart"})
+        self.assertEqual((status, json.loads(text).get("neu_laden")), (403, True))   # Seite sagt: neu laden
+        status, text = self.anfrage("POST", f"/api/frage/{self.fid}/antwort", {"art": "option", "wert": "A"},
+                                    {"X-AMW-Token": self.token, "Origin": "http://boese.example"})
+        self.assertEqual((status, json.loads(text).get("neu_laden")), (403, None))    # fremde Herkunft: kein Hinweis
         status, text = self.anfrage("POST", f"/api/frage/{self.fid}/antwort", {"art": "option", "wert": "B"},
                                     {"X-AMW-Token": self.token})
         self.assertEqual((status, json.loads(text)["status"]), (200, "beantwortet"))

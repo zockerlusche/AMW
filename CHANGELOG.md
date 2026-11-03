@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.6.2 – 03.11.2026
+- **Probe-Knopf der Benachrichtigungen meldet sich:** Das Ergebnis steht jetzt direkt unter dem Knopf (und als Meldung
+  unten), nicht mehr am Ende der Karte außer Sicht. Ungespeicherte Änderungen (z. B. ein neu eingetragener ntfy-Kanal)
+  werden vor der Probe gespeichert – die Probe geht also an das, was in den Feldern steht.
+- **Nach einem Neustart der Workbench:** Eine vorher geöffnete Seite bekam bei jedem Speichern und Klicken nur „nicht
+  erlaubt“. Jetzt erscheint oben ein klarer Hinweis mit Knopf *Neu laden*.
+
 ## 1.6.1 – 03.11.2026
 - **Tab-Titel bleibt die Kennung:** Beim Start aus der Workbench und im Skript von `amw agent startskript` öffnet jeder
   Agent seinen Tab mit `--suppressApplicationTitle`. Claude Code überschreibt den Titel dann nicht mehr, der Tab heißt
