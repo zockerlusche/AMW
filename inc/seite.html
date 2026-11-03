@@ -492,6 +492,8 @@ a.knopf { text-decoration: none; display: inline-flex; align-items: center; colo
 .blase.ich { justify-self: end; border-radius: 10px 10px 2px 10px; background: var(--bernstein-weich);
   border-color: color-mix(in srgb, var(--bernstein) 45%, var(--linie)); }
 .blase.unterwegs { opacity: .7; border-style: dashed; }
+.blase.vermerk { justify-self: center; max-width: 92%; background: none; border-style: dashed; font-size: 13px; color: var(--leise); }
+.reiter button .zahl { font: 12px var(--mono); color: var(--sehrleise); }
 .blase .wer { font: 11px var(--titel); letter-spacing: .06em; text-transform: uppercase; color: var(--sehrleise); margin-bottom: 2px; white-space: normal; }
 /* Rand nach Status bzw. Art */
 .eintrag.laeuft, .eintrag.lauf { border-left-color: var(--gruen); }
@@ -717,7 +719,10 @@ const TEXTE = {
     alle_agenten: "alle Agenten", agent: "Agent", blockiert: "blockiert", blockiert_arbeit: "blockiert Arbeit",
     laeuft: "läuft", beendet_soll: "beendet – soll laufen", nie_gestartet: "nie gestartet", ruht: "ruht", aus: "aus",
     keine_aufgabe: "keine laufende Aufgabe", puls: "Puls {t}", offen_n: "{n} offen",
-    fragen: "Fragen", geparkte_zeigen: "geparkte zeigen", keine_fragen: "Keine offenen Fragen.", von: "von {x}",
+    fragen: "Fragen", keine_fragen: "Keine offenen Fragen.", keine_geparkt: "Keine geparkten Fragen.", von: "von {x}",
+    f_parken: "Parken", f_parken_tipp: "Raus aus der offenen Liste und aus den Zählern, aber nicht verloren – unter „Geparkt“ nimmst du sie wieder auf. Steht Text im Feld, ist das der Grund (kommt in den Verlauf).",
+    f_aufnehmen: "Wieder aufnehmen", f_geparkt_etikett: "geparkt {z} · {x}", f_geparkt_ok: "Geparkt – steht unter „Geparkt“", f_aufgenommen: "Wieder offen",
+    f_geparkt_hinweis: "Geparkte Fragen bleiben offen, wecken aber niemanden und zählen nicht. Antworten kannst du trotzdem.", v_park: "Vermerk",
     anmerkung_ph: "Anmerkung zur gewählten Option (optional) – oder eigene Antwort / Rückfrage", antwort_ph: "Deine Antwort oder Rückfrage",
     empfehlung: "Empfehlung", warum: "Warum {k}: ", optionen: "Optionen: ", fundstellen: "Fundstellen: ",
     eigene_antwort: "Eigene Antwort", rueckfrage: "Rückfrage", vorgeschichte: "Vorgeschichte ({n})",
@@ -911,7 +916,10 @@ const TEXTE = {
     alle_agenten: "all agents", agent: "Agent", blockiert: "blocked", blockiert_arbeit: "blocks work",
     laeuft: "running", beendet_soll: "stopped – should run", nie_gestartet: "never started", ruht: "resting", aus: "off",
     keine_aufgabe: "no running task", puls: "pulse {t}", offen_n: "{n} open",
-    fragen: "Questions", geparkte_zeigen: "show parked", keine_fragen: "No open questions.", von: "from {x}",
+    fragen: "Questions", keine_fragen: "No open questions.", keine_geparkt: "No parked questions.", von: "from {x}",
+    f_parken: "Park", f_parken_tipp: "Out of the open list and the counters, but not lost – resume it under “Parked”. Text in the field is the reason (goes into the history).",
+    f_aufnehmen: "Resume", f_geparkt_etikett: "parked {z} · {x}", f_geparkt_ok: "Parked – see “Parked”", f_aufgenommen: "Open again",
+    f_geparkt_hinweis: "Parked questions stay open but wake nobody and don’t count. You can still answer them.", v_park: "Note",
     anmerkung_ph: "Note on the chosen option (optional) – or your own answer / follow-up question", antwort_ph: "Your answer or follow-up question",
     empfehlung: "Recommended", warum: "Why {k}: ", optionen: "Options: ", fundstellen: "Sources: ",
     eigene_antwort: "Own answer", rueckfrage: "Ask back", vorgeschichte: "History ({n})",
@@ -1059,7 +1067,7 @@ const TEXTE = {
 let sprache = "de";
 const t = (k, v = {}) => (TEXTE[sprache][k] ?? TEXTE.de[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => v[n] ?? "");
 
-let zustand = { sicht: "start", start: null, fragenAlle: false, arbeit: { sicht: "offen", agent: "", q: "" }, wissenQ: "", wissenReiter: "beschluesse" };
+let zustand = { sicht: "start", start: null, fragenSicht: "offen", arbeit: { sicht: "offen", agent: "", q: "" }, wissenQ: "", wissenReiter: "beschluesse" };
 
 /* Elemente nur über textContent – Inhalte aus der Datenbank werden nie als HTML gesetzt. */
 function el(tag, attr, ...kinder) {
@@ -1509,11 +1517,14 @@ function nachrichtDialog(an) {
 
 /* --- Fragen -------------------------------------------------------------------------------- */
 async function sichtFragen() {
-  const m = rahmen(t("fragen"), el("label", { class: "leise" },
-    el("input", { type: "checkbox", ...(zustand.fragenAlle ? { checked: true } : {}), onchange: e => { zustand.fragenAlle = e.target.checked; sichtFragen(); } }),
-    " " + t("geparkte_zeigen")));
-  let liste; try { liste = await holen("/api/fragen" + (zustand.fragenAlle ? "?alle=1" : "")); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
-  if (!liste.length) { m.append(el("div", { class: "leer" }, t("keine_fragen"))); return; }
+  const m = rahmen(t("fragen"));
+  let alle; try { alle = await holen("/api/fragen?alle=1"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  const geparkt = zustand.fragenSicht === "geparkt";
+  const liste = alle.filter(f => !!f.geparkt_utc === geparkt);
+  m.append(el("div", { class: "reiter" }, ["offen", "geparkt"].map(s => el("button", { class: s === zustand.fragenSicht ? "an" : "", type: "button",
+    onclick: () => { zustand.fragenSicht = s; sichtFragen(); } }, t("t_" + s), el("span", { class: "zahl" }, ` ${alle.filter(f => !!f.geparkt_utc === (s === "geparkt")).length}`)))));
+  if (geparkt && liste.length) m.append(el("p", { class: "leise", style: "margin:0 0 12px" }, t("f_geparkt_hinweis")));
+  if (!liste.length) { m.append(el("div", { class: "leer" }, t(geparkt ? "keine_geparkt" : "keine_fragen"))); return; }
   m.append(el("div", { class: "zeile-reveal" }, liste.map(frageKarte)));
 }
 /* Kennung und Text einer Option zum Anzeigen. Alte Fragen haben teils den ganzen Satz als Kennung („V0: …“, Text leer) –
@@ -1535,11 +1546,17 @@ function frageKarte(f) {
       sperren(r.status === "offen" ? t("rueckfrage_gesendet") : t("beantwortet"));
       kopfAktualisieren(); if (art === "rueckfrage" && !API) setTimeout(() => zeige("fragen", true), 400); } catch (e) { toast(t("fehler", { x: e.message }), true); }
   }
+  async function parken(ja) {
+    try { await schicken(`/api/frage/${f.id}/${ja ? "parken" : "aufnehmen"}`, { grund: notiz.value.trim() });
+      sperren(t(ja ? "f_geparkt_ok" : "f_aufgenommen")); kopfAktualisieren(); setTimeout(() => zeige("fragen", true), 700); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); }
+  }
   karte.append(...[                                                        // DOM-append schriebe null als Text
     el("div", { class: "meta" }, el("span", { class: "ref" }, `F${f.id}`), t("von", { x: f.von }), el("span", { class: "sehrleise" }, `${zeit(f.zeit_utc)} · ${seit(f.zeit_utc)}`),
       f.blockiert ? el("span", { class: "etikett rot" }, t("blockiert_arbeit")) : null,
       f.aufgabe_id ? el("span", { class: "etikett" }, `A${f.aufgabe_id}`) : null,
-      f.wartet_auf_fragesteller ? el("span", { class: "etikett bernstein" }, t("wartet_auf_x", { x: f.von })) : null),
+      f.wartet_auf_fragesteller ? el("span", { class: "etikett bernstein" }, t("wartet_auf_x", { x: f.von })) : null,
+      f.geparkt_utc ? el("span", { class: "etikett" }, t("f_geparkt_etikett", { z: zeit(f.geparkt_utc), x: f.geparkt_von === "Entwickler" ? t("du") : f.geparkt_von })) : null),
     el("h3", {}, f.kurz),
     f.worum ? el("p", { class: "worum" }, f.worum) : null,
     (f.dokumente || []).length ? el("div", { class: "dk-anhaenge" }, f.dokumente.map(x => el("button", { class: "dk-anhang", type: "button", onclick: () => dokumentDialog(x.id) },
@@ -1561,8 +1578,9 @@ function frageKarte(f) {
   /* Gesprächsverlauf wie im Chat: Fragesteller links, du (Entwickler) rechts */
   if ((f.verlauf || []).length) karte.append(el("div", { class: "verlauf" }, f.verlauf.map(v => {
     const ich = v.von === "Entwickler";
-    return el("div", { class: "blase" + (ich ? " ich" : "") + (v.unterwegs ? " unterwegs" : "") },
-      el("div", { class: "wer" }, `${ich ? t("du") : v.von} · ${t("v_" + v.art)} · ${v.unterwegs ? t("s_briefkasten", { n: 1 }) : seit(v.zeit_utc)}`),
+    const vermerk = v.art === "nachtrag" && /^(Geparkt|Wieder aufgenommen)(:|$)/.test(v.text);   // amw frage parken/aufnehmen
+    return el("div", { class: "blase" + (ich ? " ich" : "") + (v.unterwegs ? " unterwegs" : "") + (vermerk ? " vermerk" : "") },
+      el("div", { class: "wer" }, `${ich ? t("du") : v.von} · ${t(vermerk ? "v_park" : "v_" + v.art)} · ${v.unterwegs ? t("s_briefkasten", { n: 1 }) : seit(v.zeit_utc)}`),
       el("div", { class: "was" }, v.text));
   })));
   if (echteOptionen.length) {
@@ -1579,6 +1597,8 @@ function frageKarte(f) {
     el("button", { class: "knopf" + (echteOptionen.length ? "" : " haupt"), type: "button", onclick: () => notiz.value.trim() ? antworten("text", notiz.value) : toast(t("text_fehlt"), true) }, t("eigene_antwort")),
     el("button", { class: "knopf", type: "button", onclick: () => notiz.value.trim() ? antworten("rueckfrage", notiz.value) : toast(t("rueckfrage_fehlt"), true) }, t("rueckfrage")),
     el("button", { class: "klein-knopf", type: "button", onclick: () => dokHochladen({ bezug: `frage:${f.id}` }) }, t("dk_anhaengen")),
+    f.geparkt_utc ? el("button", { class: "knopf", type: "button", onclick: () => parken(false) }, t("f_aufnehmen"))
+      : el("button", { class: "klein-knopf", type: "button", title: t("f_parken_tipp"), onclick: () => parken(true) }, t("f_parken")),
     meldung));
   if (f.vorgeschichte.length) karte.append(el("details", { class: "vor" }, el("summary", {}, t("vorgeschichte", { n: f.vorgeschichte.length })),
     f.vorgeschichte.map(v => el("div", { class: "vor-eintrag" }, el("div", {}, el("span", { class: "ref" }, v.ref), " ", el("span", { class: "sehrleise" }, v.art)),
