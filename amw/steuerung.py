@@ -202,7 +202,7 @@ def starten(con, pid, kennung, neu=False, ausfuehren=None):
     shell = _shell()
     wt_exe = shutil.which("wt")
     if wt_exe:
-        args = [wt_exe, "-w", "amw", "new-tab", "--title", kennung, "-d", p["ordner"], shell, "-NoExit", "-EncodedCommand", b64]
+        args = [wt_exe, "-w", "amw", "new-tab", "--title", kennung, "--suppressApplicationTitle", "-d", p["ordner"], shell, "-NoExit", "-EncodedCommand", b64]
         flags = 0
     else:
         args = [shell, "-NoExit", "-EncodedCommand", b64]
@@ -304,7 +304,7 @@ def startskript(con, pid, kennungen=None):
         fort = letzte_sitzung(con, pid, a["kennung"])
         b64 = base64.b64encode(befehl(p, fort, None if fort else str(uuid.uuid4())).encode("utf-16-le")).decode()
         ordner = p["ordner"].replace("'", "''")             # steht in der einfach gequoteten -ArgumentList
-        tabs.append(f'new-tab --title {a["kennung"]} -d "{ordner}" {os.path.basename(_shell())} -NoExit -EncodedCommand {b64}')
+        tabs.append(f'new-tab --title {a["kennung"]} --suppressApplicationTitle -d "{ordner}" {os.path.basename(_shell())} -NoExit -EncodedCommand {b64}')
     if not tabs:
         raise kern.AmwFehler("kein Agent mit Profil-Ordner – amw agent profil <kennung> --ordner <Pfad>")
     zeilen.append("Start-Process wt.exe -ArgumentList '-w amw " + " ; ".join(tabs) + "'")

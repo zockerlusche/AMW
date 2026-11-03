@@ -156,7 +156,7 @@ class Startskript(Grund):
             steuerung.startskript(self.con, self.pid)
         self.profil(denkstufe="medium")
         text = steuerung.startskript(self.con, self.pid)
-        self.assertIn("new-tab --title CC1", text)
+        self.assertIn("new-tab --title CC1 --suppressApplicationTitle -d", text)   # Tab-Titel bleibt die Kennung
         self.assertIn("-EncodedCommand", text)
         self.assertNotIn("--title TL", text)                               # TL ohne Profil-Ordner
 
