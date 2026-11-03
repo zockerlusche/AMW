@@ -508,7 +508,7 @@ a.knopf { text-decoration: none; display: inline-flex; align-items: center; colo
 .option { text-align: left; padding: 10px 14px; min-height: 44px; background: var(--flaeche2); border: 1px solid var(--linie); border-radius: 3px; cursor: pointer;
   display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: start; transition: border-color .12s, background .12s; }
 .option:hover { border-color: var(--leise); }
-.option .kenn { font: 600 15px var(--titel); color: var(--leise); }
+.option .kenn { font: 600 15px var(--titel); color: var(--leise); min-width: 0; overflow-wrap: anywhere; }
 .option.empfohlen { border-color: var(--bernstein); background: linear-gradient(90deg, var(--bernstein-weich), var(--flaeche2) 70%); }
 .option.empfohlen .kenn { color: var(--bernstein); }
 .option.gewaehlt { outline: 2px solid var(--tinte); outline-offset: 1px; }
@@ -1516,8 +1516,16 @@ async function sichtFragen() {
   if (!liste.length) { m.append(el("div", { class: "leer" }, t("keine_fragen"))); return; }
   m.append(el("div", { class: "zeile-reveal" }, liste.map(frageKarte)));
 }
+/* Kennung und Text einer Option zum Anzeigen. Alte Fragen haben teils den ganzen Satz als Kennung („V0: …“, Text leer) –
+   dann vorn die kurze Kennung abtrennen; gewählt wird weiter mit der gespeicherten Kennung. */
+function optionZeigen(o) {
+  if ((o.text || "").trim() || (o.kenn || "").length <= 12) return { kenn: o.kenn, text: o.text };
+  const m = o.kenn.match(/^\s*([^\s=:)]{1,12})\s*[:=)]\s*([\s\S]+)$/);
+  return m ? { kenn: m[1], text: m[2] } : { kenn: "", text: o.kenn };
+}
 function frageKarte(f) {
   const echteOptionen = f.optionen.filter(o => o.kenn && o.kenn !== "alt");
+  const empfKurz = f.empfehlung ? (optionZeigen({ kenn: f.empfehlung }).kenn || "") : "";
   const notiz = el("textarea", { placeholder: echteOptionen.length ? t("anmerkung_ph") : t("antwort_ph") });
   const meldung = el("span", { class: "rueckmeldung leise" });
   const karte = el("div", { class: "karte frage" });
@@ -1548,7 +1556,7 @@ function frageKarte(f) {
         el("div", { class: "variante-bild" }, x.vorschau === "bild" && zeigbar(x) ? el("img", { src: dokUrl(x.id), alt: "", loading: "lazy" })
           : x.vorschau === "mockup" && zeigbar(x) ? el("iframe", { src: dokUrl(x.id), sandbox: "allow-scripts", tabindex: "-1", title: o.text, referrerpolicy: "no-referrer", loading: "lazy" })
           : dokSymbol(x)),
-        el("div", { class: "variante-text" }, el("span", { class: "kenn" }, o.kenn), el("span", {}, o.text))); })));
+        el("div", { class: "variante-text" }, el("span", { class: "kenn" }, optionZeigen(o).kenn), el("span", {}, optionZeigen(o).text))); })));
   }
   /* Gesprächsverlauf wie im Chat: Fragesteller links, du (Entwickler) rechts */
   if ((f.verlauf || []).length) karte.append(el("div", { class: "verlauf" }, f.verlauf.map(v => {
@@ -1561,11 +1569,11 @@ function frageKarte(f) {
     karte.append(el("div", { class: "optionen" }, echteOptionen.map(o => el("button", {
       type: "button", class: "option" + (o.kenn === f.empfehlung ? " empfohlen" : ""),
       onclick: e => { e.currentTarget.classList.add("gewaehlt"); antworten("option", o.kenn, notiz.value); } },
-      el("span", { class: "kenn" }, o.kenn), el("span", {}, o.text), o.kenn === f.empfehlung ? el("span", { class: "etikett bernstein" }, t("empfehlung")) : el("span")))));
+      el("span", { class: "kenn" }, optionZeigen(o).kenn), el("span", {}, optionZeigen(o).text), o.kenn === f.empfehlung ? el("span", { class: "etikett bernstein" }, t("empfehlung")) : el("span")))));
   } else if (f.optionen.length) {
     karte.append(el("div", { class: "grund" }, el("b", {}, t("optionen")), f.optionen.map(o => o.text).join(" · ")));
   }
-  if (f.grund) karte.append(el("div", { class: "grund" }, el("b", {}, f.empfehlung ? t("warum", { k: f.empfehlung }) : ""), f.grund));
+  if (f.grund) karte.append(el("div", { class: "grund" }, el("b", {}, f.empfehlung ? t("warum", { k: empfKurz || f.empfehlung }) : ""), f.grund));
   if (f.fundstellen) karte.append(el("div", { class: "sehrleise mono", style: "margin:6px 0;overflow-wrap:anywhere" }, t("fundstellen") + f.fundstellen));
   karte.append(notiz, el("div", { class: "aktionen" },
     el("button", { class: "knopf" + (echteOptionen.length ? "" : " haupt"), type: "button", onclick: () => notiz.value.trim() ? antworten("text", notiz.value) : toast(t("text_fehlt"), true) }, t("eigene_antwort")),

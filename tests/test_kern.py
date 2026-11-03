@@ -118,6 +118,23 @@ class Fragen(Grund):
         self.assertEqual((w["text"], w["kanal"]), ("Was heißt a?", "seite"))
         self.assertEqual(kern.offene(self.con, self.pid, "TL")[0]["art"], "frage")
 
+    def test_option_braucht_kurze_kennung_und_text(self):
+        for opt in ([("V0: Bedingung ping liest Zähler", "")], [("A", " ")]):     # ganzer Satz als Kennung (F5158)
+            with self.assertRaises(kern.AmwFehler):
+                kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x", opt, opt[0][0], "g")
+        self.con.close()
+        os.environ["AMW_DB"] = os.path.join(self.ordner.name, "t.db")
+        try:
+            from amw import cli
+            self.assertEqual(cli.main(["--von", "TL", "frage", "neu", "--an", "entwickler", "--kurz", "Welche?",
+                                       "--option", "V0: Bedingung „ping“, klein", "--option", "V1=mit Quittung",
+                                       "--empfehlung", "V0", "--grund", "g"]), 0)
+        finally:
+            os.environ.pop("AMW_DB", None)
+        self.con = db.verbinde(os.path.join(self.ordner.name, "t.db"))
+        o = json.loads(self.con.execute("SELECT optionen FROM frage ORDER BY id DESC").fetchone()[0])
+        self.assertEqual(o, [{"kenn": "V0", "text": "Bedingung „ping“, klein"}, {"kenn": "V1", "text": "mit Quittung"}])
+
     def test_frage_an_tl_weckt_lead(self):
         fid = kern.frage_neu(self.con, self.pid, "CC1", "tl", "darf ich?", [])
         self.assertIn(f"F{fid}", kern.offene(self.con, self.pid, "TL")[0]["kurz"])

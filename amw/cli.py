@@ -6,6 +6,7 @@ einzige vorhandene. Ausgabe immer UTF-8 (sonst brechen Umlaute in der Windows-Ko
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime
 
@@ -392,7 +393,10 @@ def cmd_frage(a, con):
                                  " (--text gibt es nur bei antworten/nachtrag)")
         optionen = []
         for o in a.option or []:
-            kenn, _, text = o.partition("=")
+            kenn, gleich, text = o.partition("=")
+            m = None if gleich and text.strip() else re.match(r"\s*([^\s=:)]{1,12})\s*[:)]\s+(.+)", o, re.S)
+            if m:                                   # „V0: Text“ statt „V0=Text“ – gemeint ist dasselbe
+                kenn, text = m.groups()
             optionen.append((kenn.strip(), text.strip()))
         from . import dokumente
         anhaenge = dokumente.anhaenge_pruefen(con, pid, a.anhang or [], [k for k, _ in optionen])   # vor dem Anlegen

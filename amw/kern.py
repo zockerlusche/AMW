@@ -6,6 +6,7 @@ Die Prüfungen schützen vor Versehen, nicht vor Absicht: Agenten laufen unter d
 """
 import json
 import os
+import re
 
 from . import db
 
@@ -321,9 +322,15 @@ def aufgaben(con, pid, agent=None, alle=False):
 
 # --- Fragen --------------------------------------------------------------------------------------
 
+OPTION_KENN = re.compile(r"[^\s=:)]{1,12}")
+
+
 def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, worum=None, fundstellen=None,
               aufgabe_id=None, blockiert=False, folge_von=None):
     """optionen: Liste von (kenn, text). Empfehlung muss eine der Kennungen sein."""
+    for k, t in optionen:               # sonst steht der ganze Satz in der schmalen Kennungs-Spalte (F5158)
+        if not OPTION_KENN.fullmatch(k or "") or not (t or "").strip():
+            raise AmwFehler(f"Option „{(k or '')[:40]}“: Form --option \"A=Text\" – kurze Kennung (A, B, V0 …), dann = und der Text")
     kenn = [k for k, _ in optionen]
     if empfehlung and empfehlung not in kenn:
         raise AmwFehler(f"Empfehlung „{empfehlung}“ ist keine der Optionen {kenn}")
