@@ -1,4 +1,5 @@
 """Tests für Rückblick, Verlauf, Zusammenfassung „seit“ und den täglichen Push-Rückblick."""
+import copy
 import datetime
 import os
 import tempfile
@@ -91,9 +92,12 @@ class Verlauf(Grund):
         self.assertIn(str(list(verlauf.SEIT_ARTEN)).replace('"', "'"), php.replace("array_fill_keys(", "").replace(", 0)", ""))
 
     def test_taeglicher_push_rueckblick_einmal_ab_uhrzeit(self):
-        cfg = push.laden()
+        cfg = copy.deepcopy(push.VORGABE)                  # nie die echte push.json dieses PCs
         cfg.update(an=True, seit_utc="2000-01-01T00:00:00Z", rueckblick_uhr="00:00")
         heute = datetime.date.today().isoformat()
+        keys = [e["schluessel"] for e in push.ereignisse(self.con, self.pid, cfg)]
+        self.assertNotIn(f"rueckblick:{heute}", keys)                    # nichts passiert: kein Rückblick voller Nullen
+        kern.posten(self.con, self.pid, "TL", "Entwickler", "info", "Hallo")
         keys = [e["schluessel"] for e in push.ereignisse(self.con, self.pid, cfg)]
         self.assertIn(f"rueckblick:{heute}", keys)
         cfg["rueckblick_uhr"] = "23:59"

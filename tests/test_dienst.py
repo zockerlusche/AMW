@@ -25,6 +25,9 @@ class Wecker(unittest.TestCase):
         patch_l.start()
         self.addCleanup(patch_s.stop)
         self.addCleanup(patch_l.stop)
+        p = mock.patch.dict(os.environ, {"LOCALAPPDATA": self.ordner.name})   # aufsicht() schickt sonst echte Pushes
+        p.start()
+        self.addCleanup(p.stop)
         self.d = dienst.Dienst(self.con)
 
     def tearDown(self):

@@ -317,8 +317,10 @@ def ereignisse(con, pid, cfg, jetzt=None):
     if jetzt.strftime("%H:%M") >= cfg.get("rueckblick_uhr", "08:00"):    # täglicher Rückblick, einmal je Tag
         from . import verlauf
         vor24 = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
-        aus.append(("rueckblick", f"rueckblick:{jetzt.date().isoformat()}", "Rückblick der letzten 24 Stunden",
-                    verlauf.kurztext(verlauf.zusammenfassung(con, pid, vor24)), "verlauf"))
+        z = verlauf.zusammenfassung(con, pid, vor24)
+        if any(z[k] for k in verlauf.SEIT_ARTEN):                   # nichts passiert: keine Meldung voller Nullen
+            aus.append(("rueckblick", f"rueckblick:{jetzt.date().isoformat()}", "Rückblick der letzten 24 Stunden",
+                        verlauf.kurztext(z), "verlauf"))
     return [{"ereignis": e, "schluessel": k, "titel": t, "text": x, "sicht": s} for e, k, t, x, s in aus
             if cfg["ereignisse"].get(e, True)]
 

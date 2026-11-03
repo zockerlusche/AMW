@@ -5,6 +5,7 @@ import sqlite3
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 from amw import bruecke, db, kern
 
@@ -12,6 +13,9 @@ from amw import bruecke, db, kern
 class Bruecke(unittest.TestCase):
     def setUp(self):
         self.ordner = tempfile.TemporaryDirectory()
+        p = mock.patch.dict(os.environ, {"LOCALAPPDATA": self.ordner.name})   # Dienst.aufsicht() schickt sonst echte Pushes
+        p.start()
+        self.addCleanup(p.stop)
         self.alt_db = os.environ.get("AMW_DB")
         os.environ["AMW_DB"] = os.path.join(self.ordner.name, "amw.db")
         self.con = db.anlegen()
