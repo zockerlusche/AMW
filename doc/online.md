@@ -22,7 +22,7 @@ PC (Wächter)                               Online-Speicher (Turso)             
 - **Nur am PC** (online abgewiesen, auch vom PC selbst): Einstellungen dieses PCs, Online-Zugang, Push-Zugänge,
   Agenten-Profile, Agenten starten/beenden, Push-Probe, Dokument endgültig löschen.
 - **Dateien der Dokumente** (Bilder, Mockups, PDF, Office) sind nur online, wenn das Dokument auf „auch online“ steht
-  (am PC, vom Agenten mit `--online` oder unterwegs „Online anfordern“). Der PC legt die Datei in Teilen im Speicher ab
+  (am PC, vom Agenten mit `--online`, unterwegs „Online anfordern“ oder von selbst nach Zahnrad › Projekt › „Dateien online“: nur auf Wunsch | Bilder und Mockups | alle). Der PC legt die Datei in Teilen im Speicher ab
   (`datei`, `datei_teil`); die Seite holt sie beim nächsten Aufruf einmal ab, prüft Größe und Prüfsumme, legt sie in
   `amw-dateien/` neben ihre Konfiguration (außerhalb des Deploy-Ordners, per `.htaccess` gesperrt) und löscht die Teile.
   Ausgeliefert wird sie nur nach der Anmeldung, mit Browser-Cache. Steht ein Dokument wieder „nur am PC“, meldet der PC

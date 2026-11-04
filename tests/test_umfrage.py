@@ -237,6 +237,38 @@ class Startskript(Grund):
         self.assertEqual(alle.count("Start-Process wt.exe -ArgumentList '-w amw new-tab --title"), 2)
 
 
+PNG = bytes([0x89]) + b"PNG" + bytes([13, 10, 26, 10])
+
+
+class DateienOnline(Grund):
+    def ablegen(self, name, inhalt=PNG + b"x"):
+        p = os.path.join(self.ordner.name, name)
+        with open(p, "wb") as f:
+            f.write(inhalt)
+        from amw import dokumente
+        return dokumente.ablegen(self.con, self.pid, "CC1", p, name)
+
+    def online(self, did):
+        return self.con.execute("SELECT online FROM dokument WHERE id = ?", (did,)).fetchone()[0]
+
+    def test_bilder_von_selbst_online_auch_vorhandene(self):
+        os.environ["AMW_DB"] = self.pfad
+        try:
+            alt_bild, alt_text, alt_pdf = self.ablegen("a.png"), self.ablegen("b.md", b"# Text"), self.ablegen("c.pdf", b"%PDF-1.4 x")
+            self.assertEqual(kern.projekt_wahl(self.con, self.pid, "dateien_online"), "wunsch")
+            self.assertEqual(self.online(alt_bild), 0)                            # Vorgabe: wie bisher nur auf Wunsch
+            kern.projekt_einstellen(self.con, self.pid, "TL", dateien_online="bilder")
+            self.assertEqual((self.online(alt_bild), self.online(alt_pdf)), (1, 0))
+            self.assertEqual(self.online(self.ablegen("d.html", b"<p>m</p>")), 1)   # neue Mockups gleich mit
+            kern.projekt_einstellen(self.con, self.pid, "TL", dateien_online="wunsch")
+            self.assertEqual(self.online(alt_bild), 1)                            # zurück nimmt nichts herunter
+            self.assertEqual(self.online(self.ablegen("e.png", PNG + b"y")), 0)
+            with self.assertRaises(kern.AmwFehler):
+                kern.projekt_einstellen(self.con, self.pid, "TL", dateien_online="immer")
+        finally:
+            os.environ.pop("AMW_DB", None)
+
+
 class Pfade(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "nur Windows")
     def test_git_bash_pfad(self):

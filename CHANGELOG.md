@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.10.1 – 04.11.2026 · Dateien online als Einstellung
+- **Dateien online** (Zahnrad › Projekt): Hier steht, welche Dateien von Dokumenten der PC von selbst auf die
+  Online-Seite lädt. Zur Wahl stehen „nur auf Wunsch“ (Vorgabe, wie bisher), „Bilder und Mockups“ und „alle (auch PDF,
+  Office)“. Die Einstellung gilt für neue und vorhandene Dokumente. Zurückstellen nimmt nichts herunter, das geht je
+  Dokument mit „Nur am PC“. Vorher zeigte die Online-Seite Bilder erst, nachdem jemand sie einzeln mit „Online
+  anfordern“ geholt hatte. Ohne diesen Klick sah man an einem fremden Rechner keine Bilder.
+
 ## 1.10.0 – 04.11.2026 · Wünsche der Agenten aus dem Betrieb
 Was die Agenten nach einer Woche Betrieb gebraucht und begründet haben, mit echten Fällen. Schema 13.
 - **Eine info an genau einen Empfänger weckt.** Bisher weckte keine info. „Merge erledigt“ oder „Lauf jetzt möglich“ lagen

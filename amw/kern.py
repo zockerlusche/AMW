@@ -145,6 +145,15 @@ def entwickler_name(con, pid=None):
 
 
 PROJEKT_TEXTE = {"entwickler_name": 30}       # Text-Einstellungen: Schlüssel → höchste Länge (leer = Vorgabe)
+# Auswahl-Einstellungen: Schlüssel → erlaubte Werte, der erste ist die Vorgabe.
+# dateien_online: welche Dateien von Dokumenten von selbst „auch online“ stehen (wunsch = nur auf Wunsch, wie bis 1.10.0)
+PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle")}
+
+
+def projekt_wahl(con, pid, schluessel):
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    v = json.loads(r[0] or "{}").get(schluessel) if r else None
+    return v if v in PROJEKT_WAHL[schluessel] else PROJEKT_WAHL[schluessel][0]
 
 
 def projekt_einstellen(con, pid, von, **werte):
@@ -156,6 +165,14 @@ def projekt_einstellen(con, pid, von, **werte):
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         for k, v in werte.items():
+            if k in PROJEKT_WAHL:
+                if v not in PROJEKT_WAHL[k]:
+                    raise AmwFehler(f"{k}: {' | '.join(PROJEKT_WAHL[k])}")
+                e[k] = v
+                if k == "dateien_online" and v != "wunsch":       # vorhandene Dateien gleich mit (zurück: je Dokument)
+                    from . import dokumente
+                    dokumente.online_nach_einstellung(con, pid, v)
+                continue
             if k in PROJEKT_TEXTE:
                 v = " ".join(str(v or "").split())
                 if len(v) > PROJEKT_TEXTE[k] or v.lower() in ("alle", "amw"):

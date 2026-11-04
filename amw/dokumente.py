@@ -147,6 +147,7 @@ def _anlegen(con, pid, von, gelesen, titel, art, notiz, online, **bezug):
     sha = _speichern(roh, endung)
     t = db.jetzt()
     with db.schreiben(con):
+        online = online or von_selbst_online(kern.projekt_wahl(con, pid, "dateien_online"), endung)
         did = db.einfuegen(con, "dokument", projekt_id=pid, titel=titel[:200], art=art, bezug_art=b_art, bezug_id=b_id,
                            status="aktuell", online=int(bool(online)), angelegt_von=von, angelegt_utc=t)
         db.einfuegen(con, "dokument_version", dokument_id=did, nr=1, sha256=sha, endung=endung, groesse=len(roh),
@@ -404,6 +405,24 @@ def status_setzen(con, pid, von, did, status):
     dokument(con, pid, did)
     with db.schreiben(con):
         con.execute("UPDATE dokument SET status = ? WHERE id = ? AND status != 'geloescht'", (status, did))
+
+
+def von_selbst_online(einstellung, endung):
+    """Steht eine Datei dieser Endung nach der Projekt-Einstellung dateien_online von selbst online?"""
+    vorschau = FORMATE.get(endung, ("", "", "download"))[2]
+    return einstellung == "alle" or (einstellung == "bilder" and vorschau in ("bild", "mockup"))
+
+
+def online_nach_einstellung(con, pid, einstellung):
+    """Einstellung gewechselt (bilder/alle): alle passenden Dokumente auf „auch online“ – in der Transaktion des Aufrufers.
+    Zurück auf „wunsch“ nimmt nichts herunter; das geht je Dokument („Nur am PC“)."""
+    n = 0
+    for r in con.execute("SELECT d.id, v.endung FROM dokument d JOIN dokument_version v ON v.dokument_id = d.id"
+                         " WHERE d.projekt_id = ? AND d.online = 0 AND d.status != 'geloescht'"
+                         " AND v.nr = (SELECT max(nr) FROM dokument_version WHERE dokument_id = d.id)", (pid,)).fetchall():
+        if von_selbst_online(einstellung, r["endung"]):
+            n += con.execute("UPDATE dokument SET online = 1 WHERE id = ?", (r["id"],)).rowcount
+    return n
 
 
 def online_setzen(con, pid, von, did, an=True):
