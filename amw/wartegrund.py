@@ -115,6 +115,14 @@ def _melden(con, pid, a, durch):
         return
     rest = [r["bezug"] for r in offene(con, a["id"])]
     weiter = f"noch offen: {', '.join(rest)}" if rest else f"alle Gründe erledigt – weiter: amw aufgabe start {a['id']}"
+    if not rest:                                       # Arbeitsliste: steht sie über der laufenden, zuerst diese
+        from . import arbeitsliste
+        p = arbeitsliste.position(con, pid, a["id"])
+        unten = con.execute("SELECT id FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'laeuft' AND id != ?"
+                            " AND (rang > ? OR (rang = ? AND id > ?)) LIMIT 1",
+                            (pid, a["agent"], a["id"], a["rang"], a["rang"], a["id"])).fetchone()
+        if p and unten:
+            weiter += f" (Pos {p[1]} deiner Liste – zuerst abschließen; A{unten['id']} wird dabei zurückgestellt)"
     an = [a["agent"]] + ([kern.lead(con, pid)] if kern.lead(con, pid) else [])
     an = [k for k in an if con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, k)).fetchone()]
     if an:

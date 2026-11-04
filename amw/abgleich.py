@@ -195,7 +195,8 @@ def ansichten(con, pid, speicher=None):
          "/api/agenten": workbench.daten_agenten_alle(con, pid),
          "/api/planung": workbench.daten_planung(con, pid),
          "/api/verlauf": workbench.daten_verlauf(con, pid, {"tage": ["3"]}),
-         "/api/seit": verlauf.seit_daten(con, pid)}
+         "/api/seit": verlauf.seit_daten(con, pid),
+         "/api/listen": workbench.daten_listen(con, pid)}
     for s in SICHTEN:
         a[f"/api/aufgaben?sicht={s}"] = workbench.daten_aufgaben(con, pid, {"sicht": [s], **leer})
     a.update(dokument_ansichten(con, pid))

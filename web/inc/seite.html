@@ -391,6 +391,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .push-gruppe { border-top: 1px solid var(--linie); margin-top: 12px; padding-top: 8px; }
 .push-gruppe h4 { font: 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--leise); margin: 4px 0; }
 .rot-text { color: var(--rot); } .bernstein-text { color: var(--bernstein); }
+.karte.aufgabe.in-arbeit { border-left: 3px solid var(--gruen); }
 .kachel .zustand { flex-wrap: wrap; row-gap: 2px; }
 .sprung { display: flex; gap: 8px 14px; flex-wrap: wrap; margin: -6px 0 14px; font-size: 13px; }
 .sprung a { color: var(--leise); cursor: pointer; border-bottom: 1px dotted var(--linie2); }
@@ -811,6 +812,8 @@ const TEXTE = {
     pl_aktivieren_frage: "Bogen aktivieren? Das Zieldatum wird als Baseline eingefroren.", pl_abschliessen: "Abschließen",
     pl_abschliessen_frage: "Ist das Abnahmekriterium erfüllt?\n{x}", bearbeiten: "Bearbeiten", pl_ziel: "Ziel", pl_abnahme: "Abnahme",
     pl_fehlt: "fehlt – ohne prüfbares Kriterium ist ein Bogen nie wirklich fertig", pl_fortschritt: "{f}/{g} fertig", pl_laeuft: "{n} läuft",
+    t_listen: "Listen", li_erkl: "Je Agent seine Arbeitsliste von oben nach unten – genau eine in Arbeit. Wartet sie, darf er die nächste nehmen; wird eine obere frei, weckt ihn die AMW. Ordnen: amw liste ordnen <Agent> A12 A15 … (Lead).",
+    li_in_arbeit: "in Arbeit", li_pool: "Pool – noch in keiner Liste", li_pool_leer: "Pool leer", li_leer: "Noch keine Listen.", k_liste: "Liste {p}/{n}", k_liste_n: "Liste {n}",
     pl_federfuehrend: "Federführend", k_fuehrt: "führt {x}", k_fuehrt_h: "federführend: Prüfergebnisse, Merge-Bitten und Fragen dazu gehen an diesen Agenten",
     pl_blockiert: "{n} blockiert", pl_zieldatum: "Zieldatum", pl_baseline: "Baseline", pl_prognose: "Prognose", teil_anforderungen: "Anforderungen",
     teil_entwurf: "Entwurf", teil_schritte: "Schritte", ss_entwurf: "in Arbeit", ss_vorgelegt: "zur Freigabe", ss_frei: "frei ✓", ss_zurueck: "zurück",
@@ -1028,6 +1031,8 @@ const TEXTE = {
     pl_aktivieren_frage: "Activate arc? The target date is frozen as baseline.", pl_abschliessen: "Complete",
     pl_abschliessen_frage: "Is the acceptance criterion met?\n{x}", bearbeiten: "Edit", pl_ziel: "Goal", pl_abnahme: "Acceptance",
     pl_fehlt: "missing – without a checkable criterion an arc is never really done", pl_fortschritt: "{f}/{g} done", pl_laeuft: "{n} running",
+    t_listen: "Lists", li_erkl: "Each agent's work list from top to bottom – exactly one in progress. If it waits, the next may start; when an upper one is free again, AMW wakes the agent. Order: amw liste ordnen <agent> A12 A15 … (lead).",
+    li_in_arbeit: "in progress", li_pool: "Pool – not in any list yet", li_pool_leer: "Pool empty", li_leer: "No lists yet.", k_liste: "List {p}/{n}", k_liste_n: "List {n}",
     pl_federfuehrend: "Lead agent", k_fuehrt: "leads {x}", k_fuehrt_h: "lead agent: review results, merge requests and questions go to this agent",
     pl_blockiert: "{n} blocked", pl_zieldatum: "Target", pl_baseline: "Baseline", pl_prognose: "Forecast", teil_anforderungen: "Requirements",
     teil_entwurf: "Design", teil_schritte: "Steps", ss_entwurf: "in progress", ss_vorgelegt: "for approval", ss_frei: "approved ✓", ss_zurueck: "returned",
@@ -1122,7 +1127,7 @@ const TEXTE = {
 let sprache = "de";
 const t = (k, v = {}) => (TEXTE[sprache][k] ?? TEXTE.de[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => v[n] ?? "");
 
-let zustand = { sicht: "start", start: null, fragenSicht: "offen", arbeit: { sicht: "offen", agent: "", q: "" }, wissenQ: "", wissenReiter: "beschluesse" };
+let zustand = { sicht: "start", start: null, fragenSicht: "offen", arbeit: { sicht: "listen", agent: "", q: "" }, wissenQ: "", wissenReiter: "beschluesse" };
 
 /* Elemente nur über textContent – Inhalte aus der Datenbank werden nie als HTML gesetzt. */
 function el(tag, attr, ...kinder) {
@@ -1334,6 +1339,8 @@ function kachel(a) {
       (a.wartet || []).map(w => el("div", { class: "bernstein-text", style: "margin-top:4px;font-size:12px" }, t("k_wartet", { a: `A${w.aufgabe}`, x: w.auf }))),
       (a.fuehrt || []).length ? el("div", { class: "mono", style: "margin-top:4px;font-size:11px;color:var(--tinte)", title: t("k_fuehrt_h") },
         "◆ " + t("k_fuehrt", { x: a.fuehrt.join(", ") })) : null,
+      a.liste_n ? el("div", { class: "mono sehrleise", style: "margin-top:4px;font-size:11px" },
+        a.liste_lauf ? t("k_liste", { p: a.liste_lauf, n: a.liste_n }) : t("k_liste_n", { n: a.liste_n })) : null,
       a.zuletzt ? el("div", { class: "sehrleise", style: "margin-top:4px" }, `${t("k_zuletzt")} ${seit(a.zuletzt_utc)}: ${kurz(a.zuletzt, 70)}`) : null),
     lebt && (a.kontext_prozent != null || a.limit_5h != null) ? el("div", { class: "mini-balken" },
       a.kontext_prozent != null ? balken(t("b_kontext"), a.kontext_prozent) : null, a.limit_5h != null ? balken(t("b_5h"), a.limit_5h) : null) : null,
@@ -1698,15 +1705,37 @@ function frageKarte(f) {
 }
 
 /* --- Arbeit -------------------------------------------------------------------------------- */
+/* Arbeitsliste je Agent (von oben nach unten, genau eine in Arbeit) und der Pool – ordnen tut der Lead (amw liste) */
+async function arbeitslisten(m, a) {
+  let d; try { d = await holen("/api/listen"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  const q = (a.q || "").toLowerCase(), passt = x => !q || `A${x.id} ${x.titel}`.toLowerCase().includes(q);
+  const agenten = d.agenten.filter(g => !a.agent || g.kennung === a.agent);
+  m.append(el("p", { class: "leise", style: "margin:0 0 12px" }, t("li_erkl")));
+  if (!agenten.length) m.append(el("div", { class: "leer" }, t("li_leer")));
+  m.append(el("div", { class: "board listen" }, agenten.map(g => el("div", { class: "spalte" },
+    el("h4", {}, g.kennung, el("span", { class: "sehrleise mono" }, g.liste.length)),
+    g.liste.filter(passt).map(x => el("div", { class: "karte aufgabe" + (x.status === "laeuft" ? " in-arbeit" : "") },
+      el("div", {}, el("span", { class: "mono sehrleise" }, `${x.pos}.`), " ", el("span", { class: "ref" }, `A${x.id}`),
+        x.status === "laeuft" ? el("span", { class: "etikett gruen", style: "margin-left:6px" }, t("li_in_arbeit"))
+          : x.status === "blockiert" ? el("span", { class: "etikett", style: "margin-left:6px" }, t("sp_blockiert")) : null),
+      el("div", { class: "t" }, x.titel.length > 160 ? x.titel.slice(0, 160) + " …" : x.titel),
+      (x.gruende || []).length ? el("div", { class: "w bernstein-text" }, "⇢ " + x.gruende.join(", "))
+        : x.wartet_auf && x.status !== "laeuft" ? el("div", { class: "w" }, "⇢ " + x.wartet_auf.slice(0, 120)) : null))))));
+  const pool = d.pool.filter(passt);
+  m.append(el("h3", { style: "margin:22px 0 8px" }, t("li_pool"), " ", el("span", { class: "sehrleise mono" }, pool.length)),
+    pool.length ? el("div", { class: "liste" }, pool.map(x => el("div", { class: "zeile" }, el("span", { class: "ref" }, `A${x.id}`),
+      el("span", { class: "leise" }, x.agent || "–"), el("span", {}, x.titel)))) : el("div", { class: "leer" }, t("li_pool_leer")));
+}
 async function sichtArbeit() {
   const a = zustand.arbeit; const m = rahmen(t("aufgaben"));
   const agenten = (zustand.start?.agenten || []).map(x => x.kennung);
   const suche = el("input", { placeholder: t("filtern"), value: a.q, onkeydown: e => { if (e.key === "Enter") { a.q = e.target.value; sichtArbeit(); } } });
   m.append(el("div", { class: "reiter" },
-    ["offen", "geparkt", "pool", "erledigt"].map(s => el("button", { class: s === a.sicht ? "an" : "", type: "button", onclick: () => { a.sicht = s; sichtArbeit(); } }, t("t_" + s))),
+    ["listen", "offen", "geparkt", "pool", "erledigt"].map(s => el("button", { class: s === a.sicht ? "an" : "", type: "button", onclick: () => { a.sicht = s; sichtArbeit(); } }, t("t_" + s))),
     el("div", { class: "rechts" },
       el("select", { onchange: e => { a.agent = e.target.value; sichtArbeit(); } }, el("option", { value: "" }, t("alle_agenten")),
         agenten.map(k => el("option", { value: k, ...(k === a.agent ? { selected: true } : {}) }, k))), suche)));
+  if (a.sicht === "listen") return arbeitslisten(m, a);
   let liste; try { liste = await holen(`/api/aufgaben?sicht=${a.sicht}&agent=${encodeURIComponent(a.agent)}&q=${encodeURIComponent(a.q)}`); }
   catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   if (!liste.length) { m.append(el("div", { class: "leer" }, t("keine_aufgaben"))); return; }

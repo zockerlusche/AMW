@@ -59,6 +59,20 @@ def gerade(con, pid, kennung, sitzung_taetigkeit=None):
     return None, None, None
 
 
+def daten_listen(con, pid):
+    """Arbeitslisten je Agent in Reihenfolge und der Pool (Workbench › Aufgaben › Listen, auch online)."""
+    from . import arbeitsliste
+    agenten = []
+    for g in con.execute("SELECT kennung, rolle FROM agent WHERE projekt_id = ? ORDER BY id", (pid,)).fetchall():
+        l = arbeitsliste.liste(con, pid, g["kennung"])
+        if l:
+            agenten.append({"kennung": g["kennung"], "rolle": g["rolle"],
+                            "liste": [{k: x[k] for k in ("id", "pos", "titel", "status", "gruende", "wartet_auf", "rang")} for x in l]})
+    agenten.sort(key=lambda a: (a["rolle"] != "lead", (a["rolle"] or "~").casefold()))
+    return {"agenten": agenten, "pool": [{k: x[k] for k in ("id", "titel", "status", "agent", "einstufung")}
+                                          for x in arbeitsliste.pool(con, pid)]}
+
+
 def daten_start(con, pid):
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
@@ -74,6 +88,9 @@ def daten_start(con, pid):
         " FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
         " WHERE g.projekt_id = :p ORDER BY g.id", {"p": pid, "alt": alt}))
     for a in agenten:
+        from . import arbeitsliste                                        # Arbeitsliste: Länge und was in Arbeit ist
+        l = arbeitsliste.liste(con, pid, a["kennung"])
+        a["liste_n"], a["liste_lauf"] = len(l), next((x["pos"] for x in l if x["status"] == "laeuft"), None)
         boegen, gefuehrt = kern.fuehrt(con, pid, a["kennung"])          # Federführung auf der Kachel
         a["fuehrt"] = [f"B{b['id']}" for b in boegen] + [f"A{x['id']}" for x in gefuehrt]
         a["gerade"], a["gerade_aufgabe"], a["gerade_quelle"] = gerade(con, pid, a["kennung"],
@@ -606,6 +623,7 @@ def baue_handler(port, token):
             wege = {"/api/start": lambda c, p: daten_start(c, p),
                     "/api/fragen": lambda c, p: daten_fragen(c, p, q.get("alle", ["0"])[0] == "1"),
                     "/api/aufgaben": lambda c, p: daten_aufgaben(c, p, q),
+                    "/api/listen": lambda c, p: daten_listen(c, p),
                     "/api/wissen": lambda c, p: daten_wissen(c, p, q),
                     "/api/suche": lambda c, p: daten_suche(c, p, q),
                     "/api/betrieb": lambda c, p: daten_betrieb(c, p),

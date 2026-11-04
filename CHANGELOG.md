@@ -4,6 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.12.0 – 04.11.2026 · Arbeitsliste je Agent
+Jeder Agent arbeitet eine geordnete Liste von oben nach unten ab, genau eine Aufgabe ist in Arbeit. Ohne Bremse: Der
+Umfang darf groß sein (→ `doc/automatismen.md`).
+- **`amw liste [Agent|pool]`** zeigt die Listen mit Position, Status und Wartegründen. **`amw liste ordnen <Agent> A12
+  A15 …`** und **`amw liste schieben A15 --vor A12 | --nach | --pos N | --oben | --unten`** ordnen sie (Lead).
+  **`aufgabe neu … --pool`** legt eine Idee in den Pool.
+- **Genau eine in Arbeit:** Startet ein Agent eine weiter oben stehende Aufgabe, wird die laufende untere von selbst
+  zurückgestellt (wartet auf die obere). Startet er eine weiter unten, während eine obere läuft, bekommt er einen Hinweis,
+  und der Lead erfährt es.
+- **Von selbst weiter:** Ist eine Aufgabe fertig, weckt die AMW mit der nächsten startbaren Aufgabe der Liste. Wird eine
+  obere wieder frei, nennt der Weckruf ihre Position („zuerst abschließen“).
+- **Sichtbar:** Der Pflicht-Kontext zeigt „Deine Liste: 1. A12 [laeuft] … 2. A15 [wartet auf F12] …“. Workbench ›
+  Aufgaben öffnet mit „Listen“: eine Spalte je Agent, darunter der Pool. Die Kachel zeigt „Liste 1/7“. Online genauso.
+
 ## 1.11.0 – 04.11.2026 · Federführung je Bogen und Aufgabe, Läufe aus einer Hand
 Weniger wartet auf den Lead: Wer einen Bogen oder eine Aufgabe führt, nimmt Prüfergebnisse und Fragen dazu an
 (→ `doc/plan-federfuehrung.md`). Schema 14.

@@ -377,6 +377,67 @@ class Federfuehrung(Grund):
         self.assertTrue(any(f"Eskalation #{nid}" in r["kurz"] for r in kern.offene(self.con, self.pid, "TL")))
 
 
+class Arbeitsliste(Grund):
+    """B2429: geordnete Liste je Agent, genau eine in Arbeit, die nächste von selbst."""
+
+    def setUp(self):
+        super().setUp()
+        self.b = kern.aufgabe_neu(self.con, self.pid, "TL", "Zweite", agent="CC1")
+        self.c = kern.aufgabe_neu(self.con, self.pid, "TL", "Dritte", agent="CC1")
+        from amw import arbeitsliste
+        self.al = arbeitsliste
+
+    def ids(self, agent="CC1"):
+        return [x["id"] for x in self.al.liste(self.con, self.pid, agent)]
+
+    def test_ordnen_schieben_pool(self):
+        idee = kern.aufgabe_neu(self.con, self.pid, "TL", "Idee aus dem Chat")
+        from amw import wissen
+        wissen.einstufen(self.con, self.pid, "TL", idee, "pool")
+        self.assertIn(idee, [x["id"] for x in self.al.pool(self.con, self.pid)])
+        with self.assertRaises(kern.AmwFehler):
+            self.al.ordnen(self.con, self.pid, "CC1", "CC1", [self.c])                  # nur Lead
+        rc, aus = self.cli("--von", "TL", "liste", "ordnen", "CC1", f"A{self.c}", f"A{idee}")
+        self.assertEqual(rc, 0, aus)
+        self.assertEqual(self.ids(), [self.c, idee, self.a, self.b])                   # Rest dahinter, Idee zugeteilt
+        self.assertNotIn(idee, [x["id"] for x in self.al.pool(self.con, self.pid)])
+        rc, aus = self.cli("--von", "TL", "liste", "schieben", f"A{self.b}", "--vor", f"A{self.c}")
+        self.assertEqual(self.ids(), [self.b, self.c, idee, self.a])
+        rc, aus = self.cli("--von", "TL", "liste", "schieben", f"A{self.b}", "--unten")
+        self.assertEqual(self.ids()[-1], self.b)
+        rc, aus = self.cli("--von", "CC1", "liste", "CC1")
+        self.assertIn(f"1. A{self.c}", aus)
+
+    def test_obere_starten_stellt_untere_zurueck_und_fertig_weckt_mit_der_naechsten(self):
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.b, "start")                 # Pos 2 läuft …
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.b, "wartet", auf="Monitor:Prüfung")
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.c, "start")                 # … wartet, die nächste darf
+        h = []
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start", hinweise=h)     # Pos 1: die laufende Pos 3 zurück
+        st = {r["id"]: r["status"] for r in self.con.execute("SELECT id, status FROM aufgabe")}
+        self.assertEqual((st[self.a], st[self.c]), ("laeuft", "wartet"))
+        self.assertTrue(any(f"A{self.c} zurückgestellt" in x for x in h))
+        self.assertEqual([g["bezug"] for g in wartegrund.offene(self.con, self.c)], [f"A{self.a}"])
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "fertig", beleg="abc")
+        post = [r["kurz"] for r in kern.offene(self.con, self.pid, "CC1")]
+        self.assertTrue(any(f"A{self.c}" in x and "weiter" in x for x in post))       # zurückgestellte meldet sich
+        self.assertFalse(any("weiter in deiner Liste" in x for x in post))               # kein zweiter Weckruf
+
+    def test_fertig_ohne_wartende_weckt_mit_der_naechsten_der_liste(self):
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "fertig", beleg="abc")
+        post = [r["kurz"] for r in kern.offene(self.con, self.pid, "CC1")]
+        self.assertTrue(any(f"weiter in deiner Liste: A{self.b} (Pos 1/2)" in x for x in post), post)
+
+    def test_untere_starten_waehrend_obere_laeuft_warnt(self):
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
+        h = []
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.b, "start", hinweise=h)
+        self.assertTrue(any("genau eine in Arbeit" in x for x in h))
+        self.assertTrue(any("zwei in Arbeit" in r["kurz"] for r in kern.offene(self.con, self.pid, "TL")))
+        self.assertIn("Deine Liste (3", kern.kontext(self.con, self.pid, "CC1"))
+
+
 class Pfade(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "nur Windows")
     def test_git_bash_pfad(self):

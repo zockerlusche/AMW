@@ -62,6 +62,31 @@ Ist eine Sitzung seit 30 Minuten frei, ohne offene Post, und hat der Agent eine 
 fertig, nicht geparkt), weckt ihn der Dienst mit dieser Aufgabe, einmal je Ruhephase. Warten alle Aufgaben eines freien
 Agenten auf den Entwickler, bekommt der Lead höchstens alle 6 Stunden eine Sammelzeile.
 
+## Arbeitsliste je Agent (seit 1.12.0)
+
+**Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach
+unten ab, genau eine Aufgabe ist in Arbeit. Der Umfang darf groß sein.
+
+- **Reihenfolge:** Feld `rang` der Aufgabe. Der Lead ordnet mit `amw liste ordnen <Agent> A12 A15 …` (der Rest folgt
+  dahinter, Aufgaben aus dem Pool werden zugeteilt) und `amw liste schieben A15 --vor A12 | --nach | --pos N | --oben |
+  --unten`. Ansehen: `amw liste [Agent]`, Workbench › Aufgaben › Listen.
+- **Pool:** neue Ideen ohne Platz in einer Liste (`aufgabe neu … --pool` oder `aufgabe pool N`). Der Lead sortiert ein.
+- **Warten füllen:** Wartet die Aufgabe in Arbeit mit Grund (Prüfung, Lauf, Frage), darf der Agent die nächste nehmen.
+  Wird die obere wieder frei, weckt ihn die AMW („Pos 1 deiner Liste – zuerst abschließen“).
+- **Zurückstellen:** Startet er eine weiter oben stehende, wartet die laufende untere von selbst auf sie (Wartegrund
+  `A…`). Ist die obere fertig, kommt die untere mit einem Weckruf zurück.
+- **Zwei in Arbeit:** Startet er eine weiter unten, während eine obere läuft, bekommt er einen Hinweis, und der Lead
+  erfährt es.
+- **Fertig:** Ist eine Aufgabe fertig oder verworfen, weckt die AMW mit der nächsten startbaren Aufgabe der Liste. Die
+  Leerlauf-Prüfung bleibt als Netz.
+
+## Federführung (seit 1.11.0)
+
+Für einen Bogen oder eine Aufgabe kann ein Agent federführend sein (`amw bogen|aufgabe aendern N --federfuehrend X`).
+Zuständig für eine Aufgabe ist ihre Federführung, sonst die ihres Bogens, sonst der Lead. `--an zustaendig --aufgabe N`
+erreicht ihn. Prüfergebnisse gehen auch an ihn. Liegt eine Frage, Prüfbitte oder ein Auftrag dort 30 min ungelesen
+(`eskalation_min`), erfährt es der Lead.
+
 ## Frage-Prüfung (seit 1.8.0)
 
 **Wozu:** Fragen an den Entwickler, die längst entschieden sind, kosten seine Zeit.

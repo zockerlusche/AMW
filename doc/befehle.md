@@ -12,6 +12,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
 | [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N [--kurz] ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] ¦ nachtrag N --titel … (Folgearbeit zu einer fertigen Aufgabe) |
+| [`liste`](#liste) | Arbeitsliste je Agent: liste [Agent¦pool] ¦ ordnen <Agent> A12 A15 … ¦ schieben A15 --vor A12 ¦ --nach ¦ --pos N ¦ --oben ¦ --unten (ordnen/schieben: Lead) |
 | [`frage`](#frage) | Fragen an den Entwickler oder Lead: neu ¦ liste [--geparkt] ¦ antworten ¦ nachtrag ¦ verlauf ¦ parken N [--grund] ¦ aufnehmen N |
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
@@ -196,7 +197,7 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--zusammenfassung ZUSAMMENFASSUNG]
                    [--ohne-vorgaenger OHNE_VORGAENGER] [--text TEXT] [--nein]
                    [--zurueck] [--kommentar KOMMENTAR] [--kurz]
-                   [--federfuehrend FEDERFUEHREND] [--von VON]
+                   [--federfuehrend FEDERFUEHREND] [--pool] [--von VON]
                    [--projekt PROJEKT]
                    {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag}
                    [id] [nr]
@@ -257,6 +258,29 @@ options:
   --federfuehrend FEDERFUEHREND
                         aendern: wer diese Aufgabe führt (Lead/Entwickler;
                         leer = weg)
+  --pool                neu: in den Pool (noch in keiner Arbeitsliste)
+  --von VON
+  --projekt PROJEKT
+```
+
+## liste
+```
+usage: amw liste [-h] [--vor VOR] [--nach NACH] [--pos POS] [--oben] [--unten]
+                 [--von VON] [--projekt PROJEKT]
+                 [wer] [rest ...]
+
+positional arguments:
+  wer                Agent, pool, ordnen oder schieben
+  rest               ordnen: Agent und Aufgaben-Nummern · schieben: die
+                     Aufgabe
+
+options:
+  -h, --help         show this help message and exit
+  --vor VOR
+  --nach NACH
+  --pos POS
+  --oben
+  --unten
   --von VON
   --projekt PROJEKT
 ```

@@ -580,7 +580,7 @@ def _aufgabe_fuer_aenderung(con, pid, von, aid):
 
 
 def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, bemerkung=None, zusammenfassung=None,
-                   auf=None, erledigt=None):
+                   auf=None, erledigt=None, hinweise=None):
     """auf: Wartegründe als Verweise (F…, A…, L…, Agent, Entwickler, Monitor:…) – Pflicht bei wartet/blockiert.
     erledigt: Gründe von Hand abhaken; allein (ohne auf) ändert es den Status nicht."""
     from . import wartegrund
@@ -633,8 +633,12 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
                         " AND aufgabe_id = ? AND art IN ('meldung', 'info'))", (t, von, pid, aid))
             if a["agent"] in (None, "", von):
                 taetigkeit_auto(con, pid, von, f"A{aid} · {a['titel']}", aid)
+            from . import arbeitsliste                # genau eine in Arbeit: eine weiter unten laufende wird zurückgestellt
+            arbeitsliste.beim_start(con, pid, von, a, hinweise)
         if neu in ("fertig", "verworfen"):            # wer auf diese Aufgabe gewartet hat, wird geweckt (L2)
-            wartegrund.erledige(con, pid, "aufgabe", f"A{aid}", f"A{aid} {neu}")
+            geweckt = wartegrund.erledige(con, pid, "aufgabe", f"A{aid}", f"A{aid} {neu}")
+            from . import arbeitsliste                # … und der Besitzer mit der nächsten seiner Liste
+            arbeitsliste.beim_abschluss(con, pid, {**dict(a), "status": neu}, geweckt)
     return neu
 
 
@@ -881,8 +885,14 @@ def kontext(con, pid, kennung):
     if boegen or gefuehrt:
         z.append("Du führst (federführend – Prüfergebnisse, Merge-Bitten, Fragen dazu kommen zu dir): " + "; ".join(
             [f"Bogen {b['id']} {b['titel'][:60]}" for b in boegen] + [f"A{x['id']} {x['titel'][:60]}" for x in gefuehrt]))
-    z.append(f"Deine offenen Aufgaben ({len(eigene)}): " + ("; ".join(
-        f"A{x['id']} [{x['status']}] {x['titel']}" + worauf(x) for x in eigene[:10]) or "keine"))
+    from . import arbeitsliste
+    liste = arbeitsliste.liste(con, pid, kennung)
+    andere = [x for x in eigene if x["id"] not in {y["id"] for y in liste}]
+    z.append(f"Deine Liste ({len(liste)}, von oben nach unten, genau eine in Arbeit; wartet sie, darfst du die nächste nehmen"
+             " – die AMW weckt dich, sobald die obere weiter kann): " + ("; ".join(
+                 f"{x['pos']}. A{x['id']} [{x['status']}] {x['titel'][:90]}" + worauf(x) for x in liste[:10]) or "leer"))
+    if andere:
+        z.append("Außerdem bei dir (geparkt/Pool): " + "; ".join(f"A{x['id']} [{x['status']}] {x['titel'][:60]}" for x in andere[:5]))
 
     wartende = con.execute("SELECT id, agent, titel FROM aufgabe WHERE projekt_id = ? AND status IN ('wartet', 'blockiert')"
                            " AND (wartet_auf LIKE ? OR id IN (SELECT aufgabe_id FROM wartegrund WHERE art = 'agent'"

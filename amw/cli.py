@@ -206,6 +206,51 @@ def _lesezeile(con, r):
     return f"#{r['id']} {_zeit(r['zeit_utc'])} {r['von']:<8} [{r['art']}]{stand}{fertig} {r['kurz'][:140]}"
 
 
+def _listenzeile(x):
+    gr = ", ".join(x.get("gruende") or [])
+    return (f"{x['pos']:>3}. A{x['id']:<6} [{x['status']}]" + (" ◀ in Arbeit" if x["status"] == "laeuft" else "")
+            + f" {x['titel'][:100]}" + (f"  ⇢ wartet auf {gr}" if gr else ""))
+
+
+def cmd_liste(a, con):
+    """Arbeitsliste je Agent (B2429): zeigen, ordnen, schieben."""
+    from . import arbeitsliste
+    pid = _projekt(con, a)
+    wer = (a.wer or "").strip()
+    if wer.lower() == "ordnen":
+        if len(a.rest) < 2:
+            raise kern.AmwFehler("amw liste ordnen <Agent> A12 A15 …")
+        ids = [nummer(x) for x in a.rest[1:]]
+        l = arbeitsliste.ordnen(con, pid, _von(a), a.rest[0], ids)
+    elif wer.lower() == "schieben":
+        if len(a.rest) != 1:
+            raise kern.AmwFehler("amw liste schieben A15 --vor A12 | --nach A12 | --pos N | --oben | --unten")
+        l = arbeitsliste.schieben(con, pid, _von(a), nummer(a.rest[0]), a.vor, a.nach, a.pos, a.oben, a.unten)
+    elif wer.lower() == "pool":
+        p = arbeitsliste.pool(con, pid)
+        for x in p:
+            print(f"A{x['id']:<6} [{x['status']}] {x['agent'] or '–':<8} {x['titel'][:100]}")
+        print(f"{len(p)} im Pool" if p else "Pool leer")
+        return
+    elif wer:
+        l = arbeitsliste.liste(con, pid, kern.agent_zeile(con, pid, wer)["kennung"])
+    else:
+        for g in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? ORDER BY id", (pid,)).fetchall():
+            l = arbeitsliste.liste(con, pid, g["kennung"])
+            if l:
+                print(f"{g['kennung']} ({len(l)}):")
+                for x in l:
+                    print(_listenzeile(x))
+                print()
+        n = len(arbeitsliste.pool(con, pid))
+        print(f"Pool: {n} (amw liste pool)")
+        return
+    for x in l:
+        print(_listenzeile(x))
+    if not l:
+        print("Liste leer")
+
+
 def cmd_lesen(a, con):
     pid = _projekt(con, a)
     von = _von(a)
@@ -283,7 +328,9 @@ def cmd_aufgabe(a, con):
             aid = planung.schritt_setzen(con, pid, _von(a), titel=a.titel, nach=nach, rang=a.rang, **werte)
         else:
             aid = kern.aufgabe_neu(con, pid, _von(a), a.titel, a.agent, a.auftrag, a.rang, a.pruefer)
-        print(f"A{aid} angelegt")
+        if a.pool:
+            wissen.einstufen(con, pid, _von(a), aid, "pool")
+        print(f"A{aid} angelegt" + (" (Pool – der Lead sortiert ein: amw liste ordnen <Agent> …)" if a.pool else ""))
     elif a.aktion == "aendern":
         werte, nach = _schritt_werte(a)
         werte["zusammenfassung"] = a.zusammenfassung              # auch nachträglich (Plan-Check)
@@ -343,11 +390,14 @@ def cmd_aufgabe(a, con):
             raise kern.AmwFehler("Aufgaben-Nummer fehlt")
         if (a.auf or a.erledigt) and a.aktion not in ("wartet", "blockiert"):
             raise kern.AmwFehler("--auf/--erledigt gibt es nur bei aufgabe wartet|blockiert")
+        hinweise = []
         neu = kern.aufgabe_status(con, pid, _von(a), a.id, a.aktion, a.beleg, a.wartet_auf, a.bemerkung, a.zusammenfassung,
-                                  a.auf, a.erledigt)
+                                  a.auf, a.erledigt, hinweise)
         from . import wartegrund
         offen = [g["bezug"] for g in wartegrund.offene(con, a.id)]
         print(f"A{a.id} → {neu}" + (f" · wartet auf {', '.join(offen)}" if offen and neu in ("wartet", "blockiert") else ""))
+        for h in hinweise:
+            print(h)
 
 
 def cmd_leitbild(a, con):
@@ -1472,7 +1522,19 @@ def parser():
     x.add_argument("--kommentar")
     x.add_argument("--kurz", action="store_true", help="zeige: nur Status, Agent, Titel und Wartegründe")
     x.add_argument("--federfuehrend", help="aendern: wer diese Aufgabe führt (Lead/Entwickler; leer = weg)")
+    x.add_argument("--pool", action="store_true", help="neu: in den Pool (noch in keiner Arbeitsliste)")
     x.set_defaults(f=cmd_aufgabe)
+
+    x = s.add_parser("liste", help="Arbeitsliste je Agent: liste [Agent|pool] | ordnen <Agent> A12 A15 … | schieben A15 --vor A12"
+                                   " | --nach | --pos N | --oben | --unten (ordnen/schieben: Lead)")
+    x.add_argument("wer", nargs="?", help="Agent, pool, ordnen oder schieben")
+    x.add_argument("rest", nargs="*", help="ordnen: Agent und Aufgaben-Nummern · schieben: die Aufgabe")
+    x.add_argument("--vor", type=nummer)
+    x.add_argument("--nach", type=nummer)
+    x.add_argument("--pos", type=int)
+    x.add_argument("--oben", action="store_true")
+    x.add_argument("--unten", action="store_true")
+    x.set_defaults(f=cmd_liste)
 
     x = s.add_parser("frage", help="Fragen an den Entwickler oder Lead: neu | liste [--geparkt] | antworten | nachtrag | verlauf |"
                                     " parken N [--grund] | aufnehmen N")
