@@ -161,7 +161,8 @@ def projekt_einstellen(con, pid, von, **werte):
     lauf_ohne_angabe_min (Warnungen, 5–1440), entwickler_name (wie der Mensch in Meldungen heißt). Nur Lead und Entwickler."""
     if not ist_lead(con, pid, von):
         raise AmwFehler("Projekt-Einstellungen dürfen nur Lead und Entwickler ändern")
-    grenzen = {"takt_min": (0, 1440), "speicher_grenze_gb": (1, 512), "stillstand_min": (5, 1440), "lauf_ohne_angabe_min": (5, 1440)}
+    grenzen = {"takt_min": (0, 1440), "speicher_grenze_gb": (1, 512), "stillstand_min": (5, 1440), "lauf_ohne_angabe_min": (5, 1440),
+               "eskalation_min": (0, 1440)}
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         for k, v in werte.items():
@@ -256,6 +257,38 @@ def taetigkeit(con, pid, kennung, text, aufgabe_id=None):
 TAETIGKEIT_ALT_S = 2 * 3600      # ab da gilt eine Tätigkeit als veraltet (Workbench: Bernstein, automatisch ersetzbar)
 
 
+ESKALATION_MIN = 30     # so lange darf eine Frage/Prüfbitte/ein Auftrag beim Federführenden ungelesen liegen
+
+
+def eskalieren(con, pid):
+    """Fragen, Prüfbitten und Aufträge zu einer Aufgabe, die bei ihrem Federführenden (nicht dem Lead) länger als
+    eskalation_min ungelesen liegen: einmal eine weckende Zeile an den Lead. Gibt die eskalierten Nummern zurück."""
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    minuten = float(json.loads(r[0] or "{}").get("eskalation_min", ESKALATION_MIN)) if r else ESKALATION_MIN
+    l = lead(con, pid)
+    if not minuten or not l:
+        return []
+    from datetime import datetime, timedelta, timezone
+    grenze = (datetime.now(timezone.utc) - timedelta(minutes=minuten)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    aus = []
+    for z in con.execute(
+            "SELECT n.id, n.kurz, n.aufgabe_id, n.von, e.agent FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
+            " WHERE n.projekt_id = ? AND e.status = 'offen' AND n.art IN ('frage', 'pruefbitte', 'auftrag')"
+            " AND n.aufgabe_id IS NOT NULL AND n.von != 'AMW' AND n.zeit_utc < ? AND e.agent != ?",
+            (pid, grenze, l)).fetchall():
+        if zustaendig(con, pid, z["aufgabe_id"]) != z["agent"]:
+            continue                                   # nur was beim Federführenden liegt
+        kurz = f"Eskalation #{z['id']}:"
+        if con.execute("SELECT 1 FROM nachricht WHERE projekt_id = ? AND von = 'AMW' AND kurz LIKE ?",
+                       (pid, kurz + "%")).fetchone():
+            continue
+        with db.schreiben(con):
+            _posten(con, pid, "AMW", l, "meldung", f"{kurz} liegt seit über {minuten:g} min ungelesen bei {z['agent']}"
+                    f" (führt A{z['aufgabe_id']}) – {z['von']}: {z['kurz'][:120]}", aufgabe_id=z["aufgabe_id"])
+        aus.append(z["id"])
+    return aus
+
+
 def taetigkeit_auto(con, pid, kennung, text, aufgabe_id=None):
     """aufgabe start / lauf start: setzt die Tätigkeit nur, wenn keine da ist oder sie älter als 2 h ist – eine eigene,
     genauere Angabe wird nicht überschrieben. Läuft in der Transaktion des Aufrufers."""
@@ -338,13 +371,41 @@ def weiter(con, pid, von, gilt_fuer):
 
 # --- Nachrichten ---------------------------------------------------------------------------------
 
-def empfaenger(con, pid, an, von):
+def zustaendig(con, pid, aufgabe_id):
+    """Wer für eine Aufgabe zuständig ist: ihre Federführung, sonst die ihres Bogens, sonst der Lead (None ohne Lead)."""
+    r = con.execute("SELECT a.federfuehrend AS a_ff, b.federfuehrend AS b_ff FROM aufgabe a LEFT JOIN bogen b ON b.id = a.bogen_id"
+                    " WHERE a.id = ? AND a.projekt_id = ?", (aufgabe_id, pid)).fetchone()
+    if not r:
+        raise AmwFehler(f"A{aufgabe_id} gibt es nicht")
+    return r["a_ff"] or r["b_ff"] or lead(con, pid)
+
+
+def fuehrt(con, pid, kennung):
+    """Was ein Agent federführend leitet: (Bögen, Aufgaben) – nur offene."""
+    boegen = con.execute("SELECT id, titel FROM bogen WHERE projekt_id = ? AND federfuehrend = ? AND status IN ('geplant', 'aktiv')"
+                         " ORDER BY id", (pid, kennung)).fetchall()
+    aufgaben = con.execute("SELECT id, titel FROM aufgabe WHERE projekt_id = ? AND federfuehrend = ?"
+                           " AND status IN ('wartet', 'laeuft', 'blockiert') ORDER BY id", (pid, kennung)).fetchall()
+    return boegen, aufgaben
+
+
+ZUSTAENDIG = ("zustaendig", "zuständig", "federfuehrend", "federführend")
+
+
+def empfaenger(con, pid, an, von, aufgabe_id=None):
     namen = []
     for teil in an.replace(";", ",").split(","):
         teil = teil.strip()
         if not teil:
             continue
-        if teil.lower() == "alle":                    # Soll an/ruht oder Sitzung läuft (auch bei Soll aus)
+        if teil.lower() in ZUSTAENDIG:               # wer die Aufgabe gerade führt (Federführung › Bogen › Lead)
+            if not aufgabe_id:
+                raise AmwFehler("--an zustaendig braucht --aufgabe <nr> (wer zuständig ist, hängt an der Aufgabe)")
+            z = zustaendig(con, pid, aufgabe_id)
+            if not z:
+                raise AmwFehler(f"A{aufgabe_id}: keine Federführung und kein Lead")
+            namen.append(z)
+        elif teil.lower() == "alle":                    # Soll an/ruht oder Sitzung läuft (auch bei Soll aus)
             namen += [r["kennung"] for r in con.execute(
                 "SELECT kennung FROM agent g WHERE projekt_id = ? AND empfaengt_rund = 1 AND (soll != 'aus' OR EXISTS"
                 " (SELECT 1 FROM sitzung s WHERE s.agent_id = g.id AND s.zustand = 'aktiv')) ORDER BY id", (pid,))]
@@ -377,7 +438,7 @@ def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_i
     if not con.execute("SELECT 1 FROM nachricht_art WHERE art = ?", (art,)).fetchone():
         erlaubt = ", ".join(r[0] for r in con.execute("SELECT art FROM nachricht_art ORDER BY art"))
         raise AmwFehler(f"Art „{art}“ gibt es nicht; erlaubt: {erlaubt}")
-    namen = empfaenger(con, pid, an, von)
+    namen = empfaenger(con, pid, an, von, aufgabe_id)
     nid = db.einfuegen(con, "nachricht", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=art, kurz=kurz,
                        text=text, antwort_auf=antwort_auf, aufgabe_id=aufgabe_id)
     for n in namen:
@@ -577,6 +638,29 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
     return neu
 
 
+def federfuehrung_setzen(con, pid, von, art, nr, kennung):
+    """Federführung eines Bogens (art=bogen) oder einer Aufgabe (art=aufgabe) setzen; leer nimmt sie weg. Nur Lead/Entwickler.
+    Der neue Federführende erfährt es (weckend)."""
+    if not ist_lead(con, pid, von):
+        raise AmwFehler("Federführung setzen dürfen nur Lead und Entwickler")
+    tabelle = {"bogen": "bogen", "aufgabe": "aufgabe"}[art]
+    r = con.execute(f"SELECT id, titel FROM {tabelle} WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone()
+    if not r:
+        raise AmwFehler(f"{'Bogen ' if art == 'bogen' else 'A'}{nr} gibt es nicht")
+    kennung = (kennung or "").strip()
+    if kennung:
+        kennung = agent_zeile(con, pid, kennung)["kennung"]
+    with db.schreiben(con):
+        con.execute(f"UPDATE {tabelle} SET federfuehrend = ? WHERE id = ?", (kennung or None, nr))
+        if kennung and kennung != von:
+            was = f"Bogen {nr}" if art == "bogen" else f"A{nr}"
+            _posten(con, pid, von, kennung, "auftrag", f"Du führst jetzt {was}: {r['titel'][:120]}",
+                    "Federführung: Prüfergebnisse, Merge-Bitten und Fragen dazu kommen zu dir (--an zustaendig)."
+                    " Du verteilst Schritte, nimmst ab und meldest dem Lead Abschluss und Abweichungen. Beim Lead bleiben:"
+                    " Fragen an den Entwickler, Werte, Freigaben, main/Push.", aufgabe_id=nr if art == "aufgabe" else None)
+    return kennung or None
+
+
 def aufgabe_nachtrag(con, pid, von, aid, titel, auftrag=None, agent=None):
     """Folgearbeit zu einer abgeschlossenen Aufgabe: neue Aufgabe mit Bezug (Titel „Nachtrag A…: …“), gleicher Besitzer,
     wenn keiner genannt ist. Darf der Lead und der Besitzer der alten Aufgabe."""
@@ -610,6 +694,11 @@ OPTION_KENN = re.compile(r"[^\s=:)]{1,12}")
 
 def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, worum=None, fundstellen=None,
               aufgabe_id=None, blockiert=False, folge_von=None, geprueft=None, pruefen=True):
+    zu_zustaendig = an in ZUSTAENDIG                 # Frage an die Federführung der Aufgabe – gespeichert wie eine an den Lead
+    if zu_zustaendig:
+        if not aufgabe_id:
+            raise AmwFehler("frage neu --an zustaendig braucht --aufgabe <nr>")
+        an = "tl"
     """optionen: Liste von (kenn, text). Empfehlung muss eine der Kennungen sein.
     geprueft: was der Fragesteller in Beschlüssen/Fragen/Regeln geprüft hat – Pflicht bei Fragen an den Entwickler;
     findet die AMW Treffer, muss es mindestens einen nennen. pruefen=False: Fragen, die die AMW selbst stellt."""
@@ -633,8 +722,9 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
                            empfehlung=empfehlung, grund=grund, fundstellen=fundstellen, aufgabe_id=aufgabe_id,
                            blockiert=int(blockiert), folge_von=folge_von, geprueft=(geprueft or "").strip() or None)
         if an == "tl":
-            if lead(con, pid):
-                _posten(con, pid, von, lead(con, pid), "frage", f"Frage F{fid}: {kurz}", aufgabe_id=aufgabe_id)
+            ziel = (zustaendig(con, pid, aufgabe_id) if zu_zustaendig else None) or lead(con, pid)
+            if ziel:
+                _posten(con, pid, von, ziel, "frage", f"Frage F{fid}: {kurz}", aufgabe_id=aufgabe_id)
     return fid
 
 
@@ -787,6 +877,10 @@ def kontext(con, pid, kennung):
         g = ", ".join(r["bezug"] for r in wartegrund.offene(con, x["id"]))
         t = "; ".join(v for v in (g, x["wartet_auf"]) if v)
         return f" (wartet auf {t})" if t else ""
+    boegen, gefuehrt = fuehrt(con, pid, kennung)
+    if boegen or gefuehrt:
+        z.append("Du führst (federführend – Prüfergebnisse, Merge-Bitten, Fragen dazu kommen zu dir): " + "; ".join(
+            [f"Bogen {b['id']} {b['titel'][:60]}" for b in boegen] + [f"A{x['id']} {x['titel'][:60]}" for x in gefuehrt]))
     z.append(f"Deine offenen Aufgaben ({len(eigene)}): " + ("; ".join(
         f"A{x['id']} [{x['status']}] {x['titel']}" + worauf(x) for x in eigene[:10]) or "keine"))
 

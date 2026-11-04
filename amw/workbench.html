@@ -811,6 +811,7 @@ const TEXTE = {
     pl_aktivieren_frage: "Bogen aktivieren? Das Zieldatum wird als Baseline eingefroren.", pl_abschliessen: "Abschließen",
     pl_abschliessen_frage: "Ist das Abnahmekriterium erfüllt?\n{x}", bearbeiten: "Bearbeiten", pl_ziel: "Ziel", pl_abnahme: "Abnahme",
     pl_fehlt: "fehlt – ohne prüfbares Kriterium ist ein Bogen nie wirklich fertig", pl_fortschritt: "{f}/{g} fertig", pl_laeuft: "{n} läuft",
+    pl_federfuehrend: "Federführend", k_fuehrt: "führt {x}", k_fuehrt_h: "federführend: Prüfergebnisse, Merge-Bitten und Fragen dazu gehen an diesen Agenten",
     pl_blockiert: "{n} blockiert", pl_zieldatum: "Zieldatum", pl_baseline: "Baseline", pl_prognose: "Prognose", teil_anforderungen: "Anforderungen",
     teil_entwurf: "Entwurf", teil_schritte: "Schritte", ss_entwurf: "in Arbeit", ss_vorgelegt: "zur Freigabe", ss_frei: "frei ✓", ss_zurueck: "zurück",
     pl_klaerungen: "{n} Klärung(en) offen", pl_wartet_auf: "wartet auf {x}", pl_du: "du", pl_frei: "frei", pl_plan_fehlt: "Plan fehlt",
@@ -1027,6 +1028,7 @@ const TEXTE = {
     pl_aktivieren_frage: "Activate arc? The target date is frozen as baseline.", pl_abschliessen: "Complete",
     pl_abschliessen_frage: "Is the acceptance criterion met?\n{x}", bearbeiten: "Edit", pl_ziel: "Goal", pl_abnahme: "Acceptance",
     pl_fehlt: "missing – without a checkable criterion an arc is never really done", pl_fortschritt: "{f}/{g} done", pl_laeuft: "{n} running",
+    pl_federfuehrend: "Lead agent", k_fuehrt: "leads {x}", k_fuehrt_h: "lead agent: review results, merge requests and questions go to this agent",
     pl_blockiert: "{n} blocked", pl_zieldatum: "Target", pl_baseline: "Baseline", pl_prognose: "Forecast", teil_anforderungen: "Requirements",
     teil_entwurf: "Design", teil_schritte: "Steps", ss_entwurf: "in progress", ss_vorgelegt: "for approval", ss_frei: "approved ✓", ss_zurueck: "returned",
     pl_klaerungen: "{n} clarification(s) open", pl_wartet_auf: "waits for {x}", pl_du: "you", pl_frei: "unassigned", pl_plan_fehlt: "plan missing",
@@ -1330,6 +1332,8 @@ function kachel(a) {
         a.gerade_quelle === "angabe" && a.taetigkeit_utc ? taetigkeitAlter(a.taetigkeit_utc) : null)
         : el("span", { class: "sehrleise" }, soll ? t("k_unbekannt") : (a.grenzen || "")),
       (a.wartet || []).map(w => el("div", { class: "bernstein-text", style: "margin-top:4px;font-size:12px" }, t("k_wartet", { a: `A${w.aufgabe}`, x: w.auf }))),
+      (a.fuehrt || []).length ? el("div", { class: "mono", style: "margin-top:4px;font-size:11px;color:var(--tinte)", title: t("k_fuehrt_h") },
+        "◆ " + t("k_fuehrt", { x: a.fuehrt.join(", ") })) : null,
       a.zuletzt ? el("div", { class: "sehrleise", style: "margin-top:4px" }, `${t("k_zuletzt")} ${seit(a.zuletzt_utc)}: ${kurz(a.zuletzt, 70)}`) : null),
     lebt && (a.kontext_prozent != null || a.limit_5h != null) ? el("div", { class: "mini-balken" },
       a.kontext_prozent != null ? balken(t("b_kontext"), a.kontext_prozent) : null, a.limit_5h != null ? balken(t("b_5h"), a.limit_5h) : null) : null,
@@ -2553,6 +2557,7 @@ function bogenKarte(b) {
         knopf(t("bearbeiten"), () => bogenDialog(b)))),
     b.ziel ? el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_ziel") + " "), b.ziel) : null,
     el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_abnahme") + " "), b.abnahme || el("span", { class: "rot-text" }, t("pl_fehlt"))),
+    b.federfuehrend ? el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_federfuehrend") + " "), el("b", {}, b.federfuehrend)) : null,
     el("div", { class: "tl-fortschritt" }, el("div", { class: "mb-spur" }, el("i", { style: `width:${anteil}%;background:var(--gruen)` })),
       el("span", { class: "sehrleise" }, t("pl_fortschritt", { f: b.fertig, g: zahl }) + (b.laeuft ? ` · ${t("pl_laeuft", { n: b.laeuft })}` : "")
         + (b.blockiert ? ` · ${t("pl_blockiert", { n: b.blockiert })}` : ""))),

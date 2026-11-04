@@ -28,7 +28,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`rueckblick`](#rueckblick) | Rückblick je Bogen: amw rueckblick <bogen> [--gut … --schlecht … --massnahme … --gelernt …] ¦ --uebernehmen <nr> --als aufgabe¦beschluss |
 | [`verlauf`](#verlauf) | was passiert ist: amw verlauf [--stunden 24] [--agent CC1] [--art erledigt --art pruefung] [--zusammenfassung] |
 | [`plan`](#plan) | pruefen (Lücken mit Bedeutung und Abhilfe) ¦ akzeptieren <schlüssel> --grund … ¦ wieder <schlüssel> ¦ prognose (P50/P85 je Schritt und Bogen) ¦ status (Ampel je Dimension) |
-| [`lauf`](#lauf) | Rechen-Läufe: start [--warten] prüft Halt, Schirm, Speicher, einen schweren/Schirm-Lauf zur Zeit, Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund |
+| [`lauf`](#lauf) | Rechen-Läufe: start [--warten] prüft Halt, Schirm, Speicher, einen schweren/Schirm-Lauf zur Zeit, Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund · ausfuehren --beschreibung … [--schirm] [--ergebnis datei] -- <befehl …> (einreihen, warten, starten, rc durchreichen, Ende melden; bei Schirm zu den eigenen Befehl beenden) |
 | [`schirm`](#schirm) | Schirm-Schalter: zeige ¦ frei --grund … [--bis HH:MM] (Entwickler/Lead) ¦ zu [--grund …] (alle) |
 | [`server`](#server) | Projekt-Server überwachen: anmelden ¦ abmelden ¦ liste ¦ pruefen |
 | [`pruefung`](#pruefung) | Prüfbitte je Stand (SHA), Ergebnis grün/rot |
@@ -195,7 +195,8 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--anforderungen ANFORDERUNGEN]
                    [--zusammenfassung ZUSAMMENFASSUNG]
                    [--ohne-vorgaenger OHNE_VORGAENGER] [--text TEXT] [--nein]
-                   [--zurueck] [--kommentar KOMMENTAR] [--kurz] [--von VON]
+                   [--zurueck] [--kommentar KOMMENTAR] [--kurz]
+                   [--federfuehrend FEDERFUEHREND] [--von VON]
                    [--projekt PROJEKT]
                    {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag}
                    [id] [nr]
@@ -253,14 +254,17 @@ options:
   --zurueck             planfrei: zurückweisen (mit --kommentar)
   --kommentar KOMMENTAR
   --kurz                zeige: nur Status, Agent, Titel und Wartegründe
+  --federfuehrend FEDERFUEHREND
+                        aendern: wer diese Aufgabe führt (Lead/Entwickler;
+                        leer = weg)
   --von VON
   --projekt PROJEKT
 ```
 
 ## frage
 ```
-usage: amw frage [-h] [--an {entwickler,tl}] [--kurz KURZ] [--worum WORUM]
-                 [--option OPTION] [--empfehlung EMPFEHLUNG]
+usage: amw frage [-h] [--an {entwickler,tl,zustaendig}] [--kurz KURZ]
+                 [--worum WORUM] [--option OPTION] [--empfehlung EMPFEHLUNG]
                  [--fundstellen FUNDSTELLEN] [--geprueft GEPRUEFT]
                  [--aufgabe AUFGABE] [--blockiert] [--text TEXT]
                  [--rueckfrage RUECKFRAGE] [--grund GRUND] [--geparkt]
@@ -273,7 +277,9 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --an {entwickler,tl}
+  --an {entwickler,tl,zustaendig}
+                        zustaendig: an die Federführung der --aufgabe (sonst
+                        Bogen, sonst Lead)
   --kurz KURZ
   --worum WORUM
   --option OPTION       neu: 'A=Text' (mehrfach); antworten: Kennung
@@ -417,8 +423,9 @@ options:
 ## bogen
 ```
 usage: amw bogen [-h] [--titel TITEL] [--ziel ZIEL] [--abnahme ABNAHME]
-                 [--zieldatum ZIELDATUM] [--nr NR] [--grund GRUND]
-                 [--erzwingen] [--von VON] [--projekt PROJEKT]
+                 [--zieldatum ZIELDATUM] [--federfuehrend FEDERFUEHREND]
+                 [--nr NR] [--grund GRUND] [--erzwingen] [--von VON]
+                 [--projekt PROJEKT]
                  {liste,neu,zeigen,aendern,status} [id] [wert]
 
 positional arguments:
@@ -433,6 +440,9 @@ options:
   --abnahme ABNAHME     prüfbares Abnahmekriterium
   --zieldatum ZIELDATUM
                         JJJJ-MM-TT
+  --federfuehrend FEDERFUEHREND
+                        aendern: wer den Bogen führt (Lead/Entwickler; leer =
+                        weg)
   --nr NR               Reihenfolge
   --grund GRUND         nötig, wenn das Zieldatum nach der Baseline geändert
                         wird
@@ -571,15 +581,15 @@ options:
 
 ## lauf
 ```
-usage: amw lauf [-h] [--warten] [--hoechstens HOECHSTENS] [--dauer DAUER]
-                [--beschreibung BESCHREIBUNG] [--rezept REZEPT] [--leicht]
-                [--schirm] [--aufgabe AUFGABE] [--rc RC] [--ergebnis ERGEBNIS]
-                [--abgebrochen] [--grenze GRENZE] [--von VON]
-                [--projekt PROJEKT]
-                {start,ende,liste,vorziehen,zeige,warte} [id]
+usage: amw lauf [-h] [--warten] [--hoechstens HOECHSTENS] [--frist FRIST]
+                [--dauer DAUER] [--beschreibung BESCHREIBUNG]
+                [--rezept REZEPT] [--leicht] [--schirm] [--aufgabe AUFGABE]
+                [--rc RC] [--ergebnis ERGEBNIS] [--abgebrochen]
+                [--grenze GRENZE] [--von VON] [--projekt PROJEKT]
+                {start,ende,liste,vorziehen,zeige,warte,ausfuehren} [id]
 
 positional arguments:
-  {start,ende,liste,vorziehen,zeige,warte}
+  {start,ende,liste,vorziehen,zeige,warte,ausfuehren}
   id
 
 options:
@@ -589,7 +599,10 @@ options:
                         danach: amw lauf warte <nr>
   --hoechstens HOECHSTENS
                         warte: nach so vielen Minuten aufgeben (rc 3), Lauf
-                        bleibt eingereiht
+                        bleibt eingereiht · ausfuehren: dann aus der Schlange
+                        nehmen (rc 200)
+  --frist FRIST         ausfuehren: der Befehl darf so viele Minuten laufen,
+                        dann Ende (rc 124)
   --dauer DAUER         erwartete Dauer in Minuten; doppelt so lang → Warnung
                         an den Lead
   --beschreibung BESCHREIBUNG
@@ -598,7 +611,8 @@ options:
   --schirm
   --aufgabe AUFGABE
   --rc RC
-  --ergebnis ERGEBNIS
+  --ergebnis ERGEBNIS   ende: Ergebnis-Text · ausfuehren: Datei für die
+                        Ausgabe des Befehls
   --abgebrochen
   --grenze GRENZE
   --von VON

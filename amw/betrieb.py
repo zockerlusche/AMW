@@ -237,7 +237,12 @@ def pruefung_ergebnis(con, pid, pruefer, prid, ergebnis, bemerkung=None):
             raise kern.AmwFehler(f"P{prid} ist schon {p['ergebnis']} – neue Prüfbitte für einen neuen Stand")
         con.execute("UPDATE pruefung SET ergebnis = ?, bemerkung = ?, ergebnis_utc = ? WHERE id = ?",
                     (ergebnis, bemerkung, db.jetzt(), prid))
-        kern._posten(con, pid, pruefer, p["bauer"], "meldung",
+        an = [p["bauer"]]
+        if p["aufgabe_id"]:                          # der Federführende nimmt ab (ohne Federführung: der Lead)
+            z = kern.zustaendig(con, pid, p["aufgabe_id"])
+            if z and z not in an and z != pruefer:
+                an.append(z)
+        kern._posten(con, pid, pruefer, ",".join(an), "meldung",
                      f"P{prid} {ergebnis.upper()}: {p['zweig']}@{p['sha'][:8]}", bemerkung, aufgabe_id=p["aufgabe_id"])
 
 

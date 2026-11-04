@@ -74,6 +74,8 @@ def daten_start(con, pid):
         " FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
         " WHERE g.projekt_id = :p ORDER BY g.id", {"p": pid, "alt": alt}))
     for a in agenten:
+        boegen, gefuehrt = kern.fuehrt(con, pid, a["kennung"])          # Federführung auf der Kachel
+        a["fuehrt"] = [f"B{b['id']}" for b in boegen] + [f"A{x['id']}" for x in gefuehrt]
         a["gerade"], a["gerade_aufgabe"], a["gerade_quelle"] = gerade(con, pid, a["kennung"],
                                                                       a["taetigkeit"] if a["zustand"] == "aktiv" else None)
         a["wartet"] = [{"aufgabe": r["aufgabe_id"], "auf": r["auf"]} for r in con.execute(   # Wartegründe auf der Kachel

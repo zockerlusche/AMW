@@ -196,6 +196,12 @@ class Dienst:
                 log.info("Leerlauf: %s", e)
         except Exception as e:
             log.warning("Leerlauf: %s: %s", type(e).__name__, e)
+        try:                                                                 # liegt beim Federführenden → Lead
+            for p in self.con.execute("SELECT id FROM projekt").fetchall():
+                for nid in kern.eskalieren(self.con, p["id"]):
+                    log.info("Eskalation: #%s an den Lead", nid)
+        except Exception as e:
+            log.warning("Eskalation: %s: %s", type(e).__name__, e)
         try:                                                                 # Push aufs Handy (eigene Fehler nie störend)
             for p in self.con.execute("SELECT id FROM projekt").fetchall():
                 for e in push.runde(self.con, p["id"]):

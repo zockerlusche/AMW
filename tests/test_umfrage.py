@@ -3,6 +3,7 @@
 import io
 import os
 import sqlite3
+import sys
 import tempfile
 import time
 import unittest
@@ -267,6 +268,113 @@ class DateienOnline(Grund):
                 kern.projekt_einstellen(self.con, self.pid, "TL", dateien_online="immer")
         finally:
             os.environ.pop("AMW_DB", None)
+
+
+class LaufAusfuehren(Grund):
+    """lauf ausfuehren: einreihen, warten, starten, rc durchreichen, Ende melden; Schirm zu/Frist beenden den Befehl."""
+
+    def setUp(self):
+        super().setUp()
+        self.sitzung("CC1")
+        self.aus = os.path.join(self.ordner.name, "aus.txt")
+
+    def lauf(self):
+        return self.con.execute("SELECT * FROM lauf ORDER BY id DESC LIMIT 1").fetchone()
+
+    def test_rc_durchreichen_und_ergebnis_datei(self):
+        rc, aus = self.cli("--von", "CC1", "lauf", "ausfuehren", "--beschreibung", "Probe", "--leicht", "--ergebnis", self.aus,
+                           "--", sys.executable, "-c", "print('hallo aus dem Lauf'); import sys; sys.exit(3)")
+        self.assertEqual(rc, 3, aus)
+        self.assertIn("hallo aus dem Lauf", aus)
+        l = self.lauf()
+        self.assertEqual((l["status"], l["rc"]), ("fertig", 3))
+        self.assertIn("hallo aus dem Lauf", l["ergebnis"])
+        with open(self.aus, encoding="utf-8") as f:
+            text = f.read()
+        self.assertTrue(text.startswith(f"# AMW L{l['id']} · CC1 · Probe"))
+        self.assertIn("# Ende: ", text)
+        self.assertIn("rc 3", text.splitlines()[-1])
+
+    def test_frist_beendet_den_baum(self):
+        with mock.patch.object(cli, "PRUEF_S", 1):
+            t = time.time()
+            rc, aus = self.cli("--von", "CC1", "lauf", "ausfuehren", "--beschreibung", "lang", "--leicht", "--frist", "0.03",
+                               "--", sys.executable, "-c", "import time; time.sleep(60)")
+        self.assertEqual(rc, cli.RC_FRIST, aus)
+        self.assertLess(time.time() - t, 30)
+        self.assertEqual(self.lauf()["status"], "abgebrochen")
+
+    def test_schirm_zu_beendet_den_befehl(self):
+        from amw import schirm
+        schirm.setzen(self.con, self.pid, "TL", True, "Entwickler weg")
+        def zu():
+            time.sleep(2)
+            c = db.verbinde(self.pfad)
+            schirm.setzen(c, self.pid, "CC2", False, "Entwickler ist da")
+            c.close()
+        import threading
+        threading.Thread(target=zu, daemon=True).start()
+        with mock.patch.object(cli, "PRUEF_S", 1):
+            rc, aus = self.cli("--von", "CC1", "lauf", "ausfuehren", "--beschreibung", "Fenster", "--schirm", "--leicht",
+                               "--", sys.executable, "-c", "import time; time.sleep(60)")
+        self.assertEqual(rc, cli.RC_SCHIRM, aus)
+        self.assertEqual(self.lauf()["status"], "abgebrochen")
+
+    def test_ohne_befehl_und_wartezeit_um(self):
+        rc, aus = self.cli("--von", "CC1", "lauf", "ausfuehren", "--beschreibung", "x")
+        self.assertEqual(rc, 1)
+        self.assertIn("der Befehl steht nach --", aus)
+        rc, aus = self.cli("--von", "CC1", "lauf", "ausfuehren", "--beschreibung", "Fenster", "--schirm", "--leicht",
+                           "--hoechstens", "0.001", "--", sys.executable, "-c", "print(1)")   # Schirm zu: kommt nie dran
+        self.assertEqual(rc, cli.RC_NIE, aus)
+        self.assertEqual(self.lauf()["status"], "abgebrochen")
+
+
+class Federfuehrung(Grund):
+    def setUp(self):
+        super().setUp()
+        from amw import planung
+        self.b = planung.bogen_neu(self.con, self.pid, "TL", "Testbuild", abnahme="läuft")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET bogen_id = ? WHERE id = ?", (self.b, self.a))
+
+    def test_zustaendig_kette_und_empfaenger(self):
+        self.assertEqual(kern.zustaendig(self.con, self.pid, self.a), "TL")                    # ohne: der Lead
+        with self.assertRaises(kern.AmwFehler):
+            kern.federfuehrung_setzen(self.con, self.pid, "CC1", "bogen", self.b, "CC3")    # nur Lead/Entwickler
+        rc, aus = self.cli("--von", "TL", "bogen", "aendern", str(self.b), "--federfuehrend", "CC3")
+        self.assertEqual(rc, 0, aus)
+        self.assertEqual(kern.zustaendig(self.con, self.pid, self.a), "CC3")                   # Bogen
+        self.assertIn("Du führst jetzt Bogen", kern.offene(self.con, self.pid, "CC3")[0]["kurz"])
+        kern.federfuehrung_setzen(self.con, self.pid, "TL", "aufgabe", self.a, "CC2")
+        self.assertEqual(kern.zustaendig(self.con, self.pid, self.a), "CC2")                   # Aufgabe vor Bogen
+        _, namen = kern.posten(self.con, self.pid, "CC1", "zustaendig", "frage", "passt das?", aufgabe_id=self.a)
+        self.assertEqual(namen, ["CC2"])
+        with self.assertRaises(kern.AmwFehler):
+            kern.posten(self.con, self.pid, "CC1", "zustaendig", "frage", "ohne Aufgabe")
+        self.assertIn("Du führst", kern.kontext(self.con, self.pid, "CC2"))
+        kern.federfuehrung_setzen(self.con, self.pid, "TL", "aufgabe", self.a, "")
+        self.assertEqual(kern.zustaendig(self.con, self.pid, self.a), "CC3")
+
+    def test_frage_und_pruefergebnis_gehen_an_den_federfuehrenden(self):
+        kern.federfuehrung_setzen(self.con, self.pid, "TL", "bogen", self.b, "CC3")
+        fid = kern.frage_neu(self.con, self.pid, "CC1", "zustaendig", "Welche Wand?", [("A", "hell"), ("B", "dunkel")], "A",
+                             "weil", aufgabe_id=self.a)
+        self.assertTrue(any(f"Frage F{fid}" in r["kurz"] for r in kern.offene(self.con, self.pid, "CC3")))
+        self.assertFalse(any(f"Frage F{fid}" in r["kurz"] for r in kern.offene(self.con, self.pid, "TL")))
+        prid = betrieb.pruefbitte(self.con, self.pid, "CC1", "CC2", "cc1-x", "abcdef123456", aufgabe_id=self.a)
+        betrieb.pruefung_ergebnis(self.con, self.pid, "CC2", prid, "gruen")
+        self.assertTrue(any(f"P{prid} GRUEN" in r["kurz"].upper().replace("Ü", "UE") for r in kern.offene(self.con, self.pid, "CC3")))
+
+    def test_eskalation_einmal_an_den_lead(self):
+        kern.federfuehrung_setzen(self.con, self.pid, "TL", "bogen", self.b, "CC3")
+        nid, _ = kern.posten(self.con, self.pid, "CC1", "zustaendig", "frage", "bitte abnehmen", aufgabe_id=self.a)
+        self.assertEqual(kern.eskalieren(self.con, self.pid), [])                               # noch frisch
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE nachricht SET zeit_utc = '2026-11-01T10:00:00Z' WHERE id = ?", (nid,))
+        self.assertEqual(kern.eskalieren(self.con, self.pid), [nid])
+        self.assertEqual(kern.eskalieren(self.con, self.pid), [])                               # nur einmal
+        self.assertTrue(any(f"Eskalation #{nid}" in r["kurz"] for r in kern.offene(self.con, self.pid, "TL")))
 
 
 class Pfade(unittest.TestCase):

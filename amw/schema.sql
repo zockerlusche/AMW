@@ -137,6 +137,7 @@ CREATE TABLE bogen (
   abnahme          TEXT,                            -- prüfbares Kriterium (Gate)
   status           TEXT NOT NULL DEFAULT 'geplant' CHECK (status IN ('geplant', 'aktiv', 'fertig', 'verworfen')),
   zieldatum        TEXT,                            -- JJJJ-MM-TT
+  federfuehrend    TEXT,                            -- Kennung: nimmt Prüfergebnisse, Merge-Bitten, Fragen zum Bogen an
   baseline_datum   TEXT,
   baseline_grund   TEXT,
   angelegt_von     TEXT NOT NULL,
@@ -171,6 +172,7 @@ CREATE TABLE aufgabe (
   auftrag        TEXT,
   agent          TEXT,                            -- Besitzer; nur er (oder TL) darf Status setzen
   pruefer        TEXT,
+  federfuehrend  TEXT,                            -- vor der des Bogens; zuständig = diese › Bogen › Lead
   angelegt_von   TEXT NOT NULL,
   status         TEXT NOT NULL DEFAULT 'wartet' CHECK (status IN ('wartet', 'laeuft', 'blockiert', 'fertig', 'verworfen')),
   einstufung     TEXT NOT NULL DEFAULT 'aktiv' CHECK (einstufung IN ('aktiv', 'keine_prio', 'geparkt', 'pool')),

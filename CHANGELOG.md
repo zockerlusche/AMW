@@ -4,6 +4,24 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.11.0 – 04.11.2026 · Federführung je Bogen und Aufgabe, Läufe aus einer Hand
+Weniger wartet auf den Lead: Wer einen Bogen oder eine Aufgabe führt, nimmt Prüfergebnisse und Fragen dazu an
+(→ `doc/plan-federfuehrung.md`). Schema 14.
+- **Federführung:** `amw bogen aendern N --federfuehrend X` bzw. `amw aufgabe aendern N --federfuehrend X`. Setzen dürfen
+  Lead und Entwickler, leer nimmt sie weg. Zuständig ist die Federführung der Aufgabe, sonst die ihres Bogens, sonst der
+  Lead. Der neue Federführende bekommt einen Auftrag mit seiner Rolle.
+- **`--an zustaendig --aufgabe N`** bei `posten` und `frage neu` erreicht, wer die Aufgabe gerade führt.
+- **Prüfergebnisse** gehen an den Bauer und an den Zuständigen.
+- **Eskalation:** Bleibt eine Frage, Prüfbitte oder ein Auftrag beim Federführenden 30 min ungelesen, bekommt der Lead
+  einmal eine weckende Zeile. Die Frist steht in den Projekt-Einstellungen als `eskalation_min`, 0 schaltet sie aus.
+- **Sichtbar:** Der Pflicht-Kontext zeigt „Du führst: Bogen 3 …, A1250 …“. Die Bogen-Karte zeigt „Federführend“, die
+  Kachel des Agenten „◆ führt B3, A1250“.
+- **`amw lauf ausfuehren --beschreibung … [--schirm] [--ergebnis datei] [--frist MIN] [--hoechstens MIN] -- <befehl …>`:**
+  Der Befehl reiht ein, wartet, startet, schreibt die Ausgabe auf den Bildschirm und in die Ergebnis-Datei (mit Kopf und
+  Ende), reicht den rc durch und meldet das Ende. Bei Schirm zu, Ende von außen, Frist oder Strg+C beendet er den eigenen
+  Prozessbaum, was der Prozess des Agenten selbst tut, nicht der Dienst. Eigene Rückgabewerte: 200 nie gestartet, 201
+  Schirm zu, 202 von außen beendet, 124 Frist, 130 Strg+C. Er ersetzt die eigenen Hüllen-Skripte um jeden Lauf.
+
 ## 1.10.1 – 04.11.2026 · Schirm-Läufe schließen den Schirm nicht mehr selbst, Dateien online als Einstellung
 - **Eingaben eines Schirm-Laufs zählen nicht als „Entwickler ist da“:** Abläufe mit Fenster klicken und tippen selbst.
   Windows meldet das wie eine Eingabe am PC, und der Schirm ging zu, während der Entwickler am Handy war. Darauf brach

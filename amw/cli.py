@@ -287,9 +287,13 @@ def cmd_aufgabe(a, con):
     elif a.aktion == "aendern":
         werte, nach = _schritt_werte(a)
         werte["zusammenfassung"] = a.zusammenfassung              # auch nachträglich (Plan-Check)
-        planung.schritt_setzen(con, pid, _von(a), aid=a.id, titel=a.titel, nach=nach, **werte)
+        if any(v is not None for v in werte.values()) or nach or a.titel:
+            planung.schritt_setzen(con, pid, _von(a), aid=a.id, titel=a.titel, nach=nach, **werte)
         if _ohne(a):
             planung.abhaengigkeit_setzen(con, pid, _von(a), a.id, _ohne(a), entfernen=True)
+        if a.federfuehrend is not None:
+            ff = kern.federfuehrung_setzen(con, pid, _von(a), "aufgabe", a.id, a.federfuehrend)
+            print(f"A{a.id}: federführend {ff or '– (Bogen bzw. Lead)'}")
         print(f"A{a.id} geändert")
     elif a.aktion == "kriterium":
         liste = planung.kriterium(con, pid, _von(a), a.id, a.nr, not a.nein)
@@ -368,6 +372,9 @@ def cmd_bogen(a, con):
         print(f"Bogen {bid} angelegt – Spezifikation: amw spec schreiben {bid} anforderungen --datei …")
     elif a.aktion == "aendern":
         planung.bogen_aendern(con, pid, _von(a), a.id, a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr, a.grund)
+        if a.federfuehrend is not None:
+            ff = kern.federfuehrung_setzen(con, pid, _von(a), "bogen", a.id, a.federfuehrend)
+            print(f"Bogen {a.id}: federführend {ff or '– (Lead)'}")
         print(f"Bogen {a.id} geändert")
     elif a.aktion == "status":
         planung.bogen_status(con, pid, _von(a), a.id, a.wert, a.erzwingen)
@@ -377,7 +384,8 @@ def cmd_bogen(a, con):
         if not b:
             raise kern.AmwFehler(f"Bogen {a.id} gibt es nicht")
         print(f"Bogen {b['id']} [{b['status']}] {b['titel']} · Ziel: {b['ziel'] or '–'} · Abnahme: {b['abnahme'] or '–'}"
-              f" · Zieldatum {b['zieldatum'] or '–'} (Baseline {b['baseline_datum'] or '–'})")
+              f" · Zieldatum {b['zieldatum'] or '–'} (Baseline {b['baseline_datum'] or '–'})"
+              + (f" · federführend {b['federfuehrend']}" if b.get("federfuehrend") else ""))
         stand = {"entwurf": "in Arbeit", "zurueck": "zurück"}
         print("Spezifikation: " + ", ".join(f"{t} {stand.get(b['spec'].get(t), b['spec'].get(t) or '–')}" for t in planung.TEILE))
         stufe = planung.wellen(con, [r[0] for r in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ?", (a.id,))])
@@ -711,6 +719,121 @@ def _lauf_warte(con, pid, a):
         time.sleep(5)
 
 
+PRUEF_S = 5          # lauf ausfuehren: so oft nachsehen, ob der Schirm zugeht oder der Lauf beendet wurde
+# Rückgabewerte von lauf ausfuehren, die nicht vom Befehl stammen (Ketten „nur weiter bei 0“ bleiben sauber)
+RC_FRIST, RC_STRG_C, RC_NIE, RC_SCHIRM, RC_BEENDET = 124, 130, 200, 201, 202
+
+
+def _baum_beenden(proc):
+    """Den eigenen Befehl samt Kindern beenden (Prozess des Agenten, nicht der Dienst)."""
+    import subprocess
+    if proc.poll() is not None:
+        return
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True)
+    else:
+        import signal
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except OSError:
+            proc.kill()
+    try:
+        proc.wait(timeout=30)
+    except Exception:
+        pass
+
+
+def _lauf_ausfuehren(con, pid, a):
+    """Einreihen → warten → Befehl starten → Ausgabe in die Ergebnis-Datei → rc durchreichen → lauf ende. Beim Schirm-Lauf:
+    geht der Schirm zu oder beendet jemand den Lauf, endet der eigene Befehl (Prozessbaum) und der Lauf gilt als abgebrochen.
+    rc: der des Befehls, sonst 200 = nie gestartet (aus der Schlange genommen, --hoechstens erreicht), 201 = Schirm zu,
+    202 = Lauf von außen beendet, 124 = --frist erreicht, 130 = Strg+C."""
+    import subprocess
+    import threading
+    befehl = getattr(a, "befehl", None) or []
+    if not befehl:
+        raise kern.AmwFehler("lauf ausfuehren --beschreibung … [--schirm] -- <befehl …> (der Befehl steht nach --)")
+    beschreibung = a.beschreibung or a.rezept or " ".join(befehl)[:120]
+    von = _von(a)
+    lid = betrieb.lauf_start(con, pid, von, beschreibung, a.rezept, not a.leicht, a.schirm, a.aufgabe, warten=True,
+                             erwartet_min=a.dauer)
+    print(f"L{lid} angemeldet: {beschreibung}", flush=True)
+    a.id = lid
+    try:
+        w = _lauf_warte(con, pid, a)
+    except KeyboardInterrupt:
+        w = "Strg+C"
+    if w != 0:
+        if betrieb.lauf_zeile(con, pid, lid)["status"] in ("angemeldet", "laeuft"):
+            betrieb.lauf_ende(con, pid, von, lid, None, f"nie gestartet ({'Strg+C' if w == 'Strg+C' else 'Wartezeit um'})",
+                              abgebrochen=True)
+            print(f"L{lid} aus der Schlange genommen", flush=True)
+        return RC_NIE
+    ausgabe = open(a.ergebnis, "w", encoding="utf-8", errors="replace") if a.ergebnis else None
+    if ausgabe:
+        ausgabe.write(f"# AMW L{lid} · {von} · {beschreibung}\n# Befehl: {' '.join(befehl)}\n# Start: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+    eins = len(befehl) == 1                      # ein String mit Leerzeichen: als Befehlszeile der Shell
+    try:
+        proc = subprocess.Popen(befehl[0] if eins else befehl, shell=eins, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                stdin=subprocess.DEVNULL, start_new_session=os.name != "nt")
+    except OSError as e:
+        betrieb.lauf_ende(con, pid, von, lid, 127, f"Start fehlgeschlagen: {e}")
+        raise kern.AmwFehler(f"L{lid}: Befehl ließ sich nicht starten ({e}) – Lauf beendet")
+    letzte = [""]
+
+    def mitschreiben():
+        for roh in iter(proc.stdout.readline, b""):
+            z = roh.decode("utf-8", errors="replace")
+            sys.stdout.write(z)
+            sys.stdout.flush()
+            if ausgabe:
+                ausgabe.write(z)
+                ausgabe.flush()
+            if z.strip():
+                letzte[0] = z.strip()
+    leser = threading.Thread(target=mitschreiben, daemon=True)
+    leser.start()
+    grund, rc_grund = None, None
+    frist = time.time() + a.frist * 60 if a.frist else None
+    try:
+        while proc.poll() is None:
+            for _ in range(PRUEF_S * 10):            # kurz schlafen, damit ein schneller Befehl nicht 5 s „hängt“
+                if proc.poll() is not None:
+                    break
+                time.sleep(0.1)
+            if proc.poll() is not None:
+                break
+            l = betrieb.lauf_zeile(con, pid, lid)
+            if l["status"] != "laeuft":
+                grund, rc_grund = f"L{lid} wurde beendet ({l['status']})", RC_BEENDET
+            elif a.schirm and not schirm.zustand(con)["frei"]:
+                grund, rc_grund = f"Schirm zu: {schirm.zustand(con)['grund'] or ''}".strip(), RC_SCHIRM
+            elif frist and time.time() >= frist:
+                grund, rc_grund = f"Frist {a.frist:g} min erreicht", RC_FRIST
+            if grund:
+                print(f"\n{grund} – beende den Befehl", flush=True)
+                _baum_beenden(proc)
+                break
+    except KeyboardInterrupt:
+        grund, rc_grund = "Strg+C", RC_STRG_C
+        _baum_beenden(proc)
+    leser.join(timeout=10)
+    rc = proc.returncode
+    if ausgabe:
+        ausgabe.write(f"# Ende: {time.strftime('%Y-%m-%d %H:%M:%S')} · rc {rc_grund if grund else rc}"
+                      + (f" · abgebrochen: {grund}" if grund else "") + "\n")
+        ausgabe.close()
+    wo = f" · Ausgabe: {a.ergebnis}" if a.ergebnis else ""
+    if grund:
+        if betrieb.lauf_zeile(con, pid, lid)["status"] == "laeuft":
+            betrieb.lauf_ende(con, pid, von, lid, rc_grund, f"abgebrochen: {grund}{wo}"[:500], abgebrochen=True)
+        print(f"L{lid} abgebrochen ({grund}), rc {rc_grund}", flush=True)
+        return rc_grund
+    betrieb.lauf_ende(con, pid, von, lid, rc, (f"rc {rc}{wo}" + (f" · {letzte[0]}" if letzte[0] else ""))[:500])
+    print(f"L{lid} fertig, rc {rc}{wo}", flush=True)
+    return rc
+
+
 def cmd_schirm(a, con):
     pid = _projekt(con, a)
     if a.aktion in ("frei", "zu"):
@@ -765,6 +888,8 @@ def cmd_lauf(a, con):
             print(betrieb.wartegrund(con, pid, l))
     elif a.aktion == "warte":
         return _lauf_warte(con, pid, a)
+    elif a.aktion == "ausfuehren":
+        return _lauf_ausfuehren(con, pid, a)
     else:
         w = betrieb.wartende(con, pid)
         if w:
@@ -1346,13 +1471,15 @@ def parser():
     x.add_argument("--zurueck", action="store_true", help="planfrei: zurückweisen (mit --kommentar)")
     x.add_argument("--kommentar")
     x.add_argument("--kurz", action="store_true", help="zeige: nur Status, Agent, Titel und Wartegründe")
+    x.add_argument("--federfuehrend", help="aendern: wer diese Aufgabe führt (Lead/Entwickler; leer = weg)")
     x.set_defaults(f=cmd_aufgabe)
 
     x = s.add_parser("frage", help="Fragen an den Entwickler oder Lead: neu | liste [--geparkt] | antworten | nachtrag | verlauf |"
                                     " parken N [--grund] | aufnehmen N")
     x.add_argument("aktion", choices=["neu", "liste", "antworten", "nachtrag", "verlauf", "parken", "aufnehmen"])
     x.add_argument("id", type=nummer, nargs="?")
-    x.add_argument("--an", choices=["entwickler", "tl"])
+    x.add_argument("--an", choices=["entwickler", "tl", "zustaendig"],
+                   help="zustaendig: an die Federführung der --aufgabe (sonst Bogen, sonst Lead)")
     x.add_argument("--kurz")
     x.add_argument("--worum")
     x.add_argument("--option", action="append", help="neu: 'A=Text' (mehrfach); antworten: Kennung")
@@ -1420,6 +1547,7 @@ def parser():
     x.add_argument("--ziel")
     x.add_argument("--abnahme", help="prüfbares Abnahmekriterium")
     x.add_argument("--zieldatum", help="JJJJ-MM-TT")
+    x.add_argument("--federfuehrend", help="aendern: wer den Bogen führt (Lead/Entwickler; leer = weg)")
     x.add_argument("--nr", type=int, help="Reihenfolge")
     x.add_argument("--grund", help="nötig, wenn das Zieldatum nach der Baseline geändert wird")
     x.add_argument("--erzwingen", action="store_true")
@@ -1484,12 +1612,16 @@ def parser():
     x.set_defaults(f=cmd_plan)
 
     x = s.add_parser("lauf", help="Rechen-Läufe: start [--warten] prüft Halt, Schirm, Speicher, einen schweren/Schirm-Lauf zur Zeit,"
-                                  " Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund")
-    x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen", "zeige", "warte"])
+                                  " Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund ·"
+                                  " ausfuehren --beschreibung … [--schirm] [--ergebnis datei] -- <befehl …> (einreihen, warten,"
+                                  " starten, rc durchreichen, Ende melden; bei Schirm zu den eigenen Befehl beenden)")
+    x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen", "zeige", "warte", "ausfuehren"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--warten", action="store_true", help="ist der Platz belegt: NUR einreihen (noch nicht rechnen!) statt"
                                                          " ablehnen; Freigabe weckt dich – oder danach: amw lauf warte <nr>")
-    x.add_argument("--hoechstens", type=float, help="warte: nach so vielen Minuten aufgeben (rc 3), Lauf bleibt eingereiht")
+    x.add_argument("--hoechstens", type=float, help="warte: nach so vielen Minuten aufgeben (rc 3), Lauf bleibt eingereiht ·"
+                                                    " ausfuehren: dann aus der Schlange nehmen (rc 200)")
+    x.add_argument("--frist", type=float, help="ausfuehren: der Befehl darf so viele Minuten laufen, dann Ende (rc 124)")
     x.add_argument("--dauer", type=float, help="erwartete Dauer in Minuten; doppelt so lang → Warnung an den Lead")
     x.add_argument("--beschreibung")
     x.add_argument("--rezept")
@@ -1497,7 +1629,7 @@ def parser():
     x.add_argument("--schirm", action="store_true")
     x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--rc", type=int)
-    x.add_argument("--ergebnis")
+    x.add_argument("--ergebnis", help="ende: Ergebnis-Text · ausfuehren: Datei für die Ausgabe des Befehls")
     x.add_argument("--abgebrochen", action="store_true")
     x.add_argument("--grenze", type=int, default=20)
     x.set_defaults(f=cmd_lauf)
@@ -1719,7 +1851,13 @@ def main(argv=None):
             strom.reconfigure(encoding="utf-8")
         except AttributeError:
             pass
+    argv = list(sys.argv[1:] if argv is None else argv)
+    befehl = []
+    if "--" in argv:                                  # lauf ausfuehren … -- <befehl …>: alles danach ist der Befehl
+        i = argv.index("--")
+        argv, befehl = argv[:i], argv[i + 1:]
     a = parser().parse_args(argv)
+    a.befehl = befehl
     _pfade_umsetzen(a)
     db.wartemeldung_an()
     try:
