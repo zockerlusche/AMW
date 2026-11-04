@@ -121,7 +121,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .band-warn { display: grid; gap: 4px; padding: 12px 18px; border: 1px solid var(--bernstein); background: var(--bernstein-weich);
   border-radius: 4px; margin-bottom: 18px; }
 .band-warn b { font: 600 14px var(--titel); letter-spacing: .1em; color: var(--bernstein); }
-/* Schirm-Schalter (B2419): frei = Agenten dürfen Fenster öffnen – auffällig; zu mit wartenden Läufen – ruhig */
+/* Schirm-Schalter: frei = Agenten dürfen Fenster öffnen – auffällig; zu mit wartenden Läufen – ruhig */
 .band-schirm { display: flex; gap: 14px; align-items: center; padding: 12px 18px; border: 1px solid var(--linie); background: var(--flaeche);
   border-radius: 4px; margin-bottom: 18px; flex-wrap: wrap; }
 .band-schirm.frei { border-color: var(--bernstein); background: var(--bernstein-weich); }
@@ -725,6 +725,9 @@ const TEXTE = {
     e_db: "Datenbank", e_port: "Port der Workbench", e_aufsicht: "Aufsicht der Sitzungen (s)", e_hoch: "Abgleich: hochladen höchstens alle (s)",
     e_puls_pc: "Abgleich: Lebenszeichen alle (s)", e_eingang: "Abgleich: Briefkasten leeren alle (s)", e_bruecke: "Brücke für den TL",
     e_absender: "Brücke: Absender", e_kopie: "Brücke: Lesekopie höchstens alle (s)",
+    e_fern: "Schirm: Programm einer Fernsitzung", e_fern_ph: "leer = aus, z. B. teamviewer_desktop.exe",
+    e_fern_h: "Läuft nur während einer Fernwartungs-Verbindung – beginnt eine, geht ein freier Schirm zu",
+    e_entwickler: "Dein Name in Meldungen", e_entwickler_ph: "Entwickler", e_entwickler_h: "z. B. „Marie wartet …“ – als Wartegrund geht er auch (--auf Marie)",
     e_turso: "Online-Speicher (Turso)", e_turso_h: "Neue Adresse oder neuer Schlüssel werden vor dem Speichern geprüft. Wirkt beim nächsten Start des Wächters.",
     e_url: "Adresse", e_token: "Schlüssel", e_token_da: "gespeichert – leer lassen = behalten", e_token_neu: "noch keiner", e_abgleich: "Abgleich an",
     s_pc: "PC-Stand {x}", s_pc_weg: "PC zuletzt {x}", s_briefkasten: "{n} unterwegs", abmelden: "Abmelden",
@@ -888,9 +891,9 @@ const TEXTE = {
     schirm_seit: "seit {x}", schirm_bis: "bis {x}", schirm_von: "von {x}",
     schirm_wartet: "Läufe mit Fenster in der Schlange: {n}", schirm_laeuft: "läuft am Schirm: {x}",
     schirm_freigeben: "Schirm freigeben …", schirm_zumachen: "Schirm zu", schirm_titel: "Schirm-Schalter",
-    schirm_erkl: "Frei heißt: Agenten dürfen Läufe mit Fenster starten (immer nur einer zur Zeit, über die Lauf-Schlange). Die AMW macht den Schirm von selbst wieder zu, sobald du zurück bist: Eingabe an diesem PC (ab 2 Minuten nach dem Freigeben, auch über TeamViewer), eine neue TeamViewer-Sitzung, du schreibst in der Workbench oder im Chat – oder zur gewählten Uhrzeit.",
+    schirm_erkl: "Frei heißt: Agenten dürfen Läufe mit Fenster starten (immer nur einer zur Zeit, über die Lauf-Schlange). Die AMW macht den Schirm von selbst wieder zu, sobald du zurück am PC bist: Eingabe an diesem PC (ab 2 Minuten nach dem Freigeben, auch über eine Fernsitzung), eine neue Fernsitzung (wenn unter „Dieser PC“ eingestellt), eine Eingabe in der Workbench an diesem PC – oder zur gewählten Uhrzeit. Was du vom Handy schreibst, lässt ihn frei.",
     schirm_zu_erkl: "Zu heißt: Keine neuen Läufe mit Fenster. Läuft gerade einer, bekommt der Agent die Bitte, ihn sofort zu beenden.",
-    schirm_grund_ph: "Grund, z. B. „AFK, Monitor an, kein TeamViewer“", schirm_bis_l: "Spätestens zu um (optional)",
+    schirm_grund_ph: "Grund, z. B. „weg bis morgen, Monitor an“", schirm_bis_l: "Spätestens zu um (optional)",
     schirm_nur_pc: "Freigeben geht nur am PC. Zu machen geht auch von hier.", schirm_ist_frei: "Schirm ist frei", schirm_ist_zu: "Schirm ist zu",
     schirm_grund_fehlt: "Bitte einen Grund angeben",
     nachricht: "Nachricht", nachricht_an: "Nachricht an {x}", n_kurz_ph: "Kurz: worum geht es (eine Zeile)", n_text_ph: "Text (optional)",
@@ -936,6 +939,9 @@ const TEXTE = {
     e_db: "Database", e_port: "Workbench port", e_aufsicht: "Session supervision (s)", e_hoch: "Sync: upload at most every (s)",
     e_puls_pc: "Sync: heartbeat every (s)", e_eingang: "Sync: empty mailbox every (s)", e_bruecke: "Bridge for the TL",
     e_absender: "Bridge: sender", e_kopie: "Bridge: read copy at most every (s)",
+    e_fern: "Screen: remote session program", e_fern_ph: "empty = off, e.g. teamviewer_desktop.exe",
+    e_fern_h: "Runs only during a remote-support connection – when one starts, a free screen closes",
+    e_entwickler: "Your name in messages", e_entwickler_ph: "Entwickler", e_entwickler_h: "e.g. “Marie waits …” – also works as a wait reason (--auf Marie)",
     e_turso: "Online store (Turso)", e_turso_h: "A new URL or token is checked before saving. Takes effect on the next service start.",
     e_url: "URL", e_token: "Token", e_token_da: "saved – leave empty to keep", e_token_neu: "none yet", e_abgleich: "Sync on",
     s_pc: "PC data {x}", s_pc_weg: "PC last seen {x}", s_briefkasten: "{n} pending", abmelden: "Log out",
@@ -1095,9 +1101,9 @@ const TEXTE = {
     schirm_seit: "since {x}", schirm_bis: "until {x}", schirm_von: "by {x}",
     schirm_wartet: "Windowed runs in the queue: {n}", schirm_laeuft: "on screen: {x}",
     schirm_freigeben: "Free the screen …", schirm_zumachen: "Close screen", schirm_titel: "Screen switch",
-    schirm_erkl: "Free means: agents may start runs that open windows (one at a time, through the run queue). The AMW closes the screen by itself as soon as you are back: input on this PC (from 2 minutes after freeing, also via TeamViewer), a new TeamViewer session, you write in the workbench or chat – or at the chosen time.",
+    schirm_erkl: "Free means: agents may start runs that open windows (one at a time, through the run queue). The AMW closes the screen by itself as soon as you are back at the PC: input on this PC (from 2 minutes after freeing, also via a remote session), a new remote session (if set under “This PC”), input in the workbench on this PC – or at the chosen time. Writing from your phone leaves it free.",
     schirm_zu_erkl: "Closed means: no new windowed runs. If one is running, its agent is asked to end it right away.",
-    schirm_grund_ph: "Reason, e.g. “away, monitor on, no TeamViewer”", schirm_bis_l: "Close at the latest (optional)",
+    schirm_grund_ph: "Reason, e.g. “away until tomorrow, monitor on”", schirm_bis_l: "Close at the latest (optional)",
     schirm_nur_pc: "Freeing only works on the PC. Closing works from here too.", schirm_ist_frei: "Screen is free", schirm_ist_zu: "Screen is closed",
     schirm_grund_fehlt: "Please give a reason",
     nachricht: "Message", nachricht_an: "Message to {x}", n_kurz_ph: "Short: what is it about (one line)", n_text_ph: "Text (optional)",
@@ -2796,7 +2802,7 @@ function haltDialog() {
         el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")))));
   document.body.append(hg); text.focus();
 }
-/* Schirm-Schalter (B2419): frei nur am PC mit Grund (optional „spätestens zu um“), zu überall mit einem Klick */
+/* Schirm-Schalter: frei nur am PC mit Grund (optional „spätestens zu um“), zu überall mit einem Klick */
 function schirmDialog() {
   const sz = zustand.start?.schirm || { frei: 0 };
   let hg;
@@ -2874,12 +2880,16 @@ async function sichtEinstellungen() {
 
   // Projekt
   const pf = { takt_min: zahl(d.projekt.takt_min, 0, 1440), speicher_grenze_gb: zahl(d.projekt.speicher_grenze_gb, 1, 512, 0.5),
-    stillstand_min: zahl(d.projekt.stillstand_min, 5, 1440), lauf_ohne_angabe_min: zahl(d.projekt.lauf_ohne_angabe_min, 5, 1440) };
+    stillstand_min: zahl(d.projekt.stillstand_min, 5, 1440), lauf_ohne_angabe_min: zahl(d.projekt.lauf_ohne_angabe_min, 5, 1440),
+    entwickler_name: text(d.projekt.entwickler_name || "") };
+  pf.entwickler_name.placeholder = t("e_entwickler_ph"); pf.entwickler_name.maxLength = 30;
   box.append(block(t("e_projekt", { x: d.projekt.name }), null,
     [[t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")],
-     [t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")], [t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")]],
+     [t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")], [t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")],
+     [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")]],
     "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
-      stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min) })));
+      stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min),
+      entwickler_name: pf.entwickler_name.value.trim() })));
 
   // Agenten
   const zeile = a => {
@@ -2919,11 +2929,13 @@ async function sichtEinstellungen() {
   const p = d.pc, pc = { db_pfad: text(p.db_pfad), port: zahl(p.port, 1024, 65535), aufsicht_s: zahl(p.aufsicht_s, 5, 600),
     abgleich_hoch_s: zahl(p.abgleich_hoch_s, 10, 3600), abgleich_puls_s: zahl(p.abgleich_puls_s, 60, 3600),
     abgleich_eingang_s: zahl(p.abgleich_eingang_s, 5, 600), bruecke_an: schalter(p.bruecke_an),
-    bruecke_absender: text(p.bruecke_absender), bruecke_kopie_s: zahl(p.bruecke_kopie_s, 15, 3600) };
+    bruecke_absender: text(p.bruecke_absender), bruecke_kopie_s: zahl(p.bruecke_kopie_s, 15, 3600),
+    fernsitzung_prozess: text(p.fernsitzung_prozess || "") };
+  pc.fernsitzung_prozess.placeholder = t("e_fern_ph");
   box.append(block(t("e_pc"), API ? t("nur_pc") : t("e_pc_h", { x: p.datei }), [
     [t("e_db"), pc.db_pfad], [t("e_port"), pc.port], [t("e_aufsicht"), pc.aufsicht_s], [t("e_hoch"), pc.abgleich_hoch_s],
     [t("e_puls_pc"), pc.abgleich_puls_s], [t("e_eingang"), pc.abgleich_eingang_s], [t("e_bruecke"), pc.bruecke_an],
-    [t("e_absender"), pc.bruecke_absender], [t("e_kopie"), pc.bruecke_kopie_s]],
+    [t("e_absender"), pc.bruecke_absender], [t("e_kopie"), pc.bruecke_kopie_s], [t("e_fern"), pc.fernsitzung_prozess, t("e_fern_h")]],
     "pc", () => Object.fromEntries(Object.entries(pc).map(([k, x]) => [k, wert(x)])), !!API));
 
   // Online-Speicher – nur am PC; der Schlüssel wird nie angezeigt

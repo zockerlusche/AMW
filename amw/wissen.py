@@ -127,22 +127,22 @@ def release_version(con, pid, von, version, titel, commit_sha=None, text=None):
     return rid, len(merges)
 
 
-# --- Frage-Prüfung gegen die Datenbank (B2422) -----------------------------------------------------
+# --- Frage-Prüfung gegen die Datenbank ------------------------------------------------------------
 
 STOPP = set("""aber alle alles also auch bevor bitte bleibt dabei damit dann dass dein deine denn diese dieser dieses
 doch durch eine einem einen einer eines erst etwas euch gibt habe haben hast hier ihre immer jede jeder jetzt kann
 kein keine machen mehr muss nach neue neuen nicht noch nur oder ohne schon sein seine sich sind soll sollen sollte
 ueber über und unsere unter viel vom von vor wann warum was weil welche welcher wenn werden wieder wie wird wirklich
-wollen zum zur zwei frage fragen marcel option variante ja nein gilt geht""".split())
+wollen zum zur zwei frage fragen entwickler option variante ja nein gilt geht""".split())
 TREFFER_MAX = 6
 
 
-def _staemme(text):
+def _staemme(text, stopp=()):
     """Wörter ab 4 Zeichen, ohne Füllwörter, als Wortanfang (7 Zeichen) – grob, aber ohne Wörterbuch."""
     aus = []
     for w in re.findall(r"[0-9A-Za-zÄÖÜäöüß]{4,}", text or ""):
         w = w.lower()
-        if w not in STOPP and not w.isdigit():
+        if w not in STOPP and w not in stopp and not w.isdigit():
             aus.append(w[:7])
     return list(dict.fromkeys(aus))
 
@@ -150,7 +150,7 @@ def _staemme(text):
 def treffer(con, pid, text, grenze=TREFFER_MAX):
     """Passende geltende Beschlüsse, beantwortete Fragen und Regeln zu einem Fragetext. Seltene Wörter zählen mehr.
     Liste von {"ref", "titel", "antwort", "zeit"} – die besten zuerst."""
-    staemme = _staemme(text)
+    staemme = _staemme(text, {kern.entwickler_name(con, pid).lower()})      # steht in fast jeder Frage
     if not staemme:
         return []
     docs = []
@@ -192,7 +192,7 @@ def treffer_text(liste):
 
 
 def pruefung_verlangen(con, pid, text, geprueft):
-    """B2422: Fragen an den Entwickler nur mit --geprueft; gibt es Treffer, muss es mindestens einen nennen."""
+    """Fragen an den Entwickler nur mit --geprueft; gibt es Treffer, muss es mindestens einen nennen."""
     liste = treffer(con, pid, text)
     g = (geprueft or "").strip()
     refs = {t["ref"].upper() for t in liste}

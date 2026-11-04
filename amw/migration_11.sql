@@ -1,4 +1,4 @@
--- Schema 10 → 11 (AMW 1.7.0): Schirm-Schalter (B2419, → doc/plan-automatismen.md).
+-- Schema 10 → 11 (AMW 1.7.0): Schirm-Schalter (→ doc/automatismen.md).
 -- Darf gerade ein Lauf am Bildschirm laufen? Eine Zeile je Wechsel, die jüngste gilt; keine Zeile = zu.
 -- PC-weit (ein Bildschirm), deshalb ohne projekt_id.
 CREATE TABLE schirm (

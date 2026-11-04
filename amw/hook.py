@@ -1,7 +1,7 @@
 """SessionStart-Hook: Sitzung anmelden und Pflicht-Kontext einspielen (→ doc/architektur.md).
 
 Eintrag in der Projekt-Einstellung des Agenten (.claude/settings.local.json), Matcher startup|resume|compact:
-  python -X utf8 -m amw.hook        (mit PYTHONPATH=F:\\amw, AMW_AGENT=<Kennung>, ggf. AMW_PROJEKT)
+  python -X utf8 -m amw.hook        (mit PYTHONPATH=<AMW-Ordner>, AMW_AGENT=<Kennung>, ggf. AMW_PROJEKT)
 
 - startup/resume: schreibt Pipe-Pfad + Schlüssel der Sitzung in eine Datei unter %LOCALAPPDATA%\\amw\\sitzungen
   (nur der Windows-Benutzer liest dort; der Schlüssel kommt nie in die Datenbank) und trägt die Sitzung ein;

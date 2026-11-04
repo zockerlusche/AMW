@@ -8,6 +8,7 @@ Kein Import von db – db fragt hier nach dem Pfad.
 """
 import json
 import os
+import re
 
 WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -47,6 +48,13 @@ def _befehl(v):
     return v
 
 
+def _prozess(v):
+    v = str(v or "").strip().lower()
+    if v and not re.fullmatch(r"[a-z0-9_.\- ]{1,60}\.exe", v):
+        raise ValueError("Programmname wie fernwartung.exe (leer = aus)")
+    return v
+
+
 def _kennung(v):
     v = str(v).strip()
     if not v or len(v) > 20 or not all(c.isalnum() or c in "-_" for c in v):
@@ -66,6 +74,8 @@ FELDER = {
     "bruecke_kopie_s": (60, _ganz(15, 3600)),
     "statusline_weiter": ("", _befehl),            # bisherige Statusline, die amw-statusline.py weiterreicht
     "claude_befehl": ("claude", _befehl),          # Claude Code starten (falls anders installiert: voller Pfad)
+    # Schirm: dieses Programm läuft nur während einer Fernsitzung (Fernwartungs-Werkzeug) – leer = nicht prüfen
+    "fernsitzung_prozess": ("", _prozess),
 }
 
 

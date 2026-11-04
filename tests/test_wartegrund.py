@@ -55,7 +55,7 @@ class Verweise(Grund):
         with self.assertRaises(kern.AmwFehler):
             kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet")
         with self.assertRaises(kern.AmwFehler):                        # Freitext allein reicht nicht (A1238)
-            kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet", wartet_auf="Marcels Antwort")
+            kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet", wartet_auf="Antwort des Entwicklers")
         with self.assertRaises(kern.AmwFehler):
             kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet", auf="Quatsch")
         with self.assertRaises(kern.AmwFehler):
@@ -66,7 +66,7 @@ class Verweise(Grund):
     def test_verweise_lesen(self):
         f = self.frage()
         a2 = kern.aufgabe_neu(self.con, self.pid, "TL", "Vorarbeit", agent="CC2")
-        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet", auf=f"F{f}, a{a2}; CC2,Marcel,Monitor: Fensterlauf")
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet", auf=f"F{f}, a{a2}; CC2,entwickler,Monitor: Fensterlauf")
         self.assertEqual([g["bezug"] for g in wartegrund.offene(self.con, self.a)],
                          [f"F{f}", f"A{a2}", "CC2", "Entwickler", "Monitor: Fensterlauf"])
         kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "blockiert", auf="CC2")      # doppelt → nicht noch einmal
@@ -101,33 +101,34 @@ class Wecken(Grund):
         kern.frage_antworten(self.con, self.pid, f, "rueckfrage", "Welches Blau?", "seite")
         self.assertEqual(len(wartegrund.offene(self.con, self.a)), 1)
 
-    def test_aufgabe_lauf_agent_marcel(self):
+    def test_aufgabe_lauf_agent_entwickler(self):
+        kern.projekt_einstellen(self.con, self.pid, "TL", entwickler_name="Chris")     # sein Name gilt als Verweis
         a2 = kern.aufgabe_neu(self.con, self.pid, "TL", "Vorarbeit", agent="CC2")
         lid = betrieb.lauf_start(self.con, self.pid, "CC3", "Build", speicher_frei=20)
         f = self.frage()
-        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet", auf=f"A{a2},L{lid},CC3,Marcel")
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet", auf=f"A{a2},L{lid},CC3,Chris")
         kern.aufgabe_status(self.con, self.pid, "CC2", a2, "fertig", beleg="abc123")
         betrieb.lauf_ende(self.con, self.pid, "CC3", lid, 0)
         kern.posten(self.con, self.pid, "CC3", "TL", "info", "fremde Aufgabe")            # ohne --aufgabe: zählt nicht
         self.assertIn("CC3", [g["bezug"] for g in wartegrund.offene(self.con, self.a)])
         kern.posten(self.con, self.pid, "CC3", "CC1", "antwort", "erledigt", aufgabe_id=self.a)
         self.assertEqual([g["bezug"] for g in wartegrund.offene(self.con, self.a)], ["Entwickler"])
-        with db.schreiben(self.con):                                    # Marcel beantwortet eine Frage zu dieser Aufgabe
+        with db.schreiben(self.con):                                    # der Entwickler beantwortet eine Frage dazu
             self.con.execute("UPDATE frage SET aufgabe_id = ? WHERE id = ?", (self.a, f))
         kern.frage_antworten(self.con, self.pid, f, "text", "nimm Blau", "seite")
         self.assertEqual(wartegrund.offene(self.con, self.a), [])
         post = self.post("CC1")
-        for teil in (f"A{a2} fertig", f"L{lid} zu Ende (rc 0)", "CC3 hat geschrieben", "Marcel hat"):
+        for teil in (f"A{a2} fertig", f"L{lid} zu Ende (rc 0)", "CC3 hat geschrieben", "Chris hat"):
             self.assertTrue(any(teil in k for k in post), teil)
         self.assertTrue(any("alle Gründe erledigt – weiter: amw aufgabe start" in k for k in post))
 
     def test_von_hand_abhaken(self):
-        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet", auf="Marcel,CC2")
-        self.assertEqual(kern.aufgabe_status(self.con, self.pid, "TL", self.a, "wartet", erledigt="Marcel"), "wartet")
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet", auf="Entwickler,CC2")
+        self.assertEqual(kern.aufgabe_status(self.con, self.pid, "TL", self.a, "wartet", erledigt="Entwickler"), "wartet")
         self.assertEqual([g["bezug"] for g in wartegrund.offene(self.con, self.a)], ["CC2"])
         self.assertTrue(any("Entwickler erledigt (TL)" in k for k in self.post("CC1")))
         with self.assertRaises(kern.AmwFehler):
-            kern.aufgabe_status(self.con, self.pid, "TL", self.a, "wartet", erledigt="Marcel")
+            kern.aufgabe_status(self.con, self.pid, "TL", self.a, "wartet", erledigt="Entwickler")
         with self.assertRaises(kern.AmwFehler):                        # nur Besitzer oder Lead
             kern.aufgabe_status(self.con, self.pid, "CC3", self.a, "wartet", erledigt="CC2")
 
@@ -172,7 +173,7 @@ class Bezug(Grund):
 
 
 class Leerlauf(Grund):
-    """L3: wer frei ist, obwohl Arbeit da ist, wird geweckt; alles wartet auf Marcel → eine Zeile an den Lead."""
+    """L3: wer frei ist, obwohl Arbeit da ist, wird geweckt; alles wartet auf den Entwickler → eine Zeile an den Lead."""
 
     def setUp(self):
         super().setUp()
@@ -201,11 +202,11 @@ class Leerlauf(Grund):
             self.con.execute("INSERT INTO abhaengigkeit (vor, nach, art) VALUES (?, ?, 'FS')", (self.a, a2))
         self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt), [])                    # Vorgänger offen
 
-    def test_alles_wartet_auf_marcel_hoechstens_alle_6h(self):
+    def test_alles_wartet_auf_den_entwickler_hoechstens_alle_6h(self):
         f = self.frage()
-        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet", auf=f"F{f},Marcel")
-        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt), ["Lead: alles wartet auf Marcel"])
-        self.assertIn(f"Leerlauf: warten auf Marcel – CC1 (Entwickler, F{f})", [r["kurz"] for r in kern.offene(self.con, self.pid, "TL")])
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "wartet", auf=f"F{f},Entwickler")
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt), ["Lead: alles wartet auf den Entwickler"])
+        self.assertIn(f"Leerlauf: warten auf Entwickler – CC1 (Entwickler, F{f})", [r["kurz"] for r in kern.offene(self.con, self.pid, "TL")])
         self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt + 3600), [])
 
 
@@ -236,7 +237,7 @@ class Pruefung(Grund):
     def setUp(self):
         super().setUp()
         self.b = wissen.beschluss_neu(self.con, self.pid, "TL", "Modem heißt DSL-Modem",
-                                      "Anker-Geräte tragen die Technik im Namen: Modem → DSL-Modem", "Marcel 04.11. 11:35")
+                                      "Anker-Geräte tragen die Technik im Namen: Modem → DSL-Modem", "Entwickler 04.11. 11:35")
 
     def test_treffer_gefunden(self):
         t = wissen.treffer(self.con, self.pid, "Wie soll das Modem am Anker heißen?")
@@ -272,7 +273,7 @@ class SucheZeige(Grund):
     def setUp(self):
         super().setUp()
         self.b = wissen.beschluss_neu(self.con, self.pid, "TL", "Modem heißt DSL-Modem",
-                                      "Anker-Geräte tragen die Technik im Namen: Modem → DSL-Modem", "Marcel 04.11. 11:35")
+                                      "Anker-Geräte tragen die Technik im Namen: Modem → DSL-Modem", "Entwickler 04.11. 11:35")
 
     def test_suche_und_zeige(self):
         rc, aus = self.cli("--von", "CC1", "suche", "DSL-Modem")
@@ -280,7 +281,7 @@ class SucheZeige(Grund):
         self.assertIn(f"B{self.b}", aus)
         rc, aus = self.cli("--von", "CC1", "zeige", f"B{self.b}", f"A{self.a}")
         self.assertEqual(rc, 0)
-        self.assertIn("Quelle: Marcel 04.11. 11:35", aus)
+        self.assertIn("Quelle: Entwickler 04.11. 11:35", aus)
         self.assertIn("titel: Onboarding prüfen", aus)
         rc, aus = self.cli("--von", "CC1", "zeige", "B999")
         self.assertEqual(rc, 1)

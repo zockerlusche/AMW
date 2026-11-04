@@ -19,7 +19,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`kontext`](#kontext) | Pflicht-Kontext für einen Agenten |
 | [`regeln`](#regeln) | alle geltenden Regeln (Arbeits- und Projektregeln) |
 | [`suche`](#suche) | Volltext über Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten, Dokumente: amw suche Modem |
-| [`zeige`](#zeige) | Einträge ganz lesen: amw zeige B2420 F5148 A1238 W12 16000 D5 KR3 PR42 (Nachricht ohne #: in der Shell beginnt mit # ein Kommentar) |
+| [`zeige`](#zeige) | Einträge ganz lesen: amw zeige B5 F12 A120 W3 16000 D5 KR3 PR4 (Nachricht ohne #: in der Shell beginnt mit # ein Kommentar) |
 | [`leitbild`](#leitbild) | Projektziel, Kennzahlen, Nicht-Ziele, Prinzipien, Definition of Done: zeigen ¦ setzen |
 | [`bogen`](#bogen) | Meilensteine: liste ¦ neu ¦ zeigen N ¦ aendern N ¦ status N aktiv¦fertig¦geplant¦verworfen |
 | [`spec`](#spec) | Spezifikation je Bogen: zeigen N [teil] ¦ schreiben N teil --text/--datei ¦ vorlegen N teil ¦ frei N teil ¦ zurueck N teil --kommentar  (teil: anforderungen ¦ entwurf ¦ schritte) |
@@ -204,10 +204,10 @@ options:
                         wartet/blockiert: Erklärung als Text (zusätzlich zu
                         --auf)
   --auf AUF             wartet/blockiert: worauf, als Verweise –
-                        F5148,A1240,L141,CC2,Marcel,Monitor:<was> (Pflicht;
+                        F12,A120,L7,CC2,Entwickler,Monitor:<was> (Pflicht;
                         erledigt sich von selbst und weckt dich)
   --erledigt ERLEDIGT   wartet/blockiert: diese Gründe von Hand abhaken, z. B.
-                        F5148 (allein: Status bleibt)
+                        F12 (allein: Status bleibt)
   --bemerkung BEMERKUNG
   --alle
   --bogen BOGEN         Planung: gehört zu Bogen N
@@ -818,7 +818,7 @@ options:
   -h, --help            show this help message and exit
   --beschluss BESCHLUSS
                         entfernen ohne Lead-Rolle: Nummer eines geltenden
-                        Beschlusses (z. B. B2376)
+                        Beschlusses (z. B. B5)
   --text TEXT
   --text-datei TEXT_DATEI
   --von VON

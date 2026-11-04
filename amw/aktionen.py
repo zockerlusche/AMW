@@ -14,13 +14,14 @@ class Ungueltig(ValueError):
 
 
 def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
-    """Führt die Aktion aus. Jede Eingabe des Entwicklers heißt: Marcel ist da – ein freier Schirm geht zu (B2419)."""
+    """Führt die Aktion aus. Jede Eingabe des Entwicklers in der Workbench am PC heißt: er sitzt davor – ein freier
+    Schirm geht zu. Online (Handy) nicht: er ist unterwegs, der Bildschirm bleibt frei."""
     if weg == "/api/schirm":
         return schirm_setzen(con, pid, daten, kanal)
     aus = _ausfuehren(con, pid, weg, daten, kanal, speicher)
-    if weg != "/api/hochladen" or daten.get("schritt") == "start":    # ein Upload in vielen Teilen zählt einmal
+    if kanal == "seite" and (weg != "/api/hochladen" or daten.get("schritt") == "start"):   # Upload in Teilen: einmal
         from . import schirm
-        schirm.marcel_da(con, "Workbench" if kanal == "seite" else "Workbench online")
+        schirm.entwickler_da(con, "Workbench")
     return aus
 
 

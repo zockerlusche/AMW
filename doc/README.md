@@ -8,8 +8,9 @@
 5. [Dokumente](anleitung-dokumente.md) – Ergebnisse, Bilder und Mockups der Agenten mit Vorschau und Versionen
 6. [Push aufs Handy](anleitung-push.md) – ntfy, Pushover, Telegram
 7. [Online](online.md) – die Workbench im Netz (PHP-Webhoster + Turso)
-8. [Fehlerbehebung](fehlerbehebung.md)
-9. [Befehle](befehle.md) – alle `amw`-Befehle (aus der Kommandozeile erzeugt)
+8. [Automatismen](automatismen.md) – Schirm-Schalter, Wartegründe, Leerlauf- und Frage-Prüfung
+9. [Fehlerbehebung](fehlerbehebung.md)
+10. [Befehle](befehle.md) – alle `amw`-Befehle (aus der Kommandozeile erzeugt)
 
 **Hintergrund**
 - [Architektur](architektur.md) – Bausteine, Abläufe, Datenmodell, Grenzen

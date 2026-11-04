@@ -117,7 +117,7 @@ def warteschlange(con, pid, speicher_frei=None):
             plaetze = _plaetze(l["schwer"], l["schirm"])
             if plaetze & gesperrt:
                 continue
-            if l["schirm"] and schirm_zu:            # hält nur andere Schirm-Läufe auf, nicht die ohne Fenster (B2418)
+            if l["schirm"] and schirm_zu:            # hält nur andere Schirm-Läufe auf, nicht die ohne Fenster
                 gesperrt.add("schirm")
                 continue
             lebt = con.execute("SELECT 1 FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"

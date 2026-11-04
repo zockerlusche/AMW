@@ -1,6 +1,6 @@
 """Datei-Brücke für Sitzungen, die amw.db nicht direkt öffnen können (→ doc/architektur.md „Datei-Brücke“).
 
-Der TL arbeitet in einer Linux-VM, F:\\amw ist dort per FUSE eingehängt; SQLite im WAL-Modus scheitert darüber
+Ein Lead kann z. B. in einer Linux-VM arbeiten, die den AMW-Ordner per FUSE einhängt; SQLite im WAL-Modus scheitert darüber
 („disk I/O error“). Darum:
 - Lesen: Der Wächter schreibt höchstens jede Minute (nur nach Änderungen) eine Kopie ohne WAL nach
   daten/tl_lesen.db (journal_mode=DELETE). Lesen mit `file:…/tl_lesen.db?immutable=1`. Stand in daten/tl_lesen.stand.
@@ -34,7 +34,7 @@ VON = "TL"
 ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "lauf", "pruefung", "taetigkeit",
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
            "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf", "dokument",
-           "schirm"}   # Freigaben: nur der Mensch (Schirm frei: der Lead auf Marcels Wort, B2419)
+           "schirm"}   # Freigaben: nur der Mensch (Schirm frei: der Lead auf das Wort des Entwicklers)
 
 
 def lese_kopie(quelle=None, ziel=None):

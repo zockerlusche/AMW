@@ -4,6 +4,19 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.9.1 – 04.11.2026 · Universell: Name und Fernsitzung als Einstellung
+- **Schirm geht nur noch bei Signalen am PC zu:** Eingabe am PC, eine neue Fernsitzung, eine Eingabe in der Workbench am
+  PC oder die bis-Uhrzeit. Ein neuer Wortlaut (z. B. vom Lead aus einem Chat übernommen) und Eingaben auf der
+  Online-Seite schließen ihn nicht mehr – wer vom Handy schreibt, sitzt nicht am PC. Zumachen von unterwegs geht weiter.
+- **Name des Entwicklers als Projekt-Einstellung** (Zahnrad › Projekt, Vorgabe „Entwickler“): Meldungen sagen z. B.
+  „Marie ist da (Workbench, 06:02)“ oder „Leerlauf: warten auf Marie“; als Wartegrund geht `--auf Marie` ebenso wie
+  `--auf Entwickler`. Vorher stand ein fester Name im Code.
+- **Fernsitzung als PC-Einstellung** (Zahnrad › Dieser PC, `fernsitzung_prozess`): das Programm, das nur während einer
+  Fernwartungs-Verbindung läuft (bei TeamViewer z. B. `teamviewer_desktop.exe`). Leer = nicht prüfen. Vorher war
+  TeamViewer fest eingebaut.
+- Code, Kommentare, Hilfe und Änderungsliste nennen keine Nummern und Namen eines bestimmten Projekts mehr; der
+  Entwurf der Automatismen ist als neutrale Beschreibung `doc/automatismen.md` im Repository.
+
 ## 1.9.0 – 04.11.2026 · Umbenennen mit Alias, Nachschlagen, Kacheln nach Rolle
 - **`amw agent umbenennen <alt> <neu>`** (Entwickler/Lead): neue Kennung in allen Spalten, die eine Kennung tragen
   (Nachrichten von/an, Aufgaben, Fragen, Läufe, Prüfungen, Sperren, Wartegründe …) in einem Schreibvorgang; Freitexte
@@ -12,49 +25,50 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   Gesprächsansicht und „In Claude öffnen“ bleiben. `amw agent liste` zeigt „(früher …)“. Vorher `amw sichern`.
 - **`amw suche <Stichwort>`**: Volltext über Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten und Dokumente in kurzen
   Zeilen (`--art`, `--grenze`, `--wissen` zeigt dazu die passenden Beschlüsse/Fragen/Regeln wie bei `frage neu`).
-- **`amw zeige B12 F7 A1201 W3 #16000 D5 KR3 PR42`**: Einträge ganz lesen, mehrere auf einmal.
+- **`amw zeige B12 F7 A1201 W3 16000 D5 KR3 PR42`**: Einträge ganz lesen, mehrere auf einmal (Nachrichten ohne `#`).
 - **Kacheln nach Rolle:** Die Startseite ordnet die Agenten nach ihrer Rolle (Lead zuerst, gleiche Rollen nebeneinander) und
   zeigt je Agent „A… wartet auf …“ aus den Wartegründen. Die Rolle ist je Agent frei einstellbar (Zahnrad › Agenten).
 
 ## 1.8.0 – 04.11.2026 · Wartegründe, Wecken, Frage-Prüfung
-Beschluss B2419 „Automatismen in der AMW statt Gebote“, Teil 2 (L1–L6), und B2422 (Fragen, die schon beantwortet sind).
-Plan: `doc/plan-automatismen.md`. Schema 12.
-- **Wartegrund als Verweis (L1):** `amw aufgabe wartet|blockiert <nr> --auf F5148,A1240,L141,CC2,Marcel,Monitor:<was>`.
+Automatismen statt Gebote, Teil 2: Wartegründe und Wecken, dazu die Prüfung neuer Fragen gegen das, was schon
+entschieden ist (→ `doc/automatismen.md`). Schema 12.
+- **Wartegrund als Verweis:** `amw aufgabe wartet|blockiert <nr> --auf F12,A120,L7,CC2,Entwickler,Monitor:<was>`.
   Ohne `--auf` lehnt die AMW „wartet“ und „blockiert“ ab – Freitext allein reicht nicht mehr (`--wartet-auf` bleibt als
   Erklärung). Eine neue, nicht begonnene Aufgabe steht weiter ohne Grund auf „wartet“ (= zu tun).
-- **Erledigter Grund weckt (L2):** Frage beantwortet, Aufgabe fertig oder verworfen, Lauf zu Ende, der genannte Agent
-  schreibt mit `--aufgabe` dieser Aufgabe, Marcel beantwortet eine Frage zu ihr → der Besitzer bekommt eine weckende
-  Meldung („A1238: F5148 beantwortet: B) … – noch offen: A1240“ bzw. „alle Gründe erledigt – weiter“), Kopie an den Lead.
-  Von Hand abhaken: `amw aufgabe wartet <nr> --erledigt F5148` (Besitzer oder Lead, z. B. nach Marcels Wort im Chat).
-- **Leerlauf-Prüfung (L3):** Ist eine Sitzung seit 30 min frei, ohne offene Post, und hat der Agent eine Aufgabe ohne
+- **Erledigter Grund weckt:** Frage beantwortet, Aufgabe fertig oder verworfen, Lauf zu Ende, der genannte Agent
+  schreibt mit `--aufgabe` dieser Aufgabe, der Entwickler beantwortet eine Frage zu ihr → der Besitzer bekommt eine
+  weckende Meldung („A120: F12 beantwortet: B) … – noch offen: A121“ bzw. „alle Gründe erledigt – weiter“), Kopie an den
+  Lead. Von Hand abhaken: `amw aufgabe wartet <nr> --erledigt F12` (Besitzer oder Lead, z. B. nach dem Wort des
+  Entwicklers im Chat).
+- **Leerlauf-Prüfung:** Ist eine Sitzung seit 30 min frei, ohne offene Post, und hat der Agent eine Aufgabe ohne
   offenen Grund (Vorgänger fertig, nicht geparkt), weckt ihn der Dienst mit dieser Aufgabe – einmal je Ruhephase. Warten
-  alle Aufgaben eines freien Agenten auf Marcel, bekommt der Lead höchstens alle 6 h eine Sammelzeile.
-- **Aufgaben-Bezug geprüft (L4):** `posten`/`frage neu --aufgabe` mit einer Nummer, die es nicht gibt oder die fertig ist,
+  alle Aufgaben eines freien Agenten auf den Entwickler, bekommt der Lead höchstens alle 6 h eine Sammelzeile.
+- **Aufgaben-Bezug geprüft:** `posten`/`frage neu --aufgabe` mit einer Nummer, die es nicht gibt oder die fertig ist,
   wird abgelehnt; bei einer fremden Aufgabe kommt ein Hinweis.
-- **Kopie an den Besitzer (L5):** Eine `info`, `meldung` oder `antwort` zu einer fremden Aufgabe geht in Kopie an ihren
+- **Kopie an den Besitzer:** Eine `info`, `meldung` oder `antwort` zu einer fremden Aufgabe geht in Kopie an ihren
   Besitzer, weckend, wenn seine Aufgabe wartet. Nicht bei `auftrag` und `pruefbitte` (Merge- und Prüfbitten).
-- **Was eine Frage aufhält (L6):** Workbench und Online-Seite zeigen an jeder offenen Frage „hält A1238 (CC1) seit …“.
-- **Frage-Prüfung gegen die Datenbank (B2422):** `amw frage neu` sucht in geltenden Beschlüssen, beantworteten Fragen und
+- **Was eine Frage aufhält:** Workbench und Online-Seite zeigen an jeder offenen Frage „hält A120 (CC1) seit …“.
+- **Frage-Prüfung gegen die Datenbank:** `amw frage neu` sucht in geltenden Beschlüssen, beantworteten Fragen und
   Regeln nach den Wörtern der Frage. Fragen an den Entwickler brauchen `--geprueft "…"`; findet die AMW Treffer, muss es
-  mindestens einen davon nennen („B2420 passt nicht, weil …“). Bei Fragen an den Lead zeigt sie die Treffer nur. Die
+  mindestens einen davon nennen („B5 passt nicht, weil …“). Bei Fragen an den Lead zeigt sie die Treffer nur. Die
   Workbench zeigt „Vorher geprüft: …“ an der Frage.
 - `amw aufgabe liste`/`zeige` und der Pflicht-Kontext zeigen die offenen Gründe; „Wartet auf dich“ kennt die Verweise.
 - Vorbereitet für 1.9.0 (Agenten nach Rolle umbenennen): Spalte `agent.alias`.
 
 ## 1.7.1 – 04.11.2026 · Korrektur Brücke
 - **Beschlüsse über die Brücke gehen wieder:** 1.7.0 hatte `--quelle` über die Brücke für alle Befehle gesperrt. Bei
-  `beschluss` ist `--quelle` aber die inhaltliche Quelle (z. B. „Marcel 04.11. 11:35“) und Pflicht, so konnte der Lead
+  `beschluss` ist `--quelle` aber die inhaltliche Quelle (z. B. „Entwickler 04.11. 11:35“) und Pflicht, so konnte der Lead
   keine Beschlüsse mehr anlegen. Gesperrt ist `--quelle` jetzt nur noch beim Schirm, dort setzt die Brücke sie selbst.
 
 ## 1.7.0 – 04.11.2026 · Schirm-Schalter
-Beschluss B2419 „Automatismen in der AMW statt Gebote“, Teil 1 (Plan: `doc/plan-automatismen.md`).
+Automatismen statt Gebote, Teil 1 (→ `doc/automatismen.md`).
 - **Schirm frei/zu als Zustand in der AMW:** Ob Agenten Läufe mit Fenster starten dürfen, steht jetzt in der AMW, nicht
-  mehr nur in einem Beschluss. Ab Werk und nach jedem Neustart ist der Schirm **zu**. Frei geben nur Marcel (Workbench am
-  PC) und der Lead auf sein Wort (`amw schirm frei --grund … [--bis 07:00]`, auch über die Brücke). Zu machen darf jeder,
-  Marcel auch vom Handy.
-- **Geht von selbst zu, sobald Marcel wieder da ist:** Eingabe an diesem PC (ab 2 Minuten nach dem Freigeben, auch über
-  TeamViewer), eine neue TeamViewer-Sitzung, Marcel schreibt in der Workbench (PC oder Handy) oder ein Wortlaut mit
-  seiner Zeit kommt, oder die gewählte Uhrzeit ist erreicht. Der Grund steht dabei, z. B. „Eingabe am PC (06:02)“.
+  mehr nur in einem Beschluss. Ab Werk und nach jedem Neustart ist der Schirm **zu**. Frei geben nur der Entwickler
+  (Workbench am PC) und der Lead auf sein Wort (`amw schirm frei --grund … [--bis 07:00]`, auch über die Brücke). Zu
+  machen darf jeder, der Entwickler auch vom Handy.
+- **Geht von selbst zu, sobald der Entwickler wieder da ist:** Eingabe an diesem PC (ab 2 Minuten nach dem Freigeben,
+  auch über eine Fernsitzung), eine neue Fernsitzung, er schreibt in der Workbench (seit 1.9.1 nur noch am PC) oder (bis
+  1.9.0) ein Wortlaut mit seiner Zeit kommt, oder die gewählte Uhrzeit ist erreicht. Der Grund steht dabei, z. B. „Eingabe am PC (06:02)“.
 - **Lauf-Schlange hält sich daran:** `amw lauf start --schirm` startet nur bei freiem Schirm und ruhigem PC, sonst
   Fehler mit Grund bzw. mit `--warten` eingereiht. Ein wartender Schirm-Lauf hält Läufe ohne Fenster nicht auf. Geht der
   Schirm zu, bekommt ein laufender Schirm-Lauf eine weckende Bitte, sofort zu beenden (die AMW beendet keine Prozesse);

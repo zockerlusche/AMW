@@ -41,7 +41,7 @@ Die AMW kopiert die Datei in ihre Ablage. Wo der Agent sie danach hat, ist egal.
 | Weg | Kosten | Platz | Aufwand | Bewertung |
 |---|---|---|---|---|
 | Alles in Turso (Dateien als BLOB) | Free 0 $ mit 5 GB gesamt; Developer 4,99 $/Monat mit 9 GB | knapp, zählt zur Datenbank | klein | gut für Text, schlecht für Bilder: jede Datei läuft base64 über SQL-über-HTTP |
-| **Turso für Liste und Text + Hostinger-Webspace für Dateien** | **0 € zusätzlich** (im Paket) | je nach Paket 50–200 GB | mittel | **Empfehlung** – Login und PHP gibt es schon |
+| **Turso für Liste und Text + Webspace des PHP-Hosters für Dateien** | **0 € zusätzlich** (im Paket) | je nach Paket 50–200 GB | mittel | **Empfehlung** – Login und PHP gibt es schon |
 | Cloudflare R2 | 10 GB frei, danach 0,015 $/GB-Monat, kein Traffic-Preis | beliebig | mittel–groß | gut, aber neues Konto und S3-Signaturen |
 | GitHub | – | – | – | nein: Repo ist öffentlich |
 

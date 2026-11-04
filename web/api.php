@@ -78,7 +78,7 @@ try {
                 '/api/agent/start', '/api/agent/stop', '/api/push/probe'], true)) {
             antwort(403, ['fehler' => 'Das geht nur am PC.']);
         }
-        if ($pfad === '/api/schirm' && !empty($daten['frei'])) {     // Schirm frei nur am PC, zu auch von unterwegs (B2419)
+        if ($pfad === '/api/schirm' && !empty($daten['frei'])) {     // Schirm frei nur am PC, zu auch von unterwegs
             antwort(403, ['fehler' => 'Schirm frei geben geht nur am PC – zu geht auch von unterwegs.']);
         }
         if (!$frage && !$parken && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter', '/api/schirm',

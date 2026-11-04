@@ -444,7 +444,7 @@ def cmd_frage(a, con):
         anhaenge = dokumente.anhaenge_pruefen(con, pid, a.anhang or [], [k for k, _ in optionen])   # vor dem Anlegen
         fid = kern.frage_neu(con, pid, _von(a), a.an, a.kurz, optionen, a.empfehlung, a.grund, a.worum,
                              a.fundstellen, a.aufgabe, a.blockiert, geprueft=a.geprueft)
-        if a.an == "tl":                            # an den Lead: Treffer nur zeigen (B2422)
+        if a.an == "tl":                            # an den Lead: Treffer nur zeigen
             liste = wissen.treffer(con, pid, f"{a.kurz} {a.worum or ''}")
             if liste:
                 print("Vielleicht schon entschieden:\n" + wissen.treffer_text(liste))
@@ -521,7 +521,7 @@ def cmd_suche(a, con):
         print(f"{t['ref']:<7} {_zeit(t['zeit']) or '':<12} [{t['zusatz'] or ''}] {titel[:120]}")
     print(f"{len(treffer)} Treffer" + (f", die neuesten {a.grenze}" if len(treffer) > a.grenze else "")
           + (" – ganz lesen: amw zeige <B…|F…|A…|W…|D…|KR…|PR…|Nachricht-Nr. ohne #>" if treffer else ""))
-    if a.wissen:                                        # dieselbe Prüfung wie vor einer Frage an den Entwickler (B2422)
+    if a.wissen:                                        # dieselbe Prüfung wie vor einer Frage an den Entwickler
         liste = wissen.treffer(con, pid, such)
         print("Passende Beschlüsse/Fragen/Regeln:\n" + (wissen.treffer_text(liste) if liste else "  keine"))
 
@@ -619,8 +619,9 @@ def cmd_schirm(a, con):
         z = schirm.setzen(con, pid, _von(a), a.aktion == "frei", a.grund, a.bis, a.quelle)
         print(schirm.text(z))
         if a.aktion == "frei":
-            print(f"Geht von selbst zu bei Eingabe am PC (ab {schirm.RUHE_S // 60} min nach jetzt), neuer TeamViewer-Sitzung,"
-                  " Marcels Workbench/Wortlaut" + (", zur bis-Zeit" if z["bis_utc"] else "") + ".")
+            print(f"Geht von selbst zu bei Eingabe am PC (ab {schirm.RUHE_S // 60} min nach jetzt), neuer Fernsitzung,"
+                  f" Eingabe von {kern.entwickler_name(con, pid)} in der Workbench am PC"
+                  + (", zur bis-Zeit" if z["bis_utc"] else "") + ".")
         return
     print(schirm.text(schirm.zustand(con)))
     g = schirm.sperrgrund(con)
@@ -1203,9 +1204,9 @@ def parser():
     x.add_argument("--pruefer")
     x.add_argument("--beleg")
     x.add_argument("--wartet-auf", help="wartet/blockiert: Erklärung als Text (zusätzlich zu --auf)")
-    x.add_argument("--auf", help="wartet/blockiert: worauf, als Verweise – F5148,A1240,L141,CC2,Marcel,Monitor:<was>"
+    x.add_argument("--auf", help="wartet/blockiert: worauf, als Verweise – F12,A120,L7,CC2,Entwickler,Monitor:<was>"
                                  " (Pflicht; erledigt sich von selbst und weckt dich)")
-    x.add_argument("--erledigt", help="wartet/blockiert: diese Gründe von Hand abhaken, z. B. F5148 (allein: Status bleibt)")
+    x.add_argument("--erledigt", help="wartet/blockiert: diese Gründe von Hand abhaken, z. B. F12 (allein: Status bleibt)")
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
     x.add_argument("--bogen", type=int, help="Planung: gehört zu Bogen N")
@@ -1276,7 +1277,7 @@ def parser():
     x.add_argument("--wissen", action="store_true", help="dazu: passende Beschlüsse/Fragen/Regeln wie bei frage neu")
     x.set_defaults(f=cmd_suche)
 
-    x = s.add_parser("zeige", help="Einträge ganz lesen: amw zeige B2420 F5148 A1238 W12 16000 D5 KR3 PR42 (Nachricht ohne #: in der Shell beginnt mit # ein Kommentar)")
+    x = s.add_parser("zeige", help="Einträge ganz lesen: amw zeige B5 F12 A120 W3 16000 D5 KR3 PR4 (Nachricht ohne #: in der Shell beginnt mit # ein Kommentar)")
     x.add_argument("refs", nargs="+")
     x.set_defaults(f=cmd_zeige)
 
@@ -1482,7 +1483,7 @@ def parser():
     x = s.add_parser("notiz", help="gepflegte Notizen (Schlüssel/Wert)")
     x.add_argument("aktion", choices=["setzen", "zeige", "entfernen"])
     x.add_argument("schluessel", nargs="*", help="entfernen: mehrere möglich")
-    x.add_argument("--beschluss", help="entfernen ohne Lead-Rolle: Nummer eines geltenden Beschlusses (z. B. B2376)")
+    x.add_argument("--beschluss", help="entfernen ohne Lead-Rolle: Nummer eines geltenden Beschlusses (z. B. B5)")
     x.add_argument("--text")
     x.add_argument("--text-datei")
     x.set_defaults(f=cmd_notiz)

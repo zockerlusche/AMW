@@ -6,7 +6,7 @@ Läuft außerhalb von Claude Code (gestartet von der Windows-Aufgabenplanung, St
   Während eines Halts nur stopp/freigabe. Agenten ohne lebende Sitzung werden nicht geweckt – ihre
   Nachrichten bleiben offen, bis sich die Sitzung anmeldet.
 - Aufsicht: lebt die Pipe einer angemeldeten Sitzung noch? Sonst Sitzung → beendet. Schirm-Schalter: zu, sobald
-  Marcel wieder da ist (schirm.py). Leerlauf: wer frei ist, obwohl eine seiner Aufgaben auf nichts mehr wartet,
+  der Entwickler wieder da ist (schirm.py). Leerlauf: wer frei ist, obwohl eine seiner Aufgaben auf nichts mehr wartet,
   wird geweckt (wartegrund.py).
 Erkennen wie die alte Wache über PRAGMA data_version (billig, nur Änderungen anderer Verbindungen).
 Der Dienst beendet nie Claude-Code-Sitzungen und startet keine Agenten.
@@ -173,7 +173,7 @@ class Dienst:
                     log.info("Brücken-Sitzung %s beendet (kein Puls)", s["id"])
                 continue
             self.pruefe_sitzung(s)
-        try:                                                                 # Schirm: zu, sobald Marcel wieder da ist
+        try:                                                                 # Schirm: zu, sobald der Entwickler da ist
             for e in schirm.pruefen(self.con):
                 log.info("Schirm: %s", e)
         except Exception as e:
@@ -189,7 +189,7 @@ class Dienst:
             log.warning("Neustart: %s: %s", type(e).__name__, e)
         for e in self.ueberwachung.runde():                                  # Projekt-Server, Stillstand
             log.info("Überwachung: %s", e)
-        try:                                                                 # frei, obwohl Arbeit da ist (B2419 L3)
+        try:                                                                 # frei, obwohl Arbeit da ist
             for e in wartegrund.leerlauf(self.con):
                 log.info("Leerlauf: %s", e)
         except Exception as e:

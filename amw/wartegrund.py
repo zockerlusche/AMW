@@ -1,9 +1,9 @@
-"""Wartegründe als Verweis und Wecken (B2419 Teil 2: L1–L3, L5) – Plan: doc/plan-automatismen.md.
+"""Wartegründe als Verweis und Wecken (→ doc/automatismen.md).
 
-Eine Aufgabe, die wartet oder blockiert ist, nennt, worauf: F5148, A1240, L141, CC2, Marcel oder Monitor:<was>. Jeder
+Eine Aufgabe, die wartet oder blockiert ist, nennt, worauf: F12, A120, L7, CC2, Entwickler oder Monitor:<was>. Jeder
 Grund ist eine Zeile in `wartegrund`. Wird ein Grund erledigt (Frage beantwortet, Aufgabe fertig, Lauf zu Ende, Agent
-meldet sich zur Aufgabe, Marcel antwortet), weckt die AMW den Besitzer der Aufgabe, Kopie an den Lead (L2).
-Die Leerlauf-Prüfung im Dienst weckt Agenten, die frei sind, obwohl eine ihrer Aufgaben auf nichts mehr wartet (L3).
+meldet sich zur Aufgabe, der Entwickler antwortet), weckt die AMW den Besitzer der Aufgabe, Kopie an den Lead.
+Die Leerlauf-Prüfung im Dienst weckt Agenten, die frei sind, obwohl eine ihrer Aufgaben auf nichts mehr wartet.
 Alle Funktionen außer `setzen`/`leerlauf` laufen innerhalb eines offenen Schreibvorgangs des Aufrufers.
 """
 import calendar
@@ -13,7 +13,7 @@ import time
 from . import db, kern
 
 LEERLAUF_MIN = 30         # so lange frei, dann Weckruf, wenn Arbeit da ist (L3)
-MARCEL_ZEILE_H = 6        # wartet alles auf Marcel: höchstens so oft eine Zeile an den Lead
+ENTWICKLER_ZEILE_H = 6    # wartet alles auf den Entwickler: höchstens so oft eine Zeile an den Lead
 ARBEIT_ZEIGEN = 3         # so viele freie Aufgaben nennt der Weckruf
 
 ERLEDIGT_TEXT = {"frage": "beantwortet", "aufgabe": "abgeschlossen", "lauf": "zu Ende"}
@@ -24,7 +24,7 @@ def _sek(utc):
 
 
 def bezug_lesen(con, pid, teil):
-    """„F5148“ → ("frage", "F5148"); ebenso A…, L…, Agent-Kennung, Marcel/Entwickler, Monitor[:was]."""
+    """„F12“ → ("frage", "F12"); ebenso A…, L…, Agent-Kennung, Entwickler (oder sein eingestellter Name), Monitor[:was]."""
     t = teil.strip()
     m = re.fullmatch(r"([FfAaLl])\s*(\d+)", t)
     if m:
@@ -32,7 +32,7 @@ def bezug_lesen(con, pid, teil):
         if not con.execute(f"SELECT 1 FROM {tabelle} WHERE id = ? AND projekt_id = ?", (int(m.group(2)), pid)).fetchone():
             raise kern.AmwFehler(f"{m.group(1).upper()}{m.group(2)} gibt es nicht")
         return art, f"{m.group(1).upper()}{m.group(2)}"
-    if t.lower() in ("marcel", "entwickler"):
+    if t.lower() in (kern.ENTWICKLER.lower(), kern.entwickler_name(con, pid).lower()):
         return "entwickler", kern.ENTWICKLER
     m = re.fullmatch(r"(?i)monitor(?:\s*:\s*(.+))?", t)
     if m:
@@ -40,7 +40,7 @@ def bezug_lesen(con, pid, teil):
     try:
         return "agent", kern.agent_zeile(con, pid, t)["kennung"]
     except kern.AmwFehler:
-        raise kern.AmwFehler(f"„{t}“ ist kein Wartegrund – erlaubt: F<nr>, A<nr>, L<nr>, Agent-Kennung, Marcel, Monitor:<was>")
+        raise kern.AmwFehler(f"„{t}“ ist kein Wartegrund – erlaubt: F<nr>, A<nr>, L<nr>, Agent-Kennung, Entwickler, Monitor:<was>")
 
 
 def teile(text):
@@ -74,7 +74,7 @@ def schliessen(con, aid, durch):
 
 
 def von_hand(con, pid, von, aid, auf):
-    """--erledigt F5148,CC2: Gründe von Hand abhaken (z. B. der Lead nach Marcels Wort im Chat). Weckt wie automatisch."""
+    """--erledigt F12,CC2: Gründe von Hand abhaken (z. B. der Lead nach dem Wort des Entwicklers im Chat). Weckt wie automatisch."""
     a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
     weg = []
     for t in teile(auf):
@@ -138,8 +138,8 @@ def freie_arbeit(con, pid, kennung):
     return aus
 
 
-def wartet_auf_marcel(con, pid, kennung):
-    """Offene Gründe der Aufgaben des Agenten, wenn sie alle auf Marcel warten (Entwickler oder Frage an ihn), sonst []."""
+def wartet_auf_entwickler(con, pid, kennung):
+    """Offene Gründe der Aufgaben des Agenten, wenn sie alle auf den Entwickler warten (direkt oder Frage an ihn), sonst []."""
     gruende = con.execute(
         "SELECT w.art, w.bezug FROM wartegrund w JOIN aufgabe a ON a.id = w.aufgabe_id WHERE a.projekt_id = ?"
         " AND a.agent = ? AND a.einstufung = 'aktiv' AND a.status IN ('wartet', 'blockiert') AND w.erledigt_utc IS NULL",
@@ -158,12 +158,12 @@ def wartet_auf_marcel(con, pid, kennung):
 
 
 def leerlauf(con, jetzt=None):
-    """Dienst-Runde L3: freie Sitzungen mit Arbeit wecken, „alles wartet auf Marcel“ höchstens alle 6 h an den Lead."""
+    """Dienst-Runde: freie Sitzungen mit Arbeit wecken, „alles wartet auf den Entwickler“ höchstens alle 6 h an den Lead."""
     jetzt = jetzt or time.time()
     ereignisse = []
     for p in con.execute("SELECT id FROM projekt").fetchall():
         pid = p["id"]
-        marcel = []
+        entwickler = []
         for s in con.execute(
                 "SELECT s.id, s.ereignis_utc, a.kennung FROM sitzung s JOIN agent a ON a.id = s.agent_id"
                 " WHERE a.projekt_id = ? AND a.soll = 'an' AND s.zustand = 'aktiv' AND s.schluessel_datei IS NOT NULL"
@@ -186,19 +186,20 @@ def leerlauf(con, jetzt=None):
                     kern._posten(con, pid, "AMW", k, "meldung",
                                  f"Leerlauf: seit {int(frei_min)} min frei, Arbeit liegt vor – {liste}",
                                  text="Weiter mit der ersten – oder, wenn sie wirklich wartet: "
-                                      f"amw aufgabe wartet {arbeit[0]['id']} --auf F…/A…/L…/Agent/Marcel/Monitor:…",
+                                      f"amw aufgabe wartet {arbeit[0]['id']} --auf F…/A…/L…/Agent/Entwickler/Monitor:…",
                                  aufgabe_id=arbeit[0]["id"])
                 ereignisse.append(f"{k} geweckt (Leerlauf, A{arbeit[0]['id']})")
             else:
-                worauf = wartet_auf_marcel(con, pid, k)
+                worauf = wartet_auf_entwickler(con, pid, k)
                 if worauf:
-                    marcel.append(f"{k} ({', '.join(worauf)})")
+                    entwickler.append(f"{k} ({', '.join(worauf)})")
         lead = kern.lead(con, pid)
-        if marcel and lead:
-            grenze = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - MARCEL_ZEILE_H * 3600))
-            if not con.execute("SELECT 1 FROM nachricht WHERE projekt_id = ? AND von = 'AMW' AND kurz LIKE 'Leerlauf: warten auf Marcel%'"
+        if entwickler and lead:
+            grenze = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - ENTWICKLER_ZEILE_H * 3600))
+            if not con.execute("SELECT 1 FROM nachricht WHERE projekt_id = ? AND von = 'AMW' AND kurz LIKE 'Leerlauf: warten auf %'"
                                " AND zeit_utc >= ?", (pid, grenze)).fetchone():
                 with db.schreiben(con):
-                    kern._posten(con, pid, "AMW", lead, "info", "Leerlauf: warten auf Marcel – " + "; ".join(marcel))
-                ereignisse.append("Lead: alles wartet auf Marcel")
+                    kern._posten(con, pid, "AMW", lead, "info",
+                                 f"Leerlauf: warten auf {kern.entwickler_name(con, pid)} – " + "; ".join(entwickler))
+                ereignisse.append("Lead: alles wartet auf den Entwickler")
     return ereignisse

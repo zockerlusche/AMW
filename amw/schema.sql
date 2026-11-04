@@ -287,19 +287,19 @@ CREATE TABLE frage (
   antwort_kanal  TEXT,                            -- seite, chat, cli
   geparkt_utc    TEXT,                            -- geparkt: offen, aber nicht in der offenen Liste (Schema 10)
   geparkt_von    TEXT,
-  geprueft       TEXT,                            -- was vorher in der Datenbank geprüft wurde (B2422, Schema 12)
+  geprueft       TEXT,                            -- was vorher in der Datenbank geprüft wurde (Schema 12)
   uid            TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft       TEXT NOT NULL DEFAULT '',
   geaendert_utc  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
--- Worauf eine Aufgabe wartet (B2419 L1, Schema 12): je Grund eine Zeile, erledigt_utc gesetzt = Grund weg.
+-- Worauf eine Aufgabe wartet (Schema 12): je Grund eine Zeile, erledigt_utc gesetzt = Grund weg.
 CREATE TABLE wartegrund (
   id            INTEGER PRIMARY KEY,
   projekt_id    INTEGER NOT NULL REFERENCES projekt(id),
   aufgabe_id    INTEGER NOT NULL REFERENCES aufgabe(id),
   art           TEXT NOT NULL CHECK (art IN ('frage', 'aufgabe', 'lauf', 'agent', 'entwickler', 'monitor')),
-  bezug         TEXT NOT NULL,                    -- F5148, A1240, L141, CC2, Entwickler, Monitor:<was>
+  bezug         TEXT NOT NULL,                    -- F12, A120, L7, CC2, Entwickler, Monitor:<was>
   angelegt_utc  TEXT NOT NULL,
   angelegt_von  TEXT NOT NULL,
   erledigt_utc  TEXT,
@@ -419,7 +419,7 @@ CREATE TABLE pruefung (
   geaendert_utc   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
--- Schirm-Schalter (Schema 11, B2419): darf gerade ein Lauf am Bildschirm laufen? Eine Zeile je Wechsel, die jüngste
+-- Schirm-Schalter (Schema 11): darf gerade ein Lauf am Bildschirm laufen? Eine Zeile je Wechsel, die jüngste
 -- gilt; keine Zeile = zu. PC-weit (ein Bildschirm), deshalb ohne projekt_id.
 CREATE TABLE schirm (
   id            INTEGER PRIMARY KEY,

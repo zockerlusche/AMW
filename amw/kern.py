@@ -133,15 +133,38 @@ def agent_neu(con, pid, kennung, rolle=None, grenzen=None, startbefehl=None, emp
                             fernsteuerung=0)            # Remote Control nur auf Wunsch (Profil)
 
 
+def entwickler_name(con, pid=None):
+    """Wie der Mensch in Meldungen heißt: Projekt-Einstellung entwickler_name, sonst „Entwickler“. Ohne pid das erste
+    Projekt (für PC-weite Meldungen wie den Schirm)."""
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone() if pid else \
+        con.execute("SELECT einstellungen FROM projekt ORDER BY id LIMIT 1").fetchone()
+    try:
+        return (json.loads(r[0] or "{}").get("entwickler_name") or ENTWICKLER) if r else ENTWICKLER
+    except ValueError:
+        return ENTWICKLER
+
+
+PROJEKT_TEXTE = {"entwickler_name": 30}       # Text-Einstellungen: Schlüssel → höchste Länge (leer = Vorgabe)
+
+
 def projekt_einstellen(con, pid, von, **werte):
     """Zahnrad „Projekt“: takt_min (0 = aus, bis 1440), speicher_grenze_gb (1–512), stillstand_min und
-    lauf_ohne_angabe_min (Warnungen, 5–1440). Nur Lead und Entwickler."""
+    lauf_ohne_angabe_min (Warnungen, 5–1440), entwickler_name (wie der Mensch in Meldungen heißt). Nur Lead und Entwickler."""
     if not ist_lead(con, pid, von):
         raise AmwFehler("Projekt-Einstellungen dürfen nur Lead und Entwickler ändern")
     grenzen = {"takt_min": (0, 1440), "speicher_grenze_gb": (1, 512), "stillstand_min": (5, 1440), "lauf_ohne_angabe_min": (5, 1440)}
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         for k, v in werte.items():
+            if k in PROJEKT_TEXTE:
+                v = " ".join(str(v or "").split())
+                if len(v) > PROJEKT_TEXTE[k] or v.lower() in ("alle", "amw"):
+                    raise AmwFehler(f"{k}: bis {PROJEKT_TEXTE[k]} Zeichen")
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k not in grenzen:
                 raise AmwFehler(f"unbekannte Projekt-Einstellung: {k}")
             try:
@@ -295,7 +318,8 @@ def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_i
     if aufgabe_id and von != "AMW":                    # wer zur Aufgabe schreibt, erledigt „wartet auf <ihn>“ (L1)
         from . import wartegrund
         if von == ENTWICKLER:
-            wartegrund.erledige(con, pid, "entwickler", ENTWICKLER, f"Marcel hat geschrieben (#{nid})", aufgabe_id)
+            wartegrund.erledige(con, pid, "entwickler", ENTWICKLER, f"{entwickler_name(con, pid)} hat geschrieben (#{nid})",
+                                aufgabe_id)
         else:
             wartegrund.erledige(con, pid, "agent", von, f"{von} hat geschrieben (#{nid})", aufgabe_id)
     return nid, namen
@@ -400,7 +424,7 @@ def _aufgabe_fuer_aenderung(con, pid, von, aid):
 
 def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, bemerkung=None, zusammenfassung=None,
                    auf=None, erledigt=None):
-    """auf: Wartegründe als Verweise (F…, A…, L…, Agent, Marcel, Monitor:…) – Pflicht bei wartet/blockiert (L1).
+    """auf: Wartegründe als Verweise (F…, A…, L…, Agent, Entwickler, Monitor:…) – Pflicht bei wartet/blockiert.
     erledigt: Gründe von Hand abhaken; allein (ohne auf) ändert es den Status nicht."""
     from . import wartegrund
     if erledigt and not auf and status in ("wartet", "blockiert"):
@@ -420,11 +444,11 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
         planung.pruefe_status(con, a, neu, zusammenfassung)
         if erledigt:
             wartegrund.von_hand(con, pid, von, aid, erledigt)
-        if neu in ("wartet", "blockiert"):         # „wartet“ ohne Verweis lag über Nacht (A1238) – nicht mehr (L1)
+        if neu in ("wartet", "blockiert"):         # „wartet“ mit Freitext weckt niemanden, wenn es weitergeht
             if auf:
                 wartegrund.anlegen(con, pid, von, aid, auf)
             if not wartegrund.offene(con, aid):
-                raise AmwFehler(f"{neu} nur mit --auf: worauf? F<nr>, A<nr>, L<nr>, Agent, Marcel, Monitor:<was>"
+                raise AmwFehler(f"{neu} nur mit --auf: worauf? F<nr>, A<nr>, L<nr>, Agent, Entwickler, Monitor:<was>"
                                 " (Erklärung dazu mit --wartet-auf)")
         t = db.jetzt()
         felder = {"status": neu}
@@ -471,8 +495,8 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
               aufgabe_id=None, blockiert=False, folge_von=None, geprueft=None, pruefen=True):
     """optionen: Liste von (kenn, text). Empfehlung muss eine der Kennungen sein.
     geprueft: was der Fragesteller in Beschlüssen/Fragen/Regeln geprüft hat – Pflicht bei Fragen an den Entwickler;
-    findet die AMW Treffer, muss es mindestens einen nennen (B2422). pruefen=False: Fragen, die die AMW selbst stellt."""
-    for k, t in optionen:               # sonst steht der ganze Satz in der schmalen Kennungs-Spalte (F5158)
+    findet die AMW Treffer, muss es mindestens einen nennen. pruefen=False: Fragen, die die AMW selbst stellt."""
+    for k, t in optionen:               # sonst steht der ganze Satz in der schmalen Kennungs-Spalte
         if not OPTION_KENN.fullmatch(k or "") or not (t or "").strip():
             raise AmwFehler(f"Option „{(k or '')[:40]}“: Form --option \"A=Text\" – kurze Kennung (A, B, V0 …), dann = und der Text")
     kenn = [k for k, _ in optionen]
@@ -530,7 +554,8 @@ def frage_antworten(con, pid, fid, antwort_art, antwort, kanal, von=ENTWICKLER):
             knapp = antwort if len(antwort) <= 60 else antwort[:57] + "…"
             wartegrund.erledige(con, pid, "frage", f"F{fid}", f"F{fid} beantwortet: {knapp}")
             if von == ENTWICKLER and f["aufgabe_id"]:
-                wartegrund.erledige(con, pid, "entwickler", ENTWICKLER, f"Marcel hat F{fid} beantwortet", f["aufgabe_id"])
+                wartegrund.erledige(con, pid, "entwickler", ENTWICKLER, f"{entwickler_name(con, pid)} hat F{fid} beantwortet",
+                                    f["aufgabe_id"])
         # wer antwortet, hat die Nachträge im Verlauf gelesen – sie stehen nicht mehr unter „Nachrichten an dich“
         con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ? WHERE agent = ? AND status != 'erledigt'"
                     " AND nachricht_id IN (SELECT nachricht_id FROM frage_verlauf WHERE frage_id = ? AND nachricht_id IS NOT NULL)",
@@ -622,7 +647,7 @@ def kontext(con, pid, kennung):
     if halte:
         z.append("!! HALT GILT: " + " | ".join(f"#{s['id']} {s['von']}: {s['text']}" for s in halte)
                  + " – nichts Neues anfangen.")
-    try:                                            # Schirm-Schalter (B2419): ob Fenster-Läufe gerade dürfen
+    try:                                            # Schirm-Schalter: ob Fenster-Läufe gerade dürfen
         from . import schirm
         z.append(schirm.text(schirm.zustand(con)) + " – Läufe mit Fenster nur über `amw lauf start --schirm --warten`,"
                  " dann `amw lauf warte <nr>`.")

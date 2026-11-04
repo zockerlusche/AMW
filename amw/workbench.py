@@ -76,11 +76,11 @@ def daten_start(con, pid):
     for a in agenten:
         a["gerade"], a["gerade_aufgabe"], a["gerade_quelle"] = gerade(con, pid, a["kennung"],
                                                                       a["taetigkeit"] if a["zustand"] == "aktiv" else None)
-        a["wartet"] = [{"aufgabe": r["aufgabe_id"], "auf": r["auf"]} for r in con.execute(   # Wartegründe (B2419) auf der Kachel
+        a["wartet"] = [{"aufgabe": r["aufgabe_id"], "auf": r["auf"]} for r in con.execute(   # Wartegründe auf der Kachel
             "SELECT w.aufgabe_id, group_concat(w.bezug, ', ') AS auf FROM wartegrund w JOIN aufgabe x ON x.id = w.aufgabe_id"
             " WHERE x.projekt_id = ? AND x.agent = ? AND x.status IN ('wartet', 'blockiert') AND x.einstufung = 'aktiv'"
             " AND w.erledigt_utc IS NULL GROUP BY w.aufgabe_id ORDER BY w.aufgabe_id LIMIT 2", (pid, a["kennung"]))]
-    # nach Rolle geordnet (B2425): Lead zuerst, gleiche Rollen nebeneinander, sonst in der angelegten Reihenfolge
+    # nach Rolle geordnet: Lead zuerst, gleiche Rollen nebeneinander, sonst in der angelegten Reihenfolge
     agenten.sort(key=lambda a: (a["rolle"] != "lead", (a["rolle"] or "~").casefold()))
     fragen = zeilen(con.execute(           # nachtraege: ungelesene Nachträge im Verlauf der Frage (stehen dort, nicht doppelt)
         "SELECT f.id, f.kurz, f.von, f.zeit_utc, f.blockiert, (SELECT count(*) FROM frage_verlauf v JOIN empfang e"
@@ -229,7 +229,8 @@ def daten_einstellungen(con, pid, speicher=None):
             "projekt": {"name": p["name"], "takt_min": pe.get("takt_min", TAKT_MIN),
                         "speicher_grenze_gb": pe.get("speicher_grenze_gb", SPEICHER_GRENZE_GB),
                         "stillstand_min": pe.get("stillstand_min", ueberwachung.STILLSTAND_MIN),
-                        "lauf_ohne_angabe_min": pe.get("lauf_ohne_angabe_min", ueberwachung.LAUF_OHNE_ANGABE_MIN)},
+                        "lauf_ohne_angabe_min": pe.get("lauf_ohne_angabe_min", ueberwachung.LAUF_OHNE_ANGABE_MIN),
+                        "entwickler_name": pe.get("entwickler_name", "")},
             "agenten": agenten,
             "pc": {**einstellungen.laden(), "datei": einstellungen.pfad()},
             "turso": {"url": z.get("url", ""), "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(z.get("token"))},
@@ -322,7 +323,7 @@ def vorgeschichte(con, pid, f):
 
 
 def haelt(con, pid, f):
-    """Welche Aufgaben diese Frage aufhält (B2419 L6): Wartegründe auf F…, sonst die Aufgabe einer blockierenden Frage."""
+    """Welche Aufgaben diese Frage aufhält: Wartegründe auf F…, sonst die Aufgabe einer blockierenden Frage."""
     aus = zeilen(con.execute(
         "SELECT a.id, a.agent, a.titel, min(w.angelegt_utc) AS seit FROM wartegrund w JOIN aufgabe a ON a.id = w.aufgabe_id"
         " WHERE w.projekt_id = ? AND w.art = 'frage' AND w.bezug = ? AND w.erledigt_utc IS NULL"
