@@ -315,6 +315,19 @@ def vorgeschichte(con, pid, f):
     return v
 
 
+def haelt(con, pid, f):
+    """Welche Aufgaben diese Frage aufhält (B2419 L6): Wartegründe auf F…, sonst die Aufgabe einer blockierenden Frage."""
+    aus = zeilen(con.execute(
+        "SELECT a.id, a.agent, a.titel, min(w.angelegt_utc) AS seit FROM wartegrund w JOIN aufgabe a ON a.id = w.aufgabe_id"
+        " WHERE w.projekt_id = ? AND w.art = 'frage' AND w.bezug = ? AND w.erledigt_utc IS NULL"
+        " AND a.status IN ('wartet', 'blockiert') GROUP BY a.id ORDER BY a.id", (pid, f"F{f['id']}")))
+    if f["blockiert"] and f["aufgabe_id"] and not any(x["id"] == f["aufgabe_id"] for x in aus):
+        a = con.execute("SELECT id, agent, titel, status FROM aufgabe WHERE id = ?", (f["aufgabe_id"],)).fetchone()
+        if a and a["status"] not in ("fertig", "verworfen"):
+            aus.append({"id": a["id"], "agent": a["agent"], "titel": a["titel"], "seit": f["zeit_utc"]})
+    return aus
+
+
 def daten_fragen(con, pid, alle=False):
     from . import dokumente
     sql = "SELECT * FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
@@ -328,6 +341,7 @@ def daten_fragen(con, pid, alle=False):
         d["verlauf"] = zeilen(con.execute("SELECT zeit_utc, von, art, text FROM frage_verlauf WHERE frage_id = ?"
                                           " ORDER BY id", (f["id"],)))
         d["wartet_auf_fragesteller"] = bool(d["verlauf"]) and d["verlauf"][-1]["art"] == "rueckfrage"
+        d["haelt"] = haelt(con, pid, f)
         d["dokumente"] = zeilen(con.execute(
             "SELECT d.id, d.titel, d.art, d.online, v.endung FROM dokument d JOIN dokument_version v ON v.dokument_id = d.id AND v.nr ="
             " (SELECT max(nr) FROM dokument_version WHERE dokument_id = d.id) WHERE d.projekt_id = ? AND d.bezug_art = 'frage'"

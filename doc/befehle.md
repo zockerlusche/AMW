@@ -167,10 +167,11 @@ options:
 ```
 usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--rang RANG] [--pruefer PRUEFER] [--beleg BELEG]
-                   [--wartet-auf WARTET_AUF] [--bemerkung BEMERKUNG] [--alle]
-                   [--bogen BOGEN] [--kriterium KRITERIUM]
-                   [--schaetzung SCHAETZUNG] [--komplexitaet KOMPLEXITAET]
-                   [--nach NACH] [--verantwortlich VERANTWORTLICH]
+                   [--wartet-auf WARTET_AUF] [--auf AUF] [--erledigt ERLEDIGT]
+                   [--bemerkung BEMERKUNG] [--alle] [--bogen BOGEN]
+                   [--kriterium KRITERIUM] [--schaetzung SCHAETZUNG]
+                   [--komplexitaet KOMPLEXITAET] [--nach NACH]
+                   [--verantwortlich VERANTWORTLICH]
                    [--pruefbefehl PRUEFBEFEHL] [--dateien DATEIEN]
                    [--anforderungen ANFORDERUNGEN]
                    [--zusammenfassung ZUSAMMENFASSUNG]
@@ -195,6 +196,13 @@ options:
   --pruefer PRUEFER
   --beleg BELEG
   --wartet-auf WARTET_AUF
+                        wartet/blockiert: Erklärung als Text (zusätzlich zu
+                        --auf)
+  --auf AUF             wartet/blockiert: worauf, als Verweise –
+                        F5148,A1240,L141,CC2,Marcel,Monitor:<was> (Pflicht;
+                        erledigt sich von selbst und weckt dich)
+  --erledigt ERLEDIGT   wartet/blockiert: diese Gründe von Hand abhaken, z. B.
+                        F5148 (allein: Status bleibt)
   --bemerkung BEMERKUNG
   --alle
   --bogen BOGEN         Planung: gehört zu Bogen N
@@ -233,9 +241,10 @@ options:
 ```
 usage: amw frage [-h] [--an {entwickler,tl}] [--kurz KURZ] [--worum WORUM]
                  [--option OPTION] [--empfehlung EMPFEHLUNG]
-                 [--fundstellen FUNDSTELLEN] [--aufgabe AUFGABE] [--blockiert]
-                 [--text TEXT] [--rueckfrage RUECKFRAGE] [--grund GRUND]
-                 [--geparkt] [--anhang ANHANG] [--von VON] [--projekt PROJEKT]
+                 [--fundstellen FUNDSTELLEN] [--geprueft GEPRUEFT]
+                 [--aufgabe AUFGABE] [--blockiert] [--text TEXT]
+                 [--rueckfrage RUECKFRAGE] [--grund GRUND] [--geparkt]
+                 [--anhang ANHANG] [--von VON] [--projekt PROJEKT]
                  {neu,liste,antworten,nachtrag,verlauf,parken,aufnehmen} [id]
 
 positional arguments:
@@ -250,6 +259,10 @@ options:
   --option OPTION       neu: 'A=Text' (mehrfach); antworten: Kennung
   --empfehlung EMPFEHLUNG
   --fundstellen FUNDSTELLEN
+  --geprueft GEPRUEFT   neu: was du vorher in der AMW geprüft hast
+                        (Beschlüsse, Fragen, Regeln) – Pflicht bei Fragen an
+                        den Entwickler; findet die AMW Treffer, nenne
+                        mindestens einen
   --aufgabe AUFGABE
   --blockiert
   --text TEXT

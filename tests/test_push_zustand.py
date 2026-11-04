@@ -53,7 +53,7 @@ class Push(Grund):
         return push.runde(self.con, self.pid, self.cfg, jetzt=jetzt)
 
     def frage(self, kurz="Wie?"):
-        return kern.frage_neu(self.con, self.pid, "TL", "entwickler", kurz, [("A", "ja")], "A", "weil")
+        return kern.frage_neu(self.con, self.pid, "TL", "entwickler", kurz, [("A", "ja")], "A", "weil", geprueft="keine Treffer")
 
     def test_neue_frage_einmal_mit_link_und_ohne_inhalt(self):
         fid = self.frage("Geheimer Inhalt der Frage")

@@ -196,6 +196,8 @@ def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speich
             raise kern.AmwFehler(f"L{lid} ist schon {l['status']}")
         con.execute("UPDATE lauf SET status = ?, ende_utc = ?, rc = ?, ergebnis = ? WHERE id = ?",
                     ("abgebrochen" if abgebrochen or l["status"] == "angemeldet" else "fertig", db.jetzt(), rc, ergebnis, lid))
+        from . import wartegrund                     # wer auf diesen Lauf gewartet hat, wird geweckt (L2)
+        wartegrund.erledige(con, pid, "lauf", f"L{lid}", f"L{lid} zu Ende (rc {rc})" if rc is not None else f"L{lid} zu Ende")
     return warteschlange(con, pid, speicher_frei)
 
 

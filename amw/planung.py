@@ -201,7 +201,8 @@ def spec_vorlegen(con, pid, von, bid, teil):
             fragen.append(kern.frage_neu(con, pid, von, "entwickler", punkt.strip()[:300],
                                          [("A", "beantworten (Text)")], "A", f"Klärung für Bogen {bid} „{b['titel']}“, Teil {teil}",
                                          worum=f"Spezifikation Bogen {bid} ({teil}) enthält: [KLÄREN: {punkt.strip()}]",
-                                         fundstellen=f"bogen:{bid}:{teil}", blockiert=True))
+                                         fundstellen=f"bogen:{bid}:{teil}", blockiert=True,
+                                         geprueft=f"von der AMW gestellt (KLÄREN in Bogen {bid})", pruefen=False))
     with db.schreiben(con):
         con.execute("UPDATE spezifikation SET status = 'vorgelegt', geaendert_utc = ? WHERE id = ?", (db.jetzt(), s["id"]))
         _log(con, pid, von, "spec_vorgelegt", f"{teil} v{s['version']}" + (f", {len(fragen)} Klärung(en)" if fragen else ""),

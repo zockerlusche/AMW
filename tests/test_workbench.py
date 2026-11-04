@@ -24,7 +24,7 @@ class Workbench(unittest.TestCase):
         with db.schreiben(con):
             self.pid = db.einfuegen(con, "projekt", name="P", angelegt_utc=db.jetzt())
         kern.agent_neu(con, self.pid, "TL", rolle="lead")
-        self.fid = kern.frage_neu(con, self.pid, "TL", "entwickler", "Probe?", [("A", "ja"), ("B", "nein")], "A", "weil")
+        self.fid = kern.frage_neu(con, self.pid, "TL", "entwickler", "Probe?", [("A", "ja"), ("B", "nein")], "A", "weil", geprueft="keine Treffer")
         con.close()
         self.port = freier_port()
         self.srv = workbench.starten(self.port)

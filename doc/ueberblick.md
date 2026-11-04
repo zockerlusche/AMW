@@ -15,6 +15,7 @@ arbeitet. Jeder Agent ist eine eigene Claude-Code-Sitzung in einem Terminal-Fens
 | **Wecken** | Der Wächter schreibt einem schlafenden Agenten über die Nachrichten-Pipe seiner Sitzung „Du hast neue Nachrichten“ – der Agent liest dann mit `amw lesen`. |
 | **Frage** | An den Entwickler (oder Lead): mit Optionen, Empfehlung, Begründung; Antwort per Klick, Text oder Rückfrage; Gesprächsverlauf bleibt erhalten. |
 | **Aufgabe / Schritt** | Arbeitseinheit mit Bearbeiter und Status (wartet, läuft, blockiert, fertig, verworfen). Ein Schritt ist eine Aufgabe in einem Bogen – mit Abnahmekriterien, Abhängigkeiten, Schätzung. |
+| **Wartegrund** | Worauf eine wartende Aufgabe wartet, als Verweis (Frage, Aufgabe, Lauf, Agent, Entwickler, Monitor). Ist er erledigt, weckt die AMW den Bearbeiter. |
 | **Leitbild** | Ziel, Kennzahlen, Nicht-Ziele, Prinzipien, Definition of Done – steht im Pflicht-Kontext jedes Agenten. |
 | **Bogen** | Meilenstein mit prüfbarem Abnahmekriterium, Zieldatum (Baseline), Spezifikation in drei Teilen mit Freigabe. |
 | **Wissen** | Beschlüsse (mit Status und Ersatz), Regeln (nur mit Beschluss änderbar), Wortlaut des Entwicklers (unveränderlich), Notizen. |

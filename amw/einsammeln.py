@@ -173,7 +173,7 @@ def melden(con, pid, von, l):
                          "Nur Ergebnisse laut Liste (D%d); Arbeitskopien, Prüflauf-Einzelbilder und Code bleiben, wo sie sind. "
                          "Nichts wird verschoben oder gelöscht. Für eine Auswahl: als Text antworten, welche Ablagen." % did,
                          f"{len(l['ablagen'])} Ablagen in {l['ordner']} geprüft – die Liste hängt als D{did} an.",
-                         f"D{did}")
+                         f"D{did}", geprueft="von der AMW gestellt (Einsammeln)", pruefen=False)
     dokumente.setzen(con, pid, von, did, frage=fid)
     lead = kern.lead(con, pid)
     if lead and lead != von:

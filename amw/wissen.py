@@ -3,6 +3,10 @@
 Heute schreibt der TL das per SQL in den Bus (KR26); in der AMW geht es über diese Funktionen bzw. `amw`.
 Regeln zeigen nur den gültigen Text; jede Regeländerung nennt den Beschluss, der sie begründet.
 """
+import json
+import math
+import re
+
 from . import db, kern
 
 
@@ -121,3 +125,83 @@ def release_version(con, pid, von, version, titel, commit_sha=None, text=None):
         con.execute("UPDATE release SET version = ? WHERE projekt_id = ? AND art = 'merge' AND version IS NULL",
                     (version, pid))
     return rid, len(merges)
+
+
+# --- Frage-Prüfung gegen die Datenbank (B2422) -----------------------------------------------------
+
+STOPP = set("""aber alle alles also auch bevor bitte bleibt dabei damit dann dass dein deine denn diese dieser dieses
+doch durch eine einem einen einer eines erst etwas euch gibt habe haben hast hier ihre immer jede jeder jetzt kann
+kein keine machen mehr muss nach neue neuen nicht noch nur oder ohne schon sein seine sich sind soll sollen sollte
+ueber über und unsere unter viel vom von vor wann warum was weil welche welcher wenn werden wieder wie wird wirklich
+wollen zum zur zwei frage fragen marcel option variante ja nein gilt geht""".split())
+TREFFER_MAX = 6
+
+
+def _staemme(text):
+    """Wörter ab 4 Zeichen, ohne Füllwörter, als Wortanfang (7 Zeichen) – grob, aber ohne Wörterbuch."""
+    aus = []
+    for w in re.findall(r"[0-9A-Za-zÄÖÜäöüß]{4,}", text or ""):
+        w = w.lower()
+        if w not in STOPP and not w.isdigit():
+            aus.append(w[:7])
+    return list(dict.fromkeys(aus))
+
+
+def treffer(con, pid, text, grenze=TREFFER_MAX):
+    """Passende geltende Beschlüsse, beantwortete Fragen und Regeln zu einem Fragetext. Seltene Wörter zählen mehr.
+    Liste von {"ref", "titel", "antwort", "zeit"} – die besten zuerst."""
+    staemme = _staemme(text)
+    if not staemme:
+        return []
+    docs = []
+    for r in con.execute("SELECT id, stichwort, regel, zeit_utc FROM beschluss WHERE projekt_id = ? AND status = 'gilt'", (pid,)):
+        docs.append((f"B{r['id']}", r["stichwort"], r["regel"], r["zeit_utc"], f"{r['stichwort']} {r['regel']}"))
+    for r in con.execute("SELECT id, kurz, worum, optionen, antwort_art, antwort, antwort_utc FROM frage WHERE projekt_id = ?"
+                         " AND status = 'beantwortet'", (pid,)):
+        antwort = r["antwort"] or ""
+        if r["antwort_art"] == "option":
+            antwort = next((f"{o['kenn']}) {o['text']}" for o in json.loads(r["optionen"] or "[]") if o["kenn"] == antwort), antwort)
+        docs.append((f"F{r['id']}", r["kurz"], antwort, r["antwort_utc"], f"{r['kurz']} {r['worum'] or ''} {antwort}"))
+    for r in con.execute("SELECT ebene, nr, text, stand_utc FROM regel WHERE ebene = 'arbeit' OR projekt_id = ?", (pid,)):
+        docs.append((f"{'KR' if r['ebene'] == 'arbeit' else 'PR'}{r['nr']}", r["text"][:120], "", r["stand_utc"], r["text"]))
+    if not docs:
+        return []
+    klein = [d[4].lower() for d in docs]
+    gewicht = {}
+    for st in staemme:
+        df = sum(1 for k in klein if st in k)
+        gewicht[st] = math.log(1 + len(docs) / df) if df else 0
+    noetig = 2 if len(staemme) >= 3 else 1
+    aus = []
+    for d, k in zip(docs, klein):
+        da = [st for st in staemme if gewicht[st] and st in k]
+        if len(da) >= noetig:
+            aus.append((sum(gewicht[st] for st in da), d))
+    aus.sort(key=lambda x: (-x[0], x[1][3] or ""), reverse=False)
+    return [{"ref": d[0], "titel": d[1], "antwort": d[2], "zeit": d[3]} for _, d in aus[:grenze]]
+
+
+def treffer_text(liste):
+    zeilen = []
+    for t in liste:
+        z = f"  {t['ref']} ({(t['zeit'] or '')[:10]}): {t['titel'][:110]}"
+        if t["antwort"]:
+            z += f"\n      → {t['antwort'][:160]}"
+        zeilen.append(z)
+    return "\n".join(zeilen)
+
+
+def pruefung_verlangen(con, pid, text, geprueft):
+    """B2422: Fragen an den Entwickler nur mit --geprueft; gibt es Treffer, muss es mindestens einen nennen."""
+    liste = treffer(con, pid, text)
+    g = (geprueft or "").strip()
+    refs = {t["ref"].upper() for t in liste}
+    genannt = {x.upper() for x in re.findall(r"\b(?:[BF]\d+|[KP]R\d+)\b", g, re.I)}
+    if g and (not liste or refs & genannt):
+        return liste
+    if not liste:
+        raise kern.AmwFehler("Erst in der AMW prüfen, ob es schon entschieden ist (Beschlüsse, beantwortete Fragen,"
+                             " Regeln) – die AMW findet nichts Passendes. Dann: --geprueft \"keine Treffer\"")
+    raise kern.AmwFehler("Ist das schon entschieden? Die AMW findet dazu:\n" + treffer_text(liste)
+                         + "\nPasst einer, die Frage nicht stellen. Sonst --geprueft mit mindestens einem davon, z. B."
+                         f" --geprueft \"{liste[0]['ref']} passt nicht, weil …\"")

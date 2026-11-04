@@ -90,7 +90,7 @@ class Wecker(unittest.TestCase):
         self.d.takt()
         self.assertEqual(self.con.execute("SELECT count(*) FROM nachricht WHERE art = 'takt'").fetchone()[0], 0)
         self.anmelden("TL")
-        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x?", [("A", "a")], "A", "weil")
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x?", [("A", "a")], "A", "weil", geprueft="keine Treffer")
         kern.frage_antworten(self.con, self.pid, fid, "option", "A", "seite")
         self.d.takt()
         self.d.takt()

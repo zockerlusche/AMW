@@ -210,12 +210,51 @@ def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_i
         if r:
             db.einfuegen(con, "frage_verlauf", frage_id=r["frage_id"], zeit_utc=db.jetzt(), von=von, art="nachtrag",
                          text=(kurz + ("\n" + text if text else "")).strip(), nachricht_id=nid)
+    if aufgabe_id and von != "AMW":                    # wer zur Aufgabe schreibt, erledigt „wartet auf <ihn>“ (L1)
+        from . import wartegrund
+        if von == ENTWICKLER:
+            wartegrund.erledige(con, pid, "entwickler", ENTWICKLER, f"Marcel hat geschrieben (#{nid})", aufgabe_id)
+        else:
+            wartegrund.erledige(con, pid, "agent", von, f"{von} hat geschrieben (#{nid})", aufgabe_id)
     return nid, namen
 
 
-def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None):
+KOPIE_ARTEN = ("info", "meldung", "antwort")      # L5: Kopie an den Besitzer – nicht bei auftrag/pruefbitte (Merge, Prüfung)
+
+
+def aufgabe_bezug(con, pid, von, aid):
+    """L4: --aufgabe muss es geben und darf nicht abgeschlossen sein. Gibt die Aufgabe und ggf. einen Hinweis zurück
+    (fremde Aufgabe – kein Fehler, Merge- und Prüfbitten tragen fremde Nummern)."""
+    a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    if not a:
+        raise AmwFehler(f"A{aid} gibt es nicht – Nummer prüfen (amw aufgabe liste --agent {von})")
+    if a["status"] in ("fertig", "verworfen"):
+        raise AmwFehler(f"A{aid} ist {a['status']} – für Neues eine neue Aufgabe, sonst ohne --aufgabe")
+    hinweis = None
+    if a["agent"] and a["agent"] != von and not ist_lead(con, pid, von):
+        hinweis = f"Hinweis: A{aid} gehört {a['agent']} ({a['titel'][:60]}) – richtig?"
+    return a, hinweis
+
+
+def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, hinweise=None):
+    """Nachricht von einem Agenten oder dem Entwickler. hinweise: Liste, in die Hinweise für die Ausgabe kommen."""
     with db.schreiben(con):
-        return _posten(con, pid, von, an, art, kurz, text, antwort_auf, aufgabe_id)
+        a = None
+        if aufgabe_id and von != "AMW":
+            a, hinweis = aufgabe_bezug(con, pid, von, aufgabe_id)
+            if hinweis and hinweise is not None:
+                hinweise.append(hinweis)
+        nid, namen = _posten(con, pid, von, an, art, kurz, text, antwort_auf, aufgabe_id)
+        besitzer = a["agent"] if a else None
+        if (art in KOPIE_ARTEN and besitzer and besitzer != von and besitzer not in namen
+                and con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, besitzer)).fetchone()):
+            wartet = a["status"] in ("wartet", "blockiert") and bool(a["begonnen_utc"])
+            _posten(con, pid, "AMW", besitzer, "meldung" if wartet else "info",
+                    f"Kopie zu deiner A{aufgabe_id}: {von} → {', '.join(namen)}: {kurz[:150]}", text=f"Nachricht #{nid}",
+                    aufgabe_id=aufgabe_id)
+            if hinweise is not None:
+                hinweise.append(f"Kopie an {besitzer} (Besitzer von A{aufgabe_id})")
+        return nid, namen
 
 
 def offene(con, pid, kennung, grenze=50, neueste_zuerst=False):
@@ -277,7 +316,16 @@ def _aufgabe_fuer_aenderung(con, pid, von, aid):
     return a
 
 
-def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, bemerkung=None, zusammenfassung=None):
+def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, bemerkung=None, zusammenfassung=None,
+                   auf=None, erledigt=None):
+    """auf: Wartegründe als Verweise (F…, A…, L…, Agent, Marcel, Monitor:…) – Pflicht bei wartet/blockiert (L1).
+    erledigt: Gründe von Hand abhaken; allein (ohne auf) ändert es den Status nicht."""
+    from . import wartegrund
+    if erledigt and not auf and status in ("wartet", "blockiert"):
+        with db.schreiben(con):
+            a = _aufgabe_fuer_aenderung(con, pid, von, aid)
+            wartegrund.von_hand(con, pid, von, aid, erledigt)
+        return a["status"]
     neu = {"start": "laeuft", "blockiert": "blockiert", "wartet": "wartet", "fertig": "fertig",
            "verwerfen": "verworfen"}.get(status, status)
     if neu == "laeuft" and halt_gilt(con, pid, von):
@@ -288,6 +336,14 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
         a = _aufgabe_fuer_aenderung(con, pid, von, aid)
         from . import planung                       # Regeln der Planung: Vorgänger, Plan-Gate, Kriterien, Zusammenfassung
         planung.pruefe_status(con, a, neu, zusammenfassung)
+        if erledigt:
+            wartegrund.von_hand(con, pid, von, aid, erledigt)
+        if neu in ("wartet", "blockiert"):         # „wartet“ ohne Verweis lag über Nacht (A1238) – nicht mehr (L1)
+            if auf:
+                wartegrund.anlegen(con, pid, von, aid, auf)
+            if not wartegrund.offene(con, aid):
+                raise AmwFehler(f"{neu} nur mit --auf: worauf? F<nr>, A<nr>, L<nr>, Agent, Marcel, Monitor:<was>"
+                                " (Erklärung dazu mit --wartet-auf)")
         t = db.jetzt()
         felder = {"status": neu}
         if zusammenfassung:
@@ -306,6 +362,10 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
         if neu in ("fertig", "verworfen"):            # wer abgeschlossen hat (kann der Lead statt des Bearbeiters sein)
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=t, von=von, art="aufgabe_abschluss",
                          bogen_id=a["bogen_id"], aufgabe_id=aid, text=neu)
+        if neu in ("laeuft", "fertig", "verworfen"):
+            wartegrund.schliessen(con, aid, f"A{aid} {neu}")
+        if neu in ("fertig", "verworfen"):            # wer auf diese Aufgabe gewartet hat, wird geweckt (L2)
+            wartegrund.erledige(con, pid, "aufgabe", f"A{aid}", f"A{aid} {neu}")
     return neu
 
 
@@ -326,8 +386,10 @@ OPTION_KENN = re.compile(r"[^\s=:)]{1,12}")
 
 
 def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, worum=None, fundstellen=None,
-              aufgabe_id=None, blockiert=False, folge_von=None):
-    """optionen: Liste von (kenn, text). Empfehlung muss eine der Kennungen sein."""
+              aufgabe_id=None, blockiert=False, folge_von=None, geprueft=None, pruefen=True):
+    """optionen: Liste von (kenn, text). Empfehlung muss eine der Kennungen sein.
+    geprueft: was der Fragesteller in Beschlüssen/Fragen/Regeln geprüft hat – Pflicht bei Fragen an den Entwickler;
+    findet die AMW Treffer, muss es mindestens einen nennen (B2422). pruefen=False: Fragen, die die AMW selbst stellt."""
     for k, t in optionen:               # sonst steht der ganze Satz in der schmalen Kennungs-Spalte (F5158)
         if not OPTION_KENN.fullmatch(k or "") or not (t or "").strip():
             raise AmwFehler(f"Option „{(k or '')[:40]}“: Form --option \"A=Text\" – kurze Kennung (A, B, V0 …), dann = und der Text")
@@ -336,12 +398,17 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
         raise AmwFehler(f"Empfehlung „{empfehlung}“ ist keine der Optionen {kenn}")
     if an == "entwickler" and optionen and not (empfehlung and grund):
         raise AmwFehler("Fragen an den Entwickler brauchen Empfehlung und Grund")
+    if aufgabe_id:
+        aufgabe_bezug(con, pid, von, aufgabe_id)
+    if an == "entwickler" and pruefen:
+        from . import wissen
+        wissen.pruefung_verlangen(con, pid, f"{kurz} {worum or ''}", geprueft)
     with db.schreiben(con):
         fid = db.einfuegen(con, "frage", projekt_id=pid, an=an, von=von, zeit_utc=db.jetzt(), kurz=kurz,
                            worum=worum, optionen=json.dumps([{"kenn": k, "text": t} for k, t in optionen],
                                                             ensure_ascii=False),
                            empfehlung=empfehlung, grund=grund, fundstellen=fundstellen, aufgabe_id=aufgabe_id,
-                           blockiert=int(blockiert), folge_von=folge_von)
+                           blockiert=int(blockiert), folge_von=folge_von, geprueft=(geprueft or "").strip() or None)
         if an == "tl":
             if lead(con, pid):
                 _posten(con, pid, von, lead(con, pid), "frage", f"Frage F{fid}: {kurz}", aufgabe_id=aufgabe_id)
@@ -376,6 +443,12 @@ def frage_antworten(con, pid, fid, antwort_art, antwort, kanal, von=ENTWICKLER):
             antwort = next((f"{o['kenn']}) {o['text']}" for o in json.loads(f["optionen"]) if o["kenn"] == antwort), antwort)
         db.einfuegen(con, "frage_verlauf", frage_id=fid, zeit_utc=t, von=von,
                      art="rueckfrage" if antwort_art == "rueckfrage" else "antwort", text=antwort, nachricht_id=nid)
+        if status == "beantwortet":                    # wer auf diese Frage gewartet hat, wird geweckt (L2)
+            from . import wartegrund
+            knapp = antwort if len(antwort) <= 60 else antwort[:57] + "…"
+            wartegrund.erledige(con, pid, "frage", f"F{fid}", f"F{fid} beantwortet: {knapp}")
+            if von == ENTWICKLER and f["aufgabe_id"]:
+                wartegrund.erledige(con, pid, "entwickler", ENTWICKLER, f"Marcel hat F{fid} beantwortet", f["aufgabe_id"])
         # wer antwortet, hat die Nachträge im Verlauf gelesen – sie stehen nicht mehr unter „Nachrichten an dich“
         con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ? WHERE agent = ? AND status != 'erledigt'"
                     " AND nachricht_id IN (SELECT nachricht_id FROM frage_verlauf WHERE frage_id = ? AND nachricht_id IS NOT NULL)",
@@ -483,14 +556,20 @@ def kontext(con, pid, kennung):
     except Exception:
         pass
 
+    from . import wartegrund
     eigene = aufgaben(con, pid, kennung)
-    z.append(f"Deine offenen Aufgaben ({len(eigene)}): " + ("; ".join(
-        f"A{x['id']} [{x['status']}] {x['titel']}" + (f" (wartet auf {x['wartet_auf']})" if x["wartet_auf"] else "")
-        for x in eigene[:10]) or "keine"))
 
-    wartende = con.execute("SELECT id, agent, titel FROM aufgabe WHERE projekt_id = ? AND status IN"
-                           " ('wartet', 'blockiert') AND wartet_auf LIKE ? ORDER BY id LIMIT 10",
-                           (pid, f"%{kennung}%")).fetchall()
+    def worauf(x):
+        g = ", ".join(r["bezug"] for r in wartegrund.offene(con, x["id"]))
+        t = "; ".join(v for v in (g, x["wartet_auf"]) if v)
+        return f" (wartet auf {t})" if t else ""
+    z.append(f"Deine offenen Aufgaben ({len(eigene)}): " + ("; ".join(
+        f"A{x['id']} [{x['status']}] {x['titel']}" + worauf(x) for x in eigene[:10]) or "keine"))
+
+    wartende = con.execute("SELECT id, agent, titel FROM aufgabe WHERE projekt_id = ? AND status IN ('wartet', 'blockiert')"
+                           " AND (wartet_auf LIKE ? OR id IN (SELECT aufgabe_id FROM wartegrund WHERE art = 'agent'"
+                           " AND bezug = ? AND erledigt_utc IS NULL)) ORDER BY id LIMIT 10",
+                           (pid, f"%{kennung}%", kennung)).fetchall()
     if wartende:
         z.append("Wartet auf dich: " + "; ".join(f"A{x['id']} ({x['agent']}) {x['titel']}" for x in wartende))
 

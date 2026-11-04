@@ -99,12 +99,12 @@ class Halt(Grund):
 class Fragen(Grund):
     def test_frage_an_entwickler_braucht_empfehlung_und_grund(self):
         with self.assertRaises(kern.AmwFehler):
-            kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x?", [("A", "a"), ("B", "b")])
+            kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x?", [("A", "a"), ("B", "b")], geprueft="keine Treffer")
         with self.assertRaises(kern.AmwFehler):
-            kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x?", [("A", "a")], "C", "weil")
+            kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x?", [("A", "a")], "C", "weil", geprueft="keine Treffer")
 
     def test_antwort_per_option_benachrichtigt_fragesteller(self):
-        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x?", [("A", "a"), ("B", "b")], "A", "weil")
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x?", [("A", "a"), ("B", "b")], "A", "weil", geprueft="keine Treffer")
         self.assertEqual(kern.frage_antworten(self.con, self.pid, fid, "option", "B", "seite"), "beantwortet")
         offen = kern.offene(self.con, self.pid, "TL")
         self.assertEqual(offen[0]["art"], "antwort")
@@ -112,7 +112,7 @@ class Fragen(Grund):
             kern.frage_antworten(self.con, self.pid, fid, "option", "A", "seite")
 
     def test_rueckfrage_bleibt_offen_und_wortlaut_wird_gespeichert(self):
-        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x?", [("A", "a")], "A", "weil")
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x?", [("A", "a")], "A", "weil", geprueft="keine Treffer")
         self.assertEqual(kern.frage_antworten(self.con, self.pid, fid, "rueckfrage", "Was heißt a?", "seite"), "offen")
         w = self.con.execute("SELECT text, kanal FROM wortlaut").fetchone()
         self.assertEqual((w["text"], w["kanal"]), ("Was heißt a?", "seite"))
@@ -121,14 +121,14 @@ class Fragen(Grund):
     def test_option_braucht_kurze_kennung_und_text(self):
         for opt in ([("V0: Bedingung ping liest Zähler", "")], [("A", " ")]):     # ganzer Satz als Kennung (F5158)
             with self.assertRaises(kern.AmwFehler):
-                kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x", opt, opt[0][0], "g")
+                kern.frage_neu(self.con, self.pid, "TL", "entwickler", "x", opt, opt[0][0], "g", geprueft="keine Treffer")
         self.con.close()
         os.environ["AMW_DB"] = os.path.join(self.ordner.name, "t.db")
         try:
             from amw import cli
             self.assertEqual(cli.main(["--von", "TL", "frage", "neu", "--an", "entwickler", "--kurz", "Welche?",
                                        "--option", "V0: Bedingung „ping“, klein", "--option", "V1=mit Quittung",
-                                       "--empfehlung", "V0", "--grund", "g"]), 0)
+                                       "--empfehlung", "V0", "--grund", "g", "--geprueft", "keine Treffer"]), 0)
         finally:
             os.environ.pop("AMW_DB", None)
         self.con = db.verbinde(os.path.join(self.ordner.name, "t.db"))
@@ -145,7 +145,7 @@ class Kontext(Grund):
     def test_kontext_enthaelt_aufgaben_wartende_und_bleibt_kurz(self):
         kern.aufgabe_neu(self.con, self.pid, "TL", "Eigenes", agent="CC1")
         aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Fremdes", agent="CC2")
-        kern.aufgabe_status(self.con, self.pid, "CC2", aid, "blockiert", wartet_auf="CC1 Antwort")
+        kern.aufgabe_status(self.con, self.pid, "CC2", aid, "blockiert", wartet_auf="Antwort", auf="CC1")
         for i in range(300):
             kern.posten(self.con, self.pid, "TL", "CC1", "info", "lange Zeile " * 20)
         kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "die neueste")
@@ -175,7 +175,7 @@ class Verlauf(unittest.TestCase):
         return [(r[0], r[1]) for r in self.con.execute("SELECT von, art FROM frage_verlauf WHERE frage_id = ? ORDER BY id", (fid,))]
 
     def test_gespraech(self):
-        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Lücke?", [("A", "füllen"), ("B", "lassen")], "A", "weil")
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Lücke?", [("A", "füllen"), ("B", "lassen")], "A", "weil", geprueft="keine Treffer")
         self.assertEqual(kern.frage_antworten(self.con, self.pid, fid, "rueckfrage", "Ist mit A die Lücke gefüllt?", "seite"), "offen")
         rf = self.con.execute("SELECT nachricht_id FROM frage_verlauf WHERE frage_id = ?", (fid,)).fetchone()[0]
         kern.posten(self.con, self.pid, "TL", "Entwickler", "antwort", "Ja, A füllt beide Lücken", antwort_auf=rf)
@@ -191,7 +191,7 @@ class Verlauf(unittest.TestCase):
             self.con.execute("DELETE FROM frage_verlauf")
 
     def test_alte_datenbank_wird_umgestellt(self):
-        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Alt?", [("A", "a")], "A", "weil")
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Alt?", [("A", "a")], "A", "weil", geprueft="keine Treffer")
         self.con.execute("DROP TABLE frage_verlauf")                 # wie eine Datenbank mit Schema 1
         self.con.execute("UPDATE frage SET antwort_art = 'rueckfrage', antwort = 'Wie gemeint?' WHERE id = ?", (fid,))
         self.con.execute("ALTER TABLE lauf DROP COLUMN rang")          # Schema 2 kannte die Warteschlange nicht
@@ -206,7 +206,10 @@ class Verlauf(unittest.TestCase):
             self.con.execute(f"ALTER TABLE sitzung DROP COLUMN {sp}")
         for sp in ("ordner", "zusatzordner", "denkstufe", "modell", "startsatz", "rechte", "fernsteuerung", "neustart_auto"):
             self.con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")
-        self.con.execute("DROP TABLE schirm")                             # … und keinen Schirm-Schalter (Schema 11)
+        self.con.execute("DROP TABLE schirm")
+        self.con.execute("DROP TABLE wartegrund")                         # … und keine Wartegründe (Schema 12)
+        self.con.execute("ALTER TABLE frage DROP COLUMN geprueft")
+        self.con.execute("ALTER TABLE agent DROP COLUMN alias")                             # … und keinen Schirm-Schalter (Schema 11)
         for sp in ("geparkt_utc", "geparkt_von"):                          # … und kein Parken von Fragen (Schema 10)
             self.con.execute(f"ALTER TABLE frage DROP COLUMN {sp}")
         for t in ("dokument_version", "dokument"):                         # … und keine Dokumente (Schema 9)

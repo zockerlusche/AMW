@@ -4,6 +4,31 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.8.0 – 04.11.2026 · Wartegründe, Wecken, Frage-Prüfung
+Beschluss B2419 „Automatismen in der AMW statt Gebote“, Teil 2 (L1–L6), und B2422 (Fragen, die schon beantwortet sind).
+Plan: `doc/plan-automatismen.md`. Schema 12.
+- **Wartegrund als Verweis (L1):** `amw aufgabe wartet|blockiert <nr> --auf F5148,A1240,L141,CC2,Marcel,Monitor:<was>`.
+  Ohne `--auf` lehnt die AMW „wartet“ und „blockiert“ ab – Freitext allein reicht nicht mehr (`--wartet-auf` bleibt als
+  Erklärung). Eine neue, nicht begonnene Aufgabe steht weiter ohne Grund auf „wartet“ (= zu tun).
+- **Erledigter Grund weckt (L2):** Frage beantwortet, Aufgabe fertig oder verworfen, Lauf zu Ende, der genannte Agent
+  schreibt mit `--aufgabe` dieser Aufgabe, Marcel beantwortet eine Frage zu ihr → der Besitzer bekommt eine weckende
+  Meldung („A1238: F5148 beantwortet: B) … – noch offen: A1240“ bzw. „alle Gründe erledigt – weiter“), Kopie an den Lead.
+  Von Hand abhaken: `amw aufgabe wartet <nr> --erledigt F5148` (Besitzer oder Lead, z. B. nach Marcels Wort im Chat).
+- **Leerlauf-Prüfung (L3):** Ist eine Sitzung seit 30 min frei, ohne offene Post, und hat der Agent eine Aufgabe ohne
+  offenen Grund (Vorgänger fertig, nicht geparkt), weckt ihn der Dienst mit dieser Aufgabe – einmal je Ruhephase. Warten
+  alle Aufgaben eines freien Agenten auf Marcel, bekommt der Lead höchstens alle 6 h eine Sammelzeile.
+- **Aufgaben-Bezug geprüft (L4):** `posten`/`frage neu --aufgabe` mit einer Nummer, die es nicht gibt oder die fertig ist,
+  wird abgelehnt; bei einer fremden Aufgabe kommt ein Hinweis.
+- **Kopie an den Besitzer (L5):** Eine `info`, `meldung` oder `antwort` zu einer fremden Aufgabe geht in Kopie an ihren
+  Besitzer, weckend, wenn seine Aufgabe wartet. Nicht bei `auftrag` und `pruefbitte` (Merge- und Prüfbitten).
+- **Was eine Frage aufhält (L6):** Workbench und Online-Seite zeigen an jeder offenen Frage „hält A1238 (CC1) seit …“.
+- **Frage-Prüfung gegen die Datenbank (B2422):** `amw frage neu` sucht in geltenden Beschlüssen, beantworteten Fragen und
+  Regeln nach den Wörtern der Frage. Fragen an den Entwickler brauchen `--geprueft "…"`; findet die AMW Treffer, muss es
+  mindestens einen davon nennen („B2420 passt nicht, weil …“). Bei Fragen an den Lead zeigt sie die Treffer nur. Die
+  Workbench zeigt „Vorher geprüft: …“ an der Frage.
+- `amw aufgabe liste`/`zeige` und der Pflicht-Kontext zeigen die offenen Gründe; „Wartet auf dich“ kennt die Verweise.
+- Vorbereitet für 1.9.0 (Agenten nach Rolle umbenennen): Spalte `agent.alias`.
+
 ## 1.7.1 – 04.11.2026 · Korrektur Brücke
 - **Beschlüsse über die Brücke gehen wieder:** 1.7.0 hatte `--quelle` über die Brücke für alle Befehle gesperrt. Bei
   `beschluss` ist `--quelle` aber die inhaltliche Quelle (z. B. „Marcel 04.11. 11:35“) und Pflicht, so konnte der Lead

@@ -515,6 +515,7 @@ a.knopf { text-decoration: none; display: inline-flex; align-items: center; colo
 .frage { padding: 18px 20px; margin-bottom: 16px; }
 .frage .meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--leise); font-size: 12.5px; }
 .frage h3 { font: 600 19px/1.3 var(--titel); letter-spacing: .01em; margin: 10px 0 6px; overflow-wrap: anywhere; }
+.frage .haelt { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 10px; }
 .frage .worum { color: var(--leise); margin: 0 0 12px; white-space: pre-wrap; }
 .optionen { display: grid; gap: 8px; margin: 12px 0; }
 .option { text-align: left; padding: 10px 14px; min-height: 44px; background: var(--flaeche2); border: 1px solid var(--linie); border-radius: 3px; cursor: pointer;
@@ -740,6 +741,7 @@ const TEXTE = {
     f_geparkt_hinweis: "Geparkte Fragen bleiben offen, wecken aber niemanden und zählen nicht. Antworten kannst du trotzdem.", v_park: "Vermerk",
     anmerkung_ph: "Anmerkung zur gewählten Option (optional) – oder eigene Antwort / Rückfrage", antwort_ph: "Deine Antwort oder Rückfrage",
     empfehlung: "Empfehlung", warum: "Warum {k}: ", optionen: "Optionen: ", fundstellen: "Fundstellen: ",
+    f_haelt: "hält {a} ({x}) seit {z}", f_geprueft: "Vorher geprüft: ",
     eigene_antwort: "Eigene Antwort", rueckfrage: "Rückfrage", vorgeschichte: "Vorgeschichte ({n})",
     beantwortet: "Beantwortet – der Fragesteller wird geweckt.", rueckfrage_gesendet: "Rückfrage gesendet – der Fragesteller wird geweckt.",
     text_fehlt: "Bitte Text eingeben", rueckfrage_fehlt: "Bitte die Rückfrage eingeben", fehler: "Fehler: {x}",
@@ -949,6 +951,7 @@ const TEXTE = {
     f_geparkt_hinweis: "Parked questions stay open but wake nobody and don’t count. You can still answer them.", v_park: "Note",
     anmerkung_ph: "Note on the chosen option (optional) – or your own answer / follow-up question", antwort_ph: "Your answer or follow-up question",
     empfehlung: "Recommended", warum: "Why {k}: ", optionen: "Options: ", fundstellen: "Sources: ",
+    f_haelt: "holds {a} ({x}) since {z}", f_geprueft: "Checked first: ",
     eigene_antwort: "Own answer", rueckfrage: "Ask back", vorgeschichte: "History ({n})",
     beantwortet: "Answered – the asker is being woken.", rueckfrage_gesendet: "Follow-up sent – the asker is being woken.",
     text_fehlt: "Please enter a text", rueckfrage_fehlt: "Please enter your question", fehler: "Error: {x}",
@@ -1615,6 +1618,8 @@ function frageKarte(f) {
       f.wartet_auf_fragesteller ? el("span", { class: "etikett bernstein" }, t("wartet_auf_x", { x: f.von })) : null,
       f.geparkt_utc ? el("span", { class: "etikett" }, t("f_geparkt_etikett", { z: zeit(f.geparkt_utc), x: f.geparkt_von === "Entwickler" ? t("du") : f.geparkt_von })) : null),
     el("h3", {}, f.kurz),
+    (f.haelt || []).length ? el("div", { class: "haelt" }, f.haelt.map(x => el("span", { class: "etikett rot", title: x.titel },
+      t("f_haelt", { a: `A${x.id}`, x: x.agent || "–", z: zeit(x.seit) })))) : null,
     f.worum ? el("p", { class: "worum" }, f.worum) : null,
     (f.dokumente || []).length ? el("div", { class: "dk-anhaenge" }, f.dokumente.map(x => el("button", { class: "dk-anhang", type: "button", onclick: () => dokumentDialog(x.id) },
       [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"].includes(x.endung) && (!API || x.online) ? el("img", { src: dokUrl(x.id), alt: "", loading: "lazy", onerror: e => e.target.remove() }) : null,
@@ -1650,6 +1655,7 @@ function frageKarte(f) {
   }
   if (f.grund) karte.append(el("div", { class: "grund" }, el("b", {}, f.empfehlung ? t("warum", { k: empfKurz || f.empfehlung }) : ""), f.grund));
   if (f.fundstellen) karte.append(el("div", { class: "sehrleise mono", style: "margin:6px 0;overflow-wrap:anywhere" }, t("fundstellen") + f.fundstellen));
+  if (f.geprueft) karte.append(el("div", { class: "sehrleise", style: "margin:6px 0;overflow-wrap:anywhere" }, el("b", {}, t("f_geprueft")), f.geprueft));
   karte.append(notiz, el("div", { class: "aktionen" },
     el("button", { class: "knopf" + (echteOptionen.length ? "" : " haupt"), type: "button", onclick: () => notiz.value.trim() ? antworten("text", notiz.value) : toast(t("text_fehlt"), true) }, t("eigene_antwort")),
     el("button", { class: "knopf", type: "button", onclick: () => notiz.value.trim() ? antworten("rueckfrage", notiz.value) : toast(t("rueckfrage_fehlt"), true) }, t("rueckfrage")),

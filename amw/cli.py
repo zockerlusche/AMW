@@ -117,8 +117,11 @@ def cmd_posten(a, con):
     if a.text_datei:
         with open(a.text_datei, encoding="utf-8") as f:
             text = f.read()
-    nid, namen = kern.posten(con, pid, _von(a), a.an, a.art, a.kurz, text, a.antwort_auf, a.aufgabe)
+    hinweise = []
+    nid, namen = kern.posten(con, pid, _von(a), a.an, a.art, a.kurz, text, a.antwort_auf, a.aufgabe, hinweise)
     print(f"#{nid} an {', '.join(namen)}")
+    for h in hinweise:
+        print(h)
 
 
 def cmd_lesen(a, con):
@@ -185,9 +188,11 @@ def cmd_aufgabe(a, con):
         planung.plan_entscheiden(con, pid, _von(a), a.id, not a.zurueck, a.kommentar)
         print(f"Plan A{a.id} " + ("zurück" if a.zurueck else "freigegeben"))
     elif a.aktion == "liste":
+        from . import wartegrund
         for r in kern.aufgaben(con, pid, a.agent, a.alle):
+            gruende = ", ".join(g["bezug"] for g in wartegrund.offene(con, r["id"]))
             print(f"A{r['id']:<5} {r['agent'] or '–':<8} [{r['status']}/{r['einstufung']}] {r['titel'][:110]}"
-                  + (f"  ⇢ {r['wartet_auf']}" if r["wartet_auf"] else ""))
+                  + (f"  ⇢ {gruende}" if gruende else "") + (f"  ⇢ {r['wartet_auf']}" if r["wartet_auf"] else ""))
     elif a.aktion == "zeige":
         r = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
         if not r:
@@ -195,6 +200,9 @@ def cmd_aufgabe(a, con):
         for k in r.keys():
             if r[k] not in (None, "") and k not in ("uid", "herkunft"):
                 print(f"{k}: {r[k]}")
+        for g in con.execute("SELECT * FROM wartegrund WHERE aufgabe_id = ? ORDER BY id", (a.id,)):
+            print(f"wartegrund: {g['bezug']} (seit {_zeit(g['angelegt_utc'])}, {g['angelegt_von']})"
+                  + (f" – erledigt {_zeit(g['erledigt_utc'])}: {g['erledigt_durch']}" if g["erledigt_utc"] else " – offen"))
     elif a.aktion in ("parken", "aktiv", "keine_prio", "pool"):
         if not a.id:
             raise kern.AmwFehler("Aufgaben-Nummer fehlt")
@@ -203,8 +211,13 @@ def cmd_aufgabe(a, con):
     else:
         if not a.id:
             raise kern.AmwFehler("Aufgaben-Nummer fehlt")
-        neu = kern.aufgabe_status(con, pid, _von(a), a.id, a.aktion, a.beleg, a.wartet_auf, a.bemerkung, a.zusammenfassung)
-        print(f"A{a.id} → {neu}")
+        if (a.auf or a.erledigt) and a.aktion not in ("wartet", "blockiert"):
+            raise kern.AmwFehler("--auf/--erledigt gibt es nur bei aufgabe wartet|blockiert")
+        neu = kern.aufgabe_status(con, pid, _von(a), a.id, a.aktion, a.beleg, a.wartet_auf, a.bemerkung, a.zusammenfassung,
+                                  a.auf, a.erledigt)
+        from . import wartegrund
+        offen = [g["bezug"] for g in wartegrund.offene(con, a.id)]
+        print(f"A{a.id} → {neu}" + (f" · wartet auf {', '.join(offen)}" if offen and neu in ("wartet", "blockiert") else ""))
 
 
 def cmd_leitbild(a, con):
@@ -402,7 +415,11 @@ def cmd_frage(a, con):
         from . import dokumente
         anhaenge = dokumente.anhaenge_pruefen(con, pid, a.anhang or [], [k for k, _ in optionen])   # vor dem Anlegen
         fid = kern.frage_neu(con, pid, _von(a), a.an, a.kurz, optionen, a.empfehlung, a.grund, a.worum,
-                             a.fundstellen, a.aufgabe, a.blockiert)
+                             a.fundstellen, a.aufgabe, a.blockiert, geprueft=a.geprueft)
+        if a.an == "tl":                            # an den Lead: Treffer nur zeigen (B2422)
+            liste = wissen.treffer(con, pid, f"{a.kurz} {a.worum or ''}")
+            if liste:
+                print("Vielleicht schon entschieden:\n" + wissen.treffer_text(liste))
         zusatz = dokumente.anhaenge_setzen(con, pid, _von(a), fid, anhaenge)
         print(f"F{fid} angelegt" + (" – Varianten: " + ", ".join(f"{k}=D{d}" for k, d in zusatz.items()) if zusatz else ""))
     elif a.aktion in ("parken", "aufnehmen"):
@@ -1079,7 +1096,10 @@ def parser():
     x.add_argument("--rang", type=int, default=50)
     x.add_argument("--pruefer")
     x.add_argument("--beleg")
-    x.add_argument("--wartet-auf")
+    x.add_argument("--wartet-auf", help="wartet/blockiert: Erklärung als Text (zusätzlich zu --auf)")
+    x.add_argument("--auf", help="wartet/blockiert: worauf, als Verweise – F5148,A1240,L141,CC2,Marcel,Monitor:<was>"
+                                 " (Pflicht; erledigt sich von selbst und weckt dich)")
+    x.add_argument("--erledigt", help="wartet/blockiert: diese Gründe von Hand abhaken, z. B. F5148 (allein: Status bleibt)")
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
     x.add_argument("--bogen", type=int, help="Planung: gehört zu Bogen N")
@@ -1109,6 +1129,8 @@ def parser():
     x.add_argument("--option", action="append", help="neu: 'A=Text' (mehrfach); antworten: Kennung")
     x.add_argument("--empfehlung")
     x.add_argument("--fundstellen")
+    x.add_argument("--geprueft", help="neu: was du vorher in der AMW geprüft hast (Beschlüsse, Fragen, Regeln) – Pflicht bei"
+                                      " Fragen an den Entwickler; findet die AMW Treffer, nenne mindestens einen")
     x.add_argument("--aufgabe", type=int)
     x.add_argument("--blockiert", action="store_true")
     x.add_argument("--text")

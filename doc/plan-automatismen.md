@@ -10,8 +10,9 @@ Leitsatz aus B2419: **Was vergessen werden kann, regelt die AMW technisch statt 
 | Version | Inhalt | Schema |
 |---|---|---|
 | **1.7.0** | Teil 1 Schirm-Schalter + `lauf warte`/`lauf zeige` (gehört dazu: wer auf den Schirm wartet, muss richtig warten können) | 11 |
-| **1.8.0** | Teil 2 Wartegründe und Wecken L1–L6 | 12 |
-| **1.8.x** | Rest aus der Wochen-Umfrage #16787 (s. u.) und Leitfaden/CLAUDE.md der Agenten | – |
+| **1.8.0** | Teil 2 Wartegründe und Wecken L1–L6, Frage-Prüfung (B2422) | 12 |
+| **1.9.0** | Agenten nach Rolle umbenennen (Alias), CLAUDE.md ohne bus.py | (12) |
+| **1.9.x** | Rest aus der Wochen-Umfrage #16787 (s. u.) | – |
 
 ## Teil 1: Schirm-Schalter (1.7.0)
 
@@ -78,17 +79,76 @@ Der Grund steht in der neuen Zeile, z. B. „zu: TeamViewer läuft (06:50)“ od
 - `lauf warte`/`lauf zeige` mit rc.
 - Workbench-Kachel: Fotos Desktop/Handy.
 
-## Teil 2: Wartegründe und Wecken L1–L6 (1.8.0)
-Kurz; ein eigener Plan folgt vor dem Bau.
-- **L1** Wartegrund als Verweis (neue Tabelle `wartegrund`: Aufgabe, Art F/A/L/Agent/Marcel/Monitor, Bezug,
-  erledigt). `aufgabe warten A1238 --auf F5148,A1240,L141,Marcel`. „wartet“ ohne Grund wird abgelehnt.
-- **L2** Ein erledigter Grund weckt den Besitzer („A1238: F5148 beantwortet – weiter“), Kopie an den TL.
-- **L3** Leerlauf-Prüfung (Sitzung > 30 min frei): Weckruf, wenn Arbeit frei ist. Wartet alles auf Marcel →
-  höchstens 1× je 6 h eine Zeile an den TL.
-- **L4** Eine fertige Aufgabe als `--aufgabe` wird abgelehnt, eine fremde bekommt eine Warnung.
-- **L5** Befund/Info mit `--aufgabe` geht in Kopie an den Besitzer, weckend, wenn seine Aufgabe wartet. Gilt nicht
-  für Bitten um Merge oder Prüfung.
-- **L6** Die Workbench zeigt bei Marcels Fragen „hält A1238 (CC1) seit …“.
+## Teil 2: Wartegründe, Wecken, Frage-Prüfung (1.8.0, Schema 12)
+Dazu B2422 (Marcel 04.11. 18:02): Fragen, die in der Datenbank schon beantwortet sind, soll die AMW abfangen.
+
+### L1 Wartegrund als Verweis
+Neue Tabelle `wartegrund` (Aufgabe, Art, Bezug, Text, angelegt von/um, erledigt um/durch). Arten und Bezug:
+
+| Angabe | Art | erledigt, wenn … |
+|---|---|---|
+| `F5148` | frage | die Frage beantwortet oder verworfen ist (Rückfrage zählt nicht) |
+| `A1240` | aufgabe | die Aufgabe fertig oder verworfen ist |
+| `L141` | lauf | der Lauf zu Ende ist (fertig oder abgebrochen) |
+| `CC2` (Kennung) | agent | dieser Agent eine Nachricht mit `--aufgabe` dieser Aufgabe schickt |
+| `Marcel` / `Entwickler` | entwickler | Marcel eine Frage zu dieser Aufgabe beantwortet oder in der Workbench zu ihr schreibt |
+| `Monitor:<was>` | monitor | nur von Hand (der eigene Monitor in der Sitzung) |
+
+- `amw aufgabe wartet <nr> --auf F5148,A1240,CC2 [--wartet-auf "Erklärung"]`, ebenso `blockiert`. **Ohne `--auf`
+  lehnt die AMW „wartet“/„blockiert“ ab.** Eine neue, noch nicht begonnene Aufgabe steht wie bisher auf „wartet“ –
+  das ist „zu tun“ und braucht keinen Grund.
+- `amw aufgabe wartet <nr> --erledigt F5148` hakt einen Grund von Hand ab (z. B. der TL nach Marcels Wort im Chat).
+- Startet, endet oder wird eine Aufgabe verworfen, sind ihre offenen Gründe mit erledigt.
+- Alte Aufgaben mit Freitext in `wartet_auf` bleiben, wie sie sind (zählen als wartend).
+
+### L2 Erledigter Grund weckt
+Wird ein Grund erledigt, bekommt der Besitzer eine weckende Meldung, Kopie an den Lead:
+„A1238: F5148 beantwortet (B) – noch offen: A1240“ bzw. „… – alle Gründe erledigt, weiter: amw aufgabe start 1238“.
+
+### L3 Leerlauf-Prüfung
+Der Dienst prüft je angemeldeter Sitzung (Pipe, nicht die Brücke): Ist sie seit 30 min frei (Hook-Ereignis „frei“),
+ohne offene Nachrichten, und hat der Agent eine Aufgabe, an der er arbeiten kann (läuft, oder wartet ohne offenen Grund
+und ohne Freitext, Vorgänger fertig, nicht geparkt), weckt eine Meldung mit dieser Aufgabe – einmal je Ruhephase.
+Wartet alles des Agenten auf Marcel, höchstens alle 6 h eine Sammelzeile an den Lead („CC1, CC5 frei – warten auf
+Marcel: F5148, F5151“).
+
+### L4 Aufgaben-Bezug prüfen
+`posten --aufgabe` (und `frage neu --aufgabe`): Gibt es die Aufgabe nicht oder ist sie fertig/verworfen → Ablehnung.
+Gehört sie einem anderen Agenten → Hinweis in der Ausgabe (keine Ablehnung, Merge-Bitten tragen fremde Nummern).
+
+### L5 Kopie an den Besitzer
+Eine `info`/`meldung`/`antwort` mit `--aufgabe` einer fremden Aufgabe, deren Besitzer nicht unter den Empfängern
+ist, geht in Kopie an ihn – weckend, wenn seine Aufgabe wartet oder blockiert ist. Nicht bei `auftrag` und
+`pruefbitte` (Merge- und Prüfbitten).
+
+### L6 Was eine Frage aufhält
+Workbench und Online-Seite zeigen bei offenen Fragen „hält A1238 (CC1) seit 06:12“ (aus `wartegrund`, sonst aus
+`frage.aufgabe_id` bei blockierenden Fragen).
+
+### Frage-Prüfung gegen die Datenbank (B2422)
+`amw frage neu` sucht vor dem Anlegen in geltenden Beschlüssen, beantworteten Fragen und Regeln nach den Wörtern
+aus `--kurz`/`--worum` (Wortanfänge, seltene Wörter zählen mehr) und zeigt die besten Treffer mit Antwort.
+- Neues Feld `--geprueft "B2419 passt nicht, weil …"` (Spalte `frage.geprueft`). Ohne `--geprueft` legt die AMW die
+  Frage nicht an, sondern zeigt die Treffer. Gibt es Treffer, muss `--geprueft` mindestens einen davon nennen
+  (B…/F…/PR…/KR…); ohne Treffer reicht ein Satz („keine Treffer“).
+- Gilt für Fragen an Marcel; bei Fragen an den Lead zeigt die AMW die Treffer nur an.
+- Die Workbench zeigt „geprüft: …“ unter der Frage, damit Marcel sieht, was der Agent schon gelesen hat.
+
+## Umbenennen nach Rolle (1.9.0, Marcel 04.11. 18:04)
+CC1 → CCdesign, CC2 → CCqa, CC3 → CCengine, CC4 → CCcontent, CC5 → CCui, CC6 → CCsim, CC7 → CC3d, TL → CClead.
+- `agent.alias` (Schema 12 gleich mit): alte Kennung bleibt gültig. `--von CC3`, `AMW_AGENT=CC3`, `--an CC3`,
+  `--agent CC3`, Halt für CC3 landen bei CCengine. Laufende Sitzungen müssen also nicht neu starten.
+- `amw agent umbenennen CC3 CCengine` (nur Entwickler/Lead): in **einem** Schreibvorgang alle Spalten, die eine
+  Kennung enthalten (Nachrichten von/an, Aufgaben, Fragen, Läufe, Prüfungen, Sperren, Sitzungen, Profile …), neue
+  Kennung; Freitexte („CC3 bitte …“) bleiben. Vorher `amw sichern`. Der Online-Abgleich schickt die geänderten Zeilen
+  einmal nach.
+- Sitzungen (`--resume <id>`) hängen an der Sitzungs-ID, nicht am Namen; Gesprächsansicht und „In Claude öffnen“
+  bleiben. Tab-Titel und `--remote-control`-Name kommen aus dem Profil (neue Kennung) – Wirkung beim nächsten Start.
+- Danach: Startdatei des TL, Startskript, CLAUDE.md (gemeinsam mit dem Teil „ohne bus.py“).
+- Marcels eigene Startdatei (Nachtrag #16902): vorher Kopie `….vor-umbenennung` daneben, dann je Tab Titel,
+  `AMW_AGENT` und `--remote-control` auf die neue Kennung; Sitzungs-IDs (`--resume`) bleiben. Abstand wie die
+  Startdatei des TL (B2410: 20 s statt heute 3 s). Sie startet heute CC1–CC7 und CCamw, nicht den TL.
+- Zeitpunkt: ruhig (kein Lauf aktiv), vorher Ansage an alle; Ablauf je Agent in einem Rutsch, danach `amw agent liste`.
 
 ## Rest aus der Umfrage #16787 (1.8.x)
 `beschluss zeige/suche`, amw-cli meldet Wartezeit auf die Datenbank und bricht mit Fehlercode ab, Ausgabe immer

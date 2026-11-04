@@ -19,8 +19,8 @@ class Parken(unittest.TestCase):
         kern.agent_neu(self.con, self.pid, "TL", rolle="lead")
         kern.agent_neu(self.con, self.pid, "CC1", rolle="bauer")
         kern.agent_neu(self.con, self.pid, "CC2", rolle="pruefer")
-        self.f1 = kern.frage_neu(self.con, self.pid, "CC1", "entwickler", "Erste?", [("A", "ja"), ("B", "nein")], "A", "g")
-        self.f2 = kern.frage_neu(self.con, self.pid, "CC1", "entwickler", "Zweite?", [("A", "ja")], "A", "g")
+        self.f1 = kern.frage_neu(self.con, self.pid, "CC1", "entwickler", "Erste?", [("A", "ja"), ("B", "nein")], "A", "g", geprueft="keine Treffer")
+        self.f2 = kern.frage_neu(self.con, self.pid, "CC1", "entwickler", "Zweite?", [("A", "ja")], "A", "g", geprueft="keine Treffer")
 
     def tearDown(self):
         self.con.close()
@@ -93,13 +93,16 @@ class Parken(unittest.TestCase):
         self.con = db.verbinde(self.pfad)
 
     def test_umstellung_der_alten_geparkt_fragen(self):
-        alt = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "GEPARKT (B12): Altes Thema", [("A", "ja")], "A", "g")
+        alt = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "GEPARKT (B12): Altes Thema", [("A", "ja")], "A", "g", geprueft="keine Treffer")
         with db.schreiben(self.con):
             self.con.execute("UPDATE frage SET status = 'beantwortet' WHERE id = ?", (self.f2,))
             self.con.execute("UPDATE frage SET kurz = 'GEPARKT erledigt' WHERE id = ?", (self.f2,))
         for sp in ("geparkt_utc", "geparkt_von"):
             self.con.execute(f"ALTER TABLE frage DROP COLUMN {sp}")
-        self.con.execute("DROP TABLE schirm")                             # Schema 9 kannte den Schirm-Schalter (11) nicht
+        self.con.execute("DROP TABLE schirm")
+        self.con.execute("DROP TABLE wartegrund")                         # … und keine Wartegründe (12)
+        self.con.execute("ALTER TABLE frage DROP COLUMN geprueft")
+        self.con.execute("ALTER TABLE agent DROP COLUMN alias")                             # Schema 9 kannte den Schirm-Schalter (11) nicht
         self.con.execute("PRAGMA user_version = 9")
         self.con.close()
         self.con = db.verbinde(self.pfad)

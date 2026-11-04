@@ -249,7 +249,7 @@ class Varianten(Grund):
     def test_anhang_je_option_in_der_frage(self):
         alt = dokumente.ablegen(self.con, self.pid, "CC1", self.datei("b.png", PNG[:900]), "Entwurf B", "bild")
         args = ["frage", "neu", "--an", "entwickler", "--kurz", "Welche Leiste?", "--option", "A=oben", "--option", "B=unten",
-                "--empfehlung", "A", "--grund", "kürzer", "--anhang", f"A={self.datei('a.png', PNG[:800])}", "--anhang", f"B=D{alt}",
+                "--empfehlung", "A", "--grund", "kürzer", "--geprueft", "keine Treffer", "--anhang", f"A={self.datei('a.png', PNG[:800])}", "--anhang", f"B=D{alt}",
                 "--von", "CC1"]
         self.assertEqual(cli.main(args), 0)
         f = workbench.daten_fragen(self.con, self.pid)[0]

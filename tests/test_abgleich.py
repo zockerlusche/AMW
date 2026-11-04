@@ -46,13 +46,13 @@ class Abgleich(unittest.TestCase):
         time.sleep(1.1)
         s2 = abgleich.ansichten(self.con, self.pid)
         self.assertEqual([w for w in s1 if abgleich._pruef(s1[w]) != abgleich._pruef(s2[w])], [])
-        kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Neu?", [("A", "a")], "A", "weil")
+        kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Neu?", [("A", "a")], "A", "weil", geprueft="keine Treffer")
         self.assertGreaterEqual(self.ab.hochladen(), 2)          # Start (Zähler) und Fragen
         fragen = json.loads(self.online_zeilen("SELECT inhalt FROM ansicht WHERE weg = '/api/fragen'")[0][0])
         self.assertEqual(fragen[0]["kurz"], "Neu?")
 
     def test_briefkasten_wirkt_einmal_und_meldet_zurueck(self):
-        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Probe?", [("A", "ja"), ("B", "nein")], "A", "weil")
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Probe?", [("A", "ja"), ("B", "nein")], "A", "weil", geprueft="keine Treffer")
         self.einwerfen(f"/api/frage/{fid}/antwort", {"art": "option", "wert": "B"})
         self.einwerfen("/api/nachricht", {"an": "CC1", "art": "stopp", "kurz": "x"})
         self.einwerfen("/api/halt", {"fuer": "alle", "text": "von unterwegs"})
@@ -87,7 +87,7 @@ class Abgleich(unittest.TestCase):
 
     def test_suchindex_gepackt_und_vollstaendig(self):
         import base64, zlib
-        kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Brückenfrage?", [("A", "a")], "A", "weil")
+        kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Brückenfrage?", [("A", "a")], "A", "weil", geprueft="keine Treffer")
         x = abgleich.suchindex(self.con, self.pid)
         eintraege = json.loads(zlib.decompress(base64.b64decode(x["gepackt"])))
         self.assertEqual(x["anzahl"], len(eintraege))

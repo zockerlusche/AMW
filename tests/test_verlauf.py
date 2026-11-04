@@ -48,7 +48,7 @@ class Verlauf(Grund):
         kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "bitte bauen")
         a = kern.aufgabe_neu(self.con, self.pid, "TL", "Bauen", "CC1")
         kern.aufgabe_status(self.con, self.pid, "CC1", a, "fertig", beleg="abc")
-        kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Wie?", [("A", "so")], "A", "weil")
+        kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Wie?", [("A", "so")], "A", "weil", geprueft="keine Treffer")
         planung.bogen_status(self.con, self.pid, "TL", self.bid, "aktiv")
         alle = verlauf.verlauf(self.con, self.pid, ab)
         arten = {x["art"] for x in alle}
@@ -79,7 +79,7 @@ class Verlauf(Grund):
         for t in ("Eins", "Zwei"):
             a = kern.aufgabe_neu(self.con, self.pid, "TL", t, "CC1")
             kern.aufgabe_status(self.con, self.pid, "CC1", a, "fertig", beleg="abc")
-        kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Wie?", [("A", "so")], "A", "weil")
+        kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Wie?", [("A", "so")], "A", "weil", geprueft="keine Treffer")
         d = verlauf.seit_daten(self.con, self.pid)
         for grenze in (ab, "2000-01-01T00:00:00Z", "2999-01-01T00:00:00Z"):
             pc = verlauf.zusammenfassung(self.con, self.pid, grenze)

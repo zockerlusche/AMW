@@ -43,6 +43,7 @@ CREATE TABLE agent (
   rechte           TEXT,                         -- vorgabe | auto | umgehen
   fernsteuerung    INTEGER NOT NULL DEFAULT 1,
   neustart_auto    INTEGER NOT NULL DEFAULT 0,
+  alias            TEXT,                         -- frühere Kennungen nach dem Umbenennen (Schema 12)
   angelegt_utc     TEXT NOT NULL,
   uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft         TEXT NOT NULL DEFAULT '',
@@ -286,10 +287,29 @@ CREATE TABLE frage (
   antwort_kanal  TEXT,                            -- seite, chat, cli
   geparkt_utc    TEXT,                            -- geparkt: offen, aber nicht in der offenen Liste (Schema 10)
   geparkt_von    TEXT,
+  geprueft       TEXT,                            -- was vorher in der Datenbank geprüft wurde (B2422, Schema 12)
   uid            TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft       TEXT NOT NULL DEFAULT '',
   geaendert_utc  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
+
+-- Worauf eine Aufgabe wartet (B2419 L1, Schema 12): je Grund eine Zeile, erledigt_utc gesetzt = Grund weg.
+CREATE TABLE wartegrund (
+  id            INTEGER PRIMARY KEY,
+  projekt_id    INTEGER NOT NULL REFERENCES projekt(id),
+  aufgabe_id    INTEGER NOT NULL REFERENCES aufgabe(id),
+  art           TEXT NOT NULL CHECK (art IN ('frage', 'aufgabe', 'lauf', 'agent', 'entwickler', 'monitor')),
+  bezug         TEXT NOT NULL,                    -- F5148, A1240, L141, CC2, Entwickler, Monitor:<was>
+  angelegt_utc  TEXT NOT NULL,
+  angelegt_von  TEXT NOT NULL,
+  erledigt_utc  TEXT,
+  erledigt_durch TEXT,
+  uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft      TEXT NOT NULL DEFAULT '',
+  geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+CREATE INDEX wartegrund_offen ON wartegrund (projekt_id, art, bezug) WHERE erledigt_utc IS NULL;
+CREATE INDEX wartegrund_aufgabe ON wartegrund (aufgabe_id);
 
 CREATE TABLE wortlaut (
   id            INTEGER PRIMARY KEY,
@@ -617,6 +637,7 @@ CREATE TRIGGER pruefung_geaendert  AFTER UPDATE ON pruefung  BEGIN UPDATE pruefu
 CREATE TRIGGER sperre_geaendert    AFTER UPDATE ON sperre    BEGIN UPDATE sperre    SET geaendert_utc = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = NEW.id; END;
 CREATE TRIGGER release_geaendert   AFTER UPDATE ON release   BEGIN UPDATE release   SET geaendert_utc = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = NEW.id; END;
 CREATE TRIGGER notiz_geaendert     AFTER UPDATE ON notiz     BEGIN UPDATE notiz     SET geaendert_utc = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE projekt_id = NEW.projekt_id AND schluessel = NEW.schluessel; END;
+CREATE TRIGGER wartegrund_geaendert AFTER UPDATE ON wartegrund BEGIN UPDATE wartegrund SET geaendert_utc = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = NEW.id; END;
 CREATE TRIGGER anhang_geaendert    AFTER UPDATE ON anhang    BEGIN UPDATE anhang    SET geaendert_utc = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = NEW.id; END;
 
 -- Verlauf wird nie gelöscht, nur über Status geführt.
@@ -628,6 +649,7 @@ CREATE TRIGGER frage_nie_loeschen     BEFORE DELETE ON frage     BEGIN SELECT RA
 CREATE TRIGGER lauf_nie_loeschen      BEFORE DELETE ON lauf      BEGIN SELECT RAISE(ABORT, 'Verlauf: lauf wird nicht gelöscht'); END;
 CREATE TRIGGER pruefung_nie_loeschen  BEFORE DELETE ON pruefung  BEGIN SELECT RAISE(ABORT, 'Verlauf: pruefung wird nicht gelöscht'); END;
 CREATE TRIGGER release_nie_loeschen   BEFORE DELETE ON release   BEGIN SELECT RAISE(ABORT, 'Verlauf: release wird nicht gelöscht'); END;
+CREATE TRIGGER wartegrund_nie_loeschen BEFORE DELETE ON wartegrund BEGIN SELECT RAISE(ABORT, 'Verlauf: wartegrund wird nicht gelöscht'); END;
 CREATE TRIGGER schirm_nie_loeschen    BEFORE DELETE ON schirm    BEGIN SELECT RAISE(ABORT, 'Verlauf: schirm wird nicht gelöscht'); END;
 
 -- Wortlaut bleibt unverändert.
