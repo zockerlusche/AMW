@@ -296,9 +296,7 @@ FELDER = ("bogen_id", "kriterien", "schaetzung_h", "komplexitaet", "verantwortli
 
 
 def _bearbeiter(con, pid, x):
-    if x and x != MENSCH:
-        kern.agent_zeile(con, pid, x)
-    return x
+    return kern.bearbeiter(con, pid, x)
 
 
 def schritt_setzen(con, pid, von, aid=None, titel=None, nach=None, **werte):

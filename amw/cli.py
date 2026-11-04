@@ -212,6 +212,44 @@ def _listenzeile(x):
             + f" {x['titel'][:100]}" + (f"  ⇢ wartet auf {gr}" if gr else ""))
 
 
+def cmd_termin(a, con):
+    """Terminplaner: neu | liste | aendern | absagen | bereit | kurzliste."""
+    from . import termine
+    pid = _projekt(con, a)
+    if a.aktion == "neu":
+        if not a.am:
+            raise kern.AmwFehler("termin neu --titel … --art test|frist|schirm|sonstig --am \"2026-11-06 18:00\"")
+        tid = termine.neu(con, pid, _von(a), a.titel, a.art or "test", a.am, a.dauer, a.woechentlich, a.bis, a.vorlauf,
+                          a.bogen, a.notiz)
+        print(f"T{tid} angelegt")
+        a.aktion = "liste"
+    if a.aktion == "aendern":
+        termine.aendern(con, pid, _von(a), a.id, titel=a.titel, am=a.am, dauer_min=a.dauer, bis_datum=a.bis,
+                        vorlauf_h=a.vorlauf, bogen_id=a.bogen, notiz=a.notiz, woechentlich=True if a.woechentlich else None)
+        print(f"T{a.id} geändert")
+        return
+    if a.aktion == "absagen":
+        termine.absagen(con, pid, _von(a), a.id, a.am)
+        print(f"T{a.id} abgesagt" + (f" (nur {a.am})" if a.am else ""))
+        return
+    if a.aktion == "bereit":
+        nid = termine.bereit(con, pid, _von(a), a.id, a.text, a.am)
+        print(f"Testbuild für T{a.id} gemeldet (#{nid} an den Entwickler, mit Kurzliste)")
+        return
+    if a.aktion == "kurzliste":
+        print(termine.kurzliste(con, pid, a.id, a.am))
+        return
+    l = termine.vorkommen(con, pid, tage=a.tage)
+    for v in l:
+        print(f"T{v['termin_id']:<4} {termine.lokal(v['am_utc'])}  [{v['art']}] {v['titel']}"
+              + (" (wöchentlich)" if v["woechentlich"] else "")
+              + (f" · Testbuild fertig bis {termine.lokal(v['frist_utc'])}" if v.get("frist_utc") else "")
+              + (f" · Bogen {v['bogen_id']}: {v['ampel']}" if v.get("ampel") else "")
+              + (" · gemeldet" if v["bereit"] else ""))
+    if not l:
+        print(f"keine Termine in den nächsten {a.tage} Tagen")
+
+
 def cmd_liste(a, con):
     """Arbeitsliste je Agent (B2429): zeigen, ordnen, schieben."""
     from . import arbeitsliste
@@ -233,9 +271,10 @@ def cmd_liste(a, con):
         print(f"{len(p)} im Pool" if p else "Pool leer")
         return
     elif wer:
-        l = arbeitsliste.liste(con, pid, kern.agent_zeile(con, pid, wer)["kennung"])
+        l = arbeitsliste.liste(con, pid, kern.bearbeiter(con, pid, wer))
     else:
-        for g in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? ORDER BY id", (pid,)).fetchall():
+        for g in [{"kennung": kern.ENTWICKLER}] + con.execute("SELECT kennung FROM agent WHERE projekt_id = ? ORDER BY id",
+                                                                (pid,)).fetchall():
             l = arbeitsliste.liste(con, pid, g["kennung"])
             if l:
                 print(f"{g['kennung']} ({len(l)}):")
@@ -1524,6 +1563,24 @@ def parser():
     x.add_argument("--federfuehrend", help="aendern: wer diese Aufgabe führt (Lead/Entwickler; leer = weg)")
     x.add_argument("--pool", action="store_true", help="neu: in den Pool (noch in keiner Arbeitsliste)")
     x.set_defaults(f=cmd_aufgabe)
+
+    x = s.add_parser("termin", help="Terminplaner: neu --titel … --art test|frist|schirm|sonstig --am \"2026-11-06 18:00\""
+                                    " [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] | liste [--tage 21] | aendern N |"
+                                    " absagen N [--am …] | bereit N --text \"was testen\" | kurzliste N (Planen: Lead/Entwickler)")
+    x.add_argument("aktion", nargs="?", default="liste", choices=["neu", "liste", "aendern", "absagen", "bereit", "kurzliste"])
+    x.add_argument("id", type=nummer, nargs="?")
+    x.add_argument("--titel")
+    x.add_argument("--art", choices=["test", "frist", "schirm", "sonstig"])
+    x.add_argument("--am", help="Ortszeit: JJJJ-MM-TT HH:MM oder TT.MM. HH:MM (absagen/bereit: dieses Vorkommen)")
+    x.add_argument("--dauer", type=int, help="Minuten")
+    x.add_argument("--woechentlich", action="store_true")
+    x.add_argument("--bis", help="wöchentlich bis zu diesem Tag (JJJJ-MM-TT)")
+    x.add_argument("--vorlauf", type=float, help="test: Testbuild fertig so viele Stunden vorher (Vorgabe 4)")
+    x.add_argument("--bogen", type=nummer, help="Ampel: Prognose dieses Bogens gegen die Frist")
+    x.add_argument("--notiz")
+    x.add_argument("--text", help="bereit: was ist neu, was soll getestet werden")
+    x.add_argument("--tage", type=int, default=21)
+    x.set_defaults(f=cmd_termin)
 
     x = s.add_parser("liste", help="Arbeitsliste je Agent: liste [Agent|pool] | ordnen <Agent> A12 A15 … | schieben A15 --vor A12"
                                    " | --nach | --pos N | --oben | --unten (ordnen/schieben: Lead)")

@@ -80,6 +80,22 @@ unten ab, genau eine Aufgabe ist in Arbeit. Der Umfang darf groß sein.
 - **Fertig:** Ist eine Aufgabe fertig oder verworfen, weckt die AMW mit der nächsten startbaren Aufgabe der Liste. Die
   Leerlauf-Prüfung bleibt als Netz.
 
+## Terminplaner (seit 1.13.0)
+
+**Wozu:** Ein fester Rhythmus für die Tests des Entwicklers und eine gemeinsame Frist für alle Agenten.
+
+- `amw termin neu --titel … --art test|frist|schirm|sonstig --am "06.11. 18:00" [--woechentlich --bis 2026-12-31]
+  [--vorlauf 4] [--bogen N]` (Lead/Entwickler). Termine werden nie gelöscht: `termin absagen N` sagt die ganze Serie ab,
+  mit `--am …` nur ein Vorkommen.
+- Ein Testtermin setzt die Frist **„Testbuild fertig“** (Vorgabe 4 h vorher). Mit `--bogen` zeigt eine Ampel, ob die
+  Prognose des Bogens die Frist hält.
+- `amw termin bereit N --text "was ist neu, was testen"` meldet den Testbuild. Die AMW hängt die **Kurzliste** an (was
+  seit dem letzten Test fertig und gemergt wurde) und schickt alles an den Entwickler, Kopie an den Lead.
+- Ist die Frist erreicht und nichts gemeldet, bekommt der Lead einmal eine weckende Zeile. Der Entwickler bekommt 1 h vor
+  dem Test eine Push-Nachricht.
+- Sichtbar: Pflicht-Kontext („Nächster Testtermin …“), Startseite (Band „Nächster Test“), Planung › Termine. Online
+  genauso.
+
 ## Federführung (seit 1.11.0)
 
 Für einen Bogen oder eine Aufgabe kann ein Agent federführend sein (`amw bogen|aufgabe aendern N --federfuehrend X`).

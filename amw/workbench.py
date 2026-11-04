@@ -59,6 +59,14 @@ def gerade(con, pid, kennung, sitzung_taetigkeit=None):
     return None, None, None
 
 
+def _naechster_test(con, pid):
+    from . import termine
+    try:
+        return termine.naechster_test(con, pid)
+    except Exception:                    # Termine dürfen die Startseite nie verhindern
+        return None
+
+
 def daten_listen(con, pid):
     """Arbeitslisten je Agent in Reihenfolge und der Pool (Workbench › Aufgaben › Listen, auch online)."""
     from . import arbeitsliste
@@ -69,6 +77,10 @@ def daten_listen(con, pid):
             agenten.append({"kennung": g["kennung"], "rolle": g["rolle"],
                             "liste": [{k: x[k] for k in ("id", "pos", "titel", "status", "gruende", "wartet_auf", "rang")} for x in l]})
     agenten.sort(key=lambda a: (a["rolle"] != "lead", (a["rolle"] or "~").casefold()))
+    eigene = arbeitsliste.liste(con, pid, kern.ENTWICKLER)          # „Deine Aufgaben“ – die Liste des Entwicklers zuerst
+    if eigene:
+        agenten.insert(0, {"kennung": kern.ENTWICKLER, "rolle": "entwickler", "name": kern.entwickler_name(con, pid),
+                           "liste": [{k: x[k] for k in ("id", "pos", "titel", "status", "gruende", "wartet_auf", "rang")} for x in eigene]})
     return {"agenten": agenten, "pool": [{k: x[k] for k in ("id", "titel", "status", "agent", "einstufung")}
                                           for x in arbeitsliste.pool(con, pid)]}
 
@@ -147,6 +159,7 @@ def daten_start(con, pid):
                                       " AND status IN ('laeuft', 'angemeldet') ORDER BY id", (pid,)))
     return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
+            "naechster_test": _naechster_test(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 
@@ -156,6 +169,8 @@ def daten_planung(con, pid):
     from . import planung, verlauf
     prog = planung.prognose(con, pid, laeufe=600)
     boegen = planung.boegen(con, pid)
+    from . import termine
+    termin_liste = termine.vorkommen(con, pid, tage=28, mit_vergangenen_h=24)
     for b in boegen:
         b["prognose"] = prog["boegen"].get(b["id"])
         b["specs"] = {s["teil"]: {k: s[k] for k in ("status", "version", "kommentar", "text", "geaendert_utc", "geschrieben_von")}
@@ -181,7 +196,7 @@ def daten_planung(con, pid):
                                          " AND bezug_id = ? AND status = 'aktuell'", (pid, s["id"])).fetchone()[0]
         b["beginn_ist"] = (con.execute("SELECT min(coalesce(begonnen_utc, fertig_utc)) FROM aufgabe WHERE bogen_id = ?"
                                        " AND status != 'verworfen'", (b["id"],)).fetchone()[0] or "")[:10] or None   # Übersicht
-    return {"leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
+    return {"termine": termin_liste, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
             "pruefung": planung.pruefen(con, pid, prog, mit_akzeptierten=True), "status": planung.status(con, pid, prog),
             "check_texte": {k: {"wer": v[1], "ziel": v[2], **v[3]} for k, v in planung.CHECKS.items()}, "lead": kern.lead(con, pid),
             "wartet": planung.freigaben_offen(con, pid), "heute": datetime.date.today().isoformat(),   # lokales Datum für die Heute-Linie

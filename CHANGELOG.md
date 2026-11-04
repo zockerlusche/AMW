@@ -4,6 +4,23 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.13.0 – 05.11.2026 · Terminplaner
+Testtermine des Entwicklers im festen Rhythmus, davor die Frist „Testbuild fertig“ für alle (→ `doc/automatismen.md`).
+Schema 15.
+- **`amw termin neu --titel … --art test|frist|schirm|sonstig --am "06.11. 18:00" [--woechentlich] [--bogen N]`**,
+  `termin liste`, `aendern`, `absagen` (ganz oder ein Vorkommen). Planen dürfen Lead und Entwickler, auch über die
+  Brücke.
+- **Frist und Ampel:** Ein Testtermin setzt „Testbuild fertig“ 4 h vorher (`--vorlauf`). Ist ein Bogen verknüpft,
+  vergleicht die Ampel seine Prognose mit der Frist.
+- **`amw termin bereit N --text "was testen"`:** Meldung an den Entwickler mit der Kurzliste der Aufgaben und Merges, die
+  seit dem letzten Test fertig wurden.
+- **Erinnern:** Frist ohne Meldung weckt einmal den Lead. 1 h vor dem Test bekommt der Entwickler eine Push-Nachricht
+  (neues Push-Ereignis „Termine“).
+- **Sichtbar:** Band „Nächster Test“ auf der Startseite, Planung › Termine nach Tagen, Pflicht-Kontext.
+- **Aufgaben des Entwicklers:** `aufgabe neu --agent Entwickler` (oder sein eingestellter Name) geht wieder. Seine
+  Aufgaben stehen in seiner eigenen Arbeitsliste (`amw liste Entwickler`, `liste ordnen Entwickler …`). Unter
+  Aufgaben › Listen steht sie als „Deine Aufgaben“ ganz vorn.
+
 ## 1.12.1 – 04.11.2026 · Arbeitsliste auch über die Brücke
 - Die Brücke des Leads nimmt jetzt `liste` an (ordnen, schieben, ansehen), dazu `suche` und `zeige`.
 

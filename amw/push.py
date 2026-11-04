@@ -26,6 +26,7 @@ EREIGNISSE = {                       # Art → (Vorgabe an, Priorität 1–5, Ü
     "halt": (True, 5, "Halt"),
     "freigabe": (True, 4, "Freigaben für dich"),
     "rueckblick": (True, 2, "Rückblicke"),
+    "termin": (True, 4, "Termine"),
 }
 ANBIETER = ("ntfy", "pushover", "telegram")
 WIEDERHOLEN_NACH_S = (0, 30, 120)   # 1., 2., 3. Versuch
@@ -280,6 +281,12 @@ def ereignisse(con, pid, cfg, jetzt=None):
     """Alles, was gemeldet werden soll, mit eindeutigem Schlüssel (nur Neues seit dem Einschalten)."""
     seit = cfg.get("seit_utc") or db.jetzt()
     aus = []
+    from . import termine                              # Testtermin in höchstens 1 h (nur Metadaten: Titel, Uhrzeit)
+    for v in termine.vorkommen(con, pid, tage=1):
+        if v["art"] == "test" and termine._dt(v["am_utc"]).timestamp() - time.time() <= termine.VORHER_MIN * 60:
+            aus.append(("termin", f"termin:{v['termin_id']}:{v['am_utc']}:vorher", f"Testtermin {termine.lokal(v['am_utc'], False)}",
+                        f"T{v['termin_id']} {v['titel'][:60]}" + (" · Testbuild gemeldet" if v["bereit"] else " · Testbuild noch nicht gemeldet"),
+                        "planung"))
     for f in con.execute("SELECT id, von, zeit_utc FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
                          " AND geparkt_utc IS NULL AND zeit_utc >= ?", (pid, seit)):
         aus.append(("frage", f"frage:{f['id']}", f"Neue Frage F{f['id']}", f"von {f['von']}", "fragen"))

@@ -104,6 +104,8 @@ class Parken(unittest.TestCase):
         self.con.execute("ALTER TABLE frage DROP COLUMN geprueft")
         self.con.execute("ALTER TABLE agent DROP COLUMN alias")                             # Schema 9 kannte den Schirm-Schalter (11) nicht
         self.con.execute("ALTER TABLE sitzung DROP COLUMN taetigkeit_utc")         # … und kein Alter der Tätigkeit (13)
+        for t in ("termin_meldung", "termin"):                                  # … und keine Termine (15)
+            self.con.execute(f"DROP TABLE {t}")
         for t in ("bogen", "aufgabe"):                                          # … und keine Federführung (14)
             self.con.execute(f"ALTER TABLE {t} DROP COLUMN federfuehrend")
         self.con.execute("PRAGMA user_version = 9")

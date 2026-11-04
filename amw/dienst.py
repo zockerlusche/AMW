@@ -196,6 +196,13 @@ class Dienst:
                 log.info("Leerlauf: %s", e)
         except Exception as e:
             log.warning("Leerlauf: %s: %s", type(e).__name__, e)
+        try:                                                                 # Testbuild-Frist ohne Meldung → Lead
+            from . import termine
+            for p in self.con.execute("SELECT id FROM projekt").fetchall():
+                for e in termine.runde(self.con, p["id"]):
+                    log.info("Termin: %s", e)
+        except Exception as e:
+            log.warning("Termin: %s: %s", type(e).__name__, e)
         try:                                                                 # liegt beim Federführenden → Lead
             for p in self.con.execute("SELECT id FROM projekt").fetchall():
                 for nid in kern.eskalieren(self.con, p["id"]):

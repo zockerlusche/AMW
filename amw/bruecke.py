@@ -34,7 +34,7 @@ VON = "TL"
 ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "lauf", "pruefung", "taetigkeit",
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
            "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf", "dokument",
-           "schirm", "liste", "suche", "zeige"}   # Freigaben: nur der Mensch (Schirm frei: der Lead auf das Wort des Entwicklers)
+           "schirm", "liste", "suche", "zeige", "termin"}   # Freigaben: nur der Mensch (Schirm frei: der Lead auf das Wort des Entwicklers)
 
 
 def lese_kopie(quelle=None, ziel=None):

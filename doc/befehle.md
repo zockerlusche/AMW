@@ -12,6 +12,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
 | [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N [--kurz] ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] ¦ nachtrag N --titel … (Folgearbeit zu einer fertigen Aufgabe) |
+| [`termin`](#termin) | Terminplaner: neu --titel … --art test¦frist¦schirm¦sonstig --am "2026-11-06 18:00" [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] ¦ liste [--tage 21] ¦ aendern N ¦ absagen N [--am …] ¦ bereit N --text "was testen" ¦ kurzliste N (Planen: Lead/Entwickler) |
 | [`liste`](#liste) | Arbeitsliste je Agent: liste [Agent¦pool] ¦ ordnen <Agent> A12 A15 … ¦ schieben A15 --vor A12 ¦ --nach ¦ --pos N ¦ --oben ¦ --unten (ordnen/schieben: Lead) |
 | [`frage`](#frage) | Fragen an den Entwickler oder Lead: neu ¦ liste [--geparkt] ¦ antworten ¦ nachtrag ¦ verlauf ¦ parken N [--grund] ¦ aufnehmen N |
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
@@ -259,6 +260,37 @@ options:
                         aendern: wer diese Aufgabe führt (Lead/Entwickler;
                         leer = weg)
   --pool                neu: in den Pool (noch in keiner Arbeitsliste)
+  --von VON
+  --projekt PROJEKT
+```
+
+## termin
+```
+usage: amw termin [-h] [--titel TITEL] [--art {test,frist,schirm,sonstig}]
+                  [--am AM] [--dauer DAUER] [--woechentlich] [--bis BIS]
+                  [--vorlauf VORLAUF] [--bogen BOGEN] [--notiz NOTIZ]
+                  [--text TEXT] [--tage TAGE] [--von VON] [--projekt PROJEKT]
+                  [{neu,liste,aendern,absagen,bereit,kurzliste}] [id]
+
+positional arguments:
+  {neu,liste,aendern,absagen,bereit,kurzliste}
+  id
+
+options:
+  -h, --help            show this help message and exit
+  --titel TITEL
+  --art {test,frist,schirm,sonstig}
+  --am AM               Ortszeit: JJJJ-MM-TT HH:MM oder TT.MM. HH:MM
+                        (absagen/bereit: dieses Vorkommen)
+  --dauer DAUER         Minuten
+  --woechentlich
+  --bis BIS             wöchentlich bis zu diesem Tag (JJJJ-MM-TT)
+  --vorlauf VORLAUF     test: Testbuild fertig so viele Stunden vorher
+                        (Vorgabe 4)
+  --bogen BOGEN         Ampel: Prognose dieses Bogens gegen die Frist
+  --notiz NOTIZ
+  --text TEXT           bereit: was ist neu, was soll getestet werden
+  --tage TAGE
   --von VON
   --projekt PROJEKT
 ```

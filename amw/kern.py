@@ -561,10 +561,20 @@ def erledigt_infos(con, pid, kennung, vor=None):
 
 # --- Aufgaben ------------------------------------------------------------------------------------
 
+def bearbeiter(con, pid, x):
+    """Kennung eines Bearbeiters: ein Agent (frühere Kennung → heutige) oder der Entwickler („Entwickler“ bzw. sein
+    eingestellter Name) – dessen eigene Aufgaben stehen in seiner Liste wie die eines Agenten."""
+    if not x:
+        return x
+    if x.strip().lower() in (ENTWICKLER.lower(), entwickler_name(con, pid).lower()):
+        return ENTWICKLER
+    return agent_zeile(con, pid, x)["kennung"]
+
+
 def aufgabe_neu(con, pid, von, titel, agent=None, auftrag=None, rang=50, pruefer=None, abhaengig_von=None):
     with db.schreiben(con):
         if agent:
-            agent_zeile(con, pid, agent)
+            agent = bearbeiter(con, pid, agent)
         return db.einfuegen(con, "aufgabe", projekt_id=pid, titel=titel, auftrag=auftrag, agent=agent,
                             pruefer=pruefer, angelegt_von=von, rang=rang, abhaengig_von=abhaengig_von,
                             angelegt_utc=db.jetzt())
@@ -881,6 +891,10 @@ def kontext(con, pid, kennung):
         g = ", ".join(r["bezug"] for r in wartegrund.offene(con, x["id"]))
         t = "; ".join(v for v in (g, x["wartet_auf"]) if v)
         return f" (wartet auf {t})" if t else ""
+    from . import termine
+    tz = termine.kontext_zeile(con, pid)
+    if tz:
+        z.append(tz)
     boegen, gefuehrt = fuehrt(con, pid, kennung)
     if boegen or gefuehrt:
         z.append("Du führst (federführend – Prüfergebnisse, Merge-Bitten, Fragen dazu kommen zu dir): " + "; ".join(

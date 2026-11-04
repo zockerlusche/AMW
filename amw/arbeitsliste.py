@@ -54,7 +54,7 @@ def ordnen(con, pid, von, agent, ids):
     ihm zugeteilt), der Rest seiner Liste folgt dahinter in bisheriger Reihenfolge."""
     if not kern.ist_lead(con, pid, von):
         raise kern.AmwFehler("Listen ordnen dürfen nur Lead und Entwickler")
-    agent = kern.agent_zeile(con, pid, agent)["kennung"]
+    agent = kern.bearbeiter(con, pid, agent)
     if len(set(ids)) != len(ids):
         raise kern.AmwFehler("eine Aufgabe doppelt genannt")
     with db.schreiben(con):

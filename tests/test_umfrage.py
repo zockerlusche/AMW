@@ -429,6 +429,17 @@ class Arbeitsliste(Grund):
         post = [r["kurz"] for r in kern.offene(self.con, self.pid, "CC1")]
         self.assertTrue(any(f"weiter in deiner Liste: A{self.b} (Pos 1/2)" in x for x in post), post)
 
+    def test_liste_des_entwicklers(self):
+        kern.projekt_einstellen(self.con, self.pid, "TL", entwickler_name="Chris")
+        e1 = kern.aufgabe_neu(self.con, self.pid, "TL", "Variante wählen", agent="Entwickler")
+        e2 = kern.aufgabe_neu(self.con, self.pid, "TL", "Ä1 testen", agent="Chris")             # sein Name geht auch
+        self.assertEqual(self.ids(kern.ENTWICKLER), [e1, e2])
+        self.al.ordnen(self.con, self.pid, "TL", "Entwickler", [e2])
+        self.assertEqual(self.ids(kern.ENTWICKLER), [e2, e1])
+        from amw import workbench
+        d = workbench.daten_listen(self.con, self.pid)
+        self.assertEqual((d["agenten"][0]["kennung"], d["agenten"][0]["name"]), (kern.ENTWICKLER, "Chris"))
+
     def test_untere_starten_waehrend_obere_laeuft_warnt(self):
         kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
         h = []
@@ -436,6 +447,65 @@ class Arbeitsliste(Grund):
         self.assertTrue(any("genau eine in Arbeit" in x for x in h))
         self.assertTrue(any("zwei in Arbeit" in r["kurz"] for r in kern.offene(self.con, self.pid, "TL")))
         self.assertIn("Deine Liste (3", kern.kontext(self.con, self.pid, "CC1"))
+
+
+class Termine(Grund):
+    """Terminplaner (B2429): Testtermine, Frist „Testbuild fertig“, Ampel, Meldung „bereit“ mit Kurzliste."""
+
+    def setUp(self):
+        super().setUp()
+        from amw import termine
+        self.tm = termine
+        from datetime import datetime, timedelta
+        self.morgen = (datetime.now() + timedelta(days=1)).replace(hour=18, minute=0, second=0, microsecond=0)
+
+    def am(self, d):
+        return d.strftime("%Y-%m-%d %H:%M")
+
+    def test_woechentlich_frist_und_absagen(self):
+        from datetime import timedelta
+        with self.assertRaises(kern.AmwFehler):
+            self.tm.neu(self.con, self.pid, "CC1", "Test", "test", self.am(self.morgen))           # nur Lead/Entwickler
+        rc, aus = self.cli("--von", "TL", "termin", "neu", "--titel", "Entwickler testet", "--art", "test", "--am",
+                           self.am(self.morgen), "--woechentlich")
+        self.assertEqual(rc, 0, aus)
+        v = self.tm.vorkommen(self.con, self.pid, tage=21)
+        self.assertEqual(len(v), 3)                                                      # 3 Wochen
+        self.assertEqual(self.tm._dt(v[1]["am_utc"]).astimezone().strftime("%H:%M"), "18:00")
+        self.assertEqual(self.tm._dt(v[0]["frist_utc"]).astimezone().strftime("%H:%M"), "14:00")   # 4 h Vorlauf
+        self.tm.absagen(self.con, self.pid, "TL", 1, am=self.am(self.morgen + timedelta(weeks=1)))
+        self.assertEqual(len(self.tm.vorkommen(self.con, self.pid, tage=21)), 2)
+        self.assertIn("Nächster Testtermin T1", kern.kontext(self.con, self.pid, "CC1"))
+        self.tm.absagen(self.con, self.pid, "TL", 1)
+        self.assertEqual(self.tm.vorkommen(self.con, self.pid, tage=21), [])
+
+    def test_bereit_mit_kurzliste_an_den_entwickler(self):
+        tid = self.tm.neu(self.con, self.pid, "TL", "Entwickler testet", "test", self.am(self.morgen))
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "fertig", beleg="abc")
+        rc, aus = self.cli("--von", "CC3", "termin", "bereit", f"T{tid}", "--text", "Onboarding neu, bitte Opa-Auftrag testen")
+        self.assertEqual(rc, 0, aus)
+        m = kern.offene(self.con, self.pid, kern.ENTWICKLER)
+        self.assertTrue(any("Testbuild bereit" in r["kurz"] for r in m))
+        text = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'Testbuild bereit%'").fetchone()[0]
+        self.assertIn(f"A{self.a} (CC1) Onboarding prüfen", text)
+        self.assertIn("Opa-Auftrag", text)
+        rc, aus = self.cli("--von", "CC3", "termin", "bereit", f"T{tid}", "--text", "nochmal")
+        self.assertEqual(rc, 1)                                                          # nur einmal je Vorkommen
+
+    def test_frist_ohne_meldung_weckt_den_lead_einmal(self):
+        from datetime import datetime, timedelta, timezone
+        tid = self.tm.neu(self.con, self.pid, "TL", "Entwickler testet", "test", self.am(self.morgen))
+        frist = self.tm._dt(self.tm.vorkommen(self.con, self.pid)[0]["frist_utc"])
+        self.assertEqual(self.tm.runde(self.con, self.pid, jetzt=frist - timedelta(minutes=5)), [])
+        self.assertEqual(len(self.tm.runde(self.con, self.pid, jetzt=frist + timedelta(minutes=5))), 1)
+        self.assertEqual(self.tm.runde(self.con, self.pid, jetzt=frist + timedelta(minutes=10)), [])
+        self.assertTrue(any(f"Frist T{tid}" in r["kurz"] for r in kern.offene(self.con, self.pid, "TL")))
+
+    def test_zeit_lesen(self):
+        self.assertTrue(self.tm.zeit_lesen("06.11. 18:00").endswith("Z"))
+        with self.assertRaises(kern.AmwFehler):
+            self.tm.zeit_lesen("morgen")
 
 
 class Pfade(unittest.TestCase):

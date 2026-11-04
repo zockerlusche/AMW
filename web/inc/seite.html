@@ -392,6 +392,10 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .push-gruppe h4 { font: 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--leise); margin: 4px 0; }
 .rot-text { color: var(--rot); } .bernstein-text { color: var(--bernstein); }
 .karte.aufgabe.in-arbeit { border-left: 3px solid var(--gruen); }
+.band-termin { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px 16px; margin: 0 0 16px;
+  border: 1px solid var(--linie); border-left: 3px solid var(--gruen); border-radius: 8px; background: var(--flaeche); }
+.band-termin.rot { border-left-color: var(--rot); } .band-termin > div { flex: 1; min-width: 200px; }
+.tm-tag { margin-bottom: 16px; } .tm-tag h4 { margin: 0 0 8px; } .tm-termin { padding: 10px 14px; margin-bottom: 8px; } .tm-termin.vorbei { opacity: .6; }
 .kachel .zustand { flex-wrap: wrap; row-gap: 2px; }
 .sprung { display: flex; gap: 8px 14px; flex-wrap: wrap; margin: -6px 0 14px; font-size: 13px; }
 .sprung a { color: var(--leise); cursor: pointer; border-bottom: 1px dotted var(--linie2); }
@@ -786,7 +790,11 @@ const TEXTE = {
     n_planung: "Planung", n_planung_kurz: "Plan", pl_termin: "Termin", pl_risiko: "Risiko", pl_qualitaet: "Qualität", ampel_gruen: "grün",
     ampel_gelb: "gelb", ampel_rot: "rot", pl_freigaben: "{n} Freigabe(n) für dich", pl_spec_frei: "Bogen {b} „{x}“: {teil} (v{v}) freigeben",
     pl_plan_frei: "Plan A{a} „{x}“ von {ag} freigeben", pr_zeitleiste: "Zeitleiste", pr_leitbild: "Leitbild", pr_risiken: "Risiken",
-    pr_check: "Plan-Check", pr_protokoll: "Protokoll", pl_bogen_neu: "Neuer Bogen", pl_check_ok: "Keine Lücken gefunden.", st_fehler: "Fehler",
+    pr_check: "Plan-Check", pr_protokoll: "Protokoll", pr_termine: "Termine",
+    tm_naechster: "Nächster Test", tm_frist: "Testbuild fertig bis {x}", tm_ampel: "Bogen {b}: {a}", tm_bereit: "Testbuild gemeldet", tm_alle: "Termine",
+    tm_offen: "Testbuild noch nicht gemeldet (amw termin bereit <T> --text …)", tm_leer: "Keine Termine in den nächsten 4 Wochen.", tm_woechentlich: "wöchentlich",
+    tm_erkl: "Testtermine des Entwicklers setzen die Frist „Testbuild fertig“ für alle; die Ampel vergleicht die Prognose des verknüpften Bogens. Anlegen: amw termin neu --titel … --art test --am \"06.11. 18:00\" [--woechentlich] [--bogen N] (Lead/Entwickler).",
+    tm_art_test: "Test", tm_art_frist: "Frist", tm_art_schirm: "Schirm", tm_art_sonstig: "Termin", pl_bogen_neu: "Neuer Bogen", pl_check_ok: "Keine Lücken gefunden.", st_fehler: "Fehler",
     st_warnung: "Warnung", st_hinweis: "Hinweis",
     ck_erklaerung: "Der Plan-Check sucht Lücken, die später Zeit oder Nacharbeit kosten. Jeder Befund sagt, was er bedeutet, was zu tun ist und wer es tut.",
     ck_legende: "Fehler: so ist der Plan nicht belastbar – zuerst beheben. Warnung: schwächt Termin, Prognose oder Abnahme. Hinweis: Ordnung, kann warten. Warnungen und Hinweise kannst du mit Grund bewusst akzeptieren – sie zählen dann nicht mehr und lassen sich jederzeit wieder prüfen.",
@@ -813,7 +821,7 @@ const TEXTE = {
     pl_abschliessen_frage: "Ist das Abnahmekriterium erfüllt?\n{x}", bearbeiten: "Bearbeiten", pl_ziel: "Ziel", pl_abnahme: "Abnahme",
     pl_fehlt: "fehlt – ohne prüfbares Kriterium ist ein Bogen nie wirklich fertig", pl_fortschritt: "{f}/{g} fertig", pl_laeuft: "{n} läuft",
     t_listen: "Listen", li_erkl: "Je Agent seine Arbeitsliste von oben nach unten – genau eine in Arbeit. Wartet sie, darf er die nächste nehmen; wird eine obere frei, weckt ihn die AMW. Ordnen: amw liste ordnen <Agent> A12 A15 … (Lead).",
-    li_in_arbeit: "in Arbeit", li_pool: "Pool – noch in keiner Liste", li_pool_leer: "Pool leer", li_leer: "Noch keine Listen.", k_liste: "Liste {p}/{n}", k_liste_n: "Liste {n}",
+    li_in_arbeit: "in Arbeit", li_deine: "Deine Aufgaben ({x})", li_pool: "Pool – noch in keiner Liste", li_pool_leer: "Pool leer", li_leer: "Noch keine Listen.", k_liste: "Liste {p}/{n}", k_liste_n: "Liste {n}",
     pl_federfuehrend: "Federführend", k_fuehrt: "führt {x}", k_fuehrt_h: "federführend: Prüfergebnisse, Merge-Bitten und Fragen dazu gehen an diesen Agenten",
     pl_blockiert: "{n} blockiert", pl_zieldatum: "Zieldatum", pl_baseline: "Baseline", pl_prognose: "Prognose", teil_anforderungen: "Anforderungen",
     teil_entwurf: "Entwurf", teil_schritte: "Schritte", ss_entwurf: "in Arbeit", ss_vorgelegt: "zur Freigabe", ss_frei: "frei ✓", ss_zurueck: "zurück",
@@ -1005,7 +1013,11 @@ const TEXTE = {
     pr_startsatz: "First prompt", pr_startsatz_h: "first instruction of a new session (not when resuming)",
     n_planung: "Planning", n_planung_kurz: "Plan", pl_termin: "Schedule", pl_risiko: "Risk", pl_qualitaet: "Quality", ampel_gruen: "green",
     ampel_gelb: "amber", ampel_rot: "red", pl_freigaben: "{n} approval(s) for you", pl_spec_frei: "Arc {b} “{x}”: approve {teil} (v{v})",
-    pl_plan_frei: "Approve plan A{a} “{x}” by {ag}", pr_zeitleiste: "Timeline", pr_leitbild: "Charter", pr_risiken: "Risks", pr_check: "Plan check",
+    pl_plan_frei: "Approve plan A{a} “{x}” by {ag}", pr_zeitleiste: "Timeline", pr_leitbild: "Charter", pr_risiken: "Risks", pr_check: "Plan check", pr_termine: "Dates",
+    tm_naechster: "Next test", tm_frist: "test build ready by {x}", tm_ampel: "arc {b}: {a}", tm_bereit: "test build reported", tm_alle: "Dates",
+    tm_offen: "test build not reported yet (amw termin bereit <T> --text …)", tm_leer: "No dates in the next 4 weeks.", tm_woechentlich: "weekly",
+    tm_erkl: "The developer's test dates set the deadline “test build ready” for everyone; the light compares the linked arc's forecast. Create: amw termin neu --titel … --art test --am \"06.11. 18:00\" [--woechentlich] [--bogen N] (lead/developer).",
+    tm_art_test: "Test", tm_art_frist: "Deadline", tm_art_schirm: "Screen", tm_art_sonstig: "Date",
     pr_protokoll: "Log", pl_bogen_neu: "New arc", pl_check_ok: "No gaps found.", st_fehler: "Error", st_warnung: "Warning", st_hinweis: "Hint",
     ck_erklaerung: "The plan check looks for gaps that cost time or rework later. Each finding says what it means, what to do and who does it.",
     ck_legende: "Error: the plan is not reliable like this – fix first. Warning: weakens date, forecast or acceptance. Hint: housekeeping, can wait. You can deliberately accept warnings and hints with a reason – they no longer count and can be re-checked any time.",
@@ -1032,7 +1044,7 @@ const TEXTE = {
     pl_abschliessen_frage: "Is the acceptance criterion met?\n{x}", bearbeiten: "Edit", pl_ziel: "Goal", pl_abnahme: "Acceptance",
     pl_fehlt: "missing – without a checkable criterion an arc is never really done", pl_fortschritt: "{f}/{g} done", pl_laeuft: "{n} running",
     t_listen: "Lists", li_erkl: "Each agent's work list from top to bottom – exactly one in progress. If it waits, the next may start; when an upper one is free again, AMW wakes the agent. Order: amw liste ordnen <agent> A12 A15 … (lead).",
-    li_in_arbeit: "in progress", li_pool: "Pool – not in any list yet", li_pool_leer: "Pool empty", li_leer: "No lists yet.", k_liste: "List {p}/{n}", k_liste_n: "List {n}",
+    li_in_arbeit: "in progress", li_deine: "Your tasks ({x})", li_pool: "Pool – not in any list yet", li_pool_leer: "Pool empty", li_leer: "No lists yet.", k_liste: "List {p}/{n}", k_liste_n: "List {n}",
     pl_federfuehrend: "Lead agent", k_fuehrt: "leads {x}", k_fuehrt_h: "lead agent: review results, merge requests and questions go to this agent",
     pl_blockiert: "{n} blocked", pl_zieldatum: "Target", pl_baseline: "Baseline", pl_prognose: "Forecast", teil_anforderungen: "Requirements",
     teil_entwurf: "Design", teil_schritte: "Steps", ss_entwurf: "in progress", ss_vorgelegt: "for approval", ss_frei: "approved ✓", ss_zurueck: "returned",
@@ -1262,6 +1274,12 @@ async function sichtStart() {
         wartet.length ? t("schirm_wartet", { n: wartet.length }) : null].filter(Boolean).join(" · ")),
       el("button", { class: "knopf", type: "button", onclick: () => schirmDialog() }, t(sz.frei ? "schirm_zumachen" : "schirm_freigeben"))));
   }
+  const nt = d.naechster_test;                              /* Terminplaner: nächster Testtermin mit Frist und Ampel */
+  if (nt) m.append(el("div", { class: "band-termin" + (nt.ampel === "rot" ? " rot" : "") }, el("b", {}, t("tm_naechster").toUpperCase()),
+    el("div", {}, [`${tmZeit(nt.am_utc)} · ${nt.titel}`, nt.frist_utc ? t("tm_frist", { x: tmZeit(nt.frist_utc) }) : null,
+      nt.ampel ? t("tm_ampel", { b: nt.bogen_id, a: t("ampel_" + nt.ampel) }) : null,
+      nt.bereit ? t("tm_bereit") : null].filter(Boolean).join(" · ")),
+    el("button", { class: "klein-knopf", type: "button", onclick: () => { zustand.planReiter = "termine"; zeige("planung"); } }, t("tm_alle"))));
   if ((d.unangemeldet || []).length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("nicht_angemeldet")),
     el("div", {}, d.unangemeldet.map(u => `${u.kennung || "?"} · ${t("sitzung_pid", { s: u.sitzung, p: u.pid })} · ${u.ordner}`).join(" | ")),
     el("span", { class: "leise" }, t("nicht_angemeldet_h"))));
@@ -1713,7 +1731,7 @@ async function arbeitslisten(m, a) {
   m.append(el("p", { class: "leise", style: "margin:0 0 12px" }, t("li_erkl")));
   if (!agenten.length) m.append(el("div", { class: "leer" }, t("li_leer")));
   m.append(el("div", { class: "board listen" }, agenten.map(g => el("div", { class: "spalte" },
-    el("h4", {}, g.kennung, el("span", { class: "sehrleise mono" }, g.liste.length)),
+    el("h4", {}, g.rolle === "entwickler" ? t("li_deine", { x: g.name || g.kennung }) : g.kennung, el("span", { class: "sehrleise mono" }, g.liste.length)),
     g.liste.filter(passt).map(x => el("div", { class: "karte aufgabe" + (x.status === "laeuft" ? " in-arbeit" : "") },
       el("div", {}, el("span", { class: "mono sehrleise" }, `${x.pos}.`), " ", el("span", { class: "ref" }, `A${x.id}`),
         x.status === "laeuft" ? el("span", { class: "etikett gruen", style: "margin-left:6px" }, t("li_in_arbeit"))
@@ -2358,6 +2376,25 @@ function markdown(text) {
 /* --- Planung ------------------------------------------------------------------------------- */
 const datumKurz = x => x ? new Date(x + "T12:00:00").toLocaleDateString(gebiet(), { day: "2-digit", month: "2-digit" }) : "–";
 const ampelKlasse = a => a === "gruen" ? "gruen" : a === "gelb" ? "bernstein" : a === "rot" ? "rot" : "";
+const tmZeit = utc => new Date(utc).toLocaleString(gebiet(), { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+/* Terminplaner: Vorkommen nach Tagen; Testtermine mit Frist „Testbuild fertig“, Ampel des Bogens und Meldung „bereit“ */
+function termineAnsicht(l) {
+  if (!l.length) return el("div", {}, el("div", { class: "leer" }, t("tm_leer")), el("p", { class: "leise" }, t("tm_erkl")));
+  const tage = {};
+  for (const v of l) (tage[new Date(v.am_utc).toDateString()] ||= []).push(v);
+  return el("div", {}, el("p", { class: "leise", style: "margin:0 0 12px" }, t("tm_erkl")),
+    Object.values(tage).map(vs => el("div", { class: "tm-tag" },
+      el("h4", {}, new Date(vs[0].am_utc).toLocaleDateString(gebiet(), { weekday: "long", day: "2-digit", month: "2-digit" })),
+      vs.map(v => el("div", { class: "karte tm-termin" + (new Date(v.am_utc) < new Date() ? " vorbei" : "") },
+        el("div", {}, el("span", { class: "mono" }, new Date(v.am_utc).toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" })), " ",
+          el("span", { class: "etikett" }, t("tm_art_" + v.art)), " ", el("b", {}, v.titel), " ", el("span", { class: "ref" }, `T${v.termin_id}`),
+          v.woechentlich ? el("span", { class: "sehrleise" }, " · " + t("tm_woechentlich")) : null),
+        v.frist_utc ? el("div", { class: "leise", style: "margin-top:4px" }, t("tm_frist", { x: tmZeit(v.frist_utc) }),
+          v.ampel ? el("span", {}, " · ", el("span", { class: "punkt " + ampelKlasse(v.ampel) }), " ", t("tm_ampel", { b: v.bogen_id, a: t("ampel_" + v.ampel) })) : null) : null,
+        v.bereit ? el("div", { class: "gruen-text", style: "margin-top:4px;white-space:pre-wrap" }, "✓ " + t("tm_bereit") + " – " + (v.bereit.text || ""))
+          : v.art === "test" ? el("div", { class: "sehrleise", style: "margin-top:4px" }, t("tm_offen")) : null,
+        v.notiz ? el("div", { class: "sehrleise", style: "margin-top:4px" }, v.notiz) : null)))));
+}
 async function sichtPlanung() {
   let d; try { d = await holen("/api/planung"); } catch (e) { rahmen(t("n_planung")).append(el("div", { class: "leer" }, String(e))); return; }
   const r = zustand.planReiter || "zeitleiste";
@@ -2372,12 +2409,13 @@ async function sichtPlanung() {
     ...w.spezifikationen.map(s => el("div", {}, el("a", { class: "verweis", onclick: () => specDialog(d.boegen.find(b => b.id === s.bogen_id), s.teil) },
       t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })))),
     ...w.plaene.map(p => el("div", {}, el("a", { class: "verweis", onclick: () => planDialog(p) }, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" }))))));
-  const reiter = ["zeitleiste", "leitbild", "risiken", "check", "protokoll"], offeneBefunde = d.pruefung.filter(x => !x.akzeptiert).length;
+  const reiter = ["zeitleiste", "termine", "leitbild", "risiken", "check", "protokoll"], offeneBefunde = d.pruefung.filter(x => !x.akzeptiert).length;
   m.append(el("div", { class: "reiter" }, reiter.map(k => el("button", { class: k === r ? "an" : "", type: "button",
       onclick: () => { zustand.planReiter = k; sichtPlanung(); } }, t("pr_" + k) + (k === "check" && offeneBefunde ? ` (${offeneBefunde})` : "")
       + (k === "risiken" ? ` (${d.risiken.filter(x => x.status !== "erledigt").length})` : ""))),
     r === "zeitleiste" ? el("div", { class: "rechts" }, el("button", { class: "klein-knopf", type: "button", onclick: () => bogenDialog(null) }, t("pl_bogen_neu"))) : null));
   if (r === "zeitleiste") m.append(uebersicht(d) || "", zeitleiste(d));
+  if (r === "termine") m.append(termineAnsicht(d.termine || []));
   if (r === "leitbild") m.append(leitbildAnsicht(d.leitbild));
   if (r === "risiken") m.append(risikoAnsicht(d));
   if (r === "check") m.append(checkAnsicht(d));
