@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.12.1 – 04.11.2026 · Arbeitsliste auch über die Brücke
+- Die Brücke des Leads nimmt jetzt `liste` an (ordnen, schieben, ansehen), dazu `suche` und `zeige`.
+
 ## 1.12.0 – 04.11.2026 · Arbeitsliste je Agent
 Jeder Agent arbeitet eine geordnete Liste von oben nach unten ab, genau eine Aufgabe ist in Arbeit. Ohne Bremse: Der
 Umfang darf groß sein (→ `doc/automatismen.md`).
