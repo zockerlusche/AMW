@@ -697,6 +697,7 @@ const TEXTE = {
     an_dich: "Nachrichten an dich", antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_pruefbitte: "Prüfbitte", art_stopp: "Stopp", art_freigabe: "Freigabe",
     k_details: "Klicken: was macht er, was kommt noch", k_offen_h: "neue offene Nachrichten (dazu {n} Altbestand aus dem alten Bus)",
     k_gerade: "Gerade:", k_vermutet: "(aus letzter Meldung)", k_unbekannt: "Tätigkeit unbekannt", k_zuletzt: "Zuletzt",
+    k_wartet: "{a} wartet auf {x}", lead: "Lead",
     g_tab: "Gespräch", g_tab_uebersicht: "Übersicht", g_knopf_h: "Das Gespräch des Agenten mit Claude Code lesen (live)",
     g_claude: "In Claude öffnen ↗", g_claude_h: "Öffnet die laufende Sitzung auf claude.ai bzw. in der Claude-App – dort schreibst du direkt mit dem Agenten",
     g_kein_link_aus: "Fernsteuerung ist im Profil aus – eingeschaltet gibt es ab dem nächsten Start „In Claude öffnen“.",
@@ -907,6 +908,7 @@ const TEXTE = {
     an_dich: "Messages for you", antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_pruefbitte: "Review request", art_stopp: "Stop", art_freigabe: "Release",
     k_details: "Click: what is it doing, what is next", k_offen_h: "new open messages (plus {n} legacy from the old bus)",
     k_gerade: "Now:", k_vermutet: "(from last report)", k_unbekannt: "activity unknown", k_zuletzt: "Last",
+    k_wartet: "{a} waits for {x}", lead: "Lead",
     g_tab: "Conversation", g_tab_uebersicht: "Overview", g_knopf_h: "Read the agent's conversation with Claude Code (live)",
     g_claude: "Open in Claude ↗", g_claude_h: "Opens the running session on claude.ai or in the Claude app – write to the agent directly there",
     g_kein_link_aus: "Remote control is off in the profile – turn it on and “Open in Claude” is available from the next start.",
@@ -1299,7 +1301,7 @@ function kachel(a) {
   const kurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : x;
   const karte = el("div", { class: `karte kachel klickbar ${!lebt && soll ? "tot" : ""} ${!soll ? "aus" : ""}`, title: t("k_details") },
     a.offen ? el("span", { class: "offen", style: `color:var(${a.offen > 10 ? "--bernstein" : "--leise"})`, title: t("k_offen_h", { n: a.offen_alt || 0 }) }, t("offen_n", { n: a.offen })) : null,
-    el("div", { class: "name" }, a.kennung), el("div", { class: "rolle" }, a.rolle || t("agent")),
+    el("div", { class: "name" }, a.kennung), el("div", { class: "rolle" }, a.rolle === "lead" ? t("lead") : a.rolle || t("agent")),
     el("div", { class: "zustand" }, el("span", { class: "punkt " + zust[0] }), el("span", { class: zust[0] === "bernstein" ? "bernstein-text" : zust[0] === "rot" && lebt ? "rot-text" : "" }, zust[1]),
       dauer ? el("span", { class: "sehrleise", style: "font-size:11px" }, dauer) : null,
       lebt ? el("span", { class: "sehrleise mono", style: "margin-left:auto;font-size:11px;white-space:nowrap", title: t("puls", { t: seit(a.letzter_puls_utc) }) },
@@ -1308,6 +1310,7 @@ function kachel(a) {
       a.gerade ? el("div", {}, el("span", { class: "sehrleise" }, t("k_gerade") + " "), kurz(a.gerade, 90),
         a.gerade_quelle === "meldung" ? el("span", { class: "sehrleise" }, " " + t("k_vermutet")) : null)
         : el("span", { class: "sehrleise" }, soll ? t("k_unbekannt") : (a.grenzen || "")),
+      (a.wartet || []).map(w => el("div", { class: "bernstein-text", style: "margin-top:4px;font-size:12px" }, t("k_wartet", { a: `A${w.aufgabe}`, x: w.auf }))),
       a.zuletzt ? el("div", { class: "sehrleise", style: "margin-top:4px" }, `${t("k_zuletzt")} ${seit(a.zuletzt_utc)}: ${kurz(a.zuletzt, 70)}`) : null),
     lebt && (a.kontext_prozent != null || a.limit_5h != null) ? el("div", { class: "mini-balken" },
       a.kontext_prozent != null ? balken(t("b_kontext"), a.kontext_prozent) : null, a.limit_5h != null ? balken(t("b_5h"), a.limit_5h) : null) : null,
