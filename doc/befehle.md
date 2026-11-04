@@ -19,7 +19,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`kontext`](#kontext) | Pflicht-Kontext für einen Agenten |
 | [`regeln`](#regeln) | alle geltenden Regeln (Arbeits- und Projektregeln) |
 | [`suche`](#suche) | Volltext über Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten, Dokumente: amw suche Modem |
-| [`zeige`](#zeige) | Einträge ganz lesen: amw zeige B2420 F5148 A1238 W12 #16000 D5 KR3 PR42 |
+| [`zeige`](#zeige) | Einträge ganz lesen: amw zeige B2420 F5148 A1238 W12 16000 D5 KR3 PR42 (Nachricht ohne #: in der Shell beginnt mit # ein Kommentar) |
 | [`leitbild`](#leitbild) | Projektziel, Kennzahlen, Nicht-Ziele, Prinzipien, Definition of Done: zeigen ¦ setzen |
 | [`bogen`](#bogen) | Meilensteine: liste ¦ neu ¦ zeigen N ¦ aendern N ¦ status N aktiv¦fertig¦geplant¦verworfen |
 | [`spec`](#spec) | Spezifikation je Bogen: zeigen N [teil] ¦ schreiben N teil --text/--datei ¦ vorlegen N teil ¦ frei N teil ¦ zurueck N teil --kommentar  (teil: anforderungen ¦ entwurf ¦ schritte) |

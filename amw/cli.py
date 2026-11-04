@@ -520,14 +520,14 @@ def cmd_suche(a, con):
         titel = " ".join((t["titel"] or "").split())
         print(f"{t['ref']:<7} {_zeit(t['zeit']) or '':<12} [{t['zusatz'] or ''}] {titel[:120]}")
     print(f"{len(treffer)} Treffer" + (f", die neuesten {a.grenze}" if len(treffer) > a.grenze else "")
-          + (" – ganz lesen: amw zeige <B…|F…|A…|W…|#…|D…|KR…|PR…>" if treffer else ""))
+          + (" – ganz lesen: amw zeige <B…|F…|A…|W…|D…|KR…|PR…|Nachricht-Nr. ohne #>" if treffer else ""))
     if a.wissen:                                        # dieselbe Prüfung wie vor einer Frage an den Entwickler (B2422)
         liste = wissen.treffer(con, pid, such)
         print("Passende Beschlüsse/Fragen/Regeln:\n" + (wissen.treffer_text(liste) if liste else "  keine"))
 
 
 def cmd_zeige(a, con):
-    """Ein Eintrag ganz, nach seiner Nummer: B12 Beschluss, F7 Frage, A1201 Aufgabe, W3 Wortlaut, #16000 Nachricht,
+    """Ein Eintrag ganz, nach seiner Nummer: B12 Beschluss, F7 Frage, A1201 Aufgabe, W3 Wortlaut, 16000 (oder „#16000“ in Anführungszeichen) Nachricht,
     D5 Dokument (Angaben), KR3/PR42 Regel."""
     pid = _projekt(con, a)
     for ref in a.refs:
@@ -1276,7 +1276,7 @@ def parser():
     x.add_argument("--wissen", action="store_true", help="dazu: passende Beschlüsse/Fragen/Regeln wie bei frage neu")
     x.set_defaults(f=cmd_suche)
 
-    x = s.add_parser("zeige", help="Einträge ganz lesen: amw zeige B2420 F5148 A1238 W12 #16000 D5 KR3 PR42")
+    x = s.add_parser("zeige", help="Einträge ganz lesen: amw zeige B2420 F5148 A1238 W12 16000 D5 KR3 PR42 (Nachricht ohne #: in der Shell beginnt mit # ein Kommentar)")
     x.add_argument("refs", nargs="+")
     x.set_defaults(f=cmd_zeige)
 
