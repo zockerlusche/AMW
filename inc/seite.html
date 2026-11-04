@@ -395,6 +395,9 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .band-termin { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px 16px; margin: 0 0 16px;
   border: 1px solid var(--linie); border-left: 3px solid var(--gruen); border-radius: 8px; background: var(--flaeche); }
 .band-termin.rot { border-left-color: var(--rot); } .band-termin > div { flex: 1; min-width: 200px; }
+.themen-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.karte.thema { padding: 12px 14px; } .thema-seite h3 { margin: 18px 0 8px; }
+.thema-bilder { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; } .thema-bilder img { height: 120px; border-radius: 6px; cursor: zoom-in; border: 1px solid var(--linie); }
 .tm-tag { margin-bottom: 16px; } .tm-tag h4 { margin: 0 0 8px; } .tm-termin { padding: 10px 14px; margin-bottom: 8px; } .tm-termin.vorbei { opacity: .6; }
 .kachel .zustand { flex-wrap: wrap; row-gap: 2px; }
 .sprung { display: flex; gap: 8px 14px; flex-wrap: wrap; margin: -6px 0 14px; font-size: 13px; }
@@ -791,6 +794,10 @@ const TEXTE = {
     ampel_gelb: "gelb", ampel_rot: "rot", pl_freigaben: "{n} Freigabe(n) für dich", pl_spec_frei: "Bogen {b} „{x}“: {teil} (v{v}) freigeben",
     pl_plan_frei: "Plan A{a} „{x}“ von {ag} freigeben", pr_zeitleiste: "Zeitleiste", pr_leitbild: "Leitbild", pr_risiken: "Risiken",
     pr_check: "Plan-Check", pr_protokoll: "Protokoll", pr_termine: "Termine",
+    themen: "Themen ({n})", th_erkl: "Je System eine Seite „gilt jetzt“: die gepflegte Zusammenfassung und alle geltenden Beschlüsse des Themas. Ein neuer Beschluss macht die Zusammenfassung „veraltet“, bis der Pfleger sie anpasst oder bestätigt. Alte Beschlüsse werden „überholt“ statt liegen zu bleiben.",
+    th_veraltet: "veraltet seit B{b}", th_aktuell: "aktuell", th_ohne: "ohne Zusammenfassung", th_stil: "Projekt-Stil", th_zahlen: "{g} gelten · Pfleger {p}",
+    th_unklar: "{n} unklar", th_pfleger: "Pfleger: {p}", th_gilt_jetzt: "Gilt jetzt", th_fassung: "Fassung {n} · {v} · {x}",
+    th_keine_zf: "Noch keine Zusammenfassung – der Pfleger schreibt sie (amw thema pflegen …).", th_beschluesse: "Geltende Beschlüsse ({n})", th_ueberholt: "Überholt ({n})",
     tm_naechster: "Nächster Test", tm_frist: "Testbuild fertig bis {x}", tm_ampel: "Bogen {b}: {a}", tm_bereit: "Testbuild gemeldet", tm_alle: "Termine",
     tm_offen: "Testbuild noch nicht gemeldet (amw termin bereit <T> --text …)", tm_leer: "Keine Termine in den nächsten 4 Wochen.", tm_woechentlich: "wöchentlich",
     tm_erkl: "Testtermine des Entwicklers setzen die Frist „Testbuild fertig“ für alle; die Ampel vergleicht die Prognose des verknüpften Bogens. Anlegen: amw termin neu --titel … --art test --am \"06.11. 18:00\" [--woechentlich] [--bogen N] (Lead/Entwickler).",
@@ -1014,6 +1021,10 @@ const TEXTE = {
     n_planung: "Planning", n_planung_kurz: "Plan", pl_termin: "Schedule", pl_risiko: "Risk", pl_qualitaet: "Quality", ampel_gruen: "green",
     ampel_gelb: "amber", ampel_rot: "red", pl_freigaben: "{n} approval(s) for you", pl_spec_frei: "Arc {b} “{x}”: approve {teil} (v{v})",
     pl_plan_frei: "Approve plan A{a} “{x}” by {ag}", pr_zeitleiste: "Timeline", pr_leitbild: "Charter", pr_risiken: "Risks", pr_check: "Plan check", pr_termine: "Dates",
+    themen: "Topics ({n})", th_erkl: "One page per system “in force now”: the maintained summary plus all decisions in force for the topic. A new decision marks the summary “outdated” until the maintainer updates or confirms it. Old decisions are marked “superseded” instead of piling up.",
+    th_veraltet: "outdated since B{b}", th_aktuell: "current", th_ohne: "no summary", th_stil: "project style", th_zahlen: "{g} in force · maintainer {p}",
+    th_unklar: "{n} unclear", th_pfleger: "Maintainer: {p}", th_gilt_jetzt: "In force now", th_fassung: "version {n} · {v} · {x}",
+    th_keine_zf: "No summary yet – the maintainer writes it (amw thema pflegen …).", th_beschluesse: "Decisions in force ({n})", th_ueberholt: "Superseded ({n})",
     tm_naechster: "Next test", tm_frist: "test build ready by {x}", tm_ampel: "arc {b}: {a}", tm_bereit: "test build reported", tm_alle: "Dates",
     tm_offen: "test build not reported yet (amw termin bereit <T> --text …)", tm_leer: "No dates in the next 4 weeks.", tm_woechentlich: "weekly",
     tm_erkl: "The developer's test dates set the deadline “test build ready” for everyone; the light compares the linked arc's forecast. Create: amw termin neu --titel … --art test --am \"06.11. 18:00\" [--woechentlich] [--bogen N] (lead/developer).",
@@ -1777,13 +1788,52 @@ async function sichtArbeit() {
 }
 
 /* --- Wissen -------------------------------------------------------------------------------- */
+/* Themen: je System eine Seite „gilt jetzt“ – gepflegte Zusammenfassung + geltende Beschlüsse; Stil mit Bildern */
+function themenAnsicht(th, q) {
+  q = (q || "").toLowerCase();
+  const l = th.filter(x => !q || x.name.toLowerCase().includes(q)).sort((a, b) => (b.stil - a.stil) || (b.gilt - a.gilt));
+  const stand = x => x.stand === "veraltet" ? el("span", { class: "etikett bernstein" }, t("th_veraltet", { b: x.veraltet_seit }))
+    : x.stand === "aktuell" ? el("span", { class: "etikett gruen" }, t("th_aktuell")) : el("span", { class: "etikett" }, t("th_ohne"));
+  return el("div", {}, el("p", { class: "leise", style: "margin:0 0 12px" }, t("th_erkl")),
+    el("div", { class: "themen-raster" }, l.map(x => el("div", { class: "karte thema klickbar", onclick: () => themaDialog(x.id) },
+      el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `TH${x.id}`), x.stil ? el("span", { class: "etikett gruen" }, t("th_stil")) : null, stand(x)),
+      el("b", {}, x.name),
+      el("div", { class: "sehrleise", style: "margin-top:6px" }, t("th_zahlen", { g: x.gilt, p: x.pfleger || "–" })
+        + (x.unklar ? " · " + t("th_unklar", { n: x.unklar }) : ""))))));
+}
+async function themaDialog(id) {
+  let s; try { s = await holen("/api/thema?id=" + id); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
+  const z = s.zusammenfassung;
+  const bilder = s.dokumente.filter(d => d.vorschau === "bild" && (!API || d.online));
+  dialog(`TH${s.id} · ${s.name}`, el("div", { class: "thema-seite" },
+    el("div", { class: "sehrleise" }, (s.stil ? t("th_stil") + " · " : "") + t("th_pfleger", { p: s.pfleger || "–" })),
+    el("h3", {}, t("th_gilt_jetzt"), s.stand === "veraltet" ? el("span", { class: "etikett bernstein", style: "margin-left:8px" }, t("th_veraltet", { b: s.veraltet_seit })) : null),
+    z ? el("div", {}, el("div", { class: "sehrleise" }, t("th_fassung", { n: z.nr, v: z.von, x: zeit(z.zeit_utc) })), el("div", { class: "md" }, markdown(z.text)))
+      : el("div", { class: "leer" }, t("th_keine_zf")),
+    bilder.length ? el("div", { class: "thema-bilder" }, bilder.map((d, i) => el("img", { src: dokUrl(d.id), alt: d.titel, title: d.titel,
+      onclick: () => bildVollbild(bilder.map(b => ({ id: b.id, titel: b.titel })), i) }))) : null,
+    el("h3", {}, t("th_beschluesse", { n: s.gilt.length })),
+    s.gilt.map(b => el("div", { class: "karte wissen-eintrag" }, el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `B${b.id}`),
+      el("b", {}, b.stichwort), el("span", { class: "sehrleise" }, `${zeit(b.zeit_utc)} · ${b.quelle}`)), el("div", { class: "inhalt" }, b.regel))),
+    s.unklar.length ? el("p", { class: "bernstein-text" }, t("th_unklar", { n: s.unklar.length }) + ": " + s.unklar.map(b => `B${b.id}`).join(", ")) : null,
+    s.ueberholt.length ? el("details", {}, el("summary", {}, t("th_ueberholt", { n: s.ueberholt.length })),
+      s.ueberholt.map(b => el("div", { class: "sehrleise" }, `B${b.id} ${b.stichwort}` + (b.ersetzt_durch ? ` → B${b.ersetzt_durch}` : "")))) : null));
+}
 async function sichtWissen() {
   const m = rahmen(t("wissen"));
   const such = el("input", { placeholder: t("wissen_ph"), value: zustand.wissenQ, style: "width:300px;max-width:100%",
     onkeydown: e => { if (e.key === "Enter") { zustand.wissenQ = e.target.value; sichtWissen(); } } });
   let d; try { d = await holen("/api/wissen?q=" + encodeURIComponent(zustand.wissenQ)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   const r = zustand.wissenReiter;
-  m.append(el("div", { class: "reiter" }, [["beschluesse", d.beschluesse.length], ["regeln", d.regeln.length], ["wortlaut", d.wortlaut.length],
+  if (r === "themen") {                                      /* Design-Dokument je Thema */
+    let th; try { th = await holen("/api/themen"); } catch (e) { th = []; }
+    m.append(el("div", { class: "reiter" }, [["themen", th.length], ["beschluesse", d.beschluesse.length], ["regeln", d.regeln.length],
+      ["wortlaut", d.wortlaut.length], ["notizen", (d.notizen || []).length]]
+      .map(([k, n]) => el("button", { class: k === r ? "an" : "", type: "button", onclick: () => { zustand.wissenReiter = k; sichtWissen(); } }, t(k, { n }))),
+      el("div", { class: "rechts" }, such)));
+    return m.append(themenAnsicht(th, zustand.wissenQ));
+  }
+  m.append(el("div", { class: "reiter" }, [["themen", "…"], ["beschluesse", d.beschluesse.length], ["regeln", d.regeln.length], ["wortlaut", d.wortlaut.length],
     ["notizen", (d.notizen || []).length]]
     .map(([k, n]) => el("button", { class: k === r ? "an" : "", type: "button", onclick: () => { zustand.wissenReiter = k; sichtWissen(); } }, t(k, { n }))),
     el("div", { class: "rechts" }, such)));

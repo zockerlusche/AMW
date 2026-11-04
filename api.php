@@ -195,6 +195,7 @@ try {
         $pfad === '/api/aufgaben' => '/api/aufgaben?sicht=' . (string)($q['sicht'] ?? 'offen'),
         $pfad === '/api/fragen' && ($q['alle'] ?? '') === '1' => '/api/fragen?alle=1',
         $pfad === '/api/dokument' => '/api/dokument?id=' . (int)($q['id'] ?? 0),
+        $pfad === '/api/thema' => '/api/thema?id=' . (int)($q['id'] ?? 0),
         default => $pfad,
     };
     [$zeile, $pc, $offen, $neu] = sql([
