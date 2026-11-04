@@ -16,7 +16,8 @@ laufen, solange er den Bildschirm ausdrücklich freigegeben hat.
 - **Zu** darf jeder machen, der Entwickler auch online vom Handy aus.
 - **Geht von selbst zu**, sobald der Entwickler wieder am PC ist. Das erkennt die AMW nur an Signalen am PC selbst:
   - eine Eingabe an diesem PC, frühestens 2 Minuten nach dem Freigeben (sonst schlösse der Klick auf „frei“ ihn
-    gleich wieder), auch über eine Fernsitzung,
+    gleich wieder), auch über eine Fernsitzung. Eingaben während eines Schirm-Laufs und bis 30 s danach zählen nicht:
+    Die Abläufe klicken selbst, und Windows unterscheidet das nicht vom Menschen.
   - eine neue Fernsitzung, wenn in den PC-Einstellungen ihr Programm steht (`fernsitzung_prozess`; bei TeamViewer z. B.
     `teamviewer_desktop.exe`, das nur während einer Verbindung läuft),
   - eine Eingabe in der Workbench am PC,

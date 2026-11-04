@@ -17,6 +17,7 @@ from . import db, einstellungen, kern
 
 RUHE_S = 120                 # so lange ohne Eingabe gilt der PC als verlassen
 NACHFRIST_S = 300            # läuft ein Schirm-Lauf so lange nach dem Zugehen weiter, erfährt es der Lead
+LAUF_NACHLAUF_S = 30         # so lange nach dem Ende eines Schirm-Laufs zählen Eingaben noch als seine
 QUELLEN = ("workbench", "netz", "cli", "bruecke", "automatik")
 
 
@@ -222,6 +223,18 @@ def entwickler_da(con, wo):
     return False
 
 
+def _eigene_eingabe(con, zeitpunkt):
+    """Fiel die letzte Eingabe in einen Schirm-Lauf (bis LAUF_NACHLAUF_S nach seinem Ende)? Abläufe mit Fenster klicken
+    und tippen selbst (Godot-Proben, Bildschirmfotos); Windows zählt das wie eine Eingabe des Menschen (04.11. 23:02:
+    L209 schloss den Schirm, der Entwickler war am Handy). Während eines Schirm-Laufs schließen deshalb nur die anderen
+    Signale (Fernsitzung, Workbench am PC, Uhrzeit) – Eingaben danach zählen wieder."""
+    for l in con.execute("SELECT start_utc, ende_utc FROM lauf WHERE schirm = 1 AND start_utc IS NOT NULL"
+                         " AND (ende_utc IS NULL OR ende_utc >= ?)", (_utc(zeitpunkt - LAUF_NACHLAUF_S),)).fetchall():
+        if _sek(l["start_utc"]) <= zeitpunkt and (l["ende_utc"] is None or zeitpunkt <= _sek(l["ende_utc"]) + LAUF_NACHLAUF_S):
+            return True
+    return False
+
+
 def pruefen(con, leerlauf=None, tv=None, jetzt=None):
     """Eine Runde im Dienst: schließt einen freien Schirm, sobald der Entwickler wieder da ist, und meldet dem Lead
     Schirm-Läufe, die nach dem Zugehen weiterlaufen. leerlauf/tv/jetzt nur für Tests. Rückgabe: Ereignisse fürs Log."""
@@ -238,7 +251,7 @@ def pruefen(con, leerlauf=None, tv=None, jetzt=None):
             grund = f"Fernsitzung seit {lokal(_utc(tv))}"          # einer älteren, zählt das als Eingabe am PC
         if not grund:
             leerlauf = leerlauf_s() if leerlauf is None else leerlauf
-            if leerlauf is not None and jetzt - leerlauf > seit + RUHE_S:
+            if leerlauf is not None and jetzt - leerlauf > seit + RUHE_S and not _eigene_eingabe(con, jetzt - leerlauf):
                 grund = f"Eingabe am PC ({lokal(_utc(jetzt - leerlauf))})"
         if grund:
             setzen(con, None, "AMW", False, grund, quelle="automatik")

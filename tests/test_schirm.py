@@ -79,6 +79,21 @@ class Automatik(Grund):
         aus = schirm.pruefen(self.con, leerlauf=10, jetzt=t + 300)                     # Eingabe 290 s nach dem Freigeben
         self.assertTrue(aus and "Eingabe am PC" in aus[0])
 
+    def test_eingaben_eines_schirm_laufs_schliessen_nicht(self):
+        # 04.11. 23:02: der Fenster-Lauf L209 klickte selbst – Windows hielt das für den Entwickler, der Schirm ging zu
+        self.frei()
+        t = time.time()
+        with db.schreiben(self.con):
+            lid = db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="CC1", beschreibung="Proben mit Fenster", schirm=1,
+                               status="laeuft", angemeldet_utc=schirm._utc(t + 200), start_utc=schirm._utc(t + 200))
+        self.assertEqual(schirm.pruefen(self.con, leerlauf=1, jetzt=t + 300), [])                # Eingabe während des Laufs
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE lauf SET status = 'fertig', ende_utc = ? WHERE id = ?", (schirm._utc(t + 310), lid))
+        self.assertEqual(schirm.pruefen(self.con, leerlauf=60, jetzt=t + 370), [])               # letzte Eingabe 10 s vor Ende
+        self.assertEqual(schirm.zustand(self.con)["frei"], 1)
+        aus = schirm.pruefen(self.con, leerlauf=5, jetzt=t + 400)                                # danach: wieder der Mensch
+        self.assertTrue(aus and "Eingabe am PC" in aus[0])
+
     def test_wortlaut_schliesst_nicht(self):
         # 04.11.: der Entwickler schrieb vom Handy, der Lead erfasste es als Wortlaut – der Schirm ging zu Unrecht zu
         self.frei()

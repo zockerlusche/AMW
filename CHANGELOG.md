@@ -4,7 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
-## 1.10.1 – 04.11.2026 · Dateien online als Einstellung
+## 1.10.1 – 04.11.2026 · Schirm-Läufe schließen den Schirm nicht mehr selbst, Dateien online als Einstellung
+- **Eingaben eines Schirm-Laufs zählen nicht als „Entwickler ist da“:** Abläufe mit Fenster klicken und tippen selbst.
+  Windows meldet das wie eine Eingabe am PC, und der Schirm ging zu, während der Entwickler am Handy war. Darauf brach
+  der Lauf ab. Eingaben während eines Schirm-Laufs und bis 30 s nach seinem Ende schließen jetzt nicht mehr. Die anderen
+  Signale gelten weiter: Fernsitzung, Eingabe in der Workbench am PC, Uhrzeit. Danach zählt jede Eingabe wieder.
 - **Dateien online** (Zahnrad › Projekt): Hier steht, welche Dateien von Dokumenten der PC von selbst auf die
   Online-Seite lädt. Zur Wahl stehen „nur auf Wunsch“ (Vorgabe, wie bisher), „Bilder und Mockups“ und „alle (auch PDF,
   Office)“. Die Einstellung gilt für neue und vorhandene Dokumente. Zurückstellen nimmt nichts herunter, das geht je
