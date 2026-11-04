@@ -196,7 +196,10 @@ def ansichten(con, pid, speicher=None):
          "/api/planung": workbench.daten_planung(con, pid),
          "/api/verlauf": workbench.daten_verlauf(con, pid, {"tage": ["3"]}),
          "/api/seit": verlauf.seit_daten(con, pid),
-         "/api/listen": workbench.daten_listen(con, pid)}
+         "/api/listen": workbench.daten_listen(con, pid),
+         "/api/themen": workbench.daten_themen(con, pid)}
+    for t in a["/api/themen"]:
+        a[f"/api/thema?id={t['id']}"] = workbench.daten_thema(con, pid, t["id"])
     for s in SICHTEN:
         a[f"/api/aufgaben?sicht={s}"] = workbench.daten_aufgaben(con, pid, {"sicht": [s], **leer})
     a.update(dokument_ansichten(con, pid))

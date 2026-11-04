@@ -4,6 +4,22 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.14.0 – 05.11.2026 · Design-Dokument je Thema, Projekt-Stil
+Eine Seite „gilt jetzt“ je System statt eines Stapels sich widersprechender Beschlüsse (→ `doc/automatismen.md`).
+Schema 16. Die vorhandenen Themen der Beschlüsse werden beim Update übernommen.
+- **`amw thema liste | zeige TH12 | neu "Name" [--pfleger X] [--stil] | einstellen | pflegen | bestaetigen | dokument`:**
+  Die Seite eines Themas zeigt die gepflegte Zusammenfassung (in Fassungen) und alle geltenden Beschlüsse, darunter die
+  unklaren und überholten.
+- **Veraltet:** Ein neuer Beschluss im Thema markiert die Zusammenfassung als „veraltet seit B…“ und weckt den Pfleger,
+  bis er sie anpasst oder bestätigt.
+- **Beschlüsse:** Das Thema ist Pflicht (`--thema`, TH-Nummer oder eindeutiger Anfang, `--neues-thema`). `beschluss
+  neu` zeigt die geltenden Beschlüsse desselben Themas. Neu sind `beschluss ueberholt B12 --durch B30`, `beschluss
+  unklar B12`, `beschluss gilt B12` und `beschluss thema B12 --thema …`.
+- **Projekt-Stil:** ein Thema mit Bildern. Der Pflicht-Kontext aller Agenten verweist darauf, und eine Abweichung ist
+  eine Frage.
+- **Workbench › Wissen › Themen:** Karten je Thema mit Stand und Pfleger. Die Seite öffnet als Dialog, mit Bildern im
+  Vollbild. Online genauso.
+
 ## 1.13.0 – 05.11.2026 · Terminplaner
 Testtermine des Entwicklers im festen Rhythmus, davor die Frist „Testbuild fertig“ für alle (→ `doc/automatismen.md`).
 Schema 15.

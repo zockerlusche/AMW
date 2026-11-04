@@ -1072,9 +1072,75 @@ def cmd_wortlaut(a, con):
 
 
 def cmd_beschluss(a, con):
-    bid = wissen.beschluss_neu(con, _projekt(con, a), _von(a), a.stichwort, _text(a), a.quelle, a.thema, a.zeit,
-                               a.wortlaut, a.aufgaben, a.ersetzt)
+    pid = _projekt(con, a)
+    if a.aktion in ("ueberholt", "unklar", "gilt", "thema"):
+        if not a.nr:
+            raise kern.AmwFehler(f"amw beschluss {a.aktion} B12" + (" --durch B30" if a.aktion == "ueberholt" else "")
+                                 + (" --thema \"…\"" if a.aktion == "thema" else ""))
+        if a.aktion == "thema":
+            print(f"B{a.nr} → Thema „{wissen.beschluss_thema(con, pid, _von(a), a.nr, a.thema, a.neues_thema)}“")
+        else:
+            wissen.beschluss_status(con, pid, _von(a), a.nr, a.aktion, a.durch)
+            print(f"B{a.nr} → {a.aktion}" + (f" (ersetzt durch B{a.durch})" if a.durch and a.aktion == "ueberholt" else ""))
+        return
+    hinweise = []
+    bid = wissen.beschluss_neu(con, pid, _von(a), a.stichwort, _text(a), a.quelle, a.thema, a.zeit,
+                               a.wortlaut, a.aufgaben, a.ersetzt, a.neues_thema, hinweise)
     print(f"B{bid} angelegt" + (f", B{a.ersetzt} überholt" if a.ersetzt else ""))
+    for h in hinweise:
+        print(h)
+
+
+def cmd_thema(a, con):
+    """Design-Dokument je Thema: liste | zeige | neu | einstellen | pflegen | bestaetigen | dokument."""
+    from . import themen
+    pid = _projekt(con, a)
+    if a.aktion == "liste":
+        for t in themen.liste(con, pid):
+            if a.suche and a.suche.lower() not in t["name"].lower():
+                continue
+            st = {"ohne": "ohne Zusammenfassung", "aktuell": "aktuell", "veraltet": f"veraltet seit B{t['veraltet_seit']}"}[t["stand"]]
+            print(f"TH{t['id']:<4} {t['gilt']:>4} gilt{(' · ' + str(t['unklar']) + ' unklar') if t['unklar'] else ''}"
+                  f"  {'[Stil] ' if t['stil'] else ''}{t['name'][:70]}  · {st} · Pfleger {t['pfleger'] or '–'}")
+        return
+    if a.aktion == "neu":
+        tid = themen.neu(con, pid, _von(a), a.name, a.pfleger, a.stil)
+        print(f"TH{tid} angelegt")
+        return
+    if not a.name:
+        raise kern.AmwFehler(f"amw thema {a.aktion} <TH-Nr. oder Name>")
+    if a.aktion == "zeige":
+        s = themen.seite(con, pid, a.name)
+        print(f"TH{s['id']} {s['name']}" + (" [Projekt-Stil]" if s["stil"] else "") + f" · Pfleger {s['pfleger'] or '–'}")
+        z = s["zusammenfassung"]
+        if z:
+            print(f"\nGILT JETZT (Fassung {z['nr']}, {z['von']}, {_zeit(z['zeit_utc'])})"
+                  + (f" – VERALTET seit B{s['veraltet_seit']}" if s["stand"] == "veraltet" else "") + f":\n{z['text']}")
+        else:
+            print("\n(noch keine Zusammenfassung – amw thema pflegen …)")
+        print(f"\nGeltende Beschlüsse ({len(s['gilt'])}, neueste zuerst):")
+        for b in s["gilt"][:a.grenze]:
+            print(f"  B{b['id']} {_zeit(b['zeit_utc'])} {b['stichwort']}: {b['regel'][:220]}")
+        if s["unklar"]:
+            print(f"Unklar ({len(s['unklar'])}): " + ", ".join(f"B{b['id']}" for b in s["unklar"]))
+        if s["ueberholt"]:
+            print(f"Überholt ({len(s['ueberholt'])}): " + ", ".join(f"B{b['id']}" + (f"→B{b['ersetzt_durch']}" if b["ersetzt_durch"] else "")
+                                                               for b in s["ueberholt"][:30]))
+        if s["dokumente"]:
+            print("Dokumente: " + "; ".join(f"D{d['id']} {d['titel'][:50]}" for d in s["dokumente"]))
+    elif a.aktion == "einstellen":
+        t = themen.einstellen(con, pid, _von(a), a.name, a.pfleger, True if a.stil else False if a.kein_stil else None)
+        print(f"TH{t['id']}: Pfleger {t['pfleger'] or '–'}" + (" · Projekt-Stil" if t["stil"] else ""))
+    elif a.aktion == "pflegen":
+        print(f"Fassung {themen.pflegen(con, pid, _von(a), a.name, _text(a))} gespeichert")
+    elif a.aktion == "bestaetigen":
+        themen.bestaetigen(con, pid, _von(a), a.name)
+        print("Zusammenfassung bestätigt – gilt weiter")
+    elif a.aktion == "dokument":
+        if not a.dokument:
+            raise kern.AmwFehler("amw thema dokument <Thema> --dokument D12 [--loesen]")
+        themen.dokument(con, pid, _von(a), a.name, int(str(a.dokument).lstrip("Dd")), a.loesen)
+        print(f"D{str(a.dokument).lstrip('Dd')} {'gelöst' if a.loesen else 'hängt am Thema'}")
 
 
 def cmd_regel(a, con):
@@ -1564,6 +1630,23 @@ def parser():
     x.add_argument("--pool", action="store_true", help="neu: in den Pool (noch in keiner Arbeitsliste)")
     x.set_defaults(f=cmd_aufgabe)
 
+    x = s.add_parser("thema", help="Design-Dokument je Thema: liste [--suche] | zeige TH12 | neu \"Name\" [--pfleger X] [--stil] |"
+                                   " einstellen TH12 --pfleger X | --stil | pflegen TH12 --text-datei … | bestaetigen TH12 |"
+                                   " dokument TH12 --dokument D5 [--loesen]")
+    x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "zeige", "neu", "einstellen", "pflegen", "bestaetigen",
+                                                                  "dokument"])
+    x.add_argument("name", nargs="?", help="TH-Nummer oder Name (eindeutiger Anfang reicht)")
+    x.add_argument("--pfleger")
+    x.add_argument("--stil", action="store_true", help="dieses Thema ist der Projekt-Stil (es gibt höchstens einen)")
+    x.add_argument("--kein-stil", action="store_true")
+    x.add_argument("--text")
+    x.add_argument("--text-datei")
+    x.add_argument("--dokument")
+    x.add_argument("--loesen", action="store_true")
+    x.add_argument("--suche")
+    x.add_argument("--grenze", type=int, default=60)
+    x.set_defaults(f=cmd_thema)
+
     x = s.add_parser("termin", help="Terminplaner: neu --titel … --art test|frist|schirm|sonstig --am \"2026-11-06 18:00\""
                                     " [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] | liste [--tage 21] | aendern N |"
                                     " absagen N [--am …] | bereit N --text \"was testen\" | kurzliste N (Planen: Lead/Entwickler)")
@@ -1814,9 +1897,14 @@ def parser():
             x.add_argument("--zeit", help="UTC der Aussage")
             x.add_argument("--bemerkung")
         elif name == "beschluss":
-            x.add_argument("--stichwort", required=True)
-            x.add_argument("--quelle", required=True)
-            x.add_argument("--thema")
+            x.add_argument("aktion", nargs="?", default="neu", choices=["neu", "ueberholt", "unklar", "gilt", "thema"],
+                           help="neu (Vorgabe) | ueberholt B12 [--durch B30] | unklar B12 | gilt B12 | thema B12 --thema …")
+            x.add_argument("nr", type=nummer, nargs="?")
+            x.add_argument("--durch", type=nummer, help="ueberholt: ersetzt durch diesen Beschluss")
+            x.add_argument("--stichwort")
+            x.add_argument("--quelle")
+            x.add_argument("--thema", help="Pflicht, sobald es Themen gibt: TH-Nr. oder Name (eindeutiger Anfang reicht)")
+            x.add_argument("--neues-thema", action="store_true", help="--thema gibt es noch nicht: neu anlegen")
             x.add_argument("--zeit")
             x.add_argument("--wortlaut")
             x.add_argument("--aufgaben")

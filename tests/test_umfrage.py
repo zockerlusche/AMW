@@ -508,6 +508,57 @@ class Termine(Grund):
             self.tm.zeit_lesen("morgen")
 
 
+class Themen(Grund):
+    """Design-Dokument je Thema (B2429): Seite aus geltenden Beschlüssen, Zusammenfassung mit Pfleger, veraltet/bestätigt."""
+
+    def setUp(self):
+        super().setUp()
+        from amw import themen, wissen
+        self.th, self.wi = themen, wissen
+
+    def test_ohne_themen_frei_dann_pflicht_und_aufraeumen(self):
+        b1 = self.wi.beschluss_neu(self.con, self.pid, "TL", "Maßstab alt", "1 m = 64 px", "Entwickler")    # noch keine Themen
+        tid = self.th.neu(self.con, self.pid, "TL", "3.5 Karte, Maßstab", pfleger="CC1")
+        with self.assertRaises(kern.AmwFehler):
+            self.wi.beschluss_neu(self.con, self.pid, "TL", "x", "y", "z")                                  # jetzt Pflicht
+        with self.assertRaises(kern.AmwFehler):
+            self.wi.beschluss_neu(self.con, self.pid, "TL", "x", "y", "z", thema="Gibtsnicht")
+        self.wi.beschluss_thema(self.con, self.pid, "TL", b1, "3.5")                                         # Anfang reicht
+        h = []
+        b2 = self.wi.beschluss_neu(self.con, self.pid, "TL", "Maßstab M80", "1 m = 80 px", "Entwickler", thema=f"TH{tid}",
+                                   hinweise=h)
+        self.assertTrue(any(f"B{b1}" in x and "ueberholt" in x for x in h))
+        rc, aus = self.cli("--von", "TL", "beschluss", "ueberholt", f"B{b1}", "--durch", f"B{b2}")
+        self.assertEqual(rc, 0, aus)
+        s = self.th.seite(self.con, self.pid, tid)
+        self.assertEqual(([b["id"] for b in s["gilt"]], [b["id"] for b in s["ueberholt"]]), ([b2], [b1]))
+        b3 = self.wi.beschluss_neu(self.con, self.pid, "TL", "Neu", "n", "q", thema="Lessons", neues_thema=True)
+        self.assertEqual(self.con.execute("SELECT thema FROM beschluss WHERE id = ?", (b3,)).fetchone()[0], "Lessons")
+
+    def test_zusammenfassung_veraltet_weckt_pfleger_und_bestaetigen(self):
+        tid = self.th.neu(self.con, self.pid, "TL", "Stil, Grafik", pfleger="CC1", stil=True)
+        with self.assertRaises(kern.AmwFehler):
+            self.th.pflegen(self.con, self.pid, "CC2", tid, "x")                                           # nur Pfleger/Lead
+        rc, aus = self.cli("--von", "CC1", "thema", "pflegen", f"TH{tid}", "--text", "Flach, 2D, rechte Winkel.")
+        self.assertEqual(rc, 0, aus)
+        self.assertEqual(self.th.stand(self.con, self.th.finden(self.con, self.pid, tid))[0], "aktuell")
+        time.sleep(1.1)
+        b = self.wi.beschluss_neu(self.con, self.pid, "TL", "Wände dunkler", "Wände #333", "Entwickler", thema="Stil")
+        self.assertEqual(self.th.stand(self.con, self.th.finden(self.con, self.pid, tid)), ("veraltet", b))
+        self.assertTrue(any("Zusammenfassung prüfen" in r["kurz"] for r in kern.offene(self.con, self.pid, "CC1")))
+        k = kern.kontext(self.con, self.pid, "CC1")
+        self.assertIn("Projekt-Stil: amw thema zeige", k)
+        self.assertIn("Du pflegst, veraltet", k)
+        self.th.bestaetigen(self.con, self.pid, "CC1", tid)
+        self.assertEqual(self.th.stand(self.con, self.th.finden(self.con, self.pid, tid))[0], "aktuell")
+        from amw import abgleich, workbench
+        self.assertTrue(workbench.daten_thema(self.con, self.pid, tid)["stil"])           # Workbench und online
+        self.assertIn(f"/api/thema?id={tid}", abgleich.ansichten(self.con, self.pid))
+        rc, aus = self.cli("--von", "CC2", "thema", "zeige", "Stil")
+        self.assertIn("GILT JETZT (Fassung 1", aus)
+        self.assertIn(f"B{b} ", aus)
+
+
 class Pfade(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "nur Windows")
     def test_git_bash_pfad(self):

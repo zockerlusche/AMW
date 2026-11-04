@@ -26,9 +26,14 @@ def wortlaut_neu(con, pid, von, text, kanal, zeit_utc=None, bemerkung=None):
 
 
 def beschluss_neu(con, pid, von, stichwort, regel, quelle, thema=None, zeit_utc=None, wortlaut_ids=None,
-                  aufgabe_ids=None, ersetzt=None):
-    """Neuer Beschluss; mit `ersetzt` wird der alte auf ueberholt gesetzt und verweist auf den neuen."""
+                  aufgabe_ids=None, ersetzt=None, neues_thema=False, hinweise=None):
+    """Neuer Beschluss; mit `ersetzt` wird der alte auf ueberholt gesetzt und verweist auf den neuen. Jeder Beschluss gehört
+    zu einem Thema (Design-Dokument, themen.py); hinweise bekommt die geltenden Beschlüsse desselben Themas."""
     _nur_lead(con, pid, von, "Beschlüsse anlegen")
+    if not (stichwort or "").strip() or not (regel or "").strip() or not (quelle or "").strip():
+        raise kern.AmwFehler("beschluss neu braucht --stichwort, --text und --quelle")
+    from . import themen
+    thema = themen.zum_beschluss(con, pid, von, thema, neues_thema)
     with db.schreiben(con):
         t = db.jetzt()
         bid = db.einfuegen(con, "beschluss", projekt_id=pid, zeit_utc=zeit_utc or t, thema=thema, stichwort=stichwort,
@@ -39,7 +44,36 @@ def beschluss_neu(con, pid, von, stichwort, regel, quelle, thema=None, zeit_utc=
                             (bid, ersetzt, pid)).rowcount
             if not n:
                 raise kern.AmwFehler(f"B{ersetzt} gibt es nicht")
+    h = themen.nach_beschluss(con, pid, von, bid, thema)
+    if hinweise is not None:
+        hinweise += h
     return bid
+
+
+def beschluss_status(con, pid, von, bid, status, durch=None):
+    """Alte Beschlüsse nicht liegen lassen: ueberholt (optional ersetzt durch B…), unklar, oder wieder gilt. Nur der Lead."""
+    _nur_lead(con, pid, von, "Beschlüsse ändern")
+    if status not in ("gilt", "ueberholt", "unklar"):
+        raise kern.AmwFehler("Status: gilt | ueberholt | unklar")
+    with db.schreiben(con):
+        if not con.execute("SELECT 1 FROM beschluss WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone():
+            raise kern.AmwFehler(f"B{bid} gibt es nicht")
+        if durch:
+            if durch == bid or not con.execute("SELECT 1 FROM beschluss WHERE id = ? AND projekt_id = ?", (durch, pid)).fetchone():
+                raise kern.AmwFehler(f"B{durch} gibt es nicht (oder ist derselbe)")
+        con.execute("UPDATE beschluss SET status = ?, ersetzt_durch = ? WHERE id = ?",
+                    (status, durch if status == "ueberholt" else None, bid))
+
+
+def beschluss_thema(con, pid, von, bid, thema, neues_thema=False):
+    """Beschluss einem (anderen) Thema zuordnen – zum Aufräumen verstreuter Themen. Nur der Lead."""
+    _nur_lead(con, pid, von, "Beschlüsse ändern")
+    from . import themen
+    name = themen.zum_beschluss(con, pid, von, thema, neues_thema)
+    with db.schreiben(con):
+        if not con.execute("UPDATE beschluss SET thema = ? WHERE id = ? AND projekt_id = ?", (name, bid, pid)).rowcount:
+            raise kern.AmwFehler(f"B{bid} gibt es nicht")
+    return name
 
 
 def regel_setzen(con, pid, von, ebene, nr, text, beschluss_id, teil=None):

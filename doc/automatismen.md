@@ -80,6 +80,27 @@ unten ab, genau eine Aufgabe ist in Arbeit. Der Umfang darf groß sein.
 - **Fertig:** Ist eine Aufgabe fertig oder verworfen, weckt die AMW mit der nächsten startbaren Aufgabe der Liste. Die
   Leerlauf-Prüfung bleibt als Netz.
 
+## Design-Dokument je Thema und Projekt-Stil (seit 1.14.0)
+
+**Wozu:** Je System (Netz, Rezepte, Maßstab, Aufträge, UI, Stil …) gibt es eine Wahrheit „gilt jetzt“, statt dass sich
+widersprechende Beschlüsse stapeln.
+
+- Jeder Beschluss gehört zu einem **Thema** (`beschluss --thema`, Pflicht, sobald es Themen gibt; TH-Nummer oder
+  eindeutiger Namensanfang; neues Thema mit `--neues-thema`). Beim Update werden die vorhandenen Themen der Beschlüsse
+  übernommen.
+- Die **Seite** eines Themas (`amw thema zeige TH12`, Workbench › Wissen › Themen) zeigt die gepflegte Zusammenfassung und
+  alle geltenden Beschlüsse, darunter die überholten. Sie entsteht aus den Daten und kann nicht veralten.
+- Die **Zusammenfassung** schreibt der Pfleger (`thema einstellen TH12 --pfleger X`, `thema pflegen TH12 --text-datei …`).
+  Jede Fassung bleibt erhalten. Ein neuer Beschluss im Thema markiert sie als „veraltet seit B…“ und weckt den Pfleger,
+  bis er sie anpasst oder bestätigt (`thema bestaetigen`). Ohne Pfleger erinnert der Hinweis den, der den Beschluss
+  anlegt.
+- **Aufräumen:** `beschluss neu` nennt die geltenden Beschlüsse desselben Themas („ersetzt B… einen davon?“). Werkzeuge:
+  `beschluss ueberholt B12 --durch B30`, `beschluss unklar B12`, `beschluss thema B12 --thema …`. Die Frage-Prüfung
+  findet nur geltende Beschlüsse.
+- **Projekt-Stil:** Ein Thema kann der Stil sein (`--stil`, es gibt höchstens einen). Bilder hängen als Dokumente daran
+  (`thema dokument TH12 --dokument D5`). Jeder Agent sieht im Pflicht-Kontext „Projekt-Stil: amw thema zeige …“;
+  Grafik-Arbeit richtet sich danach, eine Abweichung ist eine Frage.
+
 ## Terminplaner (seit 1.13.0)
 
 **Wozu:** Ein fester Rhythmus für die Tests des Entwicklers und eine gemeinsame Frist für alle Agenten.

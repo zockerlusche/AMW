@@ -46,7 +46,8 @@ def massnahme_uebernehmen(con, pid, von, rid, als, agent=None):
         return aid
     if als == "beschluss":
         from . import wissen
-        bid = wissen.beschluss_neu(con, pid, von, r["text"][:120], r["text"], herkunft, thema="Lessons Learned")
+        bid = wissen.beschluss_neu(con, pid, von, r["text"][:120], r["text"], herkunft, thema="Lessons Learned",
+                                   neues_thema=True)
         with db.schreiben(con):
             con.execute("UPDATE rueckblick SET beschluss_id = ? WHERE id = ?", (bid, rid))
         return bid

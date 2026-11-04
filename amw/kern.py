@@ -891,10 +891,11 @@ def kontext(con, pid, kennung):
         g = ", ".join(r["bezug"] for r in wartegrund.offene(con, x["id"]))
         t = "; ".join(v for v in (g, x["wartet_auf"]) if v)
         return f" (wartet auf {t})" if t else ""
-    from . import termine
+    from . import termine, themen
     tz = termine.kontext_zeile(con, pid)
     if tz:
         z.append(tz)
+    z += themen.kontext_zeilen(con, pid, kennung)
     boegen, gefuehrt = fuehrt(con, pid, kennung)
     if boegen or gefuehrt:
         z.append("Du führst (federführend – Prüfergebnisse, Merge-Bitten, Fragen dazu kommen zu dir): " + "; ".join(

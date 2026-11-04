@@ -702,3 +702,42 @@ CREATE TABLE termin_meldung (                   -- je Vorkommen: Testbuild berei
   UNIQUE (termin_id, am_utc, art)
 );
 CREATE TRIGGER termin_meldung_nie_loeschen BEFORE DELETE ON termin_meldung BEGIN SELECT RAISE(ABORT, 'Verlauf: termin_meldung wird nicht gelöscht'); END;
+
+-- Design-Dokument je Thema (Schema 16): Pfleger, Zusammenfassung „gilt jetzt“ (Fassungen), Bilder; ein Thema kann der Stil sein
+CREATE TABLE thema (
+  id             INTEGER PRIMARY KEY,
+  projekt_id     INTEGER NOT NULL REFERENCES projekt(id),
+  name           TEXT NOT NULL,                   -- wie beschluss.thema (Groß/klein egal)
+  pfleger        TEXT,                            -- Kennung: hält die Zusammenfassung aktuell
+  stil           INTEGER NOT NULL DEFAULT 0 CHECK (stil IN (0, 1)),
+  bestaetigt_utc TEXT,                            -- Zusammenfassung nach einem neuen Beschluss als weiter gültig bestätigt
+  bestaetigt_von TEXT,
+  angelegt_von   TEXT NOT NULL,
+  angelegt_utc   TEXT NOT NULL,
+  uid            TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft       TEXT NOT NULL DEFAULT '',
+  geaendert_utc  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+CREATE UNIQUE INDEX thema_name ON thema (projekt_id, name COLLATE NOCASE);
+CREATE TRIGGER thema_geaendert AFTER UPDATE ON thema BEGIN UPDATE thema SET geaendert_utc = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = NEW.id; END;
+CREATE TRIGGER thema_nie_loeschen BEFORE DELETE ON thema BEGIN SELECT RAISE(ABORT, 'Verlauf: thema wird nicht gelöscht'); END;
+CREATE TABLE thema_fassung (                    -- Zusammenfassung „gilt jetzt“, jede Fassung bleibt
+  id             INTEGER PRIMARY KEY,
+  thema_id       INTEGER NOT NULL REFERENCES thema(id),
+  nr             INTEGER NOT NULL,
+  text           TEXT NOT NULL,
+  von            TEXT NOT NULL,
+  zeit_utc       TEXT NOT NULL,
+  uid            TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft       TEXT NOT NULL DEFAULT '',
+  geaendert_utc  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  UNIQUE (thema_id, nr)
+);
+CREATE TRIGGER thema_fassung_nie_loeschen BEFORE DELETE ON thema_fassung BEGIN SELECT RAISE(ABORT, 'Verlauf: thema_fassung wird nicht gelöscht'); END;
+CREATE TABLE thema_dokument (                   -- Bilder/Referenzen zur Seite (z. B. Stil: Farben, Figuren, Maßstab)
+  thema_id       INTEGER NOT NULL REFERENCES thema(id),
+  dokument_id    INTEGER NOT NULL REFERENCES dokument(id),
+  von            TEXT NOT NULL,
+  zeit_utc       TEXT NOT NULL,
+  PRIMARY KEY (thema_id, dokument_id)
+);

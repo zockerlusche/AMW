@@ -12,6 +12,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
 | [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N [--kurz] ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] ¦ nachtrag N --titel … (Folgearbeit zu einer fertigen Aufgabe) |
+| [`thema`](#thema) | Design-Dokument je Thema: liste [--suche] ¦ zeige TH12 ¦ neu "Name" [--pfleger X] [--stil] ¦ einstellen TH12 --pfleger X ¦ --stil ¦ pflegen TH12 --text-datei … ¦ bestaetigen TH12 ¦ dokument TH12 --dokument D5 [--loesen] |
 | [`termin`](#termin) | Terminplaner: neu --titel … --art test¦frist¦schirm¦sonstig --am "2026-11-06 18:00" [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] ¦ liste [--tage 21] ¦ aendern N ¦ absagen N [--am …] ¦ bereit N --text "was testen" ¦ kurzliste N (Planen: Lead/Entwickler) |
 | [`liste`](#liste) | Arbeitsliste je Agent: liste [Agent¦pool] ¦ ordnen <Agent> A12 A15 … ¦ schieben A15 --vor A12 ¦ --nach ¦ --pos N ¦ --oben ¦ --unten (ordnen/schieben: Lead) |
 | [`frage`](#frage) | Fragen an den Entwickler oder Lead: neu ¦ liste [--geparkt] ¦ antworten ¦ nachtrag ¦ verlauf ¦ parken N [--grund] ¦ aufnehmen N |
@@ -260,6 +261,35 @@ options:
                         aendern: wer diese Aufgabe führt (Lead/Entwickler;
                         leer = weg)
   --pool                neu: in den Pool (noch in keiner Arbeitsliste)
+  --von VON
+  --projekt PROJEKT
+```
+
+## thema
+```
+usage: amw thema [-h] [--pfleger PFLEGER] [--stil] [--kein-stil] [--text TEXT]
+                 [--text-datei TEXT_DATEI] [--dokument DOKUMENT] [--loesen]
+                 [--suche SUCHE] [--grenze GRENZE] [--von VON]
+                 [--projekt PROJEKT]
+                 [{liste,zeige,neu,einstellen,pflegen,bestaetigen,dokument}]
+                 [name]
+
+positional arguments:
+  {liste,zeige,neu,einstellen,pflegen,bestaetigen,dokument}
+  name                  TH-Nummer oder Name (eindeutiger Anfang reicht)
+
+options:
+  -h, --help            show this help message and exit
+  --pfleger PFLEGER
+  --stil                dieses Thema ist der Projekt-Stil (es gibt höchstens
+                        einen)
+  --kein-stil
+  --text TEXT
+  --text-datei TEXT_DATEI
+  --dokument DOKUMENT
+  --loesen
+  --suche SUCHE
+  --grenze GRENZE
   --von VON
   --projekt PROJEKT
 ```
@@ -804,18 +834,29 @@ options:
 
 ## beschluss
 ```
-usage: amw beschluss [-h] [--text TEXT] [--text-datei TEXT_DATEI] --stichwort
-                     STICHWORT --quelle QUELLE [--thema THEMA] [--zeit ZEIT]
+usage: amw beschluss [-h] [--text TEXT] [--text-datei TEXT_DATEI]
+                     [--durch DURCH] [--stichwort STICHWORT] [--quelle QUELLE]
+                     [--thema THEMA] [--neues-thema] [--zeit ZEIT]
                      [--wortlaut WORTLAUT] [--aufgaben AUFGABEN]
                      [--ersetzt ERSETZT] [--von VON] [--projekt PROJEKT]
+                     [{neu,ueberholt,unklar,gilt,thema}] [nr]
+
+positional arguments:
+  {neu,ueberholt,unklar,gilt,thema}
+                        neu (Vorgabe) | ueberholt B12 [--durch B30] | unklar
+                        B12 | gilt B12 | thema B12 --thema …
+  nr
 
 options:
   -h, --help            show this help message and exit
   --text TEXT
   --text-datei TEXT_DATEI
+  --durch DURCH         ueberholt: ersetzt durch diesen Beschluss
   --stichwort STICHWORT
   --quelle QUELLE
-  --thema THEMA
+  --thema THEMA         Pflicht, sobald es Themen gibt: TH-Nr. oder Name
+                        (eindeutiger Anfang reicht)
+  --neues-thema         --thema gibt es noch nicht: neu anlegen
   --zeit ZEIT
   --wortlaut WORTLAUT
   --aufgaben AUFGABEN

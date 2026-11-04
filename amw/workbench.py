@@ -67,6 +67,19 @@ def _naechster_test(con, pid):
         return None
 
 
+def daten_themen(con, pid):
+    from . import themen
+    return themen.liste(con, pid)
+
+
+def daten_thema(con, pid, tid):
+    from . import dokumente, themen
+    s = themen.seite(con, pid, int(tid) if str(tid).isdigit() else tid)
+    for d in s["dokumente"]:
+        d["vorschau"] = dokumente.FORMATE.get(d["endung"], ("", "", "download"))[2]
+    return s
+
+
 def daten_listen(con, pid):
     """Arbeitslisten je Agent in Reihenfolge und der Pool (Workbench › Aufgaben › Listen, auch online)."""
     from . import arbeitsliste
@@ -639,6 +652,8 @@ def baue_handler(port, token):
                     "/api/fragen": lambda c, p: daten_fragen(c, p, q.get("alle", ["0"])[0] == "1"),
                     "/api/aufgaben": lambda c, p: daten_aufgaben(c, p, q),
                     "/api/listen": lambda c, p: daten_listen(c, p),
+                    "/api/themen": lambda c, p: daten_themen(c, p),
+                    "/api/thema": lambda c, p: daten_thema(c, p, q.get("id", ["0"])[0]),
                     "/api/wissen": lambda c, p: daten_wissen(c, p, q),
                     "/api/suche": lambda c, p: daten_suche(c, p, q),
                     "/api/betrieb": lambda c, p: daten_betrieb(c, p),
