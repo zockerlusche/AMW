@@ -67,6 +67,20 @@ class Bruecke(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.eingang, "erledigt", "001.json")))
         self.assertFalse(os.listdir(os.path.join(self.eingang, "befehle")))
 
+    def test_gleicher_name_ueberschreibt_den_beleg_nicht(self):
+        # 04.11.: ein zweiter Durchgang unter denselben Namen überschrieb Befehl und Ergebnis des ersten
+        self.einwerfen("khp.json", {"befehl": "posten", "an": "CC1", "art": "info", "kurz": "erster"})
+        bruecke.befehle(self.eingang)
+        self.einwerfen("khp.json", {"befehl": "posten", "an": "CC1", "art": "info", "kurz": "zweiter"})
+        with self.assertLogs("amw.bruecke", "INFO") as log:
+            bruecke.befehle(self.eingang)
+        self.assertIn("(abgelegt als khp.2.json): posten", log.output[0])
+        self.assertIn("erster", self.ergebnis("khp")["ausgabe"] + json.dumps(json.load(open(
+            os.path.join(self.eingang, "erledigt", "khp.json"), encoding="utf-8")), ensure_ascii=False))
+        self.assertIn("zweiter", json.dumps(json.load(open(os.path.join(self.eingang, "erledigt", "khp.2.json"),
+                                                         encoding="utf-8")), ensure_ascii=False))
+        self.assertEqual(self.ergebnis("khp.2")["rc"], 0)
+
     def test_unerlaubtes_und_fremder_absender_abgewiesen(self):
         self.einwerfen("a.json", {"befehl": "dienst", "aktion": "entfernen", "ja": True})
         self.einwerfen("b.json", {"befehl": "posten", "an": "CC1", "art": "info", "kurz": "x", "von": "Entwickler"})

@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.9.2 – 04.11.2026 · Brücke behält jeden Beleg
+- **Brücke überschreibt nichts mehr:** Kam eine Befehlsdatei mit einem Namen, der in `eingang-tl/erledigt/` schon lag,
+  ersetzte die Brücke Befehl und Ergebnis des früheren Durchgangs – die Spur war weg. Jetzt landet sie als `khp.2.json`
+  usw. daneben. Das Protokoll nennt dazu den Befehl kurz („Brücke: khp.json → rc 0: posten“).
+
 ## 1.9.1 – 04.11.2026 · Universell: Name und Fernsitzung als Einstellung
 - **Schirm geht nur noch bei Signalen am PC zu:** Eingabe am PC, eine neue Fernsitzung, eine Eingabe in der Workbench am
   PC oder die bis-Uhrzeit. Ein neuer Wortlaut (z. B. vom Lead aus einem Chat übernommen) und Eingaben auf der

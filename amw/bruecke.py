@@ -176,6 +176,27 @@ def ausfuehren(args):
     return rc, aus.getvalue(), fehler.getvalue()
 
 
+def _frei(ordner, stamm):
+    """Stamm, unter dem in erledigt/ noch nichts liegt: khf, sonst khf.2, khf.3 …"""
+    ziel, n = stamm, 1
+    while os.path.exists(os.path.join(ordner, ziel + ".json")) or os.path.exists(os.path.join(ordner, ziel + ".ergebnis.json")):
+        n += 1
+        ziel = f"{stamm}.{n}"
+    return ziel
+
+
+def _kurz(args):
+    """Befehl fürs Protokoll, ohne lange Texte: „frage antworten 5164“."""
+    if not args:
+        return "–"
+    teile = []
+    for a in args:
+        if a.startswith("--"):
+            break
+        teile.append(a)
+    return " ".join(teile)[:80]
+
+
 def befehle(eingang=EINGANG):
     """Alle fertigen Befehlsdateien abarbeiten; Rückgabe: Anzahl."""
     ordner, erledigt = os.path.join(eingang, "befehle"), os.path.join(eingang, "erledigt")
@@ -204,10 +225,11 @@ def befehle(eingang=EINGANG):
         except Exception as e:                            # nie die Warteschlange anhalten: Fehler wird zum Ergebnis
             args, rc, aus, fehler = None, 1, "", f"{type(e).__name__}: {e}"
         ergebnis = {"datei": name, "zeit_utc": db.jetzt(), "args": args, "rc": rc, "ausgabe": aus, "fehler": fehler}
-        with open(os.path.join(erledigt, stamm + ".ergebnis.json"), "w", encoding="utf-8") as f:
+        ziel = _frei(erledigt, stamm)                     # gleicher Name noch einmal: nie den Beleg davor überschreiben
+        with open(os.path.join(erledigt, ziel + ".ergebnis.json"), "w", encoding="utf-8") as f:
             json.dump(ergebnis, f, ensure_ascii=False, indent=1)
-        os.replace(pfad, os.path.join(erledigt, name))
-        log.info("Brücke: %s → rc %s", name, rc)
+        os.replace(pfad, os.path.join(erledigt, ziel + ".json"))
+        log.info("Brücke: %s → rc %s%s: %s", name, rc, f" (abgelegt als {ziel}.json)" if ziel != stamm else "", _kurz(args))
         n += 1
     return n
 
