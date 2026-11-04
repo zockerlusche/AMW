@@ -188,6 +188,10 @@ class Befehle(Grund):
             bruecke.argumente({"befehl": "lauf", "aktion": "warte", "id": 3})
         with self.assertRaises(ValueError):
             bruecke.argumente({"befehl": "schirm", "aktion": "frei", "quelle": "workbench"})
+        # beschluss: --quelle ist die inhaltliche Quelle und geht durch (Fehler #16846)
+        a = bruecke.argumente({"befehl": "beschluss", "aktion": "neu", "kurz": "x", "quelle": "Marcel 04.11. 11:35"})
+        self.assertIn("Marcel 04.11. 11:35", a)
+        self.assertEqual(a.count("--quelle"), 1)
 
 
 class Messen(unittest.TestCase):

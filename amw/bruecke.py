@@ -98,9 +98,11 @@ def argumente(befehl, eingang=EINGANG):
         raise ValueError("Agenten starten, beenden und Profile ändern geht nur am PC (Workbench)")
     if args[0] == "lauf" and len(args) > 1 and args[1] == "warte":
         raise ValueError("lauf warte blockiert – über die Brücke: lauf zeige <nr>")
-    if any(a in ("--von", "--projekt", "--quelle") for a in args):
-        raise ValueError("--von/--projekt/--quelle setzt die Brücke selbst")
-    if args[0] == "schirm":
+    if any(a in ("--von", "--projekt") for a in args):
+        raise ValueError("--von/--projekt setzt die Brücke selbst")
+    if args[0] == "schirm":                                # beim Schirm ist --quelle der Kanal, nicht der Inhalt
+        if "--quelle" in args:
+            raise ValueError("--quelle setzt beim Schirm die Brücke selbst")
         args = args + ["--quelle", "bruecke"]
     for i, a in enumerate(args):
         if a.startswith("--datei="):

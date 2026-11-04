@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.7.1 – 04.11.2026 · Korrektur Brücke
+- **Beschlüsse über die Brücke gehen wieder:** 1.7.0 hatte `--quelle` über die Brücke für alle Befehle gesperrt. Bei
+  `beschluss` ist `--quelle` aber die inhaltliche Quelle (z. B. „Marcel 04.11. 11:35“) und Pflicht, so konnte der Lead
+  keine Beschlüsse mehr anlegen. Gesperrt ist `--quelle` jetzt nur noch beim Schirm, dort setzt die Brücke sie selbst.
+
 ## 1.7.0 – 04.11.2026 · Schirm-Schalter
 Beschluss B2419 „Automatismen in der AMW statt Gebote“, Teil 1 (Plan: `doc/plan-automatismen.md`).
 - **Schirm frei/zu als Zustand in der AMW:** Ob Agenten Läufe mit Fenster starten dürfen, steht jetzt in der AMW, nicht
