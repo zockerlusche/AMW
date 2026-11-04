@@ -103,6 +103,7 @@ class Parken(unittest.TestCase):
         self.con.execute("DROP TABLE wartegrund")                         # … und keine Wartegründe (12)
         self.con.execute("ALTER TABLE frage DROP COLUMN geprueft")
         self.con.execute("ALTER TABLE agent DROP COLUMN alias")                             # Schema 9 kannte den Schirm-Schalter (11) nicht
+        self.con.execute("ALTER TABLE sitzung DROP COLUMN taetigkeit_utc")         # … und kein Alter der Tätigkeit (13)
         self.con.execute("PRAGMA user_version = 9")
         self.con.close()
         self.con = db.verbinde(self.pfad)

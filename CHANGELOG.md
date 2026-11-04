@@ -4,6 +4,42 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.10.0 – 04.11.2026 · Wünsche der Agenten aus dem Betrieb
+Was die Agenten nach einer Woche Betrieb gebraucht und begründet haben, mit echten Fällen. Schema 13.
+- **Eine info an genau einen Empfänger weckt.** Bisher weckte keine info. „Merge erledigt“ oder „Lauf jetzt möglich“ lagen
+  so bis zu 75 Minuten ungelesen. Sammel-Infos an mehrere und Kopien der AMW wecken weiter nicht. Ältere Nachrichten
+  wecken nach einem Update nicht auf einmal.
+- **Warten auf die Datenbank wird sichtbar:** Nach 10 s Warten auf die Datenbank schreibt `amw` alle 10 s eine Zeile
+  („warte seit 20 s auf die Datenbank – ein anderer Prozess schreibt gerade“). Nach 30 s bricht es mit Rückgabewert 3 und
+  einer klaren Meldung ab. Vorher hing es still.
+- **lesen:** `amw lesen 16707 16589` zeigt mehrere Nachrichten auf einmal. `lesen --neu` zeigt nur Ungelesenes, neueste
+  zuerst. `lesen --verlauf` zeigt die letzten Nachrichten an mich, auch gelesene und erledigte. Ist die Aufgabe einer
+  Nachricht schon abgeschlossen, steht „(A… schon fertig)“ dabei.
+- **erledigt:** `erledigt --info [--vor 04.11.]` hakt alle info-Nachrichten auf einmal ab. Die AMW-Meldung „A…: X hat
+  geschrieben (#…)“ ist mit der Nachricht, die sie meldet, gleich mit erledigt. `aufgabe start` hakt die Meldung „alle
+  Gründe erledigt – weiter“ ab.
+- **Nummern mit Vorsilbe überall:** `A1162`, `#16000`, `L12`, `F7` gehen, wo eine Nummer erwartet wird.
+- **`amw abmelden`:** Die Sitzung ruht. Sie wird nicht mehr geweckt und nicht automatisch neu gestartet, bis zum nächsten
+  `amw anmelden` oder Start. Der Lead erfährt es. Die Workbench zeigt „abgemeldet“.
+- **Alter der Tätigkeit:** Workbench und `agent liste` zeigen, seit wann die eigene Angabe steht. Ab 2 h ist sie in
+  Bernstein markiert („veraltet?“). `aufgabe start` und `lauf start` setzen die Tätigkeit nur, wenn keine da ist oder sie
+  älter als 2 h ist. Eine eigene, genauere Angabe wird nicht überschrieben.
+- **`--an alle`** erreicht auch Agenten mit Soll „aus“, deren Sitzung läuft. Wen es nicht erreicht, steht in der Ausgabe
+  („nicht erreicht: CC7 (Soll aus, keine Sitzung)“).
+- **`aufgabe nachtrag <nr> --titel …`:** Folgearbeit zu einer fertigen Aufgabe wird eine neue Aufgabe mit Bezug, mit dem
+  gleichen Besitzer und Prüfer. Wer mit `--aufgabe` auf eine fertige Aufgabe zeigt, bekommt das als Vorschlag.
+- **`aufgabe zeige <nr> --kurz`:** eine Zeile mit Status, Besitzer, Titel und Wartegründen.
+- **Hinweis „A… gehört X – richtig?“** kommt nur noch beim ersten Beitrag zu einer fremden Aufgabe. Er entfällt für ihren
+  Prüfer und bei Antworten auf eine Nachricht zu dieser Aufgabe.
+- **`notiz zeige --suche CC5`:** nur Notizen, deren Schlüssel oder Text die Wörter enthält.
+- **Startskript:** Die Agenten starten 20 s nacheinander statt alle auf einmal (`--abstand N`). `--alle` nimmt auch die
+  mit Soll „aus“ oder „ruht“ dazu.
+- **Freigabe-Zeile eines Laufs** wird an einer Wortgrenze gekürzt, nicht mitten im Inhalt. Die ganze Beschreibung steht
+  im Text.
+- **Aufruf-Fehler** nennen den Grund in der ersten Zeile, z. B. „invalid choice: 'plan' (choose from …)“, danach die
+  Kurzhilfe.
+- **Git-Bash-Pfade** (`/c/Users/…`, `/f/…`) gehen bei `--text-datei`, Dateien, Ordnern und Anhängen.
+
 ## 1.9.2 – 04.11.2026 · Brücke behält jeden Beleg
 - **Brücke überschreibt nichts mehr:** Kam eine Befehlsdatei mit einem Namen, der in `eingang-tl/erledigt/` schon lag,
   ersetzte die Brücke Befehl und Ergebnis des früheren Durchgangs – die Spur war weg. Jetzt landet sie als `khp.2.json`

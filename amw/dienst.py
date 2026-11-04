@@ -82,6 +82,7 @@ class Dienst:
         self.sperre_bis = {}      # (projekt_id, agent) → Zeitpunkt des nächsten Versuchs nach Fehlschlag
         self.ueberwachung = ueberwachung.Waechter(con)
         self.neustarter = steuerung.Neustarter(con)
+        self.seit = db.jetzt()    # Einzel-Infos wecken erst ab hier (sonst weckte der Altbestand alle auf einmal)
 
     def takt(self):
         """Regelmäßige Zusammenfassung an den Lead: je Projekt alle takt_min Minuten eine
@@ -112,8 +113,9 @@ class Dienst:
     def zustellen(self):
         offen = self.con.execute(
             "SELECT e.nachricht_id, e.agent, n.projekt_id, n.von, n.art, n.kurz FROM empfang e"
-            " JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art a ON a.art = n.art"
-            " WHERE e.status = 'offen' AND e.geweckt_utc IS NULL AND a.weckt = 1 ORDER BY n.id").fetchall()
+            " JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
+            " WHERE e.status = 'offen' AND e.geweckt_utc IS NULL AND (k.weckt = 1 OR (n.zeit_utc >= ? AND "
+            + kern.WECKT_SQL + ")) ORDER BY n.id", (self.seit,)).fetchall()
         gruppen = {}
         for z in offen:
             gruppen.setdefault((z["projekt_id"], z["agent"]), []).append(z)

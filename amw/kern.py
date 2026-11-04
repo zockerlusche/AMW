@@ -231,8 +231,49 @@ def taetigkeit(con, pid, kennung, text, aufgabe_id=None):
                         (a["id"],)).fetchone()
         if not s:
             raise AmwFehler(f"{kennung} hat keine aktive Sitzung – erst: amw anmelden --von {kennung}")
-        con.execute("UPDATE sitzung SET taetigkeit = ?, aufgabe_id = ?, letzter_puls_utc = ? WHERE id = ?",
-                    ((text or "").strip()[:200] or None, aufgabe_id, db.jetzt(), s["id"]))
+        t = db.jetzt()
+        con.execute("UPDATE sitzung SET taetigkeit = ?, taetigkeit_utc = ?, aufgabe_id = ?, letzter_puls_utc = ? WHERE id = ?",
+                    ((text or "").strip()[:200] or None, t if (text or "").strip() else None, aufgabe_id, t, s["id"]))
+
+
+TAETIGKEIT_ALT_S = 2 * 3600      # ab da gilt eine Tätigkeit als veraltet (Workbench: Bernstein, automatisch ersetzbar)
+
+
+def taetigkeit_auto(con, pid, kennung, text, aufgabe_id=None):
+    """aufgabe start / lauf start: setzt die Tätigkeit nur, wenn keine da ist oder sie älter als 2 h ist – eine eigene,
+    genauere Angabe wird nicht überschrieben. Läuft in der Transaktion des Aufrufers."""
+    s = con.execute("SELECT s.id, s.taetigkeit, s.taetigkeit_utc FROM sitzung s JOIN agent g ON g.id = s.agent_id"
+                    " WHERE g.projekt_id = ? AND g.kennung = ? AND s.zustand = 'aktiv' ORDER BY s.id DESC LIMIT 1",
+                    (pid, kennung)).fetchone()
+    if not s:
+        return False
+    if s["taetigkeit"] and s["taetigkeit_utc"] and alter_s(s["taetigkeit_utc"]) < TAETIGKEIT_ALT_S:
+        return False
+    con.execute("UPDATE sitzung SET taetigkeit = ?, taetigkeit_utc = ?, aufgabe_id = ? WHERE id = ?",
+                (text[:200], db.jetzt(), aufgabe_id, s["id"]))
+    return True
+
+
+def alter_s(utc):
+    """Sekunden seit einem Zeitstempel der Datenbank (UTC, ISO)."""
+    from datetime import datetime, timezone
+    return (datetime.now(timezone.utc) - datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)).total_seconds()
+
+
+def abmelden(con, pid, kennung):
+    """Sitzung ruht: kein Wecken mehr bis zum nächsten anmelden (bzw. Start/Resume), kein automatischer Neustart;
+    der Lead erfährt es. Die Sitzung selbst bleibt offen – beenden tut der Mensch."""
+    a = agent_zeile(con, pid, kennung)
+    with db.schreiben(con):
+        n = con.execute("UPDATE sitzung SET zustand = 'ruht', taetigkeit = 'abgemeldet', taetigkeit_utc = ?"
+                        " WHERE agent_id = ? AND zustand = 'aktiv'", (db.jetzt(), a["id"])).rowcount
+        if not n:
+            raise AmwFehler(f"{kennung} ist nicht angemeldet")
+        l = lead(con, pid)
+        if l and l != kennung:
+            _posten(con, pid, kennung, l, "info", f"{kennung} hat sich abgemeldet – wird nicht geweckt bis zum nächsten"
+                                                 f" anmelden")
+    return n
 
 
 # --- Halt und Sperren ----------------------------------------------------------------------------
@@ -286,10 +327,10 @@ def empfaenger(con, pid, an, von):
         teil = teil.strip()
         if not teil:
             continue
-        if teil.lower() == "alle":
+        if teil.lower() == "alle":                    # Soll an/ruht oder Sitzung läuft (auch bei Soll aus)
             namen += [r["kennung"] for r in con.execute(
-                "SELECT kennung FROM agent WHERE projekt_id = ? AND empfaengt_rund = 1 AND soll != 'aus'"
-                " ORDER BY id", (pid,))]
+                "SELECT kennung FROM agent g WHERE projekt_id = ? AND empfaengt_rund = 1 AND (soll != 'aus' OR EXISTS"
+                " (SELECT 1 FROM sitzung s WHERE s.agent_id = g.id AND s.zustand = 'aktiv')) ORDER BY id", (pid,))]
         elif teil.lower() == ENTWICKLER.lower():         # der Mensch: liest in der Workbench, wird nie geweckt
             namen.append(ENTWICKLER)
         else:
@@ -298,6 +339,21 @@ def empfaenger(con, pid, an, von):
     if not aus:
         raise AmwFehler("kein Empfänger")
     return aus
+
+
+def ausgelassen(con, pid):
+    """Wen „alle“ nicht erreicht: Soll aus und keine laufende Sitzung, oder keine Rundschreiben."""
+    return [f"{r['kennung']} ({'keine Rundschreiben' if not r['empfaengt_rund'] else 'Soll aus, keine Sitzung'})"
+            for r in con.execute("SELECT kennung, empfaengt_rund FROM agent g WHERE projekt_id = ? AND (empfaengt_rund = 0 OR"
+                                 " (soll = 'aus' AND NOT EXISTS (SELECT 1 FROM sitzung s WHERE s.agent_id = g.id"
+                                 " AND s.zustand = 'aktiv'))) ORDER BY id", (pid,))]
+
+
+# Weckt eine Nachricht? Art mit weckt = 1, oder eine info an genau einen Empfänger von einem Agenten/dem Entwickler
+# (Einzel-Infos wie „Merge erledigt“ blieben sonst bis zu 75 min liegen; Sammel-Infos und Kopien der AMW wecken nicht).
+# n = nachricht, k = nachricht_art.
+WECKT_SQL = ("(k.weckt = 1 OR (n.art = 'info' AND n.von != 'AMW'"
+             " AND (SELECT count(*) FROM empfang z WHERE z.nachricht_id = n.id) = 1))")
 
 
 def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None):
@@ -328,16 +384,22 @@ def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_i
 KOPIE_ARTEN = ("info", "meldung", "antwort")      # L5: Kopie an den Besitzer – nicht bei auftrag/pruefbitte (Merge, Prüfung)
 
 
-def aufgabe_bezug(con, pid, von, aid):
+def aufgabe_bezug(con, pid, von, aid, antwort_auf=None):
     """L4: --aufgabe muss es geben und darf nicht abgeschlossen sein. Gibt die Aufgabe und ggf. einen Hinweis zurück
-    (fremde Aufgabe – kein Fehler, Merge- und Prüfbitten tragen fremde Nummern)."""
+    (fremde Aufgabe – kein Fehler, Merge- und Prüfbitten tragen fremde Nummern). Kein Hinweis, wenn der Absender Prüfer
+    der Aufgabe ist, schon einmal zu ihr geschrieben hat oder auf eine Nachricht zu ihr antwortet."""
     a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
     if not a:
         raise AmwFehler(f"A{aid} gibt es nicht – Nummer prüfen (amw aufgabe liste --agent {von})")
     if a["status"] in ("fertig", "verworfen"):
-        raise AmwFehler(f"A{aid} ist {a['status']} – für Neues eine neue Aufgabe, sonst ohne --aufgabe")
+        raise AmwFehler(f"A{aid} ist {a['status']} – Folgearbeit dazu: amw aufgabe nachtrag {aid} --titel …"
+                        " (neue Aufgabe mit Bezug), sonst ohne --aufgabe")
     hinweis = None
-    if a["agent"] and a["agent"] != von and not ist_lead(con, pid, von):
+    if (a["agent"] and a["agent"] != von and not ist_lead(con, pid, von) and a["pruefer"] != von
+            and not con.execute("SELECT 1 FROM nachricht WHERE projekt_id = ? AND von = ? AND aufgabe_id = ? LIMIT 1",
+                                (pid, von, aid)).fetchone()
+            and not (antwort_auf and con.execute("SELECT 1 FROM nachricht WHERE id = ? AND aufgabe_id = ?",
+                                                 (antwort_auf, aid)).fetchone())):
         hinweis = f"Hinweis: A{aid} gehört {a['agent']} ({a['titel'][:60]}) – richtig?"
     return a, hinweis
 
@@ -347,10 +409,14 @@ def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id
     with db.schreiben(con):
         a = None
         if aufgabe_id and von != "AMW":
-            a, hinweis = aufgabe_bezug(con, pid, von, aufgabe_id)
+            a, hinweis = aufgabe_bezug(con, pid, von, aufgabe_id, antwort_auf)
             if hinweis and hinweise is not None:
                 hinweise.append(hinweis)
         nid, namen = _posten(con, pid, von, an, art, kurz, text, antwort_auf, aufgabe_id)
+        if hinweise is not None and any(t.strip().lower() == "alle" for t in an.replace(";", ",").split(",")):
+            weg = ausgelassen(con, pid)
+            if weg:
+                hinweise.append("nicht erreicht: " + ", ".join(weg))
         besitzer = a["agent"] if a else None
         if (art in KOPIE_ARTEN and besitzer and besitzer != von and besitzer not in namen
                 and con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, besitzer)).fetchone()):
@@ -399,7 +465,20 @@ def erledigt(con, pid, kennung, nids, bemerkung=None):
                 " WHERE nachricht_id = ? AND agent = ? AND status != 'erledigt'"
                 " AND nachricht_id IN (SELECT id FROM nachricht WHERE projekt_id = ?)",
                 (db.jetzt(), bemerkung, nid, kennung, pid)).rowcount
+            # die Meldung der AMW „A…: X hat geschrieben (#nid) – …“ gehört zu dieser Nachricht – gleich mit erledigen
+            con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ? WHERE agent = ? AND status != 'erledigt'"
+                        " AND nachricht_id IN (SELECT id FROM nachricht WHERE projekt_id = ? AND von = 'AMW' AND kurz LIKE ?)",
+                        (db.jetzt(), kennung, pid, f"%(#{nid})%"))
     return n
+
+
+def erledigt_infos(con, pid, kennung, vor=None):
+    """Alle offenen/gelesenen [info] an kennung erledigen (vor: nur ältere als dieses Datum, JJJJ-MM-TT). Anzahl."""
+    sql = ("UPDATE empfang SET status = 'erledigt', erledigt_utc = ?, bemerkung = coalesce(bemerkung, 'info gesammelt')"
+           " WHERE agent = ? AND status != 'erledigt' AND nachricht_id IN (SELECT id FROM nachricht WHERE projekt_id = ?"
+           " AND art = 'info'" + (" AND zeit_utc < ?" if vor else "") + ")")
+    with db.schreiben(con):
+        return con.execute(sql, (db.jetzt(), kennung, pid, *([vor] if vor else []))).rowcount
 
 
 # --- Aufgaben ------------------------------------------------------------------------------------
@@ -470,9 +549,30 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
                          bogen_id=a["bogen_id"], aufgabe_id=aid, text=neu)
         if neu in ("laeuft", "fertig", "verworfen"):
             wartegrund.schliessen(con, aid, f"A{aid} {neu}")
+        if neu == "laeuft":                          # „alle Gründe erledigt – weiter“ ist damit abgearbeitet
+            con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ? WHERE agent = ? AND status != 'erledigt'"
+                        " AND nachricht_id IN (SELECT id FROM nachricht WHERE projekt_id = ? AND von = 'AMW'"
+                        " AND aufgabe_id = ? AND art IN ('meldung', 'info'))", (t, von, pid, aid))
+            if a["agent"] in (None, "", von):
+                taetigkeit_auto(con, pid, von, f"A{aid} · {a['titel']}", aid)
         if neu in ("fertig", "verworfen"):            # wer auf diese Aufgabe gewartet hat, wird geweckt (L2)
             wartegrund.erledige(con, pid, "aufgabe", f"A{aid}", f"A{aid} {neu}")
     return neu
+
+
+def aufgabe_nachtrag(con, pid, von, aid, titel, auftrag=None, agent=None):
+    """Folgearbeit zu einer abgeschlossenen Aufgabe: neue Aufgabe mit Bezug (Titel „Nachtrag A…: …“), gleicher Besitzer,
+    wenn keiner genannt ist. Darf der Lead und der Besitzer der alten Aufgabe."""
+    alt = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    if not alt:
+        raise AmwFehler(f"A{aid} gibt es nicht")
+    if alt["agent"] not in (None, "", von) and not ist_lead(con, pid, von):
+        raise AmwFehler(f"Nachtrag zu A{aid}: nur {alt['agent']} oder der Lead")
+    if not (titel or "").strip():
+        raise AmwFehler("--titel fehlt")
+    text = f"Nachtrag zu A{aid} ({alt['titel'][:80]}, {alt['status']})." + (f"\n{auftrag}" if auftrag else "")
+    return aufgabe_neu(con, pid, von, f"Nachtrag A{aid}: {titel.strip()}", agent or alt["agent"] or None, text,
+                       alt["rang"], alt["pruefer"])
 
 
 def aufgaben(con, pid, agent=None, alle=False):

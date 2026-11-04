@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import re
+import sqlite3
 import sys
 import time
 from datetime import datetime
@@ -100,7 +101,8 @@ def cmd_agent(a, con):
     if a.aktion in ("profil", "starten", "beenden", "startskript"):
         from . import steuerung
         if a.aktion == "startskript":
-            text = steuerung.startskript(con, pid, [a.kennung] if a.kennung else None)
+            text = steuerung.startskript(con, pid, [a.kennung] if a.kennung else None, alle=a.alle,
+                                         abstand_s=steuerung.STARTSKRIPT_ABSTAND_S if a.abstand is None else a.abstand)
             if a.datei:
                 with open(a.datei, "w", encoding="utf-8-sig") as f:
                     f.write(text)
@@ -130,13 +132,24 @@ def cmd_agent(a, con):
                 print(f"{k:<14} {v}")
         return
     for r in con.execute(
-            "SELECT g.kennung, g.alias, g.rolle, g.soll, s.zustand, s.letzter_puls_utc,"
+            "SELECT g.kennung, g.alias, g.rolle, g.soll, s.zustand, s.letzter_puls_utc, s.taetigkeit, s.taetigkeit_utc,"
             " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
             "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status != 'erledigt') AS offen"
             " FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
             " WHERE g.projekt_id = ? ORDER BY g.id", (pid,)):
         print(f"{r['kennung']:<8} {r['rolle'] or '':<10} soll {r['soll']:<4} ist {r['zustand'] or 'nie gestartet':<14}"
-              f" Puls {_zeit(r['letzter_puls_utc']) or '–':<12} offen {r['offen']}" + (f"  (früher {r['alias']})" if r["alias"] else ""))
+              f" Puls {_zeit(r['letzter_puls_utc']) or '–':<12} offen {r['offen']}" + (f"  (früher {r['alias']})" if r["alias"] else "")
+              + (f"\n         macht: {r['taetigkeit'][:90]} ({_alter(r['taetigkeit_utc'])})"
+                 if r["taetigkeit"] and r["zustand"] in ("aktiv", "ruht") else ""))
+
+
+def _alter(utc):
+    """„seit 25 min“, „seit 3 h – veraltet?“ (ab 2 h), „Alter unbekannt“ (vor 1.10.0 gesetzt)."""
+    if not utc:
+        return "Alter unbekannt"
+    s = kern.alter_s(utc)
+    text = f"seit {int(s // 60)} min" if s < 3600 else f"seit {s / 3600:.0f} h" if s < 86400 else f"seit {s / 86400:.0f} T"
+    return text + (" – veraltet?" if s >= kern.TAETIGKEIT_ALT_S else "")
 
 
 def cmd_posten(a, con):
@@ -152,28 +165,101 @@ def cmd_posten(a, con):
         print(h)
 
 
+def nummer(text):
+    """Nummer mit oder ohne Vorsilbe: „A1162“, „a1162“, „#16000“, „L12“, „F7“, „D5“, „B2“, „1162“ (argparse-Typ)."""
+    m = re.fullmatch(r"\s*(?:#|[A-Za-z]{1,2})?(\d+)\s*", str(text))
+    if not m:
+        raise argparse.ArgumentTypeError(f"keine Nummer: {text!r} (z. B. 1162 oder A1162)")
+    return int(m.group(1))
+
+
+def windows_pfad(pfad):
+    """Git-Bash-Pfad (/c/Users/…, /f/amw/…) → C:/Users/…, wenn es ihn so nicht gibt (unter Windows)."""
+    if os.name != "nt" or not isinstance(pfad, str):
+        return pfad
+    m = re.fullmatch(r"/([A-Za-z])(/.*)?", pfad)
+    if m and not os.path.exists(pfad):
+        return f"{m.group(1).upper()}:{m.group(2) or '/'}"
+    return pfad
+
+
+PFAD_OPTIONEN = ("text_datei", "datei", "pfad", "ordner", "zusatz")
+
+
+def _pfade_umsetzen(a):
+    for k in PFAD_OPTIONEN:
+        v = getattr(a, k, None)
+        if isinstance(v, str):
+            setattr(a, k, windows_pfad(v))
+    if isinstance(getattr(a, "anhang", None), list):                  # frage neu --anhang A=bild.png
+        a.anhang = [(x.split("=", 1)[0] + "=" + windows_pfad(x.split("=", 1)[1])) if "=" in x else windows_pfad(x)
+                    for x in a.anhang]
+
+
+def _lesezeile(con, r):
+    fertig = ""
+    if r["aufgabe_id"]:
+        st = con.execute("SELECT status FROM aufgabe WHERE id = ?", (r["aufgabe_id"],)).fetchone()
+        if st and st["status"] in ("fertig", "verworfen"):
+            fertig = f" (A{r['aufgabe_id']} schon {st['status']})"
+    stand = {"offen": "", "gelesen": " (gelesen)", "erledigt": " (erledigt)"}.get(r["status"], f" ({r['status']})")
+    return f"#{r['id']} {_zeit(r['zeit_utc'])} {r['von']:<8} [{r['art']}]{stand}{fertig} {r['kurz'][:140]}"
+
+
 def cmd_lesen(a, con):
     pid = _projekt(con, a)
     von = _von(a)
-    if a.id:
-        n = kern.lesen(con, pid, von, a.id)
-        print(f"#{n['id']} {_zeit(n['zeit_utc'])} {n['von']} [{n['art']}]"
-              + (f" Antwort auf #{n['antwort_auf']}" if n["antwort_auf"] else "")
-              + (f" · A{n['aufgabe_id']}" if n["aufgabe_id"] else ""))
-        print(n["kurz"])
-        if n["text"]:
-            print(n["text"])
+    if a.id:                                           # eine oder mehrere ganze Nachrichten
+        for i, nid in enumerate(a.id):
+            n = kern.lesen(con, pid, von, nid)
+            if i:
+                print("\n" + "─" * 60)
+            print(f"#{n['id']} {_zeit(n['zeit_utc'])} {n['von']} [{n['art']}]"
+                  + (f" Antwort auf #{n['antwort_auf']}" if n["antwort_auf"] else "")
+                  + (f" · A{n['aufgabe_id']}" if n["aufgabe_id"] else ""))
+            print(n["kurz"])
+            if n["text"]:
+                print(n["text"])
         return
-    zeilen = kern.offene(con, pid, von, a.grenze)
+    if a.verlauf:                                      # auch Gelesenes/Erledigtes: was kam zuletzt an mich?
+        zeilen = con.execute(
+            "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.aufgabe_id, e.status FROM empfang e JOIN nachricht n"
+            " ON n.id = e.nachricht_id WHERE n.projekt_id = ? AND e.agent = ? ORDER BY n.id DESC LIMIT ?",
+            (pid, von, a.grenze)).fetchall()
+        for r in zeilen:
+            print(_lesezeile(con, r))
+        print(f"{len(zeilen)} Nachrichten an {von}, neueste zuerst")
+        return
+    zeilen = kern.offene(con, pid, von, a.grenze, neueste_zuerst=a.neu)
+    if a.neu:
+        zeilen = [r for r in zeilen if r["status"] == "offen"]
     for r in zeilen:
-        print(f"#{r['id']} {_zeit(r['zeit_utc'])} {r['von']:<8} [{r['art']}]{'' if r['status'] == 'offen' else ' (gelesen)'}"
-              f" {r['kurz'][:140]}")
-    print(f"{len(zeilen)} offen" if zeilen else "nichts offen")
+        print(_lesezeile(con, r))
+    print((f"{len(zeilen)} ungelesen" if a.neu else f"{len(zeilen)} offen") if zeilen else "nichts offen")
 
 
 def cmd_erledigt(a, con):
-    n = kern.erledigt(con, _projekt(con, a), _von(a), a.ids, a.bemerkung)
+    pid = _projekt(con, a)
+    if a.info:
+        vor = _datum(a.vor) if a.vor else None
+        print(f"{kern.erledigt_infos(con, pid, _von(a), vor)} info erledigt" + (f" (vor {a.vor})" if vor else ""))
+        if not a.ids:
+            return
+    if not a.ids:
+        raise kern.AmwFehler("welche Nachrichten? amw erledigt 12 13 (oder --info für alle info-Nachrichten)")
+    n = kern.erledigt(con, pid, _von(a), a.ids, a.bemerkung)
     print(f"{n} erledigt")
+
+
+def _datum(text):
+    """04.11. / 04.11.2026 / 2026-11-04 → 2026-11-04 (Beginn des Tages, UTC)."""
+    from datetime import date
+    m = re.fullmatch(r"(\d{1,2})\.(\d{1,2})\.(\d{4})?", text.strip())
+    if m:
+        return date(int(m.group(3) or date.today().year), int(m.group(2)), int(m.group(1))).isoformat()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text.strip()):
+        return text.strip()
+    raise kern.AmwFehler(f"Datum „{text}“ nicht erkannt – 04.11. oder 2026-11-04")
 
 
 def _schritt_werte(a):
@@ -221,10 +307,22 @@ def cmd_aufgabe(a, con):
             gruende = ", ".join(g["bezug"] for g in wartegrund.offene(con, r["id"]))
             print(f"A{r['id']:<5} {r['agent'] or '–':<8} [{r['status']}/{r['einstufung']}] {r['titel'][:110]}"
                   + (f"  ⇢ {gruende}" if gruende else "") + (f"  ⇢ {r['wartet_auf']}" if r["wartet_auf"] else ""))
+    elif a.aktion == "nachtrag":
+        if not a.id:
+            raise kern.AmwFehler("amw aufgabe nachtrag <nr> --titel … [--auftrag …] [--agent …]")
+        aid = kern.aufgabe_nachtrag(con, pid, _von(a), a.id, a.titel, a.auftrag, a.agent)
+        print(f"A{aid} angelegt (Nachtrag zu A{a.id}) – Nachrichten und Läufe dazu mit --aufgabe {aid}")
     elif a.aktion == "zeige":
         r = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
         if not r:
             raise kern.AmwFehler(f"A{a.id} gibt es nicht")
+        if getattr(a, "kurz", False):
+            from . import wartegrund
+            offen = [g["bezug"] for g in wartegrund.offene(con, a.id)]
+            print(f"A{r['id']} [{r['status']}] {r['agent'] or '–'} · {r['titel']}"
+                  + (f" · wartet auf {', '.join(offen)}" if offen else "")
+                  + (f" · {r['wartet_auf']}" if r["wartet_auf"] and r["status"] in ("wartet", "blockiert") else ""))
+            return
         for k in r.keys():
             if r[k] not in (None, "") and k not in ("uid", "herkunft"):
                 print(f"{k}: {r[k]}")
@@ -867,9 +965,19 @@ def cmd_notiz(a, con):
             raise kern.AmwFehler("Schlüssel fehlt")
         print(wissen.notiz_setzen(con, pid, _von(a), eins, _text(a)))
     else:
-        sql = "SELECT schluessel, wert, geaendert_utc FROM notiz WHERE projekt_id = ?" + (" AND schluessel = ?" if eins else "")
-        for r in con.execute(sql + " ORDER BY schluessel", (pid, eins) if eins else (pid,)):
+        sql, par = "SELECT schluessel, wert, geaendert_utc FROM notiz WHERE projekt_id = ?", [pid]
+        if eins:
+            sql += " AND schluessel = ?"
+            par.append(eins)
+        for w in (a.suche or "").split():              # z. B. --suche CC5 oder --suche A1162 (Schlüssel oder Text)
+            sql += " AND (schluessel LIKE ? OR wert LIKE ?)"
+            par += [f"%{w}%", f"%{w}%"]
+        n = 0
+        for r in con.execute(sql + " ORDER BY schluessel", par):
+            n += 1
             print(f"[{r['schluessel']}] {_zeit(r['geaendert_utc'])}\n{r['wert'] if eins else r['wert'][:160]}\n")
+        if a.suche and not n:
+            print(f"keine Notiz mit „{a.suche}“")
 
 
 def cmd_release(a, con):
@@ -1006,6 +1114,12 @@ def cmd_anmelden(a, con):
           + " – der Wächter weckt diese Sitzung ab jetzt bei neuen Nachrichten")
 
 
+def cmd_abmelden(a, con):
+    kern.abmelden(con, _projekt(con, a), _von(a))
+    print(f"{_von(a)} abgemeldet – kein Wecken und kein automatischer Neustart bis zum nächsten `amw anmelden`"
+          " (oder Start/Fortsetzen der Sitzung); der Lead ist informiert")
+
+
 def cmd_hook(a):
     from . import einrichtung
     print("Für .claude/settings.local.json eines Agenten-Ordners (zusammenführen: amw einrichten agenten-ordner <pfad>):")
@@ -1133,7 +1247,7 @@ def cmd_push(a):
 
 def parser():
     from . import __version__
-    p = argparse.ArgumentParser(prog="amw", description="Agentenmanagement Workbench")
+    p = Parser(prog="amw", description="Agentenmanagement Workbench")
     p.add_argument("--version", action="version", version=f"AMW {__version__}")
     p.add_argument("--projekt")
     p.add_argument("--von")
@@ -1165,6 +1279,8 @@ def parser():
     x.add_argument("--kein-neustart", action="store_true")
     x.add_argument("--neu", action="store_true", help="starten: frische Sitzung statt Fortsetzen")
     x.add_argument("--datei", help="startskript: in diese Datei schreiben")
+    x.add_argument("--alle", action="store_true", help="startskript: auch Agenten mit Soll aus/ruht (jeder mit Profil-Ordner)")
+    x.add_argument("--abstand", type=int, help="startskript: Sekunden zwischen zwei Starts (Vorgabe 20)")
     x.add_argument("--rolle")
     x.add_argument("--grenzen")
     x.add_argument("--startbefehl")
@@ -1177,25 +1293,30 @@ def parser():
     x.add_argument("--kurz", required=True)
     x.add_argument("--text")
     x.add_argument("--text-datei")
-    x.add_argument("--antwort-auf", type=int)
-    x.add_argument("--aufgabe", type=int)
+    x.add_argument("--antwort-auf", type=nummer)
+    x.add_argument("--aufgabe", type=nummer)
     x.set_defaults(f=cmd_posten)
 
-    x = s.add_parser("lesen", help="ohne Nummer: offene Liste; mit Nummer: ganze Nachricht")
-    x.add_argument("id", type=int, nargs="?")
+    x = s.add_parser("lesen", help="ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589)")
+    x.add_argument("id", type=nummer, nargs="*")
     x.add_argument("--grenze", type=int, default=50)
+    x.add_argument("--neu", action="store_true", help="nur Ungelesenes, neueste zuerst")
+    x.add_argument("--verlauf", action="store_true", help="die letzten Nachrichten an mich, auch gelesene und erledigte")
     x.set_defaults(f=cmd_lesen)
 
-    x = s.add_parser("erledigt", help="Nachrichten als erledigt markieren: amw erledigt 12 13")
-    x.add_argument("ids", type=int, nargs="+")
+    x = s.add_parser("erledigt", help="Nachrichten als erledigt markieren: amw erledigt 12 13 | --info [--vor 04.11.]")
+    x.add_argument("ids", type=nummer, nargs="*")
     x.add_argument("--bemerkung")
+    x.add_argument("--info", action="store_true", help="alle offenen info-Nachrichten an mich erledigen")
+    x.add_argument("--vor", help="mit --info: nur ältere als dieses Datum (04.11. oder 2026-11-04)")
     x.set_defaults(f=cmd_erledigt)
 
-    x = s.add_parser("aufgabe", help="neu | aendern N | liste | zeige N | start | fertig | … | kriterium N nr | plan N --text |"
-                                     " planfrei N [--zurueck --kommentar]")
+    x = s.add_parser("aufgabe", help="neu | aendern N | liste | zeige N [--kurz] | start | fertig | … | kriterium N nr |"
+                                     " plan N --text | planfrei N [--zurueck --kommentar] | nachtrag N --titel … (Folgearbeit"
+                                     " zu einer fertigen Aufgabe)")
     x.add_argument("aktion", choices=["neu", "aendern", "liste", "zeige", "start", "blockiert", "wartet", "fertig", "verwerfen",
-                                       "parken", "aktiv", "keine_prio", "pool", "kriterium", "plan", "planfrei"])
-    x.add_argument("id", type=int, nargs="?")
+                                       "parken", "aktiv", "keine_prio", "pool", "kriterium", "plan", "planfrei", "nachtrag"])
+    x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("nr", type=int, nargs="?", help="kriterium: Nummer des Kriteriums")
     x.add_argument("--titel")
     x.add_argument("--agent", help="Bearbeiter (auch „Entwickler“ für Schritte des Menschen)")
@@ -1209,7 +1330,7 @@ def parser():
     x.add_argument("--erledigt", help="wartet/blockiert: diese Gründe von Hand abhaken, z. B. F12 (allein: Status bleibt)")
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
-    x.add_argument("--bogen", type=int, help="Planung: gehört zu Bogen N")
+    x.add_argument("--bogen", type=nummer, help="Planung: gehört zu Bogen N")
     x.add_argument("--kriterium", action="append", help="Planung: Abnahmekriterium, mehrfach (ersetzt die Liste)")
     x.add_argument("--schaetzung", type=float, help="Planung: Stunden")
     x.add_argument("--komplexitaet", type=int, help="Planung: 1–10; ab 7 braucht der Schritt einen freigegebenen Plan")
@@ -1224,12 +1345,13 @@ def parser():
     x.add_argument("--nein", action="store_true", help="kriterium: wieder als offen markieren")
     x.add_argument("--zurueck", action="store_true", help="planfrei: zurückweisen (mit --kommentar)")
     x.add_argument("--kommentar")
+    x.add_argument("--kurz", action="store_true", help="zeige: nur Status, Agent, Titel und Wartegründe")
     x.set_defaults(f=cmd_aufgabe)
 
     x = s.add_parser("frage", help="Fragen an den Entwickler oder Lead: neu | liste [--geparkt] | antworten | nachtrag | verlauf |"
                                     " parken N [--grund] | aufnehmen N")
     x.add_argument("aktion", choices=["neu", "liste", "antworten", "nachtrag", "verlauf", "parken", "aufnehmen"])
-    x.add_argument("id", type=int, nargs="?")
+    x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--an", choices=["entwickler", "tl"])
     x.add_argument("--kurz")
     x.add_argument("--worum")
@@ -1238,7 +1360,7 @@ def parser():
     x.add_argument("--fundstellen")
     x.add_argument("--geprueft", help="neu: was du vorher in der AMW geprüft hast (Beschlüsse, Fragen, Regeln) – Pflicht bei"
                                       " Fragen an den Entwickler; findet die AMW Treffer, nenne mindestens einen")
-    x.add_argument("--aufgabe", type=int)
+    x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--blockiert", action="store_true")
     x.add_argument("--text")
     x.add_argument("--rueckfrage")
@@ -1259,7 +1381,7 @@ def parser():
 
     x = s.add_parser("taetigkeit", help="was ich gerade tue (zeigt die Workbench), z. B. taetigkeit \"A12 Login-Formular\"")
     x.add_argument("text", nargs="*")
-    x.add_argument("--aufgabe", type=int)
+    x.add_argument("--aufgabe", type=nummer)
     x.set_defaults(f=cmd_taetigkeit)
 
     x = s.add_parser("kontext", help="Pflicht-Kontext für einen Agenten")
@@ -1292,7 +1414,7 @@ def parser():
 
     x = s.add_parser("bogen", help="Meilensteine: liste | neu | zeigen N | aendern N | status N aktiv|fertig|geplant|verworfen")
     x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status"])
-    x.add_argument("id", type=int, nargs="?")
+    x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("wert", nargs="?", help="status: aktiv | fertig | geplant | verworfen")
     x.add_argument("--titel")
     x.add_argument("--ziel")
@@ -1306,7 +1428,7 @@ def parser():
     x = s.add_parser("spec", help="Spezifikation je Bogen: zeigen N [teil] | schreiben N teil --text/--datei | vorlegen N teil |"
                                   " frei N teil | zurueck N teil --kommentar  (teil: anforderungen | entwurf | schritte)")
     x.add_argument("aktion", choices=["zeigen", "schreiben", "vorlegen", "frei", "zurueck"])
-    x.add_argument("bogen", type=int)
+    x.add_argument("bogen", type=nummer)
     x.add_argument("teil", nargs="?", choices=["anforderungen", "entwurf", "schritte"])
     x.add_argument("--text")
     x.add_argument("--datei")
@@ -1320,7 +1442,7 @@ def parser():
 
     x = s.add_parser("risiko", help="liste | neu --titel … | setzen N --status …")
     x.add_argument("aktion", choices=["liste", "neu", "setzen"])
-    x.add_argument("id", type=int, nargs="?")
+    x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--titel")
     x.add_argument("--ursache")
     x.add_argument("--wirkung")
@@ -1331,12 +1453,12 @@ def parser():
     x.add_argument("--verantwortlich")
     x.add_argument("--ausloeser")
     x.add_argument("--status", choices=["offen", "eingetreten", "erledigt"])
-    x.add_argument("--bogen", type=int)
+    x.add_argument("--bogen", type=nummer)
     x.set_defaults(f=cmd_risiko)
 
     x = s.add_parser("rueckblick", help="Rückblick je Bogen: amw rueckblick <bogen> [--gut … --schlecht … --massnahme … --gelernt …]"
                                         " | --uebernehmen <nr> --als aufgabe|beschluss")
-    x.add_argument("bogen", type=int, nargs="?")
+    x.add_argument("bogen", type=nummer, nargs="?")
     for art in ("gut", "schlecht", "massnahme", "gelernt"):
         x.add_argument("--" + art)
     x.add_argument("--uebernehmen", type=int, help="Nummer eines Maßnahmen-Eintrags")
@@ -1364,7 +1486,7 @@ def parser():
     x = s.add_parser("lauf", help="Rechen-Läufe: start [--warten] prüft Halt, Schirm, Speicher, einen schweren/Schirm-Lauf zur Zeit,"
                                   " Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund")
     x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen", "zeige", "warte"])
-    x.add_argument("id", type=int, nargs="?")
+    x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--warten", action="store_true", help="ist der Platz belegt: NUR einreihen (noch nicht rechnen!) statt"
                                                          " ablehnen; Freigabe weckt dich – oder danach: amw lauf warte <nr>")
     x.add_argument("--hoechstens", type=float, help="warte: nach so vielen Minuten aufgeben (rc 3), Lauf bleibt eingereiht")
@@ -1373,7 +1495,7 @@ def parser():
     x.add_argument("--rezept")
     x.add_argument("--leicht", action="store_true", help="kein schwerer Lauf (keine Speicher-Grenze)")
     x.add_argument("--schirm", action="store_true")
-    x.add_argument("--aufgabe", type=int)
+    x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--rc", type=int)
     x.add_argument("--ergebnis")
     x.add_argument("--abgebrochen", action="store_true")
@@ -1401,19 +1523,19 @@ def parser():
 
     x = s.add_parser("pruefung", help="Prüfbitte je Stand (SHA), Ergebnis grün/rot")
     x.add_argument("aktion", choices=["bitte", "gruen", "rot", "ist-gruen", "liste"])
-    x.add_argument("id", type=int, nargs="?")
+    x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--pruefer")
     x.add_argument("--zweig")
     x.add_argument("--sha")
     x.add_argument("--punkte")
-    x.add_argument("--aufgabe", type=int)
+    x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
     x.set_defaults(f=cmd_pruefung)
 
     x = s.add_parser("hinweis", help="Anweisung an einen Agenten oder alle (z. B. „keine Rechen-Jobs“)")
     x.add_argument("aktion", choices=["setzen", "aufheben"])
-    x.add_argument("id", type=int, nargs="?")
+    x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--fuer", default="alle")
     x.add_argument("--text")
     x.add_argument("--bis", help="UTC, z. B. 2026-11-02T06:00:00Z")
@@ -1447,7 +1569,7 @@ def parser():
             x.add_argument("--zeit")
             x.add_argument("--wortlaut")
             x.add_argument("--aufgaben")
-            x.add_argument("--ersetzt", type=int)
+            x.add_argument("--ersetzt", type=nummer)
         else:
             x.add_argument("--ebene", choices=["arbeit", "projekt"], required=True)
             x.add_argument("--nr", type=int, required=True)
@@ -1486,6 +1608,7 @@ def parser():
     x.add_argument("--beschluss", help="entfernen ohne Lead-Rolle: Nummer eines geltenden Beschlusses (z. B. B5)")
     x.add_argument("--text")
     x.add_argument("--text-datei")
+    x.add_argument("--suche", help="zeige: nur Notizen, deren Schlüssel oder Text alle Wörter enthält (z. B. CC5, A1162)")
     x.set_defaults(f=cmd_notiz)
 
     x = s.add_parser("dienst", help="Wächter als geplante Windows-Aufgabe: einrichten | entfernen | status | neustart |"
@@ -1502,6 +1625,9 @@ def parser():
     x = s.add_parser("anmelden", help="laufende Sitzung beim Wächter anmelden (ohne Neustart)")
     x.add_argument("--ersetzen", action="store_true", help="eine noch lebende andere Sitzung derselben Kennung ablösen")
     x.set_defaults(f=cmd_anmelden)
+
+    x = s.add_parser("abmelden", help="Sitzung ruht: nicht mehr wecken, nicht automatisch neu starten (bis anmelden)")
+    x.set_defaults(f=cmd_abmelden)
 
     x = s.add_parser("einrichten", help="ohne Angabe: geführte Einrichtung (fragt nach) | schnell --projekt-name … (ohne Fragen) |"
                                         " agenten-ordner <pfad> (Hooks, Statusline-Brücke, Sperren)")
@@ -1581,6 +1707,12 @@ def befehle_markdown():
     return "\n".join(z) + "\n"
 
 
+class Parser(argparse.ArgumentParser):
+    """Bei einem Fehler im Aufruf steht der Grund (z. B. die erlaubten Werte) in der ERSTEN Zeile, die Kurzhilfe danach."""
+    def error(self, message):
+        self.exit(2, f"FEHLER: {self.prog}: {message}\n{self.format_usage()}Hilfe: {self.prog} --help\n")
+
+
 def main(argv=None):
     for strom in (sys.stdout, sys.stderr):
         try:
@@ -1588,6 +1720,8 @@ def main(argv=None):
         except AttributeError:
             pass
     a = parser().parse_args(argv)
+    _pfade_umsetzen(a)
+    db.wartemeldung_an()
     try:
         if getattr(a, "ohne_db", False):
             return a.f(a) or 0
@@ -1602,6 +1736,12 @@ def main(argv=None):
     except (kern.AmwFehler, LookupError, FileNotFoundError, FileExistsError, ValueError) as e:
         print(f"FEHLER: {e}", file=sys.stderr)
         return 1
+    except sqlite3.OperationalError as e:
+        if "locked" not in str(e) and "busy" not in str(e):
+            raise
+        print("FEHLER: Datenbank 30 s lang belegt (ein anderer Prozess schreibt) – nichts geändert, bitte gleich noch"
+              " einmal", file=sys.stderr)
+        return 3
     return 0
 
 

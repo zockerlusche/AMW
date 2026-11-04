@@ -291,21 +291,30 @@ def db_sek(utc):
 
 # --- Startskript ---------------------------------------------------------------------------------
 
-def startskript(con, pid, kennungen=None):
-    """PowerShell-Skript, das alle Agenten mit Soll „an“ (oder die genannten) in Tabs startet – aus den Profilen."""
+STARTSKRIPT_ABSTAND_S = 20       # alle auf einmal legten den PC lahm (Neustart 03.11.: 8 Sitzungen, > 120 s je Befehl)
+
+
+def startskript(con, pid, kennungen=None, alle=False, abstand_s=STARTSKRIPT_ABSTAND_S):
+    """PowerShell-Skript, das die Agenten mit Soll „an“ (alle=True: jeder mit Profil-Ordner; oder die genannten) in Tabs
+    eines Fensters startet – aus den Profilen, mit abstand_s Sekunden zwischen zwei Starts."""
     zeilen = ["# Erzeugt von AMW (amw agent startskript) – Änderungen im Profil der Agenten, nicht hier.",
-              "# Setzt jeweils die letzte Sitzung des Agenten fort; ohne frühere Sitzung beginnt eine neue.", ""]
+              "# Setzt jeweils die letzte Sitzung des Agenten fort; ohne frühere Sitzung beginnt eine neue.",
+              f"# Zwischen zwei Starts {abstand_s} s Pause, damit der PC beim Fortsetzen nicht in die Knie geht.", ""]
     tabs = []
     for a in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND ordner IS NOT NULL AND ordner != ''"
-                         + ("" if kennungen else " AND soll = 'an'") + " ORDER BY id", (pid,)).fetchall():
+                         + ("" if kennungen or alle else " AND soll = 'an'") + " ORDER BY id", (pid,)).fetchall():
         if kennungen and a["kennung"] not in kennungen:
             continue
         p = profil(con, pid, a["kennung"])
         fort = letzte_sitzung(con, pid, a["kennung"])
         b64 = base64.b64encode(befehl(p, fort, None if fort else str(uuid.uuid4())).encode("utf-16-le")).decode()
         ordner = p["ordner"].replace("'", "''")             # steht in der einfach gequoteten -ArgumentList
-        tabs.append(f'new-tab --title {a["kennung"]} --suppressApplicationTitle -d "{ordner}" {os.path.basename(_shell())} -NoExit -EncodedCommand {b64}')
+        tabs.append((a["kennung"], f'new-tab --title {a["kennung"]} --suppressApplicationTitle -d "{ordner}" {os.path.basename(_shell())} -NoExit -EncodedCommand {b64}'))
     if not tabs:
         raise kern.AmwFehler("kein Agent mit Profil-Ordner – amw agent profil <kennung> --ordner <Pfad>")
-    zeilen.append("Start-Process wt.exe -ArgumentList '-w amw " + " ; ".join(tabs) + "'")
+    for i, (kennung, tab) in enumerate(tabs):
+        if i and abstand_s:
+            zeilen.append(f"Start-Sleep -Seconds {int(abstand_s)}")
+        zeilen.append(f"Write-Host 'starte {kennung}'")
+        zeilen.append("Start-Process wt.exe -ArgumentList '-w amw " + tab + "'")
     return "\n".join(zeilen) + "\n"

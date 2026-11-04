@@ -7,10 +7,13 @@ Nur Python-Standardbibliothek.
 import os
 import socket
 import sqlite3
+import sys
+import threading
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = 12        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
+SCHEMA_VERSION = 13        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
 HIER = os.path.dirname(os.path.abspath(__file__))
 STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
 
@@ -20,6 +23,45 @@ def db_pfad():
         return os.environ["AMW_DB"]
     from . import einstellungen                  # Einstellung „db_pfad“ (Zahnrad), sonst <AMW-Ordner>\daten\amw.db
     return einstellungen.wert("db_pfad") or STANDARD_DB
+
+
+WARTE_MELDUNG_S = 10      # so lange still warten, dann alle 10 s eine Zeile auf stderr (amw-cli)
+_phase = {"was": None, "seit": 0.0}
+
+
+@contextmanager
+def _warten(was):
+    """Markiert, worauf gerade gewartet wird (Datenbank öffnen, Schreibsperre) – für die Wartemeldung."""
+    _phase["was"], _phase["seit"] = was, time.monotonic()
+    try:
+        yield
+    finally:
+        _phase["was"] = None
+
+
+def wartemeldung_an(strom=None, takt=1.0):
+    """Hintergrund-Faden für amw-cli: Wer länger als WARTE_MELDUNG_S auf die Datenbank wartet, sieht es, statt still zu
+    hängen. Nach busy_timeout (30 s) bricht SQLite mit „database is locked“ ab – das meldet cli.main klar."""
+    strom = strom or sys.stderr
+    gruende = {"oeffnen": "Datenbank öffnen dauert – Rechner ausgelastet?",
+               "sperre": "ein anderer Prozess schreibt gerade (Schreibsperre); Abbruch nach 30 s"}
+
+    def lauf():
+        zuletzt = 0.0
+        while True:
+            time.sleep(takt)
+            was = _phase["was"]
+            if not was:
+                zuletzt = 0.0
+                continue
+            n = time.monotonic() - _phase["seit"]
+            if n >= WARTE_MELDUNG_S and n - zuletzt >= WARTE_MELDUNG_S:
+                zuletzt = n
+                try:
+                    print(f"amw: warte seit {int(n)} s auf die Datenbank – {gruende.get(was, was)}", file=strom, flush=True)
+                except (OSError, ValueError):
+                    return
+    threading.Thread(target=lauf, name="amw-wartemeldung", daemon=True).start()
 
 
 def jetzt():
@@ -41,10 +83,11 @@ def verbinde(pfad=None, nur_lesen=False):
             raise FileNotFoundError(f"{pfad} gibt es nicht – erst `amw einrichten`")
         con = sqlite3.connect(pfad, timeout=30, isolation_level=None)
     con.row_factory = sqlite3.Row
-    con.execute("PRAGMA busy_timeout = 30000")
-    con.execute("PRAGMA foreign_keys = ON")
-    if not nur_lesen:
-        migrieren(con)
+    with _warten("oeffnen"):
+        con.execute("PRAGMA busy_timeout = 30000")
+        con.execute("PRAGMA foreign_keys = ON")
+        if not nur_lesen:
+            migrieren(con)
     return con
 
 
@@ -108,7 +151,8 @@ def sichern(ziel=None, pfad=None):
 @contextmanager
 def schreiben(con):
     """Eine Schreib-Transaktion; sperrt sofort, damit zwei Agenten sich nicht überholen."""
-    con.execute("BEGIN IMMEDIATE")
+    with _warten("sperre"):
+        con.execute("BEGIN IMMEDIATE")
     try:
         yield con
     except BaseException:

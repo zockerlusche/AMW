@@ -145,7 +145,8 @@ class Workbench(unittest.TestCase):
         from amw import betrieb
         con = db.verbinde()
         kern.agent_neu(con, self.pid, "CC1")
-        kern.posten(con, self.pid, "TL", "CC1", "info", "Lob an alle")              # Info weckt nicht → zählt nicht
+        kern.agent_neu(con, self.pid, "CC2")
+        kern.posten(con, self.pid, "TL", "CC1,CC2", "info", "Lob an alle")          # Sammel-Info weckt nicht → zählt nicht
         kern.posten(con, self.pid, "TL", "CC1", "auftrag", "Bitte bauen")
         betrieb.pruefbitte(con, self.pid, "TL", "CC1", "tl-x", "abcdef1234")
         con.close()

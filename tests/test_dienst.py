@@ -49,8 +49,11 @@ class Wecker(unittest.TestCase):
 
     def test_weckt_nur_weckende_arten_und_nur_einmal(self):
         self.anmelden("CC1")
+        if not self.con.execute("SELECT 1 FROM agent WHERE kennung = 'CC2'").fetchone():
+            kern.agent_neu(self.con, self.pid, "CC2")
         n1, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "a")
-        kern.posten(self.con, self.pid, "TL", "CC1", "info", "i")
+        kern.posten(self.con, self.pid, "TL", "CC1,CC2", "info", "i an zwei")             # Sammel-Info weckt nicht
+        kern.posten(self.con, self.pid, "AMW", "CC1", "info", "Kopie")                    # Kopie der AMW weckt nicht
         self.assertEqual(self.d.zustellen(), 1)
         self.assertEqual(self.geweckt(), {(n1, "CC1")})
         self.assertIn(f"#{n1} TL [auftrag] a", self.gesendet[0][1])

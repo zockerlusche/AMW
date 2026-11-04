@@ -64,6 +64,7 @@ CREATE TABLE sitzung (
   letzter_puls_utc  TEXT,
   zustand           TEXT NOT NULL DEFAULT 'aktiv' CHECK (zustand IN ('aktiv', 'ruht', 'beendet', 'tot')),
   taetigkeit        TEXT,
+  taetigkeit_utc    TEXT,                         -- wann taetigkeit gesetzt wurde (Alter)
   aufgabe_id        INTEGER REFERENCES aufgabe(id),
   beendet_utc       TEXT,
   kontext_prozent   REAL,

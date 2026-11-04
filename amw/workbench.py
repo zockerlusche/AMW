@@ -63,10 +63,10 @@ def daten_start(con, pid):
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
         "SELECT g.kennung, g.rolle, g.soll, g.grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc, s.taetigkeit,"
-        " s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc,"
+        " s.taetigkeit_utc, s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc,"
         " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
         "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen' AND n.id > :alt"
-        "   AND k.weckt = 1) AS offen,"                  # nur was eine Handlung braucht; Info weckt nicht und zählt nicht
+        "   AND " + kern.WECKT_SQL + ") AS offen,"       # nur was weckt (Sammel-Infos zählen nicht)
         " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
         "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen' AND n.id <= :alt) AS offen_alt,"
         " (SELECT kurz FROM nachricht WHERE projekt_id = g.projekt_id AND von = g.kennung ORDER BY id DESC LIMIT 1) AS zuletzt,"
@@ -240,7 +240,7 @@ def daten_einstellungen(con, pid, speicher=None):
 def daten_agent(con, pid, kennung):
     """Klick auf die Kachel: was macht er, was kommt noch, was liegt bei ihm."""
     a = con.execute("SELECT g.kennung, g.rolle, g.soll, g.grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc,"
-                    " s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc, s.taetigkeit, s.claude_sitzung FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
+                    " s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc, s.taetigkeit, s.taetigkeit_utc, s.claude_sitzung FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
                     " WHERE g.projekt_id = ? AND g.kennung = ?", (pid, kennung)).fetchone()
     if not a:
         raise LookupError(kennung)

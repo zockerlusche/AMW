@@ -95,10 +95,21 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
         if grund and not warten:
             raise kern.AmwFehler(grund + " – mit --warten einreihen")
         t = db.jetzt()
-        return db.einfuegen(con, "lauf", projekt_id=pid, agent=agent, rezept_id=rez["id"] if rez else None,
-                            beschreibung=beschreibung, schwer=int(schwer), schirm=int(schirm),
-                            status="angemeldet" if grund else "laeuft", angemeldet_utc=t, start_utc=None if grund else t,
-                            speicher_frei_gb=speicher_frei, aufgabe_id=aufgabe_id, erwartet_min=erwartet_min)
+        lid = db.einfuegen(con, "lauf", projekt_id=pid, agent=agent, rezept_id=rez["id"] if rez else None,
+                           beschreibung=beschreibung, schwer=int(schwer), schirm=int(schirm),
+                           status="angemeldet" if grund else "laeuft", angemeldet_utc=t, start_utc=None if grund else t,
+                           speicher_frei_gb=speicher_frei, aufgabe_id=aufgabe_id, erwartet_min=erwartet_min)
+        kern.taetigkeit_auto(con, pid, agent, f"L{lid} {beschreibung or ''}".strip(), aufgabe_id)
+        return lid
+
+
+def kurzfassung(text, n=110):
+    """Für Zeilen mit fester Länge (Weckruf): ganz, oder an einer Wortgrenze gekürzt mit „…“ – nie mitten im Wort."""
+    text = " ".join((text or "").split())
+    if len(text) <= n:
+        return text
+    stueck = text[:n - 1]
+    return (stueck.rsplit(" ", 1)[0] if " " in stueck else stueck).rstrip(",;:–- ") + " …"
 
 
 def warteschlange(con, pid, speicher_frei=None):
@@ -130,8 +141,8 @@ def warteschlange(con, pid, speicher_frei=None):
                 continue
             con.execute("UPDATE lauf SET status = 'laeuft', start_utc = ?, speicher_frei_gb = ? WHERE id = ?",
                         (db.jetzt(), speicher_frei, l["id"]))
-            kern._posten(con, pid, "AMW", l["agent"], "freigabe", f"L{l['id']} ist dran – jetzt starten: {l['beschreibung']}",
-                         f"Der Platz ist für dich reserviert. Am Ende: amw lauf ende {l['id']} --rc <Code>. "
+            kern._posten(con, pid, "AMW", l["agent"], "freigabe", f"L{l['id']} ist dran – jetzt starten: {kurzfassung(l['beschreibung'])}",
+                         f"{l['beschreibung']}\n\nDer Platz ist für dich reserviert. Am Ende: amw lauf ende {l['id']} --rc <Code>. "
                          f"Kannst du gerade nicht: amw lauf ende {l['id']} --abgebrochen (gibt den Platz frei).",
                          aufgabe_id=l["aufgabe_id"])
             gestartet.append(l["id"])

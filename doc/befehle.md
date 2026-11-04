@@ -9,9 +9,9 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`projekt`](#projekt) | Projekte: neu <name> ¦ liste |
 | [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript ¦ umbenennen ALT NEU |
 | [`posten`](#posten) | Nachricht schicken: --an CC2 (oder alle, Entwickler) --art auftrag¦frage¦info¦… --kurz … |
-| [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummer: ganze Nachricht |
-| [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 |
-| [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] |
+| [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
+| [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
+| [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N [--kurz] ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] ¦ nachtrag N --titel … (Folgearbeit zu einer fertigen Aufgabe) |
 | [`frage`](#frage) | Fragen an den Entwickler oder Lead: neu ¦ liste [--geparkt] ¦ antworten ¦ nachtrag ¦ verlauf ¦ parken N [--grund] ¦ aufnehmen N |
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
@@ -42,6 +42,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`dienst`](#dienst) | Wächter als geplante Windows-Aufgabe: einrichten ¦ entfernen ¦ status ¦ neustart ¦ vordergrund (ohne Aufgabe in diesem Fenster, zum Ausprobieren) |
 | [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Abgleich) ¦ zweitfaktor-neu ¦ bauen ¦ schema |
 | [`anmelden`](#anmelden) | laufende Sitzung beim Wächter anmelden (ohne Neustart) |
+| [`abmelden`](#abmelden) | Sitzung ruht: nicht mehr wecken, nicht automatisch neu starten (bis anmelden) |
 | [`einrichten`](#einrichten) | ohne Angabe: geführte Einrichtung (fragt nach) ¦ schnell --projekt-name … (ohne Fragen) ¦ agenten-ordner <pfad> (Hooks, Statusline-Brücke, Sperren) |
 | [`befehle`](#befehle) | Befehlsreferenz als Markdown (für doc/befehle.md) |
 | [`sichern`](#sichern) | Sicherung der Datenbank (vollständige Kopie, auch während des Betriebs) |
@@ -83,7 +84,8 @@ usage: amw agent [-h] [--ordner ORDNER] [--zusatz ZUSATZ]
                  [--denkstufe DENKSTUFE] [--modell MODELL]
                  [--startsatz STARTSATZ] [--rechte RECHTE] [--fernsteuerung]
                  [--keine-fernsteuerung] [--neustart] [--kein-neustart]
-                 [--neu] [--datei DATEI] [--rolle ROLLE] [--grenzen GRENZEN]
+                 [--neu] [--datei DATEI] [--alle] [--abstand ABSTAND]
+                 [--rolle ROLLE] [--grenzen GRENZEN]
                  [--startbefehl STARTBEFEHL] [--ohne-rund] [--von VON]
                  [--projekt PROJEKT]
                  {neu,liste,profil,starten,beenden,startskript,umbenennen}
@@ -111,6 +113,10 @@ options:
   --kein-neustart
   --neu                 starten: frische Sitzung statt Fortsetzen
   --datei DATEI         startskript: in diese Datei schreiben
+  --alle                startskript: auch Agenten mit Soll aus/ruht (jeder mit
+                        Profil-Ordner)
+  --abstand ABSTAND     startskript: Sekunden zwischen zwei Starts (Vorgabe
+                        20)
   --rolle ROLLE
   --grenzen GRENZEN
   --startbefehl STARTBEFEHL
@@ -140,7 +146,9 @@ options:
 
 ## lesen
 ```
-usage: amw lesen [-h] [--grenze GRENZE] [--von VON] [--projekt PROJEKT] [id]
+usage: amw lesen [-h] [--grenze GRENZE] [--neu] [--verlauf] [--von VON]
+                 [--projekt PROJEKT]
+                 [id ...]
 
 positional arguments:
   id
@@ -148,15 +156,18 @@ positional arguments:
 options:
   -h, --help         show this help message and exit
   --grenze GRENZE
+  --neu              nur Ungelesenes, neueste zuerst
+  --verlauf          die letzten Nachrichten an mich, auch gelesene und
+                     erledigte
   --von VON
   --projekt PROJEKT
 ```
 
 ## erledigt
 ```
-usage: amw erledigt [-h] [--bemerkung BEMERKUNG] [--von VON]
-                    [--projekt PROJEKT]
-                    ids [ids ...]
+usage: amw erledigt [-h] [--bemerkung BEMERKUNG] [--info] [--vor VOR]
+                    [--von VON] [--projekt PROJEKT]
+                    [ids ...]
 
 positional arguments:
   ids
@@ -164,6 +175,9 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --bemerkung BEMERKUNG
+  --info                alle offenen info-Nachrichten an mich erledigen
+  --vor VOR             mit --info: nur ältere als dieses Datum (04.11. oder
+                        2026-11-04)
   --von VON
   --projekt PROJEKT
 ```
@@ -181,13 +195,13 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--anforderungen ANFORDERUNGEN]
                    [--zusammenfassung ZUSAMMENFASSUNG]
                    [--ohne-vorgaenger OHNE_VORGAENGER] [--text TEXT] [--nein]
-                   [--zurueck] [--kommentar KOMMENTAR] [--von VON]
+                   [--zurueck] [--kommentar KOMMENTAR] [--kurz] [--von VON]
                    [--projekt PROJEKT]
-                   {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei}
+                   {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag}
                    [id] [nr]
 
 positional arguments:
-  {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei}
+  {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag}
   id
   nr                    kriterium: Nummer des Kriteriums
 
@@ -238,6 +252,7 @@ options:
   --nein                kriterium: wieder als offen markieren
   --zurueck             planfrei: zurückweisen (mit --kommentar)
   --kommentar KOMMENTAR
+  --kurz                zeige: nur Status, Agent, Titel und Wartegründe
   --von VON
   --projekt PROJEKT
 ```
@@ -807,7 +822,8 @@ options:
 ## notiz
 ```
 usage: amw notiz [-h] [--beschluss BESCHLUSS] [--text TEXT]
-                 [--text-datei TEXT_DATEI] [--von VON] [--projekt PROJEKT]
+                 [--text-datei TEXT_DATEI] [--suche SUCHE] [--von VON]
+                 [--projekt PROJEKT]
                  {setzen,zeige,entfernen} [schluessel ...]
 
 positional arguments:
@@ -821,6 +837,8 @@ options:
                         Beschlusses (z. B. B5)
   --text TEXT
   --text-datei TEXT_DATEI
+  --suche SUCHE         zeige: nur Notizen, deren Schlüssel oder Text alle
+                        Wörter enthält (z. B. CC5, A1162)
   --von VON
   --projekt PROJEKT
 ```
@@ -863,6 +881,16 @@ options:
   -h, --help         show this help message and exit
   --ersetzen         eine noch lebende andere Sitzung derselben Kennung
                      ablösen
+  --von VON
+  --projekt PROJEKT
+```
+
+## abmelden
+```
+usage: amw abmelden [-h] [--von VON] [--projekt PROJEKT]
+
+options:
+  -h, --help         show this help message and exit
   --von VON
   --projekt PROJEKT
 ```

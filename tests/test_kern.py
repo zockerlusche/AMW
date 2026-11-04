@@ -224,6 +224,7 @@ class Verlauf(unittest.TestCase):
         self.con.execute("DROP TABLE bogen")
         for sp in ("leitbild", "dod"):
             self.con.execute(f"ALTER TABLE projekt DROP COLUMN {sp}")
+        self.con.execute("ALTER TABLE sitzung DROP COLUMN taetigkeit_utc")         # … und kein Alter der Tätigkeit (13)
         self.con.execute("PRAGMA user_version = 1")
         self.con.close()
         self.con = db.verbinde(self.pfad)
