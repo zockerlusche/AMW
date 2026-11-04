@@ -728,6 +728,8 @@ const TEXTE = {
     e_fern: "Schirm: Programm einer Fernsitzung", e_fern_ph: "leer = aus, z. B. teamviewer_desktop.exe",
     e_fern_h: "Läuft nur während einer Fernwartungs-Verbindung – beginnt eine, geht ein freier Schirm zu",
     e_entwickler: "Dein Name in Meldungen", e_entwickler_ph: "Entwickler", e_entwickler_h: "z. B. „Marie wartet …“ – als Wartegrund geht er auch (--auf Marie)",
+    e_dateien: "Dateien online", e_dateien_h: "Welche Dateien der Dokumente der PC von selbst auf die Online-Seite lädt (nur nach Anmeldung sichtbar). Gilt auch für vorhandene; zurückstellen nimmt nichts herunter – das geht je Dokument.",
+    e_dateien_wunsch: "nur auf Wunsch", e_dateien_bilder: "Bilder und Mockups", e_dateien_alle: "alle (auch PDF, Office)",
     e_turso: "Online-Speicher (Turso)", e_turso_h: "Neue Adresse oder neuer Schlüssel werden vor dem Speichern geprüft. Wirkt beim nächsten Start des Wächters.",
     e_url: "Adresse", e_token: "Schlüssel", e_token_da: "gespeichert – leer lassen = behalten", e_token_neu: "noch keiner", e_abgleich: "Abgleich an",
     s_pc: "PC-Stand {x}", s_pc_weg: "PC zuletzt {x}", s_briefkasten: "{n} unterwegs", abmelden: "Abmelden",
@@ -943,6 +945,8 @@ const TEXTE = {
     e_fern: "Screen: remote session program", e_fern_ph: "empty = off, e.g. teamviewer_desktop.exe",
     e_fern_h: "Runs only during a remote-support connection – when one starts, a free screen closes",
     e_entwickler: "Your name in messages", e_entwickler_ph: "Entwickler", e_entwickler_h: "e.g. “Marie waits …” – also works as a wait reason (--auf Marie)",
+    e_dateien: "Files online", e_dateien_h: "Which document files the PC uploads to the online page by itself (visible only after sign-in). Applies to existing ones too; switching back removes nothing – do that per document.",
+    e_dateien_wunsch: "on request only", e_dateien_bilder: "images and mockups", e_dateien_alle: "all (incl. PDF, Office)",
     e_turso: "Online store (Turso)", e_turso_h: "A new URL or token is checked before saving. Takes effect on the next service start.",
     e_url: "URL", e_token: "Token", e_token_da: "saved – leave empty to keep", e_token_neu: "none yet", e_abgleich: "Sync on",
     s_pc: "PC data {x}", s_pc_weg: "PC last seen {x}", s_briefkasten: "{n} pending", abmelden: "Log out",
@@ -2891,15 +2895,17 @@ async function sichtEinstellungen() {
   // Projekt
   const pf = { takt_min: zahl(d.projekt.takt_min, 0, 1440), speicher_grenze_gb: zahl(d.projekt.speicher_grenze_gb, 1, 512, 0.5),
     stillstand_min: zahl(d.projekt.stillstand_min, 5, 1440), lauf_ohne_angabe_min: zahl(d.projekt.lauf_ohne_angabe_min, 5, 1440),
-    entwickler_name: text(d.projekt.entwickler_name || "") };
+    entwickler_name: text(d.projekt.entwickler_name || ""),
+    dateien_online: el("select", {}, ["wunsch", "bilder", "alle"].map(w => el("option", { value: w }, t("e_dateien_" + w)))) };
+  pf.dateien_online.value = d.projekt.dateien_online || "wunsch";
   pf.entwickler_name.placeholder = t("e_entwickler_ph"); pf.entwickler_name.maxLength = 30;
   box.append(block(t("e_projekt", { x: d.projekt.name }), null,
     [[t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")],
      [t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")], [t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")],
-     [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")]],
+     [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")], [t("e_dateien"), pf.dateien_online, t("e_dateien_h")]],
     "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
       stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min),
-      entwickler_name: pf.entwickler_name.value.trim() })));
+      entwickler_name: pf.entwickler_name.value.trim(), dateien_online: pf.dateien_online.value })));
 
   // Agenten
   const zeile = a => {
