@@ -22,7 +22,7 @@ import sys
 import threading
 import time
 
-from . import cli, db
+from . import cli, db, kern
 
 log = logging.getLogger("amw.bruecke")
 
@@ -139,7 +139,8 @@ def puls(kennung=None, taetigkeit=None):
     """Brücken-Sitzung des TL: ohne Postfach (schluessel_datei leer), der Wächter weckt sie nie; zeigt „läuft“."""
     con = db.verbinde()
     try:
-        a = con.execute("SELECT id FROM agent WHERE kennung = ? ORDER BY id LIMIT 1", (kennung or VON,)).fetchone()
+        a = con.execute("SELECT id FROM agent WHERE kennung = ? ORDER BY id LIMIT 1",
+                        (kern.kennung_heute(con, kennung or VON),)).fetchone()          # auch nach dem Umbenennen
         if not a:
             return
         t = db.jetzt()

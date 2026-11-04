@@ -31,6 +31,26 @@ def _von(a):
     return von
 
 
+# Optionen mit Agenten-Kennungen: frühere Kennungen (nach `agent umbenennen`) gelten weiter
+KENNUNG_OPTIONEN = ("von", "agent", "pruefer", "verantwortlich", "fuer", "zustaendig")
+
+
+def _heutige_kennungen(con, a):
+    if not getattr(a, "von", None) and os.environ.get("AMW_AGENT"):
+        a.von = os.environ["AMW_AGENT"]
+    felder = KENNUNG_OPTIONEN + (("an",) if a.f is cmd_posten else ()) + (("kennung",) if a.f is cmd_agent
+                                                                          and a.aktion != "neu" else ())
+    try:
+        pid = _projekt(con, a)
+    except (kern.AmwFehler, LookupError):
+        pid = None                                   # meldet der Befehl selbst
+    for k in felder:
+        v = getattr(a, k, None)
+        if isinstance(v, str) and v:
+            setattr(a, k, ",".join(kern.kennung_heute(con, x.strip(), pid) for x in v.split(",")) if "," in v
+                    else kern.kennung_heute(con, v, pid))
+
+
 def _zeit(t):
     """UTC aus der Datenbank → Ortszeit des PCs, kurz (TT.MM. HH:MM) wie im alten Bus."""
     if not t:
@@ -65,6 +85,14 @@ def cmd_projekt(a, con):
 
 def cmd_agent(a, con):
     pid = _projekt(con, a)
+    if a.aktion == "umbenennen":
+        if not (a.kennung and a.neu_kennung):
+            raise kern.AmwFehler("amw agent umbenennen <alt> <neu> – vorher amw sichern")
+        anzahl = kern.agent_umbenennen(con, pid, _von(a), a.kennung, a.neu_kennung)
+        print(f"{a.kennung} heißt jetzt {a.neu_kennung} (alte Kennung gilt weiter als Alias); geändert: "
+              + (", ".join(f"{k} {n}" for k, n in sorted(anzahl.items())) or "nichts"))
+        print("Profil, Tab-Titel und Fernsteuerungs-Name wirken beim nächsten Start; Startskripte neu schreiben.")
+        return
     if a.aktion == "neu":
         kern.agent_neu(con, pid, a.kennung, a.rolle, a.grenzen, a.startbefehl, not a.ohne_rund)
         print(f"Agent {a.kennung} angelegt")
@@ -102,13 +130,13 @@ def cmd_agent(a, con):
                 print(f"{k:<14} {v}")
         return
     for r in con.execute(
-            "SELECT g.kennung, g.rolle, g.soll, s.zustand, s.letzter_puls_utc,"
+            "SELECT g.kennung, g.alias, g.rolle, g.soll, s.zustand, s.letzter_puls_utc,"
             " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
             "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status != 'erledigt') AS offen"
             " FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
             " WHERE g.projekt_id = ? ORDER BY g.id", (pid,)):
         print(f"{r['kennung']:<8} {r['rolle'] or '':<10} soll {r['soll']:<4} ist {r['zustand'] or 'nie gestartet':<14}"
-              f" Puls {_zeit(r['letzter_puls_utc']) or '–':<12} offen {r['offen']}")
+              f" Puls {_zeit(r['letzter_puls_utc']) or '–':<12} offen {r['offen']}" + (f"  (früher {r['alias']})" if r["alias"] else ""))
 
 
 def cmd_posten(a, con):
@@ -475,6 +503,83 @@ def cmd_taetigkeit(a, con):
 
 def cmd_kontext(a, con):
     print(kern.kontext(con, _projekt(con, a), a.agent or _von(a)))
+
+
+def cmd_suche(a, con):
+    """Volltext über Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten, Dokumente – kurze Zeilen, dann gezielt `amw zeige`."""
+    from . import workbench
+    pid = _projekt(con, a)
+    such = " ".join(a.text).strip()
+    if len(such) < 2:
+        raise kern.AmwFehler("amw suche <Stichwort> (mindestens 2 Zeichen)")
+    treffer = workbench.daten_suche(con, pid, {"q": [such]})
+    if a.art:
+        treffer = [t for t in treffer if t["art"] in a.art]
+    treffer.sort(key=lambda t: t["zeit"] or "", reverse=True)
+    for t in treffer[:a.grenze]:
+        titel = " ".join((t["titel"] or "").split())
+        print(f"{t['ref']:<7} {_zeit(t['zeit']) or '':<12} [{t['zusatz'] or ''}] {titel[:120]}")
+    print(f"{len(treffer)} Treffer" + (f", die neuesten {a.grenze}" if len(treffer) > a.grenze else "")
+          + (" – ganz lesen: amw zeige <B…|F…|A…|W…|#…|D…|KR…|PR…>" if treffer else ""))
+    if a.wissen:                                        # dieselbe Prüfung wie vor einer Frage an den Entwickler (B2422)
+        liste = wissen.treffer(con, pid, such)
+        print("Passende Beschlüsse/Fragen/Regeln:\n" + (wissen.treffer_text(liste) if liste else "  keine"))
+
+
+def cmd_zeige(a, con):
+    """Ein Eintrag ganz, nach seiner Nummer: B12 Beschluss, F7 Frage, A1201 Aufgabe, W3 Wortlaut, #16000 Nachricht,
+    D5 Dokument (Angaben), KR3/PR42 Regel."""
+    pid = _projekt(con, a)
+    for ref in a.refs:
+        m = re.fullmatch(r"\s*(#|[A-Za-z]{1,2})?\s*(\d+)\s*", ref)
+        if not m:
+            raise kern.AmwFehler(f"„{ref}“: B<nr>, F<nr>, A<nr>, W<nr>, #<nr>, D<nr>, KR<nr> oder PR<nr>")
+        art, nr = (m.group(1) or "#").upper(), int(m.group(2))
+        if art == "B":
+            r = con.execute("SELECT * FROM beschluss WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone()
+            if r:
+                print(f"B{nr} [{r['status']}] {_zeit(r['zeit_utc'])} {r['stichwort']}" + (f" (Thema {r['thema']})" if r["thema"] else ""))
+                print(r["regel"])
+                print(f"Quelle: {r['quelle']}" + (f" · ersetzt durch B{r['ersetzt_durch']}" if r["ersetzt_durch"] else "")
+                      + (f" · Aufgaben: {r['aufgabe_ids']}" if r["aufgabe_ids"] else ""))
+        elif art == "F":
+            r = con.execute("SELECT * FROM frage WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone()
+            if r:
+                print(f"F{nr} [{r['status']}] {_zeit(r['zeit_utc'])} {r['von']} an {r['an']}: {r['kurz']}")
+                for o in json.loads(r["optionen"] or "[]"):
+                    print(f"  {o['kenn']}) {o['text']}" + ("  ← Empfehlung" if o["kenn"] == r["empfehlung"] else ""))
+                for k in ("worum", "grund", "geprueft"):
+                    if r[k]:
+                        print(f"{k}: {r[k]}")
+                if r["antwort"]:
+                    print(f"Antwort ({_zeit(r['antwort_utc'])}, {r['antwort_art']}): {r['antwort']}")
+        elif art == "A":
+            a.aktion, a.id = "zeige", nr
+            cmd_aufgabe(a, con)
+            continue
+        elif art == "W":
+            r = con.execute("SELECT * FROM wortlaut WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone()
+            if r:
+                print(f"W{nr} {_zeit(r['zeit_utc'])} ({r['kanal']}): {r['text']}" + (f"\n{r['bemerkung']}" if r["bemerkung"] else ""))
+        elif art == "#":
+            r = con.execute("SELECT * FROM nachricht WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone()
+            if r:
+                an = ", ".join(x[0] for x in con.execute("SELECT agent FROM empfang WHERE nachricht_id = ?", (nr,)))
+                print(f"#{nr} {_zeit(r['zeit_utc'])} {r['von']} → {an} [{r['art']}]" + (f" · A{r['aufgabe_id']}" if r["aufgabe_id"] else ""))
+                print(r["kurz"] + (f"\n{r['text']}" if r["text"] else ""))
+        elif art == "D":
+            r = con.execute("SELECT * FROM dokument WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone()
+            if r:
+                print(f"D{nr} [{r['status']}] {r['art']} {r['titel']} – Inhalt: amw dokument zeige {nr}")
+        elif art in ("KR", "PR"):
+            r = con.execute("SELECT * FROM regel WHERE ebene = ? AND nr = ? AND (projekt_id IS NULL OR projekt_id = ?)",
+                            ("arbeit" if art == "KR" else "projekt", nr, pid)).fetchone()
+            if r:
+                print(f"{art}{nr} (Stand {_zeit(r['stand_utc'])}, {r['beleg'] or '–'}): {r['text']}")
+        else:
+            raise kern.AmwFehler(f"„{ref}“: unbekannte Art {art}")
+        if not r:
+            raise kern.AmwFehler(f"{ref} gibt es nicht")
 
 
 def cmd_regeln(a, con):
@@ -1043,9 +1148,10 @@ def parser():
     x.add_argument("--beschreibung")
     x.set_defaults(f=cmd_projekt)
 
-    x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript")
-    x.add_argument("aktion", choices=["neu", "liste", "profil", "starten", "beenden", "startskript"])
+    x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript | umbenennen ALT NEU")
+    x.add_argument("aktion", choices=["neu", "liste", "profil", "starten", "beenden", "startskript", "umbenennen"])
     x.add_argument("kennung", nargs="?")
+    x.add_argument("neu_kennung", nargs="?", metavar="neu", help="umbenennen: die neue Kennung (die alte bleibt als Alias gültig)")
     x.add_argument("--ordner", help="profil: Arbeitsordner")
     x.add_argument("--zusatz", help="profil: weitere Ordner, mit ; getrennt")
     x.add_argument("--denkstufe", help="profil: low | medium | high | xhigh | max")
@@ -1161,6 +1267,18 @@ def parser():
 
     x = s.add_parser("regeln", help="alle geltenden Regeln (Arbeits- und Projektregeln)")
     x.set_defaults(f=cmd_regeln)
+
+    x = s.add_parser("suche", help="Volltext über Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten, Dokumente: amw suche Modem")
+    x.add_argument("text", nargs="+")
+    x.add_argument("--art", action="append", choices=["aufgabe", "beschluss", "frage", "wortlaut", "nachricht", "dokument"],
+                   help="nur diese Art (mehrfach)")
+    x.add_argument("--grenze", type=int, default=15)
+    x.add_argument("--wissen", action="store_true", help="dazu: passende Beschlüsse/Fragen/Regeln wie bei frage neu")
+    x.set_defaults(f=cmd_suche)
+
+    x = s.add_parser("zeige", help="Einträge ganz lesen: amw zeige B2420 F5148 A1238 W12 #16000 D5 KR3 PR42")
+    x.add_argument("refs", nargs="+")
+    x.set_defaults(f=cmd_zeige)
 
     x = s.add_parser("leitbild", help="Projektziel, Kennzahlen, Nicht-Ziele, Prinzipien, Definition of Done: zeigen | setzen")
     x.add_argument("aktion", nargs="?", choices=["zeigen", "setzen"], default="zeigen")
@@ -1475,6 +1593,7 @@ def main(argv=None):
         else:
             con = db.verbinde()
             try:
+                _heutige_kennungen(con, a)
                 rc = a.f(a, con)
             finally:
                 con.close()

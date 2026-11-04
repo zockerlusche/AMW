@@ -162,7 +162,7 @@ def main():
             name = os.environ.get("AMW_PROJEKT")
             pid = db.projekt_id(con, name) if name else con.execute("SELECT min(id) FROM projekt").fetchone()[0]
             erkannt = not kennung
-            kennung = kennung or bekannte_kennung(con, pid, eingabe.get("session_id"))
+            kennung = kern.kennung_heute(con, kennung, pid) or bekannte_kennung(con, pid, eingabe.get("session_id"))
             if not kennung:
                 if quelle in ("startup", "resume") and agenten_ordner(con, eingabe.get("cwd")):
                     meldung = ("AMW: diese Sitzung ist NICHT angemeldet und wird nicht geweckt. Als Agent: "

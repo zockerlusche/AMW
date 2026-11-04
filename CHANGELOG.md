@@ -4,6 +4,18 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.9.0 – 04.11.2026 · Umbenennen mit Alias, Nachschlagen, Kacheln nach Rolle
+- **`amw agent umbenennen <alt> <neu>`** (Entwickler/Lead): neue Kennung in allen Spalten, die eine Kennung tragen
+  (Nachrichten von/an, Aufgaben, Fragen, Läufe, Prüfungen, Sperren, Wartegründe …) in einem Schreibvorgang; Freitexte
+  bleiben. Die **alte Kennung bleibt als Alias gültig**: `--von`, `AMW_AGENT`, `--an`, `--agent`, Halt und die Brücke
+  finden den Agenten weiter, laufende Sitzungen müssen nicht neu starten. Sitzungen hängen an ihrer ID, Verlauf,
+  Gesprächsansicht und „In Claude öffnen“ bleiben. `amw agent liste` zeigt „(früher …)“. Vorher `amw sichern`.
+- **`amw suche <Stichwort>`**: Volltext über Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten und Dokumente in kurzen
+  Zeilen (`--art`, `--grenze`, `--wissen` zeigt dazu die passenden Beschlüsse/Fragen/Regeln wie bei `frage neu`).
+- **`amw zeige B12 F7 A1201 W3 #16000 D5 KR3 PR42`**: Einträge ganz lesen, mehrere auf einmal.
+- **Kacheln nach Rolle:** Die Startseite ordnet die Agenten nach ihrer Rolle (Lead zuerst, gleiche Rollen nebeneinander) und
+  zeigt je Agent „A… wartet auf …“ aus den Wartegründen. Die Rolle ist je Agent frei einstellbar (Zahnrad › Agenten).
+
 ## 1.8.0 – 04.11.2026 · Wartegründe, Wecken, Frage-Prüfung
 Beschluss B2419 „Automatismen in der AMW statt Gebote“, Teil 2 (L1–L6), und B2422 (Fragen, die schon beantwortet sind).
 Plan: `doc/plan-automatismen.md`. Schema 12.

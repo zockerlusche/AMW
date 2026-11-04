@@ -76,6 +76,12 @@ def daten_start(con, pid):
     for a in agenten:
         a["gerade"], a["gerade_aufgabe"], a["gerade_quelle"] = gerade(con, pid, a["kennung"],
                                                                       a["taetigkeit"] if a["zustand"] == "aktiv" else None)
+        a["wartet"] = [{"aufgabe": r["aufgabe_id"], "auf": r["auf"]} for r in con.execute(   # Wartegründe (B2419) auf der Kachel
+            "SELECT w.aufgabe_id, group_concat(w.bezug, ', ') AS auf FROM wartegrund w JOIN aufgabe x ON x.id = w.aufgabe_id"
+            " WHERE x.projekt_id = ? AND x.agent = ? AND x.status IN ('wartet', 'blockiert') AND x.einstufung = 'aktiv'"
+            " AND w.erledigt_utc IS NULL GROUP BY w.aufgabe_id ORDER BY w.aufgabe_id LIMIT 2", (pid, a["kennung"]))]
+    # nach Rolle geordnet (B2425): Lead zuerst, gleiche Rollen nebeneinander, sonst in der angelegten Reihenfolge
+    agenten.sort(key=lambda a: (a["rolle"] != "lead", (a["rolle"] or "~").casefold()))
     fragen = zeilen(con.execute(           # nachtraege: ungelesene Nachträge im Verlauf der Frage (stehen dort, nicht doppelt)
         "SELECT f.id, f.kurz, f.von, f.zeit_utc, f.blockiert, (SELECT count(*) FROM frage_verlauf v JOIN empfang e"
         "   ON e.nachricht_id = v.nachricht_id AND e.agent = :e AND e.status = 'offen' WHERE v.frage_id = f.id) AS nachtraege"

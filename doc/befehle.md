@@ -7,7 +7,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 |---|---|
 | [`init`](#init) | neue Datenbank anlegen |
 | [`projekt`](#projekt) | Projekte: neu <name> ¦ liste |
-| [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript |
+| [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript ¦ umbenennen ALT NEU |
 | [`posten`](#posten) | Nachricht schicken: --an CC2 (oder alle, Entwickler) --art auftrag¦frage¦info¦… --kurz … |
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummer: ganze Nachricht |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 |
@@ -18,6 +18,8 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
 | [`kontext`](#kontext) | Pflicht-Kontext für einen Agenten |
 | [`regeln`](#regeln) | alle geltenden Regeln (Arbeits- und Projektregeln) |
+| [`suche`](#suche) | Volltext über Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten, Dokumente: amw suche Modem |
+| [`zeige`](#zeige) | Einträge ganz lesen: amw zeige B2420 F5148 A1238 W12 #16000 D5 KR3 PR42 |
 | [`leitbild`](#leitbild) | Projektziel, Kennzahlen, Nicht-Ziele, Prinzipien, Definition of Done: zeigen ¦ setzen |
 | [`bogen`](#bogen) | Meilensteine: liste ¦ neu ¦ zeigen N ¦ aendern N ¦ status N aktiv¦fertig¦geplant¦verworfen |
 | [`spec`](#spec) | Spezifikation je Bogen: zeigen N [teil] ¦ schreiben N teil --text/--datei ¦ vorlegen N teil ¦ frei N teil ¦ zurueck N teil --kommentar  (teil: anforderungen ¦ entwurf ¦ schritte) |
@@ -84,11 +86,14 @@ usage: amw agent [-h] [--ordner ORDNER] [--zusatz ZUSATZ]
                  [--neu] [--datei DATEI] [--rolle ROLLE] [--grenzen GRENZEN]
                  [--startbefehl STARTBEFEHL] [--ohne-rund] [--von VON]
                  [--projekt PROJEKT]
-                 {neu,liste,profil,starten,beenden,startskript} [kennung]
+                 {neu,liste,profil,starten,beenden,startskript,umbenennen}
+                 [kennung] [neu]
 
 positional arguments:
-  {neu,liste,profil,starten,beenden,startskript}
+  {neu,liste,profil,starten,beenden,startskript,umbenennen}
   kennung
+  neu                   umbenennen: die neue Kennung (die alte bleibt als
+                        Alias gültig)
 
 options:
   -h, --help            show this help message and exit
@@ -331,6 +336,40 @@ options:
 ## regeln
 ```
 usage: amw regeln [-h] [--von VON] [--projekt PROJEKT]
+
+options:
+  -h, --help         show this help message and exit
+  --von VON
+  --projekt PROJEKT
+```
+
+## suche
+```
+usage: amw suche [-h]
+                 [--art {aufgabe,beschluss,frage,wortlaut,nachricht,dokument}]
+                 [--grenze GRENZE] [--wissen] [--von VON] [--projekt PROJEKT]
+                 text [text ...]
+
+positional arguments:
+  text
+
+options:
+  -h, --help            show this help message and exit
+  --art {aufgabe,beschluss,frage,wortlaut,nachricht,dokument}
+                        nur diese Art (mehrfach)
+  --grenze GRENZE
+  --wissen              dazu: passende Beschlüsse/Fragen/Regeln wie bei frage
+                        neu
+  --von VON
+  --projekt PROJEKT
+```
+
+## zeige
+```
+usage: amw zeige [-h] [--von VON] [--projekt PROJEKT] refs [refs ...]
+
+positional arguments:
+  refs
 
 options:
   -h, --help         show this help message and exit

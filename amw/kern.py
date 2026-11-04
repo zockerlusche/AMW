@@ -24,10 +24,91 @@ class AmwFehler(Exception):
 # --- Agenten und Projekt -------------------------------------------------------------------------
 
 def agent_zeile(con, pid, kennung):
-    r = con.execute("SELECT * FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, kennung)).fetchone()
+    r = con.execute("SELECT * FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, kennung or "")).fetchone()
+    if not r and kennung and kennung != kennung_heute(con, kennung, pid):     # frühere Kennung (Alias)
+        r = con.execute("SELECT * FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, kennung_heute(con, kennung, pid))).fetchone()
     if not r:
         raise AmwFehler(f"Agent „{kennung}“ gibt es im Projekt nicht")
     return r
+
+
+def _aliase(r):
+    return [x.strip() for x in (r["alias"] or "").split(",") if x.strip()]
+
+
+def kennung_heute(con, name, pid=None):
+    """Frühere Kennung eines umbenannten Agenten → heutige (Groß/klein genau); sonst unverändert. Ohne pid über alle
+    Projekte, wenn eindeutig."""
+    if not name:
+        return name
+    bedingung, par = (" AND projekt_id = ?", (pid,)) if pid else ("", ())
+    if con.execute("SELECT 1 FROM agent WHERE kennung = ?" + bedingung, (name, *par)).fetchone():
+        return name
+    treffer = {r["kennung"] for r in con.execute("SELECT kennung, alias FROM agent WHERE alias IS NOT NULL" + bedingung, par)
+               if name in _aliase(r)}
+    return treffer.pop() if len(treffer) == 1 else name
+
+
+KENNUNG_NAME = re.compile(r"[A-Za-z][A-Za-z0-9_-]{1,23}")
+KENNUNG_SPALTEN = {"von", "agent", "pruefer", "bauer", "gilt_fuer", "zustaendig", "verantwortlich"}
+KEINE_KENNUNG = {"abhaengig_von", "folge_von"}             # Nummern, keine Kennungen
+
+
+def _kennung_spalten(con):
+    """(Tabelle, Spalte, Bezug) für jede Spalte, in der eine Agenten-Kennung steht – aus dem Schema gelesen, damit neue
+    Tabellen beim Umbenennen nicht vergessen werden. Bezug: wie die Zeile zum Projekt gehört."""
+    for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                            " AND name != 'agent' ORDER BY name").fetchall():
+        spalten = {c["name"]: c for c in con.execute(f"PRAGMA table_info({t})")}
+        if "projekt_id" in spalten:
+            bezug = "projekt_id = ?"
+        elif "nachricht_id" in spalten:
+            bezug = "nachricht_id IN (SELECT id FROM nachricht WHERE projekt_id = ?)"
+        elif "frage_id" in spalten:
+            bezug = "frage_id IN (SELECT id FROM frage WHERE projekt_id = ?)"
+        elif "aufgabe_id" in spalten:
+            bezug = "aufgabe_id IN (SELECT id FROM aufgabe WHERE projekt_id = ?)"
+        elif "agent_id" in spalten:
+            bezug = "agent_id IN (SELECT id FROM agent WHERE projekt_id = ?)"
+        else:
+            continue                                     # PC-weit (z. B. schirm): bleibt, wie es war
+        for name, c in spalten.items():
+            if name in KEINE_KENNUNG or "TEXT" not in (c["type"] or "").upper():
+                continue
+            if name in KENNUNG_SPALTEN or name.endswith("_von"):
+                yield t, name, bezug
+
+
+def agent_umbenennen(con, pid, von, alt, neu):
+    """Neue Kennung für einen Agenten. Alle Spalten mit seiner Kennung bekommen die neue (Nachrichten von/an, Aufgaben,
+    Fragen, Läufe, Prüfungen, Sperren …); Freitexte bleiben. Die alte Kennung bleibt als Alias gültig – laufende
+    Sitzungen mit AMW_AGENT=<alt> und Gewohnheiten wie `--an <alt>` gehen weiter. Gibt {Tabelle.Spalte: Zeilen} zurück."""
+    if not ist_lead(con, pid, von):
+        raise AmwFehler("Agenten umbenennen nur Entwickler und Lead")
+    if not KENNUNG_NAME.fullmatch(neu or ""):
+        raise AmwFehler(f"„{neu}“ taugt nicht als Kennung: Buchstabe, dann Buchstaben/Ziffern/-/_ (2–24 Zeichen)")
+    if neu.lower() in ("alle", ENTWICKLER.lower(), "amw"):
+        raise AmwFehler(f"„{neu}“ ist reserviert")
+    with db.schreiben(con):
+        a = agent_zeile(con, pid, alt)
+        alt = a["kennung"]
+        if neu == alt:
+            raise AmwFehler(f"{alt} heißt schon so")
+        for r in con.execute("SELECT kennung, alias FROM agent WHERE projekt_id = ? AND id != ?", (pid, a["id"])):
+            if neu == r["kennung"] or neu in _aliase(r):
+                raise AmwFehler(f"„{neu}“ ist schon vergeben ({r['kennung']})")
+        anzahl = {}
+        for t, sp, bezug in _kennung_spalten(con):
+            n = con.execute(f"UPDATE {t} SET {sp} = ? WHERE {sp} = ? AND {bezug}", (neu, alt, pid)).rowcount
+            if n:
+                anzahl[f"{t}.{sp}"] = n
+        n = con.execute("UPDATE wartegrund SET bezug = ? WHERE projekt_id = ? AND art = 'agent' AND bezug = ?",
+                        (neu, pid, alt)).rowcount
+        if n:
+            anzahl["wartegrund.bezug"] = n
+        aliase = [x for x in _aliase(a) if x != neu] + [alt]
+        con.execute("UPDATE agent SET kennung = ?, alias = ? WHERE id = ?", (neu, ",".join(dict.fromkeys(aliase)), a["id"]))
+    return anzahl
 
 
 def lead(con, pid):
@@ -44,6 +125,8 @@ def ist_lead(con, pid, kennung):
 
 
 def agent_neu(con, pid, kennung, rolle=None, grenzen=None, startbefehl=None, empfaengt_rund=True):
+    if kennung_heute(con, kennung, pid) != kennung:
+        raise AmwFehler(f"„{kennung}“ ist die frühere Kennung von {kennung_heute(con, kennung, pid)}")
     with db.schreiben(con):
         return db.einfuegen(con, "agent", projekt_id=pid, kennung=kennung, rolle=rolle, grenzen=grenzen,
                             startbefehl=startbefehl, empfaengt_rund=int(empfaengt_rund), angelegt_utc=db.jetzt(),
@@ -187,8 +270,7 @@ def empfaenger(con, pid, an, von):
         elif teil.lower() == ENTWICKLER.lower():         # der Mensch: liest in der Workbench, wird nie geweckt
             namen.append(ENTWICKLER)
         else:
-            agent_zeile(con, pid, teil)
-            namen.append(teil)
+            namen.append(agent_zeile(con, pid, teil)["kennung"])     # frühere Kennung → heutige
     aus = [n for i, n in enumerate(namen) if n != von and n not in namen[:i]]
     if not aus:
         raise AmwFehler("kein Empfänger")

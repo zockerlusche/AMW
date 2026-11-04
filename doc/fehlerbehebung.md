@@ -18,6 +18,7 @@ sind angemeldet) und das Protokoll `daten\dienst.log` (in der Workbench: Betrieb
 | `database is locked` | sehr lange Schreibvorgänge parallel | kommt praktisch nicht vor (30 s Wartezeit); sonst Agenten kurz anhalten, `amw dienst neustart` |
 | Lauf startet nicht | Halt, Schirm zu (bei `--schirm`), Speicher unter der Grenze, schwerer Lauf/Schirm belegt oder Warteschlange | Meldung lesen; `--warten` reiht nur ein, dann `amw lauf warte <nr>`; Grund: `amw lauf zeige <nr>`, `amw schirm` |
 | Schirm geht gleich wieder zu | Eingabe am PC später als 2 min nach dem Freigeben, neue TeamViewer-Sitzung, Eingabe in der Workbench, neuer Wortlaut | so gewollt (B2419); Grund steht in `amw schirm --verlauf` |
+| Agent unter alter Kennung angesprochen (`--von CC3`) nach dem Umbenennen | so gewollt: die alte Kennung gilt als Alias | nichts; `amw agent liste` zeigt „(früher …)“ |
 | „wartet nur mit --auf“ | Wartegrund fehlt (B2419) | `amw aufgabe wartet <nr> --auf F…/A…/L…/Agent/Marcel/Monitor:…`; Erklärung zusätzlich mit `--wartet-auf` |
 | „Ist das schon entschieden? Die AMW findet dazu: …“ bei `frage neu` | Frage an den Entwickler ohne Prüfung (B2422) | Treffer lesen; passt keiner: `--geprueft "B… passt nicht, weil …"` (ohne Treffer: `--geprueft "keine Treffer"`) |
 | „A… ist fertig – für Neues eine neue Aufgabe“ | `--aufgabe` mit abgeschlossener Aufgabe | neue Aufgabe anlegen oder ohne `--aufgabe` posten |

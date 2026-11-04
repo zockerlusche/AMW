@@ -266,5 +266,25 @@ class Pruefung(Grund):
         self.assertEqual(rc, 1)
 
 
+class SucheZeige(Grund):
+    """amw suche / amw zeige: nachschlagen statt fragen."""
+
+    def setUp(self):
+        super().setUp()
+        self.b = wissen.beschluss_neu(self.con, self.pid, "TL", "Modem heißt DSL-Modem",
+                                      "Anker-Geräte tragen die Technik im Namen: Modem → DSL-Modem", "Marcel 04.11. 11:35")
+
+    def test_suche_und_zeige(self):
+        rc, aus = self.cli("--von", "CC1", "suche", "DSL-Modem")
+        self.assertEqual(rc, 0)
+        self.assertIn(f"B{self.b}", aus)
+        rc, aus = self.cli("--von", "CC1", "zeige", f"B{self.b}", f"A{self.a}")
+        self.assertEqual(rc, 0)
+        self.assertIn("Quelle: Marcel 04.11. 11:35", aus)
+        self.assertIn("titel: Onboarding prüfen", aus)
+        rc, aus = self.cli("--von", "CC1", "zeige", "B999")
+        self.assertEqual(rc, 1)
+
+
 if __name__ == "__main__":
     unittest.main()
