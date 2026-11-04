@@ -26,7 +26,8 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`rueckblick`](#rueckblick) | Rückblick je Bogen: amw rueckblick <bogen> [--gut … --schlecht … --massnahme … --gelernt …] ¦ --uebernehmen <nr> --als aufgabe¦beschluss |
 | [`verlauf`](#verlauf) | was passiert ist: amw verlauf [--stunden 24] [--agent CC1] [--art erledigt --art pruefung] [--zusammenfassung] |
 | [`plan`](#plan) | pruefen (Lücken mit Bedeutung und Abhilfe) ¦ akzeptieren <schlüssel> --grund … ¦ wieder <schlüssel> ¦ prognose (P50/P85 je Schritt und Bogen) ¦ status (Ampel je Dimension) |
-| [`lauf`](#lauf) | Rechen-Läufe: start [--warten] prüft Halt, Speicher, einen schweren/Schirm-Lauf zur Zeit, Warteschlange |
+| [`lauf`](#lauf) | Rechen-Läufe: start [--warten] prüft Halt, Schirm, Speicher, einen schweren/Schirm-Lauf zur Zeit, Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund |
+| [`schirm`](#schirm) | Schirm-Schalter: zeige ¦ frei --grund … [--bis HH:MM] (Entwickler/Lead) ¦ zu [--grund …] (alle) |
 | [`server`](#server) | Projekt-Server überwachen: anmelden ¦ abmelden ¦ liste ¦ pruefen |
 | [`pruefung`](#pruefung) | Prüfbitte je Stand (SHA), Ergebnis grün/rot |
 | [`hinweis`](#hinweis) | Anweisung an einen Agenten oder alle (z. B. „keine Rechen-Jobs“) |
@@ -503,20 +504,25 @@ options:
 
 ## lauf
 ```
-usage: amw lauf [-h] [--warten] [--dauer DAUER] [--beschreibung BESCHREIBUNG]
-                [--rezept REZEPT] [--leicht] [--schirm] [--aufgabe AUFGABE]
-                [--rc RC] [--ergebnis ERGEBNIS] [--abgebrochen]
-                [--grenze GRENZE] [--von VON] [--projekt PROJEKT]
-                {start,ende,liste,vorziehen} [id]
+usage: amw lauf [-h] [--warten] [--hoechstens HOECHSTENS] [--dauer DAUER]
+                [--beschreibung BESCHREIBUNG] [--rezept REZEPT] [--leicht]
+                [--schirm] [--aufgabe AUFGABE] [--rc RC] [--ergebnis ERGEBNIS]
+                [--abgebrochen] [--grenze GRENZE] [--von VON]
+                [--projekt PROJEKT]
+                {start,ende,liste,vorziehen,zeige,warte} [id]
 
 positional arguments:
-  {start,ende,liste,vorziehen}
+  {start,ende,liste,vorziehen,zeige,warte}
   id
 
 options:
   -h, --help            show this help message and exit
-  --warten              ist der Platz belegt: einreihen statt ablehnen;
-                        Freigabe weckt dich
+  --warten              ist der Platz belegt: NUR einreihen (noch nicht
+                        rechnen!) statt ablehnen; Freigabe weckt dich – oder
+                        danach: amw lauf warte <nr>
+  --hoechstens HOECHSTENS
+                        warte: nach so vielen Minuten aufgeben (rc 3), Lauf
+                        bleibt eingereiht
   --dauer DAUER         erwartete Dauer in Minuten; doppelt so lang → Warnung
                         an den Lead
   --beschreibung BESCHREIBUNG
@@ -527,6 +533,26 @@ options:
   --rc RC
   --ergebnis ERGEBNIS
   --abgebrochen
+  --grenze GRENZE
+  --von VON
+  --projekt PROJEKT
+```
+
+## schirm
+```
+usage: amw schirm [-h] [--grund GRUND] [--bis BIS] [--verlauf]
+                  [--grenze GRENZE] [--von VON] [--projekt PROJEKT]
+                  [{zeige,frei,zu}]
+
+positional arguments:
+  {zeige,frei,zu}
+
+options:
+  -h, --help         show this help message and exit
+  --grund GRUND
+  --bis BIS          frei: geht zu dieser Ortszeit von selbst zu, z. B. 07:00
+                     oder "2026-11-05 07:00"
+  --verlauf          zeige: die letzten Wechsel
   --grenze GRENZE
   --von VON
   --projekt PROJEKT

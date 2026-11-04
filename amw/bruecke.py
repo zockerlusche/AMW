@@ -33,7 +33,8 @@ BEFEHLE_S = 5
 VON = "TL"
 ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "lauf", "pruefung", "taetigkeit",
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
-           "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf", "dokument"}   # Freigaben: nur der Mensch
+           "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf", "dokument",
+           "schirm"}   # Freigaben: nur der Mensch (Schirm frei: der Lead auf Marcels Wort, B2419)
 
 
 def lese_kopie(quelle=None, ziel=None):
@@ -95,8 +96,12 @@ def argumente(befehl, eingang=EINGANG):
         raise ValueError(f"Befehl „{args[0] if args else ''}“ ist über die Brücke nicht erlaubt; erlaubt: {', '.join(sorted(ERLAUBT))}")
     if args[0] == "agent" and len(args) > 1 and args[1] in ("starten", "beenden", "profil", "startskript"):
         raise ValueError("Agenten starten, beenden und Profile ändern geht nur am PC (Workbench)")
-    if any(a in ("--von", "--projekt") for a in args):
-        raise ValueError("--von/--projekt setzt die Brücke selbst")
+    if args[0] == "lauf" and len(args) > 1 and args[1] == "warte":
+        raise ValueError("lauf warte blockiert – über die Brücke: lauf zeige <nr>")
+    if any(a in ("--von", "--projekt", "--quelle") for a in args):
+        raise ValueError("--von/--projekt/--quelle setzt die Brücke selbst")
+    if args[0] == "schirm":
+        args = args + ["--quelle", "bruecke"]
     for i, a in enumerate(args):
         if a.startswith("--datei="):
             raise ValueError("--datei bitte als eigenen Schlüssel angeben")

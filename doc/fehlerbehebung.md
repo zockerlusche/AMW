@@ -16,7 +16,8 @@ sind angemeldet) und das Protokoll `daten\dienst.log` (in der Workbench: Betrieb
 | Keine Kontext-/Kostenbalken | Statusline-Brücke nicht eingetragen | `amw einrichten agenten-ordner <ordner>`; die bisherige Statusline wird weitergereicht |
 | Umlaute kaputt / Abbruch mit `UnicodeEncodeError` | Konsole nicht in UTF-8 | `amw.cmd` bzw. `python -X utf8 …` benutzen |
 | `database is locked` | sehr lange Schreibvorgänge parallel | kommt praktisch nicht vor (30 s Wartezeit); sonst Agenten kurz anhalten, `amw dienst neustart` |
-| Lauf startet nicht | Halt, Speicher unter der Grenze, schwerer Lauf/Schirm belegt oder Warteschlange | Meldung lesen; `--warten` reiht ein; `amw lauf liste` |
+| Lauf startet nicht | Halt, Schirm zu (bei `--schirm`), Speicher unter der Grenze, schwerer Lauf/Schirm belegt oder Warteschlange | Meldung lesen; `--warten` reiht nur ein, dann `amw lauf warte <nr>`; Grund: `amw lauf zeige <nr>`, `amw schirm` |
+| Schirm geht gleich wieder zu | Eingabe am PC später als 2 min nach dem Freigeben, neue TeamViewer-Sitzung, Eingabe in der Workbench, neuer Wortlaut | so gewollt (B2419); Grund steht in `amw schirm --verlauf` |
 | „Bogen-Schritte brauchen … --zusammenfassung“ | Regel für geplante Schritte | Kriterien abhaken, `--zusammenfassung` angeben |
 | „wartet auf A… (Abhängigkeit)“ | Vorgänger nicht fertig | Vorgänger abschließen oder Abhängigkeit ändern (`amw aufgabe aendern <nr> --nach …`) |
 | Push kommt nicht | Hauptschalter aus, Anbieter aus, Ruhezeit, falscher Schlüssel | `amw push status` (Protokoll mit Fehlern), `amw push probe <anbieter>` |

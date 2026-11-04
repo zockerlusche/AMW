@@ -99,6 +99,7 @@ class Parken(unittest.TestCase):
             self.con.execute("UPDATE frage SET kurz = 'GEPARKT erledigt' WHERE id = ?", (self.f2,))
         for sp in ("geparkt_utc", "geparkt_von"):
             self.con.execute(f"ALTER TABLE frage DROP COLUMN {sp}")
+        self.con.execute("DROP TABLE schirm")                             # Schema 9 kannte den Schirm-Schalter (11) nicht
         self.con.execute("PRAGMA user_version = 9")
         self.con.close()
         self.con = db.verbinde(self.pfad)

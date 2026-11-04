@@ -121,6 +121,16 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .band-warn { display: grid; gap: 4px; padding: 12px 18px; border: 1px solid var(--bernstein); background: var(--bernstein-weich);
   border-radius: 4px; margin-bottom: 18px; }
 .band-warn b { font: 600 14px var(--titel); letter-spacing: .1em; color: var(--bernstein); }
+/* Schirm-Schalter (B2419): frei = Agenten dürfen Fenster öffnen – auffällig; zu mit wartenden Läufen – ruhig */
+.band-schirm { display: flex; gap: 14px; align-items: center; padding: 12px 18px; border: 1px solid var(--linie); background: var(--flaeche);
+  border-radius: 4px; margin-bottom: 18px; flex-wrap: wrap; }
+.band-schirm.frei { border-color: var(--bernstein); background: var(--bernstein-weich); }
+.band-schirm b { font: 600 15px var(--titel); letter-spacing: .1em; }
+.band-schirm.frei b { color: var(--bernstein); }
+.band-schirm > div { flex: 1 1 320px; }
+.band-schirm .knopf { margin-left: auto; }
+.signal.knopflich { cursor: pointer; }
+.signal.knopflich:hover { border-color: var(--leise); }
 .kurztext { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
 .kurztext.auf { display: block; -webkit-line-clamp: unset; }
 .mehr { font: 12px var(--titel); letter-spacing: .06em; color: var(--sehrleise); cursor: pointer; background: none; border: 0; padding: 4px 0 0; }
@@ -871,6 +881,15 @@ const TEXTE = {
     halt_erkl: "Laufende Agenten bekommen sofort ein STOPP und beenden ihre aktuelle Arbeit sauber. Danach weckt der Dienst nur noch für Stopp und Freigabe – bis „Weiter“. Gilt auch nach einem Neustart.",
     grund_ph: "Grund (erscheint bei den Agenten)", abbrechen: "Abbrechen", halt_gesetzt: "Halt gesetzt", halt_aufgehoben: "{n} Halt aufgehoben",
     halt_band: "alle Agenten", halt_vom: "Halt vom Entwickler",
+    s_schirm_frei: "Schirm frei", s_schirm_zu: "Schirm zu", schirm: "Schirm", schirm_frei: "SCHIRM FREI", schirm_zu_b: "SCHIRM ZU",
+    schirm_seit: "seit {x}", schirm_bis: "bis {x}", schirm_von: "von {x}",
+    schirm_wartet: "Läufe mit Fenster in der Schlange: {n}", schirm_laeuft: "läuft am Schirm: {x}",
+    schirm_freigeben: "Schirm freigeben …", schirm_zumachen: "Schirm zu", schirm_titel: "Schirm-Schalter",
+    schirm_erkl: "Frei heißt: Agenten dürfen Läufe mit Fenster starten (immer nur einer zur Zeit, über die Lauf-Schlange). Die AMW macht den Schirm von selbst wieder zu, sobald du zurück bist: Eingabe an diesem PC (ab 2 Minuten nach dem Freigeben, auch über TeamViewer), eine neue TeamViewer-Sitzung, du schreibst in der Workbench oder im Chat – oder zur gewählten Uhrzeit.",
+    schirm_zu_erkl: "Zu heißt: Keine neuen Läufe mit Fenster. Läuft gerade einer, bekommt der Agent die Bitte, ihn sofort zu beenden.",
+    schirm_grund_ph: "Grund, z. B. „AFK, Monitor an, kein TeamViewer“", schirm_bis_l: "Spätestens zu um (optional)",
+    schirm_nur_pc: "Freigeben geht nur am PC. Zu machen geht auch von hier.", schirm_ist_frei: "Schirm ist frei", schirm_ist_zu: "Schirm ist zu",
+    schirm_grund_fehlt: "Bitte einen Grund angeben",
     nachricht: "Nachricht", nachricht_an: "Nachricht an {x}", n_kurz_ph: "Kurz: worum geht es (eine Zeile)", n_text_ph: "Text (optional)",
     senden: "Senden", gesendet: "Gesendet an {x} – wird geweckt, wenn die Sitzung läuft.", art_auftrag: "Auftrag", art_frage: "Frage", art_info: "Info (weckt nicht)", art_korrektur: "Korrektur",
     gerade: "gerade eben", vor_min: "vor {n} min", vor_h: "vor {n} h", vor_t: "vor {n} T", nie: "nie",
@@ -1067,6 +1086,15 @@ const TEXTE = {
     halt_erkl: "Running agents immediately receive a STOP and finish their current work cleanly. After that the service only wakes agents for stop and release – until “Resume”. Survives restarts.",
     grund_ph: "Reason (shown to the agents)", abbrechen: "Cancel", halt_gesetzt: "Halt set", halt_aufgehoben: "{n} halt(s) lifted",
     halt_band: "all agents", halt_vom: "Halt by the developer",
+    s_schirm_frei: "Screen free", s_schirm_zu: "Screen closed", schirm: "Screen", schirm_frei: "SCREEN FREE", schirm_zu_b: "SCREEN CLOSED",
+    schirm_seit: "since {x}", schirm_bis: "until {x}", schirm_von: "by {x}",
+    schirm_wartet: "Windowed runs in the queue: {n}", schirm_laeuft: "on screen: {x}",
+    schirm_freigeben: "Free the screen …", schirm_zumachen: "Close screen", schirm_titel: "Screen switch",
+    schirm_erkl: "Free means: agents may start runs that open windows (one at a time, through the run queue). The AMW closes the screen by itself as soon as you are back: input on this PC (from 2 minutes after freeing, also via TeamViewer), a new TeamViewer session, you write in the workbench or chat – or at the chosen time.",
+    schirm_zu_erkl: "Closed means: no new windowed runs. If one is running, its agent is asked to end it right away.",
+    schirm_grund_ph: "Reason, e.g. “away, monitor on, no TeamViewer”", schirm_bis_l: "Close at the latest (optional)",
+    schirm_nur_pc: "Freeing only works on the PC. Closing works from here too.", schirm_ist_frei: "Screen is free", schirm_ist_zu: "Screen is closed",
+    schirm_grund_fehlt: "Please give a reason",
     nachricht: "Message", nachricht_an: "Message to {x}", n_kurz_ph: "Short: what is it about (one line)", n_text_ph: "Text (optional)",
     senden: "Send", gesendet: "Sent to {x} – will be woken if the session is running.", art_auftrag: "Task", art_frage: "Question", art_info: "Info (no wake)", art_korrektur: "Correction",
     gerade: "just now", vor_min: "{n} min ago", vor_h: "{n} h ago", vor_t: "{n} d ago", nie: "never",
@@ -1143,6 +1171,8 @@ async function kopfAktualisieren() {
         : el("span", { class: "signal unwichtig" }, el("span", { class: "punkt gruen" }), t("s_dienst")),
       el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: sollen.length }) + (extra ? " · " + t("s_extra", { n: extra }) : "")),
       el("span", { class: "signal unwichtig" }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: sp })),
+      d.schirm ? el("span", { class: "signal knopflich" + (d.schirm.frei ? "" : " unwichtig"), title: d.schirm.grund, onclick: () => schirmDialog() },
+        el("span", { class: "punkt " + (d.schirm.frei ? "bernstein" : "") }), t(d.schirm.frei ? "s_schirm_frei" : "s_schirm_zu")) : null,
     );
     for (const z of document.querySelectorAll("[data-zahl]")) {
       const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", ["fragen", "freigaben"].includes(z.dataset.zahl) && n > 0);
@@ -1199,6 +1229,15 @@ async function sichtStart() {
   if (d.halt.length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("halt").toUpperCase()),
     el("div", {}, d.halt.map(h => `#${h.id} ${h.gilt_fuer === "alle" ? t("halt_band") : h.gilt_fuer} · ${h.von}: ${h.text} (${seit(h.seit_utc)})`).join(" | ")),
     el("button", { class: "knopf", style: "margin-left:auto", onclick: () => weiterGeben() }, t("weiter"))));
+  const sz = d.schirm, sl = sz?.laeufe || [];
+  if (sz && (sz.frei || sl.length)) {                       /* frei: immer sichtbar; zu: nur, wenn Läufe darauf warten */
+    const laeuft = sl.filter(l => l.status === "laeuft"), wartet = sl.filter(l => l.status === "angemeldet");
+    m.append(el("div", { class: "band-schirm" + (sz.frei ? " frei" : "") }, el("b", {}, t(sz.frei ? "schirm_frei" : "schirm_zu_b")),
+      el("div", {}, [sz.seit_utc ? t("schirm_seit", { x: seit(sz.seit_utc) }) : null, sz.bis_utc ? t("schirm_bis", { x: zeit(sz.bis_utc) }) : null,
+        sz.grund, laeuft.length ? t("schirm_laeuft", { x: laeuft.map(l => `L${l.id} ${l.agent}`).join(", ") }) : null,
+        wartet.length ? t("schirm_wartet", { n: wartet.length }) : null].filter(Boolean).join(" · ")),
+      el("button", { class: "knopf", type: "button", onclick: () => schirmDialog() }, t(sz.frei ? "schirm_zumachen" : "schirm_freigeben"))));
+  }
   if ((d.unangemeldet || []).length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("nicht_angemeldet")),
     el("div", {}, d.unangemeldet.map(u => `${u.kennung || "?"} · ${t("sitzung_pid", { s: u.sitzung, p: u.pid })} · ${u.ordner}`).join(" | ")),
     el("span", { class: "leise" }, t("nicht_angemeldet_h"))));
@@ -2747,6 +2786,35 @@ function haltDialog() {
         catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("halt_setzen")),
         el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")))));
   document.body.append(hg); text.focus();
+}
+/* Schirm-Schalter (B2419): frei nur am PC mit Grund (optional „spätestens zu um“), zu überall mit einem Klick */
+function schirmDialog() {
+  const sz = zustand.start?.schirm || { frei: 0 };
+  let hg;
+  const setzen = async daten => {
+    try { const r = await schicken("/api/schirm", daten); hg.remove(); toast(r.text || t(daten.frei ? "schirm_ist_frei" : "schirm_ist_zu")); zeige(zustand.sicht, true); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); } };
+  if (sz.frei) {
+    hg = dialog(t("schirm_titel"), el("p", { class: "leise" }, [t("schirm_seit", { x: seit(sz.seit_utc) }), sz.grund].join(" · ")),
+      el("p", {}, t("schirm_zu_erkl")),
+      el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => setzen({ frei: false, grund: "zu vom Entwickler" }) }, t("schirm_zumachen")),
+        el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
+    return;
+  }
+  if (API) {
+    hg = dialog(t("schirm_titel"), el("p", {}, t("schirm_ist_zu") + (sz.grund ? ` · ${sz.grund}` : "")), el("p", { class: "leise" }, t("schirm_nur_pc")),
+      el("div", { class: "aktionen" }, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
+    return;
+  }
+  const grund = el("input", { placeholder: t("schirm_grund_ph"), style: "width:100%;padding:8px;margin:8px 0;background:var(--grund);border:1px solid var(--linie);border-radius:3px" });
+  const bis = el("input", { type: "time", style: "padding:6px;background:var(--grund);border:1px solid var(--linie);border-radius:3px;color:var(--tinte)" });
+  hg = dialog(t("schirm_titel"), el("p", { class: "leise" }, t("schirm_ist_zu") + (sz.grund ? ` · ${sz.grund}` : "")),
+    el("p", {}, t("schirm_erkl")), grund, el("label", { style: "display:flex;gap:10px;align-items:center" }, t("schirm_bis_l"), bis),
+    el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => {
+        if (!grund.value.trim()) { toast(t("schirm_grund_fehlt"), true); grund.focus(); return; }
+        setzen({ frei: true, grund: grund.value.trim(), bis: bis.value || null }); } }, t("schirm_freigeben").replace(" …", "")),
+      el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
+  grund.focus();
 }
 async function weiterGeben() {
   const halte = zustand.start?.halt || []; const fuer = [...new Set(halte.map(h => h.gilt_fuer))];

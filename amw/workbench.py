@@ -116,8 +116,12 @@ def daten_start(con, pid):
         warnungen = ueberwachung.warnungen(con, pid)   # Server aus, Weckruf unbeantwortet, Lauf überfällig
     except Exception:
         warnungen = []
+    from . import schirm
+    sz = schirm.zustand(con)
+    sz["laeufe"] = zeilen(con.execute("SELECT id, agent, status, beschreibung FROM lauf WHERE projekt_id = ? AND schirm = 1"
+                                      " AND status IN ('laeuft', 'angemeldet') ORDER BY id", (pid,)))
     return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "zaehler": zaehler,
-            "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet,
+            "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 

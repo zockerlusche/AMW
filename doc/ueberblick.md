@@ -19,6 +19,7 @@ arbeitet. Jeder Agent ist eine eigene Claude-Code-Sitzung in einem Terminal-Fens
 | **Bogen** | Meilenstein mit prüfbarem Abnahmekriterium, Zieldatum (Baseline), Spezifikation in drei Teilen mit Freigabe. |
 | **Wissen** | Beschlüsse (mit Status und Ersatz), Regeln (nur mit Beschluss änderbar), Wortlaut des Entwicklers (unveränderlich), Notizen. |
 | **Lauf** | Ein Rechen-Lauf (Build, Test …) mit Regeln: ein schwerer zur Zeit, einer am Bildschirm, Speichergrenze, Warteschlange. |
+| **Schirm** | Schalter, ob Läufe mit Fenster gerade dürfen. Ab Werk zu; frei gibt der Entwickler (oder der Lead auf sein Wort); geht von selbst zu, sobald der Entwickler wieder da ist. |
 | **Prüfung** | Prüfbitte an einen anderen Agenten je Stand (Commit), Ergebnis grün oder rot. |
 | **Halt** | Hält alle (oder einen) Agenten an: nichts Neues beginnen, nur noch Stopp/Freigabe wecken – bis „Weiter“. |
 | **Pflicht-Kontext** | Was ein Agent beim Start und nach jeder Komprimierung bekommt: Halt, Anweisungen, Leitbild, eigene Aufgaben, offene Nachrichten, Regeln. |

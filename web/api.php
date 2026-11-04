@@ -78,7 +78,10 @@ try {
                 '/api/agent/start', '/api/agent/stop', '/api/push/probe'], true)) {
             antwort(403, ['fehler' => 'Das geht nur am PC.']);
         }
-        if (!$frage && !$parken && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter',
+        if ($pfad === '/api/schirm' && !empty($daten['frei'])) {     // Schirm frei nur am PC, zu auch von unterwegs (B2419)
+            antwort(403, ['fehler' => 'Schirm frei geben geht nur am PC – zu geht auch von unterwegs.']);
+        }
+        if (!$frage && !$parken && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter', '/api/schirm',
                 '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web',
                 '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko',
                 '/api/plan/rueckblick', '/api/plan/uebernehmen', '/api/plan/check',
@@ -127,6 +130,7 @@ try {
             $pfad === '/api/gelesen' => ['erledigt' => count($daten['ids'])],
             str_starts_with($pfad, '/api/einstellungen/'), str_starts_with($pfad, '/api/plan/'), str_starts_with($pfad, '/api/dokument/') => [],
             $pfad === '/api/halt' => ['halt' => 0],
+            $pfad === '/api/schirm' => ['text' => 'Schirm zu – der PC übernimmt es gleich'],
             default => ['aufgehoben' => 0],
         };
         antwort(200, $form + ['unterwegs' => true]);

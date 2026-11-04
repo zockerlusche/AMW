@@ -3,8 +3,9 @@ import os
 import sqlite3
 import tempfile
 import unittest
+from unittest import mock
 
-from amw import betrieb, cli, db, kern, wissen
+from amw import betrieb, cli, db, kern, schirm, wissen
 
 
 class Grund(unittest.TestCase):
@@ -37,7 +38,12 @@ class Laeufe(Grund):
 
     def test_rezept_bestimmt_schirm_und_grenze(self):
         betrieb.rezept_setzen(self.con, self.pid, "abnahme", "gd_ablaeufe.ps1", "am Schirm", schirm=True, speicher_gb=6)
-        betrieb.lauf_start(self.con, self.pid, "CC2", "Abnahme", rezept="abnahme", speicher_frei=7)
+        with self.assertRaises(kern.AmwFehler) as e:                      # Schirm ist ab Werk zu (B2419)
+            betrieb.lauf_start(self.con, self.pid, "CC2", "Abnahme", rezept="abnahme", speicher_frei=7)
+        self.assertIn("Schirm ZU", str(e.exception))
+        schirm.setzen(self.con, self.pid, "TL", True, "Marcel AFK")
+        with mock.patch.object(schirm, "leerlauf_s", return_value=600):
+            betrieb.lauf_start(self.con, self.pid, "CC2", "Abnahme", rezept="abnahme", speicher_frei=7)
         with self.assertRaises(kern.AmwFehler):
             betrieb.lauf_start(self.con, self.pid, "CC1", "zweiter Schirm", rezept="abnahme", speicher_frei=30)
         self.assertEqual(betrieb.rezept_setzen(self.con, self.pid, "abnahme", "neu.ps1"), "geändert")

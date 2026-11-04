@@ -14,6 +14,31 @@ class Ungueltig(ValueError):
 
 
 def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
+    """Führt die Aktion aus. Jede Eingabe des Entwicklers heißt: Marcel ist da – ein freier Schirm geht zu (B2419)."""
+    if weg == "/api/schirm":
+        return schirm_setzen(con, pid, daten, kanal)
+    aus = _ausfuehren(con, pid, weg, daten, kanal, speicher)
+    if weg != "/api/hochladen" or daten.get("schritt") == "start":    # ein Upload in vielen Teilen zählt einmal
+        from . import schirm
+        schirm.marcel_da(con, "Workbench" if kanal == "seite" else "Workbench online")
+    return aus
+
+
+def schirm_setzen(con, pid, d, kanal):
+    """Frei nur am PC (wer online angemeldet ist, soll keine Fenster-Läufe auf diesem PC freigeben); zu überall."""
+    from . import schirm
+    frei = bool(d.get("frei"))
+    if frei and kanal != "seite":
+        raise Ungueltig("Schirm frei geben geht nur am PC – zu geht auch von unterwegs")
+    try:
+        z = schirm.setzen(con, pid, kern.ENTWICKLER, frei, (d.get("grund") or "").strip() or None, d.get("bis") or None,
+                          "workbench" if kanal == "seite" else "netz")
+    except kern.AmwFehler as e:
+        raise Ungueltig(str(e)) from None
+    return {"schirm": z, "text": schirm.text(z)}
+
+
+def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
     teile = weg.strip("/").split("/")
     if teile[:2] == ["api", "frage"] and len(teile) == 4 and teile[3] == "antwort":
         art = daten.get("art")

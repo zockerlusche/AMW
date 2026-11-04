@@ -467,6 +467,12 @@ def kontext(con, pid, kennung):
     if halte:
         z.append("!! HALT GILT: " + " | ".join(f"#{s['id']} {s['von']}: {s['text']}" for s in halte)
                  + " – nichts Neues anfangen.")
+    try:                                            # Schirm-Schalter (B2419): ob Fenster-Läufe gerade dürfen
+        from . import schirm
+        z.append(schirm.text(schirm.zustand(con)) + " – Läufe mit Fenster nur über `amw lauf start --schirm --warten`,"
+                 " dann `amw lauf warte <nr>`.")
+    except Exception:
+        pass
     hinweise = aktive_sperren(con, pid, kennung, "hinweis")
     if hinweise:
         z.append("Geltende Anweisungen: " + " | ".join(f"{s['von']}: {s['text']}" for s in hinweise))

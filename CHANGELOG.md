@@ -4,6 +4,27 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.7.0 – 04.11.2026 · Schirm-Schalter
+Beschluss B2419 „Automatismen in der AMW statt Gebote“, Teil 1 (Plan: `doc/plan-automatismen.md`).
+- **Schirm frei/zu als Zustand in der AMW:** Ob Agenten Läufe mit Fenster starten dürfen, steht jetzt in der AMW, nicht
+  mehr nur in einem Beschluss. Ab Werk und nach jedem Neustart ist der Schirm **zu**. Frei geben nur Marcel (Workbench am
+  PC) und der Lead auf sein Wort (`amw schirm frei --grund … [--bis 07:00]`, auch über die Brücke). Zu machen darf jeder,
+  Marcel auch vom Handy.
+- **Geht von selbst zu, sobald Marcel wieder da ist:** Eingabe an diesem PC (ab 2 Minuten nach dem Freigeben, auch über
+  TeamViewer), eine neue TeamViewer-Sitzung, Marcel schreibt in der Workbench (PC oder Handy) oder ein Wortlaut mit
+  seiner Zeit kommt, oder die gewählte Uhrzeit ist erreicht. Der Grund steht dabei, z. B. „Eingabe am PC (06:02)“.
+- **Lauf-Schlange hält sich daran:** `amw lauf start --schirm` startet nur bei freiem Schirm und ruhigem PC, sonst
+  Fehler mit Grund bzw. mit `--warten` eingereiht. Ein wartender Schirm-Lauf hält Läufe ohne Fenster nicht auf. Geht der
+  Schirm zu, bekommt ein laufender Schirm-Lauf eine weckende Bitte, sofort zu beenden (die AMW beendet keine Prozesse);
+  läuft er 5 Minuten später noch, erfährt es der Lead. Wer eingereihte Schirm-Läufe hat, erfährt, dass sie warten.
+- **Neu: `amw lauf warte <nr>`** blockiert, bis der Lauf dran ist (rc 0 = jetzt rechnen, 2 = abgebrochen, 3 =
+  `--hoechstens` erreicht) und schreibt jede Minute den Grund. **`amw lauf zeige <nr>`** zeigt Platz und Grund. Die
+  Hilfe zu `--warten` sagt jetzt deutlich: nur einreihen, noch nicht rechnen.
+- **Workbench:** Anzeige „Schirm frei/zu“ in der Kopfzeile, auf der Startseite ein Band, solange der Schirm frei ist
+  oder Läufe mit Fenster warten, und ein Dialog zum Freigeben (Grund, „spätestens zu um“) bzw. Zumachen. Der
+  Pflichtkontext der Agenten nennt den Zustand.
+- Schema 11 (Tabelle `schirm`, eine Zeile je Wechsel, wird nie gelöscht).
+
 ## 1.6.3 – 03.11.2026
 - **Keine Push-Meldungen mehr aus den Tests:** Zwei Tests ließen eine Runde des Dienstes auf einer leeren Test-Datenbank
   laufen und benutzten dabei die echten Push-Einstellungen des PCs. Jeder Testlauf schickte so einen „Rückblick“ voller

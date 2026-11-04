@@ -8,9 +8,10 @@ import json
 import os
 import re
 import sys
+import time
 from datetime import datetime
 
-from . import betrieb, db, kern, ueberwachung, wissen
+from . import betrieb, db, kern, schirm, ueberwachung, wissen
 
 
 def _projekt(con, a):
@@ -466,6 +467,47 @@ def cmd_regeln(a, con):
         print(f"{'KR' if r['ebene'] == 'arbeit' else 'PR'}{r['nr']} (Stand {_zeit(r['stand_utc'])}): {r['text']}\n")
 
 
+def _lauf_warte(con, pid, a):
+    """Blockiert, bis der Lauf dran ist: rc 0 = läuft (jetzt rechnen), 2 = abgebrochen/fertig, 3 = --hoechstens erreicht.
+    Jede Minute eine Zeile mit dem Grund, damit man Warten von Hängen unterscheiden kann."""
+    if not a.id:
+        raise kern.AmwFehler("lauf warte <nr> [--hoechstens <min>]")
+    ende = time.time() + a.hoechstens * 60 if a.hoechstens else None
+    letzte = 0
+    while True:
+        l = betrieb.lauf_zeile(con, pid, a.id)
+        if l["status"] == "laeuft":
+            print(f"L{a.id} läuft – jetzt rechnen. Am Ende: amw lauf ende {a.id} --rc <Code>", flush=True)
+            return 0
+        if l["status"] in ("fertig", "abgebrochen"):
+            print(f"L{a.id} ist {l['status']} – nicht rechnen", flush=True)
+            return 2
+        if time.time() - letzte >= 60:
+            letzte = time.time()
+            print(f"{time.strftime('%H:%M')} L{a.id} wartet: {betrieb.wartegrund(con, pid, l)}", flush=True)
+        if ende and time.time() >= ende:
+            print(f"L{a.id} wartet nach {a.hoechstens:g} min noch – bleibt eingereiht", flush=True)
+            return 3
+        time.sleep(5)
+
+
+def cmd_schirm(a, con):
+    pid = _projekt(con, a)
+    if a.aktion in ("frei", "zu"):
+        z = schirm.setzen(con, pid, _von(a), a.aktion == "frei", a.grund, a.bis, a.quelle)
+        print(schirm.text(z))
+        if a.aktion == "frei":
+            print(f"Geht von selbst zu bei Eingabe am PC (ab {schirm.RUHE_S // 60} min nach jetzt), neuer TeamViewer-Sitzung,"
+                  " Marcels Workbench/Wortlaut" + (", zur bis-Zeit" if z["bis_utc"] else "") + ".")
+        return
+    print(schirm.text(schirm.zustand(con)))
+    g = schirm.sperrgrund(con)
+    print("Schirm-Läufe: " + ("dürfen starten" if not g else "warten – " + g))
+    if a.verlauf:
+        for z in schirm.verlauf(con, a.grenze):
+            print(f"  {schirm.lokal(z['seit_utc']):<12} {'FREI' if z['frei'] else 'zu  '} {z['von']:<10} {z['quelle']:<9} {z['grund']}")
+
+
 def cmd_lauf(a, con):
     pid = _projekt(con, a)
     if a.aktion == "start":
@@ -490,6 +532,18 @@ def cmd_lauf(a, con):
         betrieb.lauf_vorziehen(con, pid, _von(a), a.id)
         weiter = betrieb.warteschlange(con, pid)
         print(f"L{a.id} steht vorn in der Warteschlange" + (f" – freigegeben: {', '.join(f'L{x}' for x in weiter)}" if weiter else ""))
+    elif a.aktion == "zeige":
+        if not a.id:
+            raise kern.AmwFehler("lauf zeige <nr>")
+        l = betrieb.lauf_zeile(con, pid, a.id)
+        print(f"L{l['id']} {l['agent']} [{l['status']}]{' schwer' if l['schwer'] else ''}{' Schirm' if l['schirm'] else ''}"
+              f"  {l['beschreibung']}")
+        print(f"angemeldet {_zeit(l['angemeldet_utc'])} · Start {_zeit(l['start_utc']) or '–'} · Ende {_zeit(l['ende_utc']) or '–'}"
+              f" · rc {l['rc'] if l['rc'] is not None else '–'}")
+        if l["status"] == "angemeldet":
+            print(betrieb.wartegrund(con, pid, l))
+    elif a.aktion == "warte":
+        return _lauf_warte(con, pid, a)
     else:
         w = betrieb.wartende(con, pid)
         if w:
@@ -1166,10 +1220,13 @@ def parser():
     x.add_argument("--kurz", action="store_true", help="pruefen: nur eine Zeile je Befund")
     x.set_defaults(f=cmd_plan)
 
-    x = s.add_parser("lauf", help="Rechen-Läufe: start [--warten] prüft Halt, Speicher, einen schweren/Schirm-Lauf zur Zeit, Warteschlange")
-    x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen"])
+    x = s.add_parser("lauf", help="Rechen-Läufe: start [--warten] prüft Halt, Schirm, Speicher, einen schweren/Schirm-Lauf zur Zeit,"
+                                  " Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund")
+    x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen", "zeige", "warte"])
     x.add_argument("id", type=int, nargs="?")
-    x.add_argument("--warten", action="store_true", help="ist der Platz belegt: einreihen statt ablehnen; Freigabe weckt dich")
+    x.add_argument("--warten", action="store_true", help="ist der Platz belegt: NUR einreihen (noch nicht rechnen!) statt"
+                                                         " ablehnen; Freigabe weckt dich – oder danach: amw lauf warte <nr>")
+    x.add_argument("--hoechstens", type=float, help="warte: nach so vielen Minuten aufgeben (rc 3), Lauf bleibt eingereiht")
     x.add_argument("--dauer", type=float, help="erwartete Dauer in Minuten; doppelt so lang → Warnung an den Lead")
     x.add_argument("--beschreibung")
     x.add_argument("--rezept")
@@ -1181,6 +1238,15 @@ def parser():
     x.add_argument("--abgebrochen", action="store_true")
     x.add_argument("--grenze", type=int, default=20)
     x.set_defaults(f=cmd_lauf)
+
+    x = s.add_parser("schirm", help="Schirm-Schalter: zeige | frei --grund … [--bis HH:MM] (Entwickler/Lead) | zu [--grund …] (alle)")
+    x.add_argument("aktion", nargs="?", default="zeige", choices=["zeige", "frei", "zu"])
+    x.add_argument("--grund")
+    x.add_argument("--bis", help="frei: geht zu dieser Ortszeit von selbst zu, z. B. 07:00 oder \"2026-11-05 07:00\"")
+    x.add_argument("--verlauf", action="store_true", help="zeige: die letzten Wechsel")
+    x.add_argument("--grenze", type=int, default=20)
+    x.add_argument("--quelle", default="cli", choices=["cli", "bruecke"], help=argparse.SUPPRESS)
+    x.set_defaults(f=cmd_schirm)
 
     x = s.add_parser("server", help="Projekt-Server überwachen: anmelden | abmelden | liste | pruefen")
     x.add_argument("aktion", choices=["anmelden", "abmelden", "liste", "pruefen"])

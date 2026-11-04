@@ -5,7 +5,8 @@ Läuft außerhalb von Claude Code (gestartet von der Windows-Aufgabenplanung, St
   zugestellt (eine Sammelzeile je Agent und Durchgang); empfang.geweckt_utc wird gesetzt.
   Während eines Halts nur stopp/freigabe. Agenten ohne lebende Sitzung werden nicht geweckt – ihre
   Nachrichten bleiben offen, bis sich die Sitzung anmeldet.
-- Aufsicht: lebt die Pipe einer angemeldeten Sitzung noch? Sonst Sitzung → beendet.
+- Aufsicht: lebt die Pipe einer angemeldeten Sitzung noch? Sonst Sitzung → beendet. Schirm-Schalter: zu, sobald
+  Marcel wieder da ist (schirm.py).
 Erkennen wie die alte Wache über PRAGMA data_version (billig, nur Änderungen anderer Verbindungen).
 Der Dienst beendet nie Claude-Code-Sitzungen und startet keine Agenten.
 
@@ -20,7 +21,7 @@ import os
 import sys
 import time
 
-from . import betrieb, db, kern, pipe, push, statusline, steuerung, ueberwachung
+from . import betrieb, db, kern, pipe, push, schirm, statusline, steuerung, ueberwachung
 
 AUFSICHT_S = 30           # Puls-Prüfung und Wiederholung fehlgeschlagener Zustellungen
 NUR_IM_HALT = ("stopp", "freigabe")
@@ -171,6 +172,11 @@ class Dienst:
                     log.info("Brücken-Sitzung %s beendet (kein Puls)", s["id"])
                 continue
             self.pruefe_sitzung(s)
+        try:                                                                 # Schirm: zu, sobald Marcel wieder da ist
+            for e in schirm.pruefen(self.con):
+                log.info("Schirm: %s", e)
+        except Exception as e:
+            log.warning("Schirm: %s: %s", type(e).__name__, e)
         for p in self.con.execute("SELECT id FROM projekt").fetchall():   # Warteschlange: Speicher wieder frei, Agent wieder da
             for lid in betrieb.warteschlange(self.con, p["id"]):
                 log.info("Warteschlange: L%s freigegeben", lid)

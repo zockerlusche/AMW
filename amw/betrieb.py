@@ -7,6 +7,7 @@ import ctypes
 import json
 
 from . import db, kern
+from . import schirm as schirm_mod     # „schirm“ ist hier schon der Name der Spalte/des Parameters
 
 SPEICHER_GRENZE_GB = 8.0      # Vorgabe, je Projekt überschreibbar: einstellungen {"speicher_grenze_gb": …}
 
@@ -83,8 +84,10 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
         speicher_frei = speicher_frei_gb()[0]
     plaetze = _plaetze(schwer, schirm)
     with db.schreiben(con):
-        grund = _besetzt(con, pid, plaetze)
-        vor = [w for w in wartende(con, pid) if _plaetze(w["schwer"], w["schirm"]) & plaetze]
+        schirm_zu = schirm_mod.sperrgrund(con) if schirm or any(w["schirm"] for w in wartende(con, pid)) else None
+        grund = (schirm_zu if schirm else None) or _besetzt(con, pid, plaetze)
+        vor = [w for w in wartende(con, pid) if _plaetze(w["schwer"], w["schirm"]) & plaetze
+               and not (w["schirm"] and schirm_zu and not schirm)]     # wer auf den Schirm wartet, hält Läufe ohne Fenster nicht auf
         if not grund and vor:
             grund = "Warteschlange: " + ", ".join(f"L{w['id']} von {w['agent']}" for w in vor) + " wartet schon"
         if not grund and grenze and speicher_frei is not None and speicher_frei < grenze:
@@ -101,16 +104,21 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
 def warteschlange(con, pid, speicher_frei=None):
     """Startet wartende Läufe der Reihe nach, sobald ihr Platz frei ist, und weckt den Agenten (Freigabe).
     Wer warten muss, hält alle hinter sich auf, die denselben Platz brauchen – niemand überholt. Agenten ohne
-    lebende Sitzung oder im Halt werden übersprungen, bis sie wieder da sind. Rückgabe: gestartete Lauf-Nummern."""
+    lebende Sitzung oder im Halt werden übersprungen, bis sie wieder da sind. Schirm-Läufe nur bei freiem Schirm
+    und ruhigem PC (schirm.py). Rückgabe: gestartete Lauf-Nummern."""
     if not wartende(con, pid):
         return []
     if speicher_frei is None:
         speicher_frei = speicher_frei_gb()[0]
     gestartet, gesperrt = [], set()
     with db.schreiben(con):
+        schirm_zu = any(l["schirm"] for l in wartende(con, pid)) and schirm_mod.sperrgrund(con)
         for l in wartende(con, pid):
             plaetze = _plaetze(l["schwer"], l["schirm"])
             if plaetze & gesperrt:
+                continue
+            if l["schirm"] and schirm_zu:            # hält nur andere Schirm-Läufe auf, nicht die ohne Fenster (B2418)
+                gesperrt.add("schirm")
                 continue
             lebt = con.execute("SELECT 1 FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
                                " AND a.kennung = ? AND s.zustand = 'aktiv'", (pid, l["agent"])).fetchone()
@@ -128,6 +136,40 @@ def warteschlange(con, pid, speicher_frei=None):
                          aufgabe_id=l["aufgabe_id"])
             gestartet.append(l["id"])
     return gestartet
+
+
+def lauf_zeile(con, pid, lid):
+    l = con.execute("SELECT l.*, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
+                    " WHERE l.id = ? AND l.projekt_id = ?", (lid, pid)).fetchone()
+    if not l:
+        raise kern.AmwFehler(f"Lauf L{lid} gibt es nicht")
+    return l
+
+
+def wartegrund(con, pid, l, speicher_frei=None):
+    """Warum ein eingereihter Lauf noch nicht dran ist – dieselben Regeln wie warteschlange(), als Text."""
+    w = wartende(con, pid)
+    platz = next((i for i, x in enumerate(w, 1) if x["id"] == l["id"]), None)
+    plaetze = _plaetze(l["schwer"], l["schirm"])
+    gruende = []
+    if l["schirm"]:
+        g = schirm_mod.sperrgrund(con)
+        if g:
+            gruende.append(g)
+    if kern.halt_gilt(con, pid, l["agent"]):
+        gruende.append("HALT gilt")
+    b = _besetzt(con, pid, plaetze)
+    if b:
+        gruende.append(b)
+    vor = [x for x in w[:(platz or 1) - 1] if _plaetze(x["schwer"], x["schirm"]) & plaetze]
+    if vor:
+        gruende.append("vor dir: " + ", ".join(f"L{x['id']} ({x['agent']})" for x in vor))
+    grenze = _grenze(con, pid, l["braucht_speicher_gb"], l["schwer"])
+    frei = speicher_frei if speicher_frei is not None else speicher_frei_gb()[0]
+    if grenze and frei is not None and frei < grenze:
+        gruende.append(f"nur {frei} GB frei, Grenze {grenze:g} GB")
+    kopf = f"Platz {platz} von {len(w)}" if platz else "nicht in der Schlange"
+    return kopf + (" – " + " · ".join(gruende) if gruende else " – gleich dran (nächste Runde des Wächters)")
 
 
 def lauf_vorziehen(con, pid, von, lid):

@@ -399,6 +399,21 @@ CREATE TABLE pruefung (
   geaendert_utc   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
+-- Schirm-Schalter (Schema 11, B2419): darf gerade ein Lauf am Bildschirm laufen? Eine Zeile je Wechsel, die jüngste
+-- gilt; keine Zeile = zu. PC-weit (ein Bildschirm), deshalb ohne projekt_id.
+CREATE TABLE schirm (
+  id            INTEGER PRIMARY KEY,
+  frei          INTEGER NOT NULL CHECK (frei IN (0, 1)),
+  seit_utc      TEXT NOT NULL,
+  bis_utc       TEXT,                             -- nur bei frei: geht dann von selbst zu
+  grund         TEXT NOT NULL,
+  von           TEXT NOT NULL,
+  quelle        TEXT NOT NULL CHECK (quelle IN ('workbench', 'netz', 'cli', 'bruecke', 'automatik')),
+  uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft      TEXT NOT NULL DEFAULT '',
+  geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
 -- Anweisungen, die für einen Agenten oder alle gelten (z. B. „keine Rechen-Jobs“).
 -- art 'halt' = Halt: Dienst stellt sofort ein STOPP zu und weckt danach nur noch für
 -- stopp/freigabe; amw verweigert neue Läufe und Aufgaben-Starts; gilt über Neustarts hinweg bis aufgehoben.
@@ -613,6 +628,7 @@ CREATE TRIGGER frage_nie_loeschen     BEFORE DELETE ON frage     BEGIN SELECT RA
 CREATE TRIGGER lauf_nie_loeschen      BEFORE DELETE ON lauf      BEGIN SELECT RAISE(ABORT, 'Verlauf: lauf wird nicht gelöscht'); END;
 CREATE TRIGGER pruefung_nie_loeschen  BEFORE DELETE ON pruefung  BEGIN SELECT RAISE(ABORT, 'Verlauf: pruefung wird nicht gelöscht'); END;
 CREATE TRIGGER release_nie_loeschen   BEFORE DELETE ON release   BEGIN SELECT RAISE(ABORT, 'Verlauf: release wird nicht gelöscht'); END;
+CREATE TRIGGER schirm_nie_loeschen    BEFORE DELETE ON schirm    BEGIN SELECT RAISE(ABORT, 'Verlauf: schirm wird nicht gelöscht'); END;
 
 -- Wortlaut bleibt unverändert.
 CREATE TRIGGER wortlaut_unveraendert BEFORE UPDATE OF text ON wortlaut BEGIN SELECT RAISE(ABORT, 'Wortlaut wird nicht geändert'); END;
