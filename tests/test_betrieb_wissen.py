@@ -41,7 +41,7 @@ class Laeufe(Grund):
         with self.assertRaises(kern.AmwFehler) as e:                      # Schirm ist ab Werk zu (B2419)
             betrieb.lauf_start(self.con, self.pid, "CC2", "Abnahme", rezept="abnahme", speicher_frei=7)
         self.assertIn("Schirm ZU", str(e.exception))
-        schirm.setzen(self.con, self.pid, "TL", True, "Marcel AFK")
+        schirm.setzen(self.con, self.pid, "TL", True, "Entwickler weg")
         with mock.patch.object(schirm, "leerlauf_s", return_value=600):
             betrieb.lauf_start(self.con, self.pid, "CC2", "Abnahme", rezept="abnahme", speicher_frei=7)
         with self.assertRaises(kern.AmwFehler):

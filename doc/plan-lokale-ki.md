@@ -1,7 +1,7 @@
 # Entwurf: Lokale KIs in der AMW (universal)
 
-Stand 05.11.2026, CCamw. Anlass: Marcel 06:02 über TL (#17255). Grundlage: D106 (Recherche), D113 (Installation).
-Status: **Entwurf zur Diskussion** – Umsetzung erst nach Marcels Wort (neue Tabellen = Schema 17, KR26).
+Stand 05.11.2026. Anlass: Wunsch des Entwicklers, die lokal installierten KIs so überschaubar zu führen wie die Agenten.
+Status: **Entwurf zur Diskussion** – Umsetzung erst nach dem Wort des Entwicklers (neue Tabellen = Schema 17).
 
 ## Kurzfassung
 
@@ -10,13 +10,13 @@ Eine lokale KI ist in der AMW ein **Werkzeug**, kein Agent. Sie hat Modelle mit 
 
 1. **Auftrag:** Agenten beauftragen sie nur **über die AMW**, und zwar als **KI-Lauf** in der bestehenden
    Lauf-Schlange.
-2. **Grafikkarte:** Sie ist ein neuer PC-weiter Platz „gpu“. Godot-Läufe und KI-Läufe stehen in derselben
+2. **Grafikkarte:** Sie ist ein neuer PC-weiter Platz „gpu“. Läufe des Projekts (z. B. Spiel-Engine) und KI-Läufe stehen in derselben
    Reihe, und niemand überholt.
 3. **Ausführung:** Den KI-Lauf führt die **AMW selbst** über die lokale HTTP-Schnittstelle aus (Ollama,
    ComfyUI). Der Agent muss dafür nicht wach sein, auch nachts nicht.
 4. **Ergebnis:** Jedes Ergebnis wird ein **Dokument mit Herkunft** (KI, Modell, Version, Lizenz, Prompt,
    Seed, Parameter, Dauer). Die AMW schreibt die Herkunft selbst, sie beruht nicht auf Angaben des Agenten.
-   Auswahl und Nachbearbeitung durch Agent oder Marcel werden am Dokument vermerkt.
+   Auswahl und Nachbearbeitung durch Agent oder Entwickler werden am Dokument vermerkt.
 5. **Nachweis:** Aus diesen Angaben erzeugt `amw ki nachweis` die Liste für Steam und das Urheberrecht.
 
 ## 1. Setup – was ist eine lokale KI in der AMW?
@@ -47,8 +47,8 @@ Eine lokale KI ist in der AMW ein **Werkzeug**, kein Agent. Sie hat Modelle mit 
   - kommerziell: ja | nein | registrierung;
   - VRAM-Probe (GB, Sekunden je Auftrag).
   - Ein Modell, das nicht **frei** ist, kann nicht beauftragt werden.
-  - Wer freigibt: Lead/TL. Bei „registrierung“ oder einer Lizenz mit Nutzungsregeln (z. B. Open RAIL++-M) gibt
-    **Marcel** frei.
+  - Wer freigibt: Lead. Bei „registrierung“ oder einer Lizenz mit Nutzungsregeln (z. B. Open RAIL++-M) gibt
+    **der Entwickler** frei.
 - **`ki_vorlage`** (für ComfyUI und Blender): ein benannter Workflow (API-JSON als Dokument, sha256) mit
   Platzhaltern `{prompt}`, `{negativ}`, `{seed}`, `{bild}`, `{breite}`, `{hoehe}`. Das entspricht den
   Rezepten für Läufe. Ohne Vorlage gibt es keinen Bild-Auftrag, denn freie Workflows wären nicht überschaubar.
@@ -56,17 +56,17 @@ Eine lokale KI ist in der AMW ein **Werkzeug**, kein Agent. Sie hat Modelle mit 
   Agenten, je KI.
   - Vorgabe beim Anlegen: niemand außer Lead und Entwickler.
 
-Eintragen: `amw ki neu …`, `amw ki modell …`, `amw ki vorlage …`, `amw ki recht …`. D113 lässt sich fast
-1:1 übernehmen, und ein Agent (z. B. CC7) kann das einmal eintragen.
+Eintragen: `amw ki neu …`, `amw ki modell …`, `amw ki vorlage …`, `amw ki recht …`. Eine vorhandene
+Installationsliste lässt sich fast 1:1 übernehmen; ein Agent trägt sie einmal ein.
 
 ## 2. Wer beauftragt – und wie?
 
 ### Direkt oder über die AMW?
 
-| | Direkt (MCP/HTTP vom Agenten) | **Über die AMW (Empfehlung, wie TL)** |
+| | Direkt (MCP/HTTP vom Agenten) | **Über die AMW (Empfehlung)** |
 |---|---|---|
 | Pro | flexibel; der Agent kann Workflows frei bauen und iterieren; nichts zu bauen | Die Grafikkarte ist ein Platz und wird gerecht verteilt. Jeder sieht, was erzeugt wird. Die Herkunft ist automatisch und vollständig. Es geht nachts ohne wachen Agenten. Rechte und Lizenzsperren greifen. |
-| Contra | Grafikkarte doppelt belegt (Godot-Test bricht ab oder lagert aus); keiner sieht es; Herkunft hängt an der Disziplin; Agent wartet und verbraucht Token | etwas weniger frei: neue Workflows erst als Vorlage eintragen |
+| Contra | Grafikkarte doppelt belegt (ein Test des Projekts bricht ab oder lagert aus); keiner sieht es; Herkunft hängt an der Disziplin; Agent wartet und verbraucht Token | etwas weniger frei: neue Workflows erst als Vorlage eintragen |
 
 ### Wer führt den Auftrag aus?
 
@@ -87,15 +87,15 @@ Eintragen: `amw ki neu …`, `amw ki modell …`, `amw ki vorlage …`, `amw ki 
 
 ### Wer darf beauftragen?
 
-- Agenten mit Recht laut `ki_recht`, außerdem Lead und Entwickler (Marcel über Workbench oder Handy).
-- Marcel bekommt online **keinen** Startknopf für die KI, wie bei den Agenten. Er darf aber vorziehen,
+- Agenten mit Recht laut `ki_recht`, außerdem Lead und Entwickler (über Workbench oder Handy).
+- Der Entwickler bekommt online **keinen** Startknopf für die KI, wie bei den Agenten. Er darf aber vorziehen,
   zurückstellen und die Ergebnisse auswählen.
 
 ### Befehl (Entwurf)
 
 ```
 amw ki auftrag comfyui --vorlage sprite-sdxl --modell sdxl-base --prompt "…" --seed 4711 --anzahl 4 \
-    --aufgabe 1234 [--bild D96] [--nachts] [--von CC1]
+    --aufgabe 1234 [--bild D96] [--nachts] [--von Grafik]
 amw ki auftrag ollama --modell qwen3.5:9b --prompt-datei texte.md [--aufgabe …]
 ```
 
@@ -106,21 +106,21 @@ Dokumente zur Aufgabe ab. Danach weckt sie den Auftraggeber: „L812 fertig: D14
 
 | | Unteraufgabe in der Arbeitsliste | Eigene Liste je KI | **Lauf in der gemeinsamen Schlange, Platz „gpu“ (Empfehlung)** |
 |---|---|---|---|
-| Pro | sichtbar beim Agenten | übersichtlich je KI | Eine Reihe für die eine Grafikkarte, also kein Streit zwischen Godot und KI. Vorziehen, Wartegründe und Freigaben gibt es schon. |
+| Pro | sichtbar beim Agenten | übersichtlich je KI | Eine Reihe für die eine Grafikkarte, also kein Streit zwischen Projekt-Läufen und KI. Vorziehen, Wartegründe und Freigaben gibt es schon. |
 | Contra | Ein KI-Auftrag ist keine Arbeit des Agenten. Er würde gegen „genau eine in Arbeit“ zählen und das Zurückstellen auslösen. | Zwei Schlangen für dieselbe Karte müssten sich trotzdem absprechen | – |
 
 Dazu im Einzelnen:
 
 - **Platz „gpu“ PC-weit:** Heute gelten „schwer“ und „schirm“ je Projekt. Die Grafikkarte gehört dem PC.
-  Godot-Läufe und Rezepte bekommen ein Merkmal „gpu“, KI-Läufe haben es immer.
+  Läufe und Rezepte des Projekts, die die Grafikkarte brauchen, bekommen ein Merkmal „gpu“, KI-Läufe haben es immer.
 - **Beim Agenten:** Der KI-Lauf hängt an seiner Aufgabe und erscheint auf deren Karte. Die Aufgabe kann so
   lange auf „wartet auf L812“ stehen, und die Arbeitsliste lässt ihn die nächste nehmen.
 - **Workbench:** Betrieb → „KI“ zeigt eine Kachel je KI (Zustand, Modell im Speicher, Reihe davor) und
   darunter die KI-Läufe gefiltert aus der gemeinsamen Schlange. Es ist eine Ansicht, keine zweite Schlange.
-- **Nachts oder wenn Marcel weg ist:** `--nachts` heißt „nicht vor dem KI-Fenster“. Das Fenster ist eine
-  PC-weite Einstellung, z. B. 22–06 Uhr, oder „wenn Schirm frei/Marcel abwesend“. Der Terminplaner zeigt das
+- **Nachts oder wenn der Entwickler weg ist:** `--nachts` heißt „nicht vor dem KI-Fenster“. Das Fenster ist eine
+  PC-weite Einstellung, z. B. 22–06 Uhr, oder „wenn Schirm frei/Entwickler abwesend“. Der Terminplaner zeigt das
   Fenster als Band und daneben die Menge der wartenden Aufträge (Schätzung aus der VRAM-Probe in Sekunden).
-- **Godot-Testtermine haben Vorrang:** In der Vorlaufzeit vor einem Testtermin (termin.vorlauf_h) startet die
+- **Testtermine haben Vorrang:** In der Vorlaufzeit vor einem Testtermin (termin.vorlauf_h) startet die
   AMW keine neuen `--nachts`-Aufträge.
 
 ## 4. Kontrolle
@@ -131,9 +131,9 @@ Dazu im Einzelnen:
   - Dauer und VRAM-Spitze.
   - Zur Gegenprobe: ComfyUI schreibt Workflow und Seed in die PNG. Die AMW vergleicht das beim Ablegen.
 - **Vermerke am Dokument**, je mit wer, wann und Text:
-  - ausgewählt / verworfen (Agent oder Marcel, auch per Handy);
+  - ausgewählt / verworfen (Agent oder Entwickler, auch per Handy);
   - **nachbearbeitet**: was von Hand geändert wurde. Für das Urheberrecht ist das der entscheidende Teil
-    (D106 §6, AG München); bei Marcel heißt das „menschliche Gestaltungsentscheidung“.
+    (in Deutschland: AG München, 13.02.2026, 142 C 9786/25); in der AMW heißt das „menschliche Gestaltungsentscheidung“.
 - **Nachweis:** `amw ki nachweis [--aufgabe/--bogen/--alle]` erzeugt eine Liste aller KI-Dokumente:
   - Modell und Lizenz;
   - ausgewählt / nachbearbeitet;
@@ -146,8 +146,8 @@ Dazu im Einzelnen:
 
 - Endpunkte sind nur lokal (`127.0.0.1`, `localhost`, `::1`). Jeder andere Host wird beim Eintragen
   abgelehnt.
-- Keine Konten, Token oder Logins in der AMW. Die Freischaltung auf Hugging Face macht Marcel selbst, die AMW
-  merkt sich nur „Freigabe frei, kommerziell: registrierung (Marcel, Datum)“.
+- Keine Konten, Token oder Logins in der AMW. Die Freischaltung auf Hugging Face macht der Entwickler selbst, die AMW
+  merkt sich nur „Freigabe frei, kommerziell: registrierung (Entwickler, Datum)“.
 - Ein Modell ohne Freigabe „frei“ kann nicht beauftragt werden. Gesperrte Modelle (z. B. Hunyuan wegen EU,
   FLUX-dev wegen non-commercial) stehen mit Grund sichtbar in der Liste, damit keiner sie erneut lädt.
 - Online gelten die Regeln wie bei anderen Dokumenten (Einstellung `dateien_online`). Prompts sind Text und
@@ -156,7 +156,7 @@ Dazu im Einzelnen:
   - Der Dienst schaut per `nvidia-smi` nach, wer die Grafikkarte belegt. Steckt dahinter kein laufender Lauf,
     meldet er „fremde GPU-Last“. Er meldet nur und beendet nichts.
   - comfyui-mcp kommt in keine Agenten-Konfiguration. Höchstens Werkzeuge, die nur lesen, wären denkbar; das
-    entscheidet der TL.
+    entscheidet der Lead.
 
 ## 6. Stufen
 
@@ -166,10 +166,10 @@ Dazu im Einzelnen:
 | 2 | KI-Fenster `--nachts` mit Band im Terminplaner; Vermerke ausgewählt, verworfen und nachbearbeitet (Workbench und Handy); `amw ki nachweis` |
 | 3 | Schnittstelle „befehl“ (Blender, ffmpeg) über `lauf ausfuehren`; Meldung „fremde GPU-Last“ |
 
-## Offene Fragen an Marcel (über TL)
+## Offene Fragen an den Entwickler
 
 1. Variante C (eigene Art „KI“) und Ausführung durch die AMW (2b)? Mit Schema 17.
-2. Wer gibt Modelle frei: Lead/TL allgemein, Marcel nur bei „registrierung“ oder Nutzungsregeln. Oder bei
-   allen Modellen Marcel?
-3. Wie ist das KI-Fenster für `--nachts` festgelegt: feste Uhrzeit, oder „wenn Schirm frei/Marcel weg“?
-4. Wer darf anfangs beauftragen: alle Agenten, oder nur Rollen mit Grafik oder Text (z. B. CC1, CC7)?
+2. Wer gibt Modelle frei: der Lead allgemein, der Entwickler nur bei „registrierung“ oder Nutzungsregeln. Oder bei
+   allen Modellen der Entwickler?
+3. Wie ist das KI-Fenster für `--nachts` festgelegt: feste Uhrzeit, oder „wenn Schirm frei/Entwickler weg“?
+4. Wer darf anfangs beauftragen: alle Agenten, oder nur Rollen mit Grafik oder Text (z. B. für Grafik oder Übersetzung)?

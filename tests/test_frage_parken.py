@@ -32,7 +32,7 @@ class Parken(unittest.TestCase):
 
     def test_parken_nimmt_aus_allen_listen_und_zaehlern(self):
         seit = "2000-01-01T00:00:00Z"
-        self.assertEqual(kern.frage_parken(self.con, self.pid, "TL", self.f1, grund="Marcel: verfolgen wir gerade nicht"), "geparkt")
+        self.assertEqual(kern.frage_parken(self.con, self.pid, "TL", self.f1, grund="Entwickler: verfolgen wir gerade nicht"), "geparkt")
         self.assertEqual(self.offen(), [self.f2])
         alle = workbench.daten_fragen(self.con, self.pid, True)
         self.assertEqual([(f["id"], f["geparkt_von"]) for f in alle], [(self.f2, None), (self.f1, "TL")])   # geparkte zuletzt
@@ -44,9 +44,9 @@ class Parken(unittest.TestCase):
         self.assertEqual([r["id"] for r in kern.offene_fragen(self.con, self.pid)], [self.f2])
         self.assertEqual([r["id"] for r in kern.offene_fragen(self.con, self.pid, geparkt=True)], [self.f1])
         # im Verlauf der Frage vermerkt, der Fragesteller erfährt es (Info, weckt nicht)
-        self.assertEqual(alle[1]["verlauf"][-1]["text"], "Geparkt: Marcel: verfolgen wir gerade nicht")
+        self.assertEqual(alle[1]["verlauf"][-1]["text"], "Geparkt: Entwickler: verfolgen wir gerade nicht")
         n = kern.offene(self.con, self.pid, "CC1")[-1]
-        self.assertEqual((n["art"], n["kurz"]), ("info", f"F{self.f1} geparkt: Marcel: verfolgen wir gerade nicht"))
+        self.assertEqual((n["art"], n["kurz"]), ("info", f"F{self.f1} geparkt: Entwickler: verfolgen wir gerade nicht"))
         with self.assertRaises(kern.AmwFehler):
             kern.frage_parken(self.con, self.pid, "TL", self.f1)              # schon geparkt
         # wieder aufnehmen: zurück in der Liste, Zeit und Person leer, Verlauf behält beides
@@ -55,7 +55,7 @@ class Parken(unittest.TestCase):
         f = self.con.execute("SELECT geparkt_utc, geparkt_von FROM frage WHERE id = ?", (self.f1,)).fetchone()
         self.assertEqual(tuple(f), (None, None))
         self.assertEqual([v["text"] for v in workbench.daten_fragen(self.con, self.pid)[-1]["verlauf"]][-2:],
-                         ["Geparkt: Marcel: verfolgen wir gerade nicht", "Wieder aufgenommen"])
+                         ["Geparkt: Entwickler: verfolgen wir gerade nicht", "Wieder aufgenommen"])
 
     def test_wer_darf_und_antworten_holt_zurueck(self):
         with self.assertRaises(kern.AmwFehler):

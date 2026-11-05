@@ -277,7 +277,7 @@ class LaufAusfuehren(Grund):
         super().setUp()
         self.sitzung("CC1")
         self.aus = os.path.join(self.ordner.name, "aus.txt")
-        from amw import schirm                     # sonst hinge der Schirm-Test an echter Eingabe am PC (Marcel tippt)
+        from amw import schirm                     # sonst hinge der Schirm-Test an echter Eingabe am PC (der Mensch tippt)
         p = mock.patch.object(schirm, "leerlauf_s", return_value=600)
         p.start()
         self.addCleanup(p.stop)
@@ -436,7 +436,7 @@ class Arbeitsliste(Grund):
     def test_liste_des_entwicklers(self):
         kern.projekt_einstellen(self.con, self.pid, "TL", entwickler_name="Chris")
         e1 = kern.aufgabe_neu(self.con, self.pid, "TL", "Variante wählen", agent="Entwickler")
-        e2 = kern.aufgabe_neu(self.con, self.pid, "TL", "Ä1 testen", agent="Chris")             # sein Name geht auch
+        e2 = kern.aufgabe_neu(self.con, self.pid, "TL", "Level 1 testen", agent="Chris")             # sein Name geht auch
         self.assertEqual(self.ids(kern.ENTWICKLER), [e1, e2])
         self.al.ordnen(self.con, self.pid, "TL", "Entwickler", [e2])
         self.assertEqual(self.ids(kern.ENTWICKLER), [e2, e1])
@@ -572,7 +572,7 @@ class AufgabeAnsicht(Grund):
         self.akt, self.wb = aktionen, workbench
         self.f1 = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Reiter?", [("A", "ja")], "A", "weil", geprueft="keine")
         self.f2 = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Maßstab?", [("A", "ja")], "A", "weil", geprueft="keine")
-        self.m = kern.aufgabe_neu(self.con, self.pid, "TL", f"FÜR MARCEL: Fragen beantworten – F{self.f1}, F{self.f2}",
+        self.m = kern.aufgabe_neu(self.con, self.pid, "TL", f"FÜR DICH: Fragen beantworten – F{self.f1}, F{self.f2}",
                                   agent=kern.ENTWICKLER, auftrag="Bitte in der Workbench antworten.")
 
     def tun(self, was, **d):
@@ -611,7 +611,7 @@ class AufgabeAnsicht(Grund):
         self.assertEqual(r["an"], "TL")
 
     def test_spaeter_und_fremde_aufgabe(self):
-        zweite = kern.aufgabe_neu(self.con, self.pid, "TL", "FÜR MARCEL: noch was", agent=kern.ENTWICKLER)
+        zweite = kern.aufgabe_neu(self.con, self.pid, "TL", "FÜR DICH: noch was", agent=kern.ENTWICKLER)
         from amw import arbeitsliste
         self.assertEqual(arbeitsliste.liste(self.con, self.pid, kern.ENTWICKLER)[0]["id"], self.m)
         self.tun("spaeter")

@@ -592,6 +592,10 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
 
 .dialog-hg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 10; padding: 16px; }
 .dialog { width: min(520px, 100%); padding: 22px; }
+.dialog-zu { position: sticky; top: -12px; display: block; justify-self: end; z-index: 2; margin: -10px -10px -26px auto; width: 36px; height: 36px; flex: none;
+  border: 1px solid var(--linie); border-radius: 50%; background: var(--flaeche); color: inherit; font-size: 18px;
+  line-height: 1; cursor: pointer; } .dialog-zu:hover { border-color: var(--leise); }
+.dialog-zu + h3 { padding-right: 40px; }
 .dialog h3 { font: 600 20px var(--titel); margin: 0 0 10px; color: var(--rot); letter-spacing: .06em; }
 .dialog.einst h3 { color: var(--tinte); }   /* Profil ist keine Warnung */
 .dialog select { width: 100%; padding: 8px; background: var(--grund); border: 1px solid var(--linie); border-radius: 3px; }
@@ -725,7 +729,8 @@ const TEXTE = {
     k_meldungen: "Seine letzten Meldungen", k_nichts: "nichts", k_nichts_neu: "keine neuen", k_alt: "– dazu {n} offene aus dem alten Bus (Altbestand)",
     du: "Du", v_rueckfrage: "Rückfrage", v_nachtrag: "Antwort", v_antwort: "Antwort", wartet_auf_x: "wartet auf {x}",
     n_einst: "Einstellungen", n_einst_kurz: "Setup", speichern: "Speichern", gespeichert: "Gespeichert",
-    e_projekt: "Projekt {x}", e_takt: "Takt für den Lead (Minuten)", e_takt_h: "Zusammenfassung an den Lead; 0 = aus",
+    e_projekt: "Projekt", e_projekt_name: "Aktives Projekt",
+    e_projekt_name_h: "Name aus den Daten dieser AMW (amw projekt liste). Die AMW selbst ist für jedes Projekt gleich; weitere Projekte: amw projekt neu …", e_takt: "Takt für den Lead (Minuten)", e_takt_h: "Zusammenfassung an den Lead; 0 = aus",
     e_speicher: "Speicher-Grenze für Rechen-Läufe (GB frei)", e_speicher_h: "Läufe starten erst, wenn so viel RAM frei ist",
     e_agenten: "Agenten", e_agenten_h: "Soll „aus“: wird nicht erwartet und bekommt keine Rundschreiben; „ruht“: pausiert.",
     e_kennung: "Kennung", e_rolle: "Rolle", e_soll: "Soll", e_grenzen: "Grenzen", e_rund: "Rundschreiben", e_puls: "Puls-Grenze (min)",
@@ -734,9 +739,9 @@ const TEXTE = {
     e_hoechstens: "Längste Sitzung (h)", e_fehl_ip: "Sperre nach Fehlversuchen je Adresse (15 min)", e_fehl_ges: "Sperre nach Fehlversuchen gesamt (60 min)",
     e_pc: "Dieser PC", e_pc_h: "Wirkt beim nächsten Start des Wächters (amw dienst neustart). Datei: {x}", nur_pc: "Nur am PC änderbar – hier zur Ansicht.",
     e_db: "Datenbank", e_port: "Port der Workbench", e_aufsicht: "Aufsicht der Sitzungen (s)", e_hoch: "Abgleich: hochladen höchstens alle (s)",
-    e_puls_pc: "Abgleich: Lebenszeichen alle (s)", e_eingang: "Abgleich: Briefkasten leeren alle (s)", e_bruecke: "Brücke für den TL",
+    e_puls_pc: "Abgleich: Lebenszeichen alle (s)", e_eingang: "Abgleich: Briefkasten leeren alle (s)", e_bruecke: "Brücke für einen Lead ohne Windows-Zugriff (z. B. in einer VM)",
     e_absender: "Brücke: Absender", e_kopie: "Brücke: Lesekopie höchstens alle (s)",
-    e_fern: "Schirm: Programm einer Fernsitzung", e_fern_ph: "leer = aus, z. B. teamviewer_desktop.exe",
+    e_fern: "Schirm: Programm einer Fernsitzung", e_fern_ph: "leer = aus, z. B. teamviewer_desktop.exe oder AnyDesk.exe",
     e_fern_h: "Läuft nur während einer Fernwartungs-Verbindung – beginnt eine, geht ein freier Schirm zu",
     e_entwickler: "Dein Name in Meldungen", e_entwickler_ph: "Entwickler", e_entwickler_h: "z. B. „Marie wartet …“ – als Wartegrund geht er auch (--auf Marie)",
     e_dateien: "Dateien online", e_dateien_h: "Welche Dateien der Dokumente der PC von selbst auf die Online-Seite lädt (nur nach Anmeldung sichtbar). Gilt auch für vorhandene; zurückstellen nimmt nichts herunter – das geht je Dokument.",
@@ -778,7 +783,7 @@ const TEXTE = {
     p_app: "App-Token", p_user: "Benutzerschlüssel", p_bot: "Bot-Token", p_chat: "Chat-ID", p_chat_h: "herausfinden: amw push telegram --token …",
     p_ereignisse: "Was gemeldet wird", pe_frage: "neue Frage an dich (und Erinnerung nach 60 min)", pe_nachricht: "Nachricht an dich",
     pe_warnung: "Warnung (Server aus, Stillstand, Fehler, Grenzen)", pe_eingabe: "Agent wartet auf Freigabe/Eingabe (ab 5 min)", pe_halt: "Halt gesetzt/aufgehoben",
-    pe_rueckblick: "täglicher Rückblick", p_ruhe: "Ruhezeit", p_ruhe_h: "nur Dringendes (Halt, Server aus); der Rest kommt danach gesammelt",
+    pe_rueckblick: "täglicher Rückblick", pe_termin: "Testtermin in 1 h", e_neu_ph: "Kennung, z. B. Agent4", p_ruhe: "Ruhezeit", p_ruhe_h: "nur Dringendes (Halt, Server aus); der Rest kommt danach gesammelt",
     p_von: "von", p_bis: "bis", p_max: "höchstens je Stunde", p_probe: "Probe {x}", p_protokoll: "Zuletzt verschickt", p_leer: "Noch nichts verschickt.",
     st_starten: "Starten", st_fortsetzen: "Fortsetzen", st_neu: "Neu beginnen", st_beenden: "Beenden", st_profil: "Profil anlegen",
     st_profil_h: "Zum Starten braucht der Agent ein Profil (Ordner …) – Zahnrad › Agenten › Profil",
@@ -961,7 +966,8 @@ const TEXTE = {
     k_meldungen: "Its latest reports", k_nichts: "nothing", k_nichts_neu: "none new", k_alt: "– plus {n} open from the old bus (legacy)",
     du: "You", v_rueckfrage: "Follow-up question", v_nachtrag: "Reply", v_antwort: "Answer", wartet_auf_x: "waiting for {x}",
     n_einst: "Settings", n_einst_kurz: "Setup", speichern: "Save", gespeichert: "Saved",
-    e_projekt: "Project {x}", e_takt: "Lead pulse (minutes)", e_takt_h: "Summary to the lead; 0 = off",
+    e_projekt: "Project", e_projekt_name: "Active project",
+    e_projekt_name_h: "Name from this AMW's data (amw projekt liste). The AMW itself is the same for every project; more projects: amw projekt neu …", e_takt: "Lead pulse (minutes)", e_takt_h: "Summary to the lead; 0 = off",
     e_speicher: "Memory limit for compute runs (GB free)", e_speicher_h: "Runs start only with this much free RAM",
     e_agenten: "Agents", e_agenten_h: "Target “off”: not expected, no broadcasts; “resting”: paused.",
     e_kennung: "ID", e_rolle: "Role", e_soll: "Target", e_grenzen: "Limits", e_rund: "Broadcasts", e_puls: "Pulse limit (min)",
@@ -970,9 +976,9 @@ const TEXTE = {
     e_hoechstens: "Longest session (h)", e_fehl_ip: "Lock after failed attempts per address (15 min)", e_fehl_ges: "Lock after failed attempts total (60 min)",
     e_pc: "This PC", e_pc_h: "Takes effect on the next service start (amw dienst neustart). File: {x}", nur_pc: "Only changeable on the PC – shown here for reference.",
     e_db: "Database", e_port: "Workbench port", e_aufsicht: "Session supervision (s)", e_hoch: "Sync: upload at most every (s)",
-    e_puls_pc: "Sync: heartbeat every (s)", e_eingang: "Sync: empty mailbox every (s)", e_bruecke: "Bridge for the TL",
+    e_puls_pc: "Sync: heartbeat every (s)", e_eingang: "Sync: empty mailbox every (s)", e_bruecke: "Bridge for a lead without Windows access (e.g. in a VM)",
     e_absender: "Bridge: sender", e_kopie: "Bridge: read copy at most every (s)",
-    e_fern: "Screen: remote session program", e_fern_ph: "empty = off, e.g. teamviewer_desktop.exe",
+    e_fern: "Screen: remote session program", e_fern_ph: "empty = off, e.g. teamviewer_desktop.exe or AnyDesk.exe",
     e_fern_h: "Runs only during a remote-support connection – when one starts, a free screen closes",
     e_entwickler: "Your name in messages", e_entwickler_ph: "Entwickler", e_entwickler_h: "e.g. “Marie waits …” – also works as a wait reason (--auf Marie)",
     e_dateien: "Files online", e_dateien_h: "Which document files the PC uploads to the online page by itself (visible only after sign-in). Applies to existing ones too; switching back removes nothing – do that per document.",
@@ -1014,7 +1020,7 @@ const TEXTE = {
     p_app: "App token", p_user: "User key", p_bot: "Bot token", p_chat: "Chat ID", p_chat_h: "find it: amw push telegram --token …",
     p_ereignisse: "What is sent", pe_frage: "new question for you (reminder after 60 min)", pe_nachricht: "message for you",
     pe_warnung: "warning (server down, stall, error, limits)", pe_eingabe: "agent waiting for permission/input (after 5 min)", pe_halt: "halt set/lifted",
-    pe_rueckblick: "daily summary", p_ruhe: "Quiet hours", p_ruhe_h: "only urgent (halt, server down); the rest is sent afterwards in one batch",
+    pe_rueckblick: "daily summary", pe_termin: "test date in 1 h", e_neu_ph: "ID, e.g. Agent4", p_ruhe: "Quiet hours", p_ruhe_h: "only urgent (halt, server down); the rest is sent afterwards in one batch",
     p_von: "from", p_bis: "until", p_max: "at most per hour", p_probe: "Test {x}", p_protokoll: "Recently sent", p_leer: "Nothing sent yet.",
     st_starten: "Start", st_fortsetzen: "Resume", st_neu: "Start fresh", st_beenden: "Stop", st_profil: "Create profile",
     st_profil_h: "To start, the agent needs a profile (folder …) – Settings › Agents › Profile",
@@ -1643,7 +1649,6 @@ async function agentDialog(kennung, reiter) {
       tabs, uebersicht, gespraech));
   document.body.append(hg);
   if (reiter === "gespraech") wechseln("gespraech");
-  document.addEventListener("keydown", function weg(e) { if (e.key === "Escape") { hg.remove(); document.removeEventListener("keydown", weg); } });
 }
 function nachrichtDialog(an) {
   const art = el("select", {}, ["auftrag", "frage", "korrektur", "info"].map(k => el("option", { value: k }, t("art_" + k))));
@@ -2723,11 +2728,19 @@ function schrittZeile(s) {
        s.prognose && s.status !== "fertig" ? `≈ ${datumKurz(s.prognose.p50)}` : null, s.anforderungen].filter(Boolean).join(" · "),
       s.dokumente ? el("a", { class: "verweis", style: "margin-left:6px", onclick: () => { zustand.dok = { status: "aktuell", bezug: `aufgabe:${s.id}` }; zeige("dokumente"); } }, `📎 ${s.dokumente}`) : null));
 }
+/* Jeder Dialog bekommt oben rechts „✕“ – am Handy gibt es kein Esc, und der Hintergrund ist oft ganz verdeckt. ✕ und Esc
+   wirken wie ein Klick daneben: so greift die eigene Schließ-Logik eines Dialogs (z. B. Rückfrage im Editor). */
+new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) {
+  if (!n.classList?.contains("dialog-hg") || n.querySelector(".dialog-zu") || !n.firstElementChild) continue;
+  n.firstElementChild.prepend(el("button", { class: "dialog-zu", type: "button", title: t("vb_schliessen"), "aria-label": t("vb_schliessen"),
+    onclick: () => n.dispatchEvent(new MouseEvent("click", { bubbles: true })) }, "✕")); } }).observe(document.body, { childList: true });
+/* Esc schließt nur den obersten Dialog (Vollbild und Editor fangen Esc vorher selbst ab) */
+window.addEventListener("keydown", e => { if (e.key !== "Escape" || e.defaultPrevented) return;
+  const oben = [...document.querySelectorAll(".dialog-hg")].pop(); if (oben) { e.preventDefault(); oben.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
 function dialog(titel, ...inhalt) {
   const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
     el("div", { class: "karte dialog einst", style: "width:min(820px,94vw);max-height:88vh;overflow-y:auto" }, el("h3", {}, titel), ...inhalt));
   document.body.append(hg);
-  document.addEventListener("keydown", function weg(e) { if (e.key === "Escape") { hg.remove(); document.removeEventListener("keydown", weg); } });
   return hg;
 }
 const fragenStand = (o, n) => n === 1 ? t(o ? "au_frage_offen" : "au_frage_beantwortet")
@@ -3094,8 +3107,9 @@ async function sichtEinstellungen() {
     dateien_online: el("select", {}, ["wunsch", "bilder", "alle"].map(w => el("option", { value: w }, t("e_dateien_" + w)))) };
   pf.dateien_online.value = d.projekt.dateien_online || "wunsch";
   pf.entwickler_name.placeholder = t("e_entwickler_ph"); pf.entwickler_name.maxLength = 30;
-  box.append(block(t("e_projekt", { x: d.projekt.name }), null,
-    [[t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")],
+  const pname = el("input", { type: "text", value: d.projekt.name, disabled: true });
+  box.append(block(t("e_projekt"), null,
+    [[t("e_projekt_name"), pname, t("e_projekt_name_h")], [t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")],
      [t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")], [t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")],
      [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")], [t("e_dateien"), pf.dateien_online, t("e_dateien_h")]],
     "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
@@ -3117,7 +3131,7 @@ async function sichtEinstellungen() {
       el("td", { style: "white-space:nowrap" }, knopf, profil ? " " : null, profil));
   };
   const neuKennung = text("");
-  neuKennung.placeholder = "CC9";
+  neuKennung.placeholder = t("e_neu_ph");
   const neuKnopf = el("button", { class: "klein-knopf", type: "button" }, t("e_anlegen"));
   neuKnopf.addEventListener("click", async () => { if (!neuKennung.value.trim()) return;
     await speichern("agent", { kennung: neuKennung.value.trim(), neu: true }, neuKnopf); if (!API) zeige("einstellungen"); });

@@ -225,8 +225,8 @@ def entwickler_da(con, wo):
 
 def _eigene_eingabe(con, zeitpunkt):
     """Fiel die letzte Eingabe in einen Schirm-Lauf (bis LAUF_NACHLAUF_S nach seinem Ende)? Abläufe mit Fenster klicken
-    und tippen selbst (Godot-Proben, Bildschirmfotos); Windows zählt das wie eine Eingabe des Menschen (04.11. 23:02:
-    L209 schloss den Schirm, der Entwickler war am Handy). Während eines Schirm-Laufs schließen deshalb nur die anderen
+    und tippen selbst (Proben im Programm, Bildschirmfotos); Windows zählt das wie eine Eingabe des Menschen (so schloss
+    ein Lauf den Schirm, während der Entwickler unterwegs war). Während eines Schirm-Laufs schließen deshalb nur die anderen
     Signale (Fernsitzung, Workbench am PC, Uhrzeit) – Eingaben danach zählen wieder."""
     for l in con.execute("SELECT start_utc, ende_utc FROM lauf WHERE schirm = 1 AND start_utc IS NOT NULL"
                          " AND (ende_utc IS NULL OR ende_utc >= ?)", (_utc(zeitpunkt - LAUF_NACHLAUF_S),)).fetchall():

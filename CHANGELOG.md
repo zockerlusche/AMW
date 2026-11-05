@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.15.2 – 05.11.2026 · Fenster schließen, Oberfläche ohne Projektbezug
+- **Jedes Fenster hat oben rechts „✕“:** Dokument, Aufgabe, Thema, Bögen und Einstellungs-Dialoge. Bisher ging es nur mit
+  Esc oder einem Klick daneben, am Handy oft gar nicht. Esc schließt jetzt nur das oberste Fenster, vorher alle
+  übereinander. ✕ und Esc fragen im Text-Editor weiter nach, bevor Ungespeichertes verworfen wird.
+- **Einstellungen › Projekt:** Der Reiter heißt „Projekt“. Der Name steht als Wert darin („Aktives Projekt“) mit dem
+  Hinweis, dass er aus den Daten kommt. Bisher stand er in der Überschrift und sah fest eingebaut aus.
+- **Universal-Durchgang über die sichtbare Oberfläche:** Jede Ansicht wurde mit einer leeren Demo-Datenbank geöffnet und
+  ihr Text geprüft. Neutral gemacht wurden „Brücke für den TL“ und die Beispiel-Kennung „CC9“. Der Text für das
+  Push-Ereignis „Testtermin“ fehlte. Dazu kommen Beispiele in Tests, Kommentaren und `doc/plan-lokale-ki.md`.
+
 ## 1.15.1 – 05.11.2026 · Absender wird geprüft
 - **`--von` muss eine Kennung des Projekts sein.** Bisher nahm die AMW auch „CC5,TL“ als Absender an (#17299: der
   Empfänger stand in `--von`). Jetzt bricht sie mit einer Erklärung ab, und es wird nichts gesendet.
