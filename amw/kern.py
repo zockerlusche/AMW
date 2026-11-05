@@ -438,6 +438,10 @@ def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_i
     if not con.execute("SELECT 1 FROM nachricht_art WHERE art = ?", (art,)).fetchone():
         erlaubt = ", ".join(r[0] for r in con.execute("SELECT art FROM nachricht_art ORDER BY art"))
         raise AmwFehler(f"Art „{art}“ gibt es nicht; erlaubt: {erlaubt}")
+    if von not in ("AMW", ENTWICKLER) and not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?",
+                                                          (pid, von)).fetchone():
+        raise AmwFehler(f"Absender „{von}“ ist kein Agent dieses Projekts – --von ist deine eigene Kennung"
+                        " (Empfänger stehen in --an)")
     namen = empfaenger(con, pid, an, von, aufgabe_id)
     nid = db.einfuegen(con, "nachricht", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=art, kurz=kurz,
                        text=text, antwort_auf=antwort_auf, aufgabe_id=aufgabe_id)

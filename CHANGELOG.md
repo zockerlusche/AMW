@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.15.1 – 05.11.2026 · Absender wird geprüft
+- **`--von` muss eine Kennung des Projekts sein.** Bisher nahm die AMW auch „CC5,TL“ als Absender an (#17299: der
+  Empfänger stand in `--von`). Jetzt bricht sie mit einer Erklärung ab, und es wird nichts gesendet.
+
 ## 1.15.0 – 05.11.2026 · Aufgabe öffnen, Push nur was noch gilt
 - **Aufgabe öffnen:** Ein Klick auf eine Aufgabe öffnet sie ganz. Das gilt für die Startseite („Wartet auf dich“,
   bisher ein Sprung in die Planung), für Liste, Board, Pool und die Listen-Ansicht. Die Ansicht zeigt:

@@ -623,6 +623,16 @@ class AufgabeAnsicht(Grund):
         self.assertEqual(r["an"], "TL")                                       # angelegt vom TL
 
 
+class Absender(Grund):
+    def test_von_muss_ein_agent_sein(self):
+        with self.assertRaisesRegex(kern.AmwFehler, "kein Agent"):
+            kern.posten(self.con, self.pid, "CC1,TL", "TL", "info", "x")
+        rc, aus = self.cli("--von", "CC2,TL", "posten", "--an", "TL", "--art", "info", "--kurz", "x")
+        self.assertNotEqual(rc, 0)
+        self.assertIn("--von ist deine eigene Kennung", aus)
+        self.assertEqual(self.con.execute("SELECT count(*) FROM nachricht WHERE kurz = 'x'").fetchone()[0], 0)
+
+
 class Pfade(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "nur Windows")
     def test_git_bash_pfad(self):
