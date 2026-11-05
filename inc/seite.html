@@ -417,6 +417,9 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .kachel .offen { position: absolute; top: 12px; right: 14px; font: 600 13px var(--mono); }
 .kachel.tot { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); }
 .kachel.aus { opacity: .55; }
+.klickbar { cursor: pointer; } .karte.klickbar:hover, .zeile.klickbar:hover { border-color: var(--leise); }
+.au-block { margin-top: 16px; } .au-block h4 { margin: 0 0 6px; } .au-zeile { padding: 4px 0; border-bottom: 1px solid var(--linie); }
+.au-auftrag { margin: 10px 0; }
 .kachel.klickbar { cursor: pointer; } .kachel.klickbar:hover { border-color: var(--leise); }
 .dialog.agent-dialog { width: min(1180px, 66vw); max-height: 88vh; overflow-y: auto; padding: 22px 26px; }   /* .dialog allein: 520 px */
 @media (max-width: 1400px) { .dialog.agent-dialog { width: 88vw; } }
@@ -837,6 +840,14 @@ const TEXTE = {
     pl_letzter_kommentar: "Letzter Kommentar", pl_klaerungen_liste: "Klärungsfragen:", pl_leer_spec: "(noch leer)", pl_zurueck: "Zurück",
     pl_freigeben: "Freigeben", pl_nicht_vorgelegt: "Noch nicht zur Freigabe vorgelegt.", pl_plan_von: "Plan von {x}", pl_titel: "Titel",
     pl_abnahme_h: "Woran erkennt man, dass der Bogen fertig ist? (prüfbar)", pl_grund: "Grund der Änderung",
+    au_fragen_offen: "{o} von {n} Fragen offen", au_fragen_alle: "alle {n} Fragen beantwortet", au_frage_offen: "Frage offen", au_frage_beantwortet: "Frage beantwortet", au_nur_pc: "A{a} ist online nicht dabei (nur offene und die der letzten 3 Tage) – am PC öffnen.",
+    au_notiz_ph: "Kurz notieren, was du erledigt hast (geht als Beleg an {x}) – oder eine Antwort an {x}", au_antwort_ph: "Antwort, Hinweis oder neuer Stand an {x} …",
+    au_notiz_fehlt: "Bitte kurz notieren, was erledigt ist – das ist der Beleg.", au_text_fehlt: "Text fehlt.",
+    au_erledigt_ok: "A{a} erledigt – {x} weiß Bescheid.", au_spaeter_ok: "A{a} ans Ende deiner Liste – {x} weiß Bescheid.", au_antwort_ok: "An {x} geschickt.",
+    au_geparkt: "geparkt", au_offen: "offen", au_beantwortet: "beantwortet", au_option: "Option {x}", au_bei: "bei {x}", au_ohne: "ohne Bearbeiter",
+    au_zustaendig: "zuständig {x}", au_wartegruende: "Wartet auf", au_fragen: "Fragen ({n})", au_dokumente: "Dokumente ({n})", au_beschluesse: "Beschlüsse ({n})",
+    au_laeufe: "Läufe ({n})", au_pruefungen: "Prüfungen ({n})", au_zusammenfassung: "Zusammenfassung", au_beleg: "Beleg: {x}", au_verlauf: "Verlauf ({n})",
+    au_dein_teil: "Dein Teil", au_antwort_titel: "Antwort an {x}", au_erledigt: "Erledigt", au_antwort: "Antwort an {x}", au_spaeter: "Später",
     pl_grund_h: "Pflicht, wenn das Zieldatum von der Baseline ({x}) abweicht", pl_freigabe_noetig: "Freigabe", pl_dein_schritt: "dein Schritt",
     lb_h: "Woran sich alle Bögen und Schritte messen. Die Agenten bekommen es in ihren Pflicht-Kontext.", lb_ziel: "Projektziel",
     lb_ziel_h: "ein Satz, messbar", lb_kennzahlen: "Kennzahlen", lb_zeilen: "eine je Zeile", lb_nicht: "Nicht-Ziele",
@@ -1064,6 +1075,14 @@ const TEXTE = {
     pl_letzter_kommentar: "Last comment", pl_klaerungen_liste: "Clarifications:", pl_leer_spec: "(empty)", pl_zurueck: "Return", pl_freigeben: "Approve",
     pl_nicht_vorgelegt: "Not submitted for approval yet.", pl_plan_von: "Plan by {x}", pl_titel: "Title",
     pl_abnahme_h: "How do you know the arc is done? (checkable)", pl_grund: "Reason for change",
+    au_fragen_offen: "{o} of {n} questions open", au_fragen_alle: "all {n} questions answered", au_frage_offen: "question open", au_frage_beantwortet: "question answered", au_nur_pc: "A{a} is not online (only open ones and those of the last 3 days) – open it on the PC.",
+    au_notiz_ph: "Briefly note what you did (goes to {x} as the record) – or a reply to {x}", au_antwort_ph: "Reply, hint or new status to {x} …",
+    au_notiz_fehlt: "Please note briefly what is done – that is the record.", au_text_fehlt: "Text missing.",
+    au_erledigt_ok: "A{a} done – {x} is informed.", au_spaeter_ok: "A{a} moved to the end of your list – {x} is informed.", au_antwort_ok: "Sent to {x}.",
+    au_geparkt: "parked", au_offen: "open", au_beantwortet: "answered", au_option: "option {x}", au_bei: "with {x}", au_ohne: "unassigned",
+    au_zustaendig: "responsible {x}", au_wartegruende: "Waiting for", au_fragen: "Questions ({n})", au_dokumente: "Documents ({n})", au_beschluesse: "Decisions ({n})",
+    au_laeufe: "Runs ({n})", au_pruefungen: "Reviews ({n})", au_zusammenfassung: "Summary", au_beleg: "Record: {x}", au_verlauf: "History ({n})",
+    au_dein_teil: "Your part", au_antwort_titel: "Reply to {x}", au_erledigt: "Done", au_antwort: "Reply to {x}", au_spaeter: "Later",
     pl_grund_h: "required when the target date differs from the baseline ({x})", pl_freigabe_noetig: "Approval", pl_dein_schritt: "your step",
     lb_h: "What all arcs and steps are measured against. Agents get it in their mandatory context.", lb_ziel: "Project goal",
     lb_ziel_h: "one sentence, measurable", lb_kennzahlen: "Metrics", lb_zeilen: "one per line", lb_nicht: "Non-goals",
@@ -1304,8 +1323,11 @@ async function sichtStart() {
       el("p", {}, t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })))),
     ...pw.plaene.map(p => el("div", { class: "karte", onclick: () => zeige("planung") }, el("div", {}, el("span", { class: "ref" }, `A${p.id}`), " ",
       el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))), el("p", {}, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" })))),
-    ...pw.eigene.map(a => el("div", { class: "karte", onclick: () => zeige("planung") }, el("div", {}, el("span", { class: "ref" }, `A${a.id}`), " ",
-      el("span", { class: "etikett" }, t("pl_dein_schritt"))), el("p", {}, a.titel)))];
+    ...pw.eigene.map(a => el("div", { class: "karte klickbar", onclick: () => aufgabeDialog(a.id) }, el("div", {}, el("span", { class: "ref" }, `A${a.id}`), " ",
+      el("span", { class: "etikett" }, t("pl_dein_schritt")),
+      a.fragen_n ? el("span", { class: "etikett " + (a.fragen_offen ? "bernstein" : "gruen"), style: "margin-left:6px" },
+        fragenStand(a.fragen_offen, a.fragen_n)) : null),
+      el("p", {}, a.titel)))];
   if (fr.length) m.append(el("div", { class: "wartet zeile-reveal", style: "margin-bottom:12px" }, fr));
   m.append(d.fragen.length
     ? el("div", { class: "wartet zeile-reveal" }, d.fragen.slice(0, 6).map(f => el("div", { class: "karte", onclick: () => zeige("fragen") },
@@ -1743,7 +1765,7 @@ async function arbeitslisten(m, a) {
   if (!agenten.length) m.append(el("div", { class: "leer" }, t("li_leer")));
   m.append(el("div", { class: "board listen" }, agenten.map(g => el("div", { class: "spalte" },
     el("h4", {}, g.rolle === "entwickler" ? t("li_deine", { x: g.name || g.kennung }) : g.kennung, el("span", { class: "sehrleise mono" }, g.liste.length)),
-    g.liste.filter(passt).map(x => el("div", { class: "karte aufgabe" + (x.status === "laeuft" ? " in-arbeit" : "") },
+    g.liste.filter(passt).map(x => el("div", { class: "karte aufgabe klickbar" + (x.status === "laeuft" ? " in-arbeit" : ""), onclick: () => aufgabeDialog(x.id) },
       el("div", {}, el("span", { class: "mono sehrleise" }, `${x.pos}.`), " ", el("span", { class: "ref" }, `A${x.id}`),
         x.status === "laeuft" ? el("span", { class: "etikett gruen", style: "margin-left:6px" }, t("li_in_arbeit"))
           : x.status === "blockiert" ? el("span", { class: "etikett", style: "margin-left:6px" }, t("sp_blockiert")) : null),
@@ -1752,7 +1774,7 @@ async function arbeitslisten(m, a) {
         : x.wartet_auf && x.status !== "laeuft" ? el("div", { class: "w" }, "⇢ " + x.wartet_auf.slice(0, 120)) : null))))));
   const pool = d.pool.filter(passt);
   m.append(el("h3", { style: "margin:22px 0 8px" }, t("li_pool"), " ", el("span", { class: "sehrleise mono" }, pool.length)),
-    pool.length ? el("div", { class: "liste" }, pool.map(x => el("div", { class: "zeile" }, el("span", { class: "ref" }, `A${x.id}`),
+    pool.length ? el("div", { class: "liste" }, pool.map(x => el("div", { class: "zeile klickbar", onclick: () => aufgabeDialog(x.id) }, el("span", { class: "ref" }, `A${x.id}`),
       el("span", { class: "leise" }, x.agent || "–"), el("span", {}, x.titel)))) : el("div", { class: "leer" }, t("li_pool_leer")));
 }
 async function sichtArbeit() {
@@ -1773,7 +1795,7 @@ async function sichtArbeit() {
     const sp = { laeuft: [], wartet: [], blockiert: [] }; for (const x of liste) (x.jetzt ? sp.laeuft : sp[x.status] || sp.wartet).push(x);
     m.append(el("div", { class: "board" }, [["laeuft", "sp_laeuft"], ["wartet", "sp_wartet"], ["blockiert", "sp_blockiert"]].map(([k, titel]) =>
       el("div", { class: "spalte" }, el("h4", {}, t(titel), el("span", { class: "sehrleise mono" }, sp[k].length)),
-        sp[k].slice(0, 120).map(x => el("div", { class: "karte aufgabe" },
+        sp[k].slice(0, 120).map(x => el("div", { class: "karte aufgabe klickbar", onclick: () => aufgabeDialog(x.id) },
           el("div", {}, el("span", { class: "ref" }, `A${x.id}`), " ", el("span", { class: "leise" }, x.agent || "–"),
             x.einstufung === "keine_prio" ? el("span", { class: "etikett", style: "margin-left:6px" }, t("keine_prio")) : null,
             x.jetzt ? el("span", { class: "etikett gruen", style: "margin-left:6px" }, t("jetzt_bei", { x: x.jetzt })) : null,
@@ -1782,7 +1804,7 @@ async function sichtArbeit() {
           el("div", { class: "t" }, x.titel.length > 200 ? x.titel.slice(0, 200) + " …" : x.titel),
           x.wartet_auf ? el("div", { class: "w" }, "⇢ " + x.wartet_auf.slice(0, 160)) : null))))));
   } else {
-    m.append(el("div", { class: "liste" }, liste.map(x => el("div", { class: "zeile" }, el("span", { class: "ref" }, `A${x.id}`),
+    m.append(el("div", { class: "liste" }, liste.map(x => el("div", { class: "zeile klickbar", onclick: () => aufgabeDialog(x.id) }, el("span", { class: "ref" }, `A${x.id}`),
       el("span", { class: "leise" }, x.agent || "–"), el("span", {}, x.titel), el("span", { class: "sehrleise mono" }, zeit(x.fertig_utc || x.angelegt_utc))))));
   }
 }
@@ -2707,6 +2729,57 @@ function dialog(titel, ...inhalt) {
   document.body.append(hg);
   document.addEventListener("keydown", function weg(e) { if (e.key === "Escape") { hg.remove(); document.removeEventListener("keydown", weg); } });
   return hg;
+}
+const fragenStand = (o, n) => n === 1 ? t(o ? "au_frage_offen" : "au_frage_beantwortet")
+  : o ? t("au_fragen_offen", { o, n }) : t("au_fragen_alle", { n });
+/* Eine Aufgabe ganz: Auftrag, Stand, Wartegründe, Fragen (mit Antwort), Dokumente, Beschlüsse, Verlauf, Läufe, Prüfungen.
+   Eigene Aufgaben des Entwicklers: erledigt (Notiz = Beleg) / später; zu jeder: Antwort an den Zuständigen. */
+async function aufgabeDialog(id) {
+  let a; try { a = await holen("/api/aufgabe?id=" + id); }
+  catch (e) { toast(API ? t("au_nur_pc", { a: id }) : t("fehler", { x: e.message }), true); return; }
+  const offen = !["fertig", "verworfen"].includes(a.status), an = a.angelegt_von && !["Entwickler", "AMW"].includes(a.angelegt_von) ? a.angelegt_von : (a.zustaendig || "Lead");
+  const notiz = el("textarea", { rows: 3, placeholder: t(a.fuer_dich && offen ? "au_notiz_ph" : "au_antwort_ph", { x: an }) });
+  const tun = async (was, mitText) => {
+    const text = notiz.value.trim();
+    if (mitText && !text) { notiz.focus(); toast(t(was === "erledigt" ? "au_notiz_fehlt" : "au_text_fehlt"), true); return; }
+    try { const r = await schicken("/api/aufgabe/" + was, { id: a.id, text });
+      if (!r.unterwegs) toast(t("au_" + was + "_ok", { a: a.id, x: r.an || an }));
+      hg.remove(); if (was === "antwort") aufgabeDialog(a.id); else zeige(zustand.sicht, true); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); } };
+  const block = (titel, n, inhalt) => n ? el("div", { class: "au-block" }, el("h4", {}, titel), inhalt) : null;
+  const nOffen = a.fragen.filter(f => f.status === "offen").length;
+  const fr = a.fragen.map(f => el("div", { class: "au-zeile" }, el("span", { class: "ref" }, `F${f.id}`), " ",
+    el("span", { class: "etikett " + (f.status === "offen" ? (f.geparkt_utc ? "" : "bernstein") : "gruen") },
+      f.status === "offen" ? t(f.geparkt_utc ? "au_geparkt" : "au_offen") : t("au_beantwortet")), " ", f.kurz,
+    f.antwort ? el("div", { class: "leise", style: "margin-top:2px" }, "→ " + (f.antwort_art === "option" ? t("au_option", { x: f.antwort }) : f.antwort)) : null));
+  const hg = dialog(`A${a.id} · ${a.titel}`,
+    el("p", { class: "leise", style: "margin-top:0" }, [t("sp_" + a.status) || a.status, a.agent ? t("au_bei", { x: a.agent }) : t("au_ohne"),
+      a.angelegt_von ? t("von", { x: a.angelegt_von }) : null, zeit(a.angelegt_utc), a.zustaendig ? t("au_zustaendig", { x: a.zustaendig }) : null,
+      a.bogen_id ? `Bogen ${a.bogen_id}` + (a.bogen_titel ? ` „${a.bogen_titel}“` : "") : null].filter(Boolean).join(" · ")),
+    a.fragen.length ? el("p", {}, el("span", { class: "etikett " + (nOffen ? "bernstein" : "gruen") },
+      fragenStand(nOffen, a.fragen.length))) : null,
+    a.auftrag ? el("div", { class: "au-auftrag" }, markdown(a.auftrag)) : null,
+    a.wartet_auf && offen ? el("p", { class: "bernstein-text" }, "⇢ " + a.wartet_auf) : null,
+    block(t("au_wartegruende"), a.wartegruende.length, a.wartegruende.map(w => el("div", { class: "au-zeile" + (w.erledigt_utc ? " sehrleise" : "") },
+      (w.erledigt_utc ? "✓ " : "⇢ ") + w.bezug + ` · ${w.angelegt_von} ${zeit(w.angelegt_utc)}` + (w.erledigt_utc ? ` · ${w.erledigt_durch || ""}` : "")))),
+    block(t("au_fragen", { n: a.fragen.length }), a.fragen.length, fr),
+    block(t("au_dokumente", { n: a.dokumente.length }), a.dokumente.length, a.dokumente.map(d => el("div", { class: "au-zeile" },
+      el("a", { class: "verweis", onclick: () => dokumentDialog(d.id) }, `D${d.id}`), " ", d.titel, el("span", { class: "sehrleise" }, ` · ${t("dka_" + d.art)}`)))),
+    block(t("au_beschluesse", { n: a.beschluesse.length }), a.beschluesse.length, a.beschluesse.map(b => el("div", { class: "au-zeile" + (b.status === "gilt" ? "" : " sehrleise") },
+      el("span", { class: "ref" }, `B${b.id}`), " ", el("b", {}, b.stichwort), b.status === "gilt" ? "" : ` (${b.status})`, el("div", { class: "leise" }, b.regel)))),
+    block(t("au_laeufe", { n: a.laeufe.length }), a.laeufe.length, a.laeufe.map(l => el("div", { class: "au-zeile" },
+      `L${l.id} · ${l.agent} · ${l.status}` + (l.rc != null ? ` · rc ${l.rc}` : "") + ` · ${l.beschreibung}`))),
+    block(t("au_pruefungen", { n: a.pruefungen.length }), a.pruefungen.length, a.pruefungen.map(p => el("div", { class: "au-zeile" },
+      `P${p.id} · ${p.pruefer} · ${p.ergebnis}` + (p.bemerkung ? ` · ${p.bemerkung}` : "")))),
+    a.zusammenfassung ? block(t("au_zusammenfassung"), 1, el("div", {}, a.zusammenfassung, a.beleg ? el("div", { class: "sehrleise" }, t("au_beleg", { x: a.beleg })) : null)) : null,
+    block(t("au_verlauf", { n: a.verlauf.length }), a.verlauf.length, a.verlauf.map(n => el("div", { class: "dk-nachricht" },
+      el("div", { class: "sehrleise" }, `#${n.id} · ${n.von} · ${t("art_" + n.art) || n.art} · ${seit(n.zeit_utc)}`), el("div", {}, n.kurz),
+      n.text ? el("div", { class: "leise kurztext", style: "white-space:pre-wrap", title: t("aufklappen"), onclick: e => e.currentTarget.classList.toggle("auf") }, n.text) : null))),
+    el("div", { class: "au-block" }, el("h4", {}, a.fuer_dich && offen ? t("au_dein_teil") : t("au_antwort_titel", { x: an })), notiz,
+      el("div", { class: "dk-aktionen", style: "margin-top:8px" },
+        a.fuer_dich && offen ? el("button", { class: "knopf haupt", type: "button", onclick: () => tun("erledigt", true) }, t("au_erledigt")) : null,
+        el("button", { class: a.fuer_dich && offen ? "klein-knopf" : "knopf haupt", type: "button", onclick: () => tun("antwort", true) }, t("au_antwort", { x: an })),
+        a.fuer_dich && offen ? el("button", { class: "klein-knopf", type: "button", onclick: () => tun("spaeter", false) }, t("au_spaeter")) : null)));
 }
 function specDialog(b, teil) {
   const s = b.specs[teil] || { status: "entwurf", text: "" };
