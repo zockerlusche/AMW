@@ -92,6 +92,22 @@ class Push(Grund):
         self.runde(morgens)
         self.assertEqual(len(self.gesendet), 2)
 
+    def test_nach_der_ruhezeit_nur_was_noch_gilt(self):
+        self.cfg["ruhe"] = {"an": True, "von": "22:00", "bis": "07:00"}
+        nachts, morgens = datetime.datetime(2026, 11, 2, 2, 0), datetime.datetime(2026, 11, 2, 7, 30)
+        f1, f2, f3 = self.frage("a"), self.frage("b"), self.frage("c")
+        self.con.execute("UPDATE frage SET zeit_utc = '2026-01-01T00:00:00Z' WHERE id = ?", (f3,))   # dazu die Erinnerung
+        self.runde(nachts)
+        self.assertEqual(self.gesendet, [])
+        kern.frage_antworten(self.con, self.pid, f1, "option", "A", "seite")       # nachts schon beantwortet
+        kern.frage_antworten(self.con, self.pid, f2, "option", "A", "seite")
+        self.runde(morgens)
+        self.assertEqual(len(self.gesendet), 1)
+        self.assertEqual(self.gesendet[0][0], f"AMW: Neue Frage F{f3}")         # nicht „4 neue Fragen“
+        weg = self.con.execute("SELECT schluessel, fehler FROM push_versand WHERE ergebnis = 'unterdrueckt' ORDER BY id").fetchall()
+        self.assertEqual([w["schluessel"] for w in weg], [f"frage:{f1}", f"frage:{f2}", f"frage:{f3}:erinnerung"])
+        self.assertIn("überholt", weg[0]["fehler"])
+
     def test_vorlaeufiger_fehler_wird_wiederholt_endgueltiger_nicht(self):
         self.fehler = push.Fehler("nicht erreichbar", True)
         self.frage()

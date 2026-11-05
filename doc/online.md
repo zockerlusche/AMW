@@ -16,7 +16,8 @@ PC (Wächter)                               Online-Speicher (Turso)             
   sonst alle 5 min als Lebenszeichen). Online liegen keine Tabellen, nur diese Ansichten.
 - **Briefkasten:** Online erlaubt sind: Frage beantworten, Nachricht an Agenten (Auftrag, Frage, Info, Korrektur,
   Freigabe), Nachrichten an dich als gelesen markieren, Halt, Weiter, Projekt-/Agenten-/Seiten-Einstellungen,
-  Planung (Freigaben, Leitbild, Bögen, Risiken, Rückblick), Dokumente (kommentieren, überarbeiten lassen, zuordnen,
+  Planung (Freigaben, Leitbild, Bögen, Risiken, Rückblick), Aufgaben (eigene erledigt/später, Antwort an den
+  Zuständigen), Dokumente (kommentieren, überarbeiten lassen, zuordnen,
   archivieren, Datei online anfordern, Text berichtigen, hochgeladene Datei anlegen). Die Seite legt eine Zeile ab; der PC prüft und führt sie mit
   demselben Code aus wie lokal (`amw/aktionen.py`) – höchstens einmal – und meldet das Ergebnis zurück.
 - **Nur am PC** (online abgewiesen, auch vom PC selbst): Einstellungen dieses PCs, Online-Zugang, Push-Zugänge,

@@ -86,7 +86,7 @@ try {
                 '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko',
                 '/api/plan/rueckblick', '/api/plan/uebernehmen', '/api/plan/check',
                 '/api/dokument/kommentar', '/api/dokument/setzen', '/api/dokument/status', '/api/dokument/online',
-                '/api/dokument/text', '/api/dokument/neu'], true)) {
+                '/api/dokument/text', '/api/dokument/neu', '/api/aufgabe/erledigt', '/api/aufgabe/spaeter', '/api/aufgabe/antwort'], true)) {
             antwort(404, ['fehler' => 'unbekannt']);
         }
         // Prüfen, was der PC sowieso prüft, schon hier – damit Fehler sofort sichtbar sind
@@ -114,6 +114,8 @@ try {
             catch (InvalidArgumentException $x) { antwort(400, ['fehler' => $x->getMessage()]); }
         }
         if ($pfad === '/api/dokument/kommentar' && trim((string)($daten['text'] ?? '')) === '') antwort(400, ['fehler' => 'Text fehlt']);
+        if (str_starts_with($pfad, '/api/aufgabe/') && (!is_int($daten['id'] ?? null) || $daten['id'] < 1)) antwort(400, ['fehler' => 'id fehlt']);
+        if (in_array($pfad, ['/api/aufgabe/erledigt', '/api/aufgabe/antwort'], true) && trim((string)($daten['text'] ?? '')) === '') antwort(400, ['fehler' => 'Text fehlt']);
         if ($pfad === '/api/dokument/status' && !in_array($daten['status'] ?? '', ['aktuell', 'archiviert'], true)) antwort(400, ['fehler' => 'Status']);
         if ($pfad === '/api/gelesen' && (!is_array($daten['ids'] ?? null) || !$daten['ids'] || array_filter($daten['ids'], fn($i) => !is_int($i)))) {
             antwort(400, ['fehler' => 'ids fehlen']);
@@ -128,7 +130,7 @@ try {
             (bool)$parken => ['status' => str_ends_with($pfad, '/parken') ? 'geparkt' : 'offen'],
             $pfad === '/api/nachricht' => ['an' => array_map('trim', explode(',', (string)$daten['an']))],
             $pfad === '/api/gelesen' => ['erledigt' => count($daten['ids'])],
-            str_starts_with($pfad, '/api/einstellungen/'), str_starts_with($pfad, '/api/plan/'), str_starts_with($pfad, '/api/dokument/') => [],
+            str_starts_with($pfad, '/api/einstellungen/'), str_starts_with($pfad, '/api/plan/'), str_starts_with($pfad, '/api/dokument/'), str_starts_with($pfad, '/api/aufgabe/') => [],
             $pfad === '/api/halt' => ['halt' => 0],
             $pfad === '/api/schirm' => ['text' => 'Schirm zu – der PC übernimmt es gleich'],
             default => ['aufgehoben' => 0],
@@ -196,6 +198,7 @@ try {
         $pfad === '/api/fragen' && ($q['alle'] ?? '') === '1' => '/api/fragen?alle=1',
         $pfad === '/api/dokument' => '/api/dokument?id=' . (int)($q['id'] ?? 0),
         $pfad === '/api/thema' => '/api/thema?id=' . (int)($q['id'] ?? 0),
+        $pfad === '/api/aufgabe' => '/api/aufgabe?id=' . (int)($q['id'] ?? 0),
         default => $pfad,
     };
     [$zeile, $pc, $offen, $neu] = sql([

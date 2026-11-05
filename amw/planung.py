@@ -831,7 +831,7 @@ def freigaben_offen(con, pid):
         "SELECT id, titel, agent, plan, geaendert_utc FROM aufgabe WHERE projekt_id = ? AND plan_status = 'vorgelegt'"
         " AND verantwortlich = ?", (pid, MENSCH))]
     eigene = [dict(a) for a in con.execute(
-        "SELECT id, titel, status, bogen_id FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status IN ('wartet', 'laeuft', 'blockiert')"
+        "SELECT id, titel, auftrag, status, bogen_id FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status IN ('wartet', 'laeuft', 'blockiert')"
         " ORDER BY rang, id", (pid, MENSCH))]
     return {"spezifikationen": spec_, "plaene": plaene, "eigene": eigene}
 

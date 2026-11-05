@@ -277,6 +277,10 @@ class LaufAusfuehren(Grund):
         super().setUp()
         self.sitzung("CC1")
         self.aus = os.path.join(self.ordner.name, "aus.txt")
+        from amw import schirm                     # sonst hinge der Schirm-Test an echter Eingabe am PC (Marcel tippt)
+        p = mock.patch.object(schirm, "leerlauf_s", return_value=600)
+        p.start()
+        self.addCleanup(p.stop)
 
     def lauf(self):
         return self.con.execute("SELECT * FROM lauf ORDER BY id DESC LIMIT 1").fetchone()
@@ -557,6 +561,66 @@ class Themen(Grund):
         rc, aus = self.cli("--von", "CC2", "thema", "zeige", "Stil")
         self.assertIn("GILT JETZT (Fassung 1", aus)
         self.assertIn(f"B{b} ", aus)
+
+
+class AufgabeAnsicht(Grund):
+    """Klick auf eine Aufgabe: ganze Aufgabe (Fragen mit Stand, Dokumente, Verlauf); erledigt/später/Antwort (1.14.1)."""
+
+    def setUp(self):
+        super().setUp()
+        from amw import aktionen, workbench
+        self.akt, self.wb = aktionen, workbench
+        self.f1 = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Reiter?", [("A", "ja")], "A", "weil", geprueft="keine")
+        self.f2 = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Maßstab?", [("A", "ja")], "A", "weil", geprueft="keine")
+        self.m = kern.aufgabe_neu(self.con, self.pid, "TL", f"FÜR MARCEL: Fragen beantworten – F{self.f1}, F{self.f2}",
+                                  agent=kern.ENTWICKLER, auftrag="Bitte in der Workbench antworten.")
+
+    def tun(self, was, **d):
+        return self.akt.ausfuehren(self.con, self.pid, "/api/aufgabe/" + was, {"id": self.m, **d}, kanal="netz")
+
+    def test_verweise_auch_bereiche(self):
+        v = self.wb.verweise("Stile (D94–D97) und F5165, B12-14", "F5165 nochmal")
+        self.assertEqual(v, {"F": [5165], "D": [94, 95, 96, 97], "B": [12, 13, 14]})
+
+    def test_ansicht_mit_fragenstand_und_startkarte(self):
+        a = self.wb.daten_aufgabe(self.con, self.pid, self.m)
+        self.assertTrue(a["fuer_dich"])
+        self.assertEqual([f["status"] for f in a["fragen"]], ["offen", "offen"])
+        kern.frage_antworten(self.con, self.pid, self.f1, "option", "A", "seite")
+        kern.frage_antworten(self.con, self.pid, self.f2, "text", "M80", "seite")
+        a = self.wb.daten_aufgabe(self.con, self.pid, self.m)
+        self.assertEqual([f["antwort"] for f in a["fragen"]], ["A", "M80"])
+        karte = next(x for x in self.wb.daten_start(self.con, self.pid)["planung_wartet"]["eigene"] if x["id"] == self.m)
+        self.assertEqual((karte["fragen_n"], karte["fragen_offen"]), (2, 0))      # „alle 2 Fragen beantwortet“
+        from amw import abgleich
+        self.assertIn(f"/api/aufgabe?id={self.m}", abgleich.ansichten(self.con, self.pid))   # auch online
+
+    def test_erledigt_nur_mit_notiz_und_tl_erfaehrt_es(self):
+        from amw.aktionen import Ungueltig
+        with self.assertRaises(Ungueltig):
+            self.tun("erledigt", text="")
+        r = self.tun("erledigt", text="alle drei beantwortet")
+        self.assertEqual(r["an"], "TL")
+        a = self.con.execute("SELECT status, beleg FROM aufgabe WHERE id = ?", (self.m,)).fetchone()
+        self.assertEqual(a["status"], "fertig")
+        self.assertIn("alle drei beantwortet", a["beleg"])
+        n = self.con.execute("SELECT n.kurz, e.agent FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE n.id = ?",
+                             (r["nachricht"],)).fetchone()
+        self.assertEqual((n["agent"], n["kurz"]), ("TL", f"A{self.m} erledigt: alle drei beantwortet"))
+        r = self.tun("antwort", text="Nachtrag dazu")                     # auch zur abgeschlossenen
+        self.assertEqual(r["an"], "TL")
+
+    def test_spaeter_und_fremde_aufgabe(self):
+        zweite = kern.aufgabe_neu(self.con, self.pid, "TL", "FÜR MARCEL: noch was", agent=kern.ENTWICKLER)
+        from amw import arbeitsliste
+        self.assertEqual(arbeitsliste.liste(self.con, self.pid, kern.ENTWICKLER)[0]["id"], self.m)
+        self.tun("spaeter")
+        self.assertEqual([x["id"] for x in arbeitsliste.liste(self.con, self.pid, kern.ENTWICKLER)], [zweite, self.m])
+        from amw.aktionen import Ungueltig
+        with self.assertRaises(Ungueltig):                                    # CC1s Aufgabe: nur Antwort
+            self.akt.ausfuehren(self.con, self.pid, "/api/aufgabe/erledigt", {"id": self.a, "text": "x"}, kanal="netz")
+        r = self.akt.ausfuehren(self.con, self.pid, "/api/aufgabe/antwort", {"id": self.a, "text": "geht so"}, kanal="netz")
+        self.assertEqual(r["an"], "TL")                                       # angelegt vom TL
 
 
 class Pfade(unittest.TestCase):

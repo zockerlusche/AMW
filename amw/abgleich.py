@@ -202,6 +202,9 @@ def ansichten(con, pid, speicher=None):
         a[f"/api/thema?id={t['id']}"] = workbench.daten_thema(con, pid, t["id"])
     for s in SICHTEN:
         a[f"/api/aufgaben?sicht={s}"] = workbench.daten_aufgaben(con, pid, {"sicht": [s], **leer})
+    for (aid,) in con.execute("SELECT id FROM aufgabe WHERE projekt_id = ? AND (status IN ('wartet', 'laeuft', 'blockiert')"
+                              " OR fertig_utc >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-3 days'))", (pid,)).fetchall():
+        a[f"/api/aufgabe?id={aid}"] = workbench.daten_aufgabe(con, pid, aid)      # offene und kürzlich abgeschlossene
     a.update(dokument_ansichten(con, pid))
     return a
 

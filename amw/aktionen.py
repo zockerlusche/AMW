@@ -101,6 +101,8 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         if kanal != "seite":
             raise Ungueltig("Hochladen läuft online über die Seite")
         return hochladen(daten)
+    if weg.startswith("/api/aufgabe/"):              # Aufgabe: erledigt / später (eigene), Antwort an den Zuständigen
+        return aufgabe(con, pid, weg.rsplit("/", 1)[1], daten)
     if weg.startswith("/api/plan/"):                 # Planung – auch von unterwegs (Freigaben!)
         return planen(con, pid, weg.rsplit("/", 1)[1], daten)
     if weg == "/api/push/probe":                     # nur am PC: verschickt wirklich
@@ -172,6 +174,48 @@ def dokument(con, pid, was, d, kanal, speicher=None):
     except (kern.AmwFehler, ValueError, TypeError) as x:
         raise Ungueltig(str(x)) from None
     raise LookupError("unbekannt")
+
+
+def aufgabe(con, pid, was, d):
+    """Aus der Aufgaben-Ansicht: „erledigt“ (mit Notiz als Beleg) und „später“ nur für Aufgaben des Entwicklers;
+    „antwort“ zu jeder Aufgabe. Jede Änderung erfährt der Zuständige (wer sie angelegt hat, sonst Federführung/Lead)."""
+    e = kern.ENTWICKLER
+    try:
+        aid = int(d.get("id") or 0)
+    except (TypeError, ValueError):
+        raise Ungueltig("Aufgabennummer") from None
+    a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    if not a:
+        raise Ungueltig(f"A{aid} gibt es nicht")
+    text = (d.get("text") or "").strip()[:4000]
+    an = a["angelegt_von"] if a["angelegt_von"] not in (None, "", e, "AMW") else kern.zustaendig(con, pid, aid)
+    if was in ("erledigt", "spaeter") and a["agent"] != e:
+        raise Ungueltig(f"A{aid} ist nicht deine Aufgabe – schreib dem Bearbeiter eine Antwort")
+    if a["status"] in ("fertig", "verworfen") and was != "antwort":
+        raise Ungueltig(f"A{aid} ist schon {a['status']}")
+    try:
+        if was == "erledigt":
+            if not text:
+                raise Ungueltig("Bitte kurz notieren, was erledigt ist (das ist der Beleg)")
+            kern.aufgabe_status(con, pid, e, aid, "fertig", beleg=f"{kern.entwickler_name(con, pid)}: {text[:300]}", zusammenfassung=text)
+            kurz = f"A{aid} erledigt: {text[:200]}"
+        elif was == "spaeter":
+            from . import arbeitsliste
+            arbeitsliste.schieben(con, pid, e, aid, unten=True)
+            kurz = f"A{aid} später" + (f": {text[:200]}" if text else " (ans Ende meiner Liste)")
+        elif was == "antwort":
+            if not text:
+                raise Ungueltig("Text fehlt")
+            kurz = f"A{aid}: {text[:200]}"
+        else:
+            raise LookupError("unbekannt")
+        nid = None
+        if an:                                      # auch zu einer gerade abgeschlossenen Aufgabe (kern.posten lehnt die ab)
+            with db.schreiben(con):
+                nid, _ = kern._posten(con, pid, e, an, "info", kurz[:300], text if len(text) > 200 else None, aufgabe_id=aid)
+        return {"ok": True, "an": an, "nachricht": nid}
+    except kern.AmwFehler as x:
+        raise Ungueltig(str(x)) from None
 
 
 def planen(con, pid, was, d):

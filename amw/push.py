@@ -4,7 +4,7 @@ Drei Anbieter, einzeln an/aus: ntfy (ntfy.sh oder eigener Server), Pushover, Tel
 liegen in %LOCALAPPDATA%\\amw\\push.json – nie im Repo, nie in der Datenbank, nie im Online-Speicher.
 Der Wächter sammelt je Runde Ereignisse aus der Datenbank (ereignisse) und verschickt sie (runde): ohne Doppelte
 (eindeutiger Schlüssel in push_versand), gebündelt je Art, höchstens max_je_stunde, Ruhezeiten (nur Priorität 5 kommt
-durch, der Rest danach gesammelt), Wiederholung nur bei vorübergehenden Fehlern. Texte nur Metadaten + Link.
+durch, der Rest danach gesammelt – vorher geprüft, ob der Anlass noch gilt), Wiederholung nur bei vorübergehenden Fehlern. Texte nur Metadaten + Link.
 """
 import datetime
 import html
@@ -345,20 +345,35 @@ def runde(con, pid, cfg=None, jetzt=None):
     cfg = cfg or laden()
     if not cfg["an"] or not any(cfg[a]["an"] for a in ANBIETER):
         return []
+    aktuell = ereignisse(con, pid, cfg, jetzt)
+    gilt = {e["schluessel"] for e in aktuell}
     with db.schreiben(con):
-        for e in ereignisse(con, pid, cfg, jetzt):
+        for e in aktuell:
             con.execute("INSERT OR IGNORE INTO push_versand (zeit_utc, ereignis, schluessel, titel, text, prioritaet, sicht)"
                         " VALUES (?, ?, ?, ?, ?, ?, ?)", (db.jetzt(), e["ereignis"], e["schluessel"], e["titel"], e["text"],
                                                           EREIGNISSE[e["ereignis"]][1], e["sicht"]))
     jetzt_s = time.time()
-    faellig = []
+    faellig, ueberholt = [], []
     for p in con.execute("SELECT * FROM push_versand WHERE ergebnis IN ('offen', 'fehler') AND versuche < ?"
                          " ORDER BY id", (len(WIEDERHOLEN_NACH_S),)).fetchall():
         if p["versuche"] and jetzt_s - db_sek(p["geaendert_utc"]) < WIEDERHOLEN_NACH_S[p["versuche"]]:
             continue
         if _in_ruhe(cfg, jetzt) and p["prioritaet"] < 5:
             continue                                   # nach der Ruhezeit gesammelt
-        faellig.append(p)
+        if p["ereignis"] in EREIGNISSE and p["schluessel"] not in gilt:
+            ueberholt.append((p["id"], "überholt: Anlass erledigt"))   # z. B. Frage nachts schon beantwortet
+        else:
+            faellig.append(p)
+    schon = {p["schluessel"] for p in faellig}         # neue Frage + Erinnerung an dieselbe: nur einmal zählen
+    for p in [p for p in faellig if p["schluessel"].endswith(":erinnerung")
+              and p["schluessel"].rsplit(":", 1)[0] in schon]:
+        faellig.remove(p)
+        ueberholt.append((p["id"], "doppelt: Frage ist schon im Bündel"))
+    if ueberholt:
+        with db.schreiben(con):
+            for pid_, grund in ueberholt:
+                con.execute("UPDATE push_versand SET ergebnis = 'unterdrueckt', fehler = ?, geaendert_utc = ? WHERE id = ?",
+                            (grund, db.jetzt(), pid_))
     if not faellig:
         return []
     stunde = con.execute("SELECT count(DISTINCT buendel) FROM push_versand WHERE ergebnis IN ('gesendet', 'teilweise')"

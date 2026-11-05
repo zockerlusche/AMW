@@ -4,6 +4,23 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.15.0 – 05.11.2026 · Aufgabe öffnen, Push nur was noch gilt
+- **Aufgabe öffnen:** Ein Klick auf eine Aufgabe öffnet sie ganz. Das gilt für die Startseite („Wartet auf dich“,
+  bisher ein Sprung in die Planung), für Liste, Board, Pool und die Listen-Ansicht. Die Ansicht zeigt:
+  - Auftrag, Stand, Zuständigen und Wartegründe;
+  - die Fragen dazu mit Antwort, auch die nur im Titel oder Auftrag genannten (F5165, D94–D101);
+  - Dokumente, Beschlüsse, Läufe, Prüfungen und den Verlauf.
+  Online geht das genauso, für offene Aufgaben und solche der letzten 3 Tage.
+- **Dein Teil:** Bei Aufgaben des Entwicklers gibt es „Erledigt“ (die Notiz ist der Beleg) und „Später“ (ans Ende der
+  eigenen Liste). Zu jeder Aufgabe gibt es „Antwort an …“. Wer die Aufgabe angelegt hat, erfährt es sofort (sonst die
+  Federführung oder der Lead). Das geht auch vom Handy.
+- **Fragen-Stand auf der Karte:** „alle 3 Fragen beantwortet“ bzw. „1 von 3 Fragen offen“.
+- **Push:** Nach der Ruhezeit verschickt die AMW nur noch, was noch gilt. Eine nachts schon beantwortete Frage oder eine
+  inzwischen gelesene Nachricht fällt weg. Eine Erinnerung zur selben Frage zählt nicht doppelt. Bisher kam morgens
+  „6 neue Fragen“, obwohl alle beantwortet waren.
+- Test: Der Schirm-Test von `lauf ausfuehren` hängt nicht mehr an echten Eingaben am PC.
+- Entwurf `doc/plan-lokale-ki.md`: lokale KIs (Sprache, Bild, Ton, 3D) in der AMW, zur Diskussion.
+
 ## 1.14.0 – 05.11.2026 · Design-Dokument je Thema, Projekt-Stil
 Eine Seite „gilt jetzt“ je System statt eines Stapels sich widersprechender Beschlüsse (→ `doc/automatismen.md`).
 Schema 16. Die vorhandenen Themen der Beschlüsse werden beim Update übernommen.

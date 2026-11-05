@@ -98,6 +98,71 @@ def daten_listen(con, pid):
                                           for x in arbeitsliste.pool(con, pid)]}
 
 
+VERWEIS = re.compile(r"\b([FDB])(\d{1,6})(?:\s*[–-]\s*\1?(\d{1,6}))?\b")
+
+
+def verweise(*texte):
+    """F/D/B-Nummern aus Titel und Auftrag, auch Bereiche „D94–D101“ (höchstens 30 je Bereich)."""
+    aus = {"F": [], "D": [], "B": []}
+    for m in VERWEIS.finditer(" ".join(t or "" for t in texte)):
+        a = int(m.group(2))
+        b = int(m.group(3)) if m.group(3) and 0 < int(m.group(3)) - a <= 30 else a
+        for n in range(a, b + 1):
+            if n not in aus[m.group(1)]:
+                aus[m.group(1)].append(n)
+    return aus
+
+
+def fragen_stand(con, pid, aid, titel, auftrag):
+    """Fragen zu einer Aufgabe (verknüpft, als Wartegrund oder im Text genannt) mit Stand – für Karte und Ansicht."""
+    ids = verweise(titel, auftrag)["F"]
+    ids += [r[0] for r in con.execute("SELECT id FROM frage WHERE projekt_id = ? AND aufgabe_id = ?", (pid, aid))]
+    ids += [int(r[0][1:]) for r in con.execute("SELECT bezug FROM wartegrund WHERE aufgabe_id = ? AND bezug LIKE 'F%'", (aid,))
+            if r[0][1:].isdigit()]
+    aus = []
+    for fid in dict.fromkeys(ids):
+        f = con.execute("SELECT id, kurz, status, antwort_art, antwort, antwort_utc, geparkt_utc FROM frage WHERE id = ? AND projekt_id = ?",
+                        (fid, pid)).fetchone()
+        if f:
+            aus.append(dict(f))
+    return aus
+
+
+def daten_aufgabe(con, pid, aid):
+    """Eine Aufgabe ganz: Auftrag, Stand, Wartegründe, Verlauf, Fragen, Dokumente, Beschlüsse, Läufe, Prüfungen."""
+    a = con.execute("SELECT a.*, b.titel AS bogen_titel FROM aufgabe a LEFT JOIN bogen b ON b.id = a.bogen_id"
+                    " WHERE a.id = ? AND a.projekt_id = ?", (int(aid), pid)).fetchone()
+    if not a:
+        raise LookupError(f"A{aid} gibt es nicht")
+    a = dict(a)
+    from . import dokumente
+    v = verweise(a["titel"], a["auftrag"])
+    a["zustaendig"] = kern.zustaendig(con, pid, a["id"])
+    a["wartegruende"] = zeilen(con.execute("SELECT art, bezug, angelegt_utc, angelegt_von, erledigt_utc, erledigt_durch FROM wartegrund"
+                                           " WHERE aufgabe_id = ? ORDER BY id", (a["id"],)))
+    a["fragen"] = fragen_stand(con, pid, a["id"], a["titel"], a["auftrag"])
+    a["verlauf"] = list(reversed(zeilen(con.execute(        # die letzten 30 Nachrichten dazu, älteste zuerst
+        "SELECT id, zeit_utc, von, art, kurz, substr(text, 1, 3000) AS text FROM nachricht WHERE projekt_id = ? AND aufgabe_id = ?"
+        " ORDER BY id DESC LIMIT 30", (pid, a["id"])))))
+    dok = zeilen(con.execute(
+        "SELECT d.id, d.titel, d.art, d.online, v.endung FROM dokument d JOIN dokument_version v ON v.dokument_id = d.id"
+        " AND v.nr = (SELECT max(nr) FROM dokument_version WHERE dokument_id = d.id) WHERE d.projekt_id = ? AND d.status != 'geloescht'"
+        " AND ((d.bezug_art = 'aufgabe' AND d.bezug_id = ?) OR d.id IN (SELECT value FROM json_each(?))) ORDER BY d.id",
+        (pid, a["id"], json.dumps(v["D"]))))
+    for d in dok:
+        d["vorschau"] = dokumente.FORMATE.get(d["endung"], ("", "", "download"))[2]
+    a["dokumente"] = dok
+    a["beschluesse"] = zeilen(con.execute(
+        "SELECT id, stichwort, regel, status FROM beschluss WHERE projekt_id = ? AND (id IN (SELECT value FROM json_each(?))"
+        " OR (',' || replace(replace(replace(coalesce(aufgabe_ids, ''), ' ', ''), '[', ''), ']', '') || ',') LIKE ?) ORDER BY id", (pid, json.dumps(v["B"]), f"%,{a['id']},%")))
+    a["laeufe"] = zeilen(con.execute("SELECT id, agent, status, beschreibung, rc, start_utc, ende_utc FROM lauf WHERE aufgabe_id = ?"
+                                     " ORDER BY id DESC LIMIT 10", (a["id"],)))
+    a["pruefungen"] = zeilen(con.execute("SELECT id, pruefer, ergebnis, sha, bemerkung, ergebnis_utc FROM pruefung WHERE aufgabe_id = ?"
+                                         " ORDER BY id DESC LIMIT 10", (a["id"],)))
+    a["fuer_dich"] = a["agent"] == kern.ENTWICKLER
+    return a
+
+
 def daten_start(con, pid):
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
@@ -154,6 +219,10 @@ def daten_start(con, pid):
     from . import planung
     try:
         planung_wartet = planung.freigaben_offen(con, pid)
+        for a in planung_wartet["eigene"]:            # Fragen dazu (im Titel/Auftrag genannt): „alle beantwortet“ auf der Karte
+            f = fragen_stand(con, pid, a["id"], a["titel"], a.get("auftrag"))
+            a["fragen_n"], a["fragen_offen"] = len(f), sum(1 for x in f if x["status"] == "offen")
+            a.pop("auftrag", None)
     except Exception:
         planung_wartet = {"spezifikationen": [], "plaene": [], "eigene": []}
     zaehler["freigaben"] = sum(len(v) for v in planung_wartet.values())
@@ -654,6 +723,7 @@ def baue_handler(port, token):
                     "/api/listen": lambda c, p: daten_listen(c, p),
                     "/api/themen": lambda c, p: daten_themen(c, p),
                     "/api/thema": lambda c, p: daten_thema(c, p, q.get("id", ["0"])[0]),
+                    "/api/aufgabe": lambda c, p: daten_aufgabe(c, p, q.get("id", ["0"])[0] or 0),
                     "/api/wissen": lambda c, p: daten_wissen(c, p, q),
                     "/api/suche": lambda c, p: daten_suche(c, p, q),
                     "/api/betrieb": lambda c, p: daten_betrieb(c, p),
