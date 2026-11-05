@@ -230,6 +230,10 @@ class Verlauf(unittest.TestCase):
         for t in ("termin_meldung", "termin"):                                  # … und keine Termine (15)
             self.con.execute(f"DROP TABLE {t}")
         self.con.execute("ALTER TABLE aufgabe DROP COLUMN federfuehrend")          # … und keine Federführung (14)
+        for t in ("ki_herkunft", "ki_auftrag", "ki_recht", "ki_vorlage", "ki_modell", "ki"):   # … und keine KIs (17)
+            self.con.execute(f"DROP TABLE {t}")
+        for t in ("lauf", "rezept"):
+            self.con.execute(f"ALTER TABLE {t} DROP COLUMN gpu")
         self.con.execute("PRAGMA user_version = 1")
         self.con.close()
         self.con = db.verbinde(self.pfad)

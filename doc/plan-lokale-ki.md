@@ -1,7 +1,52 @@
-# Entwurf: Lokale KIs in der AMW (universal)
+# Lokale KIs in der AMW (universal)
 
 Stand 05.11.2026. Anlass: Wunsch des Entwicklers, die lokal installierten KIs so überschaubar zu führen wie die Agenten.
-Status: **Entwurf zur Diskussion** – Umsetzung erst nach dem Wort des Entwicklers (neue Tabellen = Schema 17).
+Status: **Stufe 1 umgesetzt (AMW 1.16.0, Schema 17)**, freigegeben vom Entwickler. Stufe 2 und 3 siehe unten.
+
+## Bedienung (Stufe 1)
+
+```
+# einmal am PC eintragen (nicht über Brücke/Online-Seite – Endpunkt und Startbefehl)
+amw ki neu ollama  --art sprache --schnittstelle ollama  --lizenz MIT
+amw ki neu comfyui --art bild    --schnittstelle comfyui --lizenz GPL-3.0 \
+    --start "<python> main.py --listen 127.0.0.1 --port 8188 …" --ordner <ComfyUI-Ordner>
+amw ki modell comfyui sdxl-base --datei sd_xl_base_1.0.safetensors --lizenz "CreativeML Open RAIL++-M" \
+    --kommerziell ja --nutzungsregeln --quelle <URL> --sha256 <…>
+amw ki freigeben comfyui sdxl-base          # Lead; bei Nutzungsregeln/Registrierung nur der Entwickler
+amw ki sperren comfyui flux-dev --grund "nicht kommerziell"
+amw ki vorlage comfyui sprite-sdxl --datei workflow_api.json   # ComfyUI: Workflow → Export (API)
+amw ki recht comfyui --wer Grafik           # oder alle | rolle:<rolle>; Lead und Entwickler dürfen immer
+
+# beauftragen – der Agent muss danach nicht warten, er wird geweckt
+amw ki auftrag comfyui --vorlage sprite-sdxl --prompt "…" --anzahl 4 --seed 4711 --aufgabe 1234 [--bild D96]
+amw ki auftrag ollama --modell qwen3.5:9b --prompt-datei texte.md [--parameter '{"temperature":0.2}']
+amw ki zeige L812        # Stand, Ergebnisse, Herkunft je Dokument
+amw ki                   # KIs, Modelle mit Freigabe, Vorlagen, Aufträge
+amw ki nachweis [--aufgabe N | --bogen N]   # Liste aller KI-Dokumente mit Modell und Lizenz
+amw lauf start|ausfuehren --gpu …           # eigene Läufe, die die Grafikkarte brauchen
+```
+
+- **Vorlagen-Platzhalter:** `{prompt}` `{negativ}` `{seed}` `{breite}` `{hoehe}` `{bild}` `{modell}`. Steht ein Platzhalter
+  allein, behält der Wert seinen Typ (Seed als Zahl). Bild n bekommt Seed + n − 1.
+- **Freigaben:** Jede Modell-Datei, die eine Vorlage nennt (auch VAE, Text-Encoder), muss eingetragen und frei sein.
+  Ändern sich Lizenz, Datei oder Prüfsumme, ist die Freigabe wieder offen. Frei geht nur bei kommerziell nutzbarer Lizenz.
+- **Schlange:** Ein KI-Auftrag ist ein schwerer Lauf mit Platz `gpu`. Er wartet auf schwere Läufe des Projekts und PC-weit
+  auf GPU- und Schirm-Läufe; umgekehrt warten diese auf ihn. Vorziehen und Abbrechen wie bei jedem Lauf
+  (`amw lauf vorziehen|ende <nr> --abgebrochen`).
+- **Ausführung:** Der Dienst holt den Lauf ab, sobald er dran ist (auch ohne Sitzung des Auftraggebers), startet ComfyUI bei
+  Bedarf mit dem Startbefehl, schickt die Prompts, legt jedes Ergebnis als Dokument zur Aufgabe ab, schreibt die Herkunft
+  (`ki_herkunft`, unveränderlich), entlädt die Modelle (`/free`, Ollama `keep_alive: 0`), beendet den Lauf und weckt den
+  Auftraggeber mit einer Meldung. Abbruch über `/interrupt` bzw. Schließen der Anfrage; die AMW beendet keine Prozesse.
+  Ein Neustart des Dienstes holt laufende ComfyUI-Aufträge weiter ab und fragt Ollama neu.
+- **Gegenprobe:** Bei PNG aus ComfyUI vergleicht die AMW den Seed im Bild mit dem Auftrag („bestätigt“ oder „ABWEICHUNG“).
+- **Sichtbar:** Workbench und online unter Betrieb → „Lokale KI“, die Herkunft im Dokument-Fenster.
+
+### Entschieden (zu den offenen Fragen unten)
+
+1. Variante C und Ausführung durch die AMW (2b) – so gebaut.
+2. Frei gibt der Lead; bei Nutzungsregeln oder Registrierung nur der Entwickler.
+3. KI-Fenster `--nachts`: kommt mit Stufe 2.
+4. Anfangs dürfen nur Lead und Entwickler beauftragen; weitere Rechte setzt der Lead (`amw ki recht`).
 
 ## Kurzfassung
 

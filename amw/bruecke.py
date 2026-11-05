@@ -7,8 +7,9 @@ Ein Lead kann z. B. in einer Linux-VM arbeiten, die den AMW-Ordner per FUSE einh
 - Schreiben: Befehlsdateien eingang-tl/befehle/*.json (erst als .tmp schreiben, dann umbenennen). Inhalt entweder
   {"args": ["posten", "--an", "CC1", "--art", "auftrag", "--kurz", "…"]} oder
   {"befehl": "posten", "an": "CC1", "art": "auftrag", "kurz": "…"} (Schlüssel = CLI-Optionen; "aktion", "kennung",
-  "schluessel", "id"/"ids" sind die Positionsangaben, bei spec/rueckblick auch "bogen" und "teil"). `--datei` nur aus
-  eingang-tl/ (sonst könnte ein Befehl beliebige Dateien dieses PCs in die Datenbank und online holen). Der Wächter führt sie als `--von TL` aus und legt Ergebnis + Befehl in eingang-tl/erledigt/.
+  "schluessel", "id"/"ids", "wert" sind die Positionsangaben, bei spec/rueckblick auch "bogen" und "teil"). `--datei`,
+  `--text-datei`, `--prompt-datei` nur aus eingang-tl/ (sonst könnte ein Befehl beliebige Dateien dieses PCs in die
+  Datenbank und online holen). `ki neu/aendern` (Endpunkt, Startbefehl) nur am PC. Der Wächter führt sie als `--von TL` aus und legt Ergebnis + Befehl in eingang-tl/erledigt/.
 Vertrauensmodell wie die CLI in Stufe 1: wer auf diesem PC Dateien schreiben kann, kann auch `amw --von TL` aufrufen.
 """
 import contextlib
@@ -34,7 +35,7 @@ VON = "TL"
 ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "lauf", "pruefung", "taetigkeit",
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
            "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf", "dokument",
-           "schirm", "liste", "suche", "zeige", "termin", "thema"}   # Freigaben: nur der Mensch (Schirm frei: der Lead auf das Wort des Entwicklers)
+           "schirm", "liste", "suche", "zeige", "termin", "thema", "ki"}   # Freigaben: nur der Mensch (Schirm frei: der Lead auf das Wort des Entwicklers)
 
 
 def lese_kopie(quelle=None, ziel=None):
@@ -96,6 +97,8 @@ def argumente(befehl, eingang=EINGANG):
         raise ValueError(f"Befehl „{args[0] if args else ''}“ ist über die Brücke nicht erlaubt; erlaubt: {', '.join(sorted(ERLAUBT))}")
     if args[0] == "agent" and len(args) > 1 and args[1] in ("starten", "beenden", "profil", "startskript"):
         raise ValueError("Agenten starten, beenden und Profile ändern geht nur am PC (Workbench)")
+    if args[0] == "ki" and len(args) > 1 and args[1] in ("neu", "aendern"):
+        raise ValueError("KIs eintragen und ändern (Endpunkt, Startbefehl) geht nur am PC")
     if args[0] == "lauf" and len(args) > 1 and args[1] == "warte":
         raise ValueError("lauf warte blockiert – über die Brücke: lauf zeige <nr>")
     if any(a in ("--von", "--projekt") for a in args):
@@ -105,12 +108,12 @@ def argumente(befehl, eingang=EINGANG):
             raise ValueError("--quelle setzt beim Schirm die Brücke selbst")
         args = args + ["--quelle", "bruecke"]
     for i, a in enumerate(args):
-        if a.startswith("--datei="):
-            raise ValueError("--datei bitte als eigenen Schlüssel angeben")
+        if a.split("=")[0] in ("--datei", "--text-datei", "--prompt-datei") and "=" in a:
+            raise ValueError(f"{a.split('=')[0]} bitte als eigenen Schlüssel angeben")
         if a.startswith("--anhang="):
             raise ValueError("--anhang bitte als eigenen Schlüssel angeben")
-        if a == "--datei" and i + 1 < len(args):           # relativ zu eingang-tl/, wird absolut weitergegeben
-            args[i + 1] = _im_eingang(eingang, args[i + 1], "--datei")
+        if a in ("--datei", "--text-datei", "--prompt-datei") and i + 1 < len(args):   # relativ zu eingang-tl/, absolut weiter
+            args[i + 1] = _im_eingang(eingang, args[i + 1], a)
         if a == "--anhang" and i + 1 < len(args):          # A=datei (aus eingang-tl/) oder A=D12
             kenn, _, ref = args[i + 1].partition("=")
             if not re.fullmatch(r"[Dd]?\d+", ref.strip()):

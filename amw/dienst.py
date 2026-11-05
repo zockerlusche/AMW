@@ -9,7 +9,8 @@ Läuft außerhalb von Claude Code (gestartet von der Windows-Aufgabenplanung, St
   der Entwickler wieder da ist (schirm.py). Leerlauf: wer frei ist, obwohl eine seiner Aufgaben auf nichts mehr wartet,
   wird geweckt (wartegrund.py).
 Erkennen wie die alte Wache über PRAGMA data_version (billig, nur Änderungen anderer Verbindungen).
-Der Dienst beendet nie Claude-Code-Sitzungen und startet keine Agenten.
+- KI-Arbeiter (ki.py): führt KI-Aufträge aus, sobald ihr Lauf dran ist (über die lokale HTTP-Schnittstelle).
+Der Dienst beendet nie Claude-Code-Sitzungen und startet keine Agenten; er beendet auch keine KI (nur entladen über die API).
 
 Aufruf: python -X utf8 -m amw.dienst [--einmal] [--takt 1.0]
 """
@@ -284,6 +285,9 @@ def main(argv=None):
         abgleich.HOCH_S, abgleich.PULS_S, abgleich.EINGANG_S = e["abgleich_hoch_s"], e["abgleich_puls_s"], e["abgleich_eingang_s"]
         if abgleich.starten():
             log.info("Abgleich mit dem Online-Speicher an")
+        from . import ki                              # lokale KIs: Aufträge ausführen, wenn ihr Lauf dran ist
+        ki.starten()
+        log.info("KI-Arbeiter an")
         from . import bruecke                         # Lesekopie + Befehlsdateien für den TL (FUSE, kein WAL)
         if e["bruecke_an"]:
             bruecke.KOPIE_S, bruecke.VON = e["bruecke_kopie_s"], e["bruecke_absender"]

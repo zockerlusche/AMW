@@ -4,6 +4,43 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.16.0 – 06.11.2026 · Lokale KIs in der AMW (Schema 17)
+Umsetzung von Stufe 1 aus [doc/plan-lokale-ki.md](doc/plan-lokale-ki.md):
+- **Eigene Art „KI“** (`amw ki`):
+  - KIs (Ollama, ComfyUI) gelten für den ganzen PC; Endpunkte sind nur lokal erlaubt.
+  - Modelle tragen Lizenz, Herkunft und Prüfsumme und haben eine **Freigabe** offen | frei | gesperrt. Frei gibt der Lead,
+    bei Nutzungsregeln oder Registrierung nur der Entwickler; es gibt sie nur bei kommerziell nutzbarer Lizenz. Ändert
+    sich eine Lizenzangabe, ist die Freigabe wieder offen.
+  - Vorlagen sind ComfyUI-Workflows im API-Format mit Platzhaltern. Rechte zum Beauftragen gelten je Projekt.
+  - Eintragen und Ändern (Endpunkt, Startbefehl) geht nur am PC, nicht über Brücke oder Online-Seite.
+- **Aufträge über die AMW** (`amw ki auftrag`):
+  - Ein Auftrag ist ein Lauf in der gemeinsamen Schlange: schwer und mit dem neuen Platz **gpu**.
+  - Auf dem ganzen PC läuft höchstens ein GPU-Lauf zur Zeit. GPU- und Schirm-Läufe warten aufeinander, laufende Läufe
+    werden nie unterbrochen.
+  - Jede Modell-Datei, die eine Vorlage nennt, muss eingetragen und frei sein.
+- **Ausführung durch die AMW:**
+  - Ist ein Auftrag dran, führt ihn der Dienst selbst aus, auch wenn der Auftraggeber schläft.
+  - ComfyUI startet er bei Bedarf mit dem eingetragenen Startbefehl ohne Fenster. Danach entlädt er die Modelle
+    (`/free`, Ollama `keep_alive 0`).
+  - Abbrechen geht mit `amw lauf ende <nr> --abgebrochen` (über `/interrupt`). Prozesse beendet die AMW nicht.
+  - Ein Neustart des Dienstes holt laufende ComfyUI-Aufträge weiter ab.
+- **Herkunft automatisch:**
+  - Jedes Ergebnis wird ein Dokument zur Aufgabe.
+  - Die AMW schreibt dazu unveränderlich: KI, Version, Modell(e) mit Lizenz, Vorlage mit Prüfsumme, Prompt, Seed,
+    Parameter, Dauer und Spitze des Grafikspeichers.
+  - Bei PNG prüft sie zusätzlich, ob der Seed im Bild steht. Der Auftraggeber wird mit den D-Nummern geweckt.
+  - `amw ki zeige L<nr>` zeigt den Stand eines Auftrags, `amw ki nachweis` listet alle KI-Dokumente mit Modell und
+    Lizenz (Grundlage für Store-Angaben).
+- **Workbench und online:** Betrieb → „Lokale KI“ zeigt:
+  - eine Kachel je KI (bereit/rechnet/aus, Version, Modelle im Grafikspeicher, wartende Aufträge, wer beauftragen darf);
+  - die Modelle mit Freigabe, die Vorlagen und die KI-Aufträge mit Ergebnissen.
+  Im Dokument-Fenster steht die Herkunft, in der Lauf-Liste die Marke „GPU“.
+- **Eigene GPU-Läufe:** `amw lauf start|ausfuehren --gpu` und `amw rezept setzen --gpu`.
+- **Brücke:** `ki` ist erlaubt (außer `neu`/`aendern`). `--text-datei` und `--prompt-datei` gehen wie `--datei` nur aus
+  `eingang-tl/`; bisher konnte `--text-datei` jede Datei des PCs lesen.
+- Schema 17: neue Tabellen `ki`, `ki_modell`, `ki_vorlage`, `ki_recht`, `ki_auftrag`, `ki_herkunft`; Spalte `gpu` an
+  `lauf` und `rezept`. Die Umstellung läuft beim ersten Schreibzugriff und ändert nichts an vorhandenen Läufen.
+
 ## 1.15.3 – 05.11.2026 · Brücke: Wert als Positionsangabe
 - **Brücke:** `"wert"` in einer Befehlsdatei ist jetzt die Positionsangabe nach der Nummer, z. B.
   `{"befehl": "bogen", "aktion": "status", "id": 5, "wert": "aktiv"}`. Bisher wurde daraus `--wert`, und der Befehl

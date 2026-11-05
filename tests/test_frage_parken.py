@@ -110,6 +110,10 @@ class Parken(unittest.TestCase):
             self.con.execute(f"DROP TABLE {t}")
         for t in ("bogen", "aufgabe"):                                          # … und keine Federführung (14)
             self.con.execute(f"ALTER TABLE {t} DROP COLUMN federfuehrend")
+        for t in ("ki_herkunft", "ki_auftrag", "ki_recht", "ki_vorlage", "ki_modell", "ki"):   # … und keine KIs (17)
+            self.con.execute(f"DROP TABLE {t}")
+        for t in ("lauf", "rezept"):
+            self.con.execute(f"ALTER TABLE {t} DROP COLUMN gpu")
         self.con.execute("PRAGMA user_version = 9")
         self.con.close()
         self.con = db.verbinde(self.pfad)

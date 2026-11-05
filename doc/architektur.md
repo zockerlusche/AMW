@@ -19,14 +19,15 @@
 | `amw/schema.sql` | Datenmodell (§4) |
 | `amw/kern.py` | Nachrichten, Empfänger, Aufgaben, Fragen mit Verlauf, Halt/Hinweise, Pflicht-Kontext |
 | `amw/wissen.py` | Beschlüsse, Regeln (nur mit Beschluss), Wortlaut, Notizen, Release Notes, Einstufung (geparkt/Pool) – Fragen parken: `kern.frage_parken` |
-| `amw/betrieb.py` | Rechen-Läufe mit Regeln und Warteschlange, Prüfungen, Rezepte |
+| `amw/betrieb.py` | Rechen-Läufe mit Regeln und Warteschlange (Plätze schwer, Schirm, gpu), Prüfungen, Rezepte |
+| `amw/ki.py` | Lokale KIs: eintragen, Modelle freigeben, Rechte, Aufträge als Lauf, Ausführung im Dienst über HTTP, Herkunft, Nachweis ([plan-lokale-ki.md](plan-lokale-ki.md)) |
 | `amw/planung.py` | Leitbild, Bögen, Spezifikation, Schritte, Abhängigkeiten, nächster Schritt, Risiken, Prognose, Plan-Check |
 | `amw/verlauf.py` | Rückblick je Bogen, Verlauf aller Ereignisse, Zusammenfassungen |
 | `amw/dokumente.py` | Dokumente: Ablage (Hash im Datenordner), Versionen, Formate und Schutz, Bezüge, Kommentar an den Verfasser |
 | `amw/cli.py` | Kommandozeile `amw` (`amw.cmd`, `amw-cli.py` starten sie ohne PYTHONPATH) |
 | `amw/hook.py` | Claude-Code-Hooks: Anmeldung beim Start, Pflicht-Kontext, Zustand (arbeitet/frei/wartet/Fehler) |
 | `amw/statusline.py` | Statusline-Brücke: Kontext, Nutzungsgrenzen, Kosten je Sitzung; reicht die bisherige Statusline weiter |
-| `amw/dienst.py` | der Wächter: Wecken, Aufsicht der Sitzungen, Takt, Warteschlange, Überwachung, Neustart, Push, Workbench, Abgleich, Brücke |
+| `amw/dienst.py` | der Wächter: Wecken, Aufsicht der Sitzungen, Takt, Warteschlange, Überwachung, Neustart, Push, Workbench, Abgleich, Brücke, KI-Arbeiter |
 | `amw/pipe.py` | Zustellung in die Nachrichten-Pipe einer Claude-Code-Sitzung |
 | `amw/ueberwachung.py` | Projekt-Server (Port prüfen, Neustart), Warnungen (Stillstand, Lauf, Freigabe, Fehler, Kontext, Grenze) |
 | `amw/steuerung.py` | Agenten-Profil, Starten/Fortsetzen/Beenden, Neustart nach Absturz, Startskript |
@@ -85,6 +86,7 @@ Schreiben über JSON-Befehlsdateien in `eingang-tl/befehle/`, die der Wächter a
 | Fragen | `frage` (Optionen, Empfehlung, Antwort), `frage_verlauf` |
 | Wissen | `wortlaut`, `beschluss`, `regel`, `notiz`, `release` |
 | Betrieb | `lauf`, `rezept`, `pruefung`, `sperre` (Hinweis/Halt), `server`, `verbrauch`, `push_versand` |
+| Lokale KI (Schema 17) | PC-weit `ki`, `ki_modell` (Freigabe), `ki_vorlage`; je Projekt `ki_recht`; `ki_auftrag` (je Lauf), `ki_herkunft` (je Dokument-Version, unveränderlich) |
 | Abgleich | `netz_eingang` (Briefkasten-Zeilen, die schon ausgeführt sind) |
 Schutz in der Datenbank: Trigger verhindern das Löschen von Verlauf, Änderungen am Wortlaut und „fertig/verworfen“
 ohne Beleg. Neue Versionen kommen als `amw/migration_<n>.sql`; ein Test prüft, dass eine umgestellte alte Datenbank

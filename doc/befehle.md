@@ -37,6 +37,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`pruefung`](#pruefung) | Prüfbitte je Stand (SHA), Ergebnis grün/rot |
 | [`hinweis`](#hinweis) | Anweisung an einen Agenten oder alle (z. B. „keine Rechen-Jobs“) |
 | [`rezept`](#rezept) | Lauf-Rezepte als Daten |
+| [`ki`](#ki) | Lokale KIs (PC-weit): liste ¦ neu¦aendern <ki> (nur am PC) ¦ modell <ki> <name> ¦ freigeben¦sperren <ki> <modell> ¦ vorlage <ki> <name> --datei ¦ recht <ki> --wer ¦ auftrag <ki> --prompt … ¦ zeige L<nr> ¦ pruefen ¦ nachweis |
 | [`wortlaut`](#wortlaut) | Aussage des Entwicklers wörtlich erfassen |
 | [`beschluss`](#beschluss) | Beschluss anlegen (optional einen alten ersetzen) |
 | [`regel`](#regel) | Regel anlegen/ändern – nur mit Beschluss |
@@ -669,9 +670,10 @@ options:
 ```
 usage: amw lauf [-h] [--warten] [--hoechstens HOECHSTENS] [--frist FRIST]
                 [--dauer DAUER] [--beschreibung BESCHREIBUNG]
-                [--rezept REZEPT] [--leicht] [--schirm] [--aufgabe AUFGABE]
-                [--rc RC] [--ergebnis ERGEBNIS] [--abgebrochen]
-                [--grenze GRENZE] [--von VON] [--projekt PROJEKT]
+                [--rezept REZEPT] [--leicht] [--schirm] [--gpu]
+                [--aufgabe AUFGABE] [--rc RC] [--ergebnis ERGEBNIS]
+                [--abgebrochen] [--grenze GRENZE] [--von VON]
+                [--projekt PROJEKT]
                 {start,ende,liste,vorziehen,zeige,warte,ausfuehren} [id]
 
 positional arguments:
@@ -695,6 +697,9 @@ options:
   --rezept REZEPT
   --leicht              kein schwerer Lauf (keine Speicher-Grenze)
   --schirm
+  --gpu                 belegt die Grafikkarte: PC-weit nur ein GPU-Lauf zur
+                        Zeit (auch KI-Aufträge; ein Lauf mit Fenster wartet
+                        ebenfalls)
   --aufgabe AUFGABE
   --rc RC
   --ergebnis ERGEBNIS   ende: Ergebnis-Text · ausfuehren: Datei für die
@@ -796,8 +801,8 @@ options:
 ## rezept
 ```
 usage: amw rezept [-h] [--befehl BEFEHL] [--beschreibung BESCHREIBUNG]
-                  [--schirm] [--speicher SPEICHER] [--leicht] [--von VON]
-                  [--projekt PROJEKT]
+                  [--schirm] [--speicher SPEICHER] [--leicht] [--gpu]
+                  [--von VON] [--projekt PROJEKT]
                   {setzen,zeige,liste} [name]
 
 positional arguments:
@@ -811,6 +816,87 @@ options:
   --schirm
   --speicher SPEICHER
   --leicht
+  --gpu                 Läufe mit diesem Rezept belegen die Grafikkarte
+  --von VON
+  --projekt PROJEKT
+```
+
+## ki
+```
+usage: amw ki [-h] [--art ART] [--schnittstelle SCHNITTSTELLE]
+              [--endpunkt ENDPUNKT] [--version VERSION] [--lizenz LIZENZ]
+              [--ablage ABLAGE] [--start START] [--ordner ORDNER]
+              [--vram VRAM] [--abschalten] [--einschalten] [--datei DATEI]
+              [--sha256 SHA256] [--quelle QUELLE]
+              [--kommerziell {ja,nein,registrierung,unklar}]
+              [--nutzungsregeln] [--ohne-nutzungsregeln] [--sekunden SEKUNDEN]
+              [--notiz NOTIZ] [--grund GRUND] [--beschreibung BESCHREIBUNG]
+              [--wer WER] [--entziehen] [--modell MODELL] [--vorlage VORLAGE]
+              [--prompt PROMPT] [--prompt-datei PROMPT_DATEI]
+              [--negativ NEGATIV] [--seed SEED] [--anzahl ANZAHL]
+              [--breite BREITE] [--hoehe HOEHE] [--bild BILD]
+              [--parameter PARAMETER] [--titel TITEL] [--aufgabe AUFGABE]
+              [--bogen BOGEN] [--frist FRIST] [--alle] [--von VON]
+              [--projekt PROJEKT]
+              [{liste,neu,aendern,modell,freigeben,sperren,vorlage,recht,auftrag,zeige,pruefen,nachweis}]
+              [name] [teil]
+
+positional arguments:
+  {liste,neu,aendern,modell,freigeben,sperren,vorlage,recht,auftrag,zeige,pruefen,nachweis}
+  name                  die KI (z. B. ollama, comfyui) · zeige: Lauf-Nummer
+                        L812
+  teil                  modell/freigeben/sperren: das Modell · vorlage: Name
+                        der Vorlage
+
+options:
+  -h, --help            show this help message and exit
+  --art ART             neu: sprache | bild | ton | 3d | video | sonstig
+  --schnittstelle SCHNITTSTELLE
+                        neu: ollama | comfyui
+  --endpunkt ENDPUNKT   neu: nur lokal, z. B. http://127.0.0.1:8188 (Vorgabe
+                        je Schnittstelle)
+  --version VERSION
+  --lizenz LIZENZ
+  --ablage ABLAGE       neu: Ordner der Installation/Modelle
+  --start START         neu/aendern: Startbefehl ohne Fenster (der Dienst
+                        startet die KI, wenn sie nicht antwortet)
+  --ordner ORDNER       neu/aendern: Arbeitsordner für den Startbefehl
+  --vram VRAM           GB Grafikspeicher (Richtwert/Probe)
+  --abschalten          aendern: KI nicht mehr beauftragen
+  --einschalten
+  --datei DATEI         modell: Dateiname wie in der Vorlage · vorlage: API-
+                        JSON (ComfyUI: Export (API))
+  --sha256 SHA256
+  --quelle QUELLE       modell: URL
+  --kommerziell {ja,nein,registrierung,unklar}
+  --nutzungsregeln      modell: Lizenz mit Nutzungsregeln (z. B. Open
+                        RAIL++-M) – frei gibt dann nur der Entwickler
+  --ohne-nutzungsregeln
+  --sekunden SEKUNDEN   modell: Probe, Sekunden je Auftrag
+  --notiz NOTIZ
+  --grund GRUND         freigeben/sperren: Begründung (sperren: Pflicht)
+  --beschreibung BESCHREIBUNG
+  --wer WER             recht: alle | rolle:<rolle> | <Kennung>
+  --entziehen
+  --modell MODELL
+  --vorlage VORLAGE
+  --prompt PROMPT
+  --prompt-datei PROMPT_DATEI
+  --negativ NEGATIV
+  --seed SEED
+  --anzahl ANZAHL
+  --breite BREITE
+  --hoehe HOEHE
+  --bild BILD           auftrag: Eingabebild als Dokument, z. B. D96
+  --parameter PARAMETER
+                        auftrag: JSON, z. B. {"temperature": 0.2, "system":
+                        "…"}
+  --titel TITEL
+  --aufgabe AUFGABE
+  --bogen BOGEN
+  --frist FRIST         auftrag: höchstens so viele Minuten rechnen (Vorgabe
+                        60)
+  --alle                nachweis: auch archivierte und gelöschte Dokumente
   --von VON
   --projekt PROJEKT
 ```

@@ -845,7 +845,7 @@ def _lauf_ausfuehren(con, pid, a):
     beschreibung = a.beschreibung or a.rezept or " ".join(befehl)[:120]
     von = _von(a)
     lid = betrieb.lauf_start(con, pid, von, beschreibung, a.rezept, not a.leicht, a.schirm, a.aufgabe, warten=True,
-                             erwartet_min=a.dauer)
+                             erwartet_min=a.dauer, gpu=a.gpu)
     print(f"L{lid} angemeldet: {beschreibung}", flush=True)
     a.id = lid
     try:
@@ -947,7 +947,7 @@ def cmd_lauf(a, con):
         if not a.beschreibung and not a.rezept:
             raise kern.AmwFehler("--beschreibung oder --rezept angeben")
         lid = betrieb.lauf_start(con, pid, _von(a), a.beschreibung or a.rezept, a.rezept, not a.leicht, a.schirm, a.aufgabe,
-                                 warten=a.warten, erwartet_min=a.dauer)
+                                 warten=a.warten, erwartet_min=a.dauer, gpu=a.gpu)
         w = [r["id"] for r in betrieb.wartende(con, pid)]
         if lid in w:
             print(f"L{lid} eingereiht (Platz {w.index(lid) + 1} von {len(w)}) – noch nicht rechnen. Der Wächter weckt dich mit"
@@ -970,7 +970,7 @@ def cmd_lauf(a, con):
             raise kern.AmwFehler("lauf zeige <nr>")
         l = betrieb.lauf_zeile(con, pid, a.id)
         print(f"L{l['id']} {l['agent']} [{l['status']}]{' schwer' if l['schwer'] else ''}{' Schirm' if l['schirm'] else ''}"
-              f"  {l['beschreibung']}")
+              f"{' GPU' if l['gpu'] else ''}  {l['beschreibung']}")
         print(f"angemeldet {_zeit(l['angemeldet_utc'])} · Start {_zeit(l['start_utc']) or '–'} · Ende {_zeit(l['ende_utc']) or '–'}"
               f" · rc {l['rc'] if l['rc'] is not None else '–'}")
         if l["status"] == "angemeldet":
@@ -985,11 +985,12 @@ def cmd_lauf(a, con):
             print("Warteschlange:")
             for i, r in enumerate(w, 1):
                 print(f"  {i}. L{r['id']:<5} {r['agent']:<8}{' schwer' if r['schwer'] else ''}{' Schirm' if r['schirm'] else ''}"
-                      f"{' (vorgezogen)' if r['rang'] else ''} seit {_zeit(r['angemeldet_utc'])}  {r['beschreibung']}")
+                      f"{' GPU' if r['gpu'] else ''}{' (vorgezogen)' if r['rang'] else ''} seit {_zeit(r['angemeldet_utc'])}"
+                      f"  {r['beschreibung']}")
             print()
         for r in con.execute("SELECT * FROM lauf WHERE projekt_id = ? ORDER BY id DESC LIMIT ?", (pid, a.grenze)):
             print(f"L{r['id']:<5} {r['agent']:<8} [{r['status']}]{' schwer' if r['schwer'] else ''}{' Schirm' if r['schirm'] else ''}"
-                  f" {_zeit(r['start_utc'])}–{_zeit(r['ende_utc']) or '…'} rc {r['rc'] if r['rc'] is not None else '–'}  {r['beschreibung']}")
+                  f"{' GPU' if r['gpu'] else ''} {_zeit(r['start_utc'])}–{_zeit(r['ende_utc']) or '…'} rc {r['rc'] if r['rc'] is not None else '–'}  {r['beschreibung']}")
 
 
 def cmd_pruefung(a, con):
@@ -1036,6 +1037,108 @@ def cmd_server(a, con):
                   + (f"\n    {s['startbefehl']}" if s["startbefehl"] else ""))
 
 
+def cmd_ki(a, con):
+    """Lokale KIs: eintragen, Modelle freigeben, beauftragen (→ amw/ki.py, doc/plan-lokale-ki.md)."""
+    from . import ki
+    pid = _projekt(con, a)
+    von = _von(a)
+    if a.aktion in ("neu", "aendern"):
+        if not a.name:
+            raise kern.AmwFehler("ki neu <name> --art bild --schnittstelle comfyui [--endpunkt … --start \"…\" --ordner …]")
+        aktiv = True if a.einschalten else False if a.abschalten else None
+        _, was = ki.ki_setzen(con, von, a.name, a.art, a.schnittstelle, a.endpunkt, a.version, a.lizenz, a.ablage, a.start,
+                              a.ordner, a.vram, aktiv, neu=a.aktion == "neu")
+        print(f"KI {a.name}: {was}")
+    elif a.aktion == "modell":
+        if not (a.name and a.teil):
+            raise kern.AmwFehler("ki modell <ki> <name> [--datei … --lizenz … --kommerziell ja|nein|registrierung"
+                                 " --nutzungsregeln --quelle URL --sha256 … --vram GB --sekunden s]")
+        regeln = True if a.nutzungsregeln else False if a.ohne_nutzungsregeln else None
+        _, was = ki.modell_setzen(con, von, a.name, a.teil, a.datei, a.version, a.sha256, a.quelle, a.lizenz, a.kommerziell,
+                                  regeln, a.vram, a.sekunden, a.notiz)
+        print(f"Modell {a.teil}: {was}")
+    elif a.aktion in ("freigeben", "sperren"):
+        if not (a.name and a.teil):
+            raise kern.AmwFehler(f"ki {a.aktion} <ki> <modell>" + (" --grund …" if a.aktion == "sperren" else ""))
+        ki.freigeben(con, pid, von, a.name, a.teil, a.aktion == "freigeben", a.grund)
+        print(f"Modell {a.teil}: {'frei' if a.aktion == 'freigeben' else 'gesperrt'}")
+    elif a.aktion == "vorlage":
+        if not (a.name and a.teil and a.datei):
+            raise kern.AmwFehler("ki vorlage <ki> <name> --datei workflow_api.json [--beschreibung …]")
+        print(f"Vorlage {a.teil}: " + ki.vorlage_setzen(con, pid, von, a.name, a.teil, a.datei, a.beschreibung))
+    elif a.aktion == "recht":
+        if not a.name:
+            raise kern.AmwFehler("ki recht <ki> --wer alle|rolle:<rolle>|<Kennung> [--entziehen]")
+        n = ki.recht(con, pid, von, a.name, a.wer, a.entziehen)
+        print(f"{a.wer}: " + ("Recht entzogen" if a.entziehen and n else "hatte kein Recht" if a.entziehen
+                              else f"darf {a.name} beauftragen"))
+    elif a.aktion == "auftrag":
+        if not a.name:
+            raise kern.AmwFehler("ki auftrag <ki> --prompt … [--modell … --vorlage … --anzahl N --seed N --aufgabe N]")
+        prompt = a.prompt
+        if a.prompt_datei:
+            with open(a.prompt_datei, encoding="utf-8") as f:
+                prompt = f.read()
+        lid, _, laeuft = ki.auftrag(con, pid, von, a.name, prompt, a.modell, a.vorlage, a.negativ, a.seed, a.anzahl, a.breite,
+                                    a.hoehe, a.bild, a.parameter, a.titel, a.aufgabe, a.frist)
+        print(f"L{lid} " + ("ist dran – " if laeuft else f"eingereiht ({betrieb.wartegrund(con, pid, betrieb.lauf_zeile(con, pid, lid))}) – ")
+              + "die AMW führt den Auftrag selbst aus und legt die Ergebnisse als Dokumente ab. Du wirst geweckt, wenn"
+              f" er fertig ist; du musst nicht warten. Stand: amw ki zeige L{lid} · abbrechen: amw lauf ende {lid} --abgebrochen")
+    elif a.aktion == "zeige":
+        if not a.name:
+            raise kern.AmwFehler("ki zeige L<nr>")
+        x = ki.auftrag_zeile(con, pid, a.name)
+        l = betrieb.lauf_zeile(con, pid, x["lauf_id"])
+        k = con.execute("SELECT name FROM ki WHERE id = ?", (x["ki_id"],)).fetchone()[0]
+        print(f"L{x['lauf_id']} KI {k} · Auftrag {x['zustand']} · Lauf {l['status']} · von {x['auftraggeber']}"
+              + (f" · A{x['aufgabe_id']}" if x["aufgabe_id"] else ""))
+        print(f"angemeldet {_zeit(x['angelegt_utc'])} · Start {_zeit(x['start_utc']) or '–'} · Ende {_zeit(x['ende_utc']) or '–'}"
+              + (f" · {x['dauer_s'] / 60:.1f} min" if x["dauer_s"] else "") + (f" · bis {x['vram_spitze_gb']:g} GB" if x["vram_spitze_gb"] else ""))
+        if l["status"] == "angemeldet":
+            print(betrieb.wartegrund(con, pid, l))
+        if x["fortschritt"]:
+            print(f"Stand: {x['fortschritt']}")
+        if x["fehler"]:
+            print(f"Fehler: {x['fehler']}")
+        print(f"Prompt: {x['prompt']}" + (f"\nNegativ: {x['negativ']}" if x["negativ"] else "")
+              + f"\nSeed {x['seed']} · Anzahl {x['anzahl']}")
+        for d in json.loads(x["dokumente"] or "[]"):
+            for h in ki.herkunft_von(con, pid, d):
+                print(f"  D{d} v{h['nr']}: {h['ki']} {h['ki_version'] or ''} · {h['modell'] or ''} ({h['modell_lizenz'] or '?'})"
+                      f" · Seed {h['seed']}" + (f" · {h['dauer_s']:g} s" if h["dauer_s"] else "") + f" · {h['gegenprobe'] or ''}")
+    elif a.aktion == "pruefen":
+        ki.zustand_pruefen(con)
+        for r in con.execute("SELECT name, endpunkt, zustand, version, geladen FROM ki WHERE aktiv = 1 ORDER BY name"):
+            print(f"{r['name']:<12} {r['endpunkt']:<26} {r['zustand']:<9} {r['version'] or ''}"
+                  + (f"  geladen: {', '.join(json.loads(r['geladen']))}" if r["geladen"] and json.loads(r["geladen"]) else ""))
+    elif a.aktion == "nachweis":
+        print(ki.nachweis_text(ki.nachweis(con, pid, a.aufgabe, a.bogen, a.alle)), end="")
+    else:
+        u = ki.uebersicht(con, pid)
+        if not u["kis"]:
+            print("keine KI eingetragen – amw ki neu <name> --art sprache|bild --schnittstelle ollama|comfyui …")
+        for k in u["kis"]:
+            print(f"{k['name']:<12} {k['art']:<8} {k['schnittstelle']:<8} {k['endpunkt']:<26} {k['zustand']:<9} {k['version'] or ''}"
+                  + (f"  · {k['wartend']} wartend" if k["wartend"] else "")
+                  + f"  · darf: Lead, Entwickler{', ' + ', '.join(k['darf']) if k['darf'] else ''}")
+        if u["modelle"]:
+            print("\nModelle:")
+            for m in u["modelle"]:
+                print(f"  {m['ki']:<10} {m['name']:<34} [{m['freigabe']}]{' Nutzungsregeln' if m['nutzungsregeln'] else ''}"
+                      f" kommerziell {m['kommerziell']} · {m['lizenz'] or 'Lizenz?'}"
+                      + (f" · {m['freigabe_grund']}" if m["freigabe_grund"] else ""))
+        if u["vorlagen"]:
+            print("\nVorlagen:")
+            for v in u["vorlagen"]:
+                print(f"  {v['ki']:<10} {v['name']:<24} {v['beschreibung'] or ''} (Stand {_zeit(v['stand_utc'])}, {v['von']})")
+        if u["auftraege"]:
+            print("\nAufträge:")
+            for x in u["auftraege"][:15]:
+                print(f"  L{x['lauf_id']:<5} {x['ki']:<9} {x['zustand']:<11} {x['auftraggeber']:<8} "
+                      + (", ".join(f"D{d}" for d in x["dokumente"]) + " · " if x["dokumente"] else "")
+                      + betrieb.kurzfassung(x["titel"] or x["prompt"], 70))
+
+
 def cmd_hinweis(a, con):
     pid = _projekt(con, a)
     if a.aktion == "setzen":
@@ -1047,13 +1150,13 @@ def cmd_hinweis(a, con):
 def cmd_rezept(a, con):
     pid = _projekt(con, a)
     if a.aktion == "setzen":
-        print(betrieb.rezept_setzen(con, pid, a.name, a.befehl, a.beschreibung, a.schirm, a.speicher or 0.0, not a.leicht))
+        print(betrieb.rezept_setzen(con, pid, a.name, a.befehl, a.beschreibung, a.schirm, a.speicher or 0.0, not a.leicht, a.gpu))
     elif a.aktion == "zeige":
         r = con.execute("SELECT * FROM rezept WHERE projekt_id = ? AND name = ?", (pid, a.name)).fetchone()
         if not r:
             raise kern.AmwFehler(f"Rezept „{a.name}“ gibt es nicht")
         print(f"{r['name']} (Stand {_zeit(r['stand_utc'])}){' · Schirm' if r['braucht_schirm'] else ''}"
-              f"{' · schwer' if r['schwer'] else ''} · ≥ {r['braucht_speicher_gb']:g} GB frei\n{r['beschreibung'] or ''}\n{r['befehl']}")
+              f"{' · schwer' if r['schwer'] else ''}{' · GPU' if r['gpu'] else ''} · ≥ {r['braucht_speicher_gb']:g} GB frei\n{r['beschreibung'] or ''}\n{r['befehl']}")
     else:
         for r in con.execute("SELECT name, beschreibung FROM rezept WHERE projekt_id = ? ORDER BY name", (pid,)):
             print(f"{r['name']:<24} {r['beschreibung'] or ''}")
@@ -1829,6 +1932,8 @@ def parser():
     x.add_argument("--rezept")
     x.add_argument("--leicht", action="store_true", help="kein schwerer Lauf (keine Speicher-Grenze)")
     x.add_argument("--schirm", action="store_true")
+    x.add_argument("--gpu", action="store_true", help="belegt die Grafikkarte: PC-weit nur ein GPU-Lauf zur Zeit"
+                                                     " (auch KI-Aufträge; ein Lauf mit Fenster wartet ebenfalls)")
     x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--rc", type=int)
     x.add_argument("--ergebnis", help="ende: Ergebnis-Text · ausfuehren: Datei für die Ausgabe des Befehls")
@@ -1883,7 +1988,57 @@ def parser():
     x.add_argument("--schirm", action="store_true")
     x.add_argument("--speicher", type=float)
     x.add_argument("--leicht", action="store_true")
+    x.add_argument("--gpu", action="store_true", help="Läufe mit diesem Rezept belegen die Grafikkarte")
     x.set_defaults(f=cmd_rezept)
+
+    x = s.add_parser("ki", help="Lokale KIs (PC-weit): liste | neu|aendern <ki> (nur am PC) | modell <ki> <name> | freigeben|sperren"
+                                " <ki> <modell> | vorlage <ki> <name> --datei | recht <ki> --wer | auftrag <ki> --prompt … |"
+                                " zeige L<nr> | pruefen | nachweis")
+    x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "neu", "aendern", "modell", "freigeben", "sperren",
+                                                                  "vorlage", "recht", "auftrag", "zeige", "pruefen", "nachweis"])
+    x.add_argument("name", nargs="?", help="die KI (z. B. ollama, comfyui) · zeige: Lauf-Nummer L812")
+    x.add_argument("teil", nargs="?", help="modell/freigeben/sperren: das Modell · vorlage: Name der Vorlage")
+    x.add_argument("--art", help="neu: " + " | ".join(("sprache", "bild", "ton", "3d", "video", "sonstig")))
+    x.add_argument("--schnittstelle", help="neu: ollama | comfyui")
+    x.add_argument("--endpunkt", help="neu: nur lokal, z. B. http://127.0.0.1:8188 (Vorgabe je Schnittstelle)")
+    x.add_argument("--version")
+    x.add_argument("--lizenz")
+    x.add_argument("--ablage", help="neu: Ordner der Installation/Modelle")
+    x.add_argument("--start", help="neu/aendern: Startbefehl ohne Fenster (der Dienst startet die KI, wenn sie nicht antwortet)")
+    x.add_argument("--ordner", help="neu/aendern: Arbeitsordner für den Startbefehl")
+    x.add_argument("--vram", type=float, help="GB Grafikspeicher (Richtwert/Probe)")
+    x.add_argument("--abschalten", action="store_true", help="aendern: KI nicht mehr beauftragen")
+    x.add_argument("--einschalten", action="store_true")
+    x.add_argument("--datei", help="modell: Dateiname wie in der Vorlage · vorlage: API-JSON (ComfyUI: Export (API))")
+    x.add_argument("--sha256")
+    x.add_argument("--quelle", help="modell: URL")
+    x.add_argument("--kommerziell", choices=["ja", "nein", "registrierung", "unklar"])
+    x.add_argument("--nutzungsregeln", action="store_true", help="modell: Lizenz mit Nutzungsregeln (z. B. Open RAIL++-M)"
+                                                                 " – frei gibt dann nur der Entwickler")
+    x.add_argument("--ohne-nutzungsregeln", action="store_true")
+    x.add_argument("--sekunden", type=float, help="modell: Probe, Sekunden je Auftrag")
+    x.add_argument("--notiz")
+    x.add_argument("--grund", help="freigeben/sperren: Begründung (sperren: Pflicht)")
+    x.add_argument("--beschreibung")
+    x.add_argument("--wer", help="recht: alle | rolle:<rolle> | <Kennung>")
+    x.add_argument("--entziehen", action="store_true")
+    x.add_argument("--modell")
+    x.add_argument("--vorlage")
+    x.add_argument("--prompt")
+    x.add_argument("--prompt-datei")
+    x.add_argument("--negativ")
+    x.add_argument("--seed", type=int)
+    x.add_argument("--anzahl", type=int, default=1)
+    x.add_argument("--breite", type=int)
+    x.add_argument("--hoehe", type=int)
+    x.add_argument("--bild", help="auftrag: Eingabebild als Dokument, z. B. D96")
+    x.add_argument("--parameter", help="auftrag: JSON, z. B. {\"temperature\": 0.2, \"system\": \"…\"}")
+    x.add_argument("--titel")
+    x.add_argument("--aufgabe", type=nummer)
+    x.add_argument("--bogen", type=nummer)
+    x.add_argument("--frist", type=float, help="auftrag: höchstens so viele Minuten rechnen (Vorgabe 60)")
+    x.add_argument("--alle", action="store_true", help="nachweis: auch archivierte und gelöschte Dokumente")
+    x.set_defaults(f=cmd_ki)
 
     for name, f, hilfe in (("wortlaut", cmd_wortlaut, "Aussage des Entwicklers wörtlich erfassen"),
                            ("beschluss", cmd_beschluss, "Beschluss anlegen (optional einen alten ersetzen)"),

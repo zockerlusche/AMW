@@ -609,6 +609,10 @@ def daten_dokument(con, pid, q, gespraech=None):
     nr = int(q.get("v", ["0"])[0] or 0) or d["versionen"][-1]["nr"]
     v = next((x for x in d["versionen"] if x["nr"] == nr), d["versionen"][-1])
     d["gezeigt"] = v["nr"]
+    from . import ki
+    d["ki_herkunft"] = [{k: h[k] for k in ("nr", "ki", "ki_version", "modell", "modell_lizenz", "modelle", "vorlage", "prompt",
+                                           "negativ", "seed", "lauf_id", "dauer_s", "vram_spitze_gb", "gegenprobe", "zeit_utc")}
+                        for h in ki.herkunft_von(con, pid, did)]
     if v["vorschau"] == "text" and d["status"] != "geloescht":
         roh, _ = dokumente.inhalt(con, pid, did, v["nr"])
         d["text"] = roh.decode("utf-8", errors="replace")
@@ -619,7 +623,7 @@ def daten_betrieb(con, pid):
     sitz = zeilen(con.execute(
         "SELECT g.kennung, s.zustand, s.gestartet_utc, s.letzter_puls_utc, s.beendet_utc FROM sitzung s"
         " JOIN agent g ON g.id = s.agent_id WHERE g.projekt_id = ? ORDER BY s.id DESC LIMIT 30", (pid,)))
-    laeufe = zeilen(con.execute("SELECT id, agent, beschreibung, status, angemeldet_utc, start_utc, ende_utc, rc"
+    laeufe = zeilen(con.execute("SELECT id, agent, beschreibung, status, angemeldet_utc, start_utc, ende_utc, rc, gpu"
                                 " FROM lauf WHERE projekt_id = ? ORDER BY id DESC LIMIT 30", (pid,)))
     sperren = [dict(s) for s in kern.aktive_sperren(con, pid)]
     server = zeilen(con.execute("SELECT name, port, zustand, seit_utc, geprueft_utc, zustaendig, neustart, ausfaelle,"
@@ -631,8 +635,9 @@ def daten_betrieb(con, pid):
             log = f.readlines()[-25:]
     frei, gesamt = speicher_frei_gb()
     from . import statusline
+    from . import ki
     return {"sitzungen": sitz, "laeufe": laeufe, "sperren": sperren, "server": server, "log": [z.rstrip() for z in log],
-            "verbrauch": statusline.verbrauch_tage(con, pid, 7),
+            "verbrauch": statusline.verbrauch_tage(con, pid, 7), "ki": ki.uebersicht(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "db": db.db_pfad()}
 
 

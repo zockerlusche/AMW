@@ -113,6 +113,8 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .etikett.rot { border-color: var(--rot); color: var(--rot); }
 .etikett.bernstein { border-color: var(--bernstein); color: var(--bernstein); }
 .etikett.gruen { border-color: var(--gruen); color: var(--gruen); }
+.ki-kopf { margin: 18px 0 8px; font-size: 14px; }
+.dk-prompt { margin-top: 6px; padding: 6px 8px; border-left: 2px solid var(--linie); font-size: 12.5px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 9em; overflow: auto; }
 .leer { padding: 22px; color: var(--sehrleise); border: 1px dashed var(--linie); border-radius: 4px; text-align: center; }
 
 .band-halt { display: flex; gap: 14px; align-items: center; padding: 14px 18px; border: 1px solid var(--rot); background: var(--rot-weich);
@@ -917,6 +919,14 @@ const TEXTE = {
     betrieb: "Betrieb", speicher_frei: "Arbeitsspeicher frei", von_gb: "von {n} GB · Grenze für Läufe 8 GB", aktive_sitzungen: "Aktive Sitzungen",
     ueber_hook: "angemeldet über den Hook", sperren: "Sperren", halt_anweisungen: "Halt und Anweisungen", datenbank: "Datenbank",
     keine_sperren: "Keine Sperren.", sitzungen: "Sitzungen", keine_sitzung: "Noch keine Sitzung angemeldet.", laeufe: "Rechen-Läufe", keine_laeufe: "Keine Läufe.",
+    ki: "Lokale KI", ki_erkl: "Aufträge an die KIs laufen über die Lauf-Schlange (Platz GPU: auf dem ganzen PC ein Lauf zur Zeit) und werden von der AMW selbst ausgeführt; jedes Ergebnis wird ein Dokument mit Herkunft.",
+    ki_keine: "Keine KI eingetragen – am PC: amw ki neu <name> --art bild --schnittstelle comfyui …", ki_modelle: "Modelle", ki_vorlagen: "Vorlagen",
+    ki_auftraege: "KI-Aufträge", ki_keine_auftraege: "Noch keine KI-Aufträge.", ki_geladen: "im Grafikspeicher: {x}", ki_wartend: "{n} wartend",
+    ki_darf: "beauftragen: Lead, Entwickler{x}", ki_regeln: "Nutzungsregeln", ki_herkunft: "Herkunft (KI)", ki_gegenprobe: "Gegenprobe",
+    ki_vorlage_x: "Vorlage {x}", kiz_an: "bereit", kiz_aus: "aus", kiz_belegt: "rechnet", kiz_unbekannt: "noch nicht geprüft", kiz_gestoert: "gestört",
+    kif_frei: "frei", kif_offen: "offen", kif_gesperrt: "gesperrt", kia_wartet: "wartet", kia_laeuft: "rechnet", kia_fertig: "fertig",
+    kia_fehler: "Fehler", kia_abgebrochen: "abgebrochen", k_ki: "KI", k_modell: "Modell", k_lizenz: "Lizenz", k_kommerziell: "Kommerziell",
+    k_freigabe: "Freigabe", k_auftraggeber: "Von", k_auftrag: "Auftrag",
     protokoll: "Protokoll des Dienstes", leer: "(leer)",
     k_nr: "#", k_art: "Art", k_fuer: "Für", k_von: "Von", k_text: "Text", k_seit: "Seit", k_agent: "Agent", k_zustand: "Zustand",
     k_gestartet: "Gestartet", k_puls: "Puls", k_beendet: "Beendet", k_lauf: "Lauf", k_status: "Status", k_start: "Start", k_ende: "Ende", k_rc: "rc",
@@ -1150,6 +1160,14 @@ const TEXTE = {
     betrieb: "Operations", speicher_frei: "Free memory", von_gb: "of {n} GB · limit for runs 8 GB", aktive_sitzungen: "Active sessions",
     ueber_hook: "registered by the hook", sperren: "Locks", halt_anweisungen: "Halts and instructions", datenbank: "Database",
     keine_sperren: "No locks.", sitzungen: "Sessions", keine_sitzung: "No session registered yet.", laeufe: "Compute runs", keine_laeufe: "No runs.",
+    ki: "Local AI", ki_erkl: "Jobs for the local AIs go through the run queue (GPU slot: one run at a time on the whole PC) and are executed by AMW itself; every result becomes a document with its provenance.",
+    ki_keine: "No AI registered – on the PC: amw ki neu <name> --art bild --schnittstelle comfyui …", ki_modelle: "Models", ki_vorlagen: "Templates",
+    ki_auftraege: "AI jobs", ki_keine_auftraege: "No AI jobs yet.", ki_geladen: "in GPU memory: {x}", ki_wartend: "{n} waiting",
+    ki_darf: "may order: lead, developer{x}", ki_regeln: "use restrictions", ki_herkunft: "Provenance (AI)", ki_gegenprobe: "Cross-check",
+    ki_vorlage_x: "template {x}", kiz_an: "ready", kiz_aus: "off", kiz_belegt: "computing", kiz_unbekannt: "not checked yet", kiz_gestoert: "faulty",
+    kif_frei: "approved", kif_offen: "open", kif_gesperrt: "blocked", kia_wartet: "waiting", kia_laeuft: "computing", kia_fertig: "done",
+    kia_fehler: "error", kia_abgebrochen: "cancelled", k_ki: "AI", k_modell: "Model", k_lizenz: "License", k_kommerziell: "Commercial",
+    k_freigabe: "Approval", k_auftraggeber: "By", k_auftrag: "Job",
     protokoll: "Service log", leer: "(empty)",
     k_nr: "#", k_art: "Kind", k_fuer: "For", k_von: "By", k_text: "Text", k_seit: "Since", k_agent: "Agent", k_zustand: "State",
     k_gestartet: "Started", k_puls: "Pulse", k_beendet: "Ended", k_lauf: "Run", k_status: "Status", k_start: "Start", k_ende: "End", k_rc: "rc",
@@ -1961,6 +1979,12 @@ async function dokumentDialog(id, v) {
       el("div", { class: "dk-vorschau" }, vorschau),
       el("aside", { class: "dk-seite" },
         el("div", {}, el("h4", {}, t("dk_gehoert_zu")), bezug),
+        (d.ki_herkunft || []).filter(x => x.nr === ver.nr).map(x => el("div", { class: "dk-herkunft" }, el("h4", {}, t("ki_herkunft")),
+          el("div", { class: "leise" }, `${x.ki} ${x.ki_version || ""} · ${x.modell || ""}` + (x.modell_lizenz ? ` (${x.modell_lizenz})` : "")),
+          el("div", { class: "sehrleise" }, [`L${x.lauf_id}`, x.seed != null ? `Seed ${x.seed}` : null, x.vorlage ? t("ki_vorlage_x", { x: x.vorlage }) : null,
+            x.dauer_s ? `${x.dauer_s} s` : null, x.vram_spitze_gb ? `${x.vram_spitze_gb} GB VRAM` : null].filter(Boolean).join(" · ")),
+          el("div", { class: "dk-prompt" }, x.prompt),
+          x.gegenprobe ? el("div", { class: "sehrleise" }, `${t("ki_gegenprobe")}: ${x.gegenprobe}`) : null)),
         el("div", {}, el("h4", {}, t("dk_versionen", { n: d.versionen.length }),
           d.versionen.length > 1 ? el("button", { class: "klein-knopf dk-vergleich-knopf", type: "button", onclick: () => {
             const i = d.versionen.findIndex(x => x.nr === ver.nr);                // gezeigte Fassung mit der davor (v1: mit v2)
@@ -2966,6 +2990,7 @@ async function sichtBetrieb() {
     ? tabelle(["k_name", "k_port", "k_zustand", "k_seit", "k_zustaendig", "k_neustart", "k_ausfaelle"],
         d.server.map(s => [s.name, s.port, punkt(s.zustand), seit(s.seit_utc), s.zustaendig, s.neustart ? t("ja") : t("nein"), s.ausfaelle]))
     : el("div", { class: "leer" }, t("keine_server")));
+  kiTeil(m, d.ki || { kis: [] });
   /* Verbrauch je Agent und Tag (Schätzung zum Listenpreis aus der Statusline) */
   const v = d.verbrauch || { tage: [], agenten: {} }, namen = Object.keys(v.agenten).sort();
   const tagKurz = x => x.slice(8, 10) + "." + x.slice(5, 7) + ".";
@@ -2981,9 +3006,35 @@ async function sichtBetrieb() {
   const sitz = [...d.sitzungen.filter(s => s.zustand === "aktiv"), ...d.sitzungen.filter(s => s.zustand !== "aktiv").slice(0, 8)];
   m.append(el("h2", {}, t("sitzungen")), sitz.length ? tabelle(["k_agent", "k_zustand", "k_gestartet", "k_puls", "k_beendet"], sitz.map(s => [s.kennung, s.zustand, zeit(s.gestartet_utc), seit(s.letzter_puls_utc), zeit(s.beendet_utc)]))
     : el("div", { class: "leer" }, t("keine_sitzung")));
-  m.append(el("h2", {}, t("laeufe")), d.laeufe.length ? tabelle(["k_nr", "k_agent", "k_lauf", "k_status", "k_start", "k_ende", "k_rc"], d.laeufe.map(l => [l.id, l.agent, l.beschreibung, l.status, zeit(l.start_utc), zeit(l.ende_utc), l.rc ?? ""]))
+  m.append(el("h2", {}, t("laeufe")), d.laeufe.length ? tabelle(["k_nr", "k_agent", "k_lauf", "k_status", "k_start", "k_ende", "k_rc"], d.laeufe.map(l => [l.id, l.agent,
+      l.gpu ? el("span", {}, el("span", { class: "etikett", style: "margin-right:6px" }, "GPU"), l.beschreibung) : l.beschreibung, l.status, zeit(l.start_utc), zeit(l.ende_utc), l.rc ?? ""]))
     : el("div", { class: "leer" }, t("keine_laeufe")));
   m.append(el("h2", {}, t("protokoll")), el("pre", { class: "log" }, d.log.join("\n") || t("leer")));
+}
+/* Lokale KI: Kachel je KI, Modelle mit Freigabe, Vorlagen, Aufträge (eine Ansicht der gemeinsamen Lauf-Schlange) */
+function kiTeil(m, k) {
+  m.append(el("h2", {}, t("ki")), el("p", { class: "sehrleise", style: "font-size:12px;margin:-4px 0 10px" }, t("ki_erkl")));
+  if (!k.kis.length) { m.append(el("div", { class: "leer" }, t("ki_keine"))); return; }
+  m.append(el("div", { class: "messer" }, k.kis.map(x => el("div", { class: "karte" },
+    el("div", { class: "leise" }, `${x.name} · ${x.art}`),
+    el("div", { class: "wert", style: "font-size:22px" }, el("span", { class: "punkt " + ({ an: "gruen", belegt: "bernstein", aus: "rot", gestoert: "rot" }[x.zustand] || "") }), " ", t("kiz_" + x.zustand)),
+    el("div", { class: "sehrleise" }, [x.schnittstelle + (x.version ? " " + x.version : ""), x.geladen.length ? t("ki_geladen", { x: x.geladen.join(", ") }) : null,
+      x.wartend ? t("ki_wartend", { n: x.wartend }) : null].filter(Boolean).join(" · ")),
+    el("div", { class: "sehrleise" }, t("ki_darf", { x: x.darf.length ? ", " + x.darf.join(", ") : "" }))))));
+  const frei = x => el("span", {}, el("span", { class: "etikett " + ({ frei: "gruen", gesperrt: "rot", offen: "bernstein" }[x.freigabe] || "") }, t("kif_" + x.freigabe)),
+    x.freigabe_grund ? el("span", { class: "sehrleise" }, " " + x.freigabe_grund) : null);
+  if (k.modelle.length) m.append(el("h3", { class: "ki-kopf" }, t("ki_modelle")), tabelle(["k_ki", "k_modell", "k_lizenz", "k_kommerziell", "k_freigabe"],
+    k.modelle.map(x => [x.ki, el("span", {}, x.name, x.datei && x.datei !== x.name ? el("div", { class: "sehrleise mono" }, x.datei) : null),
+      (x.lizenz || "?") + (x.nutzungsregeln ? " · " + t("ki_regeln") : ""), x.kommerziell, frei(x)])));
+  if (k.vorlagen.length) m.append(el("h3", { class: "ki-kopf" }, t("ki_vorlagen")), tabelle(["k_ki", "k_name", "k_text", "k_von"],
+    k.vorlagen.map(v => [v.ki, v.name, v.beschreibung || "", v.von])));
+  const zustandEt = x => el("span", { class: "etikett " + ({ fertig: "gruen", fehler: "rot", laeuft: "bernstein" }[x.zustand] || ""), title: x.fehler || x.fortschritt || "" }, t("kia_" + x.zustand));
+  m.append(el("h3", { class: "ki-kopf" }, t("ki_auftraege")), k.auftraege.length
+    ? tabelle(["k_lauf", "k_ki", "k_auftraggeber", "k_auftrag", "k_zustand", "k_ergebnis"], k.auftraege.map(x => [`L${x.lauf_id}`,
+        `${x.ki} · ${x.modell || x.vorlage || ""}`, x.auftraggeber, x.titel || x.prompt, zustandEt(x),
+        x.dokumente.length ? el("span", {}, x.dokumente.map(n => el("a", { class: "verweis", style: "margin-right:6px", onclick: () => dokumentDialog(n) }, `D${n}`)))
+          : el("span", { class: "sehrleise" }, x.fehler || x.fortschritt || "")]))
+    : el("div", { class: "leer" }, t("ki_keine_auftraege")));
 }
 function tabelle(kopf, zeilen) {
   return el("div", { class: "tab-huelle" }, el("table", { class: "tab" }, el("thead", {}, el("tr", {}, kopf.map(k => el("th", {}, k.startsWith("#") ? k.slice(1) : t(k))))),
