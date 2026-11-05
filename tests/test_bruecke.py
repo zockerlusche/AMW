@@ -67,6 +67,12 @@ class Bruecke(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.eingang, "erledigt", "001.json")))
         self.assertFalse(os.listdir(os.path.join(self.eingang, "befehle")))
 
+    def test_wert_ist_positionsangabe(self):
+        self.assertEqual(bruecke.argumente({"befehl": "bogen", "aktion": "status", "id": 5, "wert": "geplant"}),
+                         ["bogen", "status", "5", "geplant", "--von", "TL"])
+        self.assertEqual(bruecke.argumente({"befehl": "bogen", "aktion": "aendern", "id": 5, "zieldatum": ""}),
+                         ["bogen", "aendern", "5", "--zieldatum", "", "--von", "TL"])
+
     def test_gleicher_name_ueberschreibt_den_beleg_nicht(self):
         # 04.11.: ein zweiter Durchgang unter denselben Namen überschrieb Befehl und Ergebnis des ersten
         self.einwerfen("khp.json", {"befehl": "posten", "an": "CC1", "art": "info", "kurz": "erster"})

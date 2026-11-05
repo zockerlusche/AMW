@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.15.3 – 05.11.2026 · Brücke: Wert als Positionsangabe
+- **Brücke:** `"wert"` in einer Befehlsdatei ist jetzt die Positionsangabe nach der Nummer, z. B.
+  `{"befehl": "bogen", "aktion": "status", "id": 5, "wert": "aktiv"}`. Bisher wurde daraus `--wert`, und der Befehl
+  scheiterte. Die Form `{"args": [...]}` geht weiterhin.
+
 ## 1.15.2 – 05.11.2026 · Fenster schließen, Oberfläche ohne Projektbezug
 - **Jedes Fenster hat oben rechts „✕“:** Dokument, Aufgabe, Thema, Bögen und Einstellungs-Dialoge. Bisher ging es nur mit
   Esc oder einem Klick daneben, am Handy oft gar nicht. Esc schließt jetzt nur das oberste Fenster, vorher alle

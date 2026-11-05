@@ -81,7 +81,7 @@ def argumente(befehl, eingang=EINGANG):
             for k in ("bogen", "teil"):
                 if k in b:
                     args.append(str(b.pop(k)))
-        for k in ("kennung", "schluessel", "id", "ids"):
+        for k in ("kennung", "schluessel", "id", "ids", "wert"):   # wert: z. B. bogen status <id> <wert>
             if k in b:
                 v = b.pop(k)
                 args += [str(x) for x in (v if isinstance(v, list) else [v])]
