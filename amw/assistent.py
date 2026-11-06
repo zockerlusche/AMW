@@ -6,9 +6,8 @@ Schritte, jeder wiederholbar (was es schon gibt, bleibt):
 Interaktiv fragt er nach (Vorgaben in Klammern, Enter übernimmt); `schnell(...)` macht dasselbe ohne Fragen.
 """
 import os
-import re
 
-from . import db, einrichtung, einstellungen, kern, steuerung
+from . import db, einrichtung, einstellungen, kern, steuerung, wissen
 
 STARTSKRIPT = os.path.join(einrichtung.WURZEL, "agenten-start.ps1")
 
@@ -32,21 +31,24 @@ def startskript_fuer(con, pid, pfad=STARTSKRIPT):
     if pid == con.execute("SELECT min(id) FROM projekt").fetchone()[0]:
         return pfad
     name = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()["name"]
-    teil = re.sub(r"[^\w-]+", "-", name).strip("-").lower() or str(pid)
     kopf, ende = os.path.splitext(pfad)
-    return f"{kopf}-{teil}{ende}"
+    return f"{kopf}-{db.kurzname(name, pid)}{ende}"
 
 
 def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe", denkstufe=None, dienst=False,
-            startskript=STARTSKRIPT, hooks=True, ausgabe=print, fernsteuerung=False):
-    """Richtet alles ein; gibt die Liste der erledigten Schritte zurück."""
+            startskript=STARTSKRIPT, hooks=True, ausgabe=print, fernsteuerung=False, regeln_von=None, farbe=None):
+    """Richtet alles ein; gibt die Liste der erledigten Schritte zurück. regeln_von: ein neues Projekt startet mit einer
+    Kopie der Arbeitsregeln dieses Projekts (danach getrennt). Der Projektordner wird Einstellung des Projekts."""
     schritte = []
     if rechte not in RECHTE:
         raise kern.AmwFehler(f"Rechte: {' | '.join(RECHTE)}")
     if (denkstufe or "") not in DENKSTUFEN:
         raise kern.AmwFehler(f"Denkstufe: {' | '.join(DENKSTUFEN[1:])} oder leer")
     if ordner and not os.path.isdir(ordner):
-        raise kern.AmwFehler(f"Projektordner {ordner} gibt es nicht")
+        raise kern.AmwFehler(f"Projektordner {ordner} gibt es nicht – lege ihn zuerst an")
+    if ordner and einrichtung.ordner_projekt(ordner) not in (None, projekt):   # vor dem Anlegen: nichts halb einrichten
+        raise kern.AmwFehler(f"Ordner {ordner} gehört schon zum Projekt {einrichtung.ordner_projekt(ordner)} – "
+                             "ein Ordner gehört zu genau einem Projekt (anderes Projekt: eigener Ordner)")
     pfad = db.db_pfad()
     if not os.path.exists(pfad):
         db.anlegen(pfad).close()
@@ -54,12 +56,25 @@ def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe",
     con = db.verbinde(pfad)
     try:
         r = con.execute("SELECT id FROM projekt WHERE name = ?", (projekt,)).fetchone()
+        quelle = db.projekt_id(con, regeln_von) if regeln_von and not r else None    # LookupError vor dem Anlegen
+        if ordner and not (r and kern.projekt_ordner(con, r["id"])):
+            for x in con.execute("SELECT id, name FROM projekt").fetchall():
+                if os.path.normcase(kern.projekt_ordner(con, x["id"]) or "") == os.path.normcase(os.path.abspath(ordner)) \
+                        and x["name"] != projekt:
+                    raise kern.AmwFehler(f"Ordner {ordner} gehört schon zum Projekt {x['name']}")
         if r:
             pid = r["id"]
         else:
             with db.schreiben(con):
                 pid = db.einfuegen(con, "projekt", name=projekt, angelegt_utc=db.jetzt())
             schritte.append(f"Projekt „{projekt}“ angelegt")
+            if quelle:
+                n = wissen.regeln_uebernehmen(con, pid, quelle)
+                schritte.append(f"{n} Arbeitsregeln aus {regeln_von} übernommen (eigene Kopie)")
+            if farbe:
+                kern.projekt_einstellen(con, pid, kern.ENTWICKLER, farbe=farbe)
+        if ordner and not kern.projekt_ordner(con, pid):
+            schritte.append(f"Projektordner: {kern.projekt_ordner_setzen(con, pid, ordner)}")
         for kennung, rolle in [(lead, "lead")] + [(a, None) for a in agenten]:
             if not kennung:
                 continue
@@ -123,6 +138,17 @@ def interaktiv(eingabe=input, ausgabe=print):
     projekt = _frage("Name des Projekts", "Mein Projekt", eingabe)
     lead = _frage("Kennung des Lead-Agenten (Team-Lead; leer = keiner)", "TL", eingabe)
     agenten = [a.strip() for a in _frage("Kennungen der Agenten, mit Komma", "CC1,CC2", eingabe).split(",") if a.strip()]
+    regeln_von = None
+    if os.path.exists(db.db_pfad()):                 # weiteres Projekt: Arbeitsregeln eines anderen übernehmen?
+        con = db.verbinde()
+        try:
+            andere = [r[0] for r in con.execute("SELECT name FROM projekt WHERE name != ? ORDER BY id", (projekt,))]
+            neu = not con.execute("SELECT 1 FROM projekt WHERE name = ?", (projekt,)).fetchone()
+        finally:
+            con.close()
+        if andere and neu:
+            regeln_von = _auswahl(f"Arbeitsregeln übernehmen von ({' | '.join(andere)}; leer = ohne Regeln starten)",
+                                  andere + [""], "", eingabe, ausgabe) or None
     ordner = _frage("Projektordner, in dem die Agenten arbeiten (leer = später)", os.getcwd(), eingabe)
     while ordner and not os.path.isdir(ordner):
         ordner = _frage(f"{ordner} gibt es nicht – Projektordner (leer = später)", "", eingabe)
@@ -137,7 +163,7 @@ def interaktiv(eingabe=input, ausgabe=print):
     dienst = _ja("Wächter als geplante Windows-Aufgabe einrichten?", True, eingabe)
     ausgabe("")
     schnell(projekt, lead or None, agenten, ordner or None, rechte, denkstufe, dienst, hooks=hooks, ausgabe=ausgabe,
-            fernsteuerung=fern)
+            fernsteuerung=fern, regeln_von=regeln_von)
     port = einstellungen.wert("port")
     waechter = "läuft" if dienst else "starten mit `amw dienst einrichten --ja` (dauerhaft) oder `amw dienst vordergrund`"
     ausgabe(f"""

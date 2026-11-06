@@ -8,7 +8,9 @@ Ein Lead kann z. B. in einer Linux-VM arbeiten, die den AMW-Ordner per FUSE einh
   {"args": ["posten", "--an", "CC1", "--art", "auftrag", "--kurz", "…"]} oder
   {"befehl": "posten", "an": "CC1", "art": "auftrag", "kurz": "…"} (Schlüssel = CLI-Optionen; "aktion", "kennung",
   "schluessel", "id"/"ids", "wert" sind die Positionsangaben, bei spec/rueckblick auch "bogen" und "teil"). Mit mehreren
-  Projekten: "projekt": "<name>"; ohne Angabe das Projekt, in dem es die Kennung des Leads gibt. `--datei`,
+  Projekten hat jedes Projekt seine eigene Brücke (→ bruecken()): das erste eingang-tl/ und tl_lesen.db, jedes weitere
+  eingang-<projekt>/ und lesen-<projekt>.db, ausgeführt als sein Lead; die Lese-Kopie enthält nur dieses Projekt, ein
+  Befehl wirkt nur in ihm („projekt“ in der Befehlsdatei darf nur dieses nennen). `--datei`,
   `--text-datei`, `--prompt-datei` nur aus eingang-tl/ (sonst könnte ein Befehl beliebige Dateien dieses PCs in die
   Datenbank und online holen). `ki neu/aendern` (Endpunkt, Startbefehl) nur am PC. Der Wächter führt sie als `--von TL` aus und legt Ergebnis + Befehl in eingang-tl/erledigt/.
   Das neueste Ergebnis liegt immer unter dem Namen der Befehlsdatei (khp.ergebnis.json); ein früherer Beleg mit gleichem
@@ -41,8 +43,60 @@ ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", 
            "schirm", "liste", "suche", "zeige", "termin", "thema", "ki"}   # Freigaben: nur der Mensch (Schirm frei: der Lead auf das Wort des Entwicklers)
 
 
-def lese_kopie(quelle=None, ziel=None):
-    """Kopie ohne WAL; ersetzt die alte erst, wenn die neue fertig ist."""
+def bruecken(con):
+    """Je Projekt eine Brücke: pid, name, eingang (Befehle), kopie (Lese-Kopie), von (Absender). Das erste Projekt
+    behält eingang-tl/ und tl_lesen.db mit dem Absender der Einstellung (bruecke_absender); jedes weitere bekommt
+    eingang-<projekt>/ und lesen-<projekt>.db, Absender ist sein Lead – ohne Lead keine Brücke."""
+    daten = os.path.dirname(db.db_pfad())
+    aus = []
+    for i, p in enumerate(con.execute("SELECT id, name FROM projekt ORDER BY id").fetchall()):
+        if i == 0:
+            aus.append({"pid": p["id"], "name": p["name"], "eingang": EINGANG, "kopie": os.path.join(daten, "tl_lesen.db"),
+                        "von": VON})
+            continue
+        lead = con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead' ORDER BY id LIMIT 1",
+                           (p["id"],)).fetchone()
+        if lead:
+            k = db.kurzname(p["name"], p["id"])
+            aus.append({"pid": p["id"], "name": p["name"], "eingang": os.path.join(WURZEL, f"eingang-{k}"),
+                        "kopie": os.path.join(daten, f"lesen-{k}.db"), "von": lead[0]})
+    return aus
+
+
+def _nur_projekt(pfad, pid):
+    """In der Kopie alles anderer Projekte löschen: Zeilen mit fremdem projekt_id, dann Zeilen, die daran hingen
+    (sitzung → agent, empfang → nachricht …); eine leere Verweis-Spalte, die erlaubt ist, wird geleert statt gelöscht.
+    Was zu diesem PC gehört (KIs, Modelle, Schirm), bleibt."""
+    k = sqlite3.connect(pfad)
+    try:
+        k.execute("PRAGMA foreign_keys = OFF")
+        tabellen = [r[0] for r in k.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")]
+        with k:                                           # Schutz-Trigger (nichts löschen) gelten nicht für die Lese-Kopie
+            for (trigger,) in k.execute("SELECT name FROM sqlite_master WHERE type = 'trigger'").fetchall():
+                k.execute(f'DROP TRIGGER "{trigger}"')
+            k.execute("DELETE FROM projekt WHERE id != ?", (pid,))
+            for t in tabellen:
+                if t != "projekt" and "projekt_id" in {r[1] for r in k.execute(f'PRAGMA table_info("{t}")')}:
+                    k.execute(f'DELETE FROM "{t}" WHERE projekt_id IS NOT NULL AND projekt_id != ?', (pid,))
+            verweise = []
+            for t in tabellen:
+                pflicht = {r[1]: bool(r[3]) for r in k.execute(f'PRAGMA table_info("{t}")')}
+                for fk in k.execute(f'PRAGMA foreign_key_list("{t}")').fetchall():
+                    verweise.append((t, fk[3], fk[2], fk[4] or "id", pflicht.get(fk[3], False)))
+            while True:
+                weg = 0
+                for t, spalte, eltern, ziel, pflicht in verweise:
+                    wo = f'"{spalte}" IS NOT NULL AND "{spalte}" NOT IN (SELECT "{ziel}" FROM "{eltern}")'
+                    weg += k.execute(f'DELETE FROM "{t}" WHERE {wo}' if pflicht else f'UPDATE "{t}" SET "{spalte}" = NULL WHERE {wo}').rowcount
+                if not weg:
+                    break
+        k.execute("VACUUM")
+    finally:
+        k.close()
+
+
+def lese_kopie(quelle=None, ziel=None, pid=None):
+    """Kopie ohne WAL; ersetzt die alte erst, wenn die neue fertig ist. pid: nur dieses Projekt (mehrere Projekte)."""
     quelle = quelle or db.db_pfad()
     ziel = ziel or os.path.join(os.path.dirname(quelle), "tl_lesen.db")
     neu = ziel + ".neu"
@@ -54,6 +108,11 @@ def lese_kopie(quelle=None, ziel=None):
         stand = q.execute("SELECT max(id) FROM nachricht").fetchone()[0]
     finally:
         q.close()
+    if pid is not None:
+        _nur_projekt(neu, pid)
+        k = sqlite3.connect(neu)
+        stand = k.execute("SELECT max(id) FROM nachricht").fetchone()[0]
+        k.close()
     k = sqlite3.connect(neu)
     k.execute("PRAGMA journal_mode = DELETE")
     k.close()
@@ -70,8 +129,9 @@ def lese_kopie(quelle=None, ziel=None):
     return stand
 
 
-def argumente(befehl, eingang=EINGANG):
-    """Befehlsdatei → Argumente für cli.main; wirft ValueError bei Unerlaubtem."""
+def argumente(befehl, eingang=EINGANG, von=None, projekt=None):
+    """Befehlsdatei → Argumente für cli.main; wirft ValueError bei Unerlaubtem. projekt: die Brücke gehört zu diesem
+    Projekt – jeder Befehl wirkt nur dort."""
     if "args" in befehl:
         args = [str(x) for x in befehl["args"]]
     else:
@@ -106,6 +166,14 @@ def argumente(befehl, eingang=EINGANG):
         raise ValueError("lauf warte blockiert – über die Brücke: lauf zeige <nr>")
     if "--von" in args:
         raise ValueError("--von setzt die Brücke selbst")
+    if projekt:
+        genannt = [args[i + 1] for i, a in enumerate(args[:-1]) if a == "--projekt"] + \
+            [a.split("=", 1)[1] for a in args if a.startswith("--projekt=")]
+        if any(x != projekt for x in genannt):
+            raise ValueError(f"Diese Brücke gehört zum Projekt {projekt} – Befehle für ein anderes Projekt in dessen"
+                             " Ordner (eingang-<projekt>/)")
+        if not genannt:
+            args = args + ["--projekt", projekt]
     if args[0] == "schirm":                                # beim Schirm ist --quelle der Kanal, nicht der Inhalt
         if "--quelle" in args:
             raise ValueError("--quelle setzt beim Schirm die Brücke selbst")
@@ -130,14 +198,14 @@ def argumente(befehl, eingang=EINGANG):
             ns = None                                      # falsch aufgerufen – meldet der Befehl selbst
         if ns is not None and (args[1] == "ablegen" and ns.nr or args[1] == "version" and ns.pfad):
             raise ValueError("Dateien über die Brücke nur mit --datei aus eingang-tl/")
-    return args + ["--von", VON]
+    return args + ["--von", von or VON]
 
 
 def _im_eingang(eingang, rel, schalter):
     wurzel = os.path.realpath(eingang)
     pfad = os.path.realpath(os.path.join(wurzel, rel))
     if os.path.commonpath([wurzel, pfad]) != wurzel:
-        raise ValueError(f"{schalter} über die Brücke nur aus eingang-tl/ (z. B. \"plan/spec-3.md\")")
+        raise ValueError(f"{schalter} über die Brücke nur aus {os.path.basename(wurzel)}/ (z. B. \"plan/spec-3.md\")")
     return pfad
 
 
@@ -207,8 +275,8 @@ def _kurz(args):
     return " ".join(teile)[:80]
 
 
-def befehle(eingang=EINGANG):
-    """Alle fertigen Befehlsdateien abarbeiten; Rückgabe: Anzahl."""
+def befehle(eingang=EINGANG, projekt=None, von=None):
+    """Alle fertigen Befehlsdateien abarbeiten; Rückgabe: Anzahl. projekt/von: Brücke eines Projekts (→ bruecken())."""
     ordner, erledigt = os.path.join(eingang, "befehle"), os.path.join(eingang, "erledigt")
     os.makedirs(ordner, exist_ok=True)
     os.makedirs(erledigt, exist_ok=True)
@@ -224,11 +292,14 @@ def befehle(eingang=EINGANG):
             if not isinstance(befehl, dict):
                 raise ValueError("Befehlsdatei muss ein JSON-Objekt sein")
             taetigkeit = befehl.pop("taetigkeit", None)   # optional: was der TL gerade tut (zeigt die Workbench)
-            puls(taetigkeit=taetigkeit, projekt=befehl.get("projekt"))   # zuerst: die Sitzung lebt, bevor der Befehl sie braucht
+            if projekt and befehl.get("projekt") not in (None, projekt):
+                raise ValueError(f"Diese Brücke gehört zum Projekt {projekt} – Befehle für {befehl['projekt']} in dessen"
+                                 " Ordner (eingang-<projekt>/)")
+            puls(von, taetigkeit=taetigkeit, projekt=projekt or befehl.get("projekt"))   # zuerst: die Sitzung lebt
             if befehl.get("befehl") == "puls":           # nur Lebenszeichen (Stundentakt des TL)
                 args, rc, aus, fehler = ["puls"], 0, "Puls gesetzt\n", ""
             else:
-                args = argumente(befehl, eingang)
+                args = argumente({k: v for k, v in befehl.items() if not (projekt and k == "projekt")}, eingang, von, projekt)
                 rc, aus, fehler = ausfuehren(args)
         except (ValueError, OSError) as e:
             args, rc, aus, fehler = None, 2, "", str(e)
@@ -256,11 +327,13 @@ def schleife(stop=None):
     stand, letzte_kopie = None, 0.0
     while not (stop and stop.is_set()):
         try:
-            befehle()
+            alle = bruecken(con)                          # neue Projekte bekommen ihre Brücke ohne Neustart
+            for b in alle:
+                befehle(b["eingang"], b["name"], b["von"])
             v = con.execute("PRAGMA data_version").fetchone()[0]
-            if (v != stand or not os.path.exists(os.path.join(os.path.dirname(db.db_pfad()), "tl_lesen.db"))) \
-                    and time.time() - letzte_kopie >= KOPIE_S:
-                lese_kopie()
+            if (v != stand or not all(os.path.exists(b["kopie"]) for b in alle)) and time.time() - letzte_kopie >= KOPIE_S:
+                for b in alle:                            # mit einem Projekt wie bisher die ganze Datenbank
+                    lese_kopie(ziel=b["kopie"], pid=b["pid"] if len(alle) > 1 else None)
                 stand, letzte_kopie = v, time.time()
         except Exception as e:                            # nie den Wächter stören
             log.warning("Brücke: %s: %s", type(e).__name__, e)

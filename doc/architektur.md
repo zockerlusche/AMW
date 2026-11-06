@@ -74,6 +74,8 @@ Freigabe, wo SQLite-WAL scheitert): Lesekopie `daten/tl_lesen.db` ohne WAL (höc
 Schreiben über JSON-Befehlsdateien in `eingang-tl/befehle/`, die der Wächter als dieser Agent ausführt – auch die Planung
 (`leitbild`, `bogen`, `spec`, `aufgabe … --bogen`, `risiko`, `rueckblick`); `--datei` nur aus `eingang-tl/`, z. B.
 `{"befehl": "spec", "aktion": "schreiben", "bogen": 3, "teil": "anforderungen", "datei": "plan/anf-3.md"}`.
+Mit mehreren Projekten hat jedes seine Brücke (`eingang-<projekt>/`, `daten/lesen-<projekt>.db`, ausgeführt als sein Lead);
+die Lese-Kopie enthält dann nur dieses Projekt ([anleitung-projekte.md](anleitung-projekte.md)).
 
 ## 4 Datenmodell (Schema 9)
 | Bereich | Tabellen |

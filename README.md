@@ -37,6 +37,7 @@ Ausführlich: **[doc/installation.md](doc/installation.md)**.
 | [Betrieb](doc/betrieb.md) | Arbeiten mit der Workbench und den Agenten, Sicherung |
 | [Befehle](doc/befehle.md) | alle `amw`-Befehle |
 | [Planung](doc/anleitung-planung.md) | Projekte planen: Leitbild, Bögen, Spezifikation, Prognose |
+| [Mehrere Projekte](doc/anleitung-projekte.md) | neues Projekt anlegen, Trennung, weiterer Rechner |
 | [Push aufs Handy](doc/anleitung-push.md) | ntfy, Pushover, Telegram |
 | [Online](doc/online.md) | Workbench im Netz einrichten |
 | [Architektur](doc/architektur.md) | Bausteine, Datenfluss, Datenmodell |

@@ -9,7 +9,8 @@ zusammen und lässt eines auswählen.
 
 Status: **freigegeben (Variante A, Schema-Änderung erlaubt), Ausbau auf mehrere Rechner ergänzt.** Release 1 (Agenten,
 Brücke, Push je Projekt, Schema 18) umgesetzt in AMW 1.17.0, Release 2 (Auswahl in der Workbench am PC) in 1.18.0, Release 3 (online je Projekt,
-mehrere Rechner) in 1.19.0. Nachtrag „völlig getrennt“ (Abschnitt F, Schema 19) in 1.20.0.
+mehrere Rechner) in 1.19.0. Nachtrag „völlig getrennt“ (Abschnitt F, Schema 19) in 1.20.0; Projektordner je Projekt, Brücke je Projekt und
+„Neues Projekt“ in der Workbench in 1.20.2/1.22.0 ([anleitung-projekte.md](anleitung-projekte.md)).
 Mockup: [plan-projektwahl-mockup.html](plan-projektwahl-mockup.html).
 
 ## Ziel und Abnahme

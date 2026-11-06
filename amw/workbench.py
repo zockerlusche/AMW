@@ -387,7 +387,7 @@ def daten_einstellungen(con, pid, speicher=None):
     except (OSError, ValueError, KeyError):
         web = None
     return {"version": __version__,
-            "projekt": {"name": p["name"], "takt_min": pe.get("takt_min", TAKT_MIN),
+            "projekt": {"name": p["name"], "ordner": pe.get("ordner"), "takt_min": pe.get("takt_min", TAKT_MIN),
                         "speicher_grenze_gb": pe.get("speicher_grenze_gb", SPEICHER_GRENZE_GB),
                         "stillstand_min": pe.get("stillstand_min", ueberwachung.STILLSTAND_MIN),
                         "lauf_ohne_angabe_min": pe.get("lauf_ohne_angabe_min", ueberwachung.LAUF_OHNE_ANGABE_MIN),

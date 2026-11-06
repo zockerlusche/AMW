@@ -158,6 +158,28 @@ def projekt_wahl(con, pid, schluessel):
     return v if v in PROJEKT_WAHL[schluessel] else PROJEKT_WAHL[schluessel][0]
 
 
+def projekt_ordner(con, pid):
+    """Projektordner: das Repository, in dem die Agenten des Projekts arbeiten (None: nicht eingetragen)."""
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    return json.loads(r[0] or "{}").get("ordner") if r else None
+
+
+def projekt_ordner_setzen(con, pid, ordner):
+    """Nur am PC (Assistent, Workbench „Neues Projekt“, amw projekt ordner). Den Ordner legt der Mensch selbst an; ein
+    Ordner gehört zu genau einem Projekt."""
+    ordner = os.path.abspath(ordner)
+    if not os.path.isdir(ordner):
+        raise AmwFehler(f"Ordner {ordner} gibt es nicht – lege ihn zuerst an")
+    for r in con.execute("SELECT id, name FROM projekt WHERE id != ?", (pid,)).fetchall():
+        if os.path.normcase(projekt_ordner(con, r["id"]) or "") == os.path.normcase(ordner):
+            raise AmwFehler(f"Ordner {ordner} gehört schon zum Projekt {r['name']} – ein Ordner gehört zu genau einem Projekt")
+    with db.schreiben(con):
+        e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
+        e["ordner"] = ordner
+        con.execute("UPDATE projekt SET einstellungen = ? WHERE id = ?", (json.dumps(e, ensure_ascii=False), pid))
+    return ordner
+
+
 def projekt_einstellen(con, pid, von, **werte):
     """Zahnrad „Projekt“: takt_min (0 = aus, bis 1440), speicher_grenze_gb (1–512), stillstand_min und
     lauf_ohne_angabe_min (Warnungen, 5–1440), entwickler_name (wie der Mensch in Meldungen heißt). Nur Lead und Entwickler."""

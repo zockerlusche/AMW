@@ -105,6 +105,10 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         return aufgabe(con, pid, weg.rsplit("/", 1)[1], daten)
     if weg.startswith("/api/plan/"):                 # Planung – auch von unterwegs (Freigaben!)
         return planen(con, pid, weg.rsplit("/", 1)[1], daten)
+    if weg == "/api/projekt/neu":                    # nur am PC: richtet Ordner und Startskript auf diesem PC ein
+        if kanal != "seite":
+            raise Ungueltig("Ein neues Projekt legst du am PC an")
+        return projekt_neu(con, daten)
     if weg == "/api/push/probe":                     # nur am PC: verschickt wirklich
         if kanal != "seite":
             raise Ungueltig("Die Probe geht nur am PC")
@@ -263,6 +267,29 @@ def planen(con, pid, was, d):
     except kern.AmwFehler as x:
         raise Ungueltig(str(x)) from None
     raise LookupError("unbekannt")
+
+
+def projekt_neu(con, d):
+    """Workbench „Neues Projekt“ – wie `amw einrichten`: Projekt, Lead, Agenten mit Profil, Projektordner (Hooks,
+    AMW_PROJEKT), Startskript je Projekt; auf Wunsch eine Kopie der Arbeitsregeln eines anderen Projekts."""
+    import os
+    from . import assistent
+    name = " ".join(str(d.get("name") or "").split())
+    if not name or len(name) > 60:
+        raise Ungueltig("Name fehlt (bis 60 Zeichen)")
+    if con.execute("SELECT 1 FROM projekt WHERE name = ?", (name,)).fetchone():
+        raise Ungueltig(f"Projekt {name} gibt es schon")
+    ordner = str(d.get("ordner") or "").strip().strip('"')
+    if not ordner or not os.path.isdir(ordner):
+        raise Ungueltig("Projektordner fehlt oder gibt es nicht – lege ihn zuerst an (z. B. im Explorer) und trage den Pfad ein")
+    agenten = [x.strip() for x in str(d.get("agenten") or "").split(",") if x.strip()]
+    try:
+        schritte = assistent.schnell(name, str(d.get("lead") or "").strip() or None, agenten, os.path.abspath(ordner),
+                                     d.get("rechte") or "vorgabe", None, False, startskript=assistent.STARTSKRIPT, ausgabe=lambda *_: None,
+                                     regeln_von=d.get("regeln_von") or None, farbe=d.get("farbe") or None)
+    except (kern.AmwFehler, LookupError, ValueError, OSError) as e:
+        raise Ungueltig(str(e)) from None
+    return {"uid": con.execute("SELECT uid FROM projekt WHERE name = ?", (name,)).fetchone()[0], "schritte": schritte}
 
 
 NUR_AM_PC = ("pc", "turso", "push", "profil")   # Profil: Ordner/Startsatz landen in einem Befehl auf diesem PC

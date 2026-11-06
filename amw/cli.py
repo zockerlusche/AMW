@@ -77,14 +77,25 @@ def cmd_projekt(a, con):
         if not (a.name or "").strip():
             raise kern.AmwFehler("Name fehlt: amw projekt neu <name> [--regeln-von <Projekt>]")
         quelle = db.projekt_id(con, a.regeln_von) if a.regeln_von else None
+        if a.ordner and not os.path.isdir(a.ordner):
+            raise kern.AmwFehler(f"Ordner {a.ordner} gibt es nicht – lege ihn zuerst an")
         with db.schreiben(con):
             pid = db.einfuegen(con, "projekt", name=a.name, beschreibung=a.beschreibung, angelegt_utc=db.jetzt())
+        if a.ordner:
+            print(f"Projektordner: {kern.projekt_ordner_setzen(con, pid, a.ordner)}")
         n = wissen.regeln_uebernehmen(con, pid, quelle) if quelle else 0
         print(f"Projekt {a.name} angelegt" + (f" – {n} Arbeitsregeln aus {a.regeln_von} übernommen (eigene Kopie)" if quelle
                                                else " – ohne Regeln (eigene: amw beschluss neu …, dann amw regel …)"))
+    elif a.aktion == "ordner":
+        pid = db.projekt_id(con, a.name) if a.name else _projekt(con, a)
+        if a.ordner:
+            print(f"Projektordner: {kern.projekt_ordner_setzen(con, pid, a.ordner)}")
+        else:
+            print(kern.projekt_ordner(con, pid) or "kein Projektordner eingetragen – amw projekt ordner <name> --ordner <pfad>")
     else:
         for r in con.execute("SELECT id, name, beschreibung FROM projekt ORDER BY id"):
-            print(f"{r['id']} {r['name']}  {r['beschreibung'] or ''}")
+            print(f"{r['id']} {r['name']}  {r['beschreibung'] or ''}" + (f"  [{kern.projekt_ordner(con, r['id'])}]"
+                                                                           if kern.projekt_ordner(con, r['id']) else ""))
 
 
 def cmd_agent(a, con):
@@ -99,7 +110,11 @@ def cmd_agent(a, con):
         return
     if a.aktion == "neu":
         kern.agent_neu(con, pid, a.kennung, a.rolle, a.grenzen, a.startbefehl, not a.ohne_rund)
-        print(f"Agent {a.kennung} angelegt")
+        ordner = kern.projekt_ordner(con, pid)
+        if ordner and os.path.isdir(ordner):              # Profil-Ordner = Projektordner (änderbar: amw agent profil)
+            from . import steuerung
+            steuerung.profil_setzen(con, pid, _von(a), a.kennung, ordner=ordner)
+        print(f"Agent {a.kennung} angelegt" + (f" – arbeitet in {ordner}" if ordner and os.path.isdir(ordner) else ""))
         return
     if a.aktion in ("profil", "starten", "beenden", "startskript"):
         from . import steuerung
@@ -1653,12 +1668,14 @@ def parser():
     x.add_argument("--projekt", dest="projekt_init", help="gleich ein erstes Projekt anlegen")
     x.set_defaults(f=cmd_init, ohne_db=True)
 
-    x = s.add_parser("projekt", help="Projekte: neu <name> | liste – jedes Projekt ist für sich (eigene Agenten, Regeln, Daten)")
-    x.add_argument("aktion", choices=["neu", "liste"])
+    x = s.add_parser("projekt", help="Projekte: neu <name> | liste | ordner [<name>] – jedes Projekt ist für sich (eigene Agenten,"
+                                     " Regeln, Daten); bequemer: Workbench › Projekt-Auswahl › Neues Projekt")
+    x.add_argument("aktion", choices=["neu", "liste", "ordner"])
     x.add_argument("name", nargs="?")
     x.add_argument("--beschreibung")
     x.add_argument("--regeln-von", dest="regeln_von", metavar="PROJEKT",
                    help="neu: die Arbeitsregeln (KR) eines Projekts einmal kopieren – danach getrennt änderbar")
+    x.add_argument("--ordner", help="Projektordner (das Repository, in dem die Agenten arbeiten; vorher selbst anlegen)")
     x.set_defaults(f=cmd_projekt)
 
     x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript | umbenennen ALT NEU")

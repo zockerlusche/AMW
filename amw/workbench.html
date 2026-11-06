@@ -281,6 +281,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .dk-filter select, .dk-filter input { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; padding: 6px 8px; color: var(--tinte); font: inherit; font-size: 14px; min-width: 0; }
 .dk-filter input { flex: 1 1 220px; }
 .dk-filter select { max-width: 230px; }
+.np-schritte { margin: 0 0 10px; padding-left: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; }
 .dk-arten { display: flex; gap: 6px; flex-wrap: wrap; margin: -4px 0 12px; }
 .dk-arten .vl-chip { font-size: 12.5px; padding: 4px 11px; }
 .kopf .kopf-aktion { margin-left: auto; align-self: center; }
@@ -788,7 +789,7 @@ const TEXTE = {
     du: "Du", v_rueckfrage: "Rückfrage", v_nachtrag: "Antwort", v_antwort: "Antwort", wartet_auf_x: "wartet auf {x}",
     n_einst: "Einstellungen", n_einst_kurz: "Setup", speichern: "Speichern", gespeichert: "Gespeichert",
     e_projekt: "Projekt", e_projekt_name: "Aktives Projekt",
-    e_projekt_name_h: "Wechseln geht auch oben in der Navigation; es ändert nur die Ansicht. Weitere Projekte: amw projekt neu …", e_takt: "Takt für den Lead (Minuten)", e_takt_h: "Zusammenfassung an den Lead; 0 = aus",
+    e_projekt_name_h: "Wechseln geht auch oben in der Navigation; es ändert nur die Ansicht.", e_takt: "Takt für den Lead (Minuten)", e_takt_h: "Zusammenfassung an den Lead; 0 = aus",
     e_speicher: "Speicher-Grenze für Rechen-Läufe (GB frei)", e_speicher_h: "Läufe starten erst, wenn so viel RAM frei ist",
     e_agenten: "Agenten", e_agenten_h: "Soll „aus“: wird nicht erwartet und bekommt keine Rundschreiben; „ruht“: pausiert.",
     e_kennung: "Kennung", e_rolle: "Rolle", e_soll: "Soll", e_grenzen: "Grenzen", e_rund: "Rundschreiben", e_puls: "Puls-Grenze (min)",
@@ -988,7 +989,16 @@ const TEXTE = {
     k_freigabe: "Freigabe", k_auftraggeber: "Von", k_auftrag: "Auftrag",
     protokoll: "Protokoll des Dienstes", leer: "(leer)",
     pw_projekt: "Projekt", pw_waehlen: "Projekt wählen", pw_fragen: "{n} offene Fragen an dich", pw_agenten: "{n} Agenten", pw_agent1: "1 Agent", pw_halt: "angehalten",
-    pw_neu: "weitere: amw projekt neu <name>", pw_jetzt: "Jetzt im Projekt „{x}“", pw_unbekannt: "Das Projekt aus dem Link gibt es hier nicht – gezeigt wird „{x}“.",
+    pw_neu: "Neues Projekt", pw_neu_pc: "Neue Projekte legst du am PC an.",
+    np_titel: "Neues Projekt", np_h: "Ein Projekt ist für sich: eigene Agenten, Regeln, Aufgaben und Dokumente. Den Projektordner legst du vorher selbst an (z. B. im Explorer) – darin arbeiten die Agenten. Die AMW richtet ihn ein (Hooks, Projekt-Kennung), legt Lead und Agenten mit Profil an und schreibt ein eigenes Startskript.",
+    np_name: "Name", np_ordner: "Projektordner", np_ordner_ph: "z. B. F:\\webshop – muss es schon geben", np_lead: "Lead (Kennung)",
+    np_lead_h: "leer, wenn du selbst leitest", np_agenten: "Agenten", np_agenten_h: "Kennungen mit Komma, z. B. CC1,CC2 – dürfen wie in anderen Projekten heißen",
+    np_rechte: "Rechte der Agenten", np_rechte_vorgabe: "vorgabe – Claude Code fragt bei heiklen Aktionen", np_rechte_auto: "auto",
+    np_rechte_umgehen: "umgehen – alles erlauben", np_regeln: "Arbeitsregeln", np_regeln_keine: "ohne – eigene Regeln später",
+    np_regeln_von: "Kopie von {x} (danach getrennt)", np_anlegen: "Anlegen", np_fertig: "Projekt „{x}“ ist angelegt",
+    np_weiter: "Zum Projekt", np_danach: "Danach: im neuen Projekt Start › Kachel eines Agenten › Starten. Leitbild und Bögen unter Planung.",
+    e_ordner: "Projektordner", e_ordner_h: "Darin arbeiten die Agenten; ein Ordner gehört zu genau einem Projekt. Ändern: amw projekt ordner",
+    e_ordner_leer: "nicht eingetragen", pw_jetzt: "Jetzt im Projekt „{x}“", pw_unbekannt: "Das Projekt aus dem Link gibt es hier nicht – gezeigt wird „{x}“.",
     pw_nur_ansicht: "Umschalten ändert nur die Ansicht – alle Projekte arbeiten weiter.", pw_weg: "seit über 7 Tagen nicht gemeldet",
     pw_fern_ohne_link: "Dieses Projekt läuft auf einem anderen Rechner. Öffnen geht über die Online-Seite – trage ihre Adresse unter Einstellungen › Push › Link ein.",
     pc_marke: "dieser PC", pc_marke_h: "gehört zu diesem Rechner, egal welches Projekt gewählt ist", pc_kurz: "PC",
@@ -1045,7 +1055,7 @@ const TEXTE = {
     du: "You", v_rueckfrage: "Follow-up question", v_nachtrag: "Reply", v_antwort: "Answer", wartet_auf_x: "waiting for {x}",
     n_einst: "Settings", n_einst_kurz: "Setup", speichern: "Save", gespeichert: "Saved",
     e_projekt: "Project", e_projekt_name: "Active project",
-    e_projekt_name_h: "You can also switch at the top of the navigation; it only changes the view. More projects: amw projekt neu …", e_takt: "Lead pulse (minutes)", e_takt_h: "Summary to the lead; 0 = off",
+    e_projekt_name_h: "You can also switch at the top of the navigation; it only changes the view.", e_takt: "Lead pulse (minutes)", e_takt_h: "Summary to the lead; 0 = off",
     e_speicher: "Memory limit for compute runs (GB free)", e_speicher_h: "Runs start only with this much free RAM",
     e_agenten: "Agents", e_agenten_h: "Target “off”: not expected, no broadcasts; “resting”: paused.",
     e_kennung: "ID", e_rolle: "Role", e_soll: "Target", e_grenzen: "Limits", e_rund: "Broadcasts", e_puls: "Pulse limit (min)",
@@ -1241,7 +1251,16 @@ const TEXTE = {
     k_freigabe: "Approval", k_auftraggeber: "By", k_auftrag: "Job",
     protokoll: "Service log", leer: "(empty)",
     pw_projekt: "Project", pw_waehlen: "Choose project", pw_fragen: "{n} open questions for you", pw_agenten: "{n} agents", pw_agent1: "1 agent", pw_halt: "halted",
-    pw_neu: "more: amw projekt neu <name>", pw_jetzt: "Now in project “{x}”", pw_unbekannt: "The project from the link does not exist here – showing “{x}”.",
+    pw_neu: "New project", pw_neu_pc: "New projects are created at the PC.",
+    np_titel: "New project", np_h: "A project stands on its own: its own agents, rules, tasks and documents. Create the project folder yourself first (e.g. in Explorer) – the agents work in it. AMW sets it up (hooks, project id), creates lead and agents with a profile and writes a start script of its own.",
+    np_name: "Name", np_ordner: "Project folder", np_ordner_ph: "e.g. F:\\webshop – must already exist", np_lead: "Lead (id)",
+    np_lead_h: "empty if you lead yourself", np_agenten: "Agents", np_agenten_h: "ids separated by commas, e.g. CC1,CC2 – may have the same names as in other projects",
+    np_rechte: "Agent permissions", np_rechte_vorgabe: "vorgabe – Claude Code asks before risky actions", np_rechte_auto: "auto",
+    np_rechte_umgehen: "umgehen – allow everything", np_regeln: "Working rules", np_regeln_keine: "none – own rules later",
+    np_regeln_von: "copy of {x} (separate afterwards)", np_anlegen: "Create", np_fertig: "Project “{x}” has been created",
+    np_weiter: "Go to project", np_danach: "Next: in the new project, Home › an agent's tile › Start. Mission and arcs under Planning.",
+    e_ordner: "Project folder", e_ordner_h: "The agents work in it; a folder belongs to exactly one project. Change: amw projekt ordner",
+    e_ordner_leer: "not set", pw_jetzt: "Now in project “{x}”", pw_unbekannt: "The project from the link does not exist here – showing “{x}”.",
     pw_nur_ansicht: "Switching only changes the view – all projects keep working.", pw_weg: "not reported for over 7 days",
     pw_fern_ohne_link: "This project runs on another computer. It opens via the online page – enter its address under Settings › Push › Link.",
     pc_marke: "this PC", pc_marke_h: "belongs to this computer, whichever project is selected", pc_kurz: "PC",
@@ -1379,10 +1398,39 @@ function projektListe(anker) {
       "aria-label": t("pw_waehlen") },
     el("h3", {}, t("pw_waehlen")), ...projekte.map(eintrag),
     el("div", { class: "pw-fuss" }, el("span", { class: "sehrleise", style: "font-size:12px" }, t("pw_nur_ansicht")),
-      el("span", { class: "mono sehrleise" }, t("pw_neu"))));
+      API ? el("span", { class: "sehrleise", style: "font-size:12px" }, t("pw_neu_pc"))
+        : el("button", { class: "klein-knopf", type: "button", onclick: () => { hg.remove(); projektNeuDialog(); } }, "+ " + t("pw_neu"))));
   const hg = el("div", { class: "dialog-hg pw-hg", onclick: e => { if (e.target === hg) hg.remove(); } }, liste);
   document.body.append(hg);
   (liste.querySelector(".pw-eintrag.an") || liste.querySelector(".pw-eintrag"))?.focus();
+}
+/* Neues Projekt (nur am PC): wie `amw einrichten` – Projekt, Lead, Agenten, Projektordner, Startskript, Regel-Kopie */
+function projektNeuDialog() {
+  const feld = (b, x, h) => el("div", { class: "feld" }, el("label", {}, b), el("div", {}, x, h ? el("div", { class: "sehrleise", style: "font-size:12px;margin-top:2px" }, h) : null));
+  const name = el("input", { maxlength: 60, autocomplete: "off" }), ordner = el("input", { placeholder: t("np_ordner_ph"), autocomplete: "off" });
+  const lead = el("input", { value: "TL", maxlength: 30 }), agenten = el("input", { value: "CC1,CC2" });
+  const rechte = el("select", {}, ["vorgabe", "auto", "umgehen"].map(r => el("option", { value: r }, t("np_rechte_" + r))));
+  const regeln = el("select", {}, el("option", { value: "" }, t("np_regeln_keine")),
+    projekte.filter(p => !p.fern).map(p => el("option", { value: p.name }, t("np_regeln_von", { x: p.name }))));
+  const frb = el("select", {}, Object.keys(FARBEN).map(f => el("option", { value: f }, t("farbe_" + f))));
+  frb.value = Object.keys(FARBEN).find(f => !projekte.some(p => p.farbe === f)) || "bernstein";   /* eine noch freie Farbe */
+  const knopf = el("button", { class: "knopf haupt", type: "button", onclick: async () => {
+    if (!name.value.trim()) { name.focus(); return; }
+    if (!ordner.value.trim()) { ordner.focus(); return; }
+    knopf.disabled = true;
+    try {
+      const r = await schicken("/api/projekt/neu", { name: name.value.trim(), ordner: ordner.value.trim(), lead: lead.value.trim(),
+        agenten: agenten.value, rechte: rechte.value, regeln_von: regeln.value, farbe: frb.value });
+      kasten.replaceChildren(el("h3", {}, t("np_fertig", { x: name.value.trim() })),
+        el("ul", { class: "np-schritte" }, r.schritte.map(s => el("li", {}, "✓ " + s))), el("p", { class: "leise" }, t("np_danach")),
+        el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => projektWechseln(r.uid) }, t("np_weiter"))));
+    } catch (e) { toast(t("fehler", { x: e.message }), true); knopf.disabled = false; } } }, t("np_anlegen"));
+  const kasten = el("div", { class: "einst" }, el("p", { class: "leise", style: "margin:0" }, t("np_h")),
+    feld(t("np_name"), name), feld(t("np_ordner"), ordner), feld(t("np_lead"), lead, t("np_lead_h")),
+    feld(t("np_agenten"), agenten, t("np_agenten_h")), feld(t("np_rechte"), rechte), feld(t("np_regeln"), regeln), feld(t("e_farbe"), frb),
+    el("div", { class: "aktionen" }, knopf, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
+  const hg = dialog(t("np_titel"), kasten);
+  name.focus();
 }
 function projektWechseln(uid) {
   try { localStorage.setItem("amw-projekt", uid); sessionStorage.setItem("amw-gewechselt", uid); } catch (e) {}
@@ -3395,8 +3443,12 @@ async function sichtEinstellungen() {
     (projekte.length ? projekte : [{ uid: "", name: d.projekt.name }]).map(p => el("option", { value: p.uid, ...(p.uid === projekt ? { selected: true } : {}) }, p.name)));
   pf.farbe = el("select", {}, Object.keys(FARBEN).map(f => el("option", { value: f }, t("farbe_" + f))));
   pf.farbe.value = d.projekt.farbe || "bernstein";
+  const pwahl = el("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap" }, pname,
+    API ? null : el("button", { class: "klein-knopf", type: "button", onclick: projektNeuDialog }, "+ " + t("pw_neu")));
+  const pordner = el("div", { class: d.projekt.ordner ? "mono" : "sehrleise", style: "padding-top:7px;font-size:13px;overflow-wrap:anywhere" },
+    d.projekt.ordner || t("e_ordner_leer"));
   box.append(block(t("e_projekt"), null,
-    [[t("e_projekt_name"), pname, t("e_projekt_name_h")], [t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")],
+    [[t("e_projekt_name"), pwahl, t("e_projekt_name_h")], [t("e_ordner"), pordner, t("e_ordner_h")], [t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")],
      [t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")], [t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")],
      [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")], [t("e_dateien"), pf.dateien_online, t("e_dateien_h")],
      [t("e_farbe"), pf.farbe, t("e_farbe_h")]],

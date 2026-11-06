@@ -122,6 +122,28 @@ class Seite(Grund):
         self.warten("document.querySelector('.agent-dialog')")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.dialog-hg button')].filter(b => /[×✕]/.test(b.textContent)).length"), 1)
 
+    def test_neues_projekt_aus_der_projekt_auswahl(self):
+        from unittest import mock
+        from amw import assistent
+        repo = os.path.join(self.ordner.name, "laden")
+        os.makedirs(repo)
+        self.oeffnen("start", "document.querySelector('#projektwahl .pw')")
+        self.tab.js("document.querySelector('#projektwahl .pw').click()")
+        self.warten("[...document.querySelectorAll('.pw-liste button')].some(b => b.textContent.includes('Neues Projekt'))")
+        self.tab.js("[...document.querySelectorAll('.pw-liste button')].find(b => b.textContent.includes('Neues Projekt')).click()")
+        self.warten("document.querySelector('.dialog-hg .einst input')")
+        felder = json.dumps(["Laden", repo, "TL", "CC1"])
+        self.tab.js(f"{{ const w = {felder}; const i = document.querySelectorAll('.dialog-hg .einst input');"
+                    " w.forEach((x, n) => { i[n].value = x; }); }")
+        with mock.patch.object(assistent, "STARTSKRIPT", os.path.join(self.ordner.name, "agenten-start.ps1")):
+            self.tab.js("document.querySelector('.dialog-hg .knopf.haupt').click()")
+            self.warten("document.querySelector('.np-schritte')")
+        self.assertTrue(self.tab.js("[...document.querySelectorAll('.np-schritte li')].some(l => l.textContent.includes('Projekt „Laden“ angelegt'))"))
+        pid = db.projekt_id(self.con, "Laden")
+        self.assertEqual(sorted(r[0] for r in self.con.execute("SELECT kennung FROM agent WHERE projekt_id = ?", (pid,))), ["CC1", "TL"])
+        self.tab.js("document.querySelector('.dialog-hg .knopf.haupt').click()")            # „Zum Projekt“
+        self.warten("document.querySelector('.pw-name')?.textContent === 'Laden'")
+
     def test_sprungleiste_der_einstellungen_ohne_doppelte_marke(self):
         self.oeffnen("einstellungen", "document.querySelector('.sprung a')")
         texte = self.tab.js("[...document.querySelectorAll('.sprung a')].map(a => a.textContent)")

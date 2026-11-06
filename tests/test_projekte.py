@@ -125,6 +125,43 @@ class Bruecke(ZweiProjekte):
                              " WHERE s.schluessel_datei IS NULL AND s.zustand = 'aktiv'").fetchall()
         self.assertEqual([r[0] for r in s], [self.b])                                   # Puls nur im genannten Projekt
 
+    def test_jedes_projekt_hat_seine_bruecke(self):
+        alle = bruecke.bruecken(self.con)
+        self.assertEqual([(b["name"], os.path.basename(b["eingang"]), os.path.basename(b["kopie"]), b["von"]) for b in alle],
+                         [("Webshop", "eingang-tl", "tl_lesen.db", "TL"), ("Spiel", "eingang-spiel", "lesen-spiel.db", "TL")])
+        spiel = os.path.join(self.ordner.name, "eingang-spiel")
+        self.eingang = spiel
+        self.einwerfen("ohne.json", {"befehl": "posten", "an": "Spiel1", "art": "info", "kurz": "ohne Projekt"})
+        self.einwerfen("fremd.json", {"befehl": "posten", "an": "Shop1", "art": "info", "kurz": "x", "projekt": "Webshop"})
+        self.einwerfen("args.json", {"args": ["posten", "--an", "Shop1", "--art", "info", "--kurz", "y", "--projekt", "Webshop"]})
+        bruecke.befehle(spiel, "Spiel", "TL")
+        self.assertEqual(self.ergebnis("ohne")["rc"], 0, self.ergebnis("ohne"))      # TL in beiden: die Brücke weiß es
+        self.assertEqual(self.posteingang(self.b), ["ohne Projekt"])
+        for stamm in ("fremd", "args"):
+            self.assertIn("gehört zum Projekt Spiel", self.ergebnis(stamm)["fehler"])
+        self.assertEqual(self.posteingang(self.a), [])
+
+    def test_lese_kopie_nur_mit_dem_eigenen_projekt(self):
+        kern.posten(self.con, self.a, "TL", "Shop1", "info", "Geheimnis des Shops")
+        kern.posten(self.con, self.b, "TL", "Spiel1", "info", "vom Spiel")
+        aid = self.con.execute("SELECT id FROM agent WHERE projekt_id = ? AND kennung = 'Shop1'", (self.a,)).fetchone()[0]
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "sitzung", agent_id=aid, gestartet_utc=db.jetzt())
+        ziel = os.path.join(self.ordner.name, "lesen-spiel.db")
+        bruecke.lese_kopie(ziel=ziel, pid=self.b)
+        import sqlite3
+        k = sqlite3.connect(f"file:{ziel}?immutable=1", uri=True)
+        try:
+            self.assertEqual(k.execute("SELECT name FROM projekt").fetchall(), [("Spiel",)])
+            self.assertEqual(sorted(r[0] for r in k.execute("SELECT kennung FROM agent")), ["Spiel1", "TL"])
+            self.assertEqual([r[0] for r in k.execute("SELECT kurz FROM nachricht")], ["vom Spiel"])
+            self.assertEqual(k.execute("SELECT count(*) FROM sitzung").fetchone()[0], 0)      # hing am Agenten des Shops
+            self.assertEqual(k.execute("SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
+                                       " WHERE n.kurz LIKE '%Shop%'").fetchone()[0], 0)
+            self.assertEqual(k.execute("PRAGMA foreign_key_check").fetchall(), [])
+        finally:
+            k.close()
+
 
 class PushJeProjekt(ZweiProjekte):
     def setUp(self):
@@ -271,6 +308,53 @@ class OrdnerGehoertZumProjekt(ZweiProjekte):
         self.assertEqual(assistent.startskript_fuer(self.con, self.a, pfad), pfad)            # erstes Projekt: wie bisher
         self.assertEqual(assistent.startskript_fuer(self.con, self.b, pfad),
                          os.path.join(self.ordner.name, "agenten-start-spiel.ps1"))           # überschreibt es nie
+
+
+class NeuesProjekt(ZweiProjekte):
+    """Workbench „Neues Projekt“ (nur am PC): wie der Assistent, mit Projektordner, Startskript je Projekt und Regel-Kopie."""
+    def setUp(self):
+        super().setUp()
+        from amw import assistent
+        p = mock.patch.object(assistent, "STARTSKRIPT", os.path.join(self.ordner.name, "agenten-start.ps1"))
+        p.start()
+        self.addCleanup(p.stop)
+        self.repo = os.path.join(self.ordner.name, "laden")
+        os.makedirs(self.repo)
+
+    def neu(self, kanal="seite", **d):
+        from amw import aktionen
+        return aktionen.ausfuehren(self.con, self.a, "/api/projekt/neu", {"name": "Laden", "ordner": self.repo, "lead": "TL",
+                                                                          "agenten": "CC1, CC2", **d}, kanal)
+
+    def test_neues_projekt_wie_der_assistent(self):
+        from amw import aktionen, wissen
+        b = wissen.beschluss_neu(self.con, self.a, "TL", "Belege", "Belege aufheben", "Entwickler")
+        wissen.regel_setzen(self.con, self.a, "TL", "arbeit", 2, "Belege aufheben", b)
+        with self.assertRaises(aktionen.Ungueltig):
+            self.neu(kanal="netz")                                                   # nie vom Handy
+        with self.assertRaisesRegex(aktionen.Ungueltig, "gibt es nicht"):
+            self.neu(ordner=os.path.join(self.ordner.name, "fehlt"))
+        self.assertIsNone(self.con.execute("SELECT 1 FROM projekt WHERE name = 'Laden'").fetchone())   # nichts halb angelegt
+        r = self.neu(regeln_von="Webshop", farbe="blau")
+        pid = db.projekt_id(self.con, "Laden")
+        self.assertEqual(r["uid"], self.con.execute("SELECT uid FROM projekt WHERE id = ?", (pid,)).fetchone()[0])
+        self.assertEqual(kern.projekt_ordner(self.con, pid), os.path.abspath(self.repo))
+        self.assertEqual([tuple(x) for x in self.con.execute("SELECT kennung, rolle, ordner FROM agent WHERE projekt_id = ? ORDER BY id",
+                                                             (pid,))],
+                         [("TL", "lead", os.path.abspath(self.repo)), ("CC1", None, os.path.abspath(self.repo)),
+                          ("CC2", None, os.path.abspath(self.repo))])
+        self.assertEqual(self.con.execute("SELECT text FROM regel WHERE projekt_id = ?", (pid,)).fetchone()[0], "Belege aufheben")
+        self.assertEqual(kern.projekt_wahl(self.con, pid, "farbe"), "blau")
+        with open(os.path.join(self.repo, ".claude", "settings.local.json"), encoding="utf-8") as f:
+            self.assertEqual(json.load(f)["env"], {"AMW_PROJEKT": "Laden"})
+        self.assertTrue(os.path.exists(os.path.join(self.ordner.name, "agenten-start-laden.ps1")))
+        self.assertFalse(os.path.exists(os.path.join(self.ordner.name, "agenten-start.ps1")))   # das des ersten bleibt unberührt
+        self.assertTrue(any("Arbeitsregeln aus Webshop" in x for x in r["schritte"]))
+        with self.assertRaisesRegex(aktionen.Ungueltig, "gehört schon zum Projekt Laden"):
+            self.neu(name="Zweiter Laden")                                           # ein Ordner, ein Projekt
+        self.assertIsNone(self.con.execute("SELECT 1 FROM projekt WHERE name = 'Zweiter Laden'").fetchone())
+        rc, aus = self.cli("agent", "neu", "CC3", "--von", kern.ENTWICKLER, "--projekt", "Laden")
+        self.assertIn(f"arbeitet in {os.path.abspath(self.repo)}", aus)             # neuer Agent: Projektordner als Profil
 
 
 class Schema19(unittest.TestCase):

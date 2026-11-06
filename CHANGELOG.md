@@ -4,6 +4,19 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.22.0 – 06.11.2026 · Neues Projekt aus der Workbench, Brücke je Projekt
+Abschluss der Prüfung „mehrere Projekte durchgängig?“ – Anleitung: [doc/anleitung-projekte.md](doc/anleitung-projekte.md).
+- **Neues Projekt in der Workbench** (nur am PC): Projekt-Auswahl bzw. Einstellungen › „+ Neues Projekt“. Fragt Name,
+  Projektordner, Lead, Agenten, Rechte, Arbeitsregeln (ohne oder Kopie eines anderen Projekts) und Farbe; richtet alles
+  ein wie `amw einrichten` und wechselt auf Wunsch ins neue Projekt. Vom Handy aus nicht möglich.
+- **Projektordner gehört zum Projekt:** steht in den Einstellungen des Projekts (`amw projekt ordner`,
+  `amw projekt neu … --ordner`); neue Agenten bekommen ihn als Profil-Ordner. Ein Ordner gehört zu genau einem Projekt –
+  geprüft, bevor etwas angelegt wird.
+- **Assistent:** fragt bei einem weiteren Projekt, ob es die Arbeitsregeln eines anderen übernehmen soll.
+- **Datei-Brücke je Projekt:** jedes weitere Projekt hat `eingang-<projekt>/` und `daten/lesen-<projekt>.db`, ausgeführt
+  als sein Lead. Mit mehreren Projekten enthält jede Lese-Kopie nur ihr Projekt (bisher die ganze Datenbank), und ein
+  Befehl wirkt nur im Projekt seiner Brücke. Mit einem Projekt ändert sich nichts.
+
 ## 1.21.0 – 06.11.2026 · Bedienbarkeits-Durchgang, Dokumente nach Art
 Jede Seite und jeder Dialog am PC (1440 px) und am Handy (390 px) aufgerufen und auf einen gemeinsamen Standard geprüft.
 - **Dokumente nach Art:** Die Arten stehen als Chips mit Anzahl über der Liste (wie die Arten im Verlauf), ein Klick

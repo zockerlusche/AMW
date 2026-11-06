@@ -6,7 +6,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | Befehl | Zweck |
 |---|---|
 | [`init`](#init) | neue Datenbank anlegen |
-| [`projekt`](#projekt) | Projekte: neu <name> ¦ liste – jedes Projekt ist für sich (eigene Agenten, Regeln, Daten) |
+| [`projekt`](#projekt) | Projekte: neu <name> ¦ liste ¦ ordner [<name>] – jedes Projekt ist für sich (eigene Agenten, Regeln, Daten); bequemer: Workbench › Projekt-Auswahl › Neues Projekt |
 | [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript ¦ umbenennen ALT NEU |
 | [`posten`](#posten) | Nachricht schicken: --an CC2 (oder alle, Entwickler) --art auftrag¦frage¦info¦… --kurz … |
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
@@ -68,11 +68,11 @@ options:
 ## projekt
 ```
 usage: amw projekt [-h] [--beschreibung BESCHREIBUNG] [--regeln-von PROJEKT]
-                   [--von VON] [--projekt PROJEKT]
-                   {neu,liste} [name]
+                   [--ordner ORDNER] [--von VON] [--projekt PROJEKT]
+                   {neu,liste,ordner} [name]
 
 positional arguments:
-  {neu,liste}
+  {neu,liste,ordner}
   name
 
 options:
@@ -80,6 +80,8 @@ options:
   --beschreibung BESCHREIBUNG
   --regeln-von PROJEKT  neu: die Arbeitsregeln (KR) eines Projekts einmal
                         kopieren – danach getrennt änderbar
+  --ordner ORDNER       Projektordner (das Repository, in dem die Agenten
+                        arbeiten; vorher selbst anlegen)
   --von VON
   --projekt PROJEKT
 ```

@@ -5,6 +5,7 @@ Zeitstempel, Herkunft. Wird die Datenbank später gewechselt (Stufe 2/3), änder
 Nur Python-Standardbibliothek.
 """
 import os
+import re
 import socket
 import sqlite3
 import sys
@@ -174,6 +175,11 @@ def einfuegen(con, tabelle, **werte):
     spalten = ", ".join(werte)
     platz = ", ".join("?" for _ in werte)
     return con.execute(f"INSERT INTO {tabelle} ({spalten}) VALUES ({platz})", tuple(werte.values())).lastrowid
+
+
+def kurzname(name, ersatz=""):
+    """Projektname als Teil eines Datei- oder Ordnernamens: „Mein Shop“ → mein-shop (Startskript, Brücke)."""
+    return re.sub(r"[^\w-]+", "-", name).strip("-").lower() or str(ersatz)
 
 
 def projekt_id(con, name):

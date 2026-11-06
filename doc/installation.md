@@ -106,6 +106,9 @@ alle Projekte in der Auswahl oben in der Navigation; Umschalten ändert nur die 
    Rechner steht das neue Projekt mit „↗“ in der Auswahl und öffnet die Online-Seite. Dafür muss unter Zahnrad › Push
    der Link der Online-Seite eingetragen sein.
 
+**Weiteres Projekt auf diesem Rechner:** Workbench › Projekt-Auswahl › **+ Neues Projekt** – Schritt für Schritt in
+[anleitung-projekte.md](anleitung-projekte.md).
+
 Mehrere Projekte auf **demselben** Rechner liegen in derselben Datenbank, völlig getrennt nach Projekt: eigene
 Agenten, Regeln, Aufgaben, Dokumente und KI-Vorlagen; kein Agent kommt in ein anderes Projekt. Gemeinsam sind nur
 Grafikkarte und Schirm über eine gemeinsame Lauf-Schlange. Anlegen mit `amw projekt neu <name>`; mit

@@ -226,6 +226,15 @@ def agenten_ordner_entfernen(ordner, schreiben=True):
     return aenderungen
 
 
+def ordner_projekt(ordner):
+    """Projekt, dem der Ordner schon gehört (AMW_PROJEKT in .claude/settings.local.json), sonst None."""
+    try:
+        with open(os.path.join(ordner, ".claude", "settings.local.json"), encoding="utf-8") as f:
+            return (json.load(f).get("env") or {}).get("AMW_PROJEKT")
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
 def agenten_ordner_einrichten(ordner, schreiben=True, sperren=True, projekt=None):
     """Führt hook_einstellungen() in <ordner>/.claude/settings.local.json zusammen – vorhandene Einträge bleiben,
     AMW-Einträge werden nur ergänzt, nie doppelt. Eine fremde Statusline wird nicht ersetzt, sondern als

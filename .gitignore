@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 web/inc/amw-konfig.php
 eingang-tl/
+eingang-*/
 
 # lokale Claude-Code-Einstellungen (Start-Hook für CCamw), nicht öffentlich
 .claude/settings.local.json
