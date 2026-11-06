@@ -144,6 +144,21 @@ class Seite(Grund):
         self.tab.js("document.querySelector('.dialog-hg .knopf.haupt').click()")            # „Zum Projekt“
         self.warten("document.querySelector('.pw-name')?.textContent === 'Laden'")
 
+    def test_handy_unten_fuenf_eintraege_und_mehr(self):
+        self.tab.senden("Emulation.setDeviceMetricsOverride", width=390, height=844, deviceScaleFactor=1, mobile=True)
+        self.oeffnen("arbeit", "document.querySelector('#mehr') && document.querySelector('.reiter')")
+        sichtbar = "[...document.querySelectorAll('nav a')].filter(a => a.offsetParent !== null).map(a => a.dataset.sicht || a.id)"
+        self.assertEqual(self.tab.js(sichtbar), ["start", "fragen", "planung", "arbeit", "mehr"])
+        breite = self.tab.js("Math.min(...[...document.querySelectorAll('nav a')].filter(a => a.offsetParent !== null).map(a => a.getBoundingClientRect().width))")
+        self.assertGreaterEqual(breite, 48)                                          # Daumen-Ziel
+        r = self.tab.js("(() => { const x = document.querySelector('.reiter .rechts select, .reiter .rechts input').getBoundingClientRect();"
+                        " return [x.left, x.right, innerWidth]; })()")
+        self.assertTrue(r[0] >= 0 and r[1] <= r[2], r)                               # Filter der Aufgaben sichtbar, nicht weggescrollt
+        self.tab.js("document.getElementById('mehr').click()")
+        self.warten("document.querySelectorAll('.mehr-liste button').length === 6")
+        self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Verlauf')).click()")
+        self.warten("zustand.sicht === 'verlauf' && document.getElementById('mehr').classList.contains('an')")
+
     def test_sprungleiste_der_einstellungen_ohne_doppelte_marke(self):
         self.oeffnen("einstellungen", "document.querySelector('.sprung a')")
         texte = self.tab.js("[...document.querySelectorAll('.sprung a')].map(a => a.textContent)")

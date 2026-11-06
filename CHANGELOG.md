@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.23.0 – 06.11.2026 · Handy: alles erreichbar, Daumen-Ziele
+Vorschläge aus dem Bedienbarkeits-Durchgang (1.21.0) für das Handy.
+- **Untere Leiste mit „Mehr“:** am Handy Start, Fragen, Plan, Arbeit und „Mehr“ – jedes Ziel mindestens 48 px breit statt
+  neun schmaler. „Mehr“ öffnet ein Blatt von unten mit Verlauf, Release Notes, Wissen, Dokumente, Betrieb, Einstellungen,
+  Hell/Dunkel und Sprache. Der **Verlauf** und die Umschalter waren am Handy bisher nicht erreichbar.
+- **Filter am Handy sichtbar:** Reiter brechen um, statt seitlich wegzuscrollen – Agent-Filter und Suche der Aufgaben
+  (und des Wissens) lagen bisher außerhalb des Bildes. Die Erklärung über den Listen ist eingeklappt (Klick: ganz).
+- **Fragen:** alle Knöpfe unter einer Frage gleich groß.
+- **Schirm-Dialog:** Felder wie in den anderen Dialogen (Beschriftung links, volle Breite).
+
 ## 1.22.0 – 06.11.2026 · Neues Projekt aus der Workbench, Brücke je Projekt
 Abschluss der Prüfung „mehrere Projekte durchgängig?“ – Anleitung: [doc/anleitung-projekte.md](doc/anleitung-projekte.md).
 - **Neues Projekt in der Workbench** (nur am PC): Projekt-Auswahl bzw. Einstellungen › „+ Neues Projekt“. Fragt Name,
