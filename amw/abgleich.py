@@ -341,7 +341,8 @@ class Abgleich:
     def schema(self):
         self.sp.ausfuehren([(s, []) for s in SCHEMA])
         for tabelle, spalte, sql in NACHRUESTEN:
-            if not self.sp.ausfuehren([(f"SELECT count(*) FROM pragma_table_info('{tabelle}') WHERE name = ?", [spalte])])[0][0][0]:
+            # int(): Turso liefert Zahlen als Text – „0“ wäre sonst wahr (06.11.)
+            if not int(self.sp.ausfuehren([(f"SELECT count(*) FROM pragma_table_info('{tabelle}') WHERE name = ?", [spalte])])[0][0][0]):
                 self.sp.ausfuehren([(sql, [])])
         self.bekannt = {w: p for w, p in self.sp.ausfuehren([("SELECT weg, pruef FROM ansicht", [])])[0]}
         self.oben_laden()

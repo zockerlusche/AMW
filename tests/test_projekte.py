@@ -278,5 +278,29 @@ class ZweiRechner(unittest.TestCase):
         self.assertEqual(self.zeilen("SELECT count(*) FROM datei"), [[0]])
 
 
+
+class WieTurso(unittest.TestCase):
+    def test_nachruesten_mit_zahlen_als_text(self):
+        # 06.11.: Turso liefert count(*) als „0“ – die Spalte eingang.projekt wurde nicht angelegt
+        from amw import abgleich
+
+        class Speicher(abgleich.SqliteSpeicher):
+            def ausfuehren(self, anweisungen):
+                return [[[None if v is None else str(v) for v in z] for z in e] for e in super().ausfuehren(anweisungen)]
+
+        with tempfile.TemporaryDirectory() as ordner:
+            alt = os.path.join(ordner, "online.db")
+            sp = Speicher(alt)
+            sp.ausfuehren([("CREATE TABLE eingang (id INTEGER PRIMARY KEY, zeit_utc TEXT NOT NULL, weg TEXT NOT NULL,"
+                            " daten TEXT NOT NULL, ip TEXT, status TEXT NOT NULL DEFAULT 'neu', ergebnis TEXT, erledigt_utc TEXT)", [])])
+            con = db.anlegen(os.path.join(ordner, "amw.db"))
+            with db.schreiben(con):
+                pid = db.einfuegen(con, "projekt", name="P", angelegt_utc=db.jetzt())
+            ab = abgleich.Abgleich(con, sp, pid)
+            ab.schema()
+            self.assertEqual(ab.eingang(), 0)
+            self.assertEqual(sp.ausfuehren([("SELECT count(*) FROM pragma_table_info('eingang') WHERE name = 'projekt'", [])])[0], [["1"]])
+            con.close()
+
 if __name__ == "__main__":
     unittest.main()

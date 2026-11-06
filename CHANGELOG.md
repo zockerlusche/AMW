@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.19.1 – 06.11.2026 · Online-Speicher: neue Spalte wirklich anlegen
+- Turso liefert Zahlen als Text. Die Prüfung „gibt es `eingang.projekt` schon?“ las deshalb „0“ als ja, und die Spalte
+  fehlte. Der Abgleich brach dann beim Abholen ab, die Seite zeigte weiter die alten Ansichten. Jetzt wird die Zahl
+  umgewandelt; ein Test ahmt Turso nach.
+
 ## 1.19.0 – 06.11.2026 · Mehrere Projekte, Teil 3: online je Projekt und auf mehreren Rechnern
 Letzter Schritt aus [doc/plan-projektwahl.md](doc/plan-projektwahl.md).
 - **Alles online trägt die Projekt-Kennung.** Ansichten liegen unter `<Kennung>:<Weg>`, ebenso Suchindex, Gespräche,
