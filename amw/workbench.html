@@ -261,6 +261,10 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .ueb-block:hover, .ueb-block:focus-visible { outline: 2px solid var(--bernstein); outline-offset: 0; z-index: 4; }
 .ueb-label { position: absolute; left: 5px; right: 3px; top: 1px; font-size: 12px; line-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ueb-label b { color: var(--farbe); margin-right: 4px; font-weight: 600; }
+.ueb-name { --farbe: var(--tinte); position: absolute; max-width: 250px; font-size: 12px; line-height: 15px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; color: var(--leise); cursor: pointer; z-index: 2; }
+.ueb-name.aktiv { --farbe: var(--bernstein); } .ueb-name.rot { --farbe: var(--rot); } .ueb-name.fertig { --farbe: var(--gruen); }
+.ueb-name b { color: var(--farbe); margin-right: 4px; font-weight: 600; } .ueb-name:hover { color: var(--tinte); }
 .ueb-block:not(.aktiv):not(.rot):not(.fertig) .ueb-label b { color: var(--tinte); }
 .ueb-b50, .ueb-b85 { position: absolute; bottom: 0; height: 5px; }
 .ueb-b50 { left: 0; background: var(--farbe); }
@@ -2786,7 +2790,8 @@ async function sichtPlanung() {
     `${t("pl_" + name)}: ${wert ? t("ampel_" + wert) : "–"}`);
   const m = rahmen(t("n_planung"), el("span", { style: "display:flex;gap:8px;flex-wrap:wrap" },
     chip("termin", d.status.termin, d.status.begruendung.termin), chip("risiko", d.status.risiko, d.status.begruendung.risiko),
-    chip("qualitaet", d.status.qualitaet, d.status.begruendung.qualitaet)));
+    chip("qualitaet", d.status.qualitaet, d.status.begruendung.qualitaet)),
+    el("button", { class: "knopf haupt kopf-aktion", type: "button", onclick: () => bogenDialog(null) }, t("pl_bogen_neu")));   /* Hauptaktion oben, wie überall */
   /* was auf dich wartet, zuerst */
   const w = d.wartet, offen = w.spezifikationen.length + w.plaene.length;
   if (offen) m.append(el("div", { class: "band-warn" }, el("b", {}, t("pl_freigaben", { n: offen }).toUpperCase()),
@@ -2796,8 +2801,7 @@ async function sichtPlanung() {
   const reiter = ["zeitleiste", "termine", "leitbild", "risiken", "check", "protokoll"], offeneBefunde = d.pruefung.filter(x => !x.akzeptiert).length;
   m.append(el("div", { class: "reiter" }, reiter.map(k => el("button", { class: k === r ? "an" : "", type: "button",
       onclick: () => { zustand.planReiter = k; sichtPlanung(); } }, t("pr_" + k) + (k === "check" && offeneBefunde ? ` (${offeneBefunde})` : "")
-      + (k === "risiken" ? ` (${d.risiken.filter(x => x.status !== "erledigt").length})` : ""))),
-    r === "zeitleiste" ? el("div", { class: "rechts" }, el("button", { class: "klein-knopf", type: "button", onclick: () => bogenDialog(null) }, t("pl_bogen_neu"))) : null));
+      + (k === "risiken" ? ` (${d.risiken.filter(x => x.status !== "erledigt").length})` : "")))));
   if (r === "zeitleiste") m.append(uebersicht(d) || "", zeitleiste(d));
   if (r === "termine") m.append(termineAnsicht(d.termine || []));
   if (r === "leitbild") m.append(leitbildAnsicht(d.leitbild));
@@ -2904,11 +2908,16 @@ function uebersicht(d) {
   const von = Math.min(...daten.map(tagNr)) - 2, bis = Math.max(...daten.map(tagNr)) + 3, spanne = bis - von;
   const pxTag = Math.max(240, ($("#inhalt")?.clientWidth || innerWidth) - 100) / spanne, H = 26;
   const pos = n => `${(100 * (n - von) / spanne).toFixed(3)}%`, breite = (a, b) => `${(100 * Math.max(0, b - a) / spanne).toFixed(3)}%`;
-  /* packen: jeder Block kommt in die erste Spur, in der der vorige Block (samt Name und Linie zum Zieldatum) schon vorbei ist */
-  const spuren = [];
+  /* packen: jeder Block kommt in die erste Spur, in der der vorige Block (samt Name und Linie zum Zieldatum) schon vorbei ist.
+     Passt der Name nicht in den Balken, steht er rechts daneben (bis 250 px) – auch dafür hält die Spur Platz frei. */
+  const spuren = [], mass = (() => { const c = document.createElement("canvas").getContext("2d");
+    c.font = `12px ${getComputedStyle(document.body).fontFamily}`; return x => c.measureText(x).width; })();
   for (const z of zeilen.slice().sort((a, b) => a.start.localeCompare(b.start) || a.e85.localeCompare(b.e85))) {
     z.a = tagNr(z.start); z.m = tagNr(z.e50); z.e = Math.max(tagNr(z.e85), z.m); z.zn = z.ziel ? tagNr(z.ziel) : null;
-    const links = Math.min(z.a, z.zn ?? z.a), rechts = Math.max(z.e, z.zn === null ? 0 : Math.min(z.zn, bis), z.a + 36 / pxTag);
+    const name = Math.min(mass(`B${z.b.id}  ${z.b.titel}`) + 14, 254);
+    z.aussen = (z.e - z.a) * pxTag < name;
+    const links = Math.min(z.a, z.zn ?? z.a), rechts = Math.max(z.e, z.zn === null ? 0 : Math.min(z.zn, bis), z.a + 36 / pxTag,
+      z.aussen ? z.e + (name + 6) / pxTag : 0);
     let s = spuren.findIndex(ende => ende + 6 / pxTag < links);
     if (s < 0) { s = spuren.length; spuren.push(0); }
     spuren[s] = rechts; z.spur = s;
@@ -2937,7 +2946,10 @@ function uebersicht(d) {
           style: `left:${pos(z.a)};top:${oben}px;width:${breite(z.a, z.e)}` },
         el("i", { class: "ueb-b50", style: `width:${lang ? (100 * (z.m - z.a) / lang).toFixed(1) : 100}%` }),
         z.e > z.m ? el("i", { class: "ueb-b85", style: `left:${(100 * (z.m - z.a) / lang).toFixed(1)}%` }) : null,
-        el("span", { class: "ueb-label" }, el("b", {}, "B" + b.id), b.titel))];
+        z.aussen ? null : el("span", { class: "ueb-label" }, el("b", {}, "B" + b.id), b.titel))];
+      if (z.aussen) teile.push(el("span", { class: "ueb-name " + art, title: tip, onclick: () => zuSchritt(null, b.id),
+        style: `left:calc(${pos(z.e)} + 5px);top:${oben + 2}px;max-width:min(250px, calc(100% - ${pos(z.e)} - 8px))` },
+        el("b", {}, "B" + b.id), b.titel));
       if (z.zn !== null) {
         const bisZiel = Math.min(z.zn, bis);
         if (bisZiel > z.e) teile.push(el("i", { class: "ueb-puffer", style: `left:${pos(z.e)};width:${breite(z.e, bisZiel)};top:${oben + 19}px` }));

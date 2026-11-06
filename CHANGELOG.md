@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.24.0 – 06.11.2026 · Zeitleiste lesbar, Hauptaktion oben
+Letzte Vorschläge aus dem Bedienbarkeits-Durchgang (1.21.0).
+- **Planung, Übersicht:** Passt der Name eines Bogens nicht in seinen Balken, steht er rechts daneben (bis 250 px, am
+  Rand gekürzt) statt nur „B1…“ – die Spuren halten dafür Platz frei. Klick auf den Namen springt wie der Balken zum Bogen.
+- **Hauptaktion oben neben der Überschrift** wie bei den Dokumenten: „Neuer Bogen“ steht jetzt dort (bisher als Textknopf
+  in der Reiterzeile, nur auf der Zeitleiste).
+
 ## 1.23.0 – 06.11.2026 · Handy: alles erreichbar, Daumen-Ziele
 Vorschläge aus dem Bedienbarkeits-Durchgang (1.21.0) für das Handy.
 - **Untere Leiste mit „Mehr“:** am Handy Start, Fragen, Plan, Arbeit und „Mehr“ – jedes Ziel mindestens 48 px breit statt
