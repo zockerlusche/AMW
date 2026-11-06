@@ -13,7 +13,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = 18        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
+SCHEMA_VERSION = 19        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
 HIER = os.path.dirname(os.path.abspath(__file__))
 STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
 
@@ -96,9 +96,11 @@ def migrieren(con):
     v = con.execute("PRAGMA user_version").fetchone()[0]
     if v == 0 or v >= SCHEMA_VERSION:              # 0 = gerade angelegt bzw. leer: anlegen() setzt die Version
         return
-    con.execute("BEGIN IMMEDIATE")
+    con.execute("PRAGMA foreign_keys = OFF")       # Tabellen neu anlegen (SQLite: nur außerhalb einer Transaktion
+    con.execute("BEGIN IMMEDIATE")                 # umschaltbar); vor dem Abschluss prüft foreign_key_check
     try:
         v = con.execute("PRAGMA user_version").fetchone()[0]   # inzwischen von einem anderen Prozess erledigt?
+        vorher = {tuple(r) for r in con.execute("PRAGMA foreign_key_check")}   # Altlasten (z. B. Import) zählen nicht
         for n in range(v + 1, SCHEMA_VERSION + 1):
             with open(os.path.join(HIER, f"migration_{n}.sql"), encoding="utf-8") as f:
                 stueck = ""
@@ -108,10 +110,15 @@ def migrieren(con):
                         con.execute(stueck)
                         stueck = ""
             con.execute(f"PRAGMA user_version = {n}")
+        kaputt = sorted({tuple(r) for r in con.execute("PRAGMA foreign_key_check")} - vorher)
+        if kaputt:
+            raise sqlite3.IntegrityError(f"Migration: Fremdschlüssel verletzt {kaputt[:3]}")
         con.execute("COMMIT")
     except Exception:
         con.execute("ROLLBACK")
         raise
+    finally:
+        con.execute("PRAGMA foreign_keys = ON")
 
 
 def anlegen(pfad=None):
@@ -177,21 +184,33 @@ def projekt_id(con, name):
     return r["id"]
 
 
+def _projekte_der_kennung(con, kennung, alle=False):
+    """Projekte, in denen es diese Kennung gibt; frühere Kennungen (Umbenennen) zählen nachrangig, mit alle=True immer."""
+    treffer = {r["projekt_id"] for r in con.execute("SELECT projekt_id FROM agent WHERE kennung = ?", (kennung,))}
+    if treffer and not alle:
+        return treffer
+    return treffer | {r["projekt_id"] for r in con.execute("SELECT projekt_id, alias FROM agent WHERE alias IS NOT NULL")
+                      if kennung in [x.strip() for x in (r["alias"] or "").split(",")]}
+
+
 def projekt_fuer(con, name=None, kennung=None):
     """Welches Projekt: genannt (--projekt/AMW_PROJEKT), sonst das einzige, sonst das der Kennung (auch frühere
-    Kennungen nach dem Umbenennen). Mehrdeutig → LookupError mit den Projekten (doc/plan-projektwahl.md)."""
+    Kennungen nach dem Umbenennen). Mehrdeutig → LookupError mit den Projekten (doc/plan-projektwahl.md).
+    Ein Agent eines Projekts kommt nicht in ein anderes (nur der Entwickler wählt frei) → LookupError."""
     if name:
-        return projekt_id(con, name)
+        pid = projekt_id(con, name)
+        heim = _projekte_der_kennung(con, kennung, alle=True) if kennung and kennung != "Entwickler" else set()
+        if heim and pid not in heim:                # Projekte sind völlig getrennt: kein Agent arbeitet in einem fremden
+            raise LookupError(f"„{kennung}“ ist kein Agent des Projekts {name} – Projekte sind getrennt, "
+                              "arbeite nur in deinem eigenen (--projekt weglassen)")
+        return pid
     zeilen = con.execute("SELECT id, name FROM projekt ORDER BY id").fetchall()
     if len(zeilen) == 1:
         return zeilen[0]["id"]
     if not zeilen:
         raise LookupError("keine Projekte – amw projekt neu <name>")
     if kennung:
-        treffer = {r["projekt_id"] for r in con.execute("SELECT projekt_id FROM agent WHERE kennung = ?", (kennung,))}
-        if not treffer:
-            treffer = {r["projekt_id"] for r in con.execute("SELECT projekt_id, alias FROM agent WHERE alias IS NOT NULL")
-                       if kennung in [x.strip() for x in (r["alias"] or "").split(",")]}
+        treffer = _projekte_der_kennung(con, kennung)
         if len(treffer) == 1:
             return treffer.pop()
     namen = ", ".join(r["name"] for r in zeilen)

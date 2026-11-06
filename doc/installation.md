@@ -105,8 +105,10 @@ alle Projekte in der Auswahl oben in der Navigation; Umschalten ändert nur die 
    Rechner steht das neue Projekt mit „↗“ in der Auswahl und öffnet die Online-Seite. Dafür muss unter Zahnrad › Push
    der Link der Online-Seite eingetragen sein.
 
-Mehrere Projekte auf **demselben** Rechner liegen in derselben Datenbank, getrennt nach Projekt (`amw projekt neu …`).
-So teilen sie sich Grafikkarte und Schirm über eine gemeinsame Lauf-Schlange.
+Mehrere Projekte auf **demselben** Rechner liegen in derselben Datenbank, völlig getrennt nach Projekt: eigene
+Agenten, Regeln, Aufgaben, Dokumente und KI-Vorlagen; kein Agent kommt in ein anderes Projekt. Gemeinsam sind nur
+Grafikkarte und Schirm über eine gemeinsame Lauf-Schlange. Anlegen mit `amw projekt neu <name>`; mit
+`--regeln-von <Projekt>` startet es mit einer Kopie der Arbeitsregeln eines anderen (danach getrennt).
 
 ## 6 Aktualisieren
 ```

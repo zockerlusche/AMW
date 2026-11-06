@@ -222,6 +222,20 @@ class Eintragen(Grund):
         self.assertEqual(self.con.execute("SELECT count(*) FROM lauf").fetchone()[0], 0)
 
 
+class VorlageJeProjekt(Grund):
+    def test_vorlage_gehoert_dem_projekt(self):
+        self.comfyui()
+        ki.freigeben(self.con, self.pid2, kern.ENTWICKLER, "comfyui", "sdxl-base")
+        with self.assertRaises(kern.AmwFehler) as f:                  # Q sieht die Vorlage von P nicht
+            ki.auftrag(self.con, self.pid2, kern.ENTWICKLER, "comfyui", "Ein Baum", modell="sdxl-base", vorlage="sprite")
+        self.assertIn("gibt es bei comfyui nicht", str(f.exception))
+        self.assertEqual(ki.uebersicht(self.con, self.pid2)["vorlagen"], [])
+        p = os.path.join(self.ordner.name, "wf.json")
+        self.assertEqual(ki.vorlage_setzen(self.con, self.pid2, kern.ENTWICKLER, "comfyui", "sprite", p), "angelegt")
+        self.assertEqual(self.con.execute("SELECT count(*) FROM ki_vorlage").fetchone()[0], 2)
+        self.assertEqual([v["name"] for v in ki.uebersicht(self.con, self.pid)["vorlagen"]], ["sprite"])
+
+
 class Schlange(Grund):
     def test_ki_lauf_wartet_auf_schweren_lauf_und_startet_ohne_sitzung(self):
         self.ollama()

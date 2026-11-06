@@ -9,7 +9,7 @@ zusammen und lässt eines auswählen.
 
 Status: **freigegeben (Variante A, Schema-Änderung erlaubt), Ausbau auf mehrere Rechner ergänzt.** Release 1 (Agenten,
 Brücke, Push je Projekt, Schema 18) umgesetzt in AMW 1.17.0, Release 2 (Auswahl in der Workbench am PC) in 1.18.0, Release 3 (online je Projekt,
-mehrere Rechner) in 1.19.0.
+mehrere Rechner) in 1.19.0. Nachtrag „völlig getrennt“ (Abschnitt F, Schema 19) in 1.20.0.
 Mockup: [plan-projektwahl-mockup.html](plan-projektwahl-mockup.html).
 
 ## Ziel und Abnahme
@@ -111,8 +111,7 @@ alle Projekte. Nur ein Projekt kennen dagegen:
 - **HALT** bleibt, wie er ist. Er gilt für das Projekt, in dem man ihn drückt.
 - **Einstellungen:** „Aktives Projekt“ wird zur echten Auswahl, dazu kommen Farbe und Rechner-Name. Die Speichergrenze
   bleibt je Projekt, denn sie gilt für die Läufe des Projekts.
-- **Arbeitsregeln (KR)** gelten wie bisher für alle Projekte einer AMW, Projektregeln (PR) je Projekt. Ob ein zweites
-  Projekt auf demselben Rechner eigene Arbeitsregeln braucht, entscheidet der Entwickler.
+- **Arbeitsregeln (KR)** und Projektregeln (PR) gehören beide dem Projekt (Abschnitt F).
 
 ### D. Online-Speicher und Online-Seite
 - **Verzeichnis** `projekt` (online): Kennung, Name, Farbe, Rechner, zuletzt gesehen, offene Fragen, Halt. Jeder
@@ -133,6 +132,22 @@ alle Projekte. Nur ein Projekt kennen dagegen:
 - Anleitung in `doc/installation.md`: AMW installieren, Projekt anlegen, denselben Online-Speicher eintragen und
   einen eigenen Rechner-Namen vergeben.
 - Kein Rechner braucht Zugriff auf die Datenbank eines anderen. Sie begegnen sich nur im Online-Speicher.
+
+### F. Völlig getrennt (Entscheidung des Entwicklers, 06.11.; Schema 19, AMW 1.20.0)
+Jedes Projekt wird für sich gesteuert und hat keine Berührung zu einem anderen – auch nicht auf demselben Rechner.
+- **Regeln je Projekt:** Arbeitsregeln (KR) galten bis 1.19 für alle Projekte einer AMW. Jetzt gehören KR und PR dem
+  Projekt; KR1 im einen und KR1 im anderen sind verschiedene Regeln. Vorhandene KR gehören dem Projekt ihres
+  Beschlusses. Ein neues Projekt startet ohne Regeln oder mit einer **einmaligen Kopie** der Arbeitsregeln eines
+  anderen (`amw projekt neu <name> --regeln-von <Projekt>`); danach ändert jedes seine Fassung allein.
+- **KI-Vorlagen je Projekt:** Ein Bild-Workflow gehört dem Projekt, das ihn setzt. Zwei Projekte können eine Vorlage
+  gleichen Namens haben, keines ändert die des anderen.
+- **Kein Agent in einem fremden Projekt:** Nennt ein Agent mit `--projekt`/`AMW_PROJEKT` ein Projekt, in dem es seine
+  Kennung nicht gibt, lehnt die AMW ab (auch über die Brücke). Nur der Entwickler wählt frei. Steht im Startskript ein
+  falsches Projekt, nimmt der Hook das Projekt der Kennung.
+- **Bleibt gemeinsam, weil es Hardware ist** (Marke „dieser PC“): Grafikkarte und Schirm mit der Lauf-Schlange, die
+  eingetragenen KIs und ihre Modelle samt Lizenz-Freigabe (eine Lizenz gilt für die Datei auf diesem PC), Einstellungen
+  dieses PCs (Online-Speicher, Push-Kanäle). Fremde Läufe in der Schlange zeigen nur Projektname und Platz, keinen
+  Inhalt.
 
 ## Datenbank
 

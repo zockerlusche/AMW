@@ -1,7 +1,7 @@
 """Lokale KIs (→ doc/plan-lokale-ki.md): eintragen, Modelle freigeben, beauftragen, ausführen, Herkunft.
 
-- Eine KI (Ollama, ComfyUI …) gehört dem PC, nicht einem Projekt: ki, ki_modell, ki_vorlage sind PC-weit; wer im Projekt
-  beauftragen darf, steht in ki_recht (Lead und Entwickler immer). Endpunkte nur lokal (127.0.0.1, localhost, ::1).
+- Eine KI (Ollama, ComfyUI …) gehört dem PC, nicht einem Projekt: ki und ki_modell sind PC-weit (Marke „dieser PC“); Vorlagen
+  (ki_vorlage) gehören dem Projekt, das sie setzt; wer im Projekt beauftragen darf, steht in ki_recht (Lead und Entwickler immer). Endpunkte nur lokal (127.0.0.1, localhost, ::1).
 - Ein Modell, das nicht „frei“ ist, kann nicht beauftragt werden. Frei gibt der Lead; bei Nutzungsregeln (z. B. Open RAIL++-M)
   oder Registrierung nur der Entwickler. Ändert sich Lizenz, Datei oder Prüfsumme, ist die Freigabe wieder offen.
 - Ein Auftrag ist ein Lauf in der gemeinsamen Schlange (schwer + Platz gpu, PC-weit einer zur Zeit). Ist er dran, führt ihn
@@ -202,12 +202,13 @@ def vorlage_setzen(con, pid, von, ki_name, name, pfad, beschreibung=None):
         raise kern.AmwFehler("Die Vorlage enthält etwas, das wie ein Schlüssel aussieht – nicht übernommen")
     sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
     with db.schreiben(con):
-        alt = con.execute("SELECT id, sha256 FROM ki_vorlage WHERE ki_id = ? AND name = ?", (ki["id"], name)).fetchone()
+        alt = con.execute("SELECT id, sha256 FROM ki_vorlage WHERE projekt_id = ? AND ki_id = ? AND name = ?",
+                          (pid, ki["id"], name)).fetchone()
         if alt:
             con.execute("UPDATE ki_vorlage SET inhalt = ?, sha256 = ?, beschreibung = coalesce(?, beschreibung), von = ?,"
                         " stand_utc = ?, aktiv = 1 WHERE id = ?", (text, sha, beschreibung, von, db.jetzt(), alt["id"]))
             return "unverändert" if alt["sha256"] == sha else "neuer Stand"
-        db.einfuegen(con, "ki_vorlage", ki_id=ki["id"], name=name, beschreibung=beschreibung, inhalt=text, sha256=sha,
+        db.einfuegen(con, "ki_vorlage", projekt_id=pid, ki_id=ki["id"], name=name, beschreibung=beschreibung, inhalt=text, sha256=sha,
                      von=von, stand_utc=db.jetzt())
         return "angelegt"
 
@@ -353,7 +354,8 @@ def auftrag(con, pid, von, ki_name, prompt, modell=None, vorlage=None, negativ=N
         if not vorlage:
             raise kern.AmwFehler(f"--vorlage angeben – ohne Vorlage kein Bild-Auftrag (amw ki vorlage {ki['name']} <name>"
                                  " --datei workflow_api.json)")
-        v = con.execute("SELECT * FROM ki_vorlage WHERE ki_id = ? AND name = ? AND aktiv = 1", (ki["id"], vorlage)).fetchone()
+        v = con.execute("SELECT * FROM ki_vorlage WHERE projekt_id = ? AND ki_id = ? AND name = ? AND aktiv = 1",
+                        (pid, ki["id"], vorlage)).fetchone()
         if not v:
             raise kern.AmwFehler(f"Vorlage „{vorlage}“ gibt es bei {ki['name']} nicht")
         wf = _workflow(v["inhalt"])
@@ -892,7 +894,7 @@ def uebersicht(con, pid):
         " m.freigabe_grund, m.freigabe_von, m.freigabe_utc, m.vram_gb, m.sekunden FROM ki_modell m JOIN ki k ON k.id = m.ki_id"
         " WHERE k.aktiv = 1 ORDER BY k.name, m.freigabe != 'frei', m.name")]
     vorlagen = [dict(r) for r in con.execute("SELECT k.name AS ki, v.name, v.beschreibung, v.von, v.stand_utc FROM ki_vorlage v"
-                                             " JOIN ki k ON k.id = v.ki_id WHERE v.aktiv = 1 ORDER BY k.name, v.name")]
+                                             " JOIN ki k ON k.id = v.ki_id WHERE v.projekt_id = ? AND v.aktiv = 1 ORDER BY k.name, v.name", (pid,))]
     auftraege = [dict(r) for r in con.execute(
         "SELECT a.id, a.lauf_id, k.name AS ki, m.name AS modell, v.name AS vorlage, a.auftraggeber, a.aufgabe_id, a.titel,"
         " a.prompt, a.anzahl, a.seed, a.zustand, a.fortschritt, a.dokumente, a.fehler, a.angelegt_utc, a.start_utc, a.ende_utc,"

@@ -74,9 +74,14 @@ def cmd_init(a):
 
 def cmd_projekt(a, con):
     if a.aktion == "neu":
+        if not (a.name or "").strip():
+            raise kern.AmwFehler("Name fehlt: amw projekt neu <name> [--regeln-von <Projekt>]")
+        quelle = db.projekt_id(con, a.regeln_von) if a.regeln_von else None
         with db.schreiben(con):
-            db.einfuegen(con, "projekt", name=a.name, beschreibung=a.beschreibung, angelegt_utc=db.jetzt())
-        print(f"Projekt {a.name} angelegt")
+            pid = db.einfuegen(con, "projekt", name=a.name, beschreibung=a.beschreibung, angelegt_utc=db.jetzt())
+        n = wissen.regeln_uebernehmen(con, pid, quelle) if quelle else 0
+        print(f"Projekt {a.name} angelegt" + (f" – {n} Arbeitsregeln aus {a.regeln_von} übernommen (eigene Kopie)" if quelle
+                                               else " – ohne Regeln (eigene: amw beschluss neu …, dann amw regel …)"))
     else:
         for r in con.execute("SELECT id, name, beschreibung FROM projekt ORDER BY id"):
             print(f"{r['id']} {r['name']}  {r['beschreibung'] or ''}")
@@ -765,7 +770,7 @@ def cmd_zeige(a, con):
             if r:
                 print(f"D{nr} [{r['status']}] {r['art']} {r['titel']} – Inhalt: amw dokument zeige {nr}")
         elif art in ("KR", "PR"):
-            r = con.execute("SELECT * FROM regel WHERE ebene = ? AND nr = ? AND (projekt_id IS NULL OR projekt_id = ?)",
+            r = con.execute("SELECT * FROM regel WHERE ebene = ? AND nr = ? AND projekt_id = ?",
                             ("arbeit" if art == "KR" else "projekt", nr, pid)).fetchone()
             if r:
                 print(f"{art}{nr} (Stand {_zeit(r['stand_utc'])}, {r['beleg'] or '–'}): {r['text']}")
@@ -777,8 +782,7 @@ def cmd_zeige(a, con):
 
 def cmd_regeln(a, con):
     pid = _projekt(con, a)
-    for r in con.execute("SELECT ebene, nr, text, stand_utc FROM regel WHERE ebene = 'arbeit' OR projekt_id = ?"
-                         " ORDER BY ebene, nr", (pid,)):
+    for r in con.execute("SELECT ebene, nr, text, stand_utc FROM regel WHERE projekt_id = ? ORDER BY ebene, nr", (pid,)):
         print(f"{'KR' if r['ebene'] == 'arbeit' else 'PR'}{r['nr']} (Stand {_zeit(r['stand_utc'])}): {r['text']}\n")
 
 
@@ -1638,10 +1642,12 @@ def parser():
     x.add_argument("--projekt", dest="projekt_init", help="gleich ein erstes Projekt anlegen")
     x.set_defaults(f=cmd_init, ohne_db=True)
 
-    x = s.add_parser("projekt", help="Projekte: neu <name> | liste")
+    x = s.add_parser("projekt", help="Projekte: neu <name> | liste – jedes Projekt ist für sich (eigene Agenten, Regeln, Daten)")
     x.add_argument("aktion", choices=["neu", "liste"])
     x.add_argument("name", nargs="?")
     x.add_argument("--beschreibung")
+    x.add_argument("--regeln-von", dest="regeln_von", metavar="PROJEKT",
+                   help="neu: die Arbeitsregeln (KR) eines Projekts einmal kopieren – danach getrennt änderbar")
     x.set_defaults(f=cmd_projekt)
 
     x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript | umbenennen ALT NEU")

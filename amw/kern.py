@@ -941,8 +941,8 @@ def kontext(con, pid, kennung):
             f"#{x['id']} {x['von']} [{x['art']}] {x['kurz'][:80]}" for x in nachr)
             + (" …" if zahl > 8 else "") + " → `amw lesen`")
 
-    regeln = con.execute("SELECT nr, text, stand_utc, ebene FROM regel WHERE (ebene = 'arbeit' OR projekt_id = ?)"
-                         " ORDER BY ebene, nr", (pid,)).fetchall()
+    regeln = con.execute("SELECT nr, text, stand_utc, ebene FROM regel WHERE projekt_id = ? ORDER BY ebene, nr",
+                         (pid,)).fetchall()
     if regeln:
         neu = [r for r in regeln if vorher and r["stand_utc"] > vorher]
         z.append(f"Regeln: {len(regeln)} gültig (`amw regeln`)."

@@ -161,8 +161,11 @@ def main():
         try:
             try:
                 pid = db.projekt_fuer(con, os.environ.get("AMW_PROJEKT"), kennung)
-            except LookupError:                     # mehrdeutig ohne Kennung: wie bisher das erste Projekt
-                pid = con.execute("SELECT min(id) FROM projekt").fetchone()[0]
+            except LookupError:                     # falsches AMW_PROJEKT: das Projekt der Kennung;
+                try:                                # mehrdeutig ohne Kennung: wie bisher das erste Projekt
+                    pid = db.projekt_fuer(con, None, kennung)
+                except LookupError:
+                    pid = con.execute("SELECT min(id) FROM projekt").fetchone()[0]
             erkannt = not kennung
             kennung = kern.kennung_heute(con, kennung, pid) or bekannte_kennung(con, pid, eingabe.get("session_id"))
             if not kennung:

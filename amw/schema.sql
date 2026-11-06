@@ -347,12 +347,12 @@ CREATE TABLE beschluss (
   geaendert_utc  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
--- Arbeitsregeln (ebene arbeit, projekt_id NULL = gilt für alle Projekte) und Projektregeln.
+-- Arbeitsregeln (ebene arbeit, KR) und Projektregeln (PR) – beide je Projekt (Schema 19: Projekte völlig getrennt).
 -- Nur der gültige Text; Änderungen über beschluss belegt.
 CREATE TABLE regel (
   id            INTEGER PRIMARY KEY,
   ebene         TEXT NOT NULL CHECK (ebene IN ('arbeit', 'projekt')),
-  projekt_id    INTEGER REFERENCES projekt(id),
+  projekt_id    INTEGER NOT NULL REFERENCES projekt(id),
   nr            INTEGER NOT NULL,
   teil          TEXT,
   text          TEXT NOT NULL,
@@ -360,10 +360,9 @@ CREATE TABLE regel (
   stand_utc     TEXT NOT NULL,
   uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft      TEXT NOT NULL DEFAULT '',
-  geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-  CHECK ((ebene = 'arbeit') = (projekt_id IS NULL))
+  geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
-CREATE UNIQUE INDEX regel_nr ON regel (ebene, coalesce(projekt_id, 0), nr);
+CREATE UNIQUE INDEX regel_nr ON regel (projekt_id, ebene, nr);
 
 CREATE TABLE rezept (
   id                   INTEGER PRIMARY KEY,
@@ -746,7 +745,7 @@ CREATE TABLE thema_dokument (                   -- Bilder/Referenzen zur Seite (
   PRIMARY KEY (thema_id, dokument_id)
 );
 
--- Lokale KIs (Schema 17): PC-weit ki, ki_modell, ki_vorlage; je Projekt ki_recht; Aufträge als Läufe (Platz gpu), Herkunft
+-- Lokale KIs (Schema 17): PC-weit ki, ki_modell; je Projekt ki_vorlage (Schema 19), ki_recht; Aufträge als Läufe (Platz gpu), Herkunft
 CREATE TABLE ki (
   id             INTEGER PRIMARY KEY,
   name           TEXT NOT NULL,                   -- z. B. ollama, comfyui
@@ -802,6 +801,7 @@ CREATE TRIGGER ki_modell_geaendert AFTER UPDATE ON ki_modell BEGIN UPDATE ki_mod
 CREATE TRIGGER ki_modell_nie_loeschen BEFORE DELETE ON ki_modell BEGIN SELECT RAISE(ABORT, 'Verlauf: ki_modell wird nicht gelöscht (Freigabe gesperrt)'); END;
 CREATE TABLE ki_vorlage (                       -- benannter Workflow (ComfyUI: API-JSON) mit Platzhaltern {prompt} {seed} …
   id             INTEGER PRIMARY KEY,
+  projekt_id     INTEGER NOT NULL REFERENCES projekt(id),
   ki_id          INTEGER NOT NULL REFERENCES ki(id),
   name           TEXT NOT NULL,
   beschreibung   TEXT,
@@ -813,7 +813,7 @@ CREATE TABLE ki_vorlage (                       -- benannter Workflow (ComfyUI: 
   uid            TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft       TEXT NOT NULL DEFAULT '',
   geaendert_utc  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-  UNIQUE (ki_id, name)
+  UNIQUE (projekt_id, ki_id, name)
 );
 CREATE TRIGGER ki_vorlage_geaendert AFTER UPDATE ON ki_vorlage BEGIN UPDATE ki_vorlage SET geaendert_utc = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = NEW.id; END;
 CREATE TABLE ki_recht (                         -- wer im Projekt beauftragen darf (Lead und Entwickler immer)

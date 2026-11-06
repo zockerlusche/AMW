@@ -213,7 +213,7 @@ def daten_start(con, pid):
         " (SELECT count(*) FROM aufgabe WHERE projekt_id = :p AND einstufung = 'geparkt'"
         "   AND status NOT IN ('fertig','verworfen')) AS geparkt,"
         " (SELECT count(*) FROM beschluss WHERE projekt_id = :p AND status = 'gilt') AS beschluesse,"
-        " (SELECT count(*) FROM regel WHERE ebene = 'arbeit' OR projekt_id = :p) AS regeln,"
+        " (SELECT count(*) FROM regel WHERE projekt_id = :p) AS regeln,"
         " (SELECT count(*) FROM release WHERE projekt_id = :p) AS releases", {"p": pid}).fetchone())
     frei, gesamt = speicher_frei_gb()
     zaehler["an_dich"] = len(an_dich)
@@ -547,7 +547,7 @@ def daten_wissen(con, pid, q):
                         " AND status = 'gilt' ORDER BY id DESC LIMIT 60", (pid,))
         w = con.execute("SELECT id, zeit_utc, text, kanal FROM wortlaut WHERE projekt_id = ? ORDER BY id DESC LIMIT 60",
                         (pid,))
-    r = con.execute("SELECT ebene, nr, teil, text, stand_utc FROM regel WHERE (ebene = 'arbeit' OR projekt_id = ?)"
+    r = con.execute("SELECT ebene, nr, teil, text, stand_utc FROM regel WHERE projekt_id = ?"
                     + (" AND text LIKE ?" if such else "") + " ORDER BY ebene, nr", (pid, muster) if such else (pid,))
     n = con.execute("SELECT schluessel, wert, geaendert_utc FROM notiz WHERE projekt_id = ?"
                     + (" AND (schluessel LIKE ? OR wert LIKE ?)" if such else "") + " ORDER BY schluessel",

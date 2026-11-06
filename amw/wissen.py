@@ -82,24 +82,40 @@ def beschluss_thema(con, pid, von, bid, thema, neues_thema=False):
 
 
 def regel_setzen(con, pid, von, ebene, nr, text, beschluss_id, teil=None):
-    """Regel anlegen oder an Ort und Stelle ändern. Ohne Beschluss keine Regeländerung (KR30 heute)."""
+    """Regel anlegen oder an Ort und Stelle ändern. Ohne Beschluss keine Regeländerung (KR30 heute).
+    Arbeits- und Projektregeln gehören beide dem Projekt (Schema 19) – kein Projekt ändert die Regeln eines anderen."""
     _nur_lead(con, pid, von, "Regeln ändern")
     if ebene not in ("arbeit", "projekt"):
         raise kern.AmwFehler("Ebene ist arbeit oder projekt")
     with db.schreiben(con):
         if not con.execute("SELECT 1 FROM beschluss WHERE id = ? AND projekt_id = ?", (beschluss_id, pid)).fetchone():
             raise kern.AmwFehler(f"B{beschluss_id} gibt es nicht – erst den Beschluss anlegen")
-        projekt = None if ebene == "arbeit" else pid
         t = db.jetzt()
-        alt = con.execute("SELECT id FROM regel WHERE ebene = ? AND coalesce(projekt_id, 0) = ? AND nr = ?",
-                          (ebene, projekt or 0, nr)).fetchone()
+        alt = con.execute("SELECT id FROM regel WHERE ebene = ? AND projekt_id = ? AND nr = ?", (ebene, pid, nr)).fetchone()
         if alt:
             con.execute("UPDATE regel SET text = ?, teil = coalesce(?, teil), beleg = ?, stand_utc = ? WHERE id = ?",
                         (text, teil, f"B{beschluss_id}", t, alt["id"]))
             return "geändert"
-        db.einfuegen(con, "regel", ebene=ebene, projekt_id=projekt, nr=nr, teil=teil, text=text,
+        db.einfuegen(con, "regel", ebene=ebene, projekt_id=pid, nr=nr, teil=teil, text=text,
                      beleg=f"B{beschluss_id}", stand_utc=t)
         return "angelegt"
+
+
+def regeln_uebernehmen(con, ziel, quelle):
+    """Neues Projekt: Arbeitsregeln (KR) eines anderen einmal kopieren. Danach ist es eine eigene Fassung – Änderungen
+    hier oder dort berühren das andere Projekt nicht. Projektregeln (PR) sind Fachregeln und bleiben, wo sie sind."""
+    name = con.execute("SELECT name FROM projekt WHERE id = ?", (quelle,)).fetchone()["name"]
+    with db.schreiben(con):
+        if con.execute("SELECT 1 FROM regel WHERE projekt_id = ? AND ebene = 'arbeit'", (ziel,)).fetchone():
+            raise kern.AmwFehler("Das Projekt hat schon Arbeitsregeln – übernehmen geht nur beim Anlegen")
+        t = db.jetzt()
+        n = 0
+        for r in con.execute("SELECT nr, teil, text FROM regel WHERE projekt_id = ? AND ebene = 'arbeit' ORDER BY nr",
+                             (quelle,)).fetchall():
+            db.einfuegen(con, "regel", ebene="arbeit", projekt_id=ziel, nr=r["nr"], teil=r["teil"], text=r["text"],
+                         beleg=f"übernommen aus {name} KR{r['nr']}", stand_utc=t)
+            n += 1
+    return n
 
 
 def notiz_setzen(con, pid, von, schluessel, wert):
@@ -201,7 +217,7 @@ def treffer(con, pid, text, grenze=TREFFER_MAX):
         if r["antwort_art"] == "option":
             antwort = next((f"{o['kenn']}) {o['text']}" for o in json.loads(r["optionen"] or "[]") if o["kenn"] == antwort), antwort)
         docs.append((f"F{r['id']}", r["kurz"], antwort, r["antwort_utc"], f"{r['kurz']} {r['worum'] or ''} {antwort}"))
-    for r in con.execute("SELECT ebene, nr, text, stand_utc FROM regel WHERE ebene = 'arbeit' OR projekt_id = ?", (pid,)):
+    for r in con.execute("SELECT ebene, nr, text, stand_utc FROM regel WHERE projekt_id = ?", (pid,)):
         docs.append((f"{'KR' if r['ebene'] == 'arbeit' else 'PR'}{r['nr']}", r["text"][:120], "", r["stand_utc"], r["text"]))
     if not docs:
         return []

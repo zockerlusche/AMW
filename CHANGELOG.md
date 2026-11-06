@@ -4,6 +4,22 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.20.0 – 06.11.2026 · Projekte völlig getrennt
+Entscheidung des Entwicklers: Jedes Projekt wird für sich gesteuert und hat keine Berührung zu einem anderen
+([doc/plan-projektwahl.md](doc/plan-projektwahl.md), Abschnitt F). Schema 19 – vorher `amw sichern`.
+- **Arbeitsregeln je Projekt.** KR galten bisher für alle Projekte einer AMW; jetzt gehören sie wie die PR dem
+  Projekt. Vorhandene KR gehören dem Projekt ihres Beschlusses. `amw regeln`, Pflicht-Kontext, Suche und Workbench
+  zeigen nur die des Projekts.
+- **Neues Projekt mit Regel-Kopie:** `amw projekt neu <name> --regeln-von <Projekt>` kopiert die Arbeitsregeln einmal;
+  danach ändert jedes Projekt seine Fassung allein. Ohne die Option startet es ohne Regeln.
+- **KI-Vorlagen je Projekt.** Ein Bild-Workflow gehört dem Projekt, das ihn setzt; zwei Projekte können gleich
+  benannte Vorlagen haben. KIs und Modelle bleiben PC-weit („dieser PC“).
+- **Kein Agent in einem fremden Projekt.** `--projekt`/`AMW_PROJEKT` mit einem Projekt, in dem es die Kennung nicht
+  gibt, lehnt die AMW ab, auch über die Brücke. Nur der Entwickler wählt frei. Steht im Startskript ein falsches
+  Projekt, nimmt der Hook das Projekt der Kennung.
+- Migrationen, die Tabellen neu anlegen, laufen jetzt ohne Fremdschlüssel-Prüfung und prüfen sie vor dem Abschluss
+  (`PRAGMA foreign_key_check`).
+
 ## 1.19.1 – 06.11.2026 · Online-Speicher: neue Spalte wirklich anlegen
 - Turso liefert Zahlen als Text. Die Prüfung „gibt es `eingang.projekt` schon?“ las deshalb „0“ als ja, und die Spalte
   fehlte. Der Abgleich brach dann beim Abholen ab, die Seite zeigte weiter die alten Ansichten. Jetzt wird die Zahl

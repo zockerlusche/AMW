@@ -191,6 +191,123 @@ class Workbench(ZweiProjekte):
 
 
 
+class Getrennt(ZweiProjekte):
+    """F5187: jedes Projekt für sich – eigene Arbeitsregeln, kein Agent in einem fremden Projekt."""
+    def regel(self, pid, ebene, nr, text, von="TL"):
+        from amw import wissen
+        b = wissen.beschluss_neu(self.con, pid, von, f"Regel {nr} {text}", text, "Entwickler")
+        return wissen.regel_setzen(self.con, pid, von, ebene, nr, text, b)
+
+    def test_arbeitsregeln_je_projekt(self):
+        self.assertEqual(self.regel(self.a, "arbeit", 1, "Shop: immer mit Kassenbon"), "angelegt")
+        self.assertEqual(self.regel(self.b, "arbeit", 1, "Spiel: erst spielen, dann bauen"), "angelegt")   # gleiche Nummer
+        rc, aus = self.cli("regeln", "--von", "Shop1")
+        self.assertIn("KR1", aus)
+        self.assertIn("Kassenbon", aus)
+        self.assertNotIn("spielen", aus)
+        self.assertIn("Regeln: 1 gültig", kern.kontext(self.con, self.b, "Spiel1"))
+        self.assertNotIn("Kassenbon", kern.kontext(self.con, self.b, "Spiel1"))
+        rc, aus = self.cli("zeige", "KR1", "--von", "Spiel1")
+        self.assertIn("spielen", aus)
+
+    def test_kein_agent_in_einem_fremden_projekt(self):
+        rc, aus = self.cli("aufgabe", "neu", "--von", "Shop1", "--projekt", "Spiel", "--titel", "von außen")
+        self.assertEqual(rc, 1)
+        self.assertIn("Projekte sind getrennt", aus)
+        rc, aus = self.cli("regeln", "--von", "Shop1", "--projekt", "Spiel")
+        self.assertEqual(rc, 1)
+        self.assertEqual(self.con.execute("SELECT count(*) FROM aufgabe").fetchone()[0], 0)
+        rc, aus = self.cli("aufgabe", "neu", "--von", "TL", "--projekt", "Spiel", "--titel", "eigener TL")   # TL in beiden
+        self.assertEqual(rc, 0, aus)
+        rc, aus = self.cli("posten", "--von", kern.ENTWICKLER, "--projekt", "Webshop", "--an", "Shop1", "--art", "info",
+                           "--kurz", "vom Menschen")                                 # der Entwickler wählt frei
+        self.assertEqual(rc, 0, aus)
+        self.assertEqual(db.projekt_fuer(self.con, None, "Shop1"), self.a)         # Hook: falsches AMW_PROJEKT → eigenes
+        with self.assertRaises(LookupError):
+            db.projekt_fuer(self.con, "Spiel", "Shop1")
+
+    def test_neues_projekt_mit_kopie_der_arbeitsregeln(self):
+        self.regel(self.a, "arbeit", 3, "Shop: Belege aufheben")
+        self.regel(self.a, "projekt", 1, "Shop: Fachregel")
+        rc, aus = self.cli("projekt", "neu", "Filiale", "--regeln-von", "Webshop")
+        self.assertEqual(rc, 0, aus)
+        self.assertIn("1 Arbeitsregeln aus Webshop übernommen", aus)
+        f = db.projekt_id(self.con, "Filiale")
+        r = self.con.execute("SELECT ebene, nr, text, beleg FROM regel WHERE projekt_id = ?", (f,)).fetchall()
+        self.assertEqual([tuple(x) for x in r], [("arbeit", 3, "Shop: Belege aufheben", "übernommen aus Webshop KR3")])
+        kern.agent_neu(self.con, f, "Chef", rolle="lead")
+        self.regel(f, "arbeit", 3, "Filiale: Belege digital", von="Chef")
+        self.assertEqual(self.con.execute("SELECT text FROM regel WHERE projekt_id = ? AND nr = 3", (self.a,)).fetchone()[0],
+                         "Shop: Belege aufheben")                                      # das Original bleibt
+        rc, aus = self.cli("projekt", "neu", "Leer")
+        self.assertIn("ohne Regeln", aus)
+
+
+class Schema19(unittest.TestCase):
+    """Altbestand: Arbeitsregeln ohne Projekt und PC-weite KI-Vorlagen gehen an ihr Projekt."""
+    ALT = """
+DROP TABLE regel;
+CREATE TABLE regel (id INTEGER PRIMARY KEY, ebene TEXT NOT NULL CHECK (ebene IN ('arbeit', 'projekt')),
+  projekt_id INTEGER REFERENCES projekt(id), nr INTEGER NOT NULL, teil TEXT, text TEXT NOT NULL, beleg TEXT,
+  stand_utc TEXT NOT NULL, uid TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))), herkunft TEXT NOT NULL DEFAULT '',
+  geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  CHECK ((ebene = 'arbeit') = (projekt_id IS NULL)));
+CREATE UNIQUE INDEX regel_nr ON regel (ebene, coalesce(projekt_id, 0), nr);
+DROP TABLE ki_vorlage;
+CREATE TABLE ki_vorlage (id INTEGER PRIMARY KEY, ki_id INTEGER NOT NULL REFERENCES ki(id), name TEXT NOT NULL,
+  beschreibung TEXT, inhalt TEXT NOT NULL, sha256 TEXT NOT NULL, von TEXT NOT NULL, stand_utc TEXT NOT NULL,
+  aktiv INTEGER NOT NULL DEFAULT 1, uid TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft TEXT NOT NULL DEFAULT '', geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  UNIQUE (ki_id, name));
+"""
+
+    def test_migration(self):
+        with tempfile.TemporaryDirectory() as ordner:
+            pfad = os.path.join(ordner, "alt.db")
+            con = db.anlegen(pfad)
+            self.addCleanup(con.close)
+            con.execute("PRAGMA foreign_keys = OFF")
+            con.executescript(self.ALT)
+            t = db.jetzt()
+            with db.schreiben(con):
+                for pid, name in ((1, "Erst"), (2, "Zweit")):
+                    db.einfuegen(con, "projekt", id=pid, name=name, angelegt_utc=t)
+                kern_id = db.einfuegen(con, "agent", projekt_id=2, kennung="Maler", angelegt_utc=t)
+                db.einfuegen(con, "beschluss", id=7, projekt_id=2, zeit_utc=t, stichwort="s", regel="r", quelle="q",
+                             angelegt_von="TL", angelegt_utc=t)
+                for ebene, pid, nr, text, beleg in (("arbeit", None, 1, "aus B7", "B7"), ("arbeit", None, 2, "ohne Beleg", None),
+                                                    ("projekt", 1, 1, "Fach", "B1")):
+                    db.einfuegen(con, "regel", ebene=ebene, projekt_id=pid, nr=nr, text=text, beleg=beleg, stand_utc=t)
+                db.einfuegen(con, "ki", id=1, name="comfyui", art="bild", schnittstelle="comfyui", endpunkt="http://127.0.0.1:1",
+                             angelegt_von="Maler", angelegt_utc=t)
+                db.einfuegen(con, "ki_vorlage", id=5, ki_id=1, name="sprite", inhalt="{}", sha256="x", von="Maler", stand_utc=t)
+                db.einfuegen(con, "lauf", id=9, projekt_id=2, agent="Maler", beschreibung="Bild", angemeldet_utc=t)
+                db.einfuegen(con, "ki_auftrag", projekt_id=2, lauf_id=9, ki_id=1, vorlage_id=5, auftraggeber="Maler",
+                             prompt="p", seed=1, angelegt_utc=t)                # verweist auf die neu angelegte Tabelle
+                db.einfuegen(con, "frage", projekt_id=1, an="entwickler", von="TL", zeit_utc=t, kurz="Altlast", folge_von=999)
+            self.assertTrue(kern_id)
+            con.execute("PRAGMA user_version = 18")
+            con.close()
+            con = db.verbinde(pfad)
+            try:
+                self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], db.SCHEMA_VERSION)
+                self.assertEqual(con.execute("PRAGMA foreign_keys").fetchone()[0], 1)
+                self.assertEqual([tuple(r) for r in con.execute("SELECT ebene, nr, projekt_id FROM regel ORDER BY id")],
+                                 [("arbeit", 1, 2), ("arbeit", 2, 1), ("projekt", 1, 1)])
+                self.assertEqual(tuple(con.execute("SELECT id, projekt_id FROM ki_vorlage").fetchone()), (5, 2))
+                self.assertEqual(con.execute("SELECT vorlage_id FROM ki_auftrag").fetchone()[0], 5)
+                self.assertEqual([r[0] for r in con.execute("PRAGMA foreign_key_check")], ["frage"])  # Altlast bleibt, stört nicht
+                with db.schreiben(con):                                 # gleiche Nummer/Name in zwei Projekten geht jetzt
+                    db.einfuegen(con, "regel", ebene="arbeit", projekt_id=1, nr=1, text="eigen", stand_utc=db.jetzt())
+                    db.einfuegen(con, "ki_vorlage", projekt_id=1, ki_id=1, name="sprite", inhalt="{}", sha256="y",
+                                 von="Lead", stand_utc=db.jetzt())
+                    con.execute("UPDATE regel SET geaendert_utc = '' WHERE nr = 2")
+                self.assertNotEqual(con.execute("SELECT geaendert_utc FROM regel WHERE nr = 2").fetchone()[0], "")  # Trigger
+                self.assertTrue(con.execute("SELECT 1 FROM sqlite_master WHERE name = 'ki_vorlage_geaendert'").fetchone())
+            finally:
+                con.close()
+
+
 class ZweiRechner(unittest.TestCase):
     """Zwei AMW-Installationen (je eigene Datenbank) an einem Online-Speicher: jede hält nur ihre Projekte."""
     @staticmethod
