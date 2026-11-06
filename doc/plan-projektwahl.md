@@ -1,8 +1,10 @@
 # Projekt-Auswahl: mehrere Projekte in einer AMW (universal)
 
 Stand 06.11.2026. Anlass: Der Entwickler will ein zweites, unabhängiges Projekt genauso über die AMW führen. Dafür braucht
-es eine zentrale Projekt-Auswahl. Nach dem Wechsel zeigt die ganze Oberfläche nur noch das gewählte Projekt. Was für den
-ganzen PC gilt, ist als „alle Projekte“ gekennzeichnet.
+es eine zentrale Projekt-Auswahl. Nach dem Wechsel zeigt die ganze Oberfläche nur noch das gewählte Projekt. Die AMW ist
+Planungswerkzeug und Übersicht: **Umschalten ändert nur die Ansicht.** Kein Projekt wird angehalten, alle Projekte
+laufen weiter, auch wenn ihre Agenten auf einem anderen Rechner arbeiten. Was zu diesem PC gehört (Grafikkarte, Schirm,
+lokale KIs), ist als „dieser PC“ gekennzeichnet.
 Status: **Entwurf, wartet auf Freigabe.** Mockup: [plan-projektwahl-mockup.html](plan-projektwahl-mockup.html).
 
 ## Ziel und Abnahme
@@ -11,7 +13,7 @@ Status: **Entwurf, wartet auf Freigabe.** Mockup: [plan-projektwahl-mockup.html]
    jede Ansicht nur das gewählte Projekt: Start, Fragen, Planung, Aufgaben, Verlauf, Releases, Wissen, Dokumente,
    Betrieb, Einstellungen, Suche, Zähler, „Seit du weg warst“. Am PC und online gleich.
 2. Jeder Knopf und jede Aktion wirkt nur im gewählten Projekt, auch Befehle vom Handy.
-3. PC-weite Teile tragen die Marke „alle Projekte“. Das sind lokale KIs, Schirm, GPU-/Schirm-Platz der Lauf-Schlange,
+3. Teile, die zu diesem PC gehören, tragen die Marke „dieser PC“. Das sind lokale KIs, Schirm, GPU-/Schirm-Platz der Lauf-Schlange,
    Dienst, Speicher, „Dieser PC“, Online-Speicher, Push-Kanäle und die Online-Anmeldung. Belegt ein Lauf des anderen
    Projekts die Grafikkarte, sieht man das mit Projektnamen, aber ohne dessen Inhalte.
 4. Die Liste der Projekte zeigt je Projekt die offenen Fragen an den Entwickler, damit man nicht wechseln muss, um zu
@@ -58,10 +60,10 @@ alle Projekte. Nur ein Projekt kennen dagegen:
 - **Jede Anfrage** trägt das Projekt: eine Stelle in `holen`/`schicken` (`ziel()`), keine Änderung je Ansicht.
 - **Farbe** je Projekt: Einstellung im Projekt (`projekt.einstellungen`, wie `entwickler_name`), wählbar unter
   Einstellungen → Projekt. Als dünner Streifen über dem Kopf.
-- **„alle Projekte“:** Marke an Lokale KI, Schirm, Dieser PC, Online-Speicher, Push-Kanälen. Die Signale im Kopf
+- **„dieser PC“:** Marke an Lokale KI, Schirm, Dieser PC, Online-Speicher, Push-Kanälen. Die Signale im Kopf
   (Dienst, Speicher, Schirm) bekommen ein kleines „PC“. In der Lauf-Liste stehen fremde GPU-/Schirm-Läufe grau mit dem
   Projektnamen, ohne Titel.
-- **HALT** gilt wie heute für das gewählte Projekt. Neu im Halt-Fenster: „alle Projekte anhalten“ (siehe Frage).
+- **HALT** bleibt, wie er ist: Er gilt für das Projekt, in dem man ihn drückt. Der Wechsel selbst hält nichts an.
 - **Einstellungen:** „Aktives Projekt“ wird zur echten Auswahl. Speichergrenze, Dienst und Push sind als PC-Einstellung
   gekennzeichnet; die Speichergrenze zieht von „Projekt“ zu „Dieser PC“ um.
 
@@ -103,11 +105,17 @@ alle Projekte. Nur ein Projekt kennen dagegen:
 Zusammen etwa 9 h. Zwischenstände gehen einzeln live (erst A+D, dann B, dann C). Laufende Arbeit im bestehenden Projekt
 bleibt unberührt, weil es bis zum zweiten Projekt nur eines gibt.
 
+## Geklärt
+
+- Umschalten ändert nur die Ansicht; kein Projekt wird angehalten (Entwickler, 06.11.).
+
 ## Offene Fragen an den Entwickler
 
-1. **Was heißt „immer nur ein Projekt aktiv“?** Empfehlung: Es geht um die Anzeige. Die Agenten beider Projekte
-   arbeiten weiter und teilen sich Grafikkarte und Schirm über die Schlange. Die Alternative wäre: Der Wechsel hält
-   das andere Projekt an.
-2. **HALT:** Empfehlung: wie heute nur das gewählte Projekt, dazu im Halt-Fenster die Wahl „alle Projekte“.
-3. **Schema 18** (`push_versand.projekt_id`) – ja? Empfehlung: ja.
-4. **Auswahl oben in der Navigation** (Variante A) oder im Kopf (B)? Empfehlung: A.
+1. **Schema 18** (`push_versand.projekt_id`) – ja? Empfehlung: ja.
+2. **Auswahl oben in der Navigation** (Variante A) oder im Kopf (B)? Empfehlung: A.
+
+## Ausblick: Agenten auf einem anderen Rechner (nicht Teil dieses Plans)
+
+Heute müssen Agenten die AMW auf diesem PC erreichen, direkt oder über die Datei-Brücke. Für ein Projekt, dessen Agenten
+auf einem anderen Rechner arbeiten, braucht es einen Zugang über das Netz, z. B. über die Online-Seite mit einem
+Schlüssel je Agent. Das ist ein eigener Plan. Die Projekt-Auswahl ist so gebaut, dass sie dafür nichts ändern muss.
