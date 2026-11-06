@@ -122,7 +122,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .einst { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 980px; }
 .einst > * { min-width: 0; }   /* sonst zieht die breite Agenten-Tabelle alle Karten über den Handy-Rand */
 .einst .karte { padding: 16px 18px; }
-.einst h3 { font: 600 15px var(--titel); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; }
+.einst h3, .dialog > h3 { font: 600 15px var(--titel); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; }
 .einst .feld { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 6px 14px; align-items: start; padding: 5px 0; }
 .einst .feld > label { color: var(--leise); font-size: 13px; padding-top: 7px; }
 .einst input:not([type=checkbox]), .einst select { width: 100%; max-width: 420px; padding: 7px 9px; background: var(--grund); color: var(--tinte);
@@ -280,6 +280,11 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .dk-filter { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
 .dk-filter select, .dk-filter input { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; padding: 6px 8px; color: var(--tinte); font: inherit; font-size: 14px; min-width: 0; }
 .dk-filter input { flex: 1 1 220px; }
+.dk-filter select { max-width: 230px; }
+.dk-arten { display: flex; gap: 6px; flex-wrap: wrap; margin: -4px 0 12px; }
+.dk-arten .vl-chip { font-size: 12.5px; padding: 4px 11px; }
+.kopf .kopf-aktion { margin-left: auto; align-self: center; }
+@media (max-width: 760px) { .dk-filter select { flex: 1 1 140px; max-width: none; } .dk-filter .klein-knopf { flex: none; } }
 .dk-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
 .dk-karte { display: grid; grid-template-rows: 130px auto; border: 1px solid var(--linie); border-radius: 4px; background: var(--flaeche); overflow: hidden;
   cursor: pointer; text-align: left; padding: 0; color: inherit; font: inherit; }
@@ -290,7 +295,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .dk-symbol { font: 600 22px var(--titel); letter-spacing: .12em; color: var(--leise); text-transform: uppercase; }
 .dk-symbol small { display: block; font: 11px var(--mono); letter-spacing: 0; text-align: center; color: var(--sehrleise); margin-top: 4px; }
 .dk-text { padding: 9px 11px; display: grid; gap: 3px; }
-.dk-text b { font-size: 14.5px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dk-text b { font-size: 14.5px; line-height: 1.35; max-height: 2.7em; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .dk-text span { font-size: 12.5px; color: var(--leise); }
 .dk-liste .zeile { cursor: pointer; }
 .dk-detail { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
@@ -757,7 +762,7 @@ const TEXTE = {
   de: {
     marke: "Agentenmanagement Workbench", suche: "Suchen: Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten",
     g_fuerdich: "Für dich", g_arbeit: "Arbeit", g_wissen: "Wissen", g_betrieb: "Betrieb",
-    n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_aufgaben_kurz: "Arbeit", n_releases: "Release Notes", n_releases_kurz: "Releases", n_wissen: "Wissen", n_betrieb: "Betrieb",
+    n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_aufgaben_kurz: "Arbeit", n_releases: "Release Notes", n_releases_kurz: "Notes", n_wissen: "Wissen", n_betrieb: "Betrieb",
     thema: "Hell / Dunkel", halt: "Halt", weiter: "Weiter",
     s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
     nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
@@ -856,7 +861,9 @@ const TEXTE = {
     ampel_gelb: "gelb", ampel_rot: "rot", pl_freigaben: "{n} Freigabe(n) für dich", pl_spec_frei: "Bogen {b} „{x}“: {teil} (v{v}) freigeben",
     pl_plan_frei: "Plan A{a} „{x}“ von {ag} freigeben", pr_zeitleiste: "Zeitleiste", pr_leitbild: "Leitbild", pr_risiken: "Risiken",
     pr_check: "Plan-Check", pr_protokoll: "Protokoll", pr_termine: "Termine",
-    themen: "Themen ({n})", th_erkl: "Je System eine Seite „gilt jetzt“: die gepflegte Zusammenfassung und alle geltenden Beschlüsse des Themas. Ein neuer Beschluss macht die Zusammenfassung „veraltet“, bis der Pfleger sie anpasst oder bestätigt. Alte Beschlüsse werden „überholt“ statt liegen zu bleiben.",
+    themen: "Themen ({n})", w_neueste: "Die neuesten {n} von {g} – ältere findet die Suche.",
+    dk_alle: "Alle", dk_art: "Art", dk_zeit_alle: "jederzeit", dk_zeit_heute: "heute", dk_zeit_7: "letzte 7 Tage", dk_zeit_30: "letzte 30 Tage",
+    dk_sort_neu: "neueste zuerst", dk_sort_alt: "älteste zuerst", dk_sort_titel: "Titel A–Z", dk_sort_art: "nach Art", th_erkl: "Je System eine Seite „gilt jetzt“: die gepflegte Zusammenfassung und alle geltenden Beschlüsse des Themas. Ein neuer Beschluss macht die Zusammenfassung „veraltet“, bis der Pfleger sie anpasst oder bestätigt. Alte Beschlüsse werden „überholt“ statt liegen zu bleiben.",
     th_veraltet: "veraltet seit B{b}", th_aktuell: "aktuell", th_ohne: "ohne Zusammenfassung", th_stil: "Projekt-Stil", th_zahlen: "{g} gelten · Pfleger {p}",
     th_unklar: "{n} unklar", th_pfleger: "Pfleger: {p}", th_gilt_jetzt: "Gilt jetzt", th_fassung: "Fassung {n} · {v} · {x}",
     th_keine_zf: "Noch keine Zusammenfassung – der Pfleger schreibt sie (amw thema pflegen …).", th_beschluesse: "Geltende Beschlüsse ({n})", th_ueberholt: "Überholt ({n})",
@@ -919,7 +926,7 @@ const TEXTE = {
     rst_eingetreten: "eingetreten", rst_erledigt: "erledigt", str_vermeiden: "vermeiden", str_mindern: "mindern", str_uebertragen: "übertragen",
     str_akzeptieren: "akzeptieren", pe_freigabe: "Freigaben für dich (Spezifikation, Pläne)",
     n_verlauf: "Verlauf", n_dokumente: "Dokumente", n_dokumente_kurz: "Doku", vl_dokument: "Dokumente",
-    dk_such_ph: "In Titel und Text suchen …", dk_alle_arten: "Alle Arten", dk_alle_bezuege: "Alle Bögen", dk_raster: "Raster", dk_liste: "Liste",
+    dk_such_ph: "In Titel und Text suchen …", dk_alle_bezuege: "Alle Bögen", dk_raster: "Raster", dk_liste: "Liste",
     dks_aktuell: "aktuell", dks_archiviert: "archiviert", dks_alle: "alle", dks_geloescht: "gelöscht",
     dka_ergebnis: "Ergebnis", dka_bericht: "Bericht", dka_entwurf: "Entwurf", dka_mockup: "Mockup", dka_bild: "Bild", dka_quelle: "Quelle",
     dkb_bogen: "Bogen", dkb_aufgabe: "Aufgabe", dkb_frage: "Frage", dkb_beschluss: "Beschluss",
@@ -968,7 +975,7 @@ const TEXTE = {
     e_lauf_ohne: "Warnung: Lauf ohne Dauer-Angabe nach (min)", e_lauf_ohne_h: "mit lauf start --dauer N: Warnung nach 2 × N",
     wissen: "Wissen", wissen_ph: "in Beschlüssen, Regeln, Wortlaut suchen …", beschluesse: "Beschlüsse ({n})", regeln: "Regeln ({n})", wortlaut: "Wortlaut ({n})",
     arbeitsregel: "Arbeitsregel", projektregel: "Projektregel", nichts_gefunden: "Nichts gefunden.",
-    betrieb: "Betrieb", speicher_frei: "Arbeitsspeicher frei", von_gb: "von {n} GB · Grenze für Läufe 8 GB", aktive_sitzungen: "Aktive Sitzungen",
+    betrieb: "Betrieb", speicher_frei: "Arbeitsspeicher frei", von_gb: "von {n} GB · Grenze für Läufe {g} GB", aktive_sitzungen: "Aktive Sitzungen",
     ueber_hook: "angemeldet über den Hook", sperren: "Sperren", halt_anweisungen: "Halt und Anweisungen", datenbank: "Datenbank",
     keine_sperren: "Keine Sperren.", sitzungen: "Sitzungen", keine_sitzung: "Noch keine Sitzung angemeldet.", laeufe: "Rechen-Läufe", keine_laeufe: "Keine Läufe.",
     ki: "Lokale KI", ki_erkl: "Aufträge an die KIs laufen über die Lauf-Schlange (Platz GPU: auf dem ganzen PC ein Lauf zur Zeit) und werden von der AMW selbst ausgeführt; jedes Ergebnis wird ein Dokument mit Herkunft.",
@@ -1012,7 +1019,7 @@ const TEXTE = {
   en: {
     marke: "Agent Management Workbench", suche: "Search: tasks, decisions, questions, statements, messages",
     g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
-    n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_aufgaben_kurz: "Tasks", n_releases: "Release notes", n_releases_kurz: "Releases", n_wissen: "Knowledge", n_betrieb: "Operations",
+    n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_aufgaben_kurz: "Tasks", n_releases: "Release notes", n_releases_kurz: "Notes", n_wissen: "Knowledge", n_betrieb: "Operations",
     thema: "Light / Dark", halt: "Halt", weiter: "Resume",
     s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
@@ -1110,7 +1117,9 @@ const TEXTE = {
     n_planung: "Planning", n_planung_kurz: "Plan", pl_termin: "Schedule", pl_risiko: "Risk", pl_qualitaet: "Quality", ampel_gruen: "green",
     ampel_gelb: "amber", ampel_rot: "red", pl_freigaben: "{n} approval(s) for you", pl_spec_frei: "Arc {b} “{x}”: approve {teil} (v{v})",
     pl_plan_frei: "Approve plan A{a} “{x}” by {ag}", pr_zeitleiste: "Timeline", pr_leitbild: "Charter", pr_risiken: "Risks", pr_check: "Plan check", pr_termine: "Dates",
-    themen: "Topics ({n})", th_erkl: "One page per system “in force now”: the maintained summary plus all decisions in force for the topic. A new decision marks the summary “outdated” until the maintainer updates or confirms it. Old decisions are marked “superseded” instead of piling up.",
+    themen: "Topics ({n})", w_neueste: "The latest {n} of {g} – search finds older ones.",
+    dk_alle: "All", dk_art: "Type", dk_zeit_alle: "any time", dk_zeit_heute: "today", dk_zeit_7: "last 7 days", dk_zeit_30: "last 30 days",
+    dk_sort_neu: "newest first", dk_sort_alt: "oldest first", dk_sort_titel: "Title A–Z", dk_sort_art: "by type", th_erkl: "One page per system “in force now”: the maintained summary plus all decisions in force for the topic. A new decision marks the summary “outdated” until the maintainer updates or confirms it. Old decisions are marked “superseded” instead of piling up.",
     th_veraltet: "outdated since B{b}", th_aktuell: "current", th_ohne: "no summary", th_stil: "project style", th_zahlen: "{g} in force · maintainer {p}",
     th_unklar: "{n} unclear", th_pfleger: "Maintainer: {p}", th_gilt_jetzt: "In force now", th_fassung: "version {n} · {v} · {x}",
     th_keine_zf: "No summary yet – the maintainer writes it (amw thema pflegen …).", th_beschluesse: "Decisions in force ({n})", th_ueberholt: "Superseded ({n})",
@@ -1172,7 +1181,7 @@ const TEXTE = {
     rs_verantwortlich: "Owner", rs_ausloeser: "Trigger", rst_offen: "open", rst_eingetreten: "occurred", rst_erledigt: "closed", str_vermeiden: "avoid",
     str_mindern: "mitigate", str_uebertragen: "transfer", str_akzeptieren: "accept", pe_freigabe: "approvals for you (specs, plans)",
     n_verlauf: "History", n_dokumente: "Documents", n_dokumente_kurz: "Docs", vl_dokument: "Documents",
-    dk_such_ph: "Search title and text …", dk_alle_arten: "All types", dk_alle_bezuege: "All arcs", dk_raster: "Grid", dk_liste: "List",
+    dk_such_ph: "Search title and text …", dk_alle_bezuege: "All arcs", dk_raster: "Grid", dk_liste: "List",
     dks_aktuell: "current", dks_archiviert: "archived", dks_alle: "all", dks_geloescht: "deleted",
     dka_ergebnis: "Result", dka_bericht: "Report", dka_entwurf: "Draft", dka_mockup: "Mockup", dka_bild: "Image", dka_quelle: "Source",
     dkb_bogen: "Arc", dkb_aufgabe: "Task", dkb_frage: "Question", dkb_beschluss: "Decision",
@@ -1219,7 +1228,7 @@ const TEXTE = {
     e_lauf_ohne: "Warn: run without duration after (min)", e_lauf_ohne_h: "with lauf start --dauer N: warning after 2 × N",
     wissen: "Knowledge", wissen_ph: "search decisions, rules, statements …", beschluesse: "Decisions ({n})", regeln: "Rules ({n})", wortlaut: "Statements ({n})",
     arbeitsregel: "Working rule", projektregel: "Project rule", nichts_gefunden: "Nothing found.",
-    betrieb: "Operations", speicher_frei: "Free memory", von_gb: "of {n} GB · limit for runs 8 GB", aktive_sitzungen: "Active sessions",
+    betrieb: "Operations", speicher_frei: "Free memory", von_gb: "of {n} GB · limit for runs {g} GB", aktive_sitzungen: "Active sessions",
     ueber_hook: "registered by the hook", sperren: "Locks", halt_anweisungen: "Halts and instructions", datenbank: "Database",
     keine_sperren: "No locks.", sitzungen: "Sessions", keine_sitzung: "No session registered yet.", laeufe: "Compute runs", keine_laeufe: "No runs.",
     ki: "Local AI", ki_erkl: "Jobs for the local AIs go through the run queue (GPU slot: one run at a time on the whole PC) and are executed by AMW itself; every result becomes a document with its provenance.",
@@ -1852,8 +1861,7 @@ async function agentDialog(kennung, reiter) {
           (d.letzter_puls_utc ? ` · ${t("puls", { t: seit(d.letzter_puls_utc) })}` : "")),
         el("span", { style: "margin-left:auto;display:flex;gap:8px;flex-wrap:wrap" }, ...steuerKnoepfe(d, () => hg.remove()),
           d.claude_link ? el("a", { class: "knopf", href: d.claude_link, target: "_blank", rel: "noopener noreferrer", title: t("g_claude_h") }, t("g_claude")) : null,
-          el("button", { class: "knopf", type: "button", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht"))),
-        el("button", { class: "klein-knopf", type: "button", "aria-label": t("vb_schliessen"), onclick: () => hg.remove() }, "×")),
+          el("button", { class: "knopf", type: "button", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht")))),
       tabs, uebersicht, gespraech));
   document.body.append(hg);
   if (reiter === "gespraech") wechseln("gespraech");
@@ -1863,7 +1871,7 @@ function nachrichtDialog(an) {
   const kurz = el("input", { placeholder: t("n_kurz_ph"), style: "width:100%;padding:8px;margin:8px 0;background:var(--grund);border:1px solid var(--linie);border-radius:3px" });
   const text = el("textarea", { placeholder: t("n_text_ph") });
   const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
-    el("div", { class: "karte dialog" }, el("h3", { style: "color:var(--tinte)" }, t("nachricht_an", { x: an })), art, kurz, text,
+    el("div", { class: "karte dialog" }, el("h3", {}, t("nachricht_an", { x: an })), art, kurz, text,
       el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: async () => {
         if (!kurz.value.trim()) { toast(t("text_fehlt"), true); return; }
         try { const r = await schicken("/api/nachricht", { an, art: art.value, kurz: kurz.value.trim(), text: text.value.trim() });
@@ -2065,17 +2073,20 @@ async function sichtWissen() {
   const r = zustand.wissenReiter;
   if (r === "themen") {                                      /* Design-Dokument je Thema */
     let th; try { th = await holen("/api/themen"); } catch (e) { th = []; }
-    m.append(el("div", { class: "reiter" }, [["themen", th.length], ["beschluesse", d.beschluesse.length], ["regeln", d.regeln.length],
-      ["wortlaut", d.wortlaut.length], ["notizen", (d.notizen || []).length]]
+    m.append(el("div", { class: "reiter" }, [["themen", th.length], ["beschluesse", d.anzahl?.beschluesse ?? d.beschluesse.length], ["regeln", d.regeln.length],
+      ["wortlaut", d.anzahl?.wortlaut ?? d.wortlaut.length], ["notizen", (d.notizen || []).length]]
       .map(([k, n]) => el("button", { class: k === r ? "an" : "", type: "button", onclick: () => { zustand.wissenReiter = k; sichtWissen(); } }, t(k, { n }))),
       el("div", { class: "rechts" }, such)));
     return m.append(themenAnsicht(th, zustand.wissenQ));
   }
-  m.append(el("div", { class: "reiter" }, [["themen", "…"], ["beschluesse", d.beschluesse.length], ["regeln", d.regeln.length], ["wortlaut", d.wortlaut.length],
-    ["notizen", (d.notizen || []).length]]
+  const anzahl = { beschluesse: d.anzahl?.beschluesse ?? d.beschluesse.length, wortlaut: d.anzahl?.wortlaut ?? d.wortlaut.length };
+  m.append(el("div", { class: "reiter" }, [["themen", d.anzahl?.themen ?? "…"], ["beschluesse", anzahl.beschluesse], ["regeln", d.regeln.length],
+    ["wortlaut", anzahl.wortlaut], ["notizen", (d.notizen || []).length]]
     .map(([k, n]) => el("button", { class: k === r ? "an" : "", type: "button", onclick: () => { zustand.wissenReiter = k; sichtWissen(); } }, t(k, { n }))),
     el("div", { class: "rechts" }, such)));
   const box = el("div", { class: "zeile-reveal" });
+  const gezeigt = { beschluesse: d.beschluesse.length, wortlaut: d.wortlaut.length }[r];
+  if (gezeigt && anzahl[r] > gezeigt) m.append(el("p", { class: "sehrleise", style: "font-size:13px;margin:-4px 0 10px" }, t("w_neueste", { n: gezeigt, g: anzahl[r] })));
   if (r === "beschluesse") box.append(...d.beschluesse.map(b => el("div", { class: "karte wissen-eintrag" },
     el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `B${b.id}`), el("b", {}, b.stichwort),
       el("span", { class: "etikett " + (b.status === "gilt" ? "gruen" : b.status === "unklar" ? "bernstein" : "") }, b.status),
@@ -2107,7 +2118,7 @@ async function sichtDokumente() {
   const qs = new URLSearchParams({ status: f.status });
   if (f.art) qs.set("art", f.art); if (f.von) qs.set("von", f.von); if (f.q) qs.set("q", f.q);
   if (f.bezug) { const [ba, bi] = f.bezug.split(":"); qs.set("bezug_art", ba); qs.set("bezug_id", bi); }
-  const m = rahmen(t("n_dokumente"));
+  const m = rahmen(t("n_dokumente"), el("button", { class: "knopf haupt kopf-aktion", type: "button", onclick: () => dokHochladen({ bezug: f.bezug }) }, t("dk_hochladen")));
   let d; try { d = await holen("/api/dokumente?" + qs); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   const neu = (k, v) => { f[k] = v; sichtDokumente(); };
   const auswahl = (k, leer, paare) => el("select", { onchange: e => neu(k, e.target.value) }, el("option", { value: "" }, leer),
@@ -2115,16 +2126,31 @@ async function sichtDokumente() {
   const such = el("input", { type: "search", placeholder: t("dk_such_ph"), value: f.q, onkeydown: e => { if (e.key === "Enter") neu("q", e.target.value.trim()); } });
   const bezugListe = d.boegen.map(b => [`bogen:${b.id}`, `${bogenRef(b.id)} · ${b.titel}`]);
   if (f.bezug && !f.bezug.startsWith("bogen:")) bezugListe.unshift([f.bezug, f.bezug.replace("aufgabe:", "A").replace("frage:", "F").replace("beschluss:", "B")]);
+  /* Art als Chips (wie die Arten im Verlauf), Zahl = aktuelle Dokumente; Zeitraum und Reihenfolge wirken hier in der Seite */
+  const arten = Object.entries(d.arten).sort((a, b) => b[1] - a[1]);
+  if (f.art && !d.arten[f.art]) arten.push([f.art, 0]);
+  const chip = (wert, text) => el("button", { class: "vl-chip" + (f.art === wert ? " an" : ""), type: "button", "aria-pressed": String(f.art === wert),
+    onclick: () => neu("art", wert) }, text);
+  m.append(el("div", { class: "dk-arten", role: "group", "aria-label": t("dk_art") },
+    chip("", `${t("dk_alle")} (${arten.reduce((s, [, n]) => s + n, 0)})`), arten.map(([a, n]) => chip(a, `${t("dka_" + a)} (${n})`))));
+  const wahl = (k, paare, vorgabe) => el("select", { onchange: e => neu(k, e.target.value) }, paare.map(([v, text]) =>
+    el("option", { value: v, ...((f[k] || vorgabe) === v ? { selected: true } : {}) }, text)));
   m.append(el("div", { class: "dk-filter" }, such,
-    auswahl("art", t("dk_alle_arten"), Object.entries(d.arten).map(([a, n]) => [a, `${t("dka_" + a)} (${n})`])),
     auswahl("von", t("alle_agenten"), Object.entries(d.von).map(([a, n]) => [a, `${a} (${n})`])),
     auswahl("bezug", t("dk_alle_bezuege"), bezugListe),
+    wahl("zeit", [["", t("dk_zeit_alle")], ["heute", t("dk_zeit_heute")], ["7", t("dk_zeit_7")], ["30", t("dk_zeit_30")]], ""),
+    wahl("sort", [["neu", t("dk_sort_neu")], ["alt", t("dk_sort_alt")], ["titel", t("dk_sort_titel")], ["art", t("dk_sort_art")]], "neu"),
     el("select", { onchange: e => neu("status", e.target.value) }, ["aktuell", "archiviert", "alle"].map(s =>
       el("option", { value: s, ...(f.status === s ? { selected: true } : {}) }, t("dks_" + s) + (s === "archiviert" ? ` (${d.archiviert})` : "")))),
-    el("button", { class: "klein-knopf", type: "button", onclick: () => neu("liste", !f.liste) }, t(f.liste ? "dk_raster" : "dk_liste")),
-    el("button", { class: "knopf haupt", type: "button", onclick: () => dokHochladen({ bezug: f.bezug }) }, t("dk_hochladen"))));
+    el("button", { class: "klein-knopf", type: "button", onclick: () => neu("liste", !f.liste) }, t(f.liste ? "dk_raster" : "dk_liste"))));
+  const ab = f.zeit === "heute" ? new Date(new Date().setHours(0, 0, 0, 0)) : f.zeit ? new Date(Date.now() - Number(f.zeit) * 864e5) : null;
+  d.dokumente = d.dokumente.filter(x => !ab || new Date(x.version_utc) >= ab);
+  const vergleich = { alt: (a, b) => a.version_utc.localeCompare(b.version_utc) || a.id - b.id,
+    titel: (a, b) => a.titel.localeCompare(b.titel, gebiet(), { numeric: true }),
+    art: (a, b) => t("dka_" + a.art).localeCompare(t("dka_" + b.art), gebiet()) || b.version_utc.localeCompare(a.version_utc) }[f.sort];
+  if (vergleich) d.dokumente.sort(vergleich);
   if (!d.dokumente.length) {
-    m.append(el("div", { class: "leer" }, t(f.q || f.art || f.von || f.bezug || f.status !== "aktuell" ? "nichts_gefunden" : "dk_leer")),
+    m.append(el("div", { class: "leer" }, t(f.q || f.art || f.von || f.bezug || f.zeit || f.status !== "aktuell" ? "nichts_gefunden" : "dk_leer")),
       el("p", { class: "sehrleise mono", style: "font-size:13px" }, "amw dokument ablegen <datei> --titel … --art ergebnis|bericht|entwurf|mockup|bild --aufgabe <nr>"));
     return;
   }
@@ -2953,6 +2979,12 @@ new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) {
   if (!n.classList?.contains("dialog-hg") || n.querySelector(".dialog-zu") || !n.firstElementChild) continue;
   n.firstElementChild.prepend(el("button", { class: "dialog-zu", type: "button", title: t("vb_schliessen"), "aria-label": t("vb_schliessen"),
     onclick: () => n.dispatchEvent(new MouseEvent("click", { bubbles: true })) }, "✕")); } }).observe(document.body, { childList: true });
+/* Enter in einem einzeiligen Feld (Strg+Enter auch im Textfeld) löst den Hauptknopf des obersten Dialogs aus */
+window.addEventListener("keydown", e => { if (e.key !== "Enter" || e.defaultPrevented || e.isComposing) return;
+  const x = e.target, hg = x.closest?.(".dialog-hg"); if (!hg || hg !== [...document.querySelectorAll(".dialog-hg")].pop()) return;
+  const einzeilig = x.tagName === "INPUT" && !["checkbox", "radio", "file", "button", "submit"].includes(x.type);
+  if (!einzeilig && !(x.tagName === "TEXTAREA" && (e.ctrlKey || e.metaKey))) return;
+  const k = hg.querySelector(".knopf.haupt:not([disabled])"); if (k) { e.preventDefault(); k.click(); } });
 /* Esc schließt nur den obersten Dialog (Vollbild und Editor fangen Esc vorher selbst ab) */
 window.addEventListener("keydown", e => { if (e.key !== "Escape" || e.defaultPrevented) return;
   const oben = [...document.querySelectorAll(".dialog-hg")].pop(); if (oben) { e.preventDefault(); oben.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
@@ -3049,7 +3081,7 @@ function bogenDialog(b) {
   const hg = dialog(b ? bogenRef(b.id) : t("pl_bogen_neu"), zeile(t("pl_titel"), f.titel), zeile(t("pl_ziel"), f.ziel),
     zeile(t("pl_abnahme"), f.abnahme, t("pl_abnahme_h")), zeile(t("pl_zieldatum"), f.zieldatum),
     b?.baseline_datum ? zeile(t("pl_grund"), f.grund, t("pl_grund_h", { x: datumKurz(b.baseline_datum) })) : null,
-    el("div", { class: "aktionen" }, el("button", { class: "klein-knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")), knopf));
+    el("div", { class: "aktionen" }, knopf, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
   knopf.addEventListener("click", async () => {
     const daten = { titel: f.titel.value.trim(), ziel: f.ziel.value.trim(), abnahme: f.abnahme.value.trim(), zieldatum: f.zieldatum.value || null };
     try { await schicken("/api/plan/bogen", b ? { ...daten, bogen: b.id, grund: f.grund.value.trim() || null } : { ...daten, aktion: "neu" });
@@ -3100,7 +3132,7 @@ function risikoDialog(r) {
   const hg = dialog(r ? `R${r.id}` : t("rs_neu"), zeile(t("rs_titel"), f.titel), zeile(t("rs_ursache"), f.ursache), zeile(t("rs_wirkung"), f.wirkung),
     zeile(t("rs_wahrscheinlichkeit"), f.w), zeile(t("rs_auswirkung"), f.a), zeile(t("rs_strategie"), f.strategie), zeile(t("rs_massnahme"), f.massnahme),
     zeile(t("rs_verantwortlich"), f.verantwortlich), zeile(t("rs_ausloeser"), f.ausloeser), zeile(t("k_status"), f.status),
-    el("div", { class: "aktionen" }, el("button", { class: "klein-knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")), knopf));
+    el("div", { class: "aktionen" }, knopf, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
   knopf.addEventListener("click", async () => {
     try { await schicken("/api/plan/risiko", { id: r?.id ?? null, titel: f.titel.value.trim(), ursache: f.ursache.value.trim(), wirkung: f.wirkung.value.trim(),
       wahrscheinlichkeit: Number(f.w.value), auswirkung: Number(f.a.value), strategie: f.strategie.value || null, massnahme: f.massnahme.value.trim(),
@@ -3174,7 +3206,7 @@ async function sichtBetrieb() {
   const anteil = d.speicher.frei && d.speicher.gesamt ? d.speicher.frei / d.speicher.gesamt : 0;
   m.append(el("div", { class: "messer zeile-reveal" },
     el("div", { class: "karte" }, el("div", { class: "leise" }, t("speicher_frei"), " ", pcMarke()), el("div", { class: "wert" }, d.speicher.frei == null ? "?" : `${d.speicher.frei} GB`),
-      el("div", { class: "sehrleise" }, t("von_gb", { n: d.speicher.gesamt })),
+      el("div", { class: "sehrleise" }, t("von_gb", { n: d.speicher.gesamt, g: d.speicher.grenze })),
       el("div", { class: "balken" }, el("i", { style: `width:${Math.round(anteil * 100)}%;background:var(${d.speicher.frei < 8 ? "--bernstein" : "--gruen"})` }))),
     el("div", { class: "karte" }, el("div", { class: "leise" }, t("aktive_sitzungen")), el("div", { class: "wert" }, d.sitzungen.filter(s => s.zustand === "aktiv").length),
       el("div", { class: "sehrleise" }, t("ueber_hook"))),
@@ -3432,7 +3464,8 @@ async function sichtEinstellungen() {
   else box.append(await pushBlock(feld, text, zahl, schalter, wert, speichern));
   /* Sprungmarken: die Seite ist lang – jeder Abschnitt mit einem Klick erreichbar */
   m.append(el("div", { class: "sprung" }, [...box.children].map(k => { const h = k.querySelector("h3");
-    return h ? el("a", { onclick: () => k.scrollIntoView({ behavior: "smooth", block: "start" }) }, h.textContent) : null; }).filter(Boolean)));
+    const text = h && [...h.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent).join("").trim();
+    return h ? el("a", { onclick: () => k.scrollIntoView({ behavior: "smooth", block: "start" }) }, text || h.textContent) : null; }).filter(Boolean)));
   m.append(box);
 }
 /* Zahnrad „Benachrichtigungen“: Hauptschalter, Anbieter (Geheimnisse nur als „gespeichert“), Ereignisse, Ruhezeit,
@@ -3456,7 +3489,7 @@ function profilDialog(a) {
       zeile(t("pr_ordner"), f.ordner), zeile(t("pr_zusatz"), f.zusatz, t("pr_zusatz_h")), zeile(t("pr_denkstufe"), f.denkstufe),
       zeile(t("pr_modell"), f.modell), zeile(t("pr_rechte"), f.rechte, t("pr_rechte_h")), zeile(t("pr_fern"), f.fern, t("pr_fern_h")),
       zeile(t("pr_neustart"), f.neustart, t("pr_neustart_h")), zeile(t("pr_startsatz"), f.startsatz, t("pr_startsatz_h")),
-      el("div", { class: "aktionen" }, el("button", { class: "klein-knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")), knopf)));
+      el("div", { class: "aktionen" }, knopf, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")))));
   knopf.addEventListener("click", async () => {
     knopf.disabled = true;
     try {

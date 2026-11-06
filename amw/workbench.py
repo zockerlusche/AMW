@@ -20,7 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from . import aktionen, db, kern
-from .betrieb import speicher_frei_gb
+from .betrieb import speicher_frei_gb, speicher_grenze
 
 STANDARD_PORT = 8780
 HIER = os.path.dirname(os.path.abspath(__file__))
@@ -596,7 +596,13 @@ def daten_wissen(con, pid, q):
     n = con.execute("SELECT schluessel, wert, geaendert_utc FROM notiz WHERE projekt_id = ?"
                     + (" AND (schluessel LIKE ? OR wert LIKE ?)" if such else "") + " ORDER BY schluessel",
                     (pid, muster, muster) if such else (pid,))
-    return {"beschluesse": zeilen(b), "wortlaut": zeilen(w), "regeln": zeilen(r), "notizen": zeilen(n)}
+    z = lambda sql, *par: con.execute(sql, (pid, *par)).fetchone()[0]
+    anzahl = {"themen": z("SELECT count(*) FROM thema WHERE projekt_id = ?"),       # alle, nicht nur die gezeigten
+              "beschluesse": z("SELECT count(*) FROM beschluss WHERE projekt_id = ? AND (stichwort LIKE ? OR regel LIKE ?)",
+                               muster, muster) if such else z("SELECT count(*) FROM beschluss WHERE projekt_id = ? AND status = 'gilt'"),
+              "wortlaut": z("SELECT count(*) FROM wortlaut WHERE projekt_id = ? AND text LIKE ?", muster) if such
+              else z("SELECT count(*) FROM wortlaut WHERE projekt_id = ?")}
+    return {"beschluesse": zeilen(b), "wortlaut": zeilen(w), "regeln": zeilen(r), "notizen": zeilen(n), "anzahl": anzahl}
 
 
 def daten_suche(con, pid, q):
@@ -723,7 +729,7 @@ def daten_betrieb(con, pid):
     return {"sitzungen": sitz, "laeufe": laeufe, "fremd": fremd, "sperren": sperren, "server": server,
             "log": [z.rstrip() for z in log],
             "verbrauch": statusline.verbrauch_tage(con, pid, 7), "ki": ki.uebersicht(con, pid),
-            "speicher": {"frei": frei, "gesamt": gesamt}, "db": db.db_pfad()}
+            "speicher": {"frei": frei, "gesamt": gesamt, "grenze": speicher_grenze(con, pid)}, "db": db.db_pfad()}
 
 
 def daten_releases(con, pid):

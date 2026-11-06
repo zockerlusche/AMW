@@ -38,10 +38,15 @@ def speicher_frei_gb():
 
 # --- Läufe ---------------------------------------------------------------------------------------
 
+def speicher_grenze(con, pid):
+    """Ab so viel freiem Arbeitsspeicher starten schwere Läufe (Einstellung des Projekts, sonst die Vorgabe)."""
+    return float(_einstellung(con, pid, "speicher_grenze_gb", SPEICHER_GRENZE_GB))
+
+
 def _grenze(con, pid, braucht_gb, schwer):
     if braucht_gb:
         return float(braucht_gb)
-    return float(_einstellung(con, pid, "speicher_grenze_gb", SPEICHER_GRENZE_GB)) if schwer else 0.0
+    return speicher_grenze(con, pid) if schwer else 0.0
 
 
 def _plaetze(schwer, schirm, gpu=0):

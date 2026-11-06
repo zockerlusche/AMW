@@ -4,6 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.21.0 – 06.11.2026 · Bedienbarkeits-Durchgang, Dokumente nach Art
+Jede Seite und jeder Dialog am PC (1440 px) und am Handy (390 px) aufgerufen und auf einen gemeinsamen Standard geprüft.
+- **Dokumente nach Art:** Die Arten stehen als Chips mit Anzahl über der Liste (wie die Arten im Verlauf), ein Klick
+  filtert. Neu: **Zeitraum** (heute, 7 Tage, 30 Tage) und **Reihenfolge** (neueste, älteste, Titel A–Z, nach Art).
+  „Hochladen“ steht wie andere Hauptaktionen oben neben der Überschrift.
+- **Dialoge einheitlich:** Hauptknopf zuerst, dann „Abbrechen“ (Bogen, Risiko, Profil waren umgekehrt); Titel überall
+  gleich gesetzt; im Agenten-Dialog nur noch ein ✕. **Enter** in einem einzeiligen Feld löst den Hauptknopf aus,
+  Strg+Enter auch im Textfeld.
+- **Ehrliche Zahlen:** Wissen zeigt in den Reitern alle Beschlüsse und Wortlaute (bisher die Zahl der gezeigten, höchstens
+  60) und die Zahl der Themen auch, solange ihr Reiter zu ist; über der Liste steht „die neuesten 60 von N“.
+  Betrieb nennt die Speicher-Grenze des Projekts statt fest „8 GB“.
+- Kleinigkeiten: Sprungleiste der Einstellungen zeigte „Dieser PC dieser PC“; am Handy war „Releases“ in der unteren
+  Leiste abgeschnitten (jetzt „Notes“); Dokument-Titel in Karten ließen eine dritte Zeile anschneiden.
+
 ## 1.20.2 – 06.11.2026 · Projektordner gehört zu seinem Projekt
 Prüfung „mehrere Projekte wirklich durchgängig?“: Gab es eine Kennung in zwei Projekten (z. B. TL) und startete man den
 Agenten von Hand statt über Kachel oder Startskript, meldete der Hook die Sitzung im ersten Projekt an – Nachrichten
