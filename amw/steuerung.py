@@ -81,7 +81,8 @@ def profil(con, pid, kennung):
         zusatz = json.loads(a["zusatzordner"] or "[]")
     except ValueError:
         zusatz = []
-    return {"kennung": a["kennung"], "ordner": a["ordner"], "zusatzordner": zusatz, "denkstufe": a["denkstufe"],
+    projekt = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()["name"]
+    return {"kennung": a["kennung"], "projekt": projekt, "ordner": a["ordner"], "zusatzordner": zusatz, "denkstufe": a["denkstufe"],
             "modell": a["modell"], "startsatz": a["startsatz"], "rechte": a["rechte"] or "vorgabe",
             "fernsteuerung": bool(a["fernsteuerung"]), "neustart_auto": bool(a["neustart_auto"])}
 
@@ -156,7 +157,8 @@ def befehl(p, fortsetzen_id=None, neue_id=None):
         teile.append(p["startsatz"])
     erstes, rest = teile[0], teile[1:]
     aufruf = (f"& {_ps(erstes)} " if " " in erstes or "\\" in erstes else f"{erstes} ") + " ".join(_ps(x) for x in rest)
-    return f"Set-Location {_ps(p['ordner'])}; $env:AMW_AGENT = {_ps(p['kennung'])}; {aufruf}"
+    projekt = f"$env:AMW_PROJEKT = {_ps(p['projekt'])}; " if p.get("projekt") else ""
+    return f"Set-Location {_ps(p['ordner'])}; $env:AMW_AGENT = {_ps(p['kennung'])}; {projekt}{aufruf}"
 
 
 def _shell():

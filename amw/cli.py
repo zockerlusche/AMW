@@ -1,7 +1,7 @@
 """Kommandozeile `amw` – einziger Schreibweg der Agenten (→ doc/architektur.md).
 
-Wer bin ich: --von oder Umgebungsvariable AMW_AGENT. Welches Projekt: --projekt, AMW_PROJEKT oder das
-einzige vorhandene. Ausgabe immer UTF-8 (sonst brechen Umlaute in der Windows-Konsole ab).
+Wer bin ich: --von oder Umgebungsvariable AMW_AGENT. Welches Projekt: --projekt, AMW_PROJEKT, das einzige
+vorhandene oder das, in dem es die Kennung gibt. Ausgabe immer UTF-8 (sonst brechen Umlaute in der Windows-Konsole ab).
 """
 import argparse
 import json
@@ -16,13 +16,11 @@ from . import betrieb, db, kern, schirm, ueberwachung, wissen
 
 
 def _projekt(con, a):
-    name = a.projekt or os.environ.get("AMW_PROJEKT")
-    if name:
-        return db.projekt_id(con, name)
-    zeilen = con.execute("SELECT id, name FROM projekt").fetchall()
-    if len(zeilen) == 1:
-        return zeilen[0]["id"]
-    raise kern.AmwFehler("mehrere oder keine Projekte – --projekt oder AMW_PROJEKT angeben")
+    try:
+        return db.projekt_fuer(con, getattr(a, "projekt", None) or os.environ.get("AMW_PROJEKT"),
+                               getattr(a, "von", None) or os.environ.get("AMW_AGENT"))
+    except LookupError as e:
+        raise kern.AmwFehler(str(e))
 
 
 def _von(a):

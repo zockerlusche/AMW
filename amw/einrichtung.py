@@ -115,7 +115,7 @@ def status(port):
         zeilen.append(f"  {n[:-5]:<8} " + (hook.beschreibung(p) + ("  ← PRÜFEN" if p["art"] == "bg" else "") if p else "Prozess beendet"))
     try:
         con = db.verbinde(nur_lesen=True)
-        fehlt = hook.unangemeldet(con, con.execute("SELECT min(id) FROM projekt").fetchone()[0])
+        fehlt = [u for (p,) in con.execute("SELECT id FROM projekt").fetchall() for u in hook.unangemeldet(con, p)]
         con.close()
     except Exception:
         fehlt = []

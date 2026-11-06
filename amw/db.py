@@ -13,7 +13,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = 17        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
+SCHEMA_VERSION = 18        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
 HIER = os.path.dirname(os.path.abspath(__file__))
 STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
 
@@ -170,7 +170,29 @@ def einfuegen(con, tabelle, **werte):
 
 
 def projekt_id(con, name):
-    r = con.execute("SELECT id FROM projekt WHERE name = ?", (name,)).fetchone()
+    """Projekt nach Name oder Kennung (uid, so steht es online)."""
+    r = con.execute("SELECT id FROM projekt WHERE name = ? OR uid = ?", (name, name)).fetchone()
     if not r:
         raise LookupError(f"Projekt „{name}“ gibt es nicht")
     return r["id"]
+
+
+def projekt_fuer(con, name=None, kennung=None):
+    """Welches Projekt: genannt (--projekt/AMW_PROJEKT), sonst das einzige, sonst das der Kennung (auch frühere
+    Kennungen nach dem Umbenennen). Mehrdeutig → LookupError mit den Projekten (doc/plan-projektwahl.md)."""
+    if name:
+        return projekt_id(con, name)
+    zeilen = con.execute("SELECT id, name FROM projekt ORDER BY id").fetchall()
+    if len(zeilen) == 1:
+        return zeilen[0]["id"]
+    if not zeilen:
+        raise LookupError("keine Projekte – amw projekt neu <name>")
+    if kennung:
+        treffer = {r["projekt_id"] for r in con.execute("SELECT projekt_id FROM agent WHERE kennung = ?", (kennung,))}
+        if not treffer:
+            treffer = {r["projekt_id"] for r in con.execute("SELECT projekt_id, alias FROM agent WHERE alias IS NOT NULL")
+                       if kennung in [x.strip() for x in (r["alias"] or "").split(",")]}
+        if len(treffer) == 1:
+            return treffer.pop()
+    namen = ", ".join(r["name"] for r in zeilen)
+    raise LookupError(f"mehrere Projekte ({namen}) – --projekt <name> oder AMW_PROJEKT angeben")

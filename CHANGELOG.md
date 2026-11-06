@@ -4,6 +4,23 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.17.0 – 06.11.2026 · Mehrere Projekte, Teil 1: Agenten, Brücke und Push je Projekt (Schema 18)
+Erster Schritt zur Projekt-Auswahl ([doc/plan-projektwahl.md](doc/plan-projektwahl.md)). Mit nur einem Projekt ändert
+sich nichts. Die Prüfung mit zwei Projekten hat drei Stellen gefunden, die bisher gescheitert wären:
+- **Befehle der Agenten:** Fehlt `--projekt`/`AMW_PROJEKT`, nimmt die AMW das Projekt, in dem es die Kennung (`--von`)
+  gibt. Bisher scheiterte jeder Befehl, sobald es ein zweites Projekt gab. Ist die Kennung mehrdeutig (z. B. derselbe
+  Lead in zwei Projekten), nennt die Meldung die Projekte. Das Startskript eines Agenten setzt zusätzlich
+  `AMW_PROJEKT`, und der Hook meldet die Sitzung im Projekt der Kennung an.
+- **Brücke:** Befehlsdateien dürfen `"projekt": "<name>"` tragen. Ohne Angabe gilt das Projekt der Kennung. Der Puls
+  zählt nur im genannten Projekt.
+- **Push je Projekt (Schema 18):** Jede Meldung gehört zu einem Projekt, `push_versand.projekt_id`. Bisher hielt die
+  Runde des einen Projekts die Meldungen des anderen für erledigt, und sie gingen nie raus. Mit mehreren Projekten
+  steht der Name vorn im Titel, und der Link öffnet das Projekt (`?projekt=<Kennung>`). Vorhandene Einträge gehören
+  dem ersten Projekt.
+- **Verbrauch** wird über die Sitzung dem Projekt zugeordnet, nicht über die Kennung. Gleiche Kennungen in zwei
+  Projekten zählen nicht mehr doppelt.
+- `--projekt` nimmt auch die Projekt-Kennung (uid), so wie sie online steht.
+
 ## 1.16.2 – 06.11.2026 · Englische Oberfläche: Gegenlese durch die lokale KI
 Der erste echte KI-Auftrag über die AMW: 6 Läufe mit qwen3.5:9b, je etwa 140 Zeilen „Schlüssel | Deutsch | Englisch“,
 zusammen 66 Vorschläge. Geprüft wurde jede Zeile gegen den Code. Übernommen ist, was stimmt; vier Schlüssel hatte die

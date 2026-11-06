@@ -85,7 +85,7 @@ Schreiben über JSON-Befehlsdateien in `eingang-tl/befehle/`, die der Wächter a
 | Dokumente | `dokument` (Titel, Art, Bezug, Status, online), `dokument_version` (Hash, Endung, Größe, Notiz, Suchtext); Kommentare: `nachricht.dokument_id`; Dateien unter `<Datenordner>/dokumente/` |
 | Fragen | `frage` (Optionen, Empfehlung, Antwort), `frage_verlauf` |
 | Wissen | `wortlaut`, `beschluss`, `regel`, `notiz`, `release` |
-| Betrieb | `lauf`, `rezept`, `pruefung`, `sperre` (Hinweis/Halt), `server`, `verbrauch`, `push_versand` |
+| Betrieb | `lauf`, `rezept`, `pruefung`, `sperre` (Hinweis/Halt), `server`, `verbrauch`, `push_versand` (je Projekt seit Schema 18) |
 | Lokale KI (Schema 17) | PC-weit `ki`, `ki_modell` (Freigabe), `ki_vorlage`; je Projekt `ki_recht`; `ki_auftrag` (je Lauf), `ki_herkunft` (je Dokument-Version, unveränderlich) |
 | Abgleich | `netz_eingang` (Briefkasten-Zeilen, die schon ausgeführt sind) |
 Schutz in der Datenbank: Trigger verhindern das Löschen von Verlauf, Änderungen am Wortlaut und „fertig/verworfen“

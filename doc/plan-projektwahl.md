@@ -7,7 +7,8 @@ zusammen und lässt eines auswählen.
 - Jedes Projekt hat seine Agenten, seine Datenbank und sein Wecksystem und läuft unabhängig weiter.
 - Alles, was online beim Hoster liegt, ist einem Projekt zugeordnet.
 
-Status: **freigegeben (Variante A, Schema-Änderung erlaubt), Ausbau auf mehrere Rechner ergänzt.**
+Status: **freigegeben (Variante A, Schema-Änderung erlaubt), Ausbau auf mehrere Rechner ergänzt.** Release 1 (Agenten,
+Brücke, Push je Projekt, Schema 18) umgesetzt in AMW 1.17.0.
 Mockup: [plan-projektwahl-mockup.html](plan-projektwahl-mockup.html).
 
 ## Ziel und Abnahme

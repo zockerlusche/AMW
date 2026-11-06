@@ -476,9 +476,10 @@ CREATE INDEX verbrauch_agent_zeit ON verbrauch (agent, zeit_utc);
 -- Push-Benachrichtigungen: was wann an wen ging (schluessel verhindert Doppelte).
 CREATE TABLE push_versand (
   id               INTEGER PRIMARY KEY,
+  projekt_id       INTEGER NOT NULL REFERENCES projekt(id),        -- je Projekt (Schema 18)
   zeit_utc         TEXT NOT NULL,
   ereignis         TEXT NOT NULL,                  -- frage | nachricht | warnung | eingabe | halt | rueckblick | probe
-  schluessel       TEXT NOT NULL UNIQUE,
+  schluessel       TEXT NOT NULL,
   titel            TEXT NOT NULL,
   text             TEXT,
   prioritaet       INTEGER NOT NULL DEFAULT 3,     -- 1 (leise) … 5 (dringend)
@@ -490,7 +491,8 @@ CREATE TABLE push_versand (
   versuche         INTEGER NOT NULL DEFAULT 0,
   uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft         TEXT NOT NULL DEFAULT '',
-  geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+  geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  UNIQUE (projekt_id, schluessel)
 );
 
 -- Projekt-Server, die der Wächter überwacht (Port antwortet?) und auf Wunsch neu startet (→ amw/ueberwachung.py).

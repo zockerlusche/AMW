@@ -7,7 +7,8 @@ Ein Lead kann z. B. in einer Linux-VM arbeiten, die den AMW-Ordner per FUSE einh
 - Schreiben: Befehlsdateien eingang-tl/befehle/*.json (erst als .tmp schreiben, dann umbenennen). Inhalt entweder
   {"args": ["posten", "--an", "CC1", "--art", "auftrag", "--kurz", "…"]} oder
   {"befehl": "posten", "an": "CC1", "art": "auftrag", "kurz": "…"} (Schlüssel = CLI-Optionen; "aktion", "kennung",
-  "schluessel", "id"/"ids", "wert" sind die Positionsangaben, bei spec/rueckblick auch "bogen" und "teil"). `--datei`,
+  "schluessel", "id"/"ids", "wert" sind die Positionsangaben, bei spec/rueckblick auch "bogen" und "teil"). Mit mehreren
+  Projekten: "projekt": "<name>"; ohne Angabe das Projekt, in dem es die Kennung des Leads gibt. `--datei`,
   `--text-datei`, `--prompt-datei` nur aus eingang-tl/ (sonst könnte ein Befehl beliebige Dateien dieses PCs in die
   Datenbank und online holen). `ki neu/aendern` (Endpunkt, Startbefehl) nur am PC. Der Wächter führt sie als `--von TL` aus und legt Ergebnis + Befehl in eingang-tl/erledigt/.
   Das neueste Ergebnis liegt immer unter dem Namen der Befehlsdatei (khp.ergebnis.json); ein früherer Beleg mit gleichem
@@ -103,8 +104,8 @@ def argumente(befehl, eingang=EINGANG):
         raise ValueError("KIs eintragen und ändern (Endpunkt, Startbefehl) geht nur am PC")
     if args[0] == "lauf" and len(args) > 1 and args[1] == "warte":
         raise ValueError("lauf warte blockiert – über die Brücke: lauf zeige <nr>")
-    if any(a in ("--von", "--projekt") for a in args):
-        raise ValueError("--von/--projekt setzt die Brücke selbst")
+    if "--von" in args:
+        raise ValueError("--von setzt die Brücke selbst")
     if args[0] == "schirm":                                # beim Schirm ist --quelle der Kanal, nicht der Inhalt
         if "--quelle" in args:
             raise ValueError("--quelle setzt beim Schirm die Brücke selbst")
@@ -140,12 +141,16 @@ def _im_eingang(eingang, rel, schalter):
     return pfad
 
 
-def puls(kennung=None, taetigkeit=None):
+def puls(kennung=None, taetigkeit=None, projekt=None):
     """Brücken-Sitzung des TL: ohne Postfach (schluessel_datei leer), der Wächter weckt sie nie; zeigt „läuft“."""
     con = db.verbinde()
     try:
-        a = con.execute("SELECT id FROM agent WHERE kennung = ? ORDER BY id LIMIT 1",
-                        (kern.kennung_heute(con, kennung or VON),)).fetchone()          # auch nach dem Umbenennen
+        kennung = kern.kennung_heute(con, kennung or VON)                                # auch nach dem Umbenennen
+        try:
+            pid = db.projekt_fuer(con, projekt, kennung)
+        except LookupError:
+            return
+        a = con.execute("SELECT id FROM agent WHERE kennung = ? AND projekt_id = ?", (kennung, pid)).fetchone()
         if not a:
             return
         t = db.jetzt()
@@ -219,7 +224,7 @@ def befehle(eingang=EINGANG):
             if not isinstance(befehl, dict):
                 raise ValueError("Befehlsdatei muss ein JSON-Objekt sein")
             taetigkeit = befehl.pop("taetigkeit", None)   # optional: was der TL gerade tut (zeigt die Workbench)
-            puls(taetigkeit=taetigkeit)                   # zuerst: die Sitzung lebt, bevor der Befehl sie braucht
+            puls(taetigkeit=taetigkeit, projekt=befehl.get("projekt"))   # zuerst: die Sitzung lebt, bevor der Befehl sie braucht
             if befehl.get("befehl") == "puls":           # nur Lebenszeichen (Stundentakt des TL)
                 args, rc, aus, fehler = ["puls"], 0, "Puls gesetzt\n", ""
             else:

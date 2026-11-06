@@ -261,12 +261,13 @@ def probe(anbieter=None):
 
 # --- Ereignisse und Versand ----------------------------------------------------------------------
 
-def _link(cfg, sicht):
+def _link(cfg, sicht, projekt=None):
+    """Link in der Meldung; mit mehreren Projekten öffnet er das Projekt der Meldung (?projekt=<uid>)."""
     basis = cfg.get("link") or ""
     if not basis:
         from . import einstellungen
         basis = f"http://127.0.0.1:{einstellungen.wert('port')}/"
-    return basis.rstrip("/") + "/#" + sicht
+    return basis.rstrip("/") + "/" + (f"?projekt={projekt}" if projekt else "") + "#" + sicht
 
 
 def _minuten_alt(utc):
@@ -349,13 +350,14 @@ def runde(con, pid, cfg=None, jetzt=None):
     gilt = {e["schluessel"] for e in aktuell}
     with db.schreiben(con):
         for e in aktuell:
-            con.execute("INSERT OR IGNORE INTO push_versand (zeit_utc, ereignis, schluessel, titel, text, prioritaet, sicht)"
-                        " VALUES (?, ?, ?, ?, ?, ?, ?)", (db.jetzt(), e["ereignis"], e["schluessel"], e["titel"], e["text"],
-                                                          EREIGNISSE[e["ereignis"]][1], e["sicht"]))
+            con.execute("INSERT OR IGNORE INTO push_versand (projekt_id, zeit_utc, ereignis, schluessel, titel, text, prioritaet,"
+                        " sicht) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (pid, db.jetzt(), e["ereignis"], e["schluessel"], e["titel"],
+                                                                    e["text"], EREIGNISSE[e["ereignis"]][1], e["sicht"]))
     jetzt_s = time.time()
     faellig, ueberholt = [], []
-    for p in con.execute("SELECT * FROM push_versand WHERE ergebnis IN ('offen', 'fehler') AND versuche < ?"
-                         " ORDER BY id", (len(WIEDERHOLEN_NACH_S),)).fetchall():
+    for p in con.execute("SELECT * FROM push_versand WHERE projekt_id = ? AND ergebnis IN ('offen', 'fehler') AND versuche < ?"
+                         " ORDER BY id", (pid, len(WIEDERHOLEN_NACH_S))).fetchall():   # nur die eigenen: sonst wären die
+        # Meldungen eines anderen Projekts hier „überholt“ (06.11.)
         if p["versuche"] and jetzt_s - db_sek(p["geaendert_utc"]) < WIEDERHOLEN_NACH_S[p["versuche"]]:
             continue
         if _in_ruhe(cfg, jetzt) and p["prioritaet"] < 5:
@@ -383,6 +385,9 @@ def runde(con, pid, cfg=None, jetzt=None):
     for p in faellig:
         gruppen.setdefault(p["ereignis"], []).append(p)
     protokoll = []
+    projekte = con.execute("SELECT id, name, uid FROM projekt").fetchall()
+    eigen = next(r for r in projekte if r["id"] == pid)
+    vorn = f"{eigen['name']} · " if len(projekte) > 1 else ""    # mehrere Projekte: welches, steht vorn im Titel
     reihenfolge = sorted(gruppen, key=lambda e: -EREIGNISSE[e][1])
     if frei < len(reihenfolge) and frei > 0:          # Grenze: alles Übrige in eine Sammelmeldung
         rest = [p for e in reihenfolge[frei - 1:] for p in gruppen.pop(e)]
@@ -400,7 +405,7 @@ def runde(con, pid, cfg=None, jetzt=None):
             titel = f"{len(teile)} {name}"
             text = " · ".join(p["titel"] for p in teile)[:900]
             sicht = teile[0]["sicht"] if art in EREIGNISSE else "start"
-        erg = senden(cfg, "AMW: " + titel, text, prio, _link(cfg, sicht))
+        erg = senden(cfg, "AMW: " + vorn + titel, text, prio, _link(cfg, sicht, eigen["uid"] if vorn else None))
         ok = [a for a, e in erg.items() if e is None]
         fehl = {a: e for a, e in erg.items() if e is not None}
         if not fehl:

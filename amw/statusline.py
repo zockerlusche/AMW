@@ -129,8 +129,9 @@ def verbrauch_tage(con, pid, tage=7):
     Sitzung neu gezählt – dann zählt der neue Wert ganz). Rückgabe: {"tage": [...], "agenten": {kennung: {tag: usd}}}."""
     import datetime
     ab = _utc(time.time() - (tage + 1) * 86400)
-    zeilen = con.execute("SELECT v.sitzung_id, v.agent, v.zeit_utc, v.kosten_usd FROM verbrauch v JOIN agent g"
-                         " ON g.kennung = v.agent AND g.projekt_id = ? WHERE v.zeit_utc >= ? AND v.kosten_usd IS NOT NULL"
+    zeilen = con.execute("SELECT v.sitzung_id, v.agent, v.zeit_utc, v.kosten_usd FROM verbrauch v JOIN sitzung s"
+                         " ON s.id = v.sitzung_id JOIN agent g ON g.id = s.agent_id AND g.projekt_id = ?"   # nicht über die Kennung:
+                         " WHERE v.zeit_utc >= ? AND v.kosten_usd IS NOT NULL"                             # gleiche in zwei Projekten
                          " ORDER BY v.sitzung_id, v.zeit_utc", (pid, ab)).fetchall()
     heute = datetime.date.today()
     liste = [(heute - datetime.timedelta(days=i)).isoformat() for i in range(tage - 1, -1, -1)]
