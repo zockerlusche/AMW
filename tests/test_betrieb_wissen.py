@@ -150,6 +150,11 @@ class Wissen(Grund):
         with self.assertRaises(kern.AmwFehler):
             wissen.wortlaut_neu(self.con, self.pid, "CC1", "x", "chat-tl")
         wid = wissen.wortlaut_neu(self.con, self.pid, "TL", "Mach weiter.", "chat-tl")
+        z = "2026-11-05T21:42:00Z"
+        w2 = wissen.wortlaut_neu(self.con, self.pid, "TL", "Eine Ergänzung.", "chat-tl", z)
+        with self.assertRaisesRegex(kern.AmwFehler, f"W{w2} hat schon"):     # 06.11.: zweimal erfasst
+            wissen.wortlaut_neu(self.con, self.pid, "TL", "Eine Ergänzung. ", "chat-tl", z)
+        wissen.wortlaut_neu(self.con, self.pid, "TL", "Eine Ergänzung.", "chat-tl", "2026-11-05T21:43:00Z")
         with self.assertRaises(sqlite3.DatabaseError):
             self.con.execute("UPDATE wortlaut SET text = 'anders' WHERE id = ?", (wid,))
 

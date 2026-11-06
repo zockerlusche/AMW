@@ -10,6 +10,8 @@ Ein Lead kann z. B. in einer Linux-VM arbeiten, die den AMW-Ordner per FUSE einh
   "schluessel", "id"/"ids", "wert" sind die Positionsangaben, bei spec/rueckblick auch "bogen" und "teil"). `--datei`,
   `--text-datei`, `--prompt-datei` nur aus eingang-tl/ (sonst könnte ein Befehl beliebige Dateien dieses PCs in die
   Datenbank und online holen). `ki neu/aendern` (Endpunkt, Startbefehl) nur am PC. Der Wächter führt sie als `--von TL` aus und legt Ergebnis + Befehl in eingang-tl/erledigt/.
+  Das neueste Ergebnis liegt immer unter dem Namen der Befehlsdatei (khp.ergebnis.json); ein früherer Beleg mit gleichem
+  Namen rückt dafür auf khp.2, khp.3 … (steht im Ergebnis unter „frueher“).
 Vertrauensmodell wie die CLI in Stufe 1: wer auf diesem PC Dateien schreiben kann, kann auch `amw --von TL` aufrufen.
 """
 import contextlib
@@ -228,11 +230,18 @@ def befehle(eingang=EINGANG):
         except Exception as e:                            # nie die Warteschlange anhalten: Fehler wird zum Ergebnis
             args, rc, aus, fehler = None, 1, "", f"{type(e).__name__}: {e}"
         ergebnis = {"datei": name, "zeit_utc": db.jetzt(), "args": args, "rc": rc, "ausgabe": aus, "fehler": fehler}
-        ziel = _frei(erledigt, stamm)                     # gleicher Name noch einmal: nie den Beleg davor überschreiben
-        with open(os.path.join(erledigt, ziel + ".ergebnis.json"), "w", encoding="utf-8") as f:
+        frueher = _frei(erledigt, stamm)                  # gleicher Name noch einmal: der alte Beleg rückt auf khp.2 …,
+        if frueher != stamm:                              # das neue Ergebnis steht dort, wo man es sucht (06.11.)
+            for endung in (".json", ".ergebnis.json"):
+                alt = os.path.join(erledigt, stamm + endung)
+                if os.path.exists(alt):
+                    os.replace(alt, os.path.join(erledigt, frueher + endung))
+            ergebnis["frueher"] = frueher + ".ergebnis.json"
+        with open(os.path.join(erledigt, stamm + ".ergebnis.json"), "w", encoding="utf-8") as f:
             json.dump(ergebnis, f, ensure_ascii=False, indent=1)
-        os.replace(pfad, os.path.join(erledigt, ziel + ".json"))
-        log.info("Brücke: %s → rc %s%s: %s", name, rc, f" (abgelegt als {ziel}.json)" if ziel != stamm else "", _kurz(args))
+        os.replace(pfad, os.path.join(erledigt, stamm + ".json"))
+        log.info("Brücke: %s → rc %s%s: %s", name, rc, f" (früherer Beleg jetzt {frueher}.json)" if frueher != stamm else "",
+                 _kurz(args))
         n += 1
     return n
 

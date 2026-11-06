@@ -19,6 +19,11 @@ def wortlaut_neu(con, pid, von, text, kanal, zeit_utc=None, bemerkung=None):
     _nur_lead(con, pid, von, "Wortlaut erfassen")
     if not text.strip():
         raise kern.AmwFehler("Wortlaut ist leer")
+    if zeit_utc:                                          # dieselbe Aussage zweimal erfasst (Wiederholung nach Zweifel)
+        alt = con.execute("SELECT id FROM wortlaut WHERE projekt_id = ? AND zeit_utc = ? AND trim(text) = trim(?)",
+                          (pid, zeit_utc, text)).fetchone()
+        if alt:
+            raise kern.AmwFehler(f"W{alt[0]} hat schon diesen Text mit dieser Zeit – nicht doppelt erfasst")
     with db.schreiben(con):
         t = db.jetzt()
         return db.einfuegen(con, "wortlaut", projekt_id=pid, zeit_utc=zeit_utc or t, text=text, kanal=kanal,

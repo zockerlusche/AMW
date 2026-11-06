@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.16.1 – 06.11.2026 · Brücke: neuestes Ergebnis unter dem eigenen Namen, Wortlaut nicht doppelt
+- **Brücke:** Kam eine Befehlsdatei mit einem Namen, den es in `eingang-tl/erledigt/` schon gab, lag ihr Ergebnis unter
+  `name.2.ergebnis.json`; unter `name.ergebnis.json` stand weiter das alte. Das sah aus, als sei der Befehl nicht
+  ausgeführt worden, und er wurde ein zweites Mal geschickt. Jetzt steht das neueste Ergebnis immer unter dem Namen der
+  Befehlsdatei. Der frühere Beleg rückt auf `name.2`, `name.3` … und das neue Ergebnis nennt ihn unter `frueher`.
+- **Wortlaut:** Dieselbe Aussage (gleiche Zeit, gleicher Text) wird nicht mehr doppelt erfasst. `amw wortlaut` lehnt
+  sie mit der Nummer des vorhandenen Eintrags ab.
+
 ## 1.16.0 – 06.11.2026 · Lokale KIs in der AMW (Schema 17)
 Umsetzung von Stufe 1 aus [doc/plan-lokale-ki.md](doc/plan-lokale-ki.md):
 - **Eigene Art „KI“** (`amw ki`):
