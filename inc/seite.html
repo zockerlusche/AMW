@@ -71,6 +71,15 @@ nav .gruppe { font: 11px var(--titel); letter-spacing: .14em; text-transform: up
 nav a { display: flex; align-items: baseline; gap: 10px; padding: 8px 18px; color: var(--leise); text-decoration: none; cursor: pointer;
   border-left: 3px solid transparent; font: 15px var(--titel); letter-spacing: .02em; }
 nav a .sym { display: none; }
+nav a.nur-handy { display: none; }
+.mehr-liste { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mehr-liste button { display: grid; justify-items: center; gap: 4px; padding: 12px 4px; min-height: 72px; border: 1px solid var(--linie);
+  border-radius: 8px; background: var(--grund); color: var(--tinte); font: 13px var(--titel); cursor: pointer; position: relative; }
+.mehr-liste button.an { border-color: var(--bernstein); color: var(--bernstein); }
+.mehr-liste .sym { font-size: 20px; line-height: 1; }
+.mehr-liste .zahl { position: absolute; top: 6px; right: 8px; font: 11px var(--mono); color: var(--sehrleise); }
+.mehr-fuss { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+.mehr-fuss .version { margin-left: auto; font: 11px var(--mono); color: var(--sehrleise); }
 nav a:hover { color: var(--tinte); background: var(--flaeche); }
 nav a.an { color: var(--tinte); border-left-color: var(--bernstein); background: linear-gradient(90deg, var(--bernstein-weich), transparent); }
 nav a .zahl { margin-left: auto; font: 12px var(--mono); color: var(--sehrleise); }
@@ -421,7 +430,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .vl-wer { font: 12.5px var(--mono); color: var(--leise); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vl-text { overflow-wrap: anywhere; }
 @media (max-width: 760px) { .rb-raster { grid-template-columns: minmax(0, 1fr); } .rb-neu { grid-template-columns: minmax(0, 1fr); }
-  .vl-zeile { grid-template-columns: 42px 10px minmax(0, 1fr); } .vl-wer { display: none; } nav a.nur-breit { display: none !important; } }
+  .vl-zeile { grid-template-columns: 42px 10px minmax(0, 1fr); } .vl-wer { display: none; } }
 .mini-balken { display: grid; gap: 3px; margin-top: 8px; }
 .mb { display: grid; grid-template-columns: 54px 1fr 38px; gap: 6px; align-items: center; font-size: 11px; color: var(--sehrleise); }
 .mb-spur { height: 5px; background: var(--grund); border-radius: 3px; overflow: hidden; } .mb-spur i { display: block; height: 100%; }
@@ -675,6 +684,8 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   nav .gruppe, nav .fuss { display: none; }
   .einst .feld { grid-template-columns: minmax(0, 1fr); }
   .einst .feld > label { padding-top: 0; }
+  nav a.im-mehr { display: none !important; }
+  nav a.nur-handy { display: flex; }
   nav a { flex: 1 1 0; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; min-width: 0; border-left: 0; border-top: 2px solid transparent;
     font-size: 10.5px; letter-spacing: .02em; position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   nav a [data-t-lang] { display: none; }
@@ -695,7 +706,8 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   .knopf { min-height: 46px; flex: 1 1 auto; }
   textarea { font-size: 16px; }   /* iOS zoomt sonst beim Tippen */
   .board { grid-template-columns: 1fr; }
-  .reiter { flex-wrap: nowrap; overflow-x: auto; }
+  .reiter { flex-wrap: wrap; }
+  .reiter button { padding: 8px 10px; }
   .reiter .rechts { margin-left: 0; flex: 1 0 100%; padding: 8px 0; }
   .reiter .rechts input { flex: 1; }
   .liste .zeile { grid-template-columns: 70px 1fr; gap: 2px 10px; }
@@ -727,14 +739,15 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
     <div class="gruppe" data-t="g_arbeit"></div>
     <a data-sicht="planung"><span class="sym">◇</span><span data-t="n_planung" data-t-lang></span><span data-t="n_planung_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="freigaben"></span></a>
     <a data-sicht="arbeit"><span class="sym">▤</span><span data-t="n_aufgaben" data-t-lang></span><span data-t="n_aufgaben_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="offen"></span></a>
-    <a data-sicht="verlauf" class="nur-breit"><span class="sym">⌛</span><span data-t="n_verlauf"></span></a>
-    <a data-sicht="releases"><span class="sym">✦</span><span data-t="n_releases" data-t-lang></span><span data-t="n_releases_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="releases"></span></a>
+    <a data-sicht="verlauf" class="im-mehr"><span class="sym">⌛</span><span data-t="n_verlauf"></span></a>
+    <a data-sicht="releases" class="im-mehr"><span class="sym">✦</span><span data-t="n_releases" data-t-lang></span><span data-t="n_releases_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="releases"></span></a>
     <div class="gruppe" data-t="g_wissen"></div>
-    <a data-sicht="wissen"><span class="sym">§</span><span data-t="n_wissen"></span> <span class="zahl" data-zahl="beschluesse"></span></a>
-    <a data-sicht="dokumente"><span class="sym">▣</span><span data-t="n_dokumente" data-t-lang></span><span data-t="n_dokumente_kurz" data-t-kurz hidden></span></a>
+    <a data-sicht="wissen" class="im-mehr"><span class="sym">§</span><span data-t="n_wissen"></span> <span class="zahl" data-zahl="beschluesse"></span></a>
+    <a data-sicht="dokumente" class="im-mehr"><span class="sym">▣</span><span data-t="n_dokumente" data-t-lang></span><span data-t="n_dokumente_kurz" data-t-kurz hidden></span></a>
     <div class="gruppe" data-t="g_betrieb"></div>
-    <a data-sicht="betrieb"><span class="sym">◈</span><span data-t="n_betrieb"></span></a>
-    <a data-sicht="einstellungen"><span class="sym">⚙</span><span data-t="n_einst" data-t-lang></span><span data-t="n_einst_kurz" data-t-kurz hidden></span></a>
+    <a data-sicht="betrieb" class="im-mehr"><span class="sym">◈</span><span data-t="n_betrieb"></span></a>
+    <a data-sicht="einstellungen" class="im-mehr"><span class="sym">⚙</span><span data-t="n_einst" data-t-lang></span><span data-t="n_einst_kurz" data-t-kurz hidden></span></a>
+    <a class="nur-handy" id="mehr" role="button" aria-haspopup="dialog"><span class="sym">☰</span><span data-t="n_mehr"></span></a>
     <div class="fuss">
       <div class="version" id="version"></div>
       <button class="klein-knopf" id="thema" type="button" data-t="thema"></button>
@@ -763,7 +776,7 @@ const TEXTE = {
   de: {
     marke: "Agentenmanagement Workbench", suche: "Suchen: Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten",
     g_fuerdich: "Für dich", g_arbeit: "Arbeit", g_wissen: "Wissen", g_betrieb: "Betrieb",
-    n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_aufgaben_kurz: "Arbeit", n_releases: "Release Notes", n_releases_kurz: "Notes", n_wissen: "Wissen", n_betrieb: "Betrieb",
+    n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_aufgaben_kurz: "Arbeit", n_releases: "Release Notes", n_releases_kurz: "Notes", n_mehr: "Mehr", n_wissen: "Wissen", n_betrieb: "Betrieb",
     thema: "Hell / Dunkel", halt: "Halt", weiter: "Weiter",
     s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
     nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
@@ -1019,7 +1032,7 @@ const TEXTE = {
     schirm_freigeben: "Schirm freigeben …", schirm_zumachen: "Schirm zu", schirm_titel: "Schirm-Schalter",
     schirm_erkl: "Frei heißt: Agenten dürfen Läufe mit Fenster starten (immer nur einer zur Zeit, über die Lauf-Schlange). Die AMW macht den Schirm von selbst wieder zu, sobald du zurück am PC bist: Eingabe an diesem PC (ab 2 Minuten nach dem Freigeben, auch über eine Fernsitzung), eine neue Fernsitzung (wenn unter „Dieser PC“ eingestellt), eine Eingabe in der Workbench an diesem PC – oder zur gewählten Uhrzeit. Was du vom Handy schreibst, lässt ihn frei.",
     schirm_zu_erkl: "Zu heißt: Keine neuen Läufe mit Fenster. Läuft gerade einer, bekommt der Agent die Bitte, ihn sofort zu beenden.",
-    schirm_grund_ph: "Grund, z. B. „weg bis morgen, Monitor an“", schirm_bis_l: "Spätestens zu um (optional)",
+    schirm_grund_ph: "Grund, z. B. „weg bis morgen, Monitor an“", schirm_bis_l: "Spätestens zu um (optional)", schirm_grund_l: "Grund",
     schirm_nur_pc: "Freigeben geht nur am PC. Zu machen geht auch von hier.", schirm_ist_frei: "Schirm ist frei", schirm_ist_zu: "Schirm ist zu",
     schirm_grund_fehlt: "Bitte einen Grund angeben",
     nachricht: "Nachricht", nachricht_an: "Nachricht an {x}", n_kurz_ph: "Kurz: worum geht es (eine Zeile)", n_text_ph: "Text (optional)",
@@ -1029,7 +1042,7 @@ const TEXTE = {
   en: {
     marke: "Agent Management Workbench", suche: "Search: tasks, decisions, questions, statements, messages",
     g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
-    n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_aufgaben_kurz: "Tasks", n_releases: "Release notes", n_releases_kurz: "Notes", n_wissen: "Knowledge", n_betrieb: "Operations",
+    n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_aufgaben_kurz: "Tasks", n_releases: "Release notes", n_releases_kurz: "Notes", n_mehr: "More", n_wissen: "Knowledge", n_betrieb: "Operations",
     thema: "Light / Dark", halt: "Halt", weiter: "Resume",
     s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
@@ -1281,7 +1294,7 @@ const TEXTE = {
     schirm_freigeben: "Free the screen …", schirm_zumachen: "Close screen", schirm_titel: "Screen switch",
     schirm_erkl: "Free means: agents may start runs that open windows (one at a time, through the run queue). The AMW closes the screen by itself as soon as you are back at the PC: input on this PC (from 2 minutes after freeing, also via a remote session), a new remote session (if set under “This PC”), input in the workbench on this PC – or at the chosen time. Writing from your phone leaves it free.",
     schirm_zu_erkl: "Closed means: no new windowed runs. If one is running, its agent is asked to end it right away.",
-    schirm_grund_ph: "Reason, e.g. “away until tomorrow, monitor on”", schirm_bis_l: "Close at the latest (optional)",
+    schirm_grund_ph: "Reason, e.g. “away until tomorrow, monitor on”", schirm_bis_l: "Close at the latest (optional)", schirm_grund_l: "Reason",
     schirm_nur_pc: "Freeing only works on the PC. Closing works from here too.", schirm_ist_frei: "Screen is free", schirm_ist_zu: "Screen is closed",
     schirm_grund_fehlt: "Please give a reason",
     nachricht: "Message", nachricht_an: "Message to {x}", n_kurz_ph: "Short: what is it about (one line)", n_text_ph: "Text (optional)",
@@ -1476,7 +1489,8 @@ function zeige(sicht, still = false) {
   zustand.sicht = sicht;
   gezeichnet.sicht = sicht; gezeichnet.stempel = stempel(sicht); gezeichnet.um = Date.now();
   $("#neuer-stand")?.remove();
-  for (const a of document.querySelectorAll("nav a")) a.classList.toggle("an", a.dataset.sicht === sicht);
+  for (const a of document.querySelectorAll("nav a[data-sicht]")) a.classList.toggle("an", a.dataset.sicht === sicht);
+  $("#mehr")?.classList.toggle("an", !!document.querySelector(`nav a.im-mehr[data-sicht="${sicht}"]`));
   try { localStorage.setItem(ablage("amw-sicht"), sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
   const fertig = ({ start: sichtStart, fragen: sichtFragen, planung: sichtPlanung, verlauf: sichtVerlauf, arbeit: sichtArbeit, wissen: sichtWissen, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
@@ -2016,9 +2030,9 @@ function frageKarte(f) {
   karte.append(notiz, el("div", { class: "aktionen" },
     el("button", { class: "knopf" + (echteOptionen.length ? "" : " haupt"), type: "button", onclick: () => notiz.value.trim() ? antworten("text", notiz.value) : toast(t("text_fehlt"), true) }, t("eigene_antwort")),
     el("button", { class: "knopf", type: "button", onclick: () => notiz.value.trim() ? antworten("rueckfrage", notiz.value) : toast(t("rueckfrage_fehlt"), true) }, t("rueckfrage")),
-    el("button", { class: "klein-knopf", type: "button", onclick: () => dokHochladen({ bezug: `frage:${f.id}` }) }, t("dk_anhaengen")),
+    el("button", { class: "knopf", type: "button", onclick: () => dokHochladen({ bezug: `frage:${f.id}` }) }, t("dk_anhaengen")),
     f.geparkt_utc ? el("button", { class: "knopf", type: "button", onclick: () => parken(false) }, t("f_aufnehmen"))
-      : el("button", { class: "klein-knopf", type: "button", title: t("f_parken_tipp"), onclick: () => parken(true) }, t("f_parken")),
+      : el("button", { class: "knopf", type: "button", title: t("f_parken_tipp"), onclick: () => parken(true) }, t("f_parken")),
     meldung));
   if (f.vorgeschichte.length) karte.append(el("details", { class: "vor" }, el("summary", {}, t("vorgeschichte", { n: f.vorgeschichte.length })),
     f.vorgeschichte.map(v => el("div", { class: "vor-eintrag" }, el("div", {}, el("span", { class: "ref" }, v.ref), " ", el("span", { class: "sehrleise" }, v.art)),
@@ -2033,7 +2047,7 @@ async function arbeitslisten(m, a) {
   let d; try { d = await holen("/api/listen"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   const q = (a.q || "").toLowerCase(), passt = x => !q || `A${x.id} ${x.titel}`.toLowerCase().includes(q);
   const agenten = d.agenten.filter(g => !a.agent || g.kennung === a.agent);
-  m.append(el("p", { class: "leise", style: "margin:0 0 12px" }, t("li_erkl")));
+  m.append(el("p", { class: "leise kurztext", style: "margin:0 0 12px", title: t("aufklappen"), onclick: e => e.currentTarget.classList.toggle("auf") }, t("li_erkl")));
   if (!agenten.length) m.append(el("div", { class: "leer" }, t("li_leer")));
   m.append(el("div", { class: "board listen" }, agenten.map(g => el("div", { class: "spalte" },
     el("h4", {}, g.rolle === "entwickler" ? t("li_deine", { x: g.name || g.kennung }) : g.kennung, el("span", { class: "sehrleise mono" }, g.liste.length)),
@@ -3375,10 +3389,10 @@ function schirmDialog() {
       el("div", { class: "aktionen" }, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
     return;
   }
-  const grund = el("input", { placeholder: t("schirm_grund_ph"), style: "width:100%;padding:8px;margin:8px 0;background:var(--grund);border:1px solid var(--linie);border-radius:3px" });
-  const bis = el("input", { type: "time", style: "padding:6px;background:var(--grund);border:1px solid var(--linie);border-radius:3px;color:var(--tinte)" });
-  hg = dialog(t("schirm_titel"), el("p", { class: "leise" }, t("schirm_ist_zu") + (sz.grund ? ` · ${sz.grund}` : "")),
-    el("p", {}, t("schirm_erkl")), grund, el("label", { style: "display:flex;gap:10px;align-items:center" }, t("schirm_bis_l"), bis),
+  const grund = el("input", { placeholder: t("schirm_grund_ph") }), bis = el("input", { type: "time" });
+  hg = dialog(t("schirm_titel"), el("p", { class: "leise", style: "margin-top:0" }, t("schirm_ist_zu") + (sz.grund ? ` · ${sz.grund}` : "")),
+    el("p", {}, t("schirm_erkl")), el("div", { class: "feld" }, el("label", {}, t("schirm_grund_l")), el("div", {}, grund)),
+    el("div", { class: "feld" }, el("label", {}, t("schirm_bis_l")), el("div", {}, bis)),
     el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => {
         if (!grund.value.trim()) { toast(t("schirm_grund_fehlt"), true); grund.focus(); return; }
         setzen({ frei: true, grund: grund.value.trim(), bis: bis.value || null }); } }, t("schirm_freigeben").replace(" …", "")),
@@ -3394,7 +3408,22 @@ if (API) { const b = $("#abmelden"); b.hidden = false; b.addEventListener("click
   await fetch("index.php?abmelden=1", { method: "POST", headers: { "X-AMW-Token": TOKEN } }).catch(() => {}); location.reload(); }); }
 $("#halt-knopf").addEventListener("click", () => (zustand.start?.halt || []).length ? weiterGeben() : haltDialog());
 $("#suche").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.value.trim().length > 1) suchen(e.target.value.trim()); });
-for (const a of document.querySelectorAll("nav a")) a.addEventListener("click", () => zeige(a.dataset.sicht));
+for (const a of document.querySelectorAll("nav a[data-sicht]")) a.addEventListener("click", () => zeige(a.dataset.sicht));
+/* Handy: unten Start, Fragen, Plan, Arbeit und „Mehr“ (48-px-Ziele statt neun schmaler). „Mehr“ öffnet ein Blatt von unten mit
+   den übrigen Bereichen, Hell/Dunkel und Sprache – so ist am Handy alles erreichbar, auch der Verlauf. */
+$("#mehr").addEventListener("click", () => {
+  const knoepfe = [...document.querySelectorAll("nav a.im-mehr")].map(a => el("button", { type: "button", class: a.classList.contains("an") ? "an" : "",
+    onclick: () => { hg.remove(); zeige(a.dataset.sicht); } }, el("span", { class: "sym" }, a.querySelector(".sym").textContent),
+    el("span", {}, a.querySelector("[data-t-lang]")?.textContent || a.querySelector("[data-t]").textContent),
+    a.querySelector(".zahl")?.textContent ? el("span", { class: "zahl" }, a.querySelector(".zahl").textContent) : null));
+  const liste = el("div", { class: "pw-liste karte", role: "dialog", "aria-label": t("n_mehr") }, el("h3", {}, t("n_mehr")),
+    el("div", { class: "mehr-liste" }, knoepfe),
+    el("div", { class: "mehr-fuss" }, el("button", { class: "klein-knopf", type: "button", onclick: () => $("#thema").click() }, t("thema")),
+      el("button", { class: "klein-knopf", type: "button", onclick: () => { hg.remove(); $("#sprache").click(); } }, "DE / EN"),
+      el("span", { class: "version" }, $("#version").textContent)));
+  const hg = el("div", { class: "dialog-hg pw-hg", onclick: e => { if (e.target === hg) hg.remove(); } }, liste);
+  document.body.append(hg);
+});
 function thema(x) { document.documentElement.dataset.thema = x; try { localStorage.setItem("amw-thema", x); } catch (e) {} }
 $("#thema").addEventListener("click", () => thema(document.documentElement.dataset.thema === "hell" ? "dunkel" : "hell"));
 $("#sprache").addEventListener("click", () => sprache_setzen(sprache === "de" ? "en" : "de"));
