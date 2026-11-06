@@ -9,6 +9,17 @@ sitzung_starten();
 kopfzeilen(false);
 header('Content-Type: application/json; charset=utf-8');
 
+/* Projekt der Anfrage (→ doc/plan-projektwahl.md): Kennung aus dem Verzeichnis, ohne Angabe das erste. Ansichten liegen
+ * unter „<Kennung>:<Weg>“; solange der PC noch ohne Kennungen hochlädt (vor 1.19.0), gelten die alten Schlüssel. */
+$projekt = '';
+$verzeichnis = [];
+function ansicht_zeile(string $weg): ?array {
+    global $projekt;
+    $z = sql([['SELECT inhalt, stand_utc FROM ansicht WHERE weg = ?', [$projekt === '' ? $weg : "$projekt:$weg"]]])[0];
+    if (!$z && $projekt !== '') $z = sql([['SELECT inhalt, stand_utc FROM ansicht WHERE weg = ?', [$weg]]])[0];
+    return $z ? $z[0] : null;
+}
+
 function antwort(int $code, $daten): never {
     http_response_code($code);
     echo json_encode($daten, JSON_UNESCAPED_UNICODE);
@@ -19,8 +30,8 @@ function antwort(int $code, $daten): never {
  *  Office nur als Download. Liegt sie noch nicht auf dem Webspace, wird sie jetzt aus dem Speicher geholt. */
 function datei_senden(array $q): never {
     $id = (int)($q['id'] ?? 0);
-    [$z] = sql([["SELECT inhalt FROM ansicht WHERE weg = '/intern/dateien'", []]]);
-    $karte = $z ? json_decode($z[0][0], true) : [];
+    $z = ansicht_zeile('/intern/dateien');
+    $karte = $z ? json_decode($z[0], true) : [];
     [$sha, $endung] = $karte[$id . ':' . (int)($q['v'] ?? 0)] ?? ['', ''];
     if (!preg_match('/^[0-9a-f]{64}$/', $sha) || !isset(DATEI_FORMATE[$endung])) {
         antwort(404, ['fehler' => 'Diese Datei liegt nur am PC.']);
@@ -54,6 +65,16 @@ function datei_senden(array $q): never {
 }
 
 if (!angemeldet()) antwort(401, ['fehler' => 'Bitte neu anmelden (Seite neu laden).']);
+
+try {
+    nachruesten();
+    $verzeichnis = sql([['SELECT uid, name, farbe, rechner, gesehen_utc, fragen, agenten, halt FROM projekt ORDER BY name', []]])[0];
+} catch (Throwable $e) {                                  // Speicher von vor 1.19.0 ohne Verzeichnis: alte Schlüssel
+    $verzeichnis = [];
+}
+$uids = array_column($verzeichnis, 0);
+$wunsch = (string)($_GET['projekt'] ?? '');
+$projekt = in_array($wunsch, $uids, true) ? $wunsch : (string)($uids[0] ?? '');
 
 $weg = (string)($_GET['weg'] ?? '');
 $pfad = (string)parse_url($weg, PHP_URL_PATH);
@@ -103,8 +124,8 @@ try {
         if ($pfad === '/api/dokument/text') {               // berichtigen: Konflikt schon hier erkennen (der PC prüft noch einmal)
             $text = $daten['text'] ?? null;
             if (!is_string($text) || trim($text) === '' || mb_strlen($text) > 400000 || !is_int($daten['basis'] ?? null)) antwort(400, ['fehler' => 'Text oder Version fehlt']);
-            $z = sql([['SELECT inhalt FROM ansicht WHERE weg = ?', ['/api/dokument?id=' . $daten['id']]]])[0];
-            $neueste = $z ? max(array_column(json_decode($z[0][0], true)['versionen'] ?? [], 'nr') ?: [0]) : 0;
+            $z = ansicht_zeile('/api/dokument?id=' . $daten['id']);
+            $neueste = $z ? max(array_column(json_decode($z[0], true)['versionen'] ?? [], 'nr') ?: [0]) : 0;
             if ($neueste && $neueste !== $daten['basis']) antwort(409, ['fehler' => "Inzwischen gibt es v$neueste – nichts gespeichert. Dein Text bleibt im Editor; vergleiche mit der neuen Version und speichere dann erneut.", 'neueste' => $neueste]);
         }
         if ($pfad === '/api/dokument/neu') {
@@ -122,8 +143,8 @@ try {
         }
         $n = (int)sql([['SELECT count(*) FROM eingang WHERE zeit_utc > ?', [jetzt_utc(-3600)]]])[0][0][0];
         if ($n >= SCHREIBEN_JE_STUNDE) antwort(429, ['fehler' => 'zu viele Einträge in der letzten Stunde']);
-        sql([['INSERT INTO eingang (zeit_utc, weg, daten, ip) VALUES (?, ?, ?, ?)',
-              [jetzt_utc(), $pfad, json_encode($daten, JSON_UNESCAPED_UNICODE), $_SERVER['REMOTE_ADDR'] ?? '?']]]);
+        sql([['INSERT INTO eingang (zeit_utc, weg, daten, ip, projekt) VALUES (?, ?, ?, ?, ?)',     // nur der Rechner des Projekts führt es aus
+              [jetzt_utc(), $pfad, json_encode($daten, JSON_UNESCAPED_UNICODE), $_SERVER['REMOTE_ADDR'] ?? '?', $projekt === '' ? null : $projekt]]]);
         // gleiche Form wie am PC, damit die Seite unverändert bleibt; „unterwegs“ = der PC übernimmt es gleich
         $form = match (true) {
             (bool)$frage => ['status' => ($daten['art'] === 'rueckfrage') ? 'offen' : 'beantwortet'],
@@ -138,12 +159,21 @@ try {
         antwort(200, $form + ['unterwegs' => true]);
     }
 
+    if ($pfad === '/api/projekte' && $verzeichnis) {      // Verzeichnis aller Projekte (auch anderer Rechner)
+        $aus = [];
+        foreach ($verzeichnis as [$uid, $name, $farbe, $rechner, $gesehen, $fragen, $agenten, $halt]) {
+            $aus[] = ['uid' => $uid, 'name' => $name, 'farbe' => $farbe, 'rechner' => $rechner, 'gesehen_utc' => $gesehen,
+                      'fragen' => (int)$fragen, 'agenten' => (int)$agenten, 'halt' => (bool)(int)$halt, 'aktiv' => $uid === $projekt,
+                      'erreichbar' => strtotime((string)$gesehen) > time() - 7 * 86400];
+        }
+        antwort(200, ['projekte' => $aus, 'rechner' => null]);
+    }
     if ($pfad === '/api/suche') {                         // im Suchindex vom PC (Nachrichten: die letzten 2000, nur Kurztext)
         $such = mb_strtolower(trim((string)($q['q'] ?? '')));
         if (mb_strlen($such) < 2) antwort(200, []);
-        $z = sql([["SELECT inhalt FROM ansicht WHERE weg = '/api/suchindex'", []]])[0];
+        $z = ansicht_zeile('/api/suchindex');
         if (!$z) antwort(404, ['fehler' => 'Noch kein Suchindex vom PC – bitte in ein paar Minuten noch einmal.']);
-        $eintraege = json_decode((string)gzuncompress(base64_decode(json_decode($z[0][0], true)['gepackt'] ?? '')), true) ?: [];
+        $eintraege = json_decode((string)gzuncompress(base64_decode(json_decode($z[0], true)['gepackt'] ?? '')), true) ?: [];
         $treffer = [];
         $je_art = [];
         foreach ($eintraege as [$art, $ref, $titel, $text, $zusatz, $zeit]) {
@@ -157,9 +187,9 @@ try {
     if ($pfad === '/api/seit') {                           // „Seit du weg warst“: Zeitpunkte vom PC, gezählt ab dem Besuch dieses Geräts
         $ab = (string)($q['ab'] ?? '');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $ab)) antwort(400, ['fehler' => 'ab']);
-        $z = sql([["SELECT inhalt FROM ansicht WHERE weg = '/api/seit'", []]])[0];
+        $z = ansicht_zeile('/api/seit');
         if (!$z) antwort(404, ['fehler' => 'Noch keine Daten vom PC.']);
-        $d = json_decode($z[0][0], true);
+        $d = json_decode($z[0], true);
         $aus = array_fill_keys(['an_dich', 'erledigt', 'laeufe', 'gruen', 'rot', 'fragen_neu', 'beschluesse', 'boegen_fertig'], 0);
         foreach ($d['ereignisse'] as [$zeit, $art]) {
             if (strcmp((string)$zeit, $ab) >= 0 && isset($aus[$art])) $aus[$art]++;
@@ -171,27 +201,26 @@ try {
     }
     if ($pfad === '/api/dokument/datei') datei_senden($q);
     if ($pfad === '/api/agent') {                          // Übersicht je Agent: aus dem Schaufenster „/api/agenten“
-        $z = sql([["SELECT inhalt FROM ansicht WHERE weg = '/api/agenten'", []]])[0];
-        $alle = $z ? json_decode($z[0][0], true) : [];
+        $z = ansicht_zeile('/api/agenten');
+        $alle = $z ? json_decode($z[0], true) : [];
         $k = (string)($q['kennung'] ?? '');
         if (!isset($alle[$k])) antwort(404, ['fehler' => 'Zu diesem Agenten liegen online noch keine Daten vor.']);
         antwort(200, $alle[$k]);
     }
     if ($pfad === '/api/gespraech') {                      // Gespräch je Agent: nur auf Wunsch, der PC hält es dann 10 min aktuell
         $k = (string)($q['kennung'] ?? '');
-        $z = sql([["SELECT inhalt FROM ansicht WHERE weg = '/api/agenten'", []]])[0];
-        $alle = $z ? json_decode($z[0][0], true) : [];
+        $z = ansicht_zeile('/api/agenten');
+        $alle = $z ? json_decode($z[0], true) : [];
         if (!preg_match('/^[A-Za-z0-9_-]{1,40}$/', $k) || !isset($alle[$k])) antwort(404, ['fehler' => 'Diesen Agenten gibt es online nicht.']);
-        [$w, $g] = sql([
-            ['SELECT wert FROM zustand WHERE schluessel = ?', ['gespraech:' . $k]],
-            ['SELECT inhalt, stand_utc FROM ansicht WHERE weg = ?', ['/api/gespraech?kennung=' . $k]],
-        ]);
+        $wunsch_schl = 'gespraech:' . ($projekt === '' ? '' : "$projekt:") . $k;    // der Rechner des Projekts hält es aktuell
+        [$w] = sql([['SELECT wert FROM zustand WHERE schluessel = ?', [$wunsch_schl]]]);
+        $g = ansicht_zeile('/api/gespraech?kennung=' . $k);
         if (!$w || strcmp((string)$w[0][0], jetzt_utc(-60)) < 0) {
             sql([['INSERT INTO zustand (schluessel, wert) VALUES (?, ?) ON CONFLICT(schluessel) DO UPDATE SET wert = excluded.wert',
-                  ['gespraech:' . $k, jetzt_utc()]]]);
+                  [$wunsch_schl, jetzt_utc()]]]);
         }
         if (!$g) antwort(200, ['kennung' => $k, 'warten' => true]);
-        antwort(200, json_decode($g[0][0], true) + ['stand_utc' => $g[0][1]]);
+        antwort(200, json_decode($g[0], true) + ['stand_utc' => $g[1]]);
     }
     $schluessel = match (true) {
         $pfad === '/api/aufgaben' => '/api/aufgaben?sicht=' . (string)($q['sicht'] ?? 'offen'),
@@ -201,16 +230,16 @@ try {
         $pfad === '/api/aufgabe' => '/api/aufgabe?id=' . (int)($q['id'] ?? 0),
         default => $pfad,
     };
-    [$zeile, $pc, $offen, $neu] = sql([
-        ['SELECT inhalt, stand_utc FROM ansicht WHERE weg = ?', [$schluessel]],
-        ["SELECT wert FROM zustand WHERE schluessel = 'pc_gesehen_utc'", []],
-        ["SELECT weg, daten FROM eingang WHERE status = 'neu'", []],
+    $zeile = ansicht_zeile($schluessel);
+    [$pc, $offen, $neu] = sql([
+        ['SELECT wert FROM zustand WHERE schluessel = ?', [$projekt === '' ? 'pc_gesehen_utc' : "pc_gesehen_utc:$projekt"]],
+        ["SELECT weg, daten FROM eingang WHERE status = 'neu' AND (projekt = ? OR projekt IS NULL)", [$projekt]],
         ["SELECT sha, endung, groesse, teile FROM datei WHERE status = 'unterwegs' ORDER BY groesse LIMIT 3", []],
     ]);
     register_shutdown_function('dateien_nachholen', $neu);
     if (!$zeile && $pfad === '/api/dokument') antwort(404, ['fehler' => 'Dieses Dokument gibt es online (noch) nicht.']);
     if (!$zeile) antwort(404, ['fehler' => 'Noch keine Daten vom PC – läuft der AMW-Dienst mit Abgleich?']);
-    $d = json_decode($zeile[0][0], true);
+    $d = json_decode($zeile[0], true);
     $unterwegs = array_column($offen, 0);
 
     if ($pfad === '/api/aufgaben') {                      // Filter wie am PC, hier auf der fertigen Liste
@@ -269,7 +298,7 @@ try {
         $d['web'] = web_einst_alle(true);
     } elseif ($pfad === '/api/start') {
         $gesehen = $pc ? $pc[0][0] : null;
-        $d['online'] = ['web_version' => trim((string)@file_get_contents(__DIR__ . '/inc/VERSION')), 'pc_gesehen_utc' => $gesehen, 'stand_utc' => $zeile[0][1], 'briefkasten' => count($unterwegs),
+        $d['online'] = ['web_version' => trim((string)@file_get_contents(__DIR__ . '/inc/VERSION')), 'pc_gesehen_utc' => $gesehen, 'stand_utc' => $zeile[1], 'briefkasten' => count($unterwegs),
                         'pc_frisch' => $gesehen !== null && strtotime($gesehen) > time() - 420];
         $offeneFragen = count(array_filter($unterwegs, fn($w) => str_starts_with($w, '/api/frage/')));
         if (isset($d['zaehler']['fragen'])) $d['zaehler']['fragen'] = max(0, $d['zaehler']['fragen'] - $offeneFragen);
