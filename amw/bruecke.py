@@ -63,38 +63,6 @@ def bruecken(con):
     return aus
 
 
-def _nur_projekt(pfad, pid):
-    """In der Kopie alles anderer Projekte löschen: Zeilen mit fremdem projekt_id, dann Zeilen, die daran hingen
-    (sitzung → agent, empfang → nachricht …); eine leere Verweis-Spalte, die erlaubt ist, wird geleert statt gelöscht.
-    Was zu diesem PC gehört (KIs, Modelle, Schirm), bleibt."""
-    k = sqlite3.connect(pfad)
-    try:
-        k.execute("PRAGMA foreign_keys = OFF")
-        tabellen = [r[0] for r in k.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")]
-        with k:                                           # Schutz-Trigger (nichts löschen) gelten nicht für die Lese-Kopie
-            for (trigger,) in k.execute("SELECT name FROM sqlite_master WHERE type = 'trigger'").fetchall():
-                k.execute(f'DROP TRIGGER "{trigger}"')
-            k.execute("DELETE FROM projekt WHERE id != ?", (pid,))
-            for t in tabellen:
-                if t != "projekt" and "projekt_id" in {r[1] for r in k.execute(f'PRAGMA table_info("{t}")')}:
-                    k.execute(f'DELETE FROM "{t}" WHERE projekt_id IS NOT NULL AND projekt_id != ?', (pid,))
-            verweise = []
-            for t in tabellen:
-                pflicht = {r[1]: bool(r[3]) for r in k.execute(f'PRAGMA table_info("{t}")')}
-                for fk in k.execute(f'PRAGMA foreign_key_list("{t}")').fetchall():
-                    verweise.append((t, fk[3], fk[2], fk[4] or "id", pflicht.get(fk[3], False)))
-            while True:
-                weg = 0
-                for t, spalte, eltern, ziel, pflicht in verweise:
-                    wo = f'"{spalte}" IS NOT NULL AND "{spalte}" NOT IN (SELECT "{ziel}" FROM "{eltern}")'
-                    weg += k.execute(f'DELETE FROM "{t}" WHERE {wo}' if pflicht else f'UPDATE "{t}" SET "{spalte}" = NULL WHERE {wo}').rowcount
-                if not weg:
-                    break
-        k.execute("VACUUM")
-    finally:
-        k.close()
-
-
 def lese_kopie(quelle=None, ziel=None, pid=None):
     """Kopie ohne WAL; ersetzt die alte erst, wenn die neue fertig ist. pid: nur dieses Projekt (mehrere Projekte)."""
     quelle = quelle or db.db_pfad()
@@ -109,7 +77,7 @@ def lese_kopie(quelle=None, ziel=None, pid=None):
     finally:
         q.close()
     if pid is not None:
-        _nur_projekt(neu, pid)
+        db.nur_projekt(neu, pid)
         k = sqlite3.connect(neu)
         stand = k.execute("SELECT max(id) FROM nachricht").fetchone()[0]
         k.close()

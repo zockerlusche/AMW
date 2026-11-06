@@ -49,7 +49,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`abmelden`](#abmelden) | Sitzung ruht: nicht mehr wecken, nicht automatisch neu starten (bis anmelden) |
 | [`einrichten`](#einrichten) | ohne Angabe: geführte Einrichtung (fragt nach) ¦ schnell --projekt-name … (ohne Fragen) ¦ agenten-ordner <pfad> (Hooks, Statusline-Brücke, Sperren) |
 | [`befehle`](#befehle) | Befehlsreferenz als Markdown (für doc/befehle.md) |
-| [`sichern`](#sichern) | Sicherung der Datenbank (vollständige Kopie, auch während des Betriebs) |
+| [`sichern`](#sichern) | Sicherung der Datenbank (vollständige Kopie, auch während des Betriebs); mit --projekt <name> nur dieses Projekt als eigene Datenbank (z. B. zum Umziehen auf einen anderen Rechner) |
 | [`push`](#push) | Benachrichtigungen aufs Handy: status ¦ probe ¦ an ¦ aus ¦ ntfy ¦ pushover ¦ telegram ¦ ruhe 22:00-07:00¦aus ¦ link URL ¦ ereignis art=an¦aus |
 | [`hook`](#hook) | zeigt die Einstellungen für einen Agenten-Projektordner (schreibt nichts) |
 | [`release`](#release) | Release Notes: je Merge eine Zeile, Version fasst zusammen |

@@ -357,6 +357,41 @@ class NeuesProjekt(ZweiProjekte):
         self.assertIn(f"arbeitet in {os.path.abspath(self.repo)}", aus)             # neuer Agent: Projektordner als Profil
 
 
+class SichernJeProjekt(ZweiProjekte):
+    """Eine Datenbank je Rechner (F5190) – ein Projekt lässt sich trotzdem als eigene, lauffähige Datenbank sichern."""
+    def test_projekt_als_eigene_datenbank(self):
+        from amw import dokumente
+        for pid, name, inhalt in ((self.a, "shop.md", b"# Shop"), (self.b, "spiel.md", b"# Spiel")):
+            pfad = os.path.join(self.ordner.name, name)
+            with open(pfad, "wb") as f:
+                f.write(inhalt)
+            dokumente.ablegen(self.con, pid, "TL", pfad, name, "bericht")
+        kern.posten(self.con, self.a, "TL", "Shop1", "info", "Geheimnis des Shops")
+        kern.posten(self.con, self.b, "TL", "Spiel1", "info", "vom Spiel")
+        ziel = os.path.join(self.ordner.name, "sicherung")
+        rc, aus = self.cli("sichern", "--projekt", "Spiel", "--ziel", ziel)
+        self.assertEqual(rc, 0, aus)
+        self.assertIn("nur Projekt Spiel", aus)
+        datei = next(os.path.join(ziel, x) for x in os.listdir(ziel) if x.endswith(".db"))
+        self.assertIn("-spiel-", os.path.basename(datei))
+        k = db.verbinde(datei)                                   # lauffähig: öffnet ohne Umstellung, Trigger da
+        try:
+            self.assertEqual(k.execute("PRAGMA user_version").fetchone()[0], db.SCHEMA_VERSION)
+            self.assertEqual(k.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+            self.assertEqual(k.execute("PRAGMA foreign_key_check").fetchall(), [])
+            self.assertEqual([r[0] for r in k.execute("SELECT name FROM projekt")], ["Spiel"])
+            self.assertEqual([r[0] for r in k.execute("SELECT kurz FROM nachricht")], ["vom Spiel"])
+            self.assertEqual([r[0] for r in k.execute("SELECT titel FROM dokument")], ["spiel.md"])
+            self.assertTrue(k.execute("SELECT count(*) FROM sqlite_master WHERE type = 'trigger'").fetchone()[0] > 0)
+            with self.assertRaises(Exception):                   # Schutz wirkt wieder: Verlauf bleibt
+                with db.schreiben(k):
+                    k.execute("DELETE FROM nachricht")
+        finally:
+            k.close()
+        dateien = [x for _, _, xs in os.walk(os.path.splitext(datei)[0] + "-dokumente") for x in xs]
+        self.assertEqual(len(dateien), 1)                         # nur die Datei des Spiels
+
+
 class Schema19(unittest.TestCase):
     """Altbestand: Arbeitsregeln ohne Projekt und PC-weite KI-Vorlagen gehen an ihr Projekt."""
     ALT = """

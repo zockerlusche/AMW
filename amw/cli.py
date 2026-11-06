@@ -1532,9 +1532,19 @@ def cmd_hook(a):
 
 def cmd_sichern(a):
     from . import dokumente
-    ziel = db.sichern(a.ziel)
-    print(f"gesichert: {ziel}")
-    n = dokumente.sichern(os.path.splitext(ziel)[0] + "-dokumente")           # Ablage daneben, nur Fehlendes
+    pid = name = None
+    if getattr(a, "projekt", None):                   # ein Projekt als eigene Datenbank (sichern, umziehen)
+        con = db.verbinde(nur_lesen=True)
+        try:
+            pid = db.projekt_id(con, a.projekt)
+            name = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()[0]
+        except LookupError as f:
+            raise kern.AmwFehler(str(f))
+        finally:
+            con.close()
+    ziel = db.sichern(a.ziel, pid=pid, name=name)
+    print(f"gesichert: {ziel}" + (f" (nur Projekt {name} – eine eigene, vollständige AMW-Datenbank)" if pid else ""))
+    n = dokumente.sichern(os.path.splitext(ziel)[0] + "-dokumente", nur_aus=ziel if pid else None)   # Ablage daneben
     if n:
         print(f"Dokumente: {n} Datei(en) nach {os.path.splitext(ziel)[0]}-dokumente")
     return 0
@@ -2176,7 +2186,8 @@ def parser():
     x = s.add_parser("befehle", help="Befehlsreferenz als Markdown (für doc/befehle.md)")
     x.set_defaults(f=lambda a: print(befehle_markdown(), end="") or 0, ohne_db=True)
 
-    x = s.add_parser("sichern", help="Sicherung der Datenbank (vollständige Kopie, auch während des Betriebs)")
+    x = s.add_parser("sichern", help="Sicherung der Datenbank (vollständige Kopie, auch während des Betriebs); mit --projekt <name>"
+                                     " nur dieses Projekt als eigene Datenbank (z. B. zum Umziehen auf einen anderen Rechner)")
     x.add_argument("--ziel", help="Datei (*.db) oder Ordner (Vorgabe: sicherung-<Datum-Zeit>.db neben der Datenbank)")
     x.set_defaults(f=cmd_sichern, ohne_db=True)
 

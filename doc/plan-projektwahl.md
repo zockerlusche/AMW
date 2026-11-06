@@ -55,6 +55,14 @@ Mockup: [plan-projektwahl-mockup.html](plan-projektwahl-mockup.html).
     verteilen, sonst rechnen zwei Projekte gleichzeitig auf derselben Karte.
   - Eine zweite AMW-Installation auf demselben Rechner ist **nicht** vorgesehen: Sie teilt sich mit der ersten die
     geplante Aufgabe „AMW Dienst“, den Port und die Einstellungen unter `%LOCALAPPDATA%\amw`.
+- **Entschieden (06.11., nach Prüfung, AMW 1.25.0): eine Datenbank je Rechner bleibt**, keine Datei je Projekt.
+  Gründe: (1) Grafikkarte, Schirm und lokale KIs gibt es je Rechner einmal – die Lauf-Schlange, die sie über alle
+  Projekte verteilt, braucht eine gemeinsame Quelle; (2) ein Wächter weckt, überwacht und gleicht für alle Projekte ab
+  – mit einer Datei je Projekt bräuchte er je Projekt eine Verbindung, Sperre und Umstellung, und jede Umstellung
+  (Migration) liefe N-mal; (3) die Trennung ist im Code erzwungen und getestet (Abschnitt F), nicht nur Konvention;
+  (4) zwischen Rechnern trennt schon heute der Online-Speicher (Kennung je Projekt), keine Datenbank wird geteilt.
+  Was eine Datei je Projekt gebracht hätte – ein Projekt allein sichern oder umziehen –, leistet `amw sichern --projekt
+  <name>`: eine eigene, vollständige AMW-Datenbank nur mit diesem Projekt und seinen Dokumenten.
 - **Die Projekt-Kennung** online ist `projekt.uid` (zufällig, weltweit eindeutig). Die laufende Nummer `projekt.id` ist
   je Datenbank und kann sich auf zwei Rechnern überschneiden.
 - **Rechner-Name:** Einstellung dieses PCs (Standard: Name des Computers). Er erscheint in der Projektliste.

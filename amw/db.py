@@ -138,14 +138,53 @@ def anlegen(pfad=None):
     return verbinde(pfad)
 
 
-def sichern(ziel=None, pfad=None):
-    """Vollständige Kopie der Datenbank (VACUUM INTO – geht auch, während Agenten schreiben). Rückgabe: Zielpfad."""
+def nur_projekt(pfad, pid):
+    """In einer Kopie alles anderer Projekte löschen: Zeilen mit fremdem projekt_id, dann Zeilen, die daran hingen
+    (sitzung → agent, empfang → nachricht …); eine leere Verweis-Spalte, die erlaubt ist, wird geleert statt gelöscht.
+    Was zum Rechner gehört (KIs, Modelle, Schirm), bleibt. Die Schutz-Trigger (nichts löschen) ruhen dafür und kommen
+    danach wieder – die Kopie ist eine vollständige AMW-Datenbank mit nur diesem Projekt (Lese-Kopie der Brücke,
+    amw sichern --projekt)."""
+    k = sqlite3.connect(pfad)
+    try:
+        k.execute("PRAGMA foreign_keys = OFF")
+        tabellen = [r[0] for r in k.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")]
+        with k:
+            trigger = k.execute("SELECT name, sql FROM sqlite_master WHERE type = 'trigger'").fetchall()
+            for name, _ in trigger:
+                k.execute(f'DROP TRIGGER "{name}"')
+            k.execute("DELETE FROM projekt WHERE id != ?", (pid,))
+            for t in tabellen:
+                if t != "projekt" and "projekt_id" in {r[1] for r in k.execute(f'PRAGMA table_info("{t}")')}:
+                    k.execute(f'DELETE FROM "{t}" WHERE projekt_id IS NOT NULL AND projekt_id != ?', (pid,))
+            verweise = []
+            for t in tabellen:
+                pflicht = {r[1]: bool(r[3]) for r in k.execute(f'PRAGMA table_info("{t}")')}
+                for fk in k.execute(f'PRAGMA foreign_key_list("{t}")').fetchall():
+                    verweise.append((t, fk[3], fk[2], fk[4] or "id", pflicht.get(fk[3], False)))
+            while True:
+                weg = 0
+                for t, spalte, eltern, ziel, pflicht in verweise:
+                    wo = f'"{spalte}" IS NOT NULL AND "{spalte}" NOT IN (SELECT "{ziel}" FROM "{eltern}")'
+                    weg += k.execute(f'DELETE FROM "{t}" WHERE {wo}' if pflicht else f'UPDATE "{t}" SET "{spalte}" = NULL WHERE {wo}').rowcount
+                if not weg:
+                    break
+            for _, sql in trigger:
+                k.execute(sql)
+        k.execute("VACUUM")
+    finally:
+        k.close()
+
+
+def sichern(ziel=None, pfad=None, pid=None, name=None):
+    """Vollständige Kopie der Datenbank (VACUUM INTO – geht auch, während Agenten schreiben). Rückgabe: Zielpfad.
+    pid: nur dieses Projekt (name: für den Dateinamen) – eine eigene, lauffähige AMW-Datenbank."""
     pfad = pfad or db_pfad()
+    teil = f"-{kurzname(name or str(pid), pid)}" if pid else ""
     if not ziel:
-        ziel = os.path.join(os.path.dirname(pfad), f"sicherung-{datetime.now().strftime('%Y-%m-%d-%H%M')}.db")
+        ziel = os.path.join(os.path.dirname(pfad), f"sicherung{teil}-{datetime.now().strftime('%Y-%m-%d-%H%M')}.db")
     elif os.path.isdir(ziel) or not ziel.lower().endswith(".db"):          # ein Ordner (wird angelegt)
         os.makedirs(ziel, exist_ok=True)
-        ziel = os.path.join(ziel, f"amw-sicherung-{datetime.now().strftime('%Y-%m-%d-%H%M')}.db")
+        ziel = os.path.join(ziel, f"amw-sicherung{teil}-{datetime.now().strftime('%Y-%m-%d-%H%M')}.db")
     if os.path.exists(ziel):
         raise FileExistsError(f"{ziel} gibt es schon")
     q = sqlite3.connect(f"file:{pfad}?mode=ro", uri=True, timeout=30)
@@ -153,6 +192,8 @@ def sichern(ziel=None, pfad=None):
         q.execute("VACUUM INTO ?", (ziel,))
     finally:
         q.close()
+    if pid:
+        nur_projekt(ziel, pid)
     return ziel
 
 

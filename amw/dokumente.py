@@ -12,6 +12,7 @@ import os
 import re
 import secrets
 import shutil
+import sqlite3
 import time
 import zipfile
 
@@ -491,17 +492,27 @@ def gespraech(con, pid, did):
         (pid, did))]
 
 
-def sichern(ziel_ordner):
-    """Ablage neben eine Datenbank-Sicherung kopieren (nur, was dort fehlt). Rückgabe: Anzahl kopierter Dateien."""
+def sichern(ziel_ordner, nur_aus=None):
+    """Ablage neben eine Datenbank-Sicherung kopieren (nur, was dort fehlt). Rückgabe: Anzahl kopierter Dateien.
+    nur_aus: Pfad einer Sicherung eines Projekts – dann nur die Dateien, die deren Dokumente nennen."""
     quelle = ordner()
     if not os.path.isdir(quelle):
         return 0
+    erlaubt = None
+    if nur_aus:
+        k = sqlite3.connect(f"file:{nur_aus}?mode=ro", uri=True)
+        try:
+            erlaubt = {os.path.normcase(datei_pfad(r[0], r[1])) for r in k.execute("SELECT sha256, endung FROM dokument_version")}
+        finally:
+            k.close()
     n = 0
     for wurzel, _, dateien in os.walk(quelle):
         for name in dateien:
             if name.endswith(".neu"):
                 continue
             q = os.path.join(wurzel, name)
+            if erlaubt is not None and os.path.normcase(q) not in erlaubt:
+                continue
             z = os.path.join(ziel_ordner, os.path.relpath(q, quelle))
             if not os.path.exists(z):
                 os.makedirs(os.path.dirname(z), exist_ok=True)

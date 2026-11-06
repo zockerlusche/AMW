@@ -54,6 +54,14 @@ einzeln: `amw projekt neu <name> --ordner <pfad> [--regeln-von <Projekt>]`, dann
 - `amw` findet die Datenbank selbst; ein Agent nennt nie ein fremdes Projekt (`--projekt` mit einem Projekt, in dem es
   seine Kennung nicht gibt, lehnt die AMW ab).
 
+## Ein Projekt sichern oder umziehen
+
+`amw sichern --projekt <name>` schreibt eine eigene, vollständige AMW-Datenbank nur mit diesem Projekt (dazu, was zum
+Rechner gehört: KIs, Modelle, Schirm) und daneben seine Dokument-Dateien – geht auch, während die Agenten arbeiten.
+Umziehen auf einen neuen Rechner: dort AMW installieren, die Sicherung als `daten\amw.db` und den Ordner
+`…-dokumente` als `daten\dokumente` hineinlegen, dann `amw einrichten` (Projektordner und Wächter). Danach das Projekt
+auf dem alten Rechner nicht mehr betreiben – ein Projekt lebt auf genau einem Rechner.
+
 ## Datei-Brücke je Projekt
 
 Für einen Lead, der die Datenbank nicht direkt öffnen kann (z. B. in einer VM; Einstellung `bruecke_an`), hat jedes

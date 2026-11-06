@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.25.0 – 06.11.2026 · Ein Projekt als eigene Datenbank sichern
+Entschieden nach der Prüfung „mehrere Projekte“: **eine Datenbank je Rechner bleibt** (Gründe in
+[doc/plan-projektwahl.md](doc/plan-projektwahl.md), Abschnitt „Aufbau“).
+- **`amw sichern --projekt <name>`** schreibt eine eigene, vollständige und lauffähige AMW-Datenbank nur mit diesem
+  Projekt (Schutz-Trigger, Schema, Fremdschlüssel intakt) und daneben nur dessen Dokument-Dateien – zum Sichern eines
+  einzelnen Projekts oder zum Umziehen auf einen anderen Rechner ([doc/anleitung-projekte.md](doc/anleitung-projekte.md)).
+- Die Lese-Kopie der Brücke nutzt dieselbe Funktion und behält jetzt ebenfalls ihre Trigger.
+
 ## 1.24.0 – 06.11.2026 · Zeitleiste lesbar, Hauptaktion oben
 Letzte Vorschläge aus dem Bedienbarkeits-Durchgang (1.21.0).
 - **Planung, Übersicht:** Passt der Name eines Bogens nicht in seinen Balken, steht er rechts daneben (bis 250 px, am
