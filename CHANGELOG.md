@@ -4,6 +4,24 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.19.0 – 06.11.2026 · Mehrere Projekte, Teil 3: online je Projekt und auf mehreren Rechnern
+Letzter Schritt aus [doc/plan-projektwahl.md](doc/plan-projektwahl.md).
+- **Alles online trägt die Projekt-Kennung.** Ansichten liegen unter `<Kennung>:<Weg>`, ebenso Suchindex, Gespräche,
+  „zuletzt gesehen“ und die Zuordnung der Dateien. Befehle vom Handy tragen die Kennung des Projekts, in dem du sie
+  gibst.
+- **Verzeichnis aller Projekte** im Online-Speicher: Name, Farbe, Rechner, offene Fragen, Halt und „zuletzt gesehen“.
+  Online kannst du jetzt umschalten, auch zu Projekten anderer Rechner.
+- **Mehrere Rechner an einem Online-Speicher:** Jeder Rechner lädt nur seine Projekte hoch. Er führt nur deren Befehle
+  aus und löscht nichts, was einem anderen gehört. Eine Datei, die zwei Projekte nennen, bleibt online, bis keines sie
+  mehr braucht. Ein Rechner prüft das vor dem Löschen frisch, denn der andere kann sie gerade angemeldet haben.
+- **Workbench am PC:** Projekte anderer Rechner stehen mit „↗“ und Rechnername in der Auswahl und öffnen die
+  Online-Seite des Projekts (Link aus Zahnrad › Push). Ein Projekt, das sich über 7 Tage nicht gemeldet hat, ist
+  gekennzeichnet.
+- **Übergang:** Der Online-Speicher bekommt die neuen Tabellen und die Spalte `eingang.projekt` von selbst. Alte
+  Ansichten ohne Kennung löscht der PC nach dem ersten Hochladen; bis dahin liest die Seite sie weiter. Befehle ohne
+  Kennung (alte Seite im Browser) gehen an das erste Projekt.
+- Anleitung „Weiterer Rechner“ in [doc/installation.md](doc/installation.md).
+
 ## 1.18.0 – 06.11.2026 · Mehrere Projekte, Teil 2: Projekt-Auswahl in der Workbench
 Zweiter Schritt aus [doc/plan-projektwahl.md](doc/plan-projektwahl.md). **Umschalten ändert nur die Ansicht**; kein
 Projekt hält an.

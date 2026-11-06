@@ -93,6 +93,21 @@ Einen bestehenden weiteren Projektordner einrichten: `amw einrichten agenten-ord
   (`--ebene arbeit` = wie das Team arbeitet, `projekt` = Fachregeln deines Projekts; `--beschluss` = Nummer aus der
   ersten Zeile.)
 
+## 5a Weiterer Rechner (eigenes Projekt)
+Ein Projekt kann auf einem anderen Rechner laufen, mit eigenen Agenten und eigener Datenbank. Die Workbench zeigt dann
+alle Projekte in der Auswahl oben in der Navigation; Umschalten ändert nur die Ansicht.
+1. AMW auf dem zweiten Rechner installieren wie oben, dort das Projekt anlegen (`amw projekt neu <name>`) und die
+   Agenten einrichten.
+2. Zahnrad › Dieser PC › **Name dieses Rechners** vergeben (z. B. „Laptop“). So erscheint er in der Projekt-Auswahl.
+3. Zahnrad › Online-Speicher: **denselben** Online-Speicher eintragen wie auf dem ersten Rechner und den Abgleich
+   einschalten.
+4. Fertig. Jeder Rechner lädt nur seine eigenen Projekte hoch und führt nur deren Befehle vom Handy aus. Am ersten
+   Rechner steht das neue Projekt mit „↗“ in der Auswahl und öffnet die Online-Seite. Dafür muss unter Zahnrad › Push
+   der Link der Online-Seite eingetragen sein.
+
+Mehrere Projekte auf **demselben** Rechner liegen in derselben Datenbank, getrennt nach Projekt (`amw projekt neu …`).
+So teilen sie sich Grafikkarte und Schirm über eine gemeinsame Lauf-Schlange.
+
 ## 6 Aktualisieren
 ```
 cd C:\amw

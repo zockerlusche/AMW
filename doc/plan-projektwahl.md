@@ -8,7 +8,8 @@ zusammen und lässt eines auswählen.
 - Alles, was online beim Hoster liegt, ist einem Projekt zugeordnet.
 
 Status: **freigegeben (Variante A, Schema-Änderung erlaubt), Ausbau auf mehrere Rechner ergänzt.** Release 1 (Agenten,
-Brücke, Push je Projekt, Schema 18) umgesetzt in AMW 1.17.0, Release 2 (Auswahl in der Workbench am PC) in 1.18.0.
+Brücke, Push je Projekt, Schema 18) umgesetzt in AMW 1.17.0, Release 2 (Auswahl in der Workbench am PC) in 1.18.0, Release 3 (online je Projekt,
+mehrere Rechner) in 1.19.0.
 Mockup: [plan-projektwahl-mockup.html](plan-projektwahl-mockup.html).
 
 ## Ziel und Abnahme

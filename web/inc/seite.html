@@ -739,7 +739,7 @@ const TOKEN = "__AMW_TOKEN__";
 const API = "__AMW_API__".startsWith("__") ? "" : "__AMW_API__";
 /* Projekt der Ansicht (uid): jede Anfrage trägt es; Umschalten ändert nur die Ansicht, kein Projekt hält an */
 let projekt = null, projekte = [];
-const ziel = weg => API ? API + encodeURIComponent(weg)
+const ziel = weg => API ? API + encodeURIComponent(weg) + (projekt ? "&projekt=" + encodeURIComponent(projekt) : "")
   : projekt ? weg + (weg.includes("?") ? "&" : "?") + "projekt=" + encodeURIComponent(projekt) : weg;
 /* Merken je Projekt (Sicht, letzter Besuch); ohne Eintrag gilt der bisherige Wert ohne Projekt */
 const ablage = k => projekt ? `${k}:${projekt}` : k;
@@ -975,7 +975,8 @@ const TEXTE = {
     protokoll: "Protokoll des Dienstes", leer: "(leer)",
     pw_projekt: "Projekt", pw_waehlen: "Projekt wählen", pw_fragen: "{n} offene Fragen an dich", pw_agenten: "{n} Agenten", pw_agent1: "1 Agent", pw_halt: "angehalten",
     pw_neu: "weitere: amw projekt neu <name>", pw_jetzt: "Jetzt im Projekt „{x}“", pw_unbekannt: "Das Projekt aus dem Link gibt es hier nicht – gezeigt wird „{x}“.",
-    pw_nur_ansicht: "Umschalten ändert nur die Ansicht – alle Projekte arbeiten weiter.", pw_online_bald: "Online wechseln kommt mit dem nächsten Release; am PC geht es schon.",
+    pw_nur_ansicht: "Umschalten ändert nur die Ansicht – alle Projekte arbeiten weiter.", pw_weg: "seit über 7 Tagen nicht gemeldet",
+    pw_fern_ohne_link: "Dieses Projekt läuft auf einem anderen Rechner. Öffnen geht über die Online-Seite – trage ihre Adresse unter Einstellungen › Push › Link ein.",
     pc_marke: "dieser PC", pc_marke_h: "gehört zu diesem Rechner, egal welches Projekt gewählt ist", pc_kurz: "PC",
     fremd_projekt: "Projekt „{x}“", fremd_gpu: "belegt die Grafikkarte seit {x}", fremd_schirm: "belegt den Schirm seit {x}",
     e_farbe: "Farbe", e_farbe_h: "Streifen oben und Marke in der Projekt-Auswahl", e_rechner: "Name dieses Rechners",
@@ -1224,7 +1225,8 @@ const TEXTE = {
     protokoll: "Service log", leer: "(empty)",
     pw_projekt: "Project", pw_waehlen: "Choose project", pw_fragen: "{n} open questions for you", pw_agenten: "{n} agents", pw_agent1: "1 agent", pw_halt: "halted",
     pw_neu: "more: amw projekt neu <name>", pw_jetzt: "Now in project “{x}”", pw_unbekannt: "The project from the link does not exist here – showing “{x}”.",
-    pw_nur_ansicht: "Switching only changes the view – all projects keep working.", pw_online_bald: "Switching online comes with the next release; on the PC it works already.",
+    pw_nur_ansicht: "Switching only changes the view – all projects keep working.", pw_weg: "not reported for over 7 days",
+    pw_fern_ohne_link: "This project runs on another computer. It opens via the online page – enter its address under Settings › Push › Link.",
     pc_marke: "this PC", pc_marke_h: "belongs to this computer, whichever project is selected", pc_kurz: "PC",
     fremd_projekt: "Project “{x}”", fremd_gpu: "has had the GPU since {x}", fremd_schirm: "has had the screen since {x}",
     e_farbe: "Colour", e_farbe_h: "Stripe at the top and mark in the project switcher", e_rechner: "Name of this computer",
@@ -1320,17 +1322,17 @@ async function projekteLaden() {
   let gewollt = null, ausLink = false;
   try { gewollt = new URLSearchParams(location.search).get("projekt"); ausLink = !!gewollt; } catch (e) {}
   if (!gewollt) try { gewollt = localStorage.getItem("amw-projekt"); } catch (e) {}
-  const p = projekte.find(x => x.uid === gewollt || x.name === gewollt) || projekte.find(x => x.aktiv) || projekte[0];
+  const eigene = projekte.filter(x => !x.fern);
+  const p = eigene.find(x => x.uid === gewollt || x.name === gewollt) || eigene.find(x => x.aktiv) || eigene[0];
   if (!p) return;
-  if (!API) projekt = p.uid;
+  projekt = p.uid;
   document.documentElement.style.setProperty("--projekt-farbe", farbe(p));
   if (ausLink && p.uid !== gewollt && p.name !== gewollt) toast(t("pw_unbekannt", { x: p.name }), true);
   try { if (sessionStorage.getItem("amw-gewechselt") === p.uid) { sessionStorage.removeItem("amw-gewechselt"); toast(t("pw_jetzt", { x: p.name })); } } catch (e) {}
   projektwahlZeigen(p);
 }
 function projektwahlZeigen(p) {
-  const still = API || projekte.length < 2;        /* online: Wechsel kommt mit dem Abgleich je Projekt */
-  const knopf = el("button", { class: "pw" + (still && !projekte.length ? " still" : ""), type: "button", title: t("pw_nur_ansicht"),
+  const knopf = el("button", { class: "pw" + (!projekte.length ? " still" : ""), type: "button", title: t("pw_nur_ansicht"),
     onclick: e => projektListe(e.currentTarget) },
     el("span", { class: "pw-farbe", style: `background:${farbe(p)}` }),
     el("span", {}, el("span", { class: "pw-klein" }, t("pw_projekt")), el("span", { class: "pw-name" }, p.name)),
@@ -1343,15 +1345,22 @@ function projektwahlZeigen(p) {
 }
 function projektListe(anker) {
   const r = anker.getBoundingClientRect();
-  const eintrag = p => el("button", { class: "pw-eintrag" + (p.uid === projekt || (API && p.aktiv) ? " an" : ""), type: "button",
-      disabled: API && !p.aktiv, onclick: () => { hg.remove(); if (p.uid !== projekt) projektWechseln(p.uid); } },
+  const mehrRechner = new Set(projekte.map(x => x.rechner).filter(Boolean)).size > 1;
+  /* fremd = Projekt eines anderen Rechners: am PC über die Online-Seite (dort auch dirigierbar), online wie jedes andere */
+  const oeffnen = p => { hg.remove(); if (p.uid === projekt) return;
+    if (!p.fern) projektWechseln(p.uid);
+    else if (p.online) window.open(p.online, "_blank", "noopener");
+    else toast(t("pw_fern_ohne_link"), true); };
+  const eintrag = p => el("button", { class: "pw-eintrag" + (p.uid === projekt ? " an" : ""), type: "button", onclick: () => oeffnen(p) },
     el("span", { class: "pw-farbe", style: `background:${farbe(p)}` }),
-    el("span", {}, el("b", {}, p.name), el("small", {}, [t(p.agenten === 1 ? "pw_agent1" : "pw_agenten", { n: p.agenten }), p.halt ? t("pw_halt") : null].filter(Boolean).join(" · "))),
+    el("span", {}, el("b", {}, p.name, p.fern ? " ↗" : ""), el("small", {}, [mehrRechner ? p.rechner : null,
+      t(p.agenten === 1 ? "pw_agent1" : "pw_agenten", { n: p.agenten }), p.halt ? t("pw_halt") : null,
+      p.erreichbar === false ? t("pw_weg") : null].filter(Boolean).join(" · "))),
     p.fragen ? el("span", { class: "pw-zahl", title: t("pw_fragen", { n: p.fragen }) }, `${p.fragen} ?`) : el("span"));
   const liste = el("div", { class: "pw-liste karte", style: `left:${Math.round(r.left)}px;top:${Math.round(r.bottom + 6)}px`, role: "dialog",
       "aria-label": t("pw_waehlen") },
     el("h3", {}, t("pw_waehlen")), ...projekte.map(eintrag),
-    el("div", { class: "pw-fuss" }, el("span", { class: "sehrleise", style: "font-size:12px" }, t(API ? "pw_online_bald" : "pw_nur_ansicht")),
+    el("div", { class: "pw-fuss" }, el("span", { class: "sehrleise", style: "font-size:12px" }, t("pw_nur_ansicht")),
       el("span", { class: "mono sehrleise" }, t("pw_neu"))));
   const hg = el("div", { class: "dialog-hg pw-hg", onclick: e => { if (e.target === hg) hg.remove(); } }, liste);
   document.body.append(hg);

@@ -13,6 +13,11 @@ beim nächsten Aufruf auf den Webspace (außerhalb des Deploy-Ordners) und lösc
 online, nimmt der PC die Zeile aus `datei` – die Seite löscht ihre Kopie dann selbst. Der PC braucht dafür weder die Adresse
 der Seite noch einen eigenen Schlüssel.
 
+Mehrere Projekte, auch auf mehreren Rechnern (→ doc/plan-projektwahl.md): Jede Ansicht liegt unter „<Kennung>:<Weg>“
+(Kennung = projekt.uid), Befehle vom Handy tragen die Kennung, das Verzeichnis `projekt` listet alle Projekte mit ihrem
+Rechner. Ein Rechner schreibt und löscht nur Daten seiner eigenen Projekte; Dateien gehören über `datei_projekt` zu
+Projekten und verschwinden erst, wenn keines sie mehr nennt.
+
 Zugang: %LOCALAPPDATA%\\amw\\turso.json {"url", "token", "abgleich": true}. Ohne "abgleich": true bleibt alles aus.
 Der Schlüssel wird nie ausgegeben oder protokolliert.
 """
@@ -60,7 +65,13 @@ SCHEMA = [
     "CREATE TABLE IF NOT EXISTS hoch (id TEXT PRIMARY KEY, name TEXT NOT NULL, endung TEXT NOT NULL, groesse INTEGER NOT NULL,"
     " sha TEXT NOT NULL, teile INTEGER NOT NULL, zeit_utc TEXT NOT NULL)",
     "CREATE TABLE IF NOT EXISTS hoch_teil (id TEXT NOT NULL, nr INTEGER NOT NULL, inhalt TEXT NOT NULL, PRIMARY KEY (id, nr))",
+    "CREATE TABLE IF NOT EXISTS projekt (uid TEXT PRIMARY KEY, name TEXT NOT NULL, farbe TEXT, rechner TEXT, gesehen_utc TEXT NOT NULL,"
+    " fragen INTEGER NOT NULL DEFAULT 0, agenten INTEGER NOT NULL DEFAULT 0, halt INTEGER NOT NULL DEFAULT 0)",
+    "CREATE TABLE IF NOT EXISTS datei_projekt (sha TEXT NOT NULL, projekt TEXT NOT NULL, PRIMARY KEY (sha, projekt))",
 ]
+# Spalten, die es in älteren Online-Speichern noch nicht gibt (web/inc/lib.php rüstet dieselben nach)
+NACHRUESTEN = [("eingang", "projekt", "ALTER TABLE eingang ADD COLUMN projekt TEXT")]
+VERZEICHNIS = {"projekte": [], "stand": 0.0}   # zuletzt gelesenes Verzeichnis (für die Projekt-Auswahl am PC)
 SICHTEN = ("offen", "geparkt", "pool", "erledigt")
 
 # Online-Seite (web/inc/lib.php liest dieselben Werte mit denselben Grenzen)
@@ -304,41 +315,78 @@ def _pruef(inhalt):
 class Abgleich:
     def __init__(self, con, speicher, pid=None):
         self.con, self.sp = con, speicher
-        self.pid = pid or con.execute("SELECT min(id) FROM projekt").fetchone()[0]
-        self.bekannt = {}                      # weg → Prüfsumme, wie sie online liegt
+        self.nur = pid                         # nur dieses Projekt (Tests); sonst alle Projekte dieser AMW
+        self.bekannt = {}                      # Schlüssel „<uid>:<weg>“ → Prüfsumme, wie sie online liegt
+        self.alt_weg = False                   # Ansichten aus der Zeit vor den Projekt-Kennungen sind gelöscht
         self.letzt_hoch = self.letzt_puls = self.letzt_index = self.letzt_oben = 0.0
         self.oben = {}                         # sha → Status der Dateien im Speicher (unterwegs | abgelegt)
+        self.paare = set()                     # (sha, uid): welche Datei zu welchem Projekt gehört
         self.con.execute("CREATE TABLE IF NOT EXISTS netz_eingang (id INTEGER PRIMARY KEY, ergebnis TEXT,"
                          " zeit_utc TEXT NOT NULL)")
         # Merkmal = Zeit + Weg + Inhalt: eine neue Online-Datenbank zählt wieder ab 1 – die Nummer allein reicht nicht
         if "merkmal" not in [r[1] for r in self.con.execute("PRAGMA table_info(netz_eingang)")]:
             self.con.execute("ALTER TABLE netz_eingang ADD COLUMN merkmal TEXT")
 
+    @property
+    def pid(self):
+        """Erstes Projekt: dorthin gehören Befehle ohne Kennung (Seite von vor 1.19.0)."""
+        return self.nur or self.con.execute("SELECT min(id) FROM projekt").fetchone()[0]
+
+    def projekte(self):
+        """[(pid, uid)] der Projekte, die dieser Rechner online hält."""
+        if self.nur:
+            return [tuple(r) for r in self.con.execute("SELECT id, uid FROM projekt WHERE id = ?", (self.nur,))]
+        return [tuple(r) for r in self.con.execute("SELECT id, uid FROM projekt ORDER BY id")]
+
     def schema(self):
         self.sp.ausfuehren([(s, []) for s in SCHEMA])
+        for tabelle, spalte, sql in NACHRUESTEN:
+            if not self.sp.ausfuehren([(f"SELECT count(*) FROM pragma_table_info('{tabelle}') WHERE name = ?", [spalte])])[0][0][0]:
+                self.sp.ausfuehren([(sql, [])])
         self.bekannt = {w: p for w, p in self.sp.ausfuehren([("SELECT weg, pruef FROM ansicht", [])])[0]}
         self.oben_laden()
 
     def oben_laden(self):
         alt = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=HOCH_ALT_S)).strftime("%Y-%m-%dT%H:%M:%SZ")
-        self.oben = {s: st for s, st in self.sp.ausfuehren([
+        oben, paare = self.sp.ausfuehren([
             ("SELECT sha, status FROM datei", []),
+            ("SELECT sha, projekt FROM datei_projekt", []),
             # Uploads vom Handy, die nie fertig wurden (Funkloch, Seite zu): nach einem Tag weg
             ("DELETE FROM hoch_teil WHERE id IN (SELECT id FROM hoch WHERE zeit_utc < ?)", [alt]),
-            ("DELETE FROM hoch WHERE zeit_utc < ?", [alt])])[0]}
+            ("DELETE FROM hoch WHERE zeit_utc < ?", [alt])])[:2]
+        self.oben = {s: st for s, st in oben}
+        self.paare = {(s, p) for s, p in paare}       # welche Datei zu welchem Projekt gehört (alle Rechner)
         self.letzt_oben = time.time()
 
     def dateien(self):
         """Dateien der Dokumente, die auch online stehen, zum Webspace reichen; nicht mehr gebrauchte abmelden.
-        Gibt die Zahl der hochgeladenen und abgemeldeten Dateien zurück."""
+        Je Projekt (datei_projekt): eine Datei verschwindet erst, wenn kein Projekt – auch keines eines anderen
+        Rechners – sie mehr nennt. Gibt die Zahl der hochgeladenen und abgemeldeten Dateien zurück."""
         from . import dokumente
-        soll = {}
-        for sha, endung, groesse in self.con.execute(
-                "SELECT DISTINCT v.sha256, v.endung, v.groesse FROM dokument_version v JOIN dokument d ON d.id = v.dokument_id"
-                " WHERE d.projekt_id = ? AND d.online = 1 AND d.status != 'geloescht'", (self.pid,)):
-            if dokumente.FORMATE.get(endung, ("", "", "download"))[2] != "text":   # Texte gehen als Ansicht mit
-                soll[sha] = (endung, groesse)
-        weg = [s for s in self.oben if s not in soll]
+        soll, soll_paare = {}, set()
+        for pid, uid in self.projekte():
+            for sha, endung, groesse in self.con.execute(
+                    "SELECT DISTINCT v.sha256, v.endung, v.groesse FROM dokument_version v JOIN dokument d ON d.id = v.dokument_id"
+                    " WHERE d.projekt_id = ? AND d.online = 1 AND d.status != 'geloescht'", (pid,)):
+                if dokumente.FORMATE.get(endung, ("", "", "download"))[2] != "text":   # Texte gehen als Ansicht mit
+                    soll[sha] = (endung, groesse)
+                    soll_paare.add((sha, uid))
+        meine = {u for _, u in self.projekte()}
+        neu_paare = soll_paare - self.paare
+        alt_paare = {(s, u) for s, u in self.paare if u in meine and (s, u) not in soll_paare}
+        if neu_paare or alt_paare:
+            self.sp.ausfuehren([("INSERT INTO datei_projekt (sha, projekt) VALUES (?, ?) ON CONFLICT DO NOTHING", [s, u])
+                                for s, u in neu_paare] + [("DELETE FROM datei_projekt WHERE sha = ? AND projekt = ?", [s, u])
+                                                          for s, u in alt_paare])
+            self.paare = (self.paare | neu_paare) - alt_paare
+        genannt = {s for s, _ in self.paare}
+        weg = [s for s in self.oben if s not in soll and s not in genannt]     # auch Altbestand ohne Projekt
+        if weg:                                       # frisch nachsehen: ein anderer Rechner kann sie gerade angemeldet haben
+            noch = {r[0] for r in self.sp.ausfuehren([(f"SELECT DISTINCT sha FROM datei_projekt WHERE sha IN"
+                                                        f" ({', '.join('?' for _ in weg)})", weg)])[0]}
+            self.paare |= {(s, u) for s, u in self.sp.ausfuehren([(f"SELECT sha, projekt FROM datei_projekt WHERE sha IN"
+                                                                   f" ({', '.join('?' for _ in noch)})", list(noch))])[0]} if noch else set()
+            weg = [s for s in weg if s not in noch]
         if weg:
             self.sp.ausfuehren([a for s in weg for a in (("DELETE FROM datei WHERE sha = ?", [s]),
                                                          ("DELETE FROM datei_teil WHERE sha = ?", [s]))])
@@ -375,32 +423,70 @@ class Abgleich:
         return n + len(weg)
 
     def hochladen(self, alle=False):
+        """Ansichten aller eigenen Projekte unter „<uid>:<weg>“, dazu das Verzeichnis und „zuletzt gesehen“ je Projekt."""
+        from . import einstellungen
         t = db.jetzt()
-        neu = []
-        alle_ansichten = ansichten(self.con, self.pid, self.sp)
-        if alle or time.time() - self.letzt_index >= INDEX_S:
-            alle_ansichten["/api/suchindex"] = suchindex(self.con, self.pid)
+        neu, n = [], 0
+        index = alle or time.time() - self.letzt_index >= INDEX_S
+        rechner = einstellungen.wert("rechner")
+        verzeichnis = []
+        for pid, uid in self.projekte():
+            alle_ansichten = ansichten(self.con, pid, self.sp)
+            if index:
+                alle_ansichten["/api/suchindex"] = suchindex(self.con, pid)
+            for weg, inhalt in alle_ansichten.items():
+                p = _pruef(inhalt)
+                if alle or self.bekannt.get(f"{uid}:{weg}") != p:
+                    neu.append((f"{uid}:{weg}", json.dumps(inhalt, ensure_ascii=False), p))
+            e = next(x for x in workbench.daten_projekte(self.con, pid)["projekte"] if x["uid"] == uid)
+            verzeichnis.append(("INSERT INTO projekt (uid, name, farbe, rechner, gesehen_utc, fragen, agenten, halt) VALUES"
+                                " (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET name = excluded.name, farbe = excluded.farbe,"
+                                " rechner = excluded.rechner, gesehen_utc = excluded.gesehen_utc, fragen = excluded.fragen,"
+                                " agenten = excluded.agenten, halt = excluded.halt",
+                                [uid, e["name"], e["farbe"], rechner, t, e["fragen"], e["agenten"], int(e["halt"])]))
+            verzeichnis.append(("INSERT INTO zustand (schluessel, wert) VALUES (?, ?) ON CONFLICT(schluessel)"
+                                " DO UPDATE SET wert = excluded.wert", [f"pc_gesehen_utc:{uid}", t]))
+        if index:
             self.letzt_index = time.time()
-        for weg, inhalt in alle_ansichten.items():
-            p = _pruef(inhalt)
-            if alle or self.bekannt.get(weg) != p:
-                neu.append((weg, json.dumps(inhalt, ensure_ascii=False), p))
-        anw = [("INSERT INTO ansicht (weg, inhalt, pruef, stand_utc) VALUES (?, ?, ?, ?) ON CONFLICT(weg) DO UPDATE"
-                " SET inhalt = excluded.inhalt, pruef = excluded.pruef, stand_utc = excluded.stand_utc", [w, i, p, t])
-               for w, i, p in neu]
-        anw.append(("INSERT INTO zustand (schluessel, wert) VALUES ('pc_gesehen_utc', ?) ON CONFLICT(schluessel)"
-                    " DO UPDATE SET wert = excluded.wert", [t]))
-        self.sp.ausfuehren(anw)
-        for w, _, p in neu:
-            self.bekannt[w] = p
-        return len(neu)
+        for i in range(0, len(neu), 40):             # nicht alles in eine Anfrage (viele Projekte, große Ansichten)
+            stueck = neu[i:i + 40]
+            self.sp.ausfuehren([("INSERT INTO ansicht (weg, inhalt, pruef, stand_utc) VALUES (?, ?, ?, ?) ON CONFLICT(weg) DO UPDATE"
+                                 " SET inhalt = excluded.inhalt, pruef = excluded.pruef, stand_utc = excluded.stand_utc", [w, i_, p, t])
+                                for w, i_, p in stueck])
+            for w, _, p in stueck:
+                self.bekannt[w] = p
+            n += len(stueck)
+        verzeichnis.append(("INSERT INTO zustand (schluessel, wert) VALUES ('pc_gesehen_utc', ?) ON CONFLICT(schluessel)"
+                            " DO UPDATE SET wert = excluded.wert", [t]))          # für Seiten von vor 1.19.0
+        if not self.alt_weg:                          # Ansichten ohne Kennung (vor 1.19.0) – jetzt doppelt: weg
+            verzeichnis.append(("DELETE FROM ansicht WHERE weg LIKE '/%'", []))
+            self.alt_weg = True
+            for w in [w for w in self.bekannt if w.startswith("/")]:
+                self.bekannt.pop(w)
+        self.sp.ausfuehren(verzeichnis)
+        self.verzeichnis_lesen()
+        return n
+
+    def verzeichnis_lesen(self):
+        """Alle Projekte im Online-Speicher (auch anderer Rechner) für die Projekt-Auswahl am PC merken."""
+        spalten = ("uid", "name", "farbe", "rechner", "gesehen_utc", "fragen", "agenten", "halt")
+        zeilen = self.sp.ausfuehren([(f"SELECT {', '.join(spalten)} FROM projekt ORDER BY name", [])])[0]
+        VERZEICHNIS["projekte"] = [dict(zip(spalten, z)) for z in zeilen]
+        VERZEICHNIS["stand"] = time.time()
 
     def eingang(self):
-        """Neue Zeilen aus dem Briefkasten ausführen. Gibt die Zahl der bearbeiteten Zeilen zurück."""
-        zeilen = self.sp.ausfuehren([("SELECT id, weg, daten, zeit_utc FROM eingang WHERE status = 'neu' ORDER BY id"
-                                      " LIMIT 20", [])])[0]
-        for eid, weg, roh, zeit in zeilen:
+        """Neue Zeilen aus dem Briefkasten ausführen – nur die der eigenen Projekte (Kennung), dazu Zeilen ohne Kennung
+        (Seite von vor 1.19.0) im ersten Projekt. Gibt die Zahl der bearbeiteten Zeilen zurück."""
+        eigene = dict((uid, pid) for pid, uid in self.projekte())
+        if not eigene:
+            return 0
+        platz = ", ".join("?" for _ in eigene)
+        zeilen = self.sp.ausfuehren([(f"SELECT id, weg, daten, zeit_utc, projekt FROM eingang WHERE status = 'neu'"
+                                      f" AND (projekt IN ({platz}) OR projekt IS NULL OR projekt = '') ORDER BY id LIMIT 20",
+                                      list(eigene))])[0]
+        for eid, weg, roh, zeit, uid in zeilen:
             eid = int(eid)
+            pid = eigene.get(uid) or self.pid
             merkmal = hashlib.sha256(f"{zeit}|{weg}|{roh}".encode("utf-8")).hexdigest()[:24]
             schon = self.con.execute("SELECT ergebnis, merkmal FROM netz_eingang WHERE id = ?", (eid,)).fetchone()
             # gleiche Nummer, anderer Eintrag (neue Online-Datenbank) – alte Zeilen ohne Merkmal gelten nicht als Beleg:
@@ -417,7 +503,7 @@ class Abgleich:
                         daten = {}
                     if not isinstance(daten, dict):
                         raise aktionen.Ungueltig("Daten")
-                    status, ergebnis = "erledigt", aktionen.ausfuehren(self.con, self.pid, weg, daten, kanal="netz",
+                    status, ergebnis = "erledigt", aktionen.ausfuehren(self.con, pid, weg, daten, kanal="netz",
                                                                         speicher=self.sp)
                 except (aktionen.Ungueltig, kern.AmwFehler, LookupError, ValueError) as e:
                     status, ergebnis = "fehler", {"fehler": str(e) or type(e).__name__}
@@ -428,7 +514,7 @@ class Abgleich:
                     self.hoch_weg(roh)
             self.sp.ausfuehren([("UPDATE eingang SET status = ?, ergebnis = ?, erledigt_utc = ? WHERE id = ?",
                                  [status, json.dumps(ergebnis, ensure_ascii=False), db.jetzt(), eid])])
-        if any(w == "/api/dokument/neu" for _, w, _, _ in zeilen):
+        if any(w == "/api/dokument/neu" for _, w, _, _, _ in zeilen):
             self.oben_laden()                          # die Seite hat ihre Kopie schon abgelegt – nicht noch einmal hochladen
         return len(zeilen)
 
@@ -438,19 +524,25 @@ class Abgleich:
         verdeckt); danach löscht er sie wieder. Rückgabe: Zahl der geänderten Ansichten."""
         from . import gespraech
         grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=GESPRAECH_S)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        eigene = dict((uid, pid) for pid, uid in self.projekte())
+        # Schlüssel „gespraech:<uid>:<Kennung>“; ältere ohne Kennung des Projekts räumt der Rechner des ersten Projekts weg
         zeilen = self.sp.ausfuehren([("SELECT schluessel, wert FROM zustand WHERE schluessel LIKE 'gespraech:%'", [])])[0]
-        bekannt = {k for (k,) in self.con.execute("SELECT kennung FROM agent WHERE projekt_id = ?", (self.pid,))}
-        wunsch = {k[10:] for k, w in zeilen if str(w) >= grenze and k[10:] in bekannt}
-        anw = [("DELETE FROM zustand WHERE schluessel = ?", [k]) for k, w in zeilen if k[10:] not in wunsch]
-        for weg in [w for w in self.bekannt if w.startswith("/api/gespraech?kennung=")]:
-            if weg.split("=", 1)[1] not in wunsch:
-                anw.append(("DELETE FROM ansicht WHERE weg = ?", [weg]))
-                self.bekannt.pop(weg)
+        bekannt = {(uid, k) for uid, pid in eigene.items()
+                   for (k,) in self.con.execute("SELECT kennung FROM agent WHERE projekt_id = ?", (pid,))}
+        teile = {s: tuple(s.split(":", 2)[1:]) if s.count(":") == 2 else (None, s[10:]) for s, _ in zeilen}
+        wunsch = {teile[s] for s, w in zeilen if str(w) >= grenze and teile[s] in bekannt}
+        anw = [("DELETE FROM zustand WHERE schluessel = ?", [s]) for s, w in zeilen
+               if teile[s] not in wunsch and (teile[s][0] in eigene or teile[s][0] is None)]
+        for schl in [w for w in self.bekannt if ":/api/gespraech?kennung=" in w]:
+            uid, weg = schl.split(":", 1)
+            if uid in eigene and (uid, weg.split("=", 1)[1]) not in wunsch:
+                anw.append(("DELETE FROM ansicht WHERE weg = ?", [schl]))
+                self.bekannt.pop(schl)
         t, n = db.jetzt(), len(anw)
-        for k in sorted(wunsch):
-            weg = f"/api/gespraech?kennung={k}"
+        for uid, k in sorted(wunsch):
+            weg = f"{uid}:/api/gespraech?kennung={k}"
             try:
-                d = gespraech.daten(self.con, self.pid, k, online=True)
+                d = gespraech.daten(self.con, eigene[uid], k, online=True)
             except (OSError, kern.AmwFehler, LookupError) as e:
                 d = {"kennung": k, "eintraege": [], "fehler": str(e)}
             for x in ("ab", "vor", "sitzungen"):

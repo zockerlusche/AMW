@@ -152,19 +152,20 @@ class Gespraech(unittest.TestCase):
         sp = abgleich.SqliteSpeicher(os.path.join(self.ordner.name, "online.db"))
         ab = abgleich.Abgleich(self.con, sp, self.pid)
         ab.schema()
-        weg = "/api/gespraech?kennung=CC1"
+        uid = self.con.execute("SELECT uid FROM projekt WHERE id = ?", (self.pid,)).fetchone()[0]
+        weg = f"{uid}:/api/gespraech?kennung=CC1"
         holen = lambda: sp.ausfuehren([("SELECT inhalt FROM ansicht WHERE weg = ?", [weg])])[0]
         self.assertEqual(ab.gespraeche(), 0)
         self.assertEqual(holen(), [])
-        sp.ausfuehren([("INSERT INTO zustand (schluessel, wert) VALUES ('gespraech:CC1', ?)", [db.jetzt()]),
-                       ("INSERT INTO zustand (schluessel, wert) VALUES ('gespraech:XX', ?)", [db.jetzt()])])
+        sp.ausfuehren([("INSERT INTO zustand (schluessel, wert) VALUES (?, ?)", [f"gespraech:{uid}:CC1", db.jetzt()]),
+                       ("INSERT INTO zustand (schluessel, wert) VALUES (?, ?)", [f"gespraech:{uid}:XX", db.jetzt()])])
         self.assertEqual(ab.gespraeche(), 2)                            # Ansicht hoch, Wunsch für Unbekannte weg
         d = json.loads(holen()[0][0])
         self.assertEqual([e["art"] for e in d["eintraege"]], ["mensch", "werkzeug"])
         self.assertEqual(d["eintraege"][1]["kurz"], "C:/a/b.py")
         self.assertNotIn("ab", d)
         self.assertEqual(ab.gespraeche(), 0)                            # unverändert: nichts hochladen
-        sp.ausfuehren([("UPDATE zustand SET wert = '2000-01-01T00:00:00Z' WHERE schluessel = 'gespraech:CC1'", [])])
+        sp.ausfuehren([("UPDATE zustand SET wert = '2000-01-01T00:00:00Z' WHERE schluessel = ?", [f"gespraech:{uid}:CC1"])])
         ab.gespraeche()
         self.assertEqual(holen(), [])
         self.assertEqual(sp.ausfuehren([("SELECT count(*) FROM zustand WHERE schluessel LIKE 'gespraech:%'", [])])[0], [[0]])

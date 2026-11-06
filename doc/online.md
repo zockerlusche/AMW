@@ -41,6 +41,15 @@ PC (Wächter)                               Online-Speicher (Turso)             
   Ansicht ab. Das sind nur Texte und die Namen der Arbeitsschritte, ohne Eingaben und Ergebnisse, mit verdeckten
   Geheimnissen. Danach löscht er die Ansicht wieder. Ältere Einträge gibt es nur am PC. *In Claude öffnen* steht online
   genauso da, der Link funktioniert nur mit deinem Claude-Konto.
+- **Mehrere Projekte, auch auf mehreren Rechnern** ([plan-projektwahl.md](plan-projektwahl.md)): Jede Ansicht liegt
+  unter `<Kennung>:<Weg>`; die Kennung ist `projekt.uid`. Das Verzeichnis `projekt` nennt alle Projekte mit Rechner,
+  Farbe, offenen Fragen und „zuletzt gesehen“. Jeder Rechner trägt nur seine eigenen Projekte ein.
+  - Die Seite fragt mit `&projekt=<Kennung>`; ohne Angabe gilt das erste Projekt im Verzeichnis.
+  - Befehle vom Handy tragen die Kennung (`eingang.projekt`), und nur der Rechner des Projekts führt sie aus.
+  - Gespräche heißen `gespraech:<Kennung>:<Agent>`, „zuletzt gesehen“ `pc_gesehen_utc:<Kennung>`.
+  - Dateien gehören über `datei_projekt` zu Projekten. Eine Datei verschwindet erst, wenn kein Projekt sie mehr nennt.
+  - Einen zweiten Rechner richtest du wie den ersten ein und gibst ihm denselben Online-Speicher, siehe
+    [installation.md](installation.md) „Weiterer Rechner“.
 - **Eine Seite für beide:** `amw/workbench.html`; `amw web bauen` kopiert sie nach `web/inc/seite.html`.
 
 ## 2 Einrichten (etwa 15 Minuten)

@@ -20,6 +20,7 @@ class Abgleich(unittest.TestCase):
         self.online = os.path.join(self.ordner.name, "online.db")
         self.ab = abgleich.Abgleich(self.con, abgleich.SqliteSpeicher(self.online), self.pid)
         self.ab.schema()
+        self.uid = self.con.execute("SELECT uid FROM projekt WHERE id = ?", (self.pid,)).fetchone()[0]
 
     def tearDown(self):
         self.con.close()
@@ -48,7 +49,7 @@ class Abgleich(unittest.TestCase):
         self.assertEqual([w for w in s1 if abgleich._pruef(s1[w]) != abgleich._pruef(s2[w])], [])
         kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Neu?", [("A", "a")], "A", "weil", geprueft="keine Treffer")
         self.assertGreaterEqual(self.ab.hochladen(), 2)          # Start (Zähler) und Fragen
-        fragen = json.loads(self.online_zeilen("SELECT inhalt FROM ansicht WHERE weg = '/api/fragen'")[0][0])
+        fragen = json.loads(self.online_zeilen(f"SELECT inhalt FROM ansicht WHERE weg = '{self.uid}:/api/fragen'")[0][0])
         self.assertEqual(fragen[0]["kurz"], "Neu?")
 
     def test_briefkasten_wirkt_einmal_und_meldet_zurueck(self):
@@ -93,7 +94,7 @@ class Abgleich(unittest.TestCase):
         self.assertEqual(x["anzahl"], len(eintraege))
         self.assertIn(["frage", "F" + str(eintraege[0][1][1:]), "Brückenfrage?"], [e[:3] for e in eintraege])
         self.ab.hochladen(alle=True)
-        self.assertEqual(len(self.online_zeilen("SELECT 1 FROM ansicht WHERE weg = '/api/suchindex'")), 1)
+        self.assertEqual(len(self.online_zeilen(f"SELECT 1 FROM ansicht WHERE weg = '{self.uid}:/api/suchindex'")), 1)
 
     def test_ohne_freigabe_kein_abgleich(self):
         alt = os.environ.get("LOCALAPPDATA")

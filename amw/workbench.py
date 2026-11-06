@@ -15,6 +15,7 @@ import secrets
 import socket
 import sys
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -632,7 +633,26 @@ def daten_projekte(con, pid):
         aus.append({"uid": p["uid"], "name": p["name"], "farbe": kern.projekt_wahl(con, p["id"], "farbe"),
                     "fragen": z["fragen"], "agenten": z["agenten"], "seit": p["angelegt_utc"], "aktiv": p["id"] == pid,
                     "halt": bool(kern.aktive_sperren(con, p["id"], art="halt"))})
-    return {"projekte": aus, "rechner": einstellungen.wert("rechner")}
+    rechner = einstellungen.wert("rechner")
+    for e in aus:
+        e["rechner"] = rechner
+    # Projekte anderer Rechner: aus dem Verzeichnis im Online-Speicher (der Abgleich liest es mit); öffnen = Online-Seite
+    from . import abgleich, push
+    link = (push.laden().get("link") or "").rstrip("/")
+    eigene = {e["uid"] for e in aus}
+    grenze = time.time() - 7 * 86400
+    for f in abgleich.VERZEICHNIS["projekte"]:
+        if f["uid"] in eigene:
+            continue
+        try:
+            gesehen = datetime.datetime.strptime(f["gesehen_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()
+        except (TypeError, ValueError):
+            gesehen = 0
+        aus.append({"uid": f["uid"], "name": f["name"], "farbe": f["farbe"] or "bernstein", "fragen": int(f["fragen"] or 0),
+                    "agenten": int(f["agenten"] or 0), "halt": bool(int(f["halt"] or 0)), "aktiv": False, "fern": True,
+                    "rechner": f["rechner"], "erreichbar": gesehen > grenze,
+                    "online": f"{link}/?projekt={f['uid']}" if link.startswith("https://") else ""})
+    return {"projekte": aus, "rechner": rechner}
 
 
 def daten_betrieb(con, pid):
