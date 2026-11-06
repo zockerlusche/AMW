@@ -779,7 +779,7 @@ const TEXTE = {
     verbrauch_leer: "Noch keine Messpunkte – die Statusline-Brücke liefert sie (amw einrichten agenten-ordner).", k_summe: "Summe",
     k_zeit: "Zeit", k_titel: "Meldung", k_ergebnis: "Ergebnis",
     p_titel: "Benachrichtigungen aufs Handy", p_h: "Zugangsdaten liegen nur auf diesem PC ({x}). Gemeldet werden nur Hinweise, nie Inhalte.",
-    p_an: "Benachrichtigen", p_an_h: "Hauptschalter; gemeldet wird, was ab dem Einschalten passiert", p_link: "Link in der Meldung",
+    p_an: "Benachrichtigen", p_an_h: "Hauptschalter; gemeldet wird, was ab dem Einschalten passiert", p_link: "Link in der Meldung", p_link_ph: "https://…  (sonst lokale Workbench – vom Handy nicht erreichbar)",
     p_link_h: "Adresse der Online-Seite, z. B. https://amw.example.de/", p_an_kurz: "an", p_server: "Server", p_kanal: "Kanal (Topic)",
     p_kanal_h: "geheim wie ein Passwort; leer lassen = unverändert. Zufälligen Kanal: amw push ntfy", p_token: "Zugangstoken", p_optional: "optional",
     p_app: "App-Token", p_user: "Benutzerschlüssel", p_bot: "Bot-Token", p_chat: "Chat-ID", p_chat_h: "herausfinden: amw push telegram --token …",
@@ -928,7 +928,7 @@ const TEXTE = {
     kia_fehler: "Fehler", kia_abgebrochen: "abgebrochen", k_ki: "KI", k_modell: "Modell", k_lizenz: "Lizenz", k_kommerziell: "Kommerziell",
     k_freigabe: "Freigabe", k_auftraggeber: "Von", k_auftrag: "Auftrag",
     protokoll: "Protokoll des Dienstes", leer: "(leer)",
-    k_nr: "#", k_art: "Art", k_fuer: "Für", k_von: "Von", k_text: "Text", k_seit: "Seit", k_agent: "Agent", k_zustand: "Zustand",
+    k_nr: "#", k_art: "Art", ref_bogen: "Bogen {b}", zitat: "„{x}“", k_fuer: "Für", k_von: "Von", k_text: "Text", k_seit: "Seit", k_agent: "Agent", k_zustand: "Zustand",
     k_gestartet: "Gestartet", k_puls: "Puls", k_beendet: "Beendet", k_lauf: "Lauf", k_status: "Status", k_start: "Start", k_ende: "Ende", k_rc: "rc",
     releases: "Release Notes", keine_releases: "Noch keine Release Notes.", merge: "Merge", oeffentlich: "öffentlich", intern: "intern", aufgaben_x: "Aufgaben: {x}",
     suche_titel: "Suche", halt_setzen: "Halt setzen",
@@ -957,7 +957,7 @@ const TEXTE = {
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
     nicht_angemeldet_h: "Running but cannot be woken – in its window: amw anmelden --von <name>",
     an_dich: "Messages for you", antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_pruefbitte: "Review request", art_stopp: "Stop", art_freigabe: "Release",
-    k_details: "Click: what is it doing, what is next", k_offen_h: "new open messages (plus {n} legacy from the old bus)",
+    k_details: "Click: what is it doing, what is next", k_offen_h: "new open messages (plus {n} older ones from the old bus)",
     k_gerade: "Now:", k_vermutet: "(from last report)", k_unbekannt: "activity unknown", k_zuletzt: "Last",
     k_wartet: "{a} waits for {x}", lead: "Lead",
     g_tab: "Conversation", g_tab_uebersicht: "Overview", g_knopf_h: "Read the agent's conversation with Claude Code (live)",
@@ -982,8 +982,8 @@ const TEXTE = {
     e_agenten: "Agents", e_agenten_h: "Target “off”: not expected, no broadcasts; “resting”: paused.",
     e_kennung: "ID", e_rolle: "Role", e_soll: "Target", e_grenzen: "Limits", e_rund: "Broadcasts", e_puls: "Pulse limit (min)",
     e_anlegen: "Add", e_neu_h: "new agent – then set role etc.", soll_an: "on", soll_ruht: "resting", soll_aus: "off",
-    e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after idle (min)",
-    e_hoechstens: "Longest session (h)", e_fehl_ip: "Lock after failed attempts per address (15 min)", e_fehl_ges: "Lock after failed attempts total (60 min)",
+    e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after inactivity (min)",
+    e_hoechstens: "Maximum session length (h)", e_fehl_ip: "Lockout after failed sign-ins per address (15 min)", e_fehl_ges: "Lockout after failed sign-ins in total (60 min)",
     e_pc: "This PC", e_pc_h: "Takes effect on the next service start (amw dienst neustart). File: {x}", nur_pc: "Only changeable on the PC – shown here for reference.",
     e_db: "Database", e_port: "Workbench port", e_aufsicht: "Session supervision (s)", e_hoch: "Sync: upload at most every (s)",
     e_puls_pc: "Sync: heartbeat every (s)", e_eingang: "Sync: empty mailbox every (s)", e_bruecke: "Bridge for a lead without Windows access (e.g. in a VM)",
@@ -993,7 +993,7 @@ const TEXTE = {
     e_entwickler: "Your name in messages", e_entwickler_ph: "Entwickler", e_entwickler_h: "e.g. “Marie waits …” – also works as a wait reason (--auf Marie)",
     e_dateien: "Files online", e_dateien_h: "Which document files the PC uploads to the online page by itself (visible only after sign-in). Applies to existing ones too; switching back removes nothing – do that per document.",
     e_dateien_wunsch: "on request only", e_dateien_bilder: "images and mockups", e_dateien_alle: "all (incl. PDF, Office)",
-    e_turso: "Online store (Turso)", e_turso_h: "A new URL or token is checked before saving. Takes effect on the next service start.",
+    e_turso: "Online storage (Turso)", e_turso_h: "A new URL or token is checked before saving. Takes effect on the next service start.",
     e_url: "URL", e_token: "Token", e_token_da: "saved – leave empty to keep", e_token_neu: "none yet", e_abgleich: "Sync on",
     s_pc: "PC data {x}", s_pc_weg: "PC last seen {x}", s_briefkasten: "{n} pending", abmelden: "Log out",
     unterwegs: "Sent – your PC picks it up at the next sync (usually within a minute).",
@@ -1024,7 +1024,7 @@ const TEXTE = {
     verbrauch_leer: "No samples yet – the status line bridge provides them (amw einrichten agenten-ordner).", k_summe: "Total",
     k_zeit: "Time", k_titel: "Message", k_ergebnis: "Result",
     p_titel: "Phone notifications", p_h: "Credentials stay on this PC only ({x}). Only hints are sent, never content.",
-    p_an: "Notify", p_an_h: "Master switch; only what happens after switching on is sent", p_link: "Link in the message",
+    p_an: "Notify", p_an_h: "Master switch; only what happens after switching on is sent", p_link: "Link in the message", p_link_ph: "https://…  (otherwise the local workbench – not reachable from a phone)",
     p_link_h: "address of the online page, e.g. https://amw.example.com/", p_an_kurz: "on", p_server: "Server", p_kanal: "Topic",
     p_kanal_h: "secret like a password; empty = unchanged. Random topic: amw push ntfy", p_token: "Access token", p_optional: "optional",
     p_app: "App token", p_user: "User key", p_bot: "Bot token", p_chat: "Chat ID", p_chat_h: "find it: amw push telegram --token …",
@@ -1054,7 +1054,7 @@ const TEXTE = {
     th_keine_zf: "No summary yet – the maintainer writes it (amw thema pflegen …).", th_beschluesse: "Decisions in force ({n})", th_ueberholt: "Superseded ({n})",
     tm_naechster: "Next test", tm_frist: "test build ready by {x}", tm_ampel: "arc {b}: {a}", tm_bereit: "test build reported", tm_alle: "Dates",
     tm_offen: "test build not reported yet (amw termin bereit <T> --text …)", tm_leer: "No dates in the next 4 weeks.", tm_woechentlich: "weekly",
-    tm_erkl: "The developer's test dates set the deadline “test build ready” for everyone; the light compares the linked arc's forecast. Create: amw termin neu --titel … --art test --am \"06.11. 18:00\" [--woechentlich] [--bogen N] (lead/developer).",
+    tm_erkl: "The developer's test dates set the deadline “test build ready” for everyone; the traffic light compares it with the linked arc's forecast. Create: amw termin neu --titel … --art test --am \"06.11. 18:00\" [--woechentlich] [--bogen N] (lead/developer).",
     tm_art_test: "Test", tm_art_frist: "Deadline", tm_art_schirm: "Screen", tm_art_sonstig: "Date",
     pr_protokoll: "Log", pl_bogen_neu: "New arc", pl_check_ok: "No gaps found.", st_fehler: "Error", st_warnung: "Warning", st_hinweis: "Hint",
     ck_erklaerung: "The plan check looks for gaps that cost time or rework later. Each finding says what it means, what to do and who does it.",
@@ -1110,7 +1110,7 @@ const TEXTE = {
     rs_verantwortlich: "Owner", rs_ausloeser: "Trigger", rst_offen: "open", rst_eingetreten: "occurred", rst_erledigt: "closed", str_vermeiden: "avoid",
     str_mindern: "mitigate", str_uebertragen: "transfer", str_akzeptieren: "accept", pe_freigabe: "approvals for you (specs, plans)",
     n_verlauf: "History", n_dokumente: "Documents", n_dokumente_kurz: "Docs", vl_dokument: "Documents",
-    dk_such_ph: "Search title and text …", dk_alle_arten: "All kinds", dk_alle_bezuege: "All arcs", dk_raster: "Grid", dk_liste: "List",
+    dk_such_ph: "Search title and text …", dk_alle_arten: "All types", dk_alle_bezuege: "All arcs", dk_raster: "Grid", dk_liste: "List",
     dks_aktuell: "current", dks_archiviert: "archived", dks_alle: "all", dks_geloescht: "deleted",
     dka_ergebnis: "Result", dka_bericht: "Report", dka_entwurf: "Draft", dka_mockup: "Mockup", dka_bild: "Image", dka_quelle: "Source",
     dkb_bogen: "Arc", dkb_aufgabe: "Task", dkb_frage: "Question", dkb_beschluss: "Decision",
@@ -1121,17 +1121,17 @@ const TEXTE = {
     dk_oeffnen: "Open in new tab", dk_herunterladen: "Download", dk_zuordnen: "Assign …", dk_archivieren: "Archive", dk_archiviert: "Archived",
     dk_wiederherstellen: "Restore", dk_online: "Also show online", dk_offline: "PC only", dk_online_an: "file also online", dk_online_aus: "file on PC only",
     dk_nur_pc_text: "This file is on the PC only. On request the PC uploads it – it stays online until you set it back to “PC only”.",
-    dk_anfordern: "Request online",
+    dk_anfordern: "Request upload",
     dk_bearbeiten: "Edit", dk_als_neue: "Edit this version …", dk_schreiben: "Write", dk_vorschau: "Preview",
     dk_notiz_ph: "What did you change? (shown in the version list)", dk_melden_an: "notify {x}", dk_speichern_als: "Save as v{n}",
     dk_abbrechen: "Cancel", dk_verwerfen: "Discard changes?", dk_nichts_geaendert: "Nothing changed.", dk_gespeichert: "Saved as v{n}.",
-    dk_zeichen: "{n} characters", dk_geaendert: "changed", dk_unterschiede: "Differences to the newest version", dk_trotzdem: "Save my text as v{n} anyway",
+    dk_zeichen: "{n} characters", dk_geaendert: "changed", dk_unterschiede: "Differences from the latest version", dk_trotzdem: "Save my text as v{n} anyway",
     dk_konflikt_titel: "Newest version v{a} → your text", dk_ed_hilfe: "Ctrl+S saves · Esc closes", dk_ed_basis: "Based on v{v} – becomes v{n}",
     dk_vergleichen: "Compare", dk_vergleich: "Comparison", dk_df_gleich: "No differences.", dk_df_luecke: "… {n} unchanged lines – show",
     dk_df_zeilen: "lines", dk_laedt: "Loading …",
     dk_hochladen: "Upload", dk_hl_titel: "Upload document", dk_hl_zone: "Drop files here or paste a screenshot with Ctrl+V", dk_hl_zone_netz: "Take a photo or choose a file",
     dk_hl_waehlen: "Choose file", dk_hl_foto: "Take photo", dk_hl_titel_mehr: "Several files: each title comes from the file name.",
-    dk_art_auto: "by format", dk_bezug_ph: "e.g. A1234, F12, B5 or Bogen 3 – empty: none", dk_bezug_falsch: "Reference not recognised – A1234, F12, B5 or Bogen 3",
+    dk_art_auto: "by format", dk_bezug_ph: "e.g. A1234, F12, B5 or arc 3 – empty: none", dk_bezug_falsch: "Reference not recognised – A1234, F12, B5 or arc 3",
     dk_hl_online: "Also show the file online", dk_hl_klein: "Shrink photos (at most 2560 px). The browser always removes location and camera data.",
     dk_hl_los: "Upload", dk_hl_leer: "No file chosen.", dk_hl_format: "Format not allowed – allowed: Markdown, text, images, HTML, PDF, DOCX, XLSX",
     dk_hl_bereite: "preparing …", dk_hl_fertig_pc: "{n} document(s) created.", dk_hl_fertig_netz: "Uploaded – the PC will create the document shortly.",
@@ -1148,7 +1148,7 @@ const TEXTE = {
     vl_pruefung: "Reviews", vl_frage: "Questions", vl_beschluss: "Decisions", vl_plan: "Planning", vl_sitzung: "Sessions",
     vl_leer: "Nothing in this period.", vl_grenze: "Only the newest 2,500 events – narrow period or filter.", vz_fertig: "done", vz_verworfen: "dropped",
     vz_gruen: "green", vz_rot: "red", vz_gestellt: "asked", vz_beantwortet: "answered", vz_start: "start", vz_ende: "end", vz_gilt: "valid",
-    vz_bogen_neu: "arc created", vz_bogen_status: "arc status", vz_bogen_aendern: "arc changed", vz_baseline: "baseline moved", vz_spec_geschrieben: "spec written", vz_spec_vorgelegt: "for approval", vz_spec_frei: "approved", vz_spec_zurueck: "returned", vz_plan_vorgelegt: "plan submitted", vz_plan_frei: "plan approved", vz_plan_zurueck: "plan returned", vz_schritt_genommen: "step taken", vz_risiko_neu: "risk added", vz_risiko_status: "risk status", vz_leitbild: "charter", vz_abgebrochen: "aborted",
+    vz_bogen_neu: "arc created", vz_bogen_status: "arc status", vz_bogen_aendern: "arc changed", vz_baseline: "baseline moved", vz_spec_geschrieben: "spec written", vz_spec_vorgelegt: "for approval", vz_spec_frei: "approved", vz_spec_zurueck: "sent back", vz_plan_vorgelegt: "plan submitted", vz_plan_frei: "plan approved", vz_plan_zurueck: "plan sent back", vz_schritt_genommen: "step picked up", vz_risiko_neu: "risk added", vz_risiko_status: "risk status", vz_leitbild: "charter", vz_abgebrochen: "aborted",
     achtung: "Attention", nachtrag_neu: "{n} new follow-up", aufklappen: "Click: full text", s_extra: "{n} unplanned",
     jetzt_bei: "now: {x}", geaendert: "changed", notizen: "Notes ({n})", server: "Project servers", k_name: "Name", k_port: "Port",
     k_zustaendig: "Owner", k_neustart: "Restart", k_ausfaelle: "Outages", sz_laeuft: "running", sz_aus: "down", sz_unbekannt: "not checked yet",
@@ -1169,7 +1169,7 @@ const TEXTE = {
     kia_fehler: "error", kia_abgebrochen: "cancelled", k_ki: "AI", k_modell: "Model", k_lizenz: "License", k_kommerziell: "Commercial",
     k_freigabe: "Approval", k_auftraggeber: "By", k_auftrag: "Job",
     protokoll: "Service log", leer: "(empty)",
-    k_nr: "#", k_art: "Kind", k_fuer: "For", k_von: "By", k_text: "Text", k_seit: "Since", k_agent: "Agent", k_zustand: "State",
+    k_nr: "#", k_art: "Type", ref_bogen: "Arc {b}", zitat: "“{x}”", k_fuer: "For", k_von: "By", k_text: "Text", k_seit: "Since", k_agent: "Agent", k_zustand: "State",
     k_gestartet: "Started", k_puls: "Pulse", k_beendet: "Ended", k_lauf: "Run", k_status: "Status", k_start: "Start", k_ende: "End", k_rc: "rc",
     releases: "Release notes", keine_releases: "No release notes yet.", merge: "Merge", oeffentlich: "public", intern: "internal", aufgaben_x: "Tasks: {x}",
     suche_titel: "Search", halt_setzen: "Set halt",
@@ -1343,7 +1343,7 @@ async function sichtStart() {
   m.append(el("h2", {}, t("wartet_auf_dich")));
   const pw = d.planung_wartet || { spezifikationen: [], plaene: [], eigene: [] };
   const fr = [...pw.spezifikationen.map(s => el("div", { class: "karte", onclick: () => { zustand.planReiter = "zeitleiste"; zeige("planung"); } },
-      el("div", {}, el("span", { class: "ref" }, `Bogen ${s.bogen_id}`), " ", el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))),
+      el("div", {}, el("span", { class: "ref" }, bogenRef(s.bogen_id)), " ", el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))),
       el("p", {}, t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })))),
     ...pw.plaene.map(p => el("div", { class: "karte", onclick: () => zeige("planung") }, el("div", {}, el("span", { class: "ref" }, `A${p.id}`), " ",
       el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))), el("p", {}, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" })))),
@@ -1663,7 +1663,7 @@ async function agentDialog(kennung, reiter) {
         el("span", { style: "margin-left:auto;display:flex;gap:8px;flex-wrap:wrap" }, ...steuerKnoepfe(d, () => hg.remove()),
           d.claude_link ? el("a", { class: "knopf", href: d.claude_link, target: "_blank", rel: "noopener noreferrer", title: t("g_claude_h") }, t("g_claude")) : null,
           el("button", { class: "knopf", type: "button", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht"))),
-        el("button", { class: "klein-knopf", type: "button", "aria-label": "schließen", onclick: () => hg.remove() }, "×")),
+        el("button", { class: "klein-knopf", type: "button", "aria-label": t("vb_schliessen"), onclick: () => hg.remove() }, "×")),
       tabs, uebersicht, gespraech));
   document.body.append(hg);
   if (reiter === "gespraech") wechseln("gespraech");
@@ -1905,7 +1905,7 @@ async function sichtWissen() {
 const dokUrl = (id, v) => ziel(`/api/dokument/datei?id=${id}${v ? "&v=" + v : ""}`);
 const nurAmPc = d => API && d.vorschau !== "text" && !d.online;      // online: Datei nicht auf dem Webspace
 function dokSymbol(d) {
-  const symbol = () => el("span", { class: "dk-symbol" }, d.vorschau === "mockup" ? "Mockup" : d.vorschau === "pdf" ? "PDF" : d.format === "markdown" ? "Text" : d.format,
+  const symbol = () => el("span", { class: "dk-symbol" }, d.vorschau === "mockup" ? "Mockup" : d.vorschau === "pdf" ? "PDF" : d.format === "markdown" ? "Text" : d.format === "bild" ? t("dk_bild") : d.format,
     el("small", {}, nurAmPc(d) ? `${d.endung} · ${t("dk_online_aus")}` : d.endung));
   return d.vorschau === "bild" && !nurAmPc(d) ? el("img", { src: dokUrl(d.id, d.version), alt: "", loading: "lazy", onerror: e => e.target.replaceWith(symbol()) }) : symbol();
 }
@@ -1920,7 +1920,7 @@ async function sichtDokumente() {
   const auswahl = (k, leer, paare) => el("select", { onchange: e => neu(k, e.target.value) }, el("option", { value: "" }, leer),
     paare.map(([v, text]) => el("option", { value: v, ...(String(f[k]) === String(v) ? { selected: true } : {}) }, text)));
   const such = el("input", { type: "search", placeholder: t("dk_such_ph"), value: f.q, onkeydown: e => { if (e.key === "Enter") neu("q", e.target.value.trim()); } });
-  const bezugListe = d.boegen.map(b => [`bogen:${b.id}`, `Bogen ${b.id} · ${b.titel}`]);
+  const bezugListe = d.boegen.map(b => [`bogen:${b.id}`, `${bogenRef(b.id)} · ${b.titel}`]);
   if (f.bezug && !f.bezug.startsWith("bogen:")) bezugListe.unshift([f.bezug, f.bezug.replace("aufgabe:", "A").replace("frage:", "F").replace("beschluss:", "B")]);
   m.append(el("div", { class: "dk-filter" }, such,
     auswahl("art", t("dk_alle_arten"), Object.entries(d.arten).map(([a, n]) => [a, `${t("dka_" + a)} (${n})`])),
@@ -1935,7 +1935,7 @@ async function sichtDokumente() {
       el("p", { class: "sehrleise mono", style: "font-size:13px" }, "amw dokument ablegen <datei> --titel … --art ergebnis|bericht|entwurf|mockup|bild --aufgabe <nr>"));
     return;
   }
-  const bezugText = x => x.bezug_art ? ({ bogen: "Bogen ", aufgabe: "A", frage: "F", beschluss: "B" }[x.bezug_art] + x.bezug_id) : null;
+  const bezugText = x => x.bezug_art ? bezugRef(x.bezug_art, x.bezug_id) : null;
   const meta = x => [t("dka_" + x.art), x.angelegt_von, seit(x.version_utc), x.version > 1 ? "v" + x.version : null, bezugText(x),
     x.status !== "aktuell" ? t("dks_" + x.status) : null].filter(Boolean).join(" · ");
   if (f.liste) m.append(el("div", { class: "liste dk-liste" }, d.dokumente.map(x => el("div", { class: "zeile", onclick: () => dokumentDialog(x.id) },
@@ -1957,7 +1957,7 @@ async function dokumentDialog(id, v) {
           try { const l = (await holen(`/api/dokumente?bezug_art=${d.bezug_art}&bezug_id=${d.bezug_id}`)).dokumente.filter(nurAmPc);
             for (const x of l) await schicken("/api/dokument/online", { id: x.id, an: true }); hg.remove(); }
           catch (x) { toast(t("fehler", { x: x.message }), true); e.target.disabled = false; } } },
-          t("dk_alle_anfordern", { x: ({ bogen: "Bogen ", aufgabe: "A", frage: "F", beschluss: "B" })[d.bezug_art] + d.bezug_id })) : null))
+          t("dk_alle_anfordern", { x: bezugRef(d.bezug_art, d.bezug_id) })) : null))
     : ver.vorschau === "bild" ? el("img", { src: url, alt: d.titel, title: t("vb_tipp"), onclick: () => dokVollbild(d, ver) })
     : ver.vorschau === "mockup" ? el("iframe", { src: url, sandbox: "allow-scripts", title: d.titel, referrerpolicy: "no-referrer" })
     : ver.vorschau === "pdf" ? el("iframe", { src: url, title: d.titel })
@@ -1971,7 +1971,7 @@ async function dokumentDialog(id, v) {
     try { const r = await schicken("/api/dokument/kommentar", { id: d.id, text: nachricht.value.trim(), ueberarbeiten }); if (!r.unterwegs) toast(t("gesendet", { x: r.an.join(", ") })); hg.remove(); dokumentDialog(d.id, v); }
     catch (e) { toast(t("fehler", { x: e.message }), true); } };
   const bezug = d.bezug_art ? el("a", { class: "verweis", onclick: () => { hg.remove(); dokBezugOeffnen(d); } },
-    `${({ bogen: "Bogen ", aufgabe: "A", frage: "F", beschluss: "B" })[d.bezug_art]}${d.bezug_id}` + (d.bezug_titel ? ` · ${d.bezug_titel}` : "")) : el("span", { class: "sehrleise" }, t("dk_ohne_bezug"));
+    bezugRef(d.bezug_art, d.bezug_id) + (d.bezug_titel ? ` · ${d.bezug_titel}` : "")) : el("span", { class: "sehrleise" }, t("dk_ohne_bezug"));
   const hg = dialog(`D${d.id} · ${d.titel}`,
     el("p", { class: "leise", style: "margin-top:0" }, [t("dka_" + d.art), t("von", { x: d.angelegt_von }), zeit(d.angelegt_utc), t("dks_" + d.status),
       ver.vorschau === "text" ? null : d.online ? t("dk_online_an") : t("dk_online_aus")].filter(Boolean).join(" · ")),
@@ -2325,7 +2325,9 @@ async function hochladenTeile(blob, name, fortschritt) {
   }
   return id;
 }
-const bezugKurz = b => !b ? "" : b.replace(/^aufgabe:/, "A").replace(/^frage:/, "F").replace(/^beschluss:/, "B").replace(/^bogen:/, "Bogen ");
+const bogenRef = id => t("ref_bogen", { b: id });
+const bezugRef = (art, id) => art === "bogen" ? bogenRef(id) : { aufgabe: "A", frage: "F", beschluss: "B" }[art] + id;
+const bezugKurz = b => !b ? "" : bezugRef(b.slice(0, b.indexOf(":")), b.slice(b.indexOf(":") + 1));
 function bezugLesen(s) {
   s = (s || "").trim();
   if (!s) return {};
@@ -2521,7 +2523,7 @@ async function sichtPlanung() {
   if (r === "risiken") m.append(risikoAnsicht(d));
   if (r === "check") m.append(checkAnsicht(d));
   if (r === "protokoll") m.append(d.ereignisse.length ? tabelle(["k_zeit", "k_von", "k_art", "k_text"], d.ereignisse.map(x =>
-    [zeit(x.zeit_utc), x.von, x.art, (x.bogen_id ? `Bogen ${x.bogen_id} · ` : "") + (x.aufgabe_id ? `A${x.aufgabe_id} · ` : "") + (x.text || "")]))
+    [zeit(x.zeit_utc), x.von, x.art, (x.bogen_id ? `${bogenRef(x.bogen_id)} · ` : "") + (x.aufgabe_id ? `A${x.aufgabe_id} · ` : "") + (x.text || "")]))
     : el("div", { class: "leer" }, t("leer")));
 }
 /* Plan-Check: je Befund was los ist, was es bedeutet, was zu tun ist, wer; öffnen, an den Lead geben, bewusst akzeptieren */
@@ -2546,7 +2548,7 @@ function checkAnsicht(d) {
     if (!liste.length) continue;
     const b = g.startsWith("bogen:") ? d.boegen.find(x => "bogen:" + x.id === g) : null;
     aus.append(el("section", { class: "check-gruppe" },
-      el("h4", {}, b ? `Bogen ${b.id} · ${b.titel}` : t(g === "risiken" ? "ck_risiken" : "ck_projekt"),
+      el("h4", {}, b ? `${bogenRef(b.id)} · ${b.titel}` : t(g === "risiken" ? "ck_risiken" : "ck_projekt"),
         b ? el("a", { class: "verweis", onclick: () => zuSchritt(null, b.id) }, t("ck_zum_bogen")) : null),
       liste.map(x => befundKarte(d, x))));
   }
@@ -2647,7 +2649,7 @@ function uebersicht(d) {
     zeilen.flatMap(z => {
       const b = z.b, oben = z.spur * H, art = b.status === "fertig" ? "fertig" : b.prognose?.ampel === "rot" ? "rot" : b.status === "aktiv" ? "aktiv" : "";
       const lang = Math.max(z.e - z.a, 0), spaet = z.zn !== null && z.zn < z.m && b.status !== "fertig";
-      const tip = [`Bogen ${b.id} · ${b.titel}`, `${t("ue_start")} ${datumKurz(z.start)}`,
+      const tip = [`${bogenRef(b.id)} · ${b.titel}`, `${t("ue_start")} ${datumKurz(z.start)}`,
         b.status === "fertig" ? `${t("bs_fertig")} ${datumKurz(z.e50)}` : `${t("pl_prognose")} ${datumKurz(z.e50)} – ${datumKurz(z.e85)}`,
         z.ziel ? `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` : null].filter(Boolean).join(" · ");
       const teile = [el("button", { class: "ueb-block " + art, type: "button", title: tip, onclick: () => zuSchritt(null, b.id),
@@ -2661,7 +2663,7 @@ function uebersicht(d) {
         teile.push(z.zn > bis
           ? el("span", { class: "ueb-weiter", style: `top:${oben + 12}px`, title: `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` }, `◆ ${datumKurz(z.ziel)} ›`)
           : el("i", { class: "ueb-ziel" + (spaet ? " rot" : ""), style: `left:${pos(z.zn)};top:${oben + 13}px`,
-              title: `Bogen ${b.id} · ${t("pl_zieldatum")} ${datumKurz(z.ziel)}` + (spaet ? ` · ${t("ue_l_rot")}` : "") }));
+              title: `${bogenRef(b.id)} · ${t("pl_zieldatum")} ${datumKurz(z.ziel)}` + (spaet ? ` · ${t("ue_l_rot")}` : "") }));
       }
       return teile.concat(z.du.map(x => el("i", { class: "ueb-du", style: `left:${pos(tagNr(x.tag))};top:${oben + 16}px`,
         title: `A${x.id} ${x.titel} – ${t("ck_du")} ≈ ${datumKurz(x.tag)}` })));
@@ -2716,7 +2718,7 @@ function bogenKarte(b) {
       wellen[n].map(s => schrittZeile(s)))) : el("div", { class: "sehrleise" }, t("pl_keine_schritte")));
   return el("div", { class: `tl-bogen karte status-${b.status}`, id: "bogen-" + b.id },
     el("span", { class: "tl-punkt " + (b.status === "fertig" ? "gruen" : ampelKlasse(p?.ampel)) }),
-    el("div", { class: "tl-kopf" }, el("span", { class: "ref" }, `Bogen ${b.id}`), el("b", { class: "tl-titel" }, b.titel),
+    el("div", { class: "tl-kopf" }, el("span", { class: "ref" }, bogenRef(b.id)), el("b", { class: "tl-titel" }, b.titel),
       el("span", { class: "etikett " + (aktiv ? "gruen" : b.status === "fertig" ? "" : "") }, t("bs_" + b.status)),
       el("span", { class: "tl-knoepfe" },
         b.status === "geplant" ? knopf(t("pl_aktivieren"), () => statusSetzen("aktiv", t("pl_aktivieren_frage"))) : null,
@@ -2792,7 +2794,7 @@ async function aufgabeDialog(id) {
   const hg = dialog(`A${a.id} · ${a.titel}`,
     el("p", { class: "leise", style: "margin-top:0" }, [t("sp_" + a.status) || a.status, a.agent ? t("au_bei", { x: a.agent }) : t("au_ohne"),
       a.angelegt_von ? t("von", { x: a.angelegt_von }) : null, zeit(a.angelegt_utc), a.zustaendig ? t("au_zustaendig", { x: a.zustaendig }) : null,
-      a.bogen_id ? `Bogen ${a.bogen_id}` + (a.bogen_titel ? ` „${a.bogen_titel}“` : "") : null].filter(Boolean).join(" · ")),
+      a.bogen_id ? bogenRef(a.bogen_id) + (a.bogen_titel ? " " + t("zitat", { x: a.bogen_titel }) : "") : null].filter(Boolean).join(" · ")),
     a.fragen.length ? el("p", {}, el("span", { class: "etikett " + (nOffen ? "bernstein" : "gruen") },
       fragenStand(nOffen, a.fragen.length))) : null,
     a.auftrag ? el("div", { class: "au-auftrag" }, markdown(a.auftrag)) : null,
@@ -2825,7 +2827,7 @@ function specDialog(b, teil) {
     try { await schicken("/api/plan/spec", { bogen: b.id, teil, frei, kommentar: kommentar.value }); hg.remove(); toast(frei ? t("pl_freigegeben") : t("pl_zurueck_gegeben")); zeige("planung", true); }
     catch (e) { toast(t("fehler", { x: e.message }), true); } };
   const klaer = b.klaerungen.filter(k => k.fundstellen === `bogen:${b.id}:${teil}`);
-  const hg = dialog(`Bogen ${b.id} · ${t("teil_" + teil)}`,
+  const hg = dialog(`${bogenRef(b.id)} · ${t("teil_" + teil)}`,
     el("p", { class: "leise", style: "margin-top:0" }, `${t("ss_" + s.status)} · v${s.version || 1}` + (s.geschrieben_von ? ` · ${s.geschrieben_von}` : "")
       + (s.geaendert_utc ? ` · ${seit(s.geaendert_utc)}` : "")),
     s.kommentar ? el("div", { class: "band-warn" }, el("b", {}, t("pl_letzter_kommentar")), s.kommentar) : null,
@@ -2851,7 +2853,7 @@ function bogenDialog(b) {
   const f = { titel: ein(b?.titel), ziel: ein(b?.ziel), abnahme: ein(b?.abnahme), zieldatum: ein(b?.zieldatum, "date"), grund: ein("") };
   const zeile = (l, x, h) => el("div", { class: "feld" }, el("label", {}, l), el("div", {}, x, h ? el("div", { class: "sehrleise", style: "font-size:12px" }, h) : null));
   const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
-  const hg = dialog(b ? `Bogen ${b.id}` : t("pl_bogen_neu"), zeile(t("pl_titel"), f.titel), zeile(t("pl_ziel"), f.ziel),
+  const hg = dialog(b ? bogenRef(b.id) : t("pl_bogen_neu"), zeile(t("pl_titel"), f.titel), zeile(t("pl_ziel"), f.ziel),
     zeile(t("pl_abnahme"), f.abnahme, t("pl_abnahme_h")), zeile(t("pl_zieldatum"), f.zieldatum),
     b?.baseline_datum ? zeile(t("pl_grund"), f.grund, t("pl_grund_h", { x: datumKurz(b.baseline_datum) })) : null,
     el("div", { class: "aktionen" }, el("button", { class: "klein-knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")), knopf));
@@ -3054,7 +3056,7 @@ async function sichtReleases() {
 
 /* --- Suche, Halt, Thema, Sprache ----------------------------------------------------------- */
 async function suchen(q) {
-  const m = rahmen(t("suche_titel"), el("span", { class: "leise" }, `„${q}“`)); let l; try { l = await holen("/api/suche?q=" + encodeURIComponent(q)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+  const m = rahmen(t("suche_titel"), el("span", { class: "leise" }, t("zitat", { x: q }))); let l; try { l = await holen("/api/suche?q=" + encodeURIComponent(q)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   for (const a of document.querySelectorAll("nav a")) a.classList.remove("an");
   if (!l.length) { m.append(el("div", { class: "leer" }, t("nichts_gefunden"))); return; }
   m.append(el("div", { class: "liste" }, l.map(x => el("div", { class: "zeile", ...(x.art === "dokument" ? { style: "cursor:pointer", onclick: () => dokumentDialog(+x.ref.slice(1)) } : {}) },
@@ -3272,7 +3274,7 @@ async function pushBlock(feld, text, zahl, schalter, wert, speichern) {
     po_an: schalter(c.pushover.an), po_app: geheim(c.pushover.app_token_gespeichert), po_user: geheim(c.pushover.user_key_gespeichert),
     tg_an: schalter(c.telegram.an), tg_token: geheim(c.telegram.bot_token_gespeichert), tg_chat: text(c.telegram.chat_id),
   };
-  f.link.placeholder = "https://…  (sonst lokale Workbench – vom Handy nicht erreichbar)";
+  f.link.placeholder = t("p_link_ph");
   const ereig = Object.fromEntries(d.ereignisse.map(e => [e, schalter(c.ereignisse[e])]));
   const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
   const sammeln = () => ({
