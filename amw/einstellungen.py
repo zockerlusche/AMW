@@ -9,6 +9,7 @@ Kein Import von db – db fragt hier nach dem Pfad.
 import json
 import os
 import re
+import socket
 
 WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -55,6 +56,13 @@ def _prozess(v):
     return v
 
 
+def _name(v):
+    v = " ".join(str(v or "").split())
+    if not 1 <= len(v) <= 40:
+        raise ValueError("1 bis 40 Zeichen")
+    return v
+
+
 def _kennung(v):
     v = str(v).strip()
     if not v or len(v) > 20 or not all(c.isalnum() or c in "-_" for c in v):
@@ -76,6 +84,8 @@ FELDER = {
     "claude_befehl": ("claude", _befehl),          # Claude Code starten (falls anders installiert: voller Pfad)
     # Schirm: dieses Programm läuft nur während einer Fernsitzung (Fernwartungs-Werkzeug) – leer = nicht prüfen
     "fernsitzung_prozess": ("", _prozess),
+    # Name dieses Rechners in der Projekt-Auswahl (mehrere Rechner an einem Online-Speicher, doc/plan-projektwahl.md)
+    "rechner": ((socket.gethostname() or "PC")[:40], _name),
 }
 
 

@@ -190,7 +190,7 @@ def ansichten(con, pid, speicher=None):
          "/api/wissen": workbench.daten_wissen(con, pid, {"q": [""]}),
          "/api/betrieb": workbench.daten_betrieb(con, pid),
          "/api/releases": workbench.daten_releases(con, pid),
-         "/api/projekte": workbench.zeilen(con.execute("SELECT id, name FROM projekt ORDER BY id")),
+         "/api/projekte": workbench.daten_projekte(con, pid),
          "/api/einstellungen": workbench.daten_einstellungen(con, pid, speicher),
          "/api/agenten": workbench.daten_agenten_alle(con, pid),
          "/api/planung": workbench.daten_planung(con, pid),

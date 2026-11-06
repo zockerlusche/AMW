@@ -10,7 +10,8 @@
   --grund: #13120e; --flaeche: #1c1a15; --flaeche2: #24211b; --linie: #353026; --linie2: #4a4335;
   --tinte: #ece5d3; --leise: #a39a86; --sehrleise: #6f6858;
   --bernstein: #f0a93a; --bernstein-weich: rgba(240,169,58,.12);
-  --gruen: #86b46f; --rot: #e5583a; --rot-weich: rgba(229,88,58,.14);
+  --gruen: #86b46f; --rot: #e5583a; --rot-weich: rgba(229,88,58,.14); --blau: #6fa3c8;
+  --projekt-farbe: var(--bernstein);
   --schatten: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 30px -18px rgba(0,0,0,.8);
   --titel: "Bahnschrift", "DIN Alternate", "Barlow Semi Condensed", "Arial Narrow", sans-serif;
   --text: "Segoe UI Variable Text", "Segoe UI", "Source Sans 3", -apple-system, "Roboto", sans-serif;
@@ -20,7 +21,7 @@
   --grund: #efe9da; --flaeche: #f8f4ea; --flaeche2: #f1ebdc; --linie: #d8cfba; --linie2: #c4b99f;
   --tinte: #211e17; --leise: #6b6250; --sehrleise: #9a907b;
   --bernstein: #b46d07; --bernstein-weich: rgba(180,109,7,.10);
-  --gruen: #4c7d36; --rot: #b8381c; --rot-weich: rgba(184,56,28,.10);
+  --gruen: #4c7d36; --rot: #b8381c; --rot-weich: rgba(184,56,28,.10); --blau: #2f6f9a;
   --schatten: 0 10px 24px -18px rgba(60,45,10,.45);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -44,6 +45,7 @@ header {
   border-bottom: 1px solid var(--linie); background: color-mix(in srgb, var(--grund) 85%, transparent);
   backdrop-filter: blur(6px); position: relative; z-index: 2;
 }
+header::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--projekt-farbe); }
 .marke { width: 216px; height: 100%; display: flex; align-items: center; gap: 10px; padding-left: 18px; border-right: 1px solid var(--linie); flex: none; }
 .marke b { font: 600 22px/1 var(--titel); letter-spacing: .14em; }
 .marke span { font: 10.5px/1.15 var(--titel); letter-spacing: .05em; color: var(--leise); text-transform: uppercase; }
@@ -74,6 +76,33 @@ nav a.an { color: var(--tinte); border-left-color: var(--bernstein); background:
 nav a .zahl { margin-left: auto; font: 12px var(--mono); color: var(--sehrleise); }
 nav a .zahl.heiss { color: #1b1408; background: var(--bernstein); padding: 0 7px; border-radius: 9px; font-weight: 600; }
 nav .fuss { margin-top: auto; padding: 14px 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+/* Projekt-Auswahl: oben in der Navigation, am Handy als Chip im Kopf (doc/plan-projektwahl.md) */
+.pw { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 9px; align-items: center; width: calc(100% - 24px); margin: 0 12px 6px; padding: 7px 10px;
+  border: 1px solid var(--linie2); border-radius: 3px; background: var(--flaeche); color: var(--tinte); cursor: pointer; text-align: left; font: inherit; }
+.pw:hover, .pw:focus-visible { border-color: var(--leise); }
+.pw-farbe { width: 10px; height: 10px; border-radius: 2px; background: var(--projekt-farbe); flex: none; }
+.pw-klein { display: block; font: 10px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); }
+.pw-name { display: block; font: 600 15px var(--titel); letter-spacing: .03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-pfeil { color: var(--leise); font-size: 12px; }
+.pw.still { cursor: default; } .pw.still .pw-pfeil { display: none; }
+.projekt-chip { display: none; }
+.dialog-hg.pw-hg { background: transparent; display: block; padding: 0; }
+.pw-liste { position: absolute; width: 310px; max-width: calc(100vw - 24px); border: 1px solid var(--linie2); background: var(--flaeche2); border-radius: 4px;
+  box-shadow: 0 16px 40px -10px rgba(0,0,0,.7); padding: 6px; }
+.pw-liste .dialog-zu { display: none; }
+.pw-liste h3 { display: none; }
+.pw-eintrag { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; padding: 9px 10px; border: 0;
+  border-radius: 3px; background: none; color: var(--tinte); text-align: left; font: inherit; cursor: pointer; min-height: 48px; }
+.pw-eintrag:hover, .pw-eintrag:focus-visible { background: var(--flaeche); }
+.pw-eintrag.an { background: var(--bernstein-weich); }
+.pw-eintrag b { font: 600 15px var(--titel); letter-spacing: .03em; }
+.pw-eintrag small { display: block; color: var(--leise); font-size: 12px; }
+.pw-zahl { font: 600 12px var(--titel); color: var(--bernstein); white-space: nowrap; }
+.pw-fuss { border-top: 1px solid var(--linie); margin-top: 6px; padding: 8px 10px 4px; display: grid; gap: 4px; }
+.pc-marke { display: inline-block; font: 10.5px var(--titel); letter-spacing: .08em; text-transform: uppercase; padding: 1px 6px; border: 1px solid var(--blau);
+  border-radius: 2px; color: var(--blau); vertical-align: middle; }
+.signal .pcz { font-size: 10px; color: var(--blau); border-left: 1px solid var(--linie2); padding-left: 6px; }
+tr.fremd td { color: var(--sehrleise); font-style: italic; }
 .klein-knopf { font: 12px var(--titel); letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border: 1px solid var(--linie2);
   background: transparent; border-radius: 3px; cursor: pointer; color: var(--leise); }
 .klein-knopf:hover { color: var(--tinte); border-color: var(--leise); }
@@ -615,6 +644,14 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   header { flex-wrap: wrap; gap: 8px 10px; padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
   .marke { width: auto; height: auto; border-right: 0; padding-left: 0; }
   .marke span { display: none; }
+  #projektwahl { display: none; }
+  .projekt-chip { display: inline-flex; align-items: center; gap: 7px; max-width: 46vw; min-height: 36px; padding: 4px 11px; border: 1px solid var(--linie2);
+    border-radius: 18px; background: var(--flaeche); color: var(--tinte); font: 600 13px var(--titel); letter-spacing: .03em; cursor: pointer; }
+  .projekt-chip span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dialog-hg.pw-hg { background: rgba(0,0,0,.55); }
+  .pw-liste { left: 0 !important; right: 0; top: auto !important; bottom: 0; width: auto; max-width: none; border-radius: 16px 16px 0 0;
+    padding: 10px 12px max(18px, env(safe-area-inset-bottom)); }
+  .pw-liste h3 { display: block; font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin: 4px 10px 8px; }
   .signale { order: 2; flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow: hidden; }
   .signale .signal { padding: 3px 7px; font-size: 11px; }
   .signale .signal.unwichtig { display: none; }
@@ -664,12 +701,14 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
 <div class="rahmen">
   <header>
     <div class="marke"><b>AMW</b><span data-t="marke"></span></div>
+    <button class="projekt-chip" id="projekt-chip" type="button" hidden></button>
     <div class="signale" id="signale"></div>
     <div class="suche"><input id="suche" autocomplete="off" data-t-ph="suche"></div>
     <button class="schalter-halt" id="halt-knopf" type="button"></button>
     <button class="knopf" id="abmelden" type="button" data-t="abmelden" hidden></button>
   </header>
   <nav id="nav">
+    <div id="projektwahl"></div>
     <div class="gruppe" data-t="g_fuerdich"></div>
     <a data-sicht="start"><span class="sym">◉</span><span data-t="n_start"></span></a>
     <a data-sicht="fragen"><span class="sym">?</span><span data-t="n_fragen"></span> <span class="zahl" data-zahl="fragen"></span></a>
@@ -698,7 +737,13 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
 const TOKEN = "__AMW_TOKEN__";
 /* Online (doc/online.md): API = "api.php?weg=", sonst leer = lokale Workbench am PC */
 const API = "__AMW_API__".startsWith("__") ? "" : "__AMW_API__";
-const ziel = weg => API ? API + encodeURIComponent(weg) : weg;
+/* Projekt der Ansicht (uid): jede Anfrage trägt es; Umschalten ändert nur die Ansicht, kein Projekt hält an */
+let projekt = null, projekte = [];
+const ziel = weg => API ? API + encodeURIComponent(weg)
+  : projekt ? weg + (weg.includes("?") ? "&" : "?") + "projekt=" + encodeURIComponent(projekt) : weg;
+/* Merken je Projekt (Sicht, letzter Besuch); ohne Eintrag gilt der bisherige Wert ohne Projekt */
+const ablage = k => projekt ? `${k}:${projekt}` : k;
+const gemerkt = k => { try { return localStorage.getItem(ablage(k)) ?? localStorage.getItem(k); } catch (e) { return null; } };
 const $ = (s, w = document) => w.querySelector(s);
 
 /* --- Sprachen: alle festen Texte der Oberfläche; Inhalte aus der Datenbank bleiben in ihrer Sprache. --- */
@@ -732,7 +777,7 @@ const TEXTE = {
     du: "Du", v_rueckfrage: "Rückfrage", v_nachtrag: "Antwort", v_antwort: "Antwort", wartet_auf_x: "wartet auf {x}",
     n_einst: "Einstellungen", n_einst_kurz: "Setup", speichern: "Speichern", gespeichert: "Gespeichert",
     e_projekt: "Projekt", e_projekt_name: "Aktives Projekt",
-    e_projekt_name_h: "Name aus den Daten dieser AMW (amw projekt liste). Die AMW selbst ist für jedes Projekt gleich; weitere Projekte: amw projekt neu …", e_takt: "Takt für den Lead (Minuten)", e_takt_h: "Zusammenfassung an den Lead; 0 = aus",
+    e_projekt_name_h: "Wechseln geht auch oben in der Navigation; es ändert nur die Ansicht. Weitere Projekte: amw projekt neu …", e_takt: "Takt für den Lead (Minuten)", e_takt_h: "Zusammenfassung an den Lead; 0 = aus",
     e_speicher: "Speicher-Grenze für Rechen-Läufe (GB frei)", e_speicher_h: "Läufe starten erst, wenn so viel RAM frei ist",
     e_agenten: "Agenten", e_agenten_h: "Soll „aus“: wird nicht erwartet und bekommt keine Rundschreiben; „ruht“: pausiert.",
     e_kennung: "Kennung", e_rolle: "Rolle", e_soll: "Soll", e_grenzen: "Grenzen", e_rund: "Rundschreiben", e_puls: "Puls-Grenze (min)",
@@ -928,6 +973,14 @@ const TEXTE = {
     kia_fehler: "Fehler", kia_abgebrochen: "abgebrochen", k_ki: "KI", k_modell: "Modell", k_lizenz: "Lizenz", k_kommerziell: "Kommerziell",
     k_freigabe: "Freigabe", k_auftraggeber: "Von", k_auftrag: "Auftrag",
     protokoll: "Protokoll des Dienstes", leer: "(leer)",
+    pw_projekt: "Projekt", pw_waehlen: "Projekt wählen", pw_fragen: "{n} offene Fragen an dich", pw_agenten: "{n} Agenten", pw_agent1: "1 Agent", pw_halt: "angehalten",
+    pw_neu: "weitere: amw projekt neu <name>", pw_jetzt: "Jetzt im Projekt „{x}“", pw_unbekannt: "Das Projekt aus dem Link gibt es hier nicht – gezeigt wird „{x}“.",
+    pw_nur_ansicht: "Umschalten ändert nur die Ansicht – alle Projekte arbeiten weiter.", pw_online_bald: "Online wechseln kommt mit dem nächsten Release; am PC geht es schon.",
+    pc_marke: "dieser PC", pc_marke_h: "gehört zu diesem Rechner, egal welches Projekt gewählt ist", pc_kurz: "PC",
+    fremd_projekt: "Projekt „{x}“", fremd_gpu: "belegt die Grafikkarte seit {x}", fremd_schirm: "belegt den Schirm seit {x}",
+    e_farbe: "Farbe", e_farbe_h: "Streifen oben und Marke in der Projekt-Auswahl", e_rechner: "Name dieses Rechners",
+    e_rechner_h: "steht in der Projekt-Auswahl, wenn Projekte auf mehreren Rechnern laufen",
+    farbe_bernstein: "Bernstein", farbe_gruen: "Grün", farbe_blau: "Blau", farbe_violett: "Violett", farbe_tuerkis: "Türkis", farbe_rot: "Rot", farbe_grau: "Grau",
     k_nr: "#", k_art: "Art", ref_bogen: "Bogen {b}", zitat: "„{x}“", k_fuer: "Für", k_von: "Von", k_text: "Text", k_seit: "Seit", k_agent: "Agent", k_zustand: "Zustand",
     k_gestartet: "Gestartet", k_puls: "Puls", k_beendet: "Beendet", k_lauf: "Lauf", k_status: "Status", k_start: "Start", k_ende: "Ende", k_rc: "rc",
     releases: "Release Notes", keine_releases: "Noch keine Release Notes.", merge: "Merge", oeffentlich: "öffentlich", intern: "intern", aufgaben_x: "Aufgaben: {x}",
@@ -977,7 +1030,7 @@ const TEXTE = {
     du: "You", v_rueckfrage: "Follow-up question", v_nachtrag: "Reply", v_antwort: "Answer", wartet_auf_x: "waiting for {x}",
     n_einst: "Settings", n_einst_kurz: "Setup", speichern: "Save", gespeichert: "Saved",
     e_projekt: "Project", e_projekt_name: "Active project",
-    e_projekt_name_h: "Name from this AMW's data (amw projekt liste). The AMW itself is the same for every project; more projects: amw projekt neu …", e_takt: "Lead pulse (minutes)", e_takt_h: "Summary to the lead; 0 = off",
+    e_projekt_name_h: "You can also switch at the top of the navigation; it only changes the view. More projects: amw projekt neu …", e_takt: "Lead pulse (minutes)", e_takt_h: "Summary to the lead; 0 = off",
     e_speicher: "Memory limit for compute runs (GB free)", e_speicher_h: "Runs start only with this much free RAM",
     e_agenten: "Agents", e_agenten_h: "Target “off”: not expected, no broadcasts; “resting”: paused.",
     e_kennung: "ID", e_rolle: "Role", e_soll: "Target", e_grenzen: "Limits", e_rund: "Broadcasts", e_puls: "Pulse limit (min)",
@@ -1169,6 +1222,14 @@ const TEXTE = {
     kia_fehler: "error", kia_abgebrochen: "cancelled", k_ki: "AI", k_modell: "Model", k_lizenz: "License", k_kommerziell: "Commercial",
     k_freigabe: "Approval", k_auftraggeber: "By", k_auftrag: "Job",
     protokoll: "Service log", leer: "(empty)",
+    pw_projekt: "Project", pw_waehlen: "Choose project", pw_fragen: "{n} open questions for you", pw_agenten: "{n} agents", pw_agent1: "1 agent", pw_halt: "halted",
+    pw_neu: "more: amw projekt neu <name>", pw_jetzt: "Now in project “{x}”", pw_unbekannt: "The project from the link does not exist here – showing “{x}”.",
+    pw_nur_ansicht: "Switching only changes the view – all projects keep working.", pw_online_bald: "Switching online comes with the next release; on the PC it works already.",
+    pc_marke: "this PC", pc_marke_h: "belongs to this computer, whichever project is selected", pc_kurz: "PC",
+    fremd_projekt: "Project “{x}”", fremd_gpu: "has had the GPU since {x}", fremd_schirm: "has had the screen since {x}",
+    e_farbe: "Colour", e_farbe_h: "Stripe at the top and mark in the project switcher", e_rechner: "Name of this computer",
+    e_rechner_h: "shown in the project switcher when projects run on several computers",
+    farbe_bernstein: "Amber", farbe_gruen: "Green", farbe_blau: "Blue", farbe_violett: "Violet", farbe_tuerkis: "Turquoise", farbe_rot: "Red", farbe_grau: "Grey",
     k_nr: "#", k_art: "Type", ref_bogen: "Arc {b}", zitat: "“{x}”", k_fuer: "For", k_von: "By", k_text: "Text", k_seit: "Since", k_agent: "Agent", k_zustand: "State",
     k_gestartet: "Started", k_puls: "Pulse", k_beendet: "Ended", k_lauf: "Run", k_status: "Status", k_start: "Start", k_ende: "End", k_rc: "rc",
     releases: "Release notes", keine_releases: "No release notes yet.", merge: "Merge", oeffentlich: "public", intern: "internal", aufgaben_x: "Tasks: {x}",
@@ -1244,6 +1305,63 @@ function feste_texte() {
 function sprache_setzen(s) {
   sprache = s; try { localStorage.setItem("amw-sprache", s); } catch (e) {}
   feste_texte(); kopfAktualisieren(); zeige(zustand.sicht);
+  const p = projekte.find(x => x.uid === projekt) || projekte.find(x => x.aktiv); if (p) projektwahlZeigen(p);
+}
+
+/* --- Projekt-Auswahl (doc/plan-projektwahl.md) ----------------------------------------------- */
+const FARBEN = { bernstein: "var(--bernstein)", gruen: "var(--gruen)", blau: "var(--blau)", violett: "#a68bd6", tuerkis: "#5fb5a8",
+  rot: "var(--rot)", grau: "var(--leise)" };
+const farbe = p => FARBEN[p?.farbe] || FARBEN.bernstein;
+const pcz = () => projekte.length > 1 ? el("span", { class: "pcz" }, t("pc_kurz")) : null;
+const pcMarke = () => el("span", { class: "pc-marke", title: t("pc_marke_h") }, t("pc_marke"));
+async function projekteLaden() {
+  let d; try { d = await holen("/api/projekte"); } catch (e) { return; }
+  projekte = d.projekte || [];
+  let gewollt = null, ausLink = false;
+  try { gewollt = new URLSearchParams(location.search).get("projekt"); ausLink = !!gewollt; } catch (e) {}
+  if (!gewollt) try { gewollt = localStorage.getItem("amw-projekt"); } catch (e) {}
+  const p = projekte.find(x => x.uid === gewollt || x.name === gewollt) || projekte.find(x => x.aktiv) || projekte[0];
+  if (!p) return;
+  if (!API) projekt = p.uid;
+  document.documentElement.style.setProperty("--projekt-farbe", farbe(p));
+  if (ausLink && p.uid !== gewollt && p.name !== gewollt) toast(t("pw_unbekannt", { x: p.name }), true);
+  try { if (sessionStorage.getItem("amw-gewechselt") === p.uid) { sessionStorage.removeItem("amw-gewechselt"); toast(t("pw_jetzt", { x: p.name })); } } catch (e) {}
+  projektwahlZeigen(p);
+}
+function projektwahlZeigen(p) {
+  const still = API || projekte.length < 2;        /* online: Wechsel kommt mit dem Abgleich je Projekt */
+  const knopf = el("button", { class: "pw" + (still && !projekte.length ? " still" : ""), type: "button", title: t("pw_nur_ansicht"),
+    onclick: e => projektListe(e.currentTarget) },
+    el("span", { class: "pw-farbe", style: `background:${farbe(p)}` }),
+    el("span", {}, el("span", { class: "pw-klein" }, t("pw_projekt")), el("span", { class: "pw-name" }, p.name)),
+    el("span", { class: "pw-pfeil" }, "▾"));
+  $("#projektwahl").replaceChildren(knopf);
+  const chip = $("#projekt-chip"); chip.hidden = false;
+  chip.replaceChildren(el("span", { class: "pw-farbe", style: `background:${farbe(p)}` }), el("span", {}, p.name + " ▾"));
+  chip.onclick = e => projektListe(e.currentTarget);
+  chip.setAttribute("aria-label", `${t("pw_projekt")}: ${p.name}`);
+}
+function projektListe(anker) {
+  const r = anker.getBoundingClientRect();
+  const eintrag = p => el("button", { class: "pw-eintrag" + (p.uid === projekt || (API && p.aktiv) ? " an" : ""), type: "button",
+      disabled: API && !p.aktiv, onclick: () => { hg.remove(); if (p.uid !== projekt) projektWechseln(p.uid); } },
+    el("span", { class: "pw-farbe", style: `background:${farbe(p)}` }),
+    el("span", {}, el("b", {}, p.name), el("small", {}, [t(p.agenten === 1 ? "pw_agent1" : "pw_agenten", { n: p.agenten }), p.halt ? t("pw_halt") : null].filter(Boolean).join(" · "))),
+    p.fragen ? el("span", { class: "pw-zahl", title: t("pw_fragen", { n: p.fragen }) }, `${p.fragen} ?`) : el("span"));
+  const liste = el("div", { class: "pw-liste karte", style: `left:${Math.round(r.left)}px;top:${Math.round(r.bottom + 6)}px`, role: "dialog",
+      "aria-label": t("pw_waehlen") },
+    el("h3", {}, t("pw_waehlen")), ...projekte.map(eintrag),
+    el("div", { class: "pw-fuss" }, el("span", { class: "sehrleise", style: "font-size:12px" }, t(API ? "pw_online_bald" : "pw_nur_ansicht")),
+      el("span", { class: "mono sehrleise" }, t("pw_neu"))));
+  const hg = el("div", { class: "dialog-hg pw-hg", onclick: e => { if (e.target === hg) hg.remove(); } }, liste);
+  document.body.append(hg);
+  (liste.querySelector(".pw-eintrag.an") || liste.querySelector(".pw-eintrag"))?.focus();
+}
+function projektWechseln(uid) {
+  try { localStorage.setItem("amw-projekt", uid); sessionStorage.setItem("amw-gewechselt", uid); } catch (e) {}
+  const u = new URL(location.href); u.searchParams.set("projekt", uid);
+  let s = "start"; try { s = localStorage.getItem(`amw-sicht:${uid}`) || "start"; } catch (e) {}
+  u.hash = s; location.href = u.toString();          /* neue Adresse = neu laden: die ganze Oberfläche zeigt das Projekt */
 }
 
 /* --- Kopf, Navigation ---------------------------------------------------------------------- */
@@ -1258,11 +1376,11 @@ async function kopfAktualisieren() {
     $("#signale").replaceChildren(
       d.online ? el("span", { class: "signal" + (d.online.pc_frisch ? " unwichtig" : "") }, el("span", { class: "punkt " + (d.online.pc_frisch ? "gruen" : "bernstein") }),
         t(d.online.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online.pc_gesehen_utc) }) + (d.online.briefkasten ? " · " + t("s_briefkasten", { n: d.online.briefkasten }) : ""))
-        : el("span", { class: "signal unwichtig" }, el("span", { class: "punkt gruen" }), t("s_dienst")),
+        : el("span", { class: "signal unwichtig" }, el("span", { class: "punkt gruen" }), t("s_dienst"), pcz()),
       el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: sollen.length }) + (extra ? " · " + t("s_extra", { n: extra }) : "")),
-      el("span", { class: "signal unwichtig" }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: sp })),
+      el("span", { class: "signal unwichtig" }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: sp }), pcz()),
       d.schirm ? el("span", { class: "signal knopflich" + (d.schirm.frei ? "" : " unwichtig"), title: d.schirm.grund, onclick: () => schirmDialog() },
-        el("span", { class: "punkt " + (d.schirm.frei ? "bernstein" : "") }), t(d.schirm.frei ? "s_schirm_frei" : "s_schirm_zu")) : null,
+        el("span", { class: "punkt " + (d.schirm.frei ? "bernstein" : "") }), t(d.schirm.frei ? "s_schirm_frei" : "s_schirm_zu"), pcz()) : null,
     );
     for (const z of document.querySelectorAll("[data-zahl]")) {
       const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", ["fragen", "freigaben"].includes(z.dataset.zahl) && n > 0);
@@ -1280,7 +1398,7 @@ function zeige(sicht, still = false) {
   const pos = [$("#inhalt").scrollTop, window.scrollY];
   zustand.sicht = sicht;
   for (const a of document.querySelectorAll("nav a")) a.classList.toggle("an", a.dataset.sicht === sicht);
-  try { localStorage.setItem("amw-sicht", sicht); } catch (e) {}
+  try { localStorage.setItem(ablage("amw-sicht"), sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
   const fertig = ({ start: sichtStart, fragen: sichtFragen, planung: sichtPlanung, verlauf: sichtVerlauf, arbeit: sichtArbeit, wissen: sichtWissen, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return; }
@@ -1299,8 +1417,8 @@ async function sichtStart() {
   /* „Seit du weg warst“: letzter Besuch je Gerät (localStorage); in dieser Sitzung bleibt der Wert stehen */
   let seitBesuch = null;
   try {
-    if (sessionStorage.getItem("amw-seit") === null) { sessionStorage.setItem("amw-seit", localStorage.getItem("amw-besuch") || ""); }
-    localStorage.setItem("amw-besuch", new Date().toISOString().slice(0, 19) + "Z");
+    if (sessionStorage.getItem(ablage("amw-seit")) === null) { sessionStorage.setItem(ablage("amw-seit"), gemerkt("amw-besuch") || ""); }
+    localStorage.setItem(ablage("amw-besuch"), new Date().toISOString().slice(0, 19) + "Z");
     seitBesuch = sessionStorage.getItem("amw-seit") || null;
   } catch (e) {}
   if (seitBesuch && Date.now() - new Date(seitBesuch) > 30 * 60 * 1000) {
@@ -2980,7 +3098,7 @@ async function sichtBetrieb() {
   const m = rahmen(t("betrieb"));     /* erst laden, dann ersetzen – sonst steht kurz eine leere Seite da */
   const anteil = d.speicher.frei && d.speicher.gesamt ? d.speicher.frei / d.speicher.gesamt : 0;
   m.append(el("div", { class: "messer zeile-reveal" },
-    el("div", { class: "karte" }, el("div", { class: "leise" }, t("speicher_frei")), el("div", { class: "wert" }, d.speicher.frei == null ? "?" : `${d.speicher.frei} GB`),
+    el("div", { class: "karte" }, el("div", { class: "leise" }, t("speicher_frei"), " ", pcMarke()), el("div", { class: "wert" }, d.speicher.frei == null ? "?" : `${d.speicher.frei} GB`),
       el("div", { class: "sehrleise" }, t("von_gb", { n: d.speicher.gesamt })),
       el("div", { class: "balken" }, el("i", { style: `width:${Math.round(anteil * 100)}%;background:var(${d.speicher.frei < 8 ? "--bernstein" : "--gruen"})` }))),
     el("div", { class: "karte" }, el("div", { class: "leise" }, t("aktive_sitzungen")), el("div", { class: "wert" }, d.sitzungen.filter(s => s.zustand === "aktiv").length),
@@ -3008,14 +3126,19 @@ async function sichtBetrieb() {
   const sitz = [...d.sitzungen.filter(s => s.zustand === "aktiv"), ...d.sitzungen.filter(s => s.zustand !== "aktiv").slice(0, 8)];
   m.append(el("h2", {}, t("sitzungen")), sitz.length ? tabelle(["k_agent", "k_zustand", "k_gestartet", "k_puls", "k_beendet"], sitz.map(s => [s.kennung, s.zustand, zeit(s.gestartet_utc), seit(s.letzter_puls_utc), zeit(s.beendet_utc)]))
     : el("div", { class: "leer" }, t("keine_sitzung")));
-  m.append(el("h2", {}, t("laeufe")), d.laeufe.length ? tabelle(["k_nr", "k_agent", "k_lauf", "k_status", "k_start", "k_ende", "k_rc"], d.laeufe.map(l => [l.id, l.agent,
+  /* Grafikkarte und Schirm gibt es nur einmal: was ein anderes Projekt dieses PCs dort gerade belegt – ohne Inhalt */
+  const fremd = (d.fremd || []).map(f => el("tr", { class: "fremd" }, el("td", {}, "–"), el("td", {}, t("fremd_projekt", { x: f.projekt })),
+    el("td", { colspan: 5 }, t(f.gpu ? "fremd_gpu" : "fremd_schirm", { x: zeit(f.start_utc) }))));
+  const lt = d.laeufe.length || fremd.length ? tabelle(["k_nr", "k_agent", "k_lauf", "k_status", "k_start", "k_ende", "k_rc"], d.laeufe.map(l => [l.id, l.agent,
       l.gpu ? el("span", {}, el("span", { class: "etikett", style: "margin-right:6px" }, "GPU"), l.beschreibung) : l.beschreibung, l.status, zeit(l.start_utc), zeit(l.ende_utc), l.rc ?? ""]))
-    : el("div", { class: "leer" }, t("keine_laeufe")));
+    : el("div", { class: "leer" }, t("keine_laeufe"));
+  lt.querySelector("tbody")?.prepend(...fremd);
+  m.append(el("h2", {}, t("laeufe")), lt);
   m.append(el("h2", {}, t("protokoll")), el("pre", { class: "log" }, d.log.join("\n") || t("leer")));
 }
 /* Lokale KI: Kachel je KI, Modelle mit Freigabe, Vorlagen, Aufträge (eine Ansicht der gemeinsamen Lauf-Schlange) */
 function kiTeil(m, k) {
-  m.append(el("h2", {}, t("ki")), el("p", { class: "sehrleise", style: "font-size:12px;margin:-4px 0 10px" }, t("ki_erkl")));
+  m.append(el("h2", {}, t("ki"), pcMarke()), el("p", { class: "sehrleise", style: "font-size:12px;margin:-4px 0 10px" }, t("ki_erkl")));
   if (!k.kis.length) { m.append(el("div", { class: "leer" }, t("ki_keine"))); return; }
   m.append(el("div", { class: "messer" }, k.kis.map(x => el("div", { class: "karte" },
     el("div", { class: "leise" }, `${x.name} · ${x.art}`),
@@ -3160,14 +3283,18 @@ async function sichtEinstellungen() {
     dateien_online: el("select", {}, ["wunsch", "bilder", "alle"].map(w => el("option", { value: w }, t("e_dateien_" + w)))) };
   pf.dateien_online.value = d.projekt.dateien_online || "wunsch";
   pf.entwickler_name.placeholder = t("e_entwickler_ph"); pf.entwickler_name.maxLength = 30;
-  const pname = el("input", { type: "text", value: d.projekt.name, disabled: true });
+  const pname = el("select", { onchange: e => projektWechseln(e.target.value), disabled: API || projekte.length < 2 },
+    (projekte.length ? projekte : [{ uid: "", name: d.projekt.name }]).map(p => el("option", { value: p.uid, ...(p.uid === projekt ? { selected: true } : {}) }, p.name)));
+  pf.farbe = el("select", {}, Object.keys(FARBEN).map(f => el("option", { value: f }, t("farbe_" + f))));
+  pf.farbe.value = d.projekt.farbe || "bernstein";
   box.append(block(t("e_projekt"), null,
     [[t("e_projekt_name"), pname, t("e_projekt_name_h")], [t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")],
      [t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")], [t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")],
-     [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")], [t("e_dateien"), pf.dateien_online, t("e_dateien_h")]],
+     [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")], [t("e_dateien"), pf.dateien_online, t("e_dateien_h")],
+     [t("e_farbe"), pf.farbe, t("e_farbe_h")]],
     "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
       stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min),
-      entwickler_name: pf.entwickler_name.value.trim(), dateien_online: pf.dateien_online.value })));
+      entwickler_name: pf.entwickler_name.value.trim(), dateien_online: pf.dateien_online.value, farbe: pf.farbe.value })));
 
   // Agenten
   const zeile = a => {
@@ -3208,9 +3335,10 @@ async function sichtEinstellungen() {
     abgleich_hoch_s: zahl(p.abgleich_hoch_s, 10, 3600), abgleich_puls_s: zahl(p.abgleich_puls_s, 60, 3600),
     abgleich_eingang_s: zahl(p.abgleich_eingang_s, 5, 600), bruecke_an: schalter(p.bruecke_an),
     bruecke_absender: text(p.bruecke_absender), bruecke_kopie_s: zahl(p.bruecke_kopie_s, 15, 3600),
-    fernsitzung_prozess: text(p.fernsitzung_prozess || "") };
+    fernsitzung_prozess: text(p.fernsitzung_prozess || ""), rechner: text(p.rechner || "") };
   pc.fernsitzung_prozess.placeholder = t("e_fern_ph");
-  box.append(block(t("e_pc"), API ? t("nur_pc") : t("e_pc_h", { x: p.datei }), [
+  box.append(block([t("e_pc"), " ", pcMarke()], API ? t("nur_pc") : t("e_pc_h", { x: p.datei }), [
+    [t("e_rechner"), pc.rechner, t("e_rechner_h")],
     [t("e_db"), pc.db_pfad], [t("e_port"), pc.port], [t("e_aufsicht"), pc.aufsicht_s], [t("e_hoch"), pc.abgleich_hoch_s],
     [t("e_puls_pc"), pc.abgleich_puls_s], [t("e_eingang"), pc.abgleich_eingang_s], [t("e_bruecke"), pc.bruecke_an],
     [t("e_absender"), pc.bruecke_absender], [t("e_kopie"), pc.bruecke_kopie_s], [t("e_fern"), pc.fernsitzung_prozess, t("e_fern_h")]],
@@ -3327,9 +3455,11 @@ setInterval(() => {
 }, 15000);
 window.addEventListener("popstate", () => { const s = location.hash.slice(1); if (s && s !== zustand.sicht) zeige(s); });
 window.addEventListener("hashchange", () => { const s = location.hash.slice(1); if (s && s !== zustand.sicht) zeige(s); });
-let startSicht = "start"; try { startSicht = localStorage.getItem("amw-sicht") || "start"; } catch (e) {}
-if (location.hash.length > 1) startSicht = location.hash.slice(1);
-kopfAktualisieren().then(() => zeige(startSicht));
+projekteLaden().then(() => {
+  let startSicht = gemerkt("amw-sicht") || "start";
+  if (location.hash.length > 1) startSicht = location.hash.slice(1);
+  return kopfAktualisieren().then(() => zeige(startSicht));
+});
 </script>
 </body>
 </html>

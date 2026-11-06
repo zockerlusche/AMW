@@ -147,7 +147,9 @@ def entwickler_name(con, pid=None):
 PROJEKT_TEXTE = {"entwickler_name": 30}       # Text-Einstellungen: Schlüssel → höchste Länge (leer = Vorgabe)
 # Auswahl-Einstellungen: Schlüssel → erlaubte Werte, der erste ist die Vorgabe.
 # dateien_online: welche Dateien von Dokumenten von selbst „auch online“ stehen (wunsch = nur auf Wunsch, wie bis 1.10.0)
-PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle")}
+PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
+                # farbe: Streifen über dem Kopf und Marke in der Projekt-Auswahl (Farbtöne setzt die Oberfläche)
+                "farbe": ("bernstein", "gruen", "blau", "violett", "tuerkis", "rot", "grau")}
 
 
 def projekt_wahl(con, pid, schluessel):

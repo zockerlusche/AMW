@@ -157,5 +157,34 @@ class PushJeProjekt(ZweiProjekte):
         self.assertNotIn("?projekt=", self.gesendet[0][1])
 
 
+
+class Workbench(ZweiProjekte):
+    def test_projektliste_mit_fragen_farbe_und_auswahl(self):
+        from amw import workbench
+        kern.frage_neu(self.con, self.b, "TL", "entwickler", "Wie?", [("A", "ja")], "A", "weil", geprueft="keine Treffer")
+        kern.projekt_einstellen(self.con, self.b, "Entwickler", farbe="gruen")
+        with self.assertRaises(kern.AmwFehler):
+            kern.projekt_einstellen(self.con, self.b, "Entwickler", farbe="pink")
+        d = workbench.daten_projekte(self.con, self.b)
+        self.assertEqual([(p["name"], p["fragen"], p["farbe"], p["aktiv"]) for p in d["projekte"]],
+                         [("Webshop", 0, "bernstein", False), ("Spiel", 1, "gruen", True)])
+        self.assertTrue(d["rechner"])
+
+    def test_fremder_gpu_lauf_ohne_inhalt(self):
+        from amw import betrieb, workbench
+        betrieb.lauf_start(self.con, self.b, "Spiel1", "geheimer Titel", gpu=True, speicher_frei=50)
+        d = workbench.daten_betrieb(self.con, self.a)
+        self.assertEqual([(f["projekt"], f["gpu"]) for f in d["fremd"]], [("Spiel", 1)])
+        self.assertNotIn("geheimer Titel", json.dumps(d["fremd"]))
+        self.assertEqual(workbench.daten_betrieb(self.con, self.b)["fremd"], [])
+
+    def test_name_des_rechners(self):
+        from amw import einstellungen
+        einstellungen.speichern({"rechner": "  Werkstatt   PC "})
+        self.assertEqual(einstellungen.wert("rechner"), "Werkstatt PC")
+        with self.assertRaises(ValueError):
+            einstellungen.speichern({"rechner": "x" * 41})
+
+
 if __name__ == "__main__":
     unittest.main()

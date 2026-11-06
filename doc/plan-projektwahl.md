@@ -8,7 +8,7 @@ zusammen und lässt eines auswählen.
 - Alles, was online beim Hoster liegt, ist einem Projekt zugeordnet.
 
 Status: **freigegeben (Variante A, Schema-Änderung erlaubt), Ausbau auf mehrere Rechner ergänzt.** Release 1 (Agenten,
-Brücke, Push je Projekt, Schema 18) umgesetzt in AMW 1.17.0.
+Brücke, Push je Projekt, Schema 18) umgesetzt in AMW 1.17.0, Release 2 (Auswahl in der Workbench am PC) in 1.18.0.
 Mockup: [plan-projektwahl-mockup.html](plan-projektwahl-mockup.html).
 
 ## Ziel und Abnahme
@@ -108,8 +108,10 @@ alle Projekte. Nur ein Projekt kennen dagegen:
   Kopf (Dienst, Speicher, Schirm) bekommen ein kleines „PC“. Läufe anderer Projekte desselben Rechners, die die
   Grafikkarte oder den Schirm belegen, stehen grau mit dem Projektnamen in der Lauf-Liste, ohne Titel.
 - **HALT** bleibt, wie er ist. Er gilt für das Projekt, in dem man ihn drückt.
-- **Einstellungen:** „Aktives Projekt“ wird zur echten Auswahl. Die Speichergrenze zieht von „Projekt“ zu „Dieser PC“
-  um, dazu kommt der Rechner-Name.
+- **Einstellungen:** „Aktives Projekt“ wird zur echten Auswahl, dazu kommen Farbe und Rechner-Name. Die Speichergrenze
+  bleibt je Projekt, denn sie gilt für die Läufe des Projekts.
+- **Arbeitsregeln (KR)** gelten wie bisher für alle Projekte einer AMW, Projektregeln (PR) je Projekt. Ob ein zweites
+  Projekt auf demselben Rechner eigene Arbeitsregeln braucht, entscheidet der Entwickler.
 
 ### D. Online-Speicher und Online-Seite
 - **Verzeichnis** `projekt` (online): Kennung, Name, Farbe, Rechner, zuletzt gesehen, offene Fragen, Halt. Jeder

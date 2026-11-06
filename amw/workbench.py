@@ -346,7 +346,7 @@ def daten_einstellungen(con, pid, speicher=None):
                         "speicher_grenze_gb": pe.get("speicher_grenze_gb", SPEICHER_GRENZE_GB),
                         "stillstand_min": pe.get("stillstand_min", ueberwachung.STILLSTAND_MIN),
                         "lauf_ohne_angabe_min": pe.get("lauf_ohne_angabe_min", ueberwachung.LAUF_OHNE_ANGABE_MIN),
-                        "entwickler_name": pe.get("entwickler_name", ""),
+                        "entwickler_name": pe.get("entwickler_name", ""), "farbe": kern.projekt_wahl(con, pid, "farbe"),
                         "dateien_online": kern.projekt_wahl(con, pid, "dateien_online")},
             "agenten": agenten,
             "pc": {**einstellungen.laden(), "datei": einstellungen.pfad()},
@@ -619,12 +619,32 @@ def daten_dokument(con, pid, q, gespraech=None):
     return d
 
 
+def daten_projekte(con, pid):
+    """Projekt-Auswahl: alle Projekte dieser AMW mit dem, was man ohne Wechsel sehen will (offene Fragen an den
+    Entwickler, Halt). Umschalten ändert nur die Ansicht (doc/plan-projektwahl.md)."""
+    from . import einstellungen
+    aus = []
+    for p in con.execute("SELECT id, uid, name, einstellungen, angelegt_utc FROM projekt ORDER BY id").fetchall():
+        z = con.execute(
+            "SELECT (SELECT count(*) FROM frage WHERE projekt_id = :p AND an = 'entwickler' AND status = 'offen'"
+            "  AND geparkt_utc IS NULL) AS fragen,"
+            " (SELECT count(*) FROM agent WHERE projekt_id = :p) AS agenten", {"p": p["id"]}).fetchone()
+        aus.append({"uid": p["uid"], "name": p["name"], "farbe": kern.projekt_wahl(con, p["id"], "farbe"),
+                    "fragen": z["fragen"], "agenten": z["agenten"], "seit": p["angelegt_utc"], "aktiv": p["id"] == pid,
+                    "halt": bool(kern.aktive_sperren(con, p["id"], art="halt"))})
+    return {"projekte": aus, "rechner": einstellungen.wert("rechner")}
+
+
 def daten_betrieb(con, pid):
     sitz = zeilen(con.execute(
         "SELECT g.kennung, s.zustand, s.gestartet_utc, s.letzter_puls_utc, s.beendet_utc FROM sitzung s"
         " JOIN agent g ON g.id = s.agent_id WHERE g.projekt_id = ? ORDER BY s.id DESC LIMIT 30", (pid,)))
     laeufe = zeilen(con.execute("SELECT id, agent, beschreibung, status, angemeldet_utc, start_utc, ende_utc, rc, gpu"
                                 " FROM lauf WHERE projekt_id = ? ORDER BY id DESC LIMIT 30", (pid,)))
+    # Grafikkarte und Schirm gibt es auf dem PC nur einmal: was ein anderes Projekt dort gerade belegt (ohne Inhalt)
+    fremd = zeilen(con.execute("SELECT p.name AS projekt, l.gpu, l.schirm, l.start_utc FROM lauf l JOIN projekt p"
+                               " ON p.id = l.projekt_id WHERE l.projekt_id != ? AND l.status = 'laeuft'"
+                               " AND (l.gpu = 1 OR l.schirm = 1)", (pid,)))
     sperren = [dict(s) for s in kern.aktive_sperren(con, pid)]
     server = zeilen(con.execute("SELECT name, port, zustand, seit_utc, geprueft_utc, zustaendig, neustart, ausfaelle,"
                                 " letzter_neustart_utc FROM server WHERE projekt_id = ? AND aktiv = 1 ORDER BY name", (pid,)))
@@ -636,7 +656,8 @@ def daten_betrieb(con, pid):
     frei, gesamt = speicher_frei_gb()
     from . import statusline
     from . import ki
-    return {"sitzungen": sitz, "laeufe": laeufe, "sperren": sperren, "server": server, "log": [z.rstrip() for z in log],
+    return {"sitzungen": sitz, "laeufe": laeufe, "fremd": fremd, "sperren": sperren, "server": server,
+            "log": [z.rstrip() for z in log],
             "verbrauch": statusline.verbrauch_tage(con, pid, 7), "ki": ki.uebersicht(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "db": db.db_pfad()}
 
@@ -742,7 +763,7 @@ def baue_handler(port, token):
                     "/api/seit": lambda c, p: daten_seit(c, p, q),
                     "/api/dokumente": lambda c, p: daten_dokumente(c, p, q),
                     "/api/dokument": lambda c, p: daten_dokument(c, p, q),
-                    "/api/projekte": lambda c, p: zeilen(c.execute("SELECT id, name FROM projekt ORDER BY id"))}
+                    "/api/projekte": lambda c, p: daten_projekte(c, p)}
             weg = wege.get(u.path)
             if not weg:
                 return self._senden(404, {"fehler": "unbekannt"})

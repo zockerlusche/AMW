@@ -4,6 +4,25 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.18.0 – 06.11.2026 · Mehrere Projekte, Teil 2: Projekt-Auswahl in der Workbench
+Zweiter Schritt aus [doc/plan-projektwahl.md](doc/plan-projektwahl.md). **Umschalten ändert nur die Ansicht**; kein
+Projekt hält an.
+- **Auswahl oben in der Navigation** mit Name und Farbe. Ein Klick öffnet die Liste aller Projekte mit Agenten, Halt und
+  offenen Fragen an dich („3 ?“), damit man sieht, ob drüben etwas wartet. Am Handy steht das Projekt als Chip neben
+  der Marke und öffnet ein Blatt von unten.
+- Nach dem Wechsel lädt die Seite neu. Danach zeigt jede Ansicht nur das gewählte Projekt, und jeder Knopf wirkt nur
+  dort. Jede Anfrage trägt das Projekt (`?projekt=<Kennung>`).
+- Das Projekt steht in der Adresse, deshalb öffnen Links und Push-Meldungen genau dieses Projekt. Sicht und „Seit du weg
+  warst“ merkt sich der Browser je Projekt.
+- **Farbe je Projekt** (Einstellungen → Projekt) als Streifen über dem Kopf.
+- **„dieser PC“:** Lokale KI, freier Speicher und „Dieser PC“ tragen die Marke. Bei mehreren Projekten bekommen die
+  Signale Dienst, Speicher und Schirm ein kleines „PC“. Belegt ein anderes Projekt dieses PCs die Grafikkarte oder den
+  Schirm, steht das oben in der Lauf-Liste, mit Projektname und Uhrzeit, ohne Titel.
+- **Name dieses Rechners** (Einstellungen → Dieser PC), Vorgabe ist der Computername. Er wird gebraucht, sobald Projekte
+  auf mehreren Rechnern laufen (Teil 3).
+- Online zeigt die Seite das Projekt schon an. Umschalten geht online erst mit Teil 3, wenn der Abgleich je Projekt
+  läuft.
+
 ## 1.17.0 – 06.11.2026 · Mehrere Projekte, Teil 1: Agenten, Brücke und Push je Projekt (Schema 18)
 Erster Schritt zur Projekt-Auswahl ([doc/plan-projektwahl.md](doc/plan-projektwahl.md)). Mit nur einem Projekt ändert
 sich nichts. Die Prüfung mit zwei Projekten hat drei Stellen gefunden, die bisher gescheitert wären:
