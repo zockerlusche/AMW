@@ -4,6 +4,23 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.20.1 – 06.11.2026 · Seiten aktualisieren sich selbst
+Fehler: Nach einer Antwort blieb die Frage in der Liste stehen, nur der Zähler im Menü stimmte. Ursache: Die Karte wurde
+nach der Antwort nur gesperrt, und von selbst neu geladen haben sich nur Start und Betrieb. Alle anderen Seiten zeigten
+Änderungen erst nach einem Wechsel – nach eigenen Aktionen wie nach Änderungen durch Agenten oder Brücke.
+- **Nach einer eigenen Aktion** ist die beantwortete oder geparkte Frage sofort weg. Danach wird die offene Seite
+  frisch gezeichnet, das gilt für jede Aktion auf jeder Seite, auch online und am Handy.
+- **Änderungen von außen:** `/api/start` bringt je Seite einen Änderungs-Stempel (jüngste Änderung und Anzahl ihrer
+  Daten: Fragen, Aufgaben, Planung, Verlauf, Wissen, Dokumente, Release Notes). Ändert er sich, zeichnet die Workbench
+  die offene Seite still neu, Scrollstelle und aufgeklappte Abschnitte bleiben. Lebenszeichen der Agenten zählen nicht.
+  Online kommt der Stempel mit dem Abgleich; die Seite lädt dann noch einmal nach. Die Projekt-Auswahl hält ihre Zahlen
+  im selben Takt frisch.
+- **Keine Eingabe geht verloren:** Wird gerade getippt, steht ungespeicherter Text in einem Feld, ist Text markiert
+  oder ein Dialog offen, wird nicht neu gezeichnet. Stattdessen erscheint unten „Neuer Stand“ mit Knopf. Das gilt jetzt
+  auch für Start und Betrieb.
+- Test im echten Browser (Edge ohne Fenster): Antwort → Frage sofort weg; neue Frage von außen erscheint ohne Klick;
+  halb geschriebener Text bleibt.
+
 ## 1.20.0 – 06.11.2026 · Projekte völlig getrennt
 Entscheidung des Entwicklers: Jedes Projekt wird für sich gesteuert und hat keine Berührung zu einem anderen
 ([doc/plan-projektwahl.md](doc/plan-projektwahl.md), Abschnitt F). Schema 19 – vorher `amw sichern`.

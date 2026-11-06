@@ -164,6 +164,50 @@ def daten_aufgabe(con, pid, aid):
     return a
 
 
+# Was jede Sicht zeigt – ändert sich hier etwas (neue Zeile, neuer Stand), zeichnet die Workbench die offene Sicht neu.
+# Start und Betrieb laden ohnehin alle 15 s; Einstellungen nie von selbst (dort tippt man). Kind-Tabellen über ihr Projekt.
+_STAND_QUELLEN = {
+    "frage": "frage WHERE projekt_id = :p",
+    "frage_verlauf": "frage_verlauf x JOIN frage f ON f.id = x.frage_id WHERE f.projekt_id = :p",
+    "aufgabe": "aufgabe WHERE projekt_id = :p",
+    "abhaengigkeit": "abhaengigkeit x JOIN aufgabe a ON a.id = x.nach WHERE a.projekt_id = :p",
+    "pruefung": "pruefung WHERE projekt_id = :p",
+    "lauf": "lauf WHERE projekt_id = :p",
+    "bogen": "bogen WHERE projekt_id = :p",
+    "spezifikation": "spezifikation x JOIN bogen b ON b.id = x.bogen_id WHERE b.projekt_id = :p",
+    "risiko": "risiko WHERE projekt_id = :p",
+    "rueckblick": "rueckblick WHERE projekt_id = :p",
+    "plan_ereignis": "plan_ereignis WHERE projekt_id = :p",
+    "termin": "termin WHERE projekt_id = :p",
+    "nachricht": "nachricht WHERE projekt_id = :p",
+    "beschluss": "beschluss WHERE projekt_id = :p",
+    "regel": "regel WHERE projekt_id = :p",
+    "wortlaut": "wortlaut WHERE projekt_id = :p",
+    "notiz": "notiz WHERE projekt_id = :p",
+    "thema": "thema WHERE projekt_id = :p",
+    "thema_fassung": "thema_fassung x JOIN thema t ON t.id = x.thema_id WHERE t.projekt_id = :p",
+    "dokument": "dokument WHERE projekt_id = :p",
+    "dokument_version": "dokument_version x JOIN dokument d ON d.id = x.dokument_id WHERE d.projekt_id = :p",
+    "release": "release WHERE projekt_id = :p",
+}
+STAND_SICHTEN = {
+    "fragen": ("frage", "frage_verlauf", "dokument"),
+    "arbeit": ("aufgabe", "abhaengigkeit", "frage", "pruefung", "lauf"),
+    "planung": ("bogen", "aufgabe", "abhaengigkeit", "spezifikation", "risiko", "rueckblick", "plan_ereignis", "termin", "frage"),
+    "verlauf": ("nachricht", "aufgabe", "lauf", "pruefung", "beschluss"),
+    "wissen": ("beschluss", "regel", "wortlaut", "notiz", "thema", "thema_fassung"),
+    "dokumente": ("dokument", "dokument_version"),
+    "releases": ("release",),
+}
+
+
+def stand_je_sicht(con, pid):
+    """Änderungs-Stempel je Sicht: jüngste Änderung und Anzahl der Zeilen ihrer Tabellen (Anzahl: auch Löschen zählt)."""
+    teile = {t: con.execute(f"SELECT coalesce(max({'x.' if ' x ' in q else ''}geaendert_utc), '') || '/' || count(*) FROM {q}",
+                            {"p": pid}).fetchone()[0] for t, q in _STAND_QUELLEN.items()}
+    return {s: ";".join(teile[t] for t in tabellen) for s, tabellen in STAND_SICHTEN.items()}
+
+
 def daten_start(con, pid):
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
@@ -242,7 +286,7 @@ def daten_start(con, pid):
                                       " AND status IN ('laeuft', 'angemeldet') ORDER BY id", (pid,)))
     return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
-            "naechster_test": _naechster_test(con, pid),
+            "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 
