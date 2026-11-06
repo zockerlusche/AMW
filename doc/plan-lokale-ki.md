@@ -30,8 +30,8 @@ amw lauf start|ausfuehren --gpu …           # eigene Läufe, die die Grafikkar
   allein, behält der Wert seinen Typ (Seed als Zahl). Bild n bekommt Seed + n − 1.
 - **Freigaben:** Jede Modell-Datei, die eine Vorlage nennt (auch VAE, Text-Encoder), muss eingetragen und frei sein.
   Ändern sich Lizenz, Datei oder Prüfsumme, ist die Freigabe wieder offen. Frei geht nur bei kommerziell nutzbarer Lizenz.
-- **Schlange:** Ein KI-Auftrag ist ein schwerer Lauf mit Platz `gpu`. Er wartet auf schwere Läufe des Projekts und PC-weit
-  auf GPU- und Schirm-Läufe; umgekehrt warten diese auf ihn. Vorziehen und Abbrechen wie bei jedem Lauf
+- **Schlange:** Ein KI-Auftrag ist ein schwerer Lauf mit Platz `gpu`. Er wartet PC-weit auf GPU- und Schirm-Läufe;
+  umgekehrt warten diese auf ihn. Schwere Läufe ohne Fenster rechnen daneben in der CPU-Spur (seit 1.26.0). Vorziehen und Abbrechen wie bei jedem Lauf
   (`amw lauf vorziehen|ende <nr> --abgebrochen`).
 - **Ausführung:** Der Dienst holt den Lauf ab, sobald er dran ist (auch ohne Sitzung des Auftraggebers), startet ComfyUI bei
   Bedarf mit dem Startbefehl, schickt die Prompts, legt jedes Ergebnis als Dokument zur Aufgabe ab, schreibt die Herkunft

@@ -19,7 +19,7 @@
 | `amw/schema.sql` | Datenmodell (§4) |
 | `amw/kern.py` | Nachrichten, Empfänger, Aufgaben, Fragen mit Verlauf, Halt/Hinweise, Pflicht-Kontext |
 | `amw/wissen.py` | Beschlüsse, Regeln (nur mit Beschluss), Wortlaut, Notizen, Release Notes, Einstufung (geparkt/Pool) – Fragen parken: `kern.frage_parken` |
-| `amw/betrieb.py` | Rechen-Läufe mit Regeln und Warteschlange (Plätze schwer, Schirm, gpu), Prüfungen, Rezepte |
+| `amw/betrieb.py` | Rechen-Läufe mit Regeln und Warteschlange (zwei Spuren: Grafikkarte/Schirm exklusiv, CPU parallel; je Agent ein schwerer Lauf), Prüfungen, Rezepte |
 | `amw/ki.py` | Lokale KIs: eintragen, Modelle freigeben, Rechte, Aufträge als Lauf, Ausführung im Dienst über HTTP, Herkunft, Nachweis ([plan-lokale-ki.md](plan-lokale-ki.md)) |
 | `amw/planung.py` | Leitbild, Bögen, Spezifikation, Schritte, Abhängigkeiten, nächster Schritt, Risiken, Prognose, Plan-Check |
 | `amw/verlauf.py` | Rückblick je Bogen, Verlauf aller Ereignisse, Zusammenfassungen |

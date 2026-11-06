@@ -237,12 +237,12 @@ class VorlageJeProjekt(Grund):
 
 
 class Schlange(Grund):
-    def test_ki_lauf_wartet_auf_schweren_lauf_und_startet_ohne_sitzung(self):
+    def test_ki_lauf_wartet_auf_die_grafikkarte_und_startet_ohne_sitzung(self):
         self.ollama()
-        l1 = betrieb.lauf_start(self.con, self.pid, "Bauer", "Godot-Test")          # schwer, läuft
+        l1 = betrieb.lauf_start(self.con, self.pid, "Bauer", "Godot mit Grafikkarte", schwer=False, gpu=True)
         lid, aid, laeuft = ki.auftrag(self.con, self.pid, "Lead", "ollama", "Hallo", "qwen3.5:9b")
         self.assertFalse(laeuft)
-        self.assertIn("schwerer Lauf L%d" % l1, betrieb.wartegrund(self.con, self.pid, self.lauf(lid)))
+        self.assertIn("GPU-Lauf L%d" % l1, betrieb.wartegrund(self.con, self.pid, self.lauf(lid)))
         self.assertTrue(self.lauf(lid)["gpu"])
         n = self.con.execute("SELECT count(*) FROM nachricht").fetchone()[0]
         self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "Bauer", l1, 0), [lid])   # Lead hat keine Sitzung – egal

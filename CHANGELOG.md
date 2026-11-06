@@ -4,6 +4,23 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.26.0 – 06.11.2026 · Lauf-Schlange mit zwei Spuren
+Bisher lief je Projekt nur ein schwerer Lauf. Auch die freie Grafikkarte wartete auf einen Headless-Build: KI-Aufträge
+und Fenster-Läufe standen hinter Builds, die sie gar nicht stören.
+- **Spur Grafikkarte/Schirm:** GPU-Läufe, KI-Aufträge und Läufe mit Fenster wie bisher PC-weit einer zur Zeit (jetzt
+  auch Schirm-Läufe verschiedener Projekte).
+- **Spur CPU:** schwere Läufe ohne Fenster und ohne Grafikkarte rechnen parallel, Vorgabe **2**. Einstellbar unter
+  Zahnrad › Dieser PC › „Schwere Läufe ohne Fenster zugleich“ (`cpu_laeufe`, 1–8). Beide Spuren laufen nebeneinander.
+- **Speicher je Lauf:** Jeder schwere Lauf braucht seine Speicher-Grenze frei. Ein gerade gestarteter Lauf zählt seine
+  Grenze 3 Minuten lang als belegt, bis sein Speicher in der Messung auftaucht – zwei Starts kurz hintereinander
+  überbuchen den RAM nicht.
+- **Ein Agent rechnet nie zwei schwere Läufe zugleich** (sein Klon: nie zwei Godot-Imports im selben Ordner). KI-Aufträge
+  zählen nicht dazu, die rechnet der Dienst.
+- **Niemand überholt, aber nur auf seinem Platz:** Wer auf seinen Klon oder den Schirm wartet, hält die CPU-Spur nicht auf.
+  Wer wegen Speicher wartet, wird auf seinen Spuren nicht überholt. `amw lauf zeige <nr>` nennt den Grund
+  („CPU-Spur voll …“, „L… von CC3 läuft noch …“).
+- Laufende Läufe bleiben unberührt; die neue Regel gilt ab der nächsten Runde des Wächters.
+
 ## 1.25.0 – 06.11.2026 · Ein Projekt als eigene Datenbank sichern
 Entschieden nach der Prüfung „mehrere Projekte“: **eine Datenbank je Rechner bleibt** (Gründe in
 [doc/plan-projektwahl.md](doc/plan-projektwahl.md), Abschnitt „Aufbau“).

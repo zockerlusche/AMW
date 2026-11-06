@@ -817,6 +817,7 @@ const TEXTE = {
     e_db: "Datenbank", e_port: "Port der Workbench", e_aufsicht: "Aufsicht der Sitzungen (s)", e_hoch: "Abgleich: hochladen höchstens alle (s)",
     e_puls_pc: "Abgleich: Lebenszeichen alle (s)", e_eingang: "Abgleich: Briefkasten leeren alle (s)", e_bruecke: "Brücke für einen Lead ohne Windows-Zugriff (z. B. in einer VM)",
     e_absender: "Brücke: Absender", e_kopie: "Brücke: Lesekopie höchstens alle (s)",
+    e_cpu: "Schwere Läufe ohne Fenster zugleich", e_cpu_h: "CPU-Spur der Lauf-Schlange; Grafikkarte und Schirm bleiben bei einem Lauf zur Zeit. Jeder Lauf braucht seine Speicher-Grenze frei, ein Agent rechnet nie zwei zugleich.",
     e_fern: "Schirm: Programm einer Fernsitzung", e_fern_ph: "leer = aus, z. B. teamviewer_desktop.exe oder AnyDesk.exe",
     e_fern_h: "Läuft nur während einer Fernwartungs-Verbindung – beginnt eine, geht ein freier Schirm zu",
     e_entwickler: "Dein Name in Meldungen", e_entwickler_ph: "Entwickler", e_entwickler_h: "z. B. „Marie wartet …“ – als Wartegrund geht er auch (--auf Marie)",
@@ -1083,6 +1084,7 @@ const TEXTE = {
     e_db: "Database", e_port: "Workbench port", e_aufsicht: "Session supervision (s)", e_hoch: "Sync: upload at most every (s)",
     e_puls_pc: "Sync: heartbeat every (s)", e_eingang: "Sync: empty mailbox every (s)", e_bruecke: "Bridge for a lead without Windows access (e.g. in a VM)",
     e_absender: "Bridge: sender", e_kopie: "Bridge: read copy at most every (s)",
+    e_cpu: "Heavy runs without a window at once", e_cpu_h: "CPU lane of the run queue; graphics card and screen stay at one run at a time. Each run needs its memory limit free, an agent never runs two at once.",
     e_fern: "Screen: remote session program", e_fern_ph: "empty = off, e.g. teamviewer_desktop.exe or AnyDesk.exe",
     e_fern_h: "Runs only during a remote-support connection – when one starts, a free screen closes",
     e_entwickler: "Your name in messages", e_entwickler_ph: "Entwickler", e_entwickler_h: "e.g. “Marie waits …” – also works as a wait reason (--auf Marie)",
@@ -3536,11 +3538,11 @@ async function sichtEinstellungen() {
     abgleich_hoch_s: zahl(p.abgleich_hoch_s, 10, 3600), abgleich_puls_s: zahl(p.abgleich_puls_s, 60, 3600),
     abgleich_eingang_s: zahl(p.abgleich_eingang_s, 5, 600), bruecke_an: schalter(p.bruecke_an),
     bruecke_absender: text(p.bruecke_absender), bruecke_kopie_s: zahl(p.bruecke_kopie_s, 15, 3600),
-    fernsitzung_prozess: text(p.fernsitzung_prozess || ""), rechner: text(p.rechner || "") };
+    fernsitzung_prozess: text(p.fernsitzung_prozess || ""), rechner: text(p.rechner || ""), cpu_laeufe: zahl(p.cpu_laeufe, 1, 8) };
   pc.fernsitzung_prozess.placeholder = t("e_fern_ph");
   box.append(block([t("e_pc"), " ", pcMarke()], API ? t("nur_pc") : t("e_pc_h", { x: p.datei }), [
     [t("e_rechner"), pc.rechner, t("e_rechner_h")],
-    [t("e_db"), pc.db_pfad], [t("e_port"), pc.port], [t("e_aufsicht"), pc.aufsicht_s], [t("e_hoch"), pc.abgleich_hoch_s],
+    [t("e_db"), pc.db_pfad], [t("e_port"), pc.port], [t("e_cpu"), pc.cpu_laeufe, t("e_cpu_h")], [t("e_aufsicht"), pc.aufsicht_s], [t("e_hoch"), pc.abgleich_hoch_s],
     [t("e_puls_pc"), pc.abgleich_puls_s], [t("e_eingang"), pc.abgleich_eingang_s], [t("e_bruecke"), pc.bruecke_an],
     [t("e_absender"), pc.bruecke_absender], [t("e_kopie"), pc.bruecke_kopie_s], [t("e_fern"), pc.fernsitzung_prozess, t("e_fern_h")]],
     "pc", () => Object.fromEntries(Object.entries(pc).map(([k, x]) => [k, wert(x)])), !!API));

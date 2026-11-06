@@ -23,18 +23,20 @@ class Grund(unittest.TestCase):
 
 
 class Laeufe(Grund):
-    def test_ein_schwerer_lauf_zur_zeit_und_speichergrenze(self):
-        l1 = betrieb.lauf_start(self.con, self.pid, "CC1", "Build", speicher_frei=20)
-        with self.assertRaises(kern.AmwFehler) as e:
-            betrieb.lauf_start(self.con, self.pid, "CC2", "Test", speicher_frei=20)
-        self.assertIn(f"L{l1}", str(e.exception))
-        betrieb.lauf_start(self.con, self.pid, "CC2", "Lint", schwer=False, speicher_frei=1)   # leicht: keine Grenze
-        with self.assertRaises(kern.AmwFehler):
-            betrieb.lauf_ende(self.con, self.pid, "CC2", l1, 0)                                   # fremder Lauf
-        betrieb.lauf_ende(self.con, self.pid, "CC1", l1, 0, "ok")
-        with self.assertRaises(kern.AmwFehler) as e:
-            betrieb.lauf_start(self.con, self.pid, "CC2", "Test", speicher_frei=5)
-        self.assertIn("GB frei", str(e.exception))
+    def test_cpu_spur_und_speichergrenze(self):
+        with mock.patch.object(betrieb, "cpu_laeufe", return_value=2):
+            l1 = betrieb.lauf_start(self.con, self.pid, "CC1", "Build", speicher_frei=20)
+            l2 = betrieb.lauf_start(self.con, self.pid, "CC2", "Test", speicher_frei=20)    # zweite CPU-Spur
+            with self.assertRaises(kern.AmwFehler) as e:
+                betrieb.lauf_start(self.con, self.pid, "TL", "Proben", speicher_frei=40)
+            self.assertIn(f"CPU-Spur voll (2 von 2 Läufen ohne Fenster: L{l1}, L{l2})", str(e.exception))
+            betrieb.lauf_start(self.con, self.pid, "TL", "Lint", schwer=False, speicher_frei=1)   # leicht: keine Grenze
+            with self.assertRaises(kern.AmwFehler):
+                betrieb.lauf_ende(self.con, self.pid, "CC2", l1, 0)                                   # fremder Lauf
+            betrieb.lauf_ende(self.con, self.pid, "CC1", l1, 0, "ok")
+            with self.assertRaises(kern.AmwFehler) as e:
+                betrieb.lauf_start(self.con, self.pid, "TL", "Test", speicher_frei=5)
+            self.assertIn("GB frei", str(e.exception))
 
     def test_rezept_bestimmt_schirm_und_grenze(self):
         betrieb.rezept_setzen(self.con, self.pid, "abnahme", "gd_ablaeufe.ps1", "am Schirm", schirm=True, speicher_gb=6)
@@ -55,9 +57,12 @@ class Laeufe(Grund):
 
 
 class Warteschlange(Grund):
-    """lauf start --warten : Reihenfolge der Anmeldung, niemand überholt, Freigabe weckt den Agenten."""
+    """lauf start --warten : Reihenfolge der Anmeldung, niemand überholt, Freigabe weckt den Agenten (eine CPU-Spur)."""
     def setUp(self):
         super().setUp()
+        p = mock.patch.object(betrieb, "cpu_laeufe", return_value=1)
+        p.start()
+        self.addCleanup(p.stop)
         kern.agent_neu(self.con, self.pid, "CC3")
         with db.schreiben(self.con):
             for k in ("CC1", "CC2", "CC3"):
@@ -105,6 +110,76 @@ class Warteschlange(Grund):
         l2, l3 = self.start("TL", True), self.start("CC2", True)             # TL hat hier keine Sitzung
         self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "CC1", l1, 0, speicher_frei=20), [l3])
         self.assertEqual(self.status(l2), "angemeldet")
+
+
+class Spuren(Grund):
+    """Zwei Spuren (#17824): Grafikkarte/Schirm exklusiv, CPU-Läufe ohne Fenster parallel, ein Agent nie zwei schwere
+    Läufe zugleich (sein Klon), freier Speicher je Lauf."""
+    status, start = Warteschlange.status, Warteschlange.start
+
+    def setUp(self):
+        super().setUp()
+        kern.agent_neu(self.con, self.pid, "CC3")
+        with db.schreiben(self.con):
+            for k in ("CC1", "CC2", "CC3"):
+                aid = self.con.execute("SELECT id FROM agent WHERE kennung = ?", (k,)).fetchone()[0]
+                db.einfuegen(self.con, "sitzung", agent_id=aid, gestartet_utc=db.jetzt())
+        p = mock.patch.object(betrieb, "cpu_laeufe", return_value=2)
+        p.start()
+        self.addCleanup(p.stop)
+        p = mock.patch.object(betrieb.schirm_mod, "sperrgrund", return_value=None)          # Schirm frei, PC ruhig
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_cpu_lauf_neben_gpu_und_schirm(self):
+        l1 = self.start("CC1")                                           # CPU-Spur
+        l2 = self.start("CC2", gpu=True)                                 # Grafikkarte: läuft daneben
+        l3 = self.start("CC3", True, schirm=True)                        # Fenster: wartet auf die Grafikkarte
+        self.assertEqual([self.status(x) for x in (l1, l2, l3)], ["laeuft", "laeuft", "angemeldet"])
+        self.assertIn(f"GPU-Lauf L{l2}", betrieb.wartegrund(self.con, self.pid, betrieb.lauf_zeile(self.con, self.pid, l3), 40))
+        l4 = self.start("CC3", True)                                     # sein CPU-Lauf überholt den Schirm-Wartenden
+        self.assertEqual(betrieb.warteschlange(self.con, self.pid, 40), [l4])
+        self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "CC2", l2, 0, speicher_frei=40), [])   # Grafikkarte frei …
+        self.assertIn(f"L{l4} von CC3 läuft noch", betrieb.wartegrund(self.con, self.pid, betrieb.lauf_zeile(self.con, self.pid, l3), 40))
+        self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "CC3", l4, 0, speicher_frei=40), [l3])  # … aber erst nach seinem Klon
+
+    def test_gpu_lauf_ueberholt_wartenden_fenster_lauf_nicht(self):
+        l1 = self.start("CC1", gpu=True)
+        l2 = self.start("CC2", True, schirm=True)
+        with db.schreiben(self.con):                                     # L1 fertig, der Wächter war noch nicht da
+            self.con.execute("UPDATE lauf SET status = 'fertig' WHERE id = ?", (l1,))
+        with self.assertRaises(kern.AmwFehler) as e:
+            self.start("CC3", gpu=True)
+        self.assertIn(f"L{l2} von CC2", str(e.exception))
+        self.assertIn(f"vor dir: L{l2}", betrieb.wartegrund(self.con, self.pid, betrieb.lauf_zeile(self.con, self.pid,
+                                                                                                   self.start("CC3", True, gpu=True)), 40))
+
+    def test_ein_agent_nie_zwei_schwere_zugleich(self):
+        l1 = self.start("CC1")
+        with self.assertRaises(kern.AmwFehler) as e:
+            self.start("CC1")
+        self.assertIn(f"L{l1} von CC1 läuft noch", str(e.exception))
+        l2 = self.start("CC1", True)
+        l3 = self.start("CC2")                                           # wer auf seinen Klon wartet, hält die Spur nicht auf
+        self.assertEqual((self.status(l2), self.status(l3)), ("angemeldet", "laeuft"))
+        self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "CC1", l1, 0, speicher_frei=40), [l2])
+
+    def test_speicher_je_lauf_mit_anlauf(self):
+        self.start("CC1", frei=12)
+        with self.assertRaises(kern.AmwFehler) as e:                     # 12 frei, aber 8 gleich für L1
+            self.start("CC2", frei=12)
+        self.assertIn("8 GB gleich für gerade gestartete", str(e.exception))
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE lauf SET start_utc = '2026-01-01T00:00:00Z'")
+        self.assertEqual(self.status(self.start("CC2", frei=12)), "laeuft")   # L1s Speicher steckt jetzt in der Messung
+
+    def test_wartender_mit_wenig_speicher_wird_nicht_ueberholt(self):
+        l1 = self.start("CC1", frei=20)
+        l2 = self.start("CC2", True, frei=10)                            # 10 − 8 Anlauf < 8: wartet
+        with self.assertRaises(kern.AmwFehler) as e:
+            self.start("CC3", frei=40)
+        self.assertIn(f"L{l2} von CC2", str(e.exception))
+        self.assertEqual(self.status(l1), "laeuft")
 
 
 class Pruefungen(Grund):

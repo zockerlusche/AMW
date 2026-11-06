@@ -1958,8 +1958,8 @@ def parser():
     x.add_argument("--kurz", action="store_true", help="pruefen: nur eine Zeile je Befund")
     x.set_defaults(f=cmd_plan)
 
-    x = s.add_parser("lauf", help="Rechen-Läufe: start [--warten] prüft Halt, Schirm, Speicher, einen schweren/Schirm-Lauf zur Zeit,"
-                                  " Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund ·"
+    x = s.add_parser("lauf", help="Rechen-Läufe: start [--warten] prüft Halt, Schirm, Speicher je Lauf, zwei Spuren (Grafikkarte/"
+                                  "Schirm: einer zur Zeit; schwere ohne Fenster: parallel bis cpu_laeufe, je Agent einer), Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund ·"
                                   " ausfuehren --beschreibung … [--schirm] [--ergebnis datei] -- <befehl …> (einreihen, warten,"
                                   " starten, rc durchreichen, Ende melden; bei Schirm zu den eigenen Befehl beenden)")
     x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen", "zeige", "warte", "ausfuehren"])

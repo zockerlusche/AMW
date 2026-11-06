@@ -10,6 +10,8 @@ from . import db, kern
 from . import schirm as schirm_mod     # „schirm“ ist hier schon der Name der Spalte/des Parameters
 
 SPEICHER_GRENZE_GB = 8.0      # Vorgabe, je Projekt überschreibbar: einstellungen {"speicher_grenze_gb": …}
+ANLAUF_S = 180                # so lange zählt ein gerade gestarteter schwerer Lauf seine Grenze als belegt (sein Speicher
+                              # ist in der Messung noch nicht zu sehen)
 
 
 def _einstellung(con, pid, schluessel, vorgabe):
@@ -49,26 +51,102 @@ def _grenze(con, pid, braucht_gb, schwer):
     return speicher_grenze(con, pid) if schwer else 0.0
 
 
-def _plaetze(schwer, schirm, gpu=0):
-    return {p for p, n in (("schwer", schwer), ("schirm", schirm), ("gpu", gpu)) if n}
+def cpu_laeufe():
+    """So viele schwere Läufe ohne Fenster und ohne Grafikkarte rechnen zugleich (Einstellung dieses PCs, Vorgabe 2)."""
+    from . import einstellungen
+    return einstellungen.wert("cpu_laeufe")
+
+
+def _plaetze(schwer, schirm, gpu=0, agent=None):
+    """Zwei Spuren: Grafikkarte und Schirm (PC-weit ein Lauf zur Zeit; ein Fenster rechnet auf der Grafikkarte) und
+    „cpu“ für schwere Läufe ohne beides (cpu_laeufe() zugleich). agent: schwere Läufe eines Agenten nie gleichzeitig –
+    er rechnet in seinem Klon, zwei Godot-Imports im selben Klon gehen schief. KI-Aufträge rechnet der Dienst (ohne Klon)."""
+    p = {"schirm", "gpu"} if schirm else ({"gpu"} if gpu else set())   # ein Fenster belegt auch die Grafikkarte
+    if schwer and not p:
+        p.add("cpu")
+    if schwer and agent:
+        p.add("agent:" + agent)
+    return p
+
+
+def _plaetze_von(l):
+    return _plaetze(l["schwer"], l["schirm"], l["gpu"], None if l["ki_auftrag"] else l["agent"])
 
 
 def _besetzt(con, pid, plaetze):
-    """Grund, wenn ein laufender Lauf einen der Plätze belegt (schwer: einer zur Zeit je Projekt, Schirm: einer zur Zeit,
-    gpu: einer zur Zeit auf dem ganzen PC). Ein Lauf mit Fenster rechnet auch auf der Grafikkarte: GPU- und Schirm-Läufe
-    warten PC-weit aufeinander."""
-    for spalte, name in (("schwer", "schwerer Lauf"), ("schirm", "Schirm-Lauf")):
-        if spalte in plaetze:                    # Spaltenname kommt nur aus dieser Liste
-            b = con.execute(f"SELECT id, agent, beschreibung FROM lauf WHERE projekt_id = ? AND status = 'laeuft'"
-                            f" AND {spalte} = 1", (pid,)).fetchone()
-            if b:
-                return f"{name} L{b['id']} von {b['agent']} läuft noch: {b['beschreibung']}"
-    if plaetze & {"gpu", "schirm"}:
-        b = con.execute("SELECT id, agent, beschreibung, gpu FROM lauf WHERE status = 'laeuft' AND (gpu = 1 OR (? AND schirm = 1))"
-                        " ORDER BY id LIMIT 1", (int("gpu" in plaetze),)).fetchone()
+    """(Grund, Platz), wenn ein laufender Lauf einen der Plätze belegt, sonst (None, None)."""
+    for p in sorted(x for x in plaetze if x.startswith("agent:")):
+        b = con.execute("SELECT l.id, l.beschreibung FROM lauf l LEFT JOIN ki_auftrag k ON k.lauf_id = l.id WHERE l.projekt_id = ?"
+                        " AND l.agent = ? AND l.status = 'laeuft' AND l.schwer = 1 AND k.id IS NULL ORDER BY l.id LIMIT 1",
+                        (pid, p[6:])).fetchone()
         if b:
-            return f"{'GPU' if b['gpu'] else 'Schirm'}-Lauf L{b['id']} von {b['agent']} belegt die Grafikkarte: {b['beschreibung']}"
+            return f"L{b['id']} von {p[6:]} läuft noch (ein Agent rechnet nie zwei schwere Läufe zugleich – sein Klon): {b['beschreibung']}", p
+    if plaetze & {"gpu", "schirm"}:
+        b = con.execute("SELECT id, agent, beschreibung, gpu FROM lauf WHERE status = 'laeuft' AND (gpu = 1 OR schirm = 1)"
+                        " ORDER BY id LIMIT 1").fetchone()
+        if b:
+            platz = "gpu" if "gpu" in plaetze else "schirm"
+            if b["gpu"]:
+                return f"GPU-Lauf L{b['id']} von {b['agent']} belegt die Grafikkarte: {b['beschreibung']}", platz
+            return f"Schirm-Lauf L{b['id']} von {b['agent']} läuft noch: {b['beschreibung']}", platz
+    if "cpu" in plaetze:
+        r = con.execute("SELECT id FROM lauf WHERE status = 'laeuft' AND schwer = 1 AND schirm = 0 AND gpu = 0 ORDER BY id").fetchall()
+        n = cpu_laeufe()
+        if len(r) >= n:
+            return f"CPU-Spur voll ({len(r)} von {n} Läufen ohne Fenster: {', '.join('L%d' % x['id'] for x in r)})", "cpu"
+    return None, None
+
+
+def _anlauf_gb(con):
+    """Speicher, den gerade gestartete schwere Läufe gleich brauchen (ihre Grenze, ANLAUF_S lang nach dem Start)."""
+    r = con.execute("SELECT l.projekt_id, l.schwer, l.start_utc, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
+                    " WHERE l.status = 'laeuft' AND l.schwer = 1 AND l.start_utc >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?)",
+                    (f"-{ANLAUF_S} seconds",)).fetchall()
+    return sum(_grenze(con, x["projekt_id"], x["braucht_speicher_gb"], x["schwer"]) for x in r)
+
+
+def _speicher_fehlt(con, pid, l_grenze, speicher_frei):
+    """Grund, wenn für einen Lauf mit dieser Grenze nicht genug frei ist (abzüglich dessen, was gerade Gestartete gleich
+    brauchen) – jeder schwere Lauf braucht seine Grenze für sich."""
+    if not l_grenze or speicher_frei is None:
+        return None
+    anlauf = _anlauf_gb(con)
+    if speicher_frei - anlauf < l_grenze:
+        return f"nur {speicher_frei} GB frei" + (f" ({anlauf:g} GB gleich für gerade gestartete Läufe)" if anlauf else "") \
+            + f", Grenze {l_grenze:g} GB"
     return None
+
+
+def _lebt(con, pid, l):
+    """Darf der Lauf jetzt überhaupt starten: KI-Auftrag (rechnet der Dienst) oder Agent mit lebender Sitzung, ohne Halt."""
+    lebt = l["ki_auftrag"] or con.execute(
+        "SELECT 1 FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
+        " AND a.kennung = ? AND s.zustand = 'aktiv'", (pid, l["agent"])).fetchone()
+    return bool(lebt) and not kern.halt_gilt(con, pid, l["agent"])
+
+
+def _gesperrt(con, pid, wartend, schirm_zu, bis=None):
+    """Plätze, auf die schon jemand in der Schlange wartet – dort überholt niemand. {platz: [Lauf-Zeilen]}.
+    Dieselben Regeln wie warteschlange(): wer auf seinen Klon oder den Schirm wartet, sperrt nur diesen Platz (hält die
+    CPU-Spur nicht auf); wer jetzt starten könnte oder auf Speicher wartet, sperrt alle seine Plätze; wer hinter einem
+    anderen hängt, ohne Sitzung ist oder im Halt, sperrt nichts. bis: nur Läufe davor."""
+    aus = {}
+    for w in wartend:
+        if bis is not None and w["id"] == bis:
+            break
+        pw = _plaetze_von(w)
+        if pw & set(aus):
+            continue
+        if w["schirm"] and schirm_zu:
+            hier = {"schirm"}
+        elif not _lebt(con, pid, w):
+            continue
+        else:
+            _, platz = _besetzt(con, pid, pw)
+            hier = {platz} if platz else pw          # zu wenig Speicher oder gleich dran: alle seine Plätze
+        for p in hier:
+            aus.setdefault(p, []).append(w)
+    return aus
 
 
 def wartende(con, pid):
@@ -81,9 +159,9 @@ def wartende(con, pid):
 
 def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=False, aufgabe_id=None,
                speicher_frei=None, warten=False, erwartet_min=None, gpu=False, dazu=None):
-    """Meldet einen Lauf an und startet ihn, wenn er darf. Regeln: kein Halt; schwere Läufe nur einer zur Zeit;
-    Schirm-Läufe nur einer zur Zeit; GPU-Läufe nur einer zur Zeit auf dem PC; freier Speicher ≥ Grenze; niemand überholt
-    die Warteschlange. Darf er nicht: ohne warten AmwFehler mit Grund (nichts wird angelegt), mit warten eingereiht (status
+    """Meldet einen Lauf an und startet ihn, wenn er darf. Regeln: kein Halt; Schirm und Grafikkarte PC-weit ein Lauf
+    zur Zeit; schwere Läufe ohne beides parallel bis cpu_laeufe(); ein Agent nie zwei schwere zugleich; freier Speicher
+    ≥ Grenze je Lauf; niemand überholt die Warteschlange auf seinem Platz. Darf er nicht: ohne warten AmwFehler mit Grund (nichts wird angelegt), mit warten eingereiht (status
     'angemeldet'); warteschlange() startet ihn, sobald er dran ist, und weckt den Agenten mit einer Freigabe.
     dazu(lid): läuft in derselben Transaktion (KI-Auftrag zum Lauf) – nie ein Lauf ohne seinen Auftrag."""
     if kern.halt_gilt(con, pid, agent):
@@ -97,16 +175,17 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     grenze = _grenze(con, pid, rez["braucht_speicher_gb"] if rez else None, schwer)
     if speicher_frei is None:
         speicher_frei = speicher_frei_gb()[0]
-    plaetze = _plaetze(schwer, schirm, gpu)
+    plaetze = _plaetze(schwer, schirm, gpu, None if dazu else agent)
     with db.schreiben(con):
-        schirm_zu = schirm_mod.sperrgrund(con) if schirm or any(w["schirm"] for w in wartende(con, pid)) else None
-        grund = (schirm_zu if schirm else None) or _besetzt(con, pid, plaetze)
-        vor = [w for w in wartende(con, pid) if _plaetze(w["schwer"], w["schirm"], w["gpu"]) & plaetze
-               and not (w["schirm"] and schirm_zu and not schirm)]     # wer auf den Schirm wartet, hält Läufe ohne Fenster nicht auf
+        w = wartende(con, pid)
+        schirm_zu = schirm_mod.sperrgrund(con) if schirm or any(x["schirm"] for x in w) else None
+        grund = (schirm_zu if schirm else None) or _besetzt(con, pid, plaetze)[0]
+        gesperrt = _gesperrt(con, pid, w, schirm_zu)
+        vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
         if not grund and vor:
-            grund = "Warteschlange: " + ", ".join(f"L{w['id']} von {w['agent']}" for w in vor) + " wartet schon"
-        if not grund and grenze and speicher_frei is not None and speicher_frei < grenze:
-            grund = f"nur {speicher_frei} GB frei, Grenze {grenze:g} GB"
+            grund = "Warteschlange: " + ", ".join(f"L{x['id']} von {x['agent']}" for x in vor) + " wartet schon"
+        if not grund:
+            grund = _speicher_fehlt(con, pid, grenze, speicher_frei)
         if grund and not warten:
             raise kern.AmwFehler(grund + " – mit --warten einreihen")
         t = db.jetzt()
@@ -132,7 +211,8 @@ def kurzfassung(text, n=110):
 
 def warteschlange(con, pid, speicher_frei=None):
     """Startet wartende Läufe der Reihe nach, sobald ihr Platz frei ist, und weckt den Agenten (Freigabe).
-    Wer warten muss, hält alle hinter sich auf, die denselben Platz brauchen – niemand überholt. Agenten ohne
+    Wer warten muss, hält alle hinter sich auf, die den Platz brauchen, an dem er hängt – niemand überholt (wer auf
+    seinen Klon wartet, hält die CPU-Spur nicht auf; ein Lauf ohne Fenster nicht den Schirm). Agenten ohne
     lebende Sitzung oder im Halt werden übersprungen, bis sie wieder da sind. Schirm-Läufe nur bei freiem Schirm
     und ruhigem PC (schirm.py). Rückgabe: gestartete Lauf-Nummern."""
     if not wartende(con, pid):
@@ -143,19 +223,19 @@ def warteschlange(con, pid, speicher_frei=None):
     with db.schreiben(con):
         schirm_zu = any(l["schirm"] for l in wartende(con, pid)) and schirm_mod.sperrgrund(con)
         for l in wartende(con, pid):
-            plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"])
+            plaetze = _plaetze_von(l)
             if plaetze & gesperrt:
                 continue
             if l["schirm"] and schirm_zu:            # hält nur andere Schirm-Läufe auf, nicht die ohne Fenster
                 gesperrt.add("schirm")
                 continue
-            lebt = l["ki_auftrag"] or con.execute(   # KI-Auftrag: rechnet der Dienst, der Agent darf schlafen
-                "SELECT 1 FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
-                " AND a.kennung = ? AND s.zustand = 'aktiv'", (pid, l["agent"])).fetchone()
-            if not lebt or kern.halt_gilt(con, pid, l["agent"]):
+            if not _lebt(con, pid, l):               # KI-Auftrag: rechnet der Dienst, der Agent darf schlafen
                 continue
-            grenze = _grenze(con, pid, l["braucht_speicher_gb"], l["schwer"])
-            if _besetzt(con, pid, plaetze) or (grenze and speicher_frei is not None and speicher_frei < grenze):
+            _, platz = _besetzt(con, pid, plaetze)
+            if platz:                                # hält nur auf, wer genau diesen Platz braucht
+                gesperrt.add(platz)
+                continue
+            if _speicher_fehlt(con, pid, _grenze(con, pid, l["braucht_speicher_gb"], l["schwer"]), speicher_frei):
                 gesperrt |= plaetze
                 continue
             con.execute("UPDATE lauf SET status = 'laeuft', start_utc = ?, speicher_frei_gb = ? WHERE id = ?",
@@ -183,24 +263,25 @@ def wartegrund(con, pid, l, speicher_frei=None):
     """Warum ein eingereihter Lauf noch nicht dran ist – dieselben Regeln wie warteschlange(), als Text."""
     w = wartende(con, pid)
     platz = next((i for i, x in enumerate(w, 1) if x["id"] == l["id"]), None)
-    plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"])
+    ki_auftrag = con.execute("SELECT id FROM ki_auftrag WHERE lauf_id = ?", (l["id"],)).fetchone()
+    plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"], None if ki_auftrag else l["agent"])
+    frei = speicher_frei if speicher_frei is not None else speicher_frei_gb()[0]
     gruende = []
-    if l["schirm"]:
-        g = schirm_mod.sperrgrund(con)
-        if g:
-            gruende.append(g)
+    schirm_zu = schirm_mod.sperrgrund(con) if l["schirm"] or any(x["schirm"] for x in w) else None
+    if l["schirm"] and schirm_zu:
+        gruende.append(schirm_zu)
     if kern.halt_gilt(con, pid, l["agent"]):
         gruende.append("HALT gilt")
-    b = _besetzt(con, pid, plaetze)
+    b = _besetzt(con, pid, plaetze)[0]
     if b:
         gruende.append(b)
-    vor = [x for x in w[:(platz or 1) - 1] if _plaetze(x["schwer"], x["schirm"], x["gpu"]) & plaetze]
+    gesperrt = _gesperrt(con, pid, w, schirm_zu, bis=l["id"]) if platz else {}
+    vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
     if vor:
         gruende.append("vor dir: " + ", ".join(f"L{x['id']} ({x['agent']})" for x in vor))
-    grenze = _grenze(con, pid, l["braucht_speicher_gb"], l["schwer"])
-    frei = speicher_frei if speicher_frei is not None else speicher_frei_gb()[0]
-    if grenze and frei is not None and frei < grenze:
-        gruende.append(f"nur {frei} GB frei, Grenze {grenze:g} GB")
+    g = _speicher_fehlt(con, pid, _grenze(con, pid, l["braucht_speicher_gb"], l["schwer"]), frei)
+    if g:
+        gruende.append(g)
     kopf = f"Platz {platz} von {len(w)}" if platz else "nicht in der Schlange"
     return kopf + (" – " + " · ".join(gruende) if gruende else " – gleich dran (nächste Runde des Wächters)")
 

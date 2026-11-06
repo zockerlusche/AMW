@@ -80,6 +80,7 @@ FELDER = {
     "bruecke_an": (False, _wahr),           # Datei-Brücke für einen Agenten ohne direkten DB-Zugriff
     "bruecke_absender": ("TL", _kennung),
     "bruecke_kopie_s": (60, _ganz(15, 3600)),
+    "cpu_laeufe": (2, _ganz(1, 8)),               # schwere Läufe ohne Fenster/Grafikkarte zugleich (Lauf-Schlange, Spur CPU)
     "statusline_weiter": ("", _befehl),            # bisherige Statusline, die amw-statusline.py weiterreicht
     "claude_befehl": ("claude", _befehl),          # Claude Code starten (falls anders installiert: voller Pfad)
     # Schirm: dieses Programm läuft nur während einer Fernsitzung (Fernwartungs-Werkzeug) – leer = nicht prüfen
