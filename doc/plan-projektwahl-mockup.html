@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup Projekt-Auswahl</title>
+<style>
+:root {
+  --grund: #13120e; --flaeche: #1c1a15; --flaeche2: #24211b; --linie: #353026; --linie2: #4a4335;
+  --tinte: #ece5d3; --leise: #a39a86; --sehrleise: #6f6858;
+  --bernstein: #f0a93a; --bernstein-weich: rgba(240,169,58,.12);
+  --gruen: #86b46f; --rot: #e5583a; --blau: #6fa3c8;
+  --titel: "Bahnschrift", "DIN Alternate", "Barlow Semi Condensed", "Arial Narrow", sans-serif;
+  --text: "Segoe UI Variable Text", "Segoe UI", "Source Sans 3", -apple-system, "Roboto", sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--grund); color: var(--tinte); font: 14px/1.45 var(--text); padding: 24px 16px 60px; }
+h1 { font: 600 26px var(--titel); letter-spacing: .06em; margin: 0 0 6px; }
+h2 { font: 600 15px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--bernstein); margin: 44px 0 6px; }
+p.erkl { color: var(--leise); max-width: 900px; margin: 4px 0 14px; }
+.seite { max-width: 1240px; margin: 0 auto; }
+.etikett { display: inline-block; font: 11px var(--titel); letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border: 1px solid var(--linie2); border-radius: 2px; color: var(--leise); }
+.etikett.empf { border-color: var(--gruen); color: var(--gruen); }
+.etikett.pc { border-color: var(--blau); color: var(--blau); }
+
+/* Bildschirm-Rahmen */
+.schirm { border: 1px solid var(--linie2); border-radius: 6px; overflow: hidden; background: var(--grund); position: relative; }
+.wb { display: grid; grid-template-columns: 216px 1fr; grid-template-rows: 58px 1fr; height: 520px; }
+.wb header { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--linie); padding-right: 14px; position: relative; }
+.akzent { position: absolute; left: 0; right: 0; top: 0; height: 3px; }
+.marke { width: 216px; height: 100%; display: flex; align-items: center; gap: 10px; padding-left: 18px; border-right: 1px solid var(--linie); flex: none; }
+.marke b { font: 600 22px/1 var(--titel); letter-spacing: .14em; }
+.marke span { font: 10px/1.15 var(--titel); letter-spacing: .05em; color: var(--leise); text-transform: uppercase; }
+.signal { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border: 1px solid var(--linie); border-radius: 3px; font: 11.5px var(--titel); letter-spacing: .05em; text-transform: uppercase; color: var(--leise); background: var(--flaeche); white-space: nowrap; }
+.signal .pcz { font-size: 10px; color: var(--blau); border-left: 1px solid var(--linie2); padding-left: 6px; }
+.punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--gruen); }
+.punkt.b { background: var(--bernstein); }
+.suche { margin-left: auto; width: 230px; height: 32px; border: 1px solid var(--linie); border-radius: 3px; background: var(--flaeche); color: var(--sehrleise); font-size: 12.5px; padding: 7px 10px; }
+.halt { border: 1px solid var(--rot); color: var(--rot); font: 600 12px var(--titel); letter-spacing: .12em; padding: 7px 12px; border-radius: 3px; }
+nav { border-right: 1px solid var(--linie); padding: 10px 0; overflow: hidden; }
+nav .gruppe { font: 10.5px var(--titel); letter-spacing: .14em; color: var(--sehrleise); text-transform: uppercase; padding: 12px 18px 4px; }
+nav a { display: flex; justify-content: space-between; padding: 6px 18px; font: 15px var(--titel); letter-spacing: .03em; color: var(--tinte); }
+nav a.an { background: var(--bernstein-weich); border-left: 3px solid var(--bernstein); padding-left: 15px; }
+nav a .z { color: var(--sehrleise); font-size: 12px; }
+main { padding: 18px 22px; overflow: hidden; }
+main h3 { font: 600 24px var(--titel); letter-spacing: .05em; margin: 0 0 12px; }
+.karte { border: 1px solid var(--linie); background: var(--flaeche); border-radius: 3px; padding: 10px 12px; margin-bottom: 8px; }
+.ref { font: 12px var(--mono); color: var(--bernstein); }
+
+/* Projekt-Wahl (Variante A: oben in der Navigation) */
+.pw { margin: 4px 12px 8px; border: 1px solid var(--linie2); border-radius: 3px; background: var(--flaeche); padding: 7px 10px; display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; cursor: pointer; }
+.pw .farbe { width: 10px; height: 10px; border-radius: 2px; }
+.pw .klein { font: 10px var(--titel); letter-spacing: .12em; color: var(--sehrleise); text-transform: uppercase; display: block; }
+.pw b { font: 600 15px var(--titel); letter-spacing: .03em; }
+.pw .pfeil { color: var(--leise); }
+.liste-pw { position: absolute; left: 12px; top: 128px; width: 300px; border: 1px solid var(--linie2); background: var(--flaeche2); border-radius: 4px; box-shadow: 0 16px 40px -10px #000; z-index: 3; padding: 6px; }
+.liste-pw .e { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 3px; }
+.liste-pw .e.an { background: var(--bernstein-weich); }
+.liste-pw .e small { color: var(--leise); display: block; font-size: 12px; }
+.liste-pw .fuss { border-top: 1px solid var(--linie); margin-top: 6px; padding: 8px 10px 4px; color: var(--sehrleise); font: 12px var(--mono); }
+.liste-pw .zahl { font: 12px var(--titel); color: var(--bernstein); }
+
+/* Variante B: im Kopf */
+.pw-kopf { display: flex; align-items: center; gap: 8px; border: 1px solid var(--linie2); border-radius: 3px; padding: 5px 10px; background: var(--flaeche); font: 600 14px var(--titel); letter-spacing: .04em; }
+
+/* Handy */
+.handys { display: flex; gap: 22px; flex-wrap: wrap; }
+.handy { width: 300px; height: 600px; border: 1px solid var(--linie2); border-radius: 26px; overflow: hidden; position: relative; background: var(--grund); flex: none; }
+.handy header { height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--linie); position: relative; }
+.handy header b { font: 600 19px var(--titel); letter-spacing: .14em; }
+.chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--linie2); border-radius: 14px; padding: 4px 10px; font: 600 13px var(--titel); letter-spacing: .03em; background: var(--flaeche); }
+.handy .inhalt { padding: 14px; }
+.tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 58px; border-top: 1px solid var(--linie); display: grid; grid-template-columns: repeat(5, 1fr); font: 11px var(--titel); color: var(--leise); text-align: center; align-items: center; background: var(--flaeche); }
+.blatt { position: absolute; left: 0; right: 0; bottom: 0; background: var(--flaeche2); border-top: 1px solid var(--linie2); border-radius: 16px 16px 0 0; padding: 10px 14px 18px; box-shadow: 0 -20px 40px -10px #000; }
+.blatt .griff { width: 40px; height: 4px; border-radius: 2px; background: var(--linie2); margin: 0 auto 10px; }
+.blatt .e { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; padding: 12px 10px; border-radius: 4px; min-height: 48px; }
+.blatt .e.an { background: var(--bernstein-weich); }
+.blatt .e small { color: var(--leise); display: block; font-size: 12px; }
+.dimm { position: absolute; inset: 0; background: rgba(0,0,0,.55); }
+.toast { position: absolute; left: 50%; bottom: 76px; transform: translateX(-50%); background: var(--flaeche2); border: 1px solid var(--linie2); border-left: 3px solid var(--blau); padding: 9px 14px; border-radius: 3px; font-size: 13px; white-space: nowrap; }
+
+/* Betrieb */
+.abschnitt { border: 1px solid var(--linie); border-radius: 3px; margin-bottom: 12px; }
+.abschnitt .kopf { display: flex; gap: 10px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--linie); font: 600 13px var(--titel); letter-spacing: .1em; text-transform: uppercase; }
+.abschnitt.pcw { border-color: color-mix(in srgb, var(--blau) 45%, var(--linie)); }
+.abschnitt .koerper { padding: 8px 12px; font-size: 13px; color: var(--leise); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+td, th { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--linie); }
+th { font: 11px var(--titel); letter-spacing: .1em; color: var(--sehrleise); text-transform: uppercase; }
+tr.fremd td { color: var(--sehrleise); font-style: italic; }
+
+.vergleich { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.vergleich > div { border: 1px solid var(--linie); background: var(--flaeche); border-radius: 3px; padding: 12px 14px; }
+.vergleich ul { margin: 6px 0 0; padding-left: 18px; }
+.vergleich li { margin: 3px 0; }
+.plus { color: var(--gruen); } .minus { color: var(--rot); }
+.unterschrift { color: var(--sehrleise); font-size: 12.5px; margin-top: 6px; }
+@media (max-width: 900px) {
+  .vergleich { grid-template-columns: 1fr; }
+  .breit { overflow-x: auto; }
+  .wb { width: 980px; }
+}
+</style>
+</head>
+<body>
+<div class="seite">
+<h1>Projekt-Auswahl: zentral, ein Projekt zur Zeit</h1>
+<p class="erkl">Beispielprojekte „Webshop“ und „Spiel“. Wer wechselt, sieht danach die ganze Oberfläche nur für das gewählte
+Projekt. Was für den ganzen PC gilt (lokale KIs, Schirm, GPU-Schlange, Dienst, Speicher), trägt die Marke
+<span class="etikett pc">alle Projekte</span>.</p>
+
+<h2>1 · Variante A: oben in der Navigation <span class="etikett empf">Empfehlung</span></h2>
+<p class="erkl">Die Auswahl sitzt direkt unter der Marke, über „Für dich“. Ein Klick öffnet die Liste mit offenen Fragen und
+Aufgaben je Projekt. Die Farbe des Projekts zieht als dünner Streifen über den Kopf, damit man nie im falschen Projekt
+klickt.</p>
+<div class="breit"><div class="schirm">
+  <div class="wb">
+    <header>
+      <div class="akzent" style="background:var(--gruen)"></div>
+      <div class="marke"><b>AMW</b><span>Agent Management<br>Workbench</span></div>
+      <span class="signal"><i class="punkt"></i>Dienst<span class="pcz">PC</span></span>
+      <span class="signal"><i class="punkt"></i>5/5 Agenten</span>
+      <span class="signal"><i class="punkt"></i>15 GB frei<span class="pcz">PC</span></span>
+      <span class="signal"><i class="punkt b"></i>Schirm frei<span class="pcz">PC</span></span>
+      <div class="suche">⌕ Suchen in „Webshop“ …</div>
+      <span class="halt">HALT</span>
+    </header>
+    <nav>
+      <div class="pw"><i class="farbe" style="background:var(--gruen)"></i><span><span class="klein">Projekt</span><b>Webshop</b></span><span class="pfeil">▾</span></div>
+      <div class="gruppe">Für dich</div>
+      <a class="an">Start</a><a>Fragen <span class="z">3</span></a>
+      <div class="gruppe">Arbeit</div>
+      <a>Planung</a><a>Aufgaben <span class="z">41</span></a><a>Verlauf</a>
+      <div class="gruppe">Wissen</div>
+      <a>Wissen</a><a>Dokumente</a>
+      <div class="gruppe">Betrieb</div>
+      <a>Betrieb</a><a>Einstellungen</a>
+    </nav>
+    <main>
+      <h3>Start</h3>
+      <div class="karte"><span class="ref">A112</span> &nbsp;Bezahlseite: Gutschein-Feld prüfen</div>
+      <div class="karte"><span class="ref">F48</span> &nbsp;Welche Versandarten zum Start?</div>
+      <div class="karte"><span class="ref">A118</span> &nbsp;Produktfotos freistellen (lokale KI)</div>
+    </main>
+  </div>
+  <div class="liste-pw">
+    <div class="e an"><i class="farbe" style="width:10px;height:10px;border-radius:2px;background:var(--gruen)"></i><span><b>Webshop</b><small>5 Agenten · seit 12.10.</small></span><span class="zahl">3 ?</span></div>
+    <div class="e"><i style="width:10px;height:10px;border-radius:2px;background:var(--blau)"></i><span><b>Spiel</b><small>7 Agenten · seit 28.09.</small></span><span class="zahl">6 ?</span></div>
+    <div class="fuss">weitere: amw projekt neu &lt;name&gt;</div>
+  </div>
+</div></div>
+<p class="unterschrift">„3 ?“ = offene Fragen an dich. So sieht man, ob im anderen Projekt etwas wartet, ohne zu wechseln. Push
+und „wartet auf dich“ nennen bei mehreren Projekten das Projekt mit.</p>
+
+<h2>2 · Variante B: im Kopf neben der Marke</h2>
+<div class="breit"><div class="schirm">
+  <div class="wb" style="height:150px">
+    <header>
+      <div class="akzent" style="background:var(--gruen)"></div>
+      <div class="marke"><b>AMW</b><span>Agent Management<br>Workbench</span></div>
+      <span class="pw-kopf"><i style="width:10px;height:10px;border-radius:2px;background:var(--gruen)"></i>Webshop ▾</span>
+      <span class="signal"><i class="punkt"></i>Dienst</span>
+      <span class="signal"><i class="punkt"></i>5/5 Agenten</span>
+      <span class="signal"><i class="punkt b"></i>Schirm frei</span>
+      <div class="suche">⌕ Suchen …</div>
+      <span class="halt">HALT</span>
+    </header>
+    <nav><div class="gruppe">Für dich</div><a class="an">Start</a></nav>
+    <main></main>
+  </div>
+</div></div>
+
+<h2>Vergleich</h2>
+<div class="vergleich">
+  <div><b>A · oben in der Navigation</b>
+    <ul>
+      <li class="plus">Steht über allem, was danach kommt; man liest „Projekt → Bereiche“ von oben nach unten.</li>
+      <li class="plus">Platz für Namen, Farbe und Zähler; lange Projektnamen passen.</li>
+      <li class="plus">Kopfzeile bleibt frei für Signale, Suche und HALT (heute schon knapp).</li>
+      <li class="plus">Übliches Muster (z. B. Linear, Vercel, Supabase: Arbeitsbereich oben links).</li>
+      <li class="minus">Auf schmalen Laptops ist die Navigation zugeklappt; dann wandert die Auswahl in den Kopf (wie am Handy).</li>
+    </ul></div>
+  <div><b>B · im Kopf</b>
+    <ul>
+      <li class="plus">Immer im Blick, auch bei zugeklappter Navigation.</li>
+      <li class="minus">Kopfzeile ist schon voll (Signale, Suche, HALT); bei langen Namen bricht sie um.</li>
+      <li class="minus">Sieht aus wie ein weiteres Signal und geht zwischen ihnen unter.</li>
+      <li class="minus">Kein Platz für Zähler je Projekt.</li>
+    </ul></div>
+</div>
+
+<h2>3 · Handy</h2>
+<p class="erkl">Unten sind keine Reiter mehr frei, deshalb steht das Projekt als Chip im Kopf. Ein Tipp öffnet ein Blatt von
+unten mit großen Zeilen (48 px). Nach dem Wechsel lädt die Seite neu, und eine Meldung nennt das Projekt.</p>
+<div class="handys">
+  <div class="handy">
+    <header><div class="akzent" style="background:var(--gruen)"></div><b>AMW</b><span class="chip"><i style="width:9px;height:9px;border-radius:2px;background:var(--gruen)"></i>Webshop ▾</span><span style="margin-left:auto" class="halt">HALT</span></header>
+    <div class="inhalt"><div class="karte"><span class="ref">F48</span> Welche Versandarten zum Start?</div><div class="karte"><span class="ref">A112</span> Gutschein-Feld prüfen</div></div>
+    <div class="tabs"><span>Start</span><span>Fragen</span><span>Arbeit</span><span>Wissen</span><span>Mehr</span></div>
+  </div>
+  <div class="handy">
+    <header><div class="akzent" style="background:var(--gruen)"></div><b>AMW</b><span class="chip"><i style="width:9px;height:9px;border-radius:2px;background:var(--gruen)"></i>Webshop ▴</span></header>
+    <div class="dimm"></div>
+    <div class="blatt"><div class="griff"></div>
+      <div style="font:11px var(--titel);letter-spacing:.12em;color:var(--sehrleise);text-transform:uppercase;padding:0 10px 6px">Projekt wählen</div>
+      <div class="e an"><i style="width:10px;height:10px;border-radius:2px;background:var(--gruen)"></i><span><b>Webshop</b><small>3 Fragen an dich</small></span><span>✓</span></div>
+      <div class="e"><i style="width:10px;height:10px;border-radius:2px;background:var(--blau)"></i><span><b>Spiel</b><small>6 Fragen an dich</small></span><span></span></div>
+    </div>
+  </div>
+  <div class="handy">
+    <header><div class="akzent" style="background:var(--blau)"></div><b>AMW</b><span class="chip"><i style="width:9px;height:9px;border-radius:2px;background:var(--blau)"></i>Spiel ▾</span><span style="margin-left:auto" class="halt">HALT</span></header>
+    <div class="inhalt"><div class="karte"><span class="ref">F201</span> Welcher Kartenstil?</div><div class="karte"><span class="ref">A877</span> Testbuild prüfen</div></div>
+    <div class="toast">Jetzt im Projekt „Spiel“</div>
+    <div class="tabs"><span>Start</span><span>Fragen</span><span>Arbeit</span><span>Wissen</span><span>Mehr</span></div>
+  </div>
+</div>
+
+<h2>4 · Betrieb: was für den ganzen PC gilt</h2>
+<p class="erkl">PC-weite Teile haben einen blauen Rand und die Marke „alle Projekte“. Läufe aus dem anderen Projekt, die die
+Grafikkarte oder den Schirm belegen, stehen grau mit dem Projektnamen dabei. So versteht man, warum der eigene Lauf wartet.
+Inhalte des anderen Projekts (Titel, Prompts) sind dort nicht zu sehen.</p>
+<div class="breit"><div class="schirm" style="padding:16px;max-width:980px">
+  <div class="abschnitt"><div class="kopf">Läufe · Webshop</div>
+    <div class="koerper"><table>
+      <tr><th>Lauf</th><th>Agent</th><th>Platz</th><th>Stand</th></tr>
+      <tr><td class="ref">L52</td><td>CC2</td><td>schwer</td><td>läuft · 4 min</td></tr>
+      <tr><td class="ref">L53</td><td>CC4</td><td>schwer · GPU</td><td>wartet auf die Grafikkarte</td></tr>
+      <tr class="fremd"><td>–</td><td>Projekt „Spiel“</td><td>GPU</td><td>belegt die Grafikkarte seit 3 min</td></tr>
+    </table></div></div>
+  <div class="abschnitt pcw"><div class="kopf">Lokale KI <span class="etikett pc">alle Projekte</span></div>
+    <div class="koerper">Kacheln Ollama / ComfyUI, Modelle und Freigaben gelten für den PC. Rechte zum Beauftragen und die
+      Aufträge selbst zeigt die Workbench je Projekt.</div></div>
+  <div class="abschnitt pcw"><div class="kopf">Schirm <span class="etikett pc">alle Projekte</span></div>
+    <div class="koerper">Frei/Zu gilt für alle Projekte. Wer frei gibt, gibt für alle frei.</div></div>
+  <div class="abschnitt pcw"><div class="kopf">Dieser PC <span class="etikett pc">alle Projekte</span></div>
+    <div class="koerper">Speicher, Dienst, Fernwartung, Online-Speicher, Anmeldung online.</div></div>
+</div></div>
+
+</div>
+</body>
+</html>
