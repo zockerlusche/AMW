@@ -1,38 +1,71 @@
-# Projekt-Auswahl: mehrere Projekte in einer AMW (universal)
+# Projekt-Auswahl: mehrere Projekte, auch auf mehreren Rechnern (universal)
 
-Stand 06.11.2026. Anlass: Der Entwickler will ein zweites, unabhängiges Projekt genauso über die AMW führen. Dafür braucht
-es eine zentrale Projekt-Auswahl. Nach dem Wechsel zeigt die ganze Oberfläche nur noch das gewählte Projekt. Die AMW ist
-Planungswerkzeug und Übersicht: **Umschalten ändert nur die Ansicht.** Kein Projekt wird angehalten, alle Projekte
-laufen weiter, auch wenn ihre Agenten auf einem anderen Rechner arbeiten. Was zu diesem PC gehört (Grafikkarte, Schirm,
-lokale KIs), ist als „dieser PC“ gekennzeichnet.
-Status: **Entwurf, wartet auf Freigabe.** Mockup: [plan-projektwahl-mockup.html](plan-projektwahl-mockup.html).
+Stand 06.11.2026. Anlass: Der Entwickler will weitere, unabhängige Projekte genauso über die AMW führen, auch wenn ihre
+Agenten auf einem anderen Rechner arbeiten. Die Workbench ist **Übersicht und Dirigent**. Sie fasst alle Projekte
+zusammen und lässt eines auswählen.
+- **Umschalten ändert nur die Ansicht.** Kein Projekt wird angehalten.
+- Jedes Projekt hat seine Agenten, seine Datenbank und sein Wecksystem und läuft unabhängig weiter.
+- Alles, was online beim Hoster liegt, ist einem Projekt zugeordnet.
+
+Status: **freigegeben (Variante A, Schema-Änderung erlaubt), Ausbau auf mehrere Rechner ergänzt.**
+Mockup: [plan-projektwahl-mockup.html](plan-projektwahl-mockup.html).
 
 ## Ziel und Abnahme
 
-1. Die Auswahl sitzt oben in der Navigation, am Handy als Chip im Kopf. Ein Wechsel lädt die Seite neu, danach zeigt
-   jede Ansicht nur das gewählte Projekt: Start, Fragen, Planung, Aufgaben, Verlauf, Releases, Wissen, Dokumente,
-   Betrieb, Einstellungen, Suche, Zähler, „Seit du weg warst“. Am PC und online gleich.
-2. Jeder Knopf und jede Aktion wirkt nur im gewählten Projekt, auch Befehle vom Handy.
-3. Teile, die zu diesem PC gehören, tragen die Marke „dieser PC“. Das sind lokale KIs, Schirm, GPU-/Schirm-Platz der Lauf-Schlange,
-   Dienst, Speicher, „Dieser PC“, Online-Speicher, Push-Kanäle und die Online-Anmeldung. Belegt ein Lauf des anderen
-   Projekts die Grafikkarte, sieht man das mit Projektnamen, aber ohne dessen Inhalte.
-4. Die Liste der Projekte zeigt je Projekt die offenen Fragen an den Entwickler, damit man nicht wechseln muss, um zu
-   sehen, ob drüben etwas wartet. Push-Meldungen nennen das Projekt, sobald es mehr als eins gibt, und ihr Link öffnet
-   das richtige Projekt.
-5. Mit nur einem Projekt ändert sich nichts außer der Anzeige des Namens. Kein Agent und kein Befehl muss angepasst
-   werden.
-6. Keine projektbezogenen Begriffe in der Oberfläche; die Tests laufen mit zwei Demo-Projekten.
+1. Die Auswahl sitzt oben in der Navigation, am Handy als Chip im Kopf. Sie listet **alle** Projekte: die dieses
+   Rechners und die anderer Rechner (über den Online-Speicher), jeweils mit Rechner, Zustand und offenen Fragen an den
+   Entwickler. Ein Wechsel lädt die Seite neu.
+2. Danach zeigt jede Ansicht nur das gewählte Projekt: Start, Fragen, Planung, Aufgaben, Verlauf, Releases, Wissen,
+   Dokumente, Betrieb, Einstellungen, Suche, Zähler und „Seit du weg warst“. Das gilt am PC und online gleich.
+3. Jeder Knopf und jede Aktion wirkt nur im gewählten Projekt, auch Befehle vom Handy. Ein Befehl für ein Projekt auf
+   einem anderen Rechner wird nur von **diesem** Rechner ausgeführt.
+4. Teile, die zu einem Rechner gehören (lokale KIs, Schirm, GPU-/Schirm-Platz, Dienst, Speicher, Push-Kanäle), tragen
+   die Marke „dieser PC“ bzw. den Namen des Rechners.
+5. Jedes Projekt weckt und überwacht nur seine eigenen Agenten. Ein Halt gilt nur für das Projekt, in dem man ihn
+   drückt.
+6. Online trägt jeder Eintrag die Projekt-Kennung (`projekt.uid`): Ansichten, Befehle vom Handy, Uploads, Dateien,
+   Gespräche, Suchindex und Zustand. Ein Rechner überschreibt oder löscht nie Daten eines Projekts, das ihm nicht
+   gehört.
+7. Mit nur einem Projekt ändert sich für Agenten und Befehle nichts.
+8. Keine projektbezogenen Begriffe in der Oberfläche. Die Tests laufen mit zwei Projekten in einer Datenbank und mit zwei
+   Datenbanken als zwei Rechnern an einem gemeinsamen Online-Speicher.
+
+## Aufbau
+
+```
+ Rechner 1 (AMW + amw.db)            Rechner 2 (AMW + amw.db)
+   Projekt A  ─ Agenten, Wächter       Projekt C ─ Agenten, Wächter
+   Projekt B  ─ Agenten                    │
+        │  Abgleich (nur eigene Projekte)  │  Abgleich (nur eigene Projekte)
+        └──────────────► Online-Speicher ◄─┘
+                    Verzeichnis aller Projekte, Ansichten je Projekt,
+                    Befehle je Projekt → nur der Rechner des Projekts führt sie aus
+        Workbench am PC: eigene Projekte direkt, fremde über die Online-Seite
+        Online-Seite / Handy: alle Projekte
+```
+
+- **Eine AMW-Installation je Rechner** mit ihrer lokalen SQLite-Datenbank, ihrem Wächter und ihren Agenten. Ein Projekt
+  lebt auf genau einem Rechner.
+- **Mehrere Projekte auf demselben Rechner** liegen getrennt nach Projekt in dessen Datenbank. Jede Tabelle trägt das
+  Projekt, und der Wächter weckt je Projekt. Warum keine eigene Datenbank je Projekt auf demselben Rechner?
+  - Grafikkarte, Schirm und lokale KIs gibt es nur einmal. Die Lauf-Schlange muss sie über alle Projekte des Rechners
+    verteilen, sonst rechnen zwei Projekte gleichzeitig auf derselben Karte.
+  - Wer es trotzdem strikt getrennt will, legt eine zweite Installation an (eigener Ordner, eigener Port). Das geht
+    schon heute, dann aber ohne gemeinsame GPU-Schlange.
+- **Die Projekt-Kennung** online ist `projekt.uid` (zufällig, weltweit eindeutig). Die laufende Nummer `projekt.id` ist
+  je Datenbank und kann sich auf zwei Rechnern überschneiden.
+- **Rechner-Name:** Einstellung dieses PCs (Standard: Name des Computers). Er erscheint in der Projektliste.
 
 ## Bestandsaufnahme (was heute nur ein Projekt kennt)
 
 Der Wächter arbeitet schon je Projekt: Takt, Warteschlange, Termine, Eskalation, Überwachung und Neustarter laufen über
 alle Projekte. Nur ein Projekt kennen dagegen:
 
-| Teil | heute | Folge mit zwei Projekten |
+| Teil | heute | Folge mit einem zweiten Projekt |
 |---|---|---|
 | Workbench-Server | `?projekt=` geht, Standard ist das erste Projekt | die Oberfläche schickt nie `projekt=` → immer Projekt 1 |
 | Oberfläche | keine Auswahl; `localStorage` (Sicht, letzter Besuch) nicht je Projekt | – |
-| Online-Abgleich | eine Instanz für das erste Projekt; Ansichten unter `/api/start` ohne Projekt; `eingang` ohne Projekt; Dateien des anderen Projekts würden gelöscht | Projekt 2 nicht online; Handy-Befehle landen in Projekt 1 |
+| Online-Abgleich | eine Instanz für das erste Projekt; Ansichten unter `/api/start` ohne Projekt; `eingang` ohne Projekt; löscht online alle Dateien, die es nicht kennt | Projekt 2 nicht online; Handy-Befehle landen in Projekt 1; ein zweiter Rechner würde die Daten des ersten überschreiben und dessen Dateien löschen |
 | Push | Warteschlange `push_versand` ohne Projekt; eine Runde je Projekt hält die Einträge des anderen für „erledigt“ | **Push von Projekt 2 geht verloren**; gleiche Schlüssel (`rueckblick:<Datum>`) schlucken sich |
 | CLI der Agenten | Projekt aus `--projekt`/`AMW_PROJEKT`, sonst „genau eins“ | **jeder Agenten-Befehl scheitert**, sobald ein zweites Projekt angelegt ist |
 | Brücke | ohne `--projekt` | jeder Befehl scheitert („mehrere Projekte“) |
@@ -51,71 +84,77 @@ alle Projekte. Nur ein Projekt kennen dagegen:
   Leads liegt (bei mehreren: Fehler mit Hinweis).
 - **Verbrauch:** über `sitzung → agent` zuordnen statt über die Kennung.
 
-### B. Workbench am PC
-- **Auswahl:** oben in der Navigation unter der Marke (Mockup Variante A, Begründung dort), mit Name, Farbe und
-  offenen Fragen je Projekt. Am Handy als Chip im Kopf mit einem Blatt von unten. Bei zugeklappter Navigation
-  (schmale Fenster) wandert die Auswahl in den Kopf.
-- **Merken:** im Browser (`localStorage`) und in der Adresse (`?projekt=<name>`), damit ein Link oder Push genau dieses
-  Projekt öffnet. Beim Wechsel wird neu geladen. Sicht und letzter Besuch werden je Projekt gemerkt.
-- **Jede Anfrage** trägt das Projekt: eine Stelle in `holen`/`schicken` (`ziel()`), keine Änderung je Ansicht.
-- **Farbe** je Projekt: Einstellung im Projekt (`projekt.einstellungen`, wie `entwickler_name`), wählbar unter
-  Einstellungen → Projekt. Als dünner Streifen über dem Kopf.
-- **„dieser PC“:** Marke an Lokale KI, Schirm, Dieser PC, Online-Speicher, Push-Kanälen. Die Signale im Kopf
-  (Dienst, Speicher, Schirm) bekommen ein kleines „PC“. In der Lauf-Liste stehen fremde GPU-/Schirm-Läufe grau mit dem
-  Projektnamen, ohne Titel.
-- **HALT** bleibt, wie er ist: Er gilt für das Projekt, in dem man ihn drückt. Der Wechsel selbst hält nichts an.
-- **Einstellungen:** „Aktives Projekt“ wird zur echten Auswahl. Speichergrenze, Dienst und Push sind als PC-Einstellung
-  gekennzeichnet; die Speichergrenze zieht von „Projekt“ zu „Dieser PC“ um.
-
-### C. Online-Seite
-- Der Abgleich läuft für jedes Projekt: Ansichten unter `p<id>:/api/start`, Dateien, Gespräche und Suchindex je
-  Projekt. Gelöscht wird nur, was zu keinem Projekt mehr gehört.
-- `api.php` nimmt `projekt` mit und gibt es an `eingang` weiter. Der PC führt jeden Handy-Befehl im genannten Projekt
-  aus, und zwar nur, wenn das Projekt existiert.
-- Die Online-Seite bekommt dieselbe Auswahl; Anmeldung und Sitzung bleiben für alle Projekte gleich.
-- Übergang: Die alten Schlüssel ohne Projekt gelten für das erste Projekt, bis der erste Abgleich mit Projekten
-  durch ist. So gibt es keine leere Seite beim Umstieg.
-
-### D. Push
+### B. Push je Projekt
 - Jede Meldung gehört zu einem Projekt; eine Runde sieht nur die eigenen. Schlüssel sind je Projekt eindeutig.
-- Bei mehr als einem Projekt steht der Projektname im Titel („Webshop · Frage F48 …“), und der Link öffnet
-  `?projekt=…#fragen`.
-- Ruhezeit, Höchstzahl je Stunde und Kanäle bleiben PC-weit.
+- Bei mehr als einem Projekt steht der Projektname im Titel („Webshop · Frage F48 …“). Der Link öffnet
+  `?projekt=<uid>#fragen`.
+- Ruhezeit, Höchstzahl je Stunde und Kanäle bleiben Einstellungen des Rechners. Jeder Rechner verschickt die Meldungen
+  seiner Projekte selbst.
+
+### C. Workbench am PC
+- **Auswahl:** oben in der Navigation unter der Marke (Variante A). Sie zeigt Name, Farbe, Rechner und offene Fragen je
+  Projekt. Am Handy steht sie als Chip im Kopf und öffnet ein Blatt von unten. Bei zugeklappter Navigation wandert sie in
+  den Kopf.
+- **Projekte dieses Rechners** öffnet die Workbench direkt aus der Datenbank. **Projekte anderer Rechner** stehen in
+  derselben Liste mit dem Rechnernamen und öffnen die Online-Seite dieses Projekts. Darüber lassen sie sich auch
+  dirigieren: Befehle gehen an den Rechner des Projekts.
+- **Merken:** im Browser (`localStorage`) und in der Adresse (`?projekt=<uid>`), damit ein Link oder Push genau dieses
+  Projekt öffnet. Sicht und letzter Besuch werden je Projekt gemerkt.
+- **Jede Anfrage** trägt das Projekt. Das geschieht an einer Stelle (`ziel()`), nicht in jeder Ansicht.
+- **Farbe** je Projekt, als Einstellung im Projekt (`projekt.einstellungen`). Sie erscheint als dünner Streifen über
+  dem Kopf.
+- **„dieser PC“:** Diese Marke tragen Lokale KI, Schirm, Dieser PC, Online-Speicher und Push-Kanäle. Die Signale im
+  Kopf (Dienst, Speicher, Schirm) bekommen ein kleines „PC“. Läufe anderer Projekte desselben Rechners, die die
+  Grafikkarte oder den Schirm belegen, stehen grau mit dem Projektnamen in der Lauf-Liste, ohne Titel.
+- **HALT** bleibt, wie er ist. Er gilt für das Projekt, in dem man ihn drückt.
+- **Einstellungen:** „Aktives Projekt“ wird zur echten Auswahl. Die Speichergrenze zieht von „Projekt“ zu „Dieser PC“
+  um, dazu kommt der Rechner-Name.
+
+### D. Online-Speicher und Online-Seite
+- **Verzeichnis** `projekt` (online): Kennung, Name, Farbe, Rechner, zuletzt gesehen, offene Fragen, Halt. Jeder
+  Rechner trägt nur seine eigenen Projekte ein. Ein Projekt, das ein Rechner länger als 7 Tage nicht meldet, steht als
+  „nicht erreichbar“ in der Liste und wird nicht gelöscht.
+- **Ansichten** liegen unter `<uid>:/api/start` usw. Gespräche, Suchindex und Zustand (`pc_gesehen_utc` …) sind je
+  Projekt bzw. je Rechner getrennt.
+- **Befehle vom Handy** (`eingang`) und **Uploads** (`hoch`) tragen die Projekt-Kennung. Ein Rechner holt nur Befehle
+  seiner Projekte ab. Ein Befehl für ein unbekanntes Projekt bleibt liegen und wird nicht falsch ausgeführt.
+- **Dateien** gehen nach Inhalt (sha) und können in mehreren Projekten vorkommen. Ein Rechner löscht eine Datei nur,
+  wenn kein Projekt sie mehr nennt (Zuordnung `datei_projekt`).
+- `api.php` nimmt `projekt` mit, liefert das Verzeichnis und prüft jede Anfrage gegen das Verzeichnis. Anmeldung und
+  Sitzung gelten für alle Projekte.
+- **Übergang:** Alte Schlüssel ohne Projekt gelten für das bisherige Projekt, bis der erste Abgleich mit Kennung durch
+  ist. So gibt es keine leere Seite beim Umstieg.
+
+### E. Zweiter Rechner
+- Anleitung in `doc/installation.md`: AMW installieren, Projekt anlegen, denselben Online-Speicher eintragen und
+  einen eigenen Rechner-Namen vergeben.
+- Kein Rechner braucht Zugriff auf die Datenbank eines anderen. Sie begegnen sich nur im Online-Speicher.
 
 ## Datenbank
 
-- **amw.db:** `push_versand` bekommt `projekt_id`. Das wäre Schema 18; vorhandene Einträge gehören zum ersten
-  Projekt. Ohne Schema-Änderung ginge es auch mit einem Präfix im Schlüssel. Das ist unsauberer und braucht eine
-  Sonderregel für Altbestände.
-- Alles andere trägt das Projekt schon (oder erbt es) oder gilt bewusst für den PC (`schirm`, `ki`, `ki_modell`,
-  `ki_vorlage`).
-- **Online-Speicher:** `eingang` bekommt die Spalte `projekt`, die Ansichten bekommen das Projekt im Schlüssel. Das
-  legt der Abgleich selbst an, wie bisher bei neuen Spalten.
+- **amw.db (Schema 18):** `push_versand.projekt_id`. Vorhandene Einträge gehören zum bisherigen Projekt.
+- **Online-Speicher:** neue Tabelle `projekt` (Verzeichnis) und `datei_projekt`. Spalte `projekt` an `eingang` und
+  `hoch`. Ansichten bekommen die Kennung im Schlüssel. Der Abgleich legt das selbst an, wie bisher bei neuen Spalten.
+- Alles andere in amw.db trägt das Projekt schon (oder erbt es) oder gehört bewusst zum Rechner (`schirm`, `ki`,
+  `ki_modell`, `ki_vorlage`).
 
 ## Ablauf und Aufwand
 
-| Schritt | Inhalt | Zeit |
-|---|---|---|
-| 1 | A: CLI, Einrichtung, Hook, Brücke, Verbrauch + Tests mit zwei Projekten | 1,5 h |
-| 2 | D: Push je Projekt (Schema 18, Sicherung vorher) | 1 h |
-| 3 | B: Auswahl, Anfragen, Merken, Marken, Einstellungen, Handy | 2,5 h |
-| 4 | C: Abgleich und api.php je Projekt, Übergang | 2,5 h |
-| 5 | Durchgang mit Demo-DB (zwei Projekte), Fotos PC/Handy, Doku, Release | 1,5 h |
+| Schritt | Inhalt | Zeit | live |
+|---|---|---|---|
+| 1 | A: CLI, Einrichtung, Hook, Brücke, Verbrauch | 1,5 h | Release 1 |
+| 2 | B: Push je Projekt (Schema 18, Sicherung vorher) | 1 h | Release 1 |
+| 3 | C: Auswahl in der Workbench, Anfragen, Merken, Marken, Einstellungen, Handy | 2,5 h | Release 2 |
+| 4 | D: Online-Verzeichnis, Kennung an allen Online-Daten, Befehle/Uploads je Projekt, Dateien je Projekt, Übergang | 3,5 h | Release 3 |
+| 5 | C+E: fremde Projekte in der Auswahl, Rechner-Name, Anleitung zweiter Rechner | 1,5 h | Release 3 |
+| 6 | Durchgang (zwei Projekte; zwei Datenbanken an einem Online-Speicher), Fotos PC/Handy, Doku | 2 h | je Release |
 
-Zusammen etwa 9 h. Zwischenstände gehen einzeln live (erst A+D, dann B, dann C). Laufende Arbeit im bestehenden Projekt
-bleibt unberührt, weil es bis zum zweiten Projekt nur eines gibt.
+Zusammen etwa 12 h. Die Releases gehen einzeln live: 1 am Vormittag, 2 am frühen Nachmittag, 3 am Abend oder spätestens
+Samstagvormittag. Laufende Arbeit im bestehenden Projekt bleibt unberührt.
 
-## Geklärt
+## Geklärt (Entwickler, 06.11.)
 
-- Umschalten ändert nur die Ansicht; kein Projekt wird angehalten (Entwickler, 06.11.).
-
-## Offene Fragen an den Entwickler
-
-1. **Schema 18** (`push_versand.projekt_id`) – ja? Empfehlung: ja.
-2. **Auswahl oben in der Navigation** (Variante A) oder im Kopf (B)? Empfehlung: A.
-
-## Ausblick: Agenten auf einem anderen Rechner (nicht Teil dieses Plans)
-
-Heute müssen Agenten die AMW auf diesem PC erreichen, direkt oder über die Datei-Brücke. Für ein Projekt, dessen Agenten
-auf einem anderen Rechner arbeiten, braucht es einen Zugang über das Netz, z. B. über die Online-Seite mit einem
-Schlüssel je Agent. Das ist ein eigener Plan. Die Projekt-Auswahl ist so gebaut, dass sie dafür nichts ändern muss.
+- Variante A, Schema-Änderung freigegeben.
+- Umschalten ändert nur die Ansicht. Nichts wird angehalten, Agenten und Datenbank arbeiten weiter.
+- Projekte können auf anderen Rechnern laufen, mit eigenen Agenten und eigener lokaler Datenbank. Die Workbench fasst sie
+  zusammen. Online ist alles einem Projekt zugeordnet. Das Wecksystem ist je Projekt getrennt.
