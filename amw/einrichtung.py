@@ -208,6 +208,10 @@ def agenten_ordner_entfernen(ordner, schreiben=True):
                 del d["hooks"][ereignis]
     if d.get("hooks") == {}:
         del d["hooks"]
+    if "AMW_PROJEKT" in (d.get("env") or {}):
+        aenderungen.append(f"Projekt {d['env'].pop('AMW_PROJEKT')} (AMW_PROJEKT)")
+        if not d["env"]:
+            del d["env"]
     if "amw-statusline.py" in ((d.get("statusLine") or {}).get("command") or ""):
         del d["statusLine"]
         aenderungen.append("Statusline-Brücke (es gilt wieder deine eigene Statusline)")
@@ -222,10 +226,12 @@ def agenten_ordner_entfernen(ordner, schreiben=True):
     return aenderungen
 
 
-def agenten_ordner_einrichten(ordner, schreiben=True, sperren=True):
+def agenten_ordner_einrichten(ordner, schreiben=True, sperren=True, projekt=None):
     """Führt hook_einstellungen() in <ordner>/.claude/settings.local.json zusammen – vorhandene Einträge bleiben,
     AMW-Einträge werden nur ergänzt, nie doppelt. Eine fremde Statusline wird nicht ersetzt, sondern als
-    „statusline_weiter“ hinter die Brücke gehängt. Vorher eine Sicherung der Datei. Rückgabe: Liste der Änderungen."""
+    „statusline_weiter“ hinter die Brücke gehängt. Vorher eine Sicherung der Datei. Rückgabe: Liste der Änderungen.
+    projekt: Name des Projekts, zu dem der Ordner gehört – steht als AMW_PROJEKT in „env“, das Claude Code jeder Sitzung
+    dort setzt (auch von Hand gestartet). Ein Ordner gehört zu genau einem Projekt."""
     from . import einstellungen
     if not os.path.isdir(ordner):
         raise FileNotFoundError(f"Ordner {ordner} gibt es nicht")
@@ -236,6 +242,15 @@ def agenten_ordner_einrichten(ordner, schreiben=True, sperren=True):
     except FileNotFoundError:
         d = {}
     soll, aenderungen = hook_einstellungen(), []
+    if projekt:
+        umgebung = d.setdefault("env", {})
+        alt = umgebung.get("AMW_PROJEKT")
+        if alt and alt != projekt:
+            raise ValueError(f"Ordner {ordner} gehört schon zum Projekt {alt} – ein Ordner gehört zu genau einem Projekt "
+                             "(anderes Projekt: eigener Ordner)")
+        if not alt:
+            umgebung["AMW_PROJEKT"] = projekt
+            aenderungen.append(f"Projekt {projekt} (AMW_PROJEKT)")
     hooks = d.setdefault("hooks", {})
     for ereignis, eintraege in soll["hooks"].items():
         if not _hat_amw(hooks.get(ereignis), "amw-hook.py"):

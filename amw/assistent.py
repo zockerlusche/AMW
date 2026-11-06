@@ -6,6 +6,7 @@ Schritte, jeder wiederholbar (was es schon gibt, bleibt):
 Interaktiv fragt er nach (Vorgaben in Klammern, Enter übernimmt); `schnell(...)` macht dasselbe ohne Fragen.
 """
 import os
+import re
 
 from . import db, einrichtung, einstellungen, kern, steuerung
 
@@ -23,6 +24,17 @@ def startsatz(kennung, lead=False):
             f" (immer mit --von {kennung}). Lies zuerst `{amw} regeln --von {kennung}` und `{amw} lesen --von {kennung}`"
             + (", plane mit `amw leitbild`, `amw bogen`, `amw spec` und verteile die Schritte." if lead else
                f", dann hole Arbeit mit `{amw} schritt naechster --nehmen --von {kennung}`."))
+
+
+def startskript_fuer(con, pid, pfad=STARTSKRIPT):
+    """Mit mehreren Projekten eines je Projekt (agenten-start-<Projekt>.ps1); das erste Projekt behält den alten Namen,
+    damit ein zweites Projekt nie das Skript des ersten überschreibt."""
+    if pid == con.execute("SELECT min(id) FROM projekt").fetchone()[0]:
+        return pfad
+    name = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()["name"]
+    teil = re.sub(r"[^\w-]+", "-", name).strip("-").lower() or str(pid)
+    kopf, ende = os.path.splitext(pfad)
+    return f"{kopf}-{teil}{ende}"
 
 
 def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe", denkstufe=None, dienst=False,
@@ -70,9 +82,10 @@ def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe",
                 schritte.append(f"Profile für {', '.join(neu)}: Ordner {ordner}, Rechte {rechte}"
                                 + (", Remote Control an" if fernsteuerung else ""))
             if hooks:
-                aenderungen = einrichtung.agenten_ordner_einrichten(ordner)
+                aenderungen = einrichtung.agenten_ordner_einrichten(ordner, projekt=projekt)
                 schritte.append(f"Projektordner eingerichtet ({', '.join(aenderungen) or 'war schon eingerichtet'})")
             if startskript:
+                startskript = startskript_fuer(con, pid, startskript)
                 with open(startskript, "w", encoding="utf-8-sig") as f:
                     f.write(steuerung.startskript(con, pid))
                 schritte.append(f"Startskript: {startskript}")

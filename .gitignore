@@ -10,3 +10,4 @@ eingang-tl/
 # projektbezogene Unterlagen (Entstehung, Entscheidungen, Übernahme) – nur lokal, nicht öffentlich
 intern/
 agenten-start.ps1
+agenten-start-*.ps1

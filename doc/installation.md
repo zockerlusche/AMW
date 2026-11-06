@@ -77,7 +77,8 @@ Wo was liegt:
 5. Optional: [Push aufs Handy](anleitung-push.md), [Online-Seite](online.md).
 
 Bereits laufende Claude-Code-Sitzung nachträglich anmelden: im Tab `amw anmelden --von CC1`.
-Einen bestehenden weiteren Projektordner einrichten: `amw einrichten agenten-ordner C:\anderes-projekt`.
+Einen bestehenden weiteren Projektordner einrichten: `amw einrichten agenten-ordner C:\anderes-projekt` (mit mehreren
+Projekten dazu `--projekt <name>`: ein Ordner gehört zu genau einem Projekt).
 
 ## 5 Wie lernen die Agenten AMW?
 - **Startsatz** (Zahnrad › Agenten › Profil): die erste Anweisung einer neuen Sitzung. Der Assistent setzt einen, der
@@ -108,7 +109,9 @@ alle Projekte in der Auswahl oben in der Navigation; Umschalten ändert nur die 
 Mehrere Projekte auf **demselben** Rechner liegen in derselben Datenbank, völlig getrennt nach Projekt: eigene
 Agenten, Regeln, Aufgaben, Dokumente und KI-Vorlagen; kein Agent kommt in ein anderes Projekt. Gemeinsam sind nur
 Grafikkarte und Schirm über eine gemeinsame Lauf-Schlange. Anlegen mit `amw projekt neu <name>`; mit
-`--regeln-von <Projekt>` startet es mit einer Kopie der Arbeitsregeln eines anderen (danach getrennt).
+`--regeln-von <Projekt>` startet es mit einer Kopie der Arbeitsregeln eines anderen (danach getrennt). Dann
+`amw einrichten` mit diesem Namen und einem **eigenen Projektordner**: Der Ordner bekommt das Projekt in seine Umgebung
+(`AMW_PROJEKT`), das Startskript heißt `agenten-start-<projekt>.ps1` – das des ersten Projekts bleibt unverändert.
 
 ## 6 Aktualisieren
 ```

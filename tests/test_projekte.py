@@ -243,6 +243,36 @@ class Getrennt(ZweiProjekte):
         self.assertIn("ohne Regeln", aus)
 
 
+class OrdnerGehoertZumProjekt(ZweiProjekte):
+    def json_von(self, datei):
+        with open(datei, encoding="utf-8") as f:
+            return json.load(f)
+
+    def test_projektordner_traegt_sein_projekt(self):
+        from amw import einrichtung
+        ordner = os.path.join(self.ordner.name, "spiel")
+        os.makedirs(ordner)
+        rc, aus = self.cli("einrichten", "agenten-ordner", ordner)               # zwei Projekte: welches?
+        self.assertEqual(rc, 1)
+        self.assertIn("zu welchem Projekt", aus)
+        rc, aus = self.cli("einrichten", "agenten-ordner", ordner, "--projekt", "Spiel")
+        self.assertEqual(rc, 0, aus)
+        datei = os.path.join(ordner, ".claude", "settings.local.json")
+        self.assertEqual(self.json_von(datei)["env"], {"AMW_PROJEKT": "Spiel"})
+        rc, aus = self.cli("einrichten", "agenten-ordner", ordner, "--projekt", "Webshop")
+        self.assertEqual(rc, 1)
+        self.assertIn("gehört schon zum Projekt Spiel", aus)
+        self.assertIn("Projekt Spiel (AMW_PROJEKT)", einrichtung.agenten_ordner_entfernen(ordner))
+        self.assertNotIn("env", self.json_von(datei))
+
+    def test_startskript_je_projekt(self):
+        from amw import assistent
+        pfad = os.path.join(self.ordner.name, "agenten-start.ps1")
+        self.assertEqual(assistent.startskript_fuer(self.con, self.a, pfad), pfad)            # erstes Projekt: wie bisher
+        self.assertEqual(assistent.startskript_fuer(self.con, self.b, pfad),
+                         os.path.join(self.ordner.name, "agenten-start-spiel.ps1"))           # überschreibt es nie
+
+
 class Schema19(unittest.TestCase):
     """Altbestand: Arbeitsregeln ohne Projekt und PC-weite KI-Vorlagen gehen an ihr Projekt."""
     ALT = """

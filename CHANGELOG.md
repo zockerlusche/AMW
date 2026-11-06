@@ -4,6 +4,22 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.20.2 – 06.11.2026 · Projektordner gehört zu seinem Projekt
+Prüfung „mehrere Projekte wirklich durchgängig?“: Gab es eine Kennung in zwei Projekten (z. B. TL) und startete man den
+Agenten von Hand statt über Kachel oder Startskript, meldete der Hook die Sitzung im ersten Projekt an – Nachrichten
+dieses Projekts hätten sie geweckt.
+- **Der Projektordner trägt sein Projekt:** `amw einrichten` und `amw einrichten agenten-ordner … --projekt <name>`
+  schreiben `AMW_PROJEKT` in die Umgebung des Ordners (`env` in `.claude/settings.local.json`); Claude Code setzt es jeder
+  Sitzung dort, auch von Hand gestartet. Ein Ordner gehört zu genau einem Projekt; mit mehreren Projekten fragt
+  `agenten-ordner` nach dem Projekt.
+- **Nie im falschen Projekt:** Ist das Projekt nicht gesetzt und die Kennung mehrdeutig, wählt der Hook über den
+  Arbeitsordner (Profil-Ordner) oder eine frühere Anmeldung der Sitzung. Bleibt es offen, meldet er die Sitzung nicht an
+  und sagt im Fenster, was zu tun ist.
+- **Startskript je Projekt:** Richtet der Assistent ein weiteres Projekt ein, schreibt er `agenten-start-<projekt>.ps1`
+  statt das Startskript des ersten Projekts zu überschreiben.
+- Doku: Eine zweite AMW-Installation auf demselben Rechner ist nicht vorgesehen (gemeinsamer Dienst, Port und
+  Einstellungen) – der frühere Hinweis darauf war falsch.
+
 ## 1.20.1 – 06.11.2026 · Seiten aktualisieren sich selbst
 Fehler: Nach einer Antwort blieb die Frage in der Liste stehen, nur der Zähler im Menü stimmte. Ursache: Die Karte wurde
 nach der Antwort nur gesperrt, und von selbst neu geladen haben sich nur Start und Betrieb. Alle anderen Seiten zeigten

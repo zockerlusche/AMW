@@ -52,8 +52,8 @@ Mockup: [plan-projektwahl-mockup.html](plan-projektwahl-mockup.html).
   Projekt, und der Wächter weckt je Projekt. Warum keine eigene Datenbank je Projekt auf demselben Rechner?
   - Grafikkarte, Schirm und lokale KIs gibt es nur einmal. Die Lauf-Schlange muss sie über alle Projekte des Rechners
     verteilen, sonst rechnen zwei Projekte gleichzeitig auf derselben Karte.
-  - Wer es trotzdem strikt getrennt will, legt eine zweite Installation an (eigener Ordner, eigener Port). Das geht
-    schon heute, dann aber ohne gemeinsame GPU-Schlange.
+  - Eine zweite AMW-Installation auf demselben Rechner ist **nicht** vorgesehen: Sie teilt sich mit der ersten die
+    geplante Aufgabe „AMW Dienst“, den Port und die Einstellungen unter `%LOCALAPPDATA%\amw`.
 - **Die Projekt-Kennung** online ist `projekt.uid` (zufällig, weltweit eindeutig). Die laufende Nummer `projekt.id` ist
   je Datenbank und kann sich auf zwei Rechnern überschneiden.
 - **Rechner-Name:** Einstellung dieses PCs (Standard: Name des Computers). Er erscheint in der Projektliste.
@@ -80,8 +80,11 @@ alle Projekte. Nur ein Projekt kennen dagegen:
 - **CLI:** Fehlt `--projekt`/`AMW_PROJEKT`, nimmt die AMW das Projekt aus der Kennung (`--von`), wenn es sie in genau
   einem Projekt gibt. Ist die Kennung mehrdeutig, schlägt der Befehl fehl und nennt die Projekte. Mit einem Projekt
   ändert sich nichts.
-- **Einrichtung:** `amw einrichten agenten-ordner` schreibt `AMW_PROJEKT` in die Umgebung des Agenten-Ordners (wie heute
-  `AMW_AGENT`). Der Hook meldet die Sitzung im richtigen Projekt an.
+- **Einrichtung:** `amw einrichten agenten-ordner <ordner> --projekt <name>` schreibt `AMW_PROJEKT` in die Umgebung des
+  Projektordners (`env` in `.claude/settings.local.json`); ein Ordner gehört zu genau einem Projekt (1.20.2). Der Hook
+  meldet die Sitzung im richtigen Projekt an. Gibt es die Kennung in mehreren Projekten und ist das Projekt weder gesetzt
+  noch über den Arbeitsordner oder eine frühere Anmeldung erkennbar, meldet er sie **nicht** an, statt sie im ersten
+  Projekt anzumelden (dort würden Nachrichten eines anderen Projekts sie wecken).
 - **Brücke:** Befehlsdateien dürfen `"projekt": "<name>"` tragen; ohne Angabe gilt das Projekt, in dem die Kennung des
   Leads liegt (bei mehreren: Fehler mit Hinweis).
 - **Verbrauch:** über `sitzung → agent` zuordnen statt über die Kennung.

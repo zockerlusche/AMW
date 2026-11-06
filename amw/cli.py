@@ -1543,14 +1543,25 @@ def cmd_einrichten(a):
         return 0
     if a.aktion == "agenten-ordner":
         if not a.pfad:
-            raise kern.AmwFehler("amw einrichten agenten-ordner <pfad> [--nur-zeigen] [--entfernen]")
+            raise kern.AmwFehler("amw einrichten agenten-ordner <pfad> [--projekt <name>] [--nur-zeigen] [--entfernen]")
         if a.entfernen:
             weg = einrichtung.agenten_ordner_entfernen(os.path.abspath(a.pfad), schreiben=not a.nur_zeigen)
             for x in weg or ["keine AMW-Einträge gefunden"]:
                 print(("würde entfernen: " if a.nur_zeigen else "entfernt: ") + x if weg else x)
             return 0
-        aenderungen = einrichtung.agenten_ordner_einrichten(os.path.abspath(a.pfad), schreiben=not a.nur_zeigen,
-                                                            sperren=not a.ohne_sperren)
+        con = db.verbinde()
+        try:                                      # ein Ordner gehört zu genau einem Projekt
+            projekt = con.execute("SELECT name FROM projekt WHERE id = ?", (db.projekt_fuer(
+                con, getattr(a, "projekt", None) or os.environ.get("AMW_PROJEKT")),)).fetchone()["name"]
+        except LookupError as f:
+            raise kern.AmwFehler(f"{f} – zu welchem Projekt gehört der Ordner?")
+        finally:
+            con.close()
+        try:
+            aenderungen = einrichtung.agenten_ordner_einrichten(os.path.abspath(a.pfad), schreiben=not a.nur_zeigen,
+                                                                sperren=not a.ohne_sperren, projekt=projekt)
+        except ValueError as f:
+            raise kern.AmwFehler(str(f))
         if not aenderungen:
             print("schon eingerichtet – nichts zu tun")
         for x in aenderungen:

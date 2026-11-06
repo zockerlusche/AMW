@@ -197,5 +197,51 @@ class Anmelden(unittest.TestCase):
         self.assertEqual(self.aktiv(), ["abc"])
 
 
+class GleicheKennungZweiProjekte(Anmelden):
+    """TL gibt es in P und Q: eine Sitzung landet nie im falschen Projekt – dort würden Nachrichten des anderen sie wecken."""
+    def setUp(self):
+        super().setUp()
+        with db.schreiben(self.con):
+            self.q = db.einfuegen(self.con, "projekt", name="Q", angelegt_utc=db.jetzt())
+        for pid, ordner in ((self.pid, "C:/p"), (self.q, "C:/q")):
+            kern.agent_neu(self.con, pid, "TL", rolle="lead")
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE agent SET ordner = ? WHERE projekt_id = ? AND kennung = 'TL'", (ordner, pid))
+
+    def projekt_der(self, sitzung):
+        r = self.con.execute("SELECT a.projekt_id FROM sitzung s JOIN agent a ON a.id = s.agent_id"
+                             " WHERE s.claude_sitzung = ? AND s.zustand = 'aktiv'", (sitzung,)).fetchone()
+        return r[0] if r else None
+
+    def test_projekt_aus_ordner_umgebung_oder_gar_nicht(self):
+        self.hook_lauf({"session_id": "in-q", "source": "startup", "cwd": "c:/Q"}, "TL")       # von Hand im Ordner von Q
+        self.assertEqual(self.projekt_der("in-q"), self.q)
+        aus = self.hook_lauf({"session_id": "irgendwo", "source": "startup", "cwd": "D:/x"}, "TL")
+        self.assertIn("NICHT angemeldet", aus["systemMessage"])
+        self.assertIn("mehreren Projekten", aus["systemMessage"])
+        self.assertIsNone(self.projekt_der("irgendwo"))                    # früher: still im ersten Projekt
+        with mock.patch.dict(os.environ, {"AMW_PROJEKT": "P"}):              # Startbefehl bzw. Projektordner
+            self.hook_lauf({"session_id": "in-p", "source": "startup", "cwd": "D:/x"}, "TL")
+        self.assertEqual(self.projekt_der("in-p"), self.pid)
+        self.con.execute("UPDATE sitzung SET zustand = 'beendet' WHERE claude_sitzung = 'in-q'")
+        self.hook_lauf({"session_id": "in-q", "source": "resume", "cwd": "D:/x"})              # Resume: frühere Anmeldung
+        self.assertEqual(self.projekt_der("in-q"), self.q)
+
+    def test_nachricht_weckt_nur_die_sitzung_ihres_projekts(self):
+        for sitzung, pid in (("s-p", self.pid), ("s-q", self.q)):
+            datei = os.path.join(self.ordner.name, f"{sitzung}.json")
+            with open(datei, "w", encoding="utf-8") as f:
+                json.dump({"pipe": f"pipe-{sitzung}", "schluessel": "k", "sitzung": sitzung}, f)
+            a = kern.agent_zeile(self.con, pid, "TL")
+            with db.schreiben(self.con):
+                db.einfuegen(self.con, "sitzung", agent_id=a["id"], claude_sitzung=sitzung, schluessel_datei=datei,
+                             gestartet_utc=db.jetzt())
+        gesendet = []
+        with mock.patch.object(pipe, "senden", side_effect=lambda p, k, t: gesendet.append(p)),                 mock.patch.object(pipe, "lebt", return_value=True):
+            kern.posten(self.con, self.q, "Entwickler", "TL", "auftrag", "nur für Q")
+            dienst.Dienst(self.con).zustellen()
+        self.assertEqual(gesendet, ["pipe-s-q"])
+
+
 if __name__ == "__main__":
     unittest.main()

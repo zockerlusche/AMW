@@ -159,16 +159,16 @@ def main():
     try:
         con = db.verbinde()
         try:
-            try:
-                pid = db.projekt_fuer(con, os.environ.get("AMW_PROJEKT"), kennung)
-            except LookupError:                     # falsches AMW_PROJEKT: das Projekt der Kennung;
-                try:                                # mehrdeutig ohne Kennung: wie bisher das erste Projekt
-                    pid = db.projekt_fuer(con, None, kennung)
-                except LookupError:
-                    pid = con.execute("SELECT min(id) FROM projekt").fetchone()[0]
+            pid = projekt_der_sitzung(con, kennung, eingabe)
             erkannt = not kennung
-            kennung = kern.kennung_heute(con, kennung, pid) or bekannte_kennung(con, pid, eingabe.get("session_id"))
-            if not kennung:
+            if pid is not None:
+                kennung = kern.kennung_heute(con, kennung, pid) or bekannte_kennung(con, pid, eingabe.get("session_id"))
+            if pid is None and kennung:             # lieber nicht anmelden als im falschen Projekt (fremdes Wecken)
+                meldung = (f"AMW: diese Sitzung ist NICHT angemeldet und wird nicht geweckt – die Kennung {kennung} gibt es "
+                           "in mehreren Projekten. Starte über die Workbench (Kachel › Starten) oder richte den Ordner "
+                           f"einem Projekt zu: {kern.BEFEHL} einrichten agenten-ordner <ordner> --projekt <name>")
+                teile.append(meldung)
+            elif not kennung:
                 if quelle in ("startup", "resume") and agenten_ordner(con, eingabe.get("cwd")):
                     meldung = ("AMW: diese Sitzung ist NICHT angemeldet und wird nicht geweckt. Als Agent: "
                                f"{kern.BEFEHL} anmelden --von <Kennung>")
@@ -229,6 +229,33 @@ def ereignis(eingabe):
                         " AND zustand = 'aktiv'", (z[0], z[1], db.jetzt(), eingabe["session_id"]))
     finally:
         con.close()
+
+
+def projekt_der_sitzung(con, kennung, eingabe):
+    """Projekt dieser Sitzung: AMW_PROJEKT (Startbefehl oder Projektordner, → einrichtung.agenten_ordner_einrichten),
+    sonst das der Kennung. Gibt es die Kennung in mehreren Projekten: über den Arbeitsordner (Profil-Ordner der Agenten),
+    dann über eine frühere Anmeldung dieser Sitzung. Bleibt es offen: None – in einem falschen Projekt würden Nachrichten
+    eines anderen Projekts diese Sitzung wecken."""
+    for name in (os.environ.get("AMW_PROJEKT"), None):    # falsches AMW_PROJEKT: das Projekt der Kennung
+        try:
+            return db.projekt_fuer(con, name, kennung)
+        except LookupError:
+            pass
+    alle = {r[0] for r in con.execute("SELECT id FROM projekt")}
+    kandidaten = (db._projekte_der_kennung(con, kennung) if kennung else set()) or alle
+    ordner = eingabe.get("cwd")
+    if ordner:
+        ordner = os.path.normcase(os.path.abspath(ordner))
+        treffer = {r[0] for r in con.execute("SELECT projekt_id, ordner FROM agent WHERE ordner IS NOT NULL")
+                   if r[0] in kandidaten and os.path.normcase(os.path.abspath(r[1])) == ordner}
+        if len(treffer) == 1:
+            return treffer.pop()
+    if eingabe.get("session_id"):
+        treffer = {r[0] for r in con.execute("SELECT a.projekt_id FROM sitzung s JOIN agent a ON a.id = s.agent_id"
+                                             " WHERE s.claude_sitzung = ?", (eingabe["session_id"],))} & kandidaten
+        if len(treffer) == 1:
+            return treffer.pop()
+    return None
 
 
 def agenten_ordner(con, ordner):
