@@ -4,6 +4,18 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.16.2 – 06.11.2026 · Englische Oberfläche: Gegenlese durch die lokale KI
+Der erste echte KI-Auftrag über die AMW: 6 Läufe mit qwen3.5:9b, je etwa 140 Zeilen „Schlüssel | Deutsch | Englisch“,
+zusammen 66 Vorschläge. Geprüft wurde jede Zeile gegen den Code. Übernommen ist, was stimmt; vier Schlüssel hatte die
+KI erfunden, viele Vorschläge hätten den Sinn verändert.
+- **Fest eingebaute deutsche Texte** erscheinen jetzt auch übersetzt: Die KI fiel über „Bogen 3“ im Englischen; die
+  Suche danach fand 14 Stellen, an denen „Bogen N“ fest im Code stand (Zeitleiste, Übersicht, Dokumente, Plan-Check,
+  Verlauf, Fenstertitel). Dazu kamen „BILD“ auf Dokument-Kacheln, deutsche Anführungszeichen, der Platzhalter für den Link
+  in Push-Meldungen und eine Fenster-Beschriftung für Vorleser.
+- **Klarere englische Texte:** Online storage (Turso), sign out after inactivity, maximum session length, lockout after
+  failed sign-ins, differences from the latest version, types statt kinds, im Verlauf „sent back“ und „step picked up“,
+  „Request upload“ für Dokumente nur am PC.
+
 ## 1.16.1 – 06.11.2026 · Brücke: neuestes Ergebnis unter dem eigenen Namen, Wortlaut nicht doppelt
 - **Brücke:** Kam eine Befehlsdatei mit einem Namen, den es in `eingang-tl/erledigt/` schon gab, lag ihr Ergebnis unter
   `name.2.ergebnis.json`; unter `name.ergebnis.json` stand weiter das alte. Das sah aus, als sei der Befehl nicht
