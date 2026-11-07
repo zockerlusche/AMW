@@ -71,7 +71,11 @@ function datei_senden(array $q): never {
     header('Content-Disposition: ' . ($vorschau === 'download' ? 'attachment' : 'inline') . '; filename="D' . $id . $endung . '"');
     if ($roh === null) {
         $f = fopen($p, 'rb'); fseek($f, $von); $rest = $bis - $von + 1;
-        while ($rest > 0 && !feof($f)) { $s = fread($f, min(65536, $rest)); echo $s; $rest -= strlen($s); }
+        while ($rest > 0 && !feof($f)) {
+            $s = fread($f, min(65536, $rest));
+            if ($s === false || $s === '') break;                   // Lesefehler auf dem Webspace: abbrechen statt TypeError/Schleife
+            echo $s; $rest -= strlen($s);
+        }
         fclose($f);
     } else echo substr($roh, $von, $bis - $von + 1);
     exit;
