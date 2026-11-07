@@ -2094,7 +2094,9 @@ def parser():
     x.add_argument("name", nargs="?", help="die KI (z. B. ollama, comfyui) · zeige: Lauf-Nummer L812")
     x.add_argument("teil", nargs="?", help="modell/freigeben/sperren: das Modell · vorlage: Name der Vorlage")
     x.add_argument("--art", help="neu: " + " | ".join(("sprache", "bild", "ton", "3d", "video", "sonstig")))
-    x.add_argument("--schnittstelle", help="neu: ollama | comfyui")
+    x.add_argument("--schnittstelle", help="neu: ollama | comfyui | befehl (eigenes Programm ohne Dienst-Schnittstelle, z. B."
+                                         " eine Ton-KI in Python: eintragen, Recht und Modell-Freigabe wie sonst; rechnen über"
+                                         " amw lauf ausfuehren --gpu)")
     x.add_argument("--endpunkt", help="neu: nur lokal, z. B. http://127.0.0.1:8188 (Vorgabe je Schnittstelle)")
     x.add_argument("--version")
     x.add_argument("--lizenz")

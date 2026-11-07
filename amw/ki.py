@@ -83,7 +83,7 @@ def ki_setzen(con, von, name, art=None, schnittstelle=None, endpunkt=None, versi
     if art and art not in ARTEN:
         raise kern.AmwFehler(f"Art: {', '.join(ARTEN)}")
     if schnittstelle and schnittstelle not in (*SCHNITTSTELLEN, "befehl"):
-        raise kern.AmwFehler(f"Schnittstelle: {', '.join(SCHNITTSTELLEN)} (befehl folgt in Stufe 3)")
+        raise kern.AmwFehler(f"Schnittstelle: {', '.join(SCHNITTSTELLEN)} | befehl (eigenes Programm, rechnen über lauf ausfuehren --gpu)")
     if ordner and not os.path.isdir(ordner):
         raise kern.AmwFehler(f"Ordner {ordner} gibt es nicht")
     alt = con.execute("SELECT * FROM ki WHERE name = ? COLLATE NOCASE", (name,)).fetchone()
@@ -93,7 +93,7 @@ def ki_setzen(con, von, name, art=None, schnittstelle=None, endpunkt=None, versi
         ki_zeile(con, name)
     schnittstelle = schnittstelle or (alt["schnittstelle"] if alt else None)
     if not schnittstelle:
-        raise kern.AmwFehler(f"--schnittstelle {' | '.join(SCHNITTSTELLEN)} angeben")
+        raise kern.AmwFehler(f"--schnittstelle {' | '.join(SCHNITTSTELLEN)} | befehl angeben")
     if not (art or alt):
         raise kern.AmwFehler(f"--art {' | '.join(ARTEN)} angeben")
     werte = {"art": art, "schnittstelle": schnittstelle,

@@ -863,7 +863,10 @@ options:
   -h, --help            show this help message and exit
   --art ART             neu: sprache | bild | ton | 3d | video | sonstig
   --schnittstelle SCHNITTSTELLE
-                        neu: ollama | comfyui
+                        neu: ollama | comfyui | befehl (eigenes Programm ohne
+                        Dienst-Schnittstelle, z. B. eine Ton-KI in Python:
+                        eintragen, Recht und Modell-Freigabe wie sonst;
+                        rechnen über amw lauf ausfuehren --gpu)
   --endpunkt ENDPUNKT   neu: nur lokal, z. B. http://127.0.0.1:8188 (Vorgabe
                         je Schnittstelle)
   --version VERSION
