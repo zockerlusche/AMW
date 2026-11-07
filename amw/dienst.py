@@ -89,6 +89,8 @@ class Dienst:
         self.sperre_bis = {}      # (projekt_id, agent) → Zeitpunkt des nächsten Versuchs nach Fehlschlag
         self.ueberwachung = ueberwachung.Waechter(con)
         self.neustarter = steuerung.Neustarter(con)
+        from . import gpu
+        self.gpu = gpu.Wache(con)     # fremde GPU-Last: nur melden
         self.seit = db.jetzt()    # Einzel-Infos wecken erst ab hier (sonst weckte der Altbestand alle auf einmal)
 
     def takt(self):
@@ -212,6 +214,11 @@ class Dienst:
                     log.info("Termin: %s", e)
         except Exception as e:
             log.warning("Termin: %s: %s", type(e).__name__, e)
+        try:                                                                 # Grafikkarte belegt ohne Lauf → Leads
+            for e in self.gpu.runde():
+                log.info("GPU: %s", e)
+        except Exception as e:
+            log.warning("GPU: %s: %s", type(e).__name__, e)
         try:                                                                 # Meldungen mit erfülltem Bezug (bis)
             for nid, grund in kern.bezuege_erledigen(self.con):
                 log.info("Erledigt von selbst: #%s (%s)", nid, grund)

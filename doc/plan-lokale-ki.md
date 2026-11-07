@@ -210,7 +210,7 @@ Dazu im Einzelnen:
 |---|---|
 | 1 | `ki`, `ki_modell` (Freigabe), `ki_vorlage`, `ki_recht`; Platz „gpu“ PC-weit; `amw ki auftrag` für ollama und comfyui, ausgeführt vom Dienst; Ergebnis als Dokument mit `ki_herkunft`; Weckruf an den Auftraggeber; Workbench: Betrieb → KI |
 | 2 | KI-Fenster `--nachts` mit Band im Terminplaner; Vermerke ausgewählt, verworfen und nachbearbeitet (Workbench und Handy); `amw ki nachweis` |
-| 3 | Schnittstelle „befehl“ (Blender, ffmpeg) über `lauf ausfuehren`; Meldung „fremde GPU-Last“ |
+| 3 | Schnittstelle „befehl“ (Blender, ffmpeg) über `lauf ausfuehren`; Meldung „fremde GPU-Last“ – beides seit 1.30.1 (Eintragen von „befehl“; `amw/gpu.py`: ab 60 % über drei Prüfungen, ohne angemeldeten Lauf, Entwickler 5 min weg, höchstens stündlich, nur melden) |
 
 ## Offene Fragen an den Entwickler
 

@@ -11,6 +11,9 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 - **Eigene lokale KIs:** `amw ki neu <name> --schnittstelle befehl` trägt ein Programm ohne Dienst-Schnittstelle ein
   (z. B. eine Ton-KI in Python). Recht und Modell-Freigabe wie sonst; gerechnet wird über `amw lauf ausfuehren --gpu`.
   Hilfe und Fehlermeldungen nennen „befehl“ jetzt (Wunsch des GlassWorld-TL).
+- **Fremde GPU-Last:** Rechnet etwas auf der Grafikkarte (ab 60 %, drei Prüfungen hintereinander), ohne dass ein Lauf
+  mit Grafikkarte oder Schirm angemeldet ist, und warst du seit 5 min nicht am PC, bekommen die Leads eine Meldung –
+  höchstens einmal je Stunde. Die AMW meldet nur und beendet nichts (KI Stufe 3).
 
 ## 1.30.0 – 07.11.2026 · Entwickler-Kanal, Wege im Projekt (Fehlerbericht GlassWorld)
 - **Entwickler-Kanal:** Der Agent, der die AMW entwickelt (Zahnrad › Dieser PC › Entwickler-Kanal), ist in jedem Projekt
