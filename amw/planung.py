@@ -842,6 +842,14 @@ def kontext_zeilen(con, pid, kennung):
     lb = leitbild(con, pid)
     if lb["ziel"]:
         z.append("Projektziel: " + lb["ziel"] + (" · Nicht-Ziele: " + "; ".join(lb["nicht_ziele"]) if lb["nicht_ziele"] else ""))
+    elif kern.ist_lead(con, pid, kennung):         # neues Projekt: der erste Agent soll nicht raten, worum es geht
+        z.append("Projekt NEU – noch kein Leitbild: frage den Entwickler nach Ziel, Nicht-Zielen und Prinzipien (`amw frage neu"
+                 " --an entwickler …`), trage sie mit `amw leitbild` ein, dann Bögen (`amw bogen neu`) und erste Aufgaben."
+                 " Lies vorher, was im Projektordner schon liegt (README, CLAUDE.md, Code).")
+    else:
+        z.append("Projekt NEU – noch kein Leitbild: rate nicht, worum es geht. Melde dich beim Lead bzw. Entwickler"
+                 " (`amw posten --an <Lead|Entwickler> --art info --kurz \"bin da …\"`) und warte auf deine erste Aufgabe;"
+                 " sieh dich bis dahin nur lesend im Projektordner um.")
     if lb["prinzipien"]:
         z.append("Prinzipien: " + " | ".join(p["text"] + (f" (Prüffrage: {p['pruefung']})" if p.get("pruefung") else "")
                                              for p in lb["prinzipien"]))

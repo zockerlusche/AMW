@@ -135,6 +135,10 @@ ZUSTANDS_HOOKS = ("Notification", "Stop", "StopFailure", "UserPromptSubmit", "Se
 SPERREN = [f"Bash(*schtasks*{AUFGABE}*)", f"PowerShell(*schtasks*{AUFGABE}*)", f"PowerShell(*ScheduledTask*{AUFGABE}*)",
            f"Bash(*ScheduledTask*{AUFGABE}*)", "Bash(*amw*dienst entfernen*)", "PowerShell(*amw*dienst entfernen*)",
            "Bash(*amw*dienst einrichten*)", "PowerShell(*amw*dienst einrichten*)"]
+# Der amw-Befehl braucht keine Rückfrage: ein Agent ruft ihn ständig auf (lesen, posten, schritt …), auch mit Rechten
+# „vorgabe“. Was er darf, prüft die AMW selbst (Rolle, Lead, Entwickler) – die Erlaubnis gilt nur für diesen einen Befehl.
+AMW_BEFEHL = f"python {WURZEL.replace(os.sep, '/')}/amw-cli.py"
+ERLAUBT = [f"Bash({AMW_BEFEHL}:*)", f"PowerShell({AMW_BEFEHL}:*)"]
 
 
 def hook_einstellungen():
@@ -148,7 +152,7 @@ def hook_einstellungen():
         "hooks": {"SessionStart": [{"matcher": "startup|resume|compact", "hooks": [hook]}],
                   **{e: [{"hooks": [still]}] for e in ZUSTANDS_HOOKS}},
         "statusLine": {"type": "command", "command": befehl("amw-statusline.py"), "padding": 0},
-        "permissions": {"deny": SPERREN},
+        "permissions": {"deny": SPERREN, "allow": ERLAUBT},
     }
 
 
@@ -221,6 +225,12 @@ def agenten_ordner_entfernen(ordner, schreiben=True):
         if len(rest) != len(liste):
             aenderungen.append(f"{len(liste) - len(rest)} Sperr-Regel(n)")
             d["permissions"]["deny"] = rest
+    liste = (d.get("permissions") or {}).get("allow")
+    if liste:
+        rest = [s for s in liste if s not in ERLAUBT]
+        if len(rest) != len(liste):
+            aenderungen.append("amw-Befehl ohne Rückfrage")
+            d["permissions"]["allow"] = rest
     if aenderungen and schreiben:
         _sichern_und_schreiben(datei, d)
     return aenderungen
@@ -285,6 +295,11 @@ def agenten_ordner_einrichten(ordner, schreiben=True, sperren=True, projekt=None
         if neu:
             liste.extend(neu)
             aenderungen.append(f"{len(neu)} Sperr-Regel(n)")
+        liste = d["permissions"].setdefault("allow", [])
+        neu = [s for s in soll["permissions"]["allow"] if s not in liste]
+        if neu:
+            liste.extend(neu)
+            aenderungen.append("amw-Befehl ohne Rückfrage")
     if aenderungen and schreiben:
         _sichern_und_schreiben(datei, d)
     if schreiben and os.path.exists(datei):               # auch bei bestehender Einrichtung nachziehen

@@ -294,6 +294,12 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .dk-filter select, .dk-filter input { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; padding: 6px 8px; color: var(--tinte); font: inherit; font-size: 14px; min-width: 0; }
 .dk-filter input { flex: 1 1 220px; }
 .dk-filter select { max-width: 230px; }
+.npa p { margin: 4px 0 8px; } .npa h4 { margin: 18px 0 6px; font: 600 15px var(--titel); }
+.npa-schritte { padding-left: 22px; margin: 8px 0; } .npa-schritte li { margin-bottom: 14px; } .npa-schritte li::marker { font-weight: 600; }
+.npa-bild { display: block; max-width: 100%; height: auto; margin: 6px 0 4px; border: 1px solid var(--linie); border-radius: 6px; }
+.npa-liste { padding-left: 18px; margin: 0; } .npa-liste li { margin-bottom: 6px; }
+.npa-frage { border-top: 1px solid var(--linie); padding: 8px 0; } .npa-frage summary { cursor: pointer; font-weight: 600; }
+.npa .hinweis-zeile { padding: 8px 10px; border-left: 3px solid var(--bernstein); background: var(--grund); margin: 0 0 10px; }
 .np-schritte { margin: 0 0 10px; padding-left: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; }
 .dk-arten { display: flex; gap: 6px; flex-wrap: wrap; margin: -4px 0 12px; }
 .dk-arten .vl-chip { font-size: 12.5px; padding: 4px 11px; }
@@ -473,7 +479,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .kachel.klickbar { cursor: pointer; } .kachel.klickbar:hover { border-color: var(--leise); }
 .dialog.agent-dialog { width: min(1180px, 66vw); max-height: 88vh; overflow-y: auto; padding: 22px 26px; }   /* .dialog allein: 520 px */
 @media (max-width: 1400px) { .dialog.agent-dialog { width: 88vw; } }
-.agent-kopf { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--linie); }
+.agent-kopf { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding: 0 44px 12px 0; border-bottom: 1px solid var(--linie); }   /* rechts Platz für ✕ */
 .dialog .agent-kopf h3 { color: var(--tinte); margin: 0; font-size: 26px; }
 .agent-spalten { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; }
 @media (max-width: 1000px) { .agent-spalten { grid-template-columns: minmax(0, 1fr); } }   /* nach der Grundregel, sonst gilt sie nie */
@@ -849,7 +855,7 @@ const TEXTE = {
     aufgaben: "Aufgaben", t_offen: "Offen", t_geparkt: "Geparkt", t_pool: "Brainstorming / Pool", t_erledigt: "Abgeschlossen",
     filtern: "filtern …", keine_aufgaben: "Keine Aufgaben in dieser Sicht.", sp_laeuft: "Läuft", sp_wartet: "Wartet", sp_fertig: "Fertig", sp_verworfen: "Verworfen", sp_blockiert: "Blockiert", keine_prio: "keine Prio",
     z_arbeitet: "arbeitet", z_frei: "frei", z_freigabe: "wartet auf Freigabe", z_eingabe: "wartet auf Eingabe", z_fehler: "Fehler", z_beendet: "beendet",
-    b_kontext: "Kontext", b_5h: "5 Std.", b_7t: "Woche", k_zustand: "Zustand und Verbrauch", k_zustand_leer: "Noch keine Daten – Hooks und Statusline-Brücke einrichten (amw einrichten agenten-ordner)",
+    b_kontext: "Kontext", b_5h: "5 Std.", b_7t: "Woche", k_zustand: "Zustand und Verbrauch", k_zustand_aus: "Läuft gerade nicht – Zustand und Verbrauch erscheinen, sobald er gestartet ist.", k_zustand_leer: "Noch keine Daten – Hooks und Statusline-Brücke einrichten (amw einrichten agenten-ordner)",
     k_denkstufe: "Denkstufe {x}", k_kosten: "Sitzung {x} $ (Schätzung)", k_reset: "5 Std. zurückgesetzt {x}", k_stand: "Stand {x}",
     verbrauch: "Verbrauch je Tag (US-$, Schätzung)", verbrauch_h: "Aus der Statusline: Zuwachs der Sitzungskosten zum Listenpreis. Im Abo zählt eher die 5-Stunden-Grenze.",
     verbrauch_leer: "Noch keine Messpunkte – die Statusline-Brücke liefert sie (amw einrichten agenten-ordner).", k_summe: "Summe",
@@ -1008,13 +1014,34 @@ const TEXTE = {
     protokoll: "Protokoll des Dienstes", leer: "(leer)",
     pw_projekt: "Projekt", pw_waehlen: "Projekt wählen", pw_fragen: "{n} offene Fragen an dich", pw_agenten: "{n} Agenten", pw_agent1: "1 Agent", pw_halt: "angehalten",
     pw_neu: "Neues Projekt", pw_neu_pc: "Neue Projekte legst du am PC an.",
-    np_titel: "Neues Projekt", np_h: "Ein Projekt ist für sich: eigene Agenten, Regeln, Aufgaben und Dokumente. Den Projektordner legst du vorher selbst an (z. B. im Explorer) – darin arbeiten die Agenten. Die AMW richtet ihn ein (Hooks, Projekt-Kennung), legt Lead und Agenten mit Profil an und schreibt ein eigenes Startskript.",
+    npa_link: "Anleitung", npa_titel: "Neues Projekt – Schritt für Schritt",
+    npa_intro: "Ein Projekt ist für sich: eigene Agenten, Regeln, Aufgaben und Dokumente. Von Hand legst du nur den Projektordner an – alles andere macht die AMW.",
+    npa_online: "Anlegen geht nur am PC (Workbench auf dem Rechner, auf dem die AMW läuft). Hier kannst du die Schritte lesen.",
+    npa_s1_t: "Projektordner anlegen", npa_s1: "Im Explorer, z. B. F:\\webshop. Darin arbeiten die Agenten (meist das Repository). Ein Ordner gehört zu genau einem Projekt.",
+    npa_s2_t: "„+ Neues Projekt“ öffnen", npa_s2: "Workbench am PC › oben in der Navigation die Projekt-Auswahl › „+ Neues Projekt“ (auch unter Einstellungen › Projekt).",
+    npa_s3_t: "Ausfüllen und anlegen", npa_s3: "Name, Projektordner, Lead (leer, wenn du selbst leitest), Agenten, Rechte, Arbeitsregeln (ohne oder einmalige Kopie eines anderen Projekts) und Farbe. „Anlegen“ richtet den Ordner ein (Hooks, Projekt-Kennung, amw-Befehl ohne Rückfrage), legt Lead und Agenten mit Profil und Startsatz an und schreibt ein eigenes Startskript.",
+    npa_s4_t: "Vor dem ersten Start: Leitbild und erste Aufgabe", npa_s4: "„Zum Projekt“ › Planung › Leitbild: Ziel, Nicht-Ziele, Prinzipien. Dann eine erste Aufgabe (Arbeit) oder einen Bogen (Planung) – sonst findet der Agent nichts zu tun. Projektwissen (Technik, Build, Stil) schreibst du in eine CLAUDE.md im Projektordner; die legt die AMW nicht an.",
+    npa_s5_t: "Agent starten", npa_s5: "Start › Kachel des Agenten › „Starten“. Es öffnet sich ein Tab „CC1 · Projektname“. Beim allerersten Start in einem neuen Ordner fragt Claude Code einmal, ob du dem Ordner vertraust – im Tab mit „Yes, proceed“ bestätigen; vorher läuft nichts an. Danach steht im Fenster „AMW: als CC1 angemeldet“.",
+    npa_s6_t: "Erste Nachricht", npa_s6: "Der Agent liest Regeln und Nachrichten, holt seine Arbeit und meldet sich. Seine Nachrichten siehst du unter Start, im Verlauf und in der Kachel (Gespräch).",
+    npa_w_t: "Woher weiß der erste Agent alles?",
+    npa_w1: "Startsatz – der erste Satz jeder neuen Sitzung, im Profil des Agenten (Kachel › Profil, dort änderbar): wer er ist, wie er die AMW aufruft und womit er anfängt (Lead: planen und verteilen, Agent: Arbeit holen).",
+    npa_w2: "Pflicht-Kontext – bei jedem Start, Fortsetzen und Verdichten gibt der Start-Hook ihm: Befehl und Kurzanleitung, Ziel, Nicht-Ziele und Prinzipien aus dem Leitbild, aktive Bögen, seine Aufgabenliste, offene Nachrichten und Regeln.",
+    npa_w3: "Projektwissen – deine CLAUDE.md im Projektordner liest Claude Code selbst.",
+    npa_f_t: "Häufige Fragen",
+    npa_f1_q: "Braucht ein neues Projekt MCP?", npa_f1: "Nein. Agenten arbeiten über die Hooks und den amw-Befehl; beides richtet „Anlegen“ im Projektordner ein. Nur ein Lead ohne direkten Zugriff (z. B. in Cowork oder einer VM) nutzt die Datei-Brücke: Einstellungen › Dieser PC › Brücke an; Befehle in eingang-<projekt>\\befehle im AMW-Ordner, Lese-Kopie daten\\lesen-<projekt>.db – dafür muss der AMW-Ordner in der Desktop-App verbunden sein.",
+    npa_f2_q: "Muss ich den Wächter kopieren?", npa_f2: "Nein. Ein Wächter je PC weckt die Agenten jedes Projekts für sich. Keine zweite AMW-Installation anlegen.",
+    npa_f3_q: "Was lege ich von Hand an?", npa_f3: "Nur den Projektordner (und, wenn du willst, eine CLAUDE.md darin). Projekt, Agenten, Profile, Hooks und Startskript legt die AMW an.",
+    npa_f4_q: "Brauche ich ein Git-Repository?", npa_f4: "Für die AMW nicht. Für Code empfohlen: Aufgaben schließt ein Agent mit einem Beleg ab – Commit, Datei:Zeile oder Folgeaufgabe.",
+    npa_f5_q: "Wo liegen die Claude-Code-Sitzungen?", npa_f5: "Die Agenten arbeiten im Projektordner. Claude Code legt den Verlauf in deinem Benutzerordner unter .claude\\projects ab, je Ordner. In der Workbench: Kachel › Gespräch.",
+    npa_f6_q: "Dürfen die Agenten wie im anderen Projekt heißen?", npa_f6: "Ja, CC1 darf es in jedem Projekt geben. Der Tab heißt dann „CC1 · Projektname“; jede Sitzung meldet sich nur in ihrem Projekt an.",
+    npa_f7_q: "Projekt auf einen anderen Rechner?", npa_f7: "amw sichern --projekt <name> schreibt das Projekt als eigene Datenbank samt Dokumenten (Anleitung „Mehrere Projekte“ in der Doku).",
+    np_titel: "Neues Projekt", np_h: "Ein Projekt ist für sich: eigene Agenten, Regeln, Aufgaben und Dokumente. Den Projektordner legst du vorher selbst an (z. B. im Explorer) – darin arbeiten die Agenten. Die AMW richtet ihn ein (Hooks, Projekt-Kennung, amw-Befehl ohne Rückfrage), legt Lead und Agenten mit Profil und Startsatz an und schreibt ein eigenes Startskript.",
     np_name: "Name", np_ordner: "Projektordner", np_ordner_ph: "z. B. F:\\webshop – muss es schon geben", np_lead: "Lead (Kennung)",
     np_lead_h: "leer, wenn du selbst leitest", np_agenten: "Agenten", np_agenten_h: "Kennungen mit Komma, z. B. CC1,CC2 – dürfen wie in anderen Projekten heißen",
     np_rechte: "Rechte der Agenten", np_rechte_vorgabe: "vorgabe – Claude Code fragt bei heiklen Aktionen", np_rechte_auto: "auto",
     np_rechte_umgehen: "umgehen – alles erlauben", np_regeln: "Arbeitsregeln", np_regeln_keine: "ohne – eigene Regeln später",
     np_regeln_von: "Kopie von {x} (danach getrennt)", np_anlegen: "Anlegen", np_fertig: "Projekt „{x}“ ist angelegt",
-    np_weiter: "Zum Projekt", np_danach: "Danach: im neuen Projekt Start › Kachel eines Agenten › Starten. Leitbild und Bögen unter Planung.",
+    np_weiter: "Zum Projekt", np_danach: "Vor dem ersten Start: im neuen Projekt Planung › Leitbild ausfüllen und eine erste Aufgabe anlegen. Dann Start › Kachel eines Agenten › Starten.",
     e_ordner: "Projektordner", e_ordner_h: "Darin arbeiten die Agenten; ein Ordner gehört zu genau einem Projekt. Ändern: amw projekt ordner",
     e_ordner_leer: "nicht eingetragen", pw_jetzt: "Jetzt im Projekt „{x}“", pw_unbekannt: "Das Projekt aus dem Link gibt es hier nicht – gezeigt wird „{x}“.",
     pw_nur_ansicht: "Umschalten ändert nur die Ansicht – alle Projekte arbeiten weiter.", pw_weg: "seit über 7 Tagen nicht gemeldet",
@@ -1116,7 +1143,7 @@ const TEXTE = {
     aufgaben: "Tasks", t_offen: "Open", t_geparkt: "Parked", t_pool: "Brainstorming / pool", t_erledigt: "Done",
     filtern: "filter …", keine_aufgaben: "No tasks in this view.", sp_laeuft: "Running", sp_wartet: "Waiting", sp_fertig: "Done", sp_verworfen: "Discarded", sp_blockiert: "Blocked", keine_prio: "no priority",
     z_arbeitet: "working", z_frei: "idle", z_freigabe: "waiting for permission", z_eingabe: "waiting for input", z_fehler: "error", z_beendet: "ended",
-    b_kontext: "Context", b_5h: "5 h", b_7t: "Week", k_zustand: "State and usage", k_zustand_leer: "No data yet – set up hooks and status line bridge (amw einrichten agenten-ordner)",
+    b_kontext: "Context", b_5h: "5 h", b_7t: "Week", k_zustand: "State and usage", k_zustand_aus: "Not running – state and usage appear once it has been started.", k_zustand_leer: "No data yet – set up hooks and status line bridge (amw einrichten agenten-ordner)",
     k_denkstufe: "effort {x}", k_kosten: "session {x} $ (estimate)", k_reset: "5 h resets {x}", k_stand: "as of {x}",
     verbrauch: "Usage per day (US $, estimate)", verbrauch_h: "From the status line: increase of session cost at list price. On a subscription the 5-hour limit matters more.",
     verbrauch_leer: "No samples yet – the status line bridge provides them (amw einrichten agenten-ordner).", k_summe: "Total",
@@ -1271,13 +1298,34 @@ const TEXTE = {
     protokoll: "Service log", leer: "(empty)",
     pw_projekt: "Project", pw_waehlen: "Choose project", pw_fragen: "{n} open questions for you", pw_agenten: "{n} agents", pw_agent1: "1 agent", pw_halt: "halted",
     pw_neu: "New project", pw_neu_pc: "New projects are created at the PC.",
-    np_titel: "New project", np_h: "A project stands on its own: its own agents, rules, tasks and documents. Create the project folder yourself first (e.g. in Explorer) – the agents work in it. AMW sets it up (hooks, project id), creates lead and agents with a profile and writes a start script of its own.",
+    npa_link: "Guide", npa_titel: "New project – step by step",
+    npa_intro: "A project stands on its own: its own agents, rules, tasks and documents. The only thing you create by hand is the project folder – AMW does the rest.",
+    npa_online: "Projects can only be created at the PC (Workbench on the computer running AMW). Here you can read the steps.",
+    npa_s1_t: "Create the project folder", npa_s1: "In Explorer, e.g. F:\\webshop. The agents work in it (usually the repository). A folder belongs to exactly one project.",
+    npa_s2_t: "Open “+ New project”", npa_s2: "Workbench at the PC › project switcher at the top of the navigation › “+ New project” (also under Settings › Project).",
+    npa_s3_t: "Fill in and create", npa_s3: "Name, project folder, lead (empty if you lead yourself), agents, permissions, working rules (none or a one-off copy of another project) and colour. “Create” sets up the folder (hooks, project id, amw command without confirmation), creates lead and agents with a profile and start prompt and writes a start script of its own.",
+    npa_s4_t: "Before the first start: mission and first task", npa_s4: "“Go to project” › Planning › Mission: goal, non-goals, principles. Then a first task (Work) or an arc (Planning) – otherwise the agent finds nothing to do. Project knowledge (tech, build, style) goes into a CLAUDE.md in the project folder; AMW does not create one.",
+    npa_s5_t: "Start an agent", npa_s5: "Home › agent tile › “Start”. A tab “CC1 · project name” opens. On the very first start in a new folder Claude Code asks once whether you trust the folder – confirm with “Yes, proceed” in the tab; nothing runs before that. Then the window says “AMW: als CC1 angemeldet”.",
+    npa_s6_t: "First message", npa_s6: "The agent reads rules and messages, fetches its work and reports. You see its messages on Home, in History and on its tile (Conversation).",
+    npa_w_t: "How does the first agent know everything?",
+    npa_w1: "Start prompt – the first sentence of every new session, in the agent's profile (tile › Profile, editable there): who it is, how it calls AMW and what to start with (lead: plan and distribute, agent: fetch work).",
+    npa_w2: "Mandatory context – on every start, resume and compaction the start hook gives it: command and short guide, goal, non-goals and principles from the mission, active arcs, its task list, open messages and rules.",
+    npa_w3: "Project knowledge – Claude Code reads your CLAUDE.md in the project folder by itself.",
+    npa_f_t: "Frequent questions",
+    npa_f1_q: "Does a new project need MCP?", npa_f1: "No. Agents work through the hooks and the amw command; “Create” sets up both in the project folder. Only a lead without direct access (e.g. in Cowork or a VM) uses the file bridge: Settings › This PC › bridge on; commands in eingang-<project>\\befehle in the AMW folder, read copy daten\\lesen-<project>.db – the AMW folder must be connected in the desktop app.",
+    npa_f2_q: "Do I have to copy the watcher?", npa_f2: "No. One watcher per PC wakes the agents of each project separately. Do not create a second AMW installation.",
+    npa_f3_q: "What do I create by hand?", npa_f3: "Only the project folder (and, if you like, a CLAUDE.md in it). AMW creates project, agents, profiles, hooks and start script.",
+    npa_f4_q: "Do I need a Git repository?", npa_f4: "Not for AMW. Recommended for code: an agent closes tasks with evidence – a commit, file:line or a follow-up task.",
+    npa_f5_q: "Where are the Claude Code sessions?", npa_f5: "The agents work in the project folder. Claude Code keeps the history in your user folder under .claude\\projects, per folder. In the Workbench: tile › Conversation.",
+    npa_f6_q: "May the agents have the same names as in the other project?", npa_f6: "Yes, CC1 may exist in every project. The tab is then called “CC1 · project name”; each session registers only in its own project.",
+    npa_f7_q: "Move a project to another computer?", npa_f7: "amw sichern --projekt <name> writes the project as a database of its own including documents (guide “Several projects” in the docs).",
+    np_titel: "New project", np_h: "A project stands on its own: its own agents, rules, tasks and documents. Create the project folder yourself first (e.g. in Explorer) – the agents work in it. AMW sets it up (hooks, project id, amw command without confirmation), creates lead and agents with a profile and start prompt and writes a start script of its own.",
     np_name: "Name", np_ordner: "Project folder", np_ordner_ph: "e.g. F:\\webshop – must already exist", np_lead: "Lead (id)",
     np_lead_h: "empty if you lead yourself", np_agenten: "Agents", np_agenten_h: "ids separated by commas, e.g. CC1,CC2 – may have the same names as in other projects",
     np_rechte: "Agent permissions", np_rechte_vorgabe: "vorgabe – Claude Code asks before risky actions", np_rechte_auto: "auto",
     np_rechte_umgehen: "umgehen – allow everything", np_regeln: "Working rules", np_regeln_keine: "none – own rules later",
     np_regeln_von: "copy of {x} (separate afterwards)", np_anlegen: "Create", np_fertig: "Project “{x}” has been created",
-    np_weiter: "Go to project", np_danach: "Next: in the new project, Home › an agent's tile › Start. Mission and arcs under Planning.",
+    np_weiter: "Go to project", np_danach: "Before the first start: in the new project fill in Planning › Mission and create a first task. Then Home › an agent's tile › Start.",
     e_ordner: "Project folder", e_ordner_h: "The agents work in it; a folder belongs to exactly one project. Change: amw projekt ordner",
     e_ordner_leer: "not set", pw_jetzt: "Now in project “{x}”", pw_unbekannt: "The project from the link does not exist here – showing “{x}”.",
     pw_nur_ansicht: "Switching only changes the view – all projects keep working.", pw_weg: "not reported for over 7 days",
@@ -1417,11 +1465,27 @@ function projektListe(anker) {
       "aria-label": t("pw_waehlen") },
     el("h3", {}, t("pw_waehlen")), ...projekte.map(eintrag),
     el("div", { class: "pw-fuss" }, el("span", { class: "sehrleise", style: "font-size:12px" }, t("pw_nur_ansicht")),
-      API ? el("span", { class: "sehrleise", style: "font-size:12px" }, t("pw_neu_pc"))
-        : el("button", { class: "klein-knopf", type: "button", onclick: () => { hg.remove(); projektNeuDialog(); } }, "+ " + t("pw_neu"))));
+      el("span", { style: "display:flex;gap:6px;align-items:center;flex-wrap:wrap" },
+        API ? el("span", { class: "sehrleise", style: "font-size:12px" }, t("pw_neu_pc"))
+          : el("button", { class: "klein-knopf", type: "button", onclick: () => { hg.remove(); projektNeuDialog(); } }, "+ " + t("pw_neu")),
+        el("button", { class: "klein-knopf", type: "button", onclick: () => { hg.remove(); projektAnleitung(); } }, "? " + t("npa_link")))));
   const hg = el("div", { class: "dialog-hg pw-hg", onclick: e => { if (e.target === hg) hg.remove(); } }, liste);
   document.body.append(hg);
   (liste.querySelector(".pw-eintrag.an") || liste.querySelector(".pw-eintrag"))?.focus();
+}
+/* Anleitung „Neues Projekt – Schritt für Schritt“: am PC und online (dort nur Lesen). Bilder aus hilfe/ (amw/hilfe,
+   online web/hilfe – amw web bauen kopiert sie). Inhalt wie doc/anleitung-projekte.md. */
+function projektAnleitung() {
+  const bild = (n, alt) => el("img", { src: `hilfe/${n}.webp`, alt, loading: "lazy", class: "npa-bild" });
+  const BILDER = { 2: ["np-auswahl"], 3: ["np-dialog", "np-fertig"], 4: ["np-leitbild"], 5: ["np-start"], 6: ["np-nachricht"] };
+  const schritte = el("ol", { class: "npa-schritte" }, [1, 2, 3, 4, 5, 6].map(i => el("li", {},
+    el("b", {}, t(`npa_s${i}_t`)), el("p", {}, t(`npa_s${i}`)), (BILDER[i] || []).map(n => bild(n, t(`npa_s${i}_t`))))));
+  const fragen = [1, 2, 3, 4, 5, 6, 7].map(i => el("details", { class: "npa-frage" }, el("summary", {}, t(`npa_f${i}_q`)), el("p", {}, t(`npa_f${i}`))));
+  dialog(t("npa_titel"), el("div", { class: "npa" },
+    API ? el("p", { class: "hinweis-zeile" }, t("npa_online")) : null,
+    el("p", { class: "leise" }, t("npa_intro")), schritte,
+    el("h4", {}, t("npa_w_t")), el("ul", { class: "npa-liste" }, ["npa_w1", "npa_w2", "npa_w3"].map(k => el("li", {}, t(k)))),
+    el("h4", {}, t("npa_f_t")), fragen));
 }
 /* Neues Projekt (nur am PC): wie `amw einrichten` – Projekt, Lead, Agenten, Projektordner, Startskript, Regel-Kopie */
 function projektNeuDialog() {
@@ -1441,10 +1505,11 @@ function projektNeuDialog() {
       const r = await schicken("/api/projekt/neu", { name: name.value.trim(), ordner: ordner.value.trim(), lead: lead.value.trim(),
         agenten: agenten.value, rechte: rechte.value, regeln_von: regeln.value, farbe: frb.value });
       kasten.replaceChildren(el("h3", {}, t("np_fertig", { x: name.value.trim() })),
-        el("ul", { class: "np-schritte" }, r.schritte.map(s => el("li", {}, "✓ " + s))), el("p", { class: "leise" }, t("np_danach")),
+        el("ul", { class: "np-schritte" }, r.schritte.map(s => el("li", {}, "✓ " + s))), el("p", { class: "leise" }, t("np_danach"), " ", el("button", { class: "klein-knopf", type: "button", onclick: projektAnleitung }, "? " + t("npa_link"))),
         el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => projektWechseln(r.uid) }, t("np_weiter"))));
     } catch (e) { toast(t("fehler", { x: e.message }), true); knopf.disabled = false; } } }, t("np_anlegen"));
-  const kasten = el("div", { class: "einst" }, el("p", { class: "leise", style: "margin:0" }, t("np_h")),
+  const kasten = el("div", { class: "einst" }, el("p", { class: "leise", style: "margin:0" }, t("np_h"), " ",
+      el("button", { class: "klein-knopf", type: "button", onclick: projektAnleitung }, "? " + t("npa_link"))),
     feld(t("np_name"), name), feld(t("np_ordner"), ordner), feld(t("np_lead"), lead, t("np_lead_h")),
     feld(t("np_agenten"), agenten, t("np_agenten_h")), feld(t("np_rechte"), rechte), feld(t("np_regeln"), regeln), feld(t("e_farbe"), frb),
     el("div", { class: "aktionen" }, knopf, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
@@ -1714,7 +1779,7 @@ function steuerKnoepfe(d, schliessen) {
 /* Übersicht: Zustand aus Hooks und Statusline – Modell, Denkstufe, Kontext, Grenzen (mit Rücksetzzeit), Kosten */
 function zustandAbschnitt(d) {
   if (d.zustand !== "aktiv" || (!d.status_utc && !d.ereignis)) return el("section", { class: "abschnitt" }, el("h4", {}, t("k_zustand")),
-    el("div", { class: "sehrleise leer-klein" }, t("k_zustand_leer")));
+    el("div", { class: "sehrleise leer-klein" }, t(d.zustand !== "aktiv" ? "k_zustand_aus" : "k_zustand_leer")));
   const z = [];
   if (d.ereignis) z.push(el("div", {}, el("b", {}, t("z_" + { arbeitet: "arbeitet", frei: "frei", wartet_freigabe: "freigabe", wartet_eingabe: "eingabe",
     fehler: "fehler", beendet: "beendet" }[d.ereignis] || d.ereignis)), " ", el("span", { class: "sehrleise" }, seit(d.ereignis_utc)),
@@ -3487,7 +3552,8 @@ async function sichtEinstellungen() {
   pf.farbe = el("select", {}, Object.keys(FARBEN).map(f => el("option", { value: f }, t("farbe_" + f))));
   pf.farbe.value = d.projekt.farbe || "bernstein";
   const pwahl = el("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap" }, pname,
-    API ? null : el("button", { class: "klein-knopf", type: "button", onclick: projektNeuDialog }, "+ " + t("pw_neu")));
+    API ? null : el("button", { class: "klein-knopf", type: "button", onclick: projektNeuDialog }, "+ " + t("pw_neu")),
+    el("button", { class: "klein-knopf", type: "button", onclick: projektAnleitung }, "? " + t("npa_link")));
   const pordner = el("div", { class: d.projekt.ordner ? "mono" : "sehrleise", style: "padding-top:7px;font-size:13px;overflow-wrap:anywhere" },
     d.projekt.ordner || t("e_ordner_leer"));
   box.append(block(t("e_projekt"), null,

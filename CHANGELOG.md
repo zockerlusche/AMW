@@ -4,6 +4,24 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.27.0 – 07.11.2026 · Neues Projekt: Anleitung am Knopf, erster Start ohne Raten
+Aus einer Probe „neues Projekt von A bis Z“ (Wegwerf-Projekt auf einer Kopie der Datenbank).
+- **Anleitung „Neues Projekt – Schritt für Schritt“ in der Workbench** mit Bildern: Projekt-Auswahl › „? Anleitung“,
+  auch im Dialog „Neues Projekt“, nach dem Anlegen und unter Einstellungen › Projekt. **Online** nur zum Lesen
+  („Anlegen geht am PC“). Dazu: woher der erste Agent alles weiß (Startsatz, Pflicht-Kontext, CLAUDE.md), was vor dem
+  ersten Start auszufüllen ist (Leitbild, erste Aufgabe) und häufige Fragen (MCP, Wächter, Git, Sitzungen, gleiche
+  Kennungen). Ausführlich in [doc/anleitung-projekte.md](doc/anleitung-projekte.md).
+- **Projekt ohne Leitbild:** Der Pflicht-Kontext sagt „Projekt NEU“ – der Lead fragt den Entwickler nach Ziel und
+  Nicht-Zielen und trägt sie ein, ein Agent meldet sich und wartet auf seine erste Aufgabe, statt zu raten.
+- **Der amw-Befehl braucht im Agentenordner keine Rückfrage mehr** (Erlaubnis nur für diesen einen Befehl, auch mit Rechten
+  „vorgabe“): sonst fragte Claude Code bei jedem `amw lesen`. Was ein Agent darf, prüft weiter die AMW. Bestehende Ordner
+  bekommen es mit `amw einrichten agenten-ordner <ordner>`.
+- **Tab-Titel mit Projekt:** mit mehreren Projekten heißt der Tab „CC1 · Webshop“ statt nur „CC1“.
+- **Erster Start in einem neuen Ordner:** Claude Code fragt einmal, ob du dem Ordner vertraust – die Anleitung sagt es jetzt
+  (vorher laufen weder Hook noch Startsatz).
+- Agenten-Dialog: das ✕ verdeckt den Knopf „Nachricht“ nicht mehr; ein nicht laufender Agent zeigt „Läuft gerade nicht“
+  statt „Hooks einrichten“.
+
 ## 1.26.0 – 06.11.2026 · Lauf-Schlange mit zwei Spuren
 Bisher lief je Projekt nur ein schwerer Lauf. Auch die freie Grafikkarte wartete auf einen Headless-Build: KI-Aufträge
 und Fenster-Läufe standen hinter Builds, die sie gar nicht stören.

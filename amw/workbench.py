@@ -24,6 +24,7 @@ from .betrieb import speicher_frei_gb, speicher_grenze
 
 STANDARD_PORT = 8780
 HIER = os.path.dirname(os.path.abspath(__file__))
+HILFE = os.path.join(HIER, "hilfe")          # Bilder der Anleitungen in der Workbench (z. B. „Neues Projekt“)
 
 
 def zeilen(cur):
@@ -813,6 +814,13 @@ def baue_handler(port, token):
                 return self._senden(200, seite, "text/html; charset=utf-8")
             if u.path == "/api/dokument/datei":
                 return self._datei(q)
+            if u.path.startswith("/hilfe/"):               # Bilder der Anleitungen (online: web/hilfe/, → amw web bauen)
+                name = u.path[len("/hilfe/"):]
+                pfad = os.path.join(HILFE, name)
+                if not re.fullmatch(r"[a-z0-9-]+\.webp", name) or not os.path.isfile(pfad):
+                    return self._senden(404, {"fehler": "unbekannt"})
+                with open(pfad, "rb") as f:
+                    return self._senden(200, f.read(), "image/webp")
             wege = {"/api/start": lambda c, p: daten_start(c, p),
                     "/api/fragen": lambda c, p: daten_fragen(c, p, q.get("alle", ["0"])[0] == "1"),
                     "/api/aufgaben": lambda c, p: daten_aufgaben(c, p, q),

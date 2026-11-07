@@ -356,6 +356,29 @@ class NeuesProjekt(ZweiProjekte):
         rc, aus = self.cli("agent", "neu", "CC3", "--von", kern.ENTWICKLER, "--projekt", "Laden")
         self.assertIn(f"arbeitet in {os.path.abspath(self.repo)}", aus)             # neuer Agent: Projektordner als Profil
 
+    def test_erster_start_im_neuen_projekt(self):
+        """#18115: woher weiß der erste Agent alles – Startsatz, Pflicht-Kontext ohne Leitbild, amw ohne Rückfrage, Tab-Titel."""
+        from amw import einrichtung, planung, steuerung
+        self.neu()
+        pid = db.projekt_id(self.con, "Laden")
+        satz = self.con.execute("SELECT startsatz FROM agent WHERE projekt_id = ? AND kennung = 'CC1'", (pid,)).fetchone()[0]
+        self.assertIn("Du bist CC1", satz)
+        self.assertIn("schritt naechster --nehmen --von CC1", satz)
+        self.assertIn("rate nicht", kern.kontext(self.con, pid, "CC1"))            # ohne Leitbild: melden, nicht raten
+        self.assertIn("frage den Entwickler nach Ziel", kern.kontext(self.con, pid, "TL"))
+        planung.leitbild_setzen(self.con, pid, "TL", ziel="Ein Laden")
+        self.assertNotIn("Projekt NEU", kern.kontext(self.con, pid, "CC1"))
+        self.assertIn("Projektziel: Ein Laden", kern.kontext(self.con, pid, "CC1"))
+        with open(os.path.join(self.repo, ".claude", "settings.local.json"), encoding="utf-8") as f:
+            self.assertEqual(json.load(f)["permissions"]["allow"], einrichtung.ERLAUBT)   # amw ohne Rückfrage
+        args = []
+        with mock.patch.object(steuerung, "laeuft", return_value=False), mock.patch.object(steuerung.shutil, "which", return_value="wt.exe"):
+            steuerung.starten(self.con, pid, "CC1", ausfuehren=lambda a, f, o: args.extend(a))
+        self.assertEqual(args[args.index("--title") + 1], "CC1 · Laden")
+        einrichtung.agenten_ordner_entfernen(self.repo)
+        with open(os.path.join(self.repo, ".claude", "settings.local.json"), encoding="utf-8") as f:
+            self.assertEqual(json.load(f).get("permissions", {}).get("allow"), [])
+
 
 class SichernJeProjekt(ZweiProjekte):
     """Eine Datenbank je Rechner (F5190) – ein Projekt lässt sich trotzdem als eigene, lauffähige Datenbank sichern."""

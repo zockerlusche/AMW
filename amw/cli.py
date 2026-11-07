@@ -1441,6 +1441,14 @@ def cmd_web(a, con):
         from . import __version__
         with open(os.path.join(os.path.dirname(ziel), "VERSION"), "w", encoding="utf-8", newline="\n") as g:
             g.write(__version__ + "\n")
+        hilfe = os.path.join(os.path.dirname(__file__), "hilfe")   # Bilder der Anleitungen (.htaccess lässt hilfe/*.webp durch)
+        if os.path.isdir(hilfe):
+            import shutil
+            ziel_hilfe = os.path.join(os.path.dirname(os.path.dirname(ziel)), "hilfe")
+            os.makedirs(ziel_hilfe, exist_ok=True)
+            for n in sorted(os.listdir(hilfe)):
+                if n.endswith(".webp"):
+                    shutil.copyfile(os.path.join(hilfe, n), os.path.join(ziel_hilfe, n))
         print(f"gebaut: {ziel} (Version {__version__})")
         return 0
     if a.aktion == "einrichten":

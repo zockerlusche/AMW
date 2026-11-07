@@ -203,8 +203,11 @@ def starten(con, pid, kennung, neu=False, ausfuehren=None):
     b64 = base64.b64encode(zeile.encode("utf-16-le")).decode()
     shell = _shell()
     wt_exe = shutil.which("wt")
+    titel = kennung                                   # mehrere Projekte: CC1 gibt es vielleicht in jedem – Tab mit Projekt
+    if con.execute("SELECT count(*) FROM projekt").fetchone()[0] > 1:
+        titel = f"{kennung} · {p['projekt']}"
     if wt_exe:
-        args = [wt_exe, "-w", "amw", "new-tab", "--title", kennung, "--suppressApplicationTitle", "-d", p["ordner"], shell, "-NoExit", "-EncodedCommand", b64]
+        args = [wt_exe, "-w", "amw", "new-tab", "--title", titel, "--suppressApplicationTitle", "-d", p["ordner"], shell, "-NoExit", "-EncodedCommand", b64]
         flags = 0
     else:
         args = [shell, "-NoExit", "-EncodedCommand", b64]
