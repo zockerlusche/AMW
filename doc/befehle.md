@@ -37,7 +37,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`pruefung`](#pruefung) | Prüfbitte je Stand (SHA), Ergebnis grün/rot |
 | [`hinweis`](#hinweis) | Anweisung an einen Agenten oder alle (z. B. „keine Rechen-Jobs“) |
 | [`rezept`](#rezept) | Lauf-Rezepte als Daten |
-| [`ki`](#ki) | Lokale KIs (PC-weit): liste ¦ neu¦aendern <ki> (nur am PC) ¦ modell <ki> <name> ¦ freigeben¦sperren <ki> <modell> ¦ vorlage <ki> <name> --datei ¦ recht <ki> --wer ¦ auftrag <ki> --prompt … ¦ zeige L<nr> ¦ pruefen ¦ nachweis |
+| [`ki`](#ki) | Lokale KIs (PC-weit): liste ¦ neu¦aendern <ki> (nur am PC) ¦ modell <ki> <name> ¦ freigeben¦sperren <ki> <modell> ¦ vorlage <ki> <name> --datei ¦ recht <ki> --wer ¦ auftrag <ki> --prompt … ¦ zeige L<nr> ¦ pruefen ¦ nachweis ¦ vermerk D<nr> --art … ¦ fenster |
 | [`wortlaut`](#wortlaut) | Aussage des Entwicklers wörtlich erfassen |
 | [`beschluss`](#beschluss) | Beschluss anlegen (optional einen alten ersetzen) |
 | [`regel`](#regel) | Regel anlegen/ändern – nur mit Beschluss |
@@ -847,13 +847,13 @@ usage: amw ki [-h] [--art ART] [--schnittstelle SCHNITTSTELLE]
               [--negativ NEGATIV] [--seed SEED] [--anzahl ANZAHL]
               [--breite BREITE] [--hoehe HOEHE] [--bild BILD]
               [--parameter PARAMETER] [--titel TITEL] [--aufgabe AUFGABE]
-              [--bogen BOGEN] [--frist FRIST] [--alle] [--von VON]
-              [--projekt PROJEKT]
-              [{liste,neu,aendern,modell,freigeben,sperren,vorlage,recht,auftrag,zeige,pruefen,nachweis}]
+              [--bogen BOGEN] [--frist FRIST] [--nachts] [--text TEXT]
+              [--alle] [--von VON] [--projekt PROJEKT]
+              [{liste,neu,aendern,modell,freigeben,sperren,vorlage,recht,auftrag,zeige,pruefen,nachweis,vermerk,fenster}]
               [name] [teil]
 
 positional arguments:
-  {liste,neu,aendern,modell,freigeben,sperren,vorlage,recht,auftrag,zeige,pruefen,nachweis}
+  {liste,neu,aendern,modell,freigeben,sperren,vorlage,recht,auftrag,zeige,pruefen,nachweis,vermerk,fenster}
   name                  die KI (z. B. ollama, comfyui) · zeige: Lauf-Nummer
                         L812
   teil                  modell/freigeben/sperren: das Modell · vorlage: Name
@@ -861,7 +861,8 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --art ART             neu: sprache | bild | ton | 3d | video | sonstig
+  --art ART             neu: sprache | bild | ton | 3d | video | sonstig ·
+                        vermerk: ausgewaehlt | verworfen | nachbearbeitet
   --schnittstelle SCHNITTSTELLE
                         neu: ollama | comfyui | befehl (eigenes Programm ohne
                         Dienst-Schnittstelle, z. B. eine Ton-KI in Python:
@@ -910,6 +911,11 @@ options:
   --bogen BOGEN
   --frist FRIST         auftrag: höchstens so viele Minuten rechnen (Vorgabe
                         60)
+  --nachts              auftrag: erst im KI-Fenster starten (Vorgabe 22–06
+                        Uhr), nie vor einem Testtermin – eilt nicht, belegt
+                        die Grafikkarte nicht, während du am PC bist
+  --text TEXT           vermerk: was von Hand nachbearbeitet wurde bzw. warum
+                        ausgewählt/verworfen
   --alle                nachweis: auch archivierte und gelöschte Dokumente
   --von VON
   --projekt PROJEKT

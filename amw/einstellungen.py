@@ -76,6 +76,20 @@ def _kennung(v):
     return v
 
 
+def _fenster(v):
+    """Uhrzeit-Fenster „22-06“ oder „21:30-05:45“ (Ortszeit, darf über Mitternacht gehen); leer = kein Fenster."""
+    v = str(v or "").strip().replace("–", "-").replace(" ", "")
+    if not v:
+        return ""
+    m = re.fullmatch(r"(\d{1,2})(?::(\d{2}))?-(\d{1,2})(?::(\d{2}))?", v)
+    if not m:
+        raise ValueError("Fenster wie 22-06 oder 21:30-05:45 (leer = keins)")
+    a, b = (int(m[1]), int(m[2] or 0)), (int(m[3]), int(m[4] or 0))
+    if any(h > 24 or mi > 59 or (h == 24 and mi) for h, mi in (a, b)) or a == b:
+        raise ValueError("Uhrzeiten 0–24, Anfang ≠ Ende")
+    return f"{a[0]:02d}:{a[1]:02d}-{b[0]:02d}:{b[1]:02d}"
+
+
 FELDER = {
     "db_pfad": (os.path.join(WURZEL, "daten", "amw.db"), _pfad),
     "port": (8780, _ganz(1024, 65535)),
@@ -96,6 +110,8 @@ FELDER = {
     # Entwickler-Kanal: dieser Agent entwickelt die AMW selbst und spricht mit den Leads aller Projekte – er darf in
     # jedem Projekt schreiben und angeschrieben werden, `amw lesen` zeigt ihm alle Projekte (leer = aus)
     "produkt_entwickler": ("", _kennung_leer),
+    # KI-Fenster (Ortszeit): KI-Aufträge mit --nachts starten nur darin, nie in der Vorlaufzeit eines Testtermins
+    "ki_fenster": ("22:00-06:00", _fenster),
 }
 
 

@@ -1138,10 +1138,22 @@ def cmd_ki(a, con):
             with open(a.prompt_datei, encoding="utf-8") as f:
                 prompt = f.read()
         lid, _, laeuft = ki.auftrag(con, pid, von, a.name, prompt, a.modell, a.vorlage, a.negativ, a.seed, a.anzahl, a.breite,
-                                    a.hoehe, a.bild, a.parameter, a.titel, a.aufgabe, a.frist)
+                                    a.hoehe, a.bild, a.parameter, a.titel, a.aufgabe, a.frist, a.nachts)
         print(f"L{lid} " + ("ist dran – " if laeuft else f"eingereiht ({betrieb.wartegrund(con, pid, betrieb.lauf_zeile(con, pid, lid))}) – ")
               + "die AMW führt den Auftrag selbst aus und legt die Ergebnisse als Dokumente ab. Du wirst geweckt, wenn"
               f" er fertig ist; du musst nicht warten. Stand: amw ki zeige L{lid} · abbrechen: amw lauf ende {lid} --abgebrochen")
+    elif a.aktion == "fenster":
+        n, sek = ki.nachts_wartend(con)
+        sperre = ki.nacht_sperre(con)
+        print(f"KI-Fenster: {ki.fenster_text()} (Ortszeit; ändern: Workbench › Zahnrad › Dieser PC) – gerade "
+              + (f"zu: {sperre}" if sperre else "offen") + f". {n} Auftrag/Aufträge mit --nachts warten"
+              + (f" (≈ {max(1, round(sek / 60))} min nach Modell-Probe)" if sek else "") + ".")
+    elif a.aktion == "vermerk":
+        if not a.name or not a.art:
+            raise kern.AmwFehler("ki vermerk D<nr> --art ausgewaehlt|verworfen|nachbearbeitet [--text …] (nachbearbeitet: --text, was"
+                                 " von Hand geändert wurde)")
+        vid = ki.vermerken(con, pid, von, a.name, a.art, a.text, a.kanal)
+        print(f"Vermerk {vid}: {a.name.upper() if a.name[0] in 'dD' else 'D' + a.name} {ki.VERMERK_TEXT[a.art]}")
     elif a.aktion == "zeige":
         if not a.name:
             raise kern.AmwFehler("ki zeige L<nr>")
@@ -2088,12 +2100,14 @@ def parser():
 
     x = s.add_parser("ki", help="Lokale KIs (PC-weit): liste | neu|aendern <ki> (nur am PC) | modell <ki> <name> | freigeben|sperren"
                                 " <ki> <modell> | vorlage <ki> <name> --datei | recht <ki> --wer | auftrag <ki> --prompt … |"
-                                " zeige L<nr> | pruefen | nachweis")
+                                " zeige L<nr> | pruefen | nachweis | vermerk D<nr> --art … | fenster")
     x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "neu", "aendern", "modell", "freigeben", "sperren",
-                                                                  "vorlage", "recht", "auftrag", "zeige", "pruefen", "nachweis"])
+                                                                  "vorlage", "recht", "auftrag", "zeige", "pruefen", "nachweis",
+                                                                  "vermerk", "fenster"])
     x.add_argument("name", nargs="?", help="die KI (z. B. ollama, comfyui) · zeige: Lauf-Nummer L812")
     x.add_argument("teil", nargs="?", help="modell/freigeben/sperren: das Modell · vorlage: Name der Vorlage")
-    x.add_argument("--art", help="neu: " + " | ".join(("sprache", "bild", "ton", "3d", "video", "sonstig")))
+    x.add_argument("--art", help="neu: " + " | ".join(("sprache", "bild", "ton", "3d", "video", "sonstig"))
+                   + " · vermerk: ausgewaehlt | verworfen | nachbearbeitet")
     x.add_argument("--schnittstelle", help="neu: ollama | comfyui | befehl (eigenes Programm ohne Dienst-Schnittstelle, z. B."
                                          " eine Ton-KI in Python: eintragen, Recht und Modell-Freigabe wie sonst; rechnen über"
                                          " amw lauf ausfuehren --gpu)")
@@ -2134,6 +2148,10 @@ def parser():
     x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--bogen", type=nummer)
     x.add_argument("--frist", type=float, help="auftrag: höchstens so viele Minuten rechnen (Vorgabe 60)")
+    x.add_argument("--nachts", action="store_true", help="auftrag: erst im KI-Fenster starten (Vorgabe 22–06 Uhr), nie vor einem"
+                                                         " Testtermin – eilt nicht, belegt die Grafikkarte nicht, während du am PC bist")
+    x.add_argument("--text", help="vermerk: was von Hand nachbearbeitet wurde bzw. warum ausgewählt/verworfen")
+    x.add_argument("--kanal", choices=["cli", "bruecke"], default="cli", help=argparse.SUPPRESS)   # setzt die Brücke
     x.add_argument("--alle", action="store_true", help="nachweis: auch archivierte und gelöschte Dokumente")
     x.set_defaults(f=cmd_ki)
 

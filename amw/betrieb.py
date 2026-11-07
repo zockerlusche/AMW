@@ -119,6 +119,10 @@ def _speicher_fehlt(con, pid, l_grenze, speicher_frei):
 
 def _lebt(con, pid, l):
     """Darf der Lauf jetzt überhaupt starten: KI-Auftrag (rechnet der Dienst) oder Agent mit lebender Sitzung, ohne Halt."""
+    if l["nachts"]:                              # KI-Auftrag mit --nachts: außerhalb des KI-Fensters wie nicht da
+        from . import ki
+        if ki.nacht_sperre(con):
+            return False
     lebt = l["ki_auftrag"] or con.execute(
         "SELECT 1 FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
         " AND a.kennung = ? AND s.zustand = 'aktiv'", (pid, l["agent"])).fetchone()
@@ -151,19 +155,20 @@ def _gesperrt(con, pid, wartend, schirm_zu, bis=None):
 
 def wartende(con, pid):
     """Warteschlange: Rang (vorgezogen) vor Reihenfolge der Anmeldung. ki_auftrag: der Lauf ist ein KI-Auftrag (führt der
-    Dienst aus, kein Weckruf an den Agenten)."""
-    return con.execute("SELECT l.*, r.braucht_speicher_gb, k.id AS ki_auftrag FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
+    Dienst aus, kein Weckruf an den Agenten); nachts: startet erst im KI-Fenster."""
+    return con.execute("SELECT l.*, r.braucht_speicher_gb, k.id AS ki_auftrag, json_extract(k.parameter, '$.nachts') AS nachts FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
                        " LEFT JOIN ki_auftrag k ON k.lauf_id = l.id"
                        " WHERE l.projekt_id = ? AND l.status = 'angemeldet' ORDER BY l.rang DESC, l.id", (pid,)).fetchall()
 
 
 def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=False, aufgabe_id=None,
-               speicher_frei=None, warten=False, erwartet_min=None, gpu=False, dazu=None):
+               speicher_frei=None, warten=False, erwartet_min=None, gpu=False, dazu=None, sperre=None):
     """Meldet einen Lauf an und startet ihn, wenn er darf. Regeln: kein Halt; Schirm und Grafikkarte PC-weit ein Lauf
     zur Zeit; schwere Läufe ohne beides parallel bis cpu_laeufe(); ein Agent nie zwei schwere zugleich; freier Speicher
     ≥ Grenze je Lauf; niemand überholt die Warteschlange auf seinem Platz. Darf er nicht: ohne warten AmwFehler mit Grund (nichts wird angelegt), mit warten eingereiht (status
     'angemeldet'); warteschlange() startet ihn, sobald er dran ist, und weckt den Agenten mit einer Freigabe.
-    dazu(lid): läuft in derselben Transaktion (KI-Auftrag zum Lauf) – nie ein Lauf ohne seinen Auftrag."""
+    dazu(lid): läuft in derselben Transaktion (KI-Auftrag zum Lauf) – nie ein Lauf ohne seinen Auftrag.
+    sperre: Grund, warum er jetzt nicht starten darf, obwohl der Platz frei wäre (KI-Auftrag mit --nachts)."""
     if kern.halt_gilt(con, pid, agent):
         raise kern.AmwFehler("HALT gilt – keine Läufe starten")
     rez = None
@@ -179,8 +184,8 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     with db.schreiben(con):
         w = wartende(con, pid)
         schirm_zu = schirm_mod.sperrgrund(con) if schirm or any(x["schirm"] for x in w) else None
-        grund = (schirm_zu if schirm else None) or _besetzt(con, pid, plaetze)[0]
-        gesperrt = _gesperrt(con, pid, w, schirm_zu)
+        grund = sperre or (schirm_zu if schirm else None) or _besetzt(con, pid, plaetze)[0]
+        gesperrt = _gesperrt(con, pid, w, schirm_zu) if not sperre else {}
         vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
         if not grund and vor:
             grund = "Warteschlange: " + ", ".join(f"L{x['id']} von {x['agent']}" for x in vor) + " wartet schon"
@@ -263,13 +268,19 @@ def wartegrund(con, pid, l, speicher_frei=None):
     """Warum ein eingereihter Lauf noch nicht dran ist – dieselben Regeln wie warteschlange(), als Text."""
     w = wartende(con, pid)
     platz = next((i for i, x in enumerate(w, 1) if x["id"] == l["id"]), None)
-    ki_auftrag = con.execute("SELECT id FROM ki_auftrag WHERE lauf_id = ?", (l["id"],)).fetchone()
+    ki_auftrag = con.execute("SELECT id, json_extract(parameter, '$.nachts') AS nachts FROM ki_auftrag WHERE lauf_id = ?",
+                             (l["id"],)).fetchone()
     plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"], None if ki_auftrag else l["agent"])
     frei = speicher_frei if speicher_frei is not None else speicher_frei_gb()[0]
     gruende = []
     schirm_zu = schirm_mod.sperrgrund(con) if l["schirm"] or any(x["schirm"] for x in w) else None
     if l["schirm"] and schirm_zu:
         gruende.append(schirm_zu)
+    if ki_auftrag and ki_auftrag["nachts"]:
+        from . import ki
+        s = ki.nacht_sperre(con)
+        if s:
+            gruende.append(s + " – bis dahin überholen ihn alle anderen")
     if kern.halt_gilt(con, pid, l["agent"]):
         gruende.append("HALT gilt")
     b = _besetzt(con, pid, plaetze)[0]

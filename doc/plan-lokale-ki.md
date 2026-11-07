@@ -1,7 +1,8 @@
 # Lokale KIs in der AMW (universal)
 
 Stand 05.11.2026. Anlass: Wunsch des Entwicklers, die lokal installierten KIs so überschaubar zu führen wie die Agenten.
-Status: **Stufe 1 umgesetzt (AMW 1.16.0, Schema 17)**, freigegeben vom Entwickler. Stufe 2 und 3 siehe unten.
+Status: **Stufe 1 umgesetzt (AMW 1.16.0, Schema 17)**, **Stufe 2 (AMW 1.31.0, Schema 21)**, Stufe 3 seit 1.30.1 – siehe
+§6. Alle offenen Fragen sind entschieden (unten).
 
 ## Bedienung (Stufe 1)
 
@@ -24,7 +25,21 @@ amw ki zeige L812        # Stand, Ergebnisse, Herkunft je Dokument
 amw ki                   # KIs, Modelle mit Freigabe, Vorlagen, Aufträge
 amw ki nachweis [--aufgabe N | --bogen N]   # Liste aller KI-Dokumente mit Modell und Lizenz
 amw lauf start|ausfuehren --gpu …           # eigene Läufe, die die Grafikkarte brauchen
+
+# Stufe 2
+amw ki auftrag comfyui … --nachts           # erst im KI-Fenster (Vorgabe 22–06 Uhr), nie vor einem Testtermin
+amw ki fenster                              # Fenster, offen/zu und warum, was mit --nachts wartet
+amw ki vermerk D140 --art ausgewaehlt       # oder verworfen | nachbearbeitet --text "Kanten nachgezogen …"
 ```
+
+- **KI-Fenster (Stufe 2):** PC-Einstellung `ki_fenster` (Zahnrad › Dieser PC, z. B. `22-06`, leer = keins). Ein Auftrag mit
+  `--nachts` steht in der gemeinsamen Schlange, zählt aber außerhalb des Fensters und in der Vorlaufzeit eines Testtermins
+  (PC-weit, bis zum Ende des Termins) wie „nicht da“: Er hält niemanden auf, alle anderen Läufe überholen ihn. Ist das
+  Fenster offen, startet er wie jeder Lauf; einmal gestartet, rechnet er zu Ende. Die Angabe steht in
+  `ki_auftrag.parameter` und geht nie an die KI (wie `frist_min`). Terminplaner: Band über 24 h mit Strich für jetzt.
+- **Vermerke (Stufe 2):** Tabelle `ki_vermerk` (Dokument, gezeigte Fassung, Art, Text, wer, Kanal cli|workbench|netz|
+  bruecke, Zeit); nie geändert, nie gelöscht – es gilt der jüngste Entscheid ausgewählt/verworfen. Nur an Dokumenten mit
+  KI-Herkunft; vermerken dürfen die Agenten des Projekts, Lead und Entwickler. „nachbearbeitet“ braucht den Text.
 
 - **Vorlagen-Platzhalter:** `{prompt}` `{negativ}` `{seed}` `{breite}` `{hoehe}` `{bild}` `{modell}`. Steht ein Platzhalter
   allein, behält der Wert seinen Typ (Seed als Zahl). Bild n bekommt Seed + n − 1.
@@ -46,7 +61,8 @@ amw lauf start|ausfuehren --gpu …           # eigene Läufe, die die Grafikkar
 
 1. Variante C und Ausführung durch die AMW (2b) – so gebaut.
 2. Frei gibt der Lead; bei Nutzungsregeln oder Registrierung nur der Entwickler.
-3. KI-Fenster `--nachts`: kommt mit Stufe 2.
+3. KI-Fenster `--nachts`: feste Uhrzeit, Vorgabe 22–06 Uhr (F5253, 07.11.) – gebaut in 1.31.0.
+5. Vermerke mit eigener Tabelle `ki_vermerk`, Schema 21 (F5254, 07.11.) – gebaut in 1.31.0.
 4. Anfangs dürfen nur Lead und Entwickler beauftragen; weitere Rechte setzt der Lead (`amw ki recht`).
 
 ## Kurzfassung
@@ -209,7 +225,7 @@ Dazu im Einzelnen:
 | Stufe | Inhalt |
 |---|---|
 | 1 | `ki`, `ki_modell` (Freigabe), `ki_vorlage`, `ki_recht`; Platz „gpu“ PC-weit; `amw ki auftrag` für ollama und comfyui, ausgeführt vom Dienst; Ergebnis als Dokument mit `ki_herkunft`; Weckruf an den Auftraggeber; Workbench: Betrieb → KI |
-| 2 | KI-Fenster `--nachts` mit Band im Terminplaner; Vermerke ausgewählt, verworfen und nachbearbeitet (Workbench und Handy); `amw ki nachweis` |
+| 2 | KI-Fenster `--nachts` mit Band im Terminplaner; Vermerke ausgewählt, verworfen und nachbearbeitet (Workbench und Handy); `amw ki nachweis` – seit 1.31.0 (Schema 21) |
 | 3 | Schnittstelle „befehl“ (Blender, ffmpeg) über `lauf ausfuehren`; Meldung „fremde GPU-Last“ – beides seit 1.30.1 (Eintragen von „befehl“; `amw/gpu.py`: ab 60 % über drei Prüfungen, ohne angemeldeten Lauf, Entwickler 5 min weg, höchstens stündlich, nur melden) |
 
 ## Offene Fragen an den Entwickler

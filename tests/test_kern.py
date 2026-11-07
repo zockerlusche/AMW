@@ -234,6 +234,7 @@ class Verlauf(unittest.TestCase):
             self.con.execute(f"DROP TABLE {t}")
         for t in ("lauf", "rezept"):
             self.con.execute(f"ALTER TABLE {t} DROP COLUMN gpu")
+        self.con.execute("DROP TABLE ki_vermerk")              # Vermerke an KI-Ergebnissen kamen mit Schema 21
         self.con.execute("ALTER TABLE nachricht DROP COLUMN bis")      # Bezug von Meldungen kam mit Schema 20
         self.con.execute("PRAGMA user_version = 1")
         self.con.close()

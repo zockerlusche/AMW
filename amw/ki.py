@@ -12,6 +12,7 @@
   (ohne Fenster, wie Projekt-Server) und lässt es danach laufen.
 - Startbefehl und Endpunkt kommen nur über die Kommandozeile am PC in die Datenbank (nie über Brücke oder Online-Seite).
 """
+import datetime
 import hashlib
 import http.client
 import json
@@ -37,6 +38,7 @@ LOKAL = ("127.0.0.1", "localhost", "::1")
 KOMMERZIELL = ("ja", "nein", "registrierung", "unklar")
 PLATZHALTER = ("prompt", "negativ", "seed", "breite", "hoehe", "bild", "modell")
 PLATZ = re.compile(r"\{(" + "|".join(PLATZHALTER) + r")\}")
+INTERN = ("frist_min", "nachts")       # in ki_auftrag.parameter, gehen nie an die KI
 MODELL_ENDUNGEN = (".safetensors", ".gguf", ".ckpt", ".pt", ".pth", ".bin", ".sft")
 ANZAHL_MAX = 16
 PROMPT_MAX = 20_000
@@ -298,9 +300,10 @@ def _frei_oder_fehler(m, ki):
 
 
 def auftrag(con, pid, von, ki_name, prompt, modell=None, vorlage=None, negativ=None, seed=None, anzahl=1, breite=None,
-            hoehe=None, bild=None, parameter=None, titel=None, aufgabe_id=None, frist_min=None):
+            hoehe=None, bild=None, parameter=None, titel=None, aufgabe_id=None, frist_min=None, nachts=False):
     """Prüft Recht, Freigaben und Vorlage, legt Lauf (schwer + gpu) und Auftrag in einer Transaktion an.
-    Rückgabe (lauf_id, auftrag_id, läuft_schon)."""
+    nachts: startet erst im KI-Fenster (PC-Einstellung ki_fenster) und nie in der Vorlaufzeit eines Testtermins – bis dahin
+    überholen ihn alle anderen Läufe. Rückgabe (lauf_id, auftrag_id, läuft_schon)."""
     ki = ki_zeile(con, ki_name)
     if not ki["aktiv"]:
         raise kern.AmwFehler(f"KI {ki['name']} ist abgeschaltet")
@@ -384,10 +387,12 @@ def auftrag(con, pid, von, ki_name, prompt, modell=None, vorlage=None, negativ=N
             vorlage_id=v["id"] if v else None, vorlage_sha256=v["sha256"] if v else None, auftraggeber=von,
             aufgabe_id=aufgabe_id, titel=(titel or "").strip()[:200] or None, prompt=prompt, negativ=negativ or None,
             seed=seed, anzahl=anzahl, breite=breite, hoehe=hoehe, eingabe=json.dumps(eingabe) if eingabe else None,
-            parameter=json.dumps({**(parameter or {}), **({"frist_min": frist_min} if frist_min else {})}, ensure_ascii=False)
-            if parameter or frist_min else None, angelegt_utc=db.jetzt())
+            parameter=json.dumps(intern, ensure_ascii=False) if intern else None, angelegt_utc=db.jetzt())
+    if parameter and any(k in parameter for k in INTERN):
+        raise kern.AmwFehler(f"--parameter: {', '.join(INTERN)} setzt die AMW selbst (--frist, --nachts)")
+    intern = {**(parameter or {}), **({"frist_min": frist_min} if frist_min else {}), **({"nachts": 1} if nachts else {})}
     lid = betrieb.lauf_start(con, pid, von, beschreibung, schwer=True, gpu=True, aufgabe_id=aufgabe_id, warten=True,
-                             erwartet_min=erwartet, dazu=dazu)
+                             erwartet_min=erwartet, dazu=dazu, sperre=nacht_sperre(con) if nachts else None)
     laeuft = betrieb.lauf_zeile(con, pid, lid)["status"] == "laeuft"
     return lid, neu["id"], laeuft
 
@@ -676,7 +681,8 @@ class Arbeiter:
         if not digest:
             raise KiFehler(f"Ollama kennt {m['name']} nicht (ollama pull {m['name']} – macht ein Mensch oder Agent, nicht die AMW)")
         p = json.loads(a["parameter"] or "{}")
-        p.pop("frist_min", None)
+        for k in INTERN:
+            p.pop(k, None)
         system = p.pop("system", None)
         bilder = [self._bild_b64(a)] if a["eingabe"] else []
         fertig = json.loads(a["dokumente"] or "[]")
@@ -899,6 +905,69 @@ def starten():
     return f
 
 
+# --- KI-Fenster (--nachts) -----------------------------------------------------------------------
+
+def fenster():
+    """(Anfang, Ende) in Minuten nach Mitternacht (Ortszeit) aus der PC-Einstellung ki_fenster, None = kein Fenster."""
+    from . import einstellungen
+    v = einstellungen.wert("ki_fenster")
+    if not v:
+        return None
+    a, b = (int(x[:2]) * 60 + int(x[3:]) for x in v.split("-"))
+    return a, b
+
+
+_LESEN = object()          # Fenster aus der PC-Einstellung lesen (None heißt: kein Fenster)
+
+
+def fenster_text(f=_LESEN):
+    f = fenster() if f is _LESEN else f
+    return f"{f[0] // 60:02d}:{f[0] % 60:02d}–{f[1] // 60:02d}:{f[1] % 60:02d} Uhr" if f else "kein Fenster"
+
+
+def im_fenster(jetzt=None, f=_LESEN):
+    f = fenster() if f is _LESEN else f
+    if not f:
+        return True
+    t = (jetzt or datetime.datetime.now()).astimezone()
+    m = t.hour * 60 + t.minute
+    a, b = f
+    return a <= m < b if a < b else (m >= a or m < b)
+
+
+def testtermin_vorrang(con, jetzt=None):
+    """Text, wenn gerade (PC-weit, in irgendeinem Projekt) die Vorlaufzeit eines Testtermins oder der Termin selbst läuft."""
+    from . import termine
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    for t in con.execute("SELECT * FROM termin WHERE art = 'test' AND status = 'geplant' AND vorlauf_h > 0").fetchall():
+        for v in termine._vorkommen_eines(t, jetzt - datetime.timedelta(hours=12), jetzt + datetime.timedelta(hours=t["vorlauf_h"])):
+            am = termine._dt(v["am_utc"])
+            if not am - datetime.timedelta(hours=t["vorlauf_h"]) <= jetzt < am + datetime.timedelta(minutes=t["dauer_min"] or 60):
+                continue
+            if con.execute("SELECT 1 FROM termin_meldung WHERE termin_id = ? AND am_utc = ? AND art = 'abgesagt'",
+                           (t["id"], v["am_utc"])).fetchone():
+                continue
+            return f"Testtermin „{t['titel']}“ ({am.astimezone():%d.%m. %H:%M}) hat Vorrang"
+    return None
+
+
+def nacht_sperre(con, jetzt=None):
+    """Warum ein KI-Auftrag mit --nachts jetzt nicht starten darf (Text), sonst None."""
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    f = fenster()
+    if not im_fenster(jetzt, f):
+        return f"wartet auf das KI-Fenster {fenster_text(f)} (--nachts)"
+    return testtermin_vorrang(con, jetzt)
+
+
+def nachts_wartend(con):
+    """KI-Aufträge mit --nachts, die noch warten: (Zahl, geschätzte Sekunden aus der Modell-Probe)."""
+    r = con.execute("SELECT count(*), sum(coalesce(m.sekunden, 0) * a.anzahl) FROM ki_auftrag a JOIN lauf l ON l.id = a.lauf_id"
+                    " LEFT JOIN ki_modell m ON m.id = a.modell_id WHERE l.status = 'angemeldet'"
+                    " AND json_extract(a.parameter, '$.nachts') = 1").fetchone()
+    return r[0], round(r[1] or 0)
+
+
 # --- Ansicht und Nachweis ------------------------------------------------------------------------
 
 def uebersicht(con, pid):
@@ -935,6 +1004,56 @@ def herkunft_von(con, pid, did):
         " JOIN dokument d ON d.id = v.dokument_id WHERE d.id = ? AND d.projekt_id = ? ORDER BY v.nr", (did, pid))]
 
 
+VERMERKE = ("ausgewaehlt", "verworfen", "nachbearbeitet")
+VERMERK_TEXT = {"ausgewaehlt": "ausgewählt", "verworfen": "verworfen", "nachbearbeitet": "nachbearbeitet"}
+VERMERK_TEXT_MAX = 2000
+
+
+def vermerken(con, pid, von, dokument, art, text=None, kanal="cli"):
+    """Vermerk an einem KI-Ergebnis (Agent des Projekts, Lead oder Entwickler). nachbearbeitet braucht den Text, was von
+    Hand geändert wurde – das ist der Nachweis der menschlichen Gestaltungsentscheidung. Rückgabe: id."""
+    art = (art or "").strip().lower().replace("ä", "ae")
+    if art not in VERMERKE:
+        raise kern.AmwFehler(f"Vermerk: {' | '.join(VERMERKE)}")
+    text = (text or "").strip() or None
+    if art == "nachbearbeitet" and (not text or len(text) < 5):
+        raise kern.AmwFehler("nachbearbeitet: --text angeben – was wurde von Hand geändert? (Nachweis für das Urheberrecht)")
+    if text and len(text) > VERMERK_TEXT_MAX:
+        raise kern.AmwFehler(f"Vermerk länger als {VERMERK_TEXT_MAX} Zeichen")
+    if text and dokumente.GEHEIM.search(text):
+        raise kern.AmwFehler("Der Text enthält etwas, das wie ein Schlüssel aussieht – nicht vermerkt")
+    if von not in (kern.ENTWICKLER, db.produkt_entwickler()):
+        kern.agent_zeile(con, pid, von)
+    try:
+        did = int(str(dokument).strip().lstrip("Dd"))
+    except ValueError:
+        raise kern.AmwFehler(f"Dokument „{dokument}“: D<nr>") from None
+    d = con.execute("SELECT id, status FROM dokument WHERE id = ? AND projekt_id = ?", (did, pid)).fetchone()
+    if not d:
+        raise kern.AmwFehler(f"D{did} gibt es nicht")
+    if d["status"] == "geloescht":
+        raise kern.AmwFehler(f"D{did} ist gelöscht")
+    if not con.execute("SELECT 1 FROM ki_herkunft h JOIN dokument_version v ON v.id = h.dokument_version_id"
+                       " WHERE v.dokument_id = ?", (did,)).fetchone():
+        raise kern.AmwFehler(f"D{did} hat keine KI-Herkunft – Vermerke gibt es nur an KI-Ergebnissen")
+    nr = con.execute("SELECT max(nr) FROM dokument_version WHERE dokument_id = ?", (did,)).fetchone()[0]
+    with db.schreiben(con):
+        return db.einfuegen(con, "ki_vermerk", projekt_id=pid, dokument_id=did, version_nr=nr, art=art, text=text, von=von,
+                            kanal=kanal, zeit_utc=db.jetzt())
+
+
+def vermerke_von(con, pid, did):
+    """Alle Vermerke eines Dokuments, älteste zuerst."""
+    return [dict(r) for r in con.execute("SELECT id, version_nr, art, text, von, kanal, zeit_utc FROM ki_vermerk"
+                                         " WHERE dokument_id = ? AND projekt_id = ? ORDER BY id", (did, pid))]
+
+
+def vermerk_stand(vermerke):
+    """(jüngster Entscheid ausgewaehlt|verworfen als Zeile oder None, Liste der Nachbearbeitungen)."""
+    wahl = next((v for v in reversed(vermerke) if v["art"] in ("ausgewaehlt", "verworfen")), None)
+    return wahl, [v for v in vermerke if v["art"] == "nachbearbeitet"]
+
+
 def nachweis(con, pid, aufgabe=None, bogen=None, alle=False):
     """Alle Dokumente mit KI-Herkunft (für Steam-Angabe und ASSET_SOURCES) – Zeilen als dict."""
     sql = ("SELECT d.id AS dokument, d.titel, d.status, d.art, d.bezug_art, d.bezug_id, v.nr AS version, h.ki, h.ki_version,"
@@ -951,7 +1070,19 @@ def nachweis(con, pid, aufgabe=None, bogen=None, alle=False):
         sql += (" AND ((d.bezug_art = 'bogen' AND d.bezug_id = ?) OR (d.bezug_art = 'aufgabe' AND d.bezug_id IN"
                 " (SELECT id FROM aufgabe WHERE bogen_id = ?)))")
         werte += [bogen, bogen]
-    return [dict(r) for r in con.execute(sql + " ORDER BY d.id, v.nr", werte)]
+    zeilen = [dict(r) for r in con.execute(sql + " ORDER BY d.id, v.nr", werte)]
+    stand = {}
+    for z in zeilen:
+        if z["dokument"] not in stand:
+            stand[z["dokument"]] = vermerk_stand(vermerke_von(con, pid, z["dokument"]))
+        wahl, nach = stand[z["dokument"]]
+        z["entscheid"] = wahl["art"] if wahl else None
+        z["entscheid_von"] = f"{wahl['von']} {wahl['zeit_utc'][:10]}" if wahl else None
+        z["nachbearbeitet"] = [f"{v['von']} {v['zeit_utc'][:10]}: {v['text']}" for v in nach]
+        b = con.execute("SELECT beleg FROM aufgabe WHERE id = ? AND status = 'fertig'", (z["bezug_id"],)).fetchone() \
+            if z["bezug_art"] == "aufgabe" else None
+        z["beleg"] = b["beleg"] if b else None
+    return zeilen
 
 
 def nachweis_text(zeilen):
@@ -964,9 +1095,18 @@ def nachweis_text(zeilen):
     aus = ["# KI-Nachweis", "", f"{len(zeilen)} Dokument(e) mit KI-Herkunft (Inhalte vorab erzeugt, „pre-generated“).", "",
            "## Modelle und Lizenzen", ""]
     aus += [f"- {n}: {l}" for n, l in sorted(lizenzen.items(), key=lambda x: str(x[0]))]
-    aus += ["", "## Dokumente", "", "| D | Titel | Status | KI | Modell | Seed | Lauf | Gegenprobe |", "|---|---|---|---|---|---|---|---|"]
+    entscheid = lambda z: z.get("entscheid")
+    aus += ["", f"Ausgewählt: {sum(1 for z in zeilen if entscheid(z) == 'ausgewaehlt')}"
+                f" · verworfen: {sum(1 for z in zeilen if entscheid(z) == 'verworfen')}"
+                f" · ohne Entscheid: {sum(1 for z in zeilen if not entscheid(z))}"
+                f" · von Hand nachbearbeitet: {sum(1 for z in zeilen if z.get('nachbearbeitet'))}"]
+    zelle = lambda x: " ".join(str(x or "").replace("|", "/").split())
+    aus += ["", "## Dokumente", "", "| D | Titel | Status | KI | Modell | Seed | Lauf | Gegenprobe | Entscheid | Nachbearbeitet | Beleg |",
+            "|---|---|---|---|---|---|---|---|---|---|---|"]
     for z in zeilen:
-        aus.append(f"| D{z['dokument']} v{z['version']} | {z['titel'].replace('|', '/')} | {z['status']} | {z['ki']} {z['ki_version'] or ''}"
-                   f" | {z['modell'] or z['vorlage'] or ''} | {z['seed'] if z['seed'] is not None else ''} | L{z['lauf_id']}"
-                   f" | {z['gegenprobe'] or ''} |")
+        e = f"{VERMERK_TEXT[entscheid(z)]} ({z['entscheid_von']})" if entscheid(z) else ""
+        aus.append(f"| D{z['dokument']} v{z['version']} | {zelle(z['titel'])} | {z['status']} | {z['ki']} {z['ki_version'] or ''}"
+                   f" | {zelle(z['modell'] or z['vorlage'])} | {z['seed'] if z['seed'] is not None else ''} | L{z['lauf_id']}"
+                   f" | {zelle(z['gegenprobe'])} | {zelle(e)} | {zelle('; '.join(z.get('nachbearbeitet') or []))}"
+                   f" | {zelle(z.get('beleg'))} |")
     return "\n".join(aus) + "\n"

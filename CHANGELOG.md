@@ -4,6 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.31.0 – 07.11.2026 · KI Stufe 2: Nachtfenster und Vermerke an KI-Ergebnissen
+- **KI-Fenster für Aufträge, die nicht eilen:** `amw ki auftrag … --nachts` startet erst im KI-Fenster (Vorgabe 22–06 Uhr,
+  Ortszeit; Zahnrad › Dieser PC › KI-Fenster) und nie in der Vorlaufzeit eines Testtermins (in irgendeinem Projekt). Bis
+  dahin überholen ihn alle anderen Läufe – die Grafikkarte bleibt frei, solange du am PC arbeitest. Der Terminplaner zeigt
+  das Fenster als Band über 24 h mit dem, was wartet (Zahl und Dauer nach Modell-Probe); `amw ki fenster` auch.
+- **Vermerke an KI-Ergebnissen:** Im Dokument-Fenster eines KI-Bildes oder -Textes: Auswählen, Verwerfen und
+  „Nachbearbeitung vermerken“ (was von Hand geändert wurde) – am PC, am Handy und über `amw ki vermerk D<nr> --art
+  ausgewaehlt|verworfen|nachbearbeitet [--text …]`. Es gilt der jüngste Entscheid; nichts wird geändert oder gelöscht,
+  jeder Vermerk steht mit wer, wann und Kanal. Die Kacheln der Dokumente zeigen „ausgewählt / verworfen / offen“.
+  Schema 21 (Tabelle `ki_vermerk`) auf Marcels Wort.
+- **Nachweis:** `amw ki nachweis` zählt ausgewählt / verworfen / ohne Entscheid / nachbearbeitet und nennt je Dokument
+  Entscheid, Nachbearbeitung und den Beleg (Commit) der fertigen Aufgabe – Grundlage für die Steam-Angabe und das
+  Urheberrecht (menschliche Gestaltungsentscheidung).
+
 ## 1.30.1 – 07.11.2026 · Mausmodus, KI-Schnittstelle „befehl“
 - **Kein Mausmodus mehr nach hartem Stopp:** Endet Claude im Tab (auch beim Beenden aus der Workbench), setzt die
   PowerShell im Tab das Terminal zurück. Vorher schrieb jeder Mausklick Steuerzeichen. Gilt für Start aus der Workbench

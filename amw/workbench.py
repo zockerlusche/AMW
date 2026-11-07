@@ -343,7 +343,12 @@ def daten_planung(con, pid):
                                          " AND bezug_id = ? AND status = 'aktuell'", (pid, s["id"])).fetchone()[0]
         b["beginn_ist"] = (con.execute("SELECT min(coalesce(begonnen_utc, fertig_utc)) FROM aufgabe WHERE bogen_id = ?"
                                        " AND status != 'verworfen'", (b["id"],)).fetchone()[0] or "")[:10] or None   # Übersicht
-    return {"termine": termin_liste, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
+    from . import ki
+    f = ki.fenster()
+    n, sek = ki.nachts_wartend(con)
+    ki_fenster = {"von": f[0] if f else None, "bis": f[1] if f else None, "text": ki.fenster_text(f), "offen": ki.im_fenster(f=f),
+                  "termin": ki.testtermin_vorrang(con), "wartend": n, "sekunden": sek}
+    return {"termine": termin_liste, "ki_fenster": ki_fenster, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
             "pruefung": planung.pruefen(con, pid, prog, mit_akzeptierten=True), "status": planung.status(con, pid, prog),
             "check_texte": {k: {"wer": v[1], "ziel": v[2], **v[3]} for k, v in planung.CHECKS.items()}, "lead": kern.lead(con, pid),
             "wartet": planung.freigaben_offen(con, pid), "heute": datetime.date.today().isoformat(),   # lokales Datum für die Heute-Linie
@@ -659,8 +664,15 @@ def daten_dokumente(con, pid, q):
     status = w("status") or "aktuell"
     liste = dokumente.liste(con, pid, w("art"), w("bezug_art"), int(w("bezug_id")) if (w("bezug_id") or "").isdigit() else None,
                             w("von"), w("q"), None if status == "alle" else status)
+    ki_doks = {r[0] for r in con.execute("SELECT DISTINCT v.dokument_id FROM ki_herkunft h JOIN dokument_version v"
+                                         " ON v.id = h.dokument_version_id JOIN dokument d ON d.id = v.dokument_id WHERE d.projekt_id = ?", (pid,))}
+    entscheid = {r[0]: r[1] for r in con.execute(
+        "SELECT dokument_id, art FROM ki_vermerk WHERE id IN (SELECT max(id) FROM ki_vermerk WHERE projekt_id = ?"
+        " AND art IN ('ausgewaehlt', 'verworfen') GROUP BY dokument_id)", (pid,))}
     for d in liste:
         d.pop("sha256", None)
+        if d["id"] in ki_doks:                    # KI-Ergebnis: ausgewählt | verworfen | offen (Karte zeigt es)
+            d["ki"] = entscheid.get(d["id"], "offen")
     zahl = lambda sql: {r[0]: r[1] for r in con.execute(sql, (pid,))}
     return {"dokumente": liste, "arten": zahl("SELECT art, count(*) FROM dokument WHERE projekt_id = ? AND status = 'aktuell' GROUP BY art"),
             "von": zahl("SELECT angelegt_von, count(*) FROM dokument WHERE projekt_id = ? AND status = 'aktuell' GROUP BY angelegt_von"),
@@ -688,6 +700,8 @@ def daten_dokument(con, pid, q, gespraech=None):
     d["ki_herkunft"] = [{k: h[k] for k in ("nr", "ki", "ki_version", "modell", "modell_lizenz", "modelle", "vorlage", "prompt",
                                            "negativ", "seed", "lauf_id", "dauer_s", "vram_spitze_gb", "gegenprobe", "zeit_utc")}
                         for h in ki.herkunft_von(con, pid, did)]
+    if d["ki_herkunft"]:
+        d["ki_vermerke"] = ki.vermerke_von(con, pid, did)
     if v["vorschau"] == "text" and d["status"] != "geloescht":
         roh, _ = dokumente.inhalt(con, pid, did, v["nr"])
         d["text"] = roh.decode("utf-8", errors="replace")

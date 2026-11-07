@@ -171,6 +171,9 @@ def dokument(con, pid, was, d, kanal, speicher=None):
         if was == "online":
             dokumente.online_setzen(con, pid, e, did, bool(d.get("an")))
             return {"ok": True}
+        if was == "vermerk":                          # KI-Ergebnis ausgewählt / verworfen / nachbearbeitet (auch am Handy)
+            from . import ki
+            return {"vermerk": ki.vermerken(con, pid, e, did, d.get("art"), d.get("text"), "workbench" if kanal == "seite" else "netz")}
         if was == "loeschen":
             if kanal != "seite":
                 raise Ungueltig("Endgültig löschen geht nur am PC")

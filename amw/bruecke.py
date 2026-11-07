@@ -152,6 +152,11 @@ def argumente(befehl, eingang=EINGANG, von=None, projekt=None):
         if "--quelle" in args:
             raise ValueError("--quelle setzt beim Schirm die Brücke selbst")
         args = args + ["--quelle", "bruecke"]
+    if args[0] == "ki":                                    # KI-Vermerk: den Kanal setzt die Brücke
+        if any(a.split("=")[0] == "--kanal" for a in args):
+            raise ValueError("--kanal setzt die Brücke selbst")
+        if args[1:2] == ["vermerk"]:
+            args = args + ["--kanal", "bruecke"]
     for i, a in enumerate(args):
         if a.split("=")[0] in ("--datei", "--text-datei", "--prompt-datei") and "=" in a:
             raise ValueError(f"{a.split('=')[0]} bitte als eigenen Schlüssel angeben")
