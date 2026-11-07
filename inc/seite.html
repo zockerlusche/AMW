@@ -920,6 +920,7 @@ const TEXTE = {
     pl_plan_frei: "Plan A{a} „{x}“ von {ag} freigeben", pr_zeitleiste: "Zeitleiste", pr_leitbild: "Leitbild", pr_risiken: "Risiken",
     pr_check: "Plan-Check", pr_protokoll: "Protokoll", pr_termine: "Termine",
     themen: "Themen ({n})", w_neueste: "Die neuesten {n} von {g} – ältere findet die Suche.",
+    dk_format: "Format", dk_format_alle: "alle Formate", dkf_bild: "Bilder", dkf_video: "Videos", dkf_text: "Texte", dkf_mockup: "Mockups", dkf_pdf: "PDF", dkf_download: "Office",
     dk_alle: "Alle", dk_art: "Art", dk_zeit_alle: "jederzeit", dk_zeit_heute: "heute", dk_zeit_7: "letzte 7 Tage", dk_zeit_30: "letzte 30 Tage",
     dk_sort_neu: "neueste zuerst", dk_sort_alt: "älteste zuerst", dk_sort_titel: "Titel A–Z", dk_sort_art: "nach Art", th_erkl: "Je System eine Seite „gilt jetzt“: die gepflegte Zusammenfassung und alle geltenden Beschlüsse des Themas. Ein neuer Beschluss macht die Zusammenfassung „veraltet“, bis der Pfleger sie anpasst oder bestätigt. Alte Beschlüsse werden „überholt“ statt liegen zu bleiben.",
     th_veraltet: "veraltet seit B{b}", th_aktuell: "aktuell", th_ohne: "ohne Zusammenfassung", th_stil: "Projekt-Stil", th_zahlen: "{g} gelten · Pfleger {p}",
@@ -1229,6 +1230,7 @@ const TEXTE = {
     ampel_gelb: "amber", ampel_rot: "red", pl_freigaben: "{n} approval(s) for you", pl_spec_frei: "Arc {b} “{x}”: approve {teil} (v{v})",
     pl_plan_frei: "Approve plan A{a} “{x}” by {ag}", pr_zeitleiste: "Timeline", pr_leitbild: "Charter", pr_risiken: "Risks", pr_check: "Plan check", pr_termine: "Dates",
     themen: "Topics ({n})", w_neueste: "The latest {n} of {g} – search finds older ones.",
+    dk_format: "Format", dk_format_alle: "all formats", dkf_bild: "Images", dkf_video: "Videos", dkf_text: "Texts", dkf_mockup: "Mockups", dkf_pdf: "PDF", dkf_download: "Office",
     dk_alle: "All", dk_art: "Type", dk_zeit_alle: "any time", dk_zeit_heute: "today", dk_zeit_7: "last 7 days", dk_zeit_30: "last 30 days",
     dk_sort_neu: "newest first", dk_sort_alt: "oldest first", dk_sort_titel: "Title A–Z", dk_sort_art: "by type", th_erkl: "One page per system “in force now”: the maintained summary plus all decisions in force for the topic. A new decision marks the summary “outdated” until the maintainer updates or confirms it. Old decisions are marked “superseded” instead of piling up.",
     th_veraltet: "outdated since B{b}", th_aktuell: "current", th_ohne: "no summary", th_stil: "project style", th_zahlen: "{g} in force · maintainer {p}",
@@ -2323,6 +2325,7 @@ async function sichtWissen() {
 /* --- Dokumente ----------------------------------------------------------------------------- */
 const dokUrl = (id, v) => ziel(`/api/dokument/datei?id=${id}${v ? "&v=" + v : ""}`);
 const nurAmPc = d => API && d.vorschau !== "text" && !d.online;      // online: Datei nicht auf dem Webspace
+const DK_FORMATE = ["bild", "video", "text", "mockup", "pdf", "download"];
 function dokSymbol(d) {
   const symbol = () => el("span", { class: "dk-symbol" }, d.vorschau === "mockup" ? "Mockup" : d.vorschau === "pdf" ? "PDF" : d.format === "markdown" ? "Text" : d.format === "bild" ? t("dk_bild") : d.format,
     el("small", {}, nurAmPc(d) ? `${d.endung} · ${t("dk_online_aus")}` : d.endung));
@@ -2352,7 +2355,14 @@ async function sichtDokumente() {
     chip("", `${t("dk_alle")} (${arten.reduce((s, [, n]) => s + n, 0)})`), arten.map(([a, n]) => chip(a, `${t("dka_" + a)} (${n})`))));
   const wahl = (k, paare, vorgabe) => el("select", { onchange: e => neu(k, e.target.value) }, paare.map(([v, text]) =>
     el("option", { value: v, ...((f[k] || vorgabe) === v ? { selected: true } : {}) }, text)));
-  m.append(el("div", { class: "dk-filter" }, such,
+  /* Format (Bild, Video, Text …) – quer zur Art: ein Video ist z. B. Art „Ergebnis“; Zahl = Dokumente in dieser Auswahl */
+  const formate = {};
+  for (const x of d.dokumente) formate[x.vorschau] = (formate[x.vorschau] || 0) + 1;
+  if (f.format && !formate[f.format]) formate[f.format] = 0;
+  const formatWahl = el("select", { "aria-label": t("dk_format"), onchange: e => neu("format", e.target.value) },
+    el("option", { value: "" }, t("dk_format_alle")),
+    DK_FORMATE.filter(v => formate[v] != null).map(v => el("option", { value: v, ...(f.format === v ? { selected: true } : {}) }, `${t("dkf_" + v)} (${formate[v]})`)));
+  m.append(el("div", { class: "dk-filter" }, such, formatWahl,
     auswahl("von", t("alle_agenten"), Object.entries(d.von).map(([a, n]) => [a, `${a} (${n})`])),
     auswahl("bezug", t("dk_alle_bezuege"), bezugListe),
     wahl("zeit", [["", t("dk_zeit_alle")], ["heute", t("dk_zeit_heute")], ["7", t("dk_zeit_7")], ["30", t("dk_zeit_30")]], ""),
@@ -2361,13 +2371,13 @@ async function sichtDokumente() {
       el("option", { value: s, ...(f.status === s ? { selected: true } : {}) }, t("dks_" + s) + (s === "archiviert" ? ` (${d.archiviert})` : "")))),
     el("button", { class: "klein-knopf", type: "button", onclick: () => neu("liste", !f.liste) }, t(f.liste ? "dk_raster" : "dk_liste"))));
   const ab = f.zeit === "heute" ? new Date(new Date().setHours(0, 0, 0, 0)) : f.zeit ? new Date(Date.now() - Number(f.zeit) * 864e5) : null;
-  d.dokumente = d.dokumente.filter(x => !ab || new Date(x.version_utc) >= ab);
+  d.dokumente = d.dokumente.filter(x => (!ab || new Date(x.version_utc) >= ab) && (!f.format || x.vorschau === f.format));
   const vergleich = { alt: (a, b) => a.version_utc.localeCompare(b.version_utc) || a.id - b.id,
     titel: (a, b) => a.titel.localeCompare(b.titel, gebiet(), { numeric: true }),
     art: (a, b) => t("dka_" + a.art).localeCompare(t("dka_" + b.art), gebiet()) || b.version_utc.localeCompare(a.version_utc) }[f.sort];
   if (vergleich) d.dokumente.sort(vergleich);
   if (!d.dokumente.length) {
-    m.append(el("div", { class: "leer" }, t(f.q || f.art || f.von || f.bezug || f.zeit || f.status !== "aktuell" ? "nichts_gefunden" : "dk_leer")),
+    m.append(el("div", { class: "leer" }, t(f.q || f.art || f.von || f.bezug || f.zeit || f.format || f.status !== "aktuell" ? "nichts_gefunden" : "dk_leer")),
       el("p", { class: "sehrleise mono", style: "font-size:13px" }, "amw dokument ablegen <datei> --titel … --art ergebnis|bericht|entwurf|mockup|bild --aufgabe <nr>"));
     return;
   }
