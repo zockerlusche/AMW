@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.29.0 – 07.11.2026 · Logo
+- **Eigenes Logo:** Oben links steht statt des Schriftzugs „AMW“ jetzt das Logo. A, M und W sind eine durchgehende
+  Linie mit drei Knoten, wie ein kleines neuronales Netz: ein Knoten am Fuß des A, ein glühender im M, einer am Ende
+  des W. Die Farbe läuft von Bernstein über Glut nach Blau und folgt dem Hell/Dunkel-Schalter. Daneben steht
+  „Agenten Management Workbench“ mit hervorgehobenen Anfangsbuchstaben; auf dem Handy nur das Logo.
+- **Favicon:** Der Browser-Tab zeigt das M mit dem glühenden Knoten, in der Workbench und auf den Online-Seiten
+  (Anmeldung, Einrichtung). Die Logo-Dateien liegen als SVG in `doc/logo/`.
+
 ## 1.28.0 – 07.11.2026 · Lesbare Startskripte, Lead als Chat
 - **Startskripte im Klartext:** `amw agent startskript` und „Neues Projekt“ schreiben eine `.bat` (Doppelklick) statt einer
   PowerShell-Datei mit verschlüsselten Befehlen. Je Agent eine Zeile mit allen Angaben aus dem Profil, ein Fenster je

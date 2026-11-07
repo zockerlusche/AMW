@@ -1,5 +1,7 @@
 # AMW – Agentenmanagement Workbench
 
+<picture><source media="(prefers-color-scheme: dark)" srcset="doc/logo/amw-logo-dunkel.svg"><img src="doc/logo/amw-logo-hell.svg" alt="AMW-Logo: A, M und W als eine Linie mit drei Knoten" width="160"></picture>
+
 **Ein Leitstand für einen Menschen, der Software mit einem Team aus KI-Agenten baut.** AMW verbindet mehrere
 [Claude-Code](https://code.claude.com)-Sitzungen – meist ein Team-Lead-Agent und einige Coding-Agenten – zu einem Team:
 Nachrichten zwischen den Agenten mit automatischem Wecken, Fragen an dich mit Optionen und Empfehlung, Projektplanung

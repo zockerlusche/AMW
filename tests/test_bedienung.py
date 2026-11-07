@@ -160,6 +160,14 @@ class Seite(Grund):
         self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Verlauf')).click()")
         self.warten("zustand.sicht === 'verlauf' && document.getElementById('mehr').classList.contains('an')")
 
+    def test_logo_oben_mit_untertitel_und_favicon(self):
+        self.oeffnen("start", "document.querySelector('#marke-text i')")
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('#marke-text i')].map(i => i.textContent).join('')"), "AMW")
+        self.assertGreater(self.tab.js("document.querySelector('.marke svg.logo').getBoundingClientRect().width"), 40)
+        self.assertTrue(self.tab.js("document.querySelector('link[rel=icon]').href.startsWith('data:image/svg+xml')"))
+        self.tab.js("sprache_setzen('en')")
+        self.warten("document.getElementById('marke-text').textContent === 'AgentManagementWorkbench'")
+
     def test_sprungleiste_der_einstellungen_ohne_doppelte_marke(self):
         self.oeffnen("einstellungen", "document.querySelector('.sprung a')")
         texte = self.tab.js("[...document.querySelectorAll('.sprung a')].map(a => a.textContent)")
