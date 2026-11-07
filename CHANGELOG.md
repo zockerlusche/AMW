@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.30.1 – 07.11.2026 · Mausmodus, KI-Schnittstelle „befehl“
+- **Kein Mausmodus mehr nach hartem Stopp:** Endet Claude im Tab (auch beim Beenden aus der Workbench), setzt die
+  PowerShell im Tab das Terminal zurück. Vorher schrieb jeder Mausklick Steuerzeichen. Gilt für Start aus der Workbench
+  und für die Startskripte (neu erzeugen).
+- **Eigene lokale KIs:** `amw ki neu <name> --schnittstelle befehl` trägt ein Programm ohne Dienst-Schnittstelle ein
+  (z. B. eine Ton-KI in Python). Recht und Modell-Freigabe wie sonst; gerechnet wird über `amw lauf ausfuehren --gpu`.
+  Hilfe und Fehlermeldungen nennen „befehl“ jetzt (Wunsch des GlassWorld-TL).
+
 ## 1.30.0 – 07.11.2026 · Entwickler-Kanal, Wege im Projekt (Fehlerbericht GlassWorld)
 - **Entwickler-Kanal:** Der Agent, der die AMW entwickelt (Zahnrad › Dieser PC › Entwickler-Kanal), ist in jedem Projekt
   erreichbar und darf dort schreiben. Die Leads finden ihn im Pflicht-Kontext; `amw lesen` zeigt ihm alle Projekte mit

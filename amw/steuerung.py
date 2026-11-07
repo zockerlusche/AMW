@@ -163,6 +163,12 @@ def _aufruf(teile, lesbar=False):
             + " ".join((_wort if lesbar else _ps)(x) for x in teile))
 
 
+# Nach dem Ende von Claude (auch nach hartem Beenden: die PowerShell im Tab lebt mit -NoExit weiter) das Terminal aus dem
+# Mausmodus holen – sonst schreibt jeder Klick Steuerzeichen in den Tab (Probe 07.11.). Nur einfache Anführungszeichen:
+# die .bat ersetzt doppelte (_bat).
+MAUS_AUS = "[Console]::Write(" + "+".join(f"[char]27+'[?{n}l'" for n in (1000, 1002, 1003, 1006, 1015, 2004)) + ")"
+
+
 def befehl(p, fortsetzen_id=None, neue_id=None):
     """PowerShell-Befehlszeile für den Tab: Umgebung setzen, Claude mit Profil starten."""
     teile = ["--resume", fortsetzen_id] if fortsetzen_id else ["--session-id", neue_id] if neue_id else []
@@ -171,7 +177,7 @@ def befehl(p, fortsetzen_id=None, neue_id=None):
         teile.append(p["startsatz"])
     aufruf = _aufruf(teile)
     projekt = f"$env:AMW_PROJEKT = {_ps(p['projekt'])}; " if p.get("projekt") else ""
-    return f"Set-Location {_ps(p['ordner'])}; $env:AMW_AGENT = {_ps(p['kennung'])}; {projekt}{aufruf}"
+    return f"Set-Location {_ps(p['ordner'])}; $env:AMW_AGENT = {_ps(p['kennung'])}; {projekt}{aufruf}; {MAUS_AUS}"
 
 
 def _shell():
@@ -337,7 +343,7 @@ def startskript(con, pid, kennungen=None, alle=False, abstand_s=STARTSKRIPT_ABST
         weiter = _aufruf(["--resume", sid] + _optionen(p) + [NEUSTART_SATZ], lesbar=True)
         neu = _aufruf(["--session-id", sid] + _optionen(p) + ([p["startsatz"]] if p["startsatz"] else []), lesbar=True)
         ps = (f"$env:AMW_AGENT={_ps(p['kennung'])}; $env:AMW_PROJEKT={_ps(projekt)}; {weiter}; "
-              f"if ($LASTEXITCODE -ne 0) {{ {neu} }}")
+              f"if ($LASTEXITCODE -ne 0) {{ {neu} }}; {MAUS_AUS}")
         ordner = p["ordner"].rstrip("\\") or p["ordner"]
         if ordner.endswith(":"):
             ordner += "\\."                                   # "F:\" würde das Anführungszeichen schützen

@@ -53,6 +53,7 @@ class Profil(Grund):
         self.assertIn("$env:AMW_AGENT = 'CC1'", neu)
         self.assertIn("'--session-id' '1111-2222'", neu)
         self.assertIn("'--remote-control' 'CC1'", neu)
+        self.assertTrue(neu.endswith(steuerung.MAUS_AUS) and "[?1000l" in neu)      # Mausmodus aus nach dem Ende
         self.assertIn("'--dangerously-skip-permissions'", neu)
         kern.agent_neu(self.con, self.pid, "CC9")
         self.assertFalse(steuerung.profil(self.con, self.pid, "CC9")["fernsteuerung"])        # neu: Remote Control aus
@@ -162,6 +163,8 @@ class Startskript(Grund):
         self.assertIn("claude --resume ", text)
         self.assertIn("if ($LASTEXITCODE -ne 0) { claude --session-id ", text)   # Rückfall: neu mit derselben ID
         self.assertIn("--effort medium", text)
+        self.assertIn("[?1000l", text)                                     # Mausmodus aus, auch nach hartem Stopp
+        self.assertNotIn('"[Console]', text)
         self.assertTrue(text.startswith("@echo off\r\nchcp 65001"))
         self.assertNotIn("--title TL", text)                               # TL ohne Profil-Ordner (z. B. Lead als Chat)
         self.assertEqual(text, steuerung.startskript(self.con, self.pid))   # ohne frühere Sitzung: feste ID, nicht jedes Mal neu
