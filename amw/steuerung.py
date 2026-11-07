@@ -174,7 +174,7 @@ def letzte_sitzung(con, pid, kennung):
 def laeuft(con, pid, kennung):
     """Hat der Agent eine lebende Claude-Sitzung (Prozess der angemeldeten Sitzung)?"""
     from . import hook
-    r = con.execute("SELECT s.claude_pid, s.schluessel_datei FROM sitzung s JOIN agent a ON a.id = s.agent_id"
+    r = con.execute("SELECT s.claude_pid, s.claude_sitzung, s.schluessel_datei FROM sitzung s JOIN agent a ON a.id = s.agent_id"
                     " WHERE a.projekt_id = ? AND a.kennung = ? AND s.zustand = 'aktiv' ORDER BY s.id DESC LIMIT 1",
                     (pid, kennung)).fetchone()
     if not r:
@@ -182,11 +182,7 @@ def laeuft(con, pid, kennung):
     if r["claude_pid"]:
         return lebt(r["claude_pid"])
     if r["schluessel_datei"]:
-        try:
-            with open(r["schluessel_datei"], encoding="utf-8") as f:
-                return hook.claude_prozess(json.load(f).get("pipe")) is not None
-        except (OSError, ValueError):
-            return False
+        return hook.prozess_der_sitzung(r["claude_sitzung"], r["schluessel_datei"]) is not None
     return True                                       # Brücken-Sitzung: gilt als laufend
 
 
@@ -219,18 +215,15 @@ def starten(con, pid, kennung, neu=False, ausfuehren=None):
 
 def beenden(con, pid, kennung, beenden_mit=None):
     """Beendet den Claude-Prozess der laufenden Sitzung (das Fenster bleibt offen) und vermerkt es als bewusst."""
-    r = con.execute("SELECT s.id, s.claude_pid FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
+    r = con.execute("SELECT s.id, s.claude_pid, s.claude_sitzung, s.schluessel_datei FROM sitzung s JOIN agent a ON a.id = s.agent_id"
+                    " WHERE a.projekt_id = ?"
                     " AND a.kennung = ? AND s.zustand = 'aktiv' AND s.schluessel_datei IS NOT NULL ORDER BY s.id DESC LIMIT 1",
                     (pid, kennung)).fetchone()
     cpid = r["claude_pid"] if r else None
     if not cpid and r:
-        from . import hook
-        try:
-            with open(con.execute("SELECT schluessel_datei FROM sitzung WHERE id = ?", (r["id"],)).fetchone()[0], encoding="utf-8") as f:
-                ich = hook.claude_prozess(json.load(f).get("pipe"))
-            cpid = ich and ich["pid"]
-        except (OSError, ValueError, TypeError):
-            cpid = None
+        from . import hook                            # nur der Prozess genau dieser Sitzung – nie der einer anderen
+        ich = hook.prozess_der_sitzung(r["claude_sitzung"], r["schluessel_datei"])
+        cpid = ich and ich["pid"]
     if not r or not cpid or not lebt(cpid):
         raise kern.AmwFehler(f"{kennung} läuft nicht")
     with db.schreiben(con):

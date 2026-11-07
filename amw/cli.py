@@ -797,8 +797,11 @@ def cmd_zeige(a, con):
 
 def cmd_regeln(a, con):
     pid = _projekt(con, a)
-    for r in con.execute("SELECT ebene, nr, text, stand_utc FROM regel WHERE projekt_id = ? ORDER BY ebene, nr", (pid,)):
+    regeln = con.execute("SELECT ebene, nr, text, stand_utc FROM regel WHERE projekt_id = ? ORDER BY ebene, nr", (pid,)).fetchall()
+    for r in regeln:
         print(f"{'KR' if r['ebene'] == 'arbeit' else 'PR'}{r['nr']} (Stand {_zeit(r['stand_utc'])}): {r['text']}\n")
+    if not regeln:
+        print("Noch keine Regeln in diesem Projekt – es gilt das Leitbild (amw leitbild zeigen). Regeln entstehen aus Beschlüssen.")
 
 
 def _lauf_warte(con, pid, a):

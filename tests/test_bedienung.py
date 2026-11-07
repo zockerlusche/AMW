@@ -108,8 +108,7 @@ class Seite(Grund):
         self.warten("document.querySelectorAll('.dk-karte').length === 1")
         self.assertEqual(self.titel(), ["Zebra"])
         self.assertEqual(self.tab.js("document.querySelector('.kopf .kopf-aktion')?.textContent"), "Hochladen")   # oben, immer gleich
-        self.oeffnen("planung", "document.querySelector('.kopf .kopf-aktion')")
-        self.assertEqual(self.tab.js("document.querySelector('.kopf .kopf-aktion').textContent"), "Neuer Bogen")
+        self.oeffnen("planung", "document.querySelector('.kopf .kopf-aktion')?.textContent === 'Neuer Bogen'")   # nicht der Knopf der alten Sicht
 
     def test_dialog_enter_schickt_ab_und_hat_ein_kreuz(self):
         self.oeffnen("start", "typeof nachrichtDialog === 'function' && document.querySelector('.kachel')")

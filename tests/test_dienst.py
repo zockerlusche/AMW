@@ -165,11 +165,11 @@ class Anmelden(unittest.TestCase):
         self.assertIsNone(self.als("fenster3", "interactive", streng=True))
         self.assertIsNone(self.als("fenster4", "interactive"))                    # Hook (Neustart) löst immer ab
 
-    def hook_lauf(self, eingabe, agent=None):
-        """Startet hook.main wie Claude Code: JSON auf stdin, Ausgabe auf stdout; Postfach dieser Sitzung = pipe-x."""
+    def hook_lauf(self, eingabe, agent=None, postfach="pipe-x"):
+        """Startet hook.main wie Claude Code: JSON auf stdin, Ausgabe auf stdout; Postfach dieser Sitzung = postfach."""
         import io
-        self.prozesse["pipe-x"] = {"pid": 7, "art": "interactive", "name": "x", "sitzung": eingabe["session_id"]}
-        umg = {"AMW_DB": os.path.join(self.ordner.name, "t.db"), "CLAUDE_CODE_MESSAGING_SOCKET": "pipe-x",
+        self.prozesse[postfach] = {"pid": 7, "art": "interactive", "name": "x", "sitzung": eingabe["session_id"]}
+        umg = {"AMW_DB": os.path.join(self.ordner.name, "t.db"), "CLAUDE_CODE_MESSAGING_SOCKET": postfach,
                "CLAUDE_CODE_MESSAGING_TOKEN": "t"}
         if agent:
             umg["AMW_AGENT"] = agent
@@ -207,6 +207,44 @@ class GleicheKennungZweiProjekte(Anmelden):
             kern.agent_neu(self.con, pid, "TL", rolle="lead")
             with db.schreiben(self.con):
                 self.con.execute("UPDATE agent SET ordner = ? WHERE projekt_id = ? AND kennung = 'TL'", (ordner, pid))
+
+    def test_zwei_gleiche_kennungen_stoeren_sich_nicht(self):
+        """#18134: der zweite TL überschrieb die Weck-Datei des ersten; „Beenden“ traf dann den Prozess des anderen."""
+        from amw import steuerung
+        with mock.patch.dict(os.environ, {"AMW_PROJEKT": "P"}):
+            self.hook_lauf({"session_id": "in-p", "source": "startup", "cwd": "C:/p"}, "TL", "pipe-p")
+        with mock.patch.dict(os.environ, {"AMW_PROJEKT": "Q"}):
+            self.hook_lauf({"session_id": "in-q", "source": "startup", "cwd": "C:/q"}, "TL", "pipe-q")
+        p, q = dienst.aktive_sitzung(self.con, self.pid, "TL"), dienst.aktive_sitzung(self.con, self.q, "TL")
+        self.assertNotEqual(p["schluessel_datei"], q["schluessel_datei"])
+        self.assertEqual(dienst.lies_schluessel(p)[0], "pipe-p")               # jeder behält seine Weck-Adresse
+        self.assertEqual(dienst.lies_schluessel(q)[0], "pipe-q")
+        fremd = {"pid": 4711, "art": "interactive", "name": "", "sitzung": "in-q", "ordner": "C:/q", "pipe": "pipe-q"}
+        tot = []
+        with mock.patch.object(self.hook, "claude_prozesse", return_value=[fremd]), \
+                mock.patch.object(self.hook, "claude_prozess", side_effect=lambda x: fremd if x == "pipe-q" else None):
+            self.assertIsNone(self.hook.prozess_der_sitzung("in-p", q["schluessel_datei"]))   # fremde Datei zählt nicht
+            self.con.execute("UPDATE sitzung SET claude_pid = NULL")
+            with self.assertRaises(kern.AmwFehler):                                 # P läuft nicht: nichts wird beendet
+                steuerung.beenden(self.con, self.pid, "TL", beenden_mit=tot.append)
+            self.assertEqual(tot, [])
+            with mock.patch.object(steuerung, "lebt", return_value=True):
+                steuerung.beenden(self.con, self.q, "TL", beenden_mit=tot.append)
+            self.assertEqual(tot, [4711])                                           # Q: genau seine Sitzung
+
+    def test_jeder_nimmt_nur_eigene_arbeit(self):
+        from amw import planung
+        kern.agent_neu(self.con, self.pid, "CC1")
+        kern.agent_neu(self.con, self.q, "CC1")
+        a = kern.aufgabe_neu(self.con, self.pid, "TL", "Arbeit in P", agent="CC1", auftrag="x")
+        leer = planung.naechster(self.con, self.q, "CC1", nehmen=True)              # nichts in Q: nimmt nicht die aus P
+        self.assertNotEqual((leer or {}).get("id") if isinstance(leer, dict) else leer, a)
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (a,)).fetchone()[0], "wartet")
+        kern.aufgabe_neu(self.con, self.q, "TL", "Arbeit in Q", agent="CC1", auftrag="y")
+        planung.naechster(self.con, self.q, "CC1", nehmen=True)
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (a,)).fetchone()[0], "wartet")
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE projekt_id = ? AND titel = 'Arbeit in Q'",
+                                          (self.q,)).fetchone()[0], "laeuft")
 
     def projekt_der(self, sitzung):
         r = self.con.execute("SELECT a.projekt_id FROM sitzung s JOIN agent a ON a.id = s.agent_id"

@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.27.1 – 07.11.2026 · Gleiche Kennung in zwei Projekten: Weck-Adresse getrennt
+Wichtige Korrektur für mehrere Projekte. Gefunden in der Probe „neues Projekt von A bis Z“.
+- **Fehler:** Die Datei mit der Weck-Adresse einer Sitzung trug nur die Kennung im Namen. Startete ein CC1 in einem zweiten
+  Projekt, überschrieb er die Adresse des CC1 im ersten. Der Wächter sah dann dessen Sitzung als beendet an und weckte ihn
+  nicht mehr, und „Beenden“ konnte den Prozess des anderen Agenten treffen.
+- **Jetzt:** eine Datei je Projekt und Kennung. Laufende Sitzungen behalten ihre alte Datei bis zur nächsten Anmeldung.
+- **Beenden und „läuft er?“** gelten nur noch für den Prozess genau dieser Sitzung (Sitzungs-ID wird geprüft); eine Datei
+  einer anderen Sitzung zählt nicht mehr.
+- **`amw regeln`** sagt in einem Projekt ohne Regeln, dass es noch keine gibt, statt nichts auszugeben.
+
 ## 1.27.0 – 07.11.2026 · Neues Projekt: Anleitung am Knopf, erster Start ohne Raten
 Aus einer Probe „neues Projekt von A bis Z“ (Wegwerf-Projekt auf einer Kopie der Datenbank).
 - **Anleitung „Neues Projekt – Schritt für Schritt“ in der Workbench** mit Bildern: Projekt-Auswahl › „? Anleitung“,

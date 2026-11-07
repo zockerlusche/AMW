@@ -21,6 +21,13 @@ def schluessel_ordner():
     return os.path.join(basis, "amw", "sitzungen")
 
 
+def schluessel_datei(con, pid, kennung):
+    """Je Projekt und Kennung eine Datei: CC1 darf es in mehreren Projekten geben, und jede Anmeldung schreibt ihre Datei neu.
+    Mit nur der Kennung im Namen überschrieb der zweite CC1 die Weck-Adresse des ersten."""
+    uid = con.execute("SELECT uid FROM projekt WHERE id = ?", (pid,)).fetchone()[0]
+    return os.path.join(schluessel_ordner(), f"{kennung}@{uid[:8]}.json")
+
+
 def claude_prozesse():
     """Claude Code führt je laufendem Prozess ~/.claude/sessions/<pid>.json (pid, kind interactive|bg, name, Ordner,
     Postfach). Nur lesen – die Schlüssel daneben fasst die AMW nie an."""
@@ -46,6 +53,23 @@ def claude_prozess(pipe):
     return next((p for p in claude_prozesse() if pipe and p["pipe"] == pipe), None)
 
 
+def prozess_der_sitzung(claude_sitzung, datei):
+    """Der Claude-Prozess genau dieser Sitzung, sonst None – zuerst über die Sitzungs-ID, dann über das Postfach der Datei.
+    Gehört die Datei zu einer anderen Sitzung, zählt sie nicht: wer danach einen Prozess beendet, träfe sonst einen fremden."""
+    if claude_sitzung:
+        p = next((x for x in claude_prozesse() if x["sitzung"] == claude_sitzung), None)
+        if p:
+            return p
+    try:
+        with open(datei, encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError, TypeError):
+        return None
+    if claude_sitzung and d.get("sitzung") and d["sitzung"] != claude_sitzung:
+        return None
+    return claude_prozess(d.get("pipe"))
+
+
 def bekannte_kennung(con, pid, sitzung):
     """Kennung, unter der diese Claude-Sitzung schon angemeldet war – ein Resume behält die Sitzungs-ID (nach einem
     Resume von Hand ohne Startskript fehlt AMW_AGENT – trotzdem soll die Sitzung angemeldet werden)."""
@@ -66,7 +90,7 @@ def angemeldete_postfaecher():
     for n in namen:
         try:
             with open(os.path.join(ordner, n), encoding="utf-8") as f:
-                erg[json.load(f).get("pipe")] = n[:-5]
+                erg[json.load(f).get("pipe")] = n[:-5].split("@")[0]
         except (OSError, ValueError):
             continue
     return erg
@@ -106,7 +130,7 @@ def anmelden(con, pid, kennung, eingabe, ersetzen=False, streng=False):
                 f" Agenten laufen im Fenster des Startskripts.")
     ordner = schluessel_ordner()
     os.makedirs(ordner, exist_ok=True)
-    datei = os.path.join(ordner, f"{kennung}.json")
+    datei = schluessel_datei(con, pid, kennung)
     if streng and not ersetzen and os.path.exists(datei):
         try:
             with open(datei, encoding="utf-8") as f:
@@ -121,6 +145,14 @@ def anmelden(con, pid, kennung, eingabe, ersetzen=False, streng=False):
     with open(neu, "w", encoding="utf-8") as f:
         json.dump({"pipe": pipe, "schluessel": schluessel, "sitzung": eingabe.get("session_id")}, f)
     os.replace(neu, datei)
+    alt = os.path.join(ordner, f"{kennung}.json")     # Name vor 1.27.1: weg, wenn sie zu dieser Sitzung gehört
+    try:
+        with open(alt, encoding="utf-8") as f:
+            meine = json.load(f).get("sitzung") == eingabe.get("session_id")
+        if meine:
+            os.remove(alt)
+    except (OSError, ValueError):
+        pass
     a = kern.agent_zeile(con, pid, kennung)
     t = db.jetzt()
     claude_pid = ich["pid"] if ich else None
