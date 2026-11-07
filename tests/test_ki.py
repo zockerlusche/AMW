@@ -357,6 +357,24 @@ class Ausfuehren(Grund):
         self.assertIn("keinen Startbefehl", a["fehler"])
         self.assertEqual((self.lauf(lid)["status"], self.lauf(lid)["rc"]), ("fertig", 1))
 
+    def test_waechter_holt_ki_hoch_wenn_sie_nicht_antwortet(self):
+        """#18166: nach einem Neustart des PCs sind die KIs aus – der Wächter startet sie, aber nicht im Minutentakt."""
+        ki.ki_setzen(self.con, "Bauer", "comfy2", "bild", "comfyui", "http://127.0.0.1:9", startbefehl="start.bat")
+        ki.ki_setzen(self.con, "Bauer", "ohne", "bild", "comfyui", "http://127.0.0.1:8")
+        ki.ki_setzen(self.con, "Bauer", "abgeschaltet", "bild", "comfyui", "http://127.0.0.1:7", startbefehl="x.bat", aktiv=False)
+        self.con.execute("UPDATE ki SET zustand = 'aus'")
+        gestartet, versucht = [], {}
+        with mock.patch.object(ki, "_starten", side_effect=lambda x: gestartet.append(x["name"])):
+            self.assertEqual(ki.hochholen(self.con, versucht, jetzt=1000), ["comfy2 antwortet nicht – gestartet"])
+            self.assertEqual(ki.hochholen(self.con, versucht, jetzt=1000 + ki.HOCH_S - 1), [])       # noch nicht wieder
+            ki.hochholen(self.con, versucht, jetzt=1000 + ki.HOCH_S)
+            self.con.execute("UPDATE ki SET zustand = 'an' WHERE name = 'comfy2'")                    # läuft: nichts tun
+            self.assertEqual(ki.hochholen(self.con, versucht, jetzt=9999), [])
+        self.assertEqual(gestartet, ["comfy2", "comfy2"])
+        with mock.patch.object(ki, "_starten", side_effect=OSError("kaputt")):                       # stört den Wächter nicht
+            self.con.execute("UPDATE ki SET zustand = 'aus' WHERE name = 'comfy2'")
+            self.assertIn("Start fehlgeschlagen", ki.hochholen(self.con, {}, jetzt=9999)[0])
+
     def test_startet_ki_mit_startbefehl(self):
         ki.ki_setzen(self.con, "Bauer", "comfy2", "bild", "comfyui", "http://127.0.0.1:9", startbefehl="start.bat")
         k = ki.ki_zeile(self.con, "comfy2")

@@ -33,6 +33,7 @@ amw lauf start|ausfuehren --gpu …           # eigene Läufe, die die Grafikkar
 - **Schlange:** Ein KI-Auftrag ist ein schwerer Lauf mit Platz `gpu`. Er wartet PC-weit auf GPU- und Schirm-Läufe;
   umgekehrt warten diese auf ihn. Schwere Läufe ohne Fenster rechnen daneben in der CPU-Spur (seit 1.26.0). Vorziehen und Abbrechen wie bei jedem Lauf
   (`amw lauf vorziehen|ende <nr> --abgebrochen`).
+- **Nach einem Neustart:** Der Wächter startet jede aktive KI mit Startbefehl, die nicht antwortet (je KI höchstens alle 10 Minuten; seit 1.27.3).
 - **Ausführung:** Der Dienst holt den Lauf ab, sobald er dran ist (auch ohne Sitzung des Auftraggebers), startet ComfyUI bei
   Bedarf mit dem Startbefehl, schickt die Prompts, legt jedes Ergebnis als Dokument zur Aufgabe ab, schreibt die Herkunft
   (`ki_herkunft`, unveränderlich), entlädt die Modelle (`/free`, Ollama `keep_alive: 0`), beendet den Lauf und weckt den

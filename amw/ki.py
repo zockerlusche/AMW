@@ -44,6 +44,7 @@ VORLAGE_MAX = 1_000_000
 FRIST_MIN = 60             # ein Auftrag darf so lange rechnen, dann Abbruch (je Auftrag änderbar: --frist)
 START_S = 240              # so lange auf eine gerade gestartete KI warten
 PRUEF_S = 60               # Zustand der KIs (an/aus, geladen) so oft prüfen
+HOCH_S = 600               # eine KI, die nicht antwortet, höchstens so oft neu starten
 TAKT_S = 3                 # Arbeiter: so oft nach Arbeit und Abbruch sehen
 
 
@@ -575,12 +576,31 @@ def _mehrteilig(name, roh):
 
 # --- Ausführen (im Dienst) -----------------------------------------------------------------------
 
+def hochholen(con, versucht, jetzt=None):
+    """Aktive KI mit Startbefehl antwortet nicht (z. B. nach einem Neustart des PCs): ohne Fenster starten, je KI höchstens
+    alle HOCH_S – eine kaputte KI startet nicht im Minutentakt. Ohne Startbefehl bleibt sie aus; ganz aus: amw ki aendern
+    <name> --abschalten. Beendet wird eine KI von der AMW nie. versucht: {Name: Zeit des letzten Versuchs}."""
+    jetzt = time.time() if jetzt is None else jetzt
+    aus = []
+    for ki in con.execute("SELECT * FROM ki WHERE aktiv = 1 AND zustand = 'aus' AND startbefehl IS NOT NULL AND startbefehl != ''").fetchall():
+        if jetzt - versucht.get(ki["name"], 0) < HOCH_S:
+            continue
+        versucht[ki["name"]] = jetzt
+        try:
+            _starten(ki)
+            aus.append(f"{ki['name']} antwortet nicht – gestartet")
+        except OSError as e:
+            aus.append(f"{ki['name']} antwortet nicht – Start fehlgeschlagen: {e}")
+    return aus
+
+
 class Arbeiter:
     """Holt KI-Aufträge ab, deren Lauf dran ist, und führt sie aus – einer zur Zeit (Platz gpu)."""
 
     def __init__(self, con=None):
         self.con = con or db.verbinde()
         self.geprueft = 0.0
+        self.hoch = {}
         with db.schreiben(self.con):          # Neustart des Dienstes: Ollama-Aufträge neu anfragen, ComfyUI weiter abholen
             self.con.execute("UPDATE ki_auftrag SET zustand = 'wartet' WHERE zustand = 'laeuft' AND (extern IS NULL"
                              " OR ki_id IN (SELECT id FROM ki WHERE schnittstelle = 'ollama'))")
@@ -600,6 +620,7 @@ class Arbeiter:
         if time.time() - self.geprueft >= PRUEF_S:
             self.geprueft = time.time()
             zustand_pruefen(self.con)
+            ereignisse += hochholen(self.con, self.hoch)
         return ereignisse
 
     def _abbruch(self, a):

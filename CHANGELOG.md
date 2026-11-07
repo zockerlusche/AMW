@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.27.3 – 07.11.2026 · Lokale KIs kommen nach einem Neustart wieder
+- **Der Wächter holt lokale KIs hoch:** Antwortet eine aktive KI mit Startbefehl nicht (z. B. nach einem Neustart des PCs),
+  startet er sie ohne Fenster – je KI höchstens alle 10 Minuten. Eine KI ohne Startbefehl bleibt aus. Soll eine KI ganz aus
+  bleiben: `amw ki aendern <name> --abschalten`. Beendet wird eine KI von der AMW weiter nie.
+- Tests laufen jetzt auch in einer Agenten-Sitzung (AMW_PROJEKT/AMW_AGENT aus dem Startbefehl galten sonst mit).
+
 ## 1.27.2 – 07.11.2026 · Warnung „nicht angemeldet“ je Projekt
 - Der rote Kasten „Nicht angemeldet“ auf der Startseite zeigt nur noch Sitzungen des gewählten Projekts. Bisher erschien
   eine nicht angemeldete Sitzung eines anderen Projekts auch dort.
