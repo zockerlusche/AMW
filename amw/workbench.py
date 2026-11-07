@@ -421,6 +421,7 @@ def daten_einstellungen(con, pid, speicher=None):
                         "agentenfragen": kern.projekt_wahl(con, pid, "agentenfragen"),
                         "spec_vorlegen": kern.projekt_wahl(con, pid, "spec_vorlegen"),
                         "spec_frei": kern.projekt_wahl(con, pid, "spec_frei"),
+                        "abnahme_kette": kern.projekt_wahl(con, pid, "abnahme_kette"), "merge_dienst": pe.get("merge_dienst", ""),
                         "info_ablage_h": pe.get("info_ablage_h", INFO_ABLAGE_H)},
             "agenten": agenten,
             "pc": {**einstellungen.laden(), "datei": einstellungen.pfad()},

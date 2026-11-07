@@ -898,7 +898,15 @@ def kontext_zeilen(con, pid, kennung):
             wege.append("konforme Spezifikationen gibst du selbst frei (`amw spec frei <Bogen> <teil>`), an den Entwickler nur"
                         " Einzelfragen")
         wege.append("veraltete Meldungen an den Entwickler schließt du mit `amw erledigt <nr> --fuer Entwickler --bemerkung …`")
+        from . import betrieb
+        if betrieb.kette_an(con, pid):
+            wege.append(f"Abnahme-Kette an: dein Merge-OK je Aufgabe (`amw freigabe merge A<nr>`) – nach grüner Prüfung geht die"
+                        f" Merge-Bitte für genau diesen Stand von selbst an {betrieb.merge_dienst(con, pid)}")
         z.append("Wege im Projekt: " + "; ".join(wege) + ".")
+    from . import betrieb
+    if betrieb.kette_an(con, pid) and betrieb.merge_dienst(con, pid) == kennung:
+        z.append("Du bist Merge-Dienst (Abnahme-Kette): Merge-Bitten kommen von der AMW mit Zweig und genauem SHA – nur genau"
+                 " diesen Stand mergen, Ergebnis mit `--aufgabe` melden.")
     pe = db.produkt_entwickler()
     if pe and pe != kennung and kern.ist_lead(con, pid, kennung) and kennung != MENSCH:
         z.append(f"AMW-Entwickler-Kanal: Fehler, Wünsche und Fragen zur AMW selbst direkt an {pe} (`amw posten --an {pe}"

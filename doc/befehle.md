@@ -35,6 +35,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`schirm`](#schirm) | Schirm-Schalter: zeige ¦ frei --grund … [--bis HH:MM] (Entwickler/Lead) ¦ zu [--grund …] (alle) |
 | [`server`](#server) | Projekt-Server überwachen: anmelden ¦ abmelden ¦ liste ¦ pruefen |
 | [`pruefung`](#pruefung) | Prüfbitte je Stand (SHA), Ergebnis grün/rot |
+| [`freigabe`](#freigabe) | Merge-OK (Lead/Entwickler): freigabe merge A<nr> [--zweig z] [--zurueck] – Abnahme-Kette: nach grüner Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst |
 | [`hinweis`](#hinweis) | Anweisung an einen Agenten oder alle (z. B. „keine Rechen-Jobs“) |
 | [`rezept`](#rezept) | Lauf-Rezepte als Daten |
 | [`ki`](#ki) | Lokale KIs (PC-weit): liste ¦ neu¦aendern <ki> (nur am PC) ¦ modell <ki> <name> ¦ freigeben¦sperren <ki> <modell> ¦ vorlage <ki> <name> --datei ¦ recht <ki> --wer ¦ auftrag <ki> --prompt … ¦ zeige L<nr> ¦ pruefen ¦ nachweis ¦ vermerk D<nr> --art … ¦ fenster |
@@ -786,6 +787,24 @@ options:
   --aufgabe AUFGABE
   --bemerkung BEMERKUNG
   --alle
+  --von VON
+  --projekt PROJEKT
+```
+
+## freigabe
+```
+usage: amw freigabe [-h] [--zweig ZWEIG] [--zurueck] [--von VON]
+                    [--projekt PROJEKT]
+                    {merge} aufgabe
+
+positional arguments:
+  {merge}
+  aufgabe
+
+options:
+  -h, --help         show this help message and exit
+  --zweig ZWEIG      nur für diesen Zweig
+  --zurueck          OK zurücknehmen
   --von VON
   --projekt PROJEKT
 ```

@@ -1,7 +1,7 @@
 -- Schema 20 → 21 (AMW 1.31.0): Vermerke an KI-Ergebnissen (KI Stufe 2, doc/plan-lokale-ki.md §4) – wer hat ein KI-Bild
 -- oder einen KI-Text wann ausgewählt, verworfen oder von Hand nachbearbeitet (und was). Das ist der Nachweis der
 -- menschlichen Gestaltungsentscheidung für Urheberrecht und Steam-Angabe; `amw ki nachweis` liest ihn. Jeder Vermerk ist
--- eine neue Zeile (nie geändert, nie gelöscht); es gilt der jüngste ausgewählt/verworfen. Schema auf Marcels Wort (F5254).
+-- eine neue Zeile (nie geändert, nie gelöscht); es gilt der jüngste ausgewählt/verworfen. Schema auf Wort des Entwicklers.
 CREATE TABLE ki_vermerk (
   id             INTEGER PRIMARY KEY,
   projekt_id     INTEGER NOT NULL REFERENCES projekt(id),

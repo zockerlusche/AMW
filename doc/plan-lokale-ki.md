@@ -61,8 +61,8 @@ amw ki vermerk D140 --art ausgewaehlt       # oder verworfen | nachbearbeitet --
 
 1. Variante C und Ausführung durch die AMW (2b) – so gebaut.
 2. Frei gibt der Lead; bei Nutzungsregeln oder Registrierung nur der Entwickler.
-3. KI-Fenster `--nachts`: feste Uhrzeit, Vorgabe 22–06 Uhr (F5253, 07.11.) – gebaut in 1.31.0.
-5. Vermerke mit eigener Tabelle `ki_vermerk`, Schema 21 (F5254, 07.11.) – gebaut in 1.31.0.
+3. KI-Fenster `--nachts`: feste Uhrzeit, Vorgabe 22–06 Uhr (Entscheid des Entwicklers) – gebaut in 1.31.0.
+5. Vermerke mit eigener Tabelle `ki_vermerk`, Schema 21 (Entscheid des Entwicklers) – gebaut in 1.31.0.
 4. Anfangs dürfen nur Lead und Entwickler beauftragen; weitere Rechte setzt der Lead (`amw ki recht`).
 
 ## Kurzfassung

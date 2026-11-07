@@ -16,7 +16,7 @@ from datetime import datetime
 from . import betrieb, db, kern, schirm, ueberwachung, wissen
 
 # Woher ein Befehl kommt (Vermerke an KI-Ergebnissen): „cli“, in bruecke.ausfuehren() „bruecke“ – nie als Argument,
-# sonst könnte jeder Agent „vom Handy“ behaupten (CC2 #18851)
+# sonst könnte jeder Agent „vom Handy“ behaupten
 KANAL = contextvars.ContextVar("amw_kanal", default="cli")
 
 
@@ -1062,8 +1062,8 @@ def cmd_pruefung(a, con):
         prid = betrieb.pruefbitte(con, pid, _von(a), a.pruefer, a.zweig, a.sha, a.punkte, a.aufgabe)
         print(f"P{prid} an {a.pruefer}")
     elif a.aktion in ("gruen", "rot"):
-        betrieb.pruefung_ergebnis(con, pid, _von(a), a.id, a.aktion, a.bemerkung)
-        print(f"P{a.id} → {a.aktion}")
+        kette = betrieb.pruefung_ergebnis(con, pid, _von(a), a.id, a.aktion, a.bemerkung)
+        print(f"P{a.id} → {a.aktion}" + (f" · {kette}" if kette else ""))
     elif a.aktion == "ist-gruen":
         r = betrieb.ist_gruen(con, pid, a.sha)
         print(f"grün: P{r['id']}" if r else "NICHT grün")
@@ -1073,6 +1073,12 @@ def cmd_pruefung(a, con):
                              (pid, int(a.alle))):
             print(f"P{r['id']:<5} [{r['ergebnis']}] {r['zweig']}@{r['sha'][:8]} {r['bauer']} → {r['pruefer']}"
                   + (f" A{r['aufgabe_id']}" if r["aufgabe_id"] else ""))
+
+
+def cmd_freigabe(a, con):
+    """Merge-OK des Leads für eine Aufgabe (Abnahme-Kette)."""
+    pid = _projekt(con, a)
+    print(betrieb.freigabe_merge(con, pid, _von(a), a.aufgabe, a.zweig, a.zurueck))
 
 
 def cmd_server(a, con):
@@ -2084,6 +2090,13 @@ def parser():
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
     x.set_defaults(f=cmd_pruefung)
+    x = s.add_parser("freigabe", help="Merge-OK (Lead/Entwickler): freigabe merge A<nr> [--zweig z] [--zurueck] – Abnahme-Kette:"
+                                      " nach grüner Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst")
+    x.add_argument("was", choices=["merge"])
+    x.add_argument("aufgabe", type=nummer)
+    x.add_argument("--zweig", help="nur für diesen Zweig")
+    x.add_argument("--zurueck", action="store_true", help="OK zurücknehmen")
+    x.set_defaults(f=cmd_freigabe)
 
     x = s.add_parser("hinweis", help="Anweisung an einen Agenten oder alle (z. B. „keine Rechen-Jobs“)")
     x.add_argument("aktion", choices=["setzen", "aufheben"])

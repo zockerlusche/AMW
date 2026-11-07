@@ -4,12 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.33.0 – 07.11.2026 · Abnahme-Kette
+- **Merge-Bitte von selbst:** Schaltet der Lead die Abnahme-Kette ein (Zahnrad › Projekt › Abnahme-Kette und Merge-Dienst,
+  Vorgabe aus), gibt er sein Merge-OK je Aufgabe mit `amw freigabe merge A…`. Sobald der Prüfer die Aufgabe GRÜN meldet,
+  geht die Merge-Bitte für genau diesen Stand (ganzer SHA) an den Merge-Dienst – Bauer, Zuständiger und Lead bekommen eine
+  Kopie. Ohne OK fragt die AMW den Lead mit einer weckenden Zeile; sein Befehl schickt die Bitte nach. Ein überholter Stand
+  bekommt nie eine Bitte, jede Prüfung höchstens eine. Setzt die Regel „Merge nur mit grüner Prüfung und OK des Leads“ als Automatik um.
+- `amw agent umbenennen` stellt auch den Merge-Dienst des Projekts auf die neue Kennung um.
+
 ## 1.32.0 – 07.11.2026 · Videos als Dokument
 - **Videos ablegen und abspielen:** `amw dokument ablegen abnahme.mp4 …` nimmt MP4 (H.264) und WebM an, auch beim
   Hochladen in der Workbench und am Handy (bis 25 MB). Die Workbench spielt sie im Dokument-Fenster ab, mit Vor- und
   Zurückspulen (am PC und online); die Kachel zeigt das erste Bild. Die AMW prüft, dass es wirklich ein Video ist; ein
-  MP4 mit H.265/HEVC lehnt sie mit dem ffmpeg-Befehl für H.264 ab, weil nicht jeder Browser es abspielt. Wunsch des
-  GlassWorld-TL (Abnahmen, Look-Prototyp).
+  MP4 mit H.265/HEVC lehnt sie mit dem ffmpeg-Befehl für H.264 ab, weil nicht jeder Browser es abspielt. Gewünscht für
+  Abnahmen und Look-Prototypen.
 
 ## 1.31.0 – 07.11.2026 · KI Stufe 2: Nachtfenster und Vermerke an KI-Ergebnissen
 - **KI-Fenster für Aufträge, die nicht eilen:** `amw ki auftrag … --nachts` startet erst im KI-Fenster (Vorgabe 22–06 Uhr,
@@ -20,7 +28,7 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   „Nachbearbeitung vermerken“ (was von Hand geändert wurde) – am PC, am Handy und über `amw ki vermerk D<nr> --art
   ausgewaehlt|verworfen|nachbearbeitet [--text …]`. Es gilt der jüngste Entscheid; nichts wird geändert oder gelöscht,
   jeder Vermerk steht mit wer, wann und Kanal. Die Kacheln der Dokumente zeigen „ausgewählt / verworfen / offen“.
-  Schema 21 (Tabelle `ki_vermerk`) auf Marcels Wort.
+  Schema 21 (Tabelle `ki_vermerk`).
 - **Nachweis:** `amw ki nachweis` zählt ausgewählt / verworfen / ohne Entscheid / nachbearbeitet und nennt je Dokument
   Entscheid, Nachbearbeitung und den Beleg (Commit) der fertigen Aufgabe – Grundlage für die Steam-Angabe und das
   Urheberrecht (menschliche Gestaltungsentscheidung).
@@ -31,7 +39,7 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   und für die Startskripte (neu erzeugen).
 - **Eigene lokale KIs:** `amw ki neu <name> --schnittstelle befehl` trägt ein Programm ohne Dienst-Schnittstelle ein
   (z. B. eine Ton-KI in Python). Recht und Modell-Freigabe wie sonst; gerechnet wird über `amw lauf ausfuehren --gpu`.
-  Hilfe und Fehlermeldungen nennen „befehl“ jetzt (Wunsch des GlassWorld-TL).
+  Hilfe und Fehlermeldungen nennen „befehl“ jetzt (Wunsch aus einem Projekt).
 - **Fremde GPU-Last:** Rechnet etwas auf der Grafikkarte (ab 60 %, drei Prüfungen hintereinander), ohne dass ein Lauf
   mit Grafikkarte oder Schirm angemeldet ist, und warst du seit 5 min nicht am PC, bekommen die Leads eine Meldung –
   höchstens einmal je Stunde. Die AMW meldet nur und beendet nichts (KI Stufe 3).

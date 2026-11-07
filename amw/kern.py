@@ -108,6 +108,11 @@ def agent_umbenennen(con, pid, von, alt, neu):
             anzahl["wartegrund.bezug"] = n
         aliase = [x for x in _aliase(a) if x != neu] + [alt]
         con.execute("UPDATE agent SET kennung = ?, alias = ? WHERE id = ?", (neu, ",".join(dict.fromkeys(aliase)), a["id"]))
+        e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
+        if e.get("merge_dienst") == alt:                 # Abnahme-Kette: der Merge-Dienst heißt jetzt anders
+            e["merge_dienst"] = neu
+            con.execute("UPDATE projekt SET einstellungen = ? WHERE id = ?", (json.dumps(e), pid))
+            anzahl["projekt.merge_dienst"] = 1
     return anzahl
 
 
@@ -154,6 +159,9 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 "agentenfragen": ("lead", "direkt"),
                 "spec_vorlegen": ("lead", "alle"),
                 "spec_frei": ("entwickler", "lead"),
+                # Abnahme-Kette (doc/plan-federfuehrung.md B): nach grüner Prüfung + Merge-OK des Leads geht die
+                # Merge-Bitte von selbst an den Merge-Dienst (Projekt-Einstellung merge_dienst). Vorgabe aus, der Lead schaltet ein.
+                "abnahme_kette": ("aus", "an"),
                 # farbe: Streifen über dem Kopf und Marke in der Projekt-Auswahl (Farbtöne setzt die Oberfläche)
                 "farbe": ("bernstein", "gruen", "blau", "violett", "tuerkis", "rot", "grau")}
 
@@ -203,6 +211,13 @@ def projekt_einstellen(con, pid, von, **werte):
                 if k == "dateien_online" and v != "wunsch":       # vorhandene Dateien gleich mit (zurück: je Dokument)
                     from . import dokumente
                     dokumente.online_nach_einstellung(con, pid, v)
+                continue
+            if k == "merge_dienst":                      # wer mergt (Abnahme-Kette): ein Agent dieses Projekts oder leer
+                v = str(v or "").strip()
+                if v:
+                    e[k] = agent_zeile(con, pid, v)["kennung"]
+                else:
+                    e.pop(k, None)
                 continue
             if k in PROJEKT_TEXTE:
                 v = " ".join(str(v or "").split())

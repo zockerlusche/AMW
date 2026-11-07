@@ -59,8 +59,23 @@ spart je Prüfung etwa 10 min und verhindert „Ende ohne Anmeldung“.
 
 ## Stand
 
-A und C erscheinen mit 1.11.0. B (Abnahme-Kette) folgt, sobald der Lead die Regel „OK des Federführenden ersetzt das OK des
-Leads vor dem Merge“ entschieden hat.
+A und C erscheinen mit 1.11.0. **B (Abnahme-Kette) seit 1.33.0** – die Regel des Projekts: Merge nur mit grüner Prüfung + OK des
+Leads; „bei grüner Prüfung gilt mein OK“ reicht für genau diese Aufgabe bzw. diesen Zweig. Vorgabe aus, der Lead schaltet
+ein. Umgesetzt ohne Schema-Änderung:
+
+```
+amw projekt einstellen abnahme_kette=an merge_dienst=Merger  # Lead/Entwickler (auch Zahnrad › Projekt)
+amw freigabe merge A1234 [--zweig feat/x] [--zurueck]       # Merge-OK des Leads je Aufgabe (steht im Planungs-Protokoll)
+```
+
+- Meldet der Prüfer `amw pruefung gruen P…` zu einer Prüfung mit Aufgabe und liegt das Merge-OK vor, schickt die AMW sofort
+  eine Merge-Bitte (auftrag) an den Merge-Dienst: Zweig, ganzer SHA, Prüfung, Prüfer, wer das OK gab, Bauer. Bauer,
+  Zuständiger und Lead bekommen eine Kopie.
+- Fehlt das OK, bekommt der Lead eine weckende Zeile „A… GRÜN auf <SHA> – Merge-OK? amw freigabe merge A…“. Sein Befehl
+  schickt die Bitte dann für den grünen Stand nach.
+- Neuer Stand = neue Prüfung: Gibt es zur Aufgabe auf demselben Zweig eine neuere Prüfbitte, geht für den alten grünen Stand
+  keine Bitte raus. Je Prüfung höchstens eine Merge-Bitte. Ein OK lässt sich zurücknehmen (`--zurueck`).
+- Der Merge-Dienst sieht im Pflicht-Kontext, dass er Merge-Dienst ist; er meldet sein Ergebnis mit `--aufgabe`.
 
 ## Reihenfolge
 

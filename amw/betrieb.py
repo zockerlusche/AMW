@@ -358,6 +358,91 @@ def pruefung_ergebnis(con, pid, pruefer, prid, ergebnis, bemerkung=None):
                 an.append(z)
         kern._posten(con, pid, pruefer, ",".join(an), "meldung",
                      f"P{prid} {ergebnis.upper()}: {p['zweig']}@{p['sha'][:8]}", bemerkung, aufgabe_id=p["aufgabe_id"])
+        if ergebnis == "gruen" and p["aufgabe_id"] and kette_an(con, pid):
+            ok = merge_ok(con, pid, p["aufgabe_id"], p["zweig"])
+            if ok:
+                return _merge_bitte(con, pid, p, ok)
+            lead = kern.lead(con, pid)
+            if lead and lead != pruefer:
+                kern._posten(con, pid, "AMW", lead, "meldung",
+                             f"A{p['aufgabe_id']} GRÜN auf {p['zweig']}@{p['sha'][:8]} (P{prid}) – Merge-OK? amw freigabe merge"
+                             f" A{p['aufgabe_id']}", "Abnahme-Kette: Mit deinem OK geht die Merge-Bitte für genau diesen Stand"
+                             f" an {merge_dienst(con, pid)}. Neuer Stand = neue Prüfung.", aufgabe_id=p["aufgabe_id"])
+    return None
+
+
+# --- Abnahme-Kette (Projekt-Einstellung abnahme_kette, Vorgabe aus) --------------------------------
+
+def merge_dienst(con, pid):
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    return json.loads(r[0] or "{}").get("merge_dienst") if r else None
+
+
+def kette_an(con, pid):
+    return kern.projekt_wahl(con, pid, "abnahme_kette") == "an" and bool(merge_dienst(con, pid))
+
+
+def merge_ok(con, pid, aufgabe_id, zweig=None):
+    """Gilt das Merge-OK des Leads (bzw. Entwicklers) für diese Aufgabe (und diesen Zweig)? Der jüngste Eintrag zählt."""
+    r = con.execute("SELECT * FROM plan_ereignis WHERE projekt_id = ? AND aufgabe_id = ? AND art IN ('merge_ok', 'merge_ok_zurueck')"
+                    " ORDER BY id DESC LIMIT 1", (pid, aufgabe_id)).fetchone()
+    if not r or r["art"] != "merge_ok" or (r["text"] and zweig and r["text"] != zweig):
+        return None
+    return r
+
+
+def _neuere_pruefung(con, pid, p):
+    return con.execute("SELECT id, sha, ergebnis FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ? AND zweig = ? AND id > ?"
+                       " ORDER BY id DESC LIMIT 1", (pid, p["aufgabe_id"], p["zweig"], p["id"])).fetchone()
+
+
+def _merge_bitte(con, pid, p, ok):
+    """Merge-Bitte an den Merge-Dienst für genau den grünen Stand – höchstens einmal je Prüfung, nie für einen überholten
+    Stand. In der Transaktion des Aufrufers. Rückgabe: Text, was geschah."""
+    neuer = _neuere_pruefung(con, pid, p)
+    if neuer:
+        return f"keine Merge-Bitte: P{p['id']} ist überholt (P{neuer['id']} auf {neuer['sha'][:8]}, {neuer['ergebnis']})"
+    if con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'merge_bitte' AND text = ?",
+                   (pid, f"P{p['id']}")).fetchone():
+        return f"Merge-Bitte für P{p['id']} ist schon raus"
+    dienst = merge_dienst(con, pid)
+    a = p["aufgabe_id"]
+    kurz = f"Merge-Bitte A{a}: {p['zweig']}@{p['sha'][:8]} (P{p['id']} GRÜN, Merge-OK {ok['von']})"
+    kern._posten(con, pid, "AMW", dienst, "auftrag", kurz,
+                 f"Zweig {p['zweig']}, genau dieser Stand: {p['sha']}\nPrüfung P{p['id']} von {p['pruefer']}: GRÜN"
+                 f"\nMerge-OK: {ok['von']} am {ok['zeit_utc'][:16].replace('T', ' ')} UTC\nGebaut von: {p['bauer']}"
+                 "\n\nNur genau diesen SHA mergen (anderer Stand = neue Prüfung). Ergebnis bitte mit"
+                 f" `amw posten --an zustaendig --aufgabe {a} --art meldung --kurz …` melden.", aufgabe_id=a)
+    kopie = [x for x in dict.fromkeys([p["bauer"], kern.zustaendig(con, pid, a), kern.lead(con, pid)]) if x and x != dienst]
+    if kopie:
+        kern._posten(con, pid, "AMW", ",".join(kopie), "info", f"Kopie: {kurz} → {dienst}", aufgabe_id=a)
+    db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="merge_bitte", aufgabe_id=a,
+                 text=f"P{p['id']}")
+    return f"Merge-Bitte an {dienst}: {p['zweig']}@{p['sha'][:8]} (P{p['id']})"
+
+
+def freigabe_merge(con, pid, von, aufgabe_id, zweig=None, zurueck=False):
+    """Merge-OK des Leads/Entwicklers für eine Aufgabe (optional nur einen Zweig) – „bei grüner Prüfung gilt mein OK“.
+    Liegt schon ein GRÜN auf dem neuesten Stand vor, geht die Merge-Bitte sofort. zurueck: OK zurücknehmen."""
+    if not kern.ist_lead(con, pid, von):
+        raise kern.AmwFehler("Das Merge-OK geben Lead und Entwickler")
+    if not con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND projekt_id = ?", (aufgabe_id, pid)).fetchone():
+        raise kern.AmwFehler(f"A{aufgabe_id} gibt es nicht")
+    zweig = (zweig or "").strip() or None
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von,
+                     art="merge_ok_zurueck" if zurueck else "merge_ok", aufgabe_id=aufgabe_id, text=zweig)
+        if zurueck:
+            return f"Merge-OK für A{aufgabe_id} zurückgenommen"
+        if not kette_an(con, pid):
+            return (f"Merge-OK für A{aufgabe_id} vermerkt – die Abnahme-Kette ist aus (amw projekt einstellen abnahme_kette=an"
+                    " merge_dienst=<Kennung>); die Merge-Bitte schickst du wie bisher selbst")
+        sql = "SELECT * FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ?" + (" AND zweig = ?" if zweig else "")
+        p = con.execute(sql + " ORDER BY id DESC LIMIT 1", (pid, aufgabe_id, *([zweig] if zweig else []))).fetchone()
+        if p and p["ergebnis"] == "gruen":
+            return f"Merge-OK für A{aufgabe_id}: " + _merge_bitte(con, pid, p, merge_ok(con, pid, aufgabe_id, p["zweig"]))
+        return (f"Merge-OK für A{aufgabe_id} vermerkt – die Merge-Bitte geht von selbst an {merge_dienst(con, pid)}, sobald eine"
+                " Prüfung dieser Aufgabe GRÜN ist")
 
 
 def ist_gruen(con, pid, sha):
