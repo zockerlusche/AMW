@@ -301,6 +301,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .npa-bild { display: block; max-width: 100%; height: auto; margin: 6px 0 4px; border: 1px solid var(--linie); border-radius: 6px; }
 .npa-liste { padding-left: 18px; margin: 0; } .npa-liste li { margin-bottom: 6px; }
 .npa-frage { border-top: 1px solid var(--linie); padding: 8px 0; } .npa-frage summary { cursor: pointer; font-weight: 600; }
+.ablage { margin: 10px 0 4px; } .ablage > summary { cursor: pointer; color: var(--leise); font: 13px var(--titel); letter-spacing: .04em; text-transform: uppercase; }
 .npa .hinweis-zeile { padding: 8px 10px; border-left: 3px solid var(--bernstein); background: var(--grund); margin: 0 0 10px; }
 .np-schritte { margin: 0 0 10px; padding-left: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; }
 .dk-arten { display: flex; gap: 6px; flex-wrap: wrap; margin: -4px 0 12px; }
@@ -794,7 +795,16 @@ const TEXTE = {
     s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
     nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
     nicht_angemeldet_h: "Läuft, wird aber nicht geweckt – im Fenster: amw anmelden --von <Kennung>",
-    an_dich: "Nachrichten an dich", antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_pruefbitte: "Prüfbitte", art_stopp: "Stopp", art_freigabe: "Freigabe",
+    an_dich: "Nachrichten an dich", an_dich_alt: "Ältere Infos ({n})", an_dich_alt_h: "Infos ohne Bezug, älter als die Ablage-Frist (Zahnrad › Projekt) – zählen nicht mehr mit.", an_dich_alt_weg: "Alle als gelesen",
+    sw_verfasst: "verfasst: {x}", sw_vorgelegt: "vorgelegt: {x}", sw_vorgelegt_geprueft: "vorgelegt: {x} (geprüft)", sw_frei: "freigegeben: {x}",
+    e_agentenfragen: "Fragen der Agenten", e_agentenfragen_h: "Fragen an dich gehen zuerst an den Lead: Er beantwortet selbst oder leitet mit „amw frage weiterleiten“ weiter (dieselbe Frage).",
+    e_agentenfragen_lead: "zuerst an den Lead", e_agentenfragen_direkt: "direkt an dich",
+    e_spec_vorlegen: "Spezifikationen vorlegen", e_spec_vorlegen_h: "Wer eine Spezifikation zur Freigabe vorlegt. „nur der Lead“: die Agenten schreiben, der Lead prüft und legt vor.",
+    e_spec_vorlegen_lead: "nur der Lead", e_spec_vorlegen_alle: "jeder Agent",
+    e_spec_frei: "Spezifikationen freigeben", e_spec_frei_h: "„auch der Lead“: Der Lead gibt konforme Spezifikationen selbst frei, an dich gehen nur Einzelfragen. Du kannst immer freigeben.",
+    e_spec_frei_entwickler: "nur du", e_spec_frei_lead: "auch der Lead",
+    e_info_ablage: "Infos ablegen nach (h)", e_info_ablage_h: "Infos an dich ohne Bezug wandern nach so vielen Stunden unter „Ältere Infos“ (eingeklappt, zählen nicht mehr).",
+    antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_pruefbitte: "Prüfbitte", art_stopp: "Stopp", art_freigabe: "Freigabe",
     k_details: "Klicken: was macht er, was kommt noch", k_offen_h: "neue offene Nachrichten (dazu {n} Altbestand aus dem alten Bus)",
     k_gerade: "Gerade:", k_vermutet: "(aus letzter Meldung)", k_unbekannt: "Tätigkeit unbekannt", k_zuletzt: "Zuletzt",
     k_wartet: "{a} wartet auf {x}", lead: "Lead",
@@ -826,6 +836,7 @@ const TEXTE = {
     e_db: "Datenbank", e_port: "Port der Workbench", e_aufsicht: "Aufsicht der Sitzungen (s)", e_hoch: "Abgleich: hochladen höchstens alle (s)",
     e_puls_pc: "Abgleich: Lebenszeichen alle (s)", e_eingang: "Abgleich: Briefkasten leeren alle (s)", e_bruecke: "Brücke für einen Lead ohne Windows-Zugriff (z. B. in einer VM)",
     e_absender: "Brücke: Absender", e_kopie: "Brücke: Lesekopie höchstens alle (s)",
+    e_kanal: "Entwickler-Kanal (AMW-Entwickler)", e_kanal_h: "Kennung des Agenten, der die AMW selbst weiterentwickelt: Er darf in jedem Projekt schreiben und angeschrieben werden, die Leads sehen ihn im Pflicht-Kontext. Leer = aus.",
     e_cpu: "Schwere Läufe ohne Fenster zugleich", e_cpu_h: "CPU-Spur der Lauf-Schlange; Grafikkarte und Schirm bleiben bei einem Lauf zur Zeit. Jeder Lauf braucht seine Speicher-Grenze frei, ein Agent rechnet nie zwei zugleich.",
     e_fern: "Schirm: Programm einer Fernsitzung", e_fern_ph: "leer = aus, z. B. teamviewer_desktop.exe oder AnyDesk.exe",
     e_fern_h: "Läuft nur während einer Fernwartungs-Verbindung – beginnt eine, geht ein freier Schirm zu",
@@ -994,7 +1005,7 @@ const TEXTE = {
     vl_leer: "Nichts in diesem Zeitraum.", vl_grenze: "Nur die neuesten 2 500 Ereignisse – Zeitraum oder Filter verkleinern.", vz_fertig: "fertig",
     vz_verworfen: "verworfen", vz_gruen: "grün", vz_rot: "rot", vz_gestellt: "gestellt", vz_beantwortet: "beantwortet", vz_start: "Start",
     vz_ende: "Ende", vz_gilt: "gilt",
-    vz_bogen_neu: "Bogen neu", vz_bogen_status: "Bogen-Status", vz_bogen_aendern: "Bogen geändert", vz_baseline: "Baseline verschoben", vz_spec_geschrieben: "Spezifikation geschrieben", vz_spec_vorgelegt: "zur Freigabe", vz_spec_frei: "freigegeben", vz_spec_zurueck: "zurückgegeben", vz_plan_vorgelegt: "Plan vorgelegt", vz_plan_frei: "Plan freigegeben", vz_plan_zurueck: "Plan zurück", vz_schritt_genommen: "Schritt übernommen", vz_risiko_neu: "Risiko neu", vz_risiko_status: "Risiko-Status", vz_leitbild: "Leitbild", vz_abgebrochen: "abgebrochen",
+    vz_bogen_neu: "Bogen neu", vz_bogen_status: "Bogen-Status", vz_bogen_aendern: "Bogen geändert", vz_baseline: "Baseline verschoben", vz_spec_geschrieben: "Spezifikation geschrieben", vz_spec_vorgelegt: "zur Freigabe", vz_spec_frei: "freigegeben", vz_spec_zurueck: "zurückgegeben", vz_plan_vorgelegt: "Plan vorgelegt", vz_plan_frei: "Plan freigegeben", vz_plan_zurueck: "Plan zurück", vz_schritt_genommen: "Schritt übernommen", vz_risiko_neu: "Risiko neu", vz_risiko_status: "Risiko-Status", vz_leitbild: "Leitbild", vz_abgebrochen: "abgebrochen", vz_info_geschlossen: "Meldung geschlossen",
     achtung: "Achtung", nachtrag_neu: "{n} neuer Nachtrag", aufklappen: "Klick: ganzer Text", s_extra: "{n} außerplanmäßig",
     jetzt_bei: "jetzt: {x}", geaendert: "geändert", notizen: "Notizen ({n})", server: "Projekt-Server", k_name: "Name", k_port: "Port",
     k_zustaendig: "Zuständig", k_neustart: "Neustart", k_ausfaelle: "Ausfälle", sz_laeuft: "läuft", sz_aus: "aus", sz_unbekannt: "noch nicht geprüft",
@@ -1083,7 +1094,16 @@ const TEXTE = {
     s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
     nicht_angemeldet_h: "Running but cannot be woken – in its window: amw anmelden --von <name>",
-    an_dich: "Messages for you", antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_pruefbitte: "Review request", art_stopp: "Stop", art_freigabe: "Release",
+    an_dich: "Messages for you", an_dich_alt: "Older infos ({n})", an_dich_alt_h: "Infos without a condition, older than the filing period (gear › Project) – no longer counted.", an_dich_alt_weg: "Mark all read",
+    sw_verfasst: "written: {x}", sw_vorgelegt: "submitted: {x}", sw_vorgelegt_geprueft: "submitted: {x} (reviewed)", sw_frei: "approved: {x}",
+    e_agentenfragen: "Agents' questions", e_agentenfragen_h: "Questions for you go to the lead first: the lead answers or forwards them with “amw frage weiterleiten” (same question).",
+    e_agentenfragen_lead: "to the lead first", e_agentenfragen_direkt: "straight to you",
+    e_spec_vorlegen: "Submit specifications", e_spec_vorlegen_h: "Who submits a specification for approval. “lead only”: agents write, the lead reviews and submits.",
+    e_spec_vorlegen_lead: "lead only", e_spec_vorlegen_alle: "any agent",
+    e_spec_frei: "Approve specifications", e_spec_frei_h: "“lead too”: the lead approves conforming specifications, only single questions reach you. You can always approve.",
+    e_spec_frei_entwickler: "only you", e_spec_frei_lead: "lead too",
+    e_info_ablage: "File infos after (h)", e_info_ablage_h: "Infos for you without a condition move under “Older infos” after this many hours (collapsed, not counted).",
+    antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_pruefbitte: "Review request", art_stopp: "Stop", art_freigabe: "Release",
     k_details: "Click: what is it doing, what is next", k_offen_h: "new open messages (plus {n} older ones from the old bus)",
     k_gerade: "Now:", k_vermutet: "(from last report)", k_unbekannt: "activity unknown", k_zuletzt: "Last",
     k_wartet: "{a} waits for {x}", lead: "Lead",
@@ -1115,6 +1135,7 @@ const TEXTE = {
     e_db: "Database", e_port: "Workbench port", e_aufsicht: "Session supervision (s)", e_hoch: "Sync: upload at most every (s)",
     e_puls_pc: "Sync: heartbeat every (s)", e_eingang: "Sync: empty mailbox every (s)", e_bruecke: "Bridge for a lead without Windows access (e.g. in a VM)",
     e_absender: "Bridge: sender", e_kopie: "Bridge: read copy at most every (s)",
+    e_kanal: "Developer channel (AMW developer)", e_kanal_h: "Handle of the agent who develops AMW itself: it may write and be written to in every project, the leads see it in their mandatory context. Empty = off.",
     e_cpu: "Heavy runs without a window at once", e_cpu_h: "CPU lane of the run queue; graphics card and screen stay at one run at a time. Each run needs its memory limit free, an agent never runs two at once.",
     e_fern: "Screen: remote session program", e_fern_ph: "empty = off, e.g. teamviewer_desktop.exe or AnyDesk.exe",
     e_fern_h: "Runs only during a remote-support connection – when one starts, a free screen closes",
@@ -1279,7 +1300,7 @@ const TEXTE = {
     vl_pruefung: "Reviews", vl_frage: "Questions", vl_beschluss: "Decisions", vl_plan: "Planning", vl_sitzung: "Sessions",
     vl_leer: "Nothing in this period.", vl_grenze: "Only the newest 2,500 events – narrow period or filter.", vz_fertig: "done", vz_verworfen: "dropped",
     vz_gruen: "green", vz_rot: "red", vz_gestellt: "asked", vz_beantwortet: "answered", vz_start: "start", vz_ende: "end", vz_gilt: "valid",
-    vz_bogen_neu: "arc created", vz_bogen_status: "arc status", vz_bogen_aendern: "arc changed", vz_baseline: "baseline moved", vz_spec_geschrieben: "spec written", vz_spec_vorgelegt: "for approval", vz_spec_frei: "approved", vz_spec_zurueck: "sent back", vz_plan_vorgelegt: "plan submitted", vz_plan_frei: "plan approved", vz_plan_zurueck: "plan sent back", vz_schritt_genommen: "step picked up", vz_risiko_neu: "risk added", vz_risiko_status: "risk status", vz_leitbild: "charter", vz_abgebrochen: "aborted",
+    vz_bogen_neu: "arc created", vz_bogen_status: "arc status", vz_bogen_aendern: "arc changed", vz_baseline: "baseline moved", vz_spec_geschrieben: "spec written", vz_spec_vorgelegt: "for approval", vz_spec_frei: "approved", vz_spec_zurueck: "sent back", vz_plan_vorgelegt: "plan submitted", vz_plan_frei: "plan approved", vz_plan_zurueck: "plan sent back", vz_schritt_genommen: "step picked up", vz_risiko_neu: "risk added", vz_risiko_status: "risk status", vz_leitbild: "charter", vz_abgebrochen: "aborted", vz_info_geschlossen: "message closed",
     achtung: "Attention", nachtrag_neu: "{n} new follow-up", aufklappen: "Click: full text", s_extra: "{n} unplanned",
     jetzt_bei: "now: {x}", geaendert: "changed", notizen: "Notes ({n})", server: "Project servers", k_name: "Name", k_port: "Port",
     k_zustaendig: "Owner", k_neustart: "Restart", k_ausfaelle: "Outages", sz_laeuft: "running", sz_aus: "down", sz_unbekannt: "not checked yet",
@@ -1686,7 +1707,8 @@ async function sichtStart() {
   const pw = d.planung_wartet || { spezifikationen: [], plaene: [], eigene: [] };
   const fr = [...pw.spezifikationen.map(s => el("div", { class: "karte", onclick: () => { zustand.planReiter = "zeitleiste"; zeige("planung"); } },
       el("div", {}, el("span", { class: "ref" }, bogenRef(s.bogen_id)), " ", el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))),
-      el("p", {}, t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })))),
+      el("p", {}, t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })),
+      el("p", { class: "leise", style: "margin:0;font-size:12.5px" }, specWer({ ...s, status: "vorgelegt" }).slice(3)))),
     ...pw.plaene.map(p => el("div", { class: "karte", onclick: () => zeige("planung") }, el("div", {}, el("span", { class: "ref" }, `A${p.id}`), " ",
       el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))), el("p", {}, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" })))),
     ...pw.eigene.map(a => el("div", { class: "karte klickbar", onclick: () => aufgabeDialog(a.id) }, el("div", {}, el("span", { class: "ref" }, `A${a.id}`), " ",
@@ -1706,8 +1728,9 @@ async function sichtStart() {
   const rang = a => (a.soll === "an" ? 0 : a.zustand === "aktiv" ? 1 : 2);     /* erst die, die laufen sollen */
   m.append(el("div", { class: "agenten zeile-reveal" }, [...d.agenten].sort((x, y) => rang(x) - rang(y)).map(kachel)));
   if ((d.an_dich || []).length) {
+    const frisch = d.an_dich.filter(n => !n.abgelegt), alt = d.an_dich.filter(n => n.abgelegt);
     m.append(el("h2", {}, t("an_dich")));
-    m.append(el("div", { class: "wartet zeile-reveal" }, d.an_dich.map(n => {
+    const karteAnDich = n => {
       const text = n.text ? el("p", { class: "leise kurztext", style: "white-space:pre-wrap", title: t("aufklappen"),
         onclick: e => e.currentTarget.classList.toggle("auf") }, n.text) : null;
       const karte = el("div", { class: "karte" },
@@ -1719,7 +1742,17 @@ async function sichtStart() {
           el("button", { class: "klein-knopf", type: "button", onclick: async () => {
             try { await schicken("/api/gelesen", { ids: [n.id] }); karte.remove(); kopfAktualisieren(); }
             catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("gelesen"))));
-      return karte; })));
+      return karte; };
+    if (frisch.length) m.append(el("div", { class: "wartet zeile-reveal" }, frisch.map(karteAnDich)));
+    if (alt.length) {
+      const box = el("details", { class: "ablage" }, el("summary", {}, t("an_dich_alt", { n: alt.length })),
+        el("p", { class: "sehrleise", style: "margin:4px 0 8px" }, t("an_dich_alt_h")),
+        el("button", { class: "klein-knopf", type: "button", style: "margin-bottom:8px", onclick: async () => {
+          try { await schicken("/api/gelesen", { ids: alt.map(n => n.id) }); box.remove(); kopfAktualisieren(); }
+          catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("an_dich_alt_weg")),
+        el("div", { class: "wartet" }, alt.map(karteAnDich)));
+      m.append(box);
+    }
   }
 }
 /* „1204 · A1204 Titel“ → „A1204 Titel“ (alte Titel tragen die Nummer schon) */
@@ -3196,6 +3229,15 @@ async function aufgabeDialog(id) {
         el("button", { class: a.fuer_dich && offen ? "klein-knopf" : "knopf haupt", type: "button", onclick: () => tun("antwort", true) }, t("au_antwort", { x: an })),
         a.fuer_dich && offen ? el("button", { class: "klein-knopf", type: "button", onclick: () => tun("spaeter", false) }, t("au_spaeter")) : null)));
 }
+/* Wer hat geschrieben, wer vorgelegt, wer freigegeben (Fehlerbericht GlassWorld Punkt 2: Vorlage durch den Lead sichtbar) */
+function specWer(s) {
+  const teile = [];
+  if (s.geschrieben_von) teile.push(t("sw_verfasst", { x: s.geschrieben_von }));
+  if (s.vorgelegt_von && ["vorgelegt", "frei", "zurueck"].includes(s.status))
+    teile.push(t(s.vorgelegt_von !== s.geschrieben_von ? "sw_vorgelegt_geprueft" : "sw_vorgelegt", { x: s.vorgelegt_von }));
+  if (s.frei_von && s.status === "frei") teile.push(t("sw_frei", { x: s.frei_von }));
+  return teile.length ? " · " + teile.join(" · ") : "";
+}
 function specDialog(b, teil) {
   const s = b.specs[teil] || { status: "entwurf", text: "" };
   const kommentar = el("textarea", { rows: 3, placeholder: t("pl_kommentar_ph") });
@@ -3204,7 +3246,7 @@ function specDialog(b, teil) {
     catch (e) { toast(t("fehler", { x: e.message }), true); } };
   const klaer = b.klaerungen.filter(k => k.fundstellen === `bogen:${b.id}:${teil}`);
   const hg = dialog(`${bogenRef(b.id)} · ${t("teil_" + teil)}`,
-    el("p", { class: "leise", style: "margin-top:0" }, `${t("ss_" + s.status)} · v${s.version || 1}` + (s.geschrieben_von ? ` · ${s.geschrieben_von}` : "")
+    el("p", { class: "leise", style: "margin-top:0" }, `${t("ss_" + s.status)} · v${s.version || 1}` + specWer(s)
       + (s.geaendert_utc ? ` · ${seit(s.geaendert_utc)}` : "")),
     s.kommentar ? el("div", { class: "band-warn" }, el("b", {}, t("pl_letzter_kommentar")), s.kommentar) : null,
     klaer.length ? el("div", { class: "sehrleise" }, t("pl_klaerungen_liste") + " " + klaer.map(k => `F${k.id} (${k.status})`).join(", ")) : null,
@@ -3556,6 +3598,9 @@ async function sichtEinstellungen() {
     entwickler_name: text(d.projekt.entwickler_name || ""),
     dateien_online: el("select", {}, ["wunsch", "bilder", "alle"].map(w => el("option", { value: w }, t("e_dateien_" + w)))) };
   pf.dateien_online.value = d.projekt.dateien_online || "wunsch";
+  for (const [k, werte] of [["agentenfragen", ["lead", "direkt"]], ["spec_vorlegen", ["lead", "alle"]], ["spec_frei", ["entwickler", "lead"]]]) {
+    pf[k] = el("select", {}, werte.map(w => el("option", { value: w }, t(`e_${k}_${w}`)))); pf[k].value = d.projekt[k] || werte[0]; }
+  pf.info_ablage_h = zahl(d.projekt.info_ablage_h, 1, 168);
   pf.entwickler_name.placeholder = t("e_entwickler_ph"); pf.entwickler_name.maxLength = 30;
   const pname = el("select", { onchange: e => projektWechseln(e.target.value), disabled: API || projekte.length < 2 },
     (projekte.length ? projekte : [{ uid: "", name: d.projekt.name }]).map(p => el("option", { value: p.uid, ...(p.uid === projekt ? { selected: true } : {}) }, p.name)));
@@ -3570,10 +3615,14 @@ async function sichtEinstellungen() {
     [[t("e_projekt_name"), pwahl, t("e_projekt_name_h")], [t("e_ordner"), pordner, t("e_ordner_h")], [t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")],
      [t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")], [t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")],
      [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")], [t("e_dateien"), pf.dateien_online, t("e_dateien_h")],
-     [t("e_farbe"), pf.farbe, t("e_farbe_h")]],
+     [t("e_farbe"), pf.farbe, t("e_farbe_h")], [t("e_agentenfragen"), pf.agentenfragen, t("e_agentenfragen_h")],
+     [t("e_spec_vorlegen"), pf.spec_vorlegen, t("e_spec_vorlegen_h")], [t("e_spec_frei"), pf.spec_frei, t("e_spec_frei_h")],
+     [t("e_info_ablage"), pf.info_ablage_h, t("e_info_ablage_h")]],
     "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
       stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min),
-      entwickler_name: pf.entwickler_name.value.trim(), dateien_online: pf.dateien_online.value, farbe: pf.farbe.value })));
+      entwickler_name: pf.entwickler_name.value.trim(), dateien_online: pf.dateien_online.value, farbe: pf.farbe.value,
+      agentenfragen: pf.agentenfragen.value, spec_vorlegen: pf.spec_vorlegen.value, spec_frei: pf.spec_frei.value,
+      info_ablage_h: wert(pf.info_ablage_h) })));
 
   // Agenten
   const zeile = a => {
@@ -3614,11 +3663,12 @@ async function sichtEinstellungen() {
     abgleich_hoch_s: zahl(p.abgleich_hoch_s, 10, 3600), abgleich_puls_s: zahl(p.abgleich_puls_s, 60, 3600),
     abgleich_eingang_s: zahl(p.abgleich_eingang_s, 5, 600), bruecke_an: schalter(p.bruecke_an),
     bruecke_absender: text(p.bruecke_absender), bruecke_kopie_s: zahl(p.bruecke_kopie_s, 15, 3600),
-    fernsitzung_prozess: text(p.fernsitzung_prozess || ""), rechner: text(p.rechner || ""), cpu_laeufe: zahl(p.cpu_laeufe, 1, 8) };
+    fernsitzung_prozess: text(p.fernsitzung_prozess || ""), rechner: text(p.rechner || ""), cpu_laeufe: zahl(p.cpu_laeufe, 1, 8),
+    produkt_entwickler: text(p.produkt_entwickler || "") };
   pc.fernsitzung_prozess.placeholder = t("e_fern_ph");
   box.append(block([t("e_pc"), " ", pcMarke()], API ? t("nur_pc") : t("e_pc_h", { x: p.datei }), [
     [t("e_rechner"), pc.rechner, t("e_rechner_h")],
-    [t("e_db"), pc.db_pfad], [t("e_port"), pc.port], [t("e_cpu"), pc.cpu_laeufe, t("e_cpu_h")], [t("e_aufsicht"), pc.aufsicht_s], [t("e_hoch"), pc.abgleich_hoch_s],
+    [t("e_db"), pc.db_pfad], [t("e_port"), pc.port], [t("e_cpu"), pc.cpu_laeufe, t("e_cpu_h")], [t("e_kanal"), pc.produkt_entwickler, t("e_kanal_h")], [t("e_aufsicht"), pc.aufsicht_s], [t("e_hoch"), pc.abgleich_hoch_s],
     [t("e_puls_pc"), pc.abgleich_puls_s], [t("e_eingang"), pc.abgleich_eingang_s], [t("e_bruecke"), pc.bruecke_an],
     [t("e_absender"), pc.bruecke_absender], [t("e_kopie"), pc.bruecke_kopie_s], [t("e_fern"), pc.fernsitzung_prozess, t("e_fern_h")]],
     "pc", () => Object.fromEntries(Object.entries(pc).map(([k, x]) => [k, wert(x)])), !!API));
