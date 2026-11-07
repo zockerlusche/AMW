@@ -97,17 +97,16 @@ def angemeldete_postfaecher():
 
 
 def unangemeldet(con, pid):
-    """Laufende Sitzungen mit Fenster, die nicht angemeldet sind, aber zu einem Agenten gehören: Sitzungs-ID war schon
-    angemeldet (Resume) oder sie läuft im selben Ordner wie ein angemeldeter Agent. Für Workbench und dienst status."""
+    """Laufende Sitzungen mit Fenster, die nicht angemeldet sind, aber zu einem Agenten DIESES Projekts gehören: Sitzungs-ID
+    war schon angemeldet (Resume) oder sie läuft in einem Ordner, in dem hier schon ein Agent angemeldet war. Für Workbench
+    und dienst status; Sitzungen anderer Projekte erscheinen dort nicht."""
     postfach = angemeldete_postfaecher()
-    alle = claude_prozesse()
-    live_ordner = {p["ordner"] for p in alle if p["pipe"] in postfach}
     erg = []
-    for p in alle:
+    for p in claude_prozesse():
         if p["pipe"] in postfach or p["art"] == "bg":
             continue
         k = bekannte_kennung(con, pid, p["sitzung"])
-        if k or p["ordner"] in live_ordner or agenten_ordner(con, p["ordner"]):
+        if k or agenten_ordner(con, p["ordner"], pid):
             erg.append({"kennung": k, "pid": p["pid"], "sitzung": p["sitzung"][:8], "ordner": p["ordner"], "name": p["name"]})
     return erg
 
@@ -290,10 +289,12 @@ def projekt_der_sitzung(con, kennung, eingabe):
     return None
 
 
-def agenten_ordner(con, ordner):
-    """Läuft hier schon einmal ein angemeldeter Agent? (Ordner aus der Sitzungstabelle, ohne Groß/klein.)"""
-    return bool(ordner) and con.execute("SELECT 1 FROM sitzung WHERE lower(arbeitsordner) = lower(?) LIMIT 1",
-                                        (ordner,)).fetchone() is not None
+def agenten_ordner(con, ordner, pid=None):
+    """Lief hier schon einmal ein angemeldeter Agent? (Ordner aus der Sitzungstabelle, ohne Groß/klein; pid: nur dieses Projekt.)"""
+    if not ordner:
+        return False
+    return con.execute("SELECT 1 FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE lower(s.arbeitsordner) = lower(?)"
+                       " AND (? IS NULL OR a.projekt_id = ?) LIMIT 1", (ordner, pid, pid)).fetchone() is not None
 
 
 if __name__ == "__main__":

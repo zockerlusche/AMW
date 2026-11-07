@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.27.2 – 07.11.2026 · Warnung „nicht angemeldet“ je Projekt
+- Der rote Kasten „Nicht angemeldet“ auf der Startseite zeigt nur noch Sitzungen des gewählten Projekts. Bisher erschien
+  eine nicht angemeldete Sitzung eines anderen Projekts auch dort.
+
 ## 1.27.1 – 07.11.2026 · Gleiche Kennung in zwei Projekten: Weck-Adresse getrennt
 Wichtige Korrektur für mehrere Projekte. Gefunden in der Probe „neues Projekt von A bis Z“.
 - **Fehler:** Die Datei mit der Weck-Adresse einer Sitzung trug nur die Kennung im Namen. Startete ein CC1 in einem zweiten

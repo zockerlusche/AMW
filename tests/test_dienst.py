@@ -232,6 +232,14 @@ class GleicheKennungZweiProjekte(Anmelden):
                 steuerung.beenden(self.con, self.q, "TL", beenden_mit=tot.append)
             self.assertEqual(tot, [4711])                                           # Q: genau seine Sitzung
 
+    def test_warnung_nicht_angemeldet_nur_im_eigenen_projekt(self):
+        with mock.patch.dict(os.environ, {"AMW_PROJEKT": "P"}):
+            self.hook_lauf({"session_id": "in-p", "source": "startup", "cwd": "C:/p"}, "TL", "pipe-p")
+        lose = {"pid": 9, "art": "interactive", "name": "", "sitzung": "lose", "ordner": "c:/P", "pipe": "pipe-lose"}
+        with mock.patch.object(self.hook, "claude_prozesse", return_value=[lose]):
+            self.assertEqual([x["pid"] for x in self.hook.unangemeldet(self.con, self.pid)], [9])
+            self.assertEqual(self.hook.unangemeldet(self.con, self.q), [])         # gehört nach P, nicht nach Q
+
     def test_jeder_nimmt_nur_eigene_arbeit(self):
         from amw import planung
         kern.agent_neu(self.con, self.pid, "CC1")
