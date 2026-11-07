@@ -474,7 +474,7 @@ def bis_pruefen(con, pid, bis):
     bis = (bis or "").strip()
     if not bis:
         return None
-    bis = bis[0].upper() + bis[1:] if bis[0] in "af" and bis[1:].isdigit() else bis.lower()
+    bis = bis[0].upper() + bis[1:] if bis[0] in "afAF" and bis[1:].isdigit() else bis.lower()   # A12/a12 → A12
     if not BIS.fullmatch(bis):
         raise AmwFehler("--bis: leitbild | aufgabe | A<nr> | F<nr> – die Meldung erledigt sich, sobald das erfüllt ist")
     if bis[0] in "AF":

@@ -54,6 +54,17 @@ class Meldungen(Grund):
         self.assertEqual(kern.bezuege_erledigen(self.con), [(n2, f"GW1 hat A{aid}")])
         n3, _ = kern.posten(self.con, self.pid, "GW1", "TL", "info", "warte auf A", bis=f"a{aid}")
         self.assertEqual(self.con.execute("SELECT bis FROM nachricht WHERE id = ?", (n3,)).fetchone()[0], f"A{aid}")
+        n4, _ = kern.posten(self.con, self.pid, "GW1", "TL", "info", "warte auf A (groß)", bis=f"A{aid}")   # CC2 #18719
+        fid = kern.frage_neu(self.con, self.pid, "GW2", "tl", "Glas?", [])
+        n5, _ = kern.posten(self.con, self.pid, "GW1", "TL", "info", "warte auf F", bis=f"F{fid}")
+        with self.assertRaises(kern.AmwFehler) as f:
+            kern.posten(self.con, self.pid, "GW1", "TL", "info", "x", bis="A999")
+        self.assertIn("gibt es in diesem Projekt nicht", str(f.exception))
+        self.assertEqual(kern.bezuege_erledigen(self.con), [])
+        kern.aufgabe_status(self.con, self.pid, "GW1", aid, "start")
+        kern.aufgabe_status(self.con, self.pid, "TL", aid, "fertig", beleg="abc1234")
+        kern.frage_antworten(self.con, self.pid, fid, "text", "ja", "cli", "TL")
+        self.assertEqual(sorted(n for n, _ in kern.bezuege_erledigen(self.con)), [n3, n4, n5])
 
     def test_lead_schliesst_meldungen_an_den_entwickler_mit_grund(self):
         n, _ = kern.posten(self.con, self.pid, "GW2", "Entwickler", "info", "noch kein Leitbild, warte")
