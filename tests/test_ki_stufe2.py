@@ -95,6 +95,10 @@ class Nachts(Grund):
             self.assertIsNone(ki.testtermin_vorrang(self.con, vorher))   # vor der Vorlaufzeit (4 h)
             termine.absagen(self.con, self.pid2, kern.ENTWICKLER, tid)
             self.assertIsNone(ki.testtermin_vorrang(self.con))
+            jetzt = (datetime.datetime.now() - datetime.timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M")
+            t0 = termine.neu(self.con, self.pid, kern.ENTWICKLER, "Spontantest", "test", jetzt, vorlauf_h=0)   # ohne Vorlauf (CC2 b)
+            self.assertIn("Spontantest", ki.testtermin_vorrang(self.con) or "")
+            termine.absagen(self.con, self.pid, kern.ENTWICKLER, t0)
 
     def test_parameter_nachts_nicht_von_hand(self):
         with self.assertRaises(kern.AmwFehler):
@@ -164,20 +168,24 @@ class Vermerk(Grund):
 
     def test_bruecke_setzt_den_kanal(self):
         with tempfile.TemporaryDirectory() as eingang:
-            args = bruecke.argumente({"befehl": "ki", "aktion": "vermerk", "kennung": f"D{self.d1}", "art": "ausgewaehlt"}, eingang)
-            self.assertEqual(args[-4:], ["--kanal", "bruecke", "--von", "TL"])
-            with self.assertRaises(ValueError):
-                bruecke.argumente({"befehl": "ki", "aktion": "vermerk", "kennung": "D1", "art": "verworfen", "kanal": "cli"}, eingang)
+            args = bruecke.argumente({"befehl": "ki", "aktion": "vermerk", "kennung": f"D{self.d1}", "art": "ausgewählt"}, eingang,
+                                     von="Lead", projekt="P")
+            self.assertEqual(args[-2:], ["--von", "Lead"])
+            rc, aus, fehler = bruecke.ausfuehren(args)
+            self.assertEqual((rc, fehler), (0, ""))                    # Umlaut: kein FEHLER nach dem Schreiben (CC2 #18851)
+            self.assertIn(f"D{self.d1} ausgewählt", aus)
             args = bruecke.argumente({"befehl": "ki", "aktion": "modell", "kennung": "comfyui", "wert": "x",   # Modell-URL bleibt
                                       "quelle": "https://huggingface.co/x"}, eingang)
             self.assertIn("https://huggingface.co/x", args)
         # über die Kommandozeile bis in die Datenbank
         from amw import cli
         with mock.patch("sys.stdout"):
-            cli.main(["ki", "vermerk", f"D{self.d2}", "--art", "verworfen", "--von", "Grafik", "--projekt", "P"])
-            cli.main(["ki", "vermerk", f"D{self.d2}", "--art", "ausgewaehlt", "--kanal", "bruecke", "--von", "Lead", "--projekt", "P"])
-        self.assertEqual([tuple(x) for x in self.con.execute("SELECT von, kanal FROM ki_vermerk ORDER BY id")],
-                         [("Grafik", "cli"), ("Lead", "bruecke")])
+            cli.main(["ki", "vermerk", f"D{self.d2}", "--art", "Verworfen", "--von", "Grafik", "--projekt", "P"])
+            with self.assertRaises(SystemExit):                          # den Kanal kann niemand selbst angeben
+                with mock.patch("sys.stderr"):
+                    cli.main(["ki", "vermerk", f"D{self.d2}", "--art", "ausgewaehlt", "--kanal", "bruecke", "--von", "Lead", "--projekt", "P"])
+        self.assertEqual([tuple(x) for x in self.con.execute("SELECT von, art, kanal FROM ki_vermerk ORDER BY id")],
+                         [("Lead", "ausgewaehlt", "bruecke"), ("Grafik", "verworfen", "cli")])
 
 
 class Migration(unittest.TestCase):

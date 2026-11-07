@@ -4,6 +4,7 @@ Wer bin ich: --von oder Umgebungsvariable AMW_AGENT. Welches Projekt: --projekt,
 vorhandene oder das, in dem es die Kennung gibt. Ausgabe immer UTF-8 (sonst brechen Umlaute in der Windows-Konsole ab).
 """
 import argparse
+import contextvars
 import json
 import os
 import re
@@ -13,6 +14,10 @@ import time
 from datetime import datetime
 
 from . import betrieb, db, kern, schirm, ueberwachung, wissen
+
+# Woher ein Befehl kommt (Vermerke an KI-Ergebnissen): „cli“, in bruecke.ausfuehren() „bruecke“ – nie als Argument,
+# sonst könnte jeder Agent „vom Handy“ behaupten (CC2 #18851)
+KANAL = contextvars.ContextVar("amw_kanal", default="cli")
 
 
 def _projekt(con, a):
@@ -1152,8 +1157,9 @@ def cmd_ki(a, con):
         if not a.name or not a.art:
             raise kern.AmwFehler("ki vermerk D<nr> --art ausgewaehlt|verworfen|nachbearbeitet [--text …] (nachbearbeitet: --text, was"
                                  " von Hand geändert wurde)")
-        vid = ki.vermerken(con, pid, von, a.name, a.art, a.text, a.kanal)
-        print(f"Vermerk {vid}: {a.name.upper() if a.name[0] in 'dD' else 'D' + a.name} {ki.VERMERK_TEXT[a.art]}")
+        art = ki.vermerk_art(a.art)
+        vid = ki.vermerken(con, pid, von, a.name, art, a.text, KANAL.get())
+        print(f"Vermerk {vid}: D{a.name.strip().lstrip('Dd')} {ki.VERMERK_TEXT[art]}")
     elif a.aktion == "zeige":
         if not a.name:
             raise kern.AmwFehler("ki zeige L<nr>")
@@ -2151,7 +2157,6 @@ def parser():
     x.add_argument("--nachts", action="store_true", help="auftrag: erst im KI-Fenster starten (Vorgabe 22–06 Uhr), nie vor einem"
                                                          " Testtermin – eilt nicht, belegt die Grafikkarte nicht, während du am PC bist")
     x.add_argument("--text", help="vermerk: was von Hand nachbearbeitet wurde bzw. warum ausgewählt/verworfen")
-    x.add_argument("--kanal", choices=["cli", "bruecke"], default="cli", help=argparse.SUPPRESS)   # setzt die Brücke
     x.add_argument("--alle", action="store_true", help="nachweis: auch archivierte und gelöschte Dokumente")
     x.set_defaults(f=cmd_ki)
 

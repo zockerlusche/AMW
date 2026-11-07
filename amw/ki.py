@@ -939,10 +939,11 @@ def testtermin_vorrang(con, jetzt=None):
     """Text, wenn gerade (PC-weit, in irgendeinem Projekt) die Vorlaufzeit eines Testtermins oder der Termin selbst läuft."""
     from . import termine
     jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
-    for t in con.execute("SELECT * FROM termin WHERE art = 'test' AND status = 'geplant' AND vorlauf_h > 0").fetchall():
-        for v in termine._vorkommen_eines(t, jetzt - datetime.timedelta(hours=12), jetzt + datetime.timedelta(hours=t["vorlauf_h"])):
+    for t in con.execute("SELECT * FROM termin WHERE art = 'test' AND status = 'geplant'").fetchall():
+        vorlauf = datetime.timedelta(hours=t["vorlauf_h"] or 0)    # ohne Vorlauf: nur während des Termins selbst
+        for v in termine._vorkommen_eines(t, jetzt - datetime.timedelta(hours=12), jetzt + vorlauf):
             am = termine._dt(v["am_utc"])
-            if not am - datetime.timedelta(hours=t["vorlauf_h"]) <= jetzt < am + datetime.timedelta(minutes=t["dauer_min"] or 60):
+            if not am - vorlauf <= jetzt < am + datetime.timedelta(minutes=t["dauer_min"] or 60):
                 continue
             if con.execute("SELECT 1 FROM termin_meldung WHERE termin_id = ? AND am_utc = ? AND art = 'abgesagt'",
                            (t["id"], v["am_utc"])).fetchone():
@@ -1009,12 +1010,18 @@ VERMERK_TEXT = {"ausgewaehlt": "ausgewählt", "verworfen": "verworfen", "nachbea
 VERMERK_TEXT_MAX = 2000
 
 
+def vermerk_art(art):
+    """„ausgewählt“, „Ausgewaehlt “ … → ausgewaehlt; AmwFehler bei unbekannter Art."""
+    a = (art or "").strip().lower().replace("ä", "ae")
+    if a not in VERMERKE:
+        raise kern.AmwFehler(f"Vermerk: {' | '.join(VERMERKE)}")
+    return a
+
+
 def vermerken(con, pid, von, dokument, art, text=None, kanal="cli"):
     """Vermerk an einem KI-Ergebnis (Agent des Projekts, Lead oder Entwickler). nachbearbeitet braucht den Text, was von
     Hand geändert wurde – das ist der Nachweis der menschlichen Gestaltungsentscheidung. Rückgabe: id."""
-    art = (art or "").strip().lower().replace("ä", "ae")
-    if art not in VERMERKE:
-        raise kern.AmwFehler(f"Vermerk: {' | '.join(VERMERKE)}")
+    art = vermerk_art(art)
     text = (text or "").strip() or None
     if art == "nachbearbeitet" and (not text or len(text) < 5):
         raise kern.AmwFehler("nachbearbeitet: --text angeben – was wurde von Hand geändert? (Nachweis für das Urheberrecht)")
@@ -1022,12 +1029,17 @@ def vermerken(con, pid, von, dokument, art, text=None, kanal="cli"):
         raise kern.AmwFehler(f"Vermerk länger als {VERMERK_TEXT_MAX} Zeichen")
     if text and dokumente.GEHEIM.search(text):
         raise kern.AmwFehler("Der Text enthält etwas, das wie ein Schlüssel aussieht – nicht vermerkt")
-    if von not in (kern.ENTWICKLER, db.produkt_entwickler()):
-        kern.agent_zeile(con, pid, von)
     try:
         did = int(str(dokument).strip().lstrip("Dd"))
     except ValueError:
         raise kern.AmwFehler(f"Dokument „{dokument}“: D<nr>") from None
+    with db.schreiben(con):                       # prüfen und anhängen in einem Zug
+        return _vermerk_anlegen(con, pid, von, did, art, text, kanal)
+
+
+def _vermerk_anlegen(con, pid, von, did, art, text, kanal):
+    if von not in (kern.ENTWICKLER, db.produkt_entwickler()):
+        kern.agent_zeile(con, pid, von)
     d = con.execute("SELECT id, status FROM dokument WHERE id = ? AND projekt_id = ?", (did, pid)).fetchone()
     if not d:
         raise kern.AmwFehler(f"D{did} gibt es nicht")
@@ -1037,9 +1049,8 @@ def vermerken(con, pid, von, dokument, art, text=None, kanal="cli"):
                        " WHERE v.dokument_id = ?", (did,)).fetchone():
         raise kern.AmwFehler(f"D{did} hat keine KI-Herkunft – Vermerke gibt es nur an KI-Ergebnissen")
     nr = con.execute("SELECT max(nr) FROM dokument_version WHERE dokument_id = ?", (did,)).fetchone()[0]
-    with db.schreiben(con):
-        return db.einfuegen(con, "ki_vermerk", projekt_id=pid, dokument_id=did, version_nr=nr, art=art, text=text, von=von,
-                            kanal=kanal, zeit_utc=db.jetzt())
+    return db.einfuegen(con, "ki_vermerk", projekt_id=pid, dokument_id=did, version_nr=nr, art=art, text=text, von=von,
+                        kanal=kanal, zeit_utc=db.jetzt())
 
 
 def vermerke_von(con, pid, did):

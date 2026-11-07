@@ -152,11 +152,6 @@ def argumente(befehl, eingang=EINGANG, von=None, projekt=None):
         if "--quelle" in args:
             raise ValueError("--quelle setzt beim Schirm die Brücke selbst")
         args = args + ["--quelle", "bruecke"]
-    if args[0] == "ki":                                    # KI-Vermerk: den Kanal setzt die Brücke
-        if any(a.split("=")[0] == "--kanal" for a in args):
-            raise ValueError("--kanal setzt die Brücke selbst")
-        if args[1:2] == ["vermerk"]:
-            args = args + ["--kanal", "bruecke"]
     for i, a in enumerate(args):
         if a.split("=")[0] in ("--datei", "--text-datei", "--prompt-datei") and "=" in a:
             raise ValueError(f"{a.split('=')[0]} bitte als eigenen Schlüssel angeben")
@@ -219,6 +214,7 @@ def ausfuehren(args):
     aus, fehler = io.StringIO(), io.StringIO()
     stdin = sys.stdin
     sys.stdin = io.StringIO()                             # input() → EOFError statt Warten
+    marke = cli.KANAL.set("bruecke")                      # z. B. KI-Vermerk: Kanal „bruecke“ (nur hier gesetzt)
     try:
         with contextlib.redirect_stdout(aus), contextlib.redirect_stderr(fehler):
             try:
@@ -229,6 +225,7 @@ def ausfuehren(args):
                 print(f"FEHLER: {type(e).__name__}: {e}", file=sys.stderr)
                 rc = 1
     finally:
+        cli.KANAL.reset(marke)
         sys.stdin = stdin
     return rc, aus.getvalue(), fehler.getvalue()
 
