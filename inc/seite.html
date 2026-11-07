@@ -3303,7 +3303,7 @@ async function aufgabeDialog(id) {
         el("button", { class: a.fuer_dich && offen ? "klein-knopf" : "knopf haupt", type: "button", onclick: () => tun("antwort", true) }, t("au_antwort", { x: an })),
         a.fuer_dich && offen ? el("button", { class: "klein-knopf", type: "button", onclick: () => tun("spaeter", false) }, t("au_spaeter")) : null)));
 }
-/* Wer hat geschrieben, wer vorgelegt, wer freigegeben (Fehlerbericht GlassWorld Punkt 2: Vorlage durch den Lead sichtbar) */
+/* Wer hat geschrieben, wer vorgelegt, wer freigegeben (Vorlage durch den Lead sichtbar) */
 function specWer(s) {
   const teile = [];
   if (s.geschrieben_von) teile.push(t("sw_verfasst", { x: s.geschrieben_von }));
