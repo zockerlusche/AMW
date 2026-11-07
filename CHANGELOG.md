@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.32.0 – 07.11.2026 · Videos als Dokument
+- **Videos ablegen und abspielen:** `amw dokument ablegen abnahme.mp4 …` nimmt MP4 (H.264) und WebM an, auch beim
+  Hochladen in der Workbench und am Handy (bis 25 MB). Die Workbench spielt sie im Dokument-Fenster ab, mit Vor- und
+  Zurückspulen (am PC und online); die Kachel zeigt das erste Bild. Die AMW prüft, dass es wirklich ein Video ist; ein
+  MP4 mit H.265/HEVC lehnt sie mit dem ffmpeg-Befehl für H.264 ab, weil nicht jeder Browser es abspielt. Wunsch des
+  GlassWorld-TL (Abnahmen, Look-Prototyp).
+
 ## 1.31.0 – 07.11.2026 · KI Stufe 2: Nachtfenster und Vermerke an KI-Ergebnissen
 - **KI-Fenster für Aufträge, die nicht eilen:** `amw ki auftrag … --nachts` startet erst im KI-Fenster (Vorgabe 22–06 Uhr,
   Ortszeit; Zahnrad › Dieser PC › KI-Fenster) und nie in der Vorlaufzeit eines Testtermins (in irgendeinem Projekt). Bis

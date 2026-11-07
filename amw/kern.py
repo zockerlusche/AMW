@@ -1019,7 +1019,7 @@ def kontext(con, pid, kennung):
          f"AMW-Befehl: `{BEFEHL}` (unten kurz `amw`), immer mit `--von {kennung}`. Arbeitsweise: `amw lesen` → handeln →"
          " `amw erledigt <nr>` · melden: `amw posten --an <Agent|Entwickler> --art info|auftrag|frage|antwort --kurz …`"
          " · Arbeit holen: `amw schritt naechster --nehmen` · abschließen: `amw aufgabe fertig <nr> --beleg <commit>"
-         " --zusammenfassung …` · Ergebnisse (Text als .md, Bilder, Mockup als eine .html) nie lose ablegen: `amw dokument"
+         " --zusammenfassung …` · Ergebnisse (Text als .md, Bilder, Mockup als eine .html, Video als .mp4) nie lose ablegen: `amw dokument"
          " ablegen <datei> --titel … --art ergebnis|bericht|entwurf|mockup|bild --aufgabe <nr>` (neue Fassung: `amw dokument"
          " version <D-nr> <datei> --notiz …`) · Frage an den Menschen: `amw frage neu --an entwickler --kurz … --option A=… --empfehlung A"
          " --grund …` (Varianten zum Ansehen: `--anhang A=bild.png`) · Hilfe: `amw <befehl> --help`."]

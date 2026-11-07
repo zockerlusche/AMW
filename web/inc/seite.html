@@ -314,7 +314,8 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .dk-nurpc { border: 0; }
 .dk-karte:hover, .dk-karte:focus-visible { border-color: var(--bernstein); }
 .dk-bild { display: grid; place-items: center; background: var(--flaeche2); overflow: hidden; border-bottom: 1px solid var(--linie); }
-.dk-bild img { width: 100%; height: 100%; object-fit: cover; }
+.dk-bild img, .dk-bild video { width: 100%; height: 100%; object-fit: cover; }
+.dk-vorschau video { display: block; width: 100%; max-height: 68vh; background: #000; }
 .dk-symbol { font: 600 22px var(--titel); letter-spacing: .12em; color: var(--leise); text-transform: uppercase; }
 .dk-symbol small { display: block; font: 11px var(--mono); letter-spacing: 0; text-align: center; color: var(--sehrleise); margin-top: 4px; }
 .dk-text { padding: 9px 11px; display: grid; gap: 3px; }
@@ -2321,6 +2322,8 @@ const nurAmPc = d => API && d.vorschau !== "text" && !d.online;      // online: 
 function dokSymbol(d) {
   const symbol = () => el("span", { class: "dk-symbol" }, d.vorschau === "mockup" ? "Mockup" : d.vorschau === "pdf" ? "PDF" : d.format === "markdown" ? "Text" : d.format === "bild" ? t("dk_bild") : d.format,
     el("small", {}, nurAmPc(d) ? `${d.endung} · ${t("dk_online_aus")}` : d.endung));
+  if (d.vorschau === "video" && !nurAmPc(d))                 /* erstes Bild als Vorschau, lädt nur die Kopfdaten */
+    return el("video", { src: dokUrl(d.id, d.version) + "#t=0.1", muted: true, preload: "metadata", playsinline: true, onerror: e => e.target.replaceWith(symbol()) });
   return d.vorschau === "bild" && !nurAmPc(d) ? el("img", { src: dokUrl(d.id, d.version), alt: "", loading: "lazy", onerror: e => e.target.replaceWith(symbol()) }) : symbol();
 }
 async function sichtDokumente() {
@@ -2407,6 +2410,7 @@ async function dokumentDialog(id, v) {
     : ver.vorschau === "bild" ? el("img", { src: url, alt: d.titel, title: t("vb_tipp"), onclick: () => dokVollbild(d, ver) })
     : ver.vorschau === "mockup" ? el("iframe", { src: url, sandbox: "allow-scripts", title: d.titel, referrerpolicy: "no-referrer" })
     : ver.vorschau === "pdf" ? el("iframe", { src: url, title: d.titel })
+    : ver.vorschau === "video" ? el("video", { src: url, controls: true, preload: "metadata", playsinline: true, title: d.titel })
     : ver.vorschau === "text" ? (ver.format === "markdown" ? markdown(d.text || "") : el("pre", { class: "spec-text", style: "margin:0" }, d.text || ""))
     : el("div", { class: "leer" }, t("dk_nur_download"));
   const knopf = (text, fn, haupt) => el("button", { class: haupt ? "knopf haupt" : "klein-knopf", type: "button", onclick: fn }, text);
@@ -2737,7 +2741,7 @@ function dokBearbeiten(d, ver) {
 }
 /* Hochladen: Datei wählen, Foto aufnehmen, hineinziehen oder einfügen. Fotos rechnet der Browser neu (verkleinert, ohne
    Standort/EXIF); dann in Teilen hoch (ein Funkloch kostet nur ein Teil), Prüfsumme aus dem Browser. */
-const HOCH_ENDUNGEN = [".md", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".html", ".htm", ".pdf", ".docx", ".xlsx", ".heic", ".heif"];
+const HOCH_ENDUNGEN = [".md", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".html", ".htm", ".pdf", ".docx", ".xlsx", ".mp4", ".webm", ".heic", ".heif"];
 const HOCH_TEIL = 192 * 1024, BILD_MAX = 2560;
 const endungVon = name => (/\.[^.]+$/.exec(name || "") || [""])[0].toLowerCase();
 async function bildVorbereiten(datei, verkleinern) {

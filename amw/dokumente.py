@@ -19,7 +19,7 @@ import zipfile
 from . import db, kern
 
 ARTEN = ("ergebnis", "bericht", "entwurf", "mockup", "bild", "quelle")
-# Endung → (Format, MIME-Typ, Vorschau). Vorschau: text | bild | mockup | pdf | download
+# Endung → (Format, MIME-Typ, Vorschau). Vorschau: text | bild | mockup | pdf | video | download
 FORMATE = {
     ".md": ("markdown", "text/markdown; charset=utf-8", "text"),
     ".txt": ("text", "text/plain; charset=utf-8", "text"),
@@ -27,6 +27,7 @@ FORMATE = {
     ".webp": ("bild", "image/webp", "bild"), ".gif": ("bild", "image/gif", "bild"), ".svg": ("bild", "image/svg+xml", "bild"),
     ".html": ("html", "text/html; charset=utf-8", "mockup"), ".htm": ("html", "text/html; charset=utf-8", "mockup"),
     ".pdf": ("pdf", "application/pdf", "pdf"),
+    ".mp4": ("video", "video/mp4", "video"), ".webm": ("video", "video/webm", "video"),     # H.264 bzw. VP9/AV1 – spielt jeder Browser
     ".docx": ("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "download"),
     ".xlsx": ("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "download"),
 }
@@ -90,11 +91,22 @@ def _pruefen(roh, endung):
     """Inhalt prüfen (Größe, Geheimnisse) → (roh, endung, suchtext)."""
     if len(roh) > GROESSE_MAX:
         raise kern.AmwFehler(f"Datei ist größer als {GROESSE_MAX // 1024 // 1024} MB – bitte verkleinern oder aufteilen")
+    if FORMATE[endung][2] == "video":
+        _video_pruefen(roh, endung)
     suchtext = _suchtext(roh, endung)
     probe = roh.decode("utf-8", errors="replace") if endung in (".md", ".txt", ".html", ".htm", ".svg") else suchtext
     if probe and GEHEIM.search(probe):                  # Rohtext: auch Skripte im Mockup
         raise kern.AmwFehler("Die Datei enthält etwas, das wie ein Schlüssel oder Zugangsdaten aussieht – nicht abgelegt")
     return roh, endung, suchtext
+
+
+def _video_pruefen(roh, endung):
+    """Ist es wirklich ein Video im Format der Endung, und spielt es der Browser? (MP4 mit H.265/HEVC spielt nicht überall.)"""
+    if endung == ".mp4" and roh[4:8] != b"ftyp" or endung == ".webm" and roh[:4] != b"\x1a\x45\xdf\xa3":
+        raise kern.AmwFehler(f"Die Datei ist kein {endung[1:].upper()}-Video")
+    if endung == ".mp4" and b"avc1" not in roh and b"av01" not in roh and (b"hvc1" in roh or b"hev1" in roh):
+        raise kern.AmwFehler("MP4 mit H.265/HEVC spielt nicht in jedem Browser – bitte als H.264 speichern"
+                             " (z. B. ffmpeg -i ein.mp4 -c:v libx264 -pix_fmt yuv420p -movflags +faststart aus.mp4)")
 
 
 def _speichern(roh, endung):
@@ -133,7 +145,8 @@ def ablegen(con, pid, von, pfad, titel=None, art="ergebnis", notiz=None, online=
 def ablegen_inhalt(con, pid, von, roh, name, titel=None, art=None, notiz=None, online=False, **bezug):
     """Wie ablegen, aber aus dem Inhalt (Hochladen aus dem Browser). Ohne Art: aus dem Format."""
     endung = _format(name)
-    art = art or {"bild": "bild", "mockup": "mockup", "pdf": "quelle", "download": "quelle"}.get(FORMATE[endung][2], "entwurf")
+    art = art or {"bild": "bild", "mockup": "mockup", "pdf": "quelle", "download": "quelle", "video": "ergebnis"}.get(
+        FORMATE[endung][2], "entwurf")
     if art not in ARTEN:
         raise kern.AmwFehler(f"Art {art} – erlaubt: {', '.join(ARTEN)}")
     _bezug(con, pid, **bezug)

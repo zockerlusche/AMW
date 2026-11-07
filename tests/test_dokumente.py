@@ -16,6 +16,11 @@ class Grund(unittest.TestCase):
         self.ordner = tempfile.TemporaryDirectory()
         self.alt_db = os.environ.get("AMW_DB")
         os.environ["AMW_DB"] = os.path.join(self.ordner.name, "amw.db")
+        umgebung = mock.patch.dict(os.environ)            # unabhängig von AMW_PROJEKT/AMW_AGENT der Sitzung, die testet
+        umgebung.start()
+        self.addCleanup(umgebung.stop)
+        for k in ("AMW_PROJEKT", "AMW_AGENT"):
+            os.environ.pop(k, None)
         self.con = db.anlegen()
         with db.schreiben(self.con):
             self.pid = db.einfuegen(self.con, "projekt", name="P", angelegt_utc=db.jetzt())
@@ -197,6 +202,51 @@ class Bruecke(Grund):
         self.assertEqual(dokumente.liste(self.con, self.pid)[0]["angelegt_von"], "TL")
         with self.assertRaises(ValueError):
             bruecke.argumente({"befehl": "dokument", "aktion": "ablegen", "datei": self.datei("x.md", "x")}, eingang)
+
+
+MP4 = b"\0\0\0\x18ftypisom\0\0\x02\0isomavc1" + b"\0\0\0\x08free" + bytes(range(256)) * 40 + b"moov....avc1"
+
+
+class Video(Workbench):
+    """GlassWorld-TL #18867: Videos (Abnahmen, Look-Prototyp) als Dokument – ablegen, prüfen, abspielen mit Spulen."""
+
+    def test_ablegen_pruefen_und_abspielen(self):
+        v = dokumente.ablegen(self.con, self.pid, "CC1", self.datei("probe.mp4", MP4), "Abnahme Level 1")
+        w = dokumente.ablegen(self.con, self.pid, "CC1", self.datei("probe.webm", b"\x1a\x45\xdf\xa3" + b"\0" * 64))
+        d = dokumente.dokument(self.con, self.pid, v)
+        self.assertEqual((d["art"], d["versionen"][0]["vorschau"]), ("ergebnis", "video"))
+        self.assertEqual(dokumente.dokument(self.con, self.pid, w)["versionen"][0]["format"], "video")
+        for name, roh, text in (("falsch.mp4", b"<html>kein Video</html>", "kein MP4"), ("falsch.webm", MP4, "kein WEBM"),
+                                ("hevc.mp4", b"\0\0\0\x18ftypisom\0\0\x02\0isomhvc1", "H.264")):
+            with self.assertRaises(kern.AmwFehler, msg=name) as e:
+                dokumente.ablegen(self.con, self.pid, "CC1", self.datei(name, roh))
+            self.assertIn(text, str(e.exception))
+        import urllib.request
+        r = self.lese(f"/api/dokument/datei?id={v}")
+        self.assertEqual((r.status, r.headers["Content-Type"], r.headers["Accept-Ranges"]), (200, "video/mp4", "bytes"))
+        self.assertEqual(r.read(), MP4)
+        teil = lambda bereich: urllib.request.urlopen(urllib.request.Request(
+            f"http://127.0.0.1:{self.port}/api/dokument/datei?id={v}", headers={"Range": bereich}), timeout=5)
+        r = teil("bytes=4-11")
+        self.assertEqual((r.status, r.headers["Content-Range"], r.read()), (206, f"bytes 4-11/{len(MP4)}", b"ftypisom"))
+        self.assertEqual(teil("bytes=-4").read(), b"avc1")
+        self.assertEqual(teil(f"bytes={len(MP4) - 2}-").read(), b"c1")
+        with self.assertRaises(urllib.error.HTTPError) as e:
+            teil(f"bytes={len(MP4)}-")
+        self.assertEqual(e.exception.code, 416)
+        self.assertIn("media-src 'self'", self.lese("/").headers["Content-Security-Policy"])
+        from amw import workbench
+        self.assertEqual([workbench._bereich(k, 10) for k in (None, "bytes=0-", "bytes=2-3", "bytes=8-99", "bytes=-3", "bytes=0-1,4-5",
+                                                               "bytes=x-", "bytes=10-", "bytes=5-2")],
+                         [None, (0, 9), (2, 3), (8, 9), (7, 9), None, None, "falsch", "falsch"])
+
+    def test_online_gleiche_formate(self):
+        with open(os.path.join(os.path.dirname(__file__), "..", "web", "inc", "lib.php"), encoding="utf-8") as f:
+            php = f.read()
+        for endung, (_, typ, vorschau) in dokumente.FORMATE.items():
+            if vorschau != "text":
+                self.assertIn(f"'{endung}' => ['{typ}', '{vorschau}']", php, endung)
+            self.assertIn(f"'{endung}'", php[php.index("const HOCH_ENDUNGEN"):][:400], endung)
 
 
 if __name__ == "__main__":

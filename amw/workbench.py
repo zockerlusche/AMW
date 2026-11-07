@@ -778,6 +778,24 @@ def daten_releases(con, pid):
 
 # --- Server --------------------------------------------------------------------------------------
 
+def _bereich(kopf, laenge):
+    """Range-Kopf „bytes=a-b“ / „bytes=a-“ / „bytes=-n“ → (von, bis) einschließlich; None = ganze Datei; "falsch" = 416.
+    Mehrere Bereiche gibt es nicht (dann die ganze Datei)."""
+    if not kopf or not kopf.startswith("bytes=") or "," in kopf:
+        return None
+    a, _, b = kopf[6:].strip().partition("-")
+    try:
+        if not a:
+            n = int(b)
+            return (max(0, laenge - n), laenge - 1) if n > 0 and laenge else "falsch"
+        von, bis = int(a), int(b) if b else laenge - 1
+    except ValueError:
+        return None
+    if von >= laenge or bis < von:
+        return "falsch"
+    return von, min(bis, laenge - 1)
+
+
 def baue_handler(port, token):
     with open(os.path.join(HIER, "workbench.html"), encoding="utf-8") as f:
         seite = f.read().replace("__AMW_TOKEN__", token).encode("utf-8")
@@ -801,7 +819,8 @@ def baue_handler(port, token):
             if typ.startswith("text/html"):
                 self.send_header("Content-Security-Policy",
                                  "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline';"
-                                 " connect-src 'self'; img-src 'self' data: blob:; frame-src 'self'; base-uri 'none'; form-action 'none'")
+                                 " connect-src 'self'; img-src 'self' data: blob:; media-src 'self'; frame-src 'self'; base-uri 'none';"
+                                 " form-action 'none'")
             self.end_headers()
             self.wfile.write(body)
 
@@ -819,7 +838,20 @@ def baue_handler(port, token):
             except (kern.AmwFehler, ValueError) as e:
                 return self._senden(404, {"fehler": str(e)})
             _, typ, vorschau = dokumente.FORMATE[endung]
-            self.send_response(200)
+            bereich = _bereich(self.headers.get("Range"), len(roh))      # Video: Vor- und Zurückspulen
+            if bereich == "falsch":
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{len(roh)}")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            if bereich:
+                self.send_response(206)
+                self.send_header("Content-Range", f"bytes {bereich[0]}-{bereich[1]}/{len(roh)}")
+                roh = roh[bereich[0]:bereich[1] + 1]
+            else:
+                self.send_response(200)
+            self.send_header("Accept-Ranges", "bytes")
             self.send_header("Content-Type", typ)
             self.send_header("Content-Length", str(len(roh)))
             self.send_header("Cache-Control", "private, max-age=3600")   # Inhalt je Version unveränderlich

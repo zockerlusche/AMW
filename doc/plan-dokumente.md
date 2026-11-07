@@ -21,6 +21,7 @@ Nicht-Ziele: kein allgemeiner Dateiserver, keine gemeinsame Bearbeitung in Echtz
 | Bild, Screenshot, Grafik | PNG, JPG, WebP, SVG | Bildansicht |
 | Klick-Mockup | **eine** HTML-Datei ohne externe Abhängigkeiten | im abgeschotteten Rahmen (sandbox) |
 | Fremde Unterlagen | PDF | Browser-Vorschau |
+| Video (Abnahme, Look-Prototyp) | **MP4 (H.264)**, WebM – bis 25 MB | Abspielen mit Spulen (seit 1.32.0); H.265/HEVC wird abgelehnt |
 | Office | DOCX, XLSX | nur Download; Text von DOCX für die Suche |
 
 Regel: **keine losen Ergebnisdateien** – `amw dokument ablegen <datei> --titel … --art ergebnis|bericht|entwurf|mockup|bild|quelle
