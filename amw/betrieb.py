@@ -434,6 +434,9 @@ def freigabe_merge(con, pid, von, aufgabe_id, zweig=None, zurueck=False):
                      art="merge_ok_zurueck" if zurueck else "merge_ok", aufgabe_id=aufgabe_id, text=zweig)
         if zurueck:
             return f"Merge-OK für A{aufgabe_id} zurückgenommen"
+        status = con.execute("SELECT status FROM aufgabe WHERE id = ?", (aufgabe_id,)).fetchone()[0]
+        if status in ("fertig", "verworfen"):            # z. B. schon von Hand gemergt – keine Bitte, kein Weckruf
+            return f"Merge-OK für A{aufgabe_id} vermerkt – die Aufgabe ist {status}, keine Merge-Bitte"
         if not kette_an(con, pid):
             return (f"Merge-OK für A{aufgabe_id} vermerkt – die Abnahme-Kette ist aus (amw projekt einstellen abnahme_kette=an"
                     " merge_dienst=<Kennung>); die Merge-Bitte schickst du wie bisher selbst")

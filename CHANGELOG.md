@@ -44,7 +44,7 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   mit Grafikkarte oder Schirm angemeldet ist, und warst du seit 5 min nicht am PC, bekommen die Leads eine Meldung –
   höchstens einmal je Stunde. Die AMW meldet nur und beendet nichts (KI Stufe 3).
 
-## 1.30.0 – 07.11.2026 · Entwickler-Kanal, Wege im Projekt (Fehlerbericht GlassWorld)
+## 1.30.0 – 07.11.2026 · Entwickler-Kanal, Wege im Projekt (Fehlerbericht aus einem Projekt)
 - **Entwickler-Kanal:** Der Agent, der die AMW entwickelt (Zahnrad › Dieser PC › Entwickler-Kanal), ist in jedem Projekt
   erreichbar und darf dort schreiben. Die Leads finden ihn im Pflicht-Kontext; `amw lesen` zeigt ihm alle Projekte mit
   Namen, der Wächter weckt ihn aus jedem Projekt. Alle anderen Agenten bleiben in ihrem Projekt.

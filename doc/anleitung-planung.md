@@ -55,7 +55,7 @@ Die Spec-Karte nennt beide: „verfasst: GW1 · vorgelegt: TL (geprüft)“.
 **Meldungen, die sich selbst erledigen:** `amw posten … --bis leitbild|aufgabe|A<nr>|F<nr>` – sobald das Leitbild steht,
 der Absender eine Aufgabe hat, die Aufgabe fertig oder die Frage beantwortet ist, setzt der Wächter die Meldung auf
 erledigt. Veraltete Meldungen an dich schließt der Lead mit Grund: `amw erledigt <nr> --fuer Entwickler --bemerkung …`
-(steht im Verlauf). Beschluss und Wortlaut in einem Zug: `amw beschluss neu … --wortlaut-text "Marcels Satz"` – keine
+(steht im Verlauf). Beschluss und Wortlaut in einem Zug: `amw beschluss neu … --wortlaut-text "Satz des Entwicklers"` – keine
 vorhergesagte W-Nummer.
 
 ## 4 Schritte – klein, prüfbar, mit Abnahmekriterien

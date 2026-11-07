@@ -33,7 +33,7 @@ def wortlaut_neu(con, pid, von, text, kanal, zeit_utc=None, bemerkung=None):
 def beschluss_neu(con, pid, von, stichwort, regel, quelle, thema=None, zeit_utc=None, wortlaut_ids=None,
                   aufgabe_ids=None, ersetzt=None, neues_thema=False, hinweise=None, wortlaut_neu=None):
     """wortlaut_neu = (text, kanal, zeit_utc): den Wortlaut im selben Zug erfassen und verknüpfen – keine vorhergesagte
-    W-Nummer, die ein paralleles Schreiben verschiebt (Fehlerbericht GlassWorld Punkt 8). Gibt die B-Nummer zurück;
+    W-Nummer, die ein paralleles Schreiben verschiebt (paralleles Schreiben). Gibt die B-Nummer zurück;
     die neue W-Nummer steht dann in hinweise."""
     """Neuer Beschluss; mit `ersetzt` wird der alte auf ueberholt gesetzt und verweist auf den neuen. Jeder Beschluss gehört
     zu einem Thema (Design-Dokument, themen.py); hinweise bekommt die geltenden Beschlüsse desselben Themas."""

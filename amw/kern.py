@@ -153,7 +153,7 @@ PROJEKT_TEXTE = {"entwickler_name": 30}       # Text-Einstellungen: Schlüssel �
 # Auswahl-Einstellungen: Schlüssel → erlaubte Werte, der erste ist die Vorgabe.
 # dateien_online: welche Dateien von Dokumenten von selbst „auch online“ stehen (wunsch = nur auf Wunsch, wie bis 1.10.0)
 PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
-                # Wege (Fehlerbericht GlassWorld 07.11., Marcel): Fragen der Agenten an den Entwickler gehen zuerst an den
+                # Wege (Fehlerbericht aus einem Projekt, Entscheid des Entwicklers): Fragen der Agenten an den Entwickler gehen zuerst an den
                 # Lead (er beantwortet selbst oder leitet weiter), Spezifikationen legt nur der Lead vor; freigeben darf
                 # der Lead nur, wo es eingeschaltet ist (spec_frei = lead).
                 "agentenfragen": ("lead", "direkt"),
@@ -880,7 +880,7 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
         wissen.pruefung_verlangen(con, pid, f"{kurz} {worum or ''}", geprueft)
     ueber_lead = (an == "entwickler" and pruefen and von not in (ENTWICKLER, "AMW", db.produkt_entwickler())
                   and not ist_lead(con, pid, von) and projekt_wahl(con, pid, "agentenfragen") == "lead" and lead(con, pid))
-    if ueber_lead:                                  # Marcels Gebot: Agentenfragen zuerst an den Lead (Fehlerbericht Punkt 5)
+    if ueber_lead:                                  # Vorgabe des Entwicklers: Agentenfragen zuerst an den Lead
         an = "tl"
     with db.schreiben(con):
         fid = db.einfuegen(con, "frage", projekt_id=pid, an=an, von=von, zeit_utc=db.jetzt(), kurz=kurz,

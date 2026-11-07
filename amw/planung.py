@@ -181,7 +181,7 @@ def spec_unterschied(alt, neu):
 
 def spec_schreiben(con, pid, von, bid, teil, text):
     """Neuer Text. War der Teil schon freigegeben oder vorgelegt, beginnt eine neue Version (muss neu vorgelegt werden) –
-    Entwickler und Lead erfahren das mit dem Unterschied (Fehlerbericht GlassWorld Punkt 4: nie still zurücksetzen)."""
+    Entwickler und Lead erfahren das mit dem Unterschied (nie still zurücksetzen)."""
     b = bogen_zeile(con, pid, bid)
     s = spec(con, bid, teil)
     with db.schreiben(con):

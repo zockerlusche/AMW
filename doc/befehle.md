@@ -987,8 +987,9 @@ options:
   --zeit ZEIT
   --wortlaut WORTLAUT
   --wortlaut-text WORTLAUT_TEXT
-                        Marcels Aussage wörtlich: wird im selben Zug als W…
-                        erfasst und verknüpft (keine vorhergesagte W-Nummer)
+                        Aussage des Entwicklers wörtlich: wird im selben Zug
+                        als W… erfasst und verknüpft (keine vorhergesagte
+                        W-Nummer)
   --wortlaut-kanal WORTLAUT_KANAL
   --wortlaut-zeit WORTLAUT_ZEIT
                         UTC der Aussage

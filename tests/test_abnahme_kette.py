@@ -106,6 +106,14 @@ class Kette(unittest.TestCase):
         self.an()
         self.assertTrue(betrieb.kette_an(self.con, self.pid))
 
+    def test_fertige_aufgabe_bekommt_keine_bitte(self):
+        self.an()
+        self.gruen()
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234' WHERE id = ?", (self.a,))
+        self.assertIn("keine Merge-Bitte", betrieb.freigabe_merge(self.con, self.pid, "TL", self.a))
+        self.assertEqual(self.post("CC3"), [])
+
     def test_umbenennen_nimmt_den_merge_dienst_mit(self):
         self.an()
         kern.agent_umbenennen(self.con, self.pid, "TL", "CC3", "CCengine")

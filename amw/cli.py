@@ -2195,7 +2195,7 @@ def parser():
             x.add_argument("--neues-thema", action="store_true", help="--thema gibt es noch nicht: neu anlegen")
             x.add_argument("--zeit")
             x.add_argument("--wortlaut")
-            x.add_argument("--wortlaut-text", help="Marcels Aussage wörtlich: wird im selben Zug als W… erfasst und verknüpft"
+            x.add_argument("--wortlaut-text", help="Aussage des Entwicklers wörtlich: wird im selben Zug als W… erfasst und verknüpft"
                                                    " (keine vorhergesagte W-Nummer)")
             x.add_argument("--wortlaut-kanal", default="chat-tl")
             x.add_argument("--wortlaut-zeit", help="UTC der Aussage")
