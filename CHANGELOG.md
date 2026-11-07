@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.33.1 – 07.11.2026 · Dokumente nach Format filtern
+- **Filter „Format“** in den Dokumenten (am PC und online): Bilder, Videos, Texte, Mockups, PDF, Office – je mit Anzahl.
+  Quer zur Art: Videos sind meist Art „Ergebnis“ und waren über die Art-Chips nicht zu finden.
+
 ## 1.33.0 – 07.11.2026 · Abnahme-Kette
 - **Merge-Bitte von selbst:** Schaltet der Lead die Abnahme-Kette ein (Zahnrad › Projekt › Abnahme-Kette und Merge-Dienst,
   Vorgabe aus), gibt er sein Merge-OK je Aufgabe mit `amw freigabe merge A…`. Sobald der Prüfer die Aufgabe GRÜN meldet,

@@ -182,7 +182,8 @@ class Taetigkeit(Grund):
             self.con.execute("UPDATE sitzung SET taetigkeit_utc = '2026-11-01T10:00:00Z' WHERE id = ?", (s,))
         rc, aus = self.cli("--von", "TL", "agent", "liste")
         self.assertIn("veraltet?", aus)
-        betrieb.lauf_start(self.con, self.pid, "CC1", "Proben opa, labor", aufgabe_id=self.a)
+        betrieb.lauf_start(self.con, self.pid, "CC1", "Proben opa, labor", aufgabe_id=self.a,
+                           speicher_frei=30.0)            # fest: sonst hängt der Test am freien Speicher des PCs
         self.assertTrue(self.con.execute("SELECT taetigkeit FROM sitzung WHERE id = ?", (s,)).fetchone()[0]
                         .endswith("Proben opa, labor"))
 
