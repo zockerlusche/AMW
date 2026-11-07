@@ -472,6 +472,7 @@ CREATE TABLE ki_vorlage (id INTEGER PRIMARY KEY, ki_id INTEGER NOT NULL REFERENC
                              prompt="p", seed=1, angelegt_utc=t)                # verweist auf die neu angelegte Tabelle
                 db.einfuegen(con, "frage", projekt_id=1, an="entwickler", von="TL", zeit_utc=t, kurz="Altlast", folge_von=999)
             self.assertTrue(kern_id)
+            con.execute("ALTER TABLE nachricht DROP COLUMN bis")      # Bezug von Meldungen kam mit Schema 20
             con.execute("PRAGMA user_version = 18")
             con.close()
             con = db.verbinde(pfad)

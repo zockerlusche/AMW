@@ -148,6 +148,12 @@ PROJEKT_TEXTE = {"entwickler_name": 30}       # Text-Einstellungen: Schlüssel �
 # Auswahl-Einstellungen: Schlüssel → erlaubte Werte, der erste ist die Vorgabe.
 # dateien_online: welche Dateien von Dokumenten von selbst „auch online“ stehen (wunsch = nur auf Wunsch, wie bis 1.10.0)
 PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
+                # Wege (Fehlerbericht GlassWorld 07.11., Marcel): Fragen der Agenten an den Entwickler gehen zuerst an den
+                # Lead (er beantwortet selbst oder leitet weiter), Spezifikationen legt nur der Lead vor; freigeben darf
+                # der Lead nur, wo es eingeschaltet ist (spec_frei = lead).
+                "agentenfragen": ("lead", "direkt"),
+                "spec_vorlegen": ("lead", "alle"),
+                "spec_frei": ("entwickler", "lead"),
                 # farbe: Streifen über dem Kopf und Marke in der Projekt-Auswahl (Farbtöne setzt die Oberfläche)
                 "farbe": ("bernstein", "gruen", "blau", "violett", "tuerkis", "rot", "grau")}
 
@@ -186,7 +192,7 @@ def projekt_einstellen(con, pid, von, **werte):
     if not ist_lead(con, pid, von):
         raise AmwFehler("Projekt-Einstellungen dürfen nur Lead und Entwickler ändern")
     grenzen = {"takt_min": (0, 1440), "speicher_grenze_gb": (1, 512), "stillstand_min": (5, 1440), "lauf_ohne_angabe_min": (5, 1440),
-               "eskalation_min": (0, 1440)}
+               "eskalation_min": (0, 1440), "info_ablage_h": (1, 168)}
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         for k, v in werte.items():
@@ -435,6 +441,8 @@ def empfaenger(con, pid, an, von, aufgabe_id=None):
                 " (SELECT 1 FROM sitzung s WHERE s.agent_id = g.id AND s.zustand = 'aktiv')) ORDER BY id", (pid,))]
         elif teil.lower() == ENTWICKLER.lower():         # der Mensch: liest in der Workbench, wird nie geweckt
             namen.append(ENTWICKLER)
+        elif db.produkt_entwickler() and teil.lower() == db.produkt_entwickler().lower():   # Entwickler-Kanal
+            namen.append(db.produkt_entwickler())
         else:
             namen.append(agent_zeile(con, pid, teil)["kennung"])     # frühere Kennung → heutige
     aus = [n for i, n in enumerate(namen) if n != von and n not in namen[:i]]
@@ -458,17 +466,71 @@ WECKT_SQL = ("(k.weckt = 1 OR (n.art = 'info' AND n.von != 'AMW'"
              " AND (SELECT count(*) FROM empfang z WHERE z.nachricht_id = n.id) = 1))")
 
 
-def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None):
+BIS = re.compile(r"leitbild|aufgabe|[AF]\d+")
+
+
+def bis_pruefen(con, pid, bis):
+    """--bis: leitbild | aufgabe | A<nr> | F<nr> (die Aufgabe/Frage muss es im Projekt geben). Gibt den Wert zurück."""
+    bis = (bis or "").strip()
+    if not bis:
+        return None
+    bis = bis[0].upper() + bis[1:] if bis[0] in "af" and bis[1:].isdigit() else bis.lower()
+    if not BIS.fullmatch(bis):
+        raise AmwFehler("--bis: leitbild | aufgabe | A<nr> | F<nr> – die Meldung erledigt sich, sobald das erfüllt ist")
+    if bis[0] in "AF":
+        tabelle = "aufgabe" if bis[0] == "A" else "frage"
+        if not con.execute(f"SELECT 1 FROM {tabelle} WHERE id = ? AND projekt_id = ?", (int(bis[1:]), pid)).fetchone():
+            raise AmwFehler(f"--bis {bis}: gibt es in diesem Projekt nicht")
+    return bis
+
+
+def bis_erfuellt(con, pid, bis, von):
+    """Ist der Bezug einer Meldung erfüllt? Grund als Text, sonst None."""
+    if bis == "leitbild":
+        r = con.execute("SELECT leitbild FROM projekt WHERE id = ?", (pid,)).fetchone()
+        try:
+            ziel = (json.loads(r[0] or "{}").get("ziel") or "").strip() if r else ""
+        except ValueError:
+            ziel = ""
+        return "Leitbild steht" if ziel else None
+    if bis == "aufgabe":
+        r = con.execute("SELECT id FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status IN ('wartet', 'laeuft', 'blockiert')"
+                        " ORDER BY id LIMIT 1", (pid, von)).fetchone()
+        return f"{von} hat A{r[0]}" if r else None
+    if bis[0] == "A":
+        r = con.execute("SELECT status FROM aufgabe WHERE id = ?", (int(bis[1:]),)).fetchone()
+        return f"{bis} {r[0]}" if r and r[0] in ("fertig", "verworfen") else None
+    if bis[0] == "F":
+        r = con.execute("SELECT status FROM frage WHERE id = ?", (int(bis[1:]),)).fetchone()
+        return f"{bis} {r[0]}" if r and r[0] != "offen" else None
+    return None
+
+
+def bezuege_erledigen(con):
+    """Wächter: Empfänge von Meldungen, deren Bezug („bis“) erfüllt ist, auf erledigt. Gibt [(nid, grund)] zurück."""
+    aus = []
+    for n in con.execute("SELECT DISTINCT n.id, n.projekt_id, n.von, n.bis FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id"
+                         " WHERE n.bis IS NOT NULL AND e.status != 'erledigt'").fetchall():
+        grund = bis_erfuellt(con, n["projekt_id"], n["bis"], n["von"])
+        if grund:
+            with db.schreiben(con):
+                con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ?, bemerkung = ? WHERE nachricht_id = ?"
+                            " AND status != 'erledigt'", (db.jetzt(), f"von selbst erledigt: {grund}", n["id"]))
+            aus.append((n["id"], grund))
+    return aus
+
+
+def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, bis=None):
     if not con.execute("SELECT 1 FROM nachricht_art WHERE art = ?", (art,)).fetchone():
         erlaubt = ", ".join(r[0] for r in con.execute("SELECT art FROM nachricht_art ORDER BY art"))
         raise AmwFehler(f"Art „{art}“ gibt es nicht; erlaubt: {erlaubt}")
-    if von not in ("AMW", ENTWICKLER) and not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?",
-                                                          (pid, von)).fetchone():
+    if von not in ("AMW", ENTWICKLER, db.produkt_entwickler()) and not con.execute(
+            "SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, von)).fetchone():
         raise AmwFehler(f"Absender „{von}“ ist kein Agent dieses Projekts – --von ist deine eigene Kennung"
                         " (Empfänger stehen in --an)")
     namen = empfaenger(con, pid, an, von, aufgabe_id)
     nid = db.einfuegen(con, "nachricht", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=art, kurz=kurz,
-                       text=text, antwort_auf=antwort_auf, aufgabe_id=aufgabe_id)
+                       text=text, antwort_auf=antwort_auf, aufgabe_id=aufgabe_id, bis=bis)
     for n in namen:
         db.einfuegen(con, "empfang", nachricht_id=nid, agent=n)
     if antwort_auf:                                    # Antwort auf eine Rückfrage → Nachtrag im Verlauf der Frage
@@ -510,15 +572,17 @@ def aufgabe_bezug(con, pid, von, aid, antwort_auf=None):
     return a, hinweis
 
 
-def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, hinweise=None):
-    """Nachricht von einem Agenten oder dem Entwickler. hinweise: Liste, in die Hinweise für die Ausgabe kommen."""
+def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, hinweise=None, bis=None):
+    """Nachricht von einem Agenten oder dem Entwickler. hinweise: Liste, in die Hinweise für die Ausgabe kommen.
+    bis: Bezug, mit dem sich die Meldung von selbst erledigt (leitbild | aufgabe | A<nr> | F<nr>)."""
+    bis = bis_pruefen(con, pid, bis)
     with db.schreiben(con):
         a = None
         if aufgabe_id and von != "AMW":
             a, hinweis = aufgabe_bezug(con, pid, von, aufgabe_id, antwort_auf)
             if hinweis and hinweise is not None:
                 hinweise.append(hinweis)
-        nid, namen = _posten(con, pid, von, an, art, kurz, text, antwort_auf, aufgabe_id)
+        nid, namen = _posten(con, pid, von, an, art, kurz, text, antwort_auf, aufgabe_id, bis=bis)
         if hinweise is not None and any(t.strip().lower() == "alle" for t in an.replace(";", ",").split(",")):
             weg = ausgelassen(con, pid)
             if weg:
@@ -558,6 +622,48 @@ def lesen(con, pid, kennung, nid):
     with db.schreiben(con):
         con.execute("UPDATE empfang SET status = 'gelesen', gelesen_utc = ? WHERE nachricht_id = ? AND agent = ?"
                     " AND status = 'offen'", (db.jetzt(), nid, kennung))
+    return n
+
+
+def projekt_der_nachricht(con, nid):
+    r = con.execute("SELECT projekt_id FROM nachricht WHERE id = ?", (nid,)).fetchone()
+    if not r:
+        raise AmwFehler(f"Nachricht #{nid} gibt es nicht")
+    return r[0]
+
+
+def offene_aller_projekte(con, kennung, grenze=50, neueste_zuerst=False):
+    """Entwickler-Kanal: offene Nachrichten an kennung aus allen Projekten (mit Projektname)."""
+    return con.execute(
+        "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.aufgabe_id, e.status, a.weckt, p.name AS projekt"
+        " FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art a ON a.art = n.art"
+        " JOIN projekt p ON p.id = n.projekt_id WHERE e.agent = ? AND e.status != 'erledigt'"
+        f" ORDER BY n.id {'DESC' if neueste_zuerst else ''} LIMIT ?", (kennung, grenze)).fetchall()
+
+
+def erledigt_fuer(con, pid, von, fuer, nids, grund):
+    """Der Lead schließt veraltete Meldungen (info/meldung) an den Entwickler – mit Grund; steht im Verlauf (Planung)."""
+    if fuer != ENTWICKLER:
+        raise AmwFehler("--fuer: nur „Entwickler“ – jeder Agent erledigt seine Nachrichten selbst")
+    if von == ENTWICKLER or not ist_lead(con, pid, von):
+        raise AmwFehler("Meldungen an den Entwickler schließt nur der Lead")
+    if not (grund or "").strip():
+        raise AmwFehler("--bemerkung \"warum erledigt\" ist Pflicht – sie steht im Verlauf")
+    n = 0
+    with db.schreiben(con):
+        for nid in nids:
+            r = con.execute("SELECT art FROM nachricht WHERE id = ? AND projekt_id = ?", (nid, pid)).fetchone()
+            if not r:
+                raise AmwFehler(f"Nachricht #{nid} gibt es in diesem Projekt nicht")
+            if r["art"] not in ("info", "meldung"):
+                raise AmwFehler(f"#{nid} ist [{r['art']}] – schließen darf der Lead nur info und meldung")
+            k = con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ?, bemerkung = ? WHERE nachricht_id = ?"
+                            " AND agent = ? AND status != 'erledigt'",
+                            (db.jetzt(), f"geschlossen von {von}: {grund.strip()}", nid, ENTWICKLER)).rowcount
+            if k:
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="info_geschlossen",
+                             text=f"#{nid} für {entwickler_name(con, pid)} geschlossen: {grund.strip()}")
+            n += k
     return n
 
 
@@ -757,6 +863,10 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
     if an == "entwickler" and pruefen:
         from . import wissen
         wissen.pruefung_verlangen(con, pid, f"{kurz} {worum or ''}", geprueft)
+    ueber_lead = (an == "entwickler" and pruefen and von not in (ENTWICKLER, "AMW", db.produkt_entwickler())
+                  and not ist_lead(con, pid, von) and projekt_wahl(con, pid, "agentenfragen") == "lead" and lead(con, pid))
+    if ueber_lead:                                  # Marcels Gebot: Agentenfragen zuerst an den Lead (Fehlerbericht Punkt 5)
+        an = "tl"
     with db.schreiben(con):
         fid = db.einfuegen(con, "frage", projekt_id=pid, an=an, von=von, zeit_utc=db.jetzt(), kurz=kurz,
                            worum=worum, optionen=json.dumps([{"kenn": k, "text": t} for k, t in optionen],
@@ -766,7 +876,29 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
         if an == "tl":
             ziel = (zustaendig(con, pid, aufgabe_id) if zu_zustaendig else None) or lead(con, pid)
             if ziel:
-                _posten(con, pid, von, ziel, "frage", f"Frage F{fid}: {kurz}", aufgabe_id=aufgabe_id)
+                _posten(con, pid, von, ziel, "frage", (f"Frage F{fid} für den Entwickler – selbst beantworten oder weiterleiten"
+                                                     f" (amw frage weiterleiten {fid}): {kurz}") if ueber_lead
+                        else f"Frage F{fid}: {kurz}", aufgabe_id=aufgabe_id)
+    return fid
+
+
+def frage_weiterleiten(con, pid, von, fid, notiz=None):
+    """Der Lead gibt eine Frage an den Entwickler weiter – dieselbe Frage (Nummer, Optionen, Verlauf bleiben)."""
+    if von == ENTWICKLER or not ist_lead(con, pid, von):
+        raise AmwFehler("Fragen leitet nur der Lead weiter")
+    f = con.execute("SELECT * FROM frage WHERE id = ? AND projekt_id = ?", (fid, pid)).fetchone()
+    if not f:
+        raise AmwFehler(f"Frage F{fid} gibt es nicht")
+    if f["status"] != "offen" or f["an"] != "tl":
+        raise AmwFehler(f"F{fid} ist {'schon beim Entwickler' if f['an'] == 'entwickler' else f['status']}")
+    if json.loads(f["optionen"] or "[]") and not (f["empfehlung"] and f["grund"]):
+        raise AmwFehler(f"F{fid}: Fragen an den Entwickler brauchen Empfehlung und Grund – erst eine neue Frage mit beidem stellen")
+    with db.schreiben(con):
+        con.execute("UPDATE frage SET an = 'entwickler' WHERE id = ?", (fid,))
+        db.einfuegen(con, "frage_verlauf", frage_id=fid, zeit_utc=db.jetzt(), von=von, art="nachtrag",
+                     text=f"Weitergeleitet von {von} an {entwickler_name(con, pid)}" + (f": {notiz.strip()}" if (notiz or "").strip() else ""))
+        if f["von"] not in (von, ENTWICKLER, "AMW"):
+            _posten(con, pid, von, f["von"], "info", f"F{fid} an {entwickler_name(con, pid)} weitergeleitet", bis=f"F{fid}")
     return fid
 
 

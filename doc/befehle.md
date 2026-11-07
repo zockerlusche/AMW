@@ -15,7 +15,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`thema`](#thema) | Design-Dokument je Thema: liste [--suche] ¦ zeige TH12 ¦ neu "Name" [--pfleger X] [--stil] ¦ einstellen TH12 --pfleger X ¦ --stil ¦ pflegen TH12 --text-datei … ¦ bestaetigen TH12 ¦ dokument TH12 --dokument D5 [--loesen] |
 | [`termin`](#termin) | Terminplaner: neu --titel … --art test¦frist¦schirm¦sonstig --am "2026-11-06 18:00" [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] ¦ liste [--tage 21] ¦ aendern N ¦ absagen N [--am …] ¦ bereit N --text "was testen" ¦ kurzliste N (Planen: Lead/Entwickler) |
 | [`liste`](#liste) | Arbeitsliste je Agent: liste [Agent¦pool] ¦ ordnen <Agent> A12 A15 … ¦ schieben A15 --vor A12 ¦ --nach ¦ --pos N ¦ --oben ¦ --unten (ordnen/schieben: Lead) |
-| [`frage`](#frage) | Fragen an den Entwickler oder Lead: neu ¦ liste [--geparkt] ¦ antworten ¦ nachtrag ¦ verlauf ¦ parken N [--grund] ¦ aufnehmen N |
+| [`frage`](#frage) | Fragen an den Entwickler oder Lead: neu ¦ liste [--geparkt] ¦ antworten ¦ nachtrag ¦ verlauf ¦ parken N [--grund] ¦ aufnehmen N ¦ weiterleiten N [--text] (Lead → Entwickler) |
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
@@ -69,11 +69,11 @@ options:
 ```
 usage: amw projekt [-h] [--beschreibung BESCHREIBUNG] [--regeln-von PROJEKT]
                    [--ordner ORDNER] [--von VON] [--projekt PROJEKT]
-                   {neu,liste,ordner} [name]
+                   {neu,liste,ordner,einstellen} [name]
 
 positional arguments:
-  {neu,liste,ordner}
-  name
+  {neu,liste,ordner,einstellen}
+  name                  einstellen: schluessel=wert
 
 options:
   -h, --help            show this help message and exit
@@ -137,7 +137,8 @@ options:
 ```
 usage: amw posten [-h] --an AN --art ART --kurz KURZ [--text TEXT]
                   [--text-datei TEXT_DATEI] [--antwort-auf ANTWORT_AUF]
-                  [--aufgabe AUFGABE] [--von VON] [--projekt PROJEKT]
+                  [--aufgabe AUFGABE] [--bis BIS] [--von VON]
+                  [--projekt PROJEKT]
 
 options:
   -h, --help            show this help message and exit
@@ -148,6 +149,9 @@ options:
   --text-datei TEXT_DATEI
   --antwort-auf ANTWORT_AUF
   --aufgabe AUFGABE
+  --bis BIS             die Meldung erledigt sich von selbst, sobald das
+                        erfüllt ist: leitbild | aufgabe (du hast eine) | A<nr>
+                        (fertig) | F<nr> (beantwortet)
   --von VON
   --projekt PROJEKT
 ```
@@ -174,7 +178,7 @@ options:
 ## erledigt
 ```
 usage: amw erledigt [-h] [--bemerkung BEMERKUNG] [--info] [--vor VOR]
-                    [--von VON] [--projekt PROJEKT]
+                    [--fuer FUER] [--von VON] [--projekt PROJEKT]
                     [ids ...]
 
 positional arguments:
@@ -186,6 +190,8 @@ options:
   --info                alle offenen info-Nachrichten an mich erledigen
   --vor VOR             mit --info: nur ältere als dieses Datum (04.11. oder
                         2026-11-04)
+  --fuer FUER           Lead: veraltete info/meldung an den Entwickler
+                        schließen (--fuer Entwickler --bemerkung "warum")
   --von VON
   --projekt PROJEKT
 ```
@@ -360,10 +366,11 @@ usage: amw frage [-h] [--an {entwickler,tl,zustaendig}] [--kurz KURZ]
                  [--aufgabe AUFGABE] [--blockiert] [--text TEXT]
                  [--rueckfrage RUECKFRAGE] [--grund GRUND] [--geparkt]
                  [--anhang ANHANG] [--von VON] [--projekt PROJEKT]
-                 {neu,liste,antworten,nachtrag,verlauf,parken,aufnehmen} [id]
+                 {neu,liste,antworten,nachtrag,verlauf,parken,aufnehmen,weiterleiten}
+                 [id]
 
 positional arguments:
-  {neu,liste,antworten,nachtrag,verlauf,parken,aufnehmen}
+  {neu,liste,antworten,nachtrag,verlauf,parken,aufnehmen,weiterleiten}
   id
 
 options:
@@ -927,7 +934,9 @@ options:
 usage: amw beschluss [-h] [--text TEXT] [--text-datei TEXT_DATEI]
                      [--durch DURCH] [--stichwort STICHWORT] [--quelle QUELLE]
                      [--thema THEMA] [--neues-thema] [--zeit ZEIT]
-                     [--wortlaut WORTLAUT] [--aufgaben AUFGABEN]
+                     [--wortlaut WORTLAUT] [--wortlaut-text WORTLAUT_TEXT]
+                     [--wortlaut-kanal WORTLAUT_KANAL]
+                     [--wortlaut-zeit WORTLAUT_ZEIT] [--aufgaben AUFGABEN]
                      [--ersetzt ERSETZT] [--von VON] [--projekt PROJEKT]
                      [{neu,ueberholt,unklar,gilt,thema}] [nr]
 
@@ -949,6 +958,12 @@ options:
   --neues-thema         --thema gibt es noch nicht: neu anlegen
   --zeit ZEIT
   --wortlaut WORTLAUT
+  --wortlaut-text WORTLAUT_TEXT
+                        Marcels Aussage wörtlich: wird im selben Zug als W…
+                        erfasst und verknüpft (keine vorhergesagte W-Nummer)
+  --wortlaut-kanal WORTLAUT_KANAL
+  --wortlaut-zeit WORTLAUT_ZEIT
+                        UTC der Aussage
   --aufgaben AUFGABEN
   --ersetzt ERSETZT
   --von VON

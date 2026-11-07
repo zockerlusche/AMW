@@ -250,7 +250,7 @@ class Varianten(Grund):
         alt = dokumente.ablegen(self.con, self.pid, "CC1", self.datei("b.png", PNG[:900]), "Entwurf B", "bild")
         args = ["frage", "neu", "--an", "entwickler", "--kurz", "Welche Leiste?", "--option", "A=oben", "--option", "B=unten",
                 "--empfehlung", "A", "--grund", "kürzer", "--geprueft", "keine Treffer", "--anhang", f"A={self.datei('a.png', PNG[:800])}", "--anhang", f"B=D{alt}",
-                "--von", "CC1"]
+                "--von", "TL"]                                     # der Lead fragt direkt (Agenten: über den Lead, 1.30.0)
         self.assertEqual(cli.main(args), 0)
         f = workbench.daten_fragen(self.con, self.pid)[0]
         a, b = f["optionen"]
@@ -258,7 +258,7 @@ class Varianten(Grund):
         self.assertEqual(f["dokumente"], [])                       # Varianten nicht noch einmal als Anhang
         self.assertTrue(dokumente.dokument(self.con, self.pid, alt)["online"])
         for falsch in (["--anhang", "C=D1"], ["--anhang", "A=fehlt.png"]):
-            self.assertNotEqual(cli.main(args[:-4] + falsch + ["--von", "CC1"]), 0)
+            self.assertNotEqual(cli.main(args[:-4] + falsch + ["--von", "TL"]), 0)
         self.assertEqual(self.con.execute("SELECT count(*) FROM frage").fetchone()[0], 1)  # nichts halb angelegt
 
     def test_bruecke_anhang_nur_aus_dem_eingang(self):

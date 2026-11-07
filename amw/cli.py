@@ -86,6 +86,13 @@ def cmd_projekt(a, con):
         n = wissen.regeln_uebernehmen(con, pid, quelle) if quelle else 0
         print(f"Projekt {a.name} angelegt" + (f" – {n} Arbeitsregeln aus {a.regeln_von} übernommen (eigene Kopie)" if quelle
                                                else " – ohne Regeln (eigene: amw beschluss neu …, dann amw regel …)"))
+    elif a.aktion == "einstellen":                    # Lead/Entwickler: amw projekt einstellen spec_frei=lead
+        if not a.name or "=" not in a.name:
+            raise kern.AmwFehler("amw projekt einstellen <schluessel>=<wert>, z. B. spec_frei=lead | agentenfragen=direkt |"
+                                 " spec_vorlegen=alle | info_ablage_h=24")
+        k, _, v = a.name.partition("=")
+        e = kern.projekt_einstellen(con, _projekt(con, a), _von(a), **{k.strip(): v.strip()})
+        print(f"{k.strip()} = {e.get(k.strip())}")
     elif a.aktion == "ordner":
         pid = db.projekt_id(con, a.name) if a.name else _projekt(con, a)
         if a.ordner:
@@ -177,7 +184,7 @@ def cmd_posten(a, con):
         with open(a.text_datei, encoding="utf-8") as f:
             text = f.read()
     hinweise = []
-    nid, namen = kern.posten(con, pid, _von(a), a.an, a.art, a.kurz, text, a.antwort_auf, a.aufgabe, hinweise)
+    nid, namen = kern.posten(con, pid, _von(a), a.an, a.art, a.kurz, text, a.antwort_auf, a.aufgabe, hinweise, bis=a.bis)
     print(f"#{nid} an {', '.join(namen)}")
     for h in hinweise:
         print(h)
@@ -308,21 +315,38 @@ def cmd_liste(a, con):
         print("Liste leer")
 
 
+def _kanal(con, a):
+    """Entwickler-Kanal: der Produktentwickler liest ohne --projekt alle Projekte."""
+    return _von(a) == db.produkt_entwickler() and not getattr(a, "projekt", None)
+
+
 def cmd_lesen(a, con):
-    pid = _projekt(con, a)
     von = _von(a)
+    kanal = _kanal(con, a)
+    pid = None if kanal else _projekt(con, a)
     if a.id:                                           # eine oder mehrere ganze Nachrichten
         for i, nid in enumerate(a.id):
-            n = kern.lesen(con, pid, von, nid)
+            n = kern.lesen(con, kern.projekt_der_nachricht(con, nid) if kanal else pid, von, nid)
             if i:
                 print("\n" + "─" * 60)
             print(f"#{n['id']} {_zeit(n['zeit_utc'])} {n['von']} [{n['art']}]"
+                  + (f" · Projekt {db.projekt_name(con, n['projekt_id'])}" if kanal else "")
                   + (f" Antwort auf #{n['antwort_auf']}" if n["antwort_auf"] else "")
                   + (f" · A{n['aufgabe_id']}" if n["aufgabe_id"] else ""))
             print(n["kurz"])
             if n["text"]:
                 print(n["text"])
         return
+    if kanal and not a.verlauf:                        # Entwickler-Kanal: alle Projekte, mit Namen
+        zeilen = kern.offene_aller_projekte(con, von, a.grenze, neueste_zuerst=a.neu)
+        if a.neu:
+            zeilen = [r for r in zeilen if r["status"] == "offen"]
+        for r in zeilen:
+            print(f"[{r['projekt']}] " + _lesezeile(con, r))
+        print((f"{len(zeilen)} ungelesen" if a.neu else f"{len(zeilen)} offen") + " (alle Projekte)" if zeilen else "nichts offen")
+        return
+    if kanal:
+        pid = _projekt(con, a)
     if a.verlauf:                                      # auch Gelesenes/Erledigtes: was kam zuletzt an mich?
         zeilen = con.execute(
             "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.aufgabe_id, e.status FROM empfang e JOIN nachricht n"
@@ -349,7 +373,13 @@ def cmd_erledigt(a, con):
             return
     if not a.ids:
         raise kern.AmwFehler("welche Nachrichten? amw erledigt 12 13 (oder --info für alle info-Nachrichten)")
-    n = kern.erledigt(con, pid, _von(a), a.ids, a.bemerkung)
+    if a.fuer:                                         # Lead schließt veraltete Meldungen an den Entwickler (mit Grund)
+        print(f"{kern.erledigt_fuer(con, pid, _von(a), a.fuer, a.ids, a.bemerkung)} für {a.fuer} geschlossen")
+        return
+    if _kanal(con, a):                                 # Entwickler-Kanal: jede Nachricht in ihrem Projekt
+        n = sum(kern.erledigt(con, kern.projekt_der_nachricht(con, nid), _von(a), [nid], a.bemerkung) for nid in a.ids)
+    else:
+        n = kern.erledigt(con, pid, _von(a), a.ids, a.bemerkung)
     print(f"{n} erledigt")
 
 
@@ -663,6 +693,14 @@ def cmd_frage(a, con):
                 print("Vielleicht schon entschieden:\n" + wissen.treffer_text(liste))
         zusatz = dokumente.anhaenge_setzen(con, pid, _von(a), fid, anhaenge)
         print(f"F{fid} angelegt" + (" – Varianten: " + ", ".join(f"{k}=D{d}" for k, d in zusatz.items()) if zusatz else ""))
+        if a.an == "entwickler" and con.execute("SELECT an FROM frage WHERE id = ?", (fid,)).fetchone()[0] == "tl":
+            print(f"→ geht zuerst an den Lead {kern.lead(con, pid)} (Projekt-Regel: Agentenfragen über den Lead) – er beantwortet"
+                  " sie selbst oder leitet sie an den Entwickler weiter")
+    elif a.aktion == "weiterleiten":
+        if not a.id:
+            raise kern.AmwFehler("frage weiterleiten <nr> [--text \"Notiz für den Entwickler\"]")
+        kern.frage_weiterleiten(con, pid, _von(a), a.id, a.text)
+        print(f"F{a.id} an den Entwickler weitergeleitet")
     elif a.aktion in ("parken", "aufnehmen"):
         if not a.id:
             raise kern.AmwFehler(f"frage {a.aktion} <nr> [--grund \"…\"]")
@@ -1208,7 +1246,8 @@ def cmd_beschluss(a, con):
         return
     hinweise = []
     bid = wissen.beschluss_neu(con, pid, _von(a), a.stichwort, _text(a), a.quelle, a.thema, a.zeit,
-                               a.wortlaut, a.aufgaben, a.ersetzt, a.neues_thema, hinweise)
+                               a.wortlaut, a.aufgaben, a.ersetzt, a.neues_thema, hinweise,
+                               wortlaut_neu=(a.wortlaut_text, a.wortlaut_kanal, a.wortlaut_zeit) if a.wortlaut_text else None)
     print(f"B{bid} angelegt" + (f", B{a.ersetzt} überholt" if a.ersetzt else ""))
     for h in hinweise:
         print(h)
@@ -1691,8 +1730,8 @@ def parser():
 
     x = s.add_parser("projekt", help="Projekte: neu <name> | liste | ordner [<name>] – jedes Projekt ist für sich (eigene Agenten,"
                                      " Regeln, Daten); bequemer: Workbench › Projekt-Auswahl › Neues Projekt")
-    x.add_argument("aktion", choices=["neu", "liste", "ordner"])
-    x.add_argument("name", nargs="?")
+    x.add_argument("aktion", choices=["neu", "liste", "ordner", "einstellen"])
+    x.add_argument("name", nargs="?", help="einstellen: schluessel=wert")
     x.add_argument("--beschreibung")
     x.add_argument("--regeln-von", dest="regeln_von", metavar="PROJEKT",
                    help="neu: die Arbeitsregeln (KR) eines Projekts einmal kopieren – danach getrennt änderbar")
@@ -1731,6 +1770,8 @@ def parser():
     x.add_argument("--text-datei")
     x.add_argument("--antwort-auf", type=nummer)
     x.add_argument("--aufgabe", type=nummer)
+    x.add_argument("--bis", help="die Meldung erledigt sich von selbst, sobald das erfüllt ist: leitbild | aufgabe (du hast eine)"
+                                 " | A<nr> (fertig) | F<nr> (beantwortet)")
     x.set_defaults(f=cmd_posten)
 
     x = s.add_parser("lesen", help="ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589)")
@@ -1745,6 +1786,7 @@ def parser():
     x.add_argument("--bemerkung")
     x.add_argument("--info", action="store_true", help="alle offenen info-Nachrichten an mich erledigen")
     x.add_argument("--vor", help="mit --info: nur ältere als dieses Datum (04.11. oder 2026-11-04)")
+    x.add_argument("--fuer", help="Lead: veraltete info/meldung an den Entwickler schließen (--fuer Entwickler --bemerkung \"warum\")")
     x.set_defaults(f=cmd_erledigt)
 
     x = s.add_parser("aufgabe", help="neu | aendern N | liste | zeige N [--kurz] | start | fertig | … | kriterium N nr |"
@@ -1833,8 +1875,8 @@ def parser():
     x.set_defaults(f=cmd_liste)
 
     x = s.add_parser("frage", help="Fragen an den Entwickler oder Lead: neu | liste [--geparkt] | antworten | nachtrag | verlauf |"
-                                    " parken N [--grund] | aufnehmen N")
-    x.add_argument("aktion", choices=["neu", "liste", "antworten", "nachtrag", "verlauf", "parken", "aufnehmen"])
+                                    " parken N [--grund] | aufnehmen N | weiterleiten N [--text] (Lead → Entwickler)")
+    x.add_argument("aktion", choices=["neu", "liste", "antworten", "nachtrag", "verlauf", "parken", "aufnehmen", "weiterleiten"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--an", choices=["entwickler", "tl", "zustaendig"],
                    help="zustaendig: an die Federführung der --aufgabe (sonst Bogen, sonst Lead)")
@@ -2115,6 +2157,10 @@ def parser():
             x.add_argument("--neues-thema", action="store_true", help="--thema gibt es noch nicht: neu anlegen")
             x.add_argument("--zeit")
             x.add_argument("--wortlaut")
+            x.add_argument("--wortlaut-text", help="Marcels Aussage wörtlich: wird im selben Zug als W… erfasst und verknüpft"
+                                                   " (keine vorhergesagte W-Nummer)")
+            x.add_argument("--wortlaut-kanal", default="chat-tl")
+            x.add_argument("--wortlaut-zeit", help="UTC der Aussage")
             x.add_argument("--aufgaben")
             x.add_argument("--ersetzt", type=nummer)
         else:

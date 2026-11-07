@@ -40,7 +40,7 @@ VON = "TL"
 ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "lauf", "pruefung", "taetigkeit",
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
            "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf", "dokument",
-           "schirm", "liste", "suche", "zeige", "termin", "thema", "ki"}   # Freigaben: nur der Mensch (Schirm frei: der Lead auf das Wort des Entwicklers)
+           "schirm", "liste", "suche", "zeige", "termin", "thema", "ki", "projekt"}   # Freigaben: nur der Mensch (Schirm frei: der Lead auf das Wort des Entwicklers)
 
 
 def bruecken(con):
@@ -83,6 +83,10 @@ def lese_kopie(quelle=None, ziel=None, pid=None):
         k.close()
     k = sqlite3.connect(neu)
     k.execute("PRAGMA journal_mode = DELETE")
+    # geparkte Fragen haben status 'offen' + geparkt_utc – wer die Kopie direkt abfragt, nimmt diese Sicht (Punkt 7)
+    k.execute("CREATE VIEW IF NOT EXISTS frage_zustand AS SELECT *, CASE WHEN status = 'offen' AND geparkt_utc IS NOT NULL"
+              " THEN 'geparkt' ELSE status END AS zustand FROM frage")
+    k.commit()
     k.close()
     for _ in range(10):                                  # liest gerade jemand die alte Kopie, kurz warten
         try:
@@ -128,6 +132,8 @@ def argumente(befehl, eingang=EINGANG, von=None, projekt=None):
         raise ValueError(f"Befehl „{args[0] if args else ''}“ ist über die Brücke nicht erlaubt; erlaubt: {', '.join(sorted(ERLAUBT))}")
     if args[0] == "agent" and len(args) > 1 and args[1] in ("starten", "beenden", "profil", "startskript"):
         raise ValueError("Agenten starten, beenden und Profile ändern geht nur am PC (Workbench)")
+    if args[0] == "projekt" and (len(args) < 2 or args[1] != "einstellen"):
+        raise ValueError("über die Brücke nur „projekt einstellen <schluessel>=<wert>“ – Projekte anlegen geht nur am PC")
     if args[0] == "ki" and len(args) > 1 and args[1] in ("neu", "aendern"):
         raise ValueError("KIs eintragen und ändern (Endpunkt, Startbefehl) geht nur am PC")
     if args[0] == "lauf" and len(args) > 1 and args[1] == "warte":

@@ -14,7 +14,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = 19        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
+SCHEMA_VERSION = 20        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
 HIER = os.path.dirname(os.path.abspath(__file__))
 STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
 
@@ -223,6 +223,11 @@ def kurzname(name, ersatz=""):
     return re.sub(r"[^\w-]+", "-", name).strip("-").lower() or str(ersatz)
 
 
+def projekt_name(con, pid):
+    r = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()
+    return r[0] if r else str(pid)
+
+
 def projekt_id(con, name):
     """Projekt nach Name oder Kennung (uid, so steht es online)."""
     r = con.execute("SELECT id FROM projekt WHERE name = ? OR uid = ?", (name, name)).fetchone()
@@ -240,13 +245,23 @@ def _projekte_der_kennung(con, kennung, alle=False):
                       if kennung in [x.strip() for x in (r["alias"] or "").split(",")]}
 
 
+def produkt_entwickler():
+    """Kennung des AMW-Produktentwicklers (PC-Einstellung, Entwickler-Kanal) oder None."""
+    from . import einstellungen
+    try:
+        return einstellungen.wert("produkt_entwickler") or None
+    except (OSError, ValueError):
+        return None
+
+
 def projekt_fuer(con, name=None, kennung=None):
     """Welches Projekt: genannt (--projekt/AMW_PROJEKT), sonst das einzige, sonst das der Kennung (auch frühere
     Kennungen nach dem Umbenennen). Mehrdeutig → LookupError mit den Projekten (doc/plan-projektwahl.md).
     Ein Agent eines Projekts kommt nicht in ein anderes (nur der Entwickler wählt frei) → LookupError."""
     if name:
         pid = projekt_id(con, name)
-        heim = _projekte_der_kennung(con, kennung, alle=True) if kennung and kennung != "Entwickler" else set()
+        heim = (_projekte_der_kennung(con, kennung, alle=True)
+                if kennung and kennung not in ("Entwickler", produkt_entwickler()) else set())
         if heim and pid not in heim:                # Projekte sind völlig getrennt: kein Agent arbeitet in einem fremden
             raise LookupError(f"„{kennung}“ ist kein Agent des Projekts {name} – Projekte sind getrennt, "
                               "arbeite nur in deinem eigenen (--projekt weglassen)")

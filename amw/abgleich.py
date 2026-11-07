@@ -294,7 +294,8 @@ def suchindex(con, pid):
                     " WHERE projekt_id = ? ORDER BY id DESC"),
         ("beschluss", "SELECT 'B' || id, stichwort, substr(regel, 1, 400), status, zeit_utc FROM beschluss WHERE projekt_id = ?"
                       " ORDER BY id DESC"),
-        ("frage", "SELECT 'F' || id, kurz, substr(coalesce(antwort, ''), 1, 300), status, zeit_utc FROM frage"
+        ("frage", "SELECT 'F' || id, kurz, substr(coalesce(antwort, ''), 1, 300),"
+                  " CASE WHEN status = 'offen' AND geparkt_utc IS NOT NULL THEN 'geparkt' ELSE status END, zeit_utc FROM frage"
                   " WHERE projekt_id = ? ORDER BY id DESC"),
         ("wortlaut", "SELECT 'W' || id, substr(text, 1, 200), substr(text, 201, 400), kanal, zeit_utc FROM wortlaut"
                      " WHERE projekt_id = ? ORDER BY id DESC"),

@@ -22,6 +22,7 @@ class Grund(unittest.TestCase):
             self.pid = db.einfuegen(self.con, "projekt", name="P", angelegt_utc=db.jetzt())
         for k, r in (("TL", "lead"), ("CC1", None), ("CC2", None), ("CC3", None)):
             kern.agent_neu(self.con, self.pid, k, rolle=r)
+        kern.projekt_einstellen(self.con, self.pid, "TL", agentenfragen="direkt")      # Fragen wie früher direkt (1.30.0)
         self.a = kern.aufgabe_neu(self.con, self.pid, "TL", "Onboarding prüfen", agent="CC1")
         kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
 

@@ -31,7 +31,10 @@ def wortlaut_neu(con, pid, von, text, kanal, zeit_utc=None, bemerkung=None):
 
 
 def beschluss_neu(con, pid, von, stichwort, regel, quelle, thema=None, zeit_utc=None, wortlaut_ids=None,
-                  aufgabe_ids=None, ersetzt=None, neues_thema=False, hinweise=None):
+                  aufgabe_ids=None, ersetzt=None, neues_thema=False, hinweise=None, wortlaut_neu=None):
+    """wortlaut_neu = (text, kanal, zeit_utc): den Wortlaut im selben Zug erfassen und verknüpfen – keine vorhergesagte
+    W-Nummer, die ein paralleles Schreiben verschiebt (Fehlerbericht GlassWorld Punkt 8). Gibt die B-Nummer zurück;
+    die neue W-Nummer steht dann in hinweise."""
     """Neuer Beschluss; mit `ersetzt` wird der alte auf ueberholt gesetzt und verweist auf den neuen. Jeder Beschluss gehört
     zu einem Thema (Design-Dokument, themen.py); hinweise bekommt die geltenden Beschlüsse desselben Themas."""
     _nur_lead(con, pid, von, "Beschlüsse anlegen")
@@ -39,8 +42,17 @@ def beschluss_neu(con, pid, von, stichwort, regel, quelle, thema=None, zeit_utc=
         raise kern.AmwFehler("beschluss neu braucht --stichwort, --text und --quelle")
     from . import themen
     thema = themen.zum_beschluss(con, pid, von, thema, neues_thema)
+    if wortlaut_neu and not (wortlaut_neu[0] or "").strip():
+        raise kern.AmwFehler("--wortlaut-text ist leer")
     with db.schreiben(con):
         t = db.jetzt()
+        if wortlaut_neu:
+            w_text, w_kanal, w_zeit = wortlaut_neu
+            wid = db.einfuegen(con, "wortlaut", projekt_id=pid, zeit_utc=w_zeit or t, text=w_text, kanal=w_kanal or "chat-tl",
+                               erfasst_von=von, erfasst_utc=t, bemerkung=f"mit Beschluss „{stichwort}“")
+            wortlaut_ids = ",".join(x for x in [str(wid), *(str(wortlaut_ids or "").replace("W", "").split(","))] if x.strip())
+            if hinweise is not None:
+                hinweise.append(f"W{wid} erfasst und verknüpft")
         bid = db.einfuegen(con, "beschluss", projekt_id=pid, zeit_utc=zeit_utc or t, thema=thema, stichwort=stichwort,
                            regel=regel, quelle=quelle, wortlaut_ids=wortlaut_ids, aufgabe_ids=aufgabe_ids,
                            angelegt_von=von, angelegt_utc=t)

@@ -209,6 +209,20 @@ def stand_je_sicht(con, pid):
     return {s: ";".join(teile[t] for t in tabellen) for s, tabellen in STAND_SICHTEN.items()}
 
 
+INFO_ABLAGE_H = 24
+
+
+def _ablage_grenze(con, pid):
+    import json as _j
+    import time as _t
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    try:
+        h = float(_j.loads(r[0] or "{}").get("info_ablage_h", INFO_ABLAGE_H)) if r else INFO_ABLAGE_H
+    except ValueError:
+        h = INFO_ABLAGE_H
+    return _t.strftime("%Y-%m-%dT%H:%M:%SZ", _t.gmtime(_t.time() - h * 3600))
+
+
 def daten_start(con, pid):
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
@@ -243,11 +257,15 @@ def daten_start(con, pid):
         " FROM frage f WHERE f.projekt_id = :p AND f.an = 'entwickler' AND f.status = 'offen' AND f.geparkt_utc IS NULL"
         " ORDER BY f.blockiert DESC, f.id DESC LIMIT 20", {"p": pid, "e": kern.ENTWICKLER}))
     an_dich = zeilen(con.execute(           # ohne Nachträge zu offenen Fragen – die zeigt die Frage selbst (geparkte nicht)
-        "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf FROM empfang e JOIN nachricht n"
+        "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf, n.bis FROM empfang e JOIN nachricht n"
         " ON n.id = e.nachricht_id WHERE n.projekt_id = ? AND e.agent = ? AND e.status != 'erledigt'"
         " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v JOIN frage f ON f.id = v.frage_id"
         "   WHERE f.status = 'offen' AND f.geparkt_utc IS NULL AND v.nachricht_id IS NOT NULL)"
         " ORDER BY n.id DESC LIMIT 30", (pid, kern.ENTWICKLER)))
+    # info ohne Bezug, älter als info_ablage_h: eingeklappt unter „Ältere Infos“, zählt nicht mehr (Fehlerbericht Punkt 1c)
+    ablage = _ablage_grenze(con, pid)
+    for n in an_dich:
+        n["abgelegt"] = n["art"] == "info" and not n["bis"] and n["zeit_utc"] < ablage
     halte = [dict(s) for s in kern.aktive_sperren(con, pid, art="halt")]
     zaehler = dict(con.execute(
         "SELECT"
@@ -261,7 +279,7 @@ def daten_start(con, pid):
         " (SELECT count(*) FROM regel WHERE projekt_id = :p) AS regeln,"
         " (SELECT count(*) FROM release WHERE projekt_id = :p) AS releases", {"p": pid}).fetchone())
     frei, gesamt = speicher_frei_gb()
-    zaehler["an_dich"] = len(an_dich)
+    zaehler["an_dich"] = sum(1 for n in an_dich if not n["abgelegt"])
     from . import planung
     try:
         planung_wartet = planung.freigaben_offen(con, pid)
@@ -301,7 +319,8 @@ def daten_planung(con, pid):
     termin_liste = termine.vorkommen(con, pid, tage=28, mit_vergangenen_h=24)
     for b in boegen:
         b["prognose"] = prog["boegen"].get(b["id"])
-        b["specs"] = {s["teil"]: {k: s[k] for k in ("status", "version", "kommentar", "text", "geaendert_utc", "geschrieben_von")}
+        b["specs"] = {s["teil"]: {**{k: s[k] for k in ("status", "version", "kommentar", "text", "geaendert_utc", "geschrieben_von")},
+                                  **dict(zip(("vorgelegt_von", "frei_von"), planung.spec_wer(con, b["id"], s["teil"], s["version"])))}
                       for s in con.execute("SELECT * FROM spezifikation WHERE bogen_id = ?", (b["id"],))}
         b["klaerungen"] = zeilen(con.execute("SELECT id, kurz, status, fundstellen FROM frage WHERE projekt_id = ? AND fundstellen LIKE ?",
                                              (pid, f"bogen:{b['id']}:%")))
@@ -393,7 +412,11 @@ def daten_einstellungen(con, pid, speicher=None):
                         "stillstand_min": pe.get("stillstand_min", ueberwachung.STILLSTAND_MIN),
                         "lauf_ohne_angabe_min": pe.get("lauf_ohne_angabe_min", ueberwachung.LAUF_OHNE_ANGABE_MIN),
                         "entwickler_name": pe.get("entwickler_name", ""), "farbe": kern.projekt_wahl(con, pid, "farbe"),
-                        "dateien_online": kern.projekt_wahl(con, pid, "dateien_online")},
+                        "dateien_online": kern.projekt_wahl(con, pid, "dateien_online"),
+                        "agentenfragen": kern.projekt_wahl(con, pid, "agentenfragen"),
+                        "spec_vorlegen": kern.projekt_wahl(con, pid, "spec_vorlegen"),
+                        "spec_frei": kern.projekt_wahl(con, pid, "spec_frei"),
+                        "info_ablage_h": pe.get("info_ablage_h", INFO_ABLAGE_H)},
             "agenten": agenten,
             "pc": {**einstellungen.laden(), "datei": einstellungen.pfad()},
             "turso": {"url": z.get("url", ""), "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(z.get("token"))},

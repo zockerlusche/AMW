@@ -63,6 +63,12 @@ def _name(v):
     return v
 
 
+def _kennung_leer(v):
+    """Kennung oder leer (= aus)."""
+    v = str(v or "").strip()
+    return _kennung(v) if v else ""
+
+
 def _kennung(v):
     v = str(v).strip()
     if not v or len(v) > 20 or not all(c.isalnum() or c in "-_" for c in v):
@@ -87,6 +93,9 @@ FELDER = {
     "fernsitzung_prozess": ("", _prozess),
     # Name dieses Rechners in der Projekt-Auswahl (mehrere Rechner an einem Online-Speicher, doc/plan-projektwahl.md)
     "rechner": ((socket.gethostname() or "PC")[:40], _name),
+    # Entwickler-Kanal: dieser Agent entwickelt die AMW selbst und spricht mit den Leads aller Projekte – er darf in
+    # jedem Projekt schreiben und angeschrieben werden, `amw lesen` zeigt ihm alle Projekte (leer = aus)
+    "produkt_entwickler": ("", _kennung_leer),
 }
 
 

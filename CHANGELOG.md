@@ -4,6 +4,25 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.30.0 – 07.11.2026 · Entwickler-Kanal, Wege im Projekt (Fehlerbericht GlassWorld)
+- **Entwickler-Kanal:** Der Agent, der die AMW entwickelt (Zahnrad › Dieser PC › Entwickler-Kanal), ist in jedem Projekt
+  erreichbar und darf dort schreiben. Die Leads finden ihn im Pflicht-Kontext; `amw lesen` zeigt ihm alle Projekte mit
+  Namen, der Wächter weckt ihn aus jedem Projekt. Alle anderen Agenten bleiben in ihrem Projekt.
+- **Agentenfragen zuerst an den Lead** (Vorgabe für alle Projekte): Eine Frage eines Agenten an dich geht an den Lead;
+  er beantwortet sie oder leitet sie mit `amw frage weiterleiten <F>` weiter – dieselbe Frage, Verlauf bleibt.
+- **Spezifikationen über den Lead:** Vorlegen nur der Lead (Vorgabe); freigeben auch der Lead, wenn das Projekt es
+  erlaubt (`spec_frei = lead`, Vorgabe aus). Die Karte zeigt „verfasst: … · vorgelegt: … (geprüft)“. Eine neue Fassung
+  hebt eine Freigabe nie mehr still auf: du und der Lead bekommen eine Meldung mit dem Unterschied alt → neu.
+- **Meldungen mit Bezug:** `amw posten … --bis leitbild|aufgabe|A…|F…` – der Wächter erledigt sie, sobald das erfüllt ist
+  (Schema 20: Spalte `nachricht.bis`). Neue Agenten melden sich beim Lead statt beim Entwickler. Der Lead schließt
+  veraltete Meldungen an dich mit Grund (`amw erledigt <nr> --fuer Entwickler --bemerkung …`, steht im Verlauf).
+  Infos ohne Bezug wandern nach 24 h (einstellbar) eingeklappt unter „Ältere Infos“.
+- **Geparkte Fragen** heißen in der Online-Suche und in der Lesekopie der Brücke (Sicht `frage_zustand`) „geparkt“.
+- **Beschluss mit Wortlaut in einem Zug:** `amw beschluss neu … --wortlaut-text "…"` erfasst den Wortlaut und verknüpft
+  ihn – keine vorhergesagte W-Nummer mehr.
+- `amw projekt einstellen <schluessel>=<wert>` für Lead und Entwickler, auch über die Datei-Brücke (dort nur das –
+  Projekte anlegen bleibt am PC).
+
 ## 1.29.0 – 07.11.2026 · Logo
 - **Eigenes Logo:** Oben links steht statt des Schriftzugs „AMW“ jetzt das Logo. A, M und W sind eine durchgehende
   Linie mit drei Knoten, wie ein kleines neuronales Netz: ein Knoten am Fuß des A, ein glühender im M, einer am Ende

@@ -31,8 +31,9 @@ ZEILE_MAX = 160
 log = logging.getLogger("amw.dienst")
 
 
-def weckzeile(agent, zeilen, halt):
-    teile = [f"#{z['nachricht_id']} {z['von']} [{z['art']}] {z['kurz'][:ZEILE_MAX]}" for z in zeilen[:10]]
+def weckzeile(agent, zeilen, halt, projekt=None):
+    vor = f"[{projekt}] " if projekt else ""                # Entwickler-Kanal: aus welchem Projekt
+    teile = [f"#{z['nachricht_id']} {vor}{z['von']} [{z['art']}] {z['kurz'][:ZEILE_MAX]}" for z in zeilen[:10]]
     if len(zeilen) > 10:
         teile.append(f"… und {len(zeilen) - 10} weitere")
     kopf = f"AMW-Weckruf für {agent}: {len(zeilen)} neue Nachricht(en)"
@@ -42,9 +43,14 @@ def weckzeile(agent, zeilen, halt):
 
 
 def aktive_sitzung(con, pid, kennung):
-    return con.execute(
+    s = con.execute(
         "SELECT s.* FROM sitzung s JOIN agent g ON g.id = s.agent_id WHERE g.projekt_id = ? AND g.kennung = ?"
         " AND s.zustand = 'aktiv' AND s.schluessel_datei IS NOT NULL ORDER BY s.id DESC LIMIT 1", (pid, kennung)).fetchone()
+    if s is None and kennung == db.produkt_entwickler():      # Entwickler-Kanal: seine Sitzung, egal in welchem Projekt
+        s = con.execute(
+            "SELECT s.* FROM sitzung s JOIN agent g ON g.id = s.agent_id WHERE g.kennung = ?"
+            " AND s.zustand = 'aktiv' AND s.schluessel_datei IS NOT NULL ORDER BY s.id DESC LIMIT 1", (kennung,)).fetchone()
+    return s
 
 
 def lies_schluessel(sitzung):
@@ -134,7 +140,9 @@ class Dienst:
                 continue                                   # nicht gestartet: bleibt offen bis zur Anmeldung
             try:
                 p, k = lies_schluessel(s)
-                pipe.senden(p, k, weckzeile(agent, zeilen, halt))
+                fremd = agent == db.produkt_entwickler() and not self.con.execute(
+                    "SELECT 1 FROM agent WHERE id = ? AND projekt_id = ?", (s["agent_id"], pid)).fetchone()
+                pipe.senden(p, k, weckzeile(agent, zeilen, halt, db.projekt_name(self.con, pid) if fremd else None))
             except (OSError, ValueError, KeyError, pipe.ZustellFehler) as e:
                 log.warning("Wecken %s fehlgeschlagen: %s", agent, e)
                 self.sperre_bis[(pid, agent)] = time.time() + AUFSICHT_S
@@ -204,6 +212,11 @@ class Dienst:
                     log.info("Termin: %s", e)
         except Exception as e:
             log.warning("Termin: %s: %s", type(e).__name__, e)
+        try:                                                                 # Meldungen mit erfülltem Bezug (bis)
+            for nid, grund in kern.bezuege_erledigen(self.con):
+                log.info("Erledigt von selbst: #%s (%s)", nid, grund)
+        except Exception as e:
+            log.warning("Bezug: %s: %s", type(e).__name__, e)
         try:                                                                 # liegt beim Federführenden → Lead
             for p in self.con.execute("SELECT id FROM projekt").fetchall():
                 for nid in kern.eskalieren(self.con, p["id"]):

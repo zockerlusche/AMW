@@ -167,16 +167,45 @@ def spec(con, bid, teil):
     return s
 
 
+DIFF_ZEILEN = 80
+
+
+def spec_unterschied(alt, neu):
+    """Unterschied zweier Fassungen (unified diff, gekürzt) – für die Meldung „Freigabe aufgehoben“."""
+    import difflib
+    z = list(difflib.unified_diff((alt or "").splitlines(), (neu or "").splitlines(), "alt", "neu", lineterm="", n=1))[2:]
+    if len(z) > DIFF_ZEILEN:
+        z = z[:DIFF_ZEILEN] + [f"… und {len(z) - DIFF_ZEILEN} Zeilen mehr (amw spec zeigen)"]
+    return "\n".join(z) or "(Text unverändert)"
+
+
 def spec_schreiben(con, pid, von, bid, teil, text):
-    """Neuer Text. War der Teil schon freigegeben oder vorgelegt, beginnt eine neue Version (muss neu vorgelegt werden)."""
-    bogen_zeile(con, pid, bid)
+    """Neuer Text. War der Teil schon freigegeben oder vorgelegt, beginnt eine neue Version (muss neu vorgelegt werden) –
+    Entwickler und Lead erfahren das mit dem Unterschied (Fehlerbericht GlassWorld Punkt 4: nie still zurücksetzen)."""
+    b = bogen_zeile(con, pid, bid)
     s = spec(con, bid, teil)
     with db.schreiben(con):
         version = s["version"] + (1 if s["status"] in ("frei", "vorgelegt") else 0)
         con.execute("UPDATE spezifikation SET text = ?, status = 'entwurf', version = ?, geschrieben_von = ?, geaendert_utc = ?"
                     " WHERE id = ?", (text, version, von, db.jetzt(), s["id"]))
         _log(con, pid, von, "spec_geschrieben", f"{teil} v{version}", bogen_id=bid)
+        if s["status"] in ("frei", "vorgelegt"):
+            was = "Freigabe" if s["status"] == "frei" else "Vorlage"
+            an = ",".join(x for x in dict.fromkeys([MENSCH, kern.lead(con, pid) or MENSCH]) if x != von)
+            if an:
+                kern._posten(con, pid, "AMW", an, "meldung",
+                             f"Bogen {bid} „{b['titel']}“: {was} von {teil} v{s['version']} aufgehoben – {von} schreibt v{version}"
+                             " (muss neu vorgelegt werden)", text=spec_unterschied(s["text"], text))
     return version
+
+
+def spec_wer(con, bid, teil, version):
+    """Wer hat diese Fassung vorgelegt bzw. freigegeben (aus dem Planungs-Protokoll)? (vorgelegt_von, frei_von)"""
+    def letzter(art):
+        r = con.execute("SELECT von FROM plan_ereignis WHERE bogen_id = ? AND art = ? AND (text = ? OR text LIKE ?)"
+                        " ORDER BY id DESC LIMIT 1", (bid, art, f"{teil} v{version}", f"{teil} v{version}%")).fetchone()
+        return r[0] if r else None
+    return letzter("spec_vorgelegt"), letzter("spec_frei")
 
 
 def _offene_klaerungen(con, pid, bid, teil):
@@ -188,6 +217,9 @@ def spec_vorlegen(con, pid, von, bid, teil):
     """Zur Freigabe vorlegen. Reihenfolge wie Spec Kit: Entwurf erst nach freigegebenen Anforderungen, Schritte erst
     nach freigegebenem Entwurf. Jede Stelle [KLÄREN: …] wird eine Frage an den Entwickler (blockiert die Freigabe)."""
     b = bogen_zeile(con, pid, bid)
+    if kern.projekt_wahl(con, pid, "spec_vorlegen") == "lead" and not kern.ist_lead(con, pid, von):
+        raise kern.AmwFehler(f"Spezifikationen legt in diesem Projekt nur der Lead vor – melde {kern.lead(con, pid) or 'dem Lead'},"
+                             f" dass {teil} fertig ist (amw posten --an {kern.lead(con, pid) or '<Lead>'} --art meldung …)")
     s = spec(con, bid, teil)
     if not s["text"].strip():
         raise kern.AmwFehler(f"{teil} ist leer")
@@ -211,9 +243,11 @@ def spec_vorlegen(con, pid, von, bid, teil):
 
 
 def spec_entscheiden(con, pid, von, bid, teil, frei, kommentar=None):
-    """Nur der Mensch gibt frei (Gate). Offene Klärungen blockieren die Freigabe. Der Verfasser wird benachrichtigt."""
-    if von != MENSCH:
-        raise kern.AmwFehler("Spezifikationen gibt nur der Entwickler frei")
+    """Der Mensch gibt frei (Gate) – und der Lead, wo das Projekt es erlaubt (spec_frei = lead). Offene Klärungen blockieren
+    die Freigabe. Der Verfasser wird benachrichtigt."""
+    if von != MENSCH and not (kern.projekt_wahl(con, pid, "spec_frei") == "lead" and kern.ist_lead(con, pid, von)):
+        raise kern.AmwFehler("Spezifikationen gibt nur der Entwickler frei" + ("" if kern.projekt_wahl(con, pid, "spec_frei") == "lead"
+                             else " (der Lead nur, wenn das Projekt es erlaubt: Einstellung spec_frei = lead)"))
     b = bogen_zeile(con, pid, bid)
     s = spec(con, bid, teil)
     if s["status"] != "vorgelegt":
@@ -825,8 +859,10 @@ def status(con, pid, prog=None):
 def freigaben_offen(con, pid):
     """Was auf den Menschen wartet: vorgelegte Spezifikationen und Pläne, für die er verantwortlich ist, eigene Schritte."""
     spec_ = [dict(s) for s in con.execute(
-        "SELECT s.bogen_id, s.teil, s.version, s.geaendert_utc, b.titel FROM spezifikation s JOIN bogen b ON b.id = s.bogen_id"
-        " WHERE b.projekt_id = ? AND s.status = 'vorgelegt' ORDER BY s.geaendert_utc", (pid,))]
+        "SELECT s.bogen_id, s.teil, s.version, s.geaendert_utc, s.geschrieben_von, b.titel FROM spezifikation s"
+        " JOIN bogen b ON b.id = s.bogen_id WHERE b.projekt_id = ? AND s.status = 'vorgelegt' ORDER BY s.geaendert_utc", (pid,))]
+    for x in spec_:
+        x["vorgelegt_von"] = spec_wer(con, x["bogen_id"], x["teil"], x["version"])[0]
     plaene = [dict(a) for a in con.execute(
         "SELECT id, titel, agent, plan, geaendert_utc FROM aufgabe WHERE projekt_id = ? AND plan_status = 'vorgelegt'"
         " AND verantwortlich = ?", (pid, MENSCH))]
@@ -847,9 +883,26 @@ def kontext_zeilen(con, pid, kennung):
                  " --an entwickler …`), trage sie mit `amw leitbild` ein, dann Bögen (`amw bogen neu`) und erste Aufgaben."
                  " Lies vorher, was im Projektordner schon liegt (README, CLAUDE.md, Code).")
     else:
-        z.append("Projekt NEU – noch kein Leitbild: rate nicht, worum es geht. Melde dich beim Lead bzw. Entwickler"
-                 " (`amw posten --an <Lead|Entwickler> --art info --kurz \"bin da …\"`) und warte auf deine erste Aufgabe;"
-                 " sieh dich bis dahin nur lesend im Projektordner um.")
+        an = kern.lead(con, pid) or MENSCH
+        z.append(f"Projekt NEU – noch kein Leitbild: rate nicht, worum es geht. Melde dich bei {an}"
+                 f" (`amw posten --an {an} --art info --bis aufgabe --kurz \"bin da …\"` – die Meldung erledigt sich, sobald du"
+                 " eine Aufgabe hast) und warte auf deine erste Aufgabe; sieh dich bis dahin nur lesend im Projektordner um.")
+    if kern.ist_lead(con, pid, kennung) and kennung != MENSCH:
+        wege = []
+        if kern.projekt_wahl(con, pid, "agentenfragen") == "lead":
+            wege.append("Fragen deiner Agenten an den Entwickler kommen zuerst zu dir (`amw frage liste --an tl`): selbst"
+                        " beantworten oder `amw frage weiterleiten <F> [--text …]`")
+        if kern.projekt_wahl(con, pid, "spec_vorlegen") == "lead":
+            wege.append("Spezifikationen legst nur du vor (nach deiner Prüfung)")
+        if kern.projekt_wahl(con, pid, "spec_frei") == "lead":
+            wege.append("konforme Spezifikationen gibst du selbst frei (`amw spec frei <Bogen> <teil>`), an den Entwickler nur"
+                        " Einzelfragen")
+        wege.append("veraltete Meldungen an den Entwickler schließt du mit `amw erledigt <nr> --fuer Entwickler --bemerkung …`")
+        z.append("Wege im Projekt: " + "; ".join(wege) + ".")
+    pe = db.produkt_entwickler()
+    if pe and pe != kennung and kern.ist_lead(con, pid, kennung) and kennung != MENSCH:
+        z.append(f"AMW-Entwickler-Kanal: Fehler, Wünsche und Fragen zur AMW selbst direkt an {pe} (`amw posten --an {pe}"
+                 " --art frage|info|meldung --kurz …`) – er entwickelt die AMW für alle Projekte und antwortet hier.")
     if lb["prinzipien"]:
         z.append("Prinzipien: " + " | ".join(p["text"] + (f" (Prüffrage: {p['pruefung']})" if p.get("pruefung") else "")
                                              for p in lb["prinzipien"]))

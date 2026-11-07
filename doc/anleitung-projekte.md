@@ -16,6 +16,12 @@ arbeiten weiter.
 | Push-Meldungen (mit Projektname im Titel) | Einstellungen dieses PCs: Port, Online-Speicher, Push-Kanäle |
 | Projektordner, Startskript, Datei-Brücke | |
 
+**Entwickler-Kanal:** Wer die AMW selbst weiterentwickelt (Einstellung „Entwickler-Kanal“ unter Zahnrad › Dieser PC,
+z. B. `CCamw`), ist in jedem Projekt erreichbar und darf dort schreiben – die Leads sehen ihn in ihrem Pflicht-Kontext
+und melden Fehler, Wünsche und Fragen zur AMW direkt (`amw posten --an CCamw …`). Er liest alle Projekte auf einmal
+(`amw lesen` zeigt „[Projekt]“ vor jeder Nachricht) und wird geweckt, egal aus welchem Projekt sie kommt. Alle anderen
+Agenten bleiben in ihrem Projekt.
+
 Eine zweite AMW-Installation auf demselben Rechner ist nicht vorgesehen: sie würde sich mit der ersten die geplante
 Aufgabe, den Port und die Einstellungen teilen.
 

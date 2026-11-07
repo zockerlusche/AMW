@@ -106,6 +106,7 @@ CREATE TABLE nachricht (
   aufgabe_id    INTEGER REFERENCES aufgabe(id),
   anhang_id     INTEGER REFERENCES anhang(id),
   dokument_id   INTEGER REFERENCES dokument(id),           -- Kommentar/Auftrag zu einem Dokument
+  bis           TEXT,                            -- erledigt sich von selbst: leitbild | aufgabe | A<nr> | F<nr> (Schema 20)
   uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft      TEXT NOT NULL DEFAULT '',
   geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))

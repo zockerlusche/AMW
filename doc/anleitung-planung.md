@@ -38,7 +38,25 @@ steht je Teil der Stand: *in Arbeit* (noch nicht vorgelegt), *vorgelegt*, *frei*
 
 Der TL schreibt und legt vor (`amw spec schreiben <n> anforderungen --datei a.md`, `amw spec vorlegen <n> anforderungen`),
 **du gibst frei oder gibst mit Kommentar zurück** (Workbench: Chip „zur Freigabe“ anklicken – auch online vom Handy).
-Wird ein freigegebener Teil geändert, entsteht eine neue Version, die wieder vorgelegt werden muss.
+Wird ein freigegebener oder vorgelegter Teil geändert, entsteht eine neue Version, die wieder vorgelegt werden muss –
+du und der Lead bekommen dazu eine Meldung „Freigabe … aufgehoben“ mit dem Unterschied alt → neu (nie still).
+
+**Wege im Projekt** (Zahnrad › Projekt, oder `amw projekt einstellen <schluessel>=<wert>` durch den Lead):
+
+| Einstellung | Vorgabe | Bedeutung |
+|---|---|---|
+| `spec_vorlegen` | `lead` | Agenten schreiben Spezifikationen, **vorlegen** darf nur der Lead (nach seiner Prüfung). `alle`: jeder Agent. |
+| `spec_frei` | `entwickler` | Nur du gibst frei. `lead`: auch der Lead gibt konforme Spezifikationen frei, an dich gehen nur Einzelfragen. |
+| `agentenfragen` | `lead` | Fragen der Agenten an dich gehen **zuerst an den Lead**; er beantwortet sie selbst oder leitet sie mit `amw frage weiterleiten <F> [--text …]` weiter – dieselbe Frage mit Nummer, Optionen und Verlauf. `direkt`: wie früher. |
+| `info_ablage_h` | `24` | Infos an dich ohne Bezug wandern nach so vielen Stunden eingeklappt unter „Ältere Infos“. |
+
+Die Spec-Karte nennt beide: „verfasst: GW1 · vorgelegt: TL (geprüft)“.
+
+**Meldungen, die sich selbst erledigen:** `amw posten … --bis leitbild|aufgabe|A<nr>|F<nr>` – sobald das Leitbild steht,
+der Absender eine Aufgabe hat, die Aufgabe fertig oder die Frage beantwortet ist, setzt der Wächter die Meldung auf
+erledigt. Veraltete Meldungen an dich schließt der Lead mit Grund: `amw erledigt <nr> --fuer Entwickler --bemerkung …`
+(steht im Verlauf). Beschluss und Wortlaut in einem Zug: `amw beschluss neu … --wortlaut-text "Marcels Satz"` – keine
+vorhergesagte W-Nummer.
 
 ## 4 Schritte – klein, prüfbar, mit Abnahmekriterien
 Schritte sind Aufgaben mit Bogen. Ein guter Schritt („bereit“) hat: Abnahmekriterien, Bearbeiter, erledigte Vorgänger;
