@@ -816,6 +816,8 @@ const TEXTE = {
     sw_verfasst: "verfasst: {x}", sw_vorgelegt: "vorgelegt: {x}", sw_vorgelegt_geprueft: "vorgelegt: {x} (geprüft)", sw_frei: "freigegeben: {x}",
     e_agentenfragen: "Fragen der Agenten", e_agentenfragen_h: "Fragen an dich gehen zuerst an den Lead: Er beantwortet selbst oder leitet mit „amw frage weiterleiten“ weiter (dieselbe Frage).",
     e_agentenfragen_lead: "zuerst an den Lead", e_agentenfragen_direkt: "direkt an dich",
+    e_abnahme_kette: "Abnahme-Kette", e_abnahme_kette_h: "Nach einer grünen Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst – wenn der Lead für die Aufgabe sein Merge-OK gegeben hat (amw freigabe merge A…). Sonst fragt die AMW den Lead.",
+    e_abnahme_kette_aus: "aus", e_abnahme_kette_an: "an", e_merge_dienst: "Merge-Dienst", e_merge_dienst_h: "Der Agent, der mergt (bekommt die Merge-Bitten mit Zweig und genauem Stand).", e_merge_dienst_keiner: "– keiner –",
     e_spec_vorlegen: "Spezifikationen vorlegen", e_spec_vorlegen_h: "Wer eine Spezifikation zur Freigabe vorlegt. „nur der Lead“: die Agenten schreiben, der Lead prüft und legt vor.",
     e_spec_vorlegen_lead: "nur der Lead", e_spec_vorlegen_alle: "jeder Agent",
     e_spec_frei: "Spezifikationen freigeben", e_spec_frei_h: "„auch der Lead“: Der Lead gibt konforme Spezifikationen selbst frei, an dich gehen nur Einzelfragen. Du kannst immer freigeben.",
@@ -1022,7 +1024,7 @@ const TEXTE = {
     vl_leer: "Nichts in diesem Zeitraum.", vl_grenze: "Nur die neuesten 2 500 Ereignisse – Zeitraum oder Filter verkleinern.", vz_fertig: "fertig",
     vz_verworfen: "verworfen", vz_gruen: "grün", vz_rot: "rot", vz_gestellt: "gestellt", vz_beantwortet: "beantwortet", vz_start: "Start",
     vz_ende: "Ende", vz_gilt: "gilt",
-    vz_bogen_neu: "Bogen neu", vz_bogen_status: "Bogen-Status", vz_bogen_aendern: "Bogen geändert", vz_baseline: "Baseline verschoben", vz_spec_geschrieben: "Spezifikation geschrieben", vz_spec_vorgelegt: "zur Freigabe", vz_spec_frei: "freigegeben", vz_spec_zurueck: "zurückgegeben", vz_plan_vorgelegt: "Plan vorgelegt", vz_plan_frei: "Plan freigegeben", vz_plan_zurueck: "Plan zurück", vz_schritt_genommen: "Schritt übernommen", vz_risiko_neu: "Risiko neu", vz_risiko_status: "Risiko-Status", vz_leitbild: "Leitbild", vz_abgebrochen: "abgebrochen", vz_info_geschlossen: "Meldung geschlossen",
+    vz_bogen_neu: "Bogen neu", vz_bogen_status: "Bogen-Status", vz_bogen_aendern: "Bogen geändert", vz_baseline: "Baseline verschoben", vz_spec_geschrieben: "Spezifikation geschrieben", vz_spec_vorgelegt: "zur Freigabe", vz_spec_frei: "freigegeben", vz_spec_zurueck: "zurückgegeben", vz_plan_vorgelegt: "Plan vorgelegt", vz_plan_frei: "Plan freigegeben", vz_plan_zurueck: "Plan zurück", vz_schritt_genommen: "Schritt übernommen", vz_risiko_neu: "Risiko neu", vz_risiko_status: "Risiko-Status", vz_leitbild: "Leitbild", vz_abgebrochen: "abgebrochen", vz_info_geschlossen: "Meldung geschlossen", vz_merge_ok: "Merge-OK", vz_merge_ok_zurueck: "Merge-OK zurück", vz_merge_bitte: "Merge-Bitte",
     achtung: "Achtung", nachtrag_neu: "{n} neuer Nachtrag", aufklappen: "Klick: ganzer Text", s_extra: "{n} außerplanmäßig",
     jetzt_bei: "jetzt: {x}", geaendert: "geändert", notizen: "Notizen ({n})", server: "Projekt-Server", k_name: "Name", k_port: "Port",
     k_zustaendig: "Zuständig", k_neustart: "Neustart", k_ausfaelle: "Ausfälle", sz_laeuft: "läuft", sz_aus: "aus", sz_unbekannt: "noch nicht geprüft",
@@ -1124,6 +1126,8 @@ const TEXTE = {
     sw_verfasst: "written: {x}", sw_vorgelegt: "submitted: {x}", sw_vorgelegt_geprueft: "submitted: {x} (reviewed)", sw_frei: "approved: {x}",
     e_agentenfragen: "Agents' questions", e_agentenfragen_h: "Questions for you go to the lead first: the lead answers or forwards them with “amw frage weiterleiten” (same question).",
     e_agentenfragen_lead: "to the lead first", e_agentenfragen_direkt: "straight to you",
+    e_abnahme_kette: "Acceptance chain", e_abnahme_kette_h: "After a green review the merge request goes to the merge agent by itself – if the lead has given their merge OK for the task (amw freigabe merge A…). Otherwise AMW asks the lead.",
+    e_abnahme_kette_aus: "off", e_abnahme_kette_an: "on", e_merge_dienst: "Merge agent", e_merge_dienst_h: "The agent who merges (receives merge requests with branch and exact commit).", e_merge_dienst_keiner: "– none –",
     e_spec_vorlegen: "Submit specifications", e_spec_vorlegen_h: "Who submits a specification for approval. “lead only”: agents write, the lead reviews and submits.",
     e_spec_vorlegen_lead: "lead only", e_spec_vorlegen_alle: "any agent",
     e_spec_frei: "Approve specifications", e_spec_frei_h: "“lead too”: the lead approves conforming specifications, only single questions reach you. You can always approve.",
@@ -1326,7 +1330,7 @@ const TEXTE = {
     vl_pruefung: "Reviews", vl_frage: "Questions", vl_beschluss: "Decisions", vl_plan: "Planning", vl_sitzung: "Sessions",
     vl_leer: "Nothing in this period.", vl_grenze: "Only the newest 2,500 events – narrow period or filter.", vz_fertig: "done", vz_verworfen: "dropped",
     vz_gruen: "green", vz_rot: "red", vz_gestellt: "asked", vz_beantwortet: "answered", vz_start: "start", vz_ende: "end", vz_gilt: "valid",
-    vz_bogen_neu: "arc created", vz_bogen_status: "arc status", vz_bogen_aendern: "arc changed", vz_baseline: "baseline moved", vz_spec_geschrieben: "spec written", vz_spec_vorgelegt: "for approval", vz_spec_frei: "approved", vz_spec_zurueck: "sent back", vz_plan_vorgelegt: "plan submitted", vz_plan_frei: "plan approved", vz_plan_zurueck: "plan sent back", vz_schritt_genommen: "step picked up", vz_risiko_neu: "risk added", vz_risiko_status: "risk status", vz_leitbild: "charter", vz_abgebrochen: "aborted", vz_info_geschlossen: "message closed",
+    vz_bogen_neu: "arc created", vz_bogen_status: "arc status", vz_bogen_aendern: "arc changed", vz_baseline: "baseline moved", vz_spec_geschrieben: "spec written", vz_spec_vorgelegt: "for approval", vz_spec_frei: "approved", vz_spec_zurueck: "sent back", vz_plan_vorgelegt: "plan submitted", vz_plan_frei: "plan approved", vz_plan_zurueck: "plan sent back", vz_schritt_genommen: "step picked up", vz_risiko_neu: "risk added", vz_risiko_status: "risk status", vz_leitbild: "charter", vz_abgebrochen: "aborted", vz_info_geschlossen: "message closed", vz_merge_ok: "merge OK", vz_merge_ok_zurueck: "merge OK withdrawn", vz_merge_bitte: "merge request",
     achtung: "Attention", nachtrag_neu: "{n} new follow-up", aufklappen: "Click: full text", s_extra: "{n} unplanned",
     jetzt_bei: "now: {x}", geaendert: "changed", notizen: "Notes ({n})", server: "Project servers", k_name: "Name", k_port: "Port",
     k_zustaendig: "Owner", k_neustart: "Restart", k_ausfaelle: "Outages", sz_laeuft: "running", sz_aus: "down", sz_unbekannt: "not checked yet",
@@ -3668,9 +3672,12 @@ async function sichtEinstellungen() {
     entwickler_name: text(d.projekt.entwickler_name || ""),
     dateien_online: el("select", {}, ["wunsch", "bilder", "alle"].map(w => el("option", { value: w }, t("e_dateien_" + w)))) };
   pf.dateien_online.value = d.projekt.dateien_online || "wunsch";
-  for (const [k, werte] of [["agentenfragen", ["lead", "direkt"]], ["spec_vorlegen", ["lead", "alle"]], ["spec_frei", ["entwickler", "lead"]]]) {
+  for (const [k, werte] of [["agentenfragen", ["lead", "direkt"]], ["spec_vorlegen", ["lead", "alle"]], ["spec_frei", ["entwickler", "lead"]], ["abnahme_kette", ["aus", "an"]]]) {
     pf[k] = el("select", {}, werte.map(w => el("option", { value: w }, t(`e_${k}_${w}`)))); pf[k].value = d.projekt[k] || werte[0]; }
   pf.info_ablage_h = zahl(d.projekt.info_ablage_h, 1, 168);
+  pf.merge_dienst = el("select", {}, el("option", { value: "" }, t("e_merge_dienst_keiner")),
+    (d.agenten || []).map(a => el("option", { value: a.kennung }, a.kennung)));
+  pf.merge_dienst.value = d.projekt.merge_dienst || "";
   pf.entwickler_name.placeholder = t("e_entwickler_ph"); pf.entwickler_name.maxLength = 30;
   const pname = el("select", { onchange: e => projektWechseln(e.target.value), disabled: API || projekte.length < 2 },
     (projekte.length ? projekte : [{ uid: "", name: d.projekt.name }]).map(p => el("option", { value: p.uid, ...(p.uid === projekt ? { selected: true } : {}) }, p.name)));
@@ -3687,12 +3694,13 @@ async function sichtEinstellungen() {
      [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")], [t("e_dateien"), pf.dateien_online, t("e_dateien_h")],
      [t("e_farbe"), pf.farbe, t("e_farbe_h")], [t("e_agentenfragen"), pf.agentenfragen, t("e_agentenfragen_h")],
      [t("e_spec_vorlegen"), pf.spec_vorlegen, t("e_spec_vorlegen_h")], [t("e_spec_frei"), pf.spec_frei, t("e_spec_frei_h")],
-     [t("e_info_ablage"), pf.info_ablage_h, t("e_info_ablage_h")]],
+     [t("e_info_ablage"), pf.info_ablage_h, t("e_info_ablage_h")],
+     [t("e_abnahme_kette"), pf.abnahme_kette, t("e_abnahme_kette_h")], [t("e_merge_dienst"), pf.merge_dienst, t("e_merge_dienst_h")]],
     "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
       stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min),
       entwickler_name: pf.entwickler_name.value.trim(), dateien_online: pf.dateien_online.value, farbe: pf.farbe.value,
       agentenfragen: pf.agentenfragen.value, spec_vorlegen: pf.spec_vorlegen.value, spec_frei: pf.spec_frei.value,
-      info_ablage_h: wert(pf.info_ablage_h) })));
+      info_ablage_h: wert(pf.info_ablage_h), abnahme_kette: pf.abnahme_kette.value, merge_dienst: pf.merge_dienst.value })));
 
   // Agenten
   const zeile = a => {
