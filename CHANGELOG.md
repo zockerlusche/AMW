@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.28.0 – 07.11.2026 · Lesbare Startskripte, Lead als Chat
+- **Startskripte im Klartext:** `amw agent startskript` und „Neues Projekt“ schreiben eine `.bat` (Doppelklick) statt einer
+  PowerShell-Datei mit verschlüsselten Befehlen. Je Agent eine Zeile mit allen Angaben aus dem Profil, ein Fenster je
+  Projekt. Zuerst wird die letzte Sitzung fortgesetzt; gibt es keine, beginnt eine neue mit derselben ID und dem
+  Startsatz. Ohne frühere Sitzung ist die ID fest, das Skript bleibt also gleich, egal wie oft es erzeugt wird.
+  Vorhandene `.ps1` bleiben liegen.
+- **Lead als Chat:** Im Dialog „Neues Projekt“ lässt sich angeben, dass der Lead in der Claude-App bzw. Cowork arbeitet.
+  Er bekommt dann keinen Ordner im Profil und wird weder über die Kachel noch über das Startskript gestartet; er arbeitet
+  über die Datei-Brücke. Bei einem bestehenden Projekt: den Ordner im Profil des Leads leeren.
+
 ## 1.27.3 – 07.11.2026 · Lokale KIs kommen nach einem Neustart wieder
 - **Der Wächter holt lokale KIs hoch:** Antwortet eine aktive KI mit Startbefehl nicht (z. B. nach einem Neustart des PCs),
   startet er sie ohne Fenster – je KI höchstens alle 10 Minuten. Eine KI ohne Startbefehl bleibt aus. Soll eine KI ganz aus

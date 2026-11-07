@@ -304,10 +304,10 @@ class OrdnerGehoertZumProjekt(ZweiProjekte):
 
     def test_startskript_je_projekt(self):
         from amw import assistent
-        pfad = os.path.join(self.ordner.name, "agenten-start.ps1")
+        pfad = os.path.join(self.ordner.name, "agenten-start.bat")
         self.assertEqual(assistent.startskript_fuer(self.con, self.a, pfad), pfad)            # erstes Projekt: wie bisher
         self.assertEqual(assistent.startskript_fuer(self.con, self.b, pfad),
-                         os.path.join(self.ordner.name, "agenten-start-spiel.ps1"))           # überschreibt es nie
+                         os.path.join(self.ordner.name, "agenten-start-spiel.bat"))           # überschreibt es nie
 
 
 class NeuesProjekt(ZweiProjekte):
@@ -315,7 +315,7 @@ class NeuesProjekt(ZweiProjekte):
     def setUp(self):
         super().setUp()
         from amw import assistent
-        p = mock.patch.object(assistent, "STARTSKRIPT", os.path.join(self.ordner.name, "agenten-start.ps1"))
+        p = mock.patch.object(assistent, "STARTSKRIPT", os.path.join(self.ordner.name, "agenten-start.bat"))
         p.start()
         self.addCleanup(p.stop)
         self.repo = os.path.join(self.ordner.name, "laden")
@@ -347,14 +347,28 @@ class NeuesProjekt(ZweiProjekte):
         self.assertEqual(kern.projekt_wahl(self.con, pid, "farbe"), "blau")
         with open(os.path.join(self.repo, ".claude", "settings.local.json"), encoding="utf-8") as f:
             self.assertEqual(json.load(f)["env"], {"AMW_PROJEKT": "Laden"})
-        self.assertTrue(os.path.exists(os.path.join(self.ordner.name, "agenten-start-laden.ps1")))
-        self.assertFalse(os.path.exists(os.path.join(self.ordner.name, "agenten-start.ps1")))   # das des ersten bleibt unberührt
+        self.assertTrue(os.path.exists(os.path.join(self.ordner.name, "agenten-start-laden.bat")))
+        self.assertFalse(os.path.exists(os.path.join(self.ordner.name, "agenten-start.bat")))   # das des ersten bleibt unberührt
+
         self.assertTrue(any("Arbeitsregeln aus Webshop" in x for x in r["schritte"]))
         with self.assertRaisesRegex(aktionen.Ungueltig, "gehört schon zum Projekt Laden"):
             self.neu(name="Zweiter Laden")                                           # ein Ordner, ein Projekt
         self.assertIsNone(self.con.execute("SELECT 1 FROM projekt WHERE name = 'Zweiter Laden'").fetchone())
         rc, aus = self.cli("agent", "neu", "CC3", "--von", kern.ENTWICKLER, "--projekt", "Laden")
         self.assertIn(f"arbeitet in {os.path.abspath(self.repo)}", aus)             # neuer Agent: Projektordner als Profil
+
+    def test_lead_als_chat_wird_nie_gestartet(self):
+        """#18200: der Lead arbeitet als Chat (Cowork) – kein Ordner im Profil, nicht im Startskript."""
+        self.neu(lead_chat=True)
+        pid = db.projekt_id(self.con, "Laden")
+        ordner = dict(self.con.execute("SELECT kennung, ordner FROM agent WHERE projekt_id = ?", (pid,)).fetchall())
+        self.assertFalse(ordner["TL"])
+        self.assertEqual(ordner["CC1"], os.path.abspath(self.repo))
+        with open(os.path.join(self.ordner.name, "agenten-start-laden.bat"), encoding="utf-8") as f:
+            text = f.read()
+        self.assertNotIn("--title TL", text)
+        self.assertIn("--title CC1", text)
+        self.assertTrue(text.startswith("@echo off"))                                          # .bat ohne BOM
 
     def test_erster_start_im_neuen_projekt(self):
         """#18115: woher weiß der erste Agent alles – Startsatz, Pflicht-Kontext ohne Leitbild, amw ohne Rückfrage, Tab-Titel."""

@@ -32,12 +32,14 @@ Projekt“ und unter Einstellungen › Projekt; online nur zum Lesen – angeleg
    - **Projektordner** – der Pfad aus Schritt 1
    - **Lead** (Vorgabe `TL`; leer, wenn du selbst leitest) und **Agenten** (`CC1,CC2`) – Kennungen dürfen wie in anderen
      Projekten heißen
+   - **Lead als Chat**: arbeitet der Lead in der Claude-App bzw. Cowork, bekommt er keinen Ordner im Profil und wird nie in
+     einem Terminal gestartet; er liest und schreibt über die [Datei-Brücke](#datei-brücke-je-projekt)
    - **Rechte** der Agenten
    - **Arbeitsregeln**: ohne oder eine einmalige Kopie der Arbeitsregeln eines anderen Projekts (danach getrennt)
    - **Farbe** für Streifen und Projekt-Auswahl
 3. **Anlegen.** Die AMW legt Projekt, Lead und Agenten mit Profil und Startsatz an, richtet den Projektordner ein (Hooks,
    Statusline, Sperr-Regeln, der amw-Befehl ohne Rückfrage und die Projekt-Kennung `AMW_PROJEKT` in
-   `.claude\settings.local.json`) und schreibt ein eigenes Startskript `agenten-start-<projekt>.ps1`. Das Startskript
+   `.claude\settings.local.json`) und schreibt ein eigenes Startskript `agenten-start-<projekt>.bat` (lesbar, Doppelklick). Das Startskript
    des ersten Projekts bleibt unverändert.
 4. **Vor dem ersten Start:** **Zum Projekt** wechseln › Planung › **Leitbild** ausfüllen (Ziel, Nicht-Ziele, Prinzipien)
    und eine **erste Aufgabe** oder einen Bogen anlegen ([Planung](anleitung-planung.md)). Projektwissen (Technik, Build,

@@ -286,7 +286,8 @@ def projekt_neu(con, d):
     try:
         schritte = assistent.schnell(name, str(d.get("lead") or "").strip() or None, agenten, os.path.abspath(ordner),
                                      d.get("rechte") or "vorgabe", None, False, startskript=assistent.STARTSKRIPT, ausgabe=lambda *_: None,
-                                     regeln_von=d.get("regeln_von") or None, farbe=d.get("farbe") or None)
+                                     regeln_von=d.get("regeln_von") or None, farbe=d.get("farbe") or None,
+                                     lead_chat=bool(d.get("lead_chat")))
     except (kern.AmwFehler, LookupError, ValueError, OSError) as e:
         raise Ungueltig(str(e)) from None
     return {"uid": con.execute("SELECT uid FROM projekt WHERE name = ?", (name,)).fetchone()[0], "schritte": schritte}

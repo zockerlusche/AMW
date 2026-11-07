@@ -157,8 +157,14 @@ class Startskript(Grund):
         self.profil(denkstufe="medium")
         text = steuerung.startskript(self.con, self.pid)
         self.assertIn("new-tab --title CC1 --suppressApplicationTitle -d", text)   # Tab-Titel bleibt die Kennung
-        self.assertIn("-EncodedCommand", text)
-        self.assertNotIn("--title TL", text)                               # TL ohne Profil-Ordner
+        self.assertNotIn("-EncodedCommand", text)                           # #18200: lesbar, alles im Klartext
+        self.assertIn("$env:AMW_AGENT='CC1'" + chr(92) + ";", text)               # ; für wt geschützt
+        self.assertIn("claude --resume ", text)
+        self.assertIn("if ($LASTEXITCODE -ne 0) { claude --session-id ", text)   # Rückfall: neu mit derselben ID
+        self.assertIn("--effort medium", text)
+        self.assertTrue(text.startswith("@echo off\r\nchcp 65001"))
+        self.assertNotIn("--title TL", text)                               # TL ohne Profil-Ordner (z. B. Lead als Chat)
+        self.assertEqual(text, steuerung.startskript(self.con, self.pid))   # ohne frühere Sitzung: feste ID, nicht jedes Mal neu
 
 
 if __name__ == "__main__":

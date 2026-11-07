@@ -9,7 +9,7 @@ import os
 
 from . import db, einrichtung, einstellungen, kern, steuerung, wissen
 
-STARTSKRIPT = os.path.join(einrichtung.WURZEL, "agenten-start.ps1")
+STARTSKRIPT = os.path.join(einrichtung.WURZEL, "agenten-start.bat")
 
 
 RECHTE = ("vorgabe", "auto", "umgehen")
@@ -36,9 +36,12 @@ def startskript_fuer(con, pid, pfad=STARTSKRIPT):
 
 
 def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe", denkstufe=None, dienst=False,
-            startskript=STARTSKRIPT, hooks=True, ausgabe=print, fernsteuerung=False, regeln_von=None, farbe=None):
+            startskript=STARTSKRIPT, hooks=True, ausgabe=print, fernsteuerung=False, regeln_von=None, farbe=None,
+            lead_chat=False):
     """Richtet alles ein; gibt die Liste der erledigten Schritte zurück. regeln_von: ein neues Projekt startet mit einer
-    Kopie der Arbeitsregeln dieses Projekts (danach getrennt). Der Projektordner wird Einstellung des Projekts."""
+    Kopie der Arbeitsregeln dieses Projekts (danach getrennt). Der Projektordner wird Einstellung des Projekts.
+    lead_chat: der Lead arbeitet als Chat (Claude-App/Cowork, Datei-Brücke) – sein Profil bekommt keinen Ordner, damit ihn
+    weder Kachel noch Startskript in einem Terminal startet."""
     schritte = []
     if rechte not in RECHTE:
         raise kern.AmwFehler(f"Rechte: {' | '.join(RECHTE)}")
@@ -86,8 +89,8 @@ def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe",
             for a in ([lead] if lead else []) + list(agenten):   # nur leere Felder füllen – eigene Profile bleiben
                 z = con.execute("SELECT ordner, startsatz, rechte, denkstufe FROM agent WHERE projekt_id = ? AND kennung = ?",
                                 (pid, a)).fetchone()
-                werte = {k: v for k, v in {"ordner": ordner, "startsatz": startsatz(a, a == lead), "rechte": rechte,
-                                            "denkstufe": denkstufe or None}.items() if v and not z[k]}
+                werte = {k: v for k, v in {"ordner": None if lead_chat and a == lead else ordner, "startsatz": startsatz(a, a == lead),
+                                            "rechte": rechte, "denkstufe": denkstufe or None}.items() if v and not z[k]}
                 if "startsatz" in werte and fernsteuerung:  # neues Profil; sonst bleibt Remote Control aus
                     werte["fernsteuerung"] = True
                 if werte:
@@ -101,7 +104,7 @@ def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe",
                 schritte.append(f"Projektordner eingerichtet ({', '.join(aenderungen) or 'war schon eingerichtet'})")
             if startskript:
                 startskript = startskript_fuer(con, pid, startskript)
-                with open(startskript, "w", encoding="utf-8-sig") as f:
+                with open(startskript, "w", encoding="utf-8", newline="") as f:          # .bat: ohne BOM
                     f.write(steuerung.startskript(con, pid))
                 schritte.append(f"Startskript: {startskript}")
     finally:

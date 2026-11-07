@@ -226,16 +226,14 @@ class Startskript(Grund):
                 self.con.execute("UPDATE agent SET ordner = 'F:/p' WHERE kennung = ?", (k,))
         with db.schreiben(self.con):
             self.con.execute("UPDATE agent SET soll = 'aus' WHERE kennung = 'CC2'")
-        with mock.patch.object(steuerung, "profil", return_value={"ordner": "F:/p"}), \
-             mock.patch.object(steuerung, "befehl", return_value="claude"), \
-             mock.patch.object(steuerung, "letzte_sitzung", return_value=None):
+        with mock.patch.object(steuerung, "letzte_sitzung", return_value=None):
             nur_an = steuerung.startskript(self.con, self.pid)
             alle = steuerung.startskript(self.con, self.pid, alle=True, abstand_s=15)
-        self.assertNotIn("Start-Sleep", nur_an)
-        self.assertNotIn("starte CC2", nur_an)
-        self.assertIn("starte CC2", alle)
-        self.assertEqual(alle.count("Start-Sleep -Seconds 15"), 1)
-        self.assertEqual(alle.count("Start-Process wt.exe -ArgumentList '-w amw new-tab --title"), 2)
+        self.assertNotIn("timeout /t", nur_an)
+        self.assertNotIn("--title CC2", nur_an)
+        self.assertIn("--title CC2", alle)
+        self.assertEqual(alle.count("timeout /t 15 /nobreak"), 1)
+        self.assertEqual(alle.count(" new-tab --title "), 2)
 
 
 PNG = bytes([0x89]) + b"PNG" + bytes([13, 10, 26, 10])

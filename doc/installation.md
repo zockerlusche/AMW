@@ -64,12 +64,14 @@ Wo was liegt:
 | Einstellungen dieses PCs | `%LOCALAPPDATA%\amw\einstellungen.json` |
 | Anmeldungen der Sitzungen (Pipe + Schlüssel) | `%LOCALAPPDATA%\amw\sitzungen\` – nie in der Datenbank |
 | Push-Zugänge, Online-Zugang | `%LOCALAPPDATA%\amw\push.json`, `turso.json` – nie im Repo |
-| Startskript | `C:\amw\agenten-start.ps1` (aus den Profilen erzeugt) |
+| Startskript | `C:\amw\agenten-start.bat` (aus den Profilen erzeugt, lesbar; ältere `.ps1` bleiben liegen) |
 
 ## 4 Erster Start
 1. **Workbench öffnen:** http://127.0.0.1:8780 – „Dienst“ oben grün? Sonst `amw dienst status`.
 2. **Agenten starten:** Kachel eines Agenten anklicken › „Starten“ (neuer Tab im Windows Terminal) – oder
-   `C:\amw\agenten-start.ps1` (Rechtsklick › Mit PowerShell ausführen) für alle mit Profil auf einmal (Lead und Agenten).
+   `C:\amw\agenten-start.bat` (Doppelklick) für alle mit Profil auf einmal. Das Skript ist im Klartext lesbar: je Agent ein
+   Tab, zuerst die letzte Sitzung fortsetzen, gibt es keine, neu mit derselben ID und dem Startsatz. Ein Lead ohne
+   Ordner im Profil (er arbeitet als Chat in der Claude-App bzw. Cowork, über die Datei-Brücke) startet hier nie.
    Im Tab erscheint „AMW: als CC1 angemeldet“. Ein Agent liest seine Nachrichten mit `amw lesen --von CC1`.
 3. **Probe:** In der Workbench über „Nachricht“ einem Agenten einen Auftrag schicken – der Wächter weckt ihn, und der
    Agent liest und antwortet.
@@ -114,7 +116,7 @@ Agenten, Regeln, Aufgaben, Dokumente und KI-Vorlagen; kein Agent kommt in ein an
 Grafikkarte und Schirm über eine gemeinsame Lauf-Schlange. Anlegen mit `amw projekt neu <name>`; mit
 `--regeln-von <Projekt>` startet es mit einer Kopie der Arbeitsregeln eines anderen (danach getrennt). Dann
 `amw einrichten` mit diesem Namen und einem **eigenen Projektordner**: Der Ordner bekommt das Projekt in seine Umgebung
-(`AMW_PROJEKT`), das Startskript heißt `agenten-start-<projekt>.ps1` – das des ersten Projekts bleibt unverändert.
+(`AMW_PROJEKT`), das Startskript heißt `agenten-start-<projekt>.bat` – das des ersten Projekts bleibt unverändert.
 
 ## 6 Aktualisieren
 ```

@@ -134,9 +134,9 @@ class Seite(Grund):
         self.tab.js("[...document.querySelectorAll('.pw-liste button')].find(b => b.textContent.includes('Neues Projekt')).click()")
         self.warten("document.querySelector('.dialog-hg .einst input')")
         felder = json.dumps(["Laden", repo, "TL", "CC1"])
-        self.tab.js(f"{{ const w = {felder}; const i = document.querySelectorAll('.dialog-hg .einst input');"
+        self.tab.js(f"{{ const w = {felder}; const i = document.querySelectorAll('.dialog-hg .einst input:not([type=checkbox])');"
                     " w.forEach((x, n) => { i[n].value = x; }); }")
-        with mock.patch.object(assistent, "STARTSKRIPT", os.path.join(self.ordner.name, "agenten-start.ps1")):
+        with mock.patch.object(assistent, "STARTSKRIPT", os.path.join(self.ordner.name, "agenten-start.bat")):
             self.tab.js("document.querySelector('.dialog-hg .knopf.haupt').click()")
             self.warten("document.querySelector('.np-schritte')")
         self.assertTrue(self.tab.js("[...document.querySelectorAll('.np-schritte li')].some(l => l.textContent.includes('Projekt „Laden“ angelegt'))"))

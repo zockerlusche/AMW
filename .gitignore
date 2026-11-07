@@ -12,3 +12,5 @@ eingang-*/
 intern/
 agenten-start.ps1
 agenten-start-*.ps1
+agenten-start.bat
+agenten-start-*.bat

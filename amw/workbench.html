@@ -1037,7 +1037,8 @@ const TEXTE = {
     npa_f7_q: "Projekt auf einen anderen Rechner?", npa_f7: "amw sichern --projekt <name> schreibt das Projekt als eigene Datenbank samt Dokumenten (Anleitung „Mehrere Projekte“ in der Doku).",
     np_titel: "Neues Projekt", np_h: "Ein Projekt ist für sich: eigene Agenten, Regeln, Aufgaben und Dokumente. Den Projektordner legst du vorher selbst an (z. B. im Explorer) – darin arbeiten die Agenten. Die AMW richtet ihn ein (Hooks, Projekt-Kennung, amw-Befehl ohne Rückfrage), legt Lead und Agenten mit Profil und Startsatz an und schreibt ein eigenes Startskript.",
     np_name: "Name", np_ordner: "Projektordner", np_ordner_ph: "z. B. F:\\webshop – muss es schon geben", np_lead: "Lead (Kennung)",
-    np_lead_h: "leer, wenn du selbst leitest", np_agenten: "Agenten", np_agenten_h: "Kennungen mit Komma, z. B. CC1,CC2 – dürfen wie in anderen Projekten heißen",
+    np_lead_h: "leer, wenn du selbst leitest", np_lead_chat: "Lead als Chat",
+    np_lead_chat_l: "arbeitet in der Claude-App bzw. Cowork", np_lead_chat_h: "wird nie in einem Terminal gestartet; liest und schreibt über die Datei-Brücke (Einstellungen › Dieser PC › Brücke)", np_agenten: "Agenten", np_agenten_h: "Kennungen mit Komma, z. B. CC1,CC2 – dürfen wie in anderen Projekten heißen",
     np_rechte: "Rechte der Agenten", np_rechte_vorgabe: "vorgabe – Claude Code fragt bei heiklen Aktionen", np_rechte_auto: "auto",
     np_rechte_umgehen: "umgehen – alles erlauben", np_regeln: "Arbeitsregeln", np_regeln_keine: "ohne – eigene Regeln später",
     np_regeln_von: "Kopie von {x} (danach getrennt)", np_anlegen: "Anlegen", np_fertig: "Projekt „{x}“ ist angelegt",
@@ -1321,7 +1322,8 @@ const TEXTE = {
     npa_f7_q: "Move a project to another computer?", npa_f7: "amw sichern --projekt <name> writes the project as a database of its own including documents (guide “Several projects” in the docs).",
     np_titel: "New project", np_h: "A project stands on its own: its own agents, rules, tasks and documents. Create the project folder yourself first (e.g. in Explorer) – the agents work in it. AMW sets it up (hooks, project id, amw command without confirmation), creates lead and agents with a profile and start prompt and writes a start script of its own.",
     np_name: "Name", np_ordner: "Project folder", np_ordner_ph: "e.g. F:\\webshop – must already exist", np_lead: "Lead (id)",
-    np_lead_h: "empty if you lead yourself", np_agenten: "Agents", np_agenten_h: "ids separated by commas, e.g. CC1,CC2 – may have the same names as in other projects",
+    np_lead_h: "empty if you lead yourself", np_lead_chat: "Lead as a chat",
+    np_lead_chat_l: "works in the Claude app or Cowork", np_lead_chat_h: "is never started in a terminal; reads and writes through the file bridge (Settings › This PC › Bridge)", np_agenten: "Agents", np_agenten_h: "ids separated by commas, e.g. CC1,CC2 – may have the same names as in other projects",
     np_rechte: "Agent permissions", np_rechte_vorgabe: "vorgabe – Claude Code asks before risky actions", np_rechte_auto: "auto",
     np_rechte_umgehen: "umgehen – allow everything", np_regeln: "Working rules", np_regeln_keine: "none – own rules later",
     np_regeln_von: "copy of {x} (separate afterwards)", np_anlegen: "Create", np_fertig: "Project “{x}” has been created",
@@ -1492,6 +1494,7 @@ function projektNeuDialog() {
   const feld = (b, x, h) => el("div", { class: "feld" }, el("label", {}, b), el("div", {}, x, h ? el("div", { class: "sehrleise", style: "font-size:12px;margin-top:2px" }, h) : null));
   const name = el("input", { maxlength: 60, autocomplete: "off" }), ordner = el("input", { placeholder: t("np_ordner_ph"), autocomplete: "off" });
   const lead = el("input", { value: "TL", maxlength: 30 }), agenten = el("input", { value: "CC1,CC2" });
+  const leadChat = el("input", { type: "checkbox" });
   const rechte = el("select", {}, ["vorgabe", "auto", "umgehen"].map(r => el("option", { value: r }, t("np_rechte_" + r))));
   const regeln = el("select", {}, el("option", { value: "" }, t("np_regeln_keine")),
     projekte.filter(p => !p.fern).map(p => el("option", { value: p.name }, t("np_regeln_von", { x: p.name }))));
@@ -1503,7 +1506,7 @@ function projektNeuDialog() {
     knopf.disabled = true;
     try {
       const r = await schicken("/api/projekt/neu", { name: name.value.trim(), ordner: ordner.value.trim(), lead: lead.value.trim(),
-        agenten: agenten.value, rechte: rechte.value, regeln_von: regeln.value, farbe: frb.value });
+        agenten: agenten.value, lead_chat: leadChat.checked, rechte: rechte.value, regeln_von: regeln.value, farbe: frb.value });
       kasten.replaceChildren(el("h3", {}, t("np_fertig", { x: name.value.trim() })),
         el("ul", { class: "np-schritte" }, r.schritte.map(s => el("li", {}, "✓ " + s))), el("p", { class: "leise" }, t("np_danach"), " ", el("button", { class: "klein-knopf", type: "button", onclick: projektAnleitung }, "? " + t("npa_link"))),
         el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => projektWechseln(r.uid) }, t("np_weiter"))));
@@ -1511,6 +1514,7 @@ function projektNeuDialog() {
   const kasten = el("div", { class: "einst" }, el("p", { class: "leise", style: "margin:0" }, t("np_h"), " ",
       el("button", { class: "klein-knopf", type: "button", onclick: projektAnleitung }, "? " + t("npa_link"))),
     feld(t("np_name"), name), feld(t("np_ordner"), ordner), feld(t("np_lead"), lead, t("np_lead_h")),
+    feld(t("np_lead_chat"), el("label", { style: "display:flex;gap:8px;align-items:center" }, leadChat, t("np_lead_chat_l")), t("np_lead_chat_h")),
     feld(t("np_agenten"), agenten, t("np_agenten_h")), feld(t("np_rechte"), rechte), feld(t("np_regeln"), regeln), feld(t("e_farbe"), frb),
     el("div", { class: "aktionen" }, knopf, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
   const hg = dialog(t("np_titel"), kasten);

@@ -12,6 +12,7 @@ import ctypes
 import ctypes.wintypes as wt
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -137,13 +138,9 @@ def claude_befehl():
     return einstellungen.wert("claude_befehl") or "claude"
 
 
-def befehl(p, fortsetzen_id=None, neue_id=None):
-    """PowerShell-Befehlszeile für den Tab: Umgebung setzen, Claude mit Profil starten."""
-    teile = [claude_befehl()]
-    if fortsetzen_id:
-        teile += ["--resume", fortsetzen_id]
-    elif neue_id:
-        teile += ["--session-id", neue_id]
+def _optionen(p):
+    """Was aus dem Profil an Claude geht (ohne Sitzung und ersten Satz)."""
+    teile = []
     if p["fernsteuerung"]:
         teile += ["--remote-control", p["kennung"]]
     if p["denkstufe"]:
@@ -152,11 +149,27 @@ def befehl(p, fortsetzen_id=None, neue_id=None):
         teile += ["--model", p["modell"]]
     for z in p["zusatzordner"]:
         teile += ["--add-dir", z]
-    teile += RECHTE.get(p["rechte"], [])
+    return teile + RECHTE.get(p["rechte"], [])
+
+
+def _wort(x):
+    """Für PowerShell: einfache Wörter (Schalter, IDs, Pfade ohne Leerzeichen) lesbar ohne Anführungszeichen, alles andere in '…'."""
+    return x if re.fullmatch(r"-{0,2}[A-Za-z0-9_][A-Za-z0-9_.:/\-]*", x) else _ps(x)
+
+
+def _aufruf(teile, lesbar=False):
+    erstes = claude_befehl()
+    return ((f"& {_ps(erstes)} " if " " in erstes or "\\" in erstes else f"{erstes} ")
+            + " ".join((_wort if lesbar else _ps)(x) for x in teile))
+
+
+def befehl(p, fortsetzen_id=None, neue_id=None):
+    """PowerShell-Befehlszeile für den Tab: Umgebung setzen, Claude mit Profil starten."""
+    teile = ["--resume", fortsetzen_id] if fortsetzen_id else ["--session-id", neue_id] if neue_id else []
+    teile += _optionen(p)
     if not fortsetzen_id and p["startsatz"]:
         teile.append(p["startsatz"])
-    erstes, rest = teile[0], teile[1:]
-    aufruf = (f"& {_ps(erstes)} " if " " in erstes or "\\" in erstes else f"{erstes} ") + " ".join(_ps(x) for x in rest)
+    aufruf = _aufruf(teile)
     projekt = f"$env:AMW_PROJEKT = {_ps(p['projekt'])}; " if p.get("projekt") else ""
     return f"Set-Location {_ps(p['ordner'])}; $env:AMW_AGENT = {_ps(p['kennung'])}; {projekt}{aufruf}"
 
@@ -292,27 +305,49 @@ def db_sek(utc):
 STARTSKRIPT_ABSTAND_S = 20       # alle auf einmal legten den PC lahm (Neustart 03.11.: 8 Sitzungen, > 120 s je Befehl)
 
 
+NEUSTART_SATZ = "Neustart des PCs. Lies deinen Stand in der AMW (Nachrichten, Notizen) und mach mit deiner Aufgabe weiter."
+
+
+def _bat(text):
+    """Text in einer Zeile der .bat: für cmd (% verdoppeln, keine doppelten Anführungszeichen im -Command) und für wt
+    (; trennt dort Befehle, deshalb \\;)."""
+    return str(text).replace("%", "%%").replace('"', "'").replace(";", "\\;")
+
+
 def startskript(con, pid, kennungen=None, alle=False, abstand_s=STARTSKRIPT_ABSTAND_S):
-    """PowerShell-Skript, das die Agenten mit Soll „an“ (alle=True: jeder mit Profil-Ordner; oder die genannten) in Tabs
-    eines Fensters startet – aus den Profilen, mit abstand_s Sekunden zwischen zwei Starts."""
-    zeilen = ["# Erzeugt von AMW (amw agent startskript) – Änderungen im Profil der Agenten, nicht hier.",
-              "# Setzt jeweils die letzte Sitzung des Agenten fort; ohne frühere Sitzung beginnt eine neue.",
-              f"# Zwischen zwei Starts {abstand_s} s Pause, damit der PC beim Fortsetzen nicht in die Knie geht.", ""]
-    tabs = []
+    """Lesbare .bat (Doppelklick), die die Agenten mit Soll „an“ (alle=True: jeder mit Profil-Ordner; oder die genannten)
+    in Tabs eines Fensters je Projekt startet – alles im Klartext, aus den Profilen. Je Agent zuerst die letzte Sitzung
+    fortsetzen (--resume); gibt es sie nicht (mehr), beginnt eine neue mit derselben ID und dem Startsatz. Ein Agent ohne
+    Profil-Ordner (z. B. ein Lead, der als Chat arbeitet) startet hier nie."""
+    projekt, uid = con.execute("SELECT name, uid FROM projekt WHERE id = ?", (pid,)).fetchone()   # uid: feste ID ohne frühere Sitzung
+    fenster = db.kurzname(projekt, pid) or "amw"
+    shell = os.path.splitext(os.path.basename(_shell()))[0].lower()
+    zeilen = ["@echo off", "chcp 65001 >nul",
+              f"rem {projekt}: Agenten starten – erzeugt von der AMW (amw agent startskript). Ändern im Profil der Agenten",
+              "rem (Workbench › Kachel › Profil), nicht hier. Je Agent: letzte Sitzung fortsetzen, gibt es keine: neu mit",
+              f"rem derselben ID und dem Startsatz. Ein Fenster „{fenster}“, ein Tab je Agent, {abstand_s} s Pause dazwischen.",
+              "where wt >nul 2>nul || (echo Windows Terminal (wt) fehlt – Agenten in der Workbench einzeln starten. & pause & exit /b 1)", ""]
+    n = 0
     for a in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND ordner IS NOT NULL AND ordner != ''"
                          + ("" if kennungen or alle else " AND soll = 'an'") + " ORDER BY id", (pid,)).fetchall():
         if kennungen and a["kennung"] not in kennungen:
             continue
         p = profil(con, pid, a["kennung"])
-        fort = letzte_sitzung(con, pid, a["kennung"])
-        b64 = base64.b64encode(befehl(p, fort, None if fort else str(uuid.uuid4())).encode("utf-16-le")).decode()
-        ordner = p["ordner"].replace("'", "''")             # steht in der einfach gequoteten -ArgumentList
-        tabs.append((a["kennung"], f'new-tab --title {a["kennung"]} --suppressApplicationTitle -d "{ordner}" {os.path.basename(_shell())} -NoExit -EncodedCommand {b64}'))
-    if not tabs:
+        sid = letzte_sitzung(con, pid, a["kennung"]) or str(uuid.uuid5(uuid.NAMESPACE_URL, f"amw:{uid}:{a['kennung']}"))
+        weiter = _aufruf(["--resume", sid] + _optionen(p) + [NEUSTART_SATZ], lesbar=True)
+        neu = _aufruf(["--session-id", sid] + _optionen(p) + ([p["startsatz"]] if p["startsatz"] else []), lesbar=True)
+        ps = (f"$env:AMW_AGENT={_ps(p['kennung'])}; $env:AMW_PROJEKT={_ps(projekt)}; {weiter}; "
+              f"if ($LASTEXITCODE -ne 0) {{ {neu} }}")
+        ordner = p["ordner"].rstrip("\\") or p["ordner"]
+        if ordner.endswith(":"):
+            ordner += "\\."                                   # "F:\" würde das Anführungszeichen schützen
+        if n and abstand_s:
+            zeilen.append(f"timeout /t {int(abstand_s)} /nobreak >nul")
+        zeilen += [f"rem --- {a['kennung']} ---  Sitzung {sid}",
+                   f'wt -w {fenster} new-tab --title {a["kennung"]} --suppressApplicationTitle -d "{_bat(ordner)}" {shell} -NoExit'
+                   f' -Command "{_bat(ps)}"', ""]
+        n += 1
+    if not n:
         raise kern.AmwFehler("kein Agent mit Profil-Ordner – amw agent profil <kennung> --ordner <Pfad>")
-    for i, (kennung, tab) in enumerate(tabs):
-        if i and abstand_s:
-            zeilen.append(f"Start-Sleep -Seconds {int(abstand_s)}")
-        zeilen.append(f"Write-Host 'starte {kennung}'")
-        zeilen.append("Start-Process wt.exe -ArgumentList '-w amw " + tab + "'")
-    return "\n".join(zeilen) + "\n"
+    zeilen.append(f"echo {n} Agent(en) gestartet.")
+    return "\r\n".join(zeilen) + "\r\n"

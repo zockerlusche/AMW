@@ -122,9 +122,9 @@ def cmd_agent(a, con):
             text = steuerung.startskript(con, pid, [a.kennung] if a.kennung else None, alle=a.alle,
                                          abstand_s=steuerung.STARTSKRIPT_ABSTAND_S if a.abstand is None else a.abstand)
             if a.datei:
-                with open(a.datei, "w", encoding="utf-8-sig") as f:
+                with open(a.datei, "w", encoding="utf-8", newline="") as f:              # .bat: ohne BOM
                     f.write(text)
-                print(f"geschrieben: {a.datei} – mit Rechtsklick „Mit PowerShell ausführen“ starten")
+                print(f"geschrieben: {a.datei} – mit Doppelklick starten")
             else:
                 print(text)
             return
