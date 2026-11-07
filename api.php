@@ -47,8 +47,18 @@ function datei_senden(array $q): never {
         if ($roh === null) antwort(404, ['fehler' => 'Die Datei kommt gleich neu vom PC.']);
     }
     [$typ, $vorschau] = DATEI_FORMATE[$endung];
+    $laenge = $roh === null ? filesize($p) : strlen($roh);
+    $von = 0; $bis = $laenge - 1;                                   // Video: Vor- und Zurückspulen (Range, ein Bereich)
+    if (preg_match('/^bytes=(\d*)-(\d*)$/', $_SERVER['HTTP_RANGE'] ?? '', $m) && ($m[1] !== '' || $m[2] !== '')) {
+        if ($m[1] === '') { $von = max(0, $laenge - (int)$m[2]); }
+        else { $von = (int)$m[1]; if ($m[2] !== '') $bis = min((int)$m[2], $laenge - 1); }
+        if ($von >= $laenge || $bis < $von) { http_response_code(416); header('Content-Range: bytes */' . $laenge); exit; }
+        http_response_code(206);
+        header("Content-Range: bytes $von-$bis/$laenge");
+    }
+    header('Accept-Ranges: bytes');
     header('Content-Type: ' . $typ);
-    header('Content-Length: ' . ($roh === null ? (string)filesize($p) : (string)strlen($roh)));
+    header('Content-Length: ' . (string)($bis - $von + 1));
     header('Cache-Control: private, max-age=86400');               // je Version unveränderlich
     header('X-Frame-Options: SAMEORIGIN');
     header('Referrer-Policy: no-referrer');
@@ -59,8 +69,11 @@ function datei_senden(array $q): never {
         header("Content-Security-Policy: sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:");
     }
     header('Content-Disposition: ' . ($vorschau === 'download' ? 'attachment' : 'inline') . '; filename="D' . $id . $endung . '"');
-    if ($roh === null) readfile($p);
-    else echo $roh;
+    if ($roh === null) {
+        $f = fopen($p, 'rb'); fseek($f, $von); $rest = $bis - $von + 1;
+        while ($rest > 0 && !feof($f)) { $s = fread($f, min(65536, $rest)); echo $s; $rest -= strlen($s); }
+        fclose($f);
+    } else echo substr($roh, $von, $bis - $von + 1);
     exit;
 }
 

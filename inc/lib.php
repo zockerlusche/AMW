@@ -134,7 +134,7 @@ function kopfzeilen(bool $html): void {
     if (ist_https()) header('Strict-Transport-Security: max-age=31536000');
     if ($html) {
         header("Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline';"
-            . " connect-src 'self'; img-src 'self' data: blob:; frame-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+            . " connect-src 'self'; img-src 'self' data: blob:; media-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
     }
 }
 
@@ -325,7 +325,7 @@ function gesperrt(string $ip): bool {
 const DATEI_FORMATE = ['.png' => ['image/png', 'bild'], '.jpg' => ['image/jpeg', 'bild'], '.jpeg' => ['image/jpeg', 'bild'],
     '.webp' => ['image/webp', 'bild'], '.gif' => ['image/gif', 'bild'], '.svg' => ['image/svg+xml', 'bild'],
     '.html' => ['text/html; charset=utf-8', 'mockup'], '.htm' => ['text/html; charset=utf-8', 'mockup'],
-    '.pdf' => ['application/pdf', 'pdf'],
+    '.pdf' => ['application/pdf', 'pdf'], '.mp4' => ['video/mp4', 'video'], '.webm' => ['video/webm', 'video'],
     '.docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'download'],
     '.xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'download']];
 const AUFRAEUMEN_S = 600;            // so oft höchstens nach Kopien schauen, die nicht mehr online stehen
@@ -335,7 +335,7 @@ const HOCH_TEIL = 192 * 1024;
 const HOCH_MAX = 25 * 1024 * 1024;   // je Datei, wie am PC
 const HOCH_UNTERWEGS_MAX = 100 * 1024 * 1024;   // so viel darf zugleich im Speicher auf den PC warten
 const HOCH_JE_STUNDE = 60;
-const HOCH_ENDUNGEN = ['.md', '.txt', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.html', '.htm', '.pdf', '.docx', '.xlsx'];
+const HOCH_ENDUNGEN = ['.md', '.txt', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.html', '.htm', '.pdf', '.docx', '.xlsx', '.mp4', '.webm'];
 
 /** Ablage auf dem Webspace: neben der Konfiguration, außerhalb des Deploy-Ordners – ein Deploy löscht dort nichts, und
  *  niemand ruft sie direkt ab. null: Konfiguration liegt noch in inc/ – dann kommt jede Datei frisch aus dem Speicher. */
