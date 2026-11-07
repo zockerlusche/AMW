@@ -107,7 +107,7 @@ try {
                 '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko',
                 '/api/plan/rueckblick', '/api/plan/uebernehmen', '/api/plan/check',
                 '/api/dokument/kommentar', '/api/dokument/setzen', '/api/dokument/status', '/api/dokument/online',
-                '/api/dokument/text', '/api/dokument/neu', '/api/aufgabe/erledigt', '/api/aufgabe/spaeter', '/api/aufgabe/antwort'], true)) {
+                '/api/dokument/vermerk', '/api/dokument/text', '/api/dokument/neu', '/api/aufgabe/erledigt', '/api/aufgabe/spaeter', '/api/aufgabe/antwort'], true)) {
             antwort(404, ['fehler' => 'unbekannt']);
         }
         // Prüfen, was der PC sowieso prüft, schon hier – damit Fehler sofort sichtbar sind
@@ -137,6 +137,8 @@ try {
         if ($pfad === '/api/dokument/kommentar' && trim((string)($daten['text'] ?? '')) === '') antwort(400, ['fehler' => 'Text fehlt']);
         if (str_starts_with($pfad, '/api/aufgabe/') && (!is_int($daten['id'] ?? null) || $daten['id'] < 1)) antwort(400, ['fehler' => 'id fehlt']);
         if (in_array($pfad, ['/api/aufgabe/erledigt', '/api/aufgabe/antwort'], true) && trim((string)($daten['text'] ?? '')) === '') antwort(400, ['fehler' => 'Text fehlt']);
+        if ($pfad === '/api/dokument/vermerk' && !in_array($daten['art'] ?? '', ['ausgewaehlt', 'verworfen', 'nachbearbeitet'], true)) antwort(400, ['fehler' => 'Art']);
+        if ($pfad === '/api/dokument/vermerk' && ($daten['art'] ?? '') === 'nachbearbeitet' && mb_strlen(trim((string)($daten['text'] ?? ''))) < 5) antwort(400, ['fehler' => 'Text fehlt']);
         if ($pfad === '/api/dokument/status' && !in_array($daten['status'] ?? '', ['aktuell', 'archiviert'], true)) antwort(400, ['fehler' => 'Status']);
         if ($pfad === '/api/gelesen' && (!is_array($daten['ids'] ?? null) || !$daten['ids'] || array_filter($daten['ids'], fn($i) => !is_int($i)))) {
             antwort(400, ['fehler' => 'ids fehlen']);

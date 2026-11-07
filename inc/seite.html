@@ -332,6 +332,22 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .dk-version.an { border-left-color: var(--bernstein); color: var(--tinte); }
 .dk-nachricht { border-left: 2px solid var(--linie2); padding: 2px 8px; margin-bottom: 6px; font-size: 13px; }
 .dk-aktionen { display: flex; gap: 6px; flex-wrap: wrap; }
+.dk-vermerk { display: grid; gap: 8px; border-top: 1px solid var(--linie); padding-top: 12px; }
+.kv-stand { font-size: 13.5px; padding: 6px 9px; border-left: 3px solid var(--linie2); background: var(--flaeche2); }
+.kv-stand.ausgewaehlt { border-left-color: var(--gruen); color: var(--gruen); }
+.kv-stand.verworfen { border-left-color: var(--rot); color: var(--rot); }
+.kv-verlauf { display: grid; gap: 3px; font-size: 12.5px; }
+.dk-bild { position: relative; }
+.kv-marke { position: absolute; top: 6px; left: 6px; font: 600 10.5px var(--titel); letter-spacing: .08em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 3px; background: var(--flaeche); color: var(--leise); border: 1px solid var(--linie2); }
+.kv-marke.ausgewaehlt { color: var(--gruen); border-color: var(--gruen); }
+.kv-marke.verworfen { color: var(--rot); border-color: var(--rot); }
+.dk-karte.verworfen .dk-bild img { opacity: .45; filter: grayscale(.7); }
+.kf { margin: 0 0 16px; }
+.kf-band { position: relative; height: 18px; border: 1px solid var(--linie); border-radius: 3px; background: var(--flaeche2); margin: 6px 0 2px; overflow: hidden; }
+.kf-fenster { position: absolute; top: 0; bottom: 0; background: var(--bernstein-weich); border-left: 1px solid var(--bernstein); border-right: 1px solid var(--bernstein); }
+.kf-jetzt { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--tinte); }
+.kf-skala { display: flex; justify-content: space-between; font: 11px var(--mono); color: var(--sehrleise); }
 .dk-anhaenge { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
 .dk-anhang { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--linie); border-radius: 3px; padding: 4px 8px; cursor: pointer; background: var(--flaeche2); color: inherit; font: inherit; font-size: 13px; }
 .dk-anhang img { width: 64px; height: 44px; object-fit: cover; border-radius: 2px; }
@@ -1021,6 +1037,15 @@ const TEXTE = {
     ki_keine: "Keine KI eingetragen – am PC: amw ki neu <name> --art bild --schnittstelle comfyui …", ki_modelle: "Modelle", ki_vorlagen: "Vorlagen", ki_vorlagen_h: "gehören diesem Projekt",
     ki_auftraege: "KI-Aufträge", ki_keine_auftraege: "Noch keine KI-Aufträge.", ki_geladen: "im Grafikspeicher: {x}", ki_wartend: "{n} wartend",
     ki_darf: "beauftragen: Lead, Entwickler{x}", ki_regeln: "Nutzungsregeln", ki_herkunft: "Herkunft (KI)", ki_gegenprobe: "Gegenprobe",
+    kv_titel: "KI-Ergebnis: Entscheid", kv_offen: "Noch nicht entschieden", kv_ausgewaehlt: "Ausgewählt – {x}, {z}", kv_verworfen: "Verworfen – {x}, {z}",
+    kv_auswaehlen: "Auswählen", kv_verwerfen: "Verwerfen", kv_nach: "Nachbearbeitung vermerken", kv_nach_ph: "Was wurde von Hand geändert? (z. B. Farben angepasst, Hintergrund entfernt, Kanten nachgezogen)",
+    kv_ok: "Vermerkt", kva_ausgewaehlt: "ausgewählt", kva_verworfen: "verworfen", kva_nachbearbeitet: "nachbearbeitet",
+    kv_erkl: "Nachweis der menschlichen Gestaltungsentscheidung (Urheberrecht, Steam-Angabe) – amw ki nachweis listet ihn.",
+    kvm_ausgewaehlt: "✓ ausgewählt", kvm_verworfen: "verworfen", kvm_offen: "KI · offen",
+    kf_titel: "KI-Fenster {x}", kf_offen: "jetzt offen", kf_zu: "jetzt zu", kf_termin: "jetzt zu – {x}", kf_wartend1: "1 KI-Auftrag mit --nachts wartet", kf_wartend: "{n} KI-Aufträge mit --nachts warten", kf_dauer: " (≈ {x} min)",
+    kf_keins: "Kein KI-Fenster eingestellt – Aufträge mit --nachts warten nur auf Testtermine.",
+    kf_erkl: "Aufträge mit --nachts starten nur im Fenster und nie in der Vorlaufzeit eines Testtermins; bis dahin überholen sie alle anderen Läufe. Ändern: Zahnrad › Dieser PC.",
+    e_kifenster: "KI-Fenster (--nachts)", e_kifenster_h: "Uhrzeit wie 22-06 (Ortszeit): KI-Aufträge mit --nachts starten nur darin, nie in der Vorlaufzeit eines Testtermins. Leer = kein Fenster.",
     ki_vorlage_x: "Vorlage {x}", kiz_an: "bereit", kiz_aus: "aus", kiz_belegt: "rechnet", kiz_unbekannt: "noch nicht geprüft", kiz_gestoert: "gestört",
     kif_frei: "frei", kif_offen: "offen", kif_gesperrt: "gesperrt", kia_wartet: "wartet", kia_laeuft: "rechnet", kia_fertig: "fertig",
     kia_fehler: "Fehler", kia_abgebrochen: "abgebrochen", k_ki: "KI", k_modell: "Modell", k_lizenz: "Lizenz", k_kommerziell: "Kommerziell",
@@ -1316,6 +1341,15 @@ const TEXTE = {
     ki_keine: "No AI registered – on the PC: amw ki neu <name> --art bild --schnittstelle comfyui …", ki_modelle: "Models", ki_vorlagen: "Templates", ki_vorlagen_h: "belong to this project",
     ki_auftraege: "AI jobs", ki_keine_auftraege: "No AI jobs yet.", ki_geladen: "in GPU memory: {x}", ki_wartend: "{n} waiting",
     ki_darf: "may order: lead, developer{x}", ki_regeln: "use restrictions", ki_herkunft: "Provenance (AI)", ki_gegenprobe: "Cross-check",
+    kv_titel: "AI result: decision", kv_offen: "Not decided yet", kv_ausgewaehlt: "Selected – {x}, {z}", kv_verworfen: "Rejected – {x}, {z}",
+    kv_auswaehlen: "Select", kv_verwerfen: "Reject", kv_nach: "Record manual edit", kv_nach_ph: "What was changed by hand? (e.g. adjusted colours, removed background, redrew edges)",
+    kv_ok: "Recorded", kva_ausgewaehlt: "selected", kva_verworfen: "rejected", kva_nachbearbeitet: "edited by hand",
+    kv_erkl: "Proof of the human creative decision (copyright, Steam disclosure) – amw ki nachweis lists it.",
+    kvm_ausgewaehlt: "✓ selected", kvm_verworfen: "rejected", kvm_offen: "AI · open",
+    kf_titel: "AI window {x}", kf_offen: "open now", kf_zu: "closed now", kf_termin: "closed now – {x}", kf_wartend1: "1 AI job with --nachts waiting", kf_wartend: "{n} AI jobs with --nachts waiting", kf_dauer: " (≈ {x} min)",
+    kf_keins: "No AI window set – jobs with --nachts only wait for test dates.",
+    kf_erkl: "Jobs with --nachts only start inside the window and never in the lead time of a test date; until then every other run overtakes them. Change: gear › This PC.",
+    e_kifenster: "AI window (--nachts)", e_kifenster_h: "Time like 22-06 (local): AI jobs with --nachts only start inside it, never in the lead time of a test date. Empty = no window.",
     ki_vorlage_x: "template {x}", kiz_an: "ready", kiz_aus: "off", kiz_belegt: "computing", kiz_unbekannt: "not checked yet", kiz_gestoert: "faulty",
     kif_frei: "approved", kif_offen: "open", kif_gesperrt: "blocked", kia_wartet: "waiting", kia_laeuft: "computing", kia_fertig: "done",
     kia_fehler: "error", kia_abgebrochen: "cancelled", k_ki: "AI", k_modell: "Model", k_lizenz: "License", k_kommerziell: "Commercial",
@@ -2331,13 +2365,30 @@ async function sichtDokumente() {
     return;
   }
   const bezugText = x => x.bezug_art ? bezugRef(x.bezug_art, x.bezug_id) : null;
-  const meta = x => [t("dka_" + x.art), x.angelegt_von, seit(x.version_utc), x.version > 1 ? "v" + x.version : null, bezugText(x),
+  const meta = x => [t("dka_" + x.art), x.angelegt_von, seit(x.version_utc), x.version > 1 ? "v" + x.version : null, bezugText(x), x.ki ? t("kvm_" + x.ki) : null,
     x.status !== "aktuell" ? t("dks_" + x.status) : null].filter(Boolean).join(" · ");
   if (f.liste) m.append(el("div", { class: "liste dk-liste" }, d.dokumente.map(x => el("div", { class: "zeile", onclick: () => dokumentDialog(x.id) },
     el("span", { class: "ref" }, "D" + x.id), el("span", {}, x.titel), el("span", { class: "leise" }, meta(x)),
     el("span", { class: "sehrleise mono" }, `${x.endung} · ${Math.max(1, Math.round(x.groesse / 1024))} KB`)))));
-  else m.append(el("div", { class: "dk-raster" }, d.dokumente.map(x => el("button", { class: "dk-karte", type: "button", title: x.titel, onclick: () => dokumentDialog(x.id) },
-    el("div", { class: "dk-bild" }, dokSymbol(x)), el("div", { class: "dk-text" }, el("b", {}, x.titel), el("span", {}, `D${x.id} · ${meta(x)}`))))));
+  else m.append(el("div", { class: "dk-raster" }, d.dokumente.map(x => el("button", { class: "dk-karte" + (x.ki === "verworfen" ? " verworfen" : ""), type: "button", title: x.titel, onclick: () => dokumentDialog(x.id) },
+    el("div", { class: "dk-bild" }, dokSymbol(x), x.ki ? el("span", { class: "kv-marke " + x.ki }, t("kvm_" + x.ki)) : null), el("div", { class: "dk-text" }, el("b", {}, x.titel), el("span", {}, `D${x.id} · ${meta(x)}`))))));
+}
+/* KI-Ergebnis: ausgewählt / verworfen / nachbearbeitet (Schema 21) – es gilt der jüngste Entscheid, Nachbearbeitung mit Text */
+function kiVermerkBlock(d, knopf, tun) {
+  const vs = d.ki_vermerke || [], wahl = vs.slice().reverse().find(v => v.art !== "nachbearbeitet");
+  const offen = d.status !== "geloescht";
+  const nb = el("textarea", { rows: 3, placeholder: t("kv_nach_ph") });
+  return el("div", { class: "dk-vermerk" }, el("h4", {}, t("kv_titel")),
+    el("div", { class: "kv-stand " + (wahl ? wahl.art : "") }, wahl ? t("kv_" + wahl.art, { x: wahl.von, z: zeit(wahl.zeit_utc) }) : t("kv_offen")),
+    offen ? el("div", { class: "dk-aktionen" },
+      knopf(t("kv_auswaehlen"), () => tun("/api/dokument/vermerk", { art: "ausgewaehlt" }, t("kv_ok")), wahl?.art !== "ausgewaehlt"),
+      knopf(t("kv_verwerfen"), () => tun("/api/dokument/vermerk", { art: "verworfen" }, t("kv_ok")))) : null,
+    offen ? nb : null,
+    offen ? el("div", { class: "dk-aktionen" }, knopf(t("kv_nach"), () => { if (nb.value.trim().length < 5) { nb.focus(); return; }
+      tun("/api/dokument/vermerk", { art: "nachbearbeitet", text: nb.value.trim() }, t("kv_ok")); })) : null,
+    vs.length ? el("div", { class: "kv-verlauf" }, vs.slice().reverse().map(v => el("div", { class: "sehrleise" },
+      `${t("kva_" + v.art)} · ${v.von} · ${zeit(v.zeit_utc)} · v${v.version_nr}` + (v.text ? ` – ${v.text}` : "")))) : null,
+    el("p", { class: "sehrleise", style: "margin:0;font-size:12.5px" }, t("kv_erkl")));
 }
 async function dokumentDialog(id, v) {
   let d; try { d = await holen(`/api/dokument?id=${id}` + (v ? `&v=${v}` : "")); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
@@ -2380,6 +2431,7 @@ async function dokumentDialog(id, v) {
             x.dauer_s ? `${x.dauer_s} s` : null, x.vram_spitze_gb ? `${x.vram_spitze_gb} GB VRAM` : null].filter(Boolean).join(" · ")),
           el("div", { class: "dk-prompt" }, x.prompt),
           x.gegenprobe ? el("div", { class: "sehrleise" }, `${t("ki_gegenprobe")}: ${x.gegenprobe}`) : null)),
+        (d.ki_herkunft || []).length ? kiVermerkBlock(d, knopf, tun) : null,
         el("div", {}, el("h4", {}, t("dk_versionen", { n: d.versionen.length }),
           d.versionen.length > 1 ? el("button", { class: "klein-knopf dk-vergleich-knopf", type: "button", onclick: () => {
             const i = d.versionen.findIndex(x => x.nr === ver.nr);                // gezeigte Fassung mit der davor (v1: mit v2)
@@ -2876,11 +2928,25 @@ const datumKurz = x => x ? new Date(x + "T12:00:00").toLocaleDateString(gebiet()
 const ampelKlasse = a => a === "gruen" ? "gruen" : a === "gelb" ? "bernstein" : a === "rot" ? "rot" : "";
 const tmZeit = utc => new Date(utc).toLocaleString(gebiet(), { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 /* Terminplaner: Vorkommen nach Tagen; Testtermine mit Frist „Testbuild fertig“, Ampel des Bogens und Meldung „bereit“ */
-function termineAnsicht(l) {
-  if (!l.length) return el("div", {}, el("div", { class: "leer" }, t("tm_leer")), el("p", { class: "leise" }, t("tm_erkl")));
+/* KI-Fenster als Band über 24 h (Ortszeit) mit Strich für jetzt; darüber, ob es offen ist und was mit --nachts wartet */
+function kiFensterBand(kf) {
+  if (!kf) return null;
+  const pz = m => `${(m / 1440 * 100).toFixed(2)}%`, jetzt = new Date(), jm = jetzt.getHours() * 60 + jetzt.getMinutes();
+  const teile = kf.von == null ? [] : kf.von < kf.bis ? [[kf.von, kf.bis]] : [[kf.von, 1440], [0, kf.bis]];
+  const zeile = (kf.von == null ? t("kf_keins") : t("kf_titel", { x: kf.text }) + " · " + (kf.termin ? t("kf_termin", { x: kf.termin }) : t(kf.offen ? "kf_offen" : "kf_zu")))
+    + (kf.wartend ? " · " + t(kf.wartend === 1 ? "kf_wartend1" : "kf_wartend", { n: kf.wartend }) + (kf.sekunden ? t("kf_dauer", { x: Math.max(1, Math.round(kf.sekunden / 60)) }) : "") : "");
+  return el("div", { class: "kf" }, el("div", { class: kf.wartend ? "" : "leise" }, zeile),
+    teile.length ? el("div", { class: "kf-band", role: "img", "aria-label": t("kf_titel", { x: kf.text }) },
+      teile.map(([a, b]) => el("div", { class: "kf-fenster", style: `left:${pz(a)};width:${pz(b - a)}` })),
+      el("div", { class: "kf-jetzt", style: `left:${pz(jm)}`, title: jetzt.toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" }) })) : null,
+    teile.length ? el("div", { class: "kf-skala" }, ["0", "6", "12", "18", "24"].map(x => el("span", {}, x))) : null,
+    el("p", { class: "sehrleise", style: "margin:4px 0 0;font-size:12.5px" }, t("kf_erkl")));
+}
+function termineAnsicht(l, kf) {
+  if (!l.length) return el("div", {}, kiFensterBand(kf), el("div", { class: "leer" }, t("tm_leer")), el("p", { class: "leise" }, t("tm_erkl")));
   const tage = {};
   for (const v of l) (tage[new Date(v.am_utc).toDateString()] ||= []).push(v);
-  return el("div", {}, el("p", { class: "leise", style: "margin:0 0 12px" }, t("tm_erkl")),
+  return el("div", {}, kiFensterBand(kf), el("p", { class: "leise", style: "margin:0 0 12px" }, t("tm_erkl")),
     Object.values(tage).map(vs => el("div", { class: "tm-tag" },
       el("h4", {}, new Date(vs[0].am_utc).toLocaleDateString(gebiet(), { weekday: "long", day: "2-digit", month: "2-digit" })),
       vs.map(v => el("div", { class: "karte tm-termin" + (new Date(v.am_utc) < new Date() ? " vorbei" : "") },
@@ -2913,7 +2979,7 @@ async function sichtPlanung() {
       onclick: () => { zustand.planReiter = k; sichtPlanung(); } }, t("pr_" + k) + (k === "check" && offeneBefunde ? ` (${offeneBefunde})` : "")
       + (k === "risiken" ? ` (${d.risiken.filter(x => x.status !== "erledigt").length})` : "")))));
   if (r === "zeitleiste") m.append(uebersicht(d) || "", zeitleiste(d));
-  if (r === "termine") m.append(termineAnsicht(d.termine || []));
+  if (r === "termine") m.append(termineAnsicht(d.termine || [], d.ki_fenster));
   if (r === "leitbild") m.append(leitbildAnsicht(d.leitbild));
   if (r === "risiken") m.append(risikoAnsicht(d));
   if (r === "check") m.append(checkAnsicht(d));
@@ -3664,11 +3730,11 @@ async function sichtEinstellungen() {
     abgleich_eingang_s: zahl(p.abgleich_eingang_s, 5, 600), bruecke_an: schalter(p.bruecke_an),
     bruecke_absender: text(p.bruecke_absender), bruecke_kopie_s: zahl(p.bruecke_kopie_s, 15, 3600),
     fernsitzung_prozess: text(p.fernsitzung_prozess || ""), rechner: text(p.rechner || ""), cpu_laeufe: zahl(p.cpu_laeufe, 1, 8),
-    produkt_entwickler: text(p.produkt_entwickler || "") };
+    produkt_entwickler: text(p.produkt_entwickler || ""), ki_fenster: text(p.ki_fenster || "") };
   pc.fernsitzung_prozess.placeholder = t("e_fern_ph");
   box.append(block([t("e_pc"), " ", pcMarke()], API ? t("nur_pc") : t("e_pc_h", { x: p.datei }), [
     [t("e_rechner"), pc.rechner, t("e_rechner_h")],
-    [t("e_db"), pc.db_pfad], [t("e_port"), pc.port], [t("e_cpu"), pc.cpu_laeufe, t("e_cpu_h")], [t("e_kanal"), pc.produkt_entwickler, t("e_kanal_h")], [t("e_aufsicht"), pc.aufsicht_s], [t("e_hoch"), pc.abgleich_hoch_s],
+    [t("e_db"), pc.db_pfad], [t("e_port"), pc.port], [t("e_cpu"), pc.cpu_laeufe, t("e_cpu_h")], [t("e_kanal"), pc.produkt_entwickler, t("e_kanal_h")], [t("e_kifenster"), pc.ki_fenster, t("e_kifenster_h")], [t("e_aufsicht"), pc.aufsicht_s], [t("e_hoch"), pc.abgleich_hoch_s],
     [t("e_puls_pc"), pc.abgleich_puls_s], [t("e_eingang"), pc.abgleich_eingang_s], [t("e_bruecke"), pc.bruecke_an],
     [t("e_absender"), pc.bruecke_absender], [t("e_kopie"), pc.bruecke_kopie_s], [t("e_fern"), pc.fernsitzung_prozess, t("e_fern_h")]],
     "pc", () => Object.fromEntries(Object.entries(pc).map(([k, x]) => [k, wert(x)])), !!API));
