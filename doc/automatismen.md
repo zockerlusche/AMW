@@ -17,7 +17,10 @@ laufen, solange er den Bildschirm ausdrücklich freigegeben hat.
 - **Geht von selbst zu**, sobald der Entwickler wieder am PC ist. Das erkennt die AMW nur an Signalen am PC selbst:
   - eine Eingabe an diesem PC, frühestens 2 Minuten nach dem Freigeben (sonst schlösse der Klick auf „frei“ ihn
     gleich wieder), auch über eine Fernsitzung. Eingaben während eines Schirm-Laufs und bis 30 s danach zählen nicht:
-    Die Abläufe klicken selbst, und Windows unterscheidet das nicht vom Menschen.
+    Die Abläufe klicken selbst, und Windows unterscheidet das nicht vom Menschen. **Eine einzelne Eingabe reicht nicht**
+    (seit 1.34.1): Erst eine zweite, spätere Eingabe innerhalb von 2 Minuten schließt – ein Mensch am PC bewegt die Maus
+    und tippt laufend, eine zuckende Maus oder ein einzelnes Ereignis nicht. Meldung und Log nennen das Programm im
+    Vordergrund (nur den Programmnamen), damit ein Fehlalarm nachvollziehbar ist.
   - eine neue Fernsitzung, wenn in den PC-Einstellungen ihr Programm steht (`fernsitzung_prozess`; bei TeamViewer z. B.
     `teamviewer_desktop.exe`, das nur während einer Verbindung läuft),
   - eine Eingabe in der Workbench am PC,

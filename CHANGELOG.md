@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.34.1 – 08.11.2026 · Schirm: kein Fehlalarm durch eine einzelne Eingabe
+- **Eine Eingabe allein schließt den Schirm nicht mehr:** Erst eine zweite, spätere Eingabe innerhalb von 2 Minuten zeigt,
+  dass jemand am PC ist. Zweimal hatte eine einzelne Eingabe den Schirm geschlossen, obwohl niemand da war.
+- Meldung und Log nennen das **Programm im Vordergrund** (nur den Namen, nie den Fenstertitel) – so lässt sich ein
+  Fehlalarm künftig zuordnen.
+
 ## 1.34.0 – 08.11.2026 · Jeder schreibt nur als er selbst
 - **`--von` passt zur Sitzung:** Läuft ein Befehl in einer Agenten-Sitzung (das Startskript setzt `AMW_AGENT`), lehnt die
   AMW ein fremdes `--von` ab – kein Agent kann mehr als ein anderer posten, prüfen, freigeben oder ein Merge-OK geben.

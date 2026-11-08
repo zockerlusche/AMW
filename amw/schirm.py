@@ -18,6 +18,8 @@ from . import db, einstellungen, kern
 RUHE_S = 120                 # so lange ohne Eingabe gilt der PC als verlassen
 NACHFRIST_S = 300            # läuft ein Schirm-Lauf so lange nach dem Zugehen weiter, erfährt es der Lead
 LAUF_NACHLAUF_S = 30         # so lange nach dem Ende eines Schirm-Laufs zählen Eingaben noch als seine
+BESTAETIGUNG_S = 120         # eine einzelne Eingabe schließt nicht: erst eine zweite, spätere innerhalb dieser Zeit
+_eingabe = {"erste": None}   # erste noch unbestätigte Eingabe (Unix-Sekunden) – Zustand im Dienst
 QUELLEN = ("workbench", "netz", "cli", "bruecke", "automatik")
 
 
@@ -96,6 +98,20 @@ def programme():
     finally:
         k.CloseHandle(h)
     return laufend
+
+
+def vordergrund():
+    """Name des Programms im Vordergrund (z. B. windowsterminal.exe) oder None – nur der Programmname, nie der Fenstertitel."""
+    try:
+        u = ctypes.windll.user32
+        h = u.GetForegroundWindow()
+        if not h:
+            return None
+        pid = wintypes.DWORD()
+        u.GetWindowThreadProcessId(h, ctypes.byref(pid))
+    except (AttributeError, OSError):
+        return None
+    return next((name for name, pids in programme().items() if pid.value in pids), None)
 
 
 def startzeit(pid):
@@ -235,9 +251,11 @@ def _eigene_eingabe(con, zeitpunkt):
     return False
 
 
-def pruefen(con, leerlauf=None, tv=None, jetzt=None):
+def pruefen(con, leerlauf=None, tv=None, jetzt=None, vg=None):
     """Eine Runde im Dienst: schließt einen freien Schirm, sobald der Entwickler wieder da ist, und meldet dem Lead
-    Schirm-Läufe, die nach dem Zugehen weiterlaufen. leerlauf/tv/jetzt nur für Tests. Rückgabe: Ereignisse fürs Log."""
+    Schirm-Läufe, die nach dem Zugehen weiterlaufen. Eine Eingabe am PC schließt erst, wenn innerhalb von BESTAETIGUNG_S
+    eine zweite, spätere folgt (ein Mensch am PC tippt und bewegt die Maus laufend; eine einzelne Eingabe war zweimal ein
+    Fehlalarm). leerlauf/tv/jetzt/vg nur für Tests. Rückgabe: Ereignisse fürs Log."""
     jetzt = jetzt or time.time()
     tv = fernsitzung() if tv is None else tv       # jede Runde, auch bei zu: sonst sähen wir eine ältere Sitzung erst
     z = zustand(con)                               # nach dem Freigeben „zum ersten Mal“ und hielten sie für neu
@@ -252,8 +270,16 @@ def pruefen(con, leerlauf=None, tv=None, jetzt=None):
         if not grund:
             leerlauf = leerlauf_s() if leerlauf is None else leerlauf
             if leerlauf is not None and jetzt - leerlauf > seit + RUHE_S and not _eigene_eingabe(con, jetzt - leerlauf):
-                grund = f"Eingabe am PC ({lokal(_utc(jetzt - leerlauf))})"
+                zeit, erste = jetzt - leerlauf, _eingabe["erste"]
+                vorne = vordergrund() if vg is None else vg
+                wo = f", Vordergrund: {vorne}" if vorne else ""
+                if erste is not None and erste + 1 < zeit <= erste + BESTAETIGUNG_S:   # zweite, spätere Eingabe: jemand ist da
+                    grund = f"Eingabe am PC ({lokal(_utc(erste))} und {lokal(_utc(zeit))}{wo})"
+                elif erste is None or zeit > erste + BESTAETIGUNG_S:
+                    _eingabe["erste"] = zeit                    # eine einzelne Eingabe (Maus zuckt …) schließt noch nicht
+                    aus.append(f"Eingabe am PC ({lokal(_utc(zeit))}{wo}) – Schirm bleibt frei, bis eine zweite folgt")
         if grund:
+            _eingabe["erste"] = None
             setzen(con, None, "AMW", False, grund, quelle="automatik")
             aus.append(f"Schirm zu: {grund}")
         return aus
