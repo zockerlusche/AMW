@@ -39,6 +39,19 @@ def _von(a):
 KENNUNG_OPTIONEN = ("von", "agent", "pruefer", "verantwortlich", "fuer", "zustaendig")
 
 
+def _eigene_kennung(con, a, pid):
+    """Jeder schreibt nur als er selbst: Läuft der Befehl in einer Agenten-Sitzung (AMW_AGENT, setzt jedes Startskript),
+    muss --von dazu passen (gleiche Kennung oder ihr früherer Name). Ausgenommen die Brücke (setzt --von selbst); ohne
+    AMW_AGENT (Terminal des Entwicklers) gilt --von wie bisher."""
+    sitzung = (os.environ.get("AMW_AGENT") or "").strip()
+    von = getattr(a, "von", None)
+    if not sitzung or not von or KANAL.get() == "bruecke":
+        return
+    if kern.kennung_heute(con, von, pid) != kern.kennung_heute(con, sitzung, pid):
+        raise kern.AmwFehler(f"Du bist {sitzung} (AMW_AGENT dieser Sitzung) – --von {von} geht nicht: jeder schreibt nur als er"
+                             " selbst. Lass --von weg oder setze deine eigene Kennung.")
+
+
 def _heutige_kennungen(con, a):
     if not getattr(a, "von", None) and os.environ.get("AMW_AGENT"):
         a.von = os.environ["AMW_AGENT"]
@@ -48,6 +61,7 @@ def _heutige_kennungen(con, a):
         pid = _projekt(con, a)
     except (kern.AmwFehler, LookupError):
         pid = None                                   # meldet der Befehl selbst
+    _eigene_kennung(con, a, pid)
     for k in felder:
         v = getattr(a, k, None)
         if isinstance(v, str) and v:

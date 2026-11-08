@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.34.0 – 08.11.2026 · Jeder schreibt nur als er selbst
+- **`--von` passt zur Sitzung:** Läuft ein Befehl in einer Agenten-Sitzung (das Startskript setzt `AMW_AGENT`), lehnt die
+  AMW ein fremdes `--von` ab – kein Agent kann mehr als ein anderer posten, prüfen, freigeben oder ein Merge-OK geben.
+  Frühere Kennungen (nach dem Umbenennen) gelten als dieselbe. Ohne `AMW_AGENT` (Terminal des Entwicklers) und über die
+  Brücke bleibt alles wie bisher.
+
 ## 1.33.2 – 07.11.2026 · Online-Seite: Datei ausliefern robuster
 - Liefert die Online-Seite eine Datei in Teilen aus (Video mit Spulen) und kann der Webspace einmal nicht lesen, bricht
   sie sauber ab, statt mit einem PHP-Fehler stehen zu bleiben.
