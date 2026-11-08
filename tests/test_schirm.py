@@ -89,6 +89,8 @@ class Automatik(Grund):
         self.assertIn("bis eine zweite folgt", schirm.pruefen(self.con, leerlauf=10, jetzt=t + 300, vg="")[0])
         self.assertEqual(schirm.pruefen(self.con, leerlauf=40, jetzt=t + 330, vg=""), [])    # dieselbe Eingabe, nichts Neues
         self.assertEqual(schirm.zustand(self.con)["frei"], 1)
+        self.assertEqual(schirm.pruefen(self.con, leerlauf=37, jetzt=t + 330, vg=""), [])    # Zucken über 3 s: zählt als eins
+        self.assertEqual(schirm.zustand(self.con)["frei"], 1)
         aus = schirm.pruefen(self.con, leerlauf=5, jetzt=t + 600, vg="")                     # viel später: wieder nur eine
         self.assertIn("bis eine zweite folgt", aus[0])
         self.assertEqual(schirm.zustand(self.con)["frei"], 1)
