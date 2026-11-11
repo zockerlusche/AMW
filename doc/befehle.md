@@ -693,7 +693,8 @@ options:
 ## lauf
 ```
 usage: amw lauf [-h] [--warten] [--hoechstens HOECHSTENS] [--frist FRIST]
-                [--dauer DAUER] [--beschreibung BESCHREIBUNG]
+                [--dauer DAUER] [--braucht-gb GB] [--braucht-vram-gb GB]
+                [--braucht-platte-gb GB] [--beschreibung BESCHREIBUNG]
                 [--rezept REZEPT] [--leicht] [--schirm] [--gpu]
                 [--aufgabe AUFGABE] [--rc RC] [--ergebnis ERGEBNIS]
                 [--abgebrochen] [--grenze GRENZE] [--von VON]
@@ -717,6 +718,12 @@ options:
                         dann Ende (rc 124)
   --dauer DAUER         erwartete Dauer in Minuten; doppelt so lang → Warnung
                         an den Lead
+  --braucht-gb GB       start/ausfuehren: geschätzter Arbeitsspeicher dieses
+                        Laufs (sonst Rezept, sonst die Grenze des Projekts)
+  --braucht-vram-gb GB  start/ausfuehren: benötigter Grafikspeicher
+  --braucht-platte-gb GB
+                        start/ausfuehren: benötigter freier Platz auf dem
+                        Laufwerk des Projekts
   --beschreibung BESCHREIBUNG
   --rezept REZEPT
   --leicht              kein schwerer Lauf (keine Speicher-Grenze)

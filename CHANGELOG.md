@@ -4,6 +4,18 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.44.0 – 11.11.2026 · Ein Lauf meldet an, was er braucht
+- **Bedarf je Lauf:** `amw lauf start` und `amw lauf ausfuehren` nehmen `--braucht-gb` (Arbeitsspeicher). Bisher rechnete
+  ein Lauf ohne Rezept mit der Grenze seines Projekts (6 oder 8 GB) – ein Testlauf, der 2 GB braucht, wartete unnötig.
+- **Grafikspeicher und Festplatte:** wahlweise `--braucht-vram-gb` und `--braucht-platte-gb`. Reicht der freie Wert
+  nicht, wartet der Lauf mit klarer Begründung („nur 6 GB Grafikspeicher frei, gebraucht 8 GB“). Ohne Angabe wird nicht
+  geprüft.
+- **Rechner je Lauf:** Jeder Lauf merkt sich, auf welchem PC er angemeldet wurde; die Warteschlange zählt nur Läufe
+  ihres eigenen Rechners.
+- Über einen Lauf eines anderen Projekts steht jetzt auch sein angemeldeter Bedarf („… voraussichtlich bis 16:20, 4 GB“).
+- **Datenbank:** Schema 24 (vier Spalten an `lauf`). Bestehende Läufe bleiben unverändert und zählen zu diesem Rechner.
+  Vorher sichern: `amw sichern`.
+
 ## 1.43.0 – 11.11.2026 · Arbeitsspeicher-Reserve für den Menschen am Rechner
 - **Reserve als Einstellung des Rechners** (Zahnrad › Dieser PC, Vorgabe 3 GB): Die Warteschlange lässt einen schweren
   Lauf erst ein, wenn nach seinem Bedarf noch die Reserve frei bleibt. So bleibt der PC bedienbar, auch wenn Agenten

@@ -933,7 +933,8 @@ def _lauf_ausfuehren(con, pid, a):
     beschreibung = a.beschreibung or a.rezept or " ".join(befehl)[:120]
     von = _von(a)
     lid = betrieb.lauf_start(con, pid, von, beschreibung, a.rezept, not a.leicht, a.schirm, a.aufgabe, warten=True,
-                             erwartet_min=a.dauer, gpu=a.gpu)
+                             erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb, braucht_vram_gb=a.braucht_vram_gb,
+                             braucht_platte_gb=a.braucht_platte_gb)
     print(f"L{lid} angemeldet: {beschreibung}", flush=True)
     a.id = lid
     try:
@@ -1035,7 +1036,8 @@ def cmd_lauf(a, con):
         if not a.beschreibung and not a.rezept:
             raise kern.AmwFehler("--beschreibung oder --rezept angeben")
         lid = betrieb.lauf_start(con, pid, _von(a), a.beschreibung or a.rezept, a.rezept, not a.leicht, a.schirm, a.aufgabe,
-                                 warten=a.warten, erwartet_min=a.dauer, gpu=a.gpu)
+                                 warten=a.warten, erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb,
+                                 braucht_vram_gb=a.braucht_vram_gb, braucht_platte_gb=a.braucht_platte_gb)
         w = [r["id"] for r in betrieb.wartende(con, pid)]
         if lid in w:
             print(f"L{lid} eingereiht (Platz {w.index(lid) + 1} von {len(w)}) – noch nicht rechnen. Der Wächter weckt dich mit"
@@ -2094,6 +2096,11 @@ def parser():
                                                     " ausfuehren: dann aus der Schlange nehmen (rc 200)")
     x.add_argument("--frist", type=float, help="ausfuehren: der Befehl darf so viele Minuten laufen, dann Ende (rc 124)")
     x.add_argument("--dauer", type=float, help="erwartete Dauer in Minuten; doppelt so lang → Warnung an den Lead")
+    x.add_argument("--braucht-gb", dest="braucht_gb", type=float, metavar="GB",
+                   help="start/ausfuehren: geschätzter Arbeitsspeicher dieses Laufs (sonst Rezept, sonst die Grenze des Projekts)")
+    x.add_argument("--braucht-vram-gb", dest="braucht_vram_gb", type=float, metavar="GB", help="start/ausfuehren: benötigter Grafikspeicher")
+    x.add_argument("--braucht-platte-gb", dest="braucht_platte_gb", type=float, metavar="GB",
+                   help="start/ausfuehren: benötigter freier Platz auf dem Laufwerk des Projekts")
     x.add_argument("--beschreibung")
     x.add_argument("--rezept")
     x.add_argument("--leicht", action="store_true", help="kein schwerer Lauf (keine Speicher-Grenze)")

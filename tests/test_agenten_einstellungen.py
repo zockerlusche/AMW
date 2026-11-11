@@ -89,6 +89,8 @@ class Umstellung(Grund):
         with db.schreiben(self.con):
             for k, rolle, grenzen, ordner in (("TL", "lead", None, None), ("Chef2", "Lead", None, self.ordner.name), ("Maler", "Grafik", "nur Bilder", self.ordner.name), ("Neu", None, None, None)):
                 db.einfuegen(self.con, "agent", projekt_id=self.pid, kennung=k, rolle=rolle, grenzen=grenzen, ordner=ordner, angelegt_utc=db.jetzt())
+        for sp in ("braucht_gb", "braucht_vram_gb", "braucht_platte_gb", "rechner"):   # Bedarf und Rechner je Lauf kamen mit Schema 24
+            self.con.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
         self.con.execute("ALTER TABLE regel DROP COLUMN vorlage")      # Herkunft aus dem Grund-Regelwerk kam mit Schema 23
         for sp in ("fachgebiet", "arbeitsweise", "zustaendig", "fasst_nicht_an"):
             self.con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")

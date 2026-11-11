@@ -147,6 +147,8 @@ class Umstellung(Grund):
     def test_22_nach_23(self):
         bid = wissen.beschluss_neu(self.con, self.pid, "Chef", "Alt", "Alte Regel", "Chef")
         wissen.regel_setzen(self.con, self.pid, "Chef", "arbeit", 1, "Alte Regel", bid)
+        for sp in ("braucht_gb", "braucht_vram_gb", "braucht_platte_gb", "rechner"):   # Bedarf und Rechner je Lauf kamen mit Schema 24
+            self.con.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
         self.con.execute("ALTER TABLE regel DROP COLUMN vorlage")
         self.con.execute("PRAGMA user_version = 22")
         pfad = self.con.execute("PRAGMA database_list").fetchone()[2]

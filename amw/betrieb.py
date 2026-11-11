@@ -17,8 +17,9 @@ def auslastung(con, pid):
     eigene sind, wann er voraussichtlich frei wird (spätestes erwartetes Ende der laufenden, soweit angegeben) und wie
     viel Arbeitsspeicher frei ist. Über fremde Läufe steht hier nur die Anzahl."""
     import datetime
-    laufen = con.execute("SELECT projekt_id, start_utc, erwartet_min FROM lauf WHERE status = 'laeuft'").fetchall()
-    warten = con.execute("SELECT projekt_id FROM lauf WHERE status = 'angemeldet'").fetchall()
+    laufen = con.execute("SELECT l.projekt_id, l.start_utc, l.erwartet_min, l.braucht_gb FROM lauf l WHERE l.status = 'laeuft' AND " + HIER,
+                         (rechner(),)).fetchall()
+    warten = con.execute("SELECT l.projekt_id FROM lauf l WHERE l.status = 'angemeldet' AND " + HIER, (rechner(),)).fetchall()
     enden = []
     for l in laufen:
         if l["start_utc"] and l["erwartet_min"]:
@@ -30,7 +31,8 @@ def auslastung(con, pid):
     return {"laufen": len(laufen), "warten": len(warten), "eigene_laufen": sum(1 for l in laufen if l["projekt_id"] == pid),
             "eigene_warten": sum(1 for l in warten if l["projekt_id"] == pid),
             "frei_ab_utc": max(enden).strftime("%Y-%m-%dT%H:%M:%SZ") if enden and len(enden) == len(laufen) else None,
-            "frei_gb": frei, "gesamt_gb": gesamt}
+            "angemeldet_gb": round(sum(l["braucht_gb"] or 0 for l in laufen), 1) or None,     # so viel haben die laufenden angemeldet
+            "frei_gb": frei, "gesamt_gb": gesamt, "rechner": rechner()}
 ANLAUF_S = 180                # so lange zählt ein gerade gestarteter schwerer Lauf seine Grenze als belegt (sein Speicher
                               # ist in der Messung noch nicht zu sehen)
 
@@ -70,6 +72,58 @@ def _grenze(con, pid, braucht_gb, schwer):
     if braucht_gb:
         return float(braucht_gb)
     return speicher_grenze(con, pid) if schwer else 0.0
+
+
+def _bedarf(con, l):
+    """Arbeitsspeicher, den ein Lauf braucht: seine eigene Angabe, sonst die des Rezepts, sonst die Grenze seines Projekts."""
+    return _grenze(con, l["projekt_id"], l["braucht_gb"] or l["braucht_speicher_gb"], l["schwer"])
+
+
+def rechner():
+    """Name dieses Rechners (Einstellung „rechner“). Die Warteschlange gilt je Rechner: Läufe, die auf einem anderen
+    angemeldet wurden, zählt sie nicht. Ein Lauf ohne Angabe (Bestand) gilt als Lauf dieses Rechners."""
+    from . import einstellungen
+    return einstellungen.wert("rechner")
+
+
+HIER = "(l.rechner IS NULL OR l.rechner = ?)"        # SQL: nur Läufe dieses Rechners (Alias l)
+
+
+def vram_frei_gb():
+    """Freier Grafikspeicher in GB (nvidia-smi) oder None, wenn er sich nicht messen lässt."""
+    import subprocess
+    try:
+        aus = subprocess.run(["nvidia-smi", "--query-gpu=memory.free", "--format=csv,noheader,nounits"], capture_output=True,
+                             text=True, timeout=10, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        werte = [int(x.strip()) for x in aus.stdout.split("\n") if x.strip().isdigit()]
+        return round(max(werte) / 1024, 1) if not aus.returncode and werte else None
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+
+
+def platte_frei_gb(con, pid):
+    """Freier Platz in GB auf dem Laufwerk des Projektordners (ohne Ordner: auf dem der Datenbank) oder None."""
+    import os
+    import shutil
+    ort = kern.projekt_ordner(con, pid) or os.path.dirname(db.db_pfad())
+    try:
+        return round(shutil.disk_usage(ort).free / 2**30, 1)
+    except OSError:
+        return None
+
+
+def _mittel_fehlen(con, l):
+    """Grund, wenn Grafikspeicher oder Platz auf der Festplatte für diesen Lauf nicht reichen (nur wenn er einen Bedarf
+    dafür angemeldet hat und sich der freie Wert messen lässt)."""
+    if l["braucht_vram_gb"]:
+        frei = vram_frei_gb()
+        if frei is not None and frei < l["braucht_vram_gb"]:
+            return f"nur {frei:g} GB Grafikspeicher frei, gebraucht {l['braucht_vram_gb']:g} GB"
+    if l["braucht_platte_gb"]:
+        frei = platte_frei_gb(con, l["projekt_id"])
+        if frei is not None and frei < l["braucht_platte_gb"]:
+            return f"nur {frei:g} GB auf der Festplatte frei, gebraucht {l['braucht_platte_gb']:g} GB"
+    return None
 
 
 def reserve_gb():
@@ -125,7 +179,8 @@ def lauf_nennen(pid, l, mit_text=True):
         import datetime
         ende = datetime.datetime.strptime(l["start_utc"][:19], "%Y-%m-%dT%H:%M:%S") + datetime.timedelta(minutes=l["erwartet_min"])
         bis = f", voraussichtlich bis {_zeit_kurz(ende.strftime('%Y-%m-%dT%H:%M:%S'))}"
-    return f"L{l['id']} (anderes Projekt{seit}{bis})"
+    bedarf = f", {l['braucht_gb']:g} GB" if "braucht_gb" in l.keys() and l["braucht_gb"] else ""
+    return f"L{l['id']} (anderes Projekt{seit}{bis}{bedarf})"
 
 
 def _besetzt(con, pid, plaetze):
@@ -133,20 +188,21 @@ def _besetzt(con, pid, plaetze):
     for p in sorted(x for x in plaetze if x.startswith("agent:")):
         _, agent_pid, agent = p.split(":", 2)
         b = con.execute("SELECT l.id, l.beschreibung FROM lauf l LEFT JOIN ki_auftrag k ON k.lauf_id = l.id WHERE l.projekt_id = ?"
-                        " AND l.agent = ? AND l.status = 'laeuft' AND l.schwer = 1 AND k.id IS NULL ORDER BY l.id LIMIT 1",
-                        (int(agent_pid), agent)).fetchone()
+                        " AND l.agent = ? AND l.status = 'laeuft' AND l.schwer = 1 AND k.id IS NULL AND " + HIER + " ORDER BY l.id LIMIT 1",
+                        (int(agent_pid), agent, rechner())).fetchone()
         if b:
             return f"L{b['id']} von {agent} läuft noch (ein Agent rechnet nie zwei schwere Läufe zugleich – sein Klon): {b['beschreibung']}", p
     if plaetze & {"gpu", "schirm"}:                  # Grafikkarte und Bildschirm: ein Lauf zur Zeit auf dem ganzen Rechner
-        b = con.execute("SELECT id, projekt_id, agent, beschreibung, gpu, start_utc, erwartet_min FROM lauf WHERE status = 'laeuft'"
-                        " AND (gpu = 1 OR schirm = 1) ORDER BY id LIMIT 1").fetchone()
+        b = con.execute("SELECT l.id, l.projekt_id, l.agent, l.beschreibung, l.gpu, l.start_utc, l.erwartet_min, l.braucht_gb FROM lauf l"
+                        " WHERE l.status = 'laeuft' AND (l.gpu = 1 OR l.schirm = 1) AND " + HIER + " ORDER BY l.id LIMIT 1", (rechner(),)).fetchone()
         if b:
             platz = "gpu" if "gpu" in plaetze else "schirm"
             if b["gpu"]:
                 return f"GPU-Lauf {lauf_nennen(pid, b)} belegt die Grafikkarte", platz
             return f"Schirm-Lauf {lauf_nennen(pid, b)} läuft noch", platz
     if "cpu" in plaetze:
-        r = con.execute("SELECT id FROM lauf WHERE status = 'laeuft' AND schwer = 1 AND schirm = 0 AND gpu = 0 ORDER BY id").fetchall()
+        r = con.execute("SELECT l.id FROM lauf l WHERE l.status = 'laeuft' AND l.schwer = 1 AND l.schirm = 0 AND l.gpu = 0 AND " + HIER
+                        + " ORDER BY l.id", (rechner(),)).fetchall()
         n = cpu_laeufe()
         if len(r) >= n:
             return f"CPU-Spur voll ({len(r)} von {n} Läufen ohne Fenster: {', '.join('L%d' % x['id'] for x in r)})", "cpu"
@@ -155,10 +211,10 @@ def _besetzt(con, pid, plaetze):
 
 def _anlauf_gb(con):
     """Speicher, den gerade gestartete schwere Läufe gleich brauchen (ihre Grenze, ANLAUF_S lang nach dem Start)."""
-    r = con.execute("SELECT l.projekt_id, l.schwer, l.start_utc, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
-                    " WHERE l.status = 'laeuft' AND l.schwer = 1 AND l.start_utc >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?)",
-                    (f"-{ANLAUF_S} seconds",)).fetchall()
-    return sum(_grenze(con, x["projekt_id"], x["braucht_speicher_gb"], x["schwer"]) for x in r)
+    r = con.execute("SELECT l.projekt_id, l.schwer, l.start_utc, l.braucht_gb, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
+                    " WHERE l.status = 'laeuft' AND l.schwer = 1 AND l.start_utc >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?) AND " + HIER,
+                    (f"-{ANLAUF_S} seconds", rechner())).fetchall()
+    return sum(_bedarf(con, x) for x in r)
 
 
 def _speicher_fehlt(con, pid, l_grenze, speicher_frei):
@@ -216,7 +272,8 @@ def wartende(con, pid=None):
     pid ist nur noch der Betrachter (wer fragt), kein Filter. ki_auftrag: der Lauf ist ein KI-Auftrag (führt der Dienst
     aus, kein Weckruf an den Agenten); nachts: startet erst im KI-Fenster."""
     zeilen = con.execute("SELECT l.*, r.braucht_speicher_gb, k.id AS ki_auftrag, json_extract(k.parameter, '$.nachts') AS nachts FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
-                         " LEFT JOIN ki_auftrag k ON k.lauf_id = l.id WHERE l.status = 'angemeldet' ORDER BY l.id").fetchall()
+                         " LEFT JOIN ki_auftrag k ON k.lauf_id = l.id WHERE l.status = 'angemeldet' AND " + HIER + " ORDER BY l.id",
+                         (rechner(),)).fetchall()
     oben = sorted((z for z in zeilen if z["rang"] >= MENSCH_RANG), key=lambda z: (-z["rang"], z["id"]))
     rest = [z for z in zeilen if z["rang"] < MENSCH_RANG]
     je_projekt = {}
@@ -227,7 +284,8 @@ def wartende(con, pid=None):
 
 
 def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=False, aufgabe_id=None,
-               speicher_frei=None, warten=False, erwartet_min=None, gpu=False, dazu=None, sperre=None):
+               speicher_frei=None, warten=False, erwartet_min=None, gpu=False, dazu=None, sperre=None,
+               braucht_gb=None, braucht_vram_gb=None, braucht_platte_gb=None):
     """Meldet einen Lauf an und startet ihn, wenn er darf. Regeln: kein Halt; Schirm und Grafikkarte PC-weit ein Lauf
     zur Zeit; schwere Läufe ohne beides parallel bis cpu_laeufe(); ein Agent nie zwei schwere zugleich; freier Speicher
     ≥ Grenze je Lauf; niemand überholt die Warteschlange auf seinem Platz. Darf er nicht: ohne warten AmwFehler mit Grund (nichts wird angelegt), mit warten eingereiht (status
@@ -242,7 +300,10 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
         if not rez:
             raise kern.AmwFehler(f"Rezept „{rezept}“ gibt es nicht")
         schwer, schirm, gpu = bool(rez["schwer"]), bool(rez["braucht_schirm"]), bool(rez["gpu"]) or gpu
-    grenze = _grenze(con, pid, rez["braucht_speicher_gb"] if rez else None, schwer)
+    for name, wert in (("Arbeitsspeicher", braucht_gb), ("Grafikspeicher", braucht_vram_gb), ("Festplatte", braucht_platte_gb)):
+        if wert is not None and not 0 < float(wert) <= 2048:
+            raise kern.AmwFehler(f"Bedarf {name}: eine Zahl in GB zwischen 0 und 2048")
+    grenze = _grenze(con, pid, braucht_gb or (rez["braucht_speicher_gb"] if rez else None), schwer)   # eigene Angabe geht vor
     if speicher_frei is None:
         speicher_frei = speicher_frei_gb()[0]
     plaetze = _plaetze(schwer, schirm, gpu, None if dazu else agent, pid)
@@ -256,13 +317,16 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
             grund = "Warteschlange: " + ", ".join(lauf_nennen(pid, x, mit_text=False) for x in vor) + " wartet schon"
         if not grund:
             grund = _speicher_fehlt(con, pid, grenze, speicher_frei)
+        if not grund:
+            grund = _mittel_fehlen(con, {"projekt_id": pid, "braucht_vram_gb": braucht_vram_gb, "braucht_platte_gb": braucht_platte_gb})
         if grund and not warten:
             raise kern.AmwFehler(grund + " – mit --warten einreihen")
         t = db.jetzt()
         lid = db.einfuegen(con, "lauf", projekt_id=pid, agent=agent, rezept_id=rez["id"] if rez else None,
                            beschreibung=beschreibung, schwer=int(schwer), schirm=int(schirm), gpu=int(bool(gpu)),
                            status="angemeldet" if grund else "laeuft", angemeldet_utc=t, start_utc=None if grund else t,
-                           speicher_frei_gb=speicher_frei, aufgabe_id=aufgabe_id, erwartet_min=erwartet_min)
+                           speicher_frei_gb=speicher_frei, aufgabe_id=aufgabe_id, erwartet_min=erwartet_min,
+                           braucht_gb=braucht_gb, braucht_vram_gb=braucht_vram_gb, braucht_platte_gb=braucht_platte_gb, rechner=rechner())
         if dazu:
             dazu(lid)
         else:                                    # ein KI-Auftrag rechnet nicht im Namen des Agenten
@@ -307,7 +371,7 @@ def warteschlange(con, pid=None, speicher_frei=None):
             if platz:                                # hält nur auf, wer genau diesen Platz braucht
                 gesperrt.add(platz)
                 continue
-            if _speicher_fehlt(con, lp, _grenze(con, lp, l["braucht_speicher_gb"], l["schwer"]), speicher_frei):
+            if _speicher_fehlt(con, lp, _bedarf(con, l), speicher_frei) or _mittel_fehlen(con, l):
                 gesperrt |= plaetze
                 continue
             con.execute("UPDATE lauf SET status = 'laeuft', start_utc = ?, speicher_frei_gb = ? WHERE id = ?",
@@ -357,7 +421,7 @@ def wartegrund(con, pid, l, speicher_frei=None):
     vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
     if vor:
         gruende.append("vor dir: " + ", ".join(f"L{x['id']} ({x['agent'] if x['projekt_id'] == pid else 'anderes Projekt'})" for x in vor))
-    g = _speicher_fehlt(con, pid, _grenze(con, pid, l["braucht_speicher_gb"], l["schwer"]), frei)
+    g = _speicher_fehlt(con, pid, _bedarf(con, l), frei) or _mittel_fehlen(con, l)
     if g:
         gruende.append(g)
     kopf = f"Platz {platz} von {len(w)}" if platz else "nicht in der Schlange"

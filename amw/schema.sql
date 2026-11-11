@@ -406,6 +406,10 @@ CREATE TABLE lauf (
   rang              INTEGER NOT NULL DEFAULT 0,      -- Warteschlange: > 0 = vorgezogen (Lead/Entwickler)
   erwartet_min      REAL,                            -- erwartete Dauer; doppelt so lang → Warnung
   gpu               INTEGER NOT NULL DEFAULT 0,      -- belegt die Grafikkarte: PC-weit ein Lauf zur Zeit (Schema 17)
+  braucht_gb        REAL,                            -- geschätzter Arbeitsspeicher dieses Laufs (Schema 24; sonst Rezept, sonst Grenze des Projekts)
+  braucht_vram_gb   REAL,                            -- Grafikspeicher (leer = nicht geprüft)
+  braucht_platte_gb REAL,                            -- freier Platz auf dem Laufwerk des Projekts (leer = nicht geprüft)
+  rechner           TEXT,                            -- PC, auf dem der Lauf angemeldet wurde; leer = dieser Rechner
   uid               TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft          TEXT NOT NULL DEFAULT '',
   geaendert_utc     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))

@@ -193,6 +193,8 @@ class Migration(unittest.TestCase):
         with tempfile.TemporaryDirectory() as ordner:
             pfad = os.path.join(ordner, "alt.db")
             con = db.anlegen(pfad)
+            for sp in ("braucht_gb", "braucht_vram_gb", "braucht_platte_gb", "rechner"):   # Bedarf und Rechner je Lauf kamen mit Schema 24
+                con.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
             con.execute("ALTER TABLE regel DROP COLUMN vorlage")      # Herkunft aus dem Grund-Regelwerk kam mit Schema 23
             for sp in ("fachgebiet", "arbeitsweise", "zustaendig", "fasst_nicht_an"):   # Agenten-Einstellungen kamen mit Schema 22
                 con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")

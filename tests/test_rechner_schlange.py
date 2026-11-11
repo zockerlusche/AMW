@@ -147,6 +147,74 @@ class Reserve(Grund):
             einstellungen.FELDER["speicher_reserve_gb"][1](-1)
 
 
+class Bedarf(Grund):
+    def test_eigener_bedarf_geht_vor_der_grenze_des_projekts(self):
+        with mock.patch.object(betrieb, "reserve_gb", return_value=0.0), mock.patch.object(betrieb, "cpu_laeufe", return_value=4):
+            with self.assertRaises(kern.AmwFehler):                               # ohne Angabe: 8 GB (Grenze des Projekts) – 5 GB reichen nicht
+                betrieb.lauf_start(self.con, self.p["Eins"], "A", "Tests", speicher_frei=5.0)
+            klein = betrieb.lauf_start(self.con, self.p["Eins"], "A", "Tests", speicher_frei=5.0, braucht_gb=2)
+            self.assertEqual(self.status(klein), "laeuft")
+            z = self.con.execute("SELECT braucht_gb, rechner FROM lauf WHERE id = ?", (klein,)).fetchone()
+            self.assertEqual((z["braucht_gb"], z["rechner"]), (2.0, betrieb.rechner()))
+            with self.assertRaises(kern.AmwFehler) as e:                          # gerade gestartet: seine 2 GB zählen noch mit
+                betrieb.lauf_start(self.con, self.p["Zwei"], "A", "Tests", speicher_frei=5.0, braucht_gb=4)
+            self.assertIn("2 GB gleich für gerade gestartete Läufe", str(e.exception))
+            gross = betrieb.lauf_start(self.con, self.p["Zwei"], "A", "Tests", speicher_frei=5.0, braucht_gb=4, warten=True)
+            self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=5.0), [])     # der Wartende wird mit seinem eigenen Bedarf geprüft
+            self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=6.0), [gross])
+        for falsch in (0, -1, 5000):
+            with self.assertRaises(kern.AmwFehler):
+                betrieb.lauf_start(self.con, self.p["Eins"], "B", "x", speicher_frei=32.0, braucht_gb=falsch)
+
+    def test_grafikspeicher_und_festplatte_nur_wenn_angemeldet(self):
+        with mock.patch.object(betrieb, "vram_frei_gb", return_value=6.0), mock.patch.object(betrieb, "platte_frei_gb", return_value=20.0),                 mock.patch.object(betrieb, "cpu_laeufe", return_value=8):
+            ok = betrieb.lauf_start(self.con, self.p["Eins"], "A", "ohne Angabe", speicher_frei=32.0)       # nichts angemeldet: nicht geprüft
+            self.assertEqual(self.status(ok), "laeuft")
+            with self.assertRaises(kern.AmwFehler) as e:
+                betrieb.lauf_start(self.con, self.p["Eins"], "B", "Bild", speicher_frei=32.0, braucht_vram_gb=8)
+            self.assertIn("nur 6 GB Grafikspeicher frei, gebraucht 8 GB", str(e.exception))
+            with self.assertRaises(kern.AmwFehler) as e:
+                betrieb.lauf_start(self.con, self.p["Eins"], "B", "Export", speicher_frei=32.0, braucht_platte_gb=50)
+            self.assertIn("nur 20 GB auf der Festplatte frei, gebraucht 50 GB", str(e.exception))
+            passt = betrieb.lauf_start(self.con, self.p["Eins"], "B", "Bild", speicher_frei=32.0, braucht_vram_gb=4, braucht_platte_gb=10)
+            self.assertEqual(self.status(passt), "laeuft")
+        with mock.patch.object(betrieb, "vram_frei_gb", return_value=None), mock.patch.object(betrieb, "cpu_laeufe", return_value=8):   # nicht messbar: hält niemanden auf
+            self.assertEqual(self.status(betrieb.lauf_start(self.con, self.p["Zwei"], "A", "Bild", speicher_frei=32.0, braucht_vram_gb=8)), "laeuft")
+
+    def test_die_warteschlange_zaehlt_nur_laeufe_ihres_rechners(self):
+        hier = self.start("Eins", "A")                                            # belegt die einzige Spur dieses Rechners
+        with db.schreiben(self.con):                                              # derselbe Lauf, als wäre er auf einem anderen PC angemeldet
+            self.con.execute("UPDATE lauf SET rechner = 'anderer-pc' WHERE id = ?", (hier,))
+        self.assertEqual(betrieb.auslastung(self.con, self.p["Eins"])["laufen"], 0)
+        frei = self.start("Zwei", "A")
+        self.assertEqual(self.status(frei), "laeuft")                             # die Spur dieses Rechners ist frei
+        with db.schreiben(self.con):                                              # Bestand ohne Angabe gilt als dieser Rechner
+            self.con.execute("UPDATE lauf SET rechner = NULL WHERE id = ?", (frei,))
+        self.assertEqual(self.status(self.start("Eins", "B")), "angemeldet")
+
+    def test_fremder_lauf_nennt_auch_seinen_bedarf(self):
+        fremd = self.start("Zwei", "A", "geheim", gpu=True, erwartet_min=15, braucht_gb=4)
+        with self.assertRaises(kern.AmwFehler) as e:
+            betrieb.lauf_start(self.con, self.p["Eins"], "B", "Bild", gpu=True, speicher_frei=32.0)
+        self.assertRegex(str(e.exception), rf"L{fremd} \(anderes Projekt, läuft seit \d\d:\d\d, voraussichtlich bis \d\d:\d\d, 4 GB\)")
+        self.assertEqual(betrieb.auslastung(self.con, self.p["Eins"])["angemeldet_gb"], 4.0)
+
+
+class Umstellung(Grund):
+    def test_23_nach_24(self):
+        alt = self.start("Eins", "A", "Bestand")
+        for sp in ("braucht_gb", "braucht_vram_gb", "braucht_platte_gb", "rechner"):
+            self.con.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
+        self.con.execute("PRAGMA user_version = 23")
+        pfad = self.con.execute("PRAGMA database_list").fetchone()[2]
+        self.con.close()
+        self.con = db.verbinde(pfad)
+        self.assertEqual(self.con.execute("PRAGMA user_version").fetchone()[0], db.SCHEMA_VERSION)
+        z = self.con.execute("SELECT status, braucht_gb, rechner FROM lauf WHERE id = ?", (alt,)).fetchone()
+        self.assertEqual(tuple(z), ("laeuft", None, None))
+        self.assertEqual(betrieb.auslastung(self.con, self.p["Eins"])["laufen"], 1)            # zählt weiter zu diesem Rechner
+
+
 class Anzeige(Grund):
     def test_auslastung_des_rechners_im_leitstand(self):
         self.start("Eins", "A", erwartet_min=20)

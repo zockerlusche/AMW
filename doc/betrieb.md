@@ -101,7 +101,11 @@ wer zuerst kommt, ist zuerst dran, egal aus welchem Projekt. Am einfachsten mit
 den Befehl, reicht den Rückgabewert durch und meldet das Ende. Eingelassen wird, wenn ein Platz frei ist (Grafikkarte und
 Bildschirm: ein Lauf zur Zeit; schwere Läufe ohne beides: so viele wie unter „Dieser PC“ eingestellt) und genug
 Arbeitsspeicher: frei − Reserve − Bedarf gerade gestarteter Läufe ≥ Bedarf des Laufs. Die Reserve (Vorgabe 3 GB,
-Zahnrad › Dieser PC) bleibt für den Menschen am Rechner. Ein Lead zieht nur Läufe seines eigenen Projekts vor (sie tauschen untereinander die Plätze); über
+Zahnrad › Dieser PC) bleibt für den Menschen am Rechner. Den Bedarf nennt der Lauf selbst:
+`--braucht-gb` (Arbeitsspeicher; ohne Angabe gilt das Rezept, sonst die Grenze des Projekts), dazu wahlweise
+`--braucht-vram-gb` (Grafikspeicher) und `--braucht-platte-gb` (freier Platz auf dem Laufwerk des Projekts) – diese beiden
+werden nur geprüft, wenn sie angegeben sind und sich der freie Wert messen lässt. Jeder Lauf trägt den Namen des Rechners,
+auf dem er angemeldet wurde; die Warteschlange zählt nur Läufe ihres eigenen Rechners. Ein Lead zieht nur Läufe seines eigenen Projekts vor (sie tauschen untereinander die Plätze); über
 Projekte hinweg zieht nur der Mensch vor. Über Läufe eines anderen Projekts erfährt man nur die Belegung – „L12 (anderes
 Projekt, läuft seit 16:05, voraussichtlich bis 16:20)“ –, nie Agent, Beschreibung oder Projekt. Der Leitstand zeigt unter
 „Rechner“, wie viele Läufe laufen und warten und wann er voraussichtlich frei ist. Eine Datenbank steht für einen Rechner;
