@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.35.1 – 11.11.2026 · Mockups erscheinen online wieder im Dokument-Fenster
+- **Online-Seite:** Ein Mockup (HTML) im Dokument-Fenster oder auf der Kachel wurde vom Browser abgewiesen („darf diese
+  eingebettete Seite nicht öffnen“). Die `.htaccess` setzte `X-Frame-Options: DENY` zusätzlich zu der Angabe, die die
+  Seite für Dokument-Dateien selbst setzt (`SAMEORIGIN`); bei zwei Angaben gilt die strengere. Die `.htaccess` setzt sie
+  nicht mehr – die Seite verbietet das Einbetten weiter selbst, Dokument-Dateien dürfen nur in der eigenen Seite
+  erscheinen (zusätzlich `frame-ancestors 'self'`). Am PC war nichts betroffen.
+
 ## 1.35.0 – 11.11.2026 · Untermenüs bleiben beim Scrollen oben stehen
 - **Fester Seitenkopf auf jeder Seite:** Reiter, Filter und Sprungmarken einer Seite bleiben beim Scrollen oben stehen –
   auch ganz unten lässt sich der Reiter wechseln oder der Filter ändern. Die Titelzeile läuft dabei hinaus, damit der

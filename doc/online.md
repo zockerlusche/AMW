@@ -85,7 +85,7 @@ Ordner beim Hoster leeren oder in Turso Lesen/Schreiben blockieren.
 | Fehlversuche | Sperre nach 5 Fehlversuchen je Adresse in 15 min oder 20 insgesamt in 60 min (einstellbar) |
 | Sitzung | Cookie `__Host-amw`: nur HTTPS, HttpOnly, SameSite=Strict; neue Sitzungs-ID beim Anmelden; Abmeldung nach Leerlauf (Vorgabe 30 min), spätestens nach 12 h |
 | Schreibschutz | Sitzungsschlüssel im Kopf (`X-AMW-Token`) und gleiche Herkunft; höchstens 120 Einträge je Stunde; Körper ≤ 32 KB |
-| Transport | `.htaccess` erzwingt HTTPS, HSTS; Content-Security-Policy, `frame-ancestors 'none'`, `noindex` |
+| Transport | `.htaccess` erzwingt HTTPS, HSTS; Content-Security-Policy, `frame-ancestors 'none'`, `noindex`. Einbetten verbietet die Seite selbst (`X-Frame-Options: DENY`); nur Dokument-Dateien (Mockup, PDF, Video) dürfen in der eigenen Seite erscheinen (`SAMEORIGIN`, `frame-ancestors 'self'`, weiter abgeschottet) – die `.htaccess` setzt diese Angabe deshalb nicht noch einmal |
 | Dateien | Nur `index.php` und `api.php` sind erreichbar; `inc/` und versteckte Dateien gesperrt |
 | Wirkung | Absender ist immer „Entwickler“, Kanal `netz`; der PC prüft jede Zeile noch einmal |
 | Dokument-Dateien | nur nach Anmeldung; Mockups (HTML) und SVG abgeschottet (CSP `sandbox`), Office nur als Download; Ablage außerhalb des Web-Ordners |
