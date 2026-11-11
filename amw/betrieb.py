@@ -30,7 +30,9 @@ def auslastung(con, pid):
     frei, gesamt = speicher_frei_gb()
     from . import belegung                              # Programme außerhalb der Warteschlange, die lange viel Speicher halten
     dauer = belegung.aktuell(con)
-    return {"dauer": dauer, "dauer_gb": round(sum(x["gb"] for x in dauer), 1) or None,
+    from . import platte                                # Laufwerke mit Datenbank oder Projektordnern, die knapp werden
+    knapp = [{k: l[k] for k in ("laufwerk", "frei_gb", "gesamt_gb", "frei_prozent", "stufe")} for l in platte.laufwerke(con) if l["stufe"]]
+    return {"dauer": dauer, "dauer_gb": round(sum(x["gb"] for x in dauer), 1) or None, "platte": knapp,
             "laufen": len(laufen), "warten": len(warten), "eigene_laufen": sum(1 for l in laufen if l["projekt_id"] == pid),
             "eigene_warten": sum(1 for l in warten if l["projekt_id"] == pid),
             "frei_ab_utc": max(enden).strftime("%Y-%m-%dT%H:%M:%SZ") if enden and len(enden) == len(laufen) else None,

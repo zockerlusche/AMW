@@ -1015,6 +1015,27 @@ def _lauf_ausfuehren(con, pid, a):
     return rc
 
 
+def cmd_rechner(a, con):
+    """Der Rechner auf einen Blick: Arbeitsspeicher, was außerhalb der Warteschlange belegt, Laufwerke, Aufräumvorschläge."""
+    from . import belegung, platte
+    komma = lambda x: str(x).replace(".", ",")
+    frei, gesamt = betrieb.speicher_frei_gb()
+    print(f"Arbeitsspeicher: {komma(frei)} von {komma(gesamt)} GB frei · Reserve {komma(betrieb.reserve_gb())} GB")
+    dauer = belegung.aktuell(con)
+    print("Außerhalb der Warteschlange belegt: " + (belegung.nennen(dauer, 10) if dauer else "nichts über der Grenze"))
+    for l in platte.laufwerke(con):
+        print(f"Laufwerk {l['laufwerk']} {komma(l['frei_gb'])} von {komma(l['gesamt_gb'])} GB frei ({komma(l['frei_prozent'])} %)"
+              + (f" – {'DRINGEND' if l['stufe'] == 'rot' else 'wird knapp'}" if l["stufe"] else ""))
+    v = platte.vorschlaege(con)
+    if v["sicherungen"]:
+        print(f"Aufräumvorschläge: {len(v['sicherungen'])} alte Sicherung(en), {komma(round(v['bytes'] / 2 ** 30, 1))} GB in {v['ordner']}"
+              " (die AMW löscht nichts – aufräumen kann nur der Mensch)")
+        for x in v["sicherungen"]:
+            print(f"  {x['name']}  {komma(round(x['bytes'] / 2 ** 20))} MB  {x['tage']} Tage alt")
+    else:
+        print("Aufräumvorschläge: keine")
+
+
 def cmd_schirm(a, con):
     pid = _projekt(con, a)
     if a.aktion in ("frei", "zu"):
@@ -2146,6 +2167,10 @@ def parser():
     x.add_argument("--abgebrochen", action="store_true")
     x.add_argument("--grenze", type=int, default=20)
     x.set_defaults(f=cmd_lauf)
+
+    x = s.add_parser("rechner", help="Der Rechner auf einen Blick: Arbeitsspeicher, was außerhalb der Warteschlange Speicher belegt,"
+                                     " freier Platz je Laufwerk, Aufräumvorschläge für alte Sicherungen (nur Anzeige)")
+    x.set_defaults(f=cmd_rechner)
 
     x = s.add_parser("schirm", help="Schirm-Schalter: zeige | frei --grund … [--bis HH:MM] (Entwickler/Lead) | zu [--grund …] (alle)")
     x.add_argument("aktion", nargs="?", default="zeige", choices=["zeige", "frei", "zu"])

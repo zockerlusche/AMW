@@ -41,5 +41,8 @@ Then the command simply runs – an error never blocks anything. The error is wr
 ### What does “in long-term use” mean?
 A program that does not run through the queue and has been using a lot of memory for more than 10 minutes. The AMW only reads the name, memory and start time of the processes – no command lines. Many small processes, such as a browser, do not count.
 
+### What does the AMW do when the disk fills up?
+It warns: in the control panel under “Computer” and with a message to the lead and you as soon as a drive holding the database or a project folder has less than 15 % free, and urgently below 5 %. Settings › This PC lists the drives and the clean-up suggestions: old backups with size and age. Nothing is deleted automatically – you decide.
+
 ### Can I switch this off for one computer?
 Yes: Settings › This PC › switch off “Send heavy commands through the queue”. The queue itself stays, only the rejecting stops.

@@ -178,6 +178,24 @@ class Seite(Wiederholt, Grund):
             self.assertIn("Frei · 16,4 GB dauerhaft belegt", rechner)
             self.assertRegex(rechner, r"Außerhalb der Warteschlange belegt: llama-server \(lokale KI\) 16,4 GB seit [\d., ]*\d\d:\d\d\. Beenden kannst nur du")
             self.assertRegex(rechner, r"\d+(,\d)? GB Arbeitsspeicher frei")                                # Zahlen mit Komma
+        # ein Laufwerk wird knapp: Hauptzeile, Satz mit Zahlen, Feld rot; in den Einstellungen Laufwerke und Aufräumvorschläge
+        import collections
+        from amw import platte
+        Platz = collections.namedtuple("Platz", "total used free")
+        with mock.patch.object(platte.shutil, "disk_usage", lambda pfad: Platz(500 * 2 ** 30, 480 * 2 ** 30, 20 * 2 ** 30)):
+            self.tab.js("zeige('start', true)")
+            self.warten("document.querySelector('#ls-rechner').innerText.includes('fast voll')")
+            rechner = self.tab.js("document.querySelector('#ls-rechner').innerText")
+            self.assertRegex(rechner, r"Frei · Laufwerk \S+ fast voll")
+            self.assertRegex(rechner, r"Laufwerk \S+ noch 20 GB frei \(4 %\)\.")
+            self.oeffnen("einstellungen", "document.querySelector('#e-laufwerke')")
+            self.assertRegex(self.tab.js("document.querySelector('#e-laufwerke').innerText"), r"^\S+ 20 von 500 GB frei \(4 %\)$")
+            self.assertIn('class="rot"', self.tab.js("document.querySelector('#e-laufwerke').outerHTML"))
+            zeile = self.tab.js("[...document.querySelectorAll('.feld')].find(f => f.querySelector('label')?.textContent === 'Aufräumvorschläge').innerText")
+            self.assertIn("Keine", zeile)
+            self.assertIn("Die AMW löscht nichts", zeile)
+        self.tab.js("zeige('start', true)")                                                            # zurück zur Startseite
+        self.warten("document.querySelector('#ls-rechner') && document.querySelector('#leitstand button')")
         self.assertFalse(self.tab.js("document.querySelector('header').innerText.includes('null')"))   # leere Hinweise sind keine Texte
         self.assertFalse(self.tab.js("!!document.querySelector('#halt-knopf')"))                       # Anhalten steht im Leitstand
         self.assertTrue(self.tab.js("[...document.querySelectorAll('#leitstand button')].some(b => b.textContent === 'Alle anhalten')"))

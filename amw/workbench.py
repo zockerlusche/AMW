@@ -467,7 +467,13 @@ def daten_einstellungen(con, pid, speicher=None):
         web = abgleich.web_einstellungen(sp) if sp else None
     except (OSError, ValueError, KeyError):
         web = None
-    return {"version": __version__,
+    from . import platte                              # Laufwerke und Aufräumvorschläge (alte Sicherungen) – nur Anzeige
+    try:
+        rechner = {"laufwerke": [{k: l[k] for k in ("laufwerk", "frei_gb", "gesamt_gb", "frei_prozent", "stufe")} for l in platte.laufwerke(con)],
+                   "aufraeumen": platte.vorschlaege(con)}
+    except Exception:
+        rechner = {"laufwerke": [], "aufraeumen": {"sicherungen": [], "bytes": 0, "ordner": ""}}
+    return {"version": __version__, "rechner": rechner,
             "projekt": {"name": p["name"], "ordner": pe.get("ordner"), "takt_min": pe.get("takt_min", TAKT_MIN),
                         "speicher_grenze_gb": pe.get("speicher_grenze_gb", SPEICHER_GRENZE_GB),
                         "stillstand_min": pe.get("stillstand_min", ueberwachung.STILLSTAND_MIN),

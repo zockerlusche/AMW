@@ -91,6 +91,8 @@ class Dienst:
         self.neustarter = steuerung.Neustarter(con)
         from . import gpu
         self.gpu = gpu.Wache(con)     # fremde GPU-Last: nur melden
+        from . import platte
+        self.platte = platte.Wache(con)   # Laufwerk wird knapp: nur melden
         self.seit = db.jetzt()    # Einzel-Infos wecken erst ab hier (sonst weckte der Altbestand alle auf einmal)
 
     def takt(self):
@@ -223,6 +225,11 @@ class Dienst:
                 log.info("GPU: %s", e)
         except Exception as e:
             log.warning("GPU: %s: %s", type(e).__name__, e)
+        try:                                                                 # Laufwerk wird knapp → Leads und Mensch
+            for e in self.platte.runde():
+                log.info("Laufwerk: %s", e)
+        except Exception as e:
+            log.warning("Laufwerk: %s: %s", type(e).__name__, e)
         try:                                                                 # Meldungen mit erfülltem Bezug (bis)
             for nid, grund in kern.bezuege_erledigen(self.con):
                 log.info("Erledigt von selbst: #%s (%s)", nid, grund)

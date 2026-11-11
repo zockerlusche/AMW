@@ -32,6 +32,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`verlauf`](#verlauf) | was passiert ist: amw verlauf [--stunden 24] [--agent CC1] [--art erledigt --art pruefung] [--zusammenfassung] |
 | [`plan`](#plan) | pruefen (Lücken mit Bedeutung und Abhilfe) ¦ akzeptieren <schlüssel> --grund … ¦ wieder <schlüssel> ¦ prognose (P50/P85 je Schritt und Bogen) ¦ status (Ampel je Dimension) |
 | [`lauf`](#lauf) | Rechen-Läufe: start [--warten] prüft Halt, Schirm, Speicher je Lauf, zwei Spuren (Grafikkarte/Schirm: einer zur Zeit; schwere ohne Fenster: parallel bis cpu_laeufe, je Agent einer), Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund · ausfuehren --beschreibung … [--schirm] [--ergebnis datei] -- <befehl …> (einreihen, warten, starten, rc durchreichen, Ende melden; bei Schirm zu den eigenen Befehl beenden) |
+| [`rechner`](#rechner) | Der Rechner auf einen Blick: Arbeitsspeicher, was außerhalb der Warteschlange Speicher belegt, freier Platz je Laufwerk, Aufräumvorschläge für alte Sicherungen (nur Anzeige) |
 | [`schirm`](#schirm) | Schirm-Schalter: zeige ¦ frei --grund … [--bis HH:MM] (Entwickler/Lead) ¦ zu [--grund …] (alle) |
 | [`server`](#server) | Projekt-Server überwachen: anmelden ¦ abmelden ¦ liste ¦ pruefen |
 | [`pruefung`](#pruefung) | Prüfbitte je Stand (SHA), Ergebnis grün/rot |
@@ -737,6 +738,16 @@ options:
                         Ausgabe des Befehls
   --abgebrochen
   --grenze GRENZE
+  --von VON
+  --projekt PROJEKT
+```
+
+## rechner
+```
+usage: amw rechner [-h] [--von VON] [--projekt PROJEKT]
+
+options:
+  -h, --help         show this help message and exit
   --von VON
   --projekt PROJEKT
 ```

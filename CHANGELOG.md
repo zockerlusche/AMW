@@ -4,6 +4,17 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.50.0 – 11.11.2026 · Festplatte: Warnung bei knappem Platz, Aufräumvorschläge
+- **Freier Platz je Laufwerk:** Die AMW misst die Laufwerke mit der Datenbank und den Projektordnern. Wird eines knapp
+  (Vorgabe: unter 15 % Warnung, unter 5 % dringend), steht es im Leitstand unter „Rechner“; Lead und Mensch bekommen
+  eine Nachricht – einmal je Stufe, nicht bei jedem Neustart.
+- **Aufräumvorschläge:** Alte Sicherungen, die nach der Regel nicht mehr gebraucht werden, stehen mit Größe und Alter
+  unter Einstellungen › Dieser PC. Es bleiben die neuesten (Vorgabe 10) und je veröffentlichter Version die letzte
+  Sicherung davor. **Die AMW löscht und verschiebt nichts** – sie zeigt nur an.
+- **Neuer Befehl `amw rechner`:** Arbeitsspeicher, was außerhalb der Warteschlange belegt, Laufwerke und
+  Aufräumvorschläge auf einen Blick.
+- **Einstellungen** unter „Dieser PC“: Warnschwellen in Prozent, Anzahl aufbewahrter Sicherungen.
+
 ## 1.49.0 – 11.11.2026 · Rechner: was außerhalb der Warteschlange Speicher belegt
 - **Dauerhaft belegt:** Ein Programm, das außerhalb der Warteschlange länger als 10 Minuten viel Arbeitsspeicher belegt –
   ein lokaler KI-Server, eine virtuelle Maschine –, steht jetzt im Leitstand unter „Rechner“: Name, Größe, seit wann.
