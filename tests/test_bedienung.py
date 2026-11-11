@@ -231,6 +231,33 @@ class Seite(Wiederholt, Grund):
         self.assertIn("Warum:", karten[1])
         self.assertIn("ANGEPASST", karten[1].upper())
 
+    def test_token_pause_als_eigenes_stueck_in_der_planung(self):
+        """Übersicht: der Balken bekommt hinten das Stück Token-Pause (Zeichen, eigene Farbe, Schraffur); am Datum „+n T →“;
+        Token-Woche mit Rechenweg im Kopf der Übersicht und im Leitstand."""
+        from tests.test_tokenprognose import plan_mit_verbrauch
+        plan_mit_verbrauch(self.con, self.pid)
+        self.oeffnen("planung", "document.querySelector('.ueb-token') && document.querySelector('#token-woche')")
+        self.assertEqual(self.tab.js("document.querySelectorAll('.ueb-token').length"), 1)
+        self.assertEqual(self.tab.js("document.querySelector('.ueb-token b').textContent"), "\u29d7")                  # nicht nur Farbe: Zeichen …
+        self.assertIn("repeating-linear-gradient", self.tab.js("getComputedStyle(document.querySelector('.ueb-token')).backgroundImage"))   # … und Schraffur
+        self.assertTrue(self.tab.js("(() => { const b = document.querySelector('.ueb-block').getBoundingClientRect(), k = document.querySelector('.ueb-token').getBoundingClientRect();"
+                                    " return Math.abs(k.left - b.right) < 2 && k.width > 4; })()"))                    # hängt hinten am Balken
+        stueck = self.tab.js("document.querySelector('.tk-stueck').textContent")
+        self.assertRegex(stueck, "^ \u29d7 \\+\\d+ T \u2192 \u2248 \\d\\d\\.\\d\\d\\.$")
+        woche = self.tab.js("document.querySelector('#token-woche').innerText")
+        for teil in ("88 % verbraucht", "voraussichtlich aufgebraucht", "Reset", "Gilt für das ganze Konto"):
+            self.assertIn(teil, woche)
+        rechenweg = self.tab.js("document.querySelector('#token-woche').title")
+        for teil in ("Verbrauch je Tag:", "Prozentpunkte (wahrscheinlich)", "Danach je Woche:", "Ein Reset zählt nicht als Verbrauch"):
+            self.assertIn(teil, rechenweg)
+        self.assertIn("Pause durch das Wochenlimit", self.tab.js("document.querySelector('.ueb-legende').innerText"))
+        hell = self.tab.js("getComputedStyle(document.documentElement).getPropertyValue('--token').trim()")
+        self.tab.js("thema(document.documentElement.dataset.thema === 'hell' ? 'dunkel' : 'hell')")
+        self.assertNotEqual(hell, self.tab.js("getComputedStyle(document.documentElement).getPropertyValue('--token').trim()"))   # hell und dunkel eigene Farbe
+        self.oeffnen("start", "document.querySelector('#ls-token')")
+        self.assertIn("88 % verbraucht", self.tab.js("document.querySelector('#ls-token').innerText"))
+        self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 6)       # … dazu Rechner und Token-Woche
+
     def test_logo_oben_mit_untertitel_und_favicon(self):
         self.oeffnen("start", "document.querySelector('#marke-text i')")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('#marke-text i')].map(i => i.textContent).join('')"), "AMW")

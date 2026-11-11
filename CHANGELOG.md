@@ -4,6 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.47.0 – 11.11.2026 · Token-Pause: wie weit die Wochen-Grenze das Ende verschiebt
+- **Eigenes Stück ⧗ am Balken:** In der Übersicht der Planung wird jeder Balken um die Token-Pause verlängert – das
+  angehängte Stück in eigener Farbe, schraffiert und mit dem Zeichen ⧗ (hell und dunkel unterscheidbar, nicht nur über
+  die Farbe). So sieht man, wie weit sich das Ende durch die Grenze verschiebt.
+- **Am Datum:** `Prognose 27.11. – 01.12. ⧗ +12 T → ≈ 09.12.` – am Bogen und an jedem Schritt. Das erste Datum bleibt,
+  wie es ohne Grenze wäre.
+- **Token-Woche** über der Übersicht und im Leitstand der Startseite: Verbrauch der Woche, „leer voraussichtlich“, nächster
+  Reset, Pause bis dahin. Der Rechenweg steht im Hinweistext (Tempo wahrscheinlich und vorsichtig, Rest, Reset, Arbeit
+  und Pause je Folgewoche).
+- **Gerechnet wird mit dem Gesamtverbrauch des Kontos** – alle Projekte dieses PCs zusammen, aus den Messwerten, die die
+  AMW ohnehin mitschreibt. Ein Reset wird am Abfall erkannt, auch außer der Reihe, und zählt als Ereignis, nicht als
+  Verbrauch. Keine neue Tabelle, nichts wird gespeichert.
+- Ohne Messwerte erscheint nichts; bei zu wenigen Messtagen steht „unsicher“ dabei.
+
 ## 1.46.0 – 11.11.2026 · Betriebsart: festlegen, wohin die AMW Verbindungen aufbauen darf
 - **Drei Betriebsarten** (Zahnrad › Betriebsart, `amw einrichten betriebsart [pc|server|cloud]`): „Nur dieser PC“ – keine
   Verbindung über den Rechner hinaus; „Eigener Server im Firmennetz“ – nur Adressen im eigenen Netz; „Cloud“ –

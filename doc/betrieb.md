@@ -141,6 +141,24 @@ Pflicht-Kontext; mit `<AMW-Ordner>\bin` im Pfad geht überall kurz `amw`.
   Sicherung – nur, was dort noch fehlt ([anleitung-dokumente.md](anleitung-dokumente.md)).
 - Vor jedem Update sichern (neue Versionen stellen die Datenbank beim ersten Schreibzugriff um).
 
+### Token-Woche und Token-Pause
+Die Wochen-Grenze des Kontos gilt für alle Projekte dieses PCs zusammen. Die AMW schreibt den Wochenverbrauch mit (was
+die Statusline der Sitzungen meldet) und rechnet daraus (`amw/tokenprognose.py`, nichts wird gespeichert):
+- **Konto-Verlauf:** je Viertelstunde ein Wert aus allen Sitzungen. Melden sie sehr Verschiedenes, gilt der niedrige –
+  dann gab es einen Reset und einige Sitzungen zeigen noch den alten Stand.
+- **Reset:** ein Abfall um mehr als 30 Punkte, auch außer der Reihe. Er zählt als Ereignis, nicht als Verbrauch.
+- **Tempo:** Anstieg je Tag an den Arbeitstagen der letzten 14 Tage – wahrscheinlich (Mittel) und vorsichtig (oberes
+  Viertel); angebrochene Tage zählen mit ihrem Anteil.
+- **Diese Woche:** Rest ÷ Tempo = „leer am“; liegt das vor dem Reset, ist bis dahin Pause. **Folgewochen:** 100 ÷ Tempo
+  Tage Arbeit (höchstens 7), der Rest ist Pause.
+
+Angezeigt wird das als **Token-Woche** im Leitstand der Startseite und über der Übersicht der Planung, und als eigenes
+Stück ⧗ hinter jedem Prognose-Datum: `Prognose 27.11. – 01.12. ⧗ +12 T → ≈ 09.12.`. In der Übersicht hängt es als
+schraffiertes Stück in eigener Farbe hinten am Balken. Das Prognose-Datum selbst bleibt, wie es ohne Grenze wäre – so ist
+sichtbar, was Arbeit ist und was Warten. Der Rechenweg steht im Hinweistext. Grenzen der Aussage: Die 5-Stunden-Grenze
+kommt in den Messwerten nicht an; die Prognose rechnet mit dem Durchsatz der letzten 14 Tage, in dem frühere Pausen schon
+stecken – die Pause ist deshalb eher großzügig gerechnet; steht „unsicher“ dabei, gibt es zu wenige Messtage.
+
 ## 6 Einstellungen dieses PCs
 Zahnrad › Dieser PC, oder von Hand in `%LOCALAPPDATA%\amw\einstellungen.json` (JSON, nur Schlüssel, die von der
 Vorgabe abweichen, z. B. `{"port": 8790}`). Was der Wächter nur beim Start liest, trägt im Zahnrad das Zeichen ↻ und

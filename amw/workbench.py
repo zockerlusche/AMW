@@ -319,7 +319,7 @@ def daten_start(con, pid):
         takt = TAKT_MIN
     team = {"zusammen": zusammen, "bogen": dict(b) if b else None, "takt_min": takt}
     from . import betrieb                              # Auslastung des Rechners: Läufe aller Projekte, nur als Zahlen
-    return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "rechner": betrieb.auslastung(con, pid), "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
+    return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "rechner": betrieb.auslastung(con, pid), "token": _token_lage(con), "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
@@ -330,6 +330,9 @@ def daten_planung(con, pid):
     Plan-Check, Status (Ampel je Dimension), was auf den Menschen wartet, Planungs-Protokoll."""
     from . import planung, verlauf
     prog = planung.prognose(con, pid, laeufe=600)
+    from . import tokenprognose                       # Wochen-Grenze des Kontos: Pause je Prognose-Datum, als eigenes Stück
+    token = tokenprognose.lage_gemerkt(con)
+    tokenprognose.mit_pause(token, list(prog["boegen"].values()) + list(prog["schritte"].values()))
     boegen = planung.boegen(con, pid)
     from . import termine
     termin_liste = termine.vorkommen(con, pid, tage=28, mit_vergangenen_h=24)
@@ -364,7 +367,7 @@ def daten_planung(con, pid):
     n, sek = ki.nachts_wartend(con)
     ki_fenster = {"von": f[0] if f else None, "bis": f[1] if f else None, "text": ki.fenster_text(f), "offen": ki.im_fenster(f=f),
                   "termin": ki.testtermin_vorrang(con), "wartend": n, "sekunden": sek}
-    return {"termine": termin_liste, "ki_fenster": ki_fenster, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
+    return {"token": tokenprognose.als_daten(token), "termine": termin_liste, "ki_fenster": ki_fenster, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
             "pruefung": planung.pruefen(con, pid, prog, mit_akzeptierten=True), "status": planung.status(con, pid, prog),
             "check_texte": {k: {"wer": v[1], "ziel": v[2], **v[3]} for k, v in planung.CHECKS.items()}, "lead": kern.lead(con, pid),
             "wartet": planung.freigaben_offen(con, pid), "heute": datetime.date.today().isoformat(),   # lokales Datum für die Heute-Linie
@@ -420,6 +423,15 @@ def verbindung_pruefen(was, con=None):
 def _betriebsart_stand():
     from . import betriebsart
     return {"aktuell": betriebsart.aktuell(), "gewaehlt": betriebsart.gewaehlt()}
+
+
+def _token_lage(con):
+    """Token-Woche des Kontos für den Leitstand (None ohne Messung)."""
+    try:
+        from . import tokenprognose
+        return tokenprognose.als_daten(tokenprognose.lage_gemerkt(con))
+    except Exception:
+        return None
 
 
 def sprache_vorgabe():
