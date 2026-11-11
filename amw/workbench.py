@@ -330,9 +330,8 @@ def daten_planung(con, pid):
     Plan-Check, Status (Ampel je Dimension), was auf den Menschen wartet, Planungs-Protokoll."""
     from . import planung, verlauf
     prog = planung.prognose(con, pid, laeufe=600)
-    from . import tokenprognose                       # Wochen-Grenze des Kontos: Pause je Prognose-Datum, als eigenes Stück
-    token = tokenprognose.lage_gemerkt(con)
-    tokenprognose.mit_pause(token, list(prog["boegen"].values()) + list(prog["schritte"].values()))
+    from . import tokenprognose                       # Wochenlimit des Kontos: Stand für Planung und Leitstand
+    token = tokenprognose.lage_gemerkt(con)            # die Pause selbst trägt planung.prognose ein (eine Stelle für alle)
     boegen = planung.boegen(con, pid)
     from . import termine
     termin_liste = termine.vorkommen(con, pid, tage=28, mit_vergangenen_h=24)
@@ -426,7 +425,7 @@ def _betriebsart_stand():
 
 
 def _token_lage(con):
-    """Token-Woche des Kontos für den Leitstand (None ohne Messung)."""
+    """Wochenlimit des Kontos für den Leitstand (None ohne Messung)."""
     try:
         from . import tokenprognose
         return tokenprognose.als_daten(tokenprognose.lage_gemerkt(con))

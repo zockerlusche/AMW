@@ -132,6 +132,36 @@ def plan_mit_verbrauch(con, pid, lead="TL", agent="CC1", jetzt=None):
     return bid
 
 
+class Pausentage(unittest.TestCase):
+    def test_tage_ohne_kontingent(self):
+        # 3.11. 06:00 aufgebraucht, Reset am 5.11. 10:00: der 3. (18 h) und der 4. (24 h) sind Pausentage, der 5. (10 h) nicht
+        reihe = tp.verlauf([(z.strftime("%Y-%m-%dT%H:%M:%SZ"), w) for z, w in
+                            linie(t(1), t(3, 5, 30), 20, 90) + linie(t(3, 6), t(5, 9, 30), 100, 100) + linie(t(5, 10), t(6), 2, 10)])
+        self.assertEqual(tp.pausen(reihe, t(6)), [(t(3, 6), t(5, 10))])
+        self.assertEqual(tp.pausentage(reihe, t(6)), {"2026-11-03", "2026-11-04"})
+        offen = tp.verlauf([(z.strftime("%Y-%m-%dT%H:%M:%SZ"), w) for z, w in linie(t(1), t(3, 5, 30), 20, 90) + [(t(3, 6), 100.0)]])
+        self.assertEqual(tp.pausen(offen, t(4, 12)), [(t(3, 6), t(4, 12))])                      # noch kein Reset: bis jetzt
+        self.assertEqual(tp.pausentage(offen, t(4, 12)), {"2026-11-03", "2026-11-04"})
+        self.assertEqual(tp.pausentage(tp.verlauf([("2026-11-01T00:00:00Z", 50.0)]), t(6)), set())
+
+    def test_pausentage_zaehlen_nicht_in_den_durchsatz(self):
+        ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(ordner.cleanup)
+        con = db.anlegen(os.path.join(ordner.name, "t.db"))
+        self.addCleanup(con.close)
+        with db.schreiben(con):
+            pid = db.einfuegen(con, "projekt", name="P", angelegt_utc=db.jetzt())
+            for tag in (10, 9, 8, 7):                                                            # je Tag ein Schritt fertig
+                db.einfuegen(con, "aufgabe", projekt_id=pid, titel=f"s{tag}", agent="CC1", angelegt_von="TL", status="fertig", beleg="abc1234",
+                             angelegt_utc="2026-11-01T00:00:00Z", fertig_utc=f"2026-11-{tag:02d}T12:00:00Z")
+        heute = datetime.date(2026, 11, 10)
+        alle = planung.durchsatz(con, pid, None, tage=6, heute=heute)
+        self.assertEqual(alle, [1, 1, 1, 1, 0, 0])
+        self.assertEqual(planung.durchsatz(con, pid, None, tage=6, heute=heute, ohne={"2026-11-06", "2026-11-05"}), [1, 1, 1, 1])   # ohne die Pausentage
+        self.assertEqual(planung.durchsatz(con, pid, None, tage=2, heute=heute, ohne={"2026-11-10", "2026-11-09"}), [1, 1])        # kein Tag übrig: alle gelten
+        self.assertEqual(tp.pausentage_aus(con), set())                                          # ohne Messung: nichts, kein Fehler
+
+
 class InDerPlanung(unittest.TestCase):
     def test_prognose_bleibt_und_bekommt_die_pause_als_eigenes_stueck(self):
         ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
@@ -155,6 +185,22 @@ class InDerPlanung(unittest.TestCase):
         self.assertEqual(p["p50_mit"], (datetime.date.fromisoformat(p["p50"]) + datetime.timedelta(days=p["pause_tage"])).isoformat())
         self.assertEqual(p["p50"], planung.prognose(con, pid, laeufe=600)["boegen"][bid]["p50"])   # das Datum selbst ist unverändert
         self.assertEqual(round(workbench.daten_start(con, pid)["token"]["wert"]), 88)             # Leitstand: dieselbe Lage
+        # die Ampel rechnet die Pause ein: ein Termin, der ohne Pause sicher hält, steht mit Pause nicht mehr grün
+        self.assertIsNone(p["ampel"])                                                            # ohne Zieldatum keine Ampel
+        self.assertGreater(p["p85_mit"], p["p85"])
+        with db.schreiben(con):
+            con.execute("UPDATE bogen SET zieldatum = ? WHERE id = ?", (p["p85"], bid))
+        q = planung.prognose(con, pid, laeufe=600)["boegen"][bid]
+        self.assertEqual((q["p85"], q["ampel_ohne_pause"]), (p["p85"], "gruen"))
+        self.assertIn(q["ampel"], ("gelb", "rot"))
+        self.assertEqual(q["ampel"], "gelb" if q["p50_mit"] <= p["p85"] else "rot")
+        self.assertEqual(planung.status(con, pid)["termin"], q["ampel"])                          # Status und Plan-Check sehen dieselbe Ampel
+        with db.schreiben(con):
+            con.execute("UPDATE bogen SET zieldatum = ? WHERE id = ?", (q["p85_mit"], bid))
+        r = planung.prognose(con, pid, laeufe=600)["boegen"][bid]
+        self.assertEqual((r["ampel"], r.get("ampel_ohne_pause")), ("gruen", None))               # hält auch mit Pause: grün, kein Zusatz
+        fest = planung.prognose(con, pid, laeufe=600, heute=datetime.date.today())["boegen"][bid]
+        self.assertNotIn("p85_mit", fest)                                                        # gedachtes Heute: ohne Pause
 
 
 if __name__ == "__main__":

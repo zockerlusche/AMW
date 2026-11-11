@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.48.0 – 11.11.2026 · Wochenlimit: Pause nicht doppelt, Ampel mit Pause
+- **Pausentage zählen nicht in den Durchsatz:** Tage, an denen das Wochenlimit mindestens einen halben Tag lang
+  aufgebraucht war, fallen aus der Prognose heraus. Vorher steckte die Pause im Durchsatz und stand zusätzlich am Datum.
+- **Die Ampel eines Meilensteins berücksichtigt die Pause:** grün nur, wenn der Termin auch mit Pause hält. Wäre er ohne
+  die Pause zu halten, steht „(mit Pause)“ am Datum. Das gilt auch für den Status „Termin“ und den Plan-Check.
+- **„Wochenlimit“ statt „Token-Woche“** in Planung und Leitstand.
+
 ## 1.47.0 – 11.11.2026 · Token-Pause: wie weit die Wochen-Grenze das Ende verschiebt
 - **Eigenes Stück ⧗ am Balken:** In der Übersicht der Planung wird jeder Balken um die Token-Pause verlängert – das
   angehängte Stück in eigener Farbe, schraffiert und mit dem Zeichen ⧗ (hell und dunkel unterscheidbar, nicht nur über

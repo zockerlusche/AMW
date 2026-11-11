@@ -502,9 +502,10 @@ def risiken(con, pid):
 
 # --- Prognose (Monte Carlo) ----------------------------------------------------------------------
 
-def durchsatz(con, pid, bearbeiter, tage=14, heute=None):
+def durchsatz(con, pid, bearbeiter, tage=14, heute=None, ohne=None):
     """Erledigte Schritte je Tag der letzten `tage` Tage einschließlich heute (Liste). Ohne jede Erledigung: einer in der
-    ganzen Zeit (sonst stünde die Prognose für immer still)."""
+    ganzen Zeit (sonst stünde die Prognose für immer still). ohne: Tage (JJJJ-MM-TT), an denen nicht gearbeitet werden
+    konnte (Wochenlimit aufgebraucht) – sie fallen aus der Liste; bleibt kein Tag übrig, gelten alle."""
     heute = heute or datetime.date.today()
     ab = (heute - datetime.timedelta(days=tage - 1)).isoformat()
     zaehler = {}
@@ -512,8 +513,10 @@ def durchsatz(con, pid, bearbeiter, tage=14, heute=None):
            " AND fertig_utc >= ?" + (" AND agent = ?" if bearbeiter else "") + " GROUP BY tag")
     for r in con.execute(sql, (pid, ab, bearbeiter) if bearbeiter else (pid, ab)):
         zaehler[r["tag"]] = r["n"]
-    liste = [zaehler.get((heute - datetime.timedelta(days=i)).isoformat(), 0) for i in range(tage)]
-    return liste if sum(liste) else [0] * (tage - 1) + [1]
+    alle = [(heute - datetime.timedelta(days=i)).isoformat() for i in range(tage)]
+    gilt = [t for t in alle if t not in (ohne or ())] or alle
+    liste = [zaehler.get(t, 0) for t in gilt]
+    return liste if sum(liste) else [0] * (len(liste) - 1) + [1]
 
 
 def _quantil(werte, q):
@@ -526,6 +529,7 @@ def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
     start = Median des Tages, an dem der erste offene Schritt des Bogens beginnt (Bearbeiter frei, Vorgänger fertig).
     Je Bearbeiter (Agent, Mensch, „frei“ = Team) eine Warteschlange in Planreihenfolge; je Lauf zieht jeder Tag einen
     zufälligen Tageswert aus seinem Durchsatz; ein Schritt endet nie vor seinen Vorgängern."""
+    echt = heute is None                               # die Pause durch das Wochenlimit gilt ab jetzt – nicht für ein gedachtes Heute
     heute = heute or datetime.date.today()
     zufall = zufall or random.Random(42)
     offen = con.execute(
@@ -537,7 +541,9 @@ def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
     schlangen = {}
     for a in offen:
         schlangen.setdefault(a["agent"] or "", []).append(a["id"])
-    raten = {b: durchsatz(con, pid, b or None, heute=heute) for b in schlangen}
+    from . import tokenprognose                        # Tage ohne Kontingent zählen nicht – die Pause steht eigens am Datum
+    ohne = tokenprognose.pausentage_aus(con)
+    raten = {b: durchsatz(con, pid, b or None, heute=heute, ohne=ohne) for b in schlangen}
     ids = [a["id"] for a in offen]
     vor = {i: [v for v in vorgaenger(con, i) if v in set(ids)] for i in ids}
     ende = {i: [] for i in ids}
@@ -576,7 +582,10 @@ def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
         ziel = con.execute("SELECT zieldatum FROM bogen WHERE id = ?", (bid,)).fetchone()[0]
         ampel = None if not ziel else "gruen" if p85 <= ziel else "gelb" if p50 <= ziel else "rot"
         aus_b[bid] = {"start": start, "p50": p50, "p85": p85, "ampel": ampel}
-    return {"schritte": schritte, "boegen": aus_b}
+    aus = {"schritte": schritte, "boegen": aus_b}
+    if echt:
+        tokenprognose.einrechnen(con, aus)
+    return aus
 
 
 # --- Plan-Check (Lückenprüfung) und Status -------------------------------------------------------

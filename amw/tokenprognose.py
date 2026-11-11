@@ -1,4 +1,4 @@
-"""Token-Pause: Wie weit verschiebt die Wochen-Grenze des Kontos das Ende der Arbeit?
+"""Token-Pause: Wie weit verschiebt das Wochenlimit des Kontos das Ende der Arbeit?
 
 Die AMW schreibt den Wochenverbrauch mit (Tabelle `verbrauch`, Wert je Sitzung in Prozent). Die Grenze gilt für das
 Konto – alle Projekte dieses PCs verbrauchen dasselbe Kontingent; gerechnet wird deshalb mit allen Messpunkten.
@@ -21,6 +21,8 @@ RESET_ABFALL = 30.0         # Punkte: so viel weniger als zuvor (oder Uneinigkei
 TAGE = 14                   # Zeitraum für das Tempo
 ARBEIT_AB = 1.0             # Punkte Anstieg, ab denen ein Tag als Arbeitstag zählt
 WOCHE = 7.0
+LEER_AB = 98.0              # ab diesem Wert gilt das Kontingent als aufgebraucht (die Messung erreicht selten genau 100)
+PAUSENTAG_H = 12.0          # so viele Stunden eines Tages ohne Kontingent machen ihn zum Pausentag
 
 
 def _zeit(text):
@@ -77,6 +79,44 @@ def tempo(reihe, bis, tage=TAGE):
         return None
     je_tag.sort()
     return summe / gewicht, je_tag[min(len(je_tag) - 1, int(0.75 * len(je_tag)))], len(je_tag)
+
+
+def pausen(reihe, bis):
+    """Zeiträume ohne Kontingent: vom ersten Wert ≥ LEER_AB bis zum nächsten Reset (oder bis `bis`). [(von, bis)]"""
+    aus, leer_seit = [], None
+    for (_, vorher), (t, wert) in zip([(None, 0.0)] + reihe, reihe):
+        if leer_seit is not None and vorher - wert > RESET_ABFALL:
+            aus.append((leer_seit, t))
+            leer_seit = None
+        if leer_seit is None and wert >= LEER_AB:
+            leer_seit = t
+    if leer_seit is not None and bis > leer_seit:
+        aus.append((leer_seit, bis))
+    return aus
+
+
+def pausentage(reihe, bis):
+    """Kalendertage (UTC), an denen mindestens PAUSENTAG_H Stunden lang kein Kontingent da war – an ihnen konnte nicht
+    gearbeitet werden. Sie zählen nicht in den Durchsatz, sonst wäre die Pause in der Prognose doppelt gerechnet."""
+    stunden = {}
+    for von, ende in pausen(reihe, bis):
+        t = von
+        while t < ende:
+            naechster = datetime.datetime.combine(t.date() + datetime.timedelta(days=1), datetime.time(), t.tzinfo)
+            stueck = min(ende, naechster)
+            stunden[t.date()] = stunden.get(t.date(), 0.0) + (stueck - t).total_seconds() / 3600
+            t = stueck
+    return {tag.isoformat() for tag, h in stunden.items() if h >= PAUSENTAG_H}
+
+
+def pausentage_aus(con, jetzt=None, tage=TAGE):
+    """Pausentage der letzten `tage` Tage aus der Datenbank (leer ohne Messung)."""
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    seit = (jetzt - datetime.timedelta(days=tage + 1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        return pausentage(verlauf(punkte(con, seit)), jetzt)
+    except Exception:
+        return set()
 
 
 def stand(reihe, jetzt, reset_angekuendigt=None):
@@ -154,6 +194,43 @@ def mit_pause(lage, prognose, jetzt=None):
         if n:
             p["pause_tage"] = n
             p["p50_mit"] = (datetime.date.fromisoformat(p["p50"]) + datetime.timedelta(days=n)).isoformat()
+        m = pause_bis(lage, p.get("p85"), jetzt) if p.get("p85") else 0
+        if m:                                        # für die Ampel: auch das sichere Datum verschiebt sich
+            p["p85_mit"] = (datetime.date.fromisoformat(p["p85"]) + datetime.timedelta(days=m)).isoformat()
+
+
+def ampel_mit_pause(p, zieldatum):
+    """Ampel eines Meilensteins gegen sein Zieldatum – mit der Pause: grün, wenn auch das sichere Datum samt Pause hält;
+    gelb, wenn nur das wahrscheinliche hält; sonst rot. Ohne Zieldatum keine Ampel."""
+    if not zieldatum:
+        return None
+    sicher, wahrscheinlich = p.get("p85_mit") or p["p85"], p.get("p50_mit") or p["p50"]
+    return "gruen" if sicher <= zieldatum else "gelb" if wahrscheinlich <= zieldatum else "rot"
+
+
+def einrechnen(con, prog):
+    """Die Pause in eine Prognose (planung.prognose) eintragen: „pause_tage“, „p50_mit“, „p85_mit“ an Meilenstein und
+    Schritt, dazu die Ampel jedes Meilensteins mit Pause. Ohne Messung ändert sich nichts; ein Fehler hier darf die
+    Prognose nie verhindern."""
+    try:
+        lage = lage_gemerkt(con)
+        if not lage:
+            return
+        mit_pause(lage, list(prog["boegen"].values()) + list(prog["schritte"].values()))
+        ampeln_anpassen(con, prog["boegen"])
+    except Exception:
+        pass
+
+
+def ampeln_anpassen(con, boegen):
+    """{bogen_id: prognose}: die Ampel jedes Meilensteins mit Pause neu bestimmen; merkt sich, wenn sie dadurch schlechter wird."""
+    for bid, p in boegen.items():
+        if not (p.get("p50_mit") or p.get("p85_mit")):
+            continue
+        ziel = con.execute("SELECT zieldatum FROM bogen WHERE id = ?", (bid,)).fetchone()
+        neu = ampel_mit_pause(p, ziel[0] if ziel else None)
+        if neu and neu != p.get("ampel"):
+            p["ampel_ohne_pause"], p["ampel"] = p.get("ampel"), neu
 
 
 def als_daten(lage):

@@ -233,7 +233,7 @@ class Seite(Wiederholt, Grund):
 
     def test_token_pause_als_eigenes_stueck_in_der_planung(self):
         """Übersicht: der Balken bekommt hinten das Stück Token-Pause (Zeichen, eigene Farbe, Schraffur); am Datum „+n T →“;
-        Token-Woche mit Rechenweg im Kopf der Übersicht und im Leitstand."""
+        Wochenlimit mit Rechenweg im Kopf der Übersicht und im Leitstand."""
         from tests.test_tokenprognose import plan_mit_verbrauch
         plan_mit_verbrauch(self.con, self.pid)
         self.oeffnen("planung", "document.querySelector('.ueb-token') && document.querySelector('#token-woche')")
@@ -256,7 +256,15 @@ class Seite(Wiederholt, Grund):
         self.assertNotEqual(hell, self.tab.js("getComputedStyle(document.documentElement).getPropertyValue('--token').trim()"))   # hell und dunkel eigene Farbe
         self.oeffnen("start", "document.querySelector('#ls-token')")
         self.assertIn("88 % verbraucht", self.tab.js("document.querySelector('#ls-token').innerText"))
-        self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 6)       # … dazu Rechner und Token-Woche
+        self.assertIn("Wochenlimit", self.tab.js("document.querySelector('#ls-token').textContent"))   # (in der Anzeige groß geschrieben)
+        self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 6)       # … dazu Rechner und Wochenlimit
+        # Ampel mit Pause: hält der Termin nur ohne Pause, steht „(mit Pause)“ am Datum
+        from amw import db, planung
+        bid = self.con.execute("SELECT id FROM bogen WHERE projekt_id = ? ORDER BY id DESC", (self.pid,)).fetchone()[0]
+        p85 = planung.prognose(self.con, self.pid, laeufe=600)["boegen"][bid]["p85"]
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE bogen SET zieldatum = ? WHERE id = ?", (p85, bid))
+        self.oeffnen("planung", "document.querySelector('.ueb-token') && [...document.querySelectorAll('.sehrleise')].some(x => x.textContent.trim() === '(mit Pause)')")
 
     def test_logo_oben_mit_untertitel_und_favicon(self):
         self.oeffnen("start", "document.querySelector('#marke-text i')")
