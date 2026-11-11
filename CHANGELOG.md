@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.51.0 – 11.11.2026 · Planung: der Rechner heute als eigener Zeitstrahl
+- **„Rechner – heute“** unter der Übersicht der Planung: der Tagesablauf des Rechners. Ein Balken je Lauf, die Füllung
+  zeigt den Arbeitsspeicher; was läuft, reicht bis zum erwarteten Ende; Wartende hängen gestrichelt hinter „jetzt“.
+  Läufe anderer Projekte erscheinen nur als „anderes Projekt“ mit Zeitraum und Bedarf – ohne Inhalt. Einklappbar.
+- **Dauerhaft belegt als durchgehender Balken:** Ein Programm außerhalb der Warteschlange (lokaler KI-Server, virtuelle
+  Maschine) zieht sich über den ganzen Zeitstrahl.
+- **Streifen „Rechner“ auf der Zeitachse der Übersicht:** je Tag ein Stück, so hoch, wie viele Stunden der Rechner mit
+  Läufen belegt war – Projektarbeit und Rechner-Belegung stehen übereinander.
+
 ## 1.50.0 – 11.11.2026 · Festplatte: Warnung bei knappem Platz, Aufräumvorschläge
 - **Freier Platz je Laufwerk:** Die AMW misst die Laufwerke mit der Datenbank und den Projektordnern. Wird eines knapp
   (Vorgabe: unter 15 % Warnung, unter 5 % dringend), steht es im Leitstand unter „Rechner“; Lead und Mensch bekommen

@@ -38,6 +38,68 @@ def auslastung(con, pid):
             "frei_ab_utc": max(enden).strftime("%Y-%m-%dT%H:%M:%SZ") if enden and len(enden) == len(laufen) else None,
             "angemeldet_gb": round(sum(l["braucht_gb"] or 0 for l in laufen), 1) or None,     # so viel haben die laufenden angemeldet
             "frei_gb": frei, "gesamt_gb": gesamt, "rechner": rechner()}
+def tagesverlauf(con, pid, jetzt=None, tage=60):
+    """Der Rechner heute, für den Zeitstrahl in der Planung: Läufe aller Projekte auf diesem Rechner, die heute liefen,
+    laufen oder warten – eigene mit Nummer, Agent und Beschreibung, fremde nur als Zeitraum und Bedarf („anderes
+    Projekt“). Dazu, was außerhalb der Warteschlange dauerhaft Speicher belegt, und je Tag der letzten `tage` Tage, wie
+    viele Stunden der Rechner mit Läufen belegt war (für die gemeinsame Zeitachse der Übersicht).
+    Zeiten als UTC-Text; „heute“ ist der Kalendertag in der Ortszeit des Rechners."""
+    import datetime
+    utc = datetime.timezone.utc
+    jetzt = jetzt or datetime.datetime.now(utc)
+    beginn = jetzt.astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
+    von, bis = beginn.astimezone(utc), (beginn + datetime.timedelta(days=1)).astimezone(utc)
+    iso = lambda x: x.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def zeit(text):
+        try:
+            return datetime.datetime.strptime(text[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=utc) if text else None
+        except ValueError:
+            return None
+    zeilen = con.execute(
+        "SELECT l.*, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id WHERE " + HIER
+        + " AND (l.status IN ('angemeldet', 'laeuft') OR coalesce(l.ende_utc, l.start_utc, l.angemeldet_utc) >= ?) ORDER BY l.id",
+        (rechner(), iso(von - datetime.timedelta(days=tage)))).fetchall()
+    heute, je_tag = [], {}
+    for l in zeilen:
+        start, ende = zeit(l["start_utc"]), zeit(l["ende_utc"])
+        wartet, laeuft = l["status"] == "angemeldet", l["status"] == "laeuft"
+        if start and not wartet:                       # Belegung je Tag (Ortszeit), auch über Mitternacht
+            a, e = start, ende or (jetzt if laeuft else start)
+            while a < e:
+                tag = a.astimezone().date()
+                naechster = (a.astimezone().replace(hour=0, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1)).astimezone(utc)
+                stueck = min(e, naechster)
+                eintrag = je_tag.setdefault(tag.isoformat(), {"stuecke": [], "laeufe": set(), "eigene": set()})
+                eintrag["stuecke"].append((a, stueck))
+                eintrag["laeufe"].add(l["id"])
+                if l["projekt_id"] == pid:
+                    eintrag["eigene"].add(l["id"])
+                a = stueck
+        if not (wartet or laeuft or (start and (ende or start) >= von and start < bis)):
+            continue
+        eigen = l["projekt_id"] == pid
+        heute.append({"id": l["id"] if eigen else None, "eigen": eigen, "wer": l["agent"] if eigen else None,
+                      "text": kurzfassung(l["beschreibung"], 80) if eigen else None,
+                      "status": "wartet" if wartet else l["status"], "angemeldet_utc": l["angemeldet_utc"] if wartet else None,
+                      "start_utc": None if wartet else l["start_utc"], "ende_utc": l["ende_utc"], "erwartet_min": l["erwartet_min"],
+                      "gb": _bedarf(con, l) or None, "vram_gb": l["braucht_vram_gb"], "gpu": bool(l["gpu"]), "schirm": bool(l["schirm"])})
+    tage_liste = []
+    for tag, e in sorted(je_tag.items()):
+        belegt, bis_jetzt = datetime.timedelta(), None          # Vereinigung der Zeiträume: gleichzeitige Läufe zählen einmal
+        for a, b in sorted(e["stuecke"]):
+            if bis_jetzt is None or a > bis_jetzt:
+                belegt += b - a
+                bis_jetzt = b
+            elif b > bis_jetzt:
+                belegt += b - bis_jetzt
+                bis_jetzt = b
+        tage_liste.append({"tag": tag, "stunden": round(belegt.total_seconds() / 3600, 2), "laeufe": len(e["laeufe"]), "eigene": len(e["eigene"])})
+    from . import belegung
+    return {"rechner": rechner(), "von_utc": iso(von), "bis_utc": iso(bis), "jetzt_utc": iso(jetzt), "gesamt_gb": speicher_frei_gb()[1],
+            "laeufe": heute, "dauer": belegung.aktuell(con), "tage": tage_liste}
+
+
 ANLAUF_S = 180                # so lange zählt ein gerade gestarteter schwerer Lauf seine Grenze als belegt (sein Speicher
                               # ist in der Messung noch nicht zu sehen)
 

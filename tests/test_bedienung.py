@@ -297,6 +297,47 @@ class Seite(Wiederholt, Grund):
             self.con.execute("UPDATE bogen SET zieldatum = ? WHERE id = ?", (p85, bid))
         self.oeffnen("planung", "document.querySelector('.ueb-token') && [...document.querySelectorAll('.sehrleise')].some(x => x.textContent.trim() === '(mit Pause)')")
 
+    def test_rechner_heute_als_eigener_zeitstrahl(self):
+        """Planung: unter der Übersicht der Tagesablauf des Rechners – eigene Läufe mit Nummer und Agent, fremde nur als
+        „anderes Projekt“, Wartende gestrichelt hinter „jetzt“, Dauer-Belegung als durchgehender Balken; einklappbar."""
+        import datetime
+        from unittest import mock
+        from amw import belegung, db
+        jetzt = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+        iso = lambda minuten: (jetzt + datetime.timedelta(minutes=minuten)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        with db.schreiben(self.con):
+            fremd = db.einfuegen(self.con, "projekt", name="Fremd", angelegt_utc=db.jetzt())
+            lauf = lambda pid, agent, text, status, start=None, ende=None, **mehr: db.einfuegen(
+                self.con, "lauf", projekt_id=pid, agent=agent, beschreibung=text, status=status, angemeldet_utc=iso(-90), start_utc=start, ende_utc=ende, **mehr)
+            l1 = lauf(self.pid, "CC1", "Gesamtlauf", "fertig", iso(-60), iso(-40), braucht_gb=8)
+            lauf(fremd, "X1", "Geheimer Build", "laeuft", iso(-10), erwartet_min=30, braucht_gb=4)
+            l3 = lauf(self.pid, "CC1", "Browser-Tests", "angemeldet", erwartet_min=15)
+        seit = jetzt - datetime.timedelta(minutes=50)
+        with mock.patch.object(belegung, "prozesse", lambda: [{"pid": 5, "eltern": 1, "name": "llama-server", "gb": 16.4, "seit": seit}]), \
+                mock.patch.object(belegung, "_gemerkt", [0.0, None, []]):
+            self.oeffnen("planung", "document.querySelector('#rechner-heute .rh-lauf')")
+            balken = self.tab.js("[...document.querySelectorAll('#rechner-heute .rh-lauf')].map(b => [b.className.replace('rh-lauf ', ''), b.textContent])")
+            self.assertEqual(balken[0], ["dauer", "llama-server · 16,4 GB"])
+            self.assertEqual(balken[1], ["fertig eigen", f"L{l1} CC1 · 8 GB"])
+            self.assertEqual(balken[2][0], "laeuft")
+            self.assertTrue(balken[2][1].startswith("anderes Projekt"))
+            self.assertEqual(balken[3][0], "wartet eigen")
+            self.assertTrue(balken[3][1].startswith(f"L{l3} CC1"))
+            self.assertNotIn("Geheim", self.tab.js("document.querySelector('#inhalt').innerHTML"))            # von fremden Läufen kein Inhalt
+            lage = self.tab.js("(() => { const x = s => document.querySelector('#rechner-heute ' + s).getBoundingClientRect();"
+                               " const j = x('.ueb-heute'), w = x('.rh-lauf.wartet'), f = x('.rh-lauf.fertig'), d = x('.rh-lauf.dauer'), fl = x('.rh-flaeche');"
+                               " return [f.right < j.left, w.left >= j.left - 1, Math.abs(d.right - fl.right) < 3]; })()")
+            self.assertEqual(lage, [True, True, True])                                                       # fertig vor „jetzt“, wartend dahinter, Dauer bis zum Rand
+            self.assertEqual(self.tab.js("getComputedStyle(document.querySelector('#rechner-heute .rh-lauf.wartet')).borderTopStyle"), "dashed")
+            kopf = self.tab.js("document.querySelector('#rechner-heute summary').textContent")
+            self.assertIn("1 wartet", kopf)
+            self.assertIn("Stunden belegt", kopf)
+            self.assertFalse(self.tab.js("document.documentElement.scrollWidth > innerWidth"))
+            self.tab.js("document.querySelector('#rechner-heute summary').click()")                          # einklappen – bleibt beim Neuzeichnen zu
+            self.warten("!document.querySelector('#rechner-heute').open")
+            self.tab.js("sichtPlanung()")
+            self.warten("document.querySelector('#rechner-heute') && !document.querySelector('#rechner-heute').open")
+
     def test_logo_oben_mit_untertitel_und_favicon(self):
         self.oeffnen("start", "document.querySelector('#marke-text i')")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('#marke-text i')].map(i => i.textContent).join('')"), "AMW")

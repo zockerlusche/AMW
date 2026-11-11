@@ -366,7 +366,8 @@ def daten_planung(con, pid):
     n, sek = ki.nachts_wartend(con)
     ki_fenster = {"von": f[0] if f else None, "bis": f[1] if f else None, "text": ki.fenster_text(f), "offen": ki.im_fenster(f=f),
                   "termin": ki.testtermin_vorrang(con), "wartend": n, "sekunden": sek}
-    return {"token": tokenprognose.als_daten(token), "termine": termin_liste, "ki_fenster": ki_fenster, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
+    from . import betrieb                              # der Rechner heute: Läufe aller Projekte, fremde ohne Inhalt
+    return {"rechner_heute": betrieb.tagesverlauf(con, pid), "token": tokenprognose.als_daten(token), "termine": termin_liste, "ki_fenster": ki_fenster, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
             "pruefung": planung.pruefen(con, pid, prog, mit_akzeptierten=True), "status": planung.status(con, pid, prog),
             "check_texte": {k: {"wer": v[1], "ziel": v[2], **v[3]} for k, v in planung.CHECKS.items()}, "lead": kern.lead(con, pid),
             "wartet": planung.freigaben_offen(con, pid), "heute": datetime.date.today().isoformat(),   # lokales Datum für die Heute-Linie

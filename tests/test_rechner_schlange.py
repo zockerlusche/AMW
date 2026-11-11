@@ -1,5 +1,6 @@
 """Eine Warteschlange je Rechner – über alle Projekte. Wer zuerst kommt, ist zuerst dran; ein Lead sortiert nur die Läufe
 seines Projekts um, der Mensch über alle; über Läufe eines anderen Projekts erfährt man nur die Belegung, nie den Inhalt."""
+import json
 import os
 import tempfile
 import unittest
@@ -229,6 +230,52 @@ class Anzeige(Grund):
         start = workbench.daten_start(self.con, self.p["Zwei"])["rechner"]
         self.assertEqual((start["laufen"], start["warten"]), (1, 2))
         self.assertNotIn("geheime Beschreibung", str(start))                     # nur Zahlen
+
+
+class Tagesverlauf(unittest.TestCase):
+    """Zeitstrahl „Rechner – heute“: eigene Läufe mit Inhalt, fremde nur als Zeitraum; Belegung je Tag ohne Doppelzählung."""
+
+    def test_heute_und_je_tag(self):
+        import datetime
+        from unittest import mock
+        from amw import belegung
+        ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(ordner.cleanup)
+        con = db.anlegen(os.path.join(ordner.name, "t.db"))
+        self.addCleanup(con.close)
+        utc = datetime.timezone.utc
+        mittag = datetime.datetime.now().astimezone().replace(hour=12, minute=0, second=0, microsecond=0).astimezone(utc)   # heute 12 Uhr Ortszeit
+        iso = lambda stunden: (mittag + datetime.timedelta(hours=stunden)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        with db.schreiben(con):
+            a = db.einfuegen(con, "projekt", name="A", angelegt_utc=db.jetzt())
+            b = db.einfuegen(con, "projekt", name="B", angelegt_utc=db.jetzt())
+
+            def lauf(pid, agent, text, status, start=None, ende=None, **mehr):
+                return db.einfuegen(con, "lauf", projekt_id=pid, agent=agent, beschreibung=text, status=status, angemeldet_utc=iso(-30),
+                                    start_utc=start, ende_utc=ende, **mehr)
+            l1 = lauf(a, "CC1", "Gesamtlauf", "fertig", iso(-3), iso(-2), braucht_gb=6)
+            lauf(b, "GW1", "Geheimer Build", "fertig", iso(-2.5), iso(-1.5), braucht_gb=4)             # überlappt l1 um 30 min
+            l3 = lauf(a, "CC1", "Browser-Tests", "laeuft", iso(-0.5), erwartet_min=60)
+            lauf(b, "GW1", "Geheim wartet", "angemeldet", erwartet_min=20)
+            lauf(a, "CC1", "Gestern", "fertig", iso(-27), iso(-26))
+            lauf(a, "CC1", "Anderer Rechner", "fertig", iso(-3), iso(-2), rechner="woanders")
+        with mock.patch.object(belegung, "prozesse", lambda: []), mock.patch.object(belegung, "_gemerkt", [0.0, None, []]):
+            d = betrieb.tagesverlauf(con, a, jetzt=mittag)
+        self.assertEqual([(x["id"], x["eigen"], x["wer"], x["text"], x["status"]) for x in d["laeufe"]],
+                         [(l1, True, "CC1", "Gesamtlauf", "fertig"), (None, False, None, None, "fertig"),
+                          (l3, True, "CC1", "Browser-Tests", "laeuft"), (None, False, None, None, "wartet")])
+        self.assertNotIn("Geheim", json.dumps(d, ensure_ascii=False))                              # von fremden Läufen kein Inhalt
+        self.assertEqual((d["laeufe"][0]["gb"], d["laeufe"][1]["gb"], d["laeufe"][3]["erwartet_min"]), (6.0, 4.0, 20.0))
+        self.assertEqual((d["laeufe"][3]["start_utc"], d["laeufe"][3]["angemeldet_utc"]), (None, iso(-30)))
+        self.assertEqual((d["jetzt_utc"], d["von_utc"], d["bis_utc"]), (iso(0), iso(-12), iso(12)))
+        heute, gestern = mittag.astimezone().date().isoformat(), (mittag.astimezone().date() - datetime.timedelta(days=1)).isoformat()
+        tage = {x["tag"]: x for x in d["tage"]}
+        self.assertEqual((tage[heute]["stunden"], tage[heute]["laeufe"], tage[heute]["eigene"]), (2.0, 3, 2))   # 3–1,5 h davor am Stück + 0,5 h laufend
+        self.assertEqual((tage[gestern]["stunden"], tage[gestern]["laeufe"]), (1.0, 1))
+        self.assertEqual(betrieb.tagesverlauf(con, a, jetzt=mittag, tage=0)["tage"], [tage[heute]])   # Zeitraum begrenzbar
+        d = workbench.daten_planung(con, b)["rechner_heute"]                                       # aus Sicht des anderen Projekts
+        self.assertEqual([x["text"] for x in d["laeufe"] if x["eigen"]], ["Geheimer Build", "Geheim wartet"])
+        self.assertNotIn("Gesamtlauf", json.dumps(d, ensure_ascii=False))
 
 
 if __name__ == "__main__":
