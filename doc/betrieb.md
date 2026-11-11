@@ -17,6 +17,8 @@ freier Arbeitsspeicher, Suche (Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrich
 | **Einstellungen** | Projekt, Agenten (mit Profil), Online-Seite, dieser PC, Online-Speicher, Benachrichtigungen |
 
 Hell/Dunkel und Deutsch/Englisch unten links; die Seite aktualisiert Start und Betrieb von selbst (nicht während du tippst).
+Die Untermenüs einer Seite (Reiter, Filter, Sprungmarken) bleiben beim Scrollen oben stehen – am Handy je Untermenü eine
+Zeile, die sich waagrecht wischen lässt.
 
 ## 2 Mit den Agenten arbeiten
 - **Auftrag geben:** Kachel › „Nachricht“ (Art Auftrag weckt) – oder an den Lead, der verteilt.

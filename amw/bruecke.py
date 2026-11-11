@@ -46,7 +46,9 @@ ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", 
 def bruecken(con):
     """Je Projekt eine Brücke: pid, name, eingang (Befehle), kopie (Lese-Kopie), von (Absender). Das erste Projekt
     behält eingang-tl/ und tl_lesen.db mit dem Absender der Einstellung (bruecke_absender); jedes weitere bekommt
-    eingang-<projekt>/ und lesen-<projekt>.db, Absender ist sein Lead – ohne Lead keine Brücke."""
+    eingang-<projekt>/ und lesen-<projekt>.db, Absender ist sein Lead – ohne Lead keine Brücke. Die Brücke ist für einen
+    Lead gedacht, der als Chat arbeitet: ein eigener Agent mit rolle=lead ohne Arbeitsordner (wird nie gestartet). Führt
+    stattdessen ein Agent mit eigener Sitzung das Projekt, liefe jeder Befehl der Brücke unter dessen Namen."""
     daten = os.path.dirname(db.db_pfad())
     aus = []
     for i, p in enumerate(con.execute("SELECT id, name FROM projekt ORDER BY id").fetchall()):

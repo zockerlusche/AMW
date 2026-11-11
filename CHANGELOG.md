@@ -4,6 +4,19 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.35.0 – 11.11.2026 · Untermenüs bleiben beim Scrollen oben stehen
+- **Fester Seitenkopf auf jeder Seite:** Reiter, Filter und Sprungmarken einer Seite bleiben beim Scrollen oben stehen –
+  auch ganz unten lässt sich der Reiter wechseln oder der Filter ändern. Die Titelzeile läuft dabei hinaus, damit der
+  feste Teil flach bleibt. Gilt am PC, online und am Handy; ein gemeinsamer Baustein für alle Seiten.
+- **Handy:** Jedes Untermenü ist eine einzige Zeile, die sich waagrecht wischen lässt (statt mehrerer umbrochener
+  Zeilen); der gewählte Reiter rückt von selbst ins Bild, und die Zeile bleibt beim Neuzeichnen, wo sie war.
+- **Betrieb** hat Sprungmarken zu seinen Abschnitten (wie die Einstellungen). Sprungziele landen unter dem festen Kopf.
+- Dokumente: Die Filterzeile passt am PC wieder in eine Zeile (Suchfeld schmaler).
+- **Rolle per Befehl ändern:** `amw agent profil <kennung> --rolle … --grenzen …` (Lead und Entwickler; bisher nur in den
+  Einstellungen). Der einzige Lead gibt seine Rolle nicht selbst ab. Damit lässt sich ein Lead, der als Chat über die
+  Datei-Brücke arbeitet, nachträglich vor ein Projekt setzen, das bisher ein Agent mit eigener Sitzung führt – die Brücke
+  bucht dann unter dem Namen des Chat-Leads statt unter dem des Agenten (→ doc/architektur.md).
+
 ## 1.34.1 – 08.11.2026 · Schirm: kein Fehlalarm durch eine einzelne Eingabe
 - **Eine Eingabe allein schließt den Schirm nicht mehr:** Erst eine zweite, spätere Eingabe innerhalb von 2 Minuten zeigt,
   dass jemand am PC ist. Zweimal hatte eine einzelne Eingabe den Schirm geschlossen, obwohl niemand da war.

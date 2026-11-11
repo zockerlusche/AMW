@@ -120,6 +120,17 @@ tr.fremd td { color: var(--sehrleise); font-style: italic; }
 
 main { overflow-y: auto; padding: 26px 30px 60px; }
 .kopf { display: flex; align-items: baseline; gap: 14px; margin: 0 0 18px; flex-wrap: wrap; }
+/* Fester Seitenkopf – ein Baustein für alle Seiten: Die Titelzeile läuft beim Scrollen hinaus, die Untermenüs der Seite
+   (Reiter, Filter, Sprungmarken) bleiben oben stehen. Wie weit er hinausläuft (top), setzt seitenkopf(). */
+.seitenkopf { position: relative; }
+.seitenkopf.mit-menue { position: sticky; z-index: 6; margin: -26px -30px 16px; padding: 26px 30px 0; border-bottom: 1px solid transparent;
+  transition: background-color .15s, box-shadow .15s; }
+.seitenkopf.mit-menue > :last-child { margin-bottom: 0; }
+.seitenkopf.mit-menue > :last-child:not(.reiter) { padding-bottom: 10px; }
+.seitenkopf.fest { background: color-mix(in srgb, var(--grund) 90%, transparent); backdrop-filter: blur(8px); border-bottom-color: var(--linie);
+  box-shadow: 0 14px 18px -20px rgba(0,0,0,.7); }
+.seitenkopf.fest:has(> .reiter:last-child) { border-bottom-color: transparent; }
+.reiter-zeile { display: contents; }
 h1 { font: 600 28px/1.1 var(--titel); letter-spacing: .03em; margin: 0; }
 h2 { font: 600 13px var(--titel); letter-spacing: .16em; text-transform: uppercase; color: var(--leise); margin: 30px 0 12px;
   display: flex; align-items: center; gap: 10px; }
@@ -294,7 +305,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 /* Dokumente: Raster mit Vorschau, Detail mit Vorschau links und Zuordnung/Versionen/Gespräch rechts */
 .dk-filter { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
 .dk-filter select, .dk-filter input { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; padding: 6px 8px; color: var(--tinte); font: inherit; font-size: 14px; min-width: 0; }
-.dk-filter input { flex: 1 1 220px; }
+.dk-filter input { flex: 1 1 160px; }
 .dk-filter select { max-width: 230px; }
 .npa p { margin: 4px 0 8px; } .npa h4 { margin: 18px 0 6px; font: 600 15px var(--titel); }
 .npa-schritte { padding-left: 22px; margin: 8px 0; } .npa-schritte li { margin-bottom: 14px; } .npa-schritte li::marker { font-weight: 600; }
@@ -726,6 +737,15 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   nav a .zahl { position: absolute; top: 2px; right: 6px; margin: 0; font-size: 10px; }
   nav a .zahl:not(.heiss) { display: none; }
   main { padding: 16px 14px 24px; }
+  /* Handy: jedes Untermenü im Seitenkopf einzeilig, waagrecht wischbar – der feste Kopf bleibt flach */
+  .seitenkopf.mit-menue { margin: -16px -14px 12px; padding: 16px 14px 0; }
+  .seitenkopf .reiter-zeile { display: flex; gap: 2px; flex: 1 1 100%; min-width: 0; align-items: flex-end; }   /* Reiter eine Zeile, ihr Filter (.rechts) bleibt darunter stehen */
+  .seitenkopf :is(.reiter-zeile, .vl-filter, .dk-arten, .dk-filter, .sprung) { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .seitenkopf :is(.reiter-zeile, .vl-filter, .dk-arten, .dk-filter, .sprung)::-webkit-scrollbar { display: none; }
+  .seitenkopf :is(.reiter-zeile, .vl-filter, .dk-arten, .dk-filter, .sprung) > * { flex: none; }
+  .seitenkopf .dk-filter input { flex: none; width: 160px; }
+  .seitenkopf .dk-filter select, .seitenkopf .vl-filter select { flex: none; max-width: 180px; }
+  .seitenkopf .sprung { gap: 16px; white-space: nowrap; }
   h1 { font-size: 24px; }
   .wartet, .agenten { grid-template-columns: 1fr 1fr; gap: 8px; }
   .wartet { grid-template-columns: 1fr; }
@@ -1693,7 +1713,43 @@ function standPruefen() {
 /* Klasse „still“ erst hier setzen, im selben Schritt wie das Ersetzen – sonst liefe die Animation am alten Inhalt */
 function rahmen(titel, ...rest) {
   const m = $("#inhalt"); m.classList.toggle("still", ruhig);
-  m.replaceChildren(el("div", { class: "kopf" }, el("h1", {}, titel), ...rest)); return m;
+  const gleich = kopfStand.sicht === zustand.sicht;            /* dieselbe Seite neu gezeichnet: Untermenüs bleiben waagrecht, wo sie waren */
+  kopfStand.lage = gleich ? Object.fromEntries([...m.querySelectorAll(":scope > .seitenkopf > *")].map(e => [e.classList[0], (e.querySelector(".reiter-zeile") || e).scrollLeft])) : {};
+  kopfStand.sicht = zustand.sicht; kopfStand.weg = 0;
+  const k = el("div", { class: "seitenkopf" }, el("div", { class: "kopf" }, el("h1", {}, titel), ...rest));
+  m.replaceChildren(k); kopfStand.groesse.disconnect(); kopfStand.groesse.observe(k); return m;
+}
+/* Fester Seitenkopf: rahmen() legt ihn an; jedes Untermenü, das eine Seite direkt darunter hängt (Reiter, Filter, Sprungmarken),
+   wandert von selbst hinein – keine Seite braucht dafür eigenen Code. Beim Scrollen läuft die Titelzeile hinaus (top negativ),
+   die Untermenüs bleiben stehen; Sprungziele landen darunter (scroll-padding). */
+const UNTERMENUE = ".reiter, .vl-filter, .dk-arten, .dk-filter, .sprung";
+const kopfStand = { sicht: null, lage: {}, weg: 0, groesse: new ResizeObserver(() => seitenkopf()) };
+function seitenkopf() {
+  const m = $("#inhalt"), k = m.firstElementChild;
+  if (!k?.classList.contains("seitenkopf")) return;
+  for (let n; (n = k.nextElementSibling) && n.matches(UNTERMENUE);) {
+    k.append(n);
+    let w = n;                                   /* w = was sich am Handy waagrecht wischen lässt */
+    if (n.classList.contains("reiter")) { w = el("div", { class: "reiter-zeile" }); w.append(...n.querySelectorAll(":scope > button")); n.prepend(w); }
+    const an = w.querySelector("button.an");
+    if (kopfStand.lage[n.classList[0]]) w.scrollLeft = kopfStand.lage[n.classList[0]];
+    else if (an && w.scrollWidth > w.clientWidth) w.scrollLeft += an.getBoundingClientRect().left - w.getBoundingClientRect().left - (w.clientWidth - an.offsetWidth) / 2;
+  }
+  const erstes = k.querySelector(`:scope > :is(${UNTERMENUE})`);
+  k.classList.toggle("mit-menue", !!erstes);
+  kopfStand.weg = erstes ? Math.max(0, erstes.offsetTop - 8) : 0;        /* so viel läuft oben hinaus: Titelzeile samt Abstand */
+  k.style.top = erstes ? -(kopfStand.weg + parseFloat(getComputedStyle(m).paddingTop)) + "px" : "";   /* top zählt ab dem Innenabstand von main */
+  m.style.scrollPaddingTop = erstes ? k.offsetHeight - kopfStand.weg + 10 + "px" : "";
+  k.classList.toggle("fest", !!erstes && m.scrollTop > kopfStand.weg);
+}
+new MutationObserver(seitenkopf).observe($("#inhalt"), { childList: true });
+$("#inhalt").addEventListener("scroll", () => { const k = $("#inhalt").firstElementChild;
+  if (k?.classList.contains("mit-menue")) k.classList.toggle("fest", $("#inhalt").scrollTop > kopfStand.weg); }, { passive: true });
+/* Sprungmarken aus den Abschnitten (h2) einer langen Seite – sie landen wie jedes Untermenü im festen Seitenkopf */
+function sprungmarken(m) {
+  const marken = [...m.querySelectorAll(":scope > h2")].map(h => el("a", { onclick: () => h.scrollIntoView({ behavior: "smooth", block: "start" }) },
+    [...h.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent).join("").trim() || h.textContent));
+  if (marken.length > 2) m.querySelector(":scope > .seitenkopf")?.after(el("div", { class: "sprung" }, marken));
 }
 
 /* --- Start --------------------------------------------------------------------------------- */
@@ -3519,6 +3575,7 @@ async function sichtBetrieb() {
   lt.querySelector("tbody")?.prepend(...fremd);
   m.append(el("h2", {}, t("laeufe")), lt);
   m.append(el("h2", {}, t("protokoll")), el("pre", { class: "log" }, d.log.join("\n") || t("leer")));
+  sprungmarken(m);
 }
 /* Lokale KI: Kachel je KI, Modelle mit Freigabe, Vorlagen, Aufträge (eine Ansicht der gemeinsamen Lauf-Schlange) */
 function kiTeil(m, k) {

@@ -243,7 +243,8 @@ def projekt_einstellen(con, pid, von, **werte):
 
 
 def agent_einstellen(con, pid, von, kennung, neu=False, **werte):
-    """Zahnrad „Agenten“: rolle, soll (an/aus/ruht), grenzen, empfaengt_rund, puls_grenze_s. Nur Lead und Entwickler."""
+    """Zahnrad „Agenten“ und `amw agent profil --rolle/--grenzen`: rolle, soll (an/aus/ruht), grenzen, empfaengt_rund,
+    puls_grenze_s. Nur Lead und Entwickler. Der einzige Lead gibt seine Rolle nicht selbst ab (das kann nur der Entwickler)."""
     if not ist_lead(con, pid, von):
         raise AmwFehler("Agenten dürfen nur Lead und Entwickler einstellen")
     kennung = (kennung or "").strip()
@@ -277,6 +278,8 @@ def agent_einstellen(con, pid, von, kennung, neu=False, **werte):
         raise AmwFehler(f"{kennung} gibt es schon")
     if not neu and not da:
         raise AmwFehler(f"Agent {kennung} gibt es nicht")
+    if not neu and von != ENTWICKLER and "rolle" in felder and felder["rolle"] != "lead" and lead(con, pid) == kennung             and not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND rolle = 'lead' AND kennung != ?", (pid, kennung)).fetchone():
+        raise AmwFehler(f"{kennung} ist der einzige Lead – erst einen anderen Lead anlegen (sonst kann nur noch der Entwickler einstellen)")
     if neu:
         agent_neu(con, pid, kennung)
     if felder:

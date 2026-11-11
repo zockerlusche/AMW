@@ -172,7 +172,10 @@ def cmd_agent(a, con):
                                         denkstufe=a.denkstufe, modell=a.modell, startsatz=a.startsatz, rechte=a.rechte,
                                         fernsteuerung=schalter(a.fernsteuerung, a.keine_fernsteuerung),
                                         neustart_auto=schalter(a.neustart, a.kein_neustart))
-            for k, v in p.items():
+            if a.rolle is not None or a.grenzen is not None:          # Rolle/Zuständigkeit: dieselbe Prüfung wie im Zahnrad „Agenten“
+                kern.agent_einstellen(con, pid, _von(a), a.kennung, **{k: v for k, v in (("rolle", a.rolle), ("grenzen", a.grenzen)) if v is not None})
+            z = kern.agent_zeile(con, pid, a.kennung)
+            for k, v in {"rolle": z["rolle"], "grenzen": z["grenzen"], **{k: v for k, v in p.items() if k != "kennung"}}.items():
                 print(f"{k:<14} {v}")
         return
     for r in con.execute(
@@ -1794,8 +1797,8 @@ def parser():
     x.add_argument("--datei", help="startskript: in diese Datei schreiben")
     x.add_argument("--alle", action="store_true", help="startskript: auch Agenten mit Soll aus/ruht (jeder mit Profil-Ordner)")
     x.add_argument("--abstand", type=int, help="startskript: Sekunden zwischen zwei Starts (Vorgabe 20)")
-    x.add_argument("--rolle")
-    x.add_argument("--grenzen")
+    x.add_argument("--rolle", help="neu/profil: Rolle bzw. Fachgebiet, bis 20 Zeichen (lead = führt das Projekt; leer = keine)")
+    x.add_argument("--grenzen", help="neu/profil: wofür der Agent zuständig ist und was er nicht anfasst")
     x.add_argument("--startbefehl")
     x.add_argument("--ohne-rund", action="store_true", help="bekommt keine Rundschreiben")
     x.set_defaults(f=cmd_agent)

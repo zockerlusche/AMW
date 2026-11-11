@@ -126,8 +126,10 @@ options:
                         Profil-Ordner)
   --abstand ABSTAND     startskript: Sekunden zwischen zwei Starts (Vorgabe
                         20)
-  --rolle ROLLE
-  --grenzen GRENZEN
+  --rolle ROLLE         neu/profil: Rolle bzw. Fachgebiet, bis 20 Zeichen
+                        (lead = führt das Projekt; leer = keine)
+  --grenzen GRENZEN     neu/profil: wofür der Agent zuständig ist und was er
+                        nicht anfasst
   --startbefehl STARTBEFEHL
   --ohne-rund           bekommt keine Rundschreiben
   --von VON
