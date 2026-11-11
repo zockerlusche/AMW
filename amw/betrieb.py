@@ -72,6 +72,12 @@ def _grenze(con, pid, braucht_gb, schwer):
     return speicher_grenze(con, pid) if schwer else 0.0
 
 
+def reserve_gb():
+    """So viel Arbeitsspeicher bleibt beim Einlass schwerer Läufe frei (Einstellung dieses PCs, Vorgabe 3 GB)."""
+    from . import einstellungen
+    return float(einstellungen.wert("speicher_reserve_gb"))
+
+
 def cpu_laeufe():
     """So viele schwere Läufe ohne Fenster und ohne Grafikkarte rechnen zugleich (Einstellung dieses PCs, Vorgabe 2)."""
     from . import einstellungen
@@ -160,10 +166,10 @@ def _speicher_fehlt(con, pid, l_grenze, speicher_frei):
     brauchen) – jeder schwere Lauf braucht seine Grenze für sich."""
     if not l_grenze or speicher_frei is None:
         return None
-    anlauf = _anlauf_gb(con)
-    if speicher_frei - anlauf < l_grenze:
+    anlauf, reserve = _anlauf_gb(con), reserve_gb()
+    if speicher_frei - anlauf - reserve < l_grenze:
         return f"nur {speicher_frei} GB frei" + (f" ({anlauf:g} GB gleich für gerade gestartete Läufe)" if anlauf else "") \
-            + f", Grenze {l_grenze:g} GB"
+            + f", gebraucht {l_grenze:g} GB" + (f" und {reserve:g} GB Reserve" if reserve else "")
     return None
 
 

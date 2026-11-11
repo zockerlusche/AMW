@@ -44,8 +44,8 @@ class Laeufe(Grund):
             betrieb.lauf_start(self.con, self.pid, "CC2", "Abnahme", rezept="abnahme", speicher_frei=7)
         self.assertIn("Schirm ZU", str(e.exception))
         schirm.setzen(self.con, self.pid, "TL", True, "Entwickler weg")
-        with mock.patch.object(schirm, "leerlauf_s", return_value=600):
-            betrieb.lauf_start(self.con, self.pid, "CC2", "Abnahme", rezept="abnahme", speicher_frei=7)
+        with mock.patch.object(schirm, "leerlauf_s", return_value=600), mock.patch.object(betrieb, "reserve_gb", return_value=0.0):
+            betrieb.lauf_start(self.con, self.pid, "CC2", "Abnahme", rezept="abnahme", speicher_frei=7)     # 6 GB laut Rezept, ohne Reserve
         with self.assertRaises(kern.AmwFehler):
             betrieb.lauf_start(self.con, self.pid, "CC1", "zweiter Schirm", rezept="abnahme", speicher_frei=30)
         self.assertEqual(betrieb.rezept_setzen(self.con, self.pid, "abnahme", "neu.ps1"), "geändert")

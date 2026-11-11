@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.43.0 – 11.11.2026 · Arbeitsspeicher-Reserve für den Menschen am Rechner
+- **Reserve als Einstellung des Rechners** (Zahnrad › Dieser PC, Vorgabe 3 GB): Die Warteschlange lässt einen schweren
+  Lauf erst ein, wenn nach seinem Bedarf noch die Reserve frei bleibt. So bleibt der PC bedienbar, auch wenn Agenten
+  rechnen. Die Meldung nennt beides: „nur 10 GB frei, gebraucht 8 GB und 3 GB Reserve“. Mit 0 gilt das bisherige Verhalten.
+- Leitstand › Rechner: „Aus diesem Projekt: 1 aktiv, 1 in der Warteschlange.“
+
 ## 1.42.0 – 11.11.2026 · Eine Warteschlange je Rechner, über alle Projekte
 - **Schwere Läufe werden über Projekte hinweg abgesprochen.** Bisher galt die Reihenfolge der Wartenden nur innerhalb
   eines Projekts – ein wartender Lauf konnte von einem anderen Projekt überholt werden. Jetzt gibt es eine Warteschlange

@@ -164,6 +164,7 @@ class Seite(Wiederholt, Grund):
         rechner = self.tab.js("document.querySelector('#ls-rechner').innerText")
         self.assertIn("Frei", rechner)                                                                 # kein Lauf angemeldet
         self.assertIn("gemeinsamen Warteschlange", rechner)
+        self.assertNotIn("Aus diesem Projekt", rechner)                                                # nichts Eigenes: der Satz entfällt
         self.assertFalse(self.tab.js("document.querySelector('header').innerText.includes('null')"))   # leere Hinweise sind keine Texte
         self.assertFalse(self.tab.js("!!document.querySelector('#halt-knopf')"))                       # Anhalten steht im Leitstand
         self.assertTrue(self.tab.js("[...document.querySelectorAll('#leitstand button')].some(b => b.textContent === 'Alle anhalten')"))

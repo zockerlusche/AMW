@@ -128,6 +128,25 @@ class Verschwiegenheit(Grund):
         self.assertIn("von A: Karten rechnen", str(e.exception))
 
 
+class Reserve(Grund):
+    def test_reserve_bleibt_frei_fuer_den_menschen_am_rechner(self):
+        """Eingelassen wird erst, wenn nach dem Bedarf des Laufs noch die Reserve frei bleibt (Einstellung des Rechners)."""
+        with mock.patch.object(betrieb, "reserve_gb", return_value=3.0):
+            with self.assertRaises(kern.AmwFehler) as e:                         # Bedarf 8 GB (Grenze des Projekts) + 3 GB Reserve > 10 GB
+                betrieb.lauf_start(self.con, self.p["Eins"], "A", "Tests", speicher_frei=10.0)
+            self.assertIn("nur 10.0 GB frei, gebraucht 8 GB und 3 GB Reserve", str(e.exception))
+            lid = betrieb.lauf_start(self.con, self.p["Eins"], "A", "Tests", speicher_frei=11.0)
+            self.assertEqual(self.status(lid), "laeuft")
+        betrieb.lauf_ende(self.con, self.p["Eins"], "A", lid, 0, speicher_frei=32.0)
+        with mock.patch.object(betrieb, "reserve_gb", return_value=0.0):          # Reserve 0: wie früher, 8 GB frei genügen für 8 GB Bedarf
+            self.assertEqual(self.status(betrieb.lauf_start(self.con, self.p["Zwei"], "A", "Tests", speicher_frei=8.0)), "laeuft")
+        from amw import einstellungen
+        self.assertEqual(einstellungen.FELDER["speicher_reserve_gb"][0], 3.0)     # Vorgabe: 3 GB
+        self.assertEqual(einstellungen.FELDER["speicher_reserve_gb"][1]("4,5".replace(",", ".")), 4.5)
+        with self.assertRaises(ValueError):
+            einstellungen.FELDER["speicher_reserve_gb"][1](-1)
+
+
 class Anzeige(Grund):
     def test_auslastung_des_rechners_im_leitstand(self):
         self.start("Eins", "A", erwartet_min=20)

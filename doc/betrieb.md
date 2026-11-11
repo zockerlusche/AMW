@@ -100,7 +100,8 @@ wer zuerst kommt, ist zuerst dran, egal aus welchem Projekt. Am einfachsten mit
 `amw lauf ausfuehren --beschreibung "Tests" --dauer 6 -- <befehl>`: meldet an, wartet, bis der Rechner frei ist, startet
 den Befehl, reicht den Rückgabewert durch und meldet das Ende. Eingelassen wird, wenn ein Platz frei ist (Grafikkarte und
 Bildschirm: ein Lauf zur Zeit; schwere Läufe ohne beides: so viele wie unter „Dieser PC“ eingestellt) und genug
-Arbeitsspeicher. Ein Lead zieht nur Läufe seines eigenen Projekts vor (sie tauschen untereinander die Plätze); über
+Arbeitsspeicher: frei − Reserve − Bedarf gerade gestarteter Läufe ≥ Bedarf des Laufs. Die Reserve (Vorgabe 3 GB,
+Zahnrad › Dieser PC) bleibt für den Menschen am Rechner. Ein Lead zieht nur Läufe seines eigenen Projekts vor (sie tauschen untereinander die Plätze); über
 Projekte hinweg zieht nur der Mensch vor. Über Läufe eines anderen Projekts erfährt man nur die Belegung – „L12 (anderes
 Projekt, läuft seit 16:05, voraussichtlich bis 16:20)“ –, nie Agent, Beschreibung oder Projekt. Der Leitstand zeigt unter
 „Rechner“, wie viele Läufe laufen und warten und wann er voraussichtlich frei ist. Eine Datenbank steht für einen Rechner;
@@ -153,5 +154,6 @@ testen“ (erreichbar über https, läuft dort eine AMW-Seite?). Schlüssel blei
 | `bruecke_kopie_s` | 60 | Lesekopie der Brücke höchstens so oft erneuern |
 | `statusline_weiter` | leer | bisherige Statusline, die die Statusline-Brücke weiterreicht (setzt `amw einrichten`) |
 | `claude_befehl` | `claude` | wie Claude Code gestartet wird (falls nötig mit vollem Pfad) |
+| `speicher_reserve_gb` | 3 | so viel Arbeitsspeicher bleibt frei, bevor ein schwerer Lauf startet (0–64) |
 | `sprache` | auto | Sprache der Oberfläche, solange im Browser nichts gewählt ist: `auto` (wie der Browser), `de`, `en` |
 | `claude_link` | an | Knopf „In Claude öffnen“ auf der Agenten-Seite zeigen |

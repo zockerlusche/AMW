@@ -23,6 +23,15 @@ def _ganz(lo, hi):
     return pruefe
 
 
+def _dezimal(lo, hi):
+    def pruefe(v):
+        v = round(float(v), 1)
+        if not lo <= v <= hi:
+            raise ValueError(f"muss zwischen {lo} und {hi} liegen")
+        return v
+    return pruefe
+
+
 def _pfad(v):
     v = str(v).strip()
     if not v.lower().endswith(".db") or not os.path.isabs(v):
@@ -107,7 +116,9 @@ FELDER = {
     "bruecke_an": (False, _wahr),           # Datei-Brücke für einen Agenten ohne direkten DB-Zugriff
     "bruecke_absender": ("TL", _kennung),
     "bruecke_kopie_s": (60, _ganz(15, 3600)),
-    "cpu_laeufe": (2, _ganz(1, 8)),               # schwere Läufe ohne Fenster/Grafikkarte zugleich (Lauf-Schlange, Spur CPU)
+    "cpu_laeufe": (2, _ganz(1, 8)),
+    # so viel Arbeitsspeicher bleibt frei, bevor die Warteschlange einen schweren Lauf einlässt (für den Menschen am Rechner)
+    "speicher_reserve_gb": (3.0, _dezimal(0, 64)),               # schwere Läufe ohne Fenster/Grafikkarte zugleich (Lauf-Schlange, Spur CPU)
     "statusline_weiter": ("", _befehl),            # bisherige Statusline, die amw-statusline.py weiterreicht
     "claude_befehl": ("claude", _befehl),          # Claude Code starten (falls anders installiert: voller Pfad)
     # Schirm: dieses Programm läuft nur während einer Fernsitzung (Fernwartungs-Werkzeug) – leer = nicht prüfen
