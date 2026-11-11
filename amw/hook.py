@@ -169,6 +169,26 @@ def anmelden(con, pid, kennung, eingabe, ersetzen=False, streng=False):
     return None
 
 
+def hook_fehler_pfad():
+    return os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), "amw", "hook-fehler.log")
+
+
+def hook_fehler(fehler):
+    """Ein Fehler im Hook für schwere Befehle sperrt nichts – er steht nur hier (höchstens ~200 Zeilen, die ältesten fallen weg)."""
+    try:
+        pfad = hook_fehler_pfad()
+        os.makedirs(os.path.dirname(pfad), exist_ok=True)
+        try:
+            with open(pfad, encoding="utf-8") as f:
+                alt = f.readlines()[-199:]
+        except OSError:
+            alt = []
+        with open(pfad, "w", encoding="utf-8") as f:
+            f.writelines(alt + [f"{db.jetzt()} {type(fehler).__name__}: {str(fehler)[:300]}\n"])
+    except Exception:
+        pass
+
+
 def schwere_befehle(eingabe):
     """Antwort für den PreToolUse-Hook: None (Befehl läuft) oder die Abweisung mit dem fertigen Ersatz-Befehl. Abgewiesen
     wird nur, wenn der Schalter „lauf_hook“ dieses PCs an ist; die Muster des Projekts (Einstellung schwere_befehle) gelten
@@ -205,8 +225,8 @@ def main():
             antwort = schwere_befehle(eingabe)
             if antwort:
                 sys.stdout.write(json.dumps(antwort, ensure_ascii=False))
-        except Exception:                           # nie stören: im Zweifel läuft der Befehl
-            pass
+        except Exception as e:                      # nie stören: im Zweifel läuft der Befehl – aber der Fehler wird notiert
+            hook_fehler(e)
         return 0
     if eingabe.get("hook_event_name", "SessionStart") != "SessionStart":
         try:                                        # Zustands-Hooks: still, schnell, nie störend

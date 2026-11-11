@@ -33,7 +33,7 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 
 ## Häufige Fragen
 ### Was passiert, wenn der Hook einmal nicht funktioniert?
-Dann läuft der Befehl ganz normal. Der Hook ist so gebaut, dass ein Fehler nie einen Befehl sperrt.
+Dann läuft der Befehl ganz normal – gesperrt wird bei einem Fehler nie. Der Fehler steht im Protokoll `%LOCALAPPDATA%\amw\hook-fehler.log` auf diesem PC; steht dort etwas, lohnt ein Blick, weil schwere Befehle dann wieder direkt starten.
 
 ### Kann ich das für einen Rechner abschalten?
 Ja: Einstellungen › Dieser PC › „Schwere Befehle über die Warteschlange“ ausschalten. Die Warteschlange selbst bleibt, nur das Abweisen entfällt.

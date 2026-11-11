@@ -99,7 +99,7 @@ Shell-Befehl vor dem Start. Ist er schwer – ganze Test-Suite, Browser-Tests, B
 des Projekts (Zahnrad › Projekt › „Weitere schwere Befehle“) – und läuft nicht schon über die Warteschlange, wird er
 abgewiesen, und der Agent bekommt den fertigen Ersatz: `amw lauf ausfuehren --beschreibung "…" -- <befehl>`. Einzelne
 Test-Module bleiben frei. Abschalten je Rechner: Zahnrad › Dieser PC. Der Hook sperrt nie durch einen Fehler: Fehlt seine
-Datei oder scheitert er, läuft der Befehl normal. Bestehende Ordner bekommen ihn mit einem erneuten
+Datei oder scheitert er, läuft der Befehl normal; der Fehler steht in `%LOCALAPPDATA%\amw\hook-fehler.log`. Bestehende Ordner bekommen ihn mit einem erneuten
 `amw einrichten agenten-ordner <ordner>`; laufende Sitzungen übernehmen ihn nach wenigen Sekunden.
 
 **Schwere Läufe und der Rechner.** Mehrere Projekte teilen sich einen PC. Schwere Läufe (Test-Suiten, Builds, alles mit

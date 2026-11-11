@@ -72,7 +72,7 @@
  "fragen": [
   [
    "Was passiert, wenn der Hook einmal nicht funktioniert?",
-   "Dann läuft der Befehl ganz normal. Der Hook ist so gebaut, dass ein Fehler nie einen Befehl sperrt."
+   "Dann läuft der Befehl ganz normal – gesperrt wird bei einem Fehler nie. Der Fehler steht im Protokoll `%LOCALAPPDATA%\\amw\\hook-fehler.log` auf diesem PC; steht dort etwas, lohnt ein Blick, weil schwere Befehle dann wieder direkt starten."
   ],
   [
    "Kann ich das für einen Rechner abschalten?",

@@ -33,7 +33,7 @@ Several projects share one PC. If test suites, builds or image runs start at the
 
 ## Questions
 ### What happens if the hook fails for once?
-Then the command simply runs. The hook is built so that an error never blocks a command.
+Then the command simply runs – an error never blocks anything. The error is written to the log `%LOCALAPPDATA%\amw\hook-fehler.log` on this PC; if there is something in it, have a look, because heavy commands then start directly again.
 
 ### Can I switch this off for one computer?
 Yes: Settings › This PC › switch off “Send heavy commands through the queue”. The queue itself stays, only the rejecting stops.

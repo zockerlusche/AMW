@@ -134,6 +134,8 @@ class Einbau(unittest.TestCase):
         with mock.patch("sys.stdin", io.StringIO(json.dumps(self.eingabe("git status")))), mock.patch("sys.stdout", aus), \
                 mock.patch.object(hook, "schwere_befehle", side_effect=RuntimeError("kaputt")):
             self.assertEqual((hook.main(), aus.getvalue()), (0, ""))
+        with open(hook.hook_fehler_pfad(), encoding="utf-8") as f:                  # … und der Fehler steht im Protokoll
+            self.assertIn("RuntimeError: kaputt", f.read())
 
 
 if __name__ == "__main__":
