@@ -15,6 +15,11 @@ auseinander.
 | [betriebsart.md](betriebsart.md) | Betriebsart wählen | Einstellungen › Betriebsart |
 | [online-seite-webhoster.md](online-seite-webhoster.md) | Online-Seite beim Webhoster einrichten | Einstellungen › Online-Seite |
 | [zweiter-faktor.md](zweiter-faktor.md) | Zweiter Faktor: neues oder verlorenes Handy | Einstellungen › Online-Seite („Neues Handy“) |
+| [agenten.md](agenten.md) | Agenten: Ordner einrichten, umbenennen, starten | Einstellungen › Agenten |
+| [server.md](server.md) | Projekt-Server überwachen | Betrieb › Projekt-Server |
+| [lokale-ki.md](lokale-ki.md) | Lokale KI einrichten und beauftragen | Betrieb › Lokale KI |
+| [termine.md](termine.md) | Testtermine und Fristen | Planung › Termine |
+| [themen.md](themen.md) | Themen: was gerade gilt | Wissen › Themen |
 
 Englisch liegt unter [en/](en/) mit denselben Dateinamen.
 

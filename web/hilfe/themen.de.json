@@ -1,0 +1,41 @@
+{
+ "titel": "Themen: was gerade gilt",
+ "kurz": "Ein Thema sammelt alle Beschlüsse zu einem System – etwa „Speichern“ oder „Karten-Look“ – und hat eine gepflegte Zusammenfassung „gilt jetzt“. So muss niemand alte Beschlüsse einzeln nachlesen.",
+ "brauchst": [
+  "Einen Betreuer: den Agenten, der die Zusammenfassung schreibt und aktuell hält."
+ ],
+ "schritte": [
+  {
+   "titel": "Thema anlegen",
+   "text": "`amw thema neu \"<name>\" --pfleger <agent>`.",
+   "bilder": []
+  },
+  {
+   "titel": "Zusammenfassung schreiben",
+   "text": "Der Betreuer schreibt sie mit `amw thema pflegen <thema> --text-datei <datei>`.",
+   "bilder": []
+  },
+  {
+   "titel": "Aktuell halten",
+   "text": "Kommt ein neuer Beschluss zum Thema dazu, gilt die Zusammenfassung als veraltet. Der Betreuer passt sie an oder bestätigt sie mit `amw thema bestaetigen <thema>`.",
+   "bilder": []
+  }
+ ],
+ "werte": [],
+ "fehler": [
+  [
+   "„veraltet seit B…“",
+   "Ein neuerer Beschluss ist noch nicht in der Zusammenfassung. Der Betreuer wird daran erinnert."
+  ],
+  [
+   "„Noch keine Zusammenfassung“",
+   "Schritt 2 fehlt."
+  ]
+ ],
+ "danach": [
+  "Ein Thema kann der Projekt-Stil sein (`amw thema einstellen <thema> --stil`); er steht dann bei allen Agenten in den Startinformationen."
+ ],
+ "fragen": [],
+ "thema": "themen",
+ "sprache": "de"
+}

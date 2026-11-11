@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.53.0 – 11.11.2026 · Befehle aus der Oberfläche in die Hilfe
+- **Keine Befehle der Befehlszeile mehr in den Texten der Oberfläche:** Wo ein Text bisher einen Befehl nannte, sagt er
+  jetzt in Worten, was zu tun ist; die Befehle stehen in den Hilfen („? Anleitung“).
+- **Neue Hilfen** (Deutsch und Englisch): „Agenten: Ordner einrichten, umbenennen, starten“, „Projekt-Server überwachen“,
+  „Lokale KI einrichten und beauftragen“, „Testtermine und Fristen“, „Themen: was gerade gilt“; die Hilfe zu ntfy
+  erklärt jetzt auch Telegram und eigene Kanalnamen.
+- „Nacht-Aufträge“ statt „Aufträge mit --nachts“ beim KI-Fenster.
+
 ## 1.52.0 – 11.11.2026 · Oberfläche in normaler Sprache
 - **Texte der Workbench und der Online-Seite überarbeitet** (Deutsch und Englisch, gut 200 Stellen): kurz, aktiv und mit
   den Wörtern, die übliche Software verwendet. Die wichtigsten Wörter:

@@ -1,0 +1,54 @@
+{
+ "titel": "Test dates and deadlines",
+ "kurz": "A test date says when you test. The AMW derives the deadline “test build ready” for everyone and shows with a traffic light whether the linked milestone will be done by then.",
+ "brauchst": [
+  "The time of the test, and the weekday for recurring tests."
+ ],
+ "schritte": [
+  {
+   "titel": "Create the date",
+   "text": "`amw termin neu --titel \"Weekly test\" --art test --am \"13.11. 18:00\"` – weekly with `--woechentlich`, until a day with `--bis YYYY-MM-DD`.",
+   "bilder": []
+  },
+  {
+   "titel": "Link a milestone (optional)",
+   "text": "Add `--bogen <number>`. The traffic light then compares its forecast with the deadline.",
+   "bilder": []
+  },
+  {
+   "titel": "Adjust the lead time (optional)",
+   "text": "Default: the test build is due 4 hours before the date. Change it with `--vorlauf <hours>`.",
+   "bilder": []
+  }
+ ],
+ "werte": [
+  [
+   "Title",
+   "short, e.g. “Weekly test”"
+  ],
+  [
+   "Time",
+   "local time, e.g. “13.11. 18:00”"
+  ],
+  [
+   "Milestone",
+   "number from Planning"
+  ]
+ ],
+ "fehler": [
+  [
+   "“test build not reported yet”",
+   "The agent reports the finished test build with `amw termin bereit <date> --text \"what is new\"`."
+  ],
+  [
+   "A single date is cancelled",
+   "`amw termin absagen <date> --am \"20.11. 18:00\"` cancels only that occurrence."
+  ]
+ ],
+ "danach": [
+  "Dates are under Planning › Dates; the next test is also on the home page."
+ ],
+ "fragen": [],
+ "thema": "termine",
+ "sprache": "en"
+}

@@ -35,3 +35,9 @@ Ja. Trage seine Adresse bei „Server“ ein und abonniere den Kanal in der App 
 
 ### Geht es auch ohne ntfy?
 Ja, über Pushover oder Telegram – beide stehen daneben in den Einstellungen.
+
+### Wie richte ich Telegram ein?
+In Telegram mit dem @BotFather einen Bot anlegen und dessen Token kopieren. Dem neuen Bot eine Nachricht schreiben. Dann am PC `amw push telegram --token <token>` ausführen: Die AMW zeigt die Chat-ID aus deiner Nachricht. Mit `amw push telegram --token <token> --chat <ID>` trägt sie beides ein.
+
+### Wie erzeuge ich einen eigenen Kanalnamen?
+`amw push ntfy --kanal <name>` setzt einen eigenen Namen; ohne `--kanal` erzeugt die AMW einen zufälligen.

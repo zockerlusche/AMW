@@ -71,6 +71,14 @@
   [
    "Does it work without ntfy?",
    "Yes, via Pushover or Telegram – both sit next to it in the settings."
+  ],
+  [
+   "How do I set up Telegram?",
+   "In Telegram create a bot with @BotFather and copy its token. Send the new bot a message. Then run `amw push telegram --token <token>` on the PC: the AMW shows the chat ID from your message. `amw push telegram --token <token> --chat <ID>` stores both."
+  ],
+  [
+   "How do I choose my own topic name?",
+   "`amw push ntfy --kanal <name>` sets your own name; without `--kanal` the AMW creates a random one."
   ]
  ],
  "thema": "ntfy",

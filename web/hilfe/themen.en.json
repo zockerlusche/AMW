@@ -1,0 +1,41 @@
+{
+ "titel": "Topics: what applies now",
+ "kurz": "A topic collects all decisions about one system – “saving” or “map look”, for example – and has a maintained summary “applies now”. Nobody has to read old decisions one by one.",
+ "brauchst": [
+  "A maintainer: the agent who writes the summary and keeps it up to date."
+ ],
+ "schritte": [
+  {
+   "titel": "Create a topic",
+   "text": "`amw thema neu \"<name>\" --pfleger <agent>`.",
+   "bilder": []
+  },
+  {
+   "titel": "Write the summary",
+   "text": "The maintainer writes it with `amw thema pflegen <topic> --text-datei <file>`.",
+   "bilder": []
+  },
+  {
+   "titel": "Keep it current",
+   "text": "When a new decision about the topic is added, the summary counts as outdated. The maintainer updates it or confirms it with `amw thema bestaetigen <topic>`.",
+   "bilder": []
+  }
+ ],
+ "werte": [],
+ "fehler": [
+  [
+   "“outdated since B…”",
+   "A newer decision is not in the summary yet. The maintainer is reminded."
+  ],
+  [
+   "“No summary yet”",
+   "Step 2 is missing."
+  ]
+ ],
+ "danach": [
+  "One topic can be the project style (`amw thema einstellen <topic> --stil`); all agents then see it in their start information."
+ ],
+ "fragen": [],
+ "thema": "themen",
+ "sprache": "en"
+}
