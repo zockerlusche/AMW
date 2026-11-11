@@ -63,10 +63,6 @@ header::before { content: ""; position: absolute; left: 0; right: 0; top: 0; hei
 .suche input { width: 100%; max-width: 380px; min-width: 0; padding: 8px 12px 8px 30px; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; outline: none; }
 .suche input:focus { border-color: var(--bernstein); }
 .suche::before { content: "⌕"; position: absolute; left: 10px; top: 6px; color: var(--sehrleise); font-size: 16px; }
-.schalter-halt { font: 600 13px var(--titel); letter-spacing: .12em; text-transform: uppercase; padding: 9px 16px; border-radius: 3px;
-  border: 1px solid var(--rot); background: transparent; color: var(--rot); cursor: pointer; flex: none; }
-.schalter-halt:hover { background: var(--rot-weich); }
-.schalter-halt.aktiv { background: var(--rot); color: #fff; }
 
 nav { border-right: 1px solid var(--linie); padding: 14px 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
 nav .gruppe { font: 11px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--sehrleise); padding: 14px 18px 6px; }
@@ -502,6 +498,27 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .kachel .info { margin-top: 8px; color: var(--leise); font-size: 12.5px; min-height: 36px; overflow-wrap: anywhere; }
 .kachel .offen { position: absolute; top: 12px; right: 14px; font: 600 13px var(--mono); }
 .kachel.tot { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); }
+/* Leitstand: alles Steuerbare an einer Stelle, direkt unter den Agenten (Start) */
+.leitstand { margin-top: 16px; border: 1px solid var(--linie2); background: linear-gradient(180deg, var(--flaeche2), var(--flaeche));
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); scroll-margin-top: 12px; }
+.leitstand > div { padding: 12px 14px; border-right: 1px solid var(--linie); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.leitstand > div:last-child { border-right: 0; }
+.leitstand .lt { font: 600 11px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--sehrleise); }
+.leitstand .stand { font: 600 16px var(--titel); letter-spacing: .02em; display: flex; align-items: center; gap: 8px; }
+.leitstand .erkl { font-size: 12px; color: var(--leise); flex: 1; }
+.leitstand .zeile { display: flex; gap: 8px; flex-wrap: wrap; }
+.leitstand .knopf.warn { border-color: var(--rot); color: var(--rot); }
+/* Aktionsmenü: „⋯“ öffnet die Befehle zu einer Sache (Agent) – ein Baustein */
+.mehr-knopf { padding: 6px 11px; letter-spacing: .1em; }
+.menue { position: absolute; z-index: 40; min-width: 250px; max-width: min(340px, calc(100vw - 16px)); background: var(--flaeche2); border: 1px solid var(--linie2);
+  box-shadow: 0 18px 40px -16px rgba(0,0,0,.8); padding: 6px 0; }
+.menue .mt { padding: 6px 14px 4px; font: 600 11px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--sehrleise); }
+.menue button { display: flex; width: 100%; gap: 10px; align-items: baseline; text-align: left; background: none; border: 0; padding: 8px 14px; cursor: pointer; }
+.menue button:hover, .menue button:focus-visible { background: var(--bernstein-weich); outline: none; }
+.menue button small { color: var(--sehrleise); font-size: 11.5px; margin-left: auto; padding-left: 12px; white-space: nowrap; }
+.menue button.rot { color: var(--rot); }
+.menue button[disabled] { color: var(--sehrleise); cursor: default; background: none; }
+.menue hr { border: 0; border-top: 1px solid var(--linie); margin: 5px 0; }
 .kachel.aus { opacity: .55; }
 .klickbar { cursor: pointer; } .karte.klickbar:hover, .zeile.klickbar:hover { border-color: var(--leise); }
 .au-block { margin-top: 16px; } .au-block h4 { margin: 0 0 6px; } .au-zeile { padding: 4px 0; border-bottom: 1px solid var(--linie); }
@@ -716,7 +733,6 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   .signale { order: 2; flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow: hidden; }
   .signale .signal { padding: 3px 7px; font-size: 11px; }
   .signale .signal.unwichtig { display: none; }
-  .schalter-halt { margin-left: auto; padding: 8px 14px; min-height: 40px; }
   .suche { order: 3; flex: 1 0 100%; margin: 0; }
   .suche input { width: 100%; padding: 10px 12px 10px 30px; }
   .suche::before { top: 8px; }
@@ -736,6 +752,9 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   nav a .zahl { position: absolute; top: 2px; right: 6px; margin: 0; font-size: 10px; }
   nav a .zahl:not(.heiss) { display: none; }
   main { padding: 16px 14px 24px; }
+  .leitstand { grid-template-columns: 1fr 1fr; }
+  .leitstand > div:nth-child(2n) { border-right: 0; } .leitstand > div:nth-child(-n+2) { border-bottom: 1px solid var(--linie); }
+  .menue button { padding: 12px 14px; }
   /* Handy: jedes Untermenü im Seitenkopf einzeilig, waagrecht wischbar – der feste Kopf bleibt flach */
   .seitenkopf.mit-menue { margin: -16px -14px 12px; padding: 16px 14px 0; }
   .seitenkopf .reiter-zeile { display: flex; gap: 2px; flex: 1 1 100%; min-width: 0; align-items: flex-end; }   /* Reiter eine Zeile, ihr Filter (.rechts) bleibt darunter stehen */
@@ -778,7 +797,6 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
     <button class="projekt-chip" id="projekt-chip" type="button" hidden></button>
     <div class="signale" id="signale"></div>
     <div class="suche"><input id="suche" autocomplete="off" data-t-ph="suche"></div>
-    <button class="schalter-halt" id="halt-knopf" type="button"></button>
     <button class="knopf" id="abmelden" type="button" data-t="abmelden" hidden></button>
   </header>
   <nav id="nav">
@@ -827,7 +845,7 @@ const TEXTE = {
     marke: "Agenten Management Workbench", suche: "Suchen: Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten",
     g_fuerdich: "Für dich", g_arbeit: "Arbeit", g_wissen: "Wissen", g_betrieb: "Betrieb",
     n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_aufgaben_kurz: "Arbeit", n_releases: "Release Notes", n_releases_kurz: "Notes", n_mehr: "Mehr", n_wissen: "Wissen", n_betrieb: "Betrieb",
-    thema: "Hell / Dunkel", halt: "Alle anhalten", halt_an: "Angehalten", weiter: "Weiterarbeiten",
+    thema: "Hell / Dunkel", halt: "Alle anhalten", halt_an: "Angehalten", s_ende: "{n} werden beendet (bis {x})", k_ende: "sichert und wird beendet – spätestens {x}", ls_hin: "zum Leitstand (Start, unter den Agenten)", ls_arbeit: "Arbeit der Agenten", ls_laeuft: "läuft", ls_steht: "angehalten", ls_arbeit_e: "Anhalten: Agenten beenden ihren Schritt und nehmen nichts Neues an.", ls_schirm: "Bildschirm", ls_schirm_frei: "frei für Agenten", ls_schirm_belegt: "belegt", ls_schirm_e: "Nur wenn frei, dürfen Agenten Fenster öffnen (Programm starten, Bilder aufnehmen).", ls_sitz: "Sitzungen", ls_sitz_laufen: "{n} laufen", ls_sitz_laufen1: "1 läuft", ls_sitz_fehlen1: "1 fehlt", ls_sitz_ruhen: "{n} abgemeldet", ls_sitz_fehlen: "{n} fehlen", ls_sitz_ende: "{n} werden beendet – spätestens {x}", ls_sitz_e: "Für ein Update: Jeder sichert seinen Stand, meldet sich ab und wird beendet – nach 5 Minuten auch ohne Abmeldung.", ls_sitz_e_netz: "Sitzungen starten und beenden geht nur am PC.", ls_sichern: "Alle sichern & beenden", ls_sichern_frage: "{n} laufende Sitzung(en) bitten, zu sichern und sich abzumelden? Wer nach 5 Minuten noch läuft, wird beendet. Fenster bleiben offen.", ls_sichern_ok: "{n} Agent(en) sichern – beendet spätestens {x}", ls_sichern_keiner: "Es läuft gerade keine Sitzung.", ls_starten: "Fehlende starten", ls_starten_frage: "Starten (nacheinander, letzte Sitzung fortsetzen): {x}?", ls_starten_ok: "{n} Agent(en) starten nacheinander im Abstand von {s} s", ls_wacht: "Wächter", ls_wacht_laeuft: "läuft · v{v}", ls_wacht_e: "Weckt Agenten, überwacht Läufe und Grenzen, gleicht mit der Online-Seite ab.", ls_wacht_e_netz: "Der Wächter läuft am PC und lädt den Stand hierher.", ls_wacht_neu: "Neu starten", ls_wacht_frage: "Wächter neu starten? Die Seite ist kurz nicht erreichbar; Agenten laufen weiter.", ls_wacht_ok: "Wächter startet neu – die Seite meldet sich gleich wieder", m_titel: "Befehle für {x}", m_nachricht: "Nachricht schreiben", m_gespraech: "Gespräch mitlesen", m_uebersicht: "Übersicht und Aufgabenliste", m_steuern: "Steuern", m_halt1: "Anhalten (nur diesen)", m_halt1_frage: "{x} anhalten? Er beendet seinen Schritt und nimmt nichts Neues an.", m_weiter1: "Weiterarbeiten lassen", m_sichern: "Sichern & beenden lassen", m_sichern_h: "für Updates", m_sichern_frage: "{x} bitten, zu sichern und sich abzumelden? Nach 5 Minuten wird die Sitzung auch ohne Abmeldung beendet.", m_sichern_ok: "sichert – beendet spätestens {x}", m_sofort: "Sofort beenden", m_sofort_h: "ohne Sichern", m_start: "Starten / fortsetzen", m_start_frage: "{x} starten (letzte Sitzung fortsetzen, falls vorhanden)?", m_neu: "Neue Sitzung beginnen", m_chat: "Ohne Arbeitsordner (z. B. Chat) – wird von hier nicht gestartet oder beendet", m_nur_pc: "Sitzung starten/beenden: nur am PC", m_profil: "Profil und Zuständigkeit …", weiter: "Weiterarbeiten",
     s_dienst: "Wächter läuft", s_dienst_weg: "Wächter nicht erreichbar", s_agenten: "{a} von {b} Agenten laufen", s_speicher: "Arbeitsspeicher: {n} GB frei", s_speicher_unb: "Arbeitsspeicher: unbekannt",
     nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
     nicht_angemeldet_h: "Läuft, wird aber nicht geweckt – im Fenster: amw anmelden --von <Kennung>",
@@ -875,9 +893,9 @@ const TEXTE = {
     e_puls_pc: "Abgleich: Lebenszeichen alle (s)", e_eingang: "Abgleich: Briefkasten leeren alle (s)", e_bruecke: "Brücke für einen Lead ohne Windows-Zugriff (z. B. in einer VM)",
     e_absender: "Brücke: Absender", e_kopie: "Brücke: Lesekopie höchstens alle (s)",
     e_kanal: "Entwickler-Kanal (AMW-Entwickler)", e_kanal_h: "Kennung des Agenten, der die AMW selbst weiterentwickelt: Er darf in jedem Projekt schreiben und angeschrieben werden, die Leads sehen ihn im Pflicht-Kontext. Leer = aus.",
-    e_cpu: "Schwere Läufe ohne Fenster zugleich", e_cpu_h: "CPU-Spur der Lauf-Schlange; Grafikkarte und Schirm bleiben bei einem Lauf zur Zeit. Jeder Lauf braucht seine Speicher-Grenze frei, ein Agent rechnet nie zwei zugleich.",
-    e_fern: "Schirm: Programm einer Fernsitzung", e_fern_ph: "leer = aus, z. B. teamviewer_desktop.exe oder AnyDesk.exe",
-    e_fern_h: "Läuft nur während einer Fernwartungs-Verbindung – beginnt eine, geht ein freier Schirm zu",
+    e_cpu: "Schwere Läufe ohne Fenster zugleich", e_cpu_h: "CPU-Spur der Lauf-Schlange; Grafikkarte und Bildschirm bleiben bei einem Lauf zur Zeit. Jeder Lauf braucht seine Speicher-Grenze frei, ein Agent rechnet nie zwei zugleich.",
+    e_fern: "Bildschirm: Programm einer Fernsitzung", e_fern_ph: "leer = aus, z. B. teamviewer_desktop.exe oder AnyDesk.exe",
+    e_fern_h: "Läuft nur während einer Fernwartungs-Verbindung – beginnt eine, gilt ein freier Bildschirm wieder als belegt",
     e_entwickler: "Dein Name in Meldungen", e_entwickler_ph: "Entwickler", e_entwickler_h: "z. B. „Marie wartet …“ – als Wartegrund geht er auch (--auf Marie)",
     e_dateien: "Dateien online", e_dateien_h: "Welche Dateien der Dokumente der PC von selbst auf die Online-Seite lädt (nur nach Anmeldung sichtbar). Gilt auch für vorhandene; zurückstellen nimmt nichts herunter – das geht je Dokument.",
     e_dateien_wunsch: "nur auf Wunsch", e_dateien_bilder: "Bilder und Mockups", e_dateien_alle: "alle (auch PDF, Office)",
@@ -948,7 +966,7 @@ const TEXTE = {
     tm_naechster: "Nächster Test", tm_frist: "Testbuild fertig bis {x}", tm_ampel: "Bogen {b}: {a}", tm_bereit: "Testbuild gemeldet", tm_alle: "Termine",
     tm_offen: "Testbuild noch nicht gemeldet (amw termin bereit <T> --text …)", tm_leer: "Keine Termine in den nächsten 4 Wochen.", tm_woechentlich: "wöchentlich",
     tm_erkl: "Testtermine des Entwicklers setzen die Frist „Testbuild fertig“ für alle; die Ampel vergleicht die Prognose des verknüpften Bogens. Anlegen: amw termin neu --titel … --art test --am \"06.11. 18:00\" [--woechentlich] [--bogen N] (Lead/Entwickler).",
-    tm_art_test: "Test", tm_art_frist: "Frist", tm_art_schirm: "Schirm", tm_art_sonstig: "Termin", pl_bogen_neu: "Neuer Bogen", pl_check_ok: "Keine Lücken gefunden.", st_fehler: "Fehler",
+    tm_art_test: "Test", tm_art_frist: "Frist", tm_art_schirm: "Bildschirm", tm_art_sonstig: "Termin", pl_bogen_neu: "Neuer Bogen", pl_check_ok: "Keine Lücken gefunden.", st_fehler: "Fehler",
     st_warnung: "Warnung", st_hinweis: "Hinweis",
     ck_erklaerung: "Der Plan-Check sucht Lücken, die später Zeit oder Nacharbeit kosten. Jeder Befund sagt, was er bedeutet, was zu tun ist und wer es tut.",
     ck_legende: "Fehler: so ist der Plan nicht belastbar – zuerst beheben. Warnung: schwächt Termin, Prognose oder Abnahme. Hinweis: Ordnung, kann warten. Warnungen und Hinweise kannst du mit Grund bewusst akzeptieren – sie zählen dann nicht mehr und lassen sich jederzeit wieder prüfen.",
@@ -1110,7 +1128,7 @@ const TEXTE = {
     pw_nur_ansicht: "Umschalten ändert nur die Ansicht – alle Projekte arbeiten weiter.", pw_weg: "seit über 7 Tagen nicht gemeldet",
     pw_fern_ohne_link: "Dieses Projekt läuft auf einem anderen Rechner. Öffnen geht über die Online-Seite – trage ihre Adresse unter Einstellungen › Push › Link ein.",
     pc_marke: "dieser PC", pc_marke_h: "gehört zu diesem Rechner, egal welches Projekt gewählt ist", 
-    fremd_projekt: "Projekt „{x}“", fremd_gpu: "belegt die Grafikkarte seit {x}", fremd_schirm: "belegt den Schirm seit {x}",
+    fremd_projekt: "Projekt „{x}“", fremd_gpu: "belegt die Grafikkarte seit {x}", fremd_schirm: "belegt den Bildschirm seit {x}",
     e_farbe: "Farbe", e_farbe_h: "Streifen oben und Marke in der Projekt-Auswahl", e_rechner: "Name dieses Rechners",
     e_rechner_h: "steht in der Projekt-Auswahl, wenn Projekte auf mehreren Rechnern laufen",
     farbe_bernstein: "Bernstein", farbe_gruen: "Grün", farbe_blau: "Blau", farbe_violett: "Violett", farbe_tuerkis: "Türkis", farbe_rot: "Rot", farbe_grau: "Grau",
@@ -1121,14 +1139,14 @@ const TEXTE = {
     halt_erkl: "Laufende Agenten bekommen sofort ein STOPP und beenden ihre aktuelle Arbeit sauber. Danach weckt der Dienst nur noch für Stopp und Freigabe – bis „Weiter“. Gilt auch nach einem Neustart.",
     grund_ph: "Grund (erscheint bei den Agenten)", abbrechen: "Abbrechen", halt_gesetzt: "Halt gesetzt", halt_aufgehoben: "{n} Halt aufgehoben",
     halt_band: "alle Agenten", halt_vom: "Halt vom Entwickler",
-    s_schirm_frei: "Bildschirm: frei für Agenten", s_schirm_zu: "Bildschirm: belegt", schirm: "Schirm", schirm_frei: "SCHIRM FREI", schirm_zu_b: "SCHIRM ZU",
+    s_schirm_frei: "Bildschirm: frei für Agenten", s_schirm_zu: "Bildschirm: belegt", schirm: "Bildschirm", schirm_frei: "BILDSCHIRM FREI FÜR AGENTEN", schirm_zu_b: "BILDSCHIRM BELEGT",
     schirm_seit: "seit {x}", schirm_bis: "bis {x}", schirm_von: "von {x}",
-    schirm_wartet: "Läufe mit Fenster in der Schlange: {n}", schirm_laeuft: "läuft am Schirm: {x}",
-    schirm_freigeben: "Schirm freigeben …", schirm_zumachen: "Schirm zu", schirm_titel: "Schirm-Schalter",
-    schirm_erkl: "Frei heißt: Agenten dürfen Läufe mit Fenster starten (immer nur einer zur Zeit, über die Lauf-Schlange). Die AMW macht den Schirm von selbst wieder zu, sobald du zurück am PC bist: Eingabe an diesem PC (ab 2 Minuten nach dem Freigeben, auch über eine Fernsitzung), eine neue Fernsitzung (wenn unter „Dieser PC“ eingestellt), eine Eingabe in der Workbench an diesem PC – oder zur gewählten Uhrzeit. Was du vom Handy schreibst, lässt ihn frei.",
-    schirm_zu_erkl: "Zu heißt: Keine neuen Läufe mit Fenster. Läuft gerade einer, bekommt der Agent die Bitte, ihn sofort zu beenden.",
-    schirm_grund_ph: "Grund, z. B. „weg bis morgen, Monitor an“", schirm_bis_l: "Spätestens zu um (optional)", schirm_grund_l: "Grund",
-    schirm_nur_pc: "Freigeben geht nur am PC. Zu machen geht auch von hier.", schirm_ist_frei: "Schirm ist frei", schirm_ist_zu: "Schirm ist zu",
+    schirm_wartet: "Läufe mit Fenster in der Schlange: {n}", schirm_laeuft: "läuft am Bildschirm: {x}",
+    schirm_freigeben: "Für Agenten freigeben …", schirm_zumachen: "Wieder belegen", schirm_titel: "Bildschirm für Agenten",
+    schirm_erkl: "Frei heißt: Agenten dürfen Läufe mit Fenster starten (immer nur einer zur Zeit, über die Lauf-Schlange). Die AMW nimmt die Freigabe von selbst zurück, sobald du wieder am PC bist: Eingabe an diesem PC (ab 2 Minuten nach dem Freigeben, auch über eine Fernsitzung), eine neue Fernsitzung (wenn unter „Dieser PC“ eingestellt), eine Eingabe in der Workbench an diesem PC – oder zur gewählten Uhrzeit. Was du vom Handy schreibst, lässt ihn frei.",
+    schirm_zu_erkl: "Belegt heißt: Keine neuen Läufe mit Fenster. Läuft gerade einer, bekommt der Agent die Bitte, ihn sofort zu beenden.",
+    schirm_grund_ph: "Grund, z. B. „weg bis morgen, Monitor an“", schirm_bis_l: "Frei höchstens bis (optional)", schirm_grund_l: "Grund",
+    schirm_nur_pc: "Freigeben geht nur am PC. Wieder belegen geht auch von hier.", schirm_ist_frei: "Bildschirm ist frei für Agenten", schirm_ist_zu: "Bildschirm ist belegt",
     schirm_grund_fehlt: "Bitte einen Grund angeben",
     nachricht: "Nachricht", nachricht_an: "Nachricht an {x}", n_kurz_ph: "Kurz: worum geht es (eine Zeile)", n_text_ph: "Text (optional)",
     senden: "Senden", gesendet: "Gesendet an {x} – wird geweckt, wenn die Sitzung läuft.", art_auftrag: "Auftrag", art_frage: "Frage", art_info: "Info (weckt nicht)", art_korrektur: "Korrektur",
@@ -1138,7 +1156,7 @@ const TEXTE = {
     marke: "Agent Management Workbench", suche: "Search: tasks, decisions, questions, statements, messages",
     g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
     n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_aufgaben_kurz: "Tasks", n_releases: "Release notes", n_releases_kurz: "Notes", n_mehr: "More", n_wissen: "Knowledge", n_betrieb: "Operations",
-    thema: "Light / Dark", halt: "Pause all", halt_an: "Paused", weiter: "Resume",
+    thema: "Light / Dark", halt: "Pause all", halt_an: "Paused", s_ende: "{n} being ended (by {x})", k_ende: "saving, will be ended – by {x} at the latest", ls_hin: "to the control desk (Home, below the agents)", ls_arbeit: "Agents\u2019 work", ls_laeuft: "running", ls_steht: "paused", ls_arbeit_e: "Pause: agents finish their step and take nothing new.", ls_schirm: "Screen", ls_schirm_frei: "free for agents", ls_schirm_belegt: "in use", ls_schirm_e: "Only when free may agents open windows (start a program, take pictures).", ls_sitz: "Sessions", ls_sitz_laufen: "{n} running", ls_sitz_laufen1: "1 running", ls_sitz_fehlen1: "1 missing", ls_sitz_ruhen: "{n} signed off", ls_sitz_fehlen: "{n} missing", ls_sitz_ende: "{n} being ended – by {x} at the latest", ls_sitz_e: "For an update: everyone saves, signs off and is ended – after 5 minutes even without signing off.", ls_sitz_e_netz: "Starting and ending sessions works on the PC only.", ls_sichern: "Save & exit all", ls_sichern_frage: "Ask {n} running session(s) to save and sign off? Whoever still runs after 5 minutes is ended. Windows stay open.", ls_sichern_ok: "{n} agent(s) saving – ended by {x} at the latest", ls_sichern_keiner: "No session is running right now.", ls_starten: "Start missing", ls_starten_frage: "Start (one after another, resuming the last session): {x}?", ls_starten_ok: "{n} agent(s) starting one after another, {s} s apart", ls_wacht: "Watcher", ls_wacht_laeuft: "running · v{v}", ls_wacht_e: "Wakes agents, watches runs and limits, syncs with the online page.", ls_wacht_e_netz: "The watcher runs on the PC and uploads the state here.", ls_wacht_neu: "Restart", ls_wacht_frage: "Restart the watcher? The page is briefly unreachable; agents keep running.", ls_wacht_ok: "Watcher restarting – the page will be back in a moment", m_titel: "Commands for {x}", m_nachricht: "Write a message", m_gespraech: "Read the conversation", m_uebersicht: "Overview and task list", m_steuern: "Control", m_halt1: "Pause (this one only)", m_halt1_frage: "Pause {x}? It finishes its step and takes nothing new.", m_weiter1: "Let it resume", m_sichern: "Save & exit", m_sichern_h: "for updates", m_sichern_frage: "Ask {x} to save and sign off? After 5 minutes the session is ended even without signing off.", m_sichern_ok: "saving – ended by {x} at the latest", m_sofort: "Exit now", m_sofort_h: "without saving", m_start: "Start / resume", m_start_frage: "Start {x} (resuming the last session, if any)?", m_neu: "Begin a new session", m_chat: "No working folder (e.g. chat) – not started or stopped from here", m_nur_pc: "Start/end session: on the PC only", m_profil: "Profile and responsibilities …", weiter: "Resume",
     s_dienst: "Watcher running", s_dienst_weg: "Watcher unreachable", s_agenten: "{a} of {b} agents running", s_speicher: "Memory: {n} GB free", s_speicher_unb: "Memory: unknown",
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
     nicht_angemeldet_h: "Running but cannot be woken – in its window: amw anmelden --von <name>",
@@ -1188,7 +1206,7 @@ const TEXTE = {
     e_kanal: "Developer channel (AMW developer)", e_kanal_h: "Handle of the agent who develops AMW itself: it may write and be written to in every project, the leads see it in their mandatory context. Empty = off.",
     e_cpu: "Heavy runs without a window at once", e_cpu_h: "CPU lane of the run queue; graphics card and screen stay at one run at a time. Each run needs its memory limit free, an agent never runs two at once.",
     e_fern: "Screen: remote session program", e_fern_ph: "empty = off, e.g. teamviewer_desktop.exe or AnyDesk.exe",
-    e_fern_h: "Runs only during a remote-support connection – when one starts, a free screen closes",
+    e_fern_h: "Runs only during a remote-support connection – when one starts, a free screen counts as in use again",
     e_entwickler: "Your name in messages", e_entwickler_ph: "Entwickler", e_entwickler_h: "e.g. “Marie waits …” – also works as a wait reason (--auf Marie)",
     e_dateien: "Files online", e_dateien_h: "Which document files the PC uploads to the online page by itself (visible only after sign-in). Applies to existing ones too; switching back removes nothing – do that per document.",
     e_dateien_wunsch: "on request only", e_dateien_bilder: "images and mockups", e_dateien_alle: "all (incl. PDF, Office)",
@@ -1428,14 +1446,14 @@ const TEXTE = {
     halt_erkl: "Running agents immediately receive a STOP and finish their current work cleanly. After that the service only wakes agents for stop and release – until “Resume”. Survives restarts.",
     grund_ph: "Reason (shown to the agents)", abbrechen: "Cancel", halt_gesetzt: "Halt set", halt_aufgehoben: "{n} halt(s) lifted",
     halt_band: "all agents", halt_vom: "Halt by the developer",
-    s_schirm_frei: "Screen: free for agents", s_schirm_zu: "Screen: in use", schirm: "Screen", schirm_frei: "SCREEN FREE", schirm_zu_b: "SCREEN CLOSED",
+    s_schirm_frei: "Screen: free for agents", s_schirm_zu: "Screen: in use", schirm: "Screen", schirm_frei: "SCREEN FREE FOR AGENTS", schirm_zu_b: "SCREEN IN USE",
     schirm_seit: "since {x}", schirm_bis: "until {x}", schirm_von: "by {x}",
     schirm_wartet: "Windowed runs in the queue: {n}", schirm_laeuft: "on screen: {x}",
-    schirm_freigeben: "Free the screen …", schirm_zumachen: "Close screen", schirm_titel: "Screen switch",
-    schirm_erkl: "Free means: agents may start runs that open windows (one at a time, through the run queue). The AMW closes the screen by itself as soon as you are back at the PC: input on this PC (from 2 minutes after freeing, also via a remote session), a new remote session (if set under “This PC”), input in the workbench on this PC – or at the chosen time. Writing from your phone leaves it free.",
-    schirm_zu_erkl: "Closed means: no new windowed runs. If one is running, its agent is asked to end it right away.",
-    schirm_grund_ph: "Reason, e.g. “away until tomorrow, monitor on”", schirm_bis_l: "Close at the latest (optional)", schirm_grund_l: "Reason",
-    schirm_nur_pc: "Freeing only works on the PC. Closing works from here too.", schirm_ist_frei: "Screen is free", schirm_ist_zu: "Screen is closed",
+    schirm_freigeben: "Free for agents …", schirm_zumachen: "Take back", schirm_titel: "Screen for agents",
+    schirm_erkl: "Free means: agents may start runs that open windows (one at a time, through the run queue). The AMW takes the screen back by itself as soon as you are at the PC again: input on this PC (from 2 minutes after freeing, also via a remote session), a new remote session (if set under “This PC”), input in the workbench on this PC – or at the chosen time. Writing from your phone leaves it free.",
+    schirm_zu_erkl: "In use means: no new windowed runs. If one is running, its agent is asked to end it right away.",
+    schirm_grund_ph: "Reason, e.g. “away until tomorrow, monitor on”", schirm_bis_l: "Free until at the latest (optional)", schirm_grund_l: "Reason",
+    schirm_nur_pc: "Freeing only works on the PC. Taking it back works from here too.", schirm_ist_frei: "Screen is free for agents", schirm_ist_zu: "Screen is in use",
     schirm_grund_fehlt: "Please give a reason",
     nachricht: "Message", nachricht_an: "Message to {x}", n_kurz_ph: "Short: what is it about (one line)", n_text_ph: "Text (optional)",
     senden: "Send", gesendet: "Sent to {x} – will be woken if the session is running.", art_auftrag: "Task", art_frage: "Question", art_info: "Info (no wake)", art_korrektur: "Correction",
@@ -1624,20 +1642,22 @@ async function kopfAktualisieren() {
     const sollen = d.agenten.filter(a => a.soll === "an"), lebend = sollen.filter(a => a.zustand === "aktiv").length;
     const extra = d.agenten.filter(a => a.soll !== "an" && a.zustand === "aktiv").length;     /* laufen, ohne zu sollen */
     const sp = d.speicher.frei;
-    $("#signale").replaceChildren(
+    $("#signale").replaceChildren(...[
       d.online ? el("span", { class: "signal" + (d.online.pc_frisch ? " unwichtig" : "") }, el("span", { class: "punkt " + (d.online.pc_frisch ? "gruen" : "bernstein") }),
         t(d.online.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online.pc_gesehen_utc) }) + (d.online.briefkasten ? " · " + t("s_briefkasten", { n: d.online.briefkasten }) : ""))
         : el("span", { class: "signal unwichtig", title: pcHinweis() }, el("span", { class: "punkt gruen" }), t("s_dienst")),
       el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: sollen.length }) + (extra ? " · " + t("s_extra", { n: extra }) : "")),
       el("span", { class: "signal unwichtig", title: pcHinweis() }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: Math.round(sp) })),
-      d.schirm ? el("span", { class: "signal knopflich" + (d.schirm.frei ? "" : " unwichtig"), title: [d.schirm.grund, pcHinweis()].filter(Boolean).join(" · "), onclick: () => schirmDialog() },
-        el("span", { class: "punkt " + (d.schirm.frei ? "bernstein" : "") }), t(d.schirm.frei ? "s_schirm_frei" : "s_schirm_zu")) : null,
-    );
+      /* Steuern geschieht im Leitstand (Start, unter den Agenten); hier steht nur, was vom Normalfall abweicht – Klick führt hin */
+      d.halt.length ? el("span", { class: "signal knopflich", title: t("ls_hin"), onclick: zumLeitstand }, el("span", { class: "punkt rot" }), t("halt_an")) : null,
+      d.schirm?.frei ? el("span", { class: "signal knopflich", title: [d.schirm.grund, t("ls_hin")].filter(Boolean).join(" · "), onclick: zumLeitstand },
+        el("span", { class: "punkt bernstein" }), t("s_schirm_frei")) : null,
+      (d.ende || []).length ? el("span", { class: "signal knopflich", title: t("ls_hin"), onclick: zumLeitstand }, el("span", { class: "punkt bernstein" }),
+        t("s_ende", { n: d.ende.length, x: zeit(d.ende[0].bis_utc) })) : null,
+    ].filter(Boolean));
     for (const z of document.querySelectorAll("[data-zahl]")) {
       const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", ["fragen", "freigaben"].includes(z.dataset.zahl) && n > 0);
     }
-    const hk = $("#halt-knopf"); const aktiv = d.halt.length > 0;
-    hk.classList.toggle("aktiv", aktiv); hk.textContent = aktiv ? t("weiter") : t("halt");
   } catch (e) {
     $("#signale").replaceChildren(el("span", { class: "signal" }, el("span", { class: "punkt rot" }), t("s_dienst_weg")));
   }
@@ -1824,6 +1844,7 @@ async function sichtStart() {
   m.append(el("h2", {}, t("agenten")));
   const rang = a => (a.soll === "an" ? 0 : a.zustand === "aktiv" ? 1 : 2);     /* erst die, die laufen sollen */
   m.append(el("div", { class: "agenten zeile-reveal" }, [...d.agenten].sort((x, y) => rang(x) - rang(y)).map(kachel)));
+  m.append(leitstand(d));
   if ((d.an_dich || []).length) {
     const frisch = d.an_dich.filter(n => !n.abgelegt), alt = d.an_dich.filter(n => n.abgelegt);
     m.append(el("h2", {}, t("an_dich")));
@@ -1852,6 +1873,78 @@ async function sichtStart() {
     }
   }
 }
+/* Aktionsmenü – ein Baustein: eintraege = Liste aus { titel } (Überschrift), "-" (Trennlinie) oder
+   { text, tun, hinweis, rot, aus } (Befehl; aus = sichtbar, aber gerade nicht möglich). Klick daneben oder Esc schließt. */
+function menue(knopf, eintraege) {
+  const offen = knopf.classList.contains("auf");
+  document.querySelector(".menue")?.remove(); document.querySelectorAll(".auf[aria-haspopup]").forEach(b => b.classList.remove("auf"));
+  if (offen) return;
+  const zu = () => { m.remove(); knopf.classList.remove("auf"); document.removeEventListener("click", ausserhalb, true); document.removeEventListener("keydown", taste);
+    $("#inhalt").removeEventListener("scroll", zu); };
+  const ausserhalb = ev => { if (!m.contains(ev.target) && ev.target !== knopf) zu(); };
+  const taste = ev => { if (ev.key === "Escape") { zu(); knopf.focus(); } };
+  const m = el("div", { class: "menue", role: "menu" }, eintraege.filter(Boolean).map(x => x === "-" ? el("hr") : x.titel ? el("div", { class: "mt" }, x.titel)
+    : el("button", { type: "button", role: "menuitem", class: x.rot ? "rot" : null, disabled: x.aus ? "" : null,
+        onclick: ev => { ev.stopPropagation(); zu(); x.tun(); } }, x.text, x.hinweis ? el("small", {}, x.hinweis) : null)));
+  document.body.append(m); knopf.classList.add("auf");
+  const r = knopf.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + scrollX + "px";
+  m.style.top = (r.bottom + m.offsetHeight + 8 > innerHeight && r.top > m.offsetHeight ? r.top - m.offsetHeight - 4 : r.bottom + 4) + scrollY + "px";
+  setTimeout(() => { document.addEventListener("click", ausserhalb, true); document.addEventListener("keydown", taste); $("#inhalt").addEventListener("scroll", zu, { passive: true }); }, 0);
+  m.querySelector("button:not([disabled])")?.focus();
+}
+/* Befehle zu einem Agenten: schreiben/lesen – steuern (anhalten überall; Sitzung starten/beenden nur am PC) – Profil */
+function agentMenue(a, knopf) {
+  const d = zustand.start || {}, k = a.kennung, lebt = a.zustand === "aktiv", ruht = a.zustand === "ruht";
+  const eigenerHalt = (d.halt || []).some(h => h.gilt_fuer === k), ende = (d.ende || []).some(x => x.kennung === k);
+  const tun = async (weg, daten, frage, ok) => { if (frage && !confirm(frage)) return;
+    try { const r = await schicken(weg, daten); if (!r.unterwegs) toast(ok ? ok(r) : r.text || t("gespeichert")); zeige(zustand.sicht, true); setTimeout(() => zeige(zustand.sicht, true), 4000); }
+    catch (x) { toast(t("fehler", { x: x.message }), true); } };
+  menue(knopf, [{ titel: t("m_titel", { x: k }) },
+    { text: t("m_nachricht"), tun: () => nachrichtDialog(k) },
+    a.zustand && !a.chat ? { text: t("m_gespraech"), tun: () => agentDialog(k, "gespraech") } : null,
+    { text: t("m_uebersicht"), tun: () => agentDialog(k) },
+    "-", { titel: t("m_steuern") },
+    eigenerHalt ? { text: t("m_weiter1"), tun: () => tun("/api/weiter", { fuer: k }, null, r => t("halt_aufgehoben", { n: r.aufgehoben })) }
+      : { text: t("m_halt1"), tun: () => tun("/api/halt", { fuer: k, text: t("halt_vom") }, t("m_halt1_frage", { x: k }), () => t("halt_gesetzt")) },
+    a.chat ? { text: t("m_chat"), tun: () => {}, aus: true } : null,
+    !a.chat && !API ? { text: t("m_sichern"), hinweis: t("m_sichern_h"), aus: !(lebt || ruht) || ende,
+      tun: () => tun("/api/agent/ende", { kennung: k }, t("m_sichern_frage", { x: k }), r => t("m_sichern_ok", { x: zeit(r.bis_utc) })) } : null,
+    !a.chat && !API ? { text: t("m_sofort"), hinweis: t("m_sofort_h"), rot: true, aus: !lebt, tun: () => tun("/api/agent/stop", { kennung: k }, t("st_beenden_frage", { x: k })) } : null,
+    !a.chat && !API ? { text: t("m_start"), aus: lebt || ruht, tun: () => tun("/api/agent/start", { kennung: k }, t("m_start_frage", { x: k })) } : null,
+    !a.chat && !API ? { text: t("m_neu"), aus: lebt || ruht, tun: () => tun("/api/agent/start", { kennung: k, neu: true }, t("st_neu_frage", { x: k })) } : null,
+    !a.chat && API ? { text: t("m_nur_pc"), tun: () => {}, aus: true } : null,
+    "-", { text: t("m_profil"), tun: () => zeige("einstellungen") }]);
+}
+/* Leitstand: alles Steuerbare an einer Stelle – Arbeit anhalten, Bildschirm, Sitzungen (nur am PC), Wächter (nur am PC) */
+function leitstand(d) {
+  const feld = (titel, farbe, stand, erkl, ...knoepfe) => el("div", {}, el("div", { class: "lt" }, titel),
+    el("div", { class: "stand" }, el("span", { class: "punkt " + farbe }), stand), el("div", { class: "erkl" }, erkl), el("div", { class: "zeile" }, knoepfe));
+  const kn = (text, tun, klasse) => el("button", { class: "knopf " + (klasse || ""), type: "button", onclick: tun }, text);
+  const pcTun = async (weg, frage, ok) => { if (!confirm(frage)) return;
+    try { const r = await schicken(weg, {}); toast(ok(r)); zeige("start", true); setTimeout(() => zeige(zustand.sicht, true), 5000); }
+    catch (x) { toast(t("fehler", { x: x.message }), true); } };
+  const eigene = d.agenten.filter(a => !a.chat && a.soll === "an");
+  const laufen = eigene.filter(a => a.zustand === "aktiv"), ruhen = eigene.filter(a => a.zustand === "ruht");
+  const fehlen = eigene.filter(a => a.zustand !== "aktiv" && a.zustand !== "ruht");
+  const ende = d.ende || [], halt = d.halt.length > 0, sz = d.schirm;
+  const sitzStand = ende.length ? t("ls_sitz_ende", { n: ende.length, x: zeit(ende[0].bis_utc) })
+    : [t(laufen.length === 1 ? "ls_sitz_laufen1" : "ls_sitz_laufen", { n: laufen.length }), ruhen.length ? t("ls_sitz_ruhen", { n: ruhen.length }) : null,
+       fehlen.length ? t(fehlen.length === 1 ? "ls_sitz_fehlen1" : "ls_sitz_fehlen", { n: fehlen.length }) : null].filter(Boolean).join(" · ");
+  return el("div", { class: "leitstand", id: "leitstand" },
+    feld(t("ls_arbeit"), halt ? "rot" : "gruen", t(halt ? "ls_steht" : "ls_laeuft"), t("ls_arbeit_e"),
+      halt ? kn(t("weiter"), () => weiterGeben(), "haupt") : kn(t("halt"), () => haltDialog(), "warn")),
+    sz ? feld(t("ls_schirm"), sz.frei ? "bernstein" : "", sz.frei ? t("ls_schirm_frei") + (sz.bis_utc ? " " + t("schirm_bis", { x: zeit(sz.bis_utc) }) : "") : t("ls_schirm_belegt"),
+      [sz.grund, t("ls_schirm_e")].filter(Boolean).join(" – "), kn(t(sz.frei ? "schirm_zumachen" : "schirm_freigeben"), () => schirmDialog())) : null,
+    feld(t("ls_sitz"), ende.length || fehlen.length ? "bernstein" : laufen.length ? "gruen" : "", sitzStand, t(API ? "ls_sitz_e_netz" : "ls_sitz_e"),
+      API ? null : kn(t("ls_sichern"), () => pcTun("/api/agent/ende", t("ls_sichern_frage", { n: laufen.length + ruhen.length }),
+        r => r.agenten.length ? t("ls_sichern_ok", { n: r.agenten.length, x: zeit(r.bis_utc) }) : t("ls_sichern_keiner"))),
+      API || !fehlen.length ? null : kn(t("ls_starten"), () => pcTun("/api/agent/start-fehlende", t("ls_starten_frage", { x: fehlen.map(a => a.kennung).join(", ") }),
+        r => t("ls_starten_ok", { n: r.agenten.length, s: r.abstand_s })))),
+    feld(t("ls_wacht"), API && !d.online?.pc_frisch ? "bernstein" : "gruen", API ? t(d.online?.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online?.pc_gesehen_utc) }) : t("ls_wacht_laeuft", { v: d.version }),
+      t(API ? "ls_wacht_e_netz" : "ls_wacht_e"), API ? null : kn(t("ls_wacht_neu"), () => pcTun("/api/dienst/neustart", t("ls_wacht_frage"), () => t("ls_wacht_ok")))));
+}
+function zumLeitstand() { Promise.resolve(zustand.sicht === "start" ? null : zeige("start")).then(() => setTimeout(() => $("#leitstand")?.scrollIntoView({ behavior: "smooth", block: "center" }), 60)); }
 /* „1204 · A1204 Titel“ → „A1204 Titel“ (alte Titel tragen die Nummer schon) */
 function ohneDoppel(x) { const [nr, ...rest] = x.split(" · "); const titel = rest.join(" · "); return titel.startsWith("A" + nr) ? titel : `A${nr} · ${titel}`; }
 /* Kachel: Zustand, was er gerade macht (eigene Angabe › laufende Aufgabe › Aufgabe aus der letzten Meldung),
@@ -1871,6 +1964,7 @@ function kachel(a) {
   const zust = lebt ? (ez || ["gruen", t("laeuft")]) : a.zustand === "ruht" ? ["bernstein", t("abgemeldet")]
     : soll ? ["rot", a.zustand ? t("beendet_soll") : t("nie_gestartet")] : ["", a.soll === "ruht" ? t("ruht") : t("aus")];
   const kurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : x;
+  const ende = (zustand.start?.ende || []).find(x => x.kennung === a.kennung);        /* „Sichern & beenden“ läuft */
   const karte = el("div", { class: `karte kachel klickbar ${!lebt && soll ? "tot" : ""} ${!soll ? "aus" : ""}`, title: t("k_details") },
     a.offen ? el("span", { class: "offen", style: `color:var(${a.offen > 10 ? "--bernstein" : "--leise"})`, title: t("k_offen_h", { n: a.offen_alt || 0 }) }, t("k_offen_n", { n: a.offen })) : null,
     el("div", { class: "name" }, a.kennung), el("div", { class: "rolle" }, a.rolle === "lead" ? t("lead") : a.rolle || t("agent")),
@@ -1890,10 +1984,11 @@ function kachel(a) {
       a.zuletzt ? el("div", { class: "sehrleise", style: "margin-top:4px" }, `${t("k_zuletzt")} ${seit(a.zuletzt_utc)}: ${kurz(a.zuletzt, 70)}`) : null),
     lebt && (a.kontext_prozent != null || a.limit_5h != null) ? el("div", { class: "mini-balken" },
       a.kontext_prozent != null ? balken(t("b_kontext"), a.kontext_prozent) : null, a.limit_5h != null ? balken(t("b_5h"), a.limit_5h) : null) : null,
-    soll || a.zustand ? el("div", { style: "display:flex;gap:6px;margin-top:8px;flex-wrap:wrap" },
+    ende ? el("div", { class: "bernstein-text", style: "margin-top:6px;font-size:12px" }, t("k_ende", { x: zeit(ende.bis_utc) })) : null,
+    el("div", { style: "display:flex;gap:6px;margin-top:8px;flex-wrap:wrap" },
       soll ? el("button", { class: "klein-knopf", type: "button", onclick: e => { e.stopPropagation(); nachrichtDialog(a.kennung); } }, t("nachricht")) : null,
-      a.zustand ? el("button", { class: "klein-knopf", type: "button", title: t("g_knopf_h"),
-        onclick: e => { e.stopPropagation(); agentDialog(a.kennung, "gespraech"); } }, t("k_mitlesen")) : null) : null);
+      el("button", { class: "klein-knopf mehr-knopf", type: "button", title: t("m_titel", { x: a.kennung }), "aria-haspopup": "menu",
+        onclick: e => { e.stopPropagation(); agentMenue(a, e.currentTarget); } }, "⋯")));
   karte.addEventListener("click", () => agentDialog(a.kennung));
   return karte;
 }
@@ -3651,7 +3746,7 @@ function schirmDialog() {
   if (sz.frei) {
     hg = dialog(t("schirm_titel"), el("p", { class: "leise" }, [t("schirm_seit", { x: seit(sz.seit_utc) }), sz.grund].join(" · ")),
       el("p", {}, t("schirm_zu_erkl")),
-      el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => setzen({ frei: false, grund: "zu vom Entwickler" }) }, t("schirm_zumachen")),
+      el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => setzen({ frei: false, grund: "wieder belegt vom Entwickler" }) }, t("schirm_zumachen")),
         el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
     return;
   }
@@ -3677,7 +3772,6 @@ async function weiterGeben() {
 }
 if (API) { const b = $("#abmelden"); b.hidden = false; b.addEventListener("click", async () => {
   await fetch("index.php?abmelden=1", { method: "POST", headers: { "X-AMW-Token": TOKEN } }).catch(() => {}); location.reload(); }); }
-$("#halt-knopf").addEventListener("click", () => (zustand.start?.halt || []).length ? weiterGeben() : haltDialog());
 $("#suche").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.value.trim().length > 1) suchen(e.target.value.trim()); });
 for (const a of document.querySelectorAll("nav a[data-sicht]")) a.addEventListener("click", () => zeige(a.dataset.sicht));
 /* Handy: unten Start, Fragen, Plan, Arbeit und „Mehr“ (48-px-Ziele statt neun schmaler). „Mehr“ öffnet ein Blatt von unten mit
