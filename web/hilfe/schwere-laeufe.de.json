@@ -42,6 +42,10 @@
    "so viel bleibt für dich frei, Vorgabe 3 GB"
   ],
   [
+   "Dauerhaft belegt anzeigen ab (Dieser PC)",
+   "ab so viel Arbeitsspeicher erscheint ein Programm außerhalb der Warteschlange im Leitstand, Vorgabe 4 GB, 0 = aus"
+  ],
+  [
    "Weitere schwere Befehle (Projekt)",
    "Name = Muster, ein Eintrag je Zeile; das Muster ist ein regulärer Ausdruck"
   ]
@@ -62,6 +66,10 @@
   [
    "„Muster ungültig“",
    "Das Muster ist kein gültiger regulärer Ausdruck, zum Beispiel fehlt eine Klammer."
+  ],
+  [
+   "Der Rechner ist frei, trotzdem startet nichts",
+   "Ein Programm außerhalb der Warteschlange belegt den Arbeitsspeicher, zum Beispiel ein lokaler KI-Server oder eine virtuelle Maschine. Im Leitstand steht unter „Rechner“, welches Programm das ist, wie viel es belegt und seit wann. Beende es selbst, wenn du es nicht mehr brauchst – die AMW beendet nichts."
   ]
  ],
  "danach": [
@@ -73,6 +81,10 @@
   [
    "Was passiert, wenn der Hook einmal nicht funktioniert?",
    "Dann läuft der Befehl ganz normal – gesperrt wird bei einem Fehler nie. Der Fehler steht im Protokoll `%LOCALAPPDATA%\\amw\\hook-fehler.log` auf diesem PC; steht dort etwas, lohnt ein Blick, weil schwere Befehle dann wieder direkt starten."
+  ],
+  [
+   "Was heißt „dauerhaft belegt“?",
+   "Ein Programm, das nicht über die Warteschlange läuft und seit mehr als 10 Minuten viel Arbeitsspeicher belegt. Die AMW liest dafür nur Name, Arbeitsspeicher und Startzeit der Prozesse – keine Befehlszeilen. Viele kleine Prozesse, etwa ein Browser, zählen nicht."
   ],
   [
    "Kann ich das für einen Rechner abschalten?",

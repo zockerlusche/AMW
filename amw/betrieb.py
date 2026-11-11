@@ -28,7 +28,10 @@ def auslastung(con, pid):
             except ValueError:
                 pass
     frei, gesamt = speicher_frei_gb()
-    return {"laufen": len(laufen), "warten": len(warten), "eigene_laufen": sum(1 for l in laufen if l["projekt_id"] == pid),
+    from . import belegung                              # Programme außerhalb der Warteschlange, die lange viel Speicher halten
+    dauer = belegung.aktuell(con)
+    return {"dauer": dauer, "dauer_gb": round(sum(x["gb"] for x in dauer), 1) or None,
+            "laufen": len(laufen), "warten": len(warten), "eigene_laufen": sum(1 for l in laufen if l["projekt_id"] == pid),
             "eigene_warten": sum(1 for l in warten if l["projekt_id"] == pid),
             "frei_ab_utc": max(enden).strftime("%Y-%m-%dT%H:%M:%SZ") if enden and len(enden) == len(laufen) else None,
             "angemeldet_gb": round(sum(l["braucht_gb"] or 0 for l in laufen), 1) or None,     # so viel haben die laufenden angemeldet
@@ -421,7 +424,13 @@ def wartegrund(con, pid, l, speicher_frei=None):
     vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
     if vor:
         gruende.append("vor dir: " + ", ".join(f"L{x['id']} ({x['agent'] if x['projekt_id'] == pid else 'anderes Projekt'})" for x in vor))
-    g = _speicher_fehlt(con, pid, _bedarf(con, l), frei) or _mittel_fehlen(con, l)
+    g = _speicher_fehlt(con, pid, _bedarf(con, l), frei)
+    if g and speicher_frei is None:                     # echte Messung: sagen, wer den Speicher außerhalb der Warteschlange hält
+        from . import belegung
+        dauer = belegung.aktuell(con)
+        if dauer:
+            g += f" – außerhalb der Warteschlange belegt: {belegung.nennen(dauer)} (beenden kann das nur der Mensch)"
+    g = g or _mittel_fehlen(con, l)
     if g:
         gruende.append(g)
     kopf = f"Platz {platz} von {len(w)}" if platz else "nicht in der Schlange"

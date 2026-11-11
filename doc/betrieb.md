@@ -109,7 +109,9 @@ wer zuerst kommt, ist zuerst dran, egal aus welchem Projekt. Am einfachsten mit
 den Befehl, reicht den Rückgabewert durch und meldet das Ende. Eingelassen wird, wenn ein Platz frei ist (Grafikkarte und
 Bildschirm: ein Lauf zur Zeit; schwere Läufe ohne beides: so viele wie unter „Dieser PC“ eingestellt) und genug
 Arbeitsspeicher: frei − Reserve − Bedarf gerade gestarteter Läufe ≥ Bedarf des Laufs. Die Reserve (Vorgabe 3 GB,
-Zahnrad › Dieser PC) bleibt für den Menschen am Rechner. Den Bedarf nennt der Lauf selbst:
+Zahnrad › Dieser PC) bleibt für den Menschen am Rechner. Was außerhalb der Warteschlange Arbeitsspeicher belegt (ein
+lokaler KI-Server, eine virtuelle Maschine), steckt in der Messung „frei“ schon drin; der Leitstand und der Wartegrund
+nennen das Programm (`amw/belegung.py`: Name, Größe, seit wann – nur lesen, nie beenden). Den Bedarf nennt der Lauf selbst:
 `--braucht-gb` (Arbeitsspeicher; ohne Angabe gilt das Rezept, sonst die Grenze des Projekts), dazu wahlweise
 `--braucht-vram-gb` (Grafikspeicher) und `--braucht-platte-gb` (freier Platz auf dem Laufwerk des Projekts) – diese beiden
 werden nur geprüft, wenn sie angegeben sind und sich der freie Wert messen lässt. Jeder Lauf trägt den Namen des Rechners,
@@ -198,6 +200,7 @@ testen“ (erreichbar über https, läuft dort eine AMW-Seite?). Schlüssel blei
 | `statusline_weiter` | leer | bisherige Statusline, die die Statusline-Brücke weiterreicht (setzt `amw einrichten`) |
 | `claude_befehl` | `claude` | wie Claude Code gestartet wird (falls nötig mit vollem Pfad) |
 | `speicher_reserve_gb` | 3 | so viel Arbeitsspeicher bleibt frei, bevor ein schwerer Lauf startet (0–64) |
+| `dauer_ab_gb` | 4 | Programme außerhalb der Warteschlange, die länger als 10 Minuten mindestens so viel Arbeitsspeicher belegen, zeigt der Leitstand unter „Rechner“ (0 = aus) |
 | `lauf_hook` | an | schwere Befehle abweisen und über die Warteschlange schicken (Hook in den Agenten-Ordnern) |
 | `sprache` | auto | Sprache der Oberfläche, solange im Browser nichts gewählt ist: `auto` (wie der Browser), `de`, `en` |
 | `claude_link` | an | Knopf „In Claude öffnen“ auf der Agenten-Seite zeigen |

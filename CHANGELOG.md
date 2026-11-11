@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.49.0 – 11.11.2026 · Rechner: was außerhalb der Warteschlange Speicher belegt
+- **Dauerhaft belegt:** Ein Programm, das außerhalb der Warteschlange länger als 10 Minuten viel Arbeitsspeicher belegt –
+  ein lokaler KI-Server, eine virtuelle Maschine –, steht jetzt im Leitstand unter „Rechner“: Name, Größe, seit wann.
+- **Wartet ein Lauf auf Arbeitsspeicher,** nennt der Wartegrund das Programm, das ihn belegt.
+- **Die AMW beendet nichts.** Sie zeigt nur an; beenden kann ein solches Programm nur der Mensch.
+- **Einstellung** „Dauerhaft belegt anzeigen ab (GB)“ unter „Dieser PC“ (Vorgabe 4 GB, 0 = aus). Gelesen werden nur Name,
+  Arbeitsspeicher und Startzeit der Prozesse, keine Befehlszeilen. Läufe aus der Warteschlange zählen nicht dazu.
+
 ## 1.48.0 – 11.11.2026 · Wochenlimit: Pause nicht doppelt, Ampel mit Pause
 - **Pausentage zählen nicht in den Durchsatz:** Tage, an denen das Wochenlimit mindestens einen halben Tag lang
   aufgebraucht war, fallen aus der Prognose heraus. Vorher steckte die Pause im Durchsatz und stand zusätzlich am Datum.

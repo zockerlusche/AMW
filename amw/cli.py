@@ -957,6 +957,8 @@ def _lauf_ausfuehren(con, pid, a):
     except OSError as e:
         betrieb.lauf_ende(con, pid, von, lid, 127, f"Start fehlgeschlagen: {e}")
         raise kern.AmwFehler(f"L{lid}: Befehl ließ sich nicht starten ({e}) – Lauf beendet")
+    from . import belegung                           # die Prozesse dieses Laufs sind angemeldet – keine Dauer-Belegung
+    belegung.lauf_merken(lid, proc.pid)
     letzte = [""]
 
     def mitschreiben():
@@ -996,6 +998,7 @@ def _lauf_ausfuehren(con, pid, a):
         grund, rc_grund = "Strg+C", RC_STRG_C
         _baum_beenden(proc)
     leser.join(timeout=10)
+    belegung.lauf_vergessen(lid)
     rc = proc.returncode
     if ausgabe:
         ausgabe.write(f"# Ende: {time.strftime('%Y-%m-%d %H:%M:%S')} · rc {rc_grund if grund else rc}"

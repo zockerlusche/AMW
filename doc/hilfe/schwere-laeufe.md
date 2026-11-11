@@ -18,6 +18,7 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 |---|---|
 | Schwere Befehle über die Warteschlange (Dieser PC) | an lassen; aus heißt: Agenten starten alles direkt |
 | Arbeitsspeicher-Reserve (Dieser PC) | so viel bleibt für dich frei, Vorgabe 3 GB |
+| Dauerhaft belegt anzeigen ab (Dieser PC) | ab so viel Arbeitsspeicher erscheint ein Programm außerhalb der Warteschlange im Leitstand, Vorgabe 4 GB, 0 = aus |
 | Weitere schwere Befehle (Projekt) | Name = Muster, ein Eintrag je Zeile; das Muster ist ein regulärer Ausdruck |
 
 ## Typische Fehler
@@ -25,6 +26,8 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 - **Ein Lauf wartet lange** – Im Leitstand steht, warum: der Rechner ist belegt oder es ist zu wenig Arbeitsspeicher frei. Der Mensch kann einen Lauf vorziehen (`amw lauf vorziehen <nr>`).
 - **Ein einzelner kurzer Test wird abgewiesen** – Das Muster ist zu weit gefasst. Einzelne Test-Module bleiben frei; eigene Muster enger fassen.
 - **„Muster ungültig“** – Das Muster ist kein gültiger regulärer Ausdruck, zum Beispiel fehlt eine Klammer.
+
+- **Der Rechner ist frei, trotzdem startet nichts** – Ein Programm außerhalb der Warteschlange belegt den Arbeitsspeicher, zum Beispiel ein lokaler KI-Server oder eine virtuelle Maschine. Im Leitstand steht unter „Rechner“, welches Programm das ist, wie viel es belegt und seit wann. Beende es selbst, wenn du es nicht mehr brauchst – die AMW beendet nichts.
 
 ## Danach
 - Als schwer gelten ab Werk: ganze Test-Suiten, Browser-Tests, Builds und der Abzug des Web-Zweigs.
@@ -34,6 +37,9 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 ## Häufige Fragen
 ### Was passiert, wenn der Hook einmal nicht funktioniert?
 Dann läuft der Befehl ganz normal – gesperrt wird bei einem Fehler nie. Der Fehler steht im Protokoll `%LOCALAPPDATA%\amw\hook-fehler.log` auf diesem PC; steht dort etwas, lohnt ein Blick, weil schwere Befehle dann wieder direkt starten.
+
+### Was heißt „dauerhaft belegt“?
+Ein Programm, das nicht über die Warteschlange läuft und seit mehr als 10 Minuten viel Arbeitsspeicher belegt. Die AMW liest dafür nur Name, Arbeitsspeicher und Startzeit der Prozesse – keine Befehlszeilen. Viele kleine Prozesse, etwa ein Browser, zählen nicht.
 
 ### Kann ich das für einen Rechner abschalten?
 Ja: Einstellungen › Dieser PC › „Schwere Befehle über die Warteschlange“ ausschalten. Die Warteschlange selbst bleibt, nur das Abweisen entfällt.

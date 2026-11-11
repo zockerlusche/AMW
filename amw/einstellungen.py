@@ -126,6 +126,7 @@ FELDER = {
     "cpu_laeufe": (2, _ganz(1, 8)),
     # so viel Arbeitsspeicher bleibt frei, bevor die Warteschlange einen schweren Lauf einlässt (für den Menschen am Rechner)
     "speicher_reserve_gb": (3.0, _dezimal(0, 64)),
+    "dauer_ab_gb": (4.0, _dezimal(0, 256)),   # Programme außerhalb der Warteschlange ab so viel Arbeitsspeicher zeigen (0 = aus)
     # schwere Befehle (Test-Suite, Build …) abweisen und über die Warteschlange schicken (Hook in den Agenten-Ordnern)
     "lauf_hook": (True, _wahr),               # schwere Läufe ohne Fenster/Grafikkarte zugleich (Lauf-Schlange, Spur CPU)
     "statusline_weiter": ("", _befehl),            # bisherige Statusline, die amw-statusline.py weiterreicht

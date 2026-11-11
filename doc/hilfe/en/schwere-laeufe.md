@@ -18,6 +18,7 @@ Several projects share one PC. If test suites, builds or image runs start at the
 |---|---|
 | Send heavy commands through the queue (This PC) | leave it on; off means agents start everything directly |
 | Memory reserve (This PC) | how much stays free for you, default 3 GB |
+| Show long-term memory use from (This PC) | a program outside the queue that uses at least this much memory appears in the control panel, default 4 GB, 0 = off |
 | More heavy commands (Project) | Name = pattern, one entry per line; the pattern is a regular expression |
 
 ## Common problems
@@ -25,6 +26,8 @@ Several projects share one PC. If test suites, builds or image runs start at the
 - **A run waits for a long time** – The control panel says why: the computer is busy or too little memory is free. The human can move a run to the front (`amw lauf vorziehen <nr>`).
 - **A single short test is rejected** – The pattern is too broad. Single test modules stay free; make your own patterns narrower.
 - **“Muster ungültig”** – The pattern is not a valid regular expression, for example a bracket is missing.
+
+- **The computer is idle, but nothing starts** – A program outside the queue is using the memory, for example a local AI server or a virtual machine. The control panel shows under “Computer” which program it is, how much it uses and since when. Close it yourself when you no longer need it – the AMW never closes anything.
 
 ## Next
 - Heavy by default: whole test suites, browser tests, builds and the split of the web branch.
@@ -34,6 +37,9 @@ Several projects share one PC. If test suites, builds or image runs start at the
 ## Questions
 ### What happens if the hook fails for once?
 Then the command simply runs – an error never blocks anything. The error is written to the log `%LOCALAPPDATA%\amw\hook-fehler.log` on this PC; if there is something in it, have a look, because heavy commands then start directly again.
+
+### What does “in long-term use” mean?
+A program that does not run through the queue and has been using a lot of memory for more than 10 minutes. The AMW only reads the name, memory and start time of the processes – no command lines. Many small processes, such as a browser, do not count.
 
 ### Can I switch this off for one computer?
 Yes: Settings › This PC › switch off “Send heavy commands through the queue”. The queue itself stays, only the rejecting stops.

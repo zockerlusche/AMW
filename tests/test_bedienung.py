@@ -165,6 +165,19 @@ class Seite(Wiederholt, Grund):
         self.assertIn("Frei", rechner)                                                                 # kein Lauf angemeldet
         self.assertIn("gemeinsamen Warteschlange", rechner)
         self.assertNotIn("Aus diesem Projekt", rechner)                                                # nichts Eigenes: der Satz entfällt
+        # ein Programm außerhalb der Warteschlange belegt lange viel Arbeitsspeicher: Name, Größe, seit wann
+        import datetime
+        from unittest import mock
+        from amw import belegung
+        seit = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=40)
+        with mock.patch.object(belegung, "prozesse", lambda: [{"pid": 5, "eltern": 1, "name": "llama-server", "gb": 16.4, "seit": seit}]), \
+                mock.patch.object(belegung, "_gemerkt", [0.0, None, []]):
+            self.tab.js("zeige('start', true)")
+            self.warten("document.querySelector('#ls-rechner').innerText.includes('dauerhaft belegt')")
+            rechner = self.tab.js("document.querySelector('#ls-rechner').innerText")
+            self.assertIn("Frei · 16,4 GB dauerhaft belegt", rechner)
+            self.assertRegex(rechner, r"Außerhalb der Warteschlange belegt: llama-server \(lokale KI\) 16,4 GB seit [\d., ]*\d\d:\d\d\. Beenden kannst nur du")
+            self.assertRegex(rechner, r"\d+(,\d)? GB Arbeitsspeicher frei")                                # Zahlen mit Komma
         self.assertFalse(self.tab.js("document.querySelector('header').innerText.includes('null')"))   # leere Hinweise sind keine Texte
         self.assertFalse(self.tab.js("!!document.querySelector('#halt-knopf')"))                       # Anhalten steht im Leitstand
         self.assertTrue(self.tab.js("[...document.querySelectorAll('#leitstand button')].some(b => b.textContent === 'Alle anhalten')"))
