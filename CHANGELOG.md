@@ -4,6 +4,29 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.46.0 – 11.11.2026 · Betriebsart: festlegen, wohin die AMW Verbindungen aufbauen darf
+- **Drei Betriebsarten** (Zahnrad › Betriebsart, `amw einrichten betriebsart [pc|server|cloud]`): „Nur dieser PC“ – keine
+  Verbindung über den Rechner hinaus; „Eigener Server im Firmennetz“ – nur Adressen im eigenen Netz; „Cloud“ –
+  Online-Speicher, Online-Seite und Benachrichtigungs-Dienste im Internet sind erlaubt.
+- **Gesperrt im Code, nicht nur in der Oberfläche:** Abgleich mit dem Online-Speicher, Benachrichtigungen und die Prüfung
+  der Online-Seite fragen dieselbe Stelle. Entschieden wird nach der Adresse des Ziels (dieser PC, Firmennetz, Internet) –
+  ein eigener ntfy-Server im Firmennetz ist in „Eigener Server“ erlaubt, ein Dienst im Internet nicht. In „Nur dieser PC“
+  wird nicht einmal ein Name aufgelöst. Fehlermeldungen nennen nur den Rechnernamen des Ziels, nie einen Schlüssel.
+- **Nichts ändert sich von selbst:** Wer nichts wählt, behält, was bisher lief – mit eingeschaltetem Abgleich oder
+  Benachrichtigungen „Cloud“, sonst „Nur dieser PC“. Neu: Wer den Online-Speicher zum ersten Mal einrichtet, wählt zuerst
+  „Cloud“.
+- **Prüf-Lauf „Verbindungen“:** Unter der Betriebsart steht jede Adresse, zu der diese Installation eine Verbindung
+  aufbaut – wer, Ziel, wohin es führt, erlaubt oder gesperrt. „Jetzt prüfen“ testet die erlaubten Ziele (nur der
+  Verbindungsaufbau). Rot ist, was eingeschaltet, aber gesperrt ist. Als Befehl: `amw einrichten verbindungen [--pruefen]`
+  (endet dann mit Fehler).
+- **„In Claude öffnen“** führt ins Internet und wird nur gezeigt, wenn die Betriebsart das zulässt.
+- **„Online-Seite testen“ prüft auch die Version:** Die Seite hinterlegt beim Anmelden ihre Version im Online-Speicher;
+  der PC vergleicht sie mit seiner. Öffentlich gibt die Seite ihre Version weiterhin nicht preis.
+- **Geführte Einrichtung:** `amw einrichten` fragt die Betriebsart ab, solange noch keine gewählt ist.
+- **Neue Hilfen** (Deutsch und Englisch, aufrufbar am Abschnitt): „Betriebsart wählen“, „Online-Seite beim Webhoster
+  einrichten“, „Zweiter Faktor: neues oder verlorenes Handy“.
+- Nicht erfasst ist, was außerhalb der AMW läuft: Claude Code spricht mit seinem Anbieter, Git mit seinem Server.
+
 ## 1.45.0 – 11.11.2026 · Schwere Befehle melden sich von selbst an
 - **Automatismus statt Gebot:** Startet ein Agent eine ganze Test-Suite, Browser-Tests, einen Build oder den Abzug des
   Web-Zweigs direkt, wird der Befehl nicht ausgeführt. Er bekommt stattdessen den fertigen Befehl für die Warteschlange

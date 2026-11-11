@@ -146,7 +146,18 @@ Zahnrad › Dieser PC, oder von Hand in `%LOCALAPPDATA%\amw\einstellungen.json` 
 Vorgabe abweichen, z. B. `{"port": 8790}`). Was der Wächter nur beim Start liest, trägt im Zahnrad das Zeichen ↻ und
 wirkt nach `amw dienst neustart` (oder Start › Leitstand › Neu starten); alles andere gilt sofort.
 
-Das Zahnrad ist in dieser Reihenfolge gegliedert: **Speicher und Abgleich** (Art, Adresse und Schlüssel des
+**Betriebsart** (`amw/betriebsart.py`): „Nur dieser PC“ · „Eigener Server im Firmennetz“ · „Cloud“. Sie legt fest, wohin
+diese Installation Verbindungen aufbauen darf, und wird an jeder Stelle geprüft, an der die AMW nach außen geht (Abgleich
+mit dem Online-Speicher, Benachrichtigungen, Prüfung der Online-Seite, Link „In Claude öffnen“) – entschieden nach der
+Adresse des Ziels: dieser PC, Firmennetz (private Adressbereiche, Namen ohne Punkt oder mit `.lan`, `.local`, `.intern` …)
+oder Internet. In „Nur dieser PC“ wird nicht einmal ein Name aufgelöst. Wer nichts gewählt hat, behält, was bisher lief
+(mit eingeschaltetem Abgleich oder Benachrichtigungen „Cloud“, sonst „Nur dieser PC“). Zeigen und setzen:
+`amw einrichten betriebsart [pc|server|cloud]`. Die Liste aller Verbindungen dieser Installation steht im Zahnrad unter
+der Betriebsart und kommt mit `amw einrichten verbindungen [--pruefen]`; der Befehl endet mit Fehler, wenn etwas
+eingeschaltet, aber gesperrt ist. Nicht erfasst ist, was außerhalb der AMW läuft: Claude Code spricht mit seinem
+Anbieter, Git mit seinem Server.
+
+Das Zahnrad ist in dieser Reihenfolge gegliedert: **Betriebsart** · **Speicher und Abgleich** (Art, Adresse und Schlüssel des
 Online-Speichers, Abgleich an/aus und seine Takte) · **Online-Seite** (ihre Adresse, Grenzen der Anmeldung) ·
 **Benachrichtigungen** · **Dieser PC** · **Projekt** · **Agenten**. Jeder Abschnitt nennt, wofür er gilt (dieser PC, die
 Online-Seite, dieses Projekt). Weicht ein Wert vom Standard ab, steht der Standard darunter. Zwei Knöpfe testen die
@@ -170,3 +181,4 @@ testen“ (erreichbar über https, läuft dort eine AMW-Seite?). Schlüssel blei
 | `lauf_hook` | an | schwere Befehle abweisen und über die Warteschlange schicken (Hook in den Agenten-Ordnern) |
 | `sprache` | auto | Sprache der Oberfläche, solange im Browser nichts gewählt ist: `auto` (wie der Browser), `de`, `en` |
 | `claude_link` | an | Knopf „In Claude öffnen“ auf der Agenten-Seite zeigen |
+| `betriebsart` | leer | `pc`, `server` oder `cloud`; leer = nicht gewählt, es gilt, was bisher lief |

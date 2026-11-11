@@ -245,10 +245,15 @@ class Seite(Wiederholt, Grund):
         self.assertIn("Dieser PC", texte)
         self.assertFalse([x for x in texte if "diesen PC" in x], texte)                 # der Hinweis „Gilt für …“ steht nicht in der Sprungleiste
         # neu gegliedert: erst, was die Installation trägt, dann Projekt und Agenten; je Abschnitt der Wirkungsort
-        self.assertEqual(texte, ["Speicher und Abgleich", "Online-Seite", "Benachrichtigungen aufs Handy", "Dieser PC", "Projekt", "Agenten"])
+        self.assertEqual(texte, ["Betriebsart", "Speicher und Abgleich", "Online-Seite", "Benachrichtigungen aufs Handy", "Dieser PC", "Projekt", "Agenten"])
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.einst > .karte > h3 .wirkt')].map(x => x.textContent)"),
-                         ["Gilt für PC und Online-Seite", "Gilt für die Online-Seite", "Gilt für diesen PC", "Gilt für diesen PC", "Gilt für dieses Projekt"])
-        self.assertEqual(self.tab.js("[...document.querySelectorAll('.pruef')].map(x => x.dataset.pruef)"), ["speicher", "seite"])   # Prüf-Knöpfe (nicht gedrückt: kein Netz im Test)
+                         ["Gilt für diesen PC", "Gilt für PC und Online-Seite", "Gilt für die Online-Seite", "Gilt für diesen PC", "Gilt für diesen PC", "Gilt für dieses Projekt"])
+        # Betriebsart: drei Karten, genau eine gewählt; darunter die Liste der Verbindungen (mindestens die Workbench selbst)
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.ba-karte')].map(k => k.dataset.art)"), ["pc", "server", "cloud"])
+        self.assertEqual(self.tab.js("document.querySelectorAll('.ba-karte.an').length"), 1)
+        self.warten("document.querySelector('.ba-liste td')")
+        self.assertTrue(self.tab.js("[...document.querySelectorAll('.ba-liste td')].some(z => z.textContent.startsWith('127.0.0.1:'))"))
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.pruef[data-pruef]')].map(x => x.dataset.pruef)"), ["speicher", "seite"])   # Prüf-Knöpfe (nicht gedrückt: kein Netz im Test)
         self.assertTrue(self.tab.js("[...document.querySelectorAll('.einst .feld')].some(f => f.textContent.includes('Port') && f.textContent.includes('Neustart des Wächters'))"))
         self.assertFalse(self.tab.js("/null|undefined/.test(document.querySelector('.einst').innerText)"))
 

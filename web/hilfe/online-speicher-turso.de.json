@@ -8,6 +8,11 @@
  ],
  "schritte": [
   {
+   "titel": "Betriebsart",
+   "text": "Der Online-Speicher liegt im Internet: unter Einstellungen › Betriebsart muss „Cloud“ gewählt sein (`amw einrichten betriebsart cloud`). In „Nur dieser PC“ ist die Verbindung blockiert.",
+   "bilder": []
+  },
+  {
    "titel": "Konto und Datenbank",
    "text": "Melde dich auf turso.tech an und lege eine Datenbank an („Create Database“). Der Name ist frei, wähle einen Standort in deiner Nähe.",
    "bilder": []

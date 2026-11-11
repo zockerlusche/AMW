@@ -8,6 +8,7 @@ The online storage is where your PC and the online page exchange data. You creat
 - About 10 minutes.
 
 ## Steps
+0. **Operating mode** The online storage is on the internet: under Settings › Operating mode, “Cloud” must be chosen (`amw einrichten betriebsart cloud`). In “This PC only” the connection is blocked.
 1. **Account and database** Sign in at turso.tech and create a database (“Create Database”). Any name works; pick a location near you.
 2. **Copy the address** The database page shows the address (“Database URL”). It starts with `libsql://` and ends in `.turso.io`.
 3. **Create a key** On the same page choose “Create Token”: read and write, no expiry. Copy the key – it is shown only once.

@@ -48,7 +48,7 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Abgleich) ¦ zweitfaktor-neu ¦ bauen ¦ schema |
 | [`anmelden`](#anmelden) | laufende Sitzung beim Wächter anmelden (ohne Neustart) |
 | [`abmelden`](#abmelden) | Sitzung ruht: nicht mehr wecken, nicht automatisch neu starten (bis anmelden) |
-| [`einrichten`](#einrichten) | ohne Angabe: geführte Einrichtung (fragt nach) ¦ schnell --projekt-name … (ohne Fragen) ¦ agenten-ordner <pfad> (Hooks, Statusline-Brücke, Sperren) |
+| [`einrichten`](#einrichten) | ohne Angabe: geführte Einrichtung (fragt nach) ¦ schnell --projekt-name … (ohne Fragen) ¦ agenten-ordner <pfad> (Hooks, Statusline-Brücke, Sperren) ¦ betriebsart [pc¦server¦cloud] ¦ verbindungen [--pruefen] (jede Adresse, zu der die AMW eine Verbindung aufbaut) |
 | [`befehle`](#befehle) | Befehlsreferenz als Markdown (für doc/befehle.md) |
 | [`sichern`](#sichern) | Sicherung der Datenbank (vollständige Kopie, auch während des Betriebs); mit --projekt <name> nur dieses Projekt als eigene Datenbank (z. B. zum Umziehen auf einen anderen Rechner) |
 | [`push`](#push) | Benachrichtigungen aufs Handy: status ¦ probe ¦ an ¦ aus ¦ ntfy ¦ pushover ¦ telegram ¦ ruhe 22:00-07:00¦aus ¦ link URL ¦ ereignis art=an¦aus |
@@ -1161,21 +1161,25 @@ options:
 
 ## einrichten
 ```
-usage: amw einrichten [-h] [--nur-zeigen] [--ohne-sperren]
+usage: amw einrichten [-h] [--pruefen] [--nur-zeigen] [--ohne-sperren]
                       [--projekt-name PROJEKT_NAME] [--lead LEAD]
                       [--agenten AGENTEN] [--ordner ORDNER]
                       [--rechte {vorgabe,auto,umgehen}]
                       [--denkstufe {low,medium,high,xhigh,max}] [--mit-dienst]
                       [--ohne-hooks] [--fernsteuerung] [--grund-regelwerk]
                       [--entfernen] [--von VON] [--projekt PROJEKT]
-                      [{assistent,schnell,agenten-ordner}] [pfad]
+                      [{assistent,schnell,agenten-ordner,betriebsart,verbindungen}]
+                      [pfad]
 
 positional arguments:
-  {assistent,schnell,agenten-ordner}
-  pfad
+  {assistent,schnell,agenten-ordner,betriebsart,verbindungen}
+  pfad                  agenten-ordner: der Ordner | betriebsart: pc, server
+                        oder cloud (ohne Angabe: zeigen)
 
 options:
   -h, --help            show this help message and exit
+  --pruefen             verbindungen: je erlaubter Adresse den
+                        Verbindungsaufbau testen
   --nur-zeigen
   --ohne-sperren        keine Sperr-Regeln (Ordner dessen, der den Wächter
                         betreut)

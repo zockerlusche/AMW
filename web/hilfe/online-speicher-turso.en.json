@@ -8,6 +8,11 @@
  ],
  "schritte": [
   {
+   "titel": "Operating mode",
+   "text": "The online storage is on the internet: under Settings › Operating mode, “Cloud” must be chosen (`amw einrichten betriebsart cloud`). In “This PC only” the connection is blocked.",
+   "bilder": []
+  },
+  {
    "titel": "Account and database",
    "text": "Sign in at turso.tech and create a database (“Create Database”). Any name works; pick a location near you.",
    "bilder": []

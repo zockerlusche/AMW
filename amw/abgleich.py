@@ -121,6 +121,8 @@ class TursoSpeicher:
         return {"type": "text", "value": str(v)}
 
     def ausfuehren(self, anweisungen):
+        from . import betriebsart                    # die Betriebsart entscheidet, ob diese Adresse erreicht werden darf
+        betriebsart.pruefe(self.url, "Verbindung zum Online-Speicher")
         body = {"requests": [{"type": "execute", "stmt": {"sql": sql, "args": [self._wert(x) for x in args]}}
                              for sql, args in anweisungen] + [{"type": "close"}]}
         req = urllib.request.Request(self.url, data=json.dumps(body).encode("utf-8"), method="POST",

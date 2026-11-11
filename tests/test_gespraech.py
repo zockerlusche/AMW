@@ -131,7 +131,9 @@ class Gespraech(unittest.TestCase):
         with open(os.path.join(sitzungen, f"{os.getpid()}.json"), "w", encoding="utf-8") as f:
             json.dump({"pid": os.getpid(), "sessionId": SID, "kind": "interactive", "status": "busy",
                        "bridgeSessionId": "session_01ABCDEFGHIJKLMNOP"}, f)
-        with mock.patch("amw.steuerung.lebt", return_value=True):
+        with mock.patch("amw.steuerung.lebt", return_value=True), mock.patch("amw.betriebsart.aktuell", return_value="pc"):
+            self.assertIsNone(gespraech.daten(self.con, self.pid, "CC1")["link"])     # „Nur dieser PC“: kein Link ins Internet
+        with mock.patch("amw.steuerung.lebt", return_value=True), mock.patch("amw.betriebsart.aktuell", return_value="cloud"):
             d = gespraech.daten(self.con, self.pid, "CC1")
             self.assertEqual(d["link"], "https://claude.ai/code/session_01ABCDEFGHIJKLMNOP")
             self.assertEqual((d["status"], d["laeuft"], len(d["eintraege"])), ("busy", True, 1))

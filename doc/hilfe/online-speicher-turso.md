@@ -8,6 +8,7 @@ Der Online-Speicher ist die Ablage, über die dein PC und die Online-Seite Daten
 - Etwa 10 Minuten.
 
 ## Schritte
+0. **Betriebsart** Der Online-Speicher liegt im Internet: unter Einstellungen › Betriebsart muss „Cloud“ gewählt sein (`amw einrichten betriebsart cloud`). In „Nur dieser PC“ ist die Verbindung blockiert.
 1. **Konto und Datenbank** Melde dich auf turso.tech an und lege eine Datenbank an („Create Database“). Der Name ist frei, wähle einen Standort in deiner Nähe.
 2. **Adresse kopieren** Auf der Seite der Datenbank steht die Adresse („Database URL“). Sie beginnt mit `libsql://` und endet auf `.turso.io`.
 3. **Schlüssel erzeugen** Auf derselben Seite „Create Token“ wählen: Lesen und Schreiben, ohne Ablauf. Den Schlüssel kopieren – er wird nur einmal gezeigt.

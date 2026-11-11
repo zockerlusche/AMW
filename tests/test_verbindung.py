@@ -44,6 +44,26 @@ class Pruefungen(unittest.TestCase):
         r = verbindung.speicher(Kaputt())
         self.assertEqual(r["schritte"], [{"name": "anmelden", "ok": False, "wert": "Turso HTTP 401"}])
 
+    def test_version_der_seite_steht_im_online_speicher(self):
+        sp = self.speicher([])
+        con = sqlite3.connect(sp.pfad)
+        con.execute("CREATE TABLE zustand (schluessel TEXT PRIMARY KEY, wert TEXT)")
+        con.commit()
+        self.assertIsNone(verbindung.seiten_version(sp))                                   # noch niemand angemeldet
+        con.execute("INSERT INTO zustand VALUES ('web_version', '1.46.0')")
+        con.commit()
+        con.close()
+        self.assertEqual(verbindung.seiten_version(sp), "1.46.0")
+
+        class Kaputt:
+            def ausfuehren(self, anweisungen):
+                raise OSError("weg")
+        self.assertIsNone(verbindung.seiten_version(Kaputt()))                             # nicht erreichbar: kein Schritt, kein Fehler
+        with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(verbindung.__file__))), "web", "inc", "lib.php"), encoding="utf-8") as f:
+            php = f.read()
+        self.assertIn("VALUES ('web_version', ?)", php)                                    # die Seite hinterlegt sie beim Anmelden
+        self.assertIn("} catch (Throwable $e) {}", php)                                    # … und die Anmeldung hängt nie daran
+
     def test_die_tabellen_der_pruefung_legt_der_abgleich_an(self):
         schema = " ".join(abgleich.SCHEMA)
         for t in verbindung.TABELLEN:
@@ -54,8 +74,13 @@ class Pruefungen(unittest.TestCase):
         namen = lambda r: [(s["name"], s["ok"]) for s in r["schritte"]]
         self.assertEqual(namen(verbindung.seite("")), [("adresse", False)])
         self.assertEqual(namen(verbindung.seite("http://a.example")), [("https", False)])            # nie unverschlüsselt
-        r = verbindung.seite("https://a.example/", holen=lambda u: seiten[u])
-        self.assertEqual((r["ok"], namen(r)), (True, [("https", True), ("antwort", True), ("amw", True)]))
+        r = verbindung.seite("https://a.example/", holen=lambda u: seiten[u], version=lambda: None)
+        self.assertEqual((r["ok"], namen(r)), (True, [("https", True), ("antwort", True), ("amw", True)]))    # Version noch nicht hinterlegt: kein Schritt
+        from amw import __version__
+        r = verbindung.seite("https://a.example/", holen=lambda u: seiten[u], version=lambda: __version__)
+        self.assertEqual((r["ok"], namen(r)[-1], r["schritte"][-1]["wert"]), (True, ("version", True), __version__))
+        r = verbindung.seite("https://a.example/", holen=lambda u: seiten[u], version=lambda: "1.0.0")
+        self.assertEqual((r["ok"], namen(r)[-1], r["schritte"][-1]["wert"]), (False, ("version", False), f"1.0.0, dieser PC: {__version__}"))
         alt = dict(seiten, **{"https://a.example" + verbindung.HILFE_PROBE: (404, "")})             # antwortet, aber keine AMW-Seite
         r = verbindung.seite("https://a.example", holen=lambda u: alt[u])
         self.assertEqual((r["ok"], namen(r)), (False, [("https", True), ("antwort", True), ("amw", False)]))
@@ -114,14 +139,13 @@ class Felder(unittest.TestCase):
         self.assertTrue(einstellungen.wert("claude_link"))                         # Vorgabe: an, wie bisher
         einstellungen.speichern({"claude_link": False})
         self.assertFalse(einstellungen.wert("claude_link"))
-        aid = kern.agent_zeile(self.con, self.pid, "Chef")["id"]
-        with db.schreiben(self.con):
-            db.einfuegen(self.con, "sitzung", agent_id=aid, claude_sitzung="s-1", gestartet_utc=db.jetzt(), schluessel_datei="x.json", zustand="aktiv")
         from amw import gespraech
-        with mock.patch.object(gespraech, "link", return_value="https://claude.ai/code/abc"):
-            self.assertIsNone(workbench.daten_agent(self.con, self.pid, "Chef")["claude_link"])
-            einstellungen.speichern({"claude_link": True})
-            self.assertEqual(workbench.daten_agent(self.con, self.pid, "Chef")["claude_link"], "https://claude.ai/code/abc")
+        einstellungen.speichern({"betriebsart": "cloud"})
+        self.assertFalse(gespraech.link_zeigen())                                  # ausgeschaltet
+        einstellungen.speichern({"claude_link": True})
+        self.assertTrue(gespraech.link_zeigen())
+        einstellungen.speichern({"betriebsart": "pc"})                             # der Link führt ins Internet
+        self.assertFalse(gespraech.link_zeigen())
 
 
 if __name__ == "__main__":

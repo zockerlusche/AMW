@@ -1684,6 +1684,36 @@ def cmd_einrichten(a):
                           hooks=not a.ohne_hooks, fernsteuerung=a.fernsteuerung,
                           regelwerk={"auswahl": None, "sprache": "de"} if a.grund_regelwerk else None)
         return 0
+    if a.aktion == "betriebsart":                         # zeigen oder setzen: amw einrichten betriebsart [pc|server|cloud]
+        from . import betriebsart, einstellungen
+        if a.pfad:
+            try:
+                einstellungen.speichern({"betriebsart": a.pfad})
+            except ValueError as f:
+                raise kern.AmwFehler(str(f))
+        art = betriebsart.aktuell()
+        print(f"Betriebsart: {betriebsart.NAMEN[art]} ({art})" + ("" if betriebsart.gewaehlt() else " – nicht gewählt, es gilt, was bisher lief"))
+        return 0
+    if a.aktion == "verbindungen":                        # jede Adresse, zu der diese Installation eine Verbindung aufbaut
+        from . import betriebsart, verbindung
+        con = db.verbinde() if os.path.exists(db.db_pfad()) else None
+        try:
+            d = verbindung.erreichbar(con) if a.pruefen else verbindung.liste(con)
+        finally:
+            if con is not None:
+                con.close()
+        wer = {"workbench": "Workbench", "speicher": "Online-Speicher", "seite": "Online-Seite", "push": "Benachrichtigung", "ki": "Lokale KI"}
+        stufe = {"pc": "dieser PC", "firma": "Firmennetz", "internet": "Internet"}
+        print(f"Betriebsart: {betriebsart.NAMEN[d['betriebsart']]}")
+        for x in d["zeilen"]:
+            zustand = "blockiert" if not x["erlaubt"] else "nur beim Testen" if x["nur_pruefung"] else "ausgeschaltet" if not x["aktiv"] else "erlaubt"
+            probe = "" if x.get("erreichbar") is None else "  erreichbar" if x["erreichbar"] else "  NICHT erreichbar"
+            name = wer[x["wer"]] + (f" ({x['zusatz']})" if x["zusatz"] else "")
+            ziel = f"{x['rechner']}:{x['port']}"
+            print(f"  {name:<26} {ziel:<48} {stufe[x['stufe']]:<14} {zustand}{probe}"
+                  + ("   ← eingeschaltet, aber in dieser Betriebsart blockiert" if x["aktiv"] and not x["erlaubt"] else ""))
+        print("Nicht erfasst: Claude Code und Git verbinden sich selbst mit ihren Diensten.")
+        return 1 if d["fehler"] else 0
     if a.aktion == "agenten-ordner":
         if not a.pfad:
             raise kern.AmwFehler("amw einrichten agenten-ordner <pfad> [--projekt <name>] [--nur-zeigen] [--entfernen]")
@@ -2315,9 +2345,11 @@ def parser():
     x.set_defaults(f=cmd_abmelden)
 
     x = s.add_parser("einrichten", help="ohne Angabe: geführte Einrichtung (fragt nach) | schnell --projekt-name … (ohne Fragen) |"
-                                        " agenten-ordner <pfad> (Hooks, Statusline-Brücke, Sperren)")
-    x.add_argument("aktion", nargs="?", choices=["assistent", "schnell", "agenten-ordner"], default="assistent")
-    x.add_argument("pfad", nargs="?")
+                                        " agenten-ordner <pfad> (Hooks, Statusline-Brücke, Sperren) | betriebsart [pc|server|cloud] |"
+                                        " verbindungen [--pruefen] (jede Adresse, zu der die AMW eine Verbindung aufbaut)")
+    x.add_argument("aktion", nargs="?", choices=["assistent", "schnell", "agenten-ordner", "betriebsart", "verbindungen"], default="assistent")
+    x.add_argument("pfad", nargs="?", help="agenten-ordner: der Ordner | betriebsart: pc, server oder cloud (ohne Angabe: zeigen)")
+    x.add_argument("--pruefen", action="store_true", help="verbindungen: je erlaubter Adresse den Verbindungsaufbau testen")
     x.add_argument("--nur-zeigen", action="store_true")
     x.add_argument("--ohne-sperren", action="store_true", help="keine Sperr-Regeln (Ordner dessen, der den Wächter betreut)")
     x.add_argument("--projekt-name", help="schnell: Name des Projekts")

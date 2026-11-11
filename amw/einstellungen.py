@@ -106,6 +106,13 @@ def _sprache(v):
     return v
 
 
+def _betriebsart(v):
+    v = str(v or "").strip().lower()
+    if v not in ("", "pc", "server", "cloud"):
+        raise ValueError("pc, server oder cloud (leer = nicht gewählt)")
+    return v
+
+
 FELDER = {
     "db_pfad": (os.path.join(WURZEL, "daten", "amw.db"), _pfad),
     "port": (8780, _ganz(1024, 65535)),
@@ -136,6 +143,8 @@ FELDER = {
     "sprache": ("auto", _sprache),
     # Knopf „In Claude öffnen“ auf der Agenten-Seite (Link zu claude.ai für eine laufende Sitzung mit Fernsteuerung)
     "claude_link": (True, _wahr),
+    # Betriebsart (amw/betriebsart.py): pc | server | cloud; leer = nicht gewählt, dann gilt, was bisher lief
+    "betriebsart": ("", _betriebsart),
 }
 # Diese Werte liest der Wächter nur beim Start – eine Änderung wirkt nach `amw dienst neustart`
 NEUSTART = ("db_pfad", "port", "aufsicht_s", "abgleich_hoch_s", "abgleich_puls_s", "abgleich_eingang_s",

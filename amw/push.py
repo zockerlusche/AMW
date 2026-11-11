@@ -171,6 +171,11 @@ def _anfrage(url, daten=None, kopf=None, form=False):
         body, typ = urllib.parse.urlencode(daten).encode(), "application/x-www-form-urlencoded"
     else:
         body, typ = json.dumps(daten).encode("utf-8"), "application/json"
+    from . import betriebsart
+    try:
+        betriebsart.pruefe(url, "Benachrichtigung")
+    except betriebsart.Gesperrt as e:              # kein neuer Versuch – das ändert sich nicht von selbst
+        raise Fehler(str(e), False) from None
     req = urllib.request.Request(url, data=body, headers={"Content-Type": typ, "User-Agent": "AMW", **(kopf or {})})
     try:
         with urllib.request.urlopen(req, timeout=ZEITGRENZE_S) as r:

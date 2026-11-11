@@ -411,10 +411,15 @@ def _seiten_adresse():
         return ""
 
 
-def verbindung_pruefen(was):
-    """Prüf-Knöpfe im Zahnrad (nur am PC): Online-Speicher bzw. Online-Seite erreichbar?"""
+def verbindung_pruefen(was, con=None):
+    """Prüf-Knöpfe im Zahnrad (nur am PC): Online-Speicher, Online-Seite, Liste aller Verbindungen."""
     from . import verbindung
-    return verbindung.pruefen(was)
+    return verbindung.pruefen(was, con)
+
+
+def _betriebsart_stand():
+    from . import betriebsart
+    return {"aktuell": betriebsart.aktuell(), "gewaehlt": betriebsart.gewaehlt()}
 
 
 def sprache_vorgabe():
@@ -473,6 +478,7 @@ def daten_einstellungen(con, pid, speicher=None):
                                      "lauf_ohne_angabe_min": ueberwachung.LAUF_OHNE_ANGABE_MIN, "info_ablage_h": INFO_ABLAGE_H},
                          "web": {k: v[0] for k, v in abgleich.WEB_EINSTELLUNGEN.items()}},
             "neustart": list(einstellungen.NEUSTART),
+            "betriebsart": _betriebsart_stand(),
             "seite": {"adresse": _seiten_adresse()},
             "turso": {"url": z.get("url", ""), "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(z.get("token")),
                       "datei": abgleich.zugang_pfad()},
@@ -552,9 +558,7 @@ def daten_agent(con, pid, kennung):
     except Exception:                      # z. B. ohne Windows-API (Tests anderswo) – Anzeige geht trotzdem
         steuern = {}
     try:                                   # „In Claude öffnen“: laufende Sitzung mit Fernsteuerung
-        from . import einstellungen
-        zeigen = a["zustand"] == "aktiv" and einstellungen.wert("claude_link")
-        steuern["claude_link"] = gespraech.link(a["claude_sitzung"]) if zeigen else None
+        steuern["claude_link"] = gespraech.link(a["claude_sitzung"]) if a["zustand"] == "aktiv" else None
     except Exception:
         steuern["claude_link"] = None
     return {
@@ -1022,7 +1026,7 @@ def baue_handler(port, token):
                     "/api/agent": lambda c, p: daten_agent(c, p, q.get("kennung", [""])[0]),
                     "/api/agent/vorschlag": lambda c, p: agent_vorschlag(c, p, q.get("kennung", [""])[0]),
                     "/api/regelwerk": lambda c, p: daten_regelwerk(q.get("sprache", ["de"])[0]),
-                    "/api/pruefen": lambda c, p: verbindung_pruefen(q.get("was", [""])[0]),
+                    "/api/pruefen": lambda c, p: verbindung_pruefen(q.get("was", [""])[0], c),
                     "/api/gespraech": lambda c, p: daten_gespraech(c, p, q),
                     "/api/push": lambda c, p: daten_push(c),
                     "/api/planung": lambda c, p: daten_planung(c, p),

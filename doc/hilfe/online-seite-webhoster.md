@@ -1,0 +1,42 @@
+# Online-Seite beim Webhoster einrichten
+
+Mit der Online-Seite beantwortest du Fragen, gibst frei und hältst an – von unterwegs, am Handy. Sie liegt bei deinem Webhoster und zeigt, was der PC in den Online-Speicher hochlädt.
+
+## Du brauchst
+- Den Online-Speicher: fertig eingerichtet und der Abgleich ist an (Hilfe „Online-Speicher bei Turso anlegen“).
+- Einen Webhoster mit PHP ab 8.1 (Erweiterungen curl und mbstring) und HTTPS, am besten eine eigene Subdomain.
+- Eine Authenticator-App auf dem Handy (für den zweiten Faktor).
+
+## Schritte
+1. **Betriebsart** Die Online-Seite liegt im Internet: unter Einstellungen › Betriebsart muss „Cloud“ gewählt sein.
+2. **Dateien bereitstellen** Beim Hoster eine Git-Bereitstellung aus dem AMW-Repository (oder deinem Fork) einrichten, Zweig `web`, in den Ordner der Subdomain. Ohne Git: den Inhalt des Ordners `web/` hochladen. HTTPS (SSL) für die Subdomain einschalten.
+3. **Seite öffnen** Die Adresse im Browser aufrufen. Solange die Seite nicht eingerichtet ist, erscheint ihr Einrichtungs-Assistent.
+4. **Online-Speicher verbinden** Im Assistenten Adresse und Schlüssel des Online-Speichers eintragen – dieselben wie am PC. Die Seite prüft die Verbindung.
+5. **Zugang anlegen** Benutzer (4–40 Zeichen) und Passwort (mindestens 14 Zeichen, zweimal) wählen.
+6. **Zweiten Faktor einrichten** Den QR-Code mit der Authenticator-App scannen und die erste Zahl bestätigen. Der Assistent verfällt nach 30 Minuten; nach 5 falschen Zahlen beginnt er von vorn.
+7. **Adresse am PC eintragen** Einstellungen › Online-Seite › „Adresse der Online-Seite“ eintragen und speichern. „Seite erreichbar?“ prüft, ob sie über https antwortet.
+
+## Diese Werte trägst du ein
+| Feld in der AMW | Woher |
+|---|---|
+| Adresse und Schlüssel (im Assistenten der Seite) | dieselben wie unter Einstellungen › Speicher und Abgleich |
+| Benutzer und Passwort | wählst du selbst – das Passwort am besten aus einem Passwort-Manager |
+| Adresse der Online-Seite (am PC) | die Adresse deiner Subdomain, beginnend mit `https://` |
+
+## Typische Fehler
+- **Der Assistent erscheint nicht** – Die Seite ist schon eingerichtet; dann kommt die Anmeldung.
+- **Hinweis „die nächste Bereitstellung löscht die Konfiguration“** – Die Seite durfte ihre Konfiguration nicht außerhalb des Bereitstellungs-Ordners ablegen. Beim Hoster das Schreiben eine Ebene über dem Ordner erlauben und die Einrichtung wiederholen.
+- **Die Seite zeigt alte oder keine Daten** – Der PC lädt nicht hoch: Abgleich an? Wächter läuft? `amw web status` zeigt, wann zuletzt hochgeladen wurde.
+- **„Seite erreichbar?“ meldet keine Hilfe-Dateien** – Dort liegt eine ältere Fassung oder eine andere Seite. Bereitstellung erneuern.
+
+## Danach
+- Was du online tust, landet in einem Briefkasten; der PC holt es ab und führt es als „Entwickler“ aus.
+- Abmelden nach Leerlauf und Sperre nach Fehlversuchen stellst du unter Einstellungen › Online-Seite ein.
+- Richte auch bei Hoster, Git-Anbieter und Speicher-Anbieter einen zweiten Faktor ein: Wer eines dieser Konten übernimmt, kann in deinem Namen handeln.
+
+## Häufige Fragen
+### Kann jemand anderes eine frisch bereitgestellte Seite einrichten?
+Nur, wer den Schlüssel des Online-Speichers hat – ohne ihn kommt der Assistent nicht über den ersten Schritt.
+
+### Wie schalte ich die Online-Seite ab?
+Am PC: Einstellungen › Speicher und Abgleich › Abgleich aus. Ganz sperren: den Ordner beim Hoster leeren oder beim Speicher-Anbieter Lesen und Schreiben blockieren.

@@ -174,6 +174,15 @@ def interaktiv(eingabe=input, ausgabe=print):
             regelwerk = {"auswahl": None, "sprache": "de"}
         elif wahl != "ohne":
             regeln_von = wahl
+    from . import betriebsart                        # einmal je Rechner: wohin darf die AMW Verbindungen aufbauen?
+    if not betriebsart.gewaehlt():
+        ausgabe("\nBetriebsart – mit welchen Adressen darf sich die AMW verbinden?\n"
+                "  pc     nur dieser PC: kein Abgleich, keine Online-Seite, keine Benachrichtigungen\n"
+                "  server nur Adressen im eigenen Firmennetz\n"
+                "  cloud  Online-Speicher, Online-Seite und Benachrichtigungen über das Internet\n"
+                "Claude Code und Git verbinden sich unabhängig davon selbst mit ihren Diensten.")
+        art = _auswahl("Betriebsart: pc | server | cloud", list(betriebsart.ARTEN), betriebsart.aktuell(), eingabe, ausgabe)
+        einstellungen.speichern({"betriebsart": art})
     ordner = _frage("Projektordner, in dem die Agenten arbeiten (leer = später)", os.getcwd(), eingabe)
     while ordner and not os.path.isdir(ordner):
         ordner = _frage(f"{ordner} gibt es nicht – Projektordner (leer = später)", "", eingabe)

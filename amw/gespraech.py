@@ -65,6 +65,7 @@ def laufende():
     """sessionId → {link, status} der laufenden Claude-Prozesse (nur gelesen; die Schlüssel daneben nie)."""
     from . import hook, steuerung
     erg = {}
+    zeigen = link_zeigen()
     ordner = os.path.join(claude_ordner(), "sessions")
     for p in hook.claude_prozesse():
         try:
@@ -75,7 +76,7 @@ def laufende():
         except (OSError, ValueError, TypeError, AttributeError):
             continue
         b = d.get("bridgeSessionId") or ""
-        erg[d.get("sessionId") or ""] = {"link": f"https://claude.ai/code/{b}" if BRUECKE.match(b) else None,
+        erg[d.get("sessionId") or ""] = {"link": f"https://claude.ai/code/{b}" if zeigen and BRUECKE.match(b) else None,
                                          "status": d.get("status") if d.get("status") in ("busy", "idle") else None}
     return erg
 
@@ -309,6 +310,12 @@ def daten(con, pid, kennung, sitzung=None, vor=None, ab=None, online=False):
     if not p:
         return {**kopf, "eintraege": [], "fehlt": True}
     return {**kopf, **lesen(p, vor=vor, ab=ab, anzahl=ONLINE_EINTRAEGE if online else EINTRAEGE, online=online)}
+
+
+def link_zeigen():
+    """Der Link führt ins Internet: nur, wenn er eingeschaltet ist (Zahnrad › Dieser PC) und die Betriebsart das zulässt."""
+    from . import betriebsart, einstellungen
+    return bool(einstellungen.wert("claude_link")) and betriebsart.erlaubt("https://claude.ai")
 
 
 def link(sitzung):
