@@ -126,4 +126,4 @@ Befehl wirkt nur im Projekt seiner Brücke; `"projekt"` in der Befehlsdatei darf
 
 Jeder Rechner lädt nur seine eigenen Projekte hoch und führt nur deren Befehle vom Handy aus; online trägt jeder Eintrag
 die Projekt-Kennung. Am ersten Rechner steht das Projekt mit „↗“ in der Auswahl und öffnet die Online-Seite (dafür unter
-Zahnrad › Push den Link der Online-Seite eintragen). Kein Rechner liest die Datenbank eines anderen.
+Zahnrad › Online-Seite die Adresse der Online-Seite eintragen). Kein Rechner liest die Datenbank eines anderen.

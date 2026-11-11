@@ -239,7 +239,14 @@ class Seite(Wiederholt, Grund):
         self.oeffnen("einstellungen", "document.querySelector('.sprung a')")
         texte = self.tab.js("[...document.querySelectorAll('.sprung a')].map(a => a.textContent)")
         self.assertIn("Dieser PC", texte)
-        self.assertFalse([x for x in texte if "dieser PC" in x], texte)
+        self.assertFalse([x for x in texte if "diesen PC" in x], texte)                 # der Hinweis „Gilt für …“ steht nicht in der Sprungleiste
+        # neu gegliedert: erst, was die Installation trägt, dann Projekt und Agenten; je Abschnitt der Wirkungsort
+        self.assertEqual(texte, ["Speicher und Abgleich", "Online-Seite", "Benachrichtigungen aufs Handy", "Dieser PC", "Projekt", "Agenten"])
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.einst > .karte > h3 .wirkt')].map(x => x.textContent)"),
+                         ["Gilt für PC und Online-Seite", "Gilt für die Online-Seite", "Gilt für diesen PC", "Gilt für diesen PC", "Gilt für dieses Projekt"])
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.pruef')].map(x => x.dataset.pruef)"), ["speicher", "seite"])   # Prüf-Knöpfe (nicht gedrückt: kein Netz im Test)
+        self.assertTrue(self.tab.js("[...document.querySelectorAll('.einst .feld')].some(f => f.textContent.includes('Port') && f.textContent.includes('Neustart des Wächters'))"))
+        self.assertFalse(self.tab.js("/null|undefined/.test(document.querySelector('.einst').innerText)"))
 
 
 if __name__ == "__main__":

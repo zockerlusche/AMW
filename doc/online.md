@@ -75,7 +75,7 @@ Ordner) und meldet dich an. Darf sie dort nicht schreiben, legt sie die Datei in
 sagt, dass die nächste Bereitstellung sie löscht. Der Assistent erscheint nur, solange keine Konfiguration da ist.
 
 Neues Handy: `amw web zweitfaktor-neu` am PC, dann beim nächsten Anmelden neu scannen.
-Abschalten: Zahnrad › Online-Speicher › Abgleich aus (oder `"abgleich": false` in `turso.json`); online sperren:
+Abschalten: Zahnrad › Speicher und Abgleich › Abgleich aus (oder `"abgleich": false` in `turso.json`); online sperren:
 Ordner beim Hoster leeren oder in Turso Lesen/Schreiben blockieren.
 
 ## 3 Sicherheit

@@ -90,6 +90,13 @@ def _fenster(v):
     return f"{a[0]:02d}:{a[1]:02d}-{b[0]:02d}:{b[1]:02d}"
 
 
+def _sprache(v):
+    v = str(v).strip().lower()
+    if v not in ("auto", "de", "en"):
+        raise ValueError("auto, de oder en")
+    return v
+
+
 FELDER = {
     "db_pfad": (os.path.join(WURZEL, "daten", "amw.db"), _pfad),
     "port": (8780, _ganz(1024, 65535)),
@@ -112,7 +119,14 @@ FELDER = {
     "produkt_entwickler": ("", _kennung_leer),
     # KI-Fenster (Ortszeit): KI-Aufträge mit --nachts starten nur darin, nie in der Vorlaufzeit eines Testtermins
     "ki_fenster": ("22:00-06:00", _fenster),
+    # Sprache der Oberfläche, solange im Browser nichts gewählt ist (auto = wie der Browser)
+    "sprache": ("auto", _sprache),
+    # Knopf „In Claude öffnen“ auf der Agenten-Seite (Link zu claude.ai für eine laufende Sitzung mit Fernsteuerung)
+    "claude_link": (True, _wahr),
 }
+# Diese Werte liest der Wächter nur beim Start – eine Änderung wirkt nach `amw dienst neustart`
+NEUSTART = ("db_pfad", "port", "aufsicht_s", "abgleich_hoch_s", "abgleich_puls_s", "abgleich_eingang_s",
+            "bruecke_an", "bruecke_absender", "bruecke_kopie_s")
 
 
 def pfad():

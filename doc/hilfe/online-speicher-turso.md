@@ -11,9 +11,9 @@ Der Online-Speicher ist die Ablage, über die dein PC und die Online-Seite Daten
 1. **Konto und Datenbank** Melde dich auf turso.tech an und lege eine Datenbank an („Create Database“). Der Name ist frei, wähle einen Standort in deiner Nähe.
 2. **Adresse kopieren** Auf der Seite der Datenbank steht die Adresse („Database URL“). Sie beginnt mit `libsql://` und endet auf `.turso.io`.
 3. **Schlüssel erzeugen** Auf derselben Seite „Create Token“ wählen: Lesen und Schreiben, ohne Ablauf. Den Schlüssel kopieren – er wird nur einmal gezeigt.
-4. **Am PC eintragen** In der AMW: Einstellungen › Online-Speicher. Adresse und Schlüssel einfügen und speichern. Die AMW prüft die Verbindung, legt die Tabellen an und schaltet den Abgleich ein. Als Befehl geht dasselbe mit `amw web einrichten`.
+4. **Am PC eintragen** In der AMW: Einstellungen › Speicher und Abgleich. Adresse und Schlüssel einfügen und speichern. Die AMW prüft die Verbindung, legt die Tabellen an und schaltet den Abgleich ein. Als Befehl geht dasselbe mit `amw web einrichten`.
 5. **Wächter neu starten** Die AMW sagt es dazu: Der Abgleich beginnt mit dem nächsten Start des Wächters (Leitstand › Wächter › Neu starten).
-6. **Prüfen** Unter Einstellungen › Online-Speicher steht „Schlüssel gespeichert“ und der Abgleich ist an. `amw web status` zeigt, wann zuletzt hochgeladen wurde.
+6. **Prüfen** Unter Einstellungen › Speicher und Abgleich steht „Schlüssel gespeichert“ und der Abgleich ist an; „Verbindung testen“ meldet „Anmeldung erfolgreich“ und „Die Datenbank ist eingerichtet“. `amw web status` zeigt, wann zuletzt hochgeladen wurde.
 
 ## Diese Werte trägst du ein
 | Feld in der AMW | Woher |
@@ -38,4 +38,4 @@ Für ein oder zwei Projekte reicht der kostenlose Tarif von Turso.
 Eine Kopie dessen, was die Online-Seite zeigt, und der Briefkasten mit dem, was du von unterwegs tust. Die vollständigen Daten bleiben auf deinem PC.
 
 ### Wie schalte ich es wieder ab?
-Einstellungen › Online-Speicher › Abgleich aus. Die Online-Seite zeigt dann den letzten Stand und nimmt nichts mehr an.
+Einstellungen › Speicher und Abgleich › Abgleich aus. Die Online-Seite zeigt dann den letzten Stand und nimmt nichts mehr an.

@@ -118,7 +118,15 @@ Pflicht-Kontext; mit `<AMW-Ordner>\bin` im Pfad geht überall kurz `amw`.
 
 ## 6 Einstellungen dieses PCs
 Zahnrad › Dieser PC, oder von Hand in `%LOCALAPPDATA%\amw\einstellungen.json` (JSON, nur Schlüssel, die von der
-Vorgabe abweichen, z. B. `{"port": 8790}`). Wirkt nach `amw dienst neustart`.
+Vorgabe abweichen, z. B. `{"port": 8790}`). Was der Wächter nur beim Start liest, trägt im Zahnrad das Zeichen ↻ und
+wirkt nach `amw dienst neustart` (oder Start › Leitstand › Neu starten); alles andere gilt sofort.
+
+Das Zahnrad ist in dieser Reihenfolge gegliedert: **Speicher und Abgleich** (Art, Adresse und Schlüssel des
+Online-Speichers, Abgleich an/aus und seine Takte) · **Online-Seite** (ihre Adresse, Grenzen der Anmeldung) ·
+**Benachrichtigungen** · **Dieser PC** · **Projekt** · **Agenten**. Jeder Abschnitt nennt, wofür er gilt (dieser PC, die
+Online-Seite, dieses Projekt). Weicht ein Wert vom Standard ab, steht der Standard darunter. Zwei Knöpfe testen die
+gespeicherten Werte: „Verbindung testen“ (Anmeldung am Online-Speicher, Datenbank eingerichtet?) und „Online-Seite
+testen“ (erreichbar über https, läuft dort eine AMW-Seite?). Schlüssel bleiben in lokalen Dateien und zeigen nur „gespeichert“.
 
 | Schlüssel | Vorgabe | Bedeutung |
 |---|---|---|
@@ -133,3 +141,5 @@ Vorgabe abweichen, z. B. `{"port": 8790}`). Wirkt nach `amw dienst neustart`.
 | `bruecke_kopie_s` | 60 | Lesekopie der Brücke höchstens so oft erneuern |
 | `statusline_weiter` | leer | bisherige Statusline, die die Statusline-Brücke weiterreicht (setzt `amw einrichten`) |
 | `claude_befehl` | `claude` | wie Claude Code gestartet wird (falls nötig mit vollem Pfad) |
+| `sprache` | auto | Sprache der Oberfläche, solange im Browser nichts gewählt ist: `auto` (wie der Browser), `de`, `en` |
+| `claude_link` | an | Knopf „In Claude öffnen“ auf der Agenten-Seite zeigen |

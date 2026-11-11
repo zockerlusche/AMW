@@ -102,11 +102,11 @@ alle Projekte in der Auswahl oben in der Navigation; Umschalten ändert nur die 
 1. AMW auf dem zweiten Rechner installieren wie oben, dort das Projekt anlegen (`amw projekt neu <name>`) und die
    Agenten einrichten.
 2. Zahnrad › Dieser PC › **Name dieses Rechners** vergeben (z. B. „Laptop“). So erscheint er in der Projekt-Auswahl.
-3. Zahnrad › Online-Speicher: **denselben** Online-Speicher eintragen wie auf dem ersten Rechner und den Abgleich
+3. Zahnrad › Speicher und Abgleich: **denselben** Online-Speicher eintragen wie auf dem ersten Rechner und den Abgleich
    einschalten.
 4. Fertig. Jeder Rechner lädt nur seine eigenen Projekte hoch und führt nur deren Befehle vom Handy aus. Am ersten
-   Rechner steht das neue Projekt mit „↗“ in der Auswahl und öffnet die Online-Seite. Dafür muss unter Zahnrad › Push
-   der Link der Online-Seite eingetragen sein.
+   Rechner steht das neue Projekt mit „↗“ in der Auswahl und öffnet die Online-Seite. Dafür muss unter Zahnrad › Online-Seite
+   die Adresse der Online-Seite eingetragen sein.
 
 **Weiteres Projekt auf diesem Rechner:** Workbench › Projekt-Auswahl › **+ Neues Projekt** – Schritt für Schritt in
 [anleitung-projekte.md](anleitung-projekte.md).

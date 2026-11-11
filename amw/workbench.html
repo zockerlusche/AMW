@@ -510,6 +510,10 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .np-rw-regel label { display: flex; gap: 8px; align-items: center; cursor: pointer; } .np-rw-regel textarea { width: 100%; margin: 4px 0 2px; font-size: 13px; }
 .gr-warum { font-size: 12.5px; color: var(--leise); margin-top: 6px; } .gr-warum b { font-weight: 600; color: var(--sehrleise); letter-spacing: .04em; }
 .gr-marke { border-color: var(--bernstein); color: var(--bernstein); } .wissen-eintrag.grundregel { border-left: 2px solid var(--bernstein); }
+/* Einstellungen: Wirkungsort am Abschnitt, Prüf-Knopf mit Ergebnis */
+.wirkt { font: 500 10.5px var(--titel); letter-spacing: .1em; text-transform: uppercase; color: var(--leise); border: 1px solid var(--linie); padding: 2px 7px; margin-left: 6px; vertical-align: middle; white-space: nowrap; }
+.pruef { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--linie); } .pruef-kopf { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 12.5px; }
+.pruef-aus { margin-top: 6px; white-space: pre-wrap; font-size: 12.5px; } .pruef-aus:empty { display: none; }
 /* Einstellungen › Agenten: links die Agenten, rechts vier Blöcke */
 .ae-raster { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 16px; align-items: start; }
 .ae-wahl { border: 1px solid var(--linie); } .ae-wahl > button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 8px 10px; background: none; border: 0; border-bottom: 1px solid var(--linie); cursor: pointer; text-align: left; min-width: 0; }
@@ -925,7 +929,7 @@ const TEXTE = {
     marke: "Agenten Management Workbench", suche: "Suchen: Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten",
     g_fuerdich: "Für dich", g_arbeit: "Arbeit", g_wissen: "Wissen", g_betrieb: "Betrieb",
     n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_aufgaben_kurz: "Arbeit", n_releases: "Release Notes", n_releases_kurz: "Notes", n_mehr: "Mehr", n_wissen: "Wissen", n_betrieb: "Betrieb",
-    thema: "Hell / Dunkel", halt: "Alle anhalten", halt_an: "Angehalten", ae_titel: "Agenten", ae_h: "Wer führt, wer kann was, wie arbeitet er – das steht auf der Startseite und im Pflicht-Kontext jeder Sitzung.", ae_keiner: "Noch kein Agent – links einen anlegen.", ae_wer: "Wer", ae_auftrag: "Auftrag", ae_sitzung: "Sitzung", ae_ueberwachung: "Überwachung", ae_kennung_h: "umbenennen: amw agent umbenennen <alt> <neu>", ae_lead: "Lead", ae_lead_x: "führt das Projekt", ae_lead_h: "Der Lead plant, verteilt, prüft und gibt in seinem Rahmen frei.", ae_fach: "Fachgebiet", ae_fach_ph: "z. B. Code, Grafik, Prüfen", ae_fach_h: "frei wählbar; steht auf der Startseite und im Pflicht-Kontext des Agenten", ae_weise: "Arbeitsweise", ae_w_terminal: "Claude Code im Terminal", ae_w_desktop: "Claude Code in der Desktop-App", ae_w_chat: "Chat – schreibt über die Brücke", ae_weise_h_terminal: "Die AMW startet, weckt und überwacht die Sitzung.", ae_weise_h_desktop: "Du startest die Sitzung in der App – die AMW startet sie nicht. Sobald sie sich anmeldet, wird sie wie eine Terminal-Sitzung geweckt und überwacht.", ae_weise_h_chat: "Ein Chat wird nie gestartet, beendet oder überwacht – Sitzung und Überwachung entfallen.", ae_zust: "Zuständig für", ae_nicht: "Fasst nicht an", ae_rund_x: "bekommt Nachrichten „an alle“", ae_vorschlag: "Vorschlag:", ae_vorschlag_h: "Noch leer? Die AMW schlägt aus der bisherigen Arbeit etwas vor.", ae_vorschlag_holen: "Vorschlag aus der Datenbank", ae_vorschlag_nichts: "Kein Vorschlag möglich ({x}).", ae_uebernehmen: "In leere Felder übernehmen", ae_uebernommen: "übernommen – mit „Speichern“ bestätigen", ae_sitzung_netz: "Ordner, Modell, Rechte und Startsatz stellst du am PC ein.", ae_soll: "Soll laufen", ae_soll_an: "ja", ae_soll_ruht: "ruht (Pause)", ae_soll_aus: "nein", ae_soll_h: "„nein“: wird nicht erwartet und bekommt keine Rundschreiben", ae_puls: "Lebenszeichen", ae_puls_x: "min – spätestens so oft", ae_puls_h: "Bleibt es aus, meldet die AMW das dem Lead.", ae_speichern_h: "speichert alle vier Blöcke", tm_w_desktop: "arbeitet in Claude Code in der Desktop-App", tm_titel: "Team", tm_baum: "Baum", tm_baum_h: "du → Lead → Agenten, mit Linien für die Zusammenarbeit", tm_liste: "Liste", tm_liste_h: "kompakt: eine Zeile je Agent", tm_du: "Du", tm_leitet: "leitest das Projekt", tm_schritte: "deine Schritte", tm_fragen: "Fragen an dich", tm_freigaben: "Freigaben", tm_plant: "Plant gerade", tm_bogen: "Bogen {nr} · {x} ({f} von {n} fertig)", tm_ziel: "Ziel {x}", tm_kein_bogen: "kein aktiver Bogen", tm_takt: "Takt", tm_takt_min: "alle {n} min", tm_takt_hand: "von Hand", tm_chat: "Chat – über die Brücke", tm_chat_da: "Chat – gerade da", tm_w_chat: "arbeitet als Chat und schreibt über die Datei-Brücke", tm_w_sitzung: "arbeitet in einer eigenen Claude-Code-Sitzung", tm_keine: "keine Aufgabe", tm_liste_lauf: "{p}/{n} in der Liste", m_kein_ordner: "Kein Arbeitsordner im Profil – erst das Profil einrichten", tm_pruefung: "Prüfung", tm_mit_h: "arbeiten gerade zusammen: offene Prüfbitte", tm_k_agent: "Agent", tm_k_fach: "Fachgebiet", tm_k_zustand: "Zustand", tm_k_auf: "Arbeitet an", tm_k_mit: "Zusammenarbeit / wartet auf", tm_k_liste: "Verbrauch · Liste", s_ende: "{n} werden beendet (bis {x})", k_ende: "sichert und wird beendet – spätestens {x}", ls_hin: "zum Leitstand (Start, unter den Agenten)", ls_arbeit: "Arbeit der Agenten", ls_laeuft: "läuft", ls_steht: "angehalten", ls_arbeit_e: "Anhalten: Agenten beenden ihren Schritt und nehmen nichts Neues an.", ls_schirm: "Bildschirm", ls_schirm_frei: "frei für Agenten", ls_schirm_belegt: "belegt", ls_schirm_e: "Nur wenn frei, dürfen Agenten Fenster öffnen (Programm starten, Bilder aufnehmen).", ls_sitz: "Sitzungen", ls_sitz_laufen: "{n} laufen", ls_sitz_laufen1: "1 läuft", ls_sitz_fehlen1: "1 fehlt", ls_sitz_ruhen: "{n} abgemeldet", ls_sitz_fehlen: "{n} fehlen", ls_sitz_ende: "{n} werden beendet – spätestens {x}", ls_sitz_e: "Für ein Update: Jeder sichert seinen Stand, meldet sich ab und wird beendet – nach 5 Minuten auch ohne Abmeldung.", ls_sitz_e_netz: "Sitzungen starten und beenden geht nur am PC.", ls_sichern: "Alle sichern & beenden", ls_sichern_frage: "{n} laufende Sitzung(en) bitten, zu sichern und sich abzumelden? Wer nach 5 Minuten noch läuft, wird beendet. Fenster bleiben offen.", ls_sichern_ok: "{n} Agent(en) sichern – beendet spätestens {x}", ls_sichern_keiner: "Es läuft gerade keine Sitzung.", ls_starten: "Fehlende starten", ls_starten_frage: "Starten (nacheinander, letzte Sitzung fortsetzen): {x}?", ls_starten_ok: "{n} Agent(en) starten nacheinander im Abstand von {s} s", ls_wacht: "Wächter", ls_wacht_laeuft: "läuft · v{v}", ls_wacht_e: "Weckt Agenten, überwacht Läufe und Grenzen, gleicht mit der Online-Seite ab.", ls_wacht_e_netz: "Der Wächter läuft am PC und lädt den Stand hierher.", ls_wacht_neu: "Neu starten", ls_wacht_frage: "Wächter neu starten? Die Seite ist kurz nicht erreichbar; Agenten laufen weiter.", ls_wacht_ok: "Wächter startet neu – die Seite meldet sich gleich wieder", m_titel: "Befehle für {x}", m_nachricht: "Nachricht schreiben", m_gespraech: "Gespräch mitlesen", m_uebersicht: "Übersicht und Aufgabenliste", m_steuern: "Steuern", m_halt1: "Anhalten (nur diesen)", m_halt1_frage: "{x} anhalten? Er beendet seinen Schritt und nimmt nichts Neues an.", m_weiter1: "Weiterarbeiten lassen", m_sichern: "Sichern & beenden lassen", m_sichern_h: "für Updates", m_sichern_frage: "{x} bitten, zu sichern und sich abzumelden? Nach 5 Minuten wird die Sitzung auch ohne Abmeldung beendet.", m_sichern_ok: "sichert – beendet spätestens {x}", m_sofort: "Sofort beenden", m_sofort_h: "ohne Sichern", m_start: "Starten / fortsetzen", m_start_frage: "{x} starten (letzte Sitzung fortsetzen, falls vorhanden)?", m_neu: "Neue Sitzung beginnen", m_chat: "Chat – wird nicht gestartet oder beendet", m_nur_pc: "Sitzung starten/beenden: nur am PC", m_profil: "Profil und Zuständigkeit …", weiter: "Weiterarbeiten",
+    thema: "Hell / Dunkel", halt: "Alle anhalten", halt_an: "Angehalten", e_speicher_titel: "Speicher und Abgleich", e_art: "Anbieter", e_art_turso: "Turso (Cloud)", e_art_h: "Ein eigener Server im Firmennetz wird später unterstützt.", e_token_h: "Wird nur auf diesem PC gespeichert ({x}) und nie angezeigt.", e_web_ohne: "Ohne Online-Speicher gibt es keine Online-Seite. Die Adresse wird trotzdem für Links in Benachrichtigungen verwendet.", e_seite_adresse: "Adresse der Online-Seite", e_seite_adresse_h: "Zum Beispiel https://amw.example.de. Wird für Links in Benachrichtigungen und für den Test unten verwendet.", e_sprache: "Standardsprache", e_sprache_auto: "Wie im Browser", e_sprache_h: "Gilt, bis jemand die Sprache mit DE / EN selbst umstellt.", e_claude_link: "Schaltfläche „In Claude öffnen“ anzeigen", e_claude_link_h: "Öffnet die laufende Sitzung eines Agenten auf claude.ai (nur mit Fernsteuerung).", e_datei: "Speicherort der Einstellungen", e_datei_h: "Datei auf diesem PC", e_vorgabe: "Standard: {x}", e_neustart: "Wird nach einem Neustart des Wächters wirksam", wirkt_pc: "Gilt für diesen PC", wirkt_seite: "Gilt für die Online-Seite", wirkt_projekt: "Gilt für dieses Projekt", wirkt_speicher: "Gilt für PC und Online-Seite", wirkt_h_pc: "Gilt für diesen PC und alle Projekte darauf.", wirkt_h_seite: "Gilt für die Online-Seite und alle, die sich dort anmelden.", wirkt_h_projekt: "Gilt nur für das ausgewählte Projekt.", wirkt_h_speicher: "Gilt für den Abgleich dieses PCs und für alles, was die Online-Seite anzeigt.", pv_speicher: "Verbindung testen", pv_seite: "Online-Seite testen", pv_laeuft: "Test läuft …", pv_gespeichert: "Getestet werden die gespeicherten Werte.", pv_zugang_f: "Es ist kein Online-Speicher eingerichtet.", pv_anmelden_ok: "Anmeldung erfolgreich ({x} ms)", pv_anmelden_f: "Anmeldung fehlgeschlagen: {x}", pv_tabellen_ok: "Die Datenbank ist eingerichtet ({x} Tabellen).", pv_tabellen_f: "Die Datenbank ist noch nicht eingerichtet (es fehlt: {x}). Abgleich einschalten und den Wächter neu starten.", pv_adresse_f: "Es ist keine Adresse eingetragen.", pv_https_ok: "Die Adresse verwendet https.", pv_https_f: "Die Adresse muss mit https:// beginnen ({x}).", pv_antwort_ok: "Die Seite ist erreichbar ({x}).", pv_antwort_f: "Die Seite antwortet mit einem Fehler ({x}).", pv_verbindung_f: "Die Seite ist nicht erreichbar. Bitte Adresse und Internetverbindung prüfen ({x}).", pv_amw_ok: "Unter der Adresse läuft eine AMW-Seite.", pv_amw_f: "Unter der Adresse wurde keine aktuelle AMW-Seite gefunden.", ae_titel: "Agenten", ae_h: "Wer führt, wer kann was, wie arbeitet er – das steht auf der Startseite und im Pflicht-Kontext jeder Sitzung.", ae_keiner: "Noch kein Agent – links einen anlegen.", ae_wer: "Wer", ae_auftrag: "Auftrag", ae_sitzung: "Sitzung", ae_ueberwachung: "Überwachung", ae_kennung_h: "umbenennen: amw agent umbenennen <alt> <neu>", ae_lead: "Lead", ae_lead_x: "führt das Projekt", ae_lead_h: "Der Lead plant, verteilt, prüft und gibt in seinem Rahmen frei.", ae_fach: "Fachgebiet", ae_fach_ph: "z. B. Code, Grafik, Prüfen", ae_fach_h: "frei wählbar; steht auf der Startseite und im Pflicht-Kontext des Agenten", ae_weise: "Arbeitsweise", ae_w_terminal: "Claude Code im Terminal", ae_w_desktop: "Claude Code in der Desktop-App", ae_w_chat: "Chat – schreibt über die Brücke", ae_weise_h_terminal: "Die AMW startet, weckt und überwacht die Sitzung.", ae_weise_h_desktop: "Du startest die Sitzung in der App – die AMW startet sie nicht. Sobald sie sich anmeldet, wird sie wie eine Terminal-Sitzung geweckt und überwacht.", ae_weise_h_chat: "Ein Chat wird nie gestartet, beendet oder überwacht – Sitzung und Überwachung entfallen.", ae_zust: "Zuständig für", ae_nicht: "Fasst nicht an", ae_rund_x: "bekommt Nachrichten „an alle“", ae_vorschlag: "Vorschlag:", ae_vorschlag_h: "Noch leer? Die AMW schlägt aus der bisherigen Arbeit etwas vor.", ae_vorschlag_holen: "Vorschlag aus der Datenbank", ae_vorschlag_nichts: "Kein Vorschlag möglich ({x}).", ae_uebernehmen: "In leere Felder übernehmen", ae_uebernommen: "übernommen – mit „Speichern“ bestätigen", ae_sitzung_netz: "Ordner, Modell, Rechte und Startsatz stellst du am PC ein.", ae_soll: "Soll laufen", ae_soll_an: "ja", ae_soll_ruht: "ruht (Pause)", ae_soll_aus: "nein", ae_soll_h: "„nein“: wird nicht erwartet und bekommt keine Rundschreiben", ae_puls: "Lebenszeichen", ae_puls_x: "min – spätestens so oft", ae_puls_h: "Bleibt es aus, meldet die AMW das dem Lead.", ae_speichern_h: "speichert alle vier Blöcke", tm_w_desktop: "arbeitet in Claude Code in der Desktop-App", tm_titel: "Team", tm_baum: "Baum", tm_baum_h: "du → Lead → Agenten, mit Linien für die Zusammenarbeit", tm_liste: "Liste", tm_liste_h: "kompakt: eine Zeile je Agent", tm_du: "Du", tm_leitet: "leitest das Projekt", tm_schritte: "deine Schritte", tm_fragen: "Fragen an dich", tm_freigaben: "Freigaben", tm_plant: "Plant gerade", tm_bogen: "Bogen {nr} · {x} ({f} von {n} fertig)", tm_ziel: "Ziel {x}", tm_kein_bogen: "kein aktiver Bogen", tm_takt: "Takt", tm_takt_min: "alle {n} min", tm_takt_hand: "von Hand", tm_chat: "Chat – über die Brücke", tm_chat_da: "Chat – gerade da", tm_w_chat: "arbeitet als Chat und schreibt über die Datei-Brücke", tm_w_sitzung: "arbeitet in einer eigenen Claude-Code-Sitzung", tm_keine: "keine Aufgabe", tm_liste_lauf: "{p}/{n} in der Liste", m_kein_ordner: "Kein Arbeitsordner im Profil – erst das Profil einrichten", tm_pruefung: "Prüfung", tm_mit_h: "arbeiten gerade zusammen: offene Prüfbitte", tm_k_agent: "Agent", tm_k_fach: "Fachgebiet", tm_k_zustand: "Zustand", tm_k_auf: "Arbeitet an", tm_k_mit: "Zusammenarbeit / wartet auf", tm_k_liste: "Verbrauch · Liste", s_ende: "{n} werden beendet (bis {x})", k_ende: "sichert und wird beendet – spätestens {x}", ls_hin: "zum Leitstand (Start, unter den Agenten)", ls_arbeit: "Arbeit der Agenten", ls_laeuft: "läuft", ls_steht: "angehalten", ls_arbeit_e: "Anhalten: Agenten beenden ihren Schritt und nehmen nichts Neues an.", ls_schirm: "Bildschirm", ls_schirm_frei: "frei für Agenten", ls_schirm_belegt: "belegt", ls_schirm_e: "Nur wenn frei, dürfen Agenten Fenster öffnen (Programm starten, Bilder aufnehmen).", ls_sitz: "Sitzungen", ls_sitz_laufen: "{n} laufen", ls_sitz_laufen1: "1 läuft", ls_sitz_fehlen1: "1 fehlt", ls_sitz_ruhen: "{n} abgemeldet", ls_sitz_fehlen: "{n} fehlen", ls_sitz_ende: "{n} werden beendet – spätestens {x}", ls_sitz_e: "Für ein Update: Jeder sichert seinen Stand, meldet sich ab und wird beendet – nach 5 Minuten auch ohne Abmeldung.", ls_sitz_e_netz: "Sitzungen starten und beenden geht nur am PC.", ls_sichern: "Alle sichern & beenden", ls_sichern_frage: "{n} laufende Sitzung(en) bitten, zu sichern und sich abzumelden? Wer nach 5 Minuten noch läuft, wird beendet. Fenster bleiben offen.", ls_sichern_ok: "{n} Agent(en) sichern – beendet spätestens {x}", ls_sichern_keiner: "Es läuft gerade keine Sitzung.", ls_starten: "Fehlende starten", ls_starten_frage: "Starten (nacheinander, letzte Sitzung fortsetzen): {x}?", ls_starten_ok: "{n} Agent(en) starten nacheinander im Abstand von {s} s", ls_wacht: "Wächter", ls_wacht_laeuft: "läuft · v{v}", ls_wacht_e: "Weckt Agenten, überwacht Läufe und Grenzen, gleicht mit der Online-Seite ab.", ls_wacht_e_netz: "Der Wächter läuft am PC und lädt den Stand hierher.", ls_wacht_neu: "Neu starten", ls_wacht_frage: "Wächter neu starten? Die Seite ist kurz nicht erreichbar; Agenten laufen weiter.", ls_wacht_ok: "Wächter startet neu – die Seite meldet sich gleich wieder", m_titel: "Befehle für {x}", m_nachricht: "Nachricht schreiben", m_gespraech: "Gespräch mitlesen", m_uebersicht: "Übersicht und Aufgabenliste", m_steuern: "Steuern", m_halt1: "Anhalten (nur diesen)", m_halt1_frage: "{x} anhalten? Er beendet seinen Schritt und nimmt nichts Neues an.", m_weiter1: "Weiterarbeiten lassen", m_sichern: "Sichern & beenden lassen", m_sichern_h: "für Updates", m_sichern_frage: "{x} bitten, zu sichern und sich abzumelden? Nach 5 Minuten wird die Sitzung auch ohne Abmeldung beendet.", m_sichern_ok: "sichert – beendet spätestens {x}", m_sofort: "Sofort beenden", m_sofort_h: "ohne Sichern", m_start: "Starten / fortsetzen", m_start_frage: "{x} starten (letzte Sitzung fortsetzen, falls vorhanden)?", m_neu: "Neue Sitzung beginnen", m_chat: "Chat – wird nicht gestartet oder beendet", m_nur_pc: "Sitzung starten/beenden: nur am PC", m_profil: "Profil und Zuständigkeit …", weiter: "Weiterarbeiten",
     s_dienst: "Wächter läuft", s_dienst_weg: "Wächter nicht erreichbar", s_agenten: "{a} von {b} Agenten laufen", s_speicher: "Arbeitsspeicher: {n} GB frei", s_speicher_unb: "Arbeitsspeicher: unbekannt",
     nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
     nicht_angemeldet_h: "Läuft, wird aber nicht geweckt – im Fenster: amw anmelden --von <Kennung>",
@@ -968,7 +972,7 @@ const TEXTE = {
     e_anlegen: "Anlegen", soll_an: "an", soll_ruht: "ruht", soll_aus: "aus",
     e_web: "Online-Seite", e_web_h: "Gilt für die Anmeldung im Netz.", e_leerlauf: "Abmelden nach Leerlauf (min)",
     e_hoechstens: "Längste Sitzung (h)", e_fehl_ip: "Sperre nach Fehlversuchen je Adresse (15 min)", e_fehl_ges: "Sperre nach Fehlversuchen gesamt (60 min)",
-    e_pc: "Dieser PC", e_pc_h: "Wirkt beim nächsten Start des Wächters (amw dienst neustart). Datei: {x}", nur_pc: "Nur am PC änderbar – hier zur Ansicht.",
+    e_pc: "Dieser PC", e_pc_h: "Diese Einstellungen gelten für diesen PC und alle Projekte darauf. Felder mit \u21bb werden erst nach einem Neustart des Wächters wirksam (Start › Leitstand › Neu starten).", nur_pc: "Nur am PC änderbar – hier zur Ansicht.",
     e_db: "Datenbank", e_port: "Port der Workbench", e_aufsicht: "Aufsicht der Sitzungen (s)", e_hoch: "Abgleich: hochladen höchstens alle (s)",
     e_puls_pc: "Abgleich: Lebenszeichen alle (s)", e_eingang: "Abgleich: Briefkasten leeren alle (s)", e_bruecke: "Brücke für einen Lead ohne Windows-Zugriff (z. B. in einer VM)",
     e_absender: "Brücke: Absender", e_kopie: "Brücke: Lesekopie höchstens alle (s)",
@@ -979,7 +983,7 @@ const TEXTE = {
     e_entwickler: "Dein Name in Meldungen", e_entwickler_ph: "Entwickler", e_entwickler_h: "z. B. „Marie wartet …“ – als Wartegrund geht er auch (--auf Marie)",
     e_dateien: "Dateien online", e_dateien_h: "Welche Dateien der Dokumente der PC von selbst auf die Online-Seite lädt (nur nach Anmeldung sichtbar). Gilt auch für vorhandene; zurückstellen nimmt nichts herunter – das geht je Dokument.",
     e_dateien_wunsch: "nur auf Wunsch", e_dateien_bilder: "Bilder und Mockups", e_dateien_alle: "alle (auch PDF, Office)",
-    e_turso: "Online-Speicher (Turso)", e_turso_h: "Neue Adresse oder neuer Schlüssel werden vor dem Speichern geprüft. Wirkt beim nächsten Start des Wächters.",
+    e_turso_h: "Im Online-Speicher liegt, was die Online-Seite anzeigt; der Abgleich lädt es von diesem PC hoch. Eine neue Adresse oder ein neuer Schlüssel wird beim Speichern geprüft.",
     e_url: "Adresse", e_token: "Schlüssel", e_token_da: "gespeichert – leer lassen = behalten", e_token_neu: "noch keiner", e_abgleich: "Abgleich an",
     s_pc: "PC-Stand {x}", s_pc_weg: "PC zuletzt {x}", s_briefkasten: "{n} unterwegs", abmelden: "Abmelden",
     unterwegs: "Übermittelt – der PC übernimmt es beim nächsten Abgleich (meist unter 1 Minute).",
@@ -1011,8 +1015,8 @@ const TEXTE = {
     verbrauch_leer: "Noch keine Messpunkte – die Statusline-Brücke liefert sie (amw einrichten agenten-ordner).", k_summe: "Summe",
     k_zeit: "Zeit", k_titel: "Meldung", k_ergebnis: "Ergebnis",
     p_titel: "Benachrichtigungen aufs Handy", p_h: "Zugangsdaten liegen nur auf diesem PC ({x}). Gemeldet werden nur Hinweise, nie Inhalte.",
-    p_an: "Benachrichtigen", p_an_h: "Hauptschalter; gemeldet wird, was ab dem Einschalten passiert", p_link: "Link in der Meldung", p_link_ph: "https://…  (sonst lokale Workbench – vom Handy nicht erreichbar)",
-    p_link_h: "Adresse der Online-Seite, z. B. https://amw.example.de/", p_an_kurz: "an", p_server: "Server", p_kanal: "Kanal (Topic)",
+    p_an: "Benachrichtigen", p_an_h: "Hauptschalter; gemeldet wird, was ab dem Einschalten passiert", 
+    p_an_kurz: "an", p_server: "Server", p_kanal: "Kanal (Topic)",
     p_kanal_h: "geheim wie ein Passwort; leer lassen = unverändert. Zufälligen Kanal: amw push ntfy", p_token: "Zugangstoken", p_optional: "optional",
     p_app: "App-Token", p_user: "Benutzerschlüssel", p_bot: "Bot-Token", p_chat: "Chat-ID", p_chat_h: "herausfinden: amw push telegram --token …",
     p_ereignisse: "Was gemeldet wird", pe_frage: "neue Frage an dich (und Erinnerung nach 60 min)", pe_nachricht: "Nachricht an dich",
@@ -1236,7 +1240,7 @@ const TEXTE = {
     marke: "Agent Management Workbench", suche: "Search: tasks, decisions, questions, statements, messages",
     g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
     n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_aufgaben_kurz: "Tasks", n_releases: "Release notes", n_releases_kurz: "Notes", n_mehr: "More", n_wissen: "Knowledge", n_betrieb: "Operations",
-    thema: "Light / Dark", halt: "Pause all", halt_an: "Paused", ae_titel: "Agents", ae_h: "Who leads, who can do what, how each one works – shown on the home page and in every session\u2019s mandatory context.", ae_keiner: "No agent yet – create one on the left.", ae_wer: "Who", ae_auftrag: "Mandate", ae_sitzung: "Session", ae_ueberwachung: "Monitoring", ae_kennung_h: "rename: amw agent umbenennen <old> <new>", ae_lead: "Lead", ae_lead_x: "leads the project", ae_lead_h: "The lead plans, assigns, reviews and approves within their scope.", ae_fach: "Specialty", ae_fach_ph: "e.g. Code, Art, Review", ae_fach_h: "free text; shown on the home page and in the agent\u2019s mandatory context", ae_weise: "Working mode", ae_w_terminal: "Claude Code in the terminal", ae_w_desktop: "Claude Code in the desktop app", ae_w_chat: "Chat – writes via the bridge", ae_weise_h_terminal: "The AMW starts, wakes and monitors the session.", ae_weise_h_desktop: "You start the session in the app – the AMW does not start it. Once it signs in, it is woken and monitored like a terminal session.", ae_weise_h_chat: "A chat is never started, stopped or monitored – session and monitoring do not apply.", ae_zust: "Responsible for", ae_nicht: "Does not touch", ae_rund_x: "receives messages “to all”", ae_vorschlag: "Suggestion:", ae_vorschlag_h: "Still empty? The AMW suggests something from the work done so far.", ae_vorschlag_holen: "Suggest from the database", ae_vorschlag_nichts: "No suggestion possible ({x}).", ae_uebernehmen: "Fill empty fields", ae_uebernommen: "filled in – confirm with “Save”", ae_sitzung_netz: "Folder, model, permissions and first prompt are set on the PC.", ae_soll: "Should run", ae_soll_an: "yes", ae_soll_ruht: "paused", ae_soll_aus: "no", ae_soll_h: "“no”: not expected and gets no broadcasts", ae_puls: "Heartbeat", ae_puls_x: "min – at least this often", ae_puls_h: "If it stays away, the AMW reports it to the lead.", ae_speichern_h: "saves all four blocks", tm_w_desktop: "works in Claude Code in the desktop app", tm_titel: "Team", tm_baum: "Tree", tm_baum_h: "you → lead → agents, with lines for who works together", tm_liste: "List", tm_liste_h: "compact: one row per agent", tm_du: "You", tm_leitet: "run the project", tm_schritte: "your steps", tm_fragen: "questions for you", tm_freigaben: "approvals", tm_plant: "Planning", tm_bogen: "Milestone {nr} · {x} ({f} of {n} done)", tm_ziel: "due {x}", tm_kein_bogen: "no active milestone", tm_takt: "Check-in", tm_takt_min: "every {n} min", tm_takt_hand: "manual", tm_chat: "Chat – via the bridge", tm_chat_da: "Chat – present", tm_w_chat: "works as a chat and writes via the file bridge", tm_w_sitzung: "works in its own Claude Code session", tm_keine: "no task", tm_liste_lauf: "{p}/{n} queued", m_kein_ordner: "No working folder in the profile – set up the profile first", tm_pruefung: "review", tm_mit_h: "working together right now: open review request", tm_k_agent: "Agent", tm_k_fach: "Specialty", tm_k_zustand: "State", tm_k_auf: "Working on", tm_k_mit: "Working with / waiting for", tm_k_liste: "Usage · queue", s_ende: "{n} being ended (by {x})", k_ende: "saving, will be ended – by {x} at the latest", ls_hin: "to the control desk (Home, below the agents)", ls_arbeit: "Agents\u2019 work", ls_laeuft: "running", ls_steht: "paused", ls_arbeit_e: "Pause: agents finish their step and take nothing new.", ls_schirm: "Screen", ls_schirm_frei: "free for agents", ls_schirm_belegt: "in use", ls_schirm_e: "Only when free may agents open windows (start a program, take pictures).", ls_sitz: "Sessions", ls_sitz_laufen: "{n} running", ls_sitz_laufen1: "1 running", ls_sitz_fehlen1: "1 missing", ls_sitz_ruhen: "{n} signed off", ls_sitz_fehlen: "{n} missing", ls_sitz_ende: "{n} being ended – by {x} at the latest", ls_sitz_e: "For an update: everyone saves, signs off and is ended – after 5 minutes even without signing off.", ls_sitz_e_netz: "Starting and ending sessions works on the PC only.", ls_sichern: "Save & exit all", ls_sichern_frage: "Ask {n} running session(s) to save and sign off? Whoever still runs after 5 minutes is ended. Windows stay open.", ls_sichern_ok: "{n} agent(s) saving – ended by {x} at the latest", ls_sichern_keiner: "No session is running right now.", ls_starten: "Start missing", ls_starten_frage: "Start (one after another, resuming the last session): {x}?", ls_starten_ok: "{n} agent(s) starting one after another, {s} s apart", ls_wacht: "Watcher", ls_wacht_laeuft: "running · v{v}", ls_wacht_e: "Wakes agents, watches runs and limits, syncs with the online page.", ls_wacht_e_netz: "The watcher runs on the PC and uploads the state here.", ls_wacht_neu: "Restart", ls_wacht_frage: "Restart the watcher? The page is briefly unreachable; agents keep running.", ls_wacht_ok: "Watcher restarting – the page will be back in a moment", m_titel: "Commands for {x}", m_nachricht: "Write a message", m_gespraech: "Read the conversation", m_uebersicht: "Overview and task list", m_steuern: "Control", m_halt1: "Pause (this one only)", m_halt1_frage: "Pause {x}? It finishes its step and takes nothing new.", m_weiter1: "Let it resume", m_sichern: "Save & exit", m_sichern_h: "for updates", m_sichern_frage: "Ask {x} to save and sign off? After 5 minutes the session is ended even without signing off.", m_sichern_ok: "saving – ended by {x} at the latest", m_sofort: "Exit now", m_sofort_h: "without saving", m_start: "Start / resume", m_start_frage: "Start {x} (resuming the last session, if any)?", m_neu: "Begin a new session", m_chat: "Chat – is never started or stopped", m_nur_pc: "Start/end session: on the PC only", m_profil: "Profile and responsibilities …", weiter: "Resume",
+    thema: "Light / Dark", halt: "Pause all", halt_an: "Paused", e_speicher_titel: "Storage and sync", e_art: "Provider", e_art_turso: "Turso (cloud)", e_art_h: "A self-hosted server on your company network will be supported later.", e_token_h: "Stored on this PC only ({x}) and never shown.", e_web_ohne: "There is no online page without online storage. The address is still used for links in notifications.", e_seite_adresse: "Online page address", e_seite_adresse_h: "For example https://amw.example.com. Used for links in notifications and for the test below.", e_sprache: "Default language", e_sprache_auto: "Same as browser", e_sprache_h: "Applies until someone switches the language with DE / EN.", e_claude_link: "Show “Open in Claude” button", e_claude_link_h: "Opens an agent\u2019s running session on claude.ai (remote control only).", e_datei: "Settings file location", e_datei_h: "File on this PC", e_vorgabe: "Default: {x}", e_neustart: "Takes effect after restarting the watcher", wirkt_pc: "Applies to this PC", wirkt_seite: "Applies to the online page", wirkt_projekt: "Applies to this project", wirkt_speicher: "Applies to PC and online page", wirkt_h_pc: "Applies to this PC and all projects on it.", wirkt_h_seite: "Applies to the online page and everyone who signs in there.", wirkt_h_projekt: "Applies to the selected project only.", wirkt_h_speicher: "Applies to this PC\u2019s sync and to everything the online page shows.", pv_speicher: "Test connection", pv_seite: "Test online page", pv_laeuft: "Testing …", pv_gespeichert: "The saved values are tested.", pv_zugang_f: "No online storage is set up.", pv_anmelden_ok: "Signed in ({x} ms)", pv_anmelden_f: "Sign-in failed: {x}", pv_tabellen_ok: "The database is set up ({x} tables).", pv_tabellen_f: "The database is not set up yet (missing: {x}). Turn sync on and restart the watcher.", pv_adresse_f: "No address entered.", pv_https_ok: "The address uses https.", pv_https_f: "The address must start with https:// ({x}).", pv_antwort_ok: "The page is reachable ({x}).", pv_antwort_f: "The page returned an error ({x}).", pv_verbindung_f: "The page cannot be reached. Please check the address and your internet connection ({x}).", pv_amw_ok: "An AMW page is running at this address.", pv_amw_f: "No current AMW page was found at this address.", ae_titel: "Agents", ae_h: "Who leads, who can do what, how each one works – shown on the home page and in every session\u2019s mandatory context.", ae_keiner: "No agent yet – create one on the left.", ae_wer: "Who", ae_auftrag: "Mandate", ae_sitzung: "Session", ae_ueberwachung: "Monitoring", ae_kennung_h: "rename: amw agent umbenennen <old> <new>", ae_lead: "Lead", ae_lead_x: "leads the project", ae_lead_h: "The lead plans, assigns, reviews and approves within their scope.", ae_fach: "Specialty", ae_fach_ph: "e.g. Code, Art, Review", ae_fach_h: "free text; shown on the home page and in the agent\u2019s mandatory context", ae_weise: "Working mode", ae_w_terminal: "Claude Code in the terminal", ae_w_desktop: "Claude Code in the desktop app", ae_w_chat: "Chat – writes via the bridge", ae_weise_h_terminal: "The AMW starts, wakes and monitors the session.", ae_weise_h_desktop: "You start the session in the app – the AMW does not start it. Once it signs in, it is woken and monitored like a terminal session.", ae_weise_h_chat: "A chat is never started, stopped or monitored – session and monitoring do not apply.", ae_zust: "Responsible for", ae_nicht: "Does not touch", ae_rund_x: "receives messages “to all”", ae_vorschlag: "Suggestion:", ae_vorschlag_h: "Still empty? The AMW suggests something from the work done so far.", ae_vorschlag_holen: "Suggest from the database", ae_vorschlag_nichts: "No suggestion possible ({x}).", ae_uebernehmen: "Fill empty fields", ae_uebernommen: "filled in – confirm with “Save”", ae_sitzung_netz: "Folder, model, permissions and first prompt are set on the PC.", ae_soll: "Should run", ae_soll_an: "yes", ae_soll_ruht: "paused", ae_soll_aus: "no", ae_soll_h: "“no”: not expected and gets no broadcasts", ae_puls: "Heartbeat", ae_puls_x: "min – at least this often", ae_puls_h: "If it stays away, the AMW reports it to the lead.", ae_speichern_h: "saves all four blocks", tm_w_desktop: "works in Claude Code in the desktop app", tm_titel: "Team", tm_baum: "Tree", tm_baum_h: "you → lead → agents, with lines for who works together", tm_liste: "List", tm_liste_h: "compact: one row per agent", tm_du: "You", tm_leitet: "run the project", tm_schritte: "your steps", tm_fragen: "questions for you", tm_freigaben: "approvals", tm_plant: "Planning", tm_bogen: "Milestone {nr} · {x} ({f} of {n} done)", tm_ziel: "due {x}", tm_kein_bogen: "no active milestone", tm_takt: "Check-in", tm_takt_min: "every {n} min", tm_takt_hand: "manual", tm_chat: "Chat – via the bridge", tm_chat_da: "Chat – present", tm_w_chat: "works as a chat and writes via the file bridge", tm_w_sitzung: "works in its own Claude Code session", tm_keine: "no task", tm_liste_lauf: "{p}/{n} queued", m_kein_ordner: "No working folder in the profile – set up the profile first", tm_pruefung: "review", tm_mit_h: "working together right now: open review request", tm_k_agent: "Agent", tm_k_fach: "Specialty", tm_k_zustand: "State", tm_k_auf: "Working on", tm_k_mit: "Working with / waiting for", tm_k_liste: "Usage · queue", s_ende: "{n} being ended (by {x})", k_ende: "saving, will be ended – by {x} at the latest", ls_hin: "to the control desk (Home, below the agents)", ls_arbeit: "Agents\u2019 work", ls_laeuft: "running", ls_steht: "paused", ls_arbeit_e: "Pause: agents finish their step and take nothing new.", ls_schirm: "Screen", ls_schirm_frei: "free for agents", ls_schirm_belegt: "in use", ls_schirm_e: "Only when free may agents open windows (start a program, take pictures).", ls_sitz: "Sessions", ls_sitz_laufen: "{n} running", ls_sitz_laufen1: "1 running", ls_sitz_fehlen1: "1 missing", ls_sitz_ruhen: "{n} signed off", ls_sitz_fehlen: "{n} missing", ls_sitz_ende: "{n} being ended – by {x} at the latest", ls_sitz_e: "For an update: everyone saves, signs off and is ended – after 5 minutes even without signing off.", ls_sitz_e_netz: "Starting and ending sessions works on the PC only.", ls_sichern: "Save & exit all", ls_sichern_frage: "Ask {n} running session(s) to save and sign off? Whoever still runs after 5 minutes is ended. Windows stay open.", ls_sichern_ok: "{n} agent(s) saving – ended by {x} at the latest", ls_sichern_keiner: "No session is running right now.", ls_starten: "Start missing", ls_starten_frage: "Start (one after another, resuming the last session): {x}?", ls_starten_ok: "{n} agent(s) starting one after another, {s} s apart", ls_wacht: "Watcher", ls_wacht_laeuft: "running · v{v}", ls_wacht_e: "Wakes agents, watches runs and limits, syncs with the online page.", ls_wacht_e_netz: "The watcher runs on the PC and uploads the state here.", ls_wacht_neu: "Restart", ls_wacht_frage: "Restart the watcher? The page is briefly unreachable; agents keep running.", ls_wacht_ok: "Watcher restarting – the page will be back in a moment", m_titel: "Commands for {x}", m_nachricht: "Write a message", m_gespraech: "Read the conversation", m_uebersicht: "Overview and task list", m_steuern: "Control", m_halt1: "Pause (this one only)", m_halt1_frage: "Pause {x}? It finishes its step and takes nothing new.", m_weiter1: "Let it resume", m_sichern: "Save & exit", m_sichern_h: "for updates", m_sichern_frage: "Ask {x} to save and sign off? After 5 minutes the session is ended even without signing off.", m_sichern_ok: "saving – ended by {x} at the latest", m_sofort: "Exit now", m_sofort_h: "without saving", m_start: "Start / resume", m_start_frage: "Start {x} (resuming the last session, if any)?", m_neu: "Begin a new session", m_chat: "Chat – is never started or stopped", m_nur_pc: "Start/end session: on the PC only", m_profil: "Profile and responsibilities …", weiter: "Resume",
     s_dienst: "Watcher running", s_dienst_weg: "Watcher unreachable", s_agenten: "{a} of {b} agents running", s_speicher: "Memory: {n} GB free", s_speicher_unb: "Memory: unknown",
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
     nicht_angemeldet_h: "Running but cannot be woken – in its window: amw anmelden --von <name>",
@@ -1279,7 +1283,7 @@ const TEXTE = {
     e_anlegen: "Add", soll_an: "on", soll_ruht: "resting", soll_aus: "off",
     e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after inactivity (min)",
     e_hoechstens: "Maximum session length (h)", e_fehl_ip: "Lockout after failed sign-ins per address (15 min)", e_fehl_ges: "Lockout after failed sign-ins in total (60 min)",
-    e_pc: "This PC", e_pc_h: "Takes effect on the next service start (amw dienst neustart). File: {x}", nur_pc: "Only changeable on the PC – shown here for reference.",
+    e_pc: "This PC", e_pc_h: "These settings apply to this PC and all projects on it. Fields marked \u21bb take effect only after restarting the watcher (Home › control panel › Restart).", nur_pc: "Only changeable on the PC – shown here for reference.",
     e_db: "Database", e_port: "Workbench port", e_aufsicht: "Session supervision (s)", e_hoch: "Sync: upload at most every (s)",
     e_puls_pc: "Sync: heartbeat every (s)", e_eingang: "Sync: empty mailbox every (s)", e_bruecke: "Bridge for a lead without Windows access (e.g. in a VM)",
     e_absender: "Bridge: sender", e_kopie: "Bridge: read copy at most every (s)",
@@ -1290,7 +1294,7 @@ const TEXTE = {
     e_entwickler: "Your name in messages", e_entwickler_ph: "Entwickler", e_entwickler_h: "e.g. “Marie waits …” – also works as a wait reason (--auf Marie)",
     e_dateien: "Files online", e_dateien_h: "Which document files the PC uploads to the online page by itself (visible only after sign-in). Applies to existing ones too; switching back removes nothing – do that per document.",
     e_dateien_wunsch: "on request only", e_dateien_bilder: "images and mockups", e_dateien_alle: "all (incl. PDF, Office)",
-    e_turso: "Online storage (Turso)", e_turso_h: "A new URL or token is checked before saving. Takes effect on the next service start.",
+    e_turso_h: "The online storage holds what the online page shows; sync uploads it from this PC. A new address or key is checked when you save.",
     e_url: "URL", e_token: "Token", e_token_da: "saved – leave empty to keep", e_token_neu: "none yet", e_abgleich: "Sync on",
     s_pc: "PC data {x}", s_pc_weg: "PC last seen {x}", s_briefkasten: "{n} pending", abmelden: "Log out",
     unterwegs: "Sent – your PC picks it up at the next sync (usually within a minute).",
@@ -1322,8 +1326,8 @@ const TEXTE = {
     verbrauch_leer: "No samples yet – the status line bridge provides them (amw einrichten agenten-ordner).", k_summe: "Total",
     k_zeit: "Time", k_titel: "Message", k_ergebnis: "Result",
     p_titel: "Phone notifications", p_h: "Credentials stay on this PC only ({x}). Only hints are sent, never content.",
-    p_an: "Notify", p_an_h: "Master switch; only what happens after switching on is sent", p_link: "Link in the message", p_link_ph: "https://…  (otherwise the local workbench – not reachable from a phone)",
-    p_link_h: "address of the online page, e.g. https://amw.example.com/", p_an_kurz: "on", p_server: "Server", p_kanal: "Topic",
+    p_an: "Notify", p_an_h: "Master switch; only what happens after switching on is sent", 
+    p_an_kurz: "on", p_server: "Server", p_kanal: "Topic",
     p_kanal_h: "secret like a password; empty = unchanged. Random topic: amw push ntfy", p_token: "Access token", p_optional: "optional",
     p_app: "App token", p_user: "User key", p_bot: "Bot token", p_chat: "Chat ID", p_chat_h: "find it: amw push telegram --token …",
     p_ereignisse: "What is sent", pe_frage: "new question for you (reminder after 60 min)", pe_nachricht: "message for you",
@@ -1540,7 +1544,7 @@ const TEXTE = {
     gerade: "just now", vor_min: "{n} min ago", vor_h: "{n} h ago", vor_t: "{n} days ago", vor_t1: "yesterday", nie: "never",
   },
 };
-let sprache = "de";
+let sprache = "de", spracheGewaehlt = false;      /* gewählt = im Browser gemerkt oder per Adresse – dann gilt die Vorgabe der Installation nicht */
 const t = (k, v = {}) => (TEXTE[sprache][k] ?? TEXTE.de[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => v[n] ?? "");
 
 let zustand = { sicht: "start", start: null, fragenSicht: "offen", arbeit: { sicht: "listen", agent: "", q: "" }, wissenQ: "", wissenReiter: "beschluesse" };
@@ -1597,7 +1601,7 @@ function feste_texte() {
     [...(n ? [document.createElement("br")] : []), Object.assign(document.createElement("i"), { textContent: w[0] }), w.slice(1)]));
 }
 function sprache_setzen(s) {
-  sprache = s; try { localStorage.setItem("amw-sprache", s); } catch (e) {}
+  sprache = s; spracheGewaehlt = true; try { localStorage.setItem("amw-sprache", s); } catch (e) {}
   feste_texte(); kopfAktualisieren(); zeige(zustand.sicht);
   const p = projekte.find(x => x.uid === projekt) || projekte.find(x => x.aktiv); if (p) projektwahlZeigen(p);
 }
@@ -1774,6 +1778,8 @@ function projektWechseln(uid) {
 async function kopfAktualisieren() {
   try {
     const d = await holen("/api/start"); zustand.start = d;
+    if (!spracheGewaehlt && ["de", "en"].includes(d.sprache_vorgabe) && d.sprache_vorgabe !== sprache) {   /* Vorgabe der Installation */
+      spracheGewaehlt = true; sprache = d.sprache_vorgabe; feste_texte(); if (zustand.sicht) zeige(zustand.sicht); }
     const wv = d.online?.web_version;
     $("#version").textContent = d.version ? `v${d.version}` + (wv && wv !== d.version ? ` · Web v${wv}` : "") : "";
     const sollen = d.agenten.filter(a => a.soll === "an" && !a.chat), lebend = sollen.filter(a => a.zustand === "aktiv").length;
@@ -4027,8 +4033,9 @@ function thema(x) { document.documentElement.dataset.thema = x; try { localStora
 $("#thema").addEventListener("click", () => thema(document.documentElement.dataset.thema === "hell" ? "dunkel" : "hell"));
 $("#sprache").addEventListener("click", () => sprache_setzen(sprache === "de" ? "en" : "de"));
 try { thema(localStorage.getItem("amw-thema") || (matchMedia("(prefers-color-scheme: light)").matches ? "hell" : "dunkel")); } catch (e) { thema("dunkel"); }
-try { sprache = localStorage.getItem("amw-sprache") || ((navigator.language || "de").startsWith("de") ? "de" : "en"); } catch (e) {}
-if (new URLSearchParams(location.search).get("sprache") in TEXTE) sprache = new URLSearchParams(location.search).get("sprache");
+try { spracheGewaehlt = !!localStorage.getItem("amw-sprache");
+  sprache = localStorage.getItem("amw-sprache") || ((navigator.language || "de").startsWith("de") ? "de" : "en"); } catch (e) {}
+if (new URLSearchParams(location.search).get("sprache") in TEXTE) { sprache = new URLSearchParams(location.search).get("sprache"); spracheGewaehlt = true; }
 feste_texte();
 
 /* --- Einstellungen (Zahnrad) ------------------------------------------------------------------
@@ -4050,14 +4057,35 @@ async function sichtEinstellungen() {
     catch (e) { toast(t("fehler", { x: e.message }), true); return false; }
     finally { knopf.disabled = false; }
   }
-  function block(titel, hinweis, felder, teil, sammeln, gesperrt) {
+  /* teil: Name des Speicher-Wegs oder eine Funktion (Abschnitte, die an zwei Stellen speichern); nach: Zusatz unter den Feldern */
+  function block(titel, hinweis, felder, teil, sammeln, gesperrt, nach) {
     const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
-    knopf.addEventListener("click", () => speichern(teil, sammeln(), knopf));
+    knopf.addEventListener("click", () => typeof teil === "function" ? teil(knopf) : speichern(teil, sammeln(), knopf));
     if (gesperrt) { for (const [, x] of felder) x.disabled = true; knopf.disabled = true; }
     return el("div", { class: "karte" + (gesperrt ? " gesperrt" : "") }, el("h3", {}, titel),
       hinweis ? el("p", { class: "leise", style: "margin:0 0 12px" }, hinweis) : null,
-      ...felder.map(([b, x, h]) => feld(b, x, h)), el("div", { style: "margin-top:12px" }, knopf));
+      ...felder.map(([b, x, h]) => feld(b, x, h)), nach || null, el("div", { style: "margin-top:12px" }, knopf));
   }
+  /* Wirkungsort eines Abschnitts: dieser PC · Online-Seite · dieses Projekt · PC und Online-Seite */
+  const wirkt = art => el("span", { class: "wirkt", title: t("wirkt_h_" + art) }, t("wirkt_" + art));
+  /* Je Feld: weicht der Wert von der Vorgabe ab, steht die Vorgabe dabei; liest der Wächter ihn nur beim Start, steht ↻ dabei */
+  const meta = (gruppe, k, x) => { const v = d.vorgaben?.[gruppe]?.[k], teile = [];
+    const ist = x.type === "checkbox" ? x.checked : x.value;
+    if (v !== undefined && v !== null && v !== "" && String(ist) !== String(v)) teile.push(t("e_vorgabe", { x: v === true ? t("ja") : v === false ? t("nein") : v }));
+    if (gruppe === "pc" && (d.neustart || []).includes(k)) teile.push("\u21bb " + t("e_neustart"));
+    return teile.join(" · "); };
+  const mitMeta = (gruppe, k, beschriftung, x, hilfe) => [beschriftung, x, [hilfe, meta(gruppe, k, x)].filter(Boolean).join(" – ")];
+  const anzeige = (v, mono) => el("div", { class: v ? (mono ? "mono" : "") : "sehrleise", style: "padding-top:7px;font-size:13px;overflow-wrap:anywhere" }, v || "–");
+  /* Prüf-Knopf: fragt den PC, zeigt jeden Schritt mit Ergebnis – geprüft wird das Gespeicherte */
+  const pruefKnopf = (was, beschriftung) => { const b = el("button", { class: "klein-knopf", type: "button" }, beschriftung);
+    const aus = el("div", { class: "mono pruef-aus", role: "status" });
+    b.addEventListener("click", async () => { b.disabled = true; aus.className = "sehrleise mono pruef-aus"; aus.textContent = t("pv_laeuft");
+      try { const r = await holen("/api/pruefen?was=" + was);
+        aus.className = "mono pruef-aus";
+        aus.replaceChildren(...r.schritte.map(x => el("div", { class: x.ok ? "" : "rot-text" }, (x.ok ? "\u2713 " : "\u2717 ") + t(`pv_${x.name}_${x.ok ? "ok" : "f"}`, { x: x.wert ?? "" }))));
+      } catch (f) { aus.className = "rot-text mono pruef-aus"; aus.textContent = f.message; }
+      finally { b.disabled = false; } });
+    return el("div", { class: "pruef", "data-pruef": was }, el("div", { class: "pruef-kopf" }, b, el("span", { class: "sehrleise" }, t("pv_gespeichert"))), aus); };
   const box = el("div", { class: "einst" + (ruhig ? "" : " zeile-reveal") });
 
   // Projekt
@@ -4082,66 +4110,81 @@ async function sichtEinstellungen() {
     el("button", { class: "klein-knopf", type: "button", onclick: projektAnleitung }, "? " + t("npa_link")));
   const pordner = el("div", { class: d.projekt.ordner ? "mono" : "sehrleise", style: "padding-top:7px;font-size:13px;overflow-wrap:anywhere" },
     d.projekt.ordner || t("e_ordner_leer"));
-  box.append(block(t("e_projekt"), null,
-    [[t("e_projekt_name"), pwahl, t("e_projekt_name_h")], [t("e_ordner"), pordner, t("e_ordner_h")], [t("e_takt"), pf.takt_min, t("e_takt_h")], [t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")],
-     [t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")], [t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")],
+  const projektKarte = block([t("e_projekt"), " ", wirkt("projekt")], null,
+    [[t("e_projekt_name"), pwahl, t("e_projekt_name_h")], [t("e_ordner"), pordner, t("e_ordner_h")],
+     mitMeta("projekt", "takt_min", t("e_takt"), pf.takt_min, t("e_takt_h")), mitMeta("projekt", "speicher_grenze_gb", t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")),
+     mitMeta("projekt", "stillstand_min", t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")), mitMeta("projekt", "lauf_ohne_angabe_min", t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")),
      [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")], [t("e_dateien"), pf.dateien_online, t("e_dateien_h")],
      [t("e_farbe"), pf.farbe, t("e_farbe_h")], [t("e_agentenfragen"), pf.agentenfragen, t("e_agentenfragen_h")],
      [t("e_spec_vorlegen"), pf.spec_vorlegen, t("e_spec_vorlegen_h")], [t("e_spec_frei"), pf.spec_frei, t("e_spec_frei_h")],
-     [t("e_info_ablage"), pf.info_ablage_h, t("e_info_ablage_h")],
+     mitMeta("projekt", "info_ablage_h", t("e_info_ablage"), pf.info_ablage_h, t("e_info_ablage_h")),
      [t("e_abnahme_kette"), pf.abnahme_kette, t("e_abnahme_kette_h")], [t("e_merge_dienst"), pf.merge_dienst, t("e_merge_dienst_h")]],
     "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
       stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min),
       entwickler_name: pf.entwickler_name.value.trim(), dateien_online: pf.dateien_online.value, farbe: pf.farbe.value,
       agentenfragen: pf.agentenfragen.value, spec_vorlegen: pf.spec_vorlegen.value, spec_frei: pf.spec_frei.value,
-      info_ablage_h: wert(pf.info_ablage_h), abnahme_kette: pf.abnahme_kette.value, merge_dienst: pf.merge_dienst.value })));
+      info_ablage_h: wert(pf.info_ablage_h), abnahme_kette: pf.abnahme_kette.value, merge_dienst: pf.merge_dienst.value }));
 
-  // Agenten: eine Ansicht je Agent in vier Blöcken – Wer · Auftrag · Sitzung · Überwachung (statt Tabelle + getrenntem Profil)
-  box.append(agentenEinstellungen(d, { text, zahl, schalter, wert, feld }));
+  const p = d.pc;
 
-  // Online-Seite
-  if (d.web) {
-    const g = d.web_grenzen, w = {};
-    for (const k of ["leerlauf_min", "hoechstens_h", "fehl_je_ip", "fehl_gesamt"]) w[k] = zahl(d.web[k], g[k][0], g[k][1]);
-    box.append(block(t("e_web"), t("e_web_h"), [[t("e_leerlauf"), w.leerlauf_min], [t("e_hoechstens"), w.hoechstens_h],
-      [t("e_fehl_ip"), w.fehl_je_ip], [t("e_fehl_ges"), w.fehl_gesamt]], "web",
-      () => Object.fromEntries(Object.entries(w).map(([k, x]) => [k, wert(x)]))));
-  }
-
-  // Dieser PC – nur am PC
-  const p = d.pc, pc = { db_pfad: text(p.db_pfad), port: zahl(p.port, 1024, 65535), aufsicht_s: zahl(p.aufsicht_s, 5, 600),
-    abgleich_hoch_s: zahl(p.abgleich_hoch_s, 10, 3600), abgleich_puls_s: zahl(p.abgleich_puls_s, 60, 3600),
-    abgleich_eingang_s: zahl(p.abgleich_eingang_s, 5, 600), bruecke_an: schalter(p.bruecke_an),
-    bruecke_absender: text(p.bruecke_absender), bruecke_kopie_s: zahl(p.bruecke_kopie_s, 15, 3600),
-    fernsitzung_prozess: text(p.fernsitzung_prozess || ""), rechner: text(p.rechner || ""), cpu_laeufe: zahl(p.cpu_laeufe, 1, 8),
-    produkt_entwickler: text(p.produkt_entwickler || ""), ki_fenster: text(p.ki_fenster || "") };
-  pc.fernsitzung_prozess.placeholder = t("e_fern_ph");
-  box.append(block([t("e_pc"), " ", pcMarke()], API ? t("nur_pc") : t("e_pc_h", { x: p.datei }), [
-    [t("e_rechner"), pc.rechner, t("e_rechner_h")],
-    [t("e_db"), pc.db_pfad], [t("e_port"), pc.port], [t("e_cpu"), pc.cpu_laeufe, t("e_cpu_h")], [t("e_kanal"), pc.produkt_entwickler, t("e_kanal_h")], [t("e_kifenster"), pc.ki_fenster, t("e_kifenster_h")], [t("e_aufsicht"), pc.aufsicht_s], [t("e_hoch"), pc.abgleich_hoch_s],
-    [t("e_puls_pc"), pc.abgleich_puls_s], [t("e_eingang"), pc.abgleich_eingang_s], [t("e_bruecke"), pc.bruecke_an],
-    [t("e_absender"), pc.bruecke_absender], [t("e_kopie"), pc.bruecke_kopie_s], [t("e_fern"), pc.fernsitzung_prozess, t("e_fern_h")]],
-    "pc", () => Object.fromEntries(Object.entries(pc).map(([k, x]) => [k, wert(x)])), !!API));
-
-  // Online-Speicher – nur am PC; der Schlüssel wird nie angezeigt
+  // Speicher und Abgleich – nur am PC; der Schlüssel wird nie angezeigt
   const tu = { url: text(d.turso.url), token: text("", "password"), abgleich: schalter(d.turso.abgleich) };
   tu.token.placeholder = d.turso.schluessel_gespeichert ? t("e_token_da") : t("e_token_neu");
-  box.append(mitHilfe("online-speicher-turso", block(t("e_turso"), API ? t("nur_pc") : t("e_turso_h"),
-    [[t("e_url"), tu.url], [t("e_token"), tu.token], [t("e_abgleich"), tu.abgleich]],
-    "turso", () => ({ url: wert(tu.url), token: tu.token.value.trim() || undefined, abgleich: tu.abgleich.checked }), !!API)));
+  const ab = { abgleich_hoch_s: zahl(p.abgleich_hoch_s, 10, 3600), abgleich_puls_s: zahl(p.abgleich_puls_s, 60, 3600), abgleich_eingang_s: zahl(p.abgleich_eingang_s, 5, 600) };
+  const speicherKarte = mitHilfe("online-speicher-turso", block([t("e_speicher_titel"), " ", wirkt("speicher")], API ? t("nur_pc") : t("e_turso_h"),
+    [[t("e_art"), anzeige(t("e_art_turso")), t("e_art_h")], [t("e_url"), tu.url], [t("e_token"), tu.token, API ? null : t("e_token_h", { x: d.turso.datei || "" })], [t("e_abgleich"), tu.abgleich],
+     mitMeta("pc", "abgleich_hoch_s", t("e_hoch"), ab.abgleich_hoch_s), mitMeta("pc", "abgleich_puls_s", t("e_puls_pc"), ab.abgleich_puls_s),
+     mitMeta("pc", "abgleich_eingang_s", t("e_eingang"), ab.abgleich_eingang_s)],
+    async knopf => {                                   /* Zugang nur schicken, wenn er sich geändert hat – er wird beim Speichern geprüft */
+      const zugangNeu = wert(tu.url) !== (d.turso.url || "") || tu.token.value.trim() || tu.abgleich.checked !== !!d.turso.abgleich;
+      if (zugangNeu && !await speichern("turso", { url: wert(tu.url), token: tu.token.value.trim() || undefined, abgleich: tu.abgleich.checked }, knopf)) return;
+      await speichern("pc", Object.fromEntries(Object.entries(ab).map(([k, x]) => [k, wert(x)])), knopf); },
+    null, !!API, API ? null : pruefKnopf("speicher", t("pv_speicher"))));
+
+  // Online-Seite: Adresse (nur am PC) und die Grenzen der Anmeldung
+  const seiteAdr = text(d.seite?.adresse || ""); seiteAdr.placeholder = "https://\u2026";
+  const g = d.web_grenzen, w = {};
+  if (d.web) for (const k of ["leerlauf_min", "hoechstens_h", "fehl_je_ip", "fehl_gesamt"]) w[k] = zahl(d.web[k], g[k][0], g[k][1]);
+  const seiteKarte = !d.web && API ? null : block([t("e_web"), " ", wirkt("seite")], d.web ? t("e_web_h") : t("e_web_ohne"),
+    [...(API ? [] : [[t("e_seite_adresse"), seiteAdr, t("e_seite_adresse_h")]]),
+     ...(d.web ? [mitMeta("web", "leerlauf_min", t("e_leerlauf"), w.leerlauf_min), mitMeta("web", "hoechstens_h", t("e_hoechstens"), w.hoechstens_h),
+                  mitMeta("web", "fehl_je_ip", t("e_fehl_ip"), w.fehl_je_ip), mitMeta("web", "fehl_gesamt", t("e_fehl_ges"), w.fehl_gesamt)] : [])],
+    async knopf => {
+      if (!API && seiteAdr.value.trim() !== (d.seite?.adresse || "")) { if (!await speichern("push", { link: seiteAdr.value.trim() }, knopf)) return; d.seite.adresse = seiteAdr.value.trim(); }
+      if (d.web) await speichern("web", Object.fromEntries(Object.entries(w).map(([k, x]) => [k, wert(x)])), knopf); },
+    null, false, API ? null : pruefKnopf("seite", t("pv_seite")));
 
   // Benachrichtigungen aufs Handy – nur am PC (Zugangsdaten liegen nur dort)
-  if (API) box.append(el("div", { class: "karte gesperrt" }, el("h3", {}, t("p_titel")), el("p", { class: "leise" }, t("nur_pc"))));
-  else box.append(await pushBlock(feld, text, zahl, schalter, wert, speichern));
+  const pushKarte = API ? el("div", { class: "karte gesperrt" }, el("h3", {}, t("p_titel")), el("p", { class: "leise" }, t("nur_pc")))
+    : await pushBlock(feld, text, zahl, schalter, wert, speichern);
+  if (!API) pushKarte.querySelector("h3")?.insertBefore(wirkt("pc"), pushKarte.querySelector("h3 .hilfe-knopf"));
+
+  // Dieser PC – nur am PC
+  const wahl = (werte, v) => { const x = el("select", {}, werte.map(([k, l]) => el("option", { value: k }, l))); x.value = v; return x; };
+  const pc = { rechner: text(p.rechner || ""), db_pfad: text(p.db_pfad), port: zahl(p.port, 1024, 65535), cpu_laeufe: zahl(p.cpu_laeufe, 1, 8),
+    produkt_entwickler: text(p.produkt_entwickler || ""), ki_fenster: text(p.ki_fenster || ""), aufsicht_s: zahl(p.aufsicht_s, 5, 600),
+    bruecke_an: schalter(p.bruecke_an), bruecke_absender: text(p.bruecke_absender), bruecke_kopie_s: zahl(p.bruecke_kopie_s, 15, 3600),
+    fernsitzung_prozess: text(p.fernsitzung_prozess || ""),
+    sprache: wahl([["auto", t("e_sprache_auto")], ["de", "Deutsch"], ["en", "English"]], p.sprache || "auto"), claude_link: schalter(p.claude_link ?? true) };
+  pc.fernsitzung_prozess.placeholder = t("e_fern_ph");
+  const pcFeld = (k, beschriftung, hilfe) => mitMeta("pc", k, beschriftung, pc[k], hilfe);
+  const pcKarte = block([t("e_pc"), " ", wirkt("pc")], API ? t("nur_pc") : t("e_pc_h"), [
+    pcFeld("rechner", t("e_rechner"), t("e_rechner_h")), pcFeld("sprache", t("e_sprache"), t("e_sprache_h")), pcFeld("claude_link", t("e_claude_link"), t("e_claude_link_h")),
+    pcFeld("db_pfad", t("e_db")), pcFeld("port", t("e_port")), pcFeld("cpu_laeufe", t("e_cpu"), t("e_cpu_h")), pcFeld("produkt_entwickler", t("e_kanal"), t("e_kanal_h")),
+    pcFeld("ki_fenster", t("e_kifenster"), t("e_kifenster_h")), pcFeld("aufsicht_s", t("e_aufsicht")), pcFeld("bruecke_an", t("e_bruecke")),
+    pcFeld("bruecke_absender", t("e_absender")), pcFeld("bruecke_kopie_s", t("e_kopie")), pcFeld("fernsitzung_prozess", t("e_fern"), t("e_fern_h")),
+    ...(API ? [] : [[t("e_datei"), anzeige(p.datei, true), t("e_datei_h")]])],
+    "pc", () => Object.fromEntries(Object.entries(pc).map(([k, x]) => [k, wert(x)])), !!API);
+
+  // Reihenfolge: erst, was die Installation trägt (Speicher, Seite, Meldungen, PC), dann das Projekt und seine Agenten
+  box.append(...[speicherKarte, seiteKarte, pushKarte, pcKarte, projektKarte,
+    agentenEinstellungen(d, { text, zahl, schalter, wert, feld })].filter(Boolean));
   /* Sprungmarken: die Seite ist lang – jeder Abschnitt mit einem Klick erreichbar */
   m.append(el("div", { class: "sprung" }, [...box.children].map(k => { const h = k.querySelector("h3");
     const text = h && [...h.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent).join("").trim();
     return h ? el("a", { onclick: () => k.scrollIntoView({ behavior: "smooth", block: "start" }) }, text || h.textContent) : null; }).filter(Boolean)));
   m.append(box);
 }
-/* Zahnrad „Benachrichtigungen“: Hauptschalter, Anbieter (Geheimnisse nur als „gespeichert“), Ereignisse, Ruhezeit,
-   Probe je Anbieter mit Antwort der API, Versandprotokoll. */
-/* Profil eines Agenten (nur am PC): woraus „Starten“ den Befehl baut */
 /* Einstellungen › Agenten. Links die Agenten, rechts der gewählte in vier Blöcken. „Lead“ ist ein Schalter (führt das
    Projekt), das Fachgebiet frei mit Vorschlägen, die Arbeitsweise bestimmt, was die AMW tut: nur „Terminal“ startet und
    überwacht sie selbst; „Chat“ hat weder Sitzung noch Überwachung. Sitzungs-Felder (Profil) nur am PC. */
@@ -4218,21 +4261,22 @@ function agentenEinstellungen(d, h) {
   zeichnen();
   return karte;
 }
+/* Zahnrad „Benachrichtigungen“: Hauptschalter, Anbieter (Geheimnisse nur als „gespeichert“), Ereignisse, Ruhezeit,
+   Probe je Anbieter mit Antwort der API, Versandprotokoll. */
 async function pushBlock(feld, text, zahl, schalter, wert, speichern) {
   let d; try { d = await holen("/api/push"); } catch (e) { return el("div", { class: "karte" }, el("h3", {}, t("p_titel")), String(e)); }
   const c = d.einstellungen, geheim = (gespeichert) => { const x = text("", "password"); x.placeholder = gespeichert ? t("e_token_da") : ""; return x; };
   const f = {
-    an: schalter(c.an), link: text(c.link), max: zahl(c.max_je_stunde, 1, 60),
+    an: schalter(c.an), max: zahl(c.max_je_stunde, 1, 60),
     ruhe_an: schalter(c.ruhe.an), ruhe_von: text(c.ruhe.von, "time"), ruhe_bis: text(c.ruhe.bis, "time"),
     ntfy_an: schalter(c.ntfy.an), ntfy_server: text(c.ntfy.server), ntfy_topic: geheim(c.ntfy.topic_gespeichert), ntfy_token: geheim(c.ntfy.token_gespeichert),
     po_an: schalter(c.pushover.an), po_app: geheim(c.pushover.app_token_gespeichert), po_user: geheim(c.pushover.user_key_gespeichert),
     tg_an: schalter(c.telegram.an), tg_token: geheim(c.telegram.bot_token_gespeichert), tg_chat: text(c.telegram.chat_id),
   };
-  f.link.placeholder = t("p_link_ph");
   const ereig = Object.fromEntries(d.ereignisse.map(e => [e, schalter(c.ereignisse[e])]));
   const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
   const sammeln = () => ({
-    an: f.an.checked, link: wert(f.link), max_je_stunde: wert(f.max),
+    an: f.an.checked, max_je_stunde: wert(f.max),
     ruhe: { an: f.ruhe_an.checked, von: f.ruhe_von.value, bis: f.ruhe_bis.value },
     ntfy: { an: f.ntfy_an.checked, server: wert(f.ntfy_server), topic: f.ntfy_topic.value.trim(), token: f.ntfy_token.value.trim() },
     pushover: { an: f.po_an.checked, app_token: f.po_app.value.trim(), user_key: f.po_user.value.trim() },
@@ -4263,7 +4307,7 @@ async function pushBlock(feld, text, zahl, schalter, wert, speichern) {
         el("td", { class: p.ergebnis === "gesendet" ? "" : "rot-text" }, p.ergebnis + (p.fehler ? ` – ${p.fehler}` : "")))))
     : el("div", { class: "sehrleise" }, t("p_leer"));
   return el("div", { class: "karte" }, el("h3", {}, t("p_titel"), hilfeKnopf("ntfy")), el("p", { class: "leise", style: "margin:0 0 12px" }, t("p_h", { x: c.datei })),
-    feld(t("p_an"), f.an, t("p_an_h")), feld(t("p_link"), f.link, t("p_link_h")),
+    feld(t("p_an"), f.an, t("p_an_h")),
     gruppe("ntfy", [[t("p_an_kurz"), f.ntfy_an], [t("p_server"), f.ntfy_server], [t("p_kanal"), f.ntfy_topic, t("p_kanal_h")], [t("p_token"), f.ntfy_token, t("p_optional")]], "ntfy"),
     gruppe("Pushover", [[t("p_an_kurz"), f.po_an], [t("p_app"), f.po_app], [t("p_user"), f.po_user]], "pushover"),
     gruppe("Telegram", [[t("p_an_kurz"), f.tg_an], [t("p_bot"), f.tg_token], [t("p_chat"), f.tg_chat, t("p_chat_h")]], "telegram"),

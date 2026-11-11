@@ -24,7 +24,7 @@
   },
   {
    "titel": "Am PC eintragen",
-   "text": "In der AMW: Einstellungen › Online-Speicher. Adresse und Schlüssel einfügen und speichern. Die AMW prüft die Verbindung, legt die Tabellen an und schaltet den Abgleich ein. Als Befehl geht dasselbe mit `amw web einrichten`.",
+   "text": "In der AMW: Einstellungen › Speicher und Abgleich. Adresse und Schlüssel einfügen und speichern. Die AMW prüft die Verbindung, legt die Tabellen an und schaltet den Abgleich ein. Als Befehl geht dasselbe mit `amw web einrichten`.",
    "bilder": []
   },
   {
@@ -34,7 +34,7 @@
   },
   {
    "titel": "Prüfen",
-   "text": "Unter Einstellungen › Online-Speicher steht „Schlüssel gespeichert“ und der Abgleich ist an. `amw web status` zeigt, wann zuletzt hochgeladen wurde.",
+   "text": "Unter Einstellungen › Speicher und Abgleich steht „Schlüssel gespeichert“ und der Abgleich ist an; „Verbindung testen“ meldet „Anmeldung erfolgreich“ und „Die Datenbank ist eingerichtet“. `amw web status` zeigt, wann zuletzt hochgeladen wurde.",
    "bilder": []
   }
  ],
@@ -77,7 +77,7 @@
   ],
   [
    "Wie schalte ich es wieder ab?",
-   "Einstellungen › Online-Speicher › Abgleich aus. Die Online-Seite zeigt dann den letzten Stand und nimmt nichts mehr an."
+   "Einstellungen › Speicher und Abgleich › Abgleich aus. Die Online-Seite zeigt dann den letzten Stand und nimmt nichts mehr an."
   ]
  ],
  "thema": "online-speicher-turso",

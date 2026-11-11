@@ -318,7 +318,7 @@ def daten_start(con, pid):
     except (TypeError, ValueError):
         takt = TAKT_MIN
     team = {"zusammen": zusammen, "bogen": dict(b) if b else None, "takt_min": takt}
-    return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
+    return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
@@ -401,6 +401,29 @@ def daten_push(con):
     return {"einstellungen": push.oeffentlich(), "protokoll": push.protokoll(con, 30), "ereignisse": list(push.EREIGNISSE)}
 
 
+def _seiten_adresse():
+    """Adresse der Online-Seite (für Links in Benachrichtigungen und die Prüfung „Seite erreichbar?“)."""
+    try:
+        from . import push
+        return push.laden().get("link") or ""
+    except Exception:
+        return ""
+
+
+def verbindung_pruefen(was):
+    """Prüf-Knöpfe im Zahnrad (nur am PC): Online-Speicher bzw. Online-Seite erreichbar?"""
+    from . import verbindung
+    return verbindung.pruefen(was)
+
+
+def sprache_vorgabe():
+    try:
+        from . import einstellungen
+        return einstellungen.wert("sprache")
+    except Exception:
+        return "auto"
+
+
 def daten_einstellungen(con, pid, speicher=None):
     """Zahnrad: alles, was einstellbar ist – nie Schlüssel oder Passwörter (der Turso-Schlüssel nur als „gespeichert“)."""
     from . import __version__, abgleich, einstellungen, ueberwachung
@@ -441,7 +464,16 @@ def daten_einstellungen(con, pid, speicher=None):
                         "info_ablage_h": pe.get("info_ablage_h", INFO_ABLAGE_H)},
             "agenten": agenten,
             "pc": {**einstellungen.laden(), "datei": einstellungen.pfad()},
-            "turso": {"url": z.get("url", ""), "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(z.get("token"))},
+            # je Feld: die Vorgabe (zum Vergleich mit dem Wert) und ob der Wächter dafür neu starten muss
+            "vorgaben": {"pc": {k: v[0] for k, v in einstellungen.FELDER.items() if k not in ("rechner", "db_pfad")},   # die beiden hängen am Rechner
+                         "projekt": {"takt_min": TAKT_MIN, "speicher_grenze_gb": SPEICHER_GRENZE_GB,
+                                     "stillstand_min": ueberwachung.STILLSTAND_MIN,
+                                     "lauf_ohne_angabe_min": ueberwachung.LAUF_OHNE_ANGABE_MIN, "info_ablage_h": INFO_ABLAGE_H},
+                         "web": {k: v[0] for k, v in abgleich.WEB_EINSTELLUNGEN.items()}},
+            "neustart": list(einstellungen.NEUSTART),
+            "seite": {"adresse": _seiten_adresse()},
+            "turso": {"url": z.get("url", ""), "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(z.get("token")),
+                      "datei": abgleich.zugang_pfad()},
             "web": web, "web_grenzen": {k: [lo, hi] for k, (_, lo, hi) in abgleich.WEB_EINSTELLUNGEN.items()}}
 
 
@@ -518,7 +550,9 @@ def daten_agent(con, pid, kennung):
     except Exception:                      # z. B. ohne Windows-API (Tests anderswo) – Anzeige geht trotzdem
         steuern = {}
     try:                                   # „In Claude öffnen“: laufende Sitzung mit Fernsteuerung
-        steuern["claude_link"] = gespraech.link(a["claude_sitzung"]) if a["zustand"] == "aktiv" else None
+        from . import einstellungen
+        zeigen = a["zustand"] == "aktiv" and einstellungen.wert("claude_link")
+        steuern["claude_link"] = gespraech.link(a["claude_sitzung"]) if zeigen else None
     except Exception:
         steuern["claude_link"] = None
     return {
@@ -986,6 +1020,7 @@ def baue_handler(port, token):
                     "/api/agent": lambda c, p: daten_agent(c, p, q.get("kennung", [""])[0]),
                     "/api/agent/vorschlag": lambda c, p: agent_vorschlag(c, p, q.get("kennung", [""])[0]),
                     "/api/regelwerk": lambda c, p: daten_regelwerk(q.get("sprache", ["de"])[0]),
+                    "/api/pruefen": lambda c, p: verbindung_pruefen(q.get("was", [""])[0]),
                     "/api/gespraech": lambda c, p: daten_gespraech(c, p, q),
                     "/api/push": lambda c, p: daten_push(c),
                     "/api/planung": lambda c, p: daten_planung(c, p),

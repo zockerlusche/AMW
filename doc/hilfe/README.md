@@ -7,7 +7,7 @@ auseinander.
 | Datei | Thema | Wo der Knopf steht |
 |---|---|---|
 | [neues-projekt.md](neues-projekt.md) | Neues Projekt – Schritt für Schritt | Projekt-Auswahl, Einstellungen › Projekt |
-| [online-speicher-turso.md](online-speicher-turso.md) | Online-Speicher bei Turso anlegen | Einstellungen › Online-Speicher |
+| [online-speicher-turso.md](online-speicher-turso.md) | Online-Speicher bei Turso anlegen | Einstellungen › Speicher und Abgleich |
 | [ntfy.md](ntfy.md) | Benachrichtigungen aufs Handy mit ntfy | Einstellungen › Benachrichtigungen |
 | [regelwerk.md](regelwerk.md) | Grund-Regelwerk für ein neues Projekt | Assistent „Neues Projekt“, Wissen › Regeln |
 | [takt-chat-lead.md](takt-chat-lead.md) | Takt für einen Lead, der als Chat arbeitet | Assistent „Neues Projekt“ (Lead als Chat) |

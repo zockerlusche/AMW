@@ -4,6 +4,23 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.41.0 – 11.11.2026 · Einstellungen neu gegliedert, mit Geltungsbereich und Verbindungstests
+- **Neue Reihenfolge im Zahnrad:** Speicher und Abgleich · Online-Seite · Benachrichtigungen · Dieser PC · Projekt ·
+  Agenten – erst, was die Installation trägt, dann das Projekt. Was zusammengehört, steht zusammen: die Takte des
+  Abgleichs beim Speicher (bisher unter „Dieser PC“), die Adresse der Online-Seite bei der Online-Seite (bisher als
+  „Link in der Meldung“ bei den Benachrichtigungen).
+- **Wofür ein Abschnitt gilt:** „Gilt für diesen PC“, „… die Online-Seite“, „… dieses Projekt“ oder „… PC und Online-Seite“.
+- **Standard und Neustart je Feld:** Weicht ein Wert vom Standard ab, steht der Standard darunter. Felder, die der
+  Wächter nur beim Start liest, tragen ↻ „Wird nach einem Neustart des Wächters wirksam“ – statt eines Sammelhinweises.
+- **Zwei Tests:** „Verbindung testen“ meldet sich am Online-Speicher an und sieht nach, ob die Datenbank eingerichtet
+  ist; „Online-Seite testen“ prüft, ob die Adresse über https erreichbar ist und dort eine AMW-Seite läuft. Jeder Schritt
+  steht mit Ergebnis da. Getestet werden die gespeicherten Werte, nur lesend, nur vom PC aus. Als Schnittstelle:
+  `/api/pruefen?was=speicher|seite`.
+- **Neu einstellbar:** Standardsprache (wie im Browser, Deutsch, Englisch – gilt, bis jemand sie selbst umstellt) und die
+  Schaltfläche „In Claude öffnen“ an oder aus. Der Speicherort der Einstellungen wird angezeigt.
+- **Neutrale Namen:** Der Abschnitt heißt „Speicher und Abgleich“; Turso ist die Art des Online-Speichers, nicht mehr
+  sein Name.
+
 ## 1.40.0 – 11.11.2026 · Grund-Regelwerk: ein neues Projekt startet mit bewährten Regeln
 - **Mitgeliefertes Grund-Regelwerk** (Deutsch und Englisch): 18 Regeln in drei Gruppen – Arbeit und Nachweis,
   Entscheidungen und Wissen, Sicherheit und Betrieb – und vier wahlweise. Jede Regel nennt ihr **Warum**; wo ein Anlass

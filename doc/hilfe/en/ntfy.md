@@ -9,7 +9,7 @@ The AMW sends a short message to your phone when something is waiting for you �
 ## Steps
 1. **Create a channel** Run the command `amw push ntfy` on the PC. The AMW creates a random, secret channel name, shows it and stores it – afterwards it is listed under Settings › phone notifications as the channel (topic).
 2. **Subscribe on the phone** In the app tap “+”, enter the channel name exactly and subscribe. The server stays `ntfy.sh` unless you run your own.
-3. **Set the link** So that tapping a message opens the right page: enter the address of your online page as the link in the message (`https://…`). As a command: `amw push link https://your-page.example/`.
+3. **Set the link** So that tapping a message opens the right page: under Settings › Online site, enter the “Address of the online page” (`https://…`). As a command: `amw push link https://your-page.example/`.
 4. **Switch on and test** Switch on the main switch and ntfy, save and press the test button for ntfy. As commands: `amw push an`, then `amw push probe ntfy`. The test arrives within a few seconds.
 
 ## Values to enter
@@ -17,7 +17,7 @@ The AMW sends a short message to your phone when something is waiting for you �
 |---|---|
 | Channel (topic) | created by the AMW – subscribe to exactly this on the phone |
 | Server | `https://ntfy.sh` or the address of your own ntfy server |
-| Link in the message | address of your online page |
+| Address of the online page (section Online site) | address of your online page |
 
 ## Common problems
 - **The test does not arrive** – The channel name on the phone differs (case matters) or the app is not allowed to show notifications.

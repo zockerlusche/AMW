@@ -18,7 +18,7 @@
   },
   {
    "titel": "Set the link",
-   "text": "So that tapping a message opens the right page: enter the address of your online page as the link in the message (`https://…`). As a command: `amw push link https://your-page.example/`.",
+   "text": "So that tapping a message opens the right page: under Settings › Online site, enter the “Address of the online page” (`https://…`). As a command: `amw push link https://your-page.example/`.",
    "bilder": []
   },
   {
@@ -37,7 +37,7 @@
    "`https://ntfy.sh` or the address of your own ntfy server"
   ],
   [
-   "Link in the message",
+   "Address of the online page (section Online site)",
    "address of your online page"
   ]
  ],

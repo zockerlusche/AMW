@@ -1,6 +1,6 @@
-# Create the online store at Turso
+# Create the online storage at Turso
 
-The online store is where your PC and the online page exchange data. You create it once and enter its address and key in the AMW.
+The online storage is where your PC and the online page exchange data. You create it once and enter its address and key in the AMW.
 
 ## You need
 - The AMW runs on this PC (the watcher is set up).
@@ -11,9 +11,9 @@ The online store is where your PC and the online page exchange data. You create 
 1. **Account and database** Sign in at turso.tech and create a database (“Create Database”). Any name works; pick a location near you.
 2. **Copy the address** The database page shows the address (“Database URL”). It starts with `libsql://` and ends in `.turso.io`.
 3. **Create a key** On the same page choose “Create Token”: read and write, no expiry. Copy the key – it is shown only once.
-4. **Enter it on the PC** In the AMW: Settings › Online store. Paste address and key and save. The AMW checks the connection, creates the tables and switches the sync on. The command `amw web einrichten` does the same.
+4. **Enter it on the PC** In the AMW: Settings › Storage and sync. Paste address and key and save. The AMW checks the connection, creates the tables and switches the sync on. The command `amw web einrichten` does the same.
 5. **Restart the watcher** The AMW says so: the sync starts with the next start of the watcher (control desk › Watcher › Restart).
-6. **Check** Settings › Online store shows “key saved” and the sync is on. `amw web status` shows the last upload.
+6. **Check** Settings › Storage and sync shows “key saved” and the sync is on; “Test connection” reports “Signed in” and “The database is set up”. `amw web status` shows the last upload.
 
 ## Values to enter
 | Field in the AMW | Where it comes from |
@@ -34,8 +34,8 @@ The online store is where your PC and the online page exchange data. You create 
 ### Does it cost anything?
 For one or two projects the free Turso plan is enough.
 
-### What is kept in the online store?
+### What is kept in the online storage?
 A copy of what the online page shows, and the mailbox with what you do while away. The complete data stays on your PC.
 
 ### How do I switch it off again?
-Settings › Online store › sync off. The online page then shows the last state and accepts nothing more.
+Settings › Storage and sync › sync off. The online page then shows the last state and accepts nothing more.

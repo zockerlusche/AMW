@@ -9,7 +9,7 @@ Die AMW schickt dir eine kurze Nachricht aufs Handy, wenn etwas auf dich wartet 
 ## Schritte
 1. **Kanal erzeugen** Am PC den Befehl `amw push ntfy` ausführen. Die AMW erzeugt einen zufälligen, geheimen Kanalnamen, zeigt ihn an und trägt ihn ein – er steht danach unter Einstellungen › Benachrichtigungen aufs Handy bei „Kanal (Topic)“.
 2. **Kanal im Handy abonnieren** In der App auf „+“ tippen, den Kanalnamen genau so eintragen und abonnieren. Der Server bleibt `ntfy.sh`, außer du betreibst einen eigenen.
-3. **Link setzen** Damit ein Tipp auf die Nachricht die richtige Seite öffnet: bei „Link in der Meldung“ die Adresse deiner Online-Seite eintragen (`https://…`). Als Befehl: `amw push link https://deine-seite.example/`.
+3. **Link setzen** Damit ein Tipp auf die Nachricht die richtige Seite öffnet: unter Einstellungen › Online-Seite die „Adresse der Online-Seite“ eintragen (`https://…`). Als Befehl: `amw push link https://deine-seite.example/`.
 4. **Einschalten und testen** Den Hauptschalter „Benachrichtigen“ und ntfy einschalten, speichern und „Probe ntfy“ drücken. Als Befehl: `amw push an`, dann `amw push probe ntfy`. Die Probe kommt nach wenigen Sekunden an.
 
 ## Diese Werte trägst du ein
@@ -17,7 +17,7 @@ Die AMW schickt dir eine kurze Nachricht aufs Handy, wenn etwas auf dich wartet 
 |---|---|
 | Kanal (Topic) | erzeugt die AMW – im Handy genau so abonnieren |
 | Server | `https://ntfy.sh` oder die Adresse deines eigenen ntfy-Servers |
-| Link in der Meldung | Adresse deiner Online-Seite |
+| Adresse der Online-Seite (Abschnitt Online-Seite) | Adresse deiner Online-Seite |
 
 ## Typische Fehler
 - **Die Probe kommt nicht an** – Der Kanalname im Handy weicht ab (Groß- und Kleinschreibung zählt) oder die App darf keine Mitteilungen zeigen.
