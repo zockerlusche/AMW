@@ -497,13 +497,24 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .agenten { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
 .kachel { padding: 14px 16px 12px; position: relative; overflow: hidden; }
 .kachel .name { font: 600 26px/1 var(--titel); letter-spacing: .04em; }
-.kachel .rolle { font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin-top: 2px; }
 .kachel .zustand { display: flex; align-items: center; gap: 8px; margin-top: 12px; font: 13px var(--titel); letter-spacing: .04em; }
 .kachel .info { margin-top: 8px; color: var(--leise); font-size: 12.5px; min-height: 36px; overflow-wrap: anywhere; }
 .kachel .offen { position: absolute; top: 12px; right: 14px; font: 600 13px var(--mono); }
 .kachel.tot { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); }
 /* Team auf der Startseite: Baum (du → Lead → Agenten) oder kompakte Liste – dieselben Bausteine in beiden */
 .team { position: relative; }
+/* Einstellungen › Agenten: links die Agenten, rechts vier Blöcke */
+.ae-raster { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 16px; align-items: start; }
+.ae-wahl { border: 1px solid var(--linie); } .ae-wahl > button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 8px 10px; background: none; border: 0; border-bottom: 1px solid var(--linie); cursor: pointer; text-align: left; min-width: 0; }
+.ae-wahl > button.an { background: var(--bernstein-weich); box-shadow: inset 3px 0 0 var(--bernstein); } .ae-wahl .tm-name { font-size: 16px; } .ae-wahl .tm-fach { margin-left: auto; }
+.ae-neu { display: flex; gap: 6px; padding: 8px; } .ae-neu input { min-width: 0; flex: 1; }
+.ae-block { border: 1px solid var(--linie); padding: 10px 14px 12px; margin-bottom: 12px; background: var(--grund); }
+.ae-block h4 { margin: 0 0 6px; font: 600 12px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--bernstein); }
+.ae-block textarea, .ae-block select, .ae-block input[type=text], .ae-block input:not([type]) { width: 100%; }
+.ae-zwei { display: flex; gap: 8px; } .ae-zwei > * { flex: 1 1 0; min-width: 0; } .ae-haken { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.ae-vorschlag { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border: 1px dashed var(--blau); padding: 8px 12px; margin-top: 8px; font-size: 12.5px; }
+.ae-vorschlag .klein-knopf { margin-left: auto; }
+.ae-knoepfe { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .tm-schalter { display: flex; gap: 4px; justify-content: flex-end; margin: -38px 0 10px; }
 .tm-schalter .klein-knopf { background: var(--grund); position: relative; z-index: 1; } .tm-schalter .klein-knopf.an { border-color: var(--bernstein); color: var(--tinte); }
 .tm-zeichen { display: inline-flex; color: var(--sehrleise); flex: none; } .tm-zeichen svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.6; }
@@ -802,6 +813,8 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   nav a .zahl { position: absolute; top: 2px; right: 6px; margin: 0; font-size: 10px; }
   nav a .zahl:not(.heiss) { display: none; }
   main { padding: 16px 14px 24px; }
+  .ae-raster { grid-template-columns: minmax(0, 1fr); }
+  .ae-wahl { display: flex; flex-wrap: wrap; } .ae-wahl > button { width: auto; flex: 1 1 30%; border-right: 1px solid var(--linie); } .ae-wahl > button .tm-fach { display: none; } .ae-neu { flex: 1 1 100%; }
   .tm-schalter { margin-top: -34px; }
   .tm-knoten.tm-lead { grid-template-columns: minmax(0, 1fr); } .tm-rechts { flex-direction: row; align-items: center; justify-content: space-between; }
   .tm-ebene { grid-template-columns: 1fr 1fr; gap: 8px; row-gap: 22px; }
@@ -905,7 +918,7 @@ const TEXTE = {
     marke: "Agenten Management Workbench", suche: "Suchen: Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten",
     g_fuerdich: "Für dich", g_arbeit: "Arbeit", g_wissen: "Wissen", g_betrieb: "Betrieb",
     n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_aufgaben_kurz: "Arbeit", n_releases: "Release Notes", n_releases_kurz: "Notes", n_mehr: "Mehr", n_wissen: "Wissen", n_betrieb: "Betrieb",
-    thema: "Hell / Dunkel", halt: "Alle anhalten", halt_an: "Angehalten", tm_titel: "Team", tm_baum: "Baum", tm_baum_h: "du → Lead → Agenten, mit Linien für die Zusammenarbeit", tm_liste: "Liste", tm_liste_h: "kompakt: eine Zeile je Agent", tm_du: "Du", tm_leitet: "leitest das Projekt", tm_schritte: "deine Schritte", tm_fragen: "Fragen an dich", tm_freigaben: "Freigaben", tm_plant: "Plant gerade", tm_bogen: "Bogen {nr} · {x} ({f} von {n} fertig)", tm_ziel: "Ziel {x}", tm_kein_bogen: "kein aktiver Bogen", tm_takt: "Takt", tm_takt_min: "alle {n} min", tm_takt_hand: "von Hand", tm_chat: "Chat – über die Brücke", tm_chat_da: "Chat – gerade da", tm_w_chat: "arbeitet als Chat und schreibt über die Datei-Brücke", tm_w_sitzung: "arbeitet in einer eigenen Claude-Code-Sitzung", tm_keine: "keine Aufgabe", tm_liste_lauf: "{p}/{n} in der Liste", m_kein_ordner: "Kein Arbeitsordner im Profil – erst das Profil einrichten", tm_pruefung: "Prüfung", tm_mit_h: "arbeiten gerade zusammen: offene Prüfbitte", tm_k_agent: "Agent", tm_k_fach: "Fachgebiet", tm_k_zustand: "Zustand", tm_k_auf: "Arbeitet an", tm_k_mit: "Zusammenarbeit / wartet auf", tm_k_liste: "Verbrauch · Liste", s_ende: "{n} werden beendet (bis {x})", k_ende: "sichert und wird beendet – spätestens {x}", ls_hin: "zum Leitstand (Start, unter den Agenten)", ls_arbeit: "Arbeit der Agenten", ls_laeuft: "läuft", ls_steht: "angehalten", ls_arbeit_e: "Anhalten: Agenten beenden ihren Schritt und nehmen nichts Neues an.", ls_schirm: "Bildschirm", ls_schirm_frei: "frei für Agenten", ls_schirm_belegt: "belegt", ls_schirm_e: "Nur wenn frei, dürfen Agenten Fenster öffnen (Programm starten, Bilder aufnehmen).", ls_sitz: "Sitzungen", ls_sitz_laufen: "{n} laufen", ls_sitz_laufen1: "1 läuft", ls_sitz_fehlen1: "1 fehlt", ls_sitz_ruhen: "{n} abgemeldet", ls_sitz_fehlen: "{n} fehlen", ls_sitz_ende: "{n} werden beendet – spätestens {x}", ls_sitz_e: "Für ein Update: Jeder sichert seinen Stand, meldet sich ab und wird beendet – nach 5 Minuten auch ohne Abmeldung.", ls_sitz_e_netz: "Sitzungen starten und beenden geht nur am PC.", ls_sichern: "Alle sichern & beenden", ls_sichern_frage: "{n} laufende Sitzung(en) bitten, zu sichern und sich abzumelden? Wer nach 5 Minuten noch läuft, wird beendet. Fenster bleiben offen.", ls_sichern_ok: "{n} Agent(en) sichern – beendet spätestens {x}", ls_sichern_keiner: "Es läuft gerade keine Sitzung.", ls_starten: "Fehlende starten", ls_starten_frage: "Starten (nacheinander, letzte Sitzung fortsetzen): {x}?", ls_starten_ok: "{n} Agent(en) starten nacheinander im Abstand von {s} s", ls_wacht: "Wächter", ls_wacht_laeuft: "läuft · v{v}", ls_wacht_e: "Weckt Agenten, überwacht Läufe und Grenzen, gleicht mit der Online-Seite ab.", ls_wacht_e_netz: "Der Wächter läuft am PC und lädt den Stand hierher.", ls_wacht_neu: "Neu starten", ls_wacht_frage: "Wächter neu starten? Die Seite ist kurz nicht erreichbar; Agenten laufen weiter.", ls_wacht_ok: "Wächter startet neu – die Seite meldet sich gleich wieder", m_titel: "Befehle für {x}", m_nachricht: "Nachricht schreiben", m_gespraech: "Gespräch mitlesen", m_uebersicht: "Übersicht und Aufgabenliste", m_steuern: "Steuern", m_halt1: "Anhalten (nur diesen)", m_halt1_frage: "{x} anhalten? Er beendet seinen Schritt und nimmt nichts Neues an.", m_weiter1: "Weiterarbeiten lassen", m_sichern: "Sichern & beenden lassen", m_sichern_h: "für Updates", m_sichern_frage: "{x} bitten, zu sichern und sich abzumelden? Nach 5 Minuten wird die Sitzung auch ohne Abmeldung beendet.", m_sichern_ok: "sichert – beendet spätestens {x}", m_sofort: "Sofort beenden", m_sofort_h: "ohne Sichern", m_start: "Starten / fortsetzen", m_start_frage: "{x} starten (letzte Sitzung fortsetzen, falls vorhanden)?", m_neu: "Neue Sitzung beginnen", m_chat: "Chat – wird nicht gestartet oder beendet", m_nur_pc: "Sitzung starten/beenden: nur am PC", m_profil: "Profil und Zuständigkeit …", weiter: "Weiterarbeiten",
+    thema: "Hell / Dunkel", halt: "Alle anhalten", halt_an: "Angehalten", ae_titel: "Agenten", ae_h: "Wer führt, wer kann was, wie arbeitet er – das steht auf der Startseite und im Pflicht-Kontext jeder Sitzung.", ae_keiner: "Noch kein Agent – links einen anlegen.", ae_wer: "Wer", ae_auftrag: "Auftrag", ae_sitzung: "Sitzung", ae_ueberwachung: "Überwachung", ae_kennung_h: "umbenennen: amw agent umbenennen <alt> <neu>", ae_lead: "Lead", ae_lead_x: "führt das Projekt", ae_lead_h: "Der Lead plant, verteilt, prüft und gibt in seinem Rahmen frei.", ae_fach: "Fachgebiet", ae_fach_ph: "z. B. Code, Grafik, Prüfen", ae_fach_h: "frei wählbar; steht auf der Startseite und im Pflicht-Kontext des Agenten", ae_weise: "Arbeitsweise", ae_w_terminal: "Claude Code im Terminal", ae_w_desktop: "Claude Code in der Desktop-App", ae_w_chat: "Chat – schreibt über die Brücke", ae_weise_h_terminal: "Die AMW startet, weckt und überwacht die Sitzung.", ae_weise_h_desktop: "Du startest die Sitzung in der App – die AMW startet sie nicht. Sobald sie sich anmeldet, wird sie wie eine Terminal-Sitzung geweckt und überwacht.", ae_weise_h_chat: "Ein Chat wird nie gestartet, beendet oder überwacht – Sitzung und Überwachung entfallen.", ae_zust: "Zuständig für", ae_nicht: "Fasst nicht an", ae_rund_x: "bekommt Nachrichten „an alle“", ae_vorschlag: "Vorschlag:", ae_vorschlag_h: "Noch leer? Die AMW schlägt aus der bisherigen Arbeit etwas vor.", ae_vorschlag_holen: "Vorschlag aus der Datenbank", ae_vorschlag_nichts: "Kein Vorschlag möglich ({x}).", ae_uebernehmen: "In leere Felder übernehmen", ae_uebernommen: "übernommen – mit „Speichern“ bestätigen", ae_sitzung_netz: "Ordner, Modell, Rechte und Startsatz stellst du am PC ein.", ae_soll: "Soll laufen", ae_soll_an: "ja", ae_soll_ruht: "ruht (Pause)", ae_soll_aus: "nein", ae_soll_h: "„nein“: wird nicht erwartet und bekommt keine Rundschreiben", ae_puls: "Lebenszeichen", ae_puls_x: "min – spätestens so oft", ae_puls_h: "Bleibt es aus, meldet die AMW das dem Lead.", ae_speichern_h: "speichert alle vier Blöcke", tm_w_desktop: "arbeitet in Claude Code in der Desktop-App", tm_titel: "Team", tm_baum: "Baum", tm_baum_h: "du → Lead → Agenten, mit Linien für die Zusammenarbeit", tm_liste: "Liste", tm_liste_h: "kompakt: eine Zeile je Agent", tm_du: "Du", tm_leitet: "leitest das Projekt", tm_schritte: "deine Schritte", tm_fragen: "Fragen an dich", tm_freigaben: "Freigaben", tm_plant: "Plant gerade", tm_bogen: "Bogen {nr} · {x} ({f} von {n} fertig)", tm_ziel: "Ziel {x}", tm_kein_bogen: "kein aktiver Bogen", tm_takt: "Takt", tm_takt_min: "alle {n} min", tm_takt_hand: "von Hand", tm_chat: "Chat – über die Brücke", tm_chat_da: "Chat – gerade da", tm_w_chat: "arbeitet als Chat und schreibt über die Datei-Brücke", tm_w_sitzung: "arbeitet in einer eigenen Claude-Code-Sitzung", tm_keine: "keine Aufgabe", tm_liste_lauf: "{p}/{n} in der Liste", m_kein_ordner: "Kein Arbeitsordner im Profil – erst das Profil einrichten", tm_pruefung: "Prüfung", tm_mit_h: "arbeiten gerade zusammen: offene Prüfbitte", tm_k_agent: "Agent", tm_k_fach: "Fachgebiet", tm_k_zustand: "Zustand", tm_k_auf: "Arbeitet an", tm_k_mit: "Zusammenarbeit / wartet auf", tm_k_liste: "Verbrauch · Liste", s_ende: "{n} werden beendet (bis {x})", k_ende: "sichert und wird beendet – spätestens {x}", ls_hin: "zum Leitstand (Start, unter den Agenten)", ls_arbeit: "Arbeit der Agenten", ls_laeuft: "läuft", ls_steht: "angehalten", ls_arbeit_e: "Anhalten: Agenten beenden ihren Schritt und nehmen nichts Neues an.", ls_schirm: "Bildschirm", ls_schirm_frei: "frei für Agenten", ls_schirm_belegt: "belegt", ls_schirm_e: "Nur wenn frei, dürfen Agenten Fenster öffnen (Programm starten, Bilder aufnehmen).", ls_sitz: "Sitzungen", ls_sitz_laufen: "{n} laufen", ls_sitz_laufen1: "1 läuft", ls_sitz_fehlen1: "1 fehlt", ls_sitz_ruhen: "{n} abgemeldet", ls_sitz_fehlen: "{n} fehlen", ls_sitz_ende: "{n} werden beendet – spätestens {x}", ls_sitz_e: "Für ein Update: Jeder sichert seinen Stand, meldet sich ab und wird beendet – nach 5 Minuten auch ohne Abmeldung.", ls_sitz_e_netz: "Sitzungen starten und beenden geht nur am PC.", ls_sichern: "Alle sichern & beenden", ls_sichern_frage: "{n} laufende Sitzung(en) bitten, zu sichern und sich abzumelden? Wer nach 5 Minuten noch läuft, wird beendet. Fenster bleiben offen.", ls_sichern_ok: "{n} Agent(en) sichern – beendet spätestens {x}", ls_sichern_keiner: "Es läuft gerade keine Sitzung.", ls_starten: "Fehlende starten", ls_starten_frage: "Starten (nacheinander, letzte Sitzung fortsetzen): {x}?", ls_starten_ok: "{n} Agent(en) starten nacheinander im Abstand von {s} s", ls_wacht: "Wächter", ls_wacht_laeuft: "läuft · v{v}", ls_wacht_e: "Weckt Agenten, überwacht Läufe und Grenzen, gleicht mit der Online-Seite ab.", ls_wacht_e_netz: "Der Wächter läuft am PC und lädt den Stand hierher.", ls_wacht_neu: "Neu starten", ls_wacht_frage: "Wächter neu starten? Die Seite ist kurz nicht erreichbar; Agenten laufen weiter.", ls_wacht_ok: "Wächter startet neu – die Seite meldet sich gleich wieder", m_titel: "Befehle für {x}", m_nachricht: "Nachricht schreiben", m_gespraech: "Gespräch mitlesen", m_uebersicht: "Übersicht und Aufgabenliste", m_steuern: "Steuern", m_halt1: "Anhalten (nur diesen)", m_halt1_frage: "{x} anhalten? Er beendet seinen Schritt und nimmt nichts Neues an.", m_weiter1: "Weiterarbeiten lassen", m_sichern: "Sichern & beenden lassen", m_sichern_h: "für Updates", m_sichern_frage: "{x} bitten, zu sichern und sich abzumelden? Nach 5 Minuten wird die Sitzung auch ohne Abmeldung beendet.", m_sichern_ok: "sichert – beendet spätestens {x}", m_sofort: "Sofort beenden", m_sofort_h: "ohne Sichern", m_start: "Starten / fortsetzen", m_start_frage: "{x} starten (letzte Sitzung fortsetzen, falls vorhanden)?", m_neu: "Neue Sitzung beginnen", m_chat: "Chat – wird nicht gestartet oder beendet", m_nur_pc: "Sitzung starten/beenden: nur am PC", m_profil: "Profil und Zuständigkeit …", weiter: "Weiterarbeiten",
     s_dienst: "Wächter läuft", s_dienst_weg: "Wächter nicht erreichbar", s_agenten: "{a} von {b} Agenten laufen", s_speicher: "Arbeitsspeicher: {n} GB frei", s_speicher_unb: "Arbeitsspeicher: unbekannt",
     nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
     nicht_angemeldet_h: "Läuft, wird aber nicht geweckt – im Fenster: amw anmelden --von <Kennung>",
@@ -943,9 +956,9 @@ const TEXTE = {
     e_projekt: "Projekt", e_projekt_name: "Aktives Projekt",
     e_projekt_name_h: "Wechseln geht auch oben in der Navigation; es ändert nur die Ansicht.", e_takt: "Takt für den Lead (Minuten)", e_takt_h: "Zusammenfassung an den Lead; 0 = aus",
     e_speicher: "Speicher-Grenze für Rechen-Läufe (GB frei)", e_speicher_h: "Läufe starten erst, wenn so viel RAM frei ist",
-    e_agenten: "Agenten", e_agenten_h: "Soll „aus“: wird nicht erwartet und bekommt keine Rundschreiben; „ruht“: pausiert.",
-    e_kennung: "Kennung", e_rolle: "Rolle", e_soll: "Soll", e_grenzen: "Grenzen", e_rund: "Rundschreiben", e_puls: "Puls-Grenze (min)",
-    e_anlegen: "Anlegen", e_neu_h: "neuer Agent – danach Rolle usw. einstellen", soll_an: "an", soll_ruht: "ruht", soll_aus: "aus",
+    e_agenten: "Agenten", 
+    e_kennung: "Kennung", e_rund: "Rundschreiben", 
+    e_anlegen: "Anlegen", soll_an: "an", soll_ruht: "ruht", soll_aus: "aus",
     e_web: "Online-Seite", e_web_h: "Gilt für die Anmeldung im Netz.", e_leerlauf: "Abmelden nach Leerlauf (min)",
     e_hoechstens: "Längste Sitzung (h)", e_fehl_ip: "Sperre nach Fehlversuchen je Adresse (15 min)", e_fehl_ges: "Sperre nach Fehlversuchen gesamt (60 min)",
     e_pc: "Dieser PC", e_pc_h: "Wirkt beim nächsten Start des Wächters (amw dienst neustart). Datei: {x}", nur_pc: "Nur am PC änderbar – hier zur Ansicht.",
@@ -1004,8 +1017,8 @@ const TEXTE = {
     st_starten_frage: "{x} in einem neuen Terminal-Tab starten?", st_fortsetzen_frage: "{x} starten und die letzte Sitzung fortsetzen?",
     st_neu_frage: "{x} mit einer NEUEN Sitzung starten (ohne bisherigen Gesprächsverlauf)?",
     st_beenden_frage: "Claude-Sitzung von {x} beenden? Das Fenster bleibt offen; Fortsetzen geht später.",
-    pr_knopf: "Profil", pr_knopf_leer: "Profil anlegen", pr_titel: "Profil {x}",
-    pr_h: "Daraus baut „Starten“ den Befehl im Terminal-Tab. Nur am PC änderbar.", pr_vorgabe: "Vorgabe",
+    
+    pr_vorgabe: "Vorgabe",
     pr_ordner: "Arbeitsordner", pr_zusatz: "Zusatzordner", pr_zusatz_h: "mit ; getrennt (--add-dir)", pr_denkstufe: "Denkstufe",
     pr_modell: "Modell", pr_rechte: "Rechte", pr_r_vorgabe: "Nachfragen (Vorgabe)", pr_r_auto: "Automatisch (auto)",
     pr_r_umgehen: "Alles erlauben (umgehen)", pr_rechte_h: "„Alles erlauben“ nur, wenn du den Agenten vertraust; Sperr-Regeln gelten weiter",
@@ -1216,7 +1229,7 @@ const TEXTE = {
     marke: "Agent Management Workbench", suche: "Search: tasks, decisions, questions, statements, messages",
     g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
     n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_aufgaben_kurz: "Tasks", n_releases: "Release notes", n_releases_kurz: "Notes", n_mehr: "More", n_wissen: "Knowledge", n_betrieb: "Operations",
-    thema: "Light / Dark", halt: "Pause all", halt_an: "Paused", tm_titel: "Team", tm_baum: "Tree", tm_baum_h: "you → lead → agents, with lines for who works together", tm_liste: "List", tm_liste_h: "compact: one row per agent", tm_du: "You", tm_leitet: "run the project", tm_schritte: "your steps", tm_fragen: "questions for you", tm_freigaben: "approvals", tm_plant: "Planning", tm_bogen: "Milestone {nr} · {x} ({f} of {n} done)", tm_ziel: "due {x}", tm_kein_bogen: "no active milestone", tm_takt: "Check-in", tm_takt_min: "every {n} min", tm_takt_hand: "manual", tm_chat: "Chat – via the bridge", tm_chat_da: "Chat – present", tm_w_chat: "works as a chat and writes via the file bridge", tm_w_sitzung: "works in its own Claude Code session", tm_keine: "no task", tm_liste_lauf: "{p}/{n} queued", m_kein_ordner: "No working folder in the profile – set up the profile first", tm_pruefung: "review", tm_mit_h: "working together right now: open review request", tm_k_agent: "Agent", tm_k_fach: "Specialty", tm_k_zustand: "State", tm_k_auf: "Working on", tm_k_mit: "Working with / waiting for", tm_k_liste: "Usage · queue", s_ende: "{n} being ended (by {x})", k_ende: "saving, will be ended – by {x} at the latest", ls_hin: "to the control desk (Home, below the agents)", ls_arbeit: "Agents\u2019 work", ls_laeuft: "running", ls_steht: "paused", ls_arbeit_e: "Pause: agents finish their step and take nothing new.", ls_schirm: "Screen", ls_schirm_frei: "free for agents", ls_schirm_belegt: "in use", ls_schirm_e: "Only when free may agents open windows (start a program, take pictures).", ls_sitz: "Sessions", ls_sitz_laufen: "{n} running", ls_sitz_laufen1: "1 running", ls_sitz_fehlen1: "1 missing", ls_sitz_ruhen: "{n} signed off", ls_sitz_fehlen: "{n} missing", ls_sitz_ende: "{n} being ended – by {x} at the latest", ls_sitz_e: "For an update: everyone saves, signs off and is ended – after 5 minutes even without signing off.", ls_sitz_e_netz: "Starting and ending sessions works on the PC only.", ls_sichern: "Save & exit all", ls_sichern_frage: "Ask {n} running session(s) to save and sign off? Whoever still runs after 5 minutes is ended. Windows stay open.", ls_sichern_ok: "{n} agent(s) saving – ended by {x} at the latest", ls_sichern_keiner: "No session is running right now.", ls_starten: "Start missing", ls_starten_frage: "Start (one after another, resuming the last session): {x}?", ls_starten_ok: "{n} agent(s) starting one after another, {s} s apart", ls_wacht: "Watcher", ls_wacht_laeuft: "running · v{v}", ls_wacht_e: "Wakes agents, watches runs and limits, syncs with the online page.", ls_wacht_e_netz: "The watcher runs on the PC and uploads the state here.", ls_wacht_neu: "Restart", ls_wacht_frage: "Restart the watcher? The page is briefly unreachable; agents keep running.", ls_wacht_ok: "Watcher restarting – the page will be back in a moment", m_titel: "Commands for {x}", m_nachricht: "Write a message", m_gespraech: "Read the conversation", m_uebersicht: "Overview and task list", m_steuern: "Control", m_halt1: "Pause (this one only)", m_halt1_frage: "Pause {x}? It finishes its step and takes nothing new.", m_weiter1: "Let it resume", m_sichern: "Save & exit", m_sichern_h: "for updates", m_sichern_frage: "Ask {x} to save and sign off? After 5 minutes the session is ended even without signing off.", m_sichern_ok: "saving – ended by {x} at the latest", m_sofort: "Exit now", m_sofort_h: "without saving", m_start: "Start / resume", m_start_frage: "Start {x} (resuming the last session, if any)?", m_neu: "Begin a new session", m_chat: "Chat – is never started or stopped", m_nur_pc: "Start/end session: on the PC only", m_profil: "Profile and responsibilities …", weiter: "Resume",
+    thema: "Light / Dark", halt: "Pause all", halt_an: "Paused", ae_titel: "Agents", ae_h: "Who leads, who can do what, how each one works – shown on the home page and in every session\u2019s mandatory context.", ae_keiner: "No agent yet – create one on the left.", ae_wer: "Who", ae_auftrag: "Mandate", ae_sitzung: "Session", ae_ueberwachung: "Monitoring", ae_kennung_h: "rename: amw agent umbenennen <old> <new>", ae_lead: "Lead", ae_lead_x: "leads the project", ae_lead_h: "The lead plans, assigns, reviews and approves within their scope.", ae_fach: "Specialty", ae_fach_ph: "e.g. Code, Art, Review", ae_fach_h: "free text; shown on the home page and in the agent\u2019s mandatory context", ae_weise: "Working mode", ae_w_terminal: "Claude Code in the terminal", ae_w_desktop: "Claude Code in the desktop app", ae_w_chat: "Chat – writes via the bridge", ae_weise_h_terminal: "The AMW starts, wakes and monitors the session.", ae_weise_h_desktop: "You start the session in the app – the AMW does not start it. Once it signs in, it is woken and monitored like a terminal session.", ae_weise_h_chat: "A chat is never started, stopped or monitored – session and monitoring do not apply.", ae_zust: "Responsible for", ae_nicht: "Does not touch", ae_rund_x: "receives messages “to all”", ae_vorschlag: "Suggestion:", ae_vorschlag_h: "Still empty? The AMW suggests something from the work done so far.", ae_vorschlag_holen: "Suggest from the database", ae_vorschlag_nichts: "No suggestion possible ({x}).", ae_uebernehmen: "Fill empty fields", ae_uebernommen: "filled in – confirm with “Save”", ae_sitzung_netz: "Folder, model, permissions and first prompt are set on the PC.", ae_soll: "Should run", ae_soll_an: "yes", ae_soll_ruht: "paused", ae_soll_aus: "no", ae_soll_h: "“no”: not expected and gets no broadcasts", ae_puls: "Heartbeat", ae_puls_x: "min – at least this often", ae_puls_h: "If it stays away, the AMW reports it to the lead.", ae_speichern_h: "saves all four blocks", tm_w_desktop: "works in Claude Code in the desktop app", tm_titel: "Team", tm_baum: "Tree", tm_baum_h: "you → lead → agents, with lines for who works together", tm_liste: "List", tm_liste_h: "compact: one row per agent", tm_du: "You", tm_leitet: "run the project", tm_schritte: "your steps", tm_fragen: "questions for you", tm_freigaben: "approvals", tm_plant: "Planning", tm_bogen: "Milestone {nr} · {x} ({f} of {n} done)", tm_ziel: "due {x}", tm_kein_bogen: "no active milestone", tm_takt: "Check-in", tm_takt_min: "every {n} min", tm_takt_hand: "manual", tm_chat: "Chat – via the bridge", tm_chat_da: "Chat – present", tm_w_chat: "works as a chat and writes via the file bridge", tm_w_sitzung: "works in its own Claude Code session", tm_keine: "no task", tm_liste_lauf: "{p}/{n} queued", m_kein_ordner: "No working folder in the profile – set up the profile first", tm_pruefung: "review", tm_mit_h: "working together right now: open review request", tm_k_agent: "Agent", tm_k_fach: "Specialty", tm_k_zustand: "State", tm_k_auf: "Working on", tm_k_mit: "Working with / waiting for", tm_k_liste: "Usage · queue", s_ende: "{n} being ended (by {x})", k_ende: "saving, will be ended – by {x} at the latest", ls_hin: "to the control desk (Home, below the agents)", ls_arbeit: "Agents\u2019 work", ls_laeuft: "running", ls_steht: "paused", ls_arbeit_e: "Pause: agents finish their step and take nothing new.", ls_schirm: "Screen", ls_schirm_frei: "free for agents", ls_schirm_belegt: "in use", ls_schirm_e: "Only when free may agents open windows (start a program, take pictures).", ls_sitz: "Sessions", ls_sitz_laufen: "{n} running", ls_sitz_laufen1: "1 running", ls_sitz_fehlen1: "1 missing", ls_sitz_ruhen: "{n} signed off", ls_sitz_fehlen: "{n} missing", ls_sitz_ende: "{n} being ended – by {x} at the latest", ls_sitz_e: "For an update: everyone saves, signs off and is ended – after 5 minutes even without signing off.", ls_sitz_e_netz: "Starting and ending sessions works on the PC only.", ls_sichern: "Save & exit all", ls_sichern_frage: "Ask {n} running session(s) to save and sign off? Whoever still runs after 5 minutes is ended. Windows stay open.", ls_sichern_ok: "{n} agent(s) saving – ended by {x} at the latest", ls_sichern_keiner: "No session is running right now.", ls_starten: "Start missing", ls_starten_frage: "Start (one after another, resuming the last session): {x}?", ls_starten_ok: "{n} agent(s) starting one after another, {s} s apart", ls_wacht: "Watcher", ls_wacht_laeuft: "running · v{v}", ls_wacht_e: "Wakes agents, watches runs and limits, syncs with the online page.", ls_wacht_e_netz: "The watcher runs on the PC and uploads the state here.", ls_wacht_neu: "Restart", ls_wacht_frage: "Restart the watcher? The page is briefly unreachable; agents keep running.", ls_wacht_ok: "Watcher restarting – the page will be back in a moment", m_titel: "Commands for {x}", m_nachricht: "Write a message", m_gespraech: "Read the conversation", m_uebersicht: "Overview and task list", m_steuern: "Control", m_halt1: "Pause (this one only)", m_halt1_frage: "Pause {x}? It finishes its step and takes nothing new.", m_weiter1: "Let it resume", m_sichern: "Save & exit", m_sichern_h: "for updates", m_sichern_frage: "Ask {x} to save and sign off? After 5 minutes the session is ended even without signing off.", m_sichern_ok: "saving – ended by {x} at the latest", m_sofort: "Exit now", m_sofort_h: "without saving", m_start: "Start / resume", m_start_frage: "Start {x} (resuming the last session, if any)?", m_neu: "Begin a new session", m_chat: "Chat – is never started or stopped", m_nur_pc: "Start/end session: on the PC only", m_profil: "Profile and responsibilities …", weiter: "Resume",
     s_dienst: "Watcher running", s_dienst_weg: "Watcher unreachable", s_agenten: "{a} of {b} agents running", s_speicher: "Memory: {n} GB free", s_speicher_unb: "Memory: unknown",
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
     nicht_angemeldet_h: "Running but cannot be woken – in its window: amw anmelden --von <name>",
@@ -1254,9 +1267,9 @@ const TEXTE = {
     e_projekt: "Project", e_projekt_name: "Active project",
     e_projekt_name_h: "You can also switch at the top of the navigation; it only changes the view.", e_takt: "Lead pulse (minutes)", e_takt_h: "Summary to the lead; 0 = off",
     e_speicher: "Memory limit for compute runs (GB free)", e_speicher_h: "Runs start only with this much free RAM",
-    e_agenten: "Agents", e_agenten_h: "Target “off”: not expected, no broadcasts; “resting”: paused.",
-    e_kennung: "ID", e_rolle: "Role", e_soll: "Target", e_grenzen: "Limits", e_rund: "Broadcasts", e_puls: "Pulse limit (min)",
-    e_anlegen: "Add", e_neu_h: "new agent – then set role etc.", soll_an: "on", soll_ruht: "resting", soll_aus: "off",
+    e_agenten: "Agents", 
+    e_kennung: "ID", e_rund: "Broadcasts", 
+    e_anlegen: "Add", soll_an: "on", soll_ruht: "resting", soll_aus: "off",
     e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after inactivity (min)",
     e_hoechstens: "Maximum session length (h)", e_fehl_ip: "Lockout after failed sign-ins per address (15 min)", e_fehl_ges: "Lockout after failed sign-ins in total (60 min)",
     e_pc: "This PC", e_pc_h: "Takes effect on the next service start (amw dienst neustart). File: {x}", nur_pc: "Only changeable on the PC – shown here for reference.",
@@ -1315,8 +1328,8 @@ const TEXTE = {
     st_starten_frage: "Start {x} in a new terminal tab?", st_fortsetzen_frage: "Start {x} and resume its last session?",
     st_neu_frage: "Start {x} with a NEW session (no previous conversation)?",
     st_beenden_frage: "Stop the Claude session of {x}? The window stays open; you can resume later.",
-    pr_knopf: "Profile", pr_knopf_leer: "Create profile", pr_titel: "Profile {x}",
-    pr_h: "Start builds the command in the terminal tab from this. Editable on the PC only.", pr_vorgabe: "default",
+    
+    pr_vorgabe: "default",
     pr_ordner: "Working folder", pr_zusatz: "Extra folders", pr_zusatz_h: "separated by ; (--add-dir)", pr_denkstufe: "Effort",
     pr_modell: "Model", pr_rechte: "Permissions", pr_r_vorgabe: "Ask (default)", pr_r_auto: "Automatic (auto)",
     pr_r_umgehen: "Allow everything (bypass)", pr_rechte_h: "“Allow everything” only if you trust the agent; deny rules still apply",
@@ -1721,7 +1734,7 @@ async function kopfAktualisieren() {
     const d = await holen("/api/start"); zustand.start = d;
     const wv = d.online?.web_version;
     $("#version").textContent = d.version ? `v${d.version}` + (wv && wv !== d.version ? ` · Web v${wv}` : "") : "";
-    const sollen = d.agenten.filter(a => a.soll === "an"), lebend = sollen.filter(a => a.zustand === "aktiv").length;
+    const sollen = d.agenten.filter(a => a.soll === "an" && !a.chat), lebend = sollen.filter(a => a.zustand === "aktiv").length;
     const extra = d.agenten.filter(a => a.soll !== "an" && a.zustand === "aktiv").length;     /* laufen, ohne zu sollen */
     const sp = d.speicher.frei;
     $("#signale").replaceChildren(...[
@@ -2050,15 +2063,18 @@ function agentZustand(a) {
 }
 /* Kleine Zeichen der Team-Ansicht (als Elemente gebaut, nicht als Text eingesetzt) */
 const TM_ZEICHEN = { sitzung: [["rect", { x: 1.5, y: 2.5, width: 13, height: 11, rx: 1.5 }], ["path", { d: "M4.5 6l2.5 2-2.5 2M8.500 10.500h3" }]],
-  chat: [["path", { d: "M2 3.5h12v7.5H7l-3 2.5V11H2z" }]], mensch: [["circle", { cx: 8, cy: 5, r: 2.6 }], ["path", { d: "M2.800 14c.6-3 2.600-4.400 5.200-4.400s4.600 1.400 5.200 4.400" }]] };
+  chat: [["path", { d: "M2 3.5h12v7.5H7l-3 2.5V11H2z" }]], desktop: [["rect", { x: 1.5, y: 2.5, width: 13, height: 8.5, rx: 1.5 }], ["path", { d: "M5.5 14h5M8 11v3" }]], mensch: [["circle", { cx: 8, cy: 5, r: 2.6 }], ["path", { d: "M2.800 14c.6-3 2.600-4.400 5.200-4.400s4.600 1.400 5.200 4.400" }]] };
 function tmZeichen(art, titel) {
   const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
   svg.setAttribute("viewBox", "0 0 16 16"); svg.setAttribute("aria-hidden", "true");
   for (const [tag, attr] of TM_ZEICHEN[art]) { const e = document.createElementNS(ns, tag); for (const [k, v] of Object.entries(attr)) e.setAttribute(k, v); svg.append(e); }
   return el("span", { class: "tm-zeichen", title: titel }, svg);
 }
-const tmWeise = a => tmZeichen(a.chat ? "chat" : "sitzung", t(a.chat ? "tm_w_chat" : "tm_w_sitzung"));
-const tmFach = a => el("span", { class: "tm-fach" + (a.rolle === "lead" ? " lead" : "") }, a.rolle === "lead" ? t("lead") : a.rolle || t("agent"));
+const tmWeise = a => tmZeichen(a.arbeitsweise === "chat" || a.chat ? "chat" : a.arbeitsweise === "desktop" ? "desktop" : "sitzung",
+  t(a.arbeitsweise === "chat" || a.chat ? "tm_w_chat" : a.arbeitsweise === "desktop" ? "tm_w_desktop" : "tm_w_sitzung"));
+/* Lead ist ein Schalter, das Fachgebiet ein eigenes Feld: „Lead“ bzw. das Fachgebiet; fehlt beides, bleibt die Marke weg */
+const tmFach = a => a.rolle === "lead" ? el("span", { class: "tm-fach lead", title: a.fachgebiet || null }, t("lead") + (a.fachgebiet ? " · " + a.fachgebiet : ""))
+  : a.fachgebiet ? el("span", { class: "tm-fach" }, a.fachgebiet) : null;
 const tmKurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : x;
 const tmMehr = a => el("button", { class: "klein-knopf mehr-knopf", type: "button", title: t("m_titel", { x: a.kennung }), "aria-haspopup": "menu",
   onclick: e => { e.stopPropagation(); agentMenue(a, e.currentTarget); } }, "⋯");
@@ -2387,7 +2403,7 @@ async function agentDialog(kennung, reiter) {
   const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
     el("div", { class: "karte dialog agent-dialog" },
       el("div", { class: "agent-kopf" }, el("h3", {}, d.kennung),
-        el("span", { class: "leise" }, `${d.rolle || t("agent")} · ${d.zustand === "aktiv" ? t("laeuft") : (d.zustand || t("nie_gestartet"))}` +
+        el("span", { class: "leise" }, `${[d.rolle === "lead" ? t("lead") : null, d.fachgebiet].filter(Boolean).join(" · ") || t("agent")} · ${d.zustand === "aktiv" ? t("laeuft") : (d.zustand || t("nie_gestartet"))}` +
           (d.letzter_puls_utc ? ` · ${t("puls", { t: seit(d.letzter_puls_utc) })}` : "")),
         el("span", { style: "margin-left:auto;display:flex;gap:8px;flex-wrap:wrap" }, ...steuerKnoepfe(d, () => hg.remove()),
           d.claude_link ? el("a", { class: "knopf", href: d.claude_link, target: "_blank", rel: "noopener noreferrer", title: t("g_claude_h") }, t("g_claude")) : null,
@@ -4025,30 +4041,8 @@ async function sichtEinstellungen() {
       agentenfragen: pf.agentenfragen.value, spec_vorlegen: pf.spec_vorlegen.value, spec_frei: pf.spec_frei.value,
       info_ablage_h: wert(pf.info_ablage_h), abnahme_kette: pf.abnahme_kette.value, merge_dienst: pf.merge_dienst.value })));
 
-  // Agenten
-  const zeile = a => {
-    const f = { rolle: text(a.rolle), soll: el("select", {}, ["an", "ruht", "aus"].map(s => el("option", { value: s }, t("soll_" + s)))),
-                grenzen: text(a.grenzen), empfaengt_rund: schalter(a.empfaengt_rund), puls: zahl(Math.round((a.puls_grenze_s || 120) / 60), 1, 1440) };
-    f.soll.value = a.soll || "an";
-    const knopf = el("button", { class: "klein-knopf", type: "button" }, t("speichern"));
-    knopf.addEventListener("click", () => speichern("agent", { kennung: a.kennung, rolle: wert(f.rolle), soll: f.soll.value, grenzen: wert(f.grenzen),
-      empfaengt_rund: f.empfaengt_rund.checked, puls_grenze_s: (wert(f.puls) || 2) * 60 }, knopf));
-    const profil = API ? null : el("button", { class: "klein-knopf", type: "button", title: t("pr_h"), onclick: () => profilDialog(a) },
-      a.ordner ? t("pr_knopf") : t("pr_knopf_leer"));
-    return el("tr", {}, el("td", { class: "mono" }, a.kennung), el("td", {}, f.rolle), el("td", {}, f.soll), el("td", {}, f.grenzen),
-      el("td", { style: "text-align:center" }, f.empfaengt_rund), el("td", {}, f.puls),
-      el("td", { style: "white-space:nowrap" }, knopf, profil ? " " : null, profil));
-  };
-  const neuKennung = text("");
-  neuKennung.placeholder = t("e_neu_ph");
-  const neuKnopf = el("button", { class: "klein-knopf", type: "button" }, t("e_anlegen"));
-  neuKnopf.addEventListener("click", async () => { if (!neuKennung.value.trim()) return;
-    await speichern("agent", { kennung: neuKennung.value.trim(), neu: true }, neuKnopf); if (!API) zeige("einstellungen"); });
-  box.append(el("div", { class: "karte" }, el("h3", {}, t("e_agenten")), el("p", { class: "leise", style: "margin:0 0 12px" }, t("e_agenten_h")),
-    el("div", { style: "overflow-x:auto" }, el("table", { class: "tab" },
-      el("tr", {}, ...["e_kennung", "e_rolle", "e_soll", "e_grenzen", "e_rund", "e_puls", ""].map(k => el("th", {}, k ? t(k) : ""))),
-      ...d.agenten.map(zeile),
-      el("tr", {}, el("td", {}, neuKennung), el("td", { colspan: 5, class: "leise" }, t("e_neu_h")), el("td", {}, neuKnopf))))));
+  // Agenten: eine Ansicht je Agent in vier Blöcken – Wer · Auftrag · Sitzung · Überwachung (statt Tabelle + getrenntem Profil)
+  box.append(agentenEinstellungen(d, { text, zahl, schalter, wert, feld }));
 
   // Online-Seite
   if (d.web) {
@@ -4093,35 +4087,81 @@ async function sichtEinstellungen() {
 /* Zahnrad „Benachrichtigungen“: Hauptschalter, Anbieter (Geheimnisse nur als „gespeichert“), Ereignisse, Ruhezeit,
    Probe je Anbieter mit Antwort der API, Versandprotokoll. */
 /* Profil eines Agenten (nur am PC): woraus „Starten“ den Befehl baut */
-function profilDialog(a) {
-  const ein = (wert, ph) => { const x = el("input", { type: "text", value: wert ?? "", autocomplete: "off" }); if (ph) x.placeholder = ph; return x; };
-  const wahl = (werte, aktuell) => { const s = el("select", {}, werte.map(([v, l]) => el("option", { value: v }, l))); s.value = aktuell ?? werte[0][0]; return s; };
-  const kasten = an => { const x = el("input", { type: "checkbox" }); x.checked = !!an; return x; };
-  const f = { ordner: ein(a.ordner, "F:\\projekt"), zusatz: ein((a.zusatzordner || []).join("; "), "F:\\a; F:\\b"),
-    denkstufe: wahl([["", t("pr_vorgabe")], ["low", "low"], ["medium", "medium"], ["high", "high"], ["xhigh", "xhigh"], ["max", "max"]], a.denkstufe || ""),
-    modell: ein(a.modell, "opus, sonnet … (leer = Vorgabe)"),
-    rechte: wahl([["vorgabe", t("pr_r_vorgabe")], ["auto", t("pr_r_auto")], ["umgehen", t("pr_r_umgehen")]], a.rechte || "vorgabe"),
-    fern: kasten(a.fernsteuerung ?? 1), neustart: kasten(a.neustart_auto),
-    startsatz: el("textarea", { rows: 4 }, a.startsatz || "") };
-  const zeile = (b, x, h) => el("div", { class: "feld" }, el("label", {}, b), el("div", {}, x, h ? el("div", { class: "sehrleise", style: "font-size:12px" }, h) : null));
-  const knopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
-  const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
-    el("div", { class: "karte dialog einst", style: "width:min(760px,94vw)" }, el("h3", {}, t("pr_titel", { x: a.kennung })),
-      el("p", { class: "leise", style: "margin-top:0" }, t("pr_h")),
-      zeile(t("pr_ordner"), f.ordner), zeile(t("pr_zusatz"), f.zusatz, t("pr_zusatz_h")), zeile(t("pr_denkstufe"), f.denkstufe),
-      zeile(t("pr_modell"), f.modell), zeile(t("pr_rechte"), f.rechte, t("pr_rechte_h")), zeile(t("pr_fern"), f.fern, t("pr_fern_h")),
-      zeile(t("pr_neustart"), f.neustart, t("pr_neustart_h")), zeile(t("pr_startsatz"), f.startsatz, t("pr_startsatz_h")),
-      el("div", { class: "aktionen" }, knopf, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")))));
-  knopf.addEventListener("click", async () => {
-    knopf.disabled = true;
-    try {
-      await schicken("/api/einstellungen/profil", { kennung: a.kennung, ordner: f.ordner.value.trim(), zusatzordner: f.zusatz.value,
-        denkstufe: f.denkstufe.value, modell: f.modell.value.trim(), rechte: f.rechte.value, fernsteuerung: f.fern.checked,
-        neustart_auto: f.neustart.checked, startsatz: f.startsatz.value.trim() });
-      toast(t("gespeichert")); hg.remove(); zeige("einstellungen", true);
-    } catch (e) { toast(t("fehler", { x: e.message }), true); } finally { knopf.disabled = false; }
-  });
-  document.body.append(hg);
+/* Einstellungen › Agenten. Links die Agenten, rechts der gewählte in vier Blöcken. „Lead“ ist ein Schalter (führt das
+   Projekt), das Fachgebiet frei mit Vorschlägen, die Arbeitsweise bestimmt, was die AMW tut: nur „Terminal“ startet und
+   überwacht sie selbst; „Chat“ hat weder Sitzung noch Überwachung. Sitzungs-Felder (Profil) nur am PC. */
+const FACHGEBIETE = ["Code", "Grafik", "Daten", "Prüfen", "Merge", "Ausarbeiten", "KI", "3D", "Doku"];
+function agentenEinstellungen(d, h) {
+  const karte = el("div", { class: "karte ae", id: "agenten-einstellungen" }, el("h3", {}, t("ae_titel")));
+  let gewaehlt = gemerkt("amw-ae") && d.agenten.some(a => a.kennung === gemerkt("amw-ae")) ? gemerkt("amw-ae") : d.agenten[0]?.kennung;
+  const weiseZeichen = a => tmZeichen(a.arbeitsweise === "chat" ? "chat" : a.arbeitsweise === "desktop" ? "desktop" : "sitzung", t("ae_w_" + (a.arbeitsweise || "terminal")));
+  const zeichnen = () => {
+    const a = d.agenten.find(x => x.kennung === gewaehlt);
+    const liste = el("div", { class: "ae-wahl" }, d.agenten.map(x => el("button", { type: "button", class: x.kennung === gewaehlt ? "an" : null,
+        onclick: () => { gewaehlt = x.kennung; try { localStorage.setItem(ablage("amw-ae"), gewaehlt); } catch (e) {} zeichnen(); } },
+        weiseZeichen(x), el("span", { class: "tm-name" }, x.kennung), tmFach(x), x.soll !== "an" ? el("span", { class: "sehrleise" }, t("soll_" + x.soll)) : null)),
+      neuerAgent());
+    karte.replaceChildren(el("h3", {}, t("ae_titel")), el("p", { class: "leise", style: "margin:0 0 12px" }, t("ae_h")), el("div", { class: "ae-raster" }, liste, a ? formular(a) : el("div", { class: "leer" }, t("ae_keiner"))));
+  };
+  const neuerAgent = () => { const k = h.text(""); k.placeholder = t("e_neu_ph");
+    const knopf = el("button", { class: "klein-knopf", type: "button" }, t("e_anlegen"));
+    knopf.addEventListener("click", async () => { const name = k.value.trim(); if (!name) { k.focus(); return; }
+      try { await schicken("/api/einstellungen/agent", { kennung: name, neu: true }); try { localStorage.setItem(ablage("amw-ae"), name); } catch (e) {} toast(t("gespeichert")); zeige("einstellungen", true); }
+      catch (e) { toast(t("fehler", { x: e.message }), true); } });
+    return el("div", { class: "ae-neu" }, k, knopf); };
+  const formular = a => {
+    const wahl = (werte, v) => { const x = el("select", {}, werte.map(([w, l]) => el("option", { value: w }, l))); x.value = v; return x; };
+    const lang = v => el("textarea", { rows: 2 }, v || "");
+    const f = { lead: h.schalter(a.rolle === "lead"), fach: h.text(a.fachgebiet), zust: lang(a.zustaendig), nicht: lang(a.fasst_nicht_an), rund: h.schalter(a.empfaengt_rund),
+      weise: wahl([["terminal", t("ae_w_terminal")], ["desktop", t("ae_w_desktop")], ["chat", t("ae_w_chat")]], a.arbeitsweise || "terminal"),
+      soll: wahl(["an", "ruht", "aus"].map(x => [x, t("ae_soll_" + x)]), a.soll || "an"), puls: h.zahl(Math.round((a.puls_grenze_s || 120) / 60), 1, 1440),
+      ordner: h.text(a.ordner), zusatz: h.text((a.zusatzordner || []).join("; ")), modell: h.text(a.modell),
+      denkstufe: wahl([["", t("pr_vorgabe")], ...["low", "medium", "high", "xhigh", "max"].map(x => [x, x])], a.denkstufe || ""),
+      rechte: wahl([["vorgabe", t("pr_r_vorgabe")], ["auto", t("pr_r_auto")], ["umgehen", t("pr_r_umgehen")]], a.rechte || "vorgabe"),
+      fern: h.schalter(a.fernsteuerung ?? 1), neustart: h.schalter(a.neustart_auto), startsatz: el("textarea", { rows: 3 }, a.startsatz || "") };
+    f.fach.setAttribute("list", "ae-fachgebiete"); f.fach.placeholder = t("ae_fach_ph"); f.ordner.placeholder = "F:\\projekt"; f.zusatz.placeholder = "F:\\a; F:\\b";
+    const fachListe = el("datalist", { id: "ae-fachgebiete" }, [...new Set([...FACHGEBIETE, ...d.agenten.map(x => x.fachgebiet).filter(Boolean)])].map(x => el("option", { value: x })));
+    const block = (titel, ...inhalt) => el("div", { class: "ae-block" }, el("h4", {}, titel), ...inhalt.flat());
+    const weiseHinweis = el("div", { class: "sehrleise", style: "font-size:12px;margin-top:3px" });
+    const sitzung = block(t("ae_sitzung"), API ? el("p", { class: "leise", style: "margin:0" }, t("ae_sitzung_netz")) : [
+      h.feld(t("pr_ordner"), f.ordner), h.feld(t("pr_zusatz"), f.zusatz, t("pr_zusatz_h")), h.feld(t("pr_modell") + " · " + t("pr_denkstufe"), el("div", { class: "ae-zwei" }, f.modell, f.denkstufe)),
+      h.feld(t("pr_rechte"), f.rechte, t("pr_rechte_h")), h.feld(t("pr_fern"), f.fern, t("pr_fern_h")), h.feld(t("pr_neustart"), f.neustart, t("pr_neustart_h")),
+      h.feld(t("pr_startsatz"), f.startsatz, t("pr_startsatz_h"))]);
+    const ueberwachung = block(t("ae_ueberwachung"), h.feld(t("ae_soll"), f.soll, t("ae_soll_h")),
+      h.feld(t("ae_puls"), el("div", { class: "ae-zwei", style: "align-items:center" }, f.puls, el("span", { class: "leise" }, t("ae_puls_x"))), t("ae_puls_h")));
+    const nachWeise = () => { const w = f.weise.value; sitzung.hidden = w !== "terminal"; ueberwachung.hidden = w === "chat"; weiseHinweis.textContent = t("ae_weise_h_" + w); };
+    f.weise.addEventListener("change", nachWeise);
+    const vorschlag = el("div", { class: "ae-vorschlag" }, el("span", { class: "leise" }, t("ae_vorschlag_h")), el("button", { class: "klein-knopf", type: "button", onclick: async ev => {
+      const knopf = ev.currentTarget; knopf.disabled = true;
+      try { const v = await holen("/api/agent/vorschlag?kennung=" + encodeURIComponent(a.kennung));
+        if (!v.fachgebiet && !v.zustaendig) { vorschlag.replaceChildren(el("span", { class: "leise" }, t("ae_vorschlag_nichts", { x: v.grundlage }))); return; }
+        vorschlag.replaceChildren(el("span", {}, el("b", {}, t("ae_vorschlag") + " "), [v.fachgebiet ? t("ae_fach") + ": " + v.fachgebiet : null, v.zustaendig ? t("ae_zust") + ": " + v.zustaendig : null].filter(Boolean).join(" · "),
+          el("span", { class: "sehrleise" }, " (" + v.grundlage + ")")), el("button", { class: "klein-knopf", type: "button", onclick: () => {
+            if (v.fachgebiet && !f.fach.value.trim()) f.fach.value = v.fachgebiet; if (v.zustaendig && !f.zust.value.trim()) f.zust.value = v.zustaendig; toast(t("ae_uebernommen")); } }, t("ae_uebernehmen")));
+      } catch (e) { toast(t("fehler", { x: e.message }), true); knopf.disabled = false; } } }, t("ae_vorschlag_holen")));
+    const speichernKnopf = el("button", { class: "knopf haupt", type: "button" }, t("speichern"));
+    speichernKnopf.addEventListener("click", async () => {
+      speichernKnopf.disabled = true;
+      try {
+        const w = f.weise.value;
+        await schicken("/api/einstellungen/agent", { kennung: a.kennung, rolle: f.lead.checked ? "lead" : "", fachgebiet: f.fach.value.trim(), arbeitsweise: w,
+          zustaendig: f.zust.value.trim(), fasst_nicht_an: f.nicht.value.trim(), empfaengt_rund: f.rund.checked,
+          ...(w === "chat" ? {} : { soll: f.soll.value, puls_grenze_s: (h.wert(f.puls) || 2) * 60 }) });
+        if (!API && w === "terminal") await schicken("/api/einstellungen/profil", { kennung: a.kennung, ordner: f.ordner.value.trim(), zusatzordner: f.zusatz.value,
+          denkstufe: f.denkstufe.value, modell: f.modell.value.trim(), rechte: f.rechte.value, fernsteuerung: f.fern.checked, neustart_auto: f.neustart.checked, startsatz: f.startsatz.value.trim() });
+        toast(t("gespeichert")); zeige("einstellungen", true);
+      } catch (e) { toast(t("fehler", { x: e.message }), true); } finally { speichernKnopf.disabled = false; } });
+    const form = el("div", { class: "ae-form", "data-k": a.kennung }, fachListe,
+      block(t("ae_wer"), h.feld(t("e_kennung"), el("span", { class: "tm-name" }, a.kennung), t("ae_kennung_h")),
+        h.feld(t("ae_lead"), el("label", { class: "ae-haken" }, f.lead, " " + t("ae_lead_x")), t("ae_lead_h")), h.feld(t("ae_fach"), f.fach, t("ae_fach_h")),
+        h.feld(t("ae_weise"), el("div", {}, f.weise, weiseHinweis))),
+      block(t("ae_auftrag"), h.feld(t("ae_zust"), f.zust), h.feld(t("ae_nicht"), f.nicht), h.feld(t("e_rund"), el("label", { class: "ae-haken" }, f.rund, " " + t("ae_rund_x"))), API ? null : vorschlag),
+      sitzung, ueberwachung, el("div", { class: "ae-knoepfe" }, speichernKnopf, el("span", { class: "sehrleise" }, t("ae_speichern_h"))));
+    nachWeise();
+    return form;
+  };
+  zeichnen();
+  return karte;
 }
 async function pushBlock(feld, text, zahl, schalter, wert, speichern) {
   let d; try { d = await holen("/api/push"); } catch (e) { return el("div", { class: "karte" }, el("h3", {}, t("p_titel")), String(e)); }
