@@ -72,7 +72,7 @@
  "fragen": [
   [
    "What happens if the hook fails for once?",
-   "Then the command simply runs. The hook is built so that an error never blocks a command."
+   "Then the command simply runs – an error never blocks anything. The error is written to the log `%LOCALAPPDATA%\\amw\\hook-fehler.log` on this PC; if there is something in it, have a look, because heavy commands then start directly again."
   ],
   [
    "Can I switch this off for one computer?",
