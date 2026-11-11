@@ -503,6 +503,13 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .kachel.tot { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); }
 /* Team auf der Startseite: Baum (du → Lead → Agenten) oder kompakte Liste – dieselben Bausteine in beiden */
 .team { position: relative; }
+/* Grund-Regelwerk: im Assistenten „Neues Projekt“ und in Wissen › Regeln */
+.np-regelwerk { margin-top: 8px; } .np-regelwerk summary { cursor: pointer; font-size: 13px; padding: 4px 0; }
+.np-rw-gruppe h4, .gr-titel { margin: 14px 0 6px; font: 600 12px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--bernstein); display: flex; gap: 10px; align-items: center; }
+.np-rw-regel { border-left: 2px solid var(--linie); padding: 4px 0 8px 10px; margin-bottom: 6px; }
+.np-rw-regel label { display: flex; gap: 8px; align-items: center; cursor: pointer; } .np-rw-regel textarea { width: 100%; margin: 4px 0 2px; font-size: 13px; }
+.gr-warum { font-size: 12.5px; color: var(--leise); margin-top: 6px; } .gr-warum b { font-weight: 600; color: var(--sehrleise); letter-spacing: .04em; }
+.gr-marke { border-color: var(--bernstein); color: var(--bernstein); } .wissen-eintrag.grundregel { border-left: 2px solid var(--bernstein); }
 /* Einstellungen › Agenten: links die Agenten, rechts vier Blöcke */
 .ae-raster { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 16px; align-items: start; }
 .ae-wahl { border: 1px solid var(--linie); } .ae-wahl > button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 8px 10px; background: none; border: 0; border-bottom: 1px solid var(--linie); cursor: pointer; text-align: left; min-width: 0; }
@@ -1193,7 +1200,7 @@ const TEXTE = {
     np_lead_h: "leer, wenn du selbst leitest", np_lead_chat: "Lead als Chat",
     np_lead_chat_l: "arbeitet in der Claude-App bzw. Cowork", np_lead_chat_h: "wird nie in einem Terminal gestartet; liest und schreibt über die Datei-Brücke (Einstellungen › Dieser PC › Brücke)", np_agenten: "Agenten", np_agenten_h: "Kennungen mit Komma, z. B. CC1,CC2 – dürfen wie in anderen Projekten heißen",
     np_rechte: "Rechte der Agenten", np_rechte_vorgabe: "vorgabe – Claude Code fragt bei heiklen Aktionen", np_rechte_auto: "auto",
-    np_rechte_umgehen: "umgehen – alles erlauben", np_regeln: "Arbeitsregeln", np_regeln_keine: "ohne – eigene Regeln später",
+    np_rechte_umgehen: "umgehen – alles erlauben", np_regeln: "Regelwerk", np_takt_hilfe: "Takt einrichten", np_regeln_grund: "Grund-Regelwerk (Vorgabe)", np_regeln_h: "Die gewählten Regeln werden Arbeitsregeln dieses Projekts; der Lead kann sie später per Beschluss ändern.", np_rw_zahl: "{a} von {b} Regeln gewählt – ansehen und anpassen", np_rw_dod: "Definition of Done", np_rw_version: "erste Version {v} (Schema {s})", np_rw_keine: "Keine Regel gewählt – „ohne“ wählen oder mindestens eine anhaken.", gr_warum: "Warum:", gr_erfahrung: "Erfahrung:", gr_gruppe: "Grundregeln ({n})", gr_eigene: "Regeln dieses Projekts ({n})", gr_angepasst: "angepasst", gr_angepasst_h: "Der Wortlaut in diesem Projekt weicht von der Vorlage ab.", gr_marke_h: "aus dem Grund-Regelwerk, Fassung {n}", np_regeln_keine: "ohne – eigene Regeln später",
     np_regeln_von: "Kopie von {x} (danach getrennt)", np_anlegen: "Anlegen", np_fertig: "Projekt „{x}“ ist angelegt",
     np_weiter: "Zum Projekt", np_danach: "Vor dem ersten Start: im neuen Projekt Planung › Leitbild ausfüllen und eine erste Aufgabe anlegen. Dann Start › Kachel eines Agenten › Starten.",
     e_ordner: "Projektordner", e_ordner_h: "Darin arbeiten die Agenten; ein Ordner gehört zu genau einem Projekt. Ändern: amw projekt ordner",
@@ -1500,7 +1507,7 @@ const TEXTE = {
     np_lead_h: "empty if you lead yourself", np_lead_chat: "Lead as a chat",
     np_lead_chat_l: "works in the Claude app or Cowork", np_lead_chat_h: "is never started in a terminal; reads and writes through the file bridge (Settings › This PC › Bridge)", np_agenten: "Agents", np_agenten_h: "ids separated by commas, e.g. CC1,CC2 – may have the same names as in other projects",
     np_rechte: "Agent permissions", np_rechte_vorgabe: "vorgabe – Claude Code asks before risky actions", np_rechte_auto: "auto",
-    np_rechte_umgehen: "umgehen – allow everything", np_regeln: "Working rules", np_regeln_keine: "none – own rules later",
+    np_rechte_umgehen: "umgehen – allow everything", np_regeln: "Rule set", np_takt_hilfe: "Set up check-ins", np_regeln_grund: "Base rule set (default)", np_regeln_h: "The chosen rules become this project\u2019s working rules; the lead can change them later by a decision.", np_rw_zahl: "{a} of {b} rules chosen – view and adjust", np_rw_dod: "Definition of done", np_rw_version: "first version {v} (scheme {s})", np_rw_keine: "No rule chosen – pick “none” or tick at least one.", gr_warum: "Why:", gr_erfahrung: "Experience:", gr_gruppe: "Base rules ({n})", gr_eigene: "Rules of this project ({n})", gr_angepasst: "adjusted", gr_angepasst_h: "The wording in this project differs from the template.", gr_marke_h: "from the base rule set, edition {n}", np_regeln_keine: "none – own rules later",
     np_regeln_von: "copy of {x} (separate afterwards)", np_anlegen: "Create", np_fertig: "Project “{x}” has been created",
     np_weiter: "Go to project", np_danach: "Before the first start: in the new project fill in Planning › Mission and create a first task. Then Home › an agent's tile › Start.",
     e_ordner: "Project folder", e_ordner_h: "The agents work in it; a folder belongs to exactly one project. Change: amw projekt ordner",
@@ -1697,17 +1704,49 @@ function projektNeuDialog() {
   const lead = el("input", { value: "TL", maxlength: 30 }), agenten = el("input", { value: "CC1,CC2" });
   const leadChat = el("input", { type: "checkbox" });
   const rechte = el("select", {}, ["vorgabe", "auto", "umgehen"].map(r => el("option", { value: r }, t("np_rechte_" + r))));
-  const regeln = el("select", {}, el("option", { value: "" }, t("np_regeln_keine")),
-    projekte.filter(p => !p.fern).map(p => el("option", { value: p.name }, t("np_regeln_von", { x: p.name }))));
+  /* Regelwerk: das mitgelieferte Grund-Regelwerk (Vorgabe) · Kopie der Arbeitsregeln eines anderen Projekts · ohne */
+  const regeln = el("select", { id: "np-regeln" }, el("option", { value: "grund" }, t("np_regeln_grund")),
+    projekte.filter(p => !p.fern).map(p => el("option", { value: "kopie:" + p.name }, t("np_regeln_von", { x: p.name }))),
+    el("option", { value: "" }, t("np_regeln_keine")));
+  const rw = el("div", { class: "np-regelwerk" }), haken = {}, wortlaut = {};
+  let vorl = null;
+  const regeltext = r => `${r.titel}. ${r.text}`, gewaehlt = () => vorl ? vorl.vorlage.regeln.filter(r => haken[r.nr].checked) : [];
+  const rwZahl = el("span", {});
+  const rwZaehlen = () => { if (vorl) rwZahl.textContent = t("np_rw_zahl", { a: gewaehlt().length, b: vorl.vorlage.regeln.length }); };
+  const rwZeichnen = () => {
+    if (regeln.value !== "grund" || !vorl) { rw.replaceChildren(); return; }
+    const v = vorl.vorlage;
+    rw.replaceChildren(el("details", {}, el("summary", {}, rwZahl),
+        Object.entries(v.gruppen).map(([k, name]) => el("div", { class: "np-rw-gruppe" }, el("h4", {}, name),
+          v.regeln.filter(r => r.gruppe === k).map(r => el("div", { class: "np-rw-regel", "data-nr": r.nr },
+            el("label", {}, haken[r.nr], el("span", { class: "ref" }, r.nr), el("b", {}, r.titel)), wortlaut[r.nr],
+            el("div", { class: "gr-warum" }, el("b", {}, t(r.erfahrung ? "gr_erfahrung" : "gr_warum") + " "), r.erfahrung || r.warum)))))),
+      el("div", { class: "sehrleise", style: "font-size:12px;margin-top:6px" },
+        t("np_rw_dod") + ": " + v.dod.join(" · ") + " — " + t("np_rw_version", { v: v.versionen.erste, s: v.versionen.schema })));
+    rwZaehlen();
+  };
+  regeln.addEventListener("change", rwZeichnen);
+  holen("/api/regelwerk?sprache=" + sprache).then(d => { vorl = d;
+    for (const r of d.vorlage.regeln) {
+      haken[r.nr] = el("input", { type: "checkbox" }); haken[r.nr].checked = d.vorgabe.includes(r.nr) || (leadChat.checked && !!r.chat_lead);
+      haken[r.nr].addEventListener("change", rwZaehlen);
+      wortlaut[r.nr] = el("textarea", { rows: 2 }, regeltext(r)); }
+    rwZeichnen(); }).catch(() => { regeln.value = ""; });
+  leadChat.addEventListener("change", () => { for (const r of vorl?.vorlage.regeln || []) if (r.chat_lead) haken[r.nr].checked = leadChat.checked; rwZaehlen(); });
   const frb = el("select", {}, Object.keys(FARBEN).map(f => el("option", { value: f }, t("farbe_" + f))));
   frb.value = Object.keys(FARBEN).find(f => !projekte.some(p => p.farbe === f)) || "bernstein";   /* eine noch freie Farbe */
   const knopf = el("button", { class: "knopf haupt", type: "button", onclick: async () => {
     if (!name.value.trim()) { name.focus(); return; }
     if (!ordner.value.trim()) { ordner.focus(); return; }
+    const grund = regeln.value === "grund" && vorl;
+    if (grund && !gewaehlt().length) { toast(t("np_rw_keine"), true); return; }
     knopf.disabled = true;
     try {
       const r = await schicken("/api/projekt/neu", { name: name.value.trim(), ordner: ordner.value.trim(), lead: lead.value.trim(),
-        agenten: agenten.value, lead_chat: leadChat.checked, rechte: rechte.value, regeln_von: regeln.value, farbe: frb.value });
+        agenten: agenten.value, lead_chat: leadChat.checked, rechte: rechte.value, farbe: frb.value,
+        regeln_von: regeln.value.startsWith("kopie:") ? regeln.value.slice(6) : "",
+        ...(grund ? { regelwerk: { sprache, auswahl: gewaehlt().map(x => x.nr),      /* eigener Wortlaut nur, wo er geändert wurde */
+          texte: Object.fromEntries(gewaehlt().filter(x => wortlaut[x.nr].value.trim() !== regeltext(x)).map(x => [x.nr, wortlaut[x.nr].value.trim()])) } } : {}) });
       kasten.replaceChildren(el("h3", {}, t("np_fertig", { x: name.value.trim() })),
         el("ul", { class: "np-schritte" }, r.schritte.map(s => el("li", {}, "✓ " + s))), el("p", { class: "leise" }, t("np_danach"), " ", el("button", { class: "klein-knopf", type: "button", onclick: projektAnleitung }, "? " + t("npa_link"))),
         el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => projektWechseln(r.uid) }, t("np_weiter"))));
@@ -1715,8 +1754,11 @@ function projektNeuDialog() {
   const kasten = el("div", { class: "einst" }, el("p", { class: "leise", style: "margin:0" }, t("np_h"), " ",
       el("button", { class: "klein-knopf", type: "button", onclick: projektAnleitung }, "? " + t("npa_link"))),
     feld(t("np_name"), name), feld(t("np_ordner"), ordner), feld(t("np_lead"), lead, t("np_lead_h")),
-    feld(t("np_lead_chat"), el("label", { style: "display:flex;gap:8px;align-items:center" }, leadChat, t("np_lead_chat_l")), t("np_lead_chat_h")),
-    feld(t("np_agenten"), agenten, t("np_agenten_h")), feld(t("np_rechte"), rechte), feld(t("np_regeln"), regeln), feld(t("e_farbe"), frb),
+    feld(t("np_lead_chat"), el("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap" },
+      el("label", { style: "display:flex;gap:8px;align-items:center" }, leadChat, t("np_lead_chat_l")), hilfeKnopf("takt-chat-lead", t("np_takt_hilfe"))), t("np_lead_chat_h")),
+    feld(t("np_agenten"), agenten, t("np_agenten_h")), feld(t("np_rechte"), rechte),
+    feld(t("np_regeln"), el("div", {}, el("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap" }, regeln, hilfeKnopf("regelwerk")), rw), t("np_regeln_h")),
+    feld(t("e_farbe"), frb),
     el("div", { class: "aktionen" }, knopf, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
   const hg = dialog(t("np_titel"), kasten);
   name.focus();
@@ -2637,10 +2679,23 @@ async function sichtWissen() {
     el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `B${b.id}`), el("b", {}, b.stichwort),
       el("span", { class: "etikett " + (b.status === "gilt" ? "gruen" : b.status === "unklar" ? "bernstein" : "") }, b.status),
       el("span", { class: "sehrleise" }, `${zeit(b.zeit_utc)} · ${b.quelle}`)), el("div", { class: "inhalt" }, b.regel))));
-  if (r === "regeln") box.append(...d.regeln.map(x => el("div", { class: "karte wissen-eintrag" },
-    el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, (x.ebene === "arbeit" ? "KR" : "PR") + x.nr),
-      el("span", { class: "etikett" }, x.ebene === "arbeit" ? t("arbeitsregel") : t("projektregel") + (x.teil ? " · " + x.teil : "")),
-      el("span", { class: "sehrleise" }, t("stand", { t: zeit(x.stand_utc) }))), el("div", { class: "inhalt" }, x.text))));
+  if (r === "regeln") {
+    /* Regeln aus dem Grund-Regelwerk stehen als eigene Gruppe oben: Nummer der Vorlage, „angepasst“, wenn der Wortlaut
+       geändert wurde, darunter das Warum bzw. die belegte Erfahrung. Sie bleiben gewöhnliche Arbeitsregeln des Projekts. */
+    const karte = x => { const g = x.grund ? (x.grund[sprache] || x.grund.de) : null;
+      return el("div", { class: "karte wissen-eintrag" + (g ? " grundregel" : "") },
+        el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, (x.ebene === "arbeit" ? "KR" : "PR") + x.nr),
+          g ? el("span", { class: "etikett gr-marke", title: t("gr_marke_h", { n: g.fassung }) }, g.nr) : null,
+          el("span", { class: "etikett" }, g ? g.gruppe : x.ebene === "arbeit" ? t("arbeitsregel") : t("projektregel") + (x.teil ? " · " + x.teil : "")),
+          g?.angepasst ? el("span", { class: "etikett bernstein", title: t("gr_angepasst_h") }, t("gr_angepasst")) : null,
+          el("span", { class: "sehrleise" }, t("stand", { t: zeit(x.stand_utc) }))),
+        el("div", { class: "inhalt" }, x.text),
+        g ? el("div", { class: "gr-warum" }, el("b", {}, t(g.erfahrung ? "gr_erfahrung" : "gr_warum") + " "), g.erfahrung || g.warum) : null); };
+    const grund = d.regeln.filter(x => x.grund), eigene = d.regeln.filter(x => !x.grund);
+    if (grund.length) box.append(el("h4", { class: "gr-titel" }, t("gr_gruppe", { n: grund.length }), hilfeKnopf("regelwerk")), ...grund.map(karte));
+    if (grund.length && eigene.length) box.append(el("h4", { class: "gr-titel" }, t("gr_eigene", { n: eigene.length })));
+    box.append(...eigene.map(karte));
+  }
   if (r === "wortlaut") box.append(...d.wortlaut.map(w => el("div", { class: "karte wissen-eintrag" },
     el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `W${w.id}`), el("span", { class: "sehrleise" }, `${zeit(w.zeit_utc)} · ${w.kanal}`)),
     el("div", { class: "inhalt", style: "color:var(--tinte)" }, w.text))));

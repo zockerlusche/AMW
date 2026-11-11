@@ -1,0 +1,41 @@
+# Base rule set for a new project
+
+A new project does not have to start with empty rules: the AMW ships a base rule set – rules that have proven themselves in working with agents, each with its reason. When creating the project you choose what should apply.
+
+## You need
+- The “New project” assistant (project selector › + New project) or the command `amw einrichten`.
+- An idea of who leads the project: if the lead works as a chat, the check-in rule is added.
+
+## Steps
+1. **Choose the rule set** In the assistant, “Rule set” shows “Base rule set (default)”. Other options: copy the working rules of an existing project, or start without rules.
+2. **Look at the rules** Open “… rules chosen – view and adjust”. The rules come in three groups (work and evidence, decisions and knowledge, safety and operation), plus a few optional ones.
+3. **Tick and adjust** No tick means: does not apply in this project. You can change the wording in the field. Below every rule you find its reason – or the experience it comes from.
+4. **Create** Together with the project, the chosen rules are created as working rules, a decision as their source, the definition of done in the charter, and the first version 0.1.0.
+5. **Change later** Like any rule: the lead records a decision and changes the rule with it (`amw beschluss neu`, then `amw regel` with the number of the decision).
+
+## Values to enter
+| Field in the AMW | Where it comes from |
+|---|---|
+| Rule set | “Base rule set” is preselected; “copy of …” takes the working rules of another project |
+| Tick per rule | all base rules are ticked, the optional ones are not |
+| Wording | default from the template – change it if your project does it differently |
+
+## Common problems
+- **“Das Projekt hat schon Arbeitsregeln”** – The base rule set can only be taken over when the project is created. Into an existing project, single rules come through a decision.
+- **“No rule chosen”** – Either pick “none” or tick at least one rule.
+- **The rule should read differently from the template** – Change the wording; the rule stays recognisable as a base rule and carries the note “adjusted”.
+
+## Next
+- Under Knowledge › Rules the base rules form a group of their own, with their number from the template (G1 …) and the reason.
+- Every session gets the number of rules, and changed rules verbatim, in its mandatory context; `amw regeln` shows all of them.
+- What your project needs specifically (who reviews, who merges, which branches) is added by the lead as rules of its own.
+
+## Questions
+### What is the difference between “Why” and “Experience”?
+“Experience” only appears where an occasion is on record. All other rules have a “Why” – the reason given by the rule itself. Invented incidents appear nowhere.
+
+### Does a new edition of the template change my rules?
+No. Your rules are a copy of their own. A new edition overwrites nothing.
+
+### Why does the project start at version 0.1.0?
+The scheme is MAJOR.MINOR.PATCH. 1.0.0 is the first stable, usable release; until then 0.x counts.

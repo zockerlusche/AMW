@@ -197,6 +197,36 @@ class Seite(Wiederholt, Grund):
         self.warten("document.querySelector('.ae-form') && document.querySelector('.ae-form').dataset.k === 'CC1'"      # die Wahl bleibt nach dem Speichern
                     " && document.querySelector('.ae-wahl > button.an .tm-fach')?.textContent === 'Grafik'")
 
+    def test_grund_regelwerk_im_assistenten_und_in_wissen(self):
+        """Neues Projekt: Schritt „Regelwerk“ mit dem Grund-Regelwerk als Vorgabe (Regeln abhaken, Takt-Regel für Chat-Leads);
+        Wissen › Regeln zeigt die Grundregeln als eigene Gruppe mit Nummer der Vorlage, „angepasst“ und dem Warum."""
+        from amw import regelwerk
+        self.oeffnen("start", "typeof projektNeuDialog === 'function' && document.querySelector('#team')")
+        self.tab.js("projektNeuDialog()")
+        self.warten("document.querySelector('.np-regelwerk summary') && document.querySelectorAll('.np-rw-regel').length === 22")
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('#np-regeln option')].map(o => o.value)"), ["grund", "kopie:P", ""])
+        self.assertEqual(self.tab.js("document.querySelector('.np-regelwerk summary').textContent"), "18 von 22 Regeln gewählt – ansehen und anpassen")
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.np-rw-regel')].filter(x => !x.querySelector('input').checked).map(x => x.dataset.nr)"),
+                         ["W1", "W2", "W3", "W4"])                                              # wahlweise: nicht vorgewählt
+        self.tab.js("[...document.querySelectorAll('.dialog input[type=checkbox], dialog input[type=checkbox], .einst input[type=checkbox]')]"
+                    ".find(x => !x.closest('.np-regelwerk')).click()")                           # „Lead als Chat“
+        self.warten("document.querySelector('.np-regelwerk summary').textContent.startsWith('19 von 22')")   # die Takt-Regel kommt dazu
+        self.assertTrue(self.tab.js("document.querySelector('.np-rw-regel[data-nr=W4] input').checked"))
+        self.assertEqual(self.tab.js("document.querySelectorAll('.np-rw-regel .gr-warum').length"), 22)      # jede Regel mit Warum oder Erfahrung
+        self.tab.js("(() => { const s = document.querySelector('#np-regeln'); s.value = ''; s.dispatchEvent(new Event('change')); })()")
+        self.assertEqual(self.tab.js("document.querySelectorAll('.np-rw-regel').length"), 0)                 # „ohne“: keine Liste
+        regelwerk.uebernehmen(self.con, self.pid, "Entwickler", auswahl=["G1", "G3"], texte={"G3": "Eigener Weg einer Änderung."})
+        self.oeffnen("wissen", "document.querySelector('.reiter')")
+        self.tab.js("[...document.querySelectorAll('.reiter button, .reiter a')].find(b => /Regeln/.test(b.textContent)).click()")
+        self.warten("document.querySelectorAll('.wissen-eintrag.grundregel').length === 2")
+        self.assertEqual(self.tab.js("document.querySelector('.gr-titel').childNodes[0].textContent"), "Grundregeln (2)")
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.gr-marke')].map(x => x.textContent)"), ["G1", "G3"])
+        karten = self.tab.js("[...document.querySelectorAll('.wissen-eintrag.grundregel')].map(k => k.innerText)")
+        self.assertIn("Erfahrung:", karten[0])
+        self.assertNotIn("ANGEPASST", karten[0].upper().replace("ERFAHRUNG", ""))
+        self.assertIn("Warum:", karten[1])
+        self.assertIn("ANGEPASST", karten[1].upper())
+
     def test_logo_oben_mit_untertitel_und_favicon(self):
         self.oeffnen("start", "document.querySelector('#marke-text i')")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('#marke-text i')].map(i => i.textContent).join('')"), "AMW")

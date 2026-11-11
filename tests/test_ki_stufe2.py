@@ -193,6 +193,7 @@ class Migration(unittest.TestCase):
         with tempfile.TemporaryDirectory() as ordner:
             pfad = os.path.join(ordner, "alt.db")
             con = db.anlegen(pfad)
+            con.execute("ALTER TABLE regel DROP COLUMN vorlage")      # Herkunft aus dem Grund-Regelwerk kam mit Schema 23
             for sp in ("fachgebiet", "arbeitsweise", "zustaendig", "fasst_nicht_an"):   # Agenten-Einstellungen kamen mit Schema 22
                 con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")
             con.execute("DROP TABLE ki_vermerk")

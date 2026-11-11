@@ -4,6 +4,23 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.40.0 – 11.11.2026 · Grund-Regelwerk: ein neues Projekt startet mit bewährten Regeln
+- **Mitgeliefertes Grund-Regelwerk** (Deutsch und Englisch): 18 Regeln in drei Gruppen – Arbeit und Nachweis,
+  Entscheidungen und Wissen, Sicherheit und Betrieb – und vier wahlweise. Jede Regel nennt ihr **Warum**; wo ein Anlass
+  belegt ist, steht stattdessen die **Erfahrung**. Erfundene Vorfälle stehen nirgends.
+- **Schritt „Regelwerk“ im Assistenten „Neues Projekt“:** Grund-Regelwerk (Vorgabe), Kopie der Arbeitsregeln eines anderen
+  Projekts oder ohne. Die Regeln lassen sich einzeln abhaken und im Wortlaut anpassen. Arbeitet der Lead als Chat, ist
+  die Regel zum Takt vorgewählt. Im Befehl: `amw einrichten` fragt danach, `amw einrichten schnell --grund-regelwerk`.
+- **Was beim Anlegen entsteht:** die gewählten Regeln als Arbeitsregeln des Projekts, ein Beschluss als ihre Quelle, die
+  Definition of Done im Leitbild und die erste Version 0.1.0 (Schema MAJOR.MINOR.PATCH).
+- **Wissen › Regeln** zeigt die Grundregeln als eigene Gruppe: Nummer aus der Vorlage (G1 …), „angepasst“, wenn der
+  Wortlaut geändert wurde, darunter das Warum bzw. die Erfahrung. Sie bleiben gewöhnliche Regeln des Projekts.
+- **Pflicht-Kontext:** jede Sitzung sieht die aktuelle Version; ein Lead, der als Chat arbeitet, bekommt seine Takt-Regel
+  im Wortlaut.
+- **Neue Hilfen:** „Grund-Regelwerk für ein neues Projekt“ und „Takt für einen Lead, der als Chat arbeitet“.
+- **Datenbank:** Schema 23 (eine Spalte `regel.vorlage` für die Herkunft, z. B. „G7/1“). Bestehende Regeln bleiben, wie
+  sie sind. Vorher sichern: `amw sichern`.
+
 ## 1.39.0 – 11.11.2026 · Agenten einstellen: eine Ansicht, vier Blöcke
 - **Eine Ansicht statt Tabelle und getrenntem Profil** (Zahnrad › Agenten): links die Agenten, rechts der gewählte in
   vier Blöcken – *Wer* (Lead, Fachgebiet, Arbeitsweise), *Auftrag* (Zuständig für, Fasst nicht an, Rundschreiben),

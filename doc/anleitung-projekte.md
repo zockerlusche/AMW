@@ -41,7 +41,8 @@ Projekt“ und unter Einstellungen › Projekt; online nur zum Lesen – angeleg
    - **Lead als Chat**: arbeitet der Lead in der Claude-App bzw. Cowork, bekommt er keinen Ordner im Profil und wird nie in
      einem Terminal gestartet; er liest und schreibt über die [Datei-Brücke](#datei-brücke-je-projekt)
    - **Rechte** der Agenten
-   - **Arbeitsregeln**: ohne oder eine einmalige Kopie der Arbeitsregeln eines anderen Projekts (danach getrennt)
+   - **Regelwerk**: das mitgelieferte Grund-Regelwerk (Vorgabe; Regeln einzeln abhaken und anpassen, dazu Definition of
+     Done und Version 0.1.0), eine einmalige Kopie der Arbeitsregeln eines anderen Projekts (danach getrennt) oder ohne
    - **Farbe** für Streifen und Projekt-Auswahl
 3. **Anlegen.** Die AMW legt Projekt, Lead und Agenten mit Profil und Startsatz an, richtet den Projektordner ein (Hooks,
    Statusline, Sperr-Regeln, der amw-Befehl ohne Rückfrage und die Projekt-Kennung `AMW_PROJEKT` in

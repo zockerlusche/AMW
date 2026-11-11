@@ -472,6 +472,7 @@ CREATE TABLE ki_vorlage (id INTEGER PRIMARY KEY, ki_id INTEGER NOT NULL REFERENC
                              prompt="p", seed=1, angelegt_utc=t)                # verweist auf die neu angelegte Tabelle
                 db.einfuegen(con, "frage", projekt_id=1, an="entwickler", von="TL", zeit_utc=t, kurz="Altlast", folge_von=999)
             self.assertTrue(kern_id)
+            # (die Regel-Tabelle steht hier schon in ihrer alten Form – die Spalte „vorlage“ aus Schema 23 gibt es darin nicht)
             for sp in ("fachgebiet", "arbeitsweise", "zustaendig", "fasst_nicht_an"):   # Agenten-Einstellungen kamen mit Schema 22
                 con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")
             con.execute("DROP TABLE ki_vermerk")              # Vermerke an KI-Ergebnissen kamen mit Schema 21

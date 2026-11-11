@@ -122,10 +122,10 @@ def regeln_uebernehmen(con, ziel, quelle):
             raise kern.AmwFehler("Das Projekt hat schon Arbeitsregeln – übernehmen geht nur beim Anlegen")
         t = db.jetzt()
         n = 0
-        for r in con.execute("SELECT nr, teil, text FROM regel WHERE projekt_id = ? AND ebene = 'arbeit' ORDER BY nr",
+        for r in con.execute("SELECT nr, teil, text, vorlage FROM regel WHERE projekt_id = ? AND ebene = 'arbeit' ORDER BY nr",
                              (quelle,)).fetchall():
             db.einfuegen(con, "regel", ebene="arbeit", projekt_id=ziel, nr=r["nr"], teil=r["teil"], text=r["text"],
-                         beleg=f"übernommen aus {name} KR{r['nr']}", stand_utc=t)
+                         beleg=f"übernommen aus {name} KR{r['nr']}", stand_utc=t, vorlage=r["vorlage"])   # die Herkunft wandert mit
             n += 1
     return n
 

@@ -22,7 +22,7 @@
   },
   {
    "titel": "Ausfüllen und anlegen",
-   "text": "Name, Projektordner, Lead (leer, wenn du selbst leitest), Agenten, Rechte, Arbeitsregeln (ohne oder einmalige Kopie eines anderen Projekts) und Farbe. „Anlegen“ richtet den Ordner ein (Hooks, Projekt-Kennung, amw-Befehl ohne Rückfrage), legt Lead und Agenten mit Profil und Startsatz an und schreibt ein eigenes Startskript.",
+   "text": "Name, Projektordner, Lead (leer, wenn du selbst leitest), Agenten, Rechte, Regelwerk (das mitgelieferte Grund-Regelwerk – Regeln einzeln abhaken und anpassen –, die Kopie eines anderen Projekts oder ohne) und Farbe. „Anlegen“ richtet den Ordner ein (Hooks, Projekt-Kennung, amw-Befehl ohne Rückfrage), legt Lead und Agenten mit Profil und Startsatz an und schreibt ein eigenes Startskript.",
    "bilder": [
     {
      "name": "np-dialog",

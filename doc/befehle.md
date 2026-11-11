@@ -1159,8 +1159,8 @@ usage: amw einrichten [-h] [--nur-zeigen] [--ohne-sperren]
                       [--agenten AGENTEN] [--ordner ORDNER]
                       [--rechte {vorgabe,auto,umgehen}]
                       [--denkstufe {low,medium,high,xhigh,max}] [--mit-dienst]
-                      [--ohne-hooks] [--fernsteuerung] [--entfernen]
-                      [--von VON] [--projekt PROJEKT]
+                      [--ohne-hooks] [--fernsteuerung] [--grund-regelwerk]
+                      [--entfernen] [--von VON] [--projekt PROJEKT]
                       [{assistent,schnell,agenten-ordner}] [pfad]
 
 positional arguments:
@@ -1183,6 +1183,8 @@ options:
   --ohne-hooks          schnell: Projektordner nicht anfassen
   --fernsteuerung       schnell: Remote Control für die Agenten an (Vorgabe
                         aus)
+  --grund-regelwerk     schnell: das mitgelieferte Grund-Regelwerk übernehmen
+                        (Regeln, Definition of Done, Version 0.1.0)
   --entfernen           agenten-ordner: AMW-Einträge wieder herausnehmen
   --von VON
   --projekt PROJEKT

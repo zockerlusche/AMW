@@ -362,6 +362,7 @@ CREATE TABLE regel (
   teil          TEXT,
   text          TEXT NOT NULL,
   beleg         TEXT,
+  vorlage       TEXT,                             -- „G7/1“: aus dem Grund-Regelwerk (Regel/Fassung); leer = projekteigen (Schema 23)
   stand_utc     TEXT NOT NULL,
   uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft      TEXT NOT NULL DEFAULT '',

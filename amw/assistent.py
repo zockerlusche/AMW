@@ -37,12 +37,16 @@ def startskript_fuer(con, pid, pfad=STARTSKRIPT):
 
 def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe", denkstufe=None, dienst=False,
             startskript=STARTSKRIPT, hooks=True, ausgabe=print, fernsteuerung=False, regeln_von=None, farbe=None,
-            lead_chat=False):
+            lead_chat=False, regelwerk=None):
     """Richtet alles ein; gibt die Liste der erledigten Schritte zurück. regeln_von: ein neues Projekt startet mit einer
     Kopie der Arbeitsregeln dieses Projekts (danach getrennt). Der Projektordner wird Einstellung des Projekts.
     lead_chat: der Lead arbeitet als Chat (Claude-App/Cowork, Datei-Brücke) – sein Profil bekommt keinen Ordner, damit ihn
     weder Kachel noch Startskript in einem Terminal startet."""
+    # regelwerk: {"auswahl": [Nummern] | None, "texte": {Nummer: Wortlaut}, "sprache": "de"} – das mitgelieferte Grund-Regelwerk
+    # (amw/regelwerk.py) statt einer Kopie; dazu die Definition of Done und die erste Version
     schritte = []
+    if regelwerk is not None and regeln_von:
+        raise kern.AmwFehler("Entweder das Grund-Regelwerk oder die Regeln eines anderen Projekts – nicht beides")
     if rechte not in RECHTE:
         raise kern.AmwFehler(f"Rechte: {' | '.join(RECHTE)}")
     if (denkstufe or "") not in DENKSTUFEN:
@@ -84,6 +88,16 @@ def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe",
             if not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, kennung)).fetchone():
                 kern.agent_neu(con, pid, kennung, rolle=rolle, arbeitsweise="chat" if lead_chat and rolle else "terminal")
                 schritte.append(f"Agent {kennung}" + (" (Lead)" if rolle else "") + " angelegt")
+        if regelwerk is not None and not r:                # nur beim Anlegen des Projekts
+            from . import regelwerk as grund
+            sprache = regelwerk.get("sprache") or "de"
+            v = grund.vorlage(sprache)
+            erg = grund.uebernehmen(con, pid, kern.ENTWICKLER, regelwerk.get("auswahl"), regelwerk.get("texte"), sprache,
+                                    lead_chat=bool(lead_chat and lead))
+            schritte.append(f"{v['name']} {v['nummer']}: {erg['regeln']} Regeln übernommen (B{erg['beschluss']})"
+                            + (", Definition of Done im Leitbild" if erg["dod"] else ""))
+            wissen.release_version(con, pid, kern.ENTWICKLER, v["versionen"]["erste"], "Projekt angelegt" if sprache == "de" else "Project created")
+            schritte.append(f"Version {v['versionen']['erste']} eingetragen (Schema {v['versionen']['schema']})")
         if ordner:
             neu = []
             for a in ([lead] if lead else []) + list(agenten):   # nur leere Felder füllen – eigene Profile bleiben
@@ -141,17 +155,25 @@ def interaktiv(eingabe=input, ausgabe=print):
     projekt = _frage("Name des Projekts", "Mein Projekt", eingabe)
     lead = _frage("Kennung des Lead-Agenten (Team-Lead; leer = keiner)", "TL", eingabe)
     agenten = [a.strip() for a in _frage("Kennungen der Agenten, mit Komma", "CC1,CC2", eingabe).split(",") if a.strip()]
-    regeln_von = None
-    if os.path.exists(db.db_pfad()):                 # weiteres Projekt: Arbeitsregeln eines anderen übernehmen?
+    regeln_von, regelwerk, andere, neu = None, None, [], True
+    if os.path.exists(db.db_pfad()):                 # weiteres Projekt: auch die Arbeitsregeln eines anderen stehen zur Wahl
         con = db.verbinde()
         try:
             andere = [r[0] for r in con.execute("SELECT name FROM projekt WHERE name != ? ORDER BY id", (projekt,))]
             neu = not con.execute("SELECT 1 FROM projekt WHERE name = ?", (projekt,)).fetchone()
         finally:
             con.close()
-        if andere and neu:
-            regeln_von = _auswahl(f"Arbeitsregeln übernehmen von ({' | '.join(andere)}; leer = ohne Regeln starten)",
-                                  andere + [""], "", eingabe, ausgabe) or None
+    if neu:                                          # Regelwerk: das mitgelieferte (Vorgabe), eine Kopie oder keines
+        from . import regelwerk as grund
+        v = grund.vorlage()
+        ausgabe(f"\n{v['name']} {v['nummer']}: {len(grund.vorgabe())} bewährte Regeln mit ihrem Warum, dazu Definition of Done und"
+                f" Version {v['versionen']['erste']}.\nAbhaken und Anpassen einzelner Regeln: in der Workbench (Neues Projekt) oder später per Beschluss.")
+        wahl = _auswahl("Regelwerk: grund" + "".join(f" | {x} (Kopie)" for x in andere) + " | ohne", ["grund", "ohne"] + andere, "grund",
+                        eingabe, ausgabe)
+        if wahl == "grund":
+            regelwerk = {"auswahl": None, "sprache": "de"}
+        elif wahl != "ohne":
+            regeln_von = wahl
     ordner = _frage("Projektordner, in dem die Agenten arbeiten (leer = später)", os.getcwd(), eingabe)
     while ordner and not os.path.isdir(ordner):
         ordner = _frage(f"{ordner} gibt es nicht – Projektordner (leer = später)", "", eingabe)
@@ -166,7 +188,7 @@ def interaktiv(eingabe=input, ausgabe=print):
     dienst = _ja("Wächter als geplante Windows-Aufgabe einrichten?", True, eingabe)
     ausgabe("")
     schnell(projekt, lead or None, agenten, ordner or None, rechte, denkstufe, dienst, hooks=hooks, ausgabe=ausgabe,
-            fernsteuerung=fern, regeln_von=regeln_von)
+            fernsteuerung=fern, regeln_von=regeln_von, regelwerk=regelwerk)
     port = einstellungen.wert("port")
     waechter = "läuft" if dienst else "starten mit `amw dienst einrichten --ja` (dauerhaft) oder `amw dienst vordergrund`"
     ausgabe(f"""

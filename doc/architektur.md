@@ -84,7 +84,7 @@ die Lese-Kopie enthält dann nur dieses Projekt ([anleitung-projekte.md](anleitu
 ## 4 Datenmodell (Schema 9)
 | Bereich | Tabellen |
 |---|---|
-| Projekt und Agenten | `projekt` (Einstellungen, Leitbild, DoD), `agent` (Lead, Fachgebiet, Arbeitsweise, Auftrag, Soll, Profil), `sitzung` (Claude-Sitzung, PIDs, Puls, Zustand, Kontext, Grenzen, Kosten) |
+| Projekt und Agenten | `projekt` (Einstellungen, Leitbild, DoD), `agent` (Lead, Fachgebiet, Arbeitsweise, Auftrag, Soll, Profil), `regel` (Arbeits- und Projektregeln; `vorlage` nennt die Herkunft aus dem Grund-Regelwerk, z. B. „G7/1“), `sitzung` (Claude-Sitzung, PIDs, Puls, Zustand, Kontext, Grenzen, Kosten) |
 | Kommunikation | `nachricht_art` (weckt ja/nein), `nachricht`, `empfang` (je Empfänger: offen/gelesen/erledigt, geweckt) |
 | Arbeit | `aufgabe` (Status, Einstufung, Rang, Bogen, Kriterien, Plan, Zusammenfassung …), `abhaengigkeit` |
 | Planung | `bogen`, `spezifikation`, `risiko`, `plan_ereignis`, `rueckblick` |

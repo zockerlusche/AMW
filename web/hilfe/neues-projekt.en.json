@@ -22,7 +22,7 @@
   },
   {
    "titel": "Fill in and create",
-   "text": "Name, project folder, lead (empty if you lead yourself), agents, permissions, working rules (none or a one-off copy of another project) and colour. “Create” sets up the folder (hooks, project id, amw command without confirmation), creates lead and agents with a profile and start prompt and writes a start script of its own.",
+   "text": "Name, project folder, lead (empty if you lead yourself), agents, permissions, rule set (the shipped base rule set – tick and adjust single rules –, a copy of another project, or none) and colour. “Create” sets up the folder (hooks, project id, amw command without confirmation), creates lead and agents with a profile and start prompt and writes a start script of its own.",
    "bilder": [
     {
      "name": "np-dialog",

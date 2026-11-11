@@ -1147,13 +1147,21 @@ def kontext(con, pid, kennung):
             f"#{x['id']} {x['von']} [{x['art']}] {x['kurz'][:80]}" for x in nachr)
             + (" …" if zahl > 8 else "") + " → `amw lesen`")
 
-    regeln = con.execute("SELECT nr, text, stand_utc, ebene FROM regel WHERE projekt_id = ? ORDER BY ebene, nr",
+    regeln = con.execute("SELECT nr, text, stand_utc, ebene, vorlage FROM regel WHERE projekt_id = ? ORDER BY ebene, nr",
                          (pid,)).fetchall()
     if regeln:
         neu = [r for r in regeln if vorher and r["stand_utc"] > vorher]
         z.append(f"Regeln: {len(regeln)} gültig (`amw regeln`)."
                  + (" GEÄNDERT seit deiner letzten Sitzung: " + " | ".join(
                      f"{'KR' if r['ebene'] == 'arbeit' else 'PR'}{r['nr']}: {r['text']}" for r in neu) if neu else ""))
+        # Ein Lead, der als Chat arbeitet, wird nicht geweckt – die Takt-Regel aus dem Grund-Regelwerk steht deshalb im Wortlaut da
+        if a["rolle"] == "lead" and (a["arbeitsweise"] or "") == "chat":
+            for r in regeln:
+                if (r["vorlage"] or "").startswith("W4/"):
+                    z.append(f"Dein Takt (KR{r['nr']}): {r['text']}")
+    version = con.execute("SELECT version FROM release WHERE projekt_id = ? AND art = 'version' ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
+    if version:
+        z.append(f"Version: aktuell {version['version']} · Schema MAJOR.MINOR.PATCH · jede Auslieferung eintragen: `amw release version`")
 
     rez = con.execute("SELECT name FROM rezept WHERE projekt_id = ? ORDER BY name", (pid,)).fetchall()
     if rez:

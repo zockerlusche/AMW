@@ -39,15 +39,18 @@ class Einrichten(unittest.TestCase):
         self.assertIn("war schon eingerichtet", " ".join(zweite))
 
     def test_interaktiv_mit_vorgaben(self):
-        # Projekt, Lead, Agenten, Ordner, Rechte (erst ungültig), Denkstufe, Remote Control, Hooks, Wächter
-        antworten = iter(["Mein Spiel", "", "CC1", self.projekt, "xyz", "vorgabe", "", "", "n", "n"])
+        # Projekt, Lead, Agenten, Regelwerk (Vorgabe: Grund-Regelwerk), Ordner, Rechte (erst ungültig), Denkstufe, Remote Control, Hooks, Wächter
+        antworten = iter(["Mein Spiel", "", "CC1", "", self.projekt, "xyz", "vorgabe", "", "", "n", "n"])
         text = []
         with mock.patch.object(assistent, "STARTSKRIPT", self.skript):
             assistent.interaktiv(eingabe=lambda _: next(antworten), ausgabe=text.append)
         con = db.verbinde()
         self.assertEqual(con.execute("SELECT name FROM projekt").fetchone()[0], "Mein Spiel")
         self.assertEqual([r[0] for r in con.execute("SELECT kennung FROM agent ORDER BY id")], ["TL", "CC1"])
+        self.assertEqual(con.execute("SELECT count(*) FROM regel WHERE vorlage IS NOT NULL").fetchone()[0], 18)   # Grund-Regelwerk übernommen
+        self.assertEqual(con.execute("SELECT version FROM release WHERE art = 'version'").fetchone()[0], "0.1.0")
         con.close()
+        self.assertIn("Grund-Regelwerk 1: 18 bewährte Regeln", "\n".join(text))
         self.assertFalse(os.path.exists(os.path.join(self.projekt, ".claude")))           # Hooks abgelehnt
         self.assertIn("Workbench öffnen", "\n".join(text))
         self.assertIn("bitte eins von", "\n".join(text))

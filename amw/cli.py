@@ -864,9 +864,10 @@ def cmd_zeige(a, con):
 
 def cmd_regeln(a, con):
     pid = _projekt(con, a)
-    regeln = con.execute("SELECT ebene, nr, text, stand_utc FROM regel WHERE projekt_id = ? ORDER BY ebene, nr", (pid,)).fetchall()
+    regeln = con.execute("SELECT ebene, nr, text, stand_utc, vorlage FROM regel WHERE projekt_id = ? ORDER BY ebene, nr", (pid,)).fetchall()
     for r in regeln:
-        print(f"{'KR' if r['ebene'] == 'arbeit' else 'PR'}{r['nr']} (Stand {_zeit(r['stand_utc'])}): {r['text']}\n")
+        grund = f" · Grundregel {r['vorlage'].split('/')[0]}" if r["vorlage"] else ""
+        print(f"{'KR' if r['ebene'] == 'arbeit' else 'PR'}{r['nr']}{grund} (Stand {_zeit(r['stand_utc'])}): {r['text']}\n")
     if not regeln:
         print("Noch keine Regeln in diesem Projekt – es gilt das Leitbild (amw leitbild zeigen). Regeln entstehen aus Beschlüssen.")
 
@@ -1677,7 +1678,8 @@ def cmd_einrichten(a):
             raise kern.AmwFehler("amw einrichten schnell --projekt-name … [--lead TL] [--agenten CC1,CC2] [--ordner Pfad] …")
         assistent.schnell(a.projekt_name, a.lead, [x.strip() for x in (a.agenten or "").split(",") if x.strip()],
                           os.path.abspath(a.ordner) if a.ordner else None, a.rechte, a.denkstufe, a.mit_dienst,
-                          hooks=not a.ohne_hooks, fernsteuerung=a.fernsteuerung)
+                          hooks=not a.ohne_hooks, fernsteuerung=a.fernsteuerung,
+                          regelwerk={"auswahl": None, "sprache": "de"} if a.grund_regelwerk else None)
         return 0
     if a.aktion == "agenten-ordner":
         if not a.pfad:
@@ -2319,6 +2321,8 @@ def parser():
     x.add_argument("--mit-dienst", action="store_true", help="schnell: Wächter als geplante Aufgabe einrichten")
     x.add_argument("--ohne-hooks", action="store_true", help="schnell: Projektordner nicht anfassen")
     x.add_argument("--fernsteuerung", action="store_true", help="schnell: Remote Control für die Agenten an (Vorgabe aus)")
+    x.add_argument("--grund-regelwerk", dest="grund_regelwerk", action="store_true",
+                   help="schnell: das mitgelieferte Grund-Regelwerk übernehmen (Regeln, Definition of Done, Version 0.1.0)")
     x.add_argument("--entfernen", action="store_true", help="agenten-ordner: AMW-Einträge wieder herausnehmen")
     x.set_defaults(f=cmd_einrichten, ohne_db=True)
 

@@ -445,6 +445,25 @@ def daten_einstellungen(con, pid, speicher=None):
             "web": web, "web_grenzen": {k: [lo, hi] for k, (_, lo, hi) in abgleich.WEB_EINSTELLUNGEN.items()}}
 
 
+def daten_regelwerk(sprache="de"):
+    """Die mitgelieferte Vorlage für den Assistenten „Neues Projekt“: Regeln nach Gruppen, was ohne Auswahl übernommen wird."""
+    from . import regelwerk
+    return {"vorlage": regelwerk.vorlage(sprache), "vorgabe": regelwerk.vorgabe(False, sprache),
+            "vorgabe_chat": regelwerk.vorgabe(True, sprache)}
+
+
+def regeln_mit_herkunft(regeln):
+    """Zu Regeln aus dem Grund-Regelwerk: Nummer, Titel, Gruppe, Erfahrung bzw. Warum (beide Sprachen) und ob der Wortlaut
+    im Projekt angepasst wurde – die Oberfläche zeigt daraus die Gruppe „Grundregeln“."""
+    from . import regelwerk
+    for r in regeln:
+        if r.get("vorlage"):
+            r["grund"] = {s: regelwerk.herkunft(r["vorlage"], r["text"], s) for s in regelwerk.SPRACHEN}
+            if not r["grund"]["de"]:
+                r["grund"] = None
+    return regeln
+
+
 FACH_WORTE = {                                    # Fachgebiet aus der bisherigen Arbeit: Stichworte in Aufgaben-Titeln
     "Grafik": ("grafik", "sprite", "bild", "look", "icon", "logo", "optik", "textur", "karte"),
     "Code": ("code", "fix", "bug", "fehler", "test", "build", "refactor", "api", "funktion", "skript"),
@@ -675,7 +694,7 @@ def daten_wissen(con, pid, q):
                         " AND status = 'gilt' ORDER BY id DESC LIMIT 60", (pid,))
         w = con.execute("SELECT id, zeit_utc, text, kanal FROM wortlaut WHERE projekt_id = ? ORDER BY id DESC LIMIT 60",
                         (pid,))
-    r = con.execute("SELECT ebene, nr, teil, text, stand_utc FROM regel WHERE projekt_id = ?"
+    r = con.execute("SELECT ebene, nr, teil, text, stand_utc, vorlage FROM regel WHERE projekt_id = ?"
                     + (" AND text LIKE ?" if such else "") + " ORDER BY ebene, nr", (pid, muster) if such else (pid,))
     n = con.execute("SELECT schluessel, wert, geaendert_utc FROM notiz WHERE projekt_id = ?"
                     + (" AND (schluessel LIKE ? OR wert LIKE ?)" if such else "") + " ORDER BY schluessel",
@@ -686,7 +705,7 @@ def daten_wissen(con, pid, q):
                                muster, muster) if such else z("SELECT count(*) FROM beschluss WHERE projekt_id = ? AND status = 'gilt'"),
               "wortlaut": z("SELECT count(*) FROM wortlaut WHERE projekt_id = ? AND text LIKE ?", muster) if such
               else z("SELECT count(*) FROM wortlaut WHERE projekt_id = ?")}
-    return {"beschluesse": zeilen(b), "wortlaut": zeilen(w), "regeln": zeilen(r), "notizen": zeilen(n), "anzahl": anzahl}
+    return {"beschluesse": zeilen(b), "wortlaut": zeilen(w), "regeln": regeln_mit_herkunft(zeilen(r)), "notizen": zeilen(n), "anzahl": anzahl}
 
 
 def daten_suche(con, pid, q):
@@ -966,6 +985,7 @@ def baue_handler(port, token):
                     "/api/einstellungen": lambda c, p: daten_einstellungen(c, p),
                     "/api/agent": lambda c, p: daten_agent(c, p, q.get("kennung", [""])[0]),
                     "/api/agent/vorschlag": lambda c, p: agent_vorschlag(c, p, q.get("kennung", [""])[0]),
+                    "/api/regelwerk": lambda c, p: daten_regelwerk(q.get("sprache", ["de"])[0]),
                     "/api/gespraech": lambda c, p: daten_gespraech(c, p, q),
                     "/api/push": lambda c, p: daten_push(c),
                     "/api/planung": lambda c, p: daten_planung(c, p),
