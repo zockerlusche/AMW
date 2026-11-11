@@ -87,6 +87,10 @@
    "Ein Programm, das nicht über die Warteschlange läuft und seit mehr als 10 Minuten viel Arbeitsspeicher belegt. Die AMW liest dafür nur Name, Arbeitsspeicher und Startzeit der Prozesse – keine Befehlszeilen. Viele kleine Prozesse, etwa ein Browser, zählen nicht."
   ],
   [
+   "Was tut die AMW, wenn die Festplatte voll wird?",
+   "Sie warnt: im Leitstand unter „Rechner“ und mit einer Nachricht an Lead und dich, sobald auf einem Laufwerk mit der Datenbank oder einem Projektordner weniger als 15 % frei sind, und dringend unter 5 %. Unter Einstellungen › Dieser PC stehen die Laufwerke und die Aufräumvorschläge: alte Sicherungen mit Größe und Alter. Gelöscht wird nichts von selbst – das entscheidest du."
+  ],
+  [
    "Kann ich das für einen Rechner abschalten?",
    "Ja: Einstellungen › Dieser PC › „Schwere Befehle über die Warteschlange“ ausschalten. Die Warteschlange selbst bleibt, nur das Abweisen entfällt."
   ]
