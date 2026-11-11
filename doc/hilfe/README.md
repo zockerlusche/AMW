@@ -1,0 +1,54 @@
+# Schritt-für-Schritt-Hilfen
+
+Jede Datei in diesem Ordner ist zugleich **Anleitung im Repo** und **Hilfe in der Workbench**: Ein „? Anleitung“ neben
+einer Einstellung öffnet genau diesen Text als Dialog – am PC, online und am Handy. So laufen Doku und Hilfe nicht
+auseinander.
+
+| Datei | Thema | Wo der Knopf steht |
+|---|---|---|
+| [neues-projekt.md](neues-projekt.md) | Neues Projekt – Schritt für Schritt | Projekt-Auswahl, Einstellungen › Projekt |
+| [online-speicher-turso.md](online-speicher-turso.md) | Online-Speicher bei Turso anlegen | Einstellungen › Online-Speicher |
+| [ntfy.md](ntfy.md) | Benachrichtigungen aufs Handy mit ntfy | Einstellungen › Benachrichtigungen |
+
+Englisch liegt unter [en/](en/) mit denselben Dateinamen.
+
+## Eine Hilfe schreiben
+
+1. Datei `<thema>.md` hier anlegen (Name nur Kleinbuchstaben, Ziffern, Bindestrich) und dieselbe unter `en/`.
+2. Fester Aufbau – die Überschriften müssen genau so heißen; außer Titel und Schritten darf alles fehlen:
+
+```
+# Titel
+Ein Satz, wozu das gut ist.
+
+## Du brauchst                    (en: You need)
+- …
+
+## Schritte                       (en: Steps)
+1. **Kurztitel** Was zu tun ist. ![Bildbeschreibung](bildname)
+2. …
+
+## Diese Werte trägst du ein      (en: Values to enter)
+| Feld in der AMW | Woher |
+|---|---|
+| … | … |
+
+## Typische Fehler                (en: Common problems)
+- **Was man sieht** – was hilft
+
+## Danach                         (en: Next)
+- …
+
+## Häufige Fragen                 (en: Questions)
+### Frage?
+Antwort.
+```
+
+3. Im Text gelten nur `**fett**` und `` `Befehl` ``. Bilder liegen als `amw/hilfe/<bildname>.webp`.
+4. In der Oberfläche einhängen: `hilfeKnopf("<thema>")` neben das Feld oder `mitHilfe("<thema>", karte)` an einen Abschnitt.
+5. `amw web bauen` ausführen – es prüft jede Hilfe und legt sie für die Online-Seite ab. Die Tests
+   (`tests/test_hilfen.py`) verlangen jede Hilfe in beiden Sprachen mit denselben Schritten und Bildern.
+
+Regeln für den Inhalt: nummerierte Schritte in der Reihenfolge, in der man sie tut; je Schritt eine Handlung; sagen,
+**welcher Wert wohin** kopiert wird; die Meldungen bei „Typische Fehler“ so nennen, wie die AMW sie zeigt; keine echten
+Adressen, Schlüssel oder Namen.

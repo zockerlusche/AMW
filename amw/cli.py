@@ -1532,6 +1532,21 @@ def cmd_web(a, con):
             for n in sorted(os.listdir(hilfe)):
                 if n.endswith(".webp"):
                     shutil.copyfile(os.path.join(hilfe, n), os.path.join(ziel_hilfe, n))
+        from . import hilfen                                         # Schritt-für-Schritt-Hilfen (doc/hilfe/) als Dateien für die Online-Seite
+        ziel_hilfe = os.path.join(os.path.dirname(os.path.dirname(ziel)), "hilfe")
+        os.makedirs(ziel_hilfe, exist_ok=True)
+        hilfen.pruefen()                                             # eine kaputte Hilfe soll hier auffallen, nicht online
+        erwartet = set()
+        for thema in hilfen.themen():
+            for sprache in hilfen.SPRACHEN:
+                name = f"{thema}.{sprache}.json"
+                erwartet.add(name)
+                with open(os.path.join(ziel_hilfe, name), "w", encoding="utf-8", newline="\n") as g:
+                    json.dump(hilfen.lesen(thema, sprache), g, ensure_ascii=False, indent=1)
+                    g.write("\n")
+        for n in os.listdir(ziel_hilfe):                              # Hilfe gestrichen → Datei mit weg
+            if n.endswith(".json") and n not in erwartet:
+                os.remove(os.path.join(ziel_hilfe, n))
         print(f"gebaut: {ziel} (Version {__version__})")
         return 0
     if a.aktion == "einrichten":

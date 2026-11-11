@@ -888,6 +888,13 @@ def baue_handler(port, token):
                 return self._datei(q)
             if u.path.startswith("/hilfe/"):               # Bilder der Anleitungen (online: web/hilfe/, → amw web bauen)
                 name = u.path[len("/hilfe/"):]
+                m = re.fullmatch(r"([a-z0-9-]+)\.(de|en)\.json", name)      # Schritt-für-Schritt-Hilfe (doc/hilfe/, → amw/hilfen.py)
+                if m:
+                    from . import hilfen
+                    try:
+                        return self._senden(200, hilfen.lesen(m.group(1), m.group(2)))
+                    except (LookupError, ValueError):
+                        return self._senden(404, {"fehler": "unbekannt"})
                 pfad = os.path.join(HILFE, name)
                 if not re.fullmatch(r"[a-z0-9-]+\.webp", name) or not os.path.isfile(pfad):
                     return self._senden(404, {"fehler": "unbekannt"})

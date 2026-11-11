@@ -7,6 +7,7 @@
 4. [Planung](anleitung-planung.md) – Leitbild, Bögen, Spezifikation, Schritte, Prognose, Rückblick
 5. [Dokumente](anleitung-dokumente.md) – Ergebnisse, Bilder und Mockups der Agenten mit Vorschau und Versionen
    · [Mehrere Projekte](anleitung-projekte.md) – neues Projekt anlegen, was getrennt ist, Brücke je Projekt, weiterer Rechner
+   · [Schritt-für-Schritt-Hilfen](hilfe/README.md) – dieselben Texte, die „? Anleitung“ in der Workbench zeigt; so schreibt man eine neue
 6. [Push aufs Handy](anleitung-push.md) – ntfy, Pushover, Telegram
 7. [Online](online.md) – die Workbench im Netz (PHP-Webhoster + Turso)
 8. [Automatismen](automatismen.md) – Schirm-Schalter, Wartegründe, Leerlauf- und Frage-Prüfung

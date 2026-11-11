@@ -4,6 +4,19 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.37.0 – 11.11.2026 · Schritt-für-Schritt-Hilfen direkt in der Workbench
+- **Hilfe-Baustein:** Ein „? Anleitung“ neben einer Einstellung öffnet eine Schritt-für-Schritt-Hilfe – was du
+  brauchst, nummerierte Schritte, welche Werte wohin gehören, typische Fehler, häufige Fragen. Am PC, online und am
+  Handy, Deutsch und Englisch.
+- **Eine Quelle:** Der Inhalt liegt als einfache Textdatei je Thema in `doc/hilfe/` (Englisch in `doc/hilfe/en/`) –
+  dieselbe Datei ist die Anleitung im Repo. `amw web bauen` prüft jede Hilfe und legt sie für die Online-Seite ab
+  (→ doc/hilfe/README.md: so schreibt man eine Hilfe).
+- **Erste Hilfen:** Online-Speicher bei Turso anlegen (Einstellungen › Online-Speicher), Benachrichtigungen aufs Handy
+  mit ntfy (Einstellungen › Benachrichtigungen), Neues Projekt – Schritt für Schritt (die bisherige Anleitung, jetzt
+  aus derselben Quelle).
+- Tests: Browser-Tests laufen auch unter hoher PC-Last durch (großzügigere Zeitgrenzen, sauberes Beenden des
+  Test-Browsers, ein neuer Anlauf bei abgerissener Verbindung).
+
 ## 1.36.0 – 11.11.2026 · Leitstand und Aktionsmenü: alles Steuerbare an einer Stelle
 - **Leitstand** auf der Startseite, direkt unter den Agenten: Arbeit der Agenten (Alle anhalten / Weiterarbeiten),
   Bildschirm (für Agenten freigeben / wieder belegen), Sitzungen (Alle sichern & beenden, Fehlende starten), Wächter
