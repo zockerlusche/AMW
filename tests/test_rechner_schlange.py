@@ -179,6 +179,30 @@ class Vorgemerkt(Grund):
         self.assertEqual(belegung.baum_gb([{"pid": 1, "eltern": 0, "name": "x", "gb": 1.0, "seit": None}], 9), None)   # Prozess weg: unbekannt
 
 
+class WartenderBefehl(Grund):
+    """Ein Agent, dessen Sitzung in einem anderen Projekt angemeldet ist (sein Ordner gehört zwei Projekten), meldet mit
+    „amw lauf ausfuehren“ einen Lauf an, der warten muss. Der wartende Befehl lebt – die Schlange gibt den Lauf frei."""
+
+    def test_wartender_befehl_gilt_als_lebendig(self):
+        import os
+        from amw import belegung
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE sitzung SET zustand = 'beendet'")                         # keine Sitzung im Projekt
+        with mock.patch.object(betrieb, "reserve_gb", return_value=0.0):
+            vorne = betrieb.lauf_start(self.con, self.p["Eins"], "B", "läuft schon", speicher_frei=32.0, gpu=True)
+            lid = betrieb.lauf_start(self.con, self.p["Eins"], "A", "Tests", speicher_frei=32.0, gpu=True, warten=True)
+            l = next(x for x in betrieb.wartende(self.con) if x["id"] == lid)                 # so, wie die Schlange ihn sieht
+            self.assertFalse(betrieb._lebt(self.con, self.p["Eins"], l))                       # ohne Befehl: wie bisher nicht lebendig
+            with mock.patch.object(belegung, "lauf_pid", lambda x: os.getpid() if x == lid else None):
+                self.assertTrue(betrieb._lebt(self.con, self.p["Eins"], l))                    # der wartende Befehl lebt
+                betrieb.lauf_ende(self.con, self.p["Eins"], "B", vorne, 0, speicher_frei=32.0)
+                self.assertEqual(self.status(lid), "laeuft")                                   # und wird freigegeben
+            with mock.patch.object(belegung, "lauf_pid", lambda x: 999999999):
+                self.assertFalse(betrieb._lebt(self.con, self.p["Eins"], l))                   # Prozess weg: nicht lebendig
+        self.assertTrue(belegung.prozess_da(os.getpid()))
+        self.assertFalse(belegung.prozess_da(None))
+
+
 class Bedarf(Grund):
     def test_eigener_bedarf_geht_vor_der_grenze_des_projekts(self):
         with mock.patch.object(betrieb, "reserve_gb", return_value=0.0), mock.patch.object(betrieb, "cpu_laeufe", return_value=4):

@@ -113,6 +113,30 @@ def lauf_pid(lid):
         return None
 
 
+def prozess_da(prozess_id):
+    """Läuft ein Prozess mit dieser Nummer? (nur nachsehen – ändert nichts)"""
+    if not prozess_id:
+        return False
+    if os.name != "nt":
+        try:
+            os.kill(int(prozess_id), 0)
+            return True
+        except (OSError, ValueError):
+            return False
+    try:
+        k = ctypes.windll.kernel32
+        h = k.OpenProcess(0x1000, False, int(prozess_id))       # nur Abfragen erlaubt
+        if not h:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            return bool(k.GetExitCodeProcess(h, ctypes.byref(code))) and code.value == 259   # 259 = läuft noch
+        finally:
+            k.CloseHandle(h)
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
 def baum_gb(liste, prozess_id):
     """Arbeitsspeicher eines Prozesses samt Kindern und Kindeskindern (GB) – None, wenn der Prozess nicht (mehr) da ist."""
     if not any(p["pid"] == prozess_id for p in liste):

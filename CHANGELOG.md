@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.54.1 – 11.11.2026 · Warteschlange: wartende Läufe kommen auch ohne Sitzung im Projekt dran
+- **Behoben:** Ein Lauf, den ein Agent mit `amw lauf ausfuehren` anmeldet und der warten muss, kam nie dran, wenn der
+  Agent im Projekt des Laufs keine angemeldete Sitzung hatte – etwa weil sein Ordner zwei Projekten gehört und die
+  Sitzung im anderen angemeldet ist. Jetzt gilt der wartende Befehl selbst als Lebenszeichen: Solange er läuft, gibt die
+  Warteschlange den Lauf frei, sobald Platz ist.
+
 ## 1.54.0 – 11.11.2026 · Eins nach dem anderen: das laufende Stück steht fest
 - **Kein zweites Stück, solange eines läuft:** Startet ein Agent eine Aufgabe, während eine andere bei ihm läuft, weist
   die AMW das ab und nennt die Auswege: fertig machen, mit Grund warten lassen – oder der Mensch schiebt bewusst etwas

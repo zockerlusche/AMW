@@ -936,6 +936,8 @@ def _lauf_ausfuehren(con, pid, a):
                              erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb, braucht_vram_gb=a.braucht_vram_gb,
                              braucht_platte_gb=a.braucht_platte_gb)
     print(f"L{lid} angemeldet: {beschreibung}", flush=True)
+    from . import belegung                           # solange dieser Befehl wartet, gilt der Lauf als lebendig (siehe betrieb._lebt)
+    belegung.lauf_merken(lid, os.getpid())
     a.id = lid
     try:
         w = _lauf_warte(con, pid, a)
@@ -946,6 +948,7 @@ def _lauf_ausfuehren(con, pid, a):
             betrieb.lauf_ende(con, pid, von, lid, None, f"nie gestartet ({'Strg+C' if w == 'Strg+C' else 'Wartezeit um'})",
                               abgebrochen=True)
             print(f"L{lid} aus der Schlange genommen", flush=True)
+        belegung.lauf_vergessen(lid)
         return RC_NIE
     ausgabe = open(a.ergebnis, "w", encoding="utf-8", errors="replace") if a.ergebnis else None
     if ausgabe:
@@ -957,8 +960,7 @@ def _lauf_ausfuehren(con, pid, a):
     except OSError as e:
         betrieb.lauf_ende(con, pid, von, lid, 127, f"Start fehlgeschlagen: {e}")
         raise kern.AmwFehler(f"L{lid}: Befehl ließ sich nicht starten ({e}) – Lauf beendet")
-    from . import belegung                           # die Prozesse dieses Laufs sind angemeldet – keine Dauer-Belegung
-    belegung.lauf_merken(lid, proc.pid)
+    belegung.lauf_merken(lid, proc.pid)              # die Prozesse dieses Laufs sind angemeldet – keine Dauer-Belegung
     letzte = [""]
 
     def mitschreiben():

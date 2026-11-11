@@ -318,6 +318,9 @@ def _lebt(con, pid, l):
     lebt = l["ki_auftrag"] or con.execute(
         "SELECT 1 FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
         " AND a.kennung = ? AND s.zustand = 'aktiv'", (pid, l["agent"])).fetchone()
+    if not lebt:                                 # „amw lauf ausfuehren“ wartet als eigener Prozess – der lebt, solange er wartet,
+        from . import belegung                   # egal in welchem Projekt die Sitzung des Agenten angemeldet ist
+        lebt = belegung.prozess_da(belegung.lauf_pid(l["id"]))
     return bool(lebt) and not kern.halt_gilt(con, pid, l["agent"])
 
 
