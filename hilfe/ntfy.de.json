@@ -1,0 +1,78 @@
+{
+ "titel": "Benachrichtigungen aufs Handy mit ntfy",
+ "kurz": "Die AMW schickt dir eine kurze Nachricht aufs Handy, wenn etwas auf dich wartet – eine Frage, eine Freigabe, ein Halt. ntfy ist dafür der einfachste Weg: eine kostenlose App und ein geheimer Kanalname.",
+ "brauchst": [
+  "Die AMW läuft auf diesem PC (der Wächter ist eingerichtet).",
+  "Die App **ntfy** auf dem Handy (Google Play, F-Droid oder App Store)."
+ ],
+ "schritte": [
+  {
+   "titel": "Kanal erzeugen",
+   "text": "Am PC den Befehl `amw push ntfy` ausführen. Die AMW erzeugt einen zufälligen, geheimen Kanalnamen, zeigt ihn an und trägt ihn ein – er steht danach unter Einstellungen › Benachrichtigungen aufs Handy bei „Kanal (Topic)“.",
+   "bilder": []
+  },
+  {
+   "titel": "Kanal im Handy abonnieren",
+   "text": "In der App auf „+“ tippen, den Kanalnamen genau so eintragen und abonnieren. Der Server bleibt `ntfy.sh`, außer du betreibst einen eigenen.",
+   "bilder": []
+  },
+  {
+   "titel": "Link setzen",
+   "text": "Damit ein Tipp auf die Nachricht die richtige Seite öffnet: bei „Link in der Meldung“ die Adresse deiner Online-Seite eintragen (`https://…`). Als Befehl: `amw push link https://deine-seite.example/`.",
+   "bilder": []
+  },
+  {
+   "titel": "Einschalten und testen",
+   "text": "Den Hauptschalter „Benachrichtigen“ und ntfy einschalten, speichern und „Probe ntfy“ drücken. Als Befehl: `amw push an`, dann `amw push probe ntfy`. Die Probe kommt nach wenigen Sekunden an.",
+   "bilder": []
+  }
+ ],
+ "werte": [
+  [
+   "Kanal (Topic)",
+   "erzeugt die AMW – im Handy genau so abonnieren"
+  ],
+  [
+   "Server",
+   "`https://ntfy.sh` oder die Adresse deines eigenen ntfy-Servers"
+  ],
+  [
+   "Link in der Meldung",
+   "Adresse deiner Online-Seite"
+  ]
+ ],
+ "fehler": [
+  [
+   "Die Probe kommt nicht an",
+   "Der Kanalname im Handy weicht ab (Groß- und Kleinschreibung zählt) oder die App darf keine Mitteilungen zeigen."
+  ],
+  [
+   "Nachrichten kommen verspätet (Android ohne Google-Dienste)",
+   "In der App „Sofortige Zustellung“ einschalten."
+  ],
+  [
+   "Es kommt gar nichts mehr",
+   "Der Wächter läuft nicht (`amw dienst status`); er verschickt die Nachrichten."
+  ],
+  [
+   "„ntfy-Server: https://…“",
+   "Die Adresse des Servers muss mit `https://` beginnen."
+  ]
+ ],
+ "danach": [
+  "Der Kanalname ist wie ein Passwort: Wer ihn kennt, kann mitlesen. Die Nachrichten nennen deshalb nur, dass etwas wartet – keine Inhalte.",
+  "Ruhezeit und „Was gemeldet wird“ stellst du an derselben Stelle ein."
+ ],
+ "fragen": [
+  [
+   "Kann ich einen eigenen ntfy-Server benutzen?",
+   "Ja. Trage seine Adresse bei „Server“ ein und abonniere den Kanal in der App auf diesem Server."
+  ],
+  [
+   "Geht es auch ohne ntfy?",
+   "Ja, über Pushover oder Telegram – beide stehen daneben in den Einstellungen."
+  ]
+ ],
+ "thema": "ntfy",
+ "sprache": "de"
+}
