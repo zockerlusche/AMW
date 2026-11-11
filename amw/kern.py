@@ -129,11 +129,28 @@ def ist_lead(con, pid, kennung):
     return bool(r) and r["rolle"] == "lead"
 
 
-def agent_neu(con, pid, kennung, rolle=None, grenzen=None, startbefehl=None, empfaengt_rund=True):
+ARBEITSWEISEN = ("terminal", "desktop", "chat")   # Claude Code im Terminal · Claude Code in der Desktop-App · Chat über die Brücke
+
+
+def lead_und_fach(rolle, fachgebiet=None):
+    """„rolle“ ist seit Schema 22 nur noch der Schalter „führt das Projekt“ (lead oder leer). Wer noch eine Rolle als
+    Freitext angibt (frühere Schreibweise), meint das Fachgebiet. Rückgabe: (rolle, fachgebiet)."""
+    rolle, fachgebiet = (rolle or "").strip() or None, (fachgebiet or "").strip() or None
+    if rolle and rolle.lower() == "lead":
+        return "lead", fachgebiet
+    return None, fachgebiet or rolle
+
+
+def agent_neu(con, pid, kennung, rolle=None, grenzen=None, startbefehl=None, empfaengt_rund=True, fachgebiet=None,
+              arbeitsweise="terminal"):
     if kennung_heute(con, kennung, pid) != kennung:
         raise AmwFehler(f"„{kennung}“ ist die frühere Kennung von {kennung_heute(con, kennung, pid)}")
+    if arbeitsweise not in ARBEITSWEISEN:
+        raise AmwFehler(f"arbeitsweise: {' | '.join(ARBEITSWEISEN)}")
+    rolle, fachgebiet = lead_und_fach(rolle, fachgebiet)
     with db.schreiben(con):
-        return db.einfuegen(con, "agent", projekt_id=pid, kennung=kennung, rolle=rolle, grenzen=grenzen,
+        return db.einfuegen(con, "agent", projekt_id=pid, kennung=kennung, rolle=rolle, fachgebiet=fachgebiet,
+                            zustaendig=(grenzen or "").strip() or None, arbeitsweise=arbeitsweise,
                             startbefehl=startbefehl, empfaengt_rund=int(empfaengt_rund), angelegt_utc=db.jetzt(),
                             fernsteuerung=0)            # Remote Control nur auf Wunsch (Profil)
 
@@ -243,8 +260,9 @@ def projekt_einstellen(con, pid, von, **werte):
 
 
 def agent_einstellen(con, pid, von, kennung, neu=False, **werte):
-    """Zahnrad „Agenten“ und `amw agent profil --rolle/--grenzen`: rolle, soll (an/aus/ruht), grenzen, empfaengt_rund,
-    puls_grenze_s. Nur Lead und Entwickler. Der einzige Lead gibt seine Rolle nicht selbst ab (das kann nur der Entwickler)."""
+    """Zahnrad „Agenten“ und `amw agent profil`: rolle (lead oder leer), fachgebiet, arbeitsweise (terminal | desktop |
+    chat), zustaendig, fasst_nicht_an, soll (an/aus/ruht), empfaengt_rund, puls_grenze_s. Nur Lead und Entwickler. Der
+    einzige Lead gibt die Führung nicht selbst ab (das kann nur der Entwickler)."""
     if not ist_lead(con, pid, von):
         raise AmwFehler("Agenten dürfen nur Lead und Entwickler einstellen")
     kennung = (kennung or "").strip()
@@ -252,15 +270,26 @@ def agent_einstellen(con, pid, von, kennung, neu=False, **werte):
         raise AmwFehler("Kennung: bis 20 Zeichen, Buchstaben/Ziffern/-/_, nicht „Entwickler“")
     felder = {}
     for k, v in werte.items():
-        if k == "rolle":
+        if k == "rolle":                             # Schalter „führt das Projekt“; frühere Freitext-Rolle = Fachgebiet
+            v, fach = lead_und_fach(v)
+            if fach and "fachgebiet" not in werte:
+                if len(fach) > 40:
+                    raise AmwFehler("fachgebiet: höchstens 40 Zeichen")
+                felder["fachgebiet"] = fach
+        elif k == "fachgebiet":
             v = (v or "").strip() or None
-            if v and len(v) > 20:
-                raise AmwFehler("rolle: höchstens 20 Zeichen")
+            if v and len(v) > 40:
+                raise AmwFehler("fachgebiet: höchstens 40 Zeichen")
+        elif k == "arbeitsweise":
+            if v not in ARBEITSWEISEN:
+                raise AmwFehler(f"arbeitsweise: {' | '.join(ARBEITSWEISEN)}")
+        elif k in ("zustaendig", "fasst_nicht_an"):
+            v = " ".join(str(v or "").split())[:400] or None
         elif k == "soll":
             if v not in ("an", "aus", "ruht"):
                 raise AmwFehler("soll: an, aus oder ruht")
-        elif k == "grenzen":
-            v = (v or "").strip()[:200] or None
+        elif k == "grenzen":                         # früherer Name von „Zuständig für“
+            k, v = "zustaendig", " ".join(str(v or "").split())[:400] or None
         elif k == "empfaengt_rund":
             v = 1 if v in (True, 1, "1", "true", "ja", "an") else 0
         elif k == "puls_grenze_s":
@@ -1034,8 +1063,11 @@ def kontext(con, pid, kennung):
     proj = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()["name"]
     vorher = con.execute("SELECT max(gestartet_utc) FROM sitzung WHERE agent_id = ? AND zustand != 'aktiv'",
                          (a["id"],)).fetchone()[0]
-    z = [f"AMW-PFLICHTKONTEXT für {kennung} (Projekt {proj}, Stand {db.jetzt()}). "
-         f"Rolle: {a['rolle'] or '–'}" + (f" · Grenzen: {a['grenzen']}" if a["grenzen"] else ""),
+    wer = [x for x in ("Du führst dieses Projekt (Lead)" if a["rolle"] == "lead" else None,
+                       f"Fachgebiet: {a['fachgebiet']}" if a["fachgebiet"] else None,
+                       f"Zuständig für: {a['zustaendig']}" if a["zustaendig"] else None,
+                       f"Fasst nicht an: {a['fasst_nicht_an']}" if a["fasst_nicht_an"] else None) if x]
+    z = [f"AMW-PFLICHTKONTEXT für {kennung} (Projekt {proj}, Stand {db.jetzt()}). " + (" · ".join(wer) or "Fachgebiet: –"),
          f"AMW-Befehl: `{BEFEHL}` (unten kurz `amw`), immer mit `--von {kennung}`. Arbeitsweise: `amw lesen` → handeln →"
          " `amw erledigt <nr>` · melden: `amw posten --an <Agent|Entwickler> --art info|auftrag|frage|antwort --kurz …`"
          " · Arbeit holen: `amw schritt naechster --nehmen` · abschließen: `amw aufgabe fertig <nr> --beleg <commit>"

@@ -193,12 +193,14 @@ class Migration(unittest.TestCase):
         with tempfile.TemporaryDirectory() as ordner:
             pfad = os.path.join(ordner, "alt.db")
             con = db.anlegen(pfad)
+            for sp in ("fachgebiet", "arbeitsweise", "zustaendig", "fasst_nicht_an"):   # Agenten-Einstellungen kamen mit Schema 22
+                con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")
             con.execute("DROP TABLE ki_vermerk")
             con.execute("PRAGMA user_version = 20")
             con.close()
             con = db.verbinde(pfad)
             try:
-                self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], 21)
+                self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], db.SCHEMA_VERSION)
                 namen = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE name LIKE 'ki_vermerk%'")}
                 self.assertEqual(namen, {"ki_vermerk", "ki_vermerk_dokument", "ki_vermerk_nie_loeschen", "ki_vermerk_unveraenderlich"})
             finally:

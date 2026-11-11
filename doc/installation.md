@@ -38,7 +38,7 @@ Der Assistent fragt:
    erlauben – nur, wenn du den Agenten vertraust; die Sperr-Regeln für den Wächter gelten trotzdem)
 6. **Denkstufe** (leer = Vorgabe von Claude Code)
 7. **Remote Control?** (Vorgabe nein) – die Sitzungen sind dann zusätzlich über claude.ai bzw. die Claude-App
-   steuerbar (Claude Codes `--remote-control`). Später je Agent: Zahnrad › Agenten › Profil.
+   steuerbar (Claude Codes `--remote-control`). Später je Agent: Zahnrad › Agenten › Block „Sitzung“.
 8. **Hooks eintragen?** – schreibt in `<Projektordner>\.claude\settings.local.json` (vorhandene Einträge bleiben, Sicherung
    `*.vor-amw-<Datum>`):
    - `SessionStart`: meldet die Sitzung beim Wächter an und gibt den Pflicht-Kontext;
@@ -83,7 +83,7 @@ Einen bestehenden weiteren Projektordner einrichten: `amw einrichten agenten-ord
 Projekten dazu `--projekt <name>`: ein Ordner gehört zu genau einem Projekt).
 
 ## 5 Wie lernen die Agenten AMW?
-- **Startsatz** (Zahnrad › Agenten › Profil): die erste Anweisung einer neuen Sitzung. Der Assistent setzt einen, der
+- **Startsatz** (Zahnrad › Agenten › Block „Sitzung“): die erste Anweisung einer neuen Sitzung. Der Assistent setzt einen, der
   sagt, wer der Agent ist, wie er `amw` aufruft und womit er anfängt (Regeln, Nachrichten, nächster Schritt).
 - **Pflicht-Kontext**: bei jedem Start und nach jeder Komprimierung bekommt der Agent den genauen Befehl und eine
   Kurzanleitung (lesen → erledigt, posten, nächster Schritt, fertig melden, Frage an dich), dazu seine Aufgaben,

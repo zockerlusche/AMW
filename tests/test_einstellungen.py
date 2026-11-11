@@ -64,7 +64,10 @@ class Einstellungen(unittest.TestCase):
         a = self.con.execute("SELECT soll, rolle, empfaengt_rund, puls_grenze_s FROM agent WHERE kennung = 'CC1'").fetchone()
         self.assertEqual(tuple(a), ("ruht", None, 0, 600))
         self.tun("agent", {"kennung": "CC9", "neu": True, "grenzen": "nur Doku"}, kanal="netz")
-        self.assertEqual(self.con.execute("SELECT grenzen FROM agent WHERE kennung = 'CC9'").fetchone()[0], "nur Doku")
+        self.assertEqual(self.con.execute("SELECT zustaendig FROM agent WHERE kennung = 'CC9'").fetchone()[0], "nur Doku")   # „grenzen“ = früherer Name
+        self.tun("agent", {"kennung": "CC9", "fachgebiet": "Doku", "arbeitsweise": "desktop", "fasst_nicht_an": "Code"})
+        self.assertEqual(tuple(self.con.execute("SELECT rolle, fachgebiet, arbeitsweise, fasst_nicht_an FROM agent WHERE kennung = 'CC9'").fetchone()),
+                         (None, "Doku", "desktop", "Code"))
         for falsch in ({"kennung": "CC9", "neu": True}, {"kennung": "Entwickler", "neu": True},
                        {"kennung": "CC1", "soll": "vielleicht"}, {"kennung": "CC1", "id": 3}):
             with self.assertRaises((kern.AmwFehler, aktionen.Ungueltig)):

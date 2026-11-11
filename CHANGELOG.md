@@ -4,6 +4,31 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.39.0 – 11.11.2026 · Agenten einstellen: eine Ansicht, vier Blöcke
+- **Eine Ansicht statt Tabelle und getrenntem Profil** (Zahnrad › Agenten): links die Agenten, rechts der gewählte in
+  vier Blöcken – *Wer* (Lead, Fachgebiet, Arbeitsweise), *Auftrag* (Zuständig für, Fasst nicht an, Rundschreiben),
+  *Sitzung* (Ordner, Modell, Rechte, Startsatz; nur am PC), *Überwachung* (soll laufen, Lebenszeichen). Ein „Speichern“
+  für alles; am Handy stehen die Agenten als Reihe über dem Formular.
+- **Lead ist ein Schalter, das Fachgebiet ein eigenes Feld.** Bisher stand beides in „Rolle“: genau das Wort „lead“ gab
+  die Lead-Rechte, alles andere war eine Beschreibung. Jetzt: „führt das Projekt“ an oder aus, dazu das Fachgebiet als
+  freier Text mit Vorschlägen (Code, Grafik, Prüfen …). Ein Lead kann zusätzlich ein Fachgebiet haben.
+- **Arbeitsweise:** Claude Code im Terminal (die AMW startet, weckt und überwacht) · Claude Code in der Desktop-App (der
+  Mensch startet; die AMW startet sie nie) · Chat über die Brücke (wird weder gestartet noch überwacht). Bisher galt
+  unsichtbar „Lead ohne Arbeitsordner = Chat“. Ein Chat zählt in der Kopfzeile nicht mehr zu den Agenten, die laufen
+  sollen; „Starten“ und „Fehlende starten“ betreffen nur Terminal-Agenten. Die Startseite zeigt je Arbeitsweise ein
+  eigenes Zeichen.
+- **„Zuständig für“ und „Fasst nicht an“** ersetzen das eine Feld „Grenzen“ und stehen im Pflicht-Kontext jeder Sitzung –
+  zusammen mit Führung und Fachgebiet.
+- **Vorschlag aus der Datenbank:** auf Knopfdruck leitet die AMW aus den fertigen Aufgaben, Dokumenten und Prüfungen
+  eines Agenten ein Fachgebiet und seine Zuständigkeit ab und nennt die Grundlage. Der Vorschlag füllt nur leere Felder;
+  gespeichert wird erst mit „Speichern“.
+- **Befehle:** `amw agent neu|profil` mit `--fachgebiet`, `--arbeitsweise terminal|desktop|chat`, `--zustaendig`, `--nicht`;
+  `--rolle` kennt nur noch `lead` oder leer (ein anderes Wort gilt wie bisher als Fachgebiet), `--grenzen` bleibt als
+  früherer Name von `--zustaendig` gültig.
+- **Datenbank:** Schema 22 (vier Spalten an `agent`). Der Bestand wird beim ersten Start übernommen: eine frühere Rolle
+  außer „lead“ wird das Fachgebiet, „Grenzen“ wird „Zuständig für“, ein Lead ohne Arbeitsordner wird „Chat“, alle anderen
+  „Terminal“. Vorher sichern: `amw sichern`.
+
 ## 1.38.0 – 11.11.2026 · Startseite: das Team als Baum oder Liste
 - **Baum statt Kacheln:** oben du (deine Schritte, Fragen an dich, Freigaben), darunter der Lead (was er plant, Takt,
   letzte Meldung), darunter die Agenten als kleine Karten – Fachgebiet, Zustand, woran er arbeitet, worauf er wartet,

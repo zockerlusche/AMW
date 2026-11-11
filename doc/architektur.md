@@ -75,16 +75,16 @@ Schreiben über JSON-Befehlsdateien in `eingang-tl/befehle/`, die der Wächter a
 (`leitbild`, `bogen`, `spec`, `aufgabe … --bogen`, `risiko`, `rueckblick`); `--datei` nur aus `eingang-tl/`, z. B.
 `{"befehl": "spec", "aktion": "schreiben", "bogen": 3, "teil": "anforderungen", "datei": "plan/anf-3.md"}`.
 Mit mehreren Projekten hat jedes seine Brücke (`eingang-<projekt>/`, `daten/lesen-<projekt>.db`, ausgeführt als sein Lead –
-gedacht für einen Lead, der als Chat arbeitet: ein eigener Agent mit Rolle `lead` ohne Arbeitsordner, er wird nie gestartet.
+gedacht für einen Lead, der als Chat arbeitet: ein eigener Agent, der das Projekt führt, mit Arbeitsweise „Chat“ – er wird nie gestartet.
 Kommt ein Chat-Lead zu einem Projekt dazu, das bisher ein Agent mit eigener Sitzung führt: Chat-Lead anlegen
-(`amw agent neu <kennung> --rolle lead`, dann `amw agent profil <kennung> --ordner ""`) und dem bisherigen Lead eine andere
-Rolle geben (`amw agent profil <kennung> --rolle …`) – sonst liefen die Befehle der Brücke unter dessen Namen);
+(`amw agent neu <kennung> --rolle lead --arbeitsweise chat`) und beim bisherigen Lead die Führung abschalten
+(`amw agent profil <kennung> --rolle ""`, oder im Zahnrad › Agenten) – sonst liefen die Befehle der Brücke unter dessen Namen);
 die Lese-Kopie enthält dann nur dieses Projekt ([anleitung-projekte.md](anleitung-projekte.md)).
 
 ## 4 Datenmodell (Schema 9)
 | Bereich | Tabellen |
 |---|---|
-| Projekt und Agenten | `projekt` (Einstellungen, Leitbild, DoD), `agent` (Rolle, Soll, Profil), `sitzung` (Claude-Sitzung, PIDs, Puls, Zustand, Kontext, Grenzen, Kosten) |
+| Projekt und Agenten | `projekt` (Einstellungen, Leitbild, DoD), `agent` (Lead, Fachgebiet, Arbeitsweise, Auftrag, Soll, Profil), `sitzung` (Claude-Sitzung, PIDs, Puls, Zustand, Kontext, Grenzen, Kosten) |
 | Kommunikation | `nachricht_art` (weckt ja/nein), `nachricht`, `empfang` (je Empfänger: offen/gelesen/erledigt, geweckt) |
 | Arbeit | `aufgabe` (Status, Einstufung, Rang, Bogen, Kriterien, Plan, Zusammenfassung …), `abhaengigkeit` |
 | Planung | `bogen`, `spezifikation`, `risiko`, `plan_ereignis`, `rueckblick` |

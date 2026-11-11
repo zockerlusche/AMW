@@ -53,7 +53,16 @@ Zeile, die sich waagrecht wischen lässt.
   diesen)“; „Weiterarbeiten“ hebt auf. Agenten beginnen nichts Neues, Läufe starten nicht.
 - **Starten, fortsetzen, beenden:** Aktionsmenü ⋯ des Agenten (oder Klick › Übersicht). „Fortsetzen“ setzt die letzte
   Sitzung fort (Gesprächsverlauf bleibt), „Neue Sitzung beginnen“ startet frisch mit dem Startsatz. „Fehlende starten“
-  im Leitstand startet alle, die laufen sollen und nicht laufen, nacheinander. Profil im Zahnrad › Agenten › Profil.
+  im Leitstand startet alle, die laufen sollen und nicht laufen, nacheinander. Ordner, Modell, Rechte und Startsatz: Zahnrad › Agenten › Block „Sitzung“.
+- **Agenten einstellen (Zahnrad › Agenten):** links die Agenten, rechts der gewählte in vier Blöcken. *Wer:* Lead (ein
+  Schalter – führt das Projekt), Fachgebiet (frei, mit Vorschlägen), Arbeitsweise. *Auftrag:* „Zuständig für“ und „Fasst
+  nicht an“ – beides steht im Pflicht-Kontext jeder Sitzung des Agenten. *Sitzung:* Ordner, Modell, Rechte, Startsatz (nur
+  am PC). *Überwachung:* soll laufen, Lebenszeichen. Die Arbeitsweise bestimmt, was die AMW tut: „Claude Code im Terminal“
+  startet, weckt und überwacht sie; „Claude Code in der Desktop-App“ startet der Mensch selbst – die AMW startet sie nie;
+  ein „Chat“ (schreibt über die Brücke) wird weder gestartet noch überwacht und zählt nicht zu den Agenten, die laufen
+  sollen. „Vorschlag aus der Datenbank“ leitet Fachgebiet und Zuständigkeit aus den fertigen Aufgaben des Agenten ab –
+  er füllt nur leere Felder, gespeichert wird erst mit „Speichern“. Per Befehl: `amw agent profil <kennung> --rolle lead|""
+  --fachgebiet … --arbeitsweise terminal|desktop|chat --zustaendig … --nicht …`.
 - **Sichern & beenden (z. B. vor einem Update):** im Leitstand für alle, im Aktionsmenü für einen. Der Agent bekommt
   die Bitte, seinen Stand festzuhalten und sich abzumelden (`amw abmelden`); sobald er abgemeldet ist, beendet die AMW
   seine Sitzung – nach 5 Minuten auch ohne Abmeldung. Das Fenster bleibt offen; „Starten / fortsetzen“ holt ihn zurück.

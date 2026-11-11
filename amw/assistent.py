@@ -82,7 +82,7 @@ def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe",
             if not kennung:
                 continue
             if not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, kennung)).fetchone():
-                kern.agent_neu(con, pid, kennung, rolle=rolle)
+                kern.agent_neu(con, pid, kennung, rolle=rolle, arbeitsweise="chat" if lead_chat and rolle else "terminal")
                 schritte.append(f"Agent {kennung}" + (" (Lead)" if rolle else "") + " angelegt")
         if ordner:
             neu = []

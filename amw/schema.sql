@@ -44,6 +44,10 @@ CREATE TABLE agent (
   fernsteuerung    INTEGER NOT NULL DEFAULT 1,
   neustart_auto    INTEGER NOT NULL DEFAULT 0,
   alias            TEXT,                         -- frühere Kennungen nach dem Umbenennen (Schema 12)
+  fachgebiet       TEXT,                         -- Grafik, Code, Prüfen … (Schema 22; rolle ist nur noch „lead“ oder leer)
+  arbeitsweise     TEXT CHECK (arbeitsweise IN ('terminal', 'desktop', 'chat')),   -- nur „terminal“ startet die AMW selbst
+  zustaendig       TEXT,                         -- wofür er zuständig ist
+  fasst_nicht_an   TEXT,                         -- was er nicht anfasst
   angelegt_utc     TEXT NOT NULL,
   uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft         TEXT NOT NULL DEFAULT '',

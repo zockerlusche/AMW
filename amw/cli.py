@@ -135,8 +135,12 @@ def cmd_agent(a, con):
         print("Profil, Tab-Titel und Fernsteuerungs-Name wirken beim nächsten Start; Startskripte neu schreiben.")
         return
     if a.aktion == "neu":
-        kern.agent_neu(con, pid, a.kennung, a.rolle, a.grenzen, a.startbefehl, not a.ohne_rund)
-        ordner = kern.projekt_ordner(con, pid)
+        weise = a.arbeitsweise or "terminal"
+        kern.agent_neu(con, pid, a.kennung, a.rolle, a.zustaendig or a.grenzen, a.startbefehl, not a.ohne_rund,
+                       fachgebiet=a.fachgebiet, arbeitsweise=weise)
+        if a.nicht:
+            kern.agent_einstellen(con, pid, _von(a), a.kennung, fasst_nicht_an=a.nicht)
+        ordner = kern.projekt_ordner(con, pid) if weise != "chat" else None   # ein Chat hat keinen Arbeitsordner
         if ordner and os.path.isdir(ordner):              # Profil-Ordner = Projektordner (änderbar: amw agent profil)
             from . import steuerung
             steuerung.profil_setzen(con, pid, _von(a), a.kennung, ordner=ordner)
@@ -172,14 +176,17 @@ def cmd_agent(a, con):
                                         denkstufe=a.denkstufe, modell=a.modell, startsatz=a.startsatz, rechte=a.rechte,
                                         fernsteuerung=schalter(a.fernsteuerung, a.keine_fernsteuerung),
                                         neustart_auto=schalter(a.neustart, a.kein_neustart))
-            if a.rolle is not None or a.grenzen is not None:          # Rolle/Zuständigkeit: dieselbe Prüfung wie im Zahnrad „Agenten“
-                kern.agent_einstellen(con, pid, _von(a), a.kennung, **{k: v for k, v in (("rolle", a.rolle), ("grenzen", a.grenzen)) if v is not None})
+            wer = {k: v for k, v in (("rolle", a.rolle), ("fachgebiet", a.fachgebiet), ("arbeitsweise", a.arbeitsweise),
+                                     ("zustaendig", a.zustaendig if a.zustaendig is not None else a.grenzen), ("fasst_nicht_an", a.nicht)) if v is not None}
+            if wer:                                          # dieselbe Prüfung wie im Zahnrad „Agenten“
+                kern.agent_einstellen(con, pid, _von(a), a.kennung, **wer)
             z = kern.agent_zeile(con, pid, a.kennung)
-            for k, v in {"rolle": z["rolle"], "grenzen": z["grenzen"], **{k: v for k, v in p.items() if k != "kennung"}}.items():
+            for k, v in {"lead": "ja" if z["rolle"] == "lead" else "nein", "fachgebiet": z["fachgebiet"], "arbeitsweise": z["arbeitsweise"] or "terminal",
+                         "zustaendig": z["zustaendig"], "fasst_nicht_an": z["fasst_nicht_an"], **{k: v for k, v in p.items() if k != "kennung"}}.items():
                 print(f"{k:<14} {v}")
         return
     for r in con.execute(
-            "SELECT g.kennung, g.alias, g.rolle, g.soll, s.zustand, s.letzter_puls_utc, s.taetigkeit, s.taetigkeit_utc,"
+            "SELECT g.kennung, g.alias, CASE WHEN g.rolle = 'lead' THEN 'lead' ELSE g.fachgebiet END AS rolle, g.soll, s.zustand, s.letzter_puls_utc, s.taetigkeit, s.taetigkeit_utc,"
             " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
             "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status != 'erledigt') AS offen"
             " FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
@@ -1812,8 +1819,13 @@ def parser():
     x.add_argument("--datei", help="startskript: in diese Datei schreiben")
     x.add_argument("--alle", action="store_true", help="startskript: auch Agenten mit Soll aus/ruht (jeder mit Profil-Ordner)")
     x.add_argument("--abstand", type=int, help="startskript: Sekunden zwischen zwei Starts (Vorgabe 20)")
-    x.add_argument("--rolle", help="neu/profil: Rolle bzw. Fachgebiet, bis 20 Zeichen (lead = führt das Projekt; leer = keine)")
-    x.add_argument("--grenzen", help="neu/profil: wofür der Agent zuständig ist und was er nicht anfasst")
+    x.add_argument("--rolle", help="neu/profil: lead = führt das Projekt, leer = führt nicht (ein anderes Wort gilt als Fachgebiet)")
+    x.add_argument("--fachgebiet", help="neu/profil: z. B. Code, Grafik, Prüfen (bis 40 Zeichen; leer = keines)")
+    x.add_argument("--arbeitsweise", choices=["terminal", "desktop", "chat"],
+                   help="neu/profil: Claude Code im Terminal (startet die AMW) | Claude Code in der Desktop-App | Chat über die Brücke")
+    x.add_argument("--zustaendig", help="neu/profil: wofür der Agent zuständig ist")
+    x.add_argument("--nicht", help="neu/profil: was der Agent nicht anfasst")
+    x.add_argument("--grenzen", help=argparse.SUPPRESS)        # früherer Name von --zustaendig
     x.add_argument("--startbefehl")
     x.add_argument("--ohne-rund", action="store_true", help="bekommt keine Rundschreiben")
     x.set_defaults(f=cmd_agent)

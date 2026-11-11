@@ -18,7 +18,7 @@ class Ende(unittest.TestCase):
         self.addCleanup(self.con.close)
         with db.schreiben(self.con):
             self.pid = db.einfuegen(self.con, "projekt", name="P", angelegt_utc=db.jetzt())
-        kern.agent_neu(self.con, self.pid, "Lead", rolle="lead")                  # Chat-Lead: kein Ordner, keine Sitzung
+        kern.agent_neu(self.con, self.pid, "Lead", rolle="lead", arbeitsweise="chat")   # Chat-Lead: kein Ordner, keine Sitzung
         for k in ("Bauer", "Maler", "Ruhe"):
             kern.agent_neu(self.con, self.pid, k)
             steuerung.profil_setzen(self.con, self.pid, "Entwickler", k, ordner=self.ordner.name)

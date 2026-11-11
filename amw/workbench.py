@@ -86,12 +86,12 @@ def daten_listen(con, pid):
     """Arbeitslisten je Agent in Reihenfolge und der Pool (Workbench › Aufgaben › Listen, auch online)."""
     from . import arbeitsliste
     agenten = []
-    for g in con.execute("SELECT kennung, rolle FROM agent WHERE projekt_id = ? ORDER BY id", (pid,)).fetchall():
+    for g in con.execute("SELECT kennung, rolle, fachgebiet FROM agent WHERE projekt_id = ? ORDER BY id", (pid,)).fetchall():
         l = arbeitsliste.liste(con, pid, g["kennung"])
         if l:
-            agenten.append({"kennung": g["kennung"], "rolle": g["rolle"],
+            agenten.append({"kennung": g["kennung"], "rolle": g["rolle"], "fachgebiet": g["fachgebiet"],
                             "liste": [{k: x[k] for k in ("id", "pos", "titel", "status", "gruende", "wartet_auf", "rang")} for x in l]})
-    agenten.sort(key=lambda a: (a["rolle"] != "lead", (a["rolle"] or "~").casefold()))
+    agenten.sort(key=lambda a: (a["rolle"] != "lead", (a["fachgebiet"] or "~").casefold()))
     eigene = arbeitsliste.liste(con, pid, kern.ENTWICKLER)          # „Deine Aufgaben“ – die Liste des Entwicklers zuerst
     if eigene:
         agenten.insert(0, {"kennung": kern.ENTWICKLER, "rolle": "entwickler", "name": kern.entwickler_name(con, pid),
@@ -226,7 +226,8 @@ def _ablage_grenze(con, pid):
 def daten_start(con, pid):
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
-        "SELECT g.kennung, g.rolle, g.soll, g.grenzen, (g.rolle = 'lead' AND (g.ordner IS NULL OR g.ordner = '')) AS chat, (g.ordner IS NOT NULL AND g.ordner != '') AS startbar, s.zustand, s.letzter_puls_utc, s.gestartet_utc, s.taetigkeit,"
+        "SELECT g.kennung, g.rolle, g.fachgebiet, coalesce(g.arbeitsweise, 'terminal') AS arbeitsweise, g.soll, g.zustaendig AS grenzen,"
+        " (g.arbeitsweise = 'chat') AS chat, (coalesce(g.arbeitsweise, 'terminal') = 'terminal' AND g.ordner IS NOT NULL AND g.ordner != '') AS startbar, s.zustand, s.letzter_puls_utc, s.gestartet_utc, s.taetigkeit,"
         " s.taetigkeit_utc, s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc,"
         " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
         "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen' AND n.id > :alt"
@@ -249,8 +250,8 @@ def daten_start(con, pid):
             "SELECT w.aufgabe_id, group_concat(w.bezug, ', ') AS auf FROM wartegrund w JOIN aufgabe x ON x.id = w.aufgabe_id"
             " WHERE x.projekt_id = ? AND x.agent = ? AND x.status IN ('wartet', 'blockiert') AND x.einstufung = 'aktiv'"
             " AND w.erledigt_utc IS NULL GROUP BY w.aufgabe_id ORDER BY w.aufgabe_id LIMIT 2", (pid, a["kennung"]))]
-    # nach Rolle geordnet: Lead zuerst, gleiche Rollen nebeneinander, sonst in der angelegten Reihenfolge
-    agenten.sort(key=lambda a: (a["rolle"] != "lead", (a["rolle"] or "~").casefold()))
+    # Lead zuerst, gleiche Fachgebiete nebeneinander, sonst in der angelegten Reihenfolge
+    agenten.sort(key=lambda a: (a["rolle"] != "lead", (a["fachgebiet"] or "~").casefold()))
     fragen = zeilen(con.execute(           # nachtraege: ungelesene Nachträge im Verlauf der Frage (stehen dort, nicht doppelt)
         "SELECT f.id, f.kurz, f.von, f.zeit_utc, f.blockiert, (SELECT count(*) FROM frage_verlauf v JOIN empfang e"
         "   ON e.nachricht_id = v.nachricht_id AND e.agent = :e AND e.status = 'offen' WHERE v.frage_id = f.id) AS nachtraege"
@@ -407,7 +408,8 @@ def daten_einstellungen(con, pid, speicher=None):
     pe = json.loads(p["einstellungen"] or "{}")
     from .betrieb import SPEICHER_GRENZE_GB
     from .dienst import TAKT_MIN
-    agenten = zeilen(con.execute("SELECT kennung, rolle, soll, grenzen, empfaengt_rund, puls_grenze_s, ordner, zusatzordner,"
+    agenten = zeilen(con.execute("SELECT kennung, rolle, fachgebiet, coalesce(arbeitsweise, 'terminal') AS arbeitsweise, zustaendig, fasst_nicht_an,"
+                                 " soll, zustaendig AS grenzen, empfaengt_rund, puls_grenze_s, ordner, zusatzordner,"
                                  " denkstufe, modell, startsatz, rechte, fernsteuerung, neustart_auto FROM agent"
                                  " WHERE projekt_id = ? ORDER BY id", (pid,)))
     for a in agenten:
@@ -443,9 +445,47 @@ def daten_einstellungen(con, pid, speicher=None):
             "web": web, "web_grenzen": {k: [lo, hi] for k, (_, lo, hi) in abgleich.WEB_EINSTELLUNGEN.items()}}
 
 
+FACH_WORTE = {                                    # Fachgebiet aus der bisherigen Arbeit: Stichworte in Aufgaben-Titeln
+    "Grafik": ("grafik", "sprite", "bild", "look", "icon", "logo", "optik", "textur", "karte"),
+    "Code": ("code", "fix", "bug", "fehler", "test", "build", "refactor", "api", "funktion", "skript"),
+    "Daten": ("daten", "json", "modell", "schema", "tabelle", "generator", "import", "export", "werte"),
+    "Ausarbeiten": ("konzept", "analyse", "recherche", "bericht", "plan", "entwurf", "bewertung", "vergleich"),
+    "Prüfen": ("prüf", "pruef", "abnahme", "review", "gegenlesen", "kontroll"),
+    "Doku": ("doku", "anleitung", "hilfe", "readme", "handbuch"),
+    "KI": ("ki-", "ki ", "prompt", "training", "comfy", "ollama"),
+    "3D": ("3d", "mesh", "animation", "blender"),
+}
+
+
+def agent_vorschlag(con, pid, kennung):
+    """Vorschlag für Fachgebiet und „Zuständig für“ aus der bisherigen Arbeit – der Lead bzw. der Mensch bestätigt ihn.
+    Grundlage: die letzten fertigen Aufgaben (Titel, Meilensteine), abgelegte Dokumente, Prüfungen als Prüfer."""
+    kern.agent_zeile(con, pid, kennung)
+    aufgaben = con.execute("SELECT a.titel, b.titel AS bogen FROM aufgabe a LEFT JOIN bogen b ON b.id = a.bogen_id WHERE a.projekt_id = ?"
+                           " AND a.agent = ? AND a.status = 'fertig' ORDER BY a.fertig_utc DESC LIMIT 60", (pid, kennung)).fetchall()
+    dok = con.execute("SELECT count(*) FROM dokument WHERE projekt_id = ? AND angelegt_von = ?", (pid, kennung)).fetchone()[0]
+    geprueft = con.execute("SELECT count(*) FROM pruefung WHERE projekt_id = ? AND pruefer = ? AND ergebnis != 'offen'", (pid, kennung)).fetchone()[0]
+    grundlage = f"{len(aufgaben)} fertige Aufgaben, {dok} Dokumente, {geprueft} Prüfungen"
+    if len(aufgaben) + geprueft < 3:
+        return {"fachgebiet": None, "zustaendig": None, "grundlage": grundlage + " – zu wenig für einen Vorschlag"}
+    punkte = {f: sum(any(w in (r["titel"] or "").lower() for w in worte) for r in aufgaben) for f, worte in FACH_WORTE.items()}
+    if geprueft >= max(3, len(aufgaben)):          # prüft mehr, als er selbst abschließt
+        fach = "Prüfen"
+    else:
+        fach, n = max(punkte.items(), key=lambda x: x[1])
+        fach = fach if n >= max(2, len(aufgaben) // 5) else None
+    boegen = {}
+    for r in aufgaben:
+        if r["bogen"]:
+            boegen[r["bogen"]] = boegen.get(r["bogen"], 0) + 1
+    oben = [b for b, _ in sorted(boegen.items(), key=lambda x: -x[1])[:3]]
+    return {"fachgebiet": fach, "zustaendig": "; ".join(x[:60] for x in oben) or None, "grundlage": grundlage}
+
+
 def daten_agent(con, pid, kennung):
     """Klick auf die Kachel: was macht er, was kommt noch, was liegt bei ihm."""
-    a = con.execute("SELECT g.kennung, g.rolle, g.soll, g.grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc,"
+    a = con.execute("SELECT g.kennung, g.rolle, g.fachgebiet, coalesce(g.arbeitsweise, 'terminal') AS arbeitsweise, g.zustaendig, g.fasst_nicht_an,"
+                    " g.soll, g.zustaendig AS grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc,"
                     " s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc, s.taetigkeit, s.taetigkeit_utc, s.claude_sitzung FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
                     " WHERE g.projekt_id = ? AND g.kennung = ?", (pid, kennung)).fetchone()
     if not a:
@@ -925,6 +965,7 @@ def baue_handler(port, token):
                     "/api/releases": lambda c, p: daten_releases(c, p),
                     "/api/einstellungen": lambda c, p: daten_einstellungen(c, p),
                     "/api/agent": lambda c, p: daten_agent(c, p, q.get("kennung", [""])[0]),
+                    "/api/agent/vorschlag": lambda c, p: agent_vorschlag(c, p, q.get("kennung", [""])[0]),
                     "/api/gespraech": lambda c, p: daten_gespraech(c, p, q),
                     "/api/push": lambda c, p: daten_push(c),
                     "/api/planung": lambda c, p: daten_planung(c, p),

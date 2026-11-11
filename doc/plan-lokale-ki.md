@@ -16,7 +16,7 @@ amw ki modell comfyui sdxl-base --datei sd_xl_base_1.0.safetensors --lizenz "Cre
 amw ki freigeben comfyui sdxl-base          # Lead; bei Nutzungsregeln/Registrierung nur der Entwickler
 amw ki sperren comfyui flux-dev --grund "nicht kommerziell"
 amw ki vorlage comfyui sprite-sdxl --datei workflow_api.json   # ComfyUI: Workflow → Export (API)
-amw ki recht comfyui --wer Grafik           # oder alle | rolle:<rolle>; Lead und Entwickler dürfen immer
+amw ki recht comfyui --wer Grafik           # oder alle | rolle:<Fachgebiet>; Lead und Entwickler dürfen immer
 
 # beauftragen – der Agent muss danach nicht warten, er wird geweckt
 amw ki auftrag comfyui --vorlage sprite-sdxl --prompt "…" --anzahl 4 --seed 4711 --aufgabe 1234 [--bild D96]

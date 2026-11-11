@@ -94,7 +94,9 @@ usage: amw agent [-h] [--ordner ORDNER] [--zusatz ZUSATZ]
                  [--startsatz STARTSATZ] [--rechte RECHTE] [--fernsteuerung]
                  [--keine-fernsteuerung] [--neustart] [--kein-neustart]
                  [--neu] [--datei DATEI] [--alle] [--abstand ABSTAND]
-                 [--rolle ROLLE] [--grenzen GRENZEN]
+                 [--rolle ROLLE] [--fachgebiet FACHGEBIET]
+                 [--arbeitsweise {terminal,desktop,chat}]
+                 [--zustaendig ZUSTAENDIG] [--nicht NICHT]
                  [--startbefehl STARTBEFEHL] [--ohne-rund] [--von VON]
                  [--projekt PROJEKT]
                  {neu,liste,profil,starten,beenden,startskript,umbenennen}
@@ -126,10 +128,18 @@ options:
                         Profil-Ordner)
   --abstand ABSTAND     startskript: Sekunden zwischen zwei Starts (Vorgabe
                         20)
-  --rolle ROLLE         neu/profil: Rolle bzw. Fachgebiet, bis 20 Zeichen
-                        (lead = führt das Projekt; leer = keine)
-  --grenzen GRENZEN     neu/profil: wofür der Agent zuständig ist und was er
-                        nicht anfasst
+  --rolle ROLLE         neu/profil: lead = führt das Projekt, leer = führt
+                        nicht (ein anderes Wort gilt als Fachgebiet)
+  --fachgebiet FACHGEBIET
+                        neu/profil: z. B. Code, Grafik, Prüfen (bis 40
+                        Zeichen; leer = keines)
+  --arbeitsweise {terminal,desktop,chat}
+                        neu/profil: Claude Code im Terminal (startet die AMW)
+                        | Claude Code in der Desktop-App | Chat über die
+                        Brücke
+  --zustaendig ZUSTAENDIG
+                        neu/profil: wofür der Agent zuständig ist
+  --nicht NICHT         neu/profil: was der Agent nicht anfasst
   --startbefehl STARTBEFEHL
   --ohne-rund           bekommt keine Rundschreiben
   --von VON

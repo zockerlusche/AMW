@@ -34,16 +34,17 @@ class Rolle(unittest.TestCase):
         return rc, aus.getvalue() + fehler.getvalue()
 
     def rolle(self, kennung):
-        return self.con.execute("SELECT rolle, grenzen FROM agent WHERE projekt_id = ? AND kennung = ?", (self.pid, kennung)).fetchone()
+        return self.con.execute("SELECT rolle, fachgebiet, zustaendig FROM agent WHERE projekt_id = ? AND kennung = ?", (self.pid, kennung)).fetchone()
 
     def test_lead_aendert_rolle_und_zustaendigkeit(self):
         rc, aus = self.cli("agent", "profil", "Helfer", "--rolle", "Grafik", "--grenzen", "nur Bilder, kein Code", "--von", "Bauer")
         self.assertEqual(rc, 0, aus)
-        self.assertEqual(tuple(self.rolle("Helfer")), ("Grafik", "nur Bilder, kein Code"))
-        self.assertIn("rolle          Grafik", aus)
-        rc, aus = self.cli("agent", "profil", "Helfer", "--rolle", "", "--von", "Bauer")              # leer = keine Rolle
-        self.assertEqual((rc, self.rolle("Helfer")["rolle"]), (0, None))
-        self.assertEqual(self.rolle("Helfer")["grenzen"], "nur Bilder, kein Code")                   # nicht genannt = bleibt
+        self.assertEqual(tuple(self.rolle("Helfer")), (None, "Grafik", "nur Bilder, kein Code"))    # frühere Schreibweise: Rolle = Fachgebiet
+        self.assertIn("fachgebiet     Grafik", aus)
+        rc, aus = self.cli("agent", "profil", "Helfer", "--fachgebiet", "", "--nicht", "Code", "--arbeitsweise", "desktop", "--von", "Bauer")
+        self.assertEqual((rc, tuple(self.rolle("Helfer"))), (0, (None, None, "nur Bilder, kein Code")))   # nicht genannt = bleibt
+        z = kern.agent_zeile(self.con, self.pid, "Helfer")
+        self.assertEqual((z["fasst_nicht_an"], z["arbeitsweise"]), ("Code", "desktop"))
 
     def test_agent_ohne_lead_rolle_darf_nicht(self):
         rc, aus = self.cli("agent", "profil", "Bauer", "--rolle", "Hilfe", "--von", "Helfer")
@@ -56,7 +57,7 @@ class Rolle(unittest.TestCase):
         self.assertIn("einzige Lead", aus)
         self.assertEqual(self.rolle("Bauer")["rolle"], "lead")
         kern.agent_einstellen(self.con, self.pid, kern.ENTWICKLER, "Bauer", rolle="Entwicklung")     # der Mensch darf
-        self.assertEqual(self.rolle("Bauer")["rolle"], "Entwicklung")
+        self.assertEqual(tuple(self.rolle("Bauer"))[:2], (None, "Entwicklung"))                      # führt nicht mehr, Fachgebiet gesetzt
 
     def test_chat_lead_uebernimmt_die_bruecke(self):
         von = lambda: next(b["von"] for b in bruecke.bruecken(self.con) if b["pid"] == self.pid)

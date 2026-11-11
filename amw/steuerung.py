@@ -209,6 +209,10 @@ def laeuft(con, pid, kennung):
 def starten(con, pid, kennung, neu=False, ausfuehren=None):
     """Startet den Agenten im neuen Terminal-Tab. neu=True: frische Sitzung statt Fortsetzen. Rückgabe: Beschreibung."""
     p = profil(con, pid, kennung)
+    weise = kern.agent_zeile(con, pid, kennung)["arbeitsweise"] or "terminal"
+    if weise != "terminal":                        # Chat und Desktop-App startet der Mensch selbst
+        raise kern.AmwFehler(f"{kennung} arbeitet {'als Chat' if weise == 'chat' else 'in der Desktop-App'} – die AMW startet nur "
+                             f"Agenten im Terminal (amw agent profil {kennung} --arbeitsweise terminal)")
     if not p["ordner"]:
         raise kern.AmwFehler(f"{kennung}: kein Ordner im Profil – amw agent profil {kennung} --ordner <Pfad>")
     if laeuft(con, pid, kennung):
@@ -332,7 +336,8 @@ def ende_pruefen(con, jetzt=None, beenden_mit=None):
 def fehlende(con, pid):
     """Agenten, die laufen sollen, einen Arbeitsordner haben (kein Chat) und weder laufen noch abgemeldet warten."""
     aus = []
-    for a in con.execute("SELECT kennung, ordner FROM agent WHERE projekt_id = ? AND soll = 'an' ORDER BY id", (pid,)):
+    for a in con.execute("SELECT kennung, ordner FROM agent WHERE projekt_id = ? AND soll = 'an'"
+                         " AND coalesce(arbeitsweise, 'terminal') = 'terminal' ORDER BY id", (pid,)):
         if a["ordner"] and not _sitzung_mit_prozess(con, pid, a["kennung"], auch_ruhend=True)[1] and not laeuft(con, pid, a["kennung"]):
             aus.append(a["kennung"])
     return aus
@@ -367,7 +372,8 @@ class Neustarter:
     def kandidaten(self, pid, jetzt=None):
         jetzt = jetzt or time.time()
         aus = []
-        for a in self.con.execute("SELECT id, kennung FROM agent WHERE projekt_id = ? AND soll = 'an' AND neustart_auto = 1",
+        for a in self.con.execute("SELECT id, kennung FROM agent WHERE projekt_id = ? AND soll = 'an' AND neustart_auto = 1"
+                                  " AND coalesce(arbeitsweise, 'terminal') = 'terminal'",
                                   (pid,)).fetchall():
             if self.con.execute("SELECT 1 FROM sitzung WHERE agent_id = ? AND zustand = 'aktiv'", (a["id"],)).fetchone():
                 continue
@@ -439,6 +445,7 @@ def startskript(con, pid, kennungen=None, alle=False, abstand_s=STARTSKRIPT_ABST
               "where wt >nul 2>nul || (echo Windows Terminal (wt) fehlt – Agenten in der Workbench einzeln starten. & pause & exit /b 1)", ""]
     n = 0
     for a in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND ordner IS NOT NULL AND ordner != ''"
+                         " AND coalesce(arbeitsweise, 'terminal') = 'terminal'"
                          + ("" if kennungen or alle else " AND soll = 'an'") + " ORDER BY id", (pid,)).fetchall():
         if kennungen and a["kennung"] not in kennungen:
             continue

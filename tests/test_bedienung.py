@@ -172,6 +172,31 @@ class Seite(Wiederholt, Grund):
         self.tab.js("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))")
         self.warten("!document.querySelector('.menue')")
 
+    def test_agenten_einstellungen_in_vier_bloecken(self):
+        """Zahnrad › Agenten: eine Ansicht je Agent; die Arbeitsweise blendet Sitzung und Überwachung ein oder aus; ein Speichern."""
+        sichtbar = "[...document.querySelectorAll('.ae-block')].filter(b => !b.hidden).map(b => b.querySelector('h4').textContent)"
+        weise = "(() => { const s = document.querySelector('.ae-block select'); s.value = '%s'; s.dispatchEvent(new Event('change')); })()"
+        self.oeffnen("einstellungen", "document.querySelector('#agenten-einstellungen .ae-form')")
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.ae-wahl > button .tm-name')].map(b => b.textContent)"), ["TL", "CC1"])
+        self.tab.js("[...document.querySelectorAll('.ae-wahl > button')].find(b => b.textContent.includes('CC1')).click()")
+        self.warten("document.querySelector('.ae-form').dataset.k === 'CC1'")
+        self.assertEqual(self.tab.js(sichtbar), ["Wer", "Auftrag", "Sitzung", "Überwachung"])        # Terminal: alles
+        self.tab.js(weise % "chat")
+        self.assertEqual(self.tab.js(sichtbar), ["Wer", "Auftrag"])                                  # Chat: weder Sitzung noch Überwachung
+        self.tab.js(weise % "desktop")
+        self.assertEqual(self.tab.js(sichtbar), ["Wer", "Auftrag", "Überwachung"])                   # Desktop-App: die AMW startet nicht
+        self.assertFalse(self.tab.js("document.querySelector('#agenten-einstellungen').innerText.includes('null')"))
+        self.tab.js("(() => { const f = document.querySelector('.ae-form'); f.querySelector('input[list]').value = 'Grafik';"
+                    " f.querySelectorAll('textarea')[0].value = 'Karten-Look'; f.querySelectorAll('textarea')[1].value = 'Spiellogik';"
+                    " f.querySelector('.ae-knoepfe button').click(); })()")
+        lesen = lambda: tuple(self.con.execute("SELECT rolle, fachgebiet, arbeitsweise, zustaendig, fasst_nicht_an FROM agent WHERE kennung = 'CC1'").fetchone())
+        ende = time.time() + 30
+        while time.time() < ende and lesen()[1] != "Grafik":
+            time.sleep(0.2)
+        self.assertEqual(lesen(), (None, "Grafik", "desktop", "Karten-Look", "Spiellogik"))
+        self.warten("document.querySelector('.ae-form') && document.querySelector('.ae-form').dataset.k === 'CC1'"      # die Wahl bleibt nach dem Speichern
+                    " && document.querySelector('.ae-wahl > button.an .tm-fach')?.textContent === 'Grafik'")
+
     def test_logo_oben_mit_untertitel_und_favicon(self):
         self.oeffnen("start", "document.querySelector('#marke-text i')")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('#marke-text i')].map(i => i.textContent).join('')"), "AMW")

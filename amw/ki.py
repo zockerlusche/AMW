@@ -241,7 +241,8 @@ def darf(con, pid, von, ki):
     if kern.ist_lead(con, pid, von):
         return True
     a = kern.agent_zeile(con, pid, von)
-    wer = ["alle", von] + ([f"rolle:{a['rolle']}"] if a and a["rolle"] else [])
+    # „rolle:<x>“ in einer Freigabe meint Lead oder – wie vor Schema 22 – das Fachgebiet
+    wer = ["alle", von] + [f"rolle:{x}" for x in ((a["rolle"], a["fachgebiet"]) if a else ()) if x]
     return bool(con.execute(f"SELECT 1 FROM ki_recht WHERE projekt_id = ? AND ki_id = ? AND wer IN ({','.join('?' * len(wer))})",
                             (pid, ki["id"], *wer)).fetchone())
 
