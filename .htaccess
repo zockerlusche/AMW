@@ -18,7 +18,8 @@ RewriteRule ^ - [F,L]
 
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
-  Header always set X-Frame-Options "DENY"
+  # X-Frame-Options setzt die Seite selbst (inc/lib.php: DENY; Dokument-Dateien in api.php: SAMEORIGIN, damit ein Mockup
+  # im eigenen Dokument-Fenster erscheint). Hier zusätzlich gesetzt, käme die Angabe doppelt an – Browser nehmen dann die strengere.
   Header always set Referrer-Policy "same-origin"
   Header always set X-Robots-Tag "noindex, nofollow"
   Header always unset X-Powered-By

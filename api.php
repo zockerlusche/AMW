@@ -64,9 +64,9 @@ function datei_senden(array $q): never {
     header('Referrer-Policy: no-referrer');
     if ($vorschau === 'mockup') {
         header("Content-Security-Policy: sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline';"
-            . " img-src data: blob:; font-src data:; media-src data: blob:");
+            . " img-src data: blob:; font-src data:; media-src data: blob:; frame-ancestors 'self'");
     } elseif ($vorschau !== 'pdf') {
-        header("Content-Security-Policy: sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:");
+        header("Content-Security-Policy: sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'");
     }
     header('Content-Disposition: ' . ($vorschau === 'download' ? 'attachment' : 'inline') . '; filename="D' . $id . $endung . '"');
     if ($roh === null) {
