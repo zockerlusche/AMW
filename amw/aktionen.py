@@ -4,6 +4,11 @@ Frage beantworten oder parken, Nachricht an Agenten, Nachrichten an dich als gel
 Einstellungen „pc“ (Datenbank-Pfad, Port, Takte) und „turso“ (Zugang) nur am PC (kanal „seite“), nie aus dem Netz:
 wer sich online anmeldet, soll die AMW nicht auf eine andere Datenbank umbiegen oder den Zugang aussperren können.
 """
+import os
+import subprocess
+import sys
+import threading
+
 from . import db, kern
 
 NACHRICHT_ARTEN = ("auftrag", "frage", "info", "korrektur", "freigabe")
@@ -93,6 +98,29 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             if weg.endswith("start"):
                 return {"text": steuerung.starten(con, pid, daten.get("kennung") or "", neu=bool(daten.get("neu")))}
             return {"text": steuerung.beenden(con, pid, daten.get("kennung") or "")}
+        except (kern.AmwFehler, LookupError, OSError) as e:
+            raise Ungueltig(str(e)) from None
+    if weg in ("/api/agent/ende", "/api/agent/start-fehlende", "/api/dienst/neustart"):   # Leitstand – nur am PC
+        if kanal != "seite":
+            raise Ungueltig("Sitzungen und den Wächter steuerst du nur am PC")
+        from . import steuerung
+        try:
+            if weg == "/api/agent/ende":             # sichern & beenden lassen: einer (kennung) oder alle laufenden
+                k = (daten.get("kennung") or "").strip()
+                return steuerung.ende_anfordern(con, pid, [k] if k else None)
+            if weg == "/api/agent/start-fehlende":
+                namen = steuerung.fehlende(con, pid)
+                if namen:                            # nacheinander mit Abstand, ohne die Seite warten zu lassen
+                    threading.Thread(target=steuerung.fehlende_starten, args=(db.verbinde, pid, namen), daemon=True).start()
+                return {"agenten": namen, "abstand_s": steuerung.STARTSKRIPT_ABSTAND_S}
+            from . import einrichtung                # Wächter neu: als eigener Prozess, sonst beendete er sich mitten in der Antwort
+            fremd = einrichtung.fremde_aufgabe()
+            if fremd:
+                raise Ungueltig(fremd)
+            subprocess.Popen([sys.executable, "-X", "utf8", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "amw-cli.py"),
+                              "dienst", "neustart"], close_fds=True,
+                             creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            return {"text": "Wächter startet neu"}
         except (kern.AmwFehler, LookupError, OSError) as e:
             raise Ungueltig(str(e)) from None
     if weg.startswith("/api/dokument/"):             # Dokumente: kommentieren, zuordnen, archivieren; löschen nur am PC

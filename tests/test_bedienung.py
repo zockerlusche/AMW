@@ -160,6 +160,20 @@ class Seite(Grund):
         self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Verlauf')).click()")
         self.warten("zustand.sicht === 'verlauf' && document.getElementById('mehr').classList.contains('an')")
 
+    def test_leitstand_und_aktionsmenue(self):
+        self.oeffnen("start", "document.querySelector('#leitstand') && document.querySelector('.kachel .mehr-knopf')")
+        self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 4)       # Arbeit, Bildschirm, Sitzungen, Wächter
+        self.assertFalse(self.tab.js("document.querySelector('header').innerText.includes('null')"))   # leere Hinweise sind keine Texte
+        self.assertFalse(self.tab.js("!!document.querySelector('#halt-knopf')"))                       # Anhalten steht im Leitstand
+        self.assertTrue(self.tab.js("[...document.querySelectorAll('#leitstand button')].some(b => b.textContent === 'Alle anhalten')"))
+        self.tab.js("document.querySelector('.kachel .mehr-knopf').click()")
+        self.warten("document.querySelector('.menue')")
+        texte = self.tab.js("[...document.querySelectorAll('.menue button')].map(b => b.textContent)")
+        self.assertEqual(texte[0], "Nachricht schreiben")
+        self.assertTrue(any(x.startswith("Anhalten (nur diesen)") for x in texte), texte)
+        self.tab.js("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))")
+        self.warten("!document.querySelector('.menue')")
+
     def test_logo_oben_mit_untertitel_und_favicon(self):
         self.oeffnen("start", "document.querySelector('#marke-text i')")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('#marke-text i')].map(i => i.textContent).join('')"), "AMW")

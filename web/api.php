@@ -113,7 +113,7 @@ try {
         $frage = preg_match('#^/api/frage/(\d{1,9})/antwort$#', $pfad, $m);
         $parken = preg_match('#^/api/frage/(\d{1,9})/(parken|aufnehmen)$#', $pfad);
         if (in_array($pfad, ['/api/einstellungen/pc', '/api/einstellungen/turso', '/api/einstellungen/push', '/api/einstellungen/profil',
-                '/api/agent/start', '/api/agent/stop', '/api/push/probe'], true)) {
+                '/api/agent/start', '/api/agent/stop', '/api/agent/ende', '/api/agent/start-fehlende', '/api/dienst/neustart', '/api/push/probe'], true)) {
             antwort(403, ['fehler' => 'Das geht nur am PC.']);
         }
         if ($pfad === '/api/schirm' && !empty($daten['frei'])) {     // Schirm frei nur am PC, zu auch von unterwegs

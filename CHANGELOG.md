@@ -4,6 +4,24 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.36.0 – 11.11.2026 · Leitstand und Aktionsmenü: alles Steuerbare an einer Stelle
+- **Leitstand** auf der Startseite, direkt unter den Agenten: Arbeit der Agenten (Alle anhalten / Weiterarbeiten),
+  Bildschirm (für Agenten freigeben / wieder belegen), Sitzungen (Alle sichern & beenden, Fehlende starten), Wächter
+  (Neu starten). Der Knopf zum Anhalten steht nicht mehr in der Ecke der Kopfzeile, der Bildschirm nicht mehr zwischen
+  den Hinweisen: Die erste Zeile zeigt nur noch Zustände und führt per Klick zum Leitstand, wenn etwas vom Normalfall
+  abweicht (angehalten, Bildschirm frei, Sitzungen werden beendet).
+- **Aktionsmenü „⋯“ je Agent** statt einzelner Knöpfe: Nachricht schreiben, Gespräch mitlesen, Übersicht und
+  Aufgabenliste · Anhalten (nur diesen) / Weiterarbeiten lassen, Sichern & beenden lassen, Sofort beenden,
+  Starten/fortsetzen, Neue Sitzung beginnen · Profil. Sitzungen starten und beenden weiter nur am PC.
+- **Sichern & beenden** (z. B. vor einem Update), neu: Der Agent wird gebeten, seinen Stand festzuhalten und sich
+  abzumelden; sobald er abgemeldet ist, beendet die AMW seine Sitzung – nach 5 Minuten auch ohne Abmeldung. Für alle
+  im Leitstand, für einen im Aktionsmenü, nur vom Menschen am PC. Ohne Änderung der Datenbank (ein Halt mit Frist, den
+  der Wächter abarbeitet) → doc/automatismen.md.
+- **Fehlende starten:** startet alle, die laufen sollen und nicht laufen, nacheinander mit Abstand. **Wächter neu
+  starten** geht jetzt auch aus der Workbench am PC.
+- **Bildschirm statt Schirm** überall in der Oberfläche (Dialog, Hinweisbänder, Einstellungen, Terminplaner):
+  „frei für Agenten“ / „belegt“, „Für Agenten freigeben …“ / „Wieder belegen“.
+
 ## 1.35.2 – 11.11.2026 · Verständliche Benennungen in der ersten Zeile und auf den Agenten-Kacheln
 - **Erste Zeile in ganzen Wörtern**, Deutsch und Englisch gleich gebaut: „Wächter läuft“ (statt „Dienst“),
   „2 von 7 Agenten laufen“ (statt „2/7 Agenten“), „Arbeitsspeicher: 11 GB frei“, „Bildschirm: belegt“ bzw.

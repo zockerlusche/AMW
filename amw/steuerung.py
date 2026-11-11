@@ -10,6 +10,7 @@ beendet bewusst. Nur am PC; nie über die Online-Seite.
 import base64
 import ctypes
 import ctypes.wintypes as wt
+import datetime
 import json
 import os
 import re
@@ -232,24 +233,127 @@ def starten(con, pid, kennung, neu=False, ausfuehren=None):
         + (" im Windows Terminal" if wt_exe else " in einem Konsolenfenster")
 
 
-def beenden(con, pid, kennung, beenden_mit=None):
-    """Beendet den Claude-Prozess der laufenden Sitzung (das Fenster bleibt offen) und vermerkt es als bewusst."""
-    r = con.execute("SELECT s.id, s.claude_pid, s.claude_sitzung, s.schluessel_datei FROM sitzung s JOIN agent a ON a.id = s.agent_id"
-                    " WHERE a.projekt_id = ?"
-                    " AND a.kennung = ? AND s.zustand = 'aktiv' AND s.schluessel_datei IS NOT NULL ORDER BY s.id DESC LIMIT 1",
-                    (pid, kennung)).fetchone()
+def _sitzung_mit_prozess(con, pid, kennung, auch_ruhend=False):
+    """(Sitzungs-Zeile, PID des lebenden Claude-Prozesses) der jüngsten Sitzung mit eigenem Prozess – oder (Zeile, None).
+    auch_ruhend: auch eine abgemeldete Sitzung (ihr Fenster ist noch offen)."""
+    r = con.execute("SELECT s.id, s.zustand, s.claude_pid, s.claude_sitzung, s.schluessel_datei FROM sitzung s JOIN agent a ON a.id = s.agent_id"
+                    " WHERE a.projekt_id = ? AND a.kennung = ? AND s.zustand IN ('aktiv'" + (", 'ruht'" if auch_ruhend else "") + ")"
+                    " AND s.schluessel_datei IS NOT NULL ORDER BY s.id DESC LIMIT 1", (pid, kennung)).fetchone()
     cpid = r["claude_pid"] if r else None
     if not cpid and r:
         from . import hook                            # nur der Prozess genau dieser Sitzung – nie der einer anderen
         ich = hook.prozess_der_sitzung(r["claude_sitzung"], r["schluessel_datei"])
         cpid = ich and ich["pid"]
-    if not r or not cpid or not lebt(cpid):
+    return r, (cpid if cpid and lebt(cpid) else None)
+
+
+def beenden(con, pid, kennung, beenden_mit=None, auch_ruhend=False):
+    """Beendet den Claude-Prozess der laufenden Sitzung (das Fenster bleibt offen) und vermerkt es als bewusst."""
+    r, cpid = _sitzung_mit_prozess(con, pid, kennung, auch_ruhend)
+    if not r or not cpid:
         raise kern.AmwFehler(f"{kennung} läuft nicht")
     with db.schreiben(con):
         con.execute("UPDATE sitzung SET ereignis = 'beendet', ereignis_text = 'amw', ereignis_utc = ? WHERE id = ?",
                     (db.jetzt(), r["id"]))
     (beenden_mit or (lambda p: subprocess.run(["taskkill", "/PID", str(p), "/T", "/F"], capture_output=True)))(cpid)
     return f"{kennung}: Claude-Prozess {cpid} beendet (Fenster bleibt offen)"
+
+
+# --- Geordnetes Ende („Sichern & beenden“, z. B. vor einem Update) ----------------------------------
+# Ohne eigenes Feld: ein Halt für genau diesen Agenten mit Frist (sperre.bis_utc) und festem Textanfang. Der Agent bekommt
+# ein STOPP mit der Bitte, zu sichern und sich abzumelden; der Wächter beendet die Sitzung, sobald sie abgemeldet ist –
+# spätestens zur Frist – und hebt den Halt auf. Nur der Mensch am PC stößt das an (aktionen: /api/agent/ende).
+
+ENDE_TEXT = "Sichern und beenden"
+ENDE_FRIST_MIN = 5
+
+
+def ende_offen(con, pid=None):
+    """Offene Aufträge „Sichern & beenden“: [{id, projekt_id, kennung, bis_utc}]."""
+    sql = ("SELECT id, projekt_id, gilt_fuer AS kennung, bis_utc FROM sperre WHERE art = 'halt' AND bis_utc IS NOT NULL"
+           " AND aufgehoben_utc IS NULL AND text LIKE ?")
+    par = [ENDE_TEXT + "%"]
+    if pid is not None:
+        sql += " AND projekt_id = ?"
+        par.append(pid)
+    return [dict(r) for r in con.execute(sql + " ORDER BY id", par)]
+
+
+def ende_anfordern(con, pid, kennungen=None, frist_min=ENDE_FRIST_MIN, jetzt=None):
+    """Bittet laufende Agenten, zu sichern und sich abzumelden; nach `frist_min` beendet der Wächter die Sitzung.
+    kennungen=None: alle, die gerade mit eigenem Prozess laufen. Rückgabe: {"agenten": [...], "bis_utc": …}."""
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    bis = (jetzt + datetime.timedelta(minutes=max(1, min(60, int(frist_min))))).strftime("%Y-%m-%dT%H:%M:%SZ")
+    schon = {e["kennung"] for e in ende_offen(con, pid)}
+    alle = [r["kennung"] for r in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? ORDER BY id", (pid,))]
+    for k in kennungen or []:
+        if k not in alle:
+            raise kern.AmwFehler(f"Agent {k} gibt es nicht")
+    laufend = [k for k in (kennungen or alle) if k not in schon and _sitzung_mit_prozess(con, pid, k, auch_ruhend=True)[1]]
+    if kennungen and not laufend:
+        raise kern.AmwFehler(f"{', '.join(kennungen)} läuft nicht" if not set(kennungen) & schon
+                             else f"{', '.join(kennungen)}: Sichern & beenden läuft schon")
+    ortszeit = datetime.datetime.strptime(bis, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).astimezone().strftime("%H:%M")
+    with db.schreiben(con):
+        for k in laufend:
+            sid = db.einfuegen(con, "sperre", projekt_id=pid, art="halt", gilt_fuer=k, von=kern.ENTWICKLER,
+                               text=f"{ENDE_TEXT} bis {ortszeit}", seit_utc=db.jetzt(), bis_utc=bis)
+            kern._posten(con, pid, kern.ENTWICKLER, k, "stopp", f"SICHERN UND BEENDEN bis {ortszeit}",
+                         f"Auftrag #{sid} vom Entwickler (z. B. für ein Update): 1. Laufenden Schritt sauber abschließen oder den "
+                         f"Zwischenstand festhalten (Tätigkeit, Notiz; nichts Halbfertiges veröffentlichen). 2. Nichts Neues "
+                         f"anfangen. 3. `amw abmelden` – dann beendet die AMW deine Sitzung sofort, sonst um {ortszeit}. "
+                         f"Nach dem Neustart setzt du mit `amw lesen` fort.")
+    return {"agenten": laufend, "bis_utc": bis if laufend else None}
+
+
+def ende_pruefen(con, jetzt=None, beenden_mit=None):
+    """Runde des Wächters: abgemeldete oder überfällige Sitzungen mit offenem Auftrag beenden, Halt aufheben.
+    Rückgabe: Ereignisse fürs Log."""
+    stempel = (jetzt or datetime.datetime.now(datetime.timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    aus = []
+    for e in ende_offen(con):
+        r, cpid = _sitzung_mit_prozess(con, e["projekt_id"], e["kennung"], auch_ruhend=True)
+        if cpid and r["zustand"] != "ruht" and stempel < e["bis_utc"]:
+            continue                                   # arbeitet noch und hat noch Zeit
+        if cpid:
+            try:
+                beenden(con, e["projekt_id"], e["kennung"], beenden_mit=beenden_mit, auch_ruhend=True)
+                aus.append(f"{e['kennung']} beendet ({'abgemeldet' if r['zustand'] == 'ruht' else 'Frist abgelaufen'})")
+            except (kern.AmwFehler, OSError) as x:
+                aus.append(f"{e['kennung']}: Beenden fehlgeschlagen ({x})")
+                continue
+        else:
+            aus.append(f"{e['kennung']} läuft nicht mehr – Auftrag erledigt")
+        with db.schreiben(con):
+            con.execute("UPDATE sperre SET aufgehoben_utc = ? WHERE id = ?", (db.jetzt(), e["id"]))
+    return aus
+
+
+def fehlende(con, pid):
+    """Agenten, die laufen sollen, einen Arbeitsordner haben (kein Chat) und weder laufen noch abgemeldet warten."""
+    aus = []
+    for a in con.execute("SELECT kennung, ordner FROM agent WHERE projekt_id = ? AND soll = 'an' ORDER BY id", (pid,)):
+        if a["ordner"] and not _sitzung_mit_prozess(con, pid, a["kennung"], auch_ruhend=True)[1] and not laeuft(con, pid, a["kennung"]):
+            aus.append(a["kennung"])
+    return aus
+
+
+def fehlende_starten(con_fabrik, pid, kennungen, abstand_s=None, starte=None, warte=time.sleep):
+    """Startet die Agenten nacheinander mit Abstand (wie das Startskript). con_fabrik: öffnet eine eigene Verbindung
+    (läuft in einem eigenen Thread). Rückgabe: Texte je Agent."""
+    abstand_s = STARTSKRIPT_ABSTAND_S if abstand_s is None else abstand_s
+    con, aus = con_fabrik(), []
+    try:
+        for i, k in enumerate(kennungen):
+            if i:
+                warte(abstand_s)
+            try:
+                aus.append((starte or starten)(con, pid, k))
+            except (kern.AmwFehler, OSError) as e:
+                aus.append(f"{k}: {e}")
+    finally:
+        con.close()
+    return aus
 
 
 # --- Auto-Neustart -------------------------------------------------------------------------------

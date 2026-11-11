@@ -226,7 +226,7 @@ def _ablage_grenze(con, pid):
 def daten_start(con, pid):
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
-        "SELECT g.kennung, g.rolle, g.soll, g.grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc, s.taetigkeit,"
+        "SELECT g.kennung, g.rolle, g.soll, g.grenzen, (g.ordner IS NULL OR g.ordner = '') AS chat, s.zustand, s.letzter_puls_utc, s.gestartet_utc, s.taetigkeit,"
         " s.taetigkeit_utc, s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc,"
         " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
         "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen' AND n.id > :alt"
@@ -266,7 +266,8 @@ def daten_start(con, pid):
     ablage = _ablage_grenze(con, pid)
     for n in an_dich:
         n["abgelegt"] = n["art"] == "info" and not n["bis"] and n["zeit_utc"] < ablage
-    halte = [dict(s) for s in kern.aktive_sperren(con, pid, art="halt")]
+    from . import steuerung as _st                     # „Sichern & beenden“ ist ein Halt mit Frist – steht unter "ende", nicht als Halt
+    halte = [dict(s) for s in kern.aktive_sperren(con, pid, art="halt") if not (s["bis_utc"] and s["text"].startswith(_st.ENDE_TEXT))]
     zaehler = dict(con.execute(
         "SELECT"
         " (SELECT count(*) FROM frage WHERE projekt_id = :p AND an = 'entwickler' AND status = 'offen'"
@@ -299,11 +300,12 @@ def daten_start(con, pid):
         warnungen = ueberwachung.warnungen(con, pid)   # Server aus, Weckruf unbeantwortet, Lauf überfällig
     except Exception:
         warnungen = []
-    from . import schirm
+    from . import schirm, steuerung
     sz = schirm.zustand(con)
     sz["laeufe"] = zeilen(con.execute("SELECT id, agent, status, beschreibung FROM lauf WHERE projekt_id = ? AND schirm = 1"
                                       " AND status IN ('laeuft', 'angemeldet') ORDER BY id", (pid,)))
-    return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "zaehler": zaehler,
+    ende = [{"kennung": e["kennung"], "bis_utc": e["bis_utc"]} for e in steuerung.ende_offen(con, pid)]   # „Sichern & beenden“ läuft
+    return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "ende": ende, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}

@@ -4,7 +4,7 @@ Was ein Agent vergessen kann, regelt die AMW technisch, statt es in Regeln zu sc
 Automatismen: Schirm-Schalter, Wartegründe, Leerlauf-Prüfung und Frage-Prüfung. Befehle im Einzelnen:
 [befehle.md](befehle.md).
 
-## Schirm-Schalter (seit 1.7.0)
+## Schirm-Schalter (seit 1.7.0; in der Oberfläche „Bildschirm: frei für Agenten / belegt“)
 
 **Wozu:** Läufe mit Fenster (Spiel, Editor, Bildschirmfotos) stören, wenn der Entwickler am PC sitzt. Sie dürfen nur
 laufen, solange er den Bildschirm ausdrücklich freigegeben hat.
@@ -35,6 +35,22 @@ laufen, solange er den Bildschirm ausdrücklich freigegeben hat.
   noch, erfährt es der Lead. Die AMW beendet selbst keine Prozesse.
 
 Grenze: Die AMW sieht nur Läufe, die über `amw lauf start --schirm` angemeldet sind.
+
+## Sichern & beenden (seit 1.36.0)
+
+Vor einem Update sollen Agenten ihren Stand festhalten und ihre Sitzung enden – ohne dass der Mensch jedes Fenster
+einzeln schließt und ohne dass Arbeit mitten im Schritt abreißt.
+
+- **Auslöser:** nur der Mensch am PC – Leitstand „Alle sichern & beenden“ oder Aktionsmenü ⋯ einer Kachel. Nicht über
+  die Online-Seite, nicht über die Brücke, nicht per Befehl eines Agenten.
+- **Was geschieht:** Der Agent bekommt einen Halt mit Frist (5 Minuten) und ein STOPP „Sichern und beenden bis HH:MM“:
+  laufenden Schritt abschließen oder Zwischenstand festhalten, nichts Neues anfangen, `amw abmelden`.
+- **Der Wächter** beendet die Sitzung, sobald sie abgemeldet ist – spätestens zur Frist – und hebt den Halt auf. Hat der
+  Agent sein Fenster selbst geschlossen, wird nur der Halt aufgehoben. Das Ende gilt als bewusst: kein automatischer
+  Neustart; „Starten / fortsetzen“ oder „Fehlende starten“ holt die Sitzungen zurück.
+- **Abbrechen:** „Weiterarbeiten lassen“ im Aktionsmenü (bzw. `amw weiter --fuer <Agent>`) hebt den Auftrag auf.
+- **Ohne eigenes Feld gespeichert:** als Halt mit Ablaufzeit; ein gewöhnlicher Halt hat keine und wird nie beendet.
+- Agenten ohne Arbeitsordner (z. B. ein Lead, der als Chat arbeitet) betrifft das nicht.
 
 ## Wartegründe (seit 1.8.0)
 

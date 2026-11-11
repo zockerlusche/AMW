@@ -2,8 +2,22 @@
 
 ## 1 Die Workbench
 http://127.0.0.1:8780 (am Handy dieselbe Seite über die Online-Adresse). Oben in ganzen Wörtern: „Wächter läuft“,
-„x von y Agenten laufen“, „Arbeitsspeicher: n GB frei“, „Bildschirm: belegt / frei für Agenten“, die Suche (Aufgaben,
-Beschlüsse, Fragen, Wortlaut, Nachrichten) und **Alle anhalten**.
+„x von y Agenten laufen“, „Arbeitsspeicher: n GB frei“ und die Suche (Aufgaben, Beschlüsse, Fragen, Wortlaut,
+Nachrichten). Die erste Zeile zeigt nur Zustände; weicht etwas vom Normalfall ab („Angehalten“, „Bildschirm: frei für
+Agenten“, „n werden beendet“), steht es dort als Hinweis, ein Klick führt zum Leitstand.
+
+**Leitstand** (Start, direkt unter den Agenten) – alles Steuerbare an einer Stelle:
+
+| Feld | Zustand | Knöpfe |
+|---|---|---|
+| Arbeit der Agenten | läuft / angehalten | Alle anhalten · Weiterarbeiten |
+| Bildschirm | belegt / frei für Agenten (bis …) | Für Agenten freigeben … (nur am PC) · Wieder belegen |
+| Sitzungen | n laufen · n abgemeldet · n fehlen | Alle sichern & beenden · Fehlende starten (beides nur am PC) |
+| Wächter | läuft · Version | Neu starten (nur am PC) |
+
+**Aktionsmenü „⋯“** an jeder Agenten-Kachel: Nachricht schreiben, Gespräch mitlesen, Übersicht und Aufgabenliste ·
+Anhalten (nur diesen) bzw. Weiterarbeiten lassen, Sichern & beenden lassen, Sofort beenden, Starten/fortsetzen, Neue
+Sitzung beginnen (Sitzungen nur am PC) · Profil und Zuständigkeit.
 
 | Ansicht | Wofür |
 |---|---|
@@ -30,9 +44,15 @@ Zeile, die sich waagrecht wischen lässt.
   zurück. Antworten geht auch geparkt. Der TL und die Agenten parken mit `amw frage parken <nr> --grund "…"` (der Lead und
   der Fragesteller; auch über die TL-Brücke), `amw frage aufnehmen <nr>` holt sie zurück, `amw frage liste --geparkt`
   zeigt sie. Parken und Aufnehmen stehen im Verlauf der Frage, der Fragesteller bekommt eine Info.
-- **Anhalten:** „Alle anhalten“ oben rechts (alle oder einen Agenten); „Weiterarbeiten“ hebt auf. Agenten beginnen nichts Neues, Läufe starten nicht.
-- **Starten, fortsetzen, beenden:** Kachel › Übersicht. „Fortsetzen“ setzt die letzte Sitzung fort (Gesprächsverlauf
-  bleibt), „Neu beginnen“ startet frisch mit dem Startsatz. Profil im Zahnrad › Agenten › Profil.
+- **Anhalten:** im Leitstand „Alle anhalten“ (alle oder einen Agenten) oder im Aktionsmenü ⋯ der Kachel „Anhalten (nur
+  diesen)“; „Weiterarbeiten“ hebt auf. Agenten beginnen nichts Neues, Läufe starten nicht.
+- **Starten, fortsetzen, beenden:** Aktionsmenü ⋯ der Kachel (oder Kachel › Übersicht). „Fortsetzen“ setzt die letzte
+  Sitzung fort (Gesprächsverlauf bleibt), „Neue Sitzung beginnen“ startet frisch mit dem Startsatz. „Fehlende starten“
+  im Leitstand startet alle, die laufen sollen und nicht laufen, nacheinander. Profil im Zahnrad › Agenten › Profil.
+- **Sichern & beenden (z. B. vor einem Update):** im Leitstand für alle, im Aktionsmenü für einen. Der Agent bekommt
+  die Bitte, seinen Stand festzuhalten und sich abzumelden (`amw abmelden`); sobald er abgemeldet ist, beendet die AMW
+  seine Sitzung – nach 5 Minuten auch ohne Abmeldung. Das Fenster bleibt offen; „Starten / fortsetzen“ holt ihn zurück.
+  Nur am PC.
 - **Mitlesen:** Kachel › „Gespräch“ (oder in der Übersicht der Reiter *Gespräch*) zeigt, was der Agent mit Claude Code
   bespricht – live, ohne sein Fenster zu suchen. Deine Eingaben stehen rechts, Claudes Antworten links. Weckrufe der AMW,
   Aufgabenmeldungen und Zusammenfassungen sind klein dazwischen. Die Arbeitsschritte (Werkzeuge) sind je Strecke

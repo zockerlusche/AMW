@@ -195,6 +195,11 @@ class Dienst:
             for lid in betrieb.warteschlange(self.con, p["id"]):
                 log.info("Warteschlange: L%s freigegeben", lid)
         statusline.uebernehmen(self.con)                                     # Kontext, Grenzen, Kosten je Sitzung
+        try:                                                                 # „Sichern & beenden“: abgemeldet oder Frist um
+            for e in steuerung.ende_pruefen(self.con):
+                log.info("Sichern & beenden: %s", e)
+        except Exception as e:
+            log.warning("Sichern & beenden: %s: %s", type(e).__name__, e)
         try:                                                                 # abgestürzte Agenten fortsetzen (Profil)
             for e in self.neustarter.runde():
                 log.info("Neustart: %s", e)
