@@ -99,7 +99,7 @@ class Seite(Wiederholt, Grund):
         self.oeffnen("planung", "document.querySelector('.kopf .kopf-aktion')?.textContent === 'Neuer Bogen'")   # nicht der Knopf der alten Sicht
 
     def test_dialog_enter_schickt_ab_und_hat_ein_kreuz(self):
-        self.oeffnen("start", "typeof nachrichtDialog === 'function' && document.querySelector('.kachel')")
+        self.oeffnen("start", "typeof nachrichtDialog === 'function' && document.querySelector('#team [data-k]')")
         self.tab.js("nachrichtDialog('CC1')")
         self.warten("document.querySelector('.dialog-hg input')")
         self.assertEqual(self.tab.js("document.querySelectorAll('.dialog-hg .dialog-zu').length"), 1)
@@ -149,12 +149,22 @@ class Seite(Wiederholt, Grund):
         self.warten("zustand.sicht === 'verlauf' && document.getElementById('mehr').classList.contains('an')")
 
     def test_leitstand_und_aktionsmenue(self):
-        self.oeffnen("start", "document.querySelector('#leitstand') && document.querySelector('.kachel .mehr-knopf')")
+        self.oeffnen("start", "document.querySelector('#leitstand') && document.querySelector('#team .mehr-knopf')")
+        # Team: als Baum (du → Lead → Agenten; Vorgabe am breiten Schirm), umschaltbar auf die Liste – die Wahl bleibt
+        self.tab.js("[...document.querySelectorAll('.tm-schalter button')][0].click()")
+        self.warten("document.querySelector('.tm-baum') && document.querySelectorAll('.tm-linien path').length")
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.tm-baum [data-k]')].map(k => k.dataset.k)"), ["*du", "TL", "CC1"])
+        self.assertTrue(self.tab.js("document.querySelectorAll('.tm-linien path').length >= 3"))                 # Äste gezeichnet
+        self.tab.js("[...document.querySelectorAll('.tm-schalter button')][1].click()")
+        self.warten("document.querySelector('.tm-liste') && !document.querySelector('.tm-baum')")
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.tm-liste .tm-z[data-k]')].map(k => k.dataset.k)"), ["TL", "CC1"])
+        self.tab.js("zeige('start', true)")
+        self.warten("document.querySelector('.tm-liste')")
         self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 4)       # Arbeit, Bildschirm, Sitzungen, Wächter
         self.assertFalse(self.tab.js("document.querySelector('header').innerText.includes('null')"))   # leere Hinweise sind keine Texte
         self.assertFalse(self.tab.js("!!document.querySelector('#halt-knopf')"))                       # Anhalten steht im Leitstand
         self.assertTrue(self.tab.js("[...document.querySelectorAll('#leitstand button')].some(b => b.textContent === 'Alle anhalten')"))
-        self.tab.js("document.querySelector('.kachel .mehr-knopf').click()")
+        self.tab.js("document.querySelector('#team .mehr-knopf').click()")
         self.warten("document.querySelector('.menue')")
         texte = self.tab.js("[...document.querySelectorAll('.menue button')].map(b => b.textContent)")
         self.assertEqual(texte[0], "Nachricht schreiben")

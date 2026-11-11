@@ -226,7 +226,7 @@ def _ablage_grenze(con, pid):
 def daten_start(con, pid):
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
-        "SELECT g.kennung, g.rolle, g.soll, g.grenzen, (g.ordner IS NULL OR g.ordner = '') AS chat, s.zustand, s.letzter_puls_utc, s.gestartet_utc, s.taetigkeit,"
+        "SELECT g.kennung, g.rolle, g.soll, g.grenzen, (g.rolle = 'lead' AND (g.ordner IS NULL OR g.ordner = '')) AS chat, (g.ordner IS NOT NULL AND g.ordner != '') AS startbar, s.zustand, s.letzter_puls_utc, s.gestartet_utc, s.taetigkeit,"
         " s.taetigkeit_utc, s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc,"
         " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
         "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status = 'offen' AND n.id > :alt"
@@ -305,7 +305,19 @@ def daten_start(con, pid):
     sz["laeufe"] = zeilen(con.execute("SELECT id, agent, status, beschreibung FROM lauf WHERE projekt_id = ? AND schirm = 1"
                                       " AND status IN ('laeuft', 'angemeldet') ORDER BY id", (pid,)))
     ende = [{"kennung": e["kennung"], "bis_utc": e["bis_utc"]} for e in steuerung.ende_offen(con, pid)]   # „Sichern & beenden“ läuft
-    return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "ende": ende, "zaehler": zaehler,
+    # Team-Ansicht: wer gerade mit wem arbeitet (offene Prüfungen) und was der Lead vor sich hat (aktiver Bogen, Takt)
+    zusammen = [{"von": r["bauer"], "mit": r["pruefer"], "art": "pruefung", "aufgabe": r["aufgabe_id"], "id": r["id"]} for r in con.execute(
+        "SELECT id, bauer, pruefer, aufgabe_id FROM pruefung WHERE projekt_id = ? AND ergebnis = 'offen' ORDER BY id DESC LIMIT 12", (pid,))]
+    b = con.execute("SELECT id, nr, titel, zieldatum, (SELECT count(*) FROM aufgabe a WHERE a.bogen_id = bogen.id AND a.status != 'verworfen') AS n,"
+                    " (SELECT count(*) FROM aufgabe a WHERE a.bogen_id = bogen.id AND a.status = 'fertig') AS fertig FROM bogen"
+                    " WHERE projekt_id = ? AND status = 'aktiv' ORDER BY nr, id LIMIT 1", (pid,)).fetchone()
+    from .dienst import TAKT_MIN
+    try:
+        takt = int(json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}").get("takt_min", TAKT_MIN))
+    except (TypeError, ValueError):
+        takt = TAKT_MIN
+    team = {"zusammen": zusammen, "bogen": dict(b) if b else None, "takt_min": takt}
+    return {"version": __version__, "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}

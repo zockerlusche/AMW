@@ -502,6 +502,52 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .kachel .info { margin-top: 8px; color: var(--leise); font-size: 12.5px; min-height: 36px; overflow-wrap: anywhere; }
 .kachel .offen { position: absolute; top: 12px; right: 14px; font: 600 13px var(--mono); }
 .kachel.tot { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); }
+/* Team auf der Startseite: Baum (du → Lead → Agenten) oder kompakte Liste – dieselben Bausteine in beiden */
+.team { position: relative; }
+.tm-schalter { display: flex; gap: 4px; justify-content: flex-end; margin: -38px 0 10px; }
+.tm-schalter .klein-knopf { background: var(--grund); position: relative; z-index: 1; } .tm-schalter .klein-knopf.an { border-color: var(--bernstein); color: var(--tinte); }
+.tm-zeichen { display: inline-flex; color: var(--sehrleise); flex: none; } .tm-zeichen svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+.tm-fach { display: inline-block; font: 600 11px var(--titel); letter-spacing: .1em; text-transform: uppercase; padding: 1px 7px; border: 1px solid var(--linie2); color: var(--leise);
+  border-radius: 2px; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.tm-fach.lead { color: var(--bernstein); border-color: var(--bernstein); }
+.tm-name { font: 600 19px/1.1 var(--titel); letter-spacing: .02em; flex: none; }
+.tm-zustand { display: flex; align-items: center; gap: 7px; font: 13px var(--titel); letter-spacing: .03em; min-width: 0; } .tm-zustand .sehrleise { font-size: 11px; }
+.tm-auf { font-size: 12.5px; color: var(--leise); overflow-wrap: anywhere; }
+.tm-neben { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .tm-mit { color: var(--blau); }
+.tm-offen { font: 600 12px var(--mono); color: var(--leise); white-space: nowrap; } .tm-offen.viel { color: var(--bernstein); }
+.tm-fuss .tm-offen { margin-left: auto; font-weight: 400; font-size: 11px; } .tm-fuss .tm-liste-n { overflow: hidden; text-overflow: ellipsis; }
+.tm-zeile { display: inline-flex; align-items: center; gap: 8px; } .tm-ende { margin-left: auto; }
+.tm-balken { display: inline-block; width: 46px; height: 4px; background: var(--linie); border-radius: 2px; overflow: hidden; flex: 1 1 46px; max-width: 90px; }
+.tm-balken > span { display: block; height: 100%; background: var(--gruen); } .tm-balken.hoch > span { background: var(--bernstein); } .tm-balken.voll > span { background: var(--rot); }
+.tm-balken.ohne { display: none; }
+.tm-liste-n { font: 11px var(--mono); color: var(--sehrleise); white-space: nowrap; min-width: 0; }
+.tm-knoten .mehr-knopf, .tm-z .mehr-knopf { padding: 2px 9px; border-color: transparent; background: none; } .tm-knoten .mehr-knopf:hover, .tm-z .mehr-knopf:hover, .mehr-knopf.auf { border-color: var(--linie2); }
+.tm-baum { position: relative; display: flex; flex-direction: column; align-items: center; gap: 24px; padding-bottom: 6px; }
+.tm-linien { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.tm-ast { stroke: var(--linie2); stroke-width: 1.5; fill: none; } .tm-bogen { stroke: var(--blau); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+.tm-knoten { position: relative; z-index: 1; border: 1px solid var(--linie); background: var(--flaeche); padding: 10px 12px; min-width: 0; }
+.tm-knoten.klickbar { cursor: pointer; } .tm-knoten.klickbar:hover { border-color: var(--linie2); }
+.tm-knoten.tm-du { display: flex; gap: 6px 16px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 8px 16px; border-color: var(--bernstein); box-shadow: none; }
+.tm-zahl b { font: 600 17px var(--titel); color: var(--bernstein); }
+.tm-leads { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; width: 100%; }
+.tm-knoten.tm-lead { flex: 0 1 780px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 18px; align-items: start; border-left: 3px solid var(--bernstein); }
+.tm-knoten.tm-lead .tm-wer { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; } .tm-knoten.tm-lead .tm-name { font-size: 22px; }
+.tm-lead dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; font-size: 13px; } .tm-lead dt { color: var(--sehrleise); white-space: nowrap; } .tm-lead dd { margin: 0; overflow-wrap: anywhere; }
+.tm-rechts { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.tm-ebene { display: grid; grid-template-columns: repeat(auto-fit, minmax(182px, 1fr)); gap: 12px 12px; width: 100%; padding-bottom: 26px; row-gap: 24px; }
+.tm-knoten.tm-agent { display: flex; flex-direction: column; gap: 5px; }
+.tm-agent .tm-wer { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tm-agent .tm-auf { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 36px; }
+.tm-fuss { display: flex; align-items: center; gap: 8px; margin-top: auto; }
+.tm-knoten.tot, .tm-z.tot { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); } .tm-knoten.aus, .tm-z.aus { opacity: .55; }
+.tm-liste { border: 1px solid var(--linie); background: var(--flaeche); box-shadow: var(--schatten); }
+.tm-z { display: grid; grid-template-columns: 200px 120px 190px minmax(0, 1.6fr) minmax(0, 1fr) 150px 40px; gap: 0 12px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--linie); min-height: 40px; }
+.tm-z:last-child { border-bottom: 0; } .tm-z.klickbar { cursor: pointer; } .tm-z.klickbar:hover { background: var(--flaeche2); }
+.tm-z.tm-kopfz { min-height: 0; padding: 6px 12px; font: 600 10.5px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--sehrleise); background: var(--flaeche2); }
+.tm-z.tm-du { background: var(--bernstein-weich); }
+.tm-z .tm-wer { display: flex; align-items: center; gap: 8px; min-width: 0; } .tm-z .tm-name { font-size: 16px; } .tm-astz { color: var(--linie2); font-family: var(--mono); }
+.tm-z .tm-auf { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.tm-z .tm-fuss { margin-top: 0; min-width: 0; }
 /* Leitstand: alles Steuerbare an einer Stelle, direkt unter den Agenten (Start) */
 .leitstand { margin-top: 16px; border: 1px solid var(--linie2); background: linear-gradient(180deg, var(--flaeche2), var(--flaeche));
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); scroll-margin-top: 12px; }
@@ -756,6 +802,16 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   nav a .zahl { position: absolute; top: 2px; right: 6px; margin: 0; font-size: 10px; }
   nav a .zahl:not(.heiss) { display: none; }
   main { padding: 16px 14px 24px; }
+  .tm-schalter { margin-top: -34px; }
+  .tm-knoten.tm-lead { grid-template-columns: minmax(0, 1fr); } .tm-rechts { flex-direction: row; align-items: center; justify-content: space-between; }
+  .tm-ebene { grid-template-columns: 1fr 1fr; gap: 8px; row-gap: 22px; }
+  /* Liste am Handy: Name und ⋯ in der ersten Zeile, darunter Zustand, Aufgabe (zwei Zeilen), „wartet auf“ */
+  .tm-z { grid-template-columns: minmax(0, 1fr) 36px; gap: 2px 10px; padding: 8px 10px; } .tm-z.tm-kopfz { display: none; }
+  .tm-z > :nth-child(2), .tm-z > :nth-child(6) { display: none; }
+  .tm-z > .mehr-knopf { grid-column: 2; grid-row: 1; }
+  .tm-z > .tm-zustand, .tm-z > .tm-auf, .tm-z > .tm-neben { grid-column: 1 / -1; }
+  .tm-z > .tm-auf { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .tm-z > span:empty { display: none; }
   .leitstand { grid-template-columns: 1fr 1fr; }
   .leitstand > div:nth-child(2n) { border-right: 0; } .leitstand > div:nth-child(-n+2) { border-bottom: 1px solid var(--linie); }
   .menue button { padding: 12px 14px; }
@@ -849,7 +905,7 @@ const TEXTE = {
     marke: "Agenten Management Workbench", suche: "Suchen: Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten",
     g_fuerdich: "Für dich", g_arbeit: "Arbeit", g_wissen: "Wissen", g_betrieb: "Betrieb",
     n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_aufgaben_kurz: "Arbeit", n_releases: "Release Notes", n_releases_kurz: "Notes", n_mehr: "Mehr", n_wissen: "Wissen", n_betrieb: "Betrieb",
-    thema: "Hell / Dunkel", halt: "Alle anhalten", halt_an: "Angehalten", s_ende: "{n} werden beendet (bis {x})", k_ende: "sichert und wird beendet – spätestens {x}", ls_hin: "zum Leitstand (Start, unter den Agenten)", ls_arbeit: "Arbeit der Agenten", ls_laeuft: "läuft", ls_steht: "angehalten", ls_arbeit_e: "Anhalten: Agenten beenden ihren Schritt und nehmen nichts Neues an.", ls_schirm: "Bildschirm", ls_schirm_frei: "frei für Agenten", ls_schirm_belegt: "belegt", ls_schirm_e: "Nur wenn frei, dürfen Agenten Fenster öffnen (Programm starten, Bilder aufnehmen).", ls_sitz: "Sitzungen", ls_sitz_laufen: "{n} laufen", ls_sitz_laufen1: "1 läuft", ls_sitz_fehlen1: "1 fehlt", ls_sitz_ruhen: "{n} abgemeldet", ls_sitz_fehlen: "{n} fehlen", ls_sitz_ende: "{n} werden beendet – spätestens {x}", ls_sitz_e: "Für ein Update: Jeder sichert seinen Stand, meldet sich ab und wird beendet – nach 5 Minuten auch ohne Abmeldung.", ls_sitz_e_netz: "Sitzungen starten und beenden geht nur am PC.", ls_sichern: "Alle sichern & beenden", ls_sichern_frage: "{n} laufende Sitzung(en) bitten, zu sichern und sich abzumelden? Wer nach 5 Minuten noch läuft, wird beendet. Fenster bleiben offen.", ls_sichern_ok: "{n} Agent(en) sichern – beendet spätestens {x}", ls_sichern_keiner: "Es läuft gerade keine Sitzung.", ls_starten: "Fehlende starten", ls_starten_frage: "Starten (nacheinander, letzte Sitzung fortsetzen): {x}?", ls_starten_ok: "{n} Agent(en) starten nacheinander im Abstand von {s} s", ls_wacht: "Wächter", ls_wacht_laeuft: "läuft · v{v}", ls_wacht_e: "Weckt Agenten, überwacht Läufe und Grenzen, gleicht mit der Online-Seite ab.", ls_wacht_e_netz: "Der Wächter läuft am PC und lädt den Stand hierher.", ls_wacht_neu: "Neu starten", ls_wacht_frage: "Wächter neu starten? Die Seite ist kurz nicht erreichbar; Agenten laufen weiter.", ls_wacht_ok: "Wächter startet neu – die Seite meldet sich gleich wieder", m_titel: "Befehle für {x}", m_nachricht: "Nachricht schreiben", m_gespraech: "Gespräch mitlesen", m_uebersicht: "Übersicht und Aufgabenliste", m_steuern: "Steuern", m_halt1: "Anhalten (nur diesen)", m_halt1_frage: "{x} anhalten? Er beendet seinen Schritt und nimmt nichts Neues an.", m_weiter1: "Weiterarbeiten lassen", m_sichern: "Sichern & beenden lassen", m_sichern_h: "für Updates", m_sichern_frage: "{x} bitten, zu sichern und sich abzumelden? Nach 5 Minuten wird die Sitzung auch ohne Abmeldung beendet.", m_sichern_ok: "sichert – beendet spätestens {x}", m_sofort: "Sofort beenden", m_sofort_h: "ohne Sichern", m_start: "Starten / fortsetzen", m_start_frage: "{x} starten (letzte Sitzung fortsetzen, falls vorhanden)?", m_neu: "Neue Sitzung beginnen", m_chat: "Ohne Arbeitsordner (z. B. Chat) – wird von hier nicht gestartet oder beendet", m_nur_pc: "Sitzung starten/beenden: nur am PC", m_profil: "Profil und Zuständigkeit …", weiter: "Weiterarbeiten",
+    thema: "Hell / Dunkel", halt: "Alle anhalten", halt_an: "Angehalten", tm_titel: "Team", tm_baum: "Baum", tm_baum_h: "du → Lead → Agenten, mit Linien für die Zusammenarbeit", tm_liste: "Liste", tm_liste_h: "kompakt: eine Zeile je Agent", tm_du: "Du", tm_leitet: "leitest das Projekt", tm_schritte: "deine Schritte", tm_fragen: "Fragen an dich", tm_freigaben: "Freigaben", tm_plant: "Plant gerade", tm_bogen: "Bogen {nr} · {x} ({f} von {n} fertig)", tm_ziel: "Ziel {x}", tm_kein_bogen: "kein aktiver Bogen", tm_takt: "Takt", tm_takt_min: "alle {n} min", tm_takt_hand: "von Hand", tm_chat: "Chat – über die Brücke", tm_chat_da: "Chat – gerade da", tm_w_chat: "arbeitet als Chat und schreibt über die Datei-Brücke", tm_w_sitzung: "arbeitet in einer eigenen Claude-Code-Sitzung", tm_keine: "keine Aufgabe", tm_liste_lauf: "{p}/{n} in der Liste", m_kein_ordner: "Kein Arbeitsordner im Profil – erst das Profil einrichten", tm_pruefung: "Prüfung", tm_mit_h: "arbeiten gerade zusammen: offene Prüfbitte", tm_k_agent: "Agent", tm_k_fach: "Fachgebiet", tm_k_zustand: "Zustand", tm_k_auf: "Arbeitet an", tm_k_mit: "Zusammenarbeit / wartet auf", tm_k_liste: "Verbrauch · Liste", s_ende: "{n} werden beendet (bis {x})", k_ende: "sichert und wird beendet – spätestens {x}", ls_hin: "zum Leitstand (Start, unter den Agenten)", ls_arbeit: "Arbeit der Agenten", ls_laeuft: "läuft", ls_steht: "angehalten", ls_arbeit_e: "Anhalten: Agenten beenden ihren Schritt und nehmen nichts Neues an.", ls_schirm: "Bildschirm", ls_schirm_frei: "frei für Agenten", ls_schirm_belegt: "belegt", ls_schirm_e: "Nur wenn frei, dürfen Agenten Fenster öffnen (Programm starten, Bilder aufnehmen).", ls_sitz: "Sitzungen", ls_sitz_laufen: "{n} laufen", ls_sitz_laufen1: "1 läuft", ls_sitz_fehlen1: "1 fehlt", ls_sitz_ruhen: "{n} abgemeldet", ls_sitz_fehlen: "{n} fehlen", ls_sitz_ende: "{n} werden beendet – spätestens {x}", ls_sitz_e: "Für ein Update: Jeder sichert seinen Stand, meldet sich ab und wird beendet – nach 5 Minuten auch ohne Abmeldung.", ls_sitz_e_netz: "Sitzungen starten und beenden geht nur am PC.", ls_sichern: "Alle sichern & beenden", ls_sichern_frage: "{n} laufende Sitzung(en) bitten, zu sichern und sich abzumelden? Wer nach 5 Minuten noch läuft, wird beendet. Fenster bleiben offen.", ls_sichern_ok: "{n} Agent(en) sichern – beendet spätestens {x}", ls_sichern_keiner: "Es läuft gerade keine Sitzung.", ls_starten: "Fehlende starten", ls_starten_frage: "Starten (nacheinander, letzte Sitzung fortsetzen): {x}?", ls_starten_ok: "{n} Agent(en) starten nacheinander im Abstand von {s} s", ls_wacht: "Wächter", ls_wacht_laeuft: "läuft · v{v}", ls_wacht_e: "Weckt Agenten, überwacht Läufe und Grenzen, gleicht mit der Online-Seite ab.", ls_wacht_e_netz: "Der Wächter läuft am PC und lädt den Stand hierher.", ls_wacht_neu: "Neu starten", ls_wacht_frage: "Wächter neu starten? Die Seite ist kurz nicht erreichbar; Agenten laufen weiter.", ls_wacht_ok: "Wächter startet neu – die Seite meldet sich gleich wieder", m_titel: "Befehle für {x}", m_nachricht: "Nachricht schreiben", m_gespraech: "Gespräch mitlesen", m_uebersicht: "Übersicht und Aufgabenliste", m_steuern: "Steuern", m_halt1: "Anhalten (nur diesen)", m_halt1_frage: "{x} anhalten? Er beendet seinen Schritt und nimmt nichts Neues an.", m_weiter1: "Weiterarbeiten lassen", m_sichern: "Sichern & beenden lassen", m_sichern_h: "für Updates", m_sichern_frage: "{x} bitten, zu sichern und sich abzumelden? Nach 5 Minuten wird die Sitzung auch ohne Abmeldung beendet.", m_sichern_ok: "sichert – beendet spätestens {x}", m_sofort: "Sofort beenden", m_sofort_h: "ohne Sichern", m_start: "Starten / fortsetzen", m_start_frage: "{x} starten (letzte Sitzung fortsetzen, falls vorhanden)?", m_neu: "Neue Sitzung beginnen", m_chat: "Chat – wird nicht gestartet oder beendet", m_nur_pc: "Sitzung starten/beenden: nur am PC", m_profil: "Profil und Zuständigkeit …", weiter: "Weiterarbeiten",
     s_dienst: "Wächter läuft", s_dienst_weg: "Wächter nicht erreichbar", s_agenten: "{a} von {b} Agenten laufen", s_speicher: "Arbeitsspeicher: {n} GB frei", s_speicher_unb: "Arbeitsspeicher: unbekannt",
     nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
     nicht_angemeldet_h: "Läuft, wird aber nicht geweckt – im Fenster: amw anmelden --von <Kennung>",
@@ -1160,7 +1216,7 @@ const TEXTE = {
     marke: "Agent Management Workbench", suche: "Search: tasks, decisions, questions, statements, messages",
     g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
     n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_aufgaben_kurz: "Tasks", n_releases: "Release notes", n_releases_kurz: "Notes", n_mehr: "More", n_wissen: "Knowledge", n_betrieb: "Operations",
-    thema: "Light / Dark", halt: "Pause all", halt_an: "Paused", s_ende: "{n} being ended (by {x})", k_ende: "saving, will be ended – by {x} at the latest", ls_hin: "to the control desk (Home, below the agents)", ls_arbeit: "Agents\u2019 work", ls_laeuft: "running", ls_steht: "paused", ls_arbeit_e: "Pause: agents finish their step and take nothing new.", ls_schirm: "Screen", ls_schirm_frei: "free for agents", ls_schirm_belegt: "in use", ls_schirm_e: "Only when free may agents open windows (start a program, take pictures).", ls_sitz: "Sessions", ls_sitz_laufen: "{n} running", ls_sitz_laufen1: "1 running", ls_sitz_fehlen1: "1 missing", ls_sitz_ruhen: "{n} signed off", ls_sitz_fehlen: "{n} missing", ls_sitz_ende: "{n} being ended – by {x} at the latest", ls_sitz_e: "For an update: everyone saves, signs off and is ended – after 5 minutes even without signing off.", ls_sitz_e_netz: "Starting and ending sessions works on the PC only.", ls_sichern: "Save & exit all", ls_sichern_frage: "Ask {n} running session(s) to save and sign off? Whoever still runs after 5 minutes is ended. Windows stay open.", ls_sichern_ok: "{n} agent(s) saving – ended by {x} at the latest", ls_sichern_keiner: "No session is running right now.", ls_starten: "Start missing", ls_starten_frage: "Start (one after another, resuming the last session): {x}?", ls_starten_ok: "{n} agent(s) starting one after another, {s} s apart", ls_wacht: "Watcher", ls_wacht_laeuft: "running · v{v}", ls_wacht_e: "Wakes agents, watches runs and limits, syncs with the online page.", ls_wacht_e_netz: "The watcher runs on the PC and uploads the state here.", ls_wacht_neu: "Restart", ls_wacht_frage: "Restart the watcher? The page is briefly unreachable; agents keep running.", ls_wacht_ok: "Watcher restarting – the page will be back in a moment", m_titel: "Commands for {x}", m_nachricht: "Write a message", m_gespraech: "Read the conversation", m_uebersicht: "Overview and task list", m_steuern: "Control", m_halt1: "Pause (this one only)", m_halt1_frage: "Pause {x}? It finishes its step and takes nothing new.", m_weiter1: "Let it resume", m_sichern: "Save & exit", m_sichern_h: "for updates", m_sichern_frage: "Ask {x} to save and sign off? After 5 minutes the session is ended even without signing off.", m_sichern_ok: "saving – ended by {x} at the latest", m_sofort: "Exit now", m_sofort_h: "without saving", m_start: "Start / resume", m_start_frage: "Start {x} (resuming the last session, if any)?", m_neu: "Begin a new session", m_chat: "No working folder (e.g. chat) – not started or stopped from here", m_nur_pc: "Start/end session: on the PC only", m_profil: "Profile and responsibilities …", weiter: "Resume",
+    thema: "Light / Dark", halt: "Pause all", halt_an: "Paused", tm_titel: "Team", tm_baum: "Tree", tm_baum_h: "you → lead → agents, with lines for who works together", tm_liste: "List", tm_liste_h: "compact: one row per agent", tm_du: "You", tm_leitet: "run the project", tm_schritte: "your steps", tm_fragen: "questions for you", tm_freigaben: "approvals", tm_plant: "Planning", tm_bogen: "Milestone {nr} · {x} ({f} of {n} done)", tm_ziel: "due {x}", tm_kein_bogen: "no active milestone", tm_takt: "Check-in", tm_takt_min: "every {n} min", tm_takt_hand: "manual", tm_chat: "Chat – via the bridge", tm_chat_da: "Chat – present", tm_w_chat: "works as a chat and writes via the file bridge", tm_w_sitzung: "works in its own Claude Code session", tm_keine: "no task", tm_liste_lauf: "{p}/{n} queued", m_kein_ordner: "No working folder in the profile – set up the profile first", tm_pruefung: "review", tm_mit_h: "working together right now: open review request", tm_k_agent: "Agent", tm_k_fach: "Specialty", tm_k_zustand: "State", tm_k_auf: "Working on", tm_k_mit: "Working with / waiting for", tm_k_liste: "Usage · queue", s_ende: "{n} being ended (by {x})", k_ende: "saving, will be ended – by {x} at the latest", ls_hin: "to the control desk (Home, below the agents)", ls_arbeit: "Agents\u2019 work", ls_laeuft: "running", ls_steht: "paused", ls_arbeit_e: "Pause: agents finish their step and take nothing new.", ls_schirm: "Screen", ls_schirm_frei: "free for agents", ls_schirm_belegt: "in use", ls_schirm_e: "Only when free may agents open windows (start a program, take pictures).", ls_sitz: "Sessions", ls_sitz_laufen: "{n} running", ls_sitz_laufen1: "1 running", ls_sitz_fehlen1: "1 missing", ls_sitz_ruhen: "{n} signed off", ls_sitz_fehlen: "{n} missing", ls_sitz_ende: "{n} being ended – by {x} at the latest", ls_sitz_e: "For an update: everyone saves, signs off and is ended – after 5 minutes even without signing off.", ls_sitz_e_netz: "Starting and ending sessions works on the PC only.", ls_sichern: "Save & exit all", ls_sichern_frage: "Ask {n} running session(s) to save and sign off? Whoever still runs after 5 minutes is ended. Windows stay open.", ls_sichern_ok: "{n} agent(s) saving – ended by {x} at the latest", ls_sichern_keiner: "No session is running right now.", ls_starten: "Start missing", ls_starten_frage: "Start (one after another, resuming the last session): {x}?", ls_starten_ok: "{n} agent(s) starting one after another, {s} s apart", ls_wacht: "Watcher", ls_wacht_laeuft: "running · v{v}", ls_wacht_e: "Wakes agents, watches runs and limits, syncs with the online page.", ls_wacht_e_netz: "The watcher runs on the PC and uploads the state here.", ls_wacht_neu: "Restart", ls_wacht_frage: "Restart the watcher? The page is briefly unreachable; agents keep running.", ls_wacht_ok: "Watcher restarting – the page will be back in a moment", m_titel: "Commands for {x}", m_nachricht: "Write a message", m_gespraech: "Read the conversation", m_uebersicht: "Overview and task list", m_steuern: "Control", m_halt1: "Pause (this one only)", m_halt1_frage: "Pause {x}? It finishes its step and takes nothing new.", m_weiter1: "Let it resume", m_sichern: "Save & exit", m_sichern_h: "for updates", m_sichern_frage: "Ask {x} to save and sign off? After 5 minutes the session is ended even without signing off.", m_sichern_ok: "saving – ended by {x} at the latest", m_sofort: "Exit now", m_sofort_h: "without saving", m_start: "Start / resume", m_start_frage: "Start {x} (resuming the last session, if any)?", m_neu: "Begin a new session", m_chat: "Chat – is never started or stopped", m_nur_pc: "Start/end session: on the PC only", m_profil: "Profile and responsibilities …", weiter: "Resume",
     s_dienst: "Watcher running", s_dienst_weg: "Watcher unreachable", s_agenten: "{a} of {b} agents running", s_speicher: "Memory: {n} GB free", s_speicher_unb: "Memory: unknown",
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
     nicht_angemeldet_h: "Running but cannot be woken – in its window: amw anmelden --von <name>",
@@ -1867,9 +1923,8 @@ async function sichtStart() {
           f.nachtraege ? el("span", { class: "etikett bernstein nachtrag-neu" }, t("nachtrag_neu", { n: f.nachtraege })) : null),
         el("p", {}, f.kurz.length > 180 ? f.kurz.slice(0, 180) + " …" : f.kurz))))
     : el("div", { class: "leer" }, t("nichts_offen")));
-  m.append(el("h2", {}, t("agenten")));
-  const rang = a => (a.soll === "an" ? 0 : a.zustand === "aktiv" ? 1 : 2);     /* erst die, die laufen sollen */
-  m.append(el("div", { class: "agenten zeile-reveal" }, [...d.agenten].sort((x, y) => rang(x) - rang(y)).map(kachel)));
+  m.append(el("h2", {}, t("tm_titel")));
+  m.append(teamAnsicht(d));
   m.append(leitstand(d));
   if ((d.an_dich || []).length) {
     const frisch = d.an_dich.filter(n => !n.abgelegt), alt = d.an_dich.filter(n => n.abgelegt);
@@ -1933,13 +1988,13 @@ function agentMenue(a, knopf) {
     "-", { titel: t("m_steuern") },
     eigenerHalt ? { text: t("m_weiter1"), tun: () => tun("/api/weiter", { fuer: k }, null, r => t("halt_aufgehoben", { n: r.aufgehoben })) }
       : { text: t("m_halt1"), tun: () => tun("/api/halt", { fuer: k, text: t("halt_vom") }, t("m_halt1_frage", { x: k }), () => t("halt_gesetzt")) },
-    a.chat ? { text: t("m_chat"), tun: () => {}, aus: true } : null,
-    !a.chat && !API ? { text: t("m_sichern"), hinweis: t("m_sichern_h"), aus: !(lebt || ruht) || ende,
+    a.chat ? { text: t("m_chat"), tun: () => {}, aus: true } : !a.startbar ? { text: t("m_kein_ordner"), tun: () => {}, aus: true } : null,
+    a.startbar && !API ? { text: t("m_sichern"), hinweis: t("m_sichern_h"), aus: !(lebt || ruht) || ende,
       tun: () => tun("/api/agent/ende", { kennung: k }, t("m_sichern_frage", { x: k }), r => t("m_sichern_ok", { x: zeit(r.bis_utc) })) } : null,
-    !a.chat && !API ? { text: t("m_sofort"), hinweis: t("m_sofort_h"), rot: true, aus: !lebt, tun: () => tun("/api/agent/stop", { kennung: k }, t("st_beenden_frage", { x: k })) } : null,
-    !a.chat && !API ? { text: t("m_start"), aus: lebt || ruht, tun: () => tun("/api/agent/start", { kennung: k }, t("m_start_frage", { x: k })) } : null,
-    !a.chat && !API ? { text: t("m_neu"), aus: lebt || ruht, tun: () => tun("/api/agent/start", { kennung: k, neu: true }, t("st_neu_frage", { x: k })) } : null,
-    !a.chat && API ? { text: t("m_nur_pc"), tun: () => {}, aus: true } : null,
+    a.startbar && !API ? { text: t("m_sofort"), hinweis: t("m_sofort_h"), rot: true, aus: !lebt, tun: () => tun("/api/agent/stop", { kennung: k }, t("st_beenden_frage", { x: k })) } : null,
+    a.startbar && !API ? { text: t("m_start"), aus: lebt || ruht, tun: () => tun("/api/agent/start", { kennung: k }, t("m_start_frage", { x: k })) } : null,
+    a.startbar && !API ? { text: t("m_neu"), aus: lebt || ruht, tun: () => tun("/api/agent/start", { kennung: k, neu: true }, t("st_neu_frage", { x: k })) } : null,
+    a.startbar && API ? { text: t("m_nur_pc"), tun: () => {}, aus: true } : null,
     "-", { text: t("m_profil"), tun: () => zeige("einstellungen") }]);
 }
 /* Leitstand: alles Steuerbare an einer Stelle – Arbeit anhalten, Bildschirm, Sitzungen (nur am PC), Wächter (nur am PC) */
@@ -1950,7 +2005,7 @@ function leitstand(d) {
   const pcTun = async (weg, frage, ok) => { if (!confirm(frage)) return;
     try { const r = await schicken(weg, {}); toast(ok(r)); zeige("start", true); setTimeout(() => zeige(zustand.sicht, true), 5000); }
     catch (x) { toast(t("fehler", { x: x.message }), true); } };
-  const eigene = d.agenten.filter(a => !a.chat && a.soll === "an");
+  const eigene = d.agenten.filter(a => a.startbar && a.soll === "an");
   const laufen = eigene.filter(a => a.zustand === "aktiv"), ruhen = eigene.filter(a => a.zustand === "ruht");
   const fehlen = eigene.filter(a => a.zustand !== "aktiv" && a.zustand !== "ruht");
   const ende = d.ende || [], halt = d.halt.length > 0, sz = d.schirm;
@@ -1981,42 +2036,124 @@ function taetigkeitAlter(utc) {
   return el("span", { class: alt ? "bernstein-text" : "sehrleise", style: "font-size:11px;white-space:nowrap", title: alt ? t("t_alt") : "" },
     " · " + t("t_seit", { x: seit(utc) }) + (alt ? " ⚠" : ""));
 }
-function kachel(a) {
-  const lebt = a.zustand === "aktiv"; const soll = a.soll === "an";
-  /* läuft → genauer aus den Hooks: arbeitet / frei / wartet auf Freigabe oder Eingabe / Fehler */
+/* Zustand eines Agenten in Worten: [Farbe, Text, seit]. Läuft er, genauer aus den Hooks (arbeitet / frei / wartet auf
+   Freigabe oder Eingabe / Fehler). Ohne Arbeitsordner ist er ein Chat: Er wird nie gestartet und fehlt darum auch nie. */
+function agentZustand(a) {
+  const lebt = a.zustand === "aktiv", soll = a.soll === "an";
   const ez = { arbeitet: ["gruen", t("z_arbeitet")], frei: ["gruen", t("z_frei")], wartet_freigabe: ["bernstein", t("z_freigabe")],
                wartet_eingabe: ["bernstein", t("z_eingabe")], fehler: ["rot", t("z_fehler")] }[a.ereignis];
   const dauer = lebt && ez && ["wartet_freigabe", "wartet_eingabe", "fehler"].includes(a.ereignis) && a.ereignis_utc ? seit(a.ereignis_utc) : null;
-  const zust = lebt ? (ez || ["gruen", t("laeuft")]) : a.zustand === "ruht" ? ["bernstein", t("abgemeldet")]
+  if (a.chat && !ez) return [lebt ? "gruen" : "", t(lebt ? "tm_chat_da" : "tm_chat"), null];
+  const z = lebt ? (ez || ["gruen", t("laeuft")]) : a.zustand === "ruht" ? ["bernstein", t("abgemeldet")]
     : soll ? ["rot", a.zustand ? t("beendet_soll") : t("nie_gestartet")] : ["", a.soll === "ruht" ? t("ruht") : t("aus")];
-  const kurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : x;
-  const ende = (zustand.start?.ende || []).find(x => x.kennung === a.kennung);        /* „Sichern & beenden“ läuft */
-  const karte = el("div", { class: `karte kachel klickbar ${!lebt && soll ? "tot" : ""} ${!soll ? "aus" : ""}`, title: t("k_details") },
-    a.offen ? el("span", { class: "offen", style: `color:var(${a.offen > 10 ? "--bernstein" : "--leise"})`, title: t("k_offen_h", { n: a.offen_alt || 0 }) }, t("k_offen_n", { n: a.offen })) : null,
-    el("div", { class: "name" }, a.kennung), el("div", { class: "rolle" }, a.rolle === "lead" ? t("lead") : a.rolle || t("agent")),
-    el("div", { class: "zustand", title: lebt ? t("k_puls", { t: seit(a.letzter_puls_utc) }) : null }, el("span", { class: "punkt " + zust[0] }),
-      el("span", { class: zust[0] === "bernstein" ? "bernstein-text" : zust[0] === "rot" && lebt ? "rot-text" : "" }, zust[1]),
-      dauer ? el("span", { class: "sehrleise", style: "font-size:11px" }, dauer) : null),
-    el("div", { class: "info" },
-      a.gerade ? el("div", {}, el("span", { class: "sehrleise" }, t("k_gerade") + " "), kurz(a.gerade, 90),
-        a.gerade_quelle === "meldung" ? el("span", { class: "sehrleise" }, " " + t("k_vermutet")) : null,
-        a.gerade_quelle === "angabe" && a.taetigkeit_utc ? taetigkeitAlter(a.taetigkeit_utc) : null)
-        : el("span", { class: "sehrleise" }, soll ? t("k_unbekannt") : (a.grenzen || "")),
-      (a.wartet || []).map(w => el("div", { class: "bernstein-text", style: "margin-top:4px;font-size:12px" }, t("k_wartet", { a: `A${w.aufgabe}`, x: w.auf }))),
-      (a.fuehrt || []).length ? el("div", { class: "mono", style: "margin-top:4px;font-size:11px;color:var(--tinte)", title: t("k_fuehrt_h") },
-        "◆ " + t("k_fuehrt", { x: a.fuehrt.join(", ") })) : null,
-      a.liste_n ? el("div", { class: "mono sehrleise", style: "margin-top:4px;font-size:11px" },
-        a.liste_lauf ? t("k_liste", { p: a.liste_lauf, n: a.liste_n }) : t("k_liste_n", { n: a.liste_n })) : null,
-      a.zuletzt ? el("div", { class: "sehrleise", style: "margin-top:4px" }, `${t("k_zuletzt")} ${seit(a.zuletzt_utc)}: ${kurz(a.zuletzt, 70)}`) : null),
-    lebt && (a.kontext_prozent != null || a.limit_5h != null) ? el("div", { class: "mini-balken" },
-      a.kontext_prozent != null ? balken(t("b_kontext"), a.kontext_prozent) : null, a.limit_5h != null ? balken(t("b_5h"), a.limit_5h) : null) : null,
-    ende ? el("div", { class: "bernstein-text", style: "margin-top:6px;font-size:12px" }, t("k_ende", { x: zeit(ende.bis_utc) })) : null,
-    el("div", { style: "display:flex;gap:6px;margin-top:8px;flex-wrap:wrap" },
-      soll ? el("button", { class: "klein-knopf", type: "button", onclick: e => { e.stopPropagation(); nachrichtDialog(a.kennung); } }, t("nachricht")) : null,
-      el("button", { class: "klein-knopf mehr-knopf", type: "button", title: t("m_titel", { x: a.kennung }), "aria-haspopup": "menu",
-        onclick: e => { e.stopPropagation(); agentMenue(a, e.currentTarget); } }, "⋯")));
-  karte.addEventListener("click", () => agentDialog(a.kennung));
-  return karte;
+  return [z[0], z[1], dauer];
+}
+/* Kleine Zeichen der Team-Ansicht (als Elemente gebaut, nicht als Text eingesetzt) */
+const TM_ZEICHEN = { sitzung: [["rect", { x: 1.5, y: 2.5, width: 13, height: 11, rx: 1.5 }], ["path", { d: "M4.5 6l2.5 2-2.5 2M8.500 10.500h3" }]],
+  chat: [["path", { d: "M2 3.5h12v7.5H7l-3 2.5V11H2z" }]], mensch: [["circle", { cx: 8, cy: 5, r: 2.6 }], ["path", { d: "M2.800 14c.6-3 2.600-4.400 5.200-4.400s4.600 1.400 5.200 4.400" }]] };
+function tmZeichen(art, titel) {
+  const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 16 16"); svg.setAttribute("aria-hidden", "true");
+  for (const [tag, attr] of TM_ZEICHEN[art]) { const e = document.createElementNS(ns, tag); for (const [k, v] of Object.entries(attr)) e.setAttribute(k, v); svg.append(e); }
+  return el("span", { class: "tm-zeichen", title: titel }, svg);
+}
+const tmWeise = a => tmZeichen(a.chat ? "chat" : "sitzung", t(a.chat ? "tm_w_chat" : "tm_w_sitzung"));
+const tmFach = a => el("span", { class: "tm-fach" + (a.rolle === "lead" ? " lead" : "") }, a.rolle === "lead" ? t("lead") : a.rolle || t("agent"));
+const tmKurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : x;
+const tmMehr = a => el("button", { class: "klein-knopf mehr-knopf", type: "button", title: t("m_titel", { x: a.kennung }), "aria-haspopup": "menu",
+  onclick: e => { e.stopPropagation(); agentMenue(a, e.currentTarget); } }, "⋯");
+const tmOffen = (a, kurz) => a.offen ? el("span", { class: "tm-offen" + (a.offen > 10 ? " viel" : ""), title: t("k_offen_n", { n: a.offen }) + " – " + t("k_offen_h", { n: a.offen_alt || 0 }) },
+  kurz ? "✉ " + a.offen : t("k_offen_n", { n: a.offen })) : null;
+const tmZustand = a => { const [farbe, text, dauer] = agentZustand(a);
+  return el("div", { class: "tm-zustand", title: a.zustand === "aktiv" ? t("k_puls", { t: seit(a.letzter_puls_utc) }) : null }, el("span", { class: "punkt " + farbe }),
+    el("span", { class: farbe === "bernstein" ? "bernstein-text" : farbe === "rot" && a.zustand === "aktiv" ? "rot-text" : "" }, text), dauer ? el("span", { class: "sehrleise" }, dauer) : null); };
+const tmAufgabe = (a, n) => a.gerade ? [el("span", { class: "sehrleise" }, t("k_gerade") + " "), tmKurz(a.gerade, n)]
+  : [el("span", { class: "sehrleise" }, a.soll === "an" && !a.chat ? t("k_unbekannt") : (a.grenzen || t("tm_keine")))];
+/* Mit wem er gerade arbeitet (offene Prüfung) oder worauf er wartet – eine Zeile, der Rest steht in der Übersicht */
+function tmNeben(a, d) {
+  const ende = (d.ende || []).find(x => x.kennung === a.kennung);
+  if (ende) return el("div", { class: "tm-neben bernstein-text" }, t("k_ende", { x: zeit(ende.bis_utc) }));
+  const z = (d.team?.zusammen || []).find(x => x.von === a.kennung || x.mit === a.kennung);
+  if (z) return el("div", { class: "tm-neben tm-mit", title: t("tm_mit_h") }, "⇄ " + (z.von === a.kennung ? z.mit : z.von) + " · " + t("tm_pruefung") + (z.aufgabe ? ` A${z.aufgabe}` : ""));
+  const w = a.wartet || [];
+  return w.length ? el("div", { class: "tm-neben bernstein-text" }, t("k_wartet", { a: `A${w[0].aufgabe}`, x: w[0].auf }) + (w.length > 1 ? ` +${w.length - 1}` : "")) : null;
+}
+const tmFuss = a => [tmWeise(a), a.zustand === "aktiv" && a.kontext_prozent != null
+  ? el("span", { class: "tm-balken" + (a.kontext_prozent > 85 ? " voll" : a.kontext_prozent > 60 ? " hoch" : ""), title: `${t("b_kontext")} ${Math.round(a.kontext_prozent)} %` }, el("span", { style: `width:${Math.min(100, a.kontext_prozent)}%` }))
+  : el("span", { class: "tm-balken ohne" }), el("span", { class: "tm-liste-n", title: (a.fuehrt || []).length ? t("k_fuehrt", { x: a.fuehrt.join(", ") }) : null },
+    (a.liste_n ? (a.liste_lauf ? t("tm_liste_lauf", { p: a.liste_lauf, n: a.liste_n }) : t("k_liste_n", { n: a.liste_n })) : "") + ((a.fuehrt || []).length ? " ◆" : ""))];
+const teamArt = () => { const g = gemerkt("amw-team"); return g === "baum" || g === "liste" ? g : (matchMedia("(max-width: 760px)").matches ? "liste" : "baum"); };
+/* Team auf der Startseite: Baum (du → Lead → Agenten; gestrichelte Bögen = arbeiten gerade zusammen) oder kompakte Liste */
+function teamAnsicht(d) {
+  const art = teamArt(), rang = a => (a.soll === "an" ? 0 : a.zustand === "aktiv" ? 1 : 2);
+  const leads = d.agenten.filter(a => a.rolle === "lead"), rest = d.agenten.filter(a => a.rolle !== "lead").sort((x, y) => rang(x) - rang(y));
+  const huelle = el("div", { class: "team", id: "team" });
+  huelle.append(el("div", { class: "tm-schalter" }, ["baum", "liste"].map(x => el("button", { class: "klein-knopf" + (x === art ? " an" : ""), type: "button", title: t("tm_" + x + "_h"),
+    onclick: () => { try { localStorage.setItem(ablage("amw-team"), x); } catch (e) {} huelle.replaceWith(teamAnsicht(d)); } }, t("tm_" + x)))),
+    art === "baum" ? teamBaum(d, leads, rest) : teamListe(d, leads, rest));
+  return huelle;
+}
+const tmDu = d => { const pw = d.planung_wartet || { spezifikationen: [], plaene: [], eigene: [] }, frei = pw.spezifikationen.length + pw.plaene.length;
+  return [[pw.eigene.length, "tm_schritte"], [d.fragen.length, "tm_fragen"], [frei, "tm_freigaben"]].filter(([n]) => n); };
+function tmLeadInfo(a, d) {
+  const b = d.team?.bogen, takt = d.team?.takt_min;
+  return [[t("tm_plant"), b ? t("tm_bogen", { nr: b.nr, x: tmKurz(b.titel, 70), f: b.fertig, n: b.n }) + (b.zieldatum ? " · " + t("tm_ziel", { x: datumKurz(b.zieldatum) }) : "") : t("tm_kein_bogen")],
+    [t("tm_takt"), takt ? t("tm_takt_min", { n: takt }) : t("tm_takt_hand")],
+    a.zuletzt ? [t("k_zuletzt"), `${seit(a.zuletzt_utc)}: ${tmKurz(a.zuletzt, 110)}`] : null].filter(Boolean);
+}
+function teamBaum(d, leads, rest) {
+  const karte = (a, klasse, ...inhalt) => { const k = el("div", { class: `tm-knoten ${klasse} klickbar`, "data-k": a.kennung, title: t("k_details") }, inhalt);
+    k.addEventListener("click", () => agentDialog(a.kennung)); return k; };
+  const du = el("div", { class: "tm-knoten tm-du", "data-k": "*du" }, tmZeichen("mensch", ""), el("span", { class: "tm-name" }, t("tm_du")), el("span", { class: "leise" }, t("tm_leitet")),
+    tmDu(d).map(([n, k]) => el("span", { class: "tm-zahl" }, el("b", {}, n), " " + t(k))));
+  const lead = a => karte(a, "tm-lead" + (agentZustand(a)[0] === "rot" ? " tot" : ""),
+    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, a.kennung), tmFach(a), tmZustand(a)),
+    el("dl", {}, tmLeadInfo(a, d).flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)])),
+    el("div", { class: "tm-rechts" }, el("span", { class: "tm-zeile" }, tmOffen(a), tmMehr(a)), el("span", { class: "tm-zeile sehrleise" }, tmWeise(a), tmFuss(a)[2])));
+  const agent = a => karte(a, "tm-agent" + (agentZustand(a)[0] === "rot" && a.zustand !== "aktiv" ? " tot" : "") + (a.soll !== "an" ? " aus" : ""),
+    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, a.kennung), tmFach(a), el("span", { class: "tm-zeile tm-ende" }, tmMehr(a))),
+    tmZustand(a), el("div", { class: "tm-auf" }, tmAufgabe(a, 80)), tmNeben(a, d) || el("div", { class: "tm-neben" }, "\u00a0"), el("div", { class: "tm-fuss" }, tmFuss(a), tmOffen(a, true)));
+  const baum = el("div", { class: "tm-baum" }, du, leads.length ? el("div", { class: "tm-leads" }, leads.map(lead)) : null, el("div", { class: "tm-ebene" }, rest.map(agent)));
+  const ns = "http://www.w3.org/2000/svg", linien = document.createElementNS(ns, "svg"); linien.setAttribute("class", "tm-linien"); baum.prepend(linien);
+  const zeichnen = () => tmLinien(baum, linien, d);
+  requestAnimationFrame(zeichnen); new ResizeObserver(zeichnen).observe(baum);
+  return baum;
+}
+/* Linien des Baums: Äste von oben nach unten; gestrichelte Bögen zwischen zwei Agenten derselben Reihe, die zusammenarbeiten */
+function tmLinien(baum, svg, d) {
+  if (!baum.isConnected) return;
+  const ns = "http://www.w3.org/2000/svg", o = baum.getBoundingClientRect();
+  const ort = e => { const r = e.getBoundingClientRect(); return { x: r.left - o.left + r.width / 2, oben: r.top - o.top, unten: r.bottom - o.top }; };
+  const knoten = k => baum.querySelector(`[data-k="${CSS.escape(k)}"]`);
+  const teile = [], pfad = (klasse, dd) => { const p = document.createElementNS(ns, "path"); p.setAttribute("class", klasse); p.setAttribute("d", dd); teile.push(p); };
+  const du = ort(knoten("*du")), leads = [...baum.querySelectorAll(".tm-lead")].map(ort), agenten = [...baum.querySelectorAll(".tm-agent")];
+  const stamm = leads.length ? { x: leads.reduce((s, l) => s + l.x, 0) / leads.length, unten: Math.max(...leads.map(l => l.unten)) } : du;
+  for (const l of leads) pfad("tm-ast", `M${du.x} ${du.unten} V${(du.unten + l.oben) / 2} H${l.x} V${l.oben}`);
+  const reihen = new Map(); for (const a of agenten) { const q = ort(a); const y = Math.round(q.oben); if (!reihen.has(y)) reihen.set(y, []); reihen.get(y).push(q); }
+  const ys = [...reihen.keys()].sort((a, b) => a - b);
+  for (const y of ys) { const xs = reihen.get(y).map(q => q.x), quer = y - 12;
+    pfad("tm-ast", `M${Math.min(...xs, stamm.x)} ${quer} H${Math.max(...xs, stamm.x)}`); for (const x of xs) pfad("tm-ast", `M${x} ${quer} V${y}`); }
+  if (ys.length) pfad("tm-ast", `M${stamm.x} ${stamm.unten} V${ys[ys.length - 1] - 12}`);
+  const gezeigt = new Set();
+  for (const z of d.team?.zusammen || []) {
+    const a = knoten(z.von), b = knoten(z.mit), schl = [z.von, z.mit].sort().join("|"); if (!a || !b || gezeigt.has(schl)) continue;
+    const p = ort(a), q = ort(b); if (!a.classList.contains("tm-agent") || !b.classList.contains("tm-agent") || Math.abs(p.unten - q.unten) > 4) continue;
+    gezeigt.add(schl); const y = p.unten + 2, tief = y + 16 + 6 * (gezeigt.size % 2);
+    pfad("tm-bogen", `M${p.x} ${y} C${p.x} ${tief + 8}, ${q.x} ${tief + 8}, ${q.x} ${y}`);
+  }
+  svg.replaceChildren(...teile);
+}
+function teamListe(d, leads, rest) {
+  const zeile = (a, ast, klasse) => { const z = el("div", { class: `tm-z ${klasse || ""} klickbar` + (a.soll !== "an" ? " aus" : ""), "data-k": a.kennung, title: t("k_details") },
+    el("div", { class: "tm-wer" }, el("span", { class: "tm-astz" }, ast), tmWeise(a), el("span", { class: "tm-name" }, a.kennung), tmOffen(a)), el("span", {}, tmFach(a)), tmZustand(a),
+    el("div", { class: "tm-auf" }, a.rolle === "lead" && d.team?.bogen ? [el("span", { class: "sehrleise" }, t("tm_plant") + ": "), tmLeadInfo(a, d)[0][1]] : tmAufgabe(a, 120)),
+    tmNeben(a, d) || el("span", {}), el("span", { class: "tm-fuss" }, tmFuss(a).slice(1)), tmMehr(a));
+    z.addEventListener("click", () => agentDialog(a.kennung)); return z; };
+  return el("div", { class: "tm-liste" },
+    el("div", { class: "tm-z tm-kopfz" }, ["tm_k_agent", "tm_k_fach", "tm_k_zustand", "tm_k_auf", "tm_k_mit", "tm_k_liste"].map(k => el("span", {}, t(k))), el("span", {})),
+    el("div", { class: "tm-z tm-du" }, el("div", { class: "tm-wer" }, tmZeichen("mensch", ""), el("span", { class: "tm-name" }, t("tm_du"))), el("span", { class: "leise" }, t("tm_leitet")), el("span", {}),
+      el("div", { class: "tm-auf" }, tmDu(d).flatMap(([n, k], i) => [i ? " · " : "", el("b", {}, n), " " + t(k)])), el("span", {}), el("span", {}), el("span", {})),
+    leads.map(a => zeile(a, "└", "tm-lead")), rest.map((a, i) => zeile(a, "\u00a0\u00a0" + (i === rest.length - 1 ? "└" : "├"))));
 }
 /* Starten / Fortsetzen / Neu / Beenden – nur am PC (online gibt es keine Knöpfe), immer mit Rückfrage */
 function steuerKnoepfe(d, schliessen) {

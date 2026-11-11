@@ -4,6 +4,17 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.38.0 – 11.11.2026 · Startseite: das Team als Baum oder Liste
+- **Baum statt Kacheln:** oben du (deine Schritte, Fragen an dich, Freigaben), darunter der Lead (was er plant, Takt,
+  letzte Meldung), darunter die Agenten als kleine Karten – Fachgebiet, Zustand, woran er arbeitet, worauf er wartet,
+  Verbrauch, Länge seiner Liste. Linien zeigen die Hierarchie; gestrichelte Bögen verbinden, wer gerade zusammenarbeitet
+  (offene Prüfbitte).
+- **Liste als Umschaltung** (oben rechts, Vorgabe am Handy): dieselben Angaben, eine Zeile je Agent – acht Agenten
+  brauchen etwa die halbe Höhe der bisherigen Kacheln. Die Wahl bleibt je Gerät.
+- **Arbeitsweise sichtbar:** eigenes Zeichen für eine Claude-Code-Sitzung und für einen Lead, der als Chat über die
+  Datei-Brücke arbeitet; ein Chat gilt nie als „läuft nicht“.
+- Leitstand: „Fehlende starten“ zählt nur Agenten mit Arbeitsordner; Agenten ohne Profil sagen das im Aktionsmenü.
+
 ## 1.37.0 – 11.11.2026 · Schritt-für-Schritt-Hilfen direkt in der Workbench
 - **Hilfe-Baustein:** Ein „? Anleitung“ neben einer Einstellung öffnet eine Schritt-für-Schritt-Hilfe – was du
   brauchst, nummerierte Schritte, welche Werte wohin gehören, typische Fehler, häufige Fragen. Am PC, online und am

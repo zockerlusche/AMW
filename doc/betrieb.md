@@ -15,13 +15,18 @@ Agenten“, „n werden beendet“), steht es dort als Hinweis, ein Klick führt
 | Sitzungen | n laufen · n abgemeldet · n fehlen | Alle sichern & beenden · Fehlende starten (beides nur am PC) |
 | Wächter | läuft · Version | Neu starten (nur am PC) |
 
-**Aktionsmenü „⋯“** an jeder Agenten-Kachel: Nachricht schreiben, Gespräch mitlesen, Übersicht und Aufgabenliste ·
+**Team** (Start): als **Baum** – du oben, darunter der Lead (was er plant, Takt, letzte Meldung), darunter die Agenten
+mit Fachgebiet, Zustand, Aufgabe, „wartet auf“ und Verbrauch; gestrichelte Bögen verbinden, wer gerade zusammenarbeitet
+(offene Prüfbitte). Oben rechts umschaltbar auf die **Liste** (eine Zeile je Agent, Vorgabe am Handy); die Wahl bleibt
+je Gerät. Ein Klick auf einen Agenten öffnet seine Übersicht.
+
+**Aktionsmenü „⋯“** an jedem Agenten: Nachricht schreiben, Gespräch mitlesen, Übersicht und Aufgabenliste ·
 Anhalten (nur diesen) bzw. Weiterarbeiten lassen, Sichern & beenden lassen, Sofort beenden, Starten/fortsetzen, Neue
 Sitzung beginnen (Sitzungen nur am PC) · Profil und Zuständigkeit.
 
 | Ansicht | Wofür |
 |---|---|
-| **Start** | „Seit du weg warst“, Warnungen, **Wartet auf dich** (Freigaben, eigene Schritte, Fragen), Agenten-Kacheln (Zustand, was er gerade tut, Kontext/5-Stunden-Grenze; Klick = Übersicht mit Starten/Beenden), Nachrichten an dich |
+| **Start** | „Seit du weg warst“, Warnungen, **Wartet auf dich** (Freigaben, eigene Schritte, Fragen), das Team als Baum oder Liste (Zustand, was er gerade tut, Kontext/5-Stunden-Grenze; Klick = Übersicht mit Starten/Beenden), Nachrichten an dich |
 | **Fragen** | Reiter *Offen* und *Geparkt*: Fragen an dich mit Optionen und Empfehlung; Antwort per Klick, eigener Text oder Rückfrage; Verlauf wie im Chat; parken und wieder aufnehmen |
 | **Planung** | Zeitleiste der Bögen mit Ampel und Prognose, Spezifikation freigeben, Leitbild, Risiken, Plan-Check, Protokoll |
 | **Aufgaben** | Board (läuft · wartet · blockiert), geparkt, Pool, abgeschlossen; Filter nach Agent und Text |
@@ -36,7 +41,7 @@ Die Untermenüs einer Seite (Reiter, Filter, Sprungmarken) bleiben beim Scrollen
 Zeile, die sich waagrecht wischen lässt.
 
 ## 2 Mit den Agenten arbeiten
-- **Auftrag geben:** Kachel › „Nachricht“ (Art Auftrag weckt) – oder an den Lead, der verteilt.
+- **Auftrag geben:** am Agenten ⋯ › „Nachricht schreiben“ (Art Auftrag weckt) – oder an den Lead, der verteilt.
 - **Fragen beantworten:** Start oder Fragen; eine Rückfrage geht zurück an den Fragesteller, dessen Antwort erscheint im Verlauf der Frage.
 - **Fragen parken:** Eine Frage, die du gerade nicht verfolgen willst, parkst du über *Parken* auf der Karte. Steht Text im
   Feld, ist das der Grund. Die Frage bleibt offen, steht aber in keiner offenen Liste, in keinem Zähler und in keiner
@@ -44,16 +49,16 @@ Zeile, die sich waagrecht wischen lässt.
   zurück. Antworten geht auch geparkt. Der TL und die Agenten parken mit `amw frage parken <nr> --grund "…"` (der Lead und
   der Fragesteller; auch über die TL-Brücke), `amw frage aufnehmen <nr>` holt sie zurück, `amw frage liste --geparkt`
   zeigt sie. Parken und Aufnehmen stehen im Verlauf der Frage, der Fragesteller bekommt eine Info.
-- **Anhalten:** im Leitstand „Alle anhalten“ (alle oder einen Agenten) oder im Aktionsmenü ⋯ der Kachel „Anhalten (nur
+- **Anhalten:** im Leitstand „Alle anhalten“ (alle oder einen Agenten) oder im Aktionsmenü ⋯ des Agenten „Anhalten (nur
   diesen)“; „Weiterarbeiten“ hebt auf. Agenten beginnen nichts Neues, Läufe starten nicht.
-- **Starten, fortsetzen, beenden:** Aktionsmenü ⋯ der Kachel (oder Kachel › Übersicht). „Fortsetzen“ setzt die letzte
+- **Starten, fortsetzen, beenden:** Aktionsmenü ⋯ des Agenten (oder Klick › Übersicht). „Fortsetzen“ setzt die letzte
   Sitzung fort (Gesprächsverlauf bleibt), „Neue Sitzung beginnen“ startet frisch mit dem Startsatz. „Fehlende starten“
   im Leitstand startet alle, die laufen sollen und nicht laufen, nacheinander. Profil im Zahnrad › Agenten › Profil.
 - **Sichern & beenden (z. B. vor einem Update):** im Leitstand für alle, im Aktionsmenü für einen. Der Agent bekommt
   die Bitte, seinen Stand festzuhalten und sich abzumelden (`amw abmelden`); sobald er abgemeldet ist, beendet die AMW
   seine Sitzung – nach 5 Minuten auch ohne Abmeldung. Das Fenster bleibt offen; „Starten / fortsetzen“ holt ihn zurück.
   Nur am PC.
-- **Mitlesen:** Kachel › „Gespräch“ (oder in der Übersicht der Reiter *Gespräch*) zeigt, was der Agent mit Claude Code
+- **Mitlesen:** am Agenten ⋯ › „Gespräch mitlesen“ (oder in der Übersicht der Reiter *Gespräch*) zeigt, was der Agent mit Claude Code
   bespricht – live, ohne sein Fenster zu suchen. Deine Eingaben stehen rechts, Claudes Antworten links. Weckrufe der AMW,
   Aufgabenmeldungen und Zusammenfassungen sind klein dazwischen. Die Arbeitsschritte (Werkzeuge) sind je Strecke
   eingeklappt, „7 Arbeitsschritte · Bash, Read, Edit“. Aufgeklappt zeigt jeder Schritt Eingabe und Ergebnis, Fehler sind rot.
@@ -77,7 +82,7 @@ amw aufgabe fertig 1201 --beleg <commit> --zusammenfassung "…" --von CC1
 amw lauf start --beschreibung "Build" --dauer 10 --warten --von CC1   # dann: amw lauf ende <nr> --rc 0
 amw pruefung bitte --pruefer CC2 --zweig cc1-x --sha <commit> --von CC1
 amw frage neu --an entwickler --kurz "…" --option "A=…" --option "B=…" --empfehlung A --grund "…" --von TL
-amw taetigkeit "A1201 Login-Formular" --von CC1   # zeigt die Kachel „Gerade“
+amw taetigkeit "A1201 Login-Formular" --von CC1   # steht beim Agenten unter „Arbeitet an“
 amw kontext --von CC1                     # Pflicht-Kontext
 ```
 Alle Befehle: [befehle.md](befehle.md). `--von` kann entfallen, wenn `AMW_AGENT` gesetzt ist (Startskript, Hook).
