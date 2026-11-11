@@ -121,8 +121,12 @@ def _melden(con, pid, a, durch):
         unten = con.execute("SELECT id FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'laeuft' AND id != ?"
                             " AND (rang > ? OR (rang = ? AND id > ?)) LIMIT 1",
                             (pid, a["agent"], a["id"], a["rang"], a["rang"], a["id"])).fetchone()
-        if p and unten:
-            weiter += f" (Pos {p[1]} deiner Liste – zuerst abschließen; A{unten['id']} wird dabei zurückgestellt)"
+        lauf = con.execute("SELECT id FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'laeuft' AND id != ? LIMIT 1",
+                           (pid, a["agent"], a["id"])).fetchone()
+        if lauf:                                       # eins nach dem anderen: erst das laufende Stück abschließen
+            weiter = f"alle Gründe erledigt – als Nächstes dran, sobald A{lauf['id']} fertig ist"
+        elif p and unten:
+            weiter += f" (Pos {p[1]} deiner Liste)"
     an = [a["agent"]] + ([kern.lead(con, pid)] if kern.lead(con, pid) else [])
     an = [k for k in an if con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, k)).fetchone()]
     if an:

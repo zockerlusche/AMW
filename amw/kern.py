@@ -769,6 +769,10 @@ def aufgabe_neu(con, pid, von, titel, agent=None, auftrag=None, rang=50, pruefer
     with db.schreiben(con):
         if agent:
             agent = bearbeiter(con, pid, agent)
+            from . import arbeitsliste                # nie vor das laufende Stück des Agenten
+            x = arbeitsliste.laufend(con, pid, agent)
+            if x and (rang, 10 ** 9) < (x["rang"], x["id"]):
+                rang = x["rang"] + 1
         return db.einfuegen(con, "aufgabe", projekt_id=pid, titel=titel, auftrag=auftrag, agent=agent,
                             pruefer=pruefer, angelegt_von=von, rang=rang, abhaengig_von=abhaengig_von,
                             angelegt_utc=db.jetzt())
@@ -811,6 +815,9 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
             if not wartegrund.offene(con, aid):
                 raise AmwFehler(f"{neu} nur mit --auf: worauf? F<nr>, A<nr>, L<nr>, Agent, Entwickler, Monitor:<was>"
                                 " (Erklärung dazu mit --wartet-auf)")
+        if neu == "laeuft" and a["status"] != "laeuft":
+            from . import arbeitsliste                # eins nach dem anderen: läuft schon ein Stück, wird abgewiesen
+            arbeitsliste.start_pruefen(con, pid, von, a)
         t = db.jetzt()
         felder = {"status": neu}
         if zusammenfassung:
@@ -837,8 +844,6 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
                         " AND aufgabe_id = ? AND art IN ('meldung', 'info'))", (t, von, pid, aid))
             if a["agent"] in (None, "", von):
                 taetigkeit_auto(con, pid, von, f"A{aid} · {a['titel']}", aid)
-            from . import arbeitsliste                # genau eine in Arbeit: eine weiter unten laufende wird zurückgestellt
-            arbeitsliste.beim_start(con, pid, von, a, hinweise)
         if neu in ("fertig", "verworfen"):            # wer auf diese Aufgabe gewartet hat, wird geweckt (L2)
             geweckt = wartegrund.erledige(con, pid, "aufgabe", f"A{aid}", f"A{aid} {neu}")
             from . import arbeitsliste                # … und der Besitzer mit der nächsten seiner Liste
@@ -1126,8 +1131,8 @@ def kontext(con, pid, kennung):
     from . import arbeitsliste
     liste = arbeitsliste.liste(con, pid, kennung)
     andere = [x for x in eigene if x["id"] not in {y["id"] for y in liste}]
-    z.append(f"Deine Liste ({len(liste)}, von oben nach unten, genau eine in Arbeit; wartet sie, darfst du die nächste nehmen"
-             " – die AMW weckt dich, sobald die obere weiter kann): " + ("; ".join(
+    z.append(f"Deine Liste ({len(liste)}, von oben nach unten, eins nach dem anderen; wartet die laufende mit Grund, darfst du"
+             " die nächste nehmen – ein zweites Stück starten geht nicht, solange eines läuft): " + ("; ".join(
                  f"{x['pos']}. A{x['id']} [{x['status']}] {x['titel'][:90]}" + worauf(x) for x in liste[:10]) or "leer"))
     if andere:
         z.append("Außerdem bei dir (geparkt/Pool): " + "; ".join(f"A{x['id']} [{x['status']}] {x['titel'][:60]}" for x in andere[:5]))

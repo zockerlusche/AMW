@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.54.0 – 11.11.2026 · Eins nach dem anderen: das laufende Stück steht fest
+- **Kein zweites Stück, solange eines läuft:** Startet ein Agent eine Aufgabe, während eine andere bei ihm läuft, weist
+  die AMW das ab und nennt die Auswege: fertig machen, mit Grund warten lassen – oder der Mensch schiebt bewusst etwas
+  dazwischen. Bisher wurde die laufende Aufgabe still zurückgestellt, und es entstanden halbe Stände.
+- **Nichts vor das laufende Stück:** Ordnen, Schieben und neue Aufgaben mit kleinem Rang landen frühestens direkt
+  dahinter.
+- **Wird eine obere Aufgabe wieder frei,** meldet die AMW: „als Nächstes dran, sobald A… fertig ist“.
+- Aufgaben des Menschen bleiben frei; für ihn gilt keine dieser Sperren.
+
 ## 1.53.0 – 11.11.2026 · Befehle aus der Oberfläche in die Hilfe
 - **Keine Befehle der Befehlszeile mehr in den Texten der Oberfläche:** Wo ein Text bisher einen Befehl nannte, sagt er
   jetzt in Worten, was zu tun ist; die Befehle stehen in den Hilfen („? Anleitung“).

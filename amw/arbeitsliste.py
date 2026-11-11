@@ -1,9 +1,10 @@
-"""Arbeitsliste je Agent: geordnete Aufgaben, genau eine in Arbeit, die nächste von selbst (→ doc/automatismen.md).
+"""Arbeitsliste je Agent: geordnete Aufgaben, eins nach dem anderen, die nächste von selbst (→ doc/automatismen.md).
 
-Die Reihenfolge ist das Feld `rang` der Aufgabe (kleiner = weiter oben); der Lead ordnet und sortiert aus dem Pool ein.
+Die Reihenfolge ist das Feld `rang` der Aufgabe (kleiner = weiter oben); der Lead ordnet und sortiert aus dem Eingang ein.
 Ein Agent arbeitet seine Liste von oben nach unten ab. Muss er warten (Prüfung, Lauf, Frage – Wartegründe), darf er die
-nächste nehmen; wird eine obere wieder frei, weckt ihn die AMW, und startet er sie, wird die laufende untere von selbst
-zurückgestellt (wartet auf die obere). Ist eine Aufgabe fertig, weckt die AMW mit der nächsten startbaren.
+nächste nehmen. Das laufende Stück steht fest: Nichts lässt sich davor einordnen, und ein zweites lässt sich nicht
+starten, solange eines läuft – es wird erst fertig, wartet mit Grund, oder der Mensch schiebt bewusst etwas dazwischen.
+Wird eine obere wieder frei, kommt sie dran, sobald das laufende Stück fertig ist. Aufgaben des Menschen bleiben frei.
 """
 from . import db, kern, wartegrund
 
@@ -44,6 +45,34 @@ def position(con, pid, aid):
     return None
 
 
+def laufend(con, pid, agent):
+    """Das laufende Stück eines Agenten in seiner Liste (dict) oder None. Der Mensch hat keins – seine Aufgaben bleiben frei."""
+    if not agent or agent == kern.ENTWICKLER:
+        return None
+    r = con.execute("SELECT * FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'laeuft'"
+                    " AND einstufung IN ('aktiv', 'keine_prio') ORDER BY rang, id LIMIT 1", (pid, agent)).fetchone()
+    return dict(r) if r else None
+
+
+def start_pruefen(con, pid, von, a):
+    """Vor dem Start einer Aufgabe: Läuft beim Bearbeiter schon ein anderes Stück, wird abgewiesen – eins nach dem anderen."""
+    agent = a["agent"] or von
+    x = laufend(con, pid, agent)
+    if x and x["id"] != a["id"]:
+        raise kern.AmwFehler(
+            f"A{x['id']} läuft noch – eins nach dem anderen. Erst A{x['id']} abschließen (amw aufgabe fertig {x['id']} --beleg …)"
+            f" oder mit Grund warten lassen (amw aufgabe wartet {x['id']} --auf …). Soll A{a['id']} wirklich dazwischen,"
+            " entscheidet das der Mensch.")
+
+
+def _hinter_laufendem(con, pid, agent, ids):
+    """Reihenfolge so, dass das laufende Stück vorn bleibt – Rückgabe (ids, verschoben?)."""
+    x = laufend(con, pid, agent)
+    if not x or not ids or ids[0] == x["id"] or x["id"] not in ids:
+        return ids, False
+    return [x["id"]] + [i for i in ids if i != x["id"]], True
+
+
 def _nummerieren(con, ids):
     for i, aid in enumerate(ids, 1):
         con.execute("UPDATE aufgabe SET rang = ? WHERE id = ?", (i * ABSTAND, aid))
@@ -69,7 +98,8 @@ def ordnen(con, pid, von, agent, ids):
             con.execute("UPDATE aufgabe SET agent = ?, einstufung = CASE WHEN einstufung IN ('pool', 'geparkt')"
                         " THEN 'aktiv' ELSE einstufung END WHERE id = ?", (agent, aid))
         rest = [x["id"] for x in liste(con, pid, agent) if x["id"] not in ids]
-        _nummerieren(con, list(ids) + rest)
+        reihe, _ = _hinter_laufendem(con, pid, agent, list(ids) + rest)   # das laufende Stück bleibt vorn
+        _nummerieren(con, reihe)
     return liste(con, pid, agent)
 
 
@@ -96,34 +126,10 @@ def schieben(con, pid, von, aid, vor=None, nach=None, pos=None, oben=False, unte
     else:
         raise kern.AmwFehler("wohin? --vor A… | --nach A… | --pos N | --oben | --unten")
     ids.insert(i, aid)
+    ids, _ = _hinter_laufendem(con, pid, agent, ids)          # nie vor das laufende Stück
     with db.schreiben(con):
         _nummerieren(con, ids)
     return liste(con, pid, agent)
-
-
-def beim_start(con, pid, von, a, hinweise=None):
-    """In aufgabe_status (Transaktion läuft): genau eine in Arbeit. Läuft eine WEITER UNTEN stehende, wird sie
-    zurückgestellt (wartet auf die gestartete); läuft eine WEITER OBEN stehende, gibt es einen Hinweis und der Lead
-    erfährt es. Rückgabe: Liste der zurückgestellten Nummern."""
-    agent = a["agent"] or von
-    zurueck = []
-    for x in con.execute("SELECT * FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'laeuft' AND id != ?"
-                         " AND einstufung IN ('aktiv', 'keine_prio')", (pid, agent, a["id"])).fetchall():
-        if (x["rang"], x["id"]) > (a["rang"], a["id"]):          # die laufende steht weiter unten → zurückstellen
-            con.execute("UPDATE aufgabe SET status = 'wartet' WHERE id = ?", (x["id"],))
-            wartegrund.anlegen(con, pid, von, x["id"], f"A{a['id']}")
-            zurueck.append(x["id"])
-            if hinweise is not None:
-                hinweise.append(f"A{x['id']} zurückgestellt – wartet auf A{a['id']}; ist die fertig, weckt dich die AMW damit")
-        else:
-            if hinweise is not None:
-                hinweise.append(f"Achtung: A{x['id']} steht weiter oben und läuft noch – genau eine in Arbeit. Erst fertig"
-                                f" oder mit Grund warten lassen (amw aufgabe wartet {x['id']} --auf …)")
-            l = kern.lead(con, pid)
-            if l and l != agent:
-                kern._posten(con, pid, "AMW", l, "meldung", f"{agent} hat zwei in Arbeit: A{x['id']} (weiter oben) und"
-                             f" A{a['id']}", f"A{x['id']}: {x['titel']}\nA{a['id']}: {a['titel']}", aufgabe_id=a["id"])
-    return zurueck
 
 
 def beim_abschluss(con, pid, a, geweckt):

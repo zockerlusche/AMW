@@ -2639,7 +2639,7 @@ function frageKarte(f) {
 }
 
 /* --- Arbeit -------------------------------------------------------------------------------- */
-/* Arbeitsliste je Agent (von oben nach unten, genau eine in Arbeit) und der Pool – ordnen tut der Lead (amw liste) */
+/* Arbeitsliste je Agent (von oben nach unten, eins nach dem anderen) und der Eingang – ordnen tut der Lead (amw liste) */
 async function arbeitslisten(m, a) {
   let d; try { d = await holen("/api/listen"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   const q = (a.q || "").toLowerCase(), passt = x => !q || `A${x.id} ${x.titel}`.toLowerCase().includes(q);

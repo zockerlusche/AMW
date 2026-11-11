@@ -84,18 +84,19 @@ Agenten auf den Entwickler, bekommt der Lead höchstens alle 6 Stunden eine Samm
 ## Arbeitsliste je Agent (seit 1.12.0)
 
 **Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach
-unten ab, genau eine Aufgabe ist in Arbeit. Der Umfang darf groß sein.
+unten ab, eins nach dem anderen. Der Umfang darf groß sein.
 
 - **Reihenfolge:** Feld `rang` der Aufgabe. Der Lead ordnet mit `amw liste ordnen <Agent> A12 A15 …` (der Rest folgt
   dahinter, Aufgaben aus dem Pool werden zugeteilt) und `amw liste schieben A15 --vor A12 | --nach | --pos N | --oben |
   --unten`. Ansehen: `amw liste [Agent]`, Workbench › Aufgaben › Listen.
 - **Pool:** neue Ideen ohne Platz in einer Liste (`aufgabe neu … --pool` oder `aufgabe pool N`). Der Lead sortiert ein.
 - **Warten füllen:** Wartet die Aufgabe in Arbeit mit Grund (Prüfung, Lauf, Frage), darf der Agent die nächste nehmen.
-  Wird die obere wieder frei, weckt ihn die AMW („Pos 1 deiner Liste – zuerst abschließen“).
-- **Zurückstellen:** Startet er eine weiter oben stehende, wartet die laufende untere von selbst auf sie (Wartegrund
-  `A…`). Ist die obere fertig, kommt die untere mit einem Weckruf zurück.
-- **Zwei in Arbeit:** Startet er eine weiter unten, während eine obere läuft, bekommt er einen Hinweis, und der Lead
-  erfährt es.
+- **Das laufende Stück steht fest (seit 1.54.0):** Läuft eine Aufgabe, lässt sich keine zweite starten – die AMW weist
+  den Start ab und nennt die Auswege: fertig machen, mit Grund warten lassen, oder der Mensch schiebt bewusst etwas
+  dazwischen. Ordnen, Schieben und neue Aufgaben landen frühestens direkt hinter dem laufenden Stück. Wird eine obere
+  Aufgabe wieder frei, meldet die AMW: „als Nächstes dran, sobald A… fertig ist“. Früher stellte der Start einer oberen
+  Aufgabe die laufende still zurück – das entfällt.
+- **Aufgaben des Menschen** bleiben frei: Für den Bearbeiter „Entwickler“ gilt keine dieser Sperren.
 - **Fertig:** Ist eine Aufgabe fertig oder verworfen, weckt die AMW mit der nächsten startbaren Aufgabe der Liste. Die
   Leerlauf-Prüfung bleibt als Netz.
 

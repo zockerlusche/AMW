@@ -411,20 +411,38 @@ class Arbeitsliste(Grund):
         rc, aus = self.cli("--von", "CC1", "liste", "CC1")
         self.assertIn(f"1. A{self.c}", aus)
 
-    def test_obere_starten_stellt_untere_zurueck_und_fertig_weckt_mit_der_naechsten(self):
+    def test_obere_wird_frei_waehrend_untere_laeuft_kommt_danach(self):
+        """Eins nach dem anderen: Wird ein oberes Stück frei, während ein unteres läuft, wird das untere erst fertig."""
         kern.aufgabe_status(self.con, self.pid, "CC1", self.b, "start")                 # Pos 2 läuft …
         kern.aufgabe_status(self.con, self.pid, "CC1", self.b, "wartet", auf="Monitor:Prüfung")
-        kern.aufgabe_status(self.con, self.pid, "CC1", self.c, "start")                 # … wartet, die nächste darf
-        h = []
-        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start", hinweise=h)     # Pos 1: die laufende Pos 3 zurück
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.c, "start")                 # … wartet mit Grund, die nächste darf
+        with self.assertRaises(kern.AmwFehler) as e:                                    # Pos 1 starten: abgewiesen, nichts still zurückgestellt
+            kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
+        self.assertIn(f"A{self.c} läuft noch – eins nach dem anderen", str(e.exception))
+        self.assertIn("entscheidet das der Mensch", str(e.exception))
         st = {r["id"]: r["status"] for r in self.con.execute("SELECT id, status FROM aufgabe")}
-        self.assertEqual((st[self.a], st[self.c]), ("laeuft", "wartet"))
-        self.assertTrue(any(f"A{self.c} zurückgestellt" in x for x in h))
-        self.assertEqual([g["bezug"] for g in wartegrund.offene(self.con, self.c)], [f"A{self.a}"])
-        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "fertig", beleg="abc")
+        self.assertEqual((st[self.a], st[self.c]), ("wartet", "laeuft"))
+        wartegrund.von_hand(self.con, self.pid, "TL", self.b, "Monitor:Prüfung")        # der Grund von Pos 2 ist erledigt
+        with db.schreiben(self.con):
+            wartegrund._melden(self.con, self.pid, self.con.execute("SELECT * FROM aufgabe WHERE id = ?", (self.b,)).fetchone(), "Prüfung grün")
         post = [r["kurz"] for r in kern.offene(self.con, self.pid, "CC1")]
-        self.assertTrue(any(f"A{self.c}" in x and "weiter" in x for x in post))       # zurückgestellte meldet sich
-        self.assertFalse(any("weiter in deiner Liste" in x for x in post))               # kein zweiter Weckruf
+        self.assertTrue(any(f"als Nächstes dran, sobald A{self.c} fertig ist" in x for x in post), post)
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.c, "fertig", beleg="abc")
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")                 # jetzt geht es
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.a,)).fetchone()[0], "laeuft")
+
+    def test_laufendes_stueck_bleibt_vorn(self):
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.b, "start")                 # Pos 2 läuft
+        self.al.ordnen(self.con, self.pid, "TL", "CC1", [self.c, self.a])               # ordnen: das laufende Stück bleibt vorn
+        self.assertEqual(self.ids(), [self.b, self.c, self.a])
+        self.al.schieben(self.con, self.pid, "TL", self.a, oben=True)                    # ganz nach oben = direkt dahinter
+        self.assertEqual(self.ids(), [self.b, self.a, self.c])
+        neu = kern.aufgabe_neu(self.con, self.pid, "TL", "Eilig", agent="CC1", rang=1)   # neue Aufgabe mit kleinem Rang: dahinter
+        self.assertEqual(self.ids()[:2], [self.b, neu])
+        e1 = kern.aufgabe_neu(self.con, self.pid, "TL", "Mensch 1", agent="Entwickler")
+        e2 = kern.aufgabe_neu(self.con, self.pid, "TL", "Mensch 2", agent="Entwickler")
+        kern.aufgabe_status(self.con, self.pid, "Entwickler", e1, "start")
+        kern.aufgabe_status(self.con, self.pid, "Entwickler", e2, "start")             # Aufgaben des Menschen bleiben frei
 
     def test_fertig_ohne_wartende_weckt_mit_der_naechsten_der_liste(self):
         kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
@@ -443,12 +461,13 @@ class Arbeitsliste(Grund):
         d = workbench.daten_listen(self.con, self.pid)
         self.assertEqual((d["agenten"][0]["kennung"], d["agenten"][0]["name"]), (kern.ENTWICKLER, "Chris"))
 
-    def test_untere_starten_waehrend_obere_laeuft_warnt(self):
+    def test_untere_starten_waehrend_obere_laeuft_wird_abgewiesen(self):
         kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
-        h = []
-        kern.aufgabe_status(self.con, self.pid, "CC1", self.b, "start", hinweise=h)
-        self.assertTrue(any("genau eine in Arbeit" in x for x in h))
-        self.assertTrue(any("zwei in Arbeit" in r["kurz"] for r in kern.offene(self.con, self.pid, "TL")))
+        with self.assertRaises(kern.AmwFehler) as e:
+            kern.aufgabe_status(self.con, self.pid, "CC1", self.b, "start")
+        self.assertIn(f"A{self.a} läuft noch", str(e.exception))
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.b,)).fetchone()[0], "wartet")
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")                 # dieselbe noch einmal starten: kein Fehler
         self.assertIn("Deine Liste (3", kern.kontext(self.con, self.pid, "CC1"))
 
 
