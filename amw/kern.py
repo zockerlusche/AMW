@@ -278,7 +278,9 @@ def agent_einstellen(con, pid, von, kennung, neu=False, **werte):
         raise AmwFehler(f"{kennung} gibt es schon")
     if not neu and not da:
         raise AmwFehler(f"Agent {kennung} gibt es nicht")
-    if not neu and von != ENTWICKLER and "rolle" in felder and felder["rolle"] != "lead" and lead(con, pid) == kennung             and not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND rolle = 'lead' AND kennung != ?", (pid, kennung)).fetchone():
+    einziger_lead = lead(con, pid) == kennung and not con.execute(
+        "SELECT 1 FROM agent WHERE projekt_id = ? AND rolle = 'lead' AND kennung != ?", (pid, kennung)).fetchone()
+    if not neu and von != ENTWICKLER and felder.get("rolle", "lead") != "lead" and einziger_lead:
         raise AmwFehler(f"{kennung} ist der einzige Lead – erst einen anderen Lead anlegen (sonst kann nur noch der Entwickler einstellen)")
     if neu:
         agent_neu(con, pid, kennung)

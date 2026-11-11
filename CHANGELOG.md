@@ -4,6 +4,18 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.35.2 – 11.11.2026 · Verständliche Benennungen in der ersten Zeile und auf den Agenten-Kacheln
+- **Erste Zeile in ganzen Wörtern**, Deutsch und Englisch gleich gebaut: „Wächter läuft“ (statt „Dienst“),
+  „2 von 7 Agenten laufen“ (statt „2/7 Agenten“), „Arbeitsspeicher: 11 GB frei“, „Bildschirm: belegt“ bzw.
+  „Bildschirm: frei für Agenten“ (statt „Schirm zu/frei“). Der Knopf heißt **Alle anhalten** / **Weiterarbeiten**
+  (statt „Halt“ / „Weiter“). Das Kürzel „PC“ an den Hinweisen ist ein Hinweistext geworden.
+- **Agenten-Kacheln:** „läuft nicht – sollte laufen“ (statt „beendet – soll laufen“), „✉ n offen“ für offene
+  Nachrichten, „Arbeitet an:“, „keine Angabe, woran“, „n in der Liste“, „Letzte Meldung“, Knopf „Mitlesen“; das
+  Lebenszeichen steht als Hinweistext am Zustand statt als Herz mit Zahl. Zeitangaben: „gestern“ und „vor n Tagen“
+  statt „vor n T“.
+- Die Hinweise der ersten Zeile bleiben in einer Zeile; die Suche gibt dafür Platz ab.
+- Intern: eine überlange Bedingung beim Ändern der Agenten-Rolle sauber umbrochen (keine Änderung im Verhalten).
+
 ## 1.35.1 – 11.11.2026 · Mockups erscheinen online wieder im Dokument-Fenster
 - **Online-Seite:** Ein Mockup (HTML) im Dokument-Fenster oder auf der Kachel wurde vom Browser abgewiesen („darf diese
   eingebettete Seite nicht öffnen“). Die `.htaccess` setzte `X-Frame-Options: DENY` zusätzlich zu der Angabe, die die

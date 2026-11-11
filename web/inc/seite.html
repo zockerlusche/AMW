@@ -51,16 +51,16 @@ header::before { content: ""; position: absolute; left: 0; right: 0; top: 0; hei
 .marke .logo { width: 66px; height: 41px; flex: none; }   /* Logo A·M·W als Neuronenzug (F5229) */
 .marke span { font: 10px/1.2 var(--titel); letter-spacing: .06em; color: var(--sehrleise); text-transform: uppercase; }
 .marke span i { font-style: normal; font-weight: 600; color: var(--tinte); }
-.signale { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.signale { display: flex; gap: 8px; align-items: center; flex: 0 1 auto; min-width: 0; overflow: hidden; }   /* ganze Wörter statt Kürzel: eine Zeile, die Suche gibt Platz ab */
 .signal { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border: 1px solid var(--linie);
-  border-radius: 3px; font: 12px var(--titel); letter-spacing: .05em; text-transform: uppercase; color: var(--leise); background: var(--flaeche); white-space: nowrap; }
+  border-radius: 3px; font: 12.5px var(--text); color: var(--leise); background: var(--flaeche); white-space: nowrap; flex: none; }
 .punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--sehrleise); flex: none; }
 .punkt.gruen { background: var(--gruen); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gruen) 20%, transparent); }
 .punkt.bernstein { background: var(--bernstein); box-shadow: 0 0 0 3px var(--bernstein-weich); }
 .punkt.rot { background: var(--rot); box-shadow: 0 0 0 3px var(--rot-weich); animation: puls 1.6s infinite; }
 @keyframes puls { 50% { opacity: .35; } }
-.suche { margin-left: auto; position: relative; }
-.suche input { width: min(34vw, 380px); padding: 8px 12px 8px 30px; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; outline: none; }
+.suche { margin-left: auto; position: relative; flex: 0 1000 380px; min-width: 150px; }   /* gibt zuerst Platz ab, dann erst die Hinweise */
+.suche input { width: 100%; max-width: 380px; min-width: 0; padding: 8px 12px 8px 30px; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; outline: none; }
 .suche input:focus { border-color: var(--bernstein); }
 .suche::before { content: "⌕"; position: absolute; left: 10px; top: 6px; color: var(--sehrleise); font-size: 16px; }
 .schalter-halt { font: 600 13px var(--titel); letter-spacing: .12em; text-transform: uppercase; padding: 9px 16px; border-radius: 3px;
@@ -112,7 +112,6 @@ nav .fuss { margin-top: auto; padding: 14px 18px; display: flex; gap: 8px; flex-
 .pw-fuss { border-top: 1px solid var(--linie); margin-top: 6px; padding: 8px 10px 4px; display: grid; gap: 4px; }
 .pc-marke { display: inline-block; font: 10.5px var(--titel); letter-spacing: .08em; text-transform: uppercase; padding: 1px 6px; border: 1px solid var(--blau);
   border-radius: 2px; color: var(--blau); vertical-align: middle; }
-.signal .pcz { font-size: 10px; color: var(--blau); border-left: 1px solid var(--linie2); padding-left: 6px; }
 tr.fremd td { color: var(--sehrleise); font-style: italic; }
 .klein-knopf { font: 12px var(--titel); letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border: 1px solid var(--linie2);
   background: transparent; border-radius: 3px; cursor: pointer; color: var(--leise); }
@@ -828,8 +827,8 @@ const TEXTE = {
     marke: "Agenten Management Workbench", suche: "Suchen: Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten",
     g_fuerdich: "Für dich", g_arbeit: "Arbeit", g_wissen: "Wissen", g_betrieb: "Betrieb",
     n_start: "Start", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_aufgaben_kurz: "Arbeit", n_releases: "Release Notes", n_releases_kurz: "Notes", n_mehr: "Mehr", n_wissen: "Wissen", n_betrieb: "Betrieb",
-    thema: "Hell / Dunkel", halt: "Halt", weiter: "Weiter",
-    s_dienst: "Dienst", s_dienst_weg: "Dienst nicht erreichbar", s_agenten: "{a}/{b} Agenten", s_speicher: "{n} GB frei", s_speicher_unb: "Speicher ?",
+    thema: "Hell / Dunkel", halt: "Alle anhalten", halt_an: "Angehalten", weiter: "Weiterarbeiten",
+    s_dienst: "Wächter läuft", s_dienst_weg: "Wächter nicht erreichbar", s_agenten: "{a} von {b} Agenten laufen", s_speicher: "Arbeitsspeicher: {n} GB frei", s_speicher_unb: "Arbeitsspeicher: unbekannt",
     nicht_angemeldet: "NICHT ANGEMELDET", sitzung_pid: "Sitzung {s}, PID {p}",
     nicht_angemeldet_h: "Läuft, wird aber nicht geweckt – im Fenster: amw anmelden --von <Kennung>",
     an_dich: "Nachrichten an dich", an_dich_alt: "Ältere Infos ({n})", an_dich_alt_h: "Infos ohne Bezug, älter als die Ablage-Frist (Zahnrad › Projekt) – zählen nicht mehr mit.", an_dich_alt_weg: "Alle als gelesen",
@@ -844,8 +843,8 @@ const TEXTE = {
     e_spec_frei_entwickler: "nur du", e_spec_frei_lead: "auch der Lead",
     e_info_ablage: "Infos ablegen nach (h)", e_info_ablage_h: "Infos an dich ohne Bezug wandern nach so vielen Stunden unter „Ältere Infos“ (eingeklappt, zählen nicht mehr).",
     antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Takt", art_pruefbitte: "Prüfbitte", art_stopp: "Stopp", art_freigabe: "Freigabe",
-    k_details: "Klicken: was macht er, was kommt noch", k_offen_h: "neue offene Nachrichten (dazu {n} Altbestand aus dem alten Bus)",
-    k_gerade: "Gerade:", k_vermutet: "(aus letzter Meldung)", k_unbekannt: "Tätigkeit unbekannt", k_zuletzt: "Zuletzt",
+    k_details: "Klicken: was macht er, was kommt noch", k_offen_h: "offene Nachrichten an diesen Agenten (dazu {n} Altbestand aus dem alten Bus)",
+    k_gerade: "Arbeitet an:", k_vermutet: "(aus letzter Meldung)", k_unbekannt: "keine Angabe, woran", k_zuletzt: "Letzte Meldung", k_offen_n: "✉ {n} offen", k_puls: "Lebenszeichen {t}", k_mitlesen: "Mitlesen",
     k_wartet: "{a} wartet auf {x}", lead: "Lead",
     g_tab: "Gespräch", g_tab_uebersicht: "Übersicht", g_knopf_h: "Das Gespräch des Agenten mit Claude Code lesen (live)",
     g_claude: "In Claude öffnen ↗", g_claude_h: "Öffnet die laufende Sitzung auf claude.ai bzw. in der Claude-App – dort schreibst du direkt mit dem Agenten",
@@ -891,7 +890,7 @@ const TEXTE = {
     p_probe_ok: "verschickt – kommt sie nicht an, den Kanal am Handy und hier vergleichen",
     stand: "Stand {t}", wartet_auf_dich: "Wartet auf dich", nichts_offen: "Nichts offen – keine Frage wartet auf dich.", agenten: "Agenten",
     alle_agenten: "alle Agenten", agent: "Agent", blockiert: "blockiert", blockiert_arbeit: "blockiert Arbeit",
-    laeuft: "läuft", beendet_soll: "beendet – soll laufen", nie_gestartet: "nie gestartet", ruht: "ruht", aus: "aus",
+    laeuft: "läuft", beendet_soll: "läuft nicht – sollte laufen", nie_gestartet: "nie gestartet", ruht: "ruht", aus: "aus",
     abgemeldet: "abgemeldet – wird nicht geweckt", t_alt: "Angabe ist über 2 h alt – vielleicht veraltet", t_seit: "gesetzt {x}",
     keine_aufgabe: "keine laufende Aufgabe", puls: "Puls {t}", offen_n: "{n} offen",
     fragen: "Fragen", keine_fragen: "Keine offenen Fragen.", keine_geparkt: "Keine geparkten Fragen.", von: "von {x}",
@@ -976,7 +975,7 @@ const TEXTE = {
     pl_abschliessen_frage: "Ist das Abnahmekriterium erfüllt?\n{x}", bearbeiten: "Bearbeiten", pl_ziel: "Ziel", pl_abnahme: "Abnahme",
     pl_fehlt: "fehlt – ohne prüfbares Kriterium ist ein Bogen nie wirklich fertig", pl_fortschritt: "{f}/{g} fertig", pl_laeuft: "{n} läuft",
     t_listen: "Listen", li_erkl: "Je Agent seine Arbeitsliste von oben nach unten – genau eine in Arbeit. Wartet sie, darf er die nächste nehmen; wird eine obere frei, weckt ihn die AMW. Ordnen: amw liste ordnen <Agent> A12 A15 … (Lead).",
-    li_in_arbeit: "in Arbeit", li_deine: "Deine Aufgaben ({x})", li_pool: "Pool – noch in keiner Liste", li_pool_leer: "Pool leer", li_leer: "Noch keine Listen.", k_liste: "Liste {p}/{n}", k_liste_n: "Liste {n}",
+    li_in_arbeit: "in Arbeit", li_deine: "Deine Aufgaben ({x})", li_pool: "Pool – noch in keiner Liste", li_pool_leer: "Pool leer", li_leer: "Noch keine Listen.", k_liste: "Aufgabe {p} von {n} in der Liste", k_liste_n: "{n} in der Liste",
     pl_federfuehrend: "Federführend", k_fuehrt: "führt {x}", k_fuehrt_h: "federführend: Prüfergebnisse, Merge-Bitten und Fragen dazu gehen an diesen Agenten",
     pl_blockiert: "{n} blockiert", pl_zieldatum: "Zieldatum", pl_baseline: "Baseline", pl_prognose: "Prognose", teil_anforderungen: "Anforderungen",
     teil_entwurf: "Entwurf", teil_schritte: "Schritte", ss_entwurf: "in Arbeit", ss_vorgelegt: "zur Freigabe", ss_frei: "frei ✓", ss_zurueck: "zurück",
@@ -1110,7 +1109,7 @@ const TEXTE = {
     e_ordner_leer: "nicht eingetragen", pw_jetzt: "Jetzt im Projekt „{x}“", pw_unbekannt: "Das Projekt aus dem Link gibt es hier nicht – gezeigt wird „{x}“.",
     pw_nur_ansicht: "Umschalten ändert nur die Ansicht – alle Projekte arbeiten weiter.", pw_weg: "seit über 7 Tagen nicht gemeldet",
     pw_fern_ohne_link: "Dieses Projekt läuft auf einem anderen Rechner. Öffnen geht über die Online-Seite – trage ihre Adresse unter Einstellungen › Push › Link ein.",
-    pc_marke: "dieser PC", pc_marke_h: "gehört zu diesem Rechner, egal welches Projekt gewählt ist", pc_kurz: "PC",
+    pc_marke: "dieser PC", pc_marke_h: "gehört zu diesem Rechner, egal welches Projekt gewählt ist", 
     fremd_projekt: "Projekt „{x}“", fremd_gpu: "belegt die Grafikkarte seit {x}", fremd_schirm: "belegt den Schirm seit {x}",
     e_farbe: "Farbe", e_farbe_h: "Streifen oben und Marke in der Projekt-Auswahl", e_rechner: "Name dieses Rechners",
     e_rechner_h: "steht in der Projekt-Auswahl, wenn Projekte auf mehreren Rechnern laufen",
@@ -1122,7 +1121,7 @@ const TEXTE = {
     halt_erkl: "Laufende Agenten bekommen sofort ein STOPP und beenden ihre aktuelle Arbeit sauber. Danach weckt der Dienst nur noch für Stopp und Freigabe – bis „Weiter“. Gilt auch nach einem Neustart.",
     grund_ph: "Grund (erscheint bei den Agenten)", abbrechen: "Abbrechen", halt_gesetzt: "Halt gesetzt", halt_aufgehoben: "{n} Halt aufgehoben",
     halt_band: "alle Agenten", halt_vom: "Halt vom Entwickler",
-    s_schirm_frei: "Schirm frei", s_schirm_zu: "Schirm zu", schirm: "Schirm", schirm_frei: "SCHIRM FREI", schirm_zu_b: "SCHIRM ZU",
+    s_schirm_frei: "Bildschirm: frei für Agenten", s_schirm_zu: "Bildschirm: belegt", schirm: "Schirm", schirm_frei: "SCHIRM FREI", schirm_zu_b: "SCHIRM ZU",
     schirm_seit: "seit {x}", schirm_bis: "bis {x}", schirm_von: "von {x}",
     schirm_wartet: "Läufe mit Fenster in der Schlange: {n}", schirm_laeuft: "läuft am Schirm: {x}",
     schirm_freigeben: "Schirm freigeben …", schirm_zumachen: "Schirm zu", schirm_titel: "Schirm-Schalter",
@@ -1133,14 +1132,14 @@ const TEXTE = {
     schirm_grund_fehlt: "Bitte einen Grund angeben",
     nachricht: "Nachricht", nachricht_an: "Nachricht an {x}", n_kurz_ph: "Kurz: worum geht es (eine Zeile)", n_text_ph: "Text (optional)",
     senden: "Senden", gesendet: "Gesendet an {x} – wird geweckt, wenn die Sitzung läuft.", art_auftrag: "Auftrag", art_frage: "Frage", art_info: "Info (weckt nicht)", art_korrektur: "Korrektur",
-    gerade: "gerade eben", vor_min: "vor {n} min", vor_h: "vor {n} h", vor_t: "vor {n} T", nie: "nie",
+    gerade: "gerade eben", vor_min: "vor {n} min", vor_h: "vor {n} h", vor_t: "vor {n} Tagen", vor_t1: "gestern", nie: "nie",
   },
   en: {
     marke: "Agent Management Workbench", suche: "Search: tasks, decisions, questions, statements, messages",
     g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
     n_start: "Home", n_fragen: "Questions", n_aufgaben: "Tasks", n_aufgaben_kurz: "Tasks", n_releases: "Release notes", n_releases_kurz: "Notes", n_mehr: "More", n_wissen: "Knowledge", n_betrieb: "Operations",
-    thema: "Light / Dark", halt: "Halt", weiter: "Resume",
-    s_dienst: "Service", s_dienst_weg: "Service unreachable", s_agenten: "{a}/{b} agents", s_speicher: "{n} GB free", s_speicher_unb: "Memory ?",
+    thema: "Light / Dark", halt: "Pause all", halt_an: "Paused", weiter: "Resume",
+    s_dienst: "Watcher running", s_dienst_weg: "Watcher unreachable", s_agenten: "{a} of {b} agents running", s_speicher: "Memory: {n} GB free", s_speicher_unb: "Memory: unknown",
     nicht_angemeldet: "NOT SIGNED IN", sitzung_pid: "session {s}, PID {p}",
     nicht_angemeldet_h: "Running but cannot be woken – in its window: amw anmelden --von <name>",
     an_dich: "Messages for you", an_dich_alt: "Older infos ({n})", an_dich_alt_h: "Infos without a condition, older than the filing period (gear › Project) – no longer counted.", an_dich_alt_weg: "Mark all read",
@@ -1155,8 +1154,8 @@ const TEXTE = {
     e_spec_frei_entwickler: "only you", e_spec_frei_lead: "lead too",
     e_info_ablage: "File infos after (h)", e_info_ablage_h: "Infos for you without a condition move under “Older infos” after this many hours (collapsed, not counted).",
     antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Pulse", art_pruefbitte: "Review request", art_stopp: "Stop", art_freigabe: "Release",
-    k_details: "Click: what is it doing, what is next", k_offen_h: "new open messages (plus {n} older ones from the old bus)",
-    k_gerade: "Now:", k_vermutet: "(from last report)", k_unbekannt: "activity unknown", k_zuletzt: "Last",
+    k_details: "Click: what is it doing, what is next", k_offen_h: "open messages to this agent (plus {n} older ones from the old bus)",
+    k_gerade: "Working on:", k_vermutet: "(from last report)", k_unbekannt: "no activity reported", k_zuletzt: "Last report", k_offen_n: "✉ {n} open", k_puls: "Heartbeat {t}", k_mitlesen: "Watch",
     k_wartet: "{a} waits for {x}", lead: "Lead",
     g_tab: "Conversation", g_tab_uebersicht: "Overview", g_knopf_h: "Read the agent's conversation with Claude Code (live)",
     g_claude: "Open in Claude ↗", g_claude_h: "Opens the running session on claude.ai or in the Claude app – write to the agent directly there",
@@ -1202,7 +1201,7 @@ const TEXTE = {
     p_probe_ok: "sent – if it does not arrive, compare the topic on your phone and here",
     stand: "As of {t}", wartet_auf_dich: "Waiting for you", nichts_offen: "Nothing pending – no question is waiting for you.", agenten: "Agents",
     alle_agenten: "all agents", agent: "Agent", blockiert: "blocked", blockiert_arbeit: "blocks work",
-    laeuft: "running", beendet_soll: "stopped – should run", nie_gestartet: "never started", ruht: "resting", aus: "off",
+    laeuft: "running", beendet_soll: "not running – should be", nie_gestartet: "never started", ruht: "resting", aus: "off",
     abgemeldet: "signed off – not woken", t_alt: "statement is over 2 h old – maybe outdated", t_seit: "set {x}",
     keine_aufgabe: "no running task", puls: "pulse {t}", offen_n: "{n} open",
     fragen: "Questions", keine_fragen: "No open questions.", keine_geparkt: "No parked questions.", von: "from {x}",
@@ -1286,7 +1285,7 @@ const TEXTE = {
     pl_abschliessen_frage: "Is the acceptance criterion met?\n{x}", bearbeiten: "Edit", pl_ziel: "Goal", pl_abnahme: "Acceptance",
     pl_fehlt: "missing – without a checkable criterion an arc is never really done", pl_fortschritt: "{f}/{g} done", pl_laeuft: "{n} running",
     t_listen: "Lists", li_erkl: "Each agent's work list from top to bottom – exactly one in progress. If it waits, the next may start; when an upper one is free again, AMW wakes the agent. Order: amw liste ordnen <agent> A12 A15 … (lead).",
-    li_in_arbeit: "in progress", li_deine: "Your tasks ({x})", li_pool: "Pool – not in any list yet", li_pool_leer: "Pool empty", li_leer: "No lists yet.", k_liste: "List {p}/{n}", k_liste_n: "List {n}",
+    li_in_arbeit: "in progress", li_deine: "Your tasks ({x})", li_pool: "Pool – not in any list yet", li_pool_leer: "Pool empty", li_leer: "No lists yet.", k_liste: "task {p} of {n} in the queue", k_liste_n: "{n} queued",
     pl_federfuehrend: "Lead agent", k_fuehrt: "leads {x}", k_fuehrt_h: "lead agent: review results, merge requests and questions go to this agent",
     pl_blockiert: "{n} blocked", pl_zieldatum: "Target", pl_baseline: "Baseline", pl_prognose: "Forecast", teil_anforderungen: "Requirements",
     teil_entwurf: "Design", teil_schritte: "Steps", ss_entwurf: "in progress", ss_vorgelegt: "for approval", ss_frei: "approved ✓", ss_zurueck: "returned",
@@ -1417,7 +1416,7 @@ const TEXTE = {
     e_ordner_leer: "not set", pw_jetzt: "Now in project “{x}”", pw_unbekannt: "The project from the link does not exist here – showing “{x}”.",
     pw_nur_ansicht: "Switching only changes the view – all projects keep working.", pw_weg: "not reported for over 7 days",
     pw_fern_ohne_link: "This project runs on another computer. It opens via the online page – enter its address under Settings › Push › Link.",
-    pc_marke: "this PC", pc_marke_h: "belongs to this computer, whichever project is selected", pc_kurz: "PC",
+    pc_marke: "this PC", pc_marke_h: "belongs to this computer, whichever project is selected", 
     fremd_projekt: "Project “{x}”", fremd_gpu: "has had the GPU since {x}", fremd_schirm: "has had the screen since {x}",
     e_farbe: "Colour", e_farbe_h: "Stripe at the top and mark in the project switcher", e_rechner: "Name of this computer",
     e_rechner_h: "shown in the project switcher when projects run on several computers",
@@ -1429,7 +1428,7 @@ const TEXTE = {
     halt_erkl: "Running agents immediately receive a STOP and finish their current work cleanly. After that the service only wakes agents for stop and release – until “Resume”. Survives restarts.",
     grund_ph: "Reason (shown to the agents)", abbrechen: "Cancel", halt_gesetzt: "Halt set", halt_aufgehoben: "{n} halt(s) lifted",
     halt_band: "all agents", halt_vom: "Halt by the developer",
-    s_schirm_frei: "Screen free", s_schirm_zu: "Screen closed", schirm: "Screen", schirm_frei: "SCREEN FREE", schirm_zu_b: "SCREEN CLOSED",
+    s_schirm_frei: "Screen: free for agents", s_schirm_zu: "Screen: in use", schirm: "Screen", schirm_frei: "SCREEN FREE", schirm_zu_b: "SCREEN CLOSED",
     schirm_seit: "since {x}", schirm_bis: "until {x}", schirm_von: "by {x}",
     schirm_wartet: "Windowed runs in the queue: {n}", schirm_laeuft: "on screen: {x}",
     schirm_freigeben: "Free the screen …", schirm_zumachen: "Close screen", schirm_titel: "Screen switch",
@@ -1440,7 +1439,7 @@ const TEXTE = {
     schirm_grund_fehlt: "Please give a reason",
     nachricht: "Message", nachricht_an: "Message to {x}", n_kurz_ph: "Short: what is it about (one line)", n_text_ph: "Text (optional)",
     senden: "Send", gesendet: "Sent to {x} – will be woken if the session is running.", art_auftrag: "Task", art_frage: "Question", art_info: "Info (no wake)", art_korrektur: "Correction",
-    gerade: "just now", vor_min: "{n} min ago", vor_h: "{n} h ago", vor_t: "{n} d ago", nie: "never",
+    gerade: "just now", vor_min: "{n} min ago", vor_h: "{n} h ago", vor_t: "{n} days ago", vor_t1: "yesterday", nie: "never",
   },
 };
 let sprache = "de";
@@ -1465,7 +1464,8 @@ const zeit = x => { if (!x) return "–"; return new Date(x).toLocaleString(gebi
 function seit(x) {
   if (!x) return t("nie"); const s = (Date.now() - new Date(x)) / 1000;
   if (s < 90) return t("gerade"); if (s < 3600) return t("vor_min", { n: Math.round(s / 60) });
-  if (s < 86400) return t("vor_h", { n: Math.round(s / 3600) }); return t("vor_t", { n: Math.round(s / 86400) });
+  if (s < 86400) return t("vor_h", { n: Math.round(s / 3600) });
+  const tage = Math.round(s / 86400); return tage === 1 ? t("vor_t1") : t("vor_t", { n: tage });
 }
 async function holen(weg) { const r = await fetch(ziel(weg), { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return r.json(); }
 async function schicken(weg, daten) {
@@ -1508,7 +1508,7 @@ function sprache_setzen(s) {
 const FARBEN = { bernstein: "var(--bernstein)", gruen: "var(--gruen)", blau: "var(--blau)", violett: "#a68bd6", tuerkis: "#5fb5a8",
   rot: "var(--rot)", grau: "var(--leise)" };
 const farbe = p => FARBEN[p?.farbe] || FARBEN.bernstein;
-const pcz = () => projekte.length > 1 ? el("span", { class: "pcz" }, t("pc_kurz")) : null;
+const pcHinweis = () => projekte.length > 1 ? t("pc_marke_h") : null;       /* erste Zeile: als Hinweistext statt als Kürzel */
 const pcMarke = () => el("span", { class: "pc-marke", title: t("pc_marke_h") }, t("pc_marke"));
 async function projekteLaden() {
   let d; try { d = await holen("/api/projekte"); } catch (e) { return; }
@@ -1627,11 +1627,11 @@ async function kopfAktualisieren() {
     $("#signale").replaceChildren(
       d.online ? el("span", { class: "signal" + (d.online.pc_frisch ? " unwichtig" : "") }, el("span", { class: "punkt " + (d.online.pc_frisch ? "gruen" : "bernstein") }),
         t(d.online.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online.pc_gesehen_utc) }) + (d.online.briefkasten ? " · " + t("s_briefkasten", { n: d.online.briefkasten }) : ""))
-        : el("span", { class: "signal unwichtig" }, el("span", { class: "punkt gruen" }), t("s_dienst"), pcz()),
+        : el("span", { class: "signal unwichtig", title: pcHinweis() }, el("span", { class: "punkt gruen" }), t("s_dienst")),
       el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: sollen.length }) + (extra ? " · " + t("s_extra", { n: extra }) : "")),
-      el("span", { class: "signal unwichtig" }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: sp }), pcz()),
-      d.schirm ? el("span", { class: "signal knopflich" + (d.schirm.frei ? "" : " unwichtig"), title: d.schirm.grund, onclick: () => schirmDialog() },
-        el("span", { class: "punkt " + (d.schirm.frei ? "bernstein" : "") }), t(d.schirm.frei ? "s_schirm_frei" : "s_schirm_zu"), pcz()) : null,
+      el("span", { class: "signal unwichtig", title: pcHinweis() }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: Math.round(sp) })),
+      d.schirm ? el("span", { class: "signal knopflich" + (d.schirm.frei ? "" : " unwichtig"), title: [d.schirm.grund, pcHinweis()].filter(Boolean).join(" · "), onclick: () => schirmDialog() },
+        el("span", { class: "punkt " + (d.schirm.frei ? "bernstein" : "") }), t(d.schirm.frei ? "s_schirm_frei" : "s_schirm_zu")) : null,
     );
     for (const z of document.querySelectorAll("[data-zahl]")) {
       const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", ["fragen", "freigaben"].includes(z.dataset.zahl) && n > 0);
@@ -1776,7 +1776,7 @@ async function sichtStart() {
       m.querySelector(".kopf")?.after(band);
     }).catch(() => {});                                     /* noch keine Daten (online: erster Abgleich) – dann eben ohne */
   }
-  if (d.halt.length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("halt").toUpperCase()),
+  if (d.halt.length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("halt_an").toUpperCase()),
     el("div", {}, d.halt.map(h => `#${h.id} ${h.gilt_fuer === "alle" ? t("halt_band") : h.gilt_fuer} · ${h.von}: ${h.text} (${seit(h.seit_utc)})`).join(" | ")),
     el("button", { class: "knopf", style: "margin-left:auto", onclick: () => weiterGeben() }, t("weiter"))));
   const sz = d.schirm, sl = sz?.laeufe || [];
@@ -1872,12 +1872,11 @@ function kachel(a) {
     : soll ? ["rot", a.zustand ? t("beendet_soll") : t("nie_gestartet")] : ["", a.soll === "ruht" ? t("ruht") : t("aus")];
   const kurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : x;
   const karte = el("div", { class: `karte kachel klickbar ${!lebt && soll ? "tot" : ""} ${!soll ? "aus" : ""}`, title: t("k_details") },
-    a.offen ? el("span", { class: "offen", style: `color:var(${a.offen > 10 ? "--bernstein" : "--leise"})`, title: t("k_offen_h", { n: a.offen_alt || 0 }) }, t("offen_n", { n: a.offen })) : null,
+    a.offen ? el("span", { class: "offen", style: `color:var(${a.offen > 10 ? "--bernstein" : "--leise"})`, title: t("k_offen_h", { n: a.offen_alt || 0 }) }, t("k_offen_n", { n: a.offen })) : null,
     el("div", { class: "name" }, a.kennung), el("div", { class: "rolle" }, a.rolle === "lead" ? t("lead") : a.rolle || t("agent")),
-    el("div", { class: "zustand" }, el("span", { class: "punkt " + zust[0] }), el("span", { class: zust[0] === "bernstein" ? "bernstein-text" : zust[0] === "rot" && lebt ? "rot-text" : "" }, zust[1]),
-      dauer ? el("span", { class: "sehrleise", style: "font-size:11px" }, dauer) : null,
-      lebt ? el("span", { class: "sehrleise mono", style: "margin-left:auto;font-size:11px;white-space:nowrap", title: t("puls", { t: seit(a.letzter_puls_utc) }) },
-        "♥ " + seit(a.letzter_puls_utc)) : null),
+    el("div", { class: "zustand", title: lebt ? t("k_puls", { t: seit(a.letzter_puls_utc) }) : null }, el("span", { class: "punkt " + zust[0] }),
+      el("span", { class: zust[0] === "bernstein" ? "bernstein-text" : zust[0] === "rot" && lebt ? "rot-text" : "" }, zust[1]),
+      dauer ? el("span", { class: "sehrleise", style: "font-size:11px" }, dauer) : null),
     el("div", { class: "info" },
       a.gerade ? el("div", {}, el("span", { class: "sehrleise" }, t("k_gerade") + " "), kurz(a.gerade, 90),
         a.gerade_quelle === "meldung" ? el("span", { class: "sehrleise" }, " " + t("k_vermutet")) : null,
@@ -1894,7 +1893,7 @@ function kachel(a) {
     soll || a.zustand ? el("div", { style: "display:flex;gap:6px;margin-top:8px;flex-wrap:wrap" },
       soll ? el("button", { class: "klein-knopf", type: "button", onclick: e => { e.stopPropagation(); nachrichtDialog(a.kennung); } }, t("nachricht")) : null,
       a.zustand ? el("button", { class: "klein-knopf", type: "button", title: t("g_knopf_h"),
-        onclick: e => { e.stopPropagation(); agentDialog(a.kennung, "gespraech"); } }, t("g_tab")) : null) : null);
+        onclick: e => { e.stopPropagation(); agentDialog(a.kennung, "gespraech"); } }, t("k_mitlesen")) : null) : null);
   karte.addEventListener("click", () => agentDialog(a.kennung));
   return karte;
 }

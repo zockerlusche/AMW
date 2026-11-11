@@ -1,8 +1,9 @@
 # Betrieb: Arbeiten mit AMW
 
 ## 1 Die Workbench
-http://127.0.0.1:8780 (am Handy dieselbe Seite über die Online-Adresse). Oben: Dienst, laufende Agenten,
-freier Arbeitsspeicher, Suche (Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten), **HALT**.
+http://127.0.0.1:8780 (am Handy dieselbe Seite über die Online-Adresse). Oben in ganzen Wörtern: „Wächter läuft“,
+„x von y Agenten laufen“, „Arbeitsspeicher: n GB frei“, „Bildschirm: belegt / frei für Agenten“, die Suche (Aufgaben,
+Beschlüsse, Fragen, Wortlaut, Nachrichten) und **Alle anhalten**.
 
 | Ansicht | Wofür |
 |---|---|
@@ -29,7 +30,7 @@ Zeile, die sich waagrecht wischen lässt.
   zurück. Antworten geht auch geparkt. Der TL und die Agenten parken mit `amw frage parken <nr> --grund "…"` (der Lead und
   der Fragesteller; auch über die TL-Brücke), `amw frage aufnehmen <nr>` holt sie zurück, `amw frage liste --geparkt`
   zeigt sie. Parken und Aufnehmen stehen im Verlauf der Frage, der Fragesteller bekommt eine Info.
-- **Anhalten:** HALT oben rechts (alle oder einen Agenten); „Weiter“ hebt auf. Agenten beginnen nichts Neues, Läufe starten nicht.
+- **Anhalten:** „Alle anhalten“ oben rechts (alle oder einen Agenten); „Weiterarbeiten“ hebt auf. Agenten beginnen nichts Neues, Läufe starten nicht.
 - **Starten, fortsetzen, beenden:** Kachel › Übersicht. „Fortsetzen“ setzt die letzte Sitzung fort (Gesprächsverlauf
   bleibt), „Neu beginnen“ startet frisch mit dem Startsatz. Profil im Zahnrad › Agenten › Profil.
 - **Mitlesen:** Kachel › „Gespräch“ (oder in der Übersicht der Reiter *Gespräch*) zeigt, was der Agent mit Claude Code
