@@ -96,7 +96,7 @@ class Seite(Wiederholt, Grund):
         self.warten("document.querySelectorAll('.dk-karte').length === 1")
         self.assertEqual(self.titel(), ["Zebra"])
         self.assertEqual(self.tab.js("document.querySelector('.kopf .kopf-aktion')?.textContent"), "Hochladen")   # oben, immer gleich
-        self.oeffnen("planung", "document.querySelector('.kopf .kopf-aktion')?.textContent === 'Neuer Bogen'")   # nicht der Knopf der alten Sicht
+        self.oeffnen("planung", "document.querySelector('.kopf .kopf-aktion')?.textContent === 'Neuer Meilenstein'")   # nicht der Knopf der alten Sicht
 
     def test_dialog_enter_schickt_ab_und_hat_ein_kreuz(self):
         self.oeffnen("start", "typeof nachrichtDialog === 'function' && document.querySelector('#team [data-k]')")
@@ -160,7 +160,7 @@ class Seite(Wiederholt, Grund):
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.tm-liste .tm-z[data-k]')].map(k => k.dataset.k)"), ["TL", "CC1"])
         self.tab.js("zeige('start', true)")
         self.warten("document.querySelector('.tm-liste')")
-        self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 5)       # Arbeit, Bildschirm, Sitzungen, Wächter, Rechner
+        self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 5)       # Arbeit, Bildschirm, Sitzungen, Dienst, Rechner
         rechner = self.tab.js("document.querySelector('#ls-rechner').innerText")
         self.assertIn("Frei", rechner)                                                                 # kein Lauf angemeldet
         self.assertIn("gemeinsamen Warteschlange", rechner)
@@ -352,7 +352,7 @@ class Seite(Wiederholt, Grund):
         self.assertIn("Dieser PC", texte)
         self.assertFalse([x for x in texte if "diesen PC" in x], texte)                 # der Hinweis „Gilt für …“ steht nicht in der Sprungleiste
         # neu gegliedert: erst, was die Installation trägt, dann Projekt und Agenten; je Abschnitt der Wirkungsort
-        self.assertEqual(texte, ["Betriebsart", "Speicher und Abgleich", "Online-Seite", "Benachrichtigungen aufs Handy", "Dieser PC", "Projekt", "Agenten"])
+        self.assertEqual(texte, ["Betriebsart", "Speicher und Synchronisierung", "Online-Seite", "Benachrichtigungen aufs Handy", "Dieser PC", "Projekt", "Agenten"])
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.einst > .karte > h3 .wirkt')].map(x => x.textContent)"),
                          ["Gilt für diesen PC", "Gilt für PC und Online-Seite", "Gilt für die Online-Seite", "Gilt für diesen PC", "Gilt für diesen PC", "Gilt für dieses Projekt"])
         # Betriebsart: drei Karten, genau eine gewählt; darunter die Liste der Verbindungen (mindestens die Workbench selbst)
@@ -361,7 +361,7 @@ class Seite(Wiederholt, Grund):
         self.warten("document.querySelector('.ba-liste td')")
         self.assertTrue(self.tab.js("[...document.querySelectorAll('.ba-liste td')].some(z => z.textContent.startsWith('127.0.0.1:'))"))
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.pruef[data-pruef]')].map(x => x.dataset.pruef)"), ["speicher", "seite"])   # Prüf-Knöpfe (nicht gedrückt: kein Netz im Test)
-        self.assertTrue(self.tab.js("[...document.querySelectorAll('.einst .feld')].some(f => f.textContent.includes('Port') && f.textContent.includes('Neustart des Wächters'))"))
+        self.assertTrue(self.tab.js("[...document.querySelectorAll('.einst .feld')].some(f => f.textContent.includes('Port') && f.textContent.includes('Neustart des Dienstes'))"))
         self.assertFalse(self.tab.js("/null|undefined/.test(document.querySelector('.einst').innerText)"))
 
 

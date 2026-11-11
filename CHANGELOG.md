@@ -4,6 +4,21 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.52.0 – 11.11.2026 · Oberfläche in normaler Sprache
+- **Texte der Workbench und der Online-Seite überarbeitet** (Deutsch und Englisch, gut 200 Stellen): kurz, aktiv und mit
+  den Wörtern, die übliche Software verwendet. Die wichtigsten Wörter:
+  „Bogen“ → „Meilenstein“, „Wächter“ → „Dienst“, „Abgleich“ → „Synchronisierung“, „Takt“ → „Rhythmus“,
+  „Brücke“ → „Dateiaustausch“, „Wortlaut“ → „Deine Worte“, „wecken“ → „benachrichtigen“, „Welle“ → „Stufe“,
+  „Denkstufe“ → „Denkaufwand“, „Release Notes“ → „Versionshinweise“, „Pflicht-Kontext“ → „Startinformationen“,
+  „Kennung“ → „Name“, „Baseline“ → „ursprünglicher Termin“, „Federführend“ → „Verantwortlich“, „Prüfbitte“ →
+  „Prüfanfrage“, „Merge-OK“ → „Merge-Freigabe“, „Pool“ → „Eingang“, „Halt“ → „Anhalten“, „Sichern & beenden“ →
+  „Speichern & beenden“. „Leitstand“ bleibt.
+- **Behoben:** Drei Texte erschienen nie, weil ihr Schlüssel doppelt vergeben war – stattdessen stand die
+  Spaltenüberschrift da: „speichert und wird beendet – spätestens …“ (stand: „Ende“), „zuletzt aktiv …“ im Hinweis zum
+  Zustand eines Agenten (stand: „Puls“) und die Überschrift „Zustand und Verbrauch“ (stand: „Zustand“).
+- Befehlszeile, Hilfeseiten und Meldungen der Agenten folgen in einem zweiten Schritt; Befehle verschwinden dann auch
+  aus den Texten der Oberfläche und stehen in den Hilfen.
+
 ## 1.51.2 – 11.11.2026 · Warteschlange: laufende Läufe halten ihren Arbeitsspeicher frei
 - **Behoben:** Die Warteschlange rechnete den Bedarf eines laufenden schweren Laufs nur in den ersten 3 Minuten nach
   seinem Start ein. Danach ließ sie einen weiteren schweren Lauf ein, sobald im Moment genug frei war – auch wenn der
