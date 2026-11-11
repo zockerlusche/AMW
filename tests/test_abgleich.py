@@ -52,6 +52,50 @@ class Abgleich(unittest.TestCase):
         fragen = json.loads(self.online_zeilen(f"SELECT inhalt FROM ansicht WHERE weg = '{self.uid}:/api/fragen'")[0][0])
         self.assertEqual(fragen[0]["kurz"], "Neu?")
 
+    def test_messwerte_des_rechners_loesen_allein_kein_hochladen_aus(self):
+        """Freier Arbeitsspeicher, freier Platz, Größe der Dauer-Belegung, „jetzt“ und die Hochrechnung des Wochenlimits
+        ändern sich ständig. Sie dürfen eine Ansicht nicht „geändert“ machen – eine neue Aussage schon."""
+        import collections
+        import datetime
+        from unittest import mock
+        from amw import belegung, betrieb, platte, tokenprognose
+        from tests.test_tokenprognose import plan_mit_verbrauch
+        plan_mit_verbrauch(self.con, self.pid)                                   # Meilenstein, Schritte, Verbrauch: Wochenlimit mit Pause
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="CC1", beschreibung="Gesamtlauf", status="laeuft",
+                         angemeldet_utc=db.jetzt(), start_utc=db.jetzt(), erwartet_min=30)
+        Platz = collections.namedtuple("Platz", "total used free")
+        GB, start = 2 ** 30, datetime.datetime.now(datetime.timezone.utc)
+
+        def stand(speicher, platz_frei, ki_gb, nach_s, programme=("llama-server",)):
+            jetzt = start + datetime.timedelta(seconds=nach_s)
+            prozesse = [{"pid": 5 + i, "eltern": 1, "name": n, "gb": ki_gb, "seit": start - datetime.timedelta(hours=2)} for i, n in enumerate(programme)]
+            lage = tokenprognose.lage(self.con, jetzt)
+            echt = betrieb.tagesverlauf
+            with mock.patch.object(betrieb, "speicher_frei_gb", lambda: (speicher, 32.0)), \
+                    mock.patch.object(platte.shutil, "disk_usage", lambda pfad: Platz(500 * GB, 0, int(platz_frei * GB))), \
+                    mock.patch.object(belegung, "prozesse", lambda: prozesse), mock.patch.object(belegung, "_gemerkt", [0.0, None, []]), \
+                    mock.patch.object(tokenprognose, "lage_gemerkt", lambda con, sekunden=60: lage), \
+                    mock.patch.object(tokenprognose, "einrechnen", lambda con, prog: None), \
+                    mock.patch.object(betrieb, "tagesverlauf", lambda con, pid: echt(con, pid, jetzt=jetzt)):
+                return abgleich.ansichten(self.con, self.pid)
+        a, b = stand(14.5, 60.0, 16.4, 0), stand(9.1, 59.2, 17.0, 400)
+        self.assertNotEqual(a["/api/start"]["rechner"]["frei_gb"], b["/api/start"]["rechner"]["frei_gb"])      # die Werte sind verschieden …
+        self.assertNotEqual(a["/api/planung"]["rechner_heute"]["jetzt_utc"], b["/api/planung"]["rechner_heute"]["jetzt_utc"])
+        self.assertNotEqual(a["/api/planung"]["token"]["leer_utc"], b["/api/planung"]["token"]["leer_utc"])
+        def unterschied(x, y, weg=""):
+            if isinstance(x, dict) and isinstance(y, dict):
+                return [u for k in sorted(set(x) | set(y)) for u in unterschied(x.get(k), y.get(k), f"{weg}.{k}")]
+            if isinstance(x, list) and isinstance(y, list) and len(x) == len(y):
+                return [u for i, (p, q) in enumerate(zip(x, y)) for u in unterschied(p, q, f"{weg}[{i}]")]
+            return [] if x == y else [f"{weg}: {str(x)[:60]} != {str(y)[:60]}"]
+        self.assertEqual([u for w in a for u in unterschied(abgleich._ruhig(a[w]), abgleich._ruhig(b[w]), w)], [])
+        self.assertEqual([w for w in a if abgleich._pruef(a[w]) != abgleich._pruef(b[w])], [])                  # … aber keine Ansicht gilt als geändert
+        knapp = stand(14.5, 20.0, 16.4, 0)                                                                    # ein Laufwerk wird knapp: das ist eine neue Aussage
+        self.assertEqual(sorted(w for w in a if abgleich._pruef(a[w]) != abgleich._pruef(knapp[w])), ["/api/einstellungen", "/api/start"])
+        mehr = stand(14.5, 60.0, 16.4, 0, programme=("llama-server", "vmmem"))                                # ein Programm kommt dazu
+        self.assertEqual(sorted(w for w in a if abgleich._pruef(a[w]) != abgleich._pruef(mehr[w])), ["/api/planung", "/api/start"])
+
     def test_briefkasten_wirkt_einmal_und_meldet_zurueck(self):
         fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Probe?", [("A", "ja"), ("B", "nein")], "A", "weil", geprueft="keine Treffer")
         self.einwerfen(f"/api/frage/{fid}/antwort", {"art": "option", "wert": "B"})

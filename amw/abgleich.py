@@ -308,11 +308,38 @@ def suchindex(con, pid):
     return {"gepackt": base64.b64encode(zlib.compress(roh, 9)).decode("ascii"), "anzahl": len(eintraege)}
 
 
+def _ruhig(inhalt):
+    """Eine Ansicht ohne das, was sich von selbst ständig ändert: Zeitstempel, freier Arbeitsspeicher, freier Platz, Größe
+    der Dauer-Belegung, „jetzt“ im Tagesverlauf, die Hochrechnung des Wochenlimits. Diese Werte werden mitgeschickt,
+    sobald sich sonst etwas ändert – allein lösen sie kein Hochladen aus. Was eine Aussage ändert (ein Laufwerk wird
+    knapp, ein Programm kommt dazu, ein Lauf startet oder endet, ein neuer Messwert des Verbrauchs), bleibt drin."""
+    if not isinstance(inhalt, dict):
+        return inhalt
+    d = {k: v for k, v in inhalt.items() if k not in ("zeit", "speicher")}
+    namen = lambda liste: [x.get("name") for x in liste or [] if isinstance(x, dict)]
+    stufen = lambda liste: [(x.get("laufwerk"), x.get("stufe")) for x in liste or [] if isinstance(x, dict)]
+    r = d.get("rechner")
+    if isinstance(r, dict) and "laufwerke" in r:                      # Einstellungen: Laufwerke und Aufräumvorschläge
+        d["rechner"] = {"laufwerke": stufen(r.get("laufwerke")),
+                        "aufraeumen": [x.get("name") for x in (r.get("aufraeumen") or {}).get("sicherungen", [])]}
+    elif isinstance(r, dict):                                         # Startseite: Auslastung des Rechners
+        d["rechner"] = {**{k: v for k, v in r.items() if k not in ("frei_gb", "dauer_gb", "dauer", "platte")},
+                        "dauer": namen(r.get("dauer")), "platte": stufen(r.get("platte"))}
+    t = d.get("token")
+    if isinstance(t, dict):                                           # Wochenlimit: der Messwert zählt, nicht die Hochrechnung
+        d["token"] = {k: t.get(k) for k in ("wert", "reset_utc", "unsicher")}
+    h = d.get("rechner_heute")
+    if isinstance(h, dict):                                           # Tagesverlauf: Läufe und ihre Zustände
+        d["rechner_heute"] = {"laeufe": [[l.get(k) for k in ("id", "eigen", "status", "start_utc", "ende_utc", "erwartet_min", "gb")]
+                                         for l in h.get("laeufe") or []],
+                              "dauer": namen(h.get("dauer")), "von_utc": h.get("von_utc"),
+                              "tage": [(x.get("tag"), x.get("laeufe")) for x in h.get("tage") or []]}
+    return d
+
+
 def _pruef(inhalt):
-    # Zeitstempel und freier Speicher ändern sich ständig – sie allein lösen kein Hochladen aus
-    if isinstance(inhalt, dict):
-        inhalt = {k: v for k, v in inhalt.items() if k not in ("zeit", "speicher")}
-    return hashlib.sha256(json.dumps(inhalt, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()[:32]
+    # Zeitstempel und Messwerte ändern sich ständig – sie allein lösen kein Hochladen aus (siehe _ruhig)
+    return hashlib.sha256(json.dumps(_ruhig(inhalt), ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()[:32]
 
 
 class Abgleich:

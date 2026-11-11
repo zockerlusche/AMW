@@ -3675,7 +3675,8 @@ function uebersicht(d) {
 function rechnerHeute(d) {
   const r = d.rechner_heute;
   if (!r) return null;
-  const ms = x => Date.parse(x), STD = 36e5, H = 26, jetzt = ms(r.jetzt_utc), tagVon = ms(r.von_utc), tagBis = ms(r.bis_utc);
+  const ms = x => Date.parse(x), STD = 36e5, H = 26, tagVon = ms(r.von_utc), tagBis = ms(r.bis_utc);
+  const jetzt = Math.min(tagBis, Math.max(tagVon, ms(r.jetzt_utc), Date.now()));           /* die Uhr des Geräts: online liegt der Stand des letzten Abgleichs */
   const uhr = m => new Date(m).toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" });
   const gb = x => x ? ` · ${zahlKurz(x)} GB` : "";
   const lief = r.laeufe.filter(l => l.start_utc).map(l => ({ l, art: l.status, a: Math.max(ms(l.start_utc), tagVon),

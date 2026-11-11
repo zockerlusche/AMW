@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.51.1 – 11.11.2026 · Abgleich lädt nicht mehr wegen bloßer Messwerte hoch
+- **Behoben:** Seit 1.42.0 standen Messwerte des Rechners in den Ansichten, die der Abgleich hochlädt – freier
+  Arbeitsspeicher, später freier Platz, Größe dauerhaft belegter Programme, die Uhrzeit „jetzt“ im Tages-Zeitstrahl und
+  die Hochrechnung des Wochenlimits. Jede kleine Schwankung galt als Änderung, die Ansichten wären fortlaufend neu
+  hochgeladen worden. Jetzt zählen diese Werte nicht mehr als Änderung; mitgeschickt werden sie, sobald sich sonst
+  etwas ändert. Eine neue Aussage – ein Laufwerk wird knapp, ein Programm kommt dazu, ein Lauf startet oder endet –
+  löst weiterhin das Hochladen aus.
+- Der Zeitstrahl „Rechner – heute“ setzt die Linie „jetzt“ nach der Uhr des Geräts, damit sie auch online stimmt.
+
 ## 1.51.0 – 11.11.2026 · Planung: der Rechner heute als eigener Zeitstrahl
 - **„Rechner – heute“** unter der Übersicht der Planung: der Tagesablauf des Rechners. Ein Balken je Lauf, die Füllung
   zeigt den Arbeitsspeicher; was läuft, reicht bis zum erwarteten Ende; Wartende hängen gestrichelt hinter „jetzt“.
