@@ -164,14 +164,20 @@ class Spuren(Grund):
         self.assertEqual((self.status(l2), self.status(l3)), ("angemeldet", "laeuft"))
         self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "CC1", l1, 0, speicher_frei=40), [l2])
 
-    def test_speicher_je_lauf_mit_anlauf(self):
-        self.start("CC1", frei=12)
-        with self.assertRaises(kern.AmwFehler) as e:                     # 12 frei, aber 8 gleich für L1
+    def test_speicher_je_lauf_vorgemerkt_solange_er_laeuft(self):
+        l1 = self.start("CC1", frei=12)
+        with self.assertRaises(kern.AmwFehler) as e:                     # 12 frei, aber 8 für L1 vorgemerkt
             self.start("CC2", frei=12)
-        self.assertIn("8 GB gleich für gerade gestartete", str(e.exception))
+        self.assertIn("8 GB davon für laufende Läufe vorgemerkt", str(e.exception))
         with db.schreiben(self.con):
             self.con.execute("UPDATE lauf SET start_utc = '2026-01-01T00:00:00Z'")
-        self.assertEqual(self.status(self.start("CC2", frei=12)), "laeuft")   # L1s Speicher steckt jetzt in der Messung
+        with self.assertRaises(kern.AmwFehler):                          # auch Stunden später: L1 kann noch wachsen
+            self.start("CC2", frei=12)
+        from unittest import mock
+        from amw import belegung
+        with mock.patch.object(belegung, "lauf_pid", lambda lid: 77 if lid == l1 else None), \
+                mock.patch.object(belegung, "prozesse", lambda: [{"pid": 77, "eltern": 1, "name": "python", "gb": 8.5, "seit": None}]):
+            self.assertEqual(self.status(self.start("CC2", frei=12)), "laeuft")   # L1 belegt seine 8 GB schon: steckt in der Messung
 
     def test_wartender_mit_wenig_speicher_wird_nicht_ueberholt(self):
         l1 = self.start("CC1", frei=20)

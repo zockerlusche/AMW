@@ -104,6 +104,23 @@ def lauf_vergessen(lid):
         pass
 
 
+def lauf_pid(lid):
+    """Der Prozess, den „amw lauf ausfuehren“ für Lauf lid gestartet hat – oder None (anders gestartet, schon vorbei)."""
+    try:
+        with open(os.path.join(_ordner(), f"{int(lid)}.pid"), encoding="ascii") as f:
+            return int(f.read().strip())
+    except (OSError, ValueError):
+        return None
+
+
+def baum_gb(liste, prozess_id):
+    """Arbeitsspeicher eines Prozesses samt Kindern und Kindeskindern (GB) – None, wenn der Prozess nicht (mehr) da ist."""
+    if not any(p["pid"] == prozess_id for p in liste):
+        return None
+    baum = _nachkommen(liste, [prozess_id])
+    return sum(p["gb"] for p in liste if p["pid"] in baum)
+
+
 def lauf_prozesse(laufende=None):
     """Prozess-Nummern der gemerkten Läufe. laufende: Nummern der Läufe, die noch laufen (andere Einträge sind
     Überbleibsel und zählen nicht); None = alle gemerkten."""

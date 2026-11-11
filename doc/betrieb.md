@@ -108,7 +108,9 @@ wer zuerst kommt, ist zuerst dran, egal aus welchem Projekt. Am einfachsten mit
 `amw lauf ausfuehren --beschreibung "Tests" --dauer 6 -- <befehl>`: meldet an, wartet, bis der Rechner frei ist, startet
 den Befehl, reicht den Rückgabewert durch und meldet das Ende. Eingelassen wird, wenn ein Platz frei ist (Grafikkarte und
 Bildschirm: ein Lauf zur Zeit; schwere Läufe ohne beides: so viele wie unter „Dieser PC“ eingestellt) und genug
-Arbeitsspeicher: frei − Reserve − Bedarf gerade gestarteter Läufe ≥ Bedarf des Laufs. Die Reserve (Vorgabe 3 GB,
+Arbeitsspeicher: frei − Reserve − vorgemerkt ≥ Bedarf des Laufs. „Vorgemerkt“ ist je laufendem schwerem Lauf sein
+Bedarf minus dem, was er schon belegt – solange er läuft, nicht nur kurz nach dem Start. Was er belegt, misst die AMW
+am Prozess, wenn der Lauf über `amw lauf ausfuehren` gestartet wurde; sonst gilt sein ganzer Bedarf als vorgemerkt. Die Reserve (Vorgabe 3 GB,
 Zahnrad › Dieser PC) bleibt für den Menschen am Rechner. Was außerhalb der Warteschlange Arbeitsspeicher belegt (ein
 lokaler KI-Server, eine virtuelle Maschine), steckt in der Messung „frei“ schon drin; der Leitstand und der Wartegrund
 nennen das Programm (`amw/belegung.py`: Name, Größe, seit wann – nur lesen, nie beenden). Den Bedarf nennt der Lauf selbst:

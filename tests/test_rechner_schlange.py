@@ -148,6 +148,37 @@ class Reserve(Grund):
             einstellungen.FELDER["speicher_reserve_gb"][1](-1)
 
 
+class Vorgemerkt(Grund):
+    """Fall aus einem anderen Projekt: Ein schwerer Lauf ohne Grafikkarte lief seit gut 3 Minuten, die Schlange ließ einen
+    schweren Lauf mit Grafikkarte daneben ein (gemessen 13,9 GB frei, gebraucht 8 + 3 GB Reserve) – beide brachen wegen
+    Speichermangels ab. Der laufende hält seinen Bedarf frei, solange er läuft."""
+
+    def test_grafikkarten_lauf_wartet_auf_den_speicher_des_laufenden(self):
+        import datetime
+        from amw import belegung
+        with mock.patch.object(betrieb, "reserve_gb", return_value=3.0):
+            a = betrieb.lauf_start(self.con, self.p["Eins"], "A", "Gleichheits-Läufe", speicher_frei=14.3)
+            vor = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=190)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE lauf SET start_utc = ? WHERE id = ?", (vor, a))         # wie damals: seit 190 s
+            b = betrieb.lauf_start(self.con, self.p["Eins"], "B", "Durchstich, echte KI", gpu=True, speicher_frei=13.9, warten=True)
+            self.assertEqual(self.status(b), "angemeldet")                                        # früher: sofort eingelassen
+            grund = betrieb.wartegrund(self.con, self.p["Eins"], betrieb.lauf_zeile(self.con, self.p["Eins"], b), speicher_frei=13.9)
+            self.assertIn("nur 13.9 GB frei (8 GB davon für laufende Läufe vorgemerkt), gebraucht 8 GB und 3 GB Reserve", grund)
+            self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=13.9), [])
+            # bekannter Prozess (amw lauf ausfuehren): was er schon belegt, steckt in der Messung und ist nicht mehr vorgemerkt
+            liste = [{"pid": 50, "eltern": 1, "name": "cmd", "gb": 0.1, "seit": None}, {"pid": 51, "eltern": 50, "name": "godot", "gb": 7.4, "seit": None}]
+            with mock.patch.object(belegung, "lauf_pid", lambda lid: 50 if lid == a else None), mock.patch.object(belegung, "prozesse", lambda: liste):
+                self.assertEqual(betrieb._vorgemerkt_gb(self.con), 0.5)
+                self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=11.0), [])         # 11 − 0,5 − 3 = 7,5 < 8
+                self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=13.9), [b])        # 13,9 − 0,5 − 3 = 10,4 ≥ 8
+            self.assertEqual(betrieb._vorgemerkt_gb(self.con), 16.0)                              # jetzt laufen beide, Prozesse unbekannt
+            betrieb.lauf_ende(self.con, self.p["Eins"], "A", a, 0, speicher_frei=20.0)
+            betrieb.lauf_ende(self.con, self.p["Eins"], "B", b, 0, speicher_frei=20.0)
+            self.assertEqual(betrieb._vorgemerkt_gb(self.con), 0.0)                               # nach dem Ende: nichts mehr vorgemerkt
+        self.assertEqual(belegung.baum_gb([{"pid": 1, "eltern": 0, "name": "x", "gb": 1.0, "seit": None}], 9), None)   # Prozess weg: unbekannt
+
+
 class Bedarf(Grund):
     def test_eigener_bedarf_geht_vor_der_grenze_des_projekts(self):
         with mock.patch.object(betrieb, "reserve_gb", return_value=0.0), mock.patch.object(betrieb, "cpu_laeufe", return_value=4):
@@ -159,7 +190,7 @@ class Bedarf(Grund):
             self.assertEqual((z["braucht_gb"], z["rechner"]), (2.0, betrieb.rechner()))
             with self.assertRaises(kern.AmwFehler) as e:                          # gerade gestartet: seine 2 GB zählen noch mit
                 betrieb.lauf_start(self.con, self.p["Zwei"], "A", "Tests", speicher_frei=5.0, braucht_gb=4)
-            self.assertIn("2 GB gleich für gerade gestartete Läufe", str(e.exception))
+            self.assertIn("2 GB davon für laufende Läufe vorgemerkt", str(e.exception))
             gross = betrieb.lauf_start(self.con, self.p["Zwei"], "A", "Tests", speicher_frei=5.0, braucht_gb=4, warten=True)
             self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=5.0), [])     # der Wartende wird mit seinem eigenen Bedarf geprüft
             self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=6.0), [gross])

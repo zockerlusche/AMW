@@ -100,8 +100,8 @@ def tagesverlauf(con, pid, jetzt=None, tage=60):
             "laeufe": heute, "dauer": belegung.aktuell(con), "tage": tage_liste}
 
 
-ANLAUF_S = 180                # so lange zählt ein gerade gestarteter schwerer Lauf seine Grenze als belegt (sein Speicher
-                              # ist in der Messung noch nicht zu sehen)
+# Ein laufender schwerer Lauf hält seinen angemeldeten Bedarf frei, solange er läuft (_vorgemerkt_gb) – abzüglich dessen,
+# was er nachweislich schon belegt. Sonst ließe die Schlange einen zweiten Lauf ein, während der erste noch wächst.
 
 
 def _einstellung(con, pid, schluessel, vorgabe):
@@ -276,22 +276,35 @@ def _besetzt(con, pid, plaetze):
     return None, None
 
 
-def _anlauf_gb(con):
-    """Speicher, den gerade gestartete schwere Läufe gleich brauchen (ihre Grenze, ANLAUF_S lang nach dem Start)."""
-    r = con.execute("SELECT l.projekt_id, l.schwer, l.start_utc, l.braucht_gb, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
-                    " WHERE l.status = 'laeuft' AND l.schwer = 1 AND l.start_utc >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?) AND " + HIER,
-                    (f"-{ANLAUF_S} seconds", rechner())).fetchall()
-    return sum(_bedarf(con, x) for x in r)
+def _vorgemerkt_gb(con):
+    """Arbeitsspeicher, den laufende schwere Läufe dieses Rechners noch für sich brauchen: je Lauf sein angemeldeter
+    Bedarf (eigene Angabe, sonst Rezept, sonst Grenze seines Projekts) minus dem, was sein Prozessbaum schon belegt –
+    nie unter 0. Den Prozess kennt die AMW bei „amw lauf ausfuehren“; sonst (von Hand gestartet, KI-Auftrag) gilt der
+    ganze Bedarf als vorgemerkt, bis der Lauf endet – lieber einen Lauf warten lassen als zwei abbrechen."""
+    r = con.execute("SELECT l.id, l.projekt_id, l.schwer, l.braucht_gb, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
+                    " WHERE l.status = 'laeuft' AND l.schwer = 1 AND " + HIER, (rechner(),)).fetchall()
+    if not r:
+        return 0.0
+    from . import belegung
+    liste, summe = None, 0.0
+    for x in r:
+        bedarf, schon = _bedarf(con, x), 0.0
+        pid = belegung.lauf_pid(x["id"])
+        if pid:
+            liste = belegung.prozesse() if liste is None else liste
+            schon = belegung.baum_gb(liste, pid) or 0.0
+        summe += max(0.0, bedarf - schon)
+    return round(summe, 1)
 
 
 def _speicher_fehlt(con, pid, l_grenze, speicher_frei):
-    """Grund, wenn für einen Lauf mit dieser Grenze nicht genug frei ist (abzüglich dessen, was gerade Gestartete gleich
-    brauchen) – jeder schwere Lauf braucht seine Grenze für sich."""
+    """Grund, wenn für einen Lauf mit dieser Grenze nicht genug frei ist (abzüglich dessen, was laufende Läufe noch für
+    sich vorgemerkt haben) – jeder schwere Lauf braucht seine Grenze für sich."""
     if not l_grenze or speicher_frei is None:
         return None
-    anlauf, reserve = _anlauf_gb(con), reserve_gb()
-    if speicher_frei - anlauf - reserve < l_grenze:
-        return f"nur {speicher_frei} GB frei" + (f" ({anlauf:g} GB gleich für gerade gestartete Läufe)" if anlauf else "") \
+    vorgemerkt, reserve = _vorgemerkt_gb(con), reserve_gb()
+    if speicher_frei - vorgemerkt - reserve < l_grenze:
+        return f"nur {speicher_frei} GB frei" + (f" ({vorgemerkt:g} GB davon für laufende Läufe vorgemerkt)" if vorgemerkt else "") \
             + f", gebraucht {l_grenze:g} GB" + (f" und {reserve:g} GB Reserve" if reserve else "")
     return None
 

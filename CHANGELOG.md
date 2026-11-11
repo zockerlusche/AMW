@@ -4,6 +4,17 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.51.2 – 11.11.2026 · Warteschlange: laufende Läufe halten ihren Arbeitsspeicher frei
+- **Behoben:** Die Warteschlange rechnete den Bedarf eines laufenden schweren Laufs nur in den ersten 3 Minuten nach
+  seinem Start ein. Danach ließ sie einen weiteren schweren Lauf ein, sobald im Moment genug frei war – auch wenn der
+  erste noch wuchs. Besonders ein Lauf mit Grafikkarte neben einem Lauf ohne Grafikkarte brach dann wegen
+  Speichermangels ab, und der andere mit.
+- **Jetzt:** Jeder laufende schwere Lauf hält seinen angemeldeten Bedarf frei, solange er läuft – abzüglich dessen, was
+  er nachweislich schon belegt. Bei Läufen über `amw lauf ausfuehren` misst die AMW das am Prozess samt Kindern; bei
+  anders gestarteten Läufen gilt der ganze Bedarf als vorgemerkt, bis der Lauf endet.
+- Der Wartegrund nennt es: „nur 13.9 GB frei (8 GB davon für laufende Läufe vorgemerkt), gebraucht 8 GB und 3 GB Reserve“.
+- Tipp: Läufe mit ihrem echten Bedarf anmelden (`--braucht-gb`); ohne Angabe gilt die Grenze des Projekts.
+
 ## 1.51.1 – 11.11.2026 · Abgleich lädt nicht mehr wegen bloßer Messwerte hoch
 - **Behoben:** Seit 1.42.0 standen Messwerte des Rechners in den Ansichten, die der Abgleich hochlädt – freier
   Arbeitsspeicher, später freier Platz, Größe dauerhaft belegter Programme, die Uhrzeit „jetzt“ im Tages-Zeitstrahl und
