@@ -489,6 +489,11 @@ function sitzung_anmelden(): void {
     $_SESSION['angemeldet'] = true;
     $_SESSION['seit'] = $_SESSION['zuletzt'] = time();
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
+    try {                                                    // Version der Seite in den Online-Speicher: so prüft der PC sie
+        $version = trim((string)@file_get_contents(__DIR__ . '/VERSION'));   // („Online-Seite testen“), ohne dass die Seite öffentlich Auskunft gibt
+        if ($version !== '') sql([["INSERT INTO zustand (schluessel, wert) VALUES ('web_version', ?) ON CONFLICT(schluessel)"
+                                   . " DO UPDATE SET wert = excluded.wert", [$version]]]);
+    } catch (Throwable $e) {}                                // die Anmeldung hängt nie daran
 }
 
 /** Prüft Benutzer, Passwort und Code. Rückgabe: '' angemeldet, 'einrichten' = Passwort stimmt, zweiter Faktor fehlt

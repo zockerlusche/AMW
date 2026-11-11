@@ -1,0 +1,95 @@
+{
+ "titel": "Setting up the online page at your web host",
+ "kurz": "With the online page you answer questions, approve and pause – on the go, on your phone. It lives at your web host and shows what the PC uploads to the online storage.",
+ "brauchst": [
+  "The online storage: set up, with sync switched on (help “Create the online store at Turso”).",
+  "A web host with PHP 8.1 or newer (extensions curl and mbstring) and HTTPS, ideally a subdomain of its own.",
+  "An authenticator app on your phone (for the second factor)."
+ ],
+ "schritte": [
+  {
+   "titel": "Operating mode",
+   "text": "The online page is on the internet: under Settings › Operating mode, “Cloud” must be chosen.",
+   "bilder": []
+  },
+  {
+   "titel": "Deploy the files",
+   "text": "At your host, set up a Git deployment from the AMW repository (or your fork), branch `web`, into the folder of the subdomain. Without Git: upload the contents of the `web/` folder. Switch on HTTPS (SSL) for the subdomain.",
+   "bilder": []
+  },
+  {
+   "titel": "Open the page",
+   "text": "Open the address in the browser. As long as the page is not set up, its setup assistant appears.",
+   "bilder": []
+  },
+  {
+   "titel": "Connect the online storage",
+   "text": "In the assistant, enter the address and key of the online storage – the same as on the PC. The page checks the connection.",
+   "bilder": []
+  },
+  {
+   "titel": "Create the login",
+   "text": "Choose a user name (4–40 characters) and a password (at least 14 characters, twice).",
+   "bilder": []
+  },
+  {
+   "titel": "Set up the second factor",
+   "text": "Scan the QR code with the authenticator app and confirm the first number. The assistant expires after 30 minutes; after 5 wrong numbers it starts over.",
+   "bilder": []
+  },
+  {
+   "titel": "Enter the address on the PC",
+   "text": "Settings › Online site › “Address of the online page”, then save. “Page reachable?” checks whether it answers over https.",
+   "bilder": []
+  }
+ ],
+ "werte": [
+  [
+   "Address and key (in the page’s assistant)",
+   "the same as under Settings › Storage and sync"
+  ],
+  [
+   "User name and password",
+   "you choose them – ideally the password comes from a password manager"
+  ],
+  [
+   "Address of the online page (on the PC)",
+   "the address of your subdomain, starting with `https://`"
+  ]
+ ],
+ "fehler": [
+  [
+   "The assistant does not appear",
+   "The page is already set up; you get the login instead."
+  ],
+  [
+   "Note “the next deployment deletes the configuration”",
+   "The page was not allowed to store its configuration outside the deployment folder. Allow writing one level above the folder at your host and repeat the setup."
+  ],
+  [
+   "The page shows old or no data",
+   "The PC is not uploading: sync on? Watcher running? `amw web status` shows the last upload."
+  ],
+  [
+   "“Page reachable?” reports no help files",
+   "An older version or a different page is there. Renew the deployment."
+  ]
+ ],
+ "danach": [
+  "What you do online lands in a mailbox; the PC collects it and carries it out as the developer.",
+  "Sign-out after idle time and lockout after failed attempts are set under Settings › Online site.",
+  "Set up a second factor at your host, Git provider and storage provider too: whoever takes over one of these accounts can act in your name."
+ ],
+ "fragen": [
+  [
+   "Can someone else set up a freshly deployed page?",
+   "Only someone who has the key of the online storage – without it the assistant does not get past the first step."
+  ],
+  [
+   "How do I switch the online page off?",
+   "On the PC: Settings › Storage and sync › sync off. To lock it completely: empty the folder at your host or block reading and writing at the storage provider."
+  ]
+ ],
+ "thema": "online-seite-webhoster",
+ "sprache": "en"
+}
