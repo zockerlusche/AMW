@@ -12,7 +12,7 @@ import unittest
 import urllib.request
 
 from amw import db, dokumente, kern, wissen, workbench
-from tests.test_aktualisieren import EDGE, Grund, _Tab, freier_port
+from tests.test_aktualisieren import EDGE, Grund, Wiederholt, _Tab, edge_beenden, freier_port, warte_auf
 
 
 class Zahlen(Grund):
@@ -30,7 +30,7 @@ class Zahlen(Grund):
 
 
 @unittest.skipUnless(EDGE, "Edge nicht installiert")
-class Seite(Grund):
+class Seite(Wiederholt, Grund):
     def setUp(self):
         super().setUp()
         for name, art, titel in (("b.png", "bild", "Zebra"), ("a.png", "bild", "Affe"), ("r.md", "bericht", "Mitte")):
@@ -65,11 +65,7 @@ class Seite(Grund):
             self.tab.s.close()
         except Exception:
             pass
-        self.edge.terminate()
-        try:
-            self.edge.wait(10)
-        except subprocess.TimeoutExpired:
-            self.edge.kill()
+        edge_beenden(self.edge)
         self.srv.shutdown()
         self.srv.server_close()
         super().tearDown()
@@ -79,15 +75,7 @@ class Seite(Grund):
         self.warten(bedingung)
 
     def warten(self, bedingung, sekunden=8):
-        ende = time.time() + sekunden
-        while time.time() < ende:
-            try:
-                if self.tab.js(f"!!({bedingung})"):
-                    return
-            except AssertionError:
-                pass
-            time.sleep(0.15)
-        self.fail(f"nach {sekunden} s nicht erfüllt: {bedingung}")
+        warte_auf(self, bedingung, sekunden)
 
     def titel(self):
         return self.tab.js("[...document.querySelectorAll('.dk-karte b')].map(b => b.textContent)")

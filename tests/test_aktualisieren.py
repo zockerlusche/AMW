@@ -23,6 +23,49 @@ EDGE = next((p for p in (shutil.which("msedge"), r"C:\Program Files (x86)\Micros
                          r"C:\Program Files\Microsoft\Edge\Application\msedge.exe") if p and os.path.exists(p)), None)
 
 
+# Unter Last (andere Rechen-Läufe auf demselben PC) braucht die Seite ein Vielfaches – die Grenzen sind Obergrenzen, der
+# Test geht weiter, sobald die Bedingung stimmt. AMW_TEST_ZEIT=1 stellt die knappen Grenzen her.
+ZEIT = float(os.environ.get("AMW_TEST_ZEIT", "4"))
+
+
+def warte_auf(test, bedingung, sekunden):
+    grenze = sekunden * ZEIT
+    ende = time.time() + grenze
+    while time.time() < ende:
+        try:
+            if test.tab.js(f"!!({bedingung})"):
+                return
+        except AssertionError:
+            pass
+        time.sleep(0.15)
+    test.fail(f"nach {grenze:.0f} s nicht erfüllt: {bedingung}")
+
+
+def edge_beenden(prozess):
+    """Den Test-Browser mit allen Kindprozessen beenden – sonst halten sie Dateien im Temp-Ordner des Tests fest."""
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/PID", str(prozess.pid), "/T", "/F"], capture_output=True)
+    else:
+        prozess.terminate()
+    try:
+        prozess.wait(10)
+    except subprocess.TimeoutExpired:
+        prozess.kill()
+
+
+class Wiederholt:
+    """Reißt die Verbindung zum Test-Browser ab (unter Last stirbt er gelegentlich), wird der Test einmal neu aufgesetzt.
+    Eine nicht erfüllte Bedingung ist kein Verbindungsfehler und bleibt ein Fehler."""
+
+    def _callTestMethod(self, method):
+        try:
+            method()
+        except OSError:                              # ConnectionResetError, Zeitüberschreitung am Socket …
+            self.tearDown()
+            self.setUp()
+            method()
+
+
 def freier_port():
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -31,7 +74,7 @@ def freier_port():
 
 class Grund(unittest.TestCase):
     def setUp(self):
-        self.ordner = tempfile.TemporaryDirectory()
+        self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)   # ein noch offener Rest des Test-Browsers ist kein Testfehler
         self.alt_db = os.environ.get("AMW_DB")
         os.environ["AMW_DB"] = os.path.join(self.ordner.name, "amw.db")
         self.con = db.anlegen()
@@ -140,7 +183,7 @@ class _Tab:
 
 
 @unittest.skipUnless(EDGE, "Edge nicht installiert")
-class Seite(Grund):
+class Seite(Wiederholt, Grund):
     def setUp(self):
         super().setUp()
         self.port = freier_port()
@@ -167,25 +210,13 @@ class Seite(Grund):
             self.tab.s.close()
         except Exception:
             pass
-        self.edge.terminate()
-        try:
-            self.edge.wait(10)
-        except subprocess.TimeoutExpired:
-            self.edge.kill()
+        edge_beenden(self.edge)
         self.srv.shutdown()
         self.srv.server_close()
         super().tearDown()
 
     def warten(self, bedingung, sekunden=8):
-        ende = time.time() + sekunden
-        while time.time() < ende:
-            try:
-                if self.tab.js(f"!!({bedingung})"):
-                    return
-            except AssertionError:
-                pass
-            time.sleep(0.15)
-        self.fail(f"nach {sekunden} s nicht erfüllt: {bedingung}")
+        warte_auf(self, bedingung, sekunden)
 
     def takt(self):
         """Ein Takt des 15-s-Intervalls, sofort (Kopf laden, dann Stempel prüfen)."""
