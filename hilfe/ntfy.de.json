@@ -18,7 +18,7 @@
   },
   {
    "titel": "Link setzen",
-   "text": "Damit ein Tipp auf die Nachricht die richtige Seite öffnet: bei „Link in der Meldung“ die Adresse deiner Online-Seite eintragen (`https://…`). Als Befehl: `amw push link https://deine-seite.example/`.",
+   "text": "Damit ein Tipp auf die Nachricht die richtige Seite öffnet: unter Einstellungen › Online-Seite die „Adresse der Online-Seite“ eintragen (`https://…`). Als Befehl: `amw push link https://deine-seite.example/`.",
    "bilder": []
   },
   {
@@ -37,7 +37,7 @@
    "`https://ntfy.sh` oder die Adresse deines eigenen ntfy-Servers"
   ],
   [
-   "Link in der Meldung",
+   "Adresse der Online-Seite (Abschnitt Online-Seite)",
    "Adresse deiner Online-Seite"
   ]
  ],
