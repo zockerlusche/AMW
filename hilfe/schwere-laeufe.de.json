@@ -1,0 +1,84 @@
+{
+ "titel": "Schwere Läufe: Tests und Builds über die Warteschlange",
+ "kurz": "Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Läufe gleichzeitig, reicht der Arbeitsspeicher nicht und alle scheitern. Die AMW reiht solche Läufe deshalb in eine Warteschlange für den ganzen Rechner ein – von selbst, ohne dass ein Agent daran denken muss.",
+ "brauchst": [
+  "Agenten-Ordner, die die AMW eingerichtet hat (`amw einrichten agenten-ordner <ordner>`).",
+  "Den Schalter „Schwere Befehle über die Warteschlange“ unter Einstellungen › Dieser PC (ist ab Werk an)."
+ ],
+ "schritte": [
+  {
+   "titel": "Ordner auf den neuen Stand bringen",
+   "text": "Für jeden Agenten-Ordner einmal `amw einrichten agenten-ordner <ordner>` ausführen. Das ergänzt den Hook; laufende Sitzungen übernehmen ihn nach wenigen Sekunden.",
+   "bilder": []
+  },
+  {
+   "titel": "So läuft es dann",
+   "text": "Startet ein Agent einen schweren Befehl direkt (zum Beispiel die ganze Test-Suite), wird der Befehl nicht ausgeführt. Der Agent bekommt stattdessen den fertigen Ersatz: `amw lauf ausfuehren --beschreibung \"Test-Suite\" -- <sein Befehl>`. Der wartet, bis der Rechner frei ist, läuft dann und gibt das Ergebnis zurück.",
+   "bilder": []
+  },
+  {
+   "titel": "Eigene Befehle ergänzen",
+   "text": "Unter Einstellungen › Projekt › „Weitere schwere Befehle“ je Zeile einen Eintrag `Name = Muster` eintragen, zum Beispiel `Karten rechnen = karten\\.py`.",
+   "bilder": []
+  },
+  {
+   "titel": "Bedarf nennen",
+   "text": "Wer weiß, was ein Lauf braucht, gibt es an: `--braucht-gb 4` (Arbeitsspeicher), wahlweise `--braucht-vram-gb` (Grafikspeicher) und `--braucht-platte-gb` (freier Platz). Ohne Angabe rechnet die AMW mit der Speicher-Grenze des Projekts.",
+   "bilder": []
+  },
+  {
+   "titel": "Nachsehen",
+   "text": "Start › Leitstand › „Rechner“ zeigt, wie viele Läufe laufen und warten und wann der Rechner voraussichtlich frei ist.",
+   "bilder": []
+  }
+ ],
+ "werte": [
+  [
+   "Schwere Befehle über die Warteschlange (Dieser PC)",
+   "an lassen; aus heißt: Agenten starten alles direkt"
+  ],
+  [
+   "Arbeitsspeicher-Reserve (Dieser PC)",
+   "so viel bleibt für dich frei, Vorgabe 3 GB"
+  ],
+  [
+   "Weitere schwere Befehle (Projekt)",
+   "Name = Muster, ein Eintrag je Zeile; das Muster ist ein regulärer Ausdruck"
+  ]
+ ],
+ "fehler": [
+  [
+   "Ein Agent startet Tests weiter direkt",
+   "Sein Ordner hat den Hook noch nicht: `amw einrichten agenten-ordner <ordner>` ausführen."
+  ],
+  [
+   "Ein Lauf wartet lange",
+   "Im Leitstand steht, warum: der Rechner ist belegt oder es ist zu wenig Arbeitsspeicher frei. Der Mensch kann einen Lauf vorziehen (`amw lauf vorziehen <nr>`)."
+  ],
+  [
+   "Ein einzelner kurzer Test wird abgewiesen",
+   "Das Muster ist zu weit gefasst. Einzelne Test-Module bleiben frei; eigene Muster enger fassen."
+  ],
+  [
+   "„Muster ungültig“",
+   "Das Muster ist kein gültiger regulärer Ausdruck, zum Beispiel fehlt eine Klammer."
+  ]
+ ],
+ "danach": [
+  "Als schwer gelten ab Werk: ganze Test-Suiten, Browser-Tests, Builds und der Abzug des Web-Zweigs.",
+  "Über Läufe eines anderen Projekts sieht man nur, dass der Rechner belegt ist und bis wann – nie, was dort läuft.",
+  "Jeder Rechner hat seine eigene Warteschlange."
+ ],
+ "fragen": [
+  [
+   "Was passiert, wenn der Hook einmal nicht funktioniert?",
+   "Dann läuft der Befehl ganz normal. Der Hook ist so gebaut, dass ein Fehler nie einen Befehl sperrt."
+  ],
+  [
+   "Kann ich das für einen Rechner abschalten?",
+   "Ja: Einstellungen › Dieser PC › „Schwere Befehle über die Warteschlange“ ausschalten. Die Warteschlange selbst bleibt, nur das Abweisen entfällt."
+  ]
+ ],
+ "thema": "schwere-laeufe",
+ "sprache": "de"
+}
