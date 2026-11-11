@@ -1071,10 +1071,11 @@ def cmd_lauf(a, con):
         w = betrieb.wartende(con, pid)
         if w:
             print("Warteschlange:")
-            for i, r in enumerate(w, 1):
-                print(f"  {i}. L{r['id']:<5} {r['agent']:<8}{' schwer' if r['schwer'] else ''}{' Schirm' if r['schirm'] else ''}"
+            for i, r in enumerate(w, 1):                 # die Schlange gilt für den ganzen Rechner; fremde Läufe ohne Inhalt
+                eigen = r["projekt_id"] == pid
+                print(f"  {i}. L{r['id']:<5} {r['agent'] if eigen else '–':<8}{' schwer' if r['schwer'] else ''}{' Schirm' if r['schirm'] else ''}"
                       f"{' GPU' if r['gpu'] else ''}{' (vorgezogen)' if r['rang'] else ''} seit {_zeit(r['angemeldet_utc'])}"
-                      f"  {r['beschreibung']}")
+                      f"  {r['beschreibung'] if eigen else '(anderes Projekt)'}")
             print()
         for r in con.execute("SELECT * FROM lauf WHERE projekt_id = ? ORDER BY id DESC LIMIT ?", (pid, a.grenze)):
             print(f"L{r['id']:<5} {r['agent']:<8} [{r['status']}]{' schwer' if r['schwer'] else ''}{' Schirm' if r['schirm'] else ''}"

@@ -191,9 +191,8 @@ class Dienst:
                 log.info("Schirm: %s", e)
         except Exception as e:
             log.warning("Schirm: %s: %s", type(e).__name__, e)
-        for p in self.con.execute("SELECT id FROM projekt").fetchall():   # Warteschlange: Speicher wieder frei, Agent wieder da
-            for lid in betrieb.warteschlange(self.con, p["id"]):
-                log.info("Warteschlange: L%s freigegeben", lid)
+        for lid in betrieb.warteschlange(self.con):                         # eine Warteschlange je Rechner, über alle Projekte
+            log.info("Warteschlange: L%s freigegeben", lid)
         statusline.uebernehmen(self.con)                                     # Kontext, Grenzen, Kosten je Sitzung
         try:                                                                 # „Sichern & beenden“: abgemeldet oder Frist um
             for e in steuerung.ende_pruefen(self.con):

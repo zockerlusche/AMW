@@ -256,8 +256,9 @@ class Schlange(Grund):
         lid, _, laeuft = ki.auftrag(self.con, self.pid, "Bauer", "ollama", "Hallo", "qwen3.5:9b")
         self.assertFalse(laeuft)
         self.assertIn(f"GPU-Lauf L{fremd}", betrieb.wartegrund(self.con, self.pid, self.lauf(lid)))
-        betrieb.lauf_ende(self.con, self.pid2, "Fremd", fremd, 0)
-        self.assertEqual(betrieb.warteschlange(self.con, self.pid), [lid])
+        # eine Warteschlange je Rechner: das Ende im einen Projekt gibt den Platz sofort für das andere frei
+        self.assertEqual(betrieb.lauf_ende(self.con, self.pid2, "Fremd", fremd, 0), [lid])
+        self.assertEqual(betrieb.warteschlange(self.con, self.pid), [])
         with self.assertRaises(kern.AmwFehler) as e:                  # jetzt wartet umgekehrt der GPU-Lauf des anderen Projekts
             betrieb.lauf_start(self.con, self.pid2, "Fremd", "noch einmal", schwer=False, gpu=True)
         self.assertIn(f"L{lid}", str(e.exception))

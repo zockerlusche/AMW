@@ -10,6 +10,27 @@ from . import db, kern
 from . import schirm as schirm_mod     # „schirm“ ist hier schon der Name der Spalte/des Parameters
 
 SPEICHER_GRENZE_GB = 8.0      # Vorgabe, je Projekt überschreibbar: einstellungen {"speicher_grenze_gb": …}
+
+
+def auslastung(con, pid):
+    """Der Rechner aus Sicht eines Projekts: wie viele Läufe laufen und warten (alle Projekte zusammen), wie viele davon
+    eigene sind, wann er voraussichtlich frei wird (spätestes erwartetes Ende der laufenden, soweit angegeben) und wie
+    viel Arbeitsspeicher frei ist. Über fremde Läufe steht hier nur die Anzahl."""
+    import datetime
+    laufen = con.execute("SELECT projekt_id, start_utc, erwartet_min FROM lauf WHERE status = 'laeuft'").fetchall()
+    warten = con.execute("SELECT projekt_id FROM lauf WHERE status = 'angemeldet'").fetchall()
+    enden = []
+    for l in laufen:
+        if l["start_utc"] and l["erwartet_min"]:
+            try:
+                enden.append(datetime.datetime.strptime(l["start_utc"][:19], "%Y-%m-%dT%H:%M:%S") + datetime.timedelta(minutes=l["erwartet_min"]))
+            except ValueError:
+                pass
+    frei, gesamt = speicher_frei_gb()
+    return {"laufen": len(laufen), "warten": len(warten), "eigene_laufen": sum(1 for l in laufen if l["projekt_id"] == pid),
+            "eigene_warten": sum(1 for l in warten if l["projekt_id"] == pid),
+            "frei_ab_utc": max(enden).strftime("%Y-%m-%dT%H:%M:%SZ") if enden and len(enden) == len(laufen) else None,
+            "frei_gb": frei, "gesamt_gb": gesamt}
 ANLAUF_S = 180                # so lange zählt ein gerade gestarteter schwerer Lauf seine Grenze als belegt (sein Speicher
                               # ist in der Messung noch nicht zu sehen)
 
@@ -57,7 +78,7 @@ def cpu_laeufe():
     return einstellungen.wert("cpu_laeufe")
 
 
-def _plaetze(schwer, schirm, gpu=0, agent=None):
+def _plaetze(schwer, schirm, gpu=0, agent=None, pid=None):
     """Zwei Spuren: Grafikkarte und Schirm (PC-weit ein Lauf zur Zeit; ein Fenster rechnet auf der Grafikkarte) und
     „cpu“ für schwere Läufe ohne beides (cpu_laeufe() zugleich). agent: schwere Läufe eines Agenten nie gleichzeitig –
     er rechnet in seinem Klon, zwei Godot-Imports im selben Klon gehen schief. KI-Aufträge rechnet der Dienst (ohne Klon)."""
@@ -65,30 +86,59 @@ def _plaetze(schwer, schirm, gpu=0, agent=None):
     if schwer and not p:
         p.add("cpu")
     if schwer and agent:
-        p.add("agent:" + agent)
+        p.add(f"agent:{pid}:{agent}")              # je Projekt: gleiche Kennung in zwei Projekten = zwei Agenten, zwei Klone
     return p
 
 
 def _plaetze_von(l):
-    return _plaetze(l["schwer"], l["schirm"], l["gpu"], None if l["ki_auftrag"] else l["agent"])
+    return _plaetze(l["schwer"], l["schirm"], l["gpu"], None if l["ki_auftrag"] else l["agent"], l["projekt_id"])
+
+
+MENSCH_RANG = 1000            # ab hier: vom Menschen vorgezogen – gilt über alle Projekte; darunter sortiert ein Lead nur
+                              # die Läufe seines eigenen Projekts um
+
+
+def _zeit_kurz(utc):
+    """„16:05“ (Ortszeit) aus einem UTC-Text – für Hinweise auf fremde Läufe."""
+    import datetime
+    try:
+        t = datetime.datetime.strptime(utc[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=datetime.timezone.utc)
+    except (TypeError, ValueError):
+        return "?"
+    return t.astimezone().strftime("%H:%M")
+
+
+def lauf_nennen(pid, l, mit_text=True):
+    """Ein Lauf im Text. Eigener Lauf: Nummer, Agent, Beschreibung. Lauf eines anderen Projekts: nur, dass der Rechner
+    belegt ist und bis wann – nie Agent, Beschreibung oder Projekt (die Projekte mischen sich nicht)."""
+    if l["projekt_id"] == pid:
+        return f"L{l['id']} von {l['agent']}" + (f": {l['beschreibung']}" if mit_text else "")
+    seit = f", läuft seit {_zeit_kurz(l['start_utc'])}" if l["start_utc"] else ""
+    bis = ""
+    if l["start_utc"] and l["erwartet_min"]:
+        import datetime
+        ende = datetime.datetime.strptime(l["start_utc"][:19], "%Y-%m-%dT%H:%M:%S") + datetime.timedelta(minutes=l["erwartet_min"])
+        bis = f", voraussichtlich bis {_zeit_kurz(ende.strftime('%Y-%m-%dT%H:%M:%S'))}"
+    return f"L{l['id']} (anderes Projekt{seit}{bis})"
 
 
 def _besetzt(con, pid, plaetze):
     """(Grund, Platz), wenn ein laufender Lauf einen der Plätze belegt, sonst (None, None)."""
     for p in sorted(x for x in plaetze if x.startswith("agent:")):
+        _, agent_pid, agent = p.split(":", 2)
         b = con.execute("SELECT l.id, l.beschreibung FROM lauf l LEFT JOIN ki_auftrag k ON k.lauf_id = l.id WHERE l.projekt_id = ?"
                         " AND l.agent = ? AND l.status = 'laeuft' AND l.schwer = 1 AND k.id IS NULL ORDER BY l.id LIMIT 1",
-                        (pid, p[6:])).fetchone()
+                        (int(agent_pid), agent)).fetchone()
         if b:
-            return f"L{b['id']} von {p[6:]} läuft noch (ein Agent rechnet nie zwei schwere Läufe zugleich – sein Klon): {b['beschreibung']}", p
-    if plaetze & {"gpu", "schirm"}:
-        b = con.execute("SELECT id, agent, beschreibung, gpu FROM lauf WHERE status = 'laeuft' AND (gpu = 1 OR schirm = 1)"
-                        " ORDER BY id LIMIT 1").fetchone()
+            return f"L{b['id']} von {agent} läuft noch (ein Agent rechnet nie zwei schwere Läufe zugleich – sein Klon): {b['beschreibung']}", p
+    if plaetze & {"gpu", "schirm"}:                  # Grafikkarte und Bildschirm: ein Lauf zur Zeit auf dem ganzen Rechner
+        b = con.execute("SELECT id, projekt_id, agent, beschreibung, gpu, start_utc, erwartet_min FROM lauf WHERE status = 'laeuft'"
+                        " AND (gpu = 1 OR schirm = 1) ORDER BY id LIMIT 1").fetchone()
         if b:
             platz = "gpu" if "gpu" in plaetze else "schirm"
             if b["gpu"]:
-                return f"GPU-Lauf L{b['id']} von {b['agent']} belegt die Grafikkarte: {b['beschreibung']}", platz
-            return f"Schirm-Lauf L{b['id']} von {b['agent']} läuft noch: {b['beschreibung']}", platz
+                return f"GPU-Lauf {lauf_nennen(pid, b)} belegt die Grafikkarte", platz
+            return f"Schirm-Lauf {lauf_nennen(pid, b)} läuft noch", platz
     if "cpu" in plaetze:
         r = con.execute("SELECT id FROM lauf WHERE status = 'laeuft' AND schwer = 1 AND schirm = 0 AND gpu = 0 ORDER BY id").fetchall()
         n = cpu_laeufe()
@@ -143,22 +193,31 @@ def _gesperrt(con, pid, wartend, schirm_zu, bis=None):
             continue
         if w["schirm"] and schirm_zu:
             hier = {"schirm"}
-        elif not _lebt(con, pid, w):
+        elif not _lebt(con, w["projekt_id"], w):     # jeder Lauf nach den Regeln seines eigenen Projekts
             continue
         else:
-            _, platz = _besetzt(con, pid, pw)
+            _, platz = _besetzt(con, w["projekt_id"], pw)
             hier = {platz} if platz else pw          # zu wenig Speicher oder gleich dran: alle seine Plätze
         for p in hier:
             aus.setdefault(p, []).append(w)
     return aus
 
 
-def wartende(con, pid):
-    """Warteschlange: Rang (vorgezogen) vor Reihenfolge der Anmeldung. ki_auftrag: der Lauf ist ein KI-Auftrag (führt der
-    Dienst aus, kein Weckruf an den Agenten); nachts: startet erst im KI-Fenster."""
-    return con.execute("SELECT l.*, r.braucht_speicher_gb, k.id AS ki_auftrag, json_extract(k.parameter, '$.nachts') AS nachts FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
-                       " LEFT JOIN ki_auftrag k ON k.lauf_id = l.id"
-                       " WHERE l.projekt_id = ? AND l.status = 'angemeldet' ORDER BY l.rang DESC, l.id", (pid,)).fetchall()
+def wartende(con, pid=None):
+    """Die Warteschlange dieses Rechners – über alle Projekte (eine Datenbank = ein Rechner). Wer zuerst kommt, ist zuerst
+    dran, egal aus welchem Projekt. Vom Menschen Vorgezogene stehen ganz vorn; ein Lead sortiert nur die Läufe seines
+    eigenen Projekts um (sie tauschen untereinander die Plätze, kein fremder Lauf rückt dadurch nach hinten).
+    pid ist nur noch der Betrachter (wer fragt), kein Filter. ki_auftrag: der Lauf ist ein KI-Auftrag (führt der Dienst
+    aus, kein Weckruf an den Agenten); nachts: startet erst im KI-Fenster."""
+    zeilen = con.execute("SELECT l.*, r.braucht_speicher_gb, k.id AS ki_auftrag, json_extract(k.parameter, '$.nachts') AS nachts FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
+                         " LEFT JOIN ki_auftrag k ON k.lauf_id = l.id WHERE l.status = 'angemeldet' ORDER BY l.id").fetchall()
+    oben = sorted((z for z in zeilen if z["rang"] >= MENSCH_RANG), key=lambda z: (-z["rang"], z["id"]))
+    rest = [z for z in zeilen if z["rang"] < MENSCH_RANG]
+    je_projekt = {}
+    for z in rest:
+        je_projekt.setdefault(z["projekt_id"], []).append(z)
+    zeiger = {p: iter(sorted(v, key=lambda z: (-z["rang"], z["id"]))) for p, v in je_projekt.items()}
+    return oben + [next(zeiger[z["projekt_id"]]) for z in rest]      # die Plätze eines Projekts bleiben seine Plätze
 
 
 def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=False, aufgabe_id=None,
@@ -180,7 +239,7 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     grenze = _grenze(con, pid, rez["braucht_speicher_gb"] if rez else None, schwer)
     if speicher_frei is None:
         speicher_frei = speicher_frei_gb()[0]
-    plaetze = _plaetze(schwer, schirm, gpu, None if dazu else agent)
+    plaetze = _plaetze(schwer, schirm, gpu, None if dazu else agent, pid)
     with db.schreiben(con):
         w = wartende(con, pid)
         schirm_zu = schirm_mod.sperrgrund(con) if schirm or any(x["schirm"] for x in w) else None
@@ -188,7 +247,7 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
         gesperrt = _gesperrt(con, pid, w, schirm_zu) if not sperre else {}
         vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
         if not grund and vor:
-            grund = "Warteschlange: " + ", ".join(f"L{x['id']} von {x['agent']}" for x in vor) + " wartet schon"
+            grund = "Warteschlange: " + ", ".join(lauf_nennen(pid, x, mit_text=False) for x in vor) + " wartet schon"
         if not grund:
             grund = _speicher_fehlt(con, pid, grenze, speicher_frei)
         if grund and not warten:
@@ -214,8 +273,9 @@ def kurzfassung(text, n=110):
     return (stueck.rsplit(" ", 1)[0] if " " in stueck else stueck).rstrip(",;:–- ") + " …"
 
 
-def warteschlange(con, pid, speicher_frei=None):
-    """Startet wartende Läufe der Reihe nach, sobald ihr Platz frei ist, und weckt den Agenten (Freigabe).
+def warteschlange(con, pid=None, speicher_frei=None):
+    """Startet wartende Läufe der Reihe nach, sobald ihr Platz frei ist, und weckt den Agenten (Freigabe) – für den ganzen
+    Rechner, über alle Projekte (pid ist nur noch aus alten Aufrufen da).
     Wer warten muss, hält alle hinter sich auf, die den Platz brauchen, an dem er hängt – niemand überholt (wer auf
     seinen Klon wartet, hält die CPU-Spur nicht auf; ein Lauf ohne Fenster nicht den Schirm). Agenten ohne
     lebende Sitzung oder im Halt werden übersprungen, bis sie wieder da sind. Schirm-Läufe nur bei freiem Schirm
@@ -234,13 +294,14 @@ def warteschlange(con, pid, speicher_frei=None):
             if l["schirm"] and schirm_zu:            # hält nur andere Schirm-Läufe auf, nicht die ohne Fenster
                 gesperrt.add("schirm")
                 continue
-            if not _lebt(con, pid, l):               # KI-Auftrag: rechnet der Dienst, der Agent darf schlafen
+            lp = l["projekt_id"]                     # jeder Lauf nach den Regeln seines eigenen Projekts
+            if not _lebt(con, lp, l):                # KI-Auftrag: rechnet der Dienst, der Agent darf schlafen
                 continue
-            _, platz = _besetzt(con, pid, plaetze)
+            _, platz = _besetzt(con, lp, plaetze)
             if platz:                                # hält nur auf, wer genau diesen Platz braucht
                 gesperrt.add(platz)
                 continue
-            if _speicher_fehlt(con, pid, _grenze(con, pid, l["braucht_speicher_gb"], l["schwer"]), speicher_frei):
+            if _speicher_fehlt(con, lp, _grenze(con, lp, l["braucht_speicher_gb"], l["schwer"]), speicher_frei):
                 gesperrt |= plaetze
                 continue
             con.execute("UPDATE lauf SET status = 'laeuft', start_utc = ?, speicher_frei_gb = ? WHERE id = ?",
@@ -248,7 +309,7 @@ def warteschlange(con, pid, speicher_frei=None):
             if l["ki_auftrag"]:                      # der KI-Arbeiter im Dienst holt ihn ab
                 gestartet.append(l["id"])
                 continue
-            kern._posten(con, pid, "AMW", l["agent"], "freigabe", f"L{l['id']} ist dran – jetzt starten: {kurzfassung(l['beschreibung'])}",
+            kern._posten(con, lp, "AMW", l["agent"], "freigabe", f"L{l['id']} ist dran – jetzt starten: {kurzfassung(l['beschreibung'])}",
                          f"{l['beschreibung']}\n\nDer Platz ist für dich reserviert. Am Ende: amw lauf ende {l['id']} --rc <Code>. "
                          f"Kannst du gerade nicht: amw lauf ende {l['id']} --abgebrochen (gibt den Platz frei).",
                          aufgabe_id=l["aufgabe_id"])
@@ -270,7 +331,7 @@ def wartegrund(con, pid, l, speicher_frei=None):
     platz = next((i for i, x in enumerate(w, 1) if x["id"] == l["id"]), None)
     ki_auftrag = con.execute("SELECT id, json_extract(parameter, '$.nachts') AS nachts FROM ki_auftrag WHERE lauf_id = ?",
                              (l["id"],)).fetchone()
-    plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"], None if ki_auftrag else l["agent"])
+    plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"], None if ki_auftrag else l["agent"], pid)
     frei = speicher_frei if speicher_frei is not None else speicher_frei_gb()[0]
     gruende = []
     schirm_zu = schirm_mod.sperrgrund(con) if l["schirm"] or any(x["schirm"] for x in w) else None
@@ -289,7 +350,7 @@ def wartegrund(con, pid, l, speicher_frei=None):
     gesperrt = _gesperrt(con, pid, w, schirm_zu, bis=l["id"]) if platz else {}
     vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
     if vor:
-        gruende.append("vor dir: " + ", ".join(f"L{x['id']} ({x['agent']})" for x in vor))
+        gruende.append("vor dir: " + ", ".join(f"L{x['id']} ({x['agent'] if x['projekt_id'] == pid else 'anderes Projekt'})" for x in vor))
     g = _speicher_fehlt(con, pid, _grenze(con, pid, l["braucht_speicher_gb"], l["schwer"]), frei)
     if g:
         gruende.append(g)
@@ -298,15 +359,21 @@ def wartegrund(con, pid, l, speicher_frei=None):
 
 
 def lauf_vorziehen(con, pid, von, lid):
-    """Lead/Entwickler stellt einen wartenden Lauf an die Spitze der Warteschlange."""
+    """Vorziehen. Der Mensch stellt einen wartenden Lauf an die Spitze der Warteschlange des Rechners (über alle Projekte);
+    ein Lead stellt ihn an die Spitze der Läufe seines eigenen Projekts – an fremden Läufen zieht er damit nicht vorbei."""
     if not kern.ist_lead(con, pid, von):
         raise kern.AmwFehler("vorziehen dürfen nur Lead und Entwickler")
+    mensch = von == kern.ENTWICKLER
     with db.schreiben(con):
         l = con.execute("SELECT status FROM lauf WHERE id = ? AND projekt_id = ?", (lid, pid)).fetchone()
         if not l or l["status"] != "angemeldet":
             raise kern.AmwFehler(f"L{lid} wartet nicht")
-        con.execute("UPDATE lauf SET rang = (SELECT coalesce(max(rang), 0) + 1 FROM lauf WHERE projekt_id = ?"
-                    " AND status = 'angemeldet') WHERE id = ?", (pid, lid))
+        if mensch:
+            hoechster = con.execute("SELECT coalesce(max(rang), 0) FROM lauf WHERE status = 'angemeldet'").fetchone()[0]
+            con.execute("UPDATE lauf SET rang = ? WHERE id = ?", (max(hoechster, MENSCH_RANG - 1) + 1, lid))
+        else:
+            con.execute("UPDATE lauf SET rang = (SELECT coalesce(max(rang), 0) + 1 FROM lauf WHERE projekt_id = ?"
+                        " AND status = 'angemeldet' AND rang < ?) WHERE id = ?", (pid, MENSCH_RANG, lid))
 
 
 def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speicher_frei=None):

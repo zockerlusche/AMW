@@ -4,6 +4,19 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.42.0 – 11.11.2026 · Eine Warteschlange je Rechner, über alle Projekte
+- **Schwere Läufe werden über Projekte hinweg abgesprochen.** Bisher galt die Reihenfolge der Wartenden nur innerhalb
+  eines Projekts – ein wartender Lauf konnte von einem anderen Projekt überholt werden. Jetzt gibt es eine Warteschlange
+  für den ganzen Rechner: wer zuerst kommt, ist zuerst dran, egal aus welchem Projekt.
+- **Vorziehen:** Ein Lead zieht nur Läufe seines eigenen Projekts vor (sie tauschen untereinander die Plätze); über
+  Projekte hinweg zieht nur der Mensch vor.
+- **Projekte bleiben getrennt:** Über einen Lauf eines anderen Projekts steht nur, dass der Rechner belegt ist und bis
+  wann – nie Agent, Beschreibung oder Projekt. Das gilt für Meldungen, Wartegründe und `amw lauf liste`.
+- **Gleiche Kennung in zwei Projekten** sind zwei Agenten: Ihre Läufe halten einander nicht mehr auf.
+- **Leitstand › Rechner:** wie viele Läufe laufen und warten, wie viele davon aus diesem Projekt, wann der Rechner
+  voraussichtlich frei ist, wie viel Arbeitsspeicher frei ist.
+- Der Wächter arbeitet die Warteschlange einmal je Runde für den ganzen Rechner ab.
+
 ## 1.41.0 – 11.11.2026 · Einstellungen neu gegliedert, mit Geltungsbereich und Verbindungstests
 - **Neue Reihenfolge im Zahnrad:** Speicher und Abgleich · Online-Seite · Benachrichtigungen · Dieser PC · Projekt ·
   Agenten – erst, was die Installation trägt, dann das Projekt. Was zusammengehört, steht zusammen: die Takte des

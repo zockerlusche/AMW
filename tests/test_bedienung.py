@@ -160,7 +160,10 @@ class Seite(Wiederholt, Grund):
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.tm-liste .tm-z[data-k]')].map(k => k.dataset.k)"), ["TL", "CC1"])
         self.tab.js("zeige('start', true)")
         self.warten("document.querySelector('.tm-liste')")
-        self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 4)       # Arbeit, Bildschirm, Sitzungen, Wächter
+        self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 5)       # Arbeit, Bildschirm, Sitzungen, Wächter, Rechner
+        rechner = self.tab.js("document.querySelector('#ls-rechner').innerText")
+        self.assertIn("Frei", rechner)                                                                 # kein Lauf angemeldet
+        self.assertIn("gemeinsamen Warteschlange", rechner)
         self.assertFalse(self.tab.js("document.querySelector('header').innerText.includes('null')"))   # leere Hinweise sind keine Texte
         self.assertFalse(self.tab.js("!!document.querySelector('#halt-knopf')"))                       # Anhalten steht im Leitstand
         self.assertTrue(self.tab.js("[...document.querySelectorAll('#leitstand button')].some(b => b.textContent === 'Alle anhalten')"))

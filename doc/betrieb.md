@@ -94,6 +94,18 @@ amw frage neu --an entwickler --kurz "…" --option "A=…" --option "B=…" --e
 amw taetigkeit "A1201 Login-Formular" --von CC1   # steht beim Agenten unter „Arbeitet an“
 amw kontext --von CC1                     # Pflicht-Kontext
 ```
+**Schwere Läufe und der Rechner.** Mehrere Projekte teilen sich einen PC. Schwere Läufe (Test-Suiten, Builds, alles mit
+Grafikkarte oder Fenster) gehören deshalb in die Warteschlange – sie gilt für den **ganzen Rechner, über alle Projekte**:
+wer zuerst kommt, ist zuerst dran, egal aus welchem Projekt. Am einfachsten mit
+`amw lauf ausfuehren --beschreibung "Tests" --dauer 6 -- <befehl>`: meldet an, wartet, bis der Rechner frei ist, startet
+den Befehl, reicht den Rückgabewert durch und meldet das Ende. Eingelassen wird, wenn ein Platz frei ist (Grafikkarte und
+Bildschirm: ein Lauf zur Zeit; schwere Läufe ohne beides: so viele wie unter „Dieser PC“ eingestellt) und genug
+Arbeitsspeicher. Ein Lead zieht nur Läufe seines eigenen Projekts vor (sie tauschen untereinander die Plätze); über
+Projekte hinweg zieht nur der Mensch vor. Über Läufe eines anderen Projekts erfährt man nur die Belegung – „L12 (anderes
+Projekt, läuft seit 16:05, voraussichtlich bis 16:20)“ –, nie Agent, Beschreibung oder Projekt. Der Leitstand zeigt unter
+„Rechner“, wie viele Läufe laufen und warten und wann er voraussichtlich frei ist. Eine Datenbank steht für einen Rechner;
+Agenten auf einem anderen Rechner haben ihre eigene Warteschlange.
+
 Alle Befehle: [befehle.md](befehle.md). `--von` kann entfallen, wenn `AMW_AGENT` gesetzt ist (Startskript, Hook).
 Du selbst nimmst `--von Entwickler`. Den genauen Befehl (`python <AMW-Ordner>/amw-cli.py`) bekommen die Agenten im
 Pflicht-Kontext; mit `<AMW-Ordner>\bin` im Pfad geht überall kurz `amw`.
