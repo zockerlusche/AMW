@@ -169,6 +169,28 @@ def anmelden(con, pid, kennung, eingabe, ersetzen=False, streng=False):
     return None
 
 
+def schwere_befehle(eingabe):
+    """Antwort für den PreToolUse-Hook: None (Befehl läuft) oder die Abweisung mit dem fertigen Ersatz-Befehl. Abgewiesen
+    wird nur, wenn der Schalter „lauf_hook“ dieses PCs an ist; die Muster des Projekts (Einstellung schwere_befehle) gelten
+    zusätzlich zu den mitgelieferten. Lässt sich das Projekt nicht bestimmen, gelten nur die mitgelieferten."""
+    from . import einstellungen, schwer
+    if not einstellungen.wert("lauf_hook") or not schwer.erkennbar(eingabe):
+        return None
+    eigene = []
+    try:
+        con = db.verbinde()
+        try:
+            pid = projekt_der_sitzung(con, os.environ.get("AMW_AGENT"), eingabe)
+            if pid is not None:
+                r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+                eigene = json.loads(r["einstellungen"] or "{}").get("schwere_befehle") or []
+        finally:
+            con.close()
+    except Exception:
+        eigene = []
+    return schwer.entscheide(eingabe, eigene, amw=kern.BEFEHL)
+
+
 def main():
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -178,6 +200,14 @@ def main():
         eingabe = json.loads(sys.stdin.read() or "{}")
     except ValueError:
         eingabe = {}
+    if eingabe.get("hook_event_name") == "PreToolUse":   # vor einem Shell-Befehl: schwere Läufe über die Warteschlange
+        try:
+            antwort = schwere_befehle(eingabe)
+            if antwort:
+                sys.stdout.write(json.dumps(antwort, ensure_ascii=False))
+        except Exception:                           # nie stören: im Zweifel läuft der Befehl
+            pass
+        return 0
     if eingabe.get("hook_event_name", "SessionStart") != "SessionStart":
         try:                                        # Zustands-Hooks: still, schnell, nie störend
             ereignis(eingabe)

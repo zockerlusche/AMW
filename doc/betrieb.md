@@ -94,6 +94,14 @@ amw frage neu --an entwickler --kurz "…" --option "A=…" --option "B=…" --e
 amw taetigkeit "A1201 Login-Formular" --von CC1   # steht beim Agenten unter „Arbeitet an“
 amw kontext --von CC1                     # Pflicht-Kontext
 ```
+**Anmelden von selbst.** Ein Hook, den `amw einrichten agenten-ordner` in jeden Agenten-Ordner einträgt, sieht jeden
+Shell-Befehl vor dem Start. Ist er schwer – ganze Test-Suite, Browser-Tests, Build, Abzug des Web-Zweigs oder ein Muster
+des Projekts (Zahnrad › Projekt › „Weitere schwere Befehle“) – und läuft nicht schon über die Warteschlange, wird er
+abgewiesen, und der Agent bekommt den fertigen Ersatz: `amw lauf ausfuehren --beschreibung "…" -- <befehl>`. Einzelne
+Test-Module bleiben frei. Abschalten je Rechner: Zahnrad › Dieser PC. Der Hook sperrt nie durch einen Fehler: Fehlt seine
+Datei oder scheitert er, läuft der Befehl normal. Bestehende Ordner bekommen ihn mit einem erneuten
+`amw einrichten agenten-ordner <ordner>`; laufende Sitzungen übernehmen ihn nach wenigen Sekunden.
+
 **Schwere Läufe und der Rechner.** Mehrere Projekte teilen sich einen PC. Schwere Läufe (Test-Suiten, Builds, alles mit
 Grafikkarte oder Fenster) gehören deshalb in die Warteschlange – sie gilt für den **ganzen Rechner, über alle Projekte**:
 wer zuerst kommt, ist zuerst dran, egal aus welchem Projekt. Am einfachsten mit
@@ -159,5 +167,6 @@ testen“ (erreichbar über https, läuft dort eine AMW-Seite?). Schlüssel blei
 | `statusline_weiter` | leer | bisherige Statusline, die die Statusline-Brücke weiterreicht (setzt `amw einrichten`) |
 | `claude_befehl` | `claude` | wie Claude Code gestartet wird (falls nötig mit vollem Pfad) |
 | `speicher_reserve_gb` | 3 | so viel Arbeitsspeicher bleibt frei, bevor ein schwerer Lauf startet (0–64) |
+| `lauf_hook` | an | schwere Befehle abweisen und über die Warteschlange schicken (Hook in den Agenten-Ordnern) |
 | `sprache` | auto | Sprache der Oberfläche, solange im Browser nichts gewählt ist: `auto` (wie der Browser), `de`, `en` |
 | `claude_link` | an | Knopf „In Claude öffnen“ auf der Agenten-Seite zeigen |

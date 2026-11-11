@@ -11,6 +11,7 @@ auseinander.
 | [ntfy.md](ntfy.md) | Benachrichtigungen aufs Handy mit ntfy | Einstellungen › Benachrichtigungen |
 | [regelwerk.md](regelwerk.md) | Grund-Regelwerk für ein neues Projekt | Assistent „Neues Projekt“, Wissen › Regeln |
 | [takt-chat-lead.md](takt-chat-lead.md) | Takt für einen Lead, der als Chat arbeitet | Assistent „Neues Projekt“ (Lead als Chat) |
+| [schwere-laeufe.md](schwere-laeufe.md) | Schwere Läufe: Tests und Builds über die Warteschlange | Einstellungen › Projekt („Weitere schwere Befehle“) |
 
 Englisch liegt unter [en/](en/) mit denselben Dateinamen.
 

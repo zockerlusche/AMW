@@ -52,9 +52,34 @@ def ersatz(befehl, name, amw="amw"):
     return f'{amw} lauf ausfuehren --beschreibung "{name}" -- {befehl}'
 
 
+def erkennbar(eingabe):
+    """Geht es überhaupt um einen Shell-Befehl vor seinem Start? (Schnelle Vorprüfung, bevor die Datenbank gefragt wird.)"""
+    return (eingabe.get("hook_event_name") == "PreToolUse" and eingabe.get("tool_name") in ("Bash", "PowerShell")
+            and bool((eingabe.get("tool_input") or {}).get("command")))
+
+
+def eigene_pruefen(liste):
+    """Muster eines Projekts prüfen und säubern: [{"name", "muster"}], höchstens 20; wirft ValueError mit Grund."""
+    if not isinstance(liste, list) or len(liste) > 20:
+        raise ValueError("höchstens 20 Einträge")
+    aus = []
+    for e in liste:
+        name, m = str((e or {}).get("name") or "").strip()[:40], str((e or {}).get("muster") or "").strip()
+        if not name or not m:
+            raise ValueError("jeder Eintrag braucht einen Namen und ein Muster")
+        if len(m) > 200:
+            raise ValueError(f"{name}: Muster höchstens 200 Zeichen")
+        try:
+            re.compile(m)
+        except re.error as f:
+            raise ValueError(f"{name}: Muster ungültig ({f})") from None
+        aus.append({"name": name, "muster": m})
+    return aus
+
+
 def entscheide(eingabe, eigene=None, amw="amw"):
     """Hook-Eingabe (PreToolUse) → None (nichts tun) oder die Antwort, die den Befehl abweist und den Ersatz nennt."""
-    if eingabe.get("hook_event_name") != "PreToolUse" or eingabe.get("tool_name") not in ("Bash", "PowerShell"):
+    if not erkennbar(eingabe):
         return None
     befehl = (eingabe.get("tool_input") or {}).get("command")
     name = erkennen(befehl, eigene)

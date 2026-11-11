@@ -131,6 +131,16 @@ def befehl(starter):
     return f'"{py}" -X utf8 "{os.path.join(WURZEL, starter).replace(os.sep, "/")}"'
 
 
+def befehl_sicher(starter):
+    """Wie befehl(), aber für einen Hook, der Befehle abweisen darf (PreToolUse): Dort heißt Rückgabewert 2 „sperren“ –
+    und Python endet mit 2, wenn es die Skript-Datei nicht findet. Fehlte der Starter (AMW-Ordner verschoben), wäre jeder
+    Shell-Befehl der Sitzung blockiert. Darum: gibt es die Datei nicht, endet der Aufruf mit 0 und der Befehl läuft normal."""
+    py = pythonw().replace("pythonw.exe", "python.exe")
+    pfad = os.path.join(WURZEL, starter).replace(os.sep, "/")
+    return (f'"{py}" -X utf8 -c "import os,sys,runpy; p=r\'{pfad}\'; '
+            f'sys.exit(0) if not os.path.exists(p) else runpy.run_path(p, run_name=\'__main__\')"')
+
+
 ZUSTANDS_HOOKS = ("Notification", "Stop", "StopFailure", "UserPromptSubmit", "SessionEnd")
 SPERREN = [f"Bash(*schtasks*{AUFGABE}*)", f"PowerShell(*schtasks*{AUFGABE}*)", f"PowerShell(*ScheduledTask*{AUFGABE}*)",
            f"Bash(*ScheduledTask*{AUFGABE}*)", "Bash(*amw*dienst entfernen*)", "PowerShell(*amw*dienst entfernen*)",
@@ -148,8 +158,11 @@ def hook_einstellungen():
     die bisherige Statusline weiter; die Sperren schützen den Wächter vor Versehen."""
     hook = {"type": "command", "command": befehl("amw-hook.py"), "timeout": 30}
     still = {**hook, "async": True}
+    # vor jedem Shell-Befehl: schwere Läufe (Test-Suite, Build …) gehen über die Warteschlange des Rechners (amw/schwer.py)
+    vorher = {"type": "command", "command": befehl_sicher("amw-hook.py"), "timeout": 15}
     return {
         "hooks": {"SessionStart": [{"matcher": "startup|resume|compact", "hooks": [hook]}],
+                  "PreToolUse": [{"matcher": "^(Bash|PowerShell)$", "hooks": [vorher]}],
                   **{e: [{"hooks": [still]}] for e in ZUSTANDS_HOOKS}},
         "statusLine": {"type": "command", "command": befehl("amw-statusline.py"), "padding": 0},
         "permissions": {"deny": SPERREN, "allow": ERLAUBT},

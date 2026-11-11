@@ -4,6 +4,18 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.45.0 – 11.11.2026 · Schwere Befehle melden sich von selbst an
+- **Automatismus statt Gebot:** Startet ein Agent eine ganze Test-Suite, Browser-Tests, einen Build oder den Abzug des
+  Web-Zweigs direkt, wird der Befehl nicht ausgeführt. Er bekommt stattdessen den fertigen Befehl für die Warteschlange
+  des Rechners: `amw lauf ausfuehren --beschreibung "Test-Suite" -- <sein Befehl>`. Einzelne Test-Module bleiben frei.
+- **Einrichten:** `amw einrichten agenten-ordner <ordner>` trägt den Hook ein (für bestehende Ordner einmal wiederholen);
+  laufende Sitzungen übernehmen ihn nach wenigen Sekunden.
+- **Eigene Muster je Projekt:** Zahnrad › Projekt › „Weitere schwere Befehle“ (je Zeile `Name = Muster`).
+- **Schalter je Rechner:** Zahnrad › Dieser PC › „Schwere Befehle über die Warteschlange“ (ab Werk an).
+- **Sicher gebaut:** Ein Fehler des Hooks sperrt nie einen Befehl – fehlt seine Datei oder scheitert er, läuft der Befehl
+  normal.
+- **Neue Hilfe:** „Schwere Läufe: Tests und Builds über die Warteschlange“.
+
 ## 1.44.0 – 11.11.2026 · Ein Lauf meldet an, was er braucht
 - **Bedarf je Lauf:** `amw lauf start` und `amw lauf ausfuehren` nehmen `--braucht-gb` (Arbeitsspeicher). Bisher rechnete
   ein Lauf ohne Rezept mit der Grenze seines Projekts (6 oder 8 GB) – ein Testlauf, der 2 GB braucht, wartete unnötig.

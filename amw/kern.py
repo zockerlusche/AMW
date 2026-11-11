@@ -229,6 +229,17 @@ def projekt_einstellen(con, pid, von, **werte):
                     from . import dokumente
                     dokumente.online_nach_einstellung(con, pid, v)
                 continue
+            if k == "schwere_befehle":                   # eigene Muster für schwere Läufe (amw/schwer.py), zusätzlich zu den mitgelieferten
+                from . import schwer
+                try:
+                    v = schwer.eigene_pruefen(v or [])
+                except ValueError as f:
+                    raise AmwFehler(f"schwere_befehle: {f}") from None
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k == "merge_dienst":                      # wer mergt (Abnahme-Kette): ein Agent dieses Projekts oder leer
                 v = str(v or "").strip()
                 if v:
