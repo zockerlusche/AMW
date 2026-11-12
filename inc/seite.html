@@ -2246,7 +2246,7 @@ function teamBaum(d, leads, rest) {
   const baum = el("div", { class: "tm-baum" }, du, leads.length ? el("div", { class: "tm-leads" }, leads.map(lead)) : null, el("div", { class: "tm-ebene" }, rest.map(agent)));
   const ns = "http://www.w3.org/2000/svg", linien = document.createElementNS(ns, "svg"); linien.setAttribute("class", "tm-linien"); baum.prepend(linien);
   const zeichnen = () => tmLinien(baum, linien, d);
-  requestAnimationFrame(zeichnen); new ResizeObserver(zeichnen).observe(baum);
+  requestAnimationFrame(zeichnen); setTimeout(zeichnen, 60); new ResizeObserver(zeichnen).observe(baum);   /* setTimeout: falls der Browser Animationen aussetzt (Tab im Hintergrund) */
   return baum;
 }
 /* Linien des Baums: Äste von oben nach unten; gestrichelte Bögen zwischen zwei Agenten derselben Reihe, die zusammenarbeiten */
