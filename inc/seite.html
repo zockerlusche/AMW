@@ -1124,6 +1124,7 @@ const TEXTE = {
     z_arbeitet: "arbeitet", z_frei: "frei", z_freigabe: "wartet auf Freigabe", z_eingabe: "wartet auf Eingabe", z_fehler: "Fehler", z_beendet: "beendet",
     b_kontext: "Kontext", b_5h: "5 Std.", b_7t: "Woche", k_zustand_titel: "Zustand und Verbrauch", k_zustand_aus: "Läuft gerade nicht – Zustand und Verbrauch erscheinen, sobald er gestartet ist.", k_zustand_leer: "Noch keine Daten. Der Ordner des Agenten ist noch nicht eingerichtet.",
     k_denkstufe: "Denkaufwand {x}", k_kosten: "Sitzung {x} $ (Schätzung)", k_reset: "5 Std. zurückgesetzt {x}", k_stand: "Stand {x}",
+    k_aufwand_titel: "Verbrauch je Aufgabe", k_aufwand_median: "Mittel (Median) {x} je Aufgabe, aus den letzten {n} fertigen", k_aufwand_eingestellt: "Eingestellt: {x}", k_aufwand_laeuft: "In Arbeit: A{a} bisher {x}", k_aufwand_leer: "Noch keine Messwerte – sie entstehen, während er an Aufgaben arbeitet.", k_aufwand_h: "Gegenwert in Dollar, wie Claude Code ihn zählt (auch im Abo). Je Aufgabe genähert: was zwischen Beginn und Abschluss anfiel.",
     verbrauch: "Verbrauch je Tag (US-$, Schätzung)", verbrauch_h: "Aus der Statusline: Zuwachs der Sitzungskosten zum Listenpreis. Im Abo zählt eher die 5-Stunden-Grenze.",
     verbrauch_leer: "Noch keine Messwerte. Sie kommen, sobald der Ordner des Agenten eingerichtet ist.", k_summe: "Summe",
     k_zeit: "Zeit", k_titel: "Meldung", k_ergebnis: "Ergebnis",
@@ -1205,7 +1206,7 @@ const TEXTE = {
     au_erledigt_ok: "A{a} erledigt. {x} wurde informiert.", au_spaeter_ok: "A{a} steht jetzt am Ende deiner Liste. {x} wurde informiert.", au_antwort_ok: "An {x} geschickt.",
     au_geparkt: "geparkt", au_offen: "offen", au_beantwortet: "beantwortet", au_option: "Option {x}", au_bei: "bei {x}", au_ohne: "ohne Bearbeiter",
     au_zustaendig: "zuständig {x}", au_wartegruende: "Wartet auf", au_fragen: "Fragen ({n})", au_dokumente: "Dokumente ({n})", au_beschluesse: "Beschlüsse ({n})",
-    au_laeufe: "Läufe ({n})", au_pruefungen: "Prüfungen ({n})", au_zusammenfassung: "Zusammenfassung", au_beleg: "Beleg: {x}", au_verlauf: "Verlauf ({n})",
+    au_laeufe: "Läufe ({n})", au_pruefungen: "Prüfungen ({n})", au_zusammenfassung: "Zusammenfassung", au_beleg: "Beleg: {x}", au_verbrauch: "Verbrauch", au_verbrauch_x: "{x} Gegenwert", au_verlauf: "Verlauf ({n})",
     au_dein_teil: "Dein Teil", au_antwort_titel: "Antwort an {x}", au_erledigt: "Erledigt", au_antwort: "Antwort an {x}", au_dazwischen: "Dazwischenschieben", au_dazwischen_h: "{x} arbeitet gerade an A{a}. „Dazwischenschieben“ unterbricht das: {x} speichert seinen Stand, macht diese Aufgabe zuerst, danach kommt A{a} wieder dran. Der Grund aus dem Feld oben geht an {x}.", au_dazwischen_ok: "A{a} kommt als Nächstes dran – der Agent weiß Bescheid.", vz_unterbrochen: "unterbrochen", vz_dazwischen_vorschlag: "Vorschlag: dazwischenschieben", au_spaeter: "Später",
     pl_grund_h: "Pflicht, wenn das Zieldatum vom ursprünglichen Termin ({x}) abweicht", pl_freigabe_noetig: "Freigabe", pl_dein_schritt: "dein Schritt",
     lb_h: "Woran sich alle Meilensteine und Schritte messen. Die Agenten bekommen es in ihre Startinformationen.", lb_ziel: "Projektziel",
@@ -1446,6 +1447,7 @@ const TEXTE = {
     z_arbeitet: "working", z_frei: "idle", z_freigabe: "waiting for permission", z_eingabe: "waiting for input", z_fehler: "error", z_beendet: "ended",
     b_kontext: "Context", b_5h: "5 h", b_7t: "Week", k_zustand_titel: "State and usage", k_zustand_aus: "Not running – state and usage appear once it has been started.", k_zustand_leer: "No data yet. The agent's folder is not set up yet.",
     k_denkstufe: "effort {x}", k_kosten: "session {x} $ (estimate)", k_reset: "5 h resets {x}", k_stand: "as of {x}",
+    k_aufwand_titel: "Usage per task", k_aufwand_median: "Median {x} per task, from the last {n} finished", k_aufwand_eingestellt: "Set: {x}", k_aufwand_laeuft: "In progress: A{a} so far {x}", k_aufwand_leer: "No measurements yet – they appear while it works on tasks.", k_aufwand_h: "Dollar equivalent as counted by Claude Code (also on a subscription). Approximated per task: what was used between start and finish.",
     verbrauch: "Usage per day (US $, estimate)", verbrauch_h: "From the status line: increase of session cost at list price. On a subscription the 5-hour limit matters more.",
     verbrauch_leer: "No measurements yet. They arrive once the agent's folder is set up.", k_summe: "Total",
     k_zeit: "Time", k_titel: "Message", k_ergebnis: "Result",
@@ -1526,7 +1528,7 @@ const TEXTE = {
     au_erledigt_ok: "A{a} done. {x} has been informed.", au_spaeter_ok: "A{a} is now at the end of your list. {x} has been informed.", au_antwort_ok: "Sent to {x}.",
     au_geparkt: "parked", au_offen: "open", au_beantwortet: "answered", au_option: "option {x}", au_bei: "with {x}", au_ohne: "unassigned",
     au_zustaendig: "responsible {x}", au_wartegruende: "Waiting for", au_fragen: "Questions ({n})", au_dokumente: "Documents ({n})", au_beschluesse: "Decisions ({n})",
-    au_laeufe: "Runs ({n})", au_pruefungen: "Reviews ({n})", au_zusammenfassung: "Summary", au_beleg: "Record: {x}", au_verlauf: "History ({n})",
+    au_laeufe: "Runs ({n})", au_pruefungen: "Reviews ({n})", au_zusammenfassung: "Summary", au_beleg: "Record: {x}", au_verbrauch: "Usage", au_verbrauch_x: "{x} equivalent", au_verlauf: "History ({n})",
     au_dein_teil: "Your part", au_antwort_titel: "Reply to {x}", au_erledigt: "Done", au_antwort: "Reply to {x}", au_dazwischen: "Put first", au_dazwischen_h: "{x} is working on A{a}. “Put first” interrupts that: {x} saves the work, does this task first, then A{a} continues. The reason from the field above goes to {x}.", au_dazwischen_ok: "A{a} comes next – the agent has been told.", vz_unterbrochen: "interrupted", vz_dazwischen_vorschlag: "Proposal: put first", au_spaeter: "Later",
     pl_grund_h: "Required if the target date differs from the original date ({x})", pl_freigabe_noetig: "Approval", pl_dein_schritt: "your step",
     lb_h: "What all milestones and steps are measured against. The agents receive it in their start information.", lb_ziel: "Project goal",
@@ -2530,6 +2532,22 @@ function zustandAbschnitt(d) {
       ...z, balk.length ? el("div", { class: "mini-balken", style: "max-width:420px" }, ...balk) : null,
       neben ? el("div", { class: "sehrleise eintrag-zusatz" }, neben, d.status_utc ? ` · ${t("k_stand", { x: seit(d.status_utc) })}` : "") : null));
 }
+/* Verbrauch je Aufgabe (A1611 E1): Median der letzten fertigen Aufgaben, eingestelltes Profil, laufende Aufgabe bisher */
+const dollar = x => x.toLocaleString(gebiet(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $";
+function aufwandAbschnitt(d) {
+  const w = d.aufwand, p = d.profil;
+  const eingestellt = p ? t("k_aufwand_eingestellt", { x: (p.modell || t("pr_vorgabe")) + " · " + t("k_denkstufe", { x: p.denkstufe || t("pr_vorgabe") }) }) : null;
+  const kopf = el("h4", {}, t("k_aufwand_titel"));
+  if (!w) return el("section", { class: "abschnitt" }, kopf, el("div", { class: "sehrleise leer-klein" }, t("k_aufwand_leer"),
+    eingestellt ? el("div", {}, eingestellt) : null));
+  const zeile = x => el("div", { class: "au-zeile" }, el("a", { class: "verweis", onclick: () => aufgabeDialog(x.id) }, `A${x.id}`), " ",
+    el("b", { class: "mono" }, dollar(x.usd)), el("span", { class: "sehrleise" }, x.modelle.length ? ` · ${x.modelle.join(", ")}` : ""), " ", x.titel);
+  return el("section", { class: "abschnitt" }, kopf,
+    el("div", {}, [w.median != null ? t("k_aufwand_median", { x: dollar(w.median), n: w.n }) : null, eingestellt].filter(Boolean).join(" · ")),
+    w.laufend ? el("div", { class: "leise" }, t("k_aufwand_laeuft", { a: w.laufend.id, x: dollar(w.laufend.usd) })) : null,
+    w.aufgaben.length ? el("div", { style: "margin-top:6px" }, w.aufgaben.map(zeile)) : null,
+    el("p", { class: "sehrleise", style: "margin:6px 0 0;font-size:12px" }, t("k_aufwand_h")));
+}
 /* schmaler Füllstandsbalken: grün < 60 %, bernstein < 85 %, sonst rot */
 function balken(name, p) {
   const farbe = p < 60 ? "--gruen" : p < 85 ? "--bernstein" : "--rot";
@@ -2708,7 +2726,7 @@ async function agentDialog(kennung, reiter) {
     abschnitt(t("k_meldungen"), d.meldungen, x => eintrag(x.art, `#${x.id}`, t("art_" + x.art) || x.art, seit(x.zeit_utc), x.kurz)),
   ];
   /* zwei Reiter: Übersicht (was macht er, was kommt) und Gespräch (das Protokoll, erst beim Öffnen geladen) */
-  const uebersicht = el("div", { role: "tabpanel" }, macht, zustandAbschnitt(d),
+  const uebersicht = el("div", { role: "tabpanel" }, macht, zustandAbschnitt(d), aufwandAbschnitt(d),
     el("div", { class: "agent-spalten" }, el("div", {}, ...links), el("div", {}, ...rechts)),
     d.offen_alt && d.an_ihn.length ? el("p", { class: "sehrleise", style: "margin-top:12px" }, t("k_alt", { n: d.offen_alt })) : null);
   const gespraech = el("div", { role: "tabpanel", hidden: true });
@@ -4296,6 +4314,9 @@ async function aufgabeDialog(id) {
       `L${l.id} · ${l.agent} · ${l.status}` + (l.rc != null ? ` · rc ${l.rc}` : "") + ` · ${l.beschreibung}`))),
     block(t("au_pruefungen", { n: a.pruefungen.length }), a.pruefungen.length, a.pruefungen.map(p => el("div", { class: "au-zeile" },
       `P${p.id} · ${p.pruefer} · ${p.ergebnis}` + (p.bemerkung ? ` · ${p.bemerkung}` : "")))),
+    a.verbrauch ? block(t("au_verbrauch"), 1, el("div", {}, el("b", { class: "mono" }, t("au_verbrauch_x", { x: dollar(a.verbrauch.usd) })),
+      a.verbrauch.modelle.length ? el("span", { class: "sehrleise" }, ` · ${a.verbrauch.modelle.join(", ")}`) : null,
+      el("div", { class: "sehrleise", style: "font-size:12px" }, t("k_aufwand_h")))) : null,
     a.zusammenfassung ? block(t("au_zusammenfassung"), 1, el("div", {}, a.zusammenfassung, a.beleg ? el("div", { class: "sehrleise" }, t("au_beleg", { x: a.beleg })) : null)) : null,
     block(t("au_verlauf", { n: a.verlauf.length }), a.verlauf.length, a.verlauf.map(n => el("div", { class: "dk-nachricht" },
       el("div", { class: "sehrleise" }, `#${n.id} · ${n.von} · ${t("art_" + n.art) || n.art} · ${seit(n.zeit_utc)}`), el("div", {}, n.kurz),
