@@ -218,9 +218,9 @@ class Dienst:
             self.pruefe_sitzung(s)
         try:                                                                 # Schirm: zu, sobald der Entwickler da ist
             for e in schirm.pruefen(self.con):
-                log.info("Schirm: %s", e)
+                log.info("Bildschirm: %s", e)
         except Exception as e:
-            log.warning("Schirm: %s: %s", type(e).__name__, e)
+            log.warning("Bildschirm: %s: %s", type(e).__name__, e)
         for lid in betrieb.warteschlange(self.con):                         # eine Warteschlange je Rechner, über alle Projekte
             log.info("Warteschlange: L%s freigegeben", lid)
         statusline.uebernehmen(self.con)                                     # Kontext, Grenzen, Kosten je Sitzung

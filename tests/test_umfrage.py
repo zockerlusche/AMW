@@ -270,13 +270,13 @@ class DateienOnline(Grund):
 
 
 class LaufAusfuehren(Grund):
-    """lauf ausfuehren: einreihen, warten, starten, rc durchreichen, Ende melden; Schirm zu/Frist beenden den Befehl."""
+    """lauf ausfuehren: einreihen, warten, starten, rc durchreichen, Ende melden; Bildschirm zu/Frist beenden den Befehl."""
 
     def setUp(self):
         super().setUp()
         self.sitzung("CC1")
         self.aus = os.path.join(self.ordner.name, "aus.txt")
-        from amw import schirm                     # sonst hinge der Schirm-Test an echter Eingabe am PC (der Mensch tippt)
+        from amw import schirm                     # sonst hinge der Bildschirm-Test an echter Eingabe am PC (der Mensch tippt)
         p = mock.patch.object(schirm, "leerlauf_s", return_value=600)
         p.start()
         self.addCleanup(p.stop)
@@ -328,7 +328,7 @@ class LaufAusfuehren(Grund):
         self.assertEqual(rc, 1)
         self.assertIn("der Befehl steht nach --", aus)
         rc, aus = self.cli("--von", "CC1", "lauf", "ausfuehren", "--beschreibung", "Fenster", "--schirm", "--leicht",
-                           "--hoechstens", "0.001", "--", sys.executable, "-c", "print(1)")   # Schirm zu: kommt nie dran
+                           "--hoechstens", "0.001", "--", sys.executable, "-c", "print(1)")   # Bildschirm zu: kommt nie dran
         self.assertEqual(rc, cli.RC_NIE, aus)
         self.assertEqual(self.lauf()["status"], "abgebrochen")
 

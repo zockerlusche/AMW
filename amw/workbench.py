@@ -589,6 +589,7 @@ def daten_einstellungen(con, pid, speicher=None):
                         "spec_frei": kern.projekt_wahl(con, pid, "spec_frei"),
                         "abnahme_kette": kern.projekt_wahl(con, pid, "abnahme_kette"), "merge_dienst": pe.get("merge_dienst", ""),
                         "versionen": kern.projekt_wahl(con, pid, "versionen"), "version_frist_tage": pe.get("version_frist_tage", kern.VERSION_FRIST_TAGE),
+                        "ende_frist_min": pe.get("ende_frist_min", 5),
                         "schwere_befehle": pe.get("schwere_befehle") or [],
                         "info_ablage_h": pe.get("info_ablage_h", INFO_ABLAGE_H)},
             "agenten": agenten,

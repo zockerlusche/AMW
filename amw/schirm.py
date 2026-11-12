@@ -1,10 +1,10 @@
-"""Schirm-Schalter (Schema 11, → doc/automatismen.md).
+"""Bildschirm-Schalter (Schema 11, → doc/automatismen.md).
 
 Darf gerade ein Lauf am Bildschirm laufen? Vorgabe: nein. Frei gibt nur der Entwickler (Workbench am PC) oder der
-Lead auf sein Wort (Brücke); zu darf jeder. Der Dienst schließt den Schirm von selbst, sobald der Entwickler wieder da
+Lead auf sein Wort (Brücke); zu darf jeder. Der Dienst schließt den Bildschirm von selbst, sobald der Entwickler wieder da
 ist – nur Signale am PC selbst: Eingabe am PC (später als RUHE_S nach dem Freigeben, auch über eine Fernsitzung), eine
 Fernsitzung beginnt (wenn ihr Programm in den PC-Einstellungen steht), eine Eingabe in der Workbench am PC, oder die
-bis-Uhrzeit ist erreicht. Schreibt er vom Handy (Online-Seite, Chat, Wortlaut), bleibt der Schirm frei. Die Lauf-Schlange startet Schirm-Läufe nur bei frei und wenn der PC seit RUHE_S ruht
+bis-Uhrzeit ist erreicht. Schreibt er vom Handy (Online-Seite, Chat, Wortlaut), bleibt der Bildschirm frei. Die Lauf-Schlange startet Läufe mit Fenster nur bei frei und wenn der PC seit RUHE_S ruht
 (betrieb.py). Die AMW beendet selbst keine Prozesse – sie meldet.
 """
 import calendar
@@ -16,8 +16,8 @@ from datetime import datetime, timedelta
 from . import db, einstellungen, kern
 
 RUHE_S = 120                 # so lange ohne Eingabe gilt der PC als verlassen
-NACHFRIST_S = 300            # läuft ein Schirm-Lauf so lange nach dem Zugehen weiter, erfährt es der Lead
-LAUF_NACHLAUF_S = 30         # so lange nach dem Ende eines Schirm-Laufs zählen Eingaben noch als seine
+NACHFRIST_S = 300            # läuft ein Lauf mit Fenster so lange nach dem Zugehen weiter, erfährt es der Lead
+LAUF_NACHLAUF_S = 30         # so lange nach dem Ende eines Laufs mit Fenster zählen Eingaben noch als seine
 BESTAETIGUNG_S = 120         # eine einzelne Eingabe schließt nicht: erst eine zweite, spätere innerhalb dieser Zeit
 ABSTAND_S = 10               # … mindestens so viel später – ein Zucken über 1–2 s (eine Runde fällt hinein) zählt als eins
 _eingabe = {"erste": None}   # erste noch unbestätigte Eingabe (Unix-Sekunden) – Zustand im Dienst
@@ -169,15 +169,15 @@ def verlauf(con, grenze=20):
 def text(z):
     """Eine Zeile für Menschen und Agenten."""
     if z["frei"]:
-        return (f"Schirm FREI seit {lokal(z['seit_utc'])}" + (f" bis {lokal(z['bis_utc'])}" if z["bis_utc"] else "")
+        return (f"Bildschirm FREI seit {lokal(z['seit_utc'])}" + (f" bis {lokal(z['bis_utc'])}" if z["bis_utc"] else "")
                 + f" ({z['von']}): {z['grund']}")
     if not z["seit_utc"]:
-        return "Schirm ZU (noch nie freigegeben)"
-    return f"Schirm ZU seit {lokal(z['seit_utc'])} ({z['von']}): {z['grund']}"
+        return "Bildschirm ZU (noch nie freigegeben)"
+    return f"Bildschirm ZU seit {lokal(z['seit_utc'])} ({z['von']}): {z['grund']}"
 
 
 def sperrgrund(con, leerlauf=None):
-    """None, wenn ein Schirm-Lauf jetzt starten darf; sonst der Grund (für Meldungen und die Schlange)."""
+    """None, wenn ein Lauf mit Fenster jetzt starten darf; sonst der Grund (für Meldungen und die Schlange)."""
     z = zustand(con)
     if not z["frei"]:
         return text(z)
@@ -186,21 +186,21 @@ def sperrgrund(con, leerlauf=None):
     if leerlauf is None:
         leerlauf = leerlauf_s()
     if leerlauf is not None and leerlauf < RUHE_S:
-        return (f"Schirm frei, aber am PC wurde vor {int(leerlauf)} s etwas eingegeben – Schirm-Läufe starten erst nach"
+        return (f"Bildschirm frei, aber am PC wurde vor {int(leerlauf)} s etwas eingegeben – Läufe mit Fenster starten erst nach"
                 f" {RUHE_S // 60} min Ruhe")
     return None
 
 
 def setzen(con, pid, von, frei, grund=None, bis=None, quelle="cli"):
-    """Schirm frei (nur Entwickler/Lead, mit Grund) oder zu (jeder). Zu, wenn schon zu: keine neue Zeile.
-    Beim Zugehen erfahren Agenten mit laufenden oder eingereihten Schirm-Läufen davon (weckend)."""
+    """Bildschirm frei (nur Entwickler/Lead, mit Grund) oder zu (jeder). Zu, wenn schon zu: keine neue Zeile.
+    Beim Zugehen erfahren Agenten mit laufenden oder eingereihten Läufe mit Fenstern davon (weckend)."""
     if quelle not in QUELLEN:
         raise kern.AmwFehler(f"Quelle {quelle}?")
     grund = (grund or "").strip()[:500]
     bis_zeit = None
     if frei:
         if pid is None or not kern.ist_lead(con, pid, von):
-            raise kern.AmwFehler("Schirm frei geben nur der Entwickler und der Lead auf sein Wort")
+            raise kern.AmwFehler("Bildschirm frei geben nur der Entwickler und der Lead auf sein Wort")
         if not grund:
             raise kern.AmwFehler("Grund angeben, z. B. „Entwickler 21:51: weg bis morgen, Monitor an“")
         if bis:
@@ -219,8 +219,8 @@ def setzen(con, pid, von, frei, grund=None, bis=None, quelle="cli"):
 def _zu_melden(con, grund):
     for l in con.execute("SELECT * FROM lauf WHERE schirm = 1 AND status = 'laeuft'").fetchall():
         kern._posten(con, l["projekt_id"], "AMW", l["agent"], "korrektur",
-                     f"Schirm zu – L{l['id']} jetzt beenden: {grund}"[:300],
-                     f"Der Schirm ist zu ({grund}). Bitte den Schirm-Lauf L{l['id']} ({l['beschreibung']}) sofort beenden"
+                     f"Bildschirm zu – L{l['id']} jetzt beenden: {grund}"[:300],
+                     f"Der Bildschirm ist zu ({grund}). Bitte den Lauf mit Fenster L{l['id']} ({l['beschreibung']}) sofort beenden"
                      f" und melden: amw lauf ende {l['id']} --rc <Code> (oder --abgebrochen). Die AMW beendet keine"
                      f" Prozesse selbst. Läuft er in {NACHFRIST_S // 60} min noch, erfährt es der Lead.",
                      aufgabe_id=l["aufgabe_id"])
@@ -228,8 +228,8 @@ def _zu_melden(con, grund):
     for l in con.execute("SELECT * FROM lauf WHERE schirm = 1 AND status = 'angemeldet' ORDER BY id").fetchall():
         wartend.setdefault((l["projekt_id"], l["agent"]), []).append(f"L{l['id']}")
     for (pid, agent), nummern in wartend.items():
-        kern._posten(con, pid, "AMW", agent, "meldung", f"Schirm zu – {', '.join(nummern)} warten bis zur nächsten Freigabe",
-                     f"Grund: {grund}. Die Schlange startet sie von selbst, sobald der Schirm wieder frei ist, und benachrichtigt"
+        kern._posten(con, pid, "AMW", agent, "meldung", f"Bildschirm zu – {', '.join(nummern)} warten bis zur nächsten Freigabe",
+                     f"Grund: {grund}. Die Schlange startet sie von selbst, sobald der Bildschirm wieder frei ist, und benachrichtigt"
                      " dich dann. Bis dahin nichts am Bildschirm starten.")
 
 
@@ -245,9 +245,9 @@ def entwickler_da(con, wo):
 
 
 def _eigene_eingabe(con, zeitpunkt):
-    """Fiel die letzte Eingabe in einen Schirm-Lauf (bis LAUF_NACHLAUF_S nach seinem Ende)? Abläufe mit Fenster klicken
+    """Fiel die letzte Eingabe in einen Lauf mit Fenster (bis LAUF_NACHLAUF_S nach seinem Ende)? Abläufe mit Fenster klicken
     und tippen selbst (Proben im Programm, Bildschirmfotos); Windows zählt das wie eine Eingabe des Menschen (so schloss
-    ein Lauf den Schirm, während der Entwickler unterwegs war). Während eines Schirm-Laufs schließen deshalb nur die anderen
+    ein Lauf den Bildschirm, während der Entwickler unterwegs war). Während eines Laufs mit Fenster schließen deshalb nur die anderen
     Signale (Fernsitzung, Workbench am PC, Uhrzeit) – Eingaben danach zählen wieder."""
     for l in con.execute("SELECT start_utc, ende_utc FROM lauf WHERE schirm = 1 AND start_utc IS NOT NULL"
                          " AND (ende_utc IS NULL OR ende_utc >= ?)", (_utc(zeitpunkt - LAUF_NACHLAUF_S),)).fetchall():
@@ -257,8 +257,8 @@ def _eigene_eingabe(con, zeitpunkt):
 
 
 def pruefen(con, leerlauf=None, tv=None, jetzt=None, vg=None):
-    """Eine Runde im Dienst: schließt einen freien Schirm, sobald der Entwickler wieder da ist, und meldet dem Lead
-    Schirm-Läufe, die nach dem Zugehen weiterlaufen. Eine Eingabe am PC schließt erst, wenn innerhalb von BESTAETIGUNG_S
+    """Eine Runde im Dienst: schließt einen freien Bildschirm, sobald der Entwickler wieder da ist, und meldet dem Lead
+    Läufe mit Fenster, die nach dem Zugehen weiterlaufen. Eine Eingabe am PC schließt erst, wenn innerhalb von BESTAETIGUNG_S
     eine zweite, spätere folgt (ein Mensch am PC tippt und bewegt die Maus laufend; eine einzelne Eingabe war zweimal ein
     Fehlalarm). leerlauf/tv/jetzt/vg nur für Tests. Rückgabe: Ereignisse fürs Log."""
     jetzt = jetzt or time.time()
@@ -286,16 +286,16 @@ def pruefen(con, leerlauf=None, tv=None, jetzt=None, vg=None):
                     grund = f"Eingabe am PC ({lokal(_utc(erste))} und {lokal(_utc(zeit))}{wo})"
                 elif erste is None or zeit > erste + BESTAETIGUNG_S:
                     _eingabe["erste"] = zeit                    # eine einzelne Eingabe (Maus zuckt …) schließt noch nicht
-                    aus.append(f"Eingabe am PC ({lokal(_utc(zeit))}{wo}) – Schirm bleibt frei, bis eine zweite folgt")
+                    aus.append(f"Eingabe am PC ({lokal(_utc(zeit))}{wo}) – Bildschirm bleibt frei, bis eine zweite folgt")
         if grund:
             _eingabe["erste"] = None
             setzen(con, None, "AMW", False, grund, quelle="automatik")
-            aus.append(f"Schirm zu: {grund}")
+            aus.append(f"Bildschirm zu: {grund}")
         return aus
     if not z["seit_utc"] or jetzt - _sek(z["seit_utc"]) < NACHFRIST_S:
         return aus
     for l in con.execute("SELECT * FROM lauf WHERE schirm = 1 AND status = 'laeuft'").fetchall():
-        kurz = f"L{l['id']} läuft trotz Schirm zu"
+        kurz = f"L{l['id']} läuft trotz Bildschirm zu"
         if con.execute("SELECT 1 FROM nachricht WHERE von = 'AMW' AND kurz LIKE ? AND zeit_utc >= ?",
                        (kurz + "%", z["seit_utc"])).fetchone():
             continue

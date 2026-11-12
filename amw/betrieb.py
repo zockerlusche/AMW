@@ -266,7 +266,7 @@ def _besetzt(con, pid, plaetze):
             platz = "gpu" if "gpu" in plaetze else "schirm"
             if b["gpu"]:
                 return f"GPU-Lauf {lauf_nennen(pid, b)} belegt die Grafikkarte", platz
-            return f"Schirm-Lauf {lauf_nennen(pid, b)} läuft noch", platz
+            return f"Lauf mit Fenster {lauf_nennen(pid, b)} läuft noch", platz
     if "cpu" in plaetze:
         r = con.execute("SELECT l.id FROM lauf l WHERE l.status = 'laeuft' AND l.schwer = 1 AND l.schirm = 0 AND l.gpu = 0 AND " + HIER
                         + " ORDER BY l.id", (rechner(),)).fetchall()
@@ -326,7 +326,7 @@ def _lebt(con, pid, l):
 
 def _gesperrt(con, pid, wartend, schirm_zu, bis=None):
     """Plätze, auf die schon jemand in der Schlange wartet – dort überholt niemand. {platz: [Lauf-Zeilen]}.
-    Dieselben Regeln wie warteschlange(): wer auf seinen Klon oder den Schirm wartet, sperrt nur diesen Platz (hält die
+    Dieselben Regeln wie warteschlange(): wer auf seinen Klon oder den Bildschirm wartet, sperrt nur diesen Platz (hält die
     CPU-Spur nicht auf); wer jetzt starten könnte oder auf Speicher wartet, sperrt alle seine Plätze; wer hinter einem
     anderen hängt, ohne Sitzung ist oder im Halt, sperrt nichts. bis: nur Läufe davor."""
     aus = {}
@@ -430,8 +430,8 @@ def warteschlange(con, pid=None, speicher_frei=None):
     """Startet wartende Läufe der Reihe nach, sobald ihr Platz frei ist, und weckt den Agenten (Freigabe) – für den ganzen
     Rechner, über alle Projekte (pid ist nur noch aus alten Aufrufen da).
     Wer warten muss, hält alle hinter sich auf, die den Platz brauchen, an dem er hängt – niemand überholt (wer auf
-    seinen Klon wartet, hält die CPU-Spur nicht auf; ein Lauf ohne Fenster nicht den Schirm). Agenten ohne
-    lebende Sitzung oder im Halt werden übersprungen, bis sie wieder da sind. Schirm-Läufe nur bei freiem Schirm
+    seinen Klon wartet, hält die CPU-Spur nicht auf; ein Lauf ohne Fenster nicht den Bildschirm). Agenten ohne
+    lebende Sitzung oder im Halt werden übersprungen, bis sie wieder da sind. Läufe mit Fenster nur bei freiem Bildschirm
     und ruhigem PC (schirm.py). Rückgabe: gestartete Lauf-Nummern."""
     if not wartende(con, pid):
         return []
@@ -444,7 +444,7 @@ def warteschlange(con, pid=None, speicher_frei=None):
             plaetze = _plaetze_von(l)
             if plaetze & gesperrt:
                 continue
-            if l["schirm"] and schirm_zu:            # hält nur andere Schirm-Läufe auf, nicht die ohne Fenster
+            if l["schirm"] and schirm_zu:            # hält nur andere Läufe mit Fenster auf, nicht die ohne Fenster
                 gesperrt.add("schirm")
                 continue
             lp = l["projekt_id"]                     # jeder Lauf nach den Regeln seines eigenen Projekts

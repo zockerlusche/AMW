@@ -915,7 +915,7 @@ def _lauf_warte(con, pid, a):
         time.sleep(5)
 
 
-PRUEF_S = 5          # lauf ausfuehren: so oft nachsehen, ob der Schirm zugeht oder der Lauf beendet wurde
+PRUEF_S = 5          # lauf ausfuehren: so oft nachsehen, ob der Bildschirm zugeht oder der Lauf beendet wurde
 # Rückgabewerte von lauf ausfuehren, die nicht vom Befehl stammen (Ketten „nur weiter bei 0“ bleiben sauber)
 RC_FRIST, RC_STRG_C, RC_NIE, RC_SCHIRM, RC_BEENDET = 124, 130, 200, 201, 202
 
@@ -940,9 +940,9 @@ def _baum_beenden(proc):
 
 
 def _lauf_ausfuehren(con, pid, a):
-    """Einreihen → warten → Befehl starten → Ausgabe in die Ergebnis-Datei → rc durchreichen → lauf ende. Beim Schirm-Lauf:
-    geht der Schirm zu oder beendet jemand den Lauf, endet der eigene Befehl (Prozessbaum) und der Lauf gilt als abgebrochen.
-    rc: der des Befehls, sonst 200 = nie gestartet (aus der Schlange genommen, --hoechstens erreicht), 201 = Schirm zu,
+    """Einreihen → warten → Befehl starten → Ausgabe in die Ergebnis-Datei → rc durchreichen → lauf ende. Beim Lauf mit Fenster:
+    geht der Bildschirm zu oder beendet jemand den Lauf, endet der eigene Befehl (Prozessbaum) und der Lauf gilt als abgebrochen.
+    rc: der des Befehls, sonst 200 = nie gestartet (aus der Schlange genommen, --hoechstens erreicht), 201 = Bildschirm zu,
     202 = Lauf von außen beendet, 124 = --frist erreicht, 130 = Strg+C."""
     import subprocess
     import threading
@@ -1008,7 +1008,7 @@ def _lauf_ausfuehren(con, pid, a):
             if l["status"] != "laeuft":
                 grund, rc_grund = f"L{lid} wurde beendet ({l['status']})", RC_BEENDET
             elif a.schirm and not schirm.zustand(con)["frei"]:
-                grund, rc_grund = f"Schirm zu: {schirm.zustand(con)['grund'] or ''}".strip(), RC_SCHIRM
+                grund, rc_grund = f"Bildschirm zu: {schirm.zustand(con)['grund'] or ''}".strip(), RC_SCHIRM
             elif frist and time.time() >= frist:
                 grund, rc_grund = f"Frist {a.frist:g} min erreicht", RC_FRIST
             if grund:
@@ -1112,7 +1112,7 @@ def cmd_schirm(a, con):
         return
     print(schirm.text(schirm.zustand(con)))
     g = schirm.sperrgrund(con)
-    print("Schirm-Läufe: " + ("dürfen starten" if not g else "warten – " + g))
+    print("Läufe mit Fenster: " + ("dürfen starten" if not g else "warten – " + g))
     if a.verlauf:
         for z in schirm.verlauf(con, a.grenze):
             print(f"  {schirm.lokal(z['seit_utc']):<12} {'FREI' if z['frei'] else 'zu  '} {z['von']:<10} {z['quelle']:<9} {z['grund']}")
@@ -1147,7 +1147,7 @@ def cmd_lauf(a, con):
         if not a.id:
             raise kern.AmwFehler("lauf zeige <nr>")
         l = betrieb.lauf_zeile(con, pid, a.id)
-        print(f"L{l['id']} {l['agent']} [{l['status']}]{' schwer' if l['schwer'] else ''}{' Schirm' if l['schirm'] else ''}"
+        print(f"L{l['id']} {l['agent']} [{l['status']}]{' schwer' if l['schwer'] else ''}{' Bildschirm' if l['schirm'] else ''}"
               f"{' GPU' if l['gpu'] else ''}  {l['beschreibung']}")
         print(f"angemeldet {_zeit(l['angemeldet_utc'])} · Start {_zeit(l['start_utc']) or '–'} · Ende {_zeit(l['ende_utc']) or '–'}"
               f" · rc {l['rc'] if l['rc'] is not None else '–'}")
@@ -1163,12 +1163,12 @@ def cmd_lauf(a, con):
             print("Warteschlange:")
             for i, r in enumerate(w, 1):                 # die Schlange gilt für den ganzen Rechner; fremde Läufe ohne Inhalt
                 eigen = r["projekt_id"] == pid
-                print(f"  {i}. L{r['id']:<5} {r['agent'] if eigen else '–':<8}{' schwer' if r['schwer'] else ''}{' Schirm' if r['schirm'] else ''}"
+                print(f"  {i}. L{r['id']:<5} {r['agent'] if eigen else '–':<8}{' schwer' if r['schwer'] else ''}{' Bildschirm' if r['schirm'] else ''}"
                       f"{' GPU' if r['gpu'] else ''}{' (vorgezogen)' if r['rang'] else ''} seit {_zeit(r['angemeldet_utc'])}"
                       f"  {r['beschreibung'] if eigen else '(anderes Projekt)'}")
             print()
         for r in con.execute("SELECT * FROM lauf WHERE projekt_id = ? ORDER BY id DESC LIMIT ?", (pid, a.grenze)):
-            print(f"L{r['id']:<5} {r['agent']:<8} [{r['status']}]{' schwer' if r['schwer'] else ''}{' Schirm' if r['schirm'] else ''}"
+            print(f"L{r['id']:<5} {r['agent']:<8} [{r['status']}]{' schwer' if r['schwer'] else ''}{' Bildschirm' if r['schirm'] else ''}"
                   f"{' GPU' if r['gpu'] else ''} {_zeit(r['start_utc'])}–{_zeit(r['ende_utc']) or '…'} rc {r['rc'] if r['rc'] is not None else '–'}  {r['beschreibung']}")
 
 
@@ -1353,7 +1353,7 @@ def cmd_rezept(a, con):
         r = con.execute("SELECT * FROM rezept WHERE projekt_id = ? AND name = ?", (pid, a.name)).fetchone()
         if not r:
             raise kern.AmwFehler(f"Rezept „{a.name}“ gibt es nicht")
-        print(f"{r['name']} (Stand {_zeit(r['stand_utc'])}){' · Schirm' if r['braucht_schirm'] else ''}"
+        print(f"{r['name']} (Stand {_zeit(r['stand_utc'])}){' · Bildschirm' if r['braucht_schirm'] else ''}"
               f"{' · schwer' if r['schwer'] else ''}{' · GPU' if r['gpu'] else ''} · ≥ {r['braucht_speicher_gb']:g} GB frei\n{r['beschreibung'] or ''}\n{r['befehl']}")
     else:
         for r in con.execute("SELECT name, beschreibung FROM rezept WHERE projekt_id = ? ORDER BY name", (pid,)):
@@ -2344,10 +2344,10 @@ def parser():
     x.add_argument("--kurz", action="store_true", help="pruefen: nur eine Zeile je Befund")
     x.set_defaults(f=cmd_plan)
 
-    x = s.add_parser("lauf", help="Rechen-Läufe: start [--warten] prüft Halt, Schirm, Speicher je Lauf, zwei Spuren (Grafikkarte/"
-                                  "Schirm: einer zur Zeit; schwere ohne Fenster: parallel bis cpu_laeufe, je Agent einer), Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund ·"
+    x = s.add_parser("lauf", help="Rechen-Läufe: start [--warten] prüft Halt, Bildschirm, Speicher je Lauf, zwei Spuren (Grafikkarte/"
+                                  "Bildschirm: einer zur Zeit; schwere ohne Fenster: parallel bis cpu_laeufe, je Agent einer), Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund ·"
                                   " ausfuehren --beschreibung … [--schirm] [--ergebnis datei] -- <befehl …> (einreihen, warten,"
-                                  " starten, rc durchreichen, Ende melden; bei Schirm zu den eigenen Befehl beenden)")
+                                  " starten, rc durchreichen, Ende melden; bei Bildschirm zu den eigenen Befehl beenden)")
     x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen", "zeige", "warte", "ausfuehren"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--warten", action="store_true", help="ist der Platz belegt: NUR einreihen (noch nicht rechnen!) statt"
@@ -2389,7 +2389,7 @@ def parser():
                                      " freier Platz je Laufwerk, Aufräumvorschläge für alte Sicherungen (nur Anzeige)")
     x.set_defaults(f=cmd_rechner)
 
-    x = s.add_parser("schirm", help="Schirm-Schalter: zeige | frei --grund … [--bis HH:MM] (Entwickler/Lead) | zu [--grund …] (alle)")
+    x = s.add_parser("schirm", help="Bildschirm-Schalter: zeige | frei --grund … [--bis HH:MM] (Entwickler/Lead) | zu [--grund …] (alle)")
     x.add_argument("aktion", nargs="?", default="zeige", choices=["zeige", "frei", "zu"])
     x.add_argument("--grund")
     x.add_argument("--bis", help="frei: geht zu dieser Ortszeit von selbst zu, z. B. 07:00 oder \"2026-11-05 07:00\"")

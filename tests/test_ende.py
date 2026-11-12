@@ -48,6 +48,16 @@ class Ende(unittest.TestCase):
         return [(r["art"], r["kurz"]) for r in self.con.execute(
             "SELECT n.art, n.kurz FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE e.agent = ? ORDER BY n.id", (kennung,))]
 
+    def test_frist_ist_eine_projekt_einstellung(self):
+        self.assertEqual(steuerung.ende_frist(self.con, self.pid), 5)                         # Vorgabe
+        kern.projekt_einstellen(self.con, self.pid, "Lead", ende_frist_min=12)
+        self.sitzung("Bauer", 101)
+        self.assertEqual(steuerung.ende_anfordern(self.con, self.pid, jetzt=self.jetzt)["bis_utc"], "2026-11-11T10:12:00Z")
+        with self.assertRaises(kern.AmwFehler):
+            kern.projekt_einstellen(self.con, self.pid, "Lead", ende_frist_min=0)
+        with self.assertRaises(kern.AmwFehler):
+            kern.projekt_einstellen(self.con, self.pid, "Lead", ende_frist_min=61)
+
     def test_alle_laufenden_bekommen_den_auftrag_mit_frist(self):
         self.sitzung("Bauer", 101)
         self.sitzung("Maler", 102)

@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.82.0 – 12.11.2026 · Nachträge: Frist einstellbar, „Bildschirm“ überall, Knöpfe in den Hinweisen
+- **Einstellungen › Projekt › „Frist für Sichern & beenden“** (Minuten, Vorgabe 5): so lange hat ein Agent Zeit, seinen
+  Stand zu sichern und sich abzumelden, bevor der Dienst die Sitzung beendet.
+- **„Bildschirm“ statt „Schirm“** auch in den Meldungen an Agenten, in `amw lauf`/`amw schirm` und im Pflicht-Kontext
+  (z. B. „Bildschirm ZU seit …“, „Läufe mit Fenster“). Befehle und Optionen heißen weiter so (`amw schirm`, `--schirm`).
+- **Startseite:** Jede Warnung hat einen Knopf zu dem Agenten, den sie betrifft; der Hinweis „nicht angemeldet“ führt zur
+  Anleitung.
+
 ## 1.81.0 – 12.11.2026 · Knopf-Namen im Server-Paket
 - `amw web paket`, `amw speicher` und die LIESMICH im Paket nennen die Knöpfe so, wie sie in der Workbench heißen:
   „Verbindung testen“ (Speicher und Synchronisierung) und „Online-Seite testen“ – vorher stand dort „Speicher prüfen“

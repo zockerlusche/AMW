@@ -283,9 +283,20 @@ def ende_offen(con, pid=None):
     return [dict(r) for r in con.execute(sql + " ORDER BY id", par)]
 
 
-def ende_anfordern(con, pid, kennungen=None, frist_min=ENDE_FRIST_MIN, jetzt=None):
-    """Bittet laufende Agenten, zu sichern und sich abzumelden; nach `frist_min` beendet der Wächter die Sitzung.
-    kennungen=None: alle, die gerade mit eigenem Prozess laufen. Rückgabe: {"agenten": [...], "bis_utc": …}."""
+def ende_frist(con, pid):
+    """Frist für „Sichern & beenden“ in Minuten: Projekt-Einstellung ende_frist_min, sonst ENDE_FRIST_MIN."""
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    try:
+        return int(json.loads(r[0] or "{}").get("ende_frist_min", ENDE_FRIST_MIN)) if r else ENDE_FRIST_MIN
+    except (TypeError, ValueError):
+        return ENDE_FRIST_MIN
+
+
+def ende_anfordern(con, pid, kennungen=None, frist_min=None, jetzt=None):
+    """Bittet laufende Agenten, zu sichern und sich abzumelden; nach `frist_min` (ohne Angabe: Einstellung des Projekts,
+    Vorgabe 5) beendet der Wächter die Sitzung. kennungen=None: alle, die gerade mit eigenem Prozess laufen.
+    Rückgabe: {"agenten": [...], "bis_utc": …}."""
+    frist_min = ende_frist(con, pid) if frist_min is None else frist_min
     jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
     bis = (jetzt + datetime.timedelta(minutes=max(1, min(60, int(frist_min))))).strftime("%Y-%m-%dT%H:%M:%SZ")
     schon = {e["kennung"] for e in ende_offen(con, pid)}

@@ -158,7 +158,7 @@ def agent_neu(con, pid, kennung, rolle=None, grenzen=None, startbefehl=None, emp
 
 def entwickler_name(con, pid=None):
     """Wie der Mensch in Meldungen heißt: Projekt-Einstellung entwickler_name, sonst „Entwickler“. Ohne pid das erste
-    Projekt (für PC-weite Meldungen wie den Schirm)."""
+    Projekt (für PC-weite Meldungen wie den Bildschirm)."""
     r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone() if pid else \
         con.execute("SELECT einstellungen FROM projekt ORDER BY id LIMIT 1").fetchone()
     try:
@@ -245,7 +245,7 @@ def projekt_einstellen(con, pid, von, **werte):
     if not ist_lead(con, pid, von):
         raise AmwFehler("Projekt-Einstellungen dürfen nur Lead und Entwickler ändern")
     grenzen = {"takt_min": (0, 1440), "speicher_grenze_gb": (1, 512), "stillstand_min": (5, 1440), "lauf_ohne_angabe_min": (5, 1440),
-               "eskalation_min": (0, 1440), "info_ablage_h": (1, 168), "version_frist_tage": (1, 365)}
+               "eskalation_min": (0, 1440), "info_ablage_h": (1, 168), "version_frist_tage": (1, 365), "ende_frist_min": (1, 60)}
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         for k, v in werte.items():

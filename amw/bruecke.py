@@ -40,7 +40,7 @@ VON = "TL"
 ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "lauf", "pruefung", "taetigkeit",
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
            "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf", "dokument",
-           "schirm", "liste", "suche", "zeige", "termin", "thema", "ki", "projekt", "freigabe"}   # Freigaben: nur der Mensch (Schirm frei: der Lead auf das Wort des Entwicklers)
+           "schirm", "liste", "suche", "zeige", "termin", "thema", "ki", "projekt", "freigabe"}   # Freigaben: nur der Mensch (Bildschirm frei: der Lead auf das Wort des Entwicklers)
 
 
 def bruecken(con):
@@ -150,9 +150,9 @@ def argumente(befehl, eingang=EINGANG, von=None, projekt=None):
                              " Ordner (eingang-<projekt>/)")
         if not genannt:
             args = args + ["--projekt", projekt]
-    if args[0] == "schirm":                                # beim Schirm ist --quelle der Kanal, nicht der Inhalt
+    if args[0] == "schirm":                                # beim Bildschirm ist --quelle der Kanal, nicht der Inhalt
         if "--quelle" in args:
-            raise ValueError("--quelle setzt beim Schirm der Dateiaustausch selbst")
+            raise ValueError("--quelle setzt beim Bildschirm der Dateiaustausch selbst")
         args = args + ["--quelle", "bruecke"]
     for i, a in enumerate(args):
         if a.split("=")[0] in ("--datei", "--text-datei", "--prompt-datei") and "=" in a:

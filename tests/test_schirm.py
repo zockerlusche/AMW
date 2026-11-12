@@ -1,4 +1,4 @@
-"""Tests für den Schirm-Schalter (B2419): Zustand, Rechte, automatisches Zugehen, Lauf-Schlange, Workbench, Brücke."""
+"""Tests für den Bildschirm-Schalter (B2419): Zustand, Rechte, automatisches Zugehen, Lauf-Schlange, Workbench, Brücke."""
 import io
 import os
 import tempfile
@@ -69,7 +69,7 @@ class Automatik(Grund):
         self.frei()
         self.assertEqual(schirm.pruefen(self.con, tv=time.time() - 3600), [])        # Sitzung von vorher: aus ihr freigegeben
         aus = schirm.pruefen(self.con, tv=time.time() + 5)
-        self.assertTrue(aus and aus[0].startswith("Schirm zu: Fernsitzung seit"))
+        self.assertTrue(aus and aus[0].startswith("Bildschirm zu: Fernsitzung seit"))
         self.assertEqual(schirm.zustand(self.con)["von"], "AMW")
 
     def test_eingabe_erst_nach_der_gnadenfrist(self):
@@ -80,10 +80,10 @@ class Automatik(Grund):
         aus = schirm.pruefen(self.con, leerlauf=10, jetzt=t + 300, vg="")                     # Eingabe 290 s nach dem Freigeben
         self.assertIn("bis eine zweite folgt", aus[0])                                      # eine allein schließt nicht
         aus = schirm.pruefen(self.con, leerlauf=2, jetzt=t + 330, vg="explorer.exe")         # zweite, spätere Eingabe
-        self.assertTrue(aus and aus[0].startswith("Schirm zu: Eingabe am PC") and "Vordergrund: explorer.exe" in aus[0])
+        self.assertTrue(aus and aus[0].startswith("Bildschirm zu: Eingabe am PC") and "Vordergrund: explorer.exe" in aus[0])
 
     def test_einzelne_eingabe_schliesst_nicht(self):
-        # 07.11. 20:34 und 08.11. 11:20: niemand am PC, eine Eingabe schloss den Schirm (Fehlalarm)
+        # 07.11. 20:34 und 08.11. 11:20: niemand am PC, eine Eingabe schloss den Bildschirm (Fehlalarm)
         self.frei()
         t = time.time()
         self.assertIn("bis eine zweite folgt", schirm.pruefen(self.con, leerlauf=10, jetzt=t + 300, vg="")[0])
@@ -96,7 +96,7 @@ class Automatik(Grund):
         self.assertEqual(schirm.zustand(self.con)["frei"], 1)
 
     def test_eingaben_eines_schirm_laufs_schliessen_nicht(self):
-        # 04.11. 23:02: der Fenster-Lauf L209 klickte selbst – Windows hielt das für den Entwickler, der Schirm ging zu
+        # 04.11. 23:02: der Fenster-Lauf L209 klickte selbst – Windows hielt das für den Entwickler, der Bildschirm ging zu
         self.frei()
         t = time.time()
         with db.schreiben(self.con):
@@ -109,10 +109,10 @@ class Automatik(Grund):
         self.assertEqual(schirm.zustand(self.con)["frei"], 1)
         schirm.pruefen(self.con, leerlauf=5, jetzt=t + 400, vg="")                               # danach: wieder der Mensch …
         aus = schirm.pruefen(self.con, leerlauf=3, jetzt=t + 430, vg="")                         # … und bleibt da
-        self.assertTrue(aus and aus[0].startswith("Schirm zu: Eingabe am PC"))
+        self.assertTrue(aus and aus[0].startswith("Bildschirm zu: Eingabe am PC"))
 
     def test_wortlaut_schliesst_nicht(self):
-        # 04.11.: der Entwickler schrieb vom Handy, der Lead erfasste es als Wortlaut – der Schirm ging zu Unrecht zu
+        # 04.11.: der Entwickler schrieb vom Handy, der Lead erfasste es als Wortlaut – der Bildschirm ging zu Unrecht zu
         self.frei()
         with db.schreiben(self.con):
             db.einfuegen(self.con, "wortlaut", projekt_id=self.pid, zeit_utc="2999-01-01T00:00:00Z", text="bin unterwegs",
@@ -133,10 +133,10 @@ class Schlange(Grund):
     def test_schirm_lauf_wartet_auf_freigabe_und_ruhe(self):
         with self.assertRaises(kern.AmwFehler) as e:
             self.start("CC1", schirm=True)
-        self.assertIn("Schirm ZU", str(e.exception))
+        self.assertIn("Bildschirm ZU", str(e.exception))
         l1 = self.start("CC1", schirm=True, warten=True)
         self.assertEqual(self.status(l1), "angemeldet")
-        self.assertIn("Schirm ZU", betrieb.wartegrund(self.con, self.pid, betrieb.lauf_zeile(self.con, self.pid, l1), 20))
+        self.assertIn("Bildschirm ZU", betrieb.wartegrund(self.con, self.pid, betrieb.lauf_zeile(self.con, self.pid, l1), 20))
         self.assertEqual(betrieb.warteschlange(self.con, self.pid, 20), [])
         self.frei()
         with mock.patch.object(schirm, "leerlauf_s", return_value=30):               # frei, aber jemand am PC
@@ -157,13 +157,13 @@ class Schlange(Grund):
         l1 = self.start("CC1", schirm=True)
         l2 = self.start("CC2", schirm=True, warten=True)
         schirm.setzen(self.con, None, "AMW", False, "Fernsitzung seit 06:36", quelle="automatik")
-        self.assertIn(("korrektur", f"Schirm zu – L{l1} jetzt beenden: Fernsitzung seit 06:36"), self.an("CC1"))
+        self.assertIn(("korrektur", f"Bildschirm zu – L{l1} jetzt beenden: Fernsitzung seit 06:36"), self.an("CC1"))
         self.assertTrue(any(a == "meldung" and f"L{l2}" in k for a, k in self.an("CC2")))
         self.assertEqual(schirm.pruefen(self.con), [])                                # Nachfrist läuft noch
         spaeter = time.time() + schirm.NACHFRIST_S + 5
-        self.assertEqual(schirm.pruefen(self.con, jetzt=spaeter), [f"L{l1} läuft trotz Schirm zu: Lead gemeldet"])
+        self.assertEqual(schirm.pruefen(self.con, jetzt=spaeter), [f"L{l1} läuft trotz Bildschirm zu: Lead gemeldet"])
         self.assertEqual(schirm.pruefen(self.con, jetzt=spaeter), [])                  # nur einmal
-        self.assertTrue(any(f"L{l1} läuft trotz Schirm zu" in k for _, k in self.an("TL")))
+        self.assertTrue(any(f"L{l1} läuft trotz Bildschirm zu" in k for _, k in self.an("TL")))
 
 
 class Seite(Grund):
@@ -185,7 +185,7 @@ class Seite(Grund):
         self.assertEqual((r["schirm"]["frei"], r["schirm"]["quelle"]), (0, "netz"))
 
     def test_kontext_nennt_den_schirm(self):
-        self.assertIn("Schirm ZU", kern.kontext(self.con, self.pid, "CC1"))
+        self.assertIn("Bildschirm ZU", kern.kontext(self.con, self.pid, "CC1"))
 
 
 class Befehle(Grund):
@@ -198,14 +198,14 @@ class Befehle(Grund):
     def test_schirm_und_lauf_warte(self):
         rc, aus = self.cli("schirm", "frei", "--grund", "AFK", "--von", "TL")
         self.assertEqual(rc, 0)
-        self.assertIn("Schirm FREI", aus)
+        self.assertIn("Bildschirm FREI", aus)
         self.assertEqual(self.cli("schirm", "frei", "--grund", "AFK", "--von", "CC1")[0], 1)
         rc, aus = self.cli("schirm", "zeige", "--verlauf", "--von", "CC1")
         self.assertIn("dürfen starten", aus)
         self.cli("schirm", "zu", "--von", "CC1")
         l1 = betrieb.lauf_start(self.con, self.pid, "CC1", "Fenster", schirm=True, warten=True, speicher_frei=20)
         rc, aus = self.cli("lauf", "zeige", str(l1), "--von", "CC1")
-        self.assertIn("Platz 1 von 1 – Schirm ZU", aus)
+        self.assertIn("Platz 1 von 1 – Bildschirm ZU", aus)
         rc, aus = self.cli("lauf", "warte", str(l1), "--hoechstens", "0.0001", "--von", "CC1")
         self.assertEqual(rc, 3)
         self.assertIn("wartet: Platz 1", aus)
@@ -279,7 +279,7 @@ class AusloeserAus(Grund):
         self.assertEqual(schirm.zustand(self.con)["frei"], 1)
         self.assertIsNone(schirm.sperrgrund(self.con))                                   # Läufe mit Fenster: keine Ruhe-Prüfung
         aus = schirm.pruefen(self.con, tv=t + 5)                                         # Fernsitzung wirkt weiter
-        self.assertTrue(aus and aus[0].startswith("Schirm zu: Fernsitzung"))
+        self.assertTrue(aus and aus[0].startswith("Bildschirm zu: Fernsitzung"))
 
     def test_fernsitzung_aus(self):
         self.einstellen(schirm_zu_fernsitzung=True)

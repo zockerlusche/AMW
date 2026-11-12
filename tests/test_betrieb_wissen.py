@@ -40,9 +40,9 @@ class Laeufe(Grund):
 
     def test_rezept_bestimmt_schirm_und_grenze(self):
         betrieb.rezept_setzen(self.con, self.pid, "abnahme", "gd_ablaeufe.ps1", "am Schirm", schirm=True, speicher_gb=6)
-        with self.assertRaises(kern.AmwFehler) as e:                      # Schirm ist ab Werk zu (B2419)
+        with self.assertRaises(kern.AmwFehler) as e:                      # Bildschirm ist ab Werk zu (B2419)
             betrieb.lauf_start(self.con, self.pid, "CC2", "Abnahme", rezept="abnahme", speicher_frei=7)
-        self.assertIn("Schirm ZU", str(e.exception))
+        self.assertIn("Bildschirm ZU", str(e.exception))
         schirm.setzen(self.con, self.pid, "TL", True, "Entwickler weg")
         with mock.patch.object(schirm, "leerlauf_s", return_value=600), mock.patch.object(betrieb, "reserve_gb", return_value=0.0):
             betrieb.lauf_start(self.con, self.pid, "CC2", "Abnahme", rezept="abnahme", speicher_frei=7)     # 6 GB laut Rezept, ohne Reserve
@@ -127,7 +127,7 @@ class Spuren(Grund):
         p = mock.patch.object(betrieb, "cpu_laeufe", return_value=2)
         p.start()
         self.addCleanup(p.stop)
-        p = mock.patch.object(betrieb.schirm_mod, "sperrgrund", return_value=None)          # Schirm frei, PC ruhig
+        p = mock.patch.object(betrieb.schirm_mod, "sperrgrund", return_value=None)          # Bildschirm frei, PC ruhig
         p.start()
         self.addCleanup(p.stop)
 
@@ -137,7 +137,7 @@ class Spuren(Grund):
         l3 = self.start("CC3", True, schirm=True)                        # Fenster: wartet auf die Grafikkarte
         self.assertEqual([self.status(x) for x in (l1, l2, l3)], ["laeuft", "laeuft", "angemeldet"])
         self.assertIn(f"GPU-Lauf L{l2}", betrieb.wartegrund(self.con, self.pid, betrieb.lauf_zeile(self.con, self.pid, l3), 40))
-        l4 = self.start("CC3", True)                                     # sein CPU-Lauf überholt den Schirm-Wartenden
+        l4 = self.start("CC3", True)                                     # sein CPU-Lauf überholt den Bildschirm-Wartenden
         self.assertEqual(betrieb.warteschlange(self.con, self.pid, 40), [l4])
         self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "CC2", l2, 0, speicher_frei=40), [])   # Grafikkarte frei …
         self.assertIn(f"L{l4} von CC3 läuft noch", betrieb.wartegrund(self.con, self.pid, betrieb.lauf_zeile(self.con, self.pid, l3), 40))
