@@ -258,10 +258,6 @@ class Dienst:
                 log.info("Laufwerk: %s", e)
         except Exception as e:
             log.warning("Laufwerk: %s: %s", type(e).__name__, e)
-        try:                                                                 # Ordnergrößen: einmal am Tag, im Hintergrund
-            self.ordner_messen()
-        except Exception as e:
-            log.warning("Ordnergrößen: %s: %s", type(e).__name__, e)
         try:                                                                 # Meldungen mit erfülltem Bezug (bis)
             for nid, grund in kern.bezuege_erledigen(self.con):
                 log.info("Erledigt von selbst: #%s (%s)", nid, grund)
@@ -360,6 +356,7 @@ def main(argv=None):
     d.zustellen()
     if a.einmal:
         return 0
+    d.ordner_messen()                               # Ordnergrößen: einmal am Tag im Hintergrund (nur im laufenden Dienst)
     stand, letzte_aufsicht = None, time.time()
     while True:
         try:
@@ -372,6 +369,7 @@ def main(argv=None):
                 d.aufsicht()
                 d.takt()
                 d.zustellen()                       # Wiederholung nach Fehlschlag, neue Anmeldungen, Takt
+                d.ordner_messen()
         except Exception:                           # nie sterben; Fehler protokollieren und weiter
             log.exception("Fehler im Durchgang")
         time.sleep(a.takt)

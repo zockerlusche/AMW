@@ -76,6 +76,14 @@ class Wecker(unittest.TestCase):
         self.assertIn((n1, "CC1"), self.geweckt())                                                          # beim Wechsel kommt er an
         self.assertIsNotNone(anderes)
 
+    def test_ordnergroessen_im_hintergrund_einmal_am_tag(self):
+        self.d.aufsicht()
+        self.assertIsNone(self.d.messung)                                                    # die Aufsicht misst nicht selbst
+        self.assertTrue(self.d.ordner_messen())                                              # fällig: eigener Faden
+        self.d.messung.join(30)
+        self.assertGreaterEqual(self.con.execute("SELECT count(*) FROM ordner_messung").fetchone()[0], 1)
+        self.assertFalse(self.d.ordner_messen())                                             # gerade gemessen: nicht noch einmal
+
     def test_nicht_angemeldet_bleibt_offen_bis_anmeldung(self):
         n1, _ = kern.posten(self.con, self.pid, "TL", "CC2", "auftrag", "a")
         self.assertEqual(self.d.zustellen(), 0)

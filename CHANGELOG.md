@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.60.1 – 12.11.2026 · Ordnergrößen nur im laufenden Dienst messen
+- **Behoben (vor der Veröffentlichung gefunden):** Die tägliche Messung der Ordnergrößen startete auch aus der
+  Aufsicht-Runde heraus, die andere Teile der AMW einzeln aufrufen – ihr Hintergrund-Faden hielt dann die Datenbank
+  offen. Jetzt startet sie nur die Schleife des laufenden Dienstes.
+
 ## 1.60.0 – 12.11.2026 · Hilfen in derselben Sprache wie die Oberfläche
 - **Hilfen überarbeitet** (Deutsch und Englisch) mit den Wörtern der Oberfläche: Dienst, Synchronisierung,
   Startinformationen, Dateiaustausch, Meilenstein, Startanweisung, Name; im Englischen service, start information,
