@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.55.0 – 11.11.2026 · Neue Aufgaben kommen in den Eingang
+- **Eingang statt dazwischen:** Legt jemand eine Aufgabe für einen Agenten an, der gerade ein Stück in Arbeit hat,
+  landet sie im Eingang und nicht in seiner Liste. Der Lead plant sie ein – frühestens hinter das laufende Stück. Mit
+  `amw aufgabe neu … --sofort` kommt sie direkt hinter das laufende Stück.
+- **Leitstand:** „Arbeit der Agenten“ zeigt, wie viele Aufgaben im Eingang warten.
+- Aufgaben des Menschen bleiben frei.
 ## 1.54.1 – 11.11.2026 · Warteschlange: wartende Läufe kommen auch ohne Sitzung im Projekt dran
 - **Behoben:** Ein Lauf, den ein Agent mit `amw lauf ausfuehren` anmeldet und der warten muss, kam nie dran, wenn der
   Agent im Projekt des Laufs keine angemeldete Sitzung hatte – etwa weil sein Ordner zwei Projekten gehört und die

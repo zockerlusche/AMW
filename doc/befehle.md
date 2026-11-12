@@ -224,8 +224,8 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--zusammenfassung ZUSAMMENFASSUNG]
                    [--ohne-vorgaenger OHNE_VORGAENGER] [--text TEXT] [--nein]
                    [--zurueck] [--kommentar KOMMENTAR] [--kurz]
-                   [--federfuehrend FEDERFUEHREND] [--pool] [--von VON]
-                   [--projekt PROJEKT]
+                   [--federfuehrend FEDERFUEHREND] [--pool] [--sofort]
+                   [--von VON] [--projekt PROJEKT]
                    {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag}
                    [id] [nr]
 
@@ -285,7 +285,10 @@ options:
   --federfuehrend FEDERFUEHREND
                         aendern: wer diese Aufgabe führt (Lead/Entwickler;
                         leer = weg)
-  --pool                neu: in den Pool (noch in keiner Arbeitsliste)
+  --pool                neu: in den Eingang (noch in keiner Arbeitsliste)
+  --sofort              neu: direkt hinter das laufende Stück des Agenten
+                        einplanen statt in den Eingang (ohne laufendes Stück:
+                        wie bisher in die Liste)
   --von VON
   --projekt PROJEKT
 ```

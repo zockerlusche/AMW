@@ -40,7 +40,7 @@ def massnahme_uebernehmen(con, pid, von, rid, als, agent=None):
         raise kern.AmwFehler(f"schon übernommen ({'A' + str(r['aufgabe_id']) if r['aufgabe_id'] else 'B' + str(r['beschluss_id'])})")
     herkunft = f"Rückblick {rid}" + (f" zu Bogen {r['bogen_id']}" if r["bogen_id"] else "")
     if als == "aufgabe":
-        aid = kern.aufgabe_neu(con, pid, von, r["text"][:200], agent, auftrag=f"{r['text']}\n\n(aus {herkunft})")
+        aid = kern.aufgabe_neu(con, pid, von, r["text"][:200], agent, auftrag=f"{r['text']}\n\n(aus {herkunft})", sofort=False)
         with db.schreiben(con):
             con.execute("UPDATE rueckblick SET aufgabe_id = ? WHERE id = ?", (aid, rid))
         return aid

@@ -461,6 +461,25 @@ class Arbeitsliste(Grund):
         d = workbench.daten_listen(self.con, self.pid)
         self.assertEqual((d["agenten"][0]["kennung"], d["agenten"][0]["name"]), (kern.ENTWICKLER, "Chris"))
 
+    def test_neues_kommt_in_den_eingang_solange_ein_stueck_laeuft(self):
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
+        rc, aus = self.cli("--von", "TL", "aufgabe", "neu", "--titel", "Neuer Wunsch", "--agent", "CC1")
+        self.assertEqual(rc, 0, aus)
+        neu = int(aus.split()[0][1:])
+        self.assertIn(f"steht im Eingang, weil CC1 gerade an A{self.a} arbeitet", aus)
+        self.assertNotIn(neu, self.ids())                                                # nicht in seiner Liste …
+        self.assertIn(neu, [x["id"] for x in self.al.pool(self.con, self.pid)])        # … sondern im Eingang
+        from amw import workbench
+        self.assertEqual(workbench.daten_start(self.con, self.pid)["eingang"], 1)
+        self.al.ordnen(self.con, self.pid, "TL", "CC1", [neu])                           # einplanen: hinter das laufende Stück
+        self.assertEqual(self.ids()[:2], [self.a, neu])
+        rc, aus = self.cli("--von", "TL", "aufgabe", "neu", "--titel", "Gleich danach", "--agent", "CC1", "--sofort")
+        self.assertIn(int(aus.split()[0][1:]), self.ids())                               # --sofort: gleich in die Liste
+        rc, aus = self.cli("--von", "CC1", "aufgabe", "neu", "--titel", "Eigene Notiz", "--agent", "CC1")
+        self.assertIn(int(aus.split()[0][1:]), self.ids())                               # eigene Aufgabe: kein Eingang
+        frei = kern.aufgabe_neu(self.con, self.pid, "TL", "Ohne laufendes Stück", agent="CC2", sofort=False)
+        self.assertEqual(self.con.execute("SELECT einstufung FROM aufgabe WHERE id = ?", (frei,)).fetchone()[0], "aktiv")
+
     def test_untere_starten_waehrend_obere_laeuft_wird_abgewiesen(self):
         kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
         with self.assertRaises(kern.AmwFehler) as e:

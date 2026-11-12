@@ -161,6 +161,7 @@ class Seite(Wiederholt, Grund):
         self.tab.js("zeige('start', true)")
         self.warten("document.querySelector('.tm-liste')")
         self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 5)       # Arbeit, Bildschirm, Sitzungen, Dienst, Rechner
+        self.assertNotIn("im Eingang", self.tab.js("document.querySelector('#leitstand').innerText"))   # leerer Eingang: kein Hinweis
         rechner = self.tab.js("document.querySelector('#ls-rechner').innerText")
         self.assertIn("Frei", rechner)                                                                 # kein Lauf angemeldet
         self.assertIn("gemeinsamen Warteschlange", rechner)

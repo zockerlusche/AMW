@@ -443,10 +443,18 @@ def cmd_aufgabe(a, con):
         if any(v is not None for k, v in werte.items() if k not in ("agent", "auftrag", "pruefer")) or nach:
             aid = planung.schritt_setzen(con, pid, _von(a), titel=a.titel, nach=nach, rang=a.rang, **werte)
         else:
-            aid = kern.aufgabe_neu(con, pid, _von(a), a.titel, a.agent, a.auftrag, a.rang, a.pruefer)
+            aid = kern.aufgabe_neu(con, pid, _von(a), a.titel, a.agent, a.auftrag, a.rang, a.pruefer, sofort=a.sofort)
         if a.pool:
             wissen.einstufen(con, pid, _von(a), aid, "pool")
-        print(f"A{aid} angelegt" + (" (Pool – der Lead sortiert ein: amw liste ordnen <Agent> …)" if a.pool else ""))
+        z = con.execute("SELECT agent, einstufung FROM aufgabe WHERE id = ?", (aid,)).fetchone()
+        if z["einstufung"] == "pool" and z["agent"] and not a.pool:   # der Agent hat gerade ein Stück in Arbeit
+            from . import arbeitsliste
+            x = arbeitsliste.laufend(con, pid, z["agent"])
+            print(f"A{aid} angelegt – steht im Eingang, weil {z['agent']} gerade an A{x['id'] if x else '?'} arbeitet."
+                  f" Einplanen: amw liste ordnen {z['agent']} A{aid} … (landet hinter dem laufenden Stück);"
+                  " sofort hinter das laufende Stück: beim Anlegen --sofort")
+        else:
+            print(f"A{aid} angelegt" + (" (Eingang – der Lead plant ein: amw liste ordnen <Agent> …)" if a.pool else ""))
     elif a.aktion == "aendern":
         werte, nach = _schritt_werte(a)
         werte["zusammenfassung"] = a.zusammenfassung              # auch nachträglich (Plan-Check)
@@ -1954,7 +1962,9 @@ def parser():
     x.add_argument("--kommentar")
     x.add_argument("--kurz", action="store_true", help="zeige: nur Status, Agent, Titel und Wartegründe")
     x.add_argument("--federfuehrend", help="aendern: wer diese Aufgabe führt (Lead/Entwickler; leer = weg)")
-    x.add_argument("--pool", action="store_true", help="neu: in den Pool (noch in keiner Arbeitsliste)")
+    x.add_argument("--pool", action="store_true", help="neu: in den Eingang (noch in keiner Arbeitsliste)")
+    x.add_argument("--sofort", action="store_true", help="neu: direkt hinter das laufende Stück des Agenten einplanen statt in den"
+                                                          " Eingang (ohne laufendes Stück: wie bisher in die Liste)")
     x.set_defaults(f=cmd_aufgabe)
 
     x = s.add_parser("thema", help="Design-Dokument je Thema: liste [--suche] | zeige TH12 | neu \"Name\" [--pfleger X] [--stil] |"

@@ -318,8 +318,8 @@ def daten_start(con, pid):
     except (TypeError, ValueError):
         takt = TAKT_MIN
     team = {"zusammen": zusammen, "bogen": dict(b) if b else None, "takt_min": takt}
-    from . import betrieb                              # Auslastung des Rechners: Läufe aller Projekte, nur als Zahlen
-    return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "rechner": betrieb.auslastung(con, pid), "token": _token_lage(con), "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
+    from . import arbeitsliste, betrieb                # Auslastung des Rechners: Läufe aller Projekte, nur als Zahlen; Eingang
+    return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "rechner": betrieb.auslastung(con, pid), "token": _token_lage(con), "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "eingang": len(arbeitsliste.pool(con, pid)), "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}

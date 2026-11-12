@@ -765,17 +765,22 @@ def bearbeiter(con, pid, x):
     return agent_zeile(con, pid, x)["kennung"]
 
 
-def aufgabe_neu(con, pid, von, titel, agent=None, auftrag=None, rang=50, pruefer=None, abhaengig_von=None):
+def aufgabe_neu(con, pid, von, titel, agent=None, auftrag=None, rang=50, pruefer=None, abhaengig_von=None, sofort=True):
+    """sofort=False: Hat der Agent gerade ein Stück in Arbeit und legt jemand anderes die Aufgabe an, landet sie im
+    Eingang (Einstufung pool) – eingeplant wird sie danach, hinter dem laufenden Stück. Aufgaben des Menschen bleiben frei."""
     with db.schreiben(con):
+        einstufung = "aktiv"
         if agent:
             agent = bearbeiter(con, pid, agent)
             from . import arbeitsliste                # nie vor das laufende Stück des Agenten
             x = arbeitsliste.laufend(con, pid, agent)
+            if x and not sofort and agent != von:
+                einstufung = "pool"
             if x and (rang, 10 ** 9) < (x["rang"], x["id"]):
                 rang = x["rang"] + 1
         return db.einfuegen(con, "aufgabe", projekt_id=pid, titel=titel, auftrag=auftrag, agent=agent,
                             pruefer=pruefer, angelegt_von=von, rang=rang, abhaengig_von=abhaengig_von,
-                            angelegt_utc=db.jetzt())
+                            angelegt_utc=db.jetzt(), einstufung=einstufung)
 
 
 def _aufgabe_fuer_aenderung(con, pid, von, aid):
@@ -886,7 +891,7 @@ def aufgabe_nachtrag(con, pid, von, aid, titel, auftrag=None, agent=None):
         raise AmwFehler("--titel fehlt")
     text = f"Nachtrag zu A{aid} ({alt['titel'][:80]}, {alt['status']})." + (f"\n{auftrag}" if auftrag else "")
     return aufgabe_neu(con, pid, von, f"Nachtrag A{aid}: {titel.strip()}", agent or alt["agent"] or None, text,
-                       alt["rang"], alt["pruefer"])
+                       alt["rang"], alt["pruefer"], sofort=False)
 
 
 def aufgaben(con, pid, agent=None, alle=False):

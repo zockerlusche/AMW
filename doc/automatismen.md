@@ -96,6 +96,10 @@ unten ab, eins nach dem anderen. Der Umfang darf groß sein.
   dazwischen. Ordnen, Schieben und neue Aufgaben landen frühestens direkt hinter dem laufenden Stück. Wird eine obere
   Aufgabe wieder frei, meldet die AMW: „als Nächstes dran, sobald A… fertig ist“. Früher stellte der Start einer oberen
   Aufgabe die laufende still zurück – das entfällt.
+- **Neues kommt in den Eingang (seit 1.55.0):** Legt jemand eine Aufgabe für einen Agenten an, der gerade ein Stück in
+  Arbeit hat, landet sie im Eingang (früher „Pool“) statt in seiner Liste. Der Lead plant sie mit `amw liste ordnen`
+  ein – frühestens hinter das laufende Stück. Wer sie gleich einplanen will, legt sie mit `--sofort` an. Der Leitstand
+  zeigt „n im Eingang“.
 - **Aufgaben des Menschen** bleiben frei: Für den Bearbeiter „Entwickler“ gilt keine dieser Sperren.
 - **Fertig:** Ist eine Aufgabe fertig oder verworfen, weckt die AMW mit der nächsten startbaren Aufgabe der Liste. Die
   Leerlauf-Prüfung bleibt als Netz.
