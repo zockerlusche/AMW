@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.67.0 – 12.11.2026 · Team-Baum mit Pfeilen und Warteplatz
+- **Kräftigere Linien mit Pfeilen:** Äste zeigen, wohin die Aufträge laufen (du → Lead → Agenten), die gestrichelte
+  blaue Linie, wohin die Arbeit zur Prüfung geht. Neu: eine gepunktete Linie in Bernstein vom Wartenden zu dem, auf
+  den er wartet – ein anderer Agent oder du. Eine kleine Legende steht darunter.
+- **Platz in der Warteschlange des Rechners:** Steht ein schwerer Lauf eines Agenten in der gemeinsamen Schlange
+  aller Projekte, zeigt seine Kachel „Platz 2/3 hinter Spiel / G1“; der genaue Grund steht beim Überfahren. Am PC mit
+  Projekt und Agent; online heißt ein fremdes Projekt „anderes Projekt“.
+
 ## 1.66.0 – 12.11.2026 · Online-Eingaben mit Rückmeldung, Bildschirm-Freigabe einstellbar
 - **Online: Was du eingibst, bleibt stehen.** Gespeicherte Einstellungen (z. B. „Zuständig für“ eines Agenten) zeigt die
   Online-Seite sofort mit dem neuen Wert – auch nach dem Neuladen, bevor der PC sie übernommen hat. Vorher war das Feld

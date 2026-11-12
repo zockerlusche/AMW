@@ -253,6 +253,14 @@ def daten_start(con, pid):
             "SELECT w.aufgabe_id, group_concat(w.bezug, ', ') AS auf FROM wartegrund w JOIN aufgabe x ON x.id = w.aufgabe_id"
             " WHERE x.projekt_id = ? AND x.agent = ? AND x.status IN ('wartet', 'blockiert') AND x.einstufung = 'aktiv'"
             " AND w.erledigt_utc IS NULL GROUP BY w.aufgabe_id ORDER BY w.aufgabe_id LIMIT 2", (pid, a["kennung"]))]
+        a["wartet_auf"] = sorted({r[0] for r in con.execute(                 # Pfeile im Team-Baum: wer wartet auf wen (Agent/Mensch)
+            "SELECT w.bezug FROM wartegrund w JOIN aufgabe x ON x.id = w.aufgabe_id WHERE x.projekt_id = ? AND x.agent = ?"
+            " AND x.status IN ('wartet', 'blockiert') AND w.erledigt_utc IS NULL AND (w.art IN ('agent', 'entwickler'))",
+            (pid, a["kennung"]))})
+        l = con.execute("SELECT * FROM lauf WHERE projekt_id = ? AND agent = ? AND status = 'angemeldet' ORDER BY id LIMIT 1",
+                        (pid, a["kennung"])).fetchone()
+        from . import betrieb
+        a["warteplatz"] = betrieb.warteposition(con, pid, l) if l else None   # Lauf in der Schlange des Rechners: Platz, auf wen
     # Lead zuerst, gleiche Fachgebiete nebeneinander, sonst in der angelegten Reihenfolge
     agenten.sort(key=lambda a: (a["rolle"] != "lead", (a["fachgebiet"] or "~").casefold()))
     fragen = zeilen(con.execute(           # nachtraege: ungelesene Nachträge im Verlauf der Frage (stehen dort, nicht doppelt)

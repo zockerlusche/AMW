@@ -517,6 +517,36 @@ def wartegrund(con, pid, l, speicher_frei=None):
     return kopf + (" – " + " · ".join(gruende) if gruende else " – gleich dran (nächste Runde des Dienstes)")
 
 
+def warteposition(con, pid, l):
+    """Wo ein eingereihter Lauf in der Schlange dieses Rechners steht und auf wen er wartet – für die Team-Ansicht.
+    {"lauf", "platz", "von", "auf": [{"lauf", "projekt", "agent", "laeuft"}], "grund"}. Über alle Projekte: Namen fremder
+    Projekte stehen drin; was davon online gezeigt wird, entscheidet abgleich (dort nur „anderes Projekt“)."""
+    w = wartende(con)
+    platz = next((i for i, x in enumerate(w, 1) if x["id"] == l["id"]), None)
+    l = next((x for x in w if x["id"] == l["id"]), l)      # die Zeile der Schlange (mit dem angemeldeten Bedarf)
+    namen = dict(con.execute("SELECT id, name FROM projekt"))
+    ki = con.execute("SELECT 1 FROM ki_auftrag WHERE lauf_id = ?", (l["id"],)).fetchone()
+    plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"], None if ki else l["agent"], pid)
+    schirm_zu = schirm_mod.sperrgrund(con) if l["schirm"] or any(x["schirm"] for x in w) else None
+    vor = sorted({x["id"]: x for p in plaetze for x in (_gesperrt(con, pid, w, schirm_zu, bis=l["id"]) if platz else {}).get(p, [])}.values(),
+                 key=lambda x: x["id"])
+    auf = [{"lauf": x["id"], "projekt": namen.get(x["projekt_id"]), "agent": x["agent"], "laeuft": False} for x in vor]
+    if not auf:                                      # niemand davor: wer hält die Spur bzw. den Speicher gerade?
+        spur = []
+        if plaetze & {"gpu", "schirm"}:
+            spur.append("(l.gpu = 1 OR l.schirm = 1)")
+        if "cpu" in plaetze:
+            spur.append("(l.schwer = 1 AND l.schirm = 0 AND l.gpu = 0)")
+        if any(p.startswith("agent:") for p in plaetze):
+            spur.append(f"(l.projekt_id = {int(pid)} AND l.agent = ?)")
+        bed = " OR ".join(spur) or "l.schwer = 1"
+        args = [l["agent"]] if any(p.startswith("agent:") for p in plaetze) else []
+        for x in con.execute(f"SELECT l.id, l.projekt_id, l.agent FROM lauf l WHERE l.status = 'laeuft' AND ({bed}) AND " + HIER
+                             + " ORDER BY l.id", (*args, rechner())):
+            auf.append({"lauf": x["id"], "projekt": namen.get(x["projekt_id"]), "agent": x["agent"], "laeuft": True})
+    return {"lauf": l["id"], "platz": platz, "von": len(w), "auf": auf[:3], "grund": wartegrund(con, pid, l) if platz else None}
+
+
 def lauf_vorziehen(con, pid, von, lid):
     """Vorziehen. Der Mensch stellt einen wartenden Lauf an die Spitze der Warteschlange des Rechners (über alle Projekte);
     ein Lead stellt ihn an die Spitze der Läufe seines eigenen Projekts – an fremden Läufen zieht er damit nicht vorbei."""

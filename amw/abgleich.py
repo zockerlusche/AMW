@@ -212,10 +212,23 @@ def hoch_holen(sp, hid):
     return dokumente.hoch_pruefen(roh, groesse, sha), name
 
 
+def _fremde_ohne_namen(start, pid, con):
+    """Online nennt die Team-Ansicht bei Läufen anderer Projekte weder Projekt noch Agent (die Projekte mischen sich nicht;
+    online können Benutzer nur einzelne Projekte sehen). Am PC stehen die Namen."""
+    eigen = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()[0]
+    for a in start.get("agenten", []):
+        for x in (a.get("warteplatz") or {}).get("auf", []):
+            if x.get("projekt") != eigen:
+                x["projekt"], x["agent"] = None, None
+        if a.get("warteplatz"):
+            a["warteplatz"]["grund"] = None
+    return start
+
+
 def ansichten(con, pid, speicher=None):
     """Dieselben Antworten wie die lokale Workbench, Schlüssel = Weg, wie ihn die Seite anfragt."""
     leer = {"agent": [""], "q": [""]}
-    a = {"/api/start": workbench.daten_start(con, pid),
+    a = {"/api/start": _fremde_ohne_namen(workbench.daten_start(con, pid), pid, con),
          "/api/fragen": workbench.daten_fragen(con, pid),
          "/api/fragen?alle=1": workbench.daten_fragen(con, pid, True),
          "/api/wissen": workbench.daten_wissen(con, pid, {"q": [""]}),

@@ -595,8 +595,12 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .vh-version { margin-bottom: 12px; } .vh-kopf { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
 .vh-gruppe h4 { margin: 8px 0 2px; font: 600 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; } .vh-gruppe ul { margin: 0; padding-left: 20px; }
 .vh-neu h4 { color: var(--gruen); } .vh-verbessert h4 { color: var(--blau); } .vh-behoben h4 { color: var(--bernstein); }
-.tm-ast { stroke: var(--leise); stroke-width: 2.5; fill: none; stroke-linecap: square; stroke-linejoin: miter; opacity: .75; }
-.tm-bogen { stroke: var(--blau); stroke-width: 2.5; fill: none; stroke-dasharray: 7 5; stroke-linejoin: miter; }
+.tm-ast { stroke: var(--leise); stroke-width: 3.5; fill: none; stroke-linecap: square; stroke-linejoin: miter; opacity: .9; }
+.tm-warten { stroke: var(--bernstein); stroke-width: 3; fill: none; stroke-dasharray: 2 5; stroke-linecap: round; stroke-linejoin: miter; }
+.tm-spitze-ast { fill: var(--leise); opacity: .9; } .tm-spitze-bogen { fill: var(--blau); } .tm-spitze-warten { fill: var(--bernstein); }
+.tm-legende { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; margin-top: 10px; align-items: center; }
+.tm-legende svg { width: 34px; height: 10px; vertical-align: middle; margin-right: 4px; overflow: visible; }
+.tm-bogen { stroke: var(--blau); stroke-width: 3; fill: none; stroke-dasharray: 7 5; stroke-linejoin: miter; }
 .tm-knoten { position: relative; z-index: 1; border: 1px solid var(--linie); background: var(--flaeche); padding: 10px 12px; min-width: 0; }
 .tm-knoten.klickbar { cursor: pointer; } .tm-knoten.klickbar:hover { border-color: var(--linie2); }
 .tm-knoten.tm-du { display: flex; gap: 6px 16px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 8px 16px; border-color: var(--bernstein); box-shadow: none; }
@@ -1022,6 +1026,7 @@ const TEXTE = {
     e_anlegen: "Anlegen", soll_an: "an", soll_ruht: "pausiert", soll_aus: "aus",
     e_bs_titel: "Bildschirm-Freigabe von selbst schließen", e_bs_h: "Gibst du den Bildschirm für Agenten frei, schließt die AMW die Freigabe, sobald du wieder da bist. Hier legst du fest, woran sie das erkennt.", e_bs_eingabe: "… bei Eingabe am PC (Tastatur, Maus)", e_bs_eingabe_h: "Auch über eine Fernsitzung. Aus: Die AMW beobachtet Tastatur und Maus gar nicht – Läufe mit Fenster starten dann auch, während du die Maus bewegst. Schließ die Freigabe dann selbst.", e_bs_fern: "… bei neuer Fernsitzung (z. B. TeamViewer)", e_bs_fern_h: "Erkannt am Programm, das unten steht. Aus: Es wird nicht nachgesehen.", e_bs_wb: "… bei Eingabe in der Workbench am PC", e_bs_wb_h: "Aus: Klicks und Eingaben hier lassen die Freigabe offen.",
     ue_laeuft: "wird übertragen …", ue_ok: "gespeichert", ue_fehler: "nicht gespeichert: {x}",
+    tm_platz: "Platz {p}/{n} in der Schlange", tm_platz_hinter: "Platz {p}/{n} hinter {x}", tm_warteplatz_h: "Lauf wartet in der Warteschlange dieses Rechners (alle Projekte)", tm_fremd: "anderes Projekt", tm_leg_ast: "Aufträge", tm_leg_bogen: "Arbeit geht zur Prüfung", tm_leg_warten: "wartet auf",
     bn_titel: "Benutzer der Online-Seite", bn_h: "Wer sich auf der Online-Seite anmelden darf und was er dort darf. Ein neuer Benutzer hat keine Rechte, bis du Rolle und Projekte vergibst. Der bisherige Zugang aus der Konfiguration der Seite bleibt System-Admin.", bn_ohne_speicher: "Ohne Online-Speicher kann sich niemand anmelden – erst die Online-Seite einrichten. Anlegen geht schon.", bn_name: "Name", bn_rolle: "Rolle", bn_projekte: "Projekte", bn_stand: "Stand", bn_keine: "Noch keine Benutzer.", bn_neu_ph: "Name (ohne Leerzeichen)", bn_anlegen: "Anlegen", bn_wartet_rolle: "– wartet auf Freigabe –", rolle_leser: "Leser", rolle_bearbeiter: "Bearbeiter", rolle_projekt_admin: "Projekt-Admin", rolle_system_admin: "System-Admin", bn_alle_projekte: "alle Projekte", bn_st_neu: "noch nicht freigeschaltet", bn_st_wartet_code: "Code gültig bis {x}", bn_st_code_abgelaufen: "Code abgelaufen", bn_st_eingerichtet: "eingerichtet", bn_st_angemeldet: "zuletzt angemeldet {x}", bn_st_gesperrt: "gesperrt", bn_st_freigabe: "wartet auf deine Freigabe", bn_freischalten: "Freischalten", bn_neu_freischalten: "Neu freischalten", bn_neu_frage: "{x} neu freischalten? Passwort und zweiter Faktor werden zurückgesetzt, alle Sitzungen von {x} enden.", bn_sperren: "Sperren", bn_entsperren: "Entsperren", bn_code_titel: "Freischalt-Code für {x}", bn_code_h: "Gültig bis {b}, nur einmal. Gib ihn {x} persönlich weiter (mündlich oder im Chat) – er erscheint nur jetzt und steht nirgends sonst. {x} öffnet die Online-Seite, wählt „Neue Anmeldung“ und setzt Passwort und zweiten Faktor selbst.", bn_kopieren: "Kopieren", bn_kopiert: "Kopiert", bn_fertig: "Fertig",
     e_web: "Online-Seite", e_web_h: "Gilt für die Anmeldung im Netz.", e_leerlauf: "Abmelden nach Leerlauf (min)",
     e_hoechstens: "Längste Sitzung (h)", e_fehl_ip: "Sperre nach Fehlversuchen je Adresse (15 min)", e_fehl_ges: "Sperre nach Fehlversuchen gesamt (60 min)",
@@ -1336,6 +1341,7 @@ const TEXTE = {
     e_anlegen: "Add", soll_an: "on", soll_ruht: "paused", soll_aus: "off",
     e_bs_titel: "Close the screen release automatically", e_bs_h: "When you release the screen for agents, the AMW closes the release as soon as you are back. Here you choose how it notices.", e_bs_eingabe: "… on input at the PC (keyboard, mouse)", e_bs_eingabe_h: "Also through a remote session. Off: the AMW does not watch keyboard and mouse at all – runs with a window then start even while you move the mouse. Close the release yourself.", e_bs_fern: "… when a remote session starts (e.g. TeamViewer)", e_bs_fern_h: "Recognised by the program named below. Off: not checked.", e_bs_wb: "… on input in the Workbench at the PC", e_bs_wb_h: "Off: clicks and input here leave the release open.",
     ue_laeuft: "sending …", ue_ok: "saved", ue_fehler: "not saved: {x}",
+    tm_platz: "Place {p}/{n} in the queue", tm_platz_hinter: "Place {p}/{n} behind {x}", tm_warteplatz_h: "Run waits in this computer's queue (all projects)", tm_fremd: "another project", tm_leg_ast: "Assignments", tm_leg_bogen: "Work goes to review", tm_leg_warten: "waits for",
     bn_titel: "Users of the online site", bn_h: "Who may sign in on the online site and what they may do there. A new user has no rights until you assign a role and projects. The existing access from the site's configuration stays system admin.", bn_ohne_speicher: "Without online storage nobody can sign in – set up the online site first. Adding users works already.", bn_name: "Name", bn_rolle: "Role", bn_projekte: "Projects", bn_stand: "Status", bn_keine: "No users yet.", bn_neu_ph: "Name (no spaces)", bn_anlegen: "Add", bn_wartet_rolle: "– awaiting approval –", rolle_leser: "Reader", rolle_bearbeiter: "Editor", rolle_projekt_admin: "Project admin", rolle_system_admin: "System admin", bn_alle_projekte: "all projects", bn_st_neu: "not activated yet", bn_st_wartet_code: "Code valid until {x}", bn_st_code_abgelaufen: "Code expired", bn_st_eingerichtet: "set up", bn_st_angemeldet: "last signed in {x}", bn_st_gesperrt: "blocked", bn_st_freigabe: "awaiting your approval", bn_freischalten: "Activate", bn_neu_freischalten: "Reset access", bn_neu_frage: "Reset access for {x}? Password and two-factor are reset and all of {x}'s sessions end.", bn_sperren: "Block", bn_entsperren: "Unblock", bn_code_titel: "Activation code for {x}", bn_code_h: "Valid until {b}, once only. Give it to {x} in person (spoken or in a chat) – it is shown only now and stored nowhere else. {x} opens the online site, chooses “First sign-in” and sets their own password and two-factor.", bn_kopieren: "Copy", bn_kopiert: "Copied", bn_fertig: "Done",
     e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after inactivity (min)",
     e_hoechstens: "Maximum session length (h)", e_fehl_ip: "Lockout after failed sign-ins per address (15 min)", e_fehl_ges: "Lockout after failed sign-ins in total (60 min)",
@@ -2263,6 +2269,10 @@ const tmAufgabe = (a, n) => a.gerade ? [el("span", { class: "sehrleise" }, t("k_
 function tmNeben(a, d) {
   const ende = (d.ende || []).find(x => x.kennung === a.kennung);
   if (ende) return el("div", { class: "tm-neben bernstein-text" }, t("k_endet", { x: zeit(ende.bis_utc) }));
+  const wp = a.warteplatz;
+  if (wp) { const x = wp.auf?.[0], wer = x ? (x.projekt ? `${x.projekt} / ${x.agent || "–"}` : t("tm_fremd")) : null;
+    return el("div", { class: "tm-neben bernstein-text", title: wp.grund ? `L${wp.lauf}: ${wp.grund}` : t("tm_warteplatz_h") },
+      "⏳ " + t(wer ? "tm_platz_hinter" : "tm_platz", { p: wp.platz ?? "–", n: wp.von, x: wer })); }
   const z = (d.team?.zusammen || []).find(x => x.von === a.kennung || x.mit === a.kennung);
   if (z) return el("div", { class: "tm-neben tm-mit", title: t("tm_mit_h") }, "⇄ " + (z.von === a.kennung ? z.mit : z.von) + " · " + t("tm_pruefung") + (z.aufgabe ? ` A${z.aufgabe}` : ""));
   const w = a.wartet || [];
@@ -2303,7 +2313,11 @@ function teamBaum(d, leads, rest) {
   const agent = a => karte(a, "tm-agent" + (agentZustand(a)[0] === "rot" && a.zustand !== "aktiv" ? " tot" : "") + (a.soll !== "an" ? " aus" : ""),
     el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, a.kennung), tmFach(a), el("span", { class: "tm-zeile tm-ende" }, tmMehr(a))),
     tmZustand(a), el("div", { class: "tm-auf" }, tmAufgabe(a, 80)), tmNeben(a, d) || el("div", { class: "tm-neben" }, "\u00a0"), el("div", { class: "tm-fuss" }, tmFuss(a), tmOffen(a, true)));
-  const baum = el("div", { class: "tm-baum" }, du, leads.length ? el("div", { class: "tm-leads" }, leads.map(lead)) : null, el("div", { class: "tm-ebene" }, rest.map(agent)));
+  const strich = art => { const ns2 = "http://www.w3.org/2000/svg", g = document.createElementNS(ns2, "svg"), l = document.createElementNS(ns2, "path");
+    g.setAttribute("viewBox", "0 0 34 10"); l.setAttribute("d", "M1 5 H26"); l.setAttribute("class", "tm-" + art);
+    const sp = document.createElementNS(ns2, "path"); sp.setAttribute("d", "M24 0 L34 5 L24 10 z"); sp.setAttribute("class", "tm-spitze-" + art); g.append(l, sp); return g; };
+  const legende = el("div", { class: "tm-legende sehrleise" }, ["ast", "bogen", "warten"].map(art => el("span", {}, strich(art), t("tm_leg_" + art))));
+  const baum = el("div", { class: "tm-baum" }, du, leads.length ? el("div", { class: "tm-leads" }, leads.map(lead)) : null, el("div", { class: "tm-ebene" }, rest.map(agent)), legende);
   const ns = "http://www.w3.org/2000/svg", linien = document.createElementNS(ns, "svg"); linien.setAttribute("class", "tm-linien"); baum.prepend(linien);
   const zeichnen = () => tmLinien(baum, linien, d);
   requestAnimationFrame(zeichnen); setTimeout(zeichnen, 60); new ResizeObserver(zeichnen).observe(baum);   /* setTimeout: falls der Browser Animationen aussetzt (Tab im Hintergrund) */
@@ -2316,21 +2330,43 @@ function tmLinien(baum, svg, d) {
   const ns = "http://www.w3.org/2000/svg", o = baum.getBoundingClientRect();
   const ort = e => { const r = e.getBoundingClientRect(); return { x: r.left - o.left + r.width / 2, oben: r.top - o.top, unten: r.bottom - o.top }; };
   const knoten = k => baum.querySelector(`[data-k="${CSS.escape(k)}"]`);
-  const teile = [], pfad = (klasse, dd) => { const p = document.createElementNS(ns, "path"); p.setAttribute("class", klasse); p.setAttribute("d", dd); teile.push(p); };
+  const teile = [], pfad = (klasse, dd) => { const p = document.createElementNS(ns, "path"); p.setAttribute("class", klasse); p.setAttribute("d", dd);
+    p.setAttribute("marker-end", `url(#tm-spitze-${klasse.slice(3)})`); teile.push(p); return p; };
+  const defs = document.createElementNS(ns, "defs");
+  for (const art of ["ast", "bogen", "warten"]) {         /* Pfeilspitze: Aufträge laufen zum Pfeil, Arbeit geht zur Prüfung, wartet auf */
+    const m = document.createElementNS(ns, "marker"), sp = document.createElementNS(ns, "path");
+    for (const [k, v] of Object.entries({ id: "tm-spitze-" + art, viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 11, markerHeight: 11,
+      markerUnits: "userSpaceOnUse", orient: "auto-start-reverse" })) m.setAttribute(k, v);
+    sp.setAttribute("d", "M0 0 L10 5 L0 10 z"); sp.setAttribute("class", "tm-spitze-" + art); m.append(sp); defs.append(m); }
+  teile.push(defs);
   const du = ort(knoten("*du")), leads = [...baum.querySelectorAll(".tm-lead")].map(ort), agenten = [...baum.querySelectorAll(".tm-agent")];
   const stamm = leads.length ? { x: leads.reduce((s, l) => s + l.x, 0) / leads.length, unten: Math.max(...leads.map(l => l.unten)) } : du;
-  for (const l of leads) pfad("tm-ast", `M${du.x} ${du.unten} V${(du.unten + l.oben) / 2} H${l.x} V${l.oben}`);
+  for (const l of leads) pfad("tm-ast", `M${du.x} ${du.unten} V${(du.unten + l.oben) / 2} H${l.x} V${l.oben - 1}`);
   const reihen = new Map(); for (const a of agenten) { const q = ort(a); const y = Math.round(q.oben); if (!reihen.has(y)) reihen.set(y, []); reihen.get(y).push(q); }
   const ys = [...reihen.keys()].sort((a, b) => a - b);
   for (const y of ys) { const xs = reihen.get(y).map(q => q.x), quer = y - 12;
-    pfad("tm-ast", `M${Math.min(...xs, stamm.x)} ${quer} H${Math.max(...xs, stamm.x)}`); for (const x of xs) pfad("tm-ast", `M${x} ${quer} V${y}`); }
-  if (ys.length) pfad("tm-ast", `M${stamm.x} ${stamm.unten} V${ys[ys.length - 1] - 12}`);
+    pfad("tm-ast", `M${Math.min(...xs, stamm.x)} ${quer} H${Math.max(...xs, stamm.x)}`).removeAttribute("marker-end");
+    for (const x of xs) pfad("tm-ast", `M${x} ${quer} V${y - 1}`); }
+  if (ys.length) pfad("tm-ast", `M${stamm.x} ${stamm.unten} V${ys[ys.length - 1] - 12}`).removeAttribute("marker-end");
   const gezeigt = new Set();
   for (const z of d.team?.zusammen || []) {
     const a = knoten(z.von), b = knoten(z.mit), schl = [z.von, z.mit].sort().join("|"); if (!a || !b || gezeigt.has(schl)) continue;
     const p = ort(a), q = ort(b); if (!a.classList.contains("tm-agent") || !b.classList.contains("tm-agent") || Math.abs(p.unten - q.unten) > 4) continue;
     gezeigt.add(schl); const y = p.unten + 2, tief = y + 16 + 6 * (gezeigt.size % 2);
-    pfad("tm-bogen", `M${p.x} ${y} V${tief} H${q.x} V${y}`);
+    pfad("tm-bogen", `M${p.x} ${y} V${tief} H${q.x} V${y + 1}`);          /* von der Bauerin zum Prüfer */
+  }
+  /* wartet auf: vom Wartenden zu dem, auf den er wartet (Agent derselben Ansicht oder du) – seitlich versetzt neben den Ästen */
+  let n = 0;
+  for (const a of d.agenten || []) for (const ziel of a.wartet_auf || []) {
+    const von = knoten(a.kennung), nach = knoten(ziel === "Entwickler" ? "*du" : ziel); if (!von || !nach || von === nach) continue;
+    const p = ort(von), q = ort(nach), r = von.getBoundingClientRect(), dx = Math.min(26, r.width / 4) + 6 * (n++ % 3);
+    if (ziel === "Entwickler") {                                                         // zu dir: außen rechts herum, seitlich hinein
+      const rechts = o.width - 8 - 5 * (n % 3), dr = nach.getBoundingClientRect(), mitte = dr.top - o.top + dr.height / 2;
+      pfad("tm-warten", `M${p.x + dx} ${p.oben} V${p.oben - 14 - 4 * (n % 3)} H${rechts} V${mitte} H${dr.right - o.left + 1}`); }
+    else if (q.unten < p.oben) { const y = p.oben - 14 - 4 * (n % 3);                  // zum Lead: in der Lücke über den Agenten quer
+      pfad("tm-warten", `M${p.x + dx} ${p.oben} V${y} H${q.x + dx} V${q.unten + 1}`); }
+    else { const y = Math.max(p.unten, q.unten) + 30 + 6 * (n % 3);                      // gleiche Reihe: unten herum
+      pfad("tm-warten", `M${p.x - dx} ${p.unten} V${y} H${q.x - dx} V${q.unten + 1}`); }
   }
   svg.replaceChildren(...teile);
 }
