@@ -725,7 +725,8 @@ function benutzer_aktuell(): ?array {
 function eingabe_klasse(string $pfad): string {
     if (str_starts_with($pfad, '/api/benutzer')) return 'benutzer';
     if (in_array($pfad, ['/api/einstellungen/projekt', '/api/einstellungen/agent'], true)) return 'projekt';
-    if (str_starts_with($pfad, '/api/einstellungen/') || in_array($pfad, ['/api/archivieren', '/api/push/probe', '/api/projekt/neu'], true)) return 'system';
+    if (str_starts_with($pfad, '/api/einstellungen/') || in_array($pfad, ['/api/archivieren', '/api/push/probe', '/api/projekt/neu',
+            '/api/agent/entfernen', '/api/agent/wiederaufnehmen', '/api/agent/loeschen'], true)) return 'system';
     return 'arbeiten';
 }
 
