@@ -134,9 +134,6 @@ try {
         if ($pfad === '/api/schirm' && !empty($daten['frei']) && $ich !== null && $ich['rolle'] !== 'system_admin') {   // frei online: nur System-Admin
             antwort(403, ['fehler' => 'Bildschirm freigeben darf online nur ein System-Admin – belegen geht für alle.']);
         }
-        if ($pfad === '/api/schirm' && !empty($daten['frei']) && trim((string)($daten['bis'] ?? '')) === '') {
-            antwort(400, ['fehler' => 'Online freigeben nur mit Uhrzeit, bis wann.']);
-        }
         if (!$frage && !$parken && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter', '/api/schirm',
                 '/api/agent/entfernen', '/api/agent/wiederaufnehmen', '/api/agent/loeschen',
                 '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web',
