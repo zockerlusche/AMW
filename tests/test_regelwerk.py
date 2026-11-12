@@ -155,6 +155,7 @@ class Umstellung(Grund):
             if self.con.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (tab,)).fetchone():
                 self.con.execute(f"ALTER TABLE {tab} DROP COLUMN benutzer")
         self.con.execute("DROP INDEX IF EXISTS nachricht_bezug")      # Bezug an Nachrichten kam mit Schema 29
+        self.con.execute("DROP INDEX IF EXISTS nachricht_antwort")
         self.con.execute("ALTER TABLE nachricht DROP COLUMN bezug")
         self.con.execute("ALTER TABLE agent DROP COLUMN entfernt_utc")      # Agenten entfernen kam mit Schema 28
         self.con.execute("ALTER TABLE regel DROP COLUMN vorlage")

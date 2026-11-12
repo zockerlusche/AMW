@@ -470,9 +470,17 @@ def daten_nachrichten(con, pid, grenze=150):
 
     spalten = "n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf, n.bezug, n.benutzer"
     gesendet = []
-    for n in con.execute(f"SELECT {spalten} FROM nachricht n WHERE n.projekt_id = ? AND n.von = ? ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall():
-        emp = zeilen(con.execute("SELECT agent, status, gelesen_utc, erledigt_utc, geweckt_utc, bemerkung FROM empfang WHERE nachricht_id = ? ORDER BY agent", (n["id"],)))
-        antworten = zeilen(con.execute("SELECT id, zeit_utc, von, kurz FROM nachricht WHERE antwort_auf = ? ORDER BY id", (n["id"],)))
+    eigene = con.execute(f"SELECT {spalten} FROM nachricht n WHERE n.projekt_id = ? AND n.von = ? ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall()
+    ids = [n["id"] for n in eigene]
+    platz = ",".join("?" * len(ids)) or "NULL"
+    empf, antw = {}, {}                                  # je Nachricht gesammelt – eine Abfrage statt einer je Nachricht
+    for x in zeilen(con.execute("SELECT nachricht_id, agent, status, gelesen_utc, erledigt_utc, geweckt_utc, bemerkung FROM empfang"
+                                f" WHERE nachricht_id IN ({platz}) ORDER BY agent", ids)):
+        empf.setdefault(x.pop("nachricht_id"), []).append(x)
+    for x in zeilen(con.execute(f"SELECT antwort_auf, id, zeit_utc, von, kurz FROM nachricht WHERE antwort_auf IN ({platz}) ORDER BY id", ids)):
+        antw.setdefault(x.pop("antwort_auf"), []).append(x)
+    for n in eigene:
+        emp, antworten = empf.get(n["id"], []), antw.get(n["id"], [])
         zurueck = bool(emp) and all(x["bemerkung"] == kern.ZURUECKGEZOGEN for x in emp)
         gesendet.append({**{k: n[k] for k in ("id", "zeit_utc", "art", "kurz", "text", "antwort_auf", "benutzer")}, "bezug": bezug(n),
                          "empfaenger": [{"agent": x["agent"], "stand": "zurueckgezogen" if zurueck else ("erledigt" if x["status"] == "erledigt" else

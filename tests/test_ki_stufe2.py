@@ -201,6 +201,7 @@ class Migration(unittest.TestCase):
                 if con.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (tab,)).fetchone():
                     con.execute(f"ALTER TABLE {tab} DROP COLUMN benutzer")
             con.execute("DROP INDEX IF EXISTS nachricht_bezug")      # Bezug an Nachrichten kam mit Schema 29
+            con.execute("DROP INDEX IF EXISTS nachricht_antwort")
             con.execute("ALTER TABLE nachricht DROP COLUMN bezug")
             con.execute("ALTER TABLE agent DROP COLUMN entfernt_utc")      # Agenten entfernen kam mit Schema 28
             con.execute("ALTER TABLE regel DROP COLUMN vorlage")      # Herkunft aus dem Grund-Regelwerk kam mit Schema 23

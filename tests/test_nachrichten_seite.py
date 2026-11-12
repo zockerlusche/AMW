@@ -101,6 +101,7 @@ class Nachrichten(unittest.TestCase):
         sql = (resources.files("amw") / "migration_29.sql").read_text(encoding="utf-8")
         c = self.con
         c.execute("DROP INDEX nachricht_bezug")
+        c.execute("DROP INDEX nachricht_antwort")
         c.execute("ALTER TABLE nachricht DROP COLUMN bezug")
         c.executescript(sql)
         b = lambda nid: c.execute("SELECT bezug FROM nachricht WHERE id = ?", (nid,)).fetchone()[0]

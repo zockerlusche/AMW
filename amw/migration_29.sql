@@ -9,3 +9,4 @@ UPDATE nachricht SET bezug = bis WHERE bezug IS NULL AND bis GLOB 'F[0-9]*';
 UPDATE nachricht SET bezug = (SELECT b.bezug FROM nachricht b WHERE b.id = nachricht.antwort_auf)
  WHERE bezug IS NULL AND antwort_auf IS NOT NULL;
 CREATE INDEX nachricht_bezug ON nachricht (projekt_id, bezug);
+CREATE INDEX nachricht_antwort ON nachricht (antwort_auf);   -- Gespräche: Antworten auf eine Nachricht

@@ -120,6 +120,7 @@ CREATE TABLE nachricht (
 );
 CREATE INDEX nachricht_zeit ON nachricht (projekt_id, zeit_utc);
 CREATE INDEX nachricht_bezug ON nachricht (projekt_id, bezug);
+CREATE INDEX nachricht_antwort ON nachricht (antwort_auf);
 
 CREATE TABLE empfang (
   nachricht_id  INTEGER NOT NULL REFERENCES nachricht(id),
