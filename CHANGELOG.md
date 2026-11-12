@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.68.0 – 12.11.2026 · Bildschirm auch online freigeben
+- **Online freigeben** – nur als System-Admin, mit Rückfrage und nur mit Uhrzeit, bis wann. Im Verlauf steht, wer es online
+  war. Wieder belegen darf online jeder.
+- **Was nur am PC geht, steht online ausgegraut da** – mit der Erklärung „Geht nur am PC“ (Sitzungen speichern und beenden,
+  fehlende starten, Dienst neu starten) bzw. „Online nur für System-Admins“.
+- **Oben nur der Zustand:** Die Leiste über dem Team zeigt, ob und bis wann der Bildschirm frei ist; geändert wird im
+  Leitstand („Im Leitstand ändern“ führt hin).
+
 ## 1.67.0 – 12.11.2026 · Team-Baum mit Pfeilen und Warteplatz
 - **Kräftigere Linien mit Pfeilen:** Äste zeigen, wohin die Aufträge laufen (du → Lead → Agenten), die gestrichelte
   blaue Linie, wohin die Arbeit zur Prüfung geht. Neu: eine gepunktete Linie in Bernstein vom Wartenden zu dem, auf

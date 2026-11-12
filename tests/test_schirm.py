@@ -300,3 +300,32 @@ class AusloeserAus(Grund):
         from amw import einstellungen
         for k in ("schirm_zu_eingabe", "schirm_zu_fernsitzung", "schirm_zu_workbench"):
             self.assertIs(einstellungen.FELDER[k][0], True, k)
+
+
+class OnlineFreigeben(Grund):
+    """Bildschirm online freigeben: nur System-Admin (Zugang der Seite oder Benutzer mit der Rolle), nur mit Uhrzeit, Name im Grund."""
+    def netz(self, wer, daten):
+        return aktionen.ausfuehren(self.con, self.pid, "/api/schirm", dict(daten, _benutzer=wer), kanal="netz")
+
+    def test_zugang_der_seite_mit_uhrzeit(self):
+        from amw import benutzer
+        kern.projekt_einstellen(self.con, self.pid, "TL", entwickler_name="Chris")
+        with self.assertRaises(aktionen.Ungueltig) as e:
+            self.netz(benutzer.ZUGANG, {"frei": True, "grund": "unterwegs"})                  # ohne bis: nein
+        self.assertIn("Uhrzeit", str(e.exception))
+        r = self.netz(benutzer.ZUGANG, {"frei": True, "grund": "unterwegs", "bis": "23:30"})
+        self.assertEqual((r["schirm"]["frei"], r["schirm"]["quelle"]), (1, "netz"))
+        self.assertIn("online von Chris", r["schirm"]["grund"])
+        self.assertIsNotNone(r["schirm"]["bis_utc"])
+
+    def test_nur_system_admin(self):
+        from amw import benutzer
+        benutzer.neu(self.con, kern.ENTWICKLER, "sam", "system_admin")
+        benutzer.neu(self.con, kern.ENTWICKLER, "bert", "bearbeiter", projekte=["P"])
+        with self.assertRaises(aktionen.Ungueltig) as e:
+            self.netz("bert", {"frei": True, "grund": "x", "bis": "23:30"})
+        self.assertIn("nur ein System-Admin", str(e.exception))
+        r = self.netz("sam", {"frei": True, "grund": "x", "bis": "23:30"})
+        self.assertIn("online von sam", r["schirm"]["grund"])
+        r = self.netz("bert", {"frei": False})                                                    # belegen darf jeder
+        self.assertEqual(r["schirm"]["frei"], 0)

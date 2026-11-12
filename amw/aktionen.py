@@ -32,7 +32,7 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
     marke = benutzer.AKTUELL.set(name if name and name != benutzer.ZUGANG else None)
     try:
         if weg == "/api/schirm":
-            return schirm_setzen(con, pid, daten, kanal)
+            return schirm_setzen(con, pid, daten, kanal, name)
         aus = _ausfuehren(con, pid, weg, daten, kanal, speicher)
     finally:
         benutzer.AKTUELL.reset(marke)
@@ -42,14 +42,22 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
     return aus
 
 
-def schirm_setzen(con, pid, d, kanal):
-    """Frei nur am PC (wer online angemeldet ist, soll keine Fenster-Läufe auf diesem PC freigeben); zu überall."""
-    from . import schirm
+def schirm_setzen(con, pid, d, kanal, wer=None):
+    """Zu geht überall. Frei am PC – und online nur für einen System-Admin (der Zugang der Seite oder ein Benutzer mit dieser
+    Rolle), dann nur mit Uhrzeit, bis wann; der Name steht im Grund."""
+    from . import benutzer, schirm
     frei = bool(d.get("frei"))
+    grund = (d.get("grund") or "").strip() or None
     if frei and kanal != "seite":
-        raise Ungueltig("Schirm frei geben geht nur am PC – zu geht auch von unterwegs")
+        b = benutzer.finden(con, wer) if wer and wer != benutzer.ZUGANG else None
+        if not (wer == benutzer.ZUGANG or (b and b["rolle"] == "system_admin" and not b["gesperrt"])):
+            raise Ungueltig("Bildschirm freigeben darf online nur ein System-Admin – belegen geht für alle")
+        if not d.get("bis"):
+            raise Ungueltig("Online freigeben nur mit Uhrzeit, bis wann")
+        name = b["anzeige"] or b["name"] if b else kern.entwickler_name(con)
+        grund = f"{grund or 'online freigegeben'} – online von {name}"
     try:
-        z = schirm.setzen(con, pid, kern.ENTWICKLER, frei, (d.get("grund") or "").strip() or None, d.get("bis") or None,
+        z = schirm.setzen(con, pid, kern.ENTWICKLER, frei, grund, d.get("bis") or None,
                           "workbench" if kanal == "seite" else "netz")
     except kern.AmwFehler as e:
         raise Ungueltig(str(e)) from None

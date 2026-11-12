@@ -131,8 +131,11 @@ try {
                 '/api/agent/start', '/api/agent/stop', '/api/agent/ende', '/api/agent/start-fehlende', '/api/dienst/neustart', '/api/push/probe'], true)) {
             antwort(403, ['fehler' => 'Das geht nur am PC.']);
         }
-        if ($pfad === '/api/schirm' && !empty($daten['frei'])) {     // Schirm frei nur am PC, zu auch von unterwegs
-            antwort(403, ['fehler' => 'Schirm frei geben geht nur am PC – zu geht auch von unterwegs.']);
+        if ($pfad === '/api/schirm' && !empty($daten['frei']) && $ich !== null && $ich['rolle'] !== 'system_admin') {   // frei online: nur System-Admin
+            antwort(403, ['fehler' => 'Bildschirm freigeben darf online nur ein System-Admin – belegen geht für alle.']);
+        }
+        if ($pfad === '/api/schirm' && !empty($daten['frei']) && trim((string)($daten['bis'] ?? '')) === '') {
+            antwort(400, ['fehler' => 'Online freigeben nur mit Uhrzeit, bis wann.']);
         }
         if (!$frage && !$parken && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter', '/api/schirm',
                 '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web',
@@ -188,7 +191,7 @@ try {
             $pfad === '/api/gelesen' => ['erledigt' => count($daten['ids'])],
             str_starts_with($pfad, '/api/einstellungen/'), str_starts_with($pfad, '/api/plan/'), str_starts_with($pfad, '/api/dokument/'), str_starts_with($pfad, '/api/aufgabe/') => [],
             $pfad === '/api/halt' => ['halt' => 0],
-            $pfad === '/api/schirm' => ['text' => 'Schirm zu – der PC übernimmt es gleich'],
+            $pfad === '/api/schirm' => ['text' => empty($daten['frei']) ? 'Bildschirm wird belegt' : 'Bildschirm wird freigegeben'],
             default => ['aufgehoben' => 0],
         };
         antwort(200, $form + ['unterwegs' => true, 'eingang' => $eid]);
@@ -341,7 +344,8 @@ try {
         $d = einstellungen_ueberlagern($d, $offen);       // gespeichert, aber noch nicht angekommen: der neue Wert gilt
     } elseif ($pfad === '/api/start') {
         $gesehen = $pc ? $pc[0][0] : null;
-        $d['online'] = ['web_version' => trim((string)@file_get_contents(__DIR__ . '/inc/VERSION')), 'pc_gesehen_utc' => $gesehen, 'stand_utc' => $zeile[1], 'briefkasten' => count($unterwegs),
+        $d['online'] = ['ich' => $ich !== null ? ['name' => $ich['name'], 'rolle' => $ich['rolle']] : ['name' => null, 'rolle' => 'system_admin'],
+                        'web_version' => trim((string)@file_get_contents(__DIR__ . '/inc/VERSION')), 'pc_gesehen_utc' => $gesehen, 'stand_utc' => $zeile[1], 'briefkasten' => count($unterwegs),
                         'pc_frisch' => $gesehen !== null && strtotime($gesehen) > time() - 420];
         $offeneFragen = count(array_filter($unterwegs, fn($w) => str_starts_with($w, '/api/frage/')));
         if (isset($d['zaehler']['fragen'])) $d['zaehler']['fragen'] = max(0, $d['zaehler']['fragen'] - $offeneFragen);

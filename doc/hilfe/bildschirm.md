@@ -3,7 +3,7 @@
 Manche Läufe brauchen den Bildschirm: Sie öffnen ein Fenster, klicken und tippen selbst – etwa Proben im Programm oder Bildschirmfotos. Das geht nur, wenn du den Bildschirm freigibst. Bist du wieder da, schließt die AMW die Freigabe von selbst – woran sie das erkennt, stellst du ein.
 
 ## Du brauchst
-- Die Workbench am PC (freigeben geht nur dort; schließen geht auch unterwegs).
+- Die Workbench am PC – oder online als System-Admin (dann nur mit Uhrzeit, bis wann). Schließen geht überall.
 - Für das Erkennen einer Fernsitzung: das Programm, das nur während einer Verbindung läuft (Einstellungen › Dieser PC › „Programm für den Fernzugriff“, bei TeamViewer z. B. TeamViewer_Desktop.exe).
 
 ## Schritte
@@ -27,4 +27,4 @@ Neue Installationen haben alle drei an. Ist ein Auslöser aus, **beobachtet die 
 
 ## Danach
 - Läuft ein Lauf mit Fenster nach dem Schließen weiter, erfährt es der Lead nach 5 Minuten.
-- Vom Handy kannst du die Freigabe nur schließen, nie öffnen.
+- Online freigeben darf nur ein System-Admin, mit Rückfrage und nur mit Uhrzeit, bis wann; im Verlauf steht, wer es war. Schließen darf online jeder.
