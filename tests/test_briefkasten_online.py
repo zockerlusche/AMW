@@ -61,5 +61,93 @@ class Briefkasten(unittest.TestCase):
         self.assertEqual(self.wirkt(stand), [[9]])
 
 
+
+@unittest.skipUnless(PHP, "PHP nicht installiert")
+class GanzerWeg(unittest.TestCase):
+    """Gemeldeter Ablauf: Einstellungen › Agent › „Zuständig für“ speichern → Seite neu laden, bevor der PC es
+    ausgeführt hat → der Wert muss stehen; danach meldet die Seite „gespeichert“ bzw. einen Fehler mit Grund. Echter
+    Webhoster-Code (php -S) gegen eine SQLite-Datei, echter Abgleich des PCs."""
+    def setUp(self):
+        import base64, http.cookiejar, re, socket, time, urllib.request
+        from amw import db, kern
+        self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(self.ordner.cleanup)
+        self.con = db.anlegen(os.path.join(self.ordner.name, "amw.db"))
+        self.addCleanup(self.con.close)
+        with db.schreiben(self.con):
+            self.pid = db.einfuegen(self.con, "projekt", name="P", angelegt_utc=db.jetzt())
+        kern.agent_neu(self.con, self.pid, "TL", rolle="lead")
+        kern.agent_neu(self.con, self.pid, "CC1")
+        online = os.path.join(self.ordner.name, "online.db")
+        self.sp = abgleich.SqliteSpeicher(online)
+        self.ab = abgleich.Abgleich(self.con, self.sp, self.pid)
+        self.ab.schema()
+        self.ab.hochladen(alle=True)
+        geheim = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
+        self.sp.ausfuehren([("INSERT INTO zustand (schluessel, wert) VALUES ('totp_geheim', ?)", [geheim])])
+        konfig = os.path.join(self.ordner.name, "amw-konfig.php")
+        hashwert = subprocess.run([PHP, "-r", "echo password_hash('chef-passwort-1', PASSWORD_DEFAULT);"], capture_output=True, text=True).stdout.strip()
+        with open(konfig, "w", encoding="utf-8") as f:
+            f.write(f"<?php return ['sqlite' => {json.dumps(online.replace(os.sep, '/'))}, 'benutzer' => 'chef', 'passwort_hash' => '{hashwert}', 'nur_https' => false];\n")
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            self.port = s.getsockname()[1]
+        env = {**os.environ, "AMW_KONFIG": konfig}
+        self.srv = subprocess.Popen([PHP, "-d", "extension=pdo_sqlite", "-d", "extension=mbstring", "-d", "extension=curl", "-S", f"127.0.0.1:{self.port}",
+                                     "-t", os.path.join(WURZEL, "web")], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.addCleanup(self.srv.terminate)
+        self.basis = f"http://127.0.0.1:{self.port}/"
+        self.op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+        for _ in range(50):
+            try:
+                seite = self.op.open(self.basis).read().decode()
+                break
+            except OSError:
+                time.sleep(0.2)
+        csrf = re.search(r'name="csrf" value="([^"]+)"', seite).group(1)
+        import hashlib, hmac, struct
+        h = hmac.new(base64.b32decode(geheim), struct.pack(">Q", int(time.time()) // 30), hashlib.sha1).digest()
+        o = h[19] & 0x0F
+        zahl = str((struct.unpack(">I", h[o:o + 4])[0] & 0x7FFFFFFF) % 1000000).zfill(6)
+        import urllib.parse
+        html = self.op.open(self.basis, urllib.parse.urlencode({"benutzer": "chef", "passwort": "chef-passwort-1", "code": zahl, "csrf": csrf}).encode()).read().decode()
+        self.token = re.search(r"([0-9a-f]{64})", html).group(1)
+
+    def hole(self, weg):
+        return json.loads(self.op.open(self.basis + "api.php?weg=" + weg).read().decode())
+
+    def schicke(self, weg, daten):
+        import urllib.request
+        rq = urllib.request.Request(self.basis + "api.php?weg=" + weg, data=json.dumps(daten).encode(), method="POST",
+                                    headers={"Content-Type": "application/json", "X-AMW-Token": self.token, "Origin": self.basis.rstrip("/")})
+        return json.loads(self.op.open(rq).read().decode())
+
+    def tl(self):
+        return next(a for a in self.hole("/api/einstellungen")["agenten"] if a["kennung"] == "TL")
+
+    def test_wert_bleibt_stehen_und_wird_bestaetigt(self):
+        import time
+        r = self.schicke("/api/einstellungen/agent", {"kennung": "TL", "zustaendig": "Führt das ganze Projekt", "fachgebiet": "Planung"})
+        self.assertTrue(r["unterwegs"] and r["eingang"] > 0)
+        self.assertEqual(self.tl()["zustaendig"], "Führt das ganze Projekt")                    # neu geladen, PC noch nicht dran
+        self.assertEqual([x["status"] for x in self.hole(f"/api/eingang?ids={r['eingang']}")], ["neu"])
+        self.ab.letzt_hoch = time.time()                                                       # gerade erst hochgeladen …
+        self.assertTrue(self.ab.schritt(False))                                                # … trotzdem sofort nach der Aktion
+        self.assertEqual([x["status"] for x in self.hole(f"/api/eingang?ids={r['eingang']}")], ["erledigt"])
+        self.assertEqual(self.tl()["zustaendig"], "Führt das ganze Projekt")                    # jetzt aus der neuen Ansicht
+        self.assertEqual(self.con.execute("SELECT zustaendig FROM agent WHERE kennung = 'TL'").fetchone()[0], "Führt das ganze Projekt")
+        self.assertEqual(self.hole("/api/eingang?ids=999999"), [])                             # fremde Nummern: nichts
+
+    def test_fehler_mit_grund_und_neuer_agent_sofort_sichtbar(self):
+        r = self.schicke("/api/einstellungen/agent", {"kennung": "CC9", "neu": True, "fachgebiet": "Test"})
+        self.assertIn("CC9", [a["kennung"] for a in self.hole("/api/einstellungen")["agenten"]])  # gleich in der Liste
+        doppelt = self.schicke("/api/einstellungen/agent", {"kennung": "TL", "neu": True})
+        self.ab.schritt(False)
+        st = {x["id"]: x for x in self.hole(f"/api/eingang?ids={r['eingang']},{doppelt['eingang']}")}
+        self.assertEqual(st[r["eingang"]]["status"], "erledigt")
+        self.assertEqual(st[doppelt["eingang"]]["status"], "fehler")
+        self.assertIn("gibt es schon", st[doppelt["eingang"]]["fehler"])
+
+
 if __name__ == "__main__":
     unittest.main()

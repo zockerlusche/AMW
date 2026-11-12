@@ -626,13 +626,14 @@ class Abgleich:
     def schritt(self, geaendert):
         """Ein Durchgang der Schleife; `geaendert`: die lokale Datenbank hat sich seit dem letzten Mal geändert."""
         jetzt = time.time()
-        if self.eingang():
+        sofort = bool(self.eingang())               # der Mensch wartet online auf das Ergebnis: nicht auf den Takt warten
+        if sofort:
             geaendert = True
         self.gespraeche()
         if jetzt - self.letzt_oben >= PULS_S:       # die Seite meldet eine verlorene Kopie ab – dann neu hochladen
             self.oben_laden()
         self.dateien()
-        if (geaendert and jetzt - self.letzt_hoch >= HOCH_S) or jetzt - self.letzt_puls >= PULS_S:
+        if (geaendert and (sofort or jetzt - self.letzt_hoch >= HOCH_S)) or jetzt - self.letzt_puls >= PULS_S:
             self.hochladen()
             self.letzt_hoch = self.letzt_puls = jetzt
             return True

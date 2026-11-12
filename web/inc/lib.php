@@ -62,6 +62,31 @@ function briefkasten_wirkt(string $projekt, ?string $stand): array {
                  . " AND (status = 'neu' OR (status = 'erledigt' AND erledigt_utc > ?)) ORDER BY id", [$projekt, $stand ?? '']]])[0];
 }
 
+/** Einstellungen, die im Briefkasten liegen oder schon ausgeführt, aber noch nicht in dieser Ansicht sind, über die
+ *  Ansicht legen – nach dem Speichern zeigt die Seite den neuen Wert, auch nach dem Neuladen (vorher: Feld leer, ~20 s
+ *  später der Text). Nur Felder, die die Ansicht schon hat; ein neuer Agent erscheint mit dem, was eingegeben wurde. */
+function einstellungen_ueberlagern(array $d, array $offen): array {
+    foreach ($offen as [$w, $dat]) {
+        $x = json_decode((string)$dat, true) ?: [];
+        unset($x['_benutzer']);
+        if ($w === '/api/einstellungen/agent' && isset($d['agenten']) && is_array($d['agenten'])) {
+            $k = (string)($x['kennung'] ?? '');
+            $neu = !empty($x['neu']);
+            unset($x['neu']);
+            $i = array_search($k, array_column($d['agenten'], 'kennung'), true);
+            if ($i === false && $neu && $k !== '') {
+                $d['agenten'][] = $x + ['kennung' => $k, 'rolle' => null, 'fachgebiet' => null, 'arbeitsweise' => 'terminal', 'zustaendig' => null,
+                                        'fasst_nicht_an' => null, 'soll' => 'an', 'empfaengt_rund' => 1, 'puls_grenze_s' => 120, 'unterwegs' => true];
+            } elseif ($i !== false) {
+                foreach ($x as $f => $v) if (array_key_exists($f, $d['agenten'][$i])) $d['agenten'][$i][$f] = $v;
+            }
+        } elseif ($w === '/api/einstellungen/projekt' && isset($d['projekt']) && is_array($d['projekt'])) {
+            foreach ($x as $f => $v) if (array_key_exists($f, $d['projekt'])) $d['projekt'][$f] = $v;
+        }
+    }
+    return $d;
+}
+
 /** Spalten älterer Online-Speicher nachrüsten (wie amw/abgleich.py NACHRUESTEN) – einmal je Sitzung geprüft. */
 function nachruesten(): void {
     if (!empty($_SESSION['nachgeruestet'])) return;

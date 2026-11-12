@@ -4,7 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
-## 1.66.0 – 12.11.2026 · Bildschirm-Freigabe: selbst bestimmen, wann sie schließt
+## 1.66.0 – 12.11.2026 · Online-Eingaben mit Rückmeldung, Bildschirm-Freigabe einstellbar
+- **Online: Was du eingibst, bleibt stehen.** Gespeicherte Einstellungen (z. B. „Zuständig für“ eines Agenten) zeigt die
+  Online-Seite sofort mit dem neuen Wert – auch nach dem Neuladen, bevor der PC sie übernommen hat. Vorher war das Feld
+  nach dem Speichern leer und der Text kam erst nach etwa 20 Sekunden.
+- **An der Stelle steht, was passiert:** „wird übertragen …“, dann „✓ gespeichert“ – oder „nicht gespeichert: Grund“
+  (z. B. „Lead gibt es schon“). Das gilt für jede Eingabe auf der Online-Seite, auch nach dem Neuladen. Eine
+  „gespeichert“-Meldung direkt nach dem Absenden gibt es online nicht mehr – sie wäre verfrüht.
+- **Schneller:** Hat der PC eine Eingabe aus dem Briefkasten ausgeführt, lädt er den neuen Stand sofort hoch statt bis zu
+  30 Sekunden später.
 - Einstellungen › Dieser PC › „Bildschirm-Freigabe von selbst schließen“: bei Eingabe am PC (Tastatur, Maus), bei neuer
   Fernsitzung, bei Eingabe in der Workbench – jeder Auslöser einzeln an oder aus. So kannst du zwischendurch per
   Fernsitzung hineinschauen oder die Maus bewegen, ohne die Agenten zu unterbrechen.

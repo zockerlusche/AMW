@@ -514,6 +514,8 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .push-gruppe { border-top: 1px solid var(--linie); margin-top: 12px; padding-top: 8px; }
 .push-gruppe h4 { font: 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--leise); margin: 4px 0; }
 .rot-text { color: var(--rot); } .bernstein-text { color: var(--bernstein); }
+.ue-marke { font-size: 12px; margin-left: 8px; white-space: normal; flex-basis: 100%; }  /* in Zeilen mit flex: eigene Zeile darunter */
+:has(> .ue-marke) { flex-wrap: wrap; } .gruen-text { color: var(--gruen); }
 .karte.aufgabe.in-arbeit { border-left: 3px solid var(--gruen); }
 .band-termin { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px 16px; margin: 0 0 16px;
   border: 1px solid var(--linie); border-left: 3px solid var(--gruen); border-radius: 8px; background: var(--flaeche); }
@@ -1019,6 +1021,7 @@ const TEXTE = {
     e_kennung: "Name", e_rund: "Nachrichten an alle", 
     e_anlegen: "Anlegen", soll_an: "an", soll_ruht: "pausiert", soll_aus: "aus",
     e_bs_titel: "Bildschirm-Freigabe von selbst schließen", e_bs_h: "Gibst du den Bildschirm für Agenten frei, schließt die AMW die Freigabe, sobald du wieder da bist. Hier legst du fest, woran sie das erkennt.", e_bs_eingabe: "… bei Eingabe am PC (Tastatur, Maus)", e_bs_eingabe_h: "Auch über eine Fernsitzung. Aus: Die AMW beobachtet Tastatur und Maus gar nicht – Läufe mit Fenster starten dann auch, während du die Maus bewegst. Schließ die Freigabe dann selbst.", e_bs_fern: "… bei neuer Fernsitzung (z. B. TeamViewer)", e_bs_fern_h: "Erkannt am Programm, das unten steht. Aus: Es wird nicht nachgesehen.", e_bs_wb: "… bei Eingabe in der Workbench am PC", e_bs_wb_h: "Aus: Klicks und Eingaben hier lassen die Freigabe offen.",
+    ue_laeuft: "wird übertragen …", ue_ok: "gespeichert", ue_fehler: "nicht gespeichert: {x}",
     bn_titel: "Benutzer der Online-Seite", bn_h: "Wer sich auf der Online-Seite anmelden darf und was er dort darf. Ein neuer Benutzer hat keine Rechte, bis du Rolle und Projekte vergibst. Der bisherige Zugang aus der Konfiguration der Seite bleibt System-Admin.", bn_ohne_speicher: "Ohne Online-Speicher kann sich niemand anmelden – erst die Online-Seite einrichten. Anlegen geht schon.", bn_name: "Name", bn_rolle: "Rolle", bn_projekte: "Projekte", bn_stand: "Stand", bn_keine: "Noch keine Benutzer.", bn_neu_ph: "Name (ohne Leerzeichen)", bn_anlegen: "Anlegen", bn_wartet_rolle: "– wartet auf Freigabe –", rolle_leser: "Leser", rolle_bearbeiter: "Bearbeiter", rolle_projekt_admin: "Projekt-Admin", rolle_system_admin: "System-Admin", bn_alle_projekte: "alle Projekte", bn_st_neu: "noch nicht freigeschaltet", bn_st_wartet_code: "Code gültig bis {x}", bn_st_code_abgelaufen: "Code abgelaufen", bn_st_eingerichtet: "eingerichtet", bn_st_angemeldet: "zuletzt angemeldet {x}", bn_st_gesperrt: "gesperrt", bn_st_freigabe: "wartet auf deine Freigabe", bn_freischalten: "Freischalten", bn_neu_freischalten: "Neu freischalten", bn_neu_frage: "{x} neu freischalten? Passwort und zweiter Faktor werden zurückgesetzt, alle Sitzungen von {x} enden.", bn_sperren: "Sperren", bn_entsperren: "Entsperren", bn_code_titel: "Freischalt-Code für {x}", bn_code_h: "Gültig bis {b}, nur einmal. Gib ihn {x} persönlich weiter (mündlich oder im Chat) – er erscheint nur jetzt und steht nirgends sonst. {x} öffnet die Online-Seite, wählt „Neue Anmeldung“ und setzt Passwort und zweiten Faktor selbst.", bn_kopieren: "Kopieren", bn_kopiert: "Kopiert", bn_fertig: "Fertig",
     e_web: "Online-Seite", e_web_h: "Gilt für die Anmeldung im Netz.", e_leerlauf: "Abmelden nach Leerlauf (min)",
     e_hoechstens: "Längste Sitzung (h)", e_fehl_ip: "Sperre nach Fehlversuchen je Adresse (15 min)", e_fehl_ges: "Sperre nach Fehlversuchen gesamt (60 min)",
@@ -1332,6 +1335,7 @@ const TEXTE = {
     e_kennung: "Name", e_rund: "Messages to all", 
     e_anlegen: "Add", soll_an: "on", soll_ruht: "paused", soll_aus: "off",
     e_bs_titel: "Close the screen release automatically", e_bs_h: "When you release the screen for agents, the AMW closes the release as soon as you are back. Here you choose how it notices.", e_bs_eingabe: "… on input at the PC (keyboard, mouse)", e_bs_eingabe_h: "Also through a remote session. Off: the AMW does not watch keyboard and mouse at all – runs with a window then start even while you move the mouse. Close the release yourself.", e_bs_fern: "… when a remote session starts (e.g. TeamViewer)", e_bs_fern_h: "Recognised by the program named below. Off: not checked.", e_bs_wb: "… on input in the Workbench at the PC", e_bs_wb_h: "Off: clicks and input here leave the release open.",
+    ue_laeuft: "sending …", ue_ok: "saved", ue_fehler: "not saved: {x}",
     bn_titel: "Users of the online site", bn_h: "Who may sign in on the online site and what they may do there. A new user has no rights until you assign a role and projects. The existing access from the site's configuration stays system admin.", bn_ohne_speicher: "Without online storage nobody can sign in – set up the online site first. Adding users works already.", bn_name: "Name", bn_rolle: "Role", bn_projekte: "Projects", bn_stand: "Status", bn_keine: "No users yet.", bn_neu_ph: "Name (no spaces)", bn_anlegen: "Add", bn_wartet_rolle: "– awaiting approval –", rolle_leser: "Reader", rolle_bearbeiter: "Editor", rolle_projekt_admin: "Project admin", rolle_system_admin: "System admin", bn_alle_projekte: "all projects", bn_st_neu: "not activated yet", bn_st_wartet_code: "Code valid until {x}", bn_st_code_abgelaufen: "Code expired", bn_st_eingerichtet: "set up", bn_st_angemeldet: "last signed in {x}", bn_st_gesperrt: "blocked", bn_st_freigabe: "awaiting your approval", bn_freischalten: "Activate", bn_neu_freischalten: "Reset access", bn_neu_frage: "Reset access for {x}? Password and two-factor are reset and all of {x}'s sessions end.", bn_sperren: "Block", bn_entsperren: "Unblock", bn_code_titel: "Activation code for {x}", bn_code_h: "Valid until {b}, once only. Give it to {x} in person (spoken or in a chat) – it is shown only now and stored nowhere else. {x} opens the online site, chooses “First sign-in” and sets their own password and two-factor.", bn_kopieren: "Copy", bn_kopiert: "Copied", bn_fertig: "Done",
     e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after inactivity (min)",
     e_hoechstens: "Maximum session length (h)", e_fehl_ip: "Lockout after failed sign-ins per address (15 min)", e_fehl_ges: "Lockout after failed sign-ins in total (60 min)",
@@ -1623,13 +1627,57 @@ function seit(x) {
 }
 async function holen(weg) { const r = await fetch(ziel(weg), { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return r.json(); }
 async function schicken(weg, daten) {
+  const knopf = document.activeElement?.tagName === "BUTTON" ? document.activeElement : null;   /* die Stelle für „wird übertragen …“ */
   const r = await fetch(ziel(weg), { method: "POST", headers: { "Content-Type": "application/json", "X-AMW-Token": TOKEN }, body: JSON.stringify(daten) });
   const j = await r.json().catch(() => ({}));
   if (j.neu_laden) { neuLadenLeiste(); throw new Error(t("neu_laden")); }
   if (!r.ok) throw new Error(j.fehler || r.status);
-  if (j.unterwegs) toast(t("unterwegs"));
+  if (j.unterwegs) uebertragung.merken(j.eingang, knopf);
   nachAktion(); return j;
 }
+/* Online geht jede Eingabe über den Briefkasten; der PC führt sie Sekunden später aus. Ein Baustein für alle Eingaben:
+   an der Stelle „wird übertragen …“, dann „gespeichert“ – oder „nicht gespeichert: Grund“. Ausstehende Nummern stehen im
+   Browser und überleben ein Neuladen; den neuen Wert zeigt die Seite schon vorher (der Webhoster legt ihn über die Ansicht). */
+const uebertragung = (() => {
+  const ablageName = () => "amw-unterwegs";            /* fest, nicht je Projekt: beim Laden der Seite ist das Projekt noch nicht gewählt */
+  let offen = []; try { offen = JSON.parse(localStorage.getItem(ablageName()) || "[]").filter(x => Date.now() - x.seit < 10 * 60000); } catch (e) {}
+  let uhr = null;
+  const sichern = () => { try { localStorage.setItem(ablageName(), JSON.stringify(offen)); } catch (e) {} };
+  /* Ort eines Knopfs, der ein Neuzeichnen (und ein Neuladen) übersteht: nächster Behälter mit id/data-k + Aufschrift */
+  const ortVon = knopf => { if (!knopf) return null; const a = knopf.closest("[id], [data-k]");
+    return { anker: a ? (a.id ? "#" + CSS.escape(a.id) : `[data-k="${CSS.escape(a.dataset.k)}"]`) : null, text: knopf.textContent.trim(), sicht: zustand.sicht }; };
+  const knopfAm = o => { if (!o || o.sicht !== zustand.sicht) return null; const a = o.anker ? document.querySelector(o.anker) : document.body;
+    return a ? [...a.querySelectorAll("button")].find(b => b.textContent.trim() === o.text) || null : null; };
+  const marke = (o, text, art) => { const knopf = knopfAm(o); if (!knopf) return null;
+    let m = knopf.nextElementSibling?.classList.contains("ue-marke") ? knopf.nextElementSibling : null;
+    if (!m) { m = el("span", { class: "ue-marke", role: "status" }); knopf.after(m); }
+    m.className = "ue-marke " + art; m.textContent = text; return m; };
+  const anbringen = () => { for (const o of offen) marke(o.ort, t("ue_laeuft"), "bernstein-text"); };   /* nach jedem Neuzeichnen wieder an die Stelle */
+  async function nachsehen() {
+    uhr = null; if (!offen.length) return;
+    anbringen();
+    let r; try { r = await holen("/api/eingang?ids=" + offen.map(x => x.id).join(",")); } catch (e) { uhr = setTimeout(nachsehen, 5000); return; }
+    for (const x of r) {
+      if (x.status === "neu") continue;
+      const o = offen.find(y => y.id === x.id); offen = offen.filter(y => y.id !== x.id);
+      if (x.status === "fehler") { const text = t("ue_fehler", { x: x.fehler }); if (!marke(o?.ort, text, "rot-text")) toast(text, true, true); }
+      else { const ok = marke(o?.ort, "\u2713 " + t("ue_ok"), "gruen-text");      /* Knopf nicht mehr zu sehen: kurzer Hinweis */
+             if (ok) setTimeout(() => ok.isConnected && ok.classList.contains("gruen-text") && ok.remove(), 5000); else toast("\u2713 " + t("ue_ok"), false, true);
+             frischZeichnen(true); }
+    }
+    offen = offen.filter(o => r.some(x => x.id === o.id && x.status === "neu") || !r.some(x => x.id === o.id));
+    sichern(); if (offen.length) uhr = setTimeout(nachsehen, 3000);
+  }
+  if (API && offen.length) uhr = setTimeout(nachsehen, 1500);
+  return { zuletzt: 0, merken(id, knopf) {
+    this.zuletzt = Date.now();
+    if (!id) { toast(t("unterwegs"), false, true); return; }
+    const ort = ortVon(knopf);
+    offen.push({ id, seit: Date.now(), ort }); sichern();
+    if (!marke(ort, t("ue_laeuft"), "bernstein-text")) toast(t("ue_laeuft"), false, true);
+    setTimeout(anbringen, 1200);                               /* die Aktion zeichnet meist neu – Marke wieder anbringen */
+    clearTimeout(uhr); uhr = setTimeout(nachsehen, 2500); } };
+})();
 function neuLadenLeiste() {          // bleibt stehen, bis neu geladen wird – Eingaben auf der Seite bleiben bis dahin
   if (document.getElementById("neu-laden")) return;
   const k = el("button", { class: "knopf haupt", type: "button" }, t("neu_laden_knopf"));
@@ -1637,8 +1685,11 @@ function neuLadenLeiste() {          // bleibt stehen, bis neu geladen wird – 
   document.body.append(el("div", { class: "karte neu-laden", id: "neu-laden", role: "alert" },
     el("span", {}, t("neu_laden")), k));
 }
-function toast(text, fehler) {
+function toast(text, fehler, stand) {
   if (text.includes(t("neu_laden")) && document.getElementById("neu-laden")) return;   // steht schon oben
+  /* online: eine Erfolgsmeldung direkt nach dem Absenden wäre verfrüht – der PC hat noch nichts getan; den echten Stand
+     („wird übertragen …“ → „gespeichert“ / „nicht gespeichert“) zeigt uebertragung an der Stelle */
+  if (API && !fehler && !stand && Date.now() - (uebertragung?.zuletzt || 0) < 2000) return;
   const x = el("div", { class: "karte toast" }, text); if (fehler) x.style.borderColor = "var(--rot)";
   document.body.append(x); setTimeout(() => x.remove(), 3800);
 }
