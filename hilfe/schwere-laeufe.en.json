@@ -88,7 +88,7 @@
   ],
   [
    "What does the AMW do when the disk fills up?",
-   "It warns: in the control panel under “Computer” and with a message to the lead and you as soon as a drive holding the database or a project folder has less than 15 % free, and urgently below 5 %. Settings › This PC lists the drives and the clean-up suggestions: old backups with size and age. Nothing is deleted automatically – you decide."
+   "It warns: in the control panel under “Computer” and with a message to the lead and you as soon as a drive holding the database or a project folder has less than 15 % free, and urgently below 5 %. Settings › This PC lists the drives and the clean-up suggestions: old backups with size and age. Nothing is deleted automatically. If an archive folder is set, you move old backups there with one click; every move is listed in archiv-protokoll.txt."
   ],
   [
    "Can I switch this off for one computer?",
