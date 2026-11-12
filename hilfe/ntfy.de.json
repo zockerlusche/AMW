@@ -2,7 +2,7 @@
  "titel": "Benachrichtigungen aufs Handy mit ntfy",
  "kurz": "Die AMW schickt dir eine kurze Nachricht aufs Handy, wenn etwas auf dich wartet – eine Frage, eine Freigabe, ein Halt. ntfy ist dafür der einfachste Weg: eine kostenlose App und ein geheimer Kanalname.",
  "brauchst": [
-  "Die AMW läuft auf diesem PC (der Wächter ist eingerichtet).",
+  "Die AMW läuft auf diesem PC (der Dienst ist eingerichtet).",
   "Die App **ntfy** auf dem Handy (Google Play, F-Droid oder App Store)."
  ],
  "schritte": [
@@ -52,7 +52,7 @@
   ],
   [
    "Es kommt gar nichts mehr",
-   "Der Wächter läuft nicht (`amw dienst status`); er verschickt die Nachrichten."
+   "Der Dienst läuft nicht (`amw dienst status`); er verschickt die Nachrichten."
   ],
   [
    "„ntfy-Server: https://…“",

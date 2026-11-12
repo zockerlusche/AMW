@@ -68,7 +68,7 @@
   ],
   [
    "The page shows old or no data",
-   "The PC is not uploading: sync on? Watcher running? `amw web status` shows the last upload."
+   "The PC is not uploading: sync on? Service running? `amw web status` shows the last upload."
   ],
   [
    "“Page reachable?” reports no help files",

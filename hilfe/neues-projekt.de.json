@@ -22,7 +22,7 @@
   },
   {
    "titel": "Ausfüllen und anlegen",
-   "text": "Name, Projektordner, Lead (leer, wenn du selbst leitest), Agenten, Rechte, Regelwerk (das mitgelieferte Grund-Regelwerk – Regeln einzeln abhaken und anpassen –, die Kopie eines anderen Projekts oder ohne) und Farbe. „Anlegen“ richtet den Ordner ein (Hooks, Projekt-Kennung, amw-Befehl ohne Rückfrage), legt Lead und Agenten mit Profil und Startsatz an und schreibt ein eigenes Startskript.",
+   "text": "Name, Projektordner, Lead (leer, wenn du selbst leitest), Agenten, Rechte, Regelwerk (das mitgelieferte Grund-Regelwerk – Regeln einzeln abhaken und anpassen –, die Kopie eines anderen Projekts oder ohne) und Farbe. „Anlegen“ richtet den Ordner ein (Hooks, Projekt-Name, amw-Befehl ohne Rückfrage), legt Lead und Agenten mit Profil und Startanweisung an und schreibt ein eigenes Startskript.",
    "bilder": [
     {
      "name": "np-dialog",
@@ -36,7 +36,7 @@
   },
   {
    "titel": "Vor dem ersten Start: Leitbild und erste Aufgabe",
-   "text": "„Zum Projekt“ › Planung › Leitbild: Ziel, Nicht-Ziele, Prinzipien. Dann eine erste Aufgabe (Arbeit) oder einen Bogen (Planung) – sonst findet der Agent nichts zu tun. Projektwissen (Technik, Build, Stil) schreibst du in eine CLAUDE.md im Projektordner; die legt die AMW nicht an.",
+   "text": "„Zum Projekt“ › Planung › Leitbild: Ziel, Nicht-Ziele, Prinzipien. Dann eine erste Aufgabe (Arbeit) oder einen Meilenstein (Planung) – sonst findet der Agent nichts zu tun. Projektwissen (Technik, Build, Stil) schreibst du in eine CLAUDE.md im Projektordner; die legt die AMW nicht an.",
    "bilder": [
     {
      "name": "np-leitbild",
@@ -71,15 +71,15 @@
  "fragen": [
   [
    "Woher weiß der erste Agent alles?",
-   "Startsatz – der erste Satz jeder neuen Sitzung, im Profil des Agenten (Kachel › Profil, dort änderbar): wer er ist, wie er die AMW aufruft und womit er anfängt (Lead: planen und verteilen, Agent: Arbeit holen). Pflicht-Kontext – bei jedem Start, Fortsetzen und Verdichten gibt der Start-Hook ihm: Befehl und Kurzanleitung, Ziel, Nicht-Ziele und Prinzipien aus dem Leitbild, aktive Bögen, seine Aufgabenliste, offene Nachrichten und Regeln. Projektwissen – deine CLAUDE.md im Projektordner liest Claude Code selbst."
+   "Startanweisung – der erste Satz jeder neuen Sitzung, im Profil des Agenten (Kachel › Profil, dort änderbar): wer er ist, wie er die AMW aufruft und womit er anfängt (Lead: planen und verteilen, Agent: Arbeit holen). Startinformationen – bei jedem Start, Fortsetzen und Verdichten gibt der Start-Hook ihm: Befehl und Kurzanleitung, Ziel, Nicht-Ziele und Prinzipien aus dem Leitbild, aktive Meilensteine, seine Aufgabenliste, offene Nachrichten und Regeln. Projektwissen – deine CLAUDE.md im Projektordner liest Claude Code selbst."
   ],
   [
    "Braucht ein neues Projekt MCP?",
-   "Nein. Agenten arbeiten über die Hooks und den amw-Befehl; beides richtet „Anlegen“ im Projektordner ein. Nur ein Lead ohne direkten Zugriff (z. B. in Cowork oder einer VM) nutzt die Datei-Brücke: Einstellungen › Dieser PC › Brücke an; Befehle in eingang-<projekt>\\befehle im AMW-Ordner, Lese-Kopie daten\\lesen-<projekt>.db – dafür muss der AMW-Ordner in der Desktop-App verbunden sein."
+   "Nein. Agenten arbeiten über die Hooks und den amw-Befehl; beides richtet „Anlegen“ im Projektordner ein. Nur ein Lead ohne direkten Zugriff (z. B. in Cowork oder einer VM) nutzt den Dateiaustausch: Einstellungen › Dieser PC › Dateiaustausch an; Befehle in eingang-<projekt>\\befehle im AMW-Ordner, Lese-Kopie daten\\lesen-<projekt>.db – dafür muss der AMW-Ordner in der Desktop-App verbunden sein."
   ],
   [
-   "Muss ich den Wächter kopieren?",
-   "Nein. Ein Wächter je PC weckt die Agenten jedes Projekts für sich. Keine zweite AMW-Installation anlegen."
+   "Muss ich den Dienst kopieren?",
+   "Nein. Ein Dienst je PC benachrichtigt die Agenten jedes Projekts für sich. Keine zweite AMW-Installation anlegen."
   ],
   [
    "Was lege ich von Hand an?",
