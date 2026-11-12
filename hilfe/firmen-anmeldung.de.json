@@ -1,0 +1,149 @@
+{
+ "titel": "Firmen-Anmeldung mit Microsoft Entra ID einrichten",
+ "kurz": "Benutzer melden sich auf der Online-Seite mit ihrem Firmenkonto an („Mit Firmenkonto anmelden“) – ohne eigenes Passwort und ohne zweiten Faktor in der AMW; beides übernimmt der Anmeldedienst der Firma. Hinein kommt nur, wen ein Admin in der AMW angelegt hat.",
+ "brauchst": [
+  "Die Online-Seite und den Online-Speicher, eingerichtet, und die Adresse der Seite unter Einstellungen › Online-Seite.",
+  "Ein Konto in Microsoft Entra ID mit dem Recht, Apps zu registrieren (z. B. „Anwendungsadministrator“).",
+  "Für die Zuweisung über Gruppen: Microsoft Entra ID P1 oder höher (sonst einzelne Benutzer zuweisen).",
+  "Die Workbench am PC und einen System-Admin-Zugang zur Online-Seite (für das Geheimnis)."
+ ],
+ "schritte": [
+  {
+   "titel": "Adresse für den Anbieter ablesen",
+   "text": "Am PC: Einstellungen › Benutzer der Online-Seite › Firmen-Anmeldung. Dort steht die **Umleitungs-URI**, z. B. `https://amw.example.com/sso.php`. Du brauchst sie gleich genau so.",
+   "bilder": []
+  },
+  {
+   "titel": "App registrieren",
+   "text": "Im Microsoft Entra Admin Center (entra.microsoft.com) › Anwendungen › **App-Registrierungen** › **Neue Registrierung**. Name: z. B. „AMW Workbench“. Unterstützte Kontotypen: **Nur Konten in diesem Organisationsverzeichnis**. Umleitungs-URI: Plattform **Web**, die Adresse aus Schritt 1. › Registrieren.",
+   "bilder": []
+  },
+  {
+   "titel": "Zwei Kennungen notieren",
+   "text": "Auf der Seite **Übersicht** der App: **Anwendungs-ID (Client)** und **Verzeichnis-ID (Mandant)**.",
+   "bilder": []
+  },
+  {
+   "titel": "Berechtigungen",
+   "text": "› API-Berechtigungen › Berechtigung hinzufügen › Microsoft Graph › Delegierte Berechtigungen: **openid**, **profile**, **email**. Danach „Administratorzustimmung erteilen“, damit niemand einzeln gefragt wird.",
+   "bilder": []
+  },
+  {
+   "titel": "E-Mail ins Token (empfohlen)",
+   "text": "› Tokenkonfiguration › Optionalen Anspruch hinzufügen › Tokentyp **ID** › **email**. Ohne diesen Schritt nimmt die AMW den Anmeldenamen (UPN) – das passt, wenn er der E-Mail entspricht.",
+   "bilder": []
+  },
+  {
+   "titel": "Geheimnis oder Zertifikat",
+   "text": "› Zertifikate & Geheimnisse. Entweder **Geheime Clientschlüssel** › Neuer geheimer Clientschlüssel › Ablauf wählen › den **Wert** sofort kopieren (er erscheint nur einmal; nicht die „Geheimnis-ID“). Oder **Zertifikate** › Zertifikat hochladen (nur der öffentliche Teil, .cer/.pem) – das ist die sicherere Wahl, Zertifikat und privaten Schlüssel brauchst du in Schritt 8.",
+   "bilder": []
+  },
+  {
+   "titel": "Nur zugewiesene Personen",
+   "text": "Unternehmensanwendungen › „AMW Workbench“ › Eigenschaften › **Zuweisung erforderlich?** auf **Ja** › Speichern. Dann › **Benutzer und Gruppen** › Benutzer/Gruppe hinzufügen › z. B. die Gruppe „AMW-Team“. Wer nicht zugewiesen ist, wird schon von Microsoft abgewiesen.",
+   "bilder": []
+  },
+  {
+   "titel": "Geheimnis auf der Online-Seite eintragen",
+   "text": "Als System-Admin auf der Online-Seite anmelden und `…/sso.php?einrichten` öffnen (am PC führt der Link „Auf der Online-Seite eintragen“ dorthin). Geheimnis einfügen – oder Zertifikat und privaten Schlüssel als PEM – › Speichern. Es landet in der Konfigurationsdatei beim Webhoster außerhalb des Web-Ordners und wird nie wieder angezeigt.",
+   "bilder": []
+  },
+  {
+   "titel": "Am PC einstellen",
+   "text": "Einstellungen › Benutzer der Online-Seite › Firmen-Anmeldung: **Aussteller** `https://login.microsoftonline.com/<Verzeichnis-ID>/v2.0`, **Anwendungs-ID (Client-ID)**, Haken bei „Knopf zeigen“ › Speichern. Oder in der Befehlszeile: `amw web sso --aussteller https://login.microsoftonline.com/<Verzeichnis-ID>/v2.0 --client-id <Anwendungs-ID> --an`.",
+   "bilder": []
+  },
+  {
+   "titel": "Benutzer anlegen",
+   "text": "Je Person in der Liste darüber: Name anlegen, **E-Mail** so wie im Firmenkonto, Rolle und Projekte › Speichern. Ein Freischalt-Code ist für die Firmen-Anmeldung nicht nötig.",
+   "bilder": []
+  },
+  {
+   "titel": "Ausprobieren",
+   "text": "Die Online-Seite in einem privaten Fenster öffnen › **Mit Firmenkonto anmelden**. Beim ersten Mal verbindet die AMW das Firmenkonto fest mit dem Benutzer; du bekommst eine Meldung (auch als Push).",
+   "bilder": []
+  }
+ ],
+ "werte": [
+  [
+   "Aussteller (am PC)",
+   "`https://login.microsoftonline.com/` + Verzeichnis-ID (Mandant) + `/v2.0` – Übersicht der App"
+  ],
+  [
+   "Client-ID (am PC)",
+   "Anwendungs-ID (Client) – Übersicht der App"
+  ],
+  [
+   "Umleitungs-URI (bei Microsoft)",
+   "am PC unter Firmen-Anmeldung angezeigt, endet auf `/sso.php`"
+  ],
+  [
+   "Geheimnis (Online-Seite, sso.php?einrichten)",
+   "Wert des geheimen Clientschlüssels – oder Zertifikat + privater Schlüssel (PEM)"
+  ],
+  [
+   "E-Mail je Benutzer (am PC)",
+   "E-Mail-Adresse des Firmenkontos"
+  ]
+ ],
+ "fehler": [
+  [
+   "Der Knopf erscheint nicht",
+   "Am PC ist „Knopf zeigen“ aus, oder das Geheimnis fehlt noch auf der Online-Seite. Am PC steht bei „Geheimnis beim Webhoster“, was fehlt."
+  ],
+  [
+   "Microsoft meldet AADSTS50011 (Antwort-URL passt nicht)",
+   "Die Umleitungs-URI in der App weicht ab. Genau die Adresse vom PC eintragen, Plattform „Web“ (nicht „Single-Page-Anwendung“)."
+  ],
+  [
+   "Microsoft meldet AADSTS50105",
+   "Die Person ist der App nicht zugewiesen (Schritt 7)."
+  ],
+  [
+   "Die Meldung nennt `invalid_client`",
+   "Geheimnis falsch, abgelaufen oder die „Geheimnis-ID“ statt des Werts eingetragen. Neu anlegen und auf der Online-Seite ersetzen."
+  ],
+  [
+   "„Aussteller mit common/organizations geht nicht“",
+   "Statt `common` die Verzeichnis-ID eintragen. Nur so ist sicher, dass nur Konten deiner Firma hineinkommen."
+  ],
+  [
+   "„Dein Firmenkonto (…) ist hier nicht freigeschaltet“",
+   "In der AMW gibt es keinen Benutzer mit dieser E-Mail, oder er ist gesperrt. Die angezeigte Adresse beim Benutzer eintragen."
+  ],
+  [
+   "„Dein Zugang wird geprüft“",
+   "Angemeldet, aber Rolle oder Projekte fehlen. Am PC vergeben, dann die Seite neu laden."
+  ],
+  [
+   "„Die Anmeldung hat zu lange gedauert oder kam aus einem anderen Browser“",
+   "Zwischen Knopf und Rückkehr lagen mehr als 10 Minuten, oder Cookies sind gesperrt. Noch einmal auf den Knopf."
+  ]
+ ],
+ "danach": [
+  "Läuft das Geheimnis ab (Microsoft: höchstens 24 Monate), ein neues anlegen und auf `sso.php?einrichten` ersetzen – vorher, sonst kommt niemand per Firmenkonto hinein.",
+  "Eine neue E-Mail beim Benutzer löst die Verbindung zum bisherigen Firmenkonto; ebenso „Neu freischalten“. Seine Sitzungen enden sofort.",
+  "Sperren in der AMW wirkt sofort, auch wenn das Firmenkonto weiter gilt.",
+  "Der bisherige Zugang aus der Konfiguration der Seite (Passwort + zweiter Faktor) bleibt immer – als Notweg, falls der Anmeldedienst ausfällt."
+ ],
+ "fragen": [
+  [
+   "Geht das auch mit Keycloak, Google oder einem anderen Anbieter?",
+   "Ja, mit jedem Anbieter für OpenID Connect. Aussteller ist die Adresse, unter der `/.well-known/openid-configuration` liegt, z. B. `https://login.firma.de/realms/firma` bei Keycloak. Die AMW prüft beim Eintragen auf der Online-Seite, ob der Anbieter erreichbar ist und sich mit genau diesem Aussteller meldet."
+  ],
+  [
+   "Warum kein zweiter Faktor in der AMW?",
+   "Den verlangt der Anmeldedienst der Firma (z. B. per Richtlinie für bedingten Zugriff). Ein zweiter in der AMW wäre doppelt."
+  ],
+  [
+   "Was prüft die AMW beim Zurückkommen?",
+   "Die Signatur des Tokens mit dem Schlüssel des Anbieters, Aussteller, Empfänger (die Client-ID), Ablaufzeit und einen Zufallswert dieser einen Anmeldung. Der Austausch läuft mit PKCE; ein Token, das in einem anderen Browser angefordert wurde, wird abgewiesen."
+  ],
+  [
+   "Wo liegt das Geheimnis?",
+   "Nur in der Konfigurationsdatei der Online-Seite beim Webhoster, außerhalb des Web-Ordners – nie auf dem PC, nie im Online-Speicher, nie im Verlauf."
+  ]
+ ],
+ "thema": "firmen-anmeldung",
+ "sprache": "de"
+}
