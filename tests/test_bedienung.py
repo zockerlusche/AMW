@@ -144,7 +144,8 @@ class Seite(Wiederholt, Grund):
                         " return [x.left, x.right, innerWidth]; })()")
         self.assertTrue(r[0] >= 0 and r[1] <= r[2], r)                               # Filter der Aufgaben sichtbar, nicht weggescrollt
         self.tab.js("document.getElementById('mehr').click()")
-        self.warten("document.querySelectorAll('.mehr-liste button').length === 6")
+        self.warten("document.querySelectorAll('.mehr-liste button').length === 7")              # mit „Nachrichten“ (1.74.0)
+        self.assertTrue(self.tab.js("[...document.querySelectorAll('.mehr-liste button')].some(b => b.textContent.includes('Nachrichten'))"))
         self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Verlauf')).click()")
         self.warten("zustand.sicht === 'verlauf' && document.getElementById('mehr').classList.contains('an')")
 
