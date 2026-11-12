@@ -52,6 +52,16 @@ const ONLINE_SCHEMA = [
     "CREATE TABLE IF NOT EXISTS benutzer (name TEXT PRIMARY KEY, anzeige TEXT, email TEXT, rolle TEXT, gesperrt INTEGER NOT NULL DEFAULT 0, projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, totp_letzt INTEGER NOT NULL DEFAULT 0, code_hash TEXT, code_bis TEXT, sitzung_nr INTEGER NOT NULL DEFAULT 0, eingerichtet_utc TEXT, angemeldet_utc TEXT, stand_utc TEXT)",
 ];
 
+/** Eingaben aus dem Briefkasten, die eine Ansicht vom Stand $stand noch nicht zeigt: noch nicht ausgeführt – ODER am PC
+ *  schon ausgeführt, aber jünger als die Ansicht (der PC lädt die neue Ansicht erst Sekunden später hoch). Ohne das zweite
+ *  tauchte ein erledigter Eintrag in dieser Lücke wieder auf und verschwand dann erneut. Fehlgeschlagene gelten nicht.
+ *  Verglichen wird mit der Erledigt-Zeit: sie stammt wie der Stand der Ansicht von der Uhr des PCs (nicht vom Webhoster).
+ *  Rückgabe: [[weg, daten], …]. */
+function briefkasten_wirkt(string $projekt, ?string $stand): array {
+    return sql([["SELECT weg, daten FROM eingang WHERE (projekt = ? OR projekt IS NULL)"
+                 . " AND (status = 'neu' OR (status = 'erledigt' AND erledigt_utc > ?)) ORDER BY id", [$projekt, $stand ?? '']]])[0];
+}
+
 /** Spalten älterer Online-Speicher nachrüsten (wie amw/abgleich.py NACHRUESTEN) – einmal je Sitzung geprüft. */
 function nachruesten(): void {
     if (!empty($_SESSION['nachgeruestet'])) return;

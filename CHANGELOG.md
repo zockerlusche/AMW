@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.65.1 – 12.11.2026 · Online: Erledigtes bleibt weg
+- Als gelesen markierte Nachrichten, beantwortete und geparkte Fragen tauchten auf der Online-Seite für einige Sekunden
+  wieder auf und verschwanden dann erneut. Grund: Sobald der PC die Eingabe ausgeführt hatte, galt sie nicht mehr als
+  unterwegs – die neue Ansicht war aber noch nicht hochgeladen. Jetzt gilt eine Eingabe, bis eine Ansicht online ist,
+  die nach ihr entstanden ist. Eingaben, die der PC abgewiesen hat, blenden nichts aus.
+
 ## 1.65.0 – 12.11.2026 · Mehrere Benutzer: Freischalten und Anmelden
 - **Benutzer der Online-Seite** (Einstellungen am PC): anlegen, Rolle und Projekte vergeben, freischalten, sperren. Ein
   neuer Benutzer hat keine Rechte, bis du Rolle und Projekte vergibst.

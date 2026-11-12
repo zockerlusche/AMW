@@ -265,11 +265,11 @@ try {
         default => $pfad,
     };
     $zeile = ansicht_zeile($schluessel);
-    [$pc, $offen, $neu] = sql([
+    [$pc, $neu] = sql([
         ['SELECT wert FROM zustand WHERE schluessel = ?', [$projekt === '' ? 'pc_gesehen_utc' : "pc_gesehen_utc:$projekt"]],
-        ["SELECT weg, daten FROM eingang WHERE status = 'neu' AND (projekt = ? OR projekt IS NULL)", [$projekt]],
         ["SELECT sha, endung, groesse, teile FROM datei WHERE status = 'unterwegs' ORDER BY groesse LIMIT 3", []],
     ]);
+    $offen = briefkasten_wirkt($projekt, $zeile[1] ?? null);   // was der Mensch getan hat und diese Ansicht noch nicht zeigt
     register_shutdown_function('dateien_nachholen', $neu);
     if (!$zeile && $pfad === '/api/dokument') antwort(404, ['fehler' => 'Dieses Dokument gibt es online (noch) nicht.']);
     if (!$zeile) antwort(404, ['fehler' => 'Noch keine Daten vom PC – läuft der AMW-Dienst mit Abgleich?']);
