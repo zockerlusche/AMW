@@ -302,7 +302,15 @@ function seite_anfang(string $titel, string $unterzeile, string $ziel = './'): v
         . 'details{font-size:13px;color:var(--leise)}details code{display:block;margin-top:6px;font:15px Consolas,monospace;color:var(--text);letter-spacing:.05em;word-break:break-all}'
         . '.stufe{display:flex;gap:6px}.stufe span{flex:1;height:4px;border-radius:2px;background:var(--linie)}.stufe span.an{background:var(--bernstein)}'
         . '</style></head><body><form method="post" action="' . $e($ziel) . '" autocomplete="on">'
-        . '<h1><b>AMW</b> Workbench</h1><p class="unter">' . $e($unterzeile) . '</p>';
+        . '<h1><b>AMW</b> Workbench</h1><p class="unter">' . $e($unterzeile) . '</p>'
+        . (unverschluesselt() ? '<p class="fehler" id="http-warnung">Unverschlüsselte Verbindung (http): Passwort und Code gehen lesbar durchs Netz'
+            . ' – nur im Firmennetz verwenden. · Unencrypted connection (http): password and code travel readable through the network'
+            . ' – use only on the company network.</p>' : '');
+}
+
+/** Seite über http im Firmennetz (nur_https => false in der Konfiguration): erlaubt, aber mit sichtbarer Warnung. */
+function unverschluesselt(): bool {
+    return !ist_https() && !ist_lokal();
 }
 
 function seite_ende(): void {
