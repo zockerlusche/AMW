@@ -906,6 +906,15 @@ def daten_betrieb(con, pid):
             "speicher": {"frei": frei, "gesamt": gesamt, "grenze": speicher_grenze(con, pid)}, "db": db.db_pfad()}
 
 
+def daten_versionshinweise(con, pid):
+    """Seite „Versionshinweise“: eingetragene Versionen (neueste zuerst) mit dem Text für alle und der Entwurf der
+    nächsten Version aus den fertigen Aufgaben (ohne KI)."""
+    from . import versionshinweise
+    versionen = zeilen(con.execute("SELECT id, version, zeit_utc, titel, text_oeffentlich, text_intern, aufgaben FROM release"
+                                   " WHERE projekt_id = ? AND art = 'version' ORDER BY zeit_utc DESC, id DESC LIMIT 200", (pid,)))
+    return {"versionen": versionen, "entwurf": versionshinweise.entwurf(con, pid)}
+
+
 def daten_releases(con, pid):
     return zeilen(con.execute("SELECT id, art, version, zeit_utc, commit_sha, titel, text_intern, aufgaben,"
                               " veroeffentlicht_utc FROM release WHERE projekt_id = ? ORDER BY zeit_utc DESC LIMIT 200",
@@ -1044,6 +1053,7 @@ def baue_handler(port, token):
                     "/api/suche": lambda c, p: daten_suche(c, p, q),
                     "/api/betrieb": lambda c, p: daten_betrieb(c, p),
                     "/api/releases": lambda c, p: daten_releases(c, p),
+                    "/api/versionshinweise": lambda c, p: daten_versionshinweise(c, p),
                     "/api/einstellungen": lambda c, p: daten_einstellungen(c, p),
                     "/api/agent": lambda c, p: daten_agent(c, p, q.get("kennung", [""])[0]),
                     "/api/agent/vorschlag": lambda c, p: agent_vorschlag(c, p, q.get("kennung", [""])[0]),

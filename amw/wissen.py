@@ -175,9 +175,13 @@ def release_merge(con, pid, von, titel, commit_sha, text=None, aufgaben=None):
                             titel=titel, text_intern=text, aufgaben=aufgaben, eingetragen_von=von)
 
 
-def release_version(con, pid, von, version, titel, commit_sha=None, text=None):
-    """Fasst alle offenen Merge-Zeilen zu einer Version zusammen."""
+def release_version(con, pid, von, version, titel, commit_sha=None, text=None, oeffentlich=None):
+    """Fasst alle offenen Merge-Zeilen zu einer Version zusammen. Versionshinweise für alle: `oeffentlich`, sonst der
+    Entwurf aus den fertigen Aufgaben seit der letzten Version (versionshinweise.entwurf)."""
+    from . import versionshinweise
     _nur_lead(con, pid, von, "Versionen setzen")
+    e = versionshinweise.entwurf(con, pid)
+    oeffentlich = oeffentlich or versionshinweise.als_text(e) or None
     with db.schreiben(con):
         if con.execute("SELECT 1 FROM release WHERE projekt_id = ? AND art = 'version' AND version = ?",
                        (pid, version)).fetchone():
@@ -185,9 +189,9 @@ def release_version(con, pid, von, version, titel, commit_sha=None, text=None):
         merges = con.execute("SELECT id, titel, aufgaben FROM release WHERE projekt_id = ? AND art = 'merge'"
                              " AND version IS NULL ORDER BY id", (pid,)).fetchall()
         sammel = text or "\n".join(f"- {m['titel']}" for m in merges)
-        aufg = ", ".join(m["aufgaben"] for m in merges if m["aufgaben"])
+        aufg = ", ".join(m["aufgaben"] for m in merges if m["aufgaben"]) or versionshinweise.aufgaben(e)
         rid = db.einfuegen(con, "release", projekt_id=pid, art="version", version=version, zeit_utc=db.jetzt(),
-                           commit_sha=commit_sha, titel=titel, text_intern=sammel, aufgaben=aufg or None,
+                           commit_sha=commit_sha, titel=titel, text_intern=sammel, text_oeffentlich=oeffentlich, aufgaben=aufg or None,
                            eingetragen_von=von)
         con.execute("UPDATE release SET version = ? WHERE projekt_id = ? AND art = 'merge' AND version IS NULL",
                     (version, pid))

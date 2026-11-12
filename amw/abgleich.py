@@ -203,6 +203,7 @@ def ansichten(con, pid, speicher=None):
          "/api/wissen": workbench.daten_wissen(con, pid, {"q": [""]}),
          "/api/betrieb": workbench.daten_betrieb(con, pid),
          "/api/releases": workbench.daten_releases(con, pid),
+         "/api/versionshinweise": workbench.daten_versionshinweise(con, pid),
          "/api/projekte": workbench.daten_projekte(con, pid),
          "/api/einstellungen": workbench.daten_einstellungen(con, pid, speicher),
          "/api/agenten": workbench.daten_agenten_alle(con, pid),

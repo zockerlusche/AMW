@@ -524,7 +524,7 @@ def cmd_aufgabe(a, con):
             raise kern.AmwFehler("--auf/--erledigt gibt es nur bei aufgabe wartet|blockiert")
         hinweise = []
         neu = kern.aufgabe_status(con, pid, _von(a), a.id, a.aktion, a.beleg, a.wartet_auf, a.bemerkung, a.zusammenfassung,
-                                  a.auf, a.erledigt, hinweise)
+                                  a.auf, a.erledigt, hinweise, hinweis=a.hinweis, gruppe=a.gruppe)
         from . import wartegrund
         offen = [g["bezug"] for g in wartegrund.offene(con, a.id)]
         print(f"A{a.id} → {neu}" + (f" · wartet auf {', '.join(offen)}" if offen and neu in ("wartet", "blockiert") else ""))
@@ -1529,9 +1529,22 @@ def cmd_release(a, con):
     pid = _projekt(con, a)
     if a.aktion == "merge":
         print(f"R{wissen.release_merge(con, pid, _von(a), a.titel, a.commit, _text(a) or None, a.aufgaben)} eingetragen")
+    elif a.aktion == "entwurf":                    # Versionshinweise der nächsten Version, ohne KI
+        from . import versionshinweise
+        e = versionshinweise.entwurf(con, pid)
+        text = versionshinweise.als_text(e, mit_aufgaben=True)
+        print(text or "Seit der letzten Version ist nichts fertig geworden.")
+        n = sum(1 for g in e.values() for x in g if x["vorschlag"])
+        if n:
+            print(f"\n{n} Satz/Sätze sind Vorschläge aus der Zusammenfassung (kein Satz für Nutzer beim Abschließen) –"
+                  " mit eigenem Text: amw release version … --oeffentlich-datei <datei>")
     elif a.aktion == "version":
-        rid, n = wissen.release_version(con, pid, _von(a), a.version, a.titel, a.commit, _text(a) or None)
-        print(f"Version {a.version} (R{rid}) aus {n} Merge(s)")
+        oeffentlich = None
+        if a.oeffentlich_datei:
+            with open(a.oeffentlich_datei, encoding="utf-8") as f:
+                oeffentlich = f.read().strip()
+        rid, n = wissen.release_version(con, pid, _von(a), a.version, a.titel, a.commit, _text(a) or None, oeffentlich)
+        print(f"Version {a.version} (R{rid}) aus {n} Merge(s) – Versionshinweise eingetragen")
     else:
         for r in con.execute("SELECT * FROM release WHERE projekt_id = ? ORDER BY zeit_utc DESC LIMIT 30", (pid,)):
             print(f"R{r['id']:<5} {r['art']:<7} {r['version'] or '(offen)':<9} {_zeit(r['zeit_utc'])} {r['titel']}")
@@ -1982,6 +1995,8 @@ def parser():
     x.add_argument("--federfuehrend", help="aendern: wer diese Aufgabe führt (Lead/Entwickler; leer = weg)")
     x.add_argument("--pool", action="store_true", help="neu: in den Eingang (noch in keiner Arbeitsliste)")
     x.add_argument("--grund", help="dazwischen: warum diese Aufgabe vor das laufende Stück muss (Pflicht)")
+    x.add_argument("--hinweis", help="fertig: ein Satz für die Versionshinweise, in der Sprache der Nutzer")
+    x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben"], help="fertig: Gruppe in den Versionshinweisen")
     x.add_argument("--sofort", action="store_true", help="neu: direkt hinter das laufende Stück des Agenten einplanen statt in den"
                                                           " Eingang (ohne laufendes Stück: wie bisher in die Liste)")
     x.set_defaults(f=cmd_aufgabe)
@@ -2451,7 +2466,8 @@ def parser():
     x.set_defaults(f=cmd_hook, ohne_db=True)
 
     x = s.add_parser("release", help="Release Notes: je Merge eine Zeile, Version fasst zusammen")
-    x.add_argument("aktion", choices=["merge", "version", "liste"])
+    x.add_argument("aktion", choices=["merge", "version", "liste", "entwurf"])
+    x.add_argument("--oeffentlich-datei", help="version: eigener Text für alle statt des Entwurfs (Markdown)")
     x.add_argument("--titel")
     x.add_argument("--commit")
     x.add_argument("--version")

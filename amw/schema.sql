@@ -203,6 +203,8 @@ CREATE TABLE aufgabe (
   plan_status    TEXT,
   zusammenfassung TEXT,
   anforderungen  TEXT,
+  hinweis        TEXT,                              -- Satz für die Versionshinweise (Schema 26)
+  hinweis_gruppe TEXT CHECK (hinweis_gruppe IN ('neu', 'verbessert', 'behoben')),
   uid            TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft       TEXT NOT NULL DEFAULT '',
   geaendert_utc  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))

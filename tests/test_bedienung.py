@@ -356,6 +356,21 @@ class Seite(Wiederholt, Grund):
         self.warten("document.querySelector('.dialog-hg .dialog')")
         self.assertFalse(self.tab.js("[...document.querySelectorAll('.dialog-hg button')].some(b => b.textContent === 'Dazwischenschieben')"))
 
+    def test_versionshinweise_mit_entwurf(self):
+        """Seite Versionshinweise: oben der Entwurf der nächsten Version (Satz des Agenten, Vorschlag gekennzeichnet)."""
+        from amw import kern
+        a = kern.aufgabe_neu(self.con, self.pid, "TL", "Export", agent="CC1")
+        kern.aufgabe_status(self.con, self.pid, "CC1", a, "start")
+        kern.aufgabe_status(self.con, self.pid, "CC1", a, "fertig", beleg="abc1234", zusammenfassung="csv.py",
+                            hinweis="Listen lassen sich als CSV-Datei speichern.", gruppe="neu")
+        self.oeffnen("releases", "document.querySelector('.vh-version')")
+        text = self.tab.js("document.querySelector('#inhalt').innerText")
+        self.assertIn("Nächste Version – Entwurf", text)
+        self.assertIn("Listen lassen sich als CSV-Datei speichern.", text)
+        self.assertNotIn(f"A{a}", self.tab.js("document.querySelector('.vh-version').innerText"))     # „Für alle“: ohne Nummern
+        self.tab.js("[...document.querySelectorAll('.reiter button')].find(b => b.textContent === 'Mit Aufgaben').click()")
+        self.warten(f"document.querySelector('.vh-version').innerText.includes('A{a}')")
+
     def test_logo_oben_mit_untertitel_und_favicon(self):
         self.oeffnen("start", "document.querySelector('#marke-text i')")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('#marke-text i')].map(i => i.textContent).join('')"), "AMW")

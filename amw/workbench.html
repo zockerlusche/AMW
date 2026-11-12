@@ -589,6 +589,9 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .tm-knoten .mehr-knopf, .tm-z .mehr-knopf { padding: 2px 9px; border-color: transparent; background: none; } .tm-knoten .mehr-knopf:hover, .tm-z .mehr-knopf:hover, .mehr-knopf.auf { border-color: var(--linie2); }
 .tm-baum { position: relative; display: flex; flex-direction: column; align-items: center; gap: 24px; padding-bottom: 6px; }
 .tm-linien { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.vh-version { margin-bottom: 12px; } .vh-kopf { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
+.vh-gruppe h4 { margin: 8px 0 2px; font: 600 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; } .vh-gruppe ul { margin: 0; padding-left: 20px; }
+.vh-neu h4 { color: var(--gruen); } .vh-verbessert h4 { color: var(--blau); } .vh-behoben h4 { color: var(--bernstein); }
 .tm-ast { stroke: var(--leise); stroke-width: 2.5; fill: none; stroke-linecap: square; stroke-linejoin: miter; opacity: .75; }
 .tm-bogen { stroke: var(--blau); stroke-width: 2.5; fill: none; stroke-dasharray: 7 5; stroke-linejoin: miter; }
 .tm-knoten { position: relative; z-index: 1; border: 1px solid var(--linie); background: var(--flaeche); padding: 10px 12px; min-width: 0; }
@@ -1262,7 +1265,7 @@ const TEXTE = {
     farbe_bernstein: "Bernstein", farbe_gruen: "Grün", farbe_blau: "Blau", farbe_violett: "Violett", farbe_tuerkis: "Türkis", farbe_rot: "Rot", farbe_grau: "Grau",
     k_nr: "#", k_art: "Art", ref_bogen: "Meilenstein {b}", zitat: "„{x}“", k_fuer: "Für", k_von: "Von", k_text: "Text", k_seit: "Seit", k_agent: "Agent", k_zustand: "Zustand",
     k_gestartet: "Gestartet", k_puls: "Zuletzt aktiv", k_beendet: "Beendet", k_lauf: "Lauf", k_status: "Status", k_start: "Start", k_ende: "Ende", k_rc: "Ergebnis",
-    releases: "Versionshinweise", keine_releases: "Noch keine Versionshinweise.", merge: "Merge", oeffentlich: "öffentlich", intern: "intern", aufgaben_x: "Aufgaben: {x}",
+    releases: "Versionshinweise", vh_alle: "Für alle", vh_mit: "Mit Aufgaben", vh_entwurf: "Nächste Version – Entwurf", vh_entwurf_h: "aus den fertigen Aufgaben seit der letzten Version; gilt, sobald der Lead die Version einträgt", vh_neu: "Neu", vh_verbessert: "Verbessert", vh_behoben: "Behoben", vh_vorschlag: "Vorschlag", vh_vorschlag_h: "Beim Abschließen fehlte ein Satz für Nutzer – der Text stammt aus der Zusammenfassung. Der Lead kann ihn vor dem Eintragen ändern.", keine_releases: "Noch keine Versionshinweise.", merge: "Merge", oeffentlich: "öffentlich", intern: "intern", aufgaben_x: "Aufgaben: {x}",
     suche_titel: "Suche", halt_setzen: "Anhalten",
     halt_erkl: "Laufende Agenten bekommen sofort die Anweisung, ihre Arbeit sauber zu beenden. Danach bekommen sie nur noch Stopp und Freigaben – bis „Fortsetzen“. Gilt auch nach einem Neustart.",
     grund_ph: "Grund (erscheint bei den Agenten)", abbrechen: "Abbrechen", halt_gesetzt: "Angehalten", halt_aufgehoben: "{n} fortgesetzt",
@@ -1569,7 +1572,7 @@ const TEXTE = {
     farbe_bernstein: "Amber", farbe_gruen: "Green", farbe_blau: "Blue", farbe_violett: "Violet", farbe_tuerkis: "Turquoise", farbe_rot: "Red", farbe_grau: "Grey",
     k_nr: "#", k_art: "Type", ref_bogen: "Milestone {b}", zitat: "“{x}”", k_fuer: "For", k_von: "By", k_text: "Text", k_seit: "Since", k_agent: "Agent", k_zustand: "State",
     k_gestartet: "Started", k_puls: "Last active", k_beendet: "Ended", k_lauf: "Run", k_status: "Status", k_start: "Start", k_ende: "End", k_rc: "Result",
-    releases: "Release notes", keine_releases: "No release notes yet.", merge: "Merge", oeffentlich: "public", intern: "internal", aufgaben_x: "Tasks: {x}",
+    releases: "Release notes", vh_alle: "For everyone", vh_mit: "With tasks", vh_entwurf: "Next version – draft", vh_entwurf_h: "from the tasks finished since the last version; applies once the lead records the version", vh_neu: "New", vh_verbessert: "Improved", vh_behoben: "Fixed", vh_vorschlag: "Suggestion", vh_vorschlag_h: "No sentence for users was given when the task was finished – the text comes from the summary. The lead can change it before recording.", keine_releases: "No release notes yet.", merge: "Merge", oeffentlich: "public", intern: "internal", aufgaben_x: "Tasks: {x}",
     suche_titel: "Search", halt_setzen: "Pause",
     halt_erkl: "Running agents are told at once to finish their work cleanly. After that they only receive stop and approvals – until “Resume”. Also applies after a restart.",
     grund_ph: "Reason (shown to the agents)", abbrechen: "Cancel", halt_gesetzt: "Paused", halt_aufgehoben: "{n} resumed",
@@ -4110,13 +4113,22 @@ function tabelle(kopf, zeilen) {
 
 /* --- Release Notes ------------------------------------------------------------------------- */
 async function sichtReleases() {
-  const m = rahmen(t("releases")); let l; try { l = await holen("/api/releases"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
-  if (!l.length) { m.append(el("div", { class: "leer" }, t("keine_releases"))); return; }
-  m.append(el("div", {}, l.map(r => el("div", { class: "release" },
-    el("div", {}, el("div", { class: "ver" }, r.version || t("merge")), el("div", { class: "sehrleise mono" }, zeit(r.zeit_utc)),
-      el("span", { class: "etikett " + (r.veroeffentlicht_utc ? "gruen" : "") }, r.veroeffentlicht_utc ? t("oeffentlich") : t("intern"))),
-    el("div", {}, el("b", {}, r.titel), r.commit_sha ? el("span", { class: "ref", style: "margin-left:8px" }, r.commit_sha.slice(0, 8)) : null,
-      r.text_intern ? el("div", { class: "text" }, r.text_intern) : null, r.aufgaben ? el("div", { class: "sehrleise mono", style: "margin-top:6px" }, t("aufgaben_x", { x: r.aufgaben })) : null)))));
+  /* Versionshinweise: je Version der Text für alle (Neu / Verbessert / Behoben); oben der Entwurf der nächsten Version aus
+     den fertigen Aufgaben – ohne KI. „Mit Aufgaben“ zeigt die Nummern dazu. */
+  let d; try { d = await holen("/api/versionshinweise"); } catch (e) { rahmen(t("releases")).append(el("div", { class: "leer" }, String(e))); return; }
+  const mit = !!zustand.vhAufgaben;
+  const umschalter = el("div", { class: "reiter", style: "margin:0" }, [false, true].map(w => el("button", { class: w === mit ? "an" : "", type: "button",
+    onclick: () => { zustand.vhAufgaben = w; sichtReleases(); } }, t(w ? "vh_mit" : "vh_alle"))));
+  const m = rahmen(t("releases"), umschalter);
+  const gruppen = ["neu", "verbessert", "behoben"], e = d.entwurf || {}, nEntwurf = gruppen.reduce((s, g) => s + (e[g] || []).length, 0);
+  const block = (titel, unter, inhalt) => el("div", { class: "karte vh-version" }, el("div", { class: "vh-kopf" }, el("b", { class: "ver" }, titel), unter ? el("span", { class: "sehrleise" }, unter) : null), inhalt);
+  if (nEntwurf) m.append(block(t("vh_entwurf"), t("vh_entwurf_h"), gruppen.filter(g => (e[g] || []).length).map(g => el("div", { class: "vh-gruppe vh-" + g },
+    el("h4", {}, t("vh_" + g)), el("ul", {}, e[g].map(x => el("li", {}, x.text, x.vorschlag ? el("span", { class: "etikett", style: "margin-left:6px", title: t("vh_vorschlag_h") }, t("vh_vorschlag")) : null,
+      mit ? el("span", { class: "ref", style: "margin-left:6px" }, "A" + x.id) : null)))))));
+  if (!d.versionen.length && !nEntwurf) { m.append(el("div", { class: "leer" }, t("keine_releases"))); return; }
+  for (const v of d.versionen) m.append(block(v.version, [zeit(v.zeit_utc), v.titel].filter(Boolean).join(" · "),
+    el("div", { class: "vh-text" }, v.text_oeffentlich ? markdown(v.text_oeffentlich) : el("div", { class: "text" }, v.text_intern || "")),
+    mit && v.aufgaben ? el("div", { class: "sehrleise mono", style: "margin-top:6px" }, t("aufgaben_x", { x: v.aufgaben })) : null));
 }
 
 /* --- Suche, Halt, Thema, Sprache ----------------------------------------------------------- */

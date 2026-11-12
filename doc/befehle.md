@@ -225,6 +225,7 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--ohne-vorgaenger OHNE_VORGAENGER] [--text TEXT] [--nein]
                    [--zurueck] [--kommentar KOMMENTAR] [--kurz]
                    [--federfuehrend FEDERFUEHREND] [--pool] [--grund GRUND]
+                   [--hinweis HINWEIS] [--gruppe {neu,verbessert,behoben}]
                    [--sofort] [--von VON] [--projekt PROJEKT]
                    {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen}
                    [id] [nr]
@@ -288,6 +289,10 @@ options:
   --pool                neu: in den Eingang (noch in keiner Arbeitsliste)
   --grund GRUND         dazwischen: warum diese Aufgabe vor das laufende Stück
                         muss (Pflicht)
+  --hinweis HINWEIS     fertig: ein Satz für die Versionshinweise, in der
+                        Sprache der Nutzer
+  --gruppe {neu,verbessert,behoben}
+                        fertig: Gruppe in den Versionshinweisen
   --sofort              neu: direkt hinter das laufende Stück des Agenten
                         einplanen statt in den Eingang (ohne laufendes Stück:
                         wie bisher in die Liste)
@@ -1281,16 +1286,20 @@ options:
 
 ## release
 ```
-usage: amw release [-h] [--titel TITEL] [--commit COMMIT] [--version VERSION]
+usage: amw release [-h] [--oeffentlich-datei OEFFENTLICH_DATEI]
+                   [--titel TITEL] [--commit COMMIT] [--version VERSION]
                    [--aufgaben AUFGABEN] [--text TEXT]
                    [--text-datei TEXT_DATEI] [--von VON] [--projekt PROJEKT]
-                   {merge,version,liste}
+                   {merge,version,liste,entwurf}
 
 positional arguments:
-  {merge,version,liste}
+  {merge,version,liste,entwurf}
 
 options:
   -h, --help            show this help message and exit
+  --oeffentlich-datei OEFFENTLICH_DATEI
+                        version: eigener Text für alle statt des Entwurfs
+                        (Markdown)
   --titel TITEL
   --commit COMMIT
   --version VERSION

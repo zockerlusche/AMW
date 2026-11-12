@@ -793,7 +793,7 @@ def _aufgabe_fuer_aenderung(con, pid, von, aid):
 
 
 def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, bemerkung=None, zusammenfassung=None,
-                   auf=None, erledigt=None, hinweise=None):
+                   auf=None, erledigt=None, hinweise=None, hinweis=None, gruppe=None):
     """auf: Wartegründe als Verweise (F…, A…, L…, Agent, Entwickler, Monitor:…) – Pflicht bei wartet/blockiert.
     erledigt: Gründe von Hand abhaken; allein (ohne auf) ändert es den Status nicht."""
     from . import wartegrund
@@ -832,6 +832,14 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
         if neu in ("fertig", "verworfen"):
             felder["fertig_utc"] = t
             felder["beleg"] = beleg
+        if neu == "fertig" and (hinweis or gruppe):   # für die Versionshinweise (amw release)
+            from . import versionshinweise
+            try:
+                felder["hinweis_gruppe"] = versionshinweise.gruppe_pruefen(gruppe)
+            except ValueError as e:
+                raise AmwFehler(str(e)) from None
+            if (hinweis or "").strip():
+                felder["hinweis"] = " ".join(hinweis.split())[:300]
         if wartet_auf is not None or neu in ("laeuft", "fertig", "verworfen"):
             felder["wartet_auf"] = wartet_auf
         if bemerkung:
@@ -1100,6 +1108,7 @@ def kontext(con, pid, kennung):
          f"AMW-Befehl: `{BEFEHL}` (unten kurz `amw`), immer mit `--von {kennung}`. Arbeitsweise: `amw lesen` → handeln →"
          " `amw erledigt <nr>` · melden: `amw posten --an <Agent|Entwickler> --art info|auftrag|frage|antwort --kurz …`"
          " · Arbeit holen: `amw schritt naechster --nehmen` · abschließen: `amw aufgabe fertig <nr> --beleg <commit>"
+         " [--gruppe neu|verbessert|behoben --hinweis „ein Satz für Nutzer“ – für die Versionshinweise]"
          " --zusammenfassung …` · Ergebnisse (Text als .md, Bilder, Mockup als eine .html, Video als .mp4) nie lose ablegen: `amw dokument"
          " ablegen <datei> --titel … --art ergebnis|bericht|entwurf|mockup|bild --aufgabe <nr>` (neue Fassung: `amw dokument"
          " version <D-nr> <datei> --notiz …`) · Frage an den Menschen: `amw frage neu --an entwickler --kurz … --option A=… --empfehlung A"

@@ -4,6 +4,18 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.62.0 – 12.11.2026 · Versionshinweise ohne KI
+- **Ein Satz für Nutzer beim Abschließen:** `amw aufgabe fertig … --gruppe neu|verbessert|behoben --hinweis "…"`. Die
+  Startinformationen bitten die Agenten darum.
+- **Entwurf der nächsten Version:** `amw release entwurf` zeigt Neu / Verbessert / Behoben aus den fertigen Aufgaben
+  seit der letzten Version. Fehlt ein Satz, macht eine Regel aus der Zusammenfassung einen Vorschlag – erkennbar als
+  „Vorschlag“. Keine KI, keine Tokens.
+- **Version eintragen** (`amw release version …`) übernimmt den Entwurf als Text für alle; ein eigener Text geht mit
+  `--oeffentlich-datei`.
+- **Seite „Versionshinweise“** in Workbench und online: oben der Entwurf der nächsten Version, darunter jede Version mit
+  ihrem Text; „Mit Aufgaben“ zeigt die Nummern dazu.
+- **Schema 26:** zwei neue Felder an der Aufgabe. Bestehende Daten bleiben unverändert.
+
 ## 1.61.0 – 12.11.2026 · Team-Baum mit kräftigen, geraden Linien
 - **Startseite › Team als Baum:** Die Äste sind deutlich dicker und durchgehend rechtwinklig; auch die gestrichelte
   Verbindung zwischen zwei Agenten, die gerade zusammenarbeiten, ist jetzt gerade statt gebogen – in eigener Farbe.

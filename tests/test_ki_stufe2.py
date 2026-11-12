@@ -195,6 +195,8 @@ class Migration(unittest.TestCase):
             con = db.anlegen(pfad)
             for sp in ("braucht_gb", "braucht_vram_gb", "braucht_platte_gb", "rechner"):   # Bedarf und Rechner je Lauf kamen mit Schema 24
                 con.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
+            for sp in ("hinweis", "hinweis_gruppe"):   # Satz für die Versionshinweise kam mit Schema 26
+                con.execute(f"ALTER TABLE aufgabe DROP COLUMN {sp}")
             con.execute("ALTER TABLE regel DROP COLUMN vorlage")      # Herkunft aus dem Grund-Regelwerk kam mit Schema 23
             for sp in ("fachgebiet", "arbeitsweise", "zustaendig", "fasst_nicht_an"):   # Agenten-Einstellungen kamen mit Schema 22
                 con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")

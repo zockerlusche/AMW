@@ -261,6 +261,8 @@ class Umstellung(Grund):
         alt = self.start("Eins", "A", "Bestand")
         for sp in ("braucht_gb", "braucht_vram_gb", "braucht_platte_gb", "rechner"):
             self.con.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
+        for sp in ("hinweis", "hinweis_gruppe"):   # Satz für die Versionshinweise kam mit Schema 26
+            self.con.execute(f"ALTER TABLE aufgabe DROP COLUMN {sp}")
         self.con.execute("PRAGMA user_version = 23")
         pfad = self.con.execute("PRAGMA database_list").fetchone()[2]
         self.con.close()
