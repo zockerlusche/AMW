@@ -65,7 +65,7 @@ def schirm_setzen(con, pid, d, kanal, wer=None):
 
 
 def benutzer_verwalten(con, was, d, speicher=None):
-    """neu (name, rolle?, projekte?, anzeige?) · aendern (name, rolle?, projekte?, gesperrt?) · freischalten (name, stunden?)."""
+    """neu (name, rolle?, projekte?, anzeige?, email?) · aendern (name, rolle?, projekte?, gesperrt?, email?) · freischalten (name, stunden?)."""
     from . import abgleich, benutzer
     name = (d.get("name") or "").strip()
     projekte = d.get("projekte")
@@ -78,7 +78,7 @@ def benutzer_verwalten(con, was, d, speicher=None):
             return {"benutzer": benutzer.finden(con, name)}
         if was == "aendern":
             g = d.get("gesperrt")
-            return {"benutzer": benutzer.aendern(con, kern.ENTWICKLER, name, rolle, None if g is None else bool(g), projekte)}
+            return {"benutzer": benutzer.aendern(con, kern.ENTWICKLER, name, rolle, None if g is None else bool(g), projekte, d.get("email"))}
         if was == "freischalten":
             sp = speicher if speicher is not None else abgleich.speicher_aus_zugang()
             code, bis = benutzer.freischalten(con, kern.ENTWICKLER, name, sp, d.get("stunden") or benutzer.CODE_STUNDEN)
@@ -181,7 +181,7 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         from . import benutzer
         if kanal != "netz" or not benutzer.AKTUELL.get():
             raise Ungueltig("Diese Meldung kommt nur von der Online-Seite")
-        return benutzer.eingerichtet_melden(con, pid, benutzer.AKTUELL.get())
+        return benutzer.eingerichtet_melden(con, pid, benutzer.AKTUELL.get(), daten.get("weg"))
     if weg.startswith("/api/benutzer/"):             # Benutzer verwalten: nur am PC (Stufe R1b)
         if kanal != "seite":
             raise Ungueltig("Benutzer verwaltest du am PC")
@@ -417,6 +417,13 @@ def einstellen(con, pid, teil, daten, kanal, speicher=None):
         if teil == "agent":
             return {"agent": kern.agent_einstellen(con, pid, kern.ENTWICKLER, daten.get("kennung"),
                                                    neu=bool(daten.get("neu")), **werte)}
+        if teil == "sso":                             # Firmen-Anmeldung (R2): nur am PC, ohne Geheimnis (das liegt beim Webhoster)
+            if kanal != "seite":
+                raise Ungueltig("Die Firmen-Anmeldung stellst du am PC ein")
+            sp = speicher or abgleich.speicher_aus_zugang(nur_wenn_an=False)
+            if sp is None:
+                raise Ungueltig("Kein Online-Speicher eingerichtet")
+            return {"sso": abgleich.sso_setzen(sp, werte)}
         if teil == "web":
             sp = speicher or abgleich.speicher_aus_zugang(nur_wenn_an=False)   # aus dem Briefkasten: derselbe Speicher
             if sp is None:

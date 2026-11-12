@@ -49,7 +49,7 @@ const ONLINE_SCHEMA = [
     "CREATE TABLE IF NOT EXISTS hoch_teil (id TEXT NOT NULL, nr INTEGER NOT NULL, inhalt TEXT NOT NULL, PRIMARY KEY (id, nr))",
     "CREATE TABLE IF NOT EXISTS projekt (uid TEXT PRIMARY KEY, name TEXT NOT NULL, farbe TEXT, rechner TEXT, gesehen_utc TEXT NOT NULL, fragen INTEGER NOT NULL DEFAULT 0, agenten INTEGER NOT NULL DEFAULT 0, halt INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS datei_projekt (sha TEXT NOT NULL, projekt TEXT NOT NULL, PRIMARY KEY (sha, projekt))",
-    "CREATE TABLE IF NOT EXISTS benutzer (name TEXT PRIMARY KEY, anzeige TEXT, email TEXT, rolle TEXT, gesperrt INTEGER NOT NULL DEFAULT 0, projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, totp_letzt INTEGER NOT NULL DEFAULT 0, code_hash TEXT, code_bis TEXT, sitzung_nr INTEGER NOT NULL DEFAULT 0, eingerichtet_utc TEXT, angemeldet_utc TEXT, stand_utc TEXT)",
+    "CREATE TABLE IF NOT EXISTS benutzer (name TEXT PRIMARY KEY, anzeige TEXT, email TEXT, rolle TEXT, gesperrt INTEGER NOT NULL DEFAULT 0, projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, totp_letzt INTEGER NOT NULL DEFAULT 0, code_hash TEXT, code_bis TEXT, sitzung_nr INTEGER NOT NULL DEFAULT 0, eingerichtet_utc TEXT, angemeldet_utc TEXT, stand_utc TEXT, sso_kennung TEXT)",
 ];
 
 /** Eingaben aus dem Briefkasten, die eine Ansicht vom Stand $stand noch nicht zeigt: noch nicht ausgeführt – ODER am PC
@@ -97,6 +97,7 @@ function nachruesten(): void {
         ['benutzer', 'sitzung_nr', 'ALTER TABLE benutzer ADD COLUMN sitzung_nr INTEGER NOT NULL DEFAULT 0'],
         ['benutzer', 'eingerichtet_utc', 'ALTER TABLE benutzer ADD COLUMN eingerichtet_utc TEXT'],
         ['benutzer', 'angemeldet_utc', 'ALTER TABLE benutzer ADD COLUMN angemeldet_utc TEXT'],
+        ['benutzer', 'sso_kennung', 'ALTER TABLE benutzer ADD COLUMN sso_kennung TEXT'],   // Firmen-Anmeldung (R2)
     ] as [$tabelle, $spalte, $anw]) {
         [$n] = sql([["SELECT count(*) FROM pragma_table_info('$tabelle') WHERE name = ?", [$spalte]]]);
         if ($tabelle === 'benutzer' && !(int)sql([["SELECT count(*) FROM sqlite_master WHERE name = 'benutzer'", []]])[0][0][0]) continue;
@@ -263,7 +264,7 @@ function sitzung_starten(): void {
 
 /* --- Seitenrahmen für Anmeldung und Einrichtung ------------------------------------------------- */
 
-function seite_anfang(string $titel, string $unterzeile): void {
+function seite_anfang(string $titel, string $unterzeile, string $ziel = './'): void {
     header('Content-Type: text/html; charset=utf-8');
     $e = fn(string $s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
     echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -283,7 +284,7 @@ function seite_anfang(string $titel, string $unterzeile): void {
         . '.qr{display:grid;place-items:center}.qr svg{width:100%;max-width:260px;height:auto;border-radius:3px}'
         . 'details{font-size:13px;color:var(--leise)}details code{display:block;margin-top:6px;font:15px Consolas,monospace;color:var(--text);letter-spacing:.05em;word-break:break-all}'
         . '.stufe{display:flex;gap:6px}.stufe span{flex:1;height:4px;border-radius:2px;background:var(--linie)}.stufe span.an{background:var(--bernstein)}'
-        . '</style></head><body><form method="post" action="./" autocomplete="on">'
+        . '</style></head><body><form method="post" action="' . $e($ziel) . '" autocomplete="on">'
         . '<h1><b>AMW</b> Workbench</h1><p class="unter">' . $e($unterzeile) . '</p>';
 }
 
@@ -606,11 +607,11 @@ function code_norm(string $c): string {
 
 function benutzer_zeile(string $name): ?array {
     if ($name === '') return null;
-    $z = sql([['SELECT name, rolle, gesperrt, projekte, passwort_hash, totp_geheim, totp_letzt, code_hash, code_bis, sitzung_nr'
-               . ' FROM benutzer WHERE name = ?', [$name]]])[0];
+    $z = sql([['SELECT name, rolle, gesperrt, projekte, passwort_hash, totp_geheim, totp_letzt, code_hash, code_bis, sitzung_nr,'
+               . ' sso_kennung FROM benutzer WHERE name = ?', [$name]]])[0];
     if (!$z) return null;
     return array_combine(['name', 'rolle', 'gesperrt', 'projekte', 'passwort_hash', 'totp_geheim', 'totp_letzt', 'code_hash',
-                          'code_bis', 'sitzung_nr'], $z[0]);
+                          'code_bis', 'sitzung_nr', 'sso_kennung'], $z[0]);
 }
 
 /** Schritt eines gültigen Codes (±30 s) oder null; nie ein Schritt, der schon benutzt wurde. */
@@ -681,7 +682,7 @@ function freischalten_abschliessen(string $code): string {
 
 function sitzung_benutzer(string $name, int $nr): void {
     session_regenerate_id(true);
-    unset($_SESSION['einrichten'], $_SESSION['freischalten'], $_SESSION['zugang']);
+    unset($_SESSION['einrichten'], $_SESSION['freischalten'], $_SESSION['zugang'], $_SESSION['sso']);
     $_SESSION['angemeldet'] = true;
     $_SESSION['benutzer'] = $name;
     $_SESSION['sitzung_nr'] = $nr;
@@ -708,12 +709,17 @@ function benutzer_anmelden(string $name, string $passwort, string $code): string
 }
 const PASSWORT_ATTRAPPE = '$2y$10$7rCw1rG0hQ6J3n0b6l9cMeO8yE0Qm0eQ2b3m2xk1H6p8Gq4iZr9eK';
 
-/** Bei jeder Anfrage: gibt es den Benutzer noch, ist er nicht gesperrt, wurde er nicht neu freigeschaltet? Sonst ab. */
+/** Bei jeder Anfrage: gibt es den Benutzer noch, ist er nicht gesperrt, wurde er nicht neu freigeschaltet? Sonst ab.
+ *  Firmen-Anmeldung: statt des Passworts muss die Bindung an das Firmenkonto noch dieselbe sein (ändert der Admin die
+ *  E-Mail oder schaltet neu frei, löst der PC sie – die Sitzung endet bei der nächsten Anfrage). */
 function benutzer_aktuell(): ?array {
     $name = $_SESSION['benutzer'] ?? null;
     if ($name === null) return null;
     $b = benutzer_zeile((string)$name);
-    if (!$b || (int)$b['gesperrt'] || (int)$b['sitzung_nr'] !== (int)($_SESSION['sitzung_nr'] ?? -1) || $b['passwort_hash'] === null) {
+    $sso = $_SESSION['sso'] ?? null;
+    $zugang_ok = $sso !== null ? $b !== null && $b['sso_kennung'] !== null && hash_equals((string)$b['sso_kennung'], (string)$sso)
+                               : $b !== null && $b['passwort_hash'] !== null;
+    if (!$b || (int)$b['gesperrt'] || (int)$b['sitzung_nr'] !== (int)($_SESSION['sitzung_nr'] ?? -1) || !$zugang_ok) {
         abmelden();
         return null;
     }

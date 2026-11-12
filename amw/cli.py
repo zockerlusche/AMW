@@ -1035,7 +1035,8 @@ def _lauf_ausfuehren(con, pid, a):
 
 def cmd_benutzer(a, con):
     """Benutzer verwalten (nur der Mensch): neu NAME --rolle … [--projekte A,B] [--email …] | liste | aendern NAME
-    [--rolle …] [--projekte …] | sperren NAME | entsperren NAME."""
+    [--rolle …] [--projekte …] [--email … (leer = entfernen)] | sperren NAME | entsperren NAME. Die E-Mail braucht die
+    Firmen-Anmeldung: beim ersten Anmelden mit dem Firmenkonto wird der Benutzer darüber gefunden."""
     from . import benutzer
     von = _von(a)
     projekte = [x.strip() for x in a.projekte.split(",") if x.strip()] if a.projekte is not None else None
@@ -1056,13 +1057,14 @@ def cmd_benutzer(a, con):
         if not a.name:
             raise kern.AmwFehler(f"amw benutzer {a.aktion} <name>")
         gesperrt = True if a.aktion == "sperren" else False if a.aktion == "entsperren" else None
-        b = benutzer.aendern(con, von, a.name, a.rolle, gesperrt, projekte)
+        b = benutzer.aendern(con, von, a.name, a.rolle, gesperrt, projekte, a.email)
         print(f"{b['name']}: {benutzer.NAMEN.get(b['rolle'], 'wartet auf Freigabe')}" + (" · gesperrt" if b["gesperrt"] else ""))
     else:
         namen = {r[0]: r[1] for r in con.execute("SELECT id, name FROM projekt")}
         for b in benutzer.liste(con):
             pr = "alle" if b["rolle"] == "system_admin" else ", ".join(namen.get(i, "?") for i in b["projekte"]) or "–"
-            print(f"{b['name']:<16} {benutzer.NAMEN.get(b['rolle'], 'wartet auf Freigabe'):<20} {'gesperrt ' if b['gesperrt'] else ''}Projekte: {pr}")
+            print(f"{b['name']:<16} {benutzer.NAMEN.get(b['rolle'], 'wartet auf Freigabe'):<20} {'gesperrt ' if b['gesperrt'] else ''}Projekte: {pr}"
+                  + (f" · {b['email']}" if b['email'] else ''))
 
 
 def cmd_rechner(a, con):
@@ -1620,9 +1622,34 @@ def web_einrichten(abgleich):
     return 0
 
 
+def _web_sso(a):
+    """Firmen-Anmeldung (R2): zeigen oder einstellen. Das Geheimnis des Anbieters trägt ein System-Admin auf der Online-Seite
+    ein (sso.php?einrichten) – es liegt nur in der Konfiguration beim Webhoster, nie hier."""
+    from . import abgleich
+    sp = abgleich.speicher_aus_zugang(nur_wenn_an=False)
+    if sp is None:
+        raise kern.AmwFehler("Kein Online-Speicher eingerichtet (amw web einrichten)")
+    neu = {k: v for k, v in (("aussteller", a.aussteller), ("client_id", a.client_id)) if v is not None}
+    if a.an or a.aus:
+        neu["an"] = bool(a.an)
+    try:
+        d = abgleich.sso_setzen(sp, neu) if neu else abgleich.sso_einstellungen(sp)
+    except ValueError as e:
+        raise kern.AmwFehler(str(e)) from None
+    zugang = {"geheimnis": "Geheimnis gespeichert", "zertifikat": "Zertifikat gespeichert"}.get(d["zugang"], "noch kein Geheimnis auf der Online-Seite")
+    print(f"Firmen-Anmeldung: {'an' if d['an'] else 'aus'}")
+    print(f"  Aussteller:   {d['aussteller'] or '–'}")
+    print(f"  Client-ID:    {d['client_id'] or '–'}")
+    print(f"  Beim Webhoster: {zugang}" + (f" · Redirect-URI {d['rueckweg']}" if d['rueckweg'] else ''))
+    if d["an"] and not d["zugang"]:
+        print("  Der Knopf erscheint erst, wenn ein System-Admin das Geheimnis auf der Online-Seite einträgt: <Adresse>/sso.php?einrichten")
+
+
 def cmd_web(a, con):
     """Online-Teil (doc/online.md): Seite für den Webhoster bauen, Online-Speicher einrichten, einen Abgleich von Hand."""
     from . import abgleich
+    if a.aktion == "sso":
+        return _web_sso(a)
     if a.aktion == "bauen":
         quelle = os.path.join(os.path.dirname(__file__), "workbench.html")
         ziel = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "inc", "seite.html")
@@ -2450,8 +2477,13 @@ def parser():
     x.add_argument("--ja", action="store_true", help="wirklich ausführen (sonst nur anzeigen)")
     x.set_defaults(f=cmd_dienst, ohne_db=True)
 
-    x = s.add_parser("web", help="Online-Teil: einrichten (Turso-Zugang, einmal) | status | einmal (Synchronisierung) | zweitfaktor-neu | bauen | schema")
-    x.add_argument("aktion", choices=["einrichten", "bauen", "schema", "einmal", "status", "zweitfaktor-neu"])
+    x = s.add_parser("web", help="Online-Teil: einrichten (Turso-Zugang, einmal) | status | einmal (Synchronisierung) | zweitfaktor-neu | bauen | schema"
+                                 " | sso [--aussteller URL --client-id ID --an|--aus] (Firmen-Anmeldung; Geheimnis nur auf der Online-Seite)")
+    x.add_argument("aktion", choices=["einrichten", "bauen", "schema", "einmal", "status", "zweitfaktor-neu", "sso"])
+    x.add_argument("--aussteller", help="sso: Aussteller (Issuer), z. B. https://login.microsoftonline.com/<Mandanten-ID>/v2.0")
+    x.add_argument("--client-id", dest="client_id", help="sso: Anwendungs-ID (Client-ID) aus der App-Registrierung")
+    x.add_argument("--an", action="store_true", help="sso: Knopf „Mit Firmenkonto anmelden“ zeigen")
+    x.add_argument("--aus", action="store_true", help="sso: Firmen-Anmeldung ausschalten")
     x.set_defaults(f=cmd_web)
 
     x = s.add_parser("anmelden", help="laufende Sitzung beim Dienst anmelden (ohne Neustart)")

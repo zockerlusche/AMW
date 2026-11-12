@@ -4,6 +4,21 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.70.0 – 12.11.2026 · Firmen-Anmeldung (SSO)
+- **Mit Firmenkonto anmelden:** Neben Passwort und zweitem Faktor gibt es auf der Online-Seite einen zweiten Weg – die
+  Anmeldung beim Anmeldedienst der Firma (OpenID Connect, getestet wie Microsoft Entra ID). Kein zweiter Faktor in der
+  AMW; den verlangt der Anmeldedienst. Der Knopf erscheint nur, wenn die Firmen-Anmeldung eingeschaltet ist.
+- **Nur angelegte Benutzer:** Beim ersten Mal findet die AMW den Benutzer über die E-Mail, die du am PC eingetragen hast,
+  und verbindet ihn fest mit seinem Firmenkonto. Eine neue E-Mail oder „Neu freischalten“ löst die Verbindung, Sperren
+  wirkt sofort. Wer noch keine Rolle hat, sieht „Dein Zugang wird geprüft“, und du bekommst eine Meldung (auch als Push).
+- **Einstellungen am PC** (Benutzer der Online-Seite › Firmen-Anmeldung): Aussteller, Client-ID, an/aus, die Adresse zum
+  Eintragen beim Anbieter; neu die E-Mail je Benutzer. Auch als `amw web sso`.
+- **Das Geheimnis bleibt beim Webhoster:** Client-Secret oder Zertifikat trägt ein System-Admin auf der Online-Seite ein
+  (`sso.php?einrichten`); es steht nur in deren Konfigurationsdatei – nie auf dem PC, nie im Online-Speicher.
+- Sicher gegen die üblichen Angriffe: PKCE, Prüfung von Signatur, Aussteller, Empfänger, Ablauf und Zufallswert; nur
+  https, kein „common“-Aussteller; Fehlversuche zählen in die bestehende Sperre.
+- Hilfe „Firmen-Anmeldung mit Microsoft Entra ID einrichten“ (DE/EN), Schritt für Schritt.
+
 ## 1.69.0 – 12.11.2026 · Agenten entfernen
 - **Einstellungen › Agenten › „Entfernen …“** legt einen Agenten still und blendet ihn überall aus: Er wird nicht mehr
   gestartet, nicht mehr benachrichtigt, steht nicht mehr im Team und bekommt keine Nachrichten mehr. Was er geschrieben

@@ -21,6 +21,14 @@ KLASSEN = {"lesen": "leser", "arbeiten": "bearbeiter", "projekt": "projekt_admin
 CODE_ZEICHEN = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"   # 32 Zeichen ohne I, O, 0, 1 – 16 Stellen = 80 Bit
 CODE_STUNDEN = 24
 
+# Benutzer in den Online-Speicher (Abgleich und Freischalten): ohne Passwort und Geheimnis. Ändert der Admin die E-Mail,
+# löst das die Bindung an ein Firmenkonto (R2) – sonst käme der Inhaber der alten Adresse weiter hinein.
+ONLINE_EINTRAGEN = ("INSERT INTO benutzer (name, anzeige, email, rolle, gesperrt, projekte, stand_utc) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                    " ON CONFLICT(name) DO UPDATE SET anzeige = excluded.anzeige, email = excluded.email, rolle = excluded.rolle,"
+                    " gesperrt = excluded.gesperrt, projekte = excluded.projekte, stand_utc = excluded.stand_utc,"
+                    " sso_kennung = CASE WHEN lower(coalesce(benutzer.email, '')) = lower(coalesce(excluded.email, ''))"
+                    " THEN benutzer.sso_kennung ELSE NULL END")
+
 AKTUELL = contextvars.ContextVar("amw_benutzer", default=None)   # wer gerade über die Online-Seite handelt (Name)
 ZUGANG = "@zugang"     # so nennt die Online-Seite den bisherigen Zugang aus ihrer Konfiguration (System-Admin)
 
@@ -55,7 +63,10 @@ def neu(con, von, name, rolle=None, anzeige=None, email=None, projekte=()):
     with db.schreiben(con):
         if con.execute("SELECT 1 FROM benutzer WHERE name = ?", (name,)).fetchone():
             raise kern.AmwFehler(f"Benutzer {name} gibt es schon")
-        bid = db.einfuegen(con, "benutzer", name=name, anzeige=(anzeige or "").strip() or None, email=(email or "").strip().lower() or None,
+        email = email_pruefen(email)
+        if email and con.execute("SELECT 1 FROM benutzer WHERE lower(email) = ?", (email,)).fetchone():
+            raise kern.AmwFehler(f"Die E-Mail {email} hat schon ein anderer Benutzer")
+        bid = db.einfuegen(con, "benutzer", name=name, anzeige=(anzeige or "").strip() or None, email=email,
                            rolle=rolle, angelegt_utc=db.jetzt(), angelegt_von=von)
         _zuweisen(con, bid, projekte)
     return bid
@@ -68,7 +79,15 @@ def _zuweisen(con, bid, projekte):
         con.execute("INSERT OR IGNORE INTO benutzer_projekt (benutzer_id, projekt_id) VALUES (?, ?)", (bid, pid))
 
 
-def aendern(con, von, name, rolle=None, gesperrt=None, projekte=None):
+def email_pruefen(email):
+    email = (email or "").strip().lower()
+    if email and (len(email) > 254 or email.count("@") != 1 or any(c.isspace() for c in email) or "." not in email.split("@")[1]):
+        raise kern.AmwFehler("E-Mail: so wie im Firmenkonto, z. B. marie@firma.de")
+    return email or None
+
+
+def aendern(con, von, name, rolle=None, gesperrt=None, projekte=None, email=None):
+    """email: None = unverändert, "" = entfernen. Eine neue E-Mail löst online die Bindung an ein Firmenkonto."""
     if von != kern.ENTWICKLER:
         raise kern.AmwFehler("Benutzer ändert nur der Mensch")
     b = finden(con, name)
@@ -83,6 +102,11 @@ def aendern(con, von, name, rolle=None, gesperrt=None, projekte=None):
             con.execute("UPDATE benutzer SET gesperrt = ? WHERE id = ?", (1 if gesperrt else 0, b["id"]))
         if projekte is not None:
             _zuweisen(con, b["id"], projekte)
+        if email is not None:
+            neu_ = email_pruefen(email)
+            if neu_ and con.execute("SELECT 1 FROM benutzer WHERE lower(email) = ? AND id != ?", (neu_, b["id"])).fetchone():
+                raise kern.AmwFehler(f"Die E-Mail {neu_} hat schon ein anderer Benutzer")
+            con.execute("UPDATE benutzer SET email = ? WHERE id = ?", (neu_, b["id"]))
     return finden(con, name)
 
 
@@ -149,8 +173,8 @@ def code_hash(code):
 
 
 def freischalten(con, von, name, sp, stunden=CODE_STUNDEN):
-    """Neuer Freischalt-Code für das erste Anmelden (oder nach verlorenem Passwort/Handy). Setzt Passwort und zweiten
-    Faktor online zurück und beendet alle Sitzungen des Benutzers. Der Code wird nur zurückgegeben – online steht nur
+    """Neuer Freischalt-Code für das erste Anmelden (oder nach verlorenem Passwort/Handy). Setzt Passwort, zweiten
+    Faktor und die Bindung an ein Firmenkonto online zurück und beendet alle Sitzungen des Benutzers. Der Code wird nur zurückgegeben – online steht nur
     sein Hash, auf dem PC gar nichts. Rückgabe: (code, bis_utc)."""
     if von != kern.ENTWICKLER:
         raise kern.AmwFehler("Freischalten darf nur der Mensch am PC")
@@ -170,44 +194,50 @@ def freischalten(con, von, name, sp, stunden=CODE_STUNDEN):
     bis = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=int(stunden))).strftime("%Y-%m-%dT%H:%M:%SZ")
     z = next(x for x in fuer_online(con) if x["name"] == name)
     sp.ausfuehren([
-        ("INSERT INTO benutzer (name, anzeige, email, rolle, gesperrt, projekte, stand_utc) VALUES (?, ?, ?, ?, ?, ?, ?)"
-         " ON CONFLICT(name) DO UPDATE SET anzeige = excluded.anzeige, email = excluded.email, rolle = excluded.rolle,"
-         " gesperrt = excluded.gesperrt, projekte = excluded.projekte, stand_utc = excluded.stand_utc",
-         [z["name"], z["anzeige"], z["email"], z["rolle"], z["gesperrt"], z["projekte"], db.jetzt()]),
+        (ONLINE_EINTRAGEN, [z["name"], z["anzeige"], z["email"], z["rolle"], z["gesperrt"], z["projekte"], db.jetzt()]),
         ("UPDATE benutzer SET code_hash = ?, code_bis = ?, passwort_hash = NULL, totp_geheim = NULL, totp_letzt = 0,"
-         " eingerichtet_utc = NULL, sitzung_nr = sitzung_nr + 1 WHERE name = ?", [code_hash(code), bis, name]),
+         " sso_kennung = NULL, eingerichtet_utc = NULL, sitzung_nr = sitzung_nr + 1 WHERE name = ?", [code_hash(code), bis, name]),
     ])
     return code, bis
 
 
 def online_stand(sp):
-    """{name: {"stand": "wartet_code" | "code_abgelaufen" | "eingerichtet" | "neu", "bis", "eingerichtet_utc", "angemeldet_utc"}}"""
+    """{name: {"stand": "wartet_code" | "code_abgelaufen" | "eingerichtet" | "neu", "bis", "eingerichtet_utc", "angemeldet_utc",
+    "firmenkonto": bool}} – eingerichtet heißt: Passwort und zweiter Faktor gesetzt ODER mit dem Firmenkonto angemeldet."""
     if sp is None:
         return {}
     try:
-        zeilen = sp.ausfuehren([("SELECT name, code_bis, eingerichtet_utc, angemeldet_utc, passwort_hash IS NOT NULL FROM benutzer", [])])[0]
+        zeilen = sp.ausfuehren([("SELECT name, code_bis, eingerichtet_utc, angemeldet_utc, passwort_hash IS NOT NULL, sso_kennung IS NOT NULL"
+                                 " FROM benutzer", [])])[0]
     except Exception:                                  # Speicher nicht erreichbar: die Liste kommt trotzdem
         return {}
     jetzt = db.jetzt()
     aus = {}
-    for name, bis, eingerichtet, angemeldet, hat_passwort in zeilen:
-        if int(hat_passwort or 0):
+    for name, bis, eingerichtet, angemeldet, hat_passwort, hat_sso in zeilen:
+        if int(hat_passwort or 0) or int(hat_sso or 0):
             stand = "eingerichtet"
         elif bis:
             stand = "wartet_code" if bis > jetzt else "code_abgelaufen"
         else:
             stand = "neu"
-        aus[name] = {"stand": stand, "bis": bis, "eingerichtet_utc": eingerichtet, "angemeldet_utc": angemeldet}
+        aus[name] = {"stand": stand, "bis": bis, "eingerichtet_utc": eingerichtet, "angemeldet_utc": angemeldet,
+                     "firmenkonto": bool(int(hat_sso or 0))}
     return aus
 
 
-def eingerichtet_melden(con, pid, name):
-    """Die Seite meldet: NAME hat Passwort und zweiten Faktor gesetzt. Ohne Rolle wartet er auf Freigabe – das geht an den
-    Menschen (Nachricht, damit auch als Push)."""
+def eingerichtet_melden(con, pid, name, weg=None):
+    """Die Seite meldet: NAME hat Passwort und zweiten Faktor gesetzt (oder – weg „firmenkonto“ – sich zum ersten Mal mit
+    dem Firmenkonto angemeldet). Ohne Rolle wartet er auf Freigabe – das geht an den Menschen (Nachricht, damit auch als Push)."""
     b = finden(con, name)
     if not b:
         return {"gemeldet": False}
-    if b["rolle"]:
+    if weg == "firmenkonto":
+        kurz = f"{name} hat sich zum ersten Mal mit dem Firmenkonto angemeldet" if b["rolle"] else f"Neuer Benutzer {name} wartet auf Freigabe"
+        text = (f"{name} hat sich mit dem Firmenkonto ({b['email'] or '–'}) angemeldet"
+                + (f" und arbeitet als {NAMEN[b['rolle']]}." if b["rolle"] else
+                   " und sieht bis zur Freigabe nur „Dein Zugang wird geprüft“. Rolle und Projekte vergibst du am PC unter"
+                   f" Einstellungen › Benutzer (oder: amw benutzer aendern {name} --rolle … --projekte …)."))
+    elif b["rolle"]:
         kurz = f"{name} hat sich zum ersten Mal angemeldet"
         text = f"{name} hat Passwort und zweiten Faktor eingerichtet und arbeitet als {NAMEN[b['rolle']]}."
     else:

@@ -47,7 +47,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`dokument`](#dokument) | Ergebnisse ablegen und finden: ablegen <datei> ¦ version <nr> <datei> ¦ liste ¦ zeigen <nr> ¦ kommentar¦ueberarbeiten <nr> --text … ¦ zuordnen <nr> ¦ archivieren¦wiederherstellen <nr> ¦ online¦offline <nr> ¦ loeschen <nr> --ja ¦ einsammeln <ordner> [--melden] ¦ einsammeln --uebernehmen --frage <nr> |
 | [`notiz`](#notiz) | gepflegte Notizen (Schlüssel/Wert) |
 | [`dienst`](#dienst) | Dienst als geplante Windows-Aufgabe: einrichten ¦ entfernen ¦ status ¦ neustart ¦ vordergrund (ohne Aufgabe in diesem Fenster, zum Ausprobieren) |
-| [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Synchronisierung) ¦ zweitfaktor-neu ¦ bauen ¦ schema |
+| [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Synchronisierung) ¦ zweitfaktor-neu ¦ bauen ¦ schema ¦ sso [--aussteller URL --client-id ID --an¦--aus] (Firmen-Anmeldung; Geheimnis nur auf der Online-Seite) |
 | [`anmelden`](#anmelden) | laufende Sitzung beim Dienst anmelden (ohne Neustart) |
 | [`abmelden`](#abmelden) | Sitzung ruht: nicht mehr benachrichtigen, nicht automatisch neu starten (bis anmelden) |
 | [`einrichten`](#einrichten) | ohne Angabe: geführte Einrichtung (fragt nach) ¦ schnell --projekt-name … (ohne Fragen) ¦ agenten-ordner <pfad> (Hooks, Statusline-Anbindung, Sperren) ¦ betriebsart [pc¦server¦cloud] ¦ verbindungen [--pruefen] (jede Adresse, zu der die AMW eine Verbindung aufbaut) |
@@ -1171,14 +1171,23 @@ options:
 
 ## web
 ```
-usage: amw web [-h] [--von VON] [--projekt PROJEKT]
-               {einrichten,bauen,schema,einmal,status,zweitfaktor-neu}
+usage: amw web [-h] [--aussteller AUSSTELLER] [--client-id CLIENT_ID] [--an]
+               [--aus] [--von VON] [--projekt PROJEKT]
+               {einrichten,bauen,schema,einmal,status,zweitfaktor-neu,sso}
 
 positional arguments:
-  {einrichten,bauen,schema,einmal,status,zweitfaktor-neu}
+  {einrichten,bauen,schema,einmal,status,zweitfaktor-neu,sso}
 
 options:
   -h, --help            show this help message and exit
+  --aussteller AUSSTELLER
+                        sso: Aussteller (Issuer), z. B.
+                        https://login.microsoftonline.com/<Mandanten-ID>/v2.0
+  --client-id CLIENT_ID
+                        sso: Anwendungs-ID (Client-ID) aus der App-
+                        Registrierung
+  --an                  sso: Knopf „Mit Firmenkonto anmelden“ zeigen
+  --aus                 sso: Firmen-Anmeldung ausschalten
   --von VON
   --projekt PROJEKT
 ```

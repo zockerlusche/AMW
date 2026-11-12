@@ -7,9 +7,9 @@ RewriteEngine On
 RewriteCond %{HTTPS} !=on
 RewriteCond %{HTTP:X-Forwarded-Proto} !=https
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
-# versteckte Dateien (.git, .htaccess …) und alles außer den beiden Einstiegen und den Anleitungs-Bildern sperren
+# versteckte Dateien (.git, .htaccess …) und alles außer den drei Einstiegen (sso.php: Firmen-Anmeldung) und den Anleitungs-Bildern sperren
 RewriteRule (^|/)\. - [F,L]
-RewriteCond %{REQUEST_URI} !(^|/)(index\.php|api\.php|hilfe/[a-z0-9-]+\.webp|hilfe/[a-z0-9-]+\.(de|en)\.json)?$
+RewriteCond %{REQUEST_URI} !(^|/)(index\.php|api\.php|sso\.php|hilfe/[a-z0-9-]+\.webp|hilfe/[a-z0-9-]+\.(de|en)\.json)?$
 RewriteRule ^ - [F,L]
 
 <Files "amw-konfig.php">

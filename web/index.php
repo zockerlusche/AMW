@@ -46,8 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $e = fn(string $s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 if (angemeldet() && isset($_SESSION['benutzer']) && !(benutzer_aktuell()['rolle'] ?? null)) {   // angemeldet, noch ohne Rolle
     seite_anfang('Zugang wird geprüft', 'Zugang wird geprüft · Access under review'); ?>
-  <p><b>Dein Zugang wird geprüft.</b> Passwort und zweiter Faktor sind eingerichtet. Ein Admin vergibt jetzt deine Rolle und
-     die Projekte – danach siehst du hier die Workbench.</p>
+  <p><b>Dein Zugang wird geprüft.</b> <?= isset($_SESSION['sso']) ? 'Du bist mit deinem Firmenkonto angemeldet.'
+      : 'Passwort und zweiter Faktor sind eingerichtet.' ?> Ein Admin vergibt jetzt deine Rolle und die Projekte – danach
+     siehst du hier die Workbench.</p>
   <p class="leise">Your access is being reviewed. An admin will assign your role and projects.</p>
   <button type="button" onclick="location.href='./'">Neu laden · Reload</button>
   <button type="button" class="zweit" data-abmelden>Abmelden · Sign out</button>
@@ -121,12 +122,18 @@ if ($frei && !empty($frei['geheim'])):                   // Schritt 3: zweiten F
   <label>Zahl aus der App · Authenticator code<input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required autofocus></label>
   <input type="hidden" name="schritt" value="einrichten"><?= $csrf ?>
   <button type="submit">Bestätigen · Confirm</button>
-<?php else: ?>
-  <label>Benutzer · User<input name="benutzer" autocomplete="username" required autofocus></label>
+<?php else:
+    $sso = false;                                        // Firmen-Anmeldung (R2): Knopf nur, wenn am PC an und Geheimnis da
+    try { require_once __DIR__ . '/inc/sso.php'; $sso = sso_bereit(); } catch (Throwable $x) {}
+    if ($sso): ?>
+  <a class="sso-knopf" href="sso.php" style="display:grid;place-items:center;min-height:46px;border-radius:3px;background:var(--bernstein);color:#1d1b16;font:600 14px Bahnschrift,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;text-align:center;padding:0 12px">Mit Firmenkonto anmelden · Sign in with company account</a>
+  <p class="leise" style="display:flex;align-items:center;gap:10px"><span style="flex:1;border-top:1px solid var(--linie)"></span>oder mit Passwort · or with password<span style="flex:1;border-top:1px solid var(--linie)"></span></p>
+<?php endif ?>
+  <label>Benutzer · User<input name="benutzer" autocomplete="username" required<?= $sso ? '' : ' autofocus' ?>></label>
   <label>Passwort · Password<input name="passwort" type="password" autocomplete="current-password" required></label>
   <label>Zahl aus der App · Authenticator code<input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"></label>
   <?= $csrf ?>
-  <button type="submit">Anmelden · Sign in</button>
+  <button type="submit"<?= $sso ? ' class="zweit"' : '' ?>>Anmelden · Sign in</button>
   <p><a href="?erstes=1">Neue Anmeldung · First sign-in</a></p>
 <?php endif;
 seite_ende();

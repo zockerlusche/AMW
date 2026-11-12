@@ -1,0 +1,60 @@
+# Set up company sign-in with Microsoft Entra ID
+
+Users sign in on the online site with their company account (“Sign in with company account”) – without a password of their own and without a second factor in the AMW; the company's identity provider handles both. Only people an admin created in the AMW get in.
+
+## You need
+- The online site and online storage, set up, and the site's address under Settings › Online site.
+- An account in Microsoft Entra ID that may register apps (e.g. “Application Administrator”).
+- To assign groups: Microsoft Entra ID P1 or higher (otherwise assign individual users).
+- The Workbench on the PC and a system-admin sign-in to the online site (for the secret).
+
+## Steps
+1. **Read the address for the provider** On the PC: Settings › Users of the online site › Company sign-in. It shows the **Redirect URI**, e.g. `https://amw.example.com/sso.php`. You need it exactly like that.
+2. **Register the app** In the Microsoft Entra admin center (entra.microsoft.com) › Applications › **App registrations** › **New registration**. Name: e.g. “AMW Workbench”. Supported account types: **Accounts in this organizational directory only**. Redirect URI: platform **Web**, the address from step 1. › Register.
+3. **Note two IDs** On the app's **Overview** page: **Application (client) ID** and **Directory (tenant) ID**.
+4. **Permissions** › API permissions › Add a permission › Microsoft Graph › Delegated permissions: **openid**, **profile**, **email**. Then “Grant admin consent” so nobody is asked individually.
+5. **Email in the token (recommended)** › Token configuration › Add optional claim › token type **ID** › **email**. Without this step the AMW uses the sign-in name (UPN) – fine if it equals the email.
+6. **Secret or certificate** › Certificates & secrets. Either **Client secrets** › New client secret › pick an expiry › copy the **Value** right away (shown only once; not the “Secret ID”). Or **Certificates** › Upload certificate (public part only, .cer/.pem) – the safer choice; you need certificate and private key in step 8.
+7. **Assigned people only** Enterprise applications › “AMW Workbench” › Properties › **Assignment required?** **Yes** › Save. Then › **Users and groups** › Add user/group › e.g. the group “AMW team”. Anyone not assigned is turned away by Microsoft already.
+8. **Enter the secret on the online site** Sign in on the online site as a system admin and open `…/sso.php?einrichten` (on the PC, the link “Enter it on the online site” goes there). Paste the secret – or certificate and private key as PEM – › Save. It goes into the configuration file at the web host outside the web folder and is never shown again.
+9. **Set it on the PC** Settings › Users of the online site › Company sign-in: **Issuer** `https://login.microsoftonline.com/<Directory ID>/v2.0`, **Application (client) ID**, tick “Show the button” › Save. Or on the command line: `amw web sso --aussteller https://login.microsoftonline.com/<Directory ID>/v2.0 --client-id <Application ID> --an`.
+10. **Create users** For each person in the list above: create the name, **email** as in the company account, role and projects › Save. No activation code is needed for company sign-in.
+11. **Try it** Open the online site in a private window › **Sign in with company account**. The first time, the AMW binds the company account to the user; you get a message (also as push).
+
+## Values to enter
+| Field | Where from |
+|---|---|
+| Issuer (on the PC) | `https://login.microsoftonline.com/` + Directory (tenant) ID + `/v2.0` – app overview |
+| Client ID (on the PC) | Application (client) ID – app overview |
+| Redirect URI (at Microsoft) | shown on the PC under Company sign-in, ends in `/sso.php` |
+| Secret (online site, sso.php?einrichten) | value of the client secret – or certificate + private key (PEM) |
+| Email per user (on the PC) | email address of the company account |
+
+## Common problems
+- **The button does not appear** – “Show the button” is off on the PC, or the secret is still missing on the online site. On the PC, “Secret at the web host” says what is missing.
+- **Microsoft reports AADSTS50011 (reply URL does not match)** – The redirect URI in the app differs. Enter exactly the address from the PC, platform “Web” (not “Single-page application”).
+- **Microsoft reports AADSTS50105** – The person is not assigned to the app (step 7).
+- **The message names `invalid_client`** – Secret wrong, expired, or the “Secret ID” entered instead of the value. Create a new one and replace it on the online site.
+- **The message says “common/organizations” does not work** – Enter the directory ID instead of `common`. Only then is it certain that only your company's accounts get in.
+- **“Your company account (…) is not enabled here”** – There is no AMW user with this email, or the user is blocked. Enter the shown address for the user.
+- **“Your access is being reviewed”** – Signed in, but role or projects are missing. Assign them on the PC, then reload the page.
+- **“Sign-in took too long or came from another browser”** – More than 10 minutes between button and return, or cookies are blocked. Press the button again.
+
+## Next
+- When the secret expires (Microsoft: 24 months at most), create a new one and replace it on `sso.php?einrichten` – before, or nobody gets in by company account.
+- A new email for a user releases the binding to the previous company account; so does “Reset access”. Their sessions end at once.
+- Blocking in the AMW works immediately, even while the company account stays valid.
+- The existing sign-in from the site's configuration (password + second factor) always stays – as a fallback if the identity provider is down.
+
+## Questions
+### Does this work with Keycloak, Google or another provider?
+Yes, with any OpenID Connect provider. The issuer is the address under which `/.well-known/openid-configuration` lives, e.g. `https://login.company.com/realms/company` for Keycloak. When you enter the secret on the online site, the AMW checks that the provider is reachable and reports exactly this issuer.
+
+### Why no second factor in the AMW?
+The company's identity provider requires it (e.g. through a Conditional Access policy). A second one in the AMW would be twice.
+
+### What does the AMW check on return?
+The token signature with the provider's key, issuer, audience (the client ID), expiry and a random value of this one sign-in. The exchange uses PKCE; a token requested in another browser is rejected.
+
+### Where is the secret stored?
+Only in the online site's configuration file at the web host, outside the web folder – never on the PC, never in online storage, never in the history.

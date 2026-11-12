@@ -81,12 +81,13 @@ Ordner beim Hoster leeren oder in Turso Lesen/Schreiben blockieren.
 ## 3 Sicherheit
 | Punkt | Umsetzung |
 |---|---|
-| Anmeldung | Benutzer + Passwort (`password_hash`) **und** 6-stelliger Code (TOTP, RFC 6238, ±30 s, jeder Code nur einmal) |
+| Anmeldung | Benutzer + Passwort (`password_hash`) **und** 6-stelliger Code (TOTP, RFC 6238, ±30 s, jeder Code nur einmal) – oder Firmen-Anmeldung (unten) |
+| Firmen-Anmeldung | OpenID Connect, Authorization Code Flow mit PKCE (S256), `state` und `nonce` im eigenen Cookie `__Host-amw-sso` (SameSite=Lax, 10 min, einmal); ID-Token: Signatur RS256/384/512 mit dem Schlüssel des Anbieters (JWKS), Aussteller genau wie eingestellt (kein `common`), Empfänger = Client-ID, Ablauf ±120 s, `nonce`; nur angelegte Benutzer – beim ersten Mal über die E-Mail, danach fest an Aussteller + `sub` gebunden (neue E-Mail oder neu freischalten löst die Bindung); kein zweiter Faktor in der AMW. Client-Secret oder Zertifikat (`private_key_jwt`) nur in `amw-konfig.php` beim Webhoster; eingetragen von einem System-Admin auf `sso.php?einrichten`. Hilfe: doc/hilfe/firmen-anmeldung.md |
 | Fehlversuche | Sperre nach 5 Fehlversuchen je Adresse in 15 min oder 20 insgesamt in 60 min (einstellbar) |
 | Sitzung | Cookie `__Host-amw`: nur HTTPS, HttpOnly, SameSite=Strict; neue Sitzungs-ID beim Anmelden; Abmeldung nach Leerlauf (Vorgabe 30 min), spätestens nach 12 h |
 | Schreibschutz | Sitzungsschlüssel im Kopf (`X-AMW-Token`) und gleiche Herkunft; höchstens 120 Einträge je Stunde; Körper ≤ 32 KB |
 | Transport | `.htaccess` erzwingt HTTPS, HSTS; Content-Security-Policy, `frame-ancestors 'none'`, `noindex`. Einbetten verbietet die Seite selbst (`X-Frame-Options: DENY`); nur Dokument-Dateien (Mockup, PDF, Video) dürfen in der eigenen Seite erscheinen (`SAMEORIGIN`, `frame-ancestors 'self'`, weiter abgeschottet) – die `.htaccess` setzt diese Angabe deshalb nicht noch einmal |
-| Dateien | Nur `index.php` und `api.php` sind erreichbar; `inc/` und versteckte Dateien gesperrt |
+| Dateien | Nur `index.php`, `api.php` und `sso.php` (Firmen-Anmeldung) sind erreichbar; `inc/` und versteckte Dateien gesperrt |
 | Wirkung | Absender ist immer „Entwickler“, Kanal `netz`; der PC prüft jede Zeile noch einmal |
 | Dokument-Dateien | nur nach Anmeldung; Mockups (HTML) und SVG abgeschottet (CSP `sandbox`), Office nur als Download; Ablage außerhalb des Web-Ordners |
 | Gespräch je Agent | nur auf Wunsch und 10 Minuten lang, nur Text und Schrittnamen, Geheimnis-Muster verdeckt; die Kennung muss ein bekannter Agent sein |
@@ -105,6 +106,7 @@ alle 15 s eine Abfrage auf einem Index.
 | Datei | Zweck |
 |---|---|
 | `web/index.php`, `web/api.php`, `web/inc/lib.php`, `web/.htaccess` | Anmeldung, Ansichten, Briefkasten |
+| `web/sso.php`, `web/inc/sso.php` | Firmen-Anmeldung (OpenID Connect) und Eintragen ihres Geheimnisses |
 | `web/inc/einrichtung.php`, `web/inc/qr.php` | Einrichtungs-Assistent, QR-Code (eigener Erzeuger) |
 | `amw/abgleich.py` | Hochladen und Abholen im Wächter, Dateien der Dokumente |
-| `amw web einrichten · bauen · schema · einmal · status · zweitfaktor-neu` | Zugang, Seite kopieren, Tabellen, ein Abgleich von Hand, Stand, neues Handy |
+| `amw web einrichten · bauen · schema · einmal · status · zweitfaktor-neu · sso` | Zugang, Seite kopieren, Tabellen, ein Abgleich von Hand, Stand, neues Handy, Firmen-Anmeldung |

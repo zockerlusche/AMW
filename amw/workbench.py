@@ -463,7 +463,12 @@ def daten_benutzer(con, speicher=None):
     for b in benutzer.liste(con):
         liste.append({k: b[k] for k in ("name", "anzeige", "email", "rolle", "gesperrt", "projekte")}
                      | {"online": stand.get(b["name"], {"stand": "neu"})})
-    return {"benutzer": liste, "projekte": projekte, "rollen": list(benutzer.ROLLEN), "online": sp is not None}
+    try:                                              # Firmen-Anmeldung (R2): Einstellungen und was die Seite meldet – ohne Geheimnis
+        sso = abgleich.sso_einstellungen(sp) if sp is not None else None
+    except (OSError, ValueError, KeyError):
+        sso = None
+    return {"benutzer": liste, "projekte": projekte, "rollen": list(benutzer.ROLLEN), "online": sp is not None, "sso": sso,
+            "seite_adresse": _seiten_adresse()}
 
 
 def daten_einstellungen(con, pid, speicher=None):

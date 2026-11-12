@@ -32,6 +32,7 @@ import sqlite3
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import zlib
 
@@ -70,7 +71,8 @@ SCHEMA = [
     "CREATE TABLE IF NOT EXISTS datei_projekt (sha TEXT NOT NULL, projekt TEXT NOT NULL, PRIMARY KEY (sha, projekt))",
     "CREATE TABLE IF NOT EXISTS benutzer (name TEXT PRIMARY KEY, anzeige TEXT, email TEXT, rolle TEXT, gesperrt INTEGER NOT NULL DEFAULT 0,"
     " projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, totp_letzt INTEGER NOT NULL DEFAULT 0,"
-    " code_hash TEXT, code_bis TEXT, sitzung_nr INTEGER NOT NULL DEFAULT 0, eingerichtet_utc TEXT, angemeldet_utc TEXT, stand_utc TEXT)",
+    " code_hash TEXT, code_bis TEXT, sitzung_nr INTEGER NOT NULL DEFAULT 0, eingerichtet_utc TEXT, angemeldet_utc TEXT, stand_utc TEXT,"
+    " sso_kennung TEXT)",
 ]
 # Spalten, die es in älteren Online-Speichern noch nicht gibt (web/inc/lib.php rüstet dieselben nach)
 NACHRUESTEN = [("eingang", "projekt", "ALTER TABLE eingang ADD COLUMN projekt TEXT"),
@@ -80,7 +82,9 @@ NACHRUESTEN = [("eingang", "projekt", "ALTER TABLE eingang ADD COLUMN projekt TE
                ("benutzer", "code_bis", "ALTER TABLE benutzer ADD COLUMN code_bis TEXT"),
                ("benutzer", "sitzung_nr", "ALTER TABLE benutzer ADD COLUMN sitzung_nr INTEGER NOT NULL DEFAULT 0"),
                ("benutzer", "eingerichtet_utc", "ALTER TABLE benutzer ADD COLUMN eingerichtet_utc TEXT"),
-               ("benutzer", "angemeldet_utc", "ALTER TABLE benutzer ADD COLUMN angemeldet_utc TEXT")]
+               ("benutzer", "angemeldet_utc", "ALTER TABLE benutzer ADD COLUMN angemeldet_utc TEXT"),
+               # Firmen-Anmeldung (R2): an welches Firmenkonto (Aussteller|sub) der Benutzer beim ersten Mal gebunden wurde
+               ("benutzer", "sso_kennung", "ALTER TABLE benutzer ADD COLUMN sso_kennung TEXT")]
 
 
 def nachruesten(sp):
@@ -102,6 +106,37 @@ def web_einstellungen(speicher):
     roh = speicher.ausfuehren([("SELECT wert FROM zustand WHERE schluessel = 'web_einstellungen'", [])])[0]
     d = json.loads(roh[0][0]) if roh else {}
     return {k: (int(d[k]) if k in d and lo <= int(d[k]) <= hi else v) for k, (v, lo, hi) in WEB_EINSTELLUNGEN.items()}
+
+
+def sso_einstellungen(speicher):
+    """Firmen-Anmeldung (R2): was der PC einstellt (an, Aussteller, Client-ID) und was die Seite meldet (Art des
+    Zugangs beim Anbieter – Geheimnis oder Zertifikat –, Rückkehr-Adresse). Das Geheimnis selbst steht nur beim Webhoster."""
+    roh = speicher.ausfuehren([("SELECT schluessel, wert FROM zustand WHERE schluessel IN ('sso', 'sso_stand')", [])])[0]
+    d = {k: json.loads(v or "{}") for k, v in roh}
+    e, st = d.get("sso", {}), d.get("sso_stand", {})
+    return {"an": bool(e.get("an")), "aussteller": e.get("aussteller", ""), "client_id": e.get("client_id", ""),
+            "zugang": st.get("zugang", ""), "rueckweg": st.get("rueckweg", ""), "gemeldet_utc": st.get("zeit_utc")}
+
+
+def sso_setzen(speicher, neu):
+    d = {k: v for k, v in sso_einstellungen(speicher).items() if k in ("an", "aussteller", "client_id")}
+    for k, v in neu.items():
+        if k not in d:
+            raise ValueError(f"unbekannte Einstellung: {k}")
+        d[k] = bool(v) if k == "an" else str(v or "").strip()
+    d["aussteller"] = d["aussteller"].rstrip("/")
+    u = urllib.parse.urlsplit(d["aussteller"])
+    if d["aussteller"] and (u.scheme != "https" or not u.hostname or u.query or u.fragment):
+        raise ValueError("Aussteller: eine https-Adresse, z. B. https://login.microsoftonline.com/<Mandanten-ID>/v2.0")
+    if any(x in d["aussteller"].lower() for x in ("/common/", "/organizations/", "/consumers/")):
+        raise ValueError("Aussteller: statt common/organizations die Mandanten-ID (Tenant ID) eintragen")
+    if len(d["client_id"]) > 200 or any(c.isspace() for c in d["client_id"]):
+        raise ValueError("Client-ID: ohne Leerzeichen, höchstens 200 Zeichen")
+    if d["an"] and not (d["aussteller"] and d["client_id"]):
+        raise ValueError("Zum Einschalten braucht es Aussteller und Client-ID")
+    speicher.ausfuehren([("INSERT INTO zustand (schluessel, wert) VALUES ('sso', ?) ON CONFLICT(schluessel)"
+                          " DO UPDATE SET wert = excluded.wert", [json.dumps(d)])])
+    return sso_einstellungen(speicher)
 
 
 def web_einstellungen_setzen(speicher, neu):
@@ -523,10 +558,7 @@ class Abgleich:
                             " DO UPDATE SET wert = excluded.wert", [t]))          # für Seiten von vor 1.19.0
         from . import benutzer                        # Benutzer ohne Passwort und Geheimnis – die setzt jeder online selbst
         for b in benutzer.fuer_online(self.con):
-            verzeichnis.append(("INSERT INTO benutzer (name, anzeige, email, rolle, gesperrt, projekte, stand_utc) VALUES (?, ?, ?, ?, ?, ?, ?)"
-                                " ON CONFLICT(name) DO UPDATE SET anzeige = excluded.anzeige, email = excluded.email, rolle = excluded.rolle,"
-                                " gesperrt = excluded.gesperrt, projekte = excluded.projekte, stand_utc = excluded.stand_utc",
-                                [b["name"], b["anzeige"], b["email"], b["rolle"], b["gesperrt"], b["projekte"], t]))
+            verzeichnis.append((benutzer.ONLINE_EINTRAGEN, [b["name"], b["anzeige"], b["email"], b["rolle"], b["gesperrt"], b["projekte"], t]))
         if not self.alt_weg:                          # Ansichten ohne Kennung (vor 1.19.0) – jetzt doppelt: weg
             verzeichnis.append(("DELETE FROM ansicht WHERE weg LIKE '/%'", []))
             self.alt_weg = True
