@@ -270,6 +270,8 @@ class Umstellung(Grund):
         self.con.execute("DROP INDEX IF EXISTS nachricht_bezug")      # Bezug an Nachrichten kam mit Schema 29
         self.con.execute("DROP INDEX IF EXISTS nachricht_antwort")
         self.con.execute("ALTER TABLE nachricht DROP COLUMN bezug")
+        for sp in ("groesse", "art"):                     # Größe und Art kamen mit Schema 30
+            self.con.execute(f"ALTER TABLE aufgabe DROP COLUMN {sp}")
         self.con.execute("ALTER TABLE agent DROP COLUMN entfernt_utc")      # Agenten entfernen kam mit Schema 28
         self.con.execute("PRAGMA user_version = 23")
         pfad = self.con.execute("PRAGMA database_list").fetchone()[2]
