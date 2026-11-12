@@ -11,6 +11,11 @@ from amw import abgleich, db, kern
 
 class Abgleich(unittest.TestCase):
     def setUp(self):
+        # Verzeichnis der Projekte anderer Rechner ist modulweit – ein Test davor hinterlässt sonst seine Projekte darin,
+        # und die Projektliste ändert sich nach dem ersten Hochladen „von selbst“
+        alt = abgleich.VERZEICHNIS["projekte"]
+        abgleich.VERZEICHNIS["projekte"] = []
+        self.addCleanup(abgleich.VERZEICHNIS.__setitem__, "projekte", alt)
         self.ordner = tempfile.TemporaryDirectory()
         self.con = db.anlegen(os.path.join(self.ordner.name, "amw.db"))
         with db.schreiben(self.con):
