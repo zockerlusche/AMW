@@ -107,5 +107,24 @@ class Nachrichten(unittest.TestCase):
         self.assertEqual((b(self.n1), b(self.n3), b(self.n2)), (f"A{self.aid}", f"A{self.aid}", None))
 
 
+    def test_antwort_an_den_menschen_findet_den_faden(self):
+        auf = lambda nid: self.con.execute("SELECT antwort_auf, bezug FROM nachricht WHERE id = ?", (nid,)).fetchone()[:]
+        h = []
+        n = kern.posten(self.con, self.pid, "CC2", "Entwickler", "info", "Läufe verschoben", hinweise=h)[0]
+        self.assertEqual(auf(n), (self.n2, None))                                              # letzte an CC2: n2
+        self.assertIn(f"Antwort auf #{self.n2}", h[0])
+        n = kern.posten(self.con, self.pid, "CC2", "Entwickler", "info", "noch etwas")[0]
+        self.assertEqual(auf(n)[0], None)                                                      # n2 ist schon beantwortet
+        n4 = kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC2", "auftrag", "Speichern prüfen", aufgabe_id=self.aid)[0]
+        n = kern.posten(self.con, self.pid, "CC2", "Entwickler", "info", "geprüft")[0]
+        self.assertEqual(auf(n), (n4, f"A{self.aid}"))                                         # erbt auch den Bezug
+        n5 = kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC2", "auftrag", "noch eins")[0]
+        n = kern.posten(self.con, self.pid, "CC2", "Entwickler,TL", "info", "an zwei")[0]
+        self.assertEqual(auf(n)[0], None)                                                      # nicht nur an den Menschen
+        out = self.amw("posten", "--von", "CC2", "--projekt", "P", "--an", "Entwickler", "--art", "info", "--kurz", "neu", "--neuer-faden")
+        self.assertNotIn("Antwort auf", out)
+        self.assertIn(f"Antwort auf #{n5}", self.amw("posten", "--von", "CC2", "--projekt", "P", "--an", "Entwickler", "--art", "info", "--kurz", "zu n5"))
+
+
 if __name__ == "__main__":
     unittest.main()

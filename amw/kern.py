@@ -4,6 +4,7 @@ Jede Funktion bekommt eine offene Verbindung und schreibt über db.schreiben/db.
 Regeln, die hier geprüft werden, beschreibt doc/architektur.md.
 Die Prüfungen schützen vor Versehen, nicht vor Absicht: Agenten laufen unter dem Benutzer des Entwicklers.
 """
+import datetime
 import json
 import os
 import re
@@ -749,11 +750,33 @@ def bezug_text(con, bezug):
     return f"{bezug} {str(r[0])[:60]}" if r and r[0] else bezug
 
 
-def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, hinweise=None, bis=None, bezug=None):
+FADEN_TAGE = 2                                   # so lange sucht eine Antwort an den Menschen die Nachricht, auf die sie antwortet
+
+
+def faden_suchen(con, pid, von):
+    """Letzte Nachricht des Menschen an diesen Agenten (höchstens FADEN_TAGE alt, nicht zurückgezogen), auf die er noch nicht
+    geantwortet hat – damit Antworten an den Menschen von selbst im richtigen Gespräch landen."""
+    grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=FADEN_TAGE)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return con.execute(
+        "SELECT n.id, n.kurz FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id AND e.agent = ?"
+        " WHERE n.projekt_id = ? AND n.von = ? AND COALESCE(e.bemerkung, '') != ? AND n.zeit_utc >= ?"
+        " AND NOT EXISTS (SELECT 1 FROM nachricht a WHERE a.antwort_auf = n.id AND a.von = ?) ORDER BY n.id DESC LIMIT 1",
+        (von, pid, ENTWICKLER, ZURUECKGEZOGEN, grenze, von)).fetchone()
+
+
+def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, hinweise=None, bis=None, bezug=None, faden=True):
     """Nachricht von einem Agenten oder dem Entwickler. hinweise: Liste, in die Hinweise für die Ausgabe kommen.
     bis: Bezug, mit dem sich die Meldung von selbst erledigt (leitbild | aufgabe | A<nr> | F<nr>).
-    bezug: worum es geht (A/F/D/M/P/L/T/B<nr>, @Kennung); ohne: aus aufgabe_id, „bis“ oder der Nachricht, auf die sie antwortet."""
+    bezug: worum es geht (A/F/D/M/P/L/T/B<nr>, @Kennung); ohne: aus aufgabe_id, „bis“ oder der Nachricht, auf die sie antwortet.
+    faden: schreibt ein Agent nur an den Menschen, ohne antwort_auf, hängt sich die Nachricht an dessen letzte offene an ihn."""
     bis = bis_pruefen(con, pid, bis)
+    if (faden and not antwort_auf and von not in ("AMW", ENTWICKLER)
+            and [t.strip().lower() for t in an.replace(";", ",").split(",") if t.strip()] == [ENTWICKLER.lower()]):
+        r = faden_suchen(con, pid, von)
+        if r:
+            antwort_auf = r["id"]
+            if hinweise is not None:
+                hinweise.append(f"Antwort auf #{r['id']} „{r['kurz'][:70]}“ – anders: --antwort-auf <nr> oder --neuer-faden")
     bezug = bezug_pruefen(con, pid, bezug)
     if bezug and bezug[0] == "A" and not aufgabe_id:                 # die alten Felder mit füllen (alte Abfragen laufen weiter)
         aufgabe_id = int(bezug[1:])
@@ -1263,6 +1286,7 @@ def kontext(con, pid, kennung):
     z = [f"AMW-PFLICHTKONTEXT für {kennung} (Projekt {proj}, Stand {db.jetzt()}). " + (" · ".join(wer) or "Fachgebiet: –"),
          f"AMW-Befehl: `{BEFEHL}` (unten kurz `amw`), immer mit `--von {kennung}`. Arbeitsweise: `amw lesen` → handeln →"
          " `amw erledigt <nr>` · melden: `amw posten --an <Agent|Entwickler> --art info|auftrag|frage|antwort --kurz …`"
+         " (worum es geht: `--bezug A12|D8|M3|P5|L7|…`; Antworten erben ihn, an den Entwickler hängen sie sich an seine letzte Nachricht)"
          " · Arbeit holen: `amw schritt naechster --nehmen` · abschließen: `amw aufgabe fertig <nr> --beleg <commit>"
          " [--gruppe neu|verbessert|behoben --hinweis „ein Satz für Nutzer“ – für die Versionshinweise]"
          " --zusammenfassung …` · Ergebnisse (Text als .md, Bilder, Mockup als eine .html, Video als .mp4) nie lose ablegen: `amw dokument"

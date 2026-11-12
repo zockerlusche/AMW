@@ -153,8 +153,8 @@ options:
 ```
 usage: amw posten [-h] --an AN --art ART --kurz KURZ [--text TEXT]
                   [--text-datei TEXT_DATEI] [--antwort-auf ANTWORT_AUF]
-                  [--aufgabe AUFGABE] [--bis BIS] [--bezug BEZUG] [--von VON]
-                  [--projekt PROJEKT]
+                  [--aufgabe AUFGABE] [--bis BIS] [--bezug BEZUG]
+                  [--neuer-faden] [--von VON] [--projekt PROJEKT]
 
 options:
   -h, --help            show this help message and exit
@@ -173,6 +173,9 @@ options:
                         Lauf, T<nr> Thema, B<nr> Beschluss, @Kennung Agent;
                         ohne: aus --aufgabe oder geerbt von der Nachricht in
                         --antwort-auf
+  --neuer-faden         an den Menschen: nicht von selbst an seine letzte
+                        Nachricht an dich hängen (sonst tut die AMW das, wenn
+                        sie höchstens 2 Tage alt ist)
   --von VON
   --projekt PROJEKT
 ```

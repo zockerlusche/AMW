@@ -213,7 +213,8 @@ def cmd_posten(a, con):
         with open(a.text_datei, encoding="utf-8") as f:
             text = f.read()
     hinweise = []
-    nid, namen = kern.posten(con, pid, _von(a), a.an, a.art, a.kurz, text, a.antwort_auf, a.aufgabe, hinweise, bis=a.bis, bezug=a.bezug)
+    nid, namen = kern.posten(con, pid, _von(a), a.an, a.art, a.kurz, text, a.antwort_auf, a.aufgabe, hinweise, bis=a.bis, bezug=a.bezug,
+                             faden=not a.neuer_faden)
     print(f"#{nid} an {', '.join(namen)}")
     for h in hinweise:
         print(h)
@@ -2043,6 +2044,8 @@ def parser():
     x.add_argument("--bezug", help="worum es geht: A<nr> Aufgabe, F<nr> Frage, D<nr> Dokument, M<nr> Meilenstein, P<nr> Prüfung,"
                                    " L<nr> Lauf, T<nr> Thema, B<nr> Beschluss, @Kennung Agent; ohne: aus --aufgabe oder geerbt"
                                    " von der Nachricht in --antwort-auf")
+    x.add_argument("--neuer-faden", action="store_true", help="an den Menschen: nicht von selbst an seine letzte Nachricht an dich"
+                                                             " hängen (sonst tut die AMW das, wenn sie höchstens 2 Tage alt ist)")
     x.set_defaults(f=cmd_posten)
 
     x = s.add_parser("lesen", help="ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589)")

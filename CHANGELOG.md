@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.75.0 – 12.11.2026 · Von überall schreiben, der Bezug geht mit
+- **„✉ Nachricht dazu“** an Thema, Meilenstein, Beschluss, Lauf und Prüfung: Bezug eingetragen, Empfänger vorgeschlagen
+  (Pfleger des Themas, der Agent des Laufs bzw. der Prüfung, sonst der Lead) – änderbar.
+- **„Nachrichten dazu“** am Thema und am Meilenstein: das kleine Gespräch zu genau diesem Objekt.
+- **Antworten finden ihr Gespräch:** Schreibt ein Agent nur an dich, hängt sich die Nachricht von selbst an deine letzte an
+  ihn (bis 2 Tage, noch unbeantwortet) und erbt deren Bezug; `amw posten --neuer-faden` schaltet das ab.
+- Der Pflichtkontext der Agenten nennt `--bezug` und das Anhängen.
+
 ## 1.74.0 – 12.11.2026 · Nachrichten an einer Stelle
 - **Neue Seite „Nachrichten“** (Menü, mit Zahl für Offenes an dich): „Eingang“ – alles an dich, Ungelesenes fett;
   „Gesendet“ – alles von dir, je Empfänger der Stand gesendet › benachrichtigt › gelesen › erledigt (Uhrzeit beim
