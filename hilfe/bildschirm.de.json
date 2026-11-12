@@ -1,0 +1,47 @@
+{
+ "titel": "Bildschirm für Agenten freigeben",
+ "kurz": "Manche Läufe brauchen den Bildschirm: Sie öffnen ein Fenster, klicken und tippen selbst – etwa Proben im Programm oder Bildschirmfotos. Das geht nur, wenn du den Bildschirm freigibst. Bist du wieder da, schließt die AMW die Freigabe von selbst – woran sie das erkennt, stellst du ein.",
+ "brauchst": [
+  "Die Workbench am PC (freigeben geht nur dort; schließen geht auch unterwegs).",
+  "Für das Erkennen einer Fernsitzung: das Programm, das nur während einer Verbindung läuft (Einstellungen › Dieser PC › „Programm für den Fernzugriff“, bei TeamViewer z. B. TeamViewer_Desktop.exe)."
+ ],
+ "schritte": [
+  {
+   "titel": "Freigeben",
+   "text": "Startseite › Bildschirm für Agenten › „Für Agenten freigeben …“ – auf Wunsch mit Uhrzeit, bis wann.",
+   "bilder": []
+  },
+  {
+   "titel": "Agenten arbeiten",
+   "text": "Läufe mit Fenster starten nacheinander; in der Zeit am besten nichts am PC tun.",
+   "bilder": []
+  },
+  {
+   "titel": "Zurück am PC",
+   "text": "Die Freigabe schließt von selbst – oder du beendest sie selbst: Startseite › Bildschirm für Agenten › „Freigabe beenden“.",
+   "bilder": []
+  }
+ ],
+ "werte": [],
+ "fehler": [
+  [
+   "Die Freigabe geht zu, obwohl du nur kurz reinschauen wolltest",
+   "Eingabe am PC oder Fernsitzung stehen auf an. Wenn du zwischendurch per Fernsitzung schauen oder die Maus bewegen willst, ohne die Agenten zu unterbrechen: diese Auslöser ausschalten."
+  ],
+  [
+   "Ein Agent bewegt die Maus, während du hinschaust",
+   "Das passiert, wenn „Eingabe am PC“ aus ist: Die AMW merkt nicht, dass du da bist, und Läufe mit Fenster starten auch, während du arbeitest. Schließ die Freigabe dann bewusst selbst (Startseite › Bildschirm für Agenten › „Freigabe beenden“)."
+  ],
+  [
+   "Fernsitzung wird nicht erkannt",
+   "Das Programm ist nicht eingetragen oder heißt anders."
+  ]
+ ],
+ "danach": [
+  "Läuft ein Lauf mit Fenster nach dem Schließen weiter, erfährt es der Lead nach 5 Minuten.",
+  "Vom Handy kannst du die Freigabe nur schließen, nie öffnen."
+ ],
+ "fragen": [],
+ "thema": "bildschirm",
+ "sprache": "de"
+}
