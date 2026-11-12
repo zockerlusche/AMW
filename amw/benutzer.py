@@ -16,6 +16,7 @@ NAMEN = {"leser": "Leser", "bearbeiter": "Bearbeiter", "projekt_admin": "Projekt
 KLASSEN = {"lesen": "leser", "arbeiten": "bearbeiter", "projekt": "projekt_admin", "benutzer": "projekt_admin", "system": "system_admin"}
 
 AKTUELL = contextvars.ContextVar("amw_benutzer", default=None)   # wer gerade über die Online-Seite handelt (Name)
+ZUGANG = "@zugang"     # so nennt die Online-Seite den bisherigen Zugang aus ihrer Konfiguration (System-Admin)
 
 
 def klasse(weg, daten=None):
@@ -33,14 +34,14 @@ def _stufe(rolle):
     return ROLLEN.index(rolle)
 
 
-def neu(con, von, name, rolle, anzeige=None, email=None, projekte=()):
-    """Legt einen Benutzer an. Nur der Mensch (System-Admin)."""
+def neu(con, von, name, rolle=None, anzeige=None, email=None, projekte=()):
+    """Legt einen Benutzer an. Nur der Mensch (System-Admin). Ohne Rolle: wartet auf Freigabe, hat keine Rechte."""
     if von != kern.ENTWICKLER:
         raise kern.AmwFehler("Benutzer legt nur der Mensch an")
     name = (name or "").strip()
-    if not name or len(name) > 60 or any(c in name for c in " /\\:,"):
-        raise kern.AmwFehler("Name: 1–60 Zeichen, ohne Leerzeichen, / \\ : ,")
-    if rolle not in ROLLEN:
+    if not name or len(name) > 60 or any(c in name for c in " /\\:,@"):
+        raise kern.AmwFehler("Name: 1–60 Zeichen, ohne Leerzeichen, / \\ : , @")
+    if rolle is not None and rolle not in ROLLEN:
         raise kern.AmwFehler(f"Rolle: {', '.join(ROLLEN)}")
     with db.schreiben(con):
         if con.execute("SELECT 1 FROM benutzer WHERE name = ?", (name,)).fetchone():
@@ -90,14 +91,22 @@ def liste(con):
 
 
 def darf(con, name, pid, klasse_):
-    """(ja, Grund). name None/leer = der Mensch am PC bzw. der bisherige Online-Zugang (System-Admin)."""
+    """(ja, Grund) für eine Eingabe von der Online-Seite. ZUGANG = der bisherige Zugang aus der Konfiguration der Seite
+    (System-Admin). Ohne Namen nur, solange niemand angelegt ist (Betrieb wie vor den Benutzern) – sobald es Benutzer
+    gibt, wird abgewiesen: fehlt der Name (Fehler, alte Seite, Eingriff), bekommt die Anfrage keine Rechte."""
+    if name == ZUGANG:
+        return True, None
     if not name:
+        if con.execute("SELECT 1 FROM benutzer LIMIT 1").fetchone():
+            return False, "Anmeldung fehlt – die Online-Seite hat keinen Benutzer mitgeschickt (bitte neu anmelden)"
         return True, None
     b = finden(con, name)
     if not b:
         return False, f"Benutzer {name} ist hier nicht angelegt"
     if b["gesperrt"]:
         return False, f"{name} ist gesperrt"
+    if not b["rolle"]:
+        return False, f"{name} wartet auf Freigabe – ein Admin vergibt Rolle und Projekte"
     if b["rolle"] != "system_admin" and pid not in b["projekte"]:
         return False, f"{name} ist diesem Projekt nicht zugewiesen"
     if _stufe(b["rolle"]) < _stufe(KLASSEN[klasse_]):

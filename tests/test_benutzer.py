@@ -51,7 +51,8 @@ class Rechte(Grund):
         for (name, klasse, p), soll in tabelle.items():
             ok, grund = benutzer.darf(self.con, name, self.a if p == "a" else self.b, klasse)
             self.assertEqual(ok, soll, (name, klasse, p, grund))
-        self.assertEqual(benutzer.darf(self.con, None, self.b, "system"), (True, None))        # der Mensch am PC
+        self.assertEqual(benutzer.darf(self.con, benutzer.ZUGANG, self.b, "system"), (True, None))   # Zugang der Seite
+        self.assertFalse(benutzer.darf(self.con, None, self.b, "lesen")[0])                     # ohne Namen: nichts
         self.assertFalse(benutzer.darf(self.con, "unbekannt", self.a, "lesen")[0])
         benutzer.aendern(self.con, kern.ENTWICKLER, "bert", gesperrt=True)
         self.assertEqual(benutzer.darf(self.con, "bert", self.a, "arbeiten"), (False, "bert ist gesperrt"))
@@ -72,6 +73,43 @@ class Rechte(Grund):
         r = self.con.execute("SELECT benutzer FROM nachricht WHERE kurz = 'am PC'").fetchone()
         self.assertIsNone(r[0])                                                                 # am PC zählt kein Name von außen
         self.assertIsNone(benutzer.AKTUELL.get())                                               # nach der Aktion zurückgesetzt
+
+    def test_ohne_namen_nur_solange_niemand_angelegt_ist(self):
+        """Fail-closed: fehlt der Name, hat die Anfrage keine Rechte – außer im Betrieb vor den Benutzern."""
+        weg, d = "/api/nachricht", {"an": "CC1", "art": "info", "kurz": "ohne Namen"}
+        with self.assertRaises(aktionen.Ungueltig) as e:                                        # Benutzer gibt es (setUp)
+            aktionen.ausfuehren(self.con, self.a, weg, dict(d), kanal="netz")
+        self.assertIn("Anmeldung fehlt", str(e.exception))
+        with self.assertRaises(aktionen.Ungueltig):
+            aktionen.ausfuehren(self.con, self.a, weg, dict(d, _benutzer=""), kanal="netz")
+        self.netz(benutzer.ZUGANG, weg, dict(d, kurz="vom Zugang"))                             # Zugang der Seite = System-Admin
+        self.assertIsNone(self.con.execute("SELECT benutzer FROM nachricht WHERE kurz = 'vom Zugang'").fetchone()[0])
+        with self.assertRaises(kern.AmwFehler):
+            benutzer.neu(self.con, kern.ENTWICKLER, "@zugang", "system_admin")                 # niemand heißt wie der Zugang
+        with db.schreiben(self.con):                                                            # Betrieb vor den Benutzern
+            self.con.execute("DELETE FROM benutzer_projekt")
+            self.con.execute("DELETE FROM benutzer")
+        aktionen.ausfuehren(self.con, self.a, weg, dict(d, kurz="alt"), kanal="netz")
+        self.assertIsNotNone(self.con.execute("SELECT 1 FROM nachricht WHERE kurz = 'alt'").fetchone())
+
+    def test_neuer_benutzer_ohne_rolle_hat_keine_rechte(self):
+        benutzer.neu(self.con, kern.ENTWICKLER, "neu1")                                          # ohne Rolle, ohne Projekte
+        self.assertEqual(benutzer.darf(self.con, "neu1", self.a, "lesen"),
+                         (False, "neu1 wartet auf Freigabe – ein Admin vergibt Rolle und Projekte"))
+        benutzer.aendern(self.con, kern.ENTWICKLER, "neu1", rolle="bearbeiter", projekte=["Spiel"])   # Freigabe durch den Admin
+        self.assertEqual(benutzer.darf(self.con, "neu1", self.a, "arbeiten"), (True, None))
+
+    def test_seite_setzt_den_namen_selbst(self):
+        """api.php nimmt keinen Namen vom Aufrufer und schickt ohne Anmeldung nichts weiter (Quelltext-Prüfung)."""
+        wurzel = os.path.dirname(os.path.dirname(os.path.abspath(aktionen.__file__)))
+        with open(os.path.join(wurzel, "web", "api.php"), encoding="utf-8") as f:
+            api = f.read()
+        with open(os.path.join(wurzel, "web", "inc", "lib.php"), encoding="utf-8") as f:
+            lib = f.read()
+        i, j = api.index("unset($daten['_benutzer'])"), api.index("$daten['_benutzer'] = $wer;")
+        self.assertLess(i, j)
+        self.assertIn("if ($wer === null) antwort(401", api[i:j])
+        self.assertIn("$_SESSION['zugang'] = true;", lib)
 
     def test_abgleich_schreibt_benutzer_ohne_geheimnisse(self):
         online = os.path.join(self.ordner.name, "online.db")

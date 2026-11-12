@@ -11,6 +11,11 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   schreibt nichts, ein Bearbeiter nur in seinen Projekten, Einstellungen des PCs nur ein System-Admin.
 - **Der Verlauf nennt den Menschen:** Nachrichten und Antworten tragen den Namen des Benutzers.
 - **Abgleich:** Die Benutzer stehen ohne Passwort und Geheimnis im Online-Speicher; beides setzt jeder später selbst.
+- **Ohne Namen keine Rechte:** Sobald es Benutzer gibt, weist der PC jede Eingabe von der Online-Seite ab, die keinen
+  Benutzer mitbringt. Die Seite schickt immer mit, wer handelt – auch den bisherigen Zugang aus ihrer Konfiguration.
+  Wer vor dem Update angemeldet war, meldet sich einmal neu an.
+- **Neue Benutzer warten auf Freigabe:** Ohne Rolle hat ein Benutzer keine Rechte, bis ein Admin Rolle und Projekte
+  vergibt.
 - Der Mensch am PC und der bisherige Online-Zugang bleiben System-Admin. Anmelden können sich neue Benutzer mit der
   nächsten Stufe (Einladung).
 - **Schema 27.** Bestehende Daten bleiben unverändert.

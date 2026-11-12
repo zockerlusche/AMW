@@ -25,11 +25,11 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
     name = daten.pop("_benutzer", None) if isinstance(daten, dict) else None
     if kanal != "netz":
         name = None                                  # am PC sitzt der Mensch selbst (System-Admin)
-    if name:
+    else:                                            # von der Online-Seite: immer prüfen, auch ohne Namen (dann nur Altbetrieb)
         ok, grund = benutzer.darf(con, name, pid, benutzer.klasse(weg, daten))
         if not ok:
             raise Ungueltig(f"Nicht erlaubt: {grund}")
-    marke = benutzer.AKTUELL.set(name or None)
+    marke = benutzer.AKTUELL.set(name if name and name != benutzer.ZUGANG else None)
     try:
         if weg == "/api/schirm":
             return schirm_setzen(con, pid, daten, kanal)

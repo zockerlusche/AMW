@@ -1040,21 +1040,21 @@ def cmd_benutzer(a, con):
     von = _von(a)
     projekte = [x.strip() for x in a.projekte.split(",") if x.strip()] if a.projekte is not None else None
     if a.aktion == "neu":
-        if not a.name or not a.rolle:
-            raise kern.AmwFehler("amw benutzer neu <name> --rolle leser|bearbeiter|projekt_admin|system_admin [--projekte A,B]")
+        if not a.name:
+            raise kern.AmwFehler("amw benutzer neu <name> [--rolle leser|bearbeiter|projekt_admin|system_admin --projekte A,B]")
         benutzer.neu(con, von, a.name, a.rolle, a.anzeige, a.email, projekte or ())
-        print(f"Benutzer {a.name} angelegt ({benutzer.NAMEN[a.rolle]}) – anmelden kann er sich, sobald die Einladung gebaut ist")
+        print(f"Benutzer {a.name} angelegt – " + (benutzer.NAMEN[a.rolle] if a.rolle else "wartet auf Freigabe (noch keine Rechte)"))
     elif a.aktion in ("aendern", "sperren", "entsperren"):
         if not a.name:
             raise kern.AmwFehler(f"amw benutzer {a.aktion} <name>")
         gesperrt = True if a.aktion == "sperren" else False if a.aktion == "entsperren" else None
         b = benutzer.aendern(con, von, a.name, a.rolle, gesperrt, projekte)
-        print(f"{b['name']}: {benutzer.NAMEN[b['rolle']]}" + (" · gesperrt" if b["gesperrt"] else ""))
+        print(f"{b['name']}: {benutzer.NAMEN.get(b['rolle'], 'wartet auf Freigabe')}" + (" · gesperrt" if b["gesperrt"] else ""))
     else:
         namen = {r[0]: r[1] for r in con.execute("SELECT id, name FROM projekt")}
         for b in benutzer.liste(con):
             pr = "alle" if b["rolle"] == "system_admin" else ", ".join(namen.get(i, "?") for i in b["projekte"]) or "–"
-            print(f"{b['name']:<16} {benutzer.NAMEN[b['rolle']]:<14} {'gesperrt ' if b['gesperrt'] else ''}Projekte: {pr}")
+            print(f"{b['name']:<16} {benutzer.NAMEN.get(b['rolle'], 'wartet auf Freigabe'):<20} {'gesperrt ' if b['gesperrt'] else ''}Projekte: {pr}")
 
 
 def cmd_rechner(a, con):

@@ -1,6 +1,6 @@
 -- Schema 26 → 27 (AMW 1.63.0): mehrere Benutzer (Stufe R1a). Ein Benutzer hat EINE Rolle (global, Beschluss des
 -- Menschen) und bekommt Projekte zugewiesen. Passwörter und Geheimnisse liegen nie hier – nur im Online-Speicher.
---   rolle            leser | bearbeiter | projekt_admin | system_admin
+--   rolle            leser | bearbeiter | projekt_admin | system_admin; leer = wartet auf Freigabe durch einen Admin (keine Rechte)
 --   benutzer_projekt welche Projekte ein Benutzer sieht (System-Admins sehen alle)
 --   nachricht.benutzer, frage_verlauf.benutzer   wer von den Menschen es war (leer = der Mensch am PC bzw. vor Schema 27)
 -- Bestand: keine Benutzer; der Mensch am PC und der bisherige Online-Zugang bleiben System-Admin. Schema auf Wort des
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS benutzer (
   name          TEXT NOT NULL UNIQUE,
   anzeige       TEXT,
   email         TEXT,
-  rolle         TEXT NOT NULL CHECK (rolle IN ('leser', 'bearbeiter', 'projekt_admin', 'system_admin')),
+  rolle         TEXT CHECK (rolle IN ('leser', 'bearbeiter', 'projekt_admin', 'system_admin')),   -- leer = wartet auf Freigabe
   gesperrt      INTEGER NOT NULL DEFAULT 0,
   angelegt_utc  TEXT NOT NULL,
   angelegt_von  TEXT NOT NULL,

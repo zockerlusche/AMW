@@ -950,7 +950,7 @@ CREATE TABLE benutzer (
   name          TEXT NOT NULL UNIQUE,
   anzeige       TEXT,
   email         TEXT,
-  rolle         TEXT NOT NULL CHECK (rolle IN ('leser', 'bearbeiter', 'projekt_admin', 'system_admin')),
+  rolle         TEXT CHECK (rolle IN ('leser', 'bearbeiter', 'projekt_admin', 'system_admin')),   -- leer = wartet auf Freigabe
   gesperrt      INTEGER NOT NULL DEFAULT 0,
   angelegt_utc  TEXT NOT NULL,
   angelegt_von  TEXT NOT NULL,
