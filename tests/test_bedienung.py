@@ -356,6 +356,15 @@ class Seite(Wiederholt, Grund):
         self.warten("document.querySelector('.dialog-hg .dialog')")
         self.assertFalse(self.tab.js("[...document.querySelectorAll('.dialog-hg button')].some(b => b.textContent === 'Dazwischenschieben')"))
 
+    def test_benutzer_anlegen_in_den_einstellungen(self):
+        """Einstellungen › Benutzer der Online-Seite: anlegen – ohne Rolle wartet er auf Freigabe."""
+        self.oeffnen("einstellungen", "document.querySelector('#e-benutzer #bn-neu-name')")
+        self.tab.js("document.querySelector('#bn-neu-name').value = 'probe'; document.querySelector('#bn-anlegen').click()")
+        self.warten("document.querySelector('#e-benutzer [data-name=probe]')")
+        self.assertIn("wartet auf Freigabe", self.tab.js("document.querySelector('#e-benutzer [data-name=probe] select').selectedOptions[0].textContent"))
+        from amw import benutzer
+        self.assertIsNone(benutzer.finden(self.con, "probe")["rolle"])
+
     def test_versionshinweise_mit_entwurf(self):
         """Seite Versionshinweise: oben der Entwurf der nächsten Version (Satz des Agenten, Vorschlag gekennzeichnet)."""
         from amw import kern

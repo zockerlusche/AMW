@@ -49,7 +49,7 @@ const ONLINE_SCHEMA = [
     "CREATE TABLE IF NOT EXISTS hoch_teil (id TEXT NOT NULL, nr INTEGER NOT NULL, inhalt TEXT NOT NULL, PRIMARY KEY (id, nr))",
     "CREATE TABLE IF NOT EXISTS projekt (uid TEXT PRIMARY KEY, name TEXT NOT NULL, farbe TEXT, rechner TEXT, gesehen_utc TEXT NOT NULL, fragen INTEGER NOT NULL DEFAULT 0, agenten INTEGER NOT NULL DEFAULT 0, halt INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS datei_projekt (sha TEXT NOT NULL, projekt TEXT NOT NULL, PRIMARY KEY (sha, projekt))",
-    "CREATE TABLE IF NOT EXISTS benutzer (name TEXT PRIMARY KEY, anzeige TEXT, email TEXT, rolle TEXT, gesperrt INTEGER NOT NULL DEFAULT 0, projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, stand_utc TEXT)",
+    "CREATE TABLE IF NOT EXISTS benutzer (name TEXT PRIMARY KEY, anzeige TEXT, email TEXT, rolle TEXT, gesperrt INTEGER NOT NULL DEFAULT 0, projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, totp_letzt INTEGER NOT NULL DEFAULT 0, code_hash TEXT, code_bis TEXT, sitzung_nr INTEGER NOT NULL DEFAULT 0, eingerichtet_utc TEXT, angemeldet_utc TEXT, stand_utc TEXT)",
 ];
 
 /** Spalten älterer Online-Speicher nachrüsten (wie amw/abgleich.py NACHRUESTEN) – einmal je Sitzung geprüft. */
@@ -232,7 +232,7 @@ function seite_anfang(string $titel, string $unterzeile): void {
         . 'label{display:grid;gap:4px;font-size:13px;color:var(--leise);text-transform:uppercase;letter-spacing:.06em}'
         . 'input{font:inherit;font-size:16px;padding:10px 12px;min-height:46px;border:1px solid var(--linie);border-radius:3px;background:var(--grund);color:var(--text);text-transform:none;letter-spacing:normal;width:100%}'
         . 'input:focus{outline:2px solid var(--bernstein);outline-offset:1px}'
-        . 'button{font:600 14px Bahnschrift,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;min-height:46px;border:0;border-radius:3px;background:var(--bernstein);color:#1d1b16;cursor:pointer}'
+        . 'button{font:600 14px Bahnschrift,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;min-height:46px;border:0;border-radius:3px;background:var(--bernstein);color:#1d1b16;cursor:pointer}button.zweit{background:transparent;color:var(--text);border:1px solid var(--linie)}form a{color:var(--bernstein)}'
         . '.fehler{color:var(--rot);font-size:14px}.gut{color:var(--gruen);font-size:14px}'
         . '.schritte{margin:0;padding-left:20px;font-size:14px}.schritte li{margin:4px 0}'
         . '.qr{display:grid;place-items:center}.qr svg{width:100%;max-width:260px;height:auto;border-radius:3px}'
@@ -253,6 +253,7 @@ function angemeldet(): bool {
         abmelden();
         return false;
     }
+    if (isset($_SESSION['benutzer']) && benutzer_aktuell() === null) return false;   // gesperrt, gelöscht, neu freigeschaltet
     $_SESSION['zuletzt'] = $t;
     return true;
 }
@@ -504,6 +505,12 @@ function anmelden(string $benutzer, string $passwort, string $code): string {
     $k = konfig();
     $ip = $_SERVER['REMOTE_ADDR'] ?? '?';
     if (gesperrt($ip)) return 'Zu viele Fehlversuche – bitte später erneut versuchen.';
+    if (!hash_equals($k['benutzer'], $benutzer)) {           // nicht der Zugang aus der Konfiguration: angelegter Benutzer
+        try { return benutzer_anmelden($benutzer, $passwort, $code); }
+        catch (RuntimeException $e) {                        // Tabelle fehlt noch (Speicher vor 1.65): wie bisher weiter
+            if (!($e instanceof PDOException) && $e->getCode() !== 500) throw $e;     // Speicher nicht erreichbar: melden
+        }
+    }
     $ok = (bool)(hash_equals($k['benutzer'], $benutzer) & password_verify($passwort, $k['passwort_hash']));
     $geheim = $ok ? totp_geheim() : null;
     if ($ok && $geheim === null) {                       // erstes Anmelden: zweiten Faktor einrichten
@@ -536,4 +543,151 @@ function einrichten_abschliessen(string $code): string {
     versuch_merken($ip, true, $schritt);
     sitzung_anmelden();
     return '';
+}
+
+/* --- Mehrere Benutzer (Stufe R1b): Freischalt-Code, erstes Anmelden, Anmelden je Benutzer ------------------------
+ * Ein Admin schaltet am PC frei; der PC schreibt nur einen Hash des Codes und die Ablaufzeit hierher. Der Benutzer
+ * setzt Passwort und zweiten Faktor selbst. Erst wenn beides bestätigt ist, gilt der Code als benutzt – in EINEM
+ * Schritt, nur wenn er noch derselbe und gültig ist (zwei gleichzeitig: nur einer kommt durch). Neue Benutzer haben
+ * keine Rolle und damit keine Rechte, bis ein Admin Rolle und Projekte vergibt. */
+
+const PASSWORT_MIN = 12;
+const BENUTZER_ROLLEN = ['leser', 'bearbeiter', 'projekt_admin', 'system_admin'];
+
+/** Code so, wie der PC ihn hasht: Großbuchstaben, ohne Bindestriche und Leerzeichen. */
+function code_norm(string $c): string {
+    return strtoupper((string)preg_replace('/[^0-9A-Za-z]/', '', $c));
+}
+
+function benutzer_zeile(string $name): ?array {
+    if ($name === '') return null;
+    $z = sql([['SELECT name, rolle, gesperrt, projekte, passwort_hash, totp_geheim, totp_letzt, code_hash, code_bis, sitzung_nr'
+               . ' FROM benutzer WHERE name = ?', [$name]]])[0];
+    if (!$z) return null;
+    return array_combine(['name', 'rolle', 'gesperrt', 'projekte', 'passwort_hash', 'totp_geheim', 'totp_letzt', 'code_hash',
+                          'code_bis', 'sitzung_nr'], $z[0]);
+}
+
+/** Schritt eines gültigen Codes (±30 s) oder null; nie ein Schritt, der schon benutzt wurde. */
+function totp_schritt(string $geheim, string $code, int $letzt): ?int {
+    if (!preg_match('/^\d{6}$/', $code)) return null;
+    $jetzt = intdiv(time(), 30);
+    foreach ([$jetzt, $jetzt - 1, $jetzt + 1] as $s) {
+        if ($s > $letzt && hash_equals(totp($geheim, $s), $code)) return $s;
+    }
+    return null;
+}
+
+/** Schritt 1: Name und Freischalt-Code. Dieselbe Meldung für jeden Fehler; Fehlversuche zählen in die Sperre. */
+function freischalten_beginnen(string $name, string $code): string {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '?';
+    if (gesperrt($ip)) return 'Zu viele Fehlversuche – bitte später erneut versuchen.';
+    $b = benutzer_zeile(trim($name));
+    $hash = hash('sha256', code_norm($code));
+    $ok = $b !== null && !(int)$b['gesperrt'] && $b['code_hash'] !== null && hash_equals((string)$b['code_hash'], $hash)
+        && strcmp((string)$b['code_bis'], jetzt_utc()) > 0;
+    versuch_merken($ip, $ok);
+    if (!$ok) { usleep(400000); return 'Name oder Freischalt-Code stimmt nicht – oder der Code ist abgelaufen.'; }
+    session_regenerate_id(true);
+    unset($_SESSION['einrichten']);
+    $_SESSION['freischalten'] = ['name' => $b['name'], 'code_hash' => $hash, 'seit' => time()];
+    return '';
+}
+
+function freischalten_offen(): ?array {
+    $f = $_SESSION['freischalten'] ?? null;
+    if ($f && time() - $f['seit'] > EINRICHTEN_S) { unset($_SESSION['freischalten']); return null; }
+    return $f;
+}
+
+/** Schritt 2: Passwort zweimal. Gespeichert wird es erst in Schritt 3. */
+function freischalten_passwort(string $p1, string $p2): string {
+    $f = freischalten_offen();
+    if (!$f) return 'Zeit abgelaufen – bitte noch einmal mit dem Freischalt-Code beginnen.';
+    if (mb_strlen($p1) < PASSWORT_MIN) return 'Das Passwort braucht mindestens ' . PASSWORT_MIN . ' Zeichen.';
+    if (!hash_equals($p1, $p2)) return 'Die beiden Passwörter sind nicht gleich.';
+    $_SESSION['freischalten']['passwort_hash'] = password_hash($p1, PASSWORD_DEFAULT);
+    $_SESSION['freischalten']['geheim'] = neues_geheim();
+    return '';
+}
+
+/** Schritt 3: erste Zahl aus der App. Speichert Passwort und Geheimnis und verbraucht den Code – alles auf einmal. */
+function freischalten_abschliessen(string $code): string {
+    $f = freischalten_offen();
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '?';
+    if (!$f || empty($f['geheim'])) return 'Zeit abgelaufen – bitte noch einmal mit dem Freischalt-Code beginnen.';
+    if (gesperrt($ip)) return 'Zu viele Fehlversuche – bitte später erneut versuchen.';
+    $schritt = totp_schritt($f['geheim'], $code, 0);
+    if ($schritt === null) { versuch_merken($ip, false); usleep(400000); return 'Zahl stimmt nicht – bitte die aktuelle Zahl aus der App.'; }
+    $t = jetzt_utc();
+    $z = sql([['UPDATE benutzer SET passwort_hash = ?, totp_geheim = ?, totp_letzt = ?, code_hash = NULL, code_bis = NULL,'
+               . ' eingerichtet_utc = ?, angemeldet_utc = ? WHERE name = ? AND code_hash = ? AND code_bis > ? AND gesperrt = 0'
+               . ' RETURNING name, sitzung_nr', [$f['passwort_hash'], $f['geheim'], $schritt, $t, $t, $f['name'], $f['code_hash'], $t]]])[0];
+    unset($_SESSION['freischalten']);
+    if (!$z) return 'Der Freischalt-Code wurde inzwischen benutzt, ersetzt oder ist abgelaufen – bitte beim Admin melden.';
+    versuch_merken($ip, true);
+    try {                                                   // der PC meldet es dem Admin (Push): neuer Benutzer wartet auf Freigabe
+        sql([['INSERT INTO eingang (zeit_utc, weg, daten, ip, projekt) VALUES (?, ?, ?, ?, NULL)',
+              [$t, '/api/benutzer/eingerichtet', json_encode(['_benutzer' => $f['name']]), $ip]]]);
+    } catch (Throwable $e) {}                               // die Anmeldung hängt nie daran
+    sitzung_benutzer($f['name'], (int)$z[0][1]);
+    return '';
+}
+
+function sitzung_benutzer(string $name, int $nr): void {
+    session_regenerate_id(true);
+    unset($_SESSION['einrichten'], $_SESSION['freischalten'], $_SESSION['zugang']);
+    $_SESSION['angemeldet'] = true;
+    $_SESSION['benutzer'] = $name;
+    $_SESSION['sitzung_nr'] = $nr;
+    $_SESSION['seit'] = $_SESSION['zuletzt'] = time();
+    $_SESSION['csrf'] = bin2hex(random_bytes(32));
+}
+
+/** Anmelden eines angelegten Benutzers: Passwort und Zahl aus der App, je Benutzer eigener Schutz gegen doppelte Zahlen. */
+function benutzer_anmelden(string $name, string $passwort, string $code): string {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '?';
+    if (gesperrt($ip)) return 'Zu viele Fehlversuche – bitte später erneut versuchen.';
+    $b = benutzer_zeile($name);
+    $hash = $b['passwort_hash'] ?? null;
+    $pw = password_verify($passwort, $hash ?? PASSWORT_ATTRAPPE);       // gleiche Rechenzeit, auch ohne Benutzer
+    $ok = $pw && $hash !== null && ($b['totp_geheim'] ?? null) !== null && !(int)$b['gesperrt'];
+    $schritt = $ok ? totp_schritt((string)$b['totp_geheim'], $code, (int)$b['totp_letzt']) : null;
+    versuch_merken($ip, $schritt !== null);
+    if ($schritt === null) { usleep(400000); return 'Anmeldung fehlgeschlagen.'; }
+    $z = sql([['UPDATE benutzer SET totp_letzt = ?, angemeldet_utc = ? WHERE name = ? AND totp_letzt < ? RETURNING sitzung_nr',
+               [$schritt, jetzt_utc(), $name, $schritt]]])[0];
+    if (!$z) { usleep(400000); return 'Anmeldung fehlgeschlagen.'; }       // dieselbe Zahl gerade schon benutzt
+    sitzung_benutzer($name, (int)$z[0][0]);
+    return '';
+}
+const PASSWORT_ATTRAPPE = '$2y$10$7rCw1rG0hQ6J3n0b6l9cMeO8yE0Qm0eQ2b3m2xk1H6p8Gq4iZr9eK';
+
+/** Bei jeder Anfrage: gibt es den Benutzer noch, ist er nicht gesperrt, wurde er nicht neu freigeschaltet? Sonst ab. */
+function benutzer_aktuell(): ?array {
+    $name = $_SESSION['benutzer'] ?? null;
+    if ($name === null) return null;
+    $b = benutzer_zeile((string)$name);
+    if (!$b || (int)$b['gesperrt'] || (int)$b['sitzung_nr'] !== (int)($_SESSION['sitzung_nr'] ?? -1) || $b['passwort_hash'] === null) {
+        abmelden();
+        return null;
+    }
+    $b['projekte'] = json_decode((string)$b['projekte'], true) ?: [];
+    return $b;
+}
+
+/** Klasse einer Eingabe wie amw/benutzer.py klasse(). */
+function eingabe_klasse(string $pfad): string {
+    if (str_starts_with($pfad, '/api/benutzer')) return 'benutzer';
+    if (in_array($pfad, ['/api/einstellungen/projekt', '/api/einstellungen/agent'], true)) return 'projekt';
+    if (str_starts_with($pfad, '/api/einstellungen/') || in_array($pfad, ['/api/archivieren', '/api/push/probe', '/api/projekt/neu'], true)) return 'system';
+    return 'arbeiten';
+}
+
+/** Reicht die Rolle für die Klasse? Ohne Rolle (wartet auf Freigabe) nie. */
+function rolle_reicht(?string $rolle, string $klasse): bool {
+    $braucht = ['lesen' => 'leser', 'arbeiten' => 'bearbeiter', 'projekt' => 'projekt_admin', 'benutzer' => 'projekt_admin',
+                'system' => 'system_admin'][$klasse];
+    $i = array_search($rolle, BENUTZER_ROLLEN, true);
+    return $i !== false && $i >= array_search($braucht, BENUTZER_ROLLEN, true);
 }

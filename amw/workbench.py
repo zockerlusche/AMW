@@ -445,6 +445,19 @@ def sprache_vorgabe():
         return "auto"
 
 
+def daten_benutzer(con, speicher=None):
+    """Benutzer der Online-Seite für die Verwaltung am PC – mit Stand aus dem Online-Speicher (nie hochgeladen)."""
+    from . import abgleich, benutzer
+    sp = speicher if speicher is not None else abgleich.speicher_aus_zugang()
+    stand = benutzer.online_stand(sp)
+    projekte = [{"id": r[0], "name": r[1]} for r in con.execute("SELECT id, name FROM projekt ORDER BY name")]
+    liste = []
+    for b in benutzer.liste(con):
+        liste.append({k: b[k] for k in ("name", "anzeige", "email", "rolle", "gesperrt", "projekte")}
+                     | {"online": stand.get(b["name"], {"stand": "neu"})})
+    return {"benutzer": liste, "projekte": projekte, "rollen": list(benutzer.ROLLEN), "online": sp is not None}
+
+
 def daten_einstellungen(con, pid, speicher=None):
     """Zahnrad: alles, was einstellbar ist – nie Schlüssel oder Passwörter (der Turso-Schlüssel nur als „gespeichert“)."""
     from . import __version__, abgleich, einstellungen, ueberwachung
@@ -1066,7 +1079,8 @@ def baue_handler(port, token):
                     "/api/seit": lambda c, p: daten_seit(c, p, q),
                     "/api/dokumente": lambda c, p: daten_dokumente(c, p, q),
                     "/api/dokument": lambda c, p: daten_dokument(c, p, q),
-                    "/api/projekte": lambda c, p: daten_projekte(c, p)}
+                    "/api/projekte": lambda c, p: daten_projekte(c, p),
+                    "/api/benutzer": lambda c, p: daten_benutzer(c)}
             weg = wege.get(u.path)
             if not weg:
                 return self._senden(404, {"fehler": "unbekannt"})

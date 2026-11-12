@@ -6,7 +6,7 @@ import sqlite3
 import tempfile
 import unittest
 
-from amw import abgleich, aktionen, benutzer, db, kern
+from amw import abgleich, aktionen, benutzer, db, kern, workbench
 
 
 class Grund(unittest.TestCase):
@@ -124,6 +124,51 @@ class Rechte(Grund):
         uid_a = self.con.execute("SELECT uid FROM projekt WHERE id = ?", (self.a,)).fetchone()[0]
         self.assertEqual(zeilen["bert"][:2], ("bearbeiter", json.dumps([uid_a])))
         self.assertEqual(zeilen["sam"][2:], (None, None))                                       # nie Passwort oder Geheimnis
+
+
+
+class Verwaltung(Grund):
+    """Stufe R1b: Benutzer verwalten nur am PC, Freischalten schreibt online, Meldung an den Menschen nach dem ersten Anmelden."""
+    def setUp(self):
+        super().setUp()
+        self.sp = abgleich.SqliteSpeicher(os.path.join(self.ordner.name, "online.db"))
+        self.sp.ausfuehren([(s, []) for s in abgleich.SCHEMA])
+
+    def am_pc(self, was, d):
+        return aktionen.ausfuehren(self.con, self.a, f"/api/benutzer/{was}", d, kanal="seite", speicher=self.sp)
+
+    def test_verwalten_am_pc_und_nicht_von_unterwegs(self):
+        self.am_pc("neu", {"name": "ben"})
+        self.assertIsNone(benutzer.finden(self.con, "ben")["rolle"])
+        self.am_pc("aendern", {"name": "ben", "rolle": "bearbeiter", "projekte": [self.a]})
+        self.assertEqual(benutzer.finden(self.con, "ben")["projekte"], [self.a])
+        aus = self.am_pc("freischalten", {"name": "ben", "stunden": 2})
+        self.assertRegex(aus["code"], r"^[A-Z2-9]{4}(-[A-Z2-9]{4}){3}$")
+        with self.assertRaises(aktionen.Ungueltig):
+            self.am_pc("freischalten", {"name": "ben", "stunden": 500})
+        with self.assertRaises(aktionen.Ungueltig) as e:                                        # System-Admin online: trotzdem nein
+            self.netz("sam", "/api/benutzer/neu", {"name": "x"})
+        self.assertIn("am PC", str(e.exception))
+        with self.assertRaises(aktionen.Ungueltig):
+            self.netz("bert", "/api/benutzer/aendern", {"name": "bert", "rolle": "system_admin"})   # sich selbst hochstufen
+        d = workbench.daten_benutzer(self.con, self.sp)
+        ben = next(b for b in d["benutzer"] if b["name"] == "ben")
+        self.assertEqual(ben["online"]["stand"], "wartet_code")
+        self.assertNotIn(aus["code"], json.dumps(d))                                            # der Code steht nirgends
+        self.assertNotIn(aus["code"].replace("-", ""), json.dumps(d))
+
+    def test_meldung_nach_dem_ersten_anmelden(self):
+        benutzer.neu(self.con, kern.ENTWICKLER, "neu2")
+        aus = self.netz("neu2", "/api/benutzer/eingerichtet", {})
+        self.assertEqual(aus, {"gemeldet": True})
+        n = self.con.execute("SELECT von, kurz FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id"
+                             " WHERE e.agent = ? ORDER BY n.id DESC LIMIT 1", (kern.ENTWICKLER,)).fetchone()
+        self.assertEqual(tuple(n), ("AMW", "Neuer Benutzer neu2 wartet auf Freigabe"))
+        with self.assertRaises(aktionen.Ungueltig):                                             # nur von der Seite
+            aktionen.ausfuehren(self.con, self.a, "/api/benutzer/eingerichtet", {}, kanal="seite")
+        benutzer.aendern(self.con, kern.ENTWICKLER, "neu2", gesperrt=True)
+        with self.assertRaises(aktionen.Ungueltig):                                             # gesperrt: auch das nicht
+            self.netz("neu2", "/api/benutzer/eingerichtet", {})
 
 
 if __name__ == "__main__":

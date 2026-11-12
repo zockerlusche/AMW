@@ -1044,6 +1044,14 @@ def cmd_benutzer(a, con):
             raise kern.AmwFehler("amw benutzer neu <name> [--rolle leser|bearbeiter|projekt_admin|system_admin --projekte A,B]")
         benutzer.neu(con, von, a.name, a.rolle, a.anzeige, a.email, projekte or ())
         print(f"Benutzer {a.name} angelegt – " + (benutzer.NAMEN[a.rolle] if a.rolle else "wartet auf Freigabe (noch keine Rechte)"))
+    elif a.aktion == "freischalten":
+        from . import abgleich
+        if not a.name:
+            raise kern.AmwFehler("amw benutzer freischalten <name> [--stunden 24]")
+        code, bis = benutzer.freischalten(con, von, a.name, abgleich.speicher_aus_zugang(), a.stunden)
+        print(f"Freischalt-Code für {a.name}: {code}")
+        print(f"gültig bis {bis} (UTC), nur einmal. Gib ihn {a.name} persönlich weiter – er steht nirgends sonst."
+              " Damit setzt er auf der Online-Seite unter „Erstes Anmelden“ sein Passwort und den zweiten Faktor.")
     elif a.aktion in ("aendern", "sperren", "entsperren"):
         if not a.name:
             raise kern.AmwFehler(f"amw benutzer {a.aktion} <name>")
@@ -2240,7 +2248,8 @@ def parser():
 
     x = s.add_parser("benutzer", help="Benutzer der Online-Seite (nur der Mensch): neu NAME --rolle … [--projekte A,B] | liste |"
                                       " aendern NAME | sperren NAME | entsperren NAME")
-    x.add_argument("aktion", nargs="?", default="liste", choices=["neu", "liste", "aendern", "sperren", "entsperren"])
+    x.add_argument("aktion", nargs="?", default="liste", choices=["neu", "liste", "aendern", "sperren", "entsperren", "freischalten"])
+    x.add_argument("--stunden", type=int, default=24, help="freischalten: so lange gilt der Code (1–168)")
     x.add_argument("name", nargs="?")
     x.add_argument("--rolle", choices=["leser", "bearbeiter", "projekt_admin", "system_admin"])
     x.add_argument("--projekte", help="Namen der Projekte, mit Komma getrennt")

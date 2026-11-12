@@ -56,6 +56,30 @@ def schirm_setzen(con, pid, d, kanal):
     return {"schirm": z, "text": schirm.text(z)}
 
 
+def benutzer_verwalten(con, was, d, speicher=None):
+    """neu (name, rolle?, projekte?, anzeige?) · aendern (name, rolle?, projekte?, gesperrt?) · freischalten (name, stunden?)."""
+    from . import abgleich, benutzer
+    name = (d.get("name") or "").strip()
+    projekte = d.get("projekte")
+    if projekte is not None and not (isinstance(projekte, list) and all(isinstance(p, int) for p in projekte)):
+        raise Ungueltig("projekte: Liste von Projekt-Nummern")
+    rolle = d.get("rolle") or None
+    try:
+        if was == "neu":
+            benutzer.neu(con, kern.ENTWICKLER, name, rolle, d.get("anzeige"), d.get("email"), projekte or ())
+            return {"benutzer": benutzer.finden(con, name)}
+        if was == "aendern":
+            g = d.get("gesperrt")
+            return {"benutzer": benutzer.aendern(con, kern.ENTWICKLER, name, rolle, None if g is None else bool(g), projekte)}
+        if was == "freischalten":
+            sp = speicher if speicher is not None else abgleich.speicher_aus_zugang()
+            code, bis = benutzer.freischalten(con, kern.ENTWICKLER, name, sp, d.get("stunden") or benutzer.CODE_STUNDEN)
+            return {"code": code, "bis": bis}
+    except kern.AmwFehler as e:
+        raise Ungueltig(str(e)) from None
+    raise Ungueltig("unbekannt")
+
+
 def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
     teile = weg.strip("/").split("/")
     if teile[:2] == ["api", "frage"] and len(teile) == 4 and teile[3] == "antwort":
@@ -145,6 +169,15 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         return aufgabe(con, pid, weg.rsplit("/", 1)[1], daten)
     if weg.startswith("/api/plan/"):                 # Planung – auch von unterwegs (Freigaben!)
         return planen(con, pid, weg.rsplit("/", 1)[1], daten)
+    if weg == "/api/benutzer/eingerichtet":          # von der Seite selbst: erstes Anmelden fertig → Meldung an den Menschen
+        from . import benutzer
+        if kanal != "netz" or not benutzer.AKTUELL.get():
+            raise Ungueltig("Diese Meldung kommt nur von der Online-Seite")
+        return benutzer.eingerichtet_melden(con, pid, benutzer.AKTUELL.get())
+    if weg.startswith("/api/benutzer/"):             # Benutzer verwalten: nur am PC (Stufe R1b)
+        if kanal != "seite":
+            raise Ungueltig("Benutzer verwaltest du am PC")
+        return benutzer_verwalten(con, weg.rsplit("/", 1)[1], daten, speicher)
     if weg == "/api/projekt/neu":                    # nur am PC: richtet Ordner und Startskript auf diesem PC ein
         if kanal != "seite":
             raise Ungueltig("Ein neues Projekt legst du am PC an")

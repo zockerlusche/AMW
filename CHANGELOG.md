@@ -4,6 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.65.0 – 12.11.2026 · Mehrere Benutzer: Freischalten und Anmelden
+- **Benutzer der Online-Seite** (Einstellungen am PC): anlegen, Rolle und Projekte vergeben, freischalten, sperren. Ein
+  neuer Benutzer hat keine Rechte, bis du Rolle und Projekte vergibst.
+- **Freischalt-Code statt Mail:** „Freischalten“ zeigt einmal einen Code aus 16 Zeichen (24 Stunden gültig), den du
+  persönlich weitergibst. Online steht nur ein Hash davon, auf dem PC gar nichts. Auch als `amw benutzer freischalten NAME`.
+- **Erstes Anmelden in drei Schritten:** Name und Code, eigenes Passwort (mindestens 12 Zeichen), zweiter Faktor per
+  QR-Code. Erst mit der ersten Zahl aus der App gilt der Code als benutzt – alles auf einmal; bricht jemand vorher ab,
+  gilt der Code weiter. Zwei mit demselben Code: nur der erste kommt durch.
+- **Danach** meldet sich jeder mit Name, Passwort und Zahl aus der App an. Bis zur Freigabe sieht er nur „Dein Zugang
+  wird geprüft“; du bekommst die Meldung „Neuer Benutzer … wartet auf Freigabe“ (auch als Push).
+- **Rechte auf dem Webhoster:** Die Seite zeigt nur die zugewiesenen Projekte und weist Eingaben ab, für die die Rolle
+  nicht reicht – der PC prüft noch einmal. Sperren und „Neu freischalten“ beenden laufende Sitzungen sofort.
+- Hilfe „Benutzer der Online-Seite“ (DE/EN).
+
 ## 1.64.0 – 12.11.2026 · Dieselben Wörter auch in Meldungen und Befehlszeile
 - Meldungen der AMW an die Agenten, Ausgaben und Hilfetexte der Befehlszeile, Fehlermeldungen und das Protokoll des
   Dienstes sprechen jetzt dieselbe Sprache wie Oberfläche und Hilfen: Meilenstein, Dienst, Synchronisierung,

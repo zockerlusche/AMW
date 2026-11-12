@@ -69,7 +69,8 @@ SCHEMA = [
     " fragen INTEGER NOT NULL DEFAULT 0, agenten INTEGER NOT NULL DEFAULT 0, halt INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS datei_projekt (sha TEXT NOT NULL, projekt TEXT NOT NULL, PRIMARY KEY (sha, projekt))",
     "CREATE TABLE IF NOT EXISTS benutzer (name TEXT PRIMARY KEY, anzeige TEXT, email TEXT, rolle TEXT, gesperrt INTEGER NOT NULL DEFAULT 0,"
-    " projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, stand_utc TEXT)",
+    " projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, totp_letzt INTEGER NOT NULL DEFAULT 0,"
+    " code_hash TEXT, code_bis TEXT, sitzung_nr INTEGER NOT NULL DEFAULT 0, eingerichtet_utc TEXT, angemeldet_utc TEXT, stand_utc TEXT)",
 ]
 # Spalten, die es in älteren Online-Speichern noch nicht gibt (web/inc/lib.php rüstet dieselben nach)
 NACHRUESTEN = [("eingang", "projekt", "ALTER TABLE eingang ADD COLUMN projekt TEXT")]

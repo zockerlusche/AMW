@@ -755,18 +755,20 @@ options:
 
 ## benutzer
 ```
-usage: amw benutzer [-h]
+usage: amw benutzer [-h] [--stunden STUNDEN]
                     [--rolle {leser,bearbeiter,projekt_admin,system_admin}]
                     [--projekte PROJEKTE] [--anzeige ANZEIGE] [--email EMAIL]
                     [--von VON] [--projekt PROJEKT]
-                    [{neu,liste,aendern,sperren,entsperren}] [name]
+                    [{neu,liste,aendern,sperren,entsperren,freischalten}]
+                    [name]
 
 positional arguments:
-  {neu,liste,aendern,sperren,entsperren}
+  {neu,liste,aendern,sperren,entsperren,freischalten}
   name
 
 options:
   -h, --help            show this help message and exit
+  --stunden STUNDEN     freischalten: so lange gilt der Code (1–168)
   --rolle {leser,bearbeiter,projekt_admin,system_admin}
   --projekte PROJEKTE   Namen der Projekte, mit Komma getrennt
   --anzeige ANZEIGE

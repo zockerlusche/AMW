@@ -6,14 +6,20 @@ Der Mensch am PC (Workbench ohne Anmeldung) und der bisherige Online-Zugang aus 
 System-Admin. Passwörter und Geheimnisse liegen nie in dieser Datenbank.
 """
 import contextvars
+import datetime
+import hashlib
 import json
+import secrets
 
 from . import db, kern
 
 ROLLEN = ("leser", "bearbeiter", "projekt_admin", "system_admin")
 NAMEN = {"leser": "Leser", "bearbeiter": "Bearbeiter", "projekt_admin": "Projekt-Admin", "system_admin": "System-Admin"}
 # Klassen von Eingaben und die Rolle, die sie mindestens braucht
-KLASSEN = {"lesen": "leser", "arbeiten": "bearbeiter", "projekt": "projekt_admin", "benutzer": "projekt_admin", "system": "system_admin"}
+KLASSEN = {"lesen": "leser", "arbeiten": "bearbeiter", "projekt": "projekt_admin", "benutzer": "projekt_admin", "system": "system_admin",
+           "selbst": None}   # selbst: Meldungen der Seite über den Benutzer selbst (z. B. erstes Anmelden fertig) – keine Rolle nötig
+CODE_ZEICHEN = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"   # 32 Zeichen ohne I, O, 0, 1 – 16 Stellen = 80 Bit
+CODE_STUNDEN = 24
 
 AKTUELL = contextvars.ContextVar("amw_benutzer", default=None)   # wer gerade über die Online-Seite handelt (Name)
 ZUGANG = "@zugang"     # so nennt die Online-Seite den bisherigen Zugang aus ihrer Konfiguration (System-Admin)
@@ -21,6 +27,8 @@ ZUGANG = "@zugang"     # so nennt die Online-Seite den bisherigen Zugang aus ihr
 
 def klasse(weg, daten=None):
     """Welche Klasse eine Eingabe ist (Weg der Online-Seite)."""
+    if weg == "/api/benutzer/eingerichtet":
+        return "selbst"
     if weg.startswith("/api/benutzer"):
         return "benutzer"
     if weg in ("/api/einstellungen/projekt", "/api/einstellungen/agent"):
@@ -105,6 +113,8 @@ def darf(con, name, pid, klasse_):
         return False, f"Benutzer {name} ist hier nicht angelegt"
     if b["gesperrt"]:
         return False, f"{name} ist gesperrt"
+    if klasse_ == "selbst":
+        return True, None
     if not b["rolle"]:
         return False, f"{name} wartet auf Freigabe – ein Admin vergibt Rolle und Projekte"
     if b["rolle"] != "system_admin" and pid not in b["projekte"]:
@@ -122,3 +132,84 @@ def fuer_online(con):
         aus.append({"name": b["name"], "anzeige": b["anzeige"], "email": b["email"], "rolle": b["rolle"], "gesperrt": b["gesperrt"],
                     "projekte": json.dumps(sorted(uids))})
     return aus
+
+
+# --- Stufe R1b: Freischalt-Code und Stand je Benutzer im Online-Speicher ---------------------------------------------
+
+def code_neu():
+    roh = "".join(secrets.choice(CODE_ZEICHEN) for _ in range(16))
+    return "-".join(roh[i:i + 4] for i in range(0, 16, 4))
+
+
+def code_hash(code):
+    """Wie die Seite (web/inc/lib.php code_norm): Großbuchstaben, ohne Bindestriche und Leerzeichen."""
+    norm = "".join(c for c in code if c.isalnum()).upper()
+    return hashlib.sha256(norm.encode("ascii")).hexdigest()
+
+
+def freischalten(con, von, name, sp, stunden=CODE_STUNDEN):
+    """Neuer Freischalt-Code für das erste Anmelden (oder nach verlorenem Passwort/Handy). Setzt Passwort und zweiten
+    Faktor online zurück und beendet alle Sitzungen des Benutzers. Der Code wird nur zurückgegeben – online steht nur
+    sein Hash, auf dem PC gar nichts. Rückgabe: (code, bis_utc)."""
+    if von != kern.ENTWICKLER:
+        raise kern.AmwFehler("Freischalten darf nur der Mensch am PC")
+    b = finden(con, name)
+    if not b:
+        raise kern.AmwFehler(f"Benutzer {name} gibt es nicht")
+    if b["gesperrt"]:
+        raise kern.AmwFehler(f"{name} ist gesperrt – erst entsperren, dann freischalten")
+    if sp is None:
+        raise kern.AmwFehler("Kein Online-Speicher eingerichtet – Benutzer melden sich auf der Online-Seite an (amw web einrichten)")
+    if not 1 <= int(stunden) <= 168:
+        raise kern.AmwFehler("Gültigkeit: 1 bis 168 Stunden")
+    code = code_neu()
+    bis = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=int(stunden))).strftime("%Y-%m-%dT%H:%M:%SZ")
+    z = next(x for x in fuer_online(con) if x["name"] == name)
+    sp.ausfuehren([
+        ("INSERT INTO benutzer (name, anzeige, email, rolle, gesperrt, projekte, stand_utc) VALUES (?, ?, ?, ?, ?, ?, ?)"
+         " ON CONFLICT(name) DO UPDATE SET anzeige = excluded.anzeige, email = excluded.email, rolle = excluded.rolle,"
+         " gesperrt = excluded.gesperrt, projekte = excluded.projekte, stand_utc = excluded.stand_utc",
+         [z["name"], z["anzeige"], z["email"], z["rolle"], z["gesperrt"], z["projekte"], db.jetzt()]),
+        ("UPDATE benutzer SET code_hash = ?, code_bis = ?, passwort_hash = NULL, totp_geheim = NULL, totp_letzt = 0,"
+         " eingerichtet_utc = NULL, sitzung_nr = sitzung_nr + 1 WHERE name = ?", [code_hash(code), bis, name]),
+    ])
+    return code, bis
+
+
+def online_stand(sp):
+    """{name: {"stand": "wartet_code" | "code_abgelaufen" | "eingerichtet" | "neu", "bis", "eingerichtet_utc", "angemeldet_utc"}}"""
+    if sp is None:
+        return {}
+    try:
+        zeilen = sp.ausfuehren([("SELECT name, code_bis, eingerichtet_utc, angemeldet_utc, passwort_hash IS NOT NULL FROM benutzer", [])])[0]
+    except Exception:                                  # Speicher nicht erreichbar: die Liste kommt trotzdem
+        return {}
+    jetzt = db.jetzt()
+    aus = {}
+    for name, bis, eingerichtet, angemeldet, hat_passwort in zeilen:
+        if int(hat_passwort or 0):
+            stand = "eingerichtet"
+        elif bis:
+            stand = "wartet_code" if bis > jetzt else "code_abgelaufen"
+        else:
+            stand = "neu"
+        aus[name] = {"stand": stand, "bis": bis, "eingerichtet_utc": eingerichtet, "angemeldet_utc": angemeldet}
+    return aus
+
+
+def eingerichtet_melden(con, pid, name):
+    """Die Seite meldet: NAME hat Passwort und zweiten Faktor gesetzt. Ohne Rolle wartet er auf Freigabe – das geht an den
+    Menschen (Nachricht, damit auch als Push)."""
+    b = finden(con, name)
+    if not b:
+        return {"gemeldet": False}
+    if b["rolle"]:
+        kurz = f"{name} hat sich zum ersten Mal angemeldet"
+        text = f"{name} hat Passwort und zweiten Faktor eingerichtet und arbeitet als {NAMEN[b['rolle']]}."
+    else:
+        kurz = f"Neuer Benutzer {name} wartet auf Freigabe"
+        text = (f"{name} hat Passwort und zweiten Faktor eingerichtet und sieht bis zur Freigabe nur „Dein Zugang wird geprüft“."
+                " Rolle und Projekte vergibst du am PC unter Einstellungen › Benutzer"
+                f" (oder: amw benutzer aendern {name} --rolle … --projekte …).")
+    kern.posten(con, pid, "AMW", kern.ENTWICKLER, "meldung", kurz, text)
+    return {"gemeldet": True}
