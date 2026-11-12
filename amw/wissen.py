@@ -180,6 +180,14 @@ def release_version(con, pid, von, version, titel, commit_sha=None, text=None, o
     Entwurf aus den fertigen Aufgaben seit der letzten Version (versionshinweise.entwurf)."""
     from . import versionshinweise
     _nur_lead(con, pid, von, "Versionen setzen")
+    st = kern.versions_stand(con, pid)
+    if st["versionen"] != "aus":                     # Grund-Regelwerk G-2: Form MAJOR.MINOR.PATCH, größer als die letzte
+        neu, alt = kern.version_teile(version), kern.version_teile(st["letzte"])
+        vorschlag = " oder ".join(st["vorschlag"])
+        if not neu:
+            raise kern.AmwFehler(f"Version „{version}“ hat nicht die Form MAJOR.MINOR.PATCH (z. B. {vorschlag})")
+        if alt and neu <= alt:
+            raise kern.AmwFehler(f"Version {version} ist nicht größer als die letzte ({st['letzte']}) – als Nächstes passt {vorschlag}")
     e = versionshinweise.entwurf(con, pid)
     oeffentlich = oeffentlich or versionshinweise.als_text(e) or None
     with db.schreiben(con):

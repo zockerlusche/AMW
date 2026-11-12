@@ -181,7 +181,34 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # Merge-Bitte von selbst an den Merge-Dienst (Projekt-Einstellung merge_dienst). Vorgabe aus, der Lead schaltet ein.
                 "abnahme_kette": ("aus", "an"),
                 # farbe: Streifen über dem Kopf und Marke in der Projekt-Auswahl (Farbtöne setzt die Oberfläche)
-                "farbe": ("bernstein", "gruen", "blau", "violett", "tuerkis", "rot", "grau")}
+                "farbe": ("bernstein", "gruen", "blau", "violett", "tuerkis", "rot", "grau"),
+                # Versionen (Grund-Regelwerk G-2): pflicht = Plan-Check meldet Fehler ohne Version, Meilenstein schließt nur mit
+                # Version nach seiner letzten fertigen Aufgabe; empfohlen = nur Hinweise; aus = nichts. Neue Projekte: pflicht.
+                "versionen": ("empfohlen", "pflicht", "aus")}
+VERSION_FRIST_TAGE = 14            # so lange darf Fertiges ohne Version liegen, bevor der Plan-Check warnt (Projekt: version_frist_tage)
+VERSION_FORM = re.compile(r"(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?")
+
+
+def version_teile(v):
+    """„1.78.0“ → (1, 78, 0); None, wenn die Form nicht MAJOR.MINOR.PATCH ist."""
+    m = VERSION_FORM.fullmatch(str(v or "").strip())
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def versions_stand(con, pid):
+    """Wie es um die Versionen steht: Einstellung, letzte Version (Nummer, Zeit), fertige Aufgaben seitdem (Zahl, älteste),
+    Frist in Tagen und Vorschläge für die nächste Nummer."""
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    e = json.loads(r[0] or "{}") if r else {}
+    letzte = con.execute("SELECT version, zeit_utc FROM release WHERE projekt_id = ? AND art = 'version' ORDER BY id DESC LIMIT 1",
+                         (pid,)).fetchone()
+    seit = letzte["zeit_utc"] if letzte else ""
+    f = con.execute("SELECT count(*), min(fertig_utc) FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND fertig_utc > ?",
+                    (pid, seit)).fetchone()
+    t = version_teile(letzte["version"]) if letzte else None
+    return {"versionen": projekt_wahl(con, pid, "versionen"), "frist_tage": int(e.get("version_frist_tage", VERSION_FRIST_TAGE)),
+            "letzte": letzte["version"] if letzte else None, "letzte_utc": seit or None, "fertig_seit": f[0], "aeltestes_utc": f[1],
+            "vorschlag": [f"{t[0]}.{t[1] + 1}.0", f"{t[0]}.{t[1]}.{t[2] + 1}"] if t else ["0.1.0"]}
 
 
 def projekt_wahl(con, pid, schluessel):
@@ -218,7 +245,7 @@ def projekt_einstellen(con, pid, von, **werte):
     if not ist_lead(con, pid, von):
         raise AmwFehler("Projekt-Einstellungen dürfen nur Lead und Entwickler ändern")
     grenzen = {"takt_min": (0, 1440), "speicher_grenze_gb": (1, 512), "stillstand_min": (5, 1440), "lauf_ohne_angabe_min": (5, 1440),
-               "eskalation_min": (0, 1440), "info_ablage_h": (1, 168)}
+               "eskalation_min": (0, 1440), "info_ablage_h": (1, 168), "version_frist_tage": (1, 365)}
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         for k, v in werte.items():
@@ -1383,6 +1410,9 @@ def kontext(con, pid, kennung):
     version = con.execute("SELECT version FROM release WHERE projekt_id = ? AND art = 'version' ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
     if version:
         z.append(f"Version: aktuell {version['version']} · Schema MAJOR.MINOR.PATCH · jede Auslieferung eintragen: `amw release version`")
+    elif projekt_wahl(con, pid, "versionen") != "aus":
+        z.append("Version: noch keine eingetragen (Schema MAJOR.MINOR.PATCH) – die erste: `amw release version --version 0.1.0"
+                 " --titel …`" + (" · Pflicht in diesem Projekt" if projekt_wahl(con, pid, "versionen") == "pflicht" else ""))
 
     rez = con.execute("SELECT name FROM rezept WHERE projekt_id = ? ORDER BY name", (pid,)).fetchall()
     if rez:

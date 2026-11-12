@@ -1,0 +1,21 @@
+# Record versions
+
+Every delivery gets a number of the form MAJOR.MINOR.PATCH, for example 1.4.0. That way everyone sees what has been shipped, and the release notes are grouped by it. AMW reminds you and checks the number; whoever ships records it.
+
+## You need
+- The lead or you – agents do not record versions.
+- Settings › Project › “Versions”: mandatory, recommended or off. New projects with the base rulebook are set to mandatory.
+
+## Steps
+1. **Ship** As usual in the project (merge, tag, package).
+2. **Record** `amw release version --version 1.4.0 --titel "Short name"` – the release notes come from the tasks finished since the last version.
+3. **Pick the number** New or improved things: raise MINOR (1.4.0 → 1.5.0). Fixes only: PATCH (1.4.0 → 1.4.1). Breaking something existing: MAJOR.
+
+## Common problems
+- **“does not have the form MAJOR.MINOR.PATCH”** – Without a leading “v” and with three numbers: 1.4.0, not v1.4 or 1.4.
+- **“is not greater than the last one”** – The message names the next numbers that fit.
+- **A milestone cannot be closed** – With mandatory versions, a version must be recorded after its last finished task. Only you can close it anyway (`amw bogen status <nr> fertig --erzwingen`).
+
+## Next
+- With mandatory versions the plan check reports an error while no version is recorded; with “recommended” a hint.
+- If finished work sits without a version longer than the set period (default 14 days), the plan check warns. If you are waiting on purpose, accept the warning there with a reason.

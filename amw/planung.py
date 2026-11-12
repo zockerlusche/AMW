@@ -135,6 +135,13 @@ def bogen_status(con, pid, von, bid, status, erzwingen=False):
                             (bid,)).fetchone()[0]
         if offen:
             raise kern.AmwFehler(f"Meilenstein {bid} hat noch {offen} offene Schritte – erst abschließen (oder --erzwingen)")
+    if status == "fertig" and not (erzwingen and von == kern.ENTWICKLER):   # Versions-Pflicht: nur der Mensch kann darüber hinweg
+        vs = kern.versions_stand(con, pid)
+        letzte_fertig = con.execute("SELECT max(fertig_utc) FROM aufgabe WHERE bogen_id = ? AND status = 'fertig'", (bid,)).fetchone()[0]
+        if vs["versionen"] == "pflicht" and letzte_fertig and (not vs["letzte_utc"] or vs["letzte_utc"] < letzte_fertig):
+            raise kern.AmwFehler(f"Meilenstein {bid}: nach seiner letzten fertigen Aufgabe ist keine Version eingetragen (Versionen sind"
+                                 f" Pflicht) – erst ausliefern und `amw release version --version {vs['vorschlag'][0]} --titel …`;"
+                                 " nur der Mensch kann mit --erzwingen abschließen")
     with db.schreiben(con):
         felder = {"status": status, "geaendert_utc": db.jetzt()}
         if status == "aktiv" and not b["baseline_datum"] and b["zieldatum"]:
@@ -616,6 +623,27 @@ CHECKS = {
         "en": ("No definition of done",
                "Without a shared definition every agent decides on its own when something is “done” – reviews and acceptance become arbitrary.",
                "Define in the charter what applies to every step (e.g. tests green, reviewed, summary written).")}),
+    "ohne_version": ("fehler", "lead", "versionen", {
+        "de": ("Noch keine Version eingetragen",
+               "In diesem Projekt sind Versionen Pflicht. Ohne eingetragene Version weiß niemand, was ausgeliefert ist; Versionshinweise und Meilensteine haben keinen Bezugspunkt.",
+               "Die aktuelle Version eintragen: amw release version --version {vorschlag} --titel … (Lead oder Mensch)."),
+        "en": ("No version recorded yet",
+               "Versions are mandatory in this project. Without a recorded version nobody knows what has been shipped; release notes and milestones have no reference point.",
+               "Record the current version: amw release version --version {vorschlag} --titel … (lead or human).")}),
+    "ohne_version_hinweis": ("hinweis", "lead", "versionen", {
+        "de": ("Noch keine Version eingetragen",
+               "Versionen sind empfohlen: Mit ihnen sieht jeder, was ausgeliefert ist, und die Versionshinweise ordnen sich danach.",
+               "Die aktuelle Version eintragen: amw release version --version {vorschlag} --titel … – oder Versionen in den Projekt-Einstellungen ausschalten."),
+        "en": ("No version recorded yet",
+               "Versions are recommended: they show everyone what has been shipped, and release notes are grouped by them.",
+               "Record the current version: amw release version --version {vorschlag} --titel … – or switch versions off in the project settings.")}),
+    "unveroeffentlicht": ("warnung", "lead", "versionen", {
+        "de": ("{n} fertige Aufgaben seit {tage} Tagen ohne Version",
+               "Seit der letzten Version ({letzte}) ist Fertiges liegen geblieben, das ältere seit {seit}. Ausgeliefert oder nicht – die Liste weiß es nicht.",
+               "Ausliefern und die Version eintragen (als Nächstes passt {vorschlag}) – oder, wenn bewusst gewartet wird, akzeptieren."),
+        "en": ("{n} finished tasks for {tage} days without a version",
+               "Since the last version ({letzte}) finished work has piled up, the oldest since {seit}. Shipped or not – the list cannot tell.",
+               "Ship and record the version (next fits {vorschlag}) – or, if waiting on purpose, accept.")}),
     "keine_boegen": ("hinweis", "lead", "zeitleiste", {
         "de": ("Noch keine Meilensteine",
                "Ohne Meilensteine (Etappen) gibt es keine Prognose, keine Zeitleiste und keinen Rückblick.",
@@ -757,6 +785,16 @@ def pruefen(con, pid, prog=None, mit_akzeptierten=False):
         add("keine_nicht_ziele", None)
     if not lb["dod"]:
         add("keine_dod", None)
+    vs = kern.versions_stand(con, pid)                 # Grund-Regelwerk G-2: Versionen
+    if vs["versionen"] != "aus" and not vs["letzte"]:
+        add("ohne_version" if vs["versionen"] == "pflicht" else "ohne_version_hinweis", None, vorschlag=vs["vorschlag"][0])
+    elif vs["versionen"] != "aus" and vs["fertig_seit"] and vs["aeltestes_utc"]:
+        tage = (datetime.datetime.now(datetime.timezone.utc)
+                - datetime.datetime.fromisoformat(vs["aeltestes_utc"].replace("Z", "+00:00"))).days
+        if tage >= vs["frist_tage"]:
+            a = vs["aeltestes_utc"]
+            add("unveroeffentlicht", vs["letzte"], n=vs["fertig_seit"], tage=tage, letzte=vs["letzte"],
+                seit=f"{a[8:10]}.{a[5:7]}.{a[:4]}", vorschlag=" / ".join(vs["vorschlag"]))
     bs = boegen(con, pid)
     if not bs:
         add("keine_boegen", None)

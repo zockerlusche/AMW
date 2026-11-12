@@ -4,6 +4,17 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.79.0 – 12.11.2026 · Versionen als Pflicht
+- **Einstellungen › Projekt › „Versionen“:** Pflicht, empfohlen (Vorgabe für bestehende Projekte) oder aus; neue Projekte
+  mit Grund-Regelwerk stehen auf Pflicht. Dazu die Frist, ab der Fertiges ohne Version auffällt (Vorgabe 14 Tage).
+- **`amw release version` prüft die Nummer:** Form MAJOR.MINOR.PATCH und größer als die letzte; die Meldung nennt die
+  passenden nächsten Nummern.
+- **Plan-Check:** ohne eingetragene Version ein Fehler (Pflicht) bzw. Hinweis (empfohlen); liegt Fertiges länger als die
+  Frist ohne Version, eine Warnung mit Vorschlag für die nächste Nummer.
+- **Meilenstein abschließen** geht bei Pflicht erst, wenn nach seiner letzten fertigen Aufgabe eine Version eingetragen
+  ist – nur du kannst trotzdem abschließen.
+- Der Pflicht-Kontext der Agenten nennt fehlende Versionen. Hilfe „Versionen eintragen“ (DE/EN).
+
 ## 1.78.0 – 12.11.2026 · Nachrichten aus allen Projekten an einer Stelle
 - **„Nachrichten“ zeigt alle Projekte zusammen** – am PC alle dieses PCs, online die Projekte, die du sehen darfst.
   Jede Zeile trägt ihr Projekt (Farbpunkt), dazu der Filter „Alle Projekte“ / ein Projekt.

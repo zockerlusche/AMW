@@ -98,6 +98,8 @@ def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe",
                             + (", Definition of Done im Leitbild" if erg["dod"] else ""))
             wissen.release_version(con, pid, kern.ENTWICKLER, v["versionen"]["erste"], "Projekt angelegt" if sprache == "de" else "Project created")
             schritte.append(f"Version {v['versionen']['erste']} eingetragen (Schema {v['versionen']['schema']})")
+            kern.projekt_einstellen(con, pid, kern.ENTWICKLER, versionen="pflicht")     # G-2: neue Projekte mit Grund-Regelwerk – Versionen Pflicht
+            schritte.append("Versionen: Pflicht (Projekt-Einstellungen)")
         if ordner:
             neu = []
             for a in ([lead] if lead else []) + list(agenten):   # nur leere Felder füllen – eigene Profile bleiben
