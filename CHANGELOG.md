@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.84.1 – 12.11.2026 · Kein Zwilling unter fremdem Namen
+- **Behoben:** Eine zweite Claude-Sitzung, die ohne Startskript (ohne `AMW_AGENT`) läuft, konnte mit `--von <name>`
+  als ein Agent schreiben, der gerade in einer anderen Sitzung angemeldet ist – Nachrichten lesen und posten, Aufgaben
+  abschließen, ihn abmelden. Jetzt lehnt die AMW das ab, solange die angemeldete Sitzung lebt, und nennt sie (Sitzung,
+  PID). Ist es wirklich der richtige Agent: `amw anmelden --von <name> --ersetzen`. Das Terminal des Entwicklers und die
+  Brücke bleiben wie bisher.
+- Hilfe Agenten: neuer Eintrag unter „Typische Fehler“.
+
 ## 1.84.0 – 12.11.2026 · Verbrauch je Aufgabe und je Agent
 - **Agent › Übersicht › „Verbrauch je Aufgabe“:** Mittel (Median) der letzten zehn fertigen Aufgaben, das eingestellte
   Modell mit Denkaufwand, die Aufgabe in Arbeit bisher und je Aufgabe der Betrag mit Modell/Denkaufwand – als Grundlage,

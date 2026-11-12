@@ -42,14 +42,40 @@ KENNUNG_OPTIONEN = ("von", "agent", "pruefer", "verantwortlich", "fuer", "zustae
 def _eigene_kennung(con, a, pid):
     """Jeder schreibt nur als er selbst: Läuft der Befehl in einer Agenten-Sitzung (AMW_AGENT, setzt jedes Startskript),
     muss --von dazu passen (gleiche Kennung oder ihr früherer Name). Ausgenommen die Brücke (setzt --von selbst); ohne
-    AMW_AGENT (Terminal des Entwicklers) gilt --von wie bisher."""
+    AMW_AGENT gilt --von wie bisher – nur nicht als ein Agent, der in einer anderen lebenden Claude-Sitzung angemeldet ist
+    (_zwilling)."""
     sitzung = (os.environ.get("AMW_AGENT") or "").strip()
     von = getattr(a, "von", None)
-    if not sitzung or not von or KANAL.get() == "bruecke":
+    if not von or KANAL.get() == "bruecke":
+        return
+    if not sitzung:
+        _zwilling(con, a, pid, von)
         return
     if kern.kennung_heute(con, von, pid) != kern.kennung_heute(con, sitzung, pid):
         raise kern.AmwFehler(f"Du bist {sitzung} (AMW_AGENT dieser Sitzung) – --von {von} geht nicht: jeder schreibt nur als er"
                              " selbst. Lass --von weg oder setze deinen eigenen Namen.")
+
+
+def _zwilling(con, a, pid, von):
+    """Eine Claude-Sitzung ohne AMW_AGENT (z. B. von Hand in einem anderen Ordner gestartet) schreibt nicht als ein Agent, der
+    gerade in einer anderen, noch lebenden Sitzung angemeldet ist – sonst könnte ein Zwilling gleicher Kennung Nachrichten
+    lesen, posten oder Aufgaben abschließen. Das Terminal des Entwicklers (kein Claude-Postfach) bleibt wie bisher;
+    `amw anmelden` prüft selbst (mit --ersetzen nach Bestätigung)."""
+    pipe = os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET")
+    if not pipe or not pid or getattr(a, "f", None) is cmd_anmelden:
+        return
+    from . import hook
+    kennung = kern.kennung_heute(con, von, pid)
+    try:
+        with open(hook.schluessel_datei(con, pid, kennung), encoding="utf-8") as f:
+            alt_pipe = json.load(f).get("pipe")
+    except (OSError, ValueError, TypeError):
+        return
+    alt = hook.claude_prozess(alt_pipe) if alt_pipe and alt_pipe != pipe else None
+    if alt:
+        raise kern.AmwFehler(f"{kennung} ist in einer anderen Sitzung angemeldet ({hook.beschreibung(alt)}) – diese Sitzung ist"
+                             f" es nicht, --von {kennung} geht hier nicht. Bist du der richtige {kennung}: amw anmelden --von"
+                             f" {kennung} --ersetzen")
 
 
 def _heutige_kennungen(con, a):

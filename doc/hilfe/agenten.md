@@ -20,6 +20,7 @@ Ein Agent arbeitet in einem Ordner auf diesem PC. Damit die AMW ihn benachrichti
 ## Typische Fehler
 - **„Noch keine Daten“ bei Zustand und Verbrauch** – Der Ordner ist noch nicht eingerichtet (Schritt 1), oder die Sitzung wurde vor dem Einrichten gestartet. Einmal neu starten.
 - **„Nicht verbunden“** – Die Sitzung läuft, kennt aber ihren Namen nicht. Im Fenster des Agenten `amw anmelden --von <name>` ausführen.
+- **„… ist in einer anderen Sitzung angemeldet“** – Ein zweites Claude-Fenster benutzt den Namen eines Agenten, der schon in einem anderen Fenster läuft. Die AMW nimmt von dort keine Befehle unter diesem Namen an. Nur wenn das wirklich der richtige Agent ist: `amw anmelden --von <name> --ersetzen`.
 - **Der Ordner gehört schon zu einem anderen Projekt** – Ein Ordner gehört zu genau einem Projekt. Für ein zweites Projekt einen eigenen Ordner nehmen.
 
 ## Danach

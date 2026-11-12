@@ -20,6 +20,7 @@ An agent works in a folder on this PC. So that the AMW can notify it, monitor it
 ## Common problems
 - **“No data yet” under State and usage** – The folder is not set up yet (step 1), or the session was started before the setup. Restart it once.
 - **“Not connected”** – The session is running but does not know its name. In the agent's window run `amw anmelden --von <name>`.
+- **“… is logged in to another session”** – A second Claude window uses the name of an agent that is already running in another window. The AMW does not accept commands under that name from there. Only if this really is the right agent: `amw anmelden --von <name> --ersetzen`.
 - **The folder already belongs to another project** – A folder belongs to exactly one project. Use a separate folder for a second project.
 
 ## Next
