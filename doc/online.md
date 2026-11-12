@@ -52,6 +52,20 @@ PC (Wächter)                               Online-Speicher (Turso)             
     [installation.md](installation.md) „Weiterer Rechner“.
 - **Eine Seite für beide:** `amw/workbench.html`; `amw web bauen` kopiert sie nach `web/inc/seite.html`.
 
+## 1a Eigener Server statt Turso (Betriebsart „eigener Server im Firmennetz“)
+Der Online-Speicher kann auch ein **eigener libSQL-Server** (sqld) im Firmennetz sein – derselbe Server, auf dem Turso
+läuft, mit demselben Protokoll (HTTP `/v2/pipeline`, Schlüssel als Bearer-Token). Geprüft mit sqld 0.24.32.
+- **Schlüssel:** `amw speicher schluessel --url https://amw-db.firma.lan [--ca firma.pem]` erzeugt ein Ed25519-Paar
+  (Python-Paket `cryptography`, sonst `openssl` ≥ 3), schreibt den **öffentlichen** Schlüssel als
+  `amw-speicher-oeffentlich.pem` (für `sqld --auth-jwt-key-file`), trägt den Zugang am PC ein (Synchronisierung noch aus)
+  und zeigt einmal den Schlüssel für die Seite. Der private Schlüssel wird verworfen. Der Server prüft kein Ablaufdatum:
+  ungültig werden die Schlüssel erst mit einem neuen Paar. Im Token steht kein `id` – sqld läse es als Datenbank-Namen.
+- **PC:** Einstellungen › Speicher und Synchronisierung › Anbieter „Eigener libSQL-Server“, Adresse `https://…`
+  (`http://` nur im Firmennetz, mit Warnung), optional das Zertifikat der Firmen-CA als PEM-Datei.
+- **Seite:** in `amw-konfig.php` `'speicher_url' => 'https://amw-db.firma.lan'`, `'speicher_token' => '…'`, optional
+  `'speicher_ca' => '/pfad/firma-ca.pem'`. Die Adresse steht nur in dieser Datei – kein Formular im Netz kann sie setzen.
+- Anleitung zum Aufbau (Docker, https davor, Paket für den Webserver) folgt mit Stufe R3b/R3c.
+
 ## 2 Einrichten (etwa 15 Minuten)
 Voraussetzungen: AMW läuft am PC (Wächter eingerichtet); ein Webhoster mit **PHP ≥ 8.1** (Erweiterungen curl, mbstring)
 und **HTTPS**; ein kostenloses Konto bei **turso.tech**.

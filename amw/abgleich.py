@@ -156,14 +156,43 @@ def web_einstellungen_setzen(speicher, neu):
 
 # --- Speicher ------------------------------------------------------------------------------------
 
-class TursoSpeicher:
-    """Turso über HTTP /v2/pipeline (nur Standardbibliothek). Eine Anfrage = eine Folge von Anweisungen."""
+SPEICHER_ARTEN = ("turso", "libsql")   # Turso (Cloud) · eigener libSQL-Server (sqld) – dasselbe Protokoll
 
-    def __init__(self, url, token):
+
+def speicher_adresse(art, url):
+    """Prüft die Adresse des Online-Speichers und gibt sie einheitlich zurück – sonst ValueError mit einem Satz für Menschen.
+    turso: libsql:// oder https:// auf ….turso.io. libsql (eigener Server): https://host[:port] – http:// nur, wenn das Ziel
+    im Firmennetz oder auf diesem PC liegt (sonst ginge der Schlüssel unverschlüsselt durchs Internet)."""
+    url = (url or "").strip().rstrip("/")
+    if art == "turso":
+        if not url.startswith(("libsql://", "https://")) or ".turso.io" not in url:
+            raise ValueError("Adresse libsql://….turso.io nötig")
+        return url
+    if art != "libsql":
+        raise ValueError(f"Art: {', '.join(SPEICHER_ARTEN)}")
+    if url.startswith("libsql://"):
+        url = "https://" + url[len("libsql://"):]
+    u = urllib.parse.urlsplit(url)
+    if u.scheme not in ("http", "https") or not u.hostname or u.username or u.password or u.query or u.fragment or u.path not in ("", "/"):
+        raise ValueError("Adresse des eigenen Servers: https://name:port (ohne Pfad), z. B. https://amw-db.firma.lan")
+    if u.scheme == "http":
+        from . import betriebsart
+        if betriebsart.netz(url) == "internet":
+            raise ValueError("http:// nur im Firmennetz – für eine Adresse im Internet https:// verwenden")
+    return url
+
+
+class TursoSpeicher:
+    """Online-Speicher über HTTP /v2/pipeline (nur Standardbibliothek): Turso oder ein eigener libSQL-Server (sqld) –
+    dasselbe Protokoll, Schlüssel als Bearer-Token. Eine Anfrage = eine Folge von Anweisungen. ca: Zertifikat der Firma
+    (PEM-Datei) für einen eigenen Server mit eigenem Zertifikat; sonst die Zertifikate von Windows."""
+
+    def __init__(self, url, token, ca=None):
         url = url.strip()
         if url.startswith("libsql://"):
             url = "https://" + url[len("libsql://"):]
         self.url, self._token = url.rstrip("/") + "/v2/pipeline", token.strip()
+        self._ca = ca or None
 
     @staticmethod
     def _wert(v):
@@ -181,8 +210,12 @@ class TursoSpeicher:
         req = urllib.request.Request(self.url, data=json.dumps(body).encode("utf-8"), method="POST",
                                      headers={"Authorization": f"Bearer {self._token}",
                                               "Content-Type": "application/json"})
+        weiter = {}
+        if self._ca and self.url.startswith("https://"):
+            import ssl
+            weiter["context"] = ssl.create_default_context(cafile=self._ca)
         try:
-            with urllib.request.urlopen(req, timeout=20) as r:
+            with urllib.request.urlopen(req, timeout=20, **weiter) as r:
                 antwort = json.load(r)
         except urllib.error.HTTPError as e:
             raise OSError(f"Turso HTTP {e.code}") from None      # Text kann den Schlüssel spiegeln – nicht weiterreichen
@@ -223,7 +256,7 @@ def speicher_aus_zugang(nur_wenn_an=True):
         return None
     if z.get("sqlite"):                               # Probe am PC: statt Turso eine lokale Datei
         return SqliteSpeicher(z["sqlite"])
-    return TursoSpeicher(z["url"], z["token"])
+    return TursoSpeicher(z["url"], z["token"], z.get("ca"))
 
 
 # --- Abgleich ------------------------------------------------------------------------------------

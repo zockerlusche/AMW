@@ -48,6 +48,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`notiz`](#notiz) | gepflegte Notizen (Schlüssel/Wert) |
 | [`dienst`](#dienst) | Dienst als geplante Windows-Aufgabe: einrichten ¦ entfernen ¦ status ¦ neustart ¦ vordergrund (ohne Aufgabe in diesem Fenster, zum Ausprobieren) |
 | [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Synchronisierung) ¦ zweitfaktor-neu ¦ bauen ¦ schema ¦ sso [--aussteller URL --client-id ID --an¦--aus] (Firmen-Anmeldung; Geheimnis nur auf der Online-Seite) |
+| [`speicher`](#speicher) | Eigener Online-Speicher (libSQL-Server im Firmennetz): schluessel --url https://… [--ca firma.pem] [--ordner …] [--ersetzen] – Schlüsselpaar und Token erzeugen, Zugang am PC eintragen |
 | [`anmelden`](#anmelden) | laufende Sitzung beim Dienst anmelden (ohne Neustart) |
 | [`abmelden`](#abmelden) | Sitzung ruht: nicht mehr benachrichtigen, nicht automatisch neu starten (bis anmelden) |
 | [`einrichten`](#einrichten) | ohne Angabe: geführte Einrichtung (fragt nach) ¦ schnell --projekt-name … (ohne Fragen) ¦ agenten-ordner <pfad> (Hooks, Statusline-Anbindung, Sperren) ¦ betriebsart [pc¦server¦cloud] ¦ verbindungen [--pruefen] (jede Adresse, zu der die AMW eine Verbindung aufbaut) |
@@ -1188,6 +1189,28 @@ options:
                         Registrierung
   --an                  sso: Knopf „Mit Firmenkonto anmelden“ zeigen
   --aus                 sso: Firmen-Anmeldung ausschalten
+  --von VON
+  --projekt PROJEKT
+```
+
+## speicher
+```
+usage: amw speicher [-h] [--url URL] [--ca CA] [--ordner ORDNER] [--ersetzen]
+                    [--von VON] [--projekt PROJEKT]
+                    {schluessel}
+
+positional arguments:
+  {schluessel}
+
+options:
+  -h, --help         show this help message and exit
+  --url URL          Adresse des libSQL-Servers, z. B. https://amw-
+                     db.firma.lan (http:// nur im Firmennetz)
+  --ca CA            Zertifikat der Firmen-CA (PEM), wenn Windows das
+                     Zertifikat des Servers nicht kennt
+  --ordner ORDNER    wohin der öffentliche Schlüssel kommt (Vorgabe: neben dem
+                     Zugang dieses PCs)
+  --ersetzen         einen schon eingetragenen Online-Speicher ersetzen
   --von VON
   --projekt PROJEKT
 ```

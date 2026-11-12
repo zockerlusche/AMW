@@ -40,3 +40,6 @@ A copy of what the online page shows, and the mailbox with what you do while awa
 
 ### How do I switch it off again?
 Settings › Storage and sync › sync off. The online page then shows the last state and accepts nothing more.
+
+### Can I do without Turso – with an own server in the company network?
+Yes, with an own libSQL server (sqld, the same server Turso runs on). On the PC run `amw speicher schluessel --url https://amw-db.company.lan` – it creates the public key for the server and enters the access; then start the server with this key, check “Own libSQL server” under Settings › Storage and sync and switch sync on. The online site gets `speicher_url` and the shown key as `speicher_token` in its configuration file. These keys do not expire – they become invalid when you create a new pair.

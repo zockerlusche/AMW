@@ -446,7 +446,8 @@ def einstellen(con, pid, teil, daten, kanal, speicher=None):
 
 
 def turso_einstellen(daten):
-    """Adresse/Schlüssel/Abgleich am PC. Neue Adresse oder neuer Schlüssel werden vor dem Speichern geprüft."""
+    """Art/Adresse/Schlüssel/Zertifikat/Abgleich am PC. Neue Werte werden vor dem Speichern geprüft (Verbindung, Tabellen).
+    Art „turso“ (Cloud) oder „libsql“ (eigener libSQL-Server im Firmennetz, Stufe R3a)."""
     import json
     import os
     from . import abgleich
@@ -456,20 +457,32 @@ def turso_einstellen(daten):
             z = json.load(f)
     except (OSError, ValueError):
         z = {}
+    art = daten.get("art") or z.get("art") or "turso"
     url = (daten.get("url") or z.get("url") or "").strip()
     token = (daten.get("token") or "").strip() or z.get("token", "")
-    if url != z.get("url") or token != z.get("token"):
-        if not url.startswith(("libsql://", "https://")) or ".turso.io" not in url or not token:
-            raise Ungueltig("Adresse libsql://….turso.io und Schlüssel nötig")
+    ca = (daten["ca"] or "").strip() if "ca" in daten else z.get("ca", "")
+    if art == "turso":
+        ca = ""
+    if url != z.get("url") or token != z.get("token") or art != (z.get("art") or "turso") or ca != z.get("ca", ""):
         try:
-            abgleich.TursoSpeicher(url, token).ausfuehren([(s, []) for s in abgleich.SCHEMA])
+            url = abgleich.speicher_adresse(art, url)
+        except ValueError as e:
+            raise Ungueltig(str(e)) from None
+        if not token:
+            raise Ungueltig("Schlüssel nötig")
+        if ca and not os.path.isfile(ca):
+            raise Ungueltig(f"Zertifikat-Datei gibt es nicht: {ca}")
+        try:
+            abgleich.TursoSpeicher(url, token, ca).ausfuehren([(s, []) for s in abgleich.SCHEMA])
+            abgleich.nachruesten(abgleich.TursoSpeicher(url, token, ca))
         except OSError as e:
-            raise Ungueltig(f"Turso nicht erreichbar oder Schlüssel abgelehnt ({e}) – nichts gespeichert") from None
-    z.update({"url": url, "token": token})
+            wer = "Turso" if art == "turso" else "Der eigene Server"
+            raise Ungueltig(f"{wer} nicht erreichbar oder Schlüssel abgelehnt ({e}) – nichts gespeichert") from None
+    z.update({"art": art, "url": url, "token": token, "ca": ca})
     if "abgleich" in daten:
         z["abgleich"] = bool(daten["abgleich"])
     os.makedirs(os.path.dirname(pfad), exist_ok=True)
     with open(pfad + ".neu", "w", encoding="utf-8") as f:
         json.dump(z, f, indent=2)
     os.replace(pfad + ".neu", pfad)
-    return {"url": url, "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(token)}
+    return {"art": art, "url": url, "ca": ca, "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(token)}

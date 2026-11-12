@@ -1645,6 +1645,46 @@ def _web_sso(a):
         print("  Der Knopf erscheint erst, wenn ein System-Admin das Geheimnis auf der Online-Seite einträgt: <Adresse>/sso.php?einrichten")
 
 
+def cmd_speicher(a):
+    """Eigener Online-Speicher (Stufe R3a): Schlüsselpaar für den libSQL-Server erzeugen, Zugang am PC eintragen (noch
+    ohne Synchronisierung), Token für die Online-Seite einmal zeigen. Der private Schlüssel wird nicht gespeichert."""
+    from . import abgleich, schluessel
+    try:
+        url = abgleich.speicher_adresse("libsql", a.url or "")
+    except ValueError as e:
+        raise kern.AmwFehler(f"{e} – amw speicher schluessel --url https://amw-db.firma.lan") from None
+    if a.ca and not os.path.isfile(a.ca):
+        raise kern.AmwFehler(f"Zertifikat-Datei gibt es nicht: {a.ca}")
+    pfad = abgleich.zugang_pfad()
+    try:
+        with open(pfad, encoding="utf-8") as f:
+            alt = json.load(f)
+    except (OSError, ValueError):
+        alt = {}
+    if alt.get("url") and not a.ersetzen:
+        raise kern.AmwFehler(f"Es gibt schon einen Online-Speicher ({alt['url']}). Ersetzen mit --ersetzen – dann gilt der alte"
+                             " Zugang auf diesem PC nicht mehr.")
+    pem, token = schluessel.erzeugen(("pc", "seite"))
+    ordner = a.ordner or os.path.dirname(pfad)
+    os.makedirs(ordner, exist_ok=True)
+    oeffentlich = os.path.join(ordner, "amw-speicher-oeffentlich.pem")
+    with open(oeffentlich, "w", encoding="ascii", newline="\n") as f:
+        f.write(pem)
+    os.makedirs(os.path.dirname(pfad), exist_ok=True)
+    with open(pfad + ".neu", "w", encoding="utf-8") as f:
+        json.dump({**alt, "art": "libsql", "url": url, "token": token["pc"], "ca": a.ca or "", "abgleich": False}, f, indent=2)
+    os.replace(pfad + ".neu", pfad)
+    print(f"Öffentlicher Schlüssel für den libSQL-Server: {oeffentlich}")
+    print("  Auf den Server kopieren und sqld damit starten: --auth-jwt-key-file <Datei> (bzw. SQLD_AUTH_JWT_KEY_FILE).")
+    print(f"Zugang auf diesem PC eingetragen: {url} (Synchronisierung noch aus) – {pfad}")
+    print("Schlüssel für die Online-Seite – nur jetzt sichtbar, in deren amw-konfig.php als 'speicher_token' eintragen:")
+    print(f"  {token['seite']}")
+    print("Dann: Einstellungen › Speicher und Synchronisierung › „Speicher prüfen“, danach Synchronisierung an.")
+    print("Hinweis: Diese Schlüssel laufen nicht ab. Ungültig werden sie, wenn du ein neues Paar erzeugst und den neuen öffentlichen"
+          " Schlüssel auf dem Server einlegst.")
+    return 0
+
+
 def cmd_web(a, con):
     """Online-Teil (doc/online.md): Seite für den Webhoster bauen, Online-Speicher einrichten, einen Abgleich von Hand."""
     from . import abgleich
@@ -2485,6 +2525,16 @@ def parser():
     x.add_argument("--an", action="store_true", help="sso: Knopf „Mit Firmenkonto anmelden“ zeigen")
     x.add_argument("--aus", action="store_true", help="sso: Firmen-Anmeldung ausschalten")
     x.set_defaults(f=cmd_web)
+
+    x = s.add_parser("speicher", help="Eigener Online-Speicher (libSQL-Server im Firmennetz): schluessel --url https://… "
+                                      "[--ca firma.pem] [--ordner …] [--ersetzen] – Schlüsselpaar und Token erzeugen, Zugang am PC eintragen")
+    x.add_argument("aktion", choices=["schluessel"])
+    x.add_argument("--url", help="Adresse des libSQL-Servers, z. B. https://amw-db.firma.lan (http:// nur im Firmennetz)")
+    x.add_argument("--ca", help="Zertifikat der Firmen-CA (PEM), wenn Windows das Zertifikat des Servers nicht kennt")
+    x.add_argument("--ordner", help="wohin der öffentliche Schlüssel kommt (Vorgabe: neben dem Zugang dieses PCs)")
+    x.add_argument("--ersetzen", action="store_true", help="einen schon eingetragenen Online-Speicher ersetzen")
+    x.set_defaults(f=cmd_speicher, ohne_db=True)
+
 
     x = s.add_parser("anmelden", help="laufende Sitzung beim Dienst anmelden (ohne Neustart)")
     x.add_argument("--ersetzen", action="store_true", help="eine noch lebende andere Sitzung mit demselben Namen ablösen")

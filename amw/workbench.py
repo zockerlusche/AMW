@@ -531,7 +531,8 @@ def daten_einstellungen(con, pid, speicher=None):
             "neustart": list(einstellungen.NEUSTART),
             "betriebsart": _betriebsart_stand(),
             "seite": {"adresse": _seiten_adresse()},
-            "turso": {"url": z.get("url", ""), "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(z.get("token")),
+            "turso": {"art": z.get("art") or "turso", "url": z.get("url", ""), "ca": z.get("ca", ""),
+                      "abgleich": bool(z.get("abgleich")), "schluessel_gespeichert": bool(z.get("token")),
                       "datei": abgleich.zugang_pfad()},
             "web": web, "web_grenzen": {k: [lo, hi] for k, (_, lo, hi) in abgleich.WEB_EINSTELLUNGEN.items()}}
 

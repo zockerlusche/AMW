@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.71.0 – 12.11.2026 · Eigener Online-Speicher im Firmennetz
+- **Eigener libSQL-Server statt Turso:** Unter Einstellungen › Speicher und Synchronisierung wählst du jetzt den Anbieter –
+  Turso (Cloud) oder einen eigenen libSQL-Server im Firmennetz. Für den eigenen Server: Adresse (https, im Firmennetz auch
+  http mit Warnung) und, wenn nötig, das Zertifikat der Firma. Die AMW prüft die Verbindung, bevor sie etwas speichert.
+- **Schlüssel auf Knopfdruck:** `amw speicher schluessel --url https://…` erzeugt den Schlüssel für den Server, trägt den
+  Zugang auf diesem PC ein und zeigt einmal den Schlüssel für die Online-Seite. Der geheime Teil wird nirgends gespeichert.
+- **Online-Seite:** liest die Adresse des eigenen Servers nur aus ihrer Konfigurationsdatei (`speicher_url`,
+  `speicher_token`, optional `speicher_ca`) – nie aus einem Formular.
+- Geprüft gegen einen echten libSQL-Server: PC und Seite lesen und schreiben, ein falscher Schlüssel wird abgewiesen.
+
 ## 1.70.0 – 12.11.2026 · Firmen-Anmeldung (SSO)
 - **Mit Firmenkonto anmelden:** Neben Passwort und zweitem Faktor gibt es auf der Online-Seite einen zweiten Weg – die
   Anmeldung beim Anmeldedienst der Firma (OpenID Connect, getestet wie Microsoft Entra ID). Kein zweiter Faktor in der
