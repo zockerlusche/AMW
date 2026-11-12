@@ -26,7 +26,7 @@ With the online page you answer questions, approve and pause – on the go, on y
 ## Common problems
 - **The assistant does not appear** – The page is already set up; you get the login instead.
 - **Note “the next deployment deletes the configuration”** – The page was not allowed to store its configuration outside the deployment folder. Allow writing one level above the folder at your host and repeat the setup.
-- **The page shows old or no data** – The PC is not uploading: sync on? Watcher running? `amw web status` shows the last upload.
+- **The page shows old or no data** – The PC is not uploading: sync on? Service running? `amw web status` shows the last upload.
 - **“Page reachable?” reports no help files** – An older version or a different page is there. Renew the deployment.
 
 ## Next

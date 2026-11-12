@@ -4,7 +4,7 @@ A new project does not have to start with empty rules: the AMW ships a base rule
 
 ## You need
 - The “New project” assistant (project selector › + New project) or the command `amw einrichten`.
-- An idea of who leads the project: if the lead works as a chat, the check-in rule is added.
+- An idea of who leads the project: if the lead works as a chat, the rhythm rule is added.
 
 ## Steps
 1. **Choose the rule set** In the assistant, “Rule set” shows “Base rule set (default)”. Other options: copy the working rules of an existing project, or start without rules.
@@ -27,7 +27,7 @@ A new project does not have to start with empty rules: the AMW ships a base rule
 
 ## Next
 - Under Knowledge › Rules the base rules form a group of their own, with their number from the template (G1 …) and the reason.
-- Every session gets the number of rules, and changed rules verbatim, in its mandatory context; `amw regeln` shows all of them.
+- Every session gets the number of rules, and changed rules verbatim, in its start information; `amw regeln` shows all of them.
 - What your project needs specifically (who reviews, who merges, which branches) is added by the lead as rules of its own.
 
 ## Questions

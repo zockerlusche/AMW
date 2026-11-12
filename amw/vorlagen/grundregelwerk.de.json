@@ -74,9 +74,9 @@
     {"nr": "W3", "gruppe": "W", "wahlweise": true, "titel": "Fenster-Läufe nur bei freiem Bildschirm",
      "text": "Läufe, die Fenster öffnen, nur wenn der Mensch den Bildschirm freigegeben hat.",
      "warum": "Ein Lauf mit Fenster übernimmt Maus und Tastatur. Arbeitet gerade jemand am Rechner, stört das beide."},
-    {"nr": "W4", "gruppe": "W", "wahlweise": true, "chat_lead": true, "titel": "Takt für einen Lead, der als Chat arbeitet",
-     "text": "Am Ende jedes Takts einen neuen einmaligen Wecker anlegen (kurzer neutraler Text – der Inhalt steht in der AMW). Abgelaufene Wecker liegen lassen oder löschen. Nie einen bestehenden Wecker ändern und nie auf „wiederkehrend“ umstellen – stattdessen löschen und neu anlegen. Den Takt gibt das Projekt vor (Vorgabe alle 2 Stunden; dazwischen stößt der Mensch bei Bedarf an).",
-     "erfahrung": "Geprüft: Einen Wecker anlegen und löschen geht ohne Rückfrage; jede Änderung an einem bestehenden verlangt einen Klick des Menschen – der Takt bleibt dann stehen, bis jemand klickt."}
+    {"nr": "W4", "gruppe": "W", "wahlweise": true, "chat_lead": true, "titel": "Rhythmus für einen Lead, der als Chat arbeitet",
+     "text": "Am Ende jedes Durchgangs einen neuen einmaligen Wecker anlegen (kurzer neutraler Text – der Inhalt steht in der AMW). Abgelaufene Wecker liegen lassen oder löschen. Nie einen bestehenden Wecker ändern und nie auf „wiederkehrend“ umstellen – stattdessen löschen und neu anlegen. Den Rhythmus gibt das Projekt vor (Vorgabe alle 2 Stunden; dazwischen stößt der Mensch bei Bedarf an).",
+     "erfahrung": "Geprüft: Einen Wecker anlegen und löschen geht ohne Rückfrage; jede Änderung an einem bestehenden verlangt einen Klick des Menschen – der Rhythmus bleibt dann stehen, bis jemand klickt."}
   ],
   "dod": [
     "Abnahmekriterien erfüllt",

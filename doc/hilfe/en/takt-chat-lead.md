@@ -1,11 +1,11 @@
-# Check-ins for a lead working as a chat
+# Rhythm for a lead working as a chat
 
 A lead working as a chat is not woken by the AMW – they only see news when they look again. So that the project does not wait, the lead sets a reminder for themselves: a new one at the end of every check-in.
 
 ## You need
 - A lead with the working mode “Chat” (Settings › Agents).
 - In their chat app, a way to be woken at a given time (a one-off scheduled task or reminder).
-- The project's interval: Settings › Project › “Lead pulse (minutes)”, default 120.
+- The project's interval: Settings › Project › “Rhythm for the lead (minutes)”, default 120.
 
 ## Steps
 1. **Set the interval** Enter the interval under Settings › Project. It says how often the lead looks at the latest.
@@ -19,12 +19,12 @@ A lead working as a chat is not woken by the AMW – they only see news when the
 - **The lead does not react in between** – That is intended: between two check-ins the human nudges them when something is urgent.
 
 ## Next
-- The rule for this is part of the base rule set (optional, preselected for chat leads) and of the lead's mandatory context.
-- Agents working in the terminal do not need this – the AMW wakes them.
+- The rule for this is part of the base rule set (optional, preselected for chat leads) and of the lead's start information.
+- Agents working in the terminal do not need this – the AMW notifies them.
 
 ## Questions
 ### Why not a recurring reminder?
 What was verified: creating and deleting work without a prompt, any change to an existing reminder does not. A one-off reminder, created anew each time, needs no click by the human.
 
 ### What if the lead forgets the new reminder?
-Then the check-ins end. The human nudges them; that is why the rule appears verbatim in the lead's mandatory context.
+Then the next round does not happen. The human nudges them; that is why the rule appears verbatim in the lead's start information.

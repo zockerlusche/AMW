@@ -3,7 +3,7 @@
 Die AMW schickt dir eine kurze Nachricht aufs Handy, wenn etwas auf dich wartet – eine Frage, eine Freigabe, ein Halt. ntfy ist dafür der einfachste Weg: eine kostenlose App und ein geheimer Kanalname.
 
 ## Du brauchst
-- Die AMW läuft auf diesem PC (der Wächter ist eingerichtet).
+- Die AMW läuft auf diesem PC (der Dienst ist eingerichtet).
 - Die App **ntfy** auf dem Handy (Google Play, F-Droid oder App Store).
 
 ## Schritte
@@ -22,7 +22,7 @@ Die AMW schickt dir eine kurze Nachricht aufs Handy, wenn etwas auf dich wartet 
 ## Typische Fehler
 - **Die Probe kommt nicht an** – Der Kanalname im Handy weicht ab (Groß- und Kleinschreibung zählt) oder die App darf keine Mitteilungen zeigen.
 - **Nachrichten kommen verspätet (Android ohne Google-Dienste)** – In der App „Sofortige Zustellung“ einschalten.
-- **Es kommt gar nichts mehr** – Der Wächter läuft nicht (`amw dienst status`); er verschickt die Nachrichten.
+- **Es kommt gar nichts mehr** – Der Dienst läuft nicht (`amw dienst status`); er verschickt die Nachrichten.
 - **„ntfy-Server: https://…“** – Die Adresse des Servers muss mit `https://` beginnen.
 
 ## Danach

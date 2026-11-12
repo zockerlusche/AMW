@@ -4,12 +4,12 @@ Ein neues Projekt muss nicht mit leeren Regeln anfangen: Die AMW liefert ein Gru
 
 ## Du brauchst
 - Den Assistenten „Neues Projekt“ (Projekt-Auswahl › + Neues Projekt) oder den Befehl `amw einrichten`.
-- Eine Vorstellung, wer das Projekt führt: Arbeitet der Lead als Chat, kommt die Takt-Regel dazu.
+- Eine Vorstellung, wer das Projekt führt: Arbeitet der Lead als Chat, kommt die Rhythmus-Regel dazu.
 
 ## Schritte
 1. **Regelwerk wählen** Im Assistenten bei „Regelwerk“ steht „Grund-Regelwerk (Vorgabe)“. Andere Möglichkeiten: die Arbeitsregeln eines vorhandenen Projekts kopieren oder ohne Regeln starten.
 2. **Regeln ansehen** „… Regeln gewählt – ansehen und anpassen“ aufklappen. Die Regeln stehen in drei Gruppen (Arbeit und Nachweis, Entscheidungen und Wissen, Sicherheit und Betrieb), dazu einige wahlweise.
-3. **Abhaken und anpassen** Haken weg heißt: gilt in diesem Projekt nicht. Den Wortlaut kannst du im Feld ändern. Unter jeder Regel steht ihr Warum – oder die Erfahrung, aus der sie stammt.
+3. **Abhaken und anpassen** Haken weg heißt: gilt in diesem Projekt nicht. Den Text kannst du im Feld ändern. Unter jeder Regel steht ihr Warum – oder die Erfahrung, aus der sie stammt.
 4. **Anlegen** Mit dem Projekt entstehen die gewählten Regeln als Arbeitsregeln, ein Beschluss als ihre Quelle, die Definition of Done im Leitbild und die erste Version 0.1.0.
 5. **Später ändern** Wie jede Regel: der Lead legt einen Beschluss an und ändert die Regel damit (`amw beschluss neu`, dann `amw regel` mit der Nummer des Beschlusses).
 
@@ -18,16 +18,16 @@ Ein neues Projekt muss nicht mit leeren Regeln anfangen: Die AMW liefert ein Gru
 |---|---|
 | Regelwerk | „Grund-Regelwerk“ ist vorgewählt; „Kopie von …“ übernimmt die Arbeitsregeln eines anderen Projekts |
 | Haken je Regel | alle Grundregeln sind angehakt, die wahlweisen nicht |
-| Wortlaut | Vorgabe aus der Vorlage – ändern, wenn dein Projekt es anders hält |
+| Text | Vorgabe aus der Vorlage – ändern, wenn dein Projekt es anders hält |
 
 ## Typische Fehler
 - **„Das Projekt hat schon Arbeitsregeln“** – Das Grund-Regelwerk lässt sich nur beim Anlegen übernehmen. In ein bestehendes Projekt kommen einzelne Regeln über einen Beschluss.
 - **„Keine Regel gewählt“** – Entweder „ohne“ wählen oder mindestens eine Regel anhaken.
-- **Die Regel soll anders heißen als in der Vorlage** – Den Wortlaut ändern; die Regel bleibt als Grundregel erkennbar und trägt den Hinweis „angepasst“.
+- **Die Regel soll anders heißen als in der Vorlage** – Den Text ändern; die Regel bleibt als Grundregel erkennbar und trägt den Hinweis „angepasst“.
 
 ## Danach
 - Unter Wissen › Regeln stehen die Grundregeln als eigene Gruppe, mit ihrer Nummer aus der Vorlage (G1 …) und dem Warum.
-- Jede Sitzung bekommt die Zahl der Regeln und geänderte Regeln im Wortlaut in ihren Pflicht-Kontext; `amw regeln` zeigt alle.
+- Jede Sitzung bekommt die Zahl der Regeln und geänderte Regeln im Wortlaut in ihre Startinformationen; `amw regeln` zeigt alle.
 - Was dein Projekt eigens braucht (wer prüft, wer zusammenführt, welche Zweige), ergänzt der Lead als eigene Regeln.
 
 ## Häufige Fragen

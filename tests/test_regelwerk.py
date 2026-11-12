@@ -103,8 +103,8 @@ class Uebernahme(Grund):
         regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER, lead_chat=True)
         wissen.release_version(self.con, self.pid, kern.ENTWICKLER, "0.1.0", "Projekt angelegt")
         chef, maler = kern.kontext(self.con, self.pid, "Chef"), kern.kontext(self.con, self.pid, "Maler")
-        self.assertIn("Dein Takt (KR20): Takt für einen Lead, der als Chat arbeitet.", chef)
-        self.assertNotIn("Dein Takt", maler)                                                    # nur der Chat-Lead
+        self.assertIn("Dein Rhythmus (KR20): Rhythmus für einen Lead, der als Chat arbeitet.", chef)
+        self.assertNotIn("Dein Rhythmus", maler)                                                    # nur der Chat-Lead
         for text in (chef, maler):
             self.assertIn("Version: aktuell 0.1.0 · Schema MAJOR.MINOR.PATCH", text)
 

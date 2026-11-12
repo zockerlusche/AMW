@@ -7,10 +7,10 @@ auseinander.
 | Datei | Thema | Wo der Knopf steht |
 |---|---|---|
 | [neues-projekt.md](neues-projekt.md) | Neues Projekt – Schritt für Schritt | Projekt-Auswahl, Einstellungen › Projekt |
-| [online-speicher-turso.md](online-speicher-turso.md) | Online-Speicher bei Turso anlegen | Einstellungen › Speicher und Abgleich |
+| [online-speicher-turso.md](online-speicher-turso.md) | Online-Speicher bei Turso anlegen | Einstellungen › Speicher und Synchronisierung |
 | [ntfy.md](ntfy.md) | Benachrichtigungen aufs Handy mit ntfy | Einstellungen › Benachrichtigungen |
 | [regelwerk.md](regelwerk.md) | Grund-Regelwerk für ein neues Projekt | Assistent „Neues Projekt“, Wissen › Regeln |
-| [takt-chat-lead.md](takt-chat-lead.md) | Takt für einen Lead, der als Chat arbeitet | Assistent „Neues Projekt“ (Lead als Chat) |
+| [takt-chat-lead.md](takt-chat-lead.md) | Rhythmus für einen Lead, der als Chat arbeitet | Assistent „Neues Projekt“ (Lead als Chat) |
 | [schwere-laeufe.md](schwere-laeufe.md) | Schwere Läufe: Tests und Builds über die Warteschlange | Einstellungen › Projekt („Weitere schwere Befehle“) |
 | [betriebsart.md](betriebsart.md) | Betriebsart wählen | Einstellungen › Betriebsart |
 | [online-seite-webhoster.md](online-seite-webhoster.md) | Online-Seite beim Webhoster einrichten | Einstellungen › Online-Seite |

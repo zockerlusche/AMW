@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.60.0 – 12.11.2026 · Hilfen in derselben Sprache wie die Oberfläche
+- **Hilfen überarbeitet** (Deutsch und Englisch) mit den Wörtern der Oberfläche: Dienst, Synchronisierung,
+  Startinformationen, Dateiaustausch, Meilenstein, Startanweisung, Name; im Englischen service, start information,
+  file exchange, milestone, control center.
+- **Rhythmus statt Takt** auch in der Regel für einen Lead, der als Chat arbeitet (Grund-Regelwerk, Fassung 2), in
+  seiner Hilfe und in seinen Startinformationen („Dein Rhythmus“). Der „Wecker“ der Chat-App heißt weiter so.
+
 ## 1.59.0 – 12.11.2026 · Was auf der Platte wächst
 - **Tägliche Messung der Ordnergrößen:** Der Dienst misst einmal am Tag die Projektordner dieses PCs, ihre typischen
   Ablagerungen (Build-Reste, Caches, Temp-Ordner), weitere Arbeitsbäume (Git-Worktrees) und den Ordner der Sicherungen –

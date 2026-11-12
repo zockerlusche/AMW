@@ -2,7 +2,7 @@
  "titel": "Create the online storage at Turso",
  "kurz": "The online storage is where your PC and the online page exchange data. You create it once and enter its address and key in the AMW.",
  "brauchst": [
-  "The AMW runs on this PC (the watcher is set up).",
+  "The AMW runs on this PC (the service is set up).",
   "A free account at turso.tech.",
   "About 10 minutes."
  ],
@@ -33,8 +33,8 @@
    "bilder": []
   },
   {
-   "titel": "Restart the watcher",
-   "text": "The AMW says so: the sync starts with the next start of the watcher (control desk › Watcher › Restart).",
+   "titel": "Restart the service",
+   "text": "The AMW says so: the sync starts with the next start of the service (control center › Service › Restart).",
    "bilder": []
   },
   {
@@ -64,7 +64,7 @@
   ],
   [
    "Nothing arrives online",
-   "The watcher is not running or was not restarted after you entered the values."
+   "The service is not running or was not restarted after you entered the values."
   ]
  ],
  "danach": [

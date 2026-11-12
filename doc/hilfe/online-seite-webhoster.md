@@ -3,7 +3,7 @@
 Mit der Online-Seite beantwortest du Fragen, gibst frei und hältst an – von unterwegs, am Handy. Sie liegt bei deinem Webhoster und zeigt, was der PC in den Online-Speicher hochlädt.
 
 ## Du brauchst
-- Den Online-Speicher: fertig eingerichtet und der Abgleich ist an (Hilfe „Online-Speicher bei Turso anlegen“).
+- Den Online-Speicher: fertig eingerichtet und die Synchronisierung ist an (Hilfe „Online-Speicher bei Turso anlegen“).
 - Einen Webhoster mit PHP ab 8.1 (Erweiterungen curl und mbstring) und HTTPS, am besten eine eigene Subdomain.
 - Eine Authenticator-App auf dem Handy (für den zweiten Faktor).
 
@@ -19,14 +19,14 @@ Mit der Online-Seite beantwortest du Fragen, gibst frei und hältst an – von u
 ## Diese Werte trägst du ein
 | Feld in der AMW | Woher |
 |---|---|
-| Adresse und Schlüssel (im Assistenten der Seite) | dieselben wie unter Einstellungen › Speicher und Abgleich |
+| Adresse und Schlüssel (im Assistenten der Seite) | dieselben wie unter Einstellungen › Speicher und Synchronisierung |
 | Benutzer und Passwort | wählst du selbst – das Passwort am besten aus einem Passwort-Manager |
 | Adresse der Online-Seite (am PC) | die Adresse deiner Subdomain, beginnend mit `https://` |
 
 ## Typische Fehler
 - **Der Assistent erscheint nicht** – Die Seite ist schon eingerichtet; dann kommt die Anmeldung.
 - **Hinweis „die nächste Bereitstellung löscht die Konfiguration“** – Die Seite durfte ihre Konfiguration nicht außerhalb des Bereitstellungs-Ordners ablegen. Beim Hoster das Schreiben eine Ebene über dem Ordner erlauben und die Einrichtung wiederholen.
-- **Die Seite zeigt alte oder keine Daten** – Der PC lädt nicht hoch: Abgleich an? Wächter läuft? `amw web status` zeigt, wann zuletzt hochgeladen wurde.
+- **Die Seite zeigt alte oder keine Daten** – Der PC lädt nicht hoch: Synchronisierung an? Dienst läuft? `amw web status` zeigt, wann zuletzt hochgeladen wurde.
 - **„Seite erreichbar?“ meldet keine Hilfe-Dateien** – Dort liegt eine ältere Fassung oder eine andere Seite. Bereitstellung erneuern.
 
 ## Danach
@@ -39,4 +39,4 @@ Mit der Online-Seite beantwortest du Fragen, gibst frei und hältst an – von u
 Nur, wer den Schlüssel des Online-Speichers hat – ohne ihn kommt der Assistent nicht über den ersten Schritt.
 
 ### Wie schalte ich die Online-Seite ab?
-Am PC: Einstellungen › Speicher und Abgleich › Abgleich aus. Ganz sperren: den Ordner beim Hoster leeren oder beim Speicher-Anbieter Lesen und Schreiben blockieren.
+Am PC: Einstellungen › Speicher und Synchronisierung › Synchronisierung aus. Ganz sperren: den Ordner beim Hoster leeren oder beim Speicher-Anbieter Lesen und Schreiben blockieren.

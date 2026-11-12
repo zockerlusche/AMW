@@ -23,14 +23,14 @@
   },
   {
    "titel": "Aufräumen",
-   "text": "Rote Zeilen beheben: den Dienst ausschalten (z. B. Abgleich aus, Benachrichtigungen aus) oder eine andere Betriebsart wählen.",
+   "text": "Rote Zeilen beheben: den Dienst ausschalten (z. B. Synchronisierung aus, Benachrichtigungen aus) oder eine andere Betriebsart wählen.",
    "bilder": []
   }
  ],
  "werte": [
   [
    "Nur dieser PC",
-   "Nichts verlässt den Rechner: kein Abgleich, keine Online-Seite, keine Benachrichtigungen"
+   "Nichts verlässt den Rechner: keine Synchronisierung, keine Online-Seite, keine Benachrichtigungen"
   ],
   [
    "Eigener Server im Firmennetz",
@@ -44,7 +44,7 @@
  "fehler": [
   [
    "„Betriebsart …: Verbindung zum Online-Speicher zu … ist blockiert“",
-   "Die gewählte Betriebsart lässt diese Adresse nicht zu. Betriebsart ändern oder den Abgleich ausschalten."
+   "Die gewählte Betriebsart lässt diese Adresse nicht zu. Betriebsart ändern oder die Synchronisierung ausschalten."
   ],
   [
    "Benachrichtigungen kommen nicht mehr an",
@@ -56,7 +56,7 @@
   ]
  ],
  "danach": [
-  "Noch nichts gewählt? Dann gilt, was bisher lief: mit eingeschaltetem Abgleich oder Benachrichtigungen „Cloud“, sonst „Nur dieser PC“.",
+  "Noch nichts gewählt? Dann gilt, was bisher lief: mit eingeschalteter Synchronisierung oder Benachrichtigungen „Cloud“, sonst „Nur dieser PC“.",
   "Die Betriebsart gilt für diesen PC und alle Projekte darauf."
  ],
  "fragen": [

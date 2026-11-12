@@ -2,7 +2,7 @@
  "titel": "Online-Speicher bei Turso anlegen",
  "kurz": "Der Online-Speicher ist die Ablage, über die dein PC und die Online-Seite Daten austauschen. Du legst ihn einmal an und trägst Adresse und Schlüssel in der AMW ein.",
  "brauchst": [
-  "Die AMW läuft auf diesem PC (der Wächter ist eingerichtet).",
+  "Die AMW läuft auf diesem PC (der Dienst ist eingerichtet).",
   "Ein kostenloses Konto bei turso.tech.",
   "Etwa 10 Minuten."
  ],
@@ -29,17 +29,17 @@
   },
   {
    "titel": "Am PC eintragen",
-   "text": "In der AMW: Einstellungen › Speicher und Abgleich. Adresse und Schlüssel einfügen und speichern. Die AMW prüft die Verbindung, legt die Tabellen an und schaltet den Abgleich ein. Als Befehl geht dasselbe mit `amw web einrichten`.",
+   "text": "In der AMW: Einstellungen › Speicher und Synchronisierung. Adresse und Schlüssel einfügen und speichern. Die AMW prüft die Verbindung, legt die Tabellen an und schaltet die Synchronisierung ein. Als Befehl geht dasselbe mit `amw web einrichten`.",
    "bilder": []
   },
   {
-   "titel": "Wächter neu starten",
-   "text": "Die AMW sagt es dazu: Der Abgleich beginnt mit dem nächsten Start des Wächters (Leitstand › Wächter › Neu starten).",
+   "titel": "Dienst neu starten",
+   "text": "Die AMW sagt es dazu: Die Synchronisierung beginnt mit dem nächsten Start des Dienstes (Leitstand › Dienst › Neu starten).",
    "bilder": []
   },
   {
    "titel": "Prüfen",
-   "text": "Unter Einstellungen › Speicher und Abgleich steht „Schlüssel gespeichert“ und der Abgleich ist an; „Verbindung testen“ meldet „Anmeldung erfolgreich“ und „Die Datenbank ist eingerichtet“. `amw web status` zeigt, wann zuletzt hochgeladen wurde.",
+   "text": "Unter Einstellungen › Speicher und Synchronisierung steht „Schlüssel gespeichert“ und die Synchronisierung ist an; „Verbindung testen“ meldet „Anmeldung erfolgreich“ und „Die Datenbank ist eingerichtet“. `amw web status` zeigt, wann zuletzt hochgeladen wurde.",
    "bilder": []
   }
  ],
@@ -64,7 +64,7 @@
   ],
   [
    "Nichts kommt online an",
-   "Der Wächter läuft nicht oder wurde nach dem Eintragen nicht neu gestartet."
+   "Der Dienst läuft nicht oder wurde nach dem Eintragen nicht neu gestartet."
   ]
  ],
  "danach": [
@@ -82,7 +82,7 @@
   ],
   [
    "Wie schalte ich es wieder ab?",
-   "Einstellungen › Speicher und Abgleich › Abgleich aus. Die Online-Seite zeigt dann den letzten Stand und nimmt nichts mehr an."
+   "Einstellungen › Speicher und Synchronisierung › Synchronisierung aus. Die Online-Seite zeigt dann den letzten Stand und nimmt nichts mehr an."
   ]
  ],
  "thema": "online-speicher-turso",

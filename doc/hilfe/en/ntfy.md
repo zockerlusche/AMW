@@ -3,7 +3,7 @@
 The AMW sends a short message to your phone when something is waiting for you – a question, an approval, a halt. ntfy is the simplest way: a free app and a secret channel name.
 
 ## You need
-- The AMW runs on this PC (the watcher is set up).
+- The AMW runs on this PC (the service is set up).
 - The **ntfy** app on your phone (Google Play, F-Droid or App Store).
 
 ## Steps
@@ -22,7 +22,7 @@ The AMW sends a short message to your phone when something is waiting for you �
 ## Common problems
 - **The test does not arrive** – The channel name on the phone differs (case matters) or the app is not allowed to show notifications.
 - **Messages arrive late (Android without Google services)** – Switch on “Instant delivery” in the app.
-- **Nothing arrives any more** – The watcher is not running (`amw dienst status`); it sends the messages.
+- **Nothing arrives any more** – The service is not running (`amw dienst status`); it sends the messages.
 - **“ntfy-Server: https://…”** – The server address must start with `https://`.
 
 ## Next

@@ -2,7 +2,7 @@
  "titel": "Online-Seite beim Webhoster einrichten",
  "kurz": "Mit der Online-Seite beantwortest du Fragen, gibst frei und hältst an – von unterwegs, am Handy. Sie liegt bei deinem Webhoster und zeigt, was der PC in den Online-Speicher hochlädt.",
  "brauchst": [
-  "Den Online-Speicher: fertig eingerichtet und der Abgleich ist an (Hilfe „Online-Speicher bei Turso anlegen“).",
+  "Den Online-Speicher: fertig eingerichtet und die Synchronisierung ist an (Hilfe „Online-Speicher bei Turso anlegen“).",
   "Einen Webhoster mit PHP ab 8.1 (Erweiterungen curl und mbstring) und HTTPS, am besten eine eigene Subdomain.",
   "Eine Authenticator-App auf dem Handy (für den zweiten Faktor)."
  ],
@@ -46,7 +46,7 @@
  "werte": [
   [
    "Adresse und Schlüssel (im Assistenten der Seite)",
-   "dieselben wie unter Einstellungen › Speicher und Abgleich"
+   "dieselben wie unter Einstellungen › Speicher und Synchronisierung"
   ],
   [
    "Benutzer und Passwort",
@@ -68,7 +68,7 @@
   ],
   [
    "Die Seite zeigt alte oder keine Daten",
-   "Der PC lädt nicht hoch: Abgleich an? Wächter läuft? `amw web status` zeigt, wann zuletzt hochgeladen wurde."
+   "Der PC lädt nicht hoch: Synchronisierung an? Dienst läuft? `amw web status` zeigt, wann zuletzt hochgeladen wurde."
   ],
   [
    "„Seite erreichbar?“ meldet keine Hilfe-Dateien",
@@ -87,7 +87,7 @@
   ],
   [
    "Wie schalte ich die Online-Seite ab?",
-   "Am PC: Einstellungen › Speicher und Abgleich › Abgleich aus. Ganz sperren: den Ordner beim Hoster leeren oder beim Speicher-Anbieter Lesen und Schreiben blockieren."
+   "Am PC: Einstellungen › Speicher und Synchronisierung › Synchronisierung aus. Ganz sperren: den Ordner beim Hoster leeren oder beim Speicher-Anbieter Lesen und Schreiben blockieren."
   ]
  ],
  "thema": "online-seite-webhoster",

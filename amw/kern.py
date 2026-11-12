@@ -1188,7 +1188,7 @@ def kontext(con, pid, kennung):
         if a["rolle"] == "lead" and (a["arbeitsweise"] or "") == "chat":
             for r in regeln:
                 if (r["vorlage"] or "").startswith("W4/"):
-                    z.append(f"Dein Takt (KR{r['nr']}): {r['text']}")
+                    z.append(f"Dein Rhythmus (KR{r['nr']}): {r['text']}")
     version = con.execute("SELECT version FROM release WHERE projekt_id = ? AND art = 'version' ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
     if version:
         z.append(f"Version: aktuell {version['version']} · Schema MAJOR.MINOR.PATCH · jede Auslieferung eintragen: `amw release version`")

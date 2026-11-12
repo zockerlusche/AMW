@@ -2,7 +2,7 @@
  "titel": "Phone notifications with ntfy",
  "kurz": "The AMW sends a short message to your phone when something is waiting for you – a question, an approval, a halt. ntfy is the simplest way: a free app and a secret channel name.",
  "brauchst": [
-  "The AMW runs on this PC (the watcher is set up).",
+  "The AMW runs on this PC (the service is set up).",
   "The **ntfy** app on your phone (Google Play, F-Droid or App Store)."
  ],
  "schritte": [
@@ -52,7 +52,7 @@
   ],
   [
    "Nothing arrives any more",
-   "The watcher is not running (`amw dienst status`); it sends the messages."
+   "The service is not running (`amw dienst status`); it sends the messages."
   ],
   [
    "“ntfy-Server: https://…”",
