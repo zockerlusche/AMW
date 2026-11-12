@@ -165,6 +165,14 @@ nicht in den Durchsatz der Prognose – so wird die Pause nicht doppelt gerechne
 Pause ein: Sie steht nur grün, wenn der Termin auch mit Pause hält; „(mit Pause)“ am Datum zeigt, dass er ohne sie zu
 halten wäre. Steht „unsicher“ dabei, gibt es zu wenige Messtage.
 
+### Mehrere Benutzer (seit 1.63.0)
+
+Rolle global (Leser < Bearbeiter < Projekt-Admin < System-Admin), Projekte je Benutzer (`benutzer`, `benutzer_projekt`,
+Schema 27). Verwalten nur der Mensch am PC: `amw benutzer neu <name> --rolle … --projekte A,B`, `liste`, `aendern`,
+`sperren`, `entsperren`. Jede Eingabe von der Online-Seite trägt den Benutzer; der PC prüft Rolle und Zuweisung vor dem
+Ausführen (`benutzer.darf`) und schreibt den Namen in `nachricht.benutzer` bzw. `frage_verlauf.benutzer`. Passwörter und
+Geheimnisse stehen nie in der Datenbank des PCs – nur im Online-Speicher, gesetzt vom Benutzer selbst (Stufe R1b).
+
 ## 6 Einstellungen dieses PCs
 Zahnrad › Dieser PC, oder von Hand in `%LOCALAPPDATA%\amw\einstellungen.json` (JSON, nur Schlüssel, die von der
 Vorgabe abweichen, z. B. `{"port": 8790}`). Was der Wächter nur beim Start liest, trägt im Zahnrad das Zeichen ↻ und

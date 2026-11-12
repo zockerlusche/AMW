@@ -1033,6 +1033,30 @@ def _lauf_ausfuehren(con, pid, a):
     return rc
 
 
+def cmd_benutzer(a, con):
+    """Benutzer verwalten (nur der Mensch): neu NAME --rolle … [--projekte A,B] [--email …] | liste | aendern NAME
+    [--rolle …] [--projekte …] | sperren NAME | entsperren NAME."""
+    from . import benutzer
+    von = _von(a)
+    projekte = [x.strip() for x in a.projekte.split(",") if x.strip()] if a.projekte is not None else None
+    if a.aktion == "neu":
+        if not a.name or not a.rolle:
+            raise kern.AmwFehler("amw benutzer neu <name> --rolle leser|bearbeiter|projekt_admin|system_admin [--projekte A,B]")
+        benutzer.neu(con, von, a.name, a.rolle, a.anzeige, a.email, projekte or ())
+        print(f"Benutzer {a.name} angelegt ({benutzer.NAMEN[a.rolle]}) – anmelden kann er sich, sobald die Einladung gebaut ist")
+    elif a.aktion in ("aendern", "sperren", "entsperren"):
+        if not a.name:
+            raise kern.AmwFehler(f"amw benutzer {a.aktion} <name>")
+        gesperrt = True if a.aktion == "sperren" else False if a.aktion == "entsperren" else None
+        b = benutzer.aendern(con, von, a.name, a.rolle, gesperrt, projekte)
+        print(f"{b['name']}: {benutzer.NAMEN[b['rolle']]}" + (" · gesperrt" if b["gesperrt"] else ""))
+    else:
+        namen = {r[0]: r[1] for r in con.execute("SELECT id, name FROM projekt")}
+        for b in benutzer.liste(con):
+            pr = "alle" if b["rolle"] == "system_admin" else ", ".join(namen.get(i, "?") for i in b["projekte"]) or "–"
+            print(f"{b['name']:<16} {benutzer.NAMEN[b['rolle']]:<14} {'gesperrt ' if b['gesperrt'] else ''}Projekte: {pr}")
+
+
 def cmd_rechner(a, con):
     """Der Rechner auf einen Blick: Arbeitsspeicher, was außerhalb der Warteschlange belegt, Laufwerke, Aufräumvorschläge."""
     from . import belegung, platte
@@ -2213,6 +2237,16 @@ def parser():
     x.add_argument("--abgebrochen", action="store_true")
     x.add_argument("--grenze", type=int, default=20)
     x.set_defaults(f=cmd_lauf)
+
+    x = s.add_parser("benutzer", help="Benutzer der Online-Seite (nur der Mensch): neu NAME --rolle … [--projekte A,B] | liste |"
+                                      " aendern NAME | sperren NAME | entsperren NAME")
+    x.add_argument("aktion", nargs="?", default="liste", choices=["neu", "liste", "aendern", "sperren", "entsperren"])
+    x.add_argument("name", nargs="?")
+    x.add_argument("--rolle", choices=["leser", "bearbeiter", "projekt_admin", "system_admin"])
+    x.add_argument("--projekte", help="Namen der Projekte, mit Komma getrennt")
+    x.add_argument("--anzeige")
+    x.add_argument("--email")
+    x.set_defaults(f=cmd_benutzer)
 
     x = s.add_parser("rechner", help="Der Rechner auf einen Blick: Arbeitsspeicher, was außerhalb der Warteschlange Speicher belegt,"
                                      " freier Platz je Laufwerk, Aufräumvorschläge für alte Sicherungen (nur Anzeige)")

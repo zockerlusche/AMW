@@ -4,6 +4,17 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.63.0 – 12.11.2026 · Mehrere Benutzer, erste Stufe
+- **Benutzer mit Rolle:** Leser, Bearbeiter, Projekt-Admin oder System-Admin – eine Rolle je Benutzer, dazu die Projekte,
+  die er sieht. Anlegen, ändern und sperren mit `amw benutzer …` (nur der Mensch am PC).
+- **Der PC prüft jede Eingabe von der Online-Seite** gegen Rolle und Zuweisung, bevor er sie ausführt – ein Leser
+  schreibt nichts, ein Bearbeiter nur in seinen Projekten, Einstellungen des PCs nur ein System-Admin.
+- **Der Verlauf nennt den Menschen:** Nachrichten und Antworten tragen den Namen des Benutzers.
+- **Abgleich:** Die Benutzer stehen ohne Passwort und Geheimnis im Online-Speicher; beides setzt jeder später selbst.
+- Der Mensch am PC und der bisherige Online-Zugang bleiben System-Admin. Anmelden können sich neue Benutzer mit der
+  nächsten Stufe (Einladung).
+- **Schema 27.** Bestehende Daten bleiben unverändert.
+
 ## 1.62.0 – 12.11.2026 · Versionshinweise ohne KI
 - **Ein Satz für Nutzer beim Abschließen:** `amw aufgabe fertig … --gruppe neu|verbessert|behoben --hinweis "…"`. Die
   Startinformationen bitten die Agenten darum.

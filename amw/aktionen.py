@@ -21,9 +21,21 @@ class Ungueltig(ValueError):
 def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
     """Führt die Aktion aus. Jede Eingabe des Entwicklers in der Workbench am PC heißt: er sitzt davor – ein freier
     Schirm geht zu. Online (Handy) nicht: er ist unterwegs, der Bildschirm bleibt frei."""
-    if weg == "/api/schirm":
-        return schirm_setzen(con, pid, daten, kanal)
-    aus = _ausfuehren(con, pid, weg, daten, kanal, speicher)
+    from . import benutzer                           # von der Online-Seite: Rolle und Zuweisung prüft auch der PC
+    name = daten.pop("_benutzer", None) if isinstance(daten, dict) else None
+    if kanal != "netz":
+        name = None                                  # am PC sitzt der Mensch selbst (System-Admin)
+    if name:
+        ok, grund = benutzer.darf(con, name, pid, benutzer.klasse(weg, daten))
+        if not ok:
+            raise Ungueltig(f"Nicht erlaubt: {grund}")
+    marke = benutzer.AKTUELL.set(name or None)
+    try:
+        if weg == "/api/schirm":
+            return schirm_setzen(con, pid, daten, kanal)
+        aus = _ausfuehren(con, pid, weg, daten, kanal, speicher)
+    finally:
+        benutzer.AKTUELL.reset(marke)
     if kanal == "seite" and (weg != "/api/hochladen" or daten.get("schritt") == "start"):   # Upload in Teilen: einmal
         from . import schirm
         schirm.entwickler_da(con, "Workbench")

@@ -68,6 +68,8 @@ SCHEMA = [
     "CREATE TABLE IF NOT EXISTS projekt (uid TEXT PRIMARY KEY, name TEXT NOT NULL, farbe TEXT, rechner TEXT, gesehen_utc TEXT NOT NULL,"
     " fragen INTEGER NOT NULL DEFAULT 0, agenten INTEGER NOT NULL DEFAULT 0, halt INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS datei_projekt (sha TEXT NOT NULL, projekt TEXT NOT NULL, PRIMARY KEY (sha, projekt))",
+    "CREATE TABLE IF NOT EXISTS benutzer (name TEXT PRIMARY KEY, anzeige TEXT, email TEXT, rolle TEXT NOT NULL, gesperrt INTEGER NOT NULL DEFAULT 0,"
+    " projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, stand_utc TEXT)",
 ]
 # Spalten, die es in älteren Online-Speichern noch nicht gibt (web/inc/lib.php rüstet dieselben nach)
 NACHRUESTEN = [("eingang", "projekt", "ALTER TABLE eingang ADD COLUMN projekt TEXT")]
@@ -493,6 +495,12 @@ class Abgleich:
             n += len(stueck)
         verzeichnis.append(("INSERT INTO zustand (schluessel, wert) VALUES ('pc_gesehen_utc', ?) ON CONFLICT(schluessel)"
                             " DO UPDATE SET wert = excluded.wert", [t]))          # für Seiten von vor 1.19.0
+        from . import benutzer                        # Benutzer ohne Passwort und Geheimnis – die setzt jeder online selbst
+        for b in benutzer.fuer_online(self.con):
+            verzeichnis.append(("INSERT INTO benutzer (name, anzeige, email, rolle, gesperrt, projekte, stand_utc) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                                " ON CONFLICT(name) DO UPDATE SET anzeige = excluded.anzeige, email = excluded.email, rolle = excluded.rolle,"
+                                " gesperrt = excluded.gesperrt, projekte = excluded.projekte, stand_utc = excluded.stand_utc",
+                                [b["name"], b["anzeige"], b["email"], b["rolle"], b["gesperrt"], b["projekte"], t]))
         if not self.alt_weg:                          # Ansichten ohne Kennung (vor 1.19.0) – jetzt doppelt: weg
             verzeichnis.append(("DELETE FROM ansicht WHERE weg LIKE '/%'", []))
             self.alt_weg = True

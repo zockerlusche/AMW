@@ -111,6 +111,7 @@ CREATE TABLE nachricht (
   anhang_id     INTEGER REFERENCES anhang(id),
   dokument_id   INTEGER REFERENCES dokument(id),           -- Kommentar/Auftrag zu einem Dokument
   bis           TEXT,                            -- erledigt sich von selbst: leitbild | aufgabe | A<nr> | F<nr> (Schema 20)
+  benutzer      TEXT,                              -- welcher Mensch (Schema 27; leer = der am PC)
   uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft      TEXT NOT NULL DEFAULT '',
   geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
@@ -569,6 +570,7 @@ CREATE TABLE frage_verlauf (                    -- Gespräch zu einer Frage: Rü
   art           TEXT NOT NULL CHECK (art IN ('rueckfrage', 'nachtrag', 'antwort')),
   text          TEXT NOT NULL,
   nachricht_id  INTEGER REFERENCES nachricht(id),  -- die Benachrichtigung dazu (Antwort darauf = Nachtrag)
+  benutzer      TEXT,                              -- welcher Mensch (Schema 27; leer = der am PC)
   uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft      TEXT NOT NULL DEFAULT '',
   geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
@@ -941,3 +943,23 @@ CREATE TABLE ordner_messung (
   geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 CREATE INDEX ordner_messung_ordner ON ordner_messung (ordner, zeit_utc);
+
+-- Mehrere Benutzer (Schema 27): Rolle global, Projekte je Benutzer; nie Passwörter oder Geheimnisse
+CREATE TABLE benutzer (
+  id            INTEGER PRIMARY KEY,
+  name          TEXT NOT NULL UNIQUE,
+  anzeige       TEXT,
+  email         TEXT,
+  rolle         TEXT NOT NULL CHECK (rolle IN ('leser', 'bearbeiter', 'projekt_admin', 'system_admin')),
+  gesperrt      INTEGER NOT NULL DEFAULT 0,
+  angelegt_utc  TEXT NOT NULL,
+  angelegt_von  TEXT NOT NULL,
+  uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft      TEXT NOT NULL DEFAULT '',
+  geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+CREATE TABLE benutzer_projekt (
+  benutzer_id   INTEGER NOT NULL REFERENCES benutzer(id),
+  projekt_id    INTEGER NOT NULL REFERENCES projekt(id),
+  PRIMARY KEY (benutzer_id, projekt_id)
+);

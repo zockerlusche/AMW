@@ -14,7 +14,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = 26        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
+SCHEMA_VERSION = 27        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
 HIER = os.path.dirname(os.path.abspath(__file__))
 STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
 
@@ -213,6 +213,10 @@ def schreiben(con):
 def einfuegen(con, tabelle, **werte):
     """INSERT mit Herkunft; gibt die neue rowid zurück. Spaltennamen kommen nur aus dem Code, nie vom Nutzer."""
     werte.setdefault("herkunft", herkunft())
+    if tabelle in ("nachricht", "frage_verlauf") and werte.get("von") == "Entwickler" and "benutzer" not in werte:
+        from . import benutzer                       # handelt gerade ein Benutzer über die Online-Seite? (Schema 27)
+        if benutzer.AKTUELL.get():
+            werte["benutzer"] = benutzer.AKTUELL.get()
     spalten = ", ".join(werte)
     platz = ", ".join("?" for _ in werte)
     return con.execute(f"INSERT INTO {tabelle} ({spalten}) VALUES ({platz})", tuple(werte.values())).lastrowid
