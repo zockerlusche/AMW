@@ -50,7 +50,7 @@ def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe",
     if rechte not in RECHTE:
         raise kern.AmwFehler(f"Rechte: {' | '.join(RECHTE)}")
     if (denkstufe or "") not in DENKSTUFEN:
-        raise kern.AmwFehler(f"Denkstufe: {' | '.join(DENKSTUFEN[1:])} oder leer")
+        raise kern.AmwFehler(f"Denkaufwand: {' | '.join(DENKSTUFEN[1:])} oder leer")
     if ordner and not os.path.isdir(ordner):
         raise kern.AmwFehler(f"Projektordner {ordner} gibt es nicht – lege ihn zuerst an")
     if ordner and einrichtung.ordner_projekt(ordner) not in (None, projekt):   # vor dem Anlegen: nichts halb einrichten
@@ -125,7 +125,7 @@ def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe",
         con.close()
     if dienst:
         rc, aus = einrichtung.powershell(einrichtung.skript_einrichten(einstellungen.wert("port")))
-        schritte.append("Wächter eingerichtet" if rc == 0 else f"Wächter NICHT eingerichtet: {aus.strip()[:200]}")
+        schritte.append("Dienst eingerichtet" if rc == 0 else f"Dienst NICHT eingerichtet: {aus.strip()[:200]}")
     for s in schritte:
         ausgabe("  ✓ " + s)
     return schritte
@@ -153,8 +153,8 @@ def interaktiv(eingabe=input, ausgabe=print):
     ausgabe("AMW einrichten – Enter übernimmt die Vorgabe in Klammern. Abbrechen mit Strg+C.\n")
     ausgabe(f"Datenbank: {db.db_pfad()}" + ("" if os.path.exists(db.db_pfad()) else " (wird angelegt)"))
     projekt = _frage("Name des Projekts", "Mein Projekt", eingabe)
-    lead = _frage("Kennung des Lead-Agenten (Team-Lead; leer = keiner)", "TL", eingabe)
-    agenten = [a.strip() for a in _frage("Kennungen der Agenten, mit Komma", "CC1,CC2", eingabe).split(",") if a.strip()]
+    lead = _frage("Name des Lead-Agenten (Team-Lead; leer = keiner)", "TL", eingabe)
+    agenten = [a.strip() for a in _frage("Namen der Agenten, mit Komma", "CC1,CC2", eingabe).split(",") if a.strip()]
     regeln_von, regelwerk, andere, neu = None, None, [], True
     if os.path.exists(db.db_pfad()):                 # weiteres Projekt: auch die Arbeitsregeln eines anderen stehen zur Wahl
         con = db.verbinde()
@@ -177,7 +177,7 @@ def interaktiv(eingabe=input, ausgabe=print):
     from . import betriebsart                        # einmal je Rechner: wohin darf die AMW Verbindungen aufbauen?
     if not betriebsart.gewaehlt():
         ausgabe("\nBetriebsart – mit welchen Adressen darf sich die AMW verbinden?\n"
-                "  pc     nur dieser PC: kein Abgleich, keine Online-Seite, keine Benachrichtigungen\n"
+                "  pc     nur dieser PC: keine Synchronisierung, keine Online-Seite, keine Benachrichtigungen\n"
                 "  server nur Adressen im eigenen Firmennetz\n"
                 "  cloud  Online-Speicher, Online-Seite und Benachrichtigungen über das Internet\n"
                 "Claude Code und Git verbinden sich unabhängig davon selbst mit ihren Diensten.")
@@ -188,13 +188,13 @@ def interaktiv(eingabe=input, ausgabe=print):
         ordner = _frage(f"{ordner} gibt es nicht – Projektordner (leer = später)", "", eingabe)
     rechte = _auswahl("Rechte der Agenten: vorgabe (Claude Code fragt) | auto | umgehen (alles erlauben)", RECHTE, "vorgabe",
                       eingabe, ausgabe)
-    denkstufe = _auswahl("Denkstufe: low | medium | high | xhigh | max (leer = Vorgabe von Claude Code)", DENKSTUFEN, "",
+    denkstufe = _auswahl("Denkaufwand: low | medium | high | xhigh | max (leer = Vorgabe von Claude Code)", DENKSTUFEN, "",
                          eingabe, ausgabe)
     fern = _ja("Remote Control für die Agenten (Sitzungen auch über claude.ai bzw. die App steuerbar)?", False, eingabe)
-    hooks = bool(ordner) and _ja(f"Hooks und Statusline-Brücke in {ordner}\\.claude\\settings.local.json eintragen (nötig zum Wecken)?", True, eingabe)
-    ausgabe("\nDer Wächter weckt die Agenten und liefert die Workbench. Als geplante Aufgabe startet er bei jeder Anmeldung"
+    hooks = bool(ordner) and _ja(f"Hooks und Statusline-Anbindung in {ordner}\\.claude\\settings.local.json eintragen (nötig für Benachrichtigungen)?", True, eingabe)
+    ausgabe("\nDer Dienst benachrichtigt die Agenten und liefert die Workbench. Als geplante Aufgabe startet er bei jeder Anmeldung"
             " von selbst;\nzum Ausprobieren geht auch `amw dienst vordergrund` in einem eigenen Fenster.")
-    dienst = _ja("Wächter als geplante Windows-Aufgabe einrichten?", True, eingabe)
+    dienst = _ja("Dienst als geplante Windows-Aufgabe einrichten?", True, eingabe)
     ausgabe("")
     schnell(projekt, lead or None, agenten, ordner or None, rechte, denkstufe, dienst, hooks=hooks, ausgabe=ausgabe,
             fernsteuerung=fern, regeln_von=regeln_von, regelwerk=regelwerk)

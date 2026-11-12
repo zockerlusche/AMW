@@ -205,7 +205,7 @@ class Einbau(Grund):
             json.dump({"hooks": {"SessionStart": [{"matcher": "compact", "hooks": [{"type": "command", "command": "eigen"}]}]},
                        "statusLine": {"type": "command", "command": "meine-zeile.ps1"}}, f)
         erste = einrichtung.agenten_ordner_einrichten(ordner)
-        self.assertIn("Statusline-Brücke", erste)
+        self.assertIn("Statusline-Anbindung", erste)
         self.assertEqual(einrichtung.agenten_ordner_einrichten(ordner), [])       # zweimal = nichts mehr
         with open(os.path.join(ordner, ".claude", "settings.local.json"), encoding="utf-8") as f:
             d = json.load(f)

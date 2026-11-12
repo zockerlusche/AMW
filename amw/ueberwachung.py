@@ -95,7 +95,7 @@ def starten(s):
     """Startet den Server losgelöst vom Wächter (läuft weiter, wenn der Wächter neu startet). Ausgabe ins Protokoll."""
     log = os.path.join(os.path.dirname(db.db_pfad()), f"server-{s['name']}.log")
     with open(log, "a", encoding="utf-8") as f:
-        f.write(f"\n--- {db.jetzt()} Neustart durch den AMW-Wächter: {s['startbefehl']}\n")
+        f.write(f"\n--- {db.jetzt()} Neustart durch den AMW-Dienst: {s['startbefehl']}\n")
         f.flush()
         flags = 0
         for name in ("DETACHED_PROCESS", "CREATE_NEW_PROCESS_GROUP", "CREATE_NO_WINDOW"):
@@ -120,7 +120,7 @@ def server_pruefen(con, pid, pruefen=antwortet, start=starten):
                 if neu == "aus":
                     con.execute("UPDATE server SET ausfaelle = ausfaelle + 1 WHERE id = ?", (s["id"],))
                     kern._posten(con, pid, "AMW", an, "meldung", f"Server {s['name']} (Port {s['port']}) ist AUS",
-                                 "Der Wächter startet ihn in der nächsten Runde neu." if s["neustart"] else
+                                 "Der Dienst startet ihn in der nächsten Runde neu." if s["neustart"] else
                                  "Kein automatischer Neustart angemeldet – bitte selbst starten.")
                     ereignisse.append(f"{s['name']} aus")
                 elif s["zustand"] == "aus":
@@ -179,7 +179,7 @@ def warnungen(con, pid, jetzt=None):
             " GROUP BY e.agent", (pid,)):
         if jetzt - _sek(r["seit"]) >= grenze:
             aus.append({"art": "stillstand", "schluessel": f"still:{r['agent']}:{r['erste']}", "an": r["agent"],
-                        "text": f"{r['agent']} reagiert nicht: {r['n']} Weckruf(e) unbeantwortet seit "
+                        "text": f"{r['agent']} reagiert nicht: {r['n']} Benachrichtigung(en) unbeantwortet seit "
                                 f"{int((jetzt - _sek(r['seit'])) // 60)} min (ab #{r['erste']})"})
     for s in con.execute(
             "SELECT s.id, a.kennung, s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.status_utc"

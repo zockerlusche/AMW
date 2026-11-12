@@ -1,7 +1,7 @@
 # Befehle
 
 Erzeugt aus der Kommandozeile (`amw befehle > doc/befehle.md`). Jeder Befehl zeigt mit `--help` dasselbe.
-Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--projekt <Name>` (sonst das erste Projekt).
+Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt <Name>` (sonst das erste Projekt).
 
 | Befehl | Zweck |
 |---|---|
@@ -19,18 +19,18 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
-| [`kontext`](#kontext) | Pflicht-Kontext für einen Agenten |
+| [`kontext`](#kontext) | Startinformationen für einen Agenten |
 | [`regeln`](#regeln) | alle geltenden Regeln (Arbeits- und Projektregeln) |
-| [`suche`](#suche) | Volltext über Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten, Dokumente: amw suche Modem |
+| [`suche`](#suche) | Volltext über Aufgaben, Beschlüsse, Fragen, Deine Worte, Nachrichten, Dokumente: amw suche Modem |
 | [`zeige`](#zeige) | Einträge ganz lesen: amw zeige B5 F12 A120 W3 16000 D5 KR3 PR4 (Nachricht ohne #: in der Shell beginnt mit # ein Kommentar) |
 | [`leitbild`](#leitbild) | Projektziel, Kennzahlen, Nicht-Ziele, Prinzipien, Definition of Done: zeigen ¦ setzen |
 | [`bogen`](#bogen) | Meilensteine: liste ¦ neu ¦ zeigen N ¦ aendern N ¦ status N aktiv¦fertig¦geplant¦verworfen |
-| [`spec`](#spec) | Spezifikation je Bogen: zeigen N [teil] ¦ schreiben N teil --text/--datei ¦ vorlegen N teil ¦ frei N teil ¦ zurueck N teil --kommentar  (teil: anforderungen ¦ entwurf ¦ schritte) |
-| [`schritt`](#schritt) | naechster [--nehmen]: nächster bereiter Schritt (aktiver Bogen, ohne offene Vorgänger) |
+| [`spec`](#spec) | Spezifikation je Meilenstein: zeigen N [teil] ¦ schreiben N teil --text/--datei ¦ vorlegen N teil ¦ frei N teil ¦ zurueck N teil --kommentar  (teil: anforderungen ¦ entwurf ¦ schritte) |
+| [`schritt`](#schritt) | naechster [--nehmen]: nächster bereiter Schritt (aktiver Meilenstein, ohne offene Vorgänger) |
 | [`risiko`](#risiko) | liste ¦ neu --titel … ¦ setzen N --status … |
-| [`rueckblick`](#rueckblick) | Rückblick je Bogen: amw rueckblick <bogen> [--gut … --schlecht … --massnahme … --gelernt …] ¦ --uebernehmen <nr> --als aufgabe¦beschluss |
+| [`rueckblick`](#rueckblick) | Rückblick je Meilenstein: amw rueckblick <bogen> [--gut … --schlecht … --massnahme … --gelernt …] ¦ --uebernehmen <nr> --als aufgabe¦beschluss |
 | [`verlauf`](#verlauf) | was passiert ist: amw verlauf [--stunden 24] [--agent CC1] [--art erledigt --art pruefung] [--zusammenfassung] |
-| [`plan`](#plan) | pruefen (Lücken mit Bedeutung und Abhilfe) ¦ akzeptieren <schlüssel> --grund … ¦ wieder <schlüssel> ¦ prognose (P50/P85 je Schritt und Bogen) ¦ status (Ampel je Dimension) |
+| [`plan`](#plan) | pruefen (Lücken mit Bedeutung und Abhilfe) ¦ akzeptieren <schlüssel> --grund … ¦ wieder <schlüssel> ¦ prognose (P50/P85 je Schritt und Meilenstein) ¦ status (Ampel je Dimension) |
 | [`lauf`](#lauf) | Rechen-Läufe: start [--warten] prüft Halt, Schirm, Speicher je Lauf, zwei Spuren (Grafikkarte/Schirm: einer zur Zeit; schwere ohne Fenster: parallel bis cpu_laeufe, je Agent einer), Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund · ausfuehren --beschreibung … [--schirm] [--ergebnis datei] -- <befehl …> (einreihen, warten, starten, rc durchreichen, Ende melden; bei Schirm zu den eigenen Befehl beenden) |
 | [`benutzer`](#benutzer) | Benutzer der Online-Seite (nur der Mensch): neu NAME --rolle … [--projekte A,B] ¦ liste ¦ aendern NAME ¦ sperren NAME ¦ entsperren NAME |
 | [`rechner`](#rechner) | Der Rechner auf einen Blick: Arbeitsspeicher, was außerhalb der Warteschlange Speicher belegt, freier Platz je Laufwerk, Aufräumvorschläge für alte Sicherungen (nur Anzeige) |
@@ -46,16 +46,16 @@ Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--proj
 | [`regel`](#regel) | Regel anlegen/ändern – nur mit Beschluss |
 | [`dokument`](#dokument) | Ergebnisse ablegen und finden: ablegen <datei> ¦ version <nr> <datei> ¦ liste ¦ zeigen <nr> ¦ kommentar¦ueberarbeiten <nr> --text … ¦ zuordnen <nr> ¦ archivieren¦wiederherstellen <nr> ¦ online¦offline <nr> ¦ loeschen <nr> --ja ¦ einsammeln <ordner> [--melden] ¦ einsammeln --uebernehmen --frage <nr> |
 | [`notiz`](#notiz) | gepflegte Notizen (Schlüssel/Wert) |
-| [`dienst`](#dienst) | Wächter als geplante Windows-Aufgabe: einrichten ¦ entfernen ¦ status ¦ neustart ¦ vordergrund (ohne Aufgabe in diesem Fenster, zum Ausprobieren) |
-| [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Abgleich) ¦ zweitfaktor-neu ¦ bauen ¦ schema |
-| [`anmelden`](#anmelden) | laufende Sitzung beim Wächter anmelden (ohne Neustart) |
-| [`abmelden`](#abmelden) | Sitzung ruht: nicht mehr wecken, nicht automatisch neu starten (bis anmelden) |
-| [`einrichten`](#einrichten) | ohne Angabe: geführte Einrichtung (fragt nach) ¦ schnell --projekt-name … (ohne Fragen) ¦ agenten-ordner <pfad> (Hooks, Statusline-Brücke, Sperren) ¦ betriebsart [pc¦server¦cloud] ¦ verbindungen [--pruefen] (jede Adresse, zu der die AMW eine Verbindung aufbaut) |
+| [`dienst`](#dienst) | Dienst als geplante Windows-Aufgabe: einrichten ¦ entfernen ¦ status ¦ neustart ¦ vordergrund (ohne Aufgabe in diesem Fenster, zum Ausprobieren) |
+| [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Synchronisierung) ¦ zweitfaktor-neu ¦ bauen ¦ schema |
+| [`anmelden`](#anmelden) | laufende Sitzung beim Dienst anmelden (ohne Neustart) |
+| [`abmelden`](#abmelden) | Sitzung ruht: nicht mehr benachrichtigen, nicht automatisch neu starten (bis anmelden) |
+| [`einrichten`](#einrichten) | ohne Angabe: geführte Einrichtung (fragt nach) ¦ schnell --projekt-name … (ohne Fragen) ¦ agenten-ordner <pfad> (Hooks, Statusline-Anbindung, Sperren) ¦ betriebsart [pc¦server¦cloud] ¦ verbindungen [--pruefen] (jede Adresse, zu der die AMW eine Verbindung aufbaut) |
 | [`befehle`](#befehle) | Befehlsreferenz als Markdown (für doc/befehle.md) |
 | [`sichern`](#sichern) | Sicherung der Datenbank (vollständige Kopie, auch während des Betriebs); mit --projekt <name> nur dieses Projekt als eigene Datenbank (z. B. zum Umziehen auf einen anderen Rechner) |
 | [`push`](#push) | Benachrichtigungen aufs Handy: status ¦ probe ¦ an ¦ aus ¦ ntfy ¦ pushover ¦ telegram ¦ ruhe 22:00-07:00¦aus ¦ link URL ¦ ereignis art=an¦aus |
 | [`hook`](#hook) | zeigt die Einstellungen für einen Agenten-Projektordner (schreibt nichts) |
-| [`release`](#release) | Release Notes: je Merge eine Zeile, Version fasst zusammen |
+| [`release`](#release) | Versionshinweise: je Merge eine Zeile, Version fasst zusammen |
 
 ## init
 ```
@@ -107,8 +107,8 @@ usage: amw agent [-h] [--ordner ORDNER] [--zusatz ZUSATZ]
 positional arguments:
   {neu,liste,profil,starten,beenden,startskript,umbenennen}
   kennung
-  neu                   umbenennen: die neue Kennung (die alte bleibt als
-                        Alias gültig)
+  neu                   umbenennen: der neue Name (der alte bleibt als Alias
+                        gültig)
 
 options:
   -h, --help            show this help message and exit
@@ -137,8 +137,8 @@ options:
                         Zeichen; leer = keines)
   --arbeitsweise {terminal,desktop,chat}
                         neu/profil: Claude Code im Terminal (startet die AMW)
-                        | Claude Code in der Desktop-App | Chat über die
-                        Brücke
+                        | Claude Code in der Desktop-App | Chat über den
+                        Dateiaustausch
   --zustaendig ZUSTAENDIG
                         neu/profil: wofür der Agent zuständig ist
   --nicht NICHT         neu/profil: was der Agent nicht anfasst
@@ -250,12 +250,12 @@ options:
                         --auf)
   --auf AUF             wartet/blockiert: worauf, als Verweise –
                         F12,A120,L7,CC2,Entwickler,Monitor:<was> (Pflicht;
-                        erledigt sich von selbst und weckt dich)
+                        erledigt sich von selbst und benachrichtigt dich)
   --erledigt ERLEDIGT   wartet/blockiert: diese Gründe von Hand abhaken, z. B.
                         F12 (allein: Status bleibt)
   --bemerkung BEMERKUNG
   --alle
-  --bogen BOGEN         Planung: gehört zu Bogen N
+  --bogen BOGEN         Planung: gehört zu Meilenstein N
   --kriterium KRITERIUM
                         Planung: Abnahmekriterium, mehrfach (ersetzt die
                         Liste)
@@ -275,8 +275,8 @@ options:
   --anforderungen ANFORDERUNGEN
                         Planung: abgedeckte Anforderungen, z. B. R1,R3
   --zusammenfassung ZUSAMMENFASSUNG
-                        fertig: Pflicht für Schritte in einem Bogen; aendern:
-                        nachtragen
+                        fertig: Pflicht für Schritte in einem Meilenstein;
+                        aendern: nachtragen
   --ohne-vorgaenger OHNE_VORGAENGER
                         aendern: diese Vorgänger lösen, z. B. 115
   --text TEXT           plan: der Plan
@@ -353,7 +353,7 @@ options:
   --bis BIS             wöchentlich bis zu diesem Tag (JJJJ-MM-TT)
   --vorlauf VORLAUF     test: Testbuild fertig so viele Stunden vorher
                         (Vorgabe 4)
-  --bogen BOGEN         Ampel: Prognose dieses Bogens gegen die Frist
+  --bogen BOGEN         Ampel: Prognose dieses Meilensteins gegen die Frist
   --notiz NOTIZ
   --text TEXT           bereit: was ist neu, was soll getestet werden
   --tage TAGE
@@ -402,10 +402,10 @@ options:
   -h, --help            show this help message and exit
   --an {entwickler,tl,zustaendig}
                         zustaendig: an die Federführung der --aufgabe (sonst
-                        Bogen, sonst Lead)
+                        Meilenstein, sonst Lead)
   --kurz KURZ
   --worum WORUM
-  --option OPTION       neu: 'A=Text' (mehrfach); antworten: Kennung
+  --option OPTION       neu: 'A=Text' (mehrfach); antworten: Kürzel der Option
   --empfehlung EMPFEHLUNG
   --fundstellen FUNDSTELLEN
   --geprueft GEPRUEFT   neu: was du vorher in der AMW geprüft hast
@@ -564,8 +564,8 @@ options:
   --zieldatum ZIELDATUM
                         JJJJ-MM-TT
   --federfuehrend FEDERFUEHREND
-                        aendern: wer den Bogen führt (Lead/Entwickler; leer =
-                        weg)
+                        aendern: wer den Meilenstein führt (Lead/Entwickler;
+                        leer = weg)
   --nr NR               Reihenfolge
   --grund GRUND         nötig, wenn das Zieldatum nach der Baseline geändert
                         wird
@@ -720,8 +720,8 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --warten              ist der Platz belegt: NUR einreihen (noch nicht
-                        rechnen!) statt ablehnen; Freigabe weckt dich – oder
-                        danach: amw lauf warte <nr>
+                        rechnen!) statt ablehnen; Freigabe benachrichtigt dich
+                        – oder danach: amw lauf warte <nr>
   --hoechstens HOECHSTENS
                         warte: nach so vielen Minuten aufgeben (rc 3), Lauf
                         bleibt eingereiht · ausfuehren: dann aus der Schlange
@@ -973,7 +973,7 @@ options:
   --notiz NOTIZ
   --grund GRUND         freigeben/sperren: Begründung (sperren: Pflicht)
   --beschreibung BESCHREIBUNG
-  --wer WER             recht: alle | rolle:<rolle> | <Kennung>
+  --wer WER             recht: alle | rolle:<rolle> | <Name>
   --entziehen
   --modell MODELL
   --vorlage VORLAGE
@@ -1100,8 +1100,8 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --datei DATEI         statt der Positionsangabe (Brücke: nur aus eingang-
-                        tl/)
+  --datei DATEI         statt der Positionsangabe (Dateiaustausch: nur aus
+                        eingang-tl/)
   --titel TITEL
   --art {ergebnis,bericht,entwurf,mockup,bild,quelle}
   --notiz NOTIZ         was diese Version ist bzw. was sich geändert hat
@@ -1187,7 +1187,7 @@ usage: amw anmelden [-h] [--ersetzen] [--von VON] [--projekt PROJEKT]
 
 options:
   -h, --help         show this help message and exit
-  --ersetzen         eine noch lebende andere Sitzung derselben Kennung
+  --ersetzen         eine noch lebende andere Sitzung mit demselben Namen
                      ablösen
   --von VON
   --projekt PROJEKT
@@ -1225,16 +1225,16 @@ options:
   --pruefen             verbindungen: je erlaubter Adresse den
                         Verbindungsaufbau testen
   --nur-zeigen
-  --ohne-sperren        keine Sperr-Regeln (Ordner dessen, der den Wächter
+  --ohne-sperren        keine Sperr-Regeln (Ordner dessen, der den Dienst
                         betreut)
   --projekt-name PROJEKT_NAME
                         schnell: Name des Projekts
-  --lead LEAD           schnell: Kennung des Lead-Agenten (leer = keiner)
-  --agenten AGENTEN     schnell: Kennungen, mit Komma
+  --lead LEAD           schnell: Name des Lead-Agenten (leer = keiner)
+  --agenten AGENTEN     schnell: Namen der Agenten, mit Komma
   --ordner ORDNER       schnell: Projektordner der Agenten
   --rechte {vorgabe,auto,umgehen}
   --denkstufe {low,medium,high,xhigh,max}
-  --mit-dienst          schnell: Wächter als geplante Aufgabe einrichten
+  --mit-dienst          schnell: Dienst als geplante Aufgabe einrichten
   --ohne-hooks          schnell: Projektordner nicht anfassen
   --fernsteuerung       schnell: Remote Control für die Agenten an (Vorgabe
                         aus)

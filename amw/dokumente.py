@@ -123,7 +123,7 @@ def _speichern(roh, endung):
 def _bezug(con, pid, bogen=None, aufgabe=None, frage=None, beschluss=None):
     gesetzt = [(k, v) for k, v in (("bogen", bogen), ("aufgabe", aufgabe), ("frage", frage), ("beschluss", beschluss)) if v]
     if len(gesetzt) > 1:
-        raise kern.AmwFehler("Nur ein Bezug: Bogen, Aufgabe, Frage oder Beschluss")
+        raise kern.AmwFehler("Nur ein Bezug: Meilenstein, Aufgabe, Frage oder Beschluss")
     if not gesetzt:
         return None, None
     art, nr = gesetzt[0]
@@ -251,7 +251,7 @@ def hoch_start(name, groesse, sha, teile):
 
 def _hoch_info(hid):
     if not re.fullmatch(r"[0-9a-f]{32}", str(hid or "")):
-        raise kern.AmwFehler("Upload-Kennung")
+        raise kern.AmwFehler("Upload-Nummer fehlt")
     p = os.path.join(hoch_ordner(), hid)
     try:
         with open(os.path.join(p, "info.json"), encoding="utf-8") as f:

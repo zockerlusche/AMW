@@ -39,7 +39,7 @@ def skript_einrichten(port):
         " -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries",
         "$p = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited",
         f"Register-ScheduledTask -TaskName {q(AUFGABE)} -Action $a -Trigger $t -Settings $s -Principal $p"
-        f" -Description {q('AMW-Wächter: weckt Agenten, liefert die Workbench (127.0.0.1). Doku: ' + os.path.join(WURZEL, 'doc', 'betrieb.md'))}"
+        f" -Description {q('AMW-Dienst: benachrichtigt Agenten, liefert die Workbench (127.0.0.1). Doku: ' + os.path.join(WURZEL, 'doc', 'betrieb.md'))}"
         " | Out-Null",
         f"Start-ScheduledTask -TaskName {q(AUFGABE)}",
         f"'eingerichtet und gestartet: ' + {q(AUFGABE)}",
@@ -90,7 +90,7 @@ def status(port):
     if fremd:
         zeilen.append("ACHTUNG: " + fremd)
     if os.environ.get("AMW_DB"):
-        zeilen.append("Hinweis: AMW_DB ist in diesem Fenster gesetzt – der Wächter sieht sie nur, wenn sie dauerhaft als"
+        zeilen.append("Hinweis: AMW_DB ist in diesem Fenster gesetzt – der Dienst sieht sie nur, wenn sie dauerhaft als"
                       " Benutzervariable gesetzt ist; besser: Zahnrad › Dieser PC › Datenbank")
     sperre = os.path.join(os.path.dirname(db.db_pfad()), "dienst.lock")
     try:
@@ -121,7 +121,7 @@ def status(port):
         fehlt = []
     for u in fehlt:
         zeilen.append(f"  NICHT ANGEMELDET: {u['kennung'] or '?'} · Sitzung {u['sitzung']}, PID {u['pid']}, {u['ordner']}"
-                      f" – im Fenster: {befehl_cli()} anmelden --von {u['kennung'] or '<Kennung>'}")
+                      f" – im Fenster: {befehl_cli()} anmelden --von {u['kennung'] or '<Name>'}")
     return "\n".join(zeilen)
 
 
@@ -231,7 +231,7 @@ def agenten_ordner_entfernen(ordner, schreiben=True):
             del d["env"]
     if "amw-statusline.py" in ((d.get("statusLine") or {}).get("command") or ""):
         del d["statusLine"]
-        aenderungen.append("Statusline-Brücke (es gilt wieder deine eigene Statusline)")
+        aenderungen.append("Statusline-Anbindung (es gilt wieder deine eigene Statusline)")
     liste = (d.get("permissions") or {}).get("deny")
     if liste:
         rest = [s for s in liste if s not in SPERREN]
@@ -301,7 +301,7 @@ def agenten_ordner_einrichten(ordner, schreiben=True, sperren=True, projekt=None
                 einstellungen.speichern({"statusline_weiter": alt})
             aenderungen.append(f"bisherige Statusline wird weitergereicht: {alt}")
         d["statusLine"] = soll["statusLine"]
-        aenderungen.append("Statusline-Brücke")
+        aenderungen.append("Statusline-Anbindung")
     if sperren:                                           # nicht im Ordner dessen, der den Wächter betreut
         liste = d.setdefault("permissions", {}).setdefault("deny", [])
         neu = [s for s in soll["permissions"]["deny"] if s not in liste]

@@ -110,7 +110,7 @@ def profil_setzen(con, pid, von, kennung, **werte):
             v = json.dumps(liste, ensure_ascii=False)
         elif k == "denkstufe":
             if v and v not in DENKSTUFEN:
-                raise kern.AmwFehler(f"Denkstufe: {', '.join(DENKSTUFEN)}")
+                raise kern.AmwFehler(f"Denkaufwand: {', '.join(DENKSTUFEN)}")
         elif k == "rechte":
             if v not in RECHTE:
                 raise kern.AmwFehler(f"Rechte: {', '.join(RECHTE)}")

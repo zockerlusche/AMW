@@ -186,7 +186,7 @@ class Leerlauf(Grund):
                              ereignis="frei", ereignis_utc=utc(self.jetzt - 40 * 60))
 
     def test_frei_mit_arbeit_weckt_einmal(self):
-        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt), [f"CC1 geweckt (Leerlauf, A{self.a})"])
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt), [f"CC1 benachrichtigt (Leerlauf, A{self.a})"])
         self.assertTrue(self.post("CC1")[0].startswith("Leerlauf: seit 40 min frei, Arbeit liegt vor – A"))
         kern.erledigt(self.con, self.pid, "CC1", [r["id"] for r in kern.offene(self.con, self.pid, "CC1")])
         self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt + 600), [])              # gleiche Ruhephase

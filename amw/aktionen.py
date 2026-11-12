@@ -114,7 +114,7 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             raise Ungueltig(str(e)) from None
     if weg in ("/api/agent/ende", "/api/agent/start-fehlende", "/api/dienst/neustart"):   # Leitstand – nur am PC
         if kanal != "seite":
-            raise Ungueltig("Sitzungen und den Wächter steuerst du nur am PC")
+            raise Ungueltig("Sitzungen und den Dienst steuerst du nur am PC")
         from . import steuerung
         try:
             if weg == "/api/agent/ende":             # sichern & beenden lassen: einer (kennung) oder alle laufenden
@@ -132,7 +132,7 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             subprocess.Popen([sys.executable, "-X", "utf8", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "amw-cli.py"),
                               "dienst", "neustart"], close_fds=True,
                              creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0))
-            return {"text": "Wächter startet neu"}
+            return {"text": "Dienst startet neu"}
         except (kern.AmwFehler, LookupError, OSError) as e:
             raise Ungueltig(str(e)) from None
     if weg.startswith("/api/dokument/"):             # Dokumente: kommentieren, zuordnen, archivieren; löschen nur am PC
@@ -375,16 +375,16 @@ def einstellen(con, pid, teil, daten, kanal, speicher=None):
                 raise Ungueltig("Kein Online-Speicher eingerichtet")
             return {"web": abgleich.web_einstellungen_setzen(sp, werte)}
         if teil == "pc":
-            return {"pc": einstellungen.speichern(werte), "hinweis": "wirkt beim nächsten Start des Wächters"}
+            return {"pc": einstellungen.speichern(werte), "hinweis": "wirkt beim nächsten Start des Dienstes"}
         if teil == "turso":
-            return {"turso": turso_einstellen(daten), "hinweis": "wirkt beim nächsten Start des Wächters"}
+            return {"turso": turso_einstellen(daten), "hinweis": "wirkt beim nächsten Start des Dienstes"}
         if teil == "profil":
             from . import steuerung
             return {"profil": steuerung.profil_setzen(con, pid, kern.ENTWICKLER, daten.get("kennung"),
                                                        **{k: v for k, v in werte.items()})}
         if teil == "push":
             from . import push
-            return {"push": push.speichern(daten), "hinweis": "wirkt in der nächsten Runde des Wächters"}
+            return {"push": push.speichern(daten), "hinweis": "wirkt in der nächsten Runde des Dienstes"}
     except ValueError as e:
         raise Ungueltig(str(e)) from None
     raise LookupError("unbekannt")

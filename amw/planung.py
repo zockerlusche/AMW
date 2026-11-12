@@ -83,12 +83,12 @@ def leitbild_setzen(con, pid, von, ziel=None, kennzahlen=None, nicht_ziele=None,
 def bogen_zeile(con, pid, bid):
     b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
     if not b:
-        raise kern.AmwFehler(f"Bogen {bid} gibt es nicht")
+        raise kern.AmwFehler(f"Meilenstein {bid} gibt es nicht")
     return b
 
 
 def bogen_neu(con, pid, von, titel, ziel=None, abnahme=None, zieldatum=None, nr=None):
-    _lead(con, pid, von, "Bögen anlegen")
+    _lead(con, pid, von, "Meilensteine anlegen")
     if not (titel or "").strip():
         raise kern.AmwFehler("Titel fehlt")
     with db.schreiben(con):
@@ -104,13 +104,13 @@ def bogen_neu(con, pid, von, titel, ziel=None, abnahme=None, zieldatum=None, nr=
 
 def bogen_aendern(con, pid, von, bid, titel=None, ziel=None, abnahme=None, zieldatum=None, nr=None, grund=None):
     """Zieldatum eines aktiven Bogens mit Baseline ändern = Änderungssteuerung: nur mit Grund, wird protokolliert."""
-    _lead(con, pid, von, "Bögen ändern")
+    _lead(con, pid, von, "Meilensteine ändern")
     b = bogen_zeile(con, pid, bid)
     felder = {k: v for k, v in (("titel", titel), ("ziel", ziel), ("abnahme", abnahme), ("nr", nr)) if v is not None}
     if zieldatum is not None:
         neu = _datum(zieldatum)
         if b["baseline_datum"] and neu != b["zieldatum"] and not (grund or "").strip():
-            raise kern.AmwFehler(f"Bogen {bid} hat eine Baseline ({b['baseline_datum']}) – neues Zieldatum nur mit --grund")
+            raise kern.AmwFehler(f"Meilenstein {bid} hat eine Baseline ({b['baseline_datum']}) – neues Zieldatum nur mit --grund")
         felder["zieldatum"] = neu
     if not felder:
         return b
@@ -126,7 +126,7 @@ def bogen_aendern(con, pid, von, bid, titel=None, ziel=None, abnahme=None, zield
 
 
 def bogen_status(con, pid, von, bid, status, erzwingen=False):
-    _lead(con, pid, von, "Den Bogen-Status setzen")
+    _lead(con, pid, von, "Den Meilenstein-Status setzen")
     if status not in ("geplant", "aktiv", "fertig", "verworfen"):
         raise kern.AmwFehler("Status: geplant | aktiv | fertig | verworfen")
     b = bogen_zeile(con, pid, bid)
@@ -134,7 +134,7 @@ def bogen_status(con, pid, von, bid, status, erzwingen=False):
         offen = con.execute("SELECT count(*) FROM aufgabe WHERE bogen_id = ? AND status NOT IN ('fertig', 'verworfen')",
                             (bid,)).fetchone()[0]
         if offen:
-            raise kern.AmwFehler(f"Bogen {bid} hat noch {offen} offene Schritte – erst abschließen (oder --erzwingen)")
+            raise kern.AmwFehler(f"Meilenstein {bid} hat noch {offen} offene Schritte – erst abschließen (oder --erzwingen)")
     with db.schreiben(con):
         felder = {"status": status, "geaendert_utc": db.jetzt()}
         if status == "aktiv" and not b["baseline_datum"] and b["zieldatum"]:
@@ -194,7 +194,7 @@ def spec_schreiben(con, pid, von, bid, teil, text):
             an = ",".join(x for x in dict.fromkeys([MENSCH, kern.lead(con, pid) or MENSCH]) if x != von)
             if an:
                 kern._posten(con, pid, "AMW", an, "meldung",
-                             f"Bogen {bid} „{b['titel']}“: {was} von {teil} v{s['version']} aufgehoben – {von} schreibt v{version}"
+                             f"Meilenstein {bid} „{b['titel']}“: {was} von {teil} v{s['version']} aufgehoben – {von} schreibt v{version}"
                              " (muss neu vorgelegt werden)", text=spec_unterschied(s["text"], text))
     return version
 
@@ -231,10 +231,10 @@ def spec_vorlegen(con, pid, von, bid, teil):
         if not con.execute("SELECT 1 FROM frage WHERE projekt_id = ? AND fundstellen = ? AND kurz = ?",
                            (pid, f"bogen:{bid}:{teil}", punkt.strip()[:300])).fetchone():
             fragen.append(kern.frage_neu(con, pid, von, "entwickler", punkt.strip()[:300],
-                                         [("A", "beantworten (Text)")], "A", f"Klärung für Bogen {bid} „{b['titel']}“, Teil {teil}",
-                                         worum=f"Spezifikation Bogen {bid} ({teil}) enthält: [KLÄREN: {punkt.strip()}]",
+                                         [("A", "beantworten (Text)")], "A", f"Klärung für Meilenstein {bid} „{b['titel']}“, Teil {teil}",
+                                         worum=f"Spezifikation Meilenstein {bid} ({teil}) enthält: [KLÄREN: {punkt.strip()}]",
                                          fundstellen=f"bogen:{bid}:{teil}", blockiert=True,
-                                         geprueft=f"von der AMW gestellt (KLÄREN in Bogen {bid})", pruefen=False))
+                                         geprueft=f"von der AMW gestellt (KLÄREN in Meilenstein {bid})", pruefen=False))
     with db.schreiben(con):
         con.execute("UPDATE spezifikation SET status = 'vorgelegt', geaendert_utc = ? WHERE id = ?", (db.jetzt(), s["id"]))
         _log(con, pid, von, "spec_vorgelegt", f"{teil} v{s['version']}" + (f", {len(fragen)} Klärung(en)" if fragen else ""),
@@ -266,7 +266,7 @@ def spec_entscheiden(con, pid, von, bid, teil, frei, kommentar=None):
             "SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead'", (pid,)))
         if an and an != MENSCH:
             kern._posten(con, pid, von, an, "freigabe" if frei else "korrektur",
-                         f"Bogen {bid} „{b['titel']}“: {teil} {'FREIGEGEBEN' if frei else 'ZURÜCK'}", kommentar)
+                         f"Meilenstein {bid} „{b['titel']}“: {teil} {'FREIGEGEBEN' if frei else 'ZURÜCK'}", kommentar)
 
 
 # --- Abhängigkeiten ------------------------------------------------------------------------------
@@ -336,7 +336,7 @@ def _bearbeiter(con, pid, x):
 def schritt_setzen(con, pid, von, aid=None, titel=None, nach=None, **werte):
     """Neu (aid=None) oder ändern. kriterien: Liste von Texten (neu) – erfüllt-Stand bleibt bei gleichem Text erhalten."""
     if aid is None and werte.get("bogen_id"):
-        _lead(con, pid, von, "Schritte in einem Bogen planen")
+        _lead(con, pid, von, "Schritte in einem Meilenstein planen")
     if "agent" in werte:
         werte["agent"] = _bearbeiter(con, pid, werte["agent"])
     if werte.get("bogen_id") is not None:
@@ -429,7 +429,7 @@ def pruefe_status(con, a, neu, zusammenfassung=None):
             raise kern.AmwFehler(f"A{a['id']}: Kriterien nicht erfüllt: " + " | ".join(offen[:5])
                                  + f" (amw aufgabe kriterium {a['id']} <nr>)")
         if not (zusammenfassung or a["zusammenfassung"] or "").strip():
-            raise kern.AmwFehler(f"A{a['id']}: Bogen-Schritte brauchen beim Abschluss --zusammenfassung")
+            raise kern.AmwFehler(f"A{a['id']}: Schritte eines Meilensteins brauchen beim Abschluss --zusammenfassung")
 
 
 def naechster(con, pid, von, nehmen=False):
@@ -597,10 +597,10 @@ def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
 CHECKS = {
     "kein_ziel": ("fehler", "du", "leitbild", {
         "de": ("Kein Projektziel im Leitbild",
-               "Ohne Ziel gibt es keinen Maßstab: Bögen, Nicht-Ziele und Abnahmen lassen sich nicht dagegen prüfen, Agenten wissen nicht, wofür sie bauen.",
+               "Ohne Ziel gibt es keinen Maßstab: Meilensteine, Nicht-Ziele und Abnahmen lassen sich nicht dagegen prüfen, Agenten wissen nicht, wofür sie bauen.",
                "Im Leitbild das Ziel in einem prüfbaren Satz eintragen (was ist am Ende anders?)."),
         "en": ("No project goal in the charter",
-               "Without a goal there is no yardstick: arcs, non-goals and acceptance can't be checked against it, agents don't know what they build for.",
+               "Without a goal there is no yardstick: milestones, non-goals and acceptance can't be checked against it, agents don't know what they build for.",
                "Enter the goal in the charter as one testable sentence (what is different at the end?).")}),
     "keine_nicht_ziele": ("warnung", "du", "leitbild", {
         "de": ("Keine Nicht-Ziele",
@@ -617,53 +617,53 @@ CHECKS = {
                "Without a shared definition every agent decides on its own when something is “done” – reviews and acceptance become arbitrary.",
                "Define in the charter what applies to every step (e.g. tests green, reviewed, summary written).")}),
     "keine_boegen": ("hinweis", "lead", "zeitleiste", {
-        "de": ("Noch keine Bögen",
-               "Ohne Bögen (Etappen) gibt es keine Prognose, keine Zeitleiste und keinen Rückblick.",
-               "Den Plan in Etappen mit Ziel, Abnahme und Zieldatum gliedern („Neuer Bogen“)."),
-        "en": ("No arcs yet",
-               "Without arcs (milestones) there is no forecast, no timeline and no retrospective.",
-               "Split the plan into milestones with goal, acceptance and target date (“New arc”).")}),
+        "de": ("Noch keine Meilensteine",
+               "Ohne Meilensteine (Etappen) gibt es keine Prognose, keine Zeitleiste und keinen Rückblick.",
+               "Den Plan in Etappen mit Ziel, Abnahme und Zieldatum gliedern („Neuer Meilenstein“)."),
+        "en": ("No milestones yet",
+               "Without milestones there is no forecast, no timeline and no retrospective.",
+               "Split the plan into milestones with goal, acceptance and target date (“New milestone”).")}),
     "bogen_ohne_abnahme": ("fehler", "lead", "bogen", {
-        "de": ("Bogen {b} „{titel}“ hat kein Abnahmekriterium",
-               "Niemand kann sagen, wann der Bogen fertig ist – das Abschließen wird Bauchgefühl, und Agenten arbeiten ins Offene.",
-               "Im Bogen eine prüfbare Abnahme eintragen (wer prüft was, woran sieht man es)."),
-        "en": ("Arc {b} “{titel}” has no acceptance criterion",
-               "Nobody can tell when the arc is done – closing it becomes gut feeling and agents work open-ended.",
-               "Add a testable acceptance to the arc (who checks what, how can it be seen).")}),
+        "de": ("Meilenstein {b} „{titel}“ hat kein Abnahmekriterium",
+               "Niemand kann sagen, wann der Meilenstein fertig ist – das Abschließen wird Bauchgefühl, und Agenten arbeiten ins Offene.",
+               "Im Meilenstein eine prüfbare Abnahme eintragen (wer prüft was, woran sieht man es)."),
+        "en": ("Milestone {b} “{titel}” has no acceptance criterion",
+               "Nobody can tell when the milestone is done – closing it becomes gut feeling and agents work open-ended.",
+               "Add a testable acceptance to the milestone (who checks what, how can it be seen).")}),
     "bogen_ohne_zieldatum": ("warnung", "du", "bogen", {
-        "de": ("Bogen {b} „{titel}“ hat kein Zieldatum",
+        "de": ("Meilenstein {b} „{titel}“ hat kein Zieldatum",
                "Die Prognose läuft ({p50} – {p85}), aber es gibt keinen Termin zum Vergleichen: die Termin-Ampel bleibt grau, Verzug fällt niemandem auf.",
-               "Ein Zieldatum setzen – realistisch ist der P85-Wert der Prognose. Ist der Bogen bewusst ohne Termin, akzeptieren."),
-        "en": ("Arc {b} “{titel}” has no target date",
+               "Ein Zieldatum setzen – realistisch ist der P85-Wert der Prognose. Ist der Meilenstein bewusst ohne Termin, akzeptieren."),
+        "en": ("Milestone {b} “{titel}” has no target date",
                "The forecast runs ({p50} – {p85}), but there is no date to compare with: the schedule light stays grey and nobody notices a slip.",
-               "Set a target date – the forecast's P85 is realistic. If the arc deliberately has no date, accept.")}),
+               "Set a target date – the forecast's P85 is realistic. If the milestone deliberately has no date, accept.")}),
     "aktiv_ohne_anforderungen": ("warnung", "du", "spec_anforderungen", {
-        "de": ("Bogen {b} ist aktiv, die Anforderungen sind nicht freigegeben",
+        "de": ("Meilenstein {b} ist aktiv, die Anforderungen sind nicht freigegeben",
                "Agenten arbeiten auf Anforderungen, die du noch nicht bestätigt hast – ändern sie sich, ist die Arbeit dafür verloren.",
                "Anforderungen ansehen und freigeben oder zurückgeben."),
-        "en": ("Arc {b} is active but its requirements are not approved",
+        "en": ("Milestone {b} is active but its requirements are not approved",
                "Agents work on requirements you have not confirmed – if they change, that work is lost.",
                "Review the requirements and approve or return them.")}),
     "prognose_rot": ("fehler", "du", "bogen", {
-        "de": ("Bogen {b} „{titel}“ wird voraussichtlich zu spät fertig",
+        "de": ("Meilenstein {b} „{titel}“ wird voraussichtlich zu spät fertig",
                "Schon die mittlere Prognose ({p50}) liegt nach dem Zieldatum {ziel}: wahrscheinlicher verspätet als pünktlich.",
                "Entscheiden: Umfang kürzen, Schritte auf mehr Agenten verteilen oder das Zieldatum mit Grund verschieben (die Baseline bleibt sichtbar)."),
-        "en": ("Arc {b} “{titel}” is likely to finish late",
+        "en": ("Milestone {b} “{titel}” is likely to finish late",
                "Even the median forecast ({p50}) is after the target date {ziel}: more likely late than on time.",
                "Decide: cut scope, spread steps over more agents or move the target date with a reason (the baseline stays visible).")}),
     "prognose_gelb": ("warnung", "du", "bogen", {
-        "de": ("Bogen {b} „{titel}“: Termin wackelt",
+        "de": ("Meilenstein {b} „{titel}“: Termin wackelt",
                "Der Termin {ziel} ist nur zu 50–85 % zu halten (sicher erst {p85}). Kleine Störungen reichen für Verzug.",
                "Beobachten; wenn es wichtig ist: Puffer schaffen (Umfang, Reihenfolge, Bearbeiter)."),
-        "en": ("Arc {b} “{titel}”: date at risk",
+        "en": ("Milestone {b} “{titel}”: date at risk",
                "The date {ziel} holds only with 50–85 % (safe from {p85}). Small disruptions are enough for a slip.",
                "Keep an eye on it; if it matters: create buffer (scope, order, assignees).")}),
     "anforderung_ungedeckt": ("warnung", "lead", "spec_anforderungen", {
-        "de": ("Bogen {b}: {n} Anforderung(en) ohne Schritt – {liste}",
-               "Für diese Anforderungen ist nach heutigem Plan keine Arbeit vorgesehen. Die Abnahme des Bogens würde daran scheitern.",
+        "de": ("Meilenstein {b}: {n} Anforderung(en) ohne Schritt – {liste}",
+               "Für diese Anforderungen ist nach heutigem Plan keine Arbeit vorgesehen. Die Abnahme des Meilensteins würde daran scheitern.",
                "Schritte dafür anlegen oder vorhandenen Schritten zuordnen (amw aufgabe aendern <Nr> --anforderungen R1,R2). Fällt eine weg: Anforderungen ändern."),
-        "en": ("Arc {b}: {n} requirement(s) without a step – {liste}",
-               "Today's plan has no work for these requirements. Accepting the arc would fail on them.",
+        "en": ("Milestone {b}: {n} requirement(s) without a step – {liste}",
+               "Today's plan has no work for these requirements. Accepting the milestone would fail on them.",
                "Create steps for them or assign them to existing steps (amw aufgabe aendern <no> --anforderungen R1,R2). If one is dropped: change the requirements.")}),
     "schritt_ohne_kriterien": ("warnung", "lead", "schritt", {
         "de": ("A{a} „{titel}“ hat keine Abnahmekriterien",
@@ -694,10 +694,10 @@ CHECKS = {
                "Very large steps are hard to estimate and review; they are the most likely to get out of hand.",
                "Split into 2–3 smaller steps with their own criteria.")}),
     "ohne_zusammenfassung": ("hinweis", "lead", "schritt", {
-        "de": ("Bogen {b}: {n} fertige(r) Schritt(e) ohne Zusammenfassung – {liste}",
+        "de": ("Meilenstein {b}: {n} fertige(r) Schritt(e) ohne Zusammenfassung – {liste}",
                "Rückblick, Verlauf und „Seit du weg warst“ zeigen dann nicht, was herausgekommen ist.",
                "Zusammenfassung nachtragen (amw aufgabe aendern <Nr> --zusammenfassung …) oder akzeptieren."),
-        "en": ("Arc {b}: {n} finished step(s) without summary – {liste}",
+        "en": ("Milestone {b}: {n} finished step(s) without summary – {liste}",
                "Retrospective, history and “since you were away” then don't show what came out of it.",
                "Add the summary (amw aufgabe aendern <no> --zusammenfassung …) or accept.")}),
     "risiko_ohne_massnahme": ("warnung", "du", "risiko", {
@@ -860,7 +860,7 @@ def status(con, pid, prog=None):
     rot, gruen = q[0] or 0, q[1] or 0
     qualitaet = None if rot + gruen == 0 else "rot" if rot > gruen else "gelb" if rot else "gruen"
     return {"termin": termin, "risiko": risiko, "qualitaet": qualitaet,
-            "begruendung": {"termin": f"{ampeln.count('rot')} rot, {ampeln.count('gelb')} gelb von {len(ampeln)} Bögen mit Zieldatum",
+            "begruendung": {"termin": f"{ampeln.count('rot')} rot, {ampeln.count('gelb')} gelb von {len(ampeln)} Meilensteinen mit Zieldatum",
                             "risiko": f"{len(rs)} offene Risiken, höchster Wert {max((r['wert'] for r in rs), default=0)}",
                             "qualitaet": f"Prüfungen 7 Tage: {gruen} grün, {rot} rot"}}
 
@@ -889,7 +889,7 @@ def kontext_zeilen(con, pid, kennung):
         z.append("Projektziel: " + lb["ziel"] + (" · Nicht-Ziele: " + "; ".join(lb["nicht_ziele"]) if lb["nicht_ziele"] else ""))
     elif kern.ist_lead(con, pid, kennung):         # neues Projekt: der erste Agent soll nicht raten, worum es geht
         z.append("Projekt NEU – noch kein Leitbild: frage den Entwickler nach Ziel, Nicht-Zielen und Prinzipien (`amw frage neu"
-                 " --an entwickler …`), trage sie mit `amw leitbild` ein, dann Bögen (`amw bogen neu`) und erste Aufgaben."
+                 " --an entwickler …`), trage sie mit `amw leitbild` ein, dann Meilensteine (`amw bogen neu`) und erste Aufgaben."
                  " Lies vorher, was im Projektordner schon liegt (README, CLAUDE.md, Code).")
     else:
         an = kern.lead(con, pid) or MENSCH
@@ -904,7 +904,7 @@ def kontext_zeilen(con, pid, kennung):
         if kern.projekt_wahl(con, pid, "spec_vorlegen") == "lead":
             wege.append("Spezifikationen legst nur du vor (nach deiner Prüfung)")
         if kern.projekt_wahl(con, pid, "spec_frei") == "lead":
-            wege.append("konforme Spezifikationen gibst du selbst frei (`amw spec frei <Bogen> <teil>`), an den Entwickler nur"
+            wege.append("konforme Spezifikationen gibst du selbst frei (`amw spec frei <Meilenstein> <teil>`), an den Entwickler nur"
                         " Einzelfragen")
         wege.append("veraltete Meldungen an den Entwickler schließt du mit `amw erledigt <nr> --fuer Entwickler --bemerkung …`")
         from . import betrieb
@@ -927,7 +927,7 @@ def kontext_zeilen(con, pid, kennung):
         z.append("Definition of Done: " + " | ".join(lb["dod"]))
     aktiv = [b for b in boegen(con, pid) if b["status"] == "aktiv"]
     if aktiv:
-        z.append("Aktive Bögen: " + "; ".join(f"Bogen {b['id']} „{b['titel']}“ {b['fertig']}/{b['gesamt'] - b['verworfen']} fertig"
+        z.append("Aktive Meilensteine: " + "; ".join(f"Meilenstein {b['id']} „{b['titel']}“ {b['fertig']}/{b['gesamt'] - b['verworfen']} fertig"
                                                + (f", Ziel {b['zieldatum']}" if b["zieldatum"] else "") for b in aktiv)
                  + " – nächster Schritt: amw schritt naechster --von " + kennung)
     return z

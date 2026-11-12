@@ -223,11 +223,11 @@ def recht(con, pid, von, ki_name, wer, entziehen=False):
         raise kern.AmwFehler("Rechte für KIs setzen Lead und Entwickler")
     wer = (wer or "").strip()
     if not wer:
-        raise kern.AmwFehler("--wer alle | rolle:<rolle> | <Kennung>")
+        raise kern.AmwFehler("--wer alle | rolle:<rolle> | <Name>")
     if wer != "alle" and not wer.startswith("rolle:"):
         a = kern.agent_zeile(con, pid, wer)
         if not a:
-            raise kern.AmwFehler("--wer: alle, rolle:<rolle> oder die Kennung eines Agenten dieses Projekts")
+            raise kern.AmwFehler("--wer: alle, rolle:<rolle> oder der Name eines Agenten dieses Projekts")
         wer = a["kennung"]
     with db.schreiben(con):
         if entziehen:

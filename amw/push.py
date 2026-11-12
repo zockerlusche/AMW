@@ -321,7 +321,7 @@ def ereignisse(con, pid, cfg, jetzt=None):
             aus.append(("halt", f"weiter:{h['id']}", f"Halt aufgehoben ({h['gilt_fuer']})", "", "start"))
     for s in con.execute("SELECT s.bogen_id, s.teil, s.version, s.geaendert_utc FROM spezifikation s JOIN bogen b ON b.id = s.bogen_id"
                          " WHERE b.projekt_id = ? AND s.status = 'vorgelegt' AND s.geaendert_utc >= ?", (pid, seit)):
-        aus.append(("freigabe", f"spec:{s['bogen_id']}:{s['teil']}:{s['version']}", f"Freigabe: Bogen {s['bogen_id']} {s['teil']}",
+        aus.append(("freigabe", f"spec:{s['bogen_id']}:{s['teil']}:{s['version']}", f"Freigabe: Meilenstein {s['bogen_id']} {s['teil']}",
                     f"Version {s['version']} wartet auf dich", "planung"))
     for a in con.execute("SELECT id, agent, geaendert_utc FROM aufgabe WHERE projekt_id = ? AND plan_status = 'vorgelegt'"
                          " AND verantwortlich = ? AND geaendert_utc >= ?", (pid, kern.ENTWICKLER, seit)):

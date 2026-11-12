@@ -36,7 +36,7 @@ def weckzeile(agent, zeilen, halt, projekt=None):
     teile = [f"#{z['nachricht_id']} {vor}{z['von']} [{z['art']}] {z['kurz'][:ZEILE_MAX]}" for z in zeilen[:10]]
     if len(zeilen) > 10:
         teile.append(f"… und {len(zeilen) - 10} weitere")
-    kopf = f"AMW-Weckruf für {agent}: {len(zeilen)} neue Nachricht(en)"
+    kopf = f"AMW-Benachrichtigung für {agent}: {len(zeilen)} neue Nachricht(en)"
     if halt:
         kopf += " – HALT GILT, nichts Neues anfangen"
     return kopf + "\n" + "\n".join(teile) + "\nLies mit `amw lesen` bzw. `amw lesen <Nr>` und arbeite sie ab."
@@ -80,7 +80,7 @@ def takt_text(con, pid, lead, seit):
              f"{offen_entw} Frage(n) warten auf den Entwickler", f"{laeufe} Lauf/Läufe aktiv"]
     if beantwortet:
         teile.insert(0, "beantwortet: " + ", ".join(f"F{r[0]}" for r in beantwortet) + " → abarbeiten")
-    return "Takt seit " + seit[11:16] + " UTC: " + " · ".join(teile)
+    return "Rhythmus seit " + seit[11:16] + " UTC: " + " · ".join(teile)
 
 
 class Dienst:
@@ -120,7 +120,7 @@ class Dienst:
                                                   " WHERE g.projekt_id = ? AND g.kennung = ? AND s.zustand = 'aktiv'",
                                                   (p["id"], kennung)).fetchone()[0] or db.jetzt()
                 kern.posten(self.con, p["id"], "AMW", kennung, "takt", takt_text(self.con, p["id"], kennung, seit))
-                log.info("Takt an %s", kennung)
+                log.info("Rhythmus an %s", kennung)
 
     def ordner_messen(self):
         """Startet die Messung der Ordnergrößen in einem eigenen Faden mit eigener Verbindung, wenn sie fällig ist und
@@ -186,7 +186,7 @@ class Dienst:
                     self.con.execute("UPDATE empfang SET geweckt_utc = ? WHERE nachricht_id = ? AND agent = ?",
                                      (t, z["nachricht_id"], agent))
             self.sperre_bis.pop((pid, agent), None)
-            log.info("%s geweckt: %s", agent, ", ".join(f"#{z['nachricht_id']}" for z in zeilen))
+            log.info("%s benachrichtigt: %s", agent, ", ".join(f"#{z['nachricht_id']}" for z in zeilen))
             geweckt += 1
         return geweckt
 
@@ -213,7 +213,7 @@ class Dienst:
                     with db.schreiben(self.con):
                         self.con.execute("UPDATE sitzung SET zustand = 'beendet', beendet_utc = ? WHERE id = ?",
                                          (db.jetzt(), s["id"]))
-                    log.info("Brücken-Sitzung %s beendet (kein Puls)", s["id"])
+                    log.info("Sitzung über den Dateiaustausch %s beendet (kein Puls)", s["id"])
                 continue
             self.pruefe_sitzung(s)
         try:                                                                 # Schirm: zu, sobald der Entwickler da ist
@@ -343,7 +343,7 @@ def main(argv=None):
         from . import abgleich                        # Stufe 2: nur mit "abgleich": true in turso.json
         abgleich.HOCH_S, abgleich.PULS_S, abgleich.EINGANG_S = e["abgleich_hoch_s"], e["abgleich_puls_s"], e["abgleich_eingang_s"]
         if abgleich.starten():
-            log.info("Abgleich mit dem Online-Speicher an")
+            log.info("Synchronisierung mit dem Online-Speicher an")
         from . import ki                              # lokale KIs: Aufträge ausführen, wenn ihr Lauf dran ist
         ki.starten()
         log.info("KI-Arbeiter an")
@@ -351,7 +351,7 @@ def main(argv=None):
         if e["bruecke_an"]:
             bruecke.KOPIE_S, bruecke.VON = e["bruecke_kopie_s"], e["bruecke_absender"]
             bruecke.starten()
-            log.info("Brücke an: %s (Absender %s)", bruecke.EINGANG, bruecke.VON)
+            log.info("Dateiaustausch an: %s (Absender %s)", bruecke.EINGANG, bruecke.VON)
     d.aufsicht()
     d.zustellen()
     if a.einmal:

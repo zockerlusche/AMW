@@ -86,7 +86,7 @@ def agent_umbenennen(con, pid, von, alt, neu):
     if not ist_lead(con, pid, von):
         raise AmwFehler("Agenten umbenennen nur Entwickler und Lead")
     if not KENNUNG_NAME.fullmatch(neu or ""):
-        raise AmwFehler(f"„{neu}“ taugt nicht als Kennung: Buchstabe, dann Buchstaben/Ziffern/-/_ (2–24 Zeichen)")
+        raise AmwFehler(f"„{neu}“ taugt nicht als Name: Buchstabe, dann Buchstaben/Ziffern/-/_ (2–24 Zeichen)")
     if neu.lower() in ("alle", ENTWICKLER.lower(), "amw"):
         raise AmwFehler(f"„{neu}“ ist reserviert")
     with db.schreiben(con):
@@ -144,7 +144,7 @@ def lead_und_fach(rolle, fachgebiet=None):
 def agent_neu(con, pid, kennung, rolle=None, grenzen=None, startbefehl=None, empfaengt_rund=True, fachgebiet=None,
               arbeitsweise="terminal"):
     if kennung_heute(con, kennung, pid) != kennung:
-        raise AmwFehler(f"„{kennung}“ ist die frühere Kennung von {kennung_heute(con, kennung, pid)}")
+        raise AmwFehler(f"„{kennung}“ ist der frühere Name von {kennung_heute(con, kennung, pid)}")
     if arbeitsweise not in ARBEITSWEISEN:
         raise AmwFehler(f"arbeitsweise: {' | '.join(ARBEITSWEISEN)}")
     rolle, fachgebiet = lead_und_fach(rolle, fachgebiet)
@@ -278,7 +278,7 @@ def agent_einstellen(con, pid, von, kennung, neu=False, **werte):
         raise AmwFehler("Agenten dürfen nur Lead und Entwickler einstellen")
     kennung = (kennung or "").strip()
     if not kennung or len(kennung) > 20 or not all(c.isalnum() or c in "-_" for c in kennung) or kennung.lower() == ENTWICKLER.lower():
-        raise AmwFehler("Kennung: bis 20 Zeichen, Buchstaben/Ziffern/-/_, nicht „Entwickler“")
+        raise AmwFehler("Name: bis 20 Zeichen, Buchstaben/Ziffern/-/_, nicht „Entwickler“")
     felder = {}
     for k, v in werte.items():
         if k == "rolle":                             # Schalter „führt das Projekt“; frühere Freitext-Rolle = Fachgebiet
@@ -411,7 +411,7 @@ def abmelden(con, pid, kennung):
             raise AmwFehler(f"{kennung} ist nicht angemeldet")
         l = lead(con, pid)
         if l and l != kennung:
-            _posten(con, pid, kennung, l, "info", f"{kennung} hat sich abgemeldet – wird nicht geweckt bis zum nächsten"
+            _posten(con, pid, kennung, l, "info", f"{kennung} hat sich abgemeldet – wird nicht benachrichtigt bis zum nächsten"
                                                  f" anmelden")
     return n
 
@@ -586,7 +586,7 @@ def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_i
         raise AmwFehler(f"Art „{art}“ gibt es nicht; erlaubt: {erlaubt}")
     if von not in ("AMW", ENTWICKLER, db.produkt_entwickler()) and not con.execute(
             "SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, von)).fetchone():
-        raise AmwFehler(f"Absender „{von}“ ist kein Agent dieses Projekts – --von ist deine eigene Kennung"
+        raise AmwFehler(f"Absender „{von}“ ist kein Agent dieses Projekts – --von ist dein eigener Name"
                         " (Empfänger stehen in --an)")
     namen = empfaenger(con, pid, an, von, aufgabe_id)
     nid = db.einfuegen(con, "nachricht", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=art, kurz=kurz,
@@ -872,14 +872,14 @@ def federfuehrung_setzen(con, pid, von, art, nr, kennung):
     tabelle = {"bogen": "bogen", "aufgabe": "aufgabe"}[art]
     r = con.execute(f"SELECT id, titel FROM {tabelle} WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone()
     if not r:
-        raise AmwFehler(f"{'Bogen ' if art == 'bogen' else 'A'}{nr} gibt es nicht")
+        raise AmwFehler(f"{'Meilenstein ' if art == 'bogen' else 'A'}{nr} gibt es nicht")
     kennung = (kennung or "").strip()
     if kennung:
         kennung = agent_zeile(con, pid, kennung)["kennung"]
     with db.schreiben(con):
         con.execute(f"UPDATE {tabelle} SET federfuehrend = ? WHERE id = ?", (kennung or None, nr))
         if kennung and kennung != von:
-            was = f"Bogen {nr}" if art == "bogen" else f"A{nr}"
+            was = f"Meilenstein {nr}" if art == "bogen" else f"A{nr}"
             _posten(con, pid, von, kennung, "auftrag", f"Du führst jetzt {was}: {r['titel'][:120]}",
                     "Federführung: Prüfergebnisse, Merge-Bitten und Fragen dazu kommen zu dir (--an zustaendig)."
                     " Du verteilst Schritte, nimmst ab und meldest dem Lead Abschluss und Abweichungen. Beim Lead bleiben:"
@@ -930,7 +930,7 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
     findet die AMW Treffer, muss es mindestens einen nennen. pruefen=False: Fragen, die die AMW selbst stellt."""
     for k, t in optionen:               # sonst steht der ganze Satz in der schmalen Kennungs-Spalte
         if not OPTION_KENN.fullmatch(k or "") or not (t or "").strip():
-            raise AmwFehler(f"Option „{(k or '')[:40]}“: Form --option \"A=Text\" – kurze Kennung (A, B, V0 …), dann = und der Text")
+            raise AmwFehler(f"Option „{(k or '')[:40]}“: Form --option \"A=Text\" – Kürzel (A, B, V0 …), dann = und der Text")
     kenn = [k for k, _ in optionen]
     if empfehlung and empfehlung not in kenn:
         raise AmwFehler(f"Empfehlung „{empfehlung}“ ist keine der Optionen {kenn}")
@@ -1149,7 +1149,7 @@ def kontext(con, pid, kennung):
     boegen, gefuehrt = fuehrt(con, pid, kennung)
     if boegen or gefuehrt:
         z.append("Du führst (federführend – Prüfergebnisse, Merge-Bitten, Fragen dazu kommen zu dir): " + "; ".join(
-            [f"Bogen {b['id']} {b['titel'][:60]}" for b in boegen] + [f"A{x['id']} {x['titel'][:60]}" for x in gefuehrt]))
+            [f"Meilenstein {b['id']} {b['titel'][:60]}" for b in boegen] + [f"A{x['id']} {x['titel'][:60]}" for x in gefuehrt]))
     from . import arbeitsliste
     liste = arbeitsliste.liste(con, pid, kennung)
     andere = [x for x in eigene if x["id"] not in {y["id"] for y in liste}]

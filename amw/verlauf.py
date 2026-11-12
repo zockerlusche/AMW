@@ -20,7 +20,7 @@ def rueckblick_neu(con, pid, von, bogen_id, art, text):
     if not (text or "").strip():
         raise kern.AmwFehler("Text fehlt")
     if bogen_id is not None and not con.execute("SELECT 1 FROM bogen WHERE id = ? AND projekt_id = ?", (bogen_id, pid)).fetchone():
-        raise kern.AmwFehler(f"Bogen {bogen_id} gibt es nicht")
+        raise kern.AmwFehler(f"Meilenstein {bogen_id} gibt es nicht")
     with db.schreiben(con):
         return db.einfuegen(con, "rueckblick", projekt_id=pid, bogen_id=bogen_id, art=art, text=text.strip(), von=von,
                             zeit_utc=db.jetzt())
@@ -38,7 +38,7 @@ def massnahme_uebernehmen(con, pid, von, rid, als, agent=None):
         raise kern.AmwFehler(f"Rückblick-Eintrag {rid} gibt es nicht")
     if r["aufgabe_id"] or r["beschluss_id"]:
         raise kern.AmwFehler(f"schon übernommen ({'A' + str(r['aufgabe_id']) if r['aufgabe_id'] else 'B' + str(r['beschluss_id'])})")
-    herkunft = f"Rückblick {rid}" + (f" zu Bogen {r['bogen_id']}" if r["bogen_id"] else "")
+    herkunft = f"Rückblick {rid}" + (f" zu Meilenstein {r['bogen_id']}" if r["bogen_id"] else "")
     if als == "aufgabe":
         aid = kern.aufgabe_neu(con, pid, von, r["text"][:200], agent, auftrag=f"{r['text']}\n\n(aus {herkunft})", sofort=False)
         with db.schreiben(con):
@@ -175,7 +175,7 @@ def kurztext(z):
     teile = [f"{z['erledigt']} erledigt", f"{z['laeufe']} Läufe", f"Prüfungen {z['gruen']} grün / {z['rot']} rot",
              f"{z['fragen_neu']} neue Fragen ({z['fragen_offen']} offen)", f"{z['an_dich']} Nachrichten an dich"]
     if z["boegen_fertig"]:
-        teile.insert(0, f"{z['boegen_fertig']} Bogen fertig")
+        teile.insert(0, f"{z['boegen_fertig']} Meilenstein(e) fertig")
     if z["beschluesse"]:
         teile.append(f"{z['beschluesse']} Beschlüsse")
     return " · ".join(teile)

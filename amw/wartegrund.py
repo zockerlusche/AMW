@@ -40,7 +40,7 @@ def bezug_lesen(con, pid, teil):
     try:
         return "agent", kern.agent_zeile(con, pid, t)["kennung"]
     except kern.AmwFehler:
-        raise kern.AmwFehler(f"„{t}“ ist kein Wartegrund – erlaubt: F<nr>, A<nr>, L<nr>, Agent-Kennung, Entwickler, Monitor:<was>")
+        raise kern.AmwFehler(f"„{t}“ ist kein Wartegrund – erlaubt: F<nr>, A<nr>, L<nr>, Name eines Agenten, Entwickler, Monitor:<was>")
 
 
 def teile(text):
@@ -200,7 +200,7 @@ def leerlauf(con, jetzt=None):
                                  text="Weiter mit der ersten – oder, wenn sie wirklich wartet: "
                                       f"amw aufgabe wartet {arbeit[0]['id']} --auf F…/A…/L…/Agent/Entwickler/Monitor:…",
                                  aufgabe_id=arbeit[0]["id"])
-                ereignisse.append(f"{k} geweckt (Leerlauf, A{arbeit[0]['id']})")
+                ereignisse.append(f"{k} benachrichtigt (Leerlauf, A{arbeit[0]['id']})")
             else:
                 worauf = wartet_auf_entwickler(con, pid, k)
                 if worauf:

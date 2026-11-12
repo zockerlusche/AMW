@@ -92,7 +92,7 @@ def _kennung_leer(v):
 def _kennung(v):
     v = str(v).strip()
     if not v or len(v) > 20 or not all(c.isalnum() or c in "-_" for c in v):
-        raise ValueError("Kennung eines Agenten (Buchstaben, Ziffern, - _)")
+        raise ValueError("Name eines Agenten (Buchstaben, Ziffern, - _)")
     return v
 
 

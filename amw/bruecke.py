@@ -131,28 +131,28 @@ def argumente(befehl, eingang=EINGANG, von=None, projekt=None):
                 for x in (v if isinstance(v, list) else [v]):
                     args += [name, str(x)]
     if not args or args[0] not in ERLAUBT:
-        raise ValueError(f"Befehl „{args[0] if args else ''}“ ist über die Brücke nicht erlaubt; erlaubt: {', '.join(sorted(ERLAUBT))}")
+        raise ValueError(f"Befehl „{args[0] if args else ''}“ ist über den Dateiaustausch nicht erlaubt; erlaubt: {', '.join(sorted(ERLAUBT))}")
     if args[0] == "agent" and len(args) > 1 and args[1] in ("starten", "beenden", "profil", "startskript"):
         raise ValueError("Agenten starten, beenden und Profile ändern geht nur am PC (Workbench)")
     if args[0] == "projekt" and (len(args) < 2 or args[1] != "einstellen"):
-        raise ValueError("über die Brücke nur „projekt einstellen <schluessel>=<wert>“ – Projekte anlegen geht nur am PC")
+        raise ValueError("über den Dateiaustausch nur „projekt einstellen <schluessel>=<wert>“ – Projekte anlegen geht nur am PC")
     if args[0] == "ki" and len(args) > 1 and args[1] in ("neu", "aendern"):
         raise ValueError("KIs eintragen und ändern (Endpunkt, Startbefehl) geht nur am PC")
     if args[0] == "lauf" and len(args) > 1 and args[1] == "warte":
-        raise ValueError("lauf warte blockiert – über die Brücke: lauf zeige <nr>")
+        raise ValueError("lauf warte blockiert – über den Dateiaustausch: lauf zeige <nr>")
     if "--von" in args:
-        raise ValueError("--von setzt die Brücke selbst")
+        raise ValueError("--von setzt der Dateiaustausch selbst")
     if projekt:
         genannt = [args[i + 1] for i, a in enumerate(args[:-1]) if a == "--projekt"] + \
             [a.split("=", 1)[1] for a in args if a.startswith("--projekt=")]
         if any(x != projekt for x in genannt):
-            raise ValueError(f"Diese Brücke gehört zum Projekt {projekt} – Befehle für ein anderes Projekt in dessen"
+            raise ValueError(f"Dieser Dateiaustausch gehört zum Projekt {projekt} – Befehle für ein anderes Projekt in dessen"
                              " Ordner (eingang-<projekt>/)")
         if not genannt:
             args = args + ["--projekt", projekt]
     if args[0] == "schirm":                                # beim Schirm ist --quelle der Kanal, nicht der Inhalt
         if "--quelle" in args:
-            raise ValueError("--quelle setzt beim Schirm die Brücke selbst")
+            raise ValueError("--quelle setzt beim Schirm der Dateiaustausch selbst")
         args = args + ["--quelle", "bruecke"]
     for i, a in enumerate(args):
         if a.split("=")[0] in ("--datei", "--text-datei", "--prompt-datei") and "=" in a:
@@ -173,7 +173,7 @@ def argumente(befehl, eingang=EINGANG, von=None, projekt=None):
         except SystemExit:
             ns = None                                      # falsch aufgerufen – meldet der Befehl selbst
         if ns is not None and (args[1] == "ablegen" and ns.nr or args[1] == "version" and ns.pfad):
-            raise ValueError("Dateien über die Brücke nur mit --datei aus eingang-tl/")
+            raise ValueError("Dateien über den Dateiaustausch nur mit --datei aus eingang-tl/")
     return args + ["--von", von or VON]
 
 
@@ -181,7 +181,7 @@ def _im_eingang(eingang, rel, schalter):
     wurzel = os.path.realpath(eingang)
     pfad = os.path.realpath(os.path.join(wurzel, rel))
     if os.path.commonpath([wurzel, pfad]) != wurzel:
-        raise ValueError(f"{schalter} über die Brücke nur aus {os.path.basename(wurzel)}/ (z. B. \"plan/spec-3.md\")")
+        raise ValueError(f"{schalter} über den Dateiaustausch nur aus {os.path.basename(wurzel)}/ (z. B. \"plan/spec-3.md\")")
     return pfad
 
 
@@ -271,7 +271,7 @@ def befehle(eingang=EINGANG, projekt=None, von=None):
                 raise ValueError("Befehlsdatei muss ein JSON-Objekt sein")
             taetigkeit = befehl.pop("taetigkeit", None)   # optional: was der TL gerade tut (zeigt die Workbench)
             if projekt and befehl.get("projekt") not in (None, projekt):
-                raise ValueError(f"Diese Brücke gehört zum Projekt {projekt} – Befehle für {befehl['projekt']} in dessen"
+                raise ValueError(f"Dieser Dateiaustausch gehört zum Projekt {projekt} – Befehle für {befehl['projekt']} in dessen"
                                  " Ordner (eingang-<projekt>/)")
             puls(von, taetigkeit=taetigkeit, projekt=projekt or befehl.get("projekt"))   # zuerst: die Sitzung lebt
             if befehl.get("befehl") == "puls":           # nur Lebenszeichen (Stundentakt des TL)
@@ -294,7 +294,7 @@ def befehle(eingang=EINGANG, projekt=None, von=None):
         with open(os.path.join(erledigt, stamm + ".ergebnis.json"), "w", encoding="utf-8") as f:
             json.dump(ergebnis, f, ensure_ascii=False, indent=1)
         os.replace(pfad, os.path.join(erledigt, stamm + ".json"))
-        log.info("Brücke: %s → rc %s%s: %s", name, rc, f" (früherer Beleg jetzt {frueher}.json)" if frueher != stamm else "",
+        log.info("Dateiaustausch: %s → rc %s%s: %s", name, rc, f" (früherer Beleg jetzt {frueher}.json)" if frueher != stamm else "",
                  _kurz(args))
         n += 1
     return n
@@ -314,7 +314,7 @@ def schleife(stop=None):
                     lese_kopie(ziel=b["kopie"], pid=b["pid"] if len(alle) > 1 else None)
                 stand, letzte_kopie = v, time.time()
         except Exception as e:                            # nie den Wächter stören
-            log.warning("Brücke: %s: %s", type(e).__name__, e)
+            log.warning("Dateiaustausch: %s: %s", type(e).__name__, e)
         time.sleep(BEFEHLE_S)
 
 

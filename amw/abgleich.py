@@ -183,7 +183,7 @@ def hoch_holen(sp, hid):
     from . import dokumente
     hid = str(hid or "")
     if not re.fullmatch(r"[0-9a-f]{32}", hid):
-        raise kern.AmwFehler("Upload-Kennung")
+        raise kern.AmwFehler("Upload-Nummer fehlt")
     kopf = sp.ausfuehren([("SELECT name, groesse, sha, teile FROM hoch WHERE id = ?", [hid])])[0]
     if not kopf:
         raise kern.AmwFehler("Upload nicht (mehr) im Speicher – bitte neu hochladen")
@@ -644,7 +644,7 @@ def schleife(stop=None):
             if ab.schritt(offen):
                 offen = False
         except Exception as e:                       # Netz weg, Turso gesperrt …: nur protokollieren
-            log.warning("Abgleich: %s: %s", type(e).__name__, e)
+            log.warning("Synchronisierung: %s: %s", type(e).__name__, e)
             time.sleep(60)
         time.sleep(EINGANG_S)
 

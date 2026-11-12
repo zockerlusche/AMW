@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.64.0 – 12.11.2026 · Dieselben Wörter auch in Meldungen und Befehlszeile
+- Meldungen der AMW an die Agenten, Ausgaben und Hilfetexte der Befehlszeile, Fehlermeldungen und das Protokoll des
+  Dienstes sprechen jetzt dieselbe Sprache wie Oberfläche und Hilfen: Meilenstein, Dienst, Synchronisierung,
+  Dateiaustausch, Rhythmus, Stufe, Denkaufwand, Startinformationen, Name, benachrichtigen.
+- Die Nachricht an eine Sitzung beginnt mit „AMW-Benachrichtigung für …“.
+- Planungshinweise auf Englisch: milestone statt arc.
+- Befehle und Schalter bleiben unverändert (`amw bogen …`, `--bogen`, `--von`).
+
 ## 1.63.0 – 12.11.2026 · Mehrere Benutzer, erste Stufe
 - **Benutzer mit Rolle:** Leser, Bearbeiter, Projekt-Admin oder System-Admin – eine Rolle je Benutzer, dazu die Projekte,
   die er sieht. Anlegen, ändern und sperren mit `amw benutzer …` (nur der Mensch am PC).

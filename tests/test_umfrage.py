@@ -348,7 +348,7 @@ class Federfuehrung(Grund):
         rc, aus = self.cli("--von", "TL", "bogen", "aendern", str(self.b), "--federfuehrend", "CC3")
         self.assertEqual(rc, 0, aus)
         self.assertEqual(kern.zustaendig(self.con, self.pid, self.a), "CC3")                   # Bogen
-        self.assertIn("Du führst jetzt Bogen", kern.offene(self.con, self.pid, "CC3")[0]["kurz"])
+        self.assertIn("Du führst jetzt Meilenstein", kern.offene(self.con, self.pid, "CC3")[0]["kurz"])
         kern.federfuehrung_setzen(self.con, self.pid, "TL", "aufgabe", self.a, "CC2")
         self.assertEqual(kern.zustaendig(self.con, self.pid, self.a), "CC2")                   # Aufgabe vor Bogen
         _, namen = kern.posten(self.con, self.pid, "CC1", "zustaendig", "frage", "passt das?", aufgabe_id=self.a)
@@ -707,7 +707,7 @@ class Absender(Grund):
             kern.posten(self.con, self.pid, "CC1,TL", "TL", "info", "x")
         rc, aus = self.cli("--von", "CC2,TL", "posten", "--an", "TL", "--art", "info", "--kurz", "x")
         self.assertNotEqual(rc, 0)
-        self.assertIn("--von ist deine eigene Kennung", aus)
+        self.assertIn("--von ist dein eigener Name", aus)
         self.assertEqual(self.con.execute("SELECT count(*) FROM nachricht WHERE kurz = 'x'").fetchone()[0], 0)
 
 

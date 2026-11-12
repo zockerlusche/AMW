@@ -227,7 +227,7 @@ def _zu_melden(con, grund):
         wartend.setdefault((l["projekt_id"], l["agent"]), []).append(f"L{l['id']}")
     for (pid, agent), nummern in wartend.items():
         kern._posten(con, pid, "AMW", agent, "meldung", f"Schirm zu – {', '.join(nummern)} warten bis zur nächsten Freigabe",
-                     f"Grund: {grund}. Die Schlange startet sie von selbst, sobald der Schirm wieder frei ist, und weckt"
+                     f"Grund: {grund}. Die Schlange startet sie von selbst, sobald der Schirm wieder frei ist, und benachrichtigt"
                      " dich dann. Bis dahin nichts am Bildschirm starten.")
 
 

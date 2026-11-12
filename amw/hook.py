@@ -122,7 +122,7 @@ def anmelden(con, pid, kennung, eingabe, ersetzen=False, streng=False):
     pipe = os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET")
     schluessel = os.environ.get("CLAUDE_CODE_MESSAGING_TOKEN")
     if not (pipe and schluessel):
-        return "Hinweis: Sitzung ohne Postfach (CLAUDE_CODE_MESSAGING_*) – der Dienst kann sie nicht wecken."
+        return "Hinweis: Sitzung ohne Postfach (CLAUDE_CODE_MESSAGING_*) – der Dienst kann sie nicht benachrichtigen."
     ich = claude_prozess(pipe)
     if ich and ich["art"] == "bg" and not ersetzen:
         return (f"Nicht als {kennung} angemeldet: diese Sitzung ist eine Hintergrund-Sitzung ohne Fenster ({beschreibung(ich)})."
@@ -245,14 +245,14 @@ def main():
             if pid is not None:
                 kennung = kern.kennung_heute(con, kennung, pid) or bekannte_kennung(con, pid, eingabe.get("session_id"))
             if pid is None and kennung:             # lieber nicht anmelden als im falschen Projekt (fremdes Wecken)
-                meldung = (f"AMW: diese Sitzung ist NICHT angemeldet und wird nicht geweckt – die Kennung {kennung} gibt es "
+                meldung = (f"AMW: diese Sitzung ist NICHT angemeldet und wird nicht benachrichtigt – den Namen {kennung} gibt es "
                            "in mehreren Projekten. Starte über die Workbench (Kachel › Starten) oder richte den Ordner "
                            f"einem Projekt zu: {kern.BEFEHL} einrichten agenten-ordner <ordner> --projekt <name>")
                 teile.append(meldung)
             elif not kennung:
                 if quelle in ("startup", "resume") and agenten_ordner(con, eingabe.get("cwd")):
-                    meldung = ("AMW: diese Sitzung ist NICHT angemeldet und wird nicht geweckt. Als Agent: "
-                               f"{kern.BEFEHL} anmelden --von <Kennung>")
+                    meldung = ("AMW: diese Sitzung ist NICHT angemeldet und wird nicht benachrichtigt. Als Agent: "
+                               f"{kern.BEFEHL} anmelden --von <Name>")
                     teile.append(meldung)
                 else:
                     return 0                        # Sitzung gehört zu keinem AMW-Agenten

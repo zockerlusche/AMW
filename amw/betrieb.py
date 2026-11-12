@@ -514,7 +514,7 @@ def wartegrund(con, pid, l, speicher_frei=None):
     if g:
         gruende.append(g)
     kopf = f"Platz {platz} von {len(w)}" if platz else "nicht in der Schlange"
-    return kopf + (" – " + " · ".join(gruende) if gruende else " – gleich dran (nächste Runde des Wächters)")
+    return kopf + (" – " + " · ".join(gruende) if gruende else " – gleich dran (nächste Runde des Dienstes)")
 
 
 def lauf_vorziehen(con, pid, von, lid):
@@ -665,7 +665,7 @@ def freigabe_merge(con, pid, von, aufgabe_id, zweig=None, zurueck=False):
             return f"Merge-OK für A{aufgabe_id} vermerkt – die Aufgabe ist {status}, keine Merge-Bitte"
         if not kette_an(con, pid):
             return (f"Merge-OK für A{aufgabe_id} vermerkt – die Abnahme-Kette ist aus (amw projekt einstellen abnahme_kette=an"
-                    " merge_dienst=<Kennung>); die Merge-Bitte schickst du wie bisher selbst")
+                    " merge_dienst=<Name>); die Merge-Bitte schickst du wie bisher selbst")
         sql = "SELECT * FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ?" + (" AND zweig = ?" if zweig else "")
         p = con.execute(sql + " ORDER BY id DESC LIMIT 1", (pid, aufgabe_id, *([zweig] if zweig else []))).fetchone()
         if p and p["ergebnis"] == "gruen":

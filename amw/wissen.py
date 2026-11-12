@@ -16,9 +16,9 @@ def _nur_lead(con, pid, von, was):
 
 
 def wortlaut_neu(con, pid, von, text, kanal, zeit_utc=None, bemerkung=None):
-    _nur_lead(con, pid, von, "Wortlaut erfassen")
+    _nur_lead(con, pid, von, "Worte des Menschen erfassen")
     if not text.strip():
-        raise kern.AmwFehler("Wortlaut ist leer")
+        raise kern.AmwFehler("Der Text ist leer")
     if zeit_utc:                                          # dieselbe Aussage zweimal erfasst (Wiederholung nach Zweifel)
         alt = con.execute("SELECT id FROM wortlaut WHERE projekt_id = ? AND zeit_utc = ? AND trim(text) = trim(?)",
                           (pid, zeit_utc, text)).fetchone()

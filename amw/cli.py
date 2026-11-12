@@ -49,7 +49,7 @@ def _eigene_kennung(con, a, pid):
         return
     if kern.kennung_heute(con, von, pid) != kern.kennung_heute(con, sitzung, pid):
         raise kern.AmwFehler(f"Du bist {sitzung} (AMW_AGENT dieser Sitzung) – --von {von} geht nicht: jeder schreibt nur als er"
-                             " selbst. Lass --von weg oder setze deine eigene Kennung.")
+                             " selbst. Lass --von weg oder setze deinen eigenen Namen.")
 
 
 def _heutige_kennungen(con, a):
@@ -130,7 +130,7 @@ def cmd_agent(a, con):
         if not (a.kennung and a.neu_kennung):
             raise kern.AmwFehler("amw agent umbenennen <alt> <neu> – vorher amw sichern")
         anzahl = kern.agent_umbenennen(con, pid, _von(a), a.kennung, a.neu_kennung)
-        print(f"{a.kennung} heißt jetzt {a.neu_kennung} (alte Kennung gilt weiter als Alias); geändert: "
+        print(f"{a.kennung} heißt jetzt {a.neu_kennung} (der alte Name gilt weiter als Alias); geändert: "
               + (", ".join(f"{k} {n}" for k, n in sorted(anzahl.items())) or "nichts"))
         print("Profil, Tab-Titel und Fernsteuerungs-Name wirken beim nächsten Start; Startskripte neu schreiben.")
         return
@@ -298,7 +298,7 @@ def cmd_termin(a, con):
         print(f"T{v['termin_id']:<4} {termine.lokal(v['am_utc'])}  [{v['art']}] {v['titel']}"
               + (" (wöchentlich)" if v["woechentlich"] else "")
               + (f" · Testbuild fertig bis {termine.lokal(v['frist_utc'])}" if v.get("frist_utc") else "")
-              + (f" · Bogen {v['bogen_id']}: {v['ampel']}" if v.get("ampel") else "")
+              + (f" · Meilenstein {v['bogen_id']}: {v['ampel']}" if v.get("ampel") else "")
               + (" · gemeldet" if v["bereit"] else ""))
     if not l:
         print(f"keine Termine in den nächsten {a.tage} Tagen")
@@ -472,7 +472,7 @@ def cmd_aufgabe(a, con):
             planung.abhaengigkeit_setzen(con, pid, _von(a), a.id, _ohne(a), entfernen=True)
         if a.federfuehrend is not None:
             ff = kern.federfuehrung_setzen(con, pid, _von(a), "aufgabe", a.id, a.federfuehrend)
-            print(f"A{a.id}: federführend {ff or '– (Bogen bzw. Lead)'}")
+            print(f"A{a.id}: federführend {ff or '– (Meilenstein bzw. Lead)'}")
         print(f"A{a.id} geändert")
     elif a.aktion == "kriterium":
         liste = planung.kriterium(con, pid, _von(a), a.id, a.nr, not a.nein)
@@ -551,34 +551,34 @@ def cmd_bogen(a, con):
     pid = _projekt(con, a)
     if a.aktion == "neu":
         bid = planung.bogen_neu(con, pid, _von(a), a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr)
-        print(f"Bogen {bid} angelegt – Spezifikation: amw spec schreiben {bid} anforderungen --datei …")
+        print(f"Meilenstein {bid} angelegt – Spezifikation: amw spec schreiben {bid} anforderungen --datei …")
     elif a.aktion == "aendern":
         planung.bogen_aendern(con, pid, _von(a), a.id, a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr, a.grund)
         if a.federfuehrend is not None:
             ff = kern.federfuehrung_setzen(con, pid, _von(a), "bogen", a.id, a.federfuehrend)
-            print(f"Bogen {a.id}: federführend {ff or '– (Lead)'}")
-        print(f"Bogen {a.id} geändert")
+            print(f"Meilenstein {a.id}: federführend {ff or '– (Lead)'}")
+        print(f"Meilenstein {a.id} geändert")
     elif a.aktion == "status":
         planung.bogen_status(con, pid, _von(a), a.id, a.wert, a.erzwingen)
-        print(f"Bogen {a.id} → {a.wert}")
+        print(f"Meilenstein {a.id} → {a.wert}")
     elif a.aktion == "zeigen":
         b = next((x for x in planung.boegen(con, pid) if x["id"] == a.id), None)
         if not b:
-            raise kern.AmwFehler(f"Bogen {a.id} gibt es nicht")
-        print(f"Bogen {b['id']} [{b['status']}] {b['titel']} · Ziel: {b['ziel'] or '–'} · Abnahme: {b['abnahme'] or '–'}"
+            raise kern.AmwFehler(f"Meilenstein {a.id} gibt es nicht")
+        print(f"Meilenstein {b['id']} [{b['status']}] {b['titel']} · Ziel: {b['ziel'] or '–'} · Abnahme: {b['abnahme'] or '–'}"
               f" · Zieldatum {b['zieldatum'] or '–'} (Baseline {b['baseline_datum'] or '–'})"
               + (f" · federführend {b['federfuehrend']}" if b.get("federfuehrend") else ""))
         stand = {"entwurf": "in Arbeit", "zurueck": "zurück"}
         print("Spezifikation: " + ", ".join(f"{t} {stand.get(b['spec'].get(t), b['spec'].get(t) or '–')}" for t in planung.TEILE))
         stufe = planung.wellen(con, [r[0] for r in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ?", (a.id,))])
         for r in con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? ORDER BY rang, id", (a.id,)):
-            print(f"  Welle {stufe.get(r['id'], 1)}  A{r['id']:<5} {r['agent'] or '–':<10} [{r['status']}] {r['titel'][:90]}"
+            print(f"  Stufe {stufe.get(r['id'], 1)}  A{r['id']:<5} {r['agent'] or '–':<10} [{r['status']}] {r['titel'][:90]}"
                   + (f"  ← {', '.join('A' + str(v) for v in planung.vorgaenger(con, r['id']))}" if planung.vorgaenger(con, r["id"]) else ""))
     else:
         prog = planung.prognose(con, pid, laeufe=300)
         for b in planung.boegen(con, pid):
             p = prog["boegen"].get(b["id"], {})
-            print(f"Bogen {b['id']:<3} [{b['status']:<9}] {b['fertig']}/{b['gesamt'] - b['verworfen']} fertig"
+            print(f"Meilenstein {b['id']:<3} [{b['status']:<9}] {b['fertig']}/{b['gesamt'] - b['verworfen']} fertig"
                   + (f", {b['blockiert']} blockiert" if b["blockiert"] else "")
                   + (f" · Ziel {b['zieldatum']}" if b["zieldatum"] else "")
                   + (f" · Prognose {p['p50']}/{p['p85']} ({p['ampel'] or '–'})" if p else "") + f"  {b['titel']}")
@@ -594,13 +594,13 @@ def cmd_spec(a, con):
                 text = f.read()
         if not text:
             raise kern.AmwFehler("--text oder --datei")
-        print(f"Bogen {a.bogen} {a.teil}: Version {planung.spec_schreiben(con, pid, _von(a), a.bogen, a.teil, text)} (Entwurf)")
+        print(f"Meilenstein {a.bogen} {a.teil}: Version {planung.spec_schreiben(con, pid, _von(a), a.bogen, a.teil, text)} (Entwurf)")
     elif a.aktion == "vorlegen":
         fragen = planung.spec_vorlegen(con, pid, _von(a), a.bogen, a.teil)
-        print(f"Bogen {a.bogen} {a.teil} vorgelegt" + (f" – Klärungsfragen: {', '.join('F' + str(f) for f in fragen)}" if fragen else ""))
+        print(f"Meilenstein {a.bogen} {a.teil} vorgelegt" + (f" – Klärungsfragen: {', '.join('F' + str(f) for f in fragen)}" if fragen else ""))
     elif a.aktion in ("frei", "zurueck"):
         planung.spec_entscheiden(con, pid, _von(a), a.bogen, a.teil, a.aktion == "frei", a.kommentar)
-        print(f"Bogen {a.bogen} {a.teil}: {a.aktion}")
+        print(f"Meilenstein {a.bogen} {a.teil}: {a.aktion}")
     else:
         for t in ([a.teil] if a.teil else planung.TEILE):
             s = planung.spec(con, a.bogen, t)
@@ -613,9 +613,9 @@ def cmd_schritt(a, con):
     pid = _projekt(con, a)
     s = planung.naechster(con, pid, _von(a), nehmen=a.nehmen)
     if not s:
-        print("kein bereiter Schritt – alles vergeben, blockiert oder kein aktiver Bogen")
+        print("kein bereiter Schritt – alles vergeben, blockiert oder kein aktiver Meilenstein")
         return
-    print(f"A{s['id']} [{s.get('status')}] {s['titel']}" + (f" (Bogen {s['bogen_id']})" if s.get("bogen_id") else ""))
+    print(f"A{s['id']} [{s.get('status')}] {s['titel']}" + (f" (Meilenstein {s['bogen_id']})" if s.get("bogen_id") else ""))
     for k in planung._json(s.get("kriterien"), []):
         print(f"  Kriterium: {k['text']}")
     for k in ("pruefbefehl", "dateibereich", "hinweis"):
@@ -683,7 +683,7 @@ def cmd_plan(a, con):
         for x in sorted(liste, key=lambda x: (x["gruppe"] != "projekt", x["bogen_id"] or 0, planung.STUFEN.index(x["stufe"]))):
             if x["gruppe"] != gruppe:
                 gruppe = x["gruppe"]
-                print("\n" + (f"Bogen {x['bogen_id']} „{titel.get(x['bogen_id'], '')}“" if gruppe.startswith("bogen:")
+                print("\n" + (f"Meilenstein {x['bogen_id']} „{titel.get(x['bogen_id'], '')}“" if gruppe.startswith("bogen:")
                               else "Risiken" if gruppe == "risiken" else "Projekt"))
             print(f"  {x['stufe'].upper():<8} {x['text']}   [{x['schluessel']}]")
             if not a.kurz:
@@ -712,7 +712,7 @@ def cmd_plan(a, con):
         for aid, p in sorted(prog["schritte"].items(), key=lambda x: x[1]["p50"]):
             print(f"A{aid:<5} {p['bearbeiter'] or 'frei':<10} P50 {p['p50']}  P85 {p['p85']}")
         for bid, p in prog["boegen"].items():
-            print(f"Bogen {bid}: P50 {p['p50']} P85 {p['p85']} Ampel {p['ampel'] or '–'}")
+            print(f"Meilenstein {bid}: P50 {p['p50']} P85 {p['p85']} Ampel {p['ampel'] or '–'}")
 
 
 def cmd_frage(a, con):
@@ -1115,7 +1115,7 @@ def cmd_lauf(a, con):
                                  braucht_vram_gb=a.braucht_vram_gb, braucht_platte_gb=a.braucht_platte_gb)
         w = [r["id"] for r in betrieb.wartende(con, pid)]
         if lid in w:
-            print(f"L{lid} eingereiht (Platz {w.index(lid) + 1} von {len(w)}) – noch nicht rechnen. Der Wächter weckt dich mit"
+            print(f"L{lid} eingereiht (Platz {w.index(lid) + 1} von {len(w)}) – noch nicht rechnen. Der Dienst benachrichtigt dich mit"
                   f" einer Freigabe, sobald L{lid} dran ist. Aus der Schlange nehmen: amw lauf ende {lid} --abgebrochen")
         else:
             print(f"L{lid} läuft – am Ende: amw lauf ende {lid} --rc <Code>")
@@ -1192,7 +1192,7 @@ def cmd_server(a, con):
             raise kern.AmwFehler("server anmelden <name> --port N [--start \"Befehl\" --ordner Pfad --neustart --zustaendig X]")
         print(f"Server {a.name}: " + ueberwachung.server_anmelden(con, pid, _von(a), a.name, a.port, a.start, a.ordner,
                                                                   a.neustart, a.zustaendig)
-              + (" – der Wächter startet ihn bei Ausfall neu" if a.neustart else " – Ausfall wird gemeldet"))
+              + (" – der Dienst startet ihn bei Ausfall neu" if a.neustart else " – Ausfall wird gemeldet"))
     elif a.aktion == "abmelden":
         ueberwachung.server_abmelden(con, pid, _von(a), a.name)
         print(f"Server {a.name} wird nicht mehr überwacht")
@@ -1240,7 +1240,7 @@ def cmd_ki(a, con):
         print(f"Vorlage {a.teil}: " + ki.vorlage_setzen(con, pid, von, a.name, a.teil, a.datei, a.beschreibung))
     elif a.aktion == "recht":
         if not a.name:
-            raise kern.AmwFehler("ki recht <ki> --wer alle|rolle:<rolle>|<Kennung> [--entziehen]")
+            raise kern.AmwFehler("ki recht <ki> --wer alle|rolle:<rolle>|<Name> [--entziehen]")
         n = ki.recht(con, pid, von, a.name, a.wer, a.entziehen)
         print(f"{a.wer}: " + ("Recht entzogen" if a.entziehen and n else "hatte kein Recht" if a.entziehen
                               else f"darf {a.name} beauftragen"))
@@ -1254,7 +1254,7 @@ def cmd_ki(a, con):
         lid, _, laeuft = ki.auftrag(con, pid, von, a.name, prompt, a.modell, a.vorlage, a.negativ, a.seed, a.anzahl, a.breite,
                                     a.hoehe, a.bild, a.parameter, a.titel, a.aufgabe, a.frist, a.nachts)
         print(f"L{lid} " + ("ist dran – " if laeuft else f"eingereiht ({betrieb.wartegrund(con, pid, betrieb.lauf_zeile(con, pid, lid))}) – ")
-              + "die AMW führt den Auftrag selbst aus und legt die Ergebnisse als Dokumente ab. Du wirst geweckt, wenn"
+              + "die AMW führt den Auftrag selbst aus und legt die Ergebnisse als Dokumente ab. Du wirst benachrichtigt, wenn"
               f" er fertig ist; du musst nicht warten. Stand: amw ki zeige L{lid} · abbrechen: amw lauf ende {lid} --abgebrochen")
     elif a.aktion == "fenster":
         n, sek = ki.nachts_wartend(con)
@@ -1605,9 +1605,9 @@ def web_einrichten(abgleich):
                                      f"{{ Stop-ScheduledTask -TaskName '{einrichtung.AUFGABE}'; Start-Sleep 2; "
                                      f"Start-ScheduledTask -TaskName '{einrichtung.AUFGABE}'; 'neu gestartet' }} else {{ 'fehlt' }}")
     if "neu gestartet" in aus:
-        print("✓ Wächter neu gestartet – er lädt die Ansichten in den nächsten Sekunden hoch")
+        print("✓ Dienst neu gestartet – er lädt die Ansichten in den nächsten Sekunden hoch")
     else:
-        print("! Wächter ist nicht eingerichtet: zuerst `amw dienst einrichten --ja`")
+        print("! Dienst ist nicht eingerichtet: zuerst `amw dienst einrichten --ja`")
     print("Jetzt die Seite beim Hoster öffnen – der Assistent fragt nach derselben Adresse und einem Schlüssel.")
     return 0
 
@@ -1668,7 +1668,7 @@ def cmd_web(a, con):
         neu, pc = sp.ausfuehren([("SELECT count(*) FROM eingang WHERE status = 'neu'", []),
                                  ("SELECT wert FROM zustand WHERE schluessel = 'pc_gesehen_utc'", [])])
         an = abgleich.speicher_aus_zugang() is not None
-        print(f"Abgleich im Dienst: {'an' if an else 'aus'} · PC zuletzt hochgeladen: {_zeit(pc[0][0]) if pc else '–'}"
+        print(f"Synchronisierung im Dienst: {'an' if an else 'aus'} · PC zuletzt hochgeladen: {_zeit(pc[0][0]) if pc else '–'}"
               f" · Briefkasten offen: {neu[0][0]}")
     return 0
 
@@ -1690,7 +1690,7 @@ def cmd_dienst(a):
         rc, aus = einrichtung.powershell(
             f"$x = Get-ScheduledTask -TaskName '{einrichtung.AUFGABE}' -ErrorAction SilentlyContinue; if ($x) "
             f"{{ Stop-ScheduledTask -TaskName '{einrichtung.AUFGABE}'; Start-Sleep 2; Start-ScheduledTask -TaskName "
-            f"'{einrichtung.AUFGABE}'; 'Wächter neu gestartet' }} else {{ 'Wächter ist nicht eingerichtet (amw dienst einrichten)' }}")
+            f"'{einrichtung.AUFGABE}'; 'Dienst neu gestartet' }} else {{ 'Dienst ist nicht eingerichtet (amw dienst einrichten)' }}")
         print(aus)
         return rc
     skript = einrichtung.skript_einrichten(a.port) if a.aktion == "einrichten" else einrichtung.skript_entfernen()
@@ -1716,7 +1716,7 @@ def cmd_anmelden(a, con):
         raise kern.AmwFehler(hinweis)
     ich = hook.claude_prozess(os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET"))
     print(f"{kennung} angemeldet" + (f" ({hook.beschreibung(ich)})" if ich else "")
-          + " – der Wächter weckt diese Sitzung ab jetzt bei neuen Nachrichten")
+          + " – der Dienst benachrichtigt diese Sitzung ab jetzt bei neuen Nachrichten")
 
 
 def cmd_abmelden(a, con):
@@ -1730,7 +1730,7 @@ def cmd_hook(a):
     print("Für .claude/settings.local.json eines Agenten-Ordners (zusammenführen: amw einrichten agenten-ordner <pfad>):")
     print(json.dumps(einrichtung.hook_einstellungen(), ensure_ascii=False, indent=2))
     print()
-    print("Im Startbefehl je Agent vor `claude …` setzen (oder nach dem ersten Start: amw anmelden --von <Kennung>):")
+    print("Im Startbefehl je Agent vor `claude …` setzen (oder nach dem ersten Start: amw anmelden --von <Name>):")
     print(f"  $env:AMW_AGENT = '{a.agent}'")
     return 0
 
@@ -1927,7 +1927,7 @@ def parser():
     x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript | umbenennen ALT NEU")
     x.add_argument("aktion", choices=["neu", "liste", "profil", "starten", "beenden", "startskript", "umbenennen"])
     x.add_argument("kennung", nargs="?")
-    x.add_argument("neu_kennung", nargs="?", metavar="neu", help="umbenennen: die neue Kennung (die alte bleibt als Alias gültig)")
+    x.add_argument("neu_kennung", nargs="?", metavar="neu", help="umbenennen: der neue Name (der alte bleibt als Alias gültig)")
     x.add_argument("--ordner", help="profil: Arbeitsordner")
     x.add_argument("--zusatz", help="profil: weitere Ordner, mit ; getrennt")
     x.add_argument("--denkstufe", help="profil: low | medium | high | xhigh | max")
@@ -1945,7 +1945,7 @@ def parser():
     x.add_argument("--rolle", help="neu/profil: lead = führt das Projekt, leer = führt nicht (ein anderes Wort gilt als Fachgebiet)")
     x.add_argument("--fachgebiet", help="neu/profil: z. B. Code, Grafik, Prüfen (bis 40 Zeichen; leer = keines)")
     x.add_argument("--arbeitsweise", choices=["terminal", "desktop", "chat"],
-                   help="neu/profil: Claude Code im Terminal (startet die AMW) | Claude Code in der Desktop-App | Chat über die Brücke")
+                   help="neu/profil: Claude Code im Terminal (startet die AMW) | Claude Code in der Desktop-App | Chat über den Dateiaustausch")
     x.add_argument("--zustaendig", help="neu/profil: wofür der Agent zuständig ist")
     x.add_argument("--nicht", help="neu/profil: was der Agent nicht anfasst")
     x.add_argument("--grenzen", help=argparse.SUPPRESS)        # früherer Name von --zustaendig
@@ -1996,11 +1996,11 @@ def parser():
     x.add_argument("--beleg")
     x.add_argument("--wartet-auf", help="wartet/blockiert: Erklärung als Text (zusätzlich zu --auf)")
     x.add_argument("--auf", help="wartet/blockiert: worauf, als Verweise – F12,A120,L7,CC2,Entwickler,Monitor:<was>"
-                                 " (Pflicht; erledigt sich von selbst und weckt dich)")
+                                 " (Pflicht; erledigt sich von selbst und benachrichtigt dich)")
     x.add_argument("--erledigt", help="wartet/blockiert: diese Gründe von Hand abhaken, z. B. F12 (allein: Status bleibt)")
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
-    x.add_argument("--bogen", type=nummer, help="Planung: gehört zu Bogen N")
+    x.add_argument("--bogen", type=nummer, help="Planung: gehört zu Meilenstein N")
     x.add_argument("--kriterium", action="append", help="Planung: Abnahmekriterium, mehrfach (ersetzt die Liste)")
     x.add_argument("--schaetzung", type=float, help="Planung: Stunden")
     x.add_argument("--komplexitaet", type=int, help="Planung: 1–10; ab 7 braucht der Schritt einen freigegebenen Plan")
@@ -2009,7 +2009,7 @@ def parser():
     x.add_argument("--pruefbefehl", help="Planung: wie der Bearbeiter selbst prüft")
     x.add_argument("--dateien", help="Planung: Dateibereich, den er anfassen darf")
     x.add_argument("--anforderungen", help="Planung: abgedeckte Anforderungen, z. B. R1,R3")
-    x.add_argument("--zusammenfassung", help="fertig: Pflicht für Schritte in einem Bogen; aendern: nachtragen")
+    x.add_argument("--zusammenfassung", help="fertig: Pflicht für Schritte in einem Meilenstein; aendern: nachtragen")
     x.add_argument("--ohne-vorgaenger", help="aendern: diese Vorgänger lösen, z. B. 115")
     x.add_argument("--text", help="plan: der Plan")
     x.add_argument("--nein", action="store_true", help="kriterium: wieder als offen markieren")
@@ -2054,7 +2054,7 @@ def parser():
     x.add_argument("--woechentlich", action="store_true")
     x.add_argument("--bis", help="wöchentlich bis zu diesem Tag (JJJJ-MM-TT)")
     x.add_argument("--vorlauf", type=float, help="test: Testbuild fertig so viele Stunden vorher (Vorgabe 4)")
-    x.add_argument("--bogen", type=nummer, help="Ampel: Prognose dieses Bogens gegen die Frist")
+    x.add_argument("--bogen", type=nummer, help="Ampel: Prognose dieses Meilensteins gegen die Frist")
     x.add_argument("--notiz")
     x.add_argument("--text", help="bereit: was ist neu, was soll getestet werden")
     x.add_argument("--tage", type=int, default=21)
@@ -2076,10 +2076,10 @@ def parser():
     x.add_argument("aktion", choices=["neu", "liste", "antworten", "nachtrag", "verlauf", "parken", "aufnehmen", "weiterleiten"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--an", choices=["entwickler", "tl", "zustaendig"],
-                   help="zustaendig: an die Federführung der --aufgabe (sonst Bogen, sonst Lead)")
+                   help="zustaendig: an die Federführung der --aufgabe (sonst Meilenstein, sonst Lead)")
     x.add_argument("--kurz")
     x.add_argument("--worum")
-    x.add_argument("--option", action="append", help="neu: 'A=Text' (mehrfach); antworten: Kennung")
+    x.add_argument("--option", action="append", help="neu: 'A=Text' (mehrfach); antworten: Kürzel der Option")
     x.add_argument("--empfehlung")
     x.add_argument("--fundstellen")
     x.add_argument("--geprueft", help="neu: was du vorher in der AMW geprüft hast (Beschlüsse, Fragen, Regeln) – Pflicht bei"
@@ -2108,14 +2108,14 @@ def parser():
     x.add_argument("--aufgabe", type=nummer)
     x.set_defaults(f=cmd_taetigkeit)
 
-    x = s.add_parser("kontext", help="Pflicht-Kontext für einen Agenten")
+    x = s.add_parser("kontext", help="Startinformationen für einen Agenten")
     x.add_argument("agent", nargs="?")
     x.set_defaults(f=cmd_kontext)
 
     x = s.add_parser("regeln", help="alle geltenden Regeln (Arbeits- und Projektregeln)")
     x.set_defaults(f=cmd_regeln)
 
-    x = s.add_parser("suche", help="Volltext über Aufgaben, Beschlüsse, Fragen, Wortlaut, Nachrichten, Dokumente: amw suche Modem")
+    x = s.add_parser("suche", help="Volltext über Aufgaben, Beschlüsse, Fragen, Deine Worte, Nachrichten, Dokumente: amw suche Modem")
     x.add_argument("text", nargs="+")
     x.add_argument("--art", action="append", choices=["aufgabe", "beschluss", "frage", "wortlaut", "nachricht", "dokument"],
                    help="nur diese Art (mehrfach)")
@@ -2144,13 +2144,13 @@ def parser():
     x.add_argument("--ziel")
     x.add_argument("--abnahme", help="prüfbares Abnahmekriterium")
     x.add_argument("--zieldatum", help="JJJJ-MM-TT")
-    x.add_argument("--federfuehrend", help="aendern: wer den Bogen führt (Lead/Entwickler; leer = weg)")
+    x.add_argument("--federfuehrend", help="aendern: wer den Meilenstein führt (Lead/Entwickler; leer = weg)")
     x.add_argument("--nr", type=int, help="Reihenfolge")
     x.add_argument("--grund", help="nötig, wenn das Zieldatum nach der Baseline geändert wird")
     x.add_argument("--erzwingen", action="store_true")
     x.set_defaults(f=cmd_bogen)
 
-    x = s.add_parser("spec", help="Spezifikation je Bogen: zeigen N [teil] | schreiben N teil --text/--datei | vorlegen N teil |"
+    x = s.add_parser("spec", help="Spezifikation je Meilenstein: zeigen N [teil] | schreiben N teil --text/--datei | vorlegen N teil |"
                                   " frei N teil | zurueck N teil --kommentar  (teil: anforderungen | entwurf | schritte)")
     x.add_argument("aktion", choices=["zeigen", "schreiben", "vorlegen", "frei", "zurueck"])
     x.add_argument("bogen", type=nummer)
@@ -2160,7 +2160,7 @@ def parser():
     x.add_argument("--kommentar")
     x.set_defaults(f=cmd_spec)
 
-    x = s.add_parser("schritt", help="naechster [--nehmen]: nächster bereiter Schritt (aktiver Bogen, ohne offene Vorgänger)")
+    x = s.add_parser("schritt", help="naechster [--nehmen]: nächster bereiter Schritt (aktiver Meilenstein, ohne offene Vorgänger)")
     x.add_argument("aktion", choices=["naechster"])
     x.add_argument("--nehmen", action="store_true", help="gleich übernehmen (Bearbeiter = du, Status läuft)")
     x.set_defaults(f=cmd_schritt)
@@ -2181,7 +2181,7 @@ def parser():
     x.add_argument("--bogen", type=nummer)
     x.set_defaults(f=cmd_risiko)
 
-    x = s.add_parser("rueckblick", help="Rückblick je Bogen: amw rueckblick <bogen> [--gut … --schlecht … --massnahme … --gelernt …]"
+    x = s.add_parser("rueckblick", help="Rückblick je Meilenstein: amw rueckblick <bogen> [--gut … --schlecht … --massnahme … --gelernt …]"
                                         " | --uebernehmen <nr> --als aufgabe|beschluss")
     x.add_argument("bogen", type=nummer, nargs="?")
     for art in ("gut", "schlecht", "massnahme", "gelernt"):
@@ -2201,7 +2201,7 @@ def parser():
     x.set_defaults(f=cmd_verlauf)
 
     x = s.add_parser("plan", help="pruefen (Lücken mit Bedeutung und Abhilfe) | akzeptieren <schlüssel> --grund … | wieder <schlüssel>"
-                                  " | prognose (P50/P85 je Schritt und Bogen) | status (Ampel je Dimension)")
+                                  " | prognose (P50/P85 je Schritt und Meilenstein) | status (Ampel je Dimension)")
     x.add_argument("aktion", choices=["pruefen", "prognose", "status", "akzeptieren", "wieder"])
     x.add_argument("schluessel", nargs="?", help="akzeptieren/wieder: Schlüssel des Befunds, z. B. bogen_ohne_zieldatum:B3")
     x.add_argument("--grund", help="akzeptieren: warum es so in Ordnung ist")
@@ -2215,7 +2215,7 @@ def parser():
     x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen", "zeige", "warte", "ausfuehren"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--warten", action="store_true", help="ist der Platz belegt: NUR einreihen (noch nicht rechnen!) statt"
-                                                         " ablehnen; Freigabe weckt dich – oder danach: amw lauf warte <nr>")
+                                                         " ablehnen; Freigabe benachrichtigt dich – oder danach: amw lauf warte <nr>")
     x.add_argument("--hoechstens", type=float, help="warte: nach so vielen Minuten aufgeben (rc 3), Lauf bleibt eingereiht ·"
                                                     " ausfuehren: dann aus der Schlange nehmen (rc 200)")
     x.add_argument("--frist", type=float, help="ausfuehren: der Befehl darf so viele Minuten laufen, dann Ende (rc 124)")
@@ -2342,7 +2342,7 @@ def parser():
     x.add_argument("--notiz")
     x.add_argument("--grund", help="freigeben/sperren: Begründung (sperren: Pflicht)")
     x.add_argument("--beschreibung")
-    x.add_argument("--wer", help="recht: alle | rolle:<rolle> | <Kennung>")
+    x.add_argument("--wer", help="recht: alle | rolle:<rolle> | <Name>")
     x.add_argument("--entziehen", action="store_true")
     x.add_argument("--modell")
     x.add_argument("--vorlage")
@@ -2407,7 +2407,7 @@ def parser():
                                       "archivieren", "wiederherstellen", "online", "offline", "loeschen", "einsammeln"])
     x.add_argument("nr", nargs="?", help="ablegen: die Datei; einsammeln: der Ordner; sonst Nummer des Dokuments (D12 oder 12)")
     x.add_argument("pfad", nargs="?", help="version: die neue Datei")
-    x.add_argument("--datei", help="statt der Positionsangabe (Brücke: nur aus eingang-tl/)")
+    x.add_argument("--datei", help="statt der Positionsangabe (Dateiaustausch: nur aus eingang-tl/)")
     x.add_argument("--titel")
     x.add_argument("--art", choices=["ergebnis", "bericht", "entwurf", "mockup", "bild", "quelle"])
     x.add_argument("--notiz", help="was diese Version ist bzw. was sich geändert hat")
@@ -2434,39 +2434,39 @@ def parser():
     x.add_argument("--suche", help="zeige: nur Notizen, deren Schlüssel oder Text alle Wörter enthält (z. B. CC5, A1162)")
     x.set_defaults(f=cmd_notiz)
 
-    x = s.add_parser("dienst", help="Wächter als geplante Windows-Aufgabe: einrichten | entfernen | status | neustart |"
+    x = s.add_parser("dienst", help="Dienst als geplante Windows-Aufgabe: einrichten | entfernen | status | neustart |"
                                     " vordergrund (ohne Aufgabe in diesem Fenster, zum Ausprobieren)")
     x.add_argument("aktion", choices=["einrichten", "entfernen", "status", "neustart", "vordergrund"])
     x.add_argument("--port", type=int, default=None, help="Vorgabe: Zahnrad › Dieser PC (8780)")
     x.add_argument("--ja", action="store_true", help="wirklich ausführen (sonst nur anzeigen)")
     x.set_defaults(f=cmd_dienst, ohne_db=True)
 
-    x = s.add_parser("web", help="Online-Teil: einrichten (Turso-Zugang, einmal) | status | einmal (Abgleich) | zweitfaktor-neu | bauen | schema")
+    x = s.add_parser("web", help="Online-Teil: einrichten (Turso-Zugang, einmal) | status | einmal (Synchronisierung) | zweitfaktor-neu | bauen | schema")
     x.add_argument("aktion", choices=["einrichten", "bauen", "schema", "einmal", "status", "zweitfaktor-neu"])
     x.set_defaults(f=cmd_web)
 
-    x = s.add_parser("anmelden", help="laufende Sitzung beim Wächter anmelden (ohne Neustart)")
-    x.add_argument("--ersetzen", action="store_true", help="eine noch lebende andere Sitzung derselben Kennung ablösen")
+    x = s.add_parser("anmelden", help="laufende Sitzung beim Dienst anmelden (ohne Neustart)")
+    x.add_argument("--ersetzen", action="store_true", help="eine noch lebende andere Sitzung mit demselben Namen ablösen")
     x.set_defaults(f=cmd_anmelden)
 
-    x = s.add_parser("abmelden", help="Sitzung ruht: nicht mehr wecken, nicht automatisch neu starten (bis anmelden)")
+    x = s.add_parser("abmelden", help="Sitzung ruht: nicht mehr benachrichtigen, nicht automatisch neu starten (bis anmelden)")
     x.set_defaults(f=cmd_abmelden)
 
     x = s.add_parser("einrichten", help="ohne Angabe: geführte Einrichtung (fragt nach) | schnell --projekt-name … (ohne Fragen) |"
-                                        " agenten-ordner <pfad> (Hooks, Statusline-Brücke, Sperren) | betriebsart [pc|server|cloud] |"
+                                        " agenten-ordner <pfad> (Hooks, Statusline-Anbindung, Sperren) | betriebsart [pc|server|cloud] |"
                                         " verbindungen [--pruefen] (jede Adresse, zu der die AMW eine Verbindung aufbaut)")
     x.add_argument("aktion", nargs="?", choices=["assistent", "schnell", "agenten-ordner", "betriebsart", "verbindungen"], default="assistent")
     x.add_argument("pfad", nargs="?", help="agenten-ordner: der Ordner | betriebsart: pc, server oder cloud (ohne Angabe: zeigen)")
     x.add_argument("--pruefen", action="store_true", help="verbindungen: je erlaubter Adresse den Verbindungsaufbau testen")
     x.add_argument("--nur-zeigen", action="store_true")
-    x.add_argument("--ohne-sperren", action="store_true", help="keine Sperr-Regeln (Ordner dessen, der den Wächter betreut)")
+    x.add_argument("--ohne-sperren", action="store_true", help="keine Sperr-Regeln (Ordner dessen, der den Dienst betreut)")
     x.add_argument("--projekt-name", help="schnell: Name des Projekts")
-    x.add_argument("--lead", default="TL", help="schnell: Kennung des Lead-Agenten (leer = keiner)")
-    x.add_argument("--agenten", default="CC1", help="schnell: Kennungen, mit Komma")
+    x.add_argument("--lead", default="TL", help="schnell: Name des Lead-Agenten (leer = keiner)")
+    x.add_argument("--agenten", default="CC1", help="schnell: Namen der Agenten, mit Komma")
     x.add_argument("--ordner", help="schnell: Projektordner der Agenten")
     x.add_argument("--rechte", default="vorgabe", choices=["vorgabe", "auto", "umgehen"])
     x.add_argument("--denkstufe", choices=["low", "medium", "high", "xhigh", "max"])
-    x.add_argument("--mit-dienst", action="store_true", help="schnell: Wächter als geplante Aufgabe einrichten")
+    x.add_argument("--mit-dienst", action="store_true", help="schnell: Dienst als geplante Aufgabe einrichten")
     x.add_argument("--ohne-hooks", action="store_true", help="schnell: Projektordner nicht anfassen")
     x.add_argument("--fernsteuerung", action="store_true", help="schnell: Remote Control für die Agenten an (Vorgabe aus)")
     x.add_argument("--grund-regelwerk", dest="grund_regelwerk", action="store_true",
@@ -2499,7 +2499,7 @@ def parser():
     x.add_argument("--agent", default="CC1", help="nur für die Beispielzeile des Startbefehls")
     x.set_defaults(f=cmd_hook, ohne_db=True)
 
-    x = s.add_parser("release", help="Release Notes: je Merge eine Zeile, Version fasst zusammen")
+    x = s.add_parser("release", help="Versionshinweise: je Merge eine Zeile, Version fasst zusammen")
     x.add_argument("aktion", choices=["merge", "version", "liste", "entwurf"])
     x.add_argument("--oeffentlich-datei", help="version: eigener Text für alle statt des Entwurfs (Markdown)")
     x.add_argument("--titel")
@@ -2525,7 +2525,7 @@ def befehle_markdown():
     unter = next(a for a in p._actions if isinstance(a, argparse._SubParsersAction))
     hilfe = {c.dest: c.help for c in unter._choices_actions}
     z = ["# Befehle", "", "Erzeugt aus der Kommandozeile (`amw befehle > doc/befehle.md`). Jeder Befehl zeigt mit `--help` dasselbe.",
-         "Gemeinsam für alle: `--von <Kennung>` (wer handelt; sonst `AMW_AGENT`), `--projekt <Name>` (sonst das erste Projekt).", ""]
+         "Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt <Name>` (sonst das erste Projekt).", ""]
     z.append("| Befehl | Zweck |")
     z.append("|---|---|")
     for name in unter.choices:
