@@ -1032,7 +1032,7 @@ const TEXTE = {
     e_agentenfragen: "Fragen der Agenten", e_agentenfragen_h: "Fragen an dich gehen zuerst an den Lead: Er beantwortet sie selbst oder leitet sie unverändert an dich weiter.",
     e_agentenfragen_lead: "zuerst an den Lead", e_agentenfragen_direkt: "direkt an dich",
     e_abnahme_kette: "Nach grüner Prüfung automatisch zum Merge", e_abnahme_kette_h: "Nach einer grünen Prüfung geht die Merge-Anfrage von selbst an den Zuständigen – wenn der Lead für die Aufgabe seine Merge-Freigabe gegeben hat. Sonst fragt die AMW den Lead.",
-    e_abnahme_kette_aus: "aus", e_abnahme_kette_an: "an", e_merge_dienst: "Zuständig für Merges", e_merge_dienst_h: "Der Agent, der mergt (bekommt die Merge-Anfragen mit Zweig und genauem Stand).", e_merge_dienst_keiner: "– keiner –",
+    e_abnahme_kette_aus: "aus", e_abnahme_kette_an: "an", e_versionen: "Versionen", ck_o_versionen: "Versionshinweise", e_versionen_h: "Pflicht: Der Plan-Check meldet einen Fehler, solange keine Version eingetragen ist, und ein Meilenstein schließt erst, wenn nach seiner letzten fertigen Aufgabe eine Version eingetragen ist. Empfohlen: nur Hinweise.", e_versionen_empfohlen: "empfohlen", e_versionen_pflicht: "Pflicht", e_versionen_aus: "aus", e_version_frist: "Warnen, wenn Fertiges ohne Version liegt (Tage)", e_version_frist_h: "Liegt die älteste fertige Aufgabe seit der letzten Version so viele Tage, warnt der Plan-Check.", e_merge_dienst: "Zuständig für Merges", e_merge_dienst_h: "Der Agent, der mergt (bekommt die Merge-Anfragen mit Zweig und genauem Stand).", e_merge_dienst_keiner: "– keiner –",
     e_spec_vorlegen: "Spezifikationen vorlegen", e_spec_vorlegen_h: "Wer eine Spezifikation zur Freigabe vorlegt. „nur der Lead“: die Agenten schreiben, der Lead prüft und legt vor.",
     e_spec_vorlegen_lead: "nur der Lead", e_spec_vorlegen_alle: "jeder Agent",
     e_spec_frei: "Spezifikationen freigeben", e_spec_frei_h: "„auch der Lead“: Der Lead gibt konforme Spezifikationen selbst frei, an dich gehen nur Einzelfragen. Du kannst immer freigeben.",
@@ -1354,7 +1354,7 @@ const TEXTE = {
     e_agentenfragen: "Agents' questions", e_agentenfragen_h: "Questions for you go to the lead first: the lead answers them or forwards them to you unchanged.",
     e_agentenfragen_lead: "to the lead first", e_agentenfragen_direkt: "straight to you",
     e_abnahme_kette: "After a green review, request merge automatically", e_abnahme_kette_h: "After a green review the merge request goes to the person in charge automatically – if the lead has given merge approval for the task. Otherwise the AMW asks the lead.",
-    e_abnahme_kette_aus: "off", e_abnahme_kette_an: "on", e_merge_dienst: "Merges handled by", e_merge_dienst_h: "The agent that merges (receives merge requests with branch and exact commit).", e_merge_dienst_keiner: "– none –",
+    e_abnahme_kette_aus: "off", e_abnahme_kette_an: "on", e_versionen: "Versions", ck_o_versionen: "Release notes", e_versionen_h: "Mandatory: the plan check reports an error while no version is recorded, and a milestone only closes once a version is recorded after its last finished task. Recommended: hints only.", e_versionen_empfohlen: "recommended", e_versionen_pflicht: "mandatory", e_versionen_aus: "off", e_version_frist: "Warn when finished work has no version (days)", e_version_frist_h: "If the oldest task finished since the last version is this many days old, the plan check warns.", e_merge_dienst: "Merges handled by", e_merge_dienst_h: "The agent that merges (receives merge requests with branch and exact commit).", e_merge_dienst_keiner: "– none –",
     e_spec_vorlegen: "Submit specifications", e_spec_vorlegen_h: "Who submits a specification for approval. “lead only”: agents write, the lead reviews and submits.",
     e_spec_vorlegen_lead: "lead only", e_spec_vorlegen_alle: "any agent",
     e_spec_frei: "Approve specifications", e_spec_frei_h: "“lead too”: the lead approves conforming specifications, only single questions reach you. You can always approve.",
@@ -3796,7 +3796,8 @@ function befundKarte(d, x) {
     spec_anforderungen: () => b && knopf(t("ck_o_spec"), () => specDialog(b, "anforderungen")),
     risiko: () => { const r = d.risiken.find(y => y.id === x.risiko_id); return r && knopf(t("ck_o_risiko"), () => risikoDialog(r)); },
     schritt: () => x.bogen_id && knopf(t("ck_o_schritt"), () => zuSchritt(x.aufgabe_id, x.bogen_id)),     // ohne Bogen nicht in der Zeitleiste
-    zeitleiste: () => knopf(t("pl_bogen_neu"), () => bogenDialog(null)) }[x.ziel];
+    zeitleiste: () => knopf(t("pl_bogen_neu"), () => bogenDialog(null)),
+    versionen: () => knopf(t("ck_o_versionen"), () => zeige("releases")) }[x.ziel];
   const anLead = x.wer === "lead" && d.lead ? knopf(t("ck_an_lead", { x: d.lead }), async () => {
     try { await schicken("/api/nachricht", { an: d.lead, art: "auftrag", kurz: ("Plan-Check: " + checkText(d, x, 0, "de")).slice(0, 300),
       text: `${checkText(d, x, 1, "de")}\n\nTun: ${checkText(d, x, 2, "de")}\n\nSchlüssel: ${x.schluessel} (amw plan pruefen)` });
@@ -4669,9 +4670,10 @@ async function sichtEinstellungen() {
     entwickler_name: text(d.projekt.entwickler_name || ""),
     dateien_online: el("select", {}, ["wunsch", "bilder", "alle"].map(w => el("option", { value: w }, t("e_dateien_" + w)))) };
   pf.dateien_online.value = d.projekt.dateien_online || "wunsch";
-  for (const [k, werte] of [["agentenfragen", ["lead", "direkt"]], ["spec_vorlegen", ["lead", "alle"]], ["spec_frei", ["entwickler", "lead"]], ["abnahme_kette", ["aus", "an"]]]) {
+  for (const [k, werte] of [["agentenfragen", ["lead", "direkt"]], ["spec_vorlegen", ["lead", "alle"]], ["spec_frei", ["entwickler", "lead"]], ["abnahme_kette", ["aus", "an"]], ["versionen", ["empfohlen", "pflicht", "aus"]]]) {
     pf[k] = el("select", {}, werte.map(w => el("option", { value: w }, t(`e_${k}_${w}`)))); pf[k].value = d.projekt[k] || werte[0]; }
   pf.info_ablage_h = zahl(d.projekt.info_ablage_h, 1, 168);
+  pf.version_frist_tage = zahl(d.projekt.version_frist_tage, 1, 365);
   pf.merge_dienst = el("select", {}, el("option", { value: "" }, t("e_merge_dienst_keiner")),
     (d.agenten || []).map(a => el("option", { value: a.kennung }, a.kennung)));
   pf.merge_dienst.value = d.projekt.merge_dienst || "";
@@ -4697,12 +4699,15 @@ async function sichtEinstellungen() {
      [t("e_spec_vorlegen"), pf.spec_vorlegen, t("e_spec_vorlegen_h")], [t("e_spec_frei"), pf.spec_frei, t("e_spec_frei_h")],
      mitMeta("projekt", "info_ablage_h", t("e_info_ablage"), pf.info_ablage_h, t("e_info_ablage_h")),
      [t("e_abnahme_kette"), pf.abnahme_kette, t("e_abnahme_kette_h")], [t("e_merge_dienst"), pf.merge_dienst, t("e_merge_dienst_h")],
+     [t("e_versionen"), el("div", {}, pf.versionen, " ", hilfeKnopf("versionen")), t("e_versionen_h")],
+     mitMeta("projekt", "version_frist_tage", t("e_version_frist"), pf.version_frist_tage, t("e_version_frist_h")),
      [t("e_schwer"), el("div", {}, pf.schwere_befehle, hilfeKnopf("schwere-laeufe")), t("e_schwer_h")]],
     "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
       stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min),
       entwickler_name: pf.entwickler_name.value.trim(), dateien_online: pf.dateien_online.value, farbe: pf.farbe.value,
       agentenfragen: pf.agentenfragen.value, spec_vorlegen: pf.spec_vorlegen.value, spec_frei: pf.spec_frei.value,
       info_ablage_h: wert(pf.info_ablage_h), abnahme_kette: pf.abnahme_kette.value, merge_dienst: pf.merge_dienst.value,
+      versionen: pf.versionen.value, version_frist_tage: wert(pf.version_frist_tage),
       schwere_befehle: schwereBefehle() }));
 
   const p = d.pc;
