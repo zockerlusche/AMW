@@ -73,6 +73,63 @@ def _hinter_laufendem(con, pid, agent, ids):
     return [x["id"]] + [i for i in ids if i != x["id"]], True
 
 
+def dazwischen(con, pid, von, aid, grund):
+    """Eine Aufgabe bewusst vor das laufende Stück ihres Agenten schieben – das entscheidet nur der Mensch. Schlägt es der
+    Lead vor, wird daraus eine Ja/Nein-Frage an den Menschen; „Ja“ führt es aus. Rückgabe: („ausgefuehrt“, unterbrochen
+    oder None) bzw. („frage“, Fragen-Nummer)."""
+    grund = (grund or "").strip()
+    if not grund:
+        raise kern.AmwFehler("Dazwischenschieben nur mit Grund (--grund …)")
+    a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    if not a:
+        raise kern.AmwFehler(f"A{aid} gibt es nicht")
+    if a["status"] not in ("wartet", "blockiert"):
+        raise kern.AmwFehler(f"A{aid} ist {a['status']} – dazwischenschieben lässt sich nur eine offene, nicht laufende Aufgabe")
+    if not a["agent"] or a["agent"] == kern.ENTWICKLER:
+        raise kern.AmwFehler(f"A{aid} gehört keinem Agenten – deine eigenen Aufgaben ordnest du frei")
+    x = laufend(con, pid, a["agent"])
+    if von != kern.ENTWICKLER:
+        if not kern.ist_lead(con, pid, von):
+            raise kern.AmwFehler("Dazwischenschieben entscheidet der Mensch – der Lead kann es vorschlagen")
+        bei = f" – {a['agent']} arbeitet gerade an A{x['id']}" if x else ""
+        fid = kern.frage_neu(con, pid, von, "entwickler", f"A{aid} dazwischenschieben?{bei}",
+                             [("A", "Ja – jetzt dazwischenschieben"), ("B", "Nein – nach dem laufenden Stück")], "A", grund,
+                             aufgabe_id=aid, geprueft="Vorschlag des Leads (amw aufgabe dazwischen)", pruefen=False)
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="dazwischen_vorschlag",
+                         aufgabe_id=aid, text=f"F{fid}|{grund}")
+        return "frage", fid
+    with db.schreiben(con):
+        return "ausgefuehrt", dazwischen_ausfuehren(con, pid, von, a, grund)
+
+
+def dazwischen_ausfuehren(con, pid, von, a, grund):
+    """Läuft in der Transaktion des Aufrufers. Das laufende Stück wartet auf die eingeschobene Aufgabe (Wartegrund A…) und
+    kommt danach von selbst wieder dran; der Agent bekommt die Bitte, seinen Stand zu sichern. Rückgabe: unterbrochene Nummer."""
+    aid, agent, t = a["id"], a["agent"], db.jetzt()
+    x = laufend(con, pid, agent)
+    con.execute("UPDATE aufgabe SET einstufung = 'aktiv' WHERE id = ? AND einstufung IN ('pool', 'geparkt')", (aid,))
+    if x:
+        con.execute("UPDATE aufgabe SET status = 'wartet' WHERE id = ?", (x["id"],))
+        wartegrund.anlegen(con, pid, von, x["id"], f"A{aid}")
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=t, von=von, art="unterbrochen", aufgabe_id=x["id"],
+                     text=f"für A{aid}: {grund}")
+    rest = [y["id"] for y in liste(con, pid, agent) if y["id"] not in (aid, x["id"] if x else None)]
+    _nummerieren(con, [aid] + ([x["id"]] if x else []) + rest)
+    if x:
+        kern._posten(con, pid, "AMW", agent, "auftrag", f"Dazwischen: A{aid} vor A{x['id']} – {grund}"[:200],
+                     f"Speichere deinen Stand zu A{x['id']}: Zwischenstand committen (eigener Zweig) und in drei Zeilen notieren,"
+                     f" wo du stehst. Dann A{aid} starten. A{x['id']} wartet auf A{aid} und kommt danach von selbst wieder dran.",
+                     aufgabe_id=aid)
+    else:
+        kern._posten(con, pid, "AMW", agent, "auftrag", f"Als Nächstes: A{aid} – {grund}"[:200], aufgabe_id=aid)
+    l = kern.lead(con, pid)
+    if l and l != agent:
+        kern._posten(con, pid, "AMW", l, "meldung", f"{kern.entwickler_name(con, pid)} hat A{aid} bei {agent} dazwischengeschoben"
+                     + (f" (A{x['id']} wartet)" if x else ""), grund, aufgabe_id=aid)
+    return x["id"] if x else None
+
+
 def _nummerieren(con, ids):
     for i, aid in enumerate(ids, 1):
         con.execute("UPDATE aufgabe SET rang = ? WHERE id = ?", (i * ABSTAND, aid))

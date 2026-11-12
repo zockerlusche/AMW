@@ -1136,7 +1136,7 @@ const TEXTE = {
     au_geparkt: "geparkt", au_offen: "offen", au_beantwortet: "beantwortet", au_option: "Option {x}", au_bei: "bei {x}", au_ohne: "ohne Bearbeiter",
     au_zustaendig: "zuständig {x}", au_wartegruende: "Wartet auf", au_fragen: "Fragen ({n})", au_dokumente: "Dokumente ({n})", au_beschluesse: "Beschlüsse ({n})",
     au_laeufe: "Läufe ({n})", au_pruefungen: "Prüfungen ({n})", au_zusammenfassung: "Zusammenfassung", au_beleg: "Beleg: {x}", au_verlauf: "Verlauf ({n})",
-    au_dein_teil: "Dein Teil", au_antwort_titel: "Antwort an {x}", au_erledigt: "Erledigt", au_antwort: "Antwort an {x}", au_spaeter: "Später",
+    au_dein_teil: "Dein Teil", au_antwort_titel: "Antwort an {x}", au_erledigt: "Erledigt", au_antwort: "Antwort an {x}", au_dazwischen: "Dazwischenschieben", au_dazwischen_h: "{x} arbeitet gerade an A{a}. „Dazwischenschieben“ unterbricht das: {x} speichert seinen Stand, macht diese Aufgabe zuerst, danach kommt A{a} wieder dran. Der Grund aus dem Feld oben geht an {x}.", au_dazwischen_ok: "A{a} kommt als Nächstes dran – der Agent weiß Bescheid.", vz_unterbrochen: "unterbrochen", vz_dazwischen_vorschlag: "Vorschlag: dazwischenschieben", au_spaeter: "Später",
     pl_grund_h: "Pflicht, wenn das Zieldatum vom ursprünglichen Termin ({x}) abweicht", pl_freigabe_noetig: "Freigabe", pl_dein_schritt: "dein Schritt",
     lb_h: "Woran sich alle Meilensteine und Schritte messen. Die Agenten bekommen es in ihre Startinformationen.", lb_ziel: "Projektziel",
     lb_ziel_h: "ein Satz, messbar", lb_kennzahlen: "Kennzahlen", lb_zeilen: "eine je Zeile", lb_nicht: "Nicht-Ziele",
@@ -1446,7 +1446,7 @@ const TEXTE = {
     au_geparkt: "parked", au_offen: "open", au_beantwortet: "answered", au_option: "option {x}", au_bei: "with {x}", au_ohne: "unassigned",
     au_zustaendig: "responsible {x}", au_wartegruende: "Waiting for", au_fragen: "Questions ({n})", au_dokumente: "Documents ({n})", au_beschluesse: "Decisions ({n})",
     au_laeufe: "Runs ({n})", au_pruefungen: "Reviews ({n})", au_zusammenfassung: "Summary", au_beleg: "Record: {x}", au_verlauf: "History ({n})",
-    au_dein_teil: "Your part", au_antwort_titel: "Reply to {x}", au_erledigt: "Done", au_antwort: "Reply to {x}", au_spaeter: "Later",
+    au_dein_teil: "Your part", au_antwort_titel: "Reply to {x}", au_erledigt: "Done", au_antwort: "Reply to {x}", au_dazwischen: "Put first", au_dazwischen_h: "{x} is working on A{a}. “Put first” interrupts that: {x} saves the work, does this task first, then A{a} continues. The reason from the field above goes to {x}.", au_dazwischen_ok: "A{a} comes next – the agent has been told.", vz_unterbrochen: "interrupted", vz_dazwischen_vorschlag: "Proposal: put first", au_spaeter: "Later",
     pl_grund_h: "Required if the target date differs from the original date ({x})", pl_freigabe_noetig: "Approval", pl_dein_schritt: "your step",
     lb_h: "What all milestones and steps are measured against. The agents receive it in their start information.", lb_ziel: "Project goal",
     lb_ziel_h: "one sentence, measurable", lb_kennzahlen: "Metrics", lb_zeilen: "one per line", lb_nicht: "Non-goals",
@@ -3862,7 +3862,10 @@ async function aufgabeDialog(id) {
       el("div", { class: "dk-aktionen", style: "margin-top:8px" },
         a.fuer_dich && offen ? el("button", { class: "knopf haupt", type: "button", onclick: () => tun("erledigt", true) }, t("au_erledigt")) : null,
         el("button", { class: a.fuer_dich && offen ? "klein-knopf" : "knopf haupt", type: "button", onclick: () => tun("antwort", true) }, t("au_antwort", { x: an })),
-        a.fuer_dich && offen ? el("button", { class: "klein-knopf", type: "button", onclick: () => tun("spaeter", false) }, t("au_spaeter")) : null)));
+        a.fuer_dich && offen ? el("button", { class: "klein-knopf", type: "button", onclick: () => tun("spaeter", false) }, t("au_spaeter")) : null,
+        a.laufend_id ? el("button", { class: "klein-knopf", type: "button", title: t("au_dazwischen_h", { x: a.agent, a: a.laufend_id }),
+          onclick: () => tun("dazwischen", true) }, t("au_dazwischen")) : null),
+      a.laufend_id ? el("p", { class: "sehrleise", style: "margin:6px 0 0" }, t("au_dazwischen_h", { x: a.agent, a: a.laufend_id })) : null));
 }
 /* Wer hat geschrieben, wer vorgelegt, wer freigegeben (Vorlage durch den Lead sichtbar) */
 function specWer(s) {

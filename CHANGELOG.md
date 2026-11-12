@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.56.0 – 12.11.2026 · Dazwischenschieben nur bewusst
+- **Dazwischenschieben** ist ein eigener Schritt, und den macht nur der Mensch: in der Workbench bei der Aufgabe
+  („Dazwischenschieben“, mit Grund) oder mit `amw aufgabe dazwischen <nr> --grund …`. Das laufende Stück des Agenten
+  wartet dann auf die eingeschobene Aufgabe und kommt danach von selbst wieder an die Reihe; der Agent bekommt die
+  Bitte, seinen Stand zu sichern. Im Verlauf steht „unterbrochen“.
+- **Der Lead schlägt vor:** Ruft der Lead denselben Befehl auf, bekommt der Mensch eine Ja/Nein-Frage; „Ja“ führt es aus.
+- **Aufträge mitten im Stück warten:** Ein Auftrag an einen Agenten, der gerade ein Stück in Arbeit hat, wird
+  zugestellt, weckt ihn aber erst beim nächsten Wechsel – außer er gehört zum laufenden Stück. Fragen, Antworten,
+  Freigaben und Meldungen wecken wie bisher.
+
 ## 1.55.0 – 11.11.2026 · Neue Aufgaben kommen in den Eingang
 - **Eingang statt dazwischen:** Legt jemand eine Aufgabe für einen Agenten an, der gerade ein Stück in Arbeit hat,
   landet sie im Eingang und nicht in seiner Liste. Der Lead plant sie ein – frühestens hinter das laufende Stück. Mit

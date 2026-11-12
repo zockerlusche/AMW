@@ -162,6 +162,9 @@ def daten_aufgabe(con, pid, aid):
     a["pruefungen"] = zeilen(con.execute("SELECT id, pruefer, ergebnis, sha, bemerkung, ergebnis_utc FROM pruefung WHERE aufgabe_id = ?"
                                          " ORDER BY id DESC LIMIT 10", (a["id"],)))
     a["fuer_dich"] = a["agent"] == kern.ENTWICKLER
+    from . import arbeitsliste                        # läuft beim Agenten gerade ein anderes Stück? (Knopf „Dazwischenschieben“)
+    x = arbeitsliste.laufend(con, pid, a["agent"]) if a["status"] in ("wartet", "blockiert") else None
+    a["laufend_id"] = x["id"] if x and x["id"] != a["id"] else None
     return a
 
 

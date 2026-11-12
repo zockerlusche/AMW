@@ -996,6 +996,7 @@ def frage_antworten(con, pid, fid, antwort_art, antwort, kanal, von=ENTWICKLER):
         if f["von"] != von:
             nid, _ = _posten(con, pid, von, f["von"], art, f"{'Rückfrage' if art == 'frage' else 'Antwort'} zu F{fid}: {antwort[:120]}",
                              text=antwort if len(antwort) > 120 else None, aufgabe_id=f["aufgabe_id"])
+        roh = antwort
         if antwort_art == "option":                    # im Verlauf mit dem Text der Option
             antwort = next((f"{o['kenn']}) {o['text']}" for o in json.loads(f["optionen"]) if o["kenn"] == antwort), antwort)
         db.einfuegen(con, "frage_verlauf", frage_id=fid, zeit_utc=t, von=von,
@@ -1007,6 +1008,13 @@ def frage_antworten(con, pid, fid, antwort_art, antwort, kanal, von=ENTWICKLER):
             if von == ENTWICKLER and f["aufgabe_id"]:
                 wartegrund.erledige(con, pid, "entwickler", ENTWICKLER, f"{entwickler_name(con, pid)} hat F{fid} beantwortet",
                                     f["aufgabe_id"])
+            v = con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = 'dazwischen_vorschlag' AND text LIKE ?",
+                            (pid, f"F{fid}|%")).fetchone()
+            if v and von == ENTWICKLER and antwort_art == "option" and roh == "A":   # „Ja“ zum Vorschlag des Leads
+                from . import arbeitsliste
+                a = con.execute("SELECT * FROM aufgabe WHERE id = ?", (f["aufgabe_id"],)).fetchone()
+                if a and a["status"] in ("wartet", "blockiert"):
+                    arbeitsliste.dazwischen_ausfuehren(con, pid, ENTWICKLER, a, v["text"].split("|", 1)[1])
         # wer antwortet, hat die Nachträge im Verlauf gelesen – sie stehen nicht mehr unter „Nachrichten an dich“
         con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ? WHERE agent = ? AND status != 'erledigt'"
                     " AND nachricht_id IN (SELECT nachricht_id FROM frage_verlauf WHERE frage_id = ? AND nachricht_id IS NOT NULL)",
@@ -1137,7 +1145,8 @@ def kontext(con, pid, kennung):
     liste = arbeitsliste.liste(con, pid, kennung)
     andere = [x for x in eigene if x["id"] not in {y["id"] for y in liste}]
     z.append(f"Deine Liste ({len(liste)}, von oben nach unten, eins nach dem anderen; wartet die laufende mit Grund, darfst du"
-             " die nächste nehmen – ein zweites Stück starten geht nicht, solange eines läuft): " + ("; ".join(
+             " die nächste nehmen – ein zweites Stück starten geht nicht, solange eines läuft; Aufträge zu anderen Aufgaben"
+             " bekommst du erst, wenn das laufende fertig ist oder wartet): " + ("; ".join(
                  f"{x['pos']}. A{x['id']} [{x['status']}] {x['titel'][:90]}" + worauf(x) for x in liste[:10]) or "leer"))
     if andere:
         z.append("Außerdem bei dir (geparkt/Pool): " + "; ".join(f"A{x['id']} [{x['status']}] {x['titel'][:60]}" for x in andere[:5]))

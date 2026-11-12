@@ -438,6 +438,14 @@ def _ohne(a):
 def cmd_aufgabe(a, con):
     pid = _projekt(con, a)
     from . import planung
+    if a.aktion == "dazwischen":                     # nur der Mensch; der Lead schlägt vor (Ja/Nein-Frage an den Menschen)
+        from . import arbeitsliste
+        if not a.id:
+            raise kern.AmwFehler("amw aufgabe dazwischen <nr> --grund …")
+        art, nr = arbeitsliste.dazwischen(con, pid, _von(a), a.id, a.grund)
+        print(f"Frage F{nr} an den Menschen gestellt: A{a.id} dazwischenschieben? – „Ja“ führt es aus" if art == "frage"
+              else f"A{a.id} kommt jetzt dran" + (f"; A{nr} wartet und kommt danach wieder dran" if nr else ""))
+        return
     if a.aktion == "neu":
         werte, nach = _schritt_werte(a)
         if any(v is not None for k, v in werte.items() if k not in ("agent", "auftrag", "pruefer")) or nach:
@@ -1930,7 +1938,8 @@ def parser():
                                      " plan N --text | planfrei N [--zurueck --kommentar] | nachtrag N --titel … (Folgearbeit"
                                      " zu einer fertigen Aufgabe)")
     x.add_argument("aktion", choices=["neu", "aendern", "liste", "zeige", "start", "blockiert", "wartet", "fertig", "verwerfen",
-                                       "parken", "aktiv", "keine_prio", "pool", "kriterium", "plan", "planfrei", "nachtrag"])
+                                       "parken", "aktiv", "keine_prio", "pool", "kriterium", "plan", "planfrei", "nachtrag",
+                                       "dazwischen"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("nr", type=int, nargs="?", help="kriterium: Nummer des Kriteriums")
     x.add_argument("--titel")
@@ -1963,6 +1972,7 @@ def parser():
     x.add_argument("--kurz", action="store_true", help="zeige: nur Status, Agent, Titel und Wartegründe")
     x.add_argument("--federfuehrend", help="aendern: wer diese Aufgabe führt (Lead/Entwickler; leer = weg)")
     x.add_argument("--pool", action="store_true", help="neu: in den Eingang (noch in keiner Arbeitsliste)")
+    x.add_argument("--grund", help="dazwischen: warum diese Aufgabe vor das laufende Stück muss (Pflicht)")
     x.add_argument("--sofort", action="store_true", help="neu: direkt hinter das laufende Stück des Agenten einplanen statt in den"
                                                           " Eingang (ohne laufendes Stück: wie bisher in die Liste)")
     x.set_defaults(f=cmd_aufgabe)

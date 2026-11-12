@@ -60,6 +60,22 @@ class Wecker(unittest.TestCase):
         self.assertNotIn("geheim", self.gesendet[0][1])
         self.assertEqual(self.d.zustellen(), 0)
 
+    def test_auftrag_mitten_im_stueck_weckt_erst_beim_wechsel(self):
+        self.anmelden("CC1")
+        lauf = kern.aufgabe_neu(self.con, self.pid, "TL", "Laufendes Stück", agent="CC1")
+        anderes = kern.aufgabe_neu(self.con, self.pid, "TL", "Anderes", agent="CC1")
+        kern.aufgabe_status(self.con, self.pid, "CC1", lauf, "start")
+        n1, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "neuer Wunsch")                     # gehört nicht dazu
+        n2, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "Korrektur dazu", aufgabe_id=lauf)  # gehört zum laufenden Stück
+        n3, _ = kern.posten(self.con, self.pid, "TL", "CC1", "frage", "kurze Frage")                         # andere Arten wecken wie bisher
+        self.assertEqual(self.d.zustellen(), 1)
+        self.assertEqual(self.geweckt(), {(n2, "CC1"), (n3, "CC1")})
+        self.assertEqual(self.con.execute("SELECT status FROM empfang WHERE nachricht_id = ?", (n1,)).fetchone()[0], "offen")   # zugestellt, liegt bereit
+        kern.aufgabe_status(self.con, self.pid, "CC1", lauf, "fertig", beleg="abc")
+        self.d.zustellen()
+        self.assertIn((n1, "CC1"), self.geweckt())                                                          # beim Wechsel kommt er an
+        self.assertIsNotNone(anderes)
+
     def test_nicht_angemeldet_bleibt_offen_bis_anmeldung(self):
         n1, _ = kern.posten(self.con, self.pid, "TL", "CC2", "auftrag", "a")
         self.assertEqual(self.d.zustellen(), 0)

@@ -480,6 +480,47 @@ class Arbeitsliste(Grund):
         frei = kern.aufgabe_neu(self.con, self.pid, "TL", "Ohne laufendes Stück", agent="CC2", sofort=False)
         self.assertEqual(self.con.execute("SELECT einstufung FROM aufgabe WHERE id = ?", (frei,)).fetchone()[0], "aktiv")
 
+    def test_dazwischenschieben_nur_der_mensch_und_das_laufende_kommt_danach_wieder(self):
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")                 # Pos 1 läuft
+        with self.assertRaises(kern.AmwFehler) as e:                                    # ein Agent darf das nicht
+            self.al.dazwischen(self.con, self.pid, "CC1", self.c, "eilig")
+        self.assertIn("entscheidet der Mensch", str(e.exception))
+        with self.assertRaises(kern.AmwFehler):                                         # ohne Grund nicht
+            self.al.dazwischen(self.con, self.pid, kern.ENTWICKLER, self.c, " ")
+        art, nr = self.al.dazwischen(self.con, self.pid, kern.ENTWICKLER, self.c, "Kunde wartet")
+        self.assertEqual((art, nr), ("ausgefuehrt", self.a))
+        st = {r["id"]: r["status"] for r in self.con.execute("SELECT id, status FROM aufgabe")}
+        self.assertEqual(st[self.a], "wartet")
+        self.assertEqual([g["bezug"] for g in wartegrund.offene(self.con, self.a)], [f"A{self.c}"])
+        self.assertEqual(self.ids()[:2], [self.c, self.a])                               # eingeschoben vorn, unterbrochenes dahinter
+        post = kern.offene(self.con, self.pid, "CC1")
+        self.assertTrue(any(f"Dazwischen: A{self.c} vor A{self.a} – Kunde wartet" == r["kurz"] for r in post), [r["kurz"] for r in post])
+        self.assertTrue(any("hat A" in r["kurz"] and "dazwischengeschoben" in r["kurz"] for r in kern.offene(self.con, self.pid, "TL")))
+        ev = self.con.execute("SELECT art, aufgabe_id, text FROM plan_ereignis WHERE art = 'unterbrochen'").fetchone()
+        self.assertEqual(tuple(ev), ("unterbrochen", self.a, f"für A{self.c}: Kunde wartet"))
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.c, "start")                 # jetzt läuft die eingeschobene
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.c, "fertig", beleg="abc")
+        post = [r["kurz"] for r in kern.offene(self.con, self.pid, "CC1")]
+        self.assertTrue(any(f"A{self.a}" in x and "weiter: amw aufgabe start" in x for x in post), post)   # das unterbrochene meldet sich
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
+
+    def test_lead_schlaegt_vor_und_ja_fuehrt_aus(self):
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
+        rc, aus = self.cli("--von", "TL", "aufgabe", "dazwischen", str(self.c), "--grund", "Sicherheitslücke")
+        self.assertEqual(rc, 0, aus)
+        self.assertIn("an den Menschen gestellt", aus)
+        f = self.con.execute("SELECT id, kurz, empfehlung FROM frage ORDER BY id DESC").fetchone()
+        self.assertIn(f"A{self.c} dazwischenschieben? – CC1 arbeitet gerade an A{self.a}", f["kurz"])
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.a,)).fetchone()[0], "laeuft")   # noch nichts geändert
+        kern.frage_antworten(self.con, self.pid, f["id"], "option", "A", "workbench")
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.a,)).fetchone()[0], "wartet")
+        self.assertEqual(self.ids()[0], self.c)
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.c, "start")
+        rc, aus = self.cli("--von", "TL", "aufgabe", "dazwischen", str(self.b), "--grund", "auch eilig")
+        f2 = self.con.execute("SELECT id FROM frage ORDER BY id DESC").fetchone()[0]
+        kern.frage_antworten(self.con, self.pid, f2, "option", "B", "workbench")          # „Nein“: nichts passiert
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.c,)).fetchone()[0], "laeuft")
+
     def test_untere_starten_waehrend_obere_laeuft_wird_abgewiesen(self):
         kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")
         with self.assertRaises(kern.AmwFehler) as e:

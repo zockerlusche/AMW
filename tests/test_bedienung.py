@@ -305,7 +305,9 @@ class Seite(Wiederholt, Grund):
         from unittest import mock
         from amw import belegung, db
         jetzt = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
-        iso = lambda minuten: (jetzt + datetime.timedelta(minutes=minuten)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        mitternacht = datetime.datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
+        faktor = min(1.0, (jetzt - mitternacht).total_seconds() / 3600 / 1.6)     # kurz nach Mitternacht: alles in den heutigen Minuten
+        iso = lambda minuten: (jetzt + datetime.timedelta(minutes=minuten * (faktor if minuten < 0 else 1))).strftime("%Y-%m-%dT%H:%M:%SZ")
         with db.schreiben(self.con):
             fremd = db.einfuegen(self.con, "projekt", name="Fremd", angelegt_utc=db.jetzt())
             lauf = lambda pid, agent, text, status, start=None, ende=None, **mehr: db.einfuegen(
@@ -338,6 +340,21 @@ class Seite(Wiederholt, Grund):
             self.warten("!document.querySelector('#rechner-heute').open")
             self.tab.js("sichtPlanung()")
             self.warten("document.querySelector('#rechner-heute') && !document.querySelector('#rechner-heute').open")
+
+    def test_dazwischenschieben_in_der_aufgabe(self):
+        """Aufgabe eines Agenten, der gerade an einer anderen arbeitet: Knopf „Dazwischenschieben“ mit Erklärung."""
+        from amw import kern
+        lauf = kern.aufgabe_neu(self.con, self.pid, "TL", "Laufendes Stück", agent="CC1")
+        neu = kern.aufgabe_neu(self.con, self.pid, "TL", "Eilig", agent="CC1")
+        kern.aufgabe_status(self.con, self.pid, "CC1", lauf, "start")
+        self.oeffnen("start", "typeof aufgabeDialog === 'function'")
+        self.tab.js(f"aufgabeDialog({neu})")
+        self.warten("[...document.querySelectorAll('button')].some(b => b.textContent === 'Dazwischenschieben')")
+        self.assertIn(f"CC1 arbeitet gerade an A{lauf}", self.tab.js("document.querySelector('.dialog-hg .dialog').innerText"))
+        self.tab.js("document.querySelectorAll('.dialog-hg').forEach(x => x.remove())")
+        self.tab.js(f"aufgabeDialog({lauf})")                                                      # das laufende Stück selbst: kein Knopf
+        self.warten("document.querySelector('.dialog-hg .dialog')")
+        self.assertFalse(self.tab.js("[...document.querySelectorAll('.dialog-hg button')].some(b => b.textContent === 'Dazwischenschieben')"))
 
     def test_logo_oben_mit_untertitel_und_favicon(self):
         self.oeffnen("start", "document.querySelector('#marke-text i')")

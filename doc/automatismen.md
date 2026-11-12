@@ -100,6 +100,14 @@ unten ab, eins nach dem anderen. Der Umfang darf groß sein.
   Arbeit hat, landet sie im Eingang (früher „Pool“) statt in seiner Liste. Der Lead plant sie mit `amw liste ordnen`
   ein – frühestens hinter das laufende Stück. Wer sie gleich einplanen will, legt sie mit `--sofort` an. Der Leitstand
   zeigt „n im Eingang“.
+- **Dazwischenschieben (seit 1.56.0)** entscheidet nur der Mensch: in der Workbench bei der Aufgabe „Dazwischenschieben“
+  (mit Grund) oder `amw aufgabe dazwischen <nr> --grund …`. Das laufende Stück wartet dann auf die eingeschobene
+  Aufgabe und kommt danach von selbst wieder dran; der Agent bekommt die Bitte, seinen Stand zu sichern. Im Verlauf
+  steht „unterbrochen“. Der Lead kann es vorschlagen: Derselbe Befehl stellt dann eine Ja/Nein-Frage an den Menschen,
+  „Ja“ führt es aus.
+- **Aufträge mitten im Stück (seit 1.56.0):** Ein Auftrag an einen Agenten, der gerade ein Stück in Arbeit hat, wird
+  zugestellt, weckt ihn aber erst, wenn das Stück fertig ist oder wartet – außer der Auftrag gehört zum laufenden
+  Stück (`--aufgabe <nr>`). Fragen, Antworten, Freigaben und Meldungen wecken wie bisher.
 - **Aufgaben des Menschen** bleiben frei: Für den Bearbeiter „Entwickler“ gilt keine dieser Sperren.
 - **Fertig:** Ist eine Aufgabe fertig oder verworfen, weckt die AMW mit der nächsten startbaren Aufgabe der Liste. Die
   Leerlauf-Prüfung bleibt als Netz.

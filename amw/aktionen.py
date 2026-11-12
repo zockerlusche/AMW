@@ -234,6 +234,12 @@ def aufgabe(con, pid, was, d):
                 raise Ungueltig("Bitte kurz notieren, was erledigt ist (das ist der Beleg)")
             kern.aufgabe_status(con, pid, e, aid, "fertig", beleg=f"{kern.entwickler_name(con, pid)}: {text[:300]}", zusammenfassung=text)
             kurz = f"A{aid} erledigt: {text[:200]}"
+        elif was == "dazwischen":                    # nur hier, beim Menschen: vor das laufende Stück des Agenten
+            if not text:
+                raise Ungueltig("Bitte den Grund eintragen – er geht an den Agenten")
+            from . import arbeitsliste
+            _, unterbrochen = arbeitsliste.dazwischen(con, pid, e, aid, text)
+            kurz = f"A{aid} dazwischengeschoben" + (f" (A{unterbrochen} wartet)" if unterbrochen else "") + f": {text[:150]}"
         elif was == "spaeter":
             from . import arbeitsliste
             arbeitsliste.schieben(con, pid, e, aid, unten=True)

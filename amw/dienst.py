@@ -123,7 +123,7 @@ class Dienst:
 
     def zustellen(self):
         offen = self.con.execute(
-            "SELECT e.nachricht_id, e.agent, n.projekt_id, n.von, n.art, n.kurz FROM empfang e"
+            "SELECT e.nachricht_id, e.agent, n.projekt_id, n.von, n.art, n.kurz, n.aufgabe_id FROM empfang e"
             " JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
             " WHERE e.status = 'offen' AND e.geweckt_utc IS NULL AND (k.weckt = 1 OR (n.zeit_utc >= ? AND "
             + kern.WECKT_SQL + ")) ORDER BY n.id", (self.seit,)).fetchall()
@@ -137,6 +137,12 @@ class Dienst:
             halt = kern.halt_gilt(self.con, pid, agent)
             if halt:
                 zeilen = [z for z in zeilen if z["art"] in NUR_IM_HALT]
+                if not zeilen:
+                    continue
+            from . import arbeitsliste                    # eins nach dem anderen: ein Auftrag, der nicht zum laufenden Stück
+            x = arbeitsliste.laufend(self.con, pid, agent)  # gehört, weckt erst, wenn es fertig ist oder wartet
+            if x:
+                zeilen = [z for z in zeilen if not (z["art"] == "auftrag" and z["aufgabe_id"] != x["id"])]
                 if not zeilen:
                     continue
             s = aktive_sitzung(self.con, pid, agent)

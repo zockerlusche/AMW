@@ -224,13 +224,13 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--zusammenfassung ZUSAMMENFASSUNG]
                    [--ohne-vorgaenger OHNE_VORGAENGER] [--text TEXT] [--nein]
                    [--zurueck] [--kommentar KOMMENTAR] [--kurz]
-                   [--federfuehrend FEDERFUEHREND] [--pool] [--sofort]
-                   [--von VON] [--projekt PROJEKT]
-                   {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag}
+                   [--federfuehrend FEDERFUEHREND] [--pool] [--grund GRUND]
+                   [--sofort] [--von VON] [--projekt PROJEKT]
+                   {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen}
                    [id] [nr]
 
 positional arguments:
-  {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag}
+  {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen}
   id
   nr                    kriterium: Nummer des Kriteriums
 
@@ -286,6 +286,8 @@ options:
                         aendern: wer diese Aufgabe führt (Lead/Entwickler;
                         leer = weg)
   --pool                neu: in den Eingang (noch in keiner Arbeitsliste)
+  --grund GRUND         dazwischen: warum diese Aufgabe vor das laufende Stück
+                        muss (Pflicht)
   --sofort              neu: direkt hinter das laufende Stück des Agenten
                         einplanen statt in den Eingang (ohne laufendes Stück:
                         wie bisher in die Liste)
