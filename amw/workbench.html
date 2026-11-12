@@ -604,6 +604,11 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .tm-warten { stroke: var(--bernstein); stroke-width: 3; fill: none; stroke-dasharray: 2 5; stroke-linecap: round; stroke-linejoin: miter; }
 .tm-spitze-ast { fill: var(--leise); opacity: .9; } .tm-spitze-bogen { fill: var(--blau); } .tm-spitze-warten { fill: var(--bernstein); }
 .tm-legende { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; margin-top: 10px; align-items: center; }
+.tm-baum[data-fokus] .tm-knoten:not(.im-fokus):not(.im-bezug):not(.tm-du) { opacity: .38; transition: opacity .15s; }
+.tm-baum[data-fokus] .tm-ast { opacity: .35; } .tm-knoten.im-fokus { box-shadow: 0 0 0 2px var(--bernstein); }
+.tm-linien .stark { stroke-width: 3.5; }
+.tm-auf-dich { font-size: 11px; color: var(--bernstein); border: 1px solid var(--bernstein); border-radius: 10px; padding: 0 7px; white-space: nowrap; }
+.tm-baum:not([data-fokus]) .tm-leg-mehr { display: none; }
 .tm-legende svg { width: 34px; height: 10px; vertical-align: middle; margin-right: 4px; overflow: visible; }
 .tm-bogen { stroke: var(--blau); stroke-width: 3; fill: none; stroke-dasharray: 7 5; stroke-linejoin: miter; }
 .tm-knoten { position: relative; z-index: 1; border: 1px solid var(--linie); background: var(--flaeche); padding: 10px 12px; min-width: 0; }
@@ -1034,6 +1039,7 @@ const TEXTE = {
     tm_platz: "Platz {p}/{n} in der Schlange", tm_platz_hinter: "Platz {p}/{n} hinter {x}", tm_warteplatz_h: "Lauf wartet in der Warteschlange dieses Rechners (alle Projekte)", tm_fremd: "anderes Projekt", tm_leg_ast: "Aufträge", tm_leg_bogen: "Arbeit geht zur Prüfung", tm_leg_warten: "wartet auf",
     schirm_bis_pflicht: "Bis wann (online Pflicht)", schirm_bis_fehlt: "Bitte angeben, bis wann der Bildschirm frei ist.", schirm_frei_frage: "Bildschirm jetzt für Agenten freigeben – bis {x} Uhr? Agenten dürfen dann am PC Fenster öffnen, klicken und tippen.", schirm_nur_admin: "Freigeben darf online nur ein System-Admin. Wieder belegen geht für alle.", schirm_nur_admin_kurz: "Online nur für System-Admins", nur_pc_knopf: "Geht nur am PC", schirm_zum_leitstand: "Im Leitstand ändern", schirm_zum_leitstand_h: "Freigeben und belegen geht im Leitstand unten",
     ae_weg_titel: "Agent entfernen", ae_weg_h: "Entfernen legt den Agenten still und blendet ihn überall aus – er wird nicht mehr gestartet, nicht mehr benachrichtigt und steht nicht mehr im Team. Was er geschrieben und getan hat, bleibt mit seinem Namen lesbar. Wieder aufnehmen geht jederzeit.", ae_entfernen: "Entfernen …", ae_entfernen_frage: "{x} entfernen? Er wird stillgelegt und ausgeblendet; sein Verlauf bleibt lesbar.", ae_entfernen_frage_laeuft: "{x} entfernen? Seine Sitzung läuft – sie wird zuerst gesichert und beendet (wie „Speichern & beenden“). Danach ist er stillgelegt und ausgeblendet; sein Verlauf bleibt lesbar.", ae_entfernt_ok: "{x} ist entfernt", ae_entfernt_ok_endet: "{x} ist entfernt – seine Sitzung wird gesichert und spätestens {b} beendet", ae_loeschen: "Endgültig löschen …", ae_loeschen_frage: "{x} endgültig löschen? Das geht nicht rückgängig.", ae_loeschen_nicht: "Hat Verlauf ({x}) – endgültig löschen geht nur ohne Verlauf. Entfernen blendet ihn aus.", ae_geloescht: "{x} ist gelöscht", ae_verlauf: "Am Agenten hängt: {x}", ae_v_nachrichten: "{n} Nachrichten", ae_v_empfangen: "{n} empfangene Nachrichten", ae_v_aufgaben: "{n} Aufgaben", ae_v_pruefungen: "{n} Prüfungen", ae_v_laeufe: "{n} Läufe", ae_v_dokumente: "{n} Dokumente", ae_v_fragen: "{n} Fragen", ae_v_sitzungen: "{n} Sitzungen", ae_entfernt_liste: "Entfernt ({n})", ae_entfernt_seit: "seit {x}", ae_wieder: "Wieder aufnehmen", ae_wieder_ok: "{x} ist wieder dabei (Soll: aus)",
+    tm_wartet_du: "wartet auf dich", tm_wartet_du_h: "Eine Aufgabe dieses Agenten wartet auf dich", tm_leg_fokus: "Prüfungen und Wartebeziehungen einer Karte: Maus darauf (oder antippen)",
     bn_titel: "Benutzer der Online-Seite", bn_h: "Wer sich auf der Online-Seite anmelden darf und was er dort darf. Ein neuer Benutzer hat keine Rechte, bis du Rolle und Projekte vergibst. Der bisherige Zugang aus der Konfiguration der Seite bleibt System-Admin.", bn_ohne_speicher: "Ohne Online-Speicher kann sich niemand anmelden – erst die Online-Seite einrichten. Anlegen geht schon.", bn_name: "Name", bn_rolle: "Rolle", bn_projekte: "Projekte", bn_stand: "Stand", bn_keine: "Noch keine Benutzer.", bn_neu_ph: "Name (ohne Leerzeichen)", bn_anlegen: "Anlegen", bn_wartet_rolle: "– wartet auf Freigabe –", rolle_leser: "Leser", rolle_bearbeiter: "Bearbeiter", rolle_projekt_admin: "Projekt-Admin", rolle_system_admin: "System-Admin", bn_alle_projekte: "alle Projekte", bn_st_neu: "noch nicht freigeschaltet", bn_st_wartet_code: "Code gültig bis {x}", bn_st_code_abgelaufen: "Code abgelaufen", bn_st_eingerichtet: "eingerichtet", bn_st_angemeldet: "zuletzt angemeldet {x}", bn_st_gesperrt: "gesperrt", bn_st_freigabe: "wartet auf deine Freigabe", bn_freischalten: "Freischalten", bn_neu_freischalten: "Neu freischalten", bn_neu_frage: "{x} neu freischalten? Passwort und zweiter Faktor werden zurückgesetzt, alle Sitzungen von {x} enden.", bn_sperren: "Sperren", bn_entsperren: "Entsperren", bn_code_titel: "Freischalt-Code für {x}", bn_code_h: "Gültig bis {b}, nur einmal. Gib ihn {x} persönlich weiter (mündlich oder im Chat) – er erscheint nur jetzt und steht nirgends sonst. {x} öffnet die Online-Seite, wählt „Neue Anmeldung“ und setzt Passwort und zweiten Faktor selbst.", bn_kopieren: "Kopieren", bn_kopiert: "Kopiert", bn_fertig: "Fertig",
     bn_email: "E-Mail (Firmenkonto)", bn_email_ph: "für die Firmen-Anmeldung", bn_st_firmenkonto: "mit Firmenkonto angemeldet {x}", sso_titel: "Firmen-Anmeldung (SSO)", sso_h: "Anmelden mit dem Firmenkonto (OpenID Connect, z. B. Microsoft Entra ID) – ohne zweiten Faktor in der AMW, den macht der Anbieter. Hinein kommt nur, wen du oben angelegt und mit derselben E-Mail versehen hast.", sso_an: "Knopf „Mit Firmenkonto anmelden“ zeigen", sso_aussteller: "Aussteller (Issuer)", sso_aussteller_h: "Microsoft Entra ID: https://login.microsoftonline.com/<Verzeichnis-ID>/v2.0 – nicht „common“", sso_client: "Anwendungs-ID (Client-ID)", sso_rueckweg: "Umleitungs-URI (Redirect-URI)", sso_rueckweg_h: "So beim Anbieter eintragen (Plattform „Web“).", sso_rueckweg_fehlt: "erscheint, sobald oben bei „Online-Seite“ die Adresse steht", sso_geheimnis: "Geheimnis beim Webhoster", sso_zugang_geheimnis: "gespeichert (Client-Secret)", sso_zugang_zertifikat: "gespeichert (Zertifikat)", sso_zugang_fehlt: "noch nicht eingetragen – der Knopf erscheint erst danach", sso_eintragen: "Auf der Online-Seite eintragen", sso_eintragen_h: "Das Geheimnis kommt nie auf diesen PC: ein System-Admin trägt es auf der Online-Seite ein, es liegt dann nur in deren Konfigurationsdatei.", sso_ohne_speicher: "Ohne Online-Speicher gibt es keine Firmen-Anmeldung.",
     e_web: "Online-Seite", e_web_h: "Gilt für die Anmeldung im Netz.", e_leerlauf: "Abmelden nach Leerlauf (min)",
@@ -1353,6 +1359,7 @@ const TEXTE = {
     tm_platz: "Place {p}/{n} in the queue", tm_platz_hinter: "Place {p}/{n} behind {x}", tm_warteplatz_h: "Run waits in this computer's queue (all projects)", tm_fremd: "another project", tm_leg_ast: "Assignments", tm_leg_bogen: "Work goes to review", tm_leg_warten: "waits for",
     schirm_bis_pflicht: "Until when (required online)", schirm_bis_fehlt: "Please enter until when the screen is free.", schirm_frei_frage: "Free the screen for agents now – until {x}? Agents may then open windows, click and type on the PC.", schirm_nur_admin: "Online, only a system admin may free the screen. Taking it back works for everyone.", schirm_nur_admin_kurz: "Online only for system admins", nur_pc_knopf: "Only works on the PC", schirm_zum_leitstand: "Change in control center", schirm_zum_leitstand_h: "Freeing and taking back is in the control center below",
     ae_weg_titel: "Remove agent", ae_weg_h: "Removing shuts the agent down and hides it everywhere – it is no longer started, no longer notified and no longer shown in the team. What it wrote and did stays readable under its name. You can take it back at any time.", ae_entfernen: "Remove …", ae_entfernen_frage: "Remove {x}? It is shut down and hidden; its history stays readable.", ae_entfernen_frage_laeuft: "Remove {x}? Its session is running – it is saved and ended first (like “Save & end”). Then it is shut down and hidden; its history stays readable.", ae_entfernt_ok: "{x} is removed", ae_entfernt_ok_endet: "{x} is removed – its session is saved and ended by {b} at the latest", ae_loeschen: "Delete for good …", ae_loeschen_frage: "Delete {x} for good? This cannot be undone.", ae_loeschen_nicht: "Has history ({x}) – deleting for good only works without history. Removing hides it.", ae_geloescht: "{x} is deleted", ae_verlauf: "Attached to this agent: {x}", ae_v_nachrichten: "{n} messages", ae_v_empfangen: "{n} received messages", ae_v_aufgaben: "{n} tasks", ae_v_pruefungen: "{n} reviews", ae_v_laeufe: "{n} runs", ae_v_dokumente: "{n} documents", ae_v_fragen: "{n} questions", ae_v_sitzungen: "{n} sessions", ae_entfernt_liste: "Removed ({n})", ae_entfernt_seit: "since {x}", ae_wieder: "Take back", ae_wieder_ok: "{x} is back (target: off)",
+    tm_wartet_du: "waits for you", tm_wartet_du_h: "A task of this agent is waiting for you", tm_leg_fokus: "Reviews and waits of a card: hover over it (or tap)",
     bn_titel: "Users of the online site", bn_h: "Who may sign in on the online site and what they may do there. A new user has no rights until you assign a role and projects. The existing access from the site's configuration stays system admin.", bn_ohne_speicher: "Without online storage nobody can sign in – set up the online site first. Adding users works already.", bn_name: "Name", bn_rolle: "Role", bn_projekte: "Projects", bn_stand: "Status", bn_keine: "No users yet.", bn_neu_ph: "Name (no spaces)", bn_anlegen: "Add", bn_wartet_rolle: "– awaiting approval –", rolle_leser: "Reader", rolle_bearbeiter: "Editor", rolle_projekt_admin: "Project admin", rolle_system_admin: "System admin", bn_alle_projekte: "all projects", bn_st_neu: "not activated yet", bn_st_wartet_code: "Code valid until {x}", bn_st_code_abgelaufen: "Code expired", bn_st_eingerichtet: "set up", bn_st_angemeldet: "last signed in {x}", bn_st_gesperrt: "blocked", bn_st_freigabe: "awaiting your approval", bn_freischalten: "Activate", bn_neu_freischalten: "Reset access", bn_neu_frage: "Reset access for {x}? Password and two-factor are reset and all of {x}'s sessions end.", bn_sperren: "Block", bn_entsperren: "Unblock", bn_code_titel: "Activation code for {x}", bn_code_h: "Valid until {b}, once only. Give it to {x} in person (spoken or in a chat) – it is shown only now and stored nowhere else. {x} opens the online site, chooses “First sign-in” and sets their own password and two-factor.", bn_kopieren: "Copy", bn_kopiert: "Copied", bn_fertig: "Done",
     bn_email: "Email (company account)", bn_email_ph: "for company sign-in", bn_st_firmenkonto: "signed in with company account {x}", sso_titel: "Company sign-in (SSO)", sso_h: "Sign in with the company account (OpenID Connect, e.g. Microsoft Entra ID) – no second factor in the AMW, the provider handles it. Only users you created above with the same email get in.", sso_an: "Show the “Sign in with company account” button", sso_aussteller: "Issuer", sso_aussteller_h: "Microsoft Entra ID: https://login.microsoftonline.com/<Directory ID>/v2.0 – not “common”", sso_client: "Application (client) ID", sso_rueckweg: "Redirect URI", sso_rueckweg_h: "Enter exactly this at the provider (platform “Web”).", sso_rueckweg_fehlt: "appears once the address is set under “Online site” above", sso_geheimnis: "Secret at the web host", sso_zugang_geheimnis: "stored (client secret)", sso_zugang_zertifikat: "stored (certificate)", sso_zugang_fehlt: "not entered yet – the button appears only then", sso_eintragen: "Enter it on the online site", sso_eintragen_h: "The secret never comes to this PC: a system admin enters it on the online site, it then lives only in its configuration file.", sso_ohne_speicher: "Without online storage there is no company sign-in.",
     e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after inactivity (min)",
@@ -2321,8 +2328,15 @@ function tmLeadInfo(a, d) {
     a.zuletzt ? [t("k_zuletzt"), `${seit(a.zuletzt_utc)}: ${tmKurz(a.zuletzt, 110)}`] : null].filter(Boolean);
 }
 function teamBaum(d, leads, rest) {
-  const karte = (a, klasse, ...inhalt) => { const k = el("div", { class: `tm-knoten ${klasse} klickbar`, "data-k": a.kennung, title: t("k_details") }, inhalt);
-    k.addEventListener("click", () => agentDialog(a.kennung)); return k; };
+  let zeiger = "maus";
+  const fokus = k => { if ((baum.dataset.fokus || "") === k) return; if (k) baum.dataset.fokus = k; else delete baum.dataset.fokus; zeichnen(); };
+  const karte = (a, klasse, ...inhalt) => { const k = el("div", { class: `tm-knoten ${klasse} klickbar`, "data-k": a.kennung, title: t("k_details"), tabindex: 0 }, inhalt);
+    k.addEventListener("pointerdown", e => { zeiger = e.pointerType; });
+    k.addEventListener("click", () => { if (zeiger === "touch" && baum.dataset.fokus !== a.kennung) { fokus(a.kennung); return; } agentDialog(a.kennung); });
+    k.addEventListener("mouseenter", () => fokus(a.kennung)); k.addEventListener("mouseleave", () => fokus(""));
+    k.addEventListener("focusin", () => fokus(a.kennung)); k.addEventListener("focusout", () => fokus(""));
+    k.addEventListener("keydown", e => { if (e.key === "Enter") agentDialog(a.kennung); });
+    return k; };
   const du = el("div", { class: "tm-knoten tm-du", "data-k": "*du" }, tmZeichen("mensch", ""), el("span", { class: "tm-name" }, t("tm_du")), el("span", { class: "leise" }, t("tm_leitet")),
     tmDu(d).map(([n, k]) => el("span", { class: "tm-zahl" }, el("b", {}, n), " " + t(k))));
   const lead = a => karte(a, "tm-lead" + (agentZustand(a)[0] === "rot" ? " tot" : ""),
@@ -2330,15 +2344,19 @@ function teamBaum(d, leads, rest) {
     el("dl", {}, tmLeadInfo(a, d).flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)])),
     el("div", { class: "tm-rechts" }, el("span", { class: "tm-zeile" }, tmOffen(a), tmMehr(a)), el("span", { class: "tm-zeile sehrleise" }, tmWeise(a), tmFuss(a)[2])));
   const agent = a => karte(a, "tm-agent" + (agentZustand(a)[0] === "rot" && a.zustand !== "aktiv" ? " tot" : "") + (a.soll !== "an" ? " aus" : ""),
-    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, a.kennung), tmFach(a), el("span", { class: "tm-zeile tm-ende" }, tmMehr(a))),
+    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, a.kennung), tmFach(a),
+      (a.wartet_auf || []).includes("Entwickler") ? el("span", { class: "tm-auf-dich", title: t("tm_wartet_du_h") }, "\u23f3 " + t("tm_wartet_du")) : null,
+      el("span", { class: "tm-zeile tm-ende" }, tmMehr(a))),
     tmZustand(a), el("div", { class: "tm-auf" }, tmAufgabe(a, 80)), tmNeben(a, d) || el("div", { class: "tm-neben" }, "\u00a0"), el("div", { class: "tm-fuss" }, tmFuss(a), tmOffen(a, true)));
   const strich = art => { const ns2 = "http://www.w3.org/2000/svg", g = document.createElementNS(ns2, "svg"), l = document.createElementNS(ns2, "path");
     g.setAttribute("viewBox", "0 0 34 10"); l.setAttribute("d", "M1 5 H26"); l.setAttribute("class", "tm-" + art);
     const sp = document.createElementNS(ns2, "path"); sp.setAttribute("d", "M24 0 L34 5 L24 10 z"); sp.setAttribute("class", "tm-spitze-" + art); g.append(l, sp); return g; };
-  const legende = el("div", { class: "tm-legende sehrleise" }, ["ast", "bogen", "warten"].map(art => el("span", {}, strich(art), t("tm_leg_" + art))));
+  const legende = el("div", { class: "tm-legende sehrleise" }, el("span", {}, strich("ast"), t("tm_leg_ast")),
+    el("span", { class: "tm-leg-mehr" }, strich("bogen"), t("tm_leg_bogen")), el("span", { class: "tm-leg-mehr" }, strich("warten"), t("tm_leg_warten")),
+    el("span", {}, t("tm_leg_fokus")));
   const baum = el("div", { class: "tm-baum" }, du, leads.length ? el("div", { class: "tm-leads" }, leads.map(lead)) : null, el("div", { class: "tm-ebene" }, rest.map(agent)), legende);
   const ns = "http://www.w3.org/2000/svg", linien = document.createElementNS(ns, "svg"); linien.setAttribute("class", "tm-linien"); baum.prepend(linien);
-  const zeichnen = () => tmLinien(baum, linien, d);
+  function zeichnen() { tmLinien(baum, linien, d); }
   requestAnimationFrame(zeichnen); setTimeout(zeichnen, 60); new ResizeObserver(zeichnen).observe(baum);   /* setTimeout: falls der Browser Animationen aussetzt (Tab im Hintergrund) */
   return baum;
 }
@@ -2350,7 +2368,7 @@ function tmLinien(baum, svg, d) {
   const ort = e => { const r = e.getBoundingClientRect(); return { x: r.left - o.left + r.width / 2, oben: r.top - o.top, unten: r.bottom - o.top }; };
   const knoten = k => baum.querySelector(`[data-k="${CSS.escape(k)}"]`);
   const teile = [], pfad = (klasse, dd) => { const p = document.createElementNS(ns, "path"); p.setAttribute("class", klasse); p.setAttribute("d", dd);
-    p.setAttribute("marker-end", `url(#tm-spitze-${klasse.slice(3)})`); teile.push(p); return p; };
+    p.setAttribute("marker-end", `url(#tm-spitze-${klasse.split(" ")[0].slice(3)})`); teile.push(p); return p; };
   const defs = document.createElementNS(ns, "defs");
   for (const art of ["ast", "bogen", "warten"]) {         /* Pfeilspitze: Aufträge laufen zum Pfeil, Arbeit geht zur Prüfung, wartet auf */
     const m = document.createElementNS(ns, "marker"), sp = document.createElementNS(ns, "path");
@@ -2367,25 +2385,34 @@ function tmLinien(baum, svg, d) {
     pfad("tm-ast", `M${Math.min(...xs, stamm.x)} ${quer} H${Math.max(...xs, stamm.x)}`).removeAttribute("marker-end");
     for (const x of xs) pfad("tm-ast", `M${x} ${quer} V${y - 1}`); }
   if (ys.length) pfad("tm-ast", `M${stamm.x} ${stamm.unten} V${ys[ys.length - 1] - 12}`).removeAttribute("marker-end");
-  const gezeigt = new Set();
-  for (const z of d.team?.zusammen || []) {
-    const a = knoten(z.von), b = knoten(z.mit), schl = [z.von, z.mit].sort().join("|"); if (!a || !b || gezeigt.has(schl)) continue;
-    const p = ort(a), q = ort(b); if (!a.classList.contains("tm-agent") || !b.classList.contains("tm-agent") || Math.abs(p.unten - q.unten) > 4) continue;
-    gezeigt.add(schl); const y = p.unten + 2, tief = y + 16 + 6 * (gezeigt.size % 2);
-    pfad("tm-bogen", `M${p.x} ${y} V${tief} H${q.x} V${y + 1}`);          /* von der Bauerin zum Prüfer */
-  }
-  /* wartet auf: vom Wartenden zu dem, auf den er wartet (Agent derselben Ansicht oder du) – seitlich versetzt neben den Ästen */
-  let n = 0;
-  for (const a of d.agenten || []) for (const ziel of a.wartet_auf || []) {
-    const von = knoten(a.kennung), nach = knoten(ziel === "Entwickler" ? "*du" : ziel); if (!von || !nach || von === nach) continue;
-    const p = ort(von), q = ort(nach), r = von.getBoundingClientRect(), dx = Math.min(26, r.width / 4) + 6 * (n++ % 3);
-    if (ziel === "Entwickler") {                                                         // zu dir: außen rechts herum, seitlich hinein
-      const rechts = o.width - 8 - 5 * (n % 3), dr = nach.getBoundingClientRect(), mitte = dr.top - o.top + dr.height / 2;
-      pfad("tm-warten", `M${p.x + dx} ${p.oben} V${p.oben - 14 - 4 * (n % 3)} H${rechts} V${mitte} H${dr.right - o.left + 1}`); }
-    else if (q.unten < p.oben) { const y = p.oben - 14 - 4 * (n % 3);                  // zum Lead: in der Lücke über den Agenten quer
-      pfad("tm-warten", `M${p.x + dx} ${p.oben} V${y} H${q.x + dx} V${q.unten + 1}`); }
-    else { const y = Math.max(p.unten, q.unten) + 30 + 6 * (n % 3);                      // gleiche Reihe: unten herum
-      pfad("tm-warten", `M${p.x - dx} ${p.unten} V${y} H${q.x - dx} V${q.unten + 1}`); }
+  /* Prüfungen und Wartebeziehungen nur für die Karte im Fokus (Maus, Tastatur, erstes Antippen) – sonst überlagern sich die
+     Linien. Jede Beziehung in eigener Spur mit festem Abstand; „wartet auf dich“ steht als Markierung an der Karte. */
+  const f = baum.dataset.fokus || "";
+  baum.querySelectorAll(".tm-knoten").forEach(k => k.classList.remove("im-fokus", "im-bezug"));
+  if (f) {
+    const bez = [];
+    for (const z of d.team?.zusammen || []) if (z.von === f || z.mit === f) bez.push({ art: "bogen", von: z.von, nach: z.mit });
+    for (const a of d.agenten || []) for (const ziel of a.wartet_auf || []) {
+      if (ziel !== "Entwickler" && (a.kennung === f || ziel === f)) bez.push({ art: "warten", von: a.kennung, nach: ziel }); }
+    const gesehen = new Set(), liste = bez.filter(b => { const s_ = b.art + b.von + ">" + b.nach; if (gesehen.has(s_)) return false; gesehen.add(s_); return true; });
+    knoten(f)?.classList.add("im-fokus");
+    liste.forEach((b, i) => {
+      const a = knoten(b.von), z = knoten(b.nach); if (!a || !z) return;
+      a.classList.add("im-bezug"); z.classList.add("im-bezug");
+      const p = ort(a), q = ort(z), ver = (i - (liste.length - 1) / 2) * 16;     // eigene Spur: Ein- und Ausgang versetzt
+      if (Math.abs(p.unten - q.unten) <= 4) {                                     // gleiche Reihe: unter den Karten, je Beziehung tiefer
+        const y = Math.max(p.unten, q.unten) + 12 + 12 * i;
+        pfad("tm-" + b.art + " stark", `M${p.x + ver} ${p.unten} V${y} H${q.x + ver} V${q.unten + 1}`);
+      } else if (q.unten < p.oben) {                                              // nach oben (Lead)
+        const zr = z.getBoundingClientRect(), x = p.x + ver + 30;                // senkrecht hinein, wenn die Karte darüber liegt
+        if (x > zr.left - o.left + 8 && x < zr.right - o.left - 8) pfad("tm-" + b.art + " stark", `M${x} ${p.oben} V${q.unten + 1}`);
+        else { const y = p.oben - 6 - 6 * i; pfad("tm-" + b.art + " stark", `M${p.x + ver} ${p.oben} V${y} H${q.x + ver} V${q.unten + 1}`); }
+      } else {                                                                    // nach unten (vom Lead zum Agenten)
+        const x = q.x + ver + 30, ar = a.getBoundingClientRect();
+        if (x > ar.left - o.left + 8 && x < ar.right - o.left - 8) pfad("tm-" + b.art + " stark", `M${x} ${p.unten} V${q.oben - 1}`);
+        else { const y = q.oben - 6 - 6 * i; pfad("tm-" + b.art + " stark", `M${p.x + ver} ${p.unten} V${y} H${q.x + ver} V${q.oben - 1}`); }
+      }
+    });
   }
   svg.replaceChildren(...teile);
 }

@@ -148,6 +148,20 @@ class Seite(Wiederholt, Grund):
         self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Verlauf')).click()")
         self.warten("zustand.sicht === 'verlauf' && document.getElementById('mehr').classList.contains('an')")
 
+    def test_baum_zeigt_beziehungen_nur_fuer_die_karte_unter_der_maus(self):
+        """Team-Baum: dauerhaft nur die Äste; Prüf-/Warte-Linien einer Karte erst mit der Maus darauf, Rest abgeblendet."""
+        from amw import betrieb
+        betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "zweig", "abc1234def5678", "Probe")
+        self.oeffnen("start", "document.querySelector('#team')")
+        self.tab.js("[...document.querySelectorAll('.tm-schalter button')][0].click()")
+        self.warten("document.querySelector('.tm-baum') && document.querySelectorAll('.tm-linien path').length")
+        self.assertEqual(self.tab.js("document.querySelectorAll('.tm-linien .tm-bogen').length"), 0)          # ohne Maus: keine
+        self.tab.js("document.querySelector('.tm-knoten[data-k=CC1]').dispatchEvent(new MouseEvent('mouseenter'))")
+        self.warten("document.querySelectorAll('.tm-linien .tm-bogen.stark').length === 1")
+        self.assertTrue(self.tab.js("document.querySelector('.tm-knoten[data-k=CC1]').classList.contains('im-fokus')"))
+        self.tab.js("document.querySelector('.tm-knoten[data-k=CC1]').dispatchEvent(new MouseEvent('mouseleave'))")
+        self.warten("document.querySelectorAll('.tm-linien .tm-bogen').length === 0")
+
     def test_leitstand_und_aktionsmenue(self):
         self.oeffnen("start", "document.querySelector('#leitstand') && document.querySelector('#team .mehr-knopf')")
         # Team: als Baum (du → Lead → Agenten; Vorgabe am breiten Schirm), umschaltbar auf die Liste – die Wahl bleibt
