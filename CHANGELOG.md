@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.83.0 – 12.11.2026 · Startbefehl je Agent zum Kopieren
+- **⋯ am Agenten › „Startbefehl …“** und Einstellungen › Agenten › „Startbefehl zum Kopieren“: Ordner, Zusatzordner,
+  Modell, Denkaufwand, Rechte, letzte Sitzung – und zwei fertige Zeilen „Fortsetzen“ und „Neu starten“ für PowerShell
+  oder die Eingabeaufforderung, mit „Kopieren“. Genau so startet die AMW den Agenten auch selbst; Geheimnisse stehen
+  nicht darin. Steht in der Datenbank, also auch nach einem Neustart des PCs da.
+- Online nur zum Lesen und nur für System-Admins. Agenten, die als Chat oder in der Desktop-App arbeiten, bekommen den
+  Hinweis, dass die AMW sie nicht startet.
+
 ## 1.82.0 – 12.11.2026 · Nachträge: Frist einstellbar, „Bildschirm“ überall, Knöpfe in den Hinweisen
 - **Einstellungen › Projekt › „Frist für Sichern & beenden“** (Minuten, Vorgabe 5): so lange hat ein Agent Zeit, seinen
   Stand zu sichern und sich abzumelden, bevor der Dienst die Sitzung beendet.

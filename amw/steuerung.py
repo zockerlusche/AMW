@@ -181,6 +181,57 @@ def befehl(p, fortsetzen_id=None, neue_id=None):
     return f"Set-Location {_ps(p['ordner'])}; $env:AMW_AGENT = {_ps(p['kennung'])}; {projekt}{aufruf}; {MAUS_AUS}"
 
 
+def _cmd(x):
+    """Für cmd: einfache Wörter so, alles andere in "…" (innere " als \\"); Zeilenumbrüche werden Leerzeichen."""
+    x = " ".join(str(x).splitlines())
+    return x if re.fullmatch(r"[A-Za-z0-9_.:/\\=\-]+", x) else '"' + x.replace('"', '\\"') + '"'
+
+
+def startbefehle(con, pid, kennung):
+    """Was man braucht, um einen Agenten von Hand zu starten: Angaben aus dem Profil, letzte Sitzung und fertige Zeilen für
+    PowerShell und cmd – „fortsetzen“ (letzte Sitzung) und „neu“ (feste neue Sitzungs-ID, bis sie benutzt wurde).
+    Ohne Zeilen, wenn der Agent nicht im Terminal arbeitet oder kein Ordner eingetragen ist (grund)."""
+    a = kern.agent_zeile(con, pid, kennung)
+    p = profil(con, pid, kennung)
+    r = con.execute("SELECT s.claude_sitzung, s.gestartet_utc, coalesce(s.letzter_puls_utc, s.beendet_utc, s.gestartet_utc) AS zuletzt,"
+                    " s.zustand, (SELECT count(*) FROM sitzung x WHERE x.agent_id = a.id) AS anzahl FROM sitzung s JOIN agent a"
+                    " ON a.id = s.agent_id WHERE a.projekt_id = ? AND a.kennung = ? AND s.claude_sitzung IS NOT NULL ORDER BY s.id DESC LIMIT 1",
+                    (pid, kennung)).fetchone()
+    weise = a["arbeitsweise"] or "terminal"
+    aus = {"arbeitsweise": weise, "ordner": p["ordner"], "zusatzordner": p["zusatzordner"], "modell": p["modell"],
+           "denkstufe": p["denkstufe"], "rechte": p["rechte"], "startsatz": p["startsatz"], "fernsteuerung": p["fernsteuerung"],
+           "letzte": {"sitzung": r["claude_sitzung"], "gestartet_utc": r["gestartet_utc"], "zuletzt_utc": r["zuletzt"],
+                      "zustand": r["zustand"]} if r else None, "befehle": None, "grund": None}
+    if weise != "terminal":
+        aus["grund"] = weise
+        return aus
+    if not p["ordner"]:
+        aus["grund"] = "kein_ordner"
+        return aus
+    fort = r["claude_sitzung"] if r else None
+    neue = str(uuid.uuid5(uuid.NAMESPACE_URL, f"amw:{a['uid']}:{fort or ''}:{r['anzahl'] if r else 0}"))
+
+    def teile(fortsetzen):
+        x = ["--resume", fort] if fortsetzen else ["--session-id", neue]
+        x += _optionen(p)
+        if not fortsetzen and p["startsatz"]:
+            x.append(p["startsatz"])
+        return x
+
+    def ps(fortsetzen):
+        return (f"Set-Location {_ps(p['ordner'])}; $env:AMW_AGENT = {_ps(p['kennung'])}; $env:AMW_PROJEKT = {_ps(p['projekt'])}; "
+                + _aufruf(teile(fortsetzen), lesbar=True))
+
+    def cmd(fortsetzen):
+        return (f"cd /d {_cmd(p['ordner'])} && set \"AMW_AGENT={p['kennung']}\" && set \"AMW_PROJEKT={p['projekt']}\" && "
+                + " ".join(_cmd(x) for x in [claude_befehl(), *teile(fortsetzen)]))
+
+    aus["neue_sitzung"] = neue
+    aus["befehle"] = {"powershell": {"fortsetzen": ps(True) if fort else None, "neu": ps(False)},
+                      "cmd": {"fortsetzen": cmd(True) if fort else None, "neu": cmd(False)}}
+    return aus
+
+
 def _shell():
     return shutil.which("pwsh") or shutil.which("powershell") or "powershell.exe"
 

@@ -560,6 +560,8 @@ def daten_einstellungen(con, pid, speicher=None):
             a["zusatzordner"] = json.loads(a["zusatzordner"] or "[]")
         except ValueError:
             a["zusatzordner"] = []
+        from . import steuerung
+        a["start"] = steuerung.startbefehle(con, pid, a["kennung"])         # Startbefehl zum Kopieren (A1610)
     try:
         with open(abgleich.zugang_pfad(), encoding="utf-8") as f:
             z = json.load(f)

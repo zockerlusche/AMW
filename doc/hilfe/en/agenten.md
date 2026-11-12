@@ -29,3 +29,6 @@ An agent works in a folder on this PC. So that the AMW can notify it, monitor it
 ## Questions
 ### Why can't I rename in the Workbench?
 The name is used in start scripts and running sessions on this PC. The command line changes everything in one place without a running session losing its name.
+
+### How do I start an agent by hand – for example after restarting the PC?
+⋯ on the agent › “Start command …” (or Settings › Agents › “Start command to copy”). It lists folder, extra folders, model, effort, permissions and the last session, followed by two ready lines: “Resume” (last session) and “Start fresh” – for PowerShell or the command prompt. “Copy”, paste into a terminal, Enter. This is exactly how AMW starts the agent itself.

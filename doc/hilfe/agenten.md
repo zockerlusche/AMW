@@ -29,3 +29,6 @@ Ein Agent arbeitet in einem Ordner auf diesem PC. Damit die AMW ihn benachrichti
 ## Häufige Fragen
 ### Warum geht das Umbenennen nicht in der Workbench?
 Der Name steckt in Startskripten und laufenden Sitzungen auf diesem PC. Die Befehlszeile ändert alles an einer Stelle, ohne dass eine laufende Sitzung ihren Namen verliert.
+
+### Wie starte ich einen Agenten von Hand – etwa nach einem Neustart des PCs?
+⋯ am Agenten › „Startbefehl …“ (oder Einstellungen › Agenten › „Startbefehl zum Kopieren“). Dort stehen Ordner, Zusatzordner, Modell, Denkaufwand, Rechte und die letzte Sitzung, darunter zwei fertige Zeilen: „Fortsetzen“ (letzte Sitzung) und „Neu starten“ – für PowerShell oder die Eingabeaufforderung. „Kopieren“, ins Terminal einfügen, Enter. Genau so startet die AMW den Agenten auch selbst.

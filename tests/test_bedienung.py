@@ -250,14 +250,14 @@ class Seite(Wiederholt, Grund):
         self.warten("!document.querySelector('.menue')")
 
     def test_agenten_einstellungen_in_vier_bloecken(self):
-        """Zahnrad › Agenten: eine Ansicht je Agent; die Arbeitsweise blendet Sitzung und Überwachung ein oder aus; ein Speichern."""
+        """Zahnrad › Agenten: eine Ansicht je Agent; die Arbeitsweise blendet Sitzung, Startbefehl und Überwachung ein oder aus; ein Speichern."""
         sichtbar = "[...document.querySelectorAll('.ae-block')].filter(b => !b.hidden).map(b => b.querySelector('h4').textContent)"
         weise = "(() => { const s = document.querySelector('.ae-block select'); s.value = '%s'; s.dispatchEvent(new Event('change')); })()"
         self.oeffnen("einstellungen", "document.querySelector('#agenten-einstellungen .ae-form')")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.ae-wahl > button .tm-name')].map(b => b.textContent)"), ["TL", "CC1"])
         self.tab.js("[...document.querySelectorAll('.ae-wahl > button')].find(b => b.textContent.includes('CC1')).click()")
         self.warten("document.querySelector('.ae-form').dataset.k === 'CC1'")
-        self.assertEqual(self.tab.js(sichtbar), ["Wer", "Auftrag", "Sitzung", "Überwachung"])        # Terminal: alles
+        self.assertEqual(self.tab.js(sichtbar), ["Wer", "Auftrag", "Sitzung", "Startbefehl zum Kopieren", "Überwachung"])   # Terminal: alles
         self.tab.js(weise % "chat")
         self.assertEqual(self.tab.js(sichtbar), ["Wer", "Auftrag"])                                  # Chat: weder Sitzung noch Überwachung
         self.tab.js(weise % "desktop")
