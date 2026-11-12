@@ -148,6 +148,10 @@ FELDER = {
     "claude_befehl": ("claude", _befehl),          # Claude Code starten (falls anders installiert: voller Pfad)
     # Schirm: dieses Programm läuft nur während einer Fernsitzung (Fernwartungs-Werkzeug) – leer = nicht prüfen
     "fernsitzung_prozess": ("", _prozess),
+    # Bildschirm-Freigabe von selbst schließen – je Auslöser; aus = es wird auch nichts gemessen (Vorgabe: an, sicher)
+    "schirm_zu_eingabe": (True, _wahr),            # Tastatur/Maus am PC (auch über eine Fernsitzung)
+    "schirm_zu_fernsitzung": (True, _wahr),        # eine Fernsitzung beginnt (Programm aus fernsitzung_prozess)
+    "schirm_zu_workbench": (True, _wahr),          # Eingabe in der Workbench am PC
     # Name dieses Rechners in der Projekt-Auswahl (mehrere Rechner an einem Online-Speicher, doc/plan-projektwahl.md)
     "rechner": ((socket.gethostname() or "PC")[:40], _name),
     # Entwickler-Kanal: dieser Agent entwickelt die AMW selbst und spricht mit den Leads aller Projekte – er darf in

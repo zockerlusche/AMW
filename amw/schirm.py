@@ -181,6 +181,8 @@ def sperrgrund(con, leerlauf=None):
     z = zustand(con)
     if not z["frei"]:
         return text(z)
+    if not einstellungen.wert("schirm_zu_eingabe"):
+        return None                                # Eingaben am PC werden nicht beobachtet – auch nicht für die Ruhe vor dem Start
     if leerlauf is None:
         leerlauf = leerlauf_s()
     if leerlauf is not None and leerlauf < RUHE_S:
@@ -232,7 +234,9 @@ def _zu_melden(con, grund):
 
 
 def entwickler_da(con, wo):
-    """Der Entwickler hat etwas getan (Workbench, Handy) – ein freier Schirm geht zu."""
+    """Der Entwickler hat etwas getan (Workbench am PC) – ein freier Schirm geht zu, außer der Mensch hat das abgeschaltet."""
+    if not einstellungen.wert("schirm_zu_workbench"):
+        return False
     if zustand(con)["frei"]:
         setzen(con, None, "AMW", False, f"{kern.entwickler_name(con)} ist da ({wo}, {datetime.now().strftime('%H:%M')})",
                quelle="automatik")
@@ -258,7 +262,11 @@ def pruefen(con, leerlauf=None, tv=None, jetzt=None, vg=None):
     eine zweite, spätere folgt (ein Mensch am PC tippt und bewegt die Maus laufend; eine einzelne Eingabe war zweimal ein
     Fehlalarm). leerlauf/tv/jetzt/vg nur für Tests. Rückgabe: Ereignisse fürs Log."""
     jetzt = jetzt or time.time()
-    tv = fernsitzung() if tv is None else tv       # jede Runde, auch bei zu: sonst sähen wir eine ältere Sitzung erst
+    mit_fern, mit_eingabe = einstellungen.wert("schirm_zu_fernsitzung"), einstellungen.wert("schirm_zu_eingabe")
+    if not mit_fern:
+        tv = None                                  # abgeschaltet: nicht einmal nachsehen (kein Überwachen ohne Wirkung)
+    else:
+        tv = fernsitzung() if tv is None else tv   # jede Runde, auch bei zu: sonst sähen wir eine ältere Sitzung erst
     z = zustand(con)                               # nach dem Freigeben „zum ersten Mal“ und hielten sie für neu
     aus = []
     if z["frei"]:
@@ -268,7 +276,7 @@ def pruefen(con, leerlauf=None, tv=None, jetzt=None, vg=None):
             grund = f"Freigabe bis {lokal(z['bis_utc'])} ist abgelaufen"
         if not grund and tv and tv > seit:          # nur eine Sitzung, die nach dem Freigeben beginnt; tippt er in
             grund = f"Fernsitzung seit {lokal(_utc(tv))}"          # einer älteren, zählt das als Eingabe am PC
-        if not grund:
+        if not grund and mit_eingabe:
             leerlauf = leerlauf_s() if leerlauf is None else leerlauf
             if leerlauf is not None and jetzt - leerlauf > seit + RUHE_S and not _eigene_eingabe(con, jetzt - leerlauf):
                 zeit, erste = jetzt - leerlauf, _eingabe["erste"]

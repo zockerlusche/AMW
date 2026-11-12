@@ -1,0 +1,47 @@
+{
+ "titel": "Releasing the screen for agents",
+ "kurz": "Some runs need the screen: they open a window, click and type themselves – for example trials in the program or screenshots. That only works when you release the screen. When you are back, the AMW closes the release by itself – you choose how it notices.",
+ "brauchst": [
+  "The Workbench at the PC (releasing works only there; closing also works on the go).",
+  "To recognise a remote session: the program that only runs during a connection (Settings › This PC › “Remote access program”, for TeamViewer e.g. TeamViewer_Desktop.exe)."
+ ],
+ "schritte": [
+  {
+   "titel": "Release",
+   "text": "Home › Screen for agents › “Free for agents …” – optionally with a time until when.",
+   "bilder": []
+  },
+  {
+   "titel": "Agents work",
+   "text": "Runs with a window start one after the other; best leave the PC alone meanwhile.",
+   "bilder": []
+  },
+  {
+   "titel": "Back at the PC",
+   "text": "The release closes by itself – or end it yourself: Home › Screen for agents › “End sharing”.",
+   "bilder": []
+  }
+ ],
+ "werte": [],
+ "fehler": [
+  [
+   "The release closes although you only wanted a quick look",
+   "Input at the PC or remote session is on. If you want to look in via a remote session or move the mouse without interrupting the agents: switch these triggers off."
+  ],
+  [
+   "An agent moves the mouse while you are watching",
+   "This happens when “Input at the PC” is off: the AMW does not notice you are there, and runs with a window start even while you work. End the release yourself then (Home › Screen for agents › “End sharing”)."
+  ],
+  [
+   "Remote session not recognised",
+   "The program is not entered or has a different name."
+  ]
+ ],
+ "danach": [
+  "If a run with a window keeps running after closing, the lead is told after 5 minutes.",
+  "From the phone you can only close the release, never open it."
+ ],
+ "fragen": [],
+ "thema": "bildschirm",
+ "sprache": "en"
+}

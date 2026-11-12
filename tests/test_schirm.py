@@ -252,3 +252,51 @@ class Messen(unittest.TestCase):
              mock.patch.object(schirm.einstellungen, "wert", return_value="fernwartung_sitzung.exe"):
             self.assertIsNone(schirm.fernsitzung())
         self.assertEqual(schirm._gesehen, {})
+
+
+class AusloeserAus(Grund):
+    """Bildschirm-Freigabe: jeder Auslöser einzeln abschaltbar – aus heißt: schließt nicht UND misst nicht."""
+    def einstellen(self, **aus):
+        from amw import einstellungen
+        echt = einstellungen.wert
+        p = mock.patch.object(einstellungen, "wert", side_effect=lambda k: (not aus[k]) if k in aus else echt(k))
+        p.start()
+        self.addCleanup(p.stop)
+
+    def nie_messen(self, *namen):
+        for n in namen:                                  # wer misst, obwohl abgeschaltet, lässt den Test scheitern
+            p = mock.patch.object(schirm, n, side_effect=AssertionError(f"{n} gemessen, obwohl abgeschaltet"))
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_eingabe_am_pc_aus(self):
+        self.einstellen(schirm_zu_eingabe=True)
+        self.nie_messen("leerlauf_s", "vordergrund")
+        self.frei()
+        t = time.time()
+        self.assertEqual(schirm.pruefen(self.con, jetzt=t + 300), [])
+        self.assertEqual(schirm.pruefen(self.con, jetzt=t + 330), [])
+        self.assertEqual(schirm.zustand(self.con)["frei"], 1)
+        self.assertIsNone(schirm.sperrgrund(self.con))                                   # Läufe mit Fenster: keine Ruhe-Prüfung
+        aus = schirm.pruefen(self.con, tv=t + 5)                                         # Fernsitzung wirkt weiter
+        self.assertTrue(aus and aus[0].startswith("Schirm zu: Fernsitzung"))
+
+    def test_fernsitzung_aus(self):
+        self.einstellen(schirm_zu_fernsitzung=True)
+        self.nie_messen("fernsitzung")
+        self.frei()
+        self.assertEqual(schirm.pruefen(self.con), [])                                   # PC ruhig (leerlauf 600 s)
+        self.assertEqual(schirm.pruefen(self.con, tv=time.time() + 5), [])               # auch eine übergebene Sitzung zählt nicht
+        self.assertEqual(schirm.zustand(self.con)["frei"], 1)
+
+    def test_workbench_aus(self):
+        self.einstellen(schirm_zu_workbench=True)
+        self.frei()
+        aktionen.ausfuehren(self.con, self.pid, "/api/nachricht", {"an": "CC1", "art": "info", "kurz": "hallo"}, kanal="seite")
+        self.assertEqual(schirm.zustand(self.con)["frei"], 1)
+        self.assertFalse(schirm.entwickler_da(self.con, "Workbench"))
+
+    def test_vorgabe_alles_an(self):
+        from amw import einstellungen
+        for k in ("schirm_zu_eingabe", "schirm_zu_fernsitzung", "schirm_zu_workbench"):
+            self.assertIs(einstellungen.FELDER[k][0], True, k)

@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.66.0 – 12.11.2026 · Bildschirm-Freigabe: selbst bestimmen, wann sie schließt
+- Einstellungen › Dieser PC › „Bildschirm-Freigabe von selbst schließen“: bei Eingabe am PC (Tastatur, Maus), bei neuer
+  Fernsitzung, bei Eingabe in der Workbench – jeder Auslöser einzeln an oder aus. So kannst du zwischendurch per
+  Fernsitzung hineinschauen oder die Maus bewegen, ohne die Agenten zu unterbrechen.
+- Ist ein Auslöser aus, beobachtet die AMW ihn gar nicht – sie misst nichts und schreibt nichts darüber auf. Ohne „Eingabe
+  am PC“ starten Läufe mit Fenster auch, während du am PC bist; dann schließt du die Freigabe selbst.
+- Neue Installationen haben alle drei an. Neue Hilfe „Bildschirm für Agenten freigeben“ (DE/EN).
+
 ## 1.65.1 – 12.11.2026 · Online: Erledigtes bleibt weg
 - Als gelesen markierte Nachrichten, beantwortete und geparkte Fragen tauchten auf der Online-Seite für einige Sekunden
   wieder auf und verschwanden dann erneut. Grund: Sobald der PC die Eingabe ausgeführt hatte, galt sie nicht mehr als
