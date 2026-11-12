@@ -453,6 +453,41 @@ def sprache_vorgabe():
         return "auto"
 
 
+def daten_nachrichten(con, pid, grenze=150):
+    """Seite „Nachrichten“: Eingang (an den Menschen) und Gesendet (vom Menschen) mit Stand je Empfänger; Bezug aus Aufgabe,
+    Spalte bezug (Schema 29) als Kürzel + Titel; beantwortet = es gibt eine Antwort darauf (antwort_auf)."""
+    E = kern.ENTWICKLER
+
+    texte = {}
+
+    def bezug(n):
+        b = n["bezug"]
+        if not b:
+            return None
+        if b not in texte:
+            texte[b] = kern.bezug_text(con, b)
+        return {"kuerzel": b, "art": "agent" if b[0] == "@" else b[0], "id": None if b[0] == "@" else int(b[1:]), "text": texte[b]}
+
+    spalten = "n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf, n.bezug, n.benutzer"
+    gesendet = []
+    for n in con.execute(f"SELECT {spalten} FROM nachricht n WHERE n.projekt_id = ? AND n.von = ? ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall():
+        emp = zeilen(con.execute("SELECT agent, status, gelesen_utc, erledigt_utc, geweckt_utc, bemerkung FROM empfang WHERE nachricht_id = ? ORDER BY agent", (n["id"],)))
+        antworten = zeilen(con.execute("SELECT id, zeit_utc, von, kurz FROM nachricht WHERE antwort_auf = ? ORDER BY id", (n["id"],)))
+        zurueck = bool(emp) and all(x["bemerkung"] == kern.ZURUECKGEZOGEN for x in emp)
+        gesendet.append({**{k: n[k] for k in ("id", "zeit_utc", "art", "kurz", "text", "antwort_auf", "benutzer")}, "bezug": bezug(n),
+                         "empfaenger": [{"agent": x["agent"], "stand": "zurueckgezogen" if zurueck else ("erledigt" if x["status"] == "erledigt" else
+                                         "gelesen" if x["status"] == "gelesen" else "benachrichtigt" if x["geweckt_utc"] else "gesendet"),
+                                         "gelesen_utc": x["gelesen_utc"], "erledigt_utc": x["erledigt_utc"], "benachrichtigt_utc": x["geweckt_utc"]} for x in emp],
+                         "antworten": antworten, "zurueckgezogen": zurueck,
+                         "zurueckziehbar": not zurueck and bool(emp) and all(x["status"] == "offen" for x in emp)})
+    eingang = []
+    for n in con.execute(f"SELECT {spalten}, e.status AS stand FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
+                         " WHERE n.projekt_id = ? AND e.agent = ? ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall():
+        eingang.append({**{k: n[k] for k in ("id", "zeit_utc", "von", "art", "kurz", "text", "antwort_auf", "stand")}, "bezug": bezug(n)})
+    return {"eingang": eingang, "gesendet": gesendet,
+            "zaehler": {"eingang_offen": sum(1 for x in eingang if x["stand"] != "erledigt")}}
+
+
 def daten_benutzer(con, speicher=None):
     """Benutzer der Online-Seite für die Verwaltung am PC – mit Stand aus dem Online-Speicher (nie hochgeladen)."""
     from . import abgleich, benutzer
@@ -1097,7 +1132,8 @@ def baue_handler(port, token):
                     "/api/dokumente": lambda c, p: daten_dokumente(c, p, q),
                     "/api/dokument": lambda c, p: daten_dokument(c, p, q),
                     "/api/projekte": lambda c, p: daten_projekte(c, p),
-                    "/api/benutzer": lambda c, p: daten_benutzer(c)}
+                    "/api/benutzer": lambda c, p: daten_benutzer(c),
+                    "/api/nachrichten": lambda c, p: daten_nachrichten(c, p)}
             weg = wege.get(u.path)
             if not weg:
                 return self._senden(404, {"fehler": "unbekannt"})

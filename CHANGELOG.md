@@ -4,6 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.74.0 – 12.11.2026 · Nachrichten an einer Stelle
+- **Neue Seite „Nachrichten“** (Menü, mit Zahl für Offenes an dich): „Eingang“ – alles an dich, Ungelesenes fett;
+  „Gesendet“ – alles von dir, je Empfänger der Stand gesendet › benachrichtigt › gelesen › erledigt (Uhrzeit beim
+  Überfahren); „Fragen“ führt zur Fragen-Seite. Filter nach Agent, Bezug, „nur offene“ und Suche.
+- **Gespräch** rechts (am Handy als eigene Ansicht): deine Nachricht und die Antworten darauf; „Antworten“ bzw.
+  „Nachfassen“ schreibt gleich dorthin, der Bezug geht mit. „+ Schreiben“ an einen Agenten oder alle.
+- **Bezug an jeder Nachricht** (Schema 29): worum es geht – Aufgabe, Frage, Dokument, Meilenstein, Prüfung, Lauf, Thema,
+  Beschluss oder Agent – als Chip; ein Klick springt hin. Antworten erben ihn. Alte Nachrichten bekommen ihn aus Aufgabe,
+  Dokument und Frage nachgetragen. Agenten setzen ihn mit `amw posten --bezug A12`.
+- **Zurückziehen**, solange kein Empfänger die Nachricht gelesen hat – sie verschwindet bei ihm, bei dir steht
+  „zurückgezogen“.
+- **„gelesen“ stimmt jetzt:** Was ein Agent mit `amw lesen` in seiner Liste sieht, gilt als gelesen.
+- Online steht Geschriebenes sofort im Gesendet („wird übertragen …“). Hilfe „Nachrichten: Eingang und Gesendet“.
+
 ## 1.73.0 – 12.11.2026 · Bildschirm-Freigabe ohne Pflicht-Uhrzeit
 - **Bildschirm online freigeben: Uhrzeit freiwillig.** Ohne Uhrzeit bleibt der Bildschirm frei, bis jemand ihn belegt
   oder ein eingeschalteter Auslöser greift; die Rückfrage sagt das.

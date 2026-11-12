@@ -1,0 +1,111 @@
+"""Seite „Nachrichten“ (Stufe N1): Eingang und Gesendet mit Stand je Empfänger, „gelesen“ beim Listen von `amw lesen`,
+zurückziehen solange niemand gelesen hat."""
+import contextlib
+import io
+import os
+import tempfile
+import unittest
+
+from amw import aktionen, cli, db, kern, workbench
+
+
+class Nachrichten(unittest.TestCase):
+    def setUp(self):
+        self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(self.ordner.cleanup)
+        self.pfad = os.path.join(self.ordner.name, "amw.db")
+        self.con = db.anlegen(self.pfad)
+        self.addCleanup(self.con.close)
+        with db.schreiben(self.con):
+            self.pid = db.einfuegen(self.con, "projekt", name="P", angelegt_utc=db.jetzt())
+            self.aid = db.einfuegen(self.con, "aufgabe", projekt_id=self.pid, titel="Team-Baum", agent="CC1", status="laeuft",
+                                    einstufung="aktiv", angelegt_utc=db.jetzt(), angelegt_von="TL")
+        kern.agent_neu(self.con, self.pid, "TL", rolle="lead")
+        for k in ("CC1", "CC2"):
+            kern.agent_neu(self.con, self.pid, k)
+        E = kern.ENTWICKLER
+        self.n1 = kern.posten(self.con, self.pid, E, "CC1", "auftrag", "Linien aufräumen", aufgabe_id=self.aid)[0]
+        self.n2 = kern.posten(self.con, self.pid, E, "CC1,CC2", "info", "Heute keine Läufe mit Fenster")[0]
+        self.n3 = kern.posten(self.con, self.pid, "CC1", E, "info", "Stand: fertig", antwort_auf=self.n1)[0]
+
+    def amw(self, *args):
+        aus = io.StringIO()
+        old = os.environ.get("AMW_DB")
+        os.environ["AMW_DB"] = self.pfad
+        try:
+            with contextlib.redirect_stdout(aus):
+                cli.main(list(args))
+        finally:
+            if old is None:
+                os.environ.pop("AMW_DB", None)
+            else:
+                os.environ["AMW_DB"] = old
+        return aus.getvalue()
+
+    def gesendet(self, nid):
+        return next(x for x in workbench.daten_nachrichten(self.con, self.pid)["gesendet"] if x["id"] == nid)
+
+    def test_gesendet_mit_stand_bezug_und_antwort(self):
+        g = self.gesendet(self.n1)
+        self.assertEqual(g["bezug"]["text"], f"A{self.aid} Team-Baum")
+        self.assertEqual([(e["agent"], e["stand"]) for e in g["empfaenger"]], [("CC1", "gesendet")])
+        self.assertEqual([a["id"] for a in g["antworten"]], [self.n3])
+        e = workbench.daten_nachrichten(self.con, self.pid)
+        self.assertEqual([x["id"] for x in e["eingang"]], [self.n3])
+        self.assertEqual(e["zaehler"]["eingang_offen"], 1)
+
+    def test_amw_lesen_setzt_gelesen(self):
+        self.amw("lesen", "--von", "CC1", "--projekt", "P")
+        self.assertEqual([e["stand"] for e in self.gesendet(self.n1)["empfaenger"]], ["gelesen"])
+        self.assertIn(f"#{self.n1}", self.amw("lesen", "--von", "CC1", "--projekt", "P"))       # bleibt bis erledigt in der Liste
+        self.amw("erledigt", str(self.n1), "--von", "CC1", "--projekt", "P")
+        self.assertEqual([e["stand"] for e in self.gesendet(self.n1)["empfaenger"]], ["erledigt"])
+
+    def test_zurueckziehen_nur_solange_niemand_gelesen_hat(self):
+        self.amw("lesen", "--von", "CC1", "--projekt", "P")                                   # CC1 hat n2 gesehen, CC2 nicht
+        with self.assertRaises(kern.AmwFehler) as e:
+            kern.zurueckziehen(self.con, self.pid, kern.ENTWICKLER, self.n2)
+        self.assertIn("CC1 schon gelesen", str(e.exception))
+        n4 = kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC2", "auftrag", "doch nicht")[0]
+        self.assertTrue(self.gesendet(n4)["zurueckziehbar"])
+        r = aktionen.ausfuehren(self.con, self.pid, "/api/nachricht/zurueckziehen", {"id": n4})
+        self.assertEqual(r["zurueckgezogen"], n4)
+        g = self.gesendet(n4)
+        self.assertTrue(g["zurueckgezogen"])
+        self.assertEqual([e["stand"] for e in g["empfaenger"]], ["zurueckgezogen"])
+        self.assertNotIn(f"#{n4}", self.amw("lesen", "--von", "CC2", "--projekt", "P"))       # beim Empfänger weg
+        with self.assertRaises(kern.AmwFehler):
+            kern.zurueckziehen(self.con, self.pid, kern.ENTWICKLER, self.n3)                   # nicht von dir
+        with self.assertRaises(kern.AmwFehler):
+            kern.zurueckziehen(self.con, self.pid, "TL", n4)
+
+
+    def test_bezug_gesetzt_geerbt_und_geprueft(self):
+        b = lambda nid: self.con.execute("SELECT bezug FROM nachricht WHERE id = ?", (nid,)).fetchone()[0]
+        self.assertEqual((b(self.n1), b(self.n3), b(self.n2)), (f"A{self.aid}", f"A{self.aid}", None))   # aus Aufgabe, geerbt, keiner
+        n = kern.posten(self.con, self.pid, "CC1", "TL", "info", "zum Agenten", bezug="@CC2")[0]
+        self.assertEqual(b(n), "@CC2")
+        n = kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC1", "info", "per Kürzel", bezug=f"a{self.aid}")[0]
+        self.assertEqual(self.con.execute("SELECT bezug, aufgabe_id FROM nachricht WHERE id = ?", (n,)).fetchone()[:], (f"A{self.aid}", self.aid))
+        for falsch in ("X5", "A999", "@Niemand", "A1x"):
+            with self.assertRaises(kern.AmwFehler):
+                kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC1", "info", "falsch", bezug=falsch)
+        r = aktionen.ausfuehren(self.con, self.pid, "/api/nachricht", {"an": "CC1", "art": "info", "kurz": "Antwort", "antwort_auf": self.n3})
+        self.assertEqual(b(r["nachricht"]), f"A{self.aid}")                                  # Antwort von der Seite erbt
+        g = self.gesendet(self.n1)["bezug"]
+        self.assertEqual((g["kuerzel"], g["art"], g["id"], g["text"]), (f"A{self.aid}", "A", self.aid, f"A{self.aid} Team-Baum"))
+        self.assertIn("Bezug A", self.amw("lesen", str(self.n1), "--von", "CC1", "--projekt", "P"))
+
+    def test_migration_29_zieht_alte_bezuege_nach(self):
+        from importlib import resources
+        sql = (resources.files("amw") / "migration_29.sql").read_text(encoding="utf-8")
+        c = self.con
+        c.execute("DROP INDEX nachricht_bezug")
+        c.execute("ALTER TABLE nachricht DROP COLUMN bezug")
+        c.executescript(sql)
+        b = lambda nid: c.execute("SELECT bezug FROM nachricht WHERE id = ?", (nid,)).fetchone()[0]
+        self.assertEqual((b(self.n1), b(self.n3), b(self.n2)), (f"A{self.aid}", f"A{self.aid}", None))
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -122,8 +122,13 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         kurz = (daten.get("kurz") or "").strip()
         if not kurz or not (daten.get("an") or "").strip():
             raise Ungueltig("an/kurz fehlt")
-        nid, namen = kern.posten(con, pid, kern.ENTWICKLER, daten["an"], art, kurz[:300],
-                                 (daten.get("text") or "").strip()[:20000] or None)
+        auf = int(daten["antwort_auf"]) if str(daten.get("antwort_auf") or "").isdigit() else None
+        try:                                         # Bezug: mitgegeben (von dort, wo geschrieben wurde) oder geerbt
+            nid, namen = kern.posten(con, pid, kern.ENTWICKLER, daten["an"], art, kurz[:300],
+                                     (daten.get("text") or "").strip()[:20000] or None, antwort_auf=auf,
+                                     bezug=(str(daten.get("bezug") or "").strip() or None))
+        except kern.AmwFehler as e:
+            raise Ungueltig(str(e)) from None
         return {"nachricht": nid, "an": namen}
     if weg == "/api/gelesen":
         ids = daten.get("ids")
@@ -175,6 +180,12 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         return aufgabe(con, pid, weg.rsplit("/", 1)[1], daten)
     if weg.startswith("/api/plan/"):                 # Planung – auch von unterwegs (Freigaben!)
         return planen(con, pid, weg.rsplit("/", 1)[1], daten)
+    if weg == "/api/nachricht/zurueckziehen":         # eigene Nachricht, solange niemand sie gelesen hat
+        from . import benutzer
+        try:
+            return kern.zurueckziehen(con, pid, kern.ENTWICKLER, int(daten.get("id") or 0), benutzer.AKTUELL.get() if kanal == "netz" else None)
+        except (kern.AmwFehler, ValueError) as e:
+            raise Ungueltig(str(e)) from None
     if weg == "/api/benutzer/eingerichtet":          # von der Seite selbst: erstes Anmelden fertig → Meldung an den Menschen
         from . import benutzer
         if kanal != "netz" or not benutzer.AKTUELL.get():

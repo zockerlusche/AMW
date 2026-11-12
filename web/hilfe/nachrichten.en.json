@@ -1,0 +1,35 @@
+{
+ "titel": "Messages: inbox and sent",
+ "kurz": "Everything you write to agents and everything they write to you is in one place. For each recipient you see how far a message has got – and as long as nobody has read it, you can withdraw it.",
+ "brauchst": [
+  "The Workbench at the PC or the online site. Menu › Messages."
+ ],
+ "schritte": [
+  {
+   "titel": "Write",
+   "text": "Messages › “+ Write” – pick a recipient (one agent or everyone), type, text. From an agent (“Message”) the recipient is already filled in.",
+   "bilder": []
+  },
+  {
+   "titel": "Follow the status",
+   "text": "“Sent” tab: per recipient sent › notified › read › done. Hover over a step to see the time.",
+   "bilder": []
+  },
+  {
+   "titel": "Read replies",
+   "text": "Clicking a message shows the conversation on the right – your message and what came back. On a phone it opens as its own view (“‹ Back to list” returns).",
+   "bilder": []
+  },
+  {
+   "titel": "Work through the inbox",
+   "text": "“Inbox” tab: unread is bold. “Reply” writes back, the reference (e.g. the task) comes along; “Done” removes it from the count in the menu.",
+   "bilder": []
+  }
+ ],
+ "werte": [],
+ "fehler": [],
+ "danach": [],
+ "fragen": [],
+ "thema": "nachrichten",
+ "sprache": "en"
+}

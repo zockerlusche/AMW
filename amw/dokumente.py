@@ -223,7 +223,7 @@ def text_version(con, pid, von, did, text, basis, notiz=None, melden=True):
             nid, _ = kern._posten(con, pid, von, an, "info", f"D{did} „{d['titel']}“ berichtigt: v{nr}"[:300],
                                   f"{notiz}\n\n(Dokument D{did}: `amw dokument zeigen {did}` – bitte mit v{nr} weiterarbeiten)",
                                   aufgabe_id=d["bezug_id"] if d["bezug_art"] == "aufgabe" else None)
-            con.execute("UPDATE nachricht SET dokument_id = ? WHERE id = ?", (did, nid))
+            con.execute("UPDATE nachricht SET dokument_id = ?, bezug = ? WHERE id = ?", (did, f"D{did}", nid))
     return nr
 
 
@@ -494,7 +494,7 @@ def melden(con, pid, von, did, text, ueberarbeiten=False):
                                   text + f"\n\n(Dokument D{did}, v{d['versionen'][-1]['nr']}: `amw dokument zeigen {did}`"
                                   + (f"; neue Version: `amw dokument version {did} <datei> --notiz …`)" if ueberarbeiten else ")"),
                                   aufgabe_id=d["bezug_id"] if d["bezug_art"] == "aufgabe" else None)
-        con.execute("UPDATE nachricht SET dokument_id = ? WHERE id = ?", (did, nid))
+        con.execute("UPDATE nachricht SET dokument_id = ?, bezug = ? WHERE id = ?", (did, f"D{did}", nid))
     return nid, namen
 
 

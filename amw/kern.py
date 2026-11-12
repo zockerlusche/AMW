@@ -654,7 +654,7 @@ def bezuege_erledigen(con):
     return aus
 
 
-def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, bis=None):
+def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, bis=None, bezug=None):
     if not con.execute("SELECT 1 FROM nachricht_art WHERE art = ?", (art,)).fetchone():
         erlaubt = ", ".join(r[0] for r in con.execute("SELECT art FROM nachricht_art ORDER BY art"))
         raise AmwFehler(f"Art „{art}“ gibt es nicht; erlaubt: {erlaubt}")
@@ -663,8 +663,17 @@ def _posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_i
         raise AmwFehler(f"Absender „{von}“ ist kein Agent dieses Projekts – --von ist dein eigener Name"
                         " (Empfänger stehen in --an)")
     namen = empfaenger(con, pid, an, von, aufgabe_id)
+    if not bezug:                                      # Bezug: Aufgabe, „bis“ F<nr>, sonst geerbt von der Nachricht davor
+        if aufgabe_id:
+            bezug = f"A{aufgabe_id}"
+        elif bis and re.fullmatch(r"[AF]\d+", bis):
+            bezug = bis
+        elif antwort_auf:
+            r = con.execute("SELECT bezug FROM nachricht WHERE id = ?", (antwort_auf,)).fetchone()
+            bezug = r[0] if r else None
+    dok = int(bezug[1:]) if bezug and bezug[0] == "D" else None
     nid = db.einfuegen(con, "nachricht", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=art, kurz=kurz,
-                       text=text, antwort_auf=antwort_auf, aufgabe_id=aufgabe_id, bis=bis)
+                       text=text, antwort_auf=antwort_auf, aufgabe_id=aufgabe_id, bis=bis, bezug=bezug, dokument_id=dok)
     for n in namen:
         db.einfuegen(con, "empfang", nachricht_id=nid, agent=n)
     if antwort_auf:                                    # Antwort auf eine Rückfrage → Nachtrag im Verlauf der Frage
@@ -706,17 +715,55 @@ def aufgabe_bezug(con, pid, von, aid, antwort_auf=None):
     return a, hinweis
 
 
-def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, hinweise=None, bis=None):
+BEZUG_ARTEN = {"A": ("aufgabe", "titel"), "F": ("frage", "kurz"), "D": ("dokument", "titel"), "M": ("bogen", "titel"),
+               "P": ("pruefung", "zweig"), "L": ("lauf", "beschreibung"), "T": ("thema", "name"), "B": ("beschluss", "stichwort")}
+
+
+def bezug_pruefen(con, pid, bezug):
+    """Kürzel für den Bezug einer Nachricht prüfen und vereinheitlichen: A/F/D/M/P/L/T/B<nr> oder @Kennung."""
+    if bezug is None or not str(bezug).strip():
+        return None
+    b = str(bezug).strip()
+    if b.startswith("@"):
+        if not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, b[1:])).fetchone():
+            raise AmwFehler(f"Bezug {b}: den Agenten gibt es in diesem Projekt nicht")
+        return b
+    m = re.fullmatch(r"([A-Za-z])(\d+)", b)
+    if not m or m.group(1).upper() not in BEZUG_ARTEN:
+        raise AmwFehler(f"Bezug „{b}“ verstehe ich nicht – erlaubt: A12 (Aufgabe), F3 (Frage), D8 (Dokument), M2 (Meilenstein),"
+                        " P5 (Prüfung), L7 (Lauf), T1 (Thema), B4 (Beschluss) oder @Kennung (Agent)")
+    k, nr = m.group(1).upper(), int(m.group(2))
+    if not con.execute(f"SELECT 1 FROM {BEZUG_ARTEN[k][0]} WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone():
+        raise AmwFehler(f"Bezug {k}{nr} gibt es in diesem Projekt nicht")
+    return f"{k}{nr}"
+
+
+def bezug_text(con, bezug):
+    """Kürzel + Titel für die Anzeige („A1600 Team-Baum …“); None, wenn kein Bezug."""
+    if not bezug:
+        return None
+    if bezug.startswith("@"):
+        return bezug[1:]
+    tab, spalte = BEZUG_ARTEN.get(bezug[0], (None, None))
+    r = con.execute(f"SELECT {spalte} FROM {tab} WHERE id = ?", (int(bezug[1:]),)).fetchone() if tab else None
+    return f"{bezug} {str(r[0])[:60]}" if r and r[0] else bezug
+
+
+def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, hinweise=None, bis=None, bezug=None):
     """Nachricht von einem Agenten oder dem Entwickler. hinweise: Liste, in die Hinweise für die Ausgabe kommen.
-    bis: Bezug, mit dem sich die Meldung von selbst erledigt (leitbild | aufgabe | A<nr> | F<nr>)."""
+    bis: Bezug, mit dem sich die Meldung von selbst erledigt (leitbild | aufgabe | A<nr> | F<nr>).
+    bezug: worum es geht (A/F/D/M/P/L/T/B<nr>, @Kennung); ohne: aus aufgabe_id, „bis“ oder der Nachricht, auf die sie antwortet."""
     bis = bis_pruefen(con, pid, bis)
+    bezug = bezug_pruefen(con, pid, bezug)
+    if bezug and bezug[0] == "A" and not aufgabe_id:                 # die alten Felder mit füllen (alte Abfragen laufen weiter)
+        aufgabe_id = int(bezug[1:])
     with db.schreiben(con):
         a = None
         if aufgabe_id and von != "AMW":
             a, hinweis = aufgabe_bezug(con, pid, von, aufgabe_id, antwort_auf)
             if hinweis and hinweise is not None:
                 hinweise.append(hinweis)
-        nid, namen = _posten(con, pid, von, an, art, kurz, text, antwort_auf, aufgabe_id, bis=bis)
+        nid, namen = _posten(con, pid, von, an, art, kurz, text, antwort_auf, aufgabe_id, bis=bis, bezug=bezug)
         if hinweise is not None and any(t.strip().lower() == "alle" for t in an.replace(";", ",").split(",")):
             weg = ausgelassen(con, pid)
             if weg:
@@ -746,6 +793,41 @@ def anzahl_offen(con, pid, kennung):
     return con.execute("SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
                        " WHERE n.projekt_id = ? AND e.agent = ? AND e.status != 'erledigt'",
                        (pid, kennung)).fetchone()[0]
+
+
+def als_gelesen(con, kennung, ids):
+    """Was `amw lesen` gerade gezeigt hat, gilt für den Leser als gelesen (Stand für den Menschen: „gelesen“)."""
+    ids = [int(i) for i in ids]
+    if not ids:
+        return 0
+    with db.schreiben(con):
+        return con.execute(f"UPDATE empfang SET status = 'gelesen', gelesen_utc = ? WHERE agent = ? AND status = 'offen'"
+                           f" AND nachricht_id IN ({','.join('?' * len(ids))})", (db.jetzt(), kennung, *ids)).rowcount
+
+
+ZURUECKGEZOGEN = "zurückgezogen"
+
+
+def zurueckziehen(con, pid, von, nid, benutzer_name=None):
+    """Eine Nachricht des Menschen zurückziehen – nur solange kein Empfänger sie gelesen oder erledigt hat. Sie verschwindet
+    aus den Listen der Empfänger; beim Menschen bleibt sie als „zurückgezogen“ sichtbar. benutzer_name: online nur die eigene."""
+    if von != ENTWICKLER:
+        raise AmwFehler("Zurückziehen kann nur der Mensch seine eigenen Nachrichten")
+    n = con.execute("SELECT * FROM nachricht WHERE id = ? AND projekt_id = ?", (nid, pid)).fetchone()
+    if not n or n["von"] != ENTWICKLER:
+        raise AmwFehler(f"#{nid} ist keine Nachricht von dir")
+    if benutzer_name is not None and (n["benutzer"] or None) != benutzer_name:
+        raise AmwFehler(f"#{nid} hat jemand anderes geschrieben")
+    e = con.execute("SELECT agent, status, bemerkung FROM empfang WHERE nachricht_id = ?", (nid,)).fetchall()
+    if any(x["bemerkung"] == ZURUECKGEZOGEN for x in e):
+        raise AmwFehler(f"#{nid} ist schon zurückgezogen")
+    gesehen = [x["agent"] for x in e if x["status"] != "offen"]
+    if gesehen:
+        raise AmwFehler(f"#{nid} hat {', '.join(gesehen)} schon gelesen – zurückziehen geht nicht mehr; schick eine neue Nachricht")
+    with db.schreiben(con):
+        con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ?, bemerkung = ? WHERE nachricht_id = ?",
+                    (db.jetzt(), ZURUECKGEZOGEN, nid))
+    return {"zurueckgezogen": nid, "empfaenger": [x["agent"] for x in e]}
 
 
 def lesen(con, pid, kennung, nid):

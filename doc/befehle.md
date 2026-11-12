@@ -153,7 +153,7 @@ options:
 ```
 usage: amw posten [-h] --an AN --art ART --kurz KURZ [--text TEXT]
                   [--text-datei TEXT_DATEI] [--antwort-auf ANTWORT_AUF]
-                  [--aufgabe AUFGABE] [--bis BIS] [--von VON]
+                  [--aufgabe AUFGABE] [--bis BIS] [--bezug BEZUG] [--von VON]
                   [--projekt PROJEKT]
 
 options:
@@ -168,6 +168,11 @@ options:
   --bis BIS             die Meldung erledigt sich von selbst, sobald das
                         erfüllt ist: leitbild | aufgabe (du hast eine) | A<nr>
                         (fertig) | F<nr> (beantwortet)
+  --bezug BEZUG         worum es geht: A<nr> Aufgabe, F<nr> Frage, D<nr>
+                        Dokument, M<nr> Meilenstein, P<nr> Prüfung, L<nr>
+                        Lauf, T<nr> Thema, B<nr> Beschluss, @Kennung Agent;
+                        ohne: aus --aufgabe oder geerbt von der Nachricht in
+                        --antwort-auf
   --von VON
   --projekt PROJEKT
 ```

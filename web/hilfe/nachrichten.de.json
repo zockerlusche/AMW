@@ -1,0 +1,46 @@
+{
+ "titel": "Nachrichten: Eingang und Gesendet",
+ "kurz": "Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Stelle. Je Empfänger siehst du, wie weit eine Nachricht ist – und solange sie niemand gelesen hat, kannst du sie zurückziehen.",
+ "brauchst": [
+  "Die Workbench am PC oder die Online-Seite. Menü › Nachrichten."
+ ],
+ "schritte": [
+  {
+   "titel": "Schreiben",
+   "text": "Nachrichten › „+ Schreiben“ – Empfänger wählen (ein Agent oder alle), Art, Text. Aus einem Agenten heraus („Nachricht“) ist er schon eingetragen.",
+   "bilder": []
+  },
+  {
+   "titel": "Stand verfolgen",
+   "text": "Reiter „Gesendet“: je Empfänger gesendet › benachrichtigt › gelesen › erledigt. Fährst du über einen Schritt, siehst du die Uhrzeit.",
+   "bilder": []
+  },
+  {
+   "titel": "Antworten lesen",
+   "text": "Ein Klick auf eine Nachricht zeigt rechts das Gespräch – deine Nachricht und was darauf zurückkam. Am Handy öffnet es sich als eigene Ansicht („‹ Zur Liste“ führt zurück).",
+   "bilder": []
+  },
+  {
+   "titel": "Eingang abarbeiten",
+   "text": "Reiter „Eingang“: Ungelesenes ist fett. „Antworten“ schreibt zurück, der Bezug (z. B. die Aufgabe) geht mit; „Erledigt“ nimmt sie aus der Zahl im Menü.",
+   "bilder": []
+  }
+ ],
+ "werte": [],
+ "fehler": [
+  [
+   "Eine Nachricht bleibt lange bei „gesendet“",
+   "Der Agent läuft nicht oder ist ein Chat-Lead, der nur in seinem Rhythmus liest. Auf der Startseite siehst du, ob er läuft."
+  ],
+  [
+   "Der Bezug fehlt",
+   "Nur Nachrichten zu einer Aufgabe, einem Dokument oder einer Frage haben einen; neue Nachrichten aus dem Menü sind allgemein."
+  ]
+ ],
+ "danach": [
+  "Fragen der Agenten an dich beantwortest du weiter unter „Fragen“ (der Reiter dort führt hin)."
+ ],
+ "fragen": [],
+ "thema": "nachrichten",
+ "sprache": "de"
+}

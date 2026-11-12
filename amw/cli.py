@@ -213,7 +213,7 @@ def cmd_posten(a, con):
         with open(a.text_datei, encoding="utf-8") as f:
             text = f.read()
     hinweise = []
-    nid, namen = kern.posten(con, pid, _von(a), a.an, a.art, a.kurz, text, a.antwort_auf, a.aufgabe, hinweise, bis=a.bis)
+    nid, namen = kern.posten(con, pid, _von(a), a.an, a.art, a.kurz, text, a.antwort_auf, a.aufgabe, hinweise, bis=a.bis, bezug=a.bezug)
     print(f"#{nid} an {', '.join(namen)}")
     for h in hinweise:
         print(h)
@@ -361,7 +361,7 @@ def cmd_lesen(a, con):
             print(f"#{n['id']} {_zeit(n['zeit_utc'])} {n['von']} [{n['art']}]"
                   + (f" · Projekt {db.projekt_name(con, n['projekt_id'])}" if kanal else "")
                   + (f" Antwort auf #{n['antwort_auf']}" if n["antwort_auf"] else "")
-                  + (f" · A{n['aufgabe_id']}" if n["aufgabe_id"] else ""))
+                  + (f" · Bezug {kern.bezug_text(con, n['bezug'])}" if n["bezug"] else f" · A{n['aufgabe_id']}" if n["aufgabe_id"] else ""))
             print(n["kurz"])
             if n["text"]:
                 print(n["text"])
@@ -373,6 +373,7 @@ def cmd_lesen(a, con):
         for r in zeilen:
             print(f"[{r['projekt']}] " + _lesezeile(con, r))
         print((f"{len(zeilen)} ungelesen" if a.neu else f"{len(zeilen)} offen") + " (alle Projekte)" if zeilen else "nichts offen")
+        kern.als_gelesen(con, von, [r["id"] for r in zeilen if r["status"] == "offen"])   # gezeigt = gelesen (Stand für den Menschen)
         return
     if kanal:
         pid = _projekt(con, a)
@@ -391,6 +392,7 @@ def cmd_lesen(a, con):
     for r in zeilen:
         print(_lesezeile(con, r))
     print((f"{len(zeilen)} ungelesen" if a.neu else f"{len(zeilen)} offen") if zeilen else "nichts offen")
+    kern.als_gelesen(con, von, [r["id"] for r in zeilen if r["status"] == "offen"])       # gezeigt = gelesen (Stand für den Menschen)
 
 
 def cmd_erledigt(a, con):
@@ -2038,6 +2040,9 @@ def parser():
     x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--bis", help="die Meldung erledigt sich von selbst, sobald das erfüllt ist: leitbild | aufgabe (du hast eine)"
                                  " | A<nr> (fertig) | F<nr> (beantwortet)")
+    x.add_argument("--bezug", help="worum es geht: A<nr> Aufgabe, F<nr> Frage, D<nr> Dokument, M<nr> Meilenstein, P<nr> Prüfung,"
+                                   " L<nr> Lauf, T<nr> Thema, B<nr> Beschluss, @Kennung Agent; ohne: aus --aufgabe oder geerbt"
+                                   " von der Nachricht in --antwort-auf")
     x.set_defaults(f=cmd_posten)
 
     x = s.add_parser("lesen", help="ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589)")

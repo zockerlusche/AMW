@@ -113,11 +113,13 @@ CREATE TABLE nachricht (
   dokument_id   INTEGER REFERENCES dokument(id),           -- Kommentar/Auftrag zu einem Dokument
   bis           TEXT,                            -- erledigt sich von selbst: leitbild | aufgabe | A<nr> | F<nr> (Schema 20)
   benutzer      TEXT,                              -- welcher Mensch (Schema 27; leer = der am PC)
+  bezug         TEXT,                              -- worum es geht: A/F/D/M/P/L/T/B<nr> oder @Kennung (Schema 29)
   uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft      TEXT NOT NULL DEFAULT '',
   geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 CREATE INDEX nachricht_zeit ON nachricht (projekt_id, zeit_utc);
+CREATE INDEX nachricht_bezug ON nachricht (projekt_id, bezug);
 
 CREATE TABLE empfang (
   nachricht_id  INTEGER NOT NULL REFERENCES nachricht(id),
