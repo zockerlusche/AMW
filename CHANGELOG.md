@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.81.0 – 12.11.2026 · Knopf-Namen im Server-Paket
+- `amw web paket`, `amw speicher` und die LIESMICH im Paket nennen die Knöpfe so, wie sie in der Workbench heißen:
+  „Verbindung testen“ (Speicher und Synchronisierung) und „Online-Seite testen“ – vorher stand dort „Speicher prüfen“
+  bzw. „Seite prüfen“. Ein Test hält Paket und Workbench künftig gleich.
+
 ## 1.80.0 – 12.11.2026 · Grund-Regelwerk für bestehende Projekte
 - **Wissen › Regeln › „Abgleich mit dem Grund-Regelwerk“:** jede Grundregel neben den Regeln des Projekts – übernommen,
   vermutlich durch eine eigene Regel abgedeckt (mit Verweis) oder fehlt. Nur ein Vorschlag; vorhandene Regeln bleiben.

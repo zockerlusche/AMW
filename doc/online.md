@@ -78,7 +78,7 @@ läuft, mit demselben Protokoll (HTTP `/v2/pipeline`, Schlüssel als Bearer-Toke
   im Firmennetz liegt (sonst nur `https://`). Das Paket lässt dann in `.htaccess` die Umleitung auf https weg und setzt
   `nur_https` aus; die Anmeldeseite und die Einstellungen am PC warnen sichtbar. Dateien hochladen geht nur über https
   (der Browser rechnet die Prüfsumme nur in einer sicheren Umgebung). IIS wird nicht unterstützt.
-- **Zertifikat der Firma:** Das beim Speicher eingetragene CA-Zertifikat gilt am PC auch für „Seite prüfen“ und den
+- **Zertifikat der Firma:** Das beim Speicher eingetragene CA-Zertifikat gilt am PC auch für „Online-Seite testen“ und den
   eigenen ntfy-Server (zusätzlich zu den Zertifikaten von Windows).
 - Schritt-für-Schritt-Hilfe zum Aufbau auf einem eigenen Rechner folgt mit Stufe R3c.
 

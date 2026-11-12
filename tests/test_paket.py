@@ -6,7 +6,7 @@
   (Synchronisierung aus), Adresse der Seite eingetragen; zweites Mal nur mit --ersetzen.
 - Paket für http im Firmennetz: .htaccess ohne Umleitung auf https, nur_https aus, Vorlagen ohne TLS; im Internet abgelehnt.
 - Online-Seite über http (php -S, Name im Firmennetz): Warnung auf der Anmeldeseite; über 127.0.0.1 keine.
-- Benachrichtigungen und „Seite prüfen“: http:// nur im Firmennetz.
+- Benachrichtigungen und „Online-Seite testen“: http:// nur im Firmennetz.
 - Mit echtem sqld (AMW_SQLD, WSL): Paket bauen, Server mit dem Schlüssel aus dem Paket starten, Seite aus dem Paket mit
   dessen Konfiguration → der Admin meldet sich an und bekommt den QR-Code für den zweiten Faktor (falsches Passwort nicht).
 """
@@ -146,6 +146,14 @@ class Paket(unittest.TestCase):
         self.assertNotIn("speicher_ca", k)
         self.assertIn("Die ZIP ist ein Geheimnis", aus)                          # Pflicht-Hinweis (TL)
         self.assertIn("DIESE ZIP IST EIN GEHEIMNIS", z.read("amw-paket/LIESMICH.txt").decode("utf-8"))
+        with open(os.path.join(WURZEL, "amw", "workbench.html"), encoding="utf-8") as f:   # Knöpfe so, wie sie in der Workbench heißen
+            knoepfe = re.findall(r'pv_(?:speicher|seite): "([^"]+)"', f.read())
+        self.assertEqual(knoepfe, ["Verbindung testen", "Online-Seite testen", "Test connection", "Test online page"])
+        liesmich = z.read("amw-paket/LIESMICH.txt").decode("utf-8")
+        for knopf in knoepfe:
+            self.assertIn(knopf, liesmich)
+        self.assertIn("„Verbindung testen“", aus)
+        self.assertNotIn("prüfen“", liesmich + aus)
         pem = z.read("amw-paket/speicher/amw-speicher-oeffentlich.pem").decode()
         self.assertEqual(gueltig(pem, k["speicher_token"])[1]["amw"], "seite")
         passwort = re.search(r"Passwort – nur jetzt sichtbar: (\S+)", aus).group(1)
@@ -259,7 +267,7 @@ class PaketMitEchtemServer(unittest.TestCase):
                     break
                 except OSError:
                     time.sleep(0.5)
-            sp.ausfuehren([(s, []) for s in abgleich.SCHEMA])                       # wie „Speicher prüfen“ am PC
+            sp.ausfuehren([(s, []) for s in abgleich.SCHEMA])                       # wie „Verbindung testen“ am PC
         sitzungen = os.path.join(d.name, "s")
         os.makedirs(sitzungen)
         php, wport = php_server(d.name, os.path.join(p, "web"), os.path.join(p, "konfig", "amw-konfig.php"), sitzungen)

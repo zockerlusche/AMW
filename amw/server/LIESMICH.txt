@@ -31,12 +31,12 @@ Inhalt
 
 4  Am PC (Workbench › Einstellungen)
    Betriebsart „Eigener Server im Firmennetz“ wählen.
-   Speicher und Synchronisierung: „Speicher prüfen“, dann Synchronisierung an.
-   Online-Seite: „Seite prüfen“.
+   Speicher und Synchronisierung: „Verbindung testen“, dann Synchronisierung an.
+   Online-Seite: „Online-Seite testen“.
 
 Sichern: das Docker-Volume „amw-speicher“ (docker compose stop; Volume kopieren; docker compose start).
 Aktualisieren: am PC neues Paket bauen (amw web paket … --ersetzen erzeugt auch neue Schlüssel) oder nur web/ ersetzen.
-Typische Fehler: „Zertifikat unbekannt“ → am PC das Zertifikat der Firmen-CA eintragen (Speicher › Zertifikat);
+Typische Fehler: Fehler am Zertifikat → am PC das Zertifikat der Firmen-CA eintragen (Speicher › Zertifikat der Firma);
 401 vom Speicher → öffentlicher Schlüssel auf dem Server passt nicht zum Paket; Seite von außen erreichbar → Webserver
 nur im Firmennetz/VPN freigeben.
 
@@ -54,5 +54,5 @@ delete it after copying it to the server.
    konfig/amw-konfig.php → {{KONFIG}} (outside the web folder, readable only by the web server user).
    nginx: adapt webserver/nginx-amw.conf · Apache: webserver/apache-amw.conf (.htaccess is in web/)
 3  Open {{SEITE}}, sign in as “{{ADMIN}}” with the password shown once by “amw web paket”; set up the second factor.
-4  On the PC (Workbench › Settings): operating mode “Own server on the company network”, check storage, turn sync on,
-   check the online page.
+4  On the PC (Workbench › Settings): operating mode “Own server on the company network”, “Test connection”, turn sync
+   on, “Test online page”.

@@ -1700,7 +1700,7 @@ def cmd_speicher(a):
     print(f"Zugang auf diesem PC eingetragen: {url} (Synchronisierung noch aus) – {pfad}")
     print("Schlüssel für die Online-Seite – nur jetzt sichtbar, in deren amw-konfig.php als 'speicher_token' eintragen:")
     print(f"  {token['seite']}")
-    print("Dann: Einstellungen › Speicher und Synchronisierung › „Speicher prüfen“, danach Synchronisierung an.")
+    print("Dann: Einstellungen › Speicher und Synchronisierung › „Verbindung testen“, danach Synchronisierung an.")
     print("Hinweis: Diese Schlüssel laufen nicht ab. Ungültig werden sie, wenn du ein neues Paar erzeugst und den neuen öffentlichen"
           " Schlüssel auf dem Server einlegst.")
     return 0
@@ -1717,7 +1717,7 @@ def _web_paket(a):
             raise kern.AmwFehler("Die beiden Passwörter sind verschieden – nichts gebaut")
     r = paket.bauen(a.seite, a.speicher, admin=a.admin, ca=a.ca, ziel=a.ziel, ersetzen=a.ersetzen, passwort=passwort)
     try:
-        push.speichern({"link": r["seite"]})            # Adresse der Seite: Links in Benachrichtigungen, „Seite prüfen“
+        push.speichern({"link": r["seite"]})            # Adresse der Seite: Links in Benachrichtigungen, „Online-Seite testen“
         link = f"Adresse der Online-Seite eingetragen: {r['seite']}"
     except ValueError as e:
         link = f"Adresse der Online-Seite nicht eingetragen ({e}) – unter Einstellungen › Online-Seite nachholen"
@@ -1735,7 +1735,7 @@ def _web_paket(a):
         print(f"Admin der Online-Seite: {r['admin']} (Passwort wie eingetippt)")
     if betriebsart.aktuell() != "server":
         print("Betriebsart: Einstellungen › Betriebsart › „Eigener Server im Firmennetz“ wählen (oder amw einrichten betriebsart server).")
-    print("Weiter: LIESMICH.txt in der ZIP – Speicher starten, Seite einrichten, dann am PC „Speicher prüfen“ und Synchronisierung an.")
+    print("Weiter: LIESMICH.txt in der ZIP – Speicher starten, Seite einrichten, dann am PC „Verbindung testen“ und Synchronisierung an.")
     return 0
 
 
