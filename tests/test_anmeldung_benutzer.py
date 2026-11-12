@@ -53,7 +53,8 @@ class Anmeldung(unittest.TestCase):
             db.einfuegen(self.con, "projekt", name="Spiel", angelegt_utc=db.jetzt())
         self.online = os.path.join(self.ordner.name, "online.db")
         self.sp = abgleich.SqliteSpeicher(self.online)
-        self.sp.ausfuehren([(s, []) for s in abgleich.SCHEMA] + [(q, []) for _, _, q in abgleich.NACHRUESTEN])
+        self.sp.ausfuehren([(s, []) for s in abgleich.SCHEMA])
+        abgleich.nachruesten(self.sp)
         benutzer.neu(self.con, kern.ENTWICKLER, "marie")
         self.code, self.bis = benutzer.freischalten(self.con, kern.ENTWICKLER, "marie", self.sp)
         self.konfig = os.path.join(self.ordner.name, "amw-konfig.php")
@@ -98,6 +99,29 @@ class Anmeldung(unittest.TestCase):
         self.assertNotIn(self.code.encode(), roh)
         with self.assertRaises(kern.AmwFehler):
             benutzer.freischalten(self.con, "TL", "marie", self.sp)                           # nur der Mensch
+
+    def test_tabelle_von_1_63_wird_ergaenzt(self):
+        """1.63/1.64 legen benutzer online ohne die Spalten für Code und Sitzungen an – PC und Seite ergänzen sie."""
+        alt = os.path.join(self.ordner.name, "alt.db")
+        sp = abgleich.SqliteSpeicher(alt)
+        sp.ausfuehren([("CREATE TABLE benutzer (name TEXT PRIMARY KEY, anzeige TEXT, email TEXT, rolle TEXT, gesperrt INTEGER NOT NULL"
+                        " DEFAULT 0, projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, stand_utc TEXT)", [])])
+        benutzer.neu(self.con, kern.ENTWICKLER, "tom")
+        code, _ = benutzer.freischalten(self.con, kern.ENTWICKLER, "tom", sp)                  # ohne laufenden Dienst
+        z = sp.ausfuehren([("SELECT code_hash, sitzung_nr, totp_letzt FROM benutzer WHERE name = 'tom'", [])])[0][0]
+        self.assertEqual((z[0], z[1], z[2]), (benutzer.code_hash(code), 1, 0))
+        alt2 = os.path.join(self.ordner.name, "alt2.db")                                          # die Seite selbst
+        abgleich.SqliteSpeicher(alt2).ausfuehren([(s.replace(", totp_letzt INTEGER NOT NULL DEFAULT 0, code_hash TEXT, code_bis TEXT,"
+                                                         " sitzung_nr INTEGER NOT NULL DEFAULT 0, eingerichtet_utc TEXT, angemeldet_utc TEXT", "")
+                                                    if s.startswith("CREATE TABLE IF NOT EXISTS benutzer") else s, [])
+                                                   for s in abgleich.SCHEMA] + [(q, []) for t, _, q in abgleich.NACHRUESTEN if t == "eingang"])
+        self.online, merk = alt2, self.online
+        with open(self.konfig, encoding="utf-8") as f:
+            k = f.read()
+        with open(self.konfig, "w", encoding="utf-8") as f:
+            f.write(k.replace(merk.replace(os.sep, "/"), alt2.replace(os.sep, "/")))
+        aus = self.php("nachruesten(); $aus['spalten'] = array_column(sql([[\"SELECT name FROM pragma_table_info('benutzer')\", []]])[0], 0);")
+        self.assertTrue({"code_hash", "code_bis", "sitzung_nr", "totp_letzt", "eingerichtet_utc", "angemeldet_utc"} <= set(aus["spalten"]))
 
     # --- erstes Anmelden ------------------------------------------------------------------------------------------
 

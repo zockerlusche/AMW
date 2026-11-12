@@ -73,7 +73,22 @@ SCHEMA = [
     " code_hash TEXT, code_bis TEXT, sitzung_nr INTEGER NOT NULL DEFAULT 0, eingerichtet_utc TEXT, angemeldet_utc TEXT, stand_utc TEXT)",
 ]
 # Spalten, die es in älteren Online-Speichern noch nicht gibt (web/inc/lib.php rüstet dieselben nach)
-NACHRUESTEN = [("eingang", "projekt", "ALTER TABLE eingang ADD COLUMN projekt TEXT")]
+NACHRUESTEN = [("eingang", "projekt", "ALTER TABLE eingang ADD COLUMN projekt TEXT"),
+               # Benutzer (1.65): 1.63/1.64 legen die Tabelle schon an, noch ohne Freischalt-Code und Sitzungszähler
+               ("benutzer", "totp_letzt", "ALTER TABLE benutzer ADD COLUMN totp_letzt INTEGER NOT NULL DEFAULT 0"),
+               ("benutzer", "code_hash", "ALTER TABLE benutzer ADD COLUMN code_hash TEXT"),
+               ("benutzer", "code_bis", "ALTER TABLE benutzer ADD COLUMN code_bis TEXT"),
+               ("benutzer", "sitzung_nr", "ALTER TABLE benutzer ADD COLUMN sitzung_nr INTEGER NOT NULL DEFAULT 0"),
+               ("benutzer", "eingerichtet_utc", "ALTER TABLE benutzer ADD COLUMN eingerichtet_utc TEXT"),
+               ("benutzer", "angemeldet_utc", "ALTER TABLE benutzer ADD COLUMN angemeldet_utc TEXT")]
+
+
+def nachruesten(sp):
+    """Fehlende Spalten älterer Online-Speicher ergänzen (je Spalte geprüft, darum beliebig oft aufrufbar)."""
+    for tabelle, spalte, sql in NACHRUESTEN:
+        # int(): Turso liefert Zahlen als Text – „0“ wäre sonst wahr (06.11.)
+        if not int(sp.ausfuehren([(f"SELECT count(*) FROM pragma_table_info('{tabelle}') WHERE name = ?", [spalte])])[0][0][0]):
+            sp.ausfuehren([(sql, [])])
 VERZEICHNIS = {"projekte": [], "stand": 0.0}   # zuletzt gelesenes Verzeichnis (für die Projekt-Auswahl am PC)
 SICHTEN = ("offen", "geparkt", "pool", "erledigt")
 
@@ -377,10 +392,7 @@ class Abgleich:
 
     def schema(self):
         self.sp.ausfuehren([(s, []) for s in SCHEMA])
-        for tabelle, spalte, sql in NACHRUESTEN:
-            # int(): Turso liefert Zahlen als Text – „0“ wäre sonst wahr (06.11.)
-            if not int(self.sp.ausfuehren([(f"SELECT count(*) FROM pragma_table_info('{tabelle}') WHERE name = ?", [spalte])])[0][0][0]):
-                self.sp.ausfuehren([(sql, [])])
+        nachruesten(self.sp)
         self.bekannt = {w: p for w, p in self.sp.ausfuehren([("SELECT weg, pruef FROM ansicht", [])])[0]}
         self.oben_laden()
 

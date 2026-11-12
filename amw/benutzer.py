@@ -162,6 +162,9 @@ def freischalten(con, von, name, sp, stunden=CODE_STUNDEN):
         raise kern.AmwFehler("Kein Online-Speicher eingerichtet – Benutzer melden sich auf der Online-Seite an (amw web einrichten)")
     if not 1 <= int(stunden) <= 168:
         raise kern.AmwFehler("Gültigkeit: 1 bis 168 Stunden")
+    from . import abgleich
+    sp.ausfuehren([(s, []) for s in abgleich.SCHEMA])                # auch ohne laufenden Dienst: Tabelle und Spalten da
+    abgleich.nachruesten(sp)
     code = code_neu()
     bis = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=int(stunden))).strftime("%Y-%m-%dT%H:%M:%SZ")
     z = next(x for x in fuer_online(con) if x["name"] == name)
