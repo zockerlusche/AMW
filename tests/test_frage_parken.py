@@ -1,5 +1,6 @@
 """Tests für „Frage parken“ (Schema 10): raus aus der offenen Liste und aus allen Zählern, nicht verloren, wieder
 aufnehmbar; mit Zeit und Person, im Verlauf, über CLI, Seite und Netz; Umstellung der alten „GEPARKT …“-Fragen."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
 import io
 import os

@@ -1,4 +1,5 @@
 """Tests für den Bildschirm-Schalter (B2419): Zustand, Rechte, automatisches Zugehen, Lauf-Schlange, Workbench, Brücke."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import io
 import os
 import tempfile

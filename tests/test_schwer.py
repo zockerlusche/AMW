@@ -1,4 +1,5 @@
 """Schwere Befehle erkennen und über die Warteschlange des Rechners schicken – die Entscheidung des Hooks, ohne Sitzung."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import io
 import json
 import os

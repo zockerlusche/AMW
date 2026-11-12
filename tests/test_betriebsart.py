@@ -1,6 +1,7 @@
 """Betriebsart: eine Stelle entscheidet über jeden Weg nach außen. In „Nur dieser PC“ kommt keine Verbindung über den
 eigenen Rechner hinaus zustande – nicht zum Online-Speicher, nicht zu einem Benachrichtigungs-Dienst, nicht zur Prüfung
 der Online-Seite; es wird nicht einmal ein Name aufgelöst."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import socket

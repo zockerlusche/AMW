@@ -1,4 +1,5 @@
 """Tests für Wartegründe und Wecken (B2419 Teil 2, L1–L6) und die Frage-Prüfung gegen die Datenbank (B2422)."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import io
 import os
 import tempfile

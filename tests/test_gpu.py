@@ -1,5 +1,6 @@
 """Fremde GPU-Last (1.30.1): melden ohne Fehlalarm – nur bei Dauerlast ohne angemeldeten Lauf, Entwickler weg, höchstens
 einmal je Stunde; die AMW beendet nichts."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
 import tempfile
 import unittest

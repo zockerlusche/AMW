@@ -1,4 +1,5 @@
 """Tests für den Abgleich mit dem Online-Speicher – statt Turso eine lokale SQLite-Datei."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import sqlite3

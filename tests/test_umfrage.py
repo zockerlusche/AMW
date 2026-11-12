@@ -1,5 +1,6 @@
 """Tests für die Wünsche der Agenten aus der Umfrage (AMW 1.10.0): lesen/erledigt, Nummern mit Vorsilbe, abmelden,
 „alle“, Einzel-Info weckt, Alter der Tätigkeit, Nachtrag, Hinweise, Startskript, Pfade, Aufruf-Fehler, Wartemeldung."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import io
 import os
 import sqlite3

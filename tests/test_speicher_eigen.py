@@ -6,6 +6,7 @@
 - Mit echtem sqld (nur wenn AMW_SQLD auf die Linux-Datei sqld zeigt; gestartet in WSL): PC-Abgleich, Einstellen am PC
   und die PHP-Seite (`speicher_url`) sprechen mit dem Server; falscher Schlüssel → 401.
 """
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import base64
 import contextlib
 import io

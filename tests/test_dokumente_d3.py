@@ -1,5 +1,6 @@
 """Tests für Stufe D3: selbst berichtigen (mit Konflikt), Hochladen am PC und vom Handy (über den Speicher, auch mit der
 PHP-Seite), Einsammeln mit Freigabe, Varianten an Optionen einer Frage, Brücke."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import base64
 import hashlib
 import json

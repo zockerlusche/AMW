@@ -1,5 +1,6 @@
 """Token-Pause: Konto-Verlauf aus den Messpunkten aller Sitzungen, Reset als Ereignis (auch außer der Reihe), Tempo,
 „leer am“, Pause bis zum Reset und in den Folgewochen. Die Verläufe sind nachgestellt (Muster aus echten Messungen)."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import datetime
 import os
 import tempfile

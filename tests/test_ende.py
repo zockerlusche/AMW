@@ -1,6 +1,7 @@
 """Leitstand: „Sichern & beenden“ (geordnetes Ende, z. B. vor einem Update) und „Fehlende starten“ – ohne echte Prozesse.
 Der Auftrag ist ein Halt für genau diesen Agenten mit Frist; der Wächter beendet die Sitzung, sobald sie abgemeldet ist,
 spätestens zur Frist, und hebt den Halt auf. Anstoßen darf das nur der Mensch am PC."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import datetime
 import os
 import tempfile

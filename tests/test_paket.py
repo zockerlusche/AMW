@@ -10,6 +10,7 @@
 - Mit echtem sqld (AMW_SQLD, WSL): Paket bauen, Server mit dem Schlüssel aus dem Paket starten, Seite aus dem Paket mit
   dessen Konfiguration → der Admin meldet sich an und bekommt den QR-Code für den zweiten Faktor (falsches Passwort nicht).
 """
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
 import http.cookiejar
 import io

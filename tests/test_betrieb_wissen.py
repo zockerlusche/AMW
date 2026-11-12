@@ -1,4 +1,5 @@
 """Tests für Läufe, Prüfungen, Anweisungen, Rezepte, Wortlaut, Beschlüsse, Regeln, Notizen, Release Notes, Parken."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
 import sqlite3
 import tempfile

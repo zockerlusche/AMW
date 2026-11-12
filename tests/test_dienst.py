@@ -1,4 +1,5 @@
 """Tests für den Wecker im amw-dienst – die Pipe wird nachgebildet, es wird keine echte Sitzung geweckt."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import tempfile

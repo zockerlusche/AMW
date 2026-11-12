@@ -1,5 +1,6 @@
 """Agenten-Einstellungen (Schema 22): Lead als Schalter, Fachgebiet, Arbeitsweise, Zuständig für / Fasst nicht an.
 Nur „Terminal“ startet die AMW selbst; ein Chat hat weder Sitzung noch Überwachung."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
 import tempfile
 import unittest

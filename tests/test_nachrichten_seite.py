@@ -1,5 +1,6 @@
 """Seite „Nachrichten“ (Stufe N1): Eingang und Gesendet mit Stand je Empfänger, „gelesen“ beim Listen von `amw lesen`,
 zurückziehen solange niemand gelesen hat."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
 import io
 import os

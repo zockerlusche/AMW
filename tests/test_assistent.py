@@ -1,4 +1,5 @@
 """Tests für die geführte Einrichtung (amw einrichten) und die Sicherung (amw sichern)."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import tempfile

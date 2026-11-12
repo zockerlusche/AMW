@@ -1,5 +1,6 @@
 """Rolle und Zuständigkeit per Befehl ändern (1.35.0) – und: ein Chat-Lead bekommt die Brücke seines Projekts erst, wenn der
 bisherige Lead (ein Agent mit eigener Sitzung) eine andere Rolle hat; sonst liefen die Befehle unter dessen Namen."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import io
 import os
 import tempfile

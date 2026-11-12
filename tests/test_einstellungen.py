@@ -1,4 +1,5 @@
 """Tests für das Zahnrad: Einstellungen des PCs, Projekt, Agenten, Online-Seite; was nur am PC geändert werden darf."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import tempfile

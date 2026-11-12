@@ -5,6 +5,7 @@
 - Seite (Edge ohne Fenster über das DevTools-Protokoll, nur wenn Edge da ist): nach der Antwort ist die Frage sofort weg;
   eine neue Frage von außen erscheint ohne Klick; eine ungespeicherte Eingabe bleibt, stattdessen „Neuer Stand“.
 """
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import base64
 import json
 import os

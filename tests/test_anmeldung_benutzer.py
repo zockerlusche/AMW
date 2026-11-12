@@ -2,6 +2,7 @@
 Online-Seite gegen eine SQLite-Datei. Abgedeckt (Vorgabe des Menschen): QR-Inhalt, Uhrzeit-Toleranz, Abbruch mittendrin,
 zweiter Versuch, zwei zugleich mit demselben Code, doppelt benutzte Zahl, Sperren und neu Freischalten, Herkunftsprüfung
 (Origin: null, hinter einem Proxy) – die Fehler des ersten Einrichtens."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import base64
 import hashlib
 import hmac

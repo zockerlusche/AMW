@@ -1,6 +1,7 @@
 """KI Stufe 2 (doc/plan-lokale-ki.md §3/§4): KI-Fenster für Aufträge mit --nachts (feste Uhrzeit, Testtermine haben Vorrang,
 alle anderen überholen) und Vermerke an KI-Ergebnissen (ausgewählt / verworfen / nachbearbeitet, Schema 21) bis in den
 Nachweis, die Workbench, das Handy (Briefkasten) und die Brücke."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import datetime
 import json
 import os

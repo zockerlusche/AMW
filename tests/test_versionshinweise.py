@@ -1,5 +1,6 @@
 """Versionshinweise ohne KI: Satz für Nutzer und Gruppe beim Abschließen, Entwurf aus den fertigen Aufgaben seit der
 letzten Version (mit Vorschlag aus der Zusammenfassung, wenn der Satz fehlt), Eintragen einer Version, Daten der Seite."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
 import tempfile
 import unittest

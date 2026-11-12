@@ -1,5 +1,6 @@
 """Einstellungen neu gegliedert: Prüf-Knöpfe (Online-Speicher, Online-Seite) ohne Netz, Vorgaben und Neustart-Kennzeichen
 je Feld, Sprache als Vorgabe, Schalter „In Claude öffnen“."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
 import re
 import sqlite3

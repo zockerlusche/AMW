@@ -1,5 +1,6 @@
 """Team-Baum 1.66.0: wer auf wen wartet (Pfeile) und Platz in der gemeinsamen Warteschlange des Rechners – am PC mit
 fremdem Projekt und Agent, online ohne."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import datetime
 import os
 import tempfile

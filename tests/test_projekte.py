@@ -1,5 +1,6 @@
 """Tests für mehrere Projekte in einer AMW (→ doc/plan-projektwahl.md): Projekt der Agenten, Brücke, Push je Projekt,
 Startskript, Verbrauch."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
 import io
 import json

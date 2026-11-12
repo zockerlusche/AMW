@@ -3,6 +3,7 @@
 Signatur, Aussteller, Empfänger, Ablauf; nur angelegte Benutzer; Bindung an das Firmenkonto beim ersten Mal und was sie
 löst (neue E-Mail, neu freischalten); gesperrt; ohne Rolle „Zugang wird geprüft“ und Meldung an den Admin; Geheimnis
 oder Zertifikat nur in der Konfiguration beim Webhoster; Einstellungen am PC."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import http.cookiejar
 import json
 import os

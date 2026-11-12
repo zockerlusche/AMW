@@ -1,4 +1,5 @@
 """Tests für die Workbench-Schnittstelle: Lesen, Antworten, Schutz der Schreibwege."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import http.client
 import json
 import os

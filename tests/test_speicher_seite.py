@@ -2,6 +2,7 @@
 wählen, Zertifikat-Feld nur beim eigenen Server, Warnung bei http://, nichts gespeichert, wenn der Server nicht antwortet.
 Stufe R3b: Warnung an der Adresse der Online-Seite bei http://, Betriebsart „server“, Anmeldeseite über http.
 Im echten Browser (Edge ohne Fenster). Mit AMW_FOTO=<Ordner> legt der Test ein Bild der Karte dort ab."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import base64
 import os
 import shutil

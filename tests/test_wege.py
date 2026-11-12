@@ -1,6 +1,7 @@
 """Fehlerbericht GlassWorld 07.11. (1.30.0): Wege im Projekt – Meldungen mit Bezug, Lead schließt Meldungen an den
 Entwickler, Spezifikationen über den Lead (vorlegen, freigeben, nie still zurücksetzen), Agentenfragen zuerst an den Lead,
 geparkte Fragen, Wortlaut und Beschluss in einem Zug."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import sqlite3

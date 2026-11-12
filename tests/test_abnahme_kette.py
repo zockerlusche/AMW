@@ -1,5 +1,6 @@
 """Abnahme-Kette (doc/plan-federfuehrung.md B, TL #18899): Merge-OK des Leads je Aufgabe, nach CC2 GRÜN geht die Merge-Bitte
 für genau diesen Stand von selbst an den Merge-Dienst – nie für einen überholten Stand, höchstens einmal, Vorgabe aus."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
 import tempfile
 import unittest

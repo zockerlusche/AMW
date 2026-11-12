@@ -1,4 +1,5 @@
 """Tests für Agenten steuern: Profil, Befehl, Starten/Beenden (ohne echte Prozesse), Absturz-Neustart, Startskript."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import base64
 import os
 import tempfile

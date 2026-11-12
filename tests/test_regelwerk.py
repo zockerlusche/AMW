@@ -1,5 +1,6 @@
 """Grund-Regelwerk: die mitgelieferte Vorlage (Deutsch/Englisch), ihre Übernahme beim Anlegen eines Projekts (Arbeitsregeln
 mit Herkunft, Beschluss, Definition of Done, erste Version), Anzeige der Herkunft und die Umstellung auf Schema 23."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
 import tempfile
 import unittest

@@ -1,4 +1,5 @@
 """Grund-Regelwerk G-3: Bestandsprojekte – Abgleich (nur lesend), Bericht an den Lead, einzeln übernehmen ohne zu überschreiben."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
 import io
 import os

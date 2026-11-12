@@ -1,5 +1,6 @@
 """Schritt-für-Schritt-Hilfen (R1a): ein Baustein, gespeist aus doc/hilfe/ – Aufbau der Dateien, beide Sprachen, jede
 Hilfe, auf die die Oberfläche verweist, gibt es; am PC und online unter derselben Adresse."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import re

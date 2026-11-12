@@ -1,6 +1,7 @@
 """Online: Was der Mensch erledigt hat, bleibt weg – auch in den Sekunden, in denen der PC die Eingabe schon ausgeführt,
 die neue Ansicht aber noch nicht hochgeladen hat (vorher: verschwindet → taucht wieder auf → verschwindet). Mit dem echten
 PHP der Seite gegen eine SQLite-Datei: Ansicht /api/start mit zwei Nachrichten an den Menschen, „gelesen“ im Briefkasten."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import shutil

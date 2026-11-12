@@ -1,5 +1,6 @@
 """Dauer-Belegung: Programme außerhalb der Warteschlange, die lange viel Arbeitsspeicher halten – erkennen, benennen,
 Läufe aus der Warteschlange ausnehmen. Die Prozesslisten sind nachgestellt; ein Test liest die echte Liste (nur lesen)."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import datetime
 import os
 import tempfile

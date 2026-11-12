@@ -1,5 +1,6 @@
 """Mehrere Benutzer (Stufe R1a): Rolle global, Projekte je Benutzer, Prüfung jeder Eingabe von der Online-Seite am PC
 (je Rolle: darf / darf nicht), Name des Menschen im Verlauf, Abgleich ohne Passwort und Geheimnis."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import sqlite3

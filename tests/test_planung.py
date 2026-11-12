@@ -1,5 +1,6 @@
 """Tests für die Projektplanung: Leitbild, Bögen/Baseline, Spezifikation mit Freigabe und Klärungen, Abhängigkeiten,
 Plan-Gate, Kriterien/Zusammenfassung, nächster Schritt, Risiken, Prognose, Plan-Check, Wartet auf dich."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import datetime
 import os
 import random

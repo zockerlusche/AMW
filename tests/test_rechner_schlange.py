@@ -1,5 +1,6 @@
 """Eine Warteschlange je Rechner – über alle Projekte. Wer zuerst kommt, ist zuerst dran; ein Lead sortiert nur die Läufe
 seines Projekts um, der Mensch über alle; über Läufe eines anderen Projekts erfährt man nur die Belegung, nie den Inhalt."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import tempfile

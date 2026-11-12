@@ -1,5 +1,6 @@
 """Jeder schreibt nur als er selbst (1.34.0): in einer Agenten-Sitzung (AMW_AGENT) muss --von passen; Alias zählt als dieselbe
 Kennung; die Brücke und das Terminal ohne AMW_AGENT bleiben wie bisher."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import io
 import os
 import tempfile

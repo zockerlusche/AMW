@@ -1,6 +1,7 @@
 """Firmen-Anmeldung (Stufe R2) in der Workbench am PC: Einstellungen › Benutzer der Online-Seite › Firmen-Anmeldung und die
 E-Mail je Benutzer – im echten Browser (Edge ohne Fenster) gegen einen Online-Speicher als SQLite-Datei.
 Mit AMW_FOTO=<Ordner> legt der Test ein Bild des Abschnitts dort ab (für die Prüfbitte)."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import base64
 import os
 import unittest

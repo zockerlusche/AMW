@@ -1,5 +1,6 @@
 """Tests für Dokumente online (Stufe D2): Ansichten mit Liste, Text und Dateikarte, Dateien über den Speicher zum
 Webspace (in Teilen, nur „auch online“), Abholen und Aufräumen durch die PHP-Seite."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import base64
 import hashlib
 import json

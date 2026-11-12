@@ -11,6 +11,7 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   (z. B. „Bildschirm ZU seit …“, „Läufe mit Fenster“). Befehle und Optionen heißen weiter so (`amw schirm`, `--schirm`).
 - **Startseite:** Jede Warnung hat einen Knopf zu dem Agenten, den sie betrifft; der Hinweis „nicht angemeldet“ führt zur
   Anleitung.
+- Tests laufen nie im echten Zugangs-Ordner des PCs: jede Testdatei schottet sich als Erstes ab, ein Test prüft das.
 
 ## 1.81.0 – 12.11.2026 · Knopf-Namen im Server-Paket
 - `amw web paket`, `amw speicher` und die LIESMICH im Paket nennen die Knöpfe so, wie sie in der Workbench heißen:

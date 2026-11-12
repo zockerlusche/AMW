@@ -1,4 +1,5 @@
 """Tests für Datenmodell und Fachlogik (Stufe 1). Aufruf: python -m unittest discover -s tests (in F:\\amw)."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import sqlite3

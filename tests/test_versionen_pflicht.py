@@ -1,5 +1,6 @@
 """Grund-Regelwerk G-2: Versionen als Pflicht – Einstellung, Prüfung beim Eintragen, Plan-Check, Meilenstein-Abschluss,
 Pflicht-Kontext."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
 import tempfile
 import unittest

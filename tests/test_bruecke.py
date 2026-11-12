@@ -1,4 +1,5 @@
 """Tests für die Datei-Brücke des TL: Lesekopie ohne WAL, Befehlsdateien als --von TL."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import sqlite3

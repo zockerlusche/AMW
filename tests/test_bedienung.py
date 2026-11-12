@@ -4,6 +4,7 @@
 - Seite (Edge ohne Fenster, nur wenn Edge da ist): Art-Chips mit Zahl filtern, Titel-Reihenfolge, Zeitraum; Enter im
   einzeiligen Feld schickt den Dialog ab; ein ✕ je Dialog; Sprungleiste der Einstellungen ohne doppelte Marke.
 """
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import subprocess

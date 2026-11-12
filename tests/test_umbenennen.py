@@ -1,4 +1,5 @@
 """Tests für das Umbenennen von Agenten: neue Kennung überall, alte bleibt als Alias gültig."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import io
 import os
 import tempfile

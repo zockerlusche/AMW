@@ -1,5 +1,6 @@
 """Tests für lokale KIs: Eintragen (nur lokal), Freigaben, Rechte, Auftrag als Lauf (Platz gpu), Ausführung durch den Dienst
 gegen nachgebaute Ollama-/ComfyUI-Schnittstellen, Herkunft, Gegenprobe, Abbruch, Brücke, Nachweis."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import http.server
 import json
 import os

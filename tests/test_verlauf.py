@@ -1,4 +1,5 @@
 """Tests für Rückblick, Verlauf, Zusammenfassung „seit“ und den täglichen Push-Rückblick."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import copy
 import datetime
 import os

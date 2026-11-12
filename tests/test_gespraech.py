@@ -1,5 +1,6 @@
 """Tests für die Gesprächsansicht je Agent: Protokoll von hinten lesen, blättern, live anhängen, Einträge einordnen,
 Geheimnisse verdecken, „In Claude öffnen“ nur bei laufender Sitzung, online nur auf Wunsch und nur Text."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
 import tempfile

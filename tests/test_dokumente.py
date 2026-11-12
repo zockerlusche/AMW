@@ -1,5 +1,6 @@
 """Tests für Dokumente: Ablage mit Versionen, Formate und Schutz, Bezüge, Suche, Kommentar an den Verfasser, Löschen,
 Sicherung, Auslieferung in der Workbench (abgeschottet) und Ablegen über die Brücke."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import io
 import json
 import os

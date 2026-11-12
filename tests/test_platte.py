@@ -1,5 +1,6 @@
 """Festplatte: freier Platz je Laufwerk mit Warnstufen, Meldung an Lead und Mensch (einmal je Stufe), Aufräumvorschläge
 für alte Sicherungen nach der Aufbewahrungsregel. Gelöscht wird nie etwas."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import collections
 import datetime
 import os

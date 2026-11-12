@@ -1,5 +1,6 @@
 """Agenten entfernen (Schema 28): stilllegen und überall ausblenden, Verlauf bleibt lesbar; wieder aufnehmen; endgültig
 löschen nur ohne Verlauf; nur der Mensch (online: System-Admin)."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
 import tempfile
 import unittest

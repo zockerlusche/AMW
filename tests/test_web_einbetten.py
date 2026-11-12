@@ -1,6 +1,7 @@
 """Online-Seite: Wer darf was einbetten (1.35.1). Die Seite selbst nie; Dokument-Dateien (Mockup, PDF, Video) nur in der
 eigenen Seite. Die Angabe kommt aus PHP – setzt die .htaccess sie zusätzlich, kommt sie doppelt an und der Browser nimmt
 die strengere: Das Mockup im Dokument-Fenster blieb leer („darf diese eingebettete Seite nicht öffnen“)."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
 import re
 import unittest

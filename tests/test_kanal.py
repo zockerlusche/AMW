@@ -1,5 +1,6 @@
 """Entwickler-Kanal (1.30.0): der AMW-Produktentwickler (PC-Einstellung) schreibt und empfängt in jedem Projekt,
 liest alle Projekte auf einmal und wird aus jedem Projekt geweckt."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
 import io
 import os
