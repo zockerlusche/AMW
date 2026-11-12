@@ -105,6 +105,7 @@ try {
         $roh = file_get_contents('php://input', false, null, 0, $grenze);
         $daten = json_decode((string)$roh, true);
         if (!is_array($daten)) antwort(400, ['fehler' => 'JSON']);
+        unset($daten['_benutzer']);                         // wer handelt, setzt nur der Server (Anmeldung), nie der Aufrufer
         if ($pfad === '/api/hochladen') {                  // Teile direkt in den Speicher, nicht über den Briefkasten
             try { antwort(200, hochladen($daten)); }
             catch (InvalidArgumentException $x) { antwort(400, ['fehler' => $x->getMessage()]); }
