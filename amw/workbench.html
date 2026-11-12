@@ -2657,7 +2657,7 @@ async function arbeitslisten(m, a) {
       (x.gruende || []).length ? el("div", { class: "w bernstein-text" }, "⇢ " + x.gruende.join(", "))
         : x.wartet_auf && x.status !== "laeuft" ? el("div", { class: "w" }, "⇢ " + x.wartet_auf.slice(0, 120)) : null))))));
   const pool = d.pool.filter(passt);
-  m.append(el("h3", { style: "margin:22px 0 8px" }, t("li_pool"), " ", el("span", { class: "sehrleise mono" }, pool.length)),
+  m.append(el("h3", { style: "margin:22px 0 8px" }, t("li_pool"), " ", el("span", { class: "sehrleise mono" }, pool.length), " ", hilfeKnopf("reihenfolge")),
     pool.length ? el("div", { class: "liste" }, pool.map(x => el("div", { class: "zeile klickbar", onclick: () => aufgabeDialog(x.id) }, el("span", { class: "ref" }, `A${x.id}`),
       el("span", { class: "leise" }, x.agent || "–"), el("span", {}, x.titel)))) : el("div", { class: "leer" }, t("li_pool_leer")));
 }

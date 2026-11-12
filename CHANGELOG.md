@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.57.0 – 12.11.2026 · Grundregel „Eins nach dem anderen“
+- **Grund-Regelwerk, Fassung 2:** neue Grundregel G19 „Eins nach dem anderen“ – jeder macht ein Stück fertig, bevor er
+  das nächste beginnt; Neues kommt in den Eingang; dazwischenschieben entscheidet nur der Mensch. Neue Projekte bekommen
+  sie mit; bestehende Projekte behalten ihre Regeln.
+- **Neue Hilfe** „Reihenfolge der Arbeit“ (Deutsch und Englisch), aufrufbar unter Aufgaben › Listen beim Eingang.
+
 ## 1.56.0 – 12.11.2026 · Dazwischenschieben nur bewusst
 - **Dazwischenschieben** ist ein eigener Schritt, und den macht nur der Mensch: in der Workbench bei der Aufgabe
   („Dazwischenschieben“, mit Grund) oder mit `amw aufgabe dazwischen <nr> --grund …`. Das laufende Stück des Agenten

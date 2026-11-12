@@ -20,6 +20,7 @@ auseinander.
 | [lokale-ki.md](lokale-ki.md) | Lokale KI einrichten und beauftragen | Betrieb › Lokale KI |
 | [termine.md](termine.md) | Testtermine und Fristen | Planung › Termine |
 | [themen.md](themen.md) | Themen: was gerade gilt | Wissen › Themen |
+| [reihenfolge.md](reihenfolge.md) | Reihenfolge der Arbeit: eins nach dem anderen | Aufgaben › Listen |
 
 Englisch liegt unter [en/](en/) mit denselben Dateinamen.
 

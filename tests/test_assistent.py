@@ -48,10 +48,10 @@ class Einrichten(unittest.TestCase):
         con = db.verbinde()
         self.assertEqual(con.execute("SELECT name FROM projekt").fetchone()[0], "Mein Spiel")
         self.assertEqual([r[0] for r in con.execute("SELECT kennung FROM agent ORDER BY id")], ["TL", "CC1"])
-        self.assertEqual(con.execute("SELECT count(*) FROM regel WHERE vorlage IS NOT NULL").fetchone()[0], 18)   # Grund-Regelwerk übernommen
+        self.assertEqual(con.execute("SELECT count(*) FROM regel WHERE vorlage IS NOT NULL").fetchone()[0], 19)   # Grund-Regelwerk übernommen
         self.assertEqual(con.execute("SELECT version FROM release WHERE art = 'version'").fetchone()[0], "0.1.0")
         con.close()
-        self.assertIn("Grund-Regelwerk 1: 18 bewährte Regeln", "\n".join(text))
+        self.assertIn("Grund-Regelwerk 2: 19 bewährte Regeln", "\n".join(text))
         from amw import betriebsart
         self.assertEqual((betriebsart.gewaehlt(), betriebsart.aktuell()), ("pc", "pc"))   # ausdrücklich festgehalten
         self.assertIn("Claude Code und Git verbinden sich unabhängig davon selbst", "\n".join(text))
