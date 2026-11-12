@@ -55,8 +55,18 @@ const ONLINE_SCHEMA = [
 /** Spalten älterer Online-Speicher nachrüsten (wie amw/abgleich.py NACHRUESTEN) – einmal je Sitzung geprüft. */
 function nachruesten(): void {
     if (!empty($_SESSION['nachgeruestet'])) return;
-    [$n] = sql([["SELECT count(*) FROM pragma_table_info('eingang') WHERE name = 'projekt'", []]]);
-    if (!(int)$n[0][0]) sql([['ALTER TABLE eingang ADD COLUMN projekt TEXT', []]]);
+    foreach ([['eingang', 'projekt', 'ALTER TABLE eingang ADD COLUMN projekt TEXT'],
+        ['benutzer', 'totp_letzt', 'ALTER TABLE benutzer ADD COLUMN totp_letzt INTEGER NOT NULL DEFAULT 0'],
+        ['benutzer', 'code_hash', 'ALTER TABLE benutzer ADD COLUMN code_hash TEXT'],
+        ['benutzer', 'code_bis', 'ALTER TABLE benutzer ADD COLUMN code_bis TEXT'],
+        ['benutzer', 'sitzung_nr', 'ALTER TABLE benutzer ADD COLUMN sitzung_nr INTEGER NOT NULL DEFAULT 0'],
+        ['benutzer', 'eingerichtet_utc', 'ALTER TABLE benutzer ADD COLUMN eingerichtet_utc TEXT'],
+        ['benutzer', 'angemeldet_utc', 'ALTER TABLE benutzer ADD COLUMN angemeldet_utc TEXT'],
+    ] as [$tabelle, $spalte, $anw]) {
+        [$n] = sql([["SELECT count(*) FROM pragma_table_info('$tabelle') WHERE name = ?", [$spalte]]]);
+        if ($tabelle === 'benutzer' && !(int)sql([["SELECT count(*) FROM sqlite_master WHERE name = 'benutzer'", []]])[0][0][0]) continue;
+        if (!(int)$n[0][0]) sql([[$anw, []]]);
+    }
     $_SESSION['nachgeruestet'] = true;
 }
 

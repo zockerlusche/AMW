@@ -19,6 +19,7 @@ if (konfig_laden() === null || ($_SESSION['wz']['schritt'] ?? 0) === 4) {
 }
 
 $hinweis = '';
+try { nachruesten(); } catch (Throwable $x) {}                // ältere Speicher: Spalten für Benutzer ergänzen (einmal je Sitzung)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!herkunft_ok()) {
         $hinweis = 'Anfrage abgewiesen (Herkunft) – bitte die Seite direkt über https://' . ($_SERVER['HTTP_HOST'] ?? '') . ' öffnen.';
