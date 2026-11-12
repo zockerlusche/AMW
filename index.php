@@ -100,7 +100,7 @@ if ($frei && !empty($frei['geheim'])):                   // Schritt 3: zweiten F
   <input type="hidden" name="schritt" value="passwort"><?= $csrf ?>
   <button type="submit">Weiter · Next</button>
 <?php elseif ($erstes):                                  // Schritt 1: Name und Freischalt-Code ?>
-  <p><b>Erstes Anmelden · Schritt 1 von 3</b> · First sign-in · Step 1 of 3</p>
+  <p><b>Neue Anmeldung · Schritt 1 von 3</b> · First sign-in · Step 1 of 3</p>
   <p class="leise">Den Freischalt-Code hat dir ein Admin persönlich gegeben. Er gilt nur einmal und nur kurz.</p>
   <label>Benutzer · User<input name="benutzer" autocomplete="username" required autofocus></label>
   <label>Freischalt-Code · Activation code<input name="freischaltcode" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" required></label>
@@ -127,6 +127,6 @@ if ($frei && !empty($frei['geheim'])):                   // Schritt 3: zweiten F
   <label>Zahl aus der App · Authenticator code<input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"></label>
   <?= $csrf ?>
   <button type="submit">Anmelden · Sign in</button>
-  <p><a href="?erstes=1">Erstes Anmelden mit Freischalt-Code · First sign-in with activation code</a></p>
+  <p><a href="?erstes=1">Neue Anmeldung · First sign-in</a></p>
 <?php endif;
 seite_ende();
