@@ -153,6 +153,13 @@ class Nachrichten(unittest.TestCase):
         self.assertEqual({x["projekt"] for x in d["gesendet"]}, {uid["P"], uid["Q"]})
         self.assertEqual(d["zaehler"]["eingang_offen"], sum(workbench.daten_nachrichten(self.con, x)["zaehler"]["eingang_offen"] for x in (self.pid, p2)))
         self.assertIn("aus Q", [x["kurz"] for x in d["eingang"]])
+        start = workbench.daten_start(self.con, self.pid)["zaehler"]                            # Menü zählt dasselbe wie der Eingang
+        self.assertEqual(start["nachrichten"], d["zaehler"]["eingang_offen"])
+        self.assertEqual(start["an_dich"], workbench.daten_nachrichten(self.con, self.pid)["zaehler"]["eingang_offen"])
+        with db.schreiben(self.con):                                                            # ältere Info ohne Bezug zählt nicht mehr
+            self.con.execute("UPDATE nachricht SET zeit_utc = '2020-01-01T00:00:00Z' WHERE kurz = 'aus Q'")
+        self.assertEqual(workbench.daten_start(self.con, p2)["zaehler"]["an_dich"], 0)
+        self.assertEqual(workbench.daten_nachrichten(self.con, p2)["zaehler"]["eingang_offen"], 0)
         self.assertEqual(workbench.daten_nachrichten(self.con, self.pid)["gesendet"][0]["projekt"], uid["P"])
 
 

@@ -167,6 +167,7 @@ class GanzerWeg(unittest.TestCase):
         self.assertEqual(sorted((x["kurz"], x["projekt"]) for x in d["gesendet"]), [("in P", uid["P"]), ("in Q", uid["Q"])])
         self.assertEqual([(x["kurz"], x["projekt"]) for x in d["eingang"]], [("Antwort aus Q", uid["Q"])])
         self.assertEqual(d["zaehler"]["eingang_offen"], 1)
+        self.assertEqual(self.hole("/api/start")["zaehler"]["nachrichten"], 1)                  # Menü: alle Projekte des Benutzers
         import urllib.request
         rq = urllib.request.Request(self.basis + "api.php?weg=/api/nachricht&projekt=" + uid["Q"], method="POST",
                                     data=json.dumps({"an": "QL", "art": "info", "kurz": "unterwegs nach Q"}).encode(),

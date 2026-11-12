@@ -378,6 +378,14 @@ try {
                         'pc_frisch' => $gesehen !== null && strtotime($gesehen) > time() - 420];
         $offeneFragen = count(array_filter($unterwegs, fn($w) => str_starts_with($w, '/api/frage/')));
         if (isset($d['zaehler']['fragen'])) $d['zaehler']['fragen'] = max(0, $d['zaehler']['fragen'] - $offeneFragen);
+        if ($uids) {                                       // Menü „Nachrichten“: offene an dich aus allen Projekten des Benutzers
+            $summe = 0;
+            foreach ($uids as $u) {
+                $z = sql([['SELECT inhalt FROM ansicht WHERE weg = ?', ["$u:/api/start"]]])[0][0] ?? null;
+                $summe += $z ? (int)((json_decode($z[0], true) ?: [])['zaehler']['an_dich'] ?? 0) : 0;
+            }
+            $d['zaehler']['nachrichten'] = $summe;
+        }
         $gelesen = [];                                    // schon als gelesen markiert, aber noch im Briefkasten
         foreach ($offen as [$w, $dat]) if ($w === '/api/gelesen') $gelesen = array_merge($gelesen, json_decode($dat, true)['ids'] ?? []);
         if (isset($d['an_dich'])) $d['an_dich'] = array_values(array_filter($d['an_dich'], fn($n) => !in_array($n['id'], $gelesen, true)));

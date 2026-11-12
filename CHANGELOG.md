@@ -9,6 +9,8 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   Jede Zeile trägt ihr Projekt (Farbpunkt), dazu der Filter „Alle Projekte“ / ein Projekt.
 - Antworten, Nachfassen, Erledigt und Zurückziehen gehen an das Projekt der Nachricht; ein Klick auf den Bezug einer
   Nachricht aus einem anderen Projekt wechselt dorthin.
+- **Eine Zahl für „an dich“:** Menü „Nachrichten“ und Reiter „Eingang“ zählen dasselbe – offene Nachrichten an dich aus
+  allen Projekten (online: deinen), ohne ältere Infos ohne Bezug und ohne Nachträge zu offenen Fragen.
 
 ## 1.77.0 – 12.11.2026 · Nachrichten: Startseite aufgeräumt, Fragen als Reiter
 - **Startseite:** statt der langen Liste „Nachrichten an dich“ eine Karte mit den drei neuesten und dem Sprung in den

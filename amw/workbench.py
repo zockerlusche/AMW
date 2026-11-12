@@ -293,6 +293,7 @@ def daten_start(con, pid):
         " (SELECT count(*) FROM release WHERE projekt_id = :p) AS releases", {"p": pid}).fetchone())
     frei, gesamt = speicher_frei_gb()
     zaehler["an_dich"] = sum(1 for n in an_dich if not n["abgelegt"])
+    zaehler["nachrichten"] = sum(an_dich_zahl(con, p) for (p,) in con.execute("SELECT id FROM projekt").fetchall())   # Menü: alle Projekte
     from . import planung
     try:
         planung_wartet = planung.freigaben_offen(con, pid)
@@ -453,6 +454,17 @@ def sprache_vorgabe():
         return "auto"
 
 
+def an_dich_zahl(con, pid):
+    """Offene Nachrichten an den Menschen, wie Startseite, Menü und Eingang sie zählen: ohne Nachträge zu offenen Fragen
+    (die zeigt die Frage) und ohne ältere Infos ohne Bezug (eingeklappt, zählen nicht mehr)."""
+    return con.execute(
+        "SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE n.projekt_id = ? AND e.agent = ?"
+        " AND e.status != 'erledigt' AND NOT (n.art = 'info' AND COALESCE(n.bis, '') = '' AND n.zeit_utc < ?)"
+        " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v JOIN frage f ON f.id = v.frage_id"
+        "   WHERE f.status = 'offen' AND f.geparkt_utc IS NULL AND v.nachricht_id IS NOT NULL)",
+        (pid, kern.ENTWICKLER, _ablage_grenze(con, pid))).fetchone()[0]
+
+
 def daten_nachrichten(con, pid, grenze=150):
     """Seite „Nachrichten“: Eingang (an den Menschen) und Gesendet (vom Menschen) mit Stand je Empfänger; Bezug aus Aufgabe,
     Spalte bezug (Schema 29) als Kürzel + Titel; beantwortet = es gibt eine Antwort darauf (antwort_auf)."""
@@ -495,7 +507,7 @@ def daten_nachrichten(con, pid, grenze=150):
                          " WHERE n.projekt_id = ? AND e.agent = ? ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall():
         eingang.append({**{k: n[k] for k in ("id", "zeit_utc", "von", "art", "kurz", "text", "antwort_auf", "stand")}, "bezug": bezug(n), "projekt": puid})
     return {"eingang": eingang, "gesendet": gesendet,
-            "zaehler": {"eingang_offen": sum(1 for x in eingang if x["stand"] != "erledigt")}}
+            "zaehler": {"eingang_offen": an_dich_zahl(con, pid)}}
 
 
 def daten_nachrichten_alle(con, grenze=300):

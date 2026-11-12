@@ -980,7 +980,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
     <div id="projektwahl"></div>
     <div class="gruppe" data-t="g_fuerdich"></div>
     <a data-sicht="start"><span class="sym">◉</span><span data-t="n_start"></span></a>
-    <a data-sicht="nachrichten" class="im-mehr"><span class="sym">✉</span><span data-t="n_nachrichten"></span> <span class="zahl" data-zahl="an_dich"></span></a>
+    <a data-sicht="nachrichten" class="im-mehr"><span class="sym">✉</span><span data-t="n_nachrichten"></span> <span class="zahl" data-zahl="nachrichten"></span></a>
     <a data-sicht="fragen"><span class="sym">?</span><span data-t="n_fragen"></span> <span class="zahl" data-zahl="fragen"></span></a>
     <div class="gruppe" data-t="g_arbeit"></div>
     <a data-sicht="planung"><span class="sym">◇</span><span data-t="n_planung" data-t-lang></span><span data-t="n_planung_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="freigaben"></span></a>
@@ -2694,7 +2694,7 @@ function nrReiterLeiste(aktiv, eingangOffen, weiter) {
     if (k === "fragen") { zeige("fragen"); return; }
     try { localStorage.setItem(ablage("amw-nr"), k); } catch (e) {}
     if (zustand.sicht === "nachrichten" && weiter) weiter(k); else zeige("nachrichten"); } }, t("nr_" + k), n ? el("span", { class: "z" }, n) : null);
-  return el("div", { class: "reiter nr-reiter" }, knopf("eingang", eingangOffen ?? z.an_dich), knopf("gesendet"), knopf("fragen", z.fragen));
+  return el("div", { class: "reiter nr-reiter" }, knopf("eingang", eingangOffen ?? z.nachrichten), knopf("gesendet"), knopf("fragen", z.fragen));
 }
 /* Nachrichten an einer Stelle (Stufe N1): Eingang, Gesendet mit Stand je Empfänger, Gespräch rechts, Bezug als Chip */
 async function sichtNachrichten() {
