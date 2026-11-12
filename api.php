@@ -135,7 +135,7 @@ try {
             antwort(403, ['fehler' => 'Bildschirm freigeben darf online nur ein System-Admin – belegen geht für alle.']);
         }
         if (!$frage && !$parken && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter', '/api/schirm',
-                '/api/agent/entfernen', '/api/agent/wiederaufnehmen', '/api/agent/loeschen',
+                '/api/agent/entfernen', '/api/agent/wiederaufnehmen', '/api/agent/loeschen', '/api/nachricht/zurueckziehen',
                 '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web',
                 '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko',
                 '/api/plan/rueckblick', '/api/plan/uebernehmen', '/api/plan/check',
@@ -296,6 +296,16 @@ try {
         $d['beschluesse'] = array_values(array_filter($d['beschluesse'], fn($b) => $hat($b['stichwort'], $b['regel'])));
         $d['wortlaut'] = array_values(array_filter($d['wortlaut'], fn($w) => $hat($w['text'])));
         $d['regeln'] = array_values(array_filter($d['regeln'], fn($r) => $hat($r['text'])));
+    } elseif ($pfad === '/api/nachrichten') {          // Geschriebenes im Briefkasten steht schon im Gesendet („wird übertragen …“)
+        $i = 0;
+        foreach ($offen as [$w, $dat]) {
+            if ($w !== '/api/nachricht') continue;
+            $x = json_decode($dat, true) ?: [];
+            array_unshift($d['gesendet'], ['id' => -(++$i), 'zeit_utc' => gmdate('Y-m-d\TH:i:s\Z'), 'art' => (string)($x['art'] ?? 'auftrag'),
+                'kurz' => (string)($x['kurz'] ?? ''), 'text' => $x['text'] ?? null, 'antwort_auf' => null, 'benutzer' => null, 'bezug' => null,
+                'empfaenger' => array_map(fn($a) => ['agent' => trim($a), 'stand' => 'unterwegs'], explode(',', (string)($x['an'] ?? ''))),
+                'antworten' => [], 'zurueckgezogen' => false, 'zurueckziehbar' => false, 'unterwegs' => true]);
+        }
     } elseif ($pfad === '/api/fragen') {
         // Antworten im Briefkasten: beantwortet → ausblenden; Rückfrage → als Blase „unterwegs“ an den Verlauf hängen
         // Parken im Briefkasten: aus der offenen Liste nehmen bzw. (geparkte zeigen) schon als geparkt/offen kennzeichnen
