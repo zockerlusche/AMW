@@ -204,6 +204,7 @@ testen“ (erreichbar über https, läuft dort eine AMW-Seite?). Schlüssel blei
 | `speicher_reserve_gb` | 3 | so viel Arbeitsspeicher bleibt frei, bevor ein schwerer Lauf startet (0–64) |
 | `platte_gelb_prozent` | 15 | ist auf einem Laufwerk mit Datenbank oder Projektordner weniger frei, warnt die AMW (Leitstand, Nachricht an Lead und Mensch) |
 | `platte_rot_prozent` | 5 | darunter warnt sie dringend |
+| `archiv_ordner` | leer | dorthin verschiebt der Mensch Aufräumvorschläge mit einem Klick (Einstellungen › Dieser PC); nie löschen, Protokoll `archiv-protokoll.txt` im Ordner |
 | `sicherungen_behalten` | 10 | so viele neueste Sicherungen bleiben, dazu je veröffentlichter Version die letzte davor; ältere erscheinen als Aufräumvorschlag (gelöscht wird nichts) |
 | `dauer_ab_gb` | 4 | Programme außerhalb der Warteschlange, die länger als 10 Minuten mindestens so viel Arbeitsspeicher belegen, zeigt der Leitstand unter „Rechner“ (0 = aus) |
 | `lauf_hook` | an | schwere Befehle abweisen und über die Warteschlange schicken (Hook in den Agenten-Ordnern) |

@@ -41,6 +41,17 @@ def _pfad(v):
     return v
 
 
+def _ordner_oder_leer(v):
+    v = str(v or "").strip()
+    if not v:
+        return ""
+    if not os.path.isabs(v):
+        raise ValueError("vollständiger Pfad zu einem Ordner, z. B. E:\\Archiv\\amw")
+    if not os.path.isdir(v):
+        raise ValueError(f"Ordner gibt es nicht: {v}")
+    return v
+
+
 def _wahr(v):
     if isinstance(v, bool):
         return v
@@ -129,6 +140,7 @@ FELDER = {
     "platte_gelb_prozent": (15.0, _dezimal(0, 100)),   # Laufwerk: darunter Warnung …
     "platte_rot_prozent": (5.0, _dezimal(0, 100)),     # … und darunter dringend
     "sicherungen_behalten": (10, _ganz(1, 1000)),      # so viele neueste Sicherungen bleiben; ältere sind Aufräumvorschläge
+    "archiv_ordner": ("", _ordner_oder_leer),           # dorthin verschiebt der Mensch Aufräumvorschläge (leer = kein Knopf)
     "dauer_ab_gb": (4.0, _dezimal(0, 256)),   # Programme außerhalb der Warteschlange ab so viel Arbeitsspeicher zeigen (0 = aus)
     # schwere Befehle (Test-Suite, Build …) abweisen und über die Warteschlange schicken (Hook in den Agenten-Ordnern)
     "lauf_hook": (True, _wahr),               # schwere Läufe ohne Fenster/Grafikkarte zugleich (Lauf-Schlange, Spur CPU)

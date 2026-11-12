@@ -321,7 +321,8 @@ def _ruhig(inhalt):
     r = d.get("rechner")
     if isinstance(r, dict) and "laufwerke" in r:                      # Einstellungen: Laufwerke und Aufräumvorschläge
         d["rechner"] = {"laufwerke": stufen(r.get("laufwerke")),
-                        "aufraeumen": [x.get("name") for x in (r.get("aufraeumen") or {}).get("sicherungen", [])]}
+                        "aufraeumen": [x.get("name") for x in (r.get("aufraeumen") or {}).get("sicherungen", [])],
+                        "archiv": r.get("archiv")}
     elif isinstance(r, dict):                                         # Startseite: Auslastung des Rechners
         d["rechner"] = {**{k: v for k, v in r.items() if k not in ("frei_gb", "dauer_gb", "dauer", "platte")},
                         "dauer": namen(r.get("dauer")), "platte": stufen(r.get("platte"))}

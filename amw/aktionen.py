@@ -137,6 +137,18 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         if kanal != "seite":
             raise Ungueltig("Ein neues Projekt legst du am PC an")
         return projekt_neu(con, daten)
+    if weg == "/api/archivieren":                    # Aufräumvorschläge ins Archiv verschieben – der Mensch, nie löschen
+        from . import platte
+        namen = daten.get("namen") or []
+        if not isinstance(namen, list) or not namen or not all(isinstance(n, str) for n in namen):
+            raise Ungueltig("Welche Sicherungen?")
+        try:
+            erg = platte.archivieren(con, namen[:500])
+        except kern.AmwFehler as e:
+            raise Ungueltig(str(e)) from None
+        except OSError as e:
+            raise Ungueltig(f"Verschieben ging nicht: {e}") from None
+        return {"verschoben": len(erg), "ziel": os.path.dirname(erg[0][1]) if erg else ""}
     if weg == "/api/push/probe":                     # nur am PC: verschickt wirklich
         if kanal != "seite":
             raise Ungueltig("Die Probe geht nur am PC")

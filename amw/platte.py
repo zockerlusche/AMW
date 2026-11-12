@@ -130,6 +130,37 @@ def vorschlaege(con):
     return {"sicherungen": liste, "bytes": sum(x["bytes"] for x in liste), "ordner": os.path.dirname(db.db_pfad())}
 
 
+def archivieren(con, namen):
+    """Verschiebt die genannten Aufräumvorschläge (alte Sicherungen samt Dokumente-Ablage) in den Archiv-Ordner dieses
+    PCs – nur, was gerade in der Vorschlagsliste steht; gelöscht wird nichts. Jede Verschiebung steht im Protokoll
+    archiv-protokoll.txt im Archiv-Ordner. Rückgabe: [(alt, neu), …]."""
+    ziel = einstellungen.wert("archiv_ordner")
+    if not ziel or not os.path.isdir(ziel):
+        raise kern.AmwFehler("Kein Archiv-Ordner eingestellt (Einstellungen › Dieser PC)")
+    erlaubt = {x["name"] for x in vorschlaege(con)["sicherungen"]}
+    falsch = [n for n in namen if n not in erlaubt]
+    if falsch:
+        raise kern.AmwFehler(f"Nicht in den Aufräumvorschlägen: {', '.join(falsch)}")
+    quelle, aus = os.path.dirname(db.db_pfad()), []
+    zeit = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    for n in namen:
+        for teil in (n, os.path.splitext(n)[0] + "-dokumente"):
+            alt = os.path.join(quelle, teil)
+            if not os.path.exists(alt):
+                continue
+            neu = os.path.join(ziel, teil)
+            i = 2
+            while os.path.exists(neu):                       # nie überschreiben
+                stamm, endung = os.path.splitext(teil) if os.path.isfile(alt) else (teil, "")
+                neu = os.path.join(ziel, f"{stamm}-{i}{endung}")
+                i += 1
+            shutil.move(alt, neu)
+            aus.append((alt, neu))
+            with open(os.path.join(ziel, "archiv-protokoll.txt"), "a", encoding="utf-8") as f:
+                f.write(f"{zeit} | {alt} → {neu}\n")
+    return aus
+
+
 # --- Wache: melden, wenn ein Laufwerk knapp wird --------------------------------------------------------------------
 
 def _merk_datei():

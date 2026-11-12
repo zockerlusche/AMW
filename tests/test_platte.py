@@ -124,5 +124,38 @@ class Sicherungen(Grund):
         self.assertTrue(all(os.path.exists(os.path.join(self.daten, x["name"])) for x in liste))  # nichts gelöscht, nichts verschoben
 
 
+class Archiv(Grund):
+    def test_vorschlaege_ins_archiv_verschieben_nie_loeschen(self):
+        self.sicherung("sicherung-2026-11-01-0800.db", 1, dokumente_mb=1)
+        self.sicherung("sicherung-2026-11-02-0800.db", 1)
+        self.sicherung("sicherung-2026-11-09-0800.db", 1)
+        einstellungen.speichern({"sicherungen_behalten": 1})
+        with self.assertRaises(kern.AmwFehler):                                                  # ohne Archiv-Ordner: nichts
+            platte.archivieren(self.con, ["sicherung-2026-11-01-0800.db"])
+        archiv = os.path.join(self.ordner.name, "archiv")
+        os.makedirs(archiv)
+        with self.assertRaises(ValueError):
+            einstellungen.speichern({"archiv_ordner": "relativ/pfad"})
+        einstellungen.speichern({"archiv_ordner": archiv})
+        with self.assertRaises(kern.AmwFehler):                                                  # nur, was in den Vorschlägen steht
+            platte.archivieren(self.con, ["sicherung-2026-11-09-0800.db"])
+        with self.assertRaises(kern.AmwFehler):
+            platte.archivieren(self.con, ["..\amw.db"])
+        erg = platte.archivieren(self.con, ["sicherung-2026-11-01-0800.db"])
+        self.assertEqual(len(erg), 2)                                                           # Datei und Dokumente-Ablage
+        self.assertTrue(os.path.exists(os.path.join(archiv, "sicherung-2026-11-01-0800.db")))
+        self.assertTrue(os.path.isdir(os.path.join(archiv, "sicherung-2026-11-01-0800-dokumente")))
+        self.assertFalse(os.path.exists(os.path.join(self.daten, "sicherung-2026-11-01-0800.db")))
+        protokoll = open(os.path.join(archiv, "archiv-protokoll.txt"), encoding="utf-8").read()
+        self.assertIn("sicherung-2026-11-01-0800.db → ", protokoll)
+        self.sicherung("sicherung-2026-11-01-0800.db", 1)                                       # gleicher Name noch einmal: nie überschreiben
+        platte.archivieren(self.con, ["sicherung-2026-11-01-0800.db"])
+        self.assertTrue(os.path.exists(os.path.join(archiv, "sicherung-2026-11-01-0800-2.db")))
+        self.assertTrue(os.path.exists(os.path.join(self.daten, "sicherung-2026-11-09-0800.db")))   # die neueste bleibt
+        from amw import aktionen
+        aus = aktionen.ausfuehren(self.con, self.pid, "/api/archivieren", {"namen": ["sicherung-2026-11-02-0800.db"]}, "seite")
+        self.assertEqual(aus["verschoben"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()
