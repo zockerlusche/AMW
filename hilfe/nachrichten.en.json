@@ -11,6 +11,11 @@
    "bilder": []
   },
   {
+   "titel": "Write from anywhere",
+   "text": "Wherever you look at something – topic, milestone, decision, run, review – there is “✉ Message about this”: the reference is filled in and a recipient suggested (you can change it). Topics and milestones show “Messages about this” below as a small conversation. For tasks and documents you keep writing in their own field – that carries the reference too.",
+   "bilder": []
+  },
+  {
    "titel": "Follow the status",
    "text": "“Sent” tab: per recipient sent › notified › read › done. Hover over a step to see the time.",
    "bilder": []
@@ -22,14 +27,43 @@
   },
   {
    "titel": "Work through the inbox",
-   "text": "“Inbox” tab: unread is bold. “Reply” writes back, the reference (e.g. the task) comes along; “Done” removes it from the count in the menu.",
+   "text": "“Inbox” tab: unread is bold. “Reply” writes back, the reference comes along; “Done” removes it from the count in the menu.",
+   "bilder": []
+  },
+  {
+   "titel": "Withdraw",
+   "text": "Sent › pick a message › “Withdraw” – as long as **no** recipient has read or done it. It disappears for every recipient and stays with you as “withdrawn”.",
    "bilder": []
   }
  ],
  "werte": [],
- "fehler": [],
- "danach": [],
- "fragen": [],
+ "fehler": [
+  [
+   "A message stays at “sent” for a long time",
+   "The agent is not running, or it is a chat lead that only reads on its own rhythm. The start page shows whether it is running."
+  ],
+  [
+   "“Withdraw” is greyed out",
+   "A recipient has already read it. Send a new message (“please ignore”)."
+  ],
+  [
+   "The reference is missing",
+   "Messages via “+ Write” in the menu are general; write via “✉ Message about this” on the item and it comes along."
+  ]
+ ],
+ "danach": [
+  "You keep answering the agents' questions under “Questions” (the tab there takes you to it)."
+ ],
+ "fragen": [
+  [
+   "What do the steps mean?",
+   "**sent** – the message is in AMW. **notified** – the service has woken the agent (chat leads read on their next round). **read** – the agent has fetched it with `amw lesen`. **done** – it has dealt with it. **being sent …** – online only, until the PC has taken it over."
+  ],
+  [
+   "How does a reply end up in the right conversation?",
+   "When an agent writes only to you, its reply attaches itself to your last unanswered message to it (up to 2 days old) and inherits its reference."
+  ]
+ ],
  "thema": "nachrichten",
  "sprache": "en"
 }
