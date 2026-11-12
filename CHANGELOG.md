@@ -9,7 +9,7 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   neuer Benutzer hat keine Rechte, bis du Rolle und Projekte vergibst.
 - **Freischalt-Code statt Mail:** „Freischalten“ zeigt einmal einen Code aus 16 Zeichen (24 Stunden gültig), den du
   persönlich weitergibst. Online steht nur ein Hash davon, auf dem PC gar nichts. Auch als `amw benutzer freischalten NAME`.
-- **Erstes Anmelden in drei Schritten:** Name und Code, eigenes Passwort (mindestens 12 Zeichen), zweiter Faktor per
+- **Neue Anmeldung in drei Schritten:** Name und Code, eigenes Passwort (mindestens 12 Zeichen), zweiter Faktor per
   QR-Code. Erst mit der ersten Zahl aus der App gilt der Code als benutzt – alles auf einmal; bricht jemand vorher ab,
   gilt der Code weiter. Zwei mit demselben Code: nur der erste kommt durch.
 - **Danach** meldet sich jeder mit Name, Passwort und Zahl aus der App an. Bis zur Freigabe sieht er nur „Dein Zugang

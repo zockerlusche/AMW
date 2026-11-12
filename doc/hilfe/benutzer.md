@@ -10,7 +10,7 @@ Mehrere Menschen können sich auf der Online-Seite anmelden – jeder mit eigene
 ## Schritte
 1. **Anlegen** Einstellungen › Benutzer der Online-Seite › Name eintragen › „Anlegen“. Der Name ist das, womit er sich anmeldet (ohne Leerzeichen).
 2. **Freischalten** Beim Benutzer „Freischalten“ wählen. Die AMW zeigt einen Freischalt-Code (16 Zeichen, z. B. `K7QM-2XRD-9WFH-T4PB`) – genau einmal, gültig 24 Stunden. Gib ihn dem Benutzer persönlich weiter, mündlich oder im Chat. Er steht nirgends sonst.
-3. **Erstes Anmelden** Der Benutzer öffnet die Online-Seite, wählt „Erstes Anmelden mit Freischalt-Code“, gibt Name und Code ein, setzt sein Passwort (mindestens 12 Zeichen) und scannt den QR-Code mit seiner App. Mit der ersten Zahl aus der App ist sein Zugang eingerichtet.
+3. **Neue Anmeldung** Der Benutzer öffnet die Online-Seite, wählt „Neue Anmeldung“, gibt Name und Code ein, setzt sein Passwort (mindestens 12 Zeichen) und scannt den QR-Code mit seiner App. Mit der ersten Zahl aus der App ist sein Zugang eingerichtet.
 4. **Freigeben** Du bekommst die Meldung „Neuer Benutzer … wartet auf Freigabe“ (auch als Push). Bis dahin sieht er nur „Dein Zugang wird geprüft“. Wähle seine Rolle und die Projekte und speichere.
 
 ## Rollen

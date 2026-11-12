@@ -10,7 +10,7 @@ Several people can sign in on the online site – each with their own password a
 ## Steps
 1. **Add** Settings › Users of the online site › enter a name › “Add”. The name is what they sign in with (no spaces).
 2. **Activate** Choose “Activate” for the user. The AMW shows an activation code (16 characters, e.g. `K7QM-2XRD-9WFH-T4PB`) – exactly once, valid for 24 hours. Give it to the user in person, spoken or in a chat. It is stored nowhere else.
-3. **First sign-in** The user opens the online site, chooses “First sign-in with activation code”, enters name and code, sets a password (at least 12 characters) and scans the QR code with their app. With the first number from the app their access is set up.
+3. **First sign-in** The user opens the online site, chooses “First sign-in”, enters name and code, sets a password (at least 12 characters) and scans the QR code with their app. With the first number from the app their access is set up.
 4. **Approve** You get the message “New user … awaiting approval” (also as a push). Until then they only see “Your access is being reviewed”. Choose their role and projects and save.
 
 ## Roles

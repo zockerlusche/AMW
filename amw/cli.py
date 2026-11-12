@@ -1051,7 +1051,7 @@ def cmd_benutzer(a, con):
         code, bis = benutzer.freischalten(con, von, a.name, abgleich.speicher_aus_zugang(), a.stunden)
         print(f"Freischalt-Code für {a.name}: {code}")
         print(f"gültig bis {bis} (UTC), nur einmal. Gib ihn {a.name} persönlich weiter – er steht nirgends sonst."
-              " Damit setzt er auf der Online-Seite unter „Erstes Anmelden“ sein Passwort und den zweiten Faktor.")
+              " Damit setzt er auf der Online-Seite unter „Neue Anmeldung“ sein Passwort und den zweiten Faktor.")
     elif a.aktion in ("aendern", "sperren", "entsperren"):
         if not a.name:
             raise kern.AmwFehler(f"amw benutzer {a.aktion} <name>")
