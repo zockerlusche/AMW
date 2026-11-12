@@ -1,21 +1,21 @@
 # Rhythm for a lead working as a chat
 
-A lead working as a chat is not woken by the AMW – they only see news when they look again. So that the project does not wait, the lead sets a reminder for themselves: a new one at the end of every check-in.
+A lead working as a chat is not notified by the AMW – they only see news when they look again. So that the project does not wait, the lead creates a scheduled task for themselves: a new one at the end of every check-in.
 
 ## You need
 - A lead with the working mode “Chat” (Settings › Agents).
-- In their chat app, a way to be woken at a given time (a one-off scheduled task or reminder).
+- In their chat app, scheduled tasks (in the Claude app: “Scheduled tasks”) – one-off, at a given time.
 - The project's interval: Settings › Project › “Rhythm for the lead (minutes)”, default 120.
 
 ## Steps
 1. **Set the interval** Enter the interval under Settings › Project. It says how often the lead looks at the latest.
-2. **Create the first reminder** In their chat app, the lead creates a one-off reminder – for now plus the interval, with a short neutral text (such as “check the AMW”). What to do is in the AMW, not in the reminder.
-3. **At the end of every check-in** Look, work through it – and as the last thing create a **new** one-off reminder for the next check-in.
-4. **Tidy up** Leave expired reminders or delete them.
+2. **Create the first scheduled task** In their chat app, the lead creates a one-off scheduled task – for now plus the interval, with a short neutral text (such as “check the AMW”). What to do is in the AMW, not in the scheduled task.
+3. **At the end of every check-in** Look, work through it – and as the last thing create a **new** one-off scheduled task for the next check-in.
+4. **Tidy up** Leave expired scheduled tasks or delete them.
 
 ## Common problems
-- **The check-ins stop** – An existing reminder was changed (time, text, name, on/off or “recurring”). Every change to an existing reminder requires a click by the human; until then nothing happens. Remedy: delete it and create a new one.
-- **The reminder was switched to “recurring”** – That is a change too. Always use one-off reminders, a new one each time.
+- **The check-ins stop** – An existing scheduled task was changed (time, text, name, on/off or “recurring”). Every change to an existing scheduled task requires a click by the human; until then nothing happens. Remedy: delete it and create a new one.
+- **The scheduled task was switched to “recurring”** – That is a change too. Always use one-off scheduled tasks, a new one each time.
 - **The lead does not react in between** – That is intended: between two check-ins the human nudges them when something is urgent.
 
 ## Next
@@ -23,8 +23,8 @@ A lead working as a chat is not woken by the AMW – they only see news when the
 - Agents working in the terminal do not need this – the AMW notifies them.
 
 ## Questions
-### Why not a recurring reminder?
-What was verified: creating and deleting work without a prompt, any change to an existing reminder does not. A one-off reminder, created anew each time, needs no click by the human.
+### Why not a recurring scheduled task?
+What was verified: creating and deleting work without a prompt, any change to an existing scheduled task does not. A one-off scheduled task, created anew each time, needs no click by the human.
 
-### What if the lead forgets the new reminder?
+### What if the lead forgets the new scheduled task?
 Then the next round does not happen. The human nudges them; that is why the rule appears verbatim in the lead's start information.

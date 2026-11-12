@@ -1,5 +1,5 @@
 {
-  "nummer": 2,
+  "nummer": 3,
   "name": "Base rule set",
   "gruppen": {
     "A": "Work and evidence",
@@ -75,8 +75,8 @@
      "text": "Runs that open windows only when the human has released the screen.",
      "warum": "A run with a window takes over mouse and keyboard. If someone is working at the machine, that disturbs both."},
     {"nr": "W4", "gruppe": "W", "wahlweise": true, "chat_lead": true, "titel": "Rhythm for a lead working as a chat",
-     "text": "At the end of every check-in, create a new one-off reminder (short neutral text – the content is in the AMW). Leave expired reminders or delete them. Never change an existing reminder and never switch it to “recurring” – delete it and create a new one instead. The interval is set by the project (default every 2 hours; in between the human nudges when needed).",
-     "erfahrung": "Verified: creating and deleting a reminder works without a prompt; every change to an existing one requires a click by the human – the check-ins then stop until someone clicks."}
+     "text": "At the end of every check-in, create a new one-off scheduled task (short neutral text – the content is in the AMW). Leave expired scheduled tasks or delete them. Never change an existing scheduled task and never switch it to “recurring” – delete it and create a new one instead. The interval is set by the project (default every 2 hours; in between the human nudges when needed).",
+     "erfahrung": "Verified: creating and deleting a scheduled task works without a prompt; every change to an existing one requires a click by the human – the check-ins then stop until someone clicks."}
   ],
   "dod": [
     "Acceptance criteria met",

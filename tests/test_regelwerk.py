@@ -29,8 +29,8 @@ class Vorlage(unittest.TestCase):
     def test_vorlage_nennt_keine_werkzeuge_und_keine_namen(self):
         for sprache in regelwerk.SPRACHEN:
             text = open(os.path.join(regelwerk.ORDNER, f"grundregelwerk.{sprache}.json"), encoding="utf-8").read().lower()
-            for wort in ("claude", "cowork", "schedule"):
-                self.assertNotIn(wort, text, sprache)
+            for wort in ("claude", "cowork", r"schedule"):       # „scheduled task“ ist das allgemeine Wort, kein Werkzeug
+                self.assertNotRegex(text, wort, sprache)
 
 
 class Grund(unittest.TestCase):
@@ -53,11 +53,11 @@ class Uebernahme(Grund):
         erg = regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER, lead_chat=True)
         regeln = self.regeln()
         self.assertEqual((erg["regeln"], len(regeln), erg["dod"]), (20, 20, True))
-        self.assertEqual([r["vorlage"] for r in regeln], [f"G{i}/2" for i in range(1, 20)] + ["W4/2"])
+        self.assertEqual([r["vorlage"] for r in regeln], [f"G{i}/3" for i in range(1, 20)] + ["W4/3"])
         self.assertEqual({r["beleg"] for r in regeln}, {f"B{erg['beschluss']}"})                # Regeln brauchen einen Beschluss als Quelle
         self.assertTrue(regeln[0]["text"].startswith("Versionen. Jede Auslieferung bekommt eine Version"))
         b = self.con.execute("SELECT stichwort, regel, quelle FROM beschluss WHERE id = ?", (erg["beschluss"],)).fetchone()
-        self.assertIn("Grund-Regelwerk 2 übernommen: G1, G2", b["regel"])
+        self.assertIn("Grund-Regelwerk 3 übernommen: G1, G2", b["regel"])
         self.assertEqual(planung.leitbild(self.con, self.pid)["dod"], regelwerk.vorlage("de")["dod"])
         with self.assertRaises(kern.AmwFehler):                                                 # nur beim Anlegen
             regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER)
@@ -65,7 +65,7 @@ class Uebernahme(Grund):
     def test_auswahl_eigener_wortlaut_und_sprache(self):
         regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER, auswahl=["W1", "G13", "G1"], texte={"G13": "  Keine   Geheimnisse – nirgends. "}, sprache="en")
         regeln = self.regeln()
-        self.assertEqual([(r["nr"], r["vorlage"]) for r in regeln], [(1, "G1/2"), (2, "G13/2"), (3, "W1/2")])   # Reihenfolge der Vorlage
+        self.assertEqual([(r["nr"], r["vorlage"]) for r in regeln], [(1, "G1/3"), (2, "G13/3"), (3, "W1/3")])   # Reihenfolge der Vorlage
         self.assertEqual(regeln[1]["text"], "Keine Geheimnisse – nirgends.")
         self.assertTrue(regeln[0]["text"].startswith("Versions. Every delivery"))
         for falsch in (["G99"], []):
@@ -97,7 +97,7 @@ class Uebernahme(Grund):
         with db.schreiben(self.con):
             neu = db.einfuegen(self.con, "projekt", name="Zwei", angelegt_utc=db.jetzt())
         self.assertEqual(wissen.regeln_uebernehmen(self.con, neu, self.pid), 2)
-        self.assertEqual([r[0] for r in self.con.execute("SELECT vorlage FROM regel WHERE projekt_id = ? ORDER BY nr", (neu,))], ["G1/2", "G2/2"])
+        self.assertEqual([r[0] for r in self.con.execute("SELECT vorlage FROM regel WHERE projekt_id = ? ORDER BY nr", (neu,))], ["G1/3", "G2/3"])
 
     def test_pflicht_kontext_takt_fuer_den_chat_lead_und_version(self):
         regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER, lead_chat=True)
@@ -122,7 +122,7 @@ class Anlegen(unittest.TestCase):
     def test_neues_projekt_mit_grund_regelwerk(self):
         schritte = assistent.schnell("Neu", lead="Chef", agenten=("A1",), hooks=False, ausgabe=lambda *a: None, lead_chat=True,
                                      regelwerk={"auswahl": None, "texte": {}, "sprache": "de"})
-        self.assertTrue(any("Grund-Regelwerk 2: 20 Regeln übernommen" in s and "Definition of Done" in s for s in schritte), schritte)
+        self.assertTrue(any("Grund-Regelwerk 3: 20 Regeln übernommen" in s and "Definition of Done" in s for s in schritte), schritte)
         self.assertTrue(any("Version 0.1.0 eingetragen" in s for s in schritte), schritte)
         con = db.verbinde()
         self.addCleanup(con.close)

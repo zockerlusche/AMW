@@ -10,6 +10,9 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   Dateiaustausch, Rhythmus, Stufe, Denkaufwand, Startinformationen, Name, benachrichtigen.
 - Die Nachricht an eine Sitzung beginnt mit „AMW-Benachrichtigung für …“.
 - Planungshinweise auf Englisch: milestone statt arc.
+- **Geplante Aufgabe statt Wecker:** Ein Lead, der als Chat arbeitet, legt sich am Ende jedes Durchgangs eine einmalige
+  geplante Aufgabe an – so heißt es in der Claude-App. Regel W4 und die Hilfe „Rhythmus für einen Lead, der als Chat
+  arbeitet“ (DE/EN) nennen es jetzt so; „Worte des Menschen“ statt „Wortlaut“ in G8 und G9. Grund-Regelwerk Fassung 3.
 - Befehle und Schalter bleiben unverändert (`amw bogen …`, `--bogen`, `--von`).
 
 ## 1.63.0 – 12.11.2026 · Mehrere Benutzer, erste Stufe

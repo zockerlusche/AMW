@@ -1,5 +1,5 @@
 {
-  "nummer": 2,
+  "nummer": 3,
   "name": "Grund-Regelwerk",
   "gruppen": {
     "A": "Arbeit und Nachweis",
@@ -30,10 +30,10 @@
      "text": "Erst messen oder nachsehen, dann sagen; eine Vermutung als Vermutung kennzeichnen; einen Irrtum ausdrücklich zurücknehmen.",
      "erfahrung": "Eine zu früh genommene Messung wurde als Befund gemeldet und musste zurückgenommen werden. Ein falscher Befund kostet mehr als ein fehlender."},
     {"nr": "G8", "gruppe": "B", "titel": "Erst nachsehen, dann fragen",
-     "text": "Eine Frage an den Menschen erst, wenn Beschlüsse, Regeln, Wortlaut und Code sie nicht beantworten – dann mit Optionen, Empfehlung und Grund.",
-     "warum": "Jede Frage kostet den Menschen Zeit. Was schon entschieden ist, steht in Beschlüssen, Regeln und Wortlaut – dort nachzusehen geht schneller als zu fragen."},
+     "text": "Eine Frage an den Menschen erst, wenn Beschlüsse, Regeln, die Worte des Menschen und Code sie nicht beantworten – dann mit Optionen, Empfehlung und Grund.",
+     "warum": "Jede Frage kostet den Menschen Zeit. Was schon entschieden ist, steht in Beschlüssen, Regeln und den Worten des Menschen – dort nachzusehen geht schneller als zu fragen."},
     {"nr": "G9", "gruppe": "B", "titel": "Das Wort des Menschen gilt wörtlich",
-     "text": "Seine Aussagen werden als Wortlaut erfasst, nie umformuliert oder aus zweiter Hand als sein Wort ausgegeben. Entscheidungen werden als Beschluss mit Quelle festgehalten; Regeln ändern sich nur durch einen Beschluss.",
+     "text": "Seine Aussagen werden wörtlich erfasst, nie umformuliert oder aus zweiter Hand als sein Wort ausgegeben. Entscheidungen werden als Beschluss mit Quelle festgehalten; Regeln ändern sich nur durch einen Beschluss.",
      "warum": "Beim Weitersagen und Kürzen verschiebt sich der Sinn. Nur der Wortlaut zeigt, was gesagt wurde; nur ein Beschluss mit Quelle zeigt, was gilt."},
     {"nr": "G10", "gruppe": "B", "titel": "Nichts nebenbei erfinden",
      "text": "Umfang, Werte und Aussehen entscheidet der Mensch. Was über den Auftrag hinausgeht, wird als Folgeaufgabe vorgeschlagen, nicht mitgebaut.",
@@ -75,8 +75,8 @@
      "text": "Läufe, die Fenster öffnen, nur wenn der Mensch den Bildschirm freigegeben hat.",
      "warum": "Ein Lauf mit Fenster übernimmt Maus und Tastatur. Arbeitet gerade jemand am Rechner, stört das beide."},
     {"nr": "W4", "gruppe": "W", "wahlweise": true, "chat_lead": true, "titel": "Rhythmus für einen Lead, der als Chat arbeitet",
-     "text": "Am Ende jedes Durchgangs einen neuen einmaligen Wecker anlegen (kurzer neutraler Text – der Inhalt steht in der AMW). Abgelaufene Wecker liegen lassen oder löschen. Nie einen bestehenden Wecker ändern und nie auf „wiederkehrend“ umstellen – stattdessen löschen und neu anlegen. Den Rhythmus gibt das Projekt vor (Vorgabe alle 2 Stunden; dazwischen stößt der Mensch bei Bedarf an).",
-     "erfahrung": "Geprüft: Einen Wecker anlegen und löschen geht ohne Rückfrage; jede Änderung an einem bestehenden verlangt einen Klick des Menschen – der Rhythmus bleibt dann stehen, bis jemand klickt."}
+     "text": "Am Ende jedes Durchgangs eine neue einmalige geplante Aufgabe anlegen (kurzer neutraler Text – der Inhalt steht in der AMW). Abgelaufene geplante Aufgaben liegen lassen oder löschen. Nie eine bestehende geplante Aufgabe ändern und nie auf „wiederkehrend“ umstellen – stattdessen löschen und neu anlegen. Den Rhythmus gibt das Projekt vor (Vorgabe alle 2 Stunden; dazwischen stößt der Mensch bei Bedarf an).",
+     "erfahrung": "Geprüft: Eine geplante Aufgabe anlegen und löschen geht ohne Rückfrage; jede Änderung an einer bestehenden verlangt einen Klick des Menschen – der Rhythmus bleibt dann stehen, bis jemand klickt."}
   ],
   "dod": [
     "Abnahmekriterien erfüllt",
