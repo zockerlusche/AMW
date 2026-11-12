@@ -83,6 +83,10 @@
   [
    "Wie schalte ich es wieder ab?",
    "Einstellungen › Speicher und Synchronisierung › Synchronisierung aus. Die Online-Seite zeigt dann den letzten Stand und nimmt nichts mehr an."
+  ],
+  [
+   "Geht es ohne Turso – mit einem eigenen Server im Firmennetz?",
+   "Ja, mit einem eigenen libSQL-Server (sqld, derselbe Server, auf dem Turso läuft). Am PC `amw speicher schluessel --url https://amw-db.firma.lan` – das erzeugt den öffentlichen Schlüssel für den Server und trägt den Zugang ein; dann den Server mit diesem Schlüssel starten, unter Einstellungen › Speicher und Synchronisierung „Eigener libSQL-Server“ prüfen und die Synchronisierung einschalten. Die Online-Seite bekommt in ihrer Konfigurationsdatei `speicher_url` und den angezeigten Schlüssel als `speicher_token`. Diese Schlüssel laufen nicht ab – ungültig werden sie, wenn du ein neues Paar erzeugst."
   ]
  ],
  "thema": "online-speicher-turso",

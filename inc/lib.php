@@ -194,8 +194,18 @@ function turso_url(string $eingabe): ?string {
     return 'https://' . $m[1];
 }
 
+/** Eigener libSQL-Server (Stufe R3a): http(s)://name[:port] ohne Pfad. Steht nur in der Konfigurationsdatei – die legt
+ *  fest, wer Dateizugriff auf den Server hat; kein Formular im Netz kann sie setzen (kein Umweg ins interne Netz). */
+function speicher_url(string $eingabe): ?string {
+    $u = parse_url(trim($eingabe));
+    if (!$u || !in_array($u['scheme'] ?? '', ['http', 'https'], true) || empty($u['host']) || isset($u['user']) || isset($u['pass'])
+        || isset($u['query']) || isset($u['fragment']) || !in_array($u['path'] ?? '', ['', '/'], true)) return null;
+    return $u['scheme'] . '://' . $u['host'] . (isset($u['port']) ? ':' . $u['port'] : '');
+}
+
 /** Führt Anweisungen aus; Rückgabe je Anweisung die Zeilen als Listen. Wirft RuntimeException (Code = HTTP-Status).
- *  $zugang: ['turso_url', 'turso_token'] oder ['sqlite'] – sonst aus der Konfiguration. */
+ *  $zugang: ['turso_url', 'turso_token'] oder ['sqlite'] – sonst aus der Konfiguration. Steht dort 'speicher_url'
+ *  (eigener libSQL-Server im Firmennetz), gilt diese mit 'speicher_token' und optional 'speicher_ca' (Zertifikat der Firma). */
 function sql(array $anweisungen, ?array $zugang = null): array {
     $k = $zugang ?? konfig();
     if (!empty($k['sqlite'])) {                              // Probe am PC
@@ -209,7 +219,13 @@ function sql(array $anweisungen, ?array $zugang = null): array {
         }
         return $aus;
     }
-    $url = (turso_url((string)$k['turso_url']) ?? throw new RuntimeException('Turso-Adresse ungültig', 400)) . '/v2/pipeline';
+    if (!empty($k['speicher_url'])) {
+        $url = (speicher_url((string)$k['speicher_url']) ?? throw new RuntimeException('Adresse des Speichers ungültig', 400)) . '/v2/pipeline';
+        $token = (string)($k['speicher_token'] ?? '');
+    } else {
+        $url = (turso_url((string)$k['turso_url']) ?? throw new RuntimeException('Turso-Adresse ungültig', 400)) . '/v2/pipeline';
+        $token = (string)$k['turso_token'];
+    }
     $req = [];
     foreach ($anweisungen as [$s, $args]) {
         $req[] = ['type' => 'execute', 'stmt' => ['sql' => $s, 'args' => array_map(function ($v) {
@@ -221,8 +237,9 @@ function sql(array $anweisungen, ?array $zugang = null): array {
     $req[] = ['type' => 'close'];
     $c = curl_init($url);
     curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15,
-        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $k['turso_token'], 'Content-Type: application/json'],
+        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $token, 'Content-Type: application/json'],
         CURLOPT_POSTFIELDS => json_encode(['requests' => $req], JSON_UNESCAPED_UNICODE)]);
+    if (!empty($k['speicher_url']) && !empty($k['speicher_ca'])) curl_setopt($c, CURLOPT_CAINFO, (string)$k['speicher_ca']);
     $roh = curl_exec($c);
     $code = (int)curl_getinfo($c, CURLINFO_RESPONSE_CODE);
     curl_close($c);
