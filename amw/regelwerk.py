@@ -103,3 +103,81 @@ def herkunft(kennzeichen, text=None, sprache="de"):
         gleich = {" ".join(regeltext(next(x for x in vorlage(s)["regeln"] if x["nr"] == nr)).split()) for s in SPRACHEN}
         aus["angepasst"] = " ".join(text.split()) not in gleich
     return aus
+
+
+# --- Bestandsprojekte nachziehen (G-3) – nur Vorschlag, nie überschreiben ------------------------------------------------
+
+AEHNLICH_ANTEIL = 0.34          # so viel vom Wortschatz einer Grundregel muss eine eigene Regel teilen, um als „ähnlich“ zu gelten
+AEHNLICH_MIN = 2                # und mindestens so viele gemeinsame Wortstämme
+
+
+def abgleich(con, pid):
+    """Jede Grundregel der Vorlage gegen die Regeln des Projekts: „drin“ (aus der Vorlage übernommen), „aehnlich“ (eine eigene
+    Regel teilt genug Wortstämme – Vermutung, der Lead entscheidet) oder „fehlt“. Nur lesend.
+    {"vorlage", "regeln": [{nr, titel{de,en}, text{de,en}, wahlweise, status, ref, gemeinsam}], "zahl": {status: n}}."""
+    from . import wissen
+    de, en = vorlage("de"), vorlage("en")
+    eigen = con.execute("SELECT ebene, nr, text, vorlage FROM regel WHERE projekt_id = ? ORDER BY ebene, nr", (pid,)).fetchall()
+    drin = {r["vorlage"].partition("/")[0]: r for r in eigen if r["vorlage"]}
+    staemme = [(r, set(wissen._staemme(r["text"]))) for r in eigen if not r["vorlage"]]
+    ref = lambda r: ("KR" if r["ebene"] == "arbeit" else "PR") + str(r["nr"])
+    aus = []
+    for g, ge in zip(de["regeln"], en["regeln"]):
+        x = {"nr": g["nr"], "titel": {"de": g["titel"], "en": ge["titel"]}, "text": {"de": regeltext(g), "en": regeltext(ge)},
+             "wahlweise": bool(g.get("wahlweise")), "status": "fehlt", "ref": None, "gemeinsam": []}
+        if g["nr"] in drin:
+            x.update(status="drin", ref=ref(drin[g["nr"]]))
+        else:
+            gs = set(wissen._staemme(regeltext(g))) | set(wissen._staemme(regeltext(ge)))
+            best = max(((len(gs & rs) / max(1, len(set(wissen._staemme(regeltext(g))))), r, gs & rs) for r, rs in staemme),
+                       key=lambda t: t[0], default=(0, None, set()))
+            if best[1] is not None and best[0] >= AEHNLICH_ANTEIL and len(best[2]) >= AEHNLICH_MIN:
+                x.update(status="aehnlich", ref=ref(best[1]), gemeinsam=sorted(best[2])[:8])
+        aus.append(x)
+    zahl = {k: sum(1 for x in aus if x["status"] == k) for k in ("drin", "aehnlich", "fehlt")}
+    return {"vorlage": f"{de['name']} {de['nummer']}", "regeln": aus, "zahl": zahl}
+
+
+def nachziehen(con, pid, von, nr, text=None, sprache="de"):
+    """Eine Grundregel in ein bestehendes Projekt übernehmen: nächste freie Nummer der Arbeitsregeln, Beschluss als Quelle,
+    Herkunft „Gx/Fassung“. Vorhandene Regeln bleiben, wie sie sind. Nur Lead und Mensch."""
+    from . import wissen
+    if not kern.ist_lead(con, pid, von):
+        raise kern.AmwFehler("Grundregeln übernehmen dürfen nur Lead und Mensch")
+    v = vorlage(sprache)
+    nr = str(nr or "").strip().upper()
+    g = next((r for r in v["regeln"] if r["nr"] == nr), None)
+    if not g:
+        raise kern.AmwFehler(f"Grundregel {nr} gibt es nicht – {', '.join(r['nr'] for r in v['regeln'])}")
+    da = con.execute("SELECT ebene, nr FROM regel WHERE projekt_id = ? AND vorlage LIKE ?", (pid, f"{nr}/%")).fetchone()
+    if da:
+        raise kern.AmwFehler(f"{nr} ist schon übernommen ({'KR' if da['ebene'] == 'arbeit' else 'PR'}{da['nr']})")
+    eigener = " ".join(str(text or "").split())
+    bid = wissen.beschluss_neu(con, pid, von, v["name"], f"{nr} „{g['titel']}“ aus {v['name']} {v['nummer']} übernommen",
+                               "Abgleich Grund-Regelwerk")
+    with db.schreiben(con):
+        neu = (con.execute("SELECT max(nr) FROM regel WHERE projekt_id = ? AND ebene = 'arbeit'", (pid,)).fetchone()[0] or 0) + 1
+        db.einfuegen(con, "regel", ebene="arbeit", projekt_id=pid, nr=neu, text=eigener or regeltext(g), beleg=f"B{bid}",
+                     stand_utc=db.jetzt(), vorlage=f"{nr}/{v['nummer']}")
+    return {"regel": neu, "beschluss": bid}
+
+
+def bericht(con, pid, sprache="de"):
+    """Der Abgleich als Markdown – für das Dokument an den Lead."""
+    a = abgleich(con, pid)
+    de = sprache != "en"
+    zeichen = {"drin": "✓", "aehnlich": "≈", "fehlt": "–"}
+    z = [f"# {'Abgleich mit dem' if de else 'Comparison with the'} {a['vorlage']}", "",
+         (f"{a['zahl']['drin']} übernommen · {a['zahl']['aehnlich']} vermutlich abgedeckt · {a['zahl']['fehlt']} fehlen. Nur ein Vorschlag:"
+          " Vorhandene Regeln bleiben, wie sie sind; fehlende übernimmt der Lead einzeln (`amw regelwerk uebernehmen G7`)."
+          if de else
+          f"{a['zahl']['drin']} adopted · {a['zahl']['aehnlich']} probably covered · {a['zahl']['fehlt']} missing. A proposal only:"
+          " existing rules stay as they are; the lead adopts missing ones one by one (`amw regelwerk uebernehmen G7`)."), "",
+         "| | Nr | " + ("Regel | Im Projekt" if de else "Rule | In the project") + " |", "|---|---|---|---|"]
+    for x in a["regeln"]:
+        wo = x["ref"] or ""
+        if x["status"] == "aehnlich":
+            wo += (" – gemeinsam: " if de else " – shared: ") + ", ".join(x["gemeinsam"])
+        z.append(f"| {zeichen[x['status']]} | {x['nr']}{' *' if x['wahlweise'] else ''} | {x['titel']['de' if de else 'en']} | {wo} |")
+    z += ["", ("* wahlweise (für einen Lead, der als Chat arbeitet, bzw. bei Bedarf)" if de else "* optional (for a lead working as a chat, or as needed)")]
+    return "\n".join(z) + "\n"

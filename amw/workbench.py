@@ -868,7 +868,9 @@ def daten_wissen(con, pid, q):
                                muster, muster) if such else z("SELECT count(*) FROM beschluss WHERE projekt_id = ? AND status = 'gilt'"),
               "wortlaut": z("SELECT count(*) FROM wortlaut WHERE projekt_id = ? AND text LIKE ?", muster) if such
               else z("SELECT count(*) FROM wortlaut WHERE projekt_id = ?")}
-    return {"beschluesse": zeilen(b), "wortlaut": zeilen(w), "regeln": regeln_mit_herkunft(zeilen(r)), "notizen": zeilen(n), "anzahl": anzahl}
+    from . import regelwerk
+    return {"beschluesse": zeilen(b), "wortlaut": zeilen(w), "regeln": regeln_mit_herkunft(zeilen(r)), "notizen": zeilen(n), "anzahl": anzahl,
+            "grundregeln": regelwerk.abgleich(con, pid)}
 
 
 def daten_suche(con, pid, q):

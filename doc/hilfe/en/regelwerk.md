@@ -39,3 +39,6 @@ No. Your rules are a copy of their own. A new edition overwrites nothing.
 
 ### Why does the project start at version 0.1.0?
 The scheme is MAJOR.MINOR.PATCH. 1.0.0 is the first stable, usable release; until then 0.x counts.
+
+### And a project that already exists?
+Knowledge › Rules › “Comparison with the base rule set” puts each base rule next to your rules: adopted, probably covered by an own rule (with a pointer) or missing. It is a proposal only – your rules stay as they are. “Adopt” adds a missing base rule with the next free number; a decision records the source. At the PC: `amw regelwerk abgleich --ablegen` files the comparison as a document and sends it to the lead; `amw regelwerk uebernehmen G7` adopts one rule.

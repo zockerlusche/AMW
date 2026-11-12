@@ -77,6 +77,10 @@
   [
    "Warum beginnt das Projekt bei Version 0.1.0?",
    "Das Schema ist MAJOR.MINOR.PATCH. 1.0.0 ist die erste stabile, nutzbare Ausgabe; bis dahin zählt 0.x."
+  ],
+  [
+   "Und ein Projekt, das es schon gibt?",
+   "Wissen › Regeln › „Abgleich mit dem Grund-Regelwerk“ stellt jede Grundregel deinen Regeln gegenüber: übernommen, vermutlich durch eine eigene Regel abgedeckt (mit Verweis) oder fehlt. Das ist nur ein Vorschlag – deine Regeln bleiben, wie sie sind. „Übernehmen“ legt eine fehlende Grundregel mit der nächsten freien Nummer an, ein Beschluss nennt die Quelle. Am PC: `amw regelwerk abgleich --ablegen` legt den Abgleich als Dokument ab und schickt ihn dem Lead; `amw regelwerk uebernehmen G7` übernimmt eine Regel."
   ]
  ],
  "thema": "regelwerk",

@@ -52,6 +52,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`anmelden`](#anmelden) | laufende Sitzung beim Dienst anmelden (ohne Neustart) |
 | [`abmelden`](#abmelden) | Sitzung ruht: nicht mehr benachrichtigen, nicht automatisch neu starten (bis anmelden) |
 | [`einrichten`](#einrichten) | ohne Angabe: geführte Einrichtung (fragt nach) ¦ schnell --projekt-name … (ohne Fragen) ¦ agenten-ordner <pfad> (Hooks, Statusline-Anbindung, Sperren) ¦ betriebsart [pc¦server¦cloud] ¦ verbindungen [--pruefen] (jede Adresse, zu der die AMW eine Verbindung aufbaut) |
+| [`regelwerk`](#regelwerk) | Grund-Regelwerk im bestehenden Projekt: abgleich [--ablegen] ¦ uebernehmen G7 [--text …] |
 | [`befehle`](#befehle) | Befehlsreferenz als Markdown (für doc/befehle.md) |
 | [`sichern`](#sichern) | Sicherung der Datenbank (vollständige Kopie, auch während des Betriebs); mit --projekt <name> nur dieses Projekt als eigene Datenbank (z. B. zum Umziehen auf einen anderen Rechner) |
 | [`push`](#push) | Benachrichtigungen aufs Handy: status ¦ probe ¦ an ¦ aus ¦ ntfy ¦ pushover ¦ telegram ¦ ruhe 22:00-07:00¦aus ¦ link URL ¦ ereignis art=an¦aus |
@@ -1300,6 +1301,24 @@ options:
   --grund-regelwerk     schnell: das mitgelieferte Grund-Regelwerk übernehmen
                         (Regeln, Definition of Done, Version 0.1.0)
   --entfernen           agenten-ordner: AMW-Einträge wieder herausnehmen
+  --von VON
+  --projekt PROJEKT
+```
+
+## regelwerk
+```
+usage: amw regelwerk [-h] [--text TEXT] [--ablegen] [--von VON]
+                     [--projekt PROJEKT]
+                     {abgleich,uebernehmen} [nr]
+
+positional arguments:
+  {abgleich,uebernehmen}
+  nr                    uebernehmen: Nummer der Grundregel (G1 … G19, W1 … W4)
+
+options:
+  -h, --help            show this help message and exit
+  --text TEXT           uebernehmen: eigener Wortlaut statt dem der Vorlage
+  --ablegen             abgleich: als Dokument ablegen und dem Lead schicken
   --von VON
   --projekt PROJEKT
 ```

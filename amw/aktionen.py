@@ -180,6 +180,12 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         return aufgabe(con, pid, weg.rsplit("/", 1)[1], daten)
     if weg.startswith("/api/plan/"):                 # Planung – auch von unterwegs (Freigaben!)
         return planen(con, pid, weg.rsplit("/", 1)[1], daten)
+    if weg == "/api/regelwerk/uebernehmen":           # Grundregel ins bestehende Projekt (G-3) – Lead oder Mensch
+        from . import regelwerk
+        try:
+            return regelwerk.nachziehen(con, pid, kern.ENTWICKLER, daten.get("nr"))
+        except kern.AmwFehler as e:
+            raise Ungueltig(str(e)) from None
     if weg == "/api/nachricht/zurueckziehen":         # eigene Nachricht, solange niemand sie gelesen hat
         from . import benutzer
         try:

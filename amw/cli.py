@@ -1587,6 +1587,30 @@ def cmd_release(a, con):
             print(f"R{r['id']:<5} {r['art']:<7} {r['version'] or '(offen)':<9} {_zeit(r['zeit_utc'])} {r['titel']}")
 
 
+def cmd_regelwerk(a, con):
+    """Grund-Regelwerk für Bestandsprojekte: abgleich (nur lesen; --ablegen: als Dokument an den Lead) | uebernehmen Gx."""
+    from . import dokumente, regelwerk
+    pid = _projekt(con, a)
+    if a.aktion == "abgleich":
+        text = regelwerk.bericht(con, pid)
+        if not a.ablegen:
+            print(text)
+            return
+        did = dokumente.ablegen_inhalt(con, pid, _von(a), text.encode("utf-8"), "regelwerk-abgleich.md", "Abgleich mit dem Grund-Regelwerk", "bericht")
+        lead = con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead' AND entfernt_utc IS NULL ORDER BY id LIMIT 1",
+                           (pid,)).fetchone()
+        an = lead["kennung"] if lead and lead["kennung"] != _von(a) else kern.ENTWICKLER
+        z = regelwerk.abgleich(con, pid)["zahl"]
+        nid, _ = kern.posten(con, pid, _von(a), an, "info", f"Abgleich mit dem Grund-Regelwerk: {z['fehlt']} fehlen, {z['aehnlich']} vermutlich"
+                             f" abgedeckt – Vorschlag, bitte prüfen", bezug=f"D{did}")
+        print(f"D{did} abgelegt, #{nid} an {an}")
+    else:
+        if not a.nr:
+            raise kern.AmwFehler("welche Grundregel? z. B. amw regelwerk uebernehmen G7")
+        r = regelwerk.nachziehen(con, pid, _von(a), a.nr, a.text)
+        print(f"{a.nr.upper()} übernommen als KR{r['regel']} (B{r['beschluss']})")
+
+
 def web_einrichten(abgleich):
     """Einmal am PC: Turso-Zugang abfragen (Schlüssel verdeckt), prüfen, speichern, Abgleich an, Wächter neu starten."""
     import getpass
@@ -2610,6 +2634,13 @@ def parser():
                    help="schnell: das mitgelieferte Grund-Regelwerk übernehmen (Regeln, Definition of Done, Version 0.1.0)")
     x.add_argument("--entfernen", action="store_true", help="agenten-ordner: AMW-Einträge wieder herausnehmen")
     x.set_defaults(f=cmd_einrichten, ohne_db=True)
+
+    x = s.add_parser("regelwerk", help="Grund-Regelwerk im bestehenden Projekt: abgleich [--ablegen] | uebernehmen G7 [--text …]")
+    x.add_argument("aktion", choices=["abgleich", "uebernehmen"])
+    x.add_argument("nr", nargs="?", help="uebernehmen: Nummer der Grundregel (G1 … G19, W1 … W4)")
+    x.add_argument("--text", help="uebernehmen: eigener Wortlaut statt dem der Vorlage")
+    x.add_argument("--ablegen", action="store_true", help="abgleich: als Dokument ablegen und dem Lead schicken")
+    x.set_defaults(f=cmd_regelwerk)
 
     x = s.add_parser("befehle", help="Befehlsreferenz als Markdown (für doc/befehle.md)")
     x.set_defaults(f=lambda a: print(befehle_markdown(), end="") or 0, ohne_db=True)

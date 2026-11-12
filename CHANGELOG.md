@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.80.0 – 12.11.2026 · Grund-Regelwerk für bestehende Projekte
+- **Wissen › Regeln › „Abgleich mit dem Grund-Regelwerk“:** jede Grundregel neben den Regeln des Projekts – übernommen,
+  vermutlich durch eine eigene Regel abgedeckt (mit Verweis) oder fehlt. Nur ein Vorschlag; vorhandene Regeln bleiben.
+- **„Übernehmen“** legt eine fehlende Grundregel mit der nächsten freien Nummer an, ein Beschluss nennt die Quelle
+  (Lead oder du; online Projekt-Admin).
+- `amw regelwerk abgleich [--ablegen]` – mit `--ablegen` als Dokument an den Lead; `amw regelwerk uebernehmen G7`.
+
 ## 1.79.0 – 12.11.2026 · Versionen als Pflicht
 - **Einstellungen › Projekt › „Versionen“:** Pflicht, empfohlen (Vorgabe für bestehende Projekte) oder aus; neue Projekte
   mit Grund-Regelwerk stehen auf Pflicht. Dazu die Frist, ab der Fertiges ohne Version auffällt (Vorgabe 14 Tage).
