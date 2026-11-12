@@ -333,7 +333,7 @@ def wellen(con, aids):
 # --- Schritte (Aufgaben erweitert) ---------------------------------------------------------------
 
 FELDER = ("bogen_id", "kriterien", "schaetzung_h", "komplexitaet", "verantwortlich", "pruefbefehl", "dateibereich",
-          "anforderungen", "auftrag", "rang", "titel", "agent", "pruefer", "zusammenfassung")
+          "anforderungen", "auftrag", "rang", "titel", "agent", "pruefer", "zusammenfassung", "groesse", "art")
 
 
 def _bearbeiter(con, pid, x):
@@ -350,6 +350,8 @@ def schritt_setzen(con, pid, von, aid=None, titel=None, nach=None, **werte):
         bogen_zeile(con, pid, werte["bogen_id"])
     if werte.get("komplexitaet") is not None and not 1 <= int(werte["komplexitaet"]) <= 10:
         raise kern.AmwFehler("Komplexität 1–10")
+    from . import empfehlung                         # Größe und Art (A1611 E2): daraus die Empfehlung Modell/Denkaufwand
+    empfehlung.felder_pruefen(werte)
     for v in nach or []:                            # erst prüfen, dann anlegen – kein halber Schritt
         if not con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND projekt_id = ?", (v, pid)).fetchone():
             raise kern.AmwFehler(f"A{v} gibt es nicht (Vorgänger)")

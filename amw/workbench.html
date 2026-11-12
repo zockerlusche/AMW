@@ -698,6 +698,8 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .menue hr { border: 0; border-top: 1px solid var(--linie); margin: 5px 0; }
 .kachel.aus { opacity: .55; }
 .klickbar { cursor: pointer; } .karte.klickbar:hover, .zeile.klickbar:hover { border-color: var(--leise); }
+.empf-tabelle { border-collapse: collapse; font-size: 13px; } .empf-tabelle th { text-align: left; font-weight: 600; padding: 2px 6px; }
+.empf-tabelle td { padding: 2px 6px; } .empf-tabelle select { font-size: 12px; }
 .au-block { margin-top: 16px; } .au-block h4 { margin: 0 0 6px; } .au-zeile { padding: 4px 0; border-bottom: 1px solid var(--linie); }
 .au-auftrag { margin: 10px 0; }
 .kachel.klickbar { cursor: pointer; } .kachel.klickbar:hover { border-color: var(--leise); }
@@ -1130,6 +1132,10 @@ const TEXTE = {
     z_arbeitet: "arbeitet", z_frei: "frei", z_freigabe: "wartet auf Freigabe", z_eingabe: "wartet auf Eingabe", z_fehler: "Fehler", z_beendet: "beendet",
     b_kontext: "Kontext", b_5h: "5 Std.", b_7t: "Woche", k_zustand_titel: "Zustand und Verbrauch", k_zustand_aus: "Läuft gerade nicht – Zustand und Verbrauch erscheinen, sobald er gestartet ist.", k_zustand_leer: "Noch keine Daten. Der Ordner des Agenten ist noch nicht eingerichtet.",
     k_denkstufe: "Denkaufwand {x}", k_kosten: "Sitzung {x} $ (Schätzung)", k_reset: "5 Std. zurückgesetzt {x}", k_stand: "Stand {x}",
+    ga_text: "Text/Doku", ga_mechanisch: "mechanische Änderung", ga_fehlersuche: "Fehlersuche", ga_oberflaeche: "Oberfläche", ga_sicherheit: "Sicherheit", ga_konzept: "Architektur/Konzept", gg_einfach: "Text/Doku, mechanisch", gg_mittel: "Oberfläche, Fehlersuche", gg_heikel: "Sicherheit, Architektur/Konzept",
+    au_empfehlung: "Empfehlung", au_empf_x: "{g} · {a} → {x}", au_empf_zelle: "Gemessen in dieser Zelle: Median {x} aus {n} Aufgaben, {r}× Prüfung rot", au_empf_keine_zelle: "Für diese Zelle gibt es noch keine Messwerte.", au_empf_profil: "{a} ist eingestellt auf {x}.", empf_h: "Nur eine Empfehlung: Gesetzt wird im Profil des Agenten, wirksam beim nächsten Start.",
+    k_empf: "Empfohlen: {x} (meist {g} · {a}, {n} von {v} letzten Aufgaben)", k_empf_passt: "passt zum Profil", k_empf_uebernehmen: "Ins Profil übernehmen", k_empf_frage: "{x} ins Profil von {a} übernehmen? Es wirkt beim nächsten Start – eine laufende Sitzung bleibt, wie sie ist.", k_empf_ok: "Im Profil gespeichert – wirkt beim nächsten Start.", sb_empf: "Empfohlen: {x} – eingestellt ist {y}. Ändern im Profil (Einstellungen › Agenten); es gilt ab dem nächsten Start.",
+    e_empfehlung: "Empfehlung Modell · Denkaufwand", e_empfehlung_h: "Je Art und Größe einer Aufgabe. Die AMW zeigt den Vorschlag an der Aufgabe und am Agenten; gesetzt wird nur im Profil. Die Startwerte sind eine Annahme – pass sie an, wenn die gemessenen Werte etwas anderes zeigen.", e_empf_art: "Art", e_empf_std: "Standard",
     k_aufwand_titel: "Verbrauch je Aufgabe", k_aufwand_median: "Mittel (Median) {x} je Aufgabe, aus den letzten {n} fertigen", k_aufwand_eingestellt: "Eingestellt: {x}", k_aufwand_laeuft: "In Arbeit: A{a} bisher {x}", k_aufwand_leer: "Noch keine Messwerte – sie entstehen, während er an Aufgaben arbeitet.", k_aufwand_h: "Gegenwert in Dollar, wie Claude Code ihn zählt (auch im Abo). Je Aufgabe genähert: was zwischen Beginn und Abschluss anfiel.",
     verbrauch: "Verbrauch je Tag (US-$, Schätzung)", verbrauch_h: "Aus der Statusline: Zuwachs der Sitzungskosten zum Listenpreis. Im Abo zählt eher die 5-Stunden-Grenze.",
     verbrauch_leer: "Noch keine Messwerte. Sie kommen, sobald der Ordner des Agenten eingerichtet ist.", k_summe: "Summe",
@@ -1455,6 +1461,10 @@ const TEXTE = {
     z_arbeitet: "working", z_frei: "idle", z_freigabe: "waiting for permission", z_eingabe: "waiting for input", z_fehler: "error", z_beendet: "ended",
     b_kontext: "Context", b_5h: "5 h", b_7t: "Week", k_zustand_titel: "State and usage", k_zustand_aus: "Not running – state and usage appear once it has been started.", k_zustand_leer: "No data yet. The agent's folder is not set up yet.",
     k_denkstufe: "effort {x}", k_kosten: "session {x} $ (estimate)", k_reset: "5 h resets {x}", k_stand: "as of {x}",
+    ga_text: "Text/docs", ga_mechanisch: "mechanical change", ga_fehlersuche: "Debugging", ga_oberflaeche: "User interface", ga_sicherheit: "Security", ga_konzept: "Architecture/design", gg_einfach: "Text/docs, mechanical", gg_mittel: "User interface, debugging", gg_heikel: "Security, architecture/design",
+    au_empfehlung: "Recommendation", au_empf_x: "{g} · {a} → {x}", au_empf_zelle: "Measured in this cell: median {x} from {n} tasks, {r}× review red", au_empf_keine_zelle: "No measurements for this cell yet.", au_empf_profil: "{a} is set to {x}.", empf_h: "Only a recommendation: it is set in the agent's profile and applies from the next start.",
+    k_empf: "Recommended: {x} (mostly {g} · {a}, {n} of the last {v} tasks)", k_empf_passt: "matches the profile", k_empf_uebernehmen: "Apply to profile", k_empf_frage: "Apply {x} to the profile of {a}? It applies from the next start – a running session stays as it is.", k_empf_ok: "Saved in the profile – applies from the next start.", sb_empf: "Recommended: {x} – set is {y}. Change it in the profile (Settings › Agents); it applies from the next start.",
+    e_empfehlung: "Recommended model · effort", e_empfehlung_h: "Per type and size of a task. AMW shows the suggestion on the task and the agent; it is only set in the profile. The starting values are an assumption – adjust them when the measured values say otherwise.", e_empf_art: "Type", e_empf_std: "Default",
     k_aufwand_titel: "Usage per task", k_aufwand_median: "Median {x} per task, from the last {n} finished", k_aufwand_eingestellt: "Set: {x}", k_aufwand_laeuft: "In progress: A{a} so far {x}", k_aufwand_leer: "No measurements yet – they appear while it works on tasks.", k_aufwand_h: "Dollar equivalent as counted by Claude Code (also on a subscription). Approximated per task: what was used between start and finish.",
     verbrauch: "Usage per day (US $, estimate)", verbrauch_h: "From the status line: increase of session cost at list price. On a subscription the 5-hour limit matters more.",
     verbrauch_leer: "No measurements yet. They arrive once the agent's folder is set up.", k_summe: "Total",
@@ -2220,7 +2230,9 @@ async function startbefehlDialog(k) {
   let d; try { d = await holen("/api/einstellungen"); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
   const a = (d.agenten || []).find(x => x.kennung === k);
   if (!a?.start) { toast(t("sb_fehlt"), true); return; }
-  dialog(t("sb_titel", { x: k }), startbefehlBlock(a.start));
+  let e = null; try { e = (await holen("/api/agent?kennung=" + encodeURIComponent(k))).empfehlung; } catch (f) {}
+  dialog(t("sb_titel", { x: k }), e && e.passt === false ? el("p", { class: "bernstein-text", style: "margin-top:0" },
+    t("sb_empf", { x: modellStufe(e.modell, e.denkstufe), y: modellStufe(e.profil.modell, e.profil.denkstufe) })) : null, startbefehlBlock(a.start));
 }
 function menue(knopf, eintraege) {
   const offen = knopf.classList.contains("auf");
@@ -2543,16 +2555,30 @@ function zustandAbschnitt(d) {
 }
 /* Verbrauch je Aufgabe (A1611 E1): Median der letzten fertigen Aufgaben, eingestelltes Profil, laufende Aufgabe bisher */
 const dollar = x => x.toLocaleString(gebiet(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $";
+const modellStufe = (m, s) => (m ? m[0].toUpperCase() + m.slice(1) : t("pr_vorgabe")) + " · " + t("k_denkstufe", { x: s || t("pr_vorgabe") });
+/* Empfehlung je Agent (A1611 E2): häufigste Zelle Größe × Art seiner letzten Aufgaben; übernehmen nur am PC, wirkt beim nächsten Start */
+function empfehlungZeile(d) {
+  const e = d.empfehlung; if (!e) return null;
+  const x = modellStufe(e.modell, e.denkstufe);
+  const knopf = !API && e.passt !== true ? el("button", { class: "klein-knopf", type: "button", style: "margin-left:8px", onclick: async ev => {
+    const b = ev.currentTarget; if (!confirm(t("k_empf_frage", { x, a: d.kennung }))) return;
+    b.disabled = true;
+    try { await schicken("/api/einstellungen/profil", { kennung: d.kennung, modell: e.modell, denkstufe: e.denkstufe }); toast(t("k_empf_ok")); b.remove(); }
+    catch (f) { toast(t("fehler", { x: f.message }), true); b.disabled = false; } } }, t("k_empf_uebernehmen")) : null;
+  return el("div", { class: e.passt === false ? "bernstein-text" : "" }, t("k_empf", { x, g: e.groesse, a: t("gg_" + e.gruppe), n: e.n, v: e.von }),
+    e.passt === true ? el("span", { class: "sehrleise" }, " · " + t("k_empf_passt")) : null, knopf);
+}
 function aufwandAbschnitt(d) {
   const w = d.aufwand, p = d.profil;
-  const eingestellt = p ? t("k_aufwand_eingestellt", { x: (p.modell || t("pr_vorgabe")) + " · " + t("k_denkstufe", { x: p.denkstufe || t("pr_vorgabe") }) }) : null;
+  const eingestellt = p ? t("k_aufwand_eingestellt", { x: modellStufe(p.modell, p.denkstufe) }) : null;
   const kopf = el("h4", {}, t("k_aufwand_titel"));
   if (!w) return el("section", { class: "abschnitt" }, kopf, el("div", { class: "sehrleise leer-klein" }, t("k_aufwand_leer"),
-    eingestellt ? el("div", {}, eingestellt) : null));
+    eingestellt ? el("div", {}, eingestellt) : null), empfehlungZeile(d));
   const zeile = x => el("div", { class: "au-zeile" }, el("a", { class: "verweis", onclick: () => aufgabeDialog(x.id) }, `A${x.id}`), " ",
     el("b", { class: "mono" }, dollar(x.usd)), el("span", { class: "sehrleise" }, x.modelle.length ? ` · ${x.modelle.join(", ")}` : ""), " ", x.titel);
   return el("section", { class: "abschnitt" }, kopf,
     el("div", {}, [w.median != null ? t("k_aufwand_median", { x: dollar(w.median), n: w.n }) : null, eingestellt].filter(Boolean).join(" · ")),
+    empfehlungZeile(d),
     w.laufend ? el("div", { class: "leise" }, t("k_aufwand_laeuft", { a: w.laufend.id, x: dollar(w.laufend.usd) })) : null,
     w.aufgaben.length ? el("div", { style: "margin-top:6px" }, w.aufgaben.map(zeile)) : null,
     el("p", { class: "sehrleise", style: "margin:6px 0 0;font-size:12px" }, t("k_aufwand_h")));
@@ -4329,6 +4355,13 @@ async function aufgabeDialog(id) {
     a.verbrauch ? block(t("au_verbrauch"), 1, el("div", {}, el("b", { class: "mono" }, t("au_verbrauch_x", { x: dollar(a.verbrauch.usd) })),
       a.verbrauch.modelle.length ? el("span", { class: "sehrleise" }, ` · ${a.verbrauch.modelle.join(", ")}`) : null,
       el("div", { class: "sehrleise", style: "font-size:12px" }, t("k_aufwand_h")))) : null,
+    a.empfehlung ? block(t("au_empfehlung"), 1, el("div", {},
+      el("b", {}, t("au_empf_x", { g: a.empfehlung.groesse, a: t("ga_" + a.empfehlung.art), x: modellStufe(a.empfehlung.modell, a.empfehlung.denkstufe) })),
+      el("div", { class: "leise" }, a.empfehlung.zelle ? t("au_empf_zelle", { x: dollar(a.empfehlung.zelle.median), n: a.empfehlung.zelle.n, r: a.empfehlung.zelle.rot })
+        : t("au_empf_keine_zelle")),
+      a.empfehlung.passt === false ? el("div", { class: "bernstein-text" }, t("au_empf_profil", { a: a.empfehlung.agent,
+        x: modellStufe(a.empfehlung.profil.modell, a.empfehlung.profil.denkstufe) })) : null,
+      el("div", { class: "sehrleise", style: "font-size:12px" }, t("empf_h")))) : null,
     a.zusammenfassung ? block(t("au_zusammenfassung"), 1, el("div", {}, a.zusammenfassung, a.beleg ? el("div", { class: "sehrleise" }, t("au_beleg", { x: a.beleg })) : null)) : null,
     block(t("au_verlauf", { n: a.verlauf.length }), a.verlauf.length, a.verlauf.map(n => el("div", { class: "dk-nachricht" },
       el("div", { class: "sehrleise" }, `#${n.id} · ${n.von} · ${t("art_" + n.art) || n.art} · ${seit(n.zeit_utc)}`), el("div", {}, n.kurz),
@@ -4767,6 +4800,14 @@ async function sichtEinstellungen() {
   for (const [k, werte] of [["agentenfragen", ["lead", "direkt"]], ["spec_vorlegen", ["lead", "alle"]], ["spec_frei", ["entwickler", "lead"]], ["abnahme_kette", ["aus", "an"]], ["versionen", ["empfohlen", "pflicht", "aus"]]]) {
     pf[k] = el("select", {}, werte.map(w => el("option", { value: w }, t(`e_${k}_${w}`)))); pf[k].value = d.projekt[k] || werte[0]; }
   pf.info_ablage_h = zahl(d.projekt.info_ablage_h, 1, 168);
+  const EMPF_WERTE = ["haiku", "sonnet", "opus", "fable"].flatMap(m => ["low", "medium", "high", "xhigh", "max"].map(s => `${m}/${s}`));
+  const empfWahl = {};
+  const empfTabelle = el("table", { class: "empf-tabelle" }, el("tr", {}, el("th", {}, t("e_empf_art")), ["S", "M", "L", "XL"].map(g => el("th", {}, g))),
+    ["einfach", "mittel", "heikel"].map(gr => el("tr", {}, el("td", { class: "leise" }, t("gg_" + gr)), ["S", "M", "L", "XL"].map(g => {
+      const std = d.projekt.empfehlung_standard?.[gr]?.[g];
+      const w = el("select", { "aria-label": `${t("gg_" + gr)} ${g}`, title: `${t("e_empf_std")}: ${std}` }, EMPF_WERTE.map(v => el("option", { value: v }, v)));
+      w.value = d.projekt.empfehlung?.[gr]?.[g] || d.projekt.empfehlung_standard?.[gr]?.[g] || "opus/high";
+      (empfWahl[gr] ||= {})[g] = w; return el("td", {}, w); }))));
   pf.version_frist_tage = zahl(d.projekt.version_frist_tage, 1, 365);
   pf.ende_frist_min = zahl(d.projekt.ende_frist_min, 1, 60);
   pf.merge_dienst = el("select", {}, el("option", { value: "" }, t("e_merge_dienst_keiner")),
@@ -4797,14 +4838,16 @@ async function sichtEinstellungen() {
      [t("e_abnahme_kette"), pf.abnahme_kette, t("e_abnahme_kette_h")], [t("e_merge_dienst"), pf.merge_dienst, t("e_merge_dienst_h")],
      [t("e_versionen"), el("div", {}, pf.versionen, " ", hilfeKnopf("versionen")), t("e_versionen_h")],
      mitMeta("projekt", "version_frist_tage", t("e_version_frist"), pf.version_frist_tage, t("e_version_frist_h")),
-     [t("e_schwer"), el("div", {}, pf.schwere_befehle, hilfeKnopf("schwere-laeufe")), t("e_schwer_h")]],
+     [t("e_schwer"), el("div", {}, pf.schwere_befehle, hilfeKnopf("schwere-laeufe")), t("e_schwer_h")],
+     [t("e_empfehlung"), el("div", { style: "overflow-x:auto" }, empfTabelle, hilfeKnopf("agenten")), t("e_empfehlung_h")]],
     "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
       stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min),
       entwickler_name: pf.entwickler_name.value.trim(), dateien_online: pf.dateien_online.value, farbe: pf.farbe.value,
       agentenfragen: pf.agentenfragen.value, spec_vorlegen: pf.spec_vorlegen.value, spec_frei: pf.spec_frei.value,
       info_ablage_h: wert(pf.info_ablage_h), abnahme_kette: pf.abnahme_kette.value, merge_dienst: pf.merge_dienst.value,
       versionen: pf.versionen.value, version_frist_tage: wert(pf.version_frist_tage), ende_frist_min: wert(pf.ende_frist_min),
-      schwere_befehle: schwereBefehle() }));
+      schwere_befehle: schwereBefehle(),
+      empfehlung: Object.fromEntries(Object.entries(empfWahl).map(([gr, z]) => [gr, Object.fromEntries(Object.entries(z).map(([g, w]) => [g, w.value]))])) }));
 
   const p = d.pc;
 

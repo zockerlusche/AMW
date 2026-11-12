@@ -228,8 +228,9 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--wartet-auf WARTET_AUF] [--auf AUF] [--erledigt ERLEDIGT]
                    [--bemerkung BEMERKUNG] [--alle] [--bogen BOGEN]
                    [--kriterium KRITERIUM] [--schaetzung SCHAETZUNG]
-                   [--komplexitaet KOMPLEXITAET] [--nach NACH]
-                   [--verantwortlich VERANTWORTLICH]
+                   [--komplexitaet KOMPLEXITAET] [--groesse {S,M,L,XL}]
+                   [--art {text,mechanisch,fehlersuche,oberflaeche,sicherheit,konzept}]
+                   [--nach NACH] [--verantwortlich VERANTWORTLICH]
                    [--pruefbefehl PRUEFBEFEHL] [--dateien DATEIEN]
                    [--anforderungen ANFORDERUNGEN]
                    [--zusammenfassung ZUSAMMENFASSUNG]
@@ -274,6 +275,12 @@ options:
   --komplexitaet KOMPLEXITAET
                         Planung: 1–10; ab 7 braucht der Schritt einen
                         freigegebenen Plan
+  --groesse {S,M,L,XL}  Größe (für die Empfehlung Modell/Denkaufwand): S klein
+                        … XL sehr groß
+  --art {text,mechanisch,fehlersuche,oberflaeche,sicherheit,konzept}
+                        Art (für die Empfehlung): text = Text/Doku, mechanisch
+                        = mechanische Änderung, fehlersuche, oberflaeche,
+                        sicherheit, konzept = Architektur/Konzept
   --nach NACH, --abhaengig-von NACH
                         Vorgänger, z. B. 1201,1203 (startbar erst, wenn sie
                         fertig sind)

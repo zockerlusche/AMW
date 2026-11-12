@@ -217,6 +217,12 @@ def cmd_agent(a, con):
                       + ", ".join(f"A{x['id']} {x['usd']:.2f} $" for x in w["aufgaben"]) + ")")
             if w and w["laufend"]:
                 print(f"{'in arbeit':<14} A{w['laufend']['id']} bisher {w['laufend']['usd']:.2f} $")
+            from . import empfehlung
+            e = empfehlung.fuer_agent(con, pid, a.kennung)
+            if e:
+                print(f"{'empfehlung':<14} {e['modell']}/{e['denkstufe']} (meist {e['groesse']} · {e['gruppe']}, {e['n']} von {e['von']}"
+                      f" letzten Aufgaben)" + {True: " – passt zum Profil", False: " – weicht vom Profil ab (wirkt erst beim nächsten Start)",
+                                               None: ""}[e["passt"]])
         return
     for r in con.execute(
             "SELECT g.kennung, g.alias, CASE WHEN g.rolle = 'lead' THEN 'lead' ELSE g.fachgebiet END AS rolle, g.soll, s.zustand, s.letzter_puls_utc, s.taetigkeit, s.taetigkeit_utc,"
@@ -464,7 +470,8 @@ def _schritt_werte(a):
     nr = lambda t: [int(x.strip().lstrip("Aa")) for x in t.split(",") if x.strip()] if t else None
     return {"bogen_id": a.bogen, "kriterien": a.kriterium, "schaetzung_h": a.schaetzung, "komplexitaet": a.komplexitaet,
             "verantwortlich": a.verantwortlich, "pruefbefehl": a.pruefbefehl, "dateibereich": a.dateien,
-            "anforderungen": a.anforderungen, "agent": a.agent, "auftrag": a.auftrag, "pruefer": a.pruefer}, nr(a.nach)
+            "anforderungen": a.anforderungen, "agent": a.agent, "auftrag": a.auftrag, "pruefer": a.pruefer,
+            "groesse": a.groesse, "art": a.art}, nr(a.nach)
 
 
 def _ohne(a):
@@ -484,10 +491,12 @@ def cmd_aufgabe(a, con):
         return
     if a.aktion == "neu":
         werte, nach = _schritt_werte(a)
-        if any(v is not None for k, v in werte.items() if k not in ("agent", "auftrag", "pruefer")) or nach:
+        if any(v is not None for k, v in werte.items() if k not in ("agent", "auftrag", "pruefer", "groesse", "art")) or nach:
             aid = planung.schritt_setzen(con, pid, _von(a), titel=a.titel, nach=nach, rang=a.rang, **werte)
         else:
             aid = kern.aufgabe_neu(con, pid, _von(a), a.titel, a.agent, a.auftrag, a.rang, a.pruefer, sofort=a.sofort)
+            if a.groesse or a.art:                      # Größe/Art (A1611 E2) – Empfehlung für Modell/Denkaufwand
+                planung.schritt_setzen(con, pid, _von(a), aid=aid, groesse=a.groesse, art=a.art)
         if a.pool:
             wissen.einstufen(con, pid, _von(a), aid, "pool")
         z = con.execute("SELECT agent, einstufung FROM aufgabe WHERE id = ?", (aid,)).fetchone()
@@ -499,6 +508,9 @@ def cmd_aufgabe(a, con):
                   " sofort hinter das laufende Stück: beim Anlegen --sofort")
         else:
             print(f"A{aid} angelegt" + (" (Eingang – der Lead plant ein: amw liste ordnen <Agent> …)" if a.pool else ""))
+        if not (a.groesse and a.art):
+            print("Tipp: --groesse S|M|L|XL und --art … geben eine Empfehlung für Modell und Denkaufwand (amw aufgabe aendern"
+                  f" {aid} --groesse M --art oberflaeche)")
     elif a.aktion == "aendern":
         werte, nach = _schritt_werte(a)
         werte["zusammenfassung"] = a.zusammenfassung              # auch nachträglich (Plan-Check)
@@ -553,6 +565,14 @@ def cmd_aufgabe(a, con):
         if v:
             print(f"verbrauch: {v['usd']:.2f} $ Gegenwert" + (f" ({', '.join(v['modelle'])})" if v["modelle"] else "")
                   + " – genähert aus dem Kosten-Zähler zwischen Beginn und Abschluss")
+        from . import empfehlung
+        e = empfehlung.fuer_aufgabe(con, pid, a.id)
+        if e:
+            z = e["zelle"]
+            print(f"empfehlung: {e['modell']}/{e['denkstufe']} für {e['groesse']} · {e['art']}"
+                  + (f" (gemessen in dieser Zelle: Median {z['median']:.2f} $ aus {z['n']}, {z['rot']}× rot)" if z else "")
+                  + ("" if e["passt"] is not False else f" – {e['agent']} ist eingestellt auf {e['profil']['modell']}/{e['profil']['denkstufe']}")
+                  + " – nur Empfehlung, gesetzt wird im Profil")
     elif a.aktion in ("parken", "aktiv", "keine_prio", "pool"):
         if not a.id:
             raise kern.AmwFehler("Aufgaben-Nummer fehlt")
@@ -2189,6 +2209,11 @@ def parser():
     x.add_argument("--kriterium", action="append", help="Planung: Abnahmekriterium, mehrfach (ersetzt die Liste)")
     x.add_argument("--schaetzung", type=float, help="Planung: Stunden")
     x.add_argument("--komplexitaet", type=int, help="Planung: 1–10; ab 7 braucht der Schritt einen freigegebenen Plan")
+    x.add_argument("--groesse", type=str.upper, choices=["S", "M", "L", "XL"],
+                   help="Größe (für die Empfehlung Modell/Denkaufwand): S klein … XL sehr groß")
+    x.add_argument("--art", choices=["text", "mechanisch", "fehlersuche", "oberflaeche", "sicherheit", "konzept"],
+                   help="Art (für die Empfehlung): text = Text/Doku, mechanisch = mechanische Änderung, fehlersuche,"
+                        " oberflaeche, sicherheit, konzept = Architektur/Konzept")
     x.add_argument("--nach", "--abhaengig-von", dest="nach", help="Vorgänger, z. B. 1201,1203 (startbar erst, wenn sie fertig sind)")
     x.add_argument("--verantwortlich", help="Planung: wer abnimmt bzw. Pläne freigibt")
     x.add_argument("--pruefbefehl", help="Planung: wie der Bearbeiter selbst prüft")

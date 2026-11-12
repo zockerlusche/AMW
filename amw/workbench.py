@@ -167,6 +167,8 @@ def daten_aufgabe(con, pid, aid):
     a["laufend_id"] = x["id"] if x and x["id"] != a["id"] else None
     from . import aufwand                             # gemessener Verbrauch (A1611 E1, Näherung)
     a["verbrauch"] = aufwand.je_aufgabe(con, pid, a["id"])
+    from . import empfehlung                          # Größe × Art → Modell/Denkaufwand, nur Empfehlung (A1611 E2)
+    a["empfehlung"] = empfehlung.fuer_aufgabe(con, pid, a["id"])
     return a
 
 
@@ -575,6 +577,7 @@ def daten_einstellungen(con, pid, speicher=None):
     except (OSError, ValueError, KeyError):
         web = None
     from . import platte                              # Laufwerke und Aufräumvorschläge (alte Sicherungen) – nur Anzeige
+    from . import empfehlung
     try:
         rechner = {"laufwerke": [{k: l[k] for k in ("laufwerk", "frei_gb", "gesamt_gb", "frei_prozent", "stufe")} for l in platte.laufwerke(con)],
                    "aufraeumen": platte.vorschlaege(con), "archiv": einstellungen.wert("archiv_ordner"),
@@ -595,7 +598,8 @@ def daten_einstellungen(con, pid, speicher=None):
                         "versionen": kern.projekt_wahl(con, pid, "versionen"), "version_frist_tage": pe.get("version_frist_tage", kern.VERSION_FRIST_TAGE),
                         "ende_frist_min": pe.get("ende_frist_min", 5),
                         "schwere_befehle": pe.get("schwere_befehle") or [],
-                        "info_ablage_h": pe.get("info_ablage_h", INFO_ABLAGE_H)},
+                        "info_ablage_h": pe.get("info_ablage_h", INFO_ABLAGE_H),
+                        "empfehlung": empfehlung.tabelle(con, pid), "empfehlung_standard": empfehlung.STANDARD},
             "agenten": agenten,
             "pc": {**einstellungen.laden(), "datei": einstellungen.pfad(),
                    "vorrang_projekte": [r["name"] for r in con.execute("SELECT name FROM projekt ORDER BY name")]},
@@ -680,7 +684,7 @@ def daten_agent(con, pid, kennung):
         raise LookupError(kennung)
     alt = altbestand_bis(con, pid)
     text, aid, quelle = gerade(con, pid, kennung, a["taetigkeit"] if a["zustand"] == "aktiv" else None)
-    from . import aufwand, gespraech, steuerung
+    from . import aufwand, empfehlung, gespraech, steuerung
     try:
         steuern = {"profil": steuerung.profil(con, pid, kennung), "prozess_laeuft": steuerung.laeuft(con, pid, kennung),
                    "fortsetzbar": bool(steuerung.letzte_sitzung(con, pid, kennung))}
@@ -693,6 +697,7 @@ def daten_agent(con, pid, kennung):
     return {
         **{k: v for k, v in dict(a).items() if k != "claude_sitzung"}, **steuern, "gerade": text, "gerade_aufgabe": aid, "gerade_quelle": quelle,
         "aufwand": aufwand.je_agent(con, pid, kennung),
+        "empfehlung": empfehlung.fuer_agent(con, pid, kennung),
         "naechste": zeilen(con.execute(
             "SELECT id, titel, status, einstufung, rang, wartet_auf FROM aufgabe WHERE projekt_id = ? AND agent = ?"
             " AND status IN ('laeuft','wartet','blockiert') AND einstufung IN ('aktiv','keine_prio')"

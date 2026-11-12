@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.86.0 – 13.11.2026 · Empfehlung für Modell und Denkaufwand
+- **Größe und Art je Aufgabe:** `amw aufgabe neu|aendern --groesse S|M|L|XL --art text|mechanisch|fehlersuche|oberflaeche|sicherheit|konzept`
+  (Schema 30: zwei neue Spalten; `komplexitaet` bleibt, was sie ist). `amw aufgabe neu` erinnert daran, wenn sie fehlen.
+- **Empfehlung:** Aus Größe × Art schlägt die AMW Modell und Denkaufwand vor, nach einer Tabelle je Projekt (Einstellungen › Projekt ›
+  „Empfehlung Modell · Denkaufwand“; Startwerte sind eine Annahme). An der Aufgabe steht daneben, was fertige Aufgaben derselben
+  Zelle gemessen verbraucht haben und wie oft ihre Prüfung rot war, und ob der zugeteilte Agent anders eingestellt ist.
+- **Am Agenten:** die Empfehlung aus seinen letzten Aufgaben, „Ins Profil übernehmen“ (am PC); am Startbefehl ein Hinweis, wenn
+  Profil und Empfehlung abweichen. Die AMW stellt nichts selbst um und startet niemanden neu – das Profil wirkt beim nächsten Start
+  (A1611 Stufe E2, Konzept D906).
+
 ## 1.85.0 – 13.11.2026 · Vorrang der Projekte in der Warteschlange
 - **Einstellungen › Dieser PC › „Vorrang der Projekte“:** je Projekt hoch, normal oder niedrig (Vorgabe normal). Die
   Einstellung gehört dem PC, nicht einem Projekt; ändern lässt sie sich nur am PC. Sie wirkt sofort.

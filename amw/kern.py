@@ -268,6 +268,17 @@ def projekt_einstellen(con, pid, von, **werte):
                 else:
                     e.pop(k, None)
                 continue
+            if k == "empfehlung":                        # Tabelle Gruppe × Größe → Modell/Denkaufwand (A1611 E2), nur Abweichungen
+                from . import empfehlung
+                try:
+                    v = empfehlung.tabelle_pruefen(v or {})
+                except ValueError as f:
+                    raise AmwFehler(f"empfehlung: {f}") from None
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k == "merge_dienst":                      # wer mergt (Abnahme-Kette): ein Agent dieses Projekts oder leer
                 v = str(v or "").strip()
                 if v:

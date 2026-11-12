@@ -210,6 +210,8 @@ CREATE TABLE aufgabe (
   anforderungen  TEXT,
   hinweis        TEXT,                              -- Satz für die Versionshinweise (Schema 26)
   hinweis_gruppe TEXT CHECK (hinweis_gruppe IN ('neu', 'verbessert', 'behoben')),
+  groesse        TEXT CHECK (groesse IN ('S', 'M', 'L', 'XL')),       -- Größe und Art (Schema 30): Empfehlung
+  art            TEXT CHECK (art IN ('text', 'mechanisch', 'fehlersuche', 'oberflaeche', 'sicherheit', 'konzept')),   -- Modell/Denkaufwand
   uid            TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft       TEXT NOT NULL DEFAULT '',
   geaendert_utc  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
