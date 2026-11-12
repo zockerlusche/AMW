@@ -4,6 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.76.0 – 12.11.2026 · Paket für den eigenen Server im Firmennetz
+- **`amw web paket`** baut am PC alles, was ein Webserver der Firma braucht, als eine ZIP: die Online-Seite, eine fertige
+  Konfiguration (Adresse des eigenen libSQL-Servers, Schlüssel der Seite, erster Admin), Vorlagen für nginx und Apache,
+  docker compose für den libSQL-Server und eine LIESMICH mit den Schritten. Dabei trägt die AMW den Zugang zum Speicher
+  und die Adresse der Seite an diesem PC ein. Das Passwort des Admins erscheint einmal; den zweiten Faktor richtet er beim
+  ersten Anmelden ein.
+- **http im Firmennetz:** Online-Seite, Speicher, eigener ntfy-Server und der Link in Benachrichtigungen dürfen `http://`
+  sein, wenn das Ziel im Firmennetz liegt. Die Anmeldeseite und die Einstellungen am PC warnen dann sichtbar; Dateien
+  hochladen geht weiterhin nur über https.
+- **Zertifikat der Firma** gilt jetzt auch für „Seite prüfen“ und den eigenen ntfy-Server.
+- Betriebsart „Eigener Server im Firmennetz“: der Hinweis „wird später unterstützt“ ist weg – sie nennt jetzt den Weg.
+- Geprüft gegen einen echten libSQL-Server: Paket bauen, Server mit dem Schlüssel aus dem Paket starten, Seite aus dem
+  Paket – der Admin meldet sich an und bekommt den QR-Code für den zweiten Faktor.
+
 ## 1.75.0 – 12.11.2026 · Von überall schreiben, der Bezug geht mit
 - **„✉ Nachricht dazu“** an Thema, Meilenstein, Beschluss, Lauf und Prüfung: Bezug eingetragen, Empfänger vorgeschlagen
   (Pfleger des Themas, der Agent des Laufs bzw. der Prüfung, sonst der Lead) – änderbar.

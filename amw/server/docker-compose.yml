@@ -1,0 +1,19 @@
+# AMW – Online-Speicher (libSQL-Server, sqld) im Firmennetz. Aus „amw web paket“ ({{DATUM}}).
+# Start im Ordner dieser Datei:  docker compose up -d
+# Die Daten liegen im Volume „amw-speicher“ – sichern: docker compose stop, dann das Volume kopieren (siehe LIESMICH.txt).
+# Der Server prüft jede Anfrage mit dem öffentlichen Schlüssel aus diesem Ordner; der passende geheime Teil existiert nicht mehr.
+services:
+  speicher:
+    image: ghcr.io/tursodatabase/libsql-server:latest   # geprüft mit sqld 0.24.32
+    restart: unless-stopped
+    environment:
+      SQLD_NODE: primary
+      SQLD_HTTP_LISTEN_ADDR: 0.0.0.0:8080
+      SQLD_AUTH_JWT_KEY_FILE: /schluessel/amw-speicher-oeffentlich.pem
+    volumes:
+      - amw-speicher:/var/lib/sqld
+      - ./amw-speicher-oeffentlich.pem:/schluessel/amw-speicher-oeffentlich.pem:ro
+    ports:
+      - "{{SQLD_PORTS}}"
+volumes:
+  amw-speicher:

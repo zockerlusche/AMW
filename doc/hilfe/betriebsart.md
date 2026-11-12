@@ -33,7 +33,10 @@ Die Betriebsart legt fest, wohin diese Installation Verbindungen aufbauen darf. 
 Die AMW selbst baut dann keine Verbindung nach außen auf. Was außerhalb der AMW läuft, ist davon nicht erfasst: Claude Code spricht mit seinem Anbieter, Git mit seinem Server.
 
 ### Kann ich in „Eigener Server“ ntfy benutzen?
-Ja, mit einem eigenen ntfy-Server im Firmennetz. Der öffentliche Dienst `ntfy.sh` liegt im Internet und ist dann blockiert.
+Ja, mit einem eigenen ntfy-Server im Firmennetz – dort auch über `http://`. Der öffentliche Dienst `ntfy.sh` liegt im Internet und ist dann blockiert.
+
+### Online-Speicher und Online-Seite im eigenen Netz?
+Ja: ein eigener libSQL-Server als Speicher und die Online-Seite auf einem Webserver der Firma. `amw web paket --seite https://amw.firma.lan --speicher https://amw-db.firma.lan` baut am PC eine ZIP mit allem, was der Webserver braucht, samt Anleitung, und trägt den Zugang an diesem PC ein. Im Firmennetz geht auch `http://` – Anmeldeseite und Einstellungen warnen dann, weil Passwörter unverschlüsselt durchs Netz gehen.
 
 ### Was passiert mit dem „In Claude öffnen“-Knopf?
 Er führt ins Internet und wird nur in der Betriebsart „Cloud“ gezeigt.

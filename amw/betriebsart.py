@@ -106,6 +106,12 @@ def netz(adresse, aufloesen=_aufloesen):
     return "firma" if "firma" in stufen else "pc"
 
 
+def http_im_netz(adresse):
+    """http:// (unverschlüsselt) ist nur erlaubt, wenn das Ziel im Firmennetz oder auf diesem PC liegt – sonst gingen
+    Schlüssel und Inhalte lesbar durchs Internet."""
+    return str(adresse or "").strip().lower().startswith("http://") and netz(adresse) != "internet"
+
+
 def erlaubt(adresse, art=None):
     art = art or aktuell()
     if art == "cloud":

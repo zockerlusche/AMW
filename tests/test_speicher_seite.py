@@ -1,14 +1,22 @@
 """Eigener Online-Speicher (Stufe R3a) in der Workbench am PC: Einstellungen › Speicher und Synchronisierung – Anbieter
 wählen, Zertifikat-Feld nur beim eigenen Server, Warnung bei http://, nichts gespeichert, wenn der Server nicht antwortet.
+Stufe R3b: Warnung an der Adresse der Online-Seite bei http://, Betriebsart „server“, Anmeldeseite über http.
 Im echten Browser (Edge ohne Fenster). Mit AMW_FOTO=<Ordner> legt der Test ein Bild der Karte dort ab."""
 import base64
 import os
+import shutil
+import socket
+import subprocess
+import time
 import unittest
 from unittest import mock
 
 from amw import abgleich
 from tests import test_aktualisieren
 from tests.test_aktualisieren import EDGE, warte_auf
+
+WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PHP = shutil.which("php")
 
 
 @unittest.skipUnless(EDGE, "Edge nicht installiert")
@@ -42,16 +50,56 @@ class SpeicherKarte(test_aktualisieren.Seite):
         self.assertFalse(os.path.exists(abgleich.zugang_pfad()))
         self.foto(feld)
 
-    def foto(self, feld):
+    def test_seite_ueber_http_und_betriebsart(self):
+        """R3b: Warnung an der Adresse der Seite bei http://, Betriebsart „server“ nennt den Weg, Anmeldeseite über http warnt."""
+        self.tab.senden("Page.navigate", url=f"http://127.0.0.1:{self.port}/#einstellungen")
+        warte_auf(self, "document.querySelector('#e-speicher-art')", 10)
+        warnung = "[...document.querySelectorAll('.bernstein-text')].find(x => x.textContent.includes('Passwörter und Codes'))"
+        self.assertTrue(self.tab.js(f"{warnung}.hidden"))
+        for adresse, zu_sehen in (("http://192.168.1.10", True), ("https://amw.firma.lan", False)):
+            self.tab.js(f"{{ const i = {warnung}.previousElementSibling; i.value = '{adresse}'; i.dispatchEvent(new Event('input')) }}")
+            self.assertEqual(self.tab.js(f"!{warnung}.hidden"), zu_sehen, adresse)
+        self.tab.js(f"{{ const i = {warnung}.previousElementSibling; i.value = 'http://192.168.1.10'; i.dispatchEvent(new Event('input')) }}")
+        server = "document.querySelector('.ba-karte[data-art=server]')"
+        self.assertIn("amw web paket", self.tab.js(f"{server}.innerText"))
+        self.assertNotIn("später", self.tab.js(f"{server}.innerText"))
+        self.foto(f"{server}.closest('.karte')", "a1598-betriebsart-server.png")
+        self.foto(f"{warnung}.closest('.karte')", "a1598-seite-http.png")
+        if not PHP:
+            return
+        online = os.path.join(self.ordner.name, "online.db")
+        abgleich.SqliteSpeicher(online).ausfuehren([(s, []) for s in abgleich.SCHEMA])
+        konfig = os.path.join(self.ordner.name, "amw-konfig.php")
+        with open(konfig, "w", encoding="utf-8") as f:
+            f.write(f"<?php return ['sqlite' => '{online.replace(os.sep, '/')}', 'benutzer' => 'chef', 'passwort_hash' => 'x', 'nur_https' => false];\n")
+        with socket.socket() as s:                     # 127.0.0.2: auch dieser Rechner, aber nicht „lokal“ für die Seite
+            s.bind(("127.0.0.2", 0))
+            port = s.getsockname()[1]
+        php = subprocess.Popen([PHP, "-d", "extension=pdo_sqlite", "-d", "extension=mbstring", "-d", f"session.save_path={self.ordner.name}",
+                                "-S", f"127.0.0.2:{port}", "-t", os.path.join(WURZEL, "web")], env={**os.environ, "AMW_KONFIG": konfig},
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.addCleanup(lambda: (php.terminate(), php.wait(10)))
+        for _ in range(100):
+            try:
+                socket.create_connection(("127.0.0.2", port), 0.2).close()
+                break
+            except OSError:
+                time.sleep(0.1)
+        self.tab.senden("Page.navigate", url=f"http://127.0.0.2:{port}/")
+        warte_auf(self, "document.querySelector('#http-warnung') !== null", 10)
+        self.assertIn("Unverschlüsselte Verbindung", self.tab.js("document.querySelector('#http-warnung').innerText"))
+        self.foto("document.querySelector('form')", "a1598-anmeldung-http.png", breite=520)
+
+    def foto(self, feld, name="a1598-speicher-eigen.png", breite=900):
         ziel = os.environ.get("AMW_FOTO")
         if not ziel:
             return
-        self.tab.senden("Emulation.setDeviceMetricsOverride", width=900, height=1400, deviceScaleFactor=1, mobile=False)
+        self.tab.senden("Emulation.setDeviceMetricsOverride", width=breite, height=1400, deviceScaleFactor=1, mobile=False)
         self.tab.js(f"{feld}.scrollIntoView()")
         r = self.tab.js(f"(() => {{ const b = {feld}.getBoundingClientRect(); return {{x: b.x, y: b.y + scrollY, w: b.width, h: b.height}}; }})()")
         bild = self.tab.senden("Page.captureScreenshot", format="png", captureBeyondViewport=True,
                                clip={"x": r["x"], "y": r["y"], "width": r["w"], "height": r["h"], "scale": 1})
-        with open(os.path.join(ziel, "a1598-speicher-eigen.png"), "wb") as f:
+        with open(os.path.join(ziel, name), "wb") as f:
             f.write(base64.b64decode(bild["data"]))
 
 

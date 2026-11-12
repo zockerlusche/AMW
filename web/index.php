@@ -22,7 +22,7 @@ $hinweis = '';
 try { nachruesten(); } catch (Throwable $x) {}                // ältere Speicher: Spalten für Benutzer ergänzen (einmal je Sitzung)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!herkunft_ok()) {
-        $hinweis = 'Anfrage abgewiesen (Herkunft) – bitte die Seite direkt über https://' . ($_SERVER['HTTP_HOST'] ?? '') . ' öffnen.';
+        $hinweis = 'Anfrage abgewiesen (Herkunft) – bitte die Seite direkt über ' . (ist_https() ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? '') . ' öffnen.';
     } elseif (!csrf_ok($_POST['csrf'] ?? null)) {
         $hinweis = 'Formular abgelaufen – bitte Seite neu laden und erneut versuchen.';
     } else {

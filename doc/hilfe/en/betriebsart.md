@@ -33,7 +33,10 @@ The operating mode defines where this installation may connect to. It is enforce
 The AMW itself then opens no outbound connection. What runs outside the AMW is not covered: Claude Code talks to its provider, Git to its server.
 
 ### Can I use ntfy in “Own server”?
-Yes, with your own ntfy server on the company network. The public service `ntfy.sh` is on the internet and is then blocked.
+Yes, with your own ntfy server on the company network – there also via `http://`. The public service `ntfy.sh` is on the internet and is then blocked.
+
+### Online storage and online page on my own network?
+Yes: your own libSQL server as storage and the online page on a company web server. `amw web paket --seite https://amw.company.lan --speicher https://amw-db.company.lan` builds a ZIP on the PC with everything the web server needs, including instructions, and enters the access on this PC. On the company network `http://` works too – the sign-in page and the settings then warn, because passwords travel unencrypted.
 
 ### What happens to the “Open in Claude” button?
 It leads to the internet and is only shown in the “Cloud” mode.

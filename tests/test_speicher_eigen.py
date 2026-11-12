@@ -112,6 +112,25 @@ class Schluessel(unittest.TestCase):
             self.assertEqual(lesen(abgleich.zugang_pfad())["url"], "https://amw-db.firma.lan")
 
 
+def sqld_starten(pub, port, protokoll):
+    """sqld in WSL mit dem öffentlichen Schlüssel pub (Windows-Pfad) auf port; Rückgabe für sqld_stoppen."""
+    wsl = lambda p: "/mnt/" + p[0].lower() + p[2:].replace("\\", "/")
+    db = f"/tmp/amw-test-{os.getpid()}-{port}.sqld"
+    log = open(protokoll, "w")                                                              # bei Fehlern hilfreich
+    srv = subprocess.Popen(["wsl.exe", "-d", os.environ.get("AMW_WSL", "Ubuntu"), "--", "timeout", "600", wsl(SQLD),
+                            "--db-path", db, "--http-listen-addr", f"0.0.0.0:{port}", "--auth-jwt-key-file", wsl(pub)],
+                           stdout=log, stderr=subprocess.STDOUT)
+    return srv, db, log
+
+
+def sqld_stoppen(laufend):
+    srv, db, log = laufend
+    subprocess.run(["wsl.exe", "-d", os.environ.get("AMW_WSL", "Ubuntu"), "--", "pkill", "-f", db], timeout=30)
+    srv.wait(30)
+    log.close()
+    subprocess.run(["wsl.exe", "-d", os.environ.get("AMW_WSL", "Ubuntu"), "--", "rm", "-rf", db], timeout=30)
+
+
 @unittest.skipUnless(SQLD and load_pem_public_key and shutil.which("wsl.exe"), "AMW_SQLD (Linux-Datei sqld) und WSL nötig")
 class EchterServer(unittest.TestCase):
     """sqld 0.24.x in WSL-Ubuntu mit JWT-Prüfung – das echte Gegenstück zu Turso."""
@@ -122,15 +141,10 @@ class EchterServer(unittest.TestCase):
         pub = os.path.join(cls.ordner.name, "pub.pem")
         with open(pub, "w", encoding="ascii", newline="\n") as f:
             f.write(cls.pem)
-        wsl = lambda p: "/mnt/" + p[0].lower() + p[2:].replace("\\", "/")
         with socket.socket() as s:
             s.bind(("127.0.0.1", 0))
             cls.port = s.getsockname()[1]
-        cls.db = f"/tmp/amw-test-{os.getpid()}-{cls.port}.sqld"
-        cls.protokoll = open(os.path.join(cls.ordner.name, "sqld.log"), "w")                 # bei Fehlern hilfreich
-        cls.srv = subprocess.Popen(["wsl.exe", "-d", os.environ.get("AMW_WSL", "Ubuntu"), "--", "timeout", "600", wsl(SQLD),
-                                    "--db-path", cls.db, "--http-listen-addr", f"0.0.0.0:{cls.port}", "--auth-jwt-key-file", wsl(pub)],
-                                   stdout=cls.protokoll, stderr=subprocess.STDOUT)
+        cls.laufend = sqld_starten(pub, cls.port, os.path.join(cls.ordner.name, "sqld.log"))
         cls.url = f"http://127.0.0.1:{cls.port}"
         for _ in range(120):
             try:
@@ -141,10 +155,7 @@ class EchterServer(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        subprocess.run(["wsl.exe", "-d", os.environ.get("AMW_WSL", "Ubuntu"), "--", "pkill", "-f", cls.db], timeout=30)
-        cls.srv.wait(30)
-        cls.protokoll.close()
-        subprocess.run(["wsl.exe", "-d", os.environ.get("AMW_WSL", "Ubuntu"), "--", "rm", "-rf", cls.db], timeout=30)
+        sqld_stoppen(cls.laufend)
         cls.ordner.cleanup()
 
     def test_pc_einstellen_und_seite(self):

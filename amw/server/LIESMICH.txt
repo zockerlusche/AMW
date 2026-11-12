@@ -1,0 +1,58 @@
+AMW – Online-Seite und Online-Speicher im eigenen Firmennetz
+Paket von „amw web paket“, AMW {{VERSION}}, {{DATUM}}
+Online-Seite: {{SEITE}}
+Online-Speicher: {{SPEICHER}}
+
+ACHTUNG – DIESE ZIP IST EIN GEHEIMNIS: Sie enthält den Schlüssel der Online-Seite für den Speicher
+(konfig/amw-konfig.php) – wer ihn hat, kann alle Daten im Speicher lesen und ändern. Nicht weitergeben, nicht per
+E-Mail oder Chat schicken, nicht ins Repo, nach dem Kopieren auf den Server löschen.
+
+Inhalt
+  web/        die Online-Seite – in den Web-Ordner des Webservers ({{WEB_ORDNER}})
+  konfig/     amw-konfig.php{{KONFIG_CA}} – AUSSERHALB des Web-Ordners ablegen ({{KONFIG}})
+  speicher/   docker-compose.yml und der öffentliche Schlüssel für den libSQL-Server (sqld)
+  webserver/  Vorlagen für nginx und Apache
+  beispiel/   alles in Docker (Speicher, PHP, nginx) – nur ein Beispiel
+
+1  Online-Speicher starten (Rechner mit Docker im Firmennetz)
+   Ordner speicher/ hinüberkopieren, darin:  docker compose up -d
+   {{SPEICHER_HINWEIS}}
+
+2  Webserver einrichten (PHP ab 8.1 mit curl, openssl, mbstring, pdo_sqlite)
+   web/ nach {{WEB_ORDNER}} kopieren, konfig/amw-konfig.php nach {{KONFIG}}
+   (nur für den Benutzer des Webservers lesbar:  chmod 600, Besitzer z. B. www-data; beschreibbar, damit die
+   Firmen-Anmeldung ihr Geheimnis dort ablegen kann).
+   nginx: webserver/nginx-amw.conf anpassen und einbinden · Apache: webserver/apache-amw.conf (.htaccess liegt in web/)
+   {{SEITE_HINWEIS}}
+
+3  Anmelden
+   {{SEITE}} öffnen, Benutzer „{{ADMIN}}“ mit dem Passwort, das „amw web paket“ einmal angezeigt hat.
+   Beim ersten Anmelden richtest du den zweiten Faktor ein (Authenticator-App).
+
+4  Am PC (Workbench › Einstellungen)
+   Betriebsart „Eigener Server im Firmennetz“ wählen.
+   Speicher und Synchronisierung: „Speicher prüfen“, dann Synchronisierung an.
+   Online-Seite: „Seite prüfen“.
+
+Sichern: das Docker-Volume „amw-speicher“ (docker compose stop; Volume kopieren; docker compose start).
+Aktualisieren: am PC neues Paket bauen (amw web paket … --ersetzen erzeugt auch neue Schlüssel) oder nur web/ ersetzen.
+Typische Fehler: „Zertifikat unbekannt“ → am PC das Zertifikat der Firmen-CA eintragen (Speicher › Zertifikat);
+401 vom Speicher → öffentlicher Schlüssel auf dem Server passt nicht zum Paket; Seite von außen erreichbar → Webserver
+nur im Firmennetz/VPN freigeben.
+
+-------------------------------------------------------------------------------------------------------------------
+
+AMW – online page and online storage on your own company network
+Package from “amw web paket”, AMW {{VERSION}}, {{DATUM}}
+
+WARNING – THIS ZIP IS A SECRET: it contains the online page's key for the storage (konfig/amw-konfig.php) – whoever
+has it can read and change all data in the storage. Do not pass it on or send it by e-mail or chat, never commit it,
+delete it after copying it to the server.
+
+1  Start the storage: copy speicher/ to a machine with Docker, run  docker compose up -d
+2  Web server (PHP 8.1+ with curl, openssl, mbstring, pdo_sqlite): web/ → {{WEB_ORDNER}},
+   konfig/amw-konfig.php → {{KONFIG}} (outside the web folder, readable only by the web server user).
+   nginx: adapt webserver/nginx-amw.conf · Apache: webserver/apache-amw.conf (.htaccess is in web/)
+3  Open {{SEITE}}, sign in as “{{ADMIN}}” with the password shown once by “amw web paket”; set up the second factor.
+4  On the PC (Workbench › Settings): operating mode “Own server on the company network”, check storage, turn sync on,
+   check the online page.

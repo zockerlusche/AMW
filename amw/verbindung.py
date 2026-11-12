@@ -44,8 +44,9 @@ def _holen(adresse):
     from . import betriebsart
     betriebsart.pruefe(adresse, "Prüfung der Online-Seite")
     anfrage = urllib.request.Request(adresse, headers={"User-Agent": "amw-pruefung"})
+    kontext = abgleich.tls_kontext(adresse)          # Seite mit Zertifikat der Firma
     try:
-        with urllib.request.urlopen(anfrage, timeout=15) as r:
+        with urllib.request.urlopen(anfrage, timeout=15, **({"context": kontext} if kontext else {})) as r:
             return r.status, r.read(200_000).decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
         return e.code, ""
@@ -65,18 +66,24 @@ def seiten_version(sp=None):
 
 
 def seite(adresse=None, holen=_holen, version=seiten_version):
-    """Antwortet die eingetragene Adresse über https, liegt dort eine AMW-Seite, und hat sie die Version dieses PCs?"""
+    """Antwortet die eingetragene Adresse über https (im Firmennetz auch http – dann mit Hinweis), liegt dort eine
+    AMW-Seite, und hat sie die Version dieses PCs?"""
+    from . import betriebsart
     adresse = (push.laden().get("link") or "" if adresse is None else adresse).strip().rstrip("/")
     if not adresse:
         return _ergebnis([_schritt("adresse", False)])
-    if not adresse.startswith("https://"):
+    if adresse.startswith("https://"):
+        weg = _schritt("https", True)
+    elif betriebsart.http_im_netz(adresse):
+        weg = _schritt("http", True)                 # erlaubt, aber unverschlüsselt – die Oberfläche warnt
+    else:
         return _ergebnis([_schritt("https", False, adresse)])
     beginn = time.time()
     try:
         status, _ = holen(adresse + "/")
     except (OSError, ValueError) as e:
-        return _ergebnis([_schritt("https", True), _schritt("verbindung", False, str(getattr(e, "reason", e))[:160])])
-    schritte = [_schritt("https", True), _schritt("antwort", status == 200, f"HTTP {status}, {int((time.time() - beginn) * 1000)} ms")]
+        return _ergebnis([weg, _schritt("verbindung", False, str(getattr(e, "reason", e))[:160])])
+    schritte = [weg, _schritt("antwort", status == 200, f"HTTP {status}, {int((time.time() - beginn) * 1000)} ms")]
     if status == 200:
         try:
             status, text = holen(adresse + HILFE_PROBE)

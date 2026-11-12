@@ -47,7 +47,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`dokument`](#dokument) | Ergebnisse ablegen und finden: ablegen <datei> ¦ version <nr> <datei> ¦ liste ¦ zeigen <nr> ¦ kommentar¦ueberarbeiten <nr> --text … ¦ zuordnen <nr> ¦ archivieren¦wiederherstellen <nr> ¦ online¦offline <nr> ¦ loeschen <nr> --ja ¦ einsammeln <ordner> [--melden] ¦ einsammeln --uebernehmen --frage <nr> |
 | [`notiz`](#notiz) | gepflegte Notizen (Schlüssel/Wert) |
 | [`dienst`](#dienst) | Dienst als geplante Windows-Aufgabe: einrichten ¦ entfernen ¦ status ¦ neustart ¦ vordergrund (ohne Aufgabe in diesem Fenster, zum Ausprobieren) |
-| [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Synchronisierung) ¦ zweitfaktor-neu ¦ bauen ¦ schema ¦ sso [--aussteller URL --client-id ID --an¦--aus] (Firmen-Anmeldung; Geheimnis nur auf der Online-Seite) |
+| [`web`](#web) | Online-Teil: einrichten (Turso-Zugang, einmal) ¦ status ¦ einmal (Synchronisierung) ¦ zweitfaktor-neu ¦ bauen ¦ schema ¦ sso [--aussteller URL --client-id ID --an¦--aus] (Firmen-Anmeldung; Geheimnis nur auf der Online-Seite) ¦ paket --seite https://… --speicher https://… [--admin NAME] [--ca firma.pem] [--ziel datei.zip] (eigener Server im Firmennetz: ZIP für den Webserver) |
 | [`speicher`](#speicher) | Eigener Online-Speicher (libSQL-Server im Firmennetz): schluessel --url https://… [--ca firma.pem] [--ordner …] [--ersetzen] – Schlüsselpaar und Token erzeugen, Zugang am PC eintragen |
 | [`anmelden`](#anmelden) | laufende Sitzung beim Dienst anmelden (ohne Neustart) |
 | [`abmelden`](#abmelden) | Sitzung ruht: nicht mehr benachrichtigen, nicht automatisch neu starten (bis anmelden) |
@@ -1180,15 +1180,32 @@ options:
 
 ## web
 ```
-usage: amw web [-h] [--aussteller AUSSTELLER] [--client-id CLIENT_ID] [--an]
+usage: amw web [-h] [--seite SEITE] [--speicher SPEICHER] [--admin ADMIN]
+               [--ca CA] [--ziel ZIEL] [--passwort-abfragen] [--ersetzen]
+               [--aussteller AUSSTELLER] [--client-id CLIENT_ID] [--an]
                [--aus] [--von VON] [--projekt PROJEKT]
-               {einrichten,bauen,schema,einmal,status,zweitfaktor-neu,sso}
+               {einrichten,bauen,schema,einmal,status,zweitfaktor-neu,sso,paket}
 
 positional arguments:
-  {einrichten,bauen,schema,einmal,status,zweitfaktor-neu,sso}
+  {einrichten,bauen,schema,einmal,status,zweitfaktor-neu,sso,paket}
 
 options:
   -h, --help            show this help message and exit
+  --seite SEITE         paket: Adresse der Online-Seite, z. B.
+                        https://amw.firma.lan (http:// nur im Firmennetz)
+  --speicher SPEICHER   paket: Adresse des libSQL-Servers, z. B. https://amw-
+                        db.firma.lan (http:// nur im Firmennetz)
+  --admin ADMIN         paket: Name des ersten Admins der Online-Seite
+                        (Vorgabe: admin)
+  --ca CA               paket: Zertifikat der Firmen-CA (PEM) für PC und
+                        Seite, wenn die Zertifikate der Server von der Firma
+                        sind
+  --ziel ZIEL           paket: wohin die ZIP kommt (Vorgabe: amw-
+                        paket-<Name>-<Datum>.zip im aktuellen Ordner)
+  --passwort-abfragen   paket: Passwort des Admins eintippen statt erzeugen
+                        lassen
+  --ersetzen            paket: einen schon eingetragenen Online-Speicher
+                        ersetzen (neue Schlüssel)
   --aussteller AUSSTELLER
                         sso: Aussteller (Issuer), z. B.
                         https://login.microsoftonline.com/<Mandanten-ID>/v2.0

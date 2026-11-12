@@ -66,7 +66,11 @@
   ],
   [
    "Can I use ntfy in “Own server”?",
-   "Yes, with your own ntfy server on the company network. The public service `ntfy.sh` is on the internet and is then blocked."
+   "Yes, with your own ntfy server on the company network – there also via `http://`. The public service `ntfy.sh` is on the internet and is then blocked."
+  ],
+  [
+   "Online storage and online page on my own network?",
+   "Yes: your own libSQL server as storage and the online page on a company web server. `amw web paket --seite https://amw.company.lan --speicher https://amw-db.company.lan` builds a ZIP on the PC with everything the web server needs, including instructions, and enters the access on this PC. On the company network `http://` works too – the sign-in page and the settings then warn, because passwords travel unencrypted."
   ],
   [
    "What happens to the “Open in Claude” button?",

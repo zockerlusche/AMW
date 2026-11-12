@@ -1658,12 +1658,9 @@ def cmd_speicher(a):
         raise kern.AmwFehler(f"{e} – amw speicher schluessel --url https://amw-db.firma.lan") from None
     if a.ca and not os.path.isfile(a.ca):
         raise kern.AmwFehler(f"Zertifikat-Datei gibt es nicht: {a.ca}")
+    from . import paket
     pfad = abgleich.zugang_pfad()
-    try:
-        with open(pfad, encoding="utf-8") as f:
-            alt = json.load(f)
-    except (OSError, ValueError):
-        alt = {}
+    alt = paket.zugang_lesen()
     if alt.get("url") and not a.ersetzen:
         raise kern.AmwFehler(f"Es gibt schon einen Online-Speicher ({alt['url']}). Ersetzen mit --ersetzen – dann gilt der alte"
                              " Zugang auf diesem PC nicht mehr.")
@@ -1673,10 +1670,7 @@ def cmd_speicher(a):
     oeffentlich = os.path.join(ordner, "amw-speicher-oeffentlich.pem")
     with open(oeffentlich, "w", encoding="ascii", newline="\n") as f:
         f.write(pem)
-    os.makedirs(os.path.dirname(pfad), exist_ok=True)
-    with open(pfad + ".neu", "w", encoding="utf-8") as f:
-        json.dump({**alt, "art": "libsql", "url": url, "token": token["pc"], "ca": a.ca or "", "abgleich": False}, f, indent=2)
-    os.replace(pfad + ".neu", pfad)
+    paket.zugang_eintragen(alt, url, token["pc"], a.ca or "")
     print(f"Öffentlicher Schlüssel für den libSQL-Server: {oeffentlich}")
     print("  Auf den Server kopieren und sqld damit starten: --auth-jwt-key-file <Datei> (bzw. SQLD_AUTH_JWT_KEY_FILE).")
     print(f"Zugang auf diesem PC eingetragen: {url} (Synchronisierung noch aus) – {pfad}")
@@ -1688,11 +1682,46 @@ def cmd_speicher(a):
     return 0
 
 
+def _web_paket(a):
+    """Eigener Server im Firmennetz (R3b): ZIP für den Webserver bauen und den Zugang am PC eintragen."""
+    from . import betriebsart, paket, push
+    passwort = None
+    if a.passwort_abfragen:
+        import getpass
+        passwort = getpass.getpass("Passwort für den Admin der Online-Seite (mind. 14 Zeichen): ")
+        if getpass.getpass("Noch einmal: ") != passwort:
+            raise kern.AmwFehler("Die beiden Passwörter sind verschieden – nichts gebaut")
+    r = paket.bauen(a.seite, a.speicher, admin=a.admin, ca=a.ca, ziel=a.ziel, ersetzen=a.ersetzen, passwort=passwort)
+    try:
+        push.speichern({"link": r["seite"]})            # Adresse der Seite: Links in Benachrichtigungen, „Seite prüfen“
+        link = f"Adresse der Online-Seite eingetragen: {r['seite']}"
+    except ValueError as e:
+        link = f"Adresse der Online-Seite nicht eingetragen ({e}) – unter Einstellungen › Online-Seite nachholen"
+    print(f"Paket gebaut: {r['ziel']}")
+    print("  Die ZIP ist ein Geheimnis: Sie enthält den Schlüssel der Seite für den Speicher – wer ihn hat, kann alle Daten"
+          " lesen und ändern. Nicht weitergeben, nicht per E-Mail oder Chat schicken, nach dem Kopieren auf den Server löschen.")
+    print(f"Zugang auf diesem PC eingetragen: {r['speicher']} (Synchronisierung noch aus) – {r['zugang']}")
+    print(link)
+    if r["seite"].startswith("http://"):
+        print("Achtung: Die Seite läuft über http – Passwörter und Codes gehen unverschlüsselt durchs Netz. Besser https mit"
+              " einem Zertifikat der Firma.")
+    if not a.passwort_abfragen:
+        print(f"Admin der Online-Seite: {r['admin']} · Passwort – nur jetzt sichtbar: {r['passwort']}")
+    else:
+        print(f"Admin der Online-Seite: {r['admin']} (Passwort wie eingetippt)")
+    if betriebsart.aktuell() != "server":
+        print("Betriebsart: Einstellungen › Betriebsart › „Eigener Server im Firmennetz“ wählen (oder amw einrichten betriebsart server).")
+    print("Weiter: LIESMICH.txt in der ZIP – Speicher starten, Seite einrichten, dann am PC „Speicher prüfen“ und Synchronisierung an.")
+    return 0
+
+
 def cmd_web(a, con):
     """Online-Teil (doc/online.md): Seite für den Webhoster bauen, Online-Speicher einrichten, einen Abgleich von Hand."""
     from . import abgleich
     if a.aktion == "sso":
         return _web_sso(a)
+    if a.aktion == "paket":
+        return _web_paket(a)
     if a.aktion == "bauen":
         quelle = os.path.join(os.path.dirname(__file__), "workbench.html")
         ziel = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "inc", "seite.html")
@@ -2526,8 +2555,17 @@ def parser():
     x.set_defaults(f=cmd_dienst, ohne_db=True)
 
     x = s.add_parser("web", help="Online-Teil: einrichten (Turso-Zugang, einmal) | status | einmal (Synchronisierung) | zweitfaktor-neu | bauen | schema"
-                                 " | sso [--aussteller URL --client-id ID --an|--aus] (Firmen-Anmeldung; Geheimnis nur auf der Online-Seite)")
-    x.add_argument("aktion", choices=["einrichten", "bauen", "schema", "einmal", "status", "zweitfaktor-neu", "sso"])
+                                 " | sso [--aussteller URL --client-id ID --an|--aus] (Firmen-Anmeldung; Geheimnis nur auf der Online-Seite)"
+                                 " | paket --seite https://… --speicher https://… [--admin NAME] [--ca firma.pem] [--ziel datei.zip]"
+                                 " (eigener Server im Firmennetz: ZIP für den Webserver)")
+    x.add_argument("aktion", choices=["einrichten", "bauen", "schema", "einmal", "status", "zweitfaktor-neu", "sso", "paket"])
+    x.add_argument("--seite", help="paket: Adresse der Online-Seite, z. B. https://amw.firma.lan (http:// nur im Firmennetz)")
+    x.add_argument("--speicher", help="paket: Adresse des libSQL-Servers, z. B. https://amw-db.firma.lan (http:// nur im Firmennetz)")
+    x.add_argument("--admin", default="admin", help="paket: Name des ersten Admins der Online-Seite (Vorgabe: admin)")
+    x.add_argument("--ca", help="paket: Zertifikat der Firmen-CA (PEM) für PC und Seite, wenn die Zertifikate der Server von der Firma sind")
+    x.add_argument("--ziel", help="paket: wohin die ZIP kommt (Vorgabe: amw-paket-<Name>-<Datum>.zip im aktuellen Ordner)")
+    x.add_argument("--passwort-abfragen", action="store_true", help="paket: Passwort des Admins eintippen statt erzeugen lassen")
+    x.add_argument("--ersetzen", action="store_true", help="paket: einen schon eingetragenen Online-Speicher ersetzen (neue Schlüssel)")
     x.add_argument("--aussteller", help="sso: Aussteller (Issuer), z. B. https://login.microsoftonline.com/<Mandanten-ID>/v2.0")
     x.add_argument("--client-id", dest="client_id", help="sso: Anwendungs-ID (Client-ID) aus der App-Registrierung")
     x.add_argument("--an", action="store_true", help="sso: Knopf „Mit Firmenkonto anmelden“ zeigen")

@@ -64,7 +64,23 @@ läuft, mit demselben Protokoll (HTTP `/v2/pipeline`, Schlüssel als Bearer-Toke
   (`http://` nur im Firmennetz, mit Warnung), optional das Zertifikat der Firmen-CA als PEM-Datei.
 - **Seite:** in `amw-konfig.php` `'speicher_url' => 'https://amw-db.firma.lan'`, `'speicher_token' => '…'`, optional
   `'speicher_ca' => '/pfad/firma-ca.pem'`. Die Adresse steht nur in dieser Datei – kein Formular im Netz kann sie setzen.
-- Anleitung zum Aufbau (Docker, https davor, Paket für den Webserver) folgt mit Stufe R3b/R3c.
+- **Paket für den Webserver:** `amw web paket --seite https://amw.firma.lan --speicher https://amw-db.firma.lan
+  [--admin chef] [--ca firma-ca.pem] [--ziel paket.zip]` baut am PC eine ZIP statt des Einrichtungs-Assistenten:
+  `web/` (die Seite), `konfig/amw-konfig.php` (Speicher-Adresse, Schlüssel der Seite, erster Admin, `nur_https`;
+  außerhalb des Web-Ordners ablegen), `speicher/` (docker compose für sqld + öffentlicher Schlüssel), `webserver/`
+  (Vorlagen für nginx und Apache mit denselben Sperren wie `.htaccess`, https vor dem Speicher), `beispiel/` (alles in
+  Docker) und `LIESMICH.txt`. Dabei: neues Schlüsselpaar, Zugang am PC (Synchronisierung aus) und Adresse der Seite
+  eingetragen; das Passwort des Admins (erzeugt oder mit `--passwort-abfragen`) erscheint einmal und steht in der
+  Konfiguration nur als Hash (SHA-512-crypt, von PHP `password_verify` geprüft). Den zweiten Faktor richtet der Admin
+  beim ersten Anmelden ein. Ein schon eingetragener Speicher wird nur mit `--ersetzen` abgelöst. Die ZIP enthält den
+  Schlüssel der Seite – nach dem Kopieren löschen.
+- **http im Firmennetz:** Seite, Speicher, ntfy-Server und Link in Benachrichtigungen dürfen `http://` sein, wenn das Ziel
+  im Firmennetz liegt (sonst nur `https://`). Das Paket lässt dann in `.htaccess` die Umleitung auf https weg und setzt
+  `nur_https` aus; die Anmeldeseite und die Einstellungen am PC warnen sichtbar. Dateien hochladen geht nur über https
+  (der Browser rechnet die Prüfsumme nur in einer sicheren Umgebung). IIS wird nicht unterstützt.
+- **Zertifikat der Firma:** Das beim Speicher eingetragene CA-Zertifikat gilt am PC auch für „Seite prüfen“ und den
+  eigenen ntfy-Server (zusätzlich zu den Zertifikaten von Windows).
+- Schritt-für-Schritt-Hilfe zum Aufbau auf einem eigenen Rechner folgt mit Stufe R3c.
 
 ## 2 Einrichten (etwa 15 Minuten)
 Voraussetzungen: AMW läuft am PC (Wächter eingerichtet); ein Webhoster mit **PHP ≥ 8.1** (Erweiterungen curl, mbstring)
@@ -123,4 +139,5 @@ alle 15 s eine Abfrage auf einem Index.
 | `web/sso.php`, `web/inc/sso.php` | Firmen-Anmeldung (OpenID Connect) und Eintragen ihres Geheimnisses |
 | `web/inc/einrichtung.php`, `web/inc/qr.php` | Einrichtungs-Assistent, QR-Code (eigener Erzeuger) |
 | `amw/abgleich.py` | Hochladen und Abholen im Wächter, Dateien der Dokumente |
-| `amw web einrichten · bauen · schema · einmal · status · zweitfaktor-neu · sso` | Zugang, Seite kopieren, Tabellen, ein Abgleich von Hand, Stand, neues Handy, Firmen-Anmeldung |
+| `amw/paket.py`, `amw/server/` | Paket für den eigenen Server im Firmennetz: ZIP, Vorlagen für nginx, Apache, docker compose, LIESMICH |
+| `amw web einrichten · bauen · schema · einmal · status · zweitfaktor-neu · sso · paket` | Zugang, Seite kopieren, Tabellen, ein Abgleich von Hand, Stand, neues Handy, Firmen-Anmeldung, Paket für den eigenen Server |

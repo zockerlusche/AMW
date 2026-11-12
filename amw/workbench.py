@@ -948,7 +948,7 @@ def daten_projekte(con, pid):
         aus.append({"uid": f["uid"], "name": f["name"], "farbe": f["farbe"] or "bernstein", "fragen": int(f["fragen"] or 0),
                     "agenten": int(f["agenten"] or 0), "halt": bool(int(f["halt"] or 0)), "aktiv": False, "fern": True,
                     "rechner": f["rechner"], "erreichbar": gesehen > grenze,
-                    "online": f"{link}/?projekt={f['uid']}" if link.startswith("https://") else ""})
+                    "online": f"{link}/?projekt={f['uid']}" if link.startswith(("https://", "http://")) else ""})
     return {"projekte": aus, "rechner": rechner}
 
 

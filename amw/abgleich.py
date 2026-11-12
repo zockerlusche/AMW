@@ -259,6 +259,29 @@ def speicher_aus_zugang(nur_wenn_an=True):
     return TursoSpeicher(z["url"], z["token"], z.get("ca"))
 
 
+def firmen_ca():
+    """Pfad zum Zertifikat der Firmen-CA, wenn eines beim Online-Speicher eingetragen ist und die Datei da ist – sonst None.
+    Dieselbe Firma stellt meist auch das Zertifikat der Online-Seite und des ntfy-Servers aus."""
+    try:
+        with open(zugang_pfad(), encoding="utf-8") as f:
+            ca = json.load(f).get("ca")
+    except (OSError, ValueError, AttributeError):
+        return None
+    return ca if ca and os.path.isfile(ca) else None
+
+
+def tls_kontext(url):
+    """Für https-Adressen mit eingetragener Firmen-CA: die Zertifikate des Systems und zusätzlich das der Firma (Dienste
+    im Internet bleiben so erreichbar). Sonst None – dann gilt, was Python ohnehin prüft."""
+    ca = firmen_ca() if str(url).lower().startswith("https://") else None
+    if not ca:
+        return None
+    import ssl
+    k = ssl.create_default_context()
+    k.load_verify_locations(cafile=ca)
+    return k
+
+
 # --- Abgleich ------------------------------------------------------------------------------------
 
 def hoch_holen(sp, hid):

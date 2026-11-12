@@ -111,8 +111,9 @@ def speichern(werte):
                 t = cfg["ntfy"]["topic"]
                 if t and not (len(t) <= 64 and all(c.isalnum() or c in "-_" for c in t)):
                     raise ValueError("ntfy-Kanal: bis 64 Zeichen, Buchstaben/Ziffern/-/_")
-                if not cfg["ntfy"]["server"].startswith("https://"):
-                    raise ValueError("ntfy-Server: https://…")
+                srv = cfg["ntfy"]["server"]
+                if not srv.startswith("https://") and not _http_im_netz(srv):
+                    raise ValueError("ntfy-Server: https://… (http:// nur für einen Server im Firmennetz)")
         elif k == "ereignisse":
             for e, w in v.items():
                 if e not in EREIGNISSE:
@@ -132,8 +133,8 @@ def speichern(werte):
             cfg[k] = n
         elif k == "link":
             v = str(v).strip()
-            if v and not v.startswith(("https://", "http://127.0.0.1", "http://localhost")):
-                raise ValueError("Link: https://… (oder die lokale Workbench)")
+            if v and not v.startswith(("https://", "http://127.0.0.1", "http://localhost")) and not _http_im_netz(v):
+                raise ValueError("Link: https://… (http:// nur im Firmennetz, oder die lokale Workbench)")
             cfg[k] = v
         elif k == "an":
             neu = bool(v)
@@ -166,6 +167,11 @@ def neuer_ntfy_kanal():
 
 # --- Anbieter ------------------------------------------------------------------------------------
 
+def _http_im_netz(adresse):
+    from . import betriebsart
+    return betriebsart.http_im_netz(adresse)
+
+
 def _anfrage(url, daten=None, kopf=None, form=False):
     if form:
         body, typ = urllib.parse.urlencode(daten).encode(), "application/x-www-form-urlencoded"
@@ -177,8 +183,10 @@ def _anfrage(url, daten=None, kopf=None, form=False):
     except betriebsart.Gesperrt as e:              # kein neuer Versuch – das ändert sich nicht von selbst
         raise Fehler(str(e), False) from None
     req = urllib.request.Request(url, data=body, headers={"Content-Type": typ, "User-Agent": "AMW", **(kopf or {})})
+    from . import abgleich
+    kontext = abgleich.tls_kontext(url)              # eigener ntfy-Server mit Zertifikat der Firma
     try:
-        with urllib.request.urlopen(req, timeout=ZEITGRENZE_S) as r:
+        with urllib.request.urlopen(req, timeout=ZEITGRENZE_S, **({"context": kontext} if kontext else {})) as r:
             return r.status, r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
         text = e.read().decode("utf-8", "replace")[:300]
