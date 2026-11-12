@@ -396,7 +396,8 @@ class Seite(Wiederholt, Grund):
         # neu gegliedert: erst, was die Installation trägt, dann Projekt und Agenten; je Abschnitt der Wirkungsort
         self.assertEqual(texte, ["Betriebsart", "Speicher und Synchronisierung", "Online-Seite", "Benutzer der Online-Seite", "Benachrichtigungen aufs Handy", "Dieser PC", "Projekt", "Agenten"])
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.einst > .karte > h3 .wirkt')].map(x => x.textContent)"),
-                         ["Gilt für diesen PC", "Gilt für PC und Online-Seite", "Gilt für die Online-Seite", "Gilt für diesen PC", "Gilt für diesen PC", "Gilt für dieses Projekt"])
+                         ["Gilt für diesen PC", "Gilt für PC und Online-Seite", "Gilt für die Online-Seite", "Gilt für die Online-Seite",
+                          "Gilt für diesen PC", "Gilt für diesen PC", "Gilt für dieses Projekt"])
         # Betriebsart: drei Karten, genau eine gewählt; darunter die Liste der Verbindungen (mindestens die Workbench selbst)
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.ba-karte')].map(k => k.dataset.art)"), ["pc", "server", "cloud"])
         self.assertEqual(self.tab.js("document.querySelectorAll('.ba-karte.an').length"), 1)
