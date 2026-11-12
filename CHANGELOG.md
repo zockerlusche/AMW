@@ -8,6 +8,8 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 - **Behoben (vor der Veröffentlichung gefunden):** Die tägliche Messung der Ordnergrößen startete auch aus der
   Aufsicht-Runde heraus, die andere Teile der AMW einzeln aufrufen – ihr Hintergrund-Faden hielt dann die Datenbank
   offen. Jetzt startet sie nur die Schleife des laufenden Dienstes.
+- **Behoben:** Die Linien des Team-Baums wurden nur gezeichnet, wenn der Browser einen Animations-Schritt ausführte –
+  in einem Tab im Hintergrund blieben sie aus, bis sich die Größe änderte. Jetzt zeichnet die Seite sie in jedem Fall.
 
 ## 1.60.0 – 12.11.2026 · Hilfen in derselben Sprache wie die Oberfläche
 - **Hilfen überarbeitet** (Deutsch und Englisch) mit den Wörtern der Oberfläche: Dienst, Synchronisierung,
