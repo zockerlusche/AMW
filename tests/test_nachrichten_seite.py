@@ -141,5 +141,20 @@ class Nachrichten(unittest.TestCase):
             kern.zurueckziehen(self.con, self.pid, kern.ENTWICKLER, g[0]["id"])
 
 
+    def test_ueber_alle_projekte(self):
+        with db.schreiben(self.con):
+            p2 = db.einfuegen(self.con, "projekt", name="Q", angelegt_utc=db.jetzt())
+        kern.agent_neu(self.con, p2, "QL", rolle="lead")
+        n = kern.posten(self.con, p2, kern.ENTWICKLER, "QL", "auftrag", "in Q")[0]
+        kern.posten(self.con, p2, "QL", kern.ENTWICKLER, "info", "aus Q")
+        d = workbench.daten_nachrichten_alle(self.con)
+        uid = dict(self.con.execute("SELECT name, uid FROM projekt").fetchall())
+        self.assertEqual(d["gesendet"][0]["id"], n)                                            # neueste zuerst, über Projekte
+        self.assertEqual({x["projekt"] for x in d["gesendet"]}, {uid["P"], uid["Q"]})
+        self.assertEqual(d["zaehler"]["eingang_offen"], sum(workbench.daten_nachrichten(self.con, x)["zaehler"]["eingang_offen"] for x in (self.pid, p2)))
+        self.assertIn("aus Q", [x["kurz"] for x in d["eingang"]])
+        self.assertEqual(workbench.daten_nachrichten(self.con, self.pid)["gesendet"][0]["projekt"], uid["P"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 # Nachrichten: Eingang und Gesendet
 
-Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Stelle. Je Empfänger siehst du, wie weit eine Nachricht ist – und solange sie niemand gelesen hat, kannst du sie zurückziehen.
+Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Stelle – aus allen Projekten (online: denen, die du sehen darfst), jede Zeile mit ihrem Projekt. Je Empfänger siehst du, wie weit eine Nachricht ist – und solange sie niemand gelesen hat, kannst du sie zurückziehen.
 
 ## Du brauchst
 - Die Workbench am PC oder die Online-Seite. Menü › Nachrichten.

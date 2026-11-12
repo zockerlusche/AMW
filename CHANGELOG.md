@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.78.0 – 12.11.2026 · Nachrichten aus allen Projekten an einer Stelle
+- **„Nachrichten“ zeigt alle Projekte zusammen** – am PC alle dieses PCs, online die Projekte, die du sehen darfst.
+  Jede Zeile trägt ihr Projekt (Farbpunkt), dazu der Filter „Alle Projekte“ / ein Projekt.
+- Antworten, Nachfassen, Erledigt und Zurückziehen gehen an das Projekt der Nachricht; ein Klick auf den Bezug einer
+  Nachricht aus einem anderen Projekt wechselt dorthin.
+
 ## 1.77.0 – 12.11.2026 · Nachrichten: Startseite aufgeräumt, Fragen als Reiter
 - **Startseite:** statt der langen Liste „Nachrichten an dich“ eine Karte mit den drei neuesten und dem Sprung in den
   Eingang; „Ältere als gelesen markieren“ bleibt dort.

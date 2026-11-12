@@ -149,5 +149,33 @@ class GanzerWeg(unittest.TestCase):
         self.assertIn("gibt es schon", st[doppelt["eingang"]]["fehler"])
 
 
+    def test_nachrichten_ueber_alle_projekte(self):
+        """Seite „Nachrichten“ online: die Ansichten aller Projekte des Benutzers zusammen, jede Zeile mit ihrem Projekt;
+        Geschriebenes im Briefkasten steht schon im Gesendet – beim richtigen Projekt."""
+        from amw import db, kern
+        with db.schreiben(self.con):
+            p2 = db.einfuegen(self.con, "projekt", name="Q", angelegt_utc=db.jetzt())
+        kern.agent_neu(self.con, p2, "QL", rolle="lead")
+        kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC1", "auftrag", "in P")
+        kern.posten(self.con, p2, kern.ENTWICKLER, "QL", "auftrag", "in Q")
+        kern.posten(self.con, p2, "QL", kern.ENTWICKLER, "info", "Antwort aus Q")
+        self.ab.hochladen(alle=True)
+        ab2 = abgleich.Abgleich(self.con, self.sp, p2)
+        ab2.hochladen(alle=True)
+        uid = {n: u for n, u in self.con.execute("SELECT name, uid FROM projekt")}
+        d = self.hole("/api/nachrichten?alle=1")
+        self.assertEqual(sorted((x["kurz"], x["projekt"]) for x in d["gesendet"]), [("in P", uid["P"]), ("in Q", uid["Q"])])
+        self.assertEqual([(x["kurz"], x["projekt"]) for x in d["eingang"]], [("Antwort aus Q", uid["Q"])])
+        self.assertEqual(d["zaehler"]["eingang_offen"], 1)
+        import urllib.request
+        rq = urllib.request.Request(self.basis + "api.php?weg=/api/nachricht&projekt=" + uid["Q"], method="POST",
+                                    data=json.dumps({"an": "QL", "art": "info", "kurz": "unterwegs nach Q"}).encode(),
+                                    headers={"Content-Type": "application/json", "X-AMW-Token": self.token, "Origin": self.basis.rstrip("/")})
+        self.assertTrue(json.loads(self.op.open(rq).read().decode())["unterwegs"])
+        d = self.hole("/api/nachrichten?alle=1")
+        u = [x for x in d["gesendet"] if x.get("unterwegs")]
+        self.assertEqual([(x["kurz"], x["projekt"], x["empfaenger"][0]["stand"]) for x in u], [("unterwegs nach Q", uid["Q"], "unterwegs")])
+
+
 if __name__ == "__main__":
     unittest.main()

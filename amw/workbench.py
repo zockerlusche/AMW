@@ -459,6 +459,7 @@ def daten_nachrichten(con, pid, grenze=150):
     E = kern.ENTWICKLER
 
     texte = {}
+    puid = con.execute("SELECT uid FROM projekt WHERE id = ?", (pid,)).fetchone()[0]
 
     def bezug(n):
         b = n["bezug"]
@@ -483,7 +484,7 @@ def daten_nachrichten(con, pid, grenze=150):
     for n in eigene:
         emp, antworten = empf.get(n["id"], []), antw.get(n["id"], [])
         zurueck = bool(emp) and all(x["bemerkung"] == kern.ZURUECKGEZOGEN for x in emp)
-        gesendet.append({**{k: n[k] for k in ("id", "zeit_utc", "art", "kurz", "text", "antwort_auf", "benutzer")}, "bezug": bezug(n),
+        gesendet.append({**{k: n[k] for k in ("id", "zeit_utc", "art", "kurz", "text", "antwort_auf", "benutzer")}, "bezug": bezug(n), "projekt": puid,
                          "empfaenger": [{"agent": x["agent"], "stand": "zurueckgezogen" if zurueck else ("erledigt" if x["status"] == "erledigt" else
                                          "gelesen" if x["status"] == "gelesen" else "benachrichtigt" if x["geweckt_utc"] else "gesendet"),
                                          "gelesen_utc": x["gelesen_utc"], "erledigt_utc": x["erledigt_utc"], "benachrichtigt_utc": x["geweckt_utc"]} for x in emp],
@@ -492,9 +493,22 @@ def daten_nachrichten(con, pid, grenze=150):
     eingang = []
     for n in con.execute(f"SELECT {spalten}, e.status AS stand FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
                          " WHERE n.projekt_id = ? AND e.agent = ? ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall():
-        eingang.append({**{k: n[k] for k in ("id", "zeit_utc", "von", "art", "kurz", "text", "antwort_auf", "stand")}, "bezug": bezug(n)})
+        eingang.append({**{k: n[k] for k in ("id", "zeit_utc", "von", "art", "kurz", "text", "antwort_auf", "stand")}, "bezug": bezug(n), "projekt": puid})
     return {"eingang": eingang, "gesendet": gesendet,
             "zaehler": {"eingang_offen": sum(1 for x in eingang if x["stand"] != "erledigt")}}
+
+
+def daten_nachrichten_alle(con, grenze=300):
+    """Seite „Nachrichten“ über alle Projekte dieses PCs: je Projekt wie daten_nachrichten, zusammengelegt, neueste zuerst."""
+    aus = {"eingang": [], "gesendet": [], "zaehler": {"eingang_offen": 0}}
+    for (pid,) in con.execute("SELECT id FROM projekt ORDER BY id").fetchall():
+        d = daten_nachrichten(con, pid)
+        aus["eingang"] += d["eingang"]
+        aus["gesendet"] += d["gesendet"]
+        aus["zaehler"]["eingang_offen"] += d["zaehler"]["eingang_offen"]
+    for k in ("eingang", "gesendet"):
+        aus[k] = sorted(aus[k], key=lambda x: (x["zeit_utc"], x["id"]), reverse=True)[:grenze]   # Nummern sind über Projekte eindeutig
+    return aus
 
 
 def daten_benutzer(con, speicher=None):
@@ -1142,7 +1156,7 @@ def baue_handler(port, token):
                     "/api/dokument": lambda c, p: daten_dokument(c, p, q),
                     "/api/projekte": lambda c, p: daten_projekte(c, p),
                     "/api/benutzer": lambda c, p: daten_benutzer(c),
-                    "/api/nachrichten": lambda c, p: daten_nachrichten(c, p)}
+                    "/api/nachrichten": lambda c, p: daten_nachrichten_alle(c) if q.get("alle", ["0"])[0] == "1" else daten_nachrichten(c, p)}
             weg = wege.get(u.path)
             if not weg:
                 return self._senden(404, {"fehler": "unbekannt"})

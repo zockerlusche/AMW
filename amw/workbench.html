@@ -592,6 +592,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .nr-blase.ich { margin-left: auto; background: var(--bernstein-weich); } .nr-blase .wer { font-size: 12px; color: var(--leise); }
 .nr-zurueck { display: none; background: none; border: 0; color: var(--blau); text-align: left; padding: 0; cursor: pointer; }
 .nr-bezug-zeile { margin: 6px 0; }
+.nr-projekt { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--leise); } .nr-projekt .pw-farbe { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .nr-start { display: grid; gap: 4px; padding: 12px 14px; } .nr-start-zeile { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .post-knopf { margin-left: auto; padding: 1px 8px; font-size: 12px; }
 .nr-zu { display: flex; flex-direction: column; gap: 8px; } .nr-zu-liste { display: flex; flex-direction: column; gap: 6px; }
@@ -1009,8 +1010,8 @@ const TOKEN = "__AMW_TOKEN__";
 const API = "__AMW_API__".startsWith("__") ? "" : "__AMW_API__";
 /* Projekt der Ansicht (uid): jede Anfrage trägt es; Umschalten ändert nur die Ansicht, kein Projekt hält an */
 let projekt = null, projekte = [];
-const ziel = weg => API ? API + encodeURIComponent(weg) + (projekt ? "&projekt=" + encodeURIComponent(projekt) : "")
-  : projekt ? weg + (weg.includes("?") ? "&" : "?") + "projekt=" + encodeURIComponent(projekt) : weg;
+const ziel = (weg, p = projekt) => API ? API + encodeURIComponent(weg) + (p ? "&projekt=" + encodeURIComponent(p) : "")
+  : p ? weg + (weg.includes("?") ? "&" : "?") + "projekt=" + encodeURIComponent(p) : weg;
 /* Merken je Projekt (Sicht, letzter Besuch); ohne Eintrag gilt der bisherige Wert ohne Projekt */
 const ablage = k => projekt ? `${k}:${projekt}` : k;
 const gemerkt = k => { try { return localStorage.getItem(ablage(k)) ?? localStorage.getItem(k); } catch (e) { return null; } };
@@ -1069,7 +1070,7 @@ const TEXTE = {
     schirm_frei_frage_offen: "Bildschirm jetzt für Agenten freigeben – ohne Ende? Er bleibt frei, bis jemand ihn belegt oder ein eingeschalteter Auslöser (Einstellungen › Dieser PC) greift. Agenten dürfen dann am PC Fenster öffnen, klicken und tippen.", schirm_frei_frage: "Bildschirm jetzt für Agenten freigeben – bis {x} Uhr? Agenten dürfen dann am PC Fenster öffnen, klicken und tippen.", schirm_nur_admin: "Freigeben darf online nur ein System-Admin. Wieder belegen geht für alle.", schirm_nur_admin_kurz: "Online nur für System-Admins", nur_pc_knopf: "Geht nur am PC", schirm_zum_leitstand: "Im Leitstand ändern", schirm_zum_leitstand_h: "Freigeben und belegen geht im Leitstand unten",
     ae_weg_titel: "Agent entfernen", ae_weg_h: "Entfernen legt den Agenten still und blendet ihn überall aus – er wird nicht mehr gestartet, nicht mehr benachrichtigt und steht nicht mehr im Team. Was er geschrieben und getan hat, bleibt mit seinem Namen lesbar. Wieder aufnehmen geht jederzeit.", ae_entfernen: "Entfernen …", ae_entfernen_frage: "{x} entfernen? Er wird stillgelegt und ausgeblendet; sein Verlauf bleibt lesbar.", ae_entfernen_frage_laeuft: "{x} entfernen? Seine Sitzung läuft – sie wird zuerst gesichert und beendet (wie „Speichern & beenden“). Danach ist er stillgelegt und ausgeblendet; sein Verlauf bleibt lesbar.", ae_entfernt_ok: "{x} ist entfernt", ae_entfernt_ok_endet: "{x} ist entfernt – seine Sitzung wird gesichert und spätestens {b} beendet", ae_loeschen: "Endgültig löschen …", ae_loeschen_frage: "{x} endgültig löschen? Das geht nicht rückgängig.", ae_loeschen_nicht: "Hat Verlauf ({x}) – endgültig löschen geht nur ohne Verlauf. Entfernen blendet ihn aus.", ae_geloescht: "{x} ist gelöscht", ae_verlauf: "Am Agenten hängt: {x}", ae_v_nachrichten: "{n} Nachrichten", ae_v_empfangen: "{n} empfangene Nachrichten", ae_v_aufgaben: "{n} Aufgaben", ae_v_pruefungen: "{n} Prüfungen", ae_v_laeufe: "{n} Läufe", ae_v_dokumente: "{n} Dokumente", ae_v_fragen: "{n} Fragen", ae_v_sitzungen: "{n} Sitzungen", ae_entfernt_liste: "Entfernt ({n})", ae_entfernt_seit: "seit {x}", ae_wieder: "Wieder aufnehmen", ae_wieder_ok: "{x} ist wieder dabei (Soll: aus)",
     tm_wartet_du: "wartet auf dich", tm_wartet_du_h: "Eine Aufgabe dieses Agenten wartet auf dich", tm_leg_fokus: "Prüfungen und Wartebeziehungen einer Karte: Maus darauf (oder antippen)",
-    n_nachrichten: "Nachrichten", nr_unter: "Was du schreibst und was an dich geht – mit Stand je Empfänger", nr_eingang: "Eingang", nr_gesendet: "Gesendet", nr_fragen: "Fragen", nr_alle_agenten: "Alle Agenten", nr_nur_offen: "nur offene", nr_suchen: "Suchen …", nr_schreiben: "Schreiben", nr_an: "An", nr_alle: "alle", nr_an_k: "an", nr_von_k: "von", nr_gesendet_s: "gesendet", nr_benachrichtigt: "benachrichtigt", nr_gelesen: "gelesen", nr_erledigt_s: "erledigt", nr_unterwegs: "wird übertragen …", nr_zurueckgezogen: "zurückgezogen", nr_mehrere: "{n} Empfänger · {e} erledigt", nr_leer: "Hier ist nichts.", nr_waehle: "Links eine Nachricht wählen.", nr_zur_liste: "Zur Liste", nr_antworten: "Antworten", nr_nachfassen: "Nachfassen", nr_erledigt: "Erledigt", nr_zurueckziehen: "Zurückziehen", nr_zurueckziehen_h: "Noch hat niemand sie gelesen – sie verschwindet beim Empfänger.", nr_zurueckziehen_nicht: "Schon gelesen oder erledigt – zurückziehen geht nicht mehr; schick eine neue Nachricht.", nr_zurueckziehen_frage: "Nachricht zurückziehen? Sie verschwindet beim Empfänger; bei dir bleibt sie als „zurückgezogen“.", nr_zurueckgezogen_ok: "Zurückgezogen", nr_bezug_h: "Zum Bezug springen", nr_bezug: "Bezug:", nr_alle_bezuege: "Alle Bezüge", nr_dazu: "✉ Nachricht dazu", nr_dazu_h: "Nachricht mit diesem Bezug schreiben – sie steht dann auch unter Nachrichten", nr_zu_titel: "Nachrichten dazu ({n})", nr_zu_leer: "Noch keine Nachrichten dazu.", nr_schreiben_dazu: "Nachricht dazu schreiben", nr_start_neu: "{n} neu", nr_start_alle: "Alle Nachrichten an dich",
+    n_nachrichten: "Nachrichten", nr_unter: "Was du schreibst und was an dich geht – mit Stand je Empfänger", nr_eingang: "Eingang", nr_gesendet: "Gesendet", nr_fragen: "Fragen", nr_alle_agenten: "Alle Agenten", nr_nur_offen: "nur offene", nr_suchen: "Suchen …", nr_schreiben: "Schreiben", nr_an: "An", nr_alle: "alle", nr_an_k: "an", nr_von_k: "von", nr_gesendet_s: "gesendet", nr_benachrichtigt: "benachrichtigt", nr_gelesen: "gelesen", nr_erledigt_s: "erledigt", nr_unterwegs: "wird übertragen …", nr_zurueckgezogen: "zurückgezogen", nr_mehrere: "{n} Empfänger · {e} erledigt", nr_leer: "Hier ist nichts.", nr_waehle: "Links eine Nachricht wählen.", nr_zur_liste: "Zur Liste", nr_antworten: "Antworten", nr_nachfassen: "Nachfassen", nr_erledigt: "Erledigt", nr_zurueckziehen: "Zurückziehen", nr_zurueckziehen_h: "Noch hat niemand sie gelesen – sie verschwindet beim Empfänger.", nr_zurueckziehen_nicht: "Schon gelesen oder erledigt – zurückziehen geht nicht mehr; schick eine neue Nachricht.", nr_zurueckziehen_frage: "Nachricht zurückziehen? Sie verschwindet beim Empfänger; bei dir bleibt sie als „zurückgezogen“.", nr_zurueckgezogen_ok: "Zurückgezogen", nr_bezug_h: "Zum Bezug springen", nr_bezug: "Bezug:", nr_alle_bezuege: "Alle Bezüge", nr_alle_projekte: "Alle Projekte", nr_dazu: "✉ Nachricht dazu", nr_dazu_h: "Nachricht mit diesem Bezug schreiben – sie steht dann auch unter Nachrichten", nr_zu_titel: "Nachrichten dazu ({n})", nr_zu_leer: "Noch keine Nachrichten dazu.", nr_schreiben_dazu: "Nachricht dazu schreiben", nr_start_neu: "{n} neu", nr_start_alle: "Alle Nachrichten an dich",
     bn_titel: "Benutzer der Online-Seite", bn_h: "Wer sich auf der Online-Seite anmelden darf und was er dort darf. Ein neuer Benutzer hat keine Rechte, bis du Rolle und Projekte vergibst. Der bisherige Zugang aus der Konfiguration der Seite bleibt System-Admin.", bn_ohne_speicher: "Ohne Online-Speicher kann sich niemand anmelden – erst die Online-Seite einrichten. Anlegen geht schon.", bn_name: "Name", bn_rolle: "Rolle", bn_projekte: "Projekte", bn_stand: "Stand", bn_keine: "Noch keine Benutzer.", bn_neu_ph: "Name (ohne Leerzeichen)", bn_anlegen: "Anlegen", bn_wartet_rolle: "– wartet auf Freigabe –", rolle_leser: "Leser", rolle_bearbeiter: "Bearbeiter", rolle_projekt_admin: "Projekt-Admin", rolle_system_admin: "System-Admin", bn_alle_projekte: "alle Projekte", bn_st_neu: "noch nicht freigeschaltet", bn_st_wartet_code: "Code gültig bis {x}", bn_st_code_abgelaufen: "Code abgelaufen", bn_st_eingerichtet: "eingerichtet", bn_st_angemeldet: "zuletzt angemeldet {x}", bn_st_gesperrt: "gesperrt", bn_st_freigabe: "wartet auf deine Freigabe", bn_freischalten: "Freischalten", bn_neu_freischalten: "Neu freischalten", bn_neu_frage: "{x} neu freischalten? Passwort und zweiter Faktor werden zurückgesetzt, alle Sitzungen von {x} enden.", bn_sperren: "Sperren", bn_entsperren: "Entsperren", bn_code_titel: "Freischalt-Code für {x}", bn_code_h: "Gültig bis {b}, nur einmal. Gib ihn {x} persönlich weiter (mündlich oder im Chat) – er erscheint nur jetzt und steht nirgends sonst. {x} öffnet die Online-Seite, wählt „Neue Anmeldung“ und setzt Passwort und zweiten Faktor selbst.", bn_kopieren: "Kopieren", bn_kopiert: "Kopiert", bn_fertig: "Fertig",
     bn_email: "E-Mail (Firmenkonto)", bn_email_ph: "für die Firmen-Anmeldung", bn_st_firmenkonto: "mit Firmenkonto angemeldet {x}", sso_titel: "Firmen-Anmeldung (SSO)", sso_h: "Anmelden mit dem Firmenkonto (OpenID Connect, z. B. Microsoft Entra ID) – ohne zweiten Faktor in der AMW, den macht der Anbieter. Hinein kommt nur, wen du oben angelegt und mit derselben E-Mail versehen hast.", sso_an: "Knopf „Mit Firmenkonto anmelden“ zeigen", sso_aussteller: "Aussteller (Issuer)", sso_aussteller_h: "Microsoft Entra ID: https://login.microsoftonline.com/<Verzeichnis-ID>/v2.0 – nicht „common“", sso_client: "Anwendungs-ID (Client-ID)", sso_rueckweg: "Umleitungs-URI (Redirect-URI)", sso_rueckweg_h: "So beim Anbieter eintragen (Plattform „Web“).", sso_rueckweg_fehlt: "erscheint, sobald oben bei „Online-Seite“ die Adresse steht", sso_geheimnis: "Geheimnis beim Webhoster", sso_zugang_geheimnis: "gespeichert (Client-Secret)", sso_zugang_zertifikat: "gespeichert (Zertifikat)", sso_zugang_fehlt: "noch nicht eingetragen – der Knopf erscheint erst danach", sso_eintragen: "Auf der Online-Seite eintragen", sso_eintragen_h: "Das Geheimnis kommt nie auf diesen PC: ein System-Admin trägt es auf der Online-Seite ein, es liegt dann nur in deren Konfigurationsdatei.", sso_ohne_speicher: "Ohne Online-Speicher gibt es keine Firmen-Anmeldung.",
     e_web: "Online-Seite", e_web_h: "Gilt für die Anmeldung im Netz.", e_leerlauf: "Abmelden nach Leerlauf (min)",
@@ -1391,7 +1392,7 @@ const TEXTE = {
     schirm_frei_frage_offen: "Free the screen for agents now – without an end? It stays free until someone takes it back or a switched-on trigger (Settings › This PC) fires. Agents may then open windows, click and type on the PC.", schirm_frei_frage: "Free the screen for agents now – until {x}? Agents may then open windows, click and type on the PC.", schirm_nur_admin: "Online, only a system admin may free the screen. Taking it back works for everyone.", schirm_nur_admin_kurz: "Online only for system admins", nur_pc_knopf: "Only works on the PC", schirm_zum_leitstand: "Change in control center", schirm_zum_leitstand_h: "Freeing and taking back is in the control center below",
     ae_weg_titel: "Remove agent", ae_weg_h: "Removing shuts the agent down and hides it everywhere – it is no longer started, no longer notified and no longer shown in the team. What it wrote and did stays readable under its name. You can take it back at any time.", ae_entfernen: "Remove …", ae_entfernen_frage: "Remove {x}? It is shut down and hidden; its history stays readable.", ae_entfernen_frage_laeuft: "Remove {x}? Its session is running – it is saved and ended first (like “Save & end”). Then it is shut down and hidden; its history stays readable.", ae_entfernt_ok: "{x} is removed", ae_entfernt_ok_endet: "{x} is removed – its session is saved and ended by {b} at the latest", ae_loeschen: "Delete for good …", ae_loeschen_frage: "Delete {x} for good? This cannot be undone.", ae_loeschen_nicht: "Has history ({x}) – deleting for good only works without history. Removing hides it.", ae_geloescht: "{x} is deleted", ae_verlauf: "Attached to this agent: {x}", ae_v_nachrichten: "{n} messages", ae_v_empfangen: "{n} received messages", ae_v_aufgaben: "{n} tasks", ae_v_pruefungen: "{n} reviews", ae_v_laeufe: "{n} runs", ae_v_dokumente: "{n} documents", ae_v_fragen: "{n} questions", ae_v_sitzungen: "{n} sessions", ae_entfernt_liste: "Removed ({n})", ae_entfernt_seit: "since {x}", ae_wieder: "Take back", ae_wieder_ok: "{x} is back (target: off)",
     tm_wartet_du: "waits for you", tm_wartet_du_h: "A task of this agent is waiting for you", tm_leg_fokus: "Reviews and waits of a card: hover over it (or tap)",
-    n_nachrichten: "Messages", nr_unter: "What you write and what is sent to you – with status per recipient", nr_eingang: "Inbox", nr_gesendet: "Sent", nr_fragen: "Questions", nr_alle_agenten: "All agents", nr_nur_offen: "open only", nr_suchen: "Search …", nr_schreiben: "Write", nr_an: "To", nr_alle: "everyone", nr_an_k: "to", nr_von_k: "from", nr_gesendet_s: "sent", nr_benachrichtigt: "notified", nr_gelesen: "read", nr_erledigt_s: "done", nr_unterwegs: "being sent …", nr_zurueckgezogen: "withdrawn", nr_mehrere: "{n} recipients · {e} done", nr_leer: "Nothing here.", nr_waehle: "Pick a message on the left.", nr_zur_liste: "Back to list", nr_antworten: "Reply", nr_nachfassen: "Follow up", nr_erledigt: "Done", nr_zurueckziehen: "Withdraw", nr_zurueckziehen_h: "Nobody has read it yet – it disappears for the recipient.", nr_zurueckziehen_nicht: "Already read or done – withdrawing is no longer possible; send a new message.", nr_zurueckziehen_frage: "Withdraw the message? It disappears for the recipient; you keep it as “withdrawn”.", nr_zurueckgezogen_ok: "Withdrawn", nr_bezug_h: "Go to the reference", nr_bezug: "About:", nr_alle_bezuege: "All references", nr_dazu: "✉ Message about this", nr_dazu_h: "Write a message about this – it also shows under Messages", nr_zu_titel: "Messages about this ({n})", nr_zu_leer: "No messages about this yet.", nr_schreiben_dazu: "Write a message about this", nr_start_neu: "{n} new", nr_start_alle: "All messages for you",
+    n_nachrichten: "Messages", nr_unter: "What you write and what is sent to you – with status per recipient", nr_eingang: "Inbox", nr_gesendet: "Sent", nr_fragen: "Questions", nr_alle_agenten: "All agents", nr_nur_offen: "open only", nr_suchen: "Search …", nr_schreiben: "Write", nr_an: "To", nr_alle: "everyone", nr_an_k: "to", nr_von_k: "from", nr_gesendet_s: "sent", nr_benachrichtigt: "notified", nr_gelesen: "read", nr_erledigt_s: "done", nr_unterwegs: "being sent …", nr_zurueckgezogen: "withdrawn", nr_mehrere: "{n} recipients · {e} done", nr_leer: "Nothing here.", nr_waehle: "Pick a message on the left.", nr_zur_liste: "Back to list", nr_antworten: "Reply", nr_nachfassen: "Follow up", nr_erledigt: "Done", nr_zurueckziehen: "Withdraw", nr_zurueckziehen_h: "Nobody has read it yet – it disappears for the recipient.", nr_zurueckziehen_nicht: "Already read or done – withdrawing is no longer possible; send a new message.", nr_zurueckziehen_frage: "Withdraw the message? It disappears for the recipient; you keep it as “withdrawn”.", nr_zurueckgezogen_ok: "Withdrawn", nr_bezug_h: "Go to the reference", nr_bezug: "About:", nr_alle_bezuege: "All references", nr_alle_projekte: "All projects", nr_dazu: "✉ Message about this", nr_dazu_h: "Write a message about this – it also shows under Messages", nr_zu_titel: "Messages about this ({n})", nr_zu_leer: "No messages about this yet.", nr_schreiben_dazu: "Write a message about this", nr_start_neu: "{n} new", nr_start_alle: "All messages for you",
     bn_titel: "Users of the online site", bn_h: "Who may sign in on the online site and what they may do there. A new user has no rights until you assign a role and projects. The existing access from the site's configuration stays system admin.", bn_ohne_speicher: "Without online storage nobody can sign in – set up the online site first. Adding users works already.", bn_name: "Name", bn_rolle: "Role", bn_projekte: "Projects", bn_stand: "Status", bn_keine: "No users yet.", bn_neu_ph: "Name (no spaces)", bn_anlegen: "Add", bn_wartet_rolle: "– awaiting approval –", rolle_leser: "Reader", rolle_bearbeiter: "Editor", rolle_projekt_admin: "Project admin", rolle_system_admin: "System admin", bn_alle_projekte: "all projects", bn_st_neu: "not activated yet", bn_st_wartet_code: "Code valid until {x}", bn_st_code_abgelaufen: "Code expired", bn_st_eingerichtet: "set up", bn_st_angemeldet: "last signed in {x}", bn_st_gesperrt: "blocked", bn_st_freigabe: "awaiting your approval", bn_freischalten: "Activate", bn_neu_freischalten: "Reset access", bn_neu_frage: "Reset access for {x}? Password and two-factor are reset and all of {x}'s sessions end.", bn_sperren: "Block", bn_entsperren: "Unblock", bn_code_titel: "Activation code for {x}", bn_code_h: "Valid until {b}, once only. Give it to {x} in person (spoken or in a chat) – it is shown only now and stored nowhere else. {x} opens the online site, chooses “First sign-in” and sets their own password and two-factor.", bn_kopieren: "Copy", bn_kopiert: "Copied", bn_fertig: "Done",
     bn_email: "Email (company account)", bn_email_ph: "for company sign-in", bn_st_firmenkonto: "signed in with company account {x}", sso_titel: "Company sign-in (SSO)", sso_h: "Sign in with the company account (OpenID Connect, e.g. Microsoft Entra ID) – no second factor in the AMW, the provider handles it. Only users you created above with the same email get in.", sso_an: "Show the “Sign in with company account” button", sso_aussteller: "Issuer", sso_aussteller_h: "Microsoft Entra ID: https://login.microsoftonline.com/<Directory ID>/v2.0 – not “common”", sso_client: "Application (client) ID", sso_rueckweg: "Redirect URI", sso_rueckweg_h: "Enter exactly this at the provider (platform “Web”).", sso_rueckweg_fehlt: "appears once the address is set under “Online site” above", sso_geheimnis: "Secret at the web host", sso_zugang_geheimnis: "stored (client secret)", sso_zugang_zertifikat: "stored (certificate)", sso_zugang_fehlt: "not entered yet – the button appears only then", sso_eintragen: "Enter it on the online site", sso_eintragen_h: "The secret never comes to this PC: a system admin enters it on the online site, it then lives only in its configuration file.", sso_ohne_speicher: "Without online storage there is no company sign-in.",
     e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after inactivity (min)",
@@ -1685,9 +1686,9 @@ function seit(x) {
   const tage = Math.round(s / 86400); return tage === 1 ? t("vor_t1") : t("vor_t", { n: tage });
 }
 async function holen(weg) { const r = await fetch(ziel(weg), { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return r.json(); }
-async function schicken(weg, daten) {
+async function schicken(weg, daten, p = projekt) {      /* p: Projekt, an das es geht (Nachrichten über alle Projekte) */
   const knopf = document.activeElement?.tagName === "BUTTON" ? document.activeElement : null;   /* die Stelle für „wird übertragen …“ */
-  const r = await fetch(ziel(weg), { method: "POST", headers: { "Content-Type": "application/json", "X-AMW-Token": TOKEN }, body: JSON.stringify(daten) });
+  const r = await fetch(ziel(weg, p), { method: "POST", headers: { "Content-Type": "application/json", "X-AMW-Token": TOKEN }, body: JSON.stringify(daten) });
   const j = await r.json().catch(() => ({}));
   if (j.neu_laden) { neuLadenLeiste(); throw new Error(t("neu_laden")); }
   if (!r.ok) throw new Error(j.fehler || r.status);
@@ -2697,11 +2698,16 @@ function nrReiterLeiste(aktiv, eingangOffen, weiter) {
 }
 /* Nachrichten an einer Stelle (Stufe N1): Eingang, Gesendet mit Stand je Empfänger, Gespräch rechts, Bezug als Chip */
 async function sichtNachrichten() {
-  let d; try { d = await holen("/api/nachrichten"); } catch (e) { rahmen(t("n_nachrichten")).append(el("div", { class: "leer" }, String(e.message || e))); return; }
+  let d; try { d = await holen("/api/nachrichten?alle=1"); } catch (e) { rahmen(t("n_nachrichten")).append(el("div", { class: "leer" }, String(e.message || e))); return; }
+  const mehrere = new Set([...d.eingang, ...d.gesendet].map(x => x.projekt).filter(Boolean)).size > 1;
+  let projektWahl = "";
   const m = rahmen(t("n_nachrichten"), el("span", { class: "leise" }, t("nr_unter"), " ", hilfeKnopf("nachrichten")));
   let reiter = gemerkt("amw-nr") === "eingang" ? "eingang" : "gesendet", gewaehlt = null, nurOffen = false, such = "", agent = "", bezugWahl = "";
   const STUFEN = ["gesendet", "benachrichtigt", "gelesen", "erledigt"];
-  const chip = b => b ? el("button", { class: "nr-chip", type: "button", title: t("nr_bezug_h"), onclick: e => { e.stopPropagation(); bezugOeffnen(b); } }, b.text) : null;
+  const schl = x => `${x.projekt || ""}:${x.id}`;
+  const chip = (b, x) => b ? el("button", { class: "nr-chip", type: "button", title: t("nr_bezug_h"), onclick: e => { e.stopPropagation();
+    if (x?.projekt && x.projekt !== projekt) { try { localStorage.setItem(`amw-sicht:${x.projekt}`, "nachrichten"); } catch (_) {} projektWechseln(x.projekt); return; }
+    bezugOeffnen(b); } }, b.text) : null;
   const kette = e => el("div", { class: "nr-kette" }, el("span", { class: "nr-wer" }, e.agent),
     e.stand === "zurueckgezogen" ? el("span", { class: "nr-stufe" }, t("nr_zurueckgezogen")) :
     e.stand === "unterwegs" ? el("span", { class: "nr-stufe jetzt" }, t("nr_unterwegs")) :
@@ -2712,7 +2718,10 @@ async function sichtNachrichten() {
   const liste = el("div", { class: "nr-liste" }), rechts = el("div", { class: "nr-gespraech" }), raster = el("div", { class: "nr-raster" }, liste, rechts);
   const agenten = [...new Set([...d.gesendet.flatMap(x => x.empfaenger.map(e => e.agent)), ...d.eingang.map(x => x.von)])].sort();
   const bezuege = [...new Map([...d.gesendet, ...d.eingang].filter(x => x.bezug).map(x => [x.bezug.kuerzel, x.bezug.text])).entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
+  const projekteDa = [...new Set([...d.eingang, ...d.gesendet].map(x => x.projekt).filter(Boolean))];
   const filter = el("div", { class: "nr-filter" },
+    mehrere ? el("select", { onchange: e => { projektWahl = e.target.value; zeichnen(); } }, el("option", { value: "" }, t("nr_alle_projekte")),
+      projekteDa.map(u => el("option", { value: u }, (projekte.find(p => p.uid === u)?.name) || u))) : null,
     bezuege.length ? el("select", { onchange: e => { bezugWahl = e.target.value; zeichnen(); } }, el("option", { value: "" }, t("nr_alle_bezuege")),
       bezuege.map(([k, txt]) => el("option", { value: k }, txt.length > 48 ? txt.slice(0, 47) + "…" : txt))) : null,
     el("select", { onchange: e => { agent = e.target.value; zeichnen(); } }, el("option", { value: "" }, t("nr_alle_agenten")), agenten.map(a => el("option", { value: a }, a))),
@@ -2724,6 +2733,7 @@ async function sichtNachrichten() {
   function passt(x) {
     if (such && !`${x.kurz} ${x.text || ""} ${x.bezug?.text || ""}`.toLowerCase().includes(such)) return false;
     if (bezugWahl && x.bezug?.kuerzel !== bezugWahl) return false;
+    if (projektWahl && x.projekt !== projektWahl) return false;
     if (reiter === "gesendet") return (!agent || x.empfaenger.some(e => e.agent === agent)) && (!nurOffen || x.empfaenger.some(e => !["erledigt", "zurueckgezogen"].includes(e.stand)));
     return (!agent || x.von === agent) && (!nurOffen || x.stand !== "erledigt");
   }
@@ -2736,34 +2746,34 @@ async function sichtNachrichten() {
     const an = ich ? x.empfaenger.map(e => e.agent).join(",") : x.von;
     rechts.replaceChildren(...[                         /* null nicht an replaceChildren geben: es schreibt „null“ */
       el("button", { class: "nr-zurueck", type: "button", onclick: () => { raster.classList.remove("detail"); } }, "‹ " + t("nr_zur_liste")),
-      el("h3", {}, x.kurz), x.bezug ? el("div", {}, chip(x.bezug)) : null,
+      el("h3", {}, x.kurz), mehrere ? el("div", {}, projektMarke(x.projekt)) : null, x.bezug ? el("div", {}, chip(x.bezug, x)) : null,
       ...blasen.map(b => el("div", { class: "nr-blase" + (b.ich ? " ich" : "") }, el("div", { class: "wer" }, b.wer), el("div", {}, b.kurz), b.text ? el("div", { class: "leise", style: "white-space:pre-wrap;margin-top:4px" }, b.text) : null)),
       ich ? el("div", { class: "nr-ketten" }, x.empfaenger.map(kette)) : null,
       el("div", { class: "aktionen" },
         x.zurueckgezogen || x.unterwegs ? null : el("button", { class: "knopf", type: "button", onclick: () => nachrichtDialog(an, { antwort_auf: ich ? null : x.id,
-          bezug: x.bezug?.kuerzel, bezugText: x.bezug?.text, art: "info" }) }, t(ich ? "nr_nachfassen" : "nr_antworten")),
+          bezug: x.bezug?.kuerzel, bezugText: x.bezug?.text, art: "info", projekt: x.projekt }) }, t(ich ? "nr_nachfassen" : "nr_antworten")),
         !ich && x.stand !== "erledigt" ? el("button", { class: "knopf", type: "button", onclick: async ev => {
-          try { await schicken("/api/gelesen", { ids: [x.id] }); x.stand = "erledigt"; zeichnen(); kopfAktualisieren(); } catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("nr_erledigt")) : null,
+          try { await schicken("/api/gelesen", { ids: [x.id] }, x.projekt || projekt); x.stand = "erledigt"; zeichnen(); kopfAktualisieren(); } catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("nr_erledigt")) : null,
         ich && !x.zurueckgezogen && !x.unterwegs && !x.zu_frage ? el("button", { class: "knopf", type: "button", disabled: x.zurueckziehbar ? null : "disabled",
           title: x.zurueckziehbar ? t("nr_zurueckziehen_h") : t("nr_zurueckziehen_nicht"),
           onclick: async () => { if (!confirm(t("nr_zurueckziehen_frage"))) return;
-            try { const r = await schicken("/api/nachricht/zurueckziehen", { id: x.id }); if (!r.unterwegs) toast(t("nr_zurueckgezogen_ok")); sichtNachrichten(); }
+            try { const r = await schicken("/api/nachricht/zurueckziehen", { id: x.id }, x.projekt || projekt); if (!r.unterwegs) toast(t("nr_zurueckgezogen_ok")); sichtNachrichten(); }
             catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("nr_zurueckziehen")) : null)].filter(Boolean));
   }
   function zeichnen() {
     kopf.replaceChildren(nrReiterLeiste(reiter, d.zaehler.eingang_offen, k => { reiter = k; gewaehlt = null; zeichnen(); }), filter);
     const l = d[reiter].filter(passt);
-    if (!l.some(x => x.id === gewaehlt)) gewaehlt = l[0]?.id ?? null;
-    liste.replaceChildren(...(l.length ? l.map(x => el("div", { class: "nr-eintrag" + (x.id === gewaehlt ? " an" : "") + (reiter === "eingang" && x.stand === "offen" ? " neu" : "") + (x.zurueckgezogen ? " weg" : ""),
-        onclick: () => { gewaehlt = x.id; raster.classList.add("detail"); zeichnen(); } },
-      el("div", { class: "nr-kopf" }, el("span", { class: "etikett" }, t("art_" + x.art) || x.art),
+    if (!l.some(x => schl(x) === gewaehlt)) gewaehlt = l[0] ? schl(l[0]) : null;
+    liste.replaceChildren(...(l.length ? l.map(x => el("div", { class: "nr-eintrag" + (schl(x) === gewaehlt ? " an" : "") + (reiter === "eingang" && x.stand === "offen" ? " neu" : "") + (x.zurueckgezogen ? " weg" : ""),
+        onclick: () => { gewaehlt = schl(x); raster.classList.add("detail"); zeichnen(); } },
+      el("div", { class: "nr-kopf" }, mehrere ? projektMarke(x.projekt, true) : null, el("span", { class: "etikett" }, t("art_" + x.art) || x.art),
         reiter === "gesendet" ? [t("nr_an_k") + " ", el("b", {}, x.empfaenger.map(e => e.agent).join(", ") || "–")] : [t("nr_von_k") + " ", el("b", {}, x.von)],
         el("span", { class: "nr-zeit" }, zeit(x.zeit_utc))),
-      el("div", { class: "nr-kurz" }, x.kurz), x.bezug ? chip(x.bezug) : null,
+      el("div", { class: "nr-kurz" }, x.kurz), x.bezug ? chip(x.bezug, x) : null,
       reiter === "gesendet" && x.empfaenger.length === 1 ? kette(x.empfaenger[0]) : reiter === "gesendet" ? el("div", { class: "sehrleise", style: "font-size:12px" },
         t("nr_mehrere", { n: x.empfaenger.length, e: x.empfaenger.filter(e => e.stand === "erledigt").length })) : null))
       : [el("div", { class: "leer" }, t("nr_leer"))]));
-    gespraech(l.find(x => x.id === gewaehlt));
+    gespraech(l.find(x => schl(x) === gewaehlt));
   }
   zeichnen();
 }
@@ -2788,6 +2798,12 @@ function gespraechZu(bezug, text, vorschlag) {
     el("div", { class: "aktionen", style: "justify-content:flex-start" }, el("button", { class: "knopf", type: "button",
       onclick: () => nachrichtDialog(null, { bezug, bezugText: text, vorschlag: vorschlag || leadKennung() }) }, t("nr_schreiben_dazu"))));
 }
+/* Projekt einer Zeile: Farbpunkt und Name (Nachrichten über alle Projekte) */
+function projektMarke(uid, klein) {
+  const p = projekte.find(x => x.uid === uid);
+  return el("span", { class: "nr-projekt" + (klein ? " klein" : ""), title: p?.name || uid }, el("span", { class: "pw-farbe", style: `background:${p ? farbe(p) : "var(--linie2)"}` }),
+    klein ? null : " " + (p?.name || uid));
+}
 /* Klick auf einen Bezug: zum Objekt springen (Aufgabe, Dokument, Thema als Dialog; sonst die passende Seite) */
 function bezugOeffnen(b) {
   if (b.art === "A") aufgabeDialog(b.id); else if (b.art === "D") dokumentDialog(b.id);
@@ -2802,12 +2818,13 @@ function nachrichtDialog(an, mit = {}) {
   const text = el("textarea", { placeholder: t("n_text_ph") });
   const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
     el("div", { class: "karte dialog" }, el("h3", {}, an ? t("nachricht_an", { x: an }) : t("nr_schreiben")),
+      mit.projekt && mit.projekt !== projekt ? el("div", { class: "leise" }, projektMarke(mit.projekt)) : null,
       wahl ? el("div", { class: "feld" }, el("label", {}, t("nr_an")), el("div", {}, wahl)) : null,
       mit.bezug ? el("div", { class: "nr-bezug-zeile" }, el("span", { class: "leise" }, t("nr_bezug") + " "), el("span", { class: "nr-chip" }, mit.bezugText || mit.bezug)) : null, art, kurz, text,
       el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: async () => {
         if (!kurz.value.trim()) { toast(t("text_fehlt"), true); return; }
         try { const r = await schicken("/api/nachricht", { an: an || wahl.value, art: art.value, kurz: kurz.value.trim(), text: text.value.trim(),
-                  antwort_auf: mit.antwort_auf || null, bezug: mit.bezug || null });
+                  antwort_auf: mit.antwort_auf || null, bezug: mit.bezug || null }, mit.projekt || projekt);
           hg.remove(); toast(t("gesendet", { x: r.an.join(", ") })); kopfAktualisieren(); if (zustand.sicht === "nachrichten") sichtNachrichten(); }
         catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("senden")),
         el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen")))));
