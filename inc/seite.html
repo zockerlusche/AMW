@@ -589,7 +589,8 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .tm-knoten .mehr-knopf, .tm-z .mehr-knopf { padding: 2px 9px; border-color: transparent; background: none; } .tm-knoten .mehr-knopf:hover, .tm-z .mehr-knopf:hover, .mehr-knopf.auf { border-color: var(--linie2); }
 .tm-baum { position: relative; display: flex; flex-direction: column; align-items: center; gap: 24px; padding-bottom: 6px; }
 .tm-linien { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
-.tm-ast { stroke: var(--linie2); stroke-width: 1.5; fill: none; } .tm-bogen { stroke: var(--blau); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+.tm-ast { stroke: var(--leise); stroke-width: 2.5; fill: none; stroke-linecap: square; stroke-linejoin: miter; opacity: .75; }
+.tm-bogen { stroke: var(--blau); stroke-width: 2.5; fill: none; stroke-dasharray: 7 5; stroke-linejoin: miter; }
 .tm-knoten { position: relative; z-index: 1; border: 1px solid var(--linie); background: var(--flaeche); padding: 10px 12px; min-width: 0; }
 .tm-knoten.klickbar { cursor: pointer; } .tm-knoten.klickbar:hover { border-color: var(--linie2); }
 .tm-knoten.tm-du { display: flex; gap: 6px 16px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 8px 16px; border-color: var(--bernstein); box-shadow: none; }
@@ -2249,7 +2250,8 @@ function teamBaum(d, leads, rest) {
   requestAnimationFrame(zeichnen); setTimeout(zeichnen, 60); new ResizeObserver(zeichnen).observe(baum);   /* setTimeout: falls der Browser Animationen aussetzt (Tab im Hintergrund) */
   return baum;
 }
-/* Linien des Baums: Äste von oben nach unten; gestrichelte Bögen zwischen zwei Agenten derselben Reihe, die zusammenarbeiten */
+/* Linien des Baums: rechtwinklige Äste von oben nach unten; gestrichelte, ebenfalls rechtwinklige Verbindung unter zwei Agenten
+   derselben Reihe, die zusammenarbeiten – keine Bögen */
 function tmLinien(baum, svg, d) {
   if (!baum.isConnected) return;
   const ns = "http://www.w3.org/2000/svg", o = baum.getBoundingClientRect();
@@ -2269,7 +2271,7 @@ function tmLinien(baum, svg, d) {
     const a = knoten(z.von), b = knoten(z.mit), schl = [z.von, z.mit].sort().join("|"); if (!a || !b || gezeigt.has(schl)) continue;
     const p = ort(a), q = ort(b); if (!a.classList.contains("tm-agent") || !b.classList.contains("tm-agent") || Math.abs(p.unten - q.unten) > 4) continue;
     gezeigt.add(schl); const y = p.unten + 2, tief = y + 16 + 6 * (gezeigt.size % 2);
-    pfad("tm-bogen", `M${p.x} ${y} C${p.x} ${tief + 8}, ${q.x} ${tief + 8}, ${q.x} ${y}`);
+    pfad("tm-bogen", `M${p.x} ${y} V${tief} H${q.x} V${y}`);
   }
   svg.replaceChildren(...teile);
 }
