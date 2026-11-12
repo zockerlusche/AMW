@@ -241,6 +241,7 @@ class Verlauf(unittest.TestCase):
         for tab in ("nachricht", "frage_verlauf"):   # wer von den Menschen es war, kam mit Schema 27
             if self.con.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (tab,)).fetchone():
                 self.con.execute(f"ALTER TABLE {tab} DROP COLUMN benutzer")
+        self.con.execute("ALTER TABLE agent DROP COLUMN entfernt_utc")      # Agenten entfernen kam mit Schema 28
         self.con.execute("ALTER TABLE regel DROP COLUMN vorlage")      # Herkunft aus dem Grund-Regelwerk kam mit Schema 23
         for sp in ("fachgebiet", "arbeitsweise", "zustaendig", "fasst_nicht_an"):   # Agenten-Einstellungen kamen mit Schema 22
             self.con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")

@@ -190,7 +190,7 @@ def cmd_agent(a, con):
             " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
             "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status != 'erledigt') AS offen"
             " FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
-            " WHERE g.projekt_id = ? ORDER BY g.id", (pid,)):
+            " WHERE g.projekt_id = ? AND g.entfernt_utc IS NULL ORDER BY g.id", (pid,)):
         print(f"{r['kennung']:<8} {r['rolle'] or '':<10} soll {r['soll']:<4} ist {r['zustand'] or 'nie gestartet':<14}"
               f" Puls {_zeit(r['letzter_puls_utc']) or '–':<12} offen {r['offen']}" + (f"  (früher {r['alias']})" if r["alias"] else "")
               + (f"\n         macht: {r['taetigkeit'][:90]} ({_alter(r['taetigkeit_utc'])})"

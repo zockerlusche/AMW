@@ -564,6 +564,11 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .ae-raster { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 16px; align-items: start; }
 .ae-wahl { border: 1px solid var(--linie); } .ae-wahl > button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 8px 10px; background: none; border: 0; border-bottom: 1px solid var(--linie); cursor: pointer; text-align: left; min-width: 0; }
 .ae-wahl > button.an { background: var(--bernstein-weich); box-shadow: inset 3px 0 0 var(--bernstein); } .ae-wahl .tm-name { font-size: 16px; } .ae-wahl .tm-fach { margin-left: auto; }
+.ae-weg { border-top: 1px solid var(--linie); margin-top: 14px; padding-top: 12px; } .ae-weg .zeile { display: flex; gap: 8px; flex-wrap: wrap; }
+.ae-weg .lt { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--leise); }
+.ae-entfernt { padding: 6px 8px; font-size: 13px; } .ae-entfernt summary { cursor: pointer; color: var(--leise); }
+.ae-entfernt-zeile { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 4px 0; }
+.klein-knopf.rot { color: var(--rot); border-color: color-mix(in srgb, var(--rot) 50%, var(--linie)); }
 .ae-neu { display: flex; gap: 6px; padding: 8px; } .ae-neu input { min-width: 0; flex: 1; }
 .ae-block { border: 1px solid var(--linie); padding: 10px 14px 12px; margin-bottom: 12px; background: var(--grund); }
 .ae-block h4 { margin: 0 0 6px; font: 600 12px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--bernstein); }
@@ -781,7 +786,7 @@ textarea:focus { border-color: var(--bernstein); }
   border: 1px solid var(--linie2); background: var(--flaeche2); }
 .knopf:hover { border-color: var(--leise); }
 .knopf.haupt { background: var(--bernstein); border-color: var(--bernstein); color: #1b1408; }
-.knopf[disabled] { opacity: .4; cursor: default; }
+.knopf[disabled], .klein-knopf[disabled] { opacity: .4; cursor: default; }
 .rueckmeldung { font-size: 12.5px; }
 details.vor { margin-top: 14px; border-top: 1px solid var(--linie); padding-top: 10px; }
 details.vor summary { cursor: pointer; color: var(--leise); font: 12px var(--titel); letter-spacing: .1em; text-transform: uppercase; list-style: none; padding: 4px 0; }
@@ -1028,6 +1033,7 @@ const TEXTE = {
     ue_laeuft: "wird übertragen …", ue_ok: "gespeichert", ue_fehler: "nicht gespeichert: {x}",
     tm_platz: "Platz {p}/{n} in der Schlange", tm_platz_hinter: "Platz {p}/{n} hinter {x}", tm_warteplatz_h: "Lauf wartet in der Warteschlange dieses Rechners (alle Projekte)", tm_fremd: "anderes Projekt", tm_leg_ast: "Aufträge", tm_leg_bogen: "Arbeit geht zur Prüfung", tm_leg_warten: "wartet auf",
     schirm_bis_pflicht: "Bis wann (online Pflicht)", schirm_bis_fehlt: "Bitte angeben, bis wann der Bildschirm frei ist.", schirm_frei_frage: "Bildschirm jetzt für Agenten freigeben – bis {x} Uhr? Agenten dürfen dann am PC Fenster öffnen, klicken und tippen.", schirm_nur_admin: "Freigeben darf online nur ein System-Admin. Wieder belegen geht für alle.", schirm_nur_admin_kurz: "Online nur für System-Admins", nur_pc_knopf: "Geht nur am PC", schirm_zum_leitstand: "Im Leitstand ändern", schirm_zum_leitstand_h: "Freigeben und belegen geht im Leitstand unten",
+    ae_weg_titel: "Agent entfernen", ae_weg_h: "Entfernen legt den Agenten still und blendet ihn überall aus – er wird nicht mehr gestartet, nicht mehr benachrichtigt und steht nicht mehr im Team. Was er geschrieben und getan hat, bleibt mit seinem Namen lesbar. Wieder aufnehmen geht jederzeit.", ae_entfernen: "Entfernen …", ae_entfernen_frage: "{x} entfernen? Er wird stillgelegt und ausgeblendet; sein Verlauf bleibt lesbar.", ae_entfernen_frage_laeuft: "{x} entfernen? Seine Sitzung läuft – sie wird zuerst gesichert und beendet (wie „Speichern & beenden“). Danach ist er stillgelegt und ausgeblendet; sein Verlauf bleibt lesbar.", ae_entfernt_ok: "{x} ist entfernt", ae_entfernt_ok_endet: "{x} ist entfernt – seine Sitzung wird gesichert und spätestens {b} beendet", ae_loeschen: "Endgültig löschen …", ae_loeschen_frage: "{x} endgültig löschen? Das geht nicht rückgängig.", ae_loeschen_nicht: "Hat Verlauf ({x}) – endgültig löschen geht nur ohne Verlauf. Entfernen blendet ihn aus.", ae_geloescht: "{x} ist gelöscht", ae_verlauf: "Am Agenten hängt: {x}", ae_v_nachrichten: "{n} Nachrichten", ae_v_empfangen: "{n} empfangene Nachrichten", ae_v_aufgaben: "{n} Aufgaben", ae_v_pruefungen: "{n} Prüfungen", ae_v_laeufe: "{n} Läufe", ae_v_dokumente: "{n} Dokumente", ae_v_fragen: "{n} Fragen", ae_v_sitzungen: "{n} Sitzungen", ae_entfernt_liste: "Entfernt ({n})", ae_entfernt_seit: "seit {x}", ae_wieder: "Wieder aufnehmen", ae_wieder_ok: "{x} ist wieder dabei (Soll: aus)",
     bn_titel: "Benutzer der Online-Seite", bn_h: "Wer sich auf der Online-Seite anmelden darf und was er dort darf. Ein neuer Benutzer hat keine Rechte, bis du Rolle und Projekte vergibst. Der bisherige Zugang aus der Konfiguration der Seite bleibt System-Admin.", bn_ohne_speicher: "Ohne Online-Speicher kann sich niemand anmelden – erst die Online-Seite einrichten. Anlegen geht schon.", bn_name: "Name", bn_rolle: "Rolle", bn_projekte: "Projekte", bn_stand: "Stand", bn_keine: "Noch keine Benutzer.", bn_neu_ph: "Name (ohne Leerzeichen)", bn_anlegen: "Anlegen", bn_wartet_rolle: "– wartet auf Freigabe –", rolle_leser: "Leser", rolle_bearbeiter: "Bearbeiter", rolle_projekt_admin: "Projekt-Admin", rolle_system_admin: "System-Admin", bn_alle_projekte: "alle Projekte", bn_st_neu: "noch nicht freigeschaltet", bn_st_wartet_code: "Code gültig bis {x}", bn_st_code_abgelaufen: "Code abgelaufen", bn_st_eingerichtet: "eingerichtet", bn_st_angemeldet: "zuletzt angemeldet {x}", bn_st_gesperrt: "gesperrt", bn_st_freigabe: "wartet auf deine Freigabe", bn_freischalten: "Freischalten", bn_neu_freischalten: "Neu freischalten", bn_neu_frage: "{x} neu freischalten? Passwort und zweiter Faktor werden zurückgesetzt, alle Sitzungen von {x} enden.", bn_sperren: "Sperren", bn_entsperren: "Entsperren", bn_code_titel: "Freischalt-Code für {x}", bn_code_h: "Gültig bis {b}, nur einmal. Gib ihn {x} persönlich weiter (mündlich oder im Chat) – er erscheint nur jetzt und steht nirgends sonst. {x} öffnet die Online-Seite, wählt „Neue Anmeldung“ und setzt Passwort und zweiten Faktor selbst.", bn_kopieren: "Kopieren", bn_kopiert: "Kopiert", bn_fertig: "Fertig",
     e_web: "Online-Seite", e_web_h: "Gilt für die Anmeldung im Netz.", e_leerlauf: "Abmelden nach Leerlauf (min)",
     e_hoechstens: "Längste Sitzung (h)", e_fehl_ip: "Sperre nach Fehlversuchen je Adresse (15 min)", e_fehl_ges: "Sperre nach Fehlversuchen gesamt (60 min)",
@@ -1344,6 +1350,7 @@ const TEXTE = {
     ue_laeuft: "sending …", ue_ok: "saved", ue_fehler: "not saved: {x}",
     tm_platz: "Place {p}/{n} in the queue", tm_platz_hinter: "Place {p}/{n} behind {x}", tm_warteplatz_h: "Run waits in this computer's queue (all projects)", tm_fremd: "another project", tm_leg_ast: "Assignments", tm_leg_bogen: "Work goes to review", tm_leg_warten: "waits for",
     schirm_bis_pflicht: "Until when (required online)", schirm_bis_fehlt: "Please enter until when the screen is free.", schirm_frei_frage: "Free the screen for agents now – until {x}? Agents may then open windows, click and type on the PC.", schirm_nur_admin: "Online, only a system admin may free the screen. Taking it back works for everyone.", schirm_nur_admin_kurz: "Online only for system admins", nur_pc_knopf: "Only works on the PC", schirm_zum_leitstand: "Change in control center", schirm_zum_leitstand_h: "Freeing and taking back is in the control center below",
+    ae_weg_titel: "Remove agent", ae_weg_h: "Removing shuts the agent down and hides it everywhere – it is no longer started, no longer notified and no longer shown in the team. What it wrote and did stays readable under its name. You can take it back at any time.", ae_entfernen: "Remove …", ae_entfernen_frage: "Remove {x}? It is shut down and hidden; its history stays readable.", ae_entfernen_frage_laeuft: "Remove {x}? Its session is running – it is saved and ended first (like “Save & end”). Then it is shut down and hidden; its history stays readable.", ae_entfernt_ok: "{x} is removed", ae_entfernt_ok_endet: "{x} is removed – its session is saved and ended by {b} at the latest", ae_loeschen: "Delete for good …", ae_loeschen_frage: "Delete {x} for good? This cannot be undone.", ae_loeschen_nicht: "Has history ({x}) – deleting for good only works without history. Removing hides it.", ae_geloescht: "{x} is deleted", ae_verlauf: "Attached to this agent: {x}", ae_v_nachrichten: "{n} messages", ae_v_empfangen: "{n} received messages", ae_v_aufgaben: "{n} tasks", ae_v_pruefungen: "{n} reviews", ae_v_laeufe: "{n} runs", ae_v_dokumente: "{n} documents", ae_v_fragen: "{n} questions", ae_v_sitzungen: "{n} sessions", ae_entfernt_liste: "Removed ({n})", ae_entfernt_seit: "since {x}", ae_wieder: "Take back", ae_wieder_ok: "{x} is back (target: off)",
     bn_titel: "Users of the online site", bn_h: "Who may sign in on the online site and what they may do there. A new user has no rights until you assign a role and projects. The existing access from the site's configuration stays system admin.", bn_ohne_speicher: "Without online storage nobody can sign in – set up the online site first. Adding users works already.", bn_name: "Name", bn_rolle: "Role", bn_projekte: "Projects", bn_stand: "Status", bn_keine: "No users yet.", bn_neu_ph: "Name (no spaces)", bn_anlegen: "Add", bn_wartet_rolle: "– awaiting approval –", rolle_leser: "Reader", rolle_bearbeiter: "Editor", rolle_projekt_admin: "Project admin", rolle_system_admin: "System admin", bn_alle_projekte: "all projects", bn_st_neu: "not activated yet", bn_st_wartet_code: "Code valid until {x}", bn_st_code_abgelaufen: "Code expired", bn_st_eingerichtet: "set up", bn_st_angemeldet: "last signed in {x}", bn_st_gesperrt: "blocked", bn_st_freigabe: "awaiting your approval", bn_freischalten: "Activate", bn_neu_freischalten: "Reset access", bn_neu_frage: "Reset access for {x}? Password and two-factor are reset and all of {x}'s sessions end.", bn_sperren: "Block", bn_entsperren: "Unblock", bn_code_titel: "Activation code for {x}", bn_code_h: "Valid until {b}, once only. Give it to {x} in person (spoken or in a chat) – it is shown only now and stored nowhere else. {x} opens the online site, chooses “First sign-in” and sets their own password and two-factor.", bn_kopieren: "Copy", bn_kopiert: "Copied", bn_fertig: "Done",
     e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after inactivity (min)",
     e_hoechstens: "Maximum session length (h)", e_fehl_ip: "Lockout after failed sign-ins per address (15 min)", e_fehl_ges: "Lockout after failed sign-ins in total (60 min)",
@@ -4597,15 +4604,42 @@ async function sichtEinstellungen() {
 const FACHGEBIETE = ["Code", "Grafik", "Daten", "Prüfen", "Merge", "Ausarbeiten", "KI", "3D", "Doku"];
 function agentenEinstellungen(d, h) {
   const karte = el("div", { class: "karte ae", id: "agenten-einstellungen" }, el("h3", {}, t("ae_titel")));
-  let gewaehlt = gemerkt("amw-ae") && d.agenten.some(a => a.kennung === gemerkt("amw-ae")) ? gemerkt("amw-ae") : d.agenten[0]?.kennung;
+  const aktiv = d.agenten.filter(a => !a.entfernt_utc), entfernt = d.agenten.filter(a => a.entfernt_utc);
+  let gewaehlt = gemerkt("amw-ae") && aktiv.some(a => a.kennung === gemerkt("amw-ae")) ? gemerkt("amw-ae") : aktiv[0]?.kennung;
+  const tunAgent = async (weg, k, frage, ok) => { if (frage && !confirm(frage)) return;
+    try { const r = await schicken(weg, { kennung: k }); if (!r.unterwegs) toast(ok(r)); zeige("einstellungen", true); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); } };
+  const verlaufText = v => Object.entries(v || {}).map(([k, n]) => t("ae_v_" + k, { n })).join(", ");
   const weiseZeichen = a => tmZeichen(a.arbeitsweise === "chat" ? "chat" : a.arbeitsweise === "desktop" ? "desktop" : "sitzung", t("ae_w_" + (a.arbeitsweise || "terminal")));
   const zeichnen = () => {
-    const a = d.agenten.find(x => x.kennung === gewaehlt);
-    const liste = el("div", { class: "ae-wahl" }, d.agenten.map(x => el("button", { type: "button", class: x.kennung === gewaehlt ? "an" : null,
+    const a = aktiv.find(x => x.kennung === gewaehlt);
+    const liste = el("div", { class: "ae-wahl" }, aktiv.map(x => el("button", { type: "button", class: x.kennung === gewaehlt ? "an" : null,
         onclick: () => { gewaehlt = x.kennung; try { localStorage.setItem(ablage("amw-ae"), gewaehlt); } catch (e) {} zeichnen(); } },
         weiseZeichen(x), el("span", { class: "tm-name" }, x.kennung), tmFach(x), x.soll !== "an" ? el("span", { class: "sehrleise" }, t("soll_" + x.soll)) : null)),
-      neuerAgent());
+      neuerAgent(),
+      entfernt.length ? el("details", { class: "ae-entfernt", id: "ae-entfernt" }, el("summary", {}, t("ae_entfernt_liste", { n: entfernt.length })),
+        ...entfernt.map(x => el("div", { class: "ae-entfernt-zeile" }, el("span", { class: "tm-name" }, x.kennung),
+          el("span", { class: "sehrleise" }, t("ae_entfernt_seit", { x: zeit(x.entfernt_utc) })),
+          el("button", { class: "klein-knopf", type: "button", onclick: () => tunAgent("/api/agent/wiederaufnehmen", x.kennung, null, () => t("ae_wieder_ok", { x: x.kennung })) },
+            t("ae_wieder"))))) : null);
     karte.replaceChildren(el("h3", {}, t("ae_titel"), hilfeKnopf("agenten")), el("p", { class: "leise", style: "margin:0 0 12px" }, t("ae_h")), el("div", { class: "ae-raster" }, liste, a ? formular(a) : el("div", { class: "leer" }, t("ae_keiner"))));
+  };
+  /* Entfernen: stilllegen und ausblenden, Verlauf bleibt. Endgültig löschen nur ohne Verlauf – sonst ausgegraut mit Grund.
+     Online nur für System-Admins (sonst ausgegraut). */
+  const entfernenBlock = a => {
+    const darf = !API || zustand.start?.online?.ich?.rolle === "system_admin", vt = verlaufText(a.verlauf);
+    const sperre = darf ? null : t("schirm_nur_admin_kurz");
+    const knopf = (text, tun, klasse, grund) => el("button", { class: "klein-knopf " + (klasse || ""), type: "button", onclick: tun,
+      ...(grund ? { disabled: "disabled", title: grund, "aria-label": `${text} – ${grund}` } : {}) }, text);
+    return el("div", { class: "ae-weg" }, el("div", { class: "lt" }, t("ae_weg_titel")),
+      el("p", { class: "sehrleise", style: "margin:4px 0 8px" }, t("ae_weg_h")),
+      el("div", { class: "zeile" },
+        knopf(t("ae_entfernen"), () => tunAgent("/api/agent/entfernen", a.kennung,
+          t(a.laeuft ? "ae_entfernen_frage_laeuft" : "ae_entfernen_frage", { x: a.kennung }),
+          r => t(r.endet ? "ae_entfernt_ok_endet" : "ae_entfernt_ok", { x: a.kennung, b: r.bis_utc ? zeit(r.bis_utc) : "" })), "rot", sperre),
+        knopf(t("ae_loeschen"), () => tunAgent("/api/agent/loeschen", a.kennung, t("ae_loeschen_frage", { x: a.kennung }), () => t("ae_geloescht", { x: a.kennung })),
+          "", sperre || (vt ? t("ae_loeschen_nicht", { x: vt }) : null))),
+      vt ? el("div", { class: "sehrleise", style: "font-size:12px;margin-top:6px" }, t("ae_verlauf", { x: vt })) : null);
   };
   const neuerAgent = () => { const k = h.text(""); k.placeholder = t("e_neu_ph");
     const knopf = el("button", { class: "klein-knopf", type: "button" }, t("e_anlegen"));
@@ -4660,7 +4694,8 @@ function agentenEinstellungen(d, h) {
         h.feld(t("ae_lead"), el("label", { class: "ae-haken" }, f.lead, " " + t("ae_lead_x")), t("ae_lead_h")), h.feld(t("ae_fach"), f.fach, t("ae_fach_h")),
         h.feld(t("ae_weise"), el("div", {}, f.weise, weiseHinweis))),
       block(t("ae_auftrag"), h.feld(t("ae_zust"), f.zust), h.feld(t("ae_nicht"), f.nicht), h.feld(t("e_rund"), el("label", { class: "ae-haken" }, f.rund, " " + t("ae_rund_x"))), API ? null : vorschlag),
-      sitzung, ueberwachung, el("div", { class: "ae-knoepfe" }, speichernKnopf, el("span", { class: "sehrleise" }, t("ae_speichern_h"))));
+      sitzung, ueberwachung, el("div", { class: "ae-knoepfe" }, speichernKnopf, el("span", { class: "sehrleise" }, t("ae_speichern_h"))),
+      entfernenBlock(a));
     nachWeise();
     return form;
   };

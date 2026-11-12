@@ -270,6 +270,75 @@ def projekt_einstellen(con, pid, von, **werte):
     return e
 
 
+# Was am Agenten hängt (Verlauf) – solange etwas da ist, wird nur entfernt (ausgeblendet), nie die Zeile gelöscht
+VERLAUF_SQL = {
+    "nachrichten": "SELECT count(*) FROM nachricht WHERE projekt_id = :p AND von = :k",
+    "empfangen": "SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE n.projekt_id = :p AND e.agent = :k",
+    "aufgaben": "SELECT count(*) FROM aufgabe WHERE projekt_id = :p AND (agent = :k OR angelegt_von = :k)",
+    "pruefungen": "SELECT count(*) FROM pruefung WHERE projekt_id = :p AND (bauer = :k OR pruefer = :k)",
+    "laeufe": "SELECT count(*) FROM lauf WHERE projekt_id = :p AND agent = :k",
+    "dokumente": "SELECT count(*) FROM dokument WHERE projekt_id = :p AND angelegt_von = :k",
+    "fragen": "SELECT count(*) FROM frage WHERE projekt_id = :p AND von = :k",
+    "sitzungen": "SELECT count(*) FROM sitzung s JOIN agent g ON g.id = s.agent_id WHERE g.projekt_id = :p AND g.kennung = :k",
+}
+
+
+def agent_verlauf(con, pid, kennung):
+    """{art: Anzahl} – nur Arten mit Einträgen."""
+    aus = {}
+    for art, sql in VERLAUF_SQL.items():
+        n = con.execute(sql, {"p": pid, "k": kennung}).fetchone()[0]
+        if n:
+            aus[art] = n
+    return aus
+
+
+def agent_entfernen(con, pid, von, kennung):
+    """Nur der Mensch. Stilllegen (Soll aus) und aus allen Listen ausblenden; der Verlauf bleibt mit Namen lesbar. Läuft
+    eine Sitzung, wird sie vorher gesichert und beendet (wie „Speichern & beenden“)."""
+    if von != ENTWICKLER:
+        raise AmwFehler("Agenten entfernt nur der Mensch")
+    a = agent_zeile(con, pid, kennung)
+    if a["entfernt_utc"]:
+        raise AmwFehler(f"{a['kennung']} ist schon entfernt")
+    from . import steuerung
+    laeuft = con.execute("SELECT 1 FROM sitzung WHERE agent_id = ? AND zustand = 'aktiv'", (a["id"],)).fetchone() is not None
+    ende = None
+    if laeuft:                                       # zuerst sichern & beenden lassen – der Auftrag muss ihn noch erreichen
+        try:
+            ende = steuerung.ende_anfordern(con, pid, [a["kennung"]])
+        except AmwFehler:                            # Sitzung ohne Prozess (z. B. Chat) oder Sichern läuft schon: nichts zu tun
+            ende = None
+    with db.schreiben(con):
+        con.execute("UPDATE agent SET soll = 'aus', entfernt_utc = ? WHERE id = ?", (db.jetzt(), a["id"]))
+    return {"agent": a["kennung"], "endet": bool(ende and ende.get("agenten")), "bis_utc": (ende or {}).get("bis_utc")}
+
+
+def agent_wiederaufnehmen(con, pid, von, kennung):
+    if von != ENTWICKLER:
+        raise AmwFehler("Agenten nimmt nur der Mensch wieder auf")
+    a = agent_zeile(con, pid, kennung)
+    if not a["entfernt_utc"]:
+        raise AmwFehler(f"{a['kennung']} ist nicht entfernt")
+    with db.schreiben(con):
+        con.execute("UPDATE agent SET entfernt_utc = NULL WHERE id = ?", (a["id"],))
+    return {"agent": a["kennung"], "soll": "aus"}
+
+
+def agent_loeschen(con, pid, von, kennung):
+    """Endgültig – nur ein Agent ohne jeden Verlauf (sonst bleibt nur Entfernen)."""
+    if von != ENTWICKLER:
+        raise AmwFehler("Agenten löscht nur der Mensch")
+    a = agent_zeile(con, pid, kennung)
+    v = agent_verlauf(con, pid, a["kennung"])
+    if v:
+        raise AmwFehler(f"{a['kennung']} hat Verlauf ({', '.join(f'{n} {k}' for k, n in v.items())}) – endgültig löschen geht nur"
+                        " ohne Verlauf; entfernen blendet ihn aus und lässt den Verlauf lesbar")
+    with db.schreiben(con):
+        con.execute("DELETE FROM agent WHERE id = ?", (a["id"],))
+    return {"agent": a["kennung"], "geloescht": True}
+
+
 def agent_einstellen(con, pid, von, kennung, neu=False, **werte):
     """Zahnrad „Agenten“ und `amw agent profil`: rolle (lead oder leer), fachgebiet, arbeitsweise (terminal | desktop |
     chat), zustaendig, fasst_nicht_an, soll (an/aus/ruht), empfaengt_rund, puls_grenze_s. Nur Lead und Entwickler. Der
@@ -313,9 +382,11 @@ def agent_einstellen(con, pid, von, kennung, neu=False, **werte):
         else:
             raise AmwFehler(f"unbekannte Agenten-Einstellung: {k}")
         felder[k] = v
-    da = con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, kennung)).fetchone()
+    da = con.execute("SELECT entfernt_utc FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, kennung)).fetchone()
     if neu and da:
-        raise AmwFehler(f"{kennung} gibt es schon")
+        raise AmwFehler(f"{kennung} gibt es schon" + (" (entfernt – wieder aufnehmen: Einstellungen › Agenten)" if da[0] else ""))
+    if da and da[0] and felder.get("soll") in ("an", "ruht"):
+        raise AmwFehler(f"{kennung} ist entfernt – erst wieder aufnehmen")
     if not neu and not da:
         raise AmwFehler(f"Agent {kennung} gibt es nicht")
     einziger_lead = lead(con, pid) == kennung and not con.execute(
@@ -497,14 +568,17 @@ def empfaenger(con, pid, an, von, aufgabe_id=None):
             namen.append(z)
         elif teil.lower() == "alle":                    # Soll an/ruht oder Sitzung läuft (auch bei Soll aus)
             namen += [r["kennung"] for r in con.execute(
-                "SELECT kennung FROM agent g WHERE projekt_id = ? AND empfaengt_rund = 1 AND (soll != 'aus' OR EXISTS"
+                "SELECT kennung FROM agent g WHERE projekt_id = ? AND empfaengt_rund = 1 AND entfernt_utc IS NULL AND (soll != 'aus' OR EXISTS"
                 " (SELECT 1 FROM sitzung s WHERE s.agent_id = g.id AND s.zustand = 'aktiv')) ORDER BY id", (pid,))]
         elif teil.lower() == ENTWICKLER.lower():         # der Mensch: liest in der Workbench, wird nie geweckt
             namen.append(ENTWICKLER)
         elif db.produkt_entwickler() and teil.lower() == db.produkt_entwickler().lower():   # Entwickler-Kanal
             namen.append(db.produkt_entwickler())
         else:
-            namen.append(agent_zeile(con, pid, teil)["kennung"])     # frühere Kennung → heutige
+            z = agent_zeile(con, pid, teil)                          # frühere Kennung → heutige
+            if z["entfernt_utc"]:
+                raise AmwFehler(f"{z['kennung']} ist entfernt – Nachrichten an ihn gehen nicht mehr (wieder aufnehmen: Einstellungen › Agenten)")
+            namen.append(z["kennung"])
     aus = [n for i, n in enumerate(namen) if n != von and n not in namen[:i]]
     if not aus:
         raise AmwFehler("kein Empfänger")
@@ -514,7 +588,7 @@ def empfaenger(con, pid, an, von, aufgabe_id=None):
 def ausgelassen(con, pid):
     """Wen „alle“ nicht erreicht: Soll aus und keine laufende Sitzung, oder keine Rundschreiben."""
     return [f"{r['kennung']} ({'keine Rundschreiben' if not r['empfaengt_rund'] else 'Soll aus, keine Sitzung'})"
-            for r in con.execute("SELECT kennung, empfaengt_rund FROM agent g WHERE projekt_id = ? AND (empfaengt_rund = 0 OR"
+            for r in con.execute("SELECT kennung, empfaengt_rund FROM agent g WHERE projekt_id = ? AND entfernt_utc IS NULL AND (empfaengt_rund = 0 OR"
                                  " (soll = 'aus' AND NOT EXISTS (SELECT 1 FROM sitzung s WHERE s.agent_id = g.id"
                                  " AND s.zustand = 'aktiv'))) ORDER BY id", (pid,))]
 

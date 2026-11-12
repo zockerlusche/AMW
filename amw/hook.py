@@ -119,6 +119,9 @@ def anmelden(con, pid, kennung, eingabe, ersetzen=False, streng=False):
     """Trägt die Sitzung ein. Hintergrund-Sitzungen (kind=bg, kein Fenster) nie – sonst gingen Weckrufe in
     eine Sitzung ohne Fenster. streng (amw anmelden): eine noch lebende andere Sitzung derselben Kennung wird
     nur mit ersetzen übernommen. Rückgabe: None oder Grund, warum nicht angemeldet wurde."""
+    weg = con.execute("SELECT entfernt_utc FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, kennung)).fetchone()
+    if weg and weg[0]:
+        return f"Nicht als {kennung} angemeldet: der Agent ist entfernt – wieder aufnehmen geht in Einstellungen › Agenten."
     pipe = os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET")
     schluessel = os.environ.get("CLAUDE_CODE_MESSAGING_TOKEN")
     if not (pipe and schluessel):

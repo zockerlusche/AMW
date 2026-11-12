@@ -186,6 +186,13 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         if kanal != "seite":
             raise Ungueltig("Benutzer verwaltest du am PC")
         return benutzer_verwalten(con, weg.rsplit("/", 1)[1], daten, speicher)
+    if weg in ("/api/agent/entfernen", "/api/agent/wiederaufnehmen", "/api/agent/loeschen"):   # nur der Mensch (online: System-Admin)
+        k = (daten.get("kennung") or "").strip()
+        tun = {"entfernen": kern.agent_entfernen, "wiederaufnehmen": kern.agent_wiederaufnehmen, "loeschen": kern.agent_loeschen}
+        try:
+            return tun[weg.rsplit("/", 1)[1]](con, pid, kern.ENTWICKLER, k)
+        except kern.AmwFehler as e:
+            raise Ungueltig(str(e)) from None
     if weg == "/api/projekt/neu":                    # nur am PC: richtet Ordner und Startskript auf diesem PC ein
         if kanal != "seite":
             raise Ungueltig("Ein neues Projekt legst du am PC an")

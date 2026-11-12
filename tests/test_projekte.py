@@ -480,6 +480,7 @@ CREATE TABLE ki_vorlage (id INTEGER PRIMARY KEY, ki_id INTEGER NOT NULL REFERENC
             for tab in ("nachricht", "frage_verlauf"):   # wer von den Menschen es war, kam mit Schema 27
                 if con.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (tab,)).fetchone():
                     con.execute(f"ALTER TABLE {tab} DROP COLUMN benutzer")
+            con.execute("ALTER TABLE agent DROP COLUMN entfernt_utc")      # Agenten entfernen kam mit Schema 28
             for sp in ("fachgebiet", "arbeitsweise", "zustaendig", "fasst_nicht_an"):   # Agenten-Einstellungen kamen mit Schema 22
                 con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")
             con.execute("DROP TABLE ki_vermerk")              # Vermerke an KI-Ergebnissen kamen mit Schema 21

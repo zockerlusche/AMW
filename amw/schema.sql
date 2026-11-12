@@ -49,6 +49,7 @@ CREATE TABLE agent (
   zustaendig       TEXT,                         -- wofür er zuständig ist
   fasst_nicht_an   TEXT,                         -- was er nicht anfasst
   angelegt_utc     TEXT NOT NULL,
+  entfernt_utc     TEXT,                         -- entfernt: stillgelegt und ausgeblendet, Verlauf bleibt (Schema 28)
   uid              TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft         TEXT NOT NULL DEFAULT '',
   geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),

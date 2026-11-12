@@ -138,6 +138,7 @@ try {
             antwort(400, ['fehler' => 'Online freigeben nur mit Uhrzeit, bis wann.']);
         }
         if (!$frage && !$parken && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter', '/api/schirm',
+                '/api/agent/entfernen', '/api/agent/wiederaufnehmen', '/api/agent/loeschen',
                 '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web',
                 '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko',
                 '/api/plan/rueckblick', '/api/plan/uebernehmen', '/api/plan/check',

@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.69.0 – 12.11.2026 · Agenten entfernen
+- **Einstellungen › Agenten › „Entfernen …“** legt einen Agenten still und blendet ihn überall aus: Er wird nicht mehr
+  gestartet, nicht mehr benachrichtigt, steht nicht mehr im Team und bekommt keine Nachrichten mehr. Was er geschrieben
+  und getan hat, bleibt mit seinem Namen lesbar. Läuft seine Sitzung, wird sie vorher gesichert und beendet.
+- **„Entfernt“** listet die entfernten Agenten; „Wieder aufnehmen“ holt einen zurück (Soll: aus).
+- **„Endgültig löschen …“** geht nur bei einem Agenten ohne Verlauf; sonst ist der Knopf ausgegraut und nennt, was am
+  Agenten hängt.
+- Nur der Mensch – am PC oder online als System-Admin. Schema 28.
+
 ## 1.68.0 – 12.11.2026 · Bildschirm auch online freigeben
 - **Online freigeben** – nur als System-Admin, mit Rückfrage und nur mit Uhrzeit, bis wann. Im Verlauf steht, wer es online
   war. Wieder belegen darf online jeder.

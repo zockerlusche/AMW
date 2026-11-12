@@ -86,7 +86,7 @@ def daten_listen(con, pid):
     """Arbeitslisten je Agent in Reihenfolge und der Pool (Workbench › Aufgaben › Listen, auch online)."""
     from . import arbeitsliste
     agenten = []
-    for g in con.execute("SELECT kennung, rolle, fachgebiet FROM agent WHERE projekt_id = ? ORDER BY id", (pid,)).fetchall():
+    for g in con.execute("SELECT kennung, rolle, fachgebiet FROM agent WHERE projekt_id = ? AND entfernt_utc IS NULL ORDER BY id", (pid,)).fetchall():
         l = arbeitsliste.liste(con, pid, g["kennung"])
         if l:
             agenten.append({"kennung": g["kennung"], "rolle": g["rolle"], "fachgebiet": g["fachgebiet"],
@@ -240,7 +240,7 @@ def daten_start(con, pid):
         " (SELECT kurz FROM nachricht WHERE projekt_id = g.projekt_id AND von = g.kennung ORDER BY id DESC LIMIT 1) AS zuletzt,"
         " (SELECT zeit_utc FROM nachricht WHERE projekt_id = g.projekt_id AND von = g.kennung ORDER BY id DESC LIMIT 1) AS zuletzt_utc"
         " FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
-        " WHERE g.projekt_id = :p ORDER BY g.id", {"p": pid, "alt": alt}))
+        " WHERE g.projekt_id = :p AND g.entfernt_utc IS NULL ORDER BY g.id", {"p": pid, "alt": alt}))
     for a in agenten:
         from . import arbeitsliste                                        # Arbeitsliste: Länge und was in Arbeit ist
         l = arbeitsliste.liste(con, pid, a["kennung"])
@@ -475,9 +475,12 @@ def daten_einstellungen(con, pid, speicher=None):
     from .dienst import TAKT_MIN
     agenten = zeilen(con.execute("SELECT kennung, rolle, fachgebiet, coalesce(arbeitsweise, 'terminal') AS arbeitsweise, zustaendig, fasst_nicht_an,"
                                  " soll, zustaendig AS grenzen, empfaengt_rund, puls_grenze_s, ordner, zusatzordner,"
-                                 " denkstufe, modell, startsatz, rechte, fernsteuerung, neustart_auto FROM agent"
+                                 " denkstufe, modell, startsatz, rechte, fernsteuerung, neustart_auto, entfernt_utc FROM agent"
                                  " WHERE projekt_id = ? ORDER BY id", (pid,)))
     for a in agenten:
+        a["verlauf"] = kern.agent_verlauf(con, pid, a["kennung"])        # entfernen/löschen: was am Agenten hängt
+        a["laeuft"] = con.execute("SELECT 1 FROM sitzung s JOIN agent g ON g.id = s.agent_id WHERE g.projekt_id = ? AND g.kennung = ?"
+                                  " AND s.zustand = 'aktiv'", (pid, a["kennung"])).fetchone() is not None
         try:
             a["zusatzordner"] = json.loads(a["zusatzordner"] or "[]")
         except ValueError:
@@ -874,7 +877,7 @@ def daten_projekte(con, pid):
         z = con.execute(
             "SELECT (SELECT count(*) FROM frage WHERE projekt_id = :p AND an = 'entwickler' AND status = 'offen'"
             "  AND geparkt_utc IS NULL) AS fragen,"
-            " (SELECT count(*) FROM agent WHERE projekt_id = :p) AS agenten", {"p": p["id"]}).fetchone()
+            " (SELECT count(*) FROM agent WHERE projekt_id = :p AND entfernt_utc IS NULL) AS agenten", {"p": p["id"]}).fetchone()
         aus.append({"uid": p["uid"], "name": p["name"], "farbe": kern.projekt_wahl(con, p["id"], "farbe"),
                     "fragen": z["fragen"], "agenten": z["agenten"], "seit": p["angelegt_utc"], "aktiv": p["id"] == pid,
                     "halt": bool(kern.aktive_sperren(con, p["id"], art="halt"))})

@@ -266,6 +266,7 @@ class Umstellung(Grund):
         for tab in ("nachricht", "frage_verlauf"):   # wer von den Menschen es war, kam mit Schema 27
             if self.con.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (tab,)).fetchone():
                 self.con.execute(f"ALTER TABLE {tab} DROP COLUMN benutzer")
+        self.con.execute("ALTER TABLE agent DROP COLUMN entfernt_utc")      # Agenten entfernen kam mit Schema 28
         self.con.execute("PRAGMA user_version = 23")
         pfad = self.con.execute("PRAGMA database_list").fetchone()[2]
         self.con.close()
