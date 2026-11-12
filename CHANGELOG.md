@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.84.0 – 12.11.2026 · Verbrauch je Aufgabe und je Agent
+- **Agent › Übersicht › „Verbrauch je Aufgabe“:** Mittel (Median) der letzten zehn fertigen Aufgaben, das eingestellte
+  Modell mit Denkaufwand, die Aufgabe in Arbeit bisher und je Aufgabe der Betrag mit Modell/Denkaufwand – als Grundlage,
+  um Modell und Denkaufwand im Profil passend einzustellen (wirkt beim nächsten Start; die AMW stellt nichts selbst um).
+- **Aufgabe › „Verbrauch“:** der gemessene Gegenwert in Dollar mit Modell/Denkaufwand; ebenso `amw aufgabe zeige <nr>`
+  und `amw agent profil <name>`.
+- Gerechnet aus dem Kosten-Zähler, den Claude Code je Sitzung meldet (auch im Abo): Jeder Zuwachs gehört zu der Aufgabe,
+  die der Agent zu dieser Zeit zuletzt begonnen und noch nicht abgeschlossen hatte – eine Näherung. Kein Schema, keine
+  KI (A1611 Stufe E1, Konzept D906).
+
 ## 1.83.0 – 12.11.2026 · Startbefehl je Agent zum Kopieren
 - **⋯ am Agenten › „Startbefehl …“** und Einstellungen › Agenten › „Startbefehl zum Kopieren“: Ordner, Zusatzordner,
   Modell, Denkaufwand, Rechte, letzte Sitzung – und zwei fertige Zeilen „Fortsetzen“ und „Neu starten“ für PowerShell

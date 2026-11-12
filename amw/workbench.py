@@ -165,6 +165,8 @@ def daten_aufgabe(con, pid, aid):
     from . import arbeitsliste                        # läuft beim Agenten gerade ein anderes Stück? (Knopf „Dazwischenschieben“)
     x = arbeitsliste.laufend(con, pid, a["agent"]) if a["status"] in ("wartet", "blockiert") else None
     a["laufend_id"] = x["id"] if x and x["id"] != a["id"] else None
+    from . import aufwand                             # gemessener Verbrauch (A1611 E1, Näherung)
+    a["verbrauch"] = aufwand.je_aufgabe(con, pid, a["id"])
     return a
 
 
@@ -677,7 +679,7 @@ def daten_agent(con, pid, kennung):
         raise LookupError(kennung)
     alt = altbestand_bis(con, pid)
     text, aid, quelle = gerade(con, pid, kennung, a["taetigkeit"] if a["zustand"] == "aktiv" else None)
-    from . import gespraech, steuerung
+    from . import aufwand, gespraech, steuerung
     try:
         steuern = {"profil": steuerung.profil(con, pid, kennung), "prozess_laeuft": steuerung.laeuft(con, pid, kennung),
                    "fortsetzbar": bool(steuerung.letzte_sitzung(con, pid, kennung))}
@@ -689,6 +691,7 @@ def daten_agent(con, pid, kennung):
         steuern["claude_link"] = None
     return {
         **{k: v for k, v in dict(a).items() if k != "claude_sitzung"}, **steuern, "gerade": text, "gerade_aufgabe": aid, "gerade_quelle": quelle,
+        "aufwand": aufwand.je_agent(con, pid, kennung),
         "naechste": zeilen(con.execute(
             "SELECT id, titel, status, einstufung, rang, wartet_auf FROM aufgabe WHERE projekt_id = ? AND agent = ?"
             " AND status IN ('laeuft','wartet','blockiert') AND einstufung IN ('aktiv','keine_prio')"

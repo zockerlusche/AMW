@@ -184,6 +184,13 @@ def cmd_agent(a, con):
             for k, v in {"lead": "ja" if z["rolle"] == "lead" else "nein", "fachgebiet": z["fachgebiet"], "arbeitsweise": z["arbeitsweise"] or "terminal",
                          "zustaendig": z["zustaendig"], "fasst_nicht_an": z["fasst_nicht_an"], **{k: v for k, v in p.items() if k != "kennung"}}.items():
                 print(f"{k:<14} {v}")
+            from . import aufwand                            # gemessen (A1611 E1): Dollar-Gegenwert je Aufgabe, genähert
+            w = aufwand.je_agent(con, pid, a.kennung)
+            if w and w["median"] is not None:
+                print(f"{'verbrauch':<14} Median {w['median']:.2f} $ je Aufgabe (letzte {w['n']} fertigen: "
+                      + ", ".join(f"A{x['id']} {x['usd']:.2f} $" for x in w["aufgaben"]) + ")")
+            if w and w["laufend"]:
+                print(f"{'in arbeit':<14} A{w['laufend']['id']} bisher {w['laufend']['usd']:.2f} $")
         return
     for r in con.execute(
             "SELECT g.kennung, g.alias, CASE WHEN g.rolle = 'lead' THEN 'lead' ELSE g.fachgebiet END AS rolle, g.soll, s.zustand, s.letzter_puls_utc, s.taetigkeit, s.taetigkeit_utc,"
@@ -515,6 +522,11 @@ def cmd_aufgabe(a, con):
         for g in con.execute("SELECT * FROM wartegrund WHERE aufgabe_id = ? ORDER BY id", (a.id,)):
             print(f"wartegrund: {g['bezug']} (seit {_zeit(g['angelegt_utc'])}, {g['angelegt_von']})"
                   + (f" – erledigt {_zeit(g['erledigt_utc'])}: {g['erledigt_durch']}" if g["erledigt_utc"] else " – offen"))
+        from . import aufwand
+        v = aufwand.je_aufgabe(con, pid, a.id)
+        if v:
+            print(f"verbrauch: {v['usd']:.2f} $ Gegenwert" + (f" ({', '.join(v['modelle'])})" if v["modelle"] else "")
+                  + " – genähert aus dem Kosten-Zähler zwischen Beginn und Abschluss")
     elif a.aktion in ("parken", "aktiv", "keine_prio", "pool"):
         if not a.id:
             raise kern.AmwFehler("Aufgaben-Nummer fehlt")

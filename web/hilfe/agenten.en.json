@@ -58,6 +58,10 @@
   [
    "How do I start an agent by hand – for example after restarting the PC?",
    "⋯ on the agent › “Start command …” (or Settings › Agents › “Start command to copy”). It lists folder, extra folders, model, effort, permissions and the last session, followed by two ready lines: “Resume” (last session) and “Start fresh” – for PowerShell or the command prompt. “Copy”, paste into a terminal, Enter. This is exactly how AMW starts the agent itself."
+  ],
+  [
+   "How much does an agent use per task?",
+   "Click the agent › Overview › “Usage per task”: the median of the last ten finished tasks, the model and effort that are set, the task in progress so far and the amount for each task. A task's window shows its value under “Usage”; on the command line see `amw aufgabe zeige <nr>` and `amw agent profil <name>`. It counts the dollar equivalent Claude Code reports per session – also on a subscription, where nothing is paid extra. Per task it is approximated: what was used between start and finish counts towards the task the agent started last. The numbers help when setting model and effort in the profile; they apply from the next start."
   ]
  ],
  "thema": "agenten",

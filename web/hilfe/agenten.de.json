@@ -58,6 +58,10 @@
   [
    "Wie starte ich einen Agenten von Hand – etwa nach einem Neustart des PCs?",
    "⋯ am Agenten › „Startbefehl …“ (oder Einstellungen › Agenten › „Startbefehl zum Kopieren“). Dort stehen Ordner, Zusatzordner, Modell, Denkaufwand, Rechte und die letzte Sitzung, darunter zwei fertige Zeilen: „Fortsetzen“ (letzte Sitzung) und „Neu starten“ – für PowerShell oder die Eingabeaufforderung. „Kopieren“, ins Terminal einfügen, Enter. Genau so startet die AMW den Agenten auch selbst."
+  ],
+  [
+   "Wie viel verbraucht ein Agent je Aufgabe?",
+   "Klick auf den Agenten › Übersicht › „Verbrauch je Aufgabe“: das Mittel (Median) der letzten zehn fertigen Aufgaben, das eingestellte Modell mit Denkaufwand, die Aufgabe in Arbeit bisher und je Aufgabe der Betrag. Im Fenster einer Aufgabe steht ihr Wert unter „Verbrauch“, in der Befehlszeile bei `amw aufgabe zeige <nr>` und `amw agent profil <name>`. Gezählt wird der Gegenwert in Dollar, den Claude Code je Sitzung meldet – auch im Abo, wo nichts extra bezahlt wird. Je Aufgabe ist er genähert: Was zwischen Beginn und Abschluss anfiel, zählt zu der Aufgabe, die der Agent zuletzt begonnen hat. Die Zahlen helfen beim Einstellen von Modell und Denkaufwand im Profil; sie gelten ab dem nächsten Start."
   ]
  ],
  "thema": "agenten",
