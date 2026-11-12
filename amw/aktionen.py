@@ -44,7 +44,7 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
 
 def schirm_setzen(con, pid, d, kanal, wer=None):
     """Zu geht überall. Frei am PC – und online nur für einen System-Admin (der Zugang der Seite oder ein Benutzer mit dieser
-    Rolle), dann nur mit Uhrzeit, bis wann; der Name steht im Grund."""
+    Rolle); die Uhrzeit, bis wann, ist freiwillig; der Name steht im Grund."""
     from . import benutzer, schirm
     frei = bool(d.get("frei"))
     grund = (d.get("grund") or "").strip() or None
@@ -52,8 +52,6 @@ def schirm_setzen(con, pid, d, kanal, wer=None):
         b = benutzer.finden(con, wer) if wer and wer != benutzer.ZUGANG else None
         if not (wer == benutzer.ZUGANG or (b and b["rolle"] == "system_admin" and not b["gesperrt"])):
             raise Ungueltig("Bildschirm freigeben darf online nur ein System-Admin – belegen geht für alle")
-        if not d.get("bis"):
-            raise Ungueltig("Online freigeben nur mit Uhrzeit, bis wann")
         name = b["anzeige"] or b["name"] if b else kern.entwickler_name(con)
         grund = f"{grund or 'online freigegeben'} – online von {name}"
     try:

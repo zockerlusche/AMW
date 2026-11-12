@@ -303,16 +303,16 @@ class AusloeserAus(Grund):
 
 
 class OnlineFreigeben(Grund):
-    """Bildschirm online freigeben: nur System-Admin (Zugang der Seite oder Benutzer mit der Rolle), nur mit Uhrzeit, Name im Grund."""
+    """Bildschirm online freigeben: nur System-Admin (Zugang der Seite oder Benutzer mit der Rolle), Uhrzeit freiwillig, Name im Grund."""
     def netz(self, wer, daten):
         return aktionen.ausfuehren(self.con, self.pid, "/api/schirm", dict(daten, _benutzer=wer), kanal="netz")
 
     def test_zugang_der_seite_mit_uhrzeit(self):
         from amw import benutzer
         kern.projekt_einstellen(self.con, self.pid, "TL", entwickler_name="Chris")
-        with self.assertRaises(aktionen.Ungueltig) as e:
-            self.netz(benutzer.ZUGANG, {"frei": True, "grund": "unterwegs"})                  # ohne bis: nein
-        self.assertIn("Uhrzeit", str(e.exception))
+        r = self.netz(benutzer.ZUGANG, {"frei": True, "grund": "unterwegs"})                  # ohne bis: frei ohne Ende
+        self.assertEqual((r["schirm"]["frei"], r["schirm"]["bis_utc"]), (1, None))
+        self.netz(benutzer.ZUGANG, {"frei": False})
         r = self.netz(benutzer.ZUGANG, {"frei": True, "grund": "unterwegs", "bis": "23:30"})
         self.assertEqual((r["schirm"]["frei"], r["schirm"]["quelle"]), (1, "netz"))
         self.assertIn("online von Chris", r["schirm"]["grund"])

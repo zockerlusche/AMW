@@ -3,7 +3,7 @@
 Some runs need the screen: they open a window, click and type themselves – for example trials in the program or screenshots. That only works when you release the screen. When you are back, the AMW closes the release by itself – you choose how it notices.
 
 ## You need
-- The Workbench at the PC – or online as a system admin (then only with a time until when). Closing works everywhere.
+- The Workbench at the PC – or online as a system admin. Closing works everywhere.
 - To recognise a remote session: the program that only runs during a connection (Settings › This PC › “Remote access program”, for TeamViewer e.g. TeamViewer_Desktop.exe).
 
 ## Steps
@@ -27,4 +27,4 @@ New installations have all three on. When a trigger is off, **the AMW does not w
 
 ## Next
 - If a run with a window keeps running after closing, the lead is told after 5 minutes.
-- Online, only a system admin may release the screen, with a confirmation and only with a time until when; the history shows who it was. Anyone may close it online.
+- Online, only a system admin may release the screen, with a confirmation; the time until when is optional. Without a time the screen stays free until someone takes it back or a switched-on trigger fires. The history shows who it was. Anyone may close it online.

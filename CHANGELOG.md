@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.73.0 – 12.11.2026 · Bildschirm-Freigabe ohne Pflicht-Uhrzeit
+- **Bildschirm online freigeben: Uhrzeit freiwillig.** Ohne Uhrzeit bleibt der Bildschirm frei, bis jemand ihn belegt
+  oder ein eingeschalteter Auslöser greift; die Rückfrage sagt das.
+
 ## 1.72.0 – 12.11.2026 · Team-Baum aufgeräumt
 - Der Baum zeigt dauerhaft nur noch die Äste (du → Lead → Agenten). Prüfungen und Wartebeziehungen einer Karte
   erscheinen, sobald die Maus auf ihr steht (oder du sie antippst) – jede Linie in eigener Spur, die übrigen Karten
