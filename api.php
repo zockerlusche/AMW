@@ -177,8 +177,9 @@ try {
         }
         $n = (int)sql([['SELECT count(*) FROM eingang WHERE zeit_utc > ?', [jetzt_utc(-3600)]]])[0][0][0];
         if ($n >= SCHREIBEN_JE_STUNDE) antwort(429, ['fehler' => 'zu viele Einträge in der letzten Stunde']);
-        sql([['INSERT INTO eingang (zeit_utc, weg, daten, ip, projekt) VALUES (?, ?, ?, ?, ?)',     // nur der Rechner des Projekts führt es aus
-              [jetzt_utc(), $pfad, json_encode($daten, JSON_UNESCAPED_UNICODE), $_SERVER['REMOTE_ADDR'] ?? '?', $projekt === '' ? null : $projekt]]]);
+        $eid = (int)(sql([['INSERT INTO eingang (zeit_utc, weg, daten, ip, projekt) VALUES (?, ?, ?, ?, ?) RETURNING id',   // nur der Rechner des Projekts führt es aus
+              [jetzt_utc(), $pfad, json_encode($daten, JSON_UNESCAPED_UNICODE), $_SERVER['REMOTE_ADDR'] ?? '?', $projekt === '' ? null : $projekt]]])[0][0][0] ?? 0);
+        $_SESSION['eingaenge'] = array_slice([...($_SESSION['eingaenge'] ?? []), $eid], -100);   // nur diese Sitzung fragt ihren Stand ab
         // gleiche Form wie am PC, damit die Seite unverändert bleibt; „unterwegs“ = der PC übernimmt es gleich
         $form = match (true) {
             (bool)$frage => ['status' => ($daten['art'] === 'rueckfrage') ? 'offen' : 'beantwortet'],
@@ -190,9 +191,15 @@ try {
             $pfad === '/api/schirm' => ['text' => 'Schirm zu – der PC übernimmt es gleich'],
             default => ['aufgehoben' => 0],
         };
-        antwort(200, $form + ['unterwegs' => true]);
+        antwort(200, $form + ['unterwegs' => true, 'eingang' => $eid]);
     }
 
+    if ($pfad === '/api/eingang') {                       // Stand eigener Eingaben: neu → erledigt | fehler (mit Grund)
+        $ids = array_values(array_intersect(array_map('intval', explode(',', (string)($q['ids'] ?? ''))), $_SESSION['eingaenge'] ?? []));
+        if (!$ids) antwort(200, []);
+        $z = sql([['SELECT id, status, ergebnis FROM eingang WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')', $ids]])[0];
+        antwort(200, array_map(fn($r) => ['id' => (int)$r[0], 'status' => $r[1], 'fehler' => $r[1] === 'fehler' ? ((json_decode((string)$r[2], true)['fehler'] ?? null) ?: 'Fehler am PC') : null], $z));
+    }
     if ($pfad === '/api/projekte' && $verzeichnis) {      // Verzeichnis aller Projekte (auch anderer Rechner)
         $aus = [];
         foreach ($verzeichnis as [$uid, $name, $farbe, $rechner, $gesehen, $fragen, $agenten, $halt]) {
@@ -239,7 +246,8 @@ try {
         $alle = $z ? json_decode($z[0], true) : [];
         $k = (string)($q['kennung'] ?? '');
         if (!isset($alle[$k])) antwort(404, ['fehler' => 'Zu diesem Agenten liegen online noch keine Daten vor.']);
-        antwort(200, $alle[$k]);
+        $a = einstellungen_ueberlagern(['agenten' => [$alle[$k] + ['kennung' => $k]]], briefkasten_wirkt($projekt, $z[1] ?? null))['agenten'][0];
+        antwort(200, $a);
     }
     if ($pfad === '/api/gespraech') {                      // Gespräch je Agent: nur auf Wunsch, der PC hält es dann 10 min aktuell
         $k = (string)($q['kennung'] ?? '');
@@ -330,6 +338,7 @@ try {
         unset($d['texte']);
     } elseif ($pfad === '/api/einstellungen') {          // Online-Seite: aktuelle Werte, nicht der Stand des Schaufensters
         $d['web'] = web_einst_alle(true);
+        $d = einstellungen_ueberlagern($d, $offen);       // gespeichert, aber noch nicht angekommen: der neue Wert gilt
     } elseif ($pfad === '/api/start') {
         $gesehen = $pc ? $pc[0][0] : null;
         $d['online'] = ['web_version' => trim((string)@file_get_contents(__DIR__ . '/inc/VERSION')), 'pc_gesehen_utc' => $gesehen, 'stand_utc' => $zeile[1], 'briefkasten' => count($unterwegs),
