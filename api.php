@@ -106,6 +106,9 @@ try {
         $daten = json_decode((string)$roh, true);
         if (!is_array($daten)) antwort(400, ['fehler' => 'JSON']);
         unset($daten['_benutzer']);                         // wer handelt, setzt nur der Server (Anmeldung), nie der Aufrufer
+        $wer = $_SESSION['benutzer'] ?? (!empty($_SESSION['zugang']) ? '@zugang' : null);
+        if ($wer === null) antwort(401, ['fehler' => 'Bitte neu anmelden (Seite neu laden).']);   // nie ohne Namen weiter
+        $daten['_benutzer'] = $wer;
         if ($pfad === '/api/hochladen') {                  // Teile direkt in den Speicher, nicht über den Briefkasten
             try { antwort(200, hochladen($daten)); }
             catch (InvalidArgumentException $x) { antwort(400, ['fehler' => $x->getMessage()]); }

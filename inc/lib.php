@@ -49,7 +49,7 @@ const ONLINE_SCHEMA = [
     "CREATE TABLE IF NOT EXISTS hoch_teil (id TEXT NOT NULL, nr INTEGER NOT NULL, inhalt TEXT NOT NULL, PRIMARY KEY (id, nr))",
     "CREATE TABLE IF NOT EXISTS projekt (uid TEXT PRIMARY KEY, name TEXT NOT NULL, farbe TEXT, rechner TEXT, gesehen_utc TEXT NOT NULL, fragen INTEGER NOT NULL DEFAULT 0, agenten INTEGER NOT NULL DEFAULT 0, halt INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS datei_projekt (sha TEXT NOT NULL, projekt TEXT NOT NULL, PRIMARY KEY (sha, projekt))",
-    "CREATE TABLE IF NOT EXISTS benutzer (name TEXT PRIMARY KEY, anzeige TEXT, email TEXT, rolle TEXT NOT NULL, gesperrt INTEGER NOT NULL DEFAULT 0, projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, stand_utc TEXT)",
+    "CREATE TABLE IF NOT EXISTS benutzer (name TEXT PRIMARY KEY, anzeige TEXT, email TEXT, rolle TEXT, gesperrt INTEGER NOT NULL DEFAULT 0, projekte TEXT NOT NULL DEFAULT '[]', passwort_hash TEXT, totp_geheim TEXT, stand_utc TEXT)",
 ];
 
 /** Spalten älterer Online-Speicher nachrüsten (wie amw/abgleich.py NACHRUESTEN) – einmal je Sitzung geprüft. */
@@ -488,6 +488,7 @@ function sitzung_anmelden(): void {
     session_regenerate_id(true);
     unset($_SESSION['einrichten']);
     $_SESSION['angemeldet'] = true;
+    $_SESSION['zugang'] = true;                              // der Zugang aus der Konfiguration (System-Admin); Benutzer: R1b
     $_SESSION['seit'] = $_SESSION['zuletzt'] = time();
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
     try {                                                    // Version der Seite in den Online-Speicher: so prüft der PC sie
