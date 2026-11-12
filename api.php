@@ -82,12 +82,19 @@ function datei_senden(array $q): never {
 }
 
 if (!angemeldet()) antwort(401, ['fehler' => 'Bitte neu anmelden (Seite neu laden).']);
+$ich = isset($_SESSION['benutzer']) ? benutzer_aktuell() : null;            // angelegter Benutzer (sonst: Zugang der Konfiguration)
+if (isset($_SESSION['benutzer']) && $ich === null) antwort(401, ['fehler' => 'Bitte neu anmelden (Seite neu laden).']);
+if ($ich !== null && !$ich['rolle']) antwort(403, ['fehler' => 'Dein Zugang wird geprüft – ein Admin vergibt Rolle und Projekte.', 'wartet' => true]);
 
 try {
     nachruesten();
     $verzeichnis = sql([['SELECT uid, name, farbe, rechner, gesehen_utc, fragen, agenten, halt FROM projekt ORDER BY name', []]])[0];
 } catch (Throwable $e) {                                  // Speicher von vor 1.19.0 ohne Verzeichnis: alte Schlüssel
     $verzeichnis = [];
+}
+if ($ich !== null && $ich['rolle'] !== 'system_admin') {   // nur zugewiesene Projekte – andere werden nicht ausgeliefert
+    $verzeichnis = array_values(array_filter($verzeichnis, fn($z) => in_array($z[0], $ich['projekte'], true)));
+    if (!$verzeichnis) antwort(403, ['fehler' => 'Dir ist noch kein Projekt zugewiesen – bitte beim Admin melden.']);
 }
 $uids = array_column($verzeichnis, 0);
 $wunsch = (string)($_GET['projekt'] ?? '');
@@ -106,7 +113,11 @@ try {
         $daten = json_decode((string)$roh, true);
         if (!is_array($daten)) antwort(400, ['fehler' => 'JSON']);
         unset($daten['_benutzer']);                         // wer handelt, setzt nur der Server (Anmeldung), nie der Aufrufer
-        $wer = $_SESSION['benutzer'] ?? (!empty($_SESSION['zugang']) ? '@zugang' : null);
+        if (str_starts_with($pfad, '/api/benutzer')) antwort(403, ['fehler' => 'Benutzer verwaltest du am PC.']);
+        if ($ich !== null && !rolle_reicht($ich['rolle'], eingabe_klasse($pfad))) {
+            antwort(403, ['fehler' => 'Nicht erlaubt – dafür reicht deine Rolle nicht.']);
+        }
+        $wer = $ich['name'] ?? (!empty($_SESSION['zugang']) ? '@zugang' : null);
         if ($wer === null) antwort(401, ['fehler' => 'Bitte neu anmelden (Seite neu laden).']);   // nie ohne Namen weiter
         $daten['_benutzer'] = $wer;
         if ($pfad === '/api/hochladen') {                  // Teile direkt in den Speicher, nicht über den Briefkasten

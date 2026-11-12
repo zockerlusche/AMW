@@ -96,6 +96,7 @@ nav .fuss { margin-top: auto; padding: 14px 18px; display: flex; gap: 8px; flex-
 .pw.still { cursor: default; } .pw.still .pw-pfeil { display: none; }
 .projekt-chip { display: none; }
 .dialog-hg.pw-hg { background: transparent; display: block; padding: 0; }
+.bn-liste{display:grid;gap:10px;margin-bottom:12px}.bn-zeile{border:1px solid var(--linie);border-radius:6px;padding:10px 12px;display:grid;gap:8px}.bn-kopf{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:14px}.bn-felder{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:12px}@media (max-width:640px){.bn-felder{grid-template-columns:1fr}}.bn-label{display:grid;gap:4px;font-size:12px;color:var(--leise)}.bn-projekte{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--text)}.bn-projekt{display:inline-flex;align-items:center;gap:4px;cursor:pointer}.bn-projekte[hidden],.bn-label [hidden]{display:none}.bn-knoepfe{display:flex;gap:8px;flex-wrap:wrap}.bn-neu{display:flex;gap:8px;flex-wrap:wrap}.bn-neu input{max-width:260px}.bn-code{font-size:clamp(20px,5vw,30px);letter-spacing:.08em;padding:14px;text-align:center;border:1px dashed var(--linie);border-radius:6px;user-select:all}
 .pw-liste { position: absolute; width: 310px; max-width: calc(100vw - 24px); border: 1px solid var(--linie2); background: var(--flaeche2); border-radius: 4px;
   box-shadow: 0 16px 40px -10px rgba(0,0,0,.7); padding: 6px; }
 .pw-liste .dialog-zu { display: none; }
@@ -1017,6 +1018,7 @@ const TEXTE = {
     e_agenten: "Agenten", 
     e_kennung: "Name", e_rund: "Nachrichten an alle", 
     e_anlegen: "Anlegen", soll_an: "an", soll_ruht: "pausiert", soll_aus: "aus",
+    bn_titel: "Benutzer der Online-Seite", bn_h: "Wer sich auf der Online-Seite anmelden darf und was er dort darf. Ein neuer Benutzer hat keine Rechte, bis du Rolle und Projekte vergibst. Der bisherige Zugang aus der Konfiguration der Seite bleibt System-Admin.", bn_ohne_speicher: "Ohne Online-Speicher kann sich niemand anmelden – erst die Online-Seite einrichten. Anlegen geht schon.", bn_name: "Name", bn_rolle: "Rolle", bn_projekte: "Projekte", bn_stand: "Stand", bn_keine: "Noch keine Benutzer.", bn_neu_ph: "Name (ohne Leerzeichen)", bn_anlegen: "Anlegen", bn_wartet_rolle: "– wartet auf Freigabe –", rolle_leser: "Leser", rolle_bearbeiter: "Bearbeiter", rolle_projekt_admin: "Projekt-Admin", rolle_system_admin: "System-Admin", bn_alle_projekte: "alle Projekte", bn_st_neu: "noch nicht freigeschaltet", bn_st_wartet_code: "Code gültig bis {x}", bn_st_code_abgelaufen: "Code abgelaufen", bn_st_eingerichtet: "eingerichtet", bn_st_angemeldet: "zuletzt angemeldet {x}", bn_st_gesperrt: "gesperrt", bn_st_freigabe: "wartet auf deine Freigabe", bn_freischalten: "Freischalten", bn_neu_freischalten: "Neu freischalten", bn_neu_frage: "{x} neu freischalten? Passwort und zweiter Faktor werden zurückgesetzt, alle Sitzungen von {x} enden.", bn_sperren: "Sperren", bn_entsperren: "Entsperren", bn_code_titel: "Freischalt-Code für {x}", bn_code_h: "Gültig bis {b}, nur einmal. Gib ihn {x} persönlich weiter (mündlich oder im Chat) – er erscheint nur jetzt und steht nirgends sonst. {x} öffnet die Online-Seite, wählt „Erstes Anmelden mit Freischalt-Code“ und setzt Passwort und zweiten Faktor selbst.", bn_kopieren: "Kopieren", bn_kopiert: "Kopiert", bn_fertig: "Fertig",
     e_web: "Online-Seite", e_web_h: "Gilt für die Anmeldung im Netz.", e_leerlauf: "Abmelden nach Leerlauf (min)",
     e_hoechstens: "Längste Sitzung (h)", e_fehl_ip: "Sperre nach Fehlversuchen je Adresse (15 min)", e_fehl_ges: "Sperre nach Fehlversuchen gesamt (60 min)",
     e_pc: "Dieser PC", e_pc_h: "Diese Einstellungen gelten für diesen PC und alle Projekte darauf. Felder mit \u21bb werden erst nach einem Neustart des Dienstes wirksam (Start › Leitstand › Neu starten).", nur_pc: "Nur am PC änderbar – hier zur Ansicht.",
@@ -1328,6 +1330,7 @@ const TEXTE = {
     e_agenten: "Agents", 
     e_kennung: "Name", e_rund: "Messages to all", 
     e_anlegen: "Add", soll_an: "on", soll_ruht: "paused", soll_aus: "off",
+    bn_titel: "Users of the online site", bn_h: "Who may sign in on the online site and what they may do there. A new user has no rights until you assign a role and projects. The existing access from the site's configuration stays system admin.", bn_ohne_speicher: "Without online storage nobody can sign in – set up the online site first. Adding users works already.", bn_name: "Name", bn_rolle: "Role", bn_projekte: "Projects", bn_stand: "Status", bn_keine: "No users yet.", bn_neu_ph: "Name (no spaces)", bn_anlegen: "Add", bn_wartet_rolle: "– awaiting approval –", rolle_leser: "Reader", rolle_bearbeiter: "Editor", rolle_projekt_admin: "Project admin", rolle_system_admin: "System admin", bn_alle_projekte: "all projects", bn_st_neu: "not activated yet", bn_st_wartet_code: "Code valid until {x}", bn_st_code_abgelaufen: "Code expired", bn_st_eingerichtet: "set up", bn_st_angemeldet: "last signed in {x}", bn_st_gesperrt: "blocked", bn_st_freigabe: "awaiting your approval", bn_freischalten: "Activate", bn_neu_freischalten: "Reset access", bn_neu_frage: "Reset access for {x}? Password and two-factor are reset and all of {x}'s sessions end.", bn_sperren: "Block", bn_entsperren: "Unblock", bn_code_titel: "Activation code for {x}", bn_code_h: "Valid until {b}, once only. Give it to {x} in person (spoken or in a chat) – it is shown only now and stored nowhere else. {x} opens the online site, chooses “First sign-in with activation code” and sets their own password and two-factor.", bn_kopieren: "Copy", bn_kopiert: "Copied", bn_fertig: "Done",
     e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after inactivity (min)",
     e_hoechstens: "Maximum session length (h)", e_fehl_ip: "Lockout after failed sign-ins per address (15 min)", e_fehl_ges: "Lockout after failed sign-ins in total (60 min)",
     e_pc: "This PC", e_pc_h: "These settings apply to this PC and all projects on it. Fields marked \u21bb take effect after the service restarts (Home › Control center › Restart).", nur_pc: "Only changeable on the PC – shown here for reference.",
@@ -3812,6 +3815,66 @@ window.addEventListener("keydown", e => { if (e.key !== "Enter" || e.defaultPrev
 /* Esc schließt nur den obersten Dialog (Vollbild und Editor fangen Esc vorher selbst ab) */
 window.addEventListener("keydown", e => { if (e.key !== "Escape" || e.defaultPrevented) return;
   const oben = [...document.querySelectorAll(".dialog-hg")].pop(); if (oben) { e.preventDefault(); oben.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
+/* Benutzer der Online-Seite (Stufe R1b, nur am PC): anlegen, Rolle und Projekte vergeben, freischalten, sperren.
+   Der Freischalt-Code erscheint genau einmal im Dialog – die AMW speichert ihn nirgends. */
+async function benutzerZeichnen(ziel) {
+  let d; try { d = await holen("/api/benutzer"); } catch (e) { ziel.replaceChildren(el("div", { class: "rot-text" }, String(e.message || e))); return; }
+  const neu = el("input", { type: "text", placeholder: t("bn_neu_ph"), maxlength: 60, autocomplete: "off", id: "bn-neu-name" });
+  const tun = async (was, daten, knopf) => {
+    if (knopf) knopf.disabled = true;
+    try { const r = await schicken("/api/benutzer/" + was, daten); return r; }
+    catch (e) { toast(t("fehler", { x: e.message }), true); return null; }
+    finally { if (knopf) knopf.disabled = false; } };
+  const anlegen = el("button", { class: "klein-knopf", type: "button", id: "bn-anlegen", onclick: async e => {
+    const name = neu.value.trim(); if (!name) return;
+    if (await tun("neu", { name }, e.target)) benutzerZeichnen(ziel); } }, "+ " + t("bn_anlegen"));
+  neu.addEventListener("keydown", e => { if (e.key === "Enter") anlegen.click(); });
+  const stand = b => { const o = b.online || {};
+    if (b.gesperrt) return [t("bn_st_gesperrt"), "rot-text"];
+    if (o.stand === "eingerichtet") return [!b.rolle ? t("bn_st_freigabe") : o.angemeldet_utc ? t("bn_st_angemeldet", { x: zeit(o.angemeldet_utc) }) : t("bn_st_eingerichtet"), !b.rolle ? "bernstein-text" : "sehrleise"];
+    if (o.stand === "wartet_code") return [t("bn_st_wartet_code", { x: zeit(o.bis) }), "sehrleise"];
+    if (o.stand === "code_abgelaufen") return [t("bn_st_code_abgelaufen"), "sehrleise"];
+    return [t("bn_st_neu"), "sehrleise"]; };
+  const zeile = b => {
+    const rolle = el("select", { "aria-label": t("bn_rolle") }, el("option", { value: "" }, t("bn_wartet_rolle")),
+      d.rollen.map(r => el("option", { value: r }, t("rolle_" + r))));
+    rolle.value = b.rolle || "";
+    const haken = d.projekte.map(p => { const x = el("input", { type: "checkbox", value: p.id }); x.checked = b.projekte.includes(p.id);
+      return el("label", { class: "bn-projekt" }, x, " " + p.name); });
+    const projekteFeld = el("div", { class: "bn-projekte" }, ...haken);
+    const allePr = el("span", { class: "sehrleise" }, t("bn_alle_projekte"));
+    const sichtbar = () => { const sa = rolle.value === "system_admin"; projekteFeld.hidden = sa; allePr.hidden = !sa; };
+    rolle.addEventListener("change", sichtbar); sichtbar();
+    const speichernK = el("button", { class: "klein-knopf", type: "button", onclick: async e => {
+      const projekte = haken.map(h => h.querySelector("input")).filter(x => x.checked).map(x => Number(x.value));
+      if (await tun("aendern", { name: b.name, rolle: rolle.value || null, projekte }, e.target)) { toast(t("gespeichert")); benutzerZeichnen(ziel); } } }, t("speichern"));
+    const eingerichtet = b.online?.stand === "eingerichtet";
+    const freiK = el("button", { class: "klein-knopf", type: "button", disabled: b.gesperrt || !d.online ? "disabled" : null, onclick: async e => {
+      if (eingerichtet && !confirm(t("bn_neu_frage", { x: b.name }))) return;
+      const r = await tun("freischalten", { name: b.name }, e.target); if (!r) return;
+      benutzerCode(b.name, r); benutzerZeichnen(ziel); } }, t(eingerichtet ? "bn_neu_freischalten" : "bn_freischalten"));
+    const sperrK = el("button", { class: "klein-knopf", type: "button", onclick: async e => {
+      if (await tun("aendern", { name: b.name, gesperrt: !b.gesperrt }, e.target)) benutzerZeichnen(ziel); } }, t(b.gesperrt ? "bn_entsperren" : "bn_sperren"));
+    const [st, kl] = stand(b);
+    return el("div", { class: "bn-zeile", "data-name": b.name },
+      el("div", { class: "bn-kopf" }, el("b", {}, b.name), el("span", { class: kl }, st)),
+      el("div", { class: "bn-felder" }, el("label", { class: "bn-label" }, t("bn_rolle"), rolle),
+        el("div", { class: "bn-label" }, el("span", {}, t("bn_projekte")), projekteFeld, allePr)),
+      el("div", { class: "bn-knoepfe" }, speichernK, freiK, sperrK)); };
+  ziel.replaceChildren(...[
+    d.online ? null : el("p", { class: "bernstein-text", style: "margin:0 0 10px;font-size:13px" }, t("bn_ohne_speicher")),
+    d.benutzer.length ? el("div", { class: "bn-liste" }, ...d.benutzer.map(zeile)) : el("div", { class: "sehrleise", style: "margin-bottom:10px" }, t("bn_keine")),
+    el("div", { class: "bn-neu" }, neu, anlegen)].filter(Boolean));
+}
+function benutzerCode(name, r) {
+  const code = el("div", { class: "bn-code mono", id: "bn-code" }, r.code);
+  const kopie = el("button", { class: "klein-knopf", type: "button", onclick: async e => {
+    try { await navigator.clipboard.writeText(r.code); e.target.textContent = t("bn_kopiert"); } catch (f) { /* Zwischenablage gesperrt: Code steht da */ } } }, t("bn_kopieren"));
+  let hg;
+  const zu = el("button", { class: "knopf haupt", type: "button", onclick: () => hg.remove() }, t("bn_fertig"));
+  hg = dialog(t("bn_code_titel", { x: name }), code,
+    el("p", { class: "leise", style: "margin:12px 0" }, t("bn_code_h", { x: name, b: zeit(r.bis) })), el("div", { style: "display:flex;gap:8px" }, kopie, zu));
+}
 function dialog(titel, ...inhalt) {
   const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
     el("div", { class: "karte dialog einst", style: "width:min(820px,94vw);max-height:88vh;overflow-y:auto" }, el("h3", {}, titel), ...inhalt));
@@ -4410,7 +4473,11 @@ async function sichtEinstellungen() {
   if (!API) baLaden("verbindungen");
 
   // Reihenfolge: erst, was die Installation trägt (Betriebsart, Speicher, Seite, Meldungen, PC), dann das Projekt und seine Agenten
-  box.append(...[baKarte, speicherKarte, seiteKarte, pushKarte, pcKarte, projektKarte,
+  const benutzerKarte = API ? null : mitHilfe("benutzer", el("div", { class: "karte", id: "e-benutzer" },
+    el("h3", {}, t("bn_titel"), " ", wirkt("seite")), el("p", { class: "leise", style: "margin:0 0 12px" }, t("bn_h")),
+    el("div", { class: "bn-inhalt" }, el("div", { class: "sehrleise" }, "…"))));
+  if (benutzerKarte) benutzerZeichnen(benutzerKarte.querySelector(".bn-inhalt"));
+  box.append(...[baKarte, speicherKarte, seiteKarte, benutzerKarte, pushKarte, pcKarte, projektKarte,
     agentenEinstellungen(d, { text, zahl, schalter, wert, feld })].filter(Boolean));
   /* Sprungmarken: die Seite ist lang – jeder Abschnitt mit einem Klick erreichbar */
   m.append(el("div", { class: "sprung" }, [...box.children].map(k => { const h = k.querySelector("h3");
