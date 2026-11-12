@@ -1027,6 +1027,7 @@ const TEXTE = {
     e_bs_titel: "Bildschirm-Freigabe von selbst schließen", e_bs_h: "Gibst du den Bildschirm für Agenten frei, schließt die AMW die Freigabe, sobald du wieder da bist. Hier legst du fest, woran sie das erkennt.", e_bs_eingabe: "… bei Eingabe am PC (Tastatur, Maus)", e_bs_eingabe_h: "Auch über eine Fernsitzung. Aus: Die AMW beobachtet Tastatur und Maus gar nicht – Läufe mit Fenster starten dann auch, während du die Maus bewegst. Schließ die Freigabe dann selbst.", e_bs_fern: "… bei neuer Fernsitzung (z. B. TeamViewer)", e_bs_fern_h: "Erkannt am Programm, das unten steht. Aus: Es wird nicht nachgesehen.", e_bs_wb: "… bei Eingabe in der Workbench am PC", e_bs_wb_h: "Aus: Klicks und Eingaben hier lassen die Freigabe offen.",
     ue_laeuft: "wird übertragen …", ue_ok: "gespeichert", ue_fehler: "nicht gespeichert: {x}",
     tm_platz: "Platz {p}/{n} in der Schlange", tm_platz_hinter: "Platz {p}/{n} hinter {x}", tm_warteplatz_h: "Lauf wartet in der Warteschlange dieses Rechners (alle Projekte)", tm_fremd: "anderes Projekt", tm_leg_ast: "Aufträge", tm_leg_bogen: "Arbeit geht zur Prüfung", tm_leg_warten: "wartet auf",
+    schirm_bis_pflicht: "Bis wann (online Pflicht)", schirm_bis_fehlt: "Bitte angeben, bis wann der Bildschirm frei ist.", schirm_frei_frage: "Bildschirm jetzt für Agenten freigeben – bis {x} Uhr? Agenten dürfen dann am PC Fenster öffnen, klicken und tippen.", schirm_nur_admin: "Freigeben darf online nur ein System-Admin. Wieder belegen geht für alle.", schirm_nur_admin_kurz: "Online nur für System-Admins", nur_pc_knopf: "Geht nur am PC", schirm_zum_leitstand: "Im Leitstand ändern", schirm_zum_leitstand_h: "Freigeben und belegen geht im Leitstand unten",
     bn_titel: "Benutzer der Online-Seite", bn_h: "Wer sich auf der Online-Seite anmelden darf und was er dort darf. Ein neuer Benutzer hat keine Rechte, bis du Rolle und Projekte vergibst. Der bisherige Zugang aus der Konfiguration der Seite bleibt System-Admin.", bn_ohne_speicher: "Ohne Online-Speicher kann sich niemand anmelden – erst die Online-Seite einrichten. Anlegen geht schon.", bn_name: "Name", bn_rolle: "Rolle", bn_projekte: "Projekte", bn_stand: "Stand", bn_keine: "Noch keine Benutzer.", bn_neu_ph: "Name (ohne Leerzeichen)", bn_anlegen: "Anlegen", bn_wartet_rolle: "– wartet auf Freigabe –", rolle_leser: "Leser", rolle_bearbeiter: "Bearbeiter", rolle_projekt_admin: "Projekt-Admin", rolle_system_admin: "System-Admin", bn_alle_projekte: "alle Projekte", bn_st_neu: "noch nicht freigeschaltet", bn_st_wartet_code: "Code gültig bis {x}", bn_st_code_abgelaufen: "Code abgelaufen", bn_st_eingerichtet: "eingerichtet", bn_st_angemeldet: "zuletzt angemeldet {x}", bn_st_gesperrt: "gesperrt", bn_st_freigabe: "wartet auf deine Freigabe", bn_freischalten: "Freischalten", bn_neu_freischalten: "Neu freischalten", bn_neu_frage: "{x} neu freischalten? Passwort und zweiter Faktor werden zurückgesetzt, alle Sitzungen von {x} enden.", bn_sperren: "Sperren", bn_entsperren: "Entsperren", bn_code_titel: "Freischalt-Code für {x}", bn_code_h: "Gültig bis {b}, nur einmal. Gib ihn {x} persönlich weiter (mündlich oder im Chat) – er erscheint nur jetzt und steht nirgends sonst. {x} öffnet die Online-Seite, wählt „Neue Anmeldung“ und setzt Passwort und zweiten Faktor selbst.", bn_kopieren: "Kopieren", bn_kopiert: "Kopiert", bn_fertig: "Fertig",
     e_web: "Online-Seite", e_web_h: "Gilt für die Anmeldung im Netz.", e_leerlauf: "Abmelden nach Leerlauf (min)",
     e_hoechstens: "Längste Sitzung (h)", e_fehl_ip: "Sperre nach Fehlversuchen je Adresse (15 min)", e_fehl_ges: "Sperre nach Fehlversuchen gesamt (60 min)",
@@ -1342,6 +1343,7 @@ const TEXTE = {
     e_bs_titel: "Close the screen release automatically", e_bs_h: "When you release the screen for agents, the AMW closes the release as soon as you are back. Here you choose how it notices.", e_bs_eingabe: "… on input at the PC (keyboard, mouse)", e_bs_eingabe_h: "Also through a remote session. Off: the AMW does not watch keyboard and mouse at all – runs with a window then start even while you move the mouse. Close the release yourself.", e_bs_fern: "… when a remote session starts (e.g. TeamViewer)", e_bs_fern_h: "Recognised by the program named below. Off: not checked.", e_bs_wb: "… on input in the Workbench at the PC", e_bs_wb_h: "Off: clicks and input here leave the release open.",
     ue_laeuft: "sending …", ue_ok: "saved", ue_fehler: "not saved: {x}",
     tm_platz: "Place {p}/{n} in the queue", tm_platz_hinter: "Place {p}/{n} behind {x}", tm_warteplatz_h: "Run waits in this computer's queue (all projects)", tm_fremd: "another project", tm_leg_ast: "Assignments", tm_leg_bogen: "Work goes to review", tm_leg_warten: "waits for",
+    schirm_bis_pflicht: "Until when (required online)", schirm_bis_fehlt: "Please enter until when the screen is free.", schirm_frei_frage: "Free the screen for agents now – until {x}? Agents may then open windows, click and type on the PC.", schirm_nur_admin: "Online, only a system admin may free the screen. Taking it back works for everyone.", schirm_nur_admin_kurz: "Online only for system admins", nur_pc_knopf: "Only works on the PC", schirm_zum_leitstand: "Change in control center", schirm_zum_leitstand_h: "Freeing and taking back is in the control center below",
     bn_titel: "Users of the online site", bn_h: "Who may sign in on the online site and what they may do there. A new user has no rights until you assign a role and projects. The existing access from the site's configuration stays system admin.", bn_ohne_speicher: "Without online storage nobody can sign in – set up the online site first. Adding users works already.", bn_name: "Name", bn_rolle: "Role", bn_projekte: "Projects", bn_stand: "Status", bn_keine: "No users yet.", bn_neu_ph: "Name (no spaces)", bn_anlegen: "Add", bn_wartet_rolle: "– awaiting approval –", rolle_leser: "Reader", rolle_bearbeiter: "Editor", rolle_projekt_admin: "Project admin", rolle_system_admin: "System admin", bn_alle_projekte: "all projects", bn_st_neu: "not activated yet", bn_st_wartet_code: "Code valid until {x}", bn_st_code_abgelaufen: "Code expired", bn_st_eingerichtet: "set up", bn_st_angemeldet: "last signed in {x}", bn_st_gesperrt: "blocked", bn_st_freigabe: "awaiting your approval", bn_freischalten: "Activate", bn_neu_freischalten: "Reset access", bn_neu_frage: "Reset access for {x}? Password and two-factor are reset and all of {x}'s sessions end.", bn_sperren: "Block", bn_entsperren: "Unblock", bn_code_titel: "Activation code for {x}", bn_code_h: "Valid until {b}, once only. Give it to {x} in person (spoken or in a chat) – it is shown only now and stored nowhere else. {x} opens the online site, chooses “First sign-in” and sets their own password and two-factor.", bn_kopieren: "Copy", bn_kopiert: "Copied", bn_fertig: "Done",
     e_web: "Online site", e_web_h: "Applies to signing in online.", e_leerlauf: "Sign out after inactivity (min)",
     e_hoechstens: "Maximum session length (h)", e_fehl_ip: "Lockout after failed sign-ins per address (15 min)", e_fehl_ges: "Lockout after failed sign-ins in total (60 min)",
@@ -1658,7 +1660,9 @@ const uebertragung = (() => {
     let m = knopf.nextElementSibling?.classList.contains("ue-marke") ? knopf.nextElementSibling : null;
     if (!m) { m = el("span", { class: "ue-marke", role: "status" }); knopf.after(m); }
     m.className = "ue-marke " + art; m.textContent = text; return m; };
-  const anbringen = () => { for (const o of offen) marke(o.ort, t("ue_laeuft"), "bernstein-text"); };   /* nach jedem Neuzeichnen wieder an die Stelle */
+  const anbringen = () => { for (const o of offen) {                 /* nach jedem Neuzeichnen wieder an die Stelle */
+    if (marke(o.ort, t("ue_laeuft"), "bernstein-text")) continue;
+    if (!o.gemeldet) { o.gemeldet = true; toast(t("ue_laeuft"), false, true); } } };     /* Stelle weg (Dialog zu): einmal als Hinweis */
   async function nachsehen() {
     uhr = null; if (!offen.length) return;
     anbringen();
@@ -2058,7 +2062,8 @@ async function sichtStart() {
       el("div", {}, [sz.seit_utc ? t("schirm_seit", { x: seit(sz.seit_utc) }) : null, sz.bis_utc ? t("schirm_bis", { x: zeit(sz.bis_utc) }) : null,
         sz.grund, laeuft.length ? t("schirm_laeuft", { x: laeuft.map(l => `L${l.id} ${l.agent}`).join(", ") }) : null,
         wartet.length ? t("schirm_wartet", { n: wartet.length }) : null].filter(Boolean).join(" · ")),
-      el("button", { class: "knopf", type: "button", onclick: () => schirmDialog() }, t(sz.frei ? "schirm_zumachen" : "schirm_freigeben"))));
+      el("button", { class: "klein-knopf", type: "button", title: t("schirm_zum_leitstand_h"),
+        onclick: () => document.getElementById("leitstand")?.scrollIntoView({ behavior: "smooth", block: "center" }) }, t("schirm_zum_leitstand"))));
   }
   const nt = d.naechster_test;                              /* Terminplaner: nächster Testtermin mit Frist und Ampel */
   if (nt) m.append(el("div", { class: "band-termin" + (nt.ampel === "rot" ? " rot" : "") }, el("b", {}, t("tm_naechster").toUpperCase()),
@@ -2171,7 +2176,9 @@ function agentMenue(a, knopf) {
 function leitstand(d) {
   const feld = (titel, farbe, stand, erkl, ...knoepfe) => el("div", {}, el("div", { class: "lt" }, titel),
     el("div", { class: "stand" }, el("span", { class: "punkt " + farbe }), stand), el("div", { class: "erkl" }, erkl), el("div", { class: "zeile" }, knoepfe));
-  const kn = (text, tun, klasse) => el("button", { class: "knopf " + (klasse || ""), type: "button", onclick: tun }, text);
+  const kn = (text, tun, klasse, gesperrt) => el("button", { class: "knopf " + (klasse || ""), type: "button", onclick: tun,
+    ...(gesperrt ? { disabled: "disabled", title: gesperrt, "aria-label": `${text} – ${gesperrt}` } : {}) }, text);
+  const nurPc = t("nur_pc_knopf");
   const pcTun = async (weg, frage, ok) => { if (!confirm(frage)) return;
     try { const r = await schicken(weg, {}); toast(ok(r)); zeige("start", true); setTimeout(() => zeige(zustand.sicht, true), 5000); }
     catch (x) { toast(t("fehler", { x: x.message }), true); } };
@@ -2187,14 +2194,15 @@ function leitstand(d) {
       [t("ls_arbeit_e"), d.eingang ? t("ls_eingang_e") : null].filter(Boolean).join(" "),
       halt ? kn(t("weiter"), () => weiterGeben(), "haupt") : kn(t("halt"), () => haltDialog(), "warn")),
     sz ? feld(t("ls_schirm"), sz.frei ? "bernstein" : "", sz.frei ? t("ls_schirm_frei") + (sz.bis_utc ? " " + t("schirm_bis", { x: zeit(sz.bis_utc) }) : "") : t("ls_schirm_belegt"),
-      [sz.grund, t("ls_schirm_e")].filter(Boolean).join(" – "), kn(t(sz.frei ? "schirm_zumachen" : "schirm_freigeben"), () => schirmDialog())) : null,
+      [sz.grund, t("ls_schirm_e")].filter(Boolean).join(" – "),
+      kn(t(sz.frei ? "schirm_zumachen" : "schirm_freigeben"), () => schirmDialog(), "", !sz.frei && !darfFreigeben() ? t("schirm_nur_admin_kurz") : null)) : null,
     feld(t("ls_sitz"), ende.length || fehlen.length ? "bernstein" : laufen.length ? "gruen" : "", sitzStand, t(API ? "ls_sitz_e_netz" : "ls_sitz_e"),
-      API ? null : kn(t("ls_sichern"), () => pcTun("/api/agent/ende", t("ls_sichern_frage", { n: laufen.length + ruhen.length }),
-        r => r.agenten.length ? t("ls_sichern_ok", { n: r.agenten.length, x: zeit(r.bis_utc) }) : t("ls_sichern_keiner"))),
-      API || !fehlen.length ? null : kn(t("ls_starten"), () => pcTun("/api/agent/start-fehlende", t("ls_starten_frage", { x: fehlen.map(a => a.kennung).join(", ") }),
-        r => t("ls_starten_ok", { n: r.agenten.length, s: r.abstand_s })))),
+      kn(t("ls_sichern"), () => pcTun("/api/agent/ende", t("ls_sichern_frage", { n: laufen.length + ruhen.length }),
+        r => r.agenten.length ? t("ls_sichern_ok", { n: r.agenten.length, x: zeit(r.bis_utc) }) : t("ls_sichern_keiner")), "", API ? nurPc : null),
+      !fehlen.length ? null : kn(t("ls_starten"), () => pcTun("/api/agent/start-fehlende", t("ls_starten_frage", { x: fehlen.map(a => a.kennung).join(", ") }),
+        r => t("ls_starten_ok", { n: r.agenten.length, s: r.abstand_s })), "", API ? nurPc : null)),
     feld(t("ls_wacht"), API && !d.online?.pc_frisch ? "bernstein" : "gruen", API ? t(d.online?.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online?.pc_gesehen_utc) }) : t("ls_wacht_laeuft", { v: d.version }),
-      t(API ? "ls_wacht_e_netz" : "ls_wacht_e"), API ? null : kn(t("ls_wacht_neu"), () => pcTun("/api/dienst/neustart", t("ls_wacht_frage"), () => t("ls_wacht_ok")))),
+      t(API ? "ls_wacht_e_netz" : "ls_wacht_e"), kn(t("ls_wacht_neu"), () => pcTun("/api/dienst/neustart", t("ls_wacht_frage"), () => t("ls_wacht_ok")), "", API ? nurPc : null)),
     rechnerFeld(d.rechner, feld),
     d.token ? (() => { const k = d.token, f = feld(TKZ + " " + t("tk_woche"), k.pause_tage > 0 ? "bernstein" : k.wert >= 90 ? "rot" : "gruen", t("tk_wert", { w: Math.round(k.wert) }),
         [k.tempo ? (k.pause_tage > 0 ? t("tk_leer", { x: tagZeit(k.leer_utc) }) + " \u2013 " + t("tk_pause", { n: zahlKurz(k.pause_tage) }) : t("tk_reicht")) : null,
@@ -4307,6 +4315,8 @@ function haltDialog() {
   document.body.append(hg); text.focus();
 }
 /* Schirm-Schalter: frei nur am PC mit Grund (optional „spätestens zu um“), zu überall mit einem Klick */
+/* Darf diese Sitzung den Bildschirm freigeben? Am PC immer; online nur ein System-Admin (sonst nur belegen). */
+const darfFreigeben = () => !API || zustand.start?.online?.ich?.rolle === "system_admin";
 function schirmDialog() {
   const sz = zustand.start?.schirm || { frei: 0 };
   let hg;
@@ -4320,17 +4330,19 @@ function schirmDialog() {
         el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
     return;
   }
-  if (API) {
-    hg = dialog(t("schirm_titel"), el("p", {}, t("schirm_ist_zu") + (sz.grund ? ` · ${sz.grund}` : "")), el("p", { class: "leise" }, t("schirm_nur_pc")),
+  if (API && !darfFreigeben()) {
+    hg = dialog(t("schirm_titel"), el("p", {}, t("schirm_ist_zu") + (sz.grund ? ` · ${sz.grund}` : "")), el("p", { class: "leise" }, t("schirm_nur_admin")),
       el("div", { class: "aktionen" }, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
     return;
   }
   const grund = el("input", { placeholder: t("schirm_grund_ph") }), bis = el("input", { type: "time" });
   hg = dialog(t("schirm_titel"), el("p", { class: "leise", style: "margin-top:0" }, t("schirm_ist_zu") + (sz.grund ? ` · ${sz.grund}` : "")),
     el("p", {}, t("schirm_erkl")), el("div", { class: "feld" }, el("label", {}, t("schirm_grund_l")), el("div", {}, grund)),
-    el("div", { class: "feld" }, el("label", {}, t("schirm_bis_l")), el("div", {}, bis)),
+    el("div", { class: "feld" }, el("label", {}, t(API ? "schirm_bis_pflicht" : "schirm_bis_l")), el("div", {}, bis)),
     el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => {
         if (!grund.value.trim()) { toast(t("schirm_grund_fehlt"), true); grund.focus(); return; }
+        if (API && !bis.value) { toast(t("schirm_bis_fehlt"), true); bis.focus(); return; }       /* online: nie ohne Ende */
+        if (API && !confirm(t("schirm_frei_frage", { x: bis.value }))) return;
         setzen({ frei: true, grund: grund.value.trim(), bis: bis.value || null }); } }, t("schirm_freigeben").replace(" …", "")),
       el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
   grund.focus();
