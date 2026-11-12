@@ -265,6 +265,27 @@ try {
         if (!$g) antwort(200, ['kennung' => $k, 'warten' => true]);
         antwort(200, json_decode($g[0], true) + ['stand_utc' => $g[1]]);
     }
+    if ($pfad === '/api/nachrichten' && ($q['alle'] ?? '') === '1' && $uids) {   // alle Projekte des Benutzers zusammen
+        $alle = ['eingang' => [], 'gesendet' => [], 'zaehler' => ['eingang_offen' => 0]];
+        foreach ($uids as $u) {
+            $z = sql([['SELECT inhalt, stand_utc FROM ansicht WHERE weg = ?', ["$u:/api/nachrichten"]]])[0][0] ?? null;
+            if (!$z) continue;
+            $d = json_decode($z[0], true) ?: [];
+            foreach (['eingang', 'gesendet'] as $k) foreach ($d[$k] ?? [] as $x) { $x['projekt'] ??= $u; $alle[$k][] = $x; }
+            $alle['zaehler']['eingang_offen'] += (int)($d['zaehler']['eingang_offen'] ?? 0);
+            $i = 0;
+            foreach (briefkasten_wirkt($u, $z[1]) as [$w, $dat]) {          // Geschriebenes im Briefkasten: „wird übertragen …“
+                if ($w !== '/api/nachricht') continue;
+                $x = json_decode($dat, true) ?: [];
+                $alle['gesendet'][] = ['id' => -(++$i), 'zeit_utc' => jetzt_utc(), 'art' => (string)($x['art'] ?? 'auftrag'), 'projekt' => $u,
+                    'kurz' => (string)($x['kurz'] ?? ''), 'text' => $x['text'] ?? null, 'antwort_auf' => null, 'benutzer' => null, 'bezug' => null,
+                    'empfaenger' => array_map(fn($a) => ['agent' => trim($a), 'stand' => 'unterwegs'], explode(',', (string)($x['an'] ?? ''))),
+                    'antworten' => [], 'zurueckgezogen' => false, 'zurueckziehbar' => false, 'unterwegs' => true];
+            }
+        }
+        foreach (['eingang', 'gesendet'] as $k) usort($alle[$k], fn($a, $b) => [(string)$b['zeit_utc'], (int)$b['id']] <=> [(string)$a['zeit_utc'], (int)$a['id']]);
+        antwort(200, $alle);
+    }
     $schluessel = match (true) {
         $pfad === '/api/aufgaben' => '/api/aufgaben?sicht=' . (string)($q['sicht'] ?? 'offen'),
         $pfad === '/api/fragen' && ($q['alle'] ?? '') === '1' => '/api/fragen?alle=1',
