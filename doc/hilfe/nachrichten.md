@@ -19,7 +19,8 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 - **Der Bezug fehlt** – Nachrichten über „+ Schreiben“ im Menü sind allgemein; schreib über „✉ Nachricht dazu“ am Objekt, dann geht er mit.
 
 ## Danach
-- Fragen der Agenten an dich beantwortest du weiter unter „Fragen“ (der Reiter dort führt hin).
+- Fragen der Agenten an dich stehen im Reiter „Fragen“; deine Antwort steht danach im Gesendet, mit der Frage als Bezug.
+- Die Startseite zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt in den Eingang.
 
 ## Häufige Fragen
 ### Was heißen die Schritte?

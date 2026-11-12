@@ -479,6 +479,7 @@ def daten_nachrichten(con, pid, grenze=150):
         empf.setdefault(x.pop("nachricht_id"), []).append(x)
     for x in zeilen(con.execute(f"SELECT antwort_auf, id, zeit_utc, von, kurz FROM nachricht WHERE antwort_auf IN ({platz}) ORDER BY id", ids)):
         antw.setdefault(x.pop("antwort_auf"), []).append(x)
+    zu_fragen = {r[0] for r in con.execute(f"SELECT nachricht_id FROM frage_verlauf WHERE nachricht_id IN ({platz})", ids)}
     for n in eigene:
         emp, antworten = empf.get(n["id"], []), antw.get(n["id"], [])
         zurueck = bool(emp) and all(x["bemerkung"] == kern.ZURUECKGEZOGEN for x in emp)
@@ -486,8 +487,8 @@ def daten_nachrichten(con, pid, grenze=150):
                          "empfaenger": [{"agent": x["agent"], "stand": "zurueckgezogen" if zurueck else ("erledigt" if x["status"] == "erledigt" else
                                          "gelesen" if x["status"] == "gelesen" else "benachrichtigt" if x["geweckt_utc"] else "gesendet"),
                                          "gelesen_utc": x["gelesen_utc"], "erledigt_utc": x["erledigt_utc"], "benachrichtigt_utc": x["geweckt_utc"]} for x in emp],
-                         "antworten": antworten, "zurueckgezogen": zurueck,
-                         "zurueckziehbar": not zurueck and bool(emp) and all(x["status"] == "offen" for x in emp)})
+                         "antworten": antworten, "zurueckgezogen": zurueck, "zu_frage": n["id"] in zu_fragen,
+                         "zurueckziehbar": not zurueck and bool(emp) and n["id"] not in zu_fragen and all(x["status"] == "offen" for x in emp)})
     eingang = []
     for n in con.execute(f"SELECT {spalten}, e.status AS stand FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
                          " WHERE n.projekt_id = ? AND e.agent = ? ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall():

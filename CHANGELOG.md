@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.77.0 – 12.11.2026 · Nachrichten: Startseite aufgeräumt, Fragen als Reiter
+- **Startseite:** statt der langen Liste „Nachrichten an dich“ eine Karte mit den drei neuesten und dem Sprung in den
+  Eingang; „Ältere als gelesen markieren“ bleibt dort.
+- **Fragen gehören zu den Nachrichten:** Die Fragen-Seite trägt dieselbe Reiterleiste Eingang · Gesendet · Fragen.
+- **Antworten auf Fragen** haben die Frage als Bezug (Chip „F12 …“ im Gesendet, Klick führt zu den Fragen).
+
 ## 1.76.0 – 12.11.2026 · Paket für den eigenen Server im Firmennetz
 - **`amw web paket`** baut am PC alles, was ein Webserver der Firma braucht, als eine ZIP: die Online-Seite, eine fertige
   Konfiguration (Adresse des eigenen libSQL-Servers, Schlüssel der Seite, erster Admin), Vorlagen für nginx und Apache,

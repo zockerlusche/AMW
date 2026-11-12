@@ -19,7 +19,8 @@ Everything you write to agents and everything they write to you is in one place.
 - **The reference is missing** – Messages via “+ Write” in the menu are general; write via “✉ Message about this” on the item and it comes along.
 
 ## Next
-- You keep answering the agents' questions under “Questions” (the tab there takes you to it).
+- The agents' questions to you are in the “Questions” tab; your answer then shows in Sent, with the question as reference.
+- The start page shows only a card with the newest messages for you – one click takes you to the inbox.
 
 ## Questions
 ### What do the steps mean?

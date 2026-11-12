@@ -841,6 +841,8 @@ def zurueckziehen(con, pid, von, nid, benutzer_name=None):
         raise AmwFehler(f"#{nid} ist keine Nachricht von dir")
     if benutzer_name is not None and (n["benutzer"] or None) != benutzer_name:
         raise AmwFehler(f"#{nid} hat jemand anderes geschrieben")
+    if con.execute("SELECT 1 FROM frage_verlauf WHERE nachricht_id = ?", (nid,)).fetchone():
+        raise AmwFehler(f"#{nid} ist deine Antwort auf eine Frage – die Frage gilt als beantwortet; schick bei Bedarf eine neue Nachricht")
     e = con.execute("SELECT agent, status, bemerkung FROM empfang WHERE nachricht_id = ?", (nid,)).fetchall()
     if any(x["bemerkung"] == ZURUECKGEZOGEN for x in e):
         raise AmwFehler(f"#{nid} ist schon zurückgezogen")
@@ -1182,7 +1184,7 @@ def frage_antworten(con, pid, fid, antwort_art, antwort, kanal, von=ENTWICKLER):
         nid = None
         if f["von"] != von:
             nid, _ = _posten(con, pid, von, f["von"], art, f"{'Rückfrage' if art == 'frage' else 'Antwort'} zu F{fid}: {antwort[:120]}",
-                             text=antwort if len(antwort) > 120 else None, aufgabe_id=f["aufgabe_id"])
+                             text=antwort if len(antwort) > 120 else None, aufgabe_id=f["aufgabe_id"], bezug=f"F{fid}")
         roh = antwort
         if antwort_art == "option":                    # im Verlauf mit dem Text der Option
             antwort = next((f"{o['kenn']}) {o['text']}" for o in json.loads(f["optionen"]) if o["kenn"] == antwort), antwort)

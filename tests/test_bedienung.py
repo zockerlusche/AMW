@@ -149,6 +149,31 @@ class Seite(Wiederholt, Grund):
         self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Verlauf')).click()")
         self.warten("zustand.sicht === 'verlauf' && document.getElementById('mehr').classList.contains('an')")
 
+    def test_nachrichten_reiter_und_startkarte(self):
+        """Nachrichten: Eingang · Gesendet · Fragen als eine Leiste (auch auf der Fragen-Seite); Startseite nur eine Karte mit Sprung;
+        zurückziehen mit Rückfrage; Bezug als Chip."""
+        aid = db.einfuegen(self.con, "aufgabe", projekt_id=self.pid, titel="Linien", agent="CC1", status="laeuft", einstufung="aktiv",
+                           angelegt_utc=db.jetzt(), angelegt_von="TL")
+        self.con.commit()
+        n1 = kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC1", "auftrag", "Bitte Linien aufräumen", aufgabe_id=aid)[0]
+        kern.posten(self.con, self.pid, "CC1", kern.ENTWICKLER, "info", "Mache ich")
+        self.oeffnen("start", "document.querySelector('.nr-start')")
+        self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-start').innerText"))
+        self.tab.js("document.querySelector('.nr-start').click()")
+        self.warten("zustand.sicht === 'nachrichten' && document.querySelector('.nr-reiter button.an')")
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [True, False, False])
+        self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-liste').innerText"))
+        self.tab.js("document.querySelectorAll('.nr-reiter button')[1].click()")
+        self.warten(f"document.querySelector('.nr-liste') && document.querySelector('.nr-liste').innerText.includes('Bitte Linien aufräumen')")
+        self.assertIn(f"A{aid} Linien", self.tab.js("document.querySelector('.nr-liste .nr-chip').innerText"))
+        self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-gespraech').innerText"))      # Antwort hängt am Faden
+        self.tab.js("window.confirm = () => true; [...document.querySelectorAll('.nr-gespraech button')].find(b => b.innerText.toUpperCase().includes('ZURÜCKZIEHEN')).click()")
+        self.warten("document.querySelector('.nr-eintrag.weg')")
+        self.assertEqual(self.con.execute("SELECT bemerkung FROM empfang WHERE nachricht_id = ?", (n1,)).fetchone()[0], kern.ZURUECKGEZOGEN)
+        self.tab.js("document.querySelectorAll('.nr-reiter button')[2].click()")
+        self.warten("zustand.sicht === 'fragen' && document.querySelector('.nr-reiter button.an')")
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [False, False, True])
+
     def test_baum_zeigt_beziehungen_nur_fuer_die_karte_unter_der_maus(self):
         """Team-Baum: dauerhaft nur die Äste; Prüf-/Warte-Linien einer Karte erst mit der Maus darauf, Rest abgeblendet."""
         from amw import betrieb

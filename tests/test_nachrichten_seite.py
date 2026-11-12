@@ -127,5 +127,19 @@ class Nachrichten(unittest.TestCase):
         self.assertIn(f"Antwort auf #{n5}", self.amw("posten", "--von", "CC2", "--projekt", "P", "--an", "Entwickler", "--art", "info", "--kurz", "zu n5"))
 
 
+    def test_antwort_auf_frage_traegt_den_bezug_der_frage(self):
+        r = kern.frage_neu(self.con, self.pid, "CC1", "entwickler", "Blau oder Grün?", [("A", "Blau"), ("B", "Grün")], "A", "passt",
+                           aufgabe_id=self.aid, geprueft="keine Treffer")
+        fid = r if isinstance(r, int) else r[0]
+        kern.frage_antworten(self.con, self.pid, fid, "option", "A", "workbench")
+        g = [x for x in workbench.daten_nachrichten(self.con, self.pid)["gesendet"] if x["kurz"].startswith(f"Antwort zu F{fid}")]
+        self.assertEqual(len(g), 1)
+        self.assertEqual((g[0]["bezug"]["kuerzel"], [e["agent"] for e in g[0]["empfaenger"]]), (f"F{fid}", ["CC1"]))
+        self.assertEqual(self.con.execute("SELECT aufgabe_id FROM nachricht WHERE id = ?", (g[0]["id"],)).fetchone()[0], self.aid)
+        self.assertFalse(g[0]["zurueckziehbar"])                                             # Antwort auf eine Frage: nicht zurückziehen
+        with self.assertRaises(kern.AmwFehler):
+            kern.zurueckziehen(self.con, self.pid, kern.ENTWICKLER, g[0]["id"])
+
+
 if __name__ == "__main__":
     unittest.main()
