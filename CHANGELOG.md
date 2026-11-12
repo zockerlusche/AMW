@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.59.0 – 12.11.2026 · Was auf der Platte wächst
+- **Tägliche Messung der Ordnergrößen:** Der Dienst misst einmal am Tag die Projektordner dieses PCs, ihre typischen
+  Ablagerungen (Build-Reste, Caches, Temp-Ordner), weitere Arbeitsbäume (Git-Worktrees) und den Ordner der Sicherungen –
+  im Hintergrund und nie, während ein schwerer Lauf läuft. Messwerte bleiben 90 Tage.
+- **Anzeige** unter Einstellungen › Dieser PC und in `amw rechner`: die größten Zuwächse der letzten 7 Tage und die
+  größten Ablagerungen mit „seit n Tagen unverändert“. Die AMW misst und zeigt nur; sie löscht nichts.
+- **Schema 25:** neue Tabelle für die Messwerte. Bestehende Daten bleiben unverändert.
+
 ## 1.58.0 – 12.11.2026 · Alte Sicherungen ins Archiv verschieben
 - **Ein Klick ins Archiv:** Unter Einstellungen › Dieser PC verschiebst du Aufräumvorschläge (alte Sicherungen samt
   Dokumente-Ablage) einzeln oder alle in einen Archiv-Ordner. Die AMW löscht nichts und überschreibt nichts; jede

@@ -474,7 +474,8 @@ def daten_einstellungen(con, pid, speicher=None):
     from . import platte                              # Laufwerke und Aufräumvorschläge (alte Sicherungen) – nur Anzeige
     try:
         rechner = {"laufwerke": [{k: l[k] for k in ("laufwerk", "frei_gb", "gesamt_gb", "frei_prozent", "stufe")} for l in platte.laufwerke(con)],
-                   "aufraeumen": platte.vorschlaege(con), "archiv": einstellungen.wert("archiv_ordner")}
+                   "aufraeumen": platte.vorschlaege(con), "archiv": einstellungen.wert("archiv_ordner"),
+                   "zuwaechse": platte.zuwaechse(con, pid), "ablagerungen": platte.ablagerungen(con, pid)}
     except Exception:
         rechner = {"laufwerke": [], "aufraeumen": {"sicherungen": [], "bytes": 0, "ordner": ""}}
     return {"version": __version__, "rechner": rechner,

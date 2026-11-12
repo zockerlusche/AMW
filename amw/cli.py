@@ -1052,6 +1052,15 @@ def cmd_rechner(a, con):
             print(f"  {x['name']}  {komma(round(x['bytes'] / 2 ** 20))} MB  {x['tage']} Tage alt")
     else:
         print("Aufräumvorschläge: keine")
+    pid = _projekt(con, a) if getattr(a, "projekt", None) else None
+    z = platte.zuwaechse(con, pid)
+    if z:
+        print("Größte Zuwächse (7 Tage): " + "; ".join(f"{x['ordner']} +{komma(round(x['plus'] / 2 ** 30, 2))} GB" for x in z))
+    ab = platte.ablagerungen(con, pid)
+    if ab:
+        print("Ablagerungen (Build-Reste, Caches, Worktrees – nur Anzeige):")
+        for x in ab:
+            print(f"  {x['ordner']}  {komma(round(x['bytes'] / 2 ** 30, 2))} GB" + (f"  seit {x['tage']} Tagen unverändert" if x["tage"] else ""))
 
 
 def cmd_schirm(a, con):

@@ -157,5 +157,51 @@ class Archiv(Grund):
         self.assertEqual(aus["verschoben"], 1)
 
 
+class Messung(Grund):
+    """Tägliche Messung der Ordnergrößen: Projektordner, Ablagerungen, Sicherungen; Zuwächse und Ablagerungen."""
+
+    def datei(self, pfad, mb):
+        os.makedirs(os.path.dirname(pfad), exist_ok=True)
+        with open(pfad, "wb") as f:
+            f.write(b"x" * int(mb * 2 ** 20))
+
+    def test_messen_zuwachs_und_ablagerungen(self):
+        projekt = os.path.join(self.ordner.name, "spiel")
+        self.datei(os.path.join(projekt, "src", "a.txt"), 1)
+        self.datei(os.path.join(projekt, ".godot", "imported", "x.bin"), 3)                   # Ablage (Cache)
+        self.datei(os.path.join(projekt, "werkzeug", "build", "y.bin"), 2)                    # Ablage auf zweiter Ebene
+        self.datei(os.path.join(projekt, ".git", "objects", "z"), 1)                          # .git ist keine Ablage
+        kern.projekt_ordner_setzen(self.con, self.pid, projekt)
+        arten = sorted((os.path.relpath(o, projekt), art) for _, o, art in platte.ziele(self.con))
+        self.assertEqual(arten, [(".", "projekt"), (".godot", "ablage"), (os.path.join("werkzeug", "build"), "ablage")])
+        vor = datetime.datetime(2026, 11, 1, 12, 0, tzinfo=datetime.timezone.utc)
+        self.assertEqual(platte.messen(self.con, jetzt=vor), 4)                               # 3 Ordner + Sicherungen
+        self.datei(os.path.join(projekt, ".godot", "imported", "neu.bin"), 5)                 # 5 MB dazu
+        jetzt = datetime.datetime(2026, 11, 9, 12, 0, tzinfo=datetime.timezone.utc)
+        platte.messen(self.con, jetzt=jetzt)
+        z = platte.zuwaechse(self.con)
+        self.assertEqual([(os.path.relpath(x["ordner"], projekt), x["plus"]) for x in z], [(".", 5 * 2 ** 20), (".godot", 5 * 2 ** 20)])
+        ab = platte.ablagerungen(self.con, jetzt=jetzt)
+        self.assertEqual([os.path.relpath(x["ordner"], projekt) for x in ab], [".godot", os.path.join("werkzeug", "build")])
+        self.assertEqual(ab[0]["bytes"], 8 * 2 ** 20)
+        alt = (jetzt + datetime.timedelta(days=platte.AUFBEWAHREN_TAGE + 5))
+        platte.messen(self.con, jetzt=alt)                                                     # alte Messwerte räumt sie weg
+        self.assertEqual(self.con.execute("SELECT count(*) FROM ordner_messung WHERE zeit_utc < '2026-11-05'").fetchone()[0], 0)
+        self.assertTrue(os.path.exists(os.path.join(projekt, ".godot", "imported", "x.bin")))   # gemessen, nichts gelöscht
+
+    def test_faellig_einmal_am_tag_und_nie_waehrend_eines_schweren_laufs(self):
+        jetzt = datetime.datetime(2026, 11, 9, 12, 0, tzinfo=datetime.timezone.utc)
+        self.assertTrue(platte.faellig(self.con, jetzt))                                      # noch nie gemessen
+        platte.messen(self.con, jetzt=jetzt)
+        self.assertFalse(platte.faellig(self.con, jetzt + datetime.timedelta(hours=5)))
+        self.assertTrue(platte.faellig(self.con, jetzt + datetime.timedelta(hours=21)))
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="CC1", beschreibung="Gesamtlauf", status="laeuft",
+                         angemeldet_utc=db.jetzt(), start_utc=db.jetzt())
+        self.assertFalse(platte.faellig(self.con, jetzt + datetime.timedelta(hours=21)))       # schwerer Lauf: warten
+        d = workbench.daten_einstellungen(self.con, self.pid)["rechner"]
+        self.assertEqual((d["zuwaechse"], [x["art"] for x in d["ablagerungen"]]), ([], []))
+
+
 if __name__ == "__main__":
     unittest.main()

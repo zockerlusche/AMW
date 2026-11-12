@@ -161,6 +161,151 @@ def archivieren(con, namen):
     return aus
 
 
+# --- Ordnergrößen: einmal am Tag messen, Zuwächse und Ablagerungen zeigen (nur Anzeige) --------------------------------
+
+ABLAGEN = {"build", "dist", "out", "bin", "obj", ".godot", ".import", "node_modules", "__pycache__", ".pytest_cache",
+           "tmp", "temp", "test-output", "testergebnisse", ".mypy_cache", ".gradle", "target"}
+MESSEN_ALLE_S = 20 * 3600     # so oft (höchstens) misst der Dienst
+AUFBEWAHREN_TAGE = 90
+
+
+def _ordnergroesse(pfad):
+    """(Bytes, Dateien, jüngste Änderung als UTC-Text) eines Ordners; Verknüpfungen werden nicht verfolgt."""
+    summe = n = 0
+    juengste = 0.0
+    for wurzel, ordner, dateien in os.walk(pfad, followlinks=False):
+        for d in dateien:
+            try:
+                st = os.stat(os.path.join(wurzel, d), follow_symlinks=False)
+            except OSError:
+                continue
+            summe += st.st_size
+            n += 1
+            juengste = max(juengste, st.st_mtime)
+    zeit = datetime.datetime.fromtimestamp(juengste, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") if juengste else None
+    return summe, n, zeit
+
+
+def _ablagen(ordner, tiefe=2):
+    """Typische Ablagerungen (Build-Reste, Caches, Temp-Ordner) bis zur zweiten Ebene des Projektordners."""
+    aus = []
+    def suche(pfad, ebene):
+        try:
+            eintraege = list(os.scandir(pfad))
+        except OSError:
+            return
+        for e in eintraege:
+            if not e.is_dir(follow_symlinks=False) or e.name == ".git":
+                continue
+            if e.name.lower() in ABLAGEN:
+                aus.append(e.path)
+            elif ebene < tiefe:
+                suche(e.path, ebene + 1)
+    suche(ordner, 1)
+    return aus
+
+
+def _worktrees(ordner):
+    """Weitere Arbeitsbäume des Git-Repositorys im Projektordner (nur lesen: git worktree list)."""
+    import subprocess
+    try:
+        aus = subprocess.run(["git", "-C", ordner, "worktree", "list", "--porcelain"], capture_output=True, text=True, timeout=30,
+                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except (OSError, subprocess.SubprocessError):
+        return []
+    pfade = [z[9:].strip() for z in aus.stdout.splitlines() if z.startswith("worktree ")]
+    haupt = os.path.normcase(os.path.abspath(ordner))
+    return [p for p in pfade if os.path.normcase(os.path.abspath(p)) != haupt and os.path.isdir(p)]
+
+
+def ziele(con):
+    """Was gemessen wird: [(projekt_id, ordner, art)] – Projektordner dieses PCs, ihre Ablagerungen und Worktrees,
+    dazu der Ordner der Sicherungen."""
+    aus = []
+    for p in con.execute("SELECT id FROM projekt ORDER BY id").fetchall():
+        ordner = kern.projekt_ordner(con, p["id"])
+        if ordner and os.path.isdir(ordner):
+            aus.append((p["id"], os.path.abspath(ordner), "projekt"))
+            aus += [(p["id"], a, "ablage") for a in _ablagen(ordner)]
+            aus += [(p["id"], w, "worktree") for w in _worktrees(ordner)]
+    return aus
+
+
+def messen(con, jetzt=None):
+    """Misst alle Ziele und speichert die Werte (eigene Transaktion je Ziel – lange Messungen sperren nichts). Räumt
+    Messwerte älter als AUFBEWAHREN_TAGE weg. Rückgabe: Anzahl gemessener Ordner."""
+    from . import betrieb
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    zeit = jetzt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    rechner = betrieb.rechner()
+    n = 0
+    for pid, ordner, art in ziele(con):
+        b, d, z = _ordnergroesse(ordner)
+        with db.schreiben(con):
+            db.einfuegen(con, "ordner_messung", zeit_utc=zeit, rechner=rechner, projekt_id=pid, ordner=ordner, art=art,
+                         bytes=b, dateien=d, zuletzt_utc=z)
+        n += 1
+    s = sicherungen()
+    with db.schreiben(con):
+        db.einfuegen(con, "ordner_messung", zeit_utc=zeit, rechner=rechner, projekt_id=None, ordner=os.path.dirname(db.db_pfad()),
+                     art="sicherungen", bytes=sum(x["bytes"] for x in s), dateien=len(s), zuletzt_utc=None)
+        con.execute("DELETE FROM ordner_messung WHERE zeit_utc < ?",
+                    ((jetzt - datetime.timedelta(days=AUFBEWAHREN_TAGE)).strftime("%Y-%m-%dT%H:%M:%SZ"),))
+    return n + 1
+
+
+def faellig(con, jetzt=None):
+    """Ist eine Messung fällig? Nur, wenn die letzte länger als MESSEN_ALLE_S her ist und kein schwerer Lauf läuft."""
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    letzte = con.execute("SELECT max(zeit_utc) FROM ordner_messung").fetchone()[0]
+    if letzte:
+        try:
+            alt = (jetzt - datetime.datetime.strptime(letzte, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)).total_seconds()
+        except ValueError:
+            alt = MESSEN_ALLE_S
+        if alt < MESSEN_ALLE_S:
+            return False
+    return not con.execute("SELECT 1 FROM lauf WHERE status = 'laeuft' AND schwer = 1 LIMIT 1").fetchone()
+
+
+def zuwaechse(con, pid=None, tage=7, n=5):
+    """Die größten Zuwächse: je Ordner der neueste Wert gegen den Wert von vor etwa `tage` Tagen –
+    [{"ordner", "art", "bytes", "plus"}], größter Zuwachs zuerst; nur Zuwächse ab 1 MB. pid: nur Ordner dieses Projekts
+    und die Sicherungen (die Projekte mischen sich nicht)."""
+    neu = {r["ordner"]: dict(r) for r in con.execute(
+        "SELECT m.ordner, m.art, m.bytes, m.zeit_utc FROM ordner_messung m WHERE m.id = (SELECT max(id) FROM ordner_messung x WHERE x.ordner = m.ordner)"
+        " AND (? IS NULL OR m.projekt_id IS NULL OR m.projekt_id = ?)", (pid, pid))}
+    aus = []
+    for ordner, r in neu.items():
+        alt = con.execute("SELECT bytes FROM ordner_messung WHERE ordner = ? AND zeit_utc <= strftime('%Y-%m-%dT%H:%M:%SZ', ?, ?)"
+                          " ORDER BY zeit_utc DESC LIMIT 1", (ordner, r["zeit_utc"], f"-{tage} days")).fetchone()
+        if not alt:
+            alt = con.execute("SELECT bytes FROM ordner_messung WHERE ordner = ? ORDER BY zeit_utc LIMIT 1", (ordner,)).fetchone()
+        plus = r["bytes"] - (alt[0] if alt else r["bytes"])
+        if plus >= 2 ** 20:
+            aus.append({"ordner": ordner, "art": r["art"], "bytes": r["bytes"], "plus": plus})
+    return sorted(aus, key=lambda x: -x["plus"])[:n]
+
+
+def ablagerungen(con, pid=None, n=10, jetzt=None):
+    """Ablagen und Worktrees nach Größe, mit Tagen seit der letzten Änderung darin – [{"ordner", "art", "bytes", "tage"}].
+    pid: nur die dieses Projekts."""
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    aus = []
+    for r in con.execute("SELECT m.ordner, m.art, m.bytes, m.zuletzt_utc FROM ordner_messung m WHERE m.art IN ('ablage', 'worktree')"
+                         " AND m.id = (SELECT max(id) FROM ordner_messung x WHERE x.ordner = m.ordner) AND (? IS NULL OR m.projekt_id = ?)"
+                         " ORDER BY m.bytes DESC LIMIT ?", (pid, pid, n)):
+        tage = None
+        if r["zuletzt_utc"]:
+            try:
+                tage = max(0, (jetzt - datetime.datetime.strptime(r["zuletzt_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(
+                    tzinfo=datetime.timezone.utc)).days)
+            except ValueError:
+                pass
+        aus.append({"ordner": r["ordner"], "art": r["art"], "bytes": r["bytes"], "tage": tage})
+    return aus
+
+
 # --- Wache: melden, wenn ein Laufwerk knapp wird --------------------------------------------------------------------
 
 def _merk_datei():

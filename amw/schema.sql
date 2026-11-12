@@ -922,3 +922,20 @@ CREATE TABLE ki_vermerk (
 CREATE INDEX ki_vermerk_dokument ON ki_vermerk (dokument_id);
 CREATE TRIGGER ki_vermerk_nie_loeschen BEFORE DELETE ON ki_vermerk BEGIN SELECT RAISE(ABORT, 'Verlauf: ki_vermerk wird nicht gelöscht'); END;
 CREATE TRIGGER ki_vermerk_unveraenderlich BEFORE UPDATE ON ki_vermerk BEGIN SELECT RAISE(ABORT, 'Verlauf: ki_vermerk wird nicht geändert – neuer Vermerk'); END;
+
+-- Größe der Ordner (Schema 25), gemessen vom Dienst einmal am Tag
+CREATE TABLE ordner_messung (
+  id            INTEGER PRIMARY KEY,
+  zeit_utc      TEXT NOT NULL,
+  rechner       TEXT,
+  projekt_id    INTEGER REFERENCES projekt(id),
+  ordner        TEXT NOT NULL,
+  art           TEXT NOT NULL CHECK (art IN ('projekt', 'ablage', 'worktree', 'sicherungen')),
+  bytes         INTEGER NOT NULL,
+  dateien       INTEGER,
+  zuletzt_utc   TEXT,
+  uid           TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
+  herkunft      TEXT NOT NULL DEFAULT '',
+  geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+CREATE INDEX ordner_messung_ordner ON ordner_messung (ordner, zeit_utc);

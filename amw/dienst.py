@@ -93,6 +93,7 @@ class Dienst:
         self.gpu = gpu.Wache(con)     # fremde GPU-Last: nur melden
         from . import platte
         self.platte = platte.Wache(con)   # Laufwerk wird knapp: nur melden
+        self.messung = None               # Ordnergrößen: eigener Faden, einmal am Tag
         self.seit = db.jetzt()    # Einzel-Infos wecken erst ab hier (sonst weckte der Altbestand alle auf einmal)
 
     def takt(self):
@@ -120,6 +121,27 @@ class Dienst:
                                                   (p["id"], kennung)).fetchone()[0] or db.jetzt()
                 kern.posten(self.con, p["id"], "AMW", kennung, "takt", takt_text(self.con, p["id"], kennung, seit))
                 log.info("Takt an %s", kennung)
+
+    def ordner_messen(self):
+        """Startet die Messung der Ordnergrößen in einem eigenen Faden mit eigener Verbindung, wenn sie fällig ist und
+        gerade kein schwerer Lauf läuft (sie liest viel von der Platte). Läuft schon eine, passiert nichts."""
+        import threading
+        from . import platte
+        if (self.messung and self.messung.is_alive()) or not platte.faellig(self.con):
+            return False
+        pfad = self.con.execute("PRAGMA database_list").fetchone()[2]
+
+        def lauf():
+            con = db.verbinde(pfad)
+            try:
+                log.info("Ordnergrößen: %d Ordner gemessen", platte.messen(con))
+            except Exception as e:
+                log.warning("Ordnergrößen: %s: %s", type(e).__name__, e)
+            finally:
+                con.close()
+        self.messung = threading.Thread(target=lauf, name="ordner-messen", daemon=True)
+        self.messung.start()
+        return True
 
     def zustellen(self):
         offen = self.con.execute(
@@ -236,6 +258,10 @@ class Dienst:
                 log.info("Laufwerk: %s", e)
         except Exception as e:
             log.warning("Laufwerk: %s: %s", type(e).__name__, e)
+        try:                                                                 # Ordnergrößen: einmal am Tag, im Hintergrund
+            self.ordner_messen()
+        except Exception as e:
+            log.warning("Ordnergrößen: %s: %s", type(e).__name__, e)
         try:                                                                 # Meldungen mit erfülltem Bezug (bis)
             for nid, grund in kern.bezuege_erledigen(self.con):
                 log.info("Erledigt von selbst: #%s (%s)", nid, grund)
