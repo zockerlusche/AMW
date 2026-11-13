@@ -40,7 +40,8 @@ VON = "TL"
 ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "lauf", "pruefung", "taetigkeit",
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
            "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf", "dokument",
-           "schirm", "liste", "suche", "zeige", "termin", "thema", "ki", "projekt", "freigabe"}   # Freigaben: nur der Mensch (Bildschirm frei: der Lead auf das Wort des Entwicklers)
+           "schirm", "liste", "suche", "zeige", "termin", "thema", "ki", "projekt", "freigabe",   # Freigaben: nur der Mensch (Bildschirm frei: der Lead auf das Wort des Entwicklers)
+           "regelwerk"}   # Grund-Regelwerk: abgleich liest nur; uebernehmen prüft selbst (nur Lead/Mensch)
 
 
 def bruecken(con):

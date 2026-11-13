@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.87.1 – 13.11.2026 · Grund-Regelwerk auch über den Dateiaustausch
+- **Behoben:** `amw regelwerk abgleich` und `amw regelwerk uebernehmen Gx` gehen jetzt auch über den Dateiaustausch –
+  ein Lead, der als Chat arbeitet, kann die Grundregeln für sein Projekt vergleichen und übernehmen. Übernehmen bleibt dem
+  Lead und dem Menschen vorbehalten.
+
 ## 1.87.0 – 13.11.2026 · Vollbild am Handy immer schließbar, Bedienbarkeits-Rundgang
 - **Behoben – Vollbild am Handy:** Das ✕ steht fest oben rechts im sichtbaren Bereich (auch neben Kerbe und Browser-
   Leisten); Esc, die Zurück-Taste bzw. Wischgeste und das ✕ schließen nur das Vollbild, der Dokument-Dialog darunter

@@ -63,6 +63,29 @@ class Abgleich(unittest.TestCase):
         self.assertEqual(r["regel"], 4)
         self.assertEqual(self.con.execute("SELECT text FROM regel WHERE nr = 1").fetchone()[0][:8], "Vor jede")   # unverändert
 
+    def test_ueber_den_dateiaustausch(self):
+        """Ein Chat-Lead arbeitet nur über den Dateiaustausch: abgleich und uebernehmen müssen dort gehen (A1615 b) –
+        uebernehmen nur als Lead; ein anderer Absender wird von regelwerk selbst abgewiesen."""
+        from amw import bruecke
+        fehlend = next(nr for nr, x in self.status().items() if x["status"] == "fehlt")
+        alt = os.environ.get("AMW_DB")
+        os.environ["AMW_DB"] = self.pfad
+        try:
+            with tempfile.TemporaryDirectory() as eingang:
+                rc, aus, fehler = bruecke.ausfuehren(bruecke.argumente({"befehl": "regelwerk", "aktion": "abgleich"}, eingang, von="TL", projekt="Alt"))
+                self.assertEqual((rc, fehler), (0, ""), aus)
+                self.assertIn(fehlend, aus)
+                rc, aus, fehler = bruecke.ausfuehren(bruecke.argumente({"befehl": "regelwerk", "aktion": "uebernehmen", "id": fehlend},
+                                                                       eingang, von="CC1", projekt="Alt"))
+                self.assertNotEqual(rc, 0)                                       # kein Lead: abgewiesen
+                self.assertEqual(self.status()[fehlend]["status"], "fehlt")
+                rc, aus, fehler = bruecke.ausfuehren(bruecke.argumente({"befehl": "regelwerk", "aktion": "uebernehmen", "id": fehlend},
+                                                                       eingang, von="TL", projekt="Alt"))
+                self.assertEqual((rc, fehler), (0, ""), aus)
+        finally:
+            os.environ.pop("AMW_DB") if alt is None else os.environ.__setitem__("AMW_DB", alt)
+        self.assertEqual(self.status()[fehlend]["status"], "drin")
+
     def test_bericht_als_dokument_an_den_lead(self):
         aus = self.amw("regelwerk", "abgleich", "--ablegen", "--von", "Entwickler", "--projekt", "Alt")
         self.assertRegex(aus, r"D\d+ abgelegt, #\d+ an TL")
