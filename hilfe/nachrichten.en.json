@@ -64,6 +64,10 @@
    "**sent** – the message is in AMW. **notified** – the service has woken the agent (chat leads read on their next round). **read** – the agent has fetched it with `amw lesen`. **done** – it has dealt with it. **being sent …** – online only, until the PC has taken it over."
   ],
   [
+   "When does the AMW notify an agent?",
+   "For orders, questions, answers, approvals, review requests and reports – never for an info; that only sits in the inbox and is seen at the next read. If the agent is working right now, the AMW waits until its next stop and then sends everything together as one notification. That saves cost. Immediately, even in the middle of work, only stop, corrections and everything you write yourself get through."
+  ],
+  [
    "How does a reply end up in the right conversation?",
    "When an agent writes only to you, its reply attaches itself to your last unanswered message to it (up to 2 days old) and inherits its reference."
   ]
