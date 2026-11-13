@@ -38,6 +38,10 @@
    "an lassen; aus heißt: Agenten starten alles direkt"
   ],
   [
+   "Vorrang der Projekte (Dieser PC)",
+   "je Projekt hoch, normal oder niedrig, Vorgabe normal"
+  ],
+  [
    "Arbeitsspeicher-Reserve (Dieser PC)",
    "so viel bleibt für dich frei, Vorgabe 3 GB"
   ],
@@ -57,7 +61,7 @@
   ],
   [
    "Ein Lauf wartet lange",
-   "Im Leitstand steht, warum: der Rechner ist belegt oder es ist zu wenig Arbeitsspeicher frei. Der Mensch kann einen Lauf vorziehen (`amw lauf vorziehen <nr>`)."
+   "Im Leitstand steht, warum: der Rechner ist belegt, es ist zu wenig Arbeitsspeicher frei oder ein Lauf davor wartet – dann steht dabei, wie viel Arbeitsspeicher er braucht und wie viel nutzbar ist. Der Mensch kann einen Lauf vorziehen (`amw lauf vorziehen <nr>`)."
   ],
   [
    "Ein einzelner kurzer Test wird abgewiesen",
@@ -78,6 +82,14 @@
   "Jeder Rechner hat seine eigene Warteschlange."
  ],
  "fragen": [
+  [
+   "Wie bekommt ein Projekt Vorrang?",
+   "Unter Einstellungen › Dieser PC › „Vorrang der Projekte“ stellst du je Projekt hoch, normal oder niedrig ein. Wartende Läufe kommen dann in dieser Reihenfolge dran: zuerst, was du selbst vorgezogen hast, dann „hoch“, dann „normal“, dann „niedrig“ – innerhalb einer Stufe der Reihe nach. Ein Lauf, der schon läuft, wird nie abgebrochen. Der Wartegrund nennt den Vorrang; im Zeitstrahl „Rechner – heute“ sind Vorrang-Läufe mit ▲ markiert, im Leitstand steht die Liste kurz. Die Einstellung gehört dem PC, nicht einem Projekt – Namen anderer Projekte siehst du nur am PC."
+  ],
+  [
+   "Warum ist für einen laufenden Lauf Arbeitsspeicher vorgemerkt?",
+   "Ein Lauf braucht seinen Arbeitsspeicher oft erst nach und nach. Damit kein zweiter Lauf daneben startet, der ihm den Speicher wegnimmt, hält die Warteschlange seinen Bedarf frei. Hat er keinen Bedarf angegeben, gilt die Grenze seines Projekts – aber nur in den ersten 15 Minuten; danach zählt, was er wirklich belegt. Der Wartegrund nennt, für welchen Lauf wie viel vorgemerkt ist."
+  ],
   [
    "Was passiert, wenn der Hook einmal nicht funktioniert?",
    "Dann läuft der Befehl ganz normal – gesperrt wird bei einem Fehler nie. Der Fehler steht im Protokoll `%LOCALAPPDATA%\\amw\\hook-fehler.log` auf diesem PC; steht dort etwas, lohnt ein Blick, weil schwere Befehle dann wieder direkt starten."
