@@ -150,9 +150,9 @@ class GanzerWeg(unittest.TestCase):
         self.assertIn("gibt es schon", st[doppelt["eingang"]]["fehler"])
 
 
-    def test_nachrichten_ueber_alle_projekte(self):
-        """Seite „Nachrichten“ online: die Ansichten aller Projekte des Benutzers zusammen, jede Zeile mit ihrem Projekt;
-        Geschriebenes im Briefkasten steht schon im Gesendet – beim richtigen Projekt."""
+    def test_nachrichten_nur_das_gewaehlte_projekt(self):
+        """Seite „Nachrichten“ online: nur das oben gewählte Projekt (Marcel 13.11., B2691) – ‚alle=1‘ legt nichts mehr
+        zusammen, das Menü zählt nur dieses Projekt; Geschriebenes im Briefkasten steht beim richtigen Projekt."""
         from amw import db, kern
         with db.schreiben(self.con):
             p2 = db.einfuegen(self.con, "projekt", name="Q", angelegt_utc=db.jetzt())
@@ -164,19 +164,24 @@ class GanzerWeg(unittest.TestCase):
         ab2 = abgleich.Abgleich(self.con, self.sp, p2)
         ab2.hochladen(alle=True)
         uid = {n: u for n, u in self.con.execute("SELECT name, uid FROM projekt")}
-        d = self.hole("/api/nachrichten?alle=1")
-        self.assertEqual(sorted((x["kurz"], x["projekt"]) for x in d["gesendet"]), [("in P", uid["P"]), ("in Q", uid["Q"])])
-        self.assertEqual([(x["kurz"], x["projekt"]) for x in d["eingang"]], [("Antwort aus Q", uid["Q"])])
-        self.assertEqual(d["zaehler"]["eingang_offen"], 1)
-        self.assertEqual(self.hole("/api/start")["zaehler"]["nachrichten"], 1)                  # Menü: alle Projekte des Benutzers
+        nur_p = "&projekt=" + uid["P"]
+        for weg in ("/api/nachrichten", "/api/nachrichten?alle=1"):                              # alle=1: wie ohne
+            d = self.hole(weg + nur_p)
+            self.assertEqual([(x["kurz"], x["projekt"]) for x in d["gesendet"]], [("in P", uid["P"])])
+            self.assertEqual(d["eingang"], [])
+            self.assertEqual(d["zaehler"]["eingang_offen"], 0)
+        self.assertEqual(self.hole("/api/start" + nur_p)["zaehler"]["nachrichten"], 0)          # Menü: nur Projekt P
+        d = self.hole("/api/nachrichten&projekt=" + uid["Q"])
+        self.assertEqual([x["kurz"] for x in d["eingang"]], ["Antwort aus Q"])
+        self.assertEqual(self.hole("/api/start&projekt=" + uid["Q"])["zaehler"]["nachrichten"], 1)
         import urllib.request
         rq = urllib.request.Request(self.basis + "api.php?weg=/api/nachricht&projekt=" + uid["Q"], method="POST",
                                     data=json.dumps({"an": "QL", "art": "info", "kurz": "unterwegs nach Q"}).encode(),
                                     headers={"Content-Type": "application/json", "X-AMW-Token": self.token, "Origin": self.basis.rstrip("/")})
         self.assertTrue(json.loads(self.op.open(rq).read().decode())["unterwegs"])
-        d = self.hole("/api/nachrichten?alle=1")
-        u = [x for x in d["gesendet"] if x.get("unterwegs")]
-        self.assertEqual([(x["kurz"], x["projekt"], x["empfaenger"][0]["stand"]) for x in u], [("unterwegs nach Q", uid["Q"], "unterwegs")])
+        self.assertEqual([x for x in self.hole("/api/nachrichten" + nur_p)["gesendet"] if x.get("unterwegs")], [])   # nicht unter P
+        u = [x for x in self.hole("/api/nachrichten&projekt=" + uid["Q"])["gesendet"] if x.get("unterwegs")]
+        self.assertEqual([(x["kurz"], x["empfaenger"][0]["stand"]) for x in u], [("unterwegs nach Q", "unterwegs")])
 
 
 if __name__ == "__main__":

@@ -142,26 +142,41 @@ class Nachrichten(unittest.TestCase):
             kern.zurueckziehen(self.con, self.pid, kern.ENTWICKLER, g[0]["id"])
 
 
-    def test_ueber_alle_projekte(self):
+    def test_nur_das_gewaehlte_projekt(self):
+        """Marcel 13.11. (B2691): Unter einem Projekt stehen nur seine Nachrichten – keine aus anderen Projekten, kein
+        Filter „Alle Projekte“; das Menü zählt nur das gewählte Projekt. Meldungen der Workbench heißen „System“."""
         with db.schreiben(self.con):
             p2 = db.einfuegen(self.con, "projekt", name="Q", angelegt_utc=db.jetzt())
         kern.agent_neu(self.con, p2, "QL", rolle="lead")
-        n = kern.posten(self.con, p2, kern.ENTWICKLER, "QL", "auftrag", "in Q")[0]
+        kern.posten(self.con, p2, kern.ENTWICKLER, "QL", "auftrag", "in Q")
         kern.posten(self.con, p2, "QL", kern.ENTWICKLER, "info", "aus Q")
-        d = workbench.daten_nachrichten_alle(self.con)
+        kern.posten(self.con, p2, "AMW", kern.ENTWICKLER, "meldung", "Systemmeldung in Q")
+        kern.posten(self.con, self.pid, "AMW", kern.ENTWICKLER, "meldung", "Systemmeldung in P")
         uid = dict(self.con.execute("SELECT name, uid FROM projekt").fetchall())
-        self.assertEqual(d["gesendet"][0]["id"], n)                                            # neueste zuerst, über Projekte
-        self.assertEqual({x["projekt"] for x in d["gesendet"]}, {uid["P"], uid["Q"]})
-        self.assertEqual(d["zaehler"]["eingang_offen"], sum(workbench.daten_nachrichten(self.con, x)["zaehler"]["eingang_offen"] for x in (self.pid, p2)))
-        self.assertIn("aus Q", [x["kurz"] for x in d["eingang"]])
-        start = workbench.daten_start(self.con, self.pid)["zaehler"]                            # Menü zählt dasselbe wie der Eingang
-        self.assertEqual(start["nachrichten"], d["zaehler"]["eingang_offen"])
-        self.assertEqual(start["an_dich"], workbench.daten_nachrichten(self.con, self.pid)["zaehler"]["eingang_offen"])
-        with db.schreiben(self.con):                                                            # ältere Info ohne Bezug zählt nicht mehr
-            self.con.execute("UPDATE nachricht SET zeit_utc = '2020-01-01T00:00:00Z' WHERE kurz = 'aus Q'")
-        self.assertEqual(workbench.daten_start(self.con, p2)["zaehler"]["an_dich"], 0)
-        self.assertEqual(workbench.daten_nachrichten(self.con, p2)["zaehler"]["eingang_offen"], 0)
-        self.assertEqual(workbench.daten_nachrichten(self.con, self.pid)["gesendet"][0]["projekt"], uid["P"])
+        for pid, name in ((self.pid, "P"), (p2, "Q")):
+            d = workbench.daten_nachrichten(self.con, pid)
+            self.assertEqual({x["projekt"] for x in d["eingang"] + d["gesendet"]}, {uid[name]})
+            ids = {x["id"] for x in d["eingang"] + d["gesendet"]}
+            fremd = self.con.execute(f"SELECT count(*) FROM nachricht WHERE projekt_id != ? AND id IN ({','.join('?' * len(ids))})",
+                                     (pid, *ids)).fetchone()[0]
+            self.assertEqual(fremd, 0)
+            start = workbench.daten_start(self.con, pid)["zaehler"]
+            self.assertEqual(start["nachrichten"], workbench.an_dich_zahl(self.con, pid))          # Menü: nur dieses Projekt
+            self.assertEqual(start["nachrichten"], d["zaehler"]["eingang_offen"])
+        self.assertNotIn("aus Q", [x["kurz"] for x in workbench.daten_nachrichten(self.con, self.pid)["eingang"]])
+        self.assertFalse(hasattr(workbench, "daten_nachrichten_alle"))
+        with open(os.path.join(os.path.dirname(__file__), "..", "amw", "workbench.html"), encoding="utf-8") as f:
+            html = f.read()
+        self.assertNotIn("/api/nachrichten?alle=1", html)
+        self.assertNotIn("nr_alle_projekte", html.split("async function sichtNachrichten")[1].split("\nasync function ")[0])
+        self.assertIn('const wer = k => k === "AMW" ? t("absender_system") : k;', html)
+        self.assertEqual(html.count('absender_system: "System"'), 2)                                # DE und EN
+        from amw import abgleich                                                                  # Betrieb online: fremde Läufe ohne Namen
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "lauf", projekt_id=p2, agent="QL", beschreibung="geheim", schwer=1, schirm=1, gpu=0, status="laeuft",
+                         angemeldet_utc=db.jetzt(), start_utc=db.jetzt())
+        self.assertEqual([f["projekt"] for f in workbench.daten_betrieb(self.con, self.pid)["fremd"]], ["Q"])      # am PC mit Namen
+        self.assertEqual([f["projekt"] for f in abgleich.ansichten(self.con, self.pid)["/api/betrieb"]["fremd"]], [None])
 
 
 if __name__ == "__main__":

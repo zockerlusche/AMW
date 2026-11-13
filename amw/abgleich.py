@@ -303,6 +303,13 @@ def hoch_holen(sp, hid):
     return dokumente.hoch_pruefen(roh, groesse, sha), name
 
 
+def _betrieb_ohne_namen(betrieb):
+    """Online: laufende Läufe anderer Projekte (Grafikkarte/Bildschirm belegt) ohne Projektnamen – den sieht nur der PC (B2691)."""
+    for f in betrieb.get("fremd", []):
+        f["projekt"] = None
+    return betrieb
+
+
 def _fremde_ohne_namen(start, pid, con):
     """Online nennt die Team-Ansicht bei Läufen anderer Projekte weder Projekt noch Agent (die Projekte mischen sich nicht;
     online können Benutzer nur einzelne Projekte sehen). Am PC stehen die Namen."""
@@ -324,7 +331,7 @@ def ansichten(con, pid, speicher=None):
          "/api/nachrichten": workbench.daten_nachrichten(con, pid),
          "/api/fragen?alle=1": workbench.daten_fragen(con, pid, True),
          "/api/wissen": workbench.daten_wissen(con, pid, {"q": [""]}),
-         "/api/betrieb": workbench.daten_betrieb(con, pid),
+         "/api/betrieb": _betrieb_ohne_namen(workbench.daten_betrieb(con, pid)),
          "/api/releases": workbench.daten_releases(con, pid),
          "/api/versionshinweise": workbench.daten_versionshinweise(con, pid),
          "/api/projekte": workbench.daten_projekte(con, pid),

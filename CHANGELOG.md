@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.87.3 – 13.11.2026 · Nachrichten nur im gewählten Projekt
+- **Behoben:** Unter „Nachrichten“ standen auch Nachrichten anderer Projekte, mit dem Filter „Alle Projekte“ – am PC und
+  online. Jetzt zeigt die Seite nur das Projekt, das oben gewählt ist; den Filter gibt es nicht mehr. Auch die Zahl am Menü
+  „Nachrichten“ zählt nur dieses Projekt.
+- **Behoben:** Meldungen der Workbench selbst standen mit dem Absender „AMW“ da – leicht mit dem Projekt AMW zu
+  verwechseln. Sie heißen jetzt „System“ (Nachrichten, Startseite, Verlauf, Aufgaben, Dokumente, Agenten).
+- Online nennt „Betrieb“ bei Läufen anderer Projekte keinen Projektnamen mehr („anderes Projekt“); am PC wie bisher.
+
 ## 1.87.2 – 13.11.2026 · Klarere Meldung bei Prüfungen, vollständige Hilfen
 - **Behoben:** `amw pruefung gruen|rot` ohne Nummer meldete „Prüfung PNone gibt es nicht“ – jetzt nennt die AMW die
   offenen Prüfungen für dich und wie der Befehl geht.

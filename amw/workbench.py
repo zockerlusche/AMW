@@ -297,7 +297,7 @@ def daten_start(con, pid):
         " (SELECT count(*) FROM release WHERE projekt_id = :p) AS releases", {"p": pid}).fetchone())
     frei, gesamt = speicher_frei_gb()
     zaehler["an_dich"] = sum(1 for n in an_dich if not n["abgelegt"])
-    zaehler["nachrichten"] = sum(an_dich_zahl(con, p) for (p,) in con.execute("SELECT id FROM projekt").fetchall())   # Menü: alle Projekte
+    zaehler["nachrichten"] = an_dich_zahl(con, pid)       # Menü: nur das oben gewählte Projekt (Marcel 13.11., B2691)
     from . import planung
     try:
         planung_wartet = planung.freigaben_offen(con, pid)
@@ -512,19 +512,6 @@ def daten_nachrichten(con, pid, grenze=150):
         eingang.append({**{k: n[k] for k in ("id", "zeit_utc", "von", "art", "kurz", "text", "antwort_auf", "stand")}, "bezug": bezug(n), "projekt": puid})
     return {"eingang": eingang, "gesendet": gesendet,
             "zaehler": {"eingang_offen": an_dich_zahl(con, pid)}}
-
-
-def daten_nachrichten_alle(con, grenze=300):
-    """Seite „Nachrichten“ über alle Projekte dieses PCs: je Projekt wie daten_nachrichten, zusammengelegt, neueste zuerst."""
-    aus = {"eingang": [], "gesendet": [], "zaehler": {"eingang_offen": 0}}
-    for (pid,) in con.execute("SELECT id FROM projekt ORDER BY id").fetchall():
-        d = daten_nachrichten(con, pid)
-        aus["eingang"] += d["eingang"]
-        aus["gesendet"] += d["gesendet"]
-        aus["zaehler"]["eingang_offen"] += d["zaehler"]["eingang_offen"]
-    for k in ("eingang", "gesendet"):
-        aus[k] = sorted(aus[k], key=lambda x: (x["zeit_utc"], x["id"]), reverse=True)[:grenze]   # Nummern sind über Projekte eindeutig
-    return aus
 
 
 def daten_benutzer(con, speicher=None):
@@ -1183,7 +1170,7 @@ def baue_handler(port, token):
                     "/api/dokument": lambda c, p: daten_dokument(c, p, q),
                     "/api/projekte": lambda c, p: daten_projekte(c, p),
                     "/api/benutzer": lambda c, p: daten_benutzer(c),
-                    "/api/nachrichten": lambda c, p: daten_nachrichten_alle(c) if q.get("alle", ["0"])[0] == "1" else daten_nachrichten(c, p)}
+                    "/api/nachrichten": lambda c, p: daten_nachrichten(c, p)}
             weg = wege.get(u.path)
             if not weg:
                 return self._senden(404, {"fehler": "unbekannt"})

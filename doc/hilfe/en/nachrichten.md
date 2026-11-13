@@ -1,6 +1,6 @@
 # Messages: inbox and sent
 
-Everything you write to agents and everything they write to you is in one place – from all projects (online: the ones you may see), each line with its project. For each recipient you see how far a message has got – and as long as nobody has read it, you can withdraw it.
+Everything you write to agents and everything they write to you is in one place – for the project you picked at the top; to see another project, pick it at the top. Notices from the Workbench itself show “System” as the sender. For each recipient you see how far a message has got – and as long as nobody has read it, you can withdraw it.
 
 ## You need
 - The Workbench at the PC or the online site. Menu › Messages.
