@@ -935,17 +935,32 @@ def _merge_bitte(con, pid, p, ok):
     return f"Merge-Bitte an {dienst}: {p['zweig']}@{p['sha'][:8]} (P{p['id']})"
 
 
-def freigabe_merge(con, pid, von, aufgabe_id, zweig=None, zurueck=False):
+def gesamtlauf_ausnahme(con, pid, aufgabe_id):
+    """Ausnahme vom Gesamtlauf, die Lead/Entwickler mit dem Merge-OK vermerkt hat (freigabe merge … --ausnahme „Grund“) –
+    die Zeile oder None. Gilt nur, solange danach kein neues Merge-OK ohne Ausnahme und keine Rücknahme kam (A1644, TL P138)."""
+    r = con.execute("SELECT * FROM plan_ereignis WHERE projekt_id = ? AND aufgabe_id = ? AND art IN ('merge_ok', 'merge_ok_zurueck',"
+                    " 'gesamtlauf_ausnahme') ORDER BY id DESC LIMIT 1", (pid, aufgabe_id)).fetchone()
+    return r if r and r["art"] == "gesamtlauf_ausnahme" else None
+
+
+def freigabe_merge(con, pid, von, aufgabe_id, zweig=None, zurueck=False, ausnahme=None):
     """Merge-OK des Leads/Entwicklers für eine Aufgabe (optional nur einen Zweig) – „bei grüner Prüfung gilt mein OK“.
-    Liegt schon ein GRÜN auf dem neuesten Stand vor, geht die Merge-Bitte sofort. zurueck: OK zurücknehmen."""
+    Liegt schon ein GRÜN auf dem neuesten Stand vor, geht die Merge-Bitte sofort. zurueck: OK zurücknehmen.
+    ausnahme: Grund, warum ohne eigenen Gesamtlauf ausgeliefert werden darf (liest amw release ausliefern)."""
     if not kern.ist_lead(con, pid, von):
         raise kern.AmwFehler("Das Merge-OK geben Lead und Entwickler")
     if not con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND projekt_id = ?", (aufgabe_id, pid)).fetchone():
         raise kern.AmwFehler(f"A{aufgabe_id} gibt es nicht")
     zweig = (zweig or "").strip() or None
+    ausnahme = (ausnahme or "").strip() or None
+    if ausnahme and zurueck:
+        raise kern.AmwFehler("--ausnahme gehört zu einem Merge-OK, nicht zur Rücknahme")
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von,
                      art="merge_ok_zurueck" if zurueck else "merge_ok", aufgabe_id=aufgabe_id, text=zweig)
+        if ausnahme:                                     # nach dem Merge-OK: gilt, bis ein neues OK oder die Rücknahme kommt
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="gesamtlauf_ausnahme",
+                         aufgabe_id=aufgabe_id, text=ausnahme[:300])
         if zurueck:
             return f"Merge-OK für A{aufgabe_id} zurückgenommen"
         status = con.execute("SELECT status FROM aufgabe WHERE id = ?", (aufgabe_id,)).fetchone()[0]

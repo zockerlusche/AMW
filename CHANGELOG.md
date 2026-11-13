@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.92.0 – 13.11.2026 · Release in einem Schritt
+- **`amw release ausliefern --zweig X`** (für das Repository der AMW selbst): prüft zuerst alles – grüne Prüfung auf genau
+  diesem Stand, Merge-OK des Leads für ihre Aufgabe, grüner Gesamtlauf (ohne ihn nur mit einer Ausnahme, die der Lead
+  vermerkt: `amw freigabe merge <Aufgabe> --ausnahme "Grund"`), main lässt sich vorspulen, Arbeitsbaum sauber, Tag neu –
+  und macht dann ohne weitere Handgriffe: Sicherung, main vorspulen, Tag, Dienst neu (Version, Schema und quick_check
+  geprüft), Push, GitHub-Release mit den Notizen aus dem CHANGELOG, Web-Abzug (rechnet der Dienst), Versionszeile und eine
+  Info „Version x live“ an den Lead (weckt nicht). Fehlt etwas oder scheitert ein Schritt: Stopp mit einer Zeile, was
+  erledigt ist und was fehlt. Nur im Terminal, nie über den Dateiaustausch.
+
 ## 1.91.1 – 13.11.2026 · Tests an 1.91.0 angepasst
 - Zwei Browser-Tests erwarteten noch den Stand vor 1.91.0: „Mehr“ am Handy hat jetzt 8 Einträge (mit Team-Chat), und unter
   „Nachrichten“ gibt es den Reiter „Fragen“ nicht mehr – Fragen haben ihre eigene Seite. Am Verhalten ändert sich nichts.

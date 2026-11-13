@@ -875,8 +875,8 @@ options:
 
 ## freigabe
 ```
-usage: amw freigabe [-h] [--zweig ZWEIG] [--zurueck] [--von VON]
-                    [--projekt PROJEKT]
+usage: amw freigabe [-h] [--zweig ZWEIG] [--zurueck] [--ausnahme AUSNAHME]
+                    [--von VON] [--projekt PROJEKT]
                     {merge} aufgabe
 
 positional arguments:
@@ -884,9 +884,11 @@ positional arguments:
   aufgabe
 
 options:
-  -h, --help         show this help message and exit
-  --zweig ZWEIG      nur für diesen Zweig
-  --zurueck          OK zurücknehmen
+  -h, --help           show this help message and exit
+  --zweig ZWEIG        nur für diesen Zweig
+  --zurueck            OK zurücknehmen
+  --ausnahme AUSNAHME  ohne eigenen Gesamtlauf ausliefern dürfen – mit Grund
+                       (liest amw release ausliefern)
   --von VON
   --projekt PROJEKT
 ```
@@ -1394,17 +1396,24 @@ options:
 
 ## release
 ```
-usage: amw release [-h] [--oeffentlich-datei OEFFENTLICH_DATEI]
-                   [--titel TITEL] [--commit COMMIT] [--version VERSION]
-                   [--aufgaben AUFGABEN] [--text TEXT]
-                   [--text-datei TEXT_DATEI] [--von VON] [--projekt PROJEKT]
-                   {merge,version,liste,entwurf}
+usage: amw release [-h] [--zweig ZWEIG] [--gesamtlauf GESAMTLAUF]
+                   [--oeffentlich-datei OEFFENTLICH_DATEI] [--titel TITEL]
+                   [--commit COMMIT] [--version VERSION] [--aufgaben AUFGABEN]
+                   [--text TEXT] [--text-datei TEXT_DATEI] [--von VON]
+                   [--projekt PROJEKT]
+                   {merge,version,liste,entwurf,ausliefern}
 
 positional arguments:
-  {merge,version,liste,entwurf}
+  {merge,version,liste,entwurf,ausliefern}
+                        ausliefern --zweig X: die ganze Release-Kette in einem
+                        Schritt (Prüfung GRÜN, Merge-OK und Gesamtlauf nötig)
 
 options:
   -h, --help            show this help message and exit
+  --zweig ZWEIG         ausliefern: Zweig oder Stand, der live gehen soll
+  --gesamtlauf GESAMTLAUF
+                        ausliefern: grüner Gesamtlauf L<nr> (sonst sucht die
+                        AMW den Lauf mit dem Stand in der Beschreibung)
   --oeffentlich-datei OEFFENTLICH_DATEI
                         version: eigener Text für alle statt des Entwurfs
                         (Markdown)

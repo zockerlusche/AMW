@@ -1287,7 +1287,7 @@ def cmd_pruefung(a, con):
 def cmd_freigabe(a, con):
     """Merge-OK des Leads für eine Aufgabe (Abnahme-Kette)."""
     pid = _projekt(con, a)
-    print(betrieb.freigabe_merge(con, pid, _von(a), a.aufgabe, a.zweig, a.zurueck))
+    print(betrieb.freigabe_merge(con, pid, _von(a), a.aufgabe, a.zweig, a.zurueck, getattr(a, "ausnahme", None)))
 
 
 def cmd_server(a, con):
@@ -1668,6 +1668,14 @@ def cmd_release(a, con):
         if n:
             print(f"\n{n} Satz/Sätze sind Vorschläge aus der Zusammenfassung (kein Satz für Nutzer beim Abschließen) –"
                   " mit eigenem Text: amw release version … --oeffentlich-datei <datei>")
+    elif a.aktion == "ausliefern":                   # Release-Kette in einem Schritt (A1644)
+        from . import auslieferung
+        if not a.zweig:
+            raise kern.AmwFehler("release ausliefern --zweig <zweig|stand> [--gesamtlauf L<nr>]")
+        if KANAL.get() != "cli":
+            raise kern.AmwFehler("release ausliefern geht nur im Terminal")
+        wurzel = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # das Repository dieser AMW
+        auslieferung.Kette(con, pid, _von(a), wurzel).ausliefern(a.zweig, a.gesamtlauf)
     elif a.aktion == "version":
         oeffentlich = None
         if a.oeffentlich_datei:
@@ -2523,6 +2531,7 @@ def parser():
     x.add_argument("aufgabe", type=nummer)
     x.add_argument("--zweig", help="nur für diesen Zweig")
     x.add_argument("--zurueck", action="store_true", help="OK zurücknehmen")
+    x.add_argument("--ausnahme", help="ohne eigenen Gesamtlauf ausliefern dürfen – mit Grund (liest amw release ausliefern)")
     x.set_defaults(f=cmd_freigabe)
 
     x = s.add_parser("hinweis", help="Anweisung an einen Agenten oder alle (z. B. „keine Rechen-Jobs“)")
@@ -2766,7 +2775,10 @@ def parser():
     x.set_defaults(f=cmd_hook, ohne_db=True)
 
     x = s.add_parser("release", help="Versionshinweise: je Merge eine Zeile, Version fasst zusammen")
-    x.add_argument("aktion", choices=["merge", "version", "liste", "entwurf"])
+    x.add_argument("aktion", choices=["merge", "version", "liste", "entwurf", "ausliefern"],
+                   help="ausliefern --zweig X: die ganze Release-Kette in einem Schritt (Prüfung GRÜN, Merge-OK und Gesamtlauf nötig)")
+    x.add_argument("--zweig", help="ausliefern: Zweig oder Stand, der live gehen soll")
+    x.add_argument("--gesamtlauf", help="ausliefern: grüner Gesamtlauf L<nr> (sonst sucht die AMW den Lauf mit dem Stand in der Beschreibung)")
     x.add_argument("--oeffentlich-datei", help="version: eigener Text für alle statt des Entwurfs (Markdown)")
     x.add_argument("--titel")
     x.add_argument("--commit")

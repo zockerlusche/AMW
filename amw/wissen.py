@@ -175,11 +175,14 @@ def release_merge(con, pid, von, titel, commit_sha, text=None, aufgaben=None):
                             titel=titel, text_intern=text, aufgaben=aufgaben, eingetragen_von=von)
 
 
-def release_version(con, pid, von, version, titel, commit_sha=None, text=None, oeffentlich=None):
+def release_version(con, pid, von, version, titel, commit_sha=None, text=None, oeffentlich=None, kette=False):
     """Fasst alle offenen Merge-Zeilen zu einer Version zusammen. Versionshinweise für alle: `oeffentlich`, sonst der
-    Entwurf aus den fertigen Aufgaben seit der letzten Version (versionshinweise.entwurf)."""
+    Entwurf aus den fertigen Aufgaben seit der letzten Version (versionshinweise.entwurf). kette: aus der Release-Kette
+    (auslieferung.py, A1644) – dort sind Prüfung GRÜN auf genau dem Stand und Gesamtlauf schon geprüft, dann darf auch der
+    ausliefernde Agent die Version eintragen."""
     from . import versionshinweise
-    _nur_lead(con, pid, von, "Versionen setzen")
+    if not kette:
+        _nur_lead(con, pid, von, "Versionen setzen")
     st = kern.versions_stand(con, pid)
     if st["versionen"] != "aus":                     # Grund-Regelwerk G-2: Form MAJOR.MINOR.PATCH, größer als die letzte
         neu, alt = kern.version_teile(version), kern.version_teile(st["letzte"])
