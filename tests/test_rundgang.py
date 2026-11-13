@@ -2,12 +2,13 @@
 Einstellungen, Agenten-Dialog mit ⋯-Menü und Startbefehl – je PC und Handy, hell und dunkel (Gerüst: tests/rundgang.py).
 Weitere Seiten hängen als eigene Testdateien an dasselbe Gerüst."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import datetime
 import os
 import struct
 import unittest
 import zlib
 
-from amw import benutzer, dokumente, kern
+from amw import benutzer, db, dokumente, kern
 from tests.rundgang import OnlineRundgang, Rundgang
 
 
@@ -30,6 +31,15 @@ class Daten:
         kern.agent_neu(self.con, self.pid, "CC1")
         kern.agent_neu(self.con, self.pid, "CC2")
         benutzer.neu(self.con, kern.ENTWICKLER, "neuling")                         # wartet auf Freigabe (Benutzer-Verwaltung)
+        jetzt = datetime.datetime.now(datetime.timezone.utc)                       # Betrieb › „Wofür das Geld geht“ (A1642)
+        z = lambda m: (jetzt - datetime.timedelta(minutes=m)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        with db.schreiben(self.con):
+            cc1 = self.con.execute("SELECT id FROM agent WHERE kennung = 'CC1'").fetchone()[0]
+            sid = db.einfuegen(self.con, "sitzung", agent_id=cc1, gestartet_utc=z(60), zustand="beendet", beendet_utc=z(1))
+            for m, usd in ((50, 1.0), (40, 2.5), (30, 3.0), (20, 6.25)):
+                db.einfuegen(self.con, "verbrauch", sitzung_id=sid, agent="CC1", zeit_utc=z(m), kosten_usd=usd)
+            n = kern._posten(self.con, self.pid, "AMW", "CC1", "freigabe", "L9 ist dran – jetzt starten: ein sehr langer Lauf-Titel zum Umbrechen")
+            self.con.execute("UPDATE empfang SET geweckt_utc = ? WHERE nachricht_id = ?", (z(45), n[0] if isinstance(n, tuple) else n))
         aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Seite bauen mit einem recht langen Titel, der am Handy umbrechen muss", "CC1")
         kern.posten(self.con, self.pid, "CC1", "TL", "info", "Stand: Seite gebaut, Bilder liegen bei", text="Mehr Text\nüber zwei Zeilen")
         kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "Bitte die Seite fürs Handy prüfen", aufgabe_id=aid)
@@ -97,7 +107,9 @@ class Seiten(Daten, Rundgang):
         self.ueberall("fragen", bereit="document.querySelector('#inhalt h2, #inhalt .karte')")
 
     def test_betrieb(self):
-        self.ueberall("betrieb", bereit="document.querySelector('#inhalt .karte')")
+        self.ueberall("betrieb", bereit="document.querySelector('#inhalt .karte') && document.querySelector('.anl-anteil')")   # mit „Wofür das Geld geht“
+        self.ueberall("betrieb", "betrieb-geld", bereit="document.querySelector('.anl-anteil')",
+                      tun="document.querySelector('.anl-anteil').closest('table').scrollIntoView({ block: 'center' })", danach="true")
 
     def test_einstellungen(self):
         self.ueberall("einstellungen", bereit="document.querySelector('#inhalt .einst, #inhalt .karte')")

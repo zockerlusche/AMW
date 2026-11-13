@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.94.0 – 14.11.2026 · Wofür das Geld geht
+- **Betrieb › „Wofür das Geld geht“ (am PC):** Jeder Kostenzuwachs einer Sitzung gehört zu den Weckrufen im selben Zeitraum
+  („Lauf ist dran“, Prüfbitte, Antwort, Auftrag …), ohne Weckruf zählt er als eigene Arbeit. Teuerster Anlass zuerst, mit
+  Anteil, Zahl der Weckrufe und Kosten je Weckruf; „vermeidbar“ markiert, wofür der Agent nichts tun musste. Zeitraum 1, 7
+  oder 30 Tage. Dasselbe in der Befehlszeile: `amw verbrauch pareto [--tage N]`.
+- Hilfe Agenten: „Wofür geben die Agenten ihr Geld aus?“.
+
 ## 1.93.0 – 14.11.2026 · Workbench aus dem Heimnetz (Handy/Tablet im WLAN)
 - **Einstellungen › Dieser PC › „Aus dem Heimnetz erreichbar“:** Netzbereich deines WLANs eintragen (z. B.
   192.168.178.0/24) und den Dienst neu starten – dann öffnest du die Workbench auf Handy oder Tablet unter

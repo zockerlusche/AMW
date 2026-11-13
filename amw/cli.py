@@ -939,6 +939,21 @@ def cmd_zeige(a, con):
             raise kern.AmwFehler(f"{ref} gibt es nicht")
 
 
+def cmd_verbrauch(a, con):
+    """Verbrauch nach Anlass (A1642): Kostenzuwachs je Sitzung → Weckrufe im selben Zeitraum, sonst eigene Arbeit."""
+    from . import anlass
+    pid = _projekt(con, a)
+    d = anlass.anlaesse(con, pid, anlass.zeitraum(a.tage))
+    print(f"Verbrauch nach Anlass, letzte {a.tage} Tage: {d['gesamt']:.2f} $ · vermeidbar {d['vermeidbar_usd']:.2f} $"
+          f" · Weckrufe {d['weckrufe']}, davon vermeidbar {d['vermeidbar_weckrufe']}")
+    for r in d["zeilen"]:
+        je = f"{r['je_weckruf']:.2f} $/Weckruf" if r["je_weckruf"] is not None else ""
+        print(f"  {r['usd']:8.2f} $ {r['anteil']:5.1f} % (bis hier {r['kumuliert']:5.1f} %)  {r['weckrufe']:4}×  {je:>16}  "
+              f"{'vermeidbar · ' if r['vermeidbar'] else ''}{r['anlass']}")
+    if not d["zeilen"]:
+        print("  Noch keine Messwerte in diesem Zeitraum.")
+
+
 def cmd_regeln(a, con):
     pid = _projekt(con, a)
     regeln = con.execute("SELECT ebene, nr, text, stand_utc, vorlage FROM regel WHERE projekt_id = ? ORDER BY ebene, nr", (pid,)).fetchall()
@@ -2358,6 +2373,11 @@ def parser():
 
     x = s.add_parser("regeln", help="alle geltenden Regeln (Arbeits- und Projektregeln)")
     x.set_defaults(f=cmd_regeln)
+
+    x = s.add_parser("verbrauch", help="Verbrauch nach Anlass (Pareto): wofür die Agenten des Projekts ihr Geld ausgeben")
+    x.add_argument("aktion", choices=["pareto"])
+    x.add_argument("--tage", type=int, default=7, help="Zeitraum ab lokaler Mitternacht (Vorgabe 7)")
+    x.set_defaults(f=cmd_verbrauch)
 
     x = s.add_parser("suche", help="Volltext über Aufgaben, Beschlüsse, Fragen, Deine Worte, Nachrichten, Dokumente: amw suche Modem")
     x.add_argument("text", nargs="+")

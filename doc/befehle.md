@@ -21,6 +21,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
 | [`kontext`](#kontext) | Startinformationen für einen Agenten |
 | [`regeln`](#regeln) | alle geltenden Regeln (Arbeits- und Projektregeln) |
+| [`verbrauch`](#verbrauch) | Verbrauch nach Anlass (Pareto): wofür die Agenten des Projekts ihr Geld ausgeben |
 | [`suche`](#suche) | Volltext über Aufgaben, Beschlüsse, Fragen, Deine Worte, Nachrichten, Dokumente: amw suche Modem |
 | [`zeige`](#zeige) | Einträge ganz lesen: amw zeige B5 F12 A120 W3 16000 D5 KR3 PR4 (Nachricht ohne #: in der Shell beginnt mit # ein Kommentar) |
 | [`leitbild`](#leitbild) | Projektziel, Kennzahlen, Nicht-Ziele, Prinzipien, Definition of Done: zeigen ¦ setzen |
@@ -500,6 +501,21 @@ usage: amw regeln [-h] [--von VON] [--projekt PROJEKT]
 
 options:
   -h, --help         show this help message and exit
+  --von VON
+  --projekt PROJEKT
+```
+
+## verbrauch
+```
+usage: amw verbrauch [-h] [--tage TAGE] [--von VON] [--projekt PROJEKT]
+                     {pareto}
+
+positional arguments:
+  {pareto}
+
+options:
+  -h, --help         show this help message and exit
+  --tage TAGE        Zeitraum ab lokaler Mitternacht (Vorgabe 7)
   --von VON
   --projekt PROJEKT
 ```

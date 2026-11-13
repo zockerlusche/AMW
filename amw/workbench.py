@@ -544,6 +544,16 @@ def daten_teamchat(con, pid, grenze=200):
     return {"nachrichten": liste, "agenten": sorted({n["von"] for n in liste} | {a for n in liste for a in n["an"]})}
 
 
+def daten_anlass(con, pid, q):
+    """Betrieb › „Wofür das Geld geht“ (A1642): Verbrauch nach Anlass der letzten 1–30 Tage (Vorgabe 7) – nur am PC."""
+    from . import anlass
+    try:
+        tage = max(1, min(30, int(q.get("tage", ["7"])[0])))
+    except ValueError:
+        tage = 7
+    return {"tage": tage, **anlass.anlaesse(con, pid, anlass.zeitraum(tage))}
+
+
 def daten_benutzer(con, speicher=None):
     """Benutzer der Online-Seite für die Verwaltung am PC – mit Stand aus dem Online-Speicher (nie hochgeladen)."""
     from . import abgleich, benutzer
@@ -1218,6 +1228,7 @@ def baue_handler(port, token, netz=None):
                     "/api/wissen": lambda c, p: daten_wissen(c, p, q),
                     "/api/suche": lambda c, p: daten_suche(c, p, q),
                     "/api/betrieb": lambda c, p: daten_betrieb(c, p),
+                    "/api/verbrauch/anlass": lambda c, p: daten_anlass(c, p, q),
                     "/api/releases": lambda c, p: daten_releases(c, p),
                     "/api/versionshinweise": lambda c, p: daten_versionshinweise(c, p),
                     "/api/einstellungen": lambda c, p: daten_einstellungen(c, p),
