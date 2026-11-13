@@ -1125,6 +1125,7 @@ const TEXTE = {
     e_kanal: "Zugang für den AMW-Entwickler", e_kanal_h: "Name des Agenten, der die AMW selbst weiterentwickelt: Er darf in jedem Projekt schreiben und angeschrieben werden, die Leads sehen ihn in ihren Startinformationen. Leer = aus.",
     e_vorrang: "Vorrang der Projekte", e_vorrang_h: "Wer in der Warteschlange dieses PCs zuerst drankommt: erst „hoch“, dann „normal“, dann „niedrig“ – innerhalb einer Stufe der Reihe nach. Ein Lauf, der schon läuft, wird nie abgebrochen; was du vorziehst, bleibt ganz vorn. Wirkt sofort.", vr_hoch: "hoch", vr_normal: "normal", vr_niedrig: "niedrig", re_vorrang: "Vorrang in der Warteschlange: {x}.", rh_vorrang: "Vorrang", rh_l_vorrang: "Vorrang (Einstellung dieses PCs)",
     e_vr_auf: "Aufrücken nach Wartezeit (Minuten)", e_vr_auf_h: "Wer so lange wartet, rückt eine Stufe höher – so kommt auch „niedrig“ sicher dran. 0 = aus.", e_vr_platz: "Platz freihalten für Vorrang", e_vr_platz_h: "Wartet ein Lauf mit Vorrang „hoch“, startet ein anderer nur, wenn danach noch genug Arbeitsspeicher für ihn frei bleibt.",
+    e_heimnetz: "Aus dem Heimnetz erreichbar", e_heimnetz_h: "Netzbereich deines WLANs, z. B. 192.168.178.0/24 – dann öffnest du die Workbench auf Handy oder Tablet unter http://<Adresse dieses PCs>:8780. Jedes Gerät in diesem Netz hat volle Rechte ohne Anmeldung. Nur private Netze; leer = aus.", re_heimnetz: "Heimnetz offen: {x} – jedes Gerät dort hat volle Rechte.",
     e_cpu: "Gleichzeitige schwere Läufe", e_cpu_h: "So viele schwere Läufe dürfen gleichzeitig laufen. Läufe mit Fenster oder Grafikkarte laufen immer einzeln, und ein Agent rechnet nie zwei zugleich.",
     e_fern: "Programm für den Fernzugriff", e_fern_ph: "leer = aus, z. B. teamviewer_desktop.exe oder AnyDesk.exe",
     e_fern_h: "Läuft nur während einer Fernwartungs-Verbindung – beginnt eine, gilt ein freier Bildschirm wieder als belegt",
@@ -1455,6 +1456,7 @@ const TEXTE = {
     e_kanal: "Access for the AMW developer", e_kanal_h: "Name of the agent that develops the AMW itself: it may write and be written to in every project, the leads see it in their start information. Empty = off.",
     e_vorrang: "Project priority", e_vorrang_h: "Who goes first in this PC's queue: first “high”, then “normal”, then “low” – in order of arrival within a level. A run that is already running is never stopped; what you move up stays at the very front. Applies at once.", vr_hoch: "high", vr_normal: "normal", vr_niedrig: "low", re_vorrang: "Priority in the queue: {x}.", rh_vorrang: "Priority", rh_l_vorrang: "Priority (setting of this PC)",
     e_vr_auf: "Move up after waiting (minutes)", e_vr_auf_h: "Whoever waits this long moves up one level – so “low” is sure to get its turn too. 0 = off.", e_vr_platz: "Keep room for priority", e_vr_platz_h: "While a run with “high” priority waits, another run starts only if enough memory stays free for it afterwards.",
+    e_heimnetz: "Reachable from the home network", e_heimnetz_h: "Address range of your Wi-Fi, e.g. 192.168.178.0/24 – then open the Workbench on a phone or tablet at http://<address of this PC>:8780. Every device in this network has full rights without signing in. Private networks only; empty = off.", re_heimnetz: "Home network open: {x} – every device there has full rights.",
     e_cpu: "Heavy runs at the same time", e_cpu_h: "This many heavy runs may run at the same time. Runs that need a window or the graphics card always run one at a time, and an agent never runs two at once.",
     e_fern: "Remote access program", e_fern_ph: "empty = off, e.g. teamviewer_desktop.exe or AnyDesk.exe",
     e_fern_h: "Runs only during a remote-support connection – when one starts, a free screen counts as in use again",
@@ -2386,15 +2388,16 @@ function leitstand(d) {
    Zahlen – wie viele laufen und warten, wie viele davon aus diesem Projekt, wann der Rechner voraussichtlich frei ist. */
 function rechnerFeld(r, feld) {
   if (!r) return null;
+  const heim = zustand.start?.heimnetz;                 /* Heimnetz offen (A1643): solange an, steht es hier */
   const stand = !r.laufen && !r.warten ? t("re_frei")
     : [r.laufen ? t(r.laufen === 1 ? "re_laeuft1" : "re_laeuft", { n: r.laufen }) : null, r.warten ? t(r.warten === 1 ? "re_wartet1" : "re_wartet", { n: r.warten }) : null].filter(Boolean).join(" · ");
   const dauer = (r.dauer || []).map(x => t("re_dauer_eintrag", { name: x.name + (x.art === "programm" ? "" : " (" + t("re_art_" + x.art) + ")"), n: zahlKurz(x.gb), x: zeit(x.seit_utc) })).join(", ");
   const knapp = r.platte || [];
-  const erkl = [...knapp.map(l => t("re_platte", { x: l.laufwerk, n: zahlKurz(l.frei_gb), p: zahlKurz(l.frei_prozent) })), dauer ? t("re_dauer", { x: dauer }) : null, t("re_e"), r.eigene_laufen || r.eigene_warten ? t("re_eigene", { a: r.eigene_laufen, b: r.eigene_warten }) : null,
+  const erkl = [heim ? t("re_heimnetz", { x: heim }) : null, ...knapp.map(l => t("re_platte", { x: l.laufwerk, n: zahlKurz(l.frei_gb), p: zahlKurz(l.frei_prozent) })), dauer ? t("re_dauer", { x: dauer }) : null, t("re_e"), r.eigene_laufen || r.eigene_warten ? t("re_eigene", { a: r.eigene_laufen, b: r.eigene_warten }) : null,
     r.frei_ab_utc ? t("re_frei_ab", { x: zeit(r.frei_ab_utc) }) : null, r.frei_gb != null ? t("re_speicher", { n: zahlKurz(r.frei_gb) }) : null,
     (r.vorrang || []).length ? t("re_vorrang", { x: r.vorrang.map(v => `${v.projekt} ${t("vr_" + v.stufe)}`).join(", ") }) : null].filter(Boolean).join(" ");
-  const f = feld(t("re_titel"), knapp.some(l => l.stufe === "rot") ? "rot" : r.warten || knapp.length ? "bernstein" : r.laufen ? "gruen" : "",
-    stand + (r.dauer_gb ? " · " + t("re_dauer_kurz", { n: zahlKurz(r.dauer_gb) }) : "") + (knapp.length ? " · " + t("re_platte_kurz", { x: knapp.map(l => l.laufwerk).join(", ") }) : ""), erkl);
+  const f = feld(t("re_titel"), knapp.some(l => l.stufe === "rot") ? "rot" : r.warten || knapp.length || heim ? "bernstein" : r.laufen ? "gruen" : "",
+    (heim ? t("re_heimnetz", { x: heim }).split(" – ")[0] + " · " : "") + stand + (r.dauer_gb ? " · " + t("re_dauer_kurz", { n: zahlKurz(r.dauer_gb) }) : "") + (knapp.length ? " · " + t("re_platte_kurz", { x: knapp.map(l => l.laufwerk).join(", ") }) : ""), erkl);
   f.id = "ls-rechner";
   return f;
 }
@@ -5029,7 +5032,7 @@ async function sichtEinstellungen() {
 
   // Dieser PC – nur am PC
   const wahl = (werte, v) => { const x = el("select", {}, werte.map(([k, l]) => el("option", { value: k }, l))); x.value = v; return x; };
-  const pc = { rechner: text(p.rechner || ""), db_pfad: text(p.db_pfad), port: zahl(p.port, 1024, 65535), cpu_laeufe: zahl(p.cpu_laeufe, 1, 8), vorrang_aufruecken_min: zahl(p.vorrang_aufruecken_min ?? 30, 0, 1440), vorrang_platz_freihalten: schalter(p.vorrang_platz_freihalten ?? true), speicher_reserve_gb: zahl(p.speicher_reserve_gb, 0, 64, 0.5), dauer_ab_gb: zahl(p.dauer_ab_gb ?? 4, 0, 256, 0.5), platte_gelb_prozent: zahl(p.platte_gelb_prozent ?? 15, 0, 100, 1), platte_rot_prozent: zahl(p.platte_rot_prozent ?? 5, 0, 100, 1), sicherungen_behalten: zahl(p.sicherungen_behalten ?? 10, 1, 1000), archiv_ordner: text(p.archiv_ordner || ""), lauf_hook: schalter(p.lauf_hook ?? true),
+  const pc = { rechner: text(p.rechner || ""), db_pfad: text(p.db_pfad), port: zahl(p.port, 1024, 65535), heimnetz: text(p.heimnetz || ""), cpu_laeufe: zahl(p.cpu_laeufe, 1, 8), vorrang_aufruecken_min: zahl(p.vorrang_aufruecken_min ?? 30, 0, 1440), vorrang_platz_freihalten: schalter(p.vorrang_platz_freihalten ?? true), speicher_reserve_gb: zahl(p.speicher_reserve_gb, 0, 64, 0.5), dauer_ab_gb: zahl(p.dauer_ab_gb ?? 4, 0, 256, 0.5), platte_gelb_prozent: zahl(p.platte_gelb_prozent ?? 15, 0, 100, 1), platte_rot_prozent: zahl(p.platte_rot_prozent ?? 5, 0, 100, 1), sicherungen_behalten: zahl(p.sicherungen_behalten ?? 10, 1, 1000), archiv_ordner: text(p.archiv_ordner || ""), lauf_hook: schalter(p.lauf_hook ?? true),
     produkt_entwickler: text(p.produkt_entwickler || ""), ki_fenster: text(p.ki_fenster || ""), aufsicht_s: zahl(p.aufsicht_s, 5, 600),
     bruecke_an: schalter(p.bruecke_an), bruecke_absender: text(p.bruecke_absender), bruecke_kopie_s: zahl(p.bruecke_kopie_s, 15, 3600),
     fernsitzung_prozess: text(p.fernsitzung_prozess || ""),
@@ -5037,6 +5040,7 @@ async function sichtEinstellungen() {
     schirm_zu_workbench: schalter(p.schirm_zu_workbench ?? true),
     sprache: wahl([["auto", t("e_sprache_auto")], ["de", "Deutsch"], ["en", "English"]], p.sprache || "auto"), claude_link: schalter(p.claude_link ?? true) };
   pc.fernsitzung_prozess.placeholder = t("e_fern_ph");
+  pc.heimnetz.placeholder = "192.168.178.0/24";
   /* Vorrang der Projekte (A1623): je Projekt dieses PCs eine Auswahl; gespeichert wird nur, was nicht „normal“ ist */
   pc.vorrang = el("div", { class: "vorrang-liste", id: "e-vorrang" }, ...(p.vorrang_projekte || []).map(n => el("label", {}, el("span", {}, n),
     wahl(["hoch", "normal", "niedrig"].map(s => [s, t("vr_" + s)]), (p.vorrang || {})[n] || "normal"))));
@@ -5045,7 +5049,7 @@ async function sichtEinstellungen() {
   const pcFeld = (k, beschriftung, hilfe) => mitMeta("pc", k, beschriftung, pc[k], hilfe);
   const pcKarte = block([t("e_pc"), " ", wirkt("pc")], API ? t("nur_pc") : t("e_pc_h"), [
     pcFeld("rechner", t("e_rechner"), t("e_rechner_h")), pcFeld("sprache", t("e_sprache"), t("e_sprache_h")), pcFeld("claude_link", t("e_claude_link"), t("e_claude_link_h")),
-    pcFeld("db_pfad", t("e_db")), pcFeld("port", t("e_port")), pcFeld("cpu_laeufe", t("e_cpu"), t("e_cpu_h")), [t("e_vorrang"), pc.vorrang, t("e_vorrang_h")], pcFeld("vorrang_aufruecken_min", t("e_vr_auf"), t("e_vr_auf_h")), pcFeld("vorrang_platz_freihalten", t("e_vr_platz"), t("e_vr_platz_h")), pcFeld("speicher_reserve_gb", t("e_reserve"), t("e_reserve_h")), pcFeld("dauer_ab_gb", t("e_dauer"), t("e_dauer_h")), pcFeld("platte_gelb_prozent", t("e_platte_gelb"), t("e_platte_h")), pcFeld("platte_rot_prozent", t("e_platte_rot")), pcFeld("sicherungen_behalten", t("e_sich"), t("e_sich_h")), pcFeld("archiv_ordner", t("e_archiv"), t("e_archiv_h")), pcFeld("lauf_hook", t("e_laufhook"), t("e_laufhook_h")), pcFeld("produkt_entwickler", t("e_kanal"), t("e_kanal_h")),
+    pcFeld("db_pfad", t("e_db")), pcFeld("port", t("e_port")), pcFeld("heimnetz", t("e_heimnetz"), t("e_heimnetz_h")), pcFeld("cpu_laeufe", t("e_cpu"), t("e_cpu_h")), [t("e_vorrang"), pc.vorrang, t("e_vorrang_h")], pcFeld("vorrang_aufruecken_min", t("e_vr_auf"), t("e_vr_auf_h")), pcFeld("vorrang_platz_freihalten", t("e_vr_platz"), t("e_vr_platz_h")), pcFeld("speicher_reserve_gb", t("e_reserve"), t("e_reserve_h")), pcFeld("dauer_ab_gb", t("e_dauer"), t("e_dauer_h")), pcFeld("platte_gelb_prozent", t("e_platte_gelb"), t("e_platte_h")), pcFeld("platte_rot_prozent", t("e_platte_rot")), pcFeld("sicherungen_behalten", t("e_sich"), t("e_sich_h")), pcFeld("archiv_ordner", t("e_archiv"), t("e_archiv_h")), pcFeld("lauf_hook", t("e_laufhook"), t("e_laufhook_h")), pcFeld("produkt_entwickler", t("e_kanal"), t("e_kanal_h")),
     pcFeld("ki_fenster", t("e_kifenster"), t("e_kifenster_h")), pcFeld("aufsicht_s", t("e_aufsicht")), pcFeld("bruecke_an", t("e_bruecke")),
     pcFeld("bruecke_absender", t("e_absender")), pcFeld("bruecke_kopie_s", t("e_kopie")), pcFeld("fernsitzung_prozess", t("e_fern"), t("e_fern_h")),
     [t("e_bs_titel"), el("div", { class: "sehrleise", style: "padding-top:7px;font-size:13px" }, t("e_bs_h"), " ", hilfeKnopf("bildschirm"))],

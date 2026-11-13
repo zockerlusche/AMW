@@ -1,13 +1,15 @@
-"""Workbench-Oberfläche: kleiner HTTP-Server nur auf 127.0.0.1 (→ doc/architektur.md).
+"""Workbench-Oberfläche: kleiner HTTP-Server auf 127.0.0.1, auf Wunsch auch fürs Heimnetz (→ doc/architektur.md).
 
 Liefert eine Seite (workbench.html) und eine JSON-Schnittstelle. Läuft als Faden im amw-dienst oder allein:
   python -X utf8 -m amw.workbench [--port 8780]
-Sicherheit (Stufe 1): nur 127.0.0.1; Schreibwege nur mit dem Sitzungs-Schlüssel der Seite (X-AMW-Token, bei jedem
+Sicherheit (Stufe 1): nur 127.0.0.1 – mit Einstellung „heimnetz“ (A1643) zusätzlich Geräte aus diesem privaten Bereich (zugelassen(),
+host_ok(): Absender-IP im Bereich, Host/Origin nur localhost oder IP aus dem Bereich); Schreibwege nur mit dem Sitzungs-Schlüssel der Seite (X-AMW-Token, bei jedem
 Serverstart neu) und passendem Host/Origin; nur parametrisierte Abfragen; die Seite setzt Text nur über textContent.
 Schreibt ausschließlich über kern (als „Entwickler“).
 """
 import argparse
 import datetime
+import ipaddress
 import json
 import re
 import os
@@ -335,7 +337,8 @@ def daten_start(con, pid):
         takt = TAKT_MIN
     team = {"zusammen": zusammen, "bogen": dict(b) if b else None, "takt_min": takt}
     from . import arbeitsliste, betrieb                # Auslastung des Rechners: Läufe aller Projekte, nur als Zahlen; Eingang
-    return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "rechner": betrieb.auslastung(con, pid), "token": _token_lage(con), "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "eingang": len(arbeitsliste.pool(con, pid)), "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
+    from . import einstellungen as _e
+    return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "heimnetz": _e.wert("heimnetz") or None, "rechner": betrieb.auslastung(con, pid), "token": _token_lage(con), "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "eingang": len(arbeitsliste.pool(con, pid)), "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
@@ -1070,10 +1073,44 @@ def _bereich(kopf, laenge):
     return von, min(bis, laenge - 1)
 
 
-def baue_handler(port, token):
+def heimnetz():
+    """Der eingestellte Heimnetz-Bereich (A1643) oder None (aus)."""
+    from . import einstellungen
+    w = einstellungen.wert("heimnetz")
+    return ipaddress.ip_network(w) if w else None
+
+
+def zugelassen(ip, netz):
+    """Darf dieses Gerät die Workbench benutzen? Der PC selbst immer, sonst nur Adressen im Heimnetz (wenn an)."""
+    try:
+        a = ipaddress.ip_address(str(ip).split("%")[0])
+    except ValueError:
+        return False
+    if getattr(a, "ipv4_mapped", None):
+        a = a.ipv4_mapped
+    return a.is_loopback or (netz is not None and a.version == 4 and a in netz)
+
+
+def host_ok(host, port, netz):
+    """Host- bzw. Origin-Angabe: 127.0.0.1/localhost mit diesem Port, im Heimnetz auch eine IP aus dem Bereich – nie ein
+    Name (Schutz gegen DNS-Rebinding: eine fremde Seite, deren Name auf den PC zeigt, kommt nicht durch)."""
+    if host in (f"127.0.0.1:{port}", f"localhost:{port}"):
+        return True
+    if netz is None or not host:
+        return False
+    h, _, p = host.rpartition(":")
+    if p != str(port):
+        return False
+    try:
+        a = ipaddress.ip_address(h)
+    except ValueError:
+        return False
+    return a.version == 4 and a in netz
+
+
+def baue_handler(port, token, netz=None):
     with open(os.path.join(HIER, "workbench.html"), encoding="utf-8") as f:
         seite = f.read().replace("__AMW_TOKEN__", token).encode("utf-8")
-    erlaubt = {f"127.0.0.1:{port}", f"localhost:{port}"}
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "amw-workbench"
@@ -1149,7 +1186,7 @@ def baue_handler(port, token):
             return con.execute("SELECT min(id) FROM projekt").fetchone()[0]
 
         def do_GET(self):
-            if self.headers.get("Host") not in erlaubt:
+            if not zugelassen(self.client_address[0], netz) or not host_ok(self.headers.get("Host"), port, netz):
                 return self._senden(403, {"fehler": "Host"})
             u = urlparse(self.path)
             q = parse_qs(u.query)
@@ -1217,7 +1254,8 @@ def baue_handler(port, token):
 
         def do_POST(self):
             herkunft = self.headers.get("Origin")
-            if self.headers.get("Host") not in erlaubt or (herkunft and herkunft.split("//", 1)[-1] not in erlaubt):
+            if not zugelassen(self.client_address[0], netz) or not host_ok(self.headers.get("Host"), port, netz) \
+                    or (herkunft and not host_ok(herkunft.split("//", 1)[-1], port, netz)):
                 return self._senden(403, {"fehler": "nicht erlaubt"})
             if self.headers.get("X-AMW-Token") != token:     # meist: Seite stammt von vor einem Neustart der Workbench
                 return self._senden(403, {"fehler": "nicht erlaubt", "neu_laden": True})
@@ -1257,9 +1295,11 @@ class Server(ThreadingHTTPServer):
         super().server_bind()
 
 
-def starten(port=STANDARD_PORT, im_hintergrund=True):
+def starten(port=STANDARD_PORT, im_hintergrund=True, netz="einstellung"):
+    """Heimnetz an (A1643): lauscht auf allen Adressen, jede Anfrage prüft zugelassen()/host_ok(); sonst nur 127.0.0.1."""
     token = secrets.token_urlsafe(24)
-    srv = Server(("127.0.0.1", port), baue_handler(port, token))
+    netz = heimnetz() if netz == "einstellung" else netz
+    srv = Server(("0.0.0.0" if netz else "127.0.0.1", port), baue_handler(port, token, netz))
     srv.daemon_threads = True
     if im_hintergrund:
         threading.Thread(target=srv.serve_forever, name="workbench", daemon=True).start()

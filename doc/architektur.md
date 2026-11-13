@@ -32,7 +32,7 @@
 | `amw/ueberwachung.py` | Projekt-Server (Port prüfen, Neustart), Warnungen (Stillstand, Lauf, Freigabe, Fehler, Kontext, Grenze) |
 | `amw/steuerung.py` | Agenten-Profil, Starten/Fortsetzen/Beenden, Neustart nach Absturz, Startskript |
 | `amw/push.py` | Benachrichtigungen über ntfy, Pushover, Telegram |
-| `amw/workbench.py`, `amw/workbench.html` | Workbench: HTTP-Server nur auf 127.0.0.1, Daten-Schnittstellen, eine Seite für lokal und online |
+| `amw/workbench.py`, `amw/workbench.html` | Workbench: HTTP-Server auf 127.0.0.1 (auf Wunsch auch für einen privaten Heimnetz-Bereich, Einstellung heimnetz), Daten-Schnittstellen, eine Seite für lokal und online |
 | `amw/aktionen.py` | alles, was die Seite schreiben darf – derselbe Weg für lokal und den Online-Briefkasten |
 | `amw/abgleich.py` | Online-Speicher (Turso über HTTP): Ansichten hochladen, Briefkasten abholen |
 | `amw/bruecke.py` | Datei-Brücke für Sitzungen ohne direkten Datenbankzugriff |

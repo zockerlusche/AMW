@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.93.0 – 14.11.2026 · Workbench aus dem Heimnetz (Handy/Tablet im WLAN)
+- **Einstellungen › Dieser PC › „Aus dem Heimnetz erreichbar“:** Netzbereich deines WLANs eintragen (z. B.
+  192.168.178.0/24) und den Dienst neu starten – dann öffnest du die Workbench auf Handy oder Tablet unter
+  http://<Adresse dieses PCs>:8780, mit allen Rechten wie am PC und ohne Anmeldung. Vorgabe: aus.
+- **Sicherheit:** nur private Netze (10.x, 172.16–31.x, 192.168.x); jede Anfrage von einer Adresse außerhalb des Bereichs
+  wird abgelehnt (ein Gastnetz bleibt so draußen), und als Adresse im Browser zählen nur localhost und IPs aus dem Bereich –
+  nie ein Name (Schutz gegen DNS-Rebinding). Solange es an ist, steht „Heimnetz offen: …“ im Leitstand unter „Rechner“.
+  Die AMW ändert nichts an Windows; die Hilfe „Betriebsart“ nennt die Firewall-Regel (Port 8780, nur Profil „Privat“).
+
 ## 1.92.0 – 13.11.2026 · Release in einem Schritt
 - **`amw release ausliefern --zweig X`** (für das Repository der AMW selbst): prüft zuerst alles – grüne Prüfung auf genau
   diesem Stand, Merge-OK des Leads für ihre Aufgabe, grüner Gesamtlauf (ohne ihn nur mit einer Ausnahme, die der Lead

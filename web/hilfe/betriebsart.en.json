@@ -75,6 +75,10 @@
   [
    "What happens to the “Open in Claude” button?",
    "It leads to the internet and is only shown in the “Cloud” mode."
+  ],
+  [
+   "Can I open the Workbench from a phone or tablet on my Wi-Fi?",
+   "Yes. Under Settings › This PC › “Reachable from the home network”, enter the address range of your Wi-Fi, for example 192.168.178.0/24 on a Fritzbox, and restart the service. Then open http://<address of this PC>:8780 on the phone, such as http://192.168.178.20:8780. **Every device in this network then has full rights without signing in** – as at the PC. Only private networks are allowed; the Workbench refuses requests from other addresses. A guest network (192.168.179.x on a Fritzbox) is outside the range and stays out. While it is on, the control panel shows it under “Computer”. Windows asks about the firewall the first time; otherwise create an inbound rule for port 8780 yourself, for the “Private” profile only – AMW changes nothing in Windows. Leaving it empty switches it off again."
   ]
  ],
  "thema": "betriebsart",

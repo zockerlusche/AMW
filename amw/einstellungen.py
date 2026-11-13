@@ -127,6 +127,22 @@ def _vorrang(v):
     return aus
 
 
+def _heimnetz(v):
+    """Heimnetz (A1643): privater IPv4-Bereich in CIDR, z. B. 192.168.178.0/24 – leer = aus. Nur 10/8, 172.16/12, 192.168/16."""
+    import ipaddress
+    v = str(v or "").strip()
+    if not v:
+        return ""
+    try:
+        netz = ipaddress.ip_network(v, strict=False)
+    except ValueError:
+        raise ValueError("Netzbereich wie 192.168.178.0/24 (leer = aus)") from None
+    privat = [ipaddress.ip_network(x) for x in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")]
+    if netz.version != 4 or not any(netz.subnet_of(p) for p in privat):
+        raise ValueError("nur ein privates Netz: 10.x, 172.16–31.x oder 192.168.x")
+    return str(netz)
+
+
 def _sprache(v):
     v = str(v).strip().lower()
     if v not in ("auto", "de", "en"):
@@ -144,6 +160,8 @@ def _betriebsart(v):
 FELDER = {
     "db_pfad": (os.path.join(WURZEL, "daten", "amw.db"), _pfad),
     "port": (8780, _ganz(1024, 65535)),
+    # Workbench aus dem Heimnetz (Handy/Tablet im WLAN): dieser private Bereich hat volle Rechte ohne Anmeldung; leer = aus
+    "heimnetz": ("", _heimnetz),
     "aufsicht_s": (30, _ganz(5, 600)),
     "abgleich_hoch_s": (30, _ganz(10, 3600)),
     "abgleich_puls_s": (300, _ganz(60, 3600)),
@@ -188,7 +206,7 @@ FELDER = {
     "betriebsart": ("", _betriebsart),
 }
 # Diese Werte liest der Wächter nur beim Start – eine Änderung wirkt nach `amw dienst neustart`
-NEUSTART = ("db_pfad", "port", "aufsicht_s", "abgleich_hoch_s", "abgleich_puls_s", "abgleich_eingang_s",
+NEUSTART = ("db_pfad", "port", "heimnetz", "aufsicht_s", "abgleich_hoch_s", "abgleich_puls_s", "abgleich_eingang_s",
             "bruecke_an", "bruecke_absender", "bruecke_kopie_s")
 
 

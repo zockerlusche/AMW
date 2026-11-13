@@ -343,6 +343,7 @@ def ansichten(con, pid, speicher=None):
          "/api/seit": verlauf.seit_daten(con, pid),
          "/api/listen": workbench.daten_listen(con, pid),
          "/api/themen": workbench.daten_themen(con, pid)}
+    a["/api/start"]["heimnetz"] = None                   # Heimnetz (A1643): nur am PC von Belang
     eigen = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()["name"]
     re_ = a["/api/start"].get("rechner")
     if isinstance(re_, dict):                     # Vorrang der Projekte (A1623): fremde Projektnamen bleiben am PC
