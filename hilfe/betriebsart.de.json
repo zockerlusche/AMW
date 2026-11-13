@@ -75,6 +75,10 @@
   [
    "Was passiert mit dem „In Claude öffnen“-Knopf?",
    "Er führt ins Internet und wird nur in der Betriebsart „Cloud“ gezeigt."
+  ],
+  [
+   "Kann ich die Workbench vom Handy oder Tablet im WLAN öffnen?",
+   "Ja. Trage unter Einstellungen › Dieser PC › „Aus dem Heimnetz erreichbar“ den Netzbereich deines WLANs ein, zum Beispiel 192.168.178.0/24 bei einer Fritzbox, und starte den Dienst neu. Danach öffnest du am Handy http://<Adresse dieses PCs>:8780, etwa http://192.168.178.20:8780. **Jedes Gerät in diesem Netz hat dann volle Rechte ohne Anmeldung** – wie am PC. Zugelassen sind nur private Netze; Anfragen von anderen Adressen lehnt die Workbench ab. Ein Gastnetz (bei der Fritzbox 192.168.179.x) liegt außerhalb des Bereichs und bleibt draußen. Solange es an ist, steht es im Leitstand unter „Rechner“. Windows fragt beim ersten Mal nach der Firewall, sonst legst du selbst eine eingehende Regel für Port 8780 an, nur für das Profil „Privat“ – die AMW ändert nichts an Windows. Leer lassen schaltet es wieder aus."
   ]
  ],
  "thema": "betriebsart",
