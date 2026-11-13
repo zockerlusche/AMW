@@ -412,6 +412,9 @@ class Seite(Wiederholt, Grund):
             self.assertIn(teil, stand.upper() if teil.isupper() else stand)
         self.assertRegex(self.tab.js("document.querySelector('.ueb-achse .jetzt').textContent"), r"^Jetzt \d\d:\d\d$")
         self.assertIn(f"A{a} Knöpfe groß", self.tab.js("document.querySelector('.ueb-jetzt').title"))
+        self.assertTrue(self.tab.js("(() => { const j = document.querySelector('.ueb-flaeche > .ueb-heute').getBoundingClientRect();"
+                                    " return [...document.querySelectorAll('.ueb-label')].every(l => { const r = l.getBoundingClientRect();"
+                                    " return r.right <= j.left || r.left >= j.right; }); })()"))           # Jetzt-Linie nie durch den Namen (TL #24368)
         bloecke = lambda: self.tab.js("[...document.querySelectorAll('.ueb-block')].map(b => b.title.split(' · ')[0])")
         self.assertEqual(len(bloecke()), 1)                                                                  # Fertige erst auf Wunsch
         self.tab.js("[...document.querySelectorAll('.ueb-kopf button')].find(b => b.textContent.startsWith('Fertige zeigen')).click()")
