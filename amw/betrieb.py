@@ -416,14 +416,15 @@ def lauf_stufe(con, l, v=None, jetzt=None):
     return basis
 
 
-def _halten_fuer(con, kandidaten, stufe_neu, v=None):
+def _halten_fuer(con, kandidaten, stufe_neu, v=None, speicher_frei=None):
     """Platz freihalten (A1623 V2): der größte Speicherbedarf eines wartenden Laufs mit „hoch“, der vor einem Lauf der
     Stufe stufe_neu steht – (GB, Lauf) oder (0, None). Aus, wenn die Einstellung aus ist."""
     if not platz_freihalten():
         return 0.0, None
     beste = (0.0, None)
     for h in kandidaten:
-        if lauf_stufe(con, h, v) == VORRANG["hoch"] and stufe_neu < VORRANG["hoch"] and _bedarf(con, h) > beste[0]:
+        if lauf_stufe(con, h, v) == VORRANG["hoch"] and stufe_neu < VORRANG["hoch"] and _bedarf(con, h) > beste[0] \
+                and not _passt_nie(con, h, speicher_frei_gb()[0] if speicher_frei is None else speicher_frei):
             beste = (float(_bedarf(con, h)), h)
     return beste
 
@@ -470,7 +471,22 @@ def _lebt(con, pid, l):
     return bool(lebt) and not kern.halt_gilt(con, pid, l["agent"])
 
 
-def _gesperrt(con, pid, wartend, schirm_zu, bis=None):
+def _schlange_leer(con):
+    """Läuft gerade kein schwerer Lauf der Warteschlange auf diesem Rechner?"""
+    return not con.execute("SELECT 1 FROM lauf l WHERE l.status = 'laeuft' AND l.schwer = 1 AND " + HIER, (rechner(),)).fetchone()
+
+
+def _passt_nie(con, l, speicher_frei, leer=None):
+    """Ein wartender Lauf, für den der Arbeitsspeicher auch bei leerer Schlange nicht reicht (es läuft kein schwerer Lauf
+    und er passt trotzdem nicht): darauf zu warten hilft nichts – nur Speicher außerhalb der Schlange wird frei. Er sperrt
+    dann niemanden, und für ihn wird kein Platz frei gehalten (sonst stand die ganze Schlange, Befund CCamw 13.11.)."""
+    if speicher_frei is None or not _bedarf(con, l):
+        return False
+    leer = _schlange_leer(con) if leer is None else leer
+    return leer and bool(_speicher_fehlt(con, l["projekt_id"], _bedarf(con, l), speicher_frei))
+
+
+def _gesperrt(con, pid, wartend, schirm_zu, bis=None, speicher_frei=None):
     """Plätze, auf die schon jemand in der Schlange wartet – dort überholt niemand. {platz: [Lauf-Zeilen]}.
     Dieselben Regeln wie warteschlange(): wer auf seinen Klon oder den Bildschirm wartet, sperrt nur diesen Platz (hält die
     CPU-Spur nicht auf); wer jetzt starten könnte oder auf Speicher wartet, sperrt alle seine Plätze; wer hinter einem
@@ -488,6 +504,8 @@ def _gesperrt(con, pid, wartend, schirm_zu, bis=None):
             continue
         else:
             _, platz = _besetzt(con, w["projekt_id"], pw)
+            if not platz and _passt_nie(con, w, speicher_frei):
+                continue                             # passt auch bei leerer Schlange nicht: hält niemanden auf
             hier = {platz} if platz else pw          # zu wenig Speicher oder gleich dran: alle seine Plätze
         for p in hier:
             aus.setdefault(p, []).append(w)
@@ -548,14 +566,14 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
                  or (lauf_stufe(con, x), VORRANG[vorrang_stufe(con, x["projekt_id"])]) >= (eigene, eigene)]   # Gleichstand wie wartende()
         schirm_zu = schirm_mod.sperrgrund(con) if schirm or any(x["schirm"] for x in w) else None
         grund = sperre or (schirm_zu if schirm else None) or _besetzt(con, pid, plaetze)[0]
-        gesperrt = _gesperrt(con, pid, w_vor, schirm_zu) if not sperre else {}
+        gesperrt = _gesperrt(con, pid, w_vor, schirm_zu, speicher_frei=speicher_frei) if not sperre else {}
         vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
         if not grund and vor:
             grund = "Warteschlange: " + ", ".join(_vordermann(con, pid, x, speicher_frei, von=True) for x in vor) + " wartet schon"
         if not grund:
             grund = _speicher_fehlt(con, pid, grenze, speicher_frei)
         if not grund and grenze:
-            halten, h = _halten_fuer(con, w, eigene)
+            halten, h = _halten_fuer(con, w, eigene, speicher_frei=speicher_frei)
             if halten and _speicher_fehlt(con, pid, grenze + halten, speicher_frei):
                 grund = f"Platz frei gehalten für L{h['id']} ({h['agent'] if h['projekt_id'] == pid else 'anderes Projekt'}) mit Vorrang: braucht {halten:g} GB"
         if not grund:
@@ -617,6 +635,8 @@ def warteschlange(con, pid=None, speicher_frei=None):
                     halten = max(halten, float(_bedarf(con, l)))
                 continue
             if _speicher_fehlt(con, lp, _bedarf(con, l), speicher_frei) or _mittel_fehlen(con, l):
+                if not gestartet and _passt_nie(con, l, speicher_frei) and not _mittel_fehlen(con, l):
+                    continue                         # passt auch bei leerer Schlange nicht: sperrt niemanden, kein Platz frei halten
                 gesperrt |= plaetze
                 if hoch and freihalten:
                     halten = max(halten, float(_bedarf(con, l)))
@@ -666,13 +686,13 @@ def wartegrund(con, pid, l, speicher_frei=None):
     b = _besetzt(con, pid, plaetze)[0]
     if b:
         gruende.append(b)
-    gesperrt = _gesperrt(con, pid, w, schirm_zu, bis=l["id"]) if platz else {}
+    gesperrt = _gesperrt(con, pid, w, schirm_zu, bis=l["id"], speicher_frei=frei) if platz else {}
     vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
     if vor:
         gruende.append("vor dir: " + ", ".join(_vordermann(con, pid, x, frei) for x in vor))
     g = _speicher_fehlt(con, pid, _bedarf(con, l), frei)
     if not g and _bedarf(con, l):
-        halten, h = _halten_fuer(con, [x for x in w if x["id"] != l["id"]], lauf_stufe(con, l))
+        halten, h = _halten_fuer(con, [x for x in w if x["id"] != l["id"]], lauf_stufe(con, l), speicher_frei=frei)
         if halten and _speicher_fehlt(con, pid, _bedarf(con, l) + halten, frei):
             gruende.append(f"Platz frei gehalten für L{h['id']} ({h['agent'] if h['projekt_id'] == pid else 'anderes Projekt'}) mit Vorrang: braucht {halten:g} GB")
     if g and speicher_frei is None:                     # echte Messung: sagen, wer den Speicher außerhalb der Warteschlange hält
@@ -680,6 +700,8 @@ def wartegrund(con, pid, l, speicher_frei=None):
         dauer = belegung.aktuell(con)
         if dauer:
             g += f" – außerhalb der Warteschlange belegt: {belegung.nennen(dauer)} (beenden kann das nur der Mensch)"
+    if g and _passt_nie(con, l, frei):
+        g += " – passt auch bei leerer Schlange nicht: andere Läufe ziehen vorbei, bis außerhalb der Schlange Speicher frei wird"
     g = g or _mittel_fehlen(con, l)
     if g:
         gruende.append(g)
@@ -701,7 +723,7 @@ def warteposition(con, pid, l):
     ki = con.execute("SELECT 1 FROM ki_auftrag WHERE lauf_id = ?", (l["id"],)).fetchone()
     plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"], None if ki else l["agent"], pid)
     schirm_zu = schirm_mod.sperrgrund(con) if l["schirm"] or any(x["schirm"] for x in w) else None
-    vor = sorted({x["id"]: x for p in plaetze for x in (_gesperrt(con, pid, w, schirm_zu, bis=l["id"]) if platz else {}).get(p, [])}.values(),
+    vor = sorted({x["id"]: x for p in plaetze for x in (_gesperrt(con, pid, w, schirm_zu, bis=l["id"], speicher_frei=speicher_frei_gb()[0]) if platz else {}).get(p, [])}.values(),
                  key=lambda x: x["id"])
     auf = [{"lauf": x["id"], "projekt": namen.get(x["projekt_id"]), "agent": x["agent"], "laeuft": False} for x in vor]
     if not auf:                                      # niemand davor: wer hält die Spur bzw. den Speicher gerade?

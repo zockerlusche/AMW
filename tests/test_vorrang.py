@@ -83,13 +83,14 @@ class Vorrang(Grund):
             c = betrieb.lauf_start(self.con, self.p["Eins"], "A", "klein", warten=True, speicher_frei=10.0, braucht_gb=1)
             with db.schreiben(self.con):
                 self.con.execute("UPDATE lauf SET start_utc = ? WHERE id = ?", (vor_minuten(30), a))   # ohne Angabe, lange gelaufen
+            betrieb.lauf_start(self.con, self.p["Eins"], "Chef", "GPU", warten=True, gpu=True, speicher_frei=32.0, braucht_gb=0.5)   # Schlange nicht leer
             betrieb.lauf_ende(self.con, self.p["Eins"], "C", a, 0, speicher_frei=10.0)
             self.assertEqual((self.status(b), self.status(c)), ("angemeldet", "angemeldet"))
             g = betrieb.wartegrund(self.con, self.p["Eins"], betrieb.lauf_zeile(self.con, self.p["Eins"], c), speicher_frei=10.0)
-            self.assertIn(f"vor dir: L{b} (anderes Projekt, Vorrang, wartet auf Arbeitsspeicher: braucht 8 GB, 7 GB nutzbar)", g)
+            self.assertIn(f"vor dir: L{b} (anderes Projekt, Vorrang, wartet auf Arbeitsspeicher: braucht 8 GB, 6.5 GB nutzbar)", g)
             with self.assertRaises(kern.AmwFehler) as f:
                 betrieb.lauf_start(self.con, self.p["Eins"], "B", "ohne warten", speicher_frei=10.0, braucht_gb=1)
-            self.assertIn("braucht 8 GB, 7 GB nutzbar", str(f.exception))
+            self.assertIn("braucht 8 GB, 6.5 GB nutzbar", str(f.exception))
 
 
 class Liste(Grund):
@@ -230,6 +231,41 @@ class Stufe2(Grund):
         self.assertIn(f"amw lauf vorziehen {h}", m["text"])
         self.v = {}
         self.assertEqual(betrieb.vorrang_meldungen(self.con), [])
+
+
+class KopfPasstNie(Grund):
+    """Befund CCamw 13.11.: Ein GlassWorld-Lauf mit Vorrang brauchte 8 + 3 GB, frei waren selbst bei leerem Rechner nur 9,4 GB –
+    er passte nie, und weil niemand überholt (und Platz für ihn frei gehalten wurde), stand die ganze Schlange. Jetzt: passt ein
+    Lauf auch bei leerer Schlange nicht, sperrt er niemanden; er bleibt vorn und startet, sobald der Speicher reicht."""
+
+    def setUp(self):
+        super().setUp()
+        for name, f in (("vorrang", lambda: {"Zwei": "hoch"}), ("reserve_gb", lambda: 3.0), ("aufruecken_min", lambda: 30),
+                        ("platz_freihalten", lambda: True)):
+            p = mock.patch.object(betrieb, name, f)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_kopf_der_nie_passt_sperrt_niemanden(self):
+        gross = betrieb.lauf_start(self.con, self.p["Zwei"], "A", "groß", warten=True, speicher_frei=9.4, braucht_gb=8)
+        self.assertEqual(self.status(gross), "angemeldet")
+        klein = betrieb.lauf_start(self.con, self.p["Eins"], "A", "klein", warten=True, speicher_frei=9.4, braucht_gb=2)
+        self.assertEqual(self.status(klein), "laeuft")                                     # früher: wartete hinter dem großen – für immer
+        betrieb.lauf_ende(self.con, self.p["Eins"], "A", klein, 0, speicher_frei=9.4)
+        self.assertEqual(self.status(gross), "angemeldet")
+        g = betrieb.wartegrund(self.con, self.p["Zwei"], betrieb.lauf_zeile(self.con, self.p["Zwei"], gross), speicher_frei=9.4)
+        self.assertIn("passt auch bei leerer Schlange nicht", g)
+        zwei = betrieb.lauf_start(self.con, self.p["Eins"], "B", "noch einer", warten=True, speicher_frei=9.4, braucht_gb=1)
+        self.assertEqual(self.status(zwei), "laeuft")
+        betrieb.lauf_ende(self.con, self.p["Eins"], "B", zwei, 0, speicher_frei=20.0)
+        self.assertEqual(self.status(gross), "laeuft")                                      # genug frei: der große kommt dran
+
+    def test_laeuft_etwas_wartet_man_wie_bisher(self):
+        a = betrieb.lauf_start(self.con, self.p["Eins"], "C", "läuft", warten=True, speicher_frei=32.0, braucht_gb=2)
+        gross = betrieb.lauf_start(self.con, self.p["Zwei"], "A", "groß", warten=True, speicher_frei=9.4, braucht_gb=8)
+        self.assertEqual((self.status(a), self.status(gross)), ("laeuft", "angemeldet"))
+        klein = betrieb.lauf_start(self.con, self.p["Eins"], "A", "klein", warten=True, speicher_frei=9.4, braucht_gb=1)
+        self.assertEqual(self.status(klein), "angemeldet")                                 # ein Lauf endet bald – dann passt er vielleicht
 
 
 class Einstellung(unittest.TestCase):

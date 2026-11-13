@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.89.1 – 13.11.2026 · Warteschlange: ein Lauf, der nie passt, hält niemanden auf
+- **Behoben:** Ein Lauf mit Vorrang, der mehr Arbeitsspeicher brauchte, als selbst bei leerer Schlange frei wird (z. B.
+  8 GB + 3 GB Reserve bei 9,4 GB frei), hielt die ganze Warteschlange auf – niemand überholt ihn, und für ihn wurde
+  Platz frei gehalten. Jetzt gilt: Läuft kein schwerer Lauf und er passt trotzdem nicht, sperrt er niemanden und es wird
+  kein Platz für ihn frei gehalten; er bleibt vorn und startet, sobald genug frei ist. Der Wartegrund sagt es („passt
+  auch bei leerer Schlange nicht …“). Läuft etwas, wartet die Schlange wie bisher (Befund CCamw 13.11.).
+
 ## 1.89.0 – 13.11.2026 · Nachrichten: Liste und Inhalt scrollen getrennt
 - **Wie im Mail-Programm:** Unter „Nachrichten“ haben am PC die Liste links und die geöffnete Nachricht rechts je ihren
   eigenen Scrollbereich; die Seite selbst scrollt nicht mehr, Kopf und Reiter bleiben stehen. Wer unten in der Liste eine
