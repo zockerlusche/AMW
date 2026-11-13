@@ -12,6 +12,10 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   geprüft), Push, GitHub-Release mit den Notizen aus dem CHANGELOG, Web-Abzug (rechnet der Dienst), Versionszeile und eine
   Info „Version x live“ an den Lead (weckt nicht). Fehlt etwas oder scheitert ein Schritt: Stopp mit einer Zeile, was
   erledigt ist und was fehlt. Nur im Terminal, nie über den Dateiaustausch.
+- **Läufe belegen, was sie wirklich geprüft haben:** Beim tatsächlichen Start schreibt `amw lauf ausfuehren` (und der Dienst)
+  den Stand des Ordners in die Ergebnis-Zeile und den Kopf der Ausgabe – „Stand <commit> sauber“ oder „geändert“. Die
+  Release-Kette zählt nur einen Gesamtlauf, der genau den Release-Stand sauber geprüft hat; die Beschreibung allein reicht
+  nicht mehr.
 
 ## 1.91.1 – 13.11.2026 · Tests an 1.91.0 angepasst
 - Zwei Browser-Tests erwarteten noch den Stand vor 1.91.0: „Mehr“ am Handy hat jetzt 8 Einträge (mit Team-Chat), und unter

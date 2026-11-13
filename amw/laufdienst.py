@@ -89,7 +89,7 @@ def _letzte_zeile(pfad):
         return ""
 
 
-def _abschliessen(con, l, rc, pfad, grund=None, rc_bekannt=True):
+def _abschliessen(con, l, rc, pfad, grund=None, rc_bekannt=True, stand=None):
     """Lauf beenden, Fuß in die Ergebnis-Datei, Meldung an den Agenten."""
     try:
         with open(pfad, "a", encoding="utf-8") as f:
@@ -98,7 +98,7 @@ def _abschliessen(con, l, rc, pfad, grund=None, rc_bekannt=True):
     except OSError:
         pass
     letzte = _letzte_zeile(pfad)
-    text = (f"rc {rc if rc_bekannt else '?'} · Ausgabe: {pfad}" + (f" · {letzte}" if letzte and not grund else "")
+    text = (f"rc {rc if rc_bekannt else '?'}" + (f" · {stand}" if stand else "") + f" · Ausgabe: {pfad}" + (f" · {letzte}" if letzte and not grund else "")
             + (f" · abgebrochen: {grund}" if grund else ""))[:500]
     jetzt = betrieb.lauf_zeile(con, l["projekt_id"], l["id"])
     if jetzt["status"] == "laeuft":
@@ -123,9 +123,10 @@ def rechnen(lid):
         l = con.execute("SELECT * FROM lauf WHERE id = ?", (lid,)).fetchone()
         befehl = json.loads(l["befehl"])
         pfad = ergebnis_pfad(l)
+        stand = betrieb.stand_text(betrieb.pruefstand(befehl, l["ordner"]))   # was beim Start wirklich dort liegt (TL #24259)
         with open(pfad, "w", encoding="utf-8", errors="replace") as f:
             f.write(f"# AMW L{lid} · {l['agent']} · {l['beschreibung']}\n# Befehl: {' '.join(befehl)}\n"
-                    f"# Ordner: {l['ordner']}\n# Start: {time.strftime('%Y-%m-%d %H:%M:%S')} · gerechnet vom Dienst (Warte-Prozess war weg)\n")
+                    f"# Ordner: {l['ordner']}\n# {stand}\n# Start: {time.strftime('%Y-%m-%d %H:%M:%S')} · gerechnet vom Dienst (Warte-Prozess war weg)\n")
         eins = len(befehl) == 1
         try:
             with open(pfad, "a", encoding="utf-8", errors="replace") as aus:
@@ -156,7 +157,7 @@ def rechnen(lid):
                     pass
                 break
         belegung.lauf_vergessen(lid)
-        _abschliessen(con, l, rc_grund if grund else proc.returncode, pfad, grund)
+        _abschliessen(con, l, rc_grund if grund else proc.returncode, pfad, grund, stand=stand)
     except Exception as e:                              # nie den Dienst stören – aber den Lauf nicht hängen lassen
         log.warning("L%s: %s: %s", lid, type(e).__name__, e)
         try:

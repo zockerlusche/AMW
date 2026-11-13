@@ -102,16 +102,21 @@ class Kette:
                                     f" amw freigabe merge {p['aufgabe_id']}")
         ausnahme = betrieb.gesamtlauf_ausnahme(self.con, self.pid, p["aufgabe_id"])
         ausnahme = f"{ausnahme['von']}: {ausnahme['text']}" if ausnahme else None
+        # Gesamtlauf: zählt nur, wenn der beim tatsächlichen Start gemerkte Stand genau dieser ist und sauber war (TL #24259) –
+        # die Beschreibung kann veralten (Arbeitsbaum zwischen Einreihen und Start gewechselt)
+        stand = f"%{betrieb.stand_text(('', sha, True))}%"
         lauf = None
         if gesamtlauf:
             lauf = self.con.execute("SELECT * FROM lauf WHERE id = ? AND projekt_id = ?", (int(str(gesamtlauf).lstrip("Ll")), self.pid)).fetchone()
             if not lauf or lauf["status"] != "fertig" or lauf["rc"] != 0:
                 self.stopp("Gesamtlauf", f"L{gesamtlauf} ist nicht grün fertig")
+            if betrieb.stand_text(("", sha, True)) not in (lauf["ergebnis"] or ""):
+                self.stopp("Gesamtlauf", f"L{gesamtlauf} hat nicht genau {sha[:8]} sauber geprüft (Ergebnis: {(lauf['ergebnis'] or '')[:80]})")
         else:                                           # ein grüner Lauf geht vor; ohne ihn nur die Ausnahme des Leads
-            lauf = self.con.execute("SELECT * FROM lauf WHERE projekt_id = ? AND status = 'fertig' AND rc = 0 AND beschreibung LIKE ?"
-                                    " ORDER BY id DESC LIMIT 1", (self.pid, f"%{sha[:7]}%")).fetchone()
+            lauf = self.con.execute("SELECT * FROM lauf WHERE projekt_id = ? AND status = 'fertig' AND rc = 0 AND ergebnis LIKE ?"
+                                    " ORDER BY id DESC LIMIT 1", (self.pid, stand)).fetchone()
             if not lauf and not ausnahme:
-                self.stopp("Gesamtlauf", f"kein grüner Lauf mit {sha[:7]} in der Beschreibung – --gesamtlauf L<nr>, oder der Lead"
+                self.stopp("Gesamtlauf", f"kein grüner Lauf, der genau {sha[:8]} sauber geprüft hat – --gesamtlauf L<nr>, oder der Lead"
                                          f" vermerkt eine Ausnahme: amw freigabe merge {p['aufgabe_id']} --ausnahme \"Grund\"")
         if self.git("status", "--porcelain", schritt="Arbeitsbaum").strip():
             self.stopp("Arbeitsbaum", f"{self.repo} hat ungesicherte Änderungen")

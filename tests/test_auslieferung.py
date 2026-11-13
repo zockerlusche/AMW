@@ -82,10 +82,12 @@ class Kette(unittest.TestCase):
         if merge_ok:
             betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid)
 
-    def gesamtlauf(self):
+    def gesamtlauf(self, sha=None, sauber=True):
+        """Ein grüner Lauf, der beim Start diesen Stand gemerkt hat (wie amw lauf ausfuehren ihn ins Ergebnis schreibt)."""
         with db.schreiben(self.con):
             return db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="CC1", beschreibung=f"Gesamtlauf 1.1.0 {self.sha[:7]}",
-                                status="fertig", rc=0, angemeldet_utc=db.jetzt())
+                                status="fertig", rc=0, angemeldet_utc=db.jetzt(),
+                                ergebnis=f"rc 0 · {betrieb.stand_text(('', sha or self.sha, sauber))} · Ausgabe: x.txt")
 
     def test_ganze_kette(self):
         self.gruen()
@@ -120,7 +122,7 @@ class Kette(unittest.TestCase):
         self.gesamtlauf()
         self.ohne_aenderung("keine grüne Prüfung")
         with db.schreiben(self.con):                                                               # Läufe löscht man nicht (Verlauf)
-            self.con.execute("UPDATE lauf SET beschreibung = 'anderer Stand'")
+            self.con.execute("UPDATE lauf SET ergebnis = 'rc 0 · Stand 0000000 sauber'")              # anderer Stand
         self.gruen()
         self.ohne_aenderung("Gesamtlauf")
         with self.assertRaises(kern.AmwFehler):                                                     # Ausnahme nie vom Coder
@@ -148,6 +150,28 @@ class Kette(unittest.TestCase):
         betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid)                                  # neues OK ohne Ausnahme
         self.assertIsNone(betrieb.gesamtlauf_ausnahme(self.con, self.pid, self.aid))
         self.ohne_aenderung("Gesamtlauf")
+
+    def test_gesamtlauf_zaehlt_nur_mit_genau_diesem_sauberen_stand(self):
+        """TL #24259: Ein Lauf hieß „… 3723c57“, lief aber auf 08aa4e1 – die Beschreibung allein beweist nichts."""
+        self.gruen()
+        anderer = self.g("rev-parse", "main")
+        lid = self.gesamtlauf(sha=anderer)                                                   # Beschreibung passt, Stand nicht
+        self.ohne_aenderung("genau")
+        with self.assertRaises(auslieferung.Stopp) as e:
+            self.kette().ausliefern("neu", gesamtlauf=f"L{lid}")
+        self.assertIn("nicht genau", str(e.exception))
+        self.gesamtlauf(sauber=False)                                                          # richtiger Stand, aber geändert
+        self.ohne_aenderung("genau")
+        self.gesamtlauf()                                                                      # so zählt er
+        self.assertEqual(self.kette().ausliefern("neu")["version"], "1.1.0")
+
+    def test_pruefstand_folgt_dem_cd_und_merkt_aenderungen(self):
+        self.assertEqual(betrieb.pruefstand([f"cd /d {self.repo} && echo x"], self.ordner.name)[1:], (self.g("rev-parse", "HEAD"), True))
+        self.assertIsNone(betrieb.pruefstand(["echo x"], self.ordner.name))                  # kein Git-Ordner
+        with open(os.path.join(self.repo, "CHANGELOG.md"), "a", encoding="utf-8") as f:
+            f.write("geändert\n")
+        self.assertFalse(betrieb.pruefstand(["echo x"], self.repo)[2])
+        self.assertIn("geändert", betrieb.stand_text(betrieb.pruefstand(["echo x"], self.repo)))
 
     def test_kein_fast_forward_und_schmutziger_baum(self):
         self.gruen()

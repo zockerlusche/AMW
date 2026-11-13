@@ -1051,9 +1051,11 @@ def _lauf_ausfuehren(con, pid, a):
     if not betrieb.lauf_uebernehmen(con, lid, "agent"):    # der Dienst war schneller (dieser Prozess galt als tot) – A1640
         belegung.lauf_vergessen(lid)
         return _lauf_vom_dienst(con, pid, lid)
+    stand = betrieb.stand_text(betrieb.pruefstand(befehl, os.getcwd()))   # was beim Start wirklich im Ordner liegt (TL #24259)
     ausgabe = open(a.ergebnis, "w", encoding="utf-8", errors="replace") if a.ergebnis else None
     if ausgabe:
-        ausgabe.write(f"# AMW L{lid} · {von} · {beschreibung}\n# Befehl: {' '.join(befehl)}\n# Start: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+        ausgabe.write(f"# AMW L{lid} · {von} · {beschreibung}\n# Befehl: {' '.join(befehl)}\n# {stand}\n"
+                      f"# Start: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
     eins = len(befehl) == 1                      # ein String mit Leerzeichen: als Befehlszeile der Shell
     try:
         proc = subprocess.Popen(befehl[0] if eins else befehl, shell=eins, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -1113,7 +1115,7 @@ def _lauf_ausfuehren(con, pid, a):
             betrieb.lauf_ende(con, pid, von, lid, rc_grund, f"abgebrochen: {grund}{wo}"[:500], abgebrochen=True)
         print(f"L{lid} abgebrochen ({grund}), rc {rc_grund}", flush=True)
         return rc_grund
-    betrieb.lauf_ende(con, pid, von, lid, rc, (f"rc {rc}{wo}" + (f" · {letzte[0]}" if letzte[0] else ""))[:500])
+    betrieb.lauf_ende(con, pid, von, lid, rc, (f"rc {rc} · {stand}{wo}" + (f" · {letzte[0]}" if letzte[0] else ""))[:500])
     print(f"L{lid} fertig, rc {rc}{wo}", flush=True)
     return rc
 

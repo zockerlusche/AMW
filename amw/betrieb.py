@@ -637,6 +637,31 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
         return lid
 
 
+def pruefstand(befehl, ordner):
+    """Stand des Ordners, in dem ein Befehl beim tatsächlichen Start arbeitet (A1644 Nachtrag, TL #24259): beginnt der Befehl mit
+    „cd [/d] <pfad> &&“, dieser Pfad, sonst `ordner`. (pfad, sha, sauber) – sauber: keine geänderten versionierten Dateien.
+    None, wenn dort kein Git-Stand ist. Nur lesen."""
+    import re
+    import subprocess
+    text = befehl[0] if len(befehl) == 1 else " ".join(map(str, befehl))
+    m = re.match(r'\s*cd\s+(?:/d\s+)?("?)([^"&]+?)\1\s*&&', text, re.I)
+    ziel = (m.group(2).strip() if m else ordner) or ordner
+    try:
+        rev = subprocess.run(["git", "-C", ziel, "rev-parse", "HEAD"], capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
+        if rev.returncode != 0:
+            return None
+        st = subprocess.run(["git", "-C", ziel, "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True,
+                            timeout=60, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return ziel, rev.stdout.strip(), st.returncode == 0 and not st.stdout.strip()
+
+
+def stand_text(s):
+    """„Stand <sha> sauber|geändert“ für Ergebnis-Zeile und Kopf der Ausgabe – daran erkennt die Release-Kette den Lauf."""
+    return f"Stand {s[1]} {'sauber' if s[2] else 'geändert'}" if s else "Stand unbekannt"
+
+
 def lauf_uebernehmen(con, lid, wer):
     """Wer den Befehl eines dran gekommenen Laufs startet – „agent“ (sein Warte-Prozess) oder „dienst“ (A1640). Genau einer
     gewinnt: True nur, wenn noch niemand eingetragen war."""
