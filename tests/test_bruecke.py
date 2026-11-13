@@ -160,6 +160,32 @@ class Bruecke(unittest.TestCase):
         self.assertEqual(self.con.execute("SELECT count(*) FROM frage").fetchone()[0], 0)
         self.assertEqual(os.listdir(os.path.join(self.eingang, "befehle")), [])
 
+    def test_haengender_befehl_blockiert_den_dateiaustausch_nicht(self):
+        """13.11. 17:50–18:10: Der Dateiaustausch stand 20 Minuten, weil ein Befehl nicht zurückkam – alles dahinter wartete.
+        Jetzt: höchstens BEFEHL_FRIST_S je Befehl, dann Fehlerergebnis (rc 124) und weiter mit der nächsten Datei."""
+        import threading
+        los = threading.Event()
+        self.addCleanup(los.set)
+        echt = bruecke.ausfuehren
+
+        def haengt_beim_ersten(args):
+            if "haengt" in args:
+                los.wait(30)                                     # „hängt“ – bis der Test aufräumt
+                return 0, "zu spät", ""
+            return echt(args)
+        self.einwerfen("a.json", {"befehl": "posten", "an": "CC1", "art": "info", "kurz": "haengt"})
+        self.einwerfen("b.json", {"befehl": "posten", "an": "CC1", "art": "info", "kurz": "danach"})
+        t = time.time()
+        with mock.patch.object(bruecke, "ausfuehren", side_effect=haengt_beim_ersten), mock.patch.object(bruecke, "BEFEHL_FRIST_S", 0.5):
+            self.assertEqual(bruecke.befehle(self.eingang), 2)
+        self.assertLess(time.time() - t, 15)
+        a = self.ergebnis("a")
+        self.assertEqual(a["rc"], bruecke.RC_FRIST)
+        self.assertIn("Zeitlimit", a["fehler"])
+        self.assertEqual(self.ergebnis("b")["rc"], 0)
+        self.assertEqual(self.con.execute("SELECT kurz FROM nachricht ORDER BY id DESC LIMIT 1").fetchone()[0], "danach")
+        self.assertEqual(os.listdir(os.path.join(self.eingang, "befehle")), [])
+
     def test_unerwarteter_fehler_und_eingabe_werden_zum_ergebnis(self):
         from unittest import mock
         self.einwerfen("a.json", {"befehl": "posten", "an": "CC1", "art": "info", "kurz": "x"})

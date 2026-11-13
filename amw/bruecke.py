@@ -36,6 +36,8 @@ WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EINGANG = os.path.join(WURZEL, "eingang-tl")
 KOPIE_S = 60
 BEFEHLE_S = 5
+BEFEHL_FRIST_S = 120      # so lange darf ein einzelner Befehl laufen – danach Fehlerergebnis und weiter mit der nächsten Datei
+RC_FRIST = 124
 VON = "TL"
 ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", "kontext", "regeln", "lauf", "pruefung", "taetigkeit",
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
@@ -235,6 +237,29 @@ def ausfuehren(args):
     return rc, aus.getvalue(), fehler.getvalue()
 
 
+def ausfuehren_mit_frist(args, frist=None):
+    """Wie ausfuehren(), aber höchstens `frist` Sekunden (Vorgabe BEFEHL_FRIST_S): Hängt ein Befehl (Datenbank belegt, Rechner
+    überlastet, ein Fehler im Befehl), bekommt seine Datei ein Fehlerergebnis und der Dateiaustausch macht mit der nächsten
+    weiter – eine Datei darf ihn nie blockieren. Der hängende Befehl läuft in seinem eigenen Faden weiter, bis er endet."""
+    frist = BEFEHL_FRIST_S if frist is None else frist
+    ergebnis = {}
+
+    def los():
+        try:
+            ergebnis["wert"] = ausfuehren(args)
+        except BaseException as e:                       # nie unbemerkt: wird zum Fehlerergebnis
+            ergebnis["wert"] = (1, "", f"{type(e).__name__}: {e}")
+    f = threading.Thread(target=los, name="bruecke-befehl", daemon=True)
+    f.start()
+    f.join(frist)
+    if f.is_alive():
+        log.warning("Dateiaustausch: Befehl %s nach %s s ohne Ergebnis – weiter mit der nächsten Datei", _kurz(args), frist)
+        return RC_FRIST, "", (f"Zeitlimit {frist:g} s erreicht – der Befehl hat nicht geantwortet (Rechner überlastet oder Datenbank"
+                              " belegt?). Er kann im Hintergrund noch fertig werden; im Zweifel mit lesen/zeige nachsehen, bevor"
+                              " du ihn wiederholst.")
+    return ergebnis["wert"]
+
+
 def _frei(ordner, stamm):
     """Stamm, unter dem in erledigt/ noch nichts liegt: khf, sonst khf.2, khf.3 …"""
     ziel, n = stamm, 1
@@ -281,7 +306,7 @@ def befehle(eingang=EINGANG, projekt=None, von=None):
                 args, rc, aus, fehler = ["puls"], 0, "Puls gesetzt\n", ""
             else:
                 args = argumente({k: v for k, v in befehl.items() if not (projekt and k == "projekt")}, eingang, von, projekt)
-                rc, aus, fehler = ausfuehren(args)
+                rc, aus, fehler = ausfuehren_mit_frist(args)
         except (ValueError, OSError) as e:
             args, rc, aus, fehler = None, 2, "", str(e)
         except Exception as e:                            # nie die Warteschlange anhalten: Fehler wird zum Ergebnis

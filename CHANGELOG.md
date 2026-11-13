@@ -12,6 +12,9 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   Sicherheit: Solche Befehle entstehen nur im Terminal des Agenten (nie über Dateiaustausch oder Online-Seite); der Dienst
   führt sie nur im Arbeitsordner (oder Zusatzordner) des Agenten aus, nie bei HALT oder entferntem Agenten, und jede
   Übernahme steht im Verlauf (wer, Befehl, Ordner, Rückgabewert).
+- **Dateiaustausch hängt nicht mehr:** Jeder Befehl über den Dateiaustausch hat höchstens 2 Minuten; kommt er nicht zurück,
+  bekommt seine Datei ein Fehlerergebnis („Zeitlimit“) und die nächste Datei läuft. Vorher konnte ein einziger Befehl alles
+  dahinter aufhalten (13.11.: 20 Minuten Stillstand).
 - **Bedarf ohne Schätzen:** Fehlt `--braucht-gb`, nimmt die AMW, was gleiche Läufe desselben Agenten zuletzt gemessen
   gebraucht haben (Median mit Zuschlag) – statt pauschal der Grenze des Projekts.
 - **Weniger Weckrufe:** „ist dran“ (bei `lauf ausfuehren`) und „läuft länger als erwartet“ wecken niemanden mehr, sie stehen
