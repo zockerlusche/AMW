@@ -663,11 +663,10 @@ def ausgelassen(con, pid):
                                  " AND s.zustand = 'aktiv'))) ORDER BY id", (pid,))]
 
 
-# Weckt eine Nachricht? Art mit weckt = 1, oder eine info an genau einen Empfänger von einem Agenten/dem Entwickler
-# (Einzel-Infos wie „Merge erledigt“ blieben sonst bis zu 75 min liegen; Sammel-Infos und Kopien der AMW wecken nicht).
 # n = nachricht, k = nachricht_art.
-WECKT_SQL = ("(k.weckt = 1 OR (n.art = 'info' AND n.von != 'AMW'"
-             " AND (SELECT count(*) FROM empfang z WHERE z.nachricht_id = n.id) = 1))")
+# Was weckt: nur Arten mit weckt = 1. Eine Info weckt nie, auch nicht an einen einzelnen Empfänger (A1645, Kosten nach
+# A1642) – sie steht im Postfach und wird beim nächsten eigenen `amw lesen` gelesen.
+WECKT_SQL = "(k.weckt = 1)"
 
 
 BIS = re.compile(r"leitbild|aufgabe|[AF]\d+")

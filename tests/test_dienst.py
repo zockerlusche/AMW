@@ -1,8 +1,10 @@
 """Tests für den Wecker im amw-dienst – die Pipe wird nachgebildet, es wird keine echte Sitzung geweckt."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import datetime
 import json
 import os
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -60,6 +62,86 @@ class Wecker(unittest.TestCase):
         self.assertIn(f"#{n1} TL [auftrag] a", self.gesendet[0][1])
         self.assertNotIn("geheim", self.gesendet[0][1])
         self.assertEqual(self.d.zustellen(), 0)
+
+    def arbeitet(self, kennung="CC1", vor_s=10, ereignis="arbeitet"):
+        t = datetime.datetime.fromtimestamp(time.time() - vor_s, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE sitzung SET ereignis = ?, ereignis_utc = ?, status_utc = ? WHERE agent_id = ?",
+                             (ereignis, t, t, kern.agent_zeile(self.con, self.pid, kennung)["id"]))
+
+    def test_info_weckt_nie(self):
+        """A1645: auch eine Info an einen einzelnen Empfänger weckt nicht mehr."""
+        self.anmelden("CC1")
+        kern.posten(self.con, self.pid, "TL", "CC1", "info", "Merge erledigt")
+        self.assertEqual(self.d.zustellen(), 0)
+        self.assertEqual(self.gesendet, [])
+
+    def test_waehrend_der_arbeit_gesammelt_beim_halt(self):
+        """A1645: Antwort, Freigabe, Auftrag an einen arbeitenden Agenten warten bis zu seinem Halt – dann EIN Weckruf."""
+        self.anmelden("CC1")
+        self.arbeitet()
+        n1, _ = kern.posten(self.con, self.pid, "TL", "CC1", "antwort", "ja, so")
+        n2, _ = kern.posten(self.con, self.pid, "TL", "CC1", "freigabe", "Release ok")
+        n3, _ = kern.posten(self.con, self.pid, "CC2", "CC1", "auftrag", "bitte prüfen")
+        self.assertEqual(self.d.zustellen(), 0)
+        self.assertEqual(self.gesendet, [])
+        self.arbeitet(ereignis="frei")                                                  # Halt (Stop-Hook)
+        self.assertEqual(self.d.zustellen(), 1)
+        self.assertEqual(len(self.gesendet), 1)
+        for n in (n1, n2, n3):
+            self.assertIn(f"#{n} ", self.gesendet[0][1])
+
+    def test_sofort_trotz_arbeit_stopp_korrektur_und_mensch(self):
+        self.anmelden("CC1")
+        self.arbeitet()
+        for von, art in (("TL", "korrektur"), ("Entwickler", "antwort"), ("TL", "stopp")):
+            with self.subTest(art=art):
+                self.gesendet.clear()
+                n, _ = kern.posten(self.con, self.pid, von, "CC1", art, f"{art} jetzt")
+                self.assertEqual(self.d.zustellen(), 1)
+                self.assertIn(f"#{n} ", self.gesendet[0][1])
+
+    def test_weckruf_bringt_den_inhalt_mit(self):
+        """A1645 (Marcel 13.11.): Text der Nachricht, betroffene Aufgabe, was seit dem letzten Halt neu ist – ein Durchgang."""
+        from amw import betrieb, wartegrund
+        self.anmelden("CC1")
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Heimnetz bauen", agent="CC1")
+        wartegrund.anlegen(self.con, self.pid, "CC1", aid, "Entwickler")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'wartet' WHERE id = ?", (aid,))
+            lid = db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="CC1", beschreibung="Gesamtlauf abc", status="fertig", rc=0,
+                               angemeldet_utc="2026-01-01T00:00:00Z", start_utc="2026-01-01T00:00:00Z", ende_utc="2099-01-01T00:00:00Z")
+        pid_ = betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "a1643", "d314b27aa")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE pruefung SET ergebnis = 'gruen', ergebnis_utc = '2099-01-01T00:00:00Z' WHERE id = ?", (pid_,))
+        n1, _ = kern.posten(self.con, self.pid, "TL", "CC1", "antwort", "Ja, so bauen", text="Bitte mit Firewall-Hinweis.", aufgabe_id=aid)
+        lang = "\n".join(f"Zeile {i}: " + "wort " * 20 for i in range(40))
+        n2, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "Langer Auftrag", text=lang, aufgabe_id=aid)
+        self.assertEqual(self.d.zustellen(), 1)
+        w = self.gesendet[0][1]
+        self.assertIn(f"#{n1} TL [antwort] Ja, so bauen\n  Bitte mit Firewall-Hinweis.", w)
+        self.assertIn(f"(ganz: amw lesen {n2})", w)                                    # zu lang: gekürzt, Rest per Verweis
+        self.assertNotIn("Zeile 39", w)
+        self.assertEqual(w.count(f"→ A{aid} Heimnetz bauen · wartet · wartet auf Entwickler"), 1)   # die Aufgabe einmal
+        self.assertIn(f"Seit deinem letzten Halt neu:\n  L{lid} fertig rc 0 – Gesamtlauf abc", w)
+        self.assertIn(f"P{pid_} GRÜN (TL) – a1643@d314b27", w)
+        self.assertRegex(w, rf"Abhaken: amw erledigt {n1} .*{n2} · ganz lesen: amw lesen <Nr>")
+        status = dict(self.con.execute("SELECT nachricht_id, status FROM empfang WHERE agent = 'CC1' AND nachricht_id IN (?, ?)", (n1, n2)).fetchall())
+        self.assertEqual(status, {n1: "gelesen", n2: "offen"})                         # ganz im Weckruf = gelesen
+        self.gesendet.clear()                                                           # nächster Weckruf: nur Neues
+        kern.posten(self.con, self.pid, "TL", "CC1", "frage", "noch was?")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE empfang SET geweckt_utc = '2099-06-01T00:00:00Z' WHERE nachricht_id IN (?, ?)", (n1, n2))
+        self.d.zustellen()
+        self.assertNotIn("Seit deinem letzten Halt neu", self.gesendet[0][1])
+
+    def test_altes_lebenszeichen_weckt_wie_bisher(self):
+        """Hängt die Sitzung (kein Lebenszeichen seit über 2 min) oder gibt es keine Hook-Ereignisse: sofort wecken."""
+        self.anmelden("CC1")
+        self.arbeitet(vor_s=dienst.ARBEITET_S + 30)
+        n, _ = kern.posten(self.con, self.pid, "TL", "CC1", "antwort", "ja")
+        self.assertEqual(self.d.zustellen(), 1)
+        self.assertIn(f"#{n} ", self.gesendet[0][1])
 
     def test_auftrag_mitten_im_stueck_weckt_erst_beim_wechsel(self):
         self.anmelden("CC1")

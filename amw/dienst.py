@@ -2,7 +2,9 @@
 
 Läuft außerhalb von Claude Code (gestartet von der Windows-Aufgabenplanung, Stufe 1). Aufgaben:
 - Wecker: neue Empfänge, deren Art weckt, werden dem Empfänger über die Pipe seiner angemeldeten Sitzung
-  zugestellt (eine Sammelzeile je Agent und Durchgang); empfang.geweckt_utc wird gesetzt.
+  zugestellt (eine Sammelzeile je Agent und Durchgang); empfang.geweckt_utc wird gesetzt. Infos wecken nie. Arbeitet der
+  Empfänger gerade (Hook „arbeitet“, Puls jünger als ARBEITET_S), wartet alles bis zu seinem nächsten Halt und kommt dann
+  gesammelt als EIN Weckruf – sofort nur stopp, korrektur und was der Mensch schreibt (A1645).
   Während eines Halts nur stopp/freigabe. Agenten ohne lebende Sitzung werden nicht geweckt – ihre
   Nachrichten bleiben offen, bis sich die Sitzung anmeldet.
 - Aufsicht: lebt die Pipe einer angemeldeten Sitzung noch? Sonst Sitzung → beendet. Schirm-Schalter: zu, sobald
@@ -27,8 +29,79 @@ from . import betrieb, db, kern, pipe, push, schirm, statusline, steuerung, uebe
 
 AUFSICHT_S = 30           # Puls-Prüfung und Wiederholung fehlgeschlagener Zustellungen
 NUR_IM_HALT = ("stopp", "freigabe")
+ARBEITET_S = 120          # so frisch muss das Lebenszeichen sein, damit „arbeitet gerade“ gilt (sonst wecken wie bisher)
+SOFORT = ("stopp", "korrektur")   # wecken auch mitten in der Arbeit – dazu alles, was der Mensch schreibt
 ZEILE_MAX = 160
+TEXT_GESAMT = 2400        # Weckruf mit Inhalt (A1645): so viele Zeichen Nachrichtentext insgesamt, je Nachricht mind. TEXT_MIN
+TEXT_MIN = 240
+TEXT_ZEILEN = 12
+NEU_MAX = 12              # „seit deinem letzten Halt neu“: höchstens so viele Zeilen
 log = logging.getLogger("amw.dienst")
+
+
+def _kuerzen(text, zeichen, zeilen=TEXT_ZEILEN):
+    """(gekürzter Text, ganz?) – auf Zeichen und Zeilen begrenzt, am Wortende abgeschnitten."""
+    text = (text or "").strip()
+    teile = text.splitlines()
+    kurz = "\n".join(teile[:zeilen])
+    if len(kurz) > zeichen:
+        kurz = kurz[:zeichen].rsplit(" ", 1)[0]
+    return kurz, kurz == text
+
+
+def _aufgabe_kurz(con, aid):
+    """Die betroffene Aufgabe in einer Zeile: Nummer, Titel, Status, Wartegrund."""
+    a = con.execute("SELECT id, titel, status, wartet_auf FROM aufgabe WHERE id = ?", (aid,)).fetchone()
+    if not a:
+        return None
+    gruende = [r[0] for r in con.execute("SELECT bezug FROM wartegrund WHERE aufgabe_id = ? AND erledigt_utc IS NULL ORDER BY id", (aid,))]
+    warte = ", ".join(gruende) or (a["wartet_auf"] or "")
+    return f"→ A{a['id']} {a['titel'][:ZEILE_MAX]} · {a['status']}" + (f" · wartet auf {warte[:80]}" if a["status"] in ("wartet", "blockiert") and warte else "")
+
+
+def seit_halt(con, pid, agent, seit):
+    """„Seit deinem letzten Halt neu“: eigene Läufe fertig/abgebrochen und Ergebnisse eigener Prüfbitten seit `seit`."""
+    aus = []
+    for l in con.execute("SELECT id, status, rc, beschreibung FROM lauf WHERE projekt_id = ? AND agent = ? AND ende_utc > ?"
+                         " AND status IN ('fertig', 'abgebrochen') ORDER BY ende_utc", (pid, agent, seit)):
+        aus.append(f"L{l['id']} {l['status']}" + (f" rc {l['rc']}" if l["rc"] is not None else "") + f" – {(l['beschreibung'] or '')[:100]}")
+    for p in con.execute("SELECT id, ergebnis, pruefer, zweig, sha FROM pruefung WHERE projekt_id = ? AND bauer = ? AND ergebnis != 'offen'"
+                         " AND ergebnis_utc > ? ORDER BY ergebnis_utc", (pid, agent, seit)):
+        aus.append(f"P{p['id']} {p['ergebnis'].upper().replace('GRUEN', 'GRÜN')} ({p['pruefer']}) – {p['zweig']}@{p['sha'][:7]}")
+    if len(aus) > NEU_MAX:
+        aus = aus[:NEU_MAX - 1] + [f"… und {len(aus) - NEU_MAX + 1} weitere"]
+    return aus
+
+
+def weckruf(con, pid, agent, zeilen, halt, projekt=None, seit=None):
+    """Weckruf MIT Inhalt (A1645, Marcel 13.11.): die Nachrichten mit Text (gekürzt, Rest per `amw lesen <nr>`), je betroffene
+    Aufgabe eine Zeile, dazu was seit dem letzten Halt neu ist – damit ein Weckruf möglichst ein Durchgang ist.
+    Rückgabe: (Text, Nummern der Nachrichten, die ganz drinstehen)."""
+    vor = f"[{projekt}] " if projekt else ""
+    kopf = f"AMW-Benachrichtigung für {agent}: {len(zeilen)} neue Nachricht(en)" + (" – HALT GILT, nichts Neues anfangen" if halt else "")
+    teile, ganz, aufgaben = [kopf], [], set()
+    je = max(TEXT_MIN, TEXT_GESAMT // max(1, min(len(zeilen), 10)))
+    for z in zeilen[:10]:
+        teile.append(f"\n#{z['nachricht_id']} {vor}{z['von']} [{z['art']}] {z['kurz'][:ZEILE_MAX]}")
+        text, voll = _kuerzen(z["text"] if "text" in z.keys() else "", je)
+        if text:
+            teile.append("\n".join("  " + x for x in text.splitlines()) + ("" if voll else f" … (ganz: amw lesen {z['nachricht_id']})"))
+        if voll:
+            ganz.append(z["nachricht_id"])
+        aid = z["aufgabe_id"]
+        if aid and aid not in aufgaben:
+            aufgaben.add(aid)
+            a = _aufgabe_kurz(con, aid)
+            if a:
+                teile.append("  " + a)
+    if len(zeilen) > 10:
+        teile.append(f"\n… und {len(zeilen) - 10} weitere (amw lesen)")
+    neu = seit_halt(con, pid, agent, seit) if seit else []
+    if neu:
+        teile.append("\nSeit deinem letzten Halt neu:\n" + "\n".join("  " + x for x in neu))
+    nummern = " ".join(str(z["nachricht_id"]) for z in zeilen[:10])
+    teile.append(f"\nAbhaken: amw erledigt {nummern} · ganz lesen: amw lesen <Nr>")
+    return "\n".join(teile), ganz
 
 
 def weckzeile(agent, zeilen, halt, projekt=None):
@@ -40,6 +113,21 @@ def weckzeile(agent, zeilen, halt, projekt=None):
     if halt:
         kopf += " – HALT GILT, nichts Neues anfangen"
     return kopf + "\n" + "\n".join(teile) + "\nLies mit `amw lesen` bzw. `amw lesen <Nr>` und arbeite sie ab."
+
+
+def arbeitet_gerade(s, jetzt=None):
+    """Ist die Sitzung mitten in einem Arbeitsschritt? Hook-Ereignis „arbeitet“ (seit dem Absenden bis zum Halt) und ein
+    Lebenszeichen (Statusleiste, Tätigkeit oder das Ereignis selbst) jünger als ARBEITET_S. Ohne Hook-Ereignisse (Chat,
+    Desktop-App): nein – dann wird wie bisher sofort geweckt."""
+    if not s or s["ereignis"] != "arbeitet":
+        return False
+    zeiten = [_sekunden(x) for x in (s["status_utc"], s["letzter_puls_utc"], s["ereignis_utc"]) if x]
+    return bool(zeiten) and (time.time() if jetzt is None else jetzt) - max(zeiten) < ARBEITET_S
+
+
+def sofort(z):
+    """Diese Nachricht weckt auch mitten in der Arbeit."""
+    return z["art"] in SOFORT or z["von"] == kern.ENTWICKLER
 
 
 def aktive_sitzung(con, pid, kennung):
@@ -96,7 +184,7 @@ class Dienst:
         from . import laufdienst
         self.laufdienst = laufdienst.Laufdienst(con)   # verwaiste Läufe rechnen, Spitzen messen (A1640/A1641)
         self.messung = None               # Ordnergrößen: eigener Faden, einmal am Tag
-        self.seit = db.jetzt()    # Einzel-Infos wecken erst ab hier (sonst weckte der Altbestand alle auf einmal)
+        self.seit = db.jetzt()    # Start des Dienstes (Infos wecken seit A1645 gar nicht mehr)
 
     def takt(self):
         """Regelmäßige Zusammenfassung an den Lead: je Projekt alle takt_min Minuten eine
@@ -147,10 +235,9 @@ class Dienst:
 
     def zustellen(self):
         offen = self.con.execute(
-            "SELECT e.nachricht_id, e.agent, n.projekt_id, n.von, n.art, n.kurz, n.aufgabe_id FROM empfang e"
+            "SELECT e.nachricht_id, e.agent, n.projekt_id, n.von, n.art, n.kurz, n.text, n.aufgabe_id FROM empfang e"
             " JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
-            " WHERE e.status = 'offen' AND e.geweckt_utc IS NULL AND (k.weckt = 1 OR (n.zeit_utc >= ? AND "
-            + kern.WECKT_SQL + ")) ORDER BY n.id", (self.seit,)).fetchall()
+            " WHERE e.status = 'offen' AND e.geweckt_utc IS NULL AND " + kern.WECKT_SQL + " ORDER BY n.id").fetchall()
         gruppen = {}
         for z in offen:
             gruppen.setdefault((z["projekt_id"], z["agent"]), []).append(z)
@@ -172,11 +259,16 @@ class Dienst:
             s = aktive_sitzung(self.con, pid, agent)
             if not s:
                 continue                                   # nicht gestartet: bleibt offen bis zur Anmeldung
+            if arbeitet_gerade(s) and not any(sofort(z) for z in zeilen):
+                continue                                   # arbeitet gerade: kommt gesammelt beim nächsten Halt (A1645)
             try:
                 p, k = lies_schluessel(s)
                 fremd = agent == db.produkt_entwickler() and not self.con.execute(
                     "SELECT 1 FROM agent WHERE id = ? AND projekt_id = ?", (s["agent_id"], pid)).fetchone()
-                pipe.senden(p, k, weckzeile(agent, zeilen, halt, db.projekt_name(self.con, pid) if fremd else None))
+                seit = self.con.execute("SELECT max(geweckt_utc) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
+                                        " WHERE e.agent = ? AND n.projekt_id = ?", (agent, pid)).fetchone()[0] or s["gestartet_utc"]
+                text, ganz = weckruf(self.con, pid, agent, zeilen, halt, db.projekt_name(self.con, pid) if fremd else None, seit)
+                pipe.senden(p, k, text)
             except (OSError, ValueError, KeyError, pipe.ZustellFehler) as e:
                 log.warning("Wecken %s fehlgeschlagen: %s", agent, e)
                 self.sperre_bis[(pid, agent)] = time.time() + AUFSICHT_S
@@ -187,6 +279,9 @@ class Dienst:
                 for z in zeilen:
                     self.con.execute("UPDATE empfang SET geweckt_utc = ? WHERE nachricht_id = ? AND agent = ?",
                                      (t, z["nachricht_id"], agent))
+                for n in ganz:                             # stand ganz im Weckruf: gilt als gelesen (Gesendet › gelesen)
+                    self.con.execute("UPDATE empfang SET status = 'gelesen', gelesen_utc = ? WHERE nachricht_id = ? AND agent = ?"
+                                     " AND status = 'offen'", (t, n, agent))
             self.sperre_bis.pop((pid, agent), None)
             log.info("%s benachrichtigt: %s", agent, ", ".join(f"#{z['nachricht_id']}" for z in zeilen))
             geweckt += 1

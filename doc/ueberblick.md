@@ -11,7 +11,7 @@ arbeitet. Jeder Agent ist eine eigene Claude-Code-Sitzung in einem Terminal-Fens
 | **Agent** | Eine Claude-Code-Sitzung mit einer Kennung (z. B. `TL`, `CC1`). Hat ein Soll (an/ruht/aus), eine Rolle, ein Profil zum Starten. |
 | **Lead** | Agent mit Rolle `lead`: darf Bögen, Beschlüsse, Regeln, Halt; bekommt den Takt (Zusammenfassung) und Warnungen. |
 | **Entwickler** | Der Mensch. Gibt frei, beantwortet Fragen, bekommt Push-Meldungen. Wird nie „geweckt“. |
-| **Nachricht** | Von einem Agenten an einen oder mehrere (oder „alle“). Die **Art** bestimmt, ob der Empfänger geweckt wird (auftrag, frage, antwort, korrektur, stopp, freigabe, pruefbitte, meldung, takt) oder nicht (info). |
+| **Nachricht** | Von einem Agenten an einen oder mehrere (oder „alle“). Die **Art** bestimmt, ob der Empfänger geweckt wird (auftrag, frage, antwort, korrektur, stopp, freigabe, pruefbitte, meldung, takt) oder nie (info). Arbeitet der Empfänger gerade, kommt alles gesammelt bei seinem nächsten Halt – sofort nur stopp, korrektur und was der Mensch schreibt. |
 | **Wecken** | Der Wächter schreibt einem schlafenden Agenten über die Nachrichten-Pipe seiner Sitzung „Du hast neue Nachrichten“ – der Agent liest dann mit `amw lesen`. |
 | **Frage** | An den Entwickler (oder Lead): mit Optionen, Empfehlung, Begründung; Antwort per Klick, Text oder Rückfrage; Gesprächsverlauf bleibt erhalten. |
 | **Aufgabe / Schritt** | Arbeitseinheit mit Bearbeiter und Status (wartet, läuft, blockiert, fertig, verworfen). Ein Schritt ist eine Aufgabe in einem Bogen – mit Abnahmekriterien, Abhängigkeiten, Schätzung. |

@@ -4,6 +4,17 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.98.0 – 14.11.2026 · Weckrufe mit Inhalt und gebündelt
+- **Ein Weckruf bringt alles mit:** Die Benachrichtigung an einen Agenten enthält jetzt die Nachrichten selbst (Text gekürzt,
+  der Rest über `amw lesen <Nr>`), je betroffene Aufgabe eine Zeile mit Status und Wartegrund und darunter, was seit seinem
+  letzten Halt neu ist (eigene Läufe fertig oder abgebrochen, Ergebnisse eigener Prüfbitten). Der Agent muss nicht erst
+  nachfragen – das spart Durchgänge und Kosten. Nachrichten, die ganz im Weckruf stehen, gelten als gelesen.
+- **Gebündelt beim nächsten Halt:** Arbeitet ein Agent gerade, wartet die AMW bis zu seinem nächsten Halt und schickt dann
+  alles zusammen als eine Benachrichtigung. Sofort, auch mitten in der Arbeit, kommen nur Stopp, Korrekturen und was der
+  Mensch schreibt.
+- **Infos wecken nie:** auch nicht an einen einzelnen Empfänger – sie stehen im Postfach.
+- Hilfe Nachrichten: „Wann benachrichtigt die AMW einen Agenten?“
+
 ## 1.97.1 – 14.11.2026 · Release-Kette: keine Version geht verloren
 - Liegen in einem Stand mehrere Versionen (z. B. 1.94.0 unter 1.94.1), bekommt jetzt jede ihren Tag, ihr GitHub-Release und
   ihre Versionszeile – aufsteigend, die oberste bleibt „neueste“.

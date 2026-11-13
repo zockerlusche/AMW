@@ -157,7 +157,8 @@ class Alle(Grund):
 
 
 class Wecken(Grund):
-    def test_einzel_info_weckt_sammel_info_und_altbestand_nicht(self):
+    def test_info_weckt_nie(self):
+        """A1645: auch eine Einzel-Info weckt nicht mehr (Kosten nach A1642) – sie steht im Postfach."""
         alt, _ = kern.posten(self.con, self.pid, "TL", "CC1", "info", "vor dem Dienststart")
         with db.schreiben(self.con):
             self.con.execute("UPDATE nachricht SET zeit_utc = '2026-11-01T10:00:00Z' WHERE id = ?", (alt,))
@@ -168,7 +169,8 @@ class Wecken(Grund):
             "SELECT e.nachricht_id FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k"
             " ON k.art = n.art WHERE e.agent = 'CC1' AND (k.weckt = 1 OR (n.zeit_utc >= ? AND " + kern.WECKT_SQL + "))",
             (d.seit,)).fetchall()
-        self.assertEqual([r[0] for r in offen], [einzeln])
+        self.assertEqual([r[0] for r in offen], [])
+        self.assertTrue(einzeln)
 
 
 class Taetigkeit(Grund):
