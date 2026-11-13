@@ -171,9 +171,9 @@ class Spuren(Grund):
             self.start("CC2", frei=12)
         self.assertIn("8 GB davon für laufende Läufe vorgemerkt", str(e.exception))
         with db.schreiben(self.con):
-            self.con.execute("UPDATE lauf SET start_utc = '2026-01-01T00:00:00Z'")
-        with self.assertRaises(kern.AmwFehler):                          # auch Stunden später: L1 kann noch wachsen
-            self.start("CC2", frei=12)
+            self.con.execute("UPDATE lauf SET start_utc = '2026-01-01T00:00:00Z', braucht_gb = 8")
+        with self.assertRaises(kern.AmwFehler):                          # mit eigener Angabe auch Stunden später: L1 kann noch wachsen
+            self.start("CC2", frei=12)                                   # (ohne Angabe nur in den ersten 15 Minuten – test_vorrang)
         from unittest import mock
         from amw import belegung
         with mock.patch.object(belegung, "lauf_pid", lambda lid: 77 if lid == l1 else None), \

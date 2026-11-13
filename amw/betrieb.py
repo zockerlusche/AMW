@@ -335,7 +335,7 @@ def _speicher_fehlt(con, pid, l_grenze, speicher_frei):
     return None
 
 
-def _vordermann(con, pid, x, speicher_frei):
+def _vordermann(con, pid, x, speicher_frei, von=False):
     """Ein wartender Lauf vor einem anderen, als Text – mit Vorrang und, wenn er auf Arbeitsspeicher wartet, wie viel er
     braucht und wie viel nutzbar ist (A1623 a). Fremde Läufe ohne Projekt, Agent und Inhalt."""
     eigen = x["projekt_id"] == pid
@@ -349,6 +349,8 @@ def _vordermann(con, pid, x, speicher_frei):
         nutzbar = round(speicher_frei - _vorgemerkt_gb(con) - reserve_gb(), 1)
         if nutzbar < _bedarf(con, x):
             teile.append(f"wartet auf Arbeitsspeicher: braucht {_bedarf(con, x):g} GB, {max(nutzbar, 0):g} GB nutzbar")
+    if von and eigen:                                  # wie lauf_nennen: „L12 von CC2“ (Zusätze dahinter)
+        return f"L{x['id']} von {x['agent']}" + (f" ({', '.join(teile[1:])})" if teile[1:] else "")
     return f"L{x['id']} ({', '.join(teile)})"
 
 
@@ -546,7 +548,7 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
         gesperrt = _gesperrt(con, pid, w_vor, schirm_zu) if not sperre else {}
         vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
         if not grund and vor:
-            grund = "Warteschlange: vor dir " + ", ".join(_vordermann(con, pid, x, speicher_frei) for x in vor)
+            grund = "Warteschlange: " + ", ".join(_vordermann(con, pid, x, speicher_frei, von=True) for x in vor) + " wartet schon"
         if not grund:
             grund = _speicher_fehlt(con, pid, grenze, speicher_frei)
         if not grund and grenze:
