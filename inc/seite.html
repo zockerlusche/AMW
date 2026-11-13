@@ -294,6 +294,20 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .rh-lauf.dauer { background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--glut) 16%, transparent) 0 8px, transparent 8px 12px); }
 @media (max-width: 760px) { .rh { padding: 8px 10px; } .rh-lauf { font-size: 11px; } .rh-lauf > span { padding: 0 3px; } }
 .ueb-heute { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--bernstein); z-index: 1; pointer-events: none; }
+/* Wo stehen wir (A1639): Jetzt-Linie kräftig und beschriftet, Drüberfahren sagt Uhrzeit und was läuft; Fertiges blass */
+.ueb-flaeche > .ueb-heute { width: 3px; margin-left: -1.5px; }
+.ueb-jetzt { position: absolute; top: 0; bottom: 0; width: 14px; margin-left: -7px; z-index: 4; cursor: help; }
+.ueb-achse > span.jetzt { color: var(--bernstein); font-weight: 600; background: var(--flaeche); padding: 0 3px; z-index: 2; }
+.ueb-block.fertig { opacity: .5; } .ueb-name.fertig { opacity: .6; }
+.rh-lauf.eng > span { display: none; }
+.stand-jetzt { display: grid; gap: 6px; padding: 10px 14px; margin: 0 0 12px; border: 1px solid var(--linie); border-left: 4px solid var(--bernstein); border-radius: 6px; background: var(--flaeche); }
+.stand-jetzt > b { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--leise); }
+.sj-zeile { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; font-size: 14px; }
+.sj-zeile .mb-spur { width: 120px; display: inline-block; vertical-align: middle; }
+.sj-dran { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; }
+.sj-dran a { cursor: pointer; }
+.ohne-bogen .schritt { cursor: pointer; }
+@media (max-width: 760px) { .stand-jetzt { padding: 8px 10px; } .sj-zeile { font-size: 13px; } }
 .ueb-block { --farbe: var(--leise); position: absolute; height: 22px; min-width: 34px; padding: 0; border: 0; border-radius: 2px; overflow: hidden;
   cursor: pointer; background: color-mix(in srgb, var(--farbe) 20%, transparent); color: var(--tinte); font: inherit; text-align: left; z-index: 2; }
 .ueb-block.aktiv, .ueb-muster.aktiv { --farbe: var(--bernstein); } .ueb-block.rot, .ueb-muster.rot { --farbe: var(--rot); }
@@ -1225,6 +1239,7 @@ const TEXTE = {
     ck_grund_ph: "z. B. Termin hängt von einer externen Freigabe ab", ck_akz_ok: "Akzeptieren", ck_akz_fertig: "Akzeptiert",
     ck_akzeptiert: "Bewusst akzeptiert ({n})", ck_grund: "Grund", ck_wieder: "Wieder prüfen", ck_alles_ok: "Alles Offene ist bewusst akzeptiert.",
     ck_nicht_gefunden: "Nicht in der Zeitleiste gefunden",
+    sj_titel: "Stand jetzt", sj_kein_aktiv: "Kein Meilenstein ist aktiv", sj_fertig: "{f} von {g} fertig", sj_ziel: "Nächstes Zieldatum {x} · {b}", sj_kein_ziel: "Kein Zieldatum gesetzt", sj_dran: "Gerade dran", sj_niemand: "Niemand arbeitet gerade an einer Aufgabe.", sj_ohne: "{n} ohne Meilenstein", ue_jetzt: "Jetzt {x}", ue_jetzt_tip: "Jetzt: {x}", ue_fertige_zeigen: "Fertige zeigen ({n})", ue_fertige_aus: "Fertige ausblenden", tl_fertige: "Fertige Meilensteine ({n})", ob_titel: "Ohne Meilenstein ({n})", ob_h: "Diese Aufgaben gehören zu keinem Meilenstein. Zuordnen: amw aufgabe aendern <nr> --bogen <nr>.",
     ue_titel: "Übersicht", ue_summe: "Start {a} · voraussichtlich fertig {b}, sicher bis {c} · rund {n} Wochen ab heute",
     ue_teilweise: "Noch nicht für alle Meilensteine eine Prognose", ue_start: "Start", ue_ohne: "keine offenen Schritte",
     ue_l_p50: "bis zur Prognose (50 %)", ue_l_rot: "zu spät", ue_l_p85: "bis 85 % sicher", ue_l_du: "dein Schritt", ue_l_heute: "heute", ue_l_klick: "Klick auf einen Balken öffnet den Meilenstein",
@@ -1556,6 +1571,7 @@ const TEXTE = {
     ck_grund_ph: "e.g. date depends on an external approval", ck_akz_ok: "Accept", ck_akz_fertig: "Accepted",
     ck_akzeptiert: "Accepted ({n})", ck_grund: "Reason", ck_wieder: "Check again", ck_alles_ok: "Everything open is deliberately accepted.",
     ck_nicht_gefunden: "Not found in the timeline",
+    sj_titel: "Where we stand", sj_kein_aktiv: "No milestone is active", sj_fertig: "{f} of {g} done", sj_ziel: "Next target date {x} · {b}", sj_kein_ziel: "No target date set", sj_dran: "Working now", sj_niemand: "Nobody is working on a task right now.", sj_ohne: "{n} without milestone", ue_jetzt: "Now {x}", ue_jetzt_tip: "Now: {x}", ue_fertige_zeigen: "Show finished ({n})", ue_fertige_aus: "Hide finished", tl_fertige: "Finished milestones ({n})", ob_titel: "Without milestone ({n})", ob_h: "These tasks belong to no milestone. Assign: amw aufgabe aendern <no> --bogen <no>.",
     ue_titel: "Overview", ue_summe: "Start {a} · expected done {b}, safe by {c} · about {n} weeks from today",
     ue_teilweise: "Not all milestones have a forecast yet", ue_start: "Start", ue_ohne: "no open steps",
     ue_l_p50: "to forecast (50 %)", ue_l_rot: "late", ue_l_p85: "to 85 % safe", ue_l_du: "your step", ue_l_heute: "today", ue_l_klick: "Click a bar to open the milestone",
@@ -4012,7 +4028,7 @@ async function sichtPlanung() {
   m.append(el("div", { class: "reiter" }, reiter.map(k => el("button", { class: k === r ? "an" : "", type: "button",
       onclick: () => { zustand.planReiter = k; sichtPlanung(); } }, t("pr_" + k) + (k === "check" && offeneBefunde ? ` (${offeneBefunde})` : "")
       + (k === "risiken" ? ` (${d.risiken.filter(x => x.status !== "erledigt").length})` : "")))));
-  if (r === "zeitleiste") m.append(uebersicht(d) || "", rechnerHeute(d) || "", zeitleiste(d));
+  if (r === "zeitleiste") m.append(standJetzt(d), uebersicht(d) || "", rechnerHeute(d) || "", zeitleiste(d));
   if (r === "termine") m.append(termineAnsicht(d.termine || [], d.ki_fenster));
   if (r === "leitbild") m.append(leitbildAnsicht(d.leitbild));
   if (r === "risiken") m.append(risikoAnsicht(d));
@@ -4090,11 +4106,31 @@ function akzeptierenDialog(d, x) {
   grund.focus();
 }
 /* zum Bogen (und Schritt) in der Zeitleiste springen und kurz hervorheben */
+/* Stand jetzt (A1639): aktiver Meilenstein mit Fortschritt, nächstes Zieldatum, wer gerade an was arbeitet, was ohne Meilenstein ist */
+function standJetzt(d) {
+  const aktiv = d.boegen.filter(b => b.status === "aktiv"), offen = d.boegen.filter(b => ["aktiv", "geplant"].includes(b.status));
+  const ziel = offen.filter(b => b.zieldatum && b.zieldatum >= d.heute).sort((a, b) => a.zieldatum.localeCompare(b.zieldatum))[0];
+  const fortschritt = b => { const g = b.gesamt - (b.verworfen || 0), f = b.fertig || 0;
+    return el("span", {}, el("span", { class: "mb-spur" }, el("i", { style: `width:${g ? Math.round(100 * f / g) : 0}%;background:var(--gruen)` })),
+      " " + t("sj_fertig", { f, g })); };
+  const laeuft = d.laeuft || [], ohne = d.ohne_bogen || [];
+  return el("div", { class: "stand-jetzt", id: "stand-jetzt" }, el("b", {}, t("sj_titel"), " ", hilfeKnopf("planung")),
+    ...(aktiv.length ? aktiv.map(b => el("div", { class: "sj-zeile" }, el("a", { class: "verweis", onclick: () => zuSchritt(null, b.id) },
+        el("span", { class: "ref" }, bogenRef(b.id)), " " + b.titel), fortschritt(b),
+        b.zieldatum ? el("span", { class: "sehrleise" }, `${t("pl_zieldatum")} ${datumKurz(b.zieldatum)}`) : null))
+      : [el("div", { class: "sj-zeile sehrleise" }, t("sj_kein_aktiv"))]),
+    el("div", { class: "sj-zeile sehrleise" }, ziel ? t("sj_ziel", { x: datumKurz(ziel.zieldatum), b: `${bogenRef(ziel.id)} ${ziel.titel}` }) : t("sj_kein_ziel"),
+      ohne.length ? el("a", { class: "verweis", onclick: () => { const o = document.getElementById("ohne-bogen"); if (o) { o.open = true; o.scrollIntoView({ behavior: "smooth", block: "start" }); } } },
+        t("sj_ohne", { n: ohne.length })) : null),
+    el("div", { class: "sj-dran" }, el("span", { class: "sehrleise" }, t("sj_dran") + ":"),
+      laeuft.length ? laeuft.map(a => el("a", { class: "verweis", onclick: () => aufgabeDialog(a.id) }, el("b", {}, a.agent === "Entwickler" ? t("pl_du") : (a.agent || "–")),
+        ` → A${a.id} ${a.titel}` + (a.bogen_id ? ` (${bogenRef(a.bogen_id)})` : ""))) : el("span", { class: "sehrleise" }, t("sj_niemand"))));
+}
 async function zuSchritt(aid, bid) {
   if (zustand.planReiter !== "zeitleiste") { zustand.planReiter = "zeitleiste"; await sichtPlanung(); }
   const ziel = (aid && document.getElementById("schritt-" + aid)) || (bid && document.getElementById("bogen-" + bid));
   if (!ziel) { toast(t("ck_nicht_gefunden")); return; }
-  const det = ziel.closest("details"); if (det) det.open = true;
+  for (let det = ziel.closest("details"); det; det = det.parentElement?.closest("details")) det.open = true;   /* auch „Fertige Meilensteine“ */
   ziel.scrollIntoView({ behavior: "smooth", block: aid ? "center" : "start" });
   ziel.classList.remove("blink"); void ziel.offsetWidth; ziel.classList.add("blink");
 }
@@ -4137,8 +4173,12 @@ function uebersicht(d) {
       .map(s => ({ id: s.id, titel: s.titel, tag: s.prognose.p50 }));
     return { b, start, e50, e85, ziel: b.zieldatum, du, pause: fertig ? 0 : p?.pause_tage || 0 };
   });
-  const zeilen = alle.filter(z => z.start && z.e50), ohne = alle.filter(z => !(z.start && z.e50));
+  const mitDaten = alle.filter(z => z.start && z.e50), ohne = alle.filter(z => !(z.start && z.e50));
+  const nFertig = mitDaten.filter(z => z.b.status === "fertig").length, alleFertig = nFertig === mitDaten.length;
+  const zeigFertige = !!zustand.uebFertige || alleFertig;        /* Wo stehen wir: Fertiges erst auf Wunsch (A1639) */
+  const zeilen = mitDaten.filter(z => zeigFertige || z.b.status !== "fertig");
   if (!zeilen.length) return null;
+  const rang = z => z.b.status === "aktiv" ? 0 : z.b.status === "fertig" ? 2 : 1;
   /* Zeitraum: bis zum Ende der Prognose – oder auf Wunsch bis zum letzten Zieldatum */
   const weit = !!zustand.uebWeit, zielWeiter = zeilen.some(z => z.ziel && z.ziel > z.e85);
   const daten = zeilen.flatMap(z => [z.start, z.e85, ...z.du.map(x => x.tag), weit ? z.ziel : null]).filter(Boolean).concat(d.heute);
@@ -4150,7 +4190,7 @@ function uebersicht(d) {
      Passt der Name nicht in den Balken, steht er rechts daneben (bis 250 px) – auch dafür hält die Spur Platz frei. */
   const spuren = [], mass = (() => { const c = document.createElement("canvas").getContext("2d");
     c.font = `12px ${getComputedStyle(document.body).fontFamily}`; return x => c.measureText(x).width; })();
-  for (const z of zeilen.slice().sort((a, b) => a.start.localeCompare(b.start) || a.e85.localeCompare(b.e85))) {
+  for (const z of zeilen.slice().sort((a, b) => rang(a) - rang(b) || a.start.localeCompare(b.start) || a.e85.localeCompare(b.e85))) {
     z.a = tagNr(z.start); z.m = tagNr(z.e50); z.e = Math.max(tagNr(z.e85), z.m); z.zn = z.ziel ? tagNr(z.ziel) : null; z.t = z.e + z.pause;
     const name = Math.min(mass(`B${z.b.id}  ${z.b.titel}`) + 14, 254);
     z.aussen = (z.e - z.a) * pxTag < name;
@@ -4171,15 +4211,20 @@ function uebersicht(d) {
   const offen = zeilen.filter(z => z.b.status !== "fertig");
   const start = zeilen.map(z => z.start).sort()[0];
   const ende50 = offen.map(z => z.e50).sort().pop(), ende85 = offen.map(z => z.e85).sort().pop();
+  const uhrJetzt = new Date().toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" });
+  const jetztTip = [t("ue_jetzt_tip", { x: `${datumKurz(d.heute)} ${uhrJetzt}` }),
+    ...(d.laeuft || []).map(a => `${a.agent || "–"} → A${a.id} ${a.titel}`)].join("\n");
   /* Rechner: je Tag ein Stück auf derselben Achse – so hoch, wie viele Stunden er mit Läufen belegt war (8 Stunden = voll) */
   const rechnerTage = (d.rechner_heute?.tage || []).filter(x => x.stunden > 0 && tagNr(x.tag) > von && tagNr(x.tag) < bis);
   const flaeche = el("div", { class: "ueb-flaeche", style: `height:${spuren.length * H}px` },
     ticks.map(k => el("i", { class: "ueb-tick", style: `left:${pos(k.n)}` })),
     el("i", { class: "ueb-heute", style: `left:${pos(tagNr(d.heute))}` }),
+    el("span", { class: "ueb-jetzt", style: `left:${pos(tagNr(d.heute))}`, title: jetztTip }),
     zeilen.flatMap(z => {
       const b = z.b, oben = z.spur * H, art = b.status === "fertig" ? "fertig" : b.prognose?.ampel === "rot" ? "rot" : b.status === "aktiv" ? "aktiv" : "";
       const lang = Math.max(z.e - z.a, 0), spaet = z.zn !== null && z.zn < z.m && b.status !== "fertig";
-      const tip = [`${bogenRef(b.id)} · ${b.titel}`, `${t("ue_start")} ${datumKurz(z.start)}`,
+      const tip = [`${bogenRef(b.id)} · ${b.titel}`, `${t("bs_" + b.status)} · ${t("pl_fortschritt", { f: b.fertig || 0, g: b.gesamt - (b.verworfen || 0) })}`,
+        `${t("ue_start")} ${datumKurz(z.start)}`,
         b.status === "fertig" ? `${t("bs_fertig")} ${datumKurz(z.e50)}` : `${t("pl_prognose")} ${datumKurz(z.e50)} – ${datumKurz(z.e85)}`,
         z.pause ? `${TKZ} ${t("tk_plus", { n: z.pause, x: datumKurz(b.prognose.p50_mit) })}` : null,
         z.ziel ? `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` : null].filter(Boolean).join(" · ");
@@ -4187,19 +4232,20 @@ function uebersicht(d) {
           style: `left:${pos(z.a)};top:${oben}px;width:${breite(z.a, z.e)}` },
         el("i", { class: "ueb-b50", style: `width:${lang ? (100 * (z.m - z.a) / lang).toFixed(1) : 100}%` }),
         z.e > z.m ? el("i", { class: "ueb-b85", style: `left:${(100 * (z.m - z.a) / lang).toFixed(1)}%` }) : null,
-        z.aussen ? null : el("span", { class: "ueb-label" }, el("b", {}, "B" + b.id), b.titel))];
+        z.aussen ? null : el("span", { class: "ueb-label" }, el("b", {}, (b.status === "fertig" ? "✓ " : "") + "B" + b.id), b.titel))];
       if (z.pause) teile.push(el("i", { class: "ueb-token", "data-b": b.id, style: `left:${pos(z.e)};top:${oben}px;width:${breite(z.e, z.t)}`,
         title: `${bogenRef(b.id)} · ${TKZ} ${t("tk_plus", { n: z.pause, x: datumKurz(b.prognose.p50_mit) })}\n${tokenRechenweg(d.token)}` }, el("b", {}, TKZ)));
       if (z.aussen) teile.push(el("span", { class: "ueb-name " + art, title: tip, onclick: () => zuSchritt(null, b.id),
         style: `left:calc(${pos(z.t)} + 5px);top:${oben + 2}px;max-width:min(250px, calc(100% - ${pos(z.t)} - 8px))` },
-        el("b", {}, "B" + b.id), b.titel));
+        el("b", {}, (b.status === "fertig" ? "✓ " : "") + "B" + b.id), b.titel));
       if (z.zn !== null) {
         const bisZiel = Math.min(z.zn, bis);
         if (bisZiel > z.e) teile.push(el("i", { class: "ueb-puffer", style: `left:${pos(z.e)};width:${breite(z.e, bisZiel)};top:${oben + 19}px` }));
         teile.push(z.zn > bis
           ? el("span", { class: "ueb-weiter", style: `top:${oben + 12}px`, title: `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` }, `◆ ${datumKurz(z.ziel)} ›`)
           : el("i", { class: "ueb-ziel" + (spaet ? " rot" : ""), style: `left:${pos(z.zn)};top:${oben + 13}px`,
-              title: `${bogenRef(b.id)} · ${t("pl_zieldatum")} ${datumKurz(z.ziel)}` + (spaet ? ` · ${t("ue_l_rot")}` : "") }));
+              title: `${bogenRef(b.id)} ${b.titel} · ${t("pl_zieldatum")} ${datumKurz(z.ziel)} · ${t("bs_" + b.status)}`
+                + (b.status !== "fertig" && b.prognose ? ` · ${t("pl_prognose")} ${datumKurz(z.e50)} – ${datumKurz(z.e85)}` : "") + (spaet ? ` · ${t("ue_l_rot")}` : "") }));
       }
       return teile.concat(z.du.map(x => el("i", { class: "ueb-du", style: `left:${pos(tagNr(x.tag))};top:${oben + 16}px`,
         title: `A${x.id} ${x.titel} – ${t("ck_du")} ≈ ${datumKurz(x.tag)}` })));
@@ -4212,8 +4258,11 @@ function uebersicht(d) {
         n: Math.max(1, Math.round((tagNr(ende85) - tagNr(start < d.heute ? start : d.heute)) / 7)) }) : t("ue_teilweise")),
       el("span", { class: "sehrleise" }, t("ue_spuren", { n: zeilen.length, s: spuren.length })),
       zielWeiter || weit ? el("button", { class: "klein-knopf", type: "button", onclick: () => { zustand.uebWeit = !weit; sichtPlanung(); } },
-        t(weit ? "ue_eng" : "ue_weit")) : null),
-    el("div", { class: "ueb-achse" }, ticks.map(k => el("span", { style: `left:${pos(k.n)}` }, k.text, k.jahr ? el("small", {}, k.jahr) : null))),
+        t(weit ? "ue_eng" : "ue_weit")) : null,
+      nFertig && !alleFertig ? el("button", { class: "klein-knopf", type: "button", onclick: () => { zustand.uebFertige = !zustand.uebFertige; sichtPlanung(); } },
+        zustand.uebFertige ? t("ue_fertige_aus") : t("ue_fertige_zeigen", { n: nFertig })) : null),
+    el("div", { class: "ueb-achse" }, ticks.map(k => el("span", { style: `left:${pos(k.n)}` }, k.text, k.jahr ? el("small", {}, k.jahr) : null)),
+      el("span", { class: "jetzt", style: `left:${pos(tagNr(d.heute))}`, title: jetztTip }, t("ue_jetzt", { x: uhrJetzt }))),
     flaeche,
     rechnerTage.length ? el("div", { class: "ueb-rechner", id: "ueb-rechner" }, el("small", {}, t("rh_spur")),
       el("i", { class: "ueb-heute", style: `left:${pos(tagNr(d.heute))}` }),
@@ -4258,6 +4307,7 @@ function rechnerHeute(d) {
   }
   const schritt = spanne / STD <= 8 ? 1 : spanne / STD <= 16 ? 2 : 3, ticks = [];
   for (let m = von; m < bis; m += schritt * STD) ticks.push(m);
+  const flaecheBreit = Math.max(240, ($("#inhalt")?.clientWidth || innerWidth) - 60);
   const balken = z => {
     const l = z.l, fuell = z.art === "dauer" ? z.x.gb : l.gb;
     const vr = z.art !== "dauer" && l.vorrang === "hoch" ? "\u25b2 " : "";
@@ -4266,12 +4316,13 @@ function rechnerHeute(d) {
       : [l.eigen ? `L${l.id} ${l.wer}` : t("rh_fremd"), l.eigen ? l.text : null, z.art === "wartet" ? t("rh_wartet") : `${uhr(z.a)}–${l.ende_utc ? uhr(z.e) : t("rh_laeuft")}`,
          z.art === "abgebrochen" ? t("rh_abgebrochen") : null, l.gb ? `${zahlKurz(l.gb)} GB` : null,
          l.vorrang ? `${t("rh_vorrang")}: ${t("vr_" + l.vorrang)}` : null].filter(Boolean).join(" · ");
-    return el("div", { class: `rh-lauf ${z.art}${z.l?.eigen ? " eigen" : ""}${z.l?.vorrang === "hoch" ? " vorrang" : ""}`, title: tip, style: `left:${pos(z.a)};width:${breite(z.a, z.e)};top:${z.spur * H + 2}px` },
+    const eng = (Math.min(z.e, bis) - Math.max(z.a, von)) / spanne * flaecheBreit < name.length * 6.5 + 10;   /* Name nur, wo er hinpasst – sonst beim Drüberfahren */
+    return el("div", { class: `rh-lauf ${z.art}${z.l?.eigen ? " eigen" : ""}${z.l?.vorrang === "hoch" ? " vorrang" : ""}${eng ? " eng" : ""}`, title: tip, style: `left:${pos(z.a)};width:${breite(z.a, z.e)};top:${z.spur * H + 2}px` },
       z.art === "wartet" ? null : el("i", { style: `height:${Math.round(100 * Math.min(1, Math.max(.15, (fuell || 0) / (r.gesamt_gb || 32))))}%` }), el("span", {}, name));
   };
   const heute = r.tage.find(x => ms(x.tag + "T12:00:00") >= tagVon && ms(x.tag + "T12:00:00") < tagBis), n = lief.length;
   const leer = !n && !wartet.length && !dauer.length;
-  return el("details", { class: "rh", id: "rechner-heute", open: zustand.rhZu ? null : "", ontoggle: e => { zustand.rhZu = !e.target.open; } },
+  return el("details", { class: "rh", id: "rechner-heute", open: zustand.rhAuf ? "" : null, ontoggle: e => { zustand.rhAuf = e.target.open; } },   /* eingeklappt, bis du es öffnest (A1639) */
     el("summary", {}, el("b", {}, t("rh_titel")), el("span", {}, r.rechner || ""),
       el("span", {}, leer ? t("rh_leer") : [n ? t(n === 1 ? "rh_summe1" : "rh_summe", { n, h: zahlKurz(heute?.stunden || 0) }) : null,
         wartet.length ? t(wartet.length === 1 ? "rh_warten1" : "rh_warten", { n: wartet.length }) : null].filter(Boolean).join(" · "))),
@@ -4292,7 +4343,12 @@ function zeitleiste(d) {
   if (!d.boegen.length) return el("div", { class: "leer" }, t("pl_keine_boegen"));
   const liste = el("div", { class: "zeitleiste" });
   let heuteGesetzt = false;
+  const fertige = d.boegen.filter(b => ["fertig", "verworfen"].includes(b.status));
+  if (fertige.length && fertige.length < d.boegen.length)
+    liste.append(el("details", { class: "tl-fertige", open: zustand.tlFertige ? "" : null, ontoggle: e => { zustand.tlFertige = e.target.open; } },
+      el("summary", { class: "tl-schritte" }, t("tl_fertige", { n: fertige.length })), fertige.map(bogenKarte)));
   for (const b of d.boegen) {
+    if (fertige.length < d.boegen.length && fertige.includes(b)) continue;
     const bezug = b.status === "fertig" ? (b.fertig_utc || "").slice(0, 10) : (b.prognose?.p50 || b.zieldatum);
     if (!heuteGesetzt && b.status !== "fertig" && b.status !== "verworfen" && (!bezug || bezug >= d.heute)) {
       liste.append(el("div", { class: "tl-heute" }, el("span", {}, t("pl_heute", { x: datumKurz(d.heute) }))));
@@ -4301,6 +4357,15 @@ function zeitleiste(d) {
     liste.append(bogenKarte(b));
   }
   if (!heuteGesetzt) liste.append(el("div", { class: "tl-heute" }, el("span", {}, t("pl_heute", { x: datumKurz(d.heute) }))));
+  const ohne = d.ohne_bogen || [];
+  if (ohne.length) liste.append(el("details", { class: "tl-bogen karte ohne-bogen", id: "ohne-bogen", open: zustand.ohneAuf ? "" : null,
+      ontoggle: e => { zustand.ohneAuf = e.target.open; } },
+    el("summary", { class: "tl-kopf" }, el("b", { class: "tl-titel" }, t("ob_titel", { n: ohne.length }))),
+    el("div", { class: "sehrleise", style: "margin:4px 0 6px" }, t("ob_h")),
+    ohne.map(a => el("div", { class: `schritt status-${a.status}`, id: "schritt-" + a.id, onclick: () => aufgabeDialog(a.id) },
+      el("span", { class: "ref" }, `A${a.id}`), el("span", { class: "schritt-titel" }, a.titel),
+      el("span", { class: "etikett" + (a.status === "laeuft" ? " gruen" : "") }, t("sp_" + a.status) || a.status),
+      el("span", { class: "schritt-meta sehrleise" }, a.agent === "Entwickler" ? t("pl_du") : (a.agent || t("pl_frei")))))));
   return liste;
 }
 function bogenKarte(b) {
