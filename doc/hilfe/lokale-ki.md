@@ -26,6 +26,7 @@ Die AMW kann Aufträge an eine KI auf diesem PC geben – zum Beispiel Bilder mi
 - **„nicht freigegeben“** – Das Modell ist eingetragen, aber noch nicht freigegeben (Schritt 2).
 - **Die KI antwortet nicht** – Ohne Startbefehl startet die AMW sie nicht. Selbst starten oder `--start` nachtragen.
 - **Die KI läuft nicht, obwohl sie eingetragen ist** – Das ist gewollt: Die AMW startet sie erst, wenn ein Auftrag kommt.
+- **Ein direkter Aufruf an die KI scheitert („Verbindung abgelehnt“)** – Die KI ist aus. Über `amw ki auftrag` starten lassen, oder sie mit `amw ki aendern <name> --immer-an` ständig laufen lassen.
 
 ## Danach
 - Nachweis der menschlichen Gestaltungsentscheidung (Urheberrecht, Angabe bei Steam): `amw ki nachweis` listet zu jedem KI-Ergebnis, wer ausgewählt, verworfen oder nachbearbeitet hat.
@@ -33,7 +34,7 @@ Die AMW kann Aufträge an eine KI auf diesem PC geben – zum Beispiel Bilder mi
 
 ## Häufige Fragen
 ### Warum ist meine KI plötzlich aus?
-Die AMW startet eine lokale KI nur bei Bedarf: wenn ein Auftrag für sie dran ist. Kommt danach 30 Minuten lang kein Auftrag, beendet sie die KI wieder und gibt Arbeits- und Grafikspeicher frei. Das tut sie nur mit einer KI, die sie selbst gestartet hat – eine KI, die du selbst gestartet hast, beendet sie nie. Soll eine KI ständig laufen: `amw ki aendern <name> --immer-an` (zurück mit `--bei-bedarf`) oder unter Einstellungen › Dieser PC › Lokale KIs immer an.
+Die AMW startet eine lokale KI nur bei Bedarf: wenn ein Auftrag für sie dran ist. Kommt danach 30 Minuten lang kein Auftrag und benutzt sie auch sonst niemand, beendet sie die KI wieder und gibt Arbeits- und Grafikspeicher frei. Das tut sie nur mit einer KI, die sie selbst gestartet hat – eine KI, die du selbst gestartet hast, beendet sie nie. Soll eine KI ständig laufen: `amw ki aendern <name> --immer-an` (zurück mit `--bei-bedarf`) oder unter Einstellungen › Dieser PC › Lokale KIs immer an.
 
 ### Darf ein Agent die KI auch direkt benutzen, an der AMW vorbei?
 Besser nicht. Ein Auftrag über `amw ki auftrag` (oder ein Lauf über `amw lauf ausfuehren --gpu`) steht in der Warteschlange, und die AMW weiß, dass die Grafikkarte belegt ist. Wer die KI direkt anspricht, ist für die Warteschlange unsichtbar: Ein anderer Lauf startet dann womöglich gleichzeitig, und beiden fehlt Speicher.

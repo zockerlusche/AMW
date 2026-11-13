@@ -38,8 +38,36 @@ class Bedarf(Grund):
         d[name] = {"pid": pid, "beginn": beginn, "seit": seit}
         ki.gestartet_schreiben(d)
 
-    def runde(self, jetzt, beginn=lambda pid: 99, immer=frozenset()):
-        return ki.leerlauf_beenden(self.con, jetzt=jetzt, beginn=beginn, beenden_mit=self.beendet.append, immer=immer, minuten=30)
+    def runde(self, jetzt, beginn=lambda pid: 99, immer=frozenset(), frage=lambda k, j: (False, None)):
+        return ki.leerlauf_beenden(self.con, jetzt=jetzt, beginn=beginn, beenden_mit=self.beendet.append, immer=immer, minuten=30,
+                                   frage=frage)
+
+    def test_direkte_nutzung_haelt_die_ki_am_laufen(self):
+        """TL P136: Agenten rufen Ollama/ComfyUI auch direkt auf – dann nie mitten in der Nutzung beenden."""
+        self.merken(seit=1000.0)
+        self.assertEqual(self.runde(1000 + 40 * 60, frage=lambda k, j: (True, None)), [])            # gerade benutzt
+        self.assertEqual(self.runde(1000 + 69 * 60), [])                                                 # Zeit läuft ab der Nutzung
+        self.assertEqual(len(self.runde(1000 + 70 * 60)), 1)
+        self.assertEqual(self.beendet, [4711])
+        self.merken(seit=1000.0)
+        self.assertEqual(self.runde(1000 + 40 * 60, frage=lambda k, j: (False, 1000 + 20 * 60)), [])  # letzte Ausführung vor 20 min
+        self.assertEqual(self.beendet, [4711])
+
+    def test_nutzung_fragt_die_schnittstelle(self):
+        """Ollama /api/ps, ComfyUI /queue und /history (Nachbau); antwortet nichts → im Zweifel beschäftigt."""
+        with mock.patch.object(ki, "_anfrage", side_effect=lambda ep, weg, *a, **k: {"/api/ps": {"models": [{"name": "q"}]}}[weg]):
+            self.assertEqual(ki.nutzung({"schnittstelle": "ollama", "endpunkt": "http://127.0.0.1:1"}), (True, None))
+        with mock.patch.object(ki, "_anfrage", side_effect=lambda ep, weg, *a, **k: {"/api/ps": {"models": []}}[weg]):
+            self.assertEqual(ki.nutzung({"schnittstelle": "ollama", "endpunkt": "http://127.0.0.1:1"}), (False, None))
+        antworten = {"/queue": {"queue_running": [], "queue_pending": []},
+                     "/history?max_items=1": {"p1": {"status": {"messages": [["execution_start", {"timestamp": 1700000000000}],
+                                                                              ["execution_success", {"timestamp": 1700000060000}]]}}}}
+        with mock.patch.object(ki, "_anfrage", side_effect=lambda ep, weg, *a, **k: antworten[weg]):
+            self.assertEqual(ki.nutzung({"schnittstelle": "comfyui", "endpunkt": "http://127.0.0.1:1"}), (False, 1700000060.0))
+        antworten["/queue"] = {"queue_running": [[1, "p2"]], "queue_pending": []}
+        with mock.patch.object(ki, "_anfrage", side_effect=lambda ep, weg, *a, **k: antworten[weg]):
+            self.assertEqual(ki.nutzung({"schnittstelle": "comfyui", "endpunkt": "http://127.0.0.1:1"}), (True, None))
+        self.assertEqual(ki.nutzung({"schnittstelle": "comfyui", "endpunkt": "http://127.0.0.1:9"}), (True, None))   # antwortet nicht
 
     def test_startet_nicht_mehr_von_selbst(self):
         self.con.execute("UPDATE ki SET zustand = 'aus'")
@@ -69,7 +97,7 @@ class Bedarf(Grund):
         self.assertEqual(self.beendet, [])
         aus = self.runde(1000 + 30 * 60)
         self.assertEqual(self.beendet, [4711])
-        self.assertIn("comfy: 30 min ohne Auftrag – beendet", aus[0])
+        self.assertIn("comfy: 30 min weder Auftrag noch Nutzung – beendet", aus[0])
         self.assertNotIn("comfy", ki.gestartet_laden())
         self.assertEqual(ki.ki_zeile(self.con, "comfy")["zustand"], "aus")
 

@@ -66,6 +66,10 @@
   [
    "The AI is not running although it is registered",
    "That is intended: the AMW only starts it when a job comes."
+  ],
+  [
+   "A direct call to the AI fails (“connection refused”)",
+   "The AI is off. Let `amw ki auftrag` start it, or keep it running with `amw ki aendern <name> --immer-an`."
   ]
  ],
  "danach": [
@@ -75,7 +79,7 @@
  "fragen": [
   [
    "Why is my AI suddenly off?",
-   "The AMW starts a local AI only when needed: when a job for it is due. If no job comes for 30 minutes after that, it stops the AI again and frees memory and GPU memory. It only does this with an AI it started itself – it never stops an AI you started yourself. To keep an AI running all the time: `amw ki aendern <name> --immer-an` (back with `--bei-bedarf`) or Settings › This PC › Local AIs always on."
+   "The AMW starts a local AI only when needed: when a job for it is due. If no job comes for 30 minutes after that and nobody else uses it, it stops the AI again and frees memory and GPU memory. It only does this with an AI it started itself – it never stops an AI you started yourself. To keep an AI running all the time: `amw ki aendern <name> --immer-an` (back with `--bei-bedarf`) or Settings › This PC › Local AIs always on."
   ],
   [
    "May an agent use the AI directly, bypassing the AMW?",

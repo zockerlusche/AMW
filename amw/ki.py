@@ -10,7 +10,9 @@
 - Nur bei Bedarf (A1649, Marcel F5314): Antwortet eine KI nicht, startet der Dienst sie erst, wenn ein Auftrag für sie dran
   ist (Startbefehl ohne Fenster, wie Projekt-Server). Hat eine KI, die er selbst gestartet hat, ki_leerlauf_min (30) Minuten
   keinen Auftrag mehr, beendet er sie samt Kindern – nur genau diesen Prozess (PID und Startzeit gemerkt in
-  daten/ki-gestartet.json), nie eine KI, die jemand anders gestartet hat. KIs in ki_immer_an startet er wie früher von
+  daten/ki-gestartet.json), nie eine KI, die jemand anders gestartet hat, und nie, solange die KI selbst Nutzung zeigt
+  (Ollama: geladenes Modell; ComfyUI: Warteschlange/letzte Ausführung – auch direkte Aufrufe an der AMW vorbei) oder nicht
+  antwortet. KIs in ki_immer_an startet er wie früher von
   selbst und beendet sie nie. Platz im Grafikspeicher schafft er sonst über die Schnittstelle (Ollama keep_alive 0, ComfyUI
   /free), abbrechen über /interrupt bzw. Schließen der Anfrage.
 - Startbefehl und Endpunkt kommen nur über die Kommandozeile am PC in die Datenbank (nie über Brücke oder Online-Seite).
@@ -565,13 +567,36 @@ def _utc_sek(utc):
     return datetime.datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()
 
 
-def leerlauf_beenden(con, jetzt=None, beginn=None, beenden_mit=None, immer=None, minuten=None):
-    """Selbst gestartete KIs ohne Auftrag seit `minuten` beenden (samt Kindern). Nie: KIs in ki_immer_an, KIs mit wartendem
-    oder laufendem Auftrag, Prozesse, die nicht mehr genau unsere sind (PID weg oder neu vergeben → vergessen).
-    Rückgabe: Ereignistexte."""
+def nutzung(ki, jetzt=None):
+    """Fragt die KI selbst, ob sie gerade jemand benutzt – auch an der AMW vorbei (TL P136): Rückgabe (beschaeftigt, zuletzt).
+    Ollama: ein geladenes Modell (/api/ps) heißt „eben benutzt“ (es bleibt nur keep_alive lang geladen). ComfyUI: laufende oder
+    wartende Prompts (/queue), sonst die Zeit der letzten Ausführung (/history). Antwortet sie nicht: (True, None) – im
+    Zweifel nicht beenden."""
+    try:
+        if ki["schnittstelle"] == "ollama":
+            return bool((_anfrage(ki["endpunkt"], "/api/ps", frist=5) or {}).get("models")), None
+        if ki["schnittstelle"] == "comfyui":
+            q = _anfrage(ki["endpunkt"], "/queue", frist=5) or {}
+            if q.get("queue_running") or q.get("queue_pending"):
+                return True, None
+            h = _anfrage(ki["endpunkt"], "/history?max_items=1", frist=5) or {}
+            zeiten = [m[1].get("timestamp") for x in h.values() for m in ((x.get("status") or {}).get("messages") or [])
+                      if isinstance(m, (list, tuple)) and len(m) > 1 and isinstance(m[1], dict) and m[1].get("timestamp")]
+            return False, (max(zeiten) / 1000 if zeiten else None)
+    except (KiFehler, OSError, ValueError, AttributeError, TypeError):
+        return True, None
+    return False, None
+
+
+def leerlauf_beenden(con, jetzt=None, beginn=None, beenden_mit=None, immer=None, minuten=None, frage=None):
+    """Selbst gestartete KIs beenden (samt Kindern), wenn seit `minuten` weder ein AMW-Auftrag kam NOCH die KI selbst benutzt
+    wurde (nutzung(): auch direkte Aufrufe an der AMW vorbei). Nie: KIs in ki_immer_an, KIs mit wartendem oder laufendem
+    Auftrag, eine KI, die nicht antwortet (im Zweifel nicht), Prozesse, die nicht mehr genau unsere sind (PID weg oder neu
+    vergeben → vergessen). Jede Runde gesehene Nutzung setzt die Zeit zurück. Rückgabe: Ereignistexte."""
     jetzt = time.time() if jetzt is None else jetzt
     beginn = beginn or _prozess_beginn
     beenden_mit = beenden_mit or _baum_beenden
+    frage = frage or nutzung
     immer = immer_an() if immer is None else immer
     minuten = leerlauf_min() if minuten is None else minuten
     d = gestartet_laden()
@@ -592,6 +617,13 @@ def leerlauf_beenden(con, jetzt=None, beginn=None, beenden_mit=None, immer=None,
             letzt = con.execute("SELECT max(coalesce(ende_utc, start_utc)) FROM ki_auftrag WHERE ki_id = ?", (ki["id"],)).fetchone()[0]
             if letzt:
                 zuletzt = max(zuletzt, _utc_sek(letzt))
+            beschaeftigt, direkt = frage(ki, jetzt)             # jede Runde: auch wer die KI direkt benutzt, zählt
+            if beschaeftigt:
+                if g.get("genutzt") != jetzt:
+                    g["genutzt"] = jetzt
+                    geaendert = True
+                continue
+            zuletzt = max(zuletzt, g.get("genutzt") or 0, direkt or 0)
         if jetzt - zuletzt < minuten * 60:
             continue
         beenden_mit(g["pid"])
@@ -600,7 +632,7 @@ def leerlauf_beenden(con, jetzt=None, beginn=None, beenden_mit=None, immer=None,
         if ki:
             with db.schreiben(con):
                 con.execute("UPDATE ki SET zustand = 'aus', geladen = NULL, geprueft_utc = ? WHERE id = ?", (db.jetzt(), ki["id"]))
-        aus.append(f"{name}: {minuten} min ohne Auftrag – beendet (von der AMW gestartet, PID {g['pid']})")
+        aus.append(f"{name}: {minuten} min weder Auftrag noch Nutzung – beendet (von der AMW gestartet, PID {g['pid']})")
     if geaendert:
         gestartet_schreiben(d)
     return aus

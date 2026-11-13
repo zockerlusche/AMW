@@ -7,7 +7,7 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 ## 1.95.0 – 14.11.2026 · Lokale KIs nur bei Bedarf
 - **Startet erst mit einem Auftrag:** Die AMW startet eine lokale KI (ComfyUI, Ollama) nicht mehr von selbst, sobald sie nicht
   antwortet, sondern erst, wenn ein Auftrag für sie dran ist. Hat sie die KI selbst gestartet und kommt 30 Minuten lang kein
-  Auftrag, beendet sie sie wieder und gibt Arbeits- und Grafikspeicher frei. Eine KI, die du selbst gestartet hast, beendet sie
+  Auftrag – und benutzt sie auch sonst niemand, etwa direkt an der AMW vorbei –, beendet sie sie wieder und gibt Arbeits- und Grafikspeicher frei. Eine KI, die du selbst gestartet hast, beendet sie
   nie; die AMW erkennt ihren eigenen Prozess an Nummer und Startzeit.
 - **Immer an, wenn du willst:** `amw ki aendern <name> --immer-an` (zurück mit `--bei-bedarf`) oder Einstellungen › Dieser PC ›
   Lokale KIs immer an. Die Minuten bis zum Beenden stellst du dort ebenfalls ein. Betrieb › KI zeigt je KI „nur bei Bedarf“ bzw.

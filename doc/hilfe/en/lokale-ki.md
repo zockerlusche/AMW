@@ -26,6 +26,7 @@ The AMW can give jobs to an AI on this PC – images with ComfyUI or texts with 
 - **“not approved”** – The model is registered but not approved yet (step 2).
 - **The AI does not answer** – Without a start command the AMW does not start it. Start it yourself or add `--start`.
 - **The AI is not running although it is registered** – That is intended: the AMW only starts it when a job comes.
+- **A direct call to the AI fails (“connection refused”)** – The AI is off. Let `amw ki auftrag` start it, or keep it running with `amw ki aendern <name> --immer-an`.
 
 ## Next
 - Proof of the human creative decision (copyright, Steam disclosure): `amw ki nachweis` lists who selected, discarded or reworked each AI result.
@@ -33,7 +34,7 @@ The AMW can give jobs to an AI on this PC – images with ComfyUI or texts with 
 
 ## Questions
 ### Why is my AI suddenly off?
-The AMW starts a local AI only when needed: when a job for it is due. If no job comes for 30 minutes after that, it stops the AI again and frees memory and GPU memory. It only does this with an AI it started itself – it never stops an AI you started yourself. To keep an AI running all the time: `amw ki aendern <name> --immer-an` (back with `--bei-bedarf`) or Settings › This PC › Local AIs always on.
+The AMW starts a local AI only when needed: when a job for it is due. If no job comes for 30 minutes after that and nobody else uses it, it stops the AI again and frees memory and GPU memory. It only does this with an AI it started itself – it never stops an AI you started yourself. To keep an AI running all the time: `amw ki aendern <name> --immer-an` (back with `--bei-bedarf`) or Settings › This PC › Local AIs always on.
 
 ### May an agent use the AI directly, bypassing the AMW?
 Better not. A job via `amw ki auftrag` (or a run via `amw lauf ausfuehren --gpu`) sits in the queue, and the AMW knows the graphics card is busy. Whoever talks to the AI directly is invisible to the queue: another run may then start at the same time, and both run short of memory.
