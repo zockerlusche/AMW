@@ -165,7 +165,7 @@ class Vorgemerkt(Grund):
             b = betrieb.lauf_start(self.con, self.p["Eins"], "B", "Durchstich, echte KI", gpu=True, speicher_frei=13.9, warten=True)
             self.assertEqual(self.status(b), "angemeldet")                                        # früher: sofort eingelassen
             grund = betrieb.wartegrund(self.con, self.p["Eins"], betrieb.lauf_zeile(self.con, self.p["Eins"], b), speicher_frei=13.9)
-            self.assertIn("nur 13.9 GB frei (8 GB davon für laufende Läufe vorgemerkt), gebraucht 8 GB und 3 GB Reserve", grund)
+            self.assertIn(f"nur 13.9 GB frei (8 GB davon für laufende Läufe vorgemerkt: 8 GB für L{a} von A), gebraucht 8 GB und 3 GB Reserve", grund)
             self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=13.9), [])
             # bekannter Prozess (amw lauf ausfuehren): was er schon belegt, steckt in der Messung und ist nicht mehr vorgemerkt
             liste = [{"pid": 50, "eltern": 1, "name": "cmd", "gb": 0.1, "seit": None}, {"pid": 51, "eltern": 50, "name": "godot", "gb": 7.4, "seit": None}]

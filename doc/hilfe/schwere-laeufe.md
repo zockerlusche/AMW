@@ -17,13 +17,14 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 | Feld in der AMW | Woher |
 |---|---|
 | Schwere Befehle über die Warteschlange (Dieser PC) | an lassen; aus heißt: Agenten starten alles direkt |
+| Vorrang der Projekte (Dieser PC) | je Projekt hoch, normal oder niedrig, Vorgabe normal |
 | Arbeitsspeicher-Reserve (Dieser PC) | so viel bleibt für dich frei, Vorgabe 3 GB |
 | Dauerhaft belegt anzeigen ab (Dieser PC) | ab so viel Arbeitsspeicher erscheint ein Programm außerhalb der Warteschlange im Leitstand, Vorgabe 4 GB, 0 = aus |
 | Weitere schwere Befehle (Projekt) | Name = Muster, ein Eintrag je Zeile; das Muster ist ein regulärer Ausdruck |
 
 ## Typische Fehler
 - **Ein Agent startet Tests weiter direkt** – Sein Ordner hat den Hook noch nicht: `amw einrichten agenten-ordner <ordner>` ausführen.
-- **Ein Lauf wartet lange** – Im Leitstand steht, warum: der Rechner ist belegt oder es ist zu wenig Arbeitsspeicher frei. Der Mensch kann einen Lauf vorziehen (`amw lauf vorziehen <nr>`).
+- **Ein Lauf wartet lange** – Im Leitstand steht, warum: der Rechner ist belegt, es ist zu wenig Arbeitsspeicher frei oder ein Lauf davor wartet – dann steht dabei, wie viel Arbeitsspeicher er braucht und wie viel nutzbar ist. Der Mensch kann einen Lauf vorziehen (`amw lauf vorziehen <nr>`).
 - **Ein einzelner kurzer Test wird abgewiesen** – Das Muster ist zu weit gefasst. Einzelne Test-Module bleiben frei; eigene Muster enger fassen.
 - **„Muster ungültig“** – Das Muster ist kein gültiger regulärer Ausdruck, zum Beispiel fehlt eine Klammer.
 
@@ -35,6 +36,12 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 - Jeder Rechner hat seine eigene Warteschlange.
 
 ## Häufige Fragen
+### Wie bekommt ein Projekt Vorrang?
+Unter Einstellungen › Dieser PC › „Vorrang der Projekte“ stellst du je Projekt hoch, normal oder niedrig ein. Wartende Läufe kommen dann in dieser Reihenfolge dran: zuerst, was du selbst vorgezogen hast, dann „hoch“, dann „normal“, dann „niedrig“ – innerhalb einer Stufe der Reihe nach. Ein Lauf, der schon läuft, wird nie abgebrochen. Der Wartegrund nennt den Vorrang; im Zeitstrahl „Rechner – heute“ sind Vorrang-Läufe mit ▲ markiert, im Leitstand steht die Liste kurz. Die Einstellung gehört dem PC, nicht einem Projekt – Namen anderer Projekte siehst du nur am PC.
+
+### Warum ist für einen laufenden Lauf Arbeitsspeicher vorgemerkt?
+Ein Lauf braucht seinen Arbeitsspeicher oft erst nach und nach. Damit kein zweiter Lauf daneben startet, der ihm den Speicher wegnimmt, hält die Warteschlange seinen Bedarf frei. Hat er keinen Bedarf angegeben, gilt die Grenze seines Projekts – aber nur in den ersten 15 Minuten; danach zählt, was er wirklich belegt. Der Wartegrund nennt, für welchen Lauf wie viel vorgemerkt ist.
+
 ### Was passiert, wenn der Hook einmal nicht funktioniert?
 Dann läuft der Befehl ganz normal – gesperrt wird bei einem Fehler nie. Der Fehler steht im Protokoll `%LOCALAPPDATA%\amw\hook-fehler.log` auf diesem PC; steht dort etwas, lohnt ein Blick, weil schwere Befehle dann wieder direkt starten.
 

@@ -597,7 +597,8 @@ def daten_einstellungen(con, pid, speicher=None):
                         "schwere_befehle": pe.get("schwere_befehle") or [],
                         "info_ablage_h": pe.get("info_ablage_h", INFO_ABLAGE_H)},
             "agenten": agenten,
-            "pc": {**einstellungen.laden(), "datei": einstellungen.pfad()},
+            "pc": {**einstellungen.laden(), "datei": einstellungen.pfad(),
+                   "vorrang_projekte": [r["name"] for r in con.execute("SELECT name FROM projekt ORDER BY name")]},
             # je Feld: die Vorgabe (zum Vergleich mit dem Wert) und ob der Wächter dafür neu starten muss
             "vorgaben": {"pc": {k: v[0] for k, v in einstellungen.FELDER.items() if k not in ("rechner", "db_pfad")},   # die beiden hängen am Rechner
                          "projekt": {"takt_min": TAKT_MIN, "speicher_grenze_gb": SPEICHER_GRENZE_GB,

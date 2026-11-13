@@ -37,7 +37,7 @@ def auslastung(con, pid):
             "eigene_warten": sum(1 for l in warten if l["projekt_id"] == pid),
             "frei_ab_utc": max(enden).strftime("%Y-%m-%dT%H:%M:%SZ") if enden and len(enden) == len(laufen) else None,
             "angemeldet_gb": round(sum(l["braucht_gb"] or 0 for l in laufen), 1) or None,     # so viel haben die laufenden angemeldet
-            "frei_gb": frei, "gesamt_gb": gesamt, "rechner": rechner()}
+            "frei_gb": frei, "gesamt_gb": gesamt, "rechner": rechner(), "vorrang": vorrang_liste(con)}
 def tagesverlauf(con, pid, jetzt=None, tage=60):
     """Der Rechner heute, für den Zeitstrahl in der Planung: Läufe aller Projekte auf diesem Rechner, die heute liefen,
     laufen oder warten – eigene mit Nummer, Agent und Beschreibung, fremde nur als Zeitraum und Bedarf („anderes
@@ -61,6 +61,9 @@ def tagesverlauf(con, pid, jetzt=None, tage=60):
         + " AND (l.status IN ('angemeldet', 'laeuft') OR coalesce(l.ende_utc, l.start_utc, l.angemeldet_utc) >= ?) ORDER BY l.id",
         (rechner(), iso(von - datetime.timedelta(days=tage)))).fetchall()
     heute, je_tag = [], {}
+    v = vorrang()
+    reihe = {x["id"]: i for i, x in enumerate(wartende(con))}           # Wartende in der Reihenfolge der Schlange
+    zeilen = sorted(zeilen, key=lambda l: (l["status"] == "angemeldet", reihe.get(l["id"], 0), l["id"]))
     for l in zeilen:
         start, ende = zeit(l["start_utc"]), zeit(l["ende_utc"])
         wartet, laeuft = l["status"] == "angemeldet", l["status"] == "laeuft"
@@ -83,7 +86,8 @@ def tagesverlauf(con, pid, jetzt=None, tage=60):
                       "text": kurzfassung(l["beschreibung"], 80) if eigen else None,
                       "status": "wartet" if wartet else l["status"], "angemeldet_utc": l["angemeldet_utc"] if wartet else None,
                       "start_utc": None if wartet else l["start_utc"], "ende_utc": l["ende_utc"], "erwartet_min": l["erwartet_min"],
-                      "gb": _bedarf(con, l) or None, "vram_gb": l["braucht_vram_gb"], "gpu": bool(l["gpu"]), "schirm": bool(l["schirm"])})
+                      "gb": _bedarf(con, l) or None, "vram_gb": l["braucht_vram_gb"], "gpu": bool(l["gpu"]), "schirm": bool(l["schirm"]),
+                      "vorrang": None if vorrang_stufe(con, l["projekt_id"], v) == "normal" else vorrang_stufe(con, l["projekt_id"], v)})
     tage_liste = []
     for tag, e in sorted(je_tag.items()):
         belegt, bis_jetzt = datetime.timedelta(), None          # Vereinigung der Zeiträume: gleichzeitige Läufe zählen einmal
@@ -276,25 +280,45 @@ def _besetzt(con, pid, plaetze):
     return None, None
 
 
-def _vorgemerkt_gb(con):
-    """Arbeitsspeicher, den laufende schwere Läufe dieses Rechners noch für sich brauchen: je Lauf sein angemeldeter
-    Bedarf (eigene Angabe, sonst Rezept, sonst Grenze seines Projekts) minus dem, was sein Prozessbaum schon belegt –
-    nie unter 0. Den Prozess kennt die AMW bei „amw lauf ausfuehren“; sonst (von Hand gestartet, KI-Auftrag) gilt der
-    ganze Bedarf als vorgemerkt, bis der Lauf endet – lieber einen Lauf warten lassen als zwei abbrechen."""
-    r = con.execute("SELECT l.id, l.projekt_id, l.schwer, l.braucht_gb, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
-                    " WHERE l.status = 'laeuft' AND l.schwer = 1 AND " + HIER, (rechner(),)).fetchall()
+ANLAUF_MIN = 15      # so lange hält ein laufender Lauf OHNE eigene Bedarfsangabe die Grenze seines Projekts frei (A1623 c)
+
+
+def _vormerkungen(con, jetzt=None):
+    """Was laufende schwere Läufe dieses Rechners noch für sich brauchen – [(Lauf-Zeile, GB)], nur Einträge > 0.
+    Je Lauf: angemeldeter Bedarf (eigene Angabe, sonst Rezept, sonst Grenze seines Projekts) minus dem, was sein
+    Prozessbaum schon belegt – nie unter 0. Den Prozess kennt die AMW bei „amw lauf ausfuehren“; sonst (von Hand
+    gestartet, KI-Auftrag) gilt der ganze Bedarf als vorgemerkt – lieber einen Lauf warten lassen als zwei abbrechen.
+    Ein Lauf OHNE eigene Angabe (nur die pauschale Grenze seines Projekts) hält sie nur in den ersten ANLAUF_MIN Minuten
+    frei: danach steckt, was er wirklich belegt, schon in der Messung des freien Speichers."""
+    import datetime
+    r = con.execute("SELECT l.*, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
+                    " WHERE l.status = 'laeuft' AND l.schwer = 1 AND " + HIER + " ORDER BY l.id", (rechner(),)).fetchall()
     if not r:
-        return 0.0
+        return []
     from . import belegung
-    liste, summe = None, 0.0
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    liste, aus = None, []
     for x in r:
+        if not (x["braucht_gb"] or x["braucht_speicher_gb"]) and x["start_utc"]:
+            try:
+                seit = jetzt - datetime.datetime.strptime(x["start_utc"][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=datetime.timezone.utc)
+            except ValueError:
+                seit = None
+            if seit is not None and seit > datetime.timedelta(minutes=ANLAUF_MIN):
+                continue
         bedarf, schon = _bedarf(con, x), 0.0
         pid = belegung.lauf_pid(x["id"])
         if pid:
             liste = belegung.prozesse() if liste is None else liste
             schon = belegung.baum_gb(liste, pid) or 0.0
-        summe += max(0.0, bedarf - schon)
-    return round(summe, 1)
+        if bedarf - schon > 0:
+            aus.append((x, round(bedarf - schon, 1)))
+    return aus
+
+
+def _vorgemerkt_gb(con):
+    """Summe von _vormerkungen()."""
+    return round(sum(gb for _, gb in _vormerkungen(con)), 1)
 
 
 def _speicher_fehlt(con, pid, l_grenze, speicher_frei):
@@ -302,11 +326,61 @@ def _speicher_fehlt(con, pid, l_grenze, speicher_frei):
     sich vorgemerkt haben) – jeder schwere Lauf braucht seine Grenze für sich."""
     if not l_grenze or speicher_frei is None:
         return None
-    vorgemerkt, reserve = _vorgemerkt_gb(con), reserve_gb()
+    vm = _vormerkungen(con)
+    vorgemerkt, reserve = round(sum(gb for _, gb in vm), 1), reserve_gb()
     if speicher_frei - vorgemerkt - reserve < l_grenze:
-        return f"nur {speicher_frei} GB frei" + (f" ({vorgemerkt:g} GB davon für laufende Läufe vorgemerkt)" if vorgemerkt else "") \
+        wer = ": " + ", ".join(f"{gb:g} GB für {lauf_nennen(pid, x, mit_text=False)}" for x, gb in vm) if len(vm) else ""
+        return f"nur {speicher_frei} GB frei" + (f" ({vorgemerkt:g} GB davon für laufende Läufe vorgemerkt{wer})" if vorgemerkt else "") \
             + f", gebraucht {l_grenze:g} GB" + (f" und {reserve:g} GB Reserve" if reserve else "")
     return None
+
+
+def _vordermann(con, pid, x, speicher_frei):
+    """Ein wartender Lauf vor einem anderen, als Text – mit Vorrang und, wenn er auf Arbeitsspeicher wartet, wie viel er
+    braucht und wie viel nutzbar ist (A1623 a). Fremde Läufe ohne Projekt, Agent und Inhalt."""
+    eigen = x["projekt_id"] == pid
+    teile = [x["agent"] if eigen else "anderes Projekt"]
+    st = vorrang_stufe(con, x["projekt_id"])
+    if st != "normal":
+        teile.append(t_vorrang(st) + (f" für {projekt_name(con, pid)}" if eigen else ""))
+    if speicher_frei is not None and _bedarf(con, x):
+        nutzbar = round(speicher_frei - _vorgemerkt_gb(con) - reserve_gb(), 1)
+        if nutzbar < _bedarf(con, x):
+            teile.append(f"wartet auf Arbeitsspeicher: braucht {_bedarf(con, x):g} GB, {max(nutzbar, 0):g} GB nutzbar")
+    return f"L{x['id']} ({', '.join(teile)})"
+
+
+# --- Vorrang der Projekte (A1623): Einstellung dieses PCs, je Projektname hoch | normal | niedrig ----------------------
+
+VORRANG = {"hoch": 2, "normal": 1, "niedrig": 0}
+
+
+def vorrang():
+    """{Projektname: „hoch“ | „niedrig“} – Einstellung dieses PCs; ein Projekt, das fehlt, hat „normal“."""
+    from . import einstellungen
+    return einstellungen.wert("vorrang")
+
+
+def projekt_name(con, pid):
+    r = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()
+    return r["name"] if r else "?"
+
+
+def vorrang_stufe(con, pid, v=None):
+    """„hoch“ | „normal“ | „niedrig“ eines Projekts auf diesem Rechner."""
+    v = vorrang() if v is None else v
+    return v.get(projekt_name(con, pid), "normal") if v else "normal"
+
+
+def vorrang_liste(con):
+    """Projekte dieses Rechners mit Vorrang ≠ normal: [{"projekt", "stufe"}] – hoch zuerst (für den Leitstand, nur am PC)."""
+    v = vorrang()
+    namen = [r["name"] for r in con.execute("SELECT name FROM projekt ORDER BY name")]
+    return sorted(({"projekt": n, "stufe": v[n]} for n in namen if n in v), key=lambda x: (-VORRANG[x["stufe"]], x["projekt"]))
+
+
+def t_vorrang(stufe):
+    return {"hoch": "Vorrang", "niedrig": "niedriger Vorrang"}.get(stufe, "")
 
 
 def _lebt(con, pid, l):
@@ -349,8 +423,9 @@ def _gesperrt(con, pid, wartend, schirm_zu, bis=None):
 
 
 def wartende(con, pid=None):
-    """Die Warteschlange dieses Rechners – über alle Projekte (eine Datenbank = ein Rechner). Wer zuerst kommt, ist zuerst
-    dran, egal aus welchem Projekt. Vom Menschen Vorgezogene stehen ganz vorn; ein Lead sortiert nur die Läufe seines
+    """Die Warteschlange dieses Rechners – über alle Projekte (eine Datenbank = ein Rechner). Vom Menschen Vorgezogene
+    stehen ganz vorn; danach zuerst die Projekte mit Vorrang „hoch“, dann „normal“, dann „niedrig“ (Einstellung dieses
+    PCs, A1623) – innerhalb einer Stufe: wer zuerst kommt, ist zuerst dran. Ein Lead sortiert nur die Läufe seines
     eigenen Projekts um (sie tauschen untereinander die Plätze, kein fremder Lauf rückt dadurch nach hinten).
     pid ist nur noch der Betrachter (wer fragt), kein Filter. ki_auftrag: der Lauf ist ein KI-Auftrag (führt der Dienst
     aus, kein Weckruf an den Agenten); nachts: startet erst im KI-Fenster."""
@@ -358,7 +433,9 @@ def wartende(con, pid=None):
                          " LEFT JOIN ki_auftrag k ON k.lauf_id = l.id WHERE l.status = 'angemeldet' AND " + HIER + " ORDER BY l.id",
                          (rechner(),)).fetchall()
     oben = sorted((z for z in zeilen if z["rang"] >= MENSCH_RANG), key=lambda z: (-z["rang"], z["id"]))
-    rest = [z for z in zeilen if z["rang"] < MENSCH_RANG]
+    v = vorrang()
+    stufe = {p: VORRANG[vorrang_stufe(con, p, v)] for p in {z["projekt_id"] for z in zeilen}}
+    rest = sorted((z for z in zeilen if z["rang"] < MENSCH_RANG), key=lambda z: (-stufe[z["projekt_id"]], z["id"]))
     je_projekt = {}
     for z in rest:
         je_projekt.setdefault(z["projekt_id"], []).append(z)
@@ -392,12 +469,14 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     plaetze = _plaetze(schwer, schirm, gpu, None if dazu else agent, pid)
     with db.schreiben(con):
         w = wartende(con, pid)
+        eigene = VORRANG[vorrang_stufe(con, pid)]          # nur wer nach der Reihenfolge vor ihm stünde, hält ihn auf
+        w_vor = [x for x in w if x["rang"] >= MENSCH_RANG or VORRANG[vorrang_stufe(con, x["projekt_id"])] >= eigene]
         schirm_zu = schirm_mod.sperrgrund(con) if schirm or any(x["schirm"] for x in w) else None
         grund = sperre or (schirm_zu if schirm else None) or _besetzt(con, pid, plaetze)[0]
-        gesperrt = _gesperrt(con, pid, w, schirm_zu) if not sperre else {}
+        gesperrt = _gesperrt(con, pid, w_vor, schirm_zu) if not sperre else {}
         vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
         if not grund and vor:
-            grund = "Warteschlange: " + ", ".join(lauf_nennen(pid, x, mit_text=False) for x in vor) + " wartet schon"
+            grund = "Warteschlange: vor dir " + ", ".join(_vordermann(con, pid, x, speicher_frei) for x in vor)
         if not grund:
             grund = _speicher_fehlt(con, pid, grenze, speicher_frei)
         if not grund:
@@ -503,7 +582,7 @@ def wartegrund(con, pid, l, speicher_frei=None):
     gesperrt = _gesperrt(con, pid, w, schirm_zu, bis=l["id"]) if platz else {}
     vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
     if vor:
-        gruende.append("vor dir: " + ", ".join(f"L{x['id']} ({x['agent'] if x['projekt_id'] == pid else 'anderes Projekt'})" for x in vor))
+        gruende.append("vor dir: " + ", ".join(_vordermann(con, pid, x, frei) for x in vor))
     g = _speicher_fehlt(con, pid, _bedarf(con, l), frei)
     if g and speicher_frei is None:                     # echte Messung: sagen, wer den Speicher außerhalb der Warteschlange hält
         from . import belegung
@@ -514,6 +593,9 @@ def wartegrund(con, pid, l, speicher_frei=None):
     if g:
         gruende.append(g)
     kopf = f"Platz {platz} von {len(w)}" if platz else "nicht in der Schlange"
+    st = vorrang_stufe(con, pid)
+    if platz and st != "normal":
+        kopf += f" ({t_vorrang(st)} für {projekt_name(con, pid)})"
     return kopf + (" – " + " · ".join(gruende) if gruende else " – gleich dran (nächste Runde des Dienstes)")
 
 

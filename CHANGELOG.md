@@ -4,6 +4,21 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.86.0 – 13.11.2026 · Vorrang der Projekte in der Warteschlange
+- **Einstellungen › Dieser PC › „Vorrang der Projekte“:** je Projekt hoch, normal oder niedrig (Vorgabe normal). Die
+  Einstellung gehört dem PC, nicht einem Projekt; ändern lässt sie sich nur am PC. Sie wirkt sofort.
+- **Reihenfolge der Wartenden:** zuerst, was der Mensch vorgezogen hat, dann „hoch“, dann „normal“, dann „niedrig“ –
+  innerhalb einer Stufe der Reihe nach, je Spur (CPU, Grafikkarte, Bildschirm) wie bisher. Ein Lauf, der schon läuft,
+  wird nie abgebrochen. Ein Lead sortiert weiter nur unter den Läufen seines Projekts um.
+- **Wartegrund:** nennt den Vorrang („Platz 1 von 3 (Vorrang für …)“, „vor dir: L12 (anderes Projekt, Vorrang)“) und,
+  wenn der Lauf davor auf Arbeitsspeicher wartet, wie viel er braucht und wie viel nutzbar ist. Fehlt Arbeitsspeicher,
+  steht dabei, für welchen laufenden Lauf wie viel vorgemerkt ist. Fremde Projekte bleiben ohne Namen.
+- **Rechner – heute:** Vorrang-Läufe tragen ▲; Leitstand › „Rechner“ nennt die Projekte mit Vorrang (online nur das
+  eigene).
+- **Vorgemerkter Arbeitsspeicher:** Ein laufender Lauf ohne eigene Bedarfsangabe hält die Grenze seines Projekts nur
+  noch in den ersten 15 Minuten frei; danach zählt, was er wirklich belegt. Läufe mit Angabe wie bisher.
+- Hilfe „Schwere Läufe“: zwei neue Fragen (Vorrang, vorgemerkter Arbeitsspeicher) (A1623 Stufe V1).
+
 ## 1.84.1 – 12.11.2026 · Kein Zwilling unter fremdem Namen
 - **Behoben:** Eine zweite Claude-Sitzung, die ohne Startskript (ohne `AMW_AGENT`) läuft, konnte mit `--von <name>`
   als ein Agent schreiben, der gerade in einer anderen Sitzung angemeldet ist – Nachrichten lesen und posten, Aufgaben

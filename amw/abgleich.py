@@ -335,6 +335,13 @@ def ansichten(con, pid, speicher=None):
          "/api/seit": verlauf.seit_daten(con, pid),
          "/api/listen": workbench.daten_listen(con, pid),
          "/api/themen": workbench.daten_themen(con, pid)}
+    eigen = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()["name"]
+    re_ = a["/api/start"].get("rechner")
+    if isinstance(re_, dict):                     # Vorrang der Projekte (A1623): fremde Projektnamen bleiben am PC
+        re_["vorrang"] = [x for x in re_.get("vorrang") or [] if x["projekt"] == eigen]
+    pc = a["/api/einstellungen"].get("pc") or {}
+    pc["vorrang"] = {k: v for k, v in (pc.get("vorrang") or {}).items() if k == eigen}
+    pc["vorrang_projekte"] = [eigen]
     for t in a["/api/themen"]:
         a[f"/api/thema?id={t['id']}"] = workbench.daten_thema(con, pid, t["id"])
     for s in SICHTEN:

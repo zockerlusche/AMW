@@ -17,13 +17,14 @@ Several projects share one PC. If test suites, builds or image runs start at the
 | Field in the AMW | Where it comes from |
 |---|---|
 | Send heavy commands through the queue (This PC) | leave it on; off means agents start everything directly |
+| Project priority (This PC) | high, normal or low for each project, default normal |
 | Memory reserve (This PC) | how much stays free for you, default 3 GB |
 | Show long-term memory use from (This PC) | a program outside the queue that uses at least this much memory appears in the control panel, default 4 GB, 0 = off |
 | More heavy commands (Project) | Name = pattern, one entry per line; the pattern is a regular expression |
 
 ## Common problems
 - **An agent still starts tests directly** – Its folder does not have the hook yet: run `amw einrichten agenten-ordner <folder>`.
-- **A run waits for a long time** – The control panel says why: the computer is busy or too little memory is free. The human can move a run to the front (`amw lauf vorziehen <nr>`).
+- **A run waits for a long time** – The control panel says why: the computer is busy, too little memory is free or a run ahead is waiting – then it also says how much memory that run needs and how much is usable. The human can move a run to the front (`amw lauf vorziehen <nr>`).
 - **A single short test is rejected** – The pattern is too broad. Single test modules stay free; make your own patterns narrower.
 - **“Muster ungültig”** – The pattern is not a valid regular expression, for example a bracket is missing.
 
@@ -35,6 +36,12 @@ Several projects share one PC. If test suites, builds or image runs start at the
 - Every computer has its own queue.
 
 ## Questions
+### How does a project get priority?
+Under Settings › This PC › “Project priority” you set high, normal or low for each project. Waiting runs then go in this order: first what you moved up yourself, then “high”, then “normal”, then “low” – in order of arrival within a level. A run that is already running is never stopped. The waiting reason names the priority; in the timeline “Computer – today” priority runs are marked with ▲, and the control panel lists them briefly. The setting belongs to the PC, not to a project – you only see the names of other projects on the PC.
+
+### Why is memory set aside for a running run?
+A run often needs its memory bit by bit. So that no second run starts next to it and takes that memory away, the queue keeps its need free. If it did not state a need, the limit of its project applies – but only for the first 15 minutes; after that, what it really uses counts. The waiting reason says how much is set aside for which run.
+
 ### What happens if the hook fails for once?
 Then the command simply runs – an error never blocks anything. The error is written to the log `%LOCALAPPDATA%\amw\hook-fehler.log` on this PC; if there is something in it, have a look, because heavy commands then start directly again.
 

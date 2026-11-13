@@ -110,6 +110,23 @@ def _fenster(v):
     return f"{a[0]:02d}:{a[1]:02d}-{b[0]:02d}:{b[1]:02d}"
 
 
+def _vorrang(v):
+    """Vorrang der Projekte in der Warteschlange dieses PCs: {Projektname: hoch|normal|niedrig} (auch als JSON-Text).
+    Gespeichert wird nur, was nicht „normal“ ist."""
+    if isinstance(v, str):
+        v = json.loads(v or "{}")
+    if not isinstance(v, dict):
+        raise ValueError("je Projekt hoch, normal oder niedrig")
+    aus = {}
+    for name, stufe in v.items():
+        name, stufe = " ".join(str(name).split()), str(stufe or "normal").strip().lower()
+        if stufe not in ("hoch", "normal", "niedrig") or not 1 <= len(name) <= 60:
+            raise ValueError("je Projekt hoch, normal oder niedrig")
+        if stufe != "normal":
+            aus[name] = stufe
+    return aus
+
+
 def _sprache(v):
     v = str(v).strip().lower()
     if v not in ("auto", "de", "en"):
@@ -135,6 +152,8 @@ FELDER = {
     "bruecke_absender": ("TL", _kennung),
     "bruecke_kopie_s": (60, _ganz(15, 3600)),
     "cpu_laeufe": (2, _ganz(1, 8)),
+    # Vorrang der Projekte in der Warteschlange: {Projektname: hoch|niedrig}, fehlt eins = normal (A1623)
+    "vorrang": ({}, _vorrang),
     # so viel Arbeitsspeicher bleibt frei, bevor die Warteschlange einen schweren Lauf einlässt (für den Menschen am Rechner)
     "speicher_reserve_gb": (3.0, _dezimal(0, 64)),
     "platte_gelb_prozent": (15.0, _dezimal(0, 100)),   # Laufwerk: darunter Warnung …
@@ -190,7 +209,7 @@ def laden():
     aus = {}
     for k, (vorgabe, pruefe) in FELDER.items():
         try:
-            aus[k] = pruefe(d[k]) if k in d else vorgabe
+            aus[k] = pruefe(d[k]) if k in d else (dict(vorgabe) if isinstance(vorgabe, dict) else vorgabe)
         except (ValueError, TypeError):
             aus[k] = vorgabe
     return aus
