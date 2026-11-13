@@ -6,6 +6,8 @@
 - jeder offene Dialog und jedes Vollbild hat ein ✕ innerhalb des Bildschirms, das man auch wirklich trifft,
 - keine abgeschnittenen Knopf- und Überschrift-Texte (abgeschnitten ohne „…“ = Fehler; mit „…“ ohne Tooltip = Hinweis),
 - keine Fokus-Falle: kein tabindex > 0, jeder Knopf hat einen Namen (Text oder aria-label).
+- Liste und Inhalt nebeneinander (.geteilt, Nachrichten): jede Spalte scrollt für sich, Scrollen im Inhalt lässt die Liste
+  stehen, nichts reicht unter den Fensterrand; bei .klebt bleibt die Liste beim Scrollen der Seite sichtbar (A1628).
 
 Benutzen: eine Testklasse erbt von Rundgang, legt in daten() ihre Beispieldaten an und ruft je Fall
   self.besuchen("<sicht>", bereit="<JS-Bedingung>", tun="<JS, z. B. Dialog öffnen>", ort="<Name im Bericht>")
@@ -91,6 +93,31 @@ PRUEFEN = r"""
     if (!sichtbar(e)) continue;
     if (!(e.textContent.trim() || e.getAttribute('aria-label') || e.title || e.querySelector('img[alt]:not([alt=""]), svg title')))
       erg.push(['fehler', 'Knopf ohne Namen', pfad(e)]);
+  }
+  // 5. Liste und Inhalt nebeneinander (A1628, wie im Mail-Programm): jede Spalte scrollt für sich – Scrollen im Inhalt
+  //    lässt Liste und Seite stehen; nichts reicht unter den Fensterrand. „klebt“: die Liste bleibt beim Scrollen der Seite
+  //    sichtbar. Untereinander (Handy) gibt es nichts zu prüfen.
+  const m = document.querySelector('#inhalt');
+  for (const g of document.querySelectorAll('.geteilt, .nr-raster, .klebt')) {
+    const [li, re] = [...g.children].filter(sichtbar);
+    if (!sichtbar(g) || !li || !re || Math.abs(li.getBoundingClientRect().top - re.getBoundingClientRect().top) > 1) continue;
+    if (g.classList.contains('klebt')) {
+      const alt = m.scrollTop;
+      m.scrollTop += g.getBoundingClientRect().bottom - innerHeight + 20;             // bis ans Ende des Inhalts scrollen
+      const r = li.getBoundingClientRect();
+      if (r.bottom < 40 || r.top > innerHeight / 2) erg.push(['fehler', 'Liste verschwindet beim Scrollen der Seite', pfad(li)]);
+      m.scrollTop = alt;
+      continue;
+    }
+    const lage = () => [li.scrollTop, Math.round(li.getBoundingClientRect().top), document.scrollingElement.scrollTop, m ? m.scrollTop : 0];
+    const vorher = lage(), alt = re.scrollTop;
+    re.scrollTop = re.scrollHeight;
+    const nachher = lage();
+    re.scrollTop = alt;
+    if (vorher.some((v, i) => Math.abs(v - nachher[i]) > 1)) erg.push(['fehler', 'Scrollen im Inhalt bewegt die Liste', pfad(g)]);
+    if (g.getBoundingClientRect().bottom > innerHeight + 1) erg.push(['fehler', `Spalten reichen unter den Fensterrand (${Math.round(g.getBoundingClientRect().bottom)} > ${innerHeight})`, pfad(g)]);
+    for (const s of [li, re]) if (s.scrollHeight > s.clientHeight + 1 && !['auto', 'scroll'].includes(getComputedStyle(s).overflowY))
+      erg.push(['fehler', 'Spalte ohne eigenen Scrollbereich', pfad(s)]);
   }
   window.__rundgang = [];
   return erg;

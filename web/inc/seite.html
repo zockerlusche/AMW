@@ -589,6 +589,11 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .nr-filter select { max-width: 200px; } .nr-filter input:not([type=checkbox]) { width: 150px; }
 @media (max-width: 760px) { .nr-filter select { max-width: none; flex: 1 1 140px; } .nr-filter input:not([type=checkbox]) { flex: 1 1 120px; width: auto; } }
 .nr-raster { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.15fr); gap: 14px; align-items: start; }
+/* A1628: Liste und Inhalt je eigener Scrollbereich (geteilt(): Höhe = Fenster unter dem Kopf); am Handy wie bisher */
+.geteilt { align-items: stretch; }
+:is(.nr-raster, .ae-raster).geteilt > * { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+main.geteilt-seite { padding-bottom: 16px; }
+.ae-raster.klebt > .ae-wahl { position: sticky; top: calc(var(--kopf, 0px) + 10px); max-height: calc(100dvh - var(--kopf, 0px) - 110px); overflow-y: auto; }
 .nr-liste { border: 1px solid var(--linie); border-radius: 6px; background: var(--flaeche); overflow: hidden; }
 .nr-eintrag { padding: 10px 12px; border-bottom: 1px solid var(--linie); cursor: pointer; display: grid; gap: 4px; }
 .nr-eintrag:hover, .nr-eintrag.an { background: var(--flaeche2); } .nr-eintrag.neu .nr-kurz { font-weight: 650; } .nr-eintrag.weg { opacity: .55; }
@@ -616,6 +621,7 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .post-knopf { margin-left: auto; padding: 1px 8px; font-size: 12px; }
 .nr-zu { display: flex; flex-direction: column; gap: 8px; } .nr-zu-liste { display: flex; flex-direction: column; gap: 6px; }
 @media (max-width: 760px) { .nr-raster { grid-template-columns: 1fr; } .nr-raster.detail .nr-liste { display: none; }
+  :is(.nr-raster, .ae-raster).geteilt > * { overflow-y: visible; } .ae-raster.klebt > .ae-wahl { position: static; max-height: none; }
   .nr-raster:not(.detail) .nr-gespraech { display: none; } .nr-zurueck { display: inline; } }
 .ae-neu { display: flex; gap: 6px; padding: 8px; } .ae-neu input { min-width: 0; flex: 1; }
 .ae-block { border: 1px solid var(--linie); padding: 10px 14px 12px; margin-bottom: 12px; background: var(--grund); }
@@ -2082,12 +2088,33 @@ function standPruefen() {
 }
 /* Klasse „still“ erst hier setzen, im selben Schritt wie das Ersetzen – sonst liefe die Animation am alten Inhalt */
 function rahmen(titel, ...rest) {
-  const m = $("#inhalt"); m.classList.toggle("still", ruhig);
+  const m = $("#inhalt"); m.classList.toggle("still", ruhig); m.classList.remove("geteilt-seite");
   const gleich = kopfStand.sicht === zustand.sicht;            /* dieselbe Seite neu gezeichnet: Untermenüs bleiben waagrecht, wo sie waren */
   kopfStand.lage = gleich ? Object.fromEntries([...m.querySelectorAll(":scope > .seitenkopf > *")].map(e => [e.classList[0], (e.querySelector(".reiter-zeile") || e).scrollLeft])) : {};
   kopfStand.sicht = zustand.sicht; kopfStand.weg = 0;
   const k = el("div", { class: "seitenkopf" }, el("div", { class: "kopf" }, el("h1", {}, titel), ...rest));
   m.replaceChildren(k); kopfStand.groesse.disconnect(); kopfStand.groesse.observe(k); return m;
+}
+/* Liste links, Inhalt rechts (A1628) – wie im Mail-Programm: am PC füllen beide Spalten das Fenster unter dem Kopf und
+   scrollen je für sich; die Seite selbst scrollt dann nicht, die Liste bleibt stehen, wenn man rechts liest. Am Handy
+   (eine Spalte: Liste → Inhalt mit Zurück) bleibt alles, wie es war. Rückgabe: passen() – nach dem Neuzeichnen aufrufen. */
+const BREIT = matchMedia("(min-width: 761px)");
+function geteilt(raster) {
+  const m = $("#inhalt");
+  raster.classList.add("geteilt");
+  const ro = new ResizeObserver(() => passen());
+  const passen = () => {
+    if (!raster.isConnected) { ro.disconnect(); BREIT.removeEventListener("change", passen); return; }
+    m.classList.toggle("geteilt-seite", BREIT.matches);
+    if (!BREIT.matches) { raster.style.height = ""; return; }
+    const oben = raster.getBoundingClientRect().top - m.getBoundingClientRect().top + m.scrollTop;
+    raster.style.height = Math.max(320, m.clientHeight - oben - parseFloat(getComputedStyle(m).paddingBottom || 0)) + "px";
+  };
+  ro.observe(m);
+  for (let x = raster.previousElementSibling; x; x = x.previousElementSibling) ro.observe(x);   /* Kopf, Filter: ändern die Höhe darüber */
+  BREIT.addEventListener("change", passen);
+  requestAnimationFrame(passen);
+  return passen;
 }
 /* Fester Seitenkopf: rahmen() legt ihn an; jedes Untermenü, das eine Seite direkt darunter hängt (Reiter, Filter, Sprungmarken),
    wandert von selbst hinein – keine Seite braucht dafür eigenen Code. Beim Scrollen läuft die Titelzeile hinaus (top negativ),
@@ -2118,6 +2145,7 @@ function seitenkopf() {
   kopfStand.weg = erstes ? Math.max(0, erstes.offsetTop - 8) : 0;        /* so viel läuft oben hinaus: Titelzeile samt Abstand */
   k.style.top = erstes ? -(kopfStand.weg + parseFloat(getComputedStyle(m).paddingTop)) + "px" : "";   /* top zählt ab dem Innenabstand von main */
   m.style.scrollPaddingTop = erstes ? k.offsetHeight - kopfStand.weg + 10 + "px" : "";
+  m.style.setProperty("--kopf", (erstes ? k.offsetHeight - kopfStand.weg : 0) + "px");      /* was oben stehen bleibt (A1628) */
   k.classList.toggle("fest", !!erstes && m.scrollTop > kopfStand.weg);
 }
 new MutationObserver(seitenkopf).observe($("#inhalt"), { childList: true });
@@ -2828,7 +2856,8 @@ function nrReiterLeiste(aktiv, eingangOffen, weiter) {
 async function sichtNachrichten() {
   let d; try { d = await holen("/api/nachrichten"); } catch (e) { rahmen(t("n_nachrichten")).append(el("div", { class: "leer" }, String(e.message || e))); return; }
   const m = rahmen(t("n_nachrichten"), el("span", { class: "leise" }, t("nr_unter"), " ", hilfeKnopf("nachrichten")));
-  let reiter = gemerkt("amw-nr") === "eingang" ? "eingang" : "gesendet", gewaehlt = null, nurOffen = false, such = "", agent = "", bezugWahl = "";
+  const wahl = gemerkt("amw-nr");                     /* ohne gemerkte Wahl: Eingang, wenn dort Neues liegt (D940 Fund 7) */
+  let reiter = wahl === "eingang" || wahl === "gesendet" ? wahl : d.zaehler.eingang_offen ? "eingang" : "gesendet", gewaehlt = null, nurOffen = false, such = "", agent = "", bezugWahl = "";
   const STUFEN = ["gesendet", "benachrichtigt", "gelesen", "erledigt"];
   const schl = x => `${x.projekt || ""}:${x.id}`;
   const chip = (b, x) => b ? el("button", { class: "nr-chip", type: "button", title: t("nr_bezug_h"), onclick: e => { e.stopPropagation();
@@ -2853,6 +2882,8 @@ async function sichtNachrichten() {
     el("button", { class: "knopf haupt", type: "button", onclick: () => nachrichtDialog(null) }, "+ " + t("nr_schreiben")));
   const kopf = el("div", { class: "nr-leiste" });
   m.append(kopf, raster);
+  const passen = geteilt(raster);
+  let gezeigt = null;
   function passt(x) {
     if (such && !`${x.kurz} ${x.text || ""} ${x.bezug?.text || ""}`.toLowerCase().includes(such)) return false;
     if (bezugWahl && x.bezug?.kuerzel !== bezugWahl) return false;
@@ -2860,6 +2891,7 @@ async function sichtNachrichten() {
     return (!agent || x.von === agent) && (!nurOffen || x.stand !== "erledigt");
   }
   function gespraech(x) {
+    if ((x ? schl(x) : null) !== gezeigt) { rechts.scrollTop = 0; gezeigt = x ? schl(x) : null; }   /* neue Nachricht: rechts von oben */
     if (!x) { rechts.replaceChildren(el("div", { class: "leer" }, t("nr_waehle"))); return; }
     const ich = reiter === "gesendet";
     const ur = !ich && x.antwort_auf ? d.gesendet.find(g => g.id === x.antwort_auf) : null;
@@ -2896,6 +2928,8 @@ async function sichtNachrichten() {
         t("nr_mehrere", { n: x.empfaenger.length, e: x.empfaenger.filter(e => e.stand === "erledigt").length })) : null))
       : [el("div", { class: "leer" }, t("nr_leer"))]));
     gespraech(l.find(x => schl(x) === gewaehlt));
+    passen();
+    if (BREIT.matches) liste.querySelector(".nr-eintrag.an")?.scrollIntoView({ block: "nearest" });   /* gewählte Zeile bleibt sichtbar */
   }
   zeichnen();
 }
@@ -5039,7 +5073,7 @@ function agentenEinstellungen(d, h) {
           el("span", { class: "sehrleise" }, t("ae_entfernt_seit", { x: zeit(x.entfernt_utc) })),
           el("button", { class: "klein-knopf", type: "button", onclick: () => tunAgent("/api/agent/wiederaufnehmen", x.kennung, null, () => t("ae_wieder_ok", { x: x.kennung })) },
             t("ae_wieder"))))) : null);
-    karte.replaceChildren(el("h3", {}, t("ae_titel"), hilfeKnopf("agenten")), el("p", { class: "leise", style: "margin:0 0 12px" }, t("ae_h")), el("div", { class: "ae-raster" }, liste, a ? formular(a) : el("div", { class: "leer" }, t("ae_keiner"))));
+    karte.replaceChildren(el("h3", {}, t("ae_titel"), hilfeKnopf("agenten")), el("p", { class: "leise", style: "margin:0 0 12px" }, t("ae_h")), el("div", { class: "ae-raster klebt" }, liste, a ? formular(a) : el("div", { class: "leer" }, t("ae_keiner"))));
   };
   /* Entfernen: stilllegen und ausblenden, Verlauf bleibt. Endgültig löschen nur ohne Verlauf – sonst ausgegraut mit Grund.
      Online nur für System-Admins (sonst ausgegraut). */
