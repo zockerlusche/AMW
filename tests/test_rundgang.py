@@ -7,7 +7,7 @@ import struct
 import unittest
 import zlib
 
-from amw import dokumente, kern
+from amw import benutzer, dokumente, kern
 from tests.rundgang import OnlineRundgang, Rundgang
 
 
@@ -29,6 +29,7 @@ class Daten:
     def daten(self):
         kern.agent_neu(self.con, self.pid, "CC1")
         kern.agent_neu(self.con, self.pid, "CC2")
+        benutzer.neu(self.con, kern.ENTWICKLER, "neuling")                         # wartet auf Freigabe (Benutzer-Verwaltung)
         aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Seite bauen mit einem recht langen Titel, der am Handy umbrechen muss", "CC1")
         kern.posten(self.con, self.pid, "CC1", "TL", "info", "Stand: Seite gebaut, Bilder liegen bei", text="Mehr Text\nüber zwei Zeilen")
         kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "Bitte die Seite fürs Handy prüfen", aufgabe_id=aid)
@@ -163,6 +164,23 @@ class Online(Daten, OnlineRundgang):
         self.ueberall("start", "online-agent", bereit=self.START, tun="agentDialog('CC1')", danach="document.querySelector('.agent-dialog')")
         self.ueberall("start", "online-agent-menue", bereit=self.START + " && document.querySelector('.mehr-knopf')",
                       tun="document.querySelector('.mehr-knopf').click()", danach="document.querySelector('.menue')")
+
+    def test_benutzer_online_freischalten(self):
+        """A1615 a: Einstellungen › Benutzer auch online; „Freischalten“ zeigt den Code einmal im Dialog (mit ✕ im Bild)."""
+        bereit = "document.querySelector('#e-benutzer .bn-zeile[data-name=neuling]')"
+        self.ueberall("einstellungen", "online-benutzer", bereit=bereit)
+        self.groesse("handy")
+        self.oeffnen("einstellungen", bereit)
+        self.tab.js("[...document.querySelectorAll('#e-benutzer .bn-zeile[data-name=neuling] button')].find(b => /Freischalten/.test(b.textContent)).click()")
+        self.warten("/[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}/.test(document.querySelector('.dialog-hg')?.textContent || '')")
+        self.assertEqual(self.pruefen("online-benutzer-code", "handy", "dunkel"), [])
+        code = self.tab.js("document.querySelector('.dialog-hg').textContent.match(/[A-Z2-9]{4}(-[A-Z2-9]{4}){3}/)[0]")
+        from amw import benutzer
+        h = self.sp.ausfuehren([("SELECT code_hash FROM benutzer WHERE name = 'neuling'", [])])[0][0][0]
+        self.assertEqual(h, benutzer.code_hash(code))                               # online steht nur der Hash
+        self.ab.schritt(False)                                                       # der PC holt die Meldung ab und prüft nach
+        st = self.sp.ausfuehren([("SELECT status FROM eingang WHERE weg = '/api/benutzer/code_online'", [])])[0]
+        self.assertEqual([x[0] for x in st], ["erledigt"])
 
 
 if __name__ == "__main__":

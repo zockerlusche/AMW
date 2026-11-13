@@ -1,10 +1,10 @@
 # Users of the online site
 
-Several people can sign in on the online site – each with their own password and two-factor. You add them at the PC, give them an activation code and assign a role and projects. Until then a new user has no rights.
+Several people can sign in on the online site – each with their own password and two-factor. You add them, give them an activation code and assign a role and projects – at the PC or on the go on the online site. Until then a new user has no rights.
 
 ## You need
 - The online site and online storage, set up (Settings › Online storage and Online site).
-- The Workbench at the PC – users are managed only there.
+- The Workbench at the PC or the online site: Settings › Users. Online you need the role project admin or system admin.
 - For each user a phone with an authenticator app (Google Authenticator, Microsoft Authenticator …).
 
 ## Steps
@@ -18,14 +18,15 @@ Several people can sign in on the online site – each with their own password a
 |---|---|
 | Reader | sees their projects, changes nothing. |
 | Editor | works in their projects: answer questions, messages, tasks, documents, approvals, pausing. |
-| Project admin | additionally the settings of their projects and agents. |
+| Project admin | additionally the settings of their projects and agents – and the users of their projects: add, activate, role up to project admin, block. Users who are also in other projects or are project admins themselves are activated, blocked or given a new role only by a system admin. They do not see system admins or users without one of their projects. |
 | System admin | everything, in all projects. At the PC you are always system admin, as with the existing access of the online site. |
 
 ## Common problems
 - **“Name or activation code is wrong”** – Typo, code expired or already used. Upper/lower case and dashes do not matter. Remedy: reset access.
 - **The number from the app is not accepted** – The phone's clock is off. Let the phone set the time automatically; the site accepts numbers up to 30 seconds off.
 - **“Time is up” at the QR code** – More than 10 minutes passed between code and QR code. Start again with the same activation code – it stays valid until the access is fully set up.
-- **“Your access is being reviewed” does not go away** – Role and projects are still missing. Assign them at the PC, then the user reloads the page.
+- **“Your access is being reviewed” does not go away** – Role and projects are still missing. Assign them at the PC or online, then the user reloads the page.
+- **“Not allowed: …” online** – As a project admin only what concerns your own projects works; blocking yourself or changing your own role is done by another admin.
 
 ## Next
 - Forgotten password or lost phone: “Reset access”. Password and two-factor are reset, all of the user's sessions end, and they set both up again with the new code.
@@ -38,6 +39,9 @@ The AMW does not send emails. The code is passed on in person; someone who only 
 
 ### Can someone else use the code?
 Only if they have it and are faster. Then the right user sees “already used” and tells you – you block, reset access and pass on the new code.
+
+### I'm on the go – can I activate users on my phone?
+Yes. The online site creates the code itself and shows it once; only its hash is stored. The PC then checks again whether you were allowed to – if not, it invalidates the code at once. Role and projects you change online are applied by the PC within seconds.
 
 ### Where are password and two-factor stored?
 Only in the online storage, as a hash or secret – never on the PC, never in the history. Of the activation code only a hash is stored there.

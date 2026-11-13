@@ -149,6 +149,53 @@ def darf(con, name, pid, klasse_):
     return True, None
 
 
+VERWALTEN_BIS = "projekt_admin"     # höchste Rolle, die ein Projekt-Admin vergeben darf (nie System-Admin)
+
+
+def darf_verwalten(con, wer, ziel=None, rolle=None, projekte=None, gesperrt=None, neu=False, freischalten=False):
+    """(ja, Grund): darf `wer` den Benutzer `ziel` so ändern (bzw. anlegen)? Gilt online und am PC gleich (A1615 a).
+    Der Mensch am PC und der Zugang der Seite sind System-Admin. System-Admin: alles außer sich selbst sperren oder die
+    eigene Rolle ändern (sonst sperrt er sich aus). Projekt-Admin: nur Benutzer, die eins seiner Projekte haben oder noch
+    auf Freigabe warten; Projekte nur aus seinen eigenen dazu- oder wegnehmen; Rollen höchstens bis Projekt-Admin; einen
+    System-Admin nie ändern oder sperren. rolle/projekte/gesperrt: die gewünschte Änderung (None = bleibt).
+    Was das ganze Konto betrifft – freischalten (setzt Passwort und zweiten Faktor zurück, der Admin bekommt den Code),
+    sperren/entsperren, Rolle ändern – darf ein Projekt-Admin nur bei Benutzern, die ganz in seinen Projekten liegen und unter
+    Projekt-Admin stehen; sonst könnte er über den Code ein fremdes Konto mit dessen übrigen Projekten übernehmen (TL P126)."""
+    if wer in (kern.ENTWICKLER, ZUGANG):
+        stufe, eigene = "system_admin", None
+    else:
+        b = finden(con, wer) if wer else None
+        if not b or b["gesperrt"] or b["rolle"] not in ("projekt_admin", "system_admin"):
+            return False, f"{wer or 'Unbekannt'} darf keine Benutzer verwalten – dafür braucht es Projekt-Admin"
+        stufe, eigene = b["rolle"], set(b["projekte"])
+    t = None if neu else finden(con, ziel)
+    if not neu and not t:
+        return False, f"Benutzer {ziel} gibt es nicht"
+    if t and t["name"] == wer and (gesperrt or (rolle is not None and rolle != t["rolle"])):
+        return False, "Dich selbst sperren oder deine eigene Rolle ändern geht nicht – das macht ein anderer Admin"
+    if rolle is not None and rolle not in ROLLEN:
+        return False, f"Rolle: {', '.join(ROLLEN)}"
+    if stufe == "system_admin":
+        return True, None
+    if t and t["rolle"] == "system_admin":
+        return False, f"{t['name']} ist System-Admin – das ändert nur ein System-Admin"
+    if rolle is not None and _stufe(rolle) > _stufe(VERWALTEN_BIS):
+        return False, f"{NAMEN[rolle]} vergibt nur ein System-Admin"
+    alt = set(t["projekte"]) if t else set()
+    if t and t["rolle"] and not (alt & eigene):
+        return False, f"{t['name']} hat keins deiner Projekte"
+    if projekte is not None and not (set(projekte) ^ alt) <= eigene:
+        return False, "Projekte vergibst und entziehst du nur aus deinen eigenen"
+    konto = freischalten or gesperrt is not None or (rolle is not None and t is not None and rolle != t["rolle"])
+    if konto and t and not (alt <= eigene and (not t["rolle"] or _stufe(t["rolle"]) < _stufe("projekt_admin"))):
+        was = "Freischalten" if freischalten else "Sperren" if gesperrt is not None else "Die Rolle ändern"
+        grund = "ist Projekt-Admin" if t["rolle"] == "projekt_admin" else "hat auch Projekte, die nicht deine sind"
+        return False, f"{was} bei {t['name']} macht ein System-Admin – {t['name']} {grund}"
+    if neu and not projekte:
+        return False, "Neue Benutzer legst du mit mindestens einem deiner Projekte an"
+    return True, None
+
+
 def fuer_online(con):
     """Die Benutzer für den Online-Speicher – ohne Passwort und Geheimnis (die setzt der Benutzer dort selbst)."""
     aus = []

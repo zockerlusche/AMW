@@ -4,6 +4,19 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.88.0 – 13.11.2026 · Benutzer auch unterwegs verwalten
+- **Einstellungen › Benutzer auf der Online-Seite:** Projekt-Admins und System-Admins verwalten Benutzer jetzt auch am
+  Handy – anlegen, Rolle und Projekte vergeben, sperren und entsperren, freischalten. Ein Projekt-Admin sieht nur die
+  Benutzer seiner Projekte und neue, die auf Freigabe warten; er vergibt Rollen höchstens bis Projekt-Admin, nur mit seinen
+  eigenen Projekten, und ändert nie einen System-Admin. Freischalten, sperren oder die Rolle ändern darf er nur bei Benutzern,
+  die ganz in seinen Projekten liegen und nicht selbst Projekt-Admin sind – sonst könnte er über den Code ein fremdes Konto
+  übernehmen. Sich selbst sperren oder die eigene Rolle ändern geht für niemanden.
+- **Freischalt-Code online:** Die Seite erzeugt ihn selbst und zeigt ihn genau einmal; gespeichert wird nur sein Hash. Der
+  PC prüft danach, ob das erlaubt war – wenn nicht, macht er den Code sofort ungültig. In beiden Fällen bekommst du eine
+  Meldung.
+- Die Rechte prüfen Seite und PC unabhängig voneinander nach denselben Regeln.
+- **Hilfe Benutzer:** online verwalten; die Rollen stehen jetzt wirklich in der Hilfe (der Abschnitt fiel bisher weg).
+
 ## 1.87.4 – 13.11.2026 · Vorrang: echtes „hoch“ vor aufgerücktem
 - **Behoben:** Ein Lauf, der nach 30 Minuten Wartezeit auf „hoch“ aufgerückt war, stand bei Gleichstand nach Ankunft vor
   einem Lauf aus einem Projekt mit echtem „hoch“. Jetzt zählt bei gleicher Stufe zuerst die Stufe des Projekts, dann die

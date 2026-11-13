@@ -128,6 +128,61 @@ class Rechte(Grund):
 
 
 
+class VerwaltenRechte(Grund):
+    """Wer welche Benutzer verwalten darf (A1615 a) – gilt online und am PC gleich."""
+
+    def darf(self, wer, ziel=None, **kw):
+        return benutzer.darf_verwalten(self.con, wer, ziel, **kw)[0]
+
+    def test_system_admin_und_der_mensch_alles_ausser_sich_selbst_aussperren(self):
+        for wer in (kern.ENTWICKLER, benutzer.ZUGANG, "sam"):
+            self.assertTrue(self.darf(wer, "pia", rolle="system_admin"))
+            self.assertTrue(self.darf(wer, "lea", gesperrt=True, projekte=[self.a, self.b]))
+            self.assertTrue(self.darf(wer, None, neu=True, rolle="leser", projekte=[self.b]))
+        self.assertFalse(self.darf("sam", "sam", gesperrt=True))
+        self.assertFalse(self.darf("sam", "sam", rolle="leser"))
+
+    def test_projekt_admin_nur_eigene_projekte_und_bis_projekt_admin(self):
+        self.assertTrue(self.darf("pia", "bert", rolle="projekt_admin"))
+        self.assertTrue(self.darf("pia", "lea", gesperrt=True))
+        self.assertFalse(self.darf("pia", "bert", rolle="system_admin"))                      # nie System-Admin
+        self.assertFalse(self.darf("pia", "sam", gesperrt=True))                              # System-Admin unantastbar
+        self.assertFalse(self.darf("pia", "bert", projekte=[self.a, self.b]))                 # Shop ist nicht ihres
+        self.assertFalse(self.darf("pia", "pia", gesperrt=True))
+        benutzer.aendern(self.con, kern.ENTWICKLER, "lea", projekte=["Spiel", "Shop"])
+        self.assertTrue(self.darf("pia", "lea", projekte=[self.a, self.b]))                   # Shop bleibt, nur Spiel ist ihres
+        self.assertFalse(self.darf("pia", "lea", projekte=[self.a]))                          # Shop wegnehmen: nicht ihres
+        benutzer.neu(self.con, kern.ENTWICKLER, "fremd", "bearbeiter", projekte=["Shop"])
+        self.assertFalse(self.darf("pia", "fremd", gesperrt=True))                            # keins ihrer Projekte
+        benutzer.neu(self.con, kern.ENTWICKLER, "neuling")                                    # wartet auf Freigabe
+        self.assertTrue(self.darf("pia", "neuling", rolle="bearbeiter", projekte=[self.a]))
+        self.assertTrue(self.darf("pia", None, neu=True, rolle="leser", projekte=[self.a]))
+        self.assertFalse(self.darf("pia", None, neu=True, rolle="leser", projekte=[]))
+
+    def test_keine_kontouebernahme_durch_projekt_admin(self):
+        """TL P126: Ein Projekt-Admin darf ein Konto, das nicht ganz in seinen Projekten liegt oder selbst Projekt-Admin ist,
+        weder freischalten (er bekäme den Code) noch sperren noch die Rolle ändern – Projekte aus seinen eigenen gehen weiter."""
+        benutzer.neu(self.con, kern.ENTWICKLER, "paul", "projekt_admin", projekte=["Spiel", "Shop"])     # B mit Zusatzprojekt
+        benutzer.neu(self.con, kern.ENTWICKLER, "bea", "bearbeiter", projekte=["Spiel", "Shop"])        # Bearbeiter mit Fremdprojekt
+        for ziel in ("paul", "bea"):
+            self.assertFalse(self.darf("pia", ziel, freischalten=True), ziel)
+            self.assertFalse(self.darf("pia", ziel, gesperrt=True), ziel)
+            self.assertFalse(self.darf("pia", ziel, rolle="leser"), ziel)
+            self.assertTrue(self.darf("pia", ziel, projekte=[self.a, self.b]), ziel)                  # nichts geändert
+        benutzer.neu(self.con, kern.ENTWICKLER, "pit", "projekt_admin", projekte=["Spiel"])             # Projekt-Admin ganz in ihren
+        self.assertFalse(self.darf("pia", "pit", freischalten=True))
+        self.assertFalse(self.darf("pia", "pit", gesperrt=True))
+        self.assertTrue(self.darf("pia", "bert", freischalten=True))                                   # Bearbeiter ganz in ihren
+        self.assertTrue(self.darf("pia", "neuling" if benutzer.finden(self.con, "neuling") else "lea", freischalten=True))
+        self.assertTrue(self.darf("sam", "paul", freischalten=True))                                   # System-Admin: ja
+
+    def test_andere_rollen_und_gesperrte_gar_nicht(self):
+        for wer in ("lea", "bert", "niemand", None):
+            self.assertFalse(self.darf(wer, "lea", gesperrt=True))
+        benutzer.aendern(self.con, kern.ENTWICKLER, "pia", gesperrt=True)
+        self.assertFalse(self.darf("pia", "bert", rolle="leser"))
+
+
 class Verwaltung(Grund):
     """Stufe R1b: Benutzer verwalten nur am PC, Freischalten schreibt online, Meldung an den Menschen nach dem ersten Anmelden."""
     def setUp(self):
@@ -147,11 +202,20 @@ class Verwaltung(Grund):
         self.assertRegex(aus["code"], r"^[A-Z2-9]{4}(-[A-Z2-9]{4}){3}$")
         with self.assertRaises(aktionen.Ungueltig):
             self.am_pc("freischalten", {"name": "ben", "stunden": 500})
-        with self.assertRaises(aktionen.Ungueltig) as e:                                        # System-Admin online: trotzdem nein
-            self.netz("sam", "/api/benutzer/neu", {"name": "x"})
+        self.netz("sam", "/api/benutzer/neu", {"name": "x"})                                    # online: System-Admin legt an (A1615 a)
+        self.assertIsNotNone(benutzer.finden(self.con, "x"))
+        with self.assertRaises(aktionen.Ungueltig) as e:                                        # Freischalt-Code online: (noch) nein
+            self.netz("sam", "/api/benutzer/freischalten", {"name": "x"})
         self.assertIn("am PC", str(e.exception))
         with self.assertRaises(aktionen.Ungueltig):
             self.netz("bert", "/api/benutzer/aendern", {"name": "bert", "rolle": "system_admin"})   # sich selbst hochstufen
+        with self.assertRaises(aktionen.Ungueltig):
+            self.netz("pia", "/api/benutzer/aendern", {"name": "ben", "rolle": "system_admin"})     # Projekt-Admin: nie System-Admin
+        uid = self.con.execute("SELECT uid FROM projekt WHERE id = ?", (self.a,)).fetchone()[0]
+        self.netz("pia", "/api/benutzer/aendern", {"name": "ben", "rolle": "projekt_admin", "projekte": [uid]})   # Projekte als uid
+        self.assertEqual((benutzer.finden(self.con, "ben")["rolle"], benutzer.finden(self.con, "ben")["projekte"]), ("projekt_admin", [self.a]))
+        with self.assertRaises(aktionen.Ungueltig):
+            self.netz("pia", "/api/benutzer/aendern", {"name": "sam", "gesperrt": True})            # System-Admin unantastbar
         d = workbench.daten_benutzer(self.con, self.sp)
         ben = next(b for b in d["benutzer"] if b["name"] == "ben")
         self.assertEqual(ben["online"]["stand"], "wartet_code")

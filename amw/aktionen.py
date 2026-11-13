@@ -62,14 +62,34 @@ def schirm_setzen(con, pid, d, kanal, wer=None):
     return {"schirm": z, "text": schirm.text(z)}
 
 
-def benutzer_verwalten(con, was, d, speicher=None):
-    """neu (name, rolle?, projekte?, anzeige?, email?) · aendern (name, rolle?, projekte?, gesperrt?, email?) · freischalten (name, stunden?)."""
+def benutzer_verwalten(con, was, d, speicher=None, kanal="seite", pid=None):
+    """neu (name, rolle?, projekte?, anzeige?, email?) · aendern (name, rolle?, projekte?, gesperrt?, email?) · freischalten (name, stunden?).
+    Online (kanal netz) handelt der angemeldete Benutzer: benutzer.darf_verwalten prüft hier noch einmal, was die Seite
+    schon geprüft hat. Projekte kommen von der Seite als Kennung (uid), am PC als Nummer."""
     from . import abgleich, benutzer
     name = (d.get("name") or "").strip()
     projekte = d.get("projekte")
-    if projekte is not None and not (isinstance(projekte, list) and all(isinstance(p, int) for p in projekte)):
-        raise Ungueltig("projekte: Liste von Projekt-Nummern")
+    if projekte is not None:
+        if not isinstance(projekte, list) or not all(isinstance(p, (int, str)) for p in projekte):
+            raise Ungueltig("projekte: Liste von Projekten")
+        ids = []
+        for p in projekte:
+            r = con.execute("SELECT id FROM projekt WHERE id = ? OR uid = ?", (p if isinstance(p, int) else -1, str(p))).fetchone()
+            if not r:
+                raise Ungueltig(f"Projekt {p} gibt es nicht")
+            ids.append(r[0])
+        projekte = ids
     rolle = d.get("rolle") or None
+    if kanal == "netz":
+        wer = benutzer.AKTUELL.get() or benutzer.ZUGANG          # ohne Namen kommt online nur der Zugang der Seite bis hier
+        if was == "code_online":
+            return _code_online_nachpruefen(con, pid, wer, name, d.get("bis"), speicher)
+        if was == "freischalten":
+            raise Ungueltig("Den Freischalt-Code erzeugst du am PC")
+        g = d.get("gesperrt")
+        ok, grund = benutzer.darf_verwalten(con, wer, name, rolle, projekte, None if g is None else bool(g), neu=was == "neu")
+        if not ok:
+            raise Ungueltig(f"Nicht erlaubt: {grund}")
     try:
         if was == "neu":
             benutzer.neu(con, kern.ENTWICKLER, name, rolle, d.get("anzeige"), d.get("email"), projekte or ())
@@ -84,6 +104,26 @@ def benutzer_verwalten(con, was, d, speicher=None):
     except kern.AmwFehler as e:
         raise Ungueltig(str(e)) from None
     raise Ungueltig("unbekannt")
+
+
+def _code_online_nachpruefen(con, pid, wer, name, bis, speicher=None):
+    """Die Online-Seite hat einen Freischalt-Code erzeugt (A1615 a, F1) – hier prüft der PC das Recht nach. Ist es nicht
+    gedeckt, macht er genau diesen Code sofort ungültig; der Mensch erfährt es in beiden Fällen."""
+    from . import abgleich, benutzer
+    b = benutzer.finden(con, name)
+    ok, grund = benutzer.darf_verwalten(con, wer, name, freischalten=True) if b else (False, f"Benutzer {name} gibt es nicht")
+    if ok and b["gesperrt"]:
+        ok, grund = False, f"{name} ist gesperrt"
+    anzeige = kern.entwickler_name(con) if wer == benutzer.ZUGANG else wer
+    if not ok:
+        sp = speicher if speicher is not None else abgleich.speicher_aus_zugang()
+        if sp is not None:
+            sp.ausfuehren([("UPDATE benutzer SET code_hash = NULL, code_bis = NULL WHERE name = ? AND code_bis = ?", [name, bis])])
+        kern._posten(con, pid, "AMW", kern.ENTWICKLER, "info", f"Freischalt-Code für {name} ungültig gemacht – {anzeige} durfte ihn nicht erzeugen",
+                     f"Grund: {grund}. Der Code war online erzeugt und ist jetzt ungültig.")
+        raise Ungueltig(f"Nicht erlaubt: {grund} – der Code ist ungültig")
+    kern._posten(con, pid, "AMW", kern.ENTWICKLER, "info", f"{anzeige} hat online einen Freischalt-Code für {name} erzeugt (gültig bis {bis or '?'})")
+    return {"geprueft": True}
 
 
 def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
@@ -197,10 +237,10 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         if kanal != "netz" or not benutzer.AKTUELL.get():
             raise Ungueltig("Diese Meldung kommt nur von der Online-Seite")
         return benutzer.eingerichtet_melden(con, pid, benutzer.AKTUELL.get(), daten.get("weg"))
-    if weg.startswith("/api/benutzer/"):             # Benutzer verwalten: nur am PC (Stufe R1b)
-        if kanal != "seite":
-            raise Ungueltig("Benutzer verwaltest du am PC")
-        return benutzer_verwalten(con, weg.rsplit("/", 1)[1], daten, speicher)
+    if weg.startswith("/api/benutzer/"):             # Benutzer verwalten: am PC alles, online nach benutzer.darf_verwalten (A1615 a)
+        if kanal not in ("seite", "netz"):
+            raise Ungueltig("Benutzer verwaltest du am PC oder auf der Online-Seite")
+        return benutzer_verwalten(con, weg.rsplit("/", 1)[1], daten, speicher, kanal, pid)
     if weg in ("/api/agent/entfernen", "/api/agent/wiederaufnehmen", "/api/agent/loeschen"):   # nur der Mensch (online: System-Admin)
         k = (daten.get("kennung") or "").strip()
         tun = {"entfernen": kern.agent_entfernen, "wiederaufnehmen": kern.agent_wiederaufnehmen, "loeschen": kern.agent_loeschen}
