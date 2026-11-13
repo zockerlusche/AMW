@@ -50,6 +50,8 @@ class Seite(Wiederholt, Grund):
         self.edge = subprocess.Popen([EDGE, "--headless=new", "--disable-gpu", "--no-first-run", f"--remote-debugging-port={dt}",
                                       f"--user-data-dir={os.path.join(self.ordner.name, 'edge')}", "about:blank"],
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.addCleanup(edge_beenden, self.edge)        # auch wenn setUp danach scheitert (Edge meldet sich nicht):
+                                                         # sonst bleibt der Browser ohne Eltern liegen (13.11.: 8 Stück)
         ziel = None
         for _ in range(150):
             try:
