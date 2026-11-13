@@ -17,6 +17,7 @@ auseinander.
 | [zweiter-faktor.md](zweiter-faktor.md) | Zweiter Faktor: neues oder verlorenes Handy | Einstellungen › Online-Seite („Neues Handy“) |
 | [agenten.md](agenten.md) | Agenten: Ordner einrichten, umbenennen, starten | Einstellungen › Agenten |
 | [server.md](server.md) | Projekt-Server überwachen | Betrieb › Projekt-Server |
+| [dienst.md](dienst.md) | Den Dienst im Blick behalten | Betrieb › Dienst |
 | [lokale-ki.md](lokale-ki.md) | Lokale KI einrichten und beauftragen | Betrieb › Lokale KI |
 | [termine.md](termine.md) | Testtermine und Fristen | Planung › Termine |
 | [themen.md](themen.md) | Themen: was gerade gilt | Wissen › Themen |

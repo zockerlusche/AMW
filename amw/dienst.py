@@ -318,6 +318,19 @@ def einzige_instanz():
     return f
 
 
+def aufpasser_melden(text):
+    """Der Aufpasser (A1655) meldet einen stillen Strang einmal je Vorfall dem Menschen – im ersten Projekt, eigene Verbindung
+    (er läuft in seinem eigenen Faden)."""
+    con = db.verbinde()
+    try:
+        p = con.execute("SELECT id FROM projekt ORDER BY id LIMIT 1").fetchone()
+        if p:
+            with db.schreiben(con):
+                kern._posten(con, p["id"], "AMW", kern.ENTWICKLER, "meldung", f"Dienst: {text}")
+    finally:
+        con.close()
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="amw-dienst")
     p.add_argument("--einmal", action="store_true", help="ein Durchgang (Test)")
@@ -352,25 +365,29 @@ def main(argv=None):
             log.info("Workbench: http://127.0.0.1:%s/", port)
         except OSError as x:                         # Port belegt – Wecker läuft trotzdem
             log.error("Workbench nicht gestartet (Port %s): %s", port, x)
-        from . import abgleich                        # Stufe 2: nur mit "abgleich": true in turso.json
+        from . import abgleich, herzschlag            # Fäden als Stränge: der Aufpasser ersetzt einen, der still steht (A1655)
         abgleich.HOCH_S, abgleich.PULS_S, abgleich.EINGANG_S = e["abgleich_hoch_s"], e["abgleich_puls_s"], e["abgleich_eingang_s"]
-        if abgleich.starten():
+        if abgleich.speicher_aus_zugang() is not None:   # Stufe 2: nur mit "abgleich": true in turso.json
+            herzschlag.strang("synchronisierung", abgleich.schleife)
             log.info("Synchronisierung mit dem Online-Speicher an")
         from . import ki                              # lokale KIs: Aufträge ausführen, wenn ihr Lauf dran ist
-        ki.starten()
+        herzschlag.strang("ki", ki.arbeiten, ersetzbar=False)
         log.info("KI-Arbeiter an")
         from . import bruecke                         # Lesekopie + Befehlsdateien für den TL (FUSE, kein WAL)
         if e["bruecke_an"]:
             bruecke.KOPIE_S, bruecke.VON = e["bruecke_kopie_s"], e["bruecke_absender"]
-            bruecke.starten()
+            herzschlag.strang("dateiaustausch", bruecke.schleife)
             log.info("Dateiaustausch an: %s (Absender %s)", bruecke.EINGANG, bruecke.VON)
+        herzschlag.aufpasser_starten(melden=aufpasser_melden)
     d.aufsicht()
     d.zustellen()
     if a.einmal:
         return 0
     d.ordner_messen()                               # Ordnergrößen: einmal am Tag im Hintergrund (nur im laufenden Dienst)
     stand, letzte_aufsicht = None, time.time()
+    from . import herzschlag
     while True:
+        t0, fehler = time.time(), None
         try:
             v = con.execute("PRAGMA data_version").fetchone()[0]
             if v != stand:
@@ -382,8 +399,10 @@ def main(argv=None):
                 d.takt()
                 d.zustellen()                       # Wiederholung nach Fehlschlag, neue Anmeldungen, Takt
                 d.ordner_messen()
-        except Exception:                           # nie sterben; Fehler protokollieren und weiter
+        except Exception as x:                      # nie sterben; Fehler protokollieren und weiter
             log.exception("Fehler im Durchgang")
+            fehler = x
+        herzschlag.schlag("hauptschleife", time.time() - t0, fehler)   # A1655: die Dauer je Runde zeigt die Last (A1648)
         time.sleep(a.takt)
 
 

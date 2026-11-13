@@ -294,6 +294,8 @@ def befehle(eingang=EINGANG, projekt=None, von=None):
         if not name.endswith(".json") or time.time() - os.path.getmtime(pfad) < 1:
             continue
         stamm = name[:-5]
+        from . import herzschlag
+        herzschlag.lebt("dateiaustausch")                 # A1655: viele Dateien in einer Runde sind kein Stillstand
         try:
             with open(pfad, encoding="utf-8") as f:
                 befehl = json.load(f)
@@ -333,7 +335,9 @@ def befehle(eingang=EINGANG, projekt=None, von=None):
 def schleife(stop=None):
     con = db.verbinde(nur_lesen=True)
     stand, letzte_kopie = None, 0.0
+    from . import herzschlag
     while not (stop and stop.is_set()):
+        t0, fehler = time.time(), None
         try:
             alle = bruecken(con)                          # neue Projekte bekommen ihre Brücke ohne Neustart
             for b in alle:
@@ -345,6 +349,8 @@ def schleife(stop=None):
                 stand, letzte_kopie = v, time.time()
         except Exception as e:                            # nie den Wächter stören
             log.warning("Dateiaustausch: %s: %s", type(e).__name__, e)
+            fehler = e
+        herzschlag.schlag("dateiaustausch", time.time() - t0, fehler)   # A1655: der Aufpasser sieht, ob der Faden lebt
         time.sleep(BEFEHLE_S)
 
 

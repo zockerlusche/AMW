@@ -4,6 +4,17 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.96.0 – 14.11.2026 · Der Dienst passt auf sich selbst auf
+- **Betrieb › Dienst:** Hauptschleife, Dateiaustausch, Synchronisierung und KI-Arbeiter melden sich nach jeder Runde. Je Teil
+  steht da, ob er läuft (grün, gelb, rot), wann die letzte Runde war, wie lange sie gedauert hat, wie oft er neu gestartet
+  wurde und sein letzter Fehler. Steht ein Teil, zeigt auch die Startseite ein Band.
+- **Selbstheilung:** Ist der Dateiaustausch oder die Synchronisierung länger still als erlaubt, startet der Dienst ihn neu
+  und sagt dir einmal Bescheid – die anderen Teile laufen weiter. Hauptschleife und KI-Arbeiter werden nur gemeldet (ein
+  zweiter KI-Arbeiter würde einen laufenden Auftrag noch einmal rechnen). Lange Runden – viele Dateien, ein langer
+  KI-Auftrag – gelten nicht als Stillstand.
+- Online zählt nur die Farbe je Teil: die Seite wird nicht bei jeder Runde neu hochgeladen.
+- Neue Hilfe „Den Dienst im Blick behalten“.
+
 ## 1.95.1 – 14.11.2026 · Release-Kette macht den Web-Abzug selbst
 - `amw release ausliefern` aktualisiert den web-Zweig jetzt selbst (als leichter Lauf, sichtbar im Leitstand) und hält mit
   klarer Meldung an, wenn das nicht klappt. Bisher sollte der Dienst ihn rechnen – das lehnte er ab, wenn für den Agenten

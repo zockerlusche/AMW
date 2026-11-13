@@ -21,7 +21,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import aktionen, db, kern
+from . import aktionen, db, herzschlag, kern
 from .betrieb import speicher_frei_gb, speicher_grenze
 
 STANDARD_PORT = 8780
@@ -340,6 +340,7 @@ def daten_start(con, pid):
     from . import einstellungen as _e
     return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "heimnetz": _e.wert("heimnetz") or None, "rechner": betrieb.auslastung(con, pid), "token": _token_lage(con), "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "eingang": len(arbeitsliste.pool(con, pid)), "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
+            "dienst_rot": [g["teil"] for g in herzschlag.gesundheit()["teile"] if g["zustand"] == "rot"],
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
@@ -1044,7 +1045,7 @@ def daten_betrieb(con, pid):
     from . import ki
     return {"sitzungen": sitz, "laeufe": laeufe, "fremd": fremd, "sperren": sperren, "server": server,
             "log": [z.rstrip() for z in log],
-            "verbrauch": statusline.verbrauch_tage(con, pid, 7), "ki": ki.uebersicht(con, pid),
+            "verbrauch": statusline.verbrauch_tage(con, pid, 7), "ki": ki.uebersicht(con, pid), "gesundheit": herzschlag.gesundheit(),
             "speicher": {"frei": frei, "gesamt": gesamt, "grenze": speicher_grenze(con, pid)}, "db": db.db_pfad()}
 
 

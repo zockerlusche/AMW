@@ -8,7 +8,7 @@ import struct
 import unittest
 import zlib
 
-from amw import benutzer, db, dokumente, kern
+from amw import benutzer, db, dokumente, herzschlag, kern
 from tests.rundgang import OnlineRundgang, Rundgang
 
 
@@ -40,6 +40,13 @@ class Daten:
                 db.einfuegen(self.con, "verbrauch", sitzung_id=sid, agent="CC1", zeit_utc=z(m), kosten_usd=usd)
             n = kern._posten(self.con, self.pid, "AMW", "CC1", "freigabe", "L9 ist dran – jetzt starten: ein sehr langer Lauf-Titel zum Umbrechen")
             self.con.execute("UPDATE empfang SET geweckt_utc = ? WHERE nachricht_id = ?", (z(45), n[0] if isinstance(n, tuple) else n))
+        herzschlag._zuruecksetzen()                                                 # Betrieb › Dienst (A1655): je Teil ein Herzschlag
+        self.addCleanup(herzschlag._zuruecksetzen)
+        herzschlag.schlag("hauptschleife", 0.04)
+        herzschlag.schlag("dateiaustausch", 0.31)
+        herzschlag._stand["dateiaustausch"].update(neustarts=1, neu_zeit=jetzt.timestamp() - 600)   # vor 10 Minuten neu gestartet
+        herzschlag.schlag("synchronisierung", 2.6, ConnectionError("Online-Speicher nicht erreichbar"))
+        herzschlag.schlag("ki", 0.02)
         aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Seite bauen mit einem recht langen Titel, der am Handy umbrechen muss", "CC1")
         kern.posten(self.con, self.pid, "CC1", "TL", "info", "Stand: Seite gebaut, Bilder liegen bei", text="Mehr Text\nüber zwei Zeilen")
         kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "Bitte die Seite fürs Handy prüfen", aufgabe_id=aid)
@@ -110,6 +117,14 @@ class Seiten(Daten, Rundgang):
         self.ueberall("betrieb", bereit="document.querySelector('#inhalt .karte') && document.querySelector('.anl-anteil')")   # mit „Wofür das Geld geht“
         self.ueberall("betrieb", "betrieb-geld", bereit="document.querySelector('.anl-anteil')",
                       tun="document.querySelector('.anl-anteil').closest('table').scrollIntoView({ block: 'center' })", danach="true")
+
+    def test_dienst_gesundheit(self):
+        """A1655: Betrieb › Dienst zeigt je Teil die Farbe; steht ein Teil, warnt die Startseite mit einem Band."""
+        self.ueberall("betrieb", "betrieb-dienst", bereit="document.querySelector('.punkt.bernstein') && document.querySelector('.punkt.gruen')",
+                      tun="[...document.querySelectorAll('#inhalt h2')].find(h => h.textContent.startsWith('Dienst') || h.textContent.startsWith('Service')).scrollIntoView({ block: 'start' })",
+                      danach="true")
+        herzschlag._stand["hauptschleife"]["zeit"] -= 3600                                  # eine Stunde still: rot
+        self.ueberall("start", "start-dienst-rot", bereit="[...document.querySelectorAll('.band-halt b')].some(b => /Hauptschleife|Main loop/.test(b.textContent))")
 
     def test_einstellungen(self):
         self.ueberall("einstellungen", bereit="document.querySelector('#inhalt .einst, #inhalt .karte')")

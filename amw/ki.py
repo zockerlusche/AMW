@@ -792,6 +792,8 @@ class Arbeiter:
 
     def _abbruch(self, a):
         def pruefen():
+            from . import herzschlag
+            herzschlag.lebt("ki")                                   # A1655: ein langer Auftrag ist kein Stillstand
             r = self.con.execute("SELECT status FROM lauf WHERE id = ?", (a["lauf_id"],)).fetchone()
             return not r or r["status"] != "laeuft"
         return pruefen
@@ -1051,13 +1053,17 @@ def zustand_pruefen(con):
 def arbeiten(stop=None):
     """Faden im Dienst: KI-Aufträge ausführen. Fehler stören nie den Wächter."""
     a = None
+    from . import herzschlag
     while not (stop and stop.is_set()):
+        t0, fehler = time.time(), None
         try:
             a = a or Arbeiter()
             for e in a.runde():
                 log.info("KI: %s", e)
         except Exception as e:                                      # noqa: BLE001
             log.warning("KI-Arbeiter: %s: %s", type(e).__name__, e)
+            fehler = e
+        herzschlag.schlag("ki", time.time() - t0, fehler)           # A1655
         time.sleep(TAKT_S)
 
 

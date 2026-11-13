@@ -471,6 +471,9 @@ def _ruhig(inhalt):
     t = d.get("token")
     if isinstance(t, dict):                                           # Wochenlimit: der Messwert zählt, nicht die Hochrechnung
         d["token"] = {k: t.get(k) for k in ("wert", "reset_utc", "unsicher")}
+    g = d.get("gesundheit")
+    if isinstance(g, dict):                                           # Dienst-Gesundheit (A1655): nur die Farbe je Teil zählt
+        d["gesundheit"] = [(x.get("teil"), x.get("zustand"), x.get("neustarts")) for x in g.get("teile") or [] if isinstance(x, dict)]
     h = d.get("rechner_heute")
     if isinstance(h, dict):                                           # Tagesverlauf: Läufe und ihre Zustände
         d["rechner_heute"] = {"laeufe": [[l.get(k) for k in ("id", "eigen", "status", "start_utc", "ende_utc", "erwartet_min", "gb")]
@@ -766,7 +769,9 @@ def schleife(stop=None):
     con = db.verbinde()
     ab = Abgleich(con, sp)
     stand, offen = None, False
+    from . import herzschlag
     while not (stop and stop.is_set()):
+        t0, fehler = time.time(), None
         try:
             if not ab.bekannt and ab.letzt_puls == 0:
                 ab.schema()
@@ -777,7 +782,10 @@ def schleife(stop=None):
                 offen = False
         except Exception as e:                       # Netz weg, Turso gesperrt …: nur protokollieren
             log.warning("Synchronisierung: %s: %s", type(e).__name__, e)
+            herzschlag.schlag("synchronisierung", time.time() - t0, e)
             time.sleep(60)
+        else:
+            herzschlag.schlag("synchronisierung", time.time() - t0)   # A1655
         time.sleep(EINGANG_S)
 
 
