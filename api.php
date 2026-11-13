@@ -265,27 +265,6 @@ try {
         if (!$g) antwort(200, ['kennung' => $k, 'warten' => true]);
         antwort(200, json_decode($g[0], true) + ['stand_utc' => $g[1]]);
     }
-    if ($pfad === '/api/nachrichten' && ($q['alle'] ?? '') === '1' && $uids) {   // alle Projekte des Benutzers zusammen
-        $alle = ['eingang' => [], 'gesendet' => [], 'zaehler' => ['eingang_offen' => 0]];
-        foreach ($uids as $u) {
-            $z = sql([['SELECT inhalt, stand_utc FROM ansicht WHERE weg = ?', ["$u:/api/nachrichten"]]])[0][0] ?? null;
-            if (!$z) continue;
-            $d = json_decode($z[0], true) ?: [];
-            foreach (['eingang', 'gesendet'] as $k) foreach ($d[$k] ?? [] as $x) { $x['projekt'] ??= $u; $alle[$k][] = $x; }
-            $alle['zaehler']['eingang_offen'] += (int)($d['zaehler']['eingang_offen'] ?? 0);
-            $i = 0;
-            foreach (briefkasten_wirkt($u, $z[1]) as [$w, $dat]) {          // Geschriebenes im Briefkasten: „wird übertragen …“
-                if ($w !== '/api/nachricht') continue;
-                $x = json_decode($dat, true) ?: [];
-                $alle['gesendet'][] = ['id' => -(++$i), 'zeit_utc' => jetzt_utc(), 'art' => (string)($x['art'] ?? 'auftrag'), 'projekt' => $u,
-                    'kurz' => (string)($x['kurz'] ?? ''), 'text' => $x['text'] ?? null, 'antwort_auf' => null, 'benutzer' => null, 'bezug' => null,
-                    'empfaenger' => array_map(fn($a) => ['agent' => trim($a), 'stand' => 'unterwegs'], explode(',', (string)($x['an'] ?? ''))),
-                    'antworten' => [], 'zurueckgezogen' => false, 'zurueckziehbar' => false, 'unterwegs' => true];
-            }
-        }
-        foreach (['eingang', 'gesendet'] as $k) usort($alle[$k], fn($a, $b) => [(string)$b['zeit_utc'], (int)$b['id']] <=> [(string)$a['zeit_utc'], (int)$a['id']]);
-        antwort(200, $alle);
-    }
     $schluessel = match (true) {
         $pfad === '/api/aufgaben' => '/api/aufgaben?sicht=' . (string)($q['sicht'] ?? 'offen'),
         $pfad === '/api/fragen' && ($q['alle'] ?? '') === '1' => '/api/fragen?alle=1',
@@ -378,14 +357,7 @@ try {
                         'pc_frisch' => $gesehen !== null && strtotime($gesehen) > time() - 420];
         $offeneFragen = count(array_filter($unterwegs, fn($w) => str_starts_with($w, '/api/frage/')));
         if (isset($d['zaehler']['fragen'])) $d['zaehler']['fragen'] = max(0, $d['zaehler']['fragen'] - $offeneFragen);
-        if ($uids) {                                       // Menü „Nachrichten“: offene an dich aus allen Projekten des Benutzers
-            $summe = 0;
-            foreach ($uids as $u) {
-                $z = sql([['SELECT inhalt FROM ansicht WHERE weg = ?', ["$u:/api/start"]]])[0][0] ?? null;
-                $summe += $z ? (int)((json_decode($z[0], true) ?: [])['zaehler']['an_dich'] ?? 0) : 0;
-            }
-            $d['zaehler']['nachrichten'] = $summe;
-        }
+        // Menü „Nachrichten“: nur das oben gewählte Projekt – der Zähler kommt so schon aus der Ansicht (Marcel 13.11., B2691)
         $gelesen = [];                                    // schon als gelesen markiert, aber noch im Briefkasten
         foreach ($offen as [$w, $dat]) if ($w === '/api/gelesen') $gelesen = array_merge($gelesen, json_decode($dat, true)['ids'] ?? []);
         if (isset($d['an_dich'])) $d['an_dich'] = array_values(array_filter($d['an_dich'], fn($n) => !in_array($n['id'], $gelesen, true)));
