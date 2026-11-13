@@ -1,9 +1,9 @@
 {
  "titel": "Benutzer der Online-Seite",
- "kurz": "Mehrere Menschen können sich auf der Online-Seite anmelden – jeder mit eigenem Passwort und zweitem Faktor. Du legst sie am PC an, gibst ihnen einen Freischalt-Code und vergibst Rolle und Projekte. Bis dahin hat ein neuer Benutzer keine Rechte.",
+ "kurz": "Mehrere Menschen können sich auf der Online-Seite anmelden – jeder mit eigenem Passwort und zweitem Faktor. Du legst sie an, gibst ihnen einen Freischalt-Code und vergibst Rolle und Projekte – am PC oder unterwegs auf der Online-Seite. Bis dahin hat ein neuer Benutzer keine Rechte.",
  "brauchst": [
   "Die Online-Seite und den Online-Speicher, eingerichtet (Einstellungen › Online-Speicher und Online-Seite).",
-  "Die Workbench am PC – Benutzer verwaltest du nur dort.",
+  "Die Workbench am PC oder die Online-Seite: Einstellungen › Benutzer. Online braucht es die Rolle Projekt-Admin oder System-Admin.",
   "Für jeden Benutzer ein Handy mit einer Authenticator-App (Google Authenticator, Microsoft Authenticator …)."
  ],
  "schritte": [
@@ -39,7 +39,7 @@
   ],
   [
    "Projekt-Admin",
-   "dazu die Einstellungen seiner Projekte und ihrer Agenten."
+   "dazu die Einstellungen seiner Projekte und ihrer Agenten – und die Benutzer seiner Projekte: anlegen, freischalten, Rolle bis Projekt-Admin, sperren. Wer auch in anderen Projekten oder selbst Projekt-Admin ist, den schaltet nur ein System-Admin frei, sperrt ihn oder ändert seine Rolle. System-Admins und Benutzer ohne eins seiner Projekte sieht er nicht."
   ],
   [
    "System-Admin",
@@ -61,7 +61,11 @@
   ],
   [
    "„Dein Zugang wird geprüft“ bleibt stehen",
-   "Rolle und Projekte fehlen noch. Am PC vergeben, dann lädt der Benutzer die Seite neu."
+   "Rolle und Projekte fehlen noch. Am PC oder online vergeben, dann lädt der Benutzer die Seite neu."
+  ],
+  [
+   "„Nicht erlaubt: …“ online",
+   "Als Projekt-Admin geht nur, was deine eigenen Projekte betrifft; dich selbst sperren oder deine eigene Rolle ändern macht ein anderer Admin."
   ]
  ],
  "danach": [
@@ -77,6 +81,10 @@
   [
    "Kann jemand anderes den Code benutzen?",
    "Nur wenn er ihn hat und schneller ist. Dann sieht der richtige Benutzer „schon benutzt“ und meldet sich bei dir – du sperrst, schaltest neu frei und gibst den neuen Code weiter."
+  ],
+  [
+   "Ich bin unterwegs – geht Freischalten am Handy?",
+   "Ja. Die Online-Seite erzeugt den Code selbst und zeigt ihn einmal; gespeichert wird nur sein Hash. Der PC prüft danach noch einmal, ob du das durftest – wenn nicht, macht er den Code sofort ungültig. Rolle und Projekte, die du online änderst, übernimmt der PC in wenigen Sekunden."
   ],
   [
    "Wo stehen Passwort und zweiter Faktor?",

@@ -752,6 +752,89 @@ function benutzer_aktuell(): ?array {
     return $b;
 }
 
+/** Wie amw/benutzer.py darf_verwalten (A1615 a): '' = erlaubt, sonst der Grund. $ich null = Zugang der Konfiguration
+ *  (System-Admin). Projekte als Kennungen (uid). Der PC prüft beim Ausführen noch einmal. */
+function benutzer_darf_verwalten(?array $ich, string $ziel, ?string $rolle, ?array $projekte, ?bool $gesperrt, bool $neu, bool $freischalten = false): string {
+    if ($ich !== null && ((int)$ich['gesperrt'] || !in_array($ich['rolle'], ['projekt_admin', 'system_admin'], true))) {
+        return 'Benutzer verwaltet nur ein Projekt-Admin.';
+    }
+    $t = $neu ? null : benutzer_zeile($ziel);
+    if (!$neu && !$t) return "Benutzer $ziel gibt es nicht.";
+    if ($t) $t['projekte'] = json_decode((string)$t['projekte'], true) ?: [];
+    if ($ich !== null && $t && $t['name'] === $ich['name'] && ($gesperrt || ($rolle !== null && $rolle !== $t['rolle']))) {
+        return 'Dich selbst sperren oder deine eigene Rolle ändern geht nicht – das macht ein anderer Admin.';
+    }
+    if ($rolle !== null && !in_array($rolle, BENUTZER_ROLLEN, true)) return 'Rolle unbekannt.';
+    if ($ich === null || $ich['rolle'] === 'system_admin') return '';
+    if ($t && $t['rolle'] === 'system_admin') return "{$t['name']} ist System-Admin – das ändert nur ein System-Admin.";
+    if ($rolle === 'system_admin') return 'System-Admin vergibt nur ein System-Admin.';
+    $eigene = $ich['projekte'];
+    $alt = $t ? $t['projekte'] : [];
+    if ($t && $t['rolle'] && !array_intersect($alt, $eigene)) return "{$t['name']} hat keins deiner Projekte.";
+    if ($projekte !== null && array_diff(array_merge(array_diff($projekte, $alt), array_diff($alt, $projekte)), $eigene)) {
+        return 'Projekte vergibst und entziehst du nur aus deinen eigenen.';
+    }
+    // Was das ganze Konto betrifft (freischalten, sperren, Rolle) nur bei Benutzern ganz in den eigenen Projekten und unter
+    // Projekt-Admin – sonst übernähme der Admin über den Code ein fremdes Konto mit dessen übrigen Projekten (TL P126)
+    $konto = $freischalten || $gesperrt !== null || ($rolle !== null && $t && $rolle !== ($t['rolle'] ?: null));
+    if ($konto && $t && (array_diff($alt, $eigene) || ($t['rolle'] && array_search($t['rolle'], BENUTZER_ROLLEN, true) >= 2))) {
+        $was = $freischalten ? 'Freischalten' : ($gesperrt !== null ? 'Sperren' : 'Die Rolle ändern');
+        $grund = $t['rolle'] === 'projekt_admin' ? 'ist Projekt-Admin' : 'hat auch Projekte, die nicht deine sind';
+        return "$was bei {$t['name']} macht ein System-Admin – {$t['name']} $grund.";
+    }
+    if ($neu && !$projekte) return 'Neue Benutzer legst du mit mindestens einem deiner Projekte an.';
+    return '';
+}
+
+/** Freischalt-Code von der Online-Seite (A1615 a, Entscheid F1): erzeugt den Code hier wie der PC (amw/benutzer.py
+ *  freischalten – 16 Zeichen ohne I/O/0/1, 80 Bit), speichert nur seinen Hash mit Ablauf, setzt Passwort, zweiten Faktor
+ *  und Firmenkonto zurück und beendet alle Sitzungen des Benutzers. Der Code steht nirgends – er geht nur einmal an die
+ *  Seite zurück. In den Briefkasten kommt nur Name und Ablauf: der PC prüft das Recht nach und macht den Code bei einem
+ *  Verstoß sofort ungültig. Rückgabe ['code', 'bis'] oder ['fehler']. */
+function benutzer_code_online(?array $ich, string $name, int $stunden, ?string $projekt): array {
+    $grund = benutzer_darf_verwalten($ich, $name, null, null, null, false, true);
+    if ($grund !== '') return ['fehler' => $grund];
+    $b = benutzer_zeile($name);
+    if ((int)$b['gesperrt']) return ['fehler' => "$name ist gesperrt – erst entsperren, dann freischalten."];
+    if ($stunden < 1 || $stunden > 168) return ['fehler' => 'Gültigkeit: 1 bis 168 Stunden.'];
+    $zeichen = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    $roh = '';
+    for ($i = 0; $i < 16; $i++) $roh .= $zeichen[random_int(0, 31)];
+    $code = implode('-', str_split($roh, 4));
+    $bis = jetzt_utc($stunden * 3600);
+    $wer = $ich['name'] ?? '@zugang';
+    sql([['UPDATE benutzer SET code_hash = ?, code_bis = ?, passwort_hash = NULL, totp_geheim = NULL, totp_letzt = 0, sso_kennung = NULL,'
+          . ' eingerichtet_utc = NULL, sitzung_nr = sitzung_nr + 1 WHERE name = ?', [hash('sha256', code_norm($code)), $bis, $name]],
+         ['INSERT INTO eingang (zeit_utc, weg, daten, ip, projekt) VALUES (?, ?, ?, ?, ?)',
+          [jetzt_utc(), '/api/benutzer/code_online', json_encode(['name' => $name, 'bis' => $bis, '_benutzer' => $wer], JSON_UNESCAPED_UNICODE),
+           $_SERVER['REMOTE_ADDR'] ?? '?', $projekt === '' ? null : $projekt]]]);
+    return ['code' => $code, 'bis' => $bis];
+}
+
+/** Benutzer für die Verwaltung auf der Online-Seite – gleiche Form wie am PC (workbench.daten_benutzer), Projekte als uid.
+ *  System-Admin sieht alle; Projekt-Admin nur Benutzer mit einem seiner Projekte und neue, die auf Freigabe warten. */
+function benutzer_liste_online(?array $ich, array $verzeichnis): array {
+    $z = sql([['SELECT name, anzeige, email, rolle, gesperrt, projekte, code_bis, eingerichtet_utc, angemeldet_utc,'
+               . ' passwort_hash IS NOT NULL, sso_kennung IS NOT NULL FROM benutzer ORDER BY name', []]])[0];
+    $alle = $ich === null || $ich['rolle'] === 'system_admin';
+    $eigene = $alle ? array_column($verzeichnis, 0) : $ich['projekte'];
+    $jetzt = jetzt_utc();
+    $liste = [];
+    foreach ($z as [$name, $anzeige, $email, $rolle, $gesperrt, $projekte, $bis, $eingerichtet, $angemeldet, $hat_pw, $hat_sso]) {
+        $p = json_decode((string)$projekte, true) ?: [];
+        if (!$alle && $rolle && ($rolle === 'system_admin' || !array_intersect($p, $eigene))) continue;
+        $stand = ((int)$hat_pw || (int)$hat_sso) ? 'eingerichtet' : ($bis ? (strcmp((string)$bis, $jetzt) > 0 ? 'wartet_code' : 'code_abgelaufen') : 'neu');
+        $liste[] = ['name' => $name, 'anzeige' => $anzeige, 'email' => $email, 'rolle' => $rolle ?: null, 'gesperrt' => (int)$gesperrt,
+                    'projekte' => $p, 'online' => ['stand' => $stand, 'bis' => $bis, 'eingerichtet_utc' => $eingerichtet,
+                    'angemeldet_utc' => $angemeldet, 'firmenkonto' => (bool)(int)$hat_sso]];
+    }
+    $projekte = array_values(array_map(fn($v) => ['id' => $v[0], 'name' => $v[1]],
+                                       array_filter($verzeichnis, fn($v) => in_array($v[0], $eigene, true))));
+    $rollen = $alle ? BENUTZER_ROLLEN : array_slice(BENUTZER_ROLLEN, 0, 3);
+    return ['benutzer' => $liste, 'projekte' => $projekte, 'rollen' => $rollen, 'online' => true, 'sso' => null,
+            'seite_adresse' => null, 'auf_der_seite' => true, 'ich' => $ich['name'] ?? null];
+}
+
 /** Klasse einer Eingabe wie amw/benutzer.py klasse(). */
 function eingabe_klasse(string $pfad): string {
     if (str_starts_with($pfad, '/api/benutzer')) return 'benutzer';

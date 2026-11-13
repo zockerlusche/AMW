@@ -113,7 +113,21 @@ try {
         $daten = json_decode((string)$roh, true);
         if (!is_array($daten)) antwort(400, ['fehler' => 'JSON']);
         unset($daten['_benutzer']);                         // wer handelt, setzt nur der Server (Anmeldung), nie der Aufrufer
-        if (str_starts_with($pfad, '/api/benutzer')) antwort(403, ['fehler' => 'Benutzer verwaltest du am PC.']);
+        if (str_starts_with($pfad, '/api/benutzer')) {      // Benutzer verwalten online (A1615 a): Rechte hier und am PC
+            $bn = trim((string)($daten['name'] ?? ''));
+            if ($pfad === '/api/benutzer/freischalten') {   // Code entsteht hier, nur einmal zurück (der PC prüft nach)
+                $r = benutzer_code_online($ich, $bn, (int)($daten['stunden'] ?? 24), $projekt);
+                antwort(isset($r['fehler']) ? 403 : 200, isset($r['fehler']) ? ['fehler' => 'Nicht erlaubt: ' . $r['fehler']] : $r);
+            }
+            if (!in_array($pfad, ['/api/benutzer/neu', '/api/benutzer/aendern'], true)) antwort(404, ['fehler' => 'unbekannt']);
+            $br = $daten['rolle'] ?? null;
+            $bp = $daten['projekte'] ?? null;
+            $bg = array_key_exists('gesperrt', $daten) && $daten['gesperrt'] !== null ? (bool)$daten['gesperrt'] : null;
+            if ($bn === '' || mb_strlen($bn) > 60 || ($br !== null && !is_string($br))
+                || ($bp !== null && (!is_array($bp) || array_filter($bp, fn($x) => !is_string($x))))) antwort(400, ['fehler' => 'Name, Rolle oder Projekte']);
+            $grund = benutzer_darf_verwalten($ich, $bn, $br === '' ? null : $br, $bp, $bg, $pfad === '/api/benutzer/neu');
+            if ($grund !== '') antwort(403, ['fehler' => 'Nicht erlaubt: ' . $grund]);
+        }
         if ($ich !== null && !rolle_reicht($ich['rolle'], eingabe_klasse($pfad))) {
             antwort(403, ['fehler' => 'Nicht erlaubt – dafür reicht deine Rolle nicht.']);
         }
@@ -136,7 +150,7 @@ try {
         }
         if (!$frage && !$parken && !in_array($pfad, ['/api/nachricht', '/api/gelesen', '/api/halt', '/api/weiter', '/api/schirm',
                 '/api/agent/entfernen', '/api/agent/wiederaufnehmen', '/api/agent/loeschen', '/api/nachricht/zurueckziehen', '/api/regelwerk/uebernehmen',
-                '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web',
+                '/api/einstellungen/projekt', '/api/einstellungen/agent', '/api/einstellungen/web', '/api/benutzer/neu', '/api/benutzer/aendern',
                 '/api/plan/spec', '/api/plan/planfrei', '/api/plan/leitbild', '/api/plan/bogen', '/api/plan/risiko',
                 '/api/plan/rueckblick', '/api/plan/uebernehmen', '/api/plan/check',
                 '/api/dokument/kommentar', '/api/dokument/setzen', '/api/dokument/status', '/api/dokument/online',
@@ -187,7 +201,7 @@ try {
             (bool)$parken => ['status' => str_ends_with($pfad, '/parken') ? 'geparkt' : 'offen'],
             $pfad === '/api/nachricht' => ['an' => array_map('trim', explode(',', (string)$daten['an']))],
             $pfad === '/api/gelesen' => ['erledigt' => count($daten['ids'])],
-            str_starts_with($pfad, '/api/einstellungen/'), str_starts_with($pfad, '/api/plan/'), str_starts_with($pfad, '/api/dokument/'), str_starts_with($pfad, '/api/aufgabe/') => [],
+            str_starts_with($pfad, '/api/einstellungen/'), str_starts_with($pfad, '/api/benutzer/'), str_starts_with($pfad, '/api/plan/'), str_starts_with($pfad, '/api/dokument/'), str_starts_with($pfad, '/api/aufgabe/') => [],
             $pfad === '/api/halt' => ['halt' => 0],
             $pfad === '/api/schirm' => ['text' => empty($daten['frei']) ? 'Bildschirm wird belegt' : 'Bildschirm wird freigegeben'],
             default => ['aufgehoben' => 0],
@@ -200,6 +214,10 @@ try {
         if (!$ids) antwort(200, []);
         $z = sql([['SELECT id, status, ergebnis FROM eingang WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')', $ids]])[0];
         antwort(200, array_map(fn($r) => ['id' => (int)$r[0], 'status' => $r[1], 'fehler' => $r[1] === 'fehler' ? ((json_decode((string)$r[2], true)['fehler'] ?? null) ?: 'Fehler am PC') : null], $z));
+    }
+    if ($pfad === '/api/benutzer') {                       // Benutzer verwalten (A1615 a): Projekt-Admin seine, System-Admin alle
+        if ($ich !== null && !rolle_reicht($ich['rolle'], 'benutzer')) antwort(403, ['fehler' => 'Benutzer verwaltet nur ein Projekt-Admin.']);
+        antwort(200, benutzer_liste_online($ich, $verzeichnis));
     }
     if ($pfad === '/api/projekte' && $verzeichnis) {      // Verzeichnis aller Projekte (auch anderer Rechner)
         $aus = [];
