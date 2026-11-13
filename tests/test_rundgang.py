@@ -20,6 +20,11 @@ def png(breite=1600, hoehe=1000):
             + stueck(b"IDAT", zlib.compress(zeile * hoehe, 9)) + stueck(b"IEND", b""))
 
 
+# Vollbild zu UND sein Eintrag im Verlauf abgebaut: ✕/Esc rufen history.back() – das läuft verzögert; lädt der Test vorher
+# schon die nächste Seite, springt der späte „Zurück“ dorthin zurück (Gesamtlauf 1.87.4: Knopf „Vollbild“ kam nie)
+VB_ZU = "!document.querySelector('.vb') && !(history.state && history.state.amwVollbild)"
+
+
 class Daten:
     def daten(self):
         kern.agent_neu(self.con, self.pid, "CC1")
@@ -56,18 +61,18 @@ class Vollbild(Daten, Rundgang):
                     self.vollbild(art, g)
                     self.assertEqual(self.pruefen(f"vollbild-{art}", g, "dunkel"), [])
                     self.tippen(".vb > .vb-zu")                               # echter Tipp auf das ✕
-                    self.warten("!document.querySelector('.vb')")
+                    self.warten(VB_ZU)
                     self.assertTrue(self.tab.js("!!document.querySelector('.dialog-hg')"), "Dokument-Dialog bleibt offen")
 
     def test_esc_und_zurueck_schliessen_nur_das_vollbild(self):
         self.vollbild("bild", "handy")
         self.esc()
-        self.warten("!document.querySelector('.vb')")
+        self.warten(VB_ZU)
         self.assertTrue(self.tab.js("!!document.querySelector('.dialog-hg')"))
         self.tab.js("document.querySelector('.dialog-hg').remove()")
         self.vollbild("mockup", "handy")
         self.tab.js("history.back()")                                        # Zurück-Taste bzw. Wischgeste am Handy
-        self.warten("!document.querySelector('.vb')")
+        self.warten(VB_ZU)
         self.assertEqual(self.tab.js("location.hash"), "#dokumente")          # bleibt auf der Seite
         self.assertTrue(self.tab.js("!!document.querySelector('.dialog-hg')"))
         self.tippen(".dialog-hg .dialog-zu")
