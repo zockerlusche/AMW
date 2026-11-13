@@ -99,7 +99,8 @@ def angemeldete_postfaecher():
 def unangemeldet(con, pid):
     """Laufende Sitzungen mit Fenster, die nicht angemeldet sind, aber zu einem Agenten DIESES Projekts gehören: Sitzungs-ID
     war schon angemeldet (Resume) oder sie läuft in einem Ordner, in dem hier schon ein Agent angemeldet war. Für Workbench
-    und dienst status; Sitzungen anderer Projekte erscheinen dort nicht."""
+    und dienst status; Sitzungen anderer Projekte erscheinen dort nicht. doppelt: der Agent ist gerade in einem ANDEREN Fenster
+    angemeldet (Neustart per Startskript, das alte Fenster ist noch offen) – dann ist „anmelden“ der falsche Rat."""
     postfach = angemeldete_postfaecher()
     erg = []
     for p in claude_prozesse():
@@ -107,7 +108,10 @@ def unangemeldet(con, pid):
             continue
         k = bekannte_kennung(con, pid, p["sitzung"])
         if k or agenten_ordner(con, p["ordner"], pid):
-            erg.append({"kennung": k, "pid": p["pid"], "sitzung": p["sitzung"][:8], "ordner": p["ordner"], "name": p["name"]})
+            doppelt = bool(k and con.execute("SELECT 1 FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
+                                             " AND a.kennung = ? AND s.zustand = 'aktiv'", (pid, k)).fetchone())
+            erg.append({"kennung": k, "pid": p["pid"], "sitzung": p["sitzung"][:8], "ordner": p["ordner"], "name": p["name"],
+                        "doppelt": doppelt})
     return erg
 
 

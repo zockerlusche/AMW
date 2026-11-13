@@ -120,6 +120,10 @@ def status(port):
     except Exception:
         fehlt = []
     for u in fehlt:
+        if u.get("doppelt"):                             # Neustart per Startskript: das alte Fenster ist noch offen
+            zeilen.append(f"  ZWEI FENSTER: {u['kennung']} · älteres Fenster Sitzung {u['sitzung']}, PID {u['pid']}, {u['ordner']}"
+                          " – die AMW benachrichtigt nur das neuere; das ältere schließt du selbst")
+            continue
         zeilen.append(f"  NICHT ANGEMELDET: {u['kennung'] or '?'} · Sitzung {u['sitzung']}, PID {u['pid']}, {u['ordner']}"
                       f" – im Fenster: {befehl_cli()} anmelden --von {u['kennung'] or '<Name>'}")
     return "\n".join(zeilen)

@@ -4,6 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.87.0 – 13.11.2026 · Vollbild am Handy immer schließbar, Bedienbarkeits-Rundgang
+- **Behoben – Vollbild am Handy:** Das ✕ steht fest oben rechts im sichtbaren Bereich (auch neben Kerbe und Browser-
+  Leisten); Esc, die Zurück-Taste bzw. Wischgeste und das ✕ schließen nur das Vollbild, der Dokument-Dialog darunter
+  bleibt. Mockups und PDFs öffnen im Vollbild mit ✕ und „In neuem Tab“ – vorher ging nur der Rahmen ins Vollbild, am
+  Handy ohne Ausweg.
+- **Zwei Fenster nach einem Neustart:** Läuft nach einem Neustart per Startskript das alte Fenster eines Agenten noch,
+  zeigt die Startseite „Zwei Fenster für …“ (die AMW benachrichtigt nur das neuere; das ältere schließt du selbst) statt
+  „Nicht verbunden“ mit dem falschen Rat „anmelden“; ebenso `amw dienst status`.
+- **Kleinigkeiten:** Online am Handy ist „Abmelden“ klein rechts oben; im Agenten-Dialog steht die Zahl neuer Nachrichten
+  nur noch einmal.
+- **Bedienbarkeits-Rundgang als Test:** Jede Seite und jeder Dialog wird am PC und am Handy, hell und dunkel, am PC und
+  online geprüft – Fehler in der Konsole, nichts ragt seitwärts über den Rand, jedes ✕ im Bild und treffbar, keine
+  abgeschnittenen Knopftexte, keine Fokus-Fallen. Neue Seiten hängen sich an dasselbe Gerüst.
+
 ## 1.86.0 – 13.11.2026 · Empfehlung für Modell und Denkaufwand
 - **Größe und Art je Aufgabe:** `amw aufgabe neu|aendern --groesse S|M|L|XL --art text|mechanisch|fehlersuche|oberflaeche|sicherheit|konzept`
   (Schema 30: zwei neue Spalten; `komplexitaet` bleibt, was sie ist). `amw aufgabe neu` erinnert daran, wenn sie fehlen.

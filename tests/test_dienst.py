@@ -264,6 +264,24 @@ class GleicheKennungZweiProjekte(Anmelden):
         with mock.patch.object(self.hook, "claude_prozesse", return_value=[lose]):
             self.assertEqual([x["pid"] for x in self.hook.unangemeldet(self.con, self.pid)], [9])
             self.assertEqual(self.hook.unangemeldet(self.con, self.q), [])         # gehört nach P, nicht nach Q
+            self.assertFalse(self.hook.unangemeldet(self.con, self.pid)[0]["doppelt"])
+
+    def test_zwei_fenster_nach_neustart_kein_anmelden_rat(self):
+        """Neustart per Startskript (A1614/A1418): das alte Fenster lebt noch, der Agent ist im neuen angemeldet → „doppelt“."""
+        from amw import einrichtung
+        with mock.patch.dict(os.environ, {"AMW_PROJEKT": "P"}):
+            self.hook_lauf({"session_id": "alt", "source": "startup", "cwd": "C:/p"}, "TL", "pipe-alt")
+            self.hook_lauf({"session_id": "neu", "source": "startup", "cwd": "C:/p"}, "TL", "pipe-neu")
+        alt = {"pid": 7, "art": "interactive", "name": "", "sitzung": "alt", "ordner": "C:/p", "pipe": "pipe-alt"}
+        with mock.patch.object(self.hook, "claude_prozesse", return_value=[alt]):
+            u = self.hook.unangemeldet(self.con, self.pid)
+            self.assertEqual([(x["kennung"], x["pid"], x["doppelt"]) for x in u], [("TL", 7, True)])
+            class Con:                                                         # die Test-Datenbank, bleibt offen
+                execute, close = self.con.execute, (lambda _: None)
+            with mock.patch.object(einrichtung, "powershell", return_value=(0, "Aufgabe: –")),                     mock.patch.object(einrichtung, "fremde_aufgabe", return_value=None),                     mock.patch.object(einrichtung.db, "verbinde", return_value=Con()):
+                text = einrichtung.status(1)                                  # „amw dienst status“
+        self.assertIn("ZWEI FENSTER: TL", text)
+        self.assertNotIn("anmelden --von TL", text)
 
     def test_jeder_nimmt_nur_eigene_arbeit(self):
         from amw import planung
