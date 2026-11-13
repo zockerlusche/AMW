@@ -405,7 +405,14 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .dk-anhang { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--linie); border-radius: 3px; padding: 4px 8px; cursor: pointer; background: var(--flaeche2); color: inherit; font: inherit; font-size: 13px; }
 .dk-anhang img { width: 64px; height: 44px; object-fit: cover; border-radius: 2px; }
 /* Vollbild für Bilder */
-.vb { position: fixed; inset: 0; z-index: 30; background: #0b0a08; display: grid; grid-template-rows: minmax(0, 1fr) auto; color: #ece5d3; }
+.vb { position: fixed; inset: 0; height: 100vh; height: 100dvh; z-index: 30; background: #0b0a08; display: grid; grid-template-rows: minmax(0, 1fr) auto; color: #ece5d3; }
+/* ✕ immer oben rechts im sichtbaren Bereich – auch am Handy mit Kerbe und Leisten des Browsers (A1614) */
+.vb-zu { position: absolute; top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); z-index: 2;
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid #4a4335; background: rgba(20,18,14,.88); color: #ece5d3;
+  font: 600 20px/1 var(--titel); cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+.vb-zu:hover, .vb-zu:focus-visible { border-color: #f0a93a; color: #f0a93a; }
+.vb-rahmen iframe { width: 100%; height: 100%; border: 0; background: #fff; display: block; }
+.vb-leiste a.vb-knopf { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .vb-buehne { position: relative; overflow: hidden; touch-action: none; cursor: grab; user-select: none; }
 .vb-buehne.zieht { cursor: grabbing; }
 .vb-buehne img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; image-rendering: auto; will-change: transform; }
@@ -901,6 +908,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   .marke { width: auto; height: auto; border-right: 0; padding-left: 0; }
   .marke span { display: none; }
   .marke .logo { width: 54px; height: 34px; }
+  #abmelden { flex: none; margin-left: auto; min-height: 36px; padding: 4px 12px; font-size: 12px; }   /* online: klein rechts oben (A1614) */
   #projektwahl { display: none; }
   .projekt-chip { display: inline-flex; align-items: center; gap: 7px; max-width: 46vw; min-height: 36px; padding: 4px 11px; border: 1px solid var(--linie2);
     border-radius: 18px; background: var(--flaeche); color: var(--tinte); font: 600 13px var(--titel); letter-spacing: .03em; cursor: pointer; }
@@ -1046,7 +1054,7 @@ const TEXTE = {
     e_agentenfragen: "Fragen der Agenten", e_agentenfragen_h: "Fragen an dich gehen zuerst an den Lead: Er beantwortet sie selbst oder leitet sie unverändert an dich weiter.",
     e_agentenfragen_lead: "zuerst an den Lead", e_agentenfragen_direkt: "direkt an dich",
     e_abnahme_kette: "Nach grüner Prüfung automatisch zum Merge", e_abnahme_kette_h: "Nach einer grünen Prüfung geht die Merge-Anfrage von selbst an den Zuständigen – wenn der Lead für die Aufgabe seine Merge-Freigabe gegeben hat. Sonst fragt die AMW den Lead.",
-    e_abnahme_kette_aus: "aus", e_abnahme_kette_an: "an", e_versionen: "Versionen", m_startbefehl: "Startbefehl …", sb_block: "Startbefehl zum Kopieren", sb_titel: "Startbefehl für {x}", sb_fortsetzen: "Fortsetzen", sb_neu: "Neu starten", sb_neu_h: "neue Sitzung {x}", sb_sitzung: "Sitzung", sb_kopieren: "Kopieren", sb_kopiert: "Kopiert ✓", sb_powershell: "PowerShell", sb_cmd: "Eingabeaufforderung (cmd)", sb_letzte: "Letzte Sitzung", sb_zuletzt: "zuletzt aktiv", sb_nie: "noch keine", sb_keine_sitzung: "Noch keine Sitzung – „Neu starten“ benutzen.", sb_h: "Genau so startet die AMW den Agenten auch selbst. In ein Terminal einfügen und Enter drücken; Geheimnisse stehen nicht darin.", sb_grund_weise: "Wird nicht gestartet – dieser Agent arbeitet als Chat bzw. in der Desktop-App.", sb_grund_ordner: "Kein Ordner eingetragen – erst im Block „Sitzung“ den Ordner setzen.", sb_fehlt: "Für diesen Agenten gibt es keinen Startbefehl.", band_ansehen: "{x} ansehen", band_ansehen_h: "Übersicht von {x} öffnen – dort steht, was er gerade tut und was an ihn ging", e_ende_frist: "Frist für „Sichern & beenden“ (Minuten)", e_ende_frist_h: "So lange hat ein Agent nach „Sichern & beenden“ Zeit, seinen Stand zu sichern und sich abzumelden; danach beendet der Dienst die Sitzung.", gra_titel: "Abgleich mit dem {v}", gra_zahl: "{f} fehlen · {a} vermutlich abgedeckt · {d} übernommen", gra_h: "Nur ein Vorschlag: Vorhandene Regeln bleiben, wie sie sind. „Übernehmen“ legt eine fehlende Grundregel mit der nächsten freien Nummer an; ein Beschluss nennt die Quelle.", gra_drin: "übernommen", gra_aehnlich: "vermutlich durch eine eigene Regel abgedeckt", gra_fehlt: "fehlt", gra_wie: "ähnlich wie {r}", gra_uebernehmen: "Übernehmen", gra_frage: "{x} als neue Arbeitsregel übernehmen?", gra_ok: "{x} übernommen als KR{r}", ck_o_versionen: "Versionshinweise", e_versionen_h: "Pflicht: Der Plan-Check meldet einen Fehler, solange keine Version eingetragen ist, und ein Meilenstein schließt erst, wenn nach seiner letzten fertigen Aufgabe eine Version eingetragen ist. Empfohlen: nur Hinweise.", e_versionen_empfohlen: "empfohlen", e_versionen_pflicht: "Pflicht", e_versionen_aus: "aus", e_version_frist: "Warnen, wenn Fertiges ohne Version liegt (Tage)", e_version_frist_h: "Liegt die älteste fertige Aufgabe seit der letzten Version so viele Tage, warnt der Plan-Check.", e_merge_dienst: "Zuständig für Merges", e_merge_dienst_h: "Der Agent, der mergt (bekommt die Merge-Anfragen mit Zweig und genauem Stand).", e_merge_dienst_keiner: "– keiner –",
+    e_abnahme_kette_aus: "aus", e_abnahme_kette_an: "an", e_versionen: "Versionen", zf_titel: "Zwei Fenster für {x}", zf_alt: "älteres Fenster", zf_h: "Die AMW benachrichtigt nur das neuere Fenster. Das ältere schließt du selbst, wenn es nicht mehr gebraucht wird – die AMW beendet keine Fenster.", m_startbefehl: "Startbefehl …", sb_block: "Startbefehl zum Kopieren", sb_titel: "Startbefehl für {x}", sb_fortsetzen: "Fortsetzen", sb_neu: "Neu starten", sb_neu_h: "neue Sitzung {x}", sb_sitzung: "Sitzung", sb_kopieren: "Kopieren", sb_kopiert: "Kopiert ✓", sb_powershell: "PowerShell", sb_cmd: "Eingabeaufforderung (cmd)", sb_letzte: "Letzte Sitzung", sb_zuletzt: "zuletzt aktiv", sb_nie: "noch keine", sb_keine_sitzung: "Noch keine Sitzung – „Neu starten“ benutzen.", sb_h: "Genau so startet die AMW den Agenten auch selbst. In ein Terminal einfügen und Enter drücken; Geheimnisse stehen nicht darin.", sb_grund_weise: "Wird nicht gestartet – dieser Agent arbeitet als Chat bzw. in der Desktop-App.", sb_grund_ordner: "Kein Ordner eingetragen – erst im Block „Sitzung“ den Ordner setzen.", sb_fehlt: "Für diesen Agenten gibt es keinen Startbefehl.", band_ansehen: "{x} ansehen", band_ansehen_h: "Übersicht von {x} öffnen – dort steht, was er gerade tut und was an ihn ging", e_ende_frist: "Frist für „Sichern & beenden“ (Minuten)", e_ende_frist_h: "So lange hat ein Agent nach „Sichern & beenden“ Zeit, seinen Stand zu sichern und sich abzumelden; danach beendet der Dienst die Sitzung.", gra_titel: "Abgleich mit dem {v}", gra_zahl: "{f} fehlen · {a} vermutlich abgedeckt · {d} übernommen", gra_h: "Nur ein Vorschlag: Vorhandene Regeln bleiben, wie sie sind. „Übernehmen“ legt eine fehlende Grundregel mit der nächsten freien Nummer an; ein Beschluss nennt die Quelle.", gra_drin: "übernommen", gra_aehnlich: "vermutlich durch eine eigene Regel abgedeckt", gra_fehlt: "fehlt", gra_wie: "ähnlich wie {r}", gra_uebernehmen: "Übernehmen", gra_frage: "{x} als neue Arbeitsregel übernehmen?", gra_ok: "{x} übernommen als KR{r}", ck_o_versionen: "Versionshinweise", e_versionen_h: "Pflicht: Der Plan-Check meldet einen Fehler, solange keine Version eingetragen ist, und ein Meilenstein schließt erst, wenn nach seiner letzten fertigen Aufgabe eine Version eingetragen ist. Empfohlen: nur Hinweise.", e_versionen_empfohlen: "empfohlen", e_versionen_pflicht: "Pflicht", e_versionen_aus: "aus", e_version_frist: "Warnen, wenn Fertiges ohne Version liegt (Tage)", e_version_frist_h: "Liegt die älteste fertige Aufgabe seit der letzten Version so viele Tage, warnt der Plan-Check.", e_merge_dienst: "Zuständig für Merges", e_merge_dienst_h: "Der Agent, der mergt (bekommt die Merge-Anfragen mit Zweig und genauem Stand).", e_merge_dienst_keiner: "– keiner –",
     e_spec_vorlegen: "Spezifikationen vorlegen", e_spec_vorlegen_h: "Wer eine Spezifikation zur Freigabe vorlegt. „nur der Lead“: die Agenten schreiben, der Lead prüft und legt vor.",
     e_spec_vorlegen_lead: "nur der Lead", e_spec_vorlegen_alle: "jeder Agent",
     e_spec_frei: "Spezifikationen freigeben", e_spec_frei_h: "„auch der Lead“: Der Lead gibt konforme Spezifikationen selbst frei, an dich gehen nur Einzelfragen. Du kannst immer freigeben.",
@@ -1068,7 +1076,7 @@ const TEXTE = {
     g_online_h: "Online: nur Texte und Namen der Arbeitsschritte, Geheimnisse verdeckt; der PC hält das Gespräch nach dem letzten Abruf 10 Minuten aktuell",
     k_macht: "Arbeitet gerade an", k_quelle_angabe: "eigene Angabe des Agenten", k_quelle_aufgabe: "laufende Aufgabe", k_quelle_meldung: "abgeleitet aus seiner letzten Meldung",
     k_kommt: "Als Nächstes", k_wartet_auf: "wartet auf", k_laeufe: "Läufe", k_pruefungen: "Prüfanfragen",
-    k_soll_pruefen: "soll prüfen für {x}", k_wartet_pruefung: "wartet auf Prüfung durch {x}", k_an_ihn: "Neue Nachrichten an ihn ({n})",
+    k_soll_pruefen: "soll prüfen für {x}", k_wartet_pruefung: "wartet auf Prüfung durch {x}", k_an_ihn: "Neue Nachrichten an ihn",
     k_meldungen: "Seine letzten Meldungen", k_nichts: "nichts", k_nichts_neu: "keine neuen", k_alt: "dazu {n} ältere ungelesene Nachrichten",
     du: "Du", v_rueckfrage: "Rückfrage", v_nachtrag: "Antwort", v_antwort: "Antwort", wartet_auf_x: "wartet auf {x}",
     n_einst: "Einstellungen", n_einst_kurz: "Setup", speichern: "Speichern", gespeichert: "Gespeichert",
@@ -1375,7 +1383,7 @@ const TEXTE = {
     e_agentenfragen: "Agents' questions", e_agentenfragen_h: "Questions for you go to the lead first: the lead answers them or forwards them to you unchanged.",
     e_agentenfragen_lead: "to the lead first", e_agentenfragen_direkt: "straight to you",
     e_abnahme_kette: "After a green review, request merge automatically", e_abnahme_kette_h: "After a green review the merge request goes to the person in charge automatically – if the lead has given merge approval for the task. Otherwise the AMW asks the lead.",
-    e_abnahme_kette_aus: "off", e_abnahme_kette_an: "on", e_versionen: "Versions", m_startbefehl: "Start command …", sb_block: "Start command to copy", sb_titel: "Start command for {x}", sb_fortsetzen: "Resume", sb_neu: "Start fresh", sb_neu_h: "new session {x}", sb_sitzung: "Session", sb_kopieren: "Copy", sb_kopiert: "Copied ✓", sb_powershell: "PowerShell", sb_cmd: "Command prompt (cmd)", sb_letzte: "Last session", sb_zuletzt: "last active", sb_nie: "none yet", sb_keine_sitzung: "No session yet – use “Start fresh”.", sb_h: "This is exactly how AMW starts the agent itself. Paste into a terminal and press Enter; it contains no secrets.", sb_grund_weise: "Not started by AMW – this agent works as a chat or in the desktop app.", sb_grund_ordner: "No folder set – set the folder in the “Session” block first.", sb_fehlt: "There is no start command for this agent.", band_ansehen: "View {x}", band_ansehen_h: "Open the overview of {x} – it shows what it is doing and what was sent to it", e_ende_frist: "Deadline for “Save & end” (minutes)", e_ende_frist_h: "This is how long an agent has after “Save & end” to save its state and sign off; then the service ends the session.", gra_titel: "Comparison with the {v}", gra_zahl: "{f} missing · {a} probably covered · {d} adopted", gra_h: "A proposal only: existing rules stay as they are. “Adopt” adds a missing base rule with the next free number; a decision records the source.", gra_drin: "adopted", gra_aehnlich: "probably covered by an own rule", gra_fehlt: "missing", gra_wie: "similar to {r}", gra_uebernehmen: "Adopt", gra_frage: "Adopt {x} as a new work rule?", gra_ok: "{x} adopted as KR{r}", ck_o_versionen: "Release notes", e_versionen_h: "Mandatory: the plan check reports an error while no version is recorded, and a milestone only closes once a version is recorded after its last finished task. Recommended: hints only.", e_versionen_empfohlen: "recommended", e_versionen_pflicht: "mandatory", e_versionen_aus: "off", e_version_frist: "Warn when finished work has no version (days)", e_version_frist_h: "If the oldest task finished since the last version is this many days old, the plan check warns.", e_merge_dienst: "Merges handled by", e_merge_dienst_h: "The agent that merges (receives merge requests with branch and exact commit).", e_merge_dienst_keiner: "– none –",
+    e_abnahme_kette_aus: "off", e_abnahme_kette_an: "on", e_versionen: "Versions", zf_titel: "Two windows for {x}", zf_alt: "older window", zf_h: "AMW only notifies the newer window. Close the older one yourself when it is no longer needed – AMW never closes windows.", m_startbefehl: "Start command …", sb_block: "Start command to copy", sb_titel: "Start command for {x}", sb_fortsetzen: "Resume", sb_neu: "Start fresh", sb_neu_h: "new session {x}", sb_sitzung: "Session", sb_kopieren: "Copy", sb_kopiert: "Copied ✓", sb_powershell: "PowerShell", sb_cmd: "Command prompt (cmd)", sb_letzte: "Last session", sb_zuletzt: "last active", sb_nie: "none yet", sb_keine_sitzung: "No session yet – use “Start fresh”.", sb_h: "This is exactly how AMW starts the agent itself. Paste into a terminal and press Enter; it contains no secrets.", sb_grund_weise: "Not started by AMW – this agent works as a chat or in the desktop app.", sb_grund_ordner: "No folder set – set the folder in the “Session” block first.", sb_fehlt: "There is no start command for this agent.", band_ansehen: "View {x}", band_ansehen_h: "Open the overview of {x} – it shows what it is doing and what was sent to it", e_ende_frist: "Deadline for “Save & end” (minutes)", e_ende_frist_h: "This is how long an agent has after “Save & end” to save its state and sign off; then the service ends the session.", gra_titel: "Comparison with the {v}", gra_zahl: "{f} missing · {a} probably covered · {d} adopted", gra_h: "A proposal only: existing rules stay as they are. “Adopt” adds a missing base rule with the next free number; a decision records the source.", gra_drin: "adopted", gra_aehnlich: "probably covered by an own rule", gra_fehlt: "missing", gra_wie: "similar to {r}", gra_uebernehmen: "Adopt", gra_frage: "Adopt {x} as a new work rule?", gra_ok: "{x} adopted as KR{r}", ck_o_versionen: "Release notes", e_versionen_h: "Mandatory: the plan check reports an error while no version is recorded, and a milestone only closes once a version is recorded after its last finished task. Recommended: hints only.", e_versionen_empfohlen: "recommended", e_versionen_pflicht: "mandatory", e_versionen_aus: "off", e_version_frist: "Warn when finished work has no version (days)", e_version_frist_h: "If the oldest task finished since the last version is this many days old, the plan check warns.", e_merge_dienst: "Merges handled by", e_merge_dienst_h: "The agent that merges (receives merge requests with branch and exact commit).", e_merge_dienst_keiner: "– none –",
     e_spec_vorlegen: "Submit specifications", e_spec_vorlegen_h: "Who submits a specification for approval. “lead only”: agents write, the lead reviews and submits.",
     e_spec_vorlegen_lead: "lead only", e_spec_vorlegen_alle: "any agent",
     e_spec_frei: "Approve specifications", e_spec_frei_h: "“lead too”: the lead approves conforming specifications, only single questions reach you. You can always approve.",
@@ -1397,7 +1405,7 @@ const TEXTE = {
     g_online_h: "Online: texts and step names only, secrets masked; the PC keeps the conversation fresh for 10 minutes after the last view",
     k_macht: "Working on", k_quelle_angabe: "the agent's own statement", k_quelle_aufgabe: "running task", k_quelle_meldung: "derived from its last report",
     k_kommt: "Up next", k_wartet_auf: "waiting for", k_laeufe: "Runs", k_pruefungen: "Review requests",
-    k_soll_pruefen: "to review for {x}", k_wartet_pruefung: "waiting for review by {x}", k_an_ihn: "New messages to it ({n})",
+    k_soll_pruefen: "to review for {x}", k_wartet_pruefung: "waiting for review by {x}", k_an_ihn: "New messages to it",
     k_meldungen: "Its latest reports", k_nichts: "nothing", k_nichts_neu: "none new", k_alt: "plus {n} older unread messages",
     du: "You", v_rueckfrage: "Follow-up question", v_nachtrag: "Reply", v_antwort: "Answer", wartet_auf_x: "waiting for {x}",
     n_einst: "Settings", n_einst_kurz: "Setup", speichern: "Save", gespeichert: "Saved",
@@ -2151,9 +2159,15 @@ async function sichtStart() {
       nt.ampel ? t("tm_ampel", { b: nt.bogen_id, a: t("ampel_" + nt.ampel) }) : null,
       nt.bereit ? t("tm_bereit") : null].filter(Boolean).join(" · ")),
     el("button", { class: "klein-knopf", type: "button", onclick: () => { zustand.planReiter = "termine"; zeige("planung"); } }, t("tm_alle"))));
-  if ((d.unangemeldet || []).length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("nicht_angemeldet")),
-    el("div", {}, d.unangemeldet.map(u => `${u.kennung || "?"} · ${t("sitzung_pid", { s: u.sitzung, p: u.pid })} · ${u.ordner}`).join(" | ")),
+  const ohne = (d.unangemeldet || []).filter(u => !u.doppelt);
+  if (ohne.length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("nicht_angemeldet")),
+    el("div", {}, ohne.map(u => `${u.kennung || "?"} · ${t("sitzung_pid", { s: u.sitzung, p: u.pid })} · ${u.ordner}`).join(" | ")),
     el("span", { class: "leise" }, t("nicht_angemeldet_h")), hilfeKnopf("agenten")));
+  /* Neustart per Startskript, das alte Fenster ist noch offen: kein „anmelden“-Rat (das holte die Sitzung zurück) */
+  for (const u of (d.unangemeldet || []).filter(u => u.doppelt)) m.append(el("div", { class: "band-halt zwei-fenster" },
+    el("b", {}, t("zf_titel", { x: u.kennung })), el("div", {}, `${t("zf_alt")}: ${t("sitzung_pid", { s: u.sitzung, p: u.pid })} · ${u.ordner}`),
+    el("span", { class: "leise" }, t("zf_h")), (d.agenten || []).some(a => a.kennung === u.kennung)
+      ? el("button", { class: "klein-knopf", type: "button", title: t("band_ansehen_h", { x: u.kennung }), onclick: () => agentDialog(u.kennung) }, t("band_ansehen", { x: u.kennung })) : null));
   /* Reihenfolge nach Dringlichkeit: Warnungen → Fragen an dich → Agenten → Nachrichten (gekürzt) */
   if ((d.warnungen || []).length) m.append(el("div", { class: "band-warn" }, el("b", {}, t("achtung").toUpperCase()),
     d.warnungen.map(w => el("div", { class: "band-zeile" }, el("span", {}, w.text),     /* je Warnung ein Sprung zu dem, den sie betrifft */
@@ -3336,6 +3350,33 @@ async function dokumentDialog(id, v) {
           !API ? knopf(t("dk_loeschen"), () => { if (confirm(t("dk_loeschen_frage", { x: d.titel }))) tun("/api/dokument/loeschen", {}, t("dk_geloescht")); }) : null) : null)));
   hg.querySelector(".dialog").style.width = "min(1280px,96vw)";
 }
+/* Vollbild-Hülle (A1614): ✕ immer oben rechts im sichtbaren Bereich, Esc, die Zurück-Taste bzw. -Geste am Handy und das
+   Verlassen des echten Vollbilds schließen. Gibt schliessen() zurück; aufraeumen() räumt die eigenen Tasten usw. ab. */
+function vollbildHuelle(hg, aufraeumen) {
+  let offen = true;
+  const zu = el("button", { class: "vb-zu", type: "button", title: t("vb_schliessen"), "aria-label": t("vb_schliessen"),
+    onclick: e => { e.stopPropagation(); schliessen(); } }, "✕");
+  const esc = e => { if (e.key !== "Escape") return; e.preventDefault(); e.stopImmediatePropagation(); schliessen(); };   // nur das Vollbild, nicht den Dialog darunter
+  const zurueck = () => schliessen(true);
+  const raus = () => { if (!document.fullscreenElement) schliessen(); };   // Esc im echten Vollbild verlässt es – dann ganz zu
+  function schliessen(vonZurueck) {
+    if (!offen) return;
+    offen = false;
+    window.removeEventListener("keydown", esc, true); window.removeEventListener("popstate", zurueck);
+    document.removeEventListener("fullscreenchange", raus);
+    if (document.fullscreenElement === hg) document.exitFullscreen().catch(() => {});
+    hg.remove();
+    if (aufraeumen) aufraeumen();
+    if (!vonZurueck && history.state && history.state.amwVollbild) history.back();   // den eigenen Eintrag wieder wegnehmen
+  }
+  hg.append(zu);
+  window.addEventListener("keydown", esc, true);
+  history.pushState({ amwVollbild: 1 }, "", location.href);         // Zurück schließt das Vollbild statt die Seite zu wechseln
+  window.addEventListener("popstate", zurueck);
+  document.body.append(hg);
+  if (hg.requestFullscreen) hg.requestFullscreen({ navigationUI: "hide" }).then(() => document.addEventListener("fullscreenchange", raus)).catch(() => {});
+  return schliessen;
+}
 /* Bild im Vollbild: eingepasst, Mausrad oder zwei Finger zoomen an der Stelle, Ziehen verschiebt, Doppelklick 1:1 ↔ eingepasst,
    ←/→ blättert durch die Bilder derselben Aufgabe/desselben Bogens, Esc schließt */
 function bildVollbild(bilder, i) {
@@ -3354,8 +3395,7 @@ function bildVollbild(bilder, i) {
     el("div", { class: "vb-leiste" }, titel, el("span", { class: "vb-hilfe" }, t("vb_hilfe")), stufe,
       knopf("−", t("vb_kleiner"), () => setzen(z / 1.25, ...mitte())), knopf("+", t("vb_groesser"), () => setzen(z * 1.25, ...mitte())),
       knopf(t("vb_einpassen"), t("vb_einpassen") + " (0)", einpassen), knopf("1:1", t("vb_original") + " (1)", () => setzen(1, ...mitte()), "vb-eins"),
-      bilder.length > 1 ? knopf("‹", t("vb_zurueck"), () => laden(i - 1)) : null, bilder.length > 1 ? knopf("›", t("vb_weiter"), () => laden(i + 1)) : null,
-      knopf("✕", t("vb_schliessen"), () => schliessen())));
+      bilder.length > 1 ? knopf("‹", t("vb_zurueck"), () => laden(i - 1)) : null, bilder.length > 1 ? knopf("›", t("vb_weiter"), () => laden(i + 1)) : null));
   const zeiger = new Map();
   let abstand = 0;
   buehne.addEventListener("wheel", e => { e.preventDefault(); const r = buehne.getBoundingClientRect();
@@ -3385,28 +3425,22 @@ function bildVollbild(bilder, i) {
   buehne.addEventListener("pointerup", los); buehne.addEventListener("pointercancel", los);
   buehne.addEventListener("dblclick", e => umschalten(e.clientX, e.clientY));
   const taste = e => {
-    const k = { Escape: schliessen, ArrowLeft: () => laden(i - 1), ArrowRight: () => laden(i + 1), "+": () => setzen(z * 1.25, ...mitte()),
+    const k = { ArrowLeft: () => laden(i - 1), ArrowRight: () => laden(i + 1), "+": () => setzen(z * 1.25, ...mitte()),
       "=": () => setzen(z * 1.25, ...mitte()), "-": () => setzen(z / 1.25, ...mitte()), "0": einpassen, "1": () => setzen(1, ...mitte()) }[e.key];
     if (!k) return;
-    e.preventDefault(); e.stopImmediatePropagation(); k();          // Esc schließt nur das Vollbild, nicht den Dialog darunter
+    e.preventDefault(); e.stopImmediatePropagation(); k();
   };
   const groesse = () => einpassen();
-  function schliessen() {
-    window.removeEventListener("keydown", taste, true); window.removeEventListener("resize", groesse);
-    document.removeEventListener("fullscreenchange", raus);
-    if (document.fullscreenElement === hg) document.exitFullscreen().catch(() => {});
-    hg.remove();
-  }
-  function raus() { if (!document.fullscreenElement) schliessen(); }   // Esc im echten Vollbild verlässt es – dann ganz zu
   window.addEventListener("keydown", taste, true); window.addEventListener("resize", groesse);
-  document.body.append(hg);
+  vollbildHuelle(hg, () => { window.removeEventListener("keydown", taste, true); window.removeEventListener("resize", groesse); });
   laden(i);
-  if (hg.requestFullscreen) hg.requestFullscreen({ navigationUI: "hide" }).then(() => document.addEventListener("fullscreenchange", raus)).catch(() => {});
 }
 async function dokVollbild(d, ver, rahmen) {
-  if (ver.vorschau !== "bild") {                                 // Mockup, PDF: der Rahmen selbst ins Vollbild
-    if (rahmen?.requestFullscreen) rahmen.requestFullscreen().catch(() => window.open(dokUrl(d.id, ver.nr), "_blank", "noopener"));
-    else window.open(dokUrl(d.id, ver.nr), "_blank", "noopener");
+  if (ver.vorschau !== "bild") {             // Mockup, PDF: eigene Hülle mit ✕ (der Rahmen allein im Vollbild hatte am Handy keinen Ausweg)
+    const r = rahmen && rahmen.tagName === "IFRAME" ? rahmen.cloneNode(false) : el("iframe", { src: dokUrl(d.id, ver.nr), title: d.titel });
+    vollbildHuelle(el("div", { class: "vb vb-rahmen", role: "dialog", "aria-modal": "true", "aria-label": t("vb_vollbild") }, r,
+      el("div", { class: "vb-leiste" }, el("span", { class: "vb-titel" }, `D${d.id} · ${d.titel}`),
+        el("a", { class: "vb-knopf", href: dokUrl(d.id, ver.nr), target: "_blank", rel: "noopener" }, t("dk_oeffnen")))));
     return;
   }
   let bilder = [{ id: d.id, nr: ver.nr, titel: d.titel }];
