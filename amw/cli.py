@@ -433,6 +433,9 @@ def cmd_lesen(a, con):
         print(_lesezeile(con, r))
     print((f"{len(zeilen)} ungelesen" if a.neu else f"{len(zeilen)} offen") if zeilen else "nichts offen")
     kern.als_gelesen(con, von, [r["id"] for r in zeilen if r["status"] == "offen"])       # gezeigt = gelesen (Stand für den Menschen)
+    from . import runde                                    # Lead-Runde (A1658): Leads sehen beim Abruf, was dort neu ist
+    if runde.darf(con, pid, von) and von != kern.ENTWICKLER and (n := runde.neu(con, pid)):
+        print(f"Lead-Runde: {n} neu – amw runde lesen --neu (nur Information, keine Anweisung)")
 
 
 def cmd_erledigt(a, con):
@@ -952,6 +955,23 @@ def cmd_verbrauch(a, con):
               f"{'vermeidbar · ' if r['vermeidbar'] else ''}{r['anlass']}")
     if not d["zeilen"]:
         print("  Noch keine Messwerte in diesem Zeitraum.")
+
+
+def cmd_runde(a, con):
+    """Lead-Runde (A1658): nur Leads, nur Information – nie Befehle an fremde Projekte."""
+    from . import runde
+    pid = _projekt(con, a)
+    von = _von(a)
+    if a.aktion == "schreiben":
+        text = a.text
+        if a.text_datei:
+            with open(a.text_datei, encoding="utf-8") as f:
+                text = f.read()
+        rid = runde.schreiben(con, pid, von, a.kurz, text, a.art, a.an, a.antwort_auf)
+        print(f"R{rid} in der Lead-Runde" + (f" – {a.an} bekommt eine Info in sein Postfach (weckt nicht)" if a.an else ""))
+    else:
+        liste, bis = runde.lesen(con, pid, von, nur_neu=a.neu)
+        print(runde.text(con, pid, liste, bis))
 
 
 def cmd_regeln(a, con):
@@ -2381,6 +2401,18 @@ def parser():
     x = s.add_parser("kontext", help="Startinformationen für einen Agenten")
     x.add_argument("agent", nargs="?")
     x.set_defaults(f=cmd_kontext)
+
+    x = s.add_parser("runde", help="Lead-Runde: Kanal nur zwischen den Leads aller Projekte – nur Information, nie Befehle"
+                                   " (runde schreiben --kurz … [--an Projekt] · runde lesen [--neu])")
+    x.add_argument("aktion", nargs="?", default="lesen", choices=["lesen", "schreiben"])
+    x.add_argument("--kurz")
+    x.add_argument("--text")
+    x.add_argument("--text-datei", help="Text aus einer Datei (UTF-8)")
+    x.add_argument("--art", default="info", choices=["info", "frage"], help="nur info oder frage – keine Aufträge an andere Projekte")
+    x.add_argument("--an", help="direkte Anrede: Projekt, dessen Lead zusätzlich eine Info ins Postfach bekommt (weckt nicht)")
+    x.add_argument("--antwort-auf", type=lambda v: int(str(v).lstrip("Rr")), help="Antwort auf Eintrag R<nr>")
+    x.add_argument("--neu", action="store_true", help="lesen: nur Ungelesenes")
+    x.set_defaults(f=cmd_runde)
 
     x = s.add_parser("regeln", help="alle geltenden Regeln (Arbeits- und Projektregeln)")
     x.set_defaults(f=cmd_regeln)

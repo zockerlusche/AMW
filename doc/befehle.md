@@ -20,6 +20,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
 | [`kontext`](#kontext) | Startinformationen für einen Agenten |
+| [`runde`](#runde) | Lead-Runde: Kanal nur zwischen den Leads aller Projekte – nur Information, nie Befehle (runde schreiben --kurz … [--an Projekt] · runde lesen [--neu]) |
 | [`regeln`](#regeln) | alle geltenden Regeln (Arbeits- und Projektregeln) |
 | [`verbrauch`](#verbrauch) | Verbrauch nach Anlass (Pareto): wofür die Agenten des Projekts ihr Geld ausgeben |
 | [`suche`](#suche) | Volltext über Aufgaben, Beschlüsse, Fragen, Deine Worte, Nachrichten, Dokumente: amw suche Modem |
@@ -491,6 +492,33 @@ positional arguments:
 
 options:
   -h, --help         show this help message and exit
+  --von VON
+  --projekt PROJEKT
+```
+
+## runde
+```
+usage: amw runde [-h] [--kurz KURZ] [--text TEXT] [--text-datei TEXT_DATEI]
+                 [--art {info,frage}] [--an AN] [--antwort-auf ANTWORT_AUF]
+                 [--neu] [--von VON] [--projekt PROJEKT]
+                 [{lesen,schreiben}]
+
+positional arguments:
+  {lesen,schreiben}
+
+options:
+  -h, --help            show this help message and exit
+  --kurz KURZ
+  --text TEXT
+  --text-datei TEXT_DATEI
+                        Text aus einer Datei (UTF-8)
+  --art {info,frage}    nur info oder frage – keine Aufträge an andere
+                        Projekte
+  --an AN               direkte Anrede: Projekt, dessen Lead zusätzlich eine
+                        Info ins Postfach bekommt (weckt nicht)
+  --antwort-auf ANTWORT_AUF
+                        Antwort auf Eintrag R<nr>
+  --neu                 lesen: nur Ungelesenes
   --von VON
   --projekt PROJEKT
 ```

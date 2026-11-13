@@ -23,6 +23,7 @@ auseinander.
 | [termine.md](termine.md) | Testtermine und Fristen | Planung › Termine |
 | [themen.md](themen.md) | Themen: was gerade gilt | Wissen › Themen |
 | [reihenfolge.md](reihenfolge.md) | Reihenfolge der Arbeit: eins nach dem anderen | Aufgaben › Listen |
+| [lead-runde.md](lead-runde.md) | Lead-Runde: die Leads aller Projekte im Gespräch | Nachrichten › Lead-Runde |
 
 Englisch liegt unter [en/](en/) mit denselben Dateinamen.
 

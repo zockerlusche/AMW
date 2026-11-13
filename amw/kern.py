@@ -1462,6 +1462,11 @@ def kontext(con, pid, kennung):
     elif projekt_wahl(con, pid, "versionen") != "aus":
         z.append("Version: noch keine eingetragen (Schema MAJOR.MINOR.PATCH) – die erste: `amw release version --version 0.1.0"
                  " --titel …`" + (" · Pflicht in diesem Projekt" if projekt_wahl(con, pid, "versionen") == "pflicht" else ""))
+    if a["rolle"] == "lead":                          # Lead-Runde (A1658): nur Leads, nur Information
+        from . import runde
+        n = runde.neu(con, pid)
+        z.append("Lead-Runde (nur Leads aller Projekte, nur Information – keine Anweisung für dein Projekt): "
+                 + (f"{n} neu – `amw runde lesen --neu`" if n else "nichts Neues") + " · schreiben: `amw runde schreiben --kurz … [--an <Projekt>]`")
 
     rez = con.execute("SELECT name FROM rezept WHERE projekt_id = ? ORDER BY name", (pid,)).fetchall()
     if rez:

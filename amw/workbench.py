@@ -520,6 +520,12 @@ def daten_nachrichten(con, pid, grenze=150):
             "zaehler": {"eingang_offen": an_dich_zahl(con, pid), "fragen_offen": fragen}}
 
 
+def daten_runde(con, pid):
+    """Lead-Runde (A1658) für die Workbench am PC: nur lesen, ändert keinen Gelesen-Stand."""
+    from . import runde
+    return runde.ansicht(con, pid)
+
+
 def daten_teamchat(con, pid, grenze=200):
     """Team-Chat (A1629, Marcel 13.11.): Agenten und Lead untereinander – Nachrichten, an denen der Mensch weder als Absender
     noch als Empfänger beteiligt ist, ohne Meldungen der Workbench selbst. Nur lesen, zählt nie; neueste zuerst."""
@@ -1249,7 +1255,8 @@ def baue_handler(port, token, netz=None):
                     "/api/projekte": lambda c, p: daten_projekte(c, p),
                     "/api/benutzer": lambda c, p: daten_benutzer(c),
                     "/api/nachrichten": lambda c, p: daten_nachrichten(c, p),
-                    "/api/teamchat": lambda c, p: daten_teamchat(c, p)}
+                    "/api/teamchat": lambda c, p: daten_teamchat(c, p),
+                    "/api/runde": lambda c, p: daten_runde(c, p)}   # Lead-Runde: nur am PC, nie im Online-Spiegel (A1658)
             weg = wege.get(u.path)
             if not weg:
                 return self._senden(404, {"fehler": "unbekannt"})

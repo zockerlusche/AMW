@@ -130,6 +130,8 @@ class Parken(unittest.TestCase):
             self.con.execute(f"ALTER TABLE aufgabe DROP COLUMN {sp}")
         for sp in ("befehl", "ordner", "ergebnis_datei", "frist_min", "waechter", "ausfuehrer", "spitze_gb"):   # Läufe überleben, Bedarf lernen (Schema 31)
             self.con.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
+        for tab in ("runde_gelesen", "runde"):   # Lead-Runde kam mit Schema 32
+            self.con.execute(f"DROP TABLE {tab}")
         self.con.execute("ALTER TABLE agent DROP COLUMN entfernt_utc")      # Agenten entfernen kam mit Schema 28
         self.con.execute("ALTER TABLE regel DROP COLUMN vorlage")      # Herkunft aus dem Grund-Regelwerk kam mit Schema 23
         for sp in ("fachgebiet", "arbeitsweise", "zustaendig", "fasst_nicht_an"):   # Agenten-Einstellungen kamen mit Schema 22

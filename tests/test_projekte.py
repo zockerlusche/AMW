@@ -488,6 +488,8 @@ CREATE TABLE ki_vorlage (id INTEGER PRIMARY KEY, ki_id INTEGER NOT NULL REFERENC
                 con.execute(f"ALTER TABLE aufgabe DROP COLUMN {sp}")
             for sp in ("befehl", "ordner", "ergebnis_datei", "frist_min", "waechter", "ausfuehrer", "spitze_gb"):   # Läufe überleben, Bedarf lernen (Schema 31)
                 con.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
+            for tab in ("runde_gelesen", "runde"):   # Lead-Runde kam mit Schema 32
+                con.execute(f"DROP TABLE {tab}")
             con.execute("ALTER TABLE agent DROP COLUMN entfernt_utc")      # Agenten entfernen kam mit Schema 28
             for sp in ("fachgebiet", "arbeitsweise", "zustaendig", "fasst_nicht_an"):   # Agenten-Einstellungen kamen mit Schema 22
                 con.execute(f"ALTER TABLE agent DROP COLUMN {sp}")

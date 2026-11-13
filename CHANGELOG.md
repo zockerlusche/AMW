@@ -4,7 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
-## 1.98.0 – 14.11.2026 · Weckrufe mit Inhalt und gebündelt
+## 1.98.0 – 14.11.2026 · Weckrufe mit Inhalt und Lead-Runde
+- **Neu: Lead-Runde** – ein Kanal nur zwischen den Leads aller Projekte dieses PCs: `amw runde schreiben --kurz …` und
+  `amw runde lesen [--neu]`, auch über den Dateiaustausch. Andere Agenten haben keinen Zugang. Du liest am PC unter
+  Nachrichten › Lead-Runde mit.
+- **Nur Information:** Einträge sind Info oder Frage – nie Aufträge, Stopps oder Freigaben an ein anderes Projekt. Die Richtlinie
+  steht oben und unter jedem fremden Eintrag, und sie ist neue Grundregel G20 (Grund-Regelwerk 4).
+- **Kein Wecken:** Mit `--an <Projekt>` bekommt der Lead dort zusätzlich eine Info in sein Postfach; Leads sehen
+  „Lead-Runde: n neu“ in `amw lesen` und beim Start.
+- Neue Hilfe „Lead-Runde“. Datenbank-Schema 32.
 - **Ein Weckruf bringt alles mit:** Die Benachrichtigung an einen Agenten enthält jetzt die Nachrichten selbst (Text gekürzt,
   der Rest über `amw lesen <Nr>`), je betroffene Aufgabe eine Zeile mit Status und Wartegrund und darunter, was seit seinem
   letzten Halt neu ist (eigene Läufe fertig oder abgebrochen, Ergebnisse eigener Prüfbitten). Der Agent muss nicht erst
