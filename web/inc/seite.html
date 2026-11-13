@@ -596,7 +596,14 @@ main.geteilt-seite { padding-bottom: 16px; }
 .ae-raster.klebt > .ae-wahl { position: sticky; top: calc(var(--kopf, 0px) + 10px); max-height: calc(100dvh - var(--kopf, 0px) - 110px); overflow-y: auto; }
 .nr-liste { border: 1px solid var(--linie); border-radius: 6px; background: var(--flaeche); overflow: hidden; }
 .nr-eintrag { padding: 10px 12px; border-bottom: 1px solid var(--linie); cursor: pointer; display: grid; gap: 4px; }
-.nr-eintrag:hover, .nr-eintrag.an { background: var(--flaeche2); } .nr-eintrag.neu .nr-kurz { font-weight: 650; } .nr-eintrag.weg { opacity: .55; }
+.nr-eintrag:hover, .nr-eintrag.an { background: var(--flaeche2); }
+.nr-eintrag { border-left: 3px solid transparent; } .nr-eintrag.post.neu { border-left-color: var(--blau); } .nr-eintrag.system { border-left-color: var(--sehrleise); }
+.nr-sym { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; background: color-mix(in srgb, var(--blau) 18%, transparent); color: var(--blau); }
+.nr-eintrag.system .nr-sym { background: var(--flaeche2); color: var(--leise); }
+.nr-wahl { margin: 0 2px 0 0; } .nr-hinweis { margin: -4px 0 10px; } .nr-sammel { display: flex; gap: 12px; align-items: center; margin: -4px 0 8px; } .nr-sammel:empty { display: none; }
+.tc-liste { border: 1px solid var(--linie); border-radius: 6px; background: var(--flaeche); }
+.tc-eintrag { padding: 10px 12px; border-bottom: 1px solid var(--linie); display: grid; gap: 4px; } .tc-eintrag:last-child { border-bottom: 0; }
+.tc-text summary { cursor: pointer; color: var(--leise); font-size: 12.5px; } .nr-eintrag.neu .nr-kurz { font-weight: 650; } .nr-eintrag.weg { opacity: .55; }
 .nr-kopf { display: flex; gap: 6px; align-items: baseline; font-size: 13px; color: var(--leise); flex-wrap: wrap; } .nr-kopf b { color: var(--tinte); }
 .nr-zeit { margin-left: auto; font-size: 12px; color: var(--sehrleise); }
 .nr-chip { justify-self: start; font-size: 12px; border: 1px solid var(--linie2); border-radius: 10px; padding: 0 8px; background: none; color: var(--blau); cursor: pointer; }
@@ -1013,6 +1020,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
     <a data-sicht="start"><span class="sym">◉</span><span data-t="n_start"></span></a>
     <a data-sicht="nachrichten" class="im-mehr"><span class="sym">✉</span><span data-t="n_nachrichten"></span> <span class="zahl" data-zahl="nachrichten"></span></a>
     <a data-sicht="fragen"><span class="sym">?</span><span data-t="n_fragen"></span> <span class="zahl" data-zahl="fragen"></span></a>
+    <a data-sicht="teamchat" class="im-mehr"><span class="sym">⇄</span><span data-t="n_teamchat"></span></a>
     <div class="gruppe" data-t="g_arbeit"></div>
     <a data-sicht="planung"><span class="sym">◇</span><span data-t="n_planung" data-t-lang></span><span data-t="n_planung_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="freigaben"></span></a>
     <a data-sicht="arbeit"><span class="sym">▤</span><span data-t="n_aufgaben" data-t-lang></span><span data-t="n_aufgaben_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="offen"></span></a>
@@ -1104,6 +1112,7 @@ const TEXTE = {
     schirm_frei_frage_offen: "Bildschirm jetzt für Agenten freigeben – ohne Ende? Er bleibt frei, bis jemand ihn belegt oder ein eingeschalteter Auslöser (Einstellungen › Dieser PC) greift. Agenten dürfen dann am PC Fenster öffnen, klicken und tippen.", schirm_frei_frage: "Bildschirm jetzt für Agenten freigeben – bis {x} Uhr? Agenten dürfen dann am PC Fenster öffnen, klicken und tippen.", schirm_nur_admin: "Freigeben darf online nur ein System-Admin. Wieder belegen geht für alle.", schirm_nur_admin_kurz: "Online nur für System-Admins", nur_pc_knopf: "Geht nur am PC", schirm_zum_leitstand: "Im Leitstand ändern", schirm_zum_leitstand_h: "Freigeben und belegen geht im Leitstand unten",
     ae_weg_titel: "Agent entfernen", ae_weg_h: "Entfernen legt den Agenten still und blendet ihn überall aus – er wird nicht mehr gestartet, nicht mehr benachrichtigt und steht nicht mehr im Team. Was er geschrieben und getan hat, bleibt mit seinem Namen lesbar. Wieder aufnehmen geht jederzeit.", ae_entfernen: "Entfernen …", ae_entfernen_frage: "{x} entfernen? Er wird stillgelegt und ausgeblendet; sein Verlauf bleibt lesbar.", ae_entfernen_frage_laeuft: "{x} entfernen? Seine Sitzung läuft – sie wird zuerst gesichert und beendet (wie „Speichern & beenden“). Danach ist er stillgelegt und ausgeblendet; sein Verlauf bleibt lesbar.", ae_entfernt_ok: "{x} ist entfernt", ae_entfernt_ok_endet: "{x} ist entfernt – seine Sitzung wird gesichert und spätestens {b} beendet", ae_loeschen: "Endgültig löschen …", ae_loeschen_frage: "{x} endgültig löschen? Das geht nicht rückgängig.", ae_loeschen_nicht: "Hat Verlauf ({x}) – endgültig löschen geht nur ohne Verlauf. Entfernen blendet ihn aus.", ae_geloescht: "{x} ist gelöscht", ae_verlauf: "Am Agenten hängt: {x}", ae_v_nachrichten: "{n} Nachrichten", ae_v_empfangen: "{n} empfangene Nachrichten", ae_v_aufgaben: "{n} Aufgaben", ae_v_pruefungen: "{n} Prüfungen", ae_v_laeufe: "{n} Läufe", ae_v_dokumente: "{n} Dokumente", ae_v_fragen: "{n} Fragen", ae_v_sitzungen: "{n} Sitzungen", ae_entfernt_liste: "Entfernt ({n})", ae_entfernt_seit: "seit {x}", ae_wieder: "Wieder aufnehmen", ae_wieder_ok: "{x} ist wieder dabei (Soll: aus)",
     tm_wartet_du: "wartet auf dich", tm_wartet_du_h: "Eine Aufgabe dieses Agenten wartet auf dich", tm_leg_fokus: "Prüfungen und Wartebeziehungen einer Karte: Maus darauf (oder antippen)",
+    n_teamchat: "Team-Chat", tc_unter: "Was Agenten und Lead untereinander schreiben – nur lesen, zählt nie", tc_leer: "Noch nichts – hier steht, was die Agenten untereinander schreiben.", tc_mehr: "ganzer Text", f_unter: "Was die Agenten von dir wissen wollen – hier beantwortest du sie", nr_fragen_offen: "{n} Fragen an dich offen › Fragen", nr_fragen_offen1: "1 Frage an dich offen › Fragen", nr_markieren: "Markieren", nr_erledigt_n: "Erledigt ({n})", nr_alle_markieren: "alle offenen markieren", nr_art_post: "Nachricht", nr_art_system: "Meldung der Workbench",
     absender_system: "System", n_nachrichten: "Nachrichten", nr_unter: "Was du schreibst und was an dich geht – mit Stand je Empfänger", nr_eingang: "Eingang", nr_gesendet: "Gesendet", nr_fragen: "Fragen", nr_alle_agenten: "Alle Agenten", nr_nur_offen: "nur offene", nr_suchen: "Suchen …", nr_schreiben: "Schreiben", nr_an: "An", nr_alle: "alle", nr_an_k: "an", nr_von_k: "von", nr_gesendet_s: "gesendet", nr_benachrichtigt: "benachrichtigt", nr_gelesen: "gelesen", nr_erledigt_s: "erledigt", nr_unterwegs: "wird übertragen …", nr_zurueckgezogen: "zurückgezogen", nr_mehrere: "{n} Empfänger · {e} erledigt", nr_leer: "Hier ist nichts.", nr_waehle: "Links eine Nachricht wählen.", nr_zur_liste: "Zur Liste", nr_antworten: "Antworten", nr_nachfassen: "Nachfassen", nr_erledigt: "Erledigt", nr_zurueckziehen: "Zurückziehen", nr_zurueckziehen_h: "Noch hat niemand sie gelesen – sie verschwindet beim Empfänger.", nr_zurueckziehen_nicht: "Schon gelesen oder erledigt – zurückziehen geht nicht mehr; schick eine neue Nachricht.", nr_zurueckziehen_frage: "Nachricht zurückziehen? Sie verschwindet beim Empfänger; bei dir bleibt sie als „zurückgezogen“.", nr_zurueckgezogen_ok: "Zurückgezogen", nr_bezug_h: "Zum Bezug springen", nr_bezug: "Bezug:", nr_alle_bezuege: "Alle Bezüge", nr_dazu: "✉ Nachricht dazu", nr_dazu_h: "Nachricht mit diesem Bezug schreiben – sie steht dann auch unter Nachrichten", nr_zu_titel: "Nachrichten dazu ({n})", nr_zu_leer: "Noch keine Nachrichten dazu.", nr_schreiben_dazu: "Nachricht dazu schreiben", nr_start_neu: "{n} neu", nr_start_alle: "Alle Nachrichten an dich",
     bn_titel: "Benutzer der Online-Seite", bn_h: "Wer sich auf der Online-Seite anmelden darf und was er dort darf. Ein neuer Benutzer hat keine Rechte, bis du Rolle und Projekte vergibst. Der bisherige Zugang aus der Konfiguration der Seite bleibt System-Admin.", bn_ohne_speicher: "Ohne Online-Speicher kann sich niemand anmelden – erst die Online-Seite einrichten. Anlegen geht schon.", bn_name: "Name", bn_rolle: "Rolle", bn_projekte: "Projekte", bn_stand: "Stand", bn_keine: "Noch keine Benutzer.", bn_neu_ph: "Name (ohne Leerzeichen)", bn_anlegen: "Anlegen", bn_wartet_rolle: "– wartet auf Freigabe –", rolle_leser: "Leser", rolle_bearbeiter: "Bearbeiter", rolle_projekt_admin: "Projekt-Admin", rolle_system_admin: "System-Admin", bn_alle_projekte: "alle Projekte", bn_st_neu: "noch nicht freigeschaltet", bn_st_wartet_code: "Code gültig bis {x}", bn_st_code_abgelaufen: "Code abgelaufen", bn_st_eingerichtet: "eingerichtet", bn_st_angemeldet: "zuletzt angemeldet {x}", bn_st_gesperrt: "gesperrt", bn_st_freigabe: "wartet auf deine Freigabe", bn_freischalten: "Freischalten", bn_neu_freischalten: "Neu freischalten", bn_neu_frage: "{x} neu freischalten? Passwort und zweiter Faktor werden zurückgesetzt, alle Sitzungen von {x} enden.", bn_sperren: "Sperren", bn_entsperren: "Entsperren", bn_code_titel: "Freischalt-Code für {x}", bn_code_h: "Gültig bis {b}, nur einmal. Gib ihn {x} persönlich weiter (mündlich oder im Chat) – er erscheint nur jetzt und steht nirgends sonst. {x} öffnet die Online-Seite, wählt „Neue Anmeldung“ und setzt Passwort und zweiten Faktor selbst.", bn_kopieren: "Kopieren", bn_kopiert: "Kopiert", bn_fertig: "Fertig",
     bn_email: "E-Mail (Firmenkonto)", bn_email_ph: "für die Firmen-Anmeldung", bn_st_firmenkonto: "mit Firmenkonto angemeldet {x}", sso_titel: "Firmen-Anmeldung (SSO)", sso_h: "Anmelden mit dem Firmenkonto (OpenID Connect, z. B. Microsoft Entra ID) – ohne zweiten Faktor in der AMW, den macht der Anbieter. Hinein kommt nur, wen du oben angelegt und mit derselben E-Mail versehen hast.", sso_an: "Knopf „Mit Firmenkonto anmelden“ zeigen", sso_aussteller: "Aussteller (Issuer)", sso_aussteller_h: "Microsoft Entra ID: https://login.microsoftonline.com/<Verzeichnis-ID>/v2.0 – nicht „common“", sso_client: "Anwendungs-ID (Client-ID)", sso_rueckweg: "Umleitungs-URI (Redirect-URI)", sso_rueckweg_h: "So beim Anbieter eintragen (Plattform „Web“).", sso_rueckweg_fehlt: "erscheint, sobald oben bei „Online-Seite“ die Adresse steht", sso_geheimnis: "Geheimnis beim Webhoster", sso_zugang_geheimnis: "gespeichert (Client-Secret)", sso_zugang_zertifikat: "gespeichert (Zertifikat)", sso_zugang_fehlt: "noch nicht eingetragen – der Knopf erscheint erst danach", sso_eintragen: "Auf der Online-Seite eintragen", sso_eintragen_h: "Das Geheimnis kommt nie auf diesen PC: ein System-Admin trägt es auf der Online-Seite ein, es liegt dann nur in deren Konfigurationsdatei.", sso_ohne_speicher: "Ohne Online-Speicher gibt es keine Firmen-Anmeldung.",
@@ -1433,6 +1442,7 @@ const TEXTE = {
     schirm_frei_frage_offen: "Free the screen for agents now – without an end? It stays free until someone takes it back or a switched-on trigger (Settings › This PC) fires. Agents may then open windows, click and type on the PC.", schirm_frei_frage: "Free the screen for agents now – until {x}? Agents may then open windows, click and type on the PC.", schirm_nur_admin: "Online, only a system admin may free the screen. Taking it back works for everyone.", schirm_nur_admin_kurz: "Online only for system admins", nur_pc_knopf: "Only works on the PC", schirm_zum_leitstand: "Change in control center", schirm_zum_leitstand_h: "Freeing and taking back is in the control center below",
     ae_weg_titel: "Remove agent", ae_weg_h: "Removing shuts the agent down and hides it everywhere – it is no longer started, no longer notified and no longer shown in the team. What it wrote and did stays readable under its name. You can take it back at any time.", ae_entfernen: "Remove …", ae_entfernen_frage: "Remove {x}? It is shut down and hidden; its history stays readable.", ae_entfernen_frage_laeuft: "Remove {x}? Its session is running – it is saved and ended first (like “Save & end”). Then it is shut down and hidden; its history stays readable.", ae_entfernt_ok: "{x} is removed", ae_entfernt_ok_endet: "{x} is removed – its session is saved and ended by {b} at the latest", ae_loeschen: "Delete for good …", ae_loeschen_frage: "Delete {x} for good? This cannot be undone.", ae_loeschen_nicht: "Has history ({x}) – deleting for good only works without history. Removing hides it.", ae_geloescht: "{x} is deleted", ae_verlauf: "Attached to this agent: {x}", ae_v_nachrichten: "{n} messages", ae_v_empfangen: "{n} received messages", ae_v_aufgaben: "{n} tasks", ae_v_pruefungen: "{n} reviews", ae_v_laeufe: "{n} runs", ae_v_dokumente: "{n} documents", ae_v_fragen: "{n} questions", ae_v_sitzungen: "{n} sessions", ae_entfernt_liste: "Removed ({n})", ae_entfernt_seit: "since {x}", ae_wieder: "Take back", ae_wieder_ok: "{x} is back (target: off)",
     tm_wartet_du: "waits for you", tm_wartet_du_h: "A task of this agent is waiting for you", tm_leg_fokus: "Reviews and waits of a card: hover over it (or tap)",
+    n_teamchat: "Team chat", tc_unter: "What agents and lead write to each other – read only, never counted", tc_leer: "Nothing yet – this is where the agents' messages to each other show up.", tc_mehr: "full text", f_unter: "What the agents want to know from you – answer them here", nr_fragen_offen: "{n} questions for you open › Questions", nr_fragen_offen1: "1 question for you open › Questions", nr_markieren: "Select", nr_erledigt_n: "Done ({n})", nr_alle_markieren: "select all open", nr_art_post: "Message", nr_art_system: "Notice from the Workbench",
     absender_system: "System", n_nachrichten: "Messages", nr_unter: "What you write and what is sent to you – with status per recipient", nr_eingang: "Inbox", nr_gesendet: "Sent", nr_fragen: "Questions", nr_alle_agenten: "All agents", nr_nur_offen: "open only", nr_suchen: "Search …", nr_schreiben: "Write", nr_an: "To", nr_alle: "everyone", nr_an_k: "to", nr_von_k: "from", nr_gesendet_s: "sent", nr_benachrichtigt: "notified", nr_gelesen: "read", nr_erledigt_s: "done", nr_unterwegs: "being sent …", nr_zurueckgezogen: "withdrawn", nr_mehrere: "{n} recipients · {e} done", nr_leer: "Nothing here.", nr_waehle: "Pick a message on the left.", nr_zur_liste: "Back to list", nr_antworten: "Reply", nr_nachfassen: "Follow up", nr_erledigt: "Done", nr_zurueckziehen: "Withdraw", nr_zurueckziehen_h: "Nobody has read it yet – it disappears for the recipient.", nr_zurueckziehen_nicht: "Already read or done – withdrawing is no longer possible; send a new message.", nr_zurueckziehen_frage: "Withdraw the message? It disappears for the recipient; you keep it as “withdrawn”.", nr_zurueckgezogen_ok: "Withdrawn", nr_bezug_h: "Go to the reference", nr_bezug: "About:", nr_alle_bezuege: "All references", nr_dazu: "✉ Message about this", nr_dazu_h: "Write a message about this – it also shows under Messages", nr_zu_titel: "Messages about this ({n})", nr_zu_leer: "No messages about this yet.", nr_schreiben_dazu: "Write a message about this", nr_start_neu: "{n} new", nr_start_alle: "All messages for you",
     bn_titel: "Users of the online site", bn_h: "Who may sign in on the online site and what they may do there. A new user has no rights until you assign a role and projects. The existing access from the site's configuration stays system admin.", bn_ohne_speicher: "Without online storage nobody can sign in – set up the online site first. Adding users works already.", bn_name: "Name", bn_rolle: "Role", bn_projekte: "Projects", bn_stand: "Status", bn_keine: "No users yet.", bn_neu_ph: "Name (no spaces)", bn_anlegen: "Add", bn_wartet_rolle: "– awaiting approval –", rolle_leser: "Reader", rolle_bearbeiter: "Editor", rolle_projekt_admin: "Project admin", rolle_system_admin: "System admin", bn_alle_projekte: "all projects", bn_st_neu: "not activated yet", bn_st_wartet_code: "Code valid until {x}", bn_st_code_abgelaufen: "Code expired", bn_st_eingerichtet: "set up", bn_st_angemeldet: "last signed in {x}", bn_st_gesperrt: "blocked", bn_st_freigabe: "awaiting your approval", bn_freischalten: "Activate", bn_neu_freischalten: "Reset access", bn_neu_frage: "Reset access for {x}? Password and two-factor are reset and all of {x}'s sessions end.", bn_sperren: "Block", bn_entsperren: "Unblock", bn_code_titel: "Activation code for {x}", bn_code_h: "Valid until {b}, once only. Give it to {x} in person (spoken or in a chat) – it is shown only now and stored nowhere else. {x} opens the online site, chooses “First sign-in” and sets their own password and two-factor.", bn_kopieren: "Copy", bn_kopiert: "Copied", bn_fertig: "Done",
     bn_email: "Email (company account)", bn_email_ph: "for company sign-in", bn_st_firmenkonto: "signed in with company account {x}", sso_titel: "Company sign-in (SSO)", sso_h: "Sign in with the company account (OpenID Connect, e.g. Microsoft Entra ID) – no second factor in the AMW, the provider handles it. Only users you created above with the same email get in.", sso_an: "Show the “Sign in with company account” button", sso_aussteller: "Issuer", sso_aussteller_h: "Microsoft Entra ID: https://login.microsoftonline.com/<Directory ID>/v2.0 – not “common”", sso_client: "Application (client) ID", sso_rueckweg: "Redirect URI", sso_rueckweg_h: "Enter exactly this at the provider (platform “Web”).", sso_rueckweg_fehlt: "appears once the address is set under “Online site” above", sso_geheimnis: "Secret at the web host", sso_zugang_geheimnis: "stored (client secret)", sso_zugang_zertifikat: "stored (certificate)", sso_zugang_fehlt: "not entered yet – the button appears only then", sso_eintragen: "Enter it on the online site", sso_eintragen_h: "The secret never comes to this PC: a system admin enters it on the online site, it then lives only in its configuration file.", sso_ohne_speicher: "Without online storage there is no company sign-in.",
@@ -2032,7 +2042,7 @@ function zeige(sicht, still = false) {
   $("#mehr")?.classList.toggle("an", !!document.querySelector(`nav a.im-mehr[data-sicht="${sicht}"]`));
   try { localStorage.setItem(ablage("amw-sicht"), sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
-  const fertig = ({ start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, verlauf: sichtVerlauf, arbeit: sichtArbeit, wissen: sichtWissen, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
+  const fertig = ({ start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, wissen: sichtWissen, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return fertig; }
   return Promise.resolve(fertig).then(() => {
     if (offen?.size) for (const s of $("#inhalt").querySelectorAll("details > summary")) if (offen.has(s.textContent)) s.parentElement.open = true;
@@ -2847,10 +2857,9 @@ async function agentDialog(kennung, reiter) {
 function nrReiterLeiste(aktiv, eingangOffen, weiter) {
   const z = zustand.start?.zaehler || {};
   const knopf = (k, n) => el("button", { type: "button", class: k === aktiv ? "an" : null, onclick: () => {
-    if (k === "fragen") { zeige("fragen"); return; }
     try { localStorage.setItem(ablage("amw-nr"), k); } catch (e) {}
     if (zustand.sicht === "nachrichten" && weiter) weiter(k); else zeige("nachrichten"); } }, t("nr_" + k), n ? el("span", { class: "z" }, n) : null);
-  return el("div", { class: "reiter nr-reiter" }, knopf("eingang", eingangOffen ?? z.nachrichten), knopf("gesendet"), knopf("fragen", z.fragen));
+  return el("div", { class: "reiter nr-reiter" }, knopf("eingang", eingangOffen ?? z.nachrichten), knopf("gesendet"));
 }
 /* Nachrichten an einer Stelle (Stufe N1): Eingang, Gesendet mit Stand je Empfänger, Gespräch rechts, Bezug als Chip */
 async function sichtNachrichten() {
@@ -2881,7 +2890,12 @@ async function sichtNachrichten() {
     el("input", { placeholder: t("nr_suchen"), oninput: e => { such = e.target.value.toLowerCase(); zeichnen(); } }),
     el("button", { class: "knopf haupt", type: "button", onclick: () => nachrichtDialog(null) }, "+ " + t("nr_schreiben")));
   const kopf = el("div", { class: "nr-leiste" });
-  m.append(kopf, raster);
+  const nf = d.zaehler.fragen_offen || 0;               /* Fragen stehen nur unter „Fragen“ – hier nur der Hinweis (A1629) */
+  const fragenHinweis = nf ? el("div", { class: "nr-hinweis" }, el("button", { type: "button", class: "verweis", onclick: () => zeige("fragen") },
+    "? " + (nf === 1 ? t("nr_fragen_offen1") : t("nr_fragen_offen", { n: nf })))) : null;
+  const markiert = new Set();                            /* mehrere auf einmal erledigen */
+  const sammel = el("div", { class: "nr-sammel" });
+  m.append(...[fragenHinweis, kopf, sammel].filter(Boolean), raster);
   const passen = geteilt(raster);
   let gezeigt = null;
   function passt(x) {
@@ -2915,12 +2929,27 @@ async function sichtNachrichten() {
             catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("nr_zurueckziehen")) : null)].filter(Boolean));
   }
   function zeichnen() {
-    kopf.replaceChildren(nrReiterLeiste(reiter, d.zaehler.eingang_offen, k => { reiter = k; gewaehlt = null; zeichnen(); }), filter);
+    kopf.replaceChildren(nrReiterLeiste(reiter, d.zaehler.eingang_offen, k => { reiter = k; gewaehlt = null; markiert.clear(); zeichnen(); }), filter);
+    const offene = reiter === "eingang" ? d.eingang.filter(passt).filter(x => x.stand !== "erledigt") : [];
+    for (const k of [...markiert]) if (!offene.some(x => schl(x) === k)) markiert.delete(k);
+    sammel.replaceChildren(...(offene.length > 1 ? [
+      el("label", { class: "leise" }, el("input", { type: "checkbox", checked: markiert.size === offene.length && offene.length ? true : null,
+        onchange: e => { markiert.clear(); if (e.target.checked) offene.forEach(x => markiert.add(schl(x))); zeichnen(); } }), " " + t("nr_alle_markieren")),
+      markiert.size ? el("button", { class: "knopf", type: "button", onclick: async ev => {
+        const ids = offene.filter(x => markiert.has(schl(x))).map(x => x.id); ev.target.disabled = true;
+        try { await schicken("/api/gelesen", { ids }, projekt); offene.filter(x => markiert.has(schl(x))).forEach(x => { x.stand = "erledigt"; });
+          markiert.clear(); zeichnen(); kopfAktualisieren(); } catch (e) { toast(t("fehler", { x: e.message }), true); ev.target.disabled = false; } } },
+        t("nr_erledigt_n", { n: markiert.size })) : null].filter(Boolean) : []));
     const l = d[reiter].filter(passt);
     if (!l.some(x => schl(x) === gewaehlt)) gewaehlt = l[0] ? schl(l[0]) : null;
-    liste.replaceChildren(...(l.length ? l.map(x => el("div", { class: "nr-eintrag" + (schl(x) === gewaehlt ? " an" : "") + (reiter === "eingang" && x.stand === "offen" ? " neu" : "") + (x.zurueckgezogen ? " weg" : ""),
+    const system = x => reiter === "eingang" && x.von === "AMW";
+    liste.replaceChildren(...(l.length ? l.map(x => el("div", { class: "nr-eintrag" + (system(x) ? " system" : " post") + (schl(x) === gewaehlt ? " an" : "") + (reiter === "eingang" && x.stand === "offen" ? " neu" : "") + (x.zurueckgezogen ? " weg" : ""),
         onclick: () => { gewaehlt = schl(x); raster.classList.add("detail"); zeichnen(); } },
-      el("div", { class: "nr-kopf" }, el("span", { class: "etikett" }, t("art_" + x.art) || x.art),
+      el("div", { class: "nr-kopf" },
+        reiter === "eingang" && x.stand !== "erledigt" ? el("input", { type: "checkbox", class: "nr-wahl", title: t("nr_markieren"), "aria-label": t("nr_markieren"),
+          checked: markiert.has(schl(x)) ? true : null, onclick: e => { e.stopPropagation(); markiert[markiert.has(schl(x)) ? "delete" : "add"](schl(x)); zeichnen(); } }) : null,
+        el("span", { class: "nr-sym", title: t(system(x) ? "nr_art_system" : "nr_art_post") }, system(x) ? "⚙" : "✉"),
+        el("span", { class: "etikett" }, t("art_" + x.art) || x.art),
         reiter === "gesendet" ? [t("nr_an_k") + " ", el("b", {}, x.empfaenger.map(e => e.agent).join(", ") || "–")] : [t("nr_von_k") + " ", el("b", {}, wer(x.von))],
         el("span", { class: "nr-zeit" }, zeit(x.zeit_utc))),
       el("div", { class: "nr-kurz" }, x.kurz), x.bezug ? chip(x.bezug, x) : null,
@@ -2930,6 +2959,27 @@ async function sichtNachrichten() {
     gespraech(l.find(x => schl(x) === gewaehlt));
     passen();
     if (BREIT.matches) liste.querySelector(".nr-eintrag.an")?.scrollIntoView({ block: "nearest" });   /* gewählte Zeile bleibt sichtbar */
+  }
+  zeichnen();
+}
+/* Team-Chat (A1629, Marcel 13.11.): Agenten und Lead untereinander – nur lesen, zählt nie; neueste oben, Filter Agent/Suche */
+async function sichtTeamchat() {
+  let d; try { d = await holen("/api/teamchat"); } catch (e) { rahmen(t("n_teamchat")).append(el("div", { class: "leer" }, String(e.message || e))); return; }
+  const m = rahmen(t("n_teamchat"), el("span", { class: "leise" }, t("tc_unter")));
+  let agent = "", such = "";
+  const liste = el("div", { class: "tc-liste" });
+  m.append(el("div", { class: "nr-leiste" }, el("div", { class: "nr-filter" },
+    el("select", { onchange: e => { agent = e.target.value; zeichnen(); } }, el("option", { value: "" }, t("nr_alle_agenten")), d.agenten.map(a => el("option", { value: a }, a))),
+    el("input", { placeholder: t("nr_suchen"), oninput: e => { such = e.target.value.toLowerCase(); zeichnen(); } }))), liste);
+  function zeichnen() {
+    const l = d.nachrichten.filter(x => (!agent || x.von === agent || x.an.includes(agent)) && (!such || `${x.kurz} ${x.text || ""}`.toLowerCase().includes(such)));
+    liste.replaceChildren(...(l.length ? l.map(x => el("div", { class: "tc-eintrag" },
+      el("div", { class: "nr-kopf" }, el("span", { class: "etikett" }, t("art_" + x.art) || x.art), el("b", {}, x.von), " → ", el("b", {}, x.an.join(", ") || "–"),
+        x.bezug ? el("button", { class: "nr-chip", type: "button", title: t("nr_bezug_h"), onclick: () => bezugOeffnen(x.bezug) }, x.bezug.text) : null,
+        el("span", { class: "nr-zeit" }, zeit(x.zeit_utc))),
+      el("div", { class: "nr-kurz" }, x.kurz),
+      x.text ? el("details", { class: "tc-text" }, el("summary", {}, t("tc_mehr")), el("div", { style: "white-space:pre-wrap" }, x.text)) : null))
+      : [el("div", { class: "leer" }, t("tc_leer"))]));
   }
   zeichnen();
 }
@@ -2989,8 +3039,7 @@ function nachrichtDialog(an, mit = {}) {
 
 /* --- Fragen -------------------------------------------------------------------------------- */
 async function sichtFragen() {
-  const m = rahmen(t("n_nachrichten"), el("span", { class: "leise" }, t("nr_unter")));
-  m.append(el("div", { class: "nr-leiste" }, nrReiterLeiste("fragen")));
+  const m = rahmen(t("n_fragen"), el("span", { class: "leise" }, t("f_unter")));
   let alle; try { alle = await holen("/api/fragen?alle=1"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   const geparkt = zustand.fragenSicht === "geparkt";
   const liste = alle.filter(f => !!f.geparkt_utc === geparkt);

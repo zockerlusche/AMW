@@ -80,6 +80,41 @@ class Seiten(Daten, Rundgang):
                               tun=f"dokumentDialog({self.dok[art]})", danach="document.querySelector('.dialog-hg .dialog-zu')")
 
 
+class Postfach(Daten, Rundgang):
+    """A1629 Stufe 1: Nachrichten ohne Fragen (nur Hinweis), Art je Zeile, mehrere auf einmal erledigen; Team-Chat; Seite Fragen
+    mit eigenem Kopf – je PC/Handy × hell/dunkel geprüft, dazu die Bedienung echt geklickt."""
+
+    def daten(self):
+        super().daten()
+        kern.posten(self.con, self.pid, "CC2", "Entwickler", "info", "Zweite Meldung an dich")
+        kern.posten(self.con, self.pid, "AMW", "Entwickler", "meldung", "Laufwerk C: wird knapp")
+        kern.posten(self.con, self.pid, "TL", "CC1,CC2", "auftrag", "Bitte die Hilfe ergänzen", text="Mit Bildern.")
+
+    def test_seiten(self):
+        self.ueberall("nachrichten", "postfach", bereit="document.querySelector('.nr-eintrag')")
+        self.ueberall("teamchat", bereit="document.querySelector('.tc-eintrag')")
+        self.ueberall("fragen", "fragen-eigener-kopf", bereit="document.querySelector('#inhalt h1')")
+
+    def test_bedienung(self):
+        self.groesse("pc")
+        self.tab.js("try { localStorage.clear() } catch (e) {}")
+        self.oeffnen("nachrichten", "document.querySelector('.nr-eintrag')")
+        txt = self.tab.js("document.querySelector('#inhalt').innerText")
+        self.assertIn("Frage an dich offen", txt)                                                 # Hinweis statt Fragen im Postfach
+        self.assertFalse(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].some(b => /Fragen/.test(b.textContent))"))
+        self.assertTrue(self.tab.js("!!document.querySelector('.nr-eintrag.system .nr-sym')"))   # ⚙ Meldung der Workbench
+        offen = self.tab.js("document.querySelectorAll('.nr-wahl').length")
+        self.assertGreaterEqual(offen, 2)
+        self.tippen(".nr-sammel input[type=checkbox]")                                           # alle offenen markieren
+        self.warten(f"(document.querySelector('.nr-sammel .knopf')?.textContent || '').includes('({offen})')")
+        self.tippen(".nr-sammel .knopf")                                                         # Erledigt (n)
+        self.warten("!document.querySelector('.nr-wahl')")
+        self.oeffnen("teamchat", "document.querySelector('.tc-eintrag')")
+        self.assertIn("Bitte die Hilfe ergänzen", self.tab.js("document.querySelector('.tc-liste').innerText"))
+        self.oeffnen("fragen", "document.querySelector('#inhalt h1')")
+        self.assertEqual(self.tab.js("document.querySelector('#inhalt h1').textContent"), "Fragen")
+
+
 class Kante(Daten, Rundgang):
     """Am Handy enden wischbare Untermenüs im Seitenkopf nicht stumm mitten im Wort: ein Verlauf an der Kante zeigt, dass
     es dort weitergeht (Klassen weiter-r / weiter-l), am PC gibt es keinen."""

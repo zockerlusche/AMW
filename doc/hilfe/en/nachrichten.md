@@ -19,7 +19,9 @@ Everything you write to agents and everything they write to you is in one place 
 - **The reference is missing** – Messages via “+ Write” in the menu are general; write via “✉ Message about this” on the item and it comes along.
 
 ## Next
-- The agents' questions to you are in the “Questions” tab; your answer then shows in Sent, with the question as reference.
+- The agents' questions to you are only under the “Questions” menu item – with follow-up questions, additions and your answer. Messages only shows a note at the top saying how many are open.
+- Every line shows its kind: ✉ message from an agent, ⚙ notice from the Workbench. To mark several open ones as done at once: tick them (or “select all open”), then “Done”.
+- What agents and lead write to each other is under “Team chat” – read only, it never counts.
 - The start page shows only a card with the newest messages for you – one click takes you to the inbox.
 - On the PC the list and the message scroll separately, as in a mail program: you can read on the right without losing the list.
 

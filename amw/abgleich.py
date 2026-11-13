@@ -329,6 +329,7 @@ def ansichten(con, pid, speicher=None):
     a = {"/api/start": _fremde_ohne_namen(workbench.daten_start(con, pid), pid, con),
          "/api/fragen": workbench.daten_fragen(con, pid),
          "/api/nachrichten": workbench.daten_nachrichten(con, pid),
+         "/api/teamchat": workbench.daten_teamchat(con, pid),
          "/api/fragen?alle=1": workbench.daten_fragen(con, pid, True),
          "/api/wissen": workbench.daten_wissen(con, pid, {"q": [""]}),
          "/api/betrieb": _betrieb_ohne_namen(workbench.daten_betrieb(con, pid)),

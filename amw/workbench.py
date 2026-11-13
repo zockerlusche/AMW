@@ -206,6 +206,7 @@ STAND_SICHTEN = {
     "wissen": ("beschluss", "regel", "wortlaut", "notiz", "thema", "thema_fassung"),
     "dokumente": ("dokument", "dokument_version"),
     "releases": ("release",),
+    "teamchat": ("nachricht",),
 }
 
 
@@ -275,8 +276,7 @@ def daten_start(con, pid):
     an_dich = zeilen(con.execute(           # ohne Nachträge zu offenen Fragen – die zeigt die Frage selbst (geparkte nicht)
         "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf, n.bis FROM empfang e JOIN nachricht n"
         " ON n.id = e.nachricht_id WHERE n.projekt_id = ? AND e.agent = ? AND e.status != 'erledigt'"
-        " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v JOIN frage f ON f.id = v.frage_id"
-        "   WHERE f.status = 'offen' AND f.geparkt_utc IS NULL AND v.nachricht_id IS NOT NULL)"
+        " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v WHERE v.nachricht_id IS NOT NULL)"   # Fragen und Nachträge: nur unter „Fragen“ (A1629)
         " ORDER BY n.id DESC LIMIT 30", (pid, kern.ENTWICKLER)))
     # info ohne Bezug, älter als info_ablage_h: eingeklappt unter „Ältere Infos“, zählt nicht mehr (Fehlerbericht Punkt 1c)
     ablage = _ablage_grenze(con, pid)
@@ -464,8 +464,7 @@ def an_dich_zahl(con, pid):
     return con.execute(
         "SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE n.projekt_id = ? AND e.agent = ?"
         " AND e.status != 'erledigt' AND NOT (n.art = 'info' AND COALESCE(n.bis, '') = '' AND n.zeit_utc < ?)"
-        " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v JOIN frage f ON f.id = v.frage_id"
-        "   WHERE f.status = 'offen' AND f.geparkt_utc IS NULL AND v.nachricht_id IS NOT NULL)",
+        " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v WHERE v.nachricht_id IS NOT NULL)",            # Fragen und ihre Nachträge: nur unter „Fragen“ (Marcel 13.11., A1629)
         (pid, kern.ENTWICKLER, _ablage_grenze(con, pid))).fetchone()[0]
 
 
@@ -487,7 +486,8 @@ def daten_nachrichten(con, pid, grenze=150):
 
     spalten = "n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf, n.bezug, n.benutzer"
     gesendet = []
-    eigene = con.execute(f"SELECT {spalten} FROM nachricht n WHERE n.projekt_id = ? AND n.von = ? ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall()
+    eigene = con.execute(f"SELECT {spalten} FROM nachricht n WHERE n.projekt_id = ? AND n.von = ? AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v WHERE v.nachricht_id IS NOT NULL)"
+                         " ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall()      # Antworten auf Fragen: unter „Fragen“
     ids = [n["id"] for n in eigene]
     platz = ",".join("?" * len(ids)) or "NULL"
     empf, antw = {}, {}                                  # je Nachricht gesammelt – eine Abfrage statt einer je Nachricht
@@ -508,10 +508,37 @@ def daten_nachrichten(con, pid, grenze=150):
                          "zurueckziehbar": not zurueck and bool(emp) and n["id"] not in zu_fragen and all(x["status"] == "offen" for x in emp)})
     eingang = []
     for n in con.execute(f"SELECT {spalten}, e.status AS stand FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
-                         " WHERE n.projekt_id = ? AND e.agent = ? ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall():
+                         " WHERE n.projekt_id = ? AND e.agent = ? AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v WHERE v.nachricht_id IS NOT NULL) ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall():
         eingang.append({**{k: n[k] for k in ("id", "zeit_utc", "von", "art", "kurz", "text", "antwort_auf", "stand")}, "bezug": bezug(n), "projekt": puid})
+    fragen = con.execute("SELECT count(*) FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen' AND geparkt_utc IS NULL",
+                         (pid,)).fetchone()[0]
     return {"eingang": eingang, "gesendet": gesendet,
-            "zaehler": {"eingang_offen": an_dich_zahl(con, pid)}}
+            "zaehler": {"eingang_offen": an_dich_zahl(con, pid), "fragen_offen": fragen}}
+
+
+def daten_teamchat(con, pid, grenze=200):
+    """Team-Chat (A1629, Marcel 13.11.): Agenten und Lead untereinander – Nachrichten, an denen der Mensch weder als Absender
+    noch als Empfänger beteiligt ist, ohne Meldungen der Workbench selbst. Nur lesen, zählt nie; neueste zuerst."""
+    E = kern.ENTWICKLER
+    liste = zeilen(con.execute(
+        "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf, n.bezug FROM nachricht n"
+        " WHERE n.projekt_id = ? AND n.von NOT IN (?, 'AMW')"
+        " AND NOT EXISTS (SELECT 1 FROM empfang e WHERE e.nachricht_id = n.id AND e.agent = ?)"
+        " ORDER BY n.id DESC LIMIT ?", (pid, E, E, grenze)))
+    ids = [n["id"] for n in liste]
+    an = {}
+    for r in con.execute(f"SELECT nachricht_id, agent FROM empfang WHERE nachricht_id IN ({','.join('?' * len(ids)) or 'NULL'})"
+                         " ORDER BY agent", ids):
+        an.setdefault(r[0], []).append(r[1])
+    texte = {}
+    for n in liste:
+        n["an"] = an.get(n["id"], [])
+        b = n["bezug"]
+        if b and b not in texte:
+            texte[b] = kern.bezug_text(con, b)
+        n["bezug"] = {"kuerzel": b, "art": "agent" if b[0] == "@" else b[0], "id": None if b[0] == "@" else int(b[1:]),
+                      "text": texte[b]} if b else None
+    return {"nachrichten": liste, "agenten": sorted({n["von"] for n in liste} | {a for n in liste for a in n["an"]})}
 
 
 def daten_benutzer(con, speicher=None):
@@ -1170,7 +1197,8 @@ def baue_handler(port, token):
                     "/api/dokument": lambda c, p: daten_dokument(c, p, q),
                     "/api/projekte": lambda c, p: daten_projekte(c, p),
                     "/api/benutzer": lambda c, p: daten_benutzer(c),
-                    "/api/nachrichten": lambda c, p: daten_nachrichten(c, p)}
+                    "/api/nachrichten": lambda c, p: daten_nachrichten(c, p),
+                    "/api/teamchat": lambda c, p: daten_teamchat(c, p)}
             weg = wege.get(u.path)
             if not weg:
                 return self._senden(404, {"fehler": "unbekannt"})

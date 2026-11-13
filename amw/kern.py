@@ -798,7 +798,10 @@ def faden_suchen(con, pid, von):
     return con.execute(
         "SELECT n.id, n.kurz FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id AND e.agent = ?"
         " WHERE n.projekt_id = ? AND n.von = ? AND COALESCE(e.bemerkung, '') != ? AND n.zeit_utc >= ?"
-        " AND NOT EXISTS (SELECT 1 FROM nachricht a WHERE a.antwort_auf = n.id AND a.von = ?) ORDER BY n.id DESC LIMIT 1",
+        " AND NOT EXISTS (SELECT 1 FROM nachricht a WHERE a.antwort_auf = n.id AND a.von = ?)"
+        # Antworten und Rückfragen zu einer Frage sind kein Faden: wer dazu nachträgt, sagt es (antwort_auf / amw frage
+        # nachtrag) – sonst hing jede spätere Nachricht des Agenten an der Frage (A1629, Auftrag mit fremdem Bezug F3)
+        " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v WHERE v.nachricht_id IS NOT NULL) ORDER BY n.id DESC LIMIT 1",
         (von, pid, ENTWICKLER, ZURUECKGEZOGEN, grenze, von)).fetchone()
 
 
@@ -811,6 +814,11 @@ def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id
     if (faden and not antwort_auf and von not in ("AMW", ENTWICKLER)
             and [t.strip().lower() for t in an.replace(";", ",").split(",") if t.strip()] == [ENTWICKLER.lower()]):
         r = faden_suchen(con, pid, von)
+        if r and (bezug or aufgabe_id):                # eigener Bezug: nur anhängen, wenn der Faden dasselbe Thema hat
+            alt = con.execute("SELECT bezug, aufgabe_id FROM nachricht WHERE id = ?", (r["id"],)).fetchone()
+            eigen = bezug or f"A{aufgabe_id}"
+            if eigen not in (alt["bezug"], f"A{alt['aufgabe_id']}" if alt["aufgabe_id"] else None):
+                r = None
         if r:
             antwort_auf = r["id"]
             if hinweise is not None:

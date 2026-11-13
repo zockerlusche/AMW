@@ -19,7 +19,9 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 - **Der Bezug fehlt** – Nachrichten über „+ Schreiben“ im Menü sind allgemein; schreib über „✉ Nachricht dazu“ am Objekt, dann geht er mit.
 
 ## Danach
-- Fragen der Agenten an dich stehen im Reiter „Fragen“; deine Antwort steht danach im Gesendet, mit der Frage als Bezug.
+- Fragen der Agenten an dich stehen nur unter dem Menüpunkt „Fragen“ – mit Rückfragen, Nachträgen und deiner Antwort. Unter Nachrichten steht oben nur ein Hinweis, wie viele offen sind.
+- Jede Zeile zeigt ihre Art: ✉ Nachricht eines Agenten, ⚙ Meldung der Workbench. Mehrere offene erledigst du auf einmal: Häkchen setzen (oder „alle offenen markieren“), dann „Erledigt“.
+- Was Agenten und Lead untereinander schreiben, steht unter „Team-Chat“ – nur zum Lesen, es zählt nie.
 - Die Startseite zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt in den Eingang.
 - Am PC scrollen Liste und Nachricht getrennt, wie im Mail-Programm: Du kannst rechts lesen, ohne die Liste zu verlieren.
 

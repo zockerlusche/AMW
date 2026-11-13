@@ -133,13 +133,14 @@ class Nachrichten(unittest.TestCase):
                            aufgabe_id=self.aid, geprueft="keine Treffer")
         fid = r if isinstance(r, int) else r[0]
         kern.frage_antworten(self.con, self.pid, fid, "option", "A", "workbench")
-        g = [x for x in workbench.daten_nachrichten(self.con, self.pid)["gesendet"] if x["kurz"].startswith(f"Antwort zu F{fid}")]
-        self.assertEqual(len(g), 1)
-        self.assertEqual((g[0]["bezug"]["kuerzel"], [e["agent"] for e in g[0]["empfaenger"]]), (f"F{fid}", ["CC1"]))
-        self.assertEqual(self.con.execute("SELECT aufgabe_id FROM nachricht WHERE id = ?", (g[0]["id"],)).fetchone()[0], self.aid)
-        self.assertFalse(g[0]["zurueckziehbar"])                                             # Antwort auf eine Frage: nicht zurückziehen
-        with self.assertRaises(kern.AmwFehler):
-            kern.zurueckziehen(self.con, self.pid, kern.ENTWICKLER, g[0]["id"])
+        n = self.con.execute("SELECT id, bezug, aufgabe_id FROM nachricht WHERE kurz LIKE ?", (f"Antwort zu F{fid}%",)).fetchall()
+        self.assertEqual(len(n), 1)
+        self.assertEqual((n[0]["bezug"], n[0]["aufgabe_id"]), (f"F{fid}", self.aid))
+        self.assertEqual([r[0] for r in self.con.execute("SELECT agent FROM empfang WHERE nachricht_id = ?", (n[0]["id"],))], ["CC1"])
+        # A1629 (Marcel 13.11.): Antworten auf Fragen stehen unter „Fragen“, nicht im Gesendet der Nachrichten
+        self.assertNotIn(n[0]["id"], [x["id"] for x in workbench.daten_nachrichten(self.con, self.pid)["gesendet"]])
+        with self.assertRaises(kern.AmwFehler):                                                 # Antwort auf eine Frage: nicht zurückziehen
+            kern.zurueckziehen(self.con, self.pid, kern.ENTWICKLER, n[0]["id"])
 
 
     def test_nur_das_gewaehlte_projekt(self):

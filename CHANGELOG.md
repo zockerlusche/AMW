@@ -4,6 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.91.0 – 13.11.2026 · Postfach, Fragen getrennt, Team-Chat
+- **Fragen nur unter „Fragen“:** Fragen der Agenten an dich, ihre Rückfragen, Nachträge und deine Antworten stehen nur
+  noch unter dem Menüpunkt „Fragen“ – mit eigener Zahl und eigenem Kopf. Unter „Nachrichten“ steht oben nur ein Hinweis
+  „n Fragen an dich offen › Fragen“; der Reiter „Fragen“ dort entfällt. Liste und Zahl der Nachrichten passen jetzt immer
+  zusammen (bisher standen Nachträge im Eingang, zählten aber nicht – nach dem Parken umgekehrt).
+- **Nachrichten = dein Postfach für alles andere:** Jede Zeile zeigt ihre Art – ✉ Nachricht eines Agenten, ⚙ Meldung der
+  Workbench. Mehrere offene erledigst du auf einmal: Häkchen setzen oder „alle offenen markieren“, dann „Erledigt (n)“.
+- **Neuer Menüpunkt „Team-Chat“:** was Agenten und Lead untereinander schreiben, neueste oben, mit Filter nach Agent und
+  Suche – nur zum Lesen, zählt nie. Am PC und online.
+- **Behoben:** Nach einer Rückfrage hängte sich jede weitere Nachricht des Agenten an dich von selbst an diese Frage (ein
+  fremder Auftrag trug dann den Bezug der Frage). Jetzt gehören zu einer Frage nur ausdrückliche Nachträge; und eine
+  Nachricht mit eigenem Bezug hängt sich nur an ein Gespräch mit demselben Bezug.
+- Hilfe Nachrichten ergänzt.
+
 ## 1.90.0 – 13.11.2026 · Die Warteschlange entscheidet allein, Läufe gehen nicht mehr verloren
 - **Läufe überleben das Fenster:** `amw lauf ausfuehren` merkt sich beim Einreihen Befehl, Ordner und Ergebnis-Datei. Beendet
   das Fenster des Agenten den wartenden Befehl (bei knappem Speicher), bleibt der Lauf in der Schlange; ist er dran, startet
@@ -26,7 +40,7 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   8 GB + 3 GB Reserve bei 9,4 GB frei), hielt die ganze Warteschlange auf – niemand überholt ihn, und für ihn wurde
   Platz frei gehalten. Jetzt gilt: Läuft kein schwerer Lauf und er passt trotzdem nicht, sperrt er niemanden und es wird
   kein Platz für ihn frei gehalten; er bleibt vorn und startet, sobald genug frei ist. Der Wartegrund sagt es („passt
-  auch bei leerer Schlange nicht …“). Läuft etwas, wartet die Schlange wie bisher (Befund CCamw 13.11.).
+  auch bei leerer Schlange nicht …“). Läuft etwas, wartet die Schlange wie bisher.
 
 ## 1.89.0 – 13.11.2026 · Nachrichten: Liste und Inhalt scrollen getrennt
 - **Wie im Mail-Programm:** Unter „Nachrichten“ haben am PC die Liste links und die geöffnete Nachricht rechts je ihren
