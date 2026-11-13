@@ -959,6 +959,9 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   .seitenkopf .reiter-zeile { display: flex; gap: 2px; flex: 1 1 100%; min-width: 0; align-items: flex-end; }   /* Reiter eine Zeile, ihr Filter (.rechts) bleibt darunter stehen */
   .seitenkopf :is(.reiter-zeile, .vl-filter, .dk-arten, .dk-filter, .sprung) { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
   .seitenkopf :is(.reiter-zeile, .vl-filter, .dk-arten, .dk-filter, .sprung)::-webkit-scrollbar { display: none; }
+  .seitenkopf .weiter-r { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+  .seitenkopf .weiter-l { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); }
+  .seitenkopf .weiter-l.weiter-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
   .seitenkopf :is(.reiter-zeile, .vl-filter, .dk-arten, .dk-filter, .sprung) > * { flex: none; }
   .seitenkopf .dk-filter input { flex: none; width: 160px; }
   .seitenkopf .dk-filter select, .seitenkopf .vl-filter select { flex: none; max-width: 180px; }
@@ -2087,6 +2090,12 @@ function rahmen(titel, ...rest) {
    wandert von selbst hinein – keine Seite braucht dafür eigenen Code. Beim Scrollen läuft die Titelzeile hinaus (top negativ),
    die Untermenüs bleiben stehen; Sprungziele landen darunter (scroll-padding). */
 const UNTERMENUE = ".reiter, .vl-filter, .dk-arten, .dk-filter, .sprung";
+/* Am Handy wischbare Untermenüs: ein Verlauf an der Kante zeigt, dass es dort weitergeht (sonst endet ein Reiter mitten im Wort) */
+function kante(w) {
+  const rest = w.scrollWidth - w.clientWidth - w.scrollLeft;
+  w.classList.toggle("weiter-r", rest > 2);
+  w.classList.toggle("weiter-l", w.scrollLeft > 2);
+}
 const kopfStand = { sicht: null, lage: {}, weg: 0, groesse: new ResizeObserver(() => seitenkopf()) };
 function seitenkopf() {
   const m = $("#inhalt"), k = m.firstElementChild;
@@ -2098,7 +2107,9 @@ function seitenkopf() {
     const an = w.querySelector("button.an");
     if (kopfStand.lage[n.classList[0]]) w.scrollLeft = kopfStand.lage[n.classList[0]];
     else if (an && w.scrollWidth > w.clientWidth) w.scrollLeft += an.getBoundingClientRect().left - w.getBoundingClientRect().left - (w.clientWidth - an.offsetWidth) / 2;
+    w.addEventListener("scroll", () => kante(w), { passive: true });
   }
+  for (const w of k.querySelectorAll(":scope > .reiter > .reiter-zeile, :scope > :is(.vl-filter, .dk-arten, .dk-filter, .sprung)")) kante(w);
   const erstes = k.querySelector(`:scope > :is(${UNTERMENUE})`);
   k.classList.toggle("mit-menue", !!erstes);
   kopfStand.weg = erstes ? Math.max(0, erstes.offsetTop - 8) : 0;        /* so viel läuft oben hinaus: Titelzeile samt Abstand */
