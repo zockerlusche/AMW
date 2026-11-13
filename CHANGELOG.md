@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.87.4 – 13.11.2026 · Vorrang: echtes „hoch“ vor aufgerücktem
+- **Behoben:** Ein Lauf, der nach 30 Minuten Wartezeit auf „hoch“ aufgerückt war, stand bei Gleichstand nach Ankunft vor
+  einem Lauf aus einem Projekt mit echtem „hoch“. Jetzt zählt bei gleicher Stufe zuerst die Stufe des Projekts, dann die
+  Ankunft – in der Warteschlange, beim Anmelden eines Laufs und im Wartegrund. Aufrücken bleibt, damit nichts verhungert.
+
 ## 1.87.3 – 13.11.2026 · Nachrichten nur im gewählten Projekt
 - **Behoben:** Unter „Nachrichten“ standen auch Nachrichten anderer Projekte, mit dem Filter „Alle Projekte“ – am PC und
   online. Jetzt zeigt die Seite nur das Projekt, das oben gewählt ist; den Filter gibt es nicht mehr. Auch die Zahl am Menü

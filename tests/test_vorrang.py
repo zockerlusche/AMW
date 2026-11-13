@@ -163,13 +163,42 @@ class Stufe2(Grund):
         self.alt(b, 20)
         self.assertEqual(reihe(), [c, b])                  # niedrig, noch nicht aufgerückt
         self.alt(b, 40)
-        self.assertEqual(reihe(), [b, c])                  # jetzt normal – und früher da
+        self.assertEqual(reihe(), [c, b])                  # jetzt normal – bei Gleichstand zählt zuerst die Projekt-Stufe (TL #23284)
         self.alt(b, 70)
+        self.assertEqual(reihe(), [b, c])                  # hoch: vor jedem normalen – verhungern kann er nicht
         self.assertEqual(betrieb.lauf_stufe(self.con, betrieb.wartende(self.con)[0]), 2)     # höchstens hoch
         g = betrieb.wartegrund(self.con, self.p["Eins"], betrieb.lauf_zeile(self.con, self.p["Eins"], c), speicher_frei=32.0)
         self.assertIn(f"vor dir: L{b} (anderes Projekt, niedriger Vorrang, aufgerückt nach Wartezeit)", g)
         self.auf = 0                                       # aus
         self.assertEqual(reihe(), [c, b])
+
+    def test_echtes_hoch_vor_aufgerueckt_bei_gleichstand(self):
+        """TL #23284 (Befund CCamw #23267): Ein normaler Lauf, der nach 30 Minuten auf „hoch“ aufgerückt ist, stand bei
+        Gleichstand nach Ankunft vor einem Lauf mit echtem „hoch“. Jetzt: gleiche Stufe → zuerst die Stufe des Projekts."""
+        self.start("Eins", "C")                            # belegt die CPU-Spur
+        alt = self.start("Eins", "A")                       # normal, kam zuerst
+        self.alt(alt, 35)                                   # nach 35 min aufgerückt auf hoch
+        neu = self.start("Zwei", "A")                       # echtes hoch, kam später
+        self.assertEqual(betrieb.lauf_stufe(self.con, betrieb.wartende(self.con)[0]), 2)
+        self.assertEqual([x["id"] for x in betrieb.wartende(self.con)], [neu, alt])
+        g = betrieb.wartegrund(self.con, self.p["Eins"], betrieb.lauf_zeile(self.con, self.p["Eins"], alt), speicher_frei=32.0)
+        self.assertIn(f"vor dir: L{neu} (anderes Projekt, Vorrang)", g)
+        g = betrieb.wartegrund(self.con, self.p["Zwei"], betrieb.lauf_zeile(self.con, self.p["Zwei"], neu), speicher_frei=32.0)
+        self.assertNotIn(f"L{alt}", g)                      # der aufgerückte steht nicht vor ihm
+        self.auf = 0                                        # ohne Aufrücken ohnehin
+        self.assertEqual([x["id"] for x in betrieb.wartende(self.con)], [neu, alt])
+        self.auf = 30                                       # aufgerückt bleibt vor anderen normalen
+        drei = self.start("Eins", "B")
+        self.assertEqual([x["id"] for x in betrieb.wartende(self.con)], [neu, alt, drei])
+
+    def test_neuer_echter_hoch_lauf_wartet_nicht_hinter_aufgeruecktem(self):
+        """lauf_start: Ein neuer Lauf mit echtem „hoch“ wartet nicht auf einen nur aufgerückten (gleiche Regel wie wartende())."""
+        with mock.patch.object(betrieb, "reserve_gb", return_value=3.0):
+            b = betrieb.lauf_start(self.con, self.p["Eins"], "A", "groß", warten=True, speicher_frei=8.0, braucht_gb=8)
+            self.assertEqual(self.status(b), "angemeldet")  # wartet auf Speicher und sperrt die CPU-Spur
+            self.alt(b, 35)                                 # aufgerückt auf hoch
+            c = betrieb.lauf_start(self.con, self.p["Zwei"], "A", "klein", warten=True, speicher_frei=8.0, braucht_gb=2)
+            self.assertEqual(self.status(c), "laeuft")      # echtes hoch: der aufgerückte hält ihn nicht auf
 
     def test_platz_freihalten_fuer_vorrang(self):
         a = betrieb.lauf_start(self.con, self.p["Eins"], "C", "GPU", warten=True, gpu=True, speicher_frei=32.0, braucht_gb=2)

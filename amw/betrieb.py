@@ -507,7 +507,9 @@ def wartende(con, pid=None):
     oben = sorted((z for z in zeilen if z["rang"] >= MENSCH_RANG), key=lambda z: (-z["rang"], z["id"]))
     v = vorrang()
     stufe = {z["id"]: lauf_stufe(con, z, v) for z in zeilen}      # mit Aufrücken nach Wartezeit (A1623 V2)
-    rest = sorted((z for z in zeilen if z["rang"] < MENSCH_RANG), key=lambda z: (-stufe[z["id"]], z["id"]))
+    basis = {p: VORRANG[vorrang_stufe(con, p, v)] for p in {z["projekt_id"] for z in zeilen}}
+    # bei gleicher Stufe zuerst die Stufe des Projekts (echtes „hoch“ vor aufgerücktem, TL #23284), dann Ankunft
+    rest = sorted((z for z in zeilen if z["rang"] < MENSCH_RANG), key=lambda z: (-stufe[z["id"]], -basis[z["projekt_id"]], z["id"]))
     je_projekt = {}
     for z in rest:
         je_projekt.setdefault(z["projekt_id"], []).append(z)
@@ -542,7 +544,8 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     with db.schreiben(con):
         w = wartende(con, pid)
         eigene = VORRANG[vorrang_stufe(con, pid)]          # nur wer nach der Reihenfolge vor ihm stünde, hält ihn auf
-        w_vor = [x for x in w if x["rang"] >= MENSCH_RANG or lauf_stufe(con, x) >= eigene]
+        w_vor = [x for x in w if x["rang"] >= MENSCH_RANG             # ein neuer Lauf hat noch nicht gewartet: Stufe = Projekt-Stufe;
+                 or (lauf_stufe(con, x), VORRANG[vorrang_stufe(con, x["projekt_id"])]) >= (eigene, eigene)]   # Gleichstand wie wartende()
         schirm_zu = schirm_mod.sperrgrund(con) if schirm or any(x["schirm"] for x in w) else None
         grund = sperre or (schirm_zu if schirm else None) or _besetzt(con, pid, plaetze)[0]
         gesperrt = _gesperrt(con, pid, w_vor, schirm_zu) if not sperre else {}
