@@ -22,7 +22,24 @@
    "bilder": []
   }
  ],
- "werte": [],
+ "werte": [
+  [
+   "Input at the PC (keyboard, mouse)",
+   "on input at the PC, also through a remote session – a single movement is not enough, only a second one shortly after"
+  ],
+  [
+   "New remote session",
+   "as soon as the program entered there starts"
+  ],
+  [
+   "Input in the Workbench at the PC",
+   "on any input in the Workbench at the PC"
+  ],
+  [
+   "Time (always)",
+   "at the time until which you released it"
+  ]
+ ],
  "fehler": [
   [
    "The release closes although you only wanted a quick look",
@@ -38,6 +55,7 @@
   ]
  ],
  "danach": [
+  "You switch the triggers one by one in Settings › This PC › “Close the screen release automatically”; new installations have all three on. When a trigger is off, **the AMW does not watch it at all** – it measures nothing and records nothing about it.",
   "If a run with a window keeps running after closing, the lead is told after 5 minutes.",
   "Online, only a system admin may release the screen, with a confirmation; the time until when is optional. Without a time the screen stays free until someone takes it back or a switched-on trigger fires. The history shows who it was. Anyone may close it online."
  ],

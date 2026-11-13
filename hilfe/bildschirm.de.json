@@ -22,7 +22,24 @@
    "bilder": []
   }
  ],
- "werte": [],
+ "werte": [
+  [
+   "Eingabe am PC (Tastatur, Maus)",
+   "bei Eingaben am PC, auch über eine Fernsitzung – eine einzelne Bewegung reicht nicht, erst eine zweite kurz danach"
+  ],
+  [
+   "Neue Fernsitzung",
+   "sobald das eingetragene Programm startet"
+  ],
+  [
+   "Eingabe in der Workbench am PC",
+   "bei jeder Eingabe in der Workbench am PC"
+  ],
+  [
+   "Uhrzeit (immer)",
+   "zu der Uhrzeit, bis zu der du freigegeben hast"
+  ]
+ ],
  "fehler": [
   [
    "Die Freigabe geht zu, obwohl du nur kurz reinschauen wolltest",
@@ -38,6 +55,7 @@
   ]
  ],
  "danach": [
+  "Die Auslöser schaltest du einzeln in Einstellungen › Dieser PC › „Bildschirm-Freigabe von selbst schließen“; neue Installationen haben alle drei an. Ist ein Auslöser aus, **beobachtet die AMW ihn gar nicht** – sie misst nichts und schreibt nichts darüber auf.",
   "Läuft ein Lauf mit Fenster nach dem Schließen weiter, erfährt es der Lead nach 5 Minuten.",
   "Online freigeben darf nur ein System-Admin, mit Rückfrage; die Uhrzeit, bis wann, ist freiwillig. Ohne Uhrzeit bleibt der Bildschirm frei, bis jemand ihn belegt oder ein eingeschalteter Auslöser greift. Im Verlauf steht, wer es war. Schließen darf online jeder."
  ],
