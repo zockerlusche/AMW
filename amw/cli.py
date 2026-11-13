@@ -1196,14 +1196,25 @@ def cmd_lauf(a, con):
     elif a.aktion == "ausfuehren":
         return _lauf_ausfuehren(con, pid, a)
     else:
+        laufen = con.execute("SELECT l.*, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id WHERE l.status = 'laeuft' AND "
+                             + betrieb.HIER + " ORDER BY l.id", (betrieb.rechner(),)).fetchall()
+        if laufen:                                       # was den Rechner gerade belegt – auch fremde Läufe, ohne Inhalt (A1623)
+            vm = {x["id"]: gb for x, gb in betrieb._vormerkungen(con)}
+            print("Läuft auf diesem Rechner:")
+            for r in laufen:
+                print(f"  {betrieb.lauf_nennen(pid, r, mit_text=False)}{' schwer' if r['schwer'] else ''}{' Bildschirm' if r['schirm'] else ''}"
+                      f"{' GPU' if r['gpu'] else ''}" + (f" · {vm[r['id']]:g} GB vorgemerkt" if r["id"] in vm else ""))
+            print()
         w = betrieb.wartende(con, pid)
         if w:
             print("Warteschlange:")
+            v = betrieb.vorrang()
             for i, r in enumerate(w, 1):                 # die Schlange gilt für den ganzen Rechner; fremde Läufe ohne Inhalt
                 eigen = r["projekt_id"] == pid
+                st = betrieb.vorrang_stufe(con, r["projekt_id"], v)
                 print(f"  {i}. L{r['id']:<5} {r['agent'] if eigen else '–':<8}{' schwer' if r['schwer'] else ''}{' Bildschirm' if r['schirm'] else ''}"
-                      f"{' GPU' if r['gpu'] else ''}{' (vorgezogen)' if r['rang'] else ''} seit {_zeit(r['angemeldet_utc'])}"
-                      f"  {r['beschreibung'] if eigen else '(anderes Projekt)'}")
+                      f"{' GPU' if r['gpu'] else ''}{' (vorgezogen)' if r['rang'] else ''}{' ' + betrieb.t_vorrang(st) if st != 'normal' else ''}"
+                      f" seit {_zeit(r['angemeldet_utc'])}  {r['beschreibung'] if eigen else '(anderes Projekt)'}")
             print()
         for r in con.execute("SELECT * FROM lauf WHERE projekt_id = ? ORDER BY id DESC LIMIT ?", (pid, a.grenze)):
             print(f"L{r['id']:<5} {r['agent']:<8} [{r['status']}]{' schwer' if r['schwer'] else ''}{' Bildschirm' if r['schirm'] else ''}"

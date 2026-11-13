@@ -13,6 +13,8 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 - **Wartegrund:** nennt den Vorrang („Platz 1 von 3 (Vorrang für …)“, „vor dir: L12 (anderes Projekt, Vorrang)“) und,
   wenn der Lauf davor auf Arbeitsspeicher wartet, wie viel er braucht und wie viel nutzbar ist. Fehlt Arbeitsspeicher,
   steht dabei, für welchen laufenden Lauf wie viel vorgemerkt ist. Fremde Projekte bleiben ohne Namen.
+- **`amw lauf liste`:** zeigt oben, was gerade auf diesem Rechner läuft – auch Läufe anderer Projekte (ohne Inhalt) –
+  und wie viel Arbeitsspeicher dafür vorgemerkt ist; in der Warteschlange steht „Vorrang“ bzw. „niedriger Vorrang“.
 - **Rechner – heute:** Vorrang-Läufe tragen ▲; Leitstand › „Rechner“ nennt die Projekte mit Vorrang (online nur das
   eigene).
 - **Vorgemerkter Arbeitsspeicher:** Ein laufender Lauf ohne eigene Bedarfsangabe hält die Grenze seines Projekts nur

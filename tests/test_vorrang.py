@@ -92,6 +92,27 @@ class Vorrang(Grund):
             self.assertIn("braucht 8 GB, 7 GB nutzbar", str(f.exception))
 
 
+class Liste(Grund):
+    def test_lauf_liste_zeigt_laufende_und_vorrang(self):
+        import contextlib
+        import io
+        from amw import cli
+        a = betrieb.lauf_start(self.con, self.p["Zwei"], "A", "geheim", warten=True, speicher_frei=32.0)     # ohne Angabe: 8 GB vorgemerkt
+        b = self.start("Zwei", "B")
+        c = self.start("Eins", "A", text="meins")
+        aus = io.StringIO()
+        with mock.patch.dict(os.environ, {"AMW_DB": os.path.join(self.ordner.name, "t.db")}), \
+                mock.patch.object(betrieb, "vorrang", lambda: {"Zwei": "hoch"}), contextlib.redirect_stdout(aus):
+            self.assertEqual(cli.main(["lauf", "liste", "--projekt", "Eins", "--von", "A"]), 0)
+        text = aus.getvalue()
+        self.assertIn(f"Läuft auf diesem Rechner:\n  L{a} (anderes Projekt, läuft seit", text)
+        self.assertIn("· 8 GB vorgemerkt", text)
+        self.assertIn(f"1. L{b:<5} –        schwer Vorrang seit", text)
+        self.assertIn(f"2. L{c:<5} A        schwer seit", text)
+        self.assertNotIn("geheim", text)
+        self.assertNotIn("Zwei", text)
+
+
 class Anlauf(Grund):
     """A1623 c): Ein laufender Lauf ohne eigene Bedarfsangabe hält die Grenze seines Projekts nur beim Anlaufen frei."""
 
