@@ -202,6 +202,15 @@ class Pruefungen(Grund):
         with self.assertRaises(kern.AmwFehler):
             betrieb.pruefung_ergebnis(self.con, self.pid, "CC2", prid, "rot")
 
+    def test_ohne_nummer_nennt_die_offenen(self):
+        """Gemeldet: ‚amw pruefung rot --zweig … --sha …‘ ohne Nummer sagte ‚Prüfung PNone gibt es nicht‘."""
+        prid = betrieb.pruefbitte(self.con, self.pid, "CC1", "CC2", "cc1-y", "fedcba9876", "P1")
+        with self.assertRaises(kern.AmwFehler) as e:
+            betrieb.pruefung_ergebnis(self.con, self.pid, "CC2", None, "rot")
+        self.assertNotIn("None", str(e.exception))
+        self.assertIn(f"P{prid} (cc1-y@fedcba98)", str(e.exception))
+        self.assertIn("amw pruefung rot <Nummer>", str(e.exception))
+
 
 class Anweisungen(Grund):
     def test_hinweis_erscheint_im_kontext_und_laesst_sich_aufheben(self):

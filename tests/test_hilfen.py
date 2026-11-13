@@ -51,6 +51,20 @@ Nein.
         self.assertEqual(d["fehler"], [["Abgelehnt", "Schlüssel neu erzeugen."]])
         self.assertEqual((d["danach"], d["fragen"]), (["weiter mit dem nächsten Schritt"], [["Kostet das?", "Nein."]]))
 
+    def test_keine_freien_ueberschriften(self):
+        """Ein Abschnitt mit eigener Überschrift fällt beim Bauen still weg (so fehlten „Rollen“ und „Wann die Freigabe von
+        selbst schließt“ lange in der Hilfe) – darum lehnt der Test jede ##-Überschrift außerhalb der festen ab."""
+        frei = []
+        for sprache in ("", "en"):
+            ordner = os.path.join(hilfen.ORDNER, sprache)
+            for name in sorted(os.listdir(ordner)):
+                if not name.endswith(".md") or name == "README.md":
+                    continue
+                with open(os.path.join(ordner, name), encoding="utf-8") as f:
+                    frei += [f"{sprache or 'de'}/{name}: {z.strip()}" for z in f
+                             if z.startswith("## ") and z[3:].strip().lower() not in hilfen.ABSCHNITTE]
+        self.assertEqual(frei, [])
+
     def test_englische_ueberschriften(self):
         d = hilfen.zerlegen("# T\n\n## You need\n- a\n\n## Steps\n1. x\n\n## Values to enter\n| F | W |\n|---|---|\n| a | b |\n\n"
                             "## Common problems\n- **p** – q\n\n## Next\n- n\n\n## Questions\n### Q?\nA.\n")

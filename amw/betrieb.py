@@ -767,6 +767,11 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
 def pruefung_ergebnis(con, pid, pruefer, prid, ergebnis, bemerkung=None):
     if ergebnis not in ("gruen", "rot"):
         raise kern.AmwFehler("Ergebnis ist gruen oder rot")
+    if prid is None:                                 # vorher: „Prüfung PNone gibt es nicht“ – sag, welche offen sind
+        offen = con.execute("SELECT id, zweig, sha FROM pruefung WHERE projekt_id = ? AND pruefer = ? AND ergebnis = 'offen'"
+                            " ORDER BY id", (pid, pruefer)).fetchall()
+        liste = ", ".join(f"P{r['id']} ({r['zweig']}@{r['sha'][:8]})" for r in offen) or "keine"
+        raise kern.AmwFehler(f"Welche Prüfung? amw pruefung {ergebnis} <Nummer> – offen für {pruefer}: {liste}")
     with db.schreiben(con):
         p = con.execute("SELECT * FROM pruefung WHERE id = ? AND projekt_id = ?", (prid, pid)).fetchone()
         if not p:

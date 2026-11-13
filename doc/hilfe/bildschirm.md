@@ -11,14 +11,13 @@ Manche Läufe brauchen den Bildschirm: Sie öffnen ein Fenster, klicken und tipp
 2. **Agenten arbeiten** Läufe mit Fenster starten nacheinander; in der Zeit am besten nichts am PC tun.
 3. **Zurück am PC** Die Freigabe schließt von selbst – oder du beendest sie selbst: Startseite › Bildschirm für Agenten › „Freigabe beenden“.
 
-## Wann die Freigabe von selbst schließt
-Einstellungen › Dieser PC › „Bildschirm-Freigabe von selbst schließen“, jeder Auslöser einzeln:
-- **Eingabe am PC (Tastatur, Maus)** – auch über eine Fernsitzung. Eine einzelne Bewegung reicht nicht, erst eine zweite kurz danach.
-- **Neue Fernsitzung** – sobald das eingetragene Programm startet.
-- **Eingabe in der Workbench am PC.**
-- Immer: die Uhrzeit, bis zu der du freigegeben hast.
-
-Neue Installationen haben alle drei an. Ist ein Auslöser aus, **beobachtet die AMW ihn gar nicht** – sie misst nichts und schreibt nichts darüber auf.
+## Diese Werte trägst du ein
+| Auslöser | Wann die Freigabe von selbst schließt |
+|---|---|
+| Eingabe am PC (Tastatur, Maus) | bei Eingaben am PC, auch über eine Fernsitzung – eine einzelne Bewegung reicht nicht, erst eine zweite kurz danach |
+| Neue Fernsitzung | sobald das eingetragene Programm startet |
+| Eingabe in der Workbench am PC | bei jeder Eingabe in der Workbench am PC |
+| Uhrzeit (immer) | zu der Uhrzeit, bis zu der du freigegeben hast |
 
 ## Typische Fehler
 - **Die Freigabe geht zu, obwohl du nur kurz reinschauen wolltest** – Eingabe am PC oder Fernsitzung stehen auf an. Wenn du zwischendurch per Fernsitzung schauen oder die Maus bewegen willst, ohne die Agenten zu unterbrechen: diese Auslöser ausschalten.
@@ -26,5 +25,6 @@ Neue Installationen haben alle drei an. Ist ein Auslöser aus, **beobachtet die 
 - **Fernsitzung wird nicht erkannt** – Das Programm ist nicht eingetragen oder heißt anders.
 
 ## Danach
+- Die Auslöser schaltest du einzeln in Einstellungen › Dieser PC › „Bildschirm-Freigabe von selbst schließen“; neue Installationen haben alle drei an. Ist ein Auslöser aus, **beobachtet die AMW ihn gar nicht** – sie misst nichts und schreibt nichts darüber auf.
 - Läuft ein Lauf mit Fenster nach dem Schließen weiter, erfährt es der Lead nach 5 Minuten.
 - Online freigeben darf nur ein System-Admin, mit Rückfrage; die Uhrzeit, bis wann, ist freiwillig. Ohne Uhrzeit bleibt der Bildschirm frei, bis jemand ihn belegt oder ein eingeschalteter Auslöser greift. Im Verlauf steht, wer es war. Schließen darf online jeder.

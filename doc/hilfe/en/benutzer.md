@@ -13,11 +13,13 @@ Several people can sign in on the online site – each with their own password a
 3. **First sign-in** The user opens the online site, chooses “First sign-in”, enters name and code, sets a password (at least 12 characters) and scans the QR code with their app. With the first number from the app their access is set up.
 4. **Approve** You get the message “New user … awaiting approval” (also as a push). Until then they only see “Your access is being reviewed”. Choose their role and projects and save.
 
-## Roles
-- **Reader** sees their projects, changes nothing.
-- **Editor** works in their projects: answer questions, messages, tasks, documents, approvals, pausing.
-- **Project admin** additionally the settings of their projects and agents.
-- **System admin** everything, in all projects. At the PC you are always system admin, as with the existing access of the online site.
+## Values to enter
+| Role | What it may do |
+|---|---|
+| Reader | sees their projects, changes nothing. |
+| Editor | works in their projects: answer questions, messages, tasks, documents, approvals, pausing. |
+| Project admin | additionally the settings of their projects and agents. |
+| System admin | everything, in all projects. At the PC you are always system admin, as with the existing access of the online site. |
 
 ## Common problems
 - **“Name or activation code is wrong”** – Typo, code expired or already used. Upper/lower case and dashes do not matter. Remedy: reset access.

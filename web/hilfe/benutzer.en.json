@@ -28,7 +28,24 @@
    "bilder": []
   }
  ],
- "werte": [],
+ "werte": [
+  [
+   "Reader",
+   "sees their projects, changes nothing."
+  ],
+  [
+   "Editor",
+   "works in their projects: answer questions, messages, tasks, documents, approvals, pausing."
+  ],
+  [
+   "Project admin",
+   "additionally the settings of their projects and agents."
+  ],
+  [
+   "System admin",
+   "everything, in all projects. At the PC you are always system admin, as with the existing access of the online site."
+  ]
+ ],
  "fehler": [
   [
    "“Name or activation code is wrong”",

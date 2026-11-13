@@ -13,11 +13,13 @@ Mehrere Menschen können sich auf der Online-Seite anmelden – jeder mit eigene
 3. **Neue Anmeldung** Der Benutzer öffnet die Online-Seite, wählt „Neue Anmeldung“, gibt Name und Code ein, setzt sein Passwort (mindestens 12 Zeichen) und scannt den QR-Code mit seiner App. Mit der ersten Zahl aus der App ist sein Zugang eingerichtet.
 4. **Freigeben** Du bekommst die Meldung „Neuer Benutzer … wartet auf Freigabe“ (auch als Push). Bis dahin sieht er nur „Dein Zugang wird geprüft“. Wähle seine Rolle und die Projekte und speichere.
 
-## Rollen
-- **Leser** sieht seine Projekte, ändert nichts.
-- **Bearbeiter** arbeitet in seinen Projekten: Fragen beantworten, Nachrichten, Aufgaben, Dokumente, Freigaben, Anhalten.
-- **Projekt-Admin** dazu die Einstellungen seiner Projekte und ihrer Agenten.
-- **System-Admin** alles, in allen Projekten. Am PC bist du immer System-Admin, ebenso mit dem bisherigen Zugang der Online-Seite.
+## Diese Werte trägst du ein
+| Rolle | Was sie darf |
+|---|---|
+| Leser | sieht seine Projekte, ändert nichts. |
+| Bearbeiter | arbeitet in seinen Projekten: Fragen beantworten, Nachrichten, Aufgaben, Dokumente, Freigaben, Anhalten. |
+| Projekt-Admin | dazu die Einstellungen seiner Projekte und ihrer Agenten. |
+| System-Admin | alles, in allen Projekten. Am PC bist du immer System-Admin, ebenso mit dem bisherigen Zugang der Online-Seite. |
 
 ## Typische Fehler
 - **„Name oder Freischalt-Code stimmt nicht“** – Tippfehler, Code abgelaufen oder schon benutzt. Groß- und Kleinschreibung und Bindestriche sind egal. Abhilfe: neu freischalten.

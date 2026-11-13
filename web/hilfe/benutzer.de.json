@@ -28,7 +28,24 @@
    "bilder": []
   }
  ],
- "werte": [],
+ "werte": [
+  [
+   "Leser",
+   "sieht seine Projekte, ändert nichts."
+  ],
+  [
+   "Bearbeiter",
+   "arbeitet in seinen Projekten: Fragen beantworten, Nachrichten, Aufgaben, Dokumente, Freigaben, Anhalten."
+  ],
+  [
+   "Projekt-Admin",
+   "dazu die Einstellungen seiner Projekte und ihrer Agenten."
+  ],
+  [
+   "System-Admin",
+   "alles, in allen Projekten. Am PC bist du immer System-Admin, ebenso mit dem bisherigen Zugang der Online-Seite."
+  ]
+ ],
  "fehler": [
   [
    "„Name oder Freischalt-Code stimmt nicht“",

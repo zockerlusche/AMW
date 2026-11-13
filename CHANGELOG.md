@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.87.2 – 13.11.2026 · Klarere Meldung bei Prüfungen, vollständige Hilfen
+- **Behoben:** `amw pruefung gruen|rot` ohne Nummer meldete „Prüfung PNone gibt es nicht“ – jetzt nennt die AMW die
+  offenen Prüfungen für dich und wie der Befehl geht.
+- **Behoben:** Zwei Hilfen zeigten einen Abschnitt nicht: die Rollen bei „Benutzer der Online-Seite“ und die Auslöser bei
+  „Bildschirm-Freigabe“. Beide stehen jetzt als Tabelle in der Hilfe; ein Test sorgt dafür, dass kein Abschnitt mehr still
+  wegfällt.
+
 ## 1.87.1 – 13.11.2026 · Grund-Regelwerk auch über den Dateiaustausch
 - **Behoben:** `amw regelwerk abgleich` und `amw regelwerk uebernehmen Gx` gehen jetzt auch über den Dateiaustausch –
   ein Lead, der als Chat arbeitet, kann die Grundregeln für sein Projekt vergleichen und übernehmen. Übernehmen bleibt dem
