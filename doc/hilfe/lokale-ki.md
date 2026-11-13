@@ -7,7 +7,7 @@ Die AMW kann Aufträge an eine KI auf diesem PC geben – zum Beispiel Bilder mi
 - Die Lizenz des Modells, das du benutzen willst.
 
 ## Schritte
-1. **KI eintragen** `amw ki neu <name> --art bild --schnittstelle comfyui` (für Texte: `--art sprache --schnittstelle ollama`). Mit `--start "…"` startet der Dienst die KI selbst, wenn sie nicht antwortet.
+1. **KI eintragen** `amw ki neu <name> --art bild --schnittstelle comfyui` (für Texte: `--art sprache --schnittstelle ollama`). Mit `--start "…"` startet der Dienst die KI selbst, sobald ein Auftrag für sie dran ist und sie nicht antwortet.
 2. **Modell freigeben** `amw ki modell <name> <modell> --lizenz … --quelle <url> --kommerziell ja|nein|unklar`, dann `amw ki freigeben <name> <modell> --grund …`. Nur freigegebene Modelle bekommen Aufträge.
 3. **Rechte vergeben** `amw ki recht <name> --wer <agent>` – wer außer Lead und dir beauftragen darf.
 4. **Beauftragen** `amw ki auftrag <name> --modell … --prompt "…"`. Der Auftrag wartet in der Warteschlange, bis die Grafikkarte frei ist. Mit `--nachts` startet er erst im KI-Fenster.
@@ -18,16 +18,25 @@ Die AMW kann Aufträge an eine KI auf diesem PC geben – zum Beispiel Bilder mi
 |---|---|
 | KI-Fenster (Einstellungen › Dieser PC) | Zeitraum für Nacht-Aufträge, z. B. 22-06 |
 | Lizenz, Quelle, kommerziell | von der Seite des Modells |
+| Lokale KI beenden nach … Minuten ohne Auftrag (Einstellungen › Dieser PC) | Vorgabe 30 |
+| Lokale KIs immer an (Einstellungen › Dieser PC) | Namen der KIs, die ständig laufen sollen; leer = alle nur bei Bedarf |
 
 ## Typische Fehler
 - **Der Auftrag wartet lange** – Die Grafikkarte ist belegt, oder es ist ein Nacht-Auftrag und das KI-Fenster ist noch zu. Der Wartegrund steht beim Lauf.
 - **„nicht freigegeben“** – Das Modell ist eingetragen, aber noch nicht freigegeben (Schritt 2).
 - **Die KI antwortet nicht** – Ohne Startbefehl startet die AMW sie nicht. Selbst starten oder `--start` nachtragen.
+- **Die KI läuft nicht, obwohl sie eingetragen ist** – Das ist gewollt: Die AMW startet sie erst, wenn ein Auftrag kommt.
 
 ## Danach
 - Nachweis der menschlichen Gestaltungsentscheidung (Urheberrecht, Angabe bei Steam): `amw ki nachweis` listet zu jedem KI-Ergebnis, wer ausgewählt, verworfen oder nachbearbeitet hat.
 - Nacht-Aufträge starten nie in der Vorlaufzeit eines Testtermins; bis dahin lassen sie allen anderen Läufen den Vortritt.
 
 ## Häufige Fragen
+### Warum ist meine KI plötzlich aus?
+Die AMW startet eine lokale KI nur bei Bedarf: wenn ein Auftrag für sie dran ist. Kommt danach 30 Minuten lang kein Auftrag, beendet sie die KI wieder und gibt Arbeits- und Grafikspeicher frei. Das tut sie nur mit einer KI, die sie selbst gestartet hat – eine KI, die du selbst gestartet hast, beendet sie nie. Soll eine KI ständig laufen: `amw ki aendern <name> --immer-an` (zurück mit `--bei-bedarf`) oder unter Einstellungen › Dieser PC › Lokale KIs immer an.
+
+### Darf ein Agent die KI auch direkt benutzen, an der AMW vorbei?
+Besser nicht. Ein Auftrag über `amw ki auftrag` (oder ein Lauf über `amw lauf ausfuehren --gpu`) steht in der Warteschlange, und die AMW weiß, dass die Grafikkarte belegt ist. Wer die KI direkt anspricht, ist für die Warteschlange unsichtbar: Ein anderer Lauf startet dann womöglich gleichzeitig, und beiden fehlt Speicher.
+
 ### Wer darf ein Modell freigeben?
 Modelle mit freier Lizenz gibt der Lead frei. Modelle mit Nutzungsregeln (z. B. Open RAIL) gibt nur der Mensch frei.

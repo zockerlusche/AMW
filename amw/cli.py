@@ -1343,6 +1343,13 @@ def cmd_ki(a, con):
         aktiv = True if a.einschalten else False if a.abschalten else None
         _, was = ki.ki_setzen(con, von, a.name, a.art, a.schnittstelle, a.endpunkt, a.version, a.lizenz, a.ablage, a.start,
                               a.ordner, a.vram, aktiv, neu=a.aktion == "neu")
+        if a.immer_an or a.bei_bedarf:                # Einstellung dieses PCs (ki_immer_an), nicht in der Datenbank
+            from . import einstellungen
+            name = ki.ki_zeile(con, a.name)["name"].lower()
+            namen = (ki.immer_an() | {name}) if a.immer_an else (ki.immer_an() - {name})
+            einstellungen.speichern({"ki_immer_an": sorted(namen)})
+            was += " · " + ("immer an (die AMW startet sie von selbst und beendet sie nie)" if a.immer_an else
+                            f"nur bei Bedarf (startet mit einem Auftrag, nach {ki.leerlauf_min()} min ohne Auftrag beendet)")
         print(f"KI {a.name}: {was}")
     elif a.aktion == "modell":
         if not (a.name and a.teil):
@@ -1427,6 +1434,8 @@ def cmd_ki(a, con):
             print("keine KI eingetragen – amw ki neu <name> --art sprache|bild --schnittstelle ollama|comfyui …")
         for k in u["kis"]:
             print(f"{k['name']:<12} {k['art']:<8} {k['schnittstelle']:<8} {k['endpunkt']:<26} {k['zustand']:<9} {k['version'] or ''}"
+                  + ({"immer": "  · immer an", "bedarf": "  · bei Bedarf"}.get(k.get("betrieb"), ""))
+                  + ("  · von der AMW gestartet" if k.get("von_amw") else "")
                   + (f"  · {k['wartend']} wartend" if k["wartend"] else "")
                   + f"  · darf: Lead, Entwickler{', ' + ', '.join(k['darf']) if k['darf'] else ''}")
         if u["modelle"]:
@@ -2592,11 +2601,16 @@ def parser():
     x.add_argument("--version")
     x.add_argument("--lizenz")
     x.add_argument("--ablage", help="neu: Ordner der Installation/Modelle")
-    x.add_argument("--start", help="neu/aendern: Startbefehl ohne Fenster (der Dienst startet die KI, wenn sie nicht antwortet)")
+    x.add_argument("--start", help="neu/aendern: Startbefehl ohne Fenster (der Dienst startet die KI, wenn ein Auftrag für sie dran"
+                                    " ist und sie nicht antwortet)")
     x.add_argument("--ordner", help="neu/aendern: Arbeitsordner für den Startbefehl")
     x.add_argument("--vram", type=float, help="GB Grafikspeicher (Richtwert/Probe)")
     x.add_argument("--abschalten", action="store_true", help="aendern: KI nicht mehr beauftragen")
     x.add_argument("--einschalten", action="store_true")
+    x.add_argument("--immer-an", action="store_true", help="neu/aendern: die AMW hält die KI am Laufen (startet sie von selbst,"
+                                                          " beendet sie nie) – Einstellung dieses PCs")
+    x.add_argument("--bei-bedarf", action="store_true", help="neu/aendern: Vorgabe – startet erst mit einem Auftrag; hat die AMW"
+                                                            " sie gestartet, beendet sie sie nach ki_leerlauf_min (30) min ohne Auftrag")
     x.add_argument("--datei", help="modell: Dateiname wie in der Vorlage · vorlage: API-JSON (ComfyUI: Export (API))")
     x.add_argument("--sha256")
     x.add_argument("--quelle", help="modell: URL")

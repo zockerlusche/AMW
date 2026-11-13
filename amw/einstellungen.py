@@ -143,6 +143,17 @@ def _heimnetz(v):
     return str(netz)
 
 
+def _ki_namen(v):
+    """KIs, die immer laufen sollen (A1649): Liste oder „a, b“ → sortierte Namen in Kleinbuchstaben; leer = alle nur bei Bedarf."""
+    import re
+    teile = v if isinstance(v, (list, tuple)) else str(v or "").replace(";", ",").split(",")
+    namen = sorted({str(x).strip().lower() for x in teile if str(x).strip()})
+    for n in namen:
+        if not re.fullmatch(r"[a-z0-9][a-z0-9_.-]{0,39}", n):
+            raise ValueError(f"„{n}“ ist kein KI-Name")
+    return namen
+
+
 def _sprache(v):
     v = str(v).strip().lower()
     if v not in ("auto", "de", "en"):
@@ -198,6 +209,10 @@ FELDER = {
     "produkt_entwickler": ("", _kennung_leer),
     # KI-Fenster (Ortszeit): KI-Aufträge mit --nachts starten nur darin, nie in der Vorlaufzeit eines Testtermins
     "ki_fenster": ("22:00-06:00", _fenster),
+    # Lokale KIs nur bei Bedarf (A1649): die AMW startet eine KI erst für einen Auftrag und beendet sie, wenn sie so lange
+    # keinen hatte – nur, wenn sie sie selbst gestartet hat. Diese KIs dagegen hält sie am Laufen (immer an).
+    "ki_leerlauf_min": (30, _ganz(5, 1440)),
+    "ki_immer_an": ([], _ki_namen),
     # Sprache der Oberfläche, solange im Browser nichts gewählt ist (auto = wie der Browser)
     "sprache": ("auto", _sprache),
     # Knopf „In Claude öffnen“ auf der Agenten-Seite (Link zu claude.ai für eine laufende Sitzung mit Fernsteuerung)

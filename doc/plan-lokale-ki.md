@@ -144,6 +144,11 @@ Installationsliste lässt sich fast 1:1 übernehmen; ein Agent trägt sie einmal
 - **Starten:** Läuft ComfyUI nicht, startet die AMW es über den bestehenden Weg für Server
   (`ueberwachung.py`, Startbefehl ohne Fenster). Den gibt es schon, Neues kommt nicht hinzu. Danach bleibt
   ComfyUI an und wird nur über `/free` entladen. Beendet wird es nicht.
+- **Nur bei Bedarf (Nachtrag):** Die AMW startet eine KI erst, wenn ein
+  Auftrag für sie dran ist. Hat sie die KI selbst gestartet und kommt `ki_leerlauf_min` (Vorgabe 30) Minuten lang kein
+  Auftrag, beendet sie genau diesen Prozess samt Kindern. Dafür merkt sie sich PID und Startzeit in
+  `daten/ki-gestartet.json`, eine neu vergebene PID fasst sie nicht an. KIs in `ki_immer_an` startet sie wie früher von
+  selbst und beendet sie nie. Eine KI, die jemand anders gestartet hat, beendet sie nie.
 - Blender und ffmpeg (Schnittstelle „befehl“) kommen erst in Phase 3 und laufen dort wie heute über den
   Agenten mit `amw lauf ausfuehren`, der nur seinen eigenen Kindbaum beendet.
 

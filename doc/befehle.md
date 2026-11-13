@@ -956,9 +956,9 @@ options:
 usage: amw ki [-h] [--art ART] [--schnittstelle SCHNITTSTELLE]
               [--endpunkt ENDPUNKT] [--version VERSION] [--lizenz LIZENZ]
               [--ablage ABLAGE] [--start START] [--ordner ORDNER]
-              [--vram VRAM] [--abschalten] [--einschalten] [--datei DATEI]
-              [--sha256 SHA256] [--quelle QUELLE]
-              [--kommerziell {ja,nein,registrierung,unklar}]
+              [--vram VRAM] [--abschalten] [--einschalten] [--immer-an]
+              [--bei-bedarf] [--datei DATEI] [--sha256 SHA256]
+              [--quelle QUELLE] [--kommerziell {ja,nein,registrierung,unklar}]
               [--nutzungsregeln] [--ohne-nutzungsregeln] [--sekunden SEKUNDEN]
               [--notiz NOTIZ] [--grund GRUND] [--beschreibung BESCHREIBUNG]
               [--wer WER] [--entziehen] [--modell MODELL] [--vorlage VORLAGE]
@@ -993,11 +993,18 @@ options:
   --lizenz LIZENZ
   --ablage ABLAGE       neu: Ordner der Installation/Modelle
   --start START         neu/aendern: Startbefehl ohne Fenster (der Dienst
-                        startet die KI, wenn sie nicht antwortet)
+                        startet die KI, wenn ein Auftrag für sie dran ist und
+                        sie nicht antwortet)
   --ordner ORDNER       neu/aendern: Arbeitsordner für den Startbefehl
   --vram VRAM           GB Grafikspeicher (Richtwert/Probe)
   --abschalten          aendern: KI nicht mehr beauftragen
   --einschalten
+  --immer-an            neu/aendern: die AMW hält die KI am Laufen (startet
+                        sie von selbst, beendet sie nie) – Einstellung dieses
+                        PCs
+  --bei-bedarf          neu/aendern: Vorgabe – startet erst mit einem Auftrag;
+                        hat die AMW sie gestartet, beendet sie sie nach
+                        ki_leerlauf_min (30) min ohne Auftrag
   --datei DATEI         modell: Dateiname wie in der Vorlage · vorlage: API-
                         JSON (ComfyUI: Export (API))
   --sha256 SHA256

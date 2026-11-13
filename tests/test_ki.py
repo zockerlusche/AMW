@@ -360,7 +360,11 @@ class Ausfuehren(Grund):
         self.assertEqual((self.lauf(lid)["status"], self.lauf(lid)["rc"]), ("fertig", 1))
 
     def test_waechter_holt_ki_hoch_wenn_sie_nicht_antwortet(self):
-        """#18166: nach einem Neustart des PCs sind die KIs aus – der Wächter startet sie, aber nicht im Minutentakt."""
+        """#18166: nach einem Neustart des PCs sind die KIs aus – der Wächter startet sie, aber nicht im Minutentakt. Seit
+        A1649 nur KIs, die „immer an“ sind (ki_immer_an); hier ist es comfy2."""
+        immer = mock.patch.object(ki, "immer_an", return_value={"comfy2", "ohne", "abgeschaltet"})
+        immer.start()
+        self.addCleanup(immer.stop)
         ki.ki_setzen(self.con, "Bauer", "comfy2", "bild", "comfyui", "http://127.0.0.1:9", startbefehl="start.bat")
         ki.ki_setzen(self.con, "Bauer", "ohne", "bild", "comfyui", "http://127.0.0.1:8")
         ki.ki_setzen(self.con, "Bauer", "abgeschaltet", "bild", "comfyui", "http://127.0.0.1:7", startbefehl="x.bat", aktiv=False)

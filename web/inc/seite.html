@@ -1320,7 +1320,7 @@ const TEXTE = {
     ueber_hook: "automatisch angemeldet", sperren: "Sperren", halt_anweisungen: "Anhalten und Anweisungen", datenbank: "Datenbank",
     keine_sperren: "Keine Sperren.", sitzungen: "Sitzungen", keine_sitzung: "Noch keine Sitzung angemeldet.", laeufe: "Läufe", keine_laeufe: "Keine Läufe.",
     ki: "Lokale KI", ki_erkl: "Aufträge an die lokalen KIs laufen über die Warteschlange (Grafikkarte: auf dem ganzen PC ein Lauf zur Zeit) und werden von der AMW selbst ausgeführt; jedes Ergebnis wird ein Dokument mit Herkunft.",
-    ki_keine: "Keine lokale KI eingetragen.", ki_modelle: "Modelle", ki_vorlagen: "Vorlagen", ki_vorlagen_h: "gehören diesem Projekt",
+    ki_keine: "Keine lokale KI eingetragen.", ki_immer: "immer an", ki_bedarf: "nur bei Bedarf", ki_von_amw: "von der AMW gestartet – endet nach {n} min ohne Auftrag", ki_bedarf_h: "Startet erst, wenn ein Auftrag für sie dran ist; die AMW beendet nur KIs, die sie selbst gestartet hat.", ki_modelle: "Modelle", ki_vorlagen: "Vorlagen", ki_vorlagen_h: "gehören diesem Projekt",
     ki_auftraege: "KI-Aufträge", ki_keine_auftraege: "Noch keine KI-Aufträge.", ki_geladen: "im Grafikspeicher: {x}", ki_wartend: "{n} wartend",
     ki_darf: "beauftragen: Lead, Entwickler{x}", ki_regeln: "Nutzungsregeln", ki_herkunft: "Herkunft (KI)", ki_gegenprobe: "Gegenprobe",
     kv_titel: "KI-Ergebnis: Entscheidung", kv_offen: "Noch nicht entschieden", kv_ausgewaehlt: "Ausgewählt – {x}, {z}", kv_verworfen: "Verworfen – {x}, {z}",
@@ -1331,7 +1331,7 @@ const TEXTE = {
     kf_titel: "KI-Fenster {x}", kf_offen: "jetzt offen", kf_zu: "jetzt zu", kf_termin: "jetzt zu – {x}", kf_wartend1: "1 Nacht-Auftrag wartet auf das KI-Fenster", kf_wartend: "{n} Nacht-Aufträge warten auf das KI-Fenster", kf_dauer: " (≈ {x} min)",
     kf_keins: "Kein KI-Fenster eingestellt – Nacht-Aufträge warten nur auf Testtermine.",
     kf_erkl: "Nacht-Aufträge starten nur im KI-Fenster und nie in der Vorlaufzeit eines Testtermins; bis dahin lassen sie allen anderen Läufen den Vortritt. Ändern: Einstellungen › Dieser PC.",
-    e_kifenster: "KI-Fenster für Nacht-Aufträge", e_kifenster_h: "Uhrzeit wie 22-06 (Ortszeit): Nacht-Aufträge an die lokale KI starten nur darin, nie in der Vorlaufzeit eines Testtermins. Leer = kein Fenster.",
+    e_ki_leerlauf: "Lokale KI beenden nach … Minuten ohne Auftrag", e_ki_leerlauf_h: "Die AMW startet eine lokale KI erst, wenn ein Auftrag für sie dran ist. Hat sie sie selbst gestartet und kommt so lange kein Auftrag, beendet sie sie wieder – eine KI, die du selbst gestartet hast, nie.", e_ki_immer: "Lokale KIs immer an", e_ki_immer_h: "Namen wie ollama, comfyui – diese startet die AMW von selbst, sobald sie nicht antworten, und beendet sie nie. Leer = alle nur bei Bedarf.", e_kifenster: "KI-Fenster für Nacht-Aufträge", e_kifenster_h: "Uhrzeit wie 22-06 (Ortszeit): Nacht-Aufträge an die lokale KI starten nur darin, nie in der Vorlaufzeit eines Testtermins. Leer = kein Fenster.",
     ki_vorlage_x: "Vorlage {x}", kiz_an: "bereit", kiz_aus: "aus", kiz_belegt: "läuft", kiz_unbekannt: "noch nicht geprüft", kiz_gestoert: "gestört",
     kif_frei: "frei", kif_offen: "offen", kif_gesperrt: "gesperrt", kia_wartet: "wartet", kia_laeuft: "läuft", kia_fertig: "fertig",
     kia_fehler: "Fehler", kia_abgebrochen: "abgebrochen", k_ki: "KI", k_modell: "Modell", k_lizenz: "Lizenz", k_kommerziell: "Kommerziell",
@@ -1647,7 +1647,7 @@ const TEXTE = {
     ueber_hook: "signed in automatically", sperren: "Locks", halt_anweisungen: "Pause and instructions", datenbank: "Database",
     keine_sperren: "No locks.", sitzungen: "Sessions", keine_sitzung: "No session registered yet.", laeufe: "Runs", keine_laeufe: "No runs.",
     ki: "Local AI", ki_erkl: "Jobs for the local AIs go through the queue (graphics card: one run at a time on the whole PC) and are run by the AMW itself; every result becomes a document with its origin.",
-    ki_keine: "No local AI registered.", ki_modelle: "Models", ki_vorlagen: "Templates", ki_vorlagen_h: "belong to this project",
+    ki_keine: "No local AI registered.", ki_immer: "always on", ki_bedarf: "only when needed", ki_von_amw: "started by AMW – stops after {n} min without a job", ki_bedarf_h: "Starts only when a job for it is due; AMW only stops AIs it started itself.", ki_modelle: "Models", ki_vorlagen: "Templates", ki_vorlagen_h: "belong to this project",
     ki_auftraege: "AI jobs", ki_keine_auftraege: "No AI jobs yet.", ki_geladen: "in GPU memory: {x}", ki_wartend: "{n} waiting",
     ki_darf: "may order: lead, developer{x}", ki_regeln: "use restrictions", ki_herkunft: "Provenance (AI)", ki_gegenprobe: "Cross-check",
     kv_titel: "AI result: decision", kv_offen: "Not decided yet", kv_ausgewaehlt: "Selected – {x}, {z}", kv_verworfen: "Rejected – {x}, {z}",
@@ -1658,7 +1658,7 @@ const TEXTE = {
     kf_titel: "AI window {x}", kf_offen: "open now", kf_zu: "closed now", kf_termin: "closed now – {x}", kf_wartend1: "1 night job waiting for the AI window", kf_wartend: "{n} night jobs waiting for the AI window", kf_dauer: " (≈ {x} min)",
     kf_keins: "No AI window set – night jobs only wait for test dates.",
     kf_erkl: "Night jobs only start inside the AI window and never in the lead time of a test date; until then every other run goes first. Change: Settings › This PC.",
-    e_kifenster: "AI window for night jobs", e_kifenster_h: "Time like 22-06 (local): night jobs for the local AI only start inside it, never in the lead time of a test date. Empty = no window.",
+    e_ki_leerlauf: "Stop a local AI after … minutes without a job", e_ki_leerlauf_h: "AMW starts a local AI only when a job for it is due. If AMW started it and no job comes for this long, AMW stops it again – never an AI you started yourself.", e_ki_immer: "Local AIs always on", e_ki_immer_h: "Names like ollama, comfyui – AMW starts these by itself whenever they don't respond and never stops them. Empty = all only when needed.", e_kifenster: "AI window for night jobs", e_kifenster_h: "Time like 22-06 (local): night jobs for the local AI only start inside it, never in the lead time of a test date. Empty = no window.",
     ki_vorlage_x: "template {x}", kiz_an: "ready", kiz_aus: "off", kiz_belegt: "running", kiz_unbekannt: "not checked yet", kiz_gestoert: "faulty",
     kif_frei: "approved", kif_offen: "open", kif_gesperrt: "blocked", kia_wartet: "waiting", kia_laeuft: "running", kia_fertig: "done",
     kia_fehler: "error", kia_abgebrochen: "cancelled", k_ki: "AI", k_modell: "Model", k_lizenz: "License", k_kommerziell: "Commercial",
@@ -4752,6 +4752,8 @@ function kiTeil(m, k) {
     el("div", { class: "wert", style: "font-size:22px" }, el("span", { class: "punkt " + ({ an: "gruen", belegt: "bernstein", aus: "rot", gestoert: "rot" }[x.zustand] || "") }), " ", t("kiz_" + x.zustand)),
     el("div", { class: "sehrleise" }, [x.schnittstelle + (x.version ? " " + x.version : ""), x.geladen.length ? t("ki_geladen", { x: x.geladen.join(", ") }) : null,
       x.wartend ? t("ki_wartend", { n: x.wartend }) : null].filter(Boolean).join(" · ")),
+    x.betrieb ? el("div", { class: "sehrleise", title: x.betrieb === "bedarf" ? t("ki_bedarf_h") : "" },
+      [t(x.betrieb === "immer" ? "ki_immer" : "ki_bedarf"), x.von_amw && x.betrieb === "bedarf" ? t("ki_von_amw", { n: x.leerlauf_min }) : null].filter(Boolean).join(" · ")) : null,
     el("div", { class: "sehrleise" }, t("ki_darf", { x: x.darf.length ? ", " + x.darf.join(", ") : "" }))))));
   const frei = x => el("span", {}, el("span", { class: "etikett " + ({ frei: "gruen", gesperrt: "rot", offen: "bernstein" }[x.freigabe] || "") }, t("kif_" + x.freigabe)),
     x.freigabe_grund ? el("span", { class: "sehrleise" }, " " + x.freigabe_grund) : null);
@@ -5061,7 +5063,7 @@ async function sichtEinstellungen() {
   // Dieser PC – nur am PC
   const wahl = (werte, v) => { const x = el("select", {}, werte.map(([k, l]) => el("option", { value: k }, l))); x.value = v; return x; };
   const pc = { rechner: text(p.rechner || ""), db_pfad: text(p.db_pfad), port: zahl(p.port, 1024, 65535), heimnetz: text(p.heimnetz || ""), cpu_laeufe: zahl(p.cpu_laeufe, 1, 8), vorrang_aufruecken_min: zahl(p.vorrang_aufruecken_min ?? 30, 0, 1440), vorrang_platz_freihalten: schalter(p.vorrang_platz_freihalten ?? true), speicher_reserve_gb: zahl(p.speicher_reserve_gb, 0, 64, 0.5), dauer_ab_gb: zahl(p.dauer_ab_gb ?? 4, 0, 256, 0.5), platte_gelb_prozent: zahl(p.platte_gelb_prozent ?? 15, 0, 100, 1), platte_rot_prozent: zahl(p.platte_rot_prozent ?? 5, 0, 100, 1), sicherungen_behalten: zahl(p.sicherungen_behalten ?? 10, 1, 1000), archiv_ordner: text(p.archiv_ordner || ""), lauf_hook: schalter(p.lauf_hook ?? true),
-    produkt_entwickler: text(p.produkt_entwickler || ""), ki_fenster: text(p.ki_fenster || ""), aufsicht_s: zahl(p.aufsicht_s, 5, 600),
+    produkt_entwickler: text(p.produkt_entwickler || ""), ki_fenster: text(p.ki_fenster || ""), ki_leerlauf_min: zahl(p.ki_leerlauf_min ?? 30, 5, 1440), ki_immer_an: text((p.ki_immer_an || []).join(", ")), aufsicht_s: zahl(p.aufsicht_s, 5, 600),
     bruecke_an: schalter(p.bruecke_an), bruecke_absender: text(p.bruecke_absender), bruecke_kopie_s: zahl(p.bruecke_kopie_s, 15, 3600),
     fernsitzung_prozess: text(p.fernsitzung_prozess || ""),
     schirm_zu_eingabe: schalter(p.schirm_zu_eingabe ?? true), schirm_zu_fernsitzung: schalter(p.schirm_zu_fernsitzung ?? true),
@@ -5078,7 +5080,7 @@ async function sichtEinstellungen() {
   const pcKarte = block([t("e_pc"), " ", wirkt("pc")], API ? t("nur_pc") : t("e_pc_h"), [
     pcFeld("rechner", t("e_rechner"), t("e_rechner_h")), pcFeld("sprache", t("e_sprache"), t("e_sprache_h")), pcFeld("claude_link", t("e_claude_link"), t("e_claude_link_h")),
     pcFeld("db_pfad", t("e_db")), pcFeld("port", t("e_port")), pcFeld("heimnetz", t("e_heimnetz"), t("e_heimnetz_h")), pcFeld("cpu_laeufe", t("e_cpu"), t("e_cpu_h")), [t("e_vorrang"), pc.vorrang, t("e_vorrang_h")], pcFeld("vorrang_aufruecken_min", t("e_vr_auf"), t("e_vr_auf_h")), pcFeld("vorrang_platz_freihalten", t("e_vr_platz"), t("e_vr_platz_h")), pcFeld("speicher_reserve_gb", t("e_reserve"), t("e_reserve_h")), pcFeld("dauer_ab_gb", t("e_dauer"), t("e_dauer_h")), pcFeld("platte_gelb_prozent", t("e_platte_gelb"), t("e_platte_h")), pcFeld("platte_rot_prozent", t("e_platte_rot")), pcFeld("sicherungen_behalten", t("e_sich"), t("e_sich_h")), pcFeld("archiv_ordner", t("e_archiv"), t("e_archiv_h")), pcFeld("lauf_hook", t("e_laufhook"), t("e_laufhook_h")), pcFeld("produkt_entwickler", t("e_kanal"), t("e_kanal_h")),
-    pcFeld("ki_fenster", t("e_kifenster"), t("e_kifenster_h")), pcFeld("aufsicht_s", t("e_aufsicht")), pcFeld("bruecke_an", t("e_bruecke")),
+    pcFeld("ki_fenster", t("e_kifenster"), t("e_kifenster_h")), pcFeld("ki_leerlauf_min", t("e_ki_leerlauf"), t("e_ki_leerlauf_h")), pcFeld("ki_immer_an", t("e_ki_immer"), t("e_ki_immer_h")), pcFeld("aufsicht_s", t("e_aufsicht")), pcFeld("bruecke_an", t("e_bruecke")),
     pcFeld("bruecke_absender", t("e_absender")), pcFeld("bruecke_kopie_s", t("e_kopie")), pcFeld("fernsitzung_prozess", t("e_fern"), t("e_fern_h")),
     [t("e_bs_titel"), el("div", { class: "sehrleise", style: "padding-top:7px;font-size:13px" }, t("e_bs_h"), " ", hilfeKnopf("bildschirm"))],
     pcFeld("schirm_zu_eingabe", t("e_bs_eingabe"), t("e_bs_eingabe_h")), pcFeld("schirm_zu_fernsitzung", t("e_bs_fern"), t("e_bs_fern_h")),

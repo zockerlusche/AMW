@@ -7,9 +7,12 @@
 - Ein Auftrag ist ein Lauf in der gemeinsamen Schlange (schwer + Platz gpu, PC-weit einer zur Zeit). Ist er dran, führt ihn
   der Dienst selbst über die HTTP-Schnittstelle aus (Arbeiter) – der Agent muss nicht wach sein. Jedes Ergebnis wird ein
   Dokument; die Herkunft (KI, Version, Modell, Lizenz, Vorlage, Prompt, Seed, Dauer) schreibt die AMW (ki_herkunft).
-- Die AMW beendet keine Prozesse: Platz schaffen über die Schnittstelle (Ollama keep_alive 0, ComfyUI /free), abbrechen
-  über /interrupt bzw. Schließen der Anfrage. Läuft ComfyUI nicht, startet der Dienst es mit dem eingetragenen Startbefehl
-  (ohne Fenster, wie Projekt-Server) und lässt es danach laufen.
+- Nur bei Bedarf (A1649, Marcel F5314): Antwortet eine KI nicht, startet der Dienst sie erst, wenn ein Auftrag für sie dran
+  ist (Startbefehl ohne Fenster, wie Projekt-Server). Hat eine KI, die er selbst gestartet hat, ki_leerlauf_min (30) Minuten
+  keinen Auftrag mehr, beendet er sie samt Kindern – nur genau diesen Prozess (PID und Startzeit gemerkt in
+  daten/ki-gestartet.json), nie eine KI, die jemand anders gestartet hat. KIs in ki_immer_an startet er wie früher von
+  selbst und beendet sie nie. Platz im Grafikspeicher schafft er sonst über die Schnittstelle (Ollama keep_alive 0, ComfyUI
+  /free), abbrechen über /interrupt bzw. Schließen der Anfrage.
 - Startbefehl und Endpunkt kommen nur über die Kommandozeile am PC in die Datenbank (nie über Brücke oder Online-Seite).
 """
 import datetime
@@ -474,9 +477,133 @@ def _version(ki, antwort):
     return ((antwort or {}).get("system") or {}).get("comfyui_version")
 
 
-def _starten(ki):
-    """KI mit ihrem Startbefehl ohne Fenster starten (wie Projekt-Server) – beendet wird sie von der AMW nie."""
-    ueberwachung.starten({"name": f"ki-{ki['name']}", "startbefehl": ki["startbefehl"], "ordner": ki["ordner"]})
+def _starten(ki, jetzt=None):
+    """KI mit ihrem Startbefehl ohne Fenster starten (wie Projekt-Server) und sich den Prozess merken (PID + Startzeit) –
+    nur so gestartete KIs beendet leerlauf_beenden() wieder."""
+    p = ueberwachung.starten({"name": f"ki-{ki['name']}", "startbefehl": ki["startbefehl"], "ordner": ki["ordner"]})
+    beginn = _prozess_beginn(getattr(p, "pid", None))
+    if beginn is not None:
+        d = gestartet_laden()
+        d[ki["name"].lower()] = {"pid": p.pid, "beginn": beginn, "seit": time.time() if jetzt is None else jetzt}
+        gestartet_schreiben(d)
+
+
+# --- Nur bei Bedarf (A1649) ----------------------------------------------------------------------
+
+def immer_an():
+    """Namen (klein) der KIs, die die AMW am Laufen hält; alle anderen nur bei Bedarf."""
+    from . import einstellungen
+    return set(einstellungen.wert("ki_immer_an"))
+
+
+def leerlauf_min():
+    from . import einstellungen
+    return einstellungen.wert("ki_leerlauf_min")
+
+
+def _gestartet_pfad():
+    return os.path.join(os.path.dirname(db.db_pfad()), "ki-gestartet.json")
+
+
+def gestartet_laden():
+    """{Name: {pid, beginn, seit}} der KIs, die der Dienst selbst gestartet hat (überlebt einen Neustart des Dienstes)."""
+    try:
+        with open(_gestartet_pfad(), encoding="utf-8") as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def gestartet_schreiben(d):
+    tmp = _gestartet_pfad() + ".neu"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(d, f, indent=1)
+    os.replace(tmp, _gestartet_pfad())
+
+
+def _prozess_beginn(pid):
+    """Startzeit eines laufenden Prozesses (Zahl) – None, wenn er nicht (mehr) läuft. Damit erkennt die AMW ihren Prozess
+    wieder: eine neu vergebene PID hat eine andere Startzeit."""
+    if not pid:
+        return None
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+        k = ctypes.WinDLL("kernel32", use_last_error=True)
+        k.OpenProcess.restype = wintypes.HANDLE
+        k.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+        k.GetExitCodeProcess.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+        k.GetProcessTimes.argtypes = (wintypes.HANDLE,) + (ctypes.POINTER(wintypes.FILETIME),) * 4
+        k.CloseHandle.argtypes = (wintypes.HANDLE,)
+        h = k.OpenProcess(0x1000, False, int(pid))            # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return None
+        try:
+            code = wintypes.DWORD()
+            if not k.GetExitCodeProcess(h, ctypes.byref(code)) or code.value != 259:    # STILL_ACTIVE
+                return None
+            t = [wintypes.FILETIME() for _ in range(4)]
+            if not k.GetProcessTimes(h, *(ctypes.byref(x) for x in t)):
+                return None
+            return (t[0].dwHighDateTime << 32) | t[0].dwLowDateTime
+        finally:
+            k.CloseHandle(h)
+    try:
+        with open(f"/proc/{int(pid)}/stat", encoding="ascii") as f:
+            return int(f.read().rsplit(")", 1)[1].split()[19])
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def _baum_beenden(prozess_id):
+    from .laufdienst import _baum_beenden as beenden
+    beenden(prozess_id)
+
+
+def _utc_sek(utc):
+    return datetime.datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()
+
+
+def leerlauf_beenden(con, jetzt=None, beginn=None, beenden_mit=None, immer=None, minuten=None):
+    """Selbst gestartete KIs ohne Auftrag seit `minuten` beenden (samt Kindern). Nie: KIs in ki_immer_an, KIs mit wartendem
+    oder laufendem Auftrag, Prozesse, die nicht mehr genau unsere sind (PID weg oder neu vergeben → vergessen).
+    Rückgabe: Ereignistexte."""
+    jetzt = time.time() if jetzt is None else jetzt
+    beginn = beginn or _prozess_beginn
+    beenden_mit = beenden_mit or _baum_beenden
+    immer = immer_an() if immer is None else immer
+    minuten = leerlauf_min() if minuten is None else minuten
+    d = gestartet_laden()
+    aus, geaendert = [], False
+    for name, g in list(d.items()):
+        if g.get("beginn") is None or beginn(g.get("pid")) != g.get("beginn"):
+            d.pop(name)                                   # beendet oder PID inzwischen ein anderer Prozess: nicht anfassen
+            geaendert = True
+            continue
+        if name in immer:
+            continue
+        ki = con.execute("SELECT * FROM ki WHERE name = ? COLLATE NOCASE", (name,)).fetchone()
+        zuletzt = g.get("seit") or 0
+        if ki:
+            if ki["zustand"] == "belegt" or con.execute("SELECT 1 FROM ki_auftrag WHERE ki_id = ? AND zustand IN ('wartet', 'laeuft')",
+                                                        (ki["id"],)).fetchone():
+                continue
+            letzt = con.execute("SELECT max(coalesce(ende_utc, start_utc)) FROM ki_auftrag WHERE ki_id = ?", (ki["id"],)).fetchone()[0]
+            if letzt:
+                zuletzt = max(zuletzt, _utc_sek(letzt))
+        if jetzt - zuletzt < minuten * 60:
+            continue
+        beenden_mit(g["pid"])
+        d.pop(name)
+        geaendert = True
+        if ki:
+            with db.schreiben(con):
+                con.execute("UPDATE ki SET zustand = 'aus', geladen = NULL, geprueft_utc = ? WHERE id = ?", (db.jetzt(), ki["id"]))
+        aus.append(f"{name}: {minuten} min ohne Auftrag – beendet (von der AMW gestartet, PID {g['pid']})")
+    if geaendert:
+        gestartet_schreiben(d)
+    return aus
 
 
 def bereit(ki, abbruch=lambda: False, warten_s=START_S):
@@ -582,14 +709,15 @@ def _mehrteilig(name, roh):
 
 # --- Ausführen (im Dienst) -----------------------------------------------------------------------
 
-def hochholen(con, versucht, jetzt=None):
-    """Aktive KI mit Startbefehl antwortet nicht (z. B. nach einem Neustart des PCs): ohne Fenster starten, je KI höchstens
-    alle HOCH_S – eine kaputte KI startet nicht im Minutentakt. Ohne Startbefehl bleibt sie aus; ganz aus: amw ki aendern
-    <name> --abschalten. Beendet wird eine KI von der AMW nie. versucht: {Name: Zeit des letzten Versuchs}."""
+def hochholen(con, versucht, jetzt=None, immer=None):
+    """Nur KIs in ki_immer_an (A1649): antwortet eine davon nicht (z. B. nach einem Neustart des PCs), ohne Fenster starten,
+    je KI höchstens alle HOCH_S – eine kaputte KI startet nicht im Minutentakt. Alle anderen startet erst ein Auftrag
+    (bereit()). Ohne Startbefehl bleibt sie aus. versucht: {Name: Zeit des letzten Versuchs}."""
     jetzt = time.time() if jetzt is None else jetzt
+    immer = immer_an() if immer is None else immer
     aus = []
     for ki in con.execute("SELECT * FROM ki WHERE aktiv = 1 AND zustand = 'aus' AND startbefehl IS NOT NULL AND startbefehl != ''").fetchall():
-        if jetzt - versucht.get(ki["name"], 0) < HOCH_S:
+        if ki["name"].lower() not in immer or jetzt - versucht.get(ki["name"], 0) < HOCH_S:
             continue
         versucht[ki["name"]] = jetzt
         try:
@@ -627,6 +755,7 @@ class Arbeiter:
             self.geprueft = time.time()
             zustand_pruefen(self.con)
             ereignisse += hochholen(self.con, self.hoch)
+            ereignisse += leerlauf_beenden(self.con)
         return ereignisse
 
     def _abbruch(self, a):
@@ -976,8 +1105,13 @@ def uebersicht(con, pid):
     """Für Workbench/online (Betrieb → KI): ohne Startbefehl und Ordner."""
     kis = [dict(r) for r in con.execute("SELECT id, name, art, schnittstelle, endpunkt, version, lizenz, vram_gb, zustand,"
                                         " zustand_text, geladen, geprueft_utc FROM ki WHERE aktiv = 1 ORDER BY name")]
+    immer, gestartet, minuten = immer_an(), gestartet_laden(), leerlauf_min()
     for k in kis:
         k["geladen"] = json.loads(k["geladen"] or "[]")
+        if k["schnittstelle"] != "befehl":                # Betrieb (A1649): immer an / bei Bedarf, ob die AMW sie gestartet hat
+            k["betrieb"] = "immer" if k["name"].lower() in immer else "bedarf"
+            k["von_amw"] = k["name"].lower() in gestartet
+            k["leerlauf_min"] = minuten
         k["wartend"] = con.execute("SELECT count(*) FROM ki_auftrag a JOIN lauf l ON l.id = a.lauf_id WHERE a.ki_id = ?"
                                    " AND l.status = 'angemeldet'", (k["id"],)).fetchone()[0]
         k["darf"] = [r[0] for r in con.execute("SELECT wer FROM ki_recht WHERE projekt_id = ? AND ki_id = ? ORDER BY wer", (pid, k["id"]))]

@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.95.0 – 14.11.2026 · Lokale KIs nur bei Bedarf
+- **Startet erst mit einem Auftrag:** Die AMW startet eine lokale KI (ComfyUI, Ollama) nicht mehr von selbst, sobald sie nicht
+  antwortet, sondern erst, wenn ein Auftrag für sie dran ist. Hat sie die KI selbst gestartet und kommt 30 Minuten lang kein
+  Auftrag, beendet sie sie wieder und gibt Arbeits- und Grafikspeicher frei. Eine KI, die du selbst gestartet hast, beendet sie
+  nie; die AMW erkennt ihren eigenen Prozess an Nummer und Startzeit.
+- **Immer an, wenn du willst:** `amw ki aendern <name> --immer-an` (zurück mit `--bei-bedarf`) oder Einstellungen › Dieser PC ›
+  Lokale KIs immer an. Die Minuten bis zum Beenden stellst du dort ebenfalls ein. Betrieb › KI zeigt je KI „nur bei Bedarf“ bzw.
+  „immer an“ und ob die AMW sie gestartet hat; `amw ki liste` ebenso.
+- Hilfe Lokale KI: warum eine KI plötzlich aus ist und warum Aufträge besser über die AMW laufen als direkt an der KI.
+
 ## 1.94.1 – 14.11.2026 · Release-Kette erkennt kurze Stände
 - `amw release ausliefern` fand eine grüne Prüfung nicht, wenn die Prüfbitte einen kurzen Stand nannte (z. B. „39ca74a“).
   Jetzt zählen beide Schreibweisen (kurz mindestens 7 Zeichen), und neue Prüfbitten speichern den vollen Stand.

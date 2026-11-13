@@ -92,7 +92,8 @@ def antwortet(port, host="127.0.0.1", warten_s=2.0):
 
 
 def starten(s):
-    """Startet den Server losgelöst vom Wächter (läuft weiter, wenn der Wächter neu startet). Ausgabe ins Protokoll."""
+    """Startet den Server losgelöst vom Wächter (läuft weiter, wenn der Wächter neu startet). Ausgabe ins Protokoll.
+    Rückgabe: der Prozess (lokale KIs merken sich PID und Startzeit, um nur selbst Gestartetes wieder zu beenden)."""
     log = os.path.join(os.path.dirname(db.db_pfad()), f"server-{s['name']}.log")
     with open(log, "a", encoding="utf-8") as f:
         f.write(f"\n--- {db.jetzt()} Neustart durch den AMW-Dienst: {s['startbefehl']}\n")
@@ -102,8 +103,8 @@ def starten(s):
             flags |= getattr(subprocess, name, 0)
         if flags & getattr(subprocess, "CREATE_NO_WINDOW", 0) and flags & getattr(subprocess, "DETACHED_PROCESS", 0):
             flags &= ~subprocess.CREATE_NO_WINDOW            # beide zusammen verbietet Windows
-        subprocess.Popen(s["startbefehl"], cwd=s["ordner"] or None, stdout=f, stderr=subprocess.STDOUT,
-                         stdin=subprocess.DEVNULL, creationflags=flags, close_fds=True)
+        return subprocess.Popen(s["startbefehl"], cwd=s["ordner"] or None, stdout=f, stderr=subprocess.STDOUT,
+                                stdin=subprocess.DEVNULL, creationflags=flags, close_fds=True)
 
 
 def server_pruefen(con, pid, pruefen=antwortet, start=starten):
