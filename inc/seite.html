@@ -4212,6 +4212,8 @@ function uebersicht(d) {
   const start = zeilen.map(z => z.start).sort()[0];
   const ende50 = offen.map(z => z.e50).sort().pop(), ende85 = offen.map(z => z.e85).sort().pop();
   const uhrJetzt = new Date().toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" });
+  /* Läuft die Jetzt-Linie durch den Namen im Balken? Dann beginnt der Name rechts von der Linie */
+  const jetztDurch = z => { const off = (tagNr(d.heute) - z.a) * pxTag; return off > -4 && off < Math.min(mass(`B${z.b.id}  ${z.b.titel}`) + 8, (z.e - z.a) * pxTag); };
   const jetztTip = [t("ue_jetzt_tip", { x: `${datumKurz(d.heute)} ${uhrJetzt}` }),
     ...(d.laeuft || []).map(a => `${a.agent || "–"} → A${a.id} ${a.titel}`)].join("\n");
   /* Rechner: je Tag ein Stück auf derselben Achse – so hoch, wie viele Stunden er mit Läufen belegt war (8 Stunden = voll) */
@@ -4232,7 +4234,8 @@ function uebersicht(d) {
           style: `left:${pos(z.a)};top:${oben}px;width:${breite(z.a, z.e)}` },
         el("i", { class: "ueb-b50", style: `width:${lang ? (100 * (z.m - z.a) / lang).toFixed(1) : 100}%` }),
         z.e > z.m ? el("i", { class: "ueb-b85", style: `left:${(100 * (z.m - z.a) / lang).toFixed(1)}%` }) : null,
-        z.aussen ? null : el("span", { class: "ueb-label" }, el("b", {}, (b.status === "fertig" ? "✓ " : "") + "B" + b.id), b.titel))];
+        z.aussen ? null : el("span", { class: "ueb-label", style: jetztDurch(z) ? `left:${Math.round((tagNr(d.heute) - z.a) * pxTag + 7)}px` : null },   /* nie durch den Text (TL #24368) */
+          el("b", {}, (b.status === "fertig" ? "✓ " : "") + "B" + b.id), b.titel))];
       if (z.pause) teile.push(el("i", { class: "ueb-token", "data-b": b.id, style: `left:${pos(z.e)};top:${oben}px;width:${breite(z.e, z.t)}`,
         title: `${bogenRef(b.id)} · ${TKZ} ${t("tk_plus", { n: z.pause, x: datumKurz(b.prognose.p50_mit) })}\n${tokenRechenweg(d.token)}` }, el("b", {}, TKZ)));
       if (z.aussen) teile.push(el("span", { class: "ueb-name " + art, title: tip, onclick: () => zuSchritt(null, b.id),
