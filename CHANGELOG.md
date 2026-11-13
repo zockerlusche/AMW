@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.89.0 – 13.11.2026 · Nachrichten: Liste und Inhalt scrollen getrennt
+- **Wie im Mail-Programm:** Unter „Nachrichten“ haben am PC die Liste links und die geöffnete Nachricht rechts je ihren
+  eigenen Scrollbereich; die Seite selbst scrollt nicht mehr, Kopf und Reiter bleiben stehen. Wer unten in der Liste eine
+  Nachricht öffnet und rechts weiterliest, behält die Liste im Blick; die gewählte Zeile bleibt sichtbar, eine neu
+  gewählte Nachricht beginnt rechts oben. Am Handy bleibt es einspaltig (Liste → Nachricht mit Zurück).
+- **Einstellungen › Agenten:** Die Liste der Agenten bleibt beim Scrollen des Formulars stehen.
+- **Nachrichten öffnen auf „Eingang“,** wenn dort Neues liegt und du keinen Reiter gewählt hattest (bisher „Gesendet“).
+- **Bedienbarkeits-Rundgang:** neue Prüfung für Liste und Inhalt nebeneinander – Scrollen im Inhalt muss die Liste
+  stehen lassen, nichts darf unter den Fensterrand reichen (A1628).
+
 ## 1.88.0 – 13.11.2026 · Benutzer auch unterwegs verwalten
 - **Einstellungen › Benutzer auf der Online-Seite:** Projekt-Admins und System-Admins verwalten Benutzer jetzt auch am
   Handy – anlegen, Rolle und Projekte vergeben, sperren und entsperren, freischalten. Ein Projekt-Admin sieht nur die

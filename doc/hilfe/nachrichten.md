@@ -21,6 +21,7 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 ## Danach
 - Fragen der Agenten an dich stehen im Reiter „Fragen“; deine Antwort steht danach im Gesendet, mit der Frage als Bezug.
 - Die Startseite zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt in den Eingang.
+- Am PC scrollen Liste und Nachricht getrennt, wie im Mail-Programm: Du kannst rechts lesen, ohne die Liste zu verlieren.
 
 ## Häufige Fragen
 ### Was heißen die Schritte?
