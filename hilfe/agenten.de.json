@@ -68,6 +68,10 @@
    "Klick auf den Agenten › Übersicht › „Verbrauch je Aufgabe“: das Mittel (Median) der letzten zehn fertigen Aufgaben, das eingestellte Modell mit Denkaufwand, die Aufgabe in Arbeit bisher und je Aufgabe der Betrag. Im Fenster einer Aufgabe steht ihr Wert unter „Verbrauch“, in der Befehlszeile bei `amw aufgabe zeige <nr>` und `amw agent profil <name>`. Gezählt wird der Gegenwert in Dollar, den Claude Code je Sitzung meldet – auch im Abo, wo nichts extra bezahlt wird. Je Aufgabe ist er genähert: Was zwischen Beginn und Abschluss anfiel, zählt zu der Aufgabe, die der Agent zuletzt begonnen hat. Die Zahlen helfen beim Einstellen von Modell und Denkaufwand im Profil; sie gelten ab dem nächsten Start."
   ],
   [
+   "Wofür geben die Agenten ihr Geld aus?",
+   "Betrieb › „Wofür das Geld geht“ (am PC) oder `amw verbrauch pareto --tage 7`: Jeder Kostenzuwachs einer Sitzung gehört zu den Weckrufen im selben Zeitraum – etwa „Lauf ist dran“, Prüfbitte, Antwort, Auftrag –, ohne Weckruf zählt er als eigene Arbeit. Oben steht, was am meisten kostet, mit Anteil, Zahl der Weckrufe und Kosten je Weckruf. „Vermeidbar“ heißt: der Agent musste dafür nichts tun. Daraus siehst du, welche Weckrufe sich am meisten lohnen abzustellen."
+  ],
+  [
    "Welches Modell und welchen Denkaufwand empfiehlt die AMW?",
    "Der Lead gibt einer Aufgabe beim Anlegen Größe und Art: `amw aufgabe neu … --groesse S|M|L|XL --art text|mechanisch|fehlersuche|oberflaeche|sicherheit|konzept` (nachträglich mit `amw aufgabe aendern <nr>`). Daraus schlägt die AMW Modell und Denkaufwand vor – nach einer Tabelle je Projekt (Einstellungen › Projekt › „Empfehlung Modell · Denkaufwand“). Die Startwerte sind eine Annahme; neben dem Vorschlag an der Aufgabe steht, was fertige Aufgaben derselben Art und Größe gemessen verbraucht haben und wie oft ihre Prüfung rot war. Daran stellst du die Tabelle ein. Am Agenten steht die Empfehlung aus seinen letzten Aufgaben; „Ins Profil übernehmen“ trägt sie ein. Die AMW stellt nichts selbst um und startet niemanden neu: Das Profil wirkt beim nächsten Start."
   ]

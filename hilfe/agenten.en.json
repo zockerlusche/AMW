@@ -68,6 +68,10 @@
    "Click the agent › Overview › “Usage per task”: the median of the last ten finished tasks, the model and effort that are set, the task in progress so far and the amount for each task. A task's window shows its value under “Usage”; on the command line see `amw aufgabe zeige <nr>` and `amw agent profil <name>`. It counts the dollar equivalent Claude Code reports per session – also on a subscription, where nothing is paid extra. Per task it is approximated: what was used between start and finish counts towards the task the agent started last. The numbers help when setting model and effort in the profile; they apply from the next start."
   ],
   [
+   "What do the agents spend their money on?",
+   "Operations › “Where the money goes” (on the PC) or `amw verbrauch pareto --tage 7`: each cost increase of a session belongs to the wake-ups in the same period – such as “Run is due”, review request, answer, order –; without a wake-up it counts as own work. The most expensive comes first, with share, number of wake-ups and cost per wake-up. “Avoidable” means the agent did not have to do anything for it. This shows which wake-ups are most worth switching off."
+  ],
+  [
    "Which model and effort does AMW recommend?",
    "When creating a task, the lead gives it a size and a type: `amw aufgabe neu … --groesse S|M|L|XL --art text|mechanisch|fehlersuche|oberflaeche|sicherheit|konzept` (later with `amw aufgabe aendern <nr>`). From that AMW suggests model and effort – using a table per project (Settings › Project › “Recommended model · effort”). The starting values are an assumption; next to the suggestion on the task you see what finished tasks of the same type and size actually used and how often their review was red. Use that to adjust the table. The agent shows the recommendation from its recent tasks; “Apply to profile” sets it. AMW changes nothing by itself and restarts no one: the profile applies from the next start."
   ]
