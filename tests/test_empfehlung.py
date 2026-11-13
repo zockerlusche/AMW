@@ -67,6 +67,8 @@ class Empfehlung(unittest.TestCase):
         k = db.anlegen(alt)
         k.execute("ALTER TABLE aufgabe DROP COLUMN groesse")
         k.execute("ALTER TABLE aufgabe DROP COLUMN art")
+        for sp in ("befehl", "ordner", "ergebnis_datei", "frist_min", "waechter", "ausfuehrer", "spitze_gb"):   # Schema 31
+            k.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
         k.execute("PRAGMA user_version = 29")
         k.commit()
         db.migrieren(k)

@@ -10,7 +10,7 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 1. **Ordner auf den neuen Stand bringen** Für jeden Agenten-Ordner einmal `amw einrichten agenten-ordner <ordner>` ausführen. Das ergänzt den Hook; laufende Sitzungen übernehmen ihn nach wenigen Sekunden.
 2. **So läuft es dann** Startet ein Agent einen schweren Befehl direkt (zum Beispiel die ganze Test-Suite), wird der Befehl nicht ausgeführt. Der Agent bekommt stattdessen den fertigen Ersatz: `amw lauf ausfuehren --beschreibung "Test-Suite" -- <sein Befehl>`. Der wartet, bis der Rechner frei ist, läuft dann und gibt das Ergebnis zurück.
 3. **Eigene Befehle ergänzen** Unter Einstellungen › Projekt › „Weitere schwere Befehle“ je Zeile einen Eintrag `Name = Muster` eintragen, zum Beispiel `Karten rechnen = karten\.py`.
-4. **Bedarf nennen** Wer weiß, was ein Lauf braucht, gibt es an: `--braucht-gb 4` (Arbeitsspeicher), wahlweise `--braucht-vram-gb` (Grafikspeicher) und `--braucht-platte-gb` (freier Platz). Ohne Angabe rechnet die AMW mit der Speicher-Grenze des Projekts.
+4. **Bedarf nennen** Wer weiß, was ein Lauf braucht, gibt es an: `--braucht-gb 4` (Arbeitsspeicher), wahlweise `--braucht-vram-gb` (Grafikspeicher) und `--braucht-platte-gb` (freier Platz). Ohne Angabe nimmt die AMW, was gleiche Läufe desselben Agenten zuletzt wirklich gebraucht haben (gemessen, mit etwas Zuschlag) – beim ersten Mal die Speicher-Grenze des Projekts. Schätzen muss niemand.
 5. **Nachsehen** Start › Leitstand › „Rechner“ zeigt, wie viele Läufe laufen und warten und wann der Rechner voraussichtlich frei ist.
 
 ## Diese Werte trägst du ein
@@ -42,6 +42,12 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 Unter Einstellungen › Dieser PC › „Vorrang der Projekte“ stellst du je Projekt hoch, normal oder niedrig ein. Wartende Läufe kommen dann in dieser Reihenfolge dran: zuerst, was du selbst vorgezogen hast, dann „hoch“, dann „normal“, dann „niedrig“ – innerhalb einer Stufe der Reihe nach. Ein Lauf, der schon läuft, wird nie abgebrochen. Der Wartegrund nennt den Vorrang; im Zeitstrahl „Rechner – heute“ sind Vorrang-Läufe mit ▲ markiert, im Leitstand steht die Liste kurz. Die Einstellung gehört dem PC, nicht einem Projekt – Namen anderer Projekte siehst du nur am PC.
 
 Damit nichts verhungert, rückt ein wartender Lauf je 30 Minuten Wartezeit eine Stufe höher (einstellbar, 0 = aus). Stehen zwei Läufe dadurch auf derselben Stufe, kommt zuerst der, dessen Projekt diese Stufe selbst hat – ein echtes „hoch“ vor einem aufgerückten. Wartet ein Lauf mit „hoch“, startet ein anderer nur, wenn danach noch genug Arbeitsspeicher für ihn frei bleibt. Wartet er trotzdem länger als 20 Minuten, bekommst du eine Meldung mit dem Grund – vorziehen kannst nur du. Passt ein Lauf nicht einmal bei leerer Schlange, hält er niemanden auf: Die anderen ziehen vorbei, bis außerhalb der Schlange genug Speicher frei wird.
+
+### Was passiert, wenn das Fenster des Agenten den wartenden Befehl beendet?
+Nichts geht verloren. `amw lauf ausfuehren` merkt sich beim Einreihen Befehl, Ordner und Ergebnis-Datei. Ist der Lauf dran und der wartende Befehl im Fenster lebt nicht mehr, startet der Dienst genau diesen Befehl im selben Ordner und schreibt die Ausgabe in die Ergebnis-Datei; der Agent bekommt am Ende eine Meldung mit dem Rückgabewert. Läufe mit Fenster (Bildschirm) startet der Dienst nicht selbst.
+
+### Muss ein Agent die Warteschlange beobachten?
+Nein. „ist dran“ und „läuft länger als erwartet“ wecken niemanden mehr – sie stehen nur in der Workbench. Wecken tut erst das Ergebnis. `amw lauf warte` schreibt den Grund nur, wenn er sich ändert.
 
 ### Warum ist für einen laufenden Lauf Arbeitsspeicher vorgemerkt?
 Ein Lauf braucht seinen Arbeitsspeicher oft erst nach und nach. Damit kein zweiter Lauf daneben startet, der ihm den Speicher wegnimmt, hält die Warteschlange seinen Bedarf frei. Hat er keinen Bedarf angegeben, gilt die Grenze seines Projekts – aber nur in den ersten 15 Minuten; danach zählt, was er wirklich belegt. Der Wartegrund nennt, für welchen Lauf wie viel vorgemerkt ist.

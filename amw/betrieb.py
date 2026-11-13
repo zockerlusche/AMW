@@ -145,8 +145,45 @@ def _grenze(con, pid, braucht_gb, schwer):
     return speicher_grenze(con, pid) if schwer else 0.0
 
 
+LERNEN_N = 5          # A1641: Median der gemessenen Spitzen der letzten so vielen gleichen Läufe …
+LERNEN_ZUSCHLAG = 1.2 # … mit Zuschlag – ohne Angabe braucht der Agent nichts mehr zu schätzen
+
+
+def lauf_art(befehl, beschreibung=None):
+    """Was für ein Lauf das ist – für das Lernen des Bedarfs: der Befehl (sonst die Beschreibung) ohne Ziffern, Hashes und
+    Pfade zu Ergebnis-Dateien, klein geschrieben. Zwei Gesamtläufe auf verschiedenen Ständen sind so dieselbe Art."""
+    import re
+    text = befehl if befehl else (beschreibung or "")
+    if isinstance(text, (list, tuple)):
+        text = " ".join(map(str, text))
+    text = re.sub(r"[0-9a-f]{7,40}", "#", str(text).lower())
+    text = re.sub(r"\d+", "#", text)
+    return " ".join(text.split())[:160]
+
+
+def gelernter_bedarf(con, pid, agent, befehl, beschreibung=None):
+    """Bedarf aus der Erfahrung (A1641): Median der gemessenen Spitzen der letzten LERNEN_N fertigen Läufe desselben Agenten
+    mit derselben Art × LERNEN_ZUSCHLAG, auf 0,5 GB aufgerundet – oder None (noch nichts gemessen: dann gilt die Grenze)."""
+    import math
+    art = lauf_art(befehl, beschreibung)
+    werte = []
+    for r in con.execute("SELECT spitze_gb, befehl, beschreibung FROM lauf WHERE projekt_id = ? AND agent = ? AND status = 'fertig'"
+                         " AND spitze_gb > 0 ORDER BY id DESC LIMIT 200", (pid, agent)):
+        b = json.loads(r["befehl"]) if r["befehl"] else None
+        if lauf_art(b, r["beschreibung"]) == art:
+            werte.append(r["spitze_gb"])
+            if len(werte) >= LERNEN_N:
+                break
+    if not werte:
+        return None
+    werte.sort()
+    mitte = werte[len(werte) // 2] if len(werte) % 2 else (werte[len(werte) // 2 - 1] + werte[len(werte) // 2]) / 2
+    return max(0.5, math.ceil(mitte * LERNEN_ZUSCHLAG * 2) / 2)
+
+
 def _bedarf(con, l):
-    """Arbeitsspeicher, den ein Lauf braucht: seine eigene Angabe, sonst die des Rezepts, sonst die Grenze seines Projekts."""
+    """Arbeitsspeicher, den ein Lauf braucht: seine eigene Angabe, sonst die des Rezepts, sonst die Grenze seines Projekts.
+    Ohne eigene Angabe trägt lauf_start den gelernten Bedarf als Angabe ein (A1641)."""
     return _grenze(con, l["projekt_id"], l["braucht_gb"] or l["braucht_speicher_gb"], l["schwer"])
 
 
@@ -462,7 +499,7 @@ def _lebt(con, pid, l):
         from . import ki
         if ki.nacht_sperre(con):
             return False
-    lebt = l["ki_auftrag"] or con.execute(
+    lebt = l["ki_auftrag"] or (l["befehl"] and not l["schirm"]) or con.execute(   # gespeicherter Befehl: startet notfalls der Dienst (A1640)
         "SELECT 1 FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
         " AND a.kennung = ? AND s.zustand = 'aktiv'", (pid, l["agent"])).fetchone()
     if not lebt:                                 # „amw lauf ausfuehren“ wartet als eigener Prozess – der lebt, solange er wartet,
@@ -537,8 +574,11 @@ def wartende(con, pid=None):
 
 def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=False, aufgabe_id=None,
                speicher_frei=None, warten=False, erwartet_min=None, gpu=False, dazu=None, sperre=None,
-               braucht_gb=None, braucht_vram_gb=None, braucht_platte_gb=None):
-    """Meldet einen Lauf an und startet ihn, wenn er darf. Regeln: kein Halt; Schirm und Grafikkarte PC-weit ein Lauf
+               braucht_gb=None, braucht_vram_gb=None, braucht_platte_gb=None, befehl=None, ordner=None, ergebnis_datei=None,
+               frist_min=None, waechter=None):
+    """Meldet einen Lauf an und startet ihn, wenn er darf. befehl/ordner/ergebnis_datei/frist_min/waechter: von „amw lauf
+    ausfuehren“ – stirbt der Warte-Prozess (waechter), startet der Dienst genau diesen Befehl in diesem Ordner (A1640).
+    Ohne --braucht-gb (und ohne Rezept) gilt der gelernte Bedarf früherer gleicher Läufe (A1641), sonst die Grenze. Regeln: kein Halt; Schirm und Grafikkarte PC-weit ein Lauf
     zur Zeit; schwere Läufe ohne beides parallel bis cpu_laeufe(); ein Agent nie zwei schwere zugleich; freier Speicher
     ≥ Grenze je Lauf; niemand überholt die Warteschlange auf seinem Platz. Darf er nicht: ohne warten AmwFehler mit Grund (nichts wird angelegt), mit warten eingereiht (status
     'angemeldet'); warteschlange() startet ihn, sobald er dran ist, und weckt den Agenten mit einer Freigabe.
@@ -555,6 +595,8 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     for name, wert in (("Arbeitsspeicher", braucht_gb), ("Grafikspeicher", braucht_vram_gb), ("Festplatte", braucht_platte_gb)):
         if wert is not None and not 0 < float(wert) <= 2048:
             raise kern.AmwFehler(f"Bedarf {name}: eine Zahl in GB zwischen 0 und 2048")
+    if braucht_gb is None and not (rez and rez["braucht_speicher_gb"]) and schwer:
+        braucht_gb = gelernter_bedarf(con, pid, agent, befehl, beschreibung)   # A1641: niemand muss schätzen
     grenze = _grenze(con, pid, braucht_gb or (rez["braucht_speicher_gb"] if rez else None), schwer)   # eigene Angabe geht vor
     if speicher_frei is None:
         speicher_frei = speicher_frei_gb()[0]
@@ -585,12 +627,22 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
                            beschreibung=beschreibung, schwer=int(schwer), schirm=int(schirm), gpu=int(bool(gpu)),
                            status="angemeldet" if grund else "laeuft", angemeldet_utc=t, start_utc=None if grund else t,
                            speicher_frei_gb=speicher_frei, aufgabe_id=aufgabe_id, erwartet_min=erwartet_min,
-                           braucht_gb=braucht_gb, braucht_vram_gb=braucht_vram_gb, braucht_platte_gb=braucht_platte_gb, rechner=rechner())
+                           braucht_gb=braucht_gb, braucht_vram_gb=braucht_vram_gb, braucht_platte_gb=braucht_platte_gb, rechner=rechner(),
+                           befehl=json.dumps(list(befehl), ensure_ascii=False) if befehl else None, ordner=ordner,
+                           ergebnis_datei=ergebnis_datei, frist_min=frist_min, waechter=waechter)
         if dazu:
             dazu(lid)
         else:                                    # ein KI-Auftrag rechnet nicht im Namen des Agenten
             kern.taetigkeit_auto(con, pid, agent, f"L{lid} {beschreibung or ''}".strip(), aufgabe_id)
         return lid
+
+
+def lauf_uebernehmen(con, lid, wer):
+    """Wer den Befehl eines dran gekommenen Laufs startet – „agent“ (sein Warte-Prozess) oder „dienst“ (A1640). Genau einer
+    gewinnt: True nur, wenn noch niemand eingetragen war."""
+    with db.schreiben(con):
+        return con.execute("UPDATE lauf SET ausfuehrer = ? WHERE id = ? AND status = 'laeuft' AND ausfuehrer IS NULL",
+                           (wer, lid)).rowcount == 1
 
 
 def kurzfassung(text, n=110):
@@ -646,6 +698,12 @@ def warteschlange(con, pid=None, speicher_frei=None):
             con.execute("UPDATE lauf SET status = 'laeuft', start_utc = ?, speicher_frei_gb = ? WHERE id = ?",
                         (db.jetzt(), speicher_frei, l["id"]))
             if l["ki_auftrag"]:                      # der KI-Arbeiter im Dienst holt ihn ab
+                gestartet.append(l["id"])
+                continue
+            if l["befehl"]:                          # „amw lauf ausfuehren“: der Befehl startet von selbst – nur zur Info (A1641)
+                kern._posten(con, lp, "AMW", l["agent"], "info", f"L{l['id']} läuft: {kurzfassung(l['beschreibung'])}",
+                             "Der Befehl startet von selbst (im Fenster des Agenten, sonst über den Dienst); das Ergebnis kommt am Ende.",
+                             aufgabe_id=l["aufgabe_id"])
                 gestartet.append(l["id"])
                 continue
             kern._posten(con, lp, "AMW", l["agent"], "freigabe", f"L{l['id']} ist dran – jetzt starten: {kurzfassung(l['beschreibung'])}",

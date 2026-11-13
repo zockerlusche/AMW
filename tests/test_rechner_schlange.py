@@ -272,6 +272,8 @@ class Umstellung(Grund):
         self.con.execute("ALTER TABLE nachricht DROP COLUMN bezug")
         for sp in ("groesse", "art"):                     # Größe und Art kamen mit Schema 30
             self.con.execute(f"ALTER TABLE aufgabe DROP COLUMN {sp}")
+        for sp in ("befehl", "ordner", "ergebnis_datei", "frist_min", "waechter", "ausfuehrer", "spitze_gb"):   # Läufe überleben, Bedarf lernen (Schema 31)
+            self.con.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
         self.con.execute("ALTER TABLE agent DROP COLUMN entfernt_utc")      # Agenten entfernen kam mit Schema 28
         self.con.execute("PRAGMA user_version = 23")
         pfad = self.con.execute("PRAGMA database_list").fetchone()[2]

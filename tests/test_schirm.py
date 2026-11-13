@@ -209,7 +209,8 @@ class Befehle(Grund):
         self.assertIn("Platz 1 von 1 – Bildschirm ZU", aus)
         rc, aus = self.cli("lauf", "warte", str(l1), "--hoechstens", "0.0001", "--von", "CC1")
         self.assertEqual(rc, 3)
-        self.assertIn("wartet: Platz 1", aus)
+        self.assertIn(": Platz 1 von 1", aus)
+        self.assertIn("du musst nichts tun", aus)                   # A1641: nichts zu deuten
         betrieb.lauf_ende(self.con, self.pid, "CC1", l1, None, abgebrochen=True)
         self.assertEqual(self.cli("lauf", "warte", str(l1), "--von", "CC1")[0], 2)
         l2 = betrieb.lauf_start(self.con, self.pid, "CC1", "ohne Fenster", speicher_frei=20)

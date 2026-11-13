@@ -133,6 +133,8 @@ def argumente(befehl, eingang=EINGANG, von=None, projekt=None):
                     args += [name, str(x)]
     if not args or args[0] not in ERLAUBT:
         raise ValueError(f"Befehl „{args[0] if args else ''}“ ist über den Dateiaustausch nicht erlaubt; erlaubt: {', '.join(sorted(ERLAUBT))}")
+    if args[0] == "lauf" and ("ausfuehren" in args or "--" in args):   # Befehle, die der Dienst später ausführen könnte: nur im Terminal (TL D982)
+        raise ValueError("„lauf ausfuehren“ geht nur im Terminal des Agenten, nicht über den Dateiaustausch")
     if args[0] == "agent" and len(args) > 1 and args[1] in ("starten", "beenden", "profil", "startskript"):
         raise ValueError("Agenten starten, beenden und Profile ändern geht nur am PC (Workbench)")
     if args[0] == "projekt" and (len(args) < 2 or args[1] != "einstellen"):

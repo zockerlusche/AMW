@@ -951,11 +951,12 @@ def cmd_regeln(a, con):
 
 def _lauf_warte(con, pid, a):
     """Blockiert, bis der Lauf dran ist: rc 0 = läuft (jetzt rechnen), 2 = abgebrochen/fertig, 3 = --hoechstens erreicht.
-    Jede Minute eine Zeile mit dem Grund, damit man Warten von Hängen unterscheiden kann."""
+    Der Grund steht nur, wenn er sich ändert (höchstens einmal je Minute nachgesehen) – dazwischen gibt es nichts zu deuten:
+    die AMW entscheidet, wann der Lauf dran ist (A1641)."""
     if not a.id:
         raise kern.AmwFehler("lauf warte <nr> [--hoechstens <min>]")
     ende = time.time() + a.hoechstens * 60 if a.hoechstens else None
-    letzte = 0
+    letzte, gesagt = 0, None
     while True:
         l = betrieb.lauf_zeile(con, pid, a.id)
         if l["status"] == "laeuft":
@@ -966,7 +967,12 @@ def _lauf_warte(con, pid, a):
             return 2
         if time.time() - letzte >= 60:
             letzte = time.time()
-            print(f"{time.strftime('%H:%M')} L{a.id} wartet: {betrieb.wartegrund(con, pid, l)}", flush=True)
+            grund = betrieb.wartegrund(con, pid, l)
+            if grund != gesagt:
+                if gesagt is None:
+                    print(f"L{a.id} wartet – du musst nichts tun, die AMW startet ihn, sobald er dran ist.", flush=True)
+                print(f"{time.strftime('%H:%M')} L{a.id}: {grund}", flush=True)
+                gesagt = grund
         if ende and time.time() >= ende:
             print(f"L{a.id} wartet nach {a.hoechstens:g} min noch – bleibt eingereiht", flush=True)
             return 3
@@ -997,6 +1003,17 @@ def _baum_beenden(proc):
         pass
 
 
+def _lauf_vom_dienst(con, pid, lid):
+    """Der Dienst rechnet diesen Lauf (A1640): warten, bis er fertig ist, und seinen Rückgabewert durchreichen."""
+    print(f"L{lid} rechnet der Dienst – warte auf das Ende", flush=True)
+    while True:
+        l = betrieb.lauf_zeile(con, pid, lid)
+        if l["status"] in ("fertig", "abgebrochen"):
+            print(f"L{lid} {l['status']}: {l['ergebnis'] or ''}", flush=True)
+            return l["rc"] if l["rc"] is not None else RC_BEENDET
+        time.sleep(5)
+
+
 def _lauf_ausfuehren(con, pid, a):
     """Einreihen → warten → Befehl starten → Ausgabe in die Ergebnis-Datei → rc durchreichen → lauf ende. Beim Lauf mit Fenster:
     geht der Bildschirm zu oder beendet jemand den Lauf, endet der eigene Befehl (Prozessbaum) und der Lauf gilt als abgebrochen.
@@ -1005,13 +1022,17 @@ def _lauf_ausfuehren(con, pid, a):
     import subprocess
     import threading
     befehl = getattr(a, "befehl", None) or []
+    if KANAL.get() != "cli":                          # nie über Brücke/Briefkasten: der Dienst könnte den Befehl später ausführen
+        raise kern.AmwFehler("lauf ausfuehren geht nur im Terminal des Agenten")
     if not befehl:
         raise kern.AmwFehler("lauf ausfuehren --beschreibung … [--schirm] -- <befehl …> (der Befehl steht nach --)")
     beschreibung = a.beschreibung or a.rezept or " ".join(befehl)[:120]
     von = _von(a)
     lid = betrieb.lauf_start(con, pid, von, beschreibung, a.rezept, not a.leicht, a.schirm, a.aufgabe, warten=True,
                              erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb, braucht_vram_gb=a.braucht_vram_gb,
-                             braucht_platte_gb=a.braucht_platte_gb)
+                             braucht_platte_gb=a.braucht_platte_gb, befehl=befehl, ordner=os.getcwd(),
+                             ergebnis_datei=os.path.abspath(a.ergebnis) if a.ergebnis else None, frist_min=a.frist,
+                             waechter=os.getpid())
     print(f"L{lid} angemeldet: {beschreibung}", flush=True)
     from . import belegung                           # solange dieser Befehl wartet, gilt der Lauf als lebendig (siehe betrieb._lebt)
     belegung.lauf_merken(lid, os.getpid())
@@ -1027,6 +1048,9 @@ def _lauf_ausfuehren(con, pid, a):
             print(f"L{lid} aus der Schlange genommen", flush=True)
         belegung.lauf_vergessen(lid)
         return RC_NIE
+    if not betrieb.lauf_uebernehmen(con, lid, "agent"):    # der Dienst war schneller (dieser Prozess galt als tot) – A1640
+        belegung.lauf_vergessen(lid)
+        return _lauf_vom_dienst(con, pid, lid)
     ausgabe = open(a.ergebnis, "w", encoding="utf-8", errors="replace") if a.ergebnis else None
     if ausgabe:
         ausgabe.write(f"# AMW L{lid} · {von} · {beschreibung}\n# Befehl: {' '.join(befehl)}\n# Start: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")

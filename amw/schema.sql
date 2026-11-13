@@ -419,6 +419,13 @@ CREATE TABLE lauf (
   braucht_vram_gb   REAL,                            -- Grafikspeicher (leer = nicht geprüft)
   braucht_platte_gb REAL,                            -- freier Platz auf dem Laufwerk des Projekts (leer = nicht geprüft)
   rechner           TEXT,                            -- PC, auf dem der Lauf angemeldet wurde; leer = dieser Rechner
+  befehl            TEXT,                            -- Schema 31 (A1640): JSON-Liste, was „amw lauf ausfuehren“ ausführt
+  ordner            TEXT,                            -- Arbeitsordner beim Einreihen
+  ergebnis_datei    TEXT,                            -- wohin die Ausgabe geht
+  frist_min         REAL,                            -- --frist
+  waechter          INTEGER,                         -- PID des Warte-Prozesses
+  ausfuehrer        TEXT CHECK (ausfuehrer IN ('agent', 'dienst')),   -- wer den Befehl gestartet hat
+  spitze_gb         REAL,                            -- gemessene Spitze des Prozessbaums (A1641: Bedarf lernen)
   uid               TEXT NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(16)))),
   herkunft          TEXT NOT NULL DEFAULT '',
   geaendert_utc     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))

@@ -10,7 +10,7 @@ Several projects share one PC. If test suites, builds or image runs start at the
 1. **Update the folders** Run `amw einrichten agenten-ordner <folder>` once for every agent folder. This adds the hook; running sessions pick it up after a few seconds.
 2. **What happens then** If an agent starts a heavy command directly (for example the whole test suite), the command is not executed. Instead the agent gets the ready-made replacement: `amw lauf ausfuehren --beschreibung "Test-Suite" -- <its command>`. It waits until the computer is free, then runs and returns the result.
 3. **Add your own commands** Under Settings › Project › “More heavy commands”, enter one `Name = pattern` per line, for example `Render maps = maps\.py`.
-4. **State the need** If you know what a run needs, say so: `--braucht-gb 4` (memory), optionally `--braucht-vram-gb` (graphics memory) and `--braucht-platte-gb` (free disk space). Without it the AMW uses the project's memory limit.
+4. **State the need** If you know what a run needs, say so: `--braucht-gb 4` (memory), optionally `--braucht-vram-gb` (graphics memory) and `--braucht-platte-gb` (free disk space). Without it the AMW uses what the same kind of run by the same agent really needed recently (measured, with a margin) – the first time, the project's memory limit. Nobody has to guess.
 5. **Check** Home › control panel › “Computer” shows how many runs are in progress and waiting, and when the computer is expected to be free.
 
 ## Values to enter
@@ -42,6 +42,12 @@ Several projects share one PC. If test suites, builds or image runs start at the
 Under Settings › This PC › “Project priority” you set high, normal or low for each project. Waiting runs then go in this order: first what you moved up yourself, then “high”, then “normal”, then “low” – in order of arrival within a level. A run that is already running is never stopped. The waiting reason names the priority; in the timeline “Computer – today” priority runs are marked with ▲, and the control panel lists them briefly. The setting belongs to the PC, not to a project – you only see the names of other projects on the PC.
 
 So that nothing starves, a waiting run moves up one level for every 30 minutes it waits (adjustable, 0 = off). If two runs end up on the same level this way, the one whose project has that level itself goes first – a real “high” before one that moved up. While a run with “high” waits, another run starts only if enough memory stays free for it afterwards. If it still waits longer than 20 minutes, you get a notice with the reason – only you can move it up. If a run does not fit even with the queue empty, it holds nobody up: the others go past until enough memory is free outside the queue.
+
+### What happens if the agent's window ends the waiting command?
+Nothing is lost. `amw lauf ausfuehren` stores the command, folder and result file when it queues. When the run is due and the waiting command in the window is gone, the service starts exactly this command in the same folder and writes the output to the result file; the agent gets a message with the return code at the end. Runs with a window (screen) are not started by the service.
+
+### Does an agent have to watch the queue?
+No. “is due” and “runs longer than expected” no longer wake anyone – they only show in the Workbench. Only the result wakes. `amw lauf warte` prints the reason only when it changes.
 
 ### Why is memory set aside for a running run?
 A run often needs its memory bit by bit. So that no second run starts next to it and takes that memory away, the queue keeps its need free. If it did not state a need, the limit of its project applies – but only for the first 15 minutes; after that, what it really uses counts. The waiting reason says how much is set aside for which run.

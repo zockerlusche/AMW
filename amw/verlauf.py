@@ -70,7 +70,10 @@ def verlauf(con, pid, ab_utc, bis_utc=None, agent=None, arten=None, grenze=300):
     if "lauf" in arten:
         q.append(("SELECT start_utc, 'lauf', agent, 'L' || id, beschreibung, 'start' FROM lauf WHERE projekt_id = ?"
                   " AND start_utc >= ? AND start_utc < ?", p))
-        q.append(("SELECT ende_utc, 'lauf', agent, 'L' || id, beschreibung, status || ' rc ' || coalesce(rc, '–') FROM lauf"
+        # vom Dienst gerechnet (A1640): wer, Befehl gekürzt, Ordner, rc stehen im Verlauf (TL D982)
+        q.append(("SELECT ende_utc, 'lauf', agent, 'L' || id, beschreibung, status || ' rc ' || coalesce(rc, '–')"
+                  " || CASE WHEN ausfuehrer = 'dienst' THEN ' · vom Dienst gerechnet: ' || substr(coalesce(befehl, ''), 1, 120)"
+                  " || ' in ' || coalesce(ordner, '?') ELSE '' END FROM lauf"
                   " WHERE projekt_id = ? AND ende_utc >= ? AND ende_utc < ?", p))
     if "pruefung" in arten:
         q.append(("SELECT ergebnis_utc, 'pruefung', pruefer, 'P' || id, zweig || ' ' || substr(sha, 1, 8), ergebnis FROM pruefung"

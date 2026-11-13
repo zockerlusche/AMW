@@ -93,6 +93,8 @@ class Dienst:
         self.gpu = gpu.Wache(con)     # fremde GPU-Last: nur melden
         from . import platte
         self.platte = platte.Wache(con)   # Laufwerk wird knapp: nur melden
+        from . import laufdienst
+        self.laufdienst = laufdienst.Laufdienst(con)   # verwaiste Läufe rechnen, Spitzen messen (A1640/A1641)
         self.messung = None               # Ordnergrößen: eigener Faden, einmal am Tag
         self.seit = db.jetzt()    # Einzel-Infos wecken erst ab hier (sonst weckte der Altbestand alle auf einmal)
 
@@ -223,6 +225,11 @@ class Dienst:
             log.warning("Bildschirm: %s: %s", type(e).__name__, e)
         for lid in betrieb.warteschlange(self.con):                         # eine Warteschlange je Rechner, über alle Projekte
             log.info("Warteschlange: L%s freigegeben", lid)
+        try:                                                                 # Warte-Prozess weg → der Dienst rechnet (A1640)
+            for e in self.laufdienst.runde():
+                log.info("Laufdienst: %s", e)
+        except Exception as e:
+            log.warning("Laufdienst: %s: %s", type(e).__name__, e)
         try:                                                                 # Vorrang-Lauf wartet zu lange → Mensch
             for e in betrieb.vorrang_meldungen(self.con):
                 log.info("Vorrang: %s", e)

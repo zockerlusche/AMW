@@ -4,6 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.90.0 – 13.11.2026 · Die Warteschlange entscheidet allein, Läufe gehen nicht mehr verloren
+- **Läufe überleben das Fenster:** `amw lauf ausfuehren` merkt sich beim Einreihen Befehl, Ordner und Ergebnis-Datei. Beendet
+  das Fenster des Agenten den wartenden Befehl (bei knappem Speicher), bleibt der Lauf in der Schlange; ist er dran, startet
+  der Dienst genau diesen Befehl im selben Ordner, schreibt die Ausgabe in die Ergebnis-Datei und meldet dem Agenten den
+  Rückgabewert. Nichts muss von Hand neu eingereiht werden. Läufe mit Fenster startet der Dienst nicht selbst.
+  Sicherheit: Solche Befehle entstehen nur im Terminal des Agenten (nie über Dateiaustausch oder Online-Seite); der Dienst
+  führt sie nur im Arbeitsordner (oder Zusatzordner) des Agenten aus, nie bei HALT oder entferntem Agenten, und jede
+  Übernahme steht im Verlauf (wer, Befehl, Ordner, Rückgabewert).
+- **Bedarf ohne Schätzen:** Fehlt `--braucht-gb`, nimmt die AMW, was gleiche Läufe desselben Agenten zuletzt gemessen
+  gebraucht haben (Median mit Zuschlag) – statt pauschal der Grenze des Projekts.
+- **Weniger Weckrufe:** „ist dran“ (bei `lauf ausfuehren`) und „läuft länger als erwartet“ wecken niemanden mehr, sie stehen
+  nur in der Workbench. `amw lauf warte` schreibt den Grund nur, wenn er sich ändert.
+- Schema 31 (Lauf: Befehl, Ordner, Ergebnis-Datei, Frist, Warte-Prozess, wer ihn startet, gemessene Spitze). Hilfe Schwere Läufe.
+
 ## 1.89.1 – 13.11.2026 · Warteschlange: ein Lauf, der nie passt, hält niemanden auf
 - **Behoben:** Ein Lauf mit Vorrang, der mehr Arbeitsspeicher brauchte, als selbst bei leerer Schlange frei wird (z. B.
   8 GB + 3 GB Reserve bei 9,4 GB frei), hielt die ganze Warteschlange auf – niemand überholt ihn, und für ihn wurde

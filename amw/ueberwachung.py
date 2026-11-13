@@ -227,6 +227,7 @@ class Waechter:
                 an = ",".join(dict.fromkeys(_leads(self.con, p["id"])))
                 if an:
                     with db.schreiben(self.con):
-                        kern._posten(self.con, p["id"], "AMW", an, "meldung", "Achtung: " + w["text"])
+                        # „läuft länger als erwartet“ ist ein Zustand, kein Auftrag: Info (weckt nicht, steht in der Workbench) – A1641
+                        kern._posten(self.con, p["id"], "AMW", an, "info" if w["art"] == "lauf" else "meldung", "Achtung: " + w["text"])
                 ereignisse.append(w["text"])
         return ereignisse
