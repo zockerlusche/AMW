@@ -147,14 +147,15 @@ class Seite(Wiederholt, Grund):
                         " return [x.left, x.right, innerWidth]; })()")
         self.assertTrue(r[0] >= 0 and r[1] <= r[2], r)                               # Filter der Aufgaben sichtbar, nicht weggescrollt
         self.tab.js("document.getElementById('mehr').click()")
-        self.warten("document.querySelectorAll('.mehr-liste button').length === 7")              # mit „Nachrichten“ (1.74.0)
-        self.assertTrue(self.tab.js("[...document.querySelectorAll('.mehr-liste button')].some(b => b.textContent.includes('Nachrichten'))"))
+        self.warten("document.querySelectorAll('.mehr-liste button').length === 8")              # mit „Nachrichten“ (1.74.0), „Team-Chat“ (1.91.0)
+        for x in ("Nachrichten", "Team-Chat"):
+            self.assertTrue(self.tab.js(f"[...document.querySelectorAll('.mehr-liste button')].some(b => b.textContent.includes({x!r}))"), x)
         self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Verlauf')).click()")
         self.warten("zustand.sicht === 'verlauf' && document.getElementById('mehr').classList.contains('an')")
 
     def test_nachrichten_reiter_und_startkarte(self):
-        """Nachrichten: Eingang · Gesendet · Fragen als eine Leiste (auch auf der Fragen-Seite); Startseite nur eine Karte mit Sprung;
-        zurückziehen mit Rückfrage; Bezug als Chip."""
+        """Nachrichten: Eingang · Gesendet als eine Leiste – Fragen haben seit 1.91.0 ihre eigene Seite mit eigenem Kopf;
+        Startseite nur eine Karte mit Sprung; zurückziehen mit Rückfrage; Bezug als Chip."""
         aid = db.einfuegen(self.con, "aufgabe", projekt_id=self.pid, titel="Linien", agent="CC1", status="laeuft", einstufung="aktiv",
                            angelegt_utc=db.jetzt(), angelegt_von="TL")
         self.con.commit()
@@ -164,7 +165,7 @@ class Seite(Wiederholt, Grund):
         self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-start').innerText"))
         self.tab.js("document.querySelector('.nr-start').click()")
         self.warten("zustand.sicht === 'nachrichten' && document.querySelector('.nr-reiter button.an')")
-        self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [True, False, False])
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [True, False])
         self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-liste').innerText"))
         self.tab.js("document.querySelectorAll('.nr-reiter button')[1].click()")
         self.warten(f"document.querySelector('.nr-liste') && document.querySelector('.nr-liste').innerText.includes('Bitte Linien aufräumen')")
@@ -173,9 +174,8 @@ class Seite(Wiederholt, Grund):
         self.tab.js("window.confirm = () => true; [...document.querySelectorAll('.nr-gespraech button')].find(b => b.innerText.toUpperCase().includes('ZURÜCKZIEHEN')).click()")
         self.warten("document.querySelector('.nr-eintrag.weg')")
         self.assertEqual(self.con.execute("SELECT bemerkung FROM empfang WHERE nachricht_id = ?", (n1,)).fetchone()[0], kern.ZURUECKGEZOGEN)
-        self.tab.js("document.querySelectorAll('.nr-reiter button')[2].click()")
-        self.warten("zustand.sicht === 'fragen' && document.querySelector('.nr-reiter button.an')")
-        self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [False, False, True])
+        self.tab.js("zeige('fragen')")
+        self.warten("zustand.sicht === 'fragen' && document.querySelector('#inhalt .seitenkopf') && !document.querySelector('.nr-reiter')")
 
     def test_baum_zeigt_beziehungen_nur_fuer_die_karte_unter_der_maus(self):
         """Team-Baum: dauerhaft nur die Äste; Prüf-/Warte-Linien einer Karte erst mit der Maus darauf, Rest abgeblendet."""

@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.91.1 – 13.11.2026 · Tests an 1.91.0 angepasst
+- Zwei Browser-Tests erwarteten noch den Stand vor 1.91.0: „Mehr“ am Handy hat jetzt 8 Einträge (mit Team-Chat), und unter
+  „Nachrichten“ gibt es den Reiter „Fragen“ nicht mehr – Fragen haben ihre eigene Seite. Am Verhalten ändert sich nichts.
+
 ## 1.91.0 – 13.11.2026 · Postfach, Fragen getrennt, Team-Chat
 - **Fragen nur unter „Fragen“:** Fragen der Agenten an dich, ihre Rückfragen, Nachträge und deine Antworten stehen nur
   noch unter dem Menüpunkt „Fragen“ – mit eigener Zahl und eigenem Kopf. Unter „Nachrichten“ steht oben nur ein Hinweis
