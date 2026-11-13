@@ -14,9 +14,13 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   „Nicht verbunden“ mit dem falschen Rat „anmelden“; ebenso `amw dienst status`.
 - **Kleinigkeiten:** Online am Handy ist „Abmelden“ klein rechts oben; im Agenten-Dialog steht die Zahl neuer Nachrichten
   nur noch einmal.
+- **Untermenüs am Handy:** Reiter, Filter und Sprungleisten im Seitenkopf, die sich waagrecht wischen lassen, enden nicht
+  mehr stumm mitten im Wort – ein Verlauf an der Kante zeigt, dass es dort weitergeht.
 - **Bedienbarkeits-Rundgang als Test:** Jede Seite und jeder Dialog wird am PC und am Handy, hell und dunkel, am PC und
   online geprüft – Fehler in der Konsole, nichts ragt seitwärts über den Rand, jedes ✕ im Bild und treffbar, keine
-  abgeschnittenen Knopftexte, keine Fokus-Fallen. Neue Seiten hängen sich an dasselbe Gerüst.
+  abgeschnittenen Knopftexte, keine Fokus-Fallen. Neue Seiten hängen sich an dasselbe Gerüst. Geprüft sind Start,
+  Nachrichten, Fragen, Planung, Aufgaben (jeder Reiter), Verlauf, Versionshinweise, Wissen (jeder Reiter), Dokumente,
+  Betrieb, Einstellungen und die Dialoge zu Agent, Aufgabe, Thema und Dokument.
 
 ## 1.86.0 – 13.11.2026 · Empfehlung für Modell und Denkaufwand
 - **Größe und Art je Aufgabe:** `amw aufgabe neu|aendern --groesse S|M|L|XL --art text|mechanisch|fehlersuche|oberflaeche|sicherheit|konzept`
