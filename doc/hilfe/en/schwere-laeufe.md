@@ -18,6 +18,8 @@ Several projects share one PC. If test suites, builds or image runs start at the
 |---|---|
 | Send heavy commands through the queue (This PC) | leave it on; off means agents start everything directly |
 | Project priority (This PC) | high, normal or low for each project, default normal |
+| Move up after waiting (This PC) | one level higher after waiting this many minutes, default 30, 0 = off |
+| Keep room for priority (This PC) | leave it on; off means other runs start even if the memory for the priority run is then missing |
 | Memory reserve (This PC) | how much stays free for you, default 3 GB |
 | Show long-term memory use from (This PC) | a program outside the queue that uses at least this much memory appears in the control panel, default 4 GB, 0 = off |
 | More heavy commands (Project) | Name = pattern, one entry per line; the pattern is a regular expression |
@@ -38,6 +40,8 @@ Several projects share one PC. If test suites, builds or image runs start at the
 ## Questions
 ### How does a project get priority?
 Under Settings › This PC › “Project priority” you set high, normal or low for each project. Waiting runs then go in this order: first what you moved up yourself, then “high”, then “normal”, then “low” – in order of arrival within a level. A run that is already running is never stopped. The waiting reason names the priority; in the timeline “Computer – today” priority runs are marked with ▲, and the control panel lists them briefly. The setting belongs to the PC, not to a project – you only see the names of other projects on the PC.
+
+So that nothing starves, a waiting run moves up one level for every 30 minutes it waits (adjustable, 0 = off). While a run with “high” waits, another run starts only if enough memory stays free for it afterwards. If it still waits longer than 20 minutes, you get a notice with the reason – only you can move it up.
 
 ### Why is memory set aside for a running run?
 A run often needs its memory bit by bit. So that no second run starts next to it and takes that memory away, the queue keeps its need free. If it did not state a need, the limit of its project applies – but only for the first 15 minutes; after that, what it really uses counts. The waiting reason says how much is set aside for which run.

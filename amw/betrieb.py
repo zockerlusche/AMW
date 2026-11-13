@@ -343,6 +343,8 @@ def _vordermann(con, pid, x, speicher_frei):
     st = vorrang_stufe(con, x["projekt_id"])
     if st != "normal":
         teile.append(t_vorrang(st) + (f" für {projekt_name(con, pid)}" if eigen else ""))
+    if lauf_stufe(con, x) > VORRANG[st]:
+        teile.append("aufgerückt nach Wartezeit")
     if speicher_frei is not None and _bedarf(con, x):
         nutzbar = round(speicher_frei - _vorgemerkt_gb(con) - reserve_gb(), 1)
         if nutzbar < _bedarf(con, x):
@@ -377,6 +379,74 @@ def vorrang_liste(con):
     v = vorrang()
     namen = [r["name"] for r in con.execute("SELECT name FROM projekt ORDER BY name")]
     return sorted(({"projekt": n, "stufe": v[n]} for n in namen if n in v), key=lambda x: (-VORRANG[x["stufe"]], x["projekt"]))
+
+
+MELDUNG_MIN = 20     # wartet ein Lauf mit Vorrang „hoch“ länger, bekommt der Mensch eine Meldung mit Grund (A1623 V2)
+
+
+def aufruecken_min():
+    """Je so viele Minuten Wartezeit rückt ein wartender Lauf eine Stufe höher (Einstellung dieses PCs; 0 = aus)."""
+    from . import einstellungen
+    return einstellungen.wert("vorrang_aufruecken_min")
+
+
+def platz_freihalten():
+    from . import einstellungen
+    return einstellungen.wert("vorrang_platz_freihalten")
+
+
+def _minuten_seit(utc, jetzt=None):
+    import datetime
+    try:
+        a = datetime.datetime.strptime(utc[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=datetime.timezone.utc)
+    except (TypeError, ValueError):
+        return 0.0
+    return max(0.0, ((jetzt or datetime.datetime.now(datetime.timezone.utc)) - a).total_seconds() / 60)
+
+
+def lauf_stufe(con, l, v=None, jetzt=None):
+    """Vorrang eines wartenden Laufs als Zahl (2 hoch, 1 normal, 0 niedrig): die Stufe seines Projekts, je
+    aufruecken_min() Minuten Wartezeit eine höher, höchstens „hoch“ – so kommt auch „niedrig“ sicher dran."""
+    basis = VORRANG[vorrang_stufe(con, l["projekt_id"], v)]
+    n = aufruecken_min()
+    if n and basis < VORRANG["hoch"] and l["status"] == "angemeldet":
+        basis = min(VORRANG["hoch"], basis + int(_minuten_seit(l["angemeldet_utc"], jetzt) // n))
+    return basis
+
+
+def _halten_fuer(con, kandidaten, stufe_neu, v=None):
+    """Platz freihalten (A1623 V2): der größte Speicherbedarf eines wartenden Laufs mit „hoch“, der vor einem Lauf der
+    Stufe stufe_neu steht – (GB, Lauf) oder (0, None). Aus, wenn die Einstellung aus ist."""
+    if not platz_freihalten():
+        return 0.0, None
+    beste = (0.0, None)
+    for h in kandidaten:
+        if lauf_stufe(con, h, v) == VORRANG["hoch"] and stufe_neu < VORRANG["hoch"] and _bedarf(con, h) > beste[0]:
+            beste = (float(_bedarf(con, h)), h)
+    return beste
+
+
+def vorrang_meldungen(con, jetzt=None):
+    """Wartet ein Lauf eines Projekts mit Vorrang „hoch“ länger als MELDUNG_MIN Minuten, bekommt der Mensch einmal eine
+    Meldung mit dem Wartegrund (im Projekt des Laufs). Rückgabe: Texte der neuen Meldungen."""
+    v = vorrang()
+    if not v:
+        return []
+    aus = []
+    for l in wartende(con):
+        if vorrang_stufe(con, l["projekt_id"], v) != "hoch" or _minuten_seit(l["angemeldet_utc"], jetzt) < MELDUNG_MIN:
+            continue
+        kurz = f"L{l['id']} mit Vorrang wartet seit {int(_minuten_seit(l['angemeldet_utc'], jetzt))} Minuten"
+        if con.execute("SELECT 1 FROM nachricht WHERE projekt_id = ? AND von = 'AMW' AND art = 'meldung' AND kurz LIKE ?",
+                       (l["projekt_id"], f"L{l['id']} mit Vorrang wartet seit %")).fetchone():
+            continue
+        grund = wartegrund(con, l["projekt_id"], l)
+        with db.schreiben(con):
+            kern._posten(con, l["projekt_id"], "AMW", kern.ENTWICKLER, "meldung", kurz,
+                         f"{l['agent']}: {l['beschreibung']}\n\nWarum: {grund}\n\nNichts wird abgebrochen. Vorziehen kannst nur du: "
+                         f"amw lauf vorziehen {l['id']} (oder in der Planung › Rechner – heute).", aufgabe_id=l["aufgabe_id"])
+        aus.append(kurz)
+    return aus
 
 
 def t_vorrang(stufe):
@@ -434,8 +504,8 @@ def wartende(con, pid=None):
                          (rechner(),)).fetchall()
     oben = sorted((z for z in zeilen if z["rang"] >= MENSCH_RANG), key=lambda z: (-z["rang"], z["id"]))
     v = vorrang()
-    stufe = {p: VORRANG[vorrang_stufe(con, p, v)] for p in {z["projekt_id"] for z in zeilen}}
-    rest = sorted((z for z in zeilen if z["rang"] < MENSCH_RANG), key=lambda z: (-stufe[z["projekt_id"]], z["id"]))
+    stufe = {z["id"]: lauf_stufe(con, z, v) for z in zeilen}      # mit Aufrücken nach Wartezeit (A1623 V2)
+    rest = sorted((z for z in zeilen if z["rang"] < MENSCH_RANG), key=lambda z: (-stufe[z["id"]], z["id"]))
     je_projekt = {}
     for z in rest:
         je_projekt.setdefault(z["projekt_id"], []).append(z)
@@ -470,7 +540,7 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     with db.schreiben(con):
         w = wartende(con, pid)
         eigene = VORRANG[vorrang_stufe(con, pid)]          # nur wer nach der Reihenfolge vor ihm stünde, hält ihn auf
-        w_vor = [x for x in w if x["rang"] >= MENSCH_RANG or VORRANG[vorrang_stufe(con, x["projekt_id"])] >= eigene]
+        w_vor = [x for x in w if x["rang"] >= MENSCH_RANG or lauf_stufe(con, x) >= eigene]
         schirm_zu = schirm_mod.sperrgrund(con) if schirm or any(x["schirm"] for x in w) else None
         grund = sperre or (schirm_zu if schirm else None) or _besetzt(con, pid, plaetze)[0]
         gesperrt = _gesperrt(con, pid, w_vor, schirm_zu) if not sperre else {}
@@ -479,6 +549,10 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
             grund = "Warteschlange: vor dir " + ", ".join(_vordermann(con, pid, x, speicher_frei) for x in vor)
         if not grund:
             grund = _speicher_fehlt(con, pid, grenze, speicher_frei)
+        if not grund and grenze:
+            halten, h = _halten_fuer(con, w, eigene)
+            if halten and _speicher_fehlt(con, pid, grenze + halten, speicher_frei):
+                grund = f"Platz frei gehalten für L{h['id']} ({h['agent'] if h['projekt_id'] == pid else 'anderes Projekt'}) mit Vorrang: braucht {halten:g} GB"
         if not grund:
             grund = _mittel_fehlen(con, {"projekt_id": pid, "braucht_vram_gb": braucht_vram_gb, "braucht_platte_gb": braucht_platte_gb})
         if grund and not warten:
@@ -516,10 +590,12 @@ def warteschlange(con, pid=None, speicher_frei=None):
         return []
     if speicher_frei is None:
         speicher_frei = speicher_frei_gb()[0]
-    gestartet, gesperrt = [], set()
+    gestartet, gesperrt, halten = [], set(), 0.0
+    freihalten = platz_freihalten()
     with db.schreiben(con):
         schirm_zu = any(l["schirm"] for l in wartende(con, pid)) and schirm_mod.sperrgrund(con)
         for l in wartende(con, pid):
+            hoch = lauf_stufe(con, l) == VORRANG["hoch"]
             plaetze = _plaetze_von(l)
             if plaetze & gesperrt:
                 continue
@@ -532,10 +608,16 @@ def warteschlange(con, pid=None, speicher_frei=None):
             _, platz = _besetzt(con, lp, plaetze)
             if platz:                                # hält nur auf, wer genau diesen Platz braucht
                 gesperrt.add(platz)
+                if hoch and freihalten:              # sein Speicher bleibt frei, bis sein Platz frei wird (A1623 V2)
+                    halten = max(halten, float(_bedarf(con, l)))
                 continue
             if _speicher_fehlt(con, lp, _bedarf(con, l), speicher_frei) or _mittel_fehlen(con, l):
                 gesperrt |= plaetze
+                if hoch and freihalten:
+                    halten = max(halten, float(_bedarf(con, l)))
                 continue
+            if not hoch and halten and _bedarf(con, l) and _speicher_fehlt(con, lp, _bedarf(con, l) + halten, speicher_frei):
+                continue                             # ließe zu wenig für den wartenden Vorrang-Lauf übrig
             con.execute("UPDATE lauf SET status = 'laeuft', start_utc = ?, speicher_frei_gb = ? WHERE id = ?",
                         (db.jetzt(), speicher_frei, l["id"]))
             if l["ki_auftrag"]:                      # der KI-Arbeiter im Dienst holt ihn ab
@@ -584,6 +666,10 @@ def wartegrund(con, pid, l, speicher_frei=None):
     if vor:
         gruende.append("vor dir: " + ", ".join(_vordermann(con, pid, x, frei) for x in vor))
     g = _speicher_fehlt(con, pid, _bedarf(con, l), frei)
+    if not g and _bedarf(con, l):
+        halten, h = _halten_fuer(con, [x for x in w if x["id"] != l["id"]], lauf_stufe(con, l))
+        if halten and _speicher_fehlt(con, pid, _bedarf(con, l) + halten, frei):
+            gruende.append(f"Platz frei gehalten für L{h['id']} ({h['agent'] if h['projekt_id'] == pid else 'anderes Projekt'}) mit Vorrang: braucht {halten:g} GB")
     if g and speicher_frei is None:                     # echte Messung: sagen, wer den Speicher außerhalb der Warteschlange hält
         from . import belegung
         dauer = belegung.aktuell(con)

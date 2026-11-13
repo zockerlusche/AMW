@@ -223,6 +223,11 @@ class Dienst:
             log.warning("Bildschirm: %s: %s", type(e).__name__, e)
         for lid in betrieb.warteschlange(self.con):                         # eine Warteschlange je Rechner, über alle Projekte
             log.info("Warteschlange: L%s freigegeben", lid)
+        try:                                                                 # Vorrang-Lauf wartet zu lange → Mensch
+            for e in betrieb.vorrang_meldungen(self.con):
+                log.info("Vorrang: %s", e)
+        except Exception as e:
+            log.warning("Vorrang: %s: %s", type(e).__name__, e)
         statusline.uebernehmen(self.con)                                     # Kontext, Grenzen, Kosten je Sitzung
         try:                                                                 # „Sichern & beenden“: abgemeldet oder Frist um
             for e in steuerung.ende_pruefen(self.con):

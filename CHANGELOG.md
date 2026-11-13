@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.87.0 – 13.11.2026 · Vorrang: Aufrücken, Platz freihalten, Meldung
+- **Aufrücken nach Wartezeit:** Ein wartender Lauf rückt je 30 Minuten Wartezeit eine Stufe höher, höchstens bis
+  „hoch“ – so kommt auch „niedrig“ sicher dran (Einstellungen › Dieser PC, 0 = aus). Der Wartegrund nennt es
+  („aufgerückt nach Wartezeit“).
+- **Platz freihalten für Vorrang** (Schalter, Vorgabe an): Wartet ein Lauf mit „hoch“, startet ein Lauf mit
+  niedrigerer Stufe nur, wenn danach noch Arbeitsspeicher für ihn (sein Bedarf plus Reserve) frei bleibt – auch auf
+  einer anderen Spur. Der Wartegrund nennt, für wen Platz frei gehalten wird.
+- **Meldung:** Wartet ein Lauf mit „hoch“ trotzdem länger als 20 Minuten, bekommt der Mensch einmal eine Meldung mit
+  dem Grund. Abgebrochen wird nichts; vorziehen kann nur der Mensch (A1623 Stufe V2).
+
 ## 1.86.0 – 13.11.2026 · Vorrang der Projekte in der Warteschlange
 - **Einstellungen › Dieser PC › „Vorrang der Projekte“:** je Projekt hoch, normal oder niedrig (Vorgabe normal). Die
   Einstellung gehört dem PC, nicht einem Projekt; ändern lässt sie sich nur am PC. Sie wirkt sofort.

@@ -154,6 +154,8 @@ FELDER = {
     "cpu_laeufe": (2, _ganz(1, 8)),
     # Vorrang der Projekte in der Warteschlange: {Projektname: hoch|niedrig}, fehlt eins = normal (A1623)
     "vorrang": ({}, _vorrang),
+    "vorrang_aufruecken_min": (30, _ganz(0, 1440)),   # wer so lange wartet, rückt eine Stufe höher (0 = aus)
+    "vorrang_platz_freihalten": (True, _wahr),        # wartet ein Lauf mit Vorrang: andere nur, wenn sein Speicher frei bleibt
     # so viel Arbeitsspeicher bleibt frei, bevor die Warteschlange einen schweren Lauf einlässt (für den Menschen am Rechner)
     "speicher_reserve_gb": (3.0, _dezimal(0, 64)),
     "platte_gelb_prozent": (15.0, _dezimal(0, 100)),   # Laufwerk: darunter Warnung …

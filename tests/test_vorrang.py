@@ -138,10 +138,76 @@ class Anlauf(Grund):
             self.assertNotIn("Zwei", g)
 
 
+class Stufe2(Grund):
+    """A1623 V2: Aufrücken nach Wartezeit, Platz freihalten für Vorrang, Meldung an den Menschen."""
+
+    def setUp(self):
+        super().setUp()
+        self.v, self.auf, self.frei = {"Zwei": "hoch"}, 30, True
+        for name, f in (("vorrang", lambda: dict(self.v)), ("aufruecken_min", lambda: self.auf), ("platz_freihalten", lambda: self.frei),
+                        ("reserve_gb", lambda: 3.0)):
+            p = mock.patch.object(betrieb, name, f)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def alt(self, lid, minuten):
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE lauf SET angemeldet_utc = ? WHERE id = ?", (vor_minuten(minuten), lid))
+
+    def test_aufruecken_nach_wartezeit(self):
+        self.v = {"Zwei": "niedrig"}
+        self.start("Eins", "C")
+        b = self.start("Zwei", "A")
+        c = self.start("Eins", "A")
+        reihe = lambda: [x["id"] for x in betrieb.wartende(self.con)]
+        self.alt(b, 20)
+        self.assertEqual(reihe(), [c, b])                  # niedrig, noch nicht aufgerückt
+        self.alt(b, 40)
+        self.assertEqual(reihe(), [b, c])                  # jetzt normal – und früher da
+        self.alt(b, 70)
+        self.assertEqual(betrieb.lauf_stufe(self.con, betrieb.wartende(self.con)[0]), 2)     # höchstens hoch
+        g = betrieb.wartegrund(self.con, self.p["Eins"], betrieb.lauf_zeile(self.con, self.p["Eins"], c), speicher_frei=32.0)
+        self.assertIn(f"vor dir: L{b} (anderes Projekt, niedriger Vorrang, aufgerückt nach Wartezeit)", g)
+        self.auf = 0                                       # aus
+        self.assertEqual(reihe(), [c, b])
+
+    def test_platz_freihalten_fuer_vorrang(self):
+        a = betrieb.lauf_start(self.con, self.p["Eins"], "C", "GPU", warten=True, gpu=True, speicher_frei=32.0, braucht_gb=2)
+        h = betrieb.lauf_start(self.con, self.p["Zwei"], "A", "GPU", warten=True, gpu=True, speicher_frei=32.0, braucht_gb=6)
+        self.assertEqual((self.status(a), self.status(h)), ("laeuft", "angemeldet"))       # wartet auf die Grafikkarte
+        n = betrieb.lauf_start(self.con, self.p["Eins"], "B", "CPU", warten=True, speicher_frei=12.0, braucht_gb=4)
+        self.assertEqual(self.status(n), "angemeldet")      # 12 − 2 − 3 = 7 ≥ 4, aber 4 + 6 für den Vorrang-Lauf > 7
+        g = betrieb.wartegrund(self.con, self.p["Eins"], betrieb.lauf_zeile(self.con, self.p["Eins"], n), speicher_frei=12.0)
+        self.assertIn(f"Platz frei gehalten für L{h} (anderes Projekt) mit Vorrang: braucht 6 GB", g)
+        self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=12.0), [])
+        self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=20.0), [n])          # genug für beide
+        betrieb.lauf_ende(self.con, self.p["Eins"], "B", n, 0, speicher_frei=32.0)
+        n2 = betrieb.lauf_start(self.con, self.p["Eins"], "B", "CPU", warten=True, speicher_frei=12.0, braucht_gb=4)
+        self.assertEqual(self.status(n2), "angemeldet")
+        self.frei = False                                  # Schalter aus: wie in V1
+        self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=12.0), [n2])
+
+    def test_meldung_nach_20_minuten_einmal(self):
+        self.start("Eins", "C")
+        h = self.start("Zwei", "A")
+        self.alt(h, 10)
+        self.assertEqual(betrieb.vorrang_meldungen(self.con), [])
+        self.alt(h, 25)
+        self.assertEqual(betrieb.vorrang_meldungen(self.con), [f"L{h} mit Vorrang wartet seit 25 Minuten"])
+        self.assertEqual(betrieb.vorrang_meldungen(self.con), [])                          # nur einmal
+        m = self.con.execute("SELECT * FROM nachricht WHERE kurz LIKE ?", (f"L{h} mit Vorrang%",)).fetchone()
+        self.assertEqual((m["projekt_id"], m["von"], m["art"]), (self.p["Zwei"], "AMW", "meldung"))
+        self.assertIn("Warum: Platz 1 von 1 (Vorrang für Zwei) – CPU-Spur voll", m["text"])
+        self.assertIn(f"amw lauf vorziehen {h}", m["text"])
+        self.v = {}
+        self.assertEqual(betrieb.vorrang_meldungen(self.con), [])
+
+
 class Einstellung(unittest.TestCase):
     def test_pruefung_und_speichern(self):
         pruefe = einstellungen.FELDER["vorrang"][1]
         self.assertEqual(einstellungen.FELDER["vorrang"][0], {})
+        self.assertEqual((einstellungen.FELDER["vorrang_aufruecken_min"][0], einstellungen.FELDER["vorrang_platz_freihalten"][0]), (30, True))
         self.assertEqual(pruefe({"GlassWorld": "hoch", "AMW": "normal", "LayerIT": "Niedrig"}), {"GlassWorld": "hoch", "LayerIT": "niedrig"})
         self.assertEqual(pruefe('{"A": "hoch"}'), {"A": "hoch"})
         for falsch in ({"A": "sehr hoch"}, ["A"], {"": "hoch"}):
@@ -191,7 +257,9 @@ class Texte(unittest.TestCase):
             html = f.read()
         for x in ('e_vorrang: "Vorrang der Projekte"', 'e_vorrang: "Project priority"', 'vr_niedrig: "niedrig"', 'vr_niedrig: "low"',
                   'rh_l_vorrang: "Vorrang (Einstellung dieses PCs)"', 'rh_l_vorrang: "Priority (setting of this PC)"',
-                  're_vorrang: "Vorrang in der Warteschlange: {x}."', 're_vorrang: "Priority in the queue: {x}."'):
+                  're_vorrang: "Vorrang in der Warteschlange: {x}."', 're_vorrang: "Priority in the queue: {x}."',
+                  'e_vr_auf: "Aufrücken nach Wartezeit (Minuten)"', 'e_vr_auf: "Move up after waiting (minutes)"',
+                  'e_vr_platz: "Platz freihalten für Vorrang"', 'e_vr_platz: "Keep room for priority"'):
             self.assertIn(x, html)
 
 

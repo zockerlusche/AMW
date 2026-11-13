@@ -18,6 +18,8 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 |---|---|
 | Schwere Befehle über die Warteschlange (Dieser PC) | an lassen; aus heißt: Agenten starten alles direkt |
 | Vorrang der Projekte (Dieser PC) | je Projekt hoch, normal oder niedrig, Vorgabe normal |
+| Aufrücken nach Wartezeit (Dieser PC) | nach so vielen Minuten Warten eine Stufe höher, Vorgabe 30, 0 = aus |
+| Platz freihalten für Vorrang (Dieser PC) | an lassen; aus heißt: andere Läufe starten, auch wenn danach der Speicher für den Vorrang-Lauf fehlt |
 | Arbeitsspeicher-Reserve (Dieser PC) | so viel bleibt für dich frei, Vorgabe 3 GB |
 | Dauerhaft belegt anzeigen ab (Dieser PC) | ab so viel Arbeitsspeicher erscheint ein Programm außerhalb der Warteschlange im Leitstand, Vorgabe 4 GB, 0 = aus |
 | Weitere schwere Befehle (Projekt) | Name = Muster, ein Eintrag je Zeile; das Muster ist ein regulärer Ausdruck |
@@ -38,6 +40,8 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 ## Häufige Fragen
 ### Wie bekommt ein Projekt Vorrang?
 Unter Einstellungen › Dieser PC › „Vorrang der Projekte“ stellst du je Projekt hoch, normal oder niedrig ein. Wartende Läufe kommen dann in dieser Reihenfolge dran: zuerst, was du selbst vorgezogen hast, dann „hoch“, dann „normal“, dann „niedrig“ – innerhalb einer Stufe der Reihe nach. Ein Lauf, der schon läuft, wird nie abgebrochen. Der Wartegrund nennt den Vorrang; im Zeitstrahl „Rechner – heute“ sind Vorrang-Läufe mit ▲ markiert, im Leitstand steht die Liste kurz. Die Einstellung gehört dem PC, nicht einem Projekt – Namen anderer Projekte siehst du nur am PC.
+
+Damit nichts verhungert, rückt ein wartender Lauf je 30 Minuten Wartezeit eine Stufe höher (einstellbar, 0 = aus). Wartet ein Lauf mit „hoch“, startet ein anderer nur, wenn danach noch genug Arbeitsspeicher für ihn frei bleibt. Wartet er trotzdem länger als 20 Minuten, bekommst du eine Meldung mit dem Grund – vorziehen kannst nur du.
 
 ### Warum ist für einen laufenden Lauf Arbeitsspeicher vorgemerkt?
 Ein Lauf braucht seinen Arbeitsspeicher oft erst nach und nach. Damit kein zweiter Lauf daneben startet, der ihm den Speicher wegnimmt, hält die Warteschlange seinen Bedarf frei. Hat er keinen Bedarf angegeben, gilt die Grenze seines Projekts – aber nur in den ersten 15 Minuten; danach zählt, was er wirklich belegt. Der Wartegrund nennt, für welchen Lauf wie viel vorgemerkt ist.
