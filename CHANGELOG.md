@@ -4,6 +4,19 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.100.0 – 14.11.2026 · Planung: Wo stehen wir?
+- **Stand jetzt:** Ganz oben in der Zeitleiste stehen der aktive Meilenstein mit Fortschritt („3 von 8 fertig“), das nächste
+  Zieldatum und wer gerade an welcher Aufgabe arbeitet – ein Klick öffnet die Aufgabe.
+- **Jetzt-Linie:** kräftig und oben mit „Jetzt“ und Uhrzeit beschriftet; beim Drüberfahren Datum, Uhrzeit und was gerade läuft.
+  Balken und Rauten zeigen beim Drüberfahren auch Status, Fortschritt und Prognose.
+- **Aktives vorne:** Aktive Meilensteine stehen in der Übersicht oben. Fertige sind ausgeblendet („Fertige zeigen“ blendet sie
+  blass mit ✓ ein) und in der Zeitleiste unter „Fertige Meilensteine“ eingeklappt.
+- **Nichts verschwindet:** Offene Aufgaben ohne Meilenstein stehen unten in der Zeitleiste unter „Ohne Meilenstein (n)“. Legt der
+  Lead eine Aufgabe ohne `--bogen` an, solange ein Meilenstein aktiv oder geplant ist, nennt die AMW die Meilensteine mit einem
+  Vorschlag; bewusst ohne: `--ohne-bogen`.
+- **Rechner – heute** ist eingeklappt, bis du es öffnest; Läufe tragen ihren Namen nur, wo er hinpasst (sonst beim Drüberfahren).
+- Neue Hilfe „Planung: Wo stehen wir?“.
+
 ## 1.99.0 – 14.11.2026 · Profil ändern auf dein Wort, Release-Kette robuster
 - Der Lead darf das Profil eines Agenten (Ordner, Zusatzordner, Modell, Denkaufwand …) jetzt auch ohne dich am PC ändern –
   aber nur auf dein Wort: `amw agent profil <Agent> … --wort W<nr>`, auch über den Dateiaustausch. Das Wort muss aus diesem

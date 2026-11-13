@@ -363,7 +363,10 @@ class Seite(Wiederholt, Grund):
         with mock.patch.object(belegung, "prozesse", lambda: [{"pid": 5, "eltern": 1, "name": "llama-server", "gb": 16.4, "seit": seit}]), \
                 mock.patch.object(belegung, "_gemerkt", [0.0, None, []]):
             self.oeffnen("planung", "document.querySelector('#rechner-heute .rh-lauf')")
-            balken = self.tab.js("[...document.querySelectorAll('#rechner-heute .rh-lauf')].map(b => [b.className.replace('rh-lauf ', ''), b.textContent])")
+            self.assertFalse(self.tab.js("document.querySelector('#rechner-heute').open"))                   # eingeklappt, bis man es öffnet (A1639)
+            self.tab.js("document.querySelector('#rechner-heute summary').click()")
+            self.warten("document.querySelector('#rechner-heute').open")
+            balken =self.tab.js("[...document.querySelectorAll('#rechner-heute .rh-lauf')].map(b => [b.className.replace('rh-lauf ', ''), b.textContent])")
             self.assertEqual(balken[0], ["dauer", "llama-server · 16,4 GB"])
             self.assertEqual(balken[1], ["fertig eigen", f"L{l1} CC1 · 8 GB"])
             self.assertEqual(balken[2][0], "laeuft")
@@ -384,6 +387,43 @@ class Seite(Wiederholt, Grund):
             self.warten("!document.querySelector('#rechner-heute').open")
             self.tab.js("sichtPlanung()")
             self.warten("document.querySelector('#rechner-heute') && !document.querySelector('#rechner-heute').open")
+
+    def test_planung_wo_stehen_wir(self):
+        """A1639: oben „Stand jetzt“ (aktiver Meilenstein mit Fortschritt, wer an was arbeitet), Jetzt-Linie beschriftet mit
+        Uhrzeit, Fertige in der Übersicht erst auf Wunsch und in der Zeitleiste eingeklappt, Aufgaben ohne Meilenstein unten."""
+        from amw import planung
+        aktiv = planung.bogen_neu(self.con, self.pid, "TL", "Karten-Look", ziel="z", abnahme="a", zieldatum="2099-01-01")
+        fertig = planung.bogen_neu(self.con, self.pid, "TL", "Alter Stand", ziel="z", abnahme="a")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE bogen SET status = 'aktiv' WHERE id = ?", (aktiv,))
+            self.con.execute("UPDATE bogen SET status = 'fertig', fertig_utc = ? WHERE id = ?", (db.jetzt(), fertig))
+        a = kern.aufgabe_neu(self.con, self.pid, "TL", "Knöpfe groß", agent="CC1")
+        planung.schritt_setzen(self.con, self.pid, "TL", aid=a, bogen_id=aktiv)
+        alt = kern.aufgabe_neu(self.con, self.pid, "TL", "Alt erledigt", agent="CC1")
+        planung.schritt_setzen(self.con, self.pid, "TL", aid=alt, bogen_id=fertig)
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234', fertig_utc = ?, begonnen_utc = ? WHERE id = ?",
+                             (db.jetzt(), db.jetzt(), alt))
+        kern.aufgabe_status(self.con, self.pid, "CC1", a, "start")
+        ohne = kern.aufgabe_neu(self.con, self.pid, "TL", "Vergessen ohne Meilenstein")
+        self.oeffnen("planung", "document.querySelector('#stand-jetzt') && document.querySelector('#ohne-bogen')")
+        stand = self.tab.js("document.querySelector('#stand-jetzt').innerText")
+        for teil in ("STAND JETZT", "Karten-Look", "0 von 1 fertig", "CC1", f"A{a} Knöpfe groß", "1 ohne Meilenstein"):
+            self.assertIn(teil, stand.upper() if teil.isupper() else stand)
+        self.assertRegex(self.tab.js("document.querySelector('.ueb-achse .jetzt').textContent"), r"^Jetzt \d\d:\d\d$")
+        self.assertIn(f"A{a} Knöpfe groß", self.tab.js("document.querySelector('.ueb-jetzt').title"))
+        bloecke = lambda: self.tab.js("[...document.querySelectorAll('.ueb-block')].map(b => b.title.split(' · ')[0])")
+        self.assertEqual(len(bloecke()), 1)                                                                  # Fertige erst auf Wunsch
+        self.tab.js("[...document.querySelectorAll('.ueb-kopf button')].find(b => b.textContent.startsWith('Fertige zeigen')).click()")
+        self.warten("document.querySelectorAll('.ueb-block').length === 2")
+        self.assertFalse(self.tab.js("document.querySelector('.tl-fertige').open"))                       # Zeitleiste: eingeklappt
+        self.assertTrue(self.tab.js(f"!!document.querySelector('.tl-fertige #bogen-{fertig}')"))
+        self.tab.js(f"zuSchritt(null, {fertig})")
+        self.warten("document.querySelector('.tl-fertige').open")
+        self.tab.js("document.querySelector('#ohne-bogen summary').click()")
+        self.warten(f"document.querySelector('#ohne-bogen').open && document.querySelector('#schritt-{ohne}')")
+        self.assertIn("Vergessen ohne Meilenstein", self.tab.js("document.querySelector('#ohne-bogen').innerText"))
+        self.assertFalse(self.tab.js("document.documentElement.scrollWidth > innerWidth"))
 
     def test_dazwischenschieben_in_der_aufgabe(self):
         """Aufgabe eines Agenten, der gerade an einer anderen arbeitet: Knopf „Dazwischenschieben“ mit Erklärung."""

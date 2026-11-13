@@ -21,6 +21,7 @@ auseinander.
 | [release-takt.md](release-takt.md) | Release-Takt und Prüfstufen | Einstellungen › Projekt |
 | [lokale-ki.md](lokale-ki.md) | Lokale KI einrichten und beauftragen | Betrieb › Lokale KI |
 | [termine.md](termine.md) | Testtermine und Fristen | Planung › Termine |
+| [planung.md](planung.md) | Planung: Wo stehen wir? | Planung › Zeitleiste („Stand jetzt“) |
 | [themen.md](themen.md) | Themen: was gerade gilt | Wissen › Themen |
 | [reihenfolge.md](reihenfolge.md) | Reihenfolge der Arbeit: eins nach dem anderen | Aufgaben › Listen |
 | [lead-runde.md](lead-runde.md) | Lead-Runde: die Leads aller Projekte im Gespräch | Nachrichten › Lead-Runde |

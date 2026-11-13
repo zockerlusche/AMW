@@ -481,6 +481,25 @@ def _schritt_werte(a):
             "groesse": a.groesse, "art": a.art}, nr(a.nach)
 
 
+def _bogen_pruefen(con, pid, a):
+    """Neue Aufgabe ohne Meilenstein (A1639): Legt der Lead (oder der Mensch) sie an und gibt es im Projekt einen aktiven oder
+    geplanten Meilenstein, muss --bogen kommen; bewusst ohne: --ohne-bogen. Andere Agenten dürfen keinen Meilenstein setzen –
+    ihre Aufgaben stehen in der Planung unter „Ohne Meilenstein“, bis der Lead sie zuordnet."""
+    if a.bogen or a.ohne_bogen or not getattr(a, "titel", None):
+        return
+    von = _von(a)
+    z = con.execute("SELECT rolle FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, von)).fetchone()
+    if von != kern.ENTWICKLER and not (z and z["rolle"] == "lead"):
+        return
+    offen = con.execute("SELECT id, titel, status FROM bogen WHERE projekt_id = ? AND status IN ('aktiv', 'geplant')"
+                        " ORDER BY status = 'aktiv' DESC, zieldatum IS NULL, zieldatum, nr, id", (pid,)).fetchall()
+    if not offen:
+        return
+    liste = "\n".join(f"  --bogen {b['id']}   B{b['id']} {b['titel']} ({b['status']})" for b in offen)
+    raise kern.AmwFehler(f"Zu welchem Meilenstein gehört die Aufgabe? Ohne --bogen steht sie in der Planung nur unter „Ohne Meilenstein“.\n"
+                         f"{liste}\nVorschlag: --bogen {offen[0]['id']}. Bewusst ohne Meilenstein: --ohne-bogen")
+
+
 def _ohne(a):
     return [int(x.strip().lstrip("Aa")) for x in (a.ohne_vorgaenger or "").split(",") if x.strip()]
 
@@ -497,6 +516,7 @@ def cmd_aufgabe(a, con):
               else f"A{a.id} kommt jetzt dran" + (f"; A{nr} wartet und kommt danach wieder dran" if nr else ""))
         return
     if a.aktion == "neu":
+        _bogen_pruefen(con, pid, a)
         werte, nach = _schritt_werte(a)
         if any(v is not None for k, v in werte.items() if k not in ("agent", "auftrag", "pruefer", "groesse", "art")) or nach:
             aid = planung.schritt_setzen(con, pid, _von(a), titel=a.titel, nach=nach, rang=a.rang, **werte)
@@ -2290,7 +2310,10 @@ def parser():
     x.add_argument("--erledigt", help="wartet/blockiert: diese Gründe von Hand abhaken, z. B. F12 (allein: Status bleibt)")
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
-    x.add_argument("--bogen", type=nummer, help="Planung: gehört zu Meilenstein N")
+    x.add_argument("--bogen", type=nummer, help="Planung: gehört zu Meilenstein N (neu: Pflicht, solange es einen aktiven oder"
+                                              " geplanten gibt)")
+    x.add_argument("--ohne-bogen", action="store_true", help="neu: Lead – bewusst ohne Meilenstein; steht dann in der Planung"
+                                                            " unter „Ohne Meilenstein“")
     x.add_argument("--kriterium", action="append", help="Planung: Abnahmekriterium, mehrfach (ersetzt die Liste)")
     x.add_argument("--schaetzung", type=float, help="Planung: Stunden")
     x.add_argument("--komplexitaet", type=int, help="Planung: 1–10; ab 7 braucht der Schritt einen freigegebenen Plan")

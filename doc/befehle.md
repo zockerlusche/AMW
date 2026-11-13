@@ -232,8 +232,9 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--rang RANG] [--pruefer PRUEFER] [--beleg BELEG]
                    [--wartet-auf WARTET_AUF] [--auf AUF] [--erledigt ERLEDIGT]
                    [--bemerkung BEMERKUNG] [--alle] [--bogen BOGEN]
-                   [--kriterium KRITERIUM] [--schaetzung SCHAETZUNG]
-                   [--komplexitaet KOMPLEXITAET] [--groesse {S,M,L,XL}]
+                   [--ohne-bogen] [--kriterium KRITERIUM]
+                   [--schaetzung SCHAETZUNG] [--komplexitaet KOMPLEXITAET]
+                   [--groesse {S,M,L,XL}]
                    [--art {text,mechanisch,fehlersuche,oberflaeche,sicherheit,konzept}]
                    [--nach NACH] [--verantwortlich VERANTWORTLICH]
                    [--pruefbefehl PRUEFBEFEHL] [--dateien DATEIEN]
@@ -271,7 +272,10 @@ options:
                         F12 (allein: Status bleibt)
   --bemerkung BEMERKUNG
   --alle
-  --bogen BOGEN         Planung: gehört zu Meilenstein N
+  --bogen BOGEN         Planung: gehört zu Meilenstein N (neu: Pflicht,
+                        solange es einen aktiven oder geplanten gibt)
+  --ohne-bogen          neu: Lead – bewusst ohne Meilenstein; steht dann in
+                        der Planung unter „Ohne Meilenstein“
   --kriterium KRITERIUM
                         Planung: Abnahmekriterium, mehrfach (ersetzt die
                         Liste)
