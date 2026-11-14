@@ -120,11 +120,12 @@ class Seiten(Daten, Rundgang):
 
     def test_dienst_gesundheit(self):
         """A1655: Betrieb › Dienst zeigt je Teil die Farbe; steht ein Teil, warnt die Startseite mit einem Band."""
-        self.ueberall("betrieb", "betrieb-dienst", bereit="document.querySelector('.punkt.bernstein') && document.querySelector('.punkt.gruen')",
+        self.ueberall("betrieb", "betrieb-dienst", bereit="document.querySelector('.punkt.bernstein') && document.querySelector('.punkt.gruen')"
+                      " && !document.getElementById('inhalt').innerText.split(String.fromCharCode(10)).some(z => z.trim() === 'null')",   # kein „null“ als Text
                       tun="[...document.querySelectorAll('#inhalt h2')].find(h => h.textContent.startsWith('Dienst') || h.textContent.startsWith('Service')).scrollIntoView({ block: 'start' })",
                       danach="true")
         herzschlag._stand["hauptschleife"]["zeit"] -= 3600                                  # eine Stunde still: rot
-        self.ueberall("start", "start-dienst-rot", bereit="[...document.querySelectorAll('.band-halt b')].some(b => /Hauptschleife|Main loop/.test(b.textContent))")
+        self.ueberall("start", "start-dienst-rot", bereit="[...document.querySelectorAll('.band-halt b')].some(b => /^(Dienst: Hauptschleife steht|Service: Main loop stalled)$/.test(b.textContent))")
 
     def test_einstellungen(self):
         self.ueberall("einstellungen", bereit="document.querySelector('#inhalt .einst, #inhalt .karte')")
