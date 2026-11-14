@@ -4,18 +4,18 @@
  "brauchst": [],
  "schritte": [
   {
-   "titel": "Stand jetzt lesen",
-   "text": "Ganz oben unter Planung › Zeitleiste steht der aktive Meilenstein mit seinem Fortschritt („3 von 8 fertig“), das nächste Zieldatum und unter „Gerade dran“, welcher Agent an welcher Aufgabe arbeitet. Ein Klick auf eine Aufgabe öffnet sie.",
+   "titel": "„Wo stehen wir gerade?“ lesen",
+   "text": "Ganz oben unter Planung › Zeitleiste steht der aktive Meilenstein mit seinem Fortschritt („Endversion 2.0: 3 von 8 Aufgaben erledigt · Ziel 20.11.“), das nächste Ziel und unter „Gerade in Arbeit“, welcher Agent an welcher Aufgabe arbeitet. Ein Klick auf eine Aufgabe öffnet sie.",
    "bilder": []
   },
   {
    "titel": "Übersicht lesen",
-   "text": "Jeder Meilenstein ist ein Balken von seinem Start bis zur Prognose. Die senkrechte Linie mit „Jetzt“ ist heute; fährst du darüber, siehst du Datum, Uhrzeit und was gerade läuft. Fährst du über einen Balken oder eine Raute, siehst du Titel, Status, Fortschritt, Prognose und Zieldatum.",
+   "text": "Jeder Meilenstein ist ein Balken von seinem Start bis zur Prognose. Die senkrechte Linie mit „Jetzt“ ist jetzt; fährst du darüber, siehst du Datum, Uhrzeit und was gerade läuft. Fährst du über einen Balken oder eine Raute, siehst du Titel, Status, Fortschritt, Prognose und Zieldatum.",
    "bilder": []
   },
   {
-   "titel": "Fertiges einblenden (optional)",
-   "text": "Fertige Meilensteine sind ausgeblendet, damit das Aktive vorne steht. „Fertige zeigen“ in der Übersicht blendet sie ein, blass und mit ✓. In der Zeitleiste darunter stehen sie eingeklappt unter „Fertige Meilensteine“.",
+   "titel": "Erledigtes einblenden (optional)",
+   "text": "Erledigte Meilensteine sind ausgeblendet, damit das Aktive vorne steht. „Erledigte einblenden“ in der Übersicht zeigt sie, blass und mit ✓. In der Zeitleiste darunter stehen sie eingeklappt unter „Erledigte Meilensteine“.",
    "bilder": []
   },
   {
@@ -41,7 +41,7 @@
   ]
  ],
  "danach": [
-  "„Rechner – heute“ unter der Übersicht ist eingeklappt. Ein Klick öffnet es; dort steht, welche Läufe heute auf diesem PC liefen und welche warten."
+  "„Was der Rechner heute gemacht hat“ unter der Übersicht ist eingeklappt. Ein Klick öffnet es; dort steht, welche Läufe heute auf diesem PC liefen und welche warten."
  ],
  "fragen": [
   [
