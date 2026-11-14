@@ -234,6 +234,20 @@ def _mittel_fehlen(con, l):
     return None
 
 
+def _grafik_passt_nie(con, l):
+    """Fehlt einem Lauf Grafikspeicher, obwohl auf diesem Rechner kein Lauf mit Grafikkarte oder Fenster rechnet, hilft
+    Warten in der Schlange nicht – den Rest halten Programme außerhalb (Bildschirm, Browser, KI-Dienst). Dann sperrt er
+    niemanden: andere Läufe mit Fenster ziehen vorbei, er startet, sobald genug frei ist (A1673, Nacht 13./14.11.: zwei
+    Läufe mit 8 GB angemeldet, 7,9 GB frei – die Läufe mit Fenster eines anderen Projekts standen dahinter über drei Stunden)."""
+    if not l["braucht_vram_gb"]:
+        return False
+    if con.execute("SELECT 1 FROM lauf l WHERE l.status = 'laeuft' AND (l.gpu = 1 OR l.schirm = 1) AND " + HIER + " LIMIT 1",
+                   (rechner(),)).fetchone():
+        return False                                   # ein Lauf auf der Grafikkarte gibt ihn frei, wenn er endet: warten lohnt
+    frei = vram_frei_gb()
+    return frei is not None and frei < l["braucht_vram_gb"]
+
+
 def reserve_gb():
     """So viel Arbeitsspeicher bleibt beim Einlass schwerer Läufe frei (Einstellung dieses PCs, Vorgabe 3 GB)."""
     from . import einstellungen
@@ -543,6 +557,8 @@ def _gesperrt(con, pid, wartend, schirm_zu, bis=None, speicher_frei=None):
             _, platz = _besetzt(con, w["projekt_id"], pw)
             if not platz and _passt_nie(con, w, speicher_frei):
                 continue                             # passt auch bei leerer Schlange nicht: hält niemanden auf
+            if not platz and _grafik_passt_nie(con, w) and not _speicher_fehlt(con, w["projekt_id"], _bedarf(con, w), speicher_frei):
+                continue                             # Grafikspeicher fehlt auch ohne Lauf auf der Grafikkarte (A1673)
             hier = {platz} if platz else pw          # zu wenig Speicher oder gleich dran: alle seine Plätze
         for p in hier:
             aus.setdefault(p, []).append(w)
@@ -711,9 +727,12 @@ def warteschlange(con, pid=None, speicher_frei=None):
                 if hoch and freihalten:              # sein Speicher bleibt frei, bis sein Platz frei wird (A1623 V2)
                     halten = max(halten, float(_bedarf(con, l)))
                 continue
-            if _speicher_fehlt(con, lp, _bedarf(con, l), speicher_frei) or _mittel_fehlen(con, l):
+            ram_fehlt = _speicher_fehlt(con, lp, _bedarf(con, l), speicher_frei)
+            if ram_fehlt or _mittel_fehlen(con, l):
                 if not gestartet and _passt_nie(con, l, speicher_frei) and not _mittel_fehlen(con, l):
                     continue                         # passt auch bei leerer Schlange nicht: sperrt niemanden, kein Platz frei halten
+                if not ram_fehlt and _grafik_passt_nie(con, l):
+                    continue                         # Grafikspeicher fehlt auch ohne Lauf auf der Grafikkarte: sperrt niemanden (A1673)
                 gesperrt |= plaetze
                 if hoch and freihalten:
                     halten = max(halten, float(_bedarf(con, l)))
@@ -785,7 +804,11 @@ def wartegrund(con, pid, l, speicher_frei=None):
             g += f" – außerhalb der Warteschlange belegt: {belegung.nennen(dauer)} (beenden kann das nur der Mensch)"
     if g and _passt_nie(con, l, frei):
         g += " – passt auch bei leerer Schlange nicht: andere Läufe ziehen vorbei, bis außerhalb der Schlange Speicher frei wird"
-    g = g or _mittel_fehlen(con, l)
+    if not g:
+        g = _mittel_fehlen(con, l)
+        if g and _grafik_passt_nie(con, l):
+            g += (" – auch ohne Lauf auf der Grafikkarte zu wenig: andere Läufe mit Fenster ziehen vorbei, bis außerhalb der"
+                  " Schlange Grafikspeicher frei wird")
     if g:
         gruende.append(g)
     kopf = f"Platz {platz} von {len(w)}" if platz else "nicht in der Schlange"

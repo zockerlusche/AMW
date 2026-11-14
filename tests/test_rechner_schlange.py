@@ -238,6 +238,41 @@ class Bedarf(Grund):
         with mock.patch.object(betrieb, "vram_frei_gb", return_value=None), mock.patch.object(betrieb, "cpu_laeufe", return_value=8):   # nicht messbar: hält niemanden auf
             self.assertEqual(self.status(betrieb.lauf_start(self.con, self.p["Zwei"], "A", "Bild", speicher_frei=32.0, braucht_vram_gb=8)), "laeuft")
 
+    def test_wer_auf_grafikspeicher_wartet_haelt_fensterlaeufe_nicht_auf(self):
+        """A1673 – die Nacht 13./14.11. nachgestellt: ein Lauf mit Fenster will 8 GB Grafikspeicher, frei sind 7,9 (den Rest hält
+        der Bildschirm), auf der Grafikkarte rechnet kein Lauf. Früher sperrte er den Platz für Fenster und Grafikkarte, und die
+        Läufe mit Fenster des anderen Projekts standen dahinter, bis er von Hand neu angemeldet wurde."""
+        with mock.patch.object(betrieb, "vram_frei_gb", return_value=7.9), mock.patch.object(betrieb.schirm_mod, "sperrgrund", return_value=None), \
+                mock.patch.object(betrieb, "cpu_laeufe", return_value=8):
+            gross = self.start("Eins", "A", "Bilder", schirm=True, gpu=True, braucht_vram_gb=8)
+            self.assertEqual(self.status(gross), "angemeldet")
+            fenster = self.start("Zwei", "A", "Fenster-Prüfung", schirm=True)            # meldet sich danach an
+            self.assertEqual(self.status(fenster), "laeuft")                              # zieht vorbei statt zu verhungern
+            grund = betrieb.wartegrund(self.con, self.p["Eins"], betrieb.lauf_zeile(self.con, self.p["Eins"], gross))
+            self.assertIn("Lauf mit Fenster", grund)                                      # jetzt wartet er auf den Platz …
+            betrieb.lauf_ende(self.con, self.p["Zwei"], "A", fenster, 0, speicher_frei=32.0)
+            self.assertEqual(self.status(gross), "angemeldet")
+            grund = betrieb.wartegrund(self.con, self.p["Eins"], betrieb.lauf_zeile(self.con, self.p["Eins"], gross))
+            self.assertIn("auch ohne Lauf auf der Grafikkarte zu wenig", grund)           # … und dann nur noch auf Grafikspeicher
+            noch_einer = self.start("Zwei", "B", "zweite Fenster-Prüfung", schirm=True)
+            self.assertEqual(self.status(noch_einer), "laeuft")
+            betrieb.lauf_ende(self.con, self.p["Zwei"], "B", noch_einer, 0, speicher_frei=32.0)
+        with mock.patch.object(betrieb, "vram_frei_gb", return_value=8.5), mock.patch.object(betrieb.schirm_mod, "sperrgrund", return_value=None):
+            self.assertEqual(betrieb.warteschlange(self.con, speicher_frei=32.0), [gross])   # genug frei: er ist dran
+
+    def test_wartet_er_auf_einen_lauf_der_grafikkarte_bleibt_die_reihenfolge(self):
+        """Rechnet ein Lauf auf der Grafikkarte, wird sein Speicher frei, wenn er endet – dann lohnt Warten, und niemand
+        überholt den, der zuerst kam."""
+        with mock.patch.object(betrieb, "vram_frei_gb", return_value=2.0), mock.patch.object(betrieb.schirm_mod, "sperrgrund", return_value=None), \
+                mock.patch.object(betrieb, "cpu_laeufe", return_value=8):
+            gpu = self.start("Eins", "A", "KI rechnet", gpu=True)
+            gross = self.start("Eins", "B", "Bilder", schirm=True, gpu=True, braucht_vram_gb=8)
+            fenster = self.start("Zwei", "A", "Fenster-Prüfung", schirm=True)
+            self.assertEqual([self.status(x) for x in (gpu, gross, fenster)], ["laeuft", "angemeldet", "angemeldet"])
+        with mock.patch.object(betrieb, "vram_frei_gb", return_value=9.0), mock.patch.object(betrieb.schirm_mod, "sperrgrund", return_value=None):
+            betrieb.lauf_ende(self.con, self.p["Eins"], "A", gpu, 0, speicher_frei=32.0)
+            self.assertEqual([self.status(x) for x in (gross, fenster)], ["laeuft", "angemeldet"])
+
     def test_die_warteschlange_zaehlt_nur_laeufe_ihres_rechners(self):
         hier = self.start("Eins", "A")                                            # belegt die einzige Spur dieses Rechners
         with db.schreiben(self.con):                                              # derselbe Lauf, als wäre er auf einem anderen PC angemeldet
