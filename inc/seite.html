@@ -4264,7 +4264,8 @@ function uebersicht(d) {
       nFertig && !alleFertig ? el("button", { class: "klein-knopf", type: "button", onclick: () => { zustand.uebFertige = !zustand.uebFertige; sichtPlanung(); } },
         zustand.uebFertige ? t("ue_fertige_aus") : t("ue_fertige_zeigen", { n: nFertig })) : null),
     el("p", { class: "sehrleise ueb-erkl", style: "margin:2px 0 6px;font-size:12px" }, t("ue_erkl")),
-    el("div", { class: "ueb-achse" }, ticks.map(k => el("span", { style: `left:${pos(k.n)}` }, k.text, k.jahr ? el("small", {}, k.jahr) : null)),
+    el("div", { class: "ueb-achse" }, ticks.filter(k => Math.abs(k.n - tagNr(d.heute)) * pxTag > 52)        /* kein Datum direkt neben „Jetzt“ – sonst liest es sich wie „Jetzt 16.11.“ */
+      .map(k => el("span", { style: `left:${pos(k.n)}` }, k.text, k.jahr ? el("small", {}, k.jahr) : null)),
       el("span", { class: "jetzt", style: `left:${pos(tagNr(d.heute))}`, title: jetztTip }, t("ue_jetzt"))),
     flaeche,
     rechnerTage.length ? el("div", { class: "ueb-rechner", id: "ueb-rechner" }, el("small", {}, t("rh_spur")),
