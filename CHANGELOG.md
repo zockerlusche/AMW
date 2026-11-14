@@ -4,11 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
-## 1.99.0 – 14.11.2026 · Profil ändern auf dein Wort
+## 1.99.0 – 14.11.2026 · Profil ändern auf dein Wort, Release-Kette robuster
 - Der Lead darf das Profil eines Agenten (Ordner, Zusatzordner, Modell, Denkaufwand …) jetzt auch ohne dich am PC ändern –
   aber nur auf dein Wort: `amw agent profil <Agent> … --wort W<nr>`, auch über den Dateiaustausch. Das Wort muss aus diesem
   Projekt und höchstens 24 Stunden alt sein. Rolle sowie eigene Rechte und Fernsteuerung des Leads bleiben beim Entwickler.
 - Jede solche Änderung steht mit alt → neu im Verlauf, und du bekommst eine Info dazu.
+- **Betrieb › Dienst:** Startet die AMW einen hängenden Teil neu, steht jetzt dabei, an welcher Stelle er hing – im
+  Protokoll die ganze Aufrufkette. So lässt sich die Ursache finden.
+- **Release-Kette:** Unversionierte Dateien im Arbeitsbaum halten sie nicht mehr an (nur ein Hinweis). Alte grüne Prüfungen
+  von neu aufgesetzten oder längst ausgelieferten Ständen gelten als überholt und blockieren keine Auslieferung mehr.
 
 ## 1.98.0 – 14.11.2026 · Weckrufe mit Inhalt und Lead-Runde
 - **Neu: Lead-Runde** – ein Kanal nur zwischen den Leads aller Projekte dieses PCs: `amw runde schreiben --kurz …` und
