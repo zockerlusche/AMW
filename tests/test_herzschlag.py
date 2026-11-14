@@ -129,6 +129,29 @@ class Herzschlag(unittest.TestCase):
         self.assertNotIn(fremd, {r[0] for r in zeilen})
         self.assertTrue(kern.ENTWICKLER)
 
+    def test_beim_ersetzen_steht_da_wo_der_faden_hing(self):
+        """A1648: die Ursache eines Stillstands – die Aufrufkette des alten Fadens geht ins Protokoll, die letzte Stelle in die
+        Meldung und unter Betrieb › Dienst."""
+        haengt = threading.Event()
+        self.addCleanup(haengt.set)
+
+        def wartet_auf_freigabe_im_netzlaufwerk():           # ein sprechender Name – genau der soll in der Meldung stehen
+            haengt.wait(30)
+
+        def bruecke(stop):
+            self.stops.append(stop)
+            wartet_auf_freigabe_im_netzlaufwerk()
+        herzschlag.strang("dateiaustausch", bruecke)
+        time.sleep(0.2)
+        meldungen = []
+        with self.assertLogs("amw.herzschlag", level="WARNING") as protokoll:
+            herzschlag.aufpassen(melden=lambda text, teil=None: meldungen.append(text), jetzt=time.time() + 400)
+        self.assertTrue(any("wartet_auf_freigabe_im_netzlaufwerk" in z for z in protokoll.output))
+        self.assertIn("hing bei", meldungen[0])
+        self.assertIn("test_herzschlag.py", meldungen[0])
+        g = {t["teil"]: t for t in herzschlag.gesundheit()["teile"]}
+        self.assertIn("test_herzschlag.py", g["dateiaustausch"]["hing"])
+
     def test_hauptschleife_nur_meldung(self):
         herzschlag.schlag("hauptschleife", 0.1)
         meldungen = []

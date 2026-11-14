@@ -91,13 +91,30 @@ class Strang:
             _stand.setdefault(self.teil, {"runden": 0, "neustarts": 0})["gestartet"] = time.time()
         return self
 
+    def stapel(self):
+        """Wo der Faden gerade steht (A1648): die Aufrufkette als Text, None wenn er nicht mehr lebt."""
+        import sys
+        import traceback
+        if not self.faden or not self.faden.is_alive():
+            return None
+        rahmen = sys._current_frames().get(self.faden.ident)
+        return "".join(traceback.format_stack(rahmen)) if rahmen else None
+
     def ersetzen(self):
+        stapel = self.stapel()                      # vor dem Ersetzen: wo hing der alte Faden? (Ursache für A1648)
+        if stapel:
+            log.warning("Aufpasser: %s hing hier:\n%s", self.teil, stapel)
         if self.stop:
             self.stop.set()
         with _sperre:
             e = _stand.setdefault(self.teil, {"runden": 0, "neustarts": 0})
             e["neustarts"] += 1
             e["neu_zeit"] = time.time()
+            if stapel:                              # die letzte Zeile (wo genau) auch unter Betrieb › Dienst
+                zeilen = [z.strip() for z in stapel.strip().splitlines() if z.strip().startswith("File ")]
+                stdlib = os.path.normcase(os.path.dirname(threading.__file__))   # die tiefste Stelle im eigenen Code zählt
+                eigene = [z for z in zeilen if stdlib not in os.path.normcase(z)]
+                e["hing"] = (eigene or zeilen)[-1][:300] if zeilen else None
         return self.starten()
 
 
@@ -140,9 +157,18 @@ def aufpassen(melden=None, jetzt=None):
             continue
         if teil in _straenge and _straenge[teil].ersetzbar:
             _straenge[teil].ersetzen()
-            text = f"{name} war {int(alter)} s still (Grenze {grenze} s) – neu gestartet"
+            with _sperre:
+                hing = (_stand.get(teil) or {}).get("hing")
+            text = f"{name} war {int(alter)} s still (Grenze {grenze} s) – neu gestartet" + (f" (hing bei {hing})" if hing else "")
         else:
             text = f"{name} ist {int(alter)} s still (Grenze {grenze} s) – kann nur ein Neustart des Dienstes beheben"
+            faden = _straenge[teil].faden if teil in _straenge else threading.main_thread() if teil == "hauptschleife" else None
+            if teil not in _gemeldet and faden is not None and faden.is_alive():   # einmal je Vorfall: wo steht er? (A1648)
+                import sys
+                import traceback
+                rahmen = sys._current_frames().get(faden.ident)
+                if rahmen:
+                    log.warning("Aufpasser: %s steht hier:\n%s", teil, "".join(traceback.format_stack(rahmen)))
         log.warning("Aufpasser: %s", text)
         aus.append(text)
         if teil not in _gemeldet and melden:
@@ -202,7 +228,7 @@ def gesundheit(jetzt=None):
         z = "rot" if quelle == "alt" and e else zustand(teil, e, jetzt)
         alter = _alter(e, jetzt) if e else None
         aus.append({"teil": teil, "name": name, "zustand": z, "grenze_s": grenze, "alter_s": None if alter is None else int(alter),
-                    "dauer_s": (e or {}).get("dauer_s"), "fehler": (e or {}).get("fehler"), "neustarts": (e or {}).get("neustarts", 0),
+                    "dauer_s": (e or {}).get("dauer_s"), "fehler": (e or {}).get("fehler"), "neustarts": (e or {}).get("neustarts", 0), "hing": (e or {}).get("hing"),
                     "runden": (e or {}).get("runden", 0)})
     return {"quelle": quelle, "teile": aus}
 
