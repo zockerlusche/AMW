@@ -28,6 +28,7 @@ def db_pfad():
 
 WARTE_MELDUNG_S = 10      # so lange still warten, dann alle 10 s eine Zeile auf stderr (amw-cli)
 _phase = {"was": None, "seit": 0.0}
+_wartemeldung_faeden = []          # (Strom, Faden) – je Strom höchstens ein lebender Faden
 
 
 @contextmanager
@@ -42,15 +43,21 @@ def _warten(was):
 
 def wartemeldung_an(strom=None, takt=1.0):
     """Hintergrund-Faden für amw-cli: Wer länger als WARTE_MELDUNG_S auf die Datenbank wartet, sieht es, statt still zu
-    hängen. Nach busy_timeout (30 s) bricht SQLite mit „database is locked“ ab – das meldet cli.main klar."""
+    hängen. Nach busy_timeout (30 s) bricht SQLite mit „database is locked“ ab – das meldet cli.main klar.
+    Ein Faden je Ausgabe-Strom und Prozess (cli.main läuft in Tests hundertfach im selben Prozess). Er wartet an einem
+    eigenen Event statt mit time.sleep: ersetzt ein Test time.sleep, drehte der Faden sonst ohne Pause und sammelte die
+    Aufrufe des Ersatzes – der Testprozess wuchs im Gesamtlauf über 4 GB (14.11., L1718)."""
     strom = strom or sys.stderr
+    if any(f.is_alive() for s, f in _wartemeldung_faeden if s is strom):
+        return
     gruende = {"oeffnen": "Datenbank öffnen dauert – Rechner ausgelastet?",
                "sperre": "ein anderer Prozess schreibt gerade (Schreibsperre); Abbruch nach 30 s"}
+    pause = threading.Event()                          # wird nie gesetzt: wait(takt) ist die Pause
 
     def lauf():
         zuletzt = 0.0
         while True:
-            time.sleep(takt)
+            pause.wait(takt)
             was = _phase["was"]
             if not was:
                 zuletzt = 0.0
@@ -62,7 +69,9 @@ def wartemeldung_an(strom=None, takt=1.0):
                     print(f"amw: warte seit {int(n)} s auf die Datenbank – {gruende.get(was, was)}", file=strom, flush=True)
                 except (OSError, ValueError):
                     return
-    threading.Thread(target=lauf, name="amw-wartemeldung", daemon=True).start()
+    f = threading.Thread(target=lauf, name="amw-wartemeldung", daemon=True)
+    f.start()
+    _wartemeldung_faeden.append((strom, f))
 
 
 def jetzt():

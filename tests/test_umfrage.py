@@ -6,6 +6,7 @@ import os
 import sqlite3
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -734,6 +735,18 @@ class Wartemeldung(unittest.TestCase):
             with db._warten("sperre"):
                 time.sleep(0.5)
         self.assertIn("auf die Datenbank – ein anderer Prozess schreibt gerade", aus.getvalue())
+
+    def test_ersetztes_time_sleep_laesst_den_faden_nicht_drehen(self):
+        """L1718 (14.11.): ein Test ersetzte time.sleep, der Faden drehte ohne Pause und füllte die Aufrufliste des Ersatzes –
+        der Gesamtlauf wuchs über 4 GB. Je Strom startet außerdem nur ein Faden, auch wenn cli.main hundertfach läuft."""
+        aus = io.StringIO()
+        db.wartemeldung_an(aus, takt=0.05)
+        vorher = sum(1 for f in threading.enumerate() if f.name == "amw-wartemeldung")
+        db.wartemeldung_an(aus, takt=0.05)
+        self.assertEqual(sum(1 for f in threading.enumerate() if f.name == "amw-wartemeldung"), vorher)
+        with mock.patch.object(time, "sleep") as schlaf:
+            threading.Event().wait(0.3)
+        self.assertEqual(schlaf.call_count, 0)
 
     def test_belegt_gibt_klare_meldung(self):
         with mock.patch.object(cli, "parser") as p:
