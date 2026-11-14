@@ -10,7 +10,7 @@
   },
   {
    "titel": "Who reviews",
-   "text": "High – database, sign-in, permissions, file exchange, queue, release – is reviewed by the lead. Medium – interface, help and other code – by an agent other than the builder. Low – docs and tests only – needs no review request.",
+   "text": "High – everything with permission or security checks: database, sign-in, command line, online actions, service, file exchange, queue, release, PHP of the online page – is reviewed by the lead. Medium – interface, help and other code – by an agent other than the builder. Low – docs and tests only – needs no review request.",
    "bilder": []
   },
   {
