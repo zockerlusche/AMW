@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.100.1 – 14.11.2026 · Warteschlange: Läufe mit Fenster kommen wieder dran
+- Wartet ein Lauf auf Grafikspeicher, den gerade kein anderer Lauf belegt (den Rest hält zum Beispiel der Bildschirm), hält er
+  andere Läufe mit Fenster nicht mehr auf. Sie ziehen vorbei, und er startet, sobald genug Grafikspeicher frei ist. Vorher
+  konnten Läufe mit Fenster dahinter stundenlang stehen.
+
 ## 1.100.0 – 14.11.2026 · Planung: Wo stehen wir?
 - **„Wo stehen wir gerade?“** steht ganz oben in der Zeitleiste: der aktive Meilenstein mit „3 von 8 Aufgaben erledigt · Ziel …“,
   das nächste Ziel und „Gerade in Arbeit: CC an „Titel““ – ein Klick öffnet die Aufgabe.
