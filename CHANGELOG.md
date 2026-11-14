@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.97.1 – 14.11.2026 · Release-Kette: keine Version geht verloren
+- Liegen in einem Stand mehrere Versionen (z. B. 1.94.0 unter 1.94.1), bekommt jetzt jede ihren Tag, ihr GitHub-Release und
+  ihre Versionszeile – aufsteigend, die oberste bleibt „neueste“.
+- Liegt eine kleinere Version grün und freigegeben bereit, die der Stand nicht enthält, hält `amw release ausliefern` an:
+  erst sie ausliefern oder neu aufsetzen.
+- `amw release version X --nachtrag` (Lead): eine fehlende kleinere Version nachtragen, die es als Git-Tag gibt – Zeit und
+  Text kommen aus dem Tag und dem CHANGELOG. Die „letzte Version“ ist immer die höchste Nummer.
+
 ## 1.97.0 – 14.11.2026 · Prüfstufen und Release-Takt
 - **Prüfstufe in jeder Prüfbitte:** Die AMW sieht nach, welche Dateien ein Stand ändert, und schreibt die Stufe oben in die
   Prüfbitte – hoch (alles mit Rechte- oder Sicherheitsprüfungen: Datenbank, Anmeldung, Befehlszeile, Dienst, Dateiaustausch …), mittel (Oberfläche, Hilfe,

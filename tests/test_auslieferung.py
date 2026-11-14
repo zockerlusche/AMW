@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from amw import auslieferung, betrieb, db, kern
+from amw import auslieferung, betrieb, db, kern, wissen
 
 GIT = shutil.which("git")
 
@@ -206,6 +206,60 @@ class Kette(unittest.TestCase):
         self.gesamtlauf()
         r = self.kette().ausliefern("neu", aufgabe=aid)
         self.assertEqual(r["version"], "1.1.0")
+
+    def gruen_auf(self, zweig, sha, titel):
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", titel, "CC1")
+        prid = betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", zweig, sha, "x", aid)
+        betrieb.pruefung_ergebnis(self.con, self.pid, "TL", prid, "gruen")
+        betrieb.freigabe_merge(self.con, self.pid, "TL", aid, zweig)
+        return aid
+
+    def test_zwischenversion_wird_mit_getaggt_und_eingetragen(self):
+        """TL #24530: 1.94.1 ging über die Kette, 1.94.0 darunter blieb ohne Versionszeile. Jetzt bekommt jede Zwischenversion
+        im selben Stand Tag, GitHub-Release (nicht „neueste“) und Versionszeile – aufsteigend vor der obersten."""
+        self.g("switch", "-q", "neu")
+        oben = self.stand("1.1.1", "Kleiner Nachtrag")
+        self.g("switch", "-q", "main")
+        self.gruen_auf("neu", oben, "Nachtrag")
+        self.gesamtlauf(sha=oben)
+        r = self.kette("1.1.1").ausliefern("neu")
+        self.assertEqual(r["version"], "1.1.1")
+        self.assertEqual(self.g("rev-parse", "v1.1.0^{commit}"), self.sha)                       # Zwischenversion getaggt
+        self.assertEqual(self.g("rev-parse", "v1.1.0^{commit}", ordner=self.ursprung), self.sha)  # und gepusht
+        gh = [b for b in self.extern_aufrufe if b[0] == "gh"]
+        self.assertEqual([(b[3], b[-1]) for b in gh], [("v1.1.0", "--latest=false"), ("v1.1.1", "--latest")])
+        self.assertEqual([x[0] for x in self.con.execute("SELECT version FROM release WHERE art = 'version' ORDER BY id")], ["1.1.0", "1.1.1"])
+
+    def test_reihenfolge_kleinere_gruene_version_zuerst(self):
+        self.gruen_auf("neu", self.sha, "Kleiner")                                                 # 1.1.0 grün + Merge-OK, nicht draußen
+        self.g("switch", "-q", "-c", "anders", "main")
+        anders = self.stand("1.2.0", "Größer")
+        self.g("switch", "-q", "main")
+        self.gruen_auf("anders", anders, "Größer")
+        self.gesamtlauf(sha=anders)
+        with self.assertRaises(auslieferung.Stopp) as e:
+            self.kette("1.2.0").ausliefern("anders")
+        self.assertIn("Reihenfolge", str(e.exception))
+        self.assertIn("1.1.0", str(e.exception))
+        self.assertIn("erledigt: noch nichts", str(e.exception))
+
+    def test_version_nachtragen_nur_kleiner_und_mit_tag(self):
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE projekt SET einstellungen = ? WHERE id = ?", (json.dumps({"ordner": self.repo}), self.pid))
+        wissen.release_version(self.con, self.pid, "TL", "1.2.0", "Später")
+        with self.assertRaises(kern.AmwFehler) as e:                                               # Tag fehlt
+            wissen.release_version(self.con, self.pid, "TL", "1.1.0", None, nachtrag=True)
+        self.assertIn("Git-Tag v1.1.0", str(e.exception))
+        self.g("tag", "v1.1.0", self.sha)
+        with self.assertRaises(kern.AmwFehler):                                                    # nur der Lead
+            wissen.release_version(self.con, self.pid, "CC1", "1.1.0", None, nachtrag=True)
+        with self.assertRaises(kern.AmwFehler):                                                    # nicht größer als die letzte
+            wissen.release_version(self.con, self.pid, "TL", "1.3.0", None, nachtrag=True)
+        wissen.release_version(self.con, self.pid, "TL", "1.1.0", None, nachtrag=True)
+        r = self.con.execute("SELECT titel, text_oeffentlich, commit_sha FROM release WHERE version = '1.1.0'").fetchone()
+        self.assertEqual((r[0], r[2]), ("Neues Ding", self.sha[:7]))                               # Titel und Text aus dem CHANGELOG
+        self.assertIn("Neues Ding für alle", r[1])
+        self.assertEqual(kern.versions_stand(self.con, self.pid)["letzte"], "1.2.0")              # die höchste bleibt die letzte
 
     def test_kein_fast_forward_und_schmutziger_baum(self):
         self.gruen()

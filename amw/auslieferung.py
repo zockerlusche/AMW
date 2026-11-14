@@ -85,6 +85,44 @@ class Kette:
             self.stopp("Versionshinweise", f"im CHANGELOG fehlt „## {version}“")
         return (m.group("titel") or version).strip(), m.group("text").strip()
 
+    def version_an(self, sha):
+        """__version__ aus amw/__init__.py an einem Stand, None wenn nicht lesbar."""
+        rc, text = self.extern(["git", "show", f"{sha}:amw/__init__.py"], self.repo)
+        m = re.search(r'__version__ = "([^"]+)"', text) if rc == 0 else None
+        return m.group(1) if m else None
+
+    def zwischenversionen(self, sha, version):
+        """Versionen zwischen main und dem Release-Stand (TL #24530): [(version, letzter Commit mit dieser Nummer)] aufsteigend –
+        die Kette taggt und trägt sie mit ein, damit keine Versionszeile fehlt."""
+        rc, aus = self.extern(["git", "rev-list", "--reverse", f"main..{sha}"], self.repo)
+        if rc != 0:
+            self.stopp("Zwischenversionen", aus[-200:])
+        jetzt = kern.version_teile(self.version_an("main"))
+        letzte = {}
+        for c in aus.split():
+            v = self.version_an(c)
+            if v and v != version and kern.version_teile(v) and (not jetzt or kern.version_teile(v) > jetzt):
+                letzte[v] = c
+        return sorted(letzte.items(), key=lambda x: kern.version_teile(x[0]))
+
+    def reihenfolge(self, sha, version):
+        """Liegt eine kleinere Version grün und mit Merge-OK bereit, die dieser Stand NICHT enthält? Dann zuerst sie (TL #24530)."""
+        ziel = kern.version_teile(version)
+        gesehen = set()
+        for p in self.con.execute("SELECT * FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen' AND aufgabe_id IS NOT NULL"
+                                  " ORDER BY id DESC LIMIT 60", (self.pid,)).fetchall():
+            if p["sha"] in gesehen or not betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"]):
+                continue
+            gesehen.add(p["sha"])
+            if self.extern(["git", "merge-base", "--is-ancestor", p["sha"], "main"], self.repo)[0] == 0:
+                continue                                 # schon draußen
+            if self.extern(["git", "merge-base", "--is-ancestor", p["sha"], sha], self.repo)[0] == 0:
+                continue                                 # kommt mit diesem Stand mit
+            v = self.version_an(p["sha"])
+            if v and kern.version_teile(v) and kern.version_teile(v) < ziel:
+                self.stopp("Reihenfolge", f"{v} (A{p['aufgabe_id']}, {p['zweig']}@{p['sha'][:8]}) ist grün mit Merge-OK, aber nicht"
+                                          f" ausgeliefert und nicht in {sha[:8]} enthalten – erst {v} ausliefern oder neu aufsetzen")
+
     # --- Vorbedingungen -------------------------------------------------------------------------------------------------
     def pruefen(self, zweig, gesamtlauf=None, aufgabe=None):
         sha = self.git("rev-parse", "--verify", f"{zweig}^{{commit}}", schritt="Stand bestimmen").splitlines()[-1].strip()
@@ -139,8 +177,14 @@ class Kette:
         if rc == 0:
             self.stopp("Tag", f"v{version} gibt es schon")
         titel, text = self.notizen(sha, version)
+        self.reihenfolge(sha, version)
+        zwischen = []
+        for v, c in self.zwischenversionen(sha, version):
+            if self.extern(["git", "rev-parse", "-q", "--verify", f"refs/tags/v{v}"], self.repo)[0] == 0:
+                continue                                 # schon getaggt (z. B. von Hand)
+            zwischen.append({"version": v, "sha": c, "notizen": self.notizen(c, v)})   # CHANGELOG an ihrem eigenen Stand
         return {"sha": sha, "version": version, "lauf": lauf["id"] if lauf else None, "ausnahme": None if lauf else ausnahme,
-                "titel": titel, "text": text, "niedrig": niedrig,
+                "titel": titel, "text": text, "niedrig": niedrig, "zwischen": zwischen,
                 "merge_ok": ok["von"]}
 
     # --- die Kette ------------------------------------------------------------------------------------------------------
@@ -155,8 +199,10 @@ class Kette:
         self.schritt(f"Sicherung {os.path.basename(ziel)}")
         self.git("merge", "--ff-only", "-q", sha, schritt="Fast-Forward")
         self.schritt(f"main → {sha[:8]}")
+        for z in v["zwischen"]:                         # Zwischenversionen im selben Stand: eigene Tags (TL #24530)
+            self.git("tag", f"v{z['version']}", z["sha"], schritt="Tag")
         self.git("tag", f"v{version}", sha, schritt="Tag")
-        self.schritt(f"Tag v{version}")
+        self.schritt(f"Tag v{version}" + "".join(f" + v{z['version']}" for z in v["zwischen"]))
         rc, aus = self.extern([sys.executable, "-X", "utf8", os.path.join(self.repo, "amw-cli.py"), "dienst", "neustart"], self.repo)
         if rc != 0:
             self.stopp("Dienst neu", aus[-300:])
@@ -174,18 +220,20 @@ class Kette:
         if uv != schema or qc != "ok":
             self.stopp("Datenbank prüfen", f"Schema {uv} (erwartet {schema}), quick_check {qc}")
         self.schritt(f"Dienst {version}, Schema {schema}, quick_check ok")
-        self.git("push", "-q", "origin", "main", f"v{version}", schritt="Push")
+        self.git("push", "-q", "origin", "main", *[f"v{z['version']}" for z in v["zwischen"]], f"v{version}", schritt="Push")
         self.schritt("Push main + Tag")
-        notiz = os.path.join(os.path.dirname(db.db_pfad()), f"notizen-{version}.md")
-        with open(notiz, "w", encoding="utf-8", newline="") as f:
-            f.write(v["text"] + "\n")
-        try:
-            rc, aus = self.extern(["gh", "release", "create", f"v{version}", "--title", version, "--notes-file", notiz, "--latest"], self.repo)
-        finally:
-            os.remove(notiz)
-        if rc != 0:
-            self.stopp("GitHub-Release", aus[-300:])
-        self.schritt("GitHub-Release")
+        for nummer, notiztext, neueste in [(z["version"], z["notizen"][1], False) for z in v["zwischen"]] + [(version, v["text"], True)]:
+            notiz = os.path.join(os.path.dirname(db.db_pfad()), f"notizen-{nummer}.md")
+            with open(notiz, "w", encoding="utf-8", newline="") as f:
+                f.write(notiztext + "\n")
+            try:
+                rc, aus = self.extern(["gh", "release", "create", f"v{nummer}", "--title", nummer, "--notes-file", notiz,
+                                       "--latest" if neueste else "--latest=false"], self.repo)
+            finally:
+                os.remove(notiz)
+            if rc != 0:
+                self.stopp("GitHub-Release", f"v{nummer}: {aus[-300:]}")
+        self.schritt("GitHub-Release" + (f" (+ {', '.join(z['version'] for z in v['zwischen'])})" if v["zwischen"] else ""))
         kurz = version.replace(".", "")
         lid = betrieb.lauf_start(self.con, self.pid, self.von, f"Web-Abzug {version} (leicht)", schwer=False, ordner=self.repo)
         rc, aus = 0, ""
@@ -198,8 +246,13 @@ class Kette:
             self.stopp("Web-Abzug", f"L{lid}: {aus[-300:]}")
         self.schritt(f"Web-Abzug L{lid}")
         from . import wissen
+        for z in v["zwischen"]:                         # aufsteigend vor der obersten – „größer als die letzte“ bleibt wahr
+            if not self.con.execute("SELECT 1 FROM release WHERE projekt_id = ? AND art = 'version' AND version = ?",
+                                    (self.pid, z["version"])).fetchone():
+                wissen.release_version(self.con, self.pid, self.von, z["version"], z["notizen"][0], z["sha"][:7],
+                                       oeffentlich=z["notizen"][1], kette=True)
         rid, _ = wissen.release_version(self.con, self.pid, self.von, version, v["titel"], sha[:7], kette=True)
-        self.schritt(f"Versionszeile R{rid}")
+        self.schritt(f"Versionszeile R{rid}" + (f" (+ {', '.join(z['version'] for z in v['zwischen'])})" if v["zwischen"] else ""))
         an = kern.lead(self.con, self.pid)
         if an and an != self.von:
             with db.schreiben(self.con):

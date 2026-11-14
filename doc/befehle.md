@@ -1425,8 +1425,8 @@ options:
 ```
 usage: amw release [-h] [--zweig ZWEIG] [--gesamtlauf GESAMTLAUF]
                    [--aufgabe AUFGABE] [--oeffentlich-datei OEFFENTLICH_DATEI]
-                   [--titel TITEL] [--commit COMMIT] [--version VERSION]
-                   [--aufgaben AUFGABEN] [--text TEXT]
+                   [--titel TITEL] [--commit COMMIT] [--nachtrag]
+                   [--version VERSION] [--aufgaben AUFGABEN] [--text TEXT]
                    [--text-datei TEXT_DATEI] [--von VON] [--projekt PROJEKT]
                    {merge,version,liste,entwurf,ausliefern}
 
@@ -1449,6 +1449,8 @@ options:
                         (Markdown)
   --titel TITEL
   --commit COMMIT
+  --nachtrag            version: eine fehlende kleinere Version nachtragen,
+                        die es als Git-Tag gibt (nur Lead)
   --version VERSION
   --aufgaben AUFGABEN
   --text TEXT

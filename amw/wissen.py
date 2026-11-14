@@ -175,15 +175,19 @@ def release_merge(con, pid, von, titel, commit_sha, text=None, aufgaben=None):
                             titel=titel, text_intern=text, aufgaben=aufgaben, eingetragen_von=von)
 
 
-def release_version(con, pid, von, version, titel, commit_sha=None, text=None, oeffentlich=None, kette=False):
+def release_version(con, pid, von, version, titel, commit_sha=None, text=None, oeffentlich=None, kette=False, nachtrag=False,
+                    zeit_utc=None):
     """Fasst alle offenen Merge-Zeilen zu einer Version zusammen. Versionshinweise für alle: `oeffentlich`, sonst der
     Entwurf aus den fertigen Aufgaben seit der letzten Version (versionshinweise.entwurf). kette: aus der Release-Kette
     (auslieferung.py, A1644) – dort sind Prüfung GRÜN auf genau dem Stand und Gesamtlauf schon geprüft, dann darf auch der
-    ausliefernde Agent die Version eintragen."""
+    ausliefernde Agent die Version eintragen. nachtrag (TL #24530): eine fehlende KLEINERE Version, die es als Git-Tag
+    gibt (nur Lead) – Zeit und Text aus dem Tag, die offenen Merge-Zeilen bleiben bei der nächsten Version."""
     from . import versionshinweise
     if not kette:
         _nur_lead(con, pid, von, "Versionen setzen")
     st = kern.versions_stand(con, pid)
+    if nachtrag:
+        return _version_nachtragen(con, pid, von, version, titel, oeffentlich, text, zeit_utc, commit_sha)
     if st["versionen"] != "aus":                     # Grund-Regelwerk G-2: Form MAJOR.MINOR.PATCH, größer als die letzte
         neu, alt = kern.version_teile(version), kern.version_teile(st["letzte"])
         vorschlag = " oder ".join(st["vorschlag"])
@@ -207,6 +211,46 @@ def release_version(con, pid, von, version, titel, commit_sha=None, text=None, o
         con.execute("UPDATE release SET version = ? WHERE projekt_id = ? AND art = 'merge' AND version IS NULL",
                     (version, pid))
     return rid, len(merges)
+
+
+def changelog_abschnitt(text, version):
+    """(Titel, Text) des Abschnitts „## <version> – … · Titel“ aus einem CHANGELOG, None wenn er fehlt."""
+    m = re.search(rf"^## {re.escape(version)}\b[^\n]*?(?:·\s*(?P<titel>[^\n]+))?\n(?P<text>.*?)(?=^## |\Z)", text or "", re.M | re.S)
+    return ((m.group("titel") or version).strip(), m.group("text").strip()) if m else None
+
+
+def _version_nachtragen(con, pid, von, version, titel, oeffentlich, text, zeit_utc, commit_sha):
+    """Eine fehlende kleinere Version nachtragen (TL #24530): nur wenn es den Git-Tag v<version> im Projektordner gibt;
+    Zeit = Zeit des getaggten Commits, Text aus dem CHANGELOG an diesem Stand; offene Merge-Zeilen bleiben unberührt."""
+    import datetime
+    import subprocess
+    st = kern.versions_stand(con, pid)
+    neu, alt = kern.version_teile(version), kern.version_teile(st["letzte"])
+    if not neu:
+        raise kern.AmwFehler(f"Version „{version}“ hat nicht die Form MAJOR.MINOR.PATCH")
+    if not alt or neu >= alt:
+        raise kern.AmwFehler(f"--nachtrag nur für eine kleinere Version als die letzte ({st['letzte']}) – sonst ohne --nachtrag")
+    if con.execute("SELECT 1 FROM release WHERE projekt_id = ? AND art = 'version' AND version = ?", (pid, version)).fetchone():
+        raise kern.AmwFehler(f"Version {version} gibt es schon")
+    ordner = kern.projekt_ordner(con, pid)
+    git = lambda *a: subprocess.run(["git", "-C", ordner or ".", *a], capture_output=True, text=True, encoding="utf-8",
+                                    errors="replace", timeout=60, stdin=subprocess.DEVNULL)
+    tag = git("rev-parse", "-q", "--verify", f"refs/tags/v{version}^{{commit}}") if ordner else None
+    if not tag or tag.returncode != 0:
+        raise kern.AmwFehler(f"--nachtrag braucht den Git-Tag v{version} im Projektordner – den gibt es nicht")
+    sha = tag.stdout.strip()
+    if not zeit_utc:
+        roh = git("log", "-1", "--format=%cI", sha).stdout.strip()
+        zeit_utc = datetime.datetime.fromisoformat(roh).astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") if roh else db.jetzt()
+    abschnitt = changelog_abschnitt(git("show", f"{sha}:CHANGELOG.md").stdout, version)
+    if abschnitt:
+        titel = titel or abschnitt[0]
+        oeffentlich = oeffentlich or abschnitt[1]
+    with db.schreiben(con):
+        rid = db.einfuegen(con, "release", projekt_id=pid, art="version", version=version, zeit_utc=zeit_utc,
+                           commit_sha=commit_sha or sha[:7], titel=titel or version, text_intern=text or f"nachgetragen (Tag v{version})",
+                           text_oeffentlich=oeffentlich, eingetragen_von=von)
+    return rid, 0
 
 
 # --- Frage-Prüfung gegen die Datenbank ------------------------------------------------------------

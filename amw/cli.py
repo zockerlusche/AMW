@@ -1707,8 +1707,10 @@ def cmd_release(a, con):
         if a.oeffentlich_datei:
             with open(a.oeffentlich_datei, encoding="utf-8") as f:
                 oeffentlich = f.read().strip()
-        rid, n = wissen.release_version(con, pid, _von(a), a.version, a.titel, a.commit, _text(a) or None, oeffentlich)
-        print(f"Version {a.version} (R{rid}) aus {n} Merge(s) – Versionshinweise eingetragen")
+        rid, n = wissen.release_version(con, pid, _von(a), a.version, a.titel, a.commit, _text(a) or None, oeffentlich,
+                                        nachtrag=a.nachtrag)
+        print(f"Version {a.version} (R{rid}) " + ("nachgetragen (Zeit und Text aus Tag und CHANGELOG)" if a.nachtrag
+                                                 else f"aus {n} Merge(s) – Versionshinweise eingetragen"))
     else:
         for r in con.execute("SELECT * FROM release WHERE projekt_id = ? ORDER BY zeit_utc DESC LIMIT 30", (pid,)):
             print(f"R{r['id']:<5} {r['art']:<7} {r['version'] or '(offen)':<9} {_zeit(r['zeit_utc'])} {r['titel']}")
@@ -2820,6 +2822,7 @@ def parser():
     x.add_argument("--oeffentlich-datei", help="version: eigener Text für alle statt des Entwurfs (Markdown)")
     x.add_argument("--titel")
     x.add_argument("--commit")
+    x.add_argument("--nachtrag", action="store_true", help="version: eine fehlende kleinere Version nachtragen, die es als Git-Tag gibt (nur Lead)")
     x.add_argument("--version")
     x.add_argument("--aufgaben")
     x.add_argument("--text")

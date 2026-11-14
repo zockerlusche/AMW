@@ -206,8 +206,10 @@ def versions_stand(con, pid):
     Frist in Tagen und Vorschläge für die nächste Nummer."""
     r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
     e = json.loads(r[0] or "{}") if r else {}
-    letzte = con.execute("SELECT version, zeit_utc FROM release WHERE projekt_id = ? AND art = 'version' ORDER BY id DESC LIMIT 1",
-                         (pid,)).fetchone()
+    # die höchste Nummer, nicht die zuletzt eingetragene – eine nachgetragene kleinere Version (--nachtrag) ändert nichts
+    alle = con.execute("SELECT version, zeit_utc FROM release WHERE projekt_id = ? AND art = 'version' ORDER BY id DESC",
+                       (pid,)).fetchall()
+    letzte = max(alle, key=lambda x: version_teile(x["version"]) or (-1,), default=None)
     seit = letzte["zeit_utc"] if letzte else ""
     f = con.execute("SELECT count(*), min(fertig_utc) FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND fertig_utc > ?",
                     (pid, seit)).fetchone()
