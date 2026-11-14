@@ -5,16 +5,15 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
 ## 1.100.0 – 14.11.2026 · Planung: Wo stehen wir?
-- **Stand jetzt:** Ganz oben in der Zeitleiste stehen der aktive Meilenstein mit Fortschritt („3 von 8 fertig“), das nächste
-  Zieldatum und wer gerade an welcher Aufgabe arbeitet – ein Klick öffnet die Aufgabe.
-- **Jetzt-Linie:** kräftig und oben mit „Jetzt“ und Uhrzeit beschriftet; beim Drüberfahren Datum, Uhrzeit und was gerade läuft.
-  Balken und Rauten zeigen beim Drüberfahren auch Status, Fortschritt und Prognose.
-- **Aktives vorne:** Aktive Meilensteine stehen in der Übersicht oben. Fertige sind ausgeblendet („Fertige zeigen“ blendet sie
-  blass mit ✓ ein) und in der Zeitleiste unter „Fertige Meilensteine“ eingeklappt.
-- **Nichts verschwindet:** Offene Aufgaben ohne Meilenstein stehen unten in der Zeitleiste unter „Ohne Meilenstein (n)“. Legt der
-  Lead eine Aufgabe ohne `--bogen` an, solange ein Meilenstein aktiv oder geplant ist, nennt die AMW die Meilensteine mit einem
-  Vorschlag; bewusst ohne: `--ohne-bogen`.
-- **Rechner – heute** ist eingeklappt, bis du es öffnest; Läufe tragen ihren Namen nur, wo er hinpasst (sonst beim Drüberfahren).
+- **„Wo stehen wir gerade?“** steht ganz oben in der Zeitleiste: der aktive Meilenstein mit „3 von 8 Aufgaben erledigt · Ziel …“,
+  das nächste Ziel und „Gerade in Arbeit: CC an „Titel““ – ein Klick öffnet die Aufgabe.
+- **Jetzt-Linie:** kräftig, mit „Jetzt“ beschriftet und nie durch einen Namen im Balken; beim Drüberfahren Datum, Uhrzeit und was
+  gerade läuft. Ein Satz über der Grafik erklärt sie; die Legende ist kürzer und in Alltagssprache.
+- **Aktives vorne:** Erledigte Meilensteine sind ausgeblendet („Erledigte einblenden“, blass mit ✓) und in der Zeitleiste eingeklappt.
+- **Nichts verschwindet:** Offene Aufgaben ohne Meilenstein stehen unten unter „Ohne Meilenstein (n)“. Legt der Lead eine Aufgabe
+  ohne `--bogen` an, solange ein Meilenstein aktiv oder geplant ist, nennt die AMW die Meilensteine mit einem Vorschlag; bewusst
+  ohne: `--ohne-bogen`.
+- **„Was der Rechner heute gemacht hat“** ist eingeklappt, bis du es öffnest; Läufe tragen ihren Namen nur, wo er hinpasst.
 - Neue Hilfe „Planung: Wo stehen wir?“.
 
 ## 1.99.0 – 14.11.2026 · Profil ändern auf dein Wort, Release-Kette robuster

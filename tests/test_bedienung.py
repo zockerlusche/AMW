@@ -411,6 +411,7 @@ class Seite(Wiederholt, Grund):
         for teil in ("Wo stehen wir gerade?", "Karten-Look:", "0 von 1 Aufgaben erledigt", "Gerade in Arbeit", "CC1 an „Knöpfe groß“",
                      "1 Aufgabe ohne Meilenstein"):
             self.assertIn(teil, stand)
+        self.assertNotIn("Nächstes Ziel", stand)                                    # derselbe Meilenstein wie darüber: nicht doppelt (TL P167)
         self.assertEqual(self.tab.js("document.querySelector('.ueb-achse .jetzt').textContent"), "Jetzt")      # Uhrzeit nur beim Drüberfahren
         self.assertIn("Die senkrechte Linie ist jetzt.", self.tab.js("document.querySelector('.ueb-erkl').textContent"))
         self.assertIn(f"A{a} Knöpfe groß", self.tab.js("document.querySelector('.ueb-jetzt').title"))
