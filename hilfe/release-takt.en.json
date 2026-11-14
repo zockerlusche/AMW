@@ -1,0 +1,64 @@
+{
+ "titel": "Release rhythm and review levels",
+ "kurz": "AMW can handle two things for you: how strictly a change is reviewed (review level) and when it reports that something can be released (release rhythm). Both stay off until the lead switches them on.",
+ "brauchst": [],
+ "schritte": [
+  {
+   "titel": "Switch on review levels",
+   "text": "Settings › Project › Review levels to “on”. From then on every review request starts with its level and the files that decide it.",
+   "bilder": []
+  },
+  {
+   "titel": "Who reviews",
+   "text": "High – database, sign-in, permissions, file exchange, queue, release – is reviewed by the lead. Medium – interface, help and other code – by an agent other than the builder. Low – docs and tests only – needs no review request.",
+   "bilder": []
+  },
+  {
+   "titel": "Release low-level changes",
+   "text": "With the lead's merge approval and a green full run on exactly this commit: `amw release ausliefern --zweig <branch> --aufgabe <nr>`.",
+   "bilder": []
+  },
+  {
+   "titel": "Raise the level",
+   "text": "The builder can raise a review request: `amw pruefung bitte … --stufe hoch`. Lowering is not possible.",
+   "bilder": []
+  },
+  {
+   "titel": "Pick a release rhythm",
+   "text": "Settings › Project › Release rhythm: immediately, daily at a time, or per milestone. When something is ready – green review, merge approval, full run on exactly this commit – whoever handles merges (otherwise the lead) gets one message. AMW never releases by itself.",
+   "bilder": []
+  }
+ ],
+ "werte": [
+  [
+   "Review levels",
+   "on or off (default off)"
+  ],
+  [
+   "Release rhythm",
+   "off, immediately, daily at HH:MM, per milestone"
+  ],
+  [
+   "Own patterns",
+   "Command line: `amw projekt einstellen 'pruef_muster={\"hoch\": [\"src/db/*\"], \"mittel\": [\"ui/*\"], \"niedrig\": [\"docs/*\", \"tests/*\"]}'`"
+  ]
+ ],
+ "fehler": [
+  [
+   "“Prüfstufe hoch – prüfen muss …”",
+   "The review request went to an agent, the level requires the lead. Ask the lead instead."
+  ],
+  [
+   "“Prüfstufe unbekannt”",
+   "AMW could not read the changed files: the project folder is missing or the commit is unknown there. It then counts as high."
+  ],
+  [
+   "No message with “per milestone”",
+   "It only reports once every open task of the milestone is ready."
+  ]
+ ],
+ "danach": [],
+ "fragen": [],
+ "thema": "release-takt",
+ "sprache": "en"
+}
