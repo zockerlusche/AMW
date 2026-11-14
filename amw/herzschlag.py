@@ -148,7 +148,7 @@ def aufpassen(melden=None, jetzt=None):
         if teil not in _gemeldet and melden:
             _gemeldet.add(teil)
             try:
-                melden(text)
+                melden(text, teil)
             except Exception as x:                       # Melden darf den Aufpasser nie anhalten
                 log.warning("Aufpasser: Meldung fehlgeschlagen: %s", x)
     _schreiben(jetzt)

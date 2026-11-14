@@ -60,7 +60,7 @@ class Herzschlag(unittest.TestCase):
         meldungen = []
         spaeter = time.time() + 301                     # 301 s ohne Herzschlag vom Dateiaustausch – der KI-Faden schlägt weiter
         with mock.patch.dict(herzschlag._stand["ki"], {"zeit": spaeter}):
-            ereignisse = herzschlag.aufpassen(melden=meldungen.append, jetzt=spaeter)
+            ereignisse = herzschlag.aufpassen(melden=lambda text, teil=None: meldungen.append(text), jetzt=spaeter)
         self.assertEqual(len(ereignisse), 1)
         self.assertIn("Dateiaustausch war 301 s still", ereignisse[0])
         self.assertEqual(len(aufrufe), 2)                # neue Instanz gestartet …
@@ -70,7 +70,7 @@ class Herzschlag(unittest.TestCase):
         time.sleep(0.2)
         self.assertEqual(herzschlag.zustand("dateiaustausch", dict(herzschlag._stand["dateiaustausch"]), time.time()), "gelb")   # neu gestartet
         self.assertEqual(len(meldungen), 1)
-        herzschlag.aufpassen(melden=meldungen.append, jetzt=time.time() + 400)   # derselbe Vorfall … (hängt weiter in der Probe)
+        herzschlag.aufpassen(melden=lambda text, teil=None: meldungen.append(text), jetzt=time.time() + 400)   # derselbe Vorfall … (hängt weiter in der Probe)
         self.assertEqual(len(meldungen), 1)                                     # … wird nicht noch einmal gemeldet
 
     def test_ki_arbeiter_wird_nie_ersetzt_und_lebenszeichen_zaehlen(self):
@@ -84,7 +84,7 @@ class Herzschlag(unittest.TestCase):
             stop.wait(30)
         herzschlag.strang("ki", ki, ersetzbar=False)
         meldungen = []
-        herzschlag.aufpassen(melden=meldungen.append, jetzt=time.time() + 1801)
+        herzschlag.aufpassen(melden=lambda text, teil=None: meldungen.append(text), jetzt=time.time() + 1801)
         self.assertEqual(len(aufrufe), 1)                                    # kein zweiter Arbeiter
         self.assertIn("kann nur ein Neustart des Dienstes beheben", meldungen[0])
         herzschlag._zuruecksetzen()
@@ -105,10 +105,34 @@ class Herzschlag(unittest.TestCase):
         self.assertEqual(abgleich._ruhig({"gesundheit": herzschlag.gesundheit(jetzt=jetzt + 5)}), a)
         self.assertNotEqual(abgleich._ruhig({"gesundheit": herzschlag.gesundheit(jetzt=jetzt + 200)}), a)   # jetzt gelb
 
+    def test_meldung_ins_projekt_amw_und_push_wenn_die_hauptschleife_steht(self):
+        """TL P152: Dienst-Meldungen sind PC-weit → Projekt AMW (nicht das erste Projekt); steht die Hauptschleife, verschickt
+        niemand mehr Pushs – dann schickt der Aufpasser ihn selbst."""
+        from amw import db, dienst, kern, push
+        con = db.anlegen()
+        self.addCleanup(con.close)
+        with db.schreiben(con):
+            fremd = db.einfuegen(con, "projekt", name="Anderes", angelegt_utc=db.jetzt())
+            amw = db.einfuegen(con, "projekt", name="AMW", angelegt_utc=db.jetzt())
+        self.assertEqual(dienst.dienst_projekt(con), amw)
+        gesendet = []
+        cfg = {"an": True}
+        with mock.patch.object(push, "laden", lambda: cfg), \
+                mock.patch.object(push, "senden", lambda c, titel, text, prio, link: gesendet.append((titel, prio)) or {"ntfy": None}), \
+                mock.patch.object(push, "_link", lambda c, sicht: sicht):
+            dienst.aufpasser_melden("Dateiaustausch war 400 s still", "dateiaustausch")
+            self.assertEqual(gesendet, [])                                   # das schickt die Hauptschleife selbst
+            dienst.aufpasser_melden("Hauptschleife ist 200 s still", "hauptschleife")
+        self.assertEqual(gesendet, [("AMW: Dienst steht", 5)])
+        zeilen = con.execute("SELECT projekt_id FROM nachricht WHERE kurz LIKE 'Dienst:%'").fetchall()
+        self.assertEqual({r[0] for r in zeilen}, {amw})
+        self.assertNotIn(fremd, {r[0] for r in zeilen})
+        self.assertTrue(kern.ENTWICKLER)
+
     def test_hauptschleife_nur_meldung(self):
         herzschlag.schlag("hauptschleife", 0.1)
         meldungen = []
-        herzschlag.aufpassen(melden=meldungen.append, jetzt=time.time() + 200)
+        herzschlag.aufpassen(melden=lambda text, teil=None: meldungen.append(text), jetzt=time.time() + 200)
         self.assertEqual(len(meldungen), 1)
         self.assertIn("kann nur ein Neustart des Dienstes beheben", meldungen[0])
 

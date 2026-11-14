@@ -318,17 +318,34 @@ def einzige_instanz():
     return f
 
 
-def aufpasser_melden(text):
-    """Der Aufpasser (A1655) meldet einen stillen Strang einmal je Vorfall dem Menschen – im ersten Projekt, eigene Verbindung
-    (er läuft in seinem eigenen Faden)."""
+def dienst_projekt(con):
+    """Wohin PC-weite Meldungen des Dienstes gehen: ins Projekt „AMW“, sonst ins erste Projekt (TL 14.11.: nie in ein
+    fremdes Projekt, wenn es AMW gibt)."""
+    p = con.execute("SELECT id FROM projekt WHERE name = 'AMW' COLLATE NOCASE").fetchone() or         con.execute("SELECT id FROM projekt ORDER BY id LIMIT 1").fetchone()
+    return p["id"] if p else None
+
+
+def aufpasser_melden(text, teil=None):
+    """Der Aufpasser (A1655) meldet einen stillen Strang einmal je Vorfall dem Menschen – im Projekt AMW, eigene Verbindung
+    (er läuft in seinem eigenen Faden). Steht die Hauptschleife, verschickt niemand mehr Pushs – dann schickt er ihn selbst."""
     con = db.verbinde()
     try:
-        p = con.execute("SELECT id FROM projekt ORDER BY id LIMIT 1").fetchone()
-        if p:
+        pid = dienst_projekt(con)
+        if pid:
             with db.schreiben(con):
-                kern._posten(con, p["id"], "AMW", kern.ENTWICKLER, "meldung", f"Dienst: {text}")
+                kern._posten(con, pid, "AMW", kern.ENTWICKLER, "meldung", f"Dienst: {text}")
     finally:
         con.close()
+    if teil == "hauptschleife":
+        from . import push
+        try:
+            cfg = push.laden()
+            if cfg["an"]:
+                for anbieter, fehler in push.senden(cfg, "AMW: Dienst steht", text, 5, push._link(cfg, "betrieb")).items():
+                    if fehler:
+                        log.warning("Aufpasser: Push über %s fehlgeschlagen: %s", anbieter, fehler)
+        except Exception as x:                       # noqa: BLE001 – der Aufpasser bleibt am Leben
+            log.warning("Aufpasser: Push nicht möglich: %s", x)
 
 
 def main(argv=None):
