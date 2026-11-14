@@ -97,10 +97,10 @@ options:
 ```
 usage: amw agent [-h] [--ordner ORDNER] [--zusatz ZUSATZ]
                  [--denkstufe DENKSTUFE] [--modell MODELL]
-                 [--startsatz STARTSATZ] [--rechte RECHTE] [--fernsteuerung]
-                 [--keine-fernsteuerung] [--neustart] [--kein-neustart]
-                 [--neu] [--datei DATEI] [--alle] [--abstand ABSTAND]
-                 [--rolle ROLLE] [--fachgebiet FACHGEBIET]
+                 [--startsatz STARTSATZ] [--rechte RECHTE] [--wort WORT]
+                 [--fernsteuerung] [--keine-fernsteuerung] [--neustart]
+                 [--kein-neustart] [--neu] [--datei DATEI] [--alle]
+                 [--abstand ABSTAND] [--rolle ROLLE] [--fachgebiet FACHGEBIET]
                  [--arbeitsweise {terminal,desktop,chat}]
                  [--zustaendig ZUSTAENDIG] [--nicht NICHT]
                  [--startbefehl STARTBEFEHL] [--ohne-rund] [--von VON]
@@ -124,6 +124,9 @@ options:
   --startsatz STARTSATZ
                         profil: erste Anweisung einer neuen Sitzung
   --rechte RECHTE       profil: vorgabe | auto | umgehen
+  --wort WORT           profil: Änderung auf ein Wort des Entwicklers (W<nr>,
+                        höchstens 24 h alt) – darf der Lead, auch über den
+                        Dateiaustausch
   --fernsteuerung       profil: Remote Control an
   --keine-fernsteuerung
   --neustart            profil: nach Absturz automatisch fortsetzen

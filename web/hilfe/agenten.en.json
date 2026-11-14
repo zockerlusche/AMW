@@ -74,6 +74,10 @@
   [
    "Which model and effort does AMW recommend?",
    "When creating a task, the lead gives it a size and a type: `amw aufgabe neu … --groesse S|M|L|XL --art text|mechanisch|fehlersuche|oberflaeche|sicherheit|konzept` (later with `amw aufgabe aendern <nr>`). From that AMW suggests model and effort – using a table per project (Settings › Project › “Recommended model · effort”). The starting values are an assumption; next to the suggestion on the task you see what finished tasks of the same type and size actually used and how often their review was red. Use that to adjust the table. The agent shows the recommendation from its recent tasks; “Apply to profile” sets it. AMW changes nothing by itself and restarts no one: the profile applies from the next start."
+  ],
+  [
+   "May the lead change an agent's profile while I am away from the PC?",
+   "Yes, if you told them to: the lead records your words and changes the profile with `amw agent profil <agent> --ordner … --wort W<nr>` – also through the file exchange. The words must be from this project and at most 24 hours old. It only covers profile fields such as folder, extra folders, model and effort; the role and the lead's own permissions or remote control are changed only by the developer at the PC. Every change appears in the history as old → new, and you get an info about it."
   ]
  ],
  "thema": "agenten",

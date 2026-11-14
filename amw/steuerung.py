@@ -89,11 +89,38 @@ def profil(con, pid, kennung):
             "fernsteuerung": bool(a["fernsteuerung"]), "neustart_auto": bool(a["neustart_auto"])}
 
 
-def profil_setzen(con, pid, von, kennung, **werte):
-    """Nur Lead und Entwickler. Prüft Ordner, Denkstufe, Rechte; Zusatzordner als Liste."""
+WORT_GUELTIG_H = 24
+WORT_NIE_FUER_SICH = ("rechte", "fernsteuerung", "neustart_auto")   # der Lead erhöht sich selbst nie über ein Wort
+
+
+def wort_pruefen(con, pid, wort):
+    """W<nr> muss ein Wortlaut des Entwicklers aus diesem Projekt und den letzten WORT_GUELTIG_H Stunden sein (A1662)."""
+    import datetime
+    nr = str(wort or "").strip().upper().lstrip("W")
+    if not nr.isdigit():
+        raise kern.AmwFehler("--wort W<nr> – die Nummer eines Wortlauts des Entwicklers")
+    w = con.execute("SELECT id, zeit_utc, text FROM wortlaut WHERE id = ? AND projekt_id = ?", (int(nr), pid)).fetchone()
+    if not w:
+        raise kern.AmwFehler(f"W{nr} gibt es in diesem Projekt nicht")
+    grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=WORT_GUELTIG_H)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if w["zeit_utc"] < grenze:
+        raise kern.AmwFehler(f"W{nr} ist älter als {WORT_GUELTIG_H} Stunden – für eine Profiländerung braucht es ein frisches Wort")
+    return w
+
+
+def profil_setzen(con, pid, von, kennung, wort=None, **werte):
+    """Nur Lead und Entwickler. Prüft Ordner, Denkstufe, Rechte; Zusatzordner als Liste. wort (A1662): Änderung auf ein frisches
+    Wort des Entwicklers – auch über den Dateiaustausch; dann nie die eigenen Rechte/Fernsteuerung des Leads, jede Änderung
+    mit alt → neu im Verlauf und eine Info an den Menschen."""
     if not kern.ist_lead(con, pid, von):
         raise kern.AmwFehler("Profile ändern nur Lead und Entwickler")
     kern.agent_zeile(con, pid, kennung)
+    w = wort_pruefen(con, pid, wort) if wort else None
+    if w and kennung.casefold() == str(von).casefold():
+        selbst = [k for k in WORT_NIE_FUER_SICH if werte.get(k) is not None]
+        if selbst:
+            raise kern.AmwFehler(f"{', '.join(selbst)} am eigenen Profil ändert ein Lead nie über ein Wort – das macht der Entwickler am PC")
+    vorher = profil(con, pid, kennung)
     setzen = {}
     for k, v in werte.items():
         if v is None:
@@ -125,7 +152,17 @@ def profil_setzen(con, pid, von, kennung, **werte):
         with db.schreiben(con):
             con.execute(f"UPDATE agent SET {', '.join(k + ' = ?' for k in setzen)} WHERE projekt_id = ? AND kennung = ?",
                         (*setzen.values(), pid, kennung))         # Spaltennamen nur aus der Prüfung oben
-    return profil(con, pid, kennung)
+    nachher = profil(con, pid, kennung)
+    if w:                                            # A1662: Verlauf je Feld + eine Info an den Menschen
+        geaendert = [f"{k}: {vorher.get(k)!s} → {nachher.get(k)!s}" for k in setzen if vorher.get(k) != nachher.get(k)]
+        if geaendert:
+            with db.schreiben(con):
+                for z in geaendert:
+                    db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="profil_auf_wort",
+                                 text=f"{kennung} · {z} · W{w['id']}")
+                kern._posten(con, pid, "AMW", kern.ENTWICKLER, "info", f"{von} hat das Profil von {kennung} geändert (auf dein Wort W{w['id']})",
+                             "\n".join(geaendert) + f"\n\nDein Wort: „{(w['text'] or '')[:300]}“")
+    return nachher
 
 
 # --- Befehl --------------------------------------------------------------------------------------

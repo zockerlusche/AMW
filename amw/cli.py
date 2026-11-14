@@ -198,12 +198,16 @@ def cmd_agent(a, con):
             schalter = lambda an, aus: True if an else False if aus else None
             aenderung = any(x is not None for x in (a.ordner, a.zusatz, a.denkstufe, a.modell, a.startsatz, a.rechte)) \
                 or a.fernsteuerung or a.keine_fernsteuerung or a.neustart or a.kein_neustart
-            p = steuerung.profil(con, pid, a.kennung) if not aenderung else steuerung.profil_setzen(con, pid, _von(a), a.kennung, ordner=a.ordner, zusatzordner=a.zusatz,
+            wer = {k: v for k, v in (("rolle", a.rolle), ("fachgebiet", a.fachgebiet), ("arbeitsweise", a.arbeitsweise),
+                                     ("zustaendig", a.zustaendig if a.zustaendig is not None else a.grenzen), ("fasst_nicht_an", a.nicht)) if v is not None}
+            if a.wort and wer:                               # A1662: auf ein Wort nur Profilfelder – Rolle & Co. nur am PC
+                raise kern.AmwFehler(f"mit --wort nur Profilfelder (Ordner, Zusatzordner, Denkaufwand, Modell, Startsatz, Rechte …), nicht {', '.join(wer)}")
+            if KANAL.get() == "bruecke" and (aenderung or wer) and not a.wort:
+                raise kern.AmwFehler("über den Dateiaustausch nur mit --wort W<nr> (ein frisches Wort des Entwicklers)")
+            p = steuerung.profil(con, pid, a.kennung) if not aenderung else steuerung.profil_setzen(con, pid, _von(a), a.kennung, wort=a.wort, ordner=a.ordner, zusatzordner=a.zusatz,
                                         denkstufe=a.denkstufe, modell=a.modell, startsatz=a.startsatz, rechte=a.rechte,
                                         fernsteuerung=schalter(a.fernsteuerung, a.keine_fernsteuerung),
                                         neustart_auto=schalter(a.neustart, a.kein_neustart))
-            wer = {k: v for k, v in (("rolle", a.rolle), ("fachgebiet", a.fachgebiet), ("arbeitsweise", a.arbeitsweise),
-                                     ("zustaendig", a.zustaendig if a.zustaendig is not None else a.grenzen), ("fasst_nicht_an", a.nicht)) if v is not None}
             if wer:                                          # dieselbe Prüfung wie im Zahnrad „Agenten“
                 kern.agent_einstellen(con, pid, _von(a), a.kennung, **wer)
             z = kern.agent_zeile(con, pid, a.kennung)
@@ -2214,6 +2218,7 @@ def parser():
     x.add_argument("--modell", help="profil: z. B. opus, sonnet (leer = Vorgabe)")
     x.add_argument("--startsatz", help="profil: erste Anweisung einer neuen Sitzung")
     x.add_argument("--rechte", help="profil: vorgabe | auto | umgehen")
+    x.add_argument("--wort", help="profil: Änderung auf ein Wort des Entwicklers (W<nr>, höchstens 24 h alt) – darf der Lead, auch über den Dateiaustausch")
     x.add_argument("--fernsteuerung", action="store_true", help="profil: Remote Control an")
     x.add_argument("--keine-fernsteuerung", action="store_true")
     x.add_argument("--neustart", action="store_true", help="profil: nach Absturz automatisch fortsetzen")

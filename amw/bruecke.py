@@ -139,8 +139,8 @@ def argumente(befehl, eingang=EINGANG, von=None, projekt=None):
         raise ValueError("„lauf ausfuehren“ geht nur im Terminal des Agenten, nicht über den Dateiaustausch")
     if args[0] == "release" and "ausliefern" in args:   # Release-Kette (git push, GitHub) nur im Terminal (A1644)
         raise ValueError("„release ausliefern“ geht nur im Terminal, nicht über den Dateiaustausch")
-    if args[0] == "agent" and len(args) > 1 and args[1] in ("starten", "beenden", "profil", "startskript"):
-        raise ValueError("Agenten starten, beenden und Profile ändern geht nur am PC (Workbench)")
+    if args[0] == "agent" and len(args) > 1 and args[1] in ("starten", "beenden", "startskript"):
+        raise ValueError("Agenten starten und beenden geht nur am PC (Workbench)")
     if args[0] == "projekt" and (len(args) < 2 or args[1] != "einstellen"):
         raise ValueError("über den Dateiaustausch nur „projekt einstellen <schluessel>=<wert>“ – Projekte anlegen geht nur am PC")
     if args[0] == "ki" and len(args) > 1 and args[1] in ("neu", "aendern"):
