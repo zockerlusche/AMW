@@ -65,9 +65,12 @@ function datei_senden(array $q): never {
     if ($vorschau === 'mockup') {
         header("Content-Security-Policy: sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline';"
             . " img-src data: blob:; font-src data:; media-src data: blob:; frame-ancestors 'self'");
-    } elseif ($vorschau !== 'pdf') {
+    } elseif (!in_array($vorschau, ['pdf', 'video'], true) && !($vorschau === 'bild' && $endung !== '.svg')) {
+        // Raster-Bilder und Videos ohne sandbox: Safari/iOS spielt mit „sandbox“ keine Videos ab (WebKit-Bug 225865, A1675);
+        // sie führen ohnehin nichts aus, nosniff verhindert Umdeuten. SVG kann Skript enthalten – bleibt abgeschottet.
         header("Content-Security-Policy: sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'");
     }
+    header('X-Content-Type-Options: nosniff');
     header('Content-Disposition: ' . ($vorschau === 'download' ? 'attachment' : 'inline') . '; filename="D' . $id . $endung . '"');
     if ($roh === null) {
         $f = fopen($p, 'rb'); fseek($f, $von); $rest = $bis - $von + 1;
