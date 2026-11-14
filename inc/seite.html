@@ -1242,7 +1242,7 @@ const TEXTE = {
     sj_titel: "Wo stehen wir gerade?", sj_kein_aktiv: "Kein Meilenstein ist aktiv", sj_fertig: "{f} von {g} Aufgaben erledigt", sj_ziel: "Nächstes Ziel: {x} ({b})", sj_kein_ziel: "Kein Zieldatum gesetzt", sj_dran: "Gerade in Arbeit", sj_an: "{a} an „{x}“", sj_zielkurz: "Ziel {x}", sj_ohne1: "1 Aufgabe ohne Meilenstein", sj_niemand: "Niemand arbeitet gerade an einer Aufgabe.", sj_ohne: "{n} Aufgaben ohne Meilenstein", ue_jetzt: "Jetzt", ue_erkl: "Jeder Balken ist ein Meilenstein von Beginn bis Ziel. Die senkrechte Linie ist jetzt.", ue_jetzt_tip: "Jetzt: {x}", ue_fertige_zeigen: "Erledigte einblenden ({n})", ue_fertige_aus: "Erledigte ausblenden", tl_fertige: "Erledigte Meilensteine ({n})", lg_geplant: "geplant", lg_arbeit: "in Arbeit", lg_spaet: "zu spät", lg_erledigt: "erledigt", lg_rahmen: "wahrscheinlicher Rahmen", lg_puffer: "Puffer bis zum Ziel", lg_ziel: "Ziel", ob_titel: "Ohne Meilenstein ({n})", ob_h: "Diese Aufgaben gehören zu keinem Meilenstein. Zuordnen: amw aufgabe aendern <nr> --bogen <nr>.",
     ue_titel: "Übersicht", ue_summe: "Start {a} · voraussichtlich fertig am {b}, spätestens {c} · rund {n} Wochen ab heute",
     ue_teilweise: "Noch nicht für alle Meilensteine eine Prognose", ue_start: "Start", ue_ohne: "keine offenen Schritte",
-    ue_l_p50: "bis zur Prognose (50 %)", ue_l_rot: "zu spät", ue_l_p85: "bis 85 % sicher", ue_l_du: "dein Schritt", ue_l_heute: "heute", ue_l_klick: "Klick auf einen Balken öffnet den Meilenstein",
+    ue_l_p50: "bis zur Prognose (50 %)", ue_l_rot: "zu spät", ue_l_p85: "bis 85 % sicher", ue_l_du: "wartet auf dich", ue_l_heute: "heute", ue_l_klick: "Klick auf einen Balken öffnet den Meilenstein",
     ue_l_puffer: "Puffer bis zum Zieldatum", ue_weit: "Bis zum letzten Zieldatum", ue_eng: "Nur bis zum Ende der Prognose",
     ue_spuren: "{n} Meilensteine in {s} Zeilen", ue_ohne_prognose: "Noch ohne Prognose:",
     vb_vollbild: "Vollbild", vb_tipp: "Klick öffnet das Vollbild mit Zoom", vb_kleiner: "Verkleinern (−)", vb_groesser: "Vergrößern (+)",
@@ -1272,7 +1272,7 @@ const TEXTE = {
     au_zustaendig: "zuständig {x}", au_wartegruende: "Wartet auf", au_fragen: "Fragen ({n})", au_dokumente: "Dokumente ({n})", au_beschluesse: "Beschlüsse ({n})",
     au_laeufe: "Läufe ({n})", au_pruefungen: "Prüfungen ({n})", au_zusammenfassung: "Zusammenfassung", au_beleg: "Beleg: {x}", au_verbrauch: "Verbrauch", au_verbrauch_x: "{x} Gegenwert", au_verlauf: "Verlauf ({n})",
     au_dein_teil: "Dein Teil", au_antwort_titel: "Antwort an {x}", au_erledigt: "Erledigt", au_antwort: "Antwort an {x}", au_dazwischen: "Dazwischenschieben", au_dazwischen_h: "{x} arbeitet gerade an A{a}. „Dazwischenschieben“ unterbricht das: {x} speichert seinen Stand, macht diese Aufgabe zuerst, danach kommt A{a} wieder dran. Der Grund aus dem Feld oben geht an {x}.", au_dazwischen_ok: "A{a} kommt als Nächstes dran – der Agent weiß Bescheid.", vz_unterbrochen: "unterbrochen", vz_dazwischen_vorschlag: "Vorschlag: dazwischenschieben", au_spaeter: "Später",
-    pl_grund_h: "Pflicht, wenn das Zieldatum vom ursprünglichen Termin ({x}) abweicht", pl_freigabe_noetig: "Freigabe", pl_dein_schritt: "dein Schritt",
+    pl_grund_h: "Pflicht, wenn das Zieldatum vom ursprünglichen Termin ({x}) abweicht", pl_freigabe_noetig: "Freigabe", pl_dein_schritt: "wartet auf dich",
     lb_h: "Woran sich alle Meilensteine und Schritte messen. Die Agenten bekommen es in ihre Startinformationen.", lb_ziel: "Projektziel",
     lb_ziel_h: "ein Satz, messbar", lb_kennzahlen: "Kennzahlen", lb_zeilen: "eine je Zeile", lb_nicht: "Nicht-Ziele",
     lb_nicht_h: "Was ausdrücklich nicht gebaut wird. Hält Agenten davon ab, mehr zu bauen als verlangt.", lb_prinzipien: "Prinzipien",
@@ -1574,7 +1574,7 @@ const TEXTE = {
     sj_titel: "Where do we stand right now?", sj_kein_aktiv: "No milestone is active", sj_fertig: "{f} of {g} tasks done", sj_ziel: "Next target: {x} ({b})", sj_kein_ziel: "No target date set", sj_dran: "Being worked on", sj_an: "{a} on “{x}”", sj_zielkurz: "target {x}", sj_ohne1: "1 task without a milestone", sj_niemand: "Nobody is working on a task right now.", sj_ohne: "{n} tasks without a milestone", ue_jetzt: "Now", ue_erkl: "Each bar is a milestone from start to target. The vertical line is now.", ue_jetzt_tip: "Now: {x}", ue_fertige_zeigen: "Show completed ({n})", ue_fertige_aus: "Hide completed", tl_fertige: "Completed milestones ({n})", lg_geplant: "planned", lg_arbeit: "in progress", lg_spaet: "late", lg_erledigt: "done", lg_rahmen: "likely range", lg_puffer: "buffer up to the target", lg_ziel: "target", ob_titel: "Without milestone ({n})", ob_h: "These tasks belong to no milestone. Assign: amw aufgabe aendern <no> --bogen <no>.",
     ue_titel: "Overview", ue_summe: "Start {a} · expected to be done on {b}, at the latest {c} · about {n} weeks from today",
     ue_teilweise: "Not all milestones have a forecast yet", ue_start: "Start", ue_ohne: "no open steps",
-    ue_l_p50: "to forecast (50 %)", ue_l_rot: "late", ue_l_p85: "to 85 % safe", ue_l_du: "your step", ue_l_heute: "today", ue_l_klick: "Click a bar to open the milestone",
+    ue_l_p50: "to forecast (50 %)", ue_l_rot: "late", ue_l_p85: "to 85 % safe", ue_l_du: "waiting for you", ue_l_heute: "today", ue_l_klick: "Click a bar to open the milestone",
     ue_l_puffer: "buffer to target date", ue_weit: "Up to the last target date", ue_eng: "Only up to the end of the forecast",
     ue_spuren: "{n} milestones in {s} rows", ue_ohne_prognose: "No forecast yet:",
     vb_vollbild: "Full screen", vb_tipp: "Click opens full screen with zoom", vb_kleiner: "Zoom out (−)", vb_groesser: "Zoom in (+)",
@@ -1604,7 +1604,7 @@ const TEXTE = {
     au_zustaendig: "responsible {x}", au_wartegruende: "Waiting for", au_fragen: "Questions ({n})", au_dokumente: "Documents ({n})", au_beschluesse: "Decisions ({n})",
     au_laeufe: "Runs ({n})", au_pruefungen: "Reviews ({n})", au_zusammenfassung: "Summary", au_beleg: "Record: {x}", au_verbrauch: "Usage", au_verbrauch_x: "{x} equivalent", au_verlauf: "History ({n})",
     au_dein_teil: "Your part", au_antwort_titel: "Reply to {x}", au_erledigt: "Done", au_antwort: "Reply to {x}", au_dazwischen: "Put first", au_dazwischen_h: "{x} is working on A{a}. “Put first” interrupts that: {x} saves the work, does this task first, then A{a} continues. The reason from the field above goes to {x}.", au_dazwischen_ok: "A{a} comes next – the agent has been told.", vz_unterbrochen: "interrupted", vz_dazwischen_vorschlag: "Proposal: put first", au_spaeter: "Later",
-    pl_grund_h: "Required if the target date differs from the original date ({x})", pl_freigabe_noetig: "Approval", pl_dein_schritt: "your step",
+    pl_grund_h: "Required if the target date differs from the original date ({x})", pl_freigabe_noetig: "Approval", pl_dein_schritt: "waiting for you",
     lb_h: "What all milestones and steps are measured against. The agents receive it in their start information.", lb_ziel: "Project goal",
     lb_ziel_h: "one sentence, measurable", lb_kennzahlen: "Metrics", lb_zeilen: "one per line", lb_nicht: "Non-goals",
     lb_nicht_h: "What will explicitly not be built. Keeps agents from building more than asked.", lb_prinzipien: "Principles",
@@ -4110,6 +4110,7 @@ function akzeptierenDialog(d, x) {
 function standJetzt(d) {
   const aktiv = d.boegen.filter(b => b.status === "aktiv"), offen = d.boegen.filter(b => ["aktiv", "geplant"].includes(b.status));
   const ziel = offen.filter(b => b.zieldatum && b.zieldatum >= d.heute).sort((a, b) => a.zieldatum.localeCompare(b.zieldatum))[0];
+  const zielZeile = ziel && !(ziel.status === "aktiv" && aktiv.includes(ziel));   /* steht schon in der Zeile darüber: nicht doppelt (TL P167) */
   const fortschritt = b => { const g = b.gesamt - (b.verworfen || 0), f = b.fertig || 0;
     return el("span", {}, el("span", { class: "mb-spur" }, el("i", { style: `width:${g ? Math.round(100 * f / g) : 0}%;background:var(--gruen)` })),
       " " + t("sj_fertig", { f, g })); };
@@ -4118,7 +4119,7 @@ function standJetzt(d) {
     ...(aktiv.length ? aktiv.map(b => el("div", { class: "sj-zeile" }, el("a", { class: "verweis", onclick: () => zuSchritt(null, b.id) }, b.titel + ":"),
         fortschritt(b), b.zieldatum ? el("span", { class: "sehrleise" }, "· " + t("sj_zielkurz", { x: datumKurz(b.zieldatum) })) : null))
       : [el("div", { class: "sj-zeile sehrleise" }, t("sj_kein_aktiv"))]),
-    el("div", { class: "sj-zeile sehrleise" }, ziel ? t("sj_ziel", { x: datumKurz(ziel.zieldatum), b: ziel.titel }) : t("sj_kein_ziel"),
+    el("div", { class: "sj-zeile sehrleise" }, zielZeile ? t("sj_ziel", { x: datumKurz(ziel.zieldatum), b: ziel.titel }) : ziel ? null : t("sj_kein_ziel"),
       ohne.length ? el("a", { class: "verweis", onclick: () => { const o = document.getElementById("ohne-bogen"); if (o) { o.open = true; o.scrollIntoView({ behavior: "smooth", block: "start" }); } } },
         ohne.length === 1 ? t("sj_ohne1") : t("sj_ohne", { n: ohne.length })) : null),
     el("div", { class: "sj-dran" }, el("span", { class: "sehrleise" }, t("sj_dran") + ":"),
