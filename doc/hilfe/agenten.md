@@ -9,7 +9,7 @@ Ein Agent arbeitet in einem Ordner auf diesem PC. Damit die AMW ihn benachrichti
 ## Schritte
 1. **Ordner einrichten** `amw einrichten agenten-ordner <ordner> --projekt <projekt>` ausführen. Die AMW trägt ihre Einträge in die Einstellungen von Claude Code in diesem Ordner ein und sichert die Datei vorher. Danach erscheinen „Zustand und Verbrauch“ des Agenten.
 2. **Profil prüfen** Unter Einstellungen › Agenten stehen Ordner, Modell, Denkaufwand, Rechte und Startanweisung. Ändern geht dort oder mit `amw agent profil <name> --ordner … --modell …`.
-3. **Starten** Auf der Startseite den Agenten anklicken › „Starten / fortsetzen“. Die AMW öffnet ihn in einem neuen Terminal-Tab.
+3. **Starten** In der Übersicht den Agenten anklicken › „Starten / fortsetzen“. Die AMW öffnet ihn in einem neuen Terminal-Tab.
 
 ## Diese Werte trägst du ein
 | Feld in der AMW | Woher |

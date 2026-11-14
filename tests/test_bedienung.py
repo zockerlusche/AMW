@@ -140,18 +140,21 @@ class Seite(Wiederholt, Grund):
         self.tab.senden("Emulation.setDeviceMetricsOverride", width=390, height=844, deviceScaleFactor=1, mobile=True)
         self.oeffnen("arbeit", "document.querySelector('#mehr') && document.querySelector('.reiter')")
         sichtbar = "[...document.querySelectorAll('nav a')].filter(a => a.offsetParent !== null).map(a => a.dataset.sicht || a.id)"
-        self.assertEqual(self.tab.js(sichtbar), ["start", "fragen", "planung", "arbeit", "mehr"])
+        self.assertEqual(self.tab.js(sichtbar), ["start", "fragen", "planung", "nachrichten", "mehr"])   # sieben Menüpunkte (A1657)
+        self.assertTrue(self.tab.js("document.querySelector('nav a[data-sicht=planung]').classList.contains('an')"))   # Aufgaben gehören zu Planung
         breite = self.tab.js("Math.min(...[...document.querySelectorAll('nav a')].filter(a => a.offsetParent !== null).map(a => a.getBoundingClientRect().width))")
         self.assertGreaterEqual(breite, 48)                                          # Daumen-Ziel
         r = self.tab.js("(() => { const x = document.querySelector('.reiter .rechts select, .reiter .rechts input').getBoundingClientRect();"
                         " return [x.left, x.right, innerWidth]; })()")
         self.assertTrue(r[0] >= 0 and r[1] <= r[2], r)                               # Filter der Aufgaben sichtbar, nicht weggescrollt
         self.tab.js("document.getElementById('mehr').click()")
-        self.warten("document.querySelectorAll('.mehr-liste button').length === 8")              # mit „Nachrichten“ (1.74.0), „Team-Chat“ (1.91.0)
-        for x in ("Nachrichten", "Team-Chat"):
+        self.warten("document.querySelectorAll('.mehr-liste button').length === 3")              # Wissen, Betrieb, Einstellungen (A1657)
+        for x in ("Wissen", "Betrieb", "Einstellungen"):
             self.assertTrue(self.tab.js(f"[...document.querySelectorAll('.mehr-liste button')].some(b => b.textContent.includes({x!r}))"), x)
-        self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Verlauf')).click()")
-        self.warten("zustand.sicht === 'verlauf' && document.getElementById('mehr').classList.contains('an')")
+        self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Wissen')).click()")
+        self.warten("zustand.sicht === 'wissen' && document.getElementById('mehr').classList.contains('an')")
+        self.tab.js("[...document.querySelectorAll('#inhalt .reiter button')].find(b => b.textContent === 'Dokumente').click()")   # früher eigener Menüpunkt
+        self.warten("zustand.sicht === 'dokumente' && document.getElementById('mehr').classList.contains('an')")
 
     def test_nachrichten_reiter_und_startkarte(self):
         """Nachrichten: Eingang · Gesendet als eine Leiste – Fragen haben seit 1.91.0 ihre eigene Seite mit eigenem Kopf;

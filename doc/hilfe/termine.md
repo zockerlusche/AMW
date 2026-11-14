@@ -22,4 +22,4 @@ Ein Testtermin legt fest, wann du testest. Die AMW leitet daraus für alle die F
 - **Ein einzelner Termin fällt aus** – `amw termin absagen <termin> --am "20.11. 18:00"` sagt nur dieses Vorkommen ab.
 
 ## Danach
-- Termine siehst du unter Planung › Termine, den nächsten Test auch auf der Startseite.
+- Termine siehst du unter Planung › Termine, den nächsten Test auch in der Übersicht.

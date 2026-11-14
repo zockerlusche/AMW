@@ -61,7 +61,8 @@ class Postfach(Grund):
         leiste = html.split("function nrReiterLeiste")[1].split("\n}")[0]
         self.assertNotIn('knopf("fragen"', leiste)                                              # „Fragen“ ist ein eigener Menüpunkt
         self.assertIn('rahmen(t("n_fragen"), el("span", { class: "leise" }, t("f_unter")))', html)
-        self.assertIn('<a data-sicht="teamchat" class="im-mehr">', html)
+        self.assertIn('onclick: () => zeige("teamchat") }, t("n_teamchat"))', leiste)                 # Team-Chat: Reiter unter Nachrichten (A1657)
+        self.assertNotIn('<a data-sicht="teamchat"', html)
         for x in ('n_teamchat: "Team-Chat"', 'n_teamchat: "Team chat"', 'nr_erledigt_n: "Erledigt ({n})"', 'nr_erledigt_n: "Done ({n})"',
                   'nr_fragen_offen: "{n} Fragen an dich offen › Fragen"', 'nr_fragen_offen: "{n} questions for you open › Questions"'):
             self.assertIn(x, html)

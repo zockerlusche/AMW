@@ -9,7 +9,7 @@ An agent works in a folder on this PC. So that the AMW can notify it, monitor it
 ## Steps
 1. **Set up the folder** Run `amw einrichten agenten-ordner <folder> --projekt <project>`. The AMW adds its entries to the Claude Code settings in this folder and backs up the file first. After that, the agent's “State and usage” appears.
 2. **Check the profile** Settings › Agents shows folder, model, effort, permissions and first prompt. Change them there or with `amw agent profil <name> --ordner … --modell …`.
-3. **Start** On the home page click the agent › “Start / resume”. The AMW opens it in a new terminal tab.
+3. **Start** In the Overview click the agent › “Start / resume”. The AMW opens it in a new terminal tab.
 
 ## Values to enter
 | Field in the AMW | Where from |

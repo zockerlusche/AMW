@@ -23,7 +23,7 @@ auseinander.
 | [termine.md](termine.md) | Testtermine und Fristen | Planung › Termine |
 | [planung.md](planung.md) | Planung: Wo stehen wir? | Planung › Zeitleiste („Stand jetzt“) |
 | [themen.md](themen.md) | Themen: was gerade gilt | Wissen › Themen |
-| [reihenfolge.md](reihenfolge.md) | Reihenfolge der Arbeit: eins nach dem anderen | Aufgaben › Listen |
+| [reihenfolge.md](reihenfolge.md) | Reihenfolge der Arbeit: eins nach dem anderen | Planung › Aufgaben › Listen |
 | [lead-runde.md](lead-runde.md) | Lead-Runde: die Leads aller Projekte im Gespräch | Nachrichten › Lead-Runde |
 | [mcp.md](mcp.md) | AMW mit Claude verbinden (MCP) | Hilfe „Rhythmus für einen Lead, der als Chat arbeitet“ |
 

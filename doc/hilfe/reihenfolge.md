@@ -6,7 +6,7 @@ Jeder Agent arbeitet seine Liste von oben nach unten ab und macht ein Stück fer
 - Ein Projekt mit Lead und Agenten.
 
 ## Schritte
-1. **Neues landet im Eingang** Legt der Lead oder du eine Aufgabe für einen Agenten an, der gerade arbeitet, kommt sie in den Eingang (Aufgaben › Listen). Der Leitstand zeigt, wie viele dort warten.
+1. **Neues landet im Eingang** Legt der Lead oder du eine Aufgabe für einen Agenten an, der gerade arbeitet, kommt sie in den Eingang (Planung › Aufgaben › Listen). Der Leitstand zeigt, wie viele dort warten.
 2. **Einplanen** Der Lead ordnet die Aufgabe in die Liste ein – frühestens hinter das laufende Stück. Als Befehl: `amw liste ordnen <agent> A12 A15`.
 3. **Warten erlaubt das Nächste** Muss das laufende Stück warten (Prüfung, Lauf, Frage), trägt der Agent den Grund ein und darf das nächste beginnen. Ist der Grund erledigt, kommt das wartende Stück dran, sobald das aktuelle fertig ist.
 4. **Dazwischenschieben, wenn es wirklich sein muss** Öffne die Aufgabe und drücke „Dazwischenschieben“ (mit Grund). Der Agent speichert seinen Stand, macht diese Aufgabe zuerst, danach geht es mit dem unterbrochenen Stück weiter.

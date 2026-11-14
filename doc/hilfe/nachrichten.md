@@ -14,7 +14,7 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 6. **Zurückziehen** Gesendet › Nachricht wählen › „Zurückziehen“ – solange **kein** Empfänger sie gelesen oder erledigt hat. Sie verschwindet bei allen Empfängern und bleibt bei dir als „zurückgezogen“.
 
 ## Typische Fehler
-- **Eine Nachricht bleibt lange bei „gesendet“** – Der Agent läuft nicht oder ist ein Chat-Lead, der nur in seinem Rhythmus liest. Auf der Startseite siehst du, ob er läuft.
+- **Eine Nachricht bleibt lange bei „gesendet“** – Der Agent läuft nicht oder ist ein Chat-Lead, der nur in seinem Rhythmus liest. In der Übersicht siehst du, ob er läuft.
 - **„Zurückziehen“ ist ausgegraut** – Ein Empfänger hat sie schon gelesen. Schick eine neue Nachricht („bitte ignorieren“).
 - **Der Bezug fehlt** – Nachrichten über „+ Schreiben“ im Menü sind allgemein; schreib über „✉ Nachricht dazu“ am Objekt, dann geht er mit.
 
@@ -22,7 +22,7 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 - Fragen der Agenten an dich stehen nur unter dem Menüpunkt „Fragen“ – mit Rückfragen, Nachträgen und deiner Antwort. Unter Nachrichten steht oben nur ein Hinweis, wie viele offen sind.
 - Jede Zeile zeigt ihre Art: ✉ Nachricht eines Agenten, ⚙ Meldung der Workbench. Mehrere offene erledigst du auf einmal: Häkchen setzen (oder „alle offenen markieren“), dann „Erledigt“.
 - Was Agenten und Lead untereinander schreiben, steht unter „Team-Chat“ – nur zum Lesen, es zählt nie.
-- Die Startseite zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt in den Eingang.
+- Die Übersicht zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt in den Eingang.
 - Am PC scrollen Liste und Nachricht getrennt, wie im Mail-Programm: Du kannst rechts lesen, ohne die Liste zu verlieren.
 
 ## Häufige Fragen
