@@ -72,6 +72,10 @@
    "Im Leitstand steht, warum: der Rechner ist belegt, es ist zu wenig Arbeitsspeicher frei oder ein Lauf davor wartet – dann steht dabei, wie viel Arbeitsspeicher er braucht und wie viel nutzbar ist. Der Mensch kann einen Lauf vorziehen (`amw lauf vorziehen <nr>`)."
   ],
   [
+   "Ein Gesamtlauf zählt nicht für die Auslieferung",
+   "Ein Lauf merkt sich beim Start den Stand des Ordners, in den sein Befehl mit `cd` wechselt, sonst den des Ordners, aus dem du ihn einreihst. Wechselt erst ein Skript den Ordner, sieht die AMW das nicht: Befehl mit `cd /d <Ordner> &&` beginnen oder aus dem Arbeitsbaum einreihen, den er prüft. Den gemerkten Stand zeigt die Zeile „# Stand …“ oben in der Ausgabe."
+  ],
+  [
    "Ein einzelner kurzer Test wird abgewiesen",
    "Das Muster ist zu weit gefasst. Einzelne Test-Module bleiben frei; eigene Muster enger fassen."
   ],
