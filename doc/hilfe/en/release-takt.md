@@ -4,7 +4,7 @@ AMW can handle two things for you: how strictly a change is reviewed (review lev
 
 ## Steps
 1. **Switch on review levels** Settings › Project › Review levels to “on”. From then on every review request starts with its level and the files that decide it.
-2. **Who reviews** High – database, sign-in, permissions, file exchange, queue, release – is reviewed by the lead. Medium – interface, help and other code – by an agent other than the builder. Low – docs and tests only – needs no review request.
+2. **Who reviews** High – everything with permission or security checks: database, sign-in, command line, online actions, service, file exchange, queue, release, PHP of the online page – is reviewed by the lead. Medium – interface, help and other code – by an agent other than the builder. Low – docs and tests only – needs no review request.
 3. **Release low-level changes** With the lead's merge approval and a green full run on exactly this commit: `amw release ausliefern --zweig <branch> --aufgabe <nr>`.
 4. **Raise the level** The builder can raise a review request: `amw pruefung bitte … --stufe hoch`. Lowering is not possible.
 5. **Pick a release rhythm** Settings › Project › Release rhythm: immediately, daily at a time, or per milestone. When something is ready – green review, merge approval, full run on exactly this commit – whoever handles merges (otherwise the lead) gets one message. AMW never releases by itself.

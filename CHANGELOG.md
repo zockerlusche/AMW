@@ -6,7 +6,7 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 
 ## 1.97.0 – 14.11.2026 · Prüfstufen und Release-Takt
 - **Prüfstufe in jeder Prüfbitte:** Die AMW sieht nach, welche Dateien ein Stand ändert, und schreibt die Stufe oben in die
-  Prüfbitte – hoch (Datenbank, Anmeldung, Rechte, Dateiaustausch, Warteschlange, Auslieferung), mittel (Oberfläche, Hilfe,
+  Prüfbitte – hoch (alles mit Rechte- oder Sicherheitsprüfungen: Datenbank, Anmeldung, Befehlszeile, Dienst, Dateiaustausch …), mittel (Oberfläche, Hilfe,
   anderer Code) oder niedrig (nur Doku und Tests), mit den Dateien, die sie bestimmen. Muster je Projekt einstellbar.
 - **Einstellungen › Projekt › Prüfstufen (Vorgabe aus):** Eingeschaltet prüft bei „hoch“ der Lead, bei „mittel“ ein anderer
   Agent als der, der gebaut hat. „Niedrig“ geht ohne Prüfbitte raus – mit Merge-OK und einem grünen Gesamtlauf auf genau

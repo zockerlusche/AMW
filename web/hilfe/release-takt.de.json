@@ -10,7 +10,7 @@
   },
   {
    "titel": "Wer prüft",
-   "text": "Hoch – Datenbank, Anmeldung, Rechte, Dateiaustausch, Warteschlange, Auslieferung – prüft der Lead. Mittel – Oberfläche, Hilfe und anderer Code – prüft ein anderer Agent als der, der gebaut hat. Niedrig – nur Doku und Tests – braucht keine Prüfbitte.",
+   "text": "Hoch – alles mit Rechte- oder Sicherheitsprüfungen: Datenbank, Anmeldung, Befehlszeile, Online-Aktionen, Dienst, Dateiaustausch, Warteschlange, Auslieferung, PHP der Online-Seite – prüft der Lead. Mittel – Oberfläche, Hilfe und anderer Code – prüft ein anderer Agent als der, der gebaut hat. Niedrig – nur Doku und Tests – braucht keine Prüfbitte.",
    "bilder": []
   },
   {

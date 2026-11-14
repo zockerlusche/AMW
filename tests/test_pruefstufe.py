@@ -20,7 +20,8 @@ class Einstufen(unittest.TestCase):
         self.assertEqual(pruefstufe.einstufen(["web/hilfe/a.de.json"], m)[0], "mittel")       # * passt auch über / hinweg
         self.assertEqual(pruefstufe.einstufen(["tests/test_x.py", "CHANGELOG.md", "amw/__init__.py"], m), ("niedrig", []))
         self.assertEqual(pruefstufe.einstufen(["tests/test_x.py", "amw/anlass.py"], m), ("mittel", ["amw/anlass.py"]))   # Code = nicht niedrig
-        for d in ("amw/kern.py", "amw/hook.py", "amw/schema.sql"):                            # TL 14.11.: Rechte, Hook, Schema
+        for d in ("amw/kern.py", "amw/hook.py", "amw/schema.sql", "amw/cli.py", "amw/aktionen.py", "amw/workbench.py", "amw/dienst.py",
+                  "amw/ki.py", "amw/einstellungen.py", "amw/runde.py", "web/api.php", "web/inc/lib.php", "web/index.php"):   # TL P157
             self.assertEqual(pruefstufe.einstufen([d], m)[0], "hoch", d)
         self.assertEqual(pruefstufe.einstufen(None, m), ("unbekannt", []))
 

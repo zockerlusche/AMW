@@ -12,9 +12,12 @@ import fnmatch
 import json
 import subprocess
 
+# hoch: alles mit Rechte- oder Sicherheitsprüfungen (TL 14.11., P157) – Befehlszeile (Kanal, Läufe), Online-Aktionen, Workbench
+# (Host/Heimnetz, Schlüssel), Dienst (Weckruf, Aufpasser), KI (beendet Prozesse), PC-Einstellungen (Netzbereiche), Lead-Runde, PHP
 VORGABE = {"hoch": ["amw/migration_*.sql", "amw/schema.sql", "amw/db.py", "amw/benutzer.py", "amw/anmeldung*", "amw/kern.py",
-                    "amw/hook.py", "web/inc/lib.php", "web/api.php", "amw/bruecke.py", "amw/laufdienst.py", "amw/auslieferung.py",
-                    "amw/betrieb.py"],
+                    "amw/hook.py", "amw/bruecke.py", "amw/laufdienst.py", "amw/auslieferung.py", "amw/betrieb.py", "amw/cli.py",
+                    "amw/aktionen.py", "amw/workbench.py", "amw/dienst.py", "amw/ki.py", "amw/einstellungen.py", "amw/runde.py",
+                    "web/*.php"],
            "mittel": ["amw/workbench.html", "web/*", "doc/hilfe/*"],
            "niedrig": ["doc/*", "tests/*", "*.md", "amw/__init__.py", "web/inc/VERSION"]}
 STUFEN = ("niedrig", "mittel", "hoch")
