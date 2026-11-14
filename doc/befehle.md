@@ -868,7 +868,8 @@ options:
 ```
 usage: amw pruefung [-h] [--pruefer PRUEFER] [--zweig ZWEIG] [--sha SHA]
                     [--punkte PUNKTE] [--aufgabe AUFGABE]
-                    [--bemerkung BEMERKUNG] [--alle] [--von VON]
+                    [--bemerkung BEMERKUNG] [--alle]
+                    [--stufe {niedrig,mittel,hoch}] [--von VON]
                     [--projekt PROJEKT]
                     {bitte,gruen,rot,ist-gruen,liste} [id]
 
@@ -885,6 +886,9 @@ options:
   --aufgabe AUFGABE
   --bemerkung BEMERKUNG
   --alle
+  --stufe {niedrig,mittel,hoch}
+                        Prüfstufe höher einstufen als die geänderten Dateien
+                        ergeben (nie niedriger)
   --von VON
   --projekt PROJEKT
 ```
@@ -1420,10 +1424,10 @@ options:
 ## release
 ```
 usage: amw release [-h] [--zweig ZWEIG] [--gesamtlauf GESAMTLAUF]
-                   [--oeffentlich-datei OEFFENTLICH_DATEI] [--titel TITEL]
-                   [--commit COMMIT] [--version VERSION] [--aufgaben AUFGABEN]
-                   [--text TEXT] [--text-datei TEXT_DATEI] [--von VON]
-                   [--projekt PROJEKT]
+                   [--aufgabe AUFGABE] [--oeffentlich-datei OEFFENTLICH_DATEI]
+                   [--titel TITEL] [--commit COMMIT] [--version VERSION]
+                   [--aufgaben AUFGABEN] [--text TEXT]
+                   [--text-datei TEXT_DATEI] [--von VON] [--projekt PROJEKT]
                    {merge,version,liste,entwurf,ausliefern}
 
 positional arguments:
@@ -1436,7 +1440,10 @@ options:
   --zweig ZWEIG         ausliefern: Zweig oder Stand, der live gehen soll
   --gesamtlauf GESAMTLAUF
                         ausliefern: grüner Gesamtlauf L<nr> (sonst sucht die
-                        AMW den Lauf mit dem Stand in der Beschreibung)
+                        AMW den Lauf, der genau diesen Stand sauber geprüft
+                        hat)
+  --aufgabe AUFGABE     ausliefern ohne Prüfbitte (Prüfstufe niedrig, nur
+                        Doku/Tests): die Aufgabe mit dem Merge-OK
   --oeffentlich-datei OEFFENTLICH_DATEI
                         version: eigener Text für alle statt des Entwurfs
                         (Markdown)

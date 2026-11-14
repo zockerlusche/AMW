@@ -191,6 +191,22 @@ class Kette(unittest.TestCase):
             self.con.execute("UPDATE pruefung SET sha = ? WHERE id = ?", (self.sha[:5], prid))                         # zu kurz: zählt nicht
         self.assertIsNone(betrieb.ist_gruen(self.con, self.pid, self.sha))
 
+    def test_pruefstufe_niedrig_ohne_pruefbitte(self):
+        """A1656 (TL 14.11.): nur Doku/Tests (+ Versionsnummer) geht mit „pruefstufen = an“ ohne Prüfbitte – aber nur mit
+        Merge-OK und einem echten grünen Gesamtlauf auf genau dem Stand, nie mit der Ausnahme."""
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Nur Doku", "CC1")
+        betrieb.freigabe_merge(self.con, self.pid, "TL", aid)
+        self.ohne_aenderung("keine grüne Prüfung")                                           # Stufen aus: wie bisher
+        kern.projekt_einstellen(self.con, self.pid, "TL", pruefstufen="an")
+        self.ohne_aenderung("--aufgabe")
+        betrieb.freigabe_merge(self.con, self.pid, "TL", aid, ausnahme="geht schon")
+        with self.assertRaises(auslieferung.Stopp) as e:
+            self.kette().ausliefern("neu", aufgabe=aid)
+        self.assertIn("Gesamtlauf", str(e.exception))                                         # Ausnahme zählt hier nicht
+        self.gesamtlauf()
+        r = self.kette().ausliefern("neu", aufgabe=aid)
+        self.assertEqual(r["version"], "1.1.0")
+
     def test_kein_fast_forward_und_schmutziger_baum(self):
         self.gruen()
         self.gesamtlauf()

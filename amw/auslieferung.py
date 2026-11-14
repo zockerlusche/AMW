@@ -86,16 +86,26 @@ class Kette:
         return (m.group("titel") or version).strip(), m.group("text").strip()
 
     # --- Vorbedingungen -------------------------------------------------------------------------------------------------
-    def pruefen(self, zweig, gesamtlauf=None):
+    def pruefen(self, zweig, gesamtlauf=None, aufgabe=None):
         sha = self.git("rev-parse", "--verify", f"{zweig}^{{commit}}", schritt="Stand bestimmen").splitlines()[-1].strip()
         m = re.search(r'__version__ = "([^"]+)"', self.datei(sha, "amw/__init__.py"))
         if not m:
             self.stopp("Version", "amw/__init__.py nennt keine Version")
         version = m.group(1)
         g = betrieb.ist_gruen(self.con, self.pid, sha)
-        if not g:
-            self.stopp("Prüfung", f"keine grüne Prüfung auf genau {sha[:8]} – erst Prüfbitte, dann GRÜN")
-        p = self.con.execute("SELECT * FROM pruefung WHERE id = ?", (g["id"],)).fetchone()
+        niedrig = False                                 # A1656: Prüfstufe niedrig (nur Doku/Tests) geht ohne Prüfbitte
+        if g:
+            p = self.con.execute("SELECT * FROM pruefung WHERE id = ?", (g["id"],)).fetchone()
+        else:
+            from . import kern, pruefstufe
+            an = kern.projekt_wahl(self.con, self.pid, "pruefstufen") == "an"
+            stufe, _ = pruefstufe.einstufen(pruefstufe.dateien(self.repo, sha), pruefstufe.muster(self.con, self.pid)) if an else (None, None)
+            if stufe != "niedrig":
+                self.stopp("Prüfung", f"keine grüne Prüfung auf genau {sha[:8]} – erst Prüfbitte, dann GRÜN"
+                                      + (f" (Prüfstufe {stufe})" if an else ""))
+            if not aufgabe:
+                self.stopp("Prüfung", f"Prüfstufe niedrig: ohne Prüfbitte mit --aufgabe <nr> (für das Merge-OK des Leads)")
+            p, niedrig = {"id": None, "aufgabe_id": int(aufgabe), "zweig": zweig}, True
         if not p["aufgabe_id"]:
             self.stopp("Merge-OK", f"P{p['id']} hängt an keiner Aufgabe – das Merge-OK gilt je Aufgabe")
         ok = betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"])
@@ -103,7 +113,7 @@ class Kette:
             self.stopp("Merge-OK", f"kein Merge-OK für A{p['aufgabe_id']} ({p['zweig']}) – der Lead gibt es mit"
                                     f" amw freigabe merge {p['aufgabe_id']}")
         ausnahme = betrieb.gesamtlauf_ausnahme(self.con, self.pid, p["aufgabe_id"])
-        ausnahme = f"{ausnahme['von']}: {ausnahme['text']}" if ausnahme else None
+        ausnahme = f"{ausnahme['von']}: {ausnahme['text']}" if ausnahme and not niedrig else None   # ohne Prüfbitte: nur echter Lauf
         # Gesamtlauf: zählt nur, wenn der beim tatsächlichen Start gemerkte Stand genau dieser ist und sauber war (TL #24259) –
         # die Beschreibung kann veralten (Arbeitsbaum zwischen Einreihen und Start gewechselt)
         stand = f"%{betrieb.stand_text(('', sha, True))}%"
@@ -130,14 +140,14 @@ class Kette:
             self.stopp("Tag", f"v{version} gibt es schon")
         titel, text = self.notizen(sha, version)
         return {"sha": sha, "version": version, "lauf": lauf["id"] if lauf else None, "ausnahme": None if lauf else ausnahme,
-                "titel": titel, "text": text,
+                "titel": titel, "text": text, "niedrig": niedrig,
                 "merge_ok": ok["von"]}
 
     # --- die Kette ------------------------------------------------------------------------------------------------------
-    def ausliefern(self, zweig, gesamtlauf=None):
-        v = self.pruefen(zweig, gesamtlauf)
+    def ausliefern(self, zweig, gesamtlauf=None, aufgabe=None):
+        v = self.pruefen(zweig, gesamtlauf, aufgabe)
         sha, version, ausnahme = v["sha"], v["version"], v["ausnahme"]
-        self.ausgabe(f"Version {version} = {sha[:8]} · Prüfung grün · Merge-OK {v['merge_ok']} · "
+        self.ausgabe(f"Version {version} = {sha[:8]} · {'Prüfstufe niedrig (ohne Prüfbitte)' if v['niedrig'] else 'Prüfung grün'} · Merge-OK {v['merge_ok']} · "
                      + (f"Gesamtlauf L{v['lauf']}" if v["lauf"] else f"Ausnahme ({ausnahme})"))
         from . import dokumente
         ziel = db.sichern(None)

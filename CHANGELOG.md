@@ -4,6 +4,17 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.97.0 – 14.11.2026 · Prüfstufen und Release-Takt
+- **Prüfstufe in jeder Prüfbitte:** Die AMW sieht nach, welche Dateien ein Stand ändert, und schreibt die Stufe oben in die
+  Prüfbitte – hoch (Datenbank, Anmeldung, Rechte, Dateiaustausch, Warteschlange, Auslieferung), mittel (Oberfläche, Hilfe,
+  anderer Code) oder niedrig (nur Doku und Tests), mit den Dateien, die sie bestimmen. Muster je Projekt einstellbar.
+- **Einstellungen › Projekt › Prüfstufen (Vorgabe aus):** Eingeschaltet prüft bei „hoch“ der Lead, bei „mittel“ ein anderer
+  Agent als der, der gebaut hat. „Niedrig“ geht ohne Prüfbitte raus – mit Merge-OK und einem grünen Gesamtlauf auf genau
+  diesem Stand (`amw release ausliefern --zweig X --aufgabe N`). Höher einstufen geht immer (`--stufe`), niedriger nie.
+- **Einstellungen › Projekt › Release-Takt (Vorgabe aus):** sofort, täglich um eine Uhrzeit oder je Meilenstein meldet die AMW
+  dem Zuständigen für Merges (sonst dem Lead) einmal, was ausgeliefert werden kann. Ausliefern tut sie nie selbst.
+- Neue Hilfe „Release-Takt und Prüfstufen“.
+
 ## 1.96.0 – 14.11.2026 · Der Dienst passt auf sich selbst auf
 - **Betrieb › Dienst:** Hauptschleife, Dateiaustausch, Synchronisierung und KI-Arbeiter melden sich nach jeder Runde. Je Teil
   steht da, ob er läuft (grün, gelb, rot), wann die letzte Runde war, wie lange sie gedauert hat, wie oft er neu gestartet

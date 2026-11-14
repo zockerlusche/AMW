@@ -18,6 +18,7 @@ auseinander.
 | [agenten.md](agenten.md) | Agenten: Ordner einrichten, umbenennen, starten | Einstellungen › Agenten |
 | [server.md](server.md) | Projekt-Server überwachen | Betrieb › Projekt-Server |
 | [dienst.md](dienst.md) | Den Dienst im Blick behalten | Betrieb › Dienst |
+| [release-takt.md](release-takt.md) | Release-Takt und Prüfstufen | Einstellungen › Projekt |
 | [lokale-ki.md](lokale-ki.md) | Lokale KI einrichten und beauftragen | Betrieb › Lokale KI |
 | [termine.md](termine.md) | Testtermine und Fristen | Planung › Termine |
 | [themen.md](themen.md) | Themen: was gerade gilt | Wissen › Themen |

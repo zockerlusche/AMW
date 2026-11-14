@@ -414,6 +414,9 @@ def main(argv=None):
                 letzte_aufsicht = time.time()
                 d.aufsicht()
                 d.takt()
+                from . import releasetakt           # A1656: bereit zum Ausliefern anstoßen (pusht nie selbst)
+                for z in releasetakt.runde(con):
+                    log.info("Release-Takt: %s", z)
                 d.zustellen()                       # Wiederholung nach Fehlschlag, neue Anmeldungen, Takt
                 d.ordner_messen()
         except Exception as x:                      # nie sterben; Fehler protokollieren und weiter

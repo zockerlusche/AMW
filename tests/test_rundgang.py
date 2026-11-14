@@ -127,6 +127,18 @@ class Seiten(Daten, Rundgang):
         herzschlag._stand["hauptschleife"]["zeit"] -= 3600                                  # eine Stunde still: rot
         self.ueberall("start", "start-dienst-rot", bereit="[...document.querySelectorAll('.band-halt b')].some(b => /^(Dienst: Hauptschleife steht|Service: Main loop stalled)$/.test(b.textContent))")
 
+    def test_einstellungen_pruefstufen_und_takt(self):
+        """A1656: Einstellungen › Projekt mit Prüfstufen und Release-Takt; die Uhrzeit steht nur bei „täglich“ da."""
+        finde = "[...document.querySelectorAll('#inhalt *')].find(e => e.children.length === 0 && /^(Prüfstufen|Review levels)$/.test(e.textContent.trim()))"
+        self.ueberall("einstellungen", "einstellungen-release", bereit=finde,
+                      tun=f"{finde}.scrollIntoView({{ block: 'center' }})", danach="true")
+        zeit = self.tab.js("(() => { const s = [...document.querySelectorAll('#inhalt select')].find(x => x.querySelector('option[value=meilenstein]'));"
+                           " const z = s.parentElement.querySelector('input[type=time]');"
+                           " const vorher = getComputedStyle(z).display; s.value = 'taeglich'; s.dispatchEvent(new Event('change'));"
+                           " return [vorher, getComputedStyle(z).display]; })()")
+        self.assertEqual(zeit[0], "none")
+        self.assertNotEqual(zeit[1], "none")
+
     def test_einstellungen(self):
         self.ueberall("einstellungen", bereit="document.querySelector('#inhalt .einst, #inhalt .karte')")
 

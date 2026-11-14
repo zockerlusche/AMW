@@ -1285,7 +1285,7 @@ def cmd_lauf(a, con):
 def cmd_pruefung(a, con):
     pid = _projekt(con, a)
     if a.aktion == "bitte":
-        prid = betrieb.pruefbitte(con, pid, _von(a), a.pruefer, a.zweig, a.sha, a.punkte, a.aufgabe)
+        prid = betrieb.pruefbitte(con, pid, _von(a), a.pruefer, a.zweig, a.sha, a.punkte, a.aufgabe, stufe=a.stufe)
         print(f"P{prid} an {a.pruefer}")
     elif a.aktion in ("gruen", "rot"):
         kette = betrieb.pruefung_ergebnis(con, pid, _von(a), a.id, a.aktion, a.bemerkung)
@@ -1701,7 +1701,7 @@ def cmd_release(a, con):
         if KANAL.get() != "cli":
             raise kern.AmwFehler("release ausliefern geht nur im Terminal")
         wurzel = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # das Repository dieser AMW
-        auslieferung.Kette(con, pid, _von(a), wurzel).ausliefern(a.zweig, a.gesamtlauf)
+        auslieferung.Kette(con, pid, _von(a), wurzel).ausliefern(a.zweig, a.gesamtlauf, a.aufgabe)
     elif a.aktion == "version":
         oeffentlich = None
         if a.oeffentlich_datei:
@@ -2555,6 +2555,7 @@ def parser():
     x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
+    x.add_argument("--stufe", choices=["niedrig", "mittel", "hoch"], help="Prüfstufe höher einstufen als die geänderten Dateien ergeben (nie niedriger)")
     x.set_defaults(f=cmd_pruefung)
     x = s.add_parser("freigabe", help="Merge-OK (Lead/Entwickler): freigabe merge A<nr> [--zweig z] [--zurueck] – Abnahme-Kette:"
                                       " nach grüner Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst")
@@ -2814,7 +2815,8 @@ def parser():
     x.add_argument("aktion", choices=["merge", "version", "liste", "entwurf", "ausliefern"],
                    help="ausliefern --zweig X: die ganze Release-Kette in einem Schritt (Prüfung GRÜN, Merge-OK und Gesamtlauf nötig)")
     x.add_argument("--zweig", help="ausliefern: Zweig oder Stand, der live gehen soll")
-    x.add_argument("--gesamtlauf", help="ausliefern: grüner Gesamtlauf L<nr> (sonst sucht die AMW den Lauf mit dem Stand in der Beschreibung)")
+    x.add_argument("--gesamtlauf", help="ausliefern: grüner Gesamtlauf L<nr> (sonst sucht die AMW den Lauf, der genau diesen Stand sauber geprüft hat)")
+    x.add_argument("--aufgabe", type=nummer, help="ausliefern ohne Prüfbitte (Prüfstufe niedrig, nur Doku/Tests): die Aufgabe mit dem Merge-OK")
     x.add_argument("--oeffentlich-datei", help="version: eigener Text für alle statt des Entwurfs (Markdown)")
     x.add_argument("--titel")
     x.add_argument("--commit")

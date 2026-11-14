@@ -862,14 +862,18 @@ def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speich
 
 # --- Prüfungen -----------------------------------------------------------------------------------
 
-def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=None):
+def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=None, stufe=None):
     kern.agent_zeile(con, pid, pruefer)
     sha = voller_sha(con, pid, sha)                  # gespeichert wird der volle Stand – die Release-Kette vergleicht genau
+    from . import pruefstufe                         # A1656: welche Dateien der Stand ändert → Prüfstufe (vor dem Schreiben, ruft git)
+    info = pruefstufe.stufe(con, pid, sha)
+    info["stufe"] = pruefstufe.regel(con, pid, info, bauer, pruefer, stufe)   # mit „pruefstufen = an“: wer prüfen darf
+    stufe = pruefstufe.zeile(info)
     with db.schreiben(con):
         prid = db.einfuegen(con, "pruefung", projekt_id=pid, aufgabe_id=aufgabe_id, zweig=zweig, sha=sha, bauer=bauer,
                             pruefer=pruefer, punkte=punkte, angefragt_utc=db.jetzt())
         kern._posten(con, pid, bauer, pruefer, "pruefbitte", f"Prüfbitte P{prid}: {zweig}@{sha[:8]}",
-                     punkte, aufgabe_id=aufgabe_id)
+                     stufe + ("\n\n" + punkte if punkte else ""), aufgabe_id=aufgabe_id)
     return prid
 
 

@@ -180,6 +180,12 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # Abnahme-Kette (doc/plan-federfuehrung.md B): nach grüner Prüfung + Merge-OK des Leads geht die
                 # Merge-Bitte von selbst an den Merge-Dienst (Projekt-Einstellung merge_dienst). Vorgabe aus, der Lead schaltet ein.
                 "abnahme_kette": ("aus", "an"),
+                # Prüfstufen (A1656): an = hoch prüft der Lead, mittel ein anderer Agent, niedrig (nur Doku/Tests) geht ohne
+                # Prüfbitte mit grünem Gesamtlauf auf genau dem Stand. Vorgabe aus – der Lead schaltet ein.
+                "pruefstufen": ("aus", "an"),
+                # Release-Takt (A1656): wann der Dienst „bereit zum Ausliefern“ anstößt (er pusht nie selbst); täglich zur
+                # Uhrzeit release_zeit (HH:MM, Ortszeit), meilenstein = erst wenn alle Aufgaben des Meilensteins bereit sind.
+                "release_takt": ("aus", "sofort", "taeglich", "meilenstein"),
                 # farbe: Streifen über dem Kopf und Marke in der Projekt-Auswahl (Farbtöne setzt die Oberfläche)
                 "farbe": ("bernstein", "gruen", "blau", "violett", "tuerkis", "rot", "grau"),
                 # Versionen (Grund-Regelwerk G-2): pflicht = Plan-Check meldet Fehler ohne Version, Meilenstein schließt nur mit
@@ -278,6 +284,29 @@ def projekt_einstellen(con, pid, von, **werte):
                     e[k] = v
                 else:
                     e.pop(k, None)
+                continue
+            if k == "release_zeit":                      # Release-Takt täglich: Uhrzeit HH:MM (Ortszeit), leer = Vorgabe 18:00 (A1656)
+                v = str(v or "").strip()
+                if v and not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", v):
+                    raise AmwFehler("release_zeit: HH:MM, z. B. 18:00")
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
+            if k == "pruef_muster":                      # Prüfstufen (A1656): {"hoch": [...], "mittel": [...], "niedrig": [...]}, leer = Vorgabe
+                if isinstance(v, str) and v.strip():         # Befehlszeile: amw projekt einstellen 'pruef_muster={"hoch": [...]}'
+                    try:
+                        v = json.loads(v)
+                    except ValueError:
+                        raise AmwFehler("pruef_muster: JSON wie {\"hoch\": [\"amw/db.py\"]}") from None
+                if not v:
+                    e.pop(k, None)
+                    continue
+                if not isinstance(v, dict) or set(v) - {"hoch", "mittel", "niedrig"} or not all(
+                        isinstance(x, list) and all(isinstance(m, str) and 0 < len(m) <= 200 for m in x) and len(x) <= 100 for x in v.values()):
+                    raise AmwFehler("pruef_muster: {\"hoch\": [Muster …], \"mittel\": […], \"niedrig\": […]}")
+                e[k] = {s: list(v.get(s) or []) for s in ("hoch", "mittel", "niedrig")}
                 continue
             if k == "merge_dienst":                      # wer mergt (Abnahme-Kette): ein Agent dieses Projekts oder leer
                 v = str(v or "").strip()
