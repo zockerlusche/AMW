@@ -366,7 +366,7 @@ class Seite(Wiederholt, Grund):
             self.assertFalse(self.tab.js("document.querySelector('#rechner-heute').open"))                   # eingeklappt, bis man es öffnet (A1639)
             self.tab.js("document.querySelector('#rechner-heute summary').click()")
             self.warten("document.querySelector('#rechner-heute').open")
-            balken =self.tab.js("[...document.querySelectorAll('#rechner-heute .rh-lauf')].map(b => [b.className.replace('rh-lauf ', ''), b.textContent])")
+            balken =self.tab.js("[...document.querySelectorAll('#rechner-heute .rh-lauf')].map(b => [b.className.replace('rh-lauf ', '').replace(' eng', ''), b.textContent])")
             self.assertEqual(balken[0], ["dauer", "llama-server · 16,4 GB"])
             self.assertEqual(balken[1], ["fertig eigen", f"L{l1} CC1 · 8 GB"])
             self.assertEqual(balken[2][0], "laeuft")
