@@ -4,18 +4,18 @@
  "brauchst": [],
  "schritte": [
   {
-   "titel": "Read where we stand",
-   "text": "At the very top of Planning › Timeline you see the active milestone with its progress (“3 of 8 done”), the next target date and, under “Working now”, which agent is working on which task. A click on a task opens it.",
+   "titel": "Read “Where do we stand right now?”",
+   "text": "At the very top of Planning › Timeline you see the active milestone with its progress (“Final version 2.0: 3 of 8 tasks done · target 20.11.”), the next target and, under “Being worked on”, which agent is working on which task. A click on a task opens it.",
    "bilder": []
   },
   {
    "titel": "Read the overview",
-   "text": "Each milestone is a bar from its start to the forecast. The vertical line marked “Now” is today; hover over it to see date, time and what is running. Hover over a bar or a diamond to see title, status, progress, forecast and target date.",
+   "text": "Each milestone is a bar from its start to the forecast. The vertical line marked “Now” is now; hover over it to see date, time and what is running. Hover over a bar or a diamond to see title, status, progress, forecast and target date.",
    "bilder": []
   },
   {
-   "titel": "Show finished ones (optional)",
-   "text": "Finished milestones are hidden so that the active ones come first. “Show finished” in the overview brings them back, faded and with ✓. In the timeline below they are collapsed under “Finished milestones”.",
+   "titel": "Show completed ones (optional)",
+   "text": "Completed milestones are hidden so that the active ones come first. “Show completed” in the overview brings them back, faded and with ✓. In the timeline below they are collapsed under “Completed milestones”.",
    "bilder": []
   },
   {
@@ -41,7 +41,7 @@
   ]
  ],
  "danach": [
-  "“Computer – today” below the overview is collapsed. A click opens it; it shows which runs ran on this PC today and which are waiting."
+  "“What the computer did today” below the overview is collapsed. A click opens it; it shows which runs ran on this PC today and which are waiting."
  ],
  "fragen": [
   [

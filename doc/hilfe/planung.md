@@ -3,9 +3,9 @@
 Die Planung zeigt auf einen Blick, welcher Meilenstein gerade aktiv ist, wie weit er ist, wer an was arbeitet und was noch keinem Meilenstein zugeordnet ist.
 
 ## Schritte
-1. **Stand jetzt lesen** Ganz oben unter Planung › Zeitleiste steht der aktive Meilenstein mit seinem Fortschritt („3 von 8 fertig“), das nächste Zieldatum und unter „Gerade dran“, welcher Agent an welcher Aufgabe arbeitet. Ein Klick auf eine Aufgabe öffnet sie.
-2. **Übersicht lesen** Jeder Meilenstein ist ein Balken von seinem Start bis zur Prognose. Die senkrechte Linie mit „Jetzt“ ist heute; fährst du darüber, siehst du Datum, Uhrzeit und was gerade läuft. Fährst du über einen Balken oder eine Raute, siehst du Titel, Status, Fortschritt, Prognose und Zieldatum.
-3. **Fertiges einblenden (optional)** Fertige Meilensteine sind ausgeblendet, damit das Aktive vorne steht. „Fertige zeigen“ in der Übersicht blendet sie ein, blass und mit ✓. In der Zeitleiste darunter stehen sie eingeklappt unter „Fertige Meilensteine“.
+1. **„Wo stehen wir gerade?“ lesen** Ganz oben unter Planung › Zeitleiste steht der aktive Meilenstein mit seinem Fortschritt („Endversion 2.0: 3 von 8 Aufgaben erledigt · Ziel 20.11.“), das nächste Ziel und unter „Gerade in Arbeit“, welcher Agent an welcher Aufgabe arbeitet. Ein Klick auf eine Aufgabe öffnet sie.
+2. **Übersicht lesen** Jeder Meilenstein ist ein Balken von seinem Start bis zur Prognose. Die senkrechte Linie mit „Jetzt“ ist jetzt; fährst du darüber, siehst du Datum, Uhrzeit und was gerade läuft. Fährst du über einen Balken oder eine Raute, siehst du Titel, Status, Fortschritt, Prognose und Zieldatum.
+3. **Erledigtes einblenden (optional)** Erledigte Meilensteine sind ausgeblendet, damit das Aktive vorne steht. „Erledigte einblenden“ in der Übersicht zeigt sie, blass und mit ✓. In der Zeitleiste darunter stehen sie eingeklappt unter „Erledigte Meilensteine“.
 4. **Aufgaben ohne Meilenstein zuordnen** Ganz unten in der Zeitleiste steht „Ohne Meilenstein (n)“ mit allen offenen Aufgaben, die zu keinem Meilenstein gehören. Zuordnen: `amw aufgabe aendern <nr> --bogen <nr>`.
 
 ## Diese Werte trägst du ein
@@ -18,7 +18,7 @@ Die Planung zeigt auf einen Blick, welcher Meilenstein gerade aktiv ist, wie wei
 - **„Kein Meilenstein ist aktiv“** – Alle Meilensteine sind geplant oder fertig. Den nächsten unter Planung mit „Aktivieren“ starten.
 
 ## Danach
-- „Rechner – heute“ unter der Übersicht ist eingeklappt. Ein Klick öffnet es; dort steht, welche Läufe heute auf diesem PC liefen und welche warten.
+- „Was der Rechner heute gemacht hat“ unter der Übersicht ist eingeklappt. Ein Klick öffnet es; dort steht, welche Läufe heute auf diesem PC liefen und welche warten.
 
 ## Häufige Fragen
 ### Warum muss ich beim Anlegen einen Meilenstein angeben?

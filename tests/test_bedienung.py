@@ -408,16 +408,18 @@ class Seite(Wiederholt, Grund):
         ohne = kern.aufgabe_neu(self.con, self.pid, "TL", "Vergessen ohne Meilenstein")
         self.oeffnen("planung", "document.querySelector('#stand-jetzt') && document.querySelector('#ohne-bogen')")
         stand = self.tab.js("document.querySelector('#stand-jetzt').innerText")
-        for teil in ("STAND JETZT", "Karten-Look", "0 von 1 fertig", "CC1", f"A{a} Knöpfe groß", "1 ohne Meilenstein"):
-            self.assertIn(teil, stand.upper() if teil.isupper() else stand)
-        self.assertRegex(self.tab.js("document.querySelector('.ueb-achse .jetzt').textContent"), r"^Jetzt \d\d:\d\d$")
+        for teil in ("Wo stehen wir gerade?", "Karten-Look:", "0 von 1 Aufgaben erledigt", "Gerade in Arbeit", "CC1 an „Knöpfe groß“",
+                     "1 Aufgabe ohne Meilenstein"):
+            self.assertIn(teil, stand)
+        self.assertEqual(self.tab.js("document.querySelector('.ueb-achse .jetzt').textContent"), "Jetzt")      # Uhrzeit nur beim Drüberfahren
+        self.assertIn("Die senkrechte Linie ist jetzt.", self.tab.js("document.querySelector('.ueb-erkl').textContent"))
         self.assertIn(f"A{a} Knöpfe groß", self.tab.js("document.querySelector('.ueb-jetzt').title"))
         self.assertTrue(self.tab.js("(() => { const j = document.querySelector('.ueb-flaeche > .ueb-heute').getBoundingClientRect();"
                                     " return [...document.querySelectorAll('.ueb-label')].every(l => { const r = l.getBoundingClientRect();"
                                     " return r.right <= j.left || r.left >= j.right; }); })()"))           # Jetzt-Linie nie durch den Namen (TL #24368)
         bloecke = lambda: self.tab.js("[...document.querySelectorAll('.ueb-block')].map(b => b.title.split(' · ')[0])")
         self.assertEqual(len(bloecke()), 1)                                                                  # Fertige erst auf Wunsch
-        self.tab.js("[...document.querySelectorAll('.ueb-kopf button')].find(b => b.textContent.startsWith('Fertige zeigen')).click()")
+        self.tab.js("[...document.querySelectorAll('.ueb-kopf button')].find(b => b.textContent.startsWith('Erledigte einblenden')).click()")
         self.warten("document.querySelectorAll('.ueb-block').length === 2")
         self.assertFalse(self.tab.js("document.querySelector('.tl-fertige').open"))                       # Zeitleiste: eingeklappt
         self.assertTrue(self.tab.js(f"!!document.querySelector('.tl-fertige #bogen-{fertig}')"))

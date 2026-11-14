@@ -75,9 +75,10 @@ class Seite(unittest.TestCase):
     def test_texte_und_teile(self):
         with open(os.path.join(os.path.dirname(workbench.__file__), "workbench.html"), encoding="utf-8") as f:
             html = f.read()
-        for x in ('sj_titel: "Stand jetzt"', 'sj_titel: "Where we stand"', 'ob_titel: "Ohne Meilenstein ({n})"',
-                  'ob_titel: "Without milestone ({n})"', 'ue_jetzt: "Jetzt {x}"', 'ue_jetzt: "Now {x}"',
-                  'ue_fertige_zeigen: "Fertige zeigen ({n})"', 'tl_fertige: "Fertige Meilensteine ({n})"',
+        for x in ('sj_titel: "Wo stehen wir gerade?"', 'sj_titel: "Where do we stand right now?"', 'ob_titel: "Ohne Meilenstein ({n})"',
+                  'ob_titel: "Without milestone ({n})"', 'ue_jetzt: "Jetzt"', 'ue_jetzt: "Now"', 'ue_erkl: "Jeder Balken ist ein Meilenstein',
+                  'ue_fertige_zeigen: "Erledigte einblenden ({n})"', 'tl_fertige: "Erledigte Meilensteine ({n})"', 'lg_rahmen: "wahrscheinlicher Rahmen"',
+                  'rh_titel: "Was der Rechner heute gemacht hat"',
                   "m.append(standJetzt(d), uebersicht(d)", 'open: zustand.rhAuf ? "" : null'):
             self.assertIn(x, html)
 
