@@ -864,6 +864,7 @@ def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speich
 
 def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=None):
     kern.agent_zeile(con, pid, pruefer)
+    sha = voller_sha(con, pid, sha)                  # gespeichert wird der volle Stand – die Release-Kette vergleicht genau
     with db.schreiben(con):
         prid = db.einfuegen(con, "pruefung", projekt_id=pid, aufgabe_id=aufgabe_id, zweig=zweig, sha=sha, bauer=bauer,
                             pruefer=pruefer, punkte=punkte, angefragt_utc=db.jetzt())
@@ -1004,8 +1005,24 @@ def freigabe_merge(con, pid, von, aufgabe_id, zweig=None, zurueck=False, ausnahm
 
 def ist_gruen(con, pid, sha):
     """Gibt es für genau diesen Stand eine grüne Prüfung? (Grundlage für „Merge nur auf grün derselben SHA“)."""
-    return con.execute("SELECT id FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen' AND (sha = ? OR sha LIKE ?)"
-                       " ORDER BY id DESC LIMIT 1", (pid, sha, sha + "%")).fetchone()
+    # gespeichert kann der volle oder ein kurzer SHA sein (ältere Prüfbitten, „39ca74a“) – beide Richtungen, kurz mindestens 7
+    return con.execute("SELECT id FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen' AND (sha = ? OR sha LIKE ?"
+                       " OR (length(sha) >= 7 AND ? LIKE sha || '%')) ORDER BY id DESC LIMIT 1", (pid, sha, sha + "%", sha)).fetchone()
+
+
+def voller_sha(con, pid, sha):
+    """Kurzen SHA einer Prüfbitte im Projektordner zum vollen auflösen (git rev-parse); sonst wie angegeben."""
+    import subprocess
+    ordner = kern.projekt_ordner(con, pid)
+    if not ordner or not sha or len(sha) >= 40:
+        return sha
+    try:
+        r = subprocess.run(["git", "-C", ordner, "rev-parse", "--verify", "--quiet", f"{sha}^{{commit}}"], capture_output=True,
+                           text=True, timeout=30, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.TimeoutExpired):
+        return sha
+    voll = r.stdout.strip()
+    return voll if r.returncode == 0 and len(voll) == 40 else sha
 
 
 # --- Hinweis-Sperren -----------------------------------------------------------------------------

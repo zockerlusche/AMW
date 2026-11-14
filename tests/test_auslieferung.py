@@ -173,6 +173,21 @@ class Kette(unittest.TestCase):
         self.assertFalse(betrieb.pruefstand(["echo x"], self.repo)[2])
         self.assertIn("geändert", betrieb.stand_text(betrieb.pruefstand(["echo x"], self.repo)))
 
+    def test_kurzer_sha_in_der_pruefbitte(self):
+        """Befund 14.11.: Prüfbitten mit kurzem SHA („39ca74a“) fand die Kette nie. Neue Prüfbitten speichern den vollen Stand
+        (Projektordner), ältere mit kurzem SHA zählen trotzdem."""
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE projekt SET einstellungen = ? WHERE id = ?", (json.dumps({"ordner": self.repo}), self.pid))
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Kurz", "CC1")
+        prid = betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "neu", self.sha[:7], "x", aid)
+        self.assertEqual(self.con.execute("SELECT sha FROM pruefung WHERE id = ?", (prid,)).fetchone()[0], self.sha)   # voll gespeichert
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE pruefung SET sha = ?, ergebnis = 'gruen' WHERE id = ?", (self.sha[:7], prid))     # wie eine alte Prüfbitte
+        self.assertTrue(betrieb.ist_gruen(self.con, self.pid, self.sha))
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE pruefung SET sha = ? WHERE id = ?", (self.sha[:5], prid))                         # zu kurz: zählt nicht
+        self.assertIsNone(betrieb.ist_gruen(self.con, self.pid, self.sha))
+
     def test_kein_fast_forward_und_schmutziger_baum(self):
         self.gruen()
         self.gesamtlauf()

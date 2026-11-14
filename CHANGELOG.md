@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.94.1 – 14.11.2026 · Release-Kette erkennt kurze Stände
+- `amw release ausliefern` fand eine grüne Prüfung nicht, wenn die Prüfbitte einen kurzen Stand nannte (z. B. „39ca74a“).
+  Jetzt zählen beide Schreibweisen (kurz mindestens 7 Zeichen), und neue Prüfbitten speichern den vollen Stand.
+- Hilfe „Schwere Läufe“: warum ein Gesamtlauf nicht für die Auslieferung zählt, wenn erst ein Skript den Ordner wechselt.
+
 ## 1.94.0 – 14.11.2026 · Wofür das Geld geht
 - **Betrieb › „Wofür das Geld geht“ (am PC):** Jeder Kostenzuwachs einer Sitzung gehört zu den Weckrufen im selben Zeitraum
   („Lauf ist dran“, Prüfbitte, Antwort, Auftrag …), ohne Weckruf zählt er als eigene Arbeit. Teuerster Anlass zuerst, mit

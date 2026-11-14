@@ -27,6 +27,7 @@ Several projects share one PC. If test suites, builds or image runs start at the
 ## Common problems
 - **An agent still starts tests directly** – Its folder does not have the hook yet: run `amw einrichten agenten-ordner <folder>`.
 - **A run waits for a long time** – The control panel says why: the computer is busy, too little memory is free or a run ahead is waiting – then it also says how much memory that run needs and how much is usable. The human can move a run to the front (`amw lauf vorziehen <nr>`).
+- **A full run does not count for a release** – At its start a run records the commit of the folder its command switches to with `cd`, otherwise of the folder you queue it from. If only a script changes the folder, AMW cannot see it: start the command with `cd /d <folder> &&` or queue it from the worktree it checks. The line “# Stand …” at the top of the output shows the recorded commit.
 - **A single short test is rejected** – The pattern is too broad. Single test modules stay free; make your own patterns narrower.
 - **“Muster ungültig”** – The pattern is not a valid regular expression, for example a bracket is missing.
 
