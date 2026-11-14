@@ -108,18 +108,26 @@ class Kette:
     def reihenfolge(self, sha, version):
         """Liegt eine kleinere Version grün und mit Merge-OK bereit, die dieser Stand NICHT enthält? Dann zuerst sie (TL #24530)."""
         ziel = kern.version_teile(version)
+        live = kern.version_teile(self.version_an("main"))
         gesehen = set()
         for p in self.con.execute("SELECT * FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen' AND aufgabe_id IS NOT NULL"
                                   " ORDER BY id DESC LIMIT 60", (self.pid,)).fetchall():
             if p["sha"] in gesehen or not betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"]):
                 continue
             gesehen.add(p["sha"])
+            a = self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (p["aufgabe_id"],)).fetchone()
+            if a and a["status"] in ("fertig", "verworfen"):
+                continue                                 # Aufgabe abgeschlossen: ihre Prüfung ist überholt (Befund CCamw2 14.11.)
             if self.extern(["git", "merge-base", "--is-ancestor", p["sha"], "main"], self.repo)[0] == 0:
                 continue                                 # schon draußen
             if self.extern(["git", "merge-base", "--is-ancestor", p["sha"], sha], self.repo)[0] == 0:
                 continue                                 # kommt mit diesem Stand mit
             v = self.version_an(p["sha"])
-            if v and kern.version_teile(v) and kern.version_teile(v) < ziel:
+            if not v or not kern.version_teile(v) or (live and kern.version_teile(v) <= live):
+                continue                                 # Nummer schon live (z. B. neu aufgesetzt und unter anderem Stand ausgeliefert)
+            if self.extern(["git", "rev-parse", "-q", "--verify", f"refs/tags/v{v}"], self.repo)[0] == 0:
+                continue                                 # Tag gibt es: ausgeliefert
+            if kern.version_teile(v) < ziel:
                 self.stopp("Reihenfolge", f"{v} (A{p['aufgabe_id']}, {p['zweig']}@{p['sha'][:8]}) ist grün mit Merge-OK, aber nicht"
                                           f" ausgeliefert und nicht in {sha[:8]} enthalten – erst {v} ausliefern oder neu aufsetzen")
 
@@ -168,8 +176,14 @@ class Kette:
             if not lauf and not ausnahme:
                 self.stopp("Gesamtlauf", f"kein grüner Lauf, der genau {sha[:8]} sauber geprüft hat – --gesamtlauf L<nr>, oder der Lead"
                                          f" vermerkt eine Ausnahme: amw freigabe merge {p['aufgabe_id']} --ausnahme \"Grund\"")
-        if self.git("status", "--porcelain", schritt="Arbeitsbaum").strip():
-            self.stopp("Arbeitsbaum", f"{self.repo} hat ungesicherte Änderungen")
+        # nur Änderungen an versionierten Dateien halten an (A1663) – unversionierte stören den Fast-Forward nicht; würde eine
+        # überschrieben, verweigert git den Merge selbst (dann Stopp bei „Fast-Forward“)
+        geaendert = self.git("status", "--porcelain", "--untracked-files=no", schritt="Arbeitsbaum").strip()
+        if geaendert:
+            self.stopp("Arbeitsbaum", f"{self.repo} hat ungesicherte Änderungen: {' '.join(z[3:] for z in geaendert.splitlines()[:5])}")
+        fremd = [z[3:] for z in self.git("status", "--porcelain", schritt="Arbeitsbaum").splitlines() if z.startswith("??")]
+        if fremd:
+            self.ausgabe(f"Hinweis: unversioniert im Arbeitsbaum (stört nicht): {', '.join(fremd[:5])}")
         rc, _ = self.extern(["git", "merge-base", "--is-ancestor", "main", sha], self.repo)
         if rc != 0:
             self.stopp("Fast-Forward", f"main ist kein Vorfahre von {sha[:8]} – erst neu aufsetzen")

@@ -243,6 +243,26 @@ class Kette(unittest.TestCase):
         self.assertIn("1.1.0", str(e.exception))
         self.assertIn("erledigt: noch nichts", str(e.exception))
 
+    def test_reihenfolge_ignoriert_ueberholte_pruefungen(self):
+        """Befund CCamw2 14.11.: eine alte grüne Prüfung eines später neu aufgesetzten Stands (1.88.0 lief unter anderem SHA
+        live) hielt die Kette an. Überholt ist: Nummer nicht größer als main, Tag vorhanden oder Aufgabe abgeschlossen."""
+        self.g("switch", "-q", "-c", "alt", "main")
+        alt = self.stand("1.0.0", "Anfang neu aufgesetzt")                                       # gleiche Nummer wie main
+        self.g("switch", "-q", "-c", "getaggt", "main")
+        getaggt = self.stand("1.0.5", "Schon draußen")
+        self.g("tag", "v1.0.5", getaggt)
+        self.g("switch", "-q", "-c", "erledigt", "main")
+        erledigt = self.stand("1.0.7", "Aufgabe fertig")
+        self.g("switch", "-q", "main")
+        self.gruen_auf("alt", alt, "Alt")
+        self.gruen_auf("getaggt", getaggt, "Getaggt")
+        fertig = self.gruen_auf("erledigt", erledigt, "Erledigt")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'x', fertig_utc = ? WHERE id = ?", (db.jetzt(), fertig))
+        self.gruen()
+        self.gesamtlauf()
+        self.assertEqual(self.kette().ausliefern("neu")["version"], "1.1.0")
+
     def test_version_nachtragen_nur_kleiner_und_mit_tag(self):
         with db.schreiben(self.con):
             self.con.execute("UPDATE projekt SET einstellungen = ? WHERE id = ?", (json.dumps({"ordner": self.repo}), self.pid))
@@ -260,6 +280,21 @@ class Kette(unittest.TestCase):
         self.assertEqual((r[0], r[2]), ("Neues Ding", self.sha[:7]))                               # Titel und Text aus dem CHANGELOG
         self.assertIn("Neues Ding für alle", r[1])
         self.assertEqual(kern.versions_stand(self.con, self.pid)["letzte"], "1.2.0")              # die höchste bleibt die letzte
+
+    def test_unversionierte_datei_haelt_nicht_an(self):
+        """A1663: ein vergessener unversionierter Ordner (14.11.: _to_delete/ mit einer leeren Datei) hielt die Kette an –
+        jetzt nur ein Hinweis; versionierte Änderungen halten weiter an (test_kein_fast_forward_und_schmutziger_baum)."""
+        self.gruen()
+        self.gesamtlauf()
+        os.makedirs(os.path.join(self.repo, "_to_delete"))
+        with open(os.path.join(self.repo, "_to_delete", "leer.db"), "w") as f:
+            f.write("")
+        ausgaben = []
+        k = auslieferung.Kette(self.con, self.pid, "CC1", self.repo, extern=self.extern, start_version=lambda: "1.1.0",
+                               ausgabe=ausgaben.append)
+        self.assertEqual(k.ausliefern("neu")["version"], "1.1.0")
+        self.assertTrue(any("unversioniert" in z and "_to_delete" in z for z in ausgaben))
+        self.assertTrue(os.path.exists(os.path.join(self.repo, "_to_delete", "leer.db")))       # die AMW löscht nichts
 
     def test_kein_fast_forward_und_schmutziger_baum(self):
         self.gruen()
