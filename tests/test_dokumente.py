@@ -180,6 +180,13 @@ class Workbench(Grund):
         self.assertEqual(r.headers["X-Content-Type-Options"], "nosniff")
         r = self.lese(f"/api/dokument/datei?id={s}")
         self.assertTrue(r.headers["Content-Security-Policy"].startswith("sandbox;"))
+        from tests.test_mp4 import film                                    # A1675: Raster-Bilder und Videos ohne sandbox (Safari/iOS)
+        bild = dokumente.ablegen(self.con, self.pid, "CC1", self.datei("b.png", b"\x89PNG\r\n\x1a\n" + bytes(32)))
+        video = dokumente.ablegen(self.con, self.pid, "CC1", self.datei("v.mp4", film()[0]))
+        for did in (bild, video):
+            r = self.lese(f"/api/dokument/datei?id={did}")
+            self.assertIsNone(r.headers["Content-Security-Policy"])
+            self.assertEqual(r.headers["X-Content-Type-Options"], "nosniff")
         self.assertTrue(self.lese(f"/api/dokument/datei?id={w}").headers["Content-Disposition"].startswith("attachment"))
         seite = self.lese("/").read().decode()
         self.assertIn("frame-src 'self'", self.lese("/").headers["Content-Security-Policy"])

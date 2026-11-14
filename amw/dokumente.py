@@ -93,6 +93,9 @@ def _pruefen(roh, endung):
         raise kern.AmwFehler(f"Datei ist größer als {GROESSE_MAX // 1024 // 1024} MB – bitte verkleinern oder aufteilen")
     if FORMATE[endung][2] == "video":
         _video_pruefen(roh, endung)
+        if endung == ".mp4":                            # Verzeichnis vorn (faststart): Safari/iOS zeigt es sofort (A1675)
+            from . import mp4
+            roh = mp4.schnellstart(roh)
     suchtext = _suchtext(roh, endung)
     probe = roh.decode("utf-8", errors="replace") if endung in (".md", ".txt", ".html", ".htm", ".svg") else suchtext
     if probe and GEHEIM.search(probe):                  # Rohtext: auch Skripte im Mockup

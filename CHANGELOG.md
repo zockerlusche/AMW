@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.100.2 – 14.11.2026 · Videos auf iPad und iPhone
+- **Behoben:** Auf iPad und iPhone (Safari) ließen sich Videos aus „Dokumente“ online nicht abspielen. Ursache: Die Seite schickte
+  Videos und Bilder mit einer Abschottung („sandbox“), bei der Safari seinen Videospieler abschaltet (WebKit-Fehler 225865).
+  Bilder und Videos gehen jetzt ohne diese Abschottung hinaus – sie führen ohnehin nichts aus; SVG, Entwürfe (Mockups) und
+  Downloads bleiben abgeschottet.
+- **Videos starten schneller:** Neu abgelegte MP4-Videos bekommen ihr Inhaltsverzeichnis an den Anfang (wie „faststart“) –
+  nur umgepackt, nichts neu codiert. Safari zeigt sie dann sofort, ohne erst das Dateiende zu holen.
+
 ## 1.100.1 – 14.11.2026 · Warteschlange: Läufe mit Fenster kommen wieder dran
 - Wartet ein Lauf auf Grafikspeicher, den gerade kein anderer Lauf belegt (den Rest hält zum Beispiel der Bildschirm), hält er
   andere Läufe mit Fenster nicht mehr auf. Sie ziehen vorbei, und er startet, sobald genug Grafikspeicher frei ist. Vorher
