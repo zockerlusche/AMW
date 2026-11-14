@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.95.1 – 14.11.2026 · Release-Kette macht den Web-Abzug selbst
+- `amw release ausliefern` aktualisiert den web-Zweig jetzt selbst (als leichter Lauf, sichtbar im Leitstand) und hält mit
+  klarer Meldung an, wenn das nicht klappt. Bisher sollte der Dienst ihn rechnen – das lehnte er ab, wenn für den Agenten
+  kein Arbeitsordner eingetragen war.
+
 ## 1.95.0 – 14.11.2026 · Lokale KIs nur bei Bedarf
 - **Startet erst mit einem Auftrag:** Die AMW startet eine lokale KI (ComfyUI, Ollama) nicht mehr von selbst, sobald sie nicht
   antwortet, sondern erst, wenn ein Auftrag für sie dran ist. Hat sie die KI selbst gestartet und kommt 30 Minuten lang kein

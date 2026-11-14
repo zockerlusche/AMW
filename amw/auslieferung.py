@@ -1,6 +1,6 @@
 """Release-Kette als ein Befehl (A1644): `amw release ausliefern --zweig X` – erst alle Vorbedingungen prüfen, dann ohne
 weiteres Nachdenken: Sicherung, Fast-Forward, Tag, Dienst neu (Version und Schema prüfen), Push, GitHub-Release,
-Web-Abzug (als gespeicherter Befehl, den der Dienst selbst rechnet – A1640), Versionszeile aus dem CHANGELOG und EINE
+Web-Abzug (rechnet die Kette selbst als leichten Lauf), Versionszeile aus dem CHANGELOG und EINE
 Meldung „Version x live“ (Info, weckt nicht).
 
 Vorbedingungen (alle vor dem ersten verändernden Schritt): Prüfung GRÜN auf genau diesem Stand; Merge-OK des Leads für
@@ -20,8 +20,10 @@ import urllib.request
 
 from . import betrieb, db, kern
 
-WEB_BEFEHL = ("git subtree split --prefix web -b web-{kurz} && git fetch origin web && git merge-base --is-ancestor origin/web"
-              " web-{kurz} && git push origin web-{kurz}:web")
+# Web-Abzug: die Kette rechnet ihn selbst als leichten Lauf (Befund 14.11.: als Dienst-Lauf lehnte der Dienst ihn ab, wenn
+# für den Agenten kein Arbeitsordner eingetragen ist – zu Recht, der Dienst rechnet nur in eingetragenen Ordnern)
+WEB_SCHRITTE = (["git", "subtree", "split", "--prefix", "web", "-b", "web-{kurz}"], ["git", "fetch", "origin", "web"],
+                ["git", "merge-base", "--is-ancestor", "origin/web", "web-{kurz}"], ["git", "push", "origin", "web-{kurz}:web"])
 DIENST_WARTEN_S = 90
 
 
@@ -175,9 +177,16 @@ class Kette:
             self.stopp("GitHub-Release", aus[-300:])
         self.schritt("GitHub-Release")
         kurz = version.replace(".", "")
-        lid = betrieb.lauf_start(self.con, self.pid, self.von, f"Web-Abzug {version} (leicht, rechnet der Dienst)", schwer=False,
-                                 warten=True, befehl=[WEB_BEFEHL.format(kurz=kurz)], ordner=self.repo)
-        self.schritt(f"Web-Abzug L{lid} eingereiht (der Dienst rechnet ihn)")
+        lid = betrieb.lauf_start(self.con, self.pid, self.von, f"Web-Abzug {version} (leicht)", schwer=False, ordner=self.repo)
+        rc, aus = 0, ""
+        for teil in WEB_SCHRITTE:
+            rc, aus = self.extern([x.format(kurz=kurz) for x in teil], self.repo)
+            if rc != 0:
+                break
+        betrieb.lauf_ende(self.con, self.pid, self.von, lid, rc, (f"rc {rc} · " + (aus[-300:] if rc else "web-Zweig aktualisiert"))[:500])
+        if rc != 0:
+            self.stopp("Web-Abzug", f"L{lid}: {aus[-300:]}")
+        self.schritt(f"Web-Abzug L{lid}")
         from . import wissen
         rid, _ = wissen.release_version(self.con, self.pid, self.von, version, v["titel"], sha[:7], kette=True)
         self.schritt(f"Versionszeile R{rid}")
@@ -185,7 +194,7 @@ class Kette:
         if an and an != self.von:
             with db.schreiben(self.con):
                 kern._posten(self.con, self.pid, "AMW", an, "info", f"Version {version} live – {v['titel']}",
-                             f"main {sha[:8]}, Tag v{version}, GitHub-Release, Versionszeile R{rid}; Web-Abzug L{lid} rechnet der Dienst."
+                             f"main {sha[:8]}, Tag v{version}, GitHub-Release, Web-Abzug L{lid}, Versionszeile R{rid}."
                              + (f" Gesamtlauf L{v['lauf']}." if v["lauf"] else f" Ohne Gesamtlauf: {ausnahme}."))
         self.ausgabe(f"Version {version} live.")
         return {"version": version, "sha": sha, "web_lauf": lid, "release": rid}

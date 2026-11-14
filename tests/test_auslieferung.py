@@ -1,6 +1,6 @@
 """Release-Kette als ein Befehl (A1644): Vorbedingungen (GRÜN, Gesamtlauf, Fast-Forward, sauberer Baum, neuer Tag) halten die
 Kette an, bevor sich etwas ändert; sonst Sicherung → main → Tag → Dienst (Version, Schema) → Push → GitHub-Release →
-Web-Abzug als Dienst-Lauf → Versionszeile → eine Info. Mit echten Git-Repositories (Ursprung + Arbeitskopie); nur „gh“
+Web-Abzug als leichter Lauf der Kette → Versionszeile → eine Info. Mit echten Git-Repositories (Ursprung + Arbeitskopie); nur „gh“
 und der Neustart des Dienstes sind nachgebildet."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
@@ -69,6 +69,8 @@ class Kette(unittest.TestCase):
             return 0, "https://example.invalid/release"
         if "dienst" in befehl:
             return 0, "Dienst neu gestartet"
+        if "web" in befehl or "origin/web" in befehl or any(str(x).startswith("web-") for x in befehl):
+            return 0, ""                                                     # Web-Abzug: im Test-Repo gibt es keinen web-Ordner
         return auslieferung._laufen(befehl, ordner)
 
     def kette(self, version="1.1.0"):
@@ -100,9 +102,10 @@ class Kette(unittest.TestCase):
         self.assertEqual(self.g("rev-parse", "v1.1.0^{commit}", ordner=self.ursprung), self.sha)
         self.assertIn("**Neu:** Neues Ding für alle.", self.notizen)                              # Notizen aus dem CHANGELOG
         self.assertTrue(any(b[0] == "gh" and "v1.1.0" in b for b in self.extern_aufrufe))
-        w = self.con.execute("SELECT * FROM lauf WHERE id = ?", (r["web_lauf"],)).fetchone()        # Web-Abzug: rechnet der Dienst
-        self.assertEqual((w["schwer"], w["status"], w["ordner"], w["waechter"]), (0, "laeuft", self.repo, None))
-        self.assertIn("git subtree split --prefix web -b web-110", json.loads(w["befehl"])[0])
+        w = self.con.execute("SELECT * FROM lauf WHERE id = ?", (r["web_lauf"],)).fetchone()        # Web-Abzug: rechnet die Kette selbst
+        self.assertEqual((w["schwer"], w["status"], w["rc"], w["ordner"]), (0, "fertig", 0, self.repo))
+        self.assertIn(["git", "subtree", "split", "--prefix", "web", "-b", "web-110"], self.extern_aufrufe)
+        self.assertIn(["git", "push", "origin", "web-110:web"], self.extern_aufrufe)
         rel = self.con.execute("SELECT version, titel FROM release WHERE id = ?", (r["release"],)).fetchone()
         self.assertEqual(tuple(rel), ("1.1.0", "Neues Ding"))                                      # Versionszeile ohne TL
         info = self.con.execute("SELECT n.art, n.kurz FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE e.agent = 'TL'"
