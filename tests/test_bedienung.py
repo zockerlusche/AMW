@@ -165,7 +165,8 @@ class Seite(Wiederholt, Grund):
         self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-start').innerText"))
         self.tab.js("document.querySelector('.nr-start').click()")
         self.warten("zustand.sicht === 'nachrichten' && document.querySelector('.nr-reiter button.an')")
-        self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [True, False])
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [True, False, False])   # 3.: Lead-Runde (nur am PC, 1.96.0)
+        self.assertEqual(self.tab.js("document.querySelectorAll('.nr-reiter button')[2].textContent"), "Lead-Runde")
         self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-liste').innerText"))
         self.tab.js("document.querySelectorAll('.nr-reiter button')[1].click()")
         self.warten(f"document.querySelector('.nr-liste') && document.querySelector('.nr-liste').innerText.includes('Bitte Linien aufräumen')")
@@ -282,16 +283,16 @@ class Seite(Wiederholt, Grund):
         from amw import regelwerk
         self.oeffnen("start", "typeof projektNeuDialog === 'function' && document.querySelector('#team')")
         self.tab.js("projektNeuDialog()")
-        self.warten("document.querySelector('.np-regelwerk summary') && document.querySelectorAll('.np-rw-regel').length === 23")
+        self.warten("document.querySelector('.np-regelwerk summary') && document.querySelectorAll('.np-rw-regel').length === 24")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('#np-regeln option')].map(o => o.value)"), ["grund", "kopie:P", ""])
-        self.assertEqual(self.tab.js("document.querySelector('.np-regelwerk summary').textContent"), "19 von 23 Regeln gewählt – ansehen und anpassen")
+        self.assertEqual(self.tab.js("document.querySelector('.np-regelwerk summary').textContent"), "20 von 24 Regeln gewählt – ansehen und anpassen")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.np-rw-regel')].filter(x => !x.querySelector('input').checked).map(x => x.dataset.nr)"),
                          ["W1", "W2", "W3", "W4"])                                              # wahlweise: nicht vorgewählt
         self.tab.js("[...document.querySelectorAll('.dialog input[type=checkbox], dialog input[type=checkbox], .einst input[type=checkbox]')]"
                     ".find(x => !x.closest('.np-regelwerk')).click()")                           # „Lead als Chat“
-        self.warten("document.querySelector('.np-regelwerk summary').textContent.startsWith('20 von 23')")   # die Takt-Regel kommt dazu
+        self.warten("document.querySelector('.np-regelwerk summary').textContent.startsWith('21 von 24')")   # die Takt-Regel kommt dazu
         self.assertTrue(self.tab.js("document.querySelector('.np-rw-regel[data-nr=W4] input').checked"))
-        self.assertEqual(self.tab.js("document.querySelectorAll('.np-rw-regel .gr-warum').length"), 23)      # jede Regel mit Warum oder Erfahrung
+        self.assertEqual(self.tab.js("document.querySelectorAll('.np-rw-regel .gr-warum').length"), 24)      # jede Regel mit Warum oder Erfahrung
         self.tab.js("(() => { const s = document.querySelector('#np-regeln'); s.value = ''; s.dispatchEvent(new Event('change')); })()")
         self.assertEqual(self.tab.js("document.querySelectorAll('.np-rw-regel').length"), 0)                 # „ohne“: keine Liste
         regelwerk.uebernehmen(self.con, self.pid, "Entwickler", auswahl=["G1", "G3"], texte={"G3": "Eigener Weg einer Änderung."})
