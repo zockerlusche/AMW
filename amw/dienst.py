@@ -23,6 +23,7 @@ import logging
 import logging.handlers
 import os
 import sys
+import threading
 import time
 
 from . import betrieb, db, kern, pipe, push, schirm, statusline, steuerung, ueberwachung, wartegrund
@@ -498,6 +499,7 @@ def main(argv=None):
     d.ordner_messen()                               # Ordnergrößen: einmal am Tag im Hintergrund (nur im laufenden Dienst)
     stand, letzte_aufsicht = None, time.time()
     from . import herzschlag
+    gh_faden = None
     while True:
         t0, fehler = time.time(), None
         try:
@@ -512,6 +514,11 @@ def main(argv=None):
                 from . import releasetakt           # A1656: bereit zum Ausliefern anstoßen (pusht nie selbst)
                 for z in releasetakt.runde(con):
                     log.info("Release-Takt: %s", z)
+                if not (gh_faden and gh_faden.is_alive()):   # A1738 (2): gemergte PRs – eigener Faden, gh kann dauern
+                    from . import planautomatik
+                    gh_faden = threading.Thread(target=lambda: [log.info("Planung nach Merge: %s", x) for x in planautomatik.github_runde()],
+                                                name="amw-github", daemon=True)
+                    gh_faden.start()
                 d.zustellen()                       # Wiederholung nach Fehlschlag, neue Anmeldungen, Takt
                 d.ordner_messen()
         except Exception as x:                      # nie sterben; Fehler protokollieren und weiter

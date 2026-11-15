@@ -30,7 +30,7 @@
   },
   {
    "titel": "Releasing closes the tasks",
-   "text": "After `amw release ausliefern`, every task whose green commit with merge approval is included counts as done – the reviewed commit is the evidence. Give the sentence for the release notes right in the review request: `amw pruefung bitte … --aufgabe <no> --gruppe neu --hinweis \"…\"`. Open criteria do not block this; the lead is told about them. A task waiting for the developer (for example a confirmation on the device) stays open. To switch it off: Settings › Project › Automatic planning.",
+   "text": "After `amw release ausliefern`, every task whose green commit with merge approval is included counts as done – the reviewed commit is the evidence. Give the sentence for the release notes right in the review request: `amw pruefung bitte … --aufgabe <no> --gruppe neu --hinweis \"…\"`. Open criteria do not block this; the lead is told about them. A task waiting for the developer (for example a confirmation on the device) stays open. Projects that merge through GitHub pull requests: when a merged PR names “A1234” in its title or text and its checks are green, the task is set to done as well (evidence = merge commit). AMW asks with `gh` in the project folder at most every 5 minutes – only if the operating mode allows the connection (github.com only in “Cloud”); `gh` keeps its own sign-in. To switch it off: Settings › Project › Automatic planning.",
    "bilder": []
   }
  ],

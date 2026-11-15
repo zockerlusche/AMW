@@ -86,5 +86,65 @@ class LaufStartetAufgabe(Grund):
         self.assertEqual(self.status(a), "wartet")
 
 
+class GitHubMerge(Grund):
+    """A1738 (2): gemergte PRs mit „A1234“ und grünen Prüfungen setzen die Aufgabe fertig – nur wo die Betriebsart die
+    Verbindung zulässt, höchstens alle 5 Minuten je Projekt, ohne Token in der AMW (gh hält die Anmeldung)."""
+
+    def setUp(self):
+        super().setUp()
+        self.repo = os.path.join(self.ordner.name, "projekt")
+        os.makedirs(self.repo)
+        kern.projekt_ordner_setzen(self.con, self.pid, self.repo)
+        planautomatik._gh_zuletzt.clear()
+        self.addCleanup(planautomatik._gh_zuletzt.clear)
+        self.aufrufe = []
+        self.prs = []
+
+    def laufen(self, befehl, ordner):
+        import json
+        self.aufrufe.append(befehl)
+        if befehl[:2] == ["git", "-C"]:
+            return 0, "https://github.com/firma/spiel.git\n"
+        return 0, json.dumps(self.prs)
+
+    def art(self, art):
+        p = mock.patch("amw.einstellungen.wert", side_effect=lambda k, *x: art if k == "betriebsart" else None)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_gemergt_und_gruen_setzt_fertig(self):
+        self.art("cloud")
+        a, rot, geraet = self.aufgabe(), self.aufgabe(titel="CI rot"), self.aufgabe(titel="Am Gerät bestätigen")
+        kern.aufgabe_status(self.con, self.pid, "CC1", geraet, "wartet", auf="Entwickler")
+        self.prs = [{"number": 12, "title": f"Karte neu (A{a})", "body": f"auch A{geraet}", "mergedAt": "2026-11-15T07:00:00Z",
+                     "mergeCommit": {"oid": "abcdef1234567"}, "statusCheckRollup": [{"conclusion": "SUCCESS"}, {"state": "SUCCESS"}]},
+                    {"number": 13, "title": f"Fix A{rot}", "body": "", "mergeCommit": {"oid": "1111111"},
+                     "statusCheckRollup": [{"conclusion": "FAILURE"}]}]
+        aus = planautomatik.github_projekt(self.con, self.pid, laufen=self.laufen, jetzt=1000.0)
+        self.assertEqual([x["aufgabe"] for x in aus], [a])
+        z = self.con.execute("SELECT status, beleg, zusammenfassung FROM aufgabe WHERE id = ?", (a,)).fetchone()
+        self.assertEqual((z["status"], z["beleg"]), ("fertig", "abcdef1"))
+        self.assertIn("PR #12 gemergt (2026-11-15)", z["zusammenfassung"])
+        self.assertEqual((self.status(rot), self.status(geraet)), ("wartet", "wartet"))   # CI rot · wartet auf den Entwickler
+        self.assertIn(f"A{a} ← PR #12 (abcdef1).",
+                      self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'Fertig nach Merge%'").fetchone()[0])
+        n = len(self.aufrufe)
+        planautomatik.github_projekt(self.con, self.pid, laufen=self.laufen, jetzt=1100.0)   # < 5 min später: keine Abfrage
+        self.assertEqual(len(self.aufrufe), n)
+
+    def test_nur_dieser_pc_fragt_github_nie(self):
+        self.art("pc")
+        self.aufgabe()
+        self.assertEqual(planautomatik.github_projekt(self.con, self.pid, laufen=self.laufen, jetzt=1000.0), [])
+        self.assertFalse([b for b in self.aufrufe if b[0] == "gh"])
+
+    def test_ohne_projektordner_nichts(self):
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE projekt SET einstellungen = '{}' WHERE id = ?", (self.pid,))
+        self.art("cloud")
+        self.assertEqual(planautomatik.github_projekt(self.con, self.pid, laufen=self.laufen, jetzt=1000.0), [])
+        self.assertEqual(self.aufrufe, [])
+
+
 if __name__ == "__main__":
     unittest.main()

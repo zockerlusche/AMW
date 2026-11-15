@@ -111,3 +111,110 @@ def ausgeliefert(con, pid, version, sha, enthalten):
                          bogen_id=a["bogen_id"], aufgabe_id=aid, text=f"{version} · P{p['id']} {p['zweig']}@{p['sha'][:8]}")
         aus.append({"aufgabe": aid, "titel": a["titel"], "beleg": p["sha"][:7], "kriterien_offen": offen})
     return aus
+
+
+# --- A1738 (2): gemergte GitHub-PRs ----------------------------------------------------------------------------------------
+GH_TAKT_S = 300            # je Projekt höchstens alle 5 Minuten (TL #26380: „höchstens alle paar Minuten“)
+GH_FRIST_S = 30
+_gh_zuletzt = {}           # Projekt → Zeitpunkt der letzten Abfrage (Zustand im Dienst)
+GRUEN = {"SUCCESS", "NEUTRAL", "SKIPPED"}
+
+
+def _git_remote(ordner, laufen):
+    rc, aus = laufen(["git", "-C", ordner, "remote", "get-url", "origin"], ordner)
+    return aus.strip() if rc == 0 else None
+
+
+def _laufen(befehl, ordner):
+    try:
+        r = subprocess.run(befehl, cwd=ordner, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                           timeout=GH_FRIST_S, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return 1, str(e)
+    return r.returncode, r.stdout if r.returncode == 0 else (r.stderr or r.stdout)
+
+
+def ci_gruen(pr):
+    """Alle Prüfungen des PRs grün (oder neutral/übersprungen); ohne Prüfungen zählt er als grün (kein CI im Projekt)."""
+    for c in pr.get("statusCheckRollup") or []:
+        wert = (c.get("conclusion") or c.get("state") or "").upper()
+        if wert not in GRUEN:
+            return False
+    return True
+
+
+def github_projekt(con, pid, laufen=_laufen, jetzt=None):
+    """A1738 (2) für ein Projekt: gemergte PRs (gh im Projektordner) mit „A1234“ in Titel oder Text und grünen Prüfungen setzen
+    die Aufgabe dieses Projekts fertig – Beleg = Merge-Commit. Nur mit Projektordner, dessen origin die Betriebsart erlaubt
+    (github.com nur in „Cloud“, ein GitHub im Firmennetz auch in „Server“); höchstens alle GH_TAKT_S Sekunden; die Anmeldung
+    hält gh selbst (kein Token in der AMW). Rückgabe wie ausgeliefert()."""
+    import json
+    import time
+    from . import betriebsart, planung, wartegrund
+    jetzt = jetzt if jetzt is not None else time.time()
+    if not an(con, pid) or jetzt - _gh_zuletzt.get(pid, 0) < GH_TAKT_S:
+        return []
+    ordner = kern.projekt_ordner(con, pid)
+    if not ordner:
+        return []
+    _gh_zuletzt[pid] = jetzt
+    url = _git_remote(ordner, laufen)
+    if not url or not betriebsart.erlaubt(url):
+        return []
+    rc, aus = laufen(["gh", "pr", "list", "--state", "merged", "--limit", "30", "--json",
+                      "number,title,body,mergeCommit,mergedAt,statusCheckRollup"], ordner)
+    if rc != 0:
+        return []
+    try:
+        prs = json.loads(aus or "[]")
+    except ValueError:
+        return []
+    ergebnis = []
+    for pr in prs:
+        if not ci_gruen(pr):
+            continue
+        nummern = {int(m.group(1)) for m in AUFGABE_IM_TEXT.finditer(f"{pr.get('title') or ''}\n{pr.get('body') or ''}")}
+        for aid in sorted(nummern):
+            a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+            if not a or a["status"] in ("fertig", "verworfen"):
+                continue
+            if any(w["art"] == "entwickler" for w in wartegrund.offene(con, aid)):
+                continue
+            beleg = ((pr.get("mergeCommit") or {}).get("oid") or "")[:7] or f"PR #{pr.get('number')}"
+            offen = [k["text"] for k in planung._json(a["kriterien"], []) if not k.get("erfuellt")]
+            zusammen = (a["zusammenfassung"] or "").strip() or f"PR #{pr.get('number')} gemergt ({(pr.get('mergedAt') or '')[:10]})."
+            if offen:
+                zusammen += " Offene Kriterien: " + " | ".join(offen[:5])
+            try:
+                kern.aufgabe_status(con, pid, "AMW", aid, "fertig", beleg=beleg, zusammenfassung=zusammen[:1000], automatik=True)
+            except kern.AmwFehler as e:
+                ergebnis.append({"aufgabe": aid, "titel": a["titel"], "fehler": str(e)})
+                continue
+            with db.schreiben(con):
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="auto_fertig",
+                             bogen_id=a["bogen_id"], aufgabe_id=aid, text=f"PR #{pr.get('number')} gemergt · {beleg}")
+            ergebnis.append({"aufgabe": aid, "titel": a["titel"], "beleg": beleg, "kriterien_offen": offen, "pr": pr.get("number")})
+    ok = [x for x in ergebnis if not x.get("fehler")]
+    lead = kern.lead(con, pid)
+    if ok and lead:
+        with db.schreiben(con):
+            kern._posten(con, pid, "AMW", lead, "info", "Fertig nach Merge: " + ", ".join(f"A{x['aufgabe']}" for x in ok)[:200],
+                         " ".join(f"A{x['aufgabe']} ← PR #{x['pr']} ({x['beleg']})." for x in ok)
+                         + "".join(f" A{x['aufgabe']} hat offene Kriterien: {' | '.join(x['kriterien_offen'][:3])}."
+                                   for x in ok if x["kriterien_offen"]))
+    return ergebnis
+
+
+def github_runde():
+    """Vom Dienst in einem eigenen Faden (gh braucht Netz und kann dauern – die Hauptschleife wartet nicht). Eigene Verbindung."""
+    con = db.verbinde()
+    try:
+        aus = []
+        for (pid,) in con.execute("SELECT id FROM projekt").fetchall():
+            try:
+                aus += github_projekt(con, pid)
+            except Exception as x:                       # noqa: BLE001 – ein Projekt hält die anderen nie auf
+                aus.append({"aufgabe": 0, "fehler": f"Projekt {pid}: {type(x).__name__}: {x}"})
+        return aus
+    finally:
+        con.close()

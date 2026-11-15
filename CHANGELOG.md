@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.106.0 – 15.11.2026 · Planung automatisch: fertig nach dem Merge auf GitHub
+- Projekte, die über GitHub-Pull-Requests mergen: Nennt ein gemergter PR „A1234“ im Titel oder Text und sind seine Prüfungen
+  grün, steht die Aufgabe dieses Projekts von selbst auf fertig (Beleg = Merge-Commit), der Lead bekommt eine Info.
+  Offene Kriterien halten das nicht auf, sie stehen in der Info. Wartet die Aufgabe auf den Entwickler, bleibt sie offen.
+- Die AMW fragt dafür höchstens alle 5 Minuten mit `gh` im Projektordner nach, in einem eigenen Faden des Dienstes – nur,
+  wenn die Betriebsart die Verbindung erlaubt (github.com nur in „Cloud“, ein GitHub im Firmennetz auch in „Server“).
+  Die Anmeldung hält `gh` selbst; in der AMW liegt kein Schlüssel. Abschaltbar mit „Planung automatisch“.
+
 ## 1.105.0 – 15.11.2026 · Planung: neue Aufgaben erst in den Eingang
 - Neue Projekt-Einstellung „Neue Aufgaben landen“: im Meilenstein (wie bisher) oder im Eingang. Im Eingang landen neue
   Aufgaben ohne Meilenstein dort, wo auch der Leitstand „im Eingang“ zählt; die Planung zeigt sie oben unter „Eingang (n)“.
