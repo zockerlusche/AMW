@@ -46,6 +46,8 @@ Damit nichts verhungert, rückt ein wartender Lauf je 30 Minuten Wartezeit eine 
 
 Öffnet ein Lauf, der ohne `--schirm` angemeldet ist, doch ein Fenster, merkt die AMW das: Ab dann gilt er als Lauf mit Fenster, sein Agent und der Lead erfahren es, und ist der Bildschirm belegt, wird der Agent gebeten, ihn zu beenden (die AMW beendet nichts selbst). Denselben Lauf nimmt die Schlange danach 7 Tage lang nur noch mit `--schirm` an – ebenso, wenn ein Lauf ohne `--schirm` bei belegtem Bildschirm von außen geschlossen wurde. Ohne Fenster starten (etwa mit `--headless`) gilt als anderer Lauf. Die AMW sieht dabei nur, welches Programm ein Fenster hat, nie den Fenstertitel.
 
+**Dauerlauf:** Ein Lauf, der lange läuft, kopflos und ohne KI, Grafikkarte oder Fenster (etwa eine Spielsimulation), meldest du mit `--dauerlauf --braucht-gb <GB>` an. Er läuft neben dem schweren Lauf, seine Grenze zählt in die Vormerkung (andere Läufe rechnen damit), und unter „Rechner“ steht, wie viel er gerade belegt. Belegt er mehr als seine Grenze oder wird der Arbeitsspeicher knapp, bittet die AMW seinen Agenten, ihn zu beenden, und sagt es dem Lead – beenden tut sie ihn nicht selbst.
+
 ### Was passiert, wenn das Fenster des Agenten den wartenden Befehl beendet?
 Nichts geht verloren. `amw lauf ausfuehren` merkt sich beim Einreihen Befehl, Ordner und Ergebnis-Datei. Ist der Lauf dran und der wartende Befehl im Fenster lebt nicht mehr, startet der Dienst genau diesen Befehl im selben Ordner und schreibt die Ausgabe in die Ergebnis-Datei; der Agent bekommt am Ende eine Meldung mit dem Rückgabewert. Läufe mit Fenster (Bildschirm) startet der Dienst nicht selbst.
 

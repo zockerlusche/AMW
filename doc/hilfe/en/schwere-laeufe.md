@@ -46,6 +46,8 @@ So that nothing starves, a waiting run moves up one level for every 30 minutes i
 
 If a run registered without `--schirm` opens a window anyway, AMW notices: from then on it counts as a run with a window, its agent and the lead are told, and if the screen is taken, the agent is asked to end it (AMW never ends anything itself). For the next 7 days the queue accepts the same run only with `--schirm` – likewise if a run without `--schirm` was closed from outside while the screen was taken. Starting it without a window (for example with `--headless`) counts as a different run. AMW only sees which program has a window, never the window title.
 
+**Continuous run:** A long run that is headless and uses no AI, graphics card or window (for example a game simulation) is registered with `--dauerlauf --braucht-gb <GB>`. It runs next to the heavy run, its limit counts towards the reservations (other runs take it into account), and “Computer” shows how much it currently uses. If it uses more than its limit or memory runs short, AMW asks its agent to end it and tells the lead – it does not end it itself.
+
 ### What happens if the agent's window ends the waiting command?
 Nothing is lost. `amw lauf ausfuehren` stores the command, folder and result file when it queues. When the run is due and the waiting command in the window is gone, the service starts exactly this command in the same folder and writes the output to the result file; the agent gets a message with the return code at the end. Runs with a window (screen) are not started by the service.
 

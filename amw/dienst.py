@@ -319,6 +319,11 @@ class Dienst:
                 log.info("Bildschirm: %s", e)
         except Exception as e:
             log.warning("Bildschirm: %s: %s", type(e).__name__, e)
+        try:                                                                 # A1759: Dauerlauf hält seine Grenze?
+            for lid, grund in betrieb.dauerlauf_pruefen(self.con):
+                log.info("Dauerlauf L%s: %s", lid, grund)
+        except Exception as e:
+            log.warning("Dauerlauf: %s: %s", type(e).__name__, e)
         try:                                                                 # A1742: Meilenstein mit allen Aufgaben fertig
             from . import planautomatik
             for bid, was in planautomatik.meilensteine(self.con):

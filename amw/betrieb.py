@@ -37,7 +37,65 @@ def auslastung(con, pid):
             "eigene_warten": sum(1 for l in warten if l["projekt_id"] == pid),
             "frei_ab_utc": max(enden).strftime("%Y-%m-%dT%H:%M:%SZ") if enden and len(enden) == len(laufen) else None,
             "angemeldet_gb": round(sum(l["braucht_gb"] or 0 for l in laufen), 1) or None,     # so viel haben die laufenden angemeldet
+            "dauerlaeufe": dauerlaeufe(con, pid),
             "frei_gb": frei, "gesamt_gb": gesamt, "rechner": rechner(), "vorrang": vorrang_liste(con)}
+def dauerlaeufe(con, pid, liste=None):
+    """Laufende Dauerläufe dieses Rechners (A1759): [{id, agent, eigen, grenze_gb, ist_gb}] – fremde ohne Nummer und Agent."""
+    r = con.execute("SELECT l.* FROM lauf l WHERE l.status = 'laeuft' AND " + DAUERLAUF + " AND " + HIER + " ORDER BY l.id",
+                    (rechner(),)).fetchall()
+    if not r:
+        return []
+    from . import belegung
+    liste = belegung.prozesse() if liste is None else liste
+    aus = []
+    for l in r:
+        p = belegung.lauf_pid(l["id"])
+        ist = belegung.baum_gb(liste, p) if p else None
+        eigen = l["projekt_id"] == pid
+        aus.append({"id": l["id"] if eigen else None, "agent": l["agent"] if eigen else None, "eigen": eigen,
+                    "grenze_gb": l["braucht_gb"], "ist_gb": round(ist, 1) if ist is not None else None})
+    return aus
+
+
+_dauer_gemeldet = set()      # (Lauf, Grund) – je Lauf und Grund eine Bitte (Zustand im Dienst)
+
+
+def dauerlauf_pruefen(con, liste=None, frei=None):
+    """Vom Dienst je Aufsichtsrunde (A1759): überschreitet der Prozessbaum eines Dauerlaufs seine Grenze oder fällt der freie
+    Arbeitsspeicher unter die Reserve, bittet die AMW den Agenten, ihn zu beenden, und sagt es dem Lead. Sie beendet selbst
+    nichts. Rückgabe: [(Lauf, Grund)]."""
+    from . import belegung
+    r = con.execute("SELECT l.* FROM lauf l WHERE l.status = 'laeuft' AND " + DAUERLAUF + " AND " + HIER + " ORDER BY l.id",
+                    (rechner(),)).fetchall()
+    if not r:
+        return []
+    liste = belegung.prozesse() if liste is None else liste
+    frei = speicher_frei_gb()[0] if frei is None else frei
+    reserve, aus = reserve_gb(), []
+    for l in r:
+        p = belegung.lauf_pid(l["id"])
+        ist = belegung.baum_gb(liste, p) if p else None
+        grund = None
+        if ist is not None and ist > l["braucht_gb"]:
+            grund = ("grenze", f"belegt {ist:.1f} GB – mehr als seine Grenze von {l['braucht_gb']:g} GB")
+        elif frei is not None and frei < reserve:
+            grund = ("knapp", f"auf dem Rechner sind nur noch {frei:g} GB frei (Reserve {reserve:g} GB)")
+        if not grund or (l["id"], grund[0]) in _dauer_gemeldet:
+            continue
+        _dauer_gemeldet.add((l["id"], grund[0]))
+        with db.schreiben(con):
+            kern._posten(con, l["projekt_id"], "AMW", l["agent"], "korrektur", f"Dauerlauf L{l['id']}: bitte beenden – {grund[1]}"[:300],
+                         f"Der Dauerlauf „{l['beschreibung'] or ''}“ {grund[1]}. Bitte beenden und melden (amw lauf ende {l['id']}"
+                         " --rc <Code> oder --abgebrochen) – die AMW beendet nichts selbst. Neu starten mit passender --braucht-gb.",
+                         aufgabe_id=l["aufgabe_id"])
+            lead = kern.lead(con, l["projekt_id"])
+            if lead and lead != l["agent"]:
+                kern._posten(con, l["projekt_id"], "AMW", lead, "info", f"Dauerlauf L{l['id']} ({l['agent']}): {grund[1]}"[:300],
+                             f"{l['agent']} ist gebeten, ihn zu beenden.", aufgabe_id=l["aufgabe_id"])
+        aus.append((l["id"], grund[0]))
+    return aus
+
+
 def tagesverlauf(con, pid, jetzt=None, tage=60):
     """Der Rechner heute, für den Zeitstrahl in der Planung: Läufe aller Projekte auf diesem Rechner, die heute liefen,
     laufen oder warten – eigene mit Nummer, Agent und Beschreibung, fremde nur als Zeitraum und Bedarf („anderes
@@ -195,6 +253,9 @@ def rechner():
 
 
 HIER = "(l.rechner IS NULL OR l.rechner = ?)"        # SQL: nur Läufe dieses Rechners (Alias l)
+# Dauerlauf (A1759, GlassWorld R15, Marcel W2171): kopflos, ohne KI/GPU/Fenster, mit fester Speichergrenze – läuft neben dem
+# schweren Lauf (keine CPU-Spur), seine Grenze zählt in die Vormerkung, der Dienst passt auf, dass er sie hält.
+DAUERLAUF = "(l.schwer = 0 AND l.braucht_gb > 0 AND l.schirm = 0 AND l.gpu = 0)"
 
 
 def vram_frei_gb():
@@ -343,7 +404,8 @@ def _vormerkungen(con, jetzt=None):
     frei: danach steckt, was er wirklich belegt, schon in der Messung des freien Speichers."""
     import datetime
     r = con.execute("SELECT l.*, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id"
-                    " WHERE l.status = 'laeuft' AND l.schwer = 1 AND " + HIER + " ORDER BY l.id", (rechner(),)).fetchall()
+                    " WHERE l.status = 'laeuft' AND (l.schwer = 1 OR " + DAUERLAUF + ") AND " + HIER + " ORDER BY l.id",
+                    (rechner(),)).fetchall()
     if not r:
         return []
     from . import belegung
@@ -591,7 +653,7 @@ def wartende(con, pid=None):
 def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=False, aufgabe_id=None,
                speicher_frei=None, warten=False, erwartet_min=None, gpu=False, dazu=None, sperre=None,
                braucht_gb=None, braucht_vram_gb=None, braucht_platte_gb=None, befehl=None, ordner=None, ergebnis_datei=None,
-               frist_min=None, waechter=None):
+               frist_min=None, waechter=None, dauerlauf=False):
     """Meldet einen Lauf an und startet ihn, wenn er darf. befehl/ordner/ergebnis_datei/frist_min/waechter: von „amw lauf
     ausfuehren“ – stirbt der Warte-Prozess (waechter), startet der Dienst genau diesen Befehl in diesem Ordner (A1640).
     Ohne --braucht-gb (und ohne Rezept) gilt der gelernte Bedarf früherer gleicher Läufe (A1641), sonst die Grenze. Regeln: kein Halt; Schirm und Grafikkarte PC-weit ein Lauf
@@ -602,6 +664,12 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     sperre: Grund, warum er jetzt nicht starten darf, obwohl der Platz frei wäre (KI-Auftrag mit --nachts)."""
     if kern.halt_gilt(con, pid, agent):
         raise kern.AmwFehler("HALT gilt – keine Läufe starten")
+    if dauerlauf:                                # A1759: kopflos, ohne KI/GPU/Fenster, feste Grenze
+        if not braucht_gb:
+            raise kern.AmwFehler("Dauerlauf nur mit --braucht-gb <GB> – das ist seine feste Grenze")
+        if schirm or gpu or rezept:
+            raise kern.AmwFehler("Dauerlauf läuft kopflos: ohne --schirm, --gpu und Rezept")
+        schwer = False
     rez = None
     if rezept:
         rez = con.execute("SELECT * FROM rezept WHERE projekt_id = ? AND name = ?", (pid, rezept)).fetchone()

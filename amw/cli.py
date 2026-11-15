@@ -1102,7 +1102,7 @@ def _lauf_ausfuehren(con, pid, a):
                              erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb, braucht_vram_gb=a.braucht_vram_gb,
                              braucht_platte_gb=a.braucht_platte_gb, befehl=befehl, ordner=os.getcwd(),
                              ergebnis_datei=os.path.abspath(a.ergebnis) if a.ergebnis else None, frist_min=a.frist,
-                             waechter=os.getpid())
+                             waechter=os.getpid(), dauerlauf=a.dauerlauf)
     print(f"L{lid} angemeldet: {beschreibung}", flush=True)
     from . import belegung                           # solange dieser Befehl wartet, gilt der Lauf als lebendig (siehe betrieb._lebt)
     belegung.lauf_merken(lid, os.getpid())
@@ -1279,7 +1279,7 @@ def cmd_lauf(a, con):
             raise kern.AmwFehler("--beschreibung oder --rezept angeben")
         lid = betrieb.lauf_start(con, pid, _von(a), a.beschreibung or a.rezept, a.rezept, not a.leicht, a.schirm, a.aufgabe,
                                  warten=a.warten, erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb,
-                                 braucht_vram_gb=a.braucht_vram_gb, braucht_platte_gb=a.braucht_platte_gb)
+                                 braucht_vram_gb=a.braucht_vram_gb, braucht_platte_gb=a.braucht_platte_gb, dauerlauf=a.dauerlauf)
         w = [r["id"] for r in betrieb.wartende(con, pid)]
         if lid in w:
             print(f"L{lid} eingereiht (Platz {w.index(lid) + 1} von {len(w)}) – noch nicht rechnen. Der Dienst benachrichtigt dich mit"
@@ -2575,6 +2575,8 @@ def parser():
     x.add_argument("--beschreibung")
     x.add_argument("--rezept")
     x.add_argument("--leicht", action="store_true", help="kein schwerer Lauf (keine Speicher-Grenze)")
+    x.add_argument("--dauerlauf", action="store_true", help="start/ausfuehren: kopflos, ohne KI/GPU/Fenster, mit --braucht-gb als"
+                   " fester Grenze – läuft neben dem schweren Lauf, die Grenze wird vorgemerkt, der Dienst passt auf, dass er sie hält")
     x.add_argument("--schirm", action="store_true")
     x.add_argument("--gpu", action="store_true", help="belegt die Grafikkarte: PC-weit nur ein GPU-Lauf zur Zeit"
                                                      " (auch KI-Aufträge; ein Lauf mit Fenster wartet ebenfalls)")

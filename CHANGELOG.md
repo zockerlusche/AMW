@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.108.0 – 15.11.2026 · Dauerläufe neben dem schweren Lauf
+- Neue Laufart „Dauerlauf“ (`amw lauf start|ausfuehren --dauerlauf --braucht-gb <GB>`): kopflos, ohne KI, Grafikkarte oder
+  Fenster, mit fester Speichergrenze. Er läuft neben dem schweren Lauf, seine Grenze zählt in die Vormerkung, und unter
+  „Rechner“ steht, wie viel er gerade belegt.
+- Belegt ein Dauerlauf mehr als seine Grenze oder wird der Arbeitsspeicher knapp, bittet die AMW seinen Agenten, ihn zu
+  beenden, und sagt es dem Lead – beenden tut sie ihn nicht selbst. Hilfe „Schwere Läufe“ ergänzt.
+
 ## 1.107.0 – 15.11.2026 · Planung automatisch: Meilenstein fertig, wenn alle Aufgaben fertig sind
 - Sind alle Aufgaben eines geplanten oder aktiven Meilensteins fertig (oder verworfen), steht in seiner Karte „Alle Aufgaben
   sind fertig – Meilenstein abschließen?“ mit dem Knopf „Abschließen“, und der Lead bekommt einmal eine Meldung.
