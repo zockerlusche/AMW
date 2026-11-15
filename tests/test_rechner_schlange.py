@@ -324,9 +324,9 @@ class Umstellung(Grund):
 
 class Anzeige(Grund):
     def test_auslastung_des_rechners_im_leitstand(self):
-        self.start("Eins", "A", erwartet_min=20)
-        self.start("Zwei", "A")
-        self.start("Eins", "B")
+        self.start("Eins", "A", text="Eins geheim", erwartet_min=20)
+        zwei = self.start("Zwei", "A", text="Zwei eigen")
+        self.start("Eins", "B", text="Eins geheim")
         a = betrieb.auslastung(self.con, self.p["Eins"])
         self.assertEqual((a["laufen"], a["warten"], a["eigene_laufen"], a["eigene_warten"]), (1, 2, 1, 1))
         self.assertRegex(a["frei_ab_utc"], r"^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
@@ -335,7 +335,8 @@ class Anzeige(Grund):
         self.assertEqual((z["laufen"], z["warten"], z["eigene_laufen"], z["eigene_warten"]), (1, 2, 0, 1))
         start = workbench.daten_start(self.con, self.p["Zwei"])["rechner"]
         self.assertEqual((start["laufen"], start["warten"]), (1, 2))
-        self.assertNotIn("geheime Beschreibung", str(start))                     # nur Zahlen
+        self.assertNotIn("Eins geheim", str(start))                              # fremde: nur Zahlen
+        self.assertEqual([w["id"] for w in start["eigene_wartend"]], [zwei])      # eigene wartende mit Nummer (A1764: Vorziehen)
 
 
 class Tagesverlauf(unittest.TestCase):

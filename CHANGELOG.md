@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.112.1 – 15.11.2026 · Knopf „Vorziehen“ für wartende Läufe
+- **Behoben:** Die Meldung „… wartet seit … Minuten“ verwies auf einen Knopf zum Vorziehen, den es nicht gab. Jetzt stehen in
+  der Rechner-Kachel (Start › Leitstand) die wartenden Läufe dieses Projekts mit Platz und je einem Knopf „Vorziehen“ (mit
+  Rückfrage) – am PC, im Heimnetz und online (dort nur für System-Admins).
+
 ## 1.112.0 – 15.11.2026 · Messen: Lesen Agenten nach einem Weckruf noch nach?
 - Betrieb › „Wofür das Geld geht“ zeigt, nach wie vielen Weckrufen ein Agent innerhalb von 2 Minuten noch einmal nachgelesen
   hat (`amw lesen`/`amw kontext`), und die Kosten je Weckruf vor und nach 1.98.0 (seitdem bringen Weckrufe den Inhalt mit).

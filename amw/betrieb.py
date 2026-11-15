@@ -38,6 +38,8 @@ def auslastung(con, pid):
             "frei_ab_utc": max(enden).strftime("%Y-%m-%dT%H:%M:%SZ") if enden and len(enden) == len(laufen) else None,
             "angemeldet_gb": round(sum(l["braucht_gb"] or 0 for l in laufen), 1) or None,     # so viel haben die laufenden angemeldet
             "dauerlaeufe": dauerlaeufe(con, pid),
+            "eigene_wartend": [{"id": l["id"], "agent": l["agent"], "beschreibung": (l["beschreibung"] or "")[:90], "platz": i}
+                               for i, l in enumerate(wartende(con), 1) if l["projekt_id"] == pid][:8],   # A1764: zum Vorziehen
             "frei_gb": frei, "gesamt_gb": gesamt, "rechner": rechner(), "vorrang": vorrang_liste(con)}
 def dauerlaeufe(con, pid, liste=None):
     """Laufende Dauerläufe dieses Rechners (A1759): [{id, agent, eigen, grenze_gb, ist_gb}] – fremde ohne Nummer und Agent."""
@@ -560,7 +562,7 @@ def vorrang_meldungen(con, jetzt=None):
         with db.schreiben(con):
             kern._posten(con, l["projekt_id"], "AMW", kern.ENTWICKLER, "meldung", kurz,
                          f"{l['agent']}: {l['beschreibung']}\n\nWarum: {grund}\n\nNichts wird abgebrochen. Vorziehen kannst nur du: "
-                         f"amw lauf vorziehen {l['id']} (oder in der Planung › Rechner – heute).", aufgabe_id=l["aufgabe_id"])
+                         f"amw lauf vorziehen {l['id']} (oder in der Workbench: Start › Leitstand › Rechner › „Vorziehen“).", aufgabe_id=l["aufgabe_id"])
         aus.append(kurz)
     return aus
 

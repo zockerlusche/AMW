@@ -252,6 +252,17 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         if kanal != "seite":
             raise Ungueltig("Ein neues Projekt legst du am PC an")
         return projekt_neu(con, daten)
+    if weg == "/api/lauf/vorziehen":                 # A1764: wartenden Lauf an die Spitze – der Mensch (online nur System-Admin)
+        try:
+            lid = int(daten.get("lauf"))
+        except (TypeError, ValueError):
+            raise Ungueltig("Welcher Lauf?") from None
+        from . import betrieb
+        try:
+            betrieb.lauf_vorziehen(con, pid, kern.ENTWICKLER, lid)
+        except kern.AmwFehler as e:
+            raise Ungueltig(str(e)) from None
+        return {"lauf": lid}
     if weg == "/api/archivieren":                    # Aufräumvorschläge ins Archiv verschieben – der Mensch, nie löschen
         from . import platte
         namen = daten.get("namen") or []
