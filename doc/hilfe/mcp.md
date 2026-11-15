@@ -9,18 +9,7 @@ Ein Lead, der als Chat in der Claude-App arbeitet, kann die AMW direkt als Werkz
 
 ## Schritte
 1. **Konfiguration öffnen** In der Claude-App: Einstellungen › Entwickler › „Konfiguration bearbeiten“. Es öffnet sich die Datei `claude_desktop_config.json`.
-2. **Eintrag einfügen** Je Projekt ein Eintrag unter `mcpServers` – der Name ist frei, der Pfad ist der Ordner der AMW:
-   ```json
-   {
-     "mcpServers": {
-       "amw-glassworld": {
-         "command": "python",
-         "args": ["F:/amw/amw-mcp.py", "--projekt", "GlassWorld", "--von", "TL"]
-       }
-     }
-   }
-   ```
-   Steht schon etwas unter `mcpServers`, nur den neuen Eintrag dazuschreiben (mit Komma).
+2. **Eintrag einfügen** Je Projekt ein Eintrag unter `mcpServers` – der Name ist frei, der Pfad ist der Ordner der AMW: `"amw-glassworld": {"command": "python", "args": ["F:/amw/amw-mcp.py", "--projekt", "GlassWorld", "--von", "TL"]}`. Gibt es `mcpServers` noch nicht, die ganze Datei so: `{"mcpServers": { … }}` mit dem Eintrag an der Stelle der drei Punkte; steht dort schon etwas, den neuen Eintrag mit Komma dazuschreiben.
 3. **Claude-App neu starten** Ganz beenden (auch im Infobereich der Taskleiste) und wieder öffnen.
 4. **Im Chat einschalten** Im Chat des Leads unter „Suche und Werkzeuge“ den Eintrag `amw-…` seines Projekts einschalten – und nur diesen.
 5. **Ausprobieren** Den Lead bitten: „Ruf takt auf.“ Er bekommt seinen Durchgang: Postfach, Prüfbitten, Fragen, Antworten, Läufe, Lead-Runde, Auslieferungen.
