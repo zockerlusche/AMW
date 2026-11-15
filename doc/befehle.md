@@ -949,7 +949,10 @@ positional arguments:
 
 options:
   -h, --help           show this help message and exit
-  --zweig ZWEIG        nur für diesen Zweig
+  --zweig ZWEIG        nur für diesen Zweig – muss zu einer grünen oder
+                       offenen Prüfung der Aufgabe passen; ohne: der Zweig der
+                       jüngsten grünen Prüfung (vor der ersten Prüfung: jeder
+                       Zweig)
   --zurueck            OK zurücknehmen
   --ausnahme AUSNAHME  ohne eigenen Gesamtlauf ausliefern dürfen – mit Grund
                        (liest amw release ausliefern)

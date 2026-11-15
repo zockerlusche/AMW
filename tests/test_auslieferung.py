@@ -201,8 +201,19 @@ class Kette(unittest.TestCase):
         betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid)
         betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid, zurueck=True)                  # zurückgenommen: gilt nicht
         self.ohne_aenderung("kein Merge-OK für A")
-        betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid, zweig="anderer")               # OK nur für einen anderen Zweig
+        with self.assertRaises(kern.AmwFehler) as e:                                                # A1754: ein Zweig ohne Prüfung
+            betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid, zweig="anderer")           # wird gar nicht erst angenommen
+        self.assertIn("passend: neu (GRÜN", str(e.exception))
         self.ohne_aenderung("kein Merge-OK für A")
+
+    def test_merge_ok_ohne_zweig_nimmt_den_der_gruenen_pruefung(self):
+        """A1754 (14.11.: Merge-OK auf b199-2 statt a1675-3 → Auslieferung hing 2 h): ohne --zweig gilt das OK für den Zweig der
+        jüngsten grünen Prüfung dieser Aufgabe – und genau den liefert die Kette aus."""
+        self.gruen(merge_ok=False)
+        betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid)
+        self.assertEqual(self.con.execute("SELECT text FROM plan_ereignis WHERE art = 'merge_ok' ORDER BY id DESC").fetchone()[0], "neu")
+        self.gesamtlauf()
+        self.assertEqual(self.kette().ausliefern("neu")["version"], "1.1.0")
 
     def test_ausnahme_endet_mit_neuem_merge_ok(self):
         self.gruen(merge_ok=False)

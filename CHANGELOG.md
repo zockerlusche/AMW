@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.109.2 – 15.11.2026 · Merge-OK passt immer zur Prüfung
+- **Behoben:** Ein Merge-OK auf den falschen Zweig ließ die Auslieferung später hängen. Jetzt nimmt `amw freigabe merge A…`
+  ohne `--zweig` den Zweig der jüngsten grünen Prüfung dieser Aufgabe; ein angegebener Zweig muss zu einer grünen oder offenen
+  Prüfung passen, sonst nennt die Meldung die passenden. Vor der ersten Prüfung gilt ein Merge-OK wie bisher für jeden Zweig.
+
 ## 1.109.1 – 15.11.2026 · Release-Kette: Versionszeilen kommen vor dem Web-Abzug
 - **Behoben:** Lief der Web-Abzug ins Zeitlimit, fehlten danach die Versionszeilen und der Lead musste sie von Hand eintragen.
   Jetzt trägt die Kette Versionszeilen (auch für Zwischenversionen) und die fertigen Aufgaben direkt nach dem GitHub-Release

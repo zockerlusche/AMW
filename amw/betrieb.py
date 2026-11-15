@@ -1103,6 +1103,17 @@ def freigabe_merge(con, pid, von, aufgabe_id, zweig=None, zurueck=False, ausnahm
     ausnahme = (ausnahme or "").strip() or None
     if ausnahme and zurueck:
         raise kern.AmwFehler("--ausnahme gehört zu einem Merge-OK, nicht zur Rücknahme")
+    if not zurueck:                                      # A1754: Zweig aus der Prüfung statt von Hand (14.11.: falscher Zweig → 2 h Stillstand)
+        pruef = con.execute("SELECT zweig, sha, ergebnis FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ? AND ergebnis IN"
+                            " ('gruen', 'offen') ORDER BY id DESC", (pid, aufgabe_id)).fetchall()
+        gruen = [p for p in pruef if p["ergebnis"] == "gruen"]
+        if zweig is None and gruen:
+            zweig = gruen[0]["zweig"]                    # die jüngste grüne Prüfung dieser Aufgabe
+        elif zweig is not None and pruef and zweig not in {p["zweig"] for p in pruef}:
+            liste = ", ".join(dict.fromkeys(f"{p['zweig']} ({'GRÜN' if p['ergebnis'] == 'gruen' else 'offen'} {p['sha'][:8]})"
+                                            for p in pruef))
+            raise kern.AmwFehler(f"Zweig „{zweig}“ hat keine grüne oder offene Prüfung zu A{aufgabe_id} – passend: {liste}."
+                                 " Ohne --zweig nimmt das Merge-OK die jüngste grüne Prüfung.")
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von,
                      art="merge_ok_zurueck" if zurueck else "merge_ok", aufgabe_id=aufgabe_id, text=zweig)

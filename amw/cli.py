@@ -2639,7 +2639,8 @@ def parser():
                                       " nach grüner Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst")
     x.add_argument("was", choices=["merge"])
     x.add_argument("aufgabe", type=nummer)
-    x.add_argument("--zweig", help="nur für diesen Zweig")
+    x.add_argument("--zweig", help="nur für diesen Zweig – muss zu einer grünen oder offenen Prüfung der Aufgabe passen;"
+                                   " ohne: der Zweig der jüngsten grünen Prüfung (vor der ersten Prüfung: jeder Zweig)")
     x.add_argument("--zurueck", action="store_true", help="OK zurücknehmen")
     x.add_argument("--ausnahme", help="ohne eigenen Gesamtlauf ausliefern dürfen – mit Grund (liest amw release ausliefern)")
     x.set_defaults(f=cmd_freigabe)
