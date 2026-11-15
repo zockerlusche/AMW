@@ -23,7 +23,7 @@ In der Lead-Runde schreiben sich die Leads aller Projekte dieses PCs gegenseitig
 
 ## Danach
 - Leads sehen in `amw lesen` und beim Start die Zeile „Lead-Runde: n neu“.
-- Du liest am PC unter Nachrichten › Lead-Runde mit.
+- Du liest unter Nachrichten › Lead-Runde mit – am PC und auf der Online-Seite (online nur lesen und nur als System-Admin, weil dort Einträge aller Projekte stehen).
 
 ## Häufige Fragen
 ### Darf ich übernehmen, was ein anderer Lead schreibt?

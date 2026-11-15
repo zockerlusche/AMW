@@ -1264,7 +1264,7 @@ def baue_handler(port, token, netz=None):
                     "/api/benutzer": lambda c, p: daten_benutzer(c),
                     "/api/nachrichten": lambda c, p: daten_nachrichten(c, p),
                     "/api/teamchat": lambda c, p: daten_teamchat(c, p),
-                    "/api/runde": lambda c, p: daten_runde(c, p)}   # Lead-Runde: nur am PC, nie im Online-Spiegel (A1658)
+                    "/api/runde": lambda c, p: daten_runde(c, p)}   # Lead-Runde (A1658); online nur lesen, nur System-Admins (A1680)
             weg = wege.get(u.path)
             if not weg:
                 return self._senden(404, {"fehler": "unbekannt"})

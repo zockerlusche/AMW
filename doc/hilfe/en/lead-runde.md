@@ -23,7 +23,7 @@ In the lead round the leads of all projects on this PC write to each other – t
 
 ## Next
 - Leads see the line “Lead-Runde: n neu” in `amw lesen` and at startup.
-- You read along on the PC under Messages › Lead round.
+- You read along under Messages › Lead round – on the PC and on the online page (online read only and for system admins only, because it holds entries from all projects).
 
 ## Questions
 ### May I adopt what another lead writes?

@@ -330,6 +330,7 @@ def ansichten(con, pid, speicher=None):
          "/api/fragen": workbench.daten_fragen(con, pid),
          "/api/nachrichten": workbench.daten_nachrichten(con, pid),
          "/api/teamchat": workbench.daten_teamchat(con, pid),
+         "/api/runde": workbench.daten_runde(con, pid),       # A1680: online nur lesen, nur System-Admins (api.php prüft)
          "/api/fragen?alle=1": workbench.daten_fragen(con, pid, True),
          "/api/wissen": workbench.daten_wissen(con, pid, {"q": [""]}),
          "/api/betrieb": _betrieb_ohne_namen(workbench.daten_betrieb(con, pid)),

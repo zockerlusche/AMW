@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.111.1 – 15.11.2026 · Lead-Runde auch auf der Online-Seite
+- Unter Nachrichten › Lead-Runde liest du jetzt auch auf der Online-Seite mit (z. B. am iPad) – nur lesen. Weil dort Einträge
+  aller Projekte stehen, zeigt die Online-Seite sie nur System-Admins; die Seite prüft das selbst. Hilfe „Lead-Runde“ ergänzt.
+
 ## 1.111.0 – 15.11.2026 · Prüfbitte mit sichtbarer Änderung nur mit Bild
 - Ändert ein Stand die Seite oder die Hilfe, nimmt `amw pruefung bitte` ihn nur an, wenn an der Aufgabe ein Bild-Dokument hängt,
   und nennt die Bilder in der Prüfbitte von selbst. Ohne Bild geht es nur mit `--ohne-bild <Grund>`, der Grund steht in der

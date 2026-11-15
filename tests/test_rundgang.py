@@ -232,6 +232,15 @@ class Online(Daten, OnlineRundgang):
         self.ueberall("fragen", "online-fragen", bereit="document.querySelector('#inhalt h2, #inhalt .karte')")
         self.ueberall("einstellungen", "online-einstellungen", bereit="document.querySelector('#inhalt .einst, #inhalt .karte')")
 
+    def test_lead_runde_online_lesen(self):
+        """A1680 (Marcel F5326 A): die Lead-Runde auch online – nur lesen, nur wer alle Projekte sieht (hier der Zugang)."""
+        from amw import runde
+        runde.schreiben(self.con, self.pid, kern.ENTWICKLER, "Wie messt ihr Dauerläufe?", text="Frage an alle Leads")
+        self.ab.hochladen(alle=True)
+        self.ueberall("runde", "online-runde", bereit="document.querySelector('#runde-richtlinie')")
+        self.assertIn("Wie messt ihr Dauerläufe?", self.tab.js("document.getElementById('inhalt').innerText"))
+        self.assertTrue(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].some(b => /Lead-Runde|Lead round/.test(b.textContent))"))
+
     def test_agent_dialog_und_menue(self):
         self.ueberall("start", "online-agent", bereit=self.START, tun="agentDialog('CC1')", danach="document.querySelector('.agent-dialog')")
         self.ueberall("start", "online-agent-menue", bereit=self.START + " && document.querySelector('.mehr-knopf')",
