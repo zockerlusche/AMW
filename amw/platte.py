@@ -251,6 +251,10 @@ def messen(con, jetzt=None):
                      art="sicherungen", bytes=sum(x["bytes"] for x in s), dateien=len(s), zuletzt_utc=None)
         con.execute("DELETE FROM ordner_messung WHERE zeit_utc < ?",
                     ((jetzt - datetime.timedelta(days=AUFBEWAHREN_TAGE)).strftime("%Y-%m-%dT%H:%M:%SZ"),))
+    try:
+        claude_messen(con, jetzt=jetzt)                   # A1779: Claude-Ablagen gleich mit
+    except Exception:                                     # nie die Messung der Projektordner stören
+        pass
     return n + 1
 
 
@@ -304,6 +308,133 @@ def ablagerungen(con, pid=None, n=10, jetzt=None):
                 pass
         aus.append({"ordner": r["ordner"], "art": r["art"], "bytes": r["bytes"], "tage": tage})
     return aus
+
+
+# --- Claude-Ablagen (A1779): Arbeitsordner der Claude-Sitzungen in %TEMP%\claude ----------------------------------------
+# 15.11.: eine Sitzung legte 64 GB Arbeitskopien in ihrem Scratchpad ab, C: lief fast voll – gemessen wurden nur Projektordner.
+# Gemessen wird je Sitzungsordner (<TEMP>/claude/<Ordner>/<Sitzungs-ID>); die Sitzungs-ID führt über die Tabelle sitzung zu
+# Projekt und Agent. Werte in einer Datei dieses PCs (kein Schema, nichts geht online). Die AMW löscht nichts.
+
+CLAUDE_GRENZE_GB = 10            # ab hier bekommen Lead und Mensch eine Meldung
+KOPIE_ALT_TAGE = 1               # Arbeitskopien (Ordner mit .git), die so lange unverändert sind, werden vorgeschlagen
+
+
+def claude_basis():
+    import tempfile                                       # AMW_CLAUDE_BASIS: Tests (tests/abschotten.py) – nie das echte
+    return os.environ.get("AMW_CLAUDE_BASIS") or os.path.join(tempfile.gettempdir(), "claude")
+
+
+def _claude_datei():
+    return os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), "amw", "claude_ablagen.json")
+
+
+def _arbeitskopien(pfad, tiefe=5):
+    """Ordner mit .git (Datei bei Worktrees, Ordner bei Klonen) bis `tiefe` Ebenen – nicht in sie hinein."""
+    aus = []
+    def suche(p, ebene):
+        try:
+            eintraege = list(os.scandir(p))
+        except OSError:
+            return
+        if any(e.name == ".git" for e in eintraege):
+            aus.append(p)
+            return
+        if ebene < tiefe:
+            for e in eintraege:
+                if e.is_dir(follow_symlinks=False):
+                    suche(e.path, ebene + 1)
+    suche(pfad, 0)
+    return aus
+
+
+def _alter_tage(utc, jetzt):
+    try:
+        return max(0, (jetzt - datetime.datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)).days)
+    except (TypeError, ValueError):
+        return None
+
+
+def befehl_entfernen(pfad):
+    """Fertiger PowerShell-Befehl für den Menschen – die AMW führt ihn nie aus."""
+    return f"Remove-Item -LiteralPath '{pfad.replace(chr(39), chr(39) * 2)}' -Recurse -Force"
+
+
+def claude_messen(con, basis=None, jetzt=None):
+    """Misst die Sitzungsordner unter <TEMP>/claude, ordnet sie über sitzung.claude_sitzung zu und schreibt das Ergebnis
+    in claude_ablagen.json. Meldet Sitzungen über CLAUDE_GRENZE_GB einmal an Lead + Mensch. Rückgabe: das Ergebnis."""
+    basis = basis or claude_basis()
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    alt = claude_ablagen()
+    sitzungen = []
+    try:
+        oben = [e for e in os.scandir(basis) if e.is_dir(follow_symlinks=False)]
+    except OSError:
+        oben = []
+    for o in oben:
+        try:
+            unten = [e for e in os.scandir(o.path) if e.is_dir(follow_symlinks=False)]
+        except OSError:
+            continue
+        for u in unten:
+            b, d, z = _ordnergroesse(u.path)
+            s = {"ordner": u.path, "sitzung": u.name, "bytes": b, "dateien": d, "zuletzt_utc": z, "tage": _alter_tage(z, jetzt)}
+            r = con.execute("SELECT a.kennung, p.id AS pid, p.name FROM sitzung s JOIN agent a ON a.id = s.agent_id JOIN projekt p"
+                            " ON p.id = a.projekt_id WHERE s.claude_sitzung = ? ORDER BY s.id DESC LIMIT 1", (u.name,)).fetchone()
+            if r:
+                s.update(agent=r["kennung"], projekt=r["name"], projekt_id=r["pid"])
+            kopien = []
+            for k in _arbeitskopien(u.path):
+                kb, kd, kz = _ordnergroesse(k)
+                t = _alter_tage(kz, jetzt)
+                if kb >= 2 ** 20 and t is not None and t >= KOPIE_ALT_TAGE:
+                    kopien.append({"ordner": k, "bytes": kb, "tage": t, "befehl": befehl_entfernen(k)})
+            s["arbeitskopien"] = sorted(kopien, key=lambda x: -x["bytes"])
+            sitzungen.append(s)
+    sitzungen.sort(key=lambda x: -x["bytes"])
+    gemeldet = set(alt.get("gemeldet") or [])
+    for s in sitzungen:
+        if s["bytes"] >= CLAUDE_GRENZE_GB * 2 ** 30 and s["sitzung"] not in gemeldet:
+            _claude_melden(con, s)
+            gemeldet.add(s["sitzung"])
+    erg = {"zeit_utc": jetzt.strftime("%Y-%m-%dT%H:%M:%SZ"), "basis": basis, "sitzungen": sitzungen,
+           "gemeldet": sorted(g for g in gemeldet if any(s["sitzung"] == g for s in sitzungen))}
+    try:
+        os.makedirs(os.path.dirname(_claude_datei()), exist_ok=True)
+        tmp = f"{_claude_datei()}.{os.getpid()}.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(erg, f, ensure_ascii=False)
+        os.replace(tmp, _claude_datei())
+    except OSError:
+        pass
+    return erg
+
+
+def _claude_melden(con, s):
+    gb = f"{s['bytes'] / 2 ** 30:.1f}".replace(".", ",")
+    wer = f"{s['agent']} ({s['projekt']})" if s.get("agent") else "eine Sitzung ohne Zuordnung"
+    kurz = f"Claude-Ablage von {wer}: {gb} GB in %TEMP%\\claude"
+    text = (f"Der Arbeitsordner {s['ordner']} belegt {gb} GB ({s['dateien']} Dateien)."
+            + (f" Darin {len(s['arbeitskopien'])} alte Arbeitskopien – Vorschläge unter Einstellungen › Dieser PC › Claude-Ablagen."
+               if s["arbeitskopien"] else "")
+            + " Die AMW löscht nichts; aufräumen kann nur der Mensch. Sitzung noch aktiv? Dann bitte dort keine weiteren Kopien anlegen.")
+    pid = s.get("projekt_id") or (con.execute("SELECT id FROM projekt ORDER BY id LIMIT 1").fetchone() or [None])[0]
+    if pid is None:
+        return
+    with db.schreiben(con):
+        lead = kern.lead(con, pid)
+        if lead:
+            kern._posten(con, pid, "AMW", lead, "meldung", kurz, text)
+        kern._posten(con, pid, "AMW", kern.ENTWICKLER, "meldung", kurz, text)
+
+
+def claude_ablagen():
+    """Letztes Ergebnis von claude_messen() ({} vor der ersten Messung)."""
+    try:
+        with open(_claude_datei(), encoding="utf-8") as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
 
 
 # --- Wache: melden, wenn ein Laufwerk knapp wird --------------------------------------------------------------------

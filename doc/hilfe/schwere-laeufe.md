@@ -66,5 +66,7 @@ Ein Programm, das nicht über die Warteschlange läuft und seit mehr als 10 Minu
 ### Was tut die AMW, wenn die Festplatte voll wird?
 Sie warnt: im Leitstand unter „Rechner“ und mit einer Nachricht an Lead und dich, sobald auf einem Laufwerk mit der Datenbank oder einem Projektordner weniger als 15 % frei sind, und dringend unter 5 %. Unter Einstellungen › Dieser PC stehen die Laufwerke und die Aufräumvorschläge: alte Sicherungen mit Größe und Alter. Gelöscht wird nichts von selbst. Ist ein Archiv-Ordner eingetragen, verschiebst du alte Sicherungen mit einem Klick dorthin; jede Verschiebung steht in archiv-protokoll.txt.
 
+Auch die Arbeitsordner der Claude-Sitzungen (%TEMP%\claude) misst die AMW – je Sitzung mit Agent und Projekt, unter Einstellungen › Dieser PC › „Claude-Ablagen“. Belegt eine Sitzung mehr als 10 GB, bekommen ihr Lead und du eine Meldung. Alte Arbeitskopien darin (Ordner mit .git, seit über einem Tag unverändert) stehen mit einem fertigen PowerShell-Befehl zum Entfernen da; die AMW führt ihn nie aus.
+
 ### Kann ich das für einen Rechner abschalten?
 Ja: Einstellungen › Dieser PC › „Schwere Befehle über die Warteschlange“ ausschalten. Die Warteschlange selbst bleibt, nur das Abweisen entfällt.

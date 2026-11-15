@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.114.0 – 15.11.2026 · Claude-Ablagen im Blick
+- **Neu:** Die AMW misst die Arbeitsordner der Claude-Sitzungen in %TEMP%\claude – je Sitzung Größe, Dateien, letzte Änderung,
+  mit Agent und Projekt (Einstellungen › Dieser PC › „Claude-Ablagen“). Ab 10 GB bekommen Lead und Mensch eine Meldung; alte
+  Arbeitskopien stehen mit einem fertigen Befehl zum Entfernen da. Die AMW löscht nichts.
+
 ## 1.113.0 – 15.11.2026 · `amw takt`: ein Durchgang für Leads in einem Aufruf
 - **Neu:** `amw takt` zeigt einem Lead knapp, was er für einen Durchgang braucht: Postfach mit gekürztem Text, Prüfbitten an
   ihn, Fragen der Agenten, Antworten des Menschen, Läufe mit Wartegrund, Lead-Runde und Auslieferungen – je Punkt eine Zeile

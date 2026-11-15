@@ -587,6 +587,13 @@ def daten_benutzer(con, speicher=None):
             "seite_adresse": _seiten_adresse()}
 
 
+def _claude_kurz(c, n=8):
+    """Claude-Ablagen für Dieser PC: die größten Sitzungsordner, je höchstens 3 Arbeitskopien."""
+    return {"zeit_utc": c.get("zeit_utc"), "basis": c.get("basis"),
+            "sitzungen": [{**{k: s.get(k) for k in ("ordner", "agent", "projekt", "bytes", "dateien", "tage")},
+                           "arbeitskopien": (s.get("arbeitskopien") or [])[:3]} for s in (c.get("sitzungen") or [])[:n]]}
+
+
 def daten_einstellungen(con, pid, speicher=None):
     """Zahnrad: alles, was einstellbar ist – nie Schlüssel oder Passwörter (der Turso-Schlüssel nur als „gespeichert“)."""
     from . import __version__, abgleich, einstellungen, ueberwachung
@@ -623,7 +630,8 @@ def daten_einstellungen(con, pid, speicher=None):
     try:
         rechner = {"laufwerke": [{k: l[k] for k in ("laufwerk", "frei_gb", "gesamt_gb", "frei_prozent", "stufe")} for l in platte.laufwerke(con)],
                    "aufraeumen": platte.vorschlaege(con), "archiv": einstellungen.wert("archiv_ordner"),
-                   "zuwaechse": platte.zuwaechse(con, pid), "ablagerungen": platte.ablagerungen(con, pid)}
+                   "zuwaechse": platte.zuwaechse(con, pid), "ablagerungen": platte.ablagerungen(con, pid),
+                   "claude": _claude_kurz(platte.claude_ablagen())}   # A1779: nur am PC (Pfade dieses PCs)
     except Exception:
         rechner = {"laufwerke": [], "aufraeumen": {"sicherungen": [], "bytes": 0, "ordner": ""}}
     return {"version": __version__, "rechner": rechner,

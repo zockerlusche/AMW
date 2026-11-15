@@ -66,5 +66,7 @@ A program that does not run through the queue and has been using a lot of memory
 ### What does the AMW do when the disk fills up?
 It warns: in the control panel under “Computer” and with a message to the lead and you as soon as a drive holding the database or a project folder has less than 15 % free, and urgently below 5 %. Settings › This PC lists the drives and the clean-up suggestions: old backups with size and age. Nothing is deleted automatically. If an archive folder is set, you move old backups there with one click; every move is listed in archiv-protokoll.txt.
 
+The AMW also measures the work folders of the Claude sessions (%TEMP%\claude) – per session with agent and project, under Settings › This PC › “Claude work folders”. If a session uses more than 10 GB, its lead and you get a notice. Old working copies in it (folders with .git, unchanged for over a day) are listed with a ready PowerShell command to remove them; the AMW never runs it.
+
 ### Can I switch this off for one computer?
 Yes: Settings › This PC › switch off “Send heavy commands through the queue”. The queue itself stays, only the rejecting stops.
