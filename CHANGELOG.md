@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.116.1 – 15.11.2026 · Bildschirm: kein Programmname mehr
+- **Verbessert:** Schließt die AMW die Bildschirm-Freigabe wegen einer Eingabe am PC, nennt sie kein Programm im Vordergrund
+  mehr – auch frühere Einträge im Verlauf sind bereinigt.
+
 ## 1.116.0 – 15.11.2026 · Ladeanzeige und schnellere Dokumente online
 - **Neu:** Dauert ein Abruf, den du ausgelöst hast, länger als 0,3 Sekunden, erscheint das AMW-Logo als Ladeanzeige – die
   Kreise wandern auf dem Schriftzug. Bei „Bewegung reduzieren“ wird es nur sanft heller und dunkler.

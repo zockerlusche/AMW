@@ -488,6 +488,11 @@ def main(argv=None):
     con = db.verbinde()
     d = Dienst(con)
     log.info("Dienst gestartet (PID %s, %s)", os.getpid(), db.db_pfad())
+    try:                                                  # F5336 B: frühere Programmnamen aus dem Bildschirm-Verlauf
+        if (n := schirm.programmnamen_entfernen(con)):
+            log.info("Bildschirm-Verlauf: Programmname aus %s Wechseln entfernt", n)
+    except Exception:                                     # nie den Start aufhalten
+        log.exception("Bildschirm-Verlauf")
     if not (a.einmal or a.ohne_web):
         from . import workbench
         try:

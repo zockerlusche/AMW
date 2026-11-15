@@ -23,7 +23,7 @@ class Grund(unittest.TestCase):
             for k in ("CC1", "CC2"):
                 aid = self.con.execute("SELECT id FROM agent WHERE kennung = ?", (k,)).fetchone()[0]
                 db.einfuegen(self.con, "sitzung", agent_id=aid, gestartet_utc=db.jetzt())
-        for name, wert in (("leerlauf_s", 600), ("fernsitzung", None), ("vordergrund", None)):   # PC ruhig, keine Fernsitzung
+        for name, wert in (("leerlauf_s", 600), ("fernsitzung", None)):   # PC ruhig, keine Fernsitzung
             p = mock.patch.object(schirm, name, return_value=wert)
             p.start()
             self.addCleanup(p.stop)
@@ -115,23 +115,23 @@ class Automatik(Grund):
     def test_eingabe_erst_nach_der_gnadenfrist(self):
         self.frei()
         t = time.time()
-        self.assertEqual(schirm.pruefen(self.con, leerlauf=5, jetzt=t + 60, vg=""), [])      # Klick auf „frei“, Weggehen
+        self.assertEqual(schirm.pruefen(self.con, leerlauf=5, jetzt=t + 60), [])      # Klick auf „frei“, Weggehen
         self.assertEqual(schirm.zustand(self.con)["frei"], 1)
-        aus = schirm.pruefen(self.con, leerlauf=10, jetzt=t + 300, vg="")                     # Eingabe 290 s nach dem Freigeben
+        aus = schirm.pruefen(self.con, leerlauf=10, jetzt=t + 300)                     # Eingabe 290 s nach dem Freigeben
         self.assertIn("bis eine zweite folgt", aus[0])                                      # eine allein schließt nicht
-        aus = schirm.pruefen(self.con, leerlauf=2, jetzt=t + 330, vg="explorer.exe")         # zweite, spätere Eingabe
-        self.assertTrue(aus and aus[0].startswith("Bildschirm zu: Eingabe am PC") and "Vordergrund: explorer.exe" in aus[0])
+        aus = schirm.pruefen(self.con, leerlauf=2, jetzt=t + 330)         # zweite, spätere Eingabe
+        self.assertTrue(aus and aus[0].startswith("Bildschirm zu: Eingabe am PC") and "Vordergrund" not in aus[0])   # F5336 B
 
     def test_einzelne_eingabe_schliesst_nicht(self):
         # 07.11. 20:34 und 08.11. 11:20: niemand am PC, eine Eingabe schloss den Bildschirm (Fehlalarm)
         self.frei()
         t = time.time()
-        self.assertIn("bis eine zweite folgt", schirm.pruefen(self.con, leerlauf=10, jetzt=t + 300, vg="")[0])
-        self.assertEqual(schirm.pruefen(self.con, leerlauf=40, jetzt=t + 330, vg=""), [])    # dieselbe Eingabe, nichts Neues
+        self.assertIn("bis eine zweite folgt", schirm.pruefen(self.con, leerlauf=10, jetzt=t + 300)[0])
+        self.assertEqual(schirm.pruefen(self.con, leerlauf=40, jetzt=t + 330), [])    # dieselbe Eingabe, nichts Neues
         self.assertEqual(schirm.zustand(self.con)["frei"], 1)
-        self.assertEqual(schirm.pruefen(self.con, leerlauf=37, jetzt=t + 330, vg=""), [])    # Zucken über 3 s: zählt als eins
+        self.assertEqual(schirm.pruefen(self.con, leerlauf=37, jetzt=t + 330), [])    # Zucken über 3 s: zählt als eins
         self.assertEqual(schirm.zustand(self.con)["frei"], 1)
-        aus = schirm.pruefen(self.con, leerlauf=5, jetzt=t + 600, vg="")                     # viel später: wieder nur eine
+        aus = schirm.pruefen(self.con, leerlauf=5, jetzt=t + 600)                     # viel später: wieder nur eine
         self.assertIn("bis eine zweite folgt", aus[0])
         self.assertEqual(schirm.zustand(self.con)["frei"], 1)
 
@@ -147,8 +147,8 @@ class Automatik(Grund):
             self.con.execute("UPDATE lauf SET status = 'fertig', ende_utc = ? WHERE id = ?", (schirm._utc(t + 310), lid))
         self.assertEqual(schirm.pruefen(self.con, leerlauf=60, jetzt=t + 370), [])               # letzte Eingabe 10 s vor Ende
         self.assertEqual(schirm.zustand(self.con)["frei"], 1)
-        schirm.pruefen(self.con, leerlauf=5, jetzt=t + 400, vg="")                               # danach: wieder der Mensch …
-        aus = schirm.pruefen(self.con, leerlauf=3, jetzt=t + 430, vg="")                         # … und bleibt da
+        schirm.pruefen(self.con, leerlauf=5, jetzt=t + 400)                               # danach: wieder der Mensch …
+        aus = schirm.pruefen(self.con, leerlauf=3, jetzt=t + 430)                         # … und bleibt da
         self.assertTrue(aus and aus[0].startswith("Bildschirm zu: Eingabe am PC"))
 
     def test_wortlaut_schliesst_nicht(self):
@@ -164,6 +164,19 @@ class Automatik(Grund):
         z = self.frei(bis="2099-01-01 07:00")
         self.assertEqual(schirm.pruefen(self.con, jetzt=time.time() + 60), [])
         self.assertIn("abgelaufen", schirm.pruefen(self.con, jetzt=schirm._sek(z["bis_utc"]) + 1)[0])
+
+
+class OhneProgrammnamen(Grund):
+    """F5336 B (Marcel 15.11. 18:27): die Eingabe-Erkennung bleibt, nennt aber kein Programm im Vordergrund – auch der frühere
+    Vermerk verschwindet aus dem Verlauf (der Rest des Grunds bleibt)."""
+
+    def test_verlauf_wird_bereinigt(self):
+        schirm.setzen(self.con, self.pid, kern.ENTWICKLER, True, "weg")
+        schirm.setzen(self.con, None, "AMW", False, "Eingabe am PC (13:50 und 13:50, Vordergrund: windowsterminal.exe)", quelle="automatik")
+        self.assertEqual(schirm.programmnamen_entfernen(self.con), 1)
+        self.assertEqual(schirm.zustand(self.con)["grund"], "Eingabe am PC (13:50 und 13:50)")
+        self.assertEqual(schirm.programmnamen_entfernen(self.con), 0)
+        self.assertFalse(hasattr(schirm, "vordergrund"))
 
 
 class Schlange(Grund):
@@ -312,7 +325,7 @@ class AusloeserAus(Grund):
 
     def test_eingabe_am_pc_aus(self):
         self.einstellen(schirm_zu_eingabe=True)
-        self.nie_messen("leerlauf_s", "vordergrund")
+        self.nie_messen("leerlauf_s")
         self.frei()
         t = time.time()
         self.assertEqual(schirm.pruefen(self.con, jetzt=t + 300), [])

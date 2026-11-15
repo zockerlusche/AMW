@@ -8,6 +8,7 @@ bis-Uhrzeit ist erreicht. Schreibt er vom Handy (Online-Seite, Chat, Wortlaut), 
 (betrieb.py). Die AMW beendet selbst keine Prozesse – sie meldet.
 """
 import calendar
+import re
 import ctypes
 import time
 from ctypes import wintypes
@@ -102,18 +103,18 @@ def programme():
     return laufend
 
 
-def vordergrund():
-    """Name des Programms im Vordergrund (z. B. windowsterminal.exe) oder None – nur der Programmname, nie der Fenstertitel."""
-    try:
-        u = ctypes.windll.user32
-        h = u.GetForegroundWindow()
-        if not h:
-            return None
-        pid = wintypes.DWORD()
-        u.GetWindowThreadProcessId(h, ctypes.byref(pid))
-    except (AttributeError, OSError):
-        return None
-    return next((name for name, pids in programme().items() if pid.value in pids), None)
+VORDERGRUND = re.compile(r", Vordergrund: [^)]*")   # F5336 B: früher vermerkt – wird beim Start aus dem Verlauf entfernt
+
+
+def programmnamen_entfernen(con):
+    """F5336 B (Marcel 15.11. 18:27): die Eingabe-Erkennung nennt kein Programm im Vordergrund mehr – auch nicht im Verlauf.
+    Entfernt den früheren Vermerk „, Vordergrund: …“ aus allen Wechseln (der Rest des Grunds bleibt). Rückgabe: Anzahl."""
+    zeilen = con.execute("SELECT id, grund FROM schirm WHERE grund LIKE '%Vordergrund:%'").fetchall()
+    if zeilen:
+        with db.schreiben(con):
+            for r in zeilen:
+                con.execute("UPDATE schirm SET grund = ? WHERE id = ?", (VORDERGRUND.sub("", r["grund"]), r["id"]))
+    return len(zeilen)
 
 
 def startzeit(pid):
@@ -266,11 +267,11 @@ def _eigene_eingabe(con, zeitpunkt):
     return False
 
 
-def pruefen(con, leerlauf=None, tv=None, jetzt=None, vg=None):
+def pruefen(con, leerlauf=None, tv=None, jetzt=None):
     """Eine Runde im Dienst: schließt einen freien Bildschirm, sobald der Entwickler wieder da ist, und meldet dem Lead
     Läufe mit Fenster, die nach dem Zugehen weiterlaufen. Eine Eingabe am PC schließt erst, wenn innerhalb von BESTAETIGUNG_S
     eine zweite, spätere folgt (ein Mensch am PC tippt und bewegt die Maus laufend; eine einzelne Eingabe war zweimal ein
-    Fehlalarm). leerlauf/tv/jetzt/vg nur für Tests. Rückgabe: Ereignisse fürs Log."""
+    Fehlalarm). leerlauf/tv/jetzt nur für Tests. Rückgabe: Ereignisse fürs Log."""
     jetzt = jetzt or time.time()
     mit_fern, mit_eingabe = einstellungen.wert("schirm_zu_fernsitzung"), einstellungen.wert("schirm_zu_eingabe")
     if not mit_fern:
@@ -290,8 +291,7 @@ def pruefen(con, leerlauf=None, tv=None, jetzt=None, vg=None):
             leerlauf = leerlauf_s() if leerlauf is None else leerlauf
             if leerlauf is not None and jetzt - leerlauf > seit + RUHE_S and not _eigene_eingabe(con, jetzt - leerlauf):
                 zeit, erste = jetzt - leerlauf, _eingabe["erste"]
-                vorne = vordergrund() if vg is None else vg
-                wo = f", Vordergrund: {vorne}" if vorne else ""
+                wo = ""                                     # F5336 B: kein Programmname (früher „Vordergrund: …“)
                 if erste is not None and erste + ABSTAND_S <= zeit <= erste + BESTAETIGUNG_S:   # zweite, spätere Eingabe: jemand ist da
                     grund = f"Eingabe am PC ({lokal(_utc(erste))} und {lokal(_utc(zeit))}{wo})"
                 elif erste is None or zeit > erste + BESTAETIGUNG_S:
