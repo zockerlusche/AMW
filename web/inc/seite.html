@@ -333,6 +333,14 @@ main { overflow-wrap: break-word; }   /* lange Pfade/Adressen brechen um statt �
 .ueb-ohne-liste { display: flex; gap: 6px 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; font-size: 13px; }
 .ueb-ohne-liste button { background: none; border: 1px dashed var(--linie2); border-radius: 2px; padding: 2px 8px; color: inherit; font: inherit; cursor: pointer; }
 .ueb-ohne-liste button:hover, .ueb-ohne-liste button:focus-visible { border-color: var(--bernstein); }
+/* A1760: Rahmen pulsiert sanft (2,4 s, 95 % → 35 %, leichter Schein), unabhängig von der Balkenfarbe; ohne Bewegung fest 2 px */
+.ueb-block.arbeitet, .ueb-muster.arbeitet { outline: 1px solid color-mix(in srgb, var(--tinte) 95%, transparent); outline-offset: 0;
+  box-shadow: 0 0 5px color-mix(in srgb, var(--tinte) 45%, transparent); animation: ueb-puls 2.4s ease-in-out infinite; }
+@keyframes ueb-puls { 0%, 100% { outline-color: color-mix(in srgb, var(--tinte) 95%, transparent); box-shadow: 0 0 5px color-mix(in srgb, var(--tinte) 45%, transparent); }
+  50% { outline-color: color-mix(in srgb, var(--tinte) 35%, transparent); box-shadow: 0 0 3px color-mix(in srgb, var(--tinte) 12%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .ueb-block.arbeitet, .ueb-muster.arbeitet { outline: 2px solid var(--tinte); box-shadow: none; } }
+.ueb-wer { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 8px; background: var(--tinte); color: var(--grund);
+  font: 600 10.5px/15px var(--titel); letter-spacing: .03em; vertical-align: 1px; white-space: nowrap; }
 .ueb-legende { display: flex; gap: 6px 16px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; color: var(--leise); }
 .ueb-legende i { display: inline-block; vertical-align: middle; margin-right: 5px; position: static; }
 .ueb-muster { --farbe: var(--leise); width: 18px; height: 9px; border-radius: 1px; background: color-mix(in srgb, var(--farbe) 18%, var(--flaeche));
@@ -1254,7 +1262,7 @@ const TEXTE = {
     ck_grund_ph: "z. B. Termin hängt von einer externen Freigabe ab", ck_akz_ok: "Akzeptieren", ck_akz_fertig: "Akzeptiert",
     ck_akzeptiert: "Bewusst akzeptiert ({n})", ck_grund: "Grund", ck_wieder: "Wieder prüfen", ck_alles_ok: "Alles Offene ist bewusst akzeptiert.",
     ck_nicht_gefunden: "Nicht in der Zeitleiste gefunden",
-    sj_titel: "Wo stehen wir gerade?", zw_satz: "Seit Start ({x}): +{n} hinzugekommen · {m} erledigt · {k} offen", zw_kurz: "+{n} seit Start", zw_h: "Seit dem Start des Meilensteins neu dazugekommene Aufgaben – deshalb wird der Balken nicht immer kürzer", sj_kein_aktiv: "Kein Meilenstein ist aktiv", sj_fertig: "{f} von {g} Aufgaben erledigt", sj_ziel: "Nächstes Ziel: {x} ({b})", sj_kein_ziel: "Kein Zieldatum gesetzt", sj_dran: "Gerade in Arbeit", sj_an: "{a} an „{x}“", sj_zielkurz: "Ziel {x}", sj_ohne1: "1 Aufgabe ohne Meilenstein", sj_niemand: "Niemand arbeitet gerade an einer Aufgabe.", sj_ohne: "{n} Aufgaben ohne Meilenstein", ue_jetzt: "Jetzt", ue_erkl: "Jeder Balken ist ein Meilenstein von Beginn bis Ziel. Die senkrechte Linie ist jetzt.", ue_jetzt_tip: "Jetzt: {x}", ue_fertige_zeigen: "Erledigte einblenden ({n})", ue_fertige_aus: "Erledigte ausblenden", tl_fertige: "Erledigte Meilensteine ({n})", lg_geplant: "geplant", lg_arbeit: "in Arbeit", lg_spaet: "zu spät", lg_erledigt: "erledigt", lg_rahmen: "wahrscheinlicher Rahmen", lg_puffer: "Puffer bis zum Ziel", lg_ziel: "Ziel", ob_titel: "Ohne Meilenstein ({n})", ob_h: "Diese Aufgaben gehören zu keinem Meilenstein. Zuordnen: amw aufgabe aendern <nr> --bogen <nr>.",
+    sj_titel: "Wo stehen wir gerade?", zw_satz: "Seit Start ({x}): +{n} hinzugekommen · {m} erledigt · {k} offen", zw_kurz: "+{n} seit Start", zw_h: "Seit dem Start des Meilensteins neu dazugekommene Aufgaben – deshalb wird der Balken nicht immer kürzer", sj_kein_aktiv: "Kein Meilenstein ist aktiv", sj_fertig: "{f} von {g} Aufgaben erledigt", sj_ziel: "Nächstes Ziel: {x} ({b})", sj_kein_ziel: "Kein Zieldatum gesetzt", sj_dran: "Gerade in Arbeit", sj_an: "{a} an „{x}“", sj_zielkurz: "Ziel {x}", sj_ohne1: "1 Aufgabe ohne Meilenstein", sj_niemand: "Niemand arbeitet gerade an einer Aufgabe.", sj_ohne: "{n} Aufgaben ohne Meilenstein", ue_jetzt: "Jetzt", ue_erkl: "Jeder Balken ist ein Meilenstein von Beginn bis Ziel. Die senkrechte Linie ist jetzt.", ue_jetzt_tip: "Jetzt: {x}", ue_fertige_zeigen: "Erledigte einblenden ({n})", ue_fertige_aus: "Erledigte ausblenden", tl_fertige: "Erledigte Meilensteine ({n})", lg_geplant: "geplant", lg_arbeit: "in Arbeit", lg_puls: "jemand arbeitet gerade daran (▶ wer)", ue_wer_h: "{a} arbeitet gerade an einer Aufgabe dieses Meilensteins", lg_spaet: "zu spät", lg_erledigt: "erledigt", lg_rahmen: "wahrscheinlicher Rahmen", lg_puffer: "Puffer bis zum Ziel", lg_ziel: "Ziel", ob_titel: "Ohne Meilenstein ({n})", ob_h: "Diese Aufgaben gehören zu keinem Meilenstein. Zuordnen: amw aufgabe aendern <nr> --bogen <nr>.",
     ue_titel: "Übersicht", ue_summe: "Start {a} · voraussichtlich fertig am {b}, spätestens {c} · rund {n} Wochen ab heute",
     ue_teilweise: "Noch nicht für alle Meilensteine eine Prognose", ue_start: "Start", ue_ohne: "keine offenen Schritte",
     ue_l_p50: "bis zur Prognose (50 %)", ue_l_rot: "zu spät", ue_l_p85: "bis 85 % sicher", ue_l_du: "wartet auf dich", ue_l_heute: "heute", ue_l_klick: "Klick auf einen Balken öffnet den Meilenstein",
@@ -1586,7 +1594,7 @@ const TEXTE = {
     ck_grund_ph: "e.g. date depends on an external approval", ck_akz_ok: "Accept", ck_akz_fertig: "Accepted",
     ck_akzeptiert: "Accepted ({n})", ck_grund: "Reason", ck_wieder: "Check again", ck_alles_ok: "Everything open is deliberately accepted.",
     ck_nicht_gefunden: "Not found in the timeline",
-    sj_titel: "Where do we stand right now?", zw_satz: "Since start ({x}): +{n} added · {m} done · {k} open", zw_kurz: "+{n} since start", zw_h: "Tasks added since the milestone started – that is why the bar does not always get shorter", sj_kein_aktiv: "No milestone is active", sj_fertig: "{f} of {g} tasks done", sj_ziel: "Next target: {x} ({b})", sj_kein_ziel: "No target date set", sj_dran: "Being worked on", sj_an: "{a} on “{x}”", sj_zielkurz: "target {x}", sj_ohne1: "1 task without a milestone", sj_niemand: "Nobody is working on a task right now.", sj_ohne: "{n} tasks without a milestone", ue_jetzt: "Now", ue_erkl: "Each bar is a milestone from start to target. The vertical line is now.", ue_jetzt_tip: "Now: {x}", ue_fertige_zeigen: "Show completed ({n})", ue_fertige_aus: "Hide completed", tl_fertige: "Completed milestones ({n})", lg_geplant: "planned", lg_arbeit: "in progress", lg_spaet: "late", lg_erledigt: "done", lg_rahmen: "likely range", lg_puffer: "buffer up to the target", lg_ziel: "target", ob_titel: "Without milestone ({n})", ob_h: "These tasks belong to no milestone. Assign: amw aufgabe aendern <no> --bogen <no>.",
+    sj_titel: "Where do we stand right now?", zw_satz: "Since start ({x}): +{n} added · {m} done · {k} open", zw_kurz: "+{n} since start", zw_h: "Tasks added since the milestone started – that is why the bar does not always get shorter", sj_kein_aktiv: "No milestone is active", sj_fertig: "{f} of {g} tasks done", sj_ziel: "Next target: {x} ({b})", sj_kein_ziel: "No target date set", sj_dran: "Being worked on", sj_an: "{a} on “{x}”", sj_zielkurz: "target {x}", sj_ohne1: "1 task without a milestone", sj_niemand: "Nobody is working on a task right now.", sj_ohne: "{n} tasks without a milestone", ue_jetzt: "Now", ue_erkl: "Each bar is a milestone from start to target. The vertical line is now.", ue_jetzt_tip: "Now: {x}", ue_fertige_zeigen: "Show completed ({n})", ue_fertige_aus: "Hide completed", tl_fertige: "Completed milestones ({n})", lg_geplant: "planned", lg_arbeit: "in progress", lg_puls: "someone is working on it right now (▶ who)", ue_wer_h: "{a} is working on a task of this milestone right now", lg_spaet: "late", lg_erledigt: "done", lg_rahmen: "likely range", lg_puffer: "buffer up to the target", lg_ziel: "target", ob_titel: "Without milestone ({n})", ob_h: "These tasks belong to no milestone. Assign: amw aufgabe aendern <no> --bogen <no>.",
     ue_titel: "Overview", ue_summe: "Start {a} · expected to be done on {b}, at the latest {c} · about {n} weeks from today",
     ue_teilweise: "Not all milestones have a forecast yet", ue_start: "Start", ue_ohne: "no open steps",
     ue_l_p50: "to forecast (50 %)", ue_l_rot: "late", ue_l_p85: "to 85 % safe", ue_l_du: "waiting for you", ue_l_heute: "today", ue_l_klick: "Click a bar to open the milestone",
@@ -4259,17 +4267,20 @@ function uebersicht(d) {
         b.status === "fertig" ? `${t("bs_fertig")} ${datumKurz(z.e50)}` : `${t("pl_prognose")} ${datumKurz(z.e50)} – ${datumKurz(z.e85)}`,
         z.pause ? `${TKZ} ${t("tk_plus", { n: z.pause, x: datumKurz(b.prognose.p50_mit) })}` : null,
         z.ziel ? `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` : null].filter(Boolean).join(" · ");
-      const teile = [el("button", { class: "ueb-block " + art, type: "button", title: tip, onclick: () => zuSchritt(null, b.id),
+      /* A1760 (Marcel, Mockup freigegeben): wer gerade an einer Aufgabe dieses Meilensteins arbeitet – pulsierender Rahmen + Kürzel */
+      const wer = [...new Set((b.schritte || []).filter(s => s.status === "laeuft" && s.agent).map(s => s.agent))];
+      const pillen = () => wer.map(a => el("span", { class: "ueb-wer", title: t("ue_wer_h", { a }) }, "▶ " + a));
+      const teile = [el("button", { class: "ueb-block " + art + (wer.length ? " arbeitet" : ""), type: "button", title: tip, onclick: () => zuSchritt(null, b.id),
           style: `left:${pos(z.a)};top:${oben}px;width:${breite(z.a, z.e)}` },
         el("i", { class: "ueb-b50", style: `width:${lang ? (100 * (z.m - z.a) / lang).toFixed(1) : 100}%` }),
         z.e > z.m ? el("i", { class: "ueb-b85", style: `left:${(100 * (z.m - z.a) / lang).toFixed(1)}%` }) : null,
         z.aussen ? null : el("span", { class: "ueb-label", style: jetztDurch(z) ? `left:${Math.round((tagNr(d.heute) - z.a) * pxTag + 7)}px` : null },   /* nie durch den Text (TL #24368) */
-          el("b", {}, (b.status === "fertig" ? "✓ " : "") + "B" + b.id), b.titel))];
+          el("b", {}, (b.status === "fertig" ? "✓ " : "") + "B" + b.id), b.titel, ...pillen()))];
       if (z.pause) teile.push(el("i", { class: "ueb-token", "data-b": b.id, style: `left:${pos(z.e)};top:${oben}px;width:${breite(z.e, z.t)}`,
         title: `${bogenRef(b.id)} · ${TKZ} ${t("tk_plus", { n: z.pause, x: datumKurz(b.prognose.p50_mit) })}\n${tokenRechenweg(d.token)}` }, el("b", {}, TKZ)));
       if (z.aussen) teile.push(el("span", { class: "ueb-name " + art, title: tip, onclick: () => zuSchritt(null, b.id),
         style: `left:calc(${pos(z.t)} + 5px);top:${oben + 2}px;max-width:min(250px, calc(100% - ${pos(z.t)} - 8px))` },
-        el("b", {}, (b.status === "fertig" ? "✓ " : "") + "B" + b.id), b.titel));
+        el("b", {}, (b.status === "fertig" ? "✓ " : "") + "B" + b.id), b.titel, ...pillen()));
       if (z.zn !== null) {
         const bisZiel = Math.min(z.zn, bis);
         if (bisZiel > z.e) teile.push(el("i", { class: "ueb-puffer", style: `left:${pos(z.e)};width:${breite(z.e, bisZiel)};top:${oben + 19}px` }));
@@ -4307,6 +4318,7 @@ function uebersicht(d) {
         el("span", { class: "ref" }, "B" + z.b.id), " " + z.b.titel))) : null,
     el("div", { class: "ueb-legende" },
       el("span", {}, el("i", { class: "ueb-muster" }), t("lg_geplant")), el("span", {}, el("i", { class: "ueb-muster aktiv" }), t("lg_arbeit")),
+      el("span", {}, el("i", { class: "ueb-muster arbeitet" }), t("lg_puls")),
       el("span", {}, el("i", { class: "ueb-muster rot" }), t("lg_spaet")), el("span", {}, el("i", { class: "ueb-muster fertig" }), t("lg_erledigt")),
       el("span", {}, el("i", { class: "ueb-muster schraffur" }), t("lg_rahmen")), el("span", {}, el("i", { class: "ueb-puffer" }), t("lg_puffer")),
       el("span", {}, el("i", { class: "ueb-ziel" }), t("lg_ziel")),

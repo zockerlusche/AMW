@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.109.0 – 15.11.2026 · Planung: Wer gerade woran arbeitet, sieht man am Balken
+- In der Übersicht hat jeder Meilenstein-Balken, an dem gerade jemand eine Aufgabe bearbeitet, einen dünnen hellen Rahmen,
+  der sanft pulsiert – unabhängig von der Farbe des Balkens („zu spät“ verdeckt „in Arbeit“ nicht mehr). Neben dem Titel
+  stehen die Kürzel der Agenten, die daran arbeiten (▶ CC1). Wer Bewegung abgeschaltet hat, sieht einen festen Rahmen.
+- Die Legende erklärt den Rahmen.
+
 ## 1.108.0 – 15.11.2026 · Dauerläufe neben dem schweren Lauf
 - Neue Laufart „Dauerlauf“ (`amw lauf start|ausfuehren --dauerlauf --braucht-gb <GB>`): kopflos, ohne KI, Grafikkarte oder
   Fenster, mit fester Speichergrenze. Er läuft neben dem schweren Lauf, seine Grenze zählt in die Vormerkung, und unter
