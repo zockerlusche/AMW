@@ -21,11 +21,37 @@ import urllib.request
 from . import betrieb, db, kern
 
 # Web-Abzug: die Kette rechnet ihn selbst als leichten Lauf (Befund 14.11.: als Dienst-Lauf lehnte der Dienst ihn ab, wenn
-# für den Agenten kein Arbeitsordner eingetragen ist – zu Recht, der Dienst rechnet nur in eingetragenen Ordnern)
-WEB_SCHRITTE = (["git", "subtree", "split", "--prefix", "web", "-b", "web-{kurz}"], ["git", "fetch", "origin", "web"],
-                ["git", "merge-base", "--is-ancestor", "origin/web", "web-{kurz}"], ["git", "push", "origin", "web-{kurz}:web"])
+# für den Agenten kein Arbeitsordner eingetragen ist – zu Recht, der Dienst rechnet nur in eingetragenen Ordnern).
+# Seit 1.118.1: kein Subtree-Split mehr (läuft die ganze Geschichte ab – 15.11. zweimal über 10 bzw. 30 Minuten), sondern ein
+# Commit mit dem Baum <Stand>:web und origin/web als Eltern – Sekunden, immer Fast-Forward, der Inhalt ist derselbe.
+WEB_AUTOR = ["-c", "user.name=AMW", "-c", "user.email=amw@invalid"]
 DIENST_WARTEN_S = 90
-WEB_FRIST_S = 1800      # Web-Abzug: der Subtree-Split braucht unter Last über 10 Minuten (14.11.: L1795 nach 600 s abgebrochen)
+WEB_FRIST_S = 600
+
+
+def web_commit(lauf, version, sha, kurz):
+    """Den web-Zweig auf den Stand bringen: Baum <sha>:web als neuer Commit über origin/web (Fast-Forward), Push.
+    lauf(befehl) → (rc, Ausgabe). Rückgabe (rc, Ausgabe). Unverändert: nichts zu tun."""
+    rc, aus = lauf(["git", "fetch", "origin", "web"])
+    eltern = []
+    if rc == 0:
+        rc, alt = lauf(["git", "rev-parse", "origin/web"])
+        if rc == 0 and alt.strip():
+            eltern = ["-p", alt.strip()]
+    rc, baum = lauf(["git", "rev-parse", f"{sha}:web"])
+    if rc != 0:
+        return rc, baum
+    baum = baum.strip()
+    if eltern:
+        rc, alter_baum = lauf(["git", "rev-parse", "origin/web^{tree}"])
+        if rc == 0 and alter_baum.strip() == baum:
+            return 0, "web unverändert"
+    rc, neu = lauf(["git", *WEB_AUTOR, "commit-tree", baum, *eltern, "-m", f"web {version} ({sha[:8]})"])
+    if rc != 0:
+        return rc, neu
+    neu = neu.strip()
+    lauf(["git", "branch", "-f", f"web-{kurz}", neu])
+    return lauf(["git", "push", "origin", f"{neu}:refs/heads/web"])
 
 
 class Stopp(kern.AmwFehler):
@@ -66,6 +92,10 @@ class Kette:
     def schritt(self, name):
         self.erledigt.append(name)
         self.ausgabe(f"✓ {name}")
+
+    def web_abzug(self, version, sha, kurz):
+        lauf = (lambda b: _laufen(b, self.repo, WEB_FRIST_S)) if self.extern is _laufen else (lambda b: self.extern(b, self.repo))
+        return web_commit(lauf, version, sha, kurz)
 
     @staticmethod
     def _start_version():
@@ -273,17 +303,12 @@ class Kette:
         kriterien = "".join(f" A{x['aufgabe']} hat offene Kriterien: {' | '.join(x['kriterien_offen'][:3])}." for x in ok if x["kriterien_offen"])
         kurz = version.replace(".", "")
         lid = betrieb.lauf_start(self.con, self.pid, self.von, f"Web-Abzug {version} (leicht)", schwer=False, ordner=self.repo)
-        rc, aus = 0, ""
-        for teil in WEB_SCHRITTE:
-            befehl = [x.format(kurz=kurz) for x in teil]
-            rc, aus = _laufen(befehl, self.repo, WEB_FRIST_S) if self.extern is _laufen else self.extern(befehl, self.repo)
-            if rc != 0:
-                break
+        rc, aus = self.web_abzug(version, sha, kurz)
         betrieb.lauf_ende(self.con, self.pid, self.von, lid, rc, (f"rc {rc} · " + (aus[-300:] if rc else "web-Zweig aktualisiert"))[:500])
         if rc != 0:
-            self.stopp("Web-Abzug", f"L{lid}: {aus[-300:]} – Versionszeilen und Aufgaben sind schon eingetragen; nachholen über"
-                                    f" amw lauf ausfuehren --leicht: Subtree-Split von web nach web-{kurz}, dann Fast-Forward-Push"
-                                    f" web-{kurz}:web (nur wenn origin/web darin enthalten ist)")
+            self.stopp("Web-Abzug", f"L{lid}: {aus[-300:]} – Versionszeilen und Aufgaben sind schon eingetragen; nachholen: ein"
+                                    f" Commit mit dem Baum {sha[:8]}:web und origin/web als Eltern (git commit-tree), dann"
+                                    " Fast-Forward-Push nach web")
         self.schritt(f"Web-Abzug L{lid}")
         an = kern.lead(self.con, self.pid)
         if an and an != self.von:

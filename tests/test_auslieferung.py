@@ -51,7 +51,9 @@ class Kette(unittest.TestCase):
 
     def stand(self, version, titel):
         os.makedirs(os.path.join(self.repo, "amw"), exist_ok=True)
+        os.makedirs(os.path.join(self.repo, "web"), exist_ok=True)
         dateien = {"amw/__init__.py": f'__version__ = "{version}"\n', "amw/db.py": f"SCHEMA_VERSION = {db.SCHEMA_VERSION}\n",
+                   **({"web/VERSION": "1\n"} if version == "1.0.0" else {}),           # web/ nur im ersten Stand (sonst „sichtbar“)
                    "CHANGELOG.md": f"# Änderungen\n\n## {version} – 13.11.2026 · {titel}\n- **Neu:** {titel} für alle.\n\n## 0.1.0 – alt\n- alt\n"}
         for pfad, inhalt in dateien.items():
             with open(os.path.join(self.repo, pfad), "w", encoding="utf-8", newline="") as f:
@@ -69,8 +71,6 @@ class Kette(unittest.TestCase):
             return 0, "https://example.invalid/release"
         if "dienst" in befehl:
             return 0, "Dienst neu gestartet"
-        if "web" in befehl or "origin/web" in befehl or any(str(x).startswith("web-") for x in befehl):
-            return 0, ""                                                     # Web-Abzug: im Test-Repo gibt es keinen web-Ordner
         return auslieferung._laufen(befehl, ordner)
 
     def kette(self, version="1.1.0"):
@@ -104,8 +104,9 @@ class Kette(unittest.TestCase):
         self.assertTrue(any(b[0] == "gh" and "v1.1.0" in b for b in self.extern_aufrufe))
         w = self.con.execute("SELECT * FROM lauf WHERE id = ?", (r["web_lauf"],)).fetchone()        # Web-Abzug: rechnet die Kette selbst
         self.assertEqual((w["schwer"], w["status"], w["rc"], w["ordner"]), (0, "fertig", 0, self.repo))
-        self.assertIn(["git", "subtree", "split", "--prefix", "web", "-b", "web-110"], self.extern_aufrufe)
-        self.assertIn(["git", "push", "origin", "web-110:web"], self.extern_aufrufe)
+        self.assertFalse([b for b in self.extern_aufrufe if "subtree" in b])                          # 1.118.1: kein Split mehr
+        self.assertEqual(self.g("rev-parse", "origin/web^{tree}"), self.g("rev-parse", f"{self.sha}:web"))   # web = Stand
+        self.assertEqual(self.g("rev-parse", "web-110"), self.g("rev-parse", "origin/web"))
         rel = self.con.execute("SELECT version, titel FROM release WHERE id = ?", (r["release"],)).fetchone()
         self.assertEqual(tuple(rel), ("1.1.0", "Neues Ding"))                                      # Versionszeile ohne TL
         info = self.con.execute("SELECT n.art, n.kurz FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE e.agent = 'TL'"
@@ -159,7 +160,7 @@ class Kette(unittest.TestCase):
         self.gesamtlauf()
         echt = self.extern
         def extern(befehl, ordner):
-            if befehl[:2] == ["git", "subtree"]:
+            if "commit-tree" in befehl:
                 return 1, "TimeoutExpired: zu lange"
             return echt(befehl, ordner)
         self.extern = extern
@@ -170,6 +171,25 @@ class Kette(unittest.TestCase):
         self.assertIn("Versionszeile R", str(e.exception))                                         # in „erledigt: …“
         self.assertEqual(self.con.execute("SELECT version FROM release WHERE art = 'version'").fetchone()[0], "1.1.0")
         self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()[0], "fertig")
+
+    def test_web_commit_fast_forward_und_unveraendert(self):
+        """1.118.1 (15.11.: der Subtree-Split lief zweimal ins Zeitlimit): ein Commit mit dem Baum <Stand>:web über origin/web –
+        Fast-Forward, gleicher Inhalt; ohne Änderung an web/ passiert nichts."""
+        lauf = lambda b: auslieferung._laufen(["git", "-c", "user.name=t", "-c", "user.email=t@t", *b[1:]], self.repo)
+        alt = self.g("rev-parse", "HEAD")
+        self.assertEqual(auslieferung.web_commit(lauf, "1.0.0", alt, "100")[0], 0)                  # erster Abzug: neuer Zweig
+        erster = self.g("ls-remote", self.ursprung, "web").split()[0]
+        self.assertEqual(auslieferung.web_commit(lauf, "1.0.0", alt, "100"), (0, "web unverändert"))
+        with open(os.path.join(self.repo, "web", "VERSION"), "w", encoding="utf-8") as f:
+            f.write("2\n")
+        self.g("add", "web/VERSION")
+        self.g("-c", "commit.gpgsign=false", "commit", "-q", "-m", "web neu")
+        neu = self.g("rev-parse", "HEAD")
+        self.assertEqual(auslieferung.web_commit(lauf, "1.0.1", neu, "101")[0], 0)
+        zweiter = self.g("ls-remote", self.ursprung, "web").split()[0]
+        self.g("fetch", "-q", "origin", "web")
+        self.assertEqual(self.g("rev-parse", "origin/web^"), erster)                                   # Fast-Forward
+        self.assertEqual(self.g("rev-parse", f"{zweiter}^{{tree}}"), self.g("rev-parse", f"{neu}:web"))
 
     def ohne_aenderung(self, wort, **kw):
         with self.assertRaises(auslieferung.Stopp) as e:

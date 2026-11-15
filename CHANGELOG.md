@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.118.1 – 15.11.2026 · Web-Abzug in Sekunden
+- **Behoben:** Der Web-Abzug der Auslieferung lief zweimal ins Zeitlimit (über 10 bzw. 30 Minuten). Jetzt entsteht der
+  web-Zweig als ein Commit mit dem Inhalt von web/ über dem bisherigen Stand – in Sekunden, immer ohne Umschreiben.
+
 ## 1.118.0 – 15.11.2026 · Grund-Regelwerk 5: „Nur über die Schnittstelle“
 - **Neu:** Grundregel G21 „Nur über die Schnittstelle“ – lesen und schreiben nur mit amw-Befehlen, kein direkter Zugriff auf
   die Datenbank. Eigene Regeln, die dem widersprechen, nennt der Abgleich; der Lead bekommt einmal eine Info.
