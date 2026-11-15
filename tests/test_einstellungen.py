@@ -92,3 +92,44 @@ class Einstellungen(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NichtsGehtVerloren(unittest.TestCase):
+    """A1703 (Marcel 14.11. 13:41): „Gespeichert“, trotzdem stand heimnetz danach leer in der Datei. Speichern liest die Datei,
+    mischt die neuen Werte hinein und schreibt alles zurück – war sie im Moment gesperrt oder halb geschrieben, galt sie als
+    leer, und es blieb nur der neue Wert stehen. Jetzt: kurz erneut lesen, im Zweifel nichts überschreiben."""
+
+    def setUp(self):
+        self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(self.ordner.cleanup)
+        alt = os.environ.get("LOCALAPPDATA")
+        os.environ["LOCALAPPDATA"] = self.ordner.name
+        self.addCleanup(lambda: os.environ.__setitem__("LOCALAPPDATA", alt) if alt else os.environ.pop("LOCALAPPDATA", None))
+        einstellungen.speichern({"heimnetz": "192.168.178.0/24", "port": 8781})
+
+    def test_kurz_gesperrt_kein_verlust(self):
+        from unittest import mock
+        echt, n = open, {"x": 0}
+        def oeffnen(datei, *a, **k):
+            if str(datei) == einstellungen.pfad() and "w" not in (a[0] if a else k.get("mode", "r")) and n["x"] < 3:
+                n["x"] += 1
+                raise PermissionError(13, "Der Prozess kann nicht auf die Datei zugreifen")   # Windows: gerade gesperrt
+            return echt(datei, *a, **k)
+        with mock.patch("builtins.open", side_effect=oeffnen), mock.patch.object(einstellungen, "LESEN_PAUSE_S", 0, create=True):
+            einstellungen.speichern({"sprache": "de"})
+        d = json.load(open(einstellungen.pfad(), encoding="utf-8"))
+        self.assertEqual((d["heimnetz"], d["port"], d["sprache"]), ("192.168.178.0/24", 8781, "de"))
+
+    def test_kaputte_datei_wird_nicht_ueberschrieben(self):
+        from unittest import mock
+        with open(einstellungen.pfad(), "w", encoding="utf-8") as f:
+            f.write('{"heimnetz": "192.168.178.0/24", "port": 87')            # halb geschrieben
+        with mock.patch.object(einstellungen, "LESEN_PAUSE_S", 0, create=True), self.assertRaises(ValueError) as e:
+            einstellungen.speichern({"sprache": "de"})
+        self.assertIn("nichts gespeichert", str(e.exception))
+        self.assertEqual(open(einstellungen.pfad(), encoding="utf-8").read(), '{"heimnetz": "192.168.178.0/24", "port": 87')
+
+    def test_ohne_datei_wie_bisher(self):
+        os.remove(einstellungen.pfad())
+        einstellungen.speichern({"sprache": "de"})
+        self.assertEqual(json.load(open(einstellungen.pfad(), encoding="utf-8")), {"sprache": "de"})

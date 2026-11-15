@@ -474,8 +474,9 @@ def main(argv=None):
     if not (a.einmal or a.ohne_web):
         from . import workbench
         try:
-            workbench.starten(port)
-            log.info("Workbench: http://127.0.0.1:%s/", port)
+            srv = workbench.starten(port)
+            netz = workbench.heimnetz()                   # A1703: die tatsächliche Adresse – mit Heimnetz lauscht sie auf allen
+            log.info("Workbench: http://%s:%s/%s", srv.server_address[0], port, f" (Heimnetz {netz} erlaubt)" if netz else "")
         except OSError as x:                         # Port belegt – Wecker läuft trotzdem
             log.error("Workbench nicht gestartet (Port %s): %s", port, x)
         from . import abgleich, herzschlag            # Fäden als Stränge: der Aufpasser ersetzt einen, der still steht (A1655)

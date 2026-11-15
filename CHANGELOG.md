@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.106.1 – 15.11.2026 · Einstellungen gehen nicht mehr verloren
+- **Behoben:** Nach „Gespeichert“ stand eine Einstellung dieses PCs (z. B. „Aus dem Heimnetz erreichbar“) manchmal trotzdem
+  leer in der Datei. War die Datei im selben Moment gesperrt oder halb geschrieben, galt sie als leer, und das Speichern schrieb
+  nur den neuen Wert – alle anderen waren weg. Jetzt liest das Speichern kurz erneut; bleibt die Datei unlesbar, wird nichts
+  überschrieben und du bekommst eine Meldung.
+- **Behoben:** „Dieser PC“ speichert nur, was du dort geändert hast. Ein älter geladenes Formular (zweiter Tab, Handy im
+  Heimnetz) überschreibt so keine Werte mehr, die inzwischen anders gesetzt wurden.
+- Ist ein Wert ungültig, steht der Fehler rot direkt am Feld. Das Heimnetz-Feld zeigt „z. B. 192.168.178.0/24 – leer = aus“,
+  und das Protokoll des Dienstes nennt beim Start die tatsächliche Adresse der Workbench (mit Heimnetz: alle Adressen).
+
 ## 1.106.0 – 15.11.2026 · Planung automatisch: fertig nach dem Merge auf GitHub
 - Projekte, die über GitHub-Pull-Requests mergen: Beginnt der Titel eines gemergten PRs mit der Aufgabe („A1234: …“,
   „[A1234] …“, mehrere: „A1234, A1235: …“) oder steht im Text „fertig: A1234“ bzw. „closes A1234“, und sind seine Prüfungen

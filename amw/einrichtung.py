@@ -302,7 +302,10 @@ def agenten_ordner_einrichten(ordner, schreiben=True, sperren=True, projekt=None
                 alt = ""
         if alt and "amw-statusline.py" not in alt and not einstellungen.wert("statusline_weiter"):
             if schreiben:
-                einstellungen.speichern({"statusline_weiter": alt})
+                try:
+                    einstellungen.speichern({"statusline_weiter": alt})
+                except ValueError:                        # Datei gerade nicht lesbar (A1703): nichts überschreiben, nächstes Mal
+                    pass
             aenderungen.append(f"bisherige Statusline wird weitergereicht: {alt}")
         d["statusLine"] = soll["statusLine"]
         aenderungen.append("Statusline-Anbindung")

@@ -238,6 +238,38 @@ def _datei():
         return {}
 
 
+LESEN_VERSUCHE, LESEN_PAUSE_S = 20, 0.05
+
+
+def _datei_zum_schreiben():
+    """Wie _datei(), aber nie „leer“ aus Versehen (A1703): Gibt es keine Datei, ist das {}. Ist sie gerade gesperrt (ein
+    anderer Prozess schreibt oder liest unter Windows), wird kurz erneut gelesen. Bleibt sie unlesbar oder kaputt, wirft das
+    – sonst schriebe speichern() nur die neuen Werte und alle anderen wären weg."""
+    import time
+    fehler = None
+    for _ in range(LESEN_VERSUCHE):
+        try:
+            with open(pfad(), encoding="utf-8") as f:
+                roh = f.read()
+        except FileNotFoundError:
+            return {}
+        except OSError as e:                         # gesperrt (Freigabeverletzung) – gleich noch einmal
+            fehler = e
+            time.sleep(LESEN_PAUSE_S)
+            continue
+        try:
+            d = json.loads(roh) if roh.strip() else None
+        except ValueError as e:                      # halb geschrieben? kurz warten, dann gilt es als kaputt
+            fehler = e
+            time.sleep(LESEN_PAUSE_S)
+            continue
+        if isinstance(d, dict):
+            return d
+        fehler = ValueError("kein Objekt")
+        time.sleep(LESEN_PAUSE_S)
+    raise ValueError(f"Einstellungsdatei {pfad()} nicht lesbar ({fehler}) – nichts gespeichert, damit keine Einstellung verloren geht")
+
+
 def laden():
     """Alle Werte: aus der Datei, sonst Vorgabe (ungültige Werte in der Datei fallen auf die Vorgabe zurück)."""
     d = _datei()
@@ -256,7 +288,7 @@ def wert(schluessel):
 
 def speichern(neu):
     """Prüft und speichert nur bekannte Schlüssel; gibt die gespeicherten Werte zurück. Wirft ValueError mit Feldnamen."""
-    d = _datei()
+    d = _datei_zum_schreiben()
     for k, v in neu.items():
         if k not in FELDER:
             raise ValueError(f"unbekannte Einstellung: {k}")
@@ -265,8 +297,16 @@ def speichern(neu):
         except (ValueError, TypeError) as e:
             raise ValueError(f"{k}: {e}") from None
     os.makedirs(os.path.dirname(pfad()), exist_ok=True)
-    tmp = pfad() + ".neu"
+    tmp = f"{pfad()}.{os.getpid()}.neu"             # je Prozess eine eigene Zwischendatei – zwei Schreiber stören sich nicht
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(d, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, pfad())
+    import time
+    for versuch in range(LESEN_VERSUCHE):          # liest gerade jemand (Windows), geht das Ersetzen kurz nicht – erneut
+        try:
+            os.replace(tmp, pfad())
+            break
+        except PermissionError:
+            if versuch == LESEN_VERSUCHE - 1:
+                raise
+            time.sleep(LESEN_PAUSE_S)
     return {k: d[k] for k in neu}
