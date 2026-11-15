@@ -50,6 +50,10 @@
  ],
  "fehler": [
   [
+   "„Der Stand ändert Sichtbares … – Prüfbitte nur mit Bild“",
+   "Der Stand ändert die Seite oder die Hilfe, an der Aufgabe hängt aber kein Bild. Bild vom PC und vom Handy (390 px) ablegen: `amw dokument ablegen bild.png --art bild --aufgabe <nr> --titel …`; die Prüfbitte nennt es dann von selbst. Ausnahme nur mit `--ohne-bild <Grund>`."
+  ],
+  [
    "„Version 1.2.0 ist schon vergeben“ bei der Prüfbitte",
    "Eine andere Aufgabe trägt diese Nummer schon (offene oder grüne, noch nicht ausgelieferte Prüfung), sie liegt nicht über main oder es gibt den Tag schon. Die Meldung nennt die nächste freie Nummer; die im Stand ändern und neu einreichen."
   ],
