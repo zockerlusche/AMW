@@ -231,6 +231,9 @@ try {
         }
         antwort(200, ['projekte' => $aus, 'rechner' => null]);
     }
+    if ($pfad === '/api/runde' && $ich !== null && $ich['rolle'] !== 'system_admin') {   // A1680: Einträge aller Projekte –
+        antwort(403, ['fehler' => 'Die Lead-Runde sehen online nur System-Admins.']);      // online nur für den, der alle sieht
+    }
     if ($pfad === '/api/suche') {                         // im Suchindex vom PC (Nachrichten: die letzten 2000, nur Kurztext)
         $such = mb_strtolower(trim((string)($q['q'] ?? '')));
         if (mb_strlen($such) < 2) antwort(200, []);
