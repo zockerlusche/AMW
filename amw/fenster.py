@@ -61,8 +61,10 @@ def sichtbare_fenster():
         return set()
 
 
-def pruefen(con, fenster=None, liste=None, schirm_frei=None):
-    """Eine Runde im Dienst. Rückgabe: Liste (Lauf-Nr, Programmname) der neu erkannten Läufe."""
+def pruefen(con, fenster=None, liste=None, schirm_frei=None, konsole=None):
+    """Eine Runde im Dienst. Rückgabe: Liste (Lauf-Nr, Programmname) der neu erkannten Läufe. Fenster eines Prozesses aus dem
+    Baum des Laufs – oder (A1763) ein sichtbares Konsolenfenster eines dieser Prozesse. konsole: Ersatz für den Konsolen-Helfer
+    (Tests), False = Konsolen nicht prüfen."""
     from . import schirm
     laufende = con.execute("SELECT * FROM lauf l WHERE l.status = 'laeuft' AND l.schirm = 0 AND " + betrieb.HIER,
                            (betrieb.rechner(),)).fetchall()
@@ -71,15 +73,14 @@ def pruefen(con, fenster=None, liste=None, schirm_frei=None):
     if not kandidaten:
         return []
     fenster = sichtbare_fenster() if fenster is None else fenster
-    if not fenster:
-        return []
     liste = belegung.prozesse() if liste is None else liste
     namen = {p["pid"]: p["name"] for p in liste}
     if schirm_frei is None:
         schirm_frei = bool(schirm.zustand(con)["frei"])
     neu = []
     for l, wurzel in kandidaten:
-        mit = sorted(belegung._nachkommen(liste, [wurzel]) & fenster)
+        baum = belegung._nachkommen(liste, [wurzel])
+        mit = sorted(baum & fenster) or sorted(konsolen_fenster(baum, konsole) if konsole is not False else ())   # A1763
         if not mit:
             continue
         programm = namen.get(mit[0]) or "ein Programm"
@@ -133,3 +134,51 @@ def sperrgrund(con, pid, befehl, beschreibung, schirm):
             return (f"Dieser Lauf öffnete zuletzt ein Fenster ({nr}) – anmelden mit --schirm (er wartet dann auf einen freien"
                     " Bildschirm) oder ohne Fenster starten, z. B. --headless")
     return None
+
+
+# --- A1763: Konsolenfenster (LayerIT R19: Godot_*_console.exe öffnet je Aufruf ein eigenes Konsolenfenster) ----------------
+# Das Fenster einer Konsole gehört nicht dem Programm selbst, sondern conhost/OpenConsole bzw. dem Windows Terminal – darum
+# fragt ein kleiner Hilfsprozess OHNE eigene Konsole je Prozess des Laufs: AttachConsole(pid) → GetConsoleWindow(); sichtbar
+# ist es, wenn das Fenster selbst oder sein oberster Besitzer (Windows Terminal) sichtbar ist. Im Dienst selbst nie
+# AttachConsole – das würde seine Ein-/Ausgabe umhängen.
+_KONSOLE = r"""
+import ctypes, sys
+k, u = ctypes.windll.kernel32, ctypes.windll.user32
+k.GetConsoleWindow.restype = ctypes.c_void_p
+u.GetAncestor.restype = ctypes.c_void_p
+u.GetAncestor.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+u.IsWindowVisible.argtypes = [ctypes.c_void_p]
+aus = []
+for p in sys.argv[1:]:
+    k.FreeConsole()
+    if not k.AttachConsole(int(p)):
+        continue
+    h = k.GetConsoleWindow()
+    if h and (u.IsWindowVisible(h) or u.IsWindowVisible(u.GetAncestor(h, 3))):   # 3 = GA_ROOTOWNER (Windows Terminal)
+        aus.append(p)
+    k.FreeConsole()
+print(" ".join(aus))
+"""
+
+
+def konsolen_fenster(pids, laufen=None):
+    """Prozess-Nummern (aus pids), deren Konsole ein sichtbares Fenster hat. Leere Menge außerhalb von Windows/bei Fehlern."""
+    import subprocess
+    import sys
+    pids = sorted({int(p) for p in pids if p})
+    if os.name != "nt" or not pids:
+        return set()
+    if laufen is None:
+        exe = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+        exe = exe if os.path.exists(exe) else sys.executable
+        def laufen(befehl):
+            r = subprocess.run(befehl, capture_output=True, text=True, timeout=20, stdin=subprocess.DEVNULL,
+                               creationflags=0x00000008)          # DETACHED_PROCESS: der Helfer hat keine eigene Konsole
+            return r.stdout
+        befehl = [exe, "-c", _KONSOLE, *map(str, pids[:60])]
+    else:
+        befehl = ["helfer", *map(str, pids[:60])]
+    try:
+        return {int(x) for x in (laufen(befehl) or "").split() if x.isdigit()}
+    except (OSError, ValueError, Exception):              # noqa: BLE001 – nie den Dienst stören
+        return set()

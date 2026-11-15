@@ -42,7 +42,7 @@ class Grund(unittest.TestCase):
 class FensterOhneSchirm(Grund):
     def test_erkannt_gemeldet_als_fensterlauf_und_danach_nur_mit_schirm(self):
         lid = self.lauf()
-        neu = fenster.pruefen(self.con, fenster={101, 200}, liste=PROZESSE, schirm_frei=False)
+        neu = fenster.pruefen(self.con, fenster={101, 200}, liste=PROZESSE, schirm_frei=False, konsole=False)
         self.assertEqual(neu, [(lid, "Godot_v4")])                                 # Kind des Lauf-Prozesses hat ein Fenster
         self.assertEqual(self.con.execute("SELECT schirm FROM lauf WHERE id = ?", (lid,)).fetchone()[0], 1)
         self.assertIn(("korrektur", f"L{lid} öffnet ein Fenster (Godot_v4) – angemeldet ohne --schirm"), self.an("CC6"))
@@ -50,7 +50,7 @@ class FensterOhneSchirm(Grund):
         text = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE ? AND art = 'korrektur'", (f"L{lid} öffnet%",)).fetchone()[0]
         self.assertIn("bitte den Lauf sofort beenden", text)                          # Bildschirm zu: Bitte um Ende
         self.assertNotIn("Godot", self.con.execute("SELECT group_concat(text) FROM plan_ereignis").fetchone()[0] or "x")   # kein Titel
-        self.assertEqual(fenster.pruefen(self.con, fenster={101}, liste=PROZESSE, schirm_frei=False), [])   # einmal reicht
+        self.assertEqual(fenster.pruefen(self.con, fenster={101}, liste=PROZESSE, schirm_frei=False, konsole=False), [])   # einmal reicht
         with self.assertRaises(kern.AmwFehler) as e:                                 # derselbe Lauf (andere Nummer): nur mit --schirm
             betrieb.lauf_start(self.con, self.pid, "CC6", "Rundgang Labor", warten=True, speicher_frei=32.0, schwer=False,
                                befehl=["godot", "--path", "spiel", "res://rundgang_18.tscn"])
@@ -62,12 +62,43 @@ class FensterOhneSchirm(Grund):
 
     def test_fremdes_fenster_zaehlt_nicht(self):
         self.lauf()
-        self.assertEqual(fenster.pruefen(self.con, fenster={200}, liste=PROZESSE, schirm_frei=True), [])
+        self.assertEqual(fenster.pruefen(self.con, fenster={200}, liste=PROZESSE, schirm_frei=True, konsole=False), [])
 
     def test_bei_freiem_bildschirm_nur_info(self):
         lid = self.lauf()
-        fenster.pruefen(self.con, fenster={101}, liste=PROZESSE, schirm_frei=True)
+        fenster.pruefen(self.con, fenster={101}, liste=PROZESSE, schirm_frei=True, konsole=False)
         self.assertIn(("info", f"L{lid} öffnet ein Fenster (Godot_v4) – angemeldet ohne --schirm"), self.an("CC6"))
+
+
+class Konsolenfenster(Grund):
+    """A1763 (LayerIT R19): Godot_*_console.exe öffnete je Aufruf ein leeres Konsolenfenster – das Fenster gehört conhost bzw. dem
+    Windows Terminal, nicht dem Lauf. Ein Helfer ohne eigene Konsole fragt je Prozess des Laufs nach seinem Konsolenfenster."""
+
+    def test_konsole_eines_kindes_zaehlt(self):
+        lid = self.lauf()
+        befehle = []
+        def helfer(befehl):
+            befehle.append(befehl)
+            return "101\n"                                                     # Godot_v4 (Kind des Laufs) hat eine sichtbare Konsole
+        neu = fenster.pruefen(self.con, fenster={200}, liste=PROZESSE, schirm_frei=False, konsole=helfer)
+        self.assertEqual(neu, [(lid, "Godot_v4")])
+        self.assertEqual(sorted(befehle[0][1:]), ["100", "101"])                 # nur Prozesse aus dem Baum des Laufs
+        self.assertEqual(self.con.execute("SELECT schirm FROM lauf WHERE id = ?", (lid,)).fetchone()[0], 1)
+
+    def test_helfer_echt_unsichtbare_konsole_zaehlt_nicht(self):
+        import subprocess, sys
+        if os.name != "nt":
+            self.skipTest("nur Windows")
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = 0                                                     # SW_HIDE: eigene Konsole, aber unsichtbar
+        p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(20)"], creationflags=subprocess.CREATE_NEW_CONSOLE,
+                             startupinfo=si)
+        self.addCleanup(p.wait)
+        self.addCleanup(p.kill)
+        import time
+        time.sleep(1.0)
+        self.assertEqual(fenster.konsolen_fenster([p.pid]), set())               # echter Helfer: hat Konsole, aber nicht sichtbar
 
 
 class VonAussenGeschlossen(Grund):

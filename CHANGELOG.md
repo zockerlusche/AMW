@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.111.2 – 15.11.2026 · Auch Konsolenfenster aus Läufen ohne Bildschirm werden erkannt
+- **Behoben:** Öffnete ein Lauf ohne Bildschirm-Anmeldung ein neues Konsolenfenster (z. B. ein Konsolenprogramm, dem Windows
+  je Aufruf eine eigene Konsole gibt), merkte die AMW das nicht – das Fenster gehört der Konsole bzw. dem Windows Terminal,
+  nicht dem Lauf. Jetzt fragt sie für jeden Prozess des Laufs nach seinem Konsolenfenster und behandelt es wie jedes andere
+  Fenster (melden, als Lauf mit Fenster führen, danach nur mit Bildschirm-Anmeldung). Hilfe „Schwere Läufe“: solche
+  Programme unsichtbar starten.
+
 ## 1.111.1 – 15.11.2026 · Lead-Runde auch auf der Online-Seite
 - Unter Nachrichten › Lead-Runde liest du jetzt auch auf der Online-Seite mit (z. B. am iPad) – nur lesen. Weil dort Einträge
   aller Projekte stehen, zeigt die Online-Seite sie nur System-Admins; die Seite prüft das selbst. Hilfe „Lead-Runde“ ergänzt.
