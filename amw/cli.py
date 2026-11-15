@@ -46,7 +46,7 @@ def _eigene_kennung(con, a, pid):
     (_zwilling)."""
     sitzung = (os.environ.get("AMW_AGENT") or "").strip()
     von = getattr(a, "von", None)
-    if not von or KANAL.get() == "bruecke":
+    if not von or KANAL.get() in ("bruecke", "mcp"):     # Identität kommt vom Dienst bzw. vom Start des MCP-Servers (A1781)
         return
     if not sitzung:
         _zwilling(con, a, pid, von)
@@ -202,7 +202,7 @@ def cmd_agent(a, con):
                                      ("zustaendig", a.zustaendig if a.zustaendig is not None else a.grenzen), ("fasst_nicht_an", a.nicht)) if v is not None}
             if a.wort and wer:                               # A1662: auf ein Wort nur Profilfelder – Rolle & Co. nur am PC
                 raise kern.AmwFehler(f"mit --wort nur Profilfelder (Ordner, Zusatzordner, Denkaufwand, Modell, Startsatz, Rechte …), nicht {', '.join(wer)}")
-            if KANAL.get() == "bruecke" and (aenderung or wer) and not a.wort:
+            if KANAL.get() in ("bruecke", "mcp") and (aenderung or wer) and not a.wort:
                 raise kern.AmwFehler("über den Dateiaustausch nur mit --wort W<nr> (ein frisches Wort des Entwicklers)")
             p = steuerung.profil(con, pid, a.kennung) if not aenderung else steuerung.profil_setzen(con, pid, _von(a), a.kennung, wort=a.wort, ordner=a.ordner, zusatzordner=a.zusatz,
                                         denkstufe=a.denkstufe, modell=a.modell, startsatz=a.startsatz, rechte=a.rechte,
@@ -1510,7 +1510,7 @@ def cmd_ki(a, con):
             raise kern.AmwFehler("ki vermerk D<nr> --art ausgewaehlt|verworfen|nachbearbeitet [--text …] (nachbearbeitet: --text, was"
                                  " von Hand geändert wurde)")
         art = ki.vermerk_art(a.art)
-        vid = ki.vermerken(con, pid, von, a.name, art, a.text, KANAL.get())
+        vid = ki.vermerken(con, pid, von, a.name, art, a.text, "bruecke" if KANAL.get() == "mcp" else KANAL.get())
         print(f"Vermerk {vid}: D{a.name.strip().lstrip('Dd')} {ki.VERMERK_TEXT[art]}")
     elif a.aktion == "zeige":
         if not a.name:

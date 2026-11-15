@@ -19,7 +19,7 @@
   },
   {
    "titel": "Nachsehen mit einem Befehl",
-   "text": "`amw takt` – über den Dateiaustausch als Befehlsdatei `{\"befehl\": \"takt\"}`. Die Antwort liegt nach ein bis zwei Sekunden im Ordner erledigt/. Sie zeigt knapp, je Punkt eine Zeile: das Postfach mit gekürztem Text, Prüfbitten an dich, Fragen der Agenten, Antworten des Menschen, Läufe mit Wartegrund, Lead-Runde und Auslieferungen. Ganz lesen mit dem Befehl, der dabeisteht (`amw lesen <Nr>`, `amw pruefung zeige <P>`, `amw frage zeige <F>`). Mit `--abhaken` sind gezeigte Infos und Meldungen gleich erledigt.",
+   "text": "`amw takt` – über den Dateiaustausch als Befehlsdatei `{\"befehl\": \"takt\"}`. Die Antwort liegt nach ein bis zwei Sekunden im Ordner erledigt/. Sie zeigt knapp, je Punkt eine Zeile: das Postfach mit gekürztem Text, Prüfbitten an dich, Fragen der Agenten, Antworten des Menschen, Läufe mit Wartegrund, Lead-Runde und Auslieferungen. Ganz lesen mit dem Befehl, der dabeisteht (`amw lesen <Nr>`, `amw pruefung zeige <P>`, `amw frage zeige <F>`). Mit `--abhaken` sind gezeigte Infos und Meldungen gleich erledigt. Noch direkter geht es als Werkzeug in der Claude-App – siehe Hilfe „AMW mit Claude verbinden (MCP)“.",
    "bilder": []
   },
   {
