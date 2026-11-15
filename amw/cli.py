@@ -487,6 +487,8 @@ def _bogen_pruefen(con, pid, a):
     ihre Aufgaben stehen in der Planung unter „Ohne Meilenstein“, bis der Lead sie zuordnet."""
     if a.bogen or a.ohne_bogen or not getattr(a, "titel", None):
         return
+    if kern.projekt_wahl(con, pid, "neue_aufgaben") == "eingang":
+        return                                       # A1740: neue Aufgaben landen im Eingang, der Lead zieht sie bewusst hinein
     von = _von(a)
     z = con.execute("SELECT rolle FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, von)).fetchone()
     if von != kern.ENTWICKLER and not (z and z["rolle"] == "lead"):
@@ -526,8 +528,15 @@ def cmd_aufgabe(a, con):
                 planung.schritt_setzen(con, pid, _von(a), aid=aid, groesse=a.groesse, art=a.art)
         if a.pool:
             wissen.einstufen(con, pid, _von(a), aid, "pool")
+        eingang = not a.bogen and not a.pool and kern.projekt_wahl(con, pid, "neue_aufgaben") == "eingang"
+        if eingang:                                      # A1740: ohne --bogen in den Eingang (--bogen = für die Abnahme nötig)
+            with db.schreiben(con):
+                con.execute("UPDATE aufgabe SET einstufung = 'pool' WHERE id = ?", (aid,))
         z = con.execute("SELECT agent, einstufung FROM aufgabe WHERE id = ?", (aid,)).fetchone()
-        if z["einstufung"] == "pool" and z["agent"] and not a.pool:   # der Agent hat gerade ein Stück in Arbeit
+        if eingang:
+            print(f"A{aid} angelegt – steht im Eingang (Projekt-Einstellung „Neue Aufgaben landen im Eingang“). Der Lead zieht sie"
+                  f" in einen Meilenstein: amw aufgabe aendern {aid} --bogen <nr>; direkt in den Meilenstein: beim Anlegen --bogen <nr>")
+        elif z["einstufung"] == "pool" and z["agent"] and not a.pool:   # der Agent hat gerade ein Stück in Arbeit
             from . import arbeitsliste
             x = arbeitsliste.laufend(con, pid, z["agent"])
             print(f"A{aid} angelegt – steht im Eingang, weil {z['agent']} gerade an A{x['id'] if x else '?'} arbeitet."

@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.105.0 – 15.11.2026 · Planung: neue Aufgaben erst in den Eingang
+- Neue Projekt-Einstellung „Neue Aufgaben landen“: im Meilenstein (wie bisher) oder im Eingang. Im Eingang landen neue
+  Aufgaben ohne Meilenstein dort, wo auch der Leitstand „im Eingang“ zählt; die Planung zeigt sie oben unter „Eingang (n)“.
+  Der Lead zieht sie bewusst in einen Meilenstein. Wer beim Anlegen einen Meilenstein nennt, landet direkt darin.
+- In diesem Modus fragt `amw aufgabe neu` nicht mehr nach dem Meilenstein; neue Frage in der Hilfe „Planung“.
+
 ## 1.104.0 – 15.11.2026 · Planung automatisch: Auslieferung schließt die Aufgaben
 - Nach `amw release ausliefern` steht jede Aufgabe von selbst auf fertig, deren grüner Stand mit Merge-OK in der Auslieferung
   steckt; Beleg ist der geprüfte Stand. Offene Kriterien halten das nicht auf – sie stehen in der Zusammenfassung, und der

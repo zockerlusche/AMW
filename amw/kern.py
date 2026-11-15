@@ -189,6 +189,9 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # Planung automatisch (A1741 …, Marcel W2153): die AMW passt den Plan an, was passiert ist (Lauf zu einer Aufgabe
                 # → läuft). Vorgabe an; aus = alles nur von Hand.
                 "plan_automatik": ("an", "aus"),
+                # Neue Aufgaben (A1740): meilenstein = wie bisher (der Lead nennt --bogen oder bewusst --ohne-bogen); eingang =
+                # ohne --bogen landen sie im Eingang (Einstufung pool), der Lead zieht sie bewusst in einen Meilenstein.
+                "neue_aufgaben": ("meilenstein", "eingang"),
                 # farbe: Streifen über dem Kopf und Marke in der Projekt-Auswahl (Farbtöne setzt die Oberfläche)
                 "farbe": ("bernstein", "gruen", "blau", "violett", "tuerkis", "rot", "grau"),
                 # Versionen (Grund-Regelwerk G-2): pflicht = Plan-Check meldet Fehler ohne Version, Meilenstein schließt nur mit

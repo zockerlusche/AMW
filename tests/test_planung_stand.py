@@ -88,6 +88,31 @@ class Zuwachs(Grund):
         self.assertIn("seit Start 2026-11-10: +3 neu, 1 erledigt, 4 offen", aus)
 
 
+class Eingang(Grund):
+    """A1740 (Marcel W2153, TL #26381): Projekt-Einstellung „Neue Aufgaben landen im Eingang“ – ohne --bogen in den Eingang
+    (Einstufung pool, derselbe Eingang wie im Leitstand), --bogen = für die Abnahme nötig, direkt in den Meilenstein."""
+
+    def test_eingang_statt_bogen_pflicht(self):
+        bid = planung.bogen_neu(self.con, self.pid, "TL", "Karten-Look", ziel="z", abnahme="a")
+        self.assertEqual(kern.projekt_wahl(self.con, self.pid, "neue_aufgaben"), "meilenstein")    # Vorgabe: wie bisher
+        kern.projekt_einstellen(self.con, self.pid, "TL", neue_aufgaben="eingang")
+        rc, aus = self.cli("aufgabe", "neu", "--titel", "Idee", "--agent", "CC1", "--von", "TL", "--projekt", "Eins")
+        self.assertEqual(rc, 0, aus)                                                # keine --bogen-Pflicht
+        self.assertIn("steht im Eingang", aus)
+        idee = self.con.execute("SELECT * FROM aufgabe WHERE titel = 'Idee'").fetchone()
+        self.assertEqual((idee["einstufung"], idee["bogen_id"]), ("pool", None))
+        from amw import arbeitsliste
+        self.assertIn(idee["id"], [x["id"] for x in arbeitsliste.pool(self.con, self.pid)])        # derselbe Eingang
+        rc, aus = self.cli("aufgabe", "neu", "--titel", "Für die Abnahme", "--agent", "CC1", "--bogen", str(bid), "--von", "TL",
+                           "--projekt", "Eins")
+        self.assertEqual(rc, 0, aus)
+        abn = self.con.execute("SELECT * FROM aufgabe WHERE titel = 'Für die Abnahme'").fetchone()
+        self.assertEqual((abn["einstufung"], abn["bogen_id"]), ("aktiv", bid))
+        d = workbench.daten_planung(self.con, self.pid)
+        self.assertEqual(d["neue_aufgaben"], "eingang")
+        self.assertEqual([(x["id"], x["einstufung"]) for x in d["ohne_bogen"]], [(idee["id"], "pool")])
+
+
 class NeueAufgabe(Grund):
     def test_fragt_nach_dem_meilenstein(self):
         rc, aus = self.cli("aufgabe", "neu", "--titel", "Vorher", "--von", "TL", "--projekt", "Eins")

@@ -393,7 +393,7 @@ def daten_planung(con, pid):
     ohne_bogen = zeilen(con.execute("SELECT id, titel, agent, status, einstufung FROM aufgabe WHERE projekt_id = ? AND bogen_id IS NULL"
                                     " AND status NOT IN ('fertig', 'verworfen') ORDER BY status = 'laeuft' DESC, einstufung = 'pool', rang, id",
                                     (pid,)))
-    return {"laeuft": laeuft, "ohne_bogen": ohne_bogen, "rechner_heute": betrieb.tagesverlauf(con, pid), "token": tokenprognose.als_daten(token), "termine": termin_liste, "ki_fenster": ki_fenster, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
+    return {"laeuft": laeuft, "ohne_bogen": ohne_bogen, "neue_aufgaben": kern.projekt_wahl(con, pid, "neue_aufgaben"), "rechner_heute": betrieb.tagesverlauf(con, pid), "token": tokenprognose.als_daten(token), "termine": termin_liste, "ki_fenster": ki_fenster, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
             "pruefung": planung.pruefen(con, pid, prog, mit_akzeptierten=True), "status": planung.status(con, pid, prog),
             "check_texte": {k: {"wer": v[1], "ziel": v[2], **v[3]} for k, v in planung.CHECKS.items()}, "lead": kern.lead(con, pid),
             "wartet": planung.freigaben_offen(con, pid), "heute": datetime.date.today().isoformat(),   # lokales Datum für die Heute-Linie
@@ -637,6 +637,7 @@ def daten_einstellungen(con, pid, speicher=None):
                         "abnahme_kette": kern.projekt_wahl(con, pid, "abnahme_kette"), "merge_dienst": pe.get("merge_dienst", ""),
                         "pruefstufen": kern.projekt_wahl(con, pid, "pruefstufen"), "release_takt": kern.projekt_wahl(con, pid, "release_takt"),
                         "release_zeit": pe.get("release_zeit", ""), "plan_automatik": kern.projekt_wahl(con, pid, "plan_automatik"),
+                        "neue_aufgaben": kern.projekt_wahl(con, pid, "neue_aufgaben"),
                         "versionen": kern.projekt_wahl(con, pid, "versionen"), "version_frist_tage": pe.get("version_frist_tage", kern.VERSION_FRIST_TAGE),
                         "ende_frist_min": pe.get("ende_frist_min", 5),
                         "schwere_befehle": pe.get("schwere_befehle") or [],

@@ -29,3 +29,6 @@ Weil seit dem Start neue Aufgaben dazugekommen sind. Unter jedem Meilenstein ste
 
 ### Warum muss ich beim Anlegen einen Meilenstein angeben?
 Damit nichts verschwindet: Eine Aufgabe ohne Meilenstein taucht in der Übersicht nicht auf. Andere Agenten als der Lead dürfen keinen Meilenstein setzen. Ihre Aufgaben stehen unter „Ohne Meilenstein“, bis der Lead sie zuordnet.
+
+### Kann ich neue Aufgaben erst sammeln und dann einplanen?
+Ja: Einstellungen › Projekt › „Neue Aufgaben landen“ auf „im Eingang“. Dann landen neue Aufgaben ohne Meilenstein im Eingang (derselbe wie „im Eingang“ im Leitstand); die Planung zeigt sie oben unter „Eingang (n)“. Der Lead zieht sie bewusst in einen Meilenstein: `amw aufgabe aendern <nr> --bogen <nr>`. Wer beim Anlegen `--bogen` nennt – etwa weil die Aufgabe für die Abnahme nötig ist –, landet direkt im Meilenstein.
