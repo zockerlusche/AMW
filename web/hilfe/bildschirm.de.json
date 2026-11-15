@@ -25,6 +25,11 @@
    "titel": "Zurück am PC",
    "text": "Die Freigabe schließt von selbst – oder du beendest sie selbst: Startseite › Bildschirm für Agenten › „Freigabe beenden“.",
    "bilder": []
+  },
+  {
+   "titel": "Nur kurz da (optional)",
+   "text": "Rechtsklick auf das AMW-Symbol im Infobereich der Taskleiste › „Ich bin kurz da“ › 15, 30 oder 60 Minuten: Der Bildschirm bleibt frei, deine Eingaben schließen ihn nicht. Laufende Läufe laufen weiter; neue Läufe mit Fenster starten erst, wenn der PC 2 Minuten ruht – so tippst du nie in ein Testfenster. „Bin wieder weg“ beendet es vorher.",
+   "bilder": []
   }
  ],
  "werte": [
@@ -60,6 +65,7 @@
   ]
  ],
  "danach": [
+  "Das Symbol im Infobereich: Punkt bernstein = frei für Agenten, blau = frei, aber du bist kurz da, grau = belegt; beim Drüberfahren steht der Zustand als Text. Linksklick öffnet die Workbench. Starten: `pythonw F:/amw/amw-tray.pyw`. Damit es nach jeder Anmeldung da ist, legst du selbst eine Verknüpfung darauf in den Autostart-Ordner (Windows-Taste + R, `shell:startup`) – die AMW ändert nichts an Windows-Einstellungen.",
   "Die Auslöser schaltest du einzeln in Einstellungen › Dieser PC › „Bildschirm-Freigabe von selbst schließen“; neue Installationen haben alle drei an. Ist ein Auslöser aus, **beobachtet die AMW ihn gar nicht** – sie misst nichts und schreibt nichts darüber auf.",
   "Läuft ein Lauf mit Fenster nach dem Schließen weiter, erfährt es der Lead nach 5 Minuten.",
   "Online freigeben darf nur ein System-Admin, mit Rückfrage; die Uhrzeit, bis wann, ist freiwillig. Ohne Uhrzeit bleibt der Bildschirm frei, bis jemand ihn belegt oder ein eingeschalteter Auslöser greift. Im Verlauf steht, wer es war. Schließen darf online jeder."

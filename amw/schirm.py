@@ -103,6 +103,46 @@ def programme():
     return laufend
 
 
+# --- A1746: „Ich bin kurz da“ – der Bildschirm bleibt frei, Eingaben schließen ihn bis dahin nicht ---------------------------
+# Neue Läufe mit Fenster starten trotzdem erst, wenn der PC RUHE_S ruht (sperrgrund) – niemand soll in ein Testfenster tippen;
+# laufende laufen weiter. Der Zustand gehört zu diesem PC: eine kleine Datei neben den anderen Merkern (kein Schema).
+KURZ_DA_MINUTEN = (15, 30, 60)
+
+
+def _kurz_da_datei():
+    import os
+    return os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), "amw", "kurz_da.json")
+
+
+def kurz_da_bis(jetzt=None):
+    """Bis wann (Unix-Sekunden) „kurz da“ gilt – None, wenn nicht (oder abgelaufen)."""
+    import json
+    try:
+        with open(_kurz_da_datei(), encoding="utf-8") as f:
+            bis = float(json.load(f).get("bis") or 0)
+    except (OSError, ValueError, AttributeError):
+        return None
+    return bis if bis > (jetzt or time.time()) else None
+
+
+def kurz_da(con, minuten, jetzt=None):
+    """Der Mensch ist kurz da (minuten > 0) oder wieder weg (0). Nur bei freiem Bildschirm. Rückgabe: bis (Sekunden) oder None."""
+    import json
+    import os
+    jetzt = jetzt or time.time()
+    if minuten and not zustand(con)["frei"]:
+        raise kern.AmwFehler("„Kurz da“ geht nur, solange der Bildschirm für Agenten frei ist")
+    bis = jetzt + int(minuten) * 60 if minuten else 0
+    try:
+        os.makedirs(os.path.dirname(_kurz_da_datei()), exist_ok=True)
+        with open(_kurz_da_datei(), "w", encoding="utf-8") as f:
+            json.dump({"bis": bis}, f)
+    except OSError as e:
+        raise kern.AmwFehler(f"„Kurz da“ ließ sich nicht merken: {e}") from None
+    _eingabe["erste"] = None
+    return bis or None
+
+
 VORDERGRUND = re.compile(r", Vordergrund: [^)]*")   # F5336 B: früher vermerkt – wird beim Start aus dem Verlauf entfernt
 
 
@@ -224,6 +264,11 @@ def setzen(con, pid, von, frei, grund=None, bis=None, quelle="cli"):
                      grund=grund or f"zu von {von}", von=von, quelle=quelle)
         if not frei:
             _zu_melden(con, grund or f"zu von {von}")
+    if not frei and kurz_da_bis():                       # A1746: zu – dann ist auch „kurz da“ vorbei
+        try:
+            kurz_da(con, 0)
+        except kern.AmwFehler:
+            pass
     return zustand(con)
 
 
@@ -287,7 +332,9 @@ def pruefen(con, leerlauf=None, tv=None, jetzt=None):
             grund = f"Freigabe bis {lokal(z['bis_utc'])} ist abgelaufen"
         if not grund and tv and tv > seit:          # nur eine Sitzung, die nach dem Freigeben beginnt; tippt er in
             grund = f"Fernsitzung seit {lokal(_utc(tv))}"          # einer älteren, zählt das als Eingabe am PC
-        if not grund and mit_eingabe:
+        if not grund and mit_eingabe and kurz_da_bis(jetzt):  # A1746: der Mensch ist kurz da – Eingaben schließen nicht
+            _eingabe["erste"] = None
+        elif not grund and mit_eingabe:
             leerlauf = leerlauf_s() if leerlauf is None else leerlauf
             if leerlauf is not None and jetzt - leerlauf > seit + RUHE_S and not _eigene_eingabe(con, jetzt - leerlauf):
                 zeit, erste = jetzt - leerlauf, _eingabe["erste"]

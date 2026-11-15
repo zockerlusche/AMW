@@ -11,6 +11,7 @@ Manche Läufe brauchen den Bildschirm: Sie öffnen ein Fenster, klicken und tipp
 2. **Verlängern oder kürzen (optional)** Ist der Bildschirm frei, ändert „Bis ändern“ in der Kachel nur die Uhrzeit: neue Uhrzeit eintragen und „Übernehmen“, oder „+1 Stunde“, „bis 22:00“, „ohne Ende“. Die Freigabe läuft weiter, im Verlauf steht die Änderung. Über die Befehlszeile: `amw schirm frei --bis 15:00` (ohne `--bis`: ohne Ende).
 3. **Agenten arbeiten** Läufe mit Fenster starten nacheinander; in der Zeit am besten nichts am PC tun.
 4. **Zurück am PC** Die Freigabe schließt von selbst – oder du beendest sie selbst: Startseite › Bildschirm für Agenten › „Freigabe beenden“.
+5. **Nur kurz da (optional)** Rechtsklick auf das AMW-Symbol im Infobereich der Taskleiste › „Ich bin kurz da“ › 15, 30 oder 60 Minuten: Der Bildschirm bleibt frei, deine Eingaben schließen ihn nicht. Laufende Läufe laufen weiter; neue Läufe mit Fenster starten erst, wenn der PC 2 Minuten ruht – so tippst du nie in ein Testfenster. „Bin wieder weg“ beendet es vorher.
 
 ## Diese Werte trägst du ein
 | Auslöser | Wann die Freigabe von selbst schließt |
@@ -26,6 +27,7 @@ Manche Läufe brauchen den Bildschirm: Sie öffnen ein Fenster, klicken und tipp
 - **Fernsitzung wird nicht erkannt** – Das Programm ist nicht eingetragen oder heißt anders.
 
 ## Danach
+- Das Symbol im Infobereich: Punkt bernstein = frei für Agenten, blau = frei, aber du bist kurz da, grau = belegt; beim Drüberfahren steht der Zustand als Text. Linksklick öffnet die Workbench. Starten: `pythonw F:/amw/amw-tray.pyw`. Damit es nach jeder Anmeldung da ist, legst du selbst eine Verknüpfung darauf in den Autostart-Ordner (Windows-Taste + R, `shell:startup`) – die AMW ändert nichts an Windows-Einstellungen.
 - Die Auslöser schaltest du einzeln in Einstellungen › Dieser PC › „Bildschirm-Freigabe von selbst schließen“; neue Installationen haben alle drei an. Ist ein Auslöser aus, **beobachtet die AMW ihn gar nicht** – sie misst nichts und schreibt nichts darüber auf.
 - Läuft ein Lauf mit Fenster nach dem Schließen weiter, erfährt es der Lead nach 5 Minuten.
 - Online freigeben darf nur ein System-Admin, mit Rückfrage; die Uhrzeit, bis wann, ist freiwillig. Ohne Uhrzeit bleibt der Bildschirm frei, bis jemand ihn belegt oder ein eingeschalteter Auslöser greift. Im Verlauf steht, wer es war. Schließen darf online jeder.

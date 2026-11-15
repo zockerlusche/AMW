@@ -11,6 +11,7 @@ Some runs need the screen: they open a window, click and type themselves – for
 2. **Extend or shorten (optional)** While the screen is free, “Change until” in the tile only changes the time: enter a new time and “Apply”, or use “+1 hour”, “until 22:00”, “no end”. The release continues; the history shows the change. On the command line: `amw schirm frei --bis 15:00` (without `--bis`: no end).
 3. **Agents work** Runs with a window start one after the other; best leave the PC alone meanwhile.
 4. **Back at the PC** The release closes by itself – or end it yourself: Home › Screen for agents › “End sharing”.
+5. **Only here for a moment (optional)** Right-click the AMW symbol in the notification area of the taskbar › “I'm here for a moment” › 15, 30 or 60 minutes: the screen stays released, your input does not close it. Running runs continue; new runs with a window only start once the PC has been idle for 2 minutes – so you never type into a test window. “Gone again” ends it earlier.
 
 ## Values to enter
 | Trigger | When the release closes by itself |
@@ -26,6 +27,7 @@ Some runs need the screen: they open a window, click and type themselves – for
 - **Remote session not recognised** – The program is not entered or has a different name.
 
 ## Next
+- The symbol in the notification area: amber dot = released for agents, blue = released, but you are here for a moment, grey = busy; hovering shows the state as text. A left click opens the Workbench. Start it with `pythonw F:/amw/amw-tray.pyw`. To have it after every sign-in, put a shortcut to it into the startup folder yourself (Windows key + R, `shell:startup`) – the AMW does not change Windows settings.
 - You switch the triggers one by one in Settings › This PC › “Close the screen release automatically”; new installations have all three on. When a trigger is off, **the AMW does not watch it at all** – it measures nothing and records nothing about it.
 - If a run with a window keeps running after closing, the lead is told after 5 minutes.
 - Online, only a system admin may release the screen, with a confirmation; the time until when is optional. Without a time the screen stays free until someone takes it back or a switched-on trigger fires. The history shows who it was. Anyone may close it online.

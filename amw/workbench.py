@@ -321,6 +321,8 @@ def daten_start(con, pid):
         warnungen = []
     from . import schirm, steuerung
     sz = schirm.zustand(con)
+    kurz = schirm.kurz_da_bis() if sz["frei"] else None   # A1746: „Ich bin kurz da“ (Symbol im Infobereich)
+    sz["kurz_da_bis_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(kurz)) if kurz else None
     sz["laeufe"] = zeilen(con.execute("SELECT id, agent, status, beschreibung FROM lauf WHERE projekt_id = ? AND schirm = 1"
                                       " AND status IN ('laeuft', 'angemeldet') ORDER BY id", (pid,)))
     ende = [{"kennung": e["kennung"], "bis_utc": e["bis_utc"]} for e in steuerung.ende_offen(con, pid)]   # „Sichern & beenden“ läuft

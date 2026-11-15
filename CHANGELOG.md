@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.117.0 – 15.11.2026 · Symbol im Infobereich: Bildschirm ohne Browser
+- **Neu:** Ein Punkt im Infobereich der Taskleiste zeigt, ob der Bildschirm für Agenten frei ist (bernstein), du kurz da bist
+  (blau) oder er belegt ist (grau). Rechtsklick: frei bis …, „Ich bin kurz da“ (15/30/60 min), Freigabe beenden, Workbench öffnen.
+- **Neu:** „Ich bin kurz da“ – der Bildschirm bleibt frei, deine Eingaben schließen ihn nicht; neue Läufe mit Fenster warten,
+  bis der PC 2 Minuten ruht. Die Startseite zeigt es in der Kachel „Bildschirm“.
+
 ## 1.116.1 – 15.11.2026 · Bildschirm: kein Programmname mehr
 - **Verbessert:** Schließt die AMW die Bildschirm-Freigabe wegen einer Eingabe am PC, nennt sie kein Programm im Vordergrund
   mehr – auch frühere Einträge im Verlauf sind bereinigt.
