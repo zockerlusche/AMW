@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.102.0 – 15.11.2026 · Planung automatisch: Lauf startet die Aufgabe
+- Startet ein Agent einen Lauf zu einer seiner Aufgaben, die noch nicht begonnen hat, steht sie jetzt von selbst auf „läuft“.
+  Welche Aufgabe, liest die AMW aus dem Lauf, aus „A1234“ in der Beschreibung oder aus dem Zweig (a1234, a1234-2). Wartet
+  die Aufgabe auf jemanden oder arbeitet der Agent schon an einem anderen Stück, bleibt alles, wie es ist.
+- Neue Projekt-Einstellung „Planung automatisch“ (an/aus, Vorgabe an); neue Frage in der Hilfe „Planung“.
+
 ## 1.101.0 – 15.11.2026 · Planung: Was seit dem Start dazukam
 - Unter jedem aktiven oder fertigen Meilenstein steht jetzt „Seit Start (05.11.): +5 hinzugekommen · 3 erledigt · 8 offen“, beim
   Drüberfahren über seinen Balken in der Übersicht ebenso. „Wo stehen wir gerade?“ zeigt „+5 seit Start“. So ist zu sehen,

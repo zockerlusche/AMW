@@ -650,7 +650,10 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
             dazu(lid)
         else:                                    # ein KI-Auftrag rechnet nicht im Namen des Agenten
             kern.taetigkeit_auto(con, pid, agent, f"L{lid} {beschreibung or ''}".strip(), aufgabe_id)
-        return lid
+    if not dazu:                                 # Planung automatisch (A1741): Lauf zu einer nicht begonnenen eigenen Aufgabe → läuft
+        from . import planautomatik
+        planautomatik.lauf_gestartet(con, pid, agent, lid, aufgabe_id, beschreibung, ordner)
+    return lid
 
 
 def pruefstand(befehl, ordner):
