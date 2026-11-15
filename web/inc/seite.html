@@ -721,8 +721,8 @@ main.geteilt-seite { padding-bottom: 16px; }
 .leitstand .zeile { display: flex; gap: 8px; flex-wrap: wrap; }
 .leitstand .knopf.warn { border-color: var(--rot); color: var(--rot); }
 .leitstand .erkl, .leitstand .stand { overflow-wrap: anywhere; }
-.schirm-bis { border: 1px dashed var(--linie2); padding: 10px 12px; margin: 10px 0; } .schirm-bis .zeile { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.schirm-bis .feld { padding-top: 0; } .schirm-bis input[type=time] { width: auto; } .schirm-schnell { margin-top: 6px; }
+.schirm-schnell { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.schirm-schnell { margin: 2px 0 6px; } .dialog input[type=time] { width: auto; }
 /* Aktionsmenü: „⋯“ öffnet die Befehle zu einer Sache (Agent) – ein Baustein */
 .mehr-knopf { padding: 6px 11px; letter-spacing: .1em; }
 .menue { position: absolute; z-index: 40; min-width: 250px; max-width: min(340px, calc(100vw - 16px)); background: var(--flaeche2); border: 1px solid var(--linie2);
@@ -2410,7 +2410,7 @@ function leitstand(d) {
     sz ? feld(t("ls_schirm"), sz.frei ? "bernstein" : "", sz.frei ? t("ls_schirm_frei") + (sz.bis_utc ? " " + t("schirm_bis", { x: zeit(sz.bis_utc) }) : "") : t("ls_schirm_belegt"),
       [sz.grund, t("ls_schirm_e")].filter(Boolean).join(" – "),
       kn(t(sz.frei ? "schirm_zumachen" : "schirm_freigeben"), () => schirmDialog(), "", !sz.frei && !darfFreigeben() ? t("schirm_nur_admin_kurz") : null),
-      sz.frei ? kn(t("schirm_bis_knopf"), () => schirmDialog(), "", !darfFreigeben() ? t("schirm_nur_admin_kurz") : null) : null) : null,
+      sz.frei ? kn(t("schirm_bis_knopf"), () => schirmDialog(true), "", !darfFreigeben() ? t("schirm_nur_admin_kurz") : null) : null) : null,
     feld(t("ls_sitz"), ende.length || fehlen.length ? "bernstein" : laufen.length ? "gruen" : "", sitzStand, t(API ? "ls_sitz_e_netz" : "ls_sitz_e"),
       kn(t("ls_sichern"), () => pcTun("/api/agent/ende", t("ls_sichern_frage", { n: laufen.length + ruhen.length }),
         r => r.agenten.length ? t("ls_sichern_ok", { n: r.agenten.length, x: zeit(r.bis_utc) }) : t("ls_sichern_keiner")), "", API ? nurPc : null),
@@ -4958,28 +4958,34 @@ function haltDialog() {
 /* Schirm-Schalter: frei nur am PC mit Grund (optional „spätestens zu um“), zu überall mit einem Klick */
 /* Darf diese Sitzung den Bildschirm freigeben? Am PC immer; online nur ein System-Admin (sonst nur belegen). */
 const darfFreigeben = () => !API || zustand.start?.online?.ich?.rolle === "system_admin";
-function schirmDialog() {
+function schirmDialog(nurBis) {
   const sz = zustand.start?.schirm || { frei: 0 };
   let hg;
   const setzen = async daten => {
     try { const r = await schicken("/api/schirm", daten); hg.remove(); toast(r.text || t(daten.frei ? "schirm_ist_frei" : "schirm_ist_zu")); zeige(zustand.sicht, true); }
     catch (e) { toast(t("fehler", { x: e.message }), true); } };
-  if (sz.frei) {
-    /* A1745: „bis“ direkt ändern, ohne erst zu beenden – Feld und Schnellwahl; seit und Grund bleiben */
+  const stand = () => el("p", { class: "leise" }, [t("schirm_seit", { x: seit(sz.seit_utc) }), sz.bis_utc ? t("schirm_bis", { x: zeit(sz.bis_utc) }) : null, sz.grund].filter(Boolean).join(" · "));
+  if (sz.frei && nurBis && darfFreigeben()) {
+    /* A1745: „bis“ direkt ändern, ohne erst zu beenden – eigener Dialog, Hauptknopf „Übernehmen“ (TL P181: beenden ist hier
+       nicht der Weg); seit und Grund bleiben */
     const hhmm = d => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     const bis = el("input", { type: "time", value: sz.bis_utc ? hhmm(new Date(sz.bis_utc)) : "" });
     const abend = new Date(); abend.setHours(22, 0, 0, 0);
     const bisSetzen = wert => setzen({ frei: true, bis: wert });
-    const bisTeil = darfFreigeben() ? el("div", { class: "schirm-bis" },
-      el("div", { class: "feld" }, el("label", {}, t("schirm_bis_titel")), el("div", { class: "zeile" }, bis,
-        el("button", { class: "knopf", type: "button", onclick: () => bisSetzen(bis.value || null) }, t("schirm_bis_setzen")))),
+    hg = dialog(t("schirm_bis_knopf"), stand(),
+      el("div", { class: "feld" }, el("label", {}, t("schirm_bis_titel")), el("div", {}, bis)),
       el("div", { class: "zeile schirm-schnell" },
         el("button", { class: "klein-knopf", type: "button", onclick: () => bisSetzen(hhmm(new Date(Math.max(Date.now(), sz.bis_utc ? +new Date(sz.bis_utc) : 0) + 3600e3))) }, t("schirm_bis_plus")),
         el("button", { class: "klein-knopf", type: "button", disabled: Date.now() >= +abend ? "disabled" : null, onclick: () => bisSetzen("22:00") }, t("schirm_bis_abend")),
         el("button", { class: "klein-knopf", type: "button", disabled: sz.bis_utc ? null : "disabled", onclick: () => bisSetzen(null) }, t("schirm_bis_offen"))),
-      el("p", { class: "sehrleise" }, t("schirm_bis_h"))) : null;
-    hg = dialog(t("schirm_titel"), el("p", { class: "leise" }, [t("schirm_seit", { x: seit(sz.seit_utc) }), sz.bis_utc ? t("schirm_bis", { x: zeit(sz.bis_utc) }) : null, sz.grund].filter(Boolean).join(" · ")),
-      bisTeil, el("p", {}, t("schirm_zu_erkl")),
+      el("p", { class: "sehrleise" }, t("schirm_bis_h")),
+      el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => bisSetzen(bis.value || null) }, t("schirm_bis_setzen")),
+        el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
+    bis.focus();
+    return;
+  }
+  if (sz.frei) {
+    hg = dialog(t("schirm_titel"), stand(), el("p", {}, t("schirm_zu_erkl")),
       el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => setzen({ frei: false, grund: "wieder belegt vom Entwickler" }) }, t("schirm_zumachen")),
         el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
     return;
