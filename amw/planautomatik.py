@@ -68,3 +68,46 @@ def lauf_gestartet(con, pid, agent, lid, aufgabe_id=None, beschreibung=None, ord
         return aid
     except Exception:          # Halt, eins-nach-dem-anderen, Plan-Gate …: dann eben nicht automatisch
         return None
+
+
+def ausgeliefert(con, pid, version, sha, enthalten):
+    """A1738 (1): Nach der Auslieferung von `sha` als `version` gilt jede Aufgabe als fertig, deren grüne Prüfung mit gültigem
+    Merge-OK auf ihrem Zweig im ausgelieferten Stand enthalten ist – Beleg = geprüfter Stand. enthalten(sha_pruefung) → bool
+    (git merge-base --is-ancestor). Nicht: Aufgaben, die schon fertig/verworfen sind, deren Prüfung überholt ist oder die auf
+    den Entwickler warten (z. B. „erst schließen, wenn Marcel am iPad bestätigt“). Versionshinweis: was die Prüfbitte
+    (--gruppe/--hinweis) an der Aufgabe hinterlegt hat. Offene Kriterien sperren nicht – sie gehen in die Rückgabe, der Lead
+    erfährt sie. Rückgabe [{aufgabe, titel, beleg, kriterien_offen}]; leer, wenn plan_automatik aus ist."""
+    from . import betrieb, planung, wartegrund
+    if not an(con, pid):
+        return []
+    aus, gesehen = [], set()
+    for p in con.execute("SELECT * FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen' AND aufgabe_id IS NOT NULL"
+                         " ORDER BY id DESC LIMIT 200", (pid,)).fetchall():
+        aid = p["aufgabe_id"]
+        if aid in gesehen:
+            continue                                     # die jüngste grüne Prüfung je Aufgabe zählt
+        gesehen.add(aid)
+        a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+        if not a or a["status"] in ("fertig", "verworfen") or not betrieb.merge_ok(con, pid, aid, p["zweig"]):
+            continue
+        if con.execute("SELECT 1 FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ? AND id > ? AND ergebnis != 'gruen'",
+                       (pid, aid, p["id"])).fetchone():
+            continue                                     # danach neu zur Prüfung gegeben oder rot: nicht dieser Stand
+        if any(w["art"] == "entwickler" for w in wartegrund.offene(con, aid)):
+            continue
+        if not enthalten(p["sha"]):
+            continue
+        offen = [k["text"] for k in planung._json(a["kriterien"], []) if not k.get("erfuellt")]
+        zusammen = (a["zusammenfassung"] or "").strip() or f"Ausgeliefert in {version} (main {sha[:8]})."
+        if offen:
+            zusammen += " Offene Kriterien: " + " | ".join(offen[:5])
+        try:
+            kern.aufgabe_status(con, pid, "AMW", aid, "fertig", beleg=p["sha"][:7], zusammenfassung=zusammen[:1000], automatik=True)
+        except kern.AmwFehler as e:                     # eine Aufgabe hält die anderen nicht auf
+            aus.append({"aufgabe": aid, "titel": a["titel"], "fehler": str(e)})
+            continue
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="auto_fertig",
+                         bogen_id=a["bogen_id"], aufgabe_id=aid, text=f"{version} · P{p['id']} {p['zweig']}@{p['sha'][:8]}")
+        aus.append({"aufgabe": aid, "titel": a["titel"], "beleg": p["sha"][:7], "kriterien_offen": offen})
+    return aus

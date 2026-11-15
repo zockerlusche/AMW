@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.104.0 – 15.11.2026 · Planung automatisch: Auslieferung schließt die Aufgaben
+- Nach `amw release ausliefern` steht jede Aufgabe von selbst auf fertig, deren grüner Stand mit Merge-OK in der Auslieferung
+  steckt; Beleg ist der geprüfte Stand. Offene Kriterien halten das nicht auf – sie stehen in der Zusammenfassung, und der
+  Lead erfährt sie mit der Meldung „Version … live“. Wartet eine Aufgabe auf den Entwickler (etwa eine Bestätigung am Gerät),
+  bleibt sie offen.
+- Den Satz für die Versionshinweise gibt die Prüfbitte mit: `amw pruefung bitte … --aufgabe <nr> --gruppe neu --hinweis "…"`;
+  der Prüfer sieht ihn in der Prüfbitte.
+- Abschaltbar mit „Planung automatisch“ (Einstellungen › Projekt); Hilfe „Prüfstufen und Release-Takt“ ergänzt.
+
 ## 1.103.0 – 15.11.2026 · Bildschirm-Freigabe verlängern, ohne zu beenden
 - Ist der Bildschirm für Agenten frei, ändert „Bis ändern“ in der Bildschirm-Kachel nur die Uhrzeit, bis wann er frei bleibt:
   neue Uhrzeit eintragen oder „+1 Stunde“, „bis 22:00“, „ohne Ende“. Die Freigabe läuft weiter, im Verlauf steht die Änderung.

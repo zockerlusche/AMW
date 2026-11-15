@@ -441,7 +441,7 @@ def plan_entscheiden(con, pid, von, aid, frei, kommentar=None):
                          f"Plan A{aid} {'FREIGEGEBEN – umsetzen' if frei else 'ZURÜCK'}", kommentar, aufgabe_id=aid)
 
 
-def pruefe_status(con, a, neu, zusammenfassung=None):
+def pruefe_status(con, a, neu, zusammenfassung=None, kriterien_sperren=True):
     """Regeln für Bogen-Schritte (von kern.aufgabe_status aufgerufen). Wirft AmwFehler mit dem Grund. Aufgaben ohne Bogen
     bleiben frei – auch die aus alten Textangaben übernommenen Abhängigkeiten sperren sie nicht."""
     if not a["bogen_id"]:
@@ -455,7 +455,7 @@ def pruefe_status(con, a, neu, zusammenfassung=None):
                                  f" (amw aufgabe plan {a['id']} --text …)")
     if neu == "fertig":
         offen = [k["text"] for k in _json(a["kriterien"], []) if not k.get("erfuellt")]
-        if offen:
+        if offen and kriterien_sperren:
             raise kern.AmwFehler(f"A{a['id']}: Kriterien nicht erfüllt: " + " | ".join(offen[:5])
                                  + f" (amw aufgabe kriterium {a['id']} <nr>)")
         if not (zusammenfassung or a["zusammenfassung"] or "").strip():

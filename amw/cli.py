@@ -1331,7 +1331,8 @@ def cmd_lauf(a, con):
 def cmd_pruefung(a, con):
     pid = _projekt(con, a)
     if a.aktion == "bitte":
-        prid = betrieb.pruefbitte(con, pid, _von(a), a.pruefer, a.zweig, a.sha, a.punkte, a.aufgabe, stufe=a.stufe)
+        prid = betrieb.pruefbitte(con, pid, _von(a), a.pruefer, a.zweig, a.sha, a.punkte, a.aufgabe, stufe=a.stufe,
+                                  gruppe=a.gruppe, hinweis=a.hinweis)
         print(f"P{prid} an {a.pruefer}")
     elif a.aktion in ("gruen", "rot"):
         kette = betrieb.pruefung_ergebnis(con, pid, _von(a), a.id, a.aktion, a.bemerkung)
@@ -2620,6 +2621,8 @@ def parser():
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
     x.add_argument("--stufe", choices=["niedrig", "mittel", "hoch"], help="Prüfstufe höher einstufen als die geänderten Dateien ergeben (nie niedriger)")
+    x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben"], help="bitte: Versionshinweis der Aufgabe (setzt sie die Release-Kette fertig, gilt er)")
+    x.add_argument("--hinweis", help="bitte: ein Satz für Nutzer zu den Versionshinweisen")
     x.set_defaults(f=cmd_pruefung)
     x = s.add_parser("freigabe", help="Merge-OK (Lead/Entwickler): freigabe merge A<nr> [--zweig z] [--zurueck] – Abnahme-Kette:"
                                       " nach grüner Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst")

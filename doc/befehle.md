@@ -904,8 +904,9 @@ options:
 usage: amw pruefung [-h] [--pruefer PRUEFER] [--zweig ZWEIG] [--sha SHA]
                     [--punkte PUNKTE] [--aufgabe AUFGABE]
                     [--bemerkung BEMERKUNG] [--alle]
-                    [--stufe {niedrig,mittel,hoch}] [--von VON]
-                    [--projekt PROJEKT]
+                    [--stufe {niedrig,mittel,hoch}]
+                    [--gruppe {neu,verbessert,behoben}] [--hinweis HINWEIS]
+                    [--von VON] [--projekt PROJEKT]
                     {bitte,gruen,rot,ist-gruen,liste} [id]
 
 positional arguments:
@@ -924,6 +925,10 @@ options:
   --stufe {niedrig,mittel,hoch}
                         Prüfstufe höher einstufen als die geänderten Dateien
                         ergeben (nie niedriger)
+  --gruppe {neu,verbessert,behoben}
+                        bitte: Versionshinweis der Aufgabe (setzt sie die
+                        Release-Kette fertig, gilt er)
+  --hinweis HINWEIS     bitte: ein Satz für Nutzer zu den Versionshinweisen
   --von VON
   --projekt PROJEKT
 ```

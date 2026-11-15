@@ -1053,9 +1053,11 @@ def _aufgabe_fuer_aenderung(con, pid, von, aid):
 
 
 def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, bemerkung=None, zusammenfassung=None,
-                   auf=None, erledigt=None, hinweise=None, hinweis=None, gruppe=None):
+                   auf=None, erledigt=None, hinweise=None, hinweis=None, gruppe=None, automatik=False):
     """auf: Wartegründe als Verweise (F…, A…, L…, Agent, Entwickler, Monitor:…) – Pflicht bei wartet/blockiert.
-    erledigt: Gründe von Hand abhaken; allein (ohne auf) ändert es den Status nicht."""
+    erledigt: Gründe von Hand abhaken; allein (ohne auf) ändert es den Status nicht.
+    automatik (A1738, nur die AMW selbst – nie von der Befehlszeile): Besitz zählt nicht, offene Kriterien sperren „fertig“
+    nicht (der Aufrufer meldet sie dem Lead)."""
     from . import wartegrund
     if erledigt and not auf and status in ("wartet", "blockiert"):
         with db.schreiben(con):
@@ -1069,9 +1071,12 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
     if neu in ("fertig", "verworfen") and not (beleg or "").strip():
         raise AmwFehler("fertig/verworfen nur mit --beleg (Commit, Datei:Zeile oder Folgeaufgabe)")
     with db.schreiben(con):
-        a = _aufgabe_fuer_aenderung(con, pid, von, aid)
+        a = (con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone() if automatik
+             else _aufgabe_fuer_aenderung(con, pid, von, aid))
+        if not a:
+            raise AmwFehler(f"Aufgabe A{aid} gibt es nicht")
         from . import planung                       # Regeln der Planung: Vorgänger, Plan-Gate, Kriterien, Zusammenfassung
-        planung.pruefe_status(con, a, neu, zusammenfassung)
+        planung.pruefe_status(con, a, neu, zusammenfassung, kriterien_sperren=not automatik)
         if erledigt:
             wartegrund.von_hand(con, pid, von, aid, erledigt)
         if neu in ("wartet", "blockiert"):         # „wartet“ mit Freitext weckt niemanden, wenn es weitergeht

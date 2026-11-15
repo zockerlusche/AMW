@@ -888,8 +888,19 @@ def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speich
 
 # --- Prüfungen -----------------------------------------------------------------------------------
 
-def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=None, stufe=None):
+def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=None, stufe=None, gruppe=None, hinweis=None):
+    """gruppe/hinweis (A1738): der Versionshinweis steht fest, wenn die Arbeit fertig ist – die Release-Kette übernimmt ihn,
+    wenn sie die Aufgabe nach der Auslieferung fertig setzt. Nur mit --aufgabe; nur Besitzer oder Lead."""
     kern.agent_zeile(con, pid, pruefer)
+    if (gruppe or (hinweis or "").strip()) and not aufgabe_id:
+        raise kern.AmwFehler("--gruppe/--hinweis gehören zu einer Aufgabe – --aufgabe <nr> angeben")
+    if gruppe or (hinweis or "").strip():
+        from . import versionshinweise
+        try:
+            gruppe = versionshinweise.gruppe_pruefen(gruppe)
+        except ValueError as e:
+            raise kern.AmwFehler(str(e)) from None
+        kern._aufgabe_fuer_aenderung(con, pid, bauer, aufgabe_id)
     sha = voller_sha(con, pid, sha)                  # gespeichert wird der volle Stand – die Release-Kette vergleicht genau
     from . import pruefstufe                         # A1656: welche Dateien der Stand ändert → Prüfstufe (vor dem Schreiben, ruft git)
     info = pruefstufe.stufe(con, pid, sha)
@@ -898,8 +909,13 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
     with db.schreiben(con):
         prid = db.einfuegen(con, "pruefung", projekt_id=pid, aufgabe_id=aufgabe_id, zweig=zweig, sha=sha, bauer=bauer,
                             pruefer=pruefer, punkte=punkte, angefragt_utc=db.jetzt())
+        vh = ""
+        if gruppe or (hinweis or "").strip():
+            felder = {k: v for k, v in (("hinweis_gruppe", gruppe), ("hinweis", " ".join((hinweis or "").split())[:300] or None)) if v}
+            con.execute(f"UPDATE aufgabe SET {', '.join(k + ' = ?' for k in felder)} WHERE id = ?", (*felder.values(), aufgabe_id))
+            vh = f"\n\nVersionshinweis ({gruppe or '–'}): {felder.get('hinweis') or '–'}"
         kern._posten(con, pid, bauer, pruefer, "pruefbitte", f"Prüfbitte P{prid}: {zweig}@{sha[:8]}",
-                     stufe + ("\n\n" + punkte if punkte else ""), aufgabe_id=aufgabe_id)
+                     stufe + ("\n\n" + punkte if punkte else "") + vh, aufgabe_id=aufgabe_id)
     return prid
 
 

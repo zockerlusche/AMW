@@ -113,6 +113,45 @@ class Kette(unittest.TestCase):
         self.assertEqual([tuple(x) for x in info], [("info", "Version 1.1.0 live – Neues Ding")])  # eine Info, weckt nicht
         self.assertTrue(any(n.endswith(".db") for n in os.listdir(os.path.dirname(db.db_pfad())) if n.startswith("sicherung")))
 
+    def test_ausgelieferte_aufgaben_werden_fertig(self):
+        """A1738 (Marcel W2153): Die Auslieferung setzt jede Aufgabe fertig, deren grüner, freigegebener Stand enthalten ist –
+        mit dem Versionshinweis aus der Prüfbitte; offene Kriterien sperren nicht, der Lead erfährt sie. Wer auf den
+        Entwickler wartet (Bestätigung am Gerät), bleibt offen."""
+        from amw import planung
+        self.aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Neues Ding", "CC1")
+        planung.schritt_setzen(self.con, self.pid, "TL", aid=self.aid, kriterien=["Handy-Bild in der Prüfbitte"])
+        with self.assertRaises(kern.AmwFehler):                                                    # Hinweis nur mit Aufgabe
+            betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "neu", self.sha, "x", None, hinweis="ohne Aufgabe")
+        betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "neu", self.sha, "x", self.aid, gruppe="neu", hinweis="Neues Ding für alle.")
+        self.assertIn("Versionshinweis (neu): Neues Ding für alle.",
+                      self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'Prüfbitte%' ORDER BY id DESC").fetchone()[0])
+        betrieb.pruefung_ergebnis(self.con, self.pid, "TL", self.con.execute("SELECT max(id) FROM pruefung").fetchone()[0], "gruen")
+        betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid)
+        geraet = kern.aufgabe_neu(self.con, self.pid, "TL", "Erst am iPad bestätigen", "CC1")
+        betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "neu", self.sha, "x", geraet)
+        betrieb.pruefung_ergebnis(self.con, self.pid, "TL", self.con.execute("SELECT max(id) FROM pruefung").fetchone()[0], "gruen")
+        betrieb.freigabe_merge(self.con, self.pid, "TL", geraet)
+        kern.aufgabe_status(self.con, self.pid, "CC1", geraet, "wartet", auf="Entwickler")
+        self.gesamtlauf()
+        self.kette().ausliefern("neu")
+        a = self.con.execute("SELECT * FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()
+        self.assertEqual((a["status"], a["beleg"], a["hinweis_gruppe"], a["hinweis"]), ("fertig", self.sha[:7], "neu", "Neues Ding für alle."))
+        self.assertIn("Ausgeliefert in 1.1.0", a["zusammenfassung"])
+        self.assertIn("Offene Kriterien: Handy-Bild in der Prüfbitte", a["zusammenfassung"])
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (geraet,)).fetchone()[0], "wartet")
+        e = self.con.execute("SELECT von, text FROM plan_ereignis WHERE art = 'auto_fertig'").fetchall()
+        self.assertEqual([(x["von"], x["text"][:5]) for x in e], [("AMW", "1.1.0")])
+        info = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'Version 1.1.0 live%'").fetchone()[0]
+        self.assertIn(f"Fertig gesetzt: A{self.aid}.", info)
+        self.assertIn(f"A{self.aid} hat offene Kriterien: Handy-Bild in der Prüfbitte.", info)
+
+    def test_ohne_planung_automatisch_bleibt_alles_von_hand(self):
+        kern.projekt_einstellen(self.con, self.pid, "TL", plan_automatik="aus")
+        self.gruen()
+        self.gesamtlauf()
+        self.kette().ausliefern("neu")
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()[0], "wartet")
+
     def ohne_aenderung(self, wort, **kw):
         with self.assertRaises(auslieferung.Stopp) as e:
             self.kette().ausliefern("neu", **kw)

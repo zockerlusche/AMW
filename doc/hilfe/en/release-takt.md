@@ -8,6 +8,7 @@ AMW can handle two things for you: how strictly a change is reviewed (review lev
 3. **Release low-level changes** With the lead's merge approval and a green full run on exactly this commit: `amw release ausliefern --zweig <branch> --aufgabe <nr>`.
 4. **Raise the level** The builder can raise a review request: `amw pruefung bitte … --stufe hoch`. Lowering is not possible.
 5. **Pick a release rhythm** Settings › Project › Release rhythm: immediately, daily at a time, or per milestone. When something is ready – green review, merge approval, full run on exactly this commit – whoever handles merges (otherwise the lead) gets one message. AMW never releases by itself.
+6. **Releasing closes the tasks** After `amw release ausliefern`, every task whose green commit with merge approval is included counts as done – the reviewed commit is the evidence. Give the sentence for the release notes right in the review request: `amw pruefung bitte … --aufgabe <no> --gruppe neu --hinweis "…"`. Open criteria do not block this; the lead is told about them. A task waiting for the developer (for example a confirmation on the device) stays open. To switch it off: Settings › Project › Automatic planning.
 
 ## Values to enter
 | Field in AMW | Meaning |

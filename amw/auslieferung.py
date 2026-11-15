@@ -267,11 +267,24 @@ class Kette:
                                        oeffentlich=z["notizen"][1], kette=True)
         rid, _ = wissen.release_version(self.con, self.pid, self.von, version, v["titel"], sha[:7], kette=True)
         self.schritt(f"Versionszeile R{rid}" + (f" (+ {', '.join(z['version'] for z in v['zwischen'])})" if v["zwischen"] else ""))
+        from . import planautomatik                     # A1738: was dieser Stand enthält, ist fertig (Beleg = geprüfter Stand)
+        try:
+            fertig = planautomatik.ausgeliefert(self.con, self.pid, version, sha,
+                                                lambda s: self.extern(["git", "merge-base", "--is-ancestor", s, sha], self.repo)[0] == 0)
+        except Exception as e:                           # ausgeliefert ist ausgeliefert – nur melden
+            fertig = [{"aufgabe": 0, "titel": "", "fehler": f"{type(e).__name__}: {e}"}]
+        ok = [x for x in fertig if not x.get("fehler")]
+        if fertig:
+            self.schritt("Aufgaben fertig: " + (", ".join(f"A{x['aufgabe']}" for x in ok) or "keine")
+                         + "".join(f" · A{x['aufgabe']} nicht: {x['fehler'][:120]}" for x in fertig if x.get("fehler")))
+        fertig_liste = ", ".join(f"A{x['aufgabe']}" for x in ok)
+        kriterien = "".join(f" A{x['aufgabe']} hat offene Kriterien: {' | '.join(x['kriterien_offen'][:3])}." for x in ok if x["kriterien_offen"])
         an = kern.lead(self.con, self.pid)
         if an and an != self.von:
             with db.schreiben(self.con):
                 kern._posten(self.con, self.pid, "AMW", an, "info", f"Version {version} live – {v['titel']}",
                              f"main {sha[:8]}, Tag v{version}, GitHub-Release, Web-Abzug L{lid}, Versionszeile R{rid}."
-                             + (f" Gesamtlauf L{v['lauf']}." if v["lauf"] else f" Ohne Gesamtlauf: {ausnahme}."))
+                             + (f" Gesamtlauf L{v['lauf']}." if v["lauf"] else f" Ohne Gesamtlauf: {ausnahme}.")
+                             + (f" Fertig gesetzt: {fertig_liste}." if ok else "") + kriterien)
         self.ausgabe(f"Version {version} live.")
         return {"version": version, "sha": sha, "web_lauf": lid, "release": rid}
