@@ -10,8 +10,9 @@ Ein Lead, der als Chat arbeitet, wird von der AMW nicht benachrichtigt – er si
 ## Schritte
 1. **Rhythmus festlegen** Unter Einstellungen › Projekt den Rhythmus eintragen. Er sagt, wie oft der Lead spätestens nachsieht.
 2. **Erste geplante Aufgabe anlegen** Der Lead legt in seiner Chat-App eine einmalige geplante Aufgabe an – auf jetzt plus die Minuten des Rhythmus, mit einem kurzen neutralen Text (etwa „AMW nachsehen“). Was zu tun ist, steht in der AMW, nicht in der geplanten Aufgabe.
-3. **Am Ende jedes Durchgangs** Nachsehen, abarbeiten – und als Letztes eine **neue** einmalige geplante Aufgabe für den nächsten Durchgang anlegen.
-4. **Aufräumen** Abgelaufene geplante Aufgaben liegen lassen oder löschen.
+3. **Nachsehen mit einem Befehl** `amw takt` – über den Dateiaustausch als Befehlsdatei `{"befehl": "takt"}`. Die Antwort liegt nach ein bis zwei Sekunden im Ordner erledigt/. Sie zeigt knapp, je Punkt eine Zeile: das Postfach mit gekürztem Text, Prüfbitten an dich, Fragen der Agenten, Antworten des Menschen, Läufe mit Wartegrund, Lead-Runde und Auslieferungen. Ganz lesen mit dem Befehl, der dabeisteht (`amw lesen <Nr>`, `amw pruefung zeige <P>`, `amw frage zeige <F>`). Mit `--abhaken` sind gezeigte Infos und Meldungen gleich erledigt.
+4. **Am Ende jedes Durchgangs** Nachsehen, abarbeiten – und als Letztes eine **neue** einmalige geplante Aufgabe für den nächsten Durchgang anlegen.
+5. **Aufräumen** Abgelaufene geplante Aufgaben liegen lassen oder löschen.
 
 ## Typische Fehler
 - **Der Rhythmus bleibt stehen** – Eine bestehende geplante Aufgabe wurde geändert (Zeit, Text, Name, an/aus oder „wiederkehrend“). Jede Änderung an einer bestehenden geplanten Aufgabe verlangt einen Klick des Menschen; bis dahin passiert nichts. Abhilfe: löschen und neu anlegen.
@@ -23,6 +24,9 @@ Ein Lead, der als Chat arbeitet, wird von der AMW nicht benachrichtigt – er si
 - Agenten, die im Terminal arbeiten, brauchen das nicht – die AMW benachrichtigt sie.
 
 ## Häufige Fragen
+### Darf ich die Datenbank direkt mit SQL lesen?
+Nein – nimm `amw takt` und die Befehle, die dort genannt sind. Eine Lese-Kopie für SQL gibt es nur noch, wenn der Mensch sie unter Einstellungen › Dieser PC › „Lese-Kopie der Datenbank für Leads“ einschaltet; sie ist bis zu einer Minute alt.
+
 ### Warum nicht eine wiederkehrende geplante Aufgabe?
 Geprüft wurde: Anlegen und Löschen gehen ohne Rückfrage, jede Änderung an einer bestehenden geplanten Aufgabe nicht. Eine einmalige, jedes Mal neu angelegte geplante Aufgabe kommt ohne Klick des Menschen aus.
 

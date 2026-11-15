@@ -35,7 +35,10 @@ log = logging.getLogger("amw.bruecke")
 WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EINGANG = os.path.join(WURZEL, "eingang-tl")
 KOPIE_S = 60
-BEFEHLE_S = 5
+BEFEHLE_S = 1             # A1780: Eingang je Sekunde ansehen (ein Verzeichnis-Listing, billig) – Antwort in ~1–2 s statt bis 15 s
+RUNDE_S = 5               # Projekte/Lese-Kopie nur alle 5 s prüfen
+RUHE_S = 0.3              # so alt muss eine Befehlsdatei sein (sie wird als .tmp geschrieben und umbenannt – dann ist sie fertig)
+LESEKOPIE = False         # A1780: Lese-Kopie für Leads (Einstellung bruecke_lesekopie, Vorgabe aus – Leads nehmen amw takt)
 BEFEHL_FRIST_S = 120      # so lange darf ein einzelner Befehl laufen – danach Fehlerergebnis und weiter mit der nächsten Datei
 RC_FRIST = 124
 VON = "TL"
@@ -43,7 +46,7 @@ ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", 
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
            "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf", "dokument",
            "schirm", "liste", "suche", "zeige", "termin", "thema", "ki", "projekt", "freigabe",   # Freigaben: nur der Mensch (Bildschirm frei: der Lead auf das Wort des Entwicklers)
-           "regelwerk", "verbrauch", "runde"}   # Grund-Regelwerk: abgleich liest nur; uebernehmen prüft selbst (nur Lead/Mensch) · Lead-Runde: prüft selbst (nur Leads, nur info/frage)
+           "regelwerk", "verbrauch", "runde", "takt"}   # takt (A1780): ein Durchgang in einem Aufruf statt SQL auf der Lese-Kopie   # Grund-Regelwerk: abgleich liest nur; uebernehmen prüft selbst (nur Lead/Mensch) · Lead-Runde: prüft selbst (nur Leads, nur info/frage)
 
 
 def bruecken(con):
@@ -291,7 +294,7 @@ def befehle(eingang=EINGANG, projekt=None, von=None):
     n = 0
     for name in sorted(os.listdir(ordner)):
         pfad = os.path.join(ordner, name)
-        if not name.endswith(".json") or time.time() - os.path.getmtime(pfad) < 1:
+        if not name.endswith(".json") or time.time() - os.path.getmtime(pfad) < RUHE_S:
             continue
         stamm = name[:-5]
         from . import herzschlag
@@ -332,18 +335,49 @@ def befehle(eingang=EINGANG, projekt=None, von=None):
     return n
 
 
+def stilllegen(kopie):
+    """Lese-Kopie aus (A1780): eine alte Kopie würde still veralten – wer sie weiter mit SQL liest, bekäme alte Daten, ohne es zu
+    merken. Darum wird sie beiseitegelegt (umbenannt, nicht gelöscht) und der Stand sagt, was stattdessen gilt."""
+    if not os.path.exists(kopie):
+        return False
+    try:
+        os.replace(kopie, kopie[:-3] + ".abgeschaltet.db")
+        with open(kopie[:-3] + ".stand", "w", encoding="utf-8") as f:
+            f.write(f"{db.jetzt()} Lese-Kopie abgeschaltet – Leads nehmen `amw takt` über den Dateiaustausch"
+                    " (einschalten: Einstellungen › Dieser PC › Lese-Kopie der Datenbank für Leads)\n")
+        log.info("Dateiaustausch: Lese-Kopie %s abgeschaltet (umbenannt)", kopie)
+        return True
+    except OSError:
+        return False                                      # liest gerade jemand: nächste Runde
+
+
+def _hat_befehle(eingang):
+    try:
+        return any(n.endswith(".json") for n in os.listdir(os.path.join(eingang, "befehle")))
+    except OSError:
+        return True                                       # Ordner fehlt: befehle() legt ihn an
+
+
 def schleife(stop=None):
     con = db.verbinde(nur_lesen=True)
-    stand, letzte_kopie = None, 0.0
+    stand, letzte_kopie, alle, letzte_runde = None, 0.0, [], 0.0
     from . import herzschlag
     while not (stop and stop.is_set()):
         t0, fehler = time.time(), None
         try:
-            alle = bruecken(con)                          # neue Projekte bekommen ihre Brücke ohne Neustart
+            runde = t0 - letzte_runde >= RUNDE_S
+            if runde or not alle:
+                alle = bruecken(con)                      # neue Projekte bekommen ihre Brücke ohne Neustart
+                letzte_runde = t0
             for b in alle:
-                befehle(b["eingang"], b["name"], b["von"])
-            v = con.execute("PRAGMA data_version").fetchone()[0]
-            if (v != stand or not all(os.path.exists(b["kopie"]) for b in alle)) and time.time() - letzte_kopie >= KOPIE_S:
+                if _hat_befehle(b["eingang"]):            # billig: nur nachsehen; abarbeiten nur, wenn etwas da ist
+                    befehle(b["eingang"], b["name"], b["von"])
+            if not LESEKOPIE and runde:
+                for b in alle:
+                    stilllegen(b["kopie"])
+            v = con.execute("PRAGMA data_version").fetchone()[0] if runde else stand
+            if (LESEKOPIE and runde and (v != stand or not all(os.path.exists(b["kopie"]) for b in alle))
+                    and time.time() - letzte_kopie >= KOPIE_S):
                 for b in alle:                            # mit einem Projekt wie bisher die ganze Datenbank
                     lese_kopie(ziel=b["kopie"], pid=b["pid"] if len(alle) > 1 else None)
                 stand, letzte_kopie = v, time.time()

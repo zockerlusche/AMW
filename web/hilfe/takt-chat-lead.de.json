@@ -18,6 +18,11 @@
    "bilder": []
   },
   {
+   "titel": "Nachsehen mit einem Befehl",
+   "text": "`amw takt` – über den Dateiaustausch als Befehlsdatei `{\"befehl\": \"takt\"}`. Die Antwort liegt nach ein bis zwei Sekunden im Ordner erledigt/. Sie zeigt knapp, je Punkt eine Zeile: das Postfach mit gekürztem Text, Prüfbitten an dich, Fragen der Agenten, Antworten des Menschen, Läufe mit Wartegrund, Lead-Runde und Auslieferungen. Ganz lesen mit dem Befehl, der dabeisteht (`amw lesen <Nr>`, `amw pruefung zeige <P>`, `amw frage zeige <F>`). Mit `--abhaken` sind gezeigte Infos und Meldungen gleich erledigt.",
+   "bilder": []
+  },
+  {
    "titel": "Am Ende jedes Durchgangs",
    "text": "Nachsehen, abarbeiten – und als Letztes eine **neue** einmalige geplante Aufgabe für den nächsten Durchgang anlegen.",
    "bilder": []
@@ -48,6 +53,10 @@
   "Agenten, die im Terminal arbeiten, brauchen das nicht – die AMW benachrichtigt sie."
  ],
  "fragen": [
+  [
+   "Darf ich die Datenbank direkt mit SQL lesen?",
+   "Nein – nimm `amw takt` und die Befehle, die dort genannt sind. Eine Lese-Kopie für SQL gibt es nur noch, wenn der Mensch sie unter Einstellungen › Dieser PC › „Lese-Kopie der Datenbank für Leads“ einschaltet; sie ist bis zu einer Minute alt."
+  ],
   [
    "Warum nicht eine wiederkehrende geplante Aufgabe?",
    "Geprüft wurde: Anlegen und Löschen gehen ohne Rückfrage, jede Änderung an einer bestehenden geplanten Aufgabe nicht. Eine einmalige, jedes Mal neu angelegte geplante Aufgabe kommt ohne Klick des Menschen aus."

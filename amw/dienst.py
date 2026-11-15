@@ -507,6 +507,7 @@ def main(argv=None):
         from . import bruecke                         # Lesekopie + Befehlsdateien für den TL (FUSE, kein WAL)
         if e["bruecke_an"]:
             bruecke.KOPIE_S, bruecke.VON = e["bruecke_kopie_s"], e["bruecke_absender"]
+            bruecke.LESEKOPIE = bool(e.get("bruecke_lesekopie"))
             herzschlag.strang("dateiaustausch", bruecke.schleife)
             log.info("Dateiaustausch an: %s (Absender %s)", bruecke.EINGANG, bruecke.VON)
         herzschlag.aufpasser_starten(melden=aufpasser_melden)

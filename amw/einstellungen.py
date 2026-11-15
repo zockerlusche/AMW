@@ -180,6 +180,7 @@ FELDER = {
     "bruecke_an": (False, _wahr),           # Datei-Brücke für einen Agenten ohne direkten DB-Zugriff
     "bruecke_absender": ("TL", _kennung),
     "bruecke_kopie_s": (60, _ganz(15, 3600)),
+    "bruecke_lesekopie": (False, _wahr),          # A1780: Lese-Kopie für Leads (SQL) – Vorgabe aus, Leads nehmen `amw takt`
     "cpu_laeufe": (2, _ganz(1, 8)),
     # Vorrang der Projekte in der Warteschlange: {Projektname: hoch|niedrig}, fehlt eins = normal (A1623)
     "vorrang": ({}, _vorrang),
@@ -222,7 +223,7 @@ FELDER = {
 }
 # Diese Werte liest der Wächter nur beim Start – eine Änderung wirkt nach `amw dienst neustart`
 NEUSTART = ("db_pfad", "port", "heimnetz", "aufsicht_s", "abgleich_hoch_s", "abgleich_puls_s", "abgleich_eingang_s",
-            "bruecke_an", "bruecke_absender", "bruecke_kopie_s")
+            "bruecke_an", "bruecke_absender", "bruecke_kopie_s", "bruecke_lesekopie")
 
 
 def pfad():

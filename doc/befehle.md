@@ -19,6 +19,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
+| [`takt`](#takt) | ein Durchgang für Leads: Postfach mit Text, Prüfbitten, Fragen, Antworten des Menschen, Läufe, Lead-Runde, Auslieferungen – knapp, je Punkt eine Zeile |
 | [`kontext`](#kontext) | Startinformationen für einen Agenten |
 | [`runde`](#runde) | Lead-Runde: Kanal nur zwischen den Leads aller Projekte – nur Information, nie Befehle (runde schreiben --kurz … [--an Projekt] · runde lesen [--neu]) |
 | [`regeln`](#regeln) | alle geltenden Regeln (Arbeits- und Projektregeln) |
@@ -417,11 +418,11 @@ usage: amw frage [-h] [--an {entwickler,tl,zustaendig}] [--kurz KURZ]
                  [--aufgabe AUFGABE] [--blockiert] [--text TEXT]
                  [--rueckfrage RUECKFRAGE] [--grund GRUND] [--geparkt]
                  [--anhang ANHANG] [--von VON] [--projekt PROJEKT]
-                 {neu,liste,antworten,nachtrag,verlauf,parken,aufnehmen,weiterleiten}
+                 {neu,liste,zeige,antworten,nachtrag,verlauf,parken,aufnehmen,weiterleiten}
                  [id]
 
 positional arguments:
-  {neu,liste,antworten,nachtrag,verlauf,parken,aufnehmen,weiterleiten}
+  {neu,liste,zeige,antworten,nachtrag,verlauf,parken,aufnehmen,weiterleiten}
   id
 
 options:
@@ -486,6 +487,21 @@ positional arguments:
 options:
   -h, --help         show this help message and exit
   --aufgabe AUFGABE
+  --von VON
+  --projekt PROJEKT
+```
+
+## takt
+```
+usage: amw takt [-h] [--seit SEIT] [--abhaken] [--grenze GRENZE] [--von VON]
+                [--projekt PROJEKT]
+
+options:
+  -h, --help         show this help message and exit
+  --seit SEIT        Antworten/Läufe/Auslieferungen seit (HH:MM oder Datum);
+                     sonst seit dem letzten Takt
+  --abhaken          gezeigte Infos und Meldungen gleich erledigen
+  --grenze GRENZE    höchstens so viele Nachrichten (Vorgabe 30)
   --von VON
   --projekt PROJEKT
 ```
@@ -912,10 +928,10 @@ usage: amw pruefung [-h] [--pruefer PRUEFER] [--zweig ZWEIG] [--sha SHA]
                     [--stufe {niedrig,mittel,hoch}]
                     [--gruppe {neu,verbessert,behoben}] [--hinweis HINWEIS]
                     [--ohne-bild GRUND] [--von VON] [--projekt PROJEKT]
-                    {bitte,gruen,rot,ist-gruen,liste} [id]
+                    {bitte,gruen,rot,ist-gruen,liste,zeige} [id]
 
 positional arguments:
-  {bitte,gruen,rot,ist-gruen,liste}
+  {bitte,gruen,rot,ist-gruen,liste,zeige}
   id
 
 options:

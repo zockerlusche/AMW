@@ -862,6 +862,24 @@ def cmd_frage(a, con):
         if not a.id or not a.text:
             raise kern.AmwFehler("frage nachtrag <nr> --text \"…\"")
         print(f"Nachtrag zu F{a.id} – Nachricht #{kern.frage_nachtrag(con, pid, _von(a), a.id, a.text)}")
+    elif a.aktion == "zeige":                            # A1780: ganze Frage mit Optionen und Antwort ohne SQL
+        if not a.id:
+            raise kern.AmwFehler("frage zeige <nr>")
+        f = con.execute("SELECT * FROM frage WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
+        if not f:
+            raise kern.AmwFehler(f"F{a.id} gibt es nicht")
+        status = f"geparkt seit {_zeit(f['geparkt_utc'])}" if f["geparkt_utc"] and f["status"] == "offen" else f["status"]
+        print(f"F{f['id']} ({status}) an {f['an']} · {_zeit(f['zeit_utc'])} {f['von']}" + (f" · A{f['aufgabe_id']}" if f["aufgabe_id"] else "")
+              + (" · blockiert" if f["blockiert"] else ""))
+        print(f["kurz"])
+        if f["worum"]:
+            print("Worum: " + f["worum"])
+        for o in json.loads(f["optionen"] or "[]"):
+            print(f"  {o.get('kenn')}) {o.get('text')}" + ("  ← Empfehlung" if o.get("kenn") == f["empfehlung"] else ""))
+        if f["grund"]:
+            print("Grund: " + f["grund"])
+        if f["antwort"]:
+            print(f"Antwort ({f['antwort_art']}, {_zeit(f['antwort_utc'])}): {f['antwort']}")
     elif a.aktion == "verlauf":
         if not a.id:
             raise kern.AmwFehler("frage verlauf <nr>")
@@ -894,6 +912,20 @@ def cmd_weiter(a, con):
 def cmd_taetigkeit(a, con):
     kern.taetigkeit(con, _projekt(con, a), _von(a), " ".join(a.text), a.aufgabe)
     print("Tätigkeit gesetzt" if a.text else "Tätigkeit gelöscht")
+
+
+def cmd_takt(a, con):
+    """Ein Durchgang für einen Lead in einem Aufruf (A1780)."""
+    from . import takt
+    seit = None
+    if a.seit:
+        seit = _datum(a.seit) if len(a.seit) > 5 else None
+        if seit is None:                                 # nur Uhrzeit (HH:MM): heute, lokale Zeit
+            import datetime
+            h, m = (int(x) for x in a.seit.split(":"))
+            lokal = datetime.datetime.now().replace(hour=h, minute=m, second=0, microsecond=0)
+            seit = lokal.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    print(takt.takt(con, _projekt(con, a), _von(a), seit, a.abhaken, a.grenze))
 
 
 def cmd_kontext(a, con):
@@ -1358,6 +1390,19 @@ def cmd_pruefung(a, con):
     elif a.aktion in ("gruen", "rot"):
         kette = betrieb.pruefung_ergebnis(con, pid, _von(a), a.id, a.aktion, a.bemerkung)
         print(f"P{a.id} → {a.aktion}" + (f" · {kette}" if kette else ""))
+    elif a.aktion == "zeige":                            # A1780: ganze Prüfbitte ohne SQL
+        if not a.id:
+            raise kern.AmwFehler("pruefung zeige <nr>")
+        r = con.execute("SELECT * FROM pruefung WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
+        if not r:
+            raise kern.AmwFehler(f"P{a.id} gibt es nicht")
+        print(f"P{r['id']} [{r['ergebnis']}] {r['zweig']}@{r['sha']} {r['bauer']} → {r['pruefer']}"
+              + (f" · A{r['aufgabe_id']}" if r["aufgabe_id"] else "") + f" · angefragt {_zeit(r['angefragt_utc'])}"
+              + (f" · Ergebnis {_zeit(r['ergebnis_utc'])}" if r["ergebnis_utc"] else ""))
+        if r["punkte"]:
+            print(r["punkte"])
+        if r["bemerkung"]:
+            print("Bemerkung: " + r["bemerkung"])
     elif a.aktion == "ist-gruen":
         r = betrieb.ist_gruen(con, pid, a.sha)
         print(f"grün: P{r['id']}" if r else "NICHT grün")
@@ -2415,7 +2460,7 @@ def parser():
 
     x = s.add_parser("frage", help="Fragen an den Entwickler oder Lead: neu | liste [--geparkt] | antworten | nachtrag | verlauf |"
                                     " parken N [--grund] | aufnehmen N | weiterleiten N [--text] (Lead → Entwickler)")
-    x.add_argument("aktion", choices=["neu", "liste", "antworten", "nachtrag", "verlauf", "parken", "aufnehmen", "weiterleiten"])
+    x.add_argument("aktion", choices=["neu", "liste", "zeige", "antworten", "nachtrag", "verlauf", "parken", "aufnehmen", "weiterleiten"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--an", choices=["entwickler", "tl", "zustaendig"],
                    help="zustaendig: an die Federführung der --aufgabe (sonst Meilenstein, sonst Lead)")
@@ -2449,6 +2494,13 @@ def parser():
     x.add_argument("text", nargs="*")
     x.add_argument("--aufgabe", type=nummer)
     x.set_defaults(f=cmd_taetigkeit)
+
+    x = s.add_parser("takt", help="ein Durchgang für Leads: Postfach mit Text, Prüfbitten, Fragen, Antworten des Menschen,"
+                                  " Läufe, Lead-Runde, Auslieferungen – knapp, je Punkt eine Zeile")
+    x.add_argument("--seit", help="Antworten/Läufe/Auslieferungen seit (HH:MM oder Datum); sonst seit dem letzten Takt")
+    x.add_argument("--abhaken", action="store_true", help="gezeigte Infos und Meldungen gleich erledigen")
+    x.add_argument("--grenze", type=int, default=30, help="höchstens so viele Nachrichten (Vorgabe 30)")
+    x.set_defaults(f=cmd_takt)
 
     x = s.add_parser("kontext", help="Startinformationen für einen Agenten")
     x.add_argument("agent", nargs="?")
@@ -2634,7 +2686,7 @@ def parser():
     x.set_defaults(f=cmd_server)
 
     x = s.add_parser("pruefung", help="Prüfbitte je Stand (SHA), Ergebnis grün/rot")
-    x.add_argument("aktion", choices=["bitte", "gruen", "rot", "ist-gruen", "liste"])
+    x.add_argument("aktion", choices=["bitte", "gruen", "rot", "ist-gruen", "liste", "zeige"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--pruefer")
     x.add_argument("--zweig")
@@ -2974,7 +3026,7 @@ def main(argv=None):
             con = db.verbinde()
             try:
                 _heutige_kennungen(con, a)
-                if a.cmd in ("lesen", "kontext") and _von(a) not in (kern.ENTWICKLER, "AMW"):   # A1757: Nachlesen messen
+                if a.cmd in ("lesen", "kontext", "takt") and _von(a) not in (kern.ENTWICKLER, "AMW"):   # A1757: Nachlesen messen
                     from . import nachlesen
                     try:
                         nachlesen.merken(db.projekt_name(con, _projekt(con, a)), _von(a), a.cmd)

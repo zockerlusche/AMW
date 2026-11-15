@@ -10,8 +10,9 @@ A lead working as a chat is not notified by the AMW – they only see news when 
 ## Steps
 1. **Set the interval** Enter the interval under Settings › Project. It says how often the lead looks at the latest.
 2. **Create the first scheduled task** In their chat app, the lead creates a one-off scheduled task – for now plus the interval, with a short neutral text (such as “check the AMW”). What to do is in the AMW, not in the scheduled task.
-3. **At the end of every check-in** Look, work through it – and as the last thing create a **new** one-off scheduled task for the next check-in.
-4. **Tidy up** Leave expired scheduled tasks or delete them.
+3. **Look with one command** `amw takt` – through the file exchange as the command file `{"befehl": "takt"}`. The answer is in the erledigt/ folder after one or two seconds. It shows briefly, one line per item: the inbox with shortened text, review requests to you, questions from agents, answers from the human, runs with their waiting reason, the lead round and deliveries. Read in full with the command shown next to it (`amw lesen <no>`, `amw pruefung zeige <P>`, `amw frage zeige <F>`). With `--abhaken` the infos and notices shown are done right away.
+4. **At the end of every check-in** Look, work through it – and as the last thing create a **new** one-off scheduled task for the next check-in.
+5. **Tidy up** Leave expired scheduled tasks or delete them.
 
 ## Common problems
 - **The check-ins stop** – An existing scheduled task was changed (time, text, name, on/off or “recurring”). Every change to an existing scheduled task requires a click by the human; until then nothing happens. Remedy: delete it and create a new one.
@@ -23,6 +24,9 @@ A lead working as a chat is not notified by the AMW – they only see news when 
 - Agents working in the terminal do not need this – the AMW notifies them.
 
 ## Questions
+### May I read the database directly with SQL?
+No – use `amw takt` and the commands named there. A read copy for SQL exists only if the human switches it on under Settings › This PC › “Read copy of the database for leads”; it is up to a minute old.
+
 ### Why not a recurring scheduled task?
 What was verified: creating and deleting work without a prompt, any change to an existing scheduled task does not. A one-off scheduled task, created anew each time, needs no click by the human.
 

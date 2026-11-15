@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.113.0 – 15.11.2026 · `amw takt`: ein Durchgang für Leads in einem Aufruf
+- **Neu:** `amw takt` zeigt einem Lead knapp, was er für einen Durchgang braucht: Postfach mit gekürztem Text, Prüfbitten an
+  ihn, Fragen der Agenten, Antworten des Menschen, Läufe mit Wartegrund, Lead-Runde und Auslieferungen – je Punkt eine Zeile
+  mit dem Befehl zum ganz Lesen. Geht auch über den Dateiaustausch. `--abhaken` erledigt gezeigte Infos und Meldungen.
+- **Neu:** `amw pruefung zeige <P>` und `amw frage zeige <F>` zeigen eine Prüfbitte bzw. Frage ganz (mit Optionen und Antwort).
+- **Verbessert:** Der Dateiaustausch antwortet in ein bis zwei Sekunden statt bis zu sechs.
+- **Verbessert:** Die Lese-Kopie der Datenbank für Leads ist abschaltbar (Einstellungen › Dieser PC) und ab jetzt aus – Leads
+  nehmen `amw takt`. Hilfe „Rhythmus für einen Lead, der als Chat arbeitet“ ergänzt.
 ## 1.112.3 – 15.11.2026 · Keine aufblitzenden Konsolenfenster mehr
 - **Behoben:** Der Dienst öffnete bei jeder Abfrage von git und gh kurz ein Konsolenfenster – am laufenden Band. Alle
   Hilfsprogramme laufen jetzt ohne Fenster.
