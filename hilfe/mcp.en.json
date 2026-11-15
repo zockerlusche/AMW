@@ -1,0 +1,62 @@
+{
+ "titel": "Connect the AMW to Claude (MCP)",
+ "kurz": "A lead who works as a chat in the Claude app can call the AMW directly as a tool – without the file exchange, faster and with less text. For this the AMW runs as a small MCP server on this PC; the Claude app starts it itself.",
+ "brauchst": [
+  "The Claude app for Windows on this PC (the server runs locally, not in the browser).",
+  "Python on this PC (the same one the AMW runs with).",
+  "The name of the project and of the lead, e.g. project `GlassWorld`, lead `TL`."
+ ],
+ "schritte": [
+  {
+   "titel": "Open the configuration",
+   "text": "In the Claude app: Settings › Developer › “Edit config”. This opens the file `claude_desktop_config.json`.",
+   "bilder": []
+  },
+  {
+   "titel": "Add an entry",
+   "text": "One entry per project under `mcpServers` – the name is up to you, the path is the AMW folder: ```json { \"mcpServers\": { \"amw-glassworld\": { \"command\": \"python\", \"args\": [\"F:/amw/amw-mcp.py\", \"--projekt\", \"GlassWorld\", \"--von\", \"TL\"] } } } ``` If there is already something under `mcpServers`, only add the new entry (with a comma).",
+   "bilder": []
+  },
+  {
+   "titel": "Restart the Claude app",
+   "text": "Quit it completely (also from the notification area of the taskbar) and open it again.",
+   "bilder": []
+  },
+  {
+   "titel": "Switch it on in the chat",
+   "text": "In the lead's chat, under “Search and tools”, switch on the `amw-…` entry of its project – and only that one.",
+   "bilder": []
+  },
+  {
+   "titel": "Try it",
+   "text": "Ask the lead: “Call takt.” They get their check-in: inbox, review requests, questions, answers, runs, lead round, deliveries.",
+   "bilder": []
+  }
+ ],
+ "werte": [],
+ "fehler": [
+  [
+   "The tools do not appear",
+   "The app was not quit completely, or a comma is missing in the file. The app shows errors under Settings › Developer."
+  ],
+  [
+   "“Python not found”",
+   "Enter the full path to python.exe instead of `python`."
+  ],
+  [
+   "The lead acts in the wrong project",
+   "The entry of another project is switched on in the chat. Each entry always acts as the agent named in it; switch on only your own in the chat."
+  ]
+ ],
+ "danach": [
+  "**takt** – one check-in in one call (like `amw takt`).",
+  "**lesen** – open messages, with numbers the full texts.",
+  "**posten** – send a message (recipient, kind and short text are required).",
+  "Every tool calls the same command as the command line – with the same rights and checks.",
+  "The file exchange stays as a fallback.",
+  "The human adds the entry: the file belongs to the Claude app, not to the AMW."
+ ],
+ "fragen": [],
+ "thema": "mcp",
+ "sprache": "en"
+}
