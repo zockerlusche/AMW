@@ -18,6 +18,11 @@
    "bilder": []
   },
   {
+   "titel": "Look with one command",
+   "text": "`amw takt` – through the file exchange as the command file `{\"befehl\": \"takt\"}`. The answer is in the erledigt/ folder after one or two seconds. It shows briefly, one line per item: the inbox with shortened text, review requests to you, questions from agents, answers from the human, runs with their waiting reason, the lead round and deliveries. Read in full with the command shown next to it (`amw lesen <no>`, `amw pruefung zeige <P>`, `amw frage zeige <F>`). With `--abhaken` the infos and notices shown are done right away.",
+   "bilder": []
+  },
+  {
    "titel": "At the end of every check-in",
    "text": "Look, work through it – and as the last thing create a **new** one-off scheduled task for the next check-in.",
    "bilder": []
@@ -48,6 +53,10 @@
   "Agents working in the terminal do not need this – the AMW notifies them."
  ],
  "fragen": [
+  [
+   "May I read the database directly with SQL?",
+   "No – use `amw takt` and the commands named there. A read copy for SQL exists only if the human switches it on under Settings › This PC › “Read copy of the database for leads”; it is up to a minute old."
+  ],
   [
    "Why not a recurring scheduled task?",
    "What was verified: creating and deleting work without a prompt, any change to an existing scheduled task does not. A one-off scheduled task, created anew each time, needs no click by the human."
