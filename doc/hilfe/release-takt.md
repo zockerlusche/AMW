@@ -18,6 +18,7 @@ Die AMW kann zwei Dinge für dich regeln: wie streng eine Änderung geprüft wir
 | Eigene Muster | Befehlszeile: `amw projekt einstellen 'pruef_muster={"hoch": ["src/db/*"], "mittel": ["ui/*"], "niedrig": ["docs/*", "tests/*"]}'` |
 
 ## Typische Fehler
+- **„Version 1.2.0 ist schon vergeben“ bei der Prüfbitte** – Eine andere Aufgabe trägt diese Nummer schon (offene oder grüne, noch nicht ausgelieferte Prüfung), sie liegt nicht über main oder es gibt den Tag schon. Die Meldung nennt die nächste freie Nummer; die im Stand ändern und neu einreichen.
 - **„Prüfstufe hoch – prüfen muss …“** – Die Prüfbitte ging an einen Agenten, die Stufe verlangt den Lead. Prüfbitte an den Lead stellen.
 - **„Prüfstufe unbekannt“** – Die AMW konnte die geänderten Dateien nicht lesen: Projektordner fehlt oder der Stand ist dort unbekannt. Sie zählt dann wie hoch.
 - **Keine Nachricht im Takt „je Meilenstein“** – Es meldet sich erst, wenn jede offene Aufgabe des Meilensteins bereit ist.

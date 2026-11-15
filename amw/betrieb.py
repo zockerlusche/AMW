@@ -978,6 +978,8 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
             raise kern.AmwFehler(str(e)) from None
         kern._aufgabe_fuer_aenderung(con, pid, bauer, aufgabe_id)
     sha = voller_sha(con, pid, sha)                  # gespeichert wird der volle Stand – die Release-Kette vergleicht genau
+    from . import versionsnummer                     # A1753: Nummer frei? (nicht live, kein Tag, nicht von einer anderen Aufgabe belegt)
+    versionsnummer.pruefen(con, pid, sha, aufgabe_id)
     from . import pruefstufe                         # A1656: welche Dateien der Stand ändert → Prüfstufe (vor dem Schreiben, ruft git)
     info = pruefstufe.stufe(con, pid, sha)
     info["stufe"] = pruefstufe.regel(con, pid, info, bauer, pruefer, stufe)   # mit „pruefstufen = an“: wer prüfen darf

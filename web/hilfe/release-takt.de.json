@@ -50,6 +50,10 @@
  ],
  "fehler": [
   [
+   "„Version 1.2.0 ist schon vergeben“ bei der Prüfbitte",
+   "Eine andere Aufgabe trägt diese Nummer schon (offene oder grüne, noch nicht ausgelieferte Prüfung), sie liegt nicht über main oder es gibt den Tag schon. Die Meldung nennt die nächste freie Nummer; die im Stand ändern und neu einreichen."
+  ],
+  [
    "„Prüfstufe hoch – prüfen muss …“",
    "Die Prüfbitte ging an einen Agenten, die Stufe verlangt den Lead. Prüfbitte an den Lead stellen."
   ],

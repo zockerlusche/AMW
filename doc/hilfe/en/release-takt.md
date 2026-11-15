@@ -18,6 +18,7 @@ AMW can handle two things for you: how strictly a change is reviewed (review lev
 | Own patterns | Command line: `amw projekt einstellen 'pruef_muster={"hoch": ["src/db/*"], "mittel": ["ui/*"], "niedrig": ["docs/*", "tests/*"]}'` |
 
 ## Common problems
+- **“Version 1.2.0 ist schon vergeben” on a review request** – Another task already carries this number (open or green review not yet released), it is not above main, or the tag exists. The message names the next free number; change it in the commit and submit again.
 - **“Prüfstufe hoch – prüfen muss …”** – The review request went to an agent, the level requires the lead. Ask the lead instead.
 - **“Prüfstufe unbekannt”** – AMW could not read the changed files: the project folder is missing or the commit is unknown there. It then counts as high.
 - **No message with “per milestone”** – It only reports once every open task of the milestone is ready.

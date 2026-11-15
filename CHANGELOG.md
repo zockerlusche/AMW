@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.110.0 – 15.11.2026 · Versionsnummer wird schon bei der Prüfbitte geprüft
+- `amw pruefung bitte` liest die Versionsnummer aus dem Stand (`VERSION`, `amw/__init__.py` oder `package.json`) und lehnt ab,
+  wenn sie nicht über main liegt, als Tag schon existiert oder eine andere Aufgabe sie in einer offenen oder grünen, noch nicht
+  ausgelieferten Prüfung trägt. Die Meldung nennt die nächste freie Nummer. Dieselbe Aufgabe darf ihre Nummer behalten
+  (neuer Stand nach ROT, neu aufgesetzt). So fällt eine doppelt vergebene Nummer nicht erst beim Ausliefern auf.
+
 ## 1.109.2 – 15.11.2026 · Merge-OK passt immer zur Prüfung
 - **Behoben:** Ein Merge-OK auf den falschen Zweig ließ die Auslieferung später hängen. Jetzt nimmt `amw freigabe merge A…`
   ohne `--zweig` den Zweig der jüngsten grünen Prüfung dieser Aufgabe; ein angegebener Zweig muss zu einer grünen oder offenen
