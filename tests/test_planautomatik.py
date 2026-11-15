@@ -116,9 +116,9 @@ class GitHubMerge(Grund):
         self.art("cloud")
         a, rot, geraet = self.aufgabe(), self.aufgabe(titel="CI rot"), self.aufgabe(titel="Am Gerät bestätigen")
         kern.aufgabe_status(self.con, self.pid, "CC1", geraet, "wartet", auf="Entwickler")
-        self.prs = [{"number": 12, "title": f"Karte neu (A{a})", "body": f"auch A{geraet}", "mergedAt": "2026-11-15T07:00:00Z",
+        self.prs = [{"number": 12, "title": f"A{a}: Karte neu", "body": f"fertig: A{geraet}", "mergedAt": "2026-11-15T07:00:00Z",
                      "mergeCommit": {"oid": "abcdef1234567"}, "statusCheckRollup": [{"conclusion": "SUCCESS"}, {"state": "SUCCESS"}]},
-                    {"number": 13, "title": f"Fix A{rot}", "body": "", "mergeCommit": {"oid": "1111111"},
+                    {"number": 13, "title": f"A{rot}: Fix", "body": "", "mergeCommit": {"oid": "1111111"},
                      "statusCheckRollup": [{"conclusion": "FAILURE"}]}]
         aus = planautomatik.github_projekt(self.con, self.pid, laufen=self.laufen, jetzt=1000.0)
         self.assertEqual([x["aufgabe"] for x in aus], [a])
@@ -131,6 +131,25 @@ class GitHubMerge(Grund):
         n = len(self.aufrufe)
         planautomatik.github_projekt(self.con, self.pid, laufen=self.laufen, jetzt=1100.0)   # < 5 min später: keine Abfrage
         self.assertEqual(len(self.aufrufe), n)
+
+    def test_nur_ausdruecklich_genannte_aufgaben(self):
+        """TL P186: bloßes Erwähnen („Vorarbeit für A1235“, „siehe A1200“) setzt nichts fertig – nur A-Nummern am Anfang des
+        Titels oder im Text hinter einem Schlüsselwort."""
+        f = planautomatik.aufgaben_im_pr
+        self.assertEqual(f("A1234: Karte neu", ""), {1234})
+        self.assertEqual(f("[A1234] Karte", ""), {1234})
+        self.assertEqual(f("A1234, A1235: zwei", ""), {1234, 1235})
+        self.assertEqual(f("A1234", None), {1234})
+        self.assertEqual(f("Karte", "fertig: A1300"), {1300})
+        self.assertEqual(f("Karte", "Closes A1301 und A1302"), {1301, 1302})
+        self.assertEqual(f("Vorarbeit für A1235", "siehe A1200"), set())
+        self.assertEqual(f("xA1234: nein", "A1234 wird später erledigt"), set())
+        self.art("cloud")
+        a, b = self.aufgabe(), self.aufgabe(titel="Nur erwähnt")
+        self.prs = [{"number": 20, "title": f"Vorarbeit für A{b}", "body": f"fertig: A{a}", "mergeCommit": {"oid": "2222222"},
+                     "statusCheckRollup": []}]
+        planautomatik.github_projekt(self.con, self.pid, laufen=self.laufen, jetzt=1000.0)
+        self.assertEqual((self.status(a), self.status(b)), ("fertig", "wartet"))
 
     def test_nur_dieser_pc_fragt_github_nie(self):
         self.art("pc")

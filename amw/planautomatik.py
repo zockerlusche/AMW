@@ -118,6 +118,23 @@ GH_TAKT_S = 300            # je Projekt höchstens alle 5 Minuten (TL #26380: �
 GH_FRIST_S = 30
 _gh_zuletzt = {}           # Projekt → Zeitpunkt der letzten Abfrage (Zustand im Dienst)
 GRUEN = {"SUCCESS", "NEUTRAL", "SKIPPED"}
+# Welche Aufgaben ein PR erledigt (TL P186): nur ausdrücklich – A-Nummern am Anfang des Titels („A1234: …“, „[A1234] …“,
+# „A1234, A1235: …“) oder im Text hinter einem Schlüsselwort („fertig: A1234“, „closes A1234“). Bloßes Erwähnen
+# („Vorarbeit für A1235“, „siehe A1200“) zählt nicht – sonst wäre die falsche Aufgabe fertig.
+_A = r"A\d{1,6}(?!\d)"
+_LISTE = rf"{_A}(?:\s*(?:,|/|\+|&|und|and)\s*{_A})*"
+PR_TITEL = re.compile(rf"^\s*\[?\s*({_LISTE})\s*\]?\s*(?::|–|—|-|\s|$)", re.IGNORECASE)
+PR_TEXT = re.compile(rf"(?<![\w-])(?:fertig|erledigt|closes|closed|close|fixes|fixed|fix|resolves|resolved|resolve)\s*:?\s*({_LISTE})",
+                     re.IGNORECASE)
+
+
+def aufgaben_im_pr(titel, text):
+    """Die Aufgaben-Nummern, die ein PR ausdrücklich erledigt (Menge)."""
+    nummern = set()
+    for m in [PR_TITEL.match(titel or "")] + list(PR_TEXT.finditer(text or "")):
+        if m:
+            nummern |= {int(x) for x in re.findall(r"\d+", m.group(1))}
+    return nummern
 
 
 def _git_remote(ordner, laufen):
@@ -173,7 +190,7 @@ def github_projekt(con, pid, laufen=_laufen, jetzt=None):
     for pr in prs:
         if not ci_gruen(pr):
             continue
-        nummern = {int(m.group(1)) for m in AUFGABE_IM_TEXT.finditer(f"{pr.get('title') or ''}\n{pr.get('body') or ''}")}
+        nummern = aufgaben_im_pr(pr.get("title"), pr.get("body"))
         for aid in sorted(nummern):
             a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
             if not a or a["status"] in ("fertig", "verworfen"):
