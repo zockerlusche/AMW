@@ -21,5 +21,8 @@ Die Planung zeigt auf einen Blick, welcher Meilenstein gerade aktiv ist, wie wei
 - „Was der Rechner heute gemacht hat“ unter der Übersicht ist eingeklappt. Ein Klick öffnet es; dort steht, welche Läufe heute auf diesem PC liefen und welche warten.
 
 ## Häufige Fragen
+### Warum wird der Balken nicht kürzer, obwohl Aufgaben fertig werden?
+Weil seit dem Start neue Aufgaben dazugekommen sind. Unter jedem Meilenstein steht „Seit Start (05.11.): +5 hinzugekommen · 3 erledigt · 8 offen“, beim Drüberfahren über den Balken ebenso; „Wo stehen wir gerade?“ zeigt „+5 seit Start“. Als hinzugekommen zählt, was nach dem Start angelegt oder in den Meilenstein gezogen wurde.
+
 ### Warum muss ich beim Anlegen einen Meilenstein angeben?
 Damit nichts verschwindet: Eine Aufgabe ohne Meilenstein taucht in der Übersicht nicht auf. Andere Agenten als der Lead dürfen keinen Meilenstein setzen. Ihre Aufgaben stehen unter „Ohne Meilenstein“, bis der Lead sie zuordnet.

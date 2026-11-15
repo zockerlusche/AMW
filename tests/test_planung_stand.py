@@ -46,6 +46,48 @@ class Daten(Grund):
         self.assertEqual([(x["id"], x["agent"], x["bogen_id"]) for x in d["laeuft"]], [(ohne, "CC1", None)])   # auch ohne Meilenstein
 
 
+class Zuwachs(Grund):
+    """A1739 (Marcel 15.11., W2153): je Meilenstein sichtbar, was seit dem Start dazukam und fertig wurde – sonst wundert man
+    sich, warum der Balken nicht kürzer wird."""
+
+    def zeit(self, aid, angelegt, fertig=None):
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET angelegt_utc = ?, status = CASE WHEN ? IS NULL THEN status ELSE 'fertig' END,"
+                             " fertig_utc = ?, beleg = CASE WHEN ? IS NULL THEN beleg ELSE 'abc1234' END WHERE id = ?",
+                             (angelegt, fertig, fertig, fertig, aid))
+
+    def test_seit_start_hinzugekommen_erledigt_offen(self):
+        bid = planung.bogen_neu(self.con, self.pid, "TL", "Karten-Look", ziel="z", abnahme="a")
+        alt = [kern.aufgabe_neu(self.con, self.pid, "TL", f"Alt {i}", agent="CC1") for i in range(3)]
+        for x in alt:
+            planung.schritt_setzen(self.con, self.pid, "TL", aid=x, bogen_id=bid)
+            self.zeit(x, "2026-11-01T08:00:00Z")
+        with db.schreiben(self.con):                                                # vor dem Start zugeordnet (01.11.)
+            self.con.execute("UPDATE plan_ereignis SET zeit_utc = '2026-11-01T09:00:00Z' WHERE art = 'aufgabe_bogen'")
+        self.assertIsNone(planung.zuwachs(self.con, planung.bogen_zeile(self.con, self.pid, bid)))     # geplant: noch kein Start
+        planung.bogen_status(self.con, self.pid, "TL", bid, "aktiv")
+        with db.schreiben(self.con):                                                # Start festnageln: 10.11.
+            self.con.execute("UPDATE plan_ereignis SET zeit_utc = '2026-11-10T08:00:00Z' WHERE art = 'bogen_status' AND bogen_id = ?", (bid,))
+        self.zeit(alt[0], "2026-11-01T08:00:00Z", fertig="2026-11-11T08:00:00Z")    # nach dem Start erledigt
+        self.zeit(alt[1], "2026-11-01T08:00:00Z", fertig="2026-11-09T08:00:00Z")    # vor dem Start erledigt – zählt nicht
+        neu = [kern.aufgabe_neu(self.con, self.pid, "TL", f"Neu {i}", agent="CC1") for i in range(2)]
+        for x in neu:
+            planung.schritt_setzen(self.con, self.pid, "TL", aid=x, bogen_id=bid)   # nach dem Start angelegt
+        alt_ohne = kern.aufgabe_neu(self.con, self.pid, "TL", "Alt, später hineingezogen", agent="CC1")
+        self.zeit(alt_ohne, "2026-11-01T08:00:00Z")
+        planung.schritt_setzen(self.con, self.pid, "TL", aid=alt_ohne, bogen_id=bid)  # hineingezogen: plan_ereignis aufgabe_bogen
+        weg = kern.aufgabe_neu(self.con, self.pid, "TL", "Verworfen", agent="CC1")
+        planung.schritt_setzen(self.con, self.pid, "TL", aid=weg, bogen_id=bid)
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'verworfen', beleg = 'x' WHERE id = ?", (weg,))
+        z = planung.zuwachs(self.con, planung.bogen_zeile(self.con, self.pid, bid))
+        self.assertEqual((z["seit"][:10], z["neu"], z["erledigt"], z["offen"]), ("2026-11-10", 3, 1, 4))
+        b = next(x for x in workbench.daten_planung(self.con, self.pid)["boegen"] if x["id"] == bid)
+        self.assertEqual(b["zuwachs"]["neu"], 3)                                     # kommt in Planung und Übersicht an
+        rc, aus = self.cli("bogen", "liste", "--von", "TL", "--projekt", "Eins")
+        self.assertIn("seit Start 2026-11-10: +3 neu, 1 erledigt, 4 offen", aus)
+
+
 class NeueAufgabe(Grund):
     def test_fragt_nach_dem_meilenstein(self):
         rc, aus = self.cli("aufgabe", "neu", "--titel", "Vorher", "--von", "TL", "--projekt", "Eins")

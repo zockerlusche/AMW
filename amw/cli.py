@@ -668,6 +668,8 @@ def cmd_bogen(a, con):
             p = prog["boegen"].get(b["id"], {})
             print(f"Meilenstein {b['id']:<3} [{b['status']:<9}] {b['fertig']}/{b['gesamt'] - b['verworfen']} fertig"
                   + (f", {b['blockiert']} blockiert" if b["blockiert"] else "")
+                  + (f" · seit Start {b['zuwachs']['seit'][:10]}: +{b['zuwachs']['neu']} neu, {b['zuwachs']['erledigt']} erledigt, {b['zuwachs']['offen']} offen"
+                     if b.get("zuwachs") else "")
                   + (f" · Ziel {b['zieldatum']}" if b["zieldatum"] else "")
                   + (f" · Prognose {p['p50']}/{p['p85']} ({p['ampel'] or '–'})" if p else "") + f"  {b['titel']}")
 

@@ -161,8 +161,27 @@ def boegen(con, pid):
         blockiert = sum(1 for (aid,) in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ? AND status NOT IN ('fertig', 'verworfen')",
                                                     (b["id"],)).fetchall() if offene_vorgaenger(con, aid))
         aus.append({**dict(b), "gesamt": z["gesamt"] or 0, "fertig": z["fertig"] or 0, "verworfen": z["verworfen"] or 0,
-                    "laeuft": z["laeuft"] or 0, "blockiert": blockiert, "spec": spec})
+                    "laeuft": z["laeuft"] or 0, "blockiert": blockiert, "spec": spec, "zuwachs": zuwachs(con, b)})
     return aus
+
+
+def zuwachs(con, b):
+    """A1739: Was seit dem Start des Meilensteins dazukam und fertig wurde – damit sichtbar ist, warum ein Balken nicht kürzer
+    wird. Start = erster Wechsel auf „aktiv“ (sonst angelegt). Hinzugekommen: danach angelegt oder danach hineingezogen
+    (plan_ereignis aufgabe_bogen); verworfene zählen nicht. Für geplante Meilensteine None."""
+    if b["status"] not in ("aktiv", "fertig"):
+        return None
+    r = con.execute("SELECT min(zeit_utc) FROM plan_ereignis WHERE bogen_id = ? AND art = 'bogen_status' AND text LIKE '%→ aktiv'",
+                    (b["id"],)).fetchone()
+    seit = r[0] or b["angelegt_utc"]
+    neu = con.execute(
+        "SELECT count(*) FROM aufgabe a WHERE a.bogen_id = ? AND a.status != 'verworfen' AND (a.angelegt_utc > ? OR EXISTS ("
+        "SELECT 1 FROM plan_ereignis e WHERE e.aufgabe_id = a.id AND e.art = 'aufgabe_bogen' AND e.bogen_id = a.bogen_id"
+        " AND e.zeit_utc > ?))", (b["id"], seit, seit)).fetchone()[0]
+    erledigt, offen = con.execute(
+        "SELECT sum(status = 'fertig' AND fertig_utc >= ?), sum(status NOT IN ('fertig', 'verworfen')) FROM aufgabe WHERE bogen_id = ?",
+        (seit, b["id"])).fetchone()
+    return {"seit": seit, "neu": neu, "erledigt": erledigt or 0, "offen": offen or 0}
 
 
 # --- Spezifikation -------------------------------------------------------------------------------
@@ -375,6 +394,8 @@ def schritt_setzen(con, pid, von, aid=None, titel=None, nach=None, **werte):
         with db.schreiben(con):
             con.execute(f"UPDATE aufgabe SET {', '.join(k + ' = ?' for k in satz)}, geaendert_utc = ? WHERE id = ?",
                         (*satz.values(), db.jetzt(), aid))      # Spaltennamen nur aus FELDER
+            if "bogen_id" in satz and satz["bogen_id"] != alt["bogen_id"]:   # Zuwachs je Meilenstein (A1739): wann hineingezogen
+                _log(con, pid, von, "aufgabe_bogen", f"{alt['bogen_id'] or '–'} → {satz['bogen_id']}", bogen_id=satz["bogen_id"], aufgabe_id=aid)
     if nach:
         abhaengigkeit_setzen(con, pid, von, aid, nach)
     return aid

@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.101.0 – 15.11.2026 · Planung: Was seit dem Start dazukam
+- Unter jedem aktiven oder fertigen Meilenstein steht jetzt „Seit Start (05.11.): +5 hinzugekommen · 3 erledigt · 8 offen“, beim
+  Drüberfahren über seinen Balken in der Übersicht ebenso. „Wo stehen wir gerade?“ zeigt „+5 seit Start“. So ist zu sehen,
+  warum ein Balken nicht kürzer wird, obwohl Aufgaben fertig werden.
+- Als hinzugekommen zählt, was nach dem Start angelegt oder in den Meilenstein gezogen wurde. Das Hineinziehen hält die AMW ab
+  jetzt fest; früher hineingezogene Aufgaben zählen nur, wenn sie nach dem Start angelegt wurden.
+- `amw bogen liste` zeigt dieselben Zahlen; neue Frage in der Hilfe „Planung“.
+
 ## 1.100.4 – 15.11.2026 · Bilder im Vollbild auf dem iPad
 - **Behoben:** Auf dem iPad blieb ein Bild im Vollbild schwarz, obwohl Vorschau und Dialog es zeigten. Beim Laden des Bilds
   hatte das Vollbild noch keine Größe, das Bild wurde auf null verkleinert und danach nie neu eingepasst. Jetzt passt die
