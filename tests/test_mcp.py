@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 from amw import db, kern, mcp_server
@@ -132,6 +133,30 @@ class Schema(unittest.TestCase):
                     cli.parser().parse_args(argv)
                 except SystemExit:
                     self.fail(f"{name}: {argv}")
+
+    def test_haengender_befehl_blockiert_nicht_still(self):
+        """TL P205: nach dem Zeitlimit hält der hängende Faden die Sperre – weitere Aufrufe bekommen sofort eine Meldung."""
+        import threading
+        from unittest import mock
+        los = threading.Event()
+        def langsam(argv):
+            los.wait(10)
+            return 0, "spät fertig", ""
+        s = mcp_server.Server("Spiel", "TL")
+        with mock.patch.object(mcp_server, "befehl_ausfuehren", side_effect=langsam), mock.patch.object(mcp_server, "FRIST_S", 0.3):
+            r = s.werkzeug("takt", {})
+            self.assertTrue(r["isError"])
+            self.assertIn("Zeitlimit", r["content"][0]["text"])
+            r = s.werkzeug("lesen", {})
+            self.assertTrue(r["isError"])
+            self.assertIn("vorige Befehl (takt) hängt seit", r["content"][0]["text"])   # sofort, nicht nach weiteren 0,3 s
+            los.set()
+            for _ in range(50):
+                if not s.sperre.locked():
+                    break
+                time.sleep(0.05)
+            r = s.werkzeug("lesen", {})
+            self.assertFalse(r["isError"], r)                                          # danach geht es weiter
 
     def test_keine_optionen_durch_die_hintertuer(self):
         self.assertIn("darf nicht mit -", mcp_server._pruefen("zeige", {"refs": ["--von"]}))

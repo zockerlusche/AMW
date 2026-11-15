@@ -16,6 +16,7 @@ import json
 import logging
 import sys
 import threading
+import time
 
 from . import __version__, cli
 
@@ -222,6 +223,7 @@ class Server:
     def __init__(self, projekt, von):
         self.projekt, self.von = projekt, von
         self.sperre = threading.Lock()                    # cli.main nacheinander (Umleitung von stdout ist prozessweit)
+        self.haengt = None                                # (Werkzeug, Start) eines Befehls, der das Zeitlimit überschritten hat
 
     def werkzeug(self, name, args):
         if name not in WERKZEUGE:
@@ -233,6 +235,14 @@ class Server:
         if fehler:
             return {"content": [{"type": "text", "text": fehler}], "isError": True}
         argv = befehlszeile(name, args) + ["--projekt", self.projekt, "--von", self.von]
+        haengt = self.haengt
+        if haengt and self.sperre.locked():               # TL P205: nicht still hinter einem hängenden Befehl blockieren
+            seit = int(time.monotonic() - haengt[1])
+            log.warning("MCP: %s abgelehnt – %s hängt seit %s s", name, haengt[0], seit)
+            return {"content": [{"type": "text", "text": f"Noch nicht ausgeführt: der vorige Befehl ({haengt[0]}) hängt seit {seit} s"
+                                 " (Datenbank belegt oder Rechner überlastet). Er kann noch fertig werden – in einer Minute erneut"
+                                 " versuchen; bleibt es so, die Claude-App neu starten (beendet diesen Server)."}], "isError": True}
+        self.haengt = None
         ergebnis = {}
 
         def los():
@@ -242,8 +252,11 @@ class Server:
         f.start()
         f.join(FRIST_S)
         if f.is_alive():
+            self.haengt = (name, time.monotonic() - FRIST_S)
+            log.warning("MCP: %s nach %s s ohne Ergebnis", name, FRIST_S)
             return {"content": [{"type": "text", "text": f"Zeitlimit {FRIST_S} s – der Befehl hat nicht geantwortet (Datenbank belegt?)."
-                                 " Im Zweifel mit takt/lesen nachsehen, bevor du ihn wiederholst."}], "isError": True}
+                                 " Er läuft im Hintergrund weiter; bis er endet, lehnt dieser Server weitere Befehle mit einer"
+                                 " Meldung ab. Im Zweifel danach mit takt/lesen nachsehen, bevor du ihn wiederholst."}], "isError": True}
         rc, aus, err = ergebnis["w"]
         text = (aus + (("\n" if aus else "") + err if err else "")).strip() or ("ok" if rc == 0 else f"Fehler (rc {rc})")
         return {"content": [{"type": "text", "text": text}], "isError": rc != 0}
