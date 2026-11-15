@@ -272,6 +272,39 @@ def vram_frei_gb():
         return None
 
 
+def grafik_lage():
+    """(gesamt_gb, frei_gb, [Programme mit Grafikkarte]) aus nvidia-smi – nur Programmnamen, keine Fenstertitel; Windows-eigene
+    Teile (C:\\Windows, SystemApps) und unbekannte (keine Rechte) weggelassen. None, wenn nicht messbar (A1765)."""
+    import subprocess
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    try:
+        a = subprocess.run(["nvidia-smi", "--query-gpu=memory.total,memory.free", "--format=csv,noheader,nounits"], capture_output=True,
+                           text=True, timeout=10, creationflags=flags)
+        werte = [[int(x) for x in z.split(",")] for z in a.stdout.splitlines() if z.strip()]
+        if a.returncode or not werte:
+            return None
+        gesamt, frei = max(werte, key=lambda w: w[0])
+        b = subprocess.run(["nvidia-smi", "--query-compute-apps=process_name", "--format=csv,noheader"], capture_output=True,
+                           text=True, timeout=10, creationflags=flags)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+    namen = []
+    for z in b.stdout.splitlines():
+        z = z.strip()
+        if not z or z.startswith("[") or "\\windows\\" in z.lower() or "\\systemapps\\" in z.lower():
+            continue
+        teile = z.replace("/", "\\").split("\\")
+        name = teile[-1].rsplit(".", 1)[0]
+        if name.lower() == "python" and len(teile) > 2:   # python.exe sagt nichts – der Ordner sagt, was es ist (z. B. ComfyUI)
+            name = f"python ({next((t for t in teile if t.lower() not in ('', 'e:', 'c:', 'f:', 'ki', 'python_embeded', 'python.exe')), 'python')})"
+        if name not in namen:
+            namen.append(name)
+    import re                                            # Großverbraucher zuerst (Speicher je Programm meldet Windows hier nicht)
+    gross = re.compile(r"python|godot|blender|unity|unreal|ollama|comfy|stable|steam|obs|davinci|game", re.IGNORECASE)
+    namen.sort(key=lambda n: 0 if gross.search(n) else 1)
+    return round(gesamt / 1024, 1), round(frei / 1024, 1), namen
+
+
 def platte_frei_gb(con, pid):
     """Freier Platz in GB auf dem Laufwerk des Projektordners (ohne Ordner: auf dem der Datenbank) oder None."""
     import os
@@ -887,9 +920,18 @@ def wartegrund(con, pid, l, speicher_frei=None):
         if g and _grafik_passt_nie(con, l):
             g += (" – auch ohne Lauf auf der Grafikkarte zu wenig: andere Läufe mit Fenster ziehen vorbei, bis außerhalb der"
                   " Schlange Grafikspeicher frei wird")
+            lage = grafik_lage()                         # A1765: was belegt ihn, was geht höchstens, was tun
+            if lage:
+                gesamt, frei_v, namen = lage
+                g += (f". Karte {gesamt:g} GB, außerhalb der Schlange belegt {gesamt - frei_v:.1f} GB"
+                      + (f" (u. a. {', '.join(namen[:4])})" if namen else "")
+                      + f" – mehr als {frei_v:g} GB gibt es erst, wenn dort Programme geschlossen werden (das tut nur der Mensch;"
+                        " die AMW beendet nur, was sie selbst gestartet hat). Sonst weniger anfordern (--braucht-vram-gb) oder ohne --gpu")
     if g:
         gruende.append(g)
     kopf = f"Platz {platz} von {len(w)}" if platz else "nicht in der Schlange"
+    if platz and l["rang"]:
+        kopf += f" ({vorgezogen_text(l['rang'])})"
     st = vorrang_stufe(con, pid)
     if platz and st != "normal":
         kopf += f" ({t_vorrang(st)} für {projekt_name(con, pid)})"
@@ -926,6 +968,13 @@ def warteposition(con, pid, l):
     return {"lauf": l["id"], "platz": platz, "von": len(w), "auf": auf[:3], "grund": wartegrund(con, pid, l) if platz else None}
 
 
+def vorgezogen_text(rang):
+    """Wie ein Lauf vorgezogen ist (A1765): vom Menschen ganz vorn, vom Lead nur vor die Läufe seines Projekts."""
+    if not rang:
+        return ""
+    return "vom Entwickler vorgezogen – ganz vorn" if rang >= MENSCH_RANG else "im Projekt vorgezogen – vor andere Projekte stellt nur der Entwickler"
+
+
 def lauf_vorziehen(con, pid, von, lid):
     """Vorziehen. Der Mensch stellt einen wartenden Lauf an die Spitze der Warteschlange des Rechners (über alle Projekte);
     ein Lead stellt ihn an die Spitze der Läufe seines eigenen Projekts – an fremden Läufen zieht er damit nicht vorbei."""
@@ -942,6 +991,8 @@ def lauf_vorziehen(con, pid, von, lid):
         else:
             con.execute("UPDATE lauf SET rang = (SELECT coalesce(max(rang), 0) + 1 FROM lauf WHERE projekt_id = ?"
                         " AND status = 'angemeldet' AND rang < ?) WHERE id = ?", (pid, MENSCH_RANG, lid))
+    return "ganz vorn in der Warteschlange" if mensch else ("vor den anderen Läufen dieses Projekts – vor Läufe anderer Projekte"
+                                                          " (z. B. mit Vorrang) stellt ihn nur der Entwickler")
 
 
 def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speicher_frei=None):

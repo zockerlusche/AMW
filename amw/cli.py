@@ -1284,6 +1284,10 @@ def cmd_lauf(a, con):
         if lid in w:
             print(f"L{lid} eingereiht (Platz {w.index(lid) + 1} von {len(w)}) – noch nicht rechnen. Der Dienst benachrichtigt dich mit"
                   f" einer Freigabe, sobald L{lid} dran ist. Aus der Schlange nehmen: amw lauf ende {lid} --abgebrochen")
+            zeile = con.execute("SELECT l.*, r.braucht_speicher_gb FROM lauf l LEFT JOIN rezept r ON r.id = l.rezept_id WHERE l.id = ?",
+                                (lid,)).fetchone()
+            if zeile["braucht_vram_gb"] and betrieb._grafik_passt_nie(con, zeile):   # A1765: gleich sagen, wenn es so nie passt
+                print("ACHTUNG: " + betrieb.wartegrund(con, pid, zeile))
         else:
             print(f"L{lid} läuft – am Ende: amw lauf ende {lid} --rc <Code>")
     elif a.aktion == "ende":
@@ -1294,9 +1298,9 @@ def cmd_lauf(a, con):
     elif a.aktion == "vorziehen":
         if not a.id:
             raise kern.AmwFehler("lauf vorziehen <nr>")
-        betrieb.lauf_vorziehen(con, pid, _von(a), a.id)
+        wo = betrieb.lauf_vorziehen(con, pid, _von(a), a.id)
         weiter = betrieb.warteschlange(con, pid)
-        print(f"L{a.id} steht vorn in der Warteschlange" + (f" – freigegeben: {', '.join(f'L{x}' for x in weiter)}" if weiter else ""))
+        print(f"L{a.id} steht jetzt {wo}" + (f" – freigegeben: {', '.join(f'L{x}' for x in weiter)}" if weiter else ""))
     elif a.aktion == "zeige":
         if not a.id:
             raise kern.AmwFehler("lauf zeige <nr>")
@@ -1329,7 +1333,7 @@ def cmd_lauf(a, con):
                 eigen = r["projekt_id"] == pid
                 st = betrieb.vorrang_stufe(con, r["projekt_id"], v)
                 print(f"  {i}. L{r['id']:<5} {r['agent'] if eigen else '–':<8}{' schwer' if r['schwer'] else ''}{' Bildschirm' if r['schirm'] else ''}"
-                      f"{' GPU' if r['gpu'] else ''}{' (vorgezogen)' if r['rang'] else ''}{' ' + betrieb.t_vorrang(st) if st != 'normal' else ''}"
+                      f"{' GPU' if r['gpu'] else ''}{(' (vom Entwickler vorgezogen)' if r['rang'] >= betrieb.MENSCH_RANG else ' (im Projekt vorgezogen)') if r['rang'] else ''}{' ' + betrieb.t_vorrang(st) if st != 'normal' else ''}"
                       f" seit {_zeit(r['angemeldet_utc'])}  {r['beschreibung'] if eigen else '(anderes Projekt)'}")
             print()
         for r in con.execute("SELECT * FROM lauf WHERE projekt_id = ? ORDER BY id DESC LIMIT ?", (pid, a.grenze)):

@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.112.2 – 15.11.2026 · Vorziehen und Grafikspeicher ehrlich
+- **Behoben:** „Vorgezogen“ hieß bei einem Lead nur „vor die Läufe des eigenen Projekts“ – die Liste sah aber aus, als stünde
+  der Lauf ganz vorn. Jetzt steht dort „vom Entwickler vorgezogen“ (ganz vorn, vor jeder Vorrang-Stufe) oder „im Projekt
+  vorgezogen“, und `amw lauf vorziehen` sagt, wo der Lauf jetzt steht.
+- **Verbessert:** Wartet ein Lauf auf Grafikspeicher, der so nie frei wird, nennt der Wartegrund die Karte, was außerhalb der
+  Schlange belegt ist und von welchen Programmen, und was hilft (weniger anfordern oder ohne `--gpu`). Der Hinweis kommt schon
+  beim Einreihen.
+
 ## 1.112.1 – 15.11.2026 · Knopf „Vorziehen“ für wartende Läufe
 - **Behoben:** Die Meldung „… wartet seit … Minuten“ verwies auf einen Knopf zum Vorziehen, den es nicht gab. Jetzt stehen in
   der Rechner-Kachel (Start › Leitstand) die wartenden Läufe dieses Projekts mit Platz und je einem Knopf „Vorziehen“ (mit

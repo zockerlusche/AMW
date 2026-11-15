@@ -387,3 +387,33 @@ class Tagesverlauf(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class VorziehenUndGrafik(Grund):
+    """A1765 (TL, Marcel 15.11.): „vorgezogen“ hieß beim Lead nur „vor die eigenen Läufe“ – jetzt steht es so da; und ein
+    GPU-Lauf, der nie passt, sagt, was den Grafikspeicher belegt und was zu tun ist."""
+
+    def test_vorziehen_lead_im_projekt_mensch_ganz_vorn(self):
+        self.start("Zwei", "A")                                  # belegt die Spur
+        fremd = self.start("Zwei", "B")
+        eigen = self.start("Eins", "A")
+        wo = betrieb.lauf_vorziehen(self.con, self.p["Eins"], "Chef", eigen)
+        self.assertIn("vor Läufe anderer Projekte", wo)
+        self.assertEqual(self.reihenfolge(), [fremd, eigen])       # Lead: nicht an fremden vorbei
+        l = self.con.execute("SELECT l.*, NULL AS braucht_speicher_gb FROM lauf l WHERE id = ?", (eigen,)).fetchone()
+        self.assertIn("im Projekt vorgezogen – vor andere Projekte stellt nur der Entwickler", betrieb.wartegrund(self.con, self.p["Eins"], l))
+        self.assertEqual(betrieb.lauf_vorziehen(self.con, self.p["Eins"], kern.ENTWICKLER, eigen), "ganz vorn in der Warteschlange")
+        self.assertEqual(self.reihenfolge(), [eigen, fremd])
+        l = self.con.execute("SELECT l.*, NULL AS braucht_speicher_gb FROM lauf l WHERE id = ?", (eigen,)).fetchone()
+        self.assertIn("vom Entwickler vorgezogen – ganz vorn", betrieb.wartegrund(self.con, self.p["Eins"], l))
+
+    def test_grafik_passt_nie_nennt_ursache_und_weg(self):
+        lid = self.start("Eins", "A", gpu=True, schirm=False, braucht_vram_gb=8.0)
+        l = self.con.execute("SELECT l.*, NULL AS braucht_speicher_gb FROM lauf l WHERE id = ?", (lid,)).fetchone()
+        if self.status(lid) != "angemeldet":
+            self.skipTest("Grafikspeicher reicht auf diesem Rechner")
+        with mock.patch.object(betrieb, "vram_frei_gb", return_value=7.8), \
+                mock.patch.object(betrieb, "grafik_lage", return_value=(10.0, 7.8, ["python (ComfyUI)", "Godot_v4"])):
+            g = betrieb.wartegrund(self.con, self.p["Eins"], l)
+        self.assertIn("Karte 10 GB, außerhalb der Schlange belegt 2.2 GB (u. a. python (ComfyUI), Godot_v4)", g)
+        self.assertIn("weniger anfordern (--braucht-vram-gb) oder ohne --gpu", g)
