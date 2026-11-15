@@ -105,3 +105,46 @@ def zeile(info, hoechstens=4):
         return f"Prüfstufe {s} – {len(info['dateien'] or [])} Datei(en), nur Doku und Tests"
     mehr = f" (+{len(treffer) - hoechstens})" if len(treffer) > hoechstens else ""
     return f"Prüfstufe {s} – {', '.join(treffer[:hoechstens])}{mehr}"
+
+
+# --- A1755: sichtbare Änderung nur mit Bild (B2750, Lückenliste TL, Marcel W2168) -------------------------------------------
+SICHTBAR = ("web/", "doc/hilfe/", "amw/workbench.html")
+
+
+def _eigene_basis(con, pid, ordner, sha, aufgabe_id):
+    """Womit der Stand verglichen wird: der jüngste Prüfstand einer ANDEREN Aufgabe, auf dem dieser Stand aufsetzt (Stapel) –
+    sonst main. So zählt in einem Stapel nur die eigene Änderung."""
+    for (andere,) in con.execute("SELECT sha FROM pruefung WHERE projekt_id = ? AND aufgabe_id IS NOT NULL AND aufgabe_id != ?"
+                                 " AND ergebnis IN ('offen', 'gruen') ORDER BY id DESC LIMIT 40", (pid, aufgabe_id or 0)).fetchall():
+        if andere == sha:
+            continue
+        try:
+            r = subprocess.run(["git", "-C", ordner, "merge-base", "--is-ancestor", andere, sha], capture_output=True, timeout=30,
+                               stdin=subprocess.DEVNULL)
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if r.returncode == 0:
+            return andere
+    return "main"
+
+
+def bilder_pruefen(con, pid, sha, aufgabe_id, ohne_bild=None):
+    """Ändert der Stand etwas Sichtbares (Seite, Hilfe), muss an der Aufgabe mindestens ein Bild-Dokument hängen – sonst
+    AmwFehler mit dem Weg; Ausnahme ohne_bild=<Grund>. Rückgabe: Zeile für die Prüfbitte (welche Bilder) oder „“."""
+    from . import kern
+    ordner = kern.projekt_ordner(con, pid)
+    if not aufgabe_id or not ordner:
+        return ""
+    liste = dateien(ordner, sha, _eigene_basis(con, pid, ordner, sha, aufgabe_id)) or []
+    sichtbar = [d for d in liste if d.startswith(SICHTBAR)]
+    if not sichtbar:
+        return ""
+    if (ohne_bild or "").strip():
+        return f"\n\nOhne Bild (sichtbar: {', '.join(sichtbar[:3])}): {ohne_bild.strip()[:300]}"
+    bilder = con.execute("SELECT id, titel FROM dokument WHERE projekt_id = ? AND bezug_art = 'aufgabe' AND bezug_id = ?"
+                         " AND art = 'bild' AND status = 'aktuell' ORDER BY id", (pid, aufgabe_id)).fetchall()
+    if not bilder:
+        raise kern.AmwFehler(f"Der Stand ändert Sichtbares ({', '.join(sichtbar[:3])}) – Prüfbitte nur mit Bild (PC und Handy 390 px):"
+                             f" amw dokument ablegen <bild.png> --art bild --aufgabe {aufgabe_id} --titel …; ohne Bild nur mit"
+                             " --ohne-bild <Grund>")
+    return "\n\nBilder: " + ", ".join(f"D{b['id']} {b['titel'][:60]}" for b in bilder[-4:])

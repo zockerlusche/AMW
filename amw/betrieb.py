@@ -964,7 +964,8 @@ def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speich
 
 # --- Prüfungen -----------------------------------------------------------------------------------
 
-def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=None, stufe=None, gruppe=None, hinweis=None):
+def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=None, stufe=None, gruppe=None, hinweis=None,
+               ohne_bild=None):
     """gruppe/hinweis (A1738): der Versionshinweis steht fest, wenn die Arbeit fertig ist – die Release-Kette übernimmt ihn,
     wenn sie die Aufgabe nach der Auslieferung fertig setzt. Nur mit --aufgabe; nur Besitzer oder Lead."""
     kern.agent_zeile(con, pid, pruefer)
@@ -984,6 +985,7 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
     info = pruefstufe.stufe(con, pid, sha)
     info["stufe"] = pruefstufe.regel(con, pid, info, bauer, pruefer, stufe)   # mit „pruefstufen = an“: wer prüfen darf
     stufe = pruefstufe.zeile(info)
+    bilder = pruefstufe.bilder_pruefen(con, pid, sha, aufgabe_id, ohne_bild)   # A1755: sichtbare Änderung nur mit Bild
     with db.schreiben(con):
         prid = db.einfuegen(con, "pruefung", projekt_id=pid, aufgabe_id=aufgabe_id, zweig=zweig, sha=sha, bauer=bauer,
                             pruefer=pruefer, punkte=punkte, angefragt_utc=db.jetzt())
@@ -993,7 +995,7 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
             con.execute(f"UPDATE aufgabe SET {', '.join(k + ' = ?' for k in felder)} WHERE id = ?", (*felder.values(), aufgabe_id))
             vh = f"\n\nVersionshinweis ({gruppe or '–'}): {felder.get('hinweis') or '–'}"
         kern._posten(con, pid, bauer, pruefer, "pruefbitte", f"Prüfbitte P{prid}: {zweig}@{sha[:8]}",
-                     stufe + ("\n\n" + punkte if punkte else "") + vh, aufgabe_id=aufgabe_id)
+                     stufe + ("\n\n" + punkte if punkte else "") + vh + bilder, aufgabe_id=aufgabe_id)
     return prid
 
 

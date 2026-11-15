@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.111.0 – 15.11.2026 · Prüfbitte mit sichtbarer Änderung nur mit Bild
+- Ändert ein Stand die Seite oder die Hilfe, nimmt `amw pruefung bitte` ihn nur an, wenn an der Aufgabe ein Bild-Dokument hängt,
+  und nennt die Bilder in der Prüfbitte von selbst. Ohne Bild geht es nur mit `--ohne-bild <Grund>`, der Grund steht in der
+  Prüfbitte. In einem Stapel zählt nur die eigene Änderung, nicht die der Stände darunter.
+
 ## 1.110.0 – 15.11.2026 · Versionsnummer wird schon bei der Prüfbitte geprüft
 - `amw pruefung bitte` liest die Versionsnummer aus dem Stand (`VERSION`, `amw/__init__.py` oder `package.json`) und lehnt ab,
   wenn sie nicht über main liegt, als Tag schon existiert oder eine andere Aufgabe sie in einer offenen oder grünen, noch nicht

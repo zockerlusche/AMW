@@ -910,7 +910,7 @@ usage: amw pruefung [-h] [--pruefer PRUEFER] [--zweig ZWEIG] [--sha SHA]
                     [--bemerkung BEMERKUNG] [--alle]
                     [--stufe {niedrig,mittel,hoch}]
                     [--gruppe {neu,verbessert,behoben}] [--hinweis HINWEIS]
-                    [--von VON] [--projekt PROJEKT]
+                    [--ohne-bild GRUND] [--von VON] [--projekt PROJEKT]
                     {bitte,gruen,rot,ist-gruen,liste} [id]
 
 positional arguments:
@@ -933,6 +933,8 @@ options:
                         bitte: Versionshinweis der Aufgabe (setzt sie die
                         Release-Kette fertig, gilt er)
   --hinweis HINWEIS     bitte: ein Satz für Nutzer zu den Versionshinweisen
+  --ohne-bild GRUND     bitte: sichtbare Änderung ausnahmsweise ohne Bild-
+                        Dokument an der Aufgabe – mit Grund
   --von VON
   --projekt PROJEKT
 ```

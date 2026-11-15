@@ -1341,7 +1341,7 @@ def cmd_pruefung(a, con):
     pid = _projekt(con, a)
     if a.aktion == "bitte":
         prid = betrieb.pruefbitte(con, pid, _von(a), a.pruefer, a.zweig, a.sha, a.punkte, a.aufgabe, stufe=a.stufe,
-                                  gruppe=a.gruppe, hinweis=a.hinweis)
+                                  gruppe=a.gruppe, hinweis=a.hinweis, ohne_bild=a.ohne_bild)
         print(f"P{prid} an {a.pruefer}")
     elif a.aktion in ("gruen", "rot"):
         kette = betrieb.pruefung_ergebnis(con, pid, _von(a), a.id, a.aktion, a.bemerkung)
@@ -2634,6 +2634,8 @@ def parser():
     x.add_argument("--stufe", choices=["niedrig", "mittel", "hoch"], help="Prüfstufe höher einstufen als die geänderten Dateien ergeben (nie niedriger)")
     x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben"], help="bitte: Versionshinweis der Aufgabe (setzt sie die Release-Kette fertig, gilt er)")
     x.add_argument("--hinweis", help="bitte: ein Satz für Nutzer zu den Versionshinweisen")
+    x.add_argument("--ohne-bild", dest="ohne_bild", metavar="GRUND",
+                   help="bitte: sichtbare Änderung ausnahmsweise ohne Bild-Dokument an der Aufgabe – mit Grund")
     x.set_defaults(f=cmd_pruefung)
     x = s.add_parser("freigabe", help="Merge-OK (Lead/Entwickler): freigabe merge A<nr> [--zweig z] [--zurueck] – Abnahme-Kette:"
                                       " nach grüner Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst")
