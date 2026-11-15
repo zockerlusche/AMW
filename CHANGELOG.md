@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.100.3 – 15.11.2026 · Startseite am Handy und iPad
+- **Behoben:** Am iPhone lagen die Kacheln des Leitstands auf der Startseite (Arbeit der Agenten, Bildschirm, Sitzungen …)
+  übereinander, die Texte liefen ineinander. Jetzt stehen sie am Handy untereinander und am iPad zu zweit; das Wochenlimit
+  geht über die ganze Breite.
+- **Behoben:** Am Handy und am iPad ragten einige Seiten über den Rand: die Filterleiste unter „Nachrichten“ und „Lead-Runde“,
+  die beiden Spalten dort am iPad, die Vorgeschichte geparkter Fragen, die Meldungen im Agenten-Fenster und die
+  Agenten-Einstellungen. Lange Pfade und Adressen brechen jetzt um.
+- Der Bedienbarkeits-Rundgang prüft jede Seite zusätzlich in iPad-Größe (820 × 1180) und meldet Inhalt, der aus seiner
+  Kachel läuft.
+
 ## 1.100.2 – 14.11.2026 · Videos auf iPad und iPhone
 - **Behoben:** Auf iPad und iPhone (Safari) ließen sich Videos aus „Dokumente“ online nicht abspielen. Ursache: Die Seite schickte
   Videos und Bilder mit einer Abschottung („sandbox“), bei der Safari seinen Videospieler abschaltet (WebKit-Fehler 225865).

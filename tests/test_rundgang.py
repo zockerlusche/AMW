@@ -104,6 +104,20 @@ class Seiten(Daten, Rundgang):
     def test_start(self):
         self.ueberall("start", bereit="document.querySelector('#team [data-k]')")
 
+    def test_leitstand_mit_wochenlimit(self):
+        """A1707: Mit Wochenlimit-Kachel liegen die Leitstand-Kacheln am iPhone untereinander, am iPad zu zweit; nichts läuft
+        ineinander (vorher: „span 3“ der Token-Kachel erzwang im Zweier-Raster eine dritte Spalte, die Texte liefen übereinander)."""
+        from tests.test_tokenprognose import plan_mit_verbrauch
+        plan_mit_verbrauch(self.con, self.pid)
+        self.ueberall("start", "start-leitstand", bereit="document.querySelector('#ls-token')",
+                      tun="document.getElementById('leitstand').scrollIntoView({ block: 'start' })", danach="true")
+        spalten = "new Set([...document.querySelectorAll('#leitstand > div')].map(e => Math.round(e.getBoundingClientRect().left))).size"
+        for g, n in (("handy", 1), ("ipad", 2), ("pc", 4)):
+            self.besuchen("start", "start-leitstand", bereit="document.querySelector('#ls-token')", g=g)
+            self.assertEqual(self.tab.js(spalten), n, g)
+            self.assertEqual(self.tab.js("Math.round(document.querySelector('#ls-token').getBoundingClientRect().right)"),
+                             self.tab.js("Math.round(document.querySelector('#leitstand').getBoundingClientRect().right) - 1"), g)   # ganze Breite
+
     def test_nachrichten_eingang_und_gesendet(self):
         self.ueberall("nachrichten", "nachrichten-eingang", bereit="document.querySelector('.nr-liste')")
         self.ueberall("nachrichten", "nachrichten-gesendet", bereit="document.querySelector('.nr-liste')",

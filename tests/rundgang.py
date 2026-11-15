@@ -1,10 +1,12 @@
-"""Gerüst für den Bedienbarkeits-Rundgang (A1614): jede Seite, jeder Reiter, jedes ⋯-Menü und jeder Dialog in zwei Größen
-(PC 1440×900, Handy 390×844) und beiden Themen (hell, dunkel) – mit denselben Prüfungen überall:
+"""Gerüst für den Bedienbarkeits-Rundgang (A1614): jede Seite, jeder Reiter, jedes ⋯-Menü und jeder Dialog in drei Größen
+(PC 1440×900, Handy 390×844, iPad 820×1180 – A1707) und beiden Themen (hell, dunkel) – mit denselben Prüfungen überall:
 
 - keine Fehler in der Konsole (Fehler, unbehandelte Ablehnungen, console.error),
 - nichts ragt waagrecht über den Rand (die Seite scrollt nicht seitwärts, kein sichtbares Element liegt rechts außerhalb),
 - jeder offene Dialog und jedes Vollbild hat ein ✕ innerhalb des Bildschirms, das man auch wirklich trifft,
 - keine abgeschnittenen Knopf- und Überschrift-Texte (abgeschnitten ohne „…“ = Fehler; mit „…“ ohne Tooltip = Hinweis),
+- nichts läuft aus seiner Kachel: Kinder eines Rasters (grid), deren Inhalt sichtbar über ihren Rand ragt, legen sich über
+  die Nachbarn (A1707: Leitstand am iPhone – Texte liefen ineinander, die Seite scrollte dabei nicht seitwärts),
 - keine Fokus-Falle: kein tabindex > 0, jeder Knopf hat einen Namen (Text oder aria-label).
 - Liste und Inhalt nebeneinander (.geteilt, Nachrichten): jede Spalte scrollt für sich, Scrollen im Inhalt lässt die Liste
   stehen, nichts reicht unter den Fensterrand; bei .klebt bleibt die Liste beim Scrollen der Seite sichtbar (A1628).
@@ -30,7 +32,8 @@ from amw import kern, workbench
 from tests.test_aktualisieren import EDGE, Grund, Wiederholt, _Tab, edge_beenden, freier_port, warte_auf
 
 GROESSEN = {"pc": dict(width=1440, height=900, deviceScaleFactor=1, mobile=False),
-            "handy": dict(width=390, height=844, deviceScaleFactor=2, mobile=True)}
+            "handy": dict(width=390, height=844, deviceScaleFactor=2, mobile=True),
+            "ipad": dict(width=820, height=1180, deviceScaleFactor=2, mobile=True)}
 THEMEN = ("hell", "dunkel")
 
 # Läuft vor jedem Skript der Seite: sammelt Fehler, bevor die Seite selbst etwas tut.
@@ -85,6 +88,15 @@ PRUEFEN = r"""
       if (s.overflowX === 'visible') continue;                        // läuft sichtbar weiter – das fängt Prüfung 1
       if (s.textOverflow === 'ellipsis') { if (!e.title && !e.closest('[title]')) erg.push(['hinweis', 'mit „…“ gekürzt, ohne Tooltip: ' + e.textContent.trim().slice(0, 40), pfad(e)]); }
       else erg.push(['fehler', 'Text abgeschnitten: ' + e.textContent.trim().slice(0, 40), pfad(e)]);
+    }
+  }
+  // 3b. Kacheln eines Rasters: läuft der Inhalt eines Kinds sichtbar über seinen Rand, liegt er über dem Nachbarn (A1707)
+  for (const g of bereich.querySelectorAll('*')) {
+    if (!/grid/.test(getComputedStyle(g).display) || !sichtbar(g)) continue;
+    for (const c of g.children) {
+      if (!sichtbar(c) || getComputedStyle(c).position === 'absolute' || inScroller(c)) continue;
+      if (getComputedStyle(c).overflowX === 'visible' && c.clientWidth > 0 && c.scrollWidth > c.clientWidth + 1)
+        erg.push(['fehler', `Inhalt läuft aus der Kachel (${c.scrollWidth} px in ${c.clientWidth} px)`, pfad(c)]);
     }
   }
   // 4. Fokus: kein tabindex > 0, Knöpfe mit Namen
