@@ -259,7 +259,15 @@ def _projekte_der_kennung(con, kennung, alle=False):
 
 
 def produkt_entwickler():
-    """Kennung des AMW-Produktentwicklers (PC-Einstellung, Entwickler-Kanal) oder None."""
+    """Entwickler-Kanal – entfernt (A1758, Marcel 15.11. 09:31): Leads anderer Projekte sprechen nicht mit dem Entwickler der
+    AMW, sondern über die Lead-Runde mit dem AMW-Lead. Immer None – damit fallen Empfang, Schreiben und Wecken über
+    Projektgrenzen und das Lesen aller Projekte überall weg, wo der Kanal früher galt."""
+    return None
+
+
+def produkt_entwickler_name():
+    """Nur noch zur Anzeige: die Kennung aus der PC-Einstellung „produkt_entwickler“ (oder None) – damit ein fremder Lead,
+    der ihn anschreiben will, erfährt, wohin seine Nachricht stattdessen gehört."""
     from . import einstellungen
     try:
         return einstellungen.wert("produkt_entwickler") or None

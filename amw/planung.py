@@ -977,10 +977,12 @@ def kontext_zeilen(con, pid, kennung):
     if betrieb.kette_an(con, pid) and betrieb.merge_dienst(con, pid) == kennung:
         z.append("Du bist Merge-Dienst (Abnahme-Kette): Merge-Bitten kommen von der AMW mit Zweig und genauem SHA – nur genau"
                  " diesen Stand mergen, Ergebnis mit `--aufgabe` melden.")
-    pe = db.produkt_entwickler()
-    if pe and pe != kennung and kern.ist_lead(con, pid, kennung) and kennung != MENSCH:
-        z.append(f"AMW-Entwickler-Kanal: Fehler, Wünsche und Fragen zur AMW selbst direkt an {pe} (`amw posten --an {pe}"
-                 " --art frage|info|meldung --kurz …`) – er entwickelt die AMW für alle Projekte und antwortet hier.")
+    pe = db.produkt_entwickler_name()                 # A1758: kein Entwickler-Kanal mehr – Wünsche über die Lead-Runde
+    heim = con.execute("SELECT g.projekt_id, p.name FROM agent g JOIN projekt p ON p.id = g.projekt_id WHERE lower(g.kennung) = lower(?)"
+                       " ORDER BY g.id LIMIT 1", (pe,)).fetchone() if pe else None
+    if heim and heim[0] != pid and kern.ist_lead(con, pid, kennung) and kennung != MENSCH:
+        z.append(f"Wünsche, Fehler und Fragen zur AMW selbst: über die Lead-Runde an den AMW-Lead (`amw runde schreiben --an {heim[1]}"
+                 " --kurz …`) – nicht an den Entwickler der AMW direkt.")
     if lb["prinzipien"]:
         z.append("Prinzipien: " + " | ".join(p["text"] + (f" (Prüffrage: {p['pruefung']})" if p.get("pruefung") else "")
                                              for p in lb["prinzipien"]))

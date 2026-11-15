@@ -651,6 +651,13 @@ def empfaenger(con, pid, an, von, aufgabe_id=None):
         elif db.produkt_entwickler() and teil.lower() == db.produkt_entwickler().lower():   # Entwickler-Kanal
             namen.append(db.produkt_entwickler())
         else:
+            pe = db.produkt_entwickler_name()             # A1758: früherer Entwickler-Kanal → Hinweis auf die Lead-Runde
+            if pe and teil.lower() == pe.lower() and not con.execute(
+                    "SELECT 1 FROM agent WHERE projekt_id = ? AND lower(kennung) = lower(?)", (pid, teil)).fetchone():
+                heim = con.execute("SELECT p.name FROM agent g JOIN projekt p ON p.id = g.projekt_id WHERE lower(g.kennung) = lower(?)"
+                                   " ORDER BY g.id LIMIT 1", (pe,)).fetchone()
+                raise AmwFehler(f"Den Entwickler-Kanal gibt es nicht mehr: Wünsche, Fehler und Fragen zur AMW gehen über die Lead-Runde"
+                                f" an den AMW-Lead – amw runde schreiben --an {heim[0] if heim else 'AMW'} --kurz … [--text …]")
             z = agent_zeile(con, pid, teil)                          # frühere Kennung → heutige
             if z["entfernt_utc"]:
                 raise AmwFehler(f"{z['kennung']} ist entfernt – Nachrichten an ihn gehen nicht mehr (wieder aufnehmen: Einstellungen › Agenten)")

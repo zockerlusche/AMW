@@ -1,5 +1,5 @@
-"""Entwickler-Kanal (1.30.0): der AMW-Produktentwickler (PC-Einstellung) schreibt und empfängt in jedem Projekt,
-liest alle Projekte auf einmal und wird aus jedem Projekt geweckt."""
+"""Entwickler-Kanal – entfernt (A1758, Marcel 15.11. 09:31; vorher 1.30.0): Leads anderer Projekte sprechen nicht mit dem
+Entwickler der AMW, sondern über die Lead-Runde mit dem AMW-Lead. Wer ihn trotzdem anschreibt, bekommt den Weg genannt."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
 import io
@@ -49,56 +49,39 @@ class Kanal(unittest.TestCase):
         with self.assertRaises(LookupError):
             db.projekt_fuer(self.con, "GlassWorld", "CCamw")
 
-    def test_lead_erreicht_den_produktentwickler_und_umgekehrt(self):
-        self.an()
-        nid, namen = kern.posten(self.con, self.gw, "TL", "CCamw", "frage", "Spec-Karte zeigt den Verfasser")
+    def test_fremder_lead_bekommt_den_weg_ueber_die_lead_runde(self):
+        self.an()                                                  # Einstellung gesetzt – der Kanal bleibt trotzdem zu
+        with self.assertRaises(kern.AmwFehler) as e:
+            kern.posten(self.con, self.gw, "TL", "CCamw", "frage", "Spec-Karte zeigt den Verfasser")
+        self.assertIn("Den Entwickler-Kanal gibt es nicht mehr", str(e.exception))
+        self.assertIn("amw runde schreiben --an AMW --kurz", str(e.exception))
+        with self.assertRaises(kern.AmwFehler):                    # und er schreibt nicht in fremde Projekte
+            kern.posten(self.con, self.gw, "CCamw", "TL", "info", "hallo")
+        with self.assertRaises(LookupError):
+            db.projekt_fuer(self.con, "GlassWorld", "CCamw")
+        _, namen = kern.posten(self.con, self.amw, "Entwickler", "CCamw", "auftrag", "Logo einbauen")   # im eigenen Projekt wie immer
         self.assertEqual(namen, ["CCamw"])
-        self.assertEqual(db.projekt_fuer(self.con, "GlassWorld", "CCamw"), self.gw)
-        _, namen = kern.posten(self.con, self.gw, "CCamw", "TL", "antwort", "verstanden", antwort_auf=nid)
-        self.assertEqual(namen, ["TL"])
-        with self.assertRaises(LookupError):                       # andere Agenten bleiben in ihrem Projekt
-            db.projekt_fuer(self.con, "AMW", "GW1")
 
-    def test_lesen_und_erledigen_ueber_alle_projekte(self):
+    def test_liest_und_wird_geweckt_nur_im_eigenen_projekt(self):
         self.an()
         kern.posten(self.con, self.amw, "Entwickler", "CCamw", "auftrag", "Logo einbauen")
-        nid, _ = kern.posten(self.con, self.gw, "TL", "CCamw", "frage", "Spec-Karte zeigt den Verfasser")
         rc, aus = self.cli("lesen", "--von", "CCamw")
         self.assertEqual(rc, 0)
-        self.assertIn("[AMW]", aus)
-        self.assertIn("[GlassWorld]", aus)
-        self.assertIn("2 offen (alle Projekte)", aus)
-        rc, aus = self.cli("lesen", str(nid), "--von", "CCamw")
-        self.assertIn("Projekt GlassWorld", aus)
-        rc, aus = self.cli("erledigt", str(nid), "--von", "CCamw")
-        self.assertIn("1 erledigt", aus)
-        self.assertEqual(self.con.execute("SELECT status FROM empfang WHERE nachricht_id = ?", (nid,)).fetchone()[0], "erledigt")
-        rc, aus = self.cli("lesen", "--von", "TL", "--projekt", "GlassWorld")     # der TL liest wie bisher nur sein Projekt
-        self.assertEqual(rc, 0)
-
-    def test_wecken_aus_einem_fremden_projekt_mit_projektname(self):
-        self.an()
+        self.assertNotIn("alle Projekte", aus)
         aid = self.con.execute("SELECT id FROM agent WHERE kennung = 'CCamw'").fetchone()[0]
-        schluessel = os.path.join(self.ordner.name, "CCamw.json")
         with db.schreiben(self.con):
             db.einfuegen(self.con, "sitzung", agent_id=aid, claude_sitzung="s-1", gestartet_utc=db.jetzt(), zustand="aktiv",
-                         schluessel_datei=schluessel)
-        self.assertIsNotNone(dienst.aktive_sitzung(self.con, self.gw, "CCamw"))
-        self.assertIsNone(dienst.aktive_sitzung(self.con, self.gw, "GW1"))
-        kern.posten(self.con, self.gw, "TL", "CCamw", "frage", "Spec-Karte zeigt den Verfasser")
-        gesendet = []
-        with mock.patch.object(dienst, "lies_schluessel", return_value=("pipe", "k")), \
-                mock.patch.object(dienst.pipe, "senden", side_effect=lambda p, k, text: gesendet.append(text)):
-            d = dienst.Dienst(self.con)
-            d.seit = "2000-01-01T00:00:00Z"
-            self.assertEqual(d.zustellen(), 1)
-        self.assertIn("[GlassWorld] TL [frage] Spec-Karte", gesendet[0])
+                         schluessel_datei=os.path.join(self.ordner.name, "CCamw.json"))
+        self.assertIsNone(dienst.aktive_sitzung(self.con, self.gw, "CCamw"))           # aus GlassWorld weckt nichts mehr
+        self.assertIsNotNone(dienst.aktive_sitzung(self.con, self.amw, "CCamw"))
 
-    def test_leads_kennen_den_kanal(self):
+    def test_leads_kennen_den_weg(self):
         self.an()
-        self.assertTrue(any("Entwickler-Kanal" in z and "CCamw" in z for z in planung.kontext_zeilen(self.con, self.gw, "TL")))
-        self.assertFalse(any("Entwickler-Kanal" in z for z in planung.kontext_zeilen(self.con, self.gw, "GW1")))
-        self.assertFalse(any("Entwickler-Kanal" in z for z in planung.kontext_zeilen(self.con, self.amw, "CCamw")))
+        zeilen = planung.kontext_zeilen(self.con, self.gw, "TL")
+        self.assertFalse(any("Entwickler-Kanal" in z for z in zeilen))
+        self.assertTrue(any("über die Lead-Runde an den AMW-Lead" in z and "--an AMW" in z for z in zeilen))
+        self.assertFalse(any("Lead-Runde an den AMW-Lead" in z for z in planung.kontext_zeilen(self.con, self.gw, "GW1")))
+        self.assertFalse(any("Lead-Runde an den AMW-Lead" in z for z in planung.kontext_zeilen(self.con, self.amw, "CCamw")))
 
 
 if __name__ == "__main__":

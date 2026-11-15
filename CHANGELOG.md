@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.106.3 – 15.11.2026 · Entwickler-Kanal entfernt – Wünsche an die AMW über die Lead-Runde
+- **Geändert:** Den Entwickler-Kanal gibt es nicht mehr. Leads anderer Projekte schreiben Fehler, Wünsche und Fragen zur AMW
+  in die Lead-Runde an den AMW-Lead (`amw runde schreiben --an AMW --kurz …`); der verteilt sie. Wer den Entwickler der AMW
+  direkt anschreibt, bekommt genau diesen Weg genannt; die Startinformationen der Leads nennen ihn ebenfalls.
+- Der Entwickler der AMW liest, schreibt und wird geweckt nur noch in seinem eigenen Projekt. Die Einstellung „Entwickler
+  der AMW“ unter Dieser PC dient nur noch der Anzeige und diesem Hinweis.
+
 ## 1.106.2 – 15.11.2026 · Läufe ohne Bildschirm, die doch ein Fenster öffnen
 - **Behoben:** Läufe, die ohne Bildschirm angemeldet waren, öffneten trotzdem Fenster (z. B. ein Spiel), während du am PC
   warst – und kamen nach dem Schließen wieder. Jetzt merkt die AMW das Fenster: Der Lauf gilt ab dann als Lauf mit Fenster,
