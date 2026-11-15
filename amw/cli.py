@@ -1250,7 +1250,7 @@ def cmd_schirm(a, con):
     if a.aktion in ("frei", "zu"):
         z = schirm.setzen(con, pid, _von(a), a.aktion == "frei", a.grund, a.bis, a.quelle)
         print(schirm.text(z))
-        if a.aktion == "frei":
+        if a.aktion == "frei" and schirm.BIS_GEAENDERT not in (z["grund"] or ""):   # nur „bis“ geändert (A1745): die Zeile oben reicht
             print(f"Geht von selbst zu bei Eingabe am PC (ab {schirm.RUHE_S // 60} min nach jetzt), neuer Fernsitzung,"
                   f" Eingabe von {kern.entwickler_name(con, pid)} in der Workbench am PC"
                   + (", zur bis-Zeit" if z["bis_utc"] else "") + ".")
@@ -2590,7 +2590,7 @@ def parser():
                                      " freier Platz je Laufwerk, Aufräumvorschläge für alte Sicherungen (nur Anzeige)")
     x.set_defaults(f=cmd_rechner)
 
-    x = s.add_parser("schirm", help="Bildschirm-Schalter: zeige | frei --grund … [--bis HH:MM] (Entwickler/Lead) | zu [--grund …] (alle)")
+    x = s.add_parser("schirm", help="Bildschirm-Schalter: zeige | frei --grund … [--bis HH:MM] (Entwickler/Lead; schon frei: ändert nur --bis, ohne --bis = ohne Ende) | zu [--grund …] (alle)")
     x.add_argument("aktion", nargs="?", default="zeige", choices=["zeige", "frei", "zu"])
     x.add_argument("--grund")
     x.add_argument("--bis", help="frei: geht zu dieser Ortszeit von selbst zu, z. B. 07:00 oder \"2026-11-05 07:00\"")

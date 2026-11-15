@@ -22,6 +22,7 @@ BESTAETIGUNG_S = 120         # eine einzelne Eingabe schließt nicht: erst eine 
 ABSTAND_S = 10               # … mindestens so viel später – ein Zucken über 1–2 s (eine Runde fällt hinein) zählt als eins
 _eingabe = {"erste": None}   # erste noch unbestätigte Eingabe (Unix-Sekunden) – Zustand im Dienst
 QUELLEN = ("workbench", "netz", "cli", "bruecke", "automatik")
+BIS_GEAENDERT = " · bis geändert um "
 
 
 def _sek(utc):
@@ -192,7 +193,8 @@ def sperrgrund(con, leerlauf=None):
 
 
 def setzen(con, pid, von, frei, grund=None, bis=None, quelle="cli"):
-    """Bildschirm frei (nur Entwickler/Lead, mit Grund) oder zu (jeder). Zu, wenn schon zu: keine neue Zeile.
+    """Bildschirm frei (nur Entwickler/Lead, mit Grund) oder zu (jeder). Zu, wenn schon zu: keine neue Zeile. Frei, wenn schon
+    frei (A1745): ändert nur „bis“ (ohne bis = ohne Ende), seit und Grund bleiben; der Grund nennt die Änderung.
     Beim Zugehen erfahren Agenten mit laufenden oder eingereihten Läufe mit Fenstern davon (weckend)."""
     if quelle not in QUELLEN:
         raise kern.AmwFehler(f"Quelle {quelle}?")
@@ -201,7 +203,7 @@ def setzen(con, pid, von, frei, grund=None, bis=None, quelle="cli"):
     if frei:
         if pid is None or not kern.ist_lead(con, pid, von):
             raise kern.AmwFehler("Bildschirm frei geben nur der Entwickler und der Lead auf sein Wort")
-        if not grund:
+        if not grund and not zustand(con)["frei"]:      # schon frei: nur „bis“ ändern, der Grund bleibt (A1745)
             raise kern.AmwFehler("Grund angeben, z. B. „Entwickler 21:51: weg bis morgen, Monitor an“")
         if bis:
             bis_zeit = bis_utc(bis)
@@ -209,6 +211,14 @@ def setzen(con, pid, von, frei, grund=None, bis=None, quelle="cli"):
         vorher = zustand(con)
         if not frei and not vorher["frei"]:
             return vorher
+        if frei and vorher["frei"]:                  # schon frei (A1745): nur „bis“ ändern – seit bleibt, der Verlauf zeigt die Änderung
+            if (vorher["bis_utc"] or None) == bis_zeit:
+                return vorher
+            ur = (vorher["grund"] or "").split(BIS_GEAENDERT)[0]
+            db.einfuegen(con, "schirm", frei=1, seit_utc=vorher["seit_utc"], bis_utc=bis_zeit, von=von, quelle=quelle,
+                         grund=f"{ur}{BIS_GEAENDERT}{datetime.now().strftime('%H:%M')}: {lokal(vorher['bis_utc']) if vorher['bis_utc'] else 'ohne Ende'}"
+                               f" → {lokal(bis_zeit) if bis_zeit else 'ohne Ende'} ({von})"[:500])
+            return zustand(con)
         db.einfuegen(con, "schirm", frei=int(bool(frei)), seit_utc=db.jetzt(), bis_utc=bis_zeit,
                      grund=grund or f"zu von {von}", von=von, quelle=quelle)
         if not frei:

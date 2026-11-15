@@ -8,8 +8,9 @@ Manche Läufe brauchen den Bildschirm: Sie öffnen ein Fenster, klicken und tipp
 
 ## Schritte
 1. **Freigeben** Startseite › Bildschirm für Agenten › „Für Agenten freigeben …“ – auf Wunsch mit Uhrzeit, bis wann.
-2. **Agenten arbeiten** Läufe mit Fenster starten nacheinander; in der Zeit am besten nichts am PC tun.
-3. **Zurück am PC** Die Freigabe schließt von selbst – oder du beendest sie selbst: Startseite › Bildschirm für Agenten › „Freigabe beenden“.
+2. **Verlängern oder kürzen (optional)** Ist der Bildschirm frei, ändert „Bis ändern“ in der Kachel nur die Uhrzeit: neue Uhrzeit eintragen und „Übernehmen“, oder „+1 Stunde“, „bis 22:00“, „ohne Ende“. Die Freigabe läuft weiter, im Verlauf steht die Änderung. Über die Befehlszeile: `amw schirm frei --bis 15:00` (ohne `--bis`: ohne Ende).
+3. **Agenten arbeiten** Läufe mit Fenster starten nacheinander; in der Zeit am besten nichts am PC tun.
+4. **Zurück am PC** Die Freigabe schließt von selbst – oder du beendest sie selbst: Startseite › Bildschirm für Agenten › „Freigabe beenden“.
 
 ## Diese Werte trägst du ein
 | Auslöser | Wann die Freigabe von selbst schließt |

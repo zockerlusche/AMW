@@ -8,8 +8,9 @@ Some runs need the screen: they open a window, click and type themselves – for
 
 ## Steps
 1. **Release** Home › Screen for agents › “Free for agents …” – optionally with a time until when.
-2. **Agents work** Runs with a window start one after the other; best leave the PC alone meanwhile.
-3. **Back at the PC** The release closes by itself – or end it yourself: Home › Screen for agents › “End sharing”.
+2. **Extend or shorten (optional)** While the screen is free, “Change until” in the tile only changes the time: enter a new time and “Apply”, or use “+1 hour”, “until 22:00”, “no end”. The release continues; the history shows the change. On the command line: `amw schirm frei --bis 15:00` (without `--bis`: no end).
+3. **Agents work** Runs with a window start one after the other; best leave the PC alone meanwhile.
+4. **Back at the PC** The release closes by itself – or end it yourself: Home › Screen for agents › “End sharing”.
 
 ## Values to enter
 | Trigger | When the release closes by itself |

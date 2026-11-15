@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.103.0 – 15.11.2026 · Bildschirm-Freigabe verlängern, ohne zu beenden
+- Ist der Bildschirm für Agenten frei, ändert „Bis ändern“ in der Bildschirm-Kachel nur die Uhrzeit, bis wann er frei bleibt:
+  neue Uhrzeit eintragen oder „+1 Stunde“, „bis 22:00“, „ohne Ende“. Die Freigabe läuft weiter, im Verlauf steht die Änderung.
+  Am PC, im Heimnetz und online (dort wie das Freigeben nur für System-Admins).
+- `amw schirm frei --bis 15:00` ändert bei freiem Bildschirm ebenfalls nur die Uhrzeit (ohne `--bis`: ohne Ende).
+
 ## 1.102.0 – 15.11.2026 · Planung automatisch: Lauf startet die Aufgabe
 - Startet ein Agent einen Lauf zu einer seiner Aufgaben, die noch nicht begonnen hat, steht sie jetzt von selbst auf „läuft“.
   Welche Aufgabe, liest die AMW aus dem Lauf, aus „A1234“ in der Beschreibung oder aus dem Zweig (a1234, a1234-2). Wartet

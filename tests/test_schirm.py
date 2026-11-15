@@ -65,6 +65,45 @@ class Zustand(Grund):
             schirm.bis_utc("morgen früh")
 
 
+class BisAendern(Grund):
+    """A1745 (Marcel 15.11. 07:51): Freigabe bis 12 Uhr läuft, er will bis 15 Uhr – ohne erst zu beenden."""
+
+    def test_nur_bis_aendern_seit_und_grund_bleiben(self):
+        z1 = self.frei(bis="23:58")
+        z2 = schirm.setzen(self.con, self.pid, "TL", True, None, bis="23:59")      # ohne Grund: schon frei
+        self.assertEqual((z2["frei"], z2["seit_utc"]), (1, z1["seit_utc"]))
+        self.assertGreater(z2["bis_utc"], z1["bis_utc"])
+        self.assertTrue(z2["grund"].startswith("Entwickler 21:51: weg · bis geändert um "))
+        self.assertIn(f"{schirm.lokal(z1['bis_utc'])} → {schirm.lokal(z2['bis_utc'])} (TL)", z2["grund"])
+        z3 = schirm.setzen(self.con, self.pid, "TL", True, None)                    # ohne bis: ohne Ende
+        self.assertIsNone(z3["bis_utc"])
+        self.assertEqual(z3["grund"].count("bis geändert"), 1)                      # nur die letzte Änderung, nicht angehäuft
+        self.assertIn("→ ohne Ende (TL)", z3["grund"])
+        self.assertEqual(len(schirm.verlauf(self.con)), 3)
+        schirm.setzen(self.con, self.pid, "TL", True, None)                         # nichts geändert: keine neue Zeile
+        self.assertEqual(len(schirm.verlauf(self.con)), 3)
+        with self.assertRaises(kern.AmwFehler):
+            schirm.setzen(self.con, self.pid, "CC1", True, None, bis="23:59")       # ein Agent ändert nichts
+
+    def test_workbench_am_pc_schliesst_beim_aendern_nicht_online_nur_system_admin(self):
+        self.frei(bis="23:58")
+        aktionen.ausfuehren(self.con, self.pid, "/api/schirm", {"frei": True, "bis": "23:59"})   # am PC: kein „Entwickler ist da“
+        z = schirm.zustand(self.con)
+        self.assertEqual((z["frei"], schirm.lokal(z["bis_utc"])), (1, "23:59"))
+        with self.assertRaises(aktionen.Ungueltig):
+            aktionen.schirm_setzen(self.con, self.pid, {"frei": True, "bis": "23:57"}, "netz", wer="jemand")
+        self.assertEqual(schirm.lokal(schirm.zustand(self.con)["bis_utc"]), "23:59")
+
+    def test_befehlszeile(self):
+        self.frei()
+        aus = io.StringIO()
+        with redirect_stdout(aus):
+            cli.cmd_schirm(type("A", (), {"aktion": "frei", "grund": None, "bis": "23:59", "quelle": "cli", "von": "TL",
+                                          "projekt": None, "verlauf": False, "grenze": 20})(), self.con)
+        self.assertIn("bis 23:59", aus.getvalue())
+        self.assertNotIn("Geht von selbst zu", aus.getvalue())
+
+
 class Automatik(Grund):
     def test_neue_fernsitzung_schliesst(self):
         self.frei()

@@ -721,6 +721,8 @@ main.geteilt-seite { padding-bottom: 16px; }
 .leitstand .zeile { display: flex; gap: 8px; flex-wrap: wrap; }
 .leitstand .knopf.warn { border-color: var(--rot); color: var(--rot); }
 .leitstand .erkl, .leitstand .stand { overflow-wrap: anywhere; }
+.schirm-bis { border: 1px dashed var(--linie2); padding: 10px 12px; margin: 10px 0; } .schirm-bis .zeile { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.schirm-bis .feld { padding-top: 0; } .schirm-bis input[type=time] { width: auto; } .schirm-schnell { margin-top: 6px; }
 /* Aktionsmenü: „⋯“ öffnet die Befehle zu einer Sache (Agent) – ein Baustein */
 .mehr-knopf { padding: 6px 11px; letter-spacing: .1em; }
 .menue { position: absolute; z-index: 40; min-width: 250px; max-width: min(340px, calc(100vw - 16px)); background: var(--flaeche2); border: 1px solid var(--linie2);
@@ -1416,7 +1418,7 @@ const TEXTE = {
     s_schirm_frei: "Bildschirm: frei für Agenten", s_schirm_zu: "Bildschirm: belegt", schirm: "Bildschirm", schirm_frei: "BILDSCHIRM FREI FÜR AGENTEN", schirm_zu_b: "BILDSCHIRM BELEGT",
     schirm_seit: "seit {x}", schirm_bis: "bis {x}", schirm_von: "von {x}",
     schirm_wartet: "Läufe mit Fenster in der Warteschlange: {n}", schirm_laeuft: "läuft am Bildschirm: {x}",
-    schirm_freigeben: "Für Agenten freigeben …", schirm_zumachen: "Freigabe beenden", schirm_titel: "Bildschirm für Agenten",
+    schirm_freigeben: "Für Agenten freigeben …", schirm_zumachen: "Freigabe beenden", schirm_titel: "Bildschirm für Agenten", schirm_bis_titel: "Frei bis", schirm_bis_plus: "+1 Stunde", schirm_bis_abend: "bis 22:00", schirm_bis_offen: "ohne Ende", schirm_bis_setzen: "Übernehmen", schirm_bis_knopf: "Bis ändern", schirm_bis_h: "Ändert nur, bis wann der Bildschirm frei bleibt – die Freigabe läuft weiter.",
     schirm_erkl: "Frei heißt: Agenten dürfen Läufe mit Fenster starten (immer nur einer zur Zeit, über die Warteschlange). Die AMW nimmt die Freigabe von selbst zurück, sobald du wieder am PC bist: Eingabe an diesem PC (ab 2 Minuten nach dem Freigeben, auch über eine Fernsitzung), eine neue Fernsitzung (wenn unter „Dieser PC“ eingestellt), eine Eingabe in der Workbench an diesem PC – oder zur gewählten Uhrzeit. Was du vom Handy schreibst, lässt ihn frei.",
     schirm_zu_erkl: "Belegt heißt: Keine neuen Läufe mit Fenster. Läuft gerade einer, bekommt der Agent die Bitte, ihn sofort zu beenden.",
     schirm_grund_ph: "Grund, z. B. „weg bis morgen, Monitor an“", schirm_bis_l: "Frei höchstens bis (optional)", schirm_grund_l: "Grund",
@@ -1745,7 +1747,7 @@ const TEXTE = {
     s_schirm_frei: "Screen: free for agents", s_schirm_zu: "Screen: in use", schirm: "Screen", schirm_frei: "SCREEN FREE FOR AGENTS", schirm_zu_b: "SCREEN IN USE",
     schirm_seit: "since {x}", schirm_bis: "until {x}", schirm_von: "by {x}",
     schirm_wartet: "Windowed runs in the queue: {n}", schirm_laeuft: "on screen: {x}",
-    schirm_freigeben: "Free for agents …", schirm_zumachen: "End sharing", schirm_titel: "Screen for agents",
+    schirm_freigeben: "Free for agents …", schirm_zumachen: "End sharing", schirm_titel: "Screen for agents", schirm_bis_titel: "Free until", schirm_bis_plus: "+1 hour", schirm_bis_abend: "until 22:00", schirm_bis_offen: "no end", schirm_bis_setzen: "Apply", schirm_bis_knopf: "Change until", schirm_bis_h: "Only changes until when the screen stays free – the release continues.",
     schirm_erkl: "Free means: agents may start runs that open windows (one at a time, through the queue). The AMW takes the screen back by itself as soon as you are at the PC again: input on this PC (from 2 minutes after freeing, also via a remote session), a new remote session (if set under “This PC”), input in the workbench on this PC – or at the chosen time. Writing from your phone leaves it free.",
     schirm_zu_erkl: "In use means: no new windowed runs. If one is running, its agent is asked to end it right away.",
     schirm_grund_ph: "Reason, e.g. “away until tomorrow, monitor on”", schirm_bis_l: "Free until at the latest (optional)", schirm_grund_l: "Reason",
@@ -2407,7 +2409,8 @@ function leitstand(d) {
       halt ? kn(t("weiter"), () => weiterGeben(), "haupt") : kn(t("halt"), () => haltDialog(), "warn")),
     sz ? feld(t("ls_schirm"), sz.frei ? "bernstein" : "", sz.frei ? t("ls_schirm_frei") + (sz.bis_utc ? " " + t("schirm_bis", { x: zeit(sz.bis_utc) }) : "") : t("ls_schirm_belegt"),
       [sz.grund, t("ls_schirm_e")].filter(Boolean).join(" – "),
-      kn(t(sz.frei ? "schirm_zumachen" : "schirm_freigeben"), () => schirmDialog(), "", !sz.frei && !darfFreigeben() ? t("schirm_nur_admin_kurz") : null)) : null,
+      kn(t(sz.frei ? "schirm_zumachen" : "schirm_freigeben"), () => schirmDialog(), "", !sz.frei && !darfFreigeben() ? t("schirm_nur_admin_kurz") : null),
+      sz.frei ? kn(t("schirm_bis_knopf"), () => schirmDialog(), "", !darfFreigeben() ? t("schirm_nur_admin_kurz") : null) : null) : null,
     feld(t("ls_sitz"), ende.length || fehlen.length ? "bernstein" : laufen.length ? "gruen" : "", sitzStand, t(API ? "ls_sitz_e_netz" : "ls_sitz_e"),
       kn(t("ls_sichern"), () => pcTun("/api/agent/ende", t("ls_sichern_frage", { n: laufen.length + ruhen.length }),
         r => r.agenten.length ? t("ls_sichern_ok", { n: r.agenten.length, x: zeit(r.bis_utc) }) : t("ls_sichern_keiner")), "", API ? nurPc : null),
@@ -4962,8 +4965,21 @@ function schirmDialog() {
     try { const r = await schicken("/api/schirm", daten); hg.remove(); toast(r.text || t(daten.frei ? "schirm_ist_frei" : "schirm_ist_zu")); zeige(zustand.sicht, true); }
     catch (e) { toast(t("fehler", { x: e.message }), true); } };
   if (sz.frei) {
-    hg = dialog(t("schirm_titel"), el("p", { class: "leise" }, [t("schirm_seit", { x: seit(sz.seit_utc) }), sz.grund].join(" · ")),
-      el("p", {}, t("schirm_zu_erkl")),
+    /* A1745: „bis“ direkt ändern, ohne erst zu beenden – Feld und Schnellwahl; seit und Grund bleiben */
+    const hhmm = d => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    const bis = el("input", { type: "time", value: sz.bis_utc ? hhmm(new Date(sz.bis_utc)) : "" });
+    const abend = new Date(); abend.setHours(22, 0, 0, 0);
+    const bisSetzen = wert => setzen({ frei: true, bis: wert });
+    const bisTeil = darfFreigeben() ? el("div", { class: "schirm-bis" },
+      el("div", { class: "feld" }, el("label", {}, t("schirm_bis_titel")), el("div", { class: "zeile" }, bis,
+        el("button", { class: "knopf", type: "button", onclick: () => bisSetzen(bis.value || null) }, t("schirm_bis_setzen")))),
+      el("div", { class: "zeile schirm-schnell" },
+        el("button", { class: "klein-knopf", type: "button", onclick: () => bisSetzen(hhmm(new Date(Math.max(Date.now(), sz.bis_utc ? +new Date(sz.bis_utc) : 0) + 3600e3))) }, t("schirm_bis_plus")),
+        el("button", { class: "klein-knopf", type: "button", disabled: Date.now() >= +abend ? "disabled" : null, onclick: () => bisSetzen("22:00") }, t("schirm_bis_abend")),
+        el("button", { class: "klein-knopf", type: "button", disabled: sz.bis_utc ? null : "disabled", onclick: () => bisSetzen(null) }, t("schirm_bis_offen"))),
+      el("p", { class: "sehrleise" }, t("schirm_bis_h"))) : null;
+    hg = dialog(t("schirm_titel"), el("p", { class: "leise" }, [t("schirm_seit", { x: seit(sz.seit_utc) }), sz.bis_utc ? t("schirm_bis", { x: zeit(sz.bis_utc) }) : null, sz.grund].filter(Boolean).join(" · ")),
+      bisTeil, el("p", {}, t("schirm_zu_erkl")),
       el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => setzen({ frei: false, grund: "wieder belegt vom Entwickler" }) }, t("schirm_zumachen")),
         el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
     return;

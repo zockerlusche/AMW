@@ -36,7 +36,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`lauf`](#lauf) | Rechen-Läufe: start [--warten] prüft Halt, Bildschirm, Speicher je Lauf, zwei Spuren (Grafikkarte/Bildschirm: einer zur Zeit; schwere ohne Fenster: parallel bis cpu_laeufe, je Agent einer), Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund · ausfuehren --beschreibung … [--schirm] [--ergebnis datei] -- <befehl …> (einreihen, warten, starten, rc durchreichen, Ende melden; bei Bildschirm zu den eigenen Befehl beenden) |
 | [`benutzer`](#benutzer) | Benutzer der Online-Seite (nur der Mensch): neu NAME --rolle … [--projekte A,B] ¦ liste ¦ aendern NAME ¦ sperren NAME ¦ entsperren NAME |
 | [`rechner`](#rechner) | Der Rechner auf einen Blick: Arbeitsspeicher, was außerhalb der Warteschlange Speicher belegt, freier Platz je Laufwerk, Aufräumvorschläge für alte Sicherungen (nur Anzeige) |
-| [`schirm`](#schirm) | Bildschirm-Schalter: zeige ¦ frei --grund … [--bis HH:MM] (Entwickler/Lead) ¦ zu [--grund …] (alle) |
+| [`schirm`](#schirm) | Bildschirm-Schalter: zeige ¦ frei --grund … [--bis HH:MM] (Entwickler/Lead; schon frei: ändert nur --bis, ohne --bis = ohne Ende) ¦ zu [--grund …] (alle) |
 | [`server`](#server) | Projekt-Server überwachen: anmelden ¦ abmelden ¦ liste ¦ pruefen |
 | [`pruefung`](#pruefung) | Prüfbitte je Stand (SHA), Ergebnis grün/rot |
 | [`freigabe`](#freigabe) | Merge-OK (Lead/Entwickler): freigabe merge A<nr> [--zweig z] [--zurueck] – Abnahme-Kette: nach grüner Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst |
