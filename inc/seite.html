@@ -3535,8 +3535,14 @@ function bildVollbild(bilder, i) {
   const zeigen = () => { img.style.transform = `translate(${x}px,${y}px) scale(${z})`; stufe.textContent = `${Math.round(z * 100)} %`; };
   const setzen = (nz, px, py) => { nz = Math.min(8, Math.max(Math.min(passt, 1) / 4, nz)); x = px - (px - x) * nz / z; y = py - (py - y) * nz / z; z = nz; zeigen(); };
   const mitte = () => { const r = buehne.getBoundingClientRect(); return [r.width / 2, r.height / 2]; };
+  /* A1675: Auf dem iPad ist die Bühne beim Laden des Bilds oft noch 0 groß (Wechsel ins echte Vollbild läuft noch) – dann
+     ergab das scale(0), das Bild blieb schwarz. Jetzt: bei 0 im nächsten Bild noch einmal, und neu bei jeder Größenänderung
+     der Bühne und beim Wechsel ins/aus dem Vollbild; passt ist nie 0. */
+  let nochmal = 0;
   const einpassen = () => { const r = buehne.getBoundingClientRect(), w = img.naturalWidth || 1, h = img.naturalHeight || 1;
-    passt = Math.min(r.width / w, r.height / h); z = Math.min(passt, 1); x = (r.width - w * z) / 2; y = (r.height - h * z) / 2; zeigen(); };
+    if (r.width < 2 || r.height < 2) { if (nochmal++ < 120) requestAnimationFrame(einpassen); return; }
+    nochmal = 0;
+    passt = Math.max(Math.min(r.width / w, r.height / h), 0.01); z = Math.min(passt, 1); x = (r.width - w * z) / 2; y = (r.height - h * z) / 2; zeigen(); };
   const laden = n => { i = (n + bilder.length) % bilder.length; const b = bilder[i];
     titel.textContent = `D${b.id} · ${b.titel}` + (bilder.length > 1 ? `  (${i + 1}/${bilder.length})` : ""); img.onload = einpassen; img.src = dokUrl(b.id, b.nr); };
   const hg = el("div", { class: "vb", role: "dialog", "aria-modal": "true", "aria-label": t("vb_vollbild") }, buehne,
@@ -3578,9 +3584,14 @@ function bildVollbild(bilder, i) {
     if (!k) return;
     e.preventDefault(); e.stopImmediatePropagation(); k();
   };
-  const groesse = () => einpassen();
+  const groesse = () => { if (img.naturalWidth) einpassen(); };
+  const beobachter = window.ResizeObserver ? new ResizeObserver(groesse) : null;
+  if (beobachter) beobachter.observe(buehne);
   window.addEventListener("keydown", taste, true); window.addEventListener("resize", groesse);
-  vollbildHuelle(hg, () => { window.removeEventListener("keydown", taste, true); window.removeEventListener("resize", groesse); });
+  for (const n of ["fullscreenchange", "webkitfullscreenchange"]) document.addEventListener(n, groesse);
+  vollbildHuelle(hg, () => { window.removeEventListener("keydown", taste, true); window.removeEventListener("resize", groesse);
+    for (const n of ["fullscreenchange", "webkitfullscreenchange"]) document.removeEventListener(n, groesse);
+    if (beobachter) beobachter.disconnect(); });
   laden(i);
 }
 async function dokVollbild(d, ver, rahmen) {
