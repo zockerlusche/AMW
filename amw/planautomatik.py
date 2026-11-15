@@ -235,3 +235,64 @@ def github_runde():
         return aus
     finally:
         con.close()
+
+
+# --- A1742: Meilenstein fertig, wenn alle Aufgaben fertig sind ----------------------------------------------------------
+VORSCHLAG = "bogen_fertig_vorschlag"      # plan_ereignis.art – einmal je Stand (neue fertige Aufgabe danach → neu)
+
+
+def meilenstein_projekt(con, pid):
+    """Geplante oder aktive Meilensteine mit mindestens einer Aufgabe und keiner offenen: Vorschlag an den Lead (einmal je Stand)
+    oder – Projekt-Einstellung meilenstein_fertig = automatisch – selbst abschließen; hält die Versions-Pflicht das auf, wird es
+    ein Vorschlag mit Grund. Rückgabe [(Bogen-Nr, „fertig“ | „vorschlag“)]."""
+    from . import planung
+    if not an(con, pid):
+        return []
+    auto = kern.projekt_wahl(con, pid, "meilenstein_fertig") == "automatisch"
+    lead = kern.lead(con, pid)
+    aus = []
+    for b in con.execute(
+            "SELECT b.* FROM bogen b WHERE b.projekt_id = ? AND b.status IN ('geplant', 'aktiv') AND EXISTS"
+            " (SELECT 1 FROM aufgabe a WHERE a.bogen_id = b.id) AND NOT EXISTS (SELECT 1 FROM aufgabe a WHERE a.bogen_id = b.id"
+            " AND a.status NOT IN ('fertig', 'verworfen'))", (pid,)).fetchall():
+        letzte = con.execute("SELECT max(coalesce(fertig_utc, geaendert_utc, angelegt_utc)) FROM aufgabe WHERE bogen_id = ?",
+                             (b["id"],)).fetchone()[0] or ""
+        if con.execute("SELECT 1 FROM plan_ereignis WHERE bogen_id = ? AND art = ? AND zeit_utc >= ?",
+                       (b["id"], VORSCHLAG, letzte)).fetchone():
+            continue                                     # schon vorgeschlagen, seitdem nichts Neues fertig
+        n = con.execute("SELECT count(*), sum(status = 'fertig') FROM aufgabe WHERE bogen_id = ?", (b["id"],)).fetchone()
+        grund = None
+        if auto:
+            try:
+                planung.bogen_status(con, pid, "AMW", b["id"], "fertig", automatik=True)
+                if lead:
+                    with db.schreiben(con):
+                        kern._posten(con, pid, "AMW", lead, "info", f"Meilenstein {b['id']} „{b['titel'][:80]}“ abgeschlossen – alle Aufgaben fertig",
+                                     f"{n[1] or 0} von {n[0]} Aufgaben fertig, der Rest verworfen. Die AMW hat ihn abgeschlossen"
+                                     " (Einstellungen › Projekt › Meilenstein fertig: automatisch).")
+                aus.append((b["id"], "fertig"))
+                continue
+            except kern.AmwFehler as e:
+                grund = str(e)
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=VORSCHLAG, bogen_id=b["id"],
+                         text=f"{n[1] or 0}/{n[0]} fertig" + (f" · {grund[:200]}" if grund else ""))
+            if lead:
+                kern._posten(con, pid, "AMW", lead, "meldung",
+                             f"Meilenstein {b['id']} „{b['titel'][:80]}“: alle Aufgaben fertig – abschließen?",
+                             f"{n[1] or 0} von {n[0]} Aufgaben fertig, keine offen. Abschließen: Planung › Meilenstein › „Abschließen“"
+                             f" oder amw bogen status {b['id']} fertig."
+                             + (f" Automatisch ging es nicht: {grund}" if grund else ""))
+        aus.append((b["id"], "vorschlag"))
+    return aus
+
+
+def meilensteine(con):
+    """Vom Dienst je Aufsichtsrunde: alle Projekte; ein Projekt hält die anderen nie auf."""
+    aus = []
+    for (pid,) in con.execute("SELECT id FROM projekt").fetchall():
+        try:
+            aus += meilenstein_projekt(con, pid)
+        except Exception as x:                           # noqa: BLE001
+            aus.append((0, f"Projekt {pid}: {type(x).__name__}: {x}"))
+    return aus

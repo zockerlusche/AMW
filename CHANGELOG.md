@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.107.0 – 15.11.2026 · Planung automatisch: Meilenstein fertig, wenn alle Aufgaben fertig sind
+- Sind alle Aufgaben eines geplanten oder aktiven Meilensteins fertig (oder verworfen), steht in seiner Karte „Alle Aufgaben
+  sind fertig – Meilenstein abschließen?“ mit dem Knopf „Abschließen“, und der Lead bekommt einmal eine Meldung.
+- Neue Projekt-Einstellung „Meilenstein fertig“: vorschlagen (Vorgabe) oder automatisch – dann schließt die AMW selbst ab.
+  Ist eine Version Pflicht und fehlt, bleibt es beim Vorschlag mit diesem Grund. Neue Frage in der Hilfe „Planung“.
+
 ## 1.106.3 – 15.11.2026 · Entwickler-Kanal entfernt – Wünsche an die AMW über die Lead-Runde
 - **Geändert:** Den Entwickler-Kanal gibt es nicht mehr. Leads anderer Projekte schreiben Fehler, Wünsche und Fragen zur AMW
   in die Lead-Runde an den AMW-Lead (`amw runde schreiben --an AMW --kurz …`); der verteilt sie. Wer den Entwickler der AMW

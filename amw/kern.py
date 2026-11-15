@@ -192,6 +192,9 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # Neue Aufgaben (A1740): meilenstein = wie bisher (der Lead nennt --bogen oder bewusst --ohne-bogen); eingang =
                 # ohne --bogen landen sie im Eingang (Einstufung pool), der Lead zieht sie bewusst in einen Meilenstein.
                 "neue_aufgaben": ("meilenstein", "eingang"),
+                # Meilenstein fertig (A1742): sind alle Aufgaben fertig, schlägt die AMW dem Lead das Abschließen vor (vorschlag)
+                # oder schließt selbst ab (automatisch) – die Versions-Pflicht gilt in beiden Fällen.
+                "meilenstein_fertig": ("vorschlag", "automatisch"),
                 # farbe: Streifen über dem Kopf und Marke in der Projekt-Auswahl (Farbtöne setzt die Oberfläche)
                 "farbe": ("bernstein", "gruen", "blau", "violett", "tuerkis", "rot", "grau"),
                 # Versionen (Grund-Regelwerk G-2): pflicht = Plan-Check meldet Fehler ohne Version, Meilenstein schließt nur mit

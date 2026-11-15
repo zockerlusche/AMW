@@ -165,5 +165,51 @@ class GitHubMerge(Grund):
         self.assertEqual(self.aufrufe, [])
 
 
+class MeilensteinFertig(Grund):
+    """A1742 (Marcel W2153; GlassWorld: B0/B1/B3 standen tagelang auf geplant): sind alle Aufgaben fertig, schlägt die AMW das
+    Abschließen vor – oder schließt selbst ab; die Versions-Pflicht bleibt Voraussetzung."""
+
+    def bogen(self, *stati):
+        from amw import planung
+        bid = planung.bogen_neu(self.con, self.pid, "TL", "Karte", ziel="z", abnahme="a")
+        for i, st in enumerate(stati):
+            a = self.aufgabe(titel=f"Schritt {i}")
+            planung.schritt_setzen(self.con, self.pid, "TL", aid=a, bogen_id=bid)
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE aufgabe SET status = ?, beleg = 'x', fertig_utc = ? WHERE id = ?",
+                                 (st, db.jetzt() if st != "wartet" else None, a))
+        return bid
+
+    def bstatus(self, bid):
+        return self.con.execute("SELECT status FROM bogen WHERE id = ?", (bid,)).fetchone()[0]
+
+    def test_vorschlag_einmal_je_stand(self):
+        offen, alle = self.bogen("fertig", "wartet"), self.bogen("fertig", "verworfen")
+        self.assertEqual(planautomatik.meilenstein_projekt(self.con, self.pid), [(alle, "vorschlag")])
+        self.assertEqual(self.bstatus(alle), "geplant")                                   # nur ein Vorschlag
+        m = self.con.execute("SELECT art, kurz, text FROM nachricht WHERE kurz LIKE 'Meilenstein%abschließen?'").fetchone()
+        self.assertEqual(m["art"], "meldung")
+        self.assertIn(f"amw bogen status {alle} fertig", m["text"])
+        self.assertEqual(planautomatik.meilenstein_projekt(self.con, self.pid), [])   # nicht noch einmal
+        self.assertEqual(self.bstatus(offen), "geplant")
+
+    def test_automatisch_und_versions_pflicht(self):
+        kern.projekt_einstellen(self.con, self.pid, "TL", meilenstein_fertig="automatisch", versionen="empfohlen")
+        bid = self.bogen("fertig", "fertig")
+        self.assertEqual(planautomatik.meilenstein_projekt(self.con, self.pid), [(bid, "fertig")])
+        self.assertEqual(self.bstatus(bid), "fertig")
+        kern.projekt_einstellen(self.con, self.pid, "TL", versionen="pflicht")
+        bid2 = self.bogen("fertig")
+        self.assertEqual(planautomatik.meilenstein_projekt(self.con, self.pid), [(bid2, "vorschlag")])   # Version fehlt
+        self.assertEqual(self.bstatus(bid2), "geplant")
+        self.assertIn("Automatisch ging es nicht", self.con.execute(
+            "SELECT text FROM nachricht WHERE kurz LIKE ? ORDER BY id DESC", (f"Meilenstein {bid2}%",)).fetchone()[0])
+
+    def test_aus_ohne_planung_automatisch(self):
+        kern.projekt_einstellen(self.con, self.pid, "TL", plan_automatik="aus")
+        self.bogen("fertig")
+        self.assertEqual(planautomatik.meilenstein_projekt(self.con, self.pid), [])
+
+
 if __name__ == "__main__":
     unittest.main()

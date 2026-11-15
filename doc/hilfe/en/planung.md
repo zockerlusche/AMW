@@ -24,6 +24,9 @@ Planning shows at a glance which milestone is active right now, how far along it
 ### Why is a task “running” although nobody started it?
 When an agent starts a run for one of its tasks that has not started yet, AMW sets it to “running” – the task comes from the run (`--aufgabe`), from “A1234” in the description or from the branch (a1234, a1234-2). If the task is waiting for someone, or the agent is already working on another piece, everything stays as it is. To switch it off: Settings › Project › Automatic planning.
 
+### Who closes a milestone when everything is done?
+When all tasks of a planned or active milestone are done (or dropped), its card shows “All tasks are done – close the milestone?” with the “Close” button, and the lead gets one notice. With Settings › Project › “Milestone done” set to “automatic”, AMW closes it itself. If a version is mandatory and none is recorded yet, it stays a suggestion with that reason.
+
 ### Why does the bar not get shorter although tasks get done?
 Because new tasks were added since the start. Under each milestone you see “Since start (05.11.): +5 added · 3 done · 8 open”, and the same when you hover over the bar; “Where do we stand right now?” shows “+5 since start”. Counted as added is anything created after the start or pulled into the milestone.
 

@@ -24,6 +24,9 @@ Die Planung zeigt auf einen Blick, welcher Meilenstein gerade aktiv ist, wie wei
 ### Warum steht eine Aufgabe auf „läuft“, obwohl sie niemand gestartet hat?
 Startet ein Agent einen Lauf zu einer seiner Aufgaben, die noch nicht begonnen hat, setzt die AMW sie auf „läuft“ – die Aufgabe kommt aus dem Lauf (`--aufgabe`), aus „A1234“ in der Beschreibung oder aus dem Zweig (a1234, a1234-2). Wartet die Aufgabe auf jemanden oder läuft beim Agenten schon ein anderes Stück, bleibt alles, wie es ist. Abschalten: Einstellungen › Projekt › Planung automatisch.
 
+### Wer schließt einen Meilenstein ab, wenn alles fertig ist?
+Sind alle Aufgaben eines geplanten oder aktiven Meilensteins fertig (oder verworfen), steht in seiner Karte „Alle Aufgaben sind fertig – Meilenstein abschließen?“ mit dem Knopf „Abschließen“, und der Lead bekommt einmal eine Meldung. Mit Einstellungen › Projekt › „Meilenstein fertig“ auf „automatisch“ schließt die AMW ihn selbst ab. Ist eine Version Pflicht und noch keine eingetragen, bleibt es beim Vorschlag mit diesem Grund.
+
 ### Warum wird der Balken nicht kürzer, obwohl Aufgaben fertig werden?
 Weil seit dem Start neue Aufgaben dazugekommen sind. Unter jedem Meilenstein steht „Seit Start (05.11.): +5 hinzugekommen · 3 erledigt · 8 offen“, beim Drüberfahren über den Balken ebenso; „Wo stehen wir gerade?“ zeigt „+5 seit Start“. Als hinzugekommen zählt, was nach dem Start angelegt oder in den Meilenstein gezogen wurde.
 

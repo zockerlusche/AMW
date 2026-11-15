@@ -125,8 +125,11 @@ def bogen_aendern(con, pid, von, bid, titel=None, ziel=None, abnahme=None, zield
     return bogen_zeile(con, pid, bid)
 
 
-def bogen_status(con, pid, von, bid, status, erzwingen=False):
-    _lead(con, pid, von, "Den Meilenstein-Status setzen")
+def bogen_status(con, pid, von, bid, status, erzwingen=False, automatik=False):
+    """automatik (A1742, nur die AMW selbst): ein Meilenstein, dessen Aufgaben alle fertig sind, schließt ohne Lead – die
+    Versions-Pflicht gilt trotzdem."""
+    if not automatik:
+        _lead(con, pid, von, "Den Meilenstein-Status setzen")
     if status not in ("geplant", "aktiv", "fertig", "verworfen"):
         raise kern.AmwFehler("Status: geplant | aktiv | fertig | verworfen")
     b = bogen_zeile(con, pid, bid)

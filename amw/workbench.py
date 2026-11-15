@@ -638,6 +638,7 @@ def daten_einstellungen(con, pid, speicher=None):
                         "pruefstufen": kern.projekt_wahl(con, pid, "pruefstufen"), "release_takt": kern.projekt_wahl(con, pid, "release_takt"),
                         "release_zeit": pe.get("release_zeit", ""), "plan_automatik": kern.projekt_wahl(con, pid, "plan_automatik"),
                         "neue_aufgaben": kern.projekt_wahl(con, pid, "neue_aufgaben"),
+                        "meilenstein_fertig": kern.projekt_wahl(con, pid, "meilenstein_fertig"),
                         "versionen": kern.projekt_wahl(con, pid, "versionen"), "version_frist_tage": pe.get("version_frist_tage", kern.VERSION_FRIST_TAGE),
                         "ende_frist_min": pe.get("ende_frist_min", 5),
                         "schwere_befehle": pe.get("schwere_befehle") or [],

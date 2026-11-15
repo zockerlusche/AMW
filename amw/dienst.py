@@ -319,6 +319,12 @@ class Dienst:
                 log.info("Bildschirm: %s", e)
         except Exception as e:
             log.warning("Bildschirm: %s: %s", type(e).__name__, e)
+        try:                                                                 # A1742: Meilenstein mit allen Aufgaben fertig
+            from . import planautomatik
+            for bid, was in planautomatik.meilensteine(self.con):
+                log.info("Meilenstein %s: %s", bid, was)
+        except Exception as e:
+            log.warning("Meilensteine: %s: %s", type(e).__name__, e)
         try:                                                                 # A1747: Lauf ohne --schirm mit Fenster → melden
             from . import fenster
             for lid, programm in fenster.pruefen(self.con):
