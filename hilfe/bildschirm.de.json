@@ -12,6 +12,11 @@
    "bilder": []
   },
   {
+   "titel": "Verlängern oder kürzen (optional)",
+   "text": "Ist der Bildschirm frei, ändert „Bis ändern“ in der Kachel nur die Uhrzeit: neue Uhrzeit eintragen und „Übernehmen“, oder „+1 Stunde“, „bis 22:00“, „ohne Ende“. Die Freigabe läuft weiter, im Verlauf steht die Änderung. Über die Befehlszeile: `amw schirm frei --bis 15:00` (ohne `--bis`: ohne Ende).",
+   "bilder": []
+  },
+  {
    "titel": "Agenten arbeiten",
    "text": "Läufe mit Fenster starten nacheinander; in der Zeit am besten nichts am PC tun.",
    "bilder": []

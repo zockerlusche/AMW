@@ -12,6 +12,11 @@
    "bilder": []
   },
   {
+   "titel": "Extend or shorten (optional)",
+   "text": "While the screen is free, “Change until” in the tile only changes the time: enter a new time and “Apply”, or use “+1 hour”, “until 22:00”, “no end”. The release continues; the history shows the change. On the command line: `amw schirm frei --bis 15:00` (without `--bis`: no end).",
+   "bilder": []
+  },
+  {
    "titel": "Agents work",
    "text": "Runs with a window start one after the other; best leave the PC alone meanwhile.",
    "bilder": []
