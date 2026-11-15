@@ -360,9 +360,15 @@ try {
         $status = (string)($q['status'] ?? 'aktuell');
         $such = mb_strtolower(trim((string)($q['q'] ?? '')));
         $gleich = fn($x, string $k) => ($q[$k] ?? '') === '' || (string)$x === (string)$q[$k];
+        $suchtext = [];                                   // A1676: Suchtext getrennt – nur laden, wenn gesucht wird
+        if ($such !== '') {
+            $z = ansicht_zeile('/intern/dokumente_such');
+            $suchtext = $z ? (json_decode($z[0], true) ?: []) : [];
+        }
         $d['dokumente'] = array_values(array_filter($d['dokumente'], fn($x) => ($status === 'alle' || $x['status'] === $status)
             && $gleich($x['art'], 'art') && $gleich($x['angelegt_von'], 'von') && $gleich($x['bezug_art'], 'bezug_art')
-            && $gleich($x['bezug_id'], 'bezug_id') && ($such === '' || str_contains((string)$x['such'], $such))));
+            && $gleich($x['bezug_id'], 'bezug_id')
+            && ($such === '' || str_contains((string)($x['such'] ?? $suchtext[(string)$x['id']] ?? mb_strtolower((string)$x['titel'])), $such))));
         foreach ($d['dokumente'] as &$x) unset($x['such']);
         unset($x);
     } elseif ($pfad === '/api/dokument') {                 // gewählte Version; Texte liegen für alle Versionen bei
