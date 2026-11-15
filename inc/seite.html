@@ -140,6 +140,7 @@ h2::after { content: ""; flex: 1; height: 1px; background: var(--linie); }
 .still .zeile-reveal > * { animation: none; }
 nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise); letter-spacing: 0; }
 .einst { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 980px; }
+main { overflow-wrap: break-word; }   /* lange Pfade/Adressen brechen um statt über den Rand (A1707) */
 .einst > * { min-width: 0; }   /* sonst zieht die breite Agenten-Tabelle alle Karten über den Handy-Rand */
 .einst .karte { padding: 16px 18px; }
 .einst h3, .dialog > h3 { font: 600 15px var(--titel); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; }
@@ -601,8 +602,8 @@ nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise
 .nr-filter select, .nr-filter input:not([type=checkbox]) { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; padding: 5px 8px; color: var(--tinte); }
 .nr-filter select option { background: var(--flaeche); color: var(--tinte); }
 .nr-filter select { max-width: 200px; } .nr-filter input:not([type=checkbox]) { width: 150px; }
-@media (max-width: 760px) { .nr-filter select { max-width: none; flex: 1 1 140px; } .nr-filter input:not([type=checkbox]) { flex: 1 1 120px; width: auto; } }
-.nr-raster { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.15fr); gap: 14px; align-items: start; }
+@media (max-width: 760px) { .nr-filter { min-width: 0; flex: 1 1 100%; } .nr-filter > * { min-width: 0; max-width: 100%; } .nr-filter select { max-width: 100%; flex: 1 1 140px; } .nr-filter input:not([type=checkbox]) { flex: 1 1 120px; width: auto; } }
+.nr-raster { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 14px; align-items: start; }
 /* A1628: Liste und Inhalt je eigener Scrollbereich (geteilt(): Höhe = Fenster unter dem Kopf); am Handy wie bisher */
 .geteilt { align-items: stretch; }
 :is(.nr-raster, .ae-raster).geteilt > * { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
@@ -719,6 +720,7 @@ main.geteilt-seite { padding-bottom: 16px; }
 .leitstand .erkl { font-size: 12px; color: var(--leise); flex: 1; }
 .leitstand .zeile { display: flex; gap: 8px; flex-wrap: wrap; }
 .leitstand .knopf.warn { border-color: var(--rot); color: var(--rot); }
+.leitstand .erkl, .leitstand .stand { overflow-wrap: anywhere; }
 /* Aktionsmenü: „⋯“ öffnet die Befehle zu einer Sache (Agent) – ein Baustein */
 .mehr-knopf { padding: 6px 11px; letter-spacing: .1em; }
 .menue { position: absolute; z-index: 40; min-width: 250px; max-width: min(340px, calc(100vw - 16px)); background: var(--flaeche2); border: 1px solid var(--linie2);
@@ -748,10 +750,10 @@ main.geteilt-seite { padding-bottom: 16px; }
 .agent-dialog h4 { display: flex; align-items: center; gap: 8px; font: 12px var(--titel); letter-spacing: .12em; text-transform: uppercase;
   color: var(--leise); margin: 0 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--linie); }
 .agent-dialog h4 .anzahl { font: 11px var(--mono); color: var(--sehrleise); background: var(--grund); padding: 0 6px; border-radius: 8px; }
-.agent-dialog .eintraege { display: grid; gap: 8px; }
+.agent-dialog .eintraege { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .agent-dialog .eintrag { background: var(--grund); border: 1px solid var(--linie); border-left: 3px solid var(--sehrleise);
   border-radius: 3px; padding: 8px 12px; font-size: 13.5px; line-height: 1.45; overflow-wrap: anywhere; }
-.agent-dialog .eintrag-kopf { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.agent-dialog .eintrag-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin-bottom: 3px; }
 .agent-dialog .eintrag-meta { margin-left: auto; font-size: 12px; white-space: nowrap; }
 .agent-dialog .eintrag-zusatz { font-size: 12px; margin-top: 3px; }
 .agent-dialog .eintrag-text.gross { font-size: 15px; font-weight: 600; }
@@ -873,7 +875,7 @@ textarea:focus { border-color: var(--bernstein); }
 details.vor { margin-top: 14px; border-top: 1px solid var(--linie); padding-top: 10px; }
 details.vor summary { cursor: pointer; color: var(--leise); font: 12px var(--titel); letter-spacing: .1em; text-transform: uppercase; list-style: none; padding: 4px 0; }
 details.vor summary::before { content: "▸ "; } details.vor[open] summary::before { content: "▾ "; }
-.vor-eintrag { display: grid; grid-template-columns: 74px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--linie); }
+.vor-eintrag { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--linie); }
 .vor-eintrag:last-child { border-bottom: 0; }
 .vor-eintrag .text { color: var(--leise); white-space: pre-wrap; font-size: 12.5px; margin-top: 2px; max-height: 9em; overflow: auto; overflow-wrap: anywhere; }
 
@@ -972,8 +974,6 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   nav a .zahl { position: absolute; top: 2px; right: 6px; margin: 0; font-size: 10px; }
   nav a .zahl:not(.heiss) { display: none; }
   main { padding: 16px 14px 24px; }
-  .ae-raster { grid-template-columns: minmax(0, 1fr); }
-  .ae-wahl { display: flex; flex-wrap: wrap; } .ae-wahl > button { width: auto; flex: 1 1 30%; border-right: 1px solid var(--linie); } .ae-wahl > button .tm-fach { display: none; } .ae-neu { flex: 1 1 100%; }
   .tm-schalter { margin-top: -34px; }
   .tm-knoten.tm-lead { grid-template-columns: minmax(0, 1fr); } .tm-rechts { flex-direction: row; align-items: center; justify-content: space-between; }
   .tm-ebene { grid-template-columns: 1fr 1fr; gap: 8px; row-gap: 22px; }
@@ -984,8 +984,6 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   .tm-z > .tm-zustand, .tm-z > .tm-auf, .tm-z > .tm-neben { grid-column: 1 / -1; }
   .tm-z > .tm-auf { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .tm-z > span:empty { display: none; }
-  .leitstand { grid-template-columns: 1fr 1fr; }
-  .leitstand > div:nth-child(2n) { border-right: 0; } .leitstand > div:nth-child(-n+2) { border-bottom: 1px solid var(--linie); }
   .menue button { padding: 12px 14px; }
   /* Handy: jedes Untermenü im Seitenkopf einzeilig, waagrecht wischbar – der feste Kopf bleibt flach */
   .seitenkopf.mit-menue { margin: -16px -14px 12px; padding: 16px 14px 0; }
@@ -1019,9 +1017,23 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   .liste .zeile > :nth-child(3) { grid-column: 1 / -1; }
   .liste .zeile > :nth-child(4) { grid-column: 1 / -1; }
   .release { grid-template-columns: 1fr; gap: 6px; }
-  .vor-eintrag { grid-template-columns: 1fr; gap: 2px; }
+  .vor-eintrag { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .toast { left: 12px; right: 12px; bottom: 80px; }
   .neuer-stand { left: 12px; right: 12px; bottom: 80px; transform: none; max-width: none; justify-content: space-between; }
+}
+/* Leitstand (A1707): bis Tablet-Breite (iPad hoch: Inhalt ~600 px) zwei Spalten, am Handy eine; die Token-Kachel geht dann
+   über die ganze Breite (ihr „span 3“ erzeugte im Zweier-Raster eine dritte Spalte – die übrigen wurden schmal wie ein Wort,
+   die Texte liefen ineinander) */
+@media (max-width: 1000px) {
+  .ae-raster { grid-template-columns: minmax(0, 1fr); }
+  .ae-wahl { display: flex; flex-wrap: wrap; } .ae-wahl > button { width: auto; flex: 1 1 30%; border-right: 1px solid var(--linie); } .ae-wahl > button .tm-fach { display: none; } .ae-neu { flex: 1 1 100%; }
+  .ae-raster.klebt > .ae-wahl { position: static; max-height: none; }
+  .leitstand { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .leitstand > div { border-right: 0; border-bottom: 1px solid var(--linie); } .leitstand > div:nth-child(odd) { border-right: 1px solid var(--linie); }
+  .leitstand > div:last-child { border-bottom: 0; } .leitstand > #ls-token { grid-column: 1 / -1; border-right: 0; }
+}
+@media (max-width: 560px) {   /* Handy: Leitstand-Kacheln untereinander (A1707) */
+  .leitstand { grid-template-columns: minmax(0, 1fr); } .leitstand > div:nth-child(odd) { border-right: 0; }
 }
 </style>
 </head>
