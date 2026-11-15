@@ -14,7 +14,7 @@
   },
   {
    "titel": "Add an entry",
-   "text": "One entry per project under `mcpServers` – the name is up to you, the path is the AMW folder: ```json { \"mcpServers\": { \"amw-glassworld\": { \"command\": \"python\", \"args\": [\"F:/amw/amw-mcp.py\", \"--projekt\", \"GlassWorld\", \"--von\", \"TL\"] } } } ``` If there is already something under `mcpServers`, only add the new entry (with a comma).",
+   "text": "One entry per project under `mcpServers` – the name is up to you, the path is the AMW folder: `\"amw-glassworld\": {\"command\": \"python\", \"args\": [\"F:/amw/amw-mcp.py\", \"--projekt\", \"GlassWorld\", \"--von\", \"TL\"]}`. If there is no `mcpServers` yet, the whole file is `{\"mcpServers\": { … }}` with the entry in place of the three dots; if there is something already, add the new entry with a comma.",
    "bilder": []
   },
   {

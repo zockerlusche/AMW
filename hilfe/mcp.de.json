@@ -14,7 +14,7 @@
   },
   {
    "titel": "Eintrag einfügen",
-   "text": "Je Projekt ein Eintrag unter `mcpServers` – der Name ist frei, der Pfad ist der Ordner der AMW: ```json { \"mcpServers\": { \"amw-glassworld\": { \"command\": \"python\", \"args\": [\"F:/amw/amw-mcp.py\", \"--projekt\", \"GlassWorld\", \"--von\", \"TL\"] } } } ``` Steht schon etwas unter `mcpServers`, nur den neuen Eintrag dazuschreiben (mit Komma).",
+   "text": "Je Projekt ein Eintrag unter `mcpServers` – der Name ist frei, der Pfad ist der Ordner der AMW: `\"amw-glassworld\": {\"command\": \"python\", \"args\": [\"F:/amw/amw-mcp.py\", \"--projekt\", \"GlassWorld\", \"--von\", \"TL\"]}`. Gibt es `mcpServers` noch nicht, die ganze Datei so: `{\"mcpServers\": { … }}` mit dem Eintrag an der Stelle der drei Punkte; steht dort schon etwas, den neuen Eintrag mit Komma dazuschreiben.",
    "bilder": []
   },
   {
