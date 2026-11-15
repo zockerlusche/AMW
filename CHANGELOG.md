@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.100.4 – 15.11.2026 · Bilder im Vollbild auf dem iPad
+- **Behoben:** Auf dem iPad blieb ein Bild im Vollbild schwarz, obwohl Vorschau und Dialog es zeigten. Beim Laden des Bilds
+  hatte das Vollbild noch keine Größe, das Bild wurde auf null verkleinert und danach nie neu eingepasst. Jetzt passt die
+  Seite das Bild an, sobald das Vollbild seine Größe hat, und bei jeder Größenänderung (Drehen, Wechsel ins Vollbild).
+
 ## 1.100.3 – 15.11.2026 · Startseite am Handy und iPad
 - **Behoben:** Am iPhone lagen die Kacheln des Leitstands auf der Startseite (Arbeit der Agenten, Bildschirm, Sitzungen …)
   übereinander, die Texte liefen ineinander. Jetzt stehen sie am Handy untereinander und am iPad zu zweit; das Wochenlimit

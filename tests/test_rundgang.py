@@ -5,6 +5,7 @@ import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im 
 import datetime
 import os
 import struct
+import time
 import unittest
 import zlib
 
@@ -81,6 +82,23 @@ class Vollbild(Daten, Rundgang):
                     self.tippen(".vb > .vb-zu")                               # echter Tipp auf das ✕
                     self.warten(VB_ZU)
                     self.assertTrue(self.tab.js("!!document.querySelector('.dialog-hg')"), "Dokument-Dialog bleibt offen")
+
+    def test_bild_erscheint_auch_wenn_die_buehne_beim_laden_noch_null_gross_ist(self):
+        """A1675 (Marcel, iPad): Vorschau und Dialog zeigten das Bild, das Vollbild blieb schwarz. Ursache: beim Laden des Bilds
+        war die Bühne noch 0 groß (Wechsel ins echte Vollbild lief noch) – eingepasst wurde auf scale(0), danach nie wieder.
+        Nachgestellt: das Vollbild bleibt unsichtbar, bis das Bild geladen ist, und bekommt erst dann seine Größe."""
+        self.groesse("ipad")
+        self.oeffnen("dokumente", "document.querySelector('.dk-karte')")
+        self.tab.js(f"dokumentDialog({self.dok['bild']})")
+        self.warten("[...document.querySelectorAll('.dialog-hg .knopf')].some(k => k.textContent === 'Vollbild')")
+        self.tab.js("document.head.append(Object.assign(document.createElement('style'), { id: 'null-gross', textContent: '.vb { display: none !important; }' }))")
+        self.tab.js("[...document.querySelectorAll('.dialog-hg .knopf')].find(k => k.textContent === 'Vollbild').click()")
+        self.warten("document.querySelector('.vb img') && document.querySelector('.vb img').complete && document.querySelector('.vb img').naturalWidth > 0")
+        time.sleep(0.3)                                                    # Laden ist durch, die Bühne war die ganze Zeit 0 groß
+        self.tab.js("document.getElementById('null-gross').remove()")
+        self.warten("(() => { const r = document.querySelector('.vb img').getBoundingClientRect(), b = document.querySelector('.vb-buehne').getBoundingClientRect();"
+                    " return r.width > b.width * 0.9 || r.height > b.height * 0.9; })()", 4)                   # eingepasst: füllt eine Seite
+        self.assertNotIn("scale(0)", self.tab.js("document.querySelector('.vb img').style.transform"))
 
     def test_esc_und_zurueck_schliessen_nur_das_vollbild(self):
         self.vollbild("bild", "handy")
