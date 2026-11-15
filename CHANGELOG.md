@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.112.0 – 15.11.2026 · Messen: Lesen Agenten nach einem Weckruf noch nach?
+- Betrieb › „Wofür das Geld geht“ zeigt, nach wie vielen Weckrufen ein Agent innerhalb von 2 Minuten noch einmal nachgelesen
+  hat (`amw lesen`/`amw kontext`), und die Kosten je Weckruf vor und nach 1.98.0 (seitdem bringen Weckrufe den Inhalt mit).
+  Gemessen wird ab dieser Version; festgehalten werden nur Zeit, Agent und Befehl, nie Inhalte.
+
 ## 1.111.2 – 15.11.2026 · Auch Konsolenfenster aus Läufen ohne Bildschirm werden erkannt
 - **Behoben:** Öffnete ein Lauf ohne Bildschirm-Anmeldung ein neues Konsolenfenster (z. B. ein Konsolenprogramm, dem Windows
   je Aufruf eine eigene Konsole gibt), merkte die AMW das nicht – das Fenster gehört der Konsole bzw. dem Windows Terminal,

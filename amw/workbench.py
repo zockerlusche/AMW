@@ -564,7 +564,9 @@ def daten_anlass(con, pid, q):
         tage = max(1, min(30, int(q.get("tage", ["7"])[0])))
     except ValueError:
         tage = 7
-    return {"tage": tage, **anlass.anlaesse(con, pid, anlass.zeitraum(tage))}
+    from . import nachlesen                         # A1757: Nachlesen nach Weckrufen + Kosten je Weckruf vor/nach 1.98.0
+    return {"tage": tage, **anlass.anlaesse(con, pid, anlass.zeitraum(tage)),
+            "nachlesen": nachlesen.auswertung(con, pid, anlass.zeitraum(tage))}
 
 
 def daten_benutzer(con, speicher=None):

@@ -2962,6 +2962,12 @@ def main(argv=None):
             con = db.verbinde()
             try:
                 _heutige_kennungen(con, a)
+                if a.cmd in ("lesen", "kontext") and _von(a) not in (kern.ENTWICKLER, "AMW"):   # A1757: Nachlesen messen
+                    from . import nachlesen
+                    try:
+                        nachlesen.merken(db.projekt_name(con, _projekt(con, a)), _von(a), a.cmd)
+                    except Exception:                        # noqa: BLE001 – Messen darf den Befehl nie stören
+                        pass
                 rc = a.f(a, con)
             finally:
                 con.close()
