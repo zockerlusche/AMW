@@ -319,6 +319,12 @@ class Dienst:
                 log.info("Bildschirm: %s", e)
         except Exception as e:
             log.warning("Bildschirm: %s: %s", type(e).__name__, e)
+        try:                                                                 # A1747: Lauf ohne --schirm mit Fenster → melden
+            from . import fenster
+            for lid, programm in fenster.pruefen(self.con):
+                log.info("Fenster ohne --schirm: L%s (%s)", lid, programm)
+        except Exception as e:
+            log.warning("Fenster: %s: %s", type(e).__name__, e)
         for lid in betrieb.warteschlange(self.con):                         # eine Warteschlange je Rechner, über alle Projekte
             log.info("Warteschlange: L%s freigegeben", lid)
         try:                                                                 # Warte-Prozess weg → der Dienst rechnet (A1640)

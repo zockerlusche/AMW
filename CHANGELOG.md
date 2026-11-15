@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.106.2 – 15.11.2026 · Läufe ohne Bildschirm, die doch ein Fenster öffnen
+- **Behoben:** Läufe, die ohne Bildschirm angemeldet waren, öffneten trotzdem Fenster (z. B. ein Spiel), während du am PC
+  warst – und kamen nach dem Schließen wieder. Jetzt merkt die AMW das Fenster: Der Lauf gilt ab dann als Lauf mit Fenster,
+  sein Agent und der Lead erfahren es, und bei belegtem Bildschirm wird der Agent gebeten, ihn zu beenden (die AMW beendet
+  nichts selbst). Denselben Lauf nimmt die Schlange danach 7 Tage lang nur noch mit Bildschirm-Anmeldung an – ebenso, wenn
+  so ein Lauf bei belegtem Bildschirm von außen geschlossen wurde.
+- Die AMW sieht dabei nur, welches Programm ein Fenster hat, nie den Fenstertitel; Hilfe „Schwere Läufe“ ergänzt.
+
 ## 1.106.1 – 15.11.2026 · Einstellungen gehen nicht mehr verloren
 - **Behoben:** Nach „Gespeichert“ stand eine Einstellung dieses PCs (z. B. „Aus dem Heimnetz erreichbar“) manchmal trotzdem
   leer in der Datei. War die Datei im selben Moment gesperrt oder halb geschrieben, galt sie als leer, und das Speichern schrieb

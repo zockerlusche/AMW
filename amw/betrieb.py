@@ -611,6 +611,11 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     for name, wert in (("Arbeitsspeicher", braucht_gb), ("Grafikspeicher", braucht_vram_gb), ("Festplatte", braucht_platte_gb)):
         if wert is not None and not 0 < float(wert) <= 2048:
             raise kern.AmwFehler(f"Bedarf {name}: eine Zahl in GB zwischen 0 und 2048")
+    if not dazu:                                 # A1747: öffnete derselbe Lauf zuletzt ein Fenster, nur noch mit --schirm
+        from . import fenster
+        g = fenster.sperrgrund(con, pid, befehl, beschreibung, schirm)
+        if g:
+            raise kern.AmwFehler(g)
     if braucht_gb is None and not (rez and rez["braucht_speicher_gb"]) and schwer:
         braucht_gb = gelernter_bedarf(con, pid, agent, befehl, beschreibung)   # A1641: niemand muss schätzen
     grenze = _grenze(con, pid, braucht_gb or (rez["braucht_speicher_gb"] if rez else None), schwer)   # eigene Angabe geht vor
@@ -881,6 +886,9 @@ def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speich
             raise kern.AmwFehler(f"L{lid} ist schon {l['status']}")
         con.execute("UPDATE lauf SET status = ?, ende_utc = ?, rc = ?, ergebnis = ? WHERE id = ?",
                     ("abgebrochen" if abgebrochen or l["status"] == "angemeldet" else "fertig", db.jetzt(), rc, ergebnis, lid))
+        if l["status"] == "laeuft":                  # A1747: ohne --schirm, Bildschirm zu, von außen geschlossen → Fenster
+            from . import fenster
+            fenster.geschlossen(con, l, rc, bool(schirm_mod.zustand(con)["frei"]))
         from . import wartegrund                     # wer auf diesen Lauf gewartet hat, wird geweckt (L2)
         wartegrund.erledige(con, pid, "lauf", f"L{lid}", f"L{lid} zu Ende (rc {rc})" if rc is not None else f"L{lid} zu Ende")
     return warteschlange(con, pid, speicher_frei)
