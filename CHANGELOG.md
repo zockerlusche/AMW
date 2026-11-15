@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.112.3 – 15.11.2026 · Keine aufblitzenden Konsolenfenster mehr
+- **Behoben:** Der Dienst öffnete bei jeder Abfrage von git und gh kurz ein Konsolenfenster – am laufenden Band. Alle
+  Hilfsprogramme laufen jetzt ohne Fenster.
+- **Verbessert:** Nach gemergten Pull-Requests sieht die AMW nur noch auf Anlass nach (Merge-OK, Auslieferung, Ende
+  eines Laufs mit Aufgabe, Meldung „gemergt“), sonst höchstens stündlich – statt alle 5 Minuten.
+- **Behoben:** Ein Programm, das vor einem Lauf gestartet war, galt manchmal als dessen Fenster (Windows vergibt
+  Prozess-Nummern neu). War eine Meldung trotzdem falsch, hebt `amw lauf fehlalarm <nr>` die Sperre auf.
+
 ## 1.112.2 – 15.11.2026 · Vorziehen und Grafikspeicher ehrlich
 - **Behoben:** „Vorgezogen“ hieß bei einem Lead nur „vor die Läufe des eigenen Projekts“ – die Liste sah aber aus, als stünde
   der Lauf ganz vorn. Jetzt steht dort „vom Entwickler vorgezogen“ (ganz vorn, vor jeder Vorrang-Stufe) oder „im Projekt

@@ -99,6 +99,10 @@ class GitHubMerge(Grund):
         self.addCleanup(planautomatik._gh_zuletzt.clear)
         self.aufrufe = []
         self.prs = []
+        if not self._testMethodName.startswith("test_anlass"):          # PR-Logik: Abfrage immer fällig (Anlass eigene Tests)
+            p = mock.patch.object(planautomatik, "github_faellig", return_value="Test")
+            p.start()
+            self.addCleanup(p.stop)
 
     def laufen(self, befehl, ordner):
         import json
@@ -128,9 +132,6 @@ class GitHubMerge(Grund):
         self.assertEqual((self.status(rot), self.status(geraet)), ("wartet", "wartet"))   # CI rot · wartet auf den Entwickler
         self.assertIn(f"A{a} ← PR #12 (abcdef1).",
                       self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'Fertig nach Merge%'").fetchone()[0])
-        n = len(self.aufrufe)
-        planautomatik.github_projekt(self.con, self.pid, laufen=self.laufen, jetzt=1100.0)   # < 5 min später: keine Abfrage
-        self.assertEqual(len(self.aufrufe), n)
 
     def test_nur_ausdruecklich_genannte_aufgaben(self):
         """TL P186: bloßes Erwähnen („Vorarbeit für A1235“, „siehe A1200“) setzt nichts fertig – nur A-Nummern am Anfang des
@@ -150,6 +151,49 @@ class GitHubMerge(Grund):
                      "statusCheckRollup": []}]
         planautomatik.github_projekt(self.con, self.pid, laufen=self.laufen, jetzt=1000.0)
         self.assertEqual((self.status(a), self.status(b)), ("fertig", "wartet"))
+
+    def gh(self, jetzt):
+        n = len([b for b in self.aufrufe if b[0] == "gh"])
+        planautomatik.github_projekt(self.con, self.pid, laufen=self.laufen, jetzt=jetzt)
+        return len([b for b in self.aufrufe if b[0] == "gh"]) > n
+
+    def test_anlass_nicht_mehr_alle_5_minuten(self):
+        """A1783 (Marcel 15.11. 19:09/19:15): ohne Anlass keine Abfrage – auch nicht nach 5 Minuten; nach dem Start des Dienstes
+        kein Schwall."""
+        import time as zeit
+        self.art("cloud")
+        self.aufgabe()
+        t0 = zeit.time()
+        self.assertFalse(self.gh(t0))                                         # Start: ab jetzt
+        self.assertFalse(self.gh(t0 + 301))                                   # früher: alle 5 min
+        self.assertFalse(self.gh(t0 + 3700))                                  # stündlich nur mit offenen Aufgaben mit Zweig
+
+    def test_anlass_merge_ok_lauf_und_meldung(self):
+        import time as zeit
+        self.art("cloud")
+        a = self.aufgabe()
+        t0 = zeit.time() - 600
+        self.assertFalse(self.gh(t0))
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von="TL", art="merge_ok", aufgabe_id=a)
+        self.assertTrue(self.gh(t0 + 120))                                    # Merge-OK → nachsehen
+        self.assertFalse(self.gh(t0 + 150))                                   # höchstens einmal je Minute, kein neuer Anlass
+        kern.posten(self.con, self.pid, "CC1", "TL", "info", "PR #4 gemergt")
+        self.assertFalse(self.gh(t0 + 170))                                   # < 1 min seit der letzten Abfrage
+        self.assertTrue(self.gh(t0 + 400))                                    # Meldung „gemergt“ → nachsehen
+
+    def test_anlass_stuendlich_nur_mit_offenen_aufgaben_mit_zweig(self):
+        import time as zeit
+        from amw import betrieb
+        self.art("cloud")
+        a = self.aufgabe()
+        t0 = zeit.time() - 2 * 3600
+        self.assertFalse(self.gh(t0))
+        betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "a-zweig", "abc1234def", "Punkte", a, ohne_bild="Test") \
+            if "ohne_bild" in betrieb.pruefbitte.__code__.co_varnames else betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "a-zweig", "abc1234def", "Punkte", a)
+        with db.schreiben(self.con):                                          # die Prüfbitte ist kein Anlass – nur „offen mit Zweig“
+            self.con.execute("UPDATE nachricht SET zeit_utc = '2000-01-01T00:00:00Z'")
+        self.assertTrue(self.gh(t0 + 3700))
 
     def test_nur_dieser_pc_fragt_github_nie(self):
         self.art("pc")

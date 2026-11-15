@@ -26,7 +26,7 @@ def zweig(ordner):
         return None
     try:
         r = subprocess.run(["git", "-C", ordner, "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, timeout=5,
-                           stdin=subprocess.DEVNULL)
+                           stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     except (OSError, subprocess.TimeoutExpired):
         return None
     name = r.stdout.strip() if r.returncode == 0 else ""
@@ -114,9 +114,13 @@ def ausgeliefert(con, pid, version, sha, enthalten):
 
 
 # --- A1738 (2): gemergte GitHub-PRs ----------------------------------------------------------------------------------------
-GH_TAKT_S = 300            # je Projekt höchstens alle 5 Minuten (TL #26380: „höchstens alle paar Minuten“)
+# A1783 (Marcel 15.11. 19:15): nicht mehr alle 5 Minuten, sondern nur auf Anlass – Merge-OK oder Auslieferung im Projekt, Ende
+# eines Laufs mit Aufgabe, eine Nachricht „gemergt/merged“; sonst höchstens einmal je Stunde und nur, wenn es offene Aufgaben
+# mit Zweig gibt (Projekte, die selbst auf GitHub mergen). Ohne solche Aufgaben: gar keine Abfrage.
+GH_ANLASS_S = 60           # auch mit Anlass höchstens einmal je Minute
+GH_STUNDE_S = 3600
 GH_FRIST_S = 30
-_gh_zuletzt = {}           # Projekt → Zeitpunkt der letzten Abfrage (Zustand im Dienst)
+_gh_zuletzt = {}           # Projekt → Zeitpunkt der letzten Prüfung (Zustand im Dienst; nach dem Start: ab jetzt)
 GRUEN = {"SUCCESS", "NEUTRAL", "SKIPPED"}
 # Welche Aufgaben ein PR erledigt (TL P186): nur ausdrücklich – A-Nummern am Anfang des Titels („A1234: …“, „[A1234] …“,
 # „A1234, A1235: …“) oder im Text hinter einem Schlüsselwort („fertig: A1234“, „closes A1234“). Bloßes Erwähnen
@@ -145,7 +149,7 @@ def _git_remote(ordner, laufen):
 def _laufen(befehl, ordner):
     try:
         r = subprocess.run(befehl, cwd=ordner, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                           timeout=GH_FRIST_S, stdin=subprocess.DEVNULL)
+                           timeout=GH_FRIST_S, stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     except (OSError, subprocess.TimeoutExpired) as e:
         return 1, str(e)
     return r.returncode, r.stdout if r.returncode == 0 else (r.stderr or r.stdout)
@@ -160,19 +164,58 @@ def ci_gruen(pr):
     return True
 
 
+def _utc(sek):
+    import time
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(sek))
+
+
+def gh_anlass(con, pid, seit):
+    """Gab es seit `seit` (UTC-Text) einen Anlass, nach gemergten PRs zu sehen? Text des Anlasses oder None."""
+    if con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'merge_ok' AND zeit_utc > ?", (pid, seit)).fetchone():
+        return "Merge-OK"
+    if con.execute("SELECT 1 FROM release WHERE projekt_id = ? AND zeit_utc > ?", (pid, seit)).fetchone():
+        return "Auslieferung"
+    if con.execute("SELECT 1 FROM lauf WHERE projekt_id = ? AND aufgabe_id IS NOT NULL AND ende_utc > ?", (pid, seit)).fetchone():
+        return "Lauf mit Aufgabe zu Ende"
+    if con.execute("SELECT 1 FROM nachricht WHERE projekt_id = ? AND zeit_utc > ? AND von != 'AMW' AND (lower(kurz) LIKE '%gemergt%'"
+                   " OR lower(kurz) LIKE '%merged%' OR lower(coalesce(text, '')) LIKE '%gemergt%')", (pid, seit)).fetchone():
+        return "Meldung „gemergt“"
+    return None
+
+
+def pr_aufgaben_offen(con, pid):
+    """Offene Aufgaben mit Zweig (eine Prüfbitte oder ein Lauf nennt sie) – nur dann lohnt die stündliche Abfrage."""
+    return bool(con.execute(
+        "SELECT 1 FROM aufgabe a WHERE a.projekt_id = ? AND a.status NOT IN ('fertig', 'verworfen') AND (EXISTS (SELECT 1 FROM"
+        " pruefung p WHERE p.aufgabe_id = a.id) OR EXISTS (SELECT 1 FROM lauf l WHERE l.aufgabe_id = a.id)) LIMIT 1", (pid,)).fetchone())
+
+
+def github_faellig(con, pid, jetzt):
+    """Soll jetzt nachgesehen werden? (Grund oder None) – merkt sich den Zeitpunkt erst beim Abfragen."""
+    zuletzt = _gh_zuletzt.setdefault(pid, jetzt)          # nach dem Start des Dienstes: ab jetzt, kein Schwall
+    if jetzt - zuletzt < GH_ANLASS_S:
+        return None
+    grund = gh_anlass(con, pid, _utc(zuletzt))
+    if grund:
+        return grund
+    if jetzt - zuletzt >= GH_STUNDE_S and pr_aufgaben_offen(con, pid):
+        return "stündlich (offene Aufgaben mit Zweig)"
+    return None
+
+
 def github_projekt(con, pid, laufen=_laufen, jetzt=None):
     """A1738 (2) für ein Projekt: gemergte PRs (gh im Projektordner) mit „A1234“ in Titel oder Text und grünen Prüfungen setzen
     die Aufgabe dieses Projekts fertig – Beleg = Merge-Commit. Nur mit Projektordner, dessen origin die Betriebsart erlaubt
-    (github.com nur in „Cloud“, ein GitHub im Firmennetz auch in „Server“); höchstens alle GH_TAKT_S Sekunden; die Anmeldung
-    hält gh selbst (kein Token in der AMW). Rückgabe wie ausgeliefert()."""
+    (github.com nur in „Cloud“, ein GitHub im Firmennetz auch in „Server“); nur auf Anlass oder stündlich (github_faellig);
+    die Anmeldung hält gh selbst (kein Token in der AMW). Rückgabe wie ausgeliefert()."""
     import json
     import time
     from . import betriebsart, planung, wartegrund
     jetzt = jetzt if jetzt is not None else time.time()
-    if not an(con, pid) or jetzt - _gh_zuletzt.get(pid, 0) < GH_TAKT_S:
+    if not an(con, pid):
         return []
     ordner = kern.projekt_ordner(con, pid)
-    if not ordner:
+    if not ordner or not github_faellig(con, pid, jetzt):
         return []
     _gh_zuletzt[pid] = jetzt
     url = _git_remote(ordner, laufen)

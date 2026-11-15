@@ -774,11 +774,11 @@ def pruefstand(befehl, ordner):
     m = re.match(r'\s*cd\s+(?:/d\s+)?("?)([^"&]+?)\1\s*&&', text, re.I)
     ziel = (m.group(2).strip() if m else ordner) or ordner
     try:
-        rev = subprocess.run(["git", "-C", ziel, "rev-parse", "HEAD"], capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
+        rev = subprocess.run(["git", "-C", ziel, "rev-parse", "HEAD"], capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         if rev.returncode != 0:
             return None
         st = subprocess.run(["git", "-C", ziel, "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True,
-                            timeout=60, stdin=subprocess.DEVNULL)
+                            timeout=60, stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     except (OSError, subprocess.TimeoutExpired):
         return None
     return ziel, rev.stdout.strip(), st.returncode == 0 and not st.stdout.strip()
@@ -1208,7 +1208,7 @@ def voller_sha(con, pid, sha):
         return sha
     try:
         r = subprocess.run(["git", "-C", ordner, "rev-parse", "--verify", "--quiet", f"{sha}^{{commit}}"], capture_output=True,
-                           text=True, timeout=30, stdin=subprocess.DEVNULL)
+                           text=True, timeout=30, stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     except (OSError, subprocess.TimeoutExpired):
         return sha
     voll = r.stdout.strip()

@@ -163,7 +163,7 @@ def main():
     befehl = weiter_befehl()
     if befehl:
         try:
-            r = subprocess.run(befehl, input=roh, capture_output=True, timeout=5, shell=True)
+            r = subprocess.run(befehl, input=roh, capture_output=True, timeout=5, shell=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             sys.stdout.buffer.write(r.stdout)
             return 0
         except (OSError, subprocess.SubprocessError):

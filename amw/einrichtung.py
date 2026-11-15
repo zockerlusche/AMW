@@ -60,7 +60,7 @@ def powershell(skript):
     # Ausgabe als UTF-8 (sonst kommen Umlaute und · aus Windows PowerShell 5 verstümmelt an)
     skript = "[Console]::OutputEncoding = [Text.Encoding]::UTF8; " + skript
     r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", skript],
-                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+                       capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     return r.returncode, (r.stdout + r.stderr).strip()
 
 

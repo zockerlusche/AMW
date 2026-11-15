@@ -20,7 +20,7 @@ ZEIT_VORGABE = "18:00"
 
 def _git(ordner, *args):
     try:
-        r = subprocess.run(["git", "-C", ordner, *args], capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
+        r = subprocess.run(["git", "-C", ordner, *args], capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     except (OSError, subprocess.TimeoutExpired):
         return None
     return r.returncode

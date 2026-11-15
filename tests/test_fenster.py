@@ -60,6 +60,16 @@ class FensterOhneSchirm(Grund):
         betrieb.lauf_start(self.con, self.pid, "CC6", "anderer Lauf", warten=True, speicher_frei=32.0, schwer=False,
                            befehl=["godot", "--headless", "--path", "spiel"])                   # ohne Fenster: frei
 
+    def test_fehlalarm_hebt_die_sperre_auf(self):
+        """A1783: war die Meldung falsch (neu vergebene Prozess-Nummer), hebt der Lead die Sperre mit lauf fehlalarm auf."""
+        lid = self.lauf()
+        fenster.pruefen(self.con, fenster={101}, liste=PROZESSE, schirm_frei=False, konsole=False)
+        with self.assertRaises(kern.AmwFehler):
+            fenster.fehlalarm(self.con, self.pid, "CC6", lid)                       # nur Lead/Mensch
+        self.assertEqual(fenster.fehlalarm(self.con, self.pid, "TL", lid), 1)
+        betrieb.lauf_start(self.con, self.pid, "CC6", "Rundgang Labor", warten=True, speicher_frei=32.0, schwer=False,
+                           befehl=["godot", "--path", "spiel", "res://rundgang_19.tscn"])   # wieder ohne --schirm
+
     def test_fremdes_fenster_zaehlt_nicht(self):
         self.lauf()
         self.assertEqual(fenster.pruefen(self.con, fenster={200}, liste=PROZESSE, schirm_frei=True, konsole=False), [])

@@ -165,10 +165,16 @@ def lauf_prozesse(laufende=None):
 
 
 def _nachkommen(liste, wurzeln):
-    """Die Wurzel-Prozesse samt allen Kindern und Kindeskindern (Nummern)."""
+    """Die Wurzel-Prozesse samt allen Kindern und Kindeskindern (Nummern). Ein Prozess zählt nur als Kind, wenn er nach dem
+    Prozess gestartet ist, der heute die Eltern-Nummer trägt – Windows vergibt Nummern neu (15.11.: Firefox seit 18:33 mit
+    Eltern-Nummer 51880, die inzwischen ein Prozess des Laufs L2240 von 19:05 trug, galt als dessen Fenster)."""
+    seit = {p["pid"]: p.get("seit") for p in liste}
     kinder = {}
     for p in liste:
-        kinder.setdefault(p["eltern"], []).append(p["pid"])
+        e, a, k = p["eltern"], seit.get(p["eltern"]), p.get("seit")
+        if a is not None and k is not None and k < a:
+            continue                                      # „Kind“ älter als der Elternprozess: Nummer neu vergeben
+        kinder.setdefault(e, []).append(p["pid"])
     aus, offen = set(), [w for w in wurzeln if w]
     while offen:
         x = offen.pop()

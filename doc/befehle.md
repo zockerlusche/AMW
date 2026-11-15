@@ -779,10 +779,11 @@ usage: amw lauf [-h] [--warten] [--hoechstens HOECHSTENS] [--frist FRIST]
                 [--aufgabe AUFGABE] [--rc RC] [--ergebnis ERGEBNIS]
                 [--abgebrochen] [--grenze GRENZE] [--von VON]
                 [--projekt PROJEKT]
-                {start,ende,liste,vorziehen,zeige,warte,ausfuehren} [id]
+                {start,ende,liste,vorziehen,zeige,warte,ausfuehren,fehlalarm}
+                [id]
 
 positional arguments:
-  {start,ende,liste,vorziehen,zeige,warte,ausfuehren}
+  {start,ende,liste,vorziehen,zeige,warte,ausfuehren,fehlalarm}
   id
 
 options:

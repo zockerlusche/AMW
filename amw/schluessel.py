@@ -60,7 +60,7 @@ def openssl_pfad():
 def _mit_openssl(namen, rechte, openssl):
     with tempfile.TemporaryDirectory() as d:                      # privater Schlüssel nur hier, danach weg
         priv, pub = os.path.join(d, "p.pem"), os.path.join(d, "o.pem")
-        lauf = lambda *a: subprocess.run([openssl, *a], capture_output=True, timeout=30, check=True)
+        lauf = lambda *a: subprocess.run([openssl, *a], capture_output=True, timeout=30, check=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         try:
             lauf("genpkey", "-algorithm", "ed25519", "-out", priv)
             lauf("pkey", "-in", priv, "-pubout", "-out", pub)

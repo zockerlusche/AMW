@@ -347,7 +347,7 @@ def beenden(con, pid, kennung, beenden_mit=None, auch_ruhend=False):
     with db.schreiben(con):
         con.execute("UPDATE sitzung SET ereignis = 'beendet', ereignis_text = 'amw', ereignis_utc = ? WHERE id = ?",
                     (db.jetzt(), r["id"]))
-    (beenden_mit or (lambda p: subprocess.run(["taskkill", "/PID", str(p), "/T", "/F"], capture_output=True)))(cpid)
+    (beenden_mit or (lambda p: subprocess.run(["taskkill", "/PID", str(p), "/T", "/F"], capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))))(cpid)
     return f"{kennung}: Claude-Prozess {cpid} beendet (Fenster bleibt offen)"
 
 

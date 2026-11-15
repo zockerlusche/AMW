@@ -39,7 +39,7 @@ def dateien(ordner, sha, basis="main"):
         return None
     try:
         r = subprocess.run(["git", "-C", ordner, "diff", "--name-only", f"{basis}...{sha}"], capture_output=True, text=True,
-                           timeout=60, stdin=subprocess.DEVNULL, encoding="utf-8", errors="replace")
+                           timeout=60, stdin=subprocess.DEVNULL, encoding="utf-8", errors="replace", creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     except (OSError, subprocess.TimeoutExpired):
         return None
     if r.returncode != 0:
@@ -120,7 +120,7 @@ def _eigene_basis(con, pid, ordner, sha, aufgabe_id):
             continue
         try:
             r = subprocess.run(["git", "-C", ordner, "merge-base", "--is-ancestor", andere, sha], capture_output=True, timeout=30,
-                               stdin=subprocess.DEVNULL)
+                               stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         except (OSError, subprocess.TimeoutExpired):
             continue
         if r.returncode == 0:

@@ -42,7 +42,7 @@ def ergebnis_pfad(l):
 def _baum_beenden(prozess_id):
     """Den selbst gestarteten Befehl samt Kindern beenden (nur eigene Prozesse des Dienstes)."""
     if os.name == "nt":
-        subprocess.run(["taskkill", "/T", "/F", "/PID", str(prozess_id)], capture_output=True)
+        subprocess.run(["taskkill", "/T", "/F", "/PID", str(prozess_id)], capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     else:
         import signal
         try:

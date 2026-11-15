@@ -234,7 +234,7 @@ def _version_nachtragen(con, pid, von, version, titel, oeffentlich, text, zeit_u
         raise kern.AmwFehler(f"Version {version} gibt es schon")
     ordner = kern.projekt_ordner(con, pid)
     git = lambda *a: subprocess.run(["git", "-C", ordner or ".", *a], capture_output=True, text=True, encoding="utf-8",
-                                    errors="replace", timeout=60, stdin=subprocess.DEVNULL)
+                                    errors="replace", timeout=60, stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     tag = git("rev-parse", "-q", "--verify", f"refs/tags/v{version}^{{commit}}") if ordner else None
     if not tag or tag.returncode != 0:
         raise kern.AmwFehler(f"--nachtrag braucht den Git-Tag v{version} im Projektordner – den gibt es nicht")

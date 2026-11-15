@@ -1060,7 +1060,7 @@ def _baum_beenden(proc):
     if proc.poll() is not None:
         return
     if os.name == "nt":
-        subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True)
+        subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     else:
         import signal
         try:
@@ -1128,6 +1128,8 @@ def _lauf_ausfuehren(con, pid, a):
                       f"# Start: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
     eins = len(befehl) == 1                      # ein String mit Leerzeichen: als Befehlszeile der Shell
     try:
+        # FENSTER_GEWOLLT (A1783): läuft im Terminal des Agenten und erbt dessen Konsole – ohne Konsole öffnete jedes Kind
+        # (z. B. Godot_*_console.exe) ein eigenes Fenster
         proc = subprocess.Popen(befehl[0] if eins else befehl, shell=eins, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                 stdin=subprocess.DEVNULL, start_new_session=os.name != "nt")
     except OSError as e:
@@ -1295,6 +1297,12 @@ def cmd_lauf(a, con):
             raise kern.AmwFehler("lauf ende <nr> --rc <Code>")
         weiter = betrieb.lauf_ende(con, pid, _von(a), a.id, a.rc, a.ergebnis, a.abgebrochen)
         print(f"L{a.id} beendet" + (f" – als Nächstes freigegeben: {', '.join(f'L{x}' for x in weiter)}" if weiter else ""))
+    elif a.aktion == "fehlalarm":                     # A1783: Fenster-Meldung war falsch – Sperre „nur mit --schirm“ aufheben
+        from . import fenster
+        if not a.id:
+            raise kern.AmwFehler("lauf fehlalarm <nr>")
+        fenster.fehlalarm(con, pid, _von(a), a.id)
+        print(f"L{a.id}: Fenster-Meldung als Fehlalarm vermerkt – derselbe Lauf geht wieder ohne --schirm")
     elif a.aktion == "vorziehen":
         if not a.id:
             raise kern.AmwFehler("lauf vorziehen <nr>")
@@ -2563,7 +2571,7 @@ def parser():
                                   "Bildschirm: einer zur Zeit; schwere ohne Fenster: parallel bis cpu_laeufe, je Agent einer), Warteschlange · warte <nr> blockiert, bis er dran ist · zeige <nr> mit Wartegrund ·"
                                   " ausfuehren --beschreibung … [--schirm] [--ergebnis datei] -- <befehl …> (einreihen, warten,"
                                   " starten, rc durchreichen, Ende melden; bei Bildschirm zu den eigenen Befehl beenden)")
-    x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen", "zeige", "warte", "ausfuehren"])
+    x.add_argument("aktion", choices=["start", "ende", "liste", "vorziehen", "zeige", "warte", "ausfuehren", "fehlalarm"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--warten", action="store_true", help="ist der Platz belegt: NUR einreihen (noch nicht rechnen!) statt"
                                                          " ablehnen; Freigabe benachrichtigt dich – oder danach: amw lauf warte <nr>")

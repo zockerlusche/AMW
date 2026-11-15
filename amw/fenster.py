@@ -120,6 +120,22 @@ def geschlossen(con, l, rc, schirm_frei):
     return True
 
 
+FEHLALARM = "fenster_fehlalarm"
+
+
+def fehlalarm(con, pid, von, lid):
+    """Lead/Mensch: die Fenster-Meldung zu L<lid> war falsch (z. B. eine neu vergebene Prozess-Nummer) – die Sperre „nur noch
+    mit --schirm“ entfällt. Rückgabe: Anzahl aufgehobener Vermerke."""
+    if not kern.ist_lead(con, pid, von):
+        raise kern.AmwFehler("Fehlalarm bestätigen dürfen nur Lead und Entwickler")
+    with db.schreiben(con):
+        n = con.execute("UPDATE plan_ereignis SET art = ? WHERE projekt_id = ? AND art = ? AND text LIKE ?",
+                        (FEHLALARM, pid, MERKER, f"L{int(lid)} · %")).rowcount
+    if not n:
+        raise kern.AmwFehler(f"Zu L{lid} gibt es keine Fenster-Meldung")
+    return n
+
+
 def sperrgrund(con, pid, befehl, beschreibung, schirm):
     """Für lauf_start: None, oder warum dieser Lauf --schirm braucht (derselbe Lauf öffnete in den letzten Tagen ein Fenster
     bzw. wurde bei belegtem Bildschirm von außen geschlossen)."""
