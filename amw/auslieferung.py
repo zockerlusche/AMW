@@ -25,6 +25,7 @@ from . import betrieb, db, kern
 WEB_SCHRITTE = (["git", "subtree", "split", "--prefix", "web", "-b", "web-{kurz}"], ["git", "fetch", "origin", "web"],
                 ["git", "merge-base", "--is-ancestor", "origin/web", "web-{kurz}"], ["git", "push", "origin", "web-{kurz}:web"])
 DIENST_WARTEN_S = 90
+WEB_FRIST_S = 1800      # Web-Abzug: der Subtree-Split braucht unter Last über 10 Minuten (14.11.: L1795 nach 600 s abgebrochen)
 
 
 class Stopp(kern.AmwFehler):
@@ -248,17 +249,8 @@ class Kette:
             if rc != 0:
                 self.stopp("GitHub-Release", f"v{nummer}: {aus[-300:]}")
         self.schritt("GitHub-Release" + (f" (+ {', '.join(z['version'] for z in v['zwischen'])})" if v["zwischen"] else ""))
-        kurz = version.replace(".", "")
-        lid = betrieb.lauf_start(self.con, self.pid, self.von, f"Web-Abzug {version} (leicht)", schwer=False, ordner=self.repo)
-        rc, aus = 0, ""
-        for teil in WEB_SCHRITTE:
-            rc, aus = self.extern([x.format(kurz=kurz) for x in teil], self.repo)
-            if rc != 0:
-                break
-        betrieb.lauf_ende(self.con, self.pid, self.von, lid, rc, (f"rc {rc} · " + (aus[-300:] if rc else "web-Zweig aktualisiert"))[:500])
-        if rc != 0:
-            self.stopp("Web-Abzug", f"L{lid}: {aus[-300:]}")
-        self.schritt(f"Web-Abzug L{lid}")
+        # A1756: erst Versionszeilen und fertige Aufgaben, dann der Web-Abzug – scheitert er (14.11.: Zeitlimit unter Last),
+        # ist alles andere schon eingetragen, und die Meldung nennt, wie er nachgeholt wird.
         from . import wissen
         for z in v["zwischen"]:                         # aufsteigend vor der obersten – „größer als die letzte“ bleibt wahr
             if not self.con.execute("SELECT 1 FROM release WHERE projekt_id = ? AND art = 'version' AND version = ?",
@@ -279,6 +271,20 @@ class Kette:
                          + "".join(f" · A{x['aufgabe']} nicht: {x['fehler'][:120]}" for x in fertig if x.get("fehler")))
         fertig_liste = ", ".join(f"A{x['aufgabe']}" for x in ok)
         kriterien = "".join(f" A{x['aufgabe']} hat offene Kriterien: {' | '.join(x['kriterien_offen'][:3])}." for x in ok if x["kriterien_offen"])
+        kurz = version.replace(".", "")
+        lid = betrieb.lauf_start(self.con, self.pid, self.von, f"Web-Abzug {version} (leicht)", schwer=False, ordner=self.repo)
+        rc, aus = 0, ""
+        for teil in WEB_SCHRITTE:
+            befehl = [x.format(kurz=kurz) for x in teil]
+            rc, aus = _laufen(befehl, self.repo, WEB_FRIST_S) if self.extern is _laufen else self.extern(befehl, self.repo)
+            if rc != 0:
+                break
+        betrieb.lauf_ende(self.con, self.pid, self.von, lid, rc, (f"rc {rc} · " + (aus[-300:] if rc else "web-Zweig aktualisiert"))[:500])
+        if rc != 0:
+            self.stopp("Web-Abzug", f"L{lid}: {aus[-300:]} – Versionszeilen und Aufgaben sind schon eingetragen; nachholen über"
+                                    f" amw lauf ausfuehren --leicht: Subtree-Split von web nach web-{kurz}, dann Fast-Forward-Push"
+                                    f" web-{kurz}:web (nur wenn origin/web darin enthalten ist)")
+        self.schritt(f"Web-Abzug L{lid}")
         an = kern.lead(self.con, self.pid)
         if an and an != self.von:
             with db.schreiben(self.con):

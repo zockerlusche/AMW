@@ -152,6 +152,25 @@ class Kette(unittest.TestCase):
         self.kette().ausliefern("neu")
         self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()[0], "wartet")
 
+    def test_web_abzug_scheitert_versionszeilen_stehen_trotzdem(self):
+        """A1756 (14.11.: Web-Abzug lief unter Last ins Zeitlimit, danach fehlten die Versionszeilen und der Lead musste sie von
+        Hand eintragen): Versionszeile und fertige Aufgaben kommen vor dem Web-Abzug."""
+        self.gruen()
+        self.gesamtlauf()
+        echt = self.extern
+        def extern(befehl, ordner):
+            if befehl[:2] == ["git", "subtree"]:
+                return 1, "TimeoutExpired: zu lange"
+            return echt(befehl, ordner)
+        self.extern = extern
+        with self.assertRaises(auslieferung.Stopp) as e:
+            self.kette().ausliefern("neu")
+        self.assertIn("Web-Abzug", str(e.exception))
+        self.assertIn("Versionszeilen und Aufgaben sind schon eingetragen", str(e.exception))
+        self.assertIn("Versionszeile R", str(e.exception))                                         # in „erledigt: …“
+        self.assertEqual(self.con.execute("SELECT version FROM release WHERE art = 'version'").fetchone()[0], "1.1.0")
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()[0], "fertig")
+
     def ohne_aenderung(self, wort, **kw):
         with self.assertRaises(auslieferung.Stopp) as e:
             self.kette().ausliefern("neu", **kw)

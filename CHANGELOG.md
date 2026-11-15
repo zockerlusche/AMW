@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.109.1 – 15.11.2026 · Release-Kette: Versionszeilen kommen vor dem Web-Abzug
+- **Behoben:** Lief der Web-Abzug ins Zeitlimit, fehlten danach die Versionszeilen und der Lead musste sie von Hand eintragen.
+  Jetzt trägt die Kette Versionszeilen (auch für Zwischenversionen) und die fertigen Aufgaben direkt nach dem GitHub-Release
+  ein, erst danach kommt der Web-Abzug. Scheitert er, nennt die Meldung, wie er nachgeholt wird.
+- Der Web-Abzug darf jetzt bis zu 30 Minuten dauern (unter Last brauchte er mehr als die bisherigen 10).
+
 ## 1.109.0 – 15.11.2026 · Planung: Wer gerade woran arbeitet, sieht man am Balken
 - In der Übersicht hat jeder Meilenstein-Balken, an dem gerade jemand eine Aufgabe bearbeitet, einen dünnen hellen Rahmen,
   der sanft pulsiert – unabhängig von der Farbe des Balkens („zu spät“ verdeckt „in Arbeit“ nicht mehr). Neben dem Titel
