@@ -13,7 +13,7 @@ class Vorlage(unittest.TestCase):
     def test_beide_sprachen_sind_vollstaendig_und_deckungsgleich(self):
         self.assertEqual(regelwerk.pruefen(), [])
         de = regelwerk.vorlage("de")
-        self.assertEqual([r["nr"] for r in de["regeln"]], [f"G{i}" for i in range(1, 21)] + ["W1", "W2", "W3", "W4"])
+        self.assertEqual([r["nr"] for r in de["regeln"]], [f"G{i}" for i in range(1, 22)] + ["W1", "W2", "W3", "W4"])
         self.assertEqual(de["versionen"], {"schema": "MAJOR.MINOR.PATCH", "erste": "0.1.0"})
         self.assertEqual(regelwerk.vorlage("xx")["name"], de["name"])                       # unbekannte Sprache: Deutsch
 
@@ -21,10 +21,10 @@ class Vorlage(unittest.TestCase):
         """Eine „Erfahrung“ steht nur an den Regeln, deren Anlass belegt ist – alle anderen haben ein „Warum“ aus der Regel selbst."""
         de = regelwerk.vorlage("de")
         self.assertEqual([r["nr"] for r in de["regeln"] if "erfahrung" in r], ["G1", "G2", "G4", "G7", "G15", "G17", "G19", "W1", "W4"])
-        self.assertEqual(sum("warum" in r for r in de["regeln"]), 15)
+        self.assertEqual(sum("warum" in r for r in de["regeln"]), 16)
 
     def test_vorgabe_alle_grundregeln_takt_nur_fuer_chat_leads(self):
-        self.assertEqual(regelwerk.vorgabe(), [f"G{i}" for i in range(1, 21)])
+        self.assertEqual(regelwerk.vorgabe(), [f"G{i}" for i in range(1, 22)])
         self.assertEqual(regelwerk.vorgabe(lead_chat=True)[-1], "W4")
 
     def test_vorlage_nennt_keine_werkzeuge_und_keine_namen(self):
@@ -53,12 +53,12 @@ class Uebernahme(Grund):
     def test_regeln_beschluss_und_definition_of_done(self):
         erg = regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER, lead_chat=True)
         regeln = self.regeln()
-        self.assertEqual((erg["regeln"], len(regeln), erg["dod"]), (21, 21, True))
-        self.assertEqual([r["vorlage"] for r in regeln], [f"G{i}/4" for i in range(1, 21)] + ["W4/4"])
+        self.assertEqual((erg["regeln"], len(regeln), erg["dod"]), (22, 22, True))
+        self.assertEqual([r["vorlage"] for r in regeln], [f"G{i}/5" for i in range(1, 22)] + ["W4/5"])
         self.assertEqual({r["beleg"] for r in regeln}, {f"B{erg['beschluss']}"})                # Regeln brauchen einen Beschluss als Quelle
         self.assertTrue(regeln[0]["text"].startswith("Versionen. Jede Auslieferung bekommt eine Version"))
         b = self.con.execute("SELECT stichwort, regel, quelle FROM beschluss WHERE id = ?", (erg["beschluss"],)).fetchone()
-        self.assertIn("Grund-Regelwerk 4 übernommen: G1, G2", b["regel"])
+        self.assertIn("Grund-Regelwerk 5 übernommen: G1, G2", b["regel"])
         self.assertEqual(planung.leitbild(self.con, self.pid)["dod"], regelwerk.vorlage("de")["dod"])
         with self.assertRaises(kern.AmwFehler):                                                 # nur beim Anlegen
             regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER)
@@ -66,7 +66,7 @@ class Uebernahme(Grund):
     def test_auswahl_eigener_wortlaut_und_sprache(self):
         regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER, auswahl=["W1", "G13", "G1"], texte={"G13": "  Keine   Geheimnisse – nirgends. "}, sprache="en")
         regeln = self.regeln()
-        self.assertEqual([(r["nr"], r["vorlage"]) for r in regeln], [(1, "G1/4"), (2, "G13/4"), (3, "W1/4")])   # Reihenfolge der Vorlage
+        self.assertEqual([(r["nr"], r["vorlage"]) for r in regeln], [(1, "G1/5"), (2, "G13/5"), (3, "W1/5")])   # Reihenfolge der Vorlage
         self.assertEqual(regeln[1]["text"], "Keine Geheimnisse – nirgends.")
         self.assertTrue(regeln[0]["text"].startswith("Versions. Every delivery"))
         for falsch in (["G99"], []):
@@ -98,13 +98,13 @@ class Uebernahme(Grund):
         with db.schreiben(self.con):
             neu = db.einfuegen(self.con, "projekt", name="Zwei", angelegt_utc=db.jetzt())
         self.assertEqual(wissen.regeln_uebernehmen(self.con, neu, self.pid), 2)
-        self.assertEqual([r[0] for r in self.con.execute("SELECT vorlage FROM regel WHERE projekt_id = ? ORDER BY nr", (neu,))], ["G1/4", "G2/4"])
+        self.assertEqual([r[0] for r in self.con.execute("SELECT vorlage FROM regel WHERE projekt_id = ? ORDER BY nr", (neu,))], ["G1/5", "G2/5"])
 
     def test_pflicht_kontext_takt_fuer_den_chat_lead_und_version(self):
         regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER, lead_chat=True)
         wissen.release_version(self.con, self.pid, kern.ENTWICKLER, "0.1.0", "Projekt angelegt")
         chef, maler = kern.kontext(self.con, self.pid, "Chef"), kern.kontext(self.con, self.pid, "Maler")
-        self.assertIn("Dein Rhythmus (KR21): Rhythmus für einen Lead, der als Chat arbeitet.", chef)
+        self.assertIn("Dein Rhythmus (KR22): Rhythmus für einen Lead, der als Chat arbeitet.", chef)
         self.assertNotIn("Dein Rhythmus", maler)                                                    # nur der Chat-Lead
         for text in (chef, maler):
             self.assertIn("Version: aktuell 0.1.0 · Schema MAJOR.MINOR.PATCH", text)
@@ -123,12 +123,12 @@ class Anlegen(unittest.TestCase):
     def test_neues_projekt_mit_grund_regelwerk(self):
         schritte = assistent.schnell("Neu", lead="Chef", agenten=("A1",), hooks=False, ausgabe=lambda *a: None, lead_chat=True,
                                      regelwerk={"auswahl": None, "texte": {}, "sprache": "de"})
-        self.assertTrue(any("Grund-Regelwerk 4: 21 Regeln übernommen" in s and "Definition of Done" in s for s in schritte), schritte)
+        self.assertTrue(any("Grund-Regelwerk 5: 22 Regeln übernommen" in s and "Definition of Done" in s for s in schritte), schritte)
         self.assertTrue(any("Version 0.1.0 eingetragen" in s for s in schritte), schritte)
         con = db.verbinde()
         self.addCleanup(con.close)
         pid = db.projekt_id(con, "Neu")
-        self.assertEqual(con.execute("SELECT count(*) FROM regel WHERE projekt_id = ? AND vorlage IS NOT NULL", (pid,)).fetchone()[0], 21)
+        self.assertEqual(con.execute("SELECT count(*) FROM regel WHERE projekt_id = ? AND vorlage IS NOT NULL", (pid,)).fetchone()[0], 22)
         self.assertEqual(tuple(con.execute("SELECT art, version, titel FROM release WHERE projekt_id = ?", (pid,)).fetchone()), ("version", "0.1.0", "Projekt angelegt"))
         nochmal = assistent.schnell("Neu", lead="Chef", agenten=("A1",), hooks=False, ausgabe=lambda *a: None, regelwerk={"auswahl": None})
         self.assertFalse(any("Regelwerk" in s for s in nochmal), nochmal)                       # das Projekt gibt es schon: nichts doppelt
@@ -173,6 +173,44 @@ class Umstellung(Grund):
         self.assertEqual(self.con.execute("PRAGMA user_version").fetchone()[0], db.SCHEMA_VERSION)
         r = self.con.execute("SELECT text, vorlage FROM regel").fetchone()
         self.assertEqual(tuple(r), ("Alte Regel", None))                                        # Bestand bleibt, projekteigen
+
+
+class SchnittstelleUndThemen(Grund):
+    """A1782 (Marcel 15.11. 18:06): G21 „Nur über die Schnittstelle“; regelwerk uebernehmen scheiterte mit „--thema fehlt“, sobald
+    das Projekt Themen hat (der Befehl kennt kein --thema) – jetzt Thema „Grund-Regelwerk“; „alle“ übernimmt alle fehlenden."""
+
+    def cli(self, *args):
+        import contextlib
+        import io
+        from amw import cli
+        aus = io.StringIO()
+        with mock.patch.dict(os.environ, {"AMW_DB": os.path.join(self.ordner.name, "t.db")}), contextlib.redirect_stdout(aus), contextlib.redirect_stderr(aus):
+            rc = cli.main(list(args) + ["--projekt", "P", "--von", "Chef"])
+        return rc, aus.getvalue()
+
+    def test_mit_themen_alle_uebernehmen(self):
+        from amw import themen
+        themen.neu(self.con, self.pid, "Chef", "Planung")                          # Projekt mit Themen: Beschluss braucht eins
+        rc, aus = self.cli("regelwerk", "uebernehmen", "alle")
+        self.assertIn("G21 übernommen als KR21", aus)
+        self.assertEqual(len(self.regeln()), 21)                                    # alle G, keine wahlweisen
+        b = self.con.execute("SELECT thema FROM beschluss WHERE projekt_id = ? ORDER BY id DESC LIMIT 1", (self.pid,)).fetchone()
+        self.assertEqual(b["thema"], "Grund-Regelwerk")
+        self.assertIn("Alle Grundregeln sind schon übernommen", self.cli("regelwerk", "uebernehmen", "alle")[1])
+
+    def test_ohne_themen_bleibt_es_ohne(self):
+        self.cli("regelwerk", "uebernehmen", "G1,G21")
+        self.assertEqual([r["vorlage"] for r in self.regeln()], ["G1/5", "G21/5"])
+        self.assertFalse(self.con.execute("SELECT 1 FROM thema WHERE projekt_id = ?", (self.pid,)).fetchone())
+
+    def test_widerspruch_zu_g21_wird_gemeldet(self):
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "regel", ebene="projekt", projekt_id=self.pid, nr=1, text="Stand lesen per sqlite aus tl_lesen.db",
+                         stand_utc=db.jetzt())
+        self.assertEqual([w["ref"] for w in regelwerk.widersprueche(self.con, self.pid)], ["PR1"])
+        self.assertEqual(regelwerk.widersprueche_melden(self.con), 1)
+        self.assertEqual(regelwerk.widersprueche_melden(self.con), 0)               # einmal, nicht bei jeder Runde
+        self.assertIn("Widerspricht G21", regelwerk.bericht(self.con, self.pid))
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ Regel selbst) – nie einen erfundenen Vorfall.
 """
 import json
 import os
+import re
 
 from . import db, kern
 
@@ -54,6 +55,52 @@ def vorgabe(lead_chat=False, sprache="de"):
     return [r["nr"] for r in vorlage(sprache)["regeln"] if not r.get("wahlweise") or (lead_chat and r.get("chat_lead"))]
 
 
+def _thema(con, pid, v):
+    """A1782: Hat das Projekt Themen, braucht jeder Beschluss eins – dann gehören die Übernahmen zum Thema „Grund-Regelwerk“
+    (wird bei Bedarf angelegt). Ohne Themen bleibt es ohne (sonst schaltete erst diese Übernahme die Themen-Pflicht ein)."""
+    if con.execute("SELECT 1 FROM thema WHERE projekt_id = ? LIMIT 1", (pid,)).fetchone():
+        return {"thema": v["name"], "neues_thema": True}
+    return {}
+
+
+# --- A1782: Projektregeln, die G21 „Nur über die Schnittstelle“ widersprechen ------------------------------------------------
+WIDERSPRUCH = re.compile(r"\bsqlite|\bselect\b.*\bfrom\b|lese-?kopie|tl_lesen|read cop(?:y|ies)|\bamw\.db\b", re.IGNORECASE)
+
+
+def widersprueche(con, pid):
+    """Regeln des Projekts, die direktes Lesen der Datenbank erlauben oder verlangen (Stichworte sqlite, SELECT … FROM,
+    Lese-Kopie, tl_lesen, amw.db) – sie widersprechen G21. [{"ref", "text"}]. Nur lesend."""
+    aus = []
+    for r in con.execute("SELECT ebene, nr, text, vorlage FROM regel WHERE projekt_id = ? ORDER BY ebene, nr", (pid,)).fetchall():
+        if (r["vorlage"] or "").startswith("G21/"):
+            continue
+        if WIDERSPRUCH.search(r["text"] or ""):
+            aus.append({"ref": ("KR" if r["ebene"] == "arbeit" else "PR") + str(r["nr"]), "text": r["text"]})
+    return aus
+
+
+def widersprueche_melden(con):
+    """Vom Dienst (Aufsicht): je Projekt einmal je Regel dem Lead melden, dass sie G21 widerspricht (dieselbe Meldung kommt
+    erst nach 7 Tagen wieder). Ändern oder streichen entscheidet das Projekt. Rückgabe: Anzahl Meldungen."""
+    n = 0
+    for (pid,) in con.execute("SELECT id FROM projekt").fetchall():
+        lead = kern.lead(con, pid)
+        if not lead:
+            continue
+        for w in widersprueche(con, pid):
+            kurz = f"{w['ref']} widerspricht G21 „Nur über die Schnittstelle“"
+            if con.execute("SELECT 1 FROM nachricht WHERE projekt_id = ? AND von = 'AMW' AND kurz = ? AND zeit_utc >"
+                           " strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-7 days')", (pid, kurz)).fetchone():
+                continue
+            with db.schreiben(con):
+                kern._posten(con, pid, "AMW", lead, "info", kurz,
+                             f"{w['ref']}: „{w['text'][:300]}“ – sie erlaubt bzw. verlangt direktes Lesen der Datenbank. Nach G21 geht"
+                             " alles über amw-Befehle (Terminal) bzw. den Dateiaustausch/Connector (Chat); fehlt ein Befehl, melde ihn"
+                             " dem AMW-Lead. Regel anpassen oder streichen entscheidet ihr (amw regel …).")
+            n += 1
+    return n
+
+
 def uebernehmen(con, pid, von, auswahl=None, texte=None, sprache="de", lead_chat=False):
     """Neues Projekt: die gewählten Grundregeln als Arbeitsregeln anlegen (Nummern 1…n in der Reihenfolge der Vorlage),
     mit einem Beschluss als Quelle; die Definition of Done kommt ins Leitbild, wenn dort noch keine steht.
@@ -71,7 +118,7 @@ def uebernehmen(con, pid, von, auswahl=None, texte=None, sprache="de", lead_chat
         raise kern.AmwFehler("Das Projekt hat schon Arbeitsregeln – das Grund-Regelwerk übernehmen geht nur beim Anlegen")
     gewaehlt = [r for r in v["regeln"] if r["nr"] in set(auswahl)]            # Reihenfolge der Vorlage
     bid = wissen.beschluss_neu(con, pid, von, v["name"], f"{v['name']} {v['nummer']} übernommen: {', '.join(r['nr'] for r in gewaehlt)}",
-                               "Assistent „Neues Projekt“")
+                               "Assistent „Neues Projekt“", **_thema(con, pid, v))
     with db.schreiben(con):
         zeit = db.jetzt()
         for nr, r in enumerate(gewaehlt, start=1):
@@ -135,7 +182,7 @@ def abgleich(con, pid):
                 x.update(status="aehnlich", ref=ref(best[1]), gemeinsam=sorted(best[2])[:8])
         aus.append(x)
     zahl = {k: sum(1 for x in aus if x["status"] == k) for k in ("drin", "aehnlich", "fehlt")}
-    return {"vorlage": f"{de['name']} {de['nummer']}", "regeln": aus, "zahl": zahl}
+    return {"vorlage": f"{de['name']} {de['nummer']}", "regeln": aus, "zahl": zahl, "widersprueche": widersprueche(con, pid)}
 
 
 def nachziehen(con, pid, von, nr, text=None, sprache="de"):
@@ -154,7 +201,7 @@ def nachziehen(con, pid, von, nr, text=None, sprache="de"):
         raise kern.AmwFehler(f"{nr} ist schon übernommen ({'KR' if da['ebene'] == 'arbeit' else 'PR'}{da['nr']})")
     eigener = " ".join(str(text or "").split())
     bid = wissen.beschluss_neu(con, pid, von, v["name"], f"{nr} „{g['titel']}“ aus {v['name']} {v['nummer']} übernommen",
-                               "Abgleich Grund-Regelwerk")
+                               "Abgleich Grund-Regelwerk", **_thema(con, pid, v))
     with db.schreiben(con):
         neu = (con.execute("SELECT max(nr) FROM regel WHERE projekt_id = ? AND ebene = 'arbeit'", (pid,)).fetchone()[0] or 0) + 1
         db.einfuegen(con, "regel", ebene="arbeit", projekt_id=pid, nr=neu, text=eigener or regeltext(g), beleg=f"B{bid}",
@@ -180,4 +227,13 @@ def bericht(con, pid, sprache="de"):
             wo += (" – gemeinsam: " if de else " – shared: ") + ", ".join(x["gemeinsam"])
         z.append(f"| {zeichen[x['status']]} | {x['nr']}{' *' if x['wahlweise'] else ''} | {x['titel']['de' if de else 'en']} | {wo} |")
     z += ["", ("* wahlweise (für einen Lead, der als Chat arbeitet, bzw. bei Bedarf)" if de else "* optional (for a lead working as a chat, or as needed)")]
+    if a["widersprueche"]:                               # A1782: Regeln, die G21 widersprechen
+        z += ["", "## " + ("Widerspricht G21 „Nur über die Schnittstelle“" if de else "Contradicts G21 “Only through the interface”"), ""]
+        z += [f"- {w['ref']}: {w['text'][:200]}" for w in a["widersprueche"]]
     return "\n".join(z) + "\n"
+
+
+def alle_fehlenden(con, pid, sprache="de"):
+    """A1782: die Nummern aller nicht wahlweisen Grundregeln, die das Projekt noch nicht übernommen hat (Reihenfolge der Vorlage)."""
+    drin = {(r["vorlage"] or "").partition("/")[0] for r in con.execute("SELECT vorlage FROM regel WHERE projekt_id = ?", (pid,))}
+    return [r["nr"] for r in vorlage(sprache)["regeln"] if not r.get("wahlweise") and r["nr"] not in drin]

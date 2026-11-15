@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.118.0 – 15.11.2026 · Grund-Regelwerk 5: „Nur über die Schnittstelle“
+- **Neu:** Grundregel G21 „Nur über die Schnittstelle“ – lesen und schreiben nur mit amw-Befehlen, kein direkter Zugriff auf
+  die Datenbank. Eigene Regeln, die dem widersprechen, nennt der Abgleich; der Lead bekommt einmal eine Info.
+- **Behoben:** `amw regelwerk uebernehmen` brach in Projekten mit Themen mit „--thema fehlt“ ab. Neu: `… uebernehmen alle`
+  übernimmt alle fehlenden Grundregeln, `… G1,G2` mehrere.
+
 ## 1.117.0 – 15.11.2026 · Symbol im Infobereich: Bildschirm ohne Browser
 - **Neu:** Ein Punkt im Infobereich der Taskleiste zeigt, ob der Bildschirm für Agenten frei ist (bernstein), du kurz da bist
   (blau) oder er belegt ist (grau). Rechtsklick: frei bis …, „Ich bin kurz da“ (15/30/60 min), Freigabe beenden, Workbench öffnen.

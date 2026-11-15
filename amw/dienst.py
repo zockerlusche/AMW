@@ -538,6 +538,9 @@ def main(argv=None):
                 from . import releasetakt           # A1656: bereit zum Ausliefern anstoßen (pusht nie selbst)
                 for z in releasetakt.runde(con):
                     log.info("Release-Takt: %s", z)
+                from . import regelwerk             # A1782: Projektregeln, die G21 „Nur über die Schnittstelle“ widersprechen
+                if (n := regelwerk.widersprueche_melden(con)):
+                    log.info("Regeln gegen G21: %s Meldung(en) an Leads", n)
                 if not (gh_faden and gh_faden.is_alive()):   # A1738 (2): gemergte PRs – eigener Faden, gh kann dauern
                     from . import planautomatik
                     gh_faden = threading.Thread(target=lambda: [log.info("Planung nach Merge: %s", x) for x in planautomatik.github_runde()],

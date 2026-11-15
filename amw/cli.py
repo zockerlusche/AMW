@@ -1848,9 +1848,15 @@ def cmd_regelwerk(a, con):
         print(f"D{did} abgelegt, #{nid} an {an}")
     else:
         if not a.nr:
-            raise kern.AmwFehler("welche Grundregel? z. B. amw regelwerk uebernehmen G7")
-        r = regelwerk.nachziehen(con, pid, _von(a), a.nr, a.text)
-        print(f"{a.nr.upper()} übernommen als KR{r['regel']} (B{r['beschluss']})")
+            raise kern.AmwFehler("welche Grundregel? z. B. amw regelwerk uebernehmen G7 (mehrere: G1,G2 · alle fehlenden: alle)")
+        nummern = regelwerk.alle_fehlenden(con, pid) if a.nr.strip().lower() == "alle" else [x for x in a.nr.replace(" ", ",").split(",") if x]
+        if not nummern:
+            print("Alle Grundregeln sind schon übernommen")
+        if len(nummern) > 1 and a.text:
+            raise kern.AmwFehler("--text nur bei einer Grundregel")
+        for nr in nummern:                               # A1782: mehrere auf einmal – jede mit eigenem Beschluss, wie einzeln
+            r = regelwerk.nachziehen(con, pid, _von(a), nr, a.text)
+            print(f"{nr.upper()} übernommen als KR{r['regel']} (B{r['beschluss']})")
 
 
 def web_einrichten(abgleich):
