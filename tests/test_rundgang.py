@@ -193,6 +193,35 @@ class Agent(Daten, Rundgang):
                       danach="document.querySelector('.dialog-hg')")
 
 
+class Ladeanzeige(Daten, Rundgang):
+    """A1676 (Marcel W2076, F5341 A): Ladeanzeige nach 0,3 s bei Abrufen, die eine Eingabe ausgelöst hat – nie beim Takt im
+    Hintergrund, nie bei kurzen Abrufen; danach wieder weg. Bild je Größe und Thema über ueberall()."""
+    START = "document.querySelector('#team [data-k]')"
+    BREMSE = ("window._f = window._f || window.fetch; window.fetch = (...a) => new Promise(r => setTimeout(() => r(window._f(...a)), {ms}));"
+              " 1")
+
+    def test_erscheint_nur_fuer_eigene_langsame_abrufe(self):
+        self.groesse("handy")
+        self.oeffnen("start", self.START)
+        self.tab.js("laden.eingabe = 0; " + self.BREMSE.format(ms=900))
+        self.tab.js("holen('/api/start').then(() => window._hinten = 1); 1")                  # Takt im Hintergrund
+        time.sleep(0.6)
+        self.assertFalse(self.tab.js("!!document.getElementById('ladeanzeige')"))
+        self.warten("window._hinten === 1")
+        self.tab.js(self.BREMSE.format(ms=100) + "; laden.eingabe = Date.now(); holen('/api/start').then(() => window._kurz = 1); 1")
+        self.warten("window._kurz === 1")
+        self.assertFalse(self.tab.js("!!document.getElementById('ladeanzeige')"))             # kurz: kein Flackern
+        self.tab.js(self.BREMSE.format(ms=1500) + "; laden.eingabe = Date.now(); holen('/api/start').then(() => window._lang = 1); 1")
+        self.warten("document.querySelector('#ladeanzeige svg circle')", 3)
+        self.assertIn("…", self.tab.js("document.getElementById('ladeanzeige').innerText"))
+        self.warten("window._lang === 1 && !document.getElementById('ladeanzeige')", 5)       # danach wieder weg
+
+    def test_bild_je_groesse_und_thema(self):
+        self.ueberall("start", "ladeanzeige", bereit=self.START,
+                      tun=self.BREMSE.format(ms=8000) + "; laden.eingabe = Date.now(); holen('/api/start').catch(() => 0); 1",
+                      danach="document.querySelector('#ladeanzeige')")
+
+
 class Pruefer(Rundgang):
     """Der Rundgang selbst: jede Prüfung schlägt an, wenn man den Fehler absichtlich einbaut – sonst wäre „keine Funde“
     nichts wert."""
@@ -240,6 +269,23 @@ class Online(Daten, OnlineRundgang):
         self.ueberall("runde", "online-runde", bereit="document.querySelector('#runde-richtlinie')")
         self.assertIn("Wie messt ihr Dauerläufe?", self.tab.js("document.getElementById('inhalt').innerText"))
         self.assertTrue(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].some(b => /Lead-Runde|Lead round/.test(b.textContent))"))
+
+    def test_dokumente_suche_online_mit_getrenntem_suchtext(self):
+        """A1676: der Suchtext liegt online getrennt – Filter ohne Suche laden ihn nicht, Suche findet trotzdem im Inhalt."""
+        import tempfile as tf
+        from amw import dokumente
+        with tf.TemporaryDirectory() as d:
+            p = os.path.join(d, "b.md")
+            with open(p, "w", encoding="utf-8") as f:
+                f.write("# Bericht\nSpeicher **gelb** zwiebelturm")
+            md = dokumente.ablegen(self.con, self.pid, "CC1", p, "Prüfbericht", "bericht", online=True)
+        self.ab.hochladen(alle=True)
+        self.oeffnen("dokumente", "document.querySelector('#inhalt')")
+        ids = lambda q: self.tab.js(f"holen('/api/dokumente?status=alle&q={q}').then(d => d.dokumente.map(x => x.id))")
+        self.assertIn(md, ids(""))
+        self.assertIn(md, ids("zwiebelturm"))                                           # im Inhalt, nicht im Titel
+        self.assertNotIn(md, ids("gibtesnicht"))
+        self.assertFalse(self.tab.js("holen('/api/dokumente?status=alle').then(d => d.dokumente.some(x => 'such' in x))"))
 
     def test_agent_dialog_und_menue(self):
         self.ueberall("start", "online-agent", bereit=self.START, tun="agentDialog('CC1')", danach="document.querySelector('.agent-dialog')")

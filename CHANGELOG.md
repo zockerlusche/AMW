@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.116.0 – 15.11.2026 · Ladeanzeige und schnellere Dokumente online
+- **Neu:** Dauert ein Abruf, den du ausgelöst hast, länger als 0,3 Sekunden, erscheint das AMW-Logo als Ladeanzeige – die
+  Kreise wandern auf dem Schriftzug. Bei „Bewegung reduzieren“ wird es nur sanft heller und dunkler.
+- **Verbessert:** Die Dokumente-Filter der Online-Seite laden den Suchtext nur noch, wenn du wirklich suchst – ein Klick auf
+  einen Filter lädt statt bis zu 2 MB nur noch die schlanke Liste.
+
 ## 1.115.0 – 15.11.2026 · Die AMW als MCP-Server
 - **Neu:** Chat-Leads in der Claude-App rufen die AMW direkt als Werkzeug auf – ohne Dateiaustausch: `takt`, Nachrichten,
   Aufgaben und Meilensteine, Prüfungen und Merge-OK, Fragen, Beschlüsse, Lead-Runde, Läufe, Suche, Dokumente, Bildschirm.

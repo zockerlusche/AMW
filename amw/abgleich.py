@@ -384,11 +384,11 @@ def dokument_ansichten(con, pid):
     such = {r[0]: r[1] for r in con.execute(
         "SELECT v.dokument_id, substr(group_concat(substr(coalesce(v.suchtext, ''), 1, 20000), ' '), 1, 30000)"
         " FROM dokument_version v JOIN dokument d ON d.id = v.dokument_id WHERE d.projekt_id = ? GROUP BY v.dokument_id", (pid,))}
-    liste = []
-    for d in basis["dokumente"]:
-        if d["status"] != "geloescht":
-            liste.append({**d, "such": f"{d['titel']} {such.get(d['id']) or ''}".lower()})
-    a = {"/api/dokumente": {**basis, "dokumente": liste}}
+    liste = [d for d in basis["dokumente"] if d["status"] != "geloescht"]
+    # A1676: der Suchtext (85–90 % der Größe) liegt getrennt – api.php holt ihn nur, wenn wirklich gesucht wird; ein Klick auf
+    # einen Filter lädt dann nur noch die schlanke Liste (vorher bis 2 MB je Klick, das iPad wartete lange)
+    a = {"/api/dokumente": {**basis, "dokumente": liste},
+         "/intern/dokumente_such": {str(d["id"]): f"{d['titel']} {such.get(d['id']) or ''}".lower() for d in liste}}
     dateien = {}
     versionen = {}
     for did, nr, sha, endung in con.execute(

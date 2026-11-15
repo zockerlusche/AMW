@@ -730,7 +730,7 @@ main.geteilt-seite { padding-bottom: 16px; }
 .leitstand .knopf.warn { border-color: var(--rot); color: var(--rot); }
 .leitstand .erkl, .leitstand .stand { overflow-wrap: anywhere; }
 .schirm-schnell { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.schirm-schnell { margin: 2px 0 6px; } .re-wartend { display: grid; gap: 6px; } .cl-sitzung { padding: 6px 0; border-top: 1px solid var(--linie); } .cl-kopie { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 4px; font-size: 12.5px; } .cl-kopie .klein-knopf { flex: none; } .re-w { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 12.5px; } .re-w-text { min-width: 0; overflow-wrap: anywhere; color: var(--leise); } .re-w .klein-knopf { flex: none; } .tl-alle-fertig { color: var(--gruen); font-weight: 600; }
+.schirm-schnell { margin: 2px 0 6px; } .re-wartend { display: grid; gap: 6px; } .laden { display: grid; place-items: center; gap: 10px; padding: 34px 0 28px; color: var(--leise); font-size: 13px; } .laden svg { width: 110px; height: auto; overflow: visible; } .laden.ruhig svg { animation: lade-atmen 2.4s ease-in-out infinite; } @keyframes lade-atmen { 50% { opacity: .5; } } #ladeanzeige { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 60; } #ladeanzeige .laden { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 12px; padding: 22px 34px 18px; box-shadow: var(--schatten); animation: lade-ein .2s ease-out; } @keyframes lade-ein { from { opacity: 0; } } .cl-sitzung { padding: 6px 0; border-top: 1px solid var(--linie); } .cl-kopie { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 4px; font-size: 12.5px; } .cl-kopie .klein-knopf { flex: none; } .re-w { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 12.5px; } .re-w-text { min-width: 0; overflow-wrap: anywhere; color: var(--leise); } .re-w .klein-knopf { flex: none; } .tl-alle-fertig { color: var(--gruen); font-weight: 600; }
 .feld-fehler { border-color: var(--rot) !important; outline: 1px solid var(--rot); } .feld-meldung { color: var(--rot); font-size: 12.5px; margin-top: 3px; } .dialog input[type=time] { width: auto; }
 /* Aktionsmenü: „⋯“ öffnet die Befehle zu einer Sache (Agent) – ein Baustein */
 .mehr-knopf { padding: 6px 11px; letter-spacing: .1em; }
@@ -1325,7 +1325,7 @@ const TEXTE = {
     dk_zeichen: "{n} Zeichen", dk_geaendert: "geändert", dk_unterschiede: "Unterschiede zur neuesten Fassung", dk_trotzdem: "Meinen Text trotzdem als v{n} speichern",
     dk_konflikt_titel: "Neueste Fassung v{a} → dein Text", dk_ed_hilfe: "Strg+S speichert · Esc schließt", dk_ed_basis: "Auf Grundlage von v{v} – wird v{n}",
     dk_vergleichen: "Vergleichen", dk_vergleich: "Vergleich", dk_df_gleich: "Keine Unterschiede.", dk_df_luecke: "… {n} unveränderte Zeilen – zeigen",
-    dk_df_zeilen: "Zeilen", dk_laedt: "Lädt …",
+    dk_df_zeilen: "Zeilen", dk_laedt: "Lädt …", lade_text: "Lädt …",
     dk_hochladen: "Hochladen", dk_hl_titel: "Dokument hochladen", dk_hl_zone: "Dateien hierher ziehen oder ein Bildschirmfoto mit Strg+V einfügen", dk_hl_zone_netz: "Foto aufnehmen oder Datei wählen",
     dk_hl_waehlen: "Datei wählen", dk_hl_foto: "Foto aufnehmen", dk_hl_titel_mehr: "Mehrere Dateien: der Titel kommt je Datei aus dem Dateinamen.",
     dk_art_auto: "nach Format", dk_bezug_ph: "z. B. A1234, F12, B5 oder Meilenstein 3 (optional)", dk_bezug_falsch: "Die Angabe wurde nicht erkannt. Beispiele: A1234, F12, B5, Meilenstein 3",
@@ -1656,7 +1656,7 @@ const TEXTE = {
     dk_zeichen: "{n} characters", dk_geaendert: "changed", dk_unterschiede: "Differences from the latest version", dk_trotzdem: "Save my text as v{n} anyway",
     dk_konflikt_titel: "Newest version v{a} → your text", dk_ed_hilfe: "Ctrl+S saves · Esc closes", dk_ed_basis: "Based on v{v} – becomes v{n}",
     dk_vergleichen: "Compare", dk_vergleich: "Comparison", dk_df_gleich: "No differences.", dk_df_luecke: "… {n} unchanged lines – show",
-    dk_df_zeilen: "lines", dk_laedt: "Loading …",
+    dk_df_zeilen: "lines", dk_laedt: "Loading …", lade_text: "Loading …",
     dk_hochladen: "Upload", dk_hl_titel: "Upload document", dk_hl_zone: "Drop files here or paste a screenshot with Ctrl+V", dk_hl_zone_netz: "Take a photo or choose a file",
     dk_hl_waehlen: "Choose file", dk_hl_foto: "Take photo", dk_hl_titel_mehr: "Several files: each title comes from the file name.",
     dk_art_auto: "by format", dk_bezug_ph: "e.g. A1234, F12, B5 or milestone 3 (optional)", dk_bezug_falsch: "Reference not recognised. Examples: A1234, F12, B5, milestone 3",
@@ -1792,7 +1792,42 @@ function seit(x) {
   if (s < 86400) return t("vor_h", { n: Math.round(s / 3600) });
   const tage = Math.round(s / 86400); return tage === 1 ? t("vor_t1") : t("vor_t", { n: tage });
 }
-async function holen(weg) { const r = await fetch(ziel(weg), { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return r.json(); }
+async function holen(weg) {
+  const fuerDich = Date.now() - laden.eingabe < 1500;   /* A1676: nur Abrufe, die du ausgelöst hast – nie der Takt im Hintergrund */
+  if (fuerDich) laden.an();
+  try { const r = await fetch(ziel(weg), { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return await r.json(); }
+  finally { if (fuerDich) laden.aus(); }
+}
+/* Ladeanzeige (A1676, Marcel W2076, F5341 A): das AMW-Logo, die zwei Kreise wandern auf den Linien des Schriftzugs, der
+   Farbverlauf zieht mit. Erscheint erst nach 0,3 s (kurze Abrufe flackern nicht); bei „Bewegung reduzieren“ nur sanftes
+   Heller/Dunkler. Ein Baustein für alle: holen() schaltet sie ein, sobald ein Abruf auf eine Eingabe folgt. */
+const LOGO_PFAD = "M2 24 L8 3 L14 24 L18.5 3 L23 15 L27.5 3 L32 24 L36.5 13 L41 24 L45.5 3";
+let logoNr = 0;
+function ladeLogo(text = t("lade_text")) {
+  const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches, id = "lg" + (++logoNr);
+  const spline = 'calcMode="spline" keySplines=".45 0 .55 1; .45 0 .55 1"';
+  const wandern = vor => ruhig ? "" : `<animateMotion dur="2.4s" repeatCount="indefinite" ${spline} keyPoints="${vor ? "0;1;0" : "1;0;1"}" keyTimes="0;.5;1" path="${LOGO_PFAD}"/>`;
+  const x = el("div", { class: "laden" + (ruhig ? " ruhig" : ""), role: "status", "aria-live": "polite" });
+  x.innerHTML = `<svg viewBox="-2 -3 50 31" aria-hidden="true">
+    <defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="48" y2="0" spreadMethod="reflect">
+      <stop offset="0" style="stop-color:var(--bernstein)"/><stop offset=".5" style="stop-color:var(--glut)"/><stop offset="1" style="stop-color:var(--blau)"/>
+      ${ruhig ? "" : `<animateTransform attributeName="gradientTransform" type="translate" values="-30 0; 30 0; -30 0" dur="2.4s" repeatCount="indefinite" ${spline}/>`}
+    </linearGradient></defs>
+    <path d="${LOGO_PFAD}" stroke="url(#${id})" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+    <path d="M4.6 16.6 H11.4" stroke="url(#${id})" stroke-width="2.6" stroke-linecap="round"/>
+    <circle ${ruhig ? 'cx="2" cy="24"' : ""} r="2.5" style="fill:var(--grund);stroke:var(--bernstein)" stroke-width="1.8">${wandern(true)}</circle>
+    <circle ${ruhig ? 'cx="45.5" cy="3"' : ""} r="2.5" style="fill:var(--grund);stroke:var(--blau)" stroke-width="1.8">${wandern(false)}</circle>
+  </svg>`;
+  x.append(el("span", {}, text));
+  return x;
+}
+const laden = {
+  eingabe: Date.now(), offen: 0, uhr: null,         /* Start der Seite zählt wie eine Eingabe */
+  an() { if (this.offen++ === 0) this.uhr = setTimeout(() => {
+    if (this.offen && !document.getElementById("ladeanzeige")) document.body.append(el("div", { id: "ladeanzeige" }, ladeLogo())); }, 300); },
+  aus() { if (--this.offen > 0) return; this.offen = 0; clearTimeout(this.uhr); document.getElementById("ladeanzeige")?.remove(); },
+};
+for (const art of ["pointerdown", "keydown", "hashchange", "popstate"]) window.addEventListener(art, () => { laden.eingabe = Date.now(); }, true);
 async function schicken(weg, daten, p = projekt) {      /* p: Projekt, an das es geht (Nachrichten über alle Projekte) */
   const knopf = document.activeElement?.tagName === "BUTTON" ? document.activeElement : null;   /* die Stelle für „wird übertragen …“ */
   const r = await fetch(ziel(weg, p), { method: "POST", headers: { "Content-Type": "application/json", "X-AMW-Token": TOKEN }, body: JSON.stringify(daten) });
@@ -3738,7 +3773,7 @@ async function dokVergleich(d, a, b) {
   b = b || nrn[nrn.length - 1]; a = a || nrn[Math.max(0, nrn.indexOf(b) - 1)];
   const wahl = (wert, fn) => el("select", { onchange: e => fn(+e.target.value) }, d.versionen.map(x =>
     el("option", { value: x.nr, ...(x.nr === wert ? { selected: true } : {}) }, `v${x.nr} · ${x.von} · ${zeit(x.zeit_utc)}`)));
-  const inhalt = el("div", {}, el("div", { class: "leer" }, t("dk_laedt")));
+  const inhalt = el("div", {}, ladeLogo(t("dk_laedt")));
   const hg = dialog(`${t("dk_vergleich")} · D${d.id} · ${d.titel}`,
     el("div", { class: "dk-filter" }, wahl(a, n => { hg.remove(); dokVergleich(d, n, b); }), el("span", { class: "leise" }, "→"),
       wahl(b, n => { hg.remove(); dokVergleich(d, a, n); })), inhalt);

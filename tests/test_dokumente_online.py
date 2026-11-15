@@ -34,7 +34,8 @@ class Online(Grund):
         bild = dokumente.ablegen(self.con, self.pid, "CC1", self.datei("s.png", PNG), "Standbild", "bild", bogen=self.bid)
         a = abgleich.ansichten(self.con, self.pid)
         liste = {x["id"]: x for x in a["/api/dokumente"]["dokumente"]}
-        self.assertIn("gelb", liste[md]["such"])                  # auch ältere Versionen durchsuchbar
+        self.assertNotIn("such", liste[md])                       # A1676: Suchtext getrennt – die Liste bleibt schlank
+        self.assertIn("gelb", a["/intern/dokumente_such"][str(md)])   # auch ältere Versionen durchsuchbar
         self.assertNotIn("sha256", liste[bild])
         d = a[f"/api/dokument?id={md}"]
         self.assertEqual(d["texte"], {"1": "# Bericht\nSpeicher **gelb**", "2": "# Bericht\nSpeicher grün"})
