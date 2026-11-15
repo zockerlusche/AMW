@@ -29,74 +29,172 @@ ANWEISUNG = ("Werkzeuge der AMW (Agentenmanagement) für dieses Projekt. Beginne
              " (ids), schreiben mit `posten`. Du handelst als der Agent, für den dieser Server gestartet wurde.")
 
 
-def _zahl(text):
-    return {"type": "integer", "description": text}
+# Feld: (name, typ, beschreibung, ziel, pflicht, auswahl). typ: s Text, i Zahl, b ja/nein, ai Liste Zahlen, as Liste Texte.
+# ziel: "--option" (Liste: je Eintrag einmal) oder "#" (Position, in der Reihenfolge der Felder). Ein Werkzeug ist damit nur
+# (Beschreibung, feste Befehlszeile, Felder) – Schema, Prüfung und Befehlszeile entstehen daraus; jedes ruft cli.main.
+def F(name, typ, text, ziel, pflicht=False, auswahl=None):
+    return (name, typ, text, ziel, pflicht, auswahl)
 
 
-def _text(text, enum=None):
-    d = {"type": "string", "description": text}
-    if enum:
-        d["enum"] = list(enum)
-    return d
+def NR(was):
+    return F("id", "i", f"Nummer {was} (nur die Zahl)", "#", True)
 
 
-# name → (Beschreibung, Eigenschaften, Pflicht, argv-Bauer). Der Bauer macht aus den Argumenten die Befehlszeile.
+GROESSE = ("S", "M", "L", "XL")
+
 WERKZEUGE = {
     "takt": ("Ein Durchgang in einem Aufruf: Postfach mit gekürztem Text, Prüfbitten an dich, Fragen an dich, Antworten des"
-             " Menschen, Läufe mit Wartegrund, Lead-Runde, Auslieferungen. Gezeigte Nachrichten gelten als gelesen.",
-             {"seit": _text("Antworten/Läufe/Auslieferungen seit (HH:MM oder Datum); sonst seit dem letzten Takt"),
-              "abhaken": {"type": "boolean", "description": "gezeigte Infos und Meldungen gleich erledigen"}},
-             [],
-             lambda a: ["takt"] + (["--seit", a["seit"]] if a.get("seit") else []) + (["--abhaken"] if a.get("abhaken") else [])),
-    "lesen": ("Nachrichten lesen: ohne ids die offene Liste, mit ids die ganzen Nachrichten.",
-              {"ids": {"type": "array", "items": {"type": "integer"}, "description": "Nummern der Nachrichten (ohne #)"},
-               "neu": {"type": "boolean", "description": "nur Ungelesenes, neueste zuerst"}},
-              [],
-              lambda a: ["lesen"] + [str(int(i)) for i in a.get("ids") or []] + (["--neu"] if a.get("neu") else [])),
-    "posten": ("Nachricht schicken (an einen Agenten, alle oder Entwickler).",
-               {"an": _text("Empfänger: Kennung eines Agenten, alle oder Entwickler"),
-                "art": _text("Art der Nachricht", ("auftrag", "frage", "antwort", "info", "korrektur", "meldung")),
-                "kurz": _text("worum es geht, ein Satz"),
-                "text": _text("ausführlicher Text (optional)"),
-                "antwort_auf": _zahl("Nummer der Nachricht, auf die du antwortest"),
-                "aufgabe": _zahl("Nummer der Aufgabe (ohne A)"),
-                "bezug": _text("worum es geht: A<nr>, F<nr>, D<nr>, M<nr>, P<nr>, L<nr>, T<nr>, B<nr> oder @Kennung")},
-               ["an", "art", "kurz"],
-               lambda a: ["posten", "--an", a["an"], "--art", a["art"], "--kurz", a["kurz"]]
-               + (["--text", a["text"]] if a.get("text") else [])
-               + (["--antwort-auf", str(int(a["antwort_auf"]))] if a.get("antwort_auf") else [])
-               + (["--aufgabe", str(int(a["aufgabe"]))] if a.get("aufgabe") else [])
-               + (["--bezug", a["bezug"]] if a.get("bezug") else [])),
+             " Menschen, Läufe mit Wartegrund, Lead-Runde, Auslieferungen. Gezeigte Nachrichten gelten als gelesen.", ["takt"],
+             [F("seit", "s", "Antworten/Läufe/Auslieferungen seit (HH:MM oder Datum); sonst seit dem letzten Takt", "--seit"),
+              F("abhaken", "b", "gezeigte Infos und Meldungen gleich erledigen", "--abhaken")]),
+    "lesen": ("Nachrichten lesen: ohne ids die offene Liste, mit ids die ganzen Nachrichten.", ["lesen"],
+              [F("ids", "ai", "Nummern der Nachrichten (ohne #)", "#"), F("neu", "b", "nur Ungelesenes, neueste zuerst", "--neu")]),
+    "posten": ("Nachricht schicken (an einen Agenten, alle oder Entwickler).", ["posten"],
+               [F("an", "s", "Empfänger: Kennung eines Agenten, alle oder Entwickler", "--an", True),
+                F("art", "s", "Art der Nachricht", "--art", True, ("auftrag", "frage", "antwort", "info", "korrektur", "meldung")),
+                F("kurz", "s", "worum es geht, ein Satz", "--kurz", True), F("text", "s", "ausführlicher Text", "--text"),
+                F("antwort_auf", "i", "Nummer der Nachricht, auf die du antwortest", "--antwort-auf"),
+                F("aufgabe", "i", "Nummer der Aufgabe", "--aufgabe"),
+                F("bezug", "s", "worum es geht: A<nr>, F<nr>, D<nr>, M<nr>, P<nr>, L<nr>, T<nr>, B<nr> oder @Kennung", "--bezug")]),
+    "erledigt": ("Nachrichten als erledigt markieren.", ["erledigt"],
+                 [F("ids", "ai", "Nummern der Nachrichten", "#", True), F("bemerkung", "s", "warum/wie erledigt", "--bemerkung")]),
+    "kontext": ("Startinformationen: Regeln, Liste, Läufe, Bildschirm – für dich oder einen Agenten.", ["kontext"],
+                [F("agent", "s", "Kennung eines Agenten (leer: du)", "#")]),
+    "aufgabe_liste": ("Aufgaben des Projekts (offen; mit alle auch fertige).", ["aufgabe", "liste"],
+                      [F("agent", "s", "nur dieser Agent", "--agent"), F("bogen", "i", "nur dieser Meilenstein", "--bogen"),
+                       F("alle", "b", "auch fertige und verworfene", "--alle")]),
+    "aufgabe_zeige": ("Eine Aufgabe ganz: Auftrag, Status, Wartegründe, Kriterien.", ["aufgabe", "zeige"],
+                      [NR("der Aufgabe"), F("kurz", "b", "nur Status, Agent, Titel und Wartegründe", "--kurz")]),
+    "aufgabe_neu": ("Neue Aufgabe anlegen.", ["aufgabe", "neu"],
+                    [F("titel", "s", "kurzer Titel", "--titel", True), F("agent", "s", "Bearbeiter (Kennung oder Entwickler)", "--agent"),
+                     F("auftrag", "s", "was genau zu tun ist", "--auftrag"), F("bogen", "i", "Meilenstein", "--bogen"),
+                     F("ohne_bogen", "b", "bewusst ohne Meilenstein (Lead)", "--ohne-bogen"),
+                     F("kriterien", "as", "Abnahmekriterien", "--kriterium"), F("rang", "i", "Rang (kleiner = früher)", "--rang"),
+                     F("groesse", "s", "Größe", "--groesse", False, GROESSE)]),
+    "aufgabe_aendern": ("Eine Aufgabe ändern (nur die angegebenen Felder).", ["aufgabe", "aendern"],
+                        [NR("der Aufgabe"), F("titel", "s", "neuer Titel", "--titel"), F("agent", "s", "neuer Bearbeiter", "--agent"),
+                         F("auftrag", "s", "neuer Auftrag", "--auftrag"), F("bogen", "i", "Meilenstein", "--bogen"),
+                         F("kriterien", "as", "Abnahmekriterien (ersetzt die Liste)", "--kriterium"), F("rang", "i", "Rang", "--rang"),
+                         F("groesse", "s", "Größe", "--groesse", False, GROESSE)]),
+    "bogen_liste": ("Meilensteine mit Stand (fertig/offen je Meilenstein).", ["bogen", "liste"], []),
+    "bogen_zeigen": ("Ein Meilenstein ganz, mit seinen Aufgaben.", ["bogen", "zeigen"], [NR("des Meilensteins")]),
+    "pruefung_liste": ("Prüfbitten (offen; mit alle auch erledigte).", ["pruefung", "liste"], [F("alle", "b", "auch erledigte", "--alle")]),
+    "pruefung_zeige": ("Eine Prüfbitte ganz (Punkte, Stand, Bemerkung).", ["pruefung", "zeige"], [NR("der Prüfbitte")]),
+    "pruefung_urteil": ("Ergebnis einer Prüfbitte eintragen: grün oder rot.", ["pruefung"],
+                        [F("ergebnis", "s", "gruen oder rot", "#", True, ("gruen", "rot")), NR("der Prüfbitte"),
+                         F("bemerkung", "s", "Begründung bzw. was fehlt", "--bemerkung")]),
+    "freigabe_merge": ("Merge-OK für eine Aufgabe (Lead): ihr grün geprüfter Stand darf ausgeliefert werden.", ["freigabe", "merge"],
+                       [F("aufgabe", "i", "Nummer der Aufgabe", "#", True), F("zweig", "s", "nur für diesen Zweig", "--zweig"),
+                        F("zurueck", "b", "OK zurücknehmen", "--zurueck"),
+                        F("ausnahme", "s", "ohne eigenen Gesamtlauf – mit Grund", "--ausnahme")]),
+    "frage_liste": ("Offene Fragen (an den Menschen und an dich).", ["frage", "liste"], []),
+    "frage_zeige": ("Eine Frage ganz: Optionen, Empfehlung, Grund, Antwort.", ["frage", "zeige"], [NR("der Frage")]),
+    "frage_neu": ("Frage stellen – an den Menschen mit Optionen und Empfehlung.", ["frage", "neu"],
+                  [F("an", "s", "an wen", "--an", True, ("entwickler", "tl", "zustaendig")),
+                   F("kurz", "s", "die Frage in einem Satz", "--kurz", True),
+                   F("optionen", "as", "Optionen, je 'A=Text'", "--option"), F("empfehlung", "s", "Kürzel der empfohlenen Option", "--empfehlung"),
+                   F("grund", "s", "warum du das empfiehlst", "--grund"), F("worum", "s", "worum es geht", "--worum"),
+                   F("geprueft", "s", "was du vorher in der AMW geprüft hast (Pflicht an den Entwickler)", "--geprueft"),
+                   F("aufgabe", "i", "zugehörige Aufgabe", "--aufgabe"),
+                   F("blockiert", "b", "die Arbeit steht, bis sie beantwortet ist", "--blockiert")]),
+    "frage_antworten": ("Eine Frage an dich beantworten.", ["frage", "antworten"],
+                        [NR("der Frage"), F("option", "s", "Kürzel der gewählten Option", "--option"),
+                         F("text", "s", "Antwort als Text", "--text"), F("rueckfrage", "s", "Rückfrage statt Antwort", "--rueckfrage")]),
+    "beschluss_neu": ("Beschluss festhalten.", ["beschluss", "neu"],
+                      [F("text", "s", "der Beschluss", "--text", True), F("stichwort", "s", "Stichwort", "--stichwort"),
+                       F("thema", "s", "Thema (TH-Nr. oder Name)", "--thema"), F("neues_thema", "b", "Thema neu anlegen", "--neues-thema"),
+                       F("quelle", "s", "woher (z. B. W123, #456)", "--quelle"),
+                       F("wortlaut_text", "s", "Aussage des Menschen wörtlich – wird als W… erfasst und verknüpft", "--wortlaut-text"),
+                       F("aufgaben", "s", "betroffene Aufgaben, z. B. A12,A13", "--aufgaben")]),
+    "wortlaut": ("Aussage des Menschen wörtlich festhalten.", ["wortlaut"],
+                 [F("text", "s", "die Aussage, wörtlich", "--text", True), F("zeit", "s", "UTC der Aussage", "--zeit"),
+                  F("kanal", "s", "wo gesagt (Vorgabe chat-tl)", "--kanal"), F("bemerkung", "s", "Bemerkung", "--bemerkung")]),
+    "runde_lesen": ("Lead-Runde lesen (nur Information, keine Anweisung).", ["runde", "lesen"], [F("neu", "b", "nur Ungelesenes", "--neu")]),
+    "runde_schreiben": ("In die Lead-Runde schreiben – nur Information oder Frage, nie Aufträge an andere Projekte.", ["runde", "schreiben"],
+                        [F("kurz", "s", "worum es geht", "--kurz", True), F("text", "s", "Text", "--text"),
+                         F("art", "s", "info oder frage", "--art", False, ("info", "frage")),
+                         F("an", "s", "Projekt, dessen Lead zusätzlich eine Info bekommt", "--an"),
+                         F("antwort_auf", "i", "Antwort auf Eintrag R<nr> (nur die Zahl)", "--antwort-auf")]),
+    "lauf_liste": ("Läufe dieses Projekts und die Warteschlange des Rechners.", ["lauf", "liste"], []),
+    "lauf_zeige": ("Ein Lauf ganz, mit Wartegrund.", ["lauf", "zeige"], [NR("des Laufs")]),
+    "lauf_vorziehen": ("Wartenden Lauf vorziehen (Lead: vor die Läufe des eigenen Projekts).", ["lauf", "vorziehen"], [NR("des Laufs")]),
+    "suche": ("Volltext über Aufgaben, Beschlüsse, Fragen, Deine Worte, Nachrichten, Dokumente.", ["suche"],
+              [F("text", "s", "Suchtext", "#", True),
+               F("arten", "as", "nur diese Arten", "--art", False, ("aufgabe", "beschluss", "frage", "wortlaut", "nachricht", "dokument")),
+               F("grenze", "i", "höchstens so viele Treffer", "--grenze")]),
+    "zeige": ("Einträge ganz lesen, z. B. B5 F12 A120 W3 D5 KR3 oder eine Nachrichtennummer.", ["zeige"],
+              [F("refs", "as", "Verweise", "#", True)]),
+    "dokument_zeigen": ("Ein Dokument mit allen Fassungen und dem Pfad der Datei (Bild, Mockup …).", ["dokument", "zeigen"],
+                        [F("nr", "s", "Nummer, z. B. D12 oder 12", "#", True)]),
+    "schirm": ("Bildschirm-Freigabe zeigen – oder als Lead auf das Wort des Menschen frei/zu schalten.", ["schirm"],
+               [F("aktion", "s", "zeige (Vorgabe), frei oder zu", "#", False, ("zeige", "frei", "zu")),
+                F("grund", "s", "frei/zu: Grund", "--grund"), F("bis", "s", "frei: bis Ortszeit HH:MM", "--bis"),
+                F("verlauf", "b", "zeige: die letzten Wechsel", "--verlauf")]),
 }
+TYP = {"s": "string", "i": "integer", "b": "boolean", "ai": "array", "as": "array"}
+TYP_TEXT = {"s": "Text", "i": "eine Zahl", "b": "true/false", "ai": "eine Liste von Zahlen", "as": "eine Liste von Texten"}
+
+
+def _schema(felder):
+    props = {}
+    for name, typ, text, _, _, auswahl in felder:
+        d = {"type": TYP[typ], "description": text}
+        if typ in ("ai", "as"):
+            d["items"] = {"type": "integer" if typ == "ai" else "string"}
+        if auswahl:
+            (d["items"] if typ in ("ai", "as") else d)["enum"] = list(auswahl)
+        props[name] = d
+    return {"type": "object", "properties": props, "required": [f[0] for f in felder if f[4]], "additionalProperties": False}
 
 
 def werkzeug_liste():
-    return [{"name": n, "description": b, "inputSchema": {"type": "object", "properties": p, "required": r,
-                                                           "additionalProperties": False}}
-            for n, (b, p, r, _) in WERKZEUGE.items()]
+    return [{"name": n, "description": b, "inputSchema": _schema(felder)} for n, (b, _, felder) in WERKZEUGE.items()]
+
+
+def _ist_zahl(v):
+    return isinstance(v, int) and not isinstance(v, bool)
 
 
 def _pruefen(name, args):
     """Pflichtfelder und Typen wie im Schema – der Client prüft nicht zuverlässig. Fehlertext für den Aufrufer oder None."""
-    _, props, pflicht, _ = WERKZEUGE[name]
-    for k in pflicht:
-        if args.get(k) in (None, ""):
-            return f"Pflichtfeld fehlt: {k}"
+    felder = {f[0]: f for f in WERKZEUGE[name][2]}
+    for f in felder.values():
+        if f[4] and args.get(f[0]) in (None, "", []):
+            return f"Pflichtfeld fehlt: {f[0]}"
     for k, v in args.items():
-        if k not in props:
-            return f"unbekanntes Feld: {k} (erlaubt: {', '.join(props)})"
-        typ = props[k].get("type")
-        if typ == "integer" and not (isinstance(v, int) and not isinstance(v, bool)):
-            return f"{k} muss eine Zahl sein"
-        if typ == "string" and not isinstance(v, str):
-            return f"{k} muss Text sein"
-        if typ == "boolean" and not isinstance(v, bool):
-            return f"{k} muss true/false sein"
-        if typ == "array" and not (isinstance(v, list) and all(isinstance(x, int) and not isinstance(x, bool) for x in v)):
-            return f"{k} muss eine Liste von Zahlen sein"
-        if "enum" in props[k] and v not in props[k]["enum"]:
-            return f"{k}: eines von {', '.join(props[k]['enum'])}"
+        if k not in felder:
+            return f"unbekanntes Feld: {k} (erlaubt: {', '.join(felder) or 'keine'})"
+        typ, ziel, auswahl = felder[k][1], felder[k][3], felder[k][5]
+        gut = {"s": isinstance(v, str), "i": _ist_zahl(v), "b": isinstance(v, bool),
+               "ai": isinstance(v, list) and all(_ist_zahl(x) for x in v),
+               "as": isinstance(v, list) and all(isinstance(x, str) for x in v)}[typ]
+        if not gut:
+            return f"{k} muss {TYP_TEXT[typ]} sein"
+        if auswahl and any(x not in auswahl for x in (v if isinstance(v, list) else [v])):
+            return f"{k}: eines von {', '.join(auswahl)}"
+        if ziel == "#" and any(str(x).startswith("-") for x in (v if isinstance(v, list) else [v])):
+            return f"{k} darf nicht mit - beginnen"         # keine Optionen durch die Hintertür (z. B. --von)
     return None
+
+
+def befehlszeile(name, args):
+    """Aus den geprüften Argumenten die Befehlszeile – Positionen in Feld-Reihenfolge, dann Optionen."""
+    _, fest, felder = WERKZEUGE[name]
+    pos, opt = [], []
+    for fname, typ, _, ziel, _, _ in felder:
+        v = args.get(fname)
+        if v is None or v == "" or v == [] or v is False:
+            continue
+        if v is True:
+            opt.append(ziel)
+            continue
+        werte = [str(x) for x in v] if isinstance(v, list) else [str(v)]
+        if ziel == "#":
+            pos += werte
+        else:
+            for w in werte:
+                opt += [ziel, w]
+    return list(fest) + pos + opt
 
 
 def befehl_ausfuehren(argv):
@@ -134,7 +232,7 @@ class Server:
         fehler = _pruefen(name, args)
         if fehler:
             return {"content": [{"type": "text", "text": fehler}], "isError": True}
-        argv = WERKZEUGE[name][3](args) + ["--projekt", self.projekt, "--von", self.von]
+        argv = befehlszeile(name, args) + ["--projekt", self.projekt, "--von", self.von]
         ergebnis = {}
 
         def los():

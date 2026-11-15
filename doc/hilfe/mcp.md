@@ -31,9 +31,12 @@ Ein Lead, der als Chat in der Claude-App arbeitet, kann die AMW direkt als Werkz
 - **Der Lead handelt im falschen Projekt** – Im Chat ist der Eintrag eines anderen Projekts eingeschaltet. Jeder Eintrag handelt fest als der Agent, der dort steht; im Chat nur den eigenen einschalten.
 
 ## Danach
-- **takt** – ein Durchgang in einem Aufruf (wie `amw takt`).
-- **lesen** – offene Nachrichten, mit Nummern die ganzen Texte.
-- **posten** – eine Nachricht schicken (an, Art und Kurztext sind Pflicht).
+- **takt** – ein Durchgang in einem Aufruf (wie `amw takt`); **lesen**, **posten**, **erledigt** – Nachrichten.
+- **aufgabe_liste / _zeige / _neu / _aendern**, **bogen_liste / _zeigen** – Aufgaben und Meilensteine.
+- **pruefung_liste / _zeige / _urteil**, **freigabe_merge** – Prüfungen und Merge-OK.
+- **frage_liste / _zeige / _neu / _antworten**, **beschluss_neu**, **wortlaut** – Fragen und Wissen.
+- **runde_lesen / _schreiben** – Lead-Runde; **lauf_liste / _zeige / _vorziehen** – Läufe; **schirm** – Bildschirm-Freigabe.
+- **suche**, **zeige** (B5 F12 A120 …), **dokument_zeigen** (mit Pfad der Datei), **kontext**.
 - Jedes Werkzeug ruft denselben Befehl wie die Kommandozeile – mit denselben Rechten und Prüfungen.
 - Der Dateiaustausch bleibt als Rückfall bestehen.
 - Eintragen tut der Mensch: Die Datei gehört zur Claude-App, nicht zur AMW.

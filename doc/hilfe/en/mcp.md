@@ -31,9 +31,12 @@ A lead who works as a chat in the Claude app can call the AMW directly as a tool
 - **The lead acts in the wrong project** – The entry of another project is switched on in the chat. Each entry always acts as the agent named in it; switch on only your own in the chat.
 
 ## Next
-- **takt** – one check-in in one call (like `amw takt`).
-- **lesen** – open messages, with numbers the full texts.
-- **posten** – send a message (recipient, kind and short text are required).
+- **takt** – one check-in in one call (like `amw takt`); **lesen**, **posten**, **erledigt** – messages.
+- **aufgabe_liste / _zeige / _neu / _aendern**, **bogen_liste / _zeigen** – tasks and milestones.
+- **pruefung_liste / _zeige / _urteil**, **freigabe_merge** – reviews and merge OK.
+- **frage_liste / _zeige / _neu / _antworten**, **beschluss_neu**, **wortlaut** – questions and knowledge.
+- **runde_lesen / _schreiben** – lead round; **lauf_liste / _zeige / _vorziehen** – runs; **schirm** – screen release.
+- **suche**, **zeige** (B5 F12 A120 …), **dokument_zeigen** (with the path of the file), **kontext**.
 - Every tool calls the same command as the command line – with the same rights and checks.
 - The file exchange stays as a fallback.
 - The human adds the entry: the file belongs to the Claude app, not to the AMW.

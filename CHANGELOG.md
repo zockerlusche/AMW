@@ -4,8 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
-## 1.115.0 – 15.11.2026 · Die AMW als MCP-Server (Kleinprobe)
-- **Neu:** Chat-Leads in der Claude-App rufen die AMW direkt als Werkzeug auf – `takt`, `lesen`, `posten`, ohne Dateiaustausch.
+## 1.115.0 – 15.11.2026 · Die AMW als MCP-Server
+- **Neu:** Chat-Leads in der Claude-App rufen die AMW direkt als Werkzeug auf – ohne Dateiaustausch: `takt`, Nachrichten,
+  Aufgaben und Meilensteine, Prüfungen und Merge-OK, Fragen, Beschlüsse, Lead-Runde, Läufe, Suche, Dokumente, Bildschirm.
   Der Server läuft auf diesem PC (`python F:/amw/amw-mcp.py --projekt … --von …`), je Projekt ein Eintrag in der
   Claude-Konfiguration; jedes Werkzeug ruft denselben Befehl wie die Kommandozeile. Hilfe „AMW mit Claude verbinden (MCP)“.
 

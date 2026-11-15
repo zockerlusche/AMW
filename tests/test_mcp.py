@@ -69,7 +69,8 @@ class Mcp(unittest.TestCase):
         self.assertIn("tools", r["result"]["capabilities"])
         self.c.senden("notifications/initialized", benachrichtigung=True)                 # keine Antwort
         werkzeuge = {w["name"]: w for w in self.c.senden("tools/list")["result"]["tools"]}
-        self.assertEqual(set(werkzeuge), {"takt", "lesen", "posten"})
+        self.assertTrue({"takt", "lesen", "posten", "erledigt", "aufgabe_zeige", "pruefung_urteil", "freigabe_merge", "frage_neu",
+                         "runde_lesen", "lauf_vorziehen", "suche", "dokument_zeigen", "schirm"} <= set(werkzeuge))
         self.assertEqual(werkzeuge["posten"]["inputSchema"]["required"], ["an", "art", "kurz"])
         self.assertNotIn("von", werkzeuge["posten"]["inputSchema"]["properties"])      # Identität nicht wählbar
         t = self.c.werkzeug("takt")
@@ -81,6 +82,19 @@ class Mcp(unittest.TestCase):
         r = self.c.werkzeug("lesen", {"ids": [self.nid]})
         self.assertIn("Alles grün", r["content"][0]["text"])
         self.assertEqual(self.c.senden("ping")["result"], {})
+
+    def test_lead_arbeitet_ueber_werkzeuge(self):
+        self.c.senden("initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}})
+        r = self.c.werkzeug("aufgabe_neu", {"titel": "Menü aufräumen", "agent": "CC1", "ohne_bogen": True, "kriterien": ["7 Punkte"]})
+        self.assertFalse(r["isError"], r)
+        nr = int(r["content"][0]["text"].split("A", 1)[1].split()[0])
+        r = self.c.werkzeug("aufgabe_zeige", {"id": nr})
+        self.assertIn("Menü aufräumen", r["content"][0]["text"])
+        self.assertIn("7 Punkte", r["content"][0]["text"])
+        self.assertIn("Menü aufräumen", self.c.werkzeug("suche", {"text": "Menü"})["content"][0]["text"])
+        self.assertFalse(self.c.werkzeug("erledigt", {"ids": [self.nid]})["isError"])
+        self.assertIn("nichts offen", self.c.werkzeug("lesen")["content"][0]["text"])
+        self.assertFalse(self.c.werkzeug("schirm")["isError"])
 
     def test_fehler_kommen_als_fehler_zurueck(self):
         self.c.senden("initialize", {"protocolVersion": "1999-01-01", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}})
@@ -102,6 +116,26 @@ class Schema(unittest.TestCase):
             self.assertEqual(w["inputSchema"]["type"], "object")
             self.assertTrue(set(w["inputSchema"]["required"]) <= set(w["inputSchema"]["properties"]))
             self.assertTrue(w["description"])
+
+    def test_jedes_werkzeug_ergibt_eine_gueltige_befehlszeile(self):
+        """Für jedes Werkzeug mit allen Feldern: die Befehlszeile versteht der echte Parser – kein Werkzeug zeigt ins Leere."""
+        from amw import cli
+        beispiel = {"s": "x", "i": 7, "b": True, "ai": [7, 8], "as": ["x"]}
+        for name, (_, _, felder) in mcp_server.WERKZEUGE.items():
+            args = {f[0]: (([f[5][0]] if f[1] in ("ai", "as") else f[5][0]) if f[5] else beispiel[f[1]]) for f in felder}
+            if name == "frage_neu":
+                args.update(optionen=["A=x"], empfehlung="A")
+            self.assertIsNone(mcp_server._pruefen(name, args), name)
+            argv = mcp_server.befehlszeile(name, args) + ["--projekt", "Spiel", "--von", "TL"]
+            with self.subTest(werkzeug=name):
+                try:
+                    cli.parser().parse_args(argv)
+                except SystemExit:
+                    self.fail(f"{name}: {argv}")
+
+    def test_keine_optionen_durch_die_hintertuer(self):
+        self.assertIn("darf nicht mit -", mcp_server._pruefen("zeige", {"refs": ["--von"]}))
+        self.assertIn("darf nicht mit -", mcp_server._pruefen("suche", {"text": "--projekt"}))
 
 
 if __name__ == "__main__":
