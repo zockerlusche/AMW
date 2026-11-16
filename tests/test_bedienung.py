@@ -152,7 +152,8 @@ class Seite(Wiederholt, Grund):
         for x in ("Wissen", "Betrieb", "Einstellungen"):
             self.assertTrue(self.tab.js(f"[...document.querySelectorAll('.mehr-liste button')].some(b => b.textContent.includes({x!r}))"), x)
         self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Wissen')).click()")
-        self.warten("zustand.sicht === 'wissen' && document.getElementById('mehr').classList.contains('an')")
+        self.warten("zustand.sicht === 'wissen' && document.getElementById('mehr').classList.contains('an')"
+                    " && [...document.querySelectorAll('#inhalt .reiter button')].some(b => b.textContent === 'Dokumente')")   # Reiter laden nach
         self.tab.js("[...document.querySelectorAll('#inhalt .reiter button')].find(b => b.textContent === 'Dokumente').click()")   # früher eigener Menüpunkt
         self.warten("zustand.sicht === 'dokumente' && document.getElementById('mehr').classList.contains('an')")
 
