@@ -425,6 +425,8 @@ def planen(con, pid, was, d):
             if d.get("aktion") == "status":
                 planung.bogen_status(con, pid, e, zahl("bogen"), d.get("status"), bool(d.get("erzwingen")))
                 return {"ok": True}
+            if d.get("aktion") == "vorziehen":            # A1777: der Knopf des Menschen auf der Meilenstein-Karte
+                return planung.bogen_vorziehen(con, pid, e, zahl("bogen"))
             planung.bogen_aendern(con, pid, e, zahl("bogen"), d.get("titel"), d.get("ziel"), d.get("abnahme"),
                                   d.get("zieldatum"), zahl("nr"), d.get("grund"))
             return {"ok": True}

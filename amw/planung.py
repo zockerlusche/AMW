@@ -125,6 +125,34 @@ def bogen_aendern(con, pid, von, bid, titel=None, ziel=None, abnahme=None, zield
     return bogen_zeile(con, pid, bid)
 
 
+def bogen_vorziehen(con, pid, von, bid):
+    """A1777 (Marcel 15.11., F5342): der Mensch zieht einen offenen Meilenstein eins nach vorn – vor den nächsten offenen
+    davor; die Reihenfolge (nr) aller Meilensteine wird dabei neu durchgezählt. Der Lead bekommt eine Meldung."""
+    if von != MENSCH:
+        raise kern.AmwFehler("Vorziehen ist der Knopf des Menschen – der Lead ändert die Reihenfolge mit `amw bogen aendern --nr`")
+    b = bogen_zeile(con, pid, bid)
+    if b["status"] not in ("geplant", "aktiv"):
+        raise kern.AmwFehler(f"Meilenstein {bid} ist {b['status']} – vorziehen geht nur bei geplanten und aktiven")
+    alle = con.execute("SELECT id, titel, status FROM bogen WHERE projekt_id = ? ORDER BY nr, id", (pid,)).fetchall()
+    i = next(n for n, x in enumerate(alle) if x["id"] == bid)
+    vor = next((n for n in range(i - 1, -1, -1) if alle[n]["status"] in ("geplant", "aktiv")), None)
+    if vor is None:
+        raise kern.AmwFehler(f"Meilenstein {bid} steht schon vorn")
+    neu = [x["id"] for x in alle]
+    neu.insert(vor, neu.pop(i))
+    with db.schreiben(con):
+        for nr, x in enumerate(neu, 1):
+            con.execute("UPDATE bogen SET nr = ? WHERE id = ?", (nr, x))
+        con.execute("UPDATE bogen SET geaendert_utc = ? WHERE id = ?", (db.jetzt(), bid))
+        _log(con, pid, von, "bogen_vorziehen", f"vor Meilenstein {alle[vor]['id']}", bogen_id=bid)
+        lead = kern.lead(con, pid)
+        if lead:
+            kern._posten(con, pid, von, lead, "info", f"Meilenstein {bid} „{b['titel'][:80]}“ vorgezogen – steht jetzt vor "
+                         f"Meilenstein {alle[vor]['id']} „{alle[vor]['titel'][:60]}“",
+                         "Bitte die Reihenfolge der Aufgaben danach ausrichten (amw bogen liste).", bezug=f"M{bid}")
+    return {"bogen": bid, "vor": alle[vor]["id"]}
+
+
 def bogen_status(con, pid, von, bid, status, erzwingen=False, automatik=False):
     """automatik (A1742, nur die AMW selbst): ein Meilenstein, dessen Aufgaben alle fertig sind, schließt ohne Lead – die
     Versions-Pflicht gilt trotzdem."""

@@ -376,6 +376,45 @@ def daten_start(con, pid):
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 
+def _verschoben(text):
+    """plan_ereignis aufgabe_bogen: „3 → 5“ / „– → 5“ / „5 → None“ → (alt, neu) als Zahlen oder None."""
+    alt, _, neu = (text or "").partition(" → ")
+    zahl = lambda x: int(x) if x.strip().isdigit() else None
+    return zahl(alt), zahl(neu)
+
+
+def _karte_lage(con, pid, s, schlange):
+    """A1777 (Marcel 15.11., B2816): woran eine offene Aufgabe hängt – je offenem Wartegrund das, was der Mensch wissen
+    muss, um einzugreifen (Frage an ihn, Lauf mit Platz in der Schlange, Aufgabe, Agent), dazu eine offene Prüfbitte.
+    Fremde Projekte nur als Anzahl, nie mit Namen (die Ansicht geht auch online)."""
+    gruende = []
+    for w in con.execute("SELECT art, bezug, angelegt_utc FROM wartegrund WHERE aufgabe_id = ? AND erledigt_utc IS NULL ORDER BY id",
+                         (s["id"],)):
+        g = {"art": w["art"], "bezug": w["bezug"], "seit": w["angelegt_utc"]}
+        nr = int(w["bezug"][1:]) if w["art"] in ("frage", "aufgabe", "lauf") and w["bezug"][1:].isdigit() else None
+        if w["art"] == "frage" and nr:
+            f = con.execute("SELECT kurz, an, status FROM frage WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone()
+            if f:
+                g.update(kurz=f["kurz"], an_dich=f["an"] == "entwickler" and f["status"] == "offen")
+        elif w["art"] == "entwickler":
+            g["an_dich"] = True
+        elif w["art"] == "aufgabe" and nr:
+            a = con.execute("SELECT titel, status, agent FROM aufgabe WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone()
+            if a:
+                g.update(kurz=a["titel"], status=a["status"], agent=a["agent"])
+        elif w["art"] == "lauf" and nr:
+            l = con.execute("SELECT beschreibung, status FROM lauf WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone()
+            if l:
+                g.update(kurz=l["beschreibung"], status=l["status"])
+                platz = next((i for i, x in enumerate(schlange, 1) if x["id"] == nr), None)
+                if platz:
+                    g.update(platz=platz, von=len(schlange), vor_fremd=sum(1 for x in schlange[:platz - 1] if x["projekt_id"] != pid))
+        gruende.append(g)
+    p = con.execute("SELECT id, pruefer, angefragt_utc FROM pruefung WHERE aufgabe_id = ? AND ergebnis = 'offen' ORDER BY id DESC LIMIT 1",
+                    (s["id"],)).fetchone()
+    return gruende, ({"id": p["id"], "pruefer": p["pruefer"], "seit": p["angefragt_utc"]} if p else None)
+
+
 def daten_planung(con, pid):
     """Ansicht „Planung“: Leitbild, Bögen mit Fortschritt/Prognose/Spezifikation, Schritte in Wellen, Risiken,
     Plan-Check, Status (Ampel je Dimension), was auf den Menschen wartet, Planungs-Protokoll."""
@@ -384,6 +423,8 @@ def daten_planung(con, pid):
     from . import tokenprognose                       # Wochenlimit des Kontos: Stand für Planung und Leitstand
     token = tokenprognose.lage_gemerkt(con)            # die Pause selbst trägt planung.prognose ein (eine Stelle für alle)
     boegen = planung.boegen(con, pid)
+    from . import betrieb as _betrieb
+    schlange = _betrieb.wartende(con)                  # A1777: Platz eines Laufs in der Schlange des Rechners (alle Projekte)
     from . import termine
     termin_liste = termine.vorkommen(con, pid, tage=28, mit_vergangenen_h=24)
     for b in boegen:
@@ -395,7 +436,8 @@ def daten_planung(con, pid):
                                              (pid, f"bogen:{b['id']}:%")))
         schritte = zeilen(con.execute(
             "SELECT id, titel, agent, status, einstufung, rang, kriterien, schaetzung_h, komplexitaet, plan_status, verantwortlich,"
-            " anforderungen, zusammenfassung, fertig_utc FROM aufgabe WHERE bogen_id = ? ORDER BY rang, id", (b["id"],)))
+            " anforderungen, zusammenfassung, fertig_utc, angelegt_utc, begonnen_utc FROM aufgabe WHERE bogen_id = ? ORDER BY rang, id",
+            (b["id"],)))
         welle = planung.wellen(con, [s["id"] for s in schritte])
         for s in schritte:
             s["welle"] = welle.get(s["id"], 1)
@@ -403,7 +445,18 @@ def daten_planung(con, pid):
             s["blockiert_durch"] = planung.offene_vorgaenger(con, s["id"]) if s["status"] not in ("fertig", "verworfen") else []
             s["kriterien"] = planung._json(s["kriterien"], [])
             s["prognose"] = prog["schritte"].get(s["id"])
+            s["gruende"], s["pruefung"] = _karte_lage(con, pid, s, schlange) if s["status"] not in ("fertig", "verworfen") else ([], None)
+            hierher = con.execute("SELECT zeit_utc, text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'aufgabe_bogen' AND bogen_id = ?"
+                                  " ORDER BY id DESC LIMIT 1", (s["id"], b["id"])).fetchone()      # A1777: „verschoben aus B… am …“
+            alt = _verschoben(hierher["text"])[0] if hierher else None
+            s["verschoben_aus"] = {"bogen": alt, "am": hierher["zeit_utc"]} if alt and alt != b["id"] else None
         b["schritte"] = schritte
+        weg = {}                                         # A1777: aus diesem Meilenstein weggezogen (letzte Verschiebung je Aufgabe)
+        for e in con.execute("SELECT e.aufgabe_id, e.zeit_utc, e.text, a.titel, a.bogen_id FROM plan_ereignis e JOIN aufgabe a ON a.id = e.aufgabe_id"
+                             " WHERE e.projekt_id = ? AND e.art = 'aufgabe_bogen' AND e.text LIKE ? ORDER BY e.id", (pid, f"{b['id']} → %")):
+            if e["bogen_id"] != b["id"]:
+                weg[e["aufgabe_id"]] = {"id": e["aufgabe_id"], "titel": e["titel"], "nach": e["bogen_id"], "am": e["zeit_utc"]}
+        b["weg"] = list(weg.values())
         b["rueckblick"] = verlauf.rueckblicke(con, pid, b["id"])
         b["dokumente"] = con.execute("SELECT count(*) FROM dokument WHERE projekt_id = ? AND bezug_art = 'bogen' AND bezug_id = ?"
                                      " AND status = 'aktuell'", (pid, b["id"])).fetchone()[0]
