@@ -5240,7 +5240,7 @@ async function sichtEinstellungen() {
   const mcpFeld = m => {
     const kopieren = async (text, ok) => { try { await navigator.clipboard.writeText(text); toast(ok); } catch (e) { prompt(t("e_mcp_zeile"), text); } };
     return el("div", { id: "e-mcp", style: "display:grid;gap:6px;padding-top:6px;font-size:13px" },
-      el("div", { class: "mono", style: "overflow-wrap:anywhere" }, m.eintrag),
+      el("div", { class: "mono", style: "overflow-wrap:anywhere;font-variant-ligatures:none" }, m.eintrag),
       el("div", { style: "display:flex;gap:8px;flex-wrap:wrap;align-items:center" },
         el("button", { class: "klein-knopf", type: "button", onclick: () => kopieren(m.eintrag, t("e_mcp_kopiert")) }, t("e_mcp_zeile_knopf")),
         el("button", { class: "klein-knopf", type: "button", onclick: async () => {
@@ -5248,7 +5248,7 @@ async function sichtEinstellungen() {
           try { const r = await schicken("/api/mcp/schluessel", {});
             dialog(t("e_mcp_neu_titel", { x: r.projekt }), el("div", { style: "display:grid;gap:10px" },
               el("p", { class: "leise", style: "margin:0" }, t("e_mcp_neu_h")),
-              el("div", { class: "mono", style: "font-size:15px;overflow-wrap:anywhere;user-select:all" }, r.schluessel),
+              el("div", { class: "mono", style: "font-size:15px;overflow-wrap:anywhere;user-select:all;font-variant-ligatures:none" }, r.schluessel),
               el("button", { class: "knopf haupt", type: "button", onclick: () => kopieren(r.schluessel, t("e_mcp_kopiert")) }, t("e_mcp_kopieren"))));
             sichtEinstellungen(); } catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t(m.da ? "e_mcp_erneuern" : "e_mcp_erzeugen")),
         el("span", { class: m.da ? "sehrleise" : "bernstein-text" }, m.da ? t("e_mcp_da", { x: zeit(m.erzeugt_utc) }) : t("e_mcp_fehlt"))));
