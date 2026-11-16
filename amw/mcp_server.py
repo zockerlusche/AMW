@@ -156,8 +156,19 @@ def _schema(felder):
     return {"type": "object", "properties": props, "required": [f[0] for f in felder if f[4]], "additionalProperties": False}
 
 
-def werkzeug_liste():
-    return [{"name": n, "description": b, "inputSchema": _schema(felder)} for n, (b, _, felder) in WERKZEUGE.items()]
+SCHLUESSEL_FELD = {"type": "string", "description": "Schlüssel dieses Projekts – steht in den Anweisungen deines Chats (A1826)"}
+
+
+def werkzeug_liste(projekt=None, von=None):
+    """Jedes Werkzeug verlangt den Schlüssel des Projekts (A1826); die Beschreibung nennt Projekt und Identität des Eintrags."""
+    aus = []
+    for n, (b, _, felder) in WERKZEUGE.items():
+        s = _schema(felder)
+        s["properties"] = {"schluessel": SCHLUESSEL_FELD, **s["properties"]}
+        s["required"] = ["schluessel", *s["required"]]
+        vorn = f"[Projekt {projekt} · nur für den Lead von {projekt} ({von})] " if projekt else ""
+        aus.append({"name": n, "description": vorn + b, "inputSchema": s})
+    return aus
 
 
 def _ist_zahl(v):
@@ -233,12 +244,41 @@ class Server:
         self.sperre = threading.Lock()                    # cli.main nacheinander (Umleitung von stdout ist prozessweit)
         self.haengt = None                                # (Werkzeug, Start) eines Befehls, der das Zeitlimit überschritten hat
 
+    def protokoll(self, name, ergebnis):
+        """A1826: jeder Aufruf in den Verlauf des Projekts (Planung › Verlauf) – Werkzeug und Ergebnis, nie Inhalte."""
+        try:
+            from . import db
+            con = db.verbinde()
+            try:
+                pid = con.execute("SELECT id FROM projekt WHERE name = ? COLLATE NOCASE", (self.projekt,)).fetchone()
+                if pid:
+                    with db.schreiben(con):
+                        db.einfuegen(con, "plan_ereignis", projekt_id=pid[0], zeit_utc=db.jetzt(), von=self.von, art="mcp_aufruf",
+                                     text=f"MCP {name}: {ergebnis}"[:300])
+            finally:
+                con.close()
+        except Exception:                                 # das Protokoll darf nie den Aufruf stören
+            log.exception("MCP-Protokoll")
+
     def werkzeug(self, name, args):
         if name not in WERKZEUGE:
             return {"content": [{"type": "text", "text": f"Unbekanntes Werkzeug: {name}"}], "isError": True}
         args = args or {}
         if not isinstance(args, dict):
             return {"content": [{"type": "text", "text": "arguments muss ein Objekt sein"}], "isError": True}
+        args = dict(args)
+        schluessel = args.pop("schluessel", None)         # A1826: ohne den Schlüssel des Projekts keinerlei Wirkung
+        from . import mcp_schluessel
+        if not mcp_schluessel.stand(self.projekt)["da"]:
+            self.protokoll(name, "abgelehnt – für das Projekt ist kein Schlüssel erzeugt")
+            return {"content": [{"type": "text", "text": f"Für Projekt {self.projekt} ist noch kein Schlüssel erzeugt – der Mensch erzeugt"
+                                 " ihn in der Workbench › Einstellungen › Projekt › MCP (oder amw mcp schluessel)."}], "isError": True}
+        if not mcp_schluessel.pruefen(self.projekt, schluessel):
+            self.protokoll(name, "abgelehnt – falscher oder fehlender Schlüssel")
+            log.warning("MCP: %s abgelehnt – falscher oder fehlender Schlüssel", name)
+            return {"content": [{"type": "text", "text": f"Abgelehnt: Dieser Connector gehört zu Projekt {self.projekt} ({self.von}) und"
+                                 " der Schlüssel fehlt oder stimmt nicht. Nichts wurde gelesen oder geändert. Gehört dieser Chat zu"
+                                 " einem anderen Projekt, schalte den Eintrag hier aus und nutze den deines Projekts."}], "isError": True}
         fehler = _pruefen(name, args)
         if fehler:
             return {"content": [{"type": "text", "text": fehler}], "isError": True}
@@ -267,6 +307,7 @@ class Server:
                                  " Meldung ab. Im Zweifel danach mit takt/lesen nachsehen, bevor du ihn wiederholst."}], "isError": True}
         rc, aus, err = ergebnis["w"]
         text = (aus + (("\n" if aus else "") + err if err else "")).strip() or ("ok" if rc == 0 else f"Fehler (rc {rc})")
+        self.protokoll(name, "ok" if rc == 0 else f"Fehler rc {rc}")
         return {"content": [{"type": "text", "text": text}], "isError": rc != 0}
 
     def bearbeiten(self, n):
@@ -285,11 +326,13 @@ class Server:
                 erg = {"protocolVersion": v if v in VERSIONEN else VERSIONEN[0],
                        "capabilities": {"tools": {"listChanged": False}},
                        "serverInfo": {"name": "amw", "title": "AMW", "version": __version__},
-                       "instructions": ANWEISUNG + f" Projekt {self.projekt}, du bist {self.von}."}
+                       "instructions": ANWEISUNG + f" Projekt {self.projekt}, du bist {self.von}. Jedes Werkzeug braucht den Schlüssel"
+                                                   f" dieses Projekts (Feld schluessel) – er steht in den Anweisungen deines Chats."
+                                                   f" Gehört dein Chat zu einem anderen Projekt, nutze diesen Eintrag nicht."}
             elif methode == "ping":
                 erg = {}
             elif methode == "tools/list":
-                erg = {"tools": werkzeug_liste()}
+                erg = {"tools": werkzeug_liste(self.projekt, self.von)}
             elif methode == "tools/call":
                 erg = self.werkzeug(p.get("name"), p.get("arguments"))
             else:

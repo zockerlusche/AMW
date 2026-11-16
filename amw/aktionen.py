@@ -252,6 +252,12 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         if kanal != "seite":
             raise Ungueltig("Ein neues Projekt legst du am PC an")
         return projekt_neu(con, daten)
+    if weg == "/api/mcp/schluessel":                 # A1826: neuer MCP-Schlüssel – nur der Mensch am PC, Klartext einmal
+        if kanal == "netz":
+            raise Ungueltig("Den MCP-Schlüssel erzeugst du am PC")
+        from . import mcp_schluessel
+        name = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()[0]
+        return {"schluessel": mcp_schluessel.erzeugen(name), "projekt": name}
     if weg == "/api/lauf/vorziehen":                 # A1764: wartenden Lauf an die Spitze – der Mensch (online nur System-Admin)
         try:
             lid = int(daten.get("lauf"))

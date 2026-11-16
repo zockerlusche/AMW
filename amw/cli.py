@@ -944,6 +944,27 @@ def _schwer(a, rezept=None, dauerlauf=False):
     return bool(a.schwer)
 
 
+def cmd_mcp(a, con):
+    """A1826: Schlüssel je Projekt für den MCP-Server – nur der Mensch, nur im Terminal (nie über Dateiaustausch/Connector)."""
+    from . import mcp_schluessel
+    pid = _projekt(con, a)
+    name = db.projekt_name(con, pid)
+    lead = kern.lead(con, pid) or "TL"
+    if a.aktion == "eintrag":
+        st = mcp_schluessel.stand(name)
+        print(mcp_schluessel.eintrag(name, lead))
+        print("Schlüssel: " + (f"erzeugt {_zeit(st['erzeugt_utc'])}" if st["da"] else "noch keiner – amw mcp schluessel"))
+        return
+    if (KANAL.get() != "cli" or _von(a) != kern.ENTWICKLER or os.environ.get("AMW_AGENT")
+            or os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET")):    # nie aus einer Agenten-/Claude-Sitzung
+        raise kern.AmwFehler("Den MCP-Schlüssel erzeugt nur der Mensch im Terminal (--von Entwickler) oder in der Workbench am PC")
+    s = mcp_schluessel.erzeugen(name)
+    print(f"Neuer Schlüssel für Projekt {name} (ein alter gilt ab jetzt nicht mehr) – nur jetzt sichtbar, nirgends gespeichert:")
+    print(s)
+    print("Trag ihn in die Projekt-Anweisungen des Lead-Chats dieses Projekts ein, z. B.: ‚AMW-Schlüssel: " + s + "‘."
+          " Eintrag für claude_desktop_config.json: " + mcp_schluessel.eintrag(name, lead))
+
+
 def cmd_takt(a, con):
     """Ein Durchgang für einen Lead in einem Aufruf (A1780)."""
     from . import takt
@@ -2558,6 +2579,11 @@ def parser():
     x.add_argument("text", nargs="*")
     x.add_argument("--aufgabe", type=nummer)
     x.set_defaults(f=cmd_taetigkeit)
+
+    x = s.add_parser("mcp", help="Connector für Chat-Leads: schluessel (neu erzeugen – nur der Mensch, einmal sichtbar) | eintrag"
+                                 " (Zeile für claude_desktop_config.json)")
+    x.add_argument("aktion", choices=["schluessel", "eintrag"])
+    x.set_defaults(f=cmd_mcp)
 
     x = s.add_parser("takt", help="ein Durchgang für Leads: Postfach mit Text, Prüfbitten, Fragen, Antworten des Menschen,"
                                   " Läufe, Lead-Runde, Auslieferungen – knapp, je Punkt eine Zeile")

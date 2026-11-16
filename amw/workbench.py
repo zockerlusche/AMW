@@ -636,7 +636,9 @@ def daten_einstellungen(con, pid, speicher=None):
                    "claude": _claude_kurz(platte.claude_ablagen())}   # A1779: nur am PC (Pfade dieses PCs)
     except Exception:
         rechner = {"laufwerke": [], "aufraeumen": {"sicherungen": [], "bytes": 0, "ordner": ""}}
-    return {"version": __version__, "rechner": rechner,
+    from . import mcp_schluessel                       # A1826: Connector je Projekt – Zeile zum Kopieren, Stand des Schlüssels
+    mcp = {"eintrag": mcp_schluessel.eintrag(p["name"], kern.lead(con, pid) or "TL"), **mcp_schluessel.stand(p["name"])}
+    return {"version": __version__, "rechner": rechner, "mcp": mcp,
             "projekt": {"name": p["name"], "ordner": pe.get("ordner"), "takt_min": pe.get("takt_min", TAKT_MIN),
                         "speicher_grenze_gb": pe.get("speicher_grenze_gb", SPEICHER_GRENZE_GB),
                         "stillstand_min": pe.get("stillstand_min", ueberwachung.STILLSTAND_MIN),

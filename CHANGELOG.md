@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.122.0 – 16.11.2026 · Schlüssel für den Connector
+- **Behoben:** Ein Connector (MCP) für die Claude-App ließ sich in jedem Chat einschalten – auch im Chat eines anderen
+  Projekts. Jetzt hat jedes Projekt einen eigenen Schlüssel (Einstellungen › Projekt, einmal sichtbar, nur als Prüfwert auf
+  dem PC gespeichert); ohne ihn lehnt der Connector jeden Aufruf ohne Wirkung ab. Jeder Aufruf steht im Verlauf. Die Workbench
+  zeigt die fertige Zeile für die Konfiguration. Nach dem Update einmal den Schlüssel erzeugen und in den Lead-Chat eintragen.
+
 ## 1.121.0 – 16.11.2026 · Lesebefehle für Leads
 - **Neu:** `amw dokument zeigen D12 --inhalt` zeigt den Text eines Dokuments (bei Bildern und Videos Hinweis und Pfad),
   `amw agent liste` nennt je Agent die aktuelle Aufgabe und worauf sie wartet, `amw wortlaut --liste --seit …` zeigt die

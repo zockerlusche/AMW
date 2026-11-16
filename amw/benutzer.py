@@ -41,7 +41,7 @@ def klasse(weg, daten=None):
         return "benutzer"
     if weg in ("/api/einstellungen/projekt", "/api/einstellungen/agent"):
         return "projekt"
-    if weg.startswith("/api/einstellungen/") or weg in ("/api/archivieren", "/api/push/probe", "/api/projekt/neu", "/api/lauf/vorziehen",
+    if weg.startswith("/api/einstellungen/") or weg in ("/api/archivieren", "/api/push/probe", "/api/projekt/neu", "/api/lauf/vorziehen", "/api/mcp/schluessel",
                                                         "/api/agent/entfernen", "/api/agent/wiederaufnehmen", "/api/agent/loeschen"):
         return "system"
     return "arbeiten"

@@ -8,8 +8,9 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
-from amw import db, kern, mcp_server
+from amw import db, kern, mcp_schluessel, mcp_server
 
 WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -36,8 +37,13 @@ class Client:
             return None
         return json.loads(self.p.stdout.readline().decode("utf-8"))
 
-    def werkzeug(self, name, args=None):
-        return self.senden("tools/call", {"name": name, "arguments": args or {}})["result"]
+    def werkzeug(self, name, args=None, schluessel=True):
+        a = dict(args or {})
+        if schluessel is True:
+            a["schluessel"] = self.schluessel
+        elif schluessel:
+            a["schluessel"] = schluessel
+        return self.senden("tools/call", {"name": name, "arguments": a})["result"]
 
     def zu(self):
         self.p.stdin.close()
@@ -58,9 +64,14 @@ class Mcp(unittest.TestCase):
         kern.agent_neu(con, pid, "CC1")
         self.nid, _ = kern.posten(con, pid, "CC1", "TL", "info", "Stand A12", "Alles grün")
         con.close()
-        umgebung = dict(os.environ, AMW_DB=pfad)
+        lad = os.path.join(self.ordner.name, "lad")          # A1826: Schlüssel liegt außerhalb von Repo/DB (hier: Test-Ordner)
+        with mock.patch.dict(os.environ, {"LOCALAPPDATA": lad}):
+            schluessel = mcp_schluessel.erzeugen("Spiel")
+        umgebung = dict(os.environ, AMW_DB=pfad, LOCALAPPDATA=lad)
         umgebung.pop("AMW_AGENT", None)
+        self.pfad, self.lad = pfad, lad
         self.c = Client(umgebung)
+        self.c.schluessel = schluessel
         self.addCleanup(self.c.zu)
 
     def test_handshake_liste_und_aufrufe(self):
@@ -72,7 +83,7 @@ class Mcp(unittest.TestCase):
         werkzeuge = {w["name"]: w for w in self.c.senden("tools/list")["result"]["tools"]}
         self.assertTrue({"takt", "lesen", "posten", "erledigt", "aufgabe_zeige", "pruefung_urteil", "freigabe_merge", "frage_neu",
                          "runde_lesen", "lauf_vorziehen", "suche", "dokument_zeigen", "schirm"} <= set(werkzeuge))
-        self.assertEqual(werkzeuge["posten"]["inputSchema"]["required"], ["an", "art", "kurz"])
+        self.assertEqual(werkzeuge["posten"]["inputSchema"]["required"], ["schluessel", "an", "art", "kurz"])
         self.assertNotIn("von", werkzeuge["posten"]["inputSchema"]["properties"])      # Identität nicht wählbar
         t = self.c.werkzeug("takt")
         self.assertFalse(t["isError"])
@@ -96,6 +107,24 @@ class Mcp(unittest.TestCase):
         self.assertFalse(self.c.werkzeug("erledigt", {"ids": [self.nid]})["isError"])
         self.assertIn("nichts offen", self.c.werkzeug("lesen")["content"][0]["text"])
         self.assertFalse(self.c.werkzeug("schirm")["isError"])
+
+    def test_ohne_richtigen_schluessel_keinerlei_wirkung_und_protokoll(self):
+        """A1826 (16.11.: der GlassWorld-Lead las über diesen Connector das AMW-Postfach): falscher oder fehlender Schlüssel →
+        Ablehnung, nichts gelesen, nichts als gelesen markiert; jeder Aufruf steht im Verlauf."""
+        for falsch in ("amw-falsch", None):
+            r = self.c.werkzeug("lesen", schluessel=falsch) if falsch else self.c.senden("tools/call", {"name": "lesen", "arguments": {}})["result"]
+            self.assertTrue(r["isError"])
+            self.assertIn("Abgelehnt: Dieser Connector gehört zu Projekt Spiel (TL)", r["content"][0]["text"])
+            self.assertNotIn("Stand A12", r["content"][0]["text"])
+        con = db.verbinde(self.pfad)
+        self.addCleanup(con.close)
+        self.assertEqual(con.execute("SELECT status FROM empfang WHERE nachricht_id = ?", (self.nid,)).fetchone()[0], "offen")
+        self.assertFalse(self.c.werkzeug("lesen")["isError"])                               # mit Schlüssel geht es
+        protokoll = [r[0] for r in con.execute("SELECT text FROM plan_ereignis WHERE art = 'mcp_aufruf' ORDER BY id")]
+        self.assertEqual(protokoll, ["MCP lesen: abgelehnt – falscher oder fehlender Schlüssel"] * 2 + ["MCP lesen: ok"])
+        werkzeuge = self.c.senden("tools/list")["result"]["tools"]
+        self.assertTrue(all(w["inputSchema"]["required"][0] == "schluessel" for w in werkzeuge))
+        self.assertTrue(werkzeuge[0]["description"].startswith("[Projekt Spiel · nur für den Lead von Spiel (TL)]"))
 
     def test_fehler_kommen_als_fehler_zurueck(self):
         self.c.senden("initialize", {"protocolVersion": "1999-01-01", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}})
@@ -143,6 +172,13 @@ class Schema(unittest.TestCase):
             los.wait(10)
             return 0, "spät fertig", ""
         s = mcp_server.Server("Spiel", "TL")
+        for name in ("stand", "pruefen"):                                                    # Schlüssel hier nicht das Thema
+            p = mock.patch.object(mcp_schluessel, name, return_value={"da": True} if name == "stand" else True)
+            p.start()
+            self.addCleanup(p.stop)
+        p = mock.patch.object(s, "protokoll")
+        p.start()
+        self.addCleanup(p.stop)
         with mock.patch.object(mcp_server, "befehl_ausfuehren", side_effect=langsam), mock.patch.object(mcp_server, "FRIST_S", 0.3):
             r = s.werkzeug("takt", {})
             self.assertTrue(r["isError"])

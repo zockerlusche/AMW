@@ -19,6 +19,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
+| [`mcp`](#mcp) | Connector für Chat-Leads: schluessel (neu erzeugen – nur der Mensch, einmal sichtbar) ¦ eintrag (Zeile für claude_desktop_config.json) |
 | [`takt`](#takt) | ein Durchgang für Leads: Postfach mit Text, Prüfbitten, Fragen, Antworten des Menschen, Läufe, Lead-Runde, Auslieferungen – knapp, je Punkt eine Zeile |
 | [`kontext`](#kontext) | Startinformationen für einen Agenten |
 | [`runde`](#runde) | Lead-Runde: Kanal nur zwischen den Leads aller Projekte – nur Information, nie Befehle (runde schreiben --kurz … [--an Projekt] · runde lesen [--neu]) |
@@ -487,6 +488,19 @@ positional arguments:
 options:
   -h, --help         show this help message and exit
   --aufgabe AUFGABE
+  --von VON
+  --projekt PROJEKT
+```
+
+## mcp
+```
+usage: amw mcp [-h] [--von VON] [--projekt PROJEKT] {schluessel,eintrag}
+
+positional arguments:
+  {schluessel,eintrag}
+
+options:
+  -h, --help            show this help message and exit
   --von VON
   --projekt PROJEKT
 ```

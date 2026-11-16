@@ -4,9 +4,20 @@
  "brauchst": [
   "Die Claude-App für Windows auf diesem PC (der Server läuft lokal, nicht im Browser).",
   "Python auf diesem PC (dasselbe, mit dem die AMW läuft).",
-  "Den Namen des Projekts und des Leads, z. B. Projekt `GlassWorld`, Lead `TL`."
+  "Den Namen des Projekts und des Leads, z. B. Projekt `GlassWorld`, Lead `TL`.",
+  "Je Projekt einen eigenen Schlüssel. Ohne ihn lehnt der Connector jeden Aufruf ab."
  ],
  "schritte": [
+  {
+   "titel": "Schlüssel erzeugen",
+   "text": "In der Workbench am PC: Einstellungen › Projekt › „Connector für den Lead-Chat (MCP)“ › „Schlüssel erzeugen“. Der Schlüssel erscheint genau einmal – kopieren. Gespeichert wird auf diesem PC nur ein Prüfwert, nicht im Repository und nicht in der Datenbank. Im Terminal geht es auch: `amw mcp schluessel --projekt GlassWorld --von Entwickler` (nicht aus einer Agenten-Sitzung).",
+   "bilder": []
+  },
+  {
+   "titel": "Schlüssel in den Lead-Chat",
+   "text": "In der Claude-App im Claude-Projekt des Leads die Projekt-Anweisungen öffnen und eine Zeile ergänzen, z. B. „AMW-Schlüssel: amw-…“. Nur dort – nie in einen anderen Chat, nie in eine Nachricht.",
+   "bilder": []
+  },
   {
    "titel": "Konfiguration öffnen",
    "text": "In der Claude-App: Einstellungen › Entwickler › „Konfiguration bearbeiten“. Es öffnet sich die Datei `claude_desktop_config.json`.",
@@ -14,7 +25,7 @@
   },
   {
    "titel": "Eintrag einfügen",
-   "text": "Je Projekt ein Eintrag unter `mcpServers` – der Name ist frei, der Pfad ist der Ordner der AMW: `\"amw-glassworld\": {\"command\": \"python\", \"args\": [\"F:/amw/amw-mcp.py\", \"--projekt\", \"GlassWorld\", \"--von\", \"TL\"]}`. Gibt es `mcpServers` noch nicht, die ganze Datei so: `{\"mcpServers\": { … }}` mit dem Eintrag an der Stelle der drei Punkte; steht dort schon etwas, den neuen Eintrag mit Komma dazuschreiben.",
+   "text": "Die fertige Zeile steht in der Workbench beim Schlüssel („Zeile kopieren“). Je Projekt ein Eintrag unter `mcpServers`, Name `amw-<projekt>`, der Pfad ist der Ordner der AMW: `\"amw-glassworld\": {\"command\": \"python\", \"args\": [\"F:/amw/amw-mcp.py\", \"--projekt\", \"GlassWorld\", \"--von\", \"TL\"]}`. Gibt es `mcpServers` noch nicht, die ganze Datei so: `{\"mcpServers\": { … }}` mit dem Eintrag an der Stelle der drei Punkte; steht dort schon etwas, den neuen Eintrag mit Komma dazuschreiben.",
    "bilder": []
   },
   {
@@ -44,11 +55,23 @@
    "Statt `python` den ganzen Pfad zu python.exe eintragen."
   ],
   [
+   "„Abgelehnt: Dieser Connector gehört zu Projekt …“",
+   "Der Schlüssel fehlt in den Anweisungen des Chats, ist alt (nach „Schlüssel erneuern“) oder der Chat gehört zu einem anderen Projekt. Es wurde nichts gelesen und nichts geändert. Im fremden Chat den Eintrag ausschalten; im eigenen den aktuellen Schlüssel eintragen."
+  ],
+  [
+   "„Für Projekt … ist noch kein Schlüssel erzeugt“",
+   "Schritt 1 fehlt."
+  ],
+  [
    "Der Lead handelt im falschen Projekt",
    "Im Chat ist der Eintrag eines anderen Projekts eingeschaltet. Jeder Eintrag handelt fest als der Agent, der dort steht; im Chat nur den eigenen einschalten."
   ]
  ],
  "danach": [
+  "In der Claude-App ist jeder eingetragene Connector in jedem Chat wählbar. Was einen fremden Chat aufhält, ist allein der Schlüssel: Er steht nur in den Anweisungen des eigenen Lead-Chats.",
+  "Der Schlüssel schützt, solange er nicht weitergegeben wird. Wer ihn hat, kann über diesen Eintrag alles, was der Lead kann. Gerät er in einen anderen Chat oder in eine Nachricht: sofort „Schlüssel erneuern“ – der alte gilt dann nicht mehr.",
+  "Er schützt gegen fremde Chats, nicht gegen jemanden mit Zugriff auf diesen PC.",
+  "Jeder Aufruf steht im Verlauf (Planung › Verlauf): Zeit, Werkzeug, Ergebnis, abgelehnt oder nicht – nie der Inhalt.",
   "**takt** – ein Durchgang in einem Aufruf (wie `amw takt`); **lesen**, **posten**, **erledigt** – Nachrichten.",
   "**aufgabe_liste / _zeige / _neu / _aendern**, **bogen_liste / _zeigen** – Aufgaben und Meilensteine.",
   "**pruefung_liste / _zeige / _urteil**, **freigabe_merge** – Prüfungen und Merge-OK.",
@@ -57,7 +80,7 @@
   "**suche**, **zeige** (B5 F12 A120 …), **dokument_zeigen** (mit Pfad der Datei, auf Wunsch mit Inhalt), **agent_liste**, **wortlaut_liste**, **kontext**.",
   "Jedes Werkzeug ruft denselben Befehl wie die Kommandozeile – mit denselben Rechten und Prüfungen.",
   "Der Dateiaustausch bleibt als Rückfall bestehen.",
-  "Eintragen tut der Mensch: Die Datei gehört zur Claude-App, nicht zur AMW."
+  "Eintragen tut der Mensch: Die Datei gehört zur Claude-App, nicht zur AMW. Den Schlüssel erzeugt und verteilt nur der Mensch."
  ],
  "fragen": [],
  "thema": "mcp",
