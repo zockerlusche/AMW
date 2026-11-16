@@ -13,7 +13,12 @@
   },
   {
    "titel": "So läuft es dann",
-   "text": "Startet ein Agent einen schweren Befehl direkt (zum Beispiel die ganze Test-Suite), wird der Befehl nicht ausgeführt. Der Agent bekommt stattdessen den fertigen Ersatz: `amw lauf ausfuehren --beschreibung \"Test-Suite\" -- <sein Befehl>`. Der wartet, bis der Rechner frei ist, läuft dann und gibt das Ergebnis zurück.",
+   "text": "Startet ein Agent einen schweren Befehl direkt (zum Beispiel die ganze Test-Suite), wird der Befehl nicht ausgeführt. Der Agent bekommt stattdessen den fertigen Ersatz: `amw lauf ausfuehren --leicht --beschreibung \"Test-Suite\" -- <sein Befehl>`. Der wartet, bis der Rechner frei ist, läuft dann und gibt das Ergebnis zurück.",
+   "bilder": []
+  },
+  {
+   "titel": "Leicht oder schwer – immer angeben",
+   "text": "`--leicht` für normales Bauen und Testen: läuft parallel (Einstellungen › Dieser PC › „Gleichzeitige leichte Läufe“) und wartet nie auf schwere Läufe. `--schwer` für KI, Grafikkarte, Fenster oder viel Speicher: läuft einzeln. Fehlt beides, lehnt die AMW den Lauf mit dieser Erklärung ab; ein Rezept bringt seine Art mit. Ein Agent rechnet nie zwei Läufe zugleich – beide im selben Ordner gingen schief.",
    "bilder": []
   },
   {
