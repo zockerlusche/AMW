@@ -292,6 +292,7 @@ try {
     $schluessel = match (true) {
         $pfad === '/api/aufgaben' => '/api/aufgaben?sicht=' . (string)($q['sicht'] ?? 'offen'),
         $pfad === '/api/fragen' && ($q['alle'] ?? '') === '1' => '/api/fragen?alle=1',
+        $pfad === '/api/fragen' && ($q['erledigt'] ?? '') === '1' => '/api/fragen?erledigt=1',
         $pfad === '/api/dokument' => '/api/dokument?id=' . (int)($q['id'] ?? 0),
         $pfad === '/api/thema' => '/api/thema?id=' . (int)($q['id'] ?? 0),
         $pfad === '/api/aufgabe' => '/api/aufgabe?id=' . (int)($q['id'] ?? 0),
