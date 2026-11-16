@@ -25,7 +25,7 @@ Ein Lead, der als Chat in der Claude-App arbeitet, kann die AMW direkt als Werkz
 - **pruefung_liste / _zeige / _urteil**, **freigabe_merge** – Prüfungen und Merge-OK.
 - **frage_liste / _zeige / _neu / _antworten**, **beschluss_neu**, **wortlaut** – Fragen und Wissen.
 - **runde_lesen / _schreiben** – Lead-Runde; **lauf_liste / _zeige / _vorziehen** – Läufe; **schirm** – Bildschirm-Freigabe.
-- **suche**, **zeige** (B5 F12 A120 …), **dokument_zeigen** (mit Pfad der Datei), **kontext**.
+- **suche**, **zeige** (B5 F12 A120 …), **dokument_zeigen** (mit Pfad der Datei, auf Wunsch mit Inhalt), **agent_liste**, **wortlaut_liste**, **kontext**.
 - Jedes Werkzeug ruft denselben Befehl wie die Kommandozeile – mit denselben Rechten und Prüfungen.
 - Der Dateiaustausch bleibt als Rückfall bestehen.
 - Eintragen tut der Mensch: Die Datei gehört zur Claude-App, nicht zur AMW.

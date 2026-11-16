@@ -150,6 +150,17 @@ def cmd_projekt(a, con):
                                                                            if kern.projekt_ordner(con, r['id']) else ""))
 
 
+def _arbeit_zeile(con, pid, kennung):
+    """A1821 (LayerIT R33): woran der Agent gerade ist und worauf er wartet – eine Zeile, ohne SQL beim Lead."""
+    from . import wartegrund
+    a = con.execute("SELECT id, status, titel FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status IN ('laeuft', 'wartet', 'blockiert')"
+                    " ORDER BY CASE status WHEN 'laeuft' THEN 0 ELSE 1 END, rang, id LIMIT 1", (pid, kennung)).fetchone()
+    if not a:
+        return ""
+    auf = [g["bezug"] for g in wartegrund.offene(con, a["id"])]
+    return (f"\n         Aufgabe: A{a['id']} {a['status']}" + (f" auf {', '.join(auf)}" if auf else "") + f" – {a['titel'][:70]}")
+
+
 def cmd_agent(a, con):
     pid = _projekt(con, a)
     if a.aktion == "umbenennen":
@@ -237,7 +248,8 @@ def cmd_agent(a, con):
         print(f"{r['kennung']:<8} {r['rolle'] or '':<10} soll {r['soll']:<4} ist {r['zustand'] or 'nie gestartet':<14}"
               f" Puls {_zeit(r['letzter_puls_utc']) or '–':<12} offen {r['offen']}" + (f"  (früher {r['alias']})" if r["alias"] else "")
               + (f"\n         macht: {r['taetigkeit'][:90]} ({_alter(r['taetigkeit_utc'])})"
-                 if r["taetigkeit"] and r["zustand"] in ("aktiv", "ruht") else ""))
+                 if r["taetigkeit"] and r["zustand"] in ("aktiv", "ruht") else "")
+              + _arbeit_zeile(con, pid, r["kennung"]))
 
 
 def _alter(utc):
@@ -1618,6 +1630,15 @@ def _text(a):
 
 
 def cmd_wortlaut(a, con):
+    if a.liste:                                          # A1821 (LayerIT R33): Kontrolle, dass jede Aussage erfasst ist
+        seit = (a.seit.strip() if re.fullmatch(r"\d{4}-\d{2}-\d{2}T[\d:]+Z?", a.seit.strip()) else _datum(a.seit)) if a.seit else None
+        zeilen = con.execute("SELECT id, zeit_utc, kanal, text FROM wortlaut WHERE projekt_id = ? AND (? IS NULL OR zeit_utc >= ?)"
+                             " ORDER BY zeit_utc DESC, id DESC LIMIT ?", (_projekt(con, a), seit, seit, a.grenze)).fetchall()
+        for w in zeilen:
+            t = " ".join(w["text"].split())
+            print(f"W{w['id']} {_zeit(w['zeit_utc'])} [{w['kanal']}] {t[:200]}" + ("…" if len(t) > 200 else ""))
+        print(f"{len(zeilen)} Aussagen" + (f" seit {_zeit(seit)}" if seit else "") + " – ganz: amw zeige W<nr>" if zeilen else "keine")
+        return
     wid = wissen.wortlaut_neu(con, _projekt(con, a), _von(a), _text(a), a.kanal, a.zeit, a.bemerkung)
     print(f"W{wid} erfasst")
 
@@ -1699,6 +1720,10 @@ def cmd_regel(a, con):
     print(wissen.regel_setzen(con, _projekt(con, a), _von(a), a.ebene, a.nr, _text(a), a.beschluss, a.teil))
 
 
+TEXT_ENDUNGEN = (".md", ".txt", ".html", ".htm", ".json", ".csv", ".svg", ".py", ".log", ".yaml", ".yml", ".xml", ".ini", ".toml")
+INHALT_MAX = 20000
+
+
 def cmd_dokument(a, con):
     from . import dokumente
     pid = _projekt(con, a)
@@ -1733,6 +1758,21 @@ def cmd_dokument(a, con):
                   + (f" – {v['notiz']}" if v["notiz"] else "") + f"\n     {dokumente.datei_pfad(v['sha256'], v['endung'])}")
         for n in dokumente.gespraech(con, pid, nr):
             print(f"  #{n['id']} {n['zeit_utc']} {n['von']} → {n['an']}: {n['kurz']}")
+        if a.inhalt:                                     # A1821 (GlassWorld R43): den Inhalt lesen – ohne Dateizugriff/SQL
+            v = next((x for x in d["versionen"] if x["nr"] == a.fassung), None) if a.fassung else d["versionen"][-1]
+            if not v:
+                raise kern.AmwFehler(f"D{d['id']} hat keine Fassung {a.fassung}")
+            pfad = dokumente.datei_pfad(v["sha256"], v["endung"])
+            print(f"\n--- Inhalt v{v['nr']} ({v['endung']}) ---")
+            if v["endung"].lower() in TEXT_ENDUNGEN:
+                try:
+                    with open(pfad, encoding="utf-8", errors="replace") as f:
+                        t = f.read(INHALT_MAX + 1)
+                except OSError as e:
+                    raise kern.AmwFehler(f"Datei nicht lesbar: {e}") from None
+                print(t[:INHALT_MAX] + (f"\n… (gekürzt nach {INHALT_MAX} Zeichen – ganz: {pfad})" if len(t) > INHALT_MAX else ""))
+            else:
+                print(f"{v['endung']} ist kein Text (Bild, Video, PDF …) – ansehen in der Workbench › Dokumente oder die Datei: {pfad}")
     elif a.aktion == "version":
         if not datei:
             raise kern.AmwFehler("Datei fehlt: amw dokument version <nr> <datei> --notiz …")
@@ -2825,6 +2865,9 @@ def parser():
         x.add_argument("--text-datei")
         x.set_defaults(f=f)
         if name == "wortlaut":
+            x.add_argument("--liste", action="store_true", help="erfasste Aussagen zeigen (neueste zuerst) statt eine zu erfassen")
+            x.add_argument("--seit", help="mit --liste: nur ab diesem Zeitpunkt (Datum, z. B. 15.11. oder 2026-11-15T18:00:00Z)")
+            x.add_argument("--grenze", type=int, default=50, help="mit --liste: höchstens so viele")
             x.add_argument("--kanal", default="chat-tl")
             x.add_argument("--zeit", help="UTC der Aussage")
             x.add_argument("--bemerkung")
@@ -2873,6 +2916,9 @@ def parser():
     x.add_argument("--text", help="kommentar/ueberarbeiten: was zu sagen ist")
     x.add_argument("--ja", action="store_true", help="loeschen: bestätigen")
     x.add_argument("--melden", action="store_true", help="einsammeln: Liste als Dokument ablegen und den Entwickler fragen")
+    x.add_argument("--inhalt", action="store_true", help="zeigen: auch den Inhalt der neuesten (oder --fassung) Fassung – Text bis 20 000 Zeichen,"
+                                                          " sonst Hinweis + Pfad")
+    x.add_argument("--fassung", type=int, help="zeigen --inhalt: diese Fassung (Nummer) statt der neuesten")
     x.add_argument("--uebernehmen", action="store_true", help="einsammeln: nach der Antwort auf --frage übernehmen")
     x.add_argument("--nur", action="append", help="einsammeln --uebernehmen: nur diese Ablage (Unterordner), mehrfach")
     x.set_defaults(f=cmd_dokument)

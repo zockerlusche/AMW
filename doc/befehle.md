@@ -1125,14 +1125,20 @@ options:
 
 ## wortlaut
 ```
-usage: amw wortlaut [-h] [--text TEXT] [--text-datei TEXT_DATEI]
-                    [--kanal KANAL] [--zeit ZEIT] [--bemerkung BEMERKUNG]
-                    [--von VON] [--projekt PROJEKT]
+usage: amw wortlaut [-h] [--text TEXT] [--text-datei TEXT_DATEI] [--liste]
+                    [--seit SEIT] [--grenze GRENZE] [--kanal KANAL]
+                    [--zeit ZEIT] [--bemerkung BEMERKUNG] [--von VON]
+                    [--projekt PROJEKT]
 
 options:
   -h, --help            show this help message and exit
   --text TEXT
   --text-datei TEXT_DATEI
+  --liste               erfasste Aussagen zeigen (neueste zuerst) statt eine
+                        zu erfassen
+  --seit SEIT           mit --liste: nur ab diesem Zeitpunkt (Datum, z. B.
+                        15.11. oder 2026-11-15T18:00:00Z)
+  --grenze GRENZE       mit --liste: höchstens so viele
   --kanal KANAL
   --zeit ZEIT           UTC der Aussage
   --bemerkung BEMERKUNG
@@ -1207,8 +1213,9 @@ usage: amw dokument [-h] [--datei DATEI] [--titel TITEL]
                     [--notiz NOTIZ] [--bogen BOGEN] [--aufgabe AUFGABE]
                     [--frage FRAGE] [--beschluss BESCHLUSS] [--loesen]
                     [--online] [--agent AGENT] [--suche SUCHE] [--alle]
-                    [--text TEXT] [--ja] [--melden] [--uebernehmen]
-                    [--nur NUR] [--von VON] [--projekt PROJEKT]
+                    [--text TEXT] [--ja] [--melden] [--inhalt]
+                    [--fassung FASSUNG] [--uebernehmen] [--nur NUR]
+                    [--von VON] [--projekt PROJEKT]
                     {ablegen,version,liste,zeigen,kommentar,ueberarbeiten,zuordnen,archivieren,wiederherstellen,online,offline,loeschen,einsammeln}
                     [nr] [pfad]
 
@@ -1240,6 +1247,11 @@ options:
   --ja                  loeschen: bestätigen
   --melden              einsammeln: Liste als Dokument ablegen und den
                         Entwickler fragen
+  --inhalt              zeigen: auch den Inhalt der neuesten (oder --fassung)
+                        Fassung – Text bis 20 000 Zeichen, sonst Hinweis +
+                        Pfad
+  --fassung FASSUNG     zeigen --inhalt: diese Fassung (Nummer) statt der
+                        neuesten
   --uebernehmen         einsammeln: nach der Antwort auf --frage übernehmen
   --nur NUR             einsammeln --uebernehmen: nur diese Ablage
                         (Unterordner), mehrfach

@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.121.0 – 16.11.2026 · Lesebefehle für Leads
+- **Neu:** `amw dokument zeigen D12 --inhalt` zeigt den Text eines Dokuments (bei Bildern und Videos Hinweis und Pfad),
+  `amw agent liste` nennt je Agent die aktuelle Aufgabe und worauf sie wartet, `amw wortlaut --liste --seit …` zeigt die
+  erfassten Aussagen des Menschen. Alles auch über den Dateiaustausch und als Werkzeuge in der Claude-App.
+
 ## 1.120.0 – 16.11.2026 · Leichte Läufe parallel
 - **Verbessert:** Normales Bauen und Testen läuft parallel und wartet nie mehr auf schwere Läufe (KI, Grafikkarte, Fenster,
   viel Speicher). Wie viele leichte Läufe zugleich rechnen, steht unter Einstellungen › Dieser PC. Ein Agent rechnet nie zwei
