@@ -72,6 +72,20 @@ class Uebersicht(unittest.TestCase):
             p = db.einfuegen(leer, "projekt", name="Leer", angelegt_utc=db.jetzt())
         self.assertIn("/api/fragen?erledigt=1", abgleich.ansichten(leer, p))
 
+    def test_nachtraege_einer_frage_lassen_sich_als_gelesen_markieren(self):
+        """A1837 (Marcel 16.11.: „kommt immer wieder als neu“): Nachträge zu einer Frage stehen nur unter Fragen – die Seite
+        bekommt ihre Nummern (nachtrag_ids) und markiert sie beim Anzeigen; danach gelten sie nicht mehr als neu."""
+        from amw import aktionen
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Welche Farbe?", [("A", "Blau"), ("B", "Orange")],
+                             empfehlung="A", grund="ruhiger", geprueft="keine Treffer")
+        kern.frage_nachtrag(self.con, self.pid, "TL", fid, "Orange ginge auch")
+        f = next(x for x in workbench.daten_fragen(self.con, self.pid) if x["id"] == fid)
+        self.assertEqual(len(f["nachtrag_ids"]), 1)
+        aktionen.ausfuehren(self.con, self.pid, "/api/gelesen", {"ids": f["nachtrag_ids"]})
+        f = next(x for x in workbench.daten_fragen(self.con, self.pid) if x["id"] == fid)
+        self.assertEqual(f["nachtrag_ids"], [])
+        self.assertEqual(next(x for x in workbench.daten_start(self.con, self.pid)["fragen"] if x["id"] == fid)["nachtraege"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

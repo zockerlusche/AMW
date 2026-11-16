@@ -888,6 +888,9 @@ def daten_fragen(con, pid, alle=False):
         d["vorgeschichte"] = vorgeschichte(con, pid, f)
         d["verlauf"] = zeilen(con.execute("SELECT zeit_utc, von, art, text FROM frage_verlauf WHERE frage_id = ?"
                                           " ORDER BY id", (f["id"],)))
+        d["nachtrag_ids"] = [r[0] for r in con.execute(   # A1837: ungelesene Nachträge – die Seite markiert sie beim Anzeigen
+            "SELECT v.nachricht_id FROM frage_verlauf v JOIN empfang e ON e.nachricht_id = v.nachricht_id AND e.agent = ?"
+            " AND e.status = 'offen' WHERE v.frage_id = ?", (kern.ENTWICKLER, f["id"]))]
         d["wartet_auf_fragesteller"] = bool(d["verlauf"]) and d["verlauf"][-1]["art"] == "rueckfrage"
         d["haelt"] = haelt(con, pid, f)
         d["dokumente"] = zeilen(con.execute(

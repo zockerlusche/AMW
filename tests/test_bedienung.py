@@ -172,6 +172,13 @@ class Seite(Wiederholt, Grund):
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [True, False, False, False])   # Eingang, Gesendet, Team-Chat (A1657), Lead-Runde (nur am PC)
         self.assertEqual(self.tab.js("document.querySelectorAll('.nr-reiter button')[3].textContent"), "Lead-Runde")
         self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-liste').innerText"))
+        n2 = self.con.execute("SELECT max(id) FROM nachricht WHERE von = 'CC1'").fetchone()[0]
+        offen = lambda: self.con.execute("SELECT status FROM empfang WHERE nachricht_id = ? AND agent = ?", (n2, kern.ENTWICKLER)).fetchone()[0]
+        self.assertEqual(offen(), "offen")                                             # automatisch gewählt = noch nicht gelesen
+        self.tab.js("[...document.querySelectorAll('.nr-eintrag')].find(e => e.innerText.includes('Mache ich')).click()")   # A1837: antippen = gelesen
+        self.warten("!document.querySelector('.nr-alle-gelesen')")
+        self.con.commit()
+        self.assertEqual(offen(), "erledigt")
         self.tab.js("document.querySelectorAll('.nr-reiter button')[1].click()")
         self.warten(f"document.querySelector('.nr-liste') && document.querySelector('.nr-liste').innerText.includes('Bitte Linien aufräumen')")
         self.assertIn(f"A{aid} Linien", self.tab.js("document.querySelector('.nr-liste .nr-chip').innerText"))

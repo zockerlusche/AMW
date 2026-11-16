@@ -10,7 +10,7 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 2. **Von überall schreiben** Wo du etwas ansiehst – Thema, Meilenstein, Beschluss, Lauf, Prüfung –, gibt es „✉ Nachricht dazu“: Der Bezug ist eingetragen, der Empfänger vorgeschlagen (änderbar). Beim Thema und beim Meilenstein steht unten „Nachrichten dazu“ als kleines Gespräch. Bei Aufgaben und Dokumenten schreibst du wie bisher in deren eigenem Feld – auch das trägt den Bezug.
 3. **Stand verfolgen** Reiter „Gesendet“: je Empfänger gesendet › benachrichtigt › gelesen › erledigt. Fährst du über einen Schritt, siehst du die Uhrzeit.
 4. **Antworten lesen** Ein Klick auf eine Nachricht zeigt rechts das Gespräch – deine Nachricht und was darauf zurückkam. Am Handy öffnet es sich als eigene Ansicht („‹ Zur Liste“ führt zurück).
-5. **Eingang abarbeiten** Reiter „Eingang“: Ungelesenes ist fett. „Antworten“ schreibt zurück, der Bezug geht mit; „Erledigt“ nimmt sie aus der Zahl im Menü.
+5. **Eingang abarbeiten** Reiter „Eingang“: Ungelesenes ist fett. Antippen öffnet sie und hakt sie als gelesen ab – sie zählt nicht mehr im Menü. „Antworten“ schreibt zurück, der Bezug geht mit; „Gelesen“ hakt die gerade gezeigte ab, „Alle gelesen“ alle offenen.
 6. **Zurückziehen** Gesendet › Nachricht wählen › „Zurückziehen“ – solange **kein** Empfänger sie gelesen oder erledigt hat. Sie verschwindet bei allen Empfängern und bleibt bei dir als „zurückgezogen“.
 
 ## Typische Fehler
@@ -20,7 +20,7 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 
 ## Danach
 - Fragen der Agenten an dich stehen nur unter dem Menüpunkt „Fragen“ – mit Rückfragen, Nachträgen und deiner Antwort. Unter Nachrichten steht oben nur ein Hinweis, wie viele offen sind.
-- Jede Zeile zeigt ihre Art: ✉ Nachricht eines Agenten, ⚙ Meldung der Workbench. Mehrere offene erledigst du auf einmal: Häkchen setzen (oder „alle offenen markieren“), dann „Erledigt“.
+- Jede Zeile zeigt ihre Art: ✉ Nachricht eines Agenten, ⚙ Meldung der Workbench. Mehrere offene hakst du auf einmal ab: Häkchen setzen (oder „alle offenen markieren“), dann „Gelesen“.
 - Was Agenten und Lead untereinander schreiben, steht unter „Team-Chat“ – nur zum Lesen, es zählt nie.
 - Die Übersicht zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt in den Eingang.
 - Am PC scrollen Liste und Nachricht getrennt, wie im Mail-Programm: Du kannst rechts lesen, ohne die Liste zu verlieren.

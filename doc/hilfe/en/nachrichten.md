@@ -10,7 +10,7 @@ Everything you write to agents and everything they write to you is in one place 
 2. **Write from anywhere** Wherever you look at something – topic, milestone, decision, run, review – there is “✉ Message about this”: the reference is filled in and a recipient suggested (you can change it). Topics and milestones show “Messages about this” below as a small conversation. For tasks and documents you keep writing in their own field – that carries the reference too.
 3. **Follow the status** “Sent” tab: per recipient sent › notified › read › done. Hover over a step to see the time.
 4. **Read replies** Clicking a message shows the conversation on the right – your message and what came back. On a phone it opens as its own view (“‹ Back to list” returns).
-5. **Work through the inbox** “Inbox” tab: unread is bold. “Reply” writes back, the reference comes along; “Done” removes it from the count in the menu.
+5. **Work through the inbox** “Inbox” tab: unread is bold. Tapping opens it and marks it as read – it no longer counts in the menu. “Reply” writes back, the reference comes along; “Read” marks the one shown, “All read” all open ones.
 6. **Withdraw** Sent › pick a message › “Withdraw” – as long as **no** recipient has read or done it. It disappears for every recipient and stays with you as “withdrawn”.
 
 ## Common problems
@@ -20,7 +20,7 @@ Everything you write to agents and everything they write to you is in one place 
 
 ## Next
 - The agents' questions to you are only under the “Questions” menu item – with follow-up questions, additions and your answer. Messages only shows a note at the top saying how many are open.
-- Every line shows its kind: ✉ message from an agent, ⚙ notice from the Workbench. To mark several open ones as done at once: tick them (or “select all open”), then “Done”.
+- Every line shows its kind: ✉ message from an agent, ⚙ notice from the Workbench. To mark several open ones as read at once: tick them (or “select all open”), then “Read”.
 - What agents and lead write to each other is under “Team chat” – read only, it never counts.
 - The Overview shows only a card with the newest messages for you – one click takes you to the inbox.
 - On the PC the list and the message scroll separately, as in a mail program: you can read on the right without losing the list.

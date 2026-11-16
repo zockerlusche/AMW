@@ -55,7 +55,7 @@ class Postfach(Grund):
         with open(os.path.join(os.path.dirname(__file__), "..", "amw", "workbench.html"), encoding="utf-8") as f:
             html = f.read()
         nr = html.split("async function sichtNachrichten")[1].split("\nasync function ")[0]
-        for x in ('d.zaehler.fragen_offen', '"nr_fragen_offen"', 'class: "nr-sammel"', 'schicken("/api/gelesen", { ids }, projekt)',
+        for x in ('d.zaehler.fragen_offen', '"nr_fragen_offen"', 'class: "nr-sammel"', 'schicken("/api/gelesen", { ids }, p)',
                   '" system" : " post"', '"⚙" : "✉"'):
             self.assertIn(x, nr)
         leiste = html.split("function nrReiterLeiste")[1].split("\n}")[0]
@@ -63,7 +63,7 @@ class Postfach(Grund):
         self.assertIn('rahmen(t("n_fragen"), el("span", { class: "leise" }, t("f_unter")))', html)
         self.assertIn('onclick: () => zeige("teamchat") }, t("n_teamchat"))', leiste)                 # Team-Chat: Reiter unter Nachrichten (A1657)
         self.assertNotIn('<a data-sicht="teamchat"', html)
-        for x in ('n_teamchat: "Team-Chat"', 'n_teamchat: "Team chat"', 'nr_erledigt_n: "Erledigt ({n})"', 'nr_erledigt_n: "Done ({n})"',
+        for x in ('n_teamchat: "Team-Chat"', 'n_teamchat: "Team chat"', 'nr_erledigt_n: "Gelesen ({n})"', 'nr_erledigt_n: "Read ({n})"',
                   'nr_fragen_offen: "{n} Fragen an dich offen › Fragen"', 'nr_fragen_offen: "{n} questions for you open › Questions"'):
             self.assertIn(x, html)
 

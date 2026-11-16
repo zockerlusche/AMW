@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.125.3 – 16.11.2026 · Gelesen ist gelesen
+- **Behoben:** Nachrichten, die du gelesen hattest, kamen immer wieder als neu. Jetzt hakt Antippen eine Nachricht als
+  gelesen ab; dazu „Gelesen“ je Nachricht und „Alle gelesen“. Neue Nachträge zu einer Frage gelten als gelesen, sobald die
+  Frage angezeigt wird. Online gilt „gelesen“ sofort auch auf der Nachrichten-Seite und im Zähler, nicht erst nach der
+  Synchronisierung.
+
 ## 1.125.2 – 16.11.2026 · Keine ungeprüften Commits bei der Auslieferung
 - **Behoben:** Beim Neu-Aufsetzen übernahm die Auslieferung eine Freigabe auch dann, wenn darunter ein neuer, noch
   ungeprüfter Commit lag. Jetzt geht eine Freigabe nur mit, wenn jeder Commit bis dahin geprüft ist; sonst hält die
