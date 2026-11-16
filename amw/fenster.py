@@ -95,7 +95,7 @@ def pruefen(con, fenster=None, liste=None, schirm_frei=None, konsole=None):
                          f"L{l['id']} öffnet ein Fenster ({programm}) – angemeldet ohne --schirm"[:300],
                          f"Der Lauf „{l['beschreibung'] or ''}“ ist ohne --schirm angemeldet, {programm} zeigt aber ein Fenster. Er gilt ab"
                          f" jetzt als Lauf mit Fenster. Denselben Lauf nimmt die Schlange {SPERRE_TAGE} Tage lang nur noch mit --schirm an"
-                         " (amw lauf ausfuehren --schirm …) – oder ohne Fenster starten (z. B. --headless)." + bitte,
+                         " (amw lauf ausfuehren --schwer --schirm …) – oder ohne Fenster starten (z. B. --headless)." + bitte,
                          aufgabe_id=l["aufgabe_id"])
             lead = kern.lead(con, l["projekt_id"])
             if lead and lead != l["agent"]:

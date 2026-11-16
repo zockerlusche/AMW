@@ -914,6 +914,24 @@ def cmd_taetigkeit(a, con):
     print("Tätigkeit gesetzt" if a.text else "Tätigkeit gelöscht")
 
 
+ART_FEHLT = ("Gib an, ob der Lauf leicht (normales Coding/Tests, läuft parallel) oder schwer ist (KI/GPU/Fenster/viel"
+             " Speicher, läuft einzeln): --leicht | --schwer")
+
+
+def _schwer(a, rezept=None, dauerlauf=False):
+    """A1822 (Marcel 16.11. 10:45): keine Vorgabe – leicht oder schwer gibt der Agent an. Ein Rezept trägt die Art fest,
+    ein Dauerlauf ist leicht. Rückgabe: True = schwer."""
+    if getattr(a, "leicht", False) and getattr(a, "schwer", False):
+        raise kern.AmwFehler("--leicht oder --schwer – nicht beides")
+    if dauerlauf and getattr(a, "schwer", False):
+        raise kern.AmwFehler("Ein Dauerlauf ist immer leicht – --schwer passt nicht")
+    if rezept or dauerlauf:
+        return True                                      # lauf_start nimmt die Art aus dem Rezept bzw. setzt Dauerlauf leicht
+    if not (getattr(a, "leicht", False) or getattr(a, "schwer", False)):
+        raise kern.AmwFehler(ART_FEHLT)
+    return bool(a.schwer)
+
+
 def cmd_takt(a, con):
     """Ein Durchgang für einen Lead in einem Aufruf (A1780)."""
     from . import takt
@@ -1127,10 +1145,10 @@ def _lauf_ausfuehren(con, pid, a):
     if KANAL.get() != "cli":                          # nie über Brücke/Briefkasten: der Dienst könnte den Befehl später ausführen
         raise kern.AmwFehler("lauf ausfuehren geht nur im Terminal des Agenten")
     if not befehl:
-        raise kern.AmwFehler("lauf ausfuehren --beschreibung … [--schirm] -- <befehl …> (der Befehl steht nach --)")
+        raise kern.AmwFehler("lauf ausfuehren --leicht|--schwer --beschreibung … [--schirm] -- <befehl …> (der Befehl steht nach --)")
     beschreibung = a.beschreibung or a.rezept or " ".join(befehl)[:120]
     von = _von(a)
-    lid = betrieb.lauf_start(con, pid, von, beschreibung, a.rezept, not a.leicht, a.schirm, a.aufgabe, warten=True,
+    lid = betrieb.lauf_start(con, pid, von, beschreibung, a.rezept, _schwer(a, a.rezept, getattr(a, "dauerlauf", False)), a.schirm, a.aufgabe, warten=True,
                              erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb, braucht_vram_gb=a.braucht_vram_gb,
                              braucht_platte_gb=a.braucht_platte_gb, befehl=befehl, ordner=os.getcwd(),
                              ergebnis_datei=os.path.abspath(a.ergebnis) if a.ergebnis else None, frist_min=a.frist,
@@ -1311,7 +1329,7 @@ def cmd_lauf(a, con):
     if a.aktion == "start":
         if not a.beschreibung and not a.rezept:
             raise kern.AmwFehler("--beschreibung oder --rezept angeben")
-        lid = betrieb.lauf_start(con, pid, _von(a), a.beschreibung or a.rezept, a.rezept, not a.leicht, a.schirm, a.aufgabe,
+        lid = betrieb.lauf_start(con, pid, _von(a), a.beschreibung or a.rezept, a.rezept, _schwer(a, a.rezept, getattr(a, "dauerlauf", False)), a.schirm, a.aufgabe,
                                  warten=a.warten, erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb,
                                  braucht_vram_gb=a.braucht_vram_gb, braucht_platte_gb=a.braucht_platte_gb, dauerlauf=a.dauerlauf)
         w = [r["id"] for r in betrieb.wartende(con, pid)]
@@ -1580,7 +1598,7 @@ def cmd_hinweis(a, con):
 def cmd_rezept(a, con):
     pid = _projekt(con, a)
     if a.aktion == "setzen":
-        print(betrieb.rezept_setzen(con, pid, a.name, a.befehl, a.beschreibung, a.schirm, a.speicher or 0.0, not a.leicht, a.gpu))
+        print(betrieb.rezept_setzen(con, pid, a.name, a.befehl, a.beschreibung, a.schirm, a.speicher or 0.0, _schwer(a), a.gpu))
     elif a.aktion == "zeige":
         r = con.execute("SELECT * FROM rezept WHERE projekt_id = ? AND name = ?", (pid, a.name)).fetchone()
         if not r:
@@ -2644,7 +2662,8 @@ def parser():
                    help="start/ausfuehren: benötigter freier Platz auf dem Laufwerk des Projekts")
     x.add_argument("--beschreibung")
     x.add_argument("--rezept")
-    x.add_argument("--leicht", action="store_true", help="kein schwerer Lauf (keine Speicher-Grenze)")
+    x.add_argument("--leicht", action="store_true", help="Pflicht (oder --schwer): normales Bauen/Testen – läuft parallel, wartet nie auf schwere")
+    x.add_argument("--schwer", action="store_true", help="Pflicht (oder --leicht): KI, Grafikkarte, Fenster oder viel Speicher – läuft einzeln")
     x.add_argument("--dauerlauf", action="store_true", help="start/ausfuehren: kopflos, ohne KI/GPU/Fenster, mit --braucht-gb als"
                    " fester Grenze – läuft neben dem schweren Lauf, die Grenze wird vorgemerkt, der Dienst passt auf, dass er sie hält")
     x.add_argument("--schirm", action="store_true")
@@ -2732,7 +2751,8 @@ def parser():
     x.add_argument("--beschreibung")
     x.add_argument("--schirm", action="store_true")
     x.add_argument("--speicher", type=float)
-    x.add_argument("--leicht", action="store_true")
+    x.add_argument("--leicht", action="store_true", help="Pflicht (oder --schwer): Läufe mit diesem Rezept sind leicht")
+    x.add_argument("--schwer", action="store_true", help="Pflicht (oder --leicht): Läufe mit diesem Rezept sind schwer")
     x.add_argument("--gpu", action="store_true", help="Läufe mit diesem Rezept belegen die Grafikkarte")
     x.set_defaults(f=cmd_rezept)
 

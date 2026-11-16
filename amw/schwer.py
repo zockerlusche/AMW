@@ -49,7 +49,7 @@ def ersatz(befehl, name, amw="amw"):
     befehl = str(befehl).strip()
     if VERKETTET.search(befehl):
         befehl = '"' + befehl.replace("\\", "\\\\").replace('"', '\\"') + '"'
-    return f'{amw} lauf ausfuehren --beschreibung "{name}" -- {befehl}'
+    return f'{amw} lauf ausfuehren --leicht --beschreibung "{name}" -- {befehl}'
 
 
 def erkennbar(eingabe):

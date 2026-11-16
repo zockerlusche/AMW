@@ -13,7 +13,12 @@
   },
   {
    "titel": "What happens then",
-   "text": "If an agent starts a heavy command directly (for example the whole test suite), the command is not executed. Instead the agent gets the ready-made replacement: `amw lauf ausfuehren --beschreibung \"Test-Suite\" -- <its command>`. It waits until the computer is free, then runs and returns the result.",
+   "text": "If an agent starts a heavy command directly (for example the whole test suite), the command is not executed. Instead the agent gets the ready-made replacement: `amw lauf ausfuehren --leicht --beschreibung \"Test-Suite\" -- <its command>`. It waits until the computer is free, then runs and returns the result.",
+   "bilder": []
+  },
+  {
+   "titel": "Light or heavy – always say which",
+   "text": "`--leicht` for normal building and testing: runs in parallel (Settings › This PC › “Light runs at the same time”) and never waits for heavy runs. `--schwer` for AI, graphics card, a window or a lot of memory: runs one at a time. Without either, the AMW rejects the run with this explanation; a recipe brings its own kind. An agent never runs two runs at once – both in the same folder would go wrong.",
    "bilder": []
   },
   {

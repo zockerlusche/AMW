@@ -63,7 +63,7 @@ class Wache:
         last, programme = m
         wer = ", ".join(f"{n} ({mb / 1024:.1f} GB)" for n, mb in sorted(programme, key=lambda x: -x[1])[:4]) or "unbekannt"
         text = (f"Fremde GPU-Last: {last} % ohne angemeldeten Lauf – Programme: {wer}. Wer rechnet, bitte über die Schlange"
-                " (amw lauf ausfuehren --gpu …). Die AMW meldet nur und beendet nichts.")
+                " (amw lauf ausfuehren --schwer --gpu …). Die AMW meldet nur und beendet nichts.")
         aus = []
         for p in self.con.execute("SELECT id FROM projekt ORDER BY id").fetchall():
             lead = kern.lead(self.con, p["id"])

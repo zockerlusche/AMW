@@ -791,10 +791,10 @@ options:
 usage: amw lauf [-h] [--warten] [--hoechstens HOECHSTENS] [--frist FRIST]
                 [--dauer DAUER] [--braucht-gb GB] [--braucht-vram-gb GB]
                 [--braucht-platte-gb GB] [--beschreibung BESCHREIBUNG]
-                [--rezept REZEPT] [--leicht] [--dauerlauf] [--schirm] [--gpu]
-                [--aufgabe AUFGABE] [--rc RC] [--ergebnis ERGEBNIS]
-                [--abgebrochen] [--grenze GRENZE] [--von VON]
-                [--projekt PROJEKT]
+                [--rezept REZEPT] [--leicht] [--schwer] [--dauerlauf]
+                [--schirm] [--gpu] [--aufgabe AUFGABE] [--rc RC]
+                [--ergebnis ERGEBNIS] [--abgebrochen] [--grenze GRENZE]
+                [--von VON] [--projekt PROJEKT]
                 {start,ende,liste,vorziehen,zeige,warte,ausfuehren,fehlalarm}
                 [id]
 
@@ -823,7 +823,10 @@ options:
                         Laufwerk des Projekts
   --beschreibung BESCHREIBUNG
   --rezept REZEPT
-  --leicht              kein schwerer Lauf (keine Speicher-Grenze)
+  --leicht              Pflicht (oder --schwer): normales Bauen/Testen – läuft
+                        parallel, wartet nie auf schwere
+  --schwer              Pflicht (oder --leicht): KI, Grafikkarte, Fenster oder
+                        viel Speicher – läuft einzeln
   --dauerlauf           start/ausfuehren: kopflos, ohne KI/GPU/Fenster, mit
                         --braucht-gb als fester Grenze – läuft neben dem
                         schweren Lauf, die Grenze wird vorgemerkt, der Dienst
@@ -1001,8 +1004,8 @@ options:
 ## rezept
 ```
 usage: amw rezept [-h] [--befehl BEFEHL] [--beschreibung BESCHREIBUNG]
-                  [--schirm] [--speicher SPEICHER] [--leicht] [--gpu]
-                  [--von VON] [--projekt PROJEKT]
+                  [--schirm] [--speicher SPEICHER] [--leicht] [--schwer]
+                  [--gpu] [--von VON] [--projekt PROJEKT]
                   {setzen,zeige,liste} [name]
 
 positional arguments:
@@ -1015,7 +1018,10 @@ options:
   --beschreibung BESCHREIBUNG
   --schirm
   --speicher SPEICHER
-  --leicht
+  --leicht              Pflicht (oder --schwer): Läufe mit diesem Rezept sind
+                        leicht
+  --schwer              Pflicht (oder --leicht): Läufe mit diesem Rezept sind
+                        schwer
   --gpu                 Läufe mit diesem Rezept belegen die Grafikkarte
   --von VON
   --projekt PROJEKT

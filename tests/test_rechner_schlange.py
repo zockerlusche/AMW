@@ -385,6 +385,45 @@ class Tagesverlauf(unittest.TestCase):
         self.assertNotIn("Gesamtlauf", json.dumps(d, ensure_ascii=False))
 
 
+class LeichtUndSchwer(Grund):
+    """A1822 (Marcel 16.11. 10:40/10:45): normales Bauen/Testen läuft parallel und wartet nie auf schwere Läufe; leicht oder
+    schwer ist Pflicht-Angabe; eine Grenze für leichte Läufe je PC; ein Agent rechnet nie zwei Läufe zugleich (sein Ordner)."""
+
+    def test_leicht_wartet_nicht_auf_schwer_aber_auf_die_eigene_grenze(self):
+        schwer = self.start("Zwei", "A")                                       # CPU-Spur (1) belegt
+        self.assertEqual(self.status(schwer), "laeuft")
+        self.assertEqual(self.status(self.start("Zwei", "B")), "angemeldet")  # zweiter schwerer wartet
+        with mock.patch.object(betrieb, "leichte_laeufe", return_value=2):
+            l1 = self.start("Eins", "A", schwer=False)
+            l2 = self.start("Eins", "B", schwer=False)
+            l3 = self.start("Eins", "C", schwer=False)
+        self.assertEqual([self.status(x) for x in (l1, l2)], ["laeuft", "laeuft"])   # trotz wartendem schweren Lauf
+        self.assertEqual(self.status(l3), "angemeldet")
+        l = self.con.execute("SELECT l.*, NULL AS braucht_speicher_gb FROM lauf l WHERE id = ?", (l3,)).fetchone()
+        with mock.patch.object(betrieb, "leichte_laeufe", return_value=2):
+            self.assertIn("Leichte Spur voll (2 von 2", betrieb.wartegrund(self.con, self.p["Eins"], l))
+
+    def test_ein_agent_nie_zwei_laeufe_zugleich(self):
+        a = self.start("Eins", "A", schwer=False)
+        b = self.start("Eins", "A", schwer=False)
+        self.assertEqual((self.status(a), self.status(b)), ("laeuft", "angemeldet"))
+
+    def test_pflichtangabe_in_der_befehlszeile(self):
+        import contextlib
+        import io
+        from amw import cli
+        aus = io.StringIO()
+        with mock.patch.dict(os.environ, {"AMW_DB": os.path.join(self.ordner.name, "t.db")}),                 contextlib.redirect_stdout(aus), contextlib.redirect_stderr(aus):
+            rc = cli.main(["lauf", "start", "--warten", "--beschreibung", "Tests", "--projekt", "Eins", "--von", "A"])
+            rc2 = cli.main(["rezept", "setzen", "karten", "--befehl", "x", "--projekt", "Eins", "--von", "Chef"])
+            rc3 = cli.main(["lauf", "start", "--warten", "--leicht", "--beschreibung", "Tests", "--projekt", "Eins", "--von", "A"])
+        t = aus.getvalue()
+        self.assertTrue(rc and rc2)
+        self.assertIn("Gib an, ob der Lauf leicht (normales Coding/Tests, läuft parallel) oder schwer ist", t)
+        self.assertFalse(rc3)
+        self.assertEqual(self.con.execute("SELECT schwer FROM lauf ORDER BY id DESC LIMIT 1").fetchone()[0], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
 

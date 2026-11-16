@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.120.0 – 16.11.2026 · Leichte Läufe parallel
+- **Verbessert:** Normales Bauen und Testen läuft parallel und wartet nie mehr auf schwere Läufe (KI, Grafikkarte, Fenster,
+  viel Speicher). Wie viele leichte Läufe zugleich rechnen, steht unter Einstellungen › Dieser PC. Ein Agent rechnet nie zwei
+  Läufe zugleich in seinem Ordner.
+- **Neu:** `amw lauf ausfuehren` und `amw lauf start` verlangen `--leicht` oder `--schwer` (auch `amw rezept setzen`) – die
+  AMW rät nicht mehr. Fehlt die Angabe, erklärt die Meldung den Unterschied.
+
 ## 1.119.0 – 16.11.2026 · Neu aufsetzen ohne neue Freigaben
 - **Verbessert:** Wird ein geprüfter Stand nur neu aufgesetzt (gleicher Inhalt, neuer Commit), übernimmt die Auslieferung Grün
   und Merge-OK selbst und vermerkt die Quelle. Nur wenn sich der Inhalt geändert hat, braucht es eine neue Prüfung.

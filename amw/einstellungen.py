@@ -213,6 +213,7 @@ FELDER = {
     # Lokale KIs nur bei Bedarf (A1649): die AMW startet eine KI erst für einen Auftrag und beendet sie, wenn sie so lange
     # keinen hatte – nur, wenn sie sie selbst gestartet hat. Diese KIs dagegen hält sie am Laufen (immer an).
     "ki_leerlauf_min": (30, _ganz(5, 1440)),
+    "leichte_laeufe": (max(2, min(8, (os.cpu_count() or 8) // 3)), _ganz(1, 32)),   # A1822: leichte Läufe zugleich (Vorgabe nach Kernen)
     "ki_immer_an": ([], _ki_namen),
     # Sprache der Oberfläche, solange im Browser nichts gewählt ist (auto = wie der Browser)
     "sprache": ("auto", _sprache),

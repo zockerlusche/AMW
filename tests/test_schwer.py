@@ -43,11 +43,11 @@ class Erkennen(unittest.TestCase):
 class Ersatz(unittest.TestCase):
     def test_einfacher_befehl_bleibt_wie_er_ist(self):
         self.assertEqual(schwer.ersatz("python -m unittest discover -s tests", "Test-Suite"),
-                         'amw lauf ausfuehren --beschreibung "Test-Suite" -- python -m unittest discover -s tests')
+                         'amw lauf ausfuehren --leicht --beschreibung "Test-Suite" -- python -m unittest discover -s tests')
 
     def test_verketteter_befehl_als_eine_befehlszeile(self):
         self.assertEqual(schwer.ersatz('cd "F:/a b" && pytest | tail -3', "Test-Suite", amw="python F:/amw/amw-cli.py"),
-                         'python F:/amw/amw-cli.py lauf ausfuehren --beschreibung "Test-Suite" -- "cd \\"F:/a b\\" && pytest | tail -3"')
+                         'python F:/amw/amw-cli.py lauf ausfuehren --leicht --beschreibung "Test-Suite" -- "cd \\"F:/a b\\" && pytest | tail -3"')
 
 
 class Entscheidung(unittest.TestCase):
@@ -57,7 +57,7 @@ class Entscheidung(unittest.TestCase):
     def test_schwerer_befehl_wird_abgewiesen_mit_ersatz(self):
         r = schwer.entscheide(self.eingabe("python -m unittest discover -s tests"))["hookSpecificOutput"]
         self.assertEqual((r["hookEventName"], r["permissionDecision"]), ("PreToolUse", "deny"))
-        self.assertIn('amw lauf ausfuehren --beschreibung "Test-Suite" -- python -m unittest discover -s tests', r["permissionDecisionReason"])
+        self.assertIn('amw lauf ausfuehren --leicht --beschreibung "Test-Suite" -- python -m unittest discover -s tests', r["permissionDecisionReason"])
         self.assertIn("Warteschlange des Rechners", r["permissionDecisionReason"])
         self.assertIsNotNone(schwer.entscheide(self.eingabe("dotnet build", werkzeug="PowerShell")))
 
@@ -105,7 +105,7 @@ class Einbau(unittest.TestCase):
     def test_hook_weist_ab_und_nennt_den_befehl_dieser_installation(self):
         antwort = hook.schwere_befehle(self.eingabe("python -m unittest discover -s tests"))
         grund = antwort["hookSpecificOutput"]["permissionDecisionReason"]
-        self.assertIn(f'{kern.BEFEHL} lauf ausfuehren --beschreibung "Test-Suite" -- python -m unittest discover -s tests', grund)
+        self.assertIn(f'{kern.BEFEHL} lauf ausfuehren --leicht --beschreibung "Test-Suite" -- python -m unittest discover -s tests', grund)
         self.assertIsNone(hook.schwere_befehle(self.eingabe("git status")))
 
     def test_schalter_am_pc_und_eigene_muster_des_projekts(self):

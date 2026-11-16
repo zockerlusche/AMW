@@ -8,10 +8,11 @@ Several projects share one PC. If test suites, builds or image runs start at the
 
 ## Steps
 1. **Update the folders** Run `amw einrichten agenten-ordner <folder>` once for every agent folder. This adds the hook; running sessions pick it up after a few seconds.
-2. **What happens then** If an agent starts a heavy command directly (for example the whole test suite), the command is not executed. Instead the agent gets the ready-made replacement: `amw lauf ausfuehren --beschreibung "Test-Suite" -- <its command>`. It waits until the computer is free, then runs and returns the result.
-3. **Add your own commands** Under Settings › Project › “More heavy commands”, enter one `Name = pattern` per line, for example `Render maps = maps\.py`.
-4. **State the need** If you know what a run needs, say so: `--braucht-gb 4` (memory), optionally `--braucht-vram-gb` (graphics memory) and `--braucht-platte-gb` (free disk space). Without it the AMW uses what the same kind of run by the same agent really needed recently (measured, with a margin) – the first time, the project's memory limit. Nobody has to guess.
-5. **Check** Home › control panel › “Computer” shows how many runs are in progress and waiting, and when the computer is expected to be free.
+2. **What happens then** If an agent starts a heavy command directly (for example the whole test suite), the command is not executed. Instead the agent gets the ready-made replacement: `amw lauf ausfuehren --leicht --beschreibung "Test-Suite" -- <its command>`. It waits until the computer is free, then runs and returns the result.
+3. **Light or heavy – always say which** `--leicht` for normal building and testing: runs in parallel (Settings › This PC › “Light runs at the same time”) and never waits for heavy runs. `--schwer` for AI, graphics card, a window or a lot of memory: runs one at a time. Without either, the AMW rejects the run with this explanation; a recipe brings its own kind. An agent never runs two runs at once – both in the same folder would go wrong.
+4. **Add your own commands** Under Settings › Project › “More heavy commands”, enter one `Name = pattern` per line, for example `Render maps = maps\.py`.
+5. **State the need** If you know what a run needs, say so: `--braucht-gb 4` (memory), optionally `--braucht-vram-gb` (graphics memory) and `--braucht-platte-gb` (free disk space). Without it the AMW uses what the same kind of run by the same agent really needed recently (measured, with a margin) – the first time, the project's memory limit. Nobody has to guess.
+6. **Check** Home › control panel › “Computer” shows how many runs are in progress and waiting, and when the computer is expected to be free.
 
 ## Values to enter
 | Field in the AMW | Where it comes from |

@@ -356,14 +356,21 @@ def cpu_laeufe():
     return einstellungen.wert("cpu_laeufe")
 
 
+def leichte_laeufe():
+    """A1822: so viele leichte Läufe (normales Bauen/Testen) rechnen zugleich auf diesem PC (Einstellung, Vorgabe nach Kernen)."""
+    from . import einstellungen
+    return einstellungen.wert("leichte_laeufe")
+
+
 def _plaetze(schwer, schirm, gpu=0, agent=None, pid=None):
-    """Zwei Spuren: Grafikkarte und Schirm (PC-weit ein Lauf zur Zeit; ein Fenster rechnet auf der Grafikkarte) und
-    „cpu“ für schwere Läufe ohne beides (cpu_laeufe() zugleich). agent: schwere Läufe eines Agenten nie gleichzeitig –
-    er rechnet in seinem Klon, zwei Godot-Imports im selben Klon gehen schief. KI-Aufträge rechnet der Dienst (ohne Klon)."""
+    """Spuren: Grafikkarte und Schirm (PC-weit ein Lauf zur Zeit; ein Fenster rechnet auf der Grafikkarte), „cpu“ für schwere
+    Läufe ohne beides (cpu_laeufe() zugleich) und – A1822 – „leicht“ für leichte Läufe (leichte_laeufe() zugleich; sie warten
+    nie auf schwere). agent: Läufe eines Agenten nie gleichzeitig – er rechnet in seinem Klon (zwei Godot-Imports oder zwei
+    Testläufe im selben Ordner gehen schief), das gilt für leichte wie schwere. KI-Aufträge rechnet der Dienst (ohne Klon)."""
     p = {"schirm", "gpu"} if schirm else ({"gpu"} if gpu else set())   # ein Fenster belegt auch die Grafikkarte
-    if schwer and not p:
-        p.add("cpu")
-    if schwer and agent:
+    if not p:
+        p.add("cpu" if schwer else "leicht")
+    if agent:
         p.add(f"agent:{pid}:{agent}")              # je Projekt: gleiche Kennung in zwei Projekten = zwei Agenten, zwei Klone
     return p
 
@@ -406,10 +413,10 @@ def _besetzt(con, pid, plaetze):
     for p in sorted(x for x in plaetze if x.startswith("agent:")):
         _, agent_pid, agent = p.split(":", 2)
         b = con.execute("SELECT l.id, l.beschreibung FROM lauf l LEFT JOIN ki_auftrag k ON k.lauf_id = l.id WHERE l.projekt_id = ?"
-                        " AND l.agent = ? AND l.status = 'laeuft' AND l.schwer = 1 AND k.id IS NULL AND " + HIER + " ORDER BY l.id LIMIT 1",
-                        (int(agent_pid), agent, rechner())).fetchone()
+                        " AND l.agent = ? AND l.status = 'laeuft' AND k.id IS NULL AND NOT coalesce(" + DAUERLAUF + ", 0) AND " + HIER
+                        + " ORDER BY l.id LIMIT 1", (int(agent_pid), agent, rechner())).fetchone()
         if b:
-            return f"L{b['id']} von {agent} läuft noch (ein Agent rechnet nie zwei schwere Läufe zugleich – sein Klon): {b['beschreibung']}", p
+            return f"L{b['id']} von {agent} läuft noch (ein Agent rechnet nie zwei Läufe zugleich – sein Klon): {b['beschreibung']}", p
     if plaetze & {"gpu", "schirm"}:                  # Grafikkarte und Bildschirm: ein Lauf zur Zeit auf dem ganzen Rechner
         b = con.execute("SELECT l.id, l.projekt_id, l.agent, l.beschreibung, l.gpu, l.start_utc, l.erwartet_min, l.braucht_gb FROM lauf l"
                         " WHERE l.status = 'laeuft' AND (l.gpu = 1 OR l.schirm = 1) AND " + HIER + " ORDER BY l.id LIMIT 1", (rechner(),)).fetchone()
@@ -424,6 +431,12 @@ def _besetzt(con, pid, plaetze):
         n = cpu_laeufe()
         if len(r) >= n:
             return f"CPU-Spur voll ({len(r)} von {n} Läufen ohne Fenster: {', '.join('L%d' % x['id'] for x in r)})", "cpu"
+    if "leicht" in plaetze:                          # A1822: nur leichte zählen – schwere halten leichte nie auf
+        r = con.execute("SELECT l.id FROM lauf l WHERE l.status = 'laeuft' AND l.schwer = 0 AND l.schirm = 0 AND l.gpu = 0 AND NOT coalesce("
+                        + DAUERLAUF + ", 0) AND " + HIER + " ORDER BY l.id", (rechner(),)).fetchall()
+        n = leichte_laeufe()
+        if len(r) >= n:
+            return f"Leichte Spur voll ({len(r)} von {n} leichten Läufen: {', '.join('L%d' % x['id'] for x in r)})", "leicht"
     return None, None
 
 
@@ -958,6 +971,8 @@ def warteposition(con, pid, l):
             spur.append("(l.gpu = 1 OR l.schirm = 1)")
         if "cpu" in plaetze:
             spur.append("(l.schwer = 1 AND l.schirm = 0 AND l.gpu = 0)")
+        if "leicht" in plaetze:                      # A1822
+            spur.append("(l.schwer = 0 AND l.schirm = 0 AND l.gpu = 0 AND NOT coalesce(" + DAUERLAUF + ", 0))")
         if any(p.startswith("agent:") for p in plaetze):
             spur.append(f"(l.projekt_id = {int(pid)} AND l.agent = ?)")
         bed = " OR ".join(spur) or "l.schwer = 1"

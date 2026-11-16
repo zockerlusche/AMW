@@ -1399,7 +1399,7 @@ def kontext(con, pid, kennung):
                  + " – nichts Neues anfangen.")
     try:                                            # Schirm-Schalter: ob Fenster-Läufe gerade dürfen
         from . import schirm
-        z.append(schirm.text(schirm.zustand(con)) + " – Läufe mit Fenster nur über `amw lauf start --schirm --warten`,"
+        z.append(schirm.text(schirm.zustand(con)) + " – Läufe mit Fenster nur über `amw lauf start --schwer --schirm --warten`,"
                  " dann `amw lauf warte <nr>`.")
     except Exception:
         pass
