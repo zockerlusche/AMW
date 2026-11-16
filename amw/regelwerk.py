@@ -174,6 +174,8 @@ def abgleich(con, pid):
              "wahlweise": bool(g.get("wahlweise")), "status": "fehlt", "ref": None, "gemeinsam": []}
         if g["nr"] in drin:
             x.update(status="drin", ref=ref(drin[g["nr"]]))
+            if _veraltet(drin[g["nr"]]["vorlage"], g):    # A1825: übernommen aus einer Fassung vor der letzten Änderung
+                x.update(status="neue_fassung", fassung=drin[g["nr"]]["vorlage"].partition("/")[2])
         else:
             gs = set(wissen._staemme(regeltext(g))) | set(wissen._staemme(regeltext(ge)))
             best = max(((len(gs & rs) / max(1, len(set(wissen._staemme(regeltext(g))))), r, gs & rs) for r, rs in staemme),
@@ -181,13 +183,47 @@ def abgleich(con, pid):
             if best[1] is not None and best[0] >= AEHNLICH_ANTEIL and len(best[2]) >= AEHNLICH_MIN:
                 x.update(status="aehnlich", ref=ref(best[1]), gemeinsam=sorted(best[2])[:8])
         aus.append(x)
-    zahl = {k: sum(1 for x in aus if x["status"] == k) for k in ("drin", "aehnlich", "fehlt")}
+    zahl = {k: sum(1 for x in aus if x["status"] == k) for k in ("drin", "aehnlich", "fehlt", "neue_fassung")}
     return {"vorlage": f"{de['name']} {de['nummer']}", "regeln": aus, "zahl": zahl, "widersprueche": widersprueche(con, pid)}
+
+
+def _veraltet(kennzeichen, g):
+    """A1825: „G14/5“ gegen die Vorlage – älter als die Fassung, in der die Regel zuletzt geändert wurde (Feld „geaendert“)?"""
+    try:
+        return int((kennzeichen or "").partition("/")[2]) < int(g.get("geaendert") or 0)
+    except ValueError:
+        return False
+
+
+def fassungen_melden(con):
+    """A1825 (Dienst): je Projekt dem Lead melden, wenn eine übernommene Grundregel eine neue Fassung hat (dieselbe Meldung
+    erst nach 7 Tagen wieder). Übernehmen entscheidet das Projekt. Rückgabe: Anzahl Meldungen."""
+    v, n = vorlage(), 0
+    for (pid,) in con.execute("SELECT id FROM projekt").fetchall():
+        lead = kern.lead(con, pid)
+        if not lead:
+            continue
+        for r in con.execute("SELECT ebene, nr, vorlage FROM regel WHERE projekt_id = ? AND vorlage IS NOT NULL", (pid,)).fetchall():
+            g = next((x for x in v["regeln"] if x["nr"] == r["vorlage"].partition("/")[0]), None)
+            if not g or not _veraltet(r["vorlage"], g):
+                continue
+            kurz = f"{g['nr']} „{g['titel']}“ hat eine neue Fassung ({v['name']} {v['nummer']})"
+            if con.execute("SELECT 1 FROM nachricht WHERE projekt_id = ? AND von = 'AMW' AND kurz = ? AND zeit_utc >"
+                           " strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-7 days')", (pid, kurz)).fetchone():
+                continue
+            ref = ("KR" if r["ebene"] == "arbeit" else "PR") + str(r["nr"])
+            with db.schreiben(con):
+                kern._posten(con, pid, "AMW", lead, "info", kurz,
+                             f"{ref} stammt aus Fassung {r['vorlage'].partition('/')[2]}. Neu: „{regeltext(g)}“ Übernehmen (mit Beschluss):"
+                             f" amw regelwerk uebernehmen {g['nr']} – oder Wissen › Regeln › Abgleich. Ob, entscheidet ihr.")
+            n += 1
+    return n
 
 
 def nachziehen(con, pid, von, nr, text=None, sprache="de"):
     """Eine Grundregel in ein bestehendes Projekt übernehmen: nächste freie Nummer der Arbeitsregeln, Beschluss als Quelle,
-    Herkunft „Gx/Fassung“. Vorhandene Regeln bleiben, wie sie sind. Nur Lead und Mensch."""
+    Herkunft „Gx/Fassung“. Vorhandene Regeln bleiben, wie sie sind – außer eine übernommene Grundregel hat eine neue
+    Fassung (A1825): dann bekommt dieselbe Regel den neuen Text, mit eigenem Beschluss. Nur Lead und Mensch."""
     from . import wissen
     if not kern.ist_lead(con, pid, von):
         raise kern.AmwFehler("Grundregeln übernehmen dürfen nur Lead und Mensch")
@@ -196,10 +232,17 @@ def nachziehen(con, pid, von, nr, text=None, sprache="de"):
     g = next((r for r in v["regeln"] if r["nr"] == nr), None)
     if not g:
         raise kern.AmwFehler(f"Grundregel {nr} gibt es nicht – {', '.join(r['nr'] for r in v['regeln'])}")
-    da = con.execute("SELECT ebene, nr FROM regel WHERE projekt_id = ? AND vorlage LIKE ?", (pid, f"{nr}/%")).fetchone()
+    da = con.execute("SELECT id, ebene, nr, vorlage FROM regel WHERE projekt_id = ? AND vorlage LIKE ?", (pid, f"{nr}/%")).fetchone()
+    eigener = " ".join(str(text or "").split())
+    if da and _veraltet(da["vorlage"], g):
+        bid = wissen.beschluss_neu(con, pid, von, v["name"], f"{nr} „{g['titel']}“: neue Fassung aus {v['name']} {v['nummer']} übernommen",
+                                   "Abgleich Grund-Regelwerk", **_thema(con, pid, v))
+        with db.schreiben(con):
+            con.execute("UPDATE regel SET text = ?, beleg = ?, stand_utc = ?, vorlage = ? WHERE id = ?",
+                        (eigener or regeltext(g), f"B{bid}", db.jetzt(), f"{nr}/{v['nummer']}", da["id"]))
+        return {"regel": da["nr"], "beschluss": bid, "neue_fassung": True}
     if da:
         raise kern.AmwFehler(f"{nr} ist schon übernommen ({'KR' if da['ebene'] == 'arbeit' else 'PR'}{da['nr']})")
-    eigener = " ".join(str(text or "").split())
     bid = wissen.beschluss_neu(con, pid, von, v["name"], f"{nr} „{g['titel']}“ aus {v['name']} {v['nummer']} übernommen",
                                "Abgleich Grund-Regelwerk", **_thema(con, pid, v))
     with db.schreiben(con):
@@ -213,7 +256,7 @@ def bericht(con, pid, sprache="de"):
     """Der Abgleich als Markdown – für das Dokument an den Lead."""
     a = abgleich(con, pid)
     de = sprache != "en"
-    zeichen = {"drin": "✓", "aehnlich": "≈", "fehlt": "–"}
+    zeichen = {"drin": "✓", "aehnlich": "≈", "fehlt": "–", "neue_fassung": "↻"}
     z = [f"# {'Abgleich mit dem' if de else 'Comparison with the'} {a['vorlage']}", "",
          (f"{a['zahl']['drin']} übernommen · {a['zahl']['aehnlich']} vermutlich abgedeckt · {a['zahl']['fehlt']} fehlen. Nur ein Vorschlag:"
           " Vorhandene Regeln bleiben, wie sie sind; fehlende übernimmt der Lead einzeln (`amw regelwerk uebernehmen G7`)."
@@ -225,6 +268,8 @@ def bericht(con, pid, sprache="de"):
         wo = x["ref"] or ""
         if x["status"] == "aehnlich":
             wo += (" – gemeinsam: " if de else " – shared: ") + ", ".join(x["gemeinsam"])
+        if x["status"] == "neue_fassung":
+            wo += (f" – neue Fassung (übernommen aus {x['fassung']})" if de else f" – new version (adopted from {x['fassung']})")
         z.append(f"| {zeichen[x['status']]} | {x['nr']}{' *' if x['wahlweise'] else ''} | {x['titel']['de' if de else 'en']} | {wo} |")
     z += ["", ("* wahlweise (für einen Lead, der als Chat arbeitet, bzw. bei Bedarf)" if de else "* optional (for a lead working as a chat, or as needed)")]
     if a["widersprueche"]:                               # A1782: Regeln, die G21 widersprechen

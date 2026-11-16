@@ -54,11 +54,11 @@ class Uebernahme(Grund):
         erg = regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER, lead_chat=True)
         regeln = self.regeln()
         self.assertEqual((erg["regeln"], len(regeln), erg["dod"]), (22, 22, True))
-        self.assertEqual([r["vorlage"] for r in regeln], [f"G{i}/5" for i in range(1, 22)] + ["W4/5"])
+        self.assertEqual([r["vorlage"] for r in regeln], [f"G{i}/6" for i in range(1, 22)] + ["W4/6"])
         self.assertEqual({r["beleg"] for r in regeln}, {f"B{erg['beschluss']}"})                # Regeln brauchen einen Beschluss als Quelle
         self.assertTrue(regeln[0]["text"].startswith("Versionen. Jede Auslieferung bekommt eine Version"))
         b = self.con.execute("SELECT stichwort, regel, quelle FROM beschluss WHERE id = ?", (erg["beschluss"],)).fetchone()
-        self.assertIn("Grund-Regelwerk 5 übernommen: G1, G2", b["regel"])
+        self.assertIn("Grund-Regelwerk 6 übernommen: G1, G2", b["regel"])
         self.assertEqual(planung.leitbild(self.con, self.pid)["dod"], regelwerk.vorlage("de")["dod"])
         with self.assertRaises(kern.AmwFehler):                                                 # nur beim Anlegen
             regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER)
@@ -66,7 +66,7 @@ class Uebernahme(Grund):
     def test_auswahl_eigener_wortlaut_und_sprache(self):
         regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER, auswahl=["W1", "G13", "G1"], texte={"G13": "  Keine   Geheimnisse – nirgends. "}, sprache="en")
         regeln = self.regeln()
-        self.assertEqual([(r["nr"], r["vorlage"]) for r in regeln], [(1, "G1/5"), (2, "G13/5"), (3, "W1/5")])   # Reihenfolge der Vorlage
+        self.assertEqual([(r["nr"], r["vorlage"]) for r in regeln], [(1, "G1/6"), (2, "G13/6"), (3, "W1/6")])   # Reihenfolge der Vorlage
         self.assertEqual(regeln[1]["text"], "Keine Geheimnisse – nirgends.")
         self.assertTrue(regeln[0]["text"].startswith("Versions. Every delivery"))
         for falsch in (["G99"], []):
@@ -98,7 +98,7 @@ class Uebernahme(Grund):
         with db.schreiben(self.con):
             neu = db.einfuegen(self.con, "projekt", name="Zwei", angelegt_utc=db.jetzt())
         self.assertEqual(wissen.regeln_uebernehmen(self.con, neu, self.pid), 2)
-        self.assertEqual([r[0] for r in self.con.execute("SELECT vorlage FROM regel WHERE projekt_id = ? ORDER BY nr", (neu,))], ["G1/5", "G2/5"])
+        self.assertEqual([r[0] for r in self.con.execute("SELECT vorlage FROM regel WHERE projekt_id = ? ORDER BY nr", (neu,))], ["G1/6", "G2/6"])
 
     def test_pflicht_kontext_takt_fuer_den_chat_lead_und_version(self):
         regelwerk.uebernehmen(self.con, self.pid, kern.ENTWICKLER, lead_chat=True)
@@ -123,7 +123,7 @@ class Anlegen(unittest.TestCase):
     def test_neues_projekt_mit_grund_regelwerk(self):
         schritte = assistent.schnell("Neu", lead="Chef", agenten=("A1",), hooks=False, ausgabe=lambda *a: None, lead_chat=True,
                                      regelwerk={"auswahl": None, "texte": {}, "sprache": "de"})
-        self.assertTrue(any("Grund-Regelwerk 5: 22 Regeln übernommen" in s and "Definition of Done" in s for s in schritte), schritte)
+        self.assertTrue(any("Grund-Regelwerk 6: 22 Regeln übernommen" in s and "Definition of Done" in s for s in schritte), schritte)
         self.assertTrue(any("Version 0.1.0 eingetragen" in s for s in schritte), schritte)
         con = db.verbinde()
         self.addCleanup(con.close)
@@ -200,7 +200,7 @@ class SchnittstelleUndThemen(Grund):
 
     def test_ohne_themen_bleibt_es_ohne(self):
         self.cli("regelwerk", "uebernehmen", "G1,G21")
-        self.assertEqual([r["vorlage"] for r in self.regeln()], ["G1/5", "G21/5"])
+        self.assertEqual([r["vorlage"] for r in self.regeln()], ["G1/6", "G21/6"])
         self.assertFalse(self.con.execute("SELECT 1 FROM thema WHERE projekt_id = ?", (self.pid,)).fetchone())
 
     def test_widerspruch_zu_g21_wird_gemeldet(self):
@@ -211,6 +211,27 @@ class SchnittstelleUndThemen(Grund):
         self.assertEqual(regelwerk.widersprueche_melden(self.con), 1)
         self.assertEqual(regelwerk.widersprueche_melden(self.con), 0)               # einmal, nicht bei jeder Runde
         self.assertIn("Widerspricht G21", regelwerk.bericht(self.con, self.pid))
+
+
+    def test_neue_fassung_g14_melden_und_uebernehmen(self):
+        """A1825: G14 bekam in Fassung 6 die Worktree-Ausnahme – Projekte mit älterer G14 sehen „neue Fassung“, der Lead
+        bekommt einmal eine Meldung, „uebernehmen G14“ ersetzt den Text derselben Regel mit eigenem Beschluss."""
+        self.cli("regelwerk", "uebernehmen", "G14")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE regel SET vorlage = 'G14/5', text = 'alter Text' WHERE vorlage LIKE 'G14/%'")
+        g14 = next(x for x in regelwerk.abgleich(self.con, self.pid)["regeln"] if x["nr"] == "G14")
+        self.assertEqual((g14["status"], g14["fassung"]), ("neue_fassung", "5"))
+        self.assertIn("neue Fassung (übernommen aus 5)", regelwerk.bericht(self.con, self.pid))
+        self.assertEqual(regelwerk.fassungen_melden(self.con), 1)
+        self.assertEqual(regelwerk.fassungen_melden(self.con), 0)                    # einmal, nicht bei jeder Runde
+        rc, aus = self.cli("regelwerk", "uebernehmen", "G14")
+        self.assertIn("G14 neue Fassung in KR1", aus)
+        r = self.regeln()
+        self.assertEqual(len(r), 1)
+        self.assertEqual(r[0]["vorlage"], "G14/6")
+        self.assertIn("git worktree remove", r[0]["text"])
+        self.assertEqual(next(x for x in regelwerk.abgleich(self.con, self.pid)["regeln"] if x["nr"] == "G14")["status"], "drin")
+        self.assertIn("schon übernommen", self.cli("regelwerk", "uebernehmen", "G14")[1])
 
 
 if __name__ == "__main__":

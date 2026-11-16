@@ -35,7 +35,7 @@ A new project does not have to start with empty rules: the AMW ships a base rule
 “Experience” only appears where an occasion is on record. All other rules have a “Why” – the reason given by the rule itself. Invented incidents appear nowhere.
 
 ### Does a new edition of the template change my rules?
-No. Your rules are a copy of their own. A new edition overwrites nothing.
+Not by itself. Your rules are a copy of their own. If an adopted basic rule has a new edition, it shows up under Knowledge › Rules › Comparison as “new version”, and the lead gets one message. Adopt it there with the button or with `amw regelwerk uebernehmen G14` – with a decision of its own; the rule keeps its number.
 
 ### Why does the project start at version 0.1.0?
 The scheme is MAJOR.MINOR.PATCH. 1.0.0 is the first stable, usable release; until then 0.x counts.

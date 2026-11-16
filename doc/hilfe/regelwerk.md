@@ -35,7 +35,7 @@ Ein neues Projekt muss nicht mit leeren Regeln anfangen: Die AMW liefert ein Gru
 „Erfahrung“ steht nur dort, wo ein Anlass belegt ist. Alle anderen Regeln haben ein „Warum“ – die Begründung aus der Regel selbst. Erfundene Vorfälle stehen nirgends.
 
 ### Ändert eine neue Fassung der Vorlage meine Regeln?
-Nein. Deine Regeln sind eine eigene Kopie. Eine neue Fassung überschreibt nichts.
+Nicht von selbst. Deine Regeln sind eine eigene Kopie. Hat eine übernommene Grundregel eine neue Fassung, steht sie unter Wissen › Regeln › Abgleich mit „neue Fassung“, und der Lead bekommt einmal eine Meldung. Übernehmen geht dort per Knopf oder mit `amw regelwerk uebernehmen G14` – mit eigenem Beschluss, die Nummer der Regel bleibt.
 
 ### Warum beginnt das Projekt bei Version 0.1.0?
 Das Schema ist MAJOR.MINOR.PATCH. 1.0.0 ist die erste stabile, nutzbare Ausgabe; bis dahin zählt 0.x.

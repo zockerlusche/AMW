@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.124.0 – 16.11.2026 · Eigene Arbeitskopien selbst aufräumen
+- **Grund-Regelwerk 6:** G14 „Löschen und fremde Prozesse nur der Mensch“ hat eine einzige Ausnahme – eigene Arbeitskopien
+  (git worktree) ohne offene Änderungen, deren Zweig gemergt ist, entfernt der Agent selbst.
+- **Claude-Ablagen:** Solche Arbeitskopien schlägt die AMW dem Agenten der Sitzung vor (einmal, mit dem fertigen Befehl
+  git worktree remove und prune); alle anderen bleiben Vorschläge an dich.
+- **Neue Fassung einer Grundregel:** Der Abgleich unter Wissen › Regeln zeigt „neue Fassung“, der Lead bekommt einmal
+  eine Meldung; „Neue Fassung übernehmen“ bzw. `amw regelwerk uebernehmen G14` ändert die Regel mit eigenem Beschluss.
+
 ## 1.123.0 – 16.11.2026 · Übersicht und sieben Menüpunkte
 - **Weniger Menü:** Übersicht · Fragen · Planung · Nachrichten · Wissen · Betrieb · Einstellungen. Was bisher ein eigener
   Menüpunkt war, ist jetzt ein Reiter seines Bereichs: Aufgaben und Verlauf unter Planung, Team-Chat unter Nachrichten,

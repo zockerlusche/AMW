@@ -52,7 +52,7 @@ class Einrichten(unittest.TestCase):
         self.assertEqual(con.execute("SELECT count(*) FROM regel WHERE vorlage IS NOT NULL").fetchone()[0], 21)   # Grund-Regelwerk übernommen
         self.assertEqual(con.execute("SELECT version FROM release WHERE art = 'version'").fetchone()[0], "0.1.0")
         con.close()
-        self.assertIn("Grund-Regelwerk 5: 21 bewährte Regeln", "\n".join(text))
+        self.assertIn("Grund-Regelwerk 6: 21 bewährte Regeln", "\n".join(text))
         from amw import betriebsart
         self.assertEqual((betriebsart.gewaehlt(), betriebsart.aktuell()), ("pc", "pc"))   # ausdrücklich festgehalten
         self.assertIn("Claude Code und Git verbinden sich unabhängig davon selbst", "\n".join(text))

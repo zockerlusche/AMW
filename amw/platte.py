@@ -359,6 +359,37 @@ def befehl_entfernen(pfad):
     return f"Remove-Item -LiteralPath '{pfad.replace(chr(39), chr(39) * 2)}' -Recurse -Force"
 
 
+def _git(pfad, *args):
+    import subprocess
+    try:
+        r = subprocess.run(["git", "-C", pfad, *args], capture_output=True, text=True, timeout=30,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return r
+
+
+def worktree_lage(pfad):
+    """A1825 (G14, Marcel 16.11.): Ist die Arbeitskopie ein Worktree, ohne offene Änderungen und ihr Stand schon im
+    Hauptzweig (main/master des Repositorys)? Dann darf der Agent, dem sie gehört, sie selbst entfernen –
+    {"haupt", "zweig", "befehl"}; sonst None (nur lesen, die AMW führt nichts aus)."""
+    if not os.path.isfile(os.path.join(pfad, ".git")):    # Klon (.git-Ordner) oder kein Repo: nicht unter die Ausnahme
+        return None
+    gemeinsam = _git(pfad, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    status = _git(pfad, "status", "--porcelain")
+    if not gemeinsam or gemeinsam.returncode or not status or status.returncode or status.stdout.strip():
+        return None
+    haupt = os.path.dirname(gemeinsam.stdout.strip().rstrip("/\\"))
+    zweig = _git(pfad, "rev-parse", "--abbrev-ref", "HEAD")
+    for basis in ("main", "master"):
+        r = _git(pfad, "merge-base", "--is-ancestor", "HEAD", basis)
+        if r is not None and r.returncode == 0:
+            q = lambda x: "'" + x.replace("'", "''") + "'"
+            return {"haupt": haupt, "zweig": (zweig.stdout.strip() if zweig and not zweig.returncode else "") or "HEAD",
+                    "befehl": f"git -C {q(haupt)} worktree remove {q(pfad)}; git -C {q(haupt)} worktree prune"}
+    return None
+
+
 def claude_messen(con, basis=None, jetzt=None):
     """Misst die Sitzungsordner unter <TEMP>/claude, ordnet sie über sitzung.claude_sitzung zu und schreibt das Ergebnis
     in claude_ablagen.json. Meldet Sitzungen über CLAUDE_GRENZE_GB einmal an Lead + Mensch. Rückgabe: das Ergebnis."""
@@ -387,7 +418,9 @@ def claude_messen(con, basis=None, jetzt=None):
                 kb, kd, kz = _ordnergroesse(k)
                 t = _alter_tage(kz, jetzt)
                 if kb >= 2 ** 20 and t is not None and t >= KOPIE_ALT_TAGE:
-                    kopien.append({"ordner": k, "bytes": kb, "tage": t, "befehl": befehl_entfernen(k)})
+                    w = worktree_lage(k) if s.get("agent") else None    # A1825: gemergter Worktree → räumt der Agent selbst
+                    kopien.append({"ordner": k, "bytes": kb, "tage": t, "befehl": w["befehl"] if w else befehl_entfernen(k),
+                                   **({"selbst": s["agent"], "zweig": w["zweig"]} if w else {})})
             s["arbeitskopien"] = sorted(kopien, key=lambda x: -x["bytes"])
             sitzungen.append(s)
     sitzungen.sort(key=lambda x: -x["bytes"])
@@ -396,8 +429,13 @@ def claude_messen(con, basis=None, jetzt=None):
         if s["bytes"] >= CLAUDE_GRENZE_GB * 2 ** 30 and s["sitzung"] not in gemeldet:
             _claude_melden(con, s)
             gemeldet.add(s["sitzung"])
+        for k in s["arbeitskopien"]:                      # A1825: gemergte eigene Worktrees dem Agenten vorschlagen, einmal
+            if k.get("selbst") and "kopie:" + k["ordner"] not in gemeldet and s.get("projekt_id"):
+                _kopie_melden(con, s, k)
+                gemeldet.add("kopie:" + k["ordner"])
     erg = {"zeit_utc": jetzt.strftime("%Y-%m-%dT%H:%M:%SZ"), "basis": basis, "sitzungen": sitzungen,
-           "gemeldet": sorted(g for g in gemeldet if any(s["sitzung"] == g for s in sitzungen))}
+           "gemeldet": sorted(g for g in gemeldet if any(s["sitzung"] == g or any("kopie:" + k["ordner"] == g for k in s["arbeitskopien"])
+                                                         for s in sitzungen))}
     try:
         os.makedirs(os.path.dirname(_claude_datei()), exist_ok=True)
         tmp = f"{_claude_datei()}.{os.getpid()}.tmp"
@@ -425,6 +463,15 @@ def _claude_melden(con, s):
         if lead:
             kern._posten(con, pid, "AMW", lead, "meldung", kurz, text)
         kern._posten(con, pid, "AMW", kern.ENTWICKLER, "meldung", kurz, text)
+
+
+def _kopie_melden(con, s, k):
+    gb = f"{k['bytes'] / 2 ** 30:.1f}".replace(".", ",")
+    kurz = f"Deine Arbeitskopie (Zweig {k['zweig']}, gemergt) belegt {gb} GB – bitte selbst entfernen"
+    text = (f"{k['ordner']} ist ein Worktree ohne offene Änderungen, sein Stand steckt schon im Hauptzweig. Nach G14 darfst du"
+            f" eigene gemergte Arbeitskopien selbst entfernen – nur diese, nichts anderes: {k['befehl']}")
+    with db.schreiben(con):
+        kern._posten(con, s["projekt_id"], "AMW", s["agent"], "meldung", kurz, text)
 
 
 def claude_ablagen():

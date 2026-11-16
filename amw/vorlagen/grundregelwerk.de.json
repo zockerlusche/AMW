@@ -1,5 +1,5 @@
 {
-  "nummer": 5,
+  "nummer": 6,
   "name": "Grund-Regelwerk",
   "gruppen": {
     "A": "Arbeit und Nachweis",
@@ -47,8 +47,8 @@
     {"nr": "G13", "gruppe": "C", "titel": "Keine Geheimnisse",
      "text": "Passwörter, Schlüssel, Token und Zugangskennungen stehen nie in Datenbank, Repository, Nachrichten oder Dokumenten – nur in lokalen Dateien außerhalb.",
      "warum": "Ein einmal veröffentlichtes Geheimnis ist verbrannt, auch wenn es sofort wieder gelöscht wird – es muss ersetzt werden."},
-    {"nr": "G14", "gruppe": "C", "titel": "Löschen und fremde Prozesse nur der Mensch",
-     "text": "Agenten archivieren statt zu löschen (mit Protokoll alt → neu) und beenden nur eigene Prozesse; ein fremder Hänger wird gemeldet.",
+    {"nr": "G14", "gruppe": "C", "geaendert": 6, "titel": "Löschen und fremde Prozesse nur der Mensch",
+     "text": "Agenten archivieren statt zu löschen (mit Protokoll alt → neu) und beenden nur eigene Prozesse; ein fremder Hänger wird gemeldet. Einzige Ausnahme: Eigene Arbeitskopien (git worktree) ohne offene Änderungen, deren Zweig gemergt ist, entfernt der Agent selbst (git worktree remove, dann git worktree prune).",
      "warum": "Löschen lässt sich nicht zurücknehmen, und ob ein Ordner oder Prozess wirklich niemandem mehr gehört, kann ein Agent nicht sicher wissen."},
     {"nr": "G15", "gruppe": "C", "titel": "Veröffentlichen nur geprüft und freigegeben",
      "text": "Kein Push, kein Release ohne grüne Prüfung auf genau diesem Stand und OK des Leads; nur ausdrücklich benannte Dateien committen; keine Zweige löschen, nichts erzwingen.",

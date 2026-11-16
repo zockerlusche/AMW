@@ -1,5 +1,5 @@
 {
-  "nummer": 5,
+  "nummer": 6,
   "name": "Base rule set",
   "gruppen": {
     "A": "Work and evidence",
@@ -47,8 +47,8 @@
     {"nr": "G13", "gruppe": "C", "titel": "No secrets",
      "text": "Passwords, keys, tokens and access identifiers never go into the database, repository, messages or documents – only into local files outside.",
      "warum": "A secret published once is burnt, even if it is deleted again at once – it has to be replaced."},
-    {"nr": "G14", "gruppe": "C", "titel": "Deleting and foreign processes: the human only",
-     "text": "Agents archive instead of deleting (with a log old → new) and end only their own processes; a foreign hang is reported.",
+    {"nr": "G14", "gruppe": "C", "geaendert": 6, "titel": "Deleting and foreign processes: the human only",
+     "text": "Agents archive instead of deleting (with a log old → new) and end only their own processes; a foreign hang is reported. The only exception: an agent removes its own working copies (git worktree) without open changes whose branch is merged (git worktree remove, then git worktree prune).",
      "warum": "Deleting cannot be undone, and an agent cannot know for sure whether a folder or process really belongs to nobody any more."},
     {"nr": "G15", "gruppe": "C", "titel": "Publish only reviewed and approved",
      "text": "No push, no release without a green review on exactly this state and the lead's OK; commit only explicitly named files; delete no branches, force nothing.",

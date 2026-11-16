@@ -1,3 +1,3 @@
 """AMW – Agentenmanagement Workbench. Versionen und Änderungen: CHANGELOG.md (Schema MAJOR.MINOR.PATCH)."""
 
-__version__ = "1.123.0"
+__version__ = "1.124.0"

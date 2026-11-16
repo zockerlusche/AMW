@@ -1935,7 +1935,7 @@ def cmd_regelwerk(a, con):
             raise kern.AmwFehler("--text nur bei einer Grundregel")
         for nr in nummern:                               # A1782: mehrere auf einmal – jede mit eigenem Beschluss, wie einzeln
             r = regelwerk.nachziehen(con, pid, _von(a), nr, a.text)
-            print(f"{nr.upper()} übernommen als KR{r['regel']} (B{r['beschluss']})")
+            print(f"{nr.upper()} " + ("neue Fassung in" if r.get("neue_fassung") else "übernommen als") + f" KR{r['regel']} (B{r['beschluss']})")
 
 
 def web_einrichten(abgleich):
