@@ -3128,7 +3128,8 @@ async function sichtNachrichten() {
       for (const [p, ids] of Object.entries(jeProjekt)) await schicken("/api/gelesen", { ids }, p);
       neu.forEach(x => { x.stand = "erledigt"; }); markiert.clear();
       d.zaehler.eingang_offen = Math.max(0, (d.zaehler.eingang_offen || 0) - neu.length);
-      zeichnen(); kopfAktualisieren();
+      zeichnen(); gezeichnet.um = Date.now();          /* selbst gezeichnet: weder nachAktion noch der neue Stand laden die Seite neu (Auswahl bleibt) */
+      kopfAktualisieren().then(() => { if (zustand.sicht === "nachrichten") gezeichnet.stempel = stempel("nachrichten"); }).catch(() => {});
     } catch (e) { toast(t("fehler", { x: e.message }), true); if (knopf) knopf.disabled = false; }
   }
   function zeichnen() {
