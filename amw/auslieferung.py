@@ -124,6 +124,27 @@ class Kette:
             return []
         neu_ids = set(neu.values())
         commit_zu = {pid: c for c, pid in neu.items()}
+        reihe = self.reihe(sha)
+        aus = []
+        while True:                                      # A1834: wiederholen – eine Übernahme weiter unten kann die nächste decken
+            n = len(aus)
+            aus += self._uebertragen_runde(zweig, neu, neu_ids, commit_zu, reihe)
+            if len(aus) == n:
+                return aus
+
+    def reihe(self, sha):
+        """Commits main..sha, älteste zuerst."""
+        rc, aus = self.extern(["git", "rev-list", "--reverse", f"main..{sha}"], self.repo)
+        return [z.strip() for z in aus.splitlines() if z.strip()] if rc == 0 else []
+
+    def ungeprueft(self, reihe, bis=None):
+        """A1834: Commits der Reihe (bis einschließlich `bis`), die kein grüner Stand deckt – ein Grün auf einem Commit deckt
+        ihn und alle darunter."""
+        reihe = reihe[:reihe.index(bis) + 1] if bis in reihe else list(reihe)
+        letzte = max((i for i, c in enumerate(reihe) if betrieb.ist_gruen(self.con, self.pid, c)), default=-1)
+        return reihe[letzte + 1:]
+
+    def _uebertragen_runde(self, zweig, neu, neu_ids, commit_zu, reihe):
         aus = []
         for p in self.con.execute("SELECT * FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen' AND aufgabe_id IS NOT NULL"
                                   " ORDER BY id DESC LIMIT 60", (self.pid,)).fetchall():
@@ -144,6 +165,9 @@ class Kette:
             ziel = commit_zu[eigene]
             if betrieb.ist_gruen(self.con, self.pid, ziel):
                 continue
+            alt_ids = set(alt.values())                  # A1834 (16.11.: 99df76e ging ungeprüft mit): jeder Commit bis zum Ziel muss
+            if any(neu.get(c) not in alt_ids for c in self.ungeprueft(reihe, ziel)[:-1]):   # im geprüften alten Stand stecken
+                continue                                 # oder unter einem grünen Stand liegen – sonst keine Übernahme
             jetzt = db.jetzt()
             with db.schreiben(self.con):
                 prid = db.einfuegen(self.con, "pruefung", projekt_id=self.pid, aufgabe_id=p["aufgabe_id"], zweig=zweig, sha=ziel,
@@ -250,8 +274,10 @@ class Kette:
             an = kern.projekt_wahl(self.con, self.pid, "pruefstufen") == "an"
             stufe, _ = pruefstufe.einstufen(pruefstufe.dateien(self.repo, sha), pruefstufe.muster(self.con, self.pid)) if an else (None, None)
             if stufe != "niedrig":
+                offen = self.ungeprueft(self.reihe(sha))  # A1834: welche Commits keine Prüfung deckt
                 fehlt.append(f"Prüfung: keine grüne Prüfung auf genau {sha[:8]} – erst Prüfbitte, dann GRÜN"
-                             + (f" (Prüfstufe {stufe})" if an else ""))
+                             + (f" (Prüfstufe {stufe})" if an else "")
+                             + (f"; ungeprüft: {', '.join(c[:8] for c in offen[:6])}" if len(offen) > 1 else ""))
                 p = {"id": None, "aufgabe_id": int(aufgabe) if aufgabe else None, "zweig": zweig}
             elif not aufgabe:
                 self.stopp("Prüfung", f"Prüfstufe niedrig: ohne Prüfbitte mit --aufgabe <nr> (für das Merge-OK des Leads)")

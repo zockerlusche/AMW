@@ -456,5 +456,30 @@ class Kette(unittest.TestCase):
         self.assertFalse(self.con.execute("SELECT 1 FROM pruefung WHERE sha = ?", (neu,)).fetchone())
 
 
+    def test_neuer_commit_darunter_braucht_eigene_pruefung(self):
+        """A1834 (16.11.: 99df76e ging ungeprüft mit): Beim Neu-Aufsetzen kommt unter den geprüften Commit ein neuer Commit.
+        Das Grün darf nicht übertragen werden, solange der neue Commit ungeprüft ist; der Stopp nennt ihn. Ist er grün,
+        geht das alte Grün mit."""
+        self.gruen_auf("neu", self.sha, "Neues Ding")
+        self.g("switch", "-q", "-c", "neu3", "main")
+        with open(os.path.join(self.repo, "test.txt"), "w", encoding="utf-8") as f:
+            f.write("Test-Fix\n")
+        self.g("add", "test.txt")
+        self.g("-c", "commit.gpgsign=false", "commit", "-q", "-m", "dazwischen")
+        mitte = self.g("rev-parse", "HEAD")
+        self.g("-c", "commit.gpgsign=false", "cherry-pick", self.sha)
+        oben = self.g("rev-parse", "HEAD")
+        self.g("switch", "-q", "main")
+        self.gesamtlauf(sha=oben)
+        with self.assertRaises(auslieferung.Stopp) as e:
+            self.kette().ausliefern("neu3")
+        self.assertIn("keine grüne Prüfung", str(e.exception))
+        self.assertIn(f"ungeprüft: {mitte[:8]}, {oben[:8]}", str(e.exception))
+        self.assertFalse(self.con.execute("SELECT 1 FROM pruefung WHERE sha = ?", (oben,)).fetchone())   # nichts übertragen
+        self.gruen_auf("neu3", mitte, "Test-Fix")                                            # der neue Commit wird geprüft
+        self.assertEqual(self.kette().ausliefern("neu3")["version"], "1.1.0")
+        self.assertEqual(self.con.execute("SELECT ergebnis FROM pruefung WHERE sha = ?", (oben,)).fetchone()[0], "gruen")
+
+
 if __name__ == "__main__":
     unittest.main()

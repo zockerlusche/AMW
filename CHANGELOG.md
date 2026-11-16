@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.125.2 – 16.11.2026 · Keine ungeprüften Commits bei der Auslieferung
+- **Behoben:** Beim Neu-Aufsetzen übernahm die Auslieferung eine Freigabe auch dann, wenn darunter ein neuer, noch
+  ungeprüfter Commit lag. Jetzt geht eine Freigabe nur mit, wenn jeder Commit bis dahin geprüft ist; sonst hält die
+  Auslieferung an und nennt die ungeprüften Commits.
+
 ## 1.125.1 – 16.11.2026 · Dienst überall gleich
 - **Behoben:** Kopfzeile und Karte „Zustand“ zeigen den Dienst aus derselben Quelle – „Dienst läuft“ oben und „aus“ in
   der Karte gibt es nicht mehr. Der Verweis auf neue Nachrichten in „Für dich“ steht ohne Einrückung.
