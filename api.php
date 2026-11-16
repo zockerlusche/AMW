@@ -391,7 +391,23 @@ try {
         // Menü „Nachrichten“: nur das oben gewählte Projekt – der Zähler kommt so schon aus der Ansicht (Marcel 13.11., B2691)
         $gelesen = [];                                    // schon als gelesen markiert, aber noch im Briefkasten
         foreach ($offen as [$w, $dat]) if ($w === '/api/gelesen') $gelesen = array_merge($gelesen, json_decode($dat, true)['ids'] ?? []);
-        if (isset($d['an_dich'])) $d['an_dich'] = array_values(array_filter($d['an_dich'], fn($n) => !in_array($n['id'], $gelesen, true)));
+        if (isset($d['an_dich'])) {
+            $vorher = count($d['an_dich']);
+            $d['an_dich'] = array_values(array_filter($d['an_dich'], fn($n) => !in_array($n['id'], $gelesen, true)));
+            foreach (['an_dich', 'nachrichten'] as $k) if (isset($d['zaehler'][$k])) $d['zaehler'][$k] = max(0, $d['zaehler'][$k] - ($vorher - count($d['an_dich'])));
+        }
+    }
+    if ($pfad === '/api/nachrichten' || $pfad === '/api/fragen') {   // A1837: schon als gelesen markiert, noch im Briefkasten
+        $gelesen = [];
+        foreach ($offen as [$w, $dat]) if ($w === '/api/gelesen') $gelesen = array_merge($gelesen, json_decode($dat, true)['ids'] ?? []);
+        if ($gelesen && $pfad === '/api/nachrichten' && isset($d['eingang'])) {
+            $n = 0;
+            foreach ($d['eingang'] as &$x) if (in_array($x['id'], $gelesen, true) && ($x['stand'] ?? '') !== 'erledigt') { $x['stand'] = 'erledigt'; $n++; }
+            unset($x);
+            if (isset($d['zaehler']['eingang_offen'])) $d['zaehler']['eingang_offen'] = max(0, $d['zaehler']['eingang_offen'] - $n);
+        }
+        if ($gelesen && $pfad === '/api/fragen') foreach ($d as &$f) if (is_array($f) && isset($f['nachtrag_ids'])) $f['nachtrag_ids'] = array_values(array_diff($f['nachtrag_ids'], $gelesen));
+        unset($f);
     }
     antwort(200, $d);
 } catch (RuntimeException $e) {

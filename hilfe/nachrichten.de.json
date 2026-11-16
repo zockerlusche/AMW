@@ -27,7 +27,7 @@
   },
   {
    "titel": "Eingang abarbeiten",
-   "text": "Reiter „Eingang“: Ungelesenes ist fett. „Antworten“ schreibt zurück, der Bezug geht mit; „Erledigt“ nimmt sie aus der Zahl im Menü.",
+   "text": "Reiter „Eingang“: Ungelesenes ist fett. Antippen öffnet sie und hakt sie als gelesen ab – sie zählt nicht mehr im Menü. „Antworten“ schreibt zurück, der Bezug geht mit; „Gelesen“ hakt die gerade gezeigte ab, „Alle gelesen“ alle offenen.",
    "bilder": []
   },
   {
@@ -53,7 +53,7 @@
  ],
  "danach": [
   "Fragen der Agenten an dich stehen nur unter dem Menüpunkt „Fragen“ – mit Rückfragen, Nachträgen und deiner Antwort. Unter Nachrichten steht oben nur ein Hinweis, wie viele offen sind.",
-  "Jede Zeile zeigt ihre Art: ✉ Nachricht eines Agenten, ⚙ Meldung der Workbench. Mehrere offene erledigst du auf einmal: Häkchen setzen (oder „alle offenen markieren“), dann „Erledigt“.",
+  "Jede Zeile zeigt ihre Art: ✉ Nachricht eines Agenten, ⚙ Meldung der Workbench. Mehrere offene hakst du auf einmal ab: Häkchen setzen (oder „alle offenen markieren“), dann „Gelesen“.",
   "Was Agenten und Lead untereinander schreiben, steht unter „Team-Chat“ – nur zum Lesen, es zählt nie.",
   "Die Übersicht zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt in den Eingang.",
   "Am PC scrollen Liste und Nachricht getrennt, wie im Mail-Programm: Du kannst rechts lesen, ohne die Liste zu verlieren."
