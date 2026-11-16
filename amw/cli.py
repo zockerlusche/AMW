@@ -241,14 +241,19 @@ def cmd_agent(a, con):
         return
     for r in con.execute(
             "SELECT g.kennung, g.alias, CASE WHEN g.rolle = 'lead' THEN 'lead' ELSE g.fachgebiet END AS rolle, g.soll, s.zustand, s.letzter_puls_utc, s.taetigkeit, s.taetigkeit_utc,"
+            " (g.arbeitsweise = 'chat') AS chat,"
             " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
             "   WHERE e.agent = g.kennung AND n.projekt_id = g.projekt_id AND e.status != 'erledigt') AS offen"
             " FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
             " WHERE g.projekt_id = ? AND g.entfernt_utc IS NULL ORDER BY g.id", (pid,)):
-        print(f"{r['kennung']:<8} {r['rolle'] or '':<10} soll {r['soll']:<4} ist {r['zustand'] or 'nie gestartet':<14}"
+        ist = r["zustand"] or "nie gestartet"
+        if r["chat"]:                                      # A1831: ein Chat wird nie gestartet oder beendet – er war zuletzt da
+            ist = "aktiv (Chat)" if r["zustand"] == "aktiv" else (f"zuletzt {_zeit(r['letzter_puls_utc'])} (Chat)"
+                                                                if r["letzter_puls_utc"] else "noch nie (Chat)")
+        print(f"{r['kennung']:<8} {r['rolle'] or '':<10} soll {r['soll']:<4} ist {ist:<14}"
               f" Puls {_zeit(r['letzter_puls_utc']) or '–':<12} offen {r['offen']}" + (f"  (früher {r['alias']})" if r["alias"] else "")
               + (f"\n         macht: {r['taetigkeit'][:90]} ({_alter(r['taetigkeit_utc'])})"
-                 if r["taetigkeit"] and r["zustand"] in ("aktiv", "ruht") else "")
+                 if r["taetigkeit"] and r["zustand"] in ("aktiv", "ruht") and not r["chat"] else "")
               + _arbeit_zeile(con, pid, r["kennung"]))
 
 

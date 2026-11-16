@@ -282,6 +282,11 @@ class Server:
         fehler = _pruefen(name, args)
         if fehler:
             return {"content": [{"type": "text", "text": fehler}], "isError": True}
+        try:                                              # A1831: jeder angenommene Aufruf ist ein Lebenszeichen des Chat-Leads
+            from . import bruecke                         # (wie beim Dateiaustausch) – sonst stand er nach 3 h als „beendet“
+            bruecke.puls(self.von, projekt=self.projekt)
+        except Exception:
+            log.exception("MCP-Puls")
         argv = befehlszeile(name, args) + ["--projekt", self.projekt, "--von", self.von]
         haengt = self.haengt
         if haengt and self.sperre.locked():               # TL P205: nicht still hinter einem hängenden Befehl blockieren

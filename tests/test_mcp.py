@@ -126,6 +126,34 @@ class Mcp(unittest.TestCase):
         self.assertTrue(all(w["inputSchema"]["required"][0] == "schluessel" for w in werkzeuge))
         self.assertTrue(werkzeuge[0]["description"].startswith("[Projekt Spiel · nur für den Lead von Spiel (TL)]"))
 
+    def test_aufruf_ist_lebenszeichen_des_chat_leads(self):
+        """A1831 (16.11.: Chat-Leads standen als „beendet“): jeder angenommene Aufruf setzt den Puls wie der Dateiaustausch;
+        abgelehnte nicht. agent liste zeigt einen Chat als „aktiv (Chat)“ bzw. „zuletzt … (Chat)“, nie als „beendet“."""
+        import contextlib
+        import io
+        from amw import cli
+        con = db.verbinde(self.pfad)
+        self.addCleanup(con.close)
+        with db.schreiben(con):
+            con.execute("UPDATE agent SET arbeitsweise = 'chat' WHERE kennung = 'TL'")
+        sitzung = lambda: con.execute("SELECT s.zustand, s.letzter_puls_utc FROM sitzung s JOIN agent a ON a.id = s.agent_id"
+                                      " WHERE a.kennung = 'TL' ORDER BY s.id DESC LIMIT 1").fetchone()
+        self.c.werkzeug("lesen", schluessel="amw-falsch")
+        self.assertIsNone(sitzung())
+        self.assertFalse(self.c.werkzeug("takt")["isError"])
+        self.assertEqual(sitzung()["zustand"], "aktiv")
+
+        def liste():
+            aus = io.StringIO()
+            with mock.patch.dict(os.environ, {"AMW_DB": self.pfad}), contextlib.redirect_stdout(aus):
+                cli.main(["agent", "liste", "--projekt", "Spiel", "--von", "Entwickler"])
+            return next(z for z in aus.getvalue().splitlines() if z.startswith("TL "))
+        self.assertIn("ist aktiv (Chat)", liste())
+        with db.schreiben(con):
+            con.execute("UPDATE sitzung SET zustand = 'beendet'")
+        self.assertRegex(liste(), r"ist zuletzt .+ \(Chat\)")
+        self.assertNotIn("beendet", liste())
+
     def test_fehler_kommen_als_fehler_zurueck(self):
         self.c.senden("initialize", {"protocolVersion": "1999-01-01", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}})
         r = self.c.werkzeug("posten", {"an": "CC1", "art": "auftrag"})

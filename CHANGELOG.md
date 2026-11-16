@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.125.0 – 16.11.2026 · Chat-Leads sind nicht „beendet“
+- **Behoben:** Ein Lead, der als Chat über den Connector (MCP) arbeitete, stand nach drei Stunden als „beendet“ – nur der
+  Dateiaustausch setzte sein Lebenszeichen. Jetzt zählt jeder angenommene Aufruf. `amw agent liste` zeigt einen Chat als
+  „aktiv (Chat)“ bzw. „zuletzt … (Chat)“, die Workbench „Chat – zuletzt da …“.
+
 ## 1.124.0 – 16.11.2026 · Eigene Arbeitskopien selbst aufräumen
 - **Grund-Regelwerk 6:** G14 „Löschen und fremde Prozesse nur der Mensch“ hat eine einzige Ausnahme – eigene Arbeitskopien
   (git worktree) ohne offene Änderungen, deren Zweig gemergt ist, entfernt der Agent selbst.
