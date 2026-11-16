@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.125.1 – 16.11.2026 · Dienst überall gleich
+- **Behoben:** Kopfzeile und Karte „Zustand“ zeigen den Dienst aus derselben Quelle – „Dienst läuft“ oben und „aus“ in
+  der Karte gibt es nicht mehr. Der Verweis auf neue Nachrichten in „Für dich“ steht ohne Einrückung.
+
 ## 1.125.0 – 16.11.2026 · Chat-Leads sind nicht „beendet“
 - **Behoben:** Ein Lead, der als Chat über den Connector (MCP) arbeitete, stand nach drei Stunden als „beendet“ – nur der
   Dateiaustausch setzte sein Lebenszeichen. Jetzt zählt jeder angenommene Aufruf. `amw agent liste` zeigt einen Chat als
