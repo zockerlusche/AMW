@@ -217,14 +217,14 @@ class Kette(unittest.TestCase):
     def test_ohne_merge_ok_halt_und_ruecknahme_zaehlt(self):
         self.gesamtlauf()
         self.gruen(merge_ok=False)
-        self.ohne_aenderung("kein Merge-OK für A")
+        self.ohne_aenderung("Merge-OK: keins für A")
         betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid)
         betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid, zurueck=True)                  # zurückgenommen: gilt nicht
-        self.ohne_aenderung("kein Merge-OK für A")
+        self.ohne_aenderung("Merge-OK: keins für A")
         with self.assertRaises(kern.AmwFehler) as e:                                                # A1754: ein Zweig ohne Prüfung
             betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid, zweig="anderer")           # wird gar nicht erst angenommen
         self.assertIn("passend: neu (GRÜN", str(e.exception))
-        self.ohne_aenderung("kein Merge-OK für A")
+        self.ohne_aenderung("Merge-OK: keins für A")
 
     def test_merge_ok_ohne_zweig_nimmt_den_der_gruenen_pruefung(self):
         """A1754 (14.11.: Merge-OK auf b199-2 statt a1675-3 → Auslieferung hing 2 h): ohne --zweig gilt das OK für den Zweig der
@@ -411,6 +411,49 @@ class Kette(unittest.TestCase):
         from amw import bruecke
         with self.assertRaises(ValueError):
             bruecke.argumente({"args": ["release", "ausliefern", "--zweig", "neu"]}, self.ordner.name, von="TL", projekt="P")
+
+    # --- A1814: Neu-Aufsetzen mit gleichem Inhalt – Grün und Merge-OK gehen mit (git patch-id) ----------------------------
+
+    def neu_aufsetzen(self, aenderung=None):
+        """main bekommt einen fremden Commit; „neu“ wird darauf neu aufgesetzt (cherry-pick) – optional mit geändertem Inhalt."""
+        with open(os.path.join(self.repo, "fremd.txt"), "w", encoding="utf-8") as f:
+            f.write("anderer Stand\n")
+        self.g("add", "fremd.txt")
+        self.g("-c", "commit.gpgsign=false", "commit", "-q", "-m", "fremd")
+        self.g("push", "-q", "origin", "main")
+        self.g("switch", "-q", "-c", "neu2", "main")
+        self.g("-c", "commit.gpgsign=false", "cherry-pick", self.sha)
+        if aenderung:
+            with open(os.path.join(self.repo, "amw", "db.py"), "a", encoding="utf-8") as f:
+                f.write(aenderung)
+            self.g("add", "amw/db.py")
+            self.g("-c", "commit.gpgsign=false", "commit", "-q", "--amend", "--no-edit")
+        neu = self.g("rev-parse", "HEAD")
+        self.g("switch", "-q", "main")
+        return neu
+
+    def test_gleicher_inhalt_gruen_und_merge_ok_gehen_mit(self):
+        self.gruen_auf("neu", self.sha, "Neues Ding")
+        neu = self.neu_aufsetzen()
+        self.assertNotEqual(neu, self.sha)
+        self.gesamtlauf(sha=neu)
+        r = self.kette().ausliefern("neu2")
+        self.assertEqual(r["version"], "1.1.0")
+        p = self.con.execute("SELECT * FROM pruefung WHERE sha = ?", (neu,)).fetchone()
+        self.assertEqual((p["ergebnis"], p["zweig"]), ("gruen", "neu2"))
+        self.assertIn("gleicher Inhalt (git patch-id)", p["punkte"])
+        self.assertTrue(self.con.execute("SELECT 1 FROM plan_ereignis WHERE art = 'freigabe_uebernommen'").fetchone())
+
+    def test_geaenderter_inhalt_braucht_neue_freigabe_und_alles_steht_in_einer_meldung(self):
+        self.gruen_auf("neu", self.sha, "Neues Ding")
+        neu = self.neu_aufsetzen("X = 1\n")
+        with self.assertRaises(auslieferung.Stopp) as e:
+            self.kette().ausliefern("neu2")
+        t = str(e.exception)
+        self.assertIn("Freigaben", t)
+        self.assertIn("keine grüne Prüfung", t)
+        self.assertIn("kein grüner Lauf", t)                                                  # zweite Lücke in derselben Meldung
+        self.assertFalse(self.con.execute("SELECT 1 FROM pruefung WHERE sha = ?", (neu,)).fetchone())
 
 
 if __name__ == "__main__":

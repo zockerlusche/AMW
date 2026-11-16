@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.119.0 – 16.11.2026 · Neu aufsetzen ohne neue Freigaben
+- **Verbessert:** Wird ein geprüfter Stand nur neu aufgesetzt (gleicher Inhalt, neuer Commit), übernimmt die Auslieferung Grün
+  und Merge-OK selbst und vermerkt die Quelle. Nur wenn sich der Inhalt geändert hat, braucht es eine neue Prüfung.
+- **Verbessert:** Fehlen Freigaben, nennt die Auslieferung alle auf einmal (Prüfung, Merge-OK, Gesamtlauf, Reihenfolge) statt
+  eine nach der anderen.
+
 ## 1.118.1 – 15.11.2026 · Web-Abzug in Sekunden
 - **Behoben:** Der Web-Abzug der Auslieferung lief zweimal ins Zeitlimit (über 10 bzw. 30 Minuten). Jetzt entsteht der
   web-Zweig als ein Commit mit dem Inhalt von web/ über dem bisherigen Stand – in Sekunden, immer ohne Umschreiben.

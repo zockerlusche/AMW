@@ -54,6 +54,27 @@ def web_commit(lauf, version, sha, kurz):
     return lauf(["git", "push", "origin", f"{neu}:refs/heads/web"])
 
 
+def patch_ids(repo, basis, sha):
+    """{Commit: patch-id} der Commits basis..sha – gleicher Inhalt ergibt dieselbe ID, auch nach dem Neu-Aufsetzen (A1814).
+    Leeres Ergebnis, wenn git nicht antwortet."""
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    try:
+        log = subprocess.run(["git", "log", "-p", "--no-color", "--no-ext-diff", "--format=commit %H", f"{basis}..{sha}"], cwd=repo,
+                             capture_output=True, timeout=120, stdin=subprocess.DEVNULL, creationflags=flags)
+        if log.returncode != 0:
+            return {}
+        ids = subprocess.run(["git", "patch-id", "--stable"], cwd=repo, input=log.stdout, capture_output=True, timeout=120,
+                             creationflags=flags)
+    except (OSError, subprocess.TimeoutExpired):
+        return {}
+    aus = {}
+    for z in ids.stdout.decode("utf-8", "replace").splitlines():
+        teile = z.split()
+        if len(teile) == 2:
+            aus[teile[1]] = teile[0]
+    return aus
+
+
 class Stopp(kern.AmwFehler):
     """Die Kette hält an – mit Schritt und Grund."""
 
@@ -92,6 +113,53 @@ class Kette:
     def schritt(self, name):
         self.erledigt.append(name)
         self.ausgabe(f"✓ {name}")
+
+    def uebertragen(self, sha, zweig):
+        """A1814 (Nacht 15./16.11.: nach dem Neu-Aufsetzen brauchte jeder neue Stand wieder Grün und Merge-OK – 8 h Stillstand):
+        Für jeden Commit main..sha ohne grüne Prüfung sucht die AMW eine grüne Prüfung mit demselben Inhalt (git patch-id) –
+        nur wenn auch alle Commits darunter im neuen Stand stecken. Dann gelten Grün (neue Zeile, Quelle vermerkt) und – falls
+        es für den alten Zweig galt – das Merge-OK auch für den neuen Stand bzw. Zweig. Geänderte Patches: nichts. Rückgabe: Texte."""
+        neu = patch_ids(self.repo, "main", sha)
+        if not neu:
+            return []
+        neu_ids = set(neu.values())
+        commit_zu = {pid: c for c, pid in neu.items()}
+        aus = []
+        for p in self.con.execute("SELECT * FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen' AND aufgabe_id IS NOT NULL"
+                                  " ORDER BY id DESC LIMIT 60", (self.pid,)).fetchall():
+            if p["sha"] in neu or len(p["sha"]) < 40:
+                continue                                 # schon auf diesem Stand (oder alter kurzer SHA: nicht sicher)
+            a = self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (p["aufgabe_id"],)).fetchone()
+            if not a or a["status"] in ("fertig", "verworfen"):
+                continue
+            if self.extern(["git", "merge-base", "--is-ancestor", p["sha"], "main"], self.repo)[0] == 0:
+                continue                                 # schon draußen
+            rc, basis = self.extern(["git", "merge-base", p["sha"], "main"], self.repo)
+            if rc != 0:
+                continue
+            alt = patch_ids(self.repo, basis.strip().splitlines()[-1], p["sha"])
+            eigene = alt.get(p["sha"])
+            if not eigene or eigene not in commit_zu or not set(alt.values()) <= neu_ids:
+                continue                                 # Inhalt geändert oder nicht vollständig im neuen Stand
+            ziel = commit_zu[eigene]
+            if betrieb.ist_gruen(self.con, self.pid, ziel):
+                continue
+            jetzt = db.jetzt()
+            with db.schreiben(self.con):
+                prid = db.einfuegen(self.con, "pruefung", projekt_id=self.pid, aufgabe_id=p["aufgabe_id"], zweig=zweig, sha=ziel,
+                                    bauer=p["bauer"], pruefer=p["pruefer"], ergebnis="gruen", angefragt_utc=jetzt, ergebnis_utc=jetzt,
+                                    punkte=f"Übernommen aus P{p['id']} ({p['zweig']}@{p['sha'][:8]}) – gleicher Inhalt (git patch-id),"
+                                           " nur neu aufgesetzt", bemerkung=f"automatisch von der AMW (A1814), Quelle P{p['id']}")
+                text = f"P{prid} ← P{p['id']}: {p['sha'][:8]} → {ziel[:8]} gleicher Inhalt"
+                if betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"]) and \
+                        not betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], zweig):
+                    db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=jetzt, von="AMW", art="merge_ok",
+                                 aufgabe_id=p["aufgabe_id"], text=zweig)
+                    text += f", Merge-OK für {zweig} übernommen"
+                db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=jetzt, von="AMW", art="freigabe_uebernommen",
+                             aufgabe_id=p["aufgabe_id"], text=text[:300])
+            aus.append(f"A{p['aufgabe_id']}: {text}")
+        return aus
 
     def web_abzug(self, version, sha, kurz):
         lauf = (lambda b: _laufen(b, self.repo, WEB_FRIST_S)) if self.extern is _laufen else (lambda b: self.extern(b, self.repo))
@@ -140,7 +208,7 @@ class Kette:
         """Liegt eine kleinere Version grün und mit Merge-OK bereit, die dieser Stand NICHT enthält? Dann zuerst sie (TL #24530)."""
         ziel = kern.version_teile(version)
         live = kern.version_teile(self.version_an("main"))
-        gesehen = set()
+        gesehen, fehlt = set(), []
         for p in self.con.execute("SELECT * FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen' AND aufgabe_id IS NOT NULL"
                                   " ORDER BY id DESC LIMIT 60", (self.pid,)).fetchall():
             if p["sha"] in gesehen or not betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"]):
@@ -159,8 +227,9 @@ class Kette:
             if self.extern(["git", "rev-parse", "-q", "--verify", f"refs/tags/v{v}"], self.repo)[0] == 0:
                 continue                                 # Tag gibt es: ausgeliefert
             if kern.version_teile(v) < ziel:
-                self.stopp("Reihenfolge", f"{v} (A{p['aufgabe_id']}, {p['zweig']}@{p['sha'][:8]}) ist grün mit Merge-OK, aber nicht"
-                                          f" ausgeliefert und nicht in {sha[:8]} enthalten – erst {v} ausliefern oder neu aufsetzen")
+                fehlt.append(f"Reihenfolge: {v} (A{p['aufgabe_id']}, {p['zweig']}@{p['sha'][:8]}) ist grün mit Merge-OK, aber nicht"
+                             f" ausgeliefert und nicht in {sha[:8]} enthalten – erst {v} ausliefern oder neu aufsetzen")
+        return fehlt
 
     # --- Vorbedingungen -------------------------------------------------------------------------------------------------
     def pruefen(self, zweig, gesamtlauf=None, aufgabe=None):
@@ -169,6 +238,9 @@ class Kette:
         if not m:
             self.stopp("Version", "amw/__init__.py nennt keine Version")
         version = m.group(1)
+        for z in self.uebertragen(sha, zweig):           # A1814: gleicher Inhalt nach dem Neu-Aufsetzen – Grün/Merge-OK gehen mit
+            self.ausgabe(f"Freigabe übernommen – {z}")
+        fehlt = []                                       # A1814: alle fehlenden Freigaben auf einmal nennen
         g = betrieb.ist_gruen(self.con, self.pid, sha)
         niedrig = False                                 # A1656: Prüfstufe niedrig (nur Doku/Tests) geht ohne Prüfbitte
         if g:
@@ -178,18 +250,23 @@ class Kette:
             an = kern.projekt_wahl(self.con, self.pid, "pruefstufen") == "an"
             stufe, _ = pruefstufe.einstufen(pruefstufe.dateien(self.repo, sha), pruefstufe.muster(self.con, self.pid)) if an else (None, None)
             if stufe != "niedrig":
-                self.stopp("Prüfung", f"keine grüne Prüfung auf genau {sha[:8]} – erst Prüfbitte, dann GRÜN"
-                                      + (f" (Prüfstufe {stufe})" if an else ""))
-            if not aufgabe:
+                fehlt.append(f"Prüfung: keine grüne Prüfung auf genau {sha[:8]} – erst Prüfbitte, dann GRÜN"
+                             + (f" (Prüfstufe {stufe})" if an else ""))
+                p = {"id": None, "aufgabe_id": int(aufgabe) if aufgabe else None, "zweig": zweig}
+            elif not aufgabe:
                 self.stopp("Prüfung", f"Prüfstufe niedrig: ohne Prüfbitte mit --aufgabe <nr> (für das Merge-OK des Leads)")
-            p, niedrig = {"id": None, "aufgabe_id": int(aufgabe), "zweig": zweig}, True
+            else:
+                p, niedrig = {"id": None, "aufgabe_id": int(aufgabe), "zweig": zweig}, True
+        ok = None
         if not p["aufgabe_id"]:
-            self.stopp("Merge-OK", f"P{p['id']} hängt an keiner Aufgabe – das Merge-OK gilt je Aufgabe")
-        ok = betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"])
-        if not ok:
-            self.stopp("Merge-OK", f"kein Merge-OK für A{p['aufgabe_id']} ({p['zweig']}) – der Lead gibt es mit"
-                                    f" amw freigabe merge {p['aufgabe_id']}")
-        ausnahme = betrieb.gesamtlauf_ausnahme(self.con, self.pid, p["aufgabe_id"])
+            if p["id"]:
+                fehlt.append(f"Merge-OK: P{p['id']} hängt an keiner Aufgabe – das Merge-OK gilt je Aufgabe")
+        else:
+            ok = betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"])
+            if not ok:
+                fehlt.append(f"Merge-OK: keins für A{p['aufgabe_id']} ({p['zweig']}) – der Lead gibt es mit amw freigabe merge"
+                             f" {p['aufgabe_id']} --zweig {p['zweig']}")
+        ausnahme = betrieb.gesamtlauf_ausnahme(self.con, self.pid, p["aufgabe_id"]) if p["aufgabe_id"] else None
         ausnahme = f"{ausnahme['von']}: {ausnahme['text']}" if ausnahme and not niedrig else None   # ohne Prüfbitte: nur echter Lauf
         # Gesamtlauf: zählt nur, wenn der beim tatsächlichen Start gemerkte Stand genau dieser ist und sauber war (TL #24259) –
         # die Beschreibung kann veralten (Arbeitsbaum zwischen Einreihen und Start gewechselt)
@@ -198,15 +275,17 @@ class Kette:
         if gesamtlauf:
             lauf = self.con.execute("SELECT * FROM lauf WHERE id = ? AND projekt_id = ?", (int(str(gesamtlauf).lstrip("Ll")), self.pid)).fetchone()
             if not lauf or lauf["status"] != "fertig" or lauf["rc"] != 0:
-                self.stopp("Gesamtlauf", f"L{gesamtlauf} ist nicht grün fertig")
-            if betrieb.stand_text(("", sha, True)) not in (lauf["ergebnis"] or ""):
-                self.stopp("Gesamtlauf", f"L{gesamtlauf} hat nicht genau {sha[:8]} sauber geprüft (Ergebnis: {(lauf['ergebnis'] or '')[:80]})")
+                fehlt.append(f"Gesamtlauf: L{gesamtlauf} ist nicht grün fertig")
+                lauf = None
+            elif betrieb.stand_text(("", sha, True)) not in (lauf["ergebnis"] or ""):
+                fehlt.append(f"Gesamtlauf: L{gesamtlauf} hat nicht genau {sha[:8]} sauber geprüft (Ergebnis: {(lauf['ergebnis'] or '')[:80]})")
+                lauf = None
         else:                                           # ein grüner Lauf geht vor; ohne ihn nur die Ausnahme des Leads
             lauf = self.con.execute("SELECT * FROM lauf WHERE projekt_id = ? AND status = 'fertig' AND rc = 0 AND ergebnis LIKE ?"
                                     " ORDER BY id DESC LIMIT 1", (self.pid, stand)).fetchone()
             if not lauf and not ausnahme:
-                self.stopp("Gesamtlauf", f"kein grüner Lauf, der genau {sha[:8]} sauber geprüft hat – --gesamtlauf L<nr>, oder der Lead"
-                                         f" vermerkt eine Ausnahme: amw freigabe merge {p['aufgabe_id']} --ausnahme \"Grund\"")
+                fehlt.append(f"Gesamtlauf: kein grüner Lauf, der genau {sha[:8]} sauber geprüft hat – --gesamtlauf L<nr>, oder der Lead"
+                             f" vermerkt eine Ausnahme: amw freigabe merge {p['aufgabe_id']} --ausnahme \"Grund\"")
         # nur Änderungen an versionierten Dateien halten an (A1663) – unversionierte stören den Fast-Forward nicht; würde eine
         # überschrieben, verweigert git den Merge selbst (dann Stopp bei „Fast-Forward“)
         geaendert = self.git("status", "--porcelain", "--untracked-files=no", schritt="Arbeitsbaum").strip()
@@ -222,7 +301,9 @@ class Kette:
         if rc == 0:
             self.stopp("Tag", f"v{version} gibt es schon")
         titel, text = self.notizen(sha, version)
-        self.reihenfolge(sha, version)
+        fehlt += self.reihenfolge(sha, version)
+        if fehlt:                                        # A1814: alles auf einmal – nicht eine Freigabe nach der anderen
+            self.stopp("Freigaben", f"{len(fehlt)} fehlt: " + " · ".join(fehlt))
         zwischen = []
         for v, c in self.zwischenversionen(sha, version):
             if self.extern(["git", "rev-parse", "-q", "--verify", f"refs/tags/v{v}"], self.repo)[0] == 0:
@@ -230,7 +311,7 @@ class Kette:
             zwischen.append({"version": v, "sha": c, "notizen": self.notizen(c, v)})   # CHANGELOG an ihrem eigenen Stand
         return {"sha": sha, "version": version, "lauf": lauf["id"] if lauf else None, "ausnahme": None if lauf else ausnahme,
                 "titel": titel, "text": text, "niedrig": niedrig, "zwischen": zwischen,
-                "merge_ok": ok["von"]}
+                "merge_ok": ok["von"] if ok else None}
 
     # --- die Kette ------------------------------------------------------------------------------------------------------
     def ausliefern(self, zweig, gesamtlauf=None, aufgabe=None):

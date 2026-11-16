@@ -18,6 +18,7 @@ AMW can handle two things for you: how strictly a change is reviewed (review lev
 | Own patterns | Command line: `amw projekt einstellen 'pruef_muster={"hoch": ["src/db/*"], "mittel": ["ui/*"], "niedrig": ["docs/*", "tests/*"]}'` |
 
 ## Common problems
+- **After rebasing, everything is open again** – No longer: if only the base changed (same content, new commit), `amw release ausliefern` takes over the green review and the merge approval itself and records the source. If the content changed, a new review is needed. If something is missing, the chain lists all missing approvals in one message.
 - **“Der Stand ändert Sichtbares … – Prüfbitte nur mit Bild”** – The commit changes the page or the help, but no image is attached to the task. File one from the PC and the phone (390 px): `amw dokument ablegen bild.png --art bild --aufgabe <no> --titel …`; the review request then names it by itself. Exception only with `--ohne-bild <reason>`.
 - **“Version 1.2.0 ist schon vergeben” on a review request** – Another task already carries this number (open or green review not yet released), it is not above main, or the tag exists. The message names the next free number; change it in the commit and submit again.
 - **“Prüfstufe hoch – prüfen muss …”** – The review request went to an agent, the level requires the lead. Ask the lead instead.

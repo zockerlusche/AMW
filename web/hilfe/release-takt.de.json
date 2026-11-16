@@ -50,6 +50,10 @@
  ],
  "fehler": [
   [
+   "Nach dem Neu-Aufsetzen ist alles wieder offen",
+   "Nicht mehr: Hat sich nur die Grundlage geändert (gleicher Inhalt, neuer Commit), übernimmt `amw release ausliefern` Grün und Merge-OK selbst und vermerkt die Quelle. Hat sich der Inhalt geändert, braucht es eine neue Prüfung. Fehlt etwas, nennt die Kette alle fehlenden Freigaben in einer Meldung."
+  ],
+  [
    "„Der Stand ändert Sichtbares … – Prüfbitte nur mit Bild“",
    "Der Stand ändert die Seite oder die Hilfe, an der Aufgabe hängt aber kein Bild. Bild vom PC und vom Handy (390 px) ablegen: `amw dokument ablegen bild.png --art bild --aufgabe <nr> --titel …`; die Prüfbitte nennt es dann von selbst. Ausnahme nur mit `--ohne-bild <Grund>`."
   ],
