@@ -12,7 +12,7 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 3. **Leicht oder schwer – immer angeben** `--leicht` für normales Bauen und Testen: läuft parallel (Einstellungen › Dieser PC › „Gleichzeitige leichte Läufe“) und wartet nie auf schwere Läufe. `--schwer` für KI, Grafikkarte, Fenster oder viel Speicher: läuft einzeln. Fehlt beides, lehnt die AMW den Lauf mit dieser Erklärung ab; ein Rezept bringt seine Art mit. Ein Agent rechnet nie zwei Läufe zugleich – beide im selben Ordner gingen schief.
 4. **Eigene Befehle ergänzen** Unter Einstellungen › Projekt › „Weitere schwere Befehle“ je Zeile einen Eintrag `Name = Muster` eintragen, zum Beispiel `Karten rechnen = karten\.py`.
 5. **Bedarf nennen** Wer weiß, was ein Lauf braucht, gibt es an: `--braucht-gb 4` (Arbeitsspeicher), wahlweise `--braucht-vram-gb` (Grafikspeicher) und `--braucht-platte-gb` (freier Platz). Ohne Angabe nimmt die AMW, was gleiche Läufe desselben Agenten zuletzt wirklich gebraucht haben (gemessen, mit etwas Zuschlag) – beim ersten Mal die Speicher-Grenze des Projekts. Schätzen muss niemand.
-6. **Nachsehen** Start › Leitstand › „Rechner“ zeigt, wie viele Läufe laufen und warten und wann der Rechner voraussichtlich frei ist.
+6. **Nachsehen** Übersicht › Leitstand › „Rechner“ zeigt, wie viele Läufe laufen und warten und wann der Rechner voraussichtlich frei ist.
 
 ## Diese Werte trägst du ein
 | Feld in der AMW | Woher |

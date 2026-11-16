@@ -4,6 +4,18 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.123.0 – 16.11.2026 · Übersicht und sieben Menüpunkte
+- **Weniger Menü:** Übersicht · Fragen · Planung · Nachrichten · Wissen · Betrieb · Einstellungen. Was bisher ein eigener
+  Menüpunkt war, ist jetzt ein Reiter seines Bereichs: Aufgaben und Verlauf unter Planung, Team-Chat unter Nachrichten,
+  Dokumente und Versionshinweise unter Wissen. Alte Adressen (z. B. #arbeit, #verlauf) zeigen den Reiter.
+- **Neue Übersicht:** vier Karten auf einen Blick – „Für dich“ (Fragen, Freigaben und Schritte, bei denen du etwas tun
+  musst, dazu neue Nachrichten), „Läuft gerade“ (arbeitende Agenten, Läufe, Warteschlange), „Stand“ (aktive Meilensteine
+  mit Fortschritt) und „Zustand“ (Dienst, Arbeitsspeicher, Festplatten, Synchronisierung, Kosten heute, Wochenlimit).
+  Team und Leitstand bleiben darunter.
+- **Fragen** mit den Reitern Offen · Freigaben · Geparkt · Erledigt: Freigaben zeigt vorgelegte Spezifikationen und Pläne,
+  Erledigt die zuletzt beantworteten Fragen mit deiner Antwort – auch online.
+- **Am Handy** unten Übersicht, Fragen, Planung, Nachrichten und „Mehr“ – darunter Wissen, Betrieb, Einstellungen.
+
 ## 1.122.0 – 16.11.2026 · Schlüssel für den Connector
 - **Behoben:** Ein Connector (MCP) für die Claude-App ließ sich in jedem Chat einschalten – auch im Chat eines anderen
   Projekts. Jetzt hat jedes Projekt einen eigenen Schlüssel (Einstellungen › Projekt, einmal sichtbar, nur als Prüfwert auf

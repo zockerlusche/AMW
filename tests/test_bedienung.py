@@ -165,7 +165,7 @@ class Seite(Wiederholt, Grund):
         n1 = kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC1", "auftrag", "Bitte Linien aufräumen", aufgabe_id=aid)[0]
         kern.posten(self.con, self.pid, "CC1", kern.ENTWICKLER, "info", "Mache ich")
         self.oeffnen("start", "document.querySelector('.nr-start')")
-        self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-start').innerText"))
+        self.assertIn("1 neue Nachricht an dich", self.tab.js("document.querySelector('#ue-fuer_dich .nr-start').innerText"))   # A1657: Karte „Für dich“
         self.tab.js("document.querySelector('.nr-start').click()")
         self.warten("zustand.sicht === 'nachrichten' && document.querySelector('.nr-reiter button.an')")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [True, False, False, False])   # Eingang, Gesendet, Team-Chat (A1657), Lead-Runde (nur am PC)

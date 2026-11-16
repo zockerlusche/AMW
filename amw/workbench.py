@@ -233,7 +233,36 @@ def _ablage_grenze(con, pid):
     return _t.strftime("%Y-%m-%dT%H:%M:%SZ", _t.gmtime(_t.time() - h * 3600))
 
 
+def _uebersicht(con, pid, gesund):
+    """A1657 Übersicht: was die Karten „Läuft gerade“, „Stand“ und „Zustand“ brauchen – knapp, ohne Prognose-Rechnung
+    (die steht in der Planung). Zeitpunkte statt Alter, damit der Abgleich nicht von selbst neu hochlädt."""
+    boegen = zeilen(con.execute(
+        "SELECT b.id, b.titel, b.zieldatum, count(a.id) AS gesamt, coalesce(sum(a.status = 'fertig'), 0) AS fertig,"
+        " coalesce(sum(a.status = 'verworfen'), 0) AS verworfen FROM bogen b LEFT JOIN aufgabe a ON a.bogen_id = b.id"
+        " WHERE b.projekt_id = ? AND b.status = 'aktiv' GROUP BY b.id ORDER BY b.nr, b.id", (pid,)))
+    ohne = con.execute("SELECT count(*) FROM aufgabe WHERE projekt_id = ? AND bogen_id IS NULL AND status NOT IN ('fertig', 'verworfen')",
+                       (pid,)).fetchone()[0]
+    laeufe = zeilen(con.execute("SELECT id, agent, beschreibung, start_utc FROM lauf WHERE projekt_id = ? AND status = 'laeuft'"
+                                " ORDER BY id", (pid,)))
+    for l in laeufe:
+        l["beschreibung"] = (l["beschreibung"] or "")[:90]
+    try:
+        from . import statusline
+        v = statusline.verbrauch_tage(con, pid, 1)
+        kosten = round(sum(t.get(v["tage"][-1], 0.0) for t in v["agenten"].values()), 2)
+    except Exception:
+        kosten = None
+    teile = {g["teil"]: g for g in gesund["teile"]}
+    sync = teile.get("synchronisierung")
+    jetzt = time.time()
+    return {"boegen": boegen, "ohne_bogen": ohne, "laeufe": laeufe, "kosten_heute": kosten,
+            "dienst": teile.get("hauptschleife", {}).get("zustand"),
+            "sync": None if not sync or sync.get("alter_s") is None else {
+                "zustand": sync["zustand"], "zeit_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - sync["alter_s"]))}}
+
+
 def daten_start(con, pid):
+    gesund = herzschlag.gesundheit()
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
         "SELECT g.kennung, g.rolle, g.fachgebiet, coalesce(g.arbeitsweise, 'terminal') AS arbeitsweise, g.soll, g.zustaendig AS grenzen,"
@@ -342,7 +371,7 @@ def daten_start(con, pid):
     from . import einstellungen as _e
     return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "heimnetz": _e.wert("heimnetz") or None, "rechner": betrieb.auslastung(con, pid), "token": _token_lage(con), "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "eingang": len(arbeitsliste.pool(con, pid)), "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
-            "dienst_rot": [g["teil"] for g in herzschlag.gesundheit()["teile"] if g["zustand"] == "rot"],
+            "dienst_rot": [g["teil"] for g in gesund["teile"] if g["zustand"] == "rot"], "uebersicht": _uebersicht(con, pid, gesund),
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
@@ -833,6 +862,20 @@ def haelt(con, pid, f):
     return aus
 
 
+def daten_fragen_erledigt(con, pid, grenze=60):
+    """A1657 Fragen › Erledigt: die zuletzt beantworteten oder verworfenen Fragen an den Menschen, neueste zuerst."""
+    aus = []
+    for f in con.execute("SELECT id, von, kurz, status, antwort_art, antwort, antwort_utc, optionen FROM frage WHERE projekt_id = ?"
+                         " AND an = 'entwickler' AND status != 'offen' ORDER BY coalesce(antwort_utc, zeit_utc) DESC, id DESC LIMIT ?",
+                         (pid, grenze)).fetchall():
+        d = dict(f)
+        if d["antwort_art"] == "option":                  # Text der gewählten Option dazu
+            d["option_text"] = next((o.get("text") for o in json.loads(f["optionen"] or "[]") if o.get("kenn") == d["antwort"]), None)
+        del d["optionen"]
+        aus.append(d)
+    return aus
+
+
 def daten_fragen(con, pid, alle=False):
     from . import dokumente
     sql = "SELECT * FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
@@ -1250,7 +1293,8 @@ def baue_handler(port, token, netz=None):
                 with open(pfad, "rb") as f:
                     return self._senden(200, f.read(), "image/webp")
             wege = {"/api/start": lambda c, p: daten_start(c, p),
-                    "/api/fragen": lambda c, p: daten_fragen(c, p, q.get("alle", ["0"])[0] == "1"),
+                    "/api/fragen": lambda c, p: (daten_fragen_erledigt(c, p) if q.get("erledigt", ["0"])[0] == "1"
+                                                 else daten_fragen(c, p, q.get("alle", ["0"])[0] == "1")),
                     "/api/aufgaben": lambda c, p: daten_aufgaben(c, p, q),
                     "/api/listen": lambda c, p: daten_listen(c, p),
                     "/api/themen": lambda c, p: daten_themen(c, p),

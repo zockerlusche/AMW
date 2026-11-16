@@ -332,6 +332,7 @@ def ansichten(con, pid, speicher=None):
          "/api/teamchat": workbench.daten_teamchat(con, pid),
          "/api/runde": workbench.daten_runde(con, pid),       # A1680: online nur lesen, nur System-Admins (api.php prüft)
          "/api/fragen?alle=1": workbench.daten_fragen(con, pid, True),
+         "/api/fragen?erledigt=1": workbench.daten_fragen_erledigt(con, pid),   # A1657
          "/api/wissen": workbench.daten_wissen(con, pid, {"q": [""]}),
          "/api/betrieb": _betrieb_ohne_namen(workbench.daten_betrieb(con, pid)),
          "/api/releases": workbench.daten_releases(con, pid),
@@ -469,6 +470,9 @@ def _ruhig(inhalt):
     elif isinstance(r, dict):                                         # Startseite: Auslastung des Rechners
         d["rechner"] = {**{k: v for k, v in r.items() if k not in ("frei_gb", "dauer_gb", "dauer", "platte")},
                         "dauer": namen(r.get("dauer")), "platte": stufen(r.get("platte"))}
+    u = d.get("uebersicht")
+    if isinstance(u, dict) and isinstance(u.get("sync"), dict):       # A1657: Zeit der letzten Synchronisierung – sonst lädt
+        d["uebersicht"] = {**u, "sync": u["sync"].get("zustand")}     # jede Synchronisierung die Startseite neu hoch
     t = d.get("token")
     if isinstance(t, dict):                                           # Wochenlimit: der Messwert zählt, nicht die Hochrechnung
         d["token"] = {k: t.get(k) for k in ("wert", "reset_utc", "unsicher")}

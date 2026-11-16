@@ -301,6 +301,25 @@ main { overflow-wrap: break-word; }   /* lange Pfade/Adressen brechen um statt �
 .ueb-achse > span.jetzt { color: var(--bernstein); font-weight: 600; background: var(--flaeche); padding: 0 3px; z-index: 2; }
 .ueb-block.fertig { opacity: .5; } .ueb-name.fertig { opacity: .6; }
 .rh-lauf.eng > span { display: none; }
+.ue-raster { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; margin: 4px 0 22px; }
+.ue-karte { border: 1px solid var(--linie); border-radius: 6px; background: var(--flaeche); padding: 12px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.ue-karte.dran { border-left: 4px solid var(--bernstein); }
+.ue-karte h3 { margin: 0; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); display: flex; align-items: center; gap: 8px; }
+.ue-zahl { background: var(--bernstein); color: var(--grund); border-radius: 9px; padding: 0 7px; font-size: 12px; letter-spacing: 0; }
+.ue-liste { display: grid; }
+.ue-zeile { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--linie); min-width: 0; }
+.ue-liste > .ue-zeile:last-child, .ue-bogen .ue-zeile { border-bottom: 0; }
+.ue-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ue-knopf { flex: none; }
+.ue-leer { margin: 4px 0; color: var(--leise); }
+.ue-fuss { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; }
+.ue-bogen { padding: 4px 0 8px; }
+.ue-spur { height: 6px; border-radius: 3px; background: var(--flaeche2); overflow: hidden; margin: 2px 0 4px; }
+.ue-spur i { display: block; height: 100%; background: var(--gruen); }
+.ue-kacheln { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ue-kachel { background: var(--flaeche2); border-radius: 4px; padding: 8px 10px; display: grid; gap: 2px; min-width: 0; }
+.ue-kachel b { font-size: 17px; overflow-wrap: anywhere; }
+.ue-kachel .punkt { display: inline-block; vertical-align: middle; margin: 0 7px 2px 2px; }
 .stand-jetzt { display: grid; gap: 6px; padding: 10px 14px; margin: 0 0 12px; border: 1px solid var(--linie); border-left: 4px solid var(--bernstein); border-radius: 6px; background: var(--flaeche); }
 .stand-jetzt > b { font-size: 15px; color: var(--tinte); }
 .sj-zeile { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; font-size: 14px; }
@@ -1161,7 +1180,7 @@ const TEXTE = {
     e_vorrang: "Vorrang der Projekte", e_vorrang_h: "Wer in der Warteschlange dieses PCs zuerst drankommt: erst „hoch“, dann „normal“, dann „niedrig“ – innerhalb einer Stufe der Reihe nach. Ein Lauf, der schon läuft, wird nie abgebrochen; was du vorziehst, bleibt ganz vorn. Wirkt sofort.", vr_hoch: "hoch", vr_normal: "normal", vr_niedrig: "niedrig", re_vorrang: "Vorrang in der Warteschlange: {x}.", rh_vorrang: "Vorrang", rh_l_vorrang: "Vorrang (Einstellung dieses PCs)",
     e_vr_auf: "Aufrücken nach Wartezeit (Minuten)", e_vr_auf_h: "Wer so lange wartet, rückt eine Stufe höher – so kommt auch „niedrig“ sicher dran. 0 = aus.", e_vr_platz: "Platz freihalten für Vorrang", e_vr_platz_h: "Wartet ein Lauf mit Vorrang „hoch“, startet ein anderer nur, wenn danach noch genug Arbeitsspeicher für ihn frei bleibt.",
     e_heimnetz: "Aus dem Heimnetz erreichbar", e_heimnetz_ph: "z. B. 192.168.178.0/24 – leer = aus", e_heimnetz_h: "Netzbereich deines WLANs, z. B. 192.168.178.0/24 – dann öffnest du die Workbench auf Handy oder Tablet unter http://<Adresse dieses PCs>:8780. Jedes Gerät in diesem Netz hat volle Rechte ohne Anmeldung. Nur private Netze; leer = aus.", re_heimnetz: "Heimnetz offen: {x} – jedes Gerät dort hat volle Rechte.",
-    e_mcp: "Connector für den Lead-Chat (MCP)", e_mcp_h: "Die Zeile kommt in die Konfiguration der Claude-App (Hilfe „AMW mit Claude verbinden“). Den Schlüssel trägst du nur in die Projekt-Anweisungen des Lead-Chats dieses Projekts ein – ohne ihn lehnt der Connector jeden Aufruf ab. Im Chat nur den Eintrag dieses Projekts einschalten.", e_mcp_zeile: "Zeile für die Konfiguration", e_mcp_zeile_knopf: "Zeile kopieren", e_mcp_kopiert: "Kopiert", e_mcp_erzeugen: "Schlüssel erzeugen", e_mcp_erneuern: "Schlüssel erneuern", e_mcp_neu_frage: "Neuen Schlüssel erzeugen? Der alte gilt sofort nicht mehr – trag den neuen in die Anweisungen des Lead-Chats ein.", e_mcp_neu_titel: "Schlüssel für {x}", e_mcp_neu_h: "Nur jetzt sichtbar, nirgends gespeichert. Trag ihn in die Projekt-Anweisungen des Lead-Chats ein, z. B. „AMW-Schlüssel: …“.", e_mcp_kopieren: "Schlüssel kopieren", e_mcp_da: "Schlüssel erzeugt {x}", e_mcp_fehlt: "Noch kein Schlüssel – der Connector lehnt alles ab", e_leicht: "Gleichzeitige leichte Läufe", e_leicht_h: "Normales Bauen und Testen. Leichte Läufe warten nie auf schwere; ein Agent rechnet nie zwei Läufe zugleich (sein Ordner).", e_cpu: "Gleichzeitige schwere Läufe", e_cpu_h: "So viele schwere Läufe dürfen gleichzeitig laufen. Läufe mit Fenster oder Grafikkarte laufen immer einzeln, und ein Agent rechnet nie zwei zugleich.",
+    fr_freigaben: "Freigaben", fr_erledigt: "Erledigt", fr_offen: "Offen", fr_geparkt: "Geparkt", f_keine_freigaben: "Keine Freigabe wartet auf dich.", f_keine_erledigt: "Noch keine Frage beantwortet.", f_freigabe_weg: "Freigeben in der Planung – antippen springt hin ›", f_beantwortet_am: "beantwortet {x}", f_antwort: "Antwort:", f_verworfen: "verworfen", ue_fuer_dich: "Für dich", ue_laeuft: "Läuft gerade", ue_stand: "Stand", ue_zustand: "Zustand", ue_antworten: "Antworten", ue_ansehen: "Ansehen", ue_oeffnen: "Öffnen", ue_mehr_fragen: "{n} weitere Fragen ›", ue_nachrichten: "{n} neue Nachrichten an dich ›", ue_nachricht1: "1 neue Nachricht an dich ›", ue_seit: "seit {x}", ue_warten: "{n} warten", ue_wartet1: "1 wartet", ue_warten_fremd: "in der Warteschlange des Rechners (davon {n} aus anderen Projekten)", ue_warten_eigen: "in der Warteschlange des Rechners", ue_ruhig: "Gerade arbeitet niemand und es läuft nichts.", ue_ziel: "Ziel {x}", ue_ohne: "{n} Aufgaben ohne Meilenstein", ue_ohne1: "1 Aufgabe ohne Meilenstein", ue_zur_planung: "Zur Planung ›", ue_pc: "PC", ue_pc_da: "erreichbar", ue_dienst: "Dienst", ue_dienst_stoerung: "Störung", ue_speicher: "Arbeitsspeicher", ue_gb_frei: "{n} GB frei", ue_platte: "Festplatten", ue_platte_x: "Laufwerk {x}", ue_prozent_frei: "{p} % frei", ue_platte_ok: "genug frei", ue_sync: "Synchronisierung", ue_sync_aus: "aus", ue_sync_an: "läuft", ue_sync_stoerung: "Störung", ue_kosten: "Kosten heute {x}", ue_woche: "{p} % des Wochenlimits verbraucht", ue_probleme: "{n} Probleme", ue_problem1: "1 Problem", ue_keine_probleme: "keine Probleme", ue_zum_betrieb: "Zum Betrieb ›", e_mcp: "Connector für den Lead-Chat (MCP)", e_mcp_h: "Die Zeile kommt in die Konfiguration der Claude-App (Hilfe „AMW mit Claude verbinden“). Den Schlüssel trägst du nur in die Projekt-Anweisungen des Lead-Chats dieses Projekts ein – ohne ihn lehnt der Connector jeden Aufruf ab. Im Chat nur den Eintrag dieses Projekts einschalten.", e_mcp_zeile: "Zeile für die Konfiguration", e_mcp_zeile_knopf: "Zeile kopieren", e_mcp_kopiert: "Kopiert", e_mcp_erzeugen: "Schlüssel erzeugen", e_mcp_erneuern: "Schlüssel erneuern", e_mcp_neu_frage: "Neuen Schlüssel erzeugen? Der alte gilt sofort nicht mehr – trag den neuen in die Anweisungen des Lead-Chats ein.", e_mcp_neu_titel: "Schlüssel für {x}", e_mcp_neu_h: "Nur jetzt sichtbar, nirgends gespeichert. Trag ihn in die Projekt-Anweisungen des Lead-Chats ein, z. B. „AMW-Schlüssel: …“.", e_mcp_kopieren: "Schlüssel kopieren", e_mcp_da: "Schlüssel erzeugt {x}", e_mcp_fehlt: "Noch kein Schlüssel – der Connector lehnt alles ab", e_leicht: "Gleichzeitige leichte Läufe", e_leicht_h: "Normales Bauen und Testen. Leichte Läufe warten nie auf schwere; ein Agent rechnet nie zwei Läufe zugleich (sein Ordner).", e_cpu: "Gleichzeitige schwere Läufe", e_cpu_h: "So viele schwere Läufe dürfen gleichzeitig laufen. Läufe mit Fenster oder Grafikkarte laufen immer einzeln, und ein Agent rechnet nie zwei zugleich.",
     e_fern: "Programm für den Fernzugriff", e_fern_ph: "leer = aus, z. B. teamviewer_desktop.exe oder AnyDesk.exe",
     e_fern_h: "Läuft nur während einer Fernwartungs-Verbindung – beginnt eine, gilt ein freier Bildschirm wieder als belegt",
     e_entwickler: "Dein Name in Meldungen", e_entwickler_ph: "Entwickler", e_entwickler_h: "z. B. „Marie wartet …“ – auch in Wartegründen",
@@ -1494,7 +1513,7 @@ const TEXTE = {
     e_vorrang: "Project priority", e_vorrang_h: "Who goes first in this PC's queue: first “high”, then “normal”, then “low” – in order of arrival within a level. A run that is already running is never stopped; what you move up stays at the very front. Applies at once.", vr_hoch: "high", vr_normal: "normal", vr_niedrig: "low", re_vorrang: "Priority in the queue: {x}.", rh_vorrang: "Priority", rh_l_vorrang: "Priority (setting of this PC)",
     e_vr_auf: "Move up after waiting (minutes)", e_vr_auf_h: "Whoever waits this long moves up one level – so “low” is sure to get its turn too. 0 = off.", e_vr_platz: "Keep room for priority", e_vr_platz_h: "While a run with “high” priority waits, another run starts only if enough memory stays free for it afterwards.",
     e_heimnetz: "Reachable from the home network", e_heimnetz_ph: "e.g. 192.168.178.0/24 – empty = off", e_heimnetz_h: "Address range of your Wi-Fi, e.g. 192.168.178.0/24 – then open the Workbench on a phone or tablet at http://<address of this PC>:8780. Every device in this network has full rights without signing in. Private networks only; empty = off.", re_heimnetz: "Home network open: {x} – every device there has full rights.",
-    e_mcp: "Connector for the lead chat (MCP)", e_mcp_h: "The line goes into the configuration of the Claude app (help “Connect the AMW to Claude”). Put the key only into the project instructions of this project's lead chat – without it the connector rejects every call. In a chat, switch on only this project's entry.", e_mcp_zeile: "Line for the configuration", e_mcp_zeile_knopf: "Copy line", e_mcp_kopiert: "Copied", e_mcp_erzeugen: "Create key", e_mcp_erneuern: "Renew key", e_mcp_neu_frage: "Create a new key? The old one stops working at once – put the new one into the lead chat's instructions.", e_mcp_neu_titel: "Key for {x}", e_mcp_neu_h: "Visible only now, stored nowhere. Put it into the project instructions of the lead chat, e.g. “AMW key: …”.", e_mcp_kopieren: "Copy key", e_mcp_da: "Key created {x}", e_mcp_fehlt: "No key yet – the connector rejects everything", e_leicht: "Light runs at the same time", e_leicht_h: "Normal building and testing. Light runs never wait for heavy ones; an agent never runs two runs at once (its folder).", e_cpu: "Heavy runs at the same time", e_cpu_h: "This many heavy runs may run at the same time. Runs that need a window or the graphics card always run one at a time, and an agent never runs two at once.",
+    fr_freigaben: "Approvals", fr_erledigt: "Done", fr_offen: "Open", fr_geparkt: "Parked", f_keine_freigaben: "No approval is waiting for you.", f_keine_erledigt: "No question answered yet.", f_freigabe_weg: "Approve in planning – tap to jump there ›", f_beantwortet_am: "answered {x}", f_antwort: "Answer:", f_verworfen: "discarded", ue_fuer_dich: "For you", ue_laeuft: "Running now", ue_stand: "Progress", ue_zustand: "Health", ue_antworten: "Answer", ue_ansehen: "View", ue_oeffnen: "Open", ue_mehr_fragen: "{n} more questions ›", ue_nachrichten: "{n} new messages for you ›", ue_nachricht1: "1 new message for you ›", ue_seit: "since {x}", ue_warten: "{n} waiting", ue_wartet1: "1 waiting", ue_warten_fremd: "in the computer's queue ({n} of them from other projects)", ue_warten_eigen: "in the computer's queue", ue_ruhig: "Nobody is working and nothing is running right now.", ue_ziel: "Target {x}", ue_ohne: "{n} tasks without a milestone", ue_ohne1: "1 task without a milestone", ue_zur_planung: "To planning ›", ue_pc: "PC", ue_pc_da: "reachable", ue_dienst: "Service", ue_dienst_stoerung: "Fault", ue_speicher: "Memory", ue_gb_frei: "{n} GB free", ue_platte: "Disks", ue_platte_x: "Drive {x}", ue_prozent_frei: "{p} % free", ue_platte_ok: "enough space", ue_sync: "Sync", ue_sync_aus: "off", ue_sync_an: "running", ue_sync_stoerung: "Fault", ue_kosten: "Cost today {x}", ue_woche: "{p} % of the weekly limit used", ue_probleme: "{n} problems", ue_problem1: "1 problem", ue_keine_probleme: "no problems", ue_zum_betrieb: "To operations ›", e_mcp: "Connector for the lead chat (MCP)", e_mcp_h: "The line goes into the configuration of the Claude app (help “Connect the AMW to Claude”). Put the key only into the project instructions of this project's lead chat – without it the connector rejects every call. In a chat, switch on only this project's entry.", e_mcp_zeile: "Line for the configuration", e_mcp_zeile_knopf: "Copy line", e_mcp_kopiert: "Copied", e_mcp_erzeugen: "Create key", e_mcp_erneuern: "Renew key", e_mcp_neu_frage: "Create a new key? The old one stops working at once – put the new one into the lead chat's instructions.", e_mcp_neu_titel: "Key for {x}", e_mcp_neu_h: "Visible only now, stored nowhere. Put it into the project instructions of the lead chat, e.g. “AMW key: …”.", e_mcp_kopieren: "Copy key", e_mcp_da: "Key created {x}", e_mcp_fehlt: "No key yet – the connector rejects everything", e_leicht: "Light runs at the same time", e_leicht_h: "Normal building and testing. Light runs never wait for heavy ones; an agent never runs two runs at once (its folder).", e_cpu: "Heavy runs at the same time", e_cpu_h: "This many heavy runs may run at the same time. Runs that need a window or the graphics card always run one at a time, and an agent never runs two at once.",
     e_fern: "Remote access program", e_fern_ph: "empty = off, e.g. teamviewer_desktop.exe or AnyDesk.exe",
     e_fern_h: "Runs only during a remote-support connection – when one starts, a free screen counts as in use again",
     e_entwickler: "Your name in messages", e_entwickler_ph: "Entwickler", e_entwickler_h: "e.g. “Marie is waiting …” – also in wait reasons",
@@ -2265,6 +2284,87 @@ function sprungmarken(m) {
 }
 
 /* --- Start --------------------------------------------------------------------------------- */
+/* A1657 Übersicht (Marcel 14.11., Mockup D1066): vier Karten – „Für dich“ (nur, wo du etwas tun musst), „Läuft gerade“,
+   „Stand“ (aktive Meilensteine), „Zustand“ (Dienst, Arbeitsspeicher, Platte, Synchronisierung, Kosten). Alles Weitere einen Klick tiefer. */
+function ueKarte(schluessel, n, ...inhalt) {
+  return el("section", { class: "ue-karte" + (schluessel === "ue_fuer_dich" && n ? " dran" : ""), id: "ue-" + schluessel.slice(3) },
+    el("h3", {}, t(schluessel), n ? el("span", { class: "ue-zahl" }, String(n)) : null), ...inhalt);
+}
+function ueZeile(ref, text, knopf, tun, extra) {
+  return el("div", { class: "ue-zeile" }, ref ? el("span", { class: "ref" }, ref) : null, el("span", { class: "ue-text" }, text, extra || null),
+    knopf ? el("button", { class: "klein-knopf ue-knopf", type: "button", onclick: tun }, knopf) : null);
+}
+function uebersichtKarten(d) {
+  const u = d.uebersicht || {}, pw = d.planung_wartet || { spezifikationen: [], plaene: [], eigene: [] };
+  const kurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : (x || "");
+  /* Für dich */
+  const fragen = d.fragen || [];
+  const dran = [
+    ...fragen.slice(0, 6).map(f => ueZeile(`F${f.id}`, kurz(f.kurz, 150), t("ue_antworten"), () => zeige("fragen"),
+      f.blockiert ? el("span", { class: "etikett rot", style: "margin-left:6px" }, t("blockiert")) : null)),
+    ...pw.spezifikationen.map(x => ueZeile(bogenRef(x.bogen_id), t("pl_spec_frei", { b: x.bogen_id, x: x.titel, teil: t("teil_" + x.teil), v: x.version }),
+      t("ue_ansehen"), () => { zustand.planReiter = "zeitleiste"; zeige("planung"); })),
+    ...pw.plaene.map(p => ueZeile(`A${p.id}`, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" }), t("ue_ansehen"), () => zeige("planung"))),
+    ...pw.eigene.map(a => ueZeile(`A${a.id}`, a.titel, t("ue_oeffnen"), () => aufgabeDialog(a.id)))];
+  const anzahl = fragen.length + pw.spezifikationen.length + pw.plaene.length + pw.eigene.length;
+  const frisch = (d.an_dich || []).filter(n => !n.abgelegt), aelterIds = (d.an_dich || []).filter(n => n.abgelegt).map(n => n.id);
+  const zuNachrichten = () => { try { localStorage.setItem(ablage("amw-nr"), "eingang"); } catch (e) {} zeige("nachrichten"); };
+  const fuer = ueKarte("ue_fuer_dich", anzahl,
+    dran.length ? el("div", { class: "ue-liste" }, dran) : el("p", { class: "ue-leer" }, t("nichts_offen")),
+    fragen.length > 6 ? el("a", { class: "verweis ue-mehr", onclick: () => zeige("fragen") }, t("ue_mehr_fragen", { n: fragen.length - 6 })) : null,
+    frisch.length || aelterIds.length ? el("div", { class: "ue-fuss" },
+      frisch.length ? el("a", { class: "verweis nr-start", onclick: zuNachrichten }, t(frisch.length === 1 ? "ue_nachricht1" : "ue_nachrichten", { n: frisch.length })) : null,
+      aelterIds.length ? el("span", { class: "sehrleise", title: t("an_dich_alt_h") }, t("an_dich_alt", { n: aelterIds.length })) : null,
+      aelterIds.length ? el("button", { class: "klein-knopf", type: "button", onclick: async () => {
+        try { await schicken("/api/gelesen", { ids: aelterIds }); kopfAktualisieren(); zeige("start", true); } catch (x) { toast(t("fehler", { x: x.message }), true); } } },
+        t("an_dich_alt_weg")) : null) : null);
+  /* Läuft gerade */
+  const aktiv = (d.agenten || []).filter(a => a.zustand === "aktiv");
+  const laeufe = u.laeufe || [], r = d.rechner || {}, fremd = Math.max(0, (r.warten || 0) - (r.eigene_warten || 0));
+  const laeuft = ueKarte("ue_laeuft", 0, aktiv.length || laeufe.length || r.warten ? el("div", { class: "ue-liste" },
+    aktiv.map(a => el("div", { class: "ue-zeile klickbar", onclick: () => agentDialog(a.kennung) }, el("span", { class: "punkt bernstein" }),
+      el("b", {}, a.kennung), el("span", { class: "ue-text leise" }, "→ " + (a.gerade_aufgabe ? `A${a.gerade_aufgabe} ` : "") + kurz(a.gerade || t("tm_keine"), 90)))),
+    laeufe.map(l => el("div", { class: "ue-zeile klickbar", onclick: () => zeige("betrieb") }, el("span", { class: "punkt gruen" }),
+      el("b", {}, `L${l.id}`), el("span", { class: "ue-text leise" }, [l.agent, kurz(l.beschreibung, 70), t("ue_seit", { x: seit(l.start_utc) })].filter(Boolean).join(" · ")))),
+    r.warten ? el("div", { class: "ue-zeile" }, el("b", {}, t(r.warten === 1 ? "ue_wartet1" : "ue_warten", { n: r.warten })),
+      el("span", { class: "ue-text leise" }, fremd ? t("ue_warten_fremd", { n: fremd }) : t("ue_warten_eigen"))) : null)
+    : el("p", { class: "ue-leer" }, t("ue_ruhig")));
+  /* Stand */
+  const boegen = u.boegen || [];
+  const stand = ueKarte("ue_stand", 0, boegen.length ? el("div", { class: "ue-liste" }, boegen.map(b => {
+      const g = b.gesamt - (b.verworfen || 0), f = b.fertig || 0;
+      return el("div", { class: "ue-bogen klickbar", onclick: () => zuSchritt(null, b.id) },
+        el("div", { class: "ue-zeile" }, el("span", { class: "ref" }, bogenRef(b.id)), el("b", { class: "ue-text" }, b.titel),
+          b.zieldatum ? el("span", { class: "sehrleise" }, t("ue_ziel", { x: datumKurz(b.zieldatum) })) : null),
+        el("div", { class: "ue-spur" }, el("i", { style: `width:${g ? Math.round(100 * f / g) : 0}%` })),
+        el("div", { class: "sehrleise" }, t("sj_fertig", { f, g }))); }))
+    : el("p", { class: "ue-leer" }, t("sj_kein_aktiv")),
+    el("div", { class: "ue-fuss" }, u.ohne_bogen ? el("span", { class: "sehrleise" }, t(u.ohne_bogen === 1 ? "ue_ohne1" : "ue_ohne", { n: u.ohne_bogen })) : null,
+      el("a", { class: "verweis", onclick: () => { zustand.planReiter = "zeitleiste"; zeige("planung"); } }, t("ue_zur_planung"))));
+  /* Zustand */
+  const kachel = (farbe, titel, wert, tun) => el("div", { class: "ue-kachel" + (tun ? " klickbar" : ""), onclick: tun || null },
+    el("div", { class: "leise" }, el("span", { class: "punkt " + farbe }), titel), el("b", {}, wert));
+  const dienstRot = (d.dienst_rot || []).length, online = d.online;
+  const pl = (r.platte || [])[0], sp = d.speicher?.frei;
+  const sy = u.sync;
+  const probleme = (d.warnungen || []).length + dienstRot + (pl ? 1 : 0);
+  const tk = d.token;
+  const zust = ueKarte("ue_zustand", 0,
+    el("div", { class: "ue-kacheln" },
+      online ? kachel(online.pc_frisch ? "gruen" : "bernstein", t("ue_pc"), online.pc_frisch ? t("ue_pc_da") : seit(online.pc_gesehen_utc))
+        : kachel(dienstRot ? "rot" : u.dienst === "gelb" ? "bernstein" : u.dienst === "aus" ? "" : "gruen", t("ue_dienst"),
+            dienstRot ? t("ue_dienst_stoerung") : u.dienst === "aus" ? t("ue_sync_aus") : t("ls_laeuft"), () => zeige("betrieb")),
+      sp == null ? null : kachel(sp < 4 ? "rot" : sp < 8 ? "bernstein" : "gruen", t("ue_speicher"), t("ue_gb_frei", { n: zahlKurz(sp) })),
+      kachel(pl ? (pl.stufe === "rot" ? "rot" : "bernstein") : "gruen", pl ? t("ue_platte_x", { x: pl.laufwerk }) : t("ue_platte"),
+        pl ? t("ue_prozent_frei", { p: zahlKurz(pl.frei_prozent) }) : t("ue_platte_ok"), () => zeige("einstellungen")),
+      kachel(!sy ? "" : sy.zustand === "rot" ? "rot" : sy.zustand === "gelb" ? "bernstein" : "gruen", t("ue_sync"),
+        !sy ? t("ue_sync_aus") : typeof sy === "string" ? t("ue_sync_" + (sy === "rot" ? "stoerung" : "an")) : seit(sy.zeit_utc))),
+    el("div", { class: "ue-fuss sehrleise" }, [u.kosten_heute != null ? t("ue_kosten", { x: dollar(u.kosten_heute) }) : null,
+      tk?.wert != null ? t("ue_woche", { p: Math.round(tk.wert) }) : null,
+      probleme ? t(probleme === 1 ? "ue_problem1" : "ue_probleme", { n: probleme }) : t("ue_keine_probleme")].filter(Boolean).join(" · "),
+      el("a", { class: "verweis", style: "margin-left:auto", onclick: () => zeige("betrieb") }, t("ue_zum_betrieb"))));
+  return el("div", { class: "ue-raster" }, fuer, laeuft, stand, zust);
+}
 async function sichtStart() {
   await kopfAktualisieren(); const d = zustand.start; if (!d) return;
   const m = rahmen(t("n_start"), el("span", { class: "leise" }, t("stand", { t: zeit(d.zeit) })));
@@ -2324,37 +2424,7 @@ async function sichtStart() {
     d.warnungen.map(w => el("div", { class: "band-zeile" }, el("span", {}, w.text),     /* je Warnung ein Sprung zu dem, den sie betrifft */
       w.an && (d.agenten || []).some(a => a.kennung === w.an)
         ? el("button", { class: "klein-knopf", type: "button", title: t("band_ansehen_h", { x: w.an }), onclick: () => agentDialog(w.an) }, t("band_ansehen", { x: w.an })) : null))));
-  m.append(el("h2", {}, t("wartet_auf_dich")));
-  const pw = d.planung_wartet || { spezifikationen: [], plaene: [], eigene: [] };
-  const fr = [...pw.spezifikationen.map(s => el("div", { class: "karte", onclick: () => { zustand.planReiter = "zeitleiste"; zeige("planung"); } },
-      el("div", {}, el("span", { class: "ref" }, bogenRef(s.bogen_id)), " ", el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))),
-      el("p", {}, t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })),
-      el("p", { class: "leise", style: "margin:0;font-size:12.5px" }, specWer({ ...s, status: "vorgelegt" }).slice(3)))),
-    ...pw.plaene.map(p => el("div", { class: "karte", onclick: () => zeige("planung") }, el("div", {}, el("span", { class: "ref" }, `A${p.id}`), " ",
-      el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))), el("p", {}, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" })))),
-    ...pw.eigene.map(a => el("div", { class: "karte klickbar", onclick: () => aufgabeDialog(a.id) }, el("div", {}, el("span", { class: "ref" }, `A${a.id}`), " ",
-      el("span", { class: "etikett" }, t("pl_dein_schritt")),
-      a.fragen_n ? el("span", { class: "etikett " + (a.fragen_offen ? "bernstein" : "gruen"), style: "margin-left:6px" },
-        fragenStand(a.fragen_offen, a.fragen_n)) : null),
-      el("p", {}, a.titel)))];
-  if (fr.length) m.append(el("div", { class: "wartet zeile-reveal", style: "margin-bottom:12px" }, fr));
-  m.append(d.fragen.length
-    ? el("div", { class: "wartet zeile-reveal" }, d.fragen.slice(0, 6).map(f => el("div", { class: "karte", onclick: () => zeige("fragen") },
-        el("div", {}, el("span", { class: "ref" }, `F${f.id}`), " ", el("span", { class: "leise" }, `${f.von} · ${seit(f.zeit_utc)}`),
-          f.blockiert ? el("span", { class: "etikett rot", style: "margin-left:8px" }, t("blockiert")) : null,
-          f.nachtraege ? el("span", { class: "etikett bernstein nachtrag-neu" }, t("nachtrag_neu", { n: f.nachtraege })) : null),
-        el("p", {}, f.kurz.length > 180 ? f.kurz.slice(0, 180) + " …" : f.kurz))))
-    : el("div", { class: "leer" }, t("nichts_offen")));
-  const frisch = (d.an_dich || []).filter(n => !n.abgelegt), aelterIds = (d.an_dich || []).filter(n => n.abgelegt).map(n => n.id), aelter = aelterIds.length;
-  if (frisch.length || aelter) m.append(el("div", { class: "karte klickbar nr-start", style: "margin-top:12px", onclick: () => {
-      try { localStorage.setItem(ablage("amw-nr"), "eingang"); } catch (e) {} zeige("nachrichten"); } },
-    el("div", {}, el("b", {}, t("an_dich")), " ", frisch.length ? el("span", { class: "etikett bernstein" }, t("nr_start_neu", { n: frisch.length })) : null,
-      aelter ? el("span", { class: "sehrleise", style: "margin-left:8px", title: t("an_dich_alt_h") }, t("an_dich_alt", { n: aelter })) : null,
-      aelter ? el("button", { class: "klein-knopf", type: "button", style: "margin-left:8px", onclick: async e => { e.stopPropagation();
-        try { await schicken("/api/gelesen", { ids: aelterIds }); kopfAktualisieren(); zeige("start", true); } catch (x) { toast(t("fehler", { x: x.message }), true); } } },
-        t("an_dich_alt_weg")) : null),
-    frisch.slice(0, 3).map(n => el("div", { class: "leise nr-start-zeile" }, el("b", {}, wer(n.von)), " · ", n.kurz.length > 110 ? n.kurz.slice(0, 110) + " …" : n.kurz)),
-    el("div", { class: "sehrleise", style: "margin-top:6px" }, t("nr_start_alle") + " ›")));
+  m.append(uebersichtKarten(d));                          /* A1657: Für dich · Läuft gerade · Stand · Zustand */
   m.append(el("h2", {}, t("tm_titel")));
   m.append(teamAnsicht(d));
   m.append(leitstand(d));
@@ -3163,13 +3233,48 @@ function nachrichtDialog(an, mit = {}) {
 }
 
 /* --- Fragen -------------------------------------------------------------------------------- */
+/* A1657 (Marcel 14.11.): Fragen mit den Reitern Offen · Freigaben · Geparkt · Erledigt – „Freigaben“ sind vorgelegte
+   Spezifikationen und Pläne, die nur du freigibst (freigegeben wird in der Planung, dort steht alles dazu). */
+function freigabenListe() {
+  const pw = zustand.start?.planung_wartet || { spezifikationen: [], plaene: [] };
+  const karten = [...pw.spezifikationen.map(s => el("div", { class: "karte klickbar", onclick: () => zuSchritt(null, s.bogen_id) },
+      el("div", { class: "meta" }, el("span", { class: "ref" }, bogenRef(s.bogen_id)), el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))),
+      el("p", {}, t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })),
+      el("p", { class: "leise", style: "margin:0;font-size:12.5px" }, specWer({ ...s, status: "vorgelegt" }).slice(3)),
+      el("div", { class: "sehrleise", style: "margin-top:6px" }, t("f_freigabe_weg")))),
+    ...pw.plaene.map(p => el("div", { class: "karte klickbar", onclick: () => zuSchritt(p.id, null) },
+      el("div", { class: "meta" }, el("span", { class: "ref" }, `A${p.id}`), el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))),
+      el("p", {}, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" })),
+      el("div", { class: "sehrleise", style: "margin-top:6px" }, t("f_freigabe_weg"))))];
+  return karten;
+}
+function erledigtKarte(f) {
+  const antwort = f.status === "verworfen" ? t("f_verworfen") : f.antwort_art === "option"
+    ? `${f.antwort}${f.option_text ? " – " + f.option_text : ""}` : (f.antwort || "–");
+  return el("div", { class: "karte" }, el("div", { class: "meta", style: "display:flex;gap:8px;flex-wrap:wrap" }, el("span", { class: "ref" }, `F${f.id}`), el("span", {}, t("von", { x: f.von })),
+      f.antwort_utc ? el("span", { class: "sehrleise" }, t("f_beantwortet_am", { x: zeit(f.antwort_utc) })) : null),
+    el("p", { style: "margin:4px 0" }, el("b", {}, f.kurz)), el("p", { class: "leise", style: "margin:0" }, el("b", {}, t("f_antwort") + " "), antwort));
+}
 async function sichtFragen() {
   const m = rahmen(t("n_fragen"), el("span", { class: "leise" }, t("f_unter")));
   let alle; try { alle = await holen("/api/fragen?alle=1"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
-  const geparkt = zustand.fragenSicht === "geparkt";
+  if (!zustand.start) { try { await kopfAktualisieren(); } catch (e) {} }
+  const sicht = ["offen", "freigaben", "geparkt", "erledigt"].includes(zustand.fragenSicht) ? zustand.fragenSicht : "offen";
+  const freigaben = freigabenListe();
+  const zahl = { offen: alle.filter(f => !f.geparkt_utc).length, freigaben: freigaben.length, geparkt: alle.filter(f => f.geparkt_utc).length, erledigt: null };
+  m.append(el("div", { class: "reiter" }, ["offen", "freigaben", "geparkt", "erledigt"].map(s => el("button", { class: s === sicht ? "an" : "", type: "button",
+    onclick: () => { zustand.fragenSicht = s; sichtFragen(); } }, t("fr_" + s), zahl[s] == null ? null : el("span", { class: "zahl" }, ` ${zahl[s]}`)))));
+  if (sicht === "freigaben") {
+    m.append(freigaben.length ? el("div", { class: "zeile-reveal wartet" }, freigaben) : el("div", { class: "leer" }, t("f_keine_freigaben")));
+    return;
+  }
+  if (sicht === "erledigt") {
+    let erl; try { erl = await holen("/api/fragen?erledigt=1"); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
+    m.append(erl.length ? el("div", { class: "zeile-reveal wartet" }, erl.map(erledigtKarte)) : el("div", { class: "leer" }, t("f_keine_erledigt")));
+    return;
+  }
+  const geparkt = sicht === "geparkt";
   const liste = alle.filter(f => !!f.geparkt_utc === geparkt);
-  m.append(el("div", { class: "reiter" }, ["offen", "geparkt"].map(s => el("button", { class: s === zustand.fragenSicht ? "an" : "", type: "button",
-    onclick: () => { zustand.fragenSicht = s; sichtFragen(); } }, t("t_" + s), el("span", { class: "zahl" }, ` ${alle.filter(f => !!f.geparkt_utc === (s === "geparkt")).length}`)))));
   if (geparkt && liste.length) m.append(el("p", { class: "leise", style: "margin:0 0 12px" }, t("f_geparkt_hinweis")));
   if (!liste.length) { m.append(el("div", { class: "leer" }, t(geparkt ? "keine_geparkt" : "keine_fragen"))); return; }
   m.append(el("div", { class: "zeile-reveal" }, liste.map(frageKarte)));
