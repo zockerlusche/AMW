@@ -35,8 +35,8 @@ class Laeufe(Grund):
             with self.assertRaises(kern.AmwFehler):
                 betrieb.lauf_ende(self.con, self.pid, "CC2", l1, 0)                                   # fremder Lauf
             betrieb.lauf_ende(self.con, self.pid, "CC1", l1, 0, "ok")
-            with self.assertRaises(kern.AmwFehler) as e:
-                betrieb.lauf_start(self.con, self.pid, "TL", "Test", speicher_frei=5)
+            with self.assertRaises(kern.AmwFehler) as e:            # CC1 ist frei (TL rechnet noch Lint – A1822: ein Lauf je Agent)
+                betrieb.lauf_start(self.con, self.pid, "CC1", "Test", speicher_frei=5)
             self.assertIn("GB frei", str(e.exception))
 
     def test_rezept_bestimmt_schirm_und_grenze(self):
@@ -83,7 +83,7 @@ class Warteschlange(Grund):
         self.assertIn("--warten", str(e.exception))
         l2, l3 = self.start("CC2", True), self.start("CC3", True)
         self.assertEqual((self.status(l2), self.status(l3)), ("angemeldet", "angemeldet"))
-        self.start("CC1", schwer=False)                                   # leichte Läufe warten nie
+        self.assertEqual(self.status(self.start("TL", schwer=False)), "laeuft")   # leichte warten nie auf schwere (A1822: anderer Agent)
         self.assertEqual(betrieb.lauf_ende(self.con, self.pid, "CC1", l1, 0, speicher_frei=20), [l2])
         self.assertEqual((self.status(l2), self.status(l3)), ("laeuft", "angemeldet"))
         frei = kern.offene(self.con, self.pid, "CC2")[0]
