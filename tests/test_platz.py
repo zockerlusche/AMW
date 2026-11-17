@@ -125,12 +125,48 @@ class Platz(unittest.TestCase):
         with open(os.path.join(p["daten"], "tmp", "rest.txt"), "w") as f:
             f.write("x\n")
         self.assertFalse(platz.sauber(p))
-        self.assertTrue(platz.zuruecksetzen(p))
+        kopf = g(p["klon"], "rev-parse", "HEAD")                                                # der halbe Commit
+        r = platz.zuruecksetzen(p, aufgabe=7)
+        self.assertTrue(r["sauber"])
         self.assertEqual(g(p["klon"], "rev-parse", "HEAD"), g(self.repo, "rev-parse", "main"))
         self.assertFalse(os.path.exists(os.path.join(p["klon"], "neu.txt")))
         self.assertFalse(os.path.exists(os.path.join(p["daten"], "tmp", "rest.txt")))
         self.assertTrue(os.path.exists(os.path.join(p["lad"], "amw", "einstellungen.json")))   # Port bleibt eingerichtet
         self.assertTrue(os.path.exists(os.path.join(self.repo, "a.txt")))                     # die Quelle unberührt
+        # A1861 / B2894: nichts gelöscht – alles liegt im Archiv
+        arch = r["archiv"]
+        self.assertTrue(arch.endswith("-A7") and os.path.dirname(arch).endswith("_archiv"), arch)
+        self.assertIn("kaputt", open(os.path.join(arch, "ungesichert.patch"), encoding="utf-8").read())      # geänderte Datei
+        self.assertTrue(os.path.exists(os.path.join(arch, "commits.bundle")))                                 # halber Commit
+        self.assertIn(kopf, g(p["klon"], "bundle", "list-heads", os.path.join(arch, "commits.bundle")))        # Commit gesichert
+        self.assertTrue(os.path.exists(os.path.join(arch, "dateien", "fremd.tmp")))                            # fremde Datei verschoben
+        self.assertTrue(os.path.exists(os.path.join(arch, "index.lock")))                                     # Sperre verschoben
+        self.assertTrue(os.path.exists(os.path.join(arch, "daten", "tmp", "rest.txt")))                        # Datenordner verschoben
+        self.assertIsNone(platz.zuruecksetzen(p)["archiv"])                                                   # sauber: kein leeres Archiv
+
+    def test_aufraeumen_nach_paketende(self):
+        """B2894: ist das Paket fertig, wandert sein Archiv nach _loeschen – nie gelöscht; offene bleiben im Archiv."""
+        self.einrichten(1)
+        p = platz.plaetze(self.con, self.pid)[0]
+        platz.vorbereiten(p, self.repo, "paket")
+        fertig = kern.aufgabe_neu(self.con, self.pid, "TL", "Fertig", "TL")
+        offen = kern.aufgabe_neu(self.con, self.pid, "TL", "Offen", "TL")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'x', fertig_utc = ? WHERE id = ?", (db.jetzt(), fertig))
+        for aid in (fertig, offen):
+            with open(os.path.join(p["klon"], f"rest{aid}.txt"), "w") as f:
+                f.write("x")
+            platz.zuruecksetzen(p, aufgabe=aid)
+        w = os.path.dirname(p["klon"])
+        self.assertEqual(len(platz.aufraeumen(self.con, self.pid, w)), 1)
+        self.assertTrue(any(n.endswith(f"-A{fertig}") for n in os.listdir(os.path.join(w, "_loeschen"))))
+        self.assertTrue(any(n.endswith(f"-A{offen}") for n in os.listdir(os.path.join(w, "_archiv"))))
+        self.assertGreater(platz.groesse(os.path.join(w, "_loeschen")), 0)
+        aus = io.StringIO()
+        with contextlib.redirect_stdout(aus):
+            cli.main(["platz", "liste", "--projekt", "Spiel", "--von", "TL"])
+        self.assertIn("zum Löschen", aus.getvalue())
+        self.assertIn("leeren kann nur der Mensch", aus.getvalue())
 
     def test_platz_nie_im_projektordner_und_kein_fremder_ordner(self):
         p = platz.pfade(os.path.join(self.repo, "innen"), 1)

@@ -7,8 +7,11 @@ Dienstes. Wo die Plätze liegen, steht nur in den Einstellungen des Projekts (pl
 Mensch (das ist seine einmalige Freigabe). plaetze = 0 (Vorgabe): es gibt keine Plätze, die AMW verhält sich wie bisher.
 
 `vorbereiten` legt den Klon an oder holt ihn auf den Stand von main (Zweig ab origin/main, sauber); `zuruecksetzen` macht
-ihn wieder sauber – auch nach einem Abbruch (liegengebliebene index.lock, halbe Änderungen, fremde Dateien). Gelöscht wird
-dabei nur innerhalb des Platzes (Klon und Datenordner), den der Mensch dafür freigegeben hat.
+ihn wieder sauber – auch nach einem Abbruch (liegengebliebene index.lock, halbe Änderungen, fremde Dateien).
+
+Gelöscht wird nichts (Marcel B2894, A1861): Reste wandern erst ins Archiv (<wurzel>/_archiv/platzN-<Zeit>[-A<nr>]: Patch
+der ungesicherten Änderungen, Bundle der Commits, fremde und ignorierte Dateien, der Datenordner – verschoben, nicht kopiert),
+ist das Paket fertig, schiebt `aufraeumen` das Archiv nach <wurzel>/_loeschen. Endgültig löscht nur der Mensch.
 """
 import json
 import os
@@ -79,7 +82,7 @@ def _daten_anlegen(p):
         json.dump({"port": p["port"]}, f)
 
 
-def vorbereiten(p, quelle, zweig):
+def vorbereiten(p, quelle, zweig, aufgabe=None):
     """Platz auf den Stand von main der Quelle bringen: Klon anlegen (falls nötig), holen, Zweig `zweig` ab origin/main,
     sauber; Datenordner frisch. Rückgabe: {"klon", "zweig", "basis"} (basis = SHA von origin/main)."""
     quelle = os.path.abspath(quelle)
@@ -99,7 +102,7 @@ def vorbereiten(p, quelle, zweig):
             raise PlatzFehler(f"{p['daten']} ist nicht leer und kein Datenordner eines Platzes – die AMW fasst ihn nicht an")
         _daten_anlegen(p)
     _git(p["klon"], "remote", "set-url", "origin", quelle)
-    zuruecksetzen(p, holen=True, projektordner=quelle)
+    zuruecksetzen(p, holen=True, projektordner=quelle, aufgabe=aufgabe)
     _git(p["klon"], "checkout", "-q", "-B", zweig, "origin/main")
     basis = _git(p["klon"], "rev-parse", "origin/main")
     if not sauber(p):
@@ -107,19 +110,75 @@ def vorbereiten(p, quelle, zweig):
     return {"klon": p["klon"], "zweig": zweig, "basis": basis}
 
 
-def zuruecksetzen(p, holen=False, projektordner=None):
-    """Platz sauber machen – auch nach einem Abbruch: Sperrdatei weg, laufende Rebase/Merge abbrechen, Änderungen und
-    fremde Dateien verwerfen, auf origin/main (losgelöst); Datenordner leeren und neu anlegen (Port bleibt). Gelöscht wird
-    nur, wo die Markerdatei liegt, und nie im Projektordner (TL P239)."""
+def _wurzel(p):
+    return os.path.dirname(os.path.abspath(p["klon"]))
+
+
+class _Archiv:
+    """Archiv-Ordner eines Zurücksetzens – erst angelegt, wenn wirklich etwas zu sichern ist (kein leerer Ordner je Lauf)."""
+
+    def __init__(self, p, aufgabe):
+        import datetime
+        name = f"platz{p['nr']}-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}" + (f"-A{aufgabe}" if aufgabe else "")
+        self.pfad, self.inhalt = os.path.join(_wurzel(p), "_archiv", name), []
+
+    def ordner(self):
+        os.makedirs(self.pfad, exist_ok=True)
+        return self.pfad
+
+    def schreiben(self, name, daten):
+        with open(os.path.join(self.ordner(), name), "wb") as f:
+            f.write(daten)
+        self.inhalt.append(name)
+
+    def verschieben(self, quelle, ziel_rel):
+        ziel = os.path.join(self.ordner(), ziel_rel)
+        os.makedirs(os.path.dirname(ziel), exist_ok=True)
+        shutil.move(quelle, ziel)
+        self.inhalt.append(ziel_rel.replace(os.sep, "/"))
+
+
+def _daten_frisch(p):
+    """Nur die Grundeinrichtung (Marker, Port-Einstellung, leere Ordner)? Dann gibt es nichts zu sichern."""
+    grund = {os.path.normcase(_marker(p["daten"])), os.path.normcase(os.path.join(p["lad"], "amw", "einstellungen.json"))}
+    return all(os.path.normcase(os.path.join(w, f)) in grund for w, _, fs in os.walk(p["daten"]) for f in fs)
+
+
+def _roh(ordner, *args):
+    r = subprocess.run(["git", "-C", ordner, *args], capture_output=True, stdin=subprocess.DEVNULL, timeout=600,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    return r.returncode, r.stdout
+
+
+def zuruecksetzen(p, holen=False, projektordner=None, aufgabe=None):
+    """Platz sauber machen – auch nach einem Abbruch – OHNE zu löschen (B2894): Reste kommen ins Archiv (Sperrdatei,
+    Patch der ungesicherten Änderungen, Bundle der Commits seit origin/main, fremde und ignorierte Dateien, Datenordner –
+    verschoben), erst danach geht der Klon auf origin/main (losgelöst) und der Datenordner wird neu angelegt (Port bleibt).
+    Nur mit Markerdatei und nie im Projektordner. Rückgabe {"sauber", "archiv" (Pfad oder None), "inhalt"}."""
     if not os.path.isdir(os.path.join(p["klon"], ".git")):
         raise PlatzFehler(f"Platz {p['nr']} ist noch nicht angelegt (amw platz vorbereiten)")
     if not os.path.exists(_marker(os.path.join(p["klon"], ".git"))):
         raise PlatzFehler(f"{p['klon']} trägt keine Markierung als Platz – die AMW setzt ihn nicht zurück")
     if projektordner and os.path.normcase(os.path.abspath(p["klon"])).startswith(os.path.normcase(os.path.abspath(projektordner)) + os.sep):
         raise PlatzFehler("Der Platz liegt im Projektordner – die AMW setzt ihn nicht zurück")
+    if os.path.isdir(p["daten"]) and not os.path.exists(_marker(p["daten"])):
+        raise PlatzFehler(f"{p['daten']} trägt keine Markierung als Datenordner eines Platzes – nichts angefasst")
+    a = _Archiv(p, aufgabe)
     sperre = os.path.join(p["klon"], ".git", "index.lock")
     if os.path.exists(sperre):
-        os.remove(sperre)
+        a.verschieben(sperre, "index.lock")
+    rc, patch = _roh(p["klon"], "diff", "HEAD", "--binary")              # 1. ungesicherte Änderungen (auch vorgemerkte)
+    if rc == 0 and patch.strip():
+        a.schreiben("ungesichert.patch", patch)
+    rc, zahl = _roh(p["klon"], "rev-list", "--count", "origin/main..HEAD")   # 2. Commits seit main als Bundle
+    if rc == 0 and int(zahl.strip() or 0):
+        _git(p["klon"], "bundle", "create", os.path.join(a.ordner(), "commits.bundle"), "origin/main..HEAD")
+        a.inhalt.append("commits.bundle")
+    rc, fremd = _roh(p["klon"], "ls-files", "--others", "-z")              # 3. fremde und ignorierte Dateien: verschieben
+    for rel in [x.decode("utf-8", "replace") for x in fremd.split(b"\0") if x] if rc == 0 else []:
+        quelle = os.path.join(p["klon"], rel)
+        if os.path.isfile(quelle):
+            a.verschieben(quelle, os.path.join("dateien", rel))
     for x in (("rebase", "--abort"), ("merge", "--abort"), ("cherry-pick", "--abort")):
         try:
             _git(p["klon"], *x)
@@ -127,16 +186,45 @@ def zuruecksetzen(p, holen=False, projektordner=None):
             pass
     if holen:
         _git(p["klon"], "fetch", "-q", "origin", "--prune")
-    _git(p["klon"], "reset", "-q", "--hard")
-    _git(p["klon"], "clean", "-q", "-ffdx")
-    _git(p["klon"], "checkout", "-q", "--detach", "origin/main")
+    _git(p["klon"], "checkout", "-q", "-f", "--detach", "origin/main")   # alles Geänderte liegt jetzt im Archiv
     _git(p["klon"], "reset", "-q", "--hard", "origin/main")
-    if os.path.isdir(p["daten"]):
-        if not os.path.exists(_marker(p["daten"])):
-            raise PlatzFehler(f"{p['daten']} trägt keine Markierung als Datenordner eines Platzes – nicht gelöscht")
-        shutil.rmtree(p["daten"])
+    if os.path.isdir(p["daten"]) and not _daten_frisch(p):             # 4. Datenordner: verschieben, neu anlegen
+        a.verschieben(p["daten"], "daten")
     _daten_anlegen(p)
-    return sauber(p)
+    if a.inhalt:
+        import json as _j
+        a.schreiben("platz.json", _j.dumps({"platz": p["nr"], "aufgabe": aufgabe, "inhalt": list(a.inhalt)}, ensure_ascii=False).encode())
+    return {"sauber": sauber(p), "archiv": a.pfad if a.inhalt else None, "inhalt": a.inhalt}
+
+
+def aufraeumen(con, pid, wurzel):
+    """Archive fertiger Pakete (Aufgabe fertig oder verworfen) von _archiv nach _loeschen verschieben – nie löschen;
+    _loeschen leert der Mensch. Rückgabe: Liste der verschobenen Ordnernamen."""
+    import re
+    quelle, ziel = os.path.join(wurzel, "_archiv"), os.path.join(wurzel, "_loeschen")
+    aus = []
+    for name in sorted(os.listdir(quelle)) if os.path.isdir(quelle) else []:
+        m = re.search(r"-A(\d+)$", name)
+        if not m:
+            continue
+        r = con.execute("SELECT status FROM aufgabe WHERE id = ? AND projekt_id = ?", (int(m.group(1)), pid)).fetchone()
+        if r and r["status"] in ("fertig", "verworfen"):
+            os.makedirs(ziel, exist_ok=True)
+            shutil.move(os.path.join(quelle, name), os.path.join(ziel, name))
+            aus.append(name)
+    return aus
+
+
+def groesse(ordner):
+    """Bytes in einem Ordner (0, wenn es ihn nicht gibt)."""
+    s = 0
+    for w, _, fs in os.walk(ordner):
+        for f in fs:
+            try:
+                s += os.path.getsize(os.path.join(w, f))
+            except OSError:
+                pass
+    return s
 
 
 def sauber(p):

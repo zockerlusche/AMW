@@ -1017,6 +1017,11 @@ def cmd_platz(a, con):
     if a.aktion == "liste":
         if not ps:
             print("Keine Arbeitsplätze (Projekt-Einstellung plaetze = 0 oder platz_wurzel fehlt) – die AMW arbeitet wie bisher")
+        else:
+            w = os.path.dirname(ps[0]["klon"])
+            arch, loe = platz.groesse(os.path.join(w, "_archiv")), platz.groesse(os.path.join(w, "_loeschen"))
+            print(f"Archiv {arch / 2 ** 20:.1f} MB · zum Löschen {loe / 2 ** 20:.1f} MB in {os.path.join(w, '_loeschen')}"
+                  + (" – leeren kann nur der Mensch" if loe else ""))
         for p in ps:
             da = os.path.isdir(os.path.join(p["klon"], ".git"))
             print(f"Platz {p['nr']}: {p['klon']} · Daten {p['daten']} · Port {p['port']} · "
@@ -1024,6 +1029,12 @@ def cmd_platz(a, con):
         return
     if not kern.ist_lead(con, pid, _von(a)):
         raise kern.AmwFehler("Arbeitsplätze vorbereiten und zurücksetzen dürfen Lead und Mensch")
+    if a.aktion == "aufraeumen":
+        if not ps:
+            raise kern.AmwFehler("Keine Arbeitsplätze eingerichtet")
+        n = platz.aufraeumen(con, pid, os.path.dirname(ps[0]["klon"]))
+        print(f"{len(n)} Archiv(e) fertiger Pakete nach _loeschen verschoben" + (f": {', '.join(n)}" if n else ""))
+        return
     p = next((x for x in ps if x["nr"] == a.nr), None)
     if not p:
         raise kern.AmwFehler(f"Platz {a.nr} gibt es nicht ({len(ps)} eingerichtet)")
@@ -1031,10 +1042,12 @@ def cmd_platz(a, con):
         quelle = kern.projekt_ordner(con, pid)
         if not quelle:
             raise kern.AmwFehler("Das Projekt hat keinen Ordner (amw projekt ordner …)")
-        r = platz.vorbereiten(p, quelle, a.zweig or f"platz{p['nr']}")
+        r = platz.vorbereiten(p, quelle, a.zweig or f"platz{p['nr']}", aufgabe=a.aufgabe)
         print(f"Platz {p['nr']} bereit: {r['klon']} · Zweig {r['zweig']} ab main {r['basis'][:8]} · Port {p['port']}")
     else:
-        print(f"Platz {p['nr']} " + ("sauber" if platz.zuruecksetzen(p, projektordner=kern.projekt_ordner(con, pid)) else "NICHT sauber – bitte ansehen"))
+        r = platz.zuruecksetzen(p, projektordner=kern.projekt_ordner(con, pid), aufgabe=a.aufgabe)
+        print(f"Platz {p['nr']} " + ("sauber" if r["sauber"] else "NICHT sauber – bitte ansehen")
+              + (f" · Reste im Archiv: {r['archiv']}" if r["archiv"] else " · nichts zu sichern"))
 
 
 def cmd_mcp(a, con):
@@ -2673,9 +2686,11 @@ def parser():
     x.add_argument("--aufgabe", type=nummer)
     x.set_defaults(f=cmd_taetigkeit)
 
-    x = s.add_parser("platz", help="Arbeitsplätze für kopflose Arbeiter (claude -p): liste | vorbereiten N | zuruecksetzen N")
-    x.add_argument("aktion", choices=["liste", "vorbereiten", "zuruecksetzen"])
+    x = s.add_parser("platz", help="Arbeitsplätze für kopflose Arbeiter (claude -p): liste | vorbereiten N | zuruecksetzen N | aufraeumen"
+                                   " (nichts wird gelöscht: Reste ins Archiv, fertige Pakete nach _loeschen)")
+    x.add_argument("aktion", choices=["liste", "vorbereiten", "zuruecksetzen", "aufraeumen"])
     x.add_argument("nr", nargs="?", type=int)
+    x.add_argument("--aufgabe", type=int, help="Aufgabe des Pakets (Name des Archivs, damit aufraeumen es nach Paketende verschiebt)")
     x.add_argument("--zweig", help="vorbereiten: Name des Zweigs ab main (Vorgabe platzN)")
     x.set_defaults(f=cmd_platz)
 

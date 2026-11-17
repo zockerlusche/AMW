@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.130.0 – 17.11.2026 · Arbeitsplätze löschen nichts
+- **Geändert:** Das Zurücksetzen eines Arbeitsplatzes löscht nichts mehr. Reste – ungesicherte Änderungen als Patch,
+  Commits, fremde Dateien, der Datenordner – wandern ins Archiv neben den Plätzen; ist das Paket fertig, schiebt
+  `amw platz aufraeumen` sie in den Lösch-Ordner, den nur der Mensch leert. `amw platz liste` zeigt, wie viel darin liegt.
+
 ## 1.129.0 – 17.11.2026 · Abnahme durch die AMW
 - **Neu (für Arbeitsplätze):** Die AMW führt die Abnahme eines Pakets selbst aus – im Platz, mit Zeitlimit, ein hängender
   Test wird samt Kindprozessen beendet. Vor dem Bau muss sie rot sein. Danach prüft ein Diff-Tor, dass nur geplante
