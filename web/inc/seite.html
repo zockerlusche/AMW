@@ -2253,8 +2253,8 @@ const stempel = s => s === "start" || s === "betrieb" || s === "einstellungen" ?
   : (zustand.start?.stand?.[s] ?? null) === null ? null : zustand.start.stand[s] + "|" + (zustand.start.online?.briefkasten ?? "");
 function ungespeichert() {
   for (const x of $("#inhalt").querySelectorAll("textarea, input, select")) {
-    if (x.disabled) continue;                         /* gesperrt = schon abgeschickt */
-    if (x.tagName === "SELECT") { const v = [...x.options].findIndex(o => o.defaultSelected); if (x.selectedIndex !== (v < 0 ? 0 : v)) return true; }   /* ohne Vorwahl gilt die erste Option */
+    if (x.disabled || x.dataset.filter) continue;     /* gesperrt = schon abgeschickt; Filter sind keine Eingabe (A1844, nur Nachrichten) */
+    if (x.tagName === "SELECT") { if ([...x.options].some(o => o.selected !== o.defaultSelected)) return true; }
     else if (x.type === "checkbox" || x.type === "radio") { if (x.checked !== x.defaultChecked) return true; }
     else if (!["button", "submit", "file", "hidden"].includes(x.type) && x.value !== x.defaultValue) return true;
   }
@@ -3157,11 +3157,11 @@ async function sichtNachrichten() {
   const agenten = [...new Set([...d.gesendet.flatMap(x => x.empfaenger.map(e => e.agent)), ...d.eingang.map(x => x.von)])].sort();
   const bezuege = [...new Map([...d.gesendet, ...d.eingang].filter(x => x.bezug).map(x => [x.bezug.kuerzel, x.bezug.text])).entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
   const filter = el("div", { class: "nr-filter" },
-    bezuege.length ? el("select", { onchange: e => { bezugWahl = e.target.value; zeichnen(); } }, el("option", { value: "" }, t("nr_alle_bezuege")),
+    bezuege.length ? el("select", { "data-filter": "1", onchange: e => { bezugWahl = e.target.value; zeichnen(); } }, el("option", { value: "" }, t("nr_alle_bezuege")),
       bezuege.map(([k, txt]) => el("option", { value: k }, txt.length > 48 ? txt.slice(0, 47) + "…" : txt))) : null,
-    el("select", { onchange: e => { agent = e.target.value; zeichnen(); } }, el("option", { value: "" }, t("nr_alle_agenten")), agenten.map(a => el("option", { value: a }, wer(a)))),
-    el("label", { class: "leise" }, el("input", { type: "checkbox", onchange: e => { nurOffen = e.target.checked; zeichnen(); } }), " " + t("nr_nur_offen")),
-    el("input", { placeholder: t("nr_suchen"), oninput: e => { such = e.target.value.toLowerCase(); zeichnen(); } }),
+    el("select", { "data-filter": "1", onchange: e => { agent = e.target.value; zeichnen(); } }, el("option", { value: "" }, t("nr_alle_agenten")), agenten.map(a => el("option", { value: a }, wer(a)))),
+    el("label", { class: "leise" }, el("input", { type: "checkbox", "data-filter": "1", onchange: e => { nurOffen = e.target.checked; zeichnen(); } }), " " + t("nr_nur_offen")),
+    el("input", { "data-filter": "1", placeholder: t("nr_suchen"), oninput: e => { such = e.target.value.toLowerCase(); zeichnen(); } }),
     el("button", { class: "knopf haupt", type: "button", onclick: () => nachrichtDialog(null) }, "+ " + t("nr_schreiben")));
   const kopf = el("div", { class: "nr-leiste" });
   const nf = d.zaehler.fragen_offen || 0;               /* Fragen stehen nur unter „Fragen“ – hier nur der Hinweis (A1629) */
@@ -3234,7 +3234,7 @@ async function sichtNachrichten() {
     const offene = reiter === "eingang" ? d.eingang.filter(passt).filter(x => x.stand !== "erledigt") : [];
     for (const k of [...markiert]) if (!offene.some(x => schl(x) === k)) markiert.delete(k);
     sammel.replaceChildren(...(offene.length ? [
-      offene.length > 1 ? el("label", { class: "leise" }, el("input", { type: "checkbox", checked: markiert.size === offene.length && offene.length ? true : null,
+      offene.length > 1 ? el("label", { class: "leise" }, el("input", { type: "checkbox", "data-filter": "1", checked: markiert.size === offene.length && offene.length ? true : null,
         onchange: e => { markiert.clear(); if (e.target.checked) offene.forEach(x => markiert.add(schl(x))); zeichnen(); } }), " " + t("nr_alle_markieren")) : null,
       markiert.size ? el("button", { class: "knopf", type: "button", onclick: ev => gelesenMarkieren(offene.filter(x => markiert.has(schl(x))), ev.currentTarget) },
         t("nr_erledigt_n", { n: markiert.size }))
@@ -3249,7 +3249,7 @@ async function sichtNachrichten() {
     liste.replaceChildren(...(l.length ? l.map(x => el("div", { class: "nr-eintrag" + (system(x) ? " system" : " post") + (schl(x) === gewaehlt ? " an" : "") + (reiter === "eingang" && x.stand === "offen" ? " neu" : "") + (x.zurueckgezogen ? " weg" : ""),
         "data-schl": schl(x), onclick: () => { gewaehlt = schl(x); raster.classList.add("detail"); zeichnen(); if (reiter === "eingang") gelesenMarkieren([x]); } },
       el("div", { class: "nr-kopf" },
-        reiter === "eingang" && x.stand !== "erledigt" ? el("input", { type: "checkbox", class: "nr-wahl", title: t("nr_markieren"), "aria-label": t("nr_markieren"),
+        reiter === "eingang" && x.stand !== "erledigt" ? el("input", { type: "checkbox", "data-filter": "1", class: "nr-wahl", title: t("nr_markieren"), "aria-label": t("nr_markieren"),
           checked: markiert.has(schl(x)) ? true : null, onclick: e => { e.stopPropagation(); markiert[markiert.has(schl(x)) ? "delete" : "add"](schl(x)); zeichnen(); } }) : null,
         el("span", { class: "nr-sym", title: t(system(x) ? "nr_art_system" : "nr_art_post") }, system(x) ? "⚙" : "✉"),
         el("span", { class: "etikett" }, t("art_" + x.art) || x.art),
