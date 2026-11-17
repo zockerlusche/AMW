@@ -258,6 +258,24 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         from . import mcp_schluessel
         name = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()[0]
         return {"schluessel": mcp_schluessel.erzeugen(name), "projekt": name}
+    if weg.startswith("/api/paket/"):                 # A1850: Eingriffe in p-Pakete – nur der Mensch am PC, nie online/Handy
+        if kanal != "seite":
+            raise Ungueltig("Arbeitspakete steuerst du nur am PC (Workbench), nicht online")
+        from . import paketliste
+        was = weg.rsplit("/", 1)[1]
+        try:
+            aid = int(daten["aufgabe"]) if daten.get("aufgabe") not in (None, "") else None
+            if was == "vorziehen" and aid:
+                return paketliste.vorziehen(con, pid, aid)
+            if was == "zurueckstellen" and aid:
+                return paketliste.zurueckstellen(con, pid, aid)
+            if was == "pause":
+                return paketliste.pause(con, pid, bool(daten.get("an")), (daten.get("grund") or "").strip()[:300] or None)
+            if was == "notbremse":
+                return paketliste.notbremse(con, pid, int(daten.get("platz") or 0), aid)
+        except (kern.AmwFehler, ValueError, TypeError, OSError) as e:
+            raise Ungueltig(str(e)) from None
+        raise LookupError("unbekannt")
     if weg == "/api/lauf/vorziehen":                 # A1764: wartenden Lauf an die Spitze – der Mensch (online nur System-Admin)
         try:
             lid = int(daten.get("lauf"))

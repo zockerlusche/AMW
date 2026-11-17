@@ -976,6 +976,22 @@ def daten_fragen(con, pid, alle=False):
     return aus
 
 
+def daten_pakete(con, pid):
+    """A1850 Arbeit › Pakete: p-Pakete mit Art, Zustand, Kosten, Startgrund; Plätze, Pause/Wartung (→ amw/paketliste.py)."""
+    from . import paketliste
+    return paketliste.daten(con, pid)
+
+
+def daten_mitlesen(con, pid, q):
+    """A1850: was der Arbeiter auf Platz N gerade tut (stream-json) – nur am PC, geht nicht in die Synchronisierung."""
+    from . import paketliste
+    try:
+        nr = int((q.get("platz") or ["1"])[0])
+    except ValueError:
+        nr = 0
+    return paketliste.mitlesen(con, pid, nr)
+
+
 def daten_aufgaben(con, pid, q):
     sql = ("SELECT id, titel, agent, status, einstufung, rang, wartet_auf, angelegt_utc, fertig_utc, geaendert_utc FROM aufgabe"
            " WHERE projekt_id = ?")
@@ -1378,6 +1394,8 @@ def baue_handler(port, token, netz=None):
                     "/api/gespraech": lambda c, p: daten_gespraech(c, p, q),
                     "/api/push": lambda c, p: daten_push(c),
                     "/api/planung": lambda c, p: daten_planung(c, p),
+                    "/api/pakete": lambda c, p: daten_pakete(c, p),
+                    "/api/paket/mitlesen": lambda c, p: daten_mitlesen(c, p, q),
                     "/api/verlauf": lambda c, p: daten_verlauf(c, p, q),
                     "/api/seit": lambda c, p: daten_seit(c, p, q),
                     "/api/dokumente": lambda c, p: daten_dokumente(c, p, q),

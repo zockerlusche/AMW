@@ -325,6 +325,7 @@ def _fremde_ohne_namen(start, pid, con):
 
 def ansichten(con, pid, speicher=None):
     """Dieselben Antworten wie die lokale Workbench, Schlüssel = Weg, wie ihn die Seite anfragt."""
+    from . import paketliste
     leer = {"agent": [""], "q": [""]}
     a = {"/api/start": _fremde_ohne_namen(workbench.daten_start(con, pid), pid, con),
          "/api/fragen": workbench.daten_fragen(con, pid),
@@ -341,6 +342,7 @@ def ansichten(con, pid, speicher=None):
          "/api/einstellungen": workbench.daten_einstellungen(con, pid, speicher),
          "/api/agenten": workbench.daten_agenten_alle(con, pid),
          "/api/planung": workbench.daten_planung(con, pid),
+         "/api/pakete": paketliste.daten(con, pid, am_pc=False),   # A1850: online nur lesen – ohne Platz-Abfrage, ohne Mitlesen
          "/api/verlauf": workbench.daten_verlauf(con, pid, {"tage": ["3"]}),
          "/api/seit": verlauf.seit_daten(con, pid),
          "/api/listen": workbench.daten_listen(con, pid),
