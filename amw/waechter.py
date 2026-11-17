@@ -47,7 +47,7 @@ def zustand():
             d = json.load(f)
     except (OSError, ValueError):
         d = {}
-    return {"wartung": d.get("wartung"), "pause": d.get("pause")}
+    return {"wartung": d.get("wartung"), "pause": d.get("pause"), "weiter_nach": d.get("weiter_nach") or 0}
 
 
 def _setzen(**werte):
@@ -76,9 +76,11 @@ def pause_an(grund):
     _setzen(pause={"seit": _jetzt(), "grund": grund})
 
 
-def weiter():
-    """Wartungsmodus und Pause aufheben (Lead/Mensch)."""
-    _setzen(wartung=None, pause=None)
+def weiter(con=None):
+    """Wartungsmodus und Pause aufheben (Lead/Mensch). P253: merkt sich das letzte Ereignis – Regel 9 zählt danach nur neue
+    Enden, sonst setzte die alte Folge „unklar, unklar“ die Pause sofort wieder und kein p-Paket käme mehr los."""
+    nach = con.execute("SELECT coalesce(max(id), 0) FROM plan_ereignis").fetchone()[0] if con is not None else zustand()["weiter_nach"]
+    _setzen(wartung=None, pause=None, weiter_nach=nach)
 
 
 def bereiche(text):
@@ -104,11 +106,11 @@ def laufende(con, pid):
         f" AND k.zustand IN ({','.join('?' * len(LAUFEND))})", (pid, *LAUFEND))]
 
 
-def _letzte_enden(con, pid, n=2):
-    """Die letzten n Enden von p-Läufen (Übergang aus „laeuft“) – Zielzustand."""
+def _letzte_enden(con, pid, n=2, nach=0):
+    """Die letzten n Enden von p-Läufen (Übergang aus „laeuft“) nach Ereignis `nach` (dem letzten „weiter“) – Zielzustand."""
     aus = []
     for r in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = 'paket_zustand' AND text LIKE 'laeuft → %'"
-                         " ORDER BY id DESC LIMIT ?", (pid, n)):
+                         " AND id > ? ORDER BY id DESC LIMIT ?", (pid, nach, n)):
         aus.append(r["text"].split("→", 1)[1].split(":", 1)[0].strip())
     return aus
 
@@ -119,7 +121,8 @@ def pruefen(con, pid, aid, limit=None):
     from . import abnahme, arbeitspaket, platz
     a = con.execute("SELECT id, pruefbefehl, dateibereich FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
     if not a:
-        return _nein(10, f"A{aid} gibt es nicht")
+        from . import kern
+        raise kern.AmwFehler(f"A{aid} gibt es nicht")
     f = arbeitspaket.lesen(con, aid)
     if f["art"] != "p":
         return {"ok": False, "regel": None, "grund": "kein Paket der Art p – der Wächter startet nur p", "warten": False}
@@ -131,7 +134,7 @@ def pruefen(con, pid, aid, limit=None):
         return _nein(7, z["wartung"].get("grund"))
     if z["pause"]:
         return _nein(9, z["pause"].get("grund"))
-    enden = _letzte_enden(con, pid)
+    enden = _letzte_enden(con, pid, nach=z["weiter_nach"])
     if len(enden) == 2 and all(e in ("unklar", "abgebrochen") for e in enden):
         pause_an("zweimal hintereinander unklar oder abgebrochen")
         return _nein(9)
@@ -231,7 +234,8 @@ def vor_auslieferung(con, frist_s=1800, warte_s=15, schlafen=time.sleep):
     Rückgabe (fertig: bool, noch_laufend: [A-Nummern]). Ohne laufende p-Pakete sofort fertig."""
     ids = lambda: [r[0] for r in con.execute(
         f"SELECT aufgabe_id FROM paket WHERE art = 'p' AND zustand IN ({','.join('?' * len(LAUFEND))})", LAUFEND)]
-    wartung_an("Auslieferung der AMW")
+    if not zustand()["wartung"]:
+        wartung_an("Auslieferung der AMW")
     ende = time.monotonic() + frist_s
     while True:
         lauf = ids()

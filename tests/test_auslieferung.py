@@ -153,6 +153,56 @@ class Kette(unittest.TestCase):
         self.kette().ausliefern("neu")
         self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()[0], "wartet")
 
+    def lad(self):
+        u = mock.patch.dict(os.environ, {"LOCALAPPDATA": os.path.join(self.ordner.name, "lad")})
+        u.start()
+        self.addCleanup(u.stop)
+
+    def web_kaputt(self):
+        echt = self.extern
+        def extern(befehl, ordner):
+            if "commit-tree" in befehl:
+                return 1, "TimeoutExpired: zu lange"
+            return echt(befehl, ordner)
+        self.extern = extern
+
+    def test_wartungsmodus_waehrend_jeder_auslieferung(self):
+        """P253: auch ohne laufende p-Pakete keine neuen p-Starts, solange die Kette liefert; am Ende aufgehoben."""
+        from amw import waechter
+        self.lad()
+        self.gruen()
+        self.gesamtlauf()
+        echt, gesehen = self.extern, []
+        def extern(befehl, ordner):
+            if befehl[:1] == ["gh"]:
+                gesehen.append(bool(waechter.zustand()["wartung"]))
+            return echt(befehl, ordner)
+        self.extern = extern
+        self.kette().ausliefern("neu")
+        self.assertTrue(gesehen and all(gesehen))                                                 # während der Kette an
+        self.assertIsNone(waechter.zustand()["wartung"])                                          # danach aufgehoben
+
+    def test_wartungsmodus_bleibt_nach_abbruch_mit_hinweis(self):
+        """P253: bricht die Kette ab, bleibt der Wartungsmodus an, und die Stopp-Meldung sagt, wie man ihn aufhebt."""
+        from amw import waechter
+        self.lad()
+        self.gruen()
+        self.gesamtlauf()
+        self.web_kaputt()
+        with self.assertRaises(auslieferung.Stopp) as e:
+            self.kette().ausliefern("neu")
+        self.assertIn("amw waechter weiter", str(e.exception))
+        self.assertEqual(waechter.zustand()["wartung"]["grund"], "Auslieferung der AMW")
+
+    def test_wartungsmodus_von_hand_bleibt_wie_er_war(self):
+        from amw import waechter
+        self.lad()
+        waechter.wartung_an("von Hand")
+        self.gruen()
+        self.gesamtlauf()
+        self.kette().ausliefern("neu")
+        self.assertEqual(waechter.zustand()["wartung"]["grund"], "von Hand")
+
     def test_web_abzug_scheitert_versionszeilen_stehen_trotzdem(self):
         """A1756 (14.11.: Web-Abzug lief unter Last ins Zeitlimit, danach fehlten die Versionszeilen und der Lead musste sie von
         Hand eintragen): Versionszeile und fertige Aufgaben kommen vor dem Web-Abzug."""

@@ -114,13 +114,31 @@ class Waechter(unittest.TestCase):
         a = self.paket(bereiche="doc/")
         self.assertEqual(self.regel(a), 9)
         self.assertTrue(waechter.zustand()["pause"])                                          # Pause bleibt …
-        waechter.weiter()                                                                     # … bis Lead/Mensch weiter sagt
+        waechter.weiter(self.con)                                                             # … bis Lead/Mensch weiter sagt
         self.assertTrue(waechter.zustand()["pause"] is None)
+        r = waechter.pruefen(self.con, self.pid, a, limit=10)                                  # P253: danach darf es wirklich starten
+        self.assertTrue(r["ok"], r)
+        self.assertIsNone(waechter.zustand()["pause"])
+        for i in range(2):                                                                    # zwei NEUE unklare Enden → wieder Pause
+            x = self.paket(bereiche=f"neu/{i}/")
+            arbeitspaket.zustand_setzen(self.con, self.pid, "TL", x, "laeuft")
+            arbeitspaket.zustand_setzen(self.con, self.pid, "TL", x, "abgebrochen")
+        self.assertEqual(self.regel(a), 9)
+        aus = io.StringIO()                                                                   # auch über die Befehlszeile
+        with contextlib.redirect_stdout(aus):
+            cli.main(["waechter", "weiter", "--projekt", "Spiel", "--von", "TL"])
+        self.assertIsNone(self.regel(a))
 
     def test_regel_10_ohne_plaetze_wie_heute(self):
         a = self.paket()
         kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, plaetze=0)
         self.assertEqual(self.regel(a), 10)
+
+    def test_unbekannte_aufgabe_ist_ein_fehler(self):
+        """P253: keine Regel 10 („keine Arbeitsplätze“) für eine Nummer, die es nicht gibt."""
+        with self.assertRaises(kern.AmwFehler) as e:
+            waechter.pruefen(self.con, self.pid, 99999, limit=10)
+        self.assertIn("A99999 gibt es nicht", str(e.exception))
 
     def test_nur_art_p(self):
         aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Normal", "TL")

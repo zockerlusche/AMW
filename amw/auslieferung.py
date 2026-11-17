@@ -108,7 +108,9 @@ class Kette:
 
     def stopp(self, schritt, grund):
         fertig = ", ".join(self.erledigt) or "noch nichts"
-        raise Stopp(f"Stopp bei „{schritt}“: {grund} – erledigt: {fertig}")
+        wartung = (" – der Wartungsmodus bleibt an (keine neuen p-Starts); aufheben: amw waechter weiter"
+                   if getattr(self, "wartung_an", False) else "")
+        raise Stopp(f"Stopp bei „{schritt}“: {grund} – erledigt: {fertig}{wartung}")
 
     def schritt(self, name):
         self.erledigt.append(name)
@@ -348,13 +350,16 @@ class Kette:
         sha, version, ausnahme = v["sha"], v["version"], v["ausnahme"]
         self.ausgabe(f"Version {version} = {sha[:8]} · {'Prüfstufe niedrig (ohne Prüfbitte)' if v['niedrig'] else 'Prüfung grün'} · Merge-OK {v['merge_ok']} · "
                      + (f"Gesamtlauf L{v['lauf']}" if v["lauf"] else f"Ausnahme ({ausnahme})"))
-        from . import waechter                         # A1847: laufende p-Pakete erst enden lassen (Wartungsmodus)
-        wartung = waechter.p_laufend(self.con)
+        from . import waechter                         # A1847/P253: während jeder Auslieferung keine neuen p-Starts
+        wartung = not waechter.zustand()["wartung"]     # schon an (von Hand): bleibt, wie es war
         if wartung:
+            waechter.wartung_an("Auslieferung der AMW")
+        self.wartung_an = True                           # bricht die Kette ab, bleibt er an – stopp() sagt es
+        if waechter.p_laufend(self.con):
             fertig, rest = waechter.vor_auslieferung(self.con)
             if not fertig:
                 self.stopp("Wartungsmodus", "p-Pakete laufen noch: " + ", ".join(f"A{x}" for x in rest)
-                           + " – der Wartungsmodus bleibt (keine neuen Starts), später erneut ausliefern")
+                           + " – später erneut ausliefern")
             self.schritt("Wartungsmodus – keine p-Pakete mehr laufend")
         from . import dokumente
         ziel = db.sichern(None)
