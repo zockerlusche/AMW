@@ -170,6 +170,17 @@ class Arbeiter(unittest.TestCase):
         self.assertNotEqual(ergebnis["rc"], 0)
         self.assertFalse(arbeiter.notbremse(self.p))                                       # nichts mehr da
 
+    def test_laufende_beendet_zurueckgelassene_kinder(self):
+        """D1258 v9 §6a 3.1: endet der Arbeiter normal, aber ein Kindprozess läuft weiter, beendet die AMW ihn mit dem Job."""
+        with mock.patch.dict(os.environ, {"ATTRAPPE_ART": "kind_bleibt"}):
+            r = self.laufen()
+        with open(os.environ["ATTRAPPE_PID"]) as f:
+            eltern, kind = f.read().split()
+        self.assertEqual((r["rc"], r["abweichungen"]), (0, []))
+        self.assertEqual(r["ergebnis"]["subtype"], "success")
+        time.sleep(0.3)
+        self.assertFalse(lebt(kind))
+
     def test_abweichung_beendet_auch_kinder(self):
         with mock.patch.dict(os.environ, {"ATTRAPPE_ART": "abweichung_kind"}):
             r = self.laufen()

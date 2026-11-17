@@ -369,6 +369,15 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
                 elif isinstance(e, dict) and e.get("type") == "result":
                     ergebnis = e
         proc.wait()
+        k.TerminateJobObject(wintypes.HANDLE(job), 0)          # D1258 v9 §6a 3.1: Lauf zu Ende → Job hart beenden, keine Reste
+        rest = 0
+        for _ in range(50):
+            rest = aktive(job)
+            if rest <= 0:
+                break
+            time.sleep(0.1)
+        if rest > 0:
+            abweichungen = abweichungen + [f"{rest} Prozess(e) im Job nach dem Laufende nicht beendet"]
         if init is None and not abweichungen:
             abweichungen = ["kein init-Ereignis"]
         return {"rc": None if abweichungen else proc.returncode, "abweichungen": abweichungen, "init": init, "ergebnis": ergebnis,

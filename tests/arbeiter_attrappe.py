@@ -34,7 +34,7 @@ elif art == "rechte":
     init["permissionMode"] = "default"
 elif art == "plugin":
     init["plugins"].append({"name": "fremd", "path": "C:/plugins/fremd", "source": "fremd@markt"})
-if art in ("kind", "abweichung_kind"):
+if art in ("kind", "abweichung_kind", "kind_bleibt"):
     kind = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(600)"], creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     with open(os.environ["ATTRAPPE_PID"], "w") as f:
         f.write(f"{os.getpid()} {kind.pid}")
