@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.141.2 – 17.11.2026 · Jeder Stand geprüft
+- **Behoben:** Die Auslieferung geht nur noch, wenn jede Aufgabe mit einem Commit im ausgelieferten Bereich als neueste
+  Prüfung „grün“ hat – auf einem Stand, der diesen Commit enthält. Ein roter Stand unter einer grünen Spitze hält sie an.
+
 ## 1.141.1 – 17.11.2026 · Versionsnummer wird frei
 - **Behoben:** Wird eine Aufgabe neu aufgesetzt, gibt ihre alte Prüfung die Versionsnummer frei – es belegt nur noch die neueste
   offene oder grüne Prüfung einer Aufgabe eine Nummer.

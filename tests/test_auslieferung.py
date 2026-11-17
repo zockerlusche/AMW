@@ -370,6 +370,47 @@ class Kette(unittest.TestCase):
         self.assertEqual([(b[3], b[-1]) for b in gh], [("v1.1.0", "--latest=false"), ("v1.1.1", "--latest")])
         self.assertEqual([x[0] for x in self.con.execute("SELECT version FROM release WHERE art = 'version' ORDER BY id")], ["1.1.0", "1.1.1"])
 
+    def stapel(self, unten_ergebnis, mit_pruefung=True):
+        """Zweig „stapel“: unten A<a> (1.1.0), oben A<b> (1.1.1, grün + Merge-OK) – für A1875."""
+        a = kern.aufgabe_neu(self.con, self.pid, "TL", "Unten", "CC1")
+        b = kern.aufgabe_neu(self.con, self.pid, "TL", "Oben", "CC1")
+        self.g("switch", "-q", "-c", "stapel", "main")
+        unten = self.stand("1.1.0", f"A{a} unten")
+        oben = self.stand("1.1.1", f"A{b} oben")
+        self.g("switch", "-q", "main")
+        if mit_pruefung:
+            pa = betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "stapel", unten, "x", a)
+            betrieb.pruefung_ergebnis(self.con, self.pid, "TL", pa, unten_ergebnis)
+            if unten_ergebnis == "gruen":
+                betrieb.freigabe_merge(self.con, self.pid, "TL", a, "stapel")
+        pb = betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "stapel", oben, "x", b)
+        betrieb.pruefung_ergebnis(self.con, self.pid, "TL", pb, "gruen")
+        betrieb.freigabe_merge(self.con, self.pid, "TL", b, "stapel")
+        self.gesamtlauf(sha=oben)
+        return a, b
+
+    def test_roter_stand_unter_gruener_spitze_stoppt(self):
+        """A1875: ein roter Stand darunter geht nie mit einer grünen Spitze live – Stopp mit Liste, nichts erledigt."""
+        a, b = self.stapel("rot")
+        with self.assertRaises(auslieferung.Stopp) as e:
+            self.kette("1.1.1").ausliefern("stapel")
+        self.assertIn(f"Stände: A{a} – neueste Prüfung", str(e.exception))
+        self.assertIn("ist rot", str(e.exception))
+        self.assertIn("erledigt: noch nichts", str(e.exception))
+
+    def test_aufgabe_ohne_pruefung_im_bereich_stoppt(self):
+        a, b = self.stapel(None, mit_pruefung=False)
+        with self.assertRaises(auslieferung.Stopp) as e:
+            self.kette("1.1.1").ausliefern("stapel")
+        self.assertIn(f"Stände: A{a} hat einen Commit", str(e.exception))
+        self.assertIn("keine Prüfung", str(e.exception))
+
+    def test_alles_gruen_buendel_wie_heute(self):
+        a, b = self.stapel("gruen")
+        r = self.kette("1.1.1").ausliefern("stapel")
+        self.assertEqual(r["version"], "1.1.1")
+        self.assertEqual([b2[3] for b2 in self.extern_aufrufe if b2[0] == "gh"], ["v1.1.0", "v1.1.1"])   # Bündel B2630
+
     def test_zwischenversion_ohne_eigene_pruefung_kein_release(self):
         """A1866 (17.11.: nach dem Umnummerieren gingen 1.132.0/1.133.0 als eigene Releases mit): eine Versionsnummer im Bereich
         ohne grüne Prüfung auf genau ihrem Stand bekommt kein Tag, kein GitHub-Release, keine Versionszeile – sie geht in der

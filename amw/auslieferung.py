@@ -240,6 +240,38 @@ class Kette:
                 letzte[v] = c
         return sorted(letzte.items(), key=lambda x: kern.version_teile(x[0]))
 
+    def staende(self, sha, ausnahme_aufgabe=None):
+        """A1875 (P275/#29058): jeder Stand unter der Spitze ist geprüft. Für jeden Commit in main..sha: die Aufgaben aus seiner
+        Betreffzeile („1.141.0: A1872 – …“) müssen als NEUESTE Prüfung GRÜN haben, auf einem Stand, der diesen Commit enthält –
+        sonst ginge ein roter Stand mit einer grünen Spitze live. Ausnahme: die Aufgabe einer Auslieferung ohne Prüfbitte
+        (Prüfstufe niedrig, --aufgabe). Rückgabe: Liste der Mängel (Aufgabe, Commit, Prüfung)."""
+        rc, aus = self.extern(["git", "log", "--format=%H%x09%s", f"main..{sha}"], self.repo)
+        if rc != 0:
+            return [f"Stände: git log main..{sha[:8]} ging nicht"]
+        mangel, gesehen = [], {}
+        for zeile in aus.splitlines():
+            if "\t" not in zeile:
+                continue
+            c, betreff = zeile.split("\t", 1)
+            if not re.fullmatch(r"[0-9a-f]{40}", c):
+                continue
+            for nr in dict.fromkeys(int(x) for x in re.findall(r"\bA(\d{1,6})\b", betreff)):
+                if nr == ausnahme_aufgabe:
+                    continue
+                if not self.con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND projekt_id = ?", (nr, self.pid)).fetchone():
+                    continue                                    # keine Aufgabe dieses Projekts (z. B. Zitat)
+                if nr not in gesehen:
+                    gesehen[nr] = self.con.execute("SELECT id, sha, ergebnis FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ?"
+                                                   " ORDER BY id DESC LIMIT 1", (self.pid, nr)).fetchone()
+                p = gesehen[nr]
+                if not p:
+                    mangel.append(f"Stände: A{nr} hat einen Commit {c[:8]} im Bereich, aber keine Prüfung")
+                elif p["ergebnis"] != "gruen":
+                    mangel.append(f"Stände: A{nr} – neueste Prüfung P{p['id']} ist {p['ergebnis']} (Commit {c[:8]})")
+                elif self.extern(["git", "merge-base", "--is-ancestor", c, p["sha"]], self.repo)[0] != 0:
+                    mangel.append(f"Stände: A{nr} – Commit {c[:8]} steckt nicht im grün geprüften Stand P{p['id']} ({p['sha'][:8]})")
+        return list(dict.fromkeys(mangel))
+
     def reihenfolge(self, sha, version):
         """Liegt eine kleinere Version grün und mit Merge-OK bereit, die dieser Stand NICHT enthält? Dann zuerst sie (TL #24530)."""
         ziel = kern.version_teile(version)
@@ -343,6 +375,7 @@ class Kette:
             self.stopp("Tag", f"v{version} gibt es schon")
         titel, text = self.notizen(sha, version)
         fehlt += self.reihenfolge(sha, version)
+        fehlt += self.staende(sha, ausnahme_aufgabe=aufgabe if niedrig else None)
         if fehlt:                                        # A1814: alles auf einmal – nicht eine Freigabe nach der anderen
             self.stopp("Freigaben", f"{len(fehlt)} fehlt: " + " · ".join(fehlt))
         zwischen, aufgegangen = [], []
