@@ -1,9 +1,11 @@
 """Arbeitspakete (A1845, D1258 v4 §3/§4): Felder mit Standardwerten, Zustandsautomat nur für Art p (erlaubte und verbotene
 Übergänge), Spiegelung auf den Status der Aufgabe; Art agent hat keinen Automaten."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import os
+import tempfile
 import unittest
 
-from amw import arbeitspaket as ap
+from amw import arbeitspaket as ap, db, kern
 
 
 class Felder(unittest.TestCase):
@@ -77,6 +79,86 @@ class Automat(unittest.TestCase):
         with self.assertRaises(ap.Ungueltig):
             ap.art_wechsel_pruefen("p", "agent", "laeuft")
         ap.art_wechsel_pruefen("agent", "p", None)
+
+
+class Speicher(unittest.TestCase):
+    """Gegen die Tabelle paket (bis Schema 33 freigegeben ist: in der Test-Datenbank angelegt)."""
+    def setUp(self):
+        self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(self.ordner.cleanup)
+        self.con = db.anlegen(os.path.join(self.ordner.name, "amw.db"))
+        self.addCleanup(self.con.close)
+        self.con.executescript(ap.TABELLE)
+        with db.schreiben(self.con):
+            self.pid = db.einfuegen(self.con, "projekt", name="Eins", angelegt_utc=db.jetzt())
+        kern.agent_neu(self.con, self.pid, "TL", rolle="lead")
+        kern.agent_neu(self.con, self.pid, "CC1")
+        self.aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Kleines Paket", agent="CC1")
+        self.andere = kern.aufgabe_neu(self.con, self.pid, "TL", "Anderes", agent="CC1")
+
+    def status(self):
+        return self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()[0]
+
+    def test_ohne_zeile_agent_und_heutiger_status(self):
+        self.assertEqual(ap.lesen(self.con, self.aid)["art"], "agent")
+        with self.assertRaisesRegex(kern.AmwFehler, "nur bei Art p"):
+            ap.zustand_setzen(self.con, self.pid, "TL", self.aid, "startklar")
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.aid, "start")          # Art agent: wie bisher
+        self.assertEqual(self.status(), "laeuft")
+
+    def test_nur_lead_oder_mensch_setzt_felder(self):
+        with self.assertRaisesRegex(kern.AmwFehler, "Lead"):
+            ap.setzen(self.con, self.pid, "CC1", self.aid, art="p")
+        f, w = ap.setzen(self.con, self.pid, "TL", self.aid, art="p", effort="medium", nie_gleichzeitig=f"A{self.andere}")
+        self.assertEqual((f["art"], f["zustand"], f["effort"], f["nie_gleichzeitig"], f["modell"]),
+                         ("p", "entwurf", "medium", [self.andere], "claude-opus-5-5"))
+        self.assertEqual(len(w), 2)                                                # ohne Abnahme-Befehl und Bereiche
+        with self.assertRaisesRegex(kern.AmwFehler, "gibt es nicht"):
+            ap.setzen(self.con, self.pid, "TL", self.aid, nie_gleichzeitig="A99999")
+        with self.assertRaisesRegex(kern.AmwFehler, "Effort"):
+            ap.setzen(self.con, self.pid, kern.ENTWICKLER, self.aid, effort="max")
+
+    def test_automat_spiegelt_und_protokolliert(self):
+        ap.setzen(self.con, self.pid, "TL", self.aid, art="p")
+        for z, s in (("startklar", "wartet"), ("laeuft", "laeuft"), ("abgegeben", "wartet"), ("abnahme", "wartet"),
+                     ("laeuft", "laeuft"), ("abgegeben", "wartet"), ("abnahme", "wartet"), ("merge_reihe", "wartet"),
+                     ("gemergt", "wartet")):
+            self.assertEqual(ap.zustand_setzen(self.con, self.pid, "AMW", self.aid, z)[2], s)
+            self.assertEqual(self.status(), s)
+        with self.assertRaisesRegex(kern.AmwFehler, "Beleg"):
+            ap.zustand_setzen(self.con, self.pid, "AMW", self.aid, "fertig")
+        ap.zustand_setzen(self.con, self.pid, "AMW", self.aid, "fertig", beleg="abc1234")
+        a = self.con.execute("SELECT status, beleg, begonnen_utc, fertig_utc FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()
+        self.assertEqual((a[0], a[1]), ("fertig", "abc1234"))
+        self.assertTrue(a[2] and a[3])
+        v = ap.verlauf(self.con, self.aid)
+        self.assertEqual([(x[1], x[2]) for x in v[:3]], [(None, "entwurf"), ("entwurf", "startklar"), ("startklar", "laeuft")])
+        self.assertEqual(v[-1][2], "fertig")
+
+    def test_verbotener_uebergang_aendert_nichts(self):
+        ap.setzen(self.con, self.pid, "TL", self.aid, art="p")
+        with self.assertRaisesRegex(kern.AmwFehler, "geht nicht"):
+            ap.zustand_setzen(self.con, self.pid, "AMW", self.aid, "laeuft")
+        self.assertEqual((ap.lesen(self.con, self.aid)["zustand"], self.status()), ("entwurf", "wartet"))
+        with self.assertRaisesRegex(kern.AmwFehler, "setzt die AMW"):
+            ap.zustand_setzen(self.con, self.pid, "CC1", self.aid, "startklar")
+
+    def test_blockiert_und_zurueck_an_einen_agenten(self):
+        ap.setzen(self.con, self.pid, "TL", self.aid, art="p")
+        for z in ("startklar", "laeuft", "blockiert"):
+            ap.zustand_setzen(self.con, self.pid, "AMW", self.aid, z, grund="Frage F1" if z == "blockiert" else None)
+        self.assertEqual(self.status(), "blockiert")
+        ap.zustand_setzen(self.con, self.pid, "AMW", self.aid, "wartet_interaktiv")
+        f, _ = ap.setzen(self.con, self.pid, "TL", self.aid, art="agent")             # hochgestuft: ein Agent übernimmt
+        self.assertEqual((f["art"], f["zustand"]), ("agent", None))
+        self.assertEqual(ap.verlauf(self.con, self.aid)[-1][1:], ("wartet_interaktiv", None, "Art agent"))
+
+    def test_art_p_weg_nur_ohne_arbeiter(self):
+        ap.setzen(self.con, self.pid, "TL", self.aid, art="p")
+        ap.zustand_setzen(self.con, self.pid, "AMW", self.aid, "startklar")
+        ap.zustand_setzen(self.con, self.pid, "AMW", self.aid, "laeuft")
+        with self.assertRaisesRegex(kern.AmwFehler, "solange"):
+            ap.setzen(self.con, self.pid, "TL", self.aid, art="agent")
 
 
 if __name__ == "__main__":

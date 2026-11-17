@@ -148,3 +148,148 @@ def warnungen(felder, pruefbefehl, dateibereich):
         if felder["gewicht"] == "schwer" or felder["ressourcen"]:
             w.append("Art p mit Gewicht schwer oder Ressourcen – in Stufe 1 startet die AMW es nicht (Regel 3)")
     return w
+
+
+# --- Speicher ------------------------------------------------------------------------------------------------------
+# Tabelle `paket` (1:1 zur Aufgabe, keine Zeile = Art agent mit Standardwerten). Wird mit Schema 33 zur Migration –
+# bis Marcels OK (TL #28767) legen nur die Tests sie an.
+TABELLE = """
+CREATE TABLE IF NOT EXISTS paket (
+  aufgabe_id        INTEGER PRIMARY KEY REFERENCES aufgabe(id),
+  art               TEXT NOT NULL DEFAULT 'agent' CHECK (art IN ('agent', 'sitzung', 'p')),
+  gewicht           TEXT CHECK (gewicht IN ('leicht', 'schwer')),
+  ressourcen        TEXT,                          -- JSON ["gpu", "bildschirm"]
+  modell            TEXT,
+  effort            TEXT CHECK (effort IN ('low', 'medium', 'high')),
+  pakettyp          TEXT CHECK (pakettyp IN ('normal', 'test-schreiben')),
+  nie_gleichzeitig  TEXT,                          -- JSON [Aufgaben-Nummern]
+  gleiche_ressource TEXT,
+  zustand           TEXT CHECK (zustand IN ('entwurf', 'startklar', 'laeuft', 'abgegeben', 'abnahme', 'merge_reihe', 'gemergt',
+                                            'fertig', 'blockiert', 'unklar', 'wartet_interaktiv', 'abgebrochen', 'zurueckgestellt')),
+  zustand_utc       TEXT,
+  herkunft          TEXT NOT NULL DEFAULT '',
+  geaendert_utc     TEXT NOT NULL
+);
+"""
+JSON_FELDER = ("ressourcen", "nie_gleichzeitig")
+PLANER_FEHLT = "Paketfelder setzt der Lead (oder der Mensch) – er plant, wer was ausführt"
+
+
+def _zeile(con, aid):
+    import json
+    r = con.execute("SELECT * FROM paket WHERE aufgabe_id = ?", (aid,)).fetchone()
+    if not r:
+        return None
+    d = dict(r)
+    for k in JSON_FELDER:
+        d[k] = json.loads(d[k]) if d.get(k) else []
+    return d
+
+
+def lesen(con, aid):
+    """Alle Paketfelder einer Aufgabe mit Standardwerten (Art agent, wenn nichts gespeichert ist)."""
+    z = _zeile(con, aid)
+    f = mit_standard(z)
+    f["zustand_utc"] = (z or {}).get("zustand_utc") if f["zustand"] else None
+    return f
+
+
+def _aufgabe(con, pid, aid):
+    from . import kern
+    a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    if not a:
+        raise kern.AmwFehler(f"A{aid} gibt es nicht")
+    return a
+
+
+def _log(con, pid, von, aid, alt, neu, grund=None):
+    from . import db
+    db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="paket_zustand",
+                 text=f"{alt or '–'} → {neu or '–'}" + (f": {grund}" if grund else ""), aufgabe_id=aid)
+
+
+def setzen(con, pid, von, aid, **werte):
+    """Paketfelder setzen (nur die übergebenen, None = nicht angegeben). Lead oder Mensch. Wird eine Aufgabe zu Art p, beginnt
+    sie als Entwurf; wird sie wieder agent/sitzung, endet der Automat (Zustand leer) – beides im Planungs-Protokoll.
+    Rückgabe: (Felder nach lesen(), Warnungen)."""
+    import json
+    from . import db, kern
+    if not (von in (kern.ENTWICKLER, "AMW") or kern.ist_lead(con, pid, von)):
+        raise kern.AmwFehler(PLANER_FEHLT)
+    a = _aufgabe(con, pid, aid)
+    try:
+        neu = felder_pruefen({k: v for k, v in werte.items() if v is not None})
+    except Ungueltig as e:
+        raise kern.AmwFehler(str(e)) from None
+    for n in neu.get("nie_gleichzeitig", []):
+        if n == aid or not con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND projekt_id = ?", (n, pid)).fetchone():
+            raise kern.AmwFehler(f"nie gleichzeitig: A{n} " + ("ist diese Aufgabe selbst" if n == aid else "gibt es nicht"))
+    vorher = lesen(con, aid)
+    if "art" in neu:
+        try:
+            art_wechsel_pruefen(vorher["art"], neu["art"], vorher["zustand"])
+        except Ungueltig as e:
+            raise kern.AmwFehler(str(e)) from None
+    if neu:
+        spalten = {k: (json.dumps(v) if k in JSON_FELDER else v) for k, v in neu.items()}
+        jetzt = db.jetzt()
+        with db.schreiben(con):
+            if con.execute("SELECT 1 FROM paket WHERE aufgabe_id = ?", (aid,)).fetchone():
+                con.execute(f"UPDATE paket SET {', '.join(k + ' = ?' for k in spalten)}, geaendert_utc = ? WHERE aufgabe_id = ?",
+                            (*spalten.values(), jetzt, aid))       # Spaltennamen nur aus STANDARD (felder_pruefen)
+            else:
+                db.einfuegen(con, "paket", aufgabe_id=aid, geaendert_utc=jetzt, **spalten)
+            art = neu.get("art", vorher["art"])
+            if art == "p" and vorher["art"] != "p":
+                con.execute("UPDATE paket SET zustand = ?, zustand_utc = ? WHERE aufgabe_id = ?", (START, jetzt, aid))
+                _log(con, pid, von, aid, None, START, "Art p")
+            elif art != "p" and vorher["art"] == "p":
+                con.execute("UPDATE paket SET zustand = NULL, zustand_utc = NULL WHERE aufgabe_id = ?", (aid,))
+                _log(con, pid, von, aid, vorher["zustand"], None, f"Art {art}")
+    f = lesen(con, aid)
+    return f, warnungen(f, a["pruefbefehl"], a["dateibereich"])
+
+
+def zustand_setzen(con, pid, von, aid, neu, grund=None, beleg=None):
+    """Zustand eines p-Pakets wechseln – nur erlaubte Übergänge; spiegelt den Status der Aufgabe (eine Stelle) und schreibt
+    plan_ereignis „paket_zustand“ (Grundlage der Messung). Wer: die AMW selbst, der Lead oder der Mensch. „fertig“ braucht
+    einen Beleg (Commit). Rückgabe: (alt, neu, Status der Aufgabe)."""
+    from . import db, kern
+    if not (von in (kern.ENTWICKLER, "AMW") or kern.ist_lead(con, pid, von)):
+        raise kern.AmwFehler("Den Zustand eines p-Pakets setzt die AMW (oder Lead/Mensch von Hand)")
+    a = _aufgabe(con, pid, aid)
+    f = lesen(con, aid)
+    if f["art"] != "p":
+        raise kern.AmwFehler(f"A{aid} ist Art {f['art']} – Zustände gibt es nur bei Art p; sonst gilt der Status der Aufgabe")
+    try:
+        uebergang_pruefen(f["zustand"], neu)
+    except Ungueltig as e:
+        raise kern.AmwFehler(f"A{aid}: {e}") from None
+    status = spiegel(neu)
+    if status == "fertig" and not (beleg or a["beleg"] or "").strip():
+        raise kern.AmwFehler(f"A{aid} fertig nur mit Beleg (Commit) – --beleg …")
+    jetzt = db.jetzt()
+    with db.schreiben(con):
+        if not con.execute("SELECT 1 FROM paket WHERE aufgabe_id = ?", (aid,)).fetchone():
+            db.einfuegen(con, "paket", aufgabe_id=aid, art="p", geaendert_utc=jetzt)
+        con.execute("UPDATE paket SET zustand = ?, zustand_utc = ?, geaendert_utc = ? WHERE aufgabe_id = ?", (neu, jetzt, jetzt, aid))
+        felder = {"status": status, "geaendert_utc": jetzt}
+        if beleg:
+            felder["beleg"] = beleg.strip()
+        if status == "laeuft" and not a["begonnen_utc"]:
+            felder["begonnen_utc"] = jetzt
+        if status == "fertig":
+            felder["fertig_utc"] = jetzt
+        con.execute(f"UPDATE aufgabe SET {', '.join(k + ' = ?' for k in felder)} WHERE id = ?", (*felder.values(), aid))
+        _log(con, pid, von, aid, f["zustand"], neu, grund)
+    return f["zustand"], neu, status
+
+
+def verlauf(con, aid):
+    """[(zeit_utc, alt, neu, grund)] der Zustandswechsel (für Messung und Anzeige), älteste zuerst."""
+    aus = []
+    for r in con.execute("SELECT zeit_utc, text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_zustand' ORDER BY id", (aid,)):
+        teil, _, grund = r["text"].partition(": ")
+        alt, _, neu = teil.partition(" → ")
+        aus.append((r["zeit_utc"], None if alt == "–" else alt, None if neu == "–" else neu, grund or None))
+    return aus
