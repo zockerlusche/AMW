@@ -13,6 +13,7 @@
   --bernstein: #f0a93a; --bernstein-weich: rgba(240,169,58,.12);
   --gruen: #86b46f; --rot: #e5583a; --rot-weich: rgba(229,88,58,.14); --blau: #6fa3c8; --glut: #e8743b;
   --token: #c9a0ff;                                 /* Token-Pause: Violett – in keinem anderen Zustand benutzt */
+  --z-plan: #56b4e9; --z-fertig: #2fbf95; --z-spaet: #ef7a3a; --z-knapp: #e6b800; --z-geplant: #a39a86;   /* A1777: Okabe-Ito, für dunkel aufgehellt */
   --projekt-farbe: var(--bernstein);
   --schatten: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 30px -18px rgba(0,0,0,.8);
   --titel: "Bahnschrift", "DIN Alternate", "Barlow Semi Condensed", "Arial Narrow", sans-serif;
@@ -25,6 +26,7 @@
   --bernstein: #b46d07; --bernstein-weich: rgba(180,109,7,.10);
   --gruen: #4c7d36; --rot: #b8381c; --rot-weich: rgba(184,56,28,.10); --blau: #2f6f9a; --glut: #c4501f;
   --token: #6c3fb5;
+  --z-plan: #0062a0; --z-fertig: #007a5a; --z-spaet: #b84a00; --z-knapp: #8a6d00; --z-geplant: #6b6250;
   --schatten: 0 10px 24px -18px rgba(60,45,10,.45);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -330,23 +332,29 @@ main { overflow-wrap: break-word; }   /* lange Pfade/Adressen brechen um statt �
 @media (max-width: 760px) { .stand-jetzt { padding: 8px 10px; } .sj-zeile { font-size: 13px; } }
 .ueb-block { --farbe: var(--leise); position: absolute; height: 22px; min-width: 34px; padding: 0; border: 0; border-radius: 2px; overflow: hidden;
   cursor: pointer; background: color-mix(in srgb, var(--farbe) 20%, transparent); color: var(--tinte); font: inherit; text-align: left; z-index: 2; }
-.ueb-block.aktiv, .ueb-muster.aktiv { --farbe: var(--bernstein); } .ueb-block.rot, .ueb-muster.rot { --farbe: var(--rot); }
-.ueb-block.fertig, .ueb-muster.fertig { --farbe: var(--gruen); }
+.ueb-block.aktiv, .ueb-muster.aktiv { --farbe: var(--z-plan); } .ueb-block.rot, .ueb-muster.rot { --farbe: var(--z-spaet); }
+.ueb-block.knapp, .ueb-muster.knapp { --farbe: var(--z-knapp); }
+.ueb-block.fertig, .ueb-muster.fertig { --farbe: var(--z-fertig); }
+/* A1777: nichts hängt nur an der Farbe – geplant hohl (gestrichelter Rand), knapp senkrecht gerippt, zu spät schräg gestreift */
+.ueb-block:not(.aktiv):not(.rot):not(.knapp):not(.fertig) { --farbe: var(--z-geplant); background: transparent; outline: 1px dashed var(--farbe); outline-offset: -1px; }
+.ueb-block.knapp { background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--farbe) 30%, transparent) 0 3px, color-mix(in srgb, var(--farbe) 10%, transparent) 3px 7px); }
+.ueb-block.rot { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--farbe) 34%, transparent) 0 5px, color-mix(in srgb, var(--farbe) 10%, transparent) 5px 10px); }
+.ueb-block.rot, .ueb-block.knapp { box-shadow: inset 0 0 0 1px var(--farbe); }
 .ueb-block:hover, .ueb-block:focus-visible { outline: 2px solid var(--bernstein); outline-offset: 0; z-index: 4; }
 .ueb-label { position: absolute; left: 5px; right: 3px; top: 1px; font-size: 12px; line-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ueb-label b { color: var(--farbe); margin-right: 4px; font-weight: 600; }
 .ueb-name { --farbe: var(--tinte); position: absolute; max-width: 250px; font-size: 12px; line-height: 15px; white-space: nowrap; overflow: hidden;
   text-overflow: ellipsis; color: var(--leise); cursor: pointer; z-index: 2; }
-.ueb-name.aktiv { --farbe: var(--bernstein); } .ueb-name.rot { --farbe: var(--rot); } .ueb-name.fertig { --farbe: var(--gruen); }
+.ueb-name.aktiv { --farbe: var(--z-plan); } .ueb-name.rot { --farbe: var(--z-spaet); } .ueb-name.knapp { --farbe: var(--z-knapp); } .ueb-name.fertig { --farbe: var(--z-fertig); }
 .ueb-name b { color: var(--farbe); margin-right: 4px; font-weight: 600; } .ueb-name:hover { color: var(--tinte); }
-.ueb-block:not(.aktiv):not(.rot):not(.fertig) .ueb-label b { color: var(--tinte); }
+.ueb-block:not(.aktiv):not(.rot):not(.knapp):not(.fertig) .ueb-label b { color: var(--tinte); }
 .ueb-b50, .ueb-b85 { position: absolute; bottom: 0; height: 5px; }
 .ueb-b50 { left: 0; background: var(--farbe); }
 .ueb-b85 { right: 0; background: repeating-linear-gradient(135deg, var(--farbe) 0 3px, transparent 3px 6px); }
 .ueb-puffer { position: absolute; height: 0; border-top: 1px dashed var(--leise); z-index: 1; }
 .ueb-ziel { position: absolute; width: 9px; height: 9px; margin-left: -4.5px; transform: rotate(45deg); background: var(--flaeche);
   border: 2px solid var(--tinte); z-index: 3; pointer-events: auto; }
-.ueb-ziel.rot { border-color: var(--rot); }
+.ueb-ziel.rot { border-color: var(--z-spaet); }
 .ueb-weiter { position: absolute; right: 3px; font-size: 11.5px; line-height: 15px; color: var(--leise); background: var(--flaeche); padding-left: 4px; z-index: 3; }
 .ueb-du { position: absolute; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: var(--tinte); box-shadow: 0 0 0 2px var(--flaeche); z-index: 3; }
 .ueb-ohne-liste { display: flex; gap: 6px 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; font-size: 13px; }
@@ -378,6 +386,74 @@ main { overflow-wrap: break-word; }   /* lange Pfade/Adressen brechen um statt �
 .ueb-legende .ueb-puffer { width: 18px; }
 .ueb-legende .ueb-ziel { width: 8px; height: 8px; margin: 0 6px 0 2px; }
 .ueb-legende .ueb-heute { display: inline-block; height: 12px; width: 2px; margin: 0 6px 0 0; }
+.ueb-muster.geplant { background: transparent; box-shadow: none; outline: 1px dashed var(--z-geplant); outline-offset: -1px; }
+.ueb-muster.knapp { background: repeating-linear-gradient(90deg, var(--farbe) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--farbe); }
+.ueb-muster.rot { background: repeating-linear-gradient(135deg, var(--farbe) 0 3px, transparent 3px 6px); box-shadow: inset 0 0 0 1px var(--farbe); }
+/* A1777 Meilenstein-Karte für den Menschen (Kleinprobe D1171): Kopf, Satz, Zeitschiene, „was läuft, was hängt“, Aufgaben */
+.mk-kopf { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.mk-titel { font: 600 19px/1.25 var(--titel); margin: 0; letter-spacing: 0; text-transform: none; color: var(--tinte); }
+.mk-titel .ref { font-size: 12px; letter-spacing: .06em; }
+.mk-wer-kopf { margin-top: 4px; font-size: 13px; color: var(--leise); } .mk-wer-kopf b { color: var(--tinte); font-weight: 600; }
+.mk-knoepfe { display: flex; gap: 6px; flex: none; align-items: flex-start; }
+.mk-mehr { position: relative; }
+.mk-menue { position: absolute; right: 0; top: calc(100% + 4px); z-index: 6; background: var(--flaeche2); border: 1px solid var(--linie2); border-radius: 6px;
+  padding: 6px; display: grid; gap: 4px; min-width: 190px; box-shadow: var(--schatten); }
+.mk-menue[hidden] { display: none; }
+.mk-menue > span { font-size: 11.5px; color: var(--sehrleise); padding: 2px 6px; }
+.mk-satz { font-size: 15.5px; margin: 12px 0 2px; } .mk-satz b { font-weight: 650; }
+.mk-schiene { position: relative; height: 44px; margin: 8px 4px 2px; }
+.mk-schiene .linie { position: absolute; left: 0; right: 0; top: 13px; height: 4px; border-radius: 2px; background: var(--linie2); }
+.mk-schiene .bisher { position: absolute; left: 0; top: 13px; height: 4px; border-radius: 2px; background: var(--z-plan); }
+.mk-schiene .bisher.fertig { background: var(--z-fertig); }
+.mk-schiene .prog { position: absolute; top: 8px; height: 14px; min-width: 4px; border-radius: 3px; border: 2px dashed var(--z-plan); }
+.mk-schiene .prog.knapp { border-color: var(--z-knapp); } .mk-schiene .prog.spaet { border: 2px solid var(--z-spaet);
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--z-spaet) 35%, transparent) 0 4px, transparent 4px 8px); }
+.mk-schiene .heute { position: absolute; top: 3px; width: 2px; height: 24px; margin-left: -1px; background: var(--tinte); }
+.mk-schiene .ziel { position: absolute; top: 9px; width: 10px; height: 10px; margin-left: -5px; transform: rotate(45deg); background: var(--flaeche); border: 2px solid var(--tinte); }
+.mk-schiene .mk-marke { position: absolute; top: 29px; font-size: 11.5px; color: var(--leise); white-space: nowrap; }
+.mk-schiene .mk-marke.l { left: 0; } .mk-schiene .mk-marke.r { right: 0; }
+.mk-lage { margin: 10px 0 4px; display: grid; gap: 8px; }
+.mk-lg { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 2px 10px; align-items: start; padding: 9px 10px; border-radius: 6px;
+  background: var(--flaeche2); border: 1px solid var(--linie); font-size: 13.5px; }
+.mk-lg .mk-z { margin-top: 4px; } .mk-lg.du { border-color: var(--bernstein); }
+.mk-was { min-width: 0; } .mk-was b { font-weight: 650; }
+.mk-lg > button, .mk-lg > .knopf { white-space: nowrap; }
+.mk-wer { grid-column: 2 / 4; font-size: 12.5px; color: var(--leise); margin-top: 2px; min-width: 0; overflow-wrap: anywhere; }
+.mk-wer a, .mk-was a, .mk-lage a { color: var(--tinte); text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
+.mk-einzeln > div { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 3px 0; }
+/* Zustands-Zeichen: Form UND Farbe */
+.mk-z { width: 11px; height: 11px; display: inline-block; flex: none; vertical-align: -1px; }
+.mk-z.laeuft { background: var(--z-plan); border-radius: 50%; }
+.mk-z.wartet { border: 2px solid var(--z-knapp); border-radius: 50%; background: repeating-linear-gradient(90deg, var(--z-knapp) 0 2px, transparent 2px 4px); }
+.mk-z.fertig { background: var(--z-fertig); clip-path: polygon(0 55%, 18% 37%, 40% 60%, 82% 10%, 100% 28%, 40% 95%); width: 13px; }
+.mk-z.offen { border: 2px dashed var(--z-geplant); border-radius: 2px; }
+.mk-liste { margin-top: 12px; display: grid; gap: 0; }
+.mk-gruppe { font: 600 12px var(--titel); letter-spacing: .1em; text-transform: uppercase; color: var(--leise); margin: 10px 0 4px; cursor: default; }
+details > summary.mk-gruppe { cursor: pointer; }
+.mk-a { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 2px 10px; padding: 7px 6px; border-top: 1px solid var(--linie); align-items: baseline; cursor: pointer; }
+.mk-a:hover { background: var(--flaeche2); }
+.mk-nr { font: 600 12px var(--titel); color: var(--leise); } .mk-t { min-width: 0; overflow-wrap: anywhere; }
+.mk-st { font-size: 12.5px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.mk-meta { grid-column: 2 / 4; font-size: 12.5px; color: var(--leise); }
+.mk-verschoben { grid-column: 2 / 4; font-size: 12px; color: var(--bernstein); }
+.mk-mini { grid-column: 2 / 4; position: relative; height: 12px; margin-top: 1px; }
+.mk-mini::before { content: ""; position: absolute; left: 0; right: 0; top: 5px; border-top: 1px dashed var(--linie2); }
+.mk-mini i { position: absolute; top: 4px; height: 3px; }
+.mk-mini i.lief { background: var(--z-plan); } .mk-mini i.fert { background: var(--z-fertig); }
+.mk-mini i.wart { background: repeating-linear-gradient(90deg, var(--z-knapp) 0 4px, transparent 4px 7px); }
+.mk-mini b { position: absolute; top: 1px; width: 2px; height: 9px; background: var(--leise); }
+.mk-details { margin-top: 12px; border-top: 1px solid var(--linie); padding-top: 8px; font-size: 13px; }
+.mk-details > summary { cursor: pointer; color: var(--leise); }
+.mk-details dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 8px 0; }
+.mk-details dt { color: var(--leise); } .mk-details dd { margin: 0; }
+@media (max-width: 560px) {
+  .mk-titel { font-size: 17px; }
+  .mk-knoepfe { width: 100%; } .mk-knoepfe > button, .mk-knoepfe > .mk-mehr { flex: 1; } .mk-mehr > button { width: 100%; }
+  .mk-lg { grid-template-columns: 18px minmax(0, 1fr); } .mk-lg > button, .mk-lg > .knopf { grid-column: 2; justify-self: start; margin-top: 6px; }
+  .mk-lg > span:empty { display: none; } .mk-wer { grid-column: 2; }
+  .mk-a { grid-template-columns: 46px minmax(0, 1fr); } .mk-st { grid-column: 2; white-space: normal; }
+  .mk-schiene .mk-marke.r { max-width: 62%; white-space: normal; text-align: right; line-height: 1.2; }
+}
 .ueb-legende .ueb-du { margin: 0 5px 0 0; }
 @media (max-width: 760px) {
   .befund-schluessel { margin-left: 0; flex-basis: 100%; } .befund-zeile > .sehrleise:first-child { min-width: 0; } }
@@ -1446,6 +1522,7 @@ const TEXTE = {
     nachricht: "Nachricht", nachricht_an: "Nachricht an {x}", n_kurz_ph: "Kurz: worum geht es (eine Zeile)", n_text_ph: "Text (optional)",
     senden: "Senden", gesendet: "Gesendet an {x} – wird benachrichtigt, wenn die Sitzung läuft.", art_auftrag: "Auftrag", art_frage: "Frage", art_info: "Info (ohne Benachrichtigung)", art_korrektur: "Korrektur",
     gerade: "gerade eben", vor_min: "vor {n} min", vor_h: "vor {n} h", vor_t: "vor {n} Tagen", vor_t1: "gestern", nie: "nie",
+    mk_verantwortlich: "Verantwortlich:", mk_lead: "{x} (Lead)", mk_ziel: "Ziel {x}", mk_prog: "Prognose {a}–{b}", mk_beginn: "Beginn {x}", mk_fertig_am: "fertig {x}", mk_schiene_h: "Zeitschiene: Beginn {a}, Ziel {b}", mk_vorziehen: "Vorziehen", mk_vorziehen_h: "Diesen Meilenstein eins nach vorn ziehen – der Lead bekommt eine Meldung.", mk_vorziehen_frage: "Meilenstein {b} „{x}“ eins nach vorn ziehen? Der Lead bekommt eine Meldung und richtet die Aufgaben danach aus.", mk_vorgezogen: "Vorgezogen – der Lead ist informiert.", mk_mehr: "Mehr …", mk_fuer_lead: "Für den Lead", mk_satz_fertig: "{f} von {g} Aufgaben fertig", mk_satz_laeuft1: "1 läuft", mk_satz_laeuft: "{n} laufen", mk_satz_dich1: "1 wartet auf dich", mk_satz_dich: "{n} warten auf dich", mk_satz_blockiert: "{n} blockiert", mk_satz_pruefung: "{n} bei der Prüfung", mk_satz_offen: "{n} noch nicht dran", mk_l_laeuft1: "1 läuft:", mk_l_laeuft: "{n} laufen:", mk_l_dich1: "1 wartet auf dich:", mk_l_dich: "{n} warten auf dich:", mk_l_lauf: "{n} blockiert durch Lauf {l}", mk_l_pruefung1: "1 bei der Prüfung:", mk_l_pruefung: "{n} bei der Prüfung:", mk_l_auf1: "1 wartet auf {x}", mk_l_auf: "{n} warten auf {x}", mk_unbekannt: "etwas ohne Angabe", mk_lauf_laeuft: "der Lauf läuft gerade", mk_lauf_platz: "Platz {p} von {v} in der Schlange", mk_lauf_fremd1: "davor 1 Lauf eines anderen Projekts", mk_lauf_fremd: "davor {n} Läufe anderer Projekte", mk_betrifft: "betrifft", mk_und_weitere: "und {n} weitere", mk_seit: "seit {x}", mk_frage: "Frage {f} „{x}“", mk_dich_seit: "wartet auf deine Antwort seit {x}", mk_dich_aufgabe: "deine Aufgabe", mk_pruefbitte: "Prüfbitte {p} bei {x} seit {z}", mk_k_frage: "Frage beantworten", mk_k_ansehen: "Ansehen", mk_k_lauf: "Lauf vorziehen", mk_k_lead: "Lead anschreiben", mk_st_laeuft: "läuft", mk_st_dich: "wartet auf dich", mk_st_dich_f: "wartet auf dich ({f})", mk_st_lauf: "wartet auf Lauf {l}", mk_st_pruefung: "bei der Prüfung ({p})", mk_st_auf: "wartet auf {x}", mk_st_offen: "noch nicht begonnen", mk_st_pause: "angefangen, ruht", mk_st_fertig: "fertig {x}", mk_st_verworfen: "verworfen", mk_offen: "Offen ({n})", mk_fertig: "Fertig ({n})", mk_weg: "Weggezogen ({n})", mk_verschoben_aus: "verschoben aus Meilenstein {b} am {x}", mk_verschoben_nach: "nach Meilenstein {b} verschoben am {x}", mk_herausgenommen: "aus dem Meilenstein genommen am {x}", mk_angelegt: "angelegt {x}", mk_begonnen: "begonnen {x}", mk_wartet_seit: "wartet seit {x}", mk_details: "Details", mk_hinzu: "Hinzugekommen", mk_dokumente: "Dokumente", mk_klaerungen: "Klärungen", mk_wellen: "Reihenfolge der Schritte", lg_knapp: "knapp",
   },
   en: {
     marke: "Agent Management Workbench", suche: "Search tasks, decisions, questions, your words, messages",
@@ -1775,6 +1852,7 @@ const TEXTE = {
     nachricht: "Message", nachricht_an: "Message to {x}", n_kurz_ph: "Short: what is it about (one line)", n_text_ph: "Text (optional)",
     senden: "Send", gesendet: "Sent to {x} – will be notified if the session is running.", art_auftrag: "Task", art_frage: "Question", art_info: "Info (no notification)", art_korrektur: "Correction",
     gerade: "just now", vor_min: "{n} min ago", vor_h: "{n} h ago", vor_t: "{n} days ago", vor_t1: "yesterday", nie: "never",
+    mk_verantwortlich: "Owner:", mk_lead: "{x} (lead)", mk_ziel: "Target {x}", mk_prog: "forecast {a}–{b}", mk_beginn: "Start {x}", mk_fertig_am: "done {x}", mk_schiene_h: "Timeline: start {a}, target {b}", mk_vorziehen: "Move up", mk_vorziehen_h: "Move this milestone up by one – the lead gets a message.", mk_vorziehen_frage: "Move milestone {b} “{x}” up by one? The lead gets a message and reorders the tasks.", mk_vorgezogen: "Moved up – the lead has been told.", mk_mehr: "More …", mk_fuer_lead: "For the lead", mk_satz_fertig: "{f} of {g} tasks done", mk_satz_laeuft1: "1 running", mk_satz_laeuft: "{n} running", mk_satz_dich1: "1 waiting for you", mk_satz_dich: "{n} waiting for you", mk_satz_blockiert: "{n} blocked", mk_satz_pruefung: "{n} in review", mk_satz_offen: "{n} not up yet", mk_l_laeuft1: "1 running:", mk_l_laeuft: "{n} running:", mk_l_dich1: "1 waiting for you:", mk_l_dich: "{n} waiting for you:", mk_l_lauf: "{n} blocked by run {l}", mk_l_pruefung1: "1 in review:", mk_l_pruefung: "{n} in review:", mk_l_auf1: "1 waiting for {x}", mk_l_auf: "{n} waiting for {x}", mk_unbekannt: "something unspecified", mk_lauf_laeuft: "the run is running now", mk_lauf_platz: "position {p} of {v} in the queue", mk_lauf_fremd1: "1 run of another project ahead", mk_lauf_fremd: "{n} runs of other projects ahead", mk_betrifft: "affects", mk_und_weitere: "and {n} more", mk_seit: "since {x}", mk_frage: "Question {f} “{x}”", mk_dich_seit: "waiting for your answer since {x}", mk_dich_aufgabe: "your task", mk_pruefbitte: "Review request {p} with {x} since {z}", mk_k_frage: "Answer question", mk_k_ansehen: "Open", mk_k_lauf: "Move run up", mk_k_lead: "Write to lead", mk_st_laeuft: "running", mk_st_dich: "waiting for you", mk_st_dich_f: "waiting for you ({f})", mk_st_lauf: "waiting for run {l}", mk_st_pruefung: "in review ({p})", mk_st_auf: "waiting for {x}", mk_st_offen: "not started", mk_st_pause: "started, on hold", mk_st_fertig: "done {x}", mk_st_verworfen: "discarded", mk_offen: "Open ({n})", mk_fertig: "Done ({n})", mk_weg: "Moved away ({n})", mk_verschoben_aus: "moved here from milestone {b} on {x}", mk_verschoben_nach: "moved to milestone {b} on {x}", mk_herausgenommen: "taken out of the milestone on {x}", mk_angelegt: "created {x}", mk_begonnen: "started {x}", mk_wartet_seit: "waiting since {x}", mk_details: "Details", mk_hinzu: "Added", mk_dokumente: "Documents", mk_klaerungen: "Open points", mk_wellen: "Order of the steps", lg_knapp: "tight",
   },
 };
 let sprache = "de", spracheGewaehlt = false;      /* gewählt = im Browser gemerkt oder per Adresse – dann gilt die Vorgabe der Installation nicht */
@@ -4447,7 +4525,7 @@ function uebersicht(d) {
     el("i", { class: "ueb-heute", style: `left:${pos(tagNr(d.heute))}` }),
     el("span", { class: "ueb-jetzt", style: `left:${pos(tagNr(d.heute))}`, title: jetztTip }),
     zeilen.flatMap(z => {
-      const b = z.b, oben = z.spur * H, art = b.status === "fertig" ? "fertig" : b.prognose?.ampel === "rot" ? "rot" : b.status === "aktiv" ? "aktiv" : "";
+      const b = z.b, oben = z.spur * H, art = b.status === "fertig" ? "fertig" : b.prognose?.ampel === "rot" ? "rot" : b.prognose?.ampel === "gelb" ? "knapp" : b.status === "aktiv" ? "aktiv" : "";   /* A1777: knapp = wahrscheinlich vor dem Ziel, vorsichtig gerechnet danach */
       const lang = Math.max(z.e - z.a, 0), spaet = z.zn !== null && z.zn < z.m && b.status !== "fertig";
       const tip = [`${bogenRef(b.id)} · ${b.titel}`, `${t("bs_" + b.status)} · ${t("pl_fortschritt", { f: b.fertig || 0, g: b.gesamt - (b.verworfen || 0) })}`,
         `${t("ue_start")} ${datumKurz(z.start)}`, b.zuwachs ? t("zw_satz", zwText(b.zuwachs)) : null,
@@ -4504,7 +4582,8 @@ function uebersicht(d) {
       ohne.map(z => el("button", { type: "button", title: z.ziel ? `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` : "", onclick: () => zuSchritt(null, z.b.id) },
         el("span", { class: "ref" }, "B" + z.b.id), " " + z.b.titel))) : null,
     el("div", { class: "ueb-legende" },
-      el("span", {}, el("i", { class: "ueb-muster" }), t("lg_geplant")), el("span", {}, el("i", { class: "ueb-muster aktiv" }), t("lg_arbeit")),
+      el("span", {}, el("i", { class: "ueb-muster geplant" }), t("lg_geplant")), el("span", {}, el("i", { class: "ueb-muster aktiv" }), t("lg_arbeit")),
+      zeilen.some(z => z.b.status !== "fertig" && z.b.prognose?.ampel === "gelb") ? el("span", {}, el("i", { class: "ueb-muster knapp" }), t("lg_knapp")) : null,
       el("span", {}, el("i", { class: "ueb-muster arbeitet" }), t("lg_puls")),
       el("span", {}, el("i", { class: "ueb-muster rot" }), t("lg_spaet")), el("span", {}, el("i", { class: "ueb-muster fertig" }), t("lg_erledigt")),
       el("span", {}, el("i", { class: "ueb-muster schraffur" }), t("lg_rahmen")), el("span", {}, el("i", { class: "ueb-puffer" }), t("lg_puffer")),
@@ -4573,6 +4652,7 @@ function rechnerHeute(d) {
 /* Senkrechte Zeitleiste: ein Bogen je Station, Heute-Linie, Zieldatum/Baseline/Prognose, Spezifikation, Schritte in Wellen */
 function zeitleiste(d) {
   zustand.token = d.token || null;                  /* für die Karten der Bögen: Stück Token-Pause am Datum */
+  zustand.planBoegen = d.boegen; zustand.planLead = d.lead;   /* A1777: „Vorziehen“ (ein offener davor?) und „Lead anschreiben“ */
   if (!d.boegen.length) return el("div", { class: "leer" }, t("pl_keine_boegen"));
   const liste = el("div", { class: "zeitleiste" });
   let heuteGesetzt = false;
@@ -4609,52 +4689,218 @@ function zeitleiste(d) {
   return liste;
 }
 const zwText = z => ({ x: datumKurz(z.seit.slice(0, 10)), n: z.neu, m: z.erledigt, k: z.offen });
+/* A1777 (Marcel 15.11., B2816, Kleinprobe D1171 freigegeben F5342): die Meilenstein-Karte für den Menschen – Fakten zum
+   Eingreifen statt Lead-Werkzeuge. Kopf (Verantwortlich, Ziel, „Vorziehen“; Aktivieren/Abschließen/Rückblick/Bearbeiten unter
+   „Mehr … · Für den Lead“), Fortschritt als Satz, Zeitschiene, „was läuft, was hängt“ nach Ursache gebündelt mit dem Weg
+   zum Eingreifen, dann die Aufgaben selbst (offen zuerst, mit Mini-Zeitlinie, „verschoben aus …“), Details unten in Worten. */
+const mkMs = x => x ? Date.parse(x.length === 10 ? x + "T12:00:00" : x) : null;
+const mkKurz = (x, n = 90) => !x ? "" : x.length > n ? x.slice(0, n - 1) + "…" : x;
+/* Worauf eine offene Aufgabe hängt – eine Ursache je Aufgabe, in der Reihenfolge, in der der Mensch sie lösen kann */
+function mkUrsache(s) {
+  const g = s.gruende || [];
+  if (s.status === "laeuft") return { art: "laeuft", key: "laeuft" };
+  const dich = g.find(x => x.an_dich);
+  if (dich || s.agent === "Entwickler") return { art: "dich", key: "dich", g: dich };
+  const lauf = g.find(x => x.art === "lauf");
+  if (lauf) return { art: "lauf", key: "lauf:" + lauf.bezug, g: lauf };
+  if (s.pruefung) return { art: "pruefung", key: "pruefung" };
+  const aufg = g.find(x => x.art === "aufgabe");
+  if (aufg) return { art: "aufgabe", key: "aufgabe:" + aufg.bezug, g: aufg };
+  if ((s.blockiert_durch || []).length) { const a = "A" + s.blockiert_durch[0]; return { art: "aufgabe", key: "aufgabe:" + a, g: { art: "aufgabe", bezug: a } }; }
+  const ag = g.find(x => x.art === "agent");
+  if (ag) return { art: "agent", key: "agent:" + ag.bezug, g: ag };
+  if (g.length) return { art: "sonst", key: "sonst:" + g[0].bezug, g: g[0] };
+  if (s.status === "blockiert") return { art: "sonst", key: "sonst:", g: null };   /* „wartet“ ohne Grund = noch nicht dran (Grundzustand einer neuen Aufgabe) */
+  return { art: "offen", key: "offen" };
+}
+const mkSeit = s => s.status === "laeuft" ? s.begonnen_utc : (s.gruende || []).map(g => g.seit).filter(Boolean).sort()[0] || s.begonnen_utc || s.angelegt_utc;
+function mkStatus(s, u) {
+  if (s.status === "fertig") return t("mk_st_fertig", { x: s.fertig_utc ? datumKurz(s.fertig_utc.slice(0, 10)) : "" });
+  if (s.status === "verworfen") return t("mk_st_verworfen");
+  return { laeuft: () => t("mk_st_laeuft"), dich: () => u.g?.art === "frage" ? t("mk_st_dich_f", { f: u.g.bezug }) : t("mk_st_dich"),
+    lauf: () => t("mk_st_lauf", { l: u.g.bezug }), pruefung: () => t("mk_st_pruefung", { p: "P" + s.pruefung.id }),
+    aufgabe: () => t("mk_st_auf", { x: u.g.bezug }), agent: () => t("mk_st_auf", { x: u.g.bezug }),
+    sonst: () => u.g ? t("mk_st_auf", { x: u.g.bezug }) : t("sp_" + s.status), offen: () => t(s.begonnen_utc ? "mk_st_pause" : "mk_st_offen") }[u.art]();
+}
+const mkZeichen = (s, u) => el("i", { class: "mk-z " + (s.status === "fertig" ? "fertig" : s.status === "verworfen" ? "offen" : u.art === "laeuft" ? "laeuft"
+  : u.art === "offen" ? "offen" : "wartet") });
 function bogenKarte(b) {
-  /* A1742: alle Aufgaben fertig (oder verworfen) – Abschließen wird zum Hauptknopf, auch bei „geplant“ */
-  const alleFertig = ["aktiv", "geplant"].includes(b.status) && b.gesamt > 0 && (b.fertig || 0) + (b.verworfen || 0) === b.gesamt;
-  const p = b.prognose, aktiv = b.status === "aktiv", zahl = b.gesamt - (b.verworfen || 0), anteil = zahl ? Math.round(100 * b.fertig / zahl) : 0;
-  const knopf = (text, fn, haupt) => el("button", { class: haupt ? "knopf" : "klein-knopf", type: "button", onclick: fn }, text);
+  const p = b.prognose, aktiv = b.status === "aktiv", offenB = ["aktiv", "geplant"].includes(b.status);
+  /* A1742: alle Aufgaben fertig (oder verworfen) – Abschließen bleibt Sache des Leads (bzw. der Automatik), steht unter „Mehr …“ */
+  const alleFertig = offenB && b.gesamt > 0 && (b.fertig || 0) + (b.verworfen || 0) === b.gesamt;
+  const zahl = b.gesamt - (b.verworfen || 0);
   const statusSetzen = async (status, frage) => { if (frage && !confirm(frage)) return;
     try { await schicken("/api/plan/bogen", { aktion: "status", bogen: b.id, status }); zeige("planung", true); } catch (e) { toast(t("fehler", { x: e.message }), true); } };
-  const specChip = teil => { const s = b.specs[teil] || { status: "entwurf" }; return el("button", { class: "spec-chip spec-" + s.status, type: "button",
-    onclick: () => specDialog(b, teil) }, `${t("teil_" + teil)}: ${t("ss_" + s.status)}`); };
+  const boegen = zustand.planBoegen || [], lead = zustand.planLead;
+  const davor = boegen.slice(0, boegen.findIndex(x => x.id === b.id)).some(x => ["aktiv", "geplant"].includes(x.status));
+  const vorziehen = offenB && davor ? el("button", { class: "knopf haupt mk-vorziehen", type: "button", title: t("mk_vorziehen_h"), onclick: async () => {
+      if (!confirm(t("mk_vorziehen_frage", { b: b.id, x: b.titel }))) return;
+      try { await schicken("/api/plan/bogen", { aktion: "vorziehen", bogen: b.id }); toast(t("mk_vorgezogen")); zeige("planung", true); }
+      catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("mk_vorziehen")) : null;
+  const menue = el("div", { class: "mk-menue", hidden: "" }, el("span", {}, t("mk_fuer_lead")),
+    b.status === "geplant" ? el("button", { class: "klein-knopf", type: "button", onclick: () => statusSetzen("aktiv", t("pl_aktivieren_frage")) }, t("pl_aktivieren")) : null,
+    aktiv || alleFertig ? el("button", { class: "klein-knopf", type: "button", onclick: () => statusSetzen("fertig", t("pl_abschliessen_frage", { x: b.abnahme || "–" })) }, t("pl_abschliessen")) : null,
+    el("button", { class: "klein-knopf", type: "button", onclick: () => rueckblickDialog(b) }, t("rb_knopf", { n: (b.rueckblick || []).length })),
+    el("button", { class: "klein-knopf", type: "button", onclick: () => bogenDialog(b) }, t("bearbeiten")));
+  const mehr = el("span", { class: "mk-mehr" }, el("button", { class: "klein-knopf", type: "button", "aria-haspopup": "true",
+    onclick: e => { menue.hidden = !menue.hidden; e.stopPropagation(); } }, t("mk_mehr")), menue);
+  const wer = b.federfuehrend || (lead ? t("mk_lead", { x: lead }) : null);
+
+  /* Aufgaben mit ihrer Ursache; „was läuft, was hängt“ = Gruppen je Ursache */
+  const offen = b.schritte.filter(s => !["fertig", "verworfen"].includes(s.status)).map(s => ({ s, u: mkUrsache(s) }));
+  const gruppen = new Map();
+  for (const x of offen) if (x.u.art !== "offen") { if (!gruppen.has(x.u.key)) gruppen.set(x.u.key, { u: x.u, a: [] }); gruppen.get(x.u.key).a.push(x.s); }
+  const n = art => offen.filter(x => art.includes(x.u.art)).length;
+  const satz = [t("mk_satz_fertig", { f: b.fertig || 0, g: zahl }),
+    n(["laeuft"]) ? t(n(["laeuft"]) === 1 ? "mk_satz_laeuft1" : "mk_satz_laeuft", { n: n(["laeuft"]) }) : null, n(["dich"]) ? t(n(["dich"]) === 1 ? "mk_satz_dich1" : "mk_satz_dich", { n: n(["dich"]) }) : null,
+    n(["lauf", "aufgabe", "agent", "sonst"]) ? t("mk_satz_blockiert", { n: n(["lauf", "aufgabe", "agent", "sonst"]) }) : null,
+    n(["pruefung"]) ? t("mk_satz_pruefung", { n: n(["pruefung"]) }) : null, n(["offen"]) ? t("mk_satz_offen", { n: n(["offen"]) }) : null].filter(Boolean);
+  const aufLink = (id, text) => el("a", { onclick: () => aufgabeDialog(id) }, text || "A" + id);
+  const zeileA = s => [aufLink(s.id), " " + mkKurz(s.titel, 80)];
+  const leadKnopf = (bezug, text) => lead ? el("button", { class: "klein-knopf", type: "button", onclick: () => nachrichtDialog(lead, { bezug, bezugText: text }) }, t("mk_k_lead")) : null;
+  const lageZeile = (gr) => {
+    const { u, a } = gr, eins = a.length === 1, s = a[0];
+    const kopf = { laeuft: () => t(eins ? "mk_l_laeuft1" : "mk_l_laeuft", { n: a.length }), dich: () => t(eins ? "mk_l_dich1" : "mk_l_dich", { n: a.length }),
+      lauf: () => t("mk_l_lauf", { n: a.length, l: u.g.bezug }), pruefung: () => t(eins ? "mk_l_pruefung1" : "mk_l_pruefung", { n: a.length }),
+      aufgabe: () => t(eins ? "mk_l_auf1" : "mk_l_auf", { n: a.length, x: u.g.bezug }), agent: () => t(eins ? "mk_l_auf1" : "mk_l_auf", { n: a.length, x: u.g.bezug }),
+      sonst: () => t(eins ? "mk_l_auf1" : "mk_l_auf", { n: a.length, x: u.g?.bezug || t("mk_unbekannt") }) }[u.art]();
+    /* je Aufgabe eine Zeile mit dem Weg (läuft, wartet auf dich, Prüfung) – sonst eine Zeile für die ganze Ursache */
+    const einzeln = ["laeuft", "dich", "pruefung"].includes(u.art);
+    const detail = x => {
+      if (u.art === "laeuft") return [x.agent === "Entwickler" ? t("pl_du") : (x.agent || t("pl_frei")), x.begonnen_utc ? t("mk_seit", { x: zeit(x.begonnen_utc) }) : null].filter(Boolean).join(" · ");
+      if (u.art === "dich") { const g = (x.gruende || []).find(y => y.an_dich);
+        return g?.art === "frage" ? [t("mk_frage", { f: g.bezug, x: mkKurz(g.kurz, 90) }), t("mk_seit", { x: zeit(g.seit) })].join(" · ")
+          : g ? t("mk_dich_seit", { x: zeit(g.seit) }) : t("mk_dich_aufgabe"); }
+      if (u.art === "pruefung") return t("mk_pruefbitte", { p: "P" + x.pruefung.id, x: x.pruefung.pruefer, z: zeit(x.pruefung.seit) });
+      return ""; };
+    const knopfFuer = x => {
+      if (u.art === "dich") { const g = (x.gruende || []).find(y => y.an_dich);
+        return g?.art === "frage" ? el("button", { class: "knopf haupt", type: "button", onclick: () => zeige("fragen") }, t("mk_k_frage"))
+          : el("button", { class: "knopf haupt", type: "button", onclick: () => aufgabeDialog(x.id) }, t("mk_k_ansehen")); }
+      if (u.art === "pruefung") return leadKnopf("A" + x.id, `A${x.id} ${x.titel}`);
+      return null; };
+    let knopf = null, unten;
+    if (einzeln && eins) { knopf = knopfFuer(s); unten = el("div", { class: "mk-wer" }, detail(s)); }
+    else if (einzeln) unten = el("div", { class: "mk-wer mk-einzeln" }, a.map(x => el("div", {}, el("span", {}, ...zeileA(x), el("span", { class: "sehrleise" }, " · " + detail(x))), knopfFuer(x))));
+    else {                                         /* Lauf, Aufgabe, Agent, Sonstiges: eine Zeile für alle, die daran hängen */
+      const teile = [];
+      if (u.art === "lauf") {
+        const g = u.g;
+        if (g.status === "laeuft") teile.push(t("mk_lauf_laeuft"));
+        else if (g.platz) teile.push(t("mk_lauf_platz", { p: g.platz, v: g.von }) + (g.vor_fremd ? " – " + t(g.vor_fremd === 1 ? "mk_lauf_fremd1" : "mk_lauf_fremd", { n: g.vor_fremd }) : ""));
+        if (g.status === "angemeldet") knopf = el("button", { class: "klein-knopf", type: "button", onclick: async () => {
+          if (!confirm(t("re_vorziehen_frage", { l: g.bezug.slice(1), x: g.kurz || "" }))) return;
+          try { await schicken("/api/lauf/vorziehen", { lauf: Number(g.bezug.slice(1)) }); toast(t("re_vorgezogen", { l: g.bezug.slice(1) })); zeige("planung", true); }
+          catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("mk_k_lauf"));
+      } else if (u.art === "aufgabe" && u.g.kurz) {
+        teile.push(el("span", {}, aufLink(Number(u.g.bezug.slice(1)), u.g.bezug), ` „${mkKurz(u.g.kurz, 70)}“`
+          + (u.g.status ? ` · ${t("sp_" + u.g.status) || u.g.status}` : "") + (u.g.agent ? ` · ${u.g.agent === "Entwickler" ? t("pl_du") : u.g.agent}` : "")));
+      } else if (u.art === "agent") knopf = leadKnopf("A" + s.id, `A${s.id} ${s.titel}`);
+      teile.push(el("span", {}, t("mk_betrifft"), " ", ...a.slice(0, 3).flatMap((x, i) => i ? [", ", aufLink(x.id)] : [aufLink(x.id)]),
+        eins ? " " + mkKurz(s.titel, 70) : a.length > 3 ? " " + t("mk_und_weitere", { n: a.length - 3 }) : ""));
+      unten = el("div", { class: "mk-wer" }, ...teile.flatMap((x, i) => i ? [" · ", x] : [x]));
+    }
+    return el("div", { class: "mk-lg" + (u.art === "dich" ? " du" : "") },
+      el("i", { class: "mk-z " + (u.art === "laeuft" ? "laeuft" : u.art === "pruefung" ? "offen" : "wartet") }),
+      el("div", { class: "mk-was" }, el("b", {}, kopf), einzeln && eins ? el("span", {}, " ", ...zeileA(s))
+        : u.art === "lauf" && u.g.kurz ? el("span", {}, ` (${mkKurz(u.g.kurz, 70)})`) : null),
+      knopf || el("span"), unten);
+  };
+  const reihe = ["laeuft", "dich", "lauf", "pruefung", "aufgabe", "agent", "sonst"];
+  const lage = [...gruppen.values()].sort((x, y) => reihe.indexOf(x.u.art) - reihe.indexOf(y.u.art));
+
+  /* Zeitschiene: Beginn → heute → Ziel, Prognose als gestrichelter Rahmen */
+  const heute = new Date().toISOString().slice(0, 10);
+  const beginn = [b.beginn_ist, ...b.schritte.map(s => (s.angelegt_utc || "").slice(0, 10))].filter(Boolean).sort()[0] || heute;
+  const ende = [b.zieldatum, p?.p85, heute, ...b.schritte.map(s => (s.fertig_utc || "").slice(0, 10))].filter(Boolean).sort().pop();
+  /* Lage auf der Schiene: innen 6 px Rand, damit Raute und Prognose-Rahmen am Ende nicht aus der Karte ragen */
+  const von = mkMs(beginn), bis = Math.max(mkMs(ende), von + 864e5), anteil = x => Math.max(0, Math.min(1, (mkMs(x) - von) / (bis - von)));
+  const proz = x => `calc(6px + ${anteil(x).toFixed(4)} * (100% - 12px))`;
+  const fertigB = b.status === "fertig";
+  const schiene = el("div", { class: "mk-schiene", "aria-label": t("mk_schiene_h", { a: datumKurz(beginn), b: b.zieldatum ? datumKurz(b.zieldatum) : "–" }) },
+    el("span", { class: "linie" }), el("span", { class: "bisher" + (fertigB ? " fertig" : ""), style: `width:${proz(fertigB ? (b.fertig_utc || heute).slice(0, 10) : heute)}` }),
+    p && !fertigB ? el("span", { class: "prog " + (p.ampel === "rot" ? "spaet" : p.ampel === "gelb" ? "knapp" : "plan"), style: `left:${proz(p.p50)};width:calc(${proz(p.p85)} - ${proz(p.p50)})`,
+      title: `${t("pl_prognose")} ${datumKurz(p.p50)} – ${datumKurz(p.p85)}` }) : null,
+    fertigB ? null : el("span", { class: "heute", style: `left:${proz(heute)}` }),
+    b.zieldatum ? el("span", { class: "ziel", style: `left:${proz(b.zieldatum)}`, title: `${t("pl_zieldatum")} ${datumKurz(b.zieldatum)}` }) : null,
+    el("span", { class: "mk-marke l" }, t("mk_beginn", { x: datumKurz(beginn) })),
+    el("span", { class: "mk-marke r" }, [b.zieldatum ? t("mk_ziel", { x: datumKurz(b.zieldatum) }) : null,
+      p && !fertigB ? t("mk_prog", { a: datumKurz(p.p50), b: datumKurz(p.p85) }) : null, fertigB && b.fertig_utc ? t("mk_fertig_am", { x: datumKurz(b.fertig_utc.slice(0, 10)) }) : null]
+      .filter(Boolean).join(" · ")));
+
+  /* Mini-Zeitlinie je Aufgabe auf derselben Achse: angelegt (Strich), gearbeitet (voll), gewartet (gestrichelt), fertig */
+  const mini = (s, u) => {
+    if (!s.angelegt_utc) return null;
+    const ms = x => Math.max(0, Math.min(100, 100 * (Date.parse(x) - von) / (bis - von)));
+    const jetzt = Date.now(), a = s.begonnen_utc, f = s.fertig_utc;
+    const w = !["laeuft", "offen"].includes(u.art) && !["fertig", "verworfen"].includes(s.status) ? mkSeit(s) : null;
+    const stueck = (k, x, y) => x && y && Date.parse(y) > Date.parse(x) ? el("i", { class: k, style: `left:${ms(x).toFixed(1)}%;width:${Math.max(.6, ms(y) - ms(x)).toFixed(1)}%` }) : null;
+    const jetztIso = new Date(jetzt).toISOString();
+    return el("span", { class: "mk-mini", title: [t("mk_angelegt", { x: zeit(s.angelegt_utc) }), a ? t("mk_begonnen", { x: zeit(a) }) : null,
+        w ? t("mk_wartet_seit", { x: zeit(w) }) : null, f ? t("mk_fertig_am", { x: zeit(f) }) : null].filter(Boolean).join(" · ") },
+      el("b", { style: `left:${ms(s.angelegt_utc).toFixed(1)}%` }),
+      f ? stueck("fert", a || s.angelegt_utc, f) : stueck("lief", a, w && w > (a || "") ? w : jetztIso), w ? stueck("wart", w > (a || "") ? w : a || s.angelegt_utc, jetztIso) : null);
+  };
+  const aufgabeZeile = (s, u) => el("div", { class: "mk-a", id: "schritt-" + s.id, onclick: e => { if (!e.target.closest("a,button")) aufgabeDialog(s.id); } },
+    el("span", { class: "mk-nr" }, "A" + s.id), el("span", { class: "mk-t" }, s.titel),
+    el("span", { class: "mk-st" }, mkZeichen(s, u), mkStatus(s, u)),
+    el("span", { class: "mk-meta" }, [s.agent === "Entwickler" ? t("pl_du") : (s.agent || t("pl_frei")),
+      s.status !== "fertig" && s.status !== "verworfen" && mkSeit(s) ? t("mk_seit", { x: zeit(mkSeit(s)) }) : null,
+      (s.kriterien || []).length ? `✓ ${s.kriterien.filter(k => k.erfuellt).length}/${s.kriterien.length}` : null,
+      s.prognose && !["fertig", "verworfen"].includes(s.status) ? `≈ ${datumKurz(s.prognose.p50)}` : null].filter(Boolean).join(" · "),
+      s.dokumente ? el("a", { class: "verweis", style: "margin-left:6px", onclick: () => { zustand.dok = { status: "aktuell", bezug: `aufgabe:${s.id}` }; zeige("dokumente"); } }, `📎 ${s.dokumente}`) : null),
+    s.verschoben_aus ? el("span", { class: "mk-verschoben" }, "↪ " + t("mk_verschoben_aus", { b: s.verschoben_aus.bogen, x: datumKurz(s.verschoben_aus.am.slice(0, 10)) })) : null,
+    mini(s, u));
+  const rang = { dich: 0, laeuft: 1, lauf: 2, pruefung: 3, aufgabe: 4, agent: 5, sonst: 6, offen: 7 };
+  const offenSortiert = offen.slice().sort((x, y) => rang[x.u.art] - rang[y.u.art]);
+  const erledigt = b.schritte.filter(s => ["fertig", "verworfen"].includes(s.status)).sort((x, y) => (y.fertig_utc || "").localeCompare(x.fertig_utc || ""));
+
+  const spec = teil => { const s = b.specs[teil] || { status: "entwurf" };
+    return [el("dt", {}, t("teil_" + teil)), el("dd", {}, el("a", { class: "verweis", onclick: () => specDialog(b, teil) }, t("ss_" + s.status)))]; };
   const wellen = {};
   for (const s of b.schritte) (wellen[s.welle] ||= []).push(s);
-  const schritte = el("details", { class: "tl-schritte", ...(aktiv ? { open: true } : {}) }, el("summary", {}, t("pl_schritte", { n: b.schritte.length })),
-    b.schritte.length ? Object.keys(wellen).sort((x, y) => x - y).map(n => el("div", { class: "welle" },
-      el("div", { class: "welle-kopf" }, t("pl_welle", { n }) + (wellen[n].length > 1 ? " · " + t("pl_parallel") : "")),
-      wellen[n].map(s => schrittZeile(s)))) : el("div", { class: "sehrleise" }, t("pl_keine_schritte")));
-  return el("div", { class: `tl-bogen karte status-${b.status}`, id: "bogen-" + b.id },
+  const details = el("details", { class: "mk-details" }, el("summary", {}, t("mk_details")),
+    el("dl", {},
+      b.ziel ? [el("dt", {}, t("pl_ziel")), el("dd", {}, b.ziel)] : null,
+      el("dt", {}, t("pl_abnahme")), el("dd", {}, b.abnahme || el("span", { class: "rot-text" }, t("pl_fehlt"))),
+      ...["anforderungen", "entwurf", "schritte"].flatMap(spec),
+      el("dt", {}, t("pl_zieldatum")), el("dd", {}, datumKurz(b.zieldatum),
+        b.baseline_datum && b.baseline_datum !== b.zieldatum ? el("span", { class: "sehrleise", title: b.baseline_grund || "" }, ` · ${t("pl_baseline")} ${datumKurz(b.baseline_datum)}`) : null,
+        p ? el("span", { class: "sehrleise" }, ` · ${t("pl_prognose")} ${datumKurz(p.p50)} – ${datumKurz(p.p85)}`, tokenStueck(p),
+          p.ampel_ohne_pause ? el("span", { class: "sehrleise", title: t("tk_ampel_h") }, " " + t("tk_ampel")) : null) : null),
+      b.zuwachs ? [el("dt", {}, t("mk_hinzu")), el("dd", { title: t("zw_h") }, t("zw_satz", zwText(b.zuwachs)))] : null,
+      b.dokumente ? [el("dt", {}, t("mk_dokumente")), el("dd", {}, el("a", { class: "verweis", onclick: () => { zustand.dok = { status: "aktuell", bezug: `bogen:${b.id}` }; zeige("dokumente"); } }, t("dk_n", { n: b.dokumente })))] : null,
+      b.klaerungen.filter(k => k.status === "offen").length ? [el("dt", {}, t("mk_klaerungen")), el("dd", {}, el("a", { class: "verweis", onclick: () => zeige("fragen") },
+        t("pl_klaerungen", { n: b.klaerungen.filter(k => k.status === "offen").length })))] : null),
+    b.schritte.length ? el("details", { class: "tl-schritte" }, el("summary", {}, t("mk_wellen")),
+      Object.keys(wellen).sort((x, y) => x - y).map(nr => el("div", { class: "welle" },
+        el("div", { class: "welle-kopf" }, t("pl_welle", { n: nr }) + (wellen[nr].length > 1 ? " · " + t("pl_parallel") : "")),
+        wellen[nr].map(s => schrittZeile(s, true))))) : null);
+
+  return el("div", { class: `tl-bogen karte mk status-${b.status}`, id: "bogen-" + b.id },
     el("span", { class: "tl-punkt " + (b.status === "fertig" ? "gruen" : ampelKlasse(p?.ampel)) }),
-    el("div", { class: "tl-kopf" }, el("span", { class: "ref" }, bogenRef(b.id)), el("b", { class: "tl-titel" }, b.titel),
-      el("span", { class: "etikett " + (aktiv ? "gruen" : b.status === "fertig" ? "" : "") }, t("bs_" + b.status)),
-      el("span", { class: "tl-knoepfe" },
-        b.status === "geplant" ? knopf(t("pl_aktivieren"), () => statusSetzen("aktiv", t("pl_aktivieren_frage"))) : null,
-        aktiv || alleFertig ? knopf(t("pl_abschliessen"), () => statusSetzen("fertig", t("pl_abschliessen_frage", { x: b.abnahme || "–" })), alleFertig) : null,
-        knopf(t("rb_knopf", { n: (b.rueckblick || []).length }), () => rueckblickDialog(b), b.status === "fertig" && !(b.rueckblick || []).length),
-        knopf(t("bearbeiten"), () => bogenDialog(b)))),
+    el("div", { class: "mk-kopf" },
+      el("div", {}, el("h3", { class: "mk-titel" }, el("span", { class: "ref" }, bogenRef(b.id)), " ", b.titel),
+        el("div", { class: "mk-wer-kopf" }, wer ? [t("mk_verantwortlich") + " ", el("b", {}, wer), " · "] : null, t("bs_" + b.status),
+          b.zieldatum ? " · " + t("mk_ziel", { x: datumKurz(b.zieldatum) }) : "")),
+      el("div", { class: "mk-knoepfe" }, vorziehen, mehr)),
     alleFertig ? el("div", { class: "tl-zeile tl-alle-fertig" }, t("pl_alle_fertig")) : null,
-    b.ziel ? el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_ziel") + " "), b.ziel) : null,
-    el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_abnahme") + " "), b.abnahme || el("span", { class: "rot-text" }, t("pl_fehlt"))),
-    b.federfuehrend ? el("div", { class: "tl-zeile" }, el("span", { class: "sehrleise" }, t("pl_federfuehrend") + " "), el("b", {}, b.federfuehrend)) : null,
-    el("div", { class: "tl-fortschritt" }, el("div", { class: "mb-spur" }, el("i", { style: `width:${anteil}%;background:var(--gruen)` })),
-      el("span", { class: "sehrleise" }, t("pl_fortschritt", { f: b.fertig, g: zahl }) + (b.laeuft ? ` · ${t("pl_laeuft", { n: b.laeuft })}` : "")
-        + (b.blockiert ? ` · ${t("pl_blockiert", { n: b.blockiert })}` : ""))),
-    b.zuwachs ? el("div", { class: "tl-zeile sehrleise tl-zuwachs", title: t("zw_h") }, t("zw_satz", zwText(b.zuwachs))) : null,
-    el("div", { class: "tl-daten" },
-      el("span", {}, el("span", { class: "sehrleise" }, t("pl_zieldatum") + " "), datumKurz(b.zieldatum)),
-      b.baseline_datum && b.baseline_datum !== b.zieldatum ? el("span", { title: b.baseline_grund || "" }, el("span", { class: "sehrleise" }, t("pl_baseline") + " "), datumKurz(b.baseline_datum)) : null,
-      p ? el("span", { class: ampelKlasse(p.ampel) + "-text" }, el("span", { class: "sehrleise" }, t("pl_prognose") + " "), `${datumKurz(p.p50)} – ${datumKurz(p.p85)}`,
-        tokenStueck(p), p.ampel_ohne_pause ? el("span", { class: "sehrleise", title: t("tk_ampel_h") }, " " + t("tk_ampel")) : null) : null),
-    el("div", { class: "tl-specs" }, ...["anforderungen", "entwurf", "schritte"].map(specChip),
-      b.dokumente ? el("a", { class: "verweis", onclick: () => { zustand.dok = { status: "aktuell", bezug: `bogen:${b.id}` }; zeige("dokumente"); } }, t("dk_n", { n: b.dokumente })) : null,
-      b.klaerungen.filter(k => k.status === "offen").length ? el("a", { class: "verweis", onclick: () => zeige("fragen") },
-        t("pl_klaerungen", { n: b.klaerungen.filter(k => k.status === "offen").length })) : null),
-    schritte);
+    el("p", { class: "mk-satz" }, el("b", {}, satz[0]), satz.length > 1 ? " · " + satz.slice(1).join(" · ") : ""),
+    zahl || b.zieldatum ? schiene : null,
+    lage.length ? el("div", { class: "mk-lage" }, lage.map(lageZeile)) : null,
+    b.schritte.length ? el("div", { class: "mk-liste" },
+      offenSortiert.length ? [el("div", { class: "mk-gruppe" }, t("mk_offen", { n: offenSortiert.length })), ...offenSortiert.map(x => aufgabeZeile(x.s, x.u))] : null,
+      erledigt.length ? el("details", { class: "mk-fertige", open: offenSortiert.length ? null : "" }, el("summary", { class: "mk-gruppe" }, t("mk_fertig", { n: erledigt.length })),
+        erledigt.map(s => aufgabeZeile(s, { art: "fertig" }))) : null,
+      (b.weg || []).length ? el("details", { class: "mk-fertige" }, el("summary", { class: "mk-gruppe" }, t("mk_weg", { n: b.weg.length })),
+        b.weg.map(w => el("div", { class: "mk-a weg", onclick: () => aufgabeDialog(w.id) }, el("span", { class: "mk-nr" }, "A" + w.id), el("span", { class: "mk-t" }, w.titel),
+          el("span", { class: "mk-verschoben" }, "↪ " + (w.nach ? t("mk_verschoben_nach", { b: w.nach, x: datumKurz(w.am.slice(0, 10)) }) : t("mk_herausgenommen", { x: datumKurz(w.am.slice(0, 10)) })))))) : null)
+      : el("div", { class: "sehrleise", style: "margin-top:8px" }, t("pl_keine_schritte")),
+    details);
 }
-function schrittZeile(s) {
+function schrittZeile(s, ohneId) {         /* ohneId: in den Details der Meilenstein-Karte – die Zeile mit der Kennung steht oben in der Liste */
   const k = s.kriterien || [], erfuellt = k.filter(x => x.erfuellt).length, mensch = s.agent === "Entwickler";
-  return el("div", { class: `schritt status-${s.status}${mensch ? " mensch" : ""}`, id: "schritt-" + s.id },
+  return el("div", { class: `schritt status-${s.status}${mensch ? " mensch" : ""}`, id: ohneId ? null : "schritt-" + s.id },
     el("span", { class: "ref" }, `A${s.id}`),
     el("span", { class: "schritt-titel" }, s.titel),
     el("span", { class: "etikett" + (s.status === "laeuft" ? " gruen" : s.blockiert_durch.length ? " rot" : "") },
