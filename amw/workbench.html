@@ -3213,12 +3213,24 @@ async function sichtNachrichten() {
       for (const [p, ids] of Object.entries(jeProjekt)) await schicken("/api/gelesen", { ids }, p);
       neu.forEach(x => { x.stand = "erledigt"; }); markiert.clear();
       d.zaehler.eingang_offen = Math.max(0, (d.zaehler.eingang_offen || 0) - neu.length);
-      zeichnen(); gezeichnet.um = Date.now();          /* selbst gezeichnet: nachAktion zeichnet nicht noch einmal */
+      nachGelesen(neu); gezeichnet.um = Date.now();    /* selbst gezeichnet: nachAktion zeichnet nicht noch einmal */
       kopfAktualisieren().catch(() => {});
     } catch (e) { toast(t("fehler", { x: e.message }), true); if (knopf) knopf.disabled = false; }
   }
-  function zeichnen() {
+  /* Nach „gelesen“ die Liste NICHT neu bauen (L2677: kam das zwischen Drücken und Loslassen eines Tipps, verschwand das
+     gedrückte Element und der Klick ging verloren) – nur die betroffenen Zeilen, Reiter-Zähler, Sammelknöpfe, rechts. */
+  function nachGelesen(neu) {
     kopf.replaceChildren(nrReiterLeiste(reiter, d.zaehler.eingang_offen, k => { reiter = k; gewaehlt = null; markiert.clear(); zeichnen(); }), filter);
+    sammelZeichnen();
+    for (const x of neu) {
+      const z = [...liste.querySelectorAll(".nr-eintrag")].find(e => e.dataset.schl === schl(x));
+      if (z) { z.classList.remove("neu"); z.querySelector(".nr-wahl")?.remove(); }
+    }
+    const g = d[reiter].find(x => schl(x) === gewaehlt);
+    if (g && neu.includes(g)) gespraech(g);
+    merken();
+  }
+  function sammelZeichnen() {
     const offene = reiter === "eingang" ? d.eingang.filter(passt).filter(x => x.stand !== "erledigt") : [];
     for (const k of [...markiert]) if (!offene.some(x => schl(x) === k)) markiert.delete(k);
     sammel.replaceChildren(...(offene.length ? [
@@ -3227,11 +3239,15 @@ async function sichtNachrichten() {
       markiert.size ? el("button", { class: "knopf", type: "button", onclick: ev => gelesenMarkieren(offene.filter(x => markiert.has(schl(x))), ev.currentTarget) },
         t("nr_erledigt_n", { n: markiert.size }))
         : el("button", { class: "knopf nr-alle-gelesen", type: "button", onclick: ev => gelesenMarkieren(offene, ev.currentTarget) }, t("nr_alle_gelesen", { n: offene.length }))].filter(Boolean) : []));
+  }
+  function zeichnen() {
+    kopf.replaceChildren(nrReiterLeiste(reiter, d.zaehler.eingang_offen, k => { reiter = k; gewaehlt = null; markiert.clear(); zeichnen(); }), filter);
+    sammelZeichnen();
     const l = d[reiter].filter(passt);
     if (!l.some(x => schl(x) === gewaehlt)) gewaehlt = l[0] ? schl(l[0]) : null;
     const system = x => reiter === "eingang" && x.von === "AMW";
     liste.replaceChildren(...(l.length ? l.map(x => el("div", { class: "nr-eintrag" + (system(x) ? " system" : " post") + (schl(x) === gewaehlt ? " an" : "") + (reiter === "eingang" && x.stand === "offen" ? " neu" : "") + (x.zurueckgezogen ? " weg" : ""),
-        onclick: () => { gewaehlt = schl(x); raster.classList.add("detail"); zeichnen(); if (reiter === "eingang") gelesenMarkieren([x]); } },
+        "data-schl": schl(x), onclick: () => { gewaehlt = schl(x); raster.classList.add("detail"); zeichnen(); if (reiter === "eingang") gelesenMarkieren([x]); } },
       el("div", { class: "nr-kopf" },
         reiter === "eingang" && x.stand !== "erledigt" ? el("input", { type: "checkbox", class: "nr-wahl", title: t("nr_markieren"), "aria-label": t("nr_markieren"),
           checked: markiert.has(schl(x)) ? true : null, onclick: e => { e.stopPropagation(); markiert[markiert.has(schl(x)) ? "delete" : "add"](schl(x)); zeichnen(); } }) : null,
