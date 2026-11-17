@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.127.0 – 17.11.2026 · Wartezeit und Kosten je Aufgabe
+- **Neu:** Im Fenster einer Aufgabe stehen neben den Kosten die Zeiten – aktiv und wartet (vor dem Start, beim Bauen nach
+  Grund, nach der Abgabe) – und was nicht gemessen ist; `amw messung --vergleich` stellt die Woche der Vorwoche gegenüber. `amw messung` zeigt das für alle Aufgaben, `amw kosten
+  erfassen` ordnet Läufe außerhalb einer Sitzung (z. B. `claude -p`) einer Aufgabe zu. Kosten einer Aufgabe, die gerade
+  wartet, gehen nicht mehr an sie, sondern an die, an der der Agent wirklich arbeitet.
+
 ## 1.126.0 – 17.11.2026 · Meilenstein-Karte für den Menschen
 - **Neu:** Ein Klick auf einen Balken in der Planung öffnet eine Karte, die zeigt, wo der Meilenstein steht und wo du
   eingreifen kannst: wer verantwortlich ist, ein Satz wie „5 von 15 Aufgaben fertig · 1 läuft · 1 wartet auf dich ·

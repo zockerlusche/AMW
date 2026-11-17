@@ -169,6 +169,8 @@ def daten_aufgabe(con, pid, aid):
     a["laufend_id"] = x["id"] if x and x["id"] != a["id"] else None
     from . import aufwand                             # gemessener Verbrauch (A1611 E1, Näherung)
     a["verbrauch"] = aufwand.je_aufgabe(con, pid, a["id"])
+    from . import messung                                 # A1844: Zeiten, erfasste Läufe, Lücken
+    a["messung"] = messung.je_aufgabe(con, pid, a["id"])
     from . import empfehlung                          # Größe × Art → Modell/Denkaufwand, nur Empfehlung (A1611 E2)
     a["empfehlung"] = empfehlung.fuer_aufgabe(con, pid, a["id"])
     return a
@@ -190,6 +192,7 @@ _STAND_QUELLEN = {
     "plan_ereignis": "plan_ereignis WHERE projekt_id = :p",
     "termin": "termin WHERE projekt_id = :p",
     "nachricht": "nachricht WHERE projekt_id = :p",
+    "empfang": "empfang x JOIN nachricht n ON n.id = x.nachricht_id WHERE n.projekt_id = :p",   # A1844: gelesen/erledigt
     "beschluss": "beschluss WHERE projekt_id = :p",
     "regel": "regel WHERE projekt_id = :p",
     "wortlaut": "wortlaut WHERE projekt_id = :p",
@@ -209,6 +212,7 @@ STAND_SICHTEN = {
     "dokumente": ("dokument", "dokument_version"),
     "releases": ("release",),
     "teamchat": ("nachricht",),
+    "nachrichten": ("nachricht", "empfang"),   # A1844 (TL #28701): neue Nachrichten erscheinen ohne Seitenwechsel
 }
 
 

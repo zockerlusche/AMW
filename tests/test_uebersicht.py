@@ -87,5 +87,18 @@ class Uebersicht(unittest.TestCase):
         self.assertEqual(next(x for x in workbench.daten_start(self.con, self.pid)["fragen"] if x["id"] == fid)["nachtraege"], 0)
 
 
+    def test_keine_doppelten_textschluessel(self):
+        """17.11.: ue_laeuft/ue_ohne gab es zweimal (Übertragung und Übersicht) – im JS-Objekt gewinnt der letzte, online stand
+        „Läuft gerade“ statt „wird übertragen …“. Je Sprache darf jeder Schlüssel nur einmal vorkommen."""
+        import collections
+        import re
+        s = open(os.path.join(os.path.dirname(workbench.__file__), "workbench.html"), encoding="utf-8").read()
+        for anfang, ende in (('n_start: "Übersicht"', 'n_start: "Overview"'), ('n_start: "Overview"', "\n  },")):
+            i = s.index(anfang)
+            blk = s[i:s.index(ende, i + 1)]
+            doppelt = sorted(k for k, n in collections.Counter(re.findall(r'(?:^|[ ,{])([a-z_0-9]+): "', blk)).items() if n > 1)
+            self.assertEqual(doppelt, [], anfang)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -19,6 +19,8 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
+| [`messung`](#messung) | Wartezeit und Kosten je Aufgabe (Liegezeit, aktiv, wartet nach Grund, $, Lücken) – nur lesen |
+| [`kosten`](#kosten) | Kosten eines Laufs außerhalb der Sitzungs-Zähler einer Aufgabe zuordnen (z. B. claude -p) |
 | [`mcp`](#mcp) | Connector für Chat-Leads: schluessel (neu erzeugen – nur der Mensch, einmal sichtbar) ¦ eintrag (Zeile für claude_desktop_config.json) |
 | [`takt`](#takt) | ein Durchgang für Leads: Postfach mit Text, Prüfbitten, Fragen, Antworten des Menschen, Läufe, Lead-Runde, Auslieferungen – knapp, je Punkt eine Zeile |
 | [`kontext`](#kontext) | Startinformationen für einen Agenten |
@@ -488,6 +490,47 @@ positional arguments:
 options:
   -h, --help         show this help message and exit
   --aufgabe AUFGABE
+  --von VON
+  --projekt PROJEKT
+```
+
+## messung
+```
+usage: amw messung [-h] [--seit SEIT] [--agent AGENT] [--vergleich]
+                   [--von VON] [--projekt PROJEKT]
+                   [nr]
+
+positional arguments:
+  nr                 eine Aufgabe (A12 oder 12); ohne: alle begonnenen
+
+options:
+  -h, --help         show this help message and exit
+  --seit SEIT        nur Aufgaben, die ab dann noch liefen (17.11. oder ISO-
+                     Zeit)
+  --agent AGENT
+  --vergleich        letzte 7 Tage gegen die 7 Tage davor (Mediane, D1258 v2
+                     §8)
+  --von VON
+  --projekt PROJEKT
+```
+
+## kosten
+```
+usage: amw kosten [-h] --aufgabe AUFGABE
+                  (--json JSON | --usd USD | --unbekannt) [--notiz NOTIZ]
+                  [--von VON] [--projekt PROJEKT]
+                  {erfassen}
+
+positional arguments:
+  {erfassen}
+
+options:
+  -h, --help         show this help message and exit
+  --aufgabe AUFGABE
+  --json JSON        Datei mit der Ausgabe von claude -p --output-format json
+  --usd USD
+  --unbekannt        Lauf ohne Ergebnis (abgebrochen) – als Lücke vermerken
+  --notiz NOTIZ
   --von VON
   --projekt PROJEKT
 ```

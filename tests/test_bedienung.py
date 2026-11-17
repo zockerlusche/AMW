@@ -179,6 +179,10 @@ class Seite(Wiederholt, Grund):
         self.warten("!document.querySelector('.nr-alle-gelesen')")
         self.con.commit()
         self.assertEqual(offen(), "erledigt")
+        kern.posten(self.con, self.pid, "CC1", kern.ENTWICKLER, "info", "Neu während des Lesens")   # TL #28701: kommt gleich danach an
+        self.tab.js("kopfAktualisieren().then(() => standPruefen())")                 # wie die regelmäßige Abfrage: neuer Stand → neu zeichnen
+        self.warten("document.querySelector('.nr-liste').innerText.includes('Neu während des Lesens')")
+        self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-eintrag.an').innerText"))   # Auswahl bleibt stehen
         self.tab.js("document.querySelectorAll('.nr-reiter button')[1].click()")
         self.warten(f"document.querySelector('.nr-liste') && document.querySelector('.nr-liste').innerText.includes('Bitte Linien aufräumen')")
         self.assertIn(f"A{aid} Linien", self.tab.js("document.querySelector('.nr-liste .nr-chip').innerText"))

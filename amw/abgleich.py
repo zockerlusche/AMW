@@ -470,6 +470,9 @@ def _ruhig(inhalt):
     elif isinstance(r, dict):                                         # Startseite: Auslastung des Rechners
         d["rechner"] = {**{k: v for k, v in r.items() if k not in ("frei_gb", "dauer_gb", "dauer", "platte")},
                         "dauer": namen(r.get("dauer")), "platte": stufen(r.get("platte"))}
+    m = d.get("messung")
+    if isinstance(m, dict) and m.get("offen"):                       # A1844: Zeiten einer offenen Aufgabe wachsen mit der Uhr
+        d["messung"] = {k: v for k, v in m.items() if k not in ("liege_s", "aktiv_s", "abgabe_s", "warten_s", "warten")}
     u = d.get("uebersicht")
     if isinstance(u, dict) and isinstance(u.get("sync"), dict):       # A1657: Zeit der letzten Synchronisierung – sonst lädt
         d["uebersicht"] = {**u, "sync": u["sync"].get("zustand")}     # jede Synchronisierung die Startseite neu hoch

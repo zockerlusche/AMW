@@ -46,7 +46,7 @@ ERLAUBT = {"posten", "lesen", "erledigt", "aufgabe", "frage", "halt", "weiter", 
            "hinweis", "rezept", "wortlaut", "beschluss", "regel", "notiz", "release", "agent",
            "leitbild", "bogen", "spec", "schritt", "risiko", "plan", "rueckblick", "verlauf", "dokument",
            "schirm", "liste", "suche", "zeige", "termin", "thema", "ki", "projekt", "freigabe",   # Freigaben: nur der Mensch (Bildschirm frei: der Lead auf das Wort des Entwicklers)
-           "regelwerk", "verbrauch", "runde", "takt"}   # takt (A1780): ein Durchgang in einem Aufruf statt SQL auf der Lese-Kopie   # Grund-Regelwerk: abgleich liest nur; uebernehmen prüft selbst (nur Lead/Mensch) · Lead-Runde: prüft selbst (nur Leads, nur info/frage)
+           "regelwerk", "verbrauch", "runde", "takt", "messung", "kosten"}   # takt (A1780): ein Durchgang in einem Aufruf statt SQL auf der Lese-Kopie   # Grund-Regelwerk: abgleich liest nur; uebernehmen prüft selbst (nur Lead/Mensch) · Lead-Runde: prüft selbst (nur Leads, nur info/frage)
 
 
 def bruecken(con):

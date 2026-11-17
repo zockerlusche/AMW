@@ -3,8 +3,8 @@
 Die Statusline schreibt je Sitzung den Kosten-Zähler von Claude Code (Dollar-Gegenwert, auch bei Abo) in `verbrauch`.
 Jeder Zuwachs zwischen zwei Messpunkten einer Sitzung gehört zu der Aufgabe, die der Agent zu dieser Zeit in Arbeit
 hatte: von den Aufgaben, die er begonnen und noch nicht abgeschlossen hatte, die zuletzt begonnene (eins nach dem
-anderen, G19). Das ist eine Näherung: Nimmt er eine wartende Aufgabe wieder auf, während eine später begonnene noch
-wartet, zählt die Zeit zur späteren. Kein KI-Aufruf, kein Schema.
+anderen, G19); eine Aufgabe, die zu dem Zeitpunkt einen offenen Wartegrund hat, hat Nachrang (A1844). Bleiben mehrere,
+ist es eine Näherung (naeherung). Kein KI-Aufruf, kein Schema.
 """
 import statistics
 
@@ -25,6 +25,10 @@ def _zuordnen(con, pid, kennung, aufgaben, ab):
         " AND zeit_utc >= ?) ORDER BY v.sitzung_id, v.zeit_utc",          # ganze Sitzungen: gleiche Summe, egal ab wann gefragt
         (pid, kennung, kennung, kennung, ab)).fetchall()
     aus, vorher = {}, {}
+    warten = {}                                   # A1844: Wartegründe je Aufgabe – eine wartende Aufgabe hat Nachrang
+    for a in aufgaben:
+        warten[a["id"]] = [(g["angelegt_utc"], g["erledigt_utc"] or "9") for g in con.execute(
+            "SELECT angelegt_utc, erledigt_utc FROM wartegrund WHERE aufgabe_id = ?", (a["id"],))]
     for z in zeilen:
         alt = vorher.get(z["sitzung_id"])
         vorher[z["sitzung_id"]] = z["kosten_usd"]
@@ -37,8 +41,10 @@ def _zuordnen(con, pid, kennung, aufgaben, ab):
         offen = [a for a in aufgaben if a["begonnen_utc"] <= t and (not a["fertig_utc"] or a["fertig_utc"] >= t)]
         if not offen:
             continue                          # Zeit zwischen den Aufgaben (Lesen, Nachrichten) – keiner Aufgabe zuzuordnen
-        a = max(offen, key=lambda x: (x["begonnen_utc"], x["id"]))
-        e = aus.setdefault(a["id"], {"usd": 0.0, "modelle": {}})
+        aktiv = [a for a in offen if not any(v <= t < b for v, b in warten[a["id"]])] or offen
+        a = max(aktiv, key=lambda x: (x["begonnen_utc"], x["id"]))
+        e = aus.setdefault(a["id"], {"usd": 0.0, "modelle": {}, "naeherung": False})
+        e["naeherung"] = e["naeherung"] or len(aktiv) > 1
         e["usd"] += zuwachs
         m = "/".join(x for x in (z["modell"], z["denkstufe"]) if x)
         if m:
@@ -50,7 +56,8 @@ def _form(e):
     """Ausgabe: Summe gerundet, Modelle nach Anteil (größter zuerst)."""
     if not e:
         return None
-    return {"usd": round(e["usd"], 2), "modelle": [m for m, _ in sorted(e["modelle"].items(), key=lambda x: -x[1])]}
+    return {"usd": round(e["usd"], 2), "modelle": [m for m, _ in sorted(e["modelle"].items(), key=lambda x: -x[1])],
+            **({"naeherung": True} if e.get("naeherung") else {})}
 
 
 def je_aufgabe(con, pid, aid):

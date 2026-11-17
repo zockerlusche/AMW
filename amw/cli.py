@@ -949,6 +949,66 @@ def _schwer(a, rezept=None, dauerlauf=False):
     return bool(a.schwer)
 
 
+def _messung_zeile(m):
+    from . import messung
+    namen = {"vor_start": "vor dem Start", "nach_abgabe": "nach der Abgabe", "frage": "Frage", "aufgabe": "andere Aufgabe", "lauf": "Lauf",
+             "agent": "Agent/Prüfung", "entwickler": "Entwickler", "monitor": "Beobachtung"}
+    w = ", ".join(f"{namen.get(k, k)} {messung.dauer(v)}" for k, v in sorted(m["warten"].items(), key=lambda x: -x[1]))
+    return (f"aktiv {messung.dauer(m['aktiv_s'])} · wartet {messung.dauer(m['warten_s'])}"
+            + (f" ({w})" if w else "") + f" · {m['usd']:.2f} $" + (" – noch offen" if m["offen"] else ""))
+
+
+def cmd_messung(a, con):
+    """A1844: Wartezeit und Kosten je Aufgabe – nur lesen."""
+    from . import messung
+    pid = _projekt(con, a)
+    if a.nr:
+        m = messung.je_aufgabe(con, pid, int(str(a.nr).lstrip("Aa")))
+        if not m:
+            raise kern.AmwFehler(f"A{a.nr} gibt es nicht")
+        print(f"A{str(a.nr).lstrip('Aa')}: {_messung_zeile(m)}")
+        if m["zaehler"]:
+            print(f"  Kosten-Zähler {m['agent']}: {m['zaehler']['usd']:.2f} $" + (f" ({', '.join(m['zaehler']['modelle'])})" if m["zaehler"]["modelle"] else ""))
+        for e in m["erfasst"]:
+            print(f"  erfasst {_zeit(e['zeit_utc'])} {e['von']}: " + ("unbekannt" if e.get("unbekannt") else f"{e['usd']:.2f} $")
+                  + "".join(f" · {k} {e[k]}" for k in ("turns", "dauer_s", "eingabe", "cache_schreiben", "cache_lesen", "ausgabe", "denken",
+                                                       "modell") if e.get(k))
+                  + (f" – {e['notiz']}" if e.get("notiz") else ""))
+        for l in m["luecken"]:
+            print(f"  Lücke: {l}")
+        return
+    if a.vergleich:
+        v = messung.vergleich(con, pid)
+        for k, name in (("diese", "letzte 7 Tage"), ("vorher", "7 Tage davor")):
+            x = v[k]
+            print(f"{name:<14} {x['n']:>3} fertige Aufgaben · Kosten Median {x['usd_median'] if x['usd_median'] is not None else '–'} $"
+                  f" (Summe {x['usd_summe']:.2f} $) · wartet Median {messung.dauer(x['warten_median_s'] or 0)}"
+                  f" · aktiv Median {messung.dauer(x['aktiv_median_s'] or 0)} · mit Lücken {x['mit_luecken']}")
+        return
+    zeilen = messung.liste(con, pid, seit=(a.seit.strip() if re.fullmatch(r"\d{4}-\d{2}-\d{2}T[\d:]+Z?", a.seit.strip()) else _datum(a.seit)) if a.seit else None, agent=a.agent)
+    if not zeilen:
+        print("Keine begonnenen Aufgaben im Zeitraum")
+    for m in zeilen:
+        print(f"A{m['id']} {m['agent'] or '–':<8} {_messung_zeile(m)} · {m['titel'][:60]}"
+              + (f"  [Lücken: {len(m['luecken'])}]" if len(m["luecken"]) > 1 else ""))
+    if zeilen:
+        print(f"Summe: {sum(m['usd'] for m in zeilen):.2f} $ · aktiv {sum(m['aktiv_s'] for m in zeilen) / 3600:.1f} h"
+              f" · wartet {sum(m['warten_s'] for m in zeilen) / 3600:.1f} h")
+
+
+def cmd_kosten(a, con):
+    """A1844: Kosten eines Laufs außerhalb der Sitzungs-Zähler (claude -p …) einer Aufgabe zuordnen."""
+    from . import messung
+    pid = _projekt(con, a)
+    text = None
+    if a.json:
+        with open(a.json, encoding="utf-8-sig") as f:
+            text = f.read()
+    e = messung.erfassen(con, pid, _von(a), int(str(a.aufgabe).lstrip("Aa")), usd=a.usd, unbekannt=a.unbekannt, json_text=text, notiz=a.notiz)
+    print(f"A{str(a.aufgabe).lstrip('Aa')}: " + ("Lauf ohne Kostenangabe als Lücke vermerkt" if e.get("unbekannt") and "usd" not in e
+                                                else f"{e['usd']:.2f} $ erfasst"))
+
+
 def cmd_mcp(a, con):
     """A1826: Schlüssel je Projekt für den MCP-Server – nur der Mensch, nur im Terminal (nie über Dateiaustausch/Connector)."""
     from . import mcp_schluessel
@@ -2584,6 +2644,23 @@ def parser():
     x.add_argument("text", nargs="*")
     x.add_argument("--aufgabe", type=nummer)
     x.set_defaults(f=cmd_taetigkeit)
+
+    x = s.add_parser("messung", help="Wartezeit und Kosten je Aufgabe (Liegezeit, aktiv, wartet nach Grund, $, Lücken) – nur lesen")
+    x.add_argument("nr", nargs="?", help="eine Aufgabe (A12 oder 12); ohne: alle begonnenen")
+    x.add_argument("--seit", help="nur Aufgaben, die ab dann noch liefen (17.11. oder ISO-Zeit)")
+    x.add_argument("--agent")
+    x.add_argument("--vergleich", action="store_true", help="letzte 7 Tage gegen die 7 Tage davor (Mediane, D1258 v2 §8)")
+    x.set_defaults(f=cmd_messung)
+
+    x = s.add_parser("kosten", help="Kosten eines Laufs außerhalb der Sitzungs-Zähler einer Aufgabe zuordnen (z. B. claude -p)")
+    x.add_argument("aktion", choices=["erfassen"])
+    x.add_argument("--aufgabe", required=True)
+    g = x.add_mutually_exclusive_group(required=True)
+    g.add_argument("--json", help="Datei mit der Ausgabe von claude -p --output-format json")
+    g.add_argument("--usd", type=float)
+    g.add_argument("--unbekannt", action="store_true", help="Lauf ohne Ergebnis (abgebrochen) – als Lücke vermerken")
+    x.add_argument("--notiz")
+    x.set_defaults(f=cmd_kosten)
 
     x = s.add_parser("mcp", help="Connector für Chat-Leads: schluessel (neu erzeugen – nur der Mensch, einmal sichtbar) | eintrag"
                                  " (Zeile für claude_desktop_config.json)")
