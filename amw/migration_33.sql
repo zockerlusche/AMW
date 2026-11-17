@@ -1,4 +1,4 @@
--- Schema 32 → 33 (AMW 1.128.0): Arbeitspakete für den Mischbetrieb (A1845, AMW 2.0 Stufe 1, D1258 v4 §3/§4, B2893).
+-- Schema 32 → 33 (AMW 1.129.0): Arbeitspakete für den Mischbetrieb (A1845, AMW 2.0 Stufe 1, D1258 v4 §3/§4, B2893).
 -- Nur hinzufügen: eine Zeile je Aufgabe, die mehr als die Vorgaben hat. Keine Zeile = Art agent mit Standardwerten –
 -- bestehende Aufgaben bleiben, wie sie sind. Zustände nur bei Art p; jeder Wechsel steht als plan_ereignis „paket_zustand“.
 -- Abnahme-Befehl, Bereiche, Rang und „nach X“ stehen weiter an der Aufgabe (pruefbefehl, dateibereich, rang, abhaengigkeit).

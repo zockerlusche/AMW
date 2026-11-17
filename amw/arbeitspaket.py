@@ -274,3 +274,15 @@ def verlauf(con, aid):
         alt, _, neu = teil.partition(" → ")
         aus.append((r["zeit_utc"], None if alt == "–" else alt, None if neu == "–" else neu, grund or None))
     return aus
+
+
+def zeitpunkte(con, aid):
+    """Für die Messung (A1844, D1258 v4 §8): erstes Erreichen von startklar, laeuft, abgegeben, gemergt (UTC-Text oder None)
+    eines p-Pakets – None, wenn die Aufgabe nicht Art p ist (dann gilt die Näherung der Messung)."""
+    if lesen(con, aid)["art"] != "p":
+        return None
+    aus = {"startklar": None, "laeuft": None, "abgegeben": None, "gemergt": None}
+    for zeit, _, neu, _ in verlauf(con, aid):
+        if neu in aus and aus[neu] is None:
+            aus[neu] = zeit
+    return aus

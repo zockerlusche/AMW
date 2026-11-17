@@ -139,6 +139,17 @@ class Speicher(_Datenbank):
         self.assertEqual([(x[1], x[2]) for x in v[:3]], [(None, "entwurf"), ("entwurf", "startklar"), ("startklar", "laeuft")])
         self.assertEqual(v[-1][2], "fertig")
 
+    def test_zeitpunkte_fuer_die_messung(self):
+        self.assertIsNone(ap.zeitpunkte(self.con, self.aid))                        # Art agent: Näherung der Messung
+        ap.setzen(self.con, self.pid, "TL", self.aid, art="p")
+        for z in ("startklar", "laeuft", "abgegeben", "abnahme", "laeuft", "abgegeben"):
+            ap.zustand_setzen(self.con, self.pid, "AMW", self.aid, z)
+        z = ap.zeitpunkte(self.con, self.aid)
+        self.assertTrue(z["startklar"] and z["laeuft"] and z["abgegeben"])
+        self.assertIsNone(z["gemergt"])                                            # noch nie gemergt
+        erstes = [x[0] for x in ap.verlauf(self.con, self.aid) if x[2] == "laeuft"][0]
+        self.assertEqual(z["laeuft"], erstes)                                      # erstes Erreichen zählt
+
     def test_verbotener_uebergang_aendert_nichts(self):
         ap.setzen(self.con, self.pid, "TL", self.aid, art="p")
         with self.assertRaisesRegex(kern.AmwFehler, "geht nicht"):
