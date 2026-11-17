@@ -485,7 +485,15 @@ def main(argv=None):
             return 1
         log.warning("Datenbank %s fehlt – warte (amw einrichten)", db.db_pfad())
         time.sleep(AUFSICHT_S)
-    con = db.verbinde()
+    try:
+        con = db.verbinde()
+    except db.LiveSchutz as e:                        # A1862 (P252): fremder Code hebt die Datenbank nicht auf sein Schema
+        log.error("Dienst startet nicht: %s", e)
+        return 2
+    if con.fremd:                                     # A1862 (P252): ein Dienst aus einem anderen Ordner übernimmt den Vermerk nie
+        log.error("Dienst startet nicht: %s", db._schutz_meldung(con, "als Dienst übernehmen"))
+        con.close()
+        return 2
     d = Dienst(con)
     log.info("Dienst gestartet (PID %s, %s)", os.getpid(), db.db_pfad())
     db.vermerken(db.db_pfad())                    # A1862: nur Code aus diesem Ordner migriert/beschreibt diese Datenbank

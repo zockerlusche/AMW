@@ -94,6 +94,21 @@ class LiveSchutz(unittest.TestCase):
                 db.einfuegen(con, "projekt", name="X", angelegt_utc=db.jetzt())
             con.close()
 
+    def test_fremder_dienst_uebernimmt_den_vermerk_nicht(self):
+        """P252: ein Dienst aus einem anderen Ordner (z. B. während der echte gerade neu startet) startet nicht – der Vermerk des
+        echten Dienstes bleibt stehen, sonst wäre danach der Entwicklungsbaum „zu Hause“ und der Live-Ordner fremd."""
+        from amw import dienst
+        live = os.path.join(self.ordner.name, "live")
+        self.vermerk(live)
+        with mock.patch.object(db, "db_pfad", return_value=self.pfad), mock.patch.object(dienst, "einrichten_log"),                 mock.patch.object(dienst, "einzige_instanz", return_value=object()), mock.patch.object(dienst, "Dienst") as d:
+            self.assertEqual(dienst.main(["--einmal", "--ohne-web"]), 2)
+            with self.neueres_schema():                                             # auch wenn er migrieren müsste
+                self.assertEqual(dienst.main(["--einmal", "--ohne-web"]), 2)
+        d.assert_not_called()
+        with open(db.vermerk_pfad(self.pfad), encoding="utf-8") as f:
+            self.assertEqual(f.read(), live)                                        # Vermerk unverändert
+        self.assertEqual(self.version(), db.SCHEMA_VERSION)
+
     def test_befehlszeile_aus_fremdem_baum_abgelehnt(self):
         """Wie der Vorfall: amw-cli.py aus einem anderen Ordner landet über die Einstellung db_pfad bei der Live-DB."""
         self.vermerk(os.path.join(self.ordner.name, "live"))
