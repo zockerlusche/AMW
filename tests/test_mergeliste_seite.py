@@ -39,7 +39,8 @@ class MergeSeite(Rundgang):
                      "alle freigeben (1)", "angesehen – freigeben"):
             self.assertIn(teil, text)
         self.tab.js("window.confirm = () => true; document.querySelector('#mg-alle').click()")
-        self.warten(f"(document.querySelector('.pk-merge-paket[data-a=\"{self.lib}\"]') || {{}}).innerText?.includes(t('mg_freigegeben'))", 20)
+        lib = f"document.querySelector('.pk-merge-paket[data-a=\"{self.lib}\"] .etikett.gruen')"   # Etikett: Großbuchstaben per CSS
+        self.warten(f"{lib} && {lib}.textContent === t('mg_freigegeben')", 20)
         web = self.tab.js(f"document.querySelector('.pk-merge-paket[data-a=\"{self.web}\"]').innerText").lower()
         self.assertIn("erst ansehen", web)                               # Server-Code: „Alle freigeben“ lässt es aus
         self.assertNotIn("\nfreigegeben", web)
