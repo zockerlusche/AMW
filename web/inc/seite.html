@@ -310,6 +310,8 @@ main { overflow-wrap: break-word; }   /* lange Pfade/Adressen brechen um statt Ã
 .ue-zahl { background: var(--bernstein); color: var(--grund); border-radius: 9px; padding: 0 7px; font-size: 12px; letter-spacing: 0; }
 .ue-liste { display: grid; }
 .sv-knoepfe { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.sv-zeile { flex-wrap: wrap; } .sv-zeile .ue-text { flex: 1 1 220px; }
+@media (max-width: 760px) { .sv-zeile .sv-knoepfe { flex-basis: 100%; } }   /* Handy: KnÃ¶pfe unter den Text */
 .ue-zeile { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--linie); min-width: 0; }
 .ue-liste > .ue-zeile:last-child, .ue-bogen .ue-zeile { border-bottom: 0; }
 .ue-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
