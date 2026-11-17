@@ -207,5 +207,15 @@ class Befehle(_Datenbank):
         self.assertIn("Lead", aus)
 
 
+    def test_mcp_hat_dieselben_felder(self):
+        from amw import mcp_server
+        self.assertEqual(mcp_server.befehlszeile("aufgabe_neu", {"titel": "X", "paket": "p", "pruefbefehl": "python -m unittest t",
+                                                                 "nie_gleichzeitig": "A12", "effort": "low"}),
+                         ["aufgabe", "neu", "--titel", "X", "--paket", "p", "--pruefbefehl", "python -m unittest t", "--effort", "low",
+                          "--nie-gleichzeitig", "A12"])
+        self.assertEqual(mcp_server.befehlszeile("paket_zustand", {"id": self.aid, "zustand": "startklar"}),
+                         ["paket", "zustand", str(self.aid), "startklar"])
+
+
 if __name__ == "__main__":
     unittest.main()

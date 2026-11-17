@@ -42,6 +42,20 @@ def NR(was):
 
 
 GROESSE = ("S", "M", "L", "XL")
+ZUSTAENDE = ("entwurf", "startklar", "laeuft", "abgegeben", "abnahme", "merge_reihe", "gemergt", "fertig", "blockiert", "unklar",
+             "wartet_interaktiv", "abgebrochen", "zurueckgestellt")
+# Paketfelder (A1845, Mischbetrieb): wer ausführt und womit – dieselben wie amw aufgabe neu|aendern
+PAKET = [F("paket", "s", "wer ausführt: agent (interaktiver Agent), sitzung (neue Sitzung) oder p (frischer claude -p-Arbeiter)",
+           "--paket", False, ("agent", "sitzung", "p")),
+         F("pruefbefehl", "s", "Abnahme-Befehl, den die AMW ausführt (Pflicht bei p; vor dem Bau rot)", "--pruefbefehl"),
+         F("dateien", "s", "Bereiche: Dateien/Muster, die das Paket ändern darf (Pflicht bei p, eng halten)", "--dateien"),
+         F("nach", "s", "erst nach diesen Aufgaben, z. B. 1201,1203", "--nach"),
+         F("gewicht", "s", "leicht oder schwer", "--gewicht", False, ("leicht", "schwer")),
+         F("ressourcen", "s", "gpu,bildschirm (leer: keine)", "--ressourcen"), F("modell", "s", "wie claude --model", "--modell"),
+         F("effort", "s", "wie claude --effort", "--effort", False, ("low", "medium", "high")),
+         F("pakettyp", "s", "normal oder test-schreiben", "--pakettyp", False, ("normal", "test-schreiben")),
+         F("nie_gleichzeitig", "s", "nie gleichzeitig mit diesen Aufgaben, z. B. A12,A13", "--nie-gleichzeitig"),
+         F("gleiche_ressource", "s", "Name einer gemeinsamen Ressource (laufen nacheinander)", "--gleiche-ressource")]
 
 WERKZEUGE = {
     "takt": ("Ein Durchgang in einem Aufruf: Postfach mit gekürztem Text, Prüfbitten an dich, Fragen an dich, Antworten des"
@@ -71,12 +85,17 @@ WERKZEUGE = {
                      F("auftrag", "s", "was genau zu tun ist", "--auftrag"), F("bogen", "i", "Meilenstein", "--bogen"),
                      F("ohne_bogen", "b", "bewusst ohne Meilenstein (Lead)", "--ohne-bogen"),
                      F("kriterien", "as", "Abnahmekriterien", "--kriterium"), F("rang", "i", "Rang (kleiner = früher)", "--rang"),
-                     F("groesse", "s", "Größe", "--groesse", False, GROESSE)]),
+                     F("groesse", "s", "Größe", "--groesse", False, GROESSE), *PAKET]),
     "aufgabe_aendern": ("Eine Aufgabe ändern (nur die angegebenen Felder).", ["aufgabe", "aendern"],
                         [NR("der Aufgabe"), F("titel", "s", "neuer Titel", "--titel"), F("agent", "s", "neuer Bearbeiter", "--agent"),
                          F("auftrag", "s", "neuer Auftrag", "--auftrag"), F("bogen", "i", "Meilenstein", "--bogen"),
                          F("kriterien", "as", "Abnahmekriterien (ersetzt die Liste)", "--kriterium"), F("rang", "i", "Rang", "--rang"),
-                         F("groesse", "s", "Größe", "--groesse", False, GROESSE)]),
+                         F("groesse", "s", "Größe", "--groesse", False, GROESSE), *PAKET]),
+    "paket_zeigen": ("Paket einer Aufgabe: Art, Zustand, Abnahme-Befehl, Bereiche, Modell, Effort … (mit Vorgaben) und letzte"
+                     " Zustandswechsel.", ["paket", "zeigen"], [NR("der Aufgabe")]),
+    "paket_zustand": ("Zustand eines p-Pakets von Hand wechseln (nur erlaubte Übergänge; Lead).", ["paket", "zustand"],
+                      [NR("der Aufgabe"), F("zustand", "s", "neuer Zustand", "#", True, ZUSTAENDE),
+                       F("grund", "s", "warum", "--grund"), F("beleg", "s", "bei fertig: Commit", "--beleg")]),
     "bogen_liste": ("Meilensteine mit Stand (fertig/offen je Meilenstein).", ["bogen", "liste"], []),
     "bogen_zeigen": ("Ein Meilenstein ganz, mit seinen Aufgaben.", ["bogen", "zeigen"], [NR("des Meilensteins")]),
     "pruefung_liste": ("Prüfbitten (offen; mit alle auch erledigte).", ["pruefung", "liste"], [F("alle", "b", "auch erledigte", "--alle")]),

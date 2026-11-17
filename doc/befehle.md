@@ -12,6 +12,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
 | [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N [--kurz] ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] ¦ nachtrag N --titel … (Folgearbeit zu einer fertigen Aufgabe) |
+| [`paket`](#paket) | Arbeitspakete (Mischbetrieb): zeigen N ¦ zustand N <zustand> [--grund … --beleg …] ¦ liste [--zustand …] – Felder setzen: amw aufgabe neu¦aendern … --paket p … |
 | [`thema`](#thema) | Design-Dokument je Thema: liste [--suche] ¦ zeige TH12 ¦ neu "Name" [--pfleger X] [--stil] ¦ einstellen TH12 --pfleger X ¦ --stil ¦ pflegen TH12 --text-datei … ¦ bestaetigen TH12 ¦ dokument TH12 --dokument D5 [--loesen] |
 | [`termin`](#termin) | Terminplaner: neu --titel … --art test¦frist¦schirm¦sonstig --am "2026-11-06 18:00" [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] ¦ liste [--tage 21] ¦ aendern N ¦ absagen N [--am …] ¦ bereit N --text "was testen" ¦ kurzliste N (Planen: Lead/Entwickler) |
 | [`liste`](#liste) | Arbeitsliste je Agent: liste [Agent¦pool] ¦ ordnen <Agent> A12 A15 … ¦ schieben A15 --vor A12 ¦ --nach ¦ --pos N ¦ --oben ¦ --unten (ordnen/schieben: Lead) |
@@ -249,7 +250,13 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--zurueck] [--kommentar KOMMENTAR] [--kurz]
                    [--federfuehrend FEDERFUEHREND] [--pool] [--grund GRUND]
                    [--hinweis HINWEIS] [--gruppe {neu,verbessert,behoben}]
-                   [--sofort] [--von VON] [--projekt PROJEKT]
+                   [--sofort] [--paket {agent,sitzung,p}]
+                   [--gewicht {leicht,schwer}] [--ressourcen RESSOURCEN]
+                   [--modell MODELL] [--effort {low,medium,high}]
+                   [--pakettyp {normal,test-schreiben}]
+                   [--nie-gleichzeitig NIE_GLEICHZEITIG]
+                   [--gleiche-ressource GLEICHE_RESSOURCE] [--von VON]
+                   [--projekt PROJEKT]
                    {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen}
                    [id] [nr]
 
@@ -328,6 +335,48 @@ options:
   --sofort              neu: direkt hinter das laufende Stück des Agenten
                         einplanen statt in den Eingang (ohne laufendes Stück:
                         wie bisher in die Liste)
+  --paket {agent,sitzung,p}
+                        Paket: wer ausführt – agent (interaktiver Agent,
+                        Vorgabe), sitzung (neue Sitzung), p (frischer claude
+                        -p-Arbeiter)
+  --gewicht {leicht,schwer}
+                        Paket: leicht (Vorgabe) oder schwer
+  --ressourcen RESSOURCEN
+                        Paket: gpu,bildschirm (Vorgabe: keine)
+  --modell MODELL       Paket: wie claude --model (Vorgabe claude-opus-5-5)
+  --effort {low,medium,high}
+                        Paket: wie claude --effort (Vorgabe high)
+  --pakettyp {normal,test-schreiben}
+                        Paket: normal (Vorgabe) oder test-schreiben
+  --nie-gleichzeitig NIE_GLEICHZEITIG
+                        Paket: nie gleichzeitig mit diesen Aufgaben, z. B.
+                        A12,A13
+  --gleiche-ressource GLEICHE_RESSOURCE
+                        Paket: Name einer gemeinsamen Ressource – Pakete mit
+                        demselben Namen laufen nacheinander
+  --von VON
+  --projekt PROJEKT
+```
+
+## paket
+```
+usage: amw paket [-h] [--grund GRUND] [--beleg BELEG] [--nur NUR] [--von VON]
+                 [--projekt PROJEKT]
+                 {zeigen,zustand,liste} [id] [zustand]
+
+positional arguments:
+  {zeigen,zustand,liste}
+  id
+  zustand               zustand: entwurf, startklar, laeuft, abgegeben,
+                        abnahme, merge_reihe, gemergt, fertig, blockiert,
+                        unklar, wartet_interaktiv, abgebrochen,
+                        zurueckgestellt
+
+options:
+  -h, --help            show this help message and exit
+  --grund GRUND         zustand: warum (steht im Planungs-Protokoll)
+  --beleg BELEG         zustand fertig: Commit
+  --nur NUR             liste: nur diese Zustände, z. B. startklar,laeuft
   --von VON
   --projekt PROJEKT
 ```
