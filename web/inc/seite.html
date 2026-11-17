@@ -788,6 +788,7 @@ main.geteilt-seite { padding-bottom: 16px; }
 .tm-linien .stark { stroke-width: 3.5; }
 .tm-auf-dich { font-size: 11px; color: var(--bernstein); border: 1px solid var(--bernstein); border-radius: 10px; padding: 0 7px; white-space: nowrap; }
 .tm-auf-andere { font-size: 11px; color: var(--leise); border: 1px solid var(--linie2); border-radius: 10px; padding: 0 7px; white-space: nowrap; }
+.tm-auf-dich, .tm-auf-andere { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .tm-baum:not([data-fokus]) .tm-leg-mehr { display: none; }
 .tm-legende svg { width: 34px; height: 10px; vertical-align: middle; margin-right: 4px; overflow: visible; }
 .tm-bogen { stroke: var(--blau); stroke-width: 3; fill: none; stroke-dasharray: 7 5; stroke-linejoin: miter; }
@@ -802,7 +803,7 @@ main.geteilt-seite { padding-bottom: 16px; }
 .tm-rechts { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .tm-ebene { display: grid; grid-template-columns: repeat(auto-fit, minmax(182px, 1fr)); gap: 12px 12px; width: 100%; padding-bottom: 26px; row-gap: 24px; }
 .tm-knoten.tm-agent { display: flex; flex-direction: column; gap: 5px; }
-.tm-agent .tm-wer { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tm-agent .tm-wer { display: flex; align-items: center; gap: 4px 8px; min-width: 0; flex-wrap: wrap; }   /* A1860: Etikett bricht in schmalen Karten um */
 .tm-agent .tm-auf { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 36px; }
 .tm-fuss { display: flex; align-items: center; gap: 8px; margin-top: auto; }
 .tm-knoten.tot, .tm-z.tot { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); } .tm-knoten.aus, .tm-z.aus { opacity: .55; }
