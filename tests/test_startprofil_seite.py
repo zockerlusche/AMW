@@ -17,23 +17,24 @@ class StartZwilling(Rundgang):
             json.dump({"env": {"AMW_AGENT": "CCamw"}}, f)                 # meldet jede Sitzung als CCamw an
         steuerung.profil_setzen(self.con, self.pid, "Entwickler", "CC1", ordner=ordner)
 
-    MENUE = ("window.confirm = () => true; [...document.querySelectorAll('.tm-knoten[data-k=CC1] button')].find(b => b.textContent === '⋯').click();"
-             " [...document.querySelectorAll('.menue button')].find(b => b.textContent.startsWith(t('m_start'))).click()")
+    # Team als Baum zeigen, auf die Karte von CC1 warten, ihr Menü öffnen und „Starten / fortsetzen“ wählen
+    MENUE = ("window.confirm = window.confirm_test || (() => true); [...document.querySelectorAll('.tm-schalter button')][0].click();"
+             " (function los() { const b = [...document.querySelectorAll('.tm-knoten[data-k=CC1] button')].find(x => x.textContent === '⋯');"
+             " if (!b) return setTimeout(los, 100); b.click();"
+             " [...document.querySelectorAll('.menue button')].find(x => x.textContent.startsWith(t('m_start'))).click(); })()")
     ZWILLING = "[...document.querySelectorAll('.toast')].some(x => x.textContent.includes('Zwilling'))"
 
     def test_start_mit_rueckfrage_und_zwilling(self):
-        fragen = []
-        self.oeffnen("start", "document.querySelector('.tm-knoten[data-k=CC1]')")
-        self.tab.js("window.confirm = x => { window.__frage = x; return true; }")
-        self.tab.js(self.MENUE.replace("window.confirm = () => true; ", ""))
+        self.oeffnen("start", "document.querySelector('#team')")
+        self.tab.js("window.confirm_test = x => { window.__frage = x; return true; }")
+        self.tab.js(self.MENUE)
         self.warten(self.ZWILLING)
         self.assertIn("CC1", self.tab.js("window.__frage || ''"))                 # erst die Rückfrage, dann der Versuch
         self.assertIn("meldet jede Sitzung als CCamw an", self.tab.js("[...document.querySelectorAll('.toast')].map(x => x.textContent).join(' ')"))
-        self.assertEqual(fragen, [])
 
     def test_bilder(self):
         for g in ("pc", "handy"):
             for th in ("hell", "dunkel"):
-                fehler = self.besuchen("start", "start-zwilling", bereit="document.querySelector('.tm-knoten[data-k=CC1]')",
+                fehler = self.besuchen("start", "start-zwilling", bereit="document.querySelector('#team')",
                                        tun=self.MENUE, danach=self.ZWILLING, g=g, t=th)
                 self.assertEqual(fehler, [], f"{g} {th}")
