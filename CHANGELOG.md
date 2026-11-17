@@ -4,6 +4,18 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.131.0 – 17.11.2026 · Arbeitspakete für kopflose Arbeiter
+- **Neu:** Jede Aufgabe kann sagen, wer sie ausführt: ein vorhandener Agent (wie bisher), eine neue Sitzung oder ein frischer
+  `claude -p`-Arbeiter (`--paket p`). Dazu gibt der Lead an, womit gearbeitet wird – Modell, Effort, Gewicht, Ressourcen,
+  „nie gleichzeitig mit“, gemeinsame Ressource, Pakettyp – neben Abnahme-Befehl und Bereichen. `amw paket zeigen` zeigt alles,
+  auch die Vorgaben; fehlt einem p-Paket etwas, sagt die AMW es gleich.
+- **Neu:** p-Pakete haben eigene Zustände (Entwurf, startklar, läuft, abgegeben, in der Abnahme, bereit zum Merge, gemergt,
+  fertig; daneben blockiert, unklar, wartet auf interaktiv, abgebrochen, zurückgestellt). Nur erlaubte Wechsel gehen, jeder
+  steht im Planungs-Protokoll; in Planung und Übersicht erscheint ein p-Paket wie jede Aufgabe. Alle anderen Aufgaben bleiben,
+  wie sie sind.
+- **Verbessert:** Die Messung nimmt für p-Pakete die echten Zeitpunkte statt der Näherung.
+- **Neu:** Hilfe „p-Pakete schreiben“ für den Lead. Die Datenbank bekommt dafür eine neue Tabelle (Schema 33); bestehende Daten
+  bleiben unverändert.
 ## 1.130.0 – 17.11.2026 · Arbeitsplätze löschen nichts
 - **Geändert:** Das Zurücksetzen eines Arbeitsplatzes löscht nichts mehr. Reste – ungesicherte Änderungen als Patch,
   Commits, fremde Dateien, der Datenordner – wandern ins Archiv neben den Plätzen; ist das Paket fertig, schiebt

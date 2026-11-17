@@ -150,6 +150,28 @@ class Speicher(_Datenbank):
         erstes = [x[0] for x in ap.verlauf(self.con, self.aid) if x[2] == "laeuft"][0]
         self.assertEqual(z["laeuft"], erstes)                                      # erstes Erreichen zählt
 
+    def test_messung_nimmt_die_echten_zustaende(self):
+        """A1844 × A1845: für Art p startklar → läuft und abgegeben → gemergt aus dem Protokoll; nach gemergt steht die Messung."""
+        from amw import messung
+        ap.setzen(self.con, self.pid, "TL", self.aid, art="p")
+        zeit = {"startklar": "2026-11-17T08:00:00Z", "laeuft": "2026-11-17T08:10:00Z", "abgegeben": "2026-11-17T08:40:00Z",
+                "abnahme": "2026-11-17T08:41:00Z", "merge_reihe": "2026-11-17T08:45:00Z", "gemergt": "2026-11-17T09:40:00Z"}
+        for z in zeit:
+            ap.zustand_setzen(self.con, self.pid, "AMW", self.aid, z)
+        with db.schreiben(self.con):
+            for z, t in zeit.items():
+                self.con.execute("UPDATE plan_ereignis SET zeit_utc = ? WHERE aufgabe_id = ? AND art = 'paket_zustand' AND text LIKE ?",
+                                 (t, self.aid, f"% → {z}"))
+            self.con.execute("UPDATE aufgabe SET angelegt_utc = '2026-11-17T06:00:00Z', begonnen_utc = '2026-11-17T08:10:00Z' WHERE id = ?",
+                             (self.aid,))
+        z = messung.zeiten(self.con, self.pid, self.aid)
+        self.assertEqual((z["liege_s"], z["abgabe_s"], z["aktiv_s"]), (600, 3600, 1800))   # nicht ab angelegt (06:00)
+        self.assertFalse(z["offen"])                                                # gemergt: Zeiten wachsen nicht mehr
+        luecken = messung.je_aufgabe(self.con, self.pid, self.aid)["luecken"]
+        self.assertFalse(any("genähert (angelegt bzw. fertig)" in x or "„startklar“ genähert" in x for x in luecken), luecken)
+        z2 = messung.zeiten(self.con, self.pid, self.andere)                         # Art agent: Näherung wie bisher
+        self.assertTrue(z2["offen"])
+
     def test_verbotener_uebergang_aendert_nichts(self):
         ap.setzen(self.con, self.pid, "TL", self.aid, art="p")
         with self.assertRaisesRegex(kern.AmwFehler, "geht nicht"):

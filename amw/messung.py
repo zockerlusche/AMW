@@ -1,8 +1,9 @@
 """Messen je Paket (A1844, AMW 2.0 Stufe 1 / P1, Marcel 17.11.: kein Token-Limit, aber lückenlose Aufzeichnung).
 
 Rein zusätzlich, kein Schema, nichts wird gesteuert. Definition D1258 v2 Abschnitt 8:
-- Wartezeit = startklar → läuft + abgegeben → gemergt. Bis es „startklar“ als Zustand gibt (M50 S2), gilt: startklar ≈
-  angelegt, läuft = begonnen, abgegeben = erste Prüfbitte, gemergt = fertig (Auslieferung) – als Näherung benannt.
+- Wartezeit = startklar → läuft + abgegeben → gemergt. Für Art p (A1845) gelten die echten Zustände aus dem
+  Planungs-Protokoll (arbeitspaket.zeitpunkte), je Zeitpunkt einzeln; fehlt einer, und für alle anderen Aufgaben gilt die
+  Näherung: startklar ≈ angelegt, läuft = begonnen, abgegeben = erste Prüfbitte, gemergt = fertig (Auslieferung).
   Aufgeteilt je Grund: „vor dem Start“, „nach der Abgabe“ und die Wartegründe (`wartegrund`, Überlappungen einmal).
 - Aktiv = begonnen → abgegeben (bzw. fertig/jetzt) ohne die Wartegründe dazwischen.
 - Kosten aus dem Kosten-Zähler der Sitzungen (aufwand: Zuwachs zwischen zwei Messpunkten, der Aufgabe zugeordnet, die
@@ -50,10 +51,12 @@ def zeiten(con, pid, aid, jetzt=None):
                     (aid, pid)).fetchone()
     if not a:
         return None
-    angelegt = _t(a["angelegt_utc"])
-    beginn = _t(a["begonnen_utc"]) if a["begonnen_utc"] else None
-    ende = _t(a["fertig_utc"]) if a["fertig_utc"] else jetzt
-    p = con.execute("SELECT min(angefragt_utc) FROM pruefung WHERE aufgabe_id = ?", (aid,)).fetchone()[0]
+    from . import arbeitspaket                   # A1845: Art p – echte Zustände, je Zeitpunkt einzeln, sonst die Näherung
+    zp = arbeitspaket.zeitpunkte(con, aid) or {}
+    angelegt = _t(zp.get("startklar") or a["angelegt_utc"])
+    beginn = _t(zp.get("laeuft") or a["begonnen_utc"]) if (zp.get("laeuft") or a["begonnen_utc"]) else None
+    ende = _t(zp.get("gemergt") or a["fertig_utc"]) if (zp.get("gemergt") or a["fertig_utc"]) else jetzt
+    p = zp.get("abgegeben") or con.execute("SELECT min(angefragt_utc) FROM pruefung WHERE aufgabe_id = ?", (aid,)).fetchone()[0]
     abgabe = max(_t(p), beginn) if p and beginn else None
     bau_ende = min(abgabe, ende) if abgabe else ende
     sp = [(art, x, max(v, beginn or v), min(b, bau_ende)) for art, x, v, b in wartespannen(con, aid, jetzt)]
@@ -72,7 +75,8 @@ def zeiten(con, pid, aid, jetzt=None):
     dazwischen = _vereinigt([(v, b) for _, _, v, b in sp])
     bau = (bau_ende - beginn).total_seconds() if beginn else 0
     return {"liege_s": round(liege), "aktiv_s": round(max(0.0, bau - dazwischen)), "abgabe_s": round(nach),
-            "warten_s": round(liege + dazwischen + nach), "warten": je_art, "offen": a["status"] not in ("fertig", "verworfen")}
+            "warten_s": round(liege + dazwischen + nach), "warten": je_art,
+            "offen": a["status"] not in ("fertig", "verworfen") and not zp.get("gemergt")}   # p: nach „gemergt“ steht die Messung
 
 
 def erfassen(con, pid, von, aid, usd=None, unbekannt=False, json_text=None, notiz=None):
@@ -130,8 +134,12 @@ def je_aufgabe(con, pid, aid, jetzt=None):
     zaehler = aufwand.je_aufgabe(con, pid, aid)
     extra = erfasst(con, pid, aid)
     luecken = []
-    if a["begonnen_utc"]:
-        luecken.append("„startklar“ und „gemergt“ genähert (angelegt bzw. fertig) – eigene Zustände kommen mit M50 S2")
+    from . import arbeitspaket
+    zp = arbeitspaket.zeitpunkte(con, aid)
+    if a["begonnen_utc"] and zp is None:
+        luecken.append("„startklar“ und „gemergt“ genähert (angelegt bzw. fertig) – echte Zustände gibt es nur bei p-Paketen")
+    elif a["begonnen_utc"] and not zp["startklar"]:
+        luecken.append("„startklar“ genähert (angelegt)")
     if a["begonnen_utc"] and not zaehler:
         chat = con.execute("SELECT arbeitsweise FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, a["agent"] or "")).fetchone()
         luecken.append("Agent arbeitet als Chat – kein Kosten-Zähler" if chat and chat["arbeitsweise"] == "chat"
