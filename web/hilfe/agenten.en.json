@@ -64,6 +64,10 @@
  ],
  "fragen": [
   [
+   "Does the AMW suggest a start by itself?",
+   "Yes. If an agent is not running although it would be due – a “new session” package is due for it, it crashed and still has work, or it has work and no session –, “For you” shows “Start <agent>?” with the reason. On the PC you start it with “Start” (with a confirmation; all checks above apply) or decline with “Not now” – then the AMW does not ask again for that agent for 12 hours. Nothing starts without your confirmation, and on the phone you only see the suggestion. Agents you switched off and chat agents are never suggested."
+  ],
+  [
    "Who may start an agent?",
    "Only you: in the Workbench on the PC (with a confirmation) or in your own terminal with `amw agent starten <agent> --von Entwickler`. An agent – the lead included – cannot start an agent, not through the file exchange or MCP either, and the online page and the phone have no such button. Only exception: if you switched on “restart after a crash” in the profile, the AMW restarts a crashed agent by itself."
   ],

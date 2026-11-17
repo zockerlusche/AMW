@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.143.0 – 17.11.2026 · Die AMW schlägt Starts vor
+- **Neu:** Läuft ein Agent nicht, obwohl er dran wäre, steht unter „Für dich“ „<Agent> starten?“ mit dem Grund: ein Paket
+  „neue Sitzung“ ist für ihn fällig, er ist abgestürzt und hat noch Arbeit, oder er hat Arbeit und keine Sitzung. „Starten“
+  startet ihn nach deiner Bestätigung aus dem Startprofil (mit allen Prüfungen), „Nicht jetzt“ lässt ihn 12 Stunden in Ruhe.
+  Ohne deine Bestätigung startet nichts; am Handy siehst du den Vorschlag nur.
+- **Behoben:** Der Versionshinweis zu 1.135.0 hieß „Agenten startet nur der Mensch“ – gemeint ist: die AMW startet Agenten nur
+  nach deiner Bestätigung.
+
 ## 1.142.0 – 17.11.2026 · Arbeitspakete im Blick
 - **Neu:** Planung › Aufgaben › Pakete zeigt alle Pakete für kopflose Arbeiter mit Art, Zustand, Kosten und – wenn eines nicht
   startet – dem Grund in Worten („Startet nicht: alle Arbeitsplätze belegt“). Wartet ein Paket auf den Lead oder auf dich, steht
@@ -55,7 +63,9 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   MCP-Server lädt. Weicht seine Startmeldung ab, wird er sofort beendet. Die Notbremse (`amw platz notbremse N`, nur der
   Mensch) beendet ihn samt aller Kindprozesse. Ohne Arbeitsplätze ändert sich nichts.
 
-## 1.135.0 – 17.11.2026 · Agenten startet nur der Mensch
+## 1.135.0 – 17.11.2026 · Agenten startet die AMW nur nach deiner Bestätigung
+- **Richtigstellung (1.143.0):** Gemeint ist: Einen Agenten startet die AMW nur nach deiner Bestätigung; seit 1.143.0 schlägt sie
+  Starts unter „Für dich“ selbst vor. Ursprünglicher Eintrag:
 - **Verbessert:** Einen Agenten startet nur noch der Mensch – in der Workbench am PC (mit Rückfrage) oder im eigenen Terminal
   mit `--von Entwickler`. Ein Agent, auch der Lead, kann keinen Agenten starten, und online gibt es den Knopf nicht.
 - **Verbessert:** Vor dem Start prüft die AMW, ob der Ordner noch da ist und ob ein Zwilling entstünde: Meldet der Ordner jede
