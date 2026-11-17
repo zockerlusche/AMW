@@ -144,6 +144,26 @@ class Platz(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(arch, "daten", "tmp", "rest.txt")))                        # Datenordner verschoben
         self.assertIsNone(platz.zuruecksetzen(p)["archiv"])                                                   # sauber: kein leeres Archiv
 
+    def test_sichern_fehlgeschlagen_nichts_zurueckgesetzt(self):
+        """P244 (Pflicht): schlägt das Sichern fehl, läuft kein checkout -f – die Änderung bleibt im Platz."""
+        self.einrichten(1)
+        p = platz.plaetze(self.con, self.pid)[0]
+        platz.vorbereiten(p, self.repo, "paket")
+        with open(os.path.join(p["klon"], "a.txt"), "w") as f:
+            f.write("wichtig\n")
+        echt = platz._roh
+        with mock.patch.object(platz, "_roh", lambda o, *a: (1, b"") if a[:1] == ("diff",) else echt(o, *a)):
+            with self.assertRaises(platz.PlatzFehler) as e:
+                platz.zuruecksetzen(p)
+        self.assertIn("nichts zurückgesetzt", str(e.exception))
+        self.assertEqual(open(os.path.join(p["klon"], "a.txt")).read(), "wichtig\n")        # nicht verloren
+        with mock.patch.object(platz, "_git", side_effect=platz.PlatzFehler("bundle kaputt")):
+            g(p["klon"], "add", "a.txt")
+            g(p["klon"], "commit", "-q", "-m", "halb")
+            with self.assertRaises(platz.PlatzFehler):
+                platz.zuruecksetzen(p)
+        self.assertEqual(open(os.path.join(p["klon"], "a.txt")).read(), "wichtig\n")
+
     def test_aufraeumen_nach_paketende(self):
         """B2894: ist das Paket fertig, wandert sein Archiv nach _loeschen – nie gelöscht; offene bleiben im Archiv."""
         self.einrichten(1)

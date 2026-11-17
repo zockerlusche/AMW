@@ -167,15 +167,25 @@ def zuruecksetzen(p, holen=False, projektordner=None, aufgabe=None):
     sperre = os.path.join(p["klon"], ".git", "index.lock")
     if os.path.exists(sperre):
         a.verschieben(sperre, "index.lock")
+    # P244 (Pflicht): schlägt das Sichern fehl, bricht das Zurücksetzen ab – kein checkout -f, sonst gingen Änderungen verloren
     rc, patch = _roh(p["klon"], "diff", "HEAD", "--binary")              # 1. ungesicherte Änderungen (auch vorgemerkte)
-    if rc == 0 and patch.strip():
+    if rc != 0:
+        raise PlatzFehler(f"Platz {p['nr']}: ungesicherte Änderungen ließen sich nicht sichern (git diff) – nichts zurückgesetzt")
+    if patch.strip():
         a.schreiben("ungesichert.patch", patch)
     rc, zahl = _roh(p["klon"], "rev-list", "--count", "origin/main..HEAD")   # 2. Commits seit main als Bundle
-    if rc == 0 and int(zahl.strip() or 0):
-        _git(p["klon"], "bundle", "create", os.path.join(a.ordner(), "commits.bundle"), "origin/main..HEAD")
+    if rc != 0:
+        raise PlatzFehler(f"Platz {p['nr']}: Commits ließen sich nicht zählen – nichts zurückgesetzt")
+    if int(zahl.strip() or 0):
+        try:
+            _git(p["klon"], "bundle", "create", os.path.join(a.ordner(), "commits.bundle"), "origin/main..HEAD")
+        except PlatzFehler as e:
+            raise PlatzFehler(f"Platz {p['nr']}: Commits ließen sich nicht sichern ({e}) – nichts zurückgesetzt") from None
         a.inhalt.append("commits.bundle")
     rc, fremd = _roh(p["klon"], "ls-files", "--others", "-z")              # 3. fremde und ignorierte Dateien: verschieben
-    for rel in [x.decode("utf-8", "replace") for x in fremd.split(b"\0") if x] if rc == 0 else []:
+    if rc != 0:
+        raise PlatzFehler(f"Platz {p['nr']}: fremde Dateien ließen sich nicht auflisten – nichts zurückgesetzt")
+    for rel in [x.decode("utf-8", "replace") for x in fremd.split(b"\0") if x]:
         quelle = os.path.join(p["klon"], rel)
         if os.path.isfile(quelle):
             a.verschieben(quelle, os.path.join("dateien", rel))

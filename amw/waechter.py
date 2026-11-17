@@ -33,7 +33,7 @@ REGELN = {
 }
 WARTEN = {2, 4, 7, 8, 9}               # vorübergehend: später erneut prüfen; die anderen: nicht starten, Lead melden
 LIMIT_PROZENT = 80
-LAUFEND = ("laeuft", "abgegeben", "abnahme")
+LAUFEND = ("laeuft", "abgegeben", "abnahme", "merge_reihe")   # P245: der Platz bleibt bis zum Merge belegt (Resume nur dort)
 
 
 def _datei():
@@ -135,6 +135,7 @@ def pruefen(con, pid, aid, limit=None):
     if len(enden) == 2 and all(e in ("unklar", "abgebrochen") for e in enden):
         pause_an("zweimal hintereinander unklar oder abgebrochen")
         return _nein(9)
+    hinweis = None
     if limit is None:
         try:
             from . import tokenprognose
@@ -142,7 +143,9 @@ def pruefen(con, pid, aid, limit=None):
             limit = lage.get("wert") if lage else None
         except Exception:
             limit = None
-    if limit is not None and limit >= LIMIT_PROZENT:
+    if limit is None:
+        hinweis = "Wochenlimit unbekannt – Start erlaubt"         # P245: Marcel will nicht 100 % überwachen, aber es steht im Protokoll
+    elif limit >= LIMIT_PROZENT:
         return _nein(8, f"{limit:.0f} % verbraucht")
     b = bereiche(a["dateibereich"])
     if not (a["pruefbefehl"] or "").strip() or not b:
@@ -158,7 +161,7 @@ def pruefen(con, pid, aid, limit=None):
     for x in lauf:
         if _ueberschneiden(b, x["bereiche"]):
             return _nein(2, f"mit A{x['id']}")
-    return {"ok": True, "regel": None, "grund": None, "warten": False}
+    return {"ok": True, "regel": None, "grund": None, "warten": False, "hinweis": hinweis}
 
 
 def _nein(n, zusatz=None):
@@ -172,9 +175,12 @@ def regel6(ergebnis):
 
 def protokollieren(con, pid, aid, antwort, von="AMW"):
     """„A12 nicht gestartet, Regel 4: …“ ins Planungs-Protokoll – nur, wenn es sich gegenüber dem letzten Eintrag ändert."""
-    if antwort.get("ok") or not antwort.get("regel"):
+    if antwort.get("ok") and antwort.get("hinweis"):
+        text = f"A{aid} darf starten – {antwort['hinweis']}"[:300]
+    elif antwort.get("ok") or not antwort.get("regel"):
         return False
-    text = f"A{aid} nicht gestartet, Regel {antwort['regel']}: {antwort['grund']}"[:300]
+    else:
+        text = f"A{aid} nicht gestartet, Regel {antwort['regel']}: {antwort['grund']}"[:300]
     letzt = con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = 'waechter' AND aufgabe_id = ? ORDER BY id DESC LIMIT 1",
                         (pid, aid)).fetchone()
     if letzt and letzt["text"] == text:

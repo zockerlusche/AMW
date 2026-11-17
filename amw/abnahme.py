@@ -110,8 +110,8 @@ def startregel(bereiche, typ=None):
 
 
 def _git(klon, *args):
-    r = subprocess.run(["git", "-C", klon, *args], capture_output=True, text=True, encoding="utf-8", errors="replace",
-                       stdin=subprocess.DEVNULL, timeout=300, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    r = subprocess.run(["git", "-c", "core.quotepath=off", "-C", klon, *args], capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", stdin=subprocess.DEVNULL, timeout=300, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     if r.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)}: {(r.stdout + r.stderr).strip()[-300:]}")
     return r.stdout

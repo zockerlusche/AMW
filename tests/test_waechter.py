@@ -88,6 +88,23 @@ class Waechter(unittest.TestCase):
         with mock.patch("amw.tokenprognose.lage_gemerkt", return_value={"wert": 85.0}):
             self.assertEqual(waechter.pruefen(self.con, self.pid, a)["regel"], 8)          # Quelle tokenprognose
 
+    def test_unbekanntes_limit_erlaubt_aber_vermerkt(self):
+        """P245: ohne Messung des Wochenlimits darf gestartet werden – im Protokoll steht „Wochenlimit unbekannt“."""
+        a = self.paket()
+        with mock.patch("amw.tokenprognose.lage_gemerkt", return_value=None):
+            r = waechter.pruefen(self.con, self.pid, a)
+        self.assertTrue(r["ok"])
+        self.assertIn("Wochenlimit unbekannt", r["hinweis"])
+        self.assertTrue(waechter.protokollieren(self.con, self.pid, a, r))
+        self.assertIn("Wochenlimit unbekannt", waechter.protokoll(self.con, self.pid, a)[0]["text"])
+
+    def test_platz_bleibt_bis_zum_merge_belegt(self):
+        """P245: ein Paket in der Merge-Reihe hält seinen Platz (Resume bei Merge-Konflikt nur dort)."""
+        a = self.paket(bereiche="web/a/")
+        for z in ("laeuft", "abgegeben", "abnahme", "merge_reihe"):
+            arbeitspaket.zustand_setzen(self.con, self.pid, "TL", a, z)
+        self.assertEqual(self.regel(self.paket(bereiche="doc/")), 4)
+
     def test_regel_9_zweimal_unklar_pause(self):
         kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, plaetze=3)
         for i in range(2):
