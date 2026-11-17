@@ -1034,7 +1034,7 @@ def cmd_platz(a, con):
         r = platz.vorbereiten(p, quelle, a.zweig or f"platz{p['nr']}")
         print(f"Platz {p['nr']} bereit: {r['klon']} · Zweig {r['zweig']} ab main {r['basis'][:8]} · Port {p['port']}")
     else:
-        print(f"Platz {p['nr']} " + ("sauber" if platz.zuruecksetzen(p) else "NICHT sauber – bitte ansehen"))
+        print(f"Platz {p['nr']} " + ("sauber" if platz.zuruecksetzen(p, projektordner=kern.projekt_ordner(con, pid)) else "NICHT sauber – bitte ansehen"))
 
 
 def cmd_mcp(a, con):

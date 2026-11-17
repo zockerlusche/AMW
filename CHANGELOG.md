@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.129.0 – 17.11.2026 · Abnahme durch die AMW
+- **Neu (für Arbeitsplätze):** Die AMW führt die Abnahme eines Pakets selbst aus – im Platz, mit Zeitlimit, ein hängender
+  Test wird samt Kindprozessen beendet. Vor dem Bau muss sie rot sein. Danach prüft ein Diff-Tor, dass nur geplante
+  Bereiche geändert sind und kein gesperrter Pfad (eine Liste: Auslieferung, Rechte, Hooks, Testskripte …; Testdateien
+  nur beim Pakettyp „test-schreiben“). Arbeitsplätze löschen nur noch, wo eine Markierung liegt. Ohne Plätze ändert
+  sich nichts.
+
 ## 1.128.0 – 17.11.2026 · Arbeitsplätze für kopflose Agenten
 - **Neu:** Für Agenten ohne eigenes Fenster (`claude -p`) gibt es Arbeitsplätze: je Platz ein eigener Klon des Projekts
   und ein eigener Datenordner mit eigener Datenbank und eigenem Port – die echte Datenbank bleibt unberührt. Wo und wie

@@ -17,6 +17,7 @@ import subprocess
 
 from . import kern
 
+MARKER = ".amw-platz"                # Markerdatei: nur wo sie liegt, löscht die AMW (TL P239)
 PORT_BASIS = 8800                    # Platz n bekommt PORT_BASIS + n (der Dienst bleibt auf seinem Port)
 MAX_PLAETZE = 8
 
@@ -64,7 +65,13 @@ def _git(ordner, *args, frist=600):
     return r.stdout.strip()
 
 
+def _marker(ordner):
+    return os.path.join(ordner, MARKER)
+
+
 def _daten_anlegen(p):
+    os.makedirs(p["daten"], exist_ok=True)
+    open(_marker(p["daten"]), "w").close()
     for k in ("lad", "tmp", "claude"):
         os.makedirs(p[k], exist_ok=True)
     os.makedirs(os.path.join(p["lad"], "amw"), exist_ok=True)
@@ -87,8 +94,12 @@ def vorbereiten(p, quelle, zweig):
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         if r.returncode != 0:
             raise PlatzFehler(f"git clone: {(r.stdout + r.stderr).strip()[-300:]}")
+        open(_marker(os.path.join(p["klon"], ".git")), "w").close()   # in .git: nicht im Arbeitsbaum, nie committet
+        if os.path.exists(p["daten"]) and os.listdir(p["daten"]) and not os.path.exists(_marker(p["daten"])):
+            raise PlatzFehler(f"{p['daten']} ist nicht leer und kein Datenordner eines Platzes – die AMW fasst ihn nicht an")
+        _daten_anlegen(p)
     _git(p["klon"], "remote", "set-url", "origin", quelle)
-    zuruecksetzen(p, holen=True)
+    zuruecksetzen(p, holen=True, projektordner=quelle)
     _git(p["klon"], "checkout", "-q", "-B", zweig, "origin/main")
     basis = _git(p["klon"], "rev-parse", "origin/main")
     if not sauber(p):
@@ -96,11 +107,16 @@ def vorbereiten(p, quelle, zweig):
     return {"klon": p["klon"], "zweig": zweig, "basis": basis}
 
 
-def zuruecksetzen(p, holen=False):
+def zuruecksetzen(p, holen=False, projektordner=None):
     """Platz sauber machen – auch nach einem Abbruch: Sperrdatei weg, laufende Rebase/Merge abbrechen, Änderungen und
-    fremde Dateien verwerfen, auf origin/main (losgelöst); Datenordner leeren und neu anlegen (Port bleibt)."""
+    fremde Dateien verwerfen, auf origin/main (losgelöst); Datenordner leeren und neu anlegen (Port bleibt). Gelöscht wird
+    nur, wo die Markerdatei liegt, und nie im Projektordner (TL P239)."""
     if not os.path.isdir(os.path.join(p["klon"], ".git")):
         raise PlatzFehler(f"Platz {p['nr']} ist noch nicht angelegt (amw platz vorbereiten)")
+    if not os.path.exists(_marker(os.path.join(p["klon"], ".git"))):
+        raise PlatzFehler(f"{p['klon']} trägt keine Markierung als Platz – die AMW setzt ihn nicht zurück")
+    if projektordner and os.path.normcase(os.path.abspath(p["klon"])).startswith(os.path.normcase(os.path.abspath(projektordner)) + os.sep):
+        raise PlatzFehler("Der Platz liegt im Projektordner – die AMW setzt ihn nicht zurück")
     sperre = os.path.join(p["klon"], ".git", "index.lock")
     if os.path.exists(sperre):
         os.remove(sperre)
@@ -116,6 +132,8 @@ def zuruecksetzen(p, holen=False):
     _git(p["klon"], "checkout", "-q", "--detach", "origin/main")
     _git(p["klon"], "reset", "-q", "--hard", "origin/main")
     if os.path.isdir(p["daten"]):
+        if not os.path.exists(_marker(p["daten"])):
+            raise PlatzFehler(f"{p['daten']} trägt keine Markierung als Datenordner eines Platzes – nicht gelöscht")
         shutil.rmtree(p["daten"])
     _daten_anlegen(p)
     return sauber(p)
