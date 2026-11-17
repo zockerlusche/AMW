@@ -18,13 +18,23 @@ import time
 # (Muster, Art, Grund) – Muster relativ zum Repository, mit / getrennt; Art „fest“ = immer gesperrt, „test“ = außer test-schreiben
 GESPERRT = (
     (".git/*", "fest", "Git-Verwaltung"),
+    ("*/.git/*", "fest", "Git-Verwaltung"),
     (".claude/*", "fest", "Einstellungen und Hooks von Claude Code"),
+    ("*/.claude/*", "fest", "Einstellungen und Hooks von Claude Code"),
     (".githooks/*", "fest", "Git-Hooks"),
+    ("*/.githooks/*", "fest", "Git-Hooks"),
+    (".gitignore", "fest", "Git-Einstellung (Ausnahmen aufheben)"),
+    ("*/.gitignore", "fest", "Git-Einstellung (Ausnahmen aufheben)"),
+    (".gitattributes", "fest", "Git-Einstellung"),
+    ("*/.gitattributes", "fest", "Git-Einstellung"),
+    ("amw-*.py", "fest", "Einstiege (Befehlszeile, Hook, Statusline, Connector)"),
+    ("*.pyw", "fest", "Einstiege (Dienst, Infobereich)"),
     ("CLAUDE.md", "fest", "Anweisungen an Agenten"),
     ("*/CLAUDE.md", "fest", "Anweisungen an Agenten"),
     ("amw/abnahme.py", "fest", "Abnahme und gesperrte Pfade"),
     ("amw/platz.py", "fest", "Arbeitsplätze"),
     ("amw/disponent*.py", "fest", "Disponent"),
+    ("amw/dienst.py", "fest", "Disponent (Dienst)"),
     ("amw/arbeitspaket*.py", "fest", "Pakete und Zustände"),
     ("amw/auslieferung.py", "fest", "Auslieferung und Merge-Reihe"),
     ("amw/releasetakt.py", "fest", "Auslieferung"),
@@ -59,13 +69,18 @@ def _norm(pfad):
     return n
 
 
+def _klein(pfad):
+    """Für Vergleiche: Windows unterscheidet nicht nach Groß/Klein (Claude.md, .Claude/ wirken wie CLAUDE.md, .claude/)."""
+    return _norm(pfad).lower()
+
+
 def gesperrt(pfade, typ=None):
     """[(pfad, grund)] der gesperrten unter `pfade` – Testdateien nicht beim Pakettyp test-schreiben."""
     aus = []
     for p in pfade:
-        n = _norm(p)
+        n, k = _norm(p), _klein(p)
         for muster, art, grund in GESPERRT:
-            if fnmatch.fnmatchcase(n, muster) and not (art == "test" and typ == TEST_SCHREIBEN):
+            if fnmatch.fnmatchcase(k, muster.lower()) and not (art == "test" and typ == TEST_SCHREIBEN):
                 aus.append((n, grund))
                 break
     return aus
@@ -73,9 +88,9 @@ def gesperrt(pfade, typ=None):
 
 def im_bereich(pfad, bereiche):
     """Liegt `pfad` in einem der Bereiche (Ordner „amw/“, Datei „amw/x.py“ oder Muster „web/hilfe/*.json“)?"""
-    n = _norm(pfad)
+    n = _klein(pfad)
     for b in bereiche or []:
-        b = _norm(b)
+        b = _klein(b)
         if b.endswith("/") and n.startswith(b) or n == b or fnmatch.fnmatchcase(n, b):
             return True
     return False
@@ -85,10 +100,10 @@ def startregel(bereiche, typ=None):
     """Regel 5 vor dem Start: Bereiche, die gesperrte Pfade enthalten oder sind → [(bereich, grund)]."""
     aus = []
     for b in bereiche or []:
-        n = _norm(b)
+        n = _klein(b)
         probe = n + "x" if n.endswith("/") else n                  # Ordner: gesperrt, wenn darin Gesperrtes liegen könnte
         treffer = gesperrt([probe], typ) or [(n, g) for m, art, g in GESPERRT
-                                              if (n.endswith("/") and m.startswith(n)) and not (art == "test" and typ == TEST_SCHREIBEN)]
+                                              if (n.endswith("/") and m.lower().startswith(n)) and not (art == "test" and typ == TEST_SCHREIBEN)]
         if treffer:
             aus.append((n, treffer[0][1]))
     return aus
@@ -104,9 +119,9 @@ def _git(klon, *args):
 
 def geaendert(klon, basis):
     """Alle Pfade, die der Arbeiter seit `basis` angefasst hat – Commits, Änderungen im Arbeitsbaum, neue Dateien."""
-    pfade = set(_git(klon, "diff", "--name-only", f"{basis}..HEAD").split())
-    pfade |= set(_git(klon, "diff", "--name-only", "HEAD").split())
-    pfade |= set(_git(klon, "ls-files", "--others", "--exclude-standard").split())
+    pfade = set(_git(klon, "diff", "--no-renames", "--name-only", f"{basis}..HEAD").splitlines())   # P242: Umbenennen zeigt sonst
+    pfade |= set(_git(klon, "diff", "--no-renames", "--name-only", "HEAD").splitlines())             # nur den neuen Namen
+    pfade |= set(_git(klon, "ls-files", "--others", "--exclude-standard").splitlines())
     zwischen = lambda n: "/__pycache__/" in "/" + n or n.endswith((".pyc", ".pyo"))   # erzeugt die Abnahme selbst
     return sorted(n for n in (_norm(p) for p in pfade if p) if not zwischen(n))
 
@@ -152,6 +167,15 @@ def _job_neu():
     return job
 
 
+def _in_job(job, handle):
+    """Prozess ins Job-Objekt; True bei Erfolg (eigene Funktion – im Test ersetzbar)."""
+    import ctypes
+    from ctypes import wintypes
+    k = ctypes.WinDLL("kernel32", use_last_error=True)
+    k.AssignProcessToJobObject.restype = wintypes.BOOL
+    return bool(k.AssignProcessToJobObject(wintypes.HANDLE(job), wintypes.HANDLE(handle)))
+
+
 def ausfuehren(befehl, ordner, umgebung, frist=FRIST_S):
     """Befehl (Shell-Zeile) im Ordner mit Umgebung ausführen; nach `frist` Sekunden wird der ganze Prozessbaum beendet.
     Rückgabe {"rc", "ausgabe", "zeitlimit": bool, "dauer_s"}. Der Prozess startet angehalten und kommt erst ins Job-Objekt,
@@ -164,8 +188,12 @@ def ausfuehren(befehl, ordner, umgebung, frist=FRIST_S):
     if job:
         import ctypes
         from ctypes import wintypes
-        k = ctypes.WinDLL("kernel32", use_last_error=True)
-        k.AssignProcessToJobObject(wintypes.HANDLE(job), wintypes.HANDLE(int(p._handle)))
+        if not _in_job(job, int(p._handle)):                   # P242: ohne Job kein Zeitlimit für den ganzen Baum – nicht starten
+            p.kill()                                           # er ist noch angehalten, hat also nichts gestartet
+            p.communicate()
+            ctypes.WinDLL("kernel32").CloseHandle(wintypes.HANDLE(job))
+            return {"rc": None, "ausgabe": "", "zeitlimit": False, "dauer_s": round(time.monotonic() - t0, 1),
+                    "fehler": "Prozess ließ sich nicht ins Job-Objekt nehmen – nicht ausgeführt"}
         ctypes.WinDLL("ntdll").NtResumeProcess(wintypes.HANDLE(int(p._handle)))
     zeitlimit = False
     try:
@@ -192,7 +220,7 @@ def abnahme(p, befehl, frist=FRIST_S):
     """Den Abnahme-Befehl im Platz `p` (amw.platz.pfade) mit seinen Daten und Ports ausführen. grün = rc 0 ohne Zeitlimit."""
     from . import platz
     r = ausfuehren(befehl, p["klon"], platz.umgebung(p), frist)
-    r["gruen"] = r["rc"] == 0 and not r["zeitlimit"]
+    r["gruen"] = r["rc"] == 0 and not r["zeitlimit"] and not r.get("fehler")
     return r
 
 
@@ -202,6 +230,8 @@ def rot_vor_bau(p, befehl, typ=None, frist=FRIST_S):
     if typ == TEST_SCHREIBEN:
         return {"ok": True, "grund": "test-schreiben: Prüfung nach dem Bau"}
     r = abnahme(p, befehl, frist)
+    if r.get("fehler"):
+        return {**r, "ok": False, "grund": r["fehler"]}
     if r["zeitlimit"]:
         return {**r, "ok": False, "grund": "Abnahme hängt schon vor dem Bau (Zeitlimit)"}
     return {**r, "ok": not r["gruen"], "grund": None if not r["gruen"] else "Abnahme ist schon vor dem Bau grün – sie prüft nichts"}
@@ -222,5 +252,7 @@ def test_gegen_basis(p, befehl, basis, testdateien, frist=FRIST_S):
         r = ausfuehren(befehl, p["klon"], platz.umgebung(p), frist)
     finally:
         _git(p["klon"], "checkout", kopf, "--", ".")          # alles war committet: der Stand des Arbeiters ist unverändert
+    if r.get("fehler"):
+        return {**r, "ok": False, "grund": r["fehler"]}
     gruen = r["rc"] == 0 and not r["zeitlimit"]
     return {**r, "ok": not gruen, "grund": None if not gruen else "der neue Test ist schon gegen den alten Stand grün – er prüft nichts"}

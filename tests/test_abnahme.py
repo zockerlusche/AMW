@@ -50,6 +50,15 @@ class Pfade(unittest.TestCase):
         for p in ("amw/cli.py", "web/hilfe/agenten.de.json", "doc/hilfe/agenten.md", "amw\\messung.py", "./amw/x.py"):
             self.assertFalse(abnahme.gesperrt([p]), p)
 
+    def test_gross_klein_und_vollstaendig(self):
+        """P242: Windows und Claude Code lesen Claude.md, .Claude/ … – die Liste gilt ohne Rücksicht auf Groß/Klein; dazu die
+        Einstiege im Stammordner, Git-Einstellungen und verschachtelte .claude/.git."""
+        for p in ("Claude.md", "TESTS/conftest.py", ".Claude/settings.json", "web/Claude.MD", "AMW/Auslieferung.py",
+                  "amw-hook.py", "amw-statusline.py", "amw-mcp.py", "amw-cli.py", "start_dienst.pyw", "amw-tray.pyw",
+                  ".gitignore", "web/.gitignore", ".gitattributes", "web/.claude/settings.json", "sub/.git/config", "amw/dienst.py"):
+            self.assertTrue(abnahme.gesperrt([p], abnahme.TEST_SCHREIBEN), p)
+        self.assertTrue(abnahme.im_bereich("WEB/hilfe/a.json", ["web/hilfe/"]))
+
     def test_startregel_bereiche(self):
         self.assertTrue(abnahme.startregel(["amw/"]))                                 # enthält Auslieferung, Rechte …
         self.assertTrue(abnahme.startregel(["tests/"], abnahme.TEST_SCHREIBEN))       # enthält Testskripte (fest)
@@ -83,6 +92,20 @@ class Ausfuehren(unittest.TestCase):
                     break
                 time.sleep(0.25)
             self.assertFalse(lebt(kind), "Kindprozess läuft nach dem Zeitlimit weiter")
+
+    def test_ohne_job_wird_nichts_ausgefuehrt(self):
+        """P242: lässt sich der Prozess nicht ins Job-Objekt nehmen, läuft er nicht (er ist noch angehalten) – Fehler statt Lauf."""
+        if os.name != "nt":
+            self.skipTest("Job-Objekt nur unter Windows")
+        from unittest import mock
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as o:
+            marke = os.path.join(o, "lief.txt")
+            with mock.patch.object(abnahme, "_in_job", return_value=False):
+                r = abnahme.ausfuehren(f'{PY} -c "open(r\'{marke}\', \'w\').write(\'x\')"', o, dict(os.environ), 30)
+            self.assertIn("nicht ins Job-Objekt", r["fehler"])
+            self.assertIsNone(r["rc"])
+            time.sleep(1)
+            self.assertFalse(os.path.exists(marke), "der Befehl lief trotzdem")
 
     def test_gruen_und_rot(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as o:
@@ -136,6 +159,11 @@ class Beispielzweige(unittest.TestCase):
         r = abnahme.diff_tor(self.p["klon"], self.basis, ["web/"])
         self.assertEqual((r["ok"], r["ausserhalb"]), (False, ["wert.txt"]))
         g(self.p["klon"], "checkout", "--", "wert.txt")
+        g(self.p["klon"], "mv", "wert.txt", "web/wert.txt")                                     # P242: Umbenennen aus dem Bereich heraus
+        g(self.p["klon"], "commit", "-q", "-m", "mv")
+        r = abnahme.diff_tor(self.p["klon"], self.basis, ["web/"])
+        self.assertEqual((r["ok"], r["ausserhalb"]), (False, ["wert.txt"]))                     # der alte Name zählt mit
+        g(self.p["klon"], "reset", "-q", "--hard", "HEAD~1")
         self.schreiben(".claude/settings.json", "{}", commit=False)                            # neu, gesperrt
         r = abnahme.diff_tor(self.p["klon"], self.basis, ["web/", ".claude/"])
         self.assertFalse(r["ok"])
