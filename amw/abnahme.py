@@ -240,7 +240,7 @@ def rot_vor_bau(p, befehl, typ=None, frist=FRIST_S):
     return {**r, "ok": not r["gruen"], "grund": None if not r["gruen"] else "Abnahme ist schon vor dem Bau grün – sie prüft nichts"}
 
 
-def test_gegen_basis(p, befehl, basis, testdateien, frist=FRIST_S):
+def test_gegen_basis(p, befehl, basis, testdateien, frist=FRIST_S, umgebung=None):
     """Pakettyp test-schreiben: die neuen Tests müssen gegen den alten Stand (Code von `basis`) rot sein. Dazu kommt der Code
     von `basis` vorübergehend zurück, die Testdateien bleiben; danach wird der Arbeitsbaum wiederhergestellt."""
     from . import platz
@@ -252,7 +252,7 @@ def test_gegen_basis(p, befehl, basis, testdateien, frist=FRIST_S):
     try:
         if andere:
             _git(p["klon"], "checkout", basis, "--", *andere)
-        r = ausfuehren(befehl, p["klon"], platz.umgebung(p), frist)
+        r = ausfuehren(befehl, p["klon"], umgebung or platz.umgebung(p), frist)   # A1849: Prüfung C gibt die minimale Umgebung mit
     finally:
         _git(p["klon"], "checkout", kopf, "--", ".")          # alles war committet: der Stand des Arbeiters ist unverändert
     if r.get("fehler"):
