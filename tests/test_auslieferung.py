@@ -356,6 +356,7 @@ class Kette(unittest.TestCase):
     def test_zwischenversion_wird_mit_getaggt_und_eingetragen(self):
         """TL #24530: 1.94.1 ging über die Kette, 1.94.0 darunter blieb ohne Versionszeile. Jetzt bekommt jede Zwischenversion
         im selben Stand Tag, GitHub-Release (nicht „neueste“) und Versionszeile – aufsteigend vor der obersten."""
+        self.gruen_auf("neu", self.sha, "Zwischen")                                              # A1866: eigene grüne Prüfung
         self.g("switch", "-q", "neu")
         oben = self.stand("1.1.1", "Kleiner Nachtrag")
         self.g("switch", "-q", "main")
@@ -368,6 +369,53 @@ class Kette(unittest.TestCase):
         gh = [b for b in self.extern_aufrufe if b[0] == "gh"]
         self.assertEqual([(b[3], b[-1]) for b in gh], [("v1.1.0", "--latest=false"), ("v1.1.1", "--latest")])
         self.assertEqual([x[0] for x in self.con.execute("SELECT version FROM release WHERE art = 'version' ORDER BY id")], ["1.1.0", "1.1.1"])
+
+    def test_zwischenversion_ohne_eigene_pruefung_kein_release(self):
+        """A1866 (17.11.: nach dem Umnummerieren gingen 1.132.0/1.133.0 als eigene Releases mit): eine Versionsnummer im Bereich
+        ohne grüne Prüfung auf genau ihrem Stand bekommt kein Tag, kein GitHub-Release, keine Versionszeile – sie geht in der
+        obersten auf."""
+        self.g("switch", "-q", "neu")
+        oben = self.stand("1.1.1", "Neu nummeriert")
+        self.g("switch", "-q", "main")
+        self.gruen_auf("neu", oben, "Oben")
+        self.gesamtlauf(sha=oben)
+        aus = []
+        k = self.kette("1.1.1")
+        k.ausgabe = aus.append
+        self.assertEqual(k.ausliefern("neu")["version"], "1.1.1")
+        self.assertNotEqual(self.extern(["git", "rev-parse", "-q", "--verify", "refs/tags/v1.1.0"], self.repo)[0], 0)
+        self.assertEqual([b[3] for b in self.extern_aufrufe if b[0] == "gh"], ["v1.1.1"])
+        self.assertEqual([x[0] for x in self.con.execute("SELECT version FROM release WHERE art = 'version'")], ["1.1.1"])
+        self.assertTrue(any("kein eigenes Release: 1.1.0" in z for z in aus), aus)
+
+    def test_zweig_der_wie_ein_hash_aussieht(self):
+        """17.11.: der Zweig „a1848“ war zugleich ein abgekürzter Hash (git warnt „refname is ambiguous“) – die Kette nahm die
+        Warnung als Stand. Jetzt löst sie refs/heads/<zweig> auf und nimmt nur die 40-stellige Hex-Zeile."""
+        kurz = self.g("rev-parse", "HEAD")[:6]                                                  # ein Name, der auch ein Objekt ist
+        self.g("branch", kurz, "neu")
+        self.gruen_auf(kurz, self.sha, "Hash-Name")
+        self.gesamtlauf()
+        self.assertEqual(self.kette().ausliefern(kurz)["sha"], self.sha)
+
+    def test_unerwarteter_fehler_nennt_wartungsmodus(self):
+        """A1866 (P257): bricht die Kette nach dem Setzen des Wartungsmodus mit einem Fehler ab, der kein Stopp ist, bleibt er an –
+        die Meldung sagt jetzt, wie man ihn aufhebt."""
+        from amw import waechter
+        self.lad()
+        self.gruen()
+        self.gesamtlauf()
+        echt = self.extern
+        def extern(befehl, ordner):
+            if befehl[:1] == ["gh"]:
+                raise RuntimeError("Netz weg")
+            return echt(befehl, ordner)
+        self.extern = extern
+        with self.assertRaises(auslieferung.Stopp) as e:
+            self.kette().ausliefern("neu")
+        self.assertIn("Unerwarteter Fehler", str(e.exception))
+        self.assertIn("RuntimeError: Netz weg", str(e.exception))
+        self.assertIn("amw waechter weiter", str(e.exception))
+        self.assertTrue(waechter.zustand()["wartung"])
 
     def test_reihenfolge_kleinere_gruene_version_zuerst(self):
         self.gruen_auf("neu", self.sha, "Kleiner")                                                 # 1.1.0 grün + Merge-OK, nicht draußen

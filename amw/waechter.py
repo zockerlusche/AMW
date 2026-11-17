@@ -134,7 +134,10 @@ def pruefen(con, pid, aid, limit=None):
         return _nein(7, z["wartung"].get("grund"))
     if z["pause"]:
         return _nein(9, z["pause"].get("grund"))
-    enden = _letzte_enden(con, pid, nach=z["weiter_nach"])
+    nach = z["weiter_nach"]
+    if nach and nach > (con.execute("SELECT coalesce(max(id), 0) FROM plan_ereignis").fetchone()[0] or 0):
+        nach = 0                                                 # A1866 (P257): ältere DB zurückgespielt – Merker gilt nicht mehr
+    enden = _letzte_enden(con, pid, nach=nach)
     if len(enden) == 2 and all(e in ("unklar", "abgebrochen") for e in enden):
         pause_an("zweimal hintereinander unklar oder abgebrochen")
         return _nein(9)

@@ -199,6 +199,16 @@ class Kette:
         except (OSError, ValueError):
             return None
 
+    def stand(self, zweig):
+        """Commit eines Zweigs. Erst refs/heads/<zweig> (ein Name wie „a1848“ ist sonst auch ein abgekürzter Hash, git warnt
+        „refname is ambiguous“), sonst der Name wie gegeben; aus der Ausgabe zählt nur die 40-stellige Hex-Zeile (17.11.)."""
+        for ref in (f"refs/heads/{zweig}", zweig):
+            rc, aus = self.extern(["git", "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"], self.repo)
+            treffer = re.findall(r"^[0-9a-f]{40}$", aus or "", re.M)
+            if rc == 0 and treffer:
+                return treffer[-1]
+        self.stopp("Stand bestimmen", f"Zweig {zweig} nicht gefunden")
+
     def datei(self, sha, pfad):
         return self.git("show", f"{sha}:{pfad}", schritt="Stand lesen")
 
@@ -262,7 +272,7 @@ class Kette:
 
     # --- Vorbedingungen -------------------------------------------------------------------------------------------------
     def pruefen(self, zweig, gesamtlauf=None, aufgabe=None):
-        sha = self.git("rev-parse", "--verify", f"{zweig}^{{commit}}", schritt="Stand bestimmen").splitlines()[-1].strip()
+        sha = self.stand(zweig)
         m = re.search(r'__version__ = "([^"]+)"', self.datei(sha, "amw/__init__.py"))
         if not m:
             self.stopp("Version", "amw/__init__.py nennt keine Version")
@@ -335,17 +345,35 @@ class Kette:
         fehlt += self.reihenfolge(sha, version)
         if fehlt:                                        # A1814: alles auf einmal – nicht eine Freigabe nach der anderen
             self.stopp("Freigaben", f"{len(fehlt)} fehlt: " + " · ".join(fehlt))
-        zwischen = []
+        zwischen, aufgegangen = [], []
+        gruen = [r[0] for r in self.con.execute("SELECT sha FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen'", (self.pid,))]
         for v, c in self.zwischenversionen(sha, version):
             if self.extern(["git", "rev-parse", "-q", "--verify", f"refs/tags/v{v}"], self.repo)[0] == 0:
                 continue                                 # schon getaggt (z. B. von Hand)
+            if not any(g and (c.startswith(g) or g.startswith(c)) for g in gruen):
+                aufgegangen.append(v)                    # A1866 (17.11.: 1.132.0/1.133.0 nach Umnummerieren): kein eigenes Release
+                continue
             zwischen.append({"version": v, "sha": c, "notizen": self.notizen(c, v)})   # CHANGELOG an ihrem eigenen Stand
+        if aufgegangen:
+            self.ausgabe(f"Ohne eigene grüne Prüfung auf ihrem Stand, kein eigenes Release: {', '.join(aufgegangen)} – geht in {version} auf")
         return {"sha": sha, "version": version, "lauf": lauf["id"] if lauf else None, "ausnahme": None if lauf else ausnahme,
                 "titel": titel, "text": text, "niedrig": niedrig, "zwischen": zwischen,
                 "merge_ok": ok["von"] if ok else None}
 
     # --- die Kette ------------------------------------------------------------------------------------------------------
     def ausliefern(self, zweig, gesamtlauf=None, aufgabe=None):
+        """Die ganze Kette. A1866 (P257): bricht sie mit einem unerwarteten Fehler ab (keine Stopp-Meldung), wird daraus ein Stopp
+        mit dem Hinweis auf den Wartungsmodus – sonst bliebe er ohne Hinweis an."""
+        try:
+            return self._ausliefern(zweig, gesamtlauf, aufgabe)
+        except Stopp:
+            raise
+        except Exception as e:                                   # noqa: BLE001 – jeder andere Fehler wird zum Stopp mit Hinweis
+            if not getattr(self, "wartung_an", False):
+                raise
+            self.stopp("Unerwarteter Fehler", f"{type(e).__name__}: {str(e)[:300]}")
+
+    def _ausliefern(self, zweig, gesamtlauf=None, aufgabe=None):
         v = self.pruefen(zweig, gesamtlauf, aufgabe)
         sha, version, ausnahme = v["sha"], v["version"], v["ausnahme"]
         self.ausgabe(f"Version {version} = {sha[:8]} · {'Prüfstufe niedrig (ohne Prüfbitte)' if v['niedrig'] else 'Prüfung grün'} · Merge-OK {v['merge_ok']} · "

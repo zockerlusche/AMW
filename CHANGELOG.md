@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.136.1 – 17.11.2026 · Auslieferung genauer
+- **Behoben:** Die Auslieferung veröffentlicht eine Zwischenversion nur noch, wenn sie eine eigene grüne Prüfung auf genau
+  ihrem Stand hat – sonst geht sie in der obersten Version auf.
+- **Behoben:** Ein Zweigname, der zugleich wie ein Commit-Kürzel aussieht, hielt die Auslieferung an.
+- **Behoben:** Bricht die Auslieferung unerwartet ab, sagt die Meldung jetzt, wie man den Wartungsmodus aufhebt; nach dem
+  Zurückspielen einer älteren Datenbank zählt der Wächter Fehlläufe wieder richtig.
+
 ## 1.136.0 – 17.11.2026 · Abgeschottete Arbeiter am Arbeitsplatz
 - **Neu (für Arbeitsplätze):** Die AMW kann einen kopflosen Arbeiter (`claude -p`) starten, der nur im Klon seines Platzes
   liest und schreibt, nur den Abnahme-Befehl ausführt (kein git – committen tut die AMW) und keine fremden Einstellungen, Hooks oder

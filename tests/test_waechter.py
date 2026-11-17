@@ -129,6 +129,17 @@ class Waechter(unittest.TestCase):
             cli.main(["waechter", "weiter", "--projekt", "Spiel", "--von", "TL"])
         self.assertIsNone(self.regel(a))
 
+    def test_weiter_nach_aelterer_datenbank(self):
+        """A1866 (P257): nach dem Zurückspielen einer älteren DB liegt der Merker von „weiter“ über allen Ereignissen – er gilt
+        dann nicht mehr, Regel 9 zählt wieder alle Enden."""
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, plaetze=3)
+        waechter._setzen(weiter_nach=10 ** 9)                                                   # wie nach dem Zurückspielen
+        for i in range(2):
+            x = self.paket(bereiche=f"web/{i}/")
+            arbeitspaket.zustand_setzen(self.con, self.pid, "TL", x, "laeuft")
+            arbeitspaket.zustand_setzen(self.con, self.pid, "TL", x, "unklar")
+        self.assertEqual(self.regel(self.paket(bereiche="doc/")), 9)
+
     def test_regel_10_ohne_plaetze_wie_heute(self):
         a = self.paket()
         kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, plaetze=0)
