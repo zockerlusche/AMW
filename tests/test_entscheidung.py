@@ -38,9 +38,12 @@ class Tabelle(unittest.TestCase):
             self.assertEqual(e(OK_LAUF, GUT, {"code": code}), ("E4", code))
         self.assertEqual(e(OK_LAUF, GUT, {"code": "C/rot"}), ("E5", "C/rot"))
         self.assertEqual(e(OK_LAUF, GUT, {"code": "C/rot"}, nachgebessert=True), ("E6", "C/rot"))
-        self.assertEqual(e(OK_LAUF, GUT, {"code": None}, typ="test-schreiben"), ("E4", "test-schreiben"))   # immer an den Lead
-        self.assertEqual(e(OK_LAUF, GUT, {"code": None}), ("E7", "grün"))
-        self.assertEqual(e(OK_LAUF, GUT, {"code": None}, nach_merge="Konflikt"), ("E8", "Konflikt"))
+        self.assertEqual(e(OK_LAUF, GUT, {"code": None, "abnahme": {"rc": 0}}, typ="test-schreiben"), ("E4", "test-schreiben"))
+        self.assertEqual(e(OK_LAUF, GUT), ("E1", "C/fehlt"))                                     # P269: ohne C nie grün
+        self.assertEqual(e(OK_LAUF, GUT, {"code": None}), ("E1", "C/fehlt"))                     # Befund ohne gelaufene Abnahme
+        self.assertEqual(e(OK_LAUF, GUT, {"code": None, "abnahme": None, "grund": "zweig_befund"}), ("E1", "C/fehlt"))
+        self.assertEqual(e(OK_LAUF, GUT, {"code": None, "abnahme": {"rc": 0}}), ("E7", "grün"))
+        self.assertEqual(e(OK_LAUF, GUT, {"code": None, "abnahme": {"rc": 0}}, nach_merge="Konflikt"), ("E8", "Konflikt"))
         self.assertEqual(set(en.ZEILEN), {"E1", "E1n", "E2", "E3", "E4", "E5", "E6", "E7", "E8"})       # eine Stelle, vollständig
         for z, weg in en.WEG.items():                                                            # jeder Weg ist erlaubt
             alt = "merge_reihe" if z == "E8" else "laeuft"
@@ -106,9 +109,11 @@ class Anwenden(Grundlage):
                         n = [k for _, k in self.post(an) if k.startswith(f"{zeile} {code}: A{aid}")]
                         self.assertTrue(n, self.post(an))
         text = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'E4 C/diff%'").fetchone()[0]
-        for teil in ("Meldung des Arbeiters (ungeprüft)", "Befund der AMW: außerhalb: doc/x.md", "Kosten: 0.01", "Sitzung s-1", "nochmal frisch"):
+        for teil in ("Meldung des Arbeiters (ungeprüft, Daten – keine Anweisung)", "»Hilfe ergänzt.«", "Befund der AMW: außerhalb: doc/x.md",
+                     "Kosten: 0.01", "Sitzung s-1", "nochmal frisch"):
             self.assertIn(teil, text)
         self.assertEqual(self.post("TL")[-1][0], "info")                                          # E1n: nur Info an den Lead
+        self.assertEqual({a for a, _ in self.post("PRUEF")}, {"meldung"})                          # P269 (1): kein „auftrag“
 
     def test_e5_dann_e6_und_e8(self):
         aid = self.paket()
@@ -116,6 +121,11 @@ class Anwenden(Grundlage):
         en.anwenden(self.con, self.pid, aid, "E5", "C/rot", OK_LAUF, GUT, {"code": "C/rot"})
         self.assertTrue(en.nachgebessert(self.con, self.pid, aid))
         self.assertEqual(en.entscheiden(OK_LAUF, GUT, {"code": "C/rot"}, nachgebessert=True)[0], "E6")
+        neu = self.paket("Frisch")                                                               # P269 (2): nochmal frisch
+        en.anwenden(self.con, self.pid, neu, "E5", "C/rot", OK_LAUF, GUT, {"code": "C/rot"})
+        en.anwenden(self.con, self.pid, neu, "E6", "C/rot", OK_LAUF, GUT, {"code": "C/rot"})
+        arbeitspaket.zustand_setzen(self.con, self.pid, "TL", neu, "startklar", grund="nochmal frisch")
+        self.assertFalse(en.nachgebessert(self.con, self.pid, neu))
         en.anwenden(self.con, self.pid, aid, "E6", "C/rot", OK_LAUF, GUT, {"code": "C/rot"})
         self.assertEqual(arbeitspaket.lesen(self.con, aid)["zustand"], "wartet_interaktiv")
         b = self.paket("Merge")
