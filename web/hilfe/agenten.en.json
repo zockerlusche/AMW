@@ -78,6 +78,10 @@
   [
    "May the lead change an agent's profile while I am away from the PC?",
    "Yes, if you told them to: the lead records your words and changes the profile with `amw agent profil <agent> --ordner … --wort W<nr>` – also through the file exchange. The words must be from this project and at most 24 hours old. It only covers profile fields such as folder, extra folders, model and effort; the role and the lead's own permissions or remote control are changed only by the developer at the PC. Every change appears in the history as old → new, and you get an info about it."
+  ],
+  [
+   "What are work places?",
+   "For agents that work without a window of their own (`claude -p`), AMW keeps work places: per place its own clone of the project (nothing is shared with your project folder) and next to it its own data folder with its own database, settings and port. Whatever runs there never reaches the real database. Only you decide where the places are and how many there are: `amw projekt einstellen platz_wurzel=<folder> --von Entwickler` and `amw projekt einstellen plaetze=2 --von Entwickler`. The folder must not be inside the project folder. Without this setting (default 0 places) nothing changes. `amw platz liste` shows them, `amw platz vorbereiten 1` brings place 1 to the state of main, `amw platz zuruecksetzen 1` cleans it again – also after an abort. AMW deletes only inside the place."
   ]
  ],
  "thema": "agenten",

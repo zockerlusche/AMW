@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.128.0 – 17.11.2026 · Arbeitsplätze für kopflose Agenten
+- **Neu:** Für Agenten ohne eigenes Fenster (`claude -p`) gibt es Arbeitsplätze: je Platz ein eigener Klon des Projekts
+  und ein eigener Datenordner mit eigener Datenbank und eigenem Port – die echte Datenbank bleibt unberührt. Wo und wie
+  viele, legt nur der Mensch in den Projekt-Einstellungen fest (platz_wurzel, plaetze); ohne Einstellung ändert sich nichts.
+  `amw platz liste | vorbereiten N | zuruecksetzen N` – Zurücksetzen macht den Platz auch nach einem Abbruch sauber.
+
 ## 1.127.0 – 17.11.2026 · Wartezeit und Kosten je Aufgabe
 - **Neu:** Im Fenster einer Aufgabe stehen neben den Kosten die Zeiten – aktiv und wartet (vor dem Start, beim Bauen nach
   Grund, nach der Abgabe) – und was nicht gemessen ist; `amw messung --vergleich` stellt die Woche der Vorwoche gegenüber. `amw messung` zeigt das für alle Aufgaben, `amw kosten

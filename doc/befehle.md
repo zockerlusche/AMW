@@ -19,6 +19,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
+| [`platz`](#platz) | Arbeitsplätze für kopflose Arbeiter (claude -p): liste ¦ vorbereiten N ¦ zuruecksetzen N |
 | [`messung`](#messung) | Wartezeit und Kosten je Aufgabe (Liegezeit, aktiv, wartet nach Grund, $, Lücken) – nur lesen |
 | [`kosten`](#kosten) | Kosten eines Laufs außerhalb der Sitzungs-Zähler einer Aufgabe zuordnen (z. B. claude -p) |
 | [`mcp`](#mcp) | Connector für Chat-Leads: schluessel (neu erzeugen – nur der Mensch, einmal sichtbar) ¦ eintrag (Zeile für claude_desktop_config.json) |
@@ -490,6 +491,22 @@ positional arguments:
 options:
   -h, --help         show this help message and exit
   --aufgabe AUFGABE
+  --von VON
+  --projekt PROJEKT
+```
+
+## platz
+```
+usage: amw platz [-h] [--zweig ZWEIG] [--von VON] [--projekt PROJEKT]
+                 {liste,vorbereiten,zuruecksetzen} [nr]
+
+positional arguments:
+  {liste,vorbereiten,zuruecksetzen}
+  nr
+
+options:
+  -h, --help            show this help message and exit
+  --zweig ZWEIG         vorbereiten: Name des Zweigs ab main (Vorgabe platzN)
   --von VON
   --projekt PROJEKT
 ```

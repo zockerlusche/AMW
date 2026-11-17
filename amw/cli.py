@@ -1009,6 +1009,34 @@ def cmd_kosten(a, con):
                                                 else f"{e['usd']:.2f} $ erfasst"))
 
 
+def cmd_platz(a, con):
+    """A1855: Arbeitsplätze für -p – zeigen, vorbereiten, zurücksetzen (Lead und Mensch)."""
+    from . import platz
+    pid = _projekt(con, a)
+    ps = platz.plaetze(con, pid)
+    if a.aktion == "liste":
+        if not ps:
+            print("Keine Arbeitsplätze (Projekt-Einstellung plaetze = 0 oder platz_wurzel fehlt) – die AMW arbeitet wie bisher")
+        for p in ps:
+            da = os.path.isdir(os.path.join(p["klon"], ".git"))
+            print(f"Platz {p['nr']}: {p['klon']} · Daten {p['daten']} · Port {p['port']} · "
+                  + (("sauber" if platz.sauber(p) else "nicht sauber") if da else "noch nicht angelegt"))
+        return
+    if not kern.ist_lead(con, pid, _von(a)):
+        raise kern.AmwFehler("Arbeitsplätze vorbereiten und zurücksetzen dürfen Lead und Mensch")
+    p = next((x for x in ps if x["nr"] == a.nr), None)
+    if not p:
+        raise kern.AmwFehler(f"Platz {a.nr} gibt es nicht ({len(ps)} eingerichtet)")
+    if a.aktion == "vorbereiten":
+        quelle = kern.projekt_ordner(con, pid)
+        if not quelle:
+            raise kern.AmwFehler("Das Projekt hat keinen Ordner (amw projekt ordner …)")
+        r = platz.vorbereiten(p, quelle, a.zweig or f"platz{p['nr']}")
+        print(f"Platz {p['nr']} bereit: {r['klon']} · Zweig {r['zweig']} ab main {r['basis'][:8]} · Port {p['port']}")
+    else:
+        print(f"Platz {p['nr']} " + ("sauber" if platz.zuruecksetzen(p) else "NICHT sauber – bitte ansehen"))
+
+
 def cmd_mcp(a, con):
     """A1826: Schlüssel je Projekt für den MCP-Server – nur der Mensch, nur im Terminal (nie über Dateiaustausch/Connector)."""
     from . import mcp_schluessel
@@ -2644,6 +2672,12 @@ def parser():
     x.add_argument("text", nargs="*")
     x.add_argument("--aufgabe", type=nummer)
     x.set_defaults(f=cmd_taetigkeit)
+
+    x = s.add_parser("platz", help="Arbeitsplätze für kopflose Arbeiter (claude -p): liste | vorbereiten N | zuruecksetzen N")
+    x.add_argument("aktion", choices=["liste", "vorbereiten", "zuruecksetzen"])
+    x.add_argument("nr", nargs="?", type=int)
+    x.add_argument("--zweig", help="vorbereiten: Name des Zweigs ab main (Vorgabe platzN)")
+    x.set_defaults(f=cmd_platz)
 
     x = s.add_parser("messung", help="Wartezeit und Kosten je Aufgabe (Liegezeit, aktiv, wartet nach Grund, $, Lücken) – nur lesen")
     x.add_argument("nr", nargs="?", help="eine Aufgabe (A12 oder 12); ohne: alle begonnenen")

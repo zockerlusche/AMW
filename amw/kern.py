@@ -296,6 +296,28 @@ def projekt_einstellen(con, pid, von, **werte):
                 else:
                     e.pop(k, None)
                 continue
+            if k in ("platz_wurzel", "plaetze"):          # A1855: Arbeitsplätze für -p – die Freigabe gibt nur der Mensch
+                if von != ENTWICKLER:
+                    raise AmwFehler(f"{k}: Arbeitsplätze gibt nur der Mensch frei (--von Entwickler bzw. Workbench am PC)")
+                if k == "platz_wurzel":
+                    v = str(v or "").strip()
+                    if v and not os.path.isabs(v):
+                        raise AmwFehler("platz_wurzel: ein vollständiger Pfad, z. B. D:\\arbeit\\amw\\plaetze")
+                    po = (e.get("ordner") or "").strip()
+                    if v and po and os.path.normcase(os.path.abspath(v)).startswith(os.path.normcase(os.path.abspath(po)) + os.sep):
+                        raise AmwFehler("platz_wurzel darf nicht im Projektordner liegen")
+                else:
+                    try:
+                        v = int(v or 0)
+                    except (TypeError, ValueError):
+                        raise AmwFehler("plaetze: Zahl 0–8") from None
+                    if not 0 <= v <= 8:
+                        raise AmwFehler("plaetze: Zahl 0–8 (0 = keine Plätze, wie bisher)")
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k == "release_zeit":                      # Release-Takt täglich: Uhrzeit HH:MM (Ortszeit), leer = Vorgabe 18:00 (A1656)
                 v = str(v or "").strip()
                 if v and not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", v):
