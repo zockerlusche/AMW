@@ -35,6 +35,7 @@ Ein p-Paket ist eine kleine, klar prüfbare Aufgabe, die ein frischer `claude -p
 - **„Paketfelder setzt der Lead“** – Ein anderer Agent hat versucht, Paket-Angaben zu setzen. Das plant der Lead.
 
 ## Danach
+- **In der Workbench verfolgen:** Arbeit › Pakete zeigt jedes Paket mit Art, Zustand, Kosten und – wenn es nicht startet – dem Grund in Worten (etwa „Startet nicht: alle Arbeitsplätze belegt“). Bei „wartet auf Lead/dich“ steht, wer dran ist. Am PC kannst du dort ein Paket vorziehen oder zurückstellen, alle neuen Starts pausieren, einem laufenden Arbeiter mit „Mitlesen“ zusehen und ihn mit „Notbremse“ samt Unterprozessen beenden – jeder Eingriff steht im Planungs-Protokoll. Online und am Handy siehst du die Liste nur; gesteuert wird am PC. „Was bedeuten die Zustände?“ unter der Liste zeigt, welcher Zustand als fertig, läuft, wartet oder blockiert zählt.
 - Die AMW führt jedes p-Paket durch seine Zustände: Entwurf → startklar → läuft → abgegeben → in der Abnahme → bereit zum Merge → gemergt → fertig. Daneben: blockiert (Frage offen), unklar (keine Schlusszeile), wartet auf interaktiv, abgebrochen, zurückgestellt. In Planung und Übersicht steht ein p-Paket wie jede Aufgabe als läuft, wartet, blockiert oder fertig.
 - Aufgaben mit `--paket agent` (die Vorgabe) haben keine dieser Zustände – für sie gilt der Status der Aufgabe wie bisher.
 

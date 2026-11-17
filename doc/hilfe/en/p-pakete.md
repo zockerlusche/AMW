@@ -35,6 +35,7 @@ A p package is a small, clearly checkable task that a fresh `claude -p` worker d
 - **“Paketfelder setzt der Lead”** – Another agent tried to set package details. The lead plans those.
 
 ## Next
+- **Follow it in the Workbench:** Work › Packages shows every package with type, state, cost and – if it does not start – the reason in words (e.g. “Does not start: all workspaces in use”). For “waiting for lead/you” it says whose turn it is. On the PC you can move a package up or defer it, pause all new starts, watch a running worker with “Follow along” and end it with its sub-processes using “Emergency stop” – every intervention is in the planning log. Online and on the phone you only see the list; control happens on the PC. “What do the states mean?” below the list shows which state counts as done, running, waiting or blocked.
 - AMW takes every p package through its states: draft → ready to start → running → handed in → in acceptance → ready to merge → merged → done. Alongside: blocked (question open), unclear (no final line), waiting for interactive, aborted, deferred. In Planning and the overview a p package shows like any task as running, waiting, blocked or done.
 - Tasks with `--paket agent` (the default) have none of these states – the task status applies to them as before.
 
