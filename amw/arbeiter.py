@@ -81,6 +81,10 @@ def freigabe(pruefbefehl):
     # „-c “/„-C “ mit Leerzeichen – ohne träfe die Sperre auch das erlaubte „git diff --cached“
     deny = [f"Bash(*{v}*)" for v in GIT_VERBOTEN] + ["Bash(git push*)", "Bash(git remote*)", "Bash(git config*)",
             "Bash(git reset*)", "Bash(git checkout*)", "Bash(git switch*)", "Bash(git rebase*)", "Bash(git clean*)", "WebFetch", "WebSearch"] + steuer
+    import fnmatch                                             # P259 (1): deny geht vor allow – trifft der Abnahme-Befehl eine
+    trifft = [d for d in deny if d.startswith("Bash(") and fnmatch.fnmatchcase(befehl, d[5:-1])]   # Sperre, könnte ihn der
+    if trifft:                                                 # Arbeiter nie ausführen (unklar → Regel 9): gleich ablehnen
+        raise ArbeiterFehler(f"Abnahme-Befehl „{befehl}“ trifft die Sperre {trifft[0]} – bitte ohne diese Option formulieren")
     return {"permissions": {"defaultMode": "dontAsk", "allow": allow, "deny": deny}, "env": {"DISABLE_AUTOUPDATER": "1"}}
 
 
@@ -266,8 +270,8 @@ def notbremse_ziehen(con, pid, p, von, aufgabe=None):
     """Notbremse des Menschen (D1258 §2): Arbeiter + Kinder beenden, Übergabe-Notiz und Protokoll in der AMW (keine Datei),
     Meldung an den Lead. Rückgabe: Text für die Ausgabe."""
     from . import kern
-    if von != kern.ENTWICKLER:
-        raise kern.AmwFehler("Die Notbremse zieht nur der Mensch (--von Entwickler)")
+    if von != kern.ENTWICKLER or os.environ.get("AMW_AGENT") or os.environ.get("CLAUDECODE"):   # P259 (3): nie aus einer Agenten-Sitzung
+        raise kern.AmwFehler("Die Notbremse zieht nur der Mensch (--von Entwickler, nicht aus einer Agenten-Sitzung)")
     lief = notbremse(p)
     notiz = uebergabe(p) if os.path.isdir(os.path.join(p["klon"], ".git")) else "kein Klon"
     text = (f"Platz {p['nr']}: " + ("Arbeiter samt Kindprozessen beendet" if lief else "kein laufender Arbeiter") + f" – {notiz}")[:1500]

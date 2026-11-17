@@ -84,7 +84,10 @@ class Arbeiter(unittest.TestCase):
         import fnmatch                                                     # keine Sperre trifft eine erlaubte Form
         for erlaubt in [x[5:-1] for x in bash]:
             self.assertFalse([d for d in f["deny"] if d.startswith("Bash(") and fnmatch.fnmatchcase(erlaubt, d[5:-1])], erlaubt)
-        for kaputt in ("", "python -m unittest && del x", "pytest | tee a", "python a.py > b"):
+        with self.assertRaises(arbeiter.ArbeiterFehler) as e:                # P259 (1): trifft eine Sperre → gleich ablehnen
+            arbeiter.freigabe("python -m unittest -c tests")
+        self.assertIn("trifft die Sperre", str(e.exception))
+        for kaputt in ("", "python -m unittest && del x", "python -m unittest | tee a", "python a.py > b"):
             with self.assertRaises(arbeiter.ArbeiterFehler):
                 arbeiter.freigabe(kaputt)
 
@@ -214,7 +217,11 @@ class Arbeiter(unittest.TestCase):
                 kind = f.read().split()[1]
             with self.assertRaises(kern.AmwFehler):                                                # der Lead nicht
                 arbeiter.notbremse_ziehen(con, pid, self.p, "TL")
+            with mock.patch.dict(os.environ, {"CLAUDECODE": "1"}), self.assertRaises(kern.AmwFehler):   # nicht aus einer Agenten-Sitzung
+                arbeiter.notbremse_ziehen(con, pid, self.p, kern.ENTWICKLER)
             self.assertTrue(lebt(kind))
+            for k in ("AMW_AGENT", "CLAUDECODE"):                                                  # wie am Terminal des Menschen
+                os.environ.pop(k, None)
             with contextlib.redirect_stdout(aus):
                 cli.cmd_platz(cli.parser().parse_args(["platz", "notbremse", "1", "--aufgabe", "7", "--projekt", "Spiel",
                                                        "--von", "Entwickler"]), con)
