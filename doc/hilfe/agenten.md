@@ -9,7 +9,7 @@ Ein Agent arbeitet in einem Ordner auf diesem PC. Damit die AMW ihn benachrichti
 ## Schritte
 1. **Ordner einrichten** `amw einrichten agenten-ordner <ordner> --projekt <projekt>` ausführen. Die AMW trägt ihre Einträge in die Einstellungen von Claude Code in diesem Ordner ein und sichert die Datei vorher. Danach erscheinen „Zustand und Verbrauch“ des Agenten.
 2. **Profil prüfen** Unter Einstellungen › Agenten stehen Ordner, Modell, Denkaufwand, Rechte und Startanweisung. Ändern geht dort oder mit `amw agent profil <name> --ordner … --modell …`.
-3. **Starten** In der Übersicht den Agenten anklicken › „Starten / fortsetzen“. Die AMW öffnet ihn in einem neuen Terminal-Tab.
+3. **Starten** In der Übersicht den Agenten anklicken › „Starten / fortsetzen“ und die Rückfrage bestätigen. Die AMW öffnet ihn in einem neuen Terminal-Tab: zuerst setzt sie seine letzte Sitzung fort; gibt es die nicht mehr, beginnt eine neue mit der Startanweisung.
 
 ## Diese Werte trägst du ein
 | Feld in der AMW | Woher |
@@ -22,6 +22,8 @@ Ein Agent arbeitet in einem Ordner auf diesem PC. Damit die AMW ihn benachrichti
 - **„Nicht verbunden“** – Die Sitzung läuft, kennt aber ihren Namen nicht. Im Fenster des Agenten `amw anmelden --von <name>` ausführen.
 - **„… ist in einer anderen Sitzung angemeldet“** – Ein zweites Claude-Fenster benutzt den Namen eines Agenten, der schon in einem anderen Fenster läuft. Die AMW nimmt von dort keine Befehle unter diesem Namen an. Nur wenn das wirklich der richtige Agent ist: `amw anmelden --von <name> --ersetzen`.
 - **Der Ordner gehört schon zu einem anderen Projekt** – Ein Ordner gehört zu genau einem Projekt. Für ein zweites Projekt einen eigenen Ordner nehmen.
+- **„Ordner … gibt es nicht“ beim Starten** – Der Arbeitsordner im Profil fehlt (verschoben oder umbenannt). Unter Einstellungen › Agenten den richtigen Ordner eintragen.
+- **„nicht gestartet: … wäre ein Zwilling“ / „fremder Live-Ordner“** – Der Ordner meldet jede Sitzung als einen anderen Agenten oder für ein anderes Projekt an (Eintrag in `.claude/settings.local.json`), oder dort arbeitet gerade ein Agent eines anderen Projekts. Die AMW startet dann nicht, damit nicht zwei Sitzungen unter einem Namen laufen. Einen eigenen Ordner eintragen oder den anderen Agenten zuerst beenden.
 
 ## Danach
 - Umbenennen: `amw agent umbenennen <alt> <neu>`. Der alte Name bleibt als zweiter Name gültig, damit ältere Nachrichten und Befehle weiter funktionieren.
@@ -42,6 +44,9 @@ Betrieb › „Wofür das Geld geht“ (am PC) oder `amw verbrauch pareto --tage
 
 ### Welches Modell und welchen Denkaufwand empfiehlt die AMW?
 Der Lead gibt einer Aufgabe beim Anlegen Größe und Art: `amw aufgabe neu … --groesse S|M|L|XL --art text|mechanisch|fehlersuche|oberflaeche|sicherheit|konzept` (nachträglich mit `amw aufgabe aendern <nr>`). Daraus schlägt die AMW Modell und Denkaufwand vor – nach einer Tabelle je Projekt (Einstellungen › Projekt › „Empfehlung Modell · Denkaufwand“). Die Startwerte sind eine Annahme; neben dem Vorschlag an der Aufgabe steht, was fertige Aufgaben derselben Art und Größe gemessen verbraucht haben und wie oft ihre Prüfung rot war. Daran stellst du die Tabelle ein. Am Agenten steht die Empfehlung aus seinen letzten Aufgaben; „Ins Profil übernehmen“ trägt sie ein. Die AMW stellt nichts selbst um und startet niemanden neu: Das Profil wirkt beim nächsten Start.
+
+### Wer darf einen Agenten starten?
+Nur du: in der Workbench am PC (mit Rückfrage) oder in deinem eigenen Terminal mit `amw agent starten <Agent> --von Entwickler`. Ein Agent – auch der Lead – kann keinen Agenten starten, auch nicht über den Dateiaustausch oder MCP, und auf der Online-Seite und am Handy gibt es den Knopf nicht. Einzige Ausnahme: Hast du im Profil „nach Absturz neu starten“ eingeschaltet, startet die AMW einen abgestürzten Agenten selbst wieder.
 
 ### Darf der Lead das Profil eines Agenten ändern, wenn ich nicht am PC bin?
 Ja, wenn du es ihm gesagt hast: Er nimmt dein Wort als Wortlaut auf und ändert das Profil mit `amw agent profil <Agent> --ordner … --wort W<nr>` – auch über den Dateiaustausch. Das Wort muss aus diesem Projekt und höchstens 24 Stunden alt sein. Es gilt nur für Profilfelder wie Ordner, Zusatzordner, Modell und Denkaufwand; Rolle und die eigenen Rechte oder die Fernsteuerung des Leads ändert nur der Entwickler am PC. Jede Änderung steht mit alt → neu im Verlauf, und du bekommst eine Info dazu.

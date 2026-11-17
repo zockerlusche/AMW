@@ -9,7 +9,7 @@ An agent works in a folder on this PC. So that the AMW can notify it, monitor it
 ## Steps
 1. **Set up the folder** Run `amw einrichten agenten-ordner <folder> --projekt <project>`. The AMW adds its entries to the Claude Code settings in this folder and backs up the file first. After that, the agent's “State and usage” appears.
 2. **Check the profile** Settings › Agents shows folder, model, effort, permissions and first prompt. Change them there or with `amw agent profil <name> --ordner … --modell …`.
-3. **Start** In the Overview click the agent › “Start / resume”. The AMW opens it in a new terminal tab.
+3. **Start** In the Overview click the agent › “Start / resume” and confirm. The AMW opens it in a new terminal tab: first it resumes the agent's last session; if that no longer exists, a new one begins with the start instruction.
 
 ## Values to enter
 | Field in the AMW | Where from |
@@ -22,12 +22,17 @@ An agent works in a folder on this PC. So that the AMW can notify it, monitor it
 - **“Not connected”** – The session is running but does not know its name. In the agent's window run `amw anmelden --von <name>`.
 - **“… is logged in to another session”** – A second Claude window uses the name of an agent that is already running in another window. The AMW does not accept commands under that name from there. Only if this really is the right agent: `amw anmelden --von <name> --ersetzen`.
 - **The folder already belongs to another project** – A folder belongs to exactly one project. Use a separate folder for a second project.
+- **“Ordner … gibt es nicht” when starting** – The working folder in the profile is missing (moved or renamed). Enter the right folder under Settings › Agents.
+- **“nicht gestartet: … wäre ein Zwilling” / “fremder Live-Ordner”** – The folder registers every session as a different agent or for a different project (entry in `.claude/settings.local.json`), or an agent of another project is working there right now. The AMW then does not start, so that two sessions never run under one name. Enter a folder of its own or stop the other agent first.
 
 ## Next
 - Rename: `amw agent umbenennen <old> <new>`. The old name stays valid as a second name, so older messages and commands keep working.
 - `amw einrichten agenten-ordner <folder> --entfernen` removes what the AMW added to the folder.
 
 ## Questions
+### Who may start an agent?
+Only you: in the Workbench on the PC (with a confirmation) or in your own terminal with `amw agent starten <agent> --von Entwickler`. An agent – the lead included – cannot start an agent, not through the file exchange or MCP either, and the online page and the phone have no such button. Only exception: if you switched on “restart after a crash” in the profile, the AMW restarts a crashed agent by itself.
+
 ### Why can't I rename in the Workbench?
 The name is used in start scripts and running sessions on this PC. The command line changes everything in one place without a running session losing its name.
 
