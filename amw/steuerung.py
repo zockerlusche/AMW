@@ -208,12 +208,16 @@ MAUS_AUS = "[Console]::Write(" + "+".join(f"[char]27+'[?{n}l'" for n in (1000, 1
 
 
 def befehl(p, fortsetzen_id=None, neue_id=None):
-    """PowerShell-Befehlszeile für den Tab: Umgebung setzen, Claude mit Profil starten."""
-    teile = ["--resume", fortsetzen_id] if fortsetzen_id else ["--session-id", neue_id] if neue_id else []
-    teile += _optionen(p)
-    if not fortsetzen_id and p["startsatz"]:
-        teile.append(p["startsatz"])
-    aufruf = _aufruf(teile)
+    """PowerShell-Befehlszeile für den Tab: Umgebung setzen, Claude mit Profil starten. Mit beiden IDs (A1865, wie das
+    Startskript): erst die letzte Sitzung fortsetzen; scheitert das (Sitzung gibt es nicht mehr), neu mit der festen ID und
+    dem Startsatz."""
+    neu = (["--session-id", neue_id] if neue_id else []) + _optionen(p) + ([p["startsatz"]] if p["startsatz"] else [])
+    if fortsetzen_id:
+        aufruf = _aufruf(["--resume", fortsetzen_id] + _optionen(p))
+        if neue_id:
+            aufruf += f"; if ($LASTEXITCODE -ne 0) {{ {_aufruf(neu)} }}"
+    else:
+        aufruf = _aufruf(neu)
     projekt = f"$env:AMW_PROJEKT = {_ps(p['projekt'])}; " if p.get("projekt") else ""
     return f"Set-Location {_ps(p['ordner'])}; $env:AMW_AGENT = {_ps(p['kennung'])}; {projekt}{aufruf}; {MAUS_AUS}"
 
@@ -294,8 +298,36 @@ def laeuft(con, pid, kennung):
     return True                                       # Brücken-Sitzung: gilt als laufend
 
 
+def zwilling(con, pid, p):
+    """A1865 (B2897): würde ein Start hier einen Zwilling erzeugen? Grund in Worten oder None.
+    - Der Ordner trägt in seinen Claude-Einstellungen (.claude/settings*.json, env) einen anderen Agenten oder ein anderes
+      Projekt fest ein – dann meldete sich die neue Sitzung als dieser an.
+    - Im Ordner läuft gerade ein Agent eines anderen Projekts (ein gemeinsamer Ordner im selben Projekt, z. B. zwei Agenten in
+      einem Spielordner, bleibt erlaubt – sie unterscheidet AMW_AGENT)."""
+    for name in ("settings.json", "settings.local.json"):
+        try:
+            with open(os.path.join(p["ordner"], ".claude", name), encoding="utf-8") as f:
+                env = json.load(f).get("env") or {}
+        except (OSError, ValueError, AttributeError):
+            continue
+        ag, pr = str(env.get("AMW_AGENT") or ""), str(env.get("AMW_PROJEKT") or "")
+        if ag and ag.casefold() != p["kennung"].casefold():
+            return f"der Ordner {p['ordner']} meldet jede Sitzung als {ag} an (.claude/{name}, env AMW_AGENT) – das wäre ein Zwilling"
+        if pr and pr.casefold() != (p["projekt"] or "").casefold():
+            return f"der Ordner {p['ordner']} gehört zu Projekt {pr} (.claude/{name}, env AMW_PROJEKT) – die Sitzung landete dort"
+    ordner = os.path.normcase(os.path.abspath(p["ordner"]))
+    for r in con.execute("SELECT a.kennung, s.arbeitsordner, s.claude_pid, pr.name FROM sitzung s JOIN agent a ON a.id = s.agent_id"
+                         " JOIN projekt pr ON pr.id = a.projekt_id WHERE s.zustand = 'aktiv' AND a.projekt_id != ?"
+                         " AND s.arbeitsordner IS NOT NULL", (pid,)).fetchall():
+        if os.path.normcase(os.path.abspath(r["arbeitsordner"])) == ordner and (not r["claude_pid"] or lebt(r["claude_pid"])):
+            return f"im Ordner {p['ordner']} arbeitet gerade {r['kennung']} aus Projekt {r['name']} – fremder Live-Ordner"
+    return None
+
+
 def starten(con, pid, kennung, neu=False, ausfuehren=None):
-    """Startet den Agenten im neuen Terminal-Tab. neu=True: frische Sitzung statt Fortsetzen. Rückgabe: Beschreibung."""
+    """Startet den Agenten im neuen Terminal-Tab. neu=True: frische Sitzung statt Fortsetzen. Rückgabe: Beschreibung.
+    Wer startet, prüft der Aufrufer: nur der Mensch am PC (Workbench mit Rückfrage, Befehlszeile --von Entwickler) und die
+    Absturz-Überwachung bei eingeschaltetem Auto-Neustart – nie online, nie ein Agent (A1865, B2897)."""
     p = profil(con, pid, kennung)
     weise = kern.agent_zeile(con, pid, kennung)["arbeitsweise"] or "terminal"
     if weise != "terminal":                        # Chat und Desktop-App startet der Mensch selbst
@@ -303,10 +335,15 @@ def starten(con, pid, kennung, neu=False, ausfuehren=None):
                              f"Agenten im Terminal (amw agent profil {kennung} --arbeitsweise terminal)")
     if not p["ordner"]:
         raise kern.AmwFehler(f"{kennung}: kein Ordner im Profil – amw agent profil {kennung} --ordner <Pfad>")
+    if not os.path.isdir(p["ordner"]):
+        raise kern.AmwFehler(f"{kennung}: Ordner {p['ordner']} gibt es nicht – amw agent profil {kennung} --ordner <Pfad>")
     if laeuft(con, pid, kennung):
         raise kern.AmwFehler(f"{kennung} läuft schon")
+    grund = zwilling(con, pid, p)
+    if grund:
+        raise kern.AmwFehler(f"{kennung} nicht gestartet: {grund}")
     fort = None if neu else letzte_sitzung(con, pid, kennung)
-    neue = None if fort else str(uuid.uuid4())
+    neue = str(uuid.uuid4())                          # neu – oder Rückfall, wenn das Fortsetzen scheitert
     zeile = befehl(p, fort, neue)
     b64 = base64.b64encode(zeile.encode("utf-16-le")).decode()
     shell = _shell()
