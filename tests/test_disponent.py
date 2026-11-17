@@ -78,9 +78,11 @@ class Disponent(unittest.TestCase):
         return arbeitspaket.lesen(self.con, aid)["zustand"]
 
     def warten(self, aid, ziele, frist=180):
+        from amw import betrieb
         for _ in range(frist * 2):
             if self.zustand(aid) in ziele:
                 return self.zustand(aid)
+            betrieb.warteschlange(self.con)                       # wie der Dienst: eingereihte Läufe starten, wenn sie dürfen
             time.sleep(0.5)
         self.fail(f"A{aid} blieb {self.zustand(aid)}")
 
