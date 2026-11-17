@@ -49,6 +49,10 @@ if art == "enkel_pipe":                    # P260: ein Enkel erbt stdout und hä
                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))   # erbt die Pipe ausdrücklich
     with open(os.environ["ATTRAPPE_PID"], "w") as f:
         f.write(f"{os.getpid()} {enkel.pid}")
+if art == "runden":                         # A1849: viele Runden ohne Dateiänderung, dann still
+    for i in range(30):
+        print(json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": f"denke {i}"}]}}), flush=True)
+    time.sleep(600)
 if art in ("kind", "haengt", "abweichung_kind"):
     time.sleep(600)
 if art == "fremdes_werkzeug":

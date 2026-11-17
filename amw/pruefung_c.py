@@ -114,6 +114,38 @@ def basis_holen(p, quelle, basis):
     _git(p, "cat-file", "-e", f"{basis}^{{commit}}")
 
 
+REPARSE = 0x400                                                # FILE_ATTRIBUTE_REPARSE_POINT (Symlink, Junction …)
+
+
+def verweise(wurzel):
+    """P268: Verweise im Arbeitsbaum (ohne .git) – Symlinks, Junctions und andere Reparse-Points sowie Hardlinks auf Dateien
+    mit weiteren Namen. git add folgt Junctions und nähme so Dateien von außen (Benutzerordner, Live-Daten) ins Repo; ein
+    Hardlink (gleiches Laufwerk) zeigt denselben Inhalt wie eine Datei außerhalb. Rückgabe [(pfad, art)] relativ zu wurzel."""
+    aus = []
+    for ordner, unter, dateien in os.walk(wurzel, topdown=True, followlinks=False):
+        rel_ordner = os.path.relpath(ordner, wurzel)
+        if rel_ordner == ".":
+            unter[:] = [u for u in unter if u.lower() != ".git"]
+        behalten = []
+        for u in unter:
+            pfad = os.path.join(ordner, u)
+            st = os.lstat(pfad)
+            if os.path.islink(pfad) or getattr(st, "st_file_attributes", 0) & REPARSE or getattr(os.path, "isjunction", lambda x: False)(pfad):
+                aus.append((os.path.relpath(pfad, wurzel).replace(os.sep, "/"), "Verweis (Symlink/Junction)"))
+            else:
+                behalten.append(u)
+        unter[:] = behalten                                       # nie in einen Verweis hineingehen
+        for d in dateien:
+            pfad = os.path.join(ordner, d)
+            st = os.lstat(pfad)
+            rel = os.path.relpath(pfad, wurzel).replace(os.sep, "/")
+            if os.path.islink(pfad) or getattr(st, "st_file_attributes", 0) & REPARSE:
+                aus.append((rel, "Verweis (Symlink)"))
+            elif st.st_nlink > 1:
+                aus.append((rel, "Hardlink (weiterer Name derselben Datei)"))
+    return sorted(aus)
+
+
 def einsammeln(p, basis, aid, nachricht):
     """Den Arbeitsbaum des Klons (nur als Daten) gegen `basis` einsammeln und als AMW-Arbeiter committen. None = nichts geändert."""
     index = os.path.join(os.path.dirname(repo(p)), "index")
@@ -213,10 +245,60 @@ def _tests_gelaufen(ausgabe):
     return int(m[-1]) if m else 0
 
 
+def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main"):
+    """Interaktive Pakete (§6a.6): der leichte Teil von C sofort und ohne schweren Lauf – Netto-Diff des Zweigs gegen main,
+    Diff-Tor, automatisch geladene Dateien, Geheimnis-Muster, nach außen. Die Abnahme im frischen Checkout läuft über die
+    Lauf-Schlange (Disponent, S6c). Rückgabe wie pruefen() ohne abnahme/regression."""
+    def git(*args):
+        r = subprocess.run(["git", "-c", "core.quotepath=off", "-C", quelle, *args], capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", stdin=subprocess.DEVNULL, timeout=300, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if r.returncode:
+            raise PruefFehler(f"git {' '.join(args[:3])}: {(r.stdout + r.stderr).strip()[-300:]}")
+        return r.stdout
+    b = {"code": None, "kopf": None, "geaendert": [], "ausserhalb": [], "gesperrt": [], "autogeladen": [], "geheim": [], "aussen": [],
+         "abnahme": None, "regression": None, "test_schreiben": None, "grund": None}
+    try:
+        kopf = git("rev-parse", "--verify", f"refs/heads/{zweig}^{{commit}}").strip()
+        basis = git("merge-base", haupt, kopf).strip()
+        g = sorted(n for n in git("diff", "--no-renames", "--name-only", basis, kopf).splitlines() if n)
+        links = [z.split("\t", 1)[1] for z in git("diff", "--no-renames", "--raw", basis, kopf).splitlines()
+                 if z.startswith(":") and "\t" in z and z.split()[1] == "120000"]
+        zeilen, pfad = [], None
+        for z in git("diff", "--no-renames", "-U0", basis, kopf).splitlines():
+            if z.startswith("+++ "):
+                pfad = z[6:] if z.startswith("+++ b/") else None
+            elif z.startswith("+") and pfad:
+                zeilen.append((pfad, z[1:]))
+    except (PruefFehler, subprocess.SubprocessError, OSError) as e:
+        return dict(b, code="C/technik", grund=f"Zweig {zweig} ließ sich nicht lesen: {e}")
+    b.update(kopf=kopf, geaendert=g, ausserhalb=[x for x in g if not abnahme.im_bereich(x, bereiche)] if bereiche else [],
+             gesperrt=abnahme.gesperrt(g, typ), autogeladen=autogeladen(g), geheim=geheimnisse(zeilen), aussen=nach_aussen(zeilen))
+    if not g:
+        return dict(b, code="C/leer", grund="keine Änderungen gegen main")
+    if links:
+        return dict(b, code="C/diff", grund="Symlinks im Zweig: " + ", ".join(links[:8]))
+    if b["ausserhalb"] or b["gesperrt"] or b["autogeladen"] or b["geheim"]:
+        return dict(b, code="C/diff", grund="Diff-Tor: " + "; ".join(
+            x for x in (b["ausserhalb"] and f"außerhalb der Bereiche: {', '.join(b['ausserhalb'][:5])}",
+                        b["gesperrt"] and f"gesperrt: {', '.join(x for x, _ in b['gesperrt'][:5])}",
+                        b["autogeladen"] and f"automatisch geladen: {', '.join(b['autogeladen'][:5])}",
+                        b["geheim"] and f"Geheimnis-Muster: {', '.join(f'{x} ({a})' for x, a in b['geheim'][:5])}") if x))
+    if b["aussen"]:
+        return dict(b, code="C/aussen", grund="nach außen: " + "; ".join(f"{x}: {w}" for x, w in b["aussen"][:8]))
+    return dict(b, grund="Diff-Tor ohne Befund; Geheimnis- und Außen-Muster: keine Treffer (Muster-Prüfung, kein Beweis – §6a.5)")
+
+
 def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahme.FRIST_S, nachricht=None, regression=REGRESSION):
     """Prüfung C für Paket `aid` im Platz `p`. Rückgabe: Befund mit "code" (None = alles grün) und allen Einzelheiten."""
     b = {"code": None, "kopf": None, "geaendert": [], "ausserhalb": [], "gesperrt": [], "autogeladen": [], "geheim": [], "aussen": [],
          "abnahme": None, "regression": None, "test_schreiben": None, "grund": None}
+    try:
+        v = verweise(p["klon"])                                   # P268: vor jedem git add – nichts von außen einsammeln
+    except OSError as e:
+        return dict(b, code="C/technik", grund=f"Arbeitsbaum ließ sich nicht durchsehen: {e}")
+    if v:
+        return dict(b, code="C/diff", verweise=v, grund="Verweise im Arbeitsbaum (nicht eingesammelt): "
+                    + "; ".join(f"{x} – {a}" for x, a in v[:8]))
     try:
         basis_holen(p, quelle, basis)
         kopf = einsammeln(p, basis, aid, nachricht or f"A{aid}: Stand des Arbeiters (Prüfung C)")

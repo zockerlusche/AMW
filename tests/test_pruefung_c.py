@@ -93,6 +93,27 @@ class PruefungC(unittest.TestCase):
         self.assertEqual(b["code"], "C/diff")                                                    # .gitattributes ist gesperrt
         self.assertIn(".gitattributes", [x for x, _ in b["gesperrt"]])
 
+    def test_verweise_nach_aussen_nie_eingesammelt(self):
+        """P268: eine Junction (oder ein Hardlink) im Bereich zeigt auf Dateien außerhalb – git add folgte ihr. Jetzt C/diff,
+        bevor irgendetwas eingesammelt oder committet wird."""
+        aussen = os.path.join(self.ordner.name, "aussen")
+        os.makedirs(aussen)
+        with open(os.path.join(aussen, "zugang.txt"), "w") as f:
+            f.write("geheim-ohne-muster\n")
+        self.reparieren()
+        ziel = os.path.join(self.p["klon"], "lib", "link")
+        subprocess.run(["cmd", "/c", "mklink", "/J", ziel, aussen], check=True, capture_output=True, creationflags=OHNE)
+        b = self.pruefen()
+        self.assertEqual(b["code"], "C/diff")
+        self.assertIn(("lib/link", "Verweis (Symlink/Junction)"), b["verweise"])
+        self.assertIsNone(b["kopf"])                                                             # nichts eingesammelt
+        self.assertFalse(os.path.exists(os.path.join(c.repo(self.p), "refs", "heads", "paket-A7")))
+        os.rmdir(ziel)                                                                           # die Junction selbst (nicht ihr Ziel)
+        os.link(os.path.join(aussen, "zugang.txt"), os.path.join(self.p["klon"], "lib", "zugang.txt"))
+        b = self.pruefen()
+        self.assertEqual(b["code"], "C/diff")
+        self.assertIn(("lib/zugang.txt", "Hardlink (weiterer Name derselben Datei)"), b["verweise"])
+
     def test_diff_tor(self):
         self.reparieren()
         self.schreiben(self.p["klon"], "doc/fremd.md", "x\n")

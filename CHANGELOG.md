@@ -7,7 +7,9 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 ## 1.139.0 – 17.11.2026 · Eigene Prüfung nach einem Arbeiter-Lauf
 - **Neu (für Arbeitsplätze):** Nach einem Lauf prüft die AMW selbst – außerhalb des Arbeitsplatzes, mit eigenem Prüf-Repo:
   nur geplante Bereiche, keine gesperrten oder automatisch geladenen Dateien, keine Zugangsdaten, keine neuen Adressen nach
-  außen; dann committet sie den Stand selbst und führt Abnahme und eine feste Kurzsuite in einem frischen Checkout aus.
+  außen, keine Verweise nach außen; dann committet sie den Stand selbst und führt Abnahme und eine feste Kurzsuite in einem frischen Checkout aus.
+  Eine feste Tabelle entscheidet danach, wohin das Paket geht (bereit zum Merge, einmal nachbessern oder an den Prüfer);
+  hängt ein Lauf, meldet die AMW es. Agenten im Terminal melden mit `--zweig` und bekommen die Prüfbitte mit dem Befund.
 
 ## 1.137.0 – 17.11.2026 · Ergebnis eines Pakets melden
 - **Neu (für Arbeitsplätze):** Ein Arbeiter meldet sein Ergebnis über ein eigenes Werkzeug, das nur für seinen Lauf da ist –

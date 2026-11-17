@@ -118,6 +118,10 @@
   [
    "Wie meldet ein Paket sein Ergebnis an die AMW?",
    "Ein Arbeiter am Arbeitsplatz meldet über ein eigenes Werkzeug `ergebnis_melden`, das nur für seinen Lauf da ist – genau ein Status: erledigt, blockiert (mit einer Frage) oder aufgegeben (mit Grund), dazu ein Satz. Es gilt die letzte gültige Meldung. Ein Agent im Terminal meldet dasselbe so: `echo {\"status\": \"erledigt\", \"zusammenfassung\": \"…\"} | amw paket ergebnis 12 --json -` oder mit `--status … --zusammenfassung …` – nur für sein eigenes, laufendes Paket. Die Meldung sagt nur, wohin das Paket geht; ob die Arbeit stimmt, prüft die AMW selbst. Was ein Agent schreibt, steht als ungeprüfte Angabe im Protokoll; sein Hinweis geht nur an den Lead."
+  ],
+  [
+   "Was passiert nach dem Lauf eines Arbeiters?",
+   "Die AMW prüft selbst, außerhalb des Arbeitsplatzes: nur geplante Bereiche, keine gesperrten oder automatisch geladenen Dateien, keine Verweise (Junctions, Symlinks) nach außen, keine Zugangsdaten-Muster, keine neuen Adressen nach außen. Dann committet sie den Stand und führt Abnahme und eine feste Kurzsuite in einem frischen Checkout aus. Danach entscheidet eine feste Tabelle (E1–E8): alles grün → bereit zum Merge; Abnahme rot → einmal nachbessern; sonst geht der Befund an den Prüfer (Projekt-Einstellung `paket_pruefer`, sonst der Lead) bzw. bei einer Frage an dich. Hängt ein Lauf (Vorgabe: 20 Minuten still oder 15 Runden ohne Dateiänderung, einstellbar mit `haenge_stille_min` und `haenge_runden`), meldet die AMW es – beenden kannst nur du. Ein Agent im Terminal meldet „erledigt“ bei einem Paket mit Abnahme mit `--zweig`; die AMW stellt dann die Prüfbitte mit ihrem Befund."
   ]
  ],
  "thema": "agenten",

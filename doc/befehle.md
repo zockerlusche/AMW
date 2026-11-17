@@ -364,8 +364,8 @@ options:
 usage: amw paket [-h] [--grund GRUND] [--beleg BELEG] [--nur NUR]
                  [--json JSON] [--status {erledigt,blockiert,aufgegeben}]
                  [--zusammenfassung ZUSAMMENFASSUNG] [--frage FRAGE]
-                 [--frage-an {lead,mensch}] [--hinweis HINWEIS] [--von VON]
-                 [--projekt PROJEKT]
+                 [--frage-an {lead,mensch}] [--hinweis HINWEIS]
+                 [--zweig ZWEIG] [--von VON] [--projekt PROJEKT]
                  {zeigen,zustand,liste,ergebnis} [id] [zustand]
 
 positional arguments:
@@ -391,6 +391,9 @@ options:
   --frage-an {lead,mensch}
                         ergebnis blockiert: wer antworten soll (Vorgabe lead)
   --hinweis HINWEIS     ergebnis: optional, geht nur an den Lead
+  --zweig ZWEIG         ergebnis erledigt bei einem Paket mit Abnahme-Befehl:
+                        dein Zweig (Pflicht) – die AMW prüft ihn und stellt
+                        die Prüfbitte mit ihrem Befund
   --von VON
   --projekt PROJEKT
 ```

@@ -103,6 +103,9 @@ class Auswertung(unittest.TestCase):
         self.assertEqual(rm.auswerten(self.ereignisse((GUT, True), ({"status": "x"}, False))), (GUT, 2))   # abgelehnter zählt nicht
         self.assertEqual(rm.auswerten(self.ereignisse(({"status": "fertig", "zusammenfassung": "x"}, True))), (None, 1))  # AMW prüft selbst
         self.assertEqual(rm.auswerten([]), (None, 0))
+        ohne_id = [{"type": "assistant", "message": {"content": [{"type": "tool_use", "name": rm.VOLL, "input": GUT}]}},
+                   {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": None, "is_error": False}]}}]
+        self.assertEqual(rm.auswerten(ohne_id), (None, 0))                                         # P267: ohne id verworfen
         self.assertEqual(rm.auswerten([{"type": "user", "message": {"content": "nur Text"}}, {"type": "system", "message": "nur Text"}] + self.ereignisse((GUT, True))), (GUT, 1))
 
 

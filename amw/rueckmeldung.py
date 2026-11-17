@@ -155,8 +155,8 @@ def auswerten(ereignisse):
             continue
         if e.get("type") == "assistant":
             for c in inhalt:
-                if isinstance(c, dict) and c.get("type") == "tool_use" and c.get("name") == VOLL:
-                    aufrufe[c.get("id")] = c.get("input")
+                if isinstance(c, dict) and c.get("type") == "tool_use" and c.get("name") == VOLL and c.get("id"):
+                    aufrufe[c["id"]] = c.get("input")                    # P267: ohne id keine Zuordnung zur Antwort – verworfen
         elif e.get("type") == "user":
             for c in inhalt:
                 if isinstance(c, dict) and c.get("type") == "tool_result" and c.get("tool_use_id") in aufrufe:
@@ -195,7 +195,7 @@ def letzte(con, pid, aid):
     return dict(json.loads(r["text"]), von=r["von"], zeit=r["zeit_utc"]) if r else None
 
 
-def melden_interaktiv(con, pid, von, aid, meldung, umgebung=None):
+def melden_interaktiv(con, pid, von, aid, meldung, umgebung=None, zweig=None):
     """`amw paket ergebnis` (§6a.6): nur der zugeteilte Agent (AMW_AGENT = --von = Besitzer der Aufgabe), nur Art agent/sitzung,
     nur solange das Paket läuft. Gleiches Schema wie der Connector."""
     from . import arbeitspaket, kern
@@ -213,8 +213,37 @@ def melden_interaktiv(con, pid, von, aid, meldung, umgebung=None):
     fehler = pruefen(meldung)
     if fehler:
         raise kern.AmwFehler("Nicht angenommen: " + "; ".join(fehler) + f". Beispiel: {BEISPIEL}")
+    zeile = con.execute("SELECT titel, pruefbefehl, dateibereich FROM aufgabe WHERE id = ?", (aid,)).fetchone()
+    mit_abnahme = meldung["status"] == "erledigt" and (zeile["pruefbefehl"] or "").strip()
+    if mit_abnahme and not (zweig or "").strip():                # §6a.6: für eine Meldung mit Abnahme ist ein Zweig je Paket Pflicht
+        raise kern.AmwFehler(f"A{aid} hat einen Abnahme-Befehl – erledigt nur mit --zweig <dein Zweig für dieses Paket>")
     speichern(con, pid, von, aid, meldung, "agent")
-    return meldung
+    if mit_abnahme:                                              # Stufe 1 kein Autopfad: Prüfbitte mit dem Befund der AMW
+        return {"meldung": meldung, "pruefbitte": _pruefbitte_aus_ergebnis(con, pid, von, aid, zeile, meldung, zweig.strip())}
+    return {"meldung": meldung, "pruefbitte": None}
+
+
+def _pruefbitte_aus_ergebnis(con, pid, von, aid, zeile, meldung, zweig):
+    from . import abnahme, arbeitspaket, betrieb, entscheidung, kern, pruefung_c
+    quelle = kern.projekt_ordner(con, pid)
+    if not quelle:
+        raise kern.AmwFehler("Das Projekt hat keinen Ordner (amw projekt ordner …) – die AMW kann den Zweig nicht prüfen")
+    bereiche = abnahme_bereiche(zeile["dateibereich"])
+    b = pruefung_c.zweig_befund(quelle, zweig, bereiche, arbeitspaket.lesen(con, aid).get("pakettyp"))
+    if b["code"] == "C/technik":
+        raise kern.AmwFehler(b["grund"])
+    pruefer = entscheidung.empfaenger(con, pid, "pruefer")
+    punkte = (f"Aus dem Ergebnis erzeugt (§6a.6, Stufe 1 ohne Autopfad). Meldung des Agenten (ungeprüft): {meldung['status']} – "
+              f"{meldung['zusammenfassung']}" + (f" · hinweis: {meldung['hinweis']}" if meldung.get("hinweis") else "")
+              + f"\nBefund der AMW ({b['code'] or 'ohne Befund'}): {b['grund']}. Geändert: {', '.join(b['geaendert'][:12])}"
+              + f"\nAbnahme-Befehl: {zeile['pruefbefehl']} – die Abnahme im frischen Checkout läuft über die Lauf-Schlange (Disponent).")
+    prid = betrieb.pruefbitte(con, pid, von, pruefer, zweig, b["kopf"], punkte, aid)
+    return {"id": prid, "an": pruefer, "befund": b["code"]}
+
+
+def abnahme_bereiche(text):
+    from . import waechter
+    return waechter.bereiche(text)
 
 
 # --- Auftragsvorlage (§6.3) --------------------------------------------------------------------------------------------

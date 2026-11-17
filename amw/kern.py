@@ -318,6 +318,26 @@ def projekt_einstellen(con, pid, von, **werte):
                 else:
                     e.pop(k, None)
                 continue
+            if k in ("paket_pruefer", "haenge_stille_min", "haenge_runden"):   # A1849: Empfänger der Befunde, Hänge-Erkennung
+                if not (von == ENTWICKLER or ist_lead(con, pid, von)):
+                    raise AmwFehler(f"{k}: setzt der Lead oder der Mensch")
+                if k == "paket_pruefer":
+                    v = str(v or "").strip()
+                    if v and not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, v)).fetchone():
+                        raise AmwFehler(f"paket_pruefer: Agent {v} gibt es in diesem Projekt nicht")
+                else:
+                    grenzen = {"haenge_stille_min": (1, 600), "haenge_runden": (1, 200)}[k]
+                    try:
+                        v = int(v) if str(v or "").strip() else 0
+                    except (TypeError, ValueError):
+                        raise AmwFehler(f"{k}: Zahl {grenzen[0]}–{grenzen[1]} (leer = Vorgabe)") from None
+                    if v and not grenzen[0] <= v <= grenzen[1]:
+                        raise AmwFehler(f"{k}: Zahl {grenzen[0]}–{grenzen[1]} (leer = Vorgabe)")
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k == "release_zeit":                      # Release-Takt täglich: Uhrzeit HH:MM (Ortszeit), leer = Vorgabe 18:00 (A1656)
                 v = str(v or "").strip()
                 if v and not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", v):

@@ -577,8 +577,10 @@ def cmd_paket(a, con):
         else:
             meldung = {k: v for k, v in (("status", a.status), ("zusammenfassung", a.zusammenfassung), ("frage", a.frage),
                                           ("frage_an", a.frage_an), ("grund", a.grund), ("hinweis", a.hinweis)) if v is not None}
-        rueckmeldung.melden_interaktiv(con, pid, _von(a), a.id, meldung)
-        print(f"A{a.id}: Ergebnis „{meldung['status']}“ angenommen – die AMW prüft selbst; es gilt die letzte gültige Meldung")
+        r = rueckmeldung.melden_interaktiv(con, pid, _von(a), a.id, meldung, zweig=a.zweig)
+        print(f"A{a.id}: Ergebnis „{meldung['status']}“ angenommen – die AMW prüft selbst; es gilt die letzte gültige Meldung"
+              + (f" · P{r['pruefbitte']['id']} an {r['pruefbitte']['an']} mit Befund {r['pruefbitte']['befund'] or 'ohne Befund'}"
+                 if r.get("pruefbitte") else ""))
         return
     if a.aktion == "zeigen":
         r = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
@@ -2773,6 +2775,8 @@ def parser():
     x.add_argument("--frage", help="ergebnis blockiert: die eine Frage, die dich stoppt")
     x.add_argument("--frage-an", dest="frage_an", choices=["lead", "mensch"], help="ergebnis blockiert: wer antworten soll (Vorgabe lead)")
     x.add_argument("--hinweis", help="ergebnis: optional, geht nur an den Lead")
+    x.add_argument("--zweig", help="ergebnis erledigt bei einem Paket mit Abnahme-Befehl: dein Zweig (Pflicht) – die AMW prüft ihn und"
+                                    " stellt die Prüfbitte mit ihrem Befund")
     x.set_defaults(f=cmd_paket)
 
     x = s.add_parser("thema", help="Design-Dokument je Thema: liste [--suche] | zeige TH12 | neu \"Name\" [--pfleger X] [--stil] |"

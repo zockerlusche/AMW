@@ -372,9 +372,12 @@ class Kette:
             if not getattr(self, "wartung_an", False):
                 raise
             import traceback                                     # P265 (c): der Traceback geht nicht verloren
-            with db.schreiben(self.con):
-                db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von=self.von, art="auslieferung_fehler",
-                             text=traceback.format_exc()[-1500:])
+            try:                                                 # P266: ist die Datenbank selbst der Fehler, bleibt es beim Stopp
+                with db.schreiben(self.con):
+                    db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von=self.von, art="auslieferung_fehler",
+                                 text=traceback.format_exc()[-1500:])
+            except Exception:                                    # noqa: BLE001
+                pass
             self.stopp("Unerwarteter Fehler", f"{type(e).__name__}: {str(e)[:300]} (Traceback im Protokoll: plan_ereignis auslieferung_fehler)")
 
     def _ausliefern(self, zweig, gesamtlauf=None, aufgabe=None):

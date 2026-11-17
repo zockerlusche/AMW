@@ -117,11 +117,17 @@ def laufende(con, pid):
 
 
 def _letzte_enden(con, pid, n=2, nach=0):
-    """Die letzten n Enden von p-Läufen (Übergang aus „laeuft“) nach Ereignis `nach` (dem letzten „weiter“) – Zielzustand."""
+    """Die letzten n Enden von p-Läufen (Übergang aus „laeuft“) nach Ereignis `nach` (dem letzten „weiter“) – Zielzustand.
+    A1849 (§6a.4 Fehlserie): ein Abbruch durch Notbremse oder Limit (E1n) zählt nicht – er wird übersprungen."""
     aus = []
     for r in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = 'paket_zustand' AND text LIKE 'laeuft → %'"
-                         " AND id > ? ORDER BY id DESC LIMIT ?", (pid, nach, n)):
-        aus.append(r["text"].split("→", 1)[1].split(":", 1)[0].strip())
+                         " AND id > ? ORDER BY id DESC", (pid, nach)):
+        rest = r["text"].split("→", 1)[1]
+        if ":" in rest and rest.split(":", 1)[1].strip().startswith("E1n"):
+            continue
+        aus.append(rest.split(":", 1)[0].strip())
+        if len(aus) >= n:
+            break
     return aus
 
 

@@ -313,7 +313,7 @@ def uebergabe(p, basis=None):
 # --- Lauf ------------------------------------------------------------------------------------------------------------------
 
 def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_namen=(), sitzung=None, prog=None, basis_umgebung=None,
-           zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None):
+           zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None, haenge=None):
     """Einen Arbeiter im Platz `p` laufen lassen, bis er endet. Rückgabe {"rc", "abweichungen", "init", "ergebnis",
     "sitzung", "protokoll", "dauer_s", "fehler"}. Abweichung im init-Ereignis → sofort beendet (rc None, abweichungen gesetzt)."""
     if os.name != "nt":
@@ -371,7 +371,7 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
         # P260: die Pipe liest ein eigener Faden – hält ein Enkelprozess stdout offen, endete die Schleife sonst nie und das
         # harte Beenden unten würde nicht erreicht. Der Hauptfaden wartet auf claude, gibt dem Faden NACHLAUF_S zum Leeren,
         # beendet dann den Job (die Pipe schließt sich) und wartet auf den Faden.
-        z = {"init": None, "ergebnis": None, "abweichungen": []}
+        z = {"init": None, "ergebnis": None, "abweichungen": [], "letzte": time.monotonic(), "runden": 0}
 
         def lesen():
             with open(protokoll, "w", encoding="utf-8") as aus:
@@ -379,6 +379,7 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
                     text = zeile.decode("utf-8", "replace")
                     aus.write(text)
                     aus.flush()
+                    z["letzte"] = time.monotonic()
                     try:
                         e = json.loads(text)
                     except ValueError:
@@ -392,6 +393,10 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
                     elif isinstance(e, dict) and e.get("type") == "assistant":   # jeder Werkzeugaufruf gegen die Liste (Nr. 21)
                         nachricht = e.get("message")
                         inhalt = nachricht.get("content") if isinstance(nachricht, dict) else None
+                        z["runden"] += 1                                  # Runden ohne Dateiänderung (Hänge-Erkennung, §7)
+                        if any(isinstance(c, dict) and c.get("type") == "tool_use" and c.get("name") in ("Edit", "Write")
+                               for c in (inhalt if isinstance(inhalt, list) else [])):
+                            z["runden"] = 0
                         fremd = [c.get("name") for c in (inhalt if isinstance(inhalt, list) else [])
                                  if isinstance(c, dict) and c.get("type") == "tool_use" and c.get("name") not in WERKZEUGE
                                  and not str(c.get("name", "")).startswith(tuple(f"mcp__{m}__" for m in mcp_namen))]
@@ -405,6 +410,19 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
         import threading
         leser = threading.Thread(target=lesen, daemon=True)
         leser.start()
+        if haenge:                                                # A1849 (§7): hängt → einmal melden, nie beenden
+            def wachen():
+                gemeldet = set()
+                while proc.poll() is None:
+                    time.sleep(min(5.0, max(0.2, haenge["stille_s"] / 4)))
+                    still = time.monotonic() - z["letzte"]
+                    if "stille" not in gemeldet and still > haenge["stille_s"]:
+                        gemeldet.add("stille")
+                        haenge["melden"]("stille", f"seit {round(still / 60, 1)} min keine Ausgabe des Arbeiters")
+                    if "runden" not in gemeldet and z["runden"] >= haenge["runden"]:
+                        gemeldet.add("runden")
+                        haenge["melden"]("runden", f"{z['runden']} Runden ohne Dateiänderung")
+            threading.Thread(target=wachen, daemon=True).start()
         proc.wait()
         leser.join(NACHLAUF_S)
         k.TerminateJobObject(wintypes.HANDLE(job), 0)          # D1258 v9 §6a 3.1: Lauf zu Ende → Job hart beenden, keine Reste
