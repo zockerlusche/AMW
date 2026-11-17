@@ -7,8 +7,7 @@ from tests.rundgang import Rundgang
 
 
 class Karte(Rundgang):
-    def daten(self):
-        kern.agent_neu(self.con, self.pid, "TL", rolle="lead")
+    def daten(self):                                                     # TL (Lead) legt schon das Gerüst an
         kern.agent_neu(self.con, self.pid, "CC1")
         kern.agent_neu(self.con, self.pid, "CC2")
         neu = lambda titel: planung.bogen_neu(self.con, self.pid, "TL", titel, ziel="Die AMW nimmt Routine ab", abnahme="alles grün",
