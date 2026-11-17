@@ -184,6 +184,20 @@ class Arbeiter(unittest.TestCase):
         time.sleep(0.3)
         self.assertFalse(lebt(kind))
 
+    def test_enkel_haelt_pipe_offen(self):
+        """P260: hält ein Enkelprozess die Ausgabe-Pipe offen, endet der Lauf trotzdem (kurz nach claude) und der Enkel ist weg."""
+        with mock.patch.dict(os.environ, {"ATTRAPPE_ART": "enkel_pipe"}), mock.patch.object(arbeiter, "NACHLAUF_S", 1):
+            ergebnis = {}
+            t = threading.Thread(target=lambda: ergebnis.update(self.laufen()), daemon=True)
+            t.start()
+            t.join(60)
+            self.assertFalse(t.is_alive(), "laufen() hängt an der offenen Pipe")
+        with open(os.environ["ATTRAPPE_PID"]) as f:
+            eltern, enkel = f.read().split()
+        self.assertEqual(ergebnis["ergebnis"]["subtype"], "success")
+        time.sleep(0.3)
+        self.assertFalse(lebt(enkel))
+
     def test_abweichung_beendet_auch_kinder(self):
         with mock.patch.dict(os.environ, {"ATTRAPPE_ART": "abweichung_kind"}):
             r = self.laufen()

@@ -41,6 +41,11 @@ if art in ("kind", "abweichung_kind", "kind_bleibt"):
     if art == "abweichung_kind":
         init["mcp_servers"] = [{"name": "bus", "status": "connected"}]
 print(json.dumps(init), flush=True)
+if art == "enkel_pipe":                    # P260: ein Enkel erbt stdout und hält die Pipe offen, claude selbst endet
+    enkel = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(600)"], stdout=sys.stdout, close_fds=False,
+                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))   # erbt die Pipe ausdrücklich
+    with open(os.environ["ATTRAPPE_PID"], "w") as f:
+        f.write(f"{os.getpid()} {enkel.pid}")
 if art in ("kind", "haengt", "abweichung_kind"):
     time.sleep(600)
 if art == "fremdes_werkzeug":

@@ -52,6 +52,7 @@ UMGEBUNG_ERLAUBT = ("SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "PATHEXT",
 MODELL = "claude-opus-5-5"
 EFFORT = "high"
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
+NACHLAUF_S = 10            # so lange darf die Ausgabe nach dem Ende von claude noch kommen, dann wird der Job beendet
 # Probe 17.11.: im frischen Klon fehlt eine git-Identität („Author identity unknown“). Neutral, ohne Personennamen (KR22) –
 # welche Identität öffentlich erscheinen soll, entscheidet der Mensch (Prüfbitte); AMW_ARBEITER_GIT_NAME/-_EMAIL gehen vor.
 GIT_NAME = "AMW-Arbeiter"
@@ -347,33 +348,43 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
             proc.stdin.close()
         except OSError:
             pass
-        init, ergebnis, abweichungen = None, None, []
-        with open(protokoll, "w", encoding="utf-8") as aus:
-            for zeile in proc.stdout:
-                text = zeile.decode("utf-8", "replace")
-                aus.write(text)
-                aus.flush()
-                try:
-                    e = json.loads(text)
-                except ValueError:
-                    continue
-                if init is None and isinstance(e, dict) and e.get("type") == "system":
-                    init = e
-                    abweichungen = init_pruefen(e, s)
-                    if abweichungen:
-                        k.TerminateJobObject(wintypes.HANDLE(job), 1)
-                        break
-                elif isinstance(e, dict) and e.get("type") == "assistant":   # jeder Werkzeugaufruf gegen die Liste (Nr. 21)
-                    fremd = [c.get("name") for c in (e.get("message") or {}).get("content") or []
-                             if isinstance(c, dict) and c.get("type") == "tool_use" and c.get("name") not in WERKZEUGE
-                             and not str(c.get("name", "")).startswith(tuple(f"mcp__{m}__" for m in mcp_namen))]
-                    if fremd:
-                        abweichungen = [f"Werkzeug außerhalb der Liste aufgerufen: {fremd}"]
-                        k.TerminateJobObject(wintypes.HANDLE(job), 1)
-                        break
-                elif isinstance(e, dict) and e.get("type") == "result":
-                    ergebnis = e
+        # P260: die Pipe liest ein eigener Faden – hält ein Enkelprozess stdout offen, endete die Schleife sonst nie und das
+        # harte Beenden unten würde nicht erreicht. Der Hauptfaden wartet auf claude, gibt dem Faden NACHLAUF_S zum Leeren,
+        # beendet dann den Job (die Pipe schließt sich) und wartet auf den Faden.
+        z = {"init": None, "ergebnis": None, "abweichungen": []}
+
+        def lesen():
+            with open(protokoll, "w", encoding="utf-8") as aus:
+                for zeile in proc.stdout:
+                    text = zeile.decode("utf-8", "replace")
+                    aus.write(text)
+                    aus.flush()
+                    try:
+                        e = json.loads(text)
+                    except ValueError:
+                        continue
+                    if z["init"] is None and isinstance(e, dict) and e.get("type") == "system":
+                        z["init"] = e
+                        z["abweichungen"] = init_pruefen(e, s)
+                        if z["abweichungen"]:
+                            k.TerminateJobObject(wintypes.HANDLE(job), 1)
+                            return
+                    elif isinstance(e, dict) and e.get("type") == "assistant":   # jeder Werkzeugaufruf gegen die Liste (Nr. 21)
+                        fremd = [c.get("name") for c in (e.get("message") or {}).get("content") or []
+                                 if isinstance(c, dict) and c.get("type") == "tool_use" and c.get("name") not in WERKZEUGE
+                                 and not str(c.get("name", "")).startswith(tuple(f"mcp__{m}__" for m in mcp_namen))]
+                        if fremd:
+                            z["abweichungen"] = [f"Werkzeug außerhalb der Liste aufgerufen: {fremd}"]
+                            k.TerminateJobObject(wintypes.HANDLE(job), 1)
+                            return
+                    elif isinstance(e, dict) and e.get("type") == "result":
+                        z["ergebnis"] = e
+
+        import threading
+        leser = threading.Thread(target=lesen, daemon=True)
+        leser.start()
         proc.wait()
+        leser.join(NACHLAUF_S)
         k.TerminateJobObject(wintypes.HANDLE(job), 0)          # D1258 v9 §6a 3.1: Lauf zu Ende → Job hart beenden, keine Reste
         rest = 0
         for _ in range(50):
@@ -381,6 +392,8 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
             if rest <= 0:
                 break
             time.sleep(0.1)
+        leser.join(30)
+        init, ergebnis, abweichungen = z["init"], z["ergebnis"], list(z["abweichungen"])
         if rest > 0:
             abweichungen = abweichungen + [f"{rest} Prozess(e) im Job nach dem Laufende nicht beendet"]
         if init is None and not abweichungen:
