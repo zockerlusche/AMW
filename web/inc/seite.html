@@ -410,8 +410,8 @@ main { overflow-wrap: break-word; }   /* lange Pfade/Adressen brechen um statt �
   background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--z-spaet) 35%, transparent) 0 4px, transparent 4px 8px); }
 .mk-schiene .heute { position: absolute; top: 3px; width: 2px; height: 24px; margin-left: -1px; background: var(--tinte); }
 .mk-schiene .ziel { position: absolute; top: 9px; width: 10px; height: 10px; margin-left: -5px; transform: rotate(45deg); background: var(--flaeche); border: 2px solid var(--tinte); }
-.mk-schiene .marke { position: absolute; top: 29px; font-size: 11.5px; color: var(--leise); white-space: nowrap; }
-.mk-schiene .marke.l { left: 0; } .mk-schiene .marke.r { right: 0; }
+.mk-schiene .mk-marke { position: absolute; top: 29px; font-size: 11.5px; color: var(--leise); white-space: nowrap; }
+.mk-schiene .mk-marke.l { left: 0; } .mk-schiene .mk-marke.r { right: 0; }
 .mk-lage { margin: 10px 0 4px; display: grid; gap: 8px; }
 .mk-lg { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 2px 10px; align-items: start; padding: 9px 10px; border-radius: 6px;
   background: var(--flaeche2); border: 1px solid var(--linie); font-size: 13.5px; }
@@ -452,7 +452,7 @@ details > summary.mk-gruppe { cursor: pointer; }
   .mk-lg { grid-template-columns: 18px minmax(0, 1fr); } .mk-lg > button, .mk-lg > .knopf { grid-column: 2; justify-self: start; margin-top: 6px; }
   .mk-lg > span:empty { display: none; } .mk-wer { grid-column: 2; }
   .mk-a { grid-template-columns: 46px minmax(0, 1fr); } .mk-st { grid-column: 2; white-space: normal; }
-  .mk-schiene .marke.r { max-width: 62%; white-space: normal; text-align: right; line-height: 1.2; }
+  .mk-schiene .mk-marke.r { max-width: 62%; white-space: normal; text-align: right; line-height: 1.2; }
 }
 .ueb-legende .ueb-du { margin: 0 5px 0 0; }
 @media (max-width: 760px) {
@@ -4823,8 +4823,8 @@ function bogenKarte(b) {
       title: `${t("pl_prognose")} ${datumKurz(p.p50)} – ${datumKurz(p.p85)}` }) : null,
     fertigB ? null : el("span", { class: "heute", style: `left:${proz(heute)}` }),
     b.zieldatum ? el("span", { class: "ziel", style: `left:${proz(b.zieldatum)}`, title: `${t("pl_zieldatum")} ${datumKurz(b.zieldatum)}` }) : null,
-    el("span", { class: "marke l" }, t("mk_beginn", { x: datumKurz(beginn) })),
-    el("span", { class: "marke r" }, [b.zieldatum ? t("mk_ziel", { x: datumKurz(b.zieldatum) }) : null,
+    el("span", { class: "mk-marke l" }, t("mk_beginn", { x: datumKurz(beginn) })),
+    el("span", { class: "mk-marke r" }, [b.zieldatum ? t("mk_ziel", { x: datumKurz(b.zieldatum) }) : null,
       p && !fertigB ? t("mk_prog", { a: datumKurz(p.p50), b: datumKurz(p.p85) }) : null, fertigB && b.fertig_utc ? t("mk_fertig_am", { x: datumKurz(b.fertig_utc.slice(0, 10)) }) : null]
       .filter(Boolean).join(" · ")));
 
