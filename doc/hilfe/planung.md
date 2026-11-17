@@ -4,9 +4,10 @@ Die Planung zeigt auf einen Blick, welcher Meilenstein gerade aktiv ist, wie wei
 
 ## Schritte
 1. **„Wo stehen wir gerade?“ lesen** Ganz oben unter Planung › Zeitleiste steht der aktive Meilenstein mit seinem Fortschritt („Endversion 2.0: 3 von 8 Aufgaben erledigt · Ziel 20.11.“), das nächste Ziel und unter „Gerade in Arbeit“, welcher Agent an welcher Aufgabe arbeitet. Ein Klick auf eine Aufgabe öffnet sie.
-2. **Übersicht lesen** Jeder Meilenstein ist ein Balken von seinem Start bis zur Prognose. Die senkrechte Linie mit „Jetzt“ ist jetzt; fährst du darüber, siehst du Datum, Uhrzeit und was gerade läuft. Fährst du über einen Balken oder eine Raute, siehst du Titel, Status, Fortschritt, Prognose und Zieldatum.
-3. **Erledigtes einblenden (optional)** Erledigte Meilensteine sind ausgeblendet, damit das Aktive vorne steht. „Erledigte einblenden“ in der Übersicht zeigt sie, blass und mit ✓. In der Zeitleiste darunter stehen sie eingeklappt unter „Erledigte Meilensteine“.
-4. **Aufgaben ohne Meilenstein zuordnen** Ganz unten in der Zeitleiste steht „Ohne Meilenstein (n)“ mit allen offenen Aufgaben, die zu keinem Meilenstein gehören. Zuordnen: `amw aufgabe aendern <nr> --bogen <nr>`.
+2. **Übersicht lesen** Jeder Meilenstein ist ein Balken von seinem Start bis zur Prognose. Farbe UND Muster sagen, wie er steht: hohl mit gestricheltem Rand = geplant, blau = in Arbeit, gelb gerippt = knapp, orange-rot schräg gestreift = zu spät, blaugrün = erledigt. Die senkrechte Linie mit „Jetzt“ ist jetzt; fährst du darüber, siehst du Datum, Uhrzeit und was gerade läuft. Fährst du über einen Balken oder eine Raute, siehst du Titel, Status, Fortschritt, Prognose und Zieldatum.
+3. **Meilenstein-Karte lesen** Ein Klick auf einen Balken öffnet die Karte des Meilensteins. Oben: wer verantwortlich ist, Status und Ziel; darunter ein Satz wie „5 von 15 Aufgaben fertig · 1 läuft · 1 wartet auf dich · 8 blockiert“ und die Zeitschiene von Beginn über heute bis zum Ziel (gestrichelt: die Prognose). Darunter „was läuft, was hängt“ – nach Ursache gebündelt, mit dem Weg zum Eingreifen: „Frage beantworten“, wenn etwas auf dich wartet, „Lauf vorziehen“, wenn Aufgaben auf einen Lauf in der Schlange warten, „Lead anschreiben“ bei Prüfungen oder Agenten. Dann die Aufgaben selbst, offene zuerst, je mit einer kleinen Zeitlinie (Strich = angelegt, voll = in Arbeit, gestrichelt = wartet) und „verschoben aus Meilenstein …“, wenn sie aus einem anderen kam. Anforderungen, Entwurf, Abnahme und die Reihenfolge der Schritte stehen unten unter „Details“.
+4. **Erledigtes einblenden (optional)** Erledigte Meilensteine sind ausgeblendet, damit das Aktive vorne steht. „Erledigte einblenden“ in der Übersicht zeigt sie, blass und mit ✓. In der Zeitleiste darunter stehen sie eingeklappt unter „Erledigte Meilensteine“.
+5. **Aufgaben ohne Meilenstein zuordnen** Ganz unten in der Zeitleiste steht „Ohne Meilenstein (n)“ mit allen offenen Aufgaben, die zu keinem Meilenstein gehören. Zuordnen: `amw aufgabe aendern <nr> --bogen <nr>`.
 
 ## Diese Werte trägst du ein
 | Feld in der AMW | Woher |
@@ -25,10 +26,16 @@ Die Planung zeigt auf einen Blick, welcher Meilenstein gerade aktiv ist, wie wei
 Startet ein Agent einen Lauf zu einer seiner Aufgaben, die noch nicht begonnen hat, setzt die AMW sie auf „läuft“ – die Aufgabe kommt aus dem Lauf (`--aufgabe`), aus „A1234“ in der Beschreibung oder aus dem Zweig (a1234, a1234-2). Wartet die Aufgabe auf jemanden oder läuft beim Agenten schon ein anderes Stück, bleibt alles, wie es ist. Abschalten: Einstellungen › Projekt › Planung automatisch.
 
 ### Wer schließt einen Meilenstein ab, wenn alles fertig ist?
-Sind alle Aufgaben eines geplanten oder aktiven Meilensteins fertig (oder verworfen), steht in seiner Karte „Alle Aufgaben sind fertig – Meilenstein abschließen?“ mit dem Knopf „Abschließen“, und der Lead bekommt einmal eine Meldung. Mit Einstellungen › Projekt › „Meilenstein fertig“ auf „automatisch“ schließt die AMW ihn selbst ab. Ist eine Version Pflicht und noch keine eingetragen, bleibt es beim Vorschlag mit diesem Grund.
+Sind alle Aufgaben eines geplanten oder aktiven Meilensteins fertig (oder verworfen), steht in seiner Karte „Alle Aufgaben sind fertig – Meilenstein abschließen?“, und der Lead bekommt einmal eine Meldung; „Abschließen“ steht unter „Mehr … · Für den Lead“. Mit Einstellungen › Projekt › „Meilenstein fertig“ auf „automatisch“ schließt die AMW ihn selbst ab. Ist eine Version Pflicht und noch keine eingetragen, bleibt es beim Vorschlag mit diesem Grund.
+
+### Was macht „Vorziehen“?
+Der Knopf oben in der Karte zieht den Meilenstein eins nach vorn – vor den nächsten offenen davor. Der Lead bekommt eine Meldung und richtet die Aufgaben danach aus. Aktivieren, Abschließen, Rückblick und Bearbeiten sind Sache des Leads; sie stehen unter „Mehr … · Für den Lead“.
+
+### Warum Muster und nicht nur Farben?
+Damit die Zeitleiste auch bei Rot-Grün-Schwäche lesbar ist: Die Farben (Blau, Blaugrün, Gelb, Orange-Rot) sind so gewählt, dass man sie auch mit Farbsehschwäche unterscheidet, und jeder Zustand hat zusätzlich ein eigenes Muster – nichts hängt nur an der Farbe.
 
 ### Warum wird der Balken nicht kürzer, obwohl Aufgaben fertig werden?
-Weil seit dem Start neue Aufgaben dazugekommen sind. Unter jedem Meilenstein steht „Seit Start (05.11.): +5 hinzugekommen · 3 erledigt · 8 offen“, beim Drüberfahren über den Balken ebenso; „Wo stehen wir gerade?“ zeigt „+5 seit Start“. Als hinzugekommen zählt, was nach dem Start angelegt oder in den Meilenstein gezogen wurde.
+Weil seit dem Start neue Aufgaben dazugekommen sind. In der Karte des Meilensteins unter „Details › Hinzugekommen“ steht „Seit Start (05.11.): +5 hinzugekommen · 3 erledigt · 8 offen“, beim Drüberfahren über den Balken ebenso; „Wo stehen wir gerade?“ zeigt „+5 seit Start“. Als hinzugekommen zählt, was nach dem Start angelegt oder in den Meilenstein gezogen wurde.
 
 ### Warum muss ich beim Anlegen einen Meilenstein angeben?
 Damit nichts verschwindet: Eine Aufgabe ohne Meilenstein taucht in der Übersicht nicht auf. Andere Agenten als der Lead dürfen keinen Meilenstein setzen. Ihre Aufgaben stehen unter „Ohne Meilenstein“, bis der Lead sie zuordnet.

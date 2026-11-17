@@ -10,7 +10,12 @@
   },
   {
    "titel": "Read the overview",
-   "text": "Each milestone is a bar from its start to the forecast. The vertical line marked “Now” is now; hover over it to see date, time and what is running. Hover over a bar or a diamond to see title, status, progress, forecast and target date.",
+   "text": "Each milestone is a bar from its start to the forecast. Colour AND pattern tell you how it stands: hollow with a dashed edge = planned, blue = in progress, yellow ribbed = tight, orange-red diagonal stripes = late, bluish green = done. The vertical line marked “Now” is now; hover over it to see date, time and what is running. Hover over a bar or a diamond to see title, status, progress, forecast and target date.",
+   "bilder": []
+  },
+  {
+   "titel": "Read the milestone card",
+   "text": "A click on a bar opens the milestone’s card. At the top: who owns it, status and target; below it a sentence like “5 of 15 tasks done · 1 running · 1 waiting for you · 8 blocked” and the timeline from start through today to the target (dashed: the forecast). Then “what is running, what is stuck” – grouped by cause, with the way to step in: “Answer question” when something waits for you, “Move run up” when tasks wait for a run in the queue, “Write to lead” for reviews or agents. Then the tasks themselves, open ones first, each with a small timeline (tick = created, solid = in progress, dashed = waiting) and “moved here from milestone …” when it came from another one. Requirements, design, acceptance and the order of the steps are under “Details” at the bottom.",
    "bilder": []
   },
   {
@@ -50,11 +55,19 @@
   ],
   [
    "Who closes a milestone when everything is done?",
-   "When all tasks of a planned or active milestone are done (or dropped), its card shows “All tasks are done – close the milestone?” with the “Close” button, and the lead gets one notice. With Settings › Project › “Milestone done” set to “automatic”, AMW closes it itself. If a version is mandatory and none is recorded yet, it stays a suggestion with that reason."
+   "When all tasks of a planned or active milestone are done (or dropped), its card shows “All tasks are done – close the milestone?” and the lead gets one notice; “Close” is under “More … · For the lead”. With Settings › Project › “Milestone done” set to “automatic”, AMW closes it itself. If a version is mandatory and none is recorded yet, it stays a suggestion with that reason."
+  ],
+  [
+   "What does “Move up” do?",
+   "The button at the top of the card moves the milestone up by one – ahead of the next open one before it. The lead gets a message and reorders the tasks. Activate, Close, Retrospective and Edit are the lead’s job; they are under “More … · For the lead”."
+  ],
+  [
+   "Why patterns and not just colours?",
+   "So the timeline stays readable with red-green colour blindness: the colours (blue, bluish green, yellow, orange-red) are chosen to be told apart with colour vision deficiency, and every state also has its own pattern – nothing depends on colour alone."
   ],
   [
    "Why does the bar not get shorter although tasks get done?",
-   "Because new tasks were added since the start. Under each milestone you see “Since start (05.11.): +5 added · 3 done · 8 open”, and the same when you hover over the bar; “Where do we stand right now?” shows “+5 since start”. Counted as added is anything created after the start or pulled into the milestone."
+   "Because new tasks were added since the start. In the milestone card under “Details › Added” you see “Since start (05.11.): +5 added · 3 done · 8 open”, and the same when you hover over the bar; “Where do we stand right now?” shows “+5 since start”. Counted as added is anything created after the start or pulled into the milestone."
   ],
   [
    "Why do I have to give a milestone when creating a task?",

@@ -10,7 +10,12 @@
   },
   {
    "titel": "Übersicht lesen",
-   "text": "Jeder Meilenstein ist ein Balken von seinem Start bis zur Prognose. Die senkrechte Linie mit „Jetzt“ ist jetzt; fährst du darüber, siehst du Datum, Uhrzeit und was gerade läuft. Fährst du über einen Balken oder eine Raute, siehst du Titel, Status, Fortschritt, Prognose und Zieldatum.",
+   "text": "Jeder Meilenstein ist ein Balken von seinem Start bis zur Prognose. Farbe UND Muster sagen, wie er steht: hohl mit gestricheltem Rand = geplant, blau = in Arbeit, gelb gerippt = knapp, orange-rot schräg gestreift = zu spät, blaugrün = erledigt. Die senkrechte Linie mit „Jetzt“ ist jetzt; fährst du darüber, siehst du Datum, Uhrzeit und was gerade läuft. Fährst du über einen Balken oder eine Raute, siehst du Titel, Status, Fortschritt, Prognose und Zieldatum.",
+   "bilder": []
+  },
+  {
+   "titel": "Meilenstein-Karte lesen",
+   "text": "Ein Klick auf einen Balken öffnet die Karte des Meilensteins. Oben: wer verantwortlich ist, Status und Ziel; darunter ein Satz wie „5 von 15 Aufgaben fertig · 1 läuft · 1 wartet auf dich · 8 blockiert“ und die Zeitschiene von Beginn über heute bis zum Ziel (gestrichelt: die Prognose). Darunter „was läuft, was hängt“ – nach Ursache gebündelt, mit dem Weg zum Eingreifen: „Frage beantworten“, wenn etwas auf dich wartet, „Lauf vorziehen“, wenn Aufgaben auf einen Lauf in der Schlange warten, „Lead anschreiben“ bei Prüfungen oder Agenten. Dann die Aufgaben selbst, offene zuerst, je mit einer kleinen Zeitlinie (Strich = angelegt, voll = in Arbeit, gestrichelt = wartet) und „verschoben aus Meilenstein …“, wenn sie aus einem anderen kam. Anforderungen, Entwurf, Abnahme und die Reihenfolge der Schritte stehen unten unter „Details“.",
    "bilder": []
   },
   {
@@ -50,11 +55,19 @@
   ],
   [
    "Wer schließt einen Meilenstein ab, wenn alles fertig ist?",
-   "Sind alle Aufgaben eines geplanten oder aktiven Meilensteins fertig (oder verworfen), steht in seiner Karte „Alle Aufgaben sind fertig – Meilenstein abschließen?“ mit dem Knopf „Abschließen“, und der Lead bekommt einmal eine Meldung. Mit Einstellungen › Projekt › „Meilenstein fertig“ auf „automatisch“ schließt die AMW ihn selbst ab. Ist eine Version Pflicht und noch keine eingetragen, bleibt es beim Vorschlag mit diesem Grund."
+   "Sind alle Aufgaben eines geplanten oder aktiven Meilensteins fertig (oder verworfen), steht in seiner Karte „Alle Aufgaben sind fertig – Meilenstein abschließen?“, und der Lead bekommt einmal eine Meldung; „Abschließen“ steht unter „Mehr … · Für den Lead“. Mit Einstellungen › Projekt › „Meilenstein fertig“ auf „automatisch“ schließt die AMW ihn selbst ab. Ist eine Version Pflicht und noch keine eingetragen, bleibt es beim Vorschlag mit diesem Grund."
+  ],
+  [
+   "Was macht „Vorziehen“?",
+   "Der Knopf oben in der Karte zieht den Meilenstein eins nach vorn – vor den nächsten offenen davor. Der Lead bekommt eine Meldung und richtet die Aufgaben danach aus. Aktivieren, Abschließen, Rückblick und Bearbeiten sind Sache des Leads; sie stehen unter „Mehr … · Für den Lead“."
+  ],
+  [
+   "Warum Muster und nicht nur Farben?",
+   "Damit die Zeitleiste auch bei Rot-Grün-Schwäche lesbar ist: Die Farben (Blau, Blaugrün, Gelb, Orange-Rot) sind so gewählt, dass man sie auch mit Farbsehschwäche unterscheidet, und jeder Zustand hat zusätzlich ein eigenes Muster – nichts hängt nur an der Farbe."
   ],
   [
    "Warum wird der Balken nicht kürzer, obwohl Aufgaben fertig werden?",
-   "Weil seit dem Start neue Aufgaben dazugekommen sind. Unter jedem Meilenstein steht „Seit Start (05.11.): +5 hinzugekommen · 3 erledigt · 8 offen“, beim Drüberfahren über den Balken ebenso; „Wo stehen wir gerade?“ zeigt „+5 seit Start“. Als hinzugekommen zählt, was nach dem Start angelegt oder in den Meilenstein gezogen wurde."
+   "Weil seit dem Start neue Aufgaben dazugekommen sind. In der Karte des Meilensteins unter „Details › Hinzugekommen“ steht „Seit Start (05.11.): +5 hinzugekommen · 3 erledigt · 8 offen“, beim Drüberfahren über den Balken ebenso; „Wo stehen wir gerade?“ zeigt „+5 seit Start“. Als hinzugekommen zählt, was nach dem Start angelegt oder in den Meilenstein gezogen wurde."
   ],
   [
    "Warum muss ich beim Anlegen einen Meilenstein angeben?",
