@@ -173,5 +173,54 @@ class Herzschlag(unittest.TestCase):
         self.assertEqual({t["teil"]: t["zustand"] for t in g["teile"]}["hauptschleife"], "rot")
 
 
+class DienstWeg(unittest.TestCase):
+    """A1877 (a)/(b): Stirbt der Dienst, weckt er niemanden mehr – also merkt es der nächste Start (Meldung + Push) und jeder
+    Agent über seinen Hook (Hinweis im Kontext), beides nur aus dem Alter der Herzschlag-Datei, ohne Dienst."""
+
+    def setUp(self):
+        self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(self.ordner.cleanup)
+        umgebung = mock.patch.dict(os.environ, {"AMW_DB": os.path.join(self.ordner.name, "amw.db")})
+        umgebung.start()
+        self.addCleanup(umgebung.stop)
+
+    def datei(self, alter_s):
+        import json
+        with open(herzschlag.pfad(), "w", encoding="utf-8") as f:
+            json.dump({"geschrieben": time.time() - alter_s, "teile": {}}, f)
+
+    def test_still_seit(self):
+        self.assertIsNone(herzschlag.still_seit())                                  # nie gelaufen: keine Aussage
+        self.datei(700)
+        self.assertAlmostEqual(herzschlag.still_seit(), 700, delta=5)
+
+    def test_start_nach_ausfall_meldet_einmal(self):
+        from amw import dienst
+        gemeldet = []
+        self.datei(20)                                                              # frisch (Neustart nach kurzer Pause): still
+        self.assertIsNone(dienst.ausfall_melden(lambda t, teil: gemeldet.append((t, teil))))
+        self.datei(45 * 60)
+        text = dienst.ausfall_melden(lambda t, teil: gemeldet.append((t, teil)))
+        self.assertEqual(gemeldet, [(text, "hauptschleife")])                        # „hauptschleife“ → Push auch ohne Hauptschleife
+        self.assertIn("45 min weg", text)
+
+    def test_hook_hinweis_wenn_dienst_still(self):
+        import io
+        import json
+        from amw import hook
+        self.assertIsNone(hook.dienst_still())                                      # keine Datei: kein Lärm
+        self.datei(60)
+        self.assertIsNone(hook.dienst_still())
+        self.datei(herzschlag.STILL_S + 120)
+        self.assertIn("Dienst ist seit 12 min still", hook.dienst_still())
+        aus = io.StringIO()
+        with mock.patch("sys.stdin", io.StringIO(json.dumps({"hook_event_name": "UserPromptSubmit"}))), mock.patch("sys.stdout", aus), \
+                mock.patch.object(hook, "ereignis"):
+            hook.main()
+        d = json.loads(aus.getvalue())["hookSpecificOutput"]
+        self.assertEqual(d["hookEventName"], "UserPromptSubmit")
+        self.assertIn("nicht selbst neu starten", d["additionalContext"])
+
+
 if __name__ == "__main__":
     unittest.main()

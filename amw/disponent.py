@@ -121,6 +121,46 @@ class _Platzsperre:
             self.f.close()
 
 
+def _alter_s(utc):
+    import datetime
+    try:
+        t = datetime.datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+        return (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds()
+    except (TypeError, ValueError):
+        return 10 ** 9
+
+
+def _lauf_fertig(p, v):
+    """A1877 (i): liegt ein vollständiges Protokoll des Arbeiters dieses Starts vor (result-Ereignis, nach dem Start geschrieben)?"""
+    from . import arbeiter, rueckmeldung
+    pfad = os.path.join(arbeiter.ordner(p), "lauf.jsonl")
+    try:
+        if os.path.getmtime(pfad) < time.time() - _alter_s(v.get("start_utc")) - 5:
+            return False                                          # älter als dieser Start: gehört zu einem früheren Lauf
+    except OSError:
+        return False
+    return any(isinstance(e, dict) and e.get("type") == "result" for e in rueckmeldung.ereignisse_lesen(pfad))
+
+
+def _nachholen(con, pid, aid, p, v, umgebung=None):
+    """Den Nachhol-Starter losgelöst starten (Prüfung C + Entscheidung aus dem vorhandenen Protokoll) – der Dienst blockiert nie."""
+    befehl = [sys.executable, "-I", "-X", "utf8", EINSTIEG, "--projekt-id", str(pid), "--aufgabe", str(aid), "--platz", str(p["nr"]),
+              "--basis", v["basis"], "--vermerk", str(_vermerk_id(con, pid, aid)), "--nachholen"]
+    flags = (0x00000008 | 0x00000200 | getattr(subprocess, "CREATE_NO_WINDOW", 0)) if os.name == "nt" else 0
+    proc = subprocess.Popen(befehl, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True,
+                            creationflags=flags, env=umgebung, start_new_session=os.name != "nt")
+    vid = _vermerk_id(con, pid, aid)
+    with db.schreiben(con):
+        con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?", (json.dumps(dict(v, starter_pid=proc.pid, nachholen=True)), vid))
+    return f"A{aid}: Starter weg, Lauf fertig → Prüfung C wird nachgeholt (Starter {proc.pid})"
+
+
+def _vermerk_id(con, pid, aid):
+    r = con.execute("SELECT id FROM plan_ereignis WHERE projekt_id = ? AND aufgabe_id = ? AND art = ? ORDER BY id DESC LIMIT 1",
+                    (pid, aid, VERMERK)).fetchone()
+    return r[0] if r else 0
+
+
 def starten(con, pid, aid, p, quelle, prog=None, umgebung=None):
     """Platz vorbereiten, Basis vermerken, Regel 6, Zustand laeuft, Starter losgelöst starten. Rückgabe: Text fürs Protokoll."""
     with _Platzsperre(p):
@@ -181,9 +221,14 @@ def runde(con, prog=None, umgebung=None):
                 continue
             v = vermerk(con, pid, aid) or {}
             p = next((x for x in plaetze if x["nr"] == nr), None)
+            if not v.get("starter_pid") and _alter_s(v.get("start_utc")) < 60:
+                continue                                          # A1877 (ii): der Start trägt die PID gleich nach (#29048)
             if p and not _lebt(v.get("starter_pid")) and not _job_besteht(p):
-                entscheidung.anwenden(con, pid, aid, "E1", "Starter weg", None, None, None, p=p, quelle=quelle)
-                aus.append(f"A{aid}: Starter weg → E1")
+                if not v.get("nachholen") and _lauf_fertig(p, v):  # A1877 (i): Arbeiter fertig, nur der Starter fehlt → einmal nachholen
+                    aus.append(_nachholen(con, pid, aid, p, v, umgebung))
+                else:
+                    entscheidung.anwenden(con, pid, aid, "E1", "Starter weg", None, None, None, p=p, quelle=quelle)
+                    aus.append(f"A{aid}: Starter weg → E1")
         # 2. Start
         belegt = belegte_plaetze(con, pid)
         frei = [p for p in plaetze if p["nr"] not in belegt]
@@ -302,6 +347,24 @@ def _vermerk_pruefen(con, pid, aid, vid, basis, nr):
     return v if v.get("basis") == basis and v.get("platz") == nr and r["id"] > start else None
 
 
+def _aus_protokoll(con, pid, aid, p):
+    """A1877 (i): Ergebnis eines fertigen Laufs aus seinem stream-json (wie arbeiter.laufen es zurückgäbe) – plus die
+    Nachbereitung (Meldung, Kosten), die der weggefallene Starter nicht mehr machen konnte."""
+    from . import arbeiter, rueckmeldung
+    protokoll = os.path.join(arbeiter.ordner(p), "lauf.jsonl")
+    ereignisse = rueckmeldung.ereignisse_lesen(protokoll)
+    init = next((e for e in ereignisse if isinstance(e, dict) and e.get("type") == "system"), None)
+    ergebnis = next((e for e in reversed(ereignisse) if isinstance(e, dict) and e.get("type") == "result"), None)
+    meldung, versuche = rueckmeldung.auswerten(ereignisse)
+    ok = bool(ergebnis) and ergebnis.get("subtype") == "success" and not ergebnis.get("is_error")
+    r = {"rc": 0 if ok else 1, "abweichungen": [], "init": init, "ergebnis": ergebnis, "sitzung": (init or {}).get("session_id"),
+         "protokoll": protokoll, "dauer_s": None, "fehler": None, "meldung": meldung, "meldeversuche": versuche}
+    if not con.execute("SELECT 1 FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'kosten' AND zeit_utc >= ?",
+                       (aid, (vermerk(con, pid, aid) or {}).get("start_utc") or "")).fetchone():
+        arbeiter.nachbereiten(con, pid, aid, r)
+    return r
+
+
 def _regel_7_8(con, pid):
     """P272 (2): vor dem Nachbesserungslauf (E5) gelten Wartungsmodus und Wochenlimit wie bei jedem Start."""
     from . import waechter
@@ -318,7 +381,7 @@ def _regel_7_8(con, pid):
     return None
 
 
-def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, vid=None):
+def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, vid=None, nachholen=False):
     """Ablauf eines Pakets im eigenen Prozess: Arbeiter → Prüfung C → Entscheidung (E5: ein Nachbesserungslauf)."""
     from . import arbeiter, arbeitspaket, entscheidung, platz, pruefung_c, rueckmeldung, waechter
     con = db.verbinde(pfad)
@@ -336,10 +399,13 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
         bereiche = waechter.bereiche(a["dateibereich"])
         auftrag = rueckmeldung.auftrag(con, pid, aid)
         for versuch in (1, 2):
-            start_utc = db.jetzt()
-            r = arbeiter.laufen(p, auftrag, a["pruefbefehl"], modell=f.get("modell"), effort=f.get("effort"), prog=prog,
-                                con=con, pid=pid, aid=aid, haenge=dict(entscheidung.haenge_werte(con, pid),
-                                                                      melden=entscheidung.haenge_melder(pid, aid, pfad)))
+            start_utc = v.get("start_utc") or db.jetzt() if nachholen and versuch == 1 else db.jetzt()   # Notbremse seit dem Start zählt
+            if nachholen and versuch == 1:                        # A1877 (i): der Arbeiter ist schon fertig – nur auswerten
+                r = _aus_protokoll(con, pid, aid, p)
+            else:
+                r = arbeiter.laufen(p, auftrag, a["pruefbefehl"], modell=f.get("modell"), effort=f.get("effort"), prog=prog,
+                                    con=con, pid=pid, aid=aid, haenge=dict(entscheidung.haenge_werte(con, pid),
+                                                                          melden=entscheidung.haenge_melder(pid, aid, pfad)))
             notbremse = bool(con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'notbremse' AND zeit_utc >= ?"
                                          " AND (aufgabe_id = ? OR text LIKE ?)", (pid, start_utc, aid, f"Platz {nr}:%")).fetchone())
             befund = None
@@ -378,9 +444,11 @@ def main(argv=None):
     ap.add_argument("--basis", required=True, help="Basis vom Vorbereiten (P272: nie aus dem Klon, nie nachgelesen)")
     ap.add_argument("--vermerk", type=int, required=True, help="Nummer des Vermerks platz_belegt dieses Starts")
     ap.add_argument("--prog", help="nur Tests: Programm des Arbeiters als JSON-Liste")
+    ap.add_argument("--nachholen", action="store_true", help="A1877: der Arbeiter ist fertig, nur Prüfung C + Entscheidung")
     x = ap.parse_args(argv)
     try:
-        starter(x.projekt_id, x.aufgabe, x.platz, json.loads(x.prog) if x.prog else None, basis=x.basis, vid=x.vermerk)
+        starter(x.projekt_id, x.aufgabe, x.platz, json.loads(x.prog) if x.prog else None, basis=x.basis, vid=x.vermerk,
+                nachholen=x.nachholen)
     except Exception:                                             # noqa: BLE001 – niemand sieht die Ausgabe: ins Protokoll + E1
         import traceback
         tb = traceback.format_exc()[-1500:]

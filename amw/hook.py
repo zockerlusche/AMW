@@ -240,6 +240,8 @@ def main():
             ereignis(eingabe)
         except Exception:
             pass
+        if eingabe.get("hook_event_name") == "UserPromptSubmit" and (still := dienst_still()):   # A1877 (b)
+            print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": still}}, ensure_ascii=False))
         return 0
     kennung = os.environ.get("AMW_AGENT")           # Startskript; fehlt sie (Resume von Hand), zählt die Sitzungs-ID
     quelle = eingabe.get("source", "startup")
@@ -276,6 +278,9 @@ def main():
     except Exception as e:                          # Hook darf die Sitzung nie aufhalten
         teile.append(f"AMW-Hook-Fehler ({type(e).__name__}: {e}) – Kontext per `amw kontext` holen.")
         meldung = teile[-1]
+    if (still := dienst_still()):                   # A1877 (b): die Agenten sind die Wächter, wenn der Dienst weg ist
+        teile.insert(0, still)
+        meldung = meldung or still
     aus = {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "\n".join(teile)}}
     if meldung:
         aus["systemMessage"] = meldung
@@ -286,6 +291,20 @@ def main():
 # Zustand aus den Hook-Ereignissen (→ code.claude.com/docs/en/hooks): was der Agent gerade tut bzw. worauf er wartet.
 NOTIFICATION = {"permission_prompt": "wartet_freigabe", "elicitation_dialog": "wartet_eingabe",
                 "elicitation_url_dialog": "wartet_eingabe", "agent_needs_input": "wartet_eingabe", "idle_prompt": "frei"}
+
+
+def dienst_still():
+    """A1877 (b): schreibt der Dienst seit STILL_S keinen Herzschlag mehr, ein Hinweis für den Agenten – sonst None. Liest nur
+    eine Datei (schnell, ohne Dienst)."""
+    try:
+        from . import herzschlag
+        s = herzschlag.still_seit()
+    except Exception:
+        return None
+    if s is None or s <= herzschlag.STILL_S:
+        return None
+    return (f"AMW: Der Dienst ist seit {round(s / 60)} min still (kein Herzschlag) – Benachrichtigungen und der Disponent stehen. "
+            "Bitte dem Lead bzw. dem Menschen melden (amw dienst status), nicht selbst neu starten.")
 
 
 def zustand_aus(eingabe):

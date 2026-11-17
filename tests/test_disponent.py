@@ -140,7 +140,7 @@ class Disponent(unittest.TestCase):
         for k in ("AMW_AGENT", "CLAUDECODE", "CLAUDE_CODE_MESSAGING_SOCKET"):
             os.environ.pop(k, None)
         arbeiter.notbremse_ziehen(self.con, self.pid, p, kern.ENTWICKLER, aid)
-        self.assertEqual(self.warten(aid, ("abgebrochen",), 60), "abgebrochen")
+        self.assertEqual(self.warten(aid, ("abgebrochen",), 180), "abgebrochen")                 # unter Last (Gesamtlauf) dauert es länger
         e = None
         for _ in range(120):                                                                     # die Entscheidung kommt nach dem Zustand
             e = self.con.execute("SELECT text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_entscheidung'", (aid,)).fetchone()
@@ -248,6 +248,64 @@ class Disponent(unittest.TestCase):
                 disponent.starten(self.con, self.pid, aid, p, self.repo, prog("bauen"))
         self.assertEqual(self.zustand(aid), "startklar")
         self.assertTrue(os.path.exists(os.path.join(os.path.dirname(p["klon"]), "platz1.sperre")))   # nie gelöscht
+
+    def vermerk_setzen(self, aid, **werte):
+        vid = disponent._vermerk_id(self.con, self.pid, aid)
+        v = dict(disponent.vermerk(self.con, self.pid, aid), **werte)
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?", (json.dumps(v), vid))
+
+    def test_fertiger_lauf_ohne_starter_wird_nachgeholt(self):
+        """A1877 (i): Der Arbeiter ist fertig, der Starter starb vor der Auswertung (z. B. PC-Neustart) → der Dienst startet einen
+        Nachhol-Starter (Prüfung C + Entscheidung aus dem Protokoll) statt E1; der rechnet E7, Meldung und Kosten werden nachgetragen."""
+        self.plaetze()
+        aid = self.paket()
+        p, basis, vid = self.vorbereitet(aid)
+        r = arbeiter.laufen(p, "plus soll addieren.", PRUEF, prog=prog("bauen"))                # Arbeiter fertig, nichts ausgewertet
+        self.assertEqual(r["rc"], 0)
+        self.vermerk_setzen(aid, starter_pid=999999)                                            # Starter tot
+        proc = mock.Mock(pid=4242)
+        with mock.patch("subprocess.Popen", return_value=proc) as popen:
+            aus = disponent.runde(self.con, prog("bauen"))
+        self.assertIn(f"A{aid}: Starter weg, Lauf fertig → Prüfung C wird nachgeholt (Starter 4242)", aus)
+        befehl = popen.call_args[0][0]
+        self.assertIn("--nachholen", befehl)
+        self.assertEqual(befehl[befehl.index("--basis") + 1], basis)                              # Basis aus dem Vermerk
+        self.assertTrue(disponent.vermerk(self.con, self.pid, aid)["nachholen"])
+        self.assertEqual(self.zustand(aid), "laeuft")
+        self.assertEqual(disponent.starter(self.pid, aid, 1, prog("kaputt"), lauf_schlange=False, basis=basis, vid=vid, nachholen=True),
+                         "E7")                                                                   # kein neuer Arbeiter (Attrappe „kaputt“ liefe nie)
+        self.assertEqual(self.zeilen(aid), ["E7 grün"])
+        self.assertEqual(self.con.execute("SELECT count(*) FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'kosten'", (aid,)).fetchone()[0], 1)
+
+    def test_nachholen_nur_einmal_und_ohne_protokoll_e1(self):
+        """A1877 (i): ohne fertiges Protokoll → E1 wie bisher; ein zweites Mal wird nicht nachgeholt (stirbt auch der Nachhol-Starter)."""
+        self.plaetze()
+        aid = self.paket()
+        p, basis, vid = self.vorbereitet(aid)
+        os.makedirs(arbeiter.ordner(p), exist_ok=True)
+        with open(os.path.join(arbeiter.ordner(p), "lauf.jsonl"), "w", encoding="utf-8") as f:
+            f.write(json.dumps({"type": "result", "subtype": "success"}) + "\n")
+        self.vermerk_setzen(aid, starter_pid=999999, nachholen=True)
+        with mock.patch.object(disponent, "_nachholen") as nachholen:
+            self.assertIn(f"A{aid}: Starter weg → E1", disponent.runde(self.con, prog("bauen")))
+        nachholen.assert_not_called()
+        b = self.paket()
+        p, basis, vid = self.vorbereitet(b)
+        os.remove(os.path.join(arbeiter.ordner(p), "lauf.jsonl")) if os.path.exists(os.path.join(arbeiter.ordner(p), "lauf.jsonl")) else None
+        self.vermerk_setzen(b, starter_pid=999999)
+        self.assertIn(f"A{b}: Starter weg → E1", disponent.runde(self.con, prog("bauen")))
+
+    def test_frischer_vermerk_ohne_pid_ist_nicht_verwaist(self):
+        """A1877 (ii), #29048: zwischen Vermerk und Eintragen der Starter-PID liegt ein kurzes Fenster – in den ersten 60 s nicht E1."""
+        self.plaetze()
+        aid = self.paket()
+        self.vorbereitet(aid)
+        self.vermerk_setzen(aid, start_utc=db.jetzt())
+        self.assertEqual(disponent.runde(self.con, prog("bauen")), [])
+        self.assertEqual(self.zustand(aid), "laeuft")
+        self.vermerk_setzen(aid, start_utc="2026-01-01T00:00:00Z")                                # alt und ohne PID: verwaist
+        self.assertIn(f"A{aid}: Starter weg → E1", disponent.runde(self.con, prog("bauen")))
 
     def test_handstart_nur_lead_mensch(self):
         aid = self.paket()

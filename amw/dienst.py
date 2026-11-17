@@ -444,6 +444,22 @@ def dienst_projekt(con):
     return p["id"] if p else None
 
 
+def ausfall_melden(melden=None):
+    """A1877 (a): War der Dienst vor diesem Start lange weg (Absturz, beendet, PC aus)? Dann einmal Meldung + Push an den
+    Menschen. Maß: Alter der Herzschlag-Datei (der Aufpasser schreibt sie alle AUFPASSER_S s). Rückgabe: Text oder None."""
+    from . import herzschlag
+    try:
+        weg = herzschlag.still_seit()
+        if weg is None or weg <= 3 * herzschlag.AUFPASSER_S + 60:
+            return None
+        text = f"war {round(weg / 60)} min weg (letztes Lebenszeichen vor diesem Start) – jetzt wieder an"
+        (melden or aufpasser_melden)(text, "hauptschleife")
+        return text
+    except Exception:                             # nie den Start aufhalten
+        log.exception("Ausfall-Meldung")
+        return None
+
+
 def aufpasser_melden(text, teil=None):
     """Der Aufpasser (A1655) meldet einen stillen Strang einmal je Vorfall dem Menschen – im Projekt AMW, eigene Verbindung
     (er läuft in seinem eigenen Faden). Steht die Hauptschleife, verschickt niemand mehr Pushs – dann schickt er ihn selbst."""
@@ -503,6 +519,7 @@ def main(argv=None):
     d = Dienst(con)
     log.info("Dienst gestartet (PID %s, %s)", os.getpid(), db.db_pfad())
     db.vermerken(db.db_pfad())                    # A1862: nur Code aus diesem Ordner migriert/beschreibt diese Datenbank
+    ausfall_melden()                              # A1877 (a): vor dem ersten Herzschlag dieses Starts
     try:                                                  # F5336 B: frühere Programmnamen aus dem Bildschirm-Verlauf
         if (n := schirm.programmnamen_entfernen(con)):
             log.info("Bildschirm-Verlauf: Programmname aus %s Wechseln entfernt", n)

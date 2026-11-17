@@ -206,6 +206,19 @@ def aufpasser_starten(melden=None):
     return f
 
 
+STILL_S = 600                                    # A1877: so lange ohne Herzschlag-Datei gilt der Dienst für Hook und Start als weg
+
+
+def still_seit(jetzt=None):
+    """Sekunden seit dem letzten Schreiben der Herzschlag-Datei (None: keine Datei) – für Prozesse außerhalb des Dienstes."""
+    jetzt = time.time() if jetzt is None else jetzt
+    try:
+        with open(pfad(), encoding="utf-8") as f:
+            return max(0.0, jetzt - float(json.load(f).get("geschrieben", 0)))
+    except (OSError, ValueError, TypeError):
+        return None
+
+
 def gesundheit(jetzt=None):
     """Für Betrieb und Startseite: je Teil Zustand, Alter des letzten Herzschlags, Dauer, Fehler, Neustarts. Aus diesem
     Prozess (läuft der Dienst hier), sonst aus der Datei; ist auch die alt, steht der ganze Dienst."""

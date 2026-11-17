@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.144.0 – 17.11.2026 · Dienst-Ausfall robust
+- **Verbessert:** War der Dienst lange weg (Absturz, PC aus), meldet er das beim nächsten Start mit Push.
+- **Verbessert:** Steht der Dienst länger als 10 Minuten still, bekommen die Agenten bei jeder Eingabe einen Hinweis und melden es.
+- **Behoben:** Ein Arbeiter, der fertig war, als sein Starter wegfiel, wird nicht mehr als Abbruch gewertet: die AMW holt die
+  Prüfung nach und entscheidet wie sonst. Ein gerade gestartetes Paket gilt in der ersten Minute nicht als verwaist.
+
 ## 1.143.0 – 17.11.2026 · Die AMW schlägt Starts vor
 - **Neu:** Läuft ein Agent nicht, obwohl er dran wäre, steht unter „Für dich“ „<Agent> starten?“ mit dem Grund: ein Paket
   „neue Sitzung“ ist für ihn fällig, er ist abgestürzt und hat noch Arbeit, oder er hat Arbeit und keine Sitzung. „Starten“
