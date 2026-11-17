@@ -84,8 +84,52 @@ def _job_besteht(p):
     return False
 
 
+class PlatzBelegt(RuntimeError):
+    pass
+
+
+class _Platzsperre:
+    """P272 (b): Sperre um „Platz wählen + vorbereiten + laeuft setzen“ – eine gesperrte Datei neben dem Platz (msvcrt.locking),
+    sie wird nie gelöscht. Wer sie nicht bekommt, nimmt den Platz nicht."""
+    def __init__(self, p):
+        wurzel = os.path.dirname(p["klon"])                       # neben den Platz – der Datenordner muss für vorbereiten leer sein
+        os.makedirs(wurzel, exist_ok=True)
+        self.pfad = os.path.join(wurzel, f"platz{p['nr']}.sperre")
+
+    def __enter__(self):
+        self.f = open(self.pfad, "a+b")
+        try:
+            if os.name == "nt":
+                import msvcrt
+                self.f.seek(0)
+                msvcrt.locking(self.f.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(self.f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            self.f.close()
+            raise PlatzBelegt("Platz wird gerade von einem anderen Start vorbereitet") from None
+        return self
+
+    def __exit__(self, *a):
+        try:
+            if os.name == "nt":
+                import msvcrt
+                self.f.seek(0)
+                msvcrt.locking(self.f.fileno(), msvcrt.LK_UNLCK, 1)
+        finally:
+            self.f.close()
+
+
 def starten(con, pid, aid, p, quelle, prog=None, umgebung=None):
     """Platz vorbereiten, Basis vermerken, Regel 6, Zustand laeuft, Starter losgelöst starten. Rückgabe: Text fürs Protokoll."""
+    with _Platzsperre(p):
+        if p["nr"] in belegte_plaetze(con, pid):                  # nach dem Sperren nochmal: ein anderer Start war schneller
+            raise PlatzBelegt(f"Platz {p['nr']} ist inzwischen belegt")
+        return _starten(con, pid, aid, p, quelle, prog, umgebung)
+
+
+def _starten(con, pid, aid, p, quelle, prog=None, umgebung=None):
     from . import abnahme, arbeitspaket, platz, waechter
     a = con.execute("SELECT pruefbefehl FROM aufgabe WHERE id = ?", (aid,)).fetchone()
     f = arbeitspaket.lesen(con, aid)
@@ -102,15 +146,21 @@ def starten(con, pid, aid, p, quelle, prog=None, umgebung=None):
                          aufgabe_id=aid)
         return f"A{aid} nicht gestartet, Regel 6: {rot.get('grund')}"
     arbeitspaket.zustand_setzen(con, pid, "AMW", aid, "laeuft", grund=f"Start auf Platz {p['nr']}")
-    befehl = [sys.executable, "-I", "-X", "utf8", EINSTIEG, "--projekt-id", str(pid), "--aufgabe", str(aid), "--platz", str(p["nr"])]
+    # P272 (1): der Vermerk mit der Basis steht VOR dem Start des Starters; der Starter bekommt Basis und Vermerk-Nummer als
+    # Argument und liest keinen (womöglich alten) Vermerk nach
+    v = {"platz": p["nr"], "basis": r["basis"], "zweig": zweig, "starter_pid": None, "start_utc": db.jetzt()}
+    with db.schreiben(con):
+        vid = db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=VERMERK, aufgabe_id=aid,
+                           text=json.dumps(v))
+    befehl = [sys.executable, "-I", "-X", "utf8", EINSTIEG, "--projekt-id", str(pid), "--aufgabe", str(aid), "--platz", str(p["nr"]),
+              "--basis", r["basis"], "--vermerk", str(vid)]
     if prog:
         befehl += ["--prog", json.dumps(prog)]
     flags = (0x00000008 | 0x00000200 | getattr(subprocess, "CREATE_NO_WINDOW", 0)) if os.name == "nt" else 0   # DETACHED, NEW_GROUP
     proc = subprocess.Popen(befehl, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True,
                             creationflags=flags, env=umgebung, start_new_session=os.name != "nt")
     with db.schreiben(con):
-        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=VERMERK, aufgabe_id=aid,
-                     text=json.dumps({"platz": p["nr"], "basis": r["basis"], "zweig": zweig, "starter_pid": proc.pid, "start_utc": db.jetzt()}))
+        con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?", (json.dumps(dict(v, starter_pid=proc.pid)), vid))
     return f"A{aid} gestartet auf Platz {p['nr']} (Starter {proc.pid}, Basis {r['basis'][:8]})"
 
 
@@ -144,6 +194,8 @@ def runde(con, prog=None, umgebung=None):
             if antwort["ok"] and frei and quelle:
                 try:
                     aus.append(starten(con, pid, kand["id"], frei[0], quelle, prog, umgebung))
+                except PlatzBelegt as e:
+                    aus.append(f"A{kand['id']}: {e} – nächste Runde")
                 except Exception as e:                            # noqa: BLE001 – ein Fehler beim Start hält den Dienst nicht an
                     aus.append(f"A{kand['id']}: Start fehlgeschlagen ({type(e).__name__}: {e})")
                 gestartet = True
@@ -237,7 +289,36 @@ def _im_lauf(con, pid, aid, beschreibung, fn):
         belegung.lauf_vergessen(lid)
 
 
-def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True):
+def _vermerk_pruefen(con, pid, aid, vid, basis, nr):
+    """P272 (1): der Vermerk gehört zu diesem Start – richtige Nummer, dieses Paket, diese Basis, dieser Platz, und er liegt nach
+    dem letzten Wechsel auf laeuft. Sonst None (→ E1 „Vermerk fehlt“)."""
+    r = con.execute("SELECT id, text FROM plan_ereignis WHERE id = ? AND projekt_id = ? AND aufgabe_id = ? AND art = ?",
+                    (vid, pid, aid, VERMERK)).fetchone()
+    if not r:
+        return None
+    v = json.loads(r["text"])
+    start = con.execute("SELECT max(id) FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_zustand' AND text LIKE '% → laeuft%'",
+                        (aid,)).fetchone()[0] or 0
+    return v if v.get("basis") == basis and v.get("platz") == nr and r["id"] > start else None
+
+
+def _regel_7_8(con, pid):
+    """P272 (2): vor dem Nachbesserungslauf (E5) gelten Wartungsmodus und Wochenlimit wie bei jedem Start."""
+    from . import waechter
+    if waechter.zustand()["wartung"]:
+        return 7, waechter.REGELN[7]
+    try:
+        from . import tokenprognose
+        lage = tokenprognose.lage_gemerkt(con)
+        wert = lage.get("wert") if lage else None
+    except Exception:                                             # noqa: BLE001
+        wert = None
+    if wert is not None and wert >= waechter.LIMIT_PROZENT:
+        return 8, f"{waechter.REGELN[8]} ({wert:.0f} %)"
+    return None
+
+
+def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, vid=None):
     """Ablauf eines Pakets im eigenen Prozess: Arbeiter → Prüfung C → Entscheidung (E5: ein Nachbesserungslauf)."""
     from . import arbeiter, arbeitspaket, entscheidung, platz, pruefung_c, rueckmeldung, waechter
     con = db.verbinde(pfad)
@@ -245,8 +326,13 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True):
         p = next(x for x in platz.plaetze(con, pid) if x["nr"] == nr)
         a = con.execute("SELECT * FROM aufgabe WHERE id = ?", (aid,)).fetchone()
         f = arbeitspaket.lesen(con, aid)
-        v = vermerk(con, pid, aid)
+        v = _vermerk_pruefen(con, pid, aid, vid, basis, nr) if vid else None
         quelle = kern.projekt_ordner(con, pid)
+        if not v:
+            entscheidung.anwenden(con, pid, aid, "E1", "Vermerk fehlt", None, None,
+                                  {"grund": "kein passender Vermerk vom Vorbereiten (Basis) – Prüfung C wäre gegen eine falsche Basis gelaufen"},
+                                  p=p, quelle=quelle)
+            return "E1"
         bereiche = waechter.bereiche(a["dateibereich"])
         auftrag = rueckmeldung.auftrag(con, pid, aid)
         for versuch in (1, 2):
@@ -254,8 +340,8 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True):
             r = arbeiter.laufen(p, auftrag, a["pruefbefehl"], modell=f.get("modell"), effort=f.get("effort"), prog=prog,
                                 con=con, pid=pid, aid=aid, haenge=dict(entscheidung.haenge_werte(con, pid),
                                                                       melden=entscheidung.haenge_melder(pid, aid, pfad)))
-            notbremse = bool(con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'notbremse' AND zeit_utc >= ?",
-                                         (pid, start_utc)).fetchone())
+            notbremse = bool(con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'notbremse' AND zeit_utc >= ?"
+                                         " AND (aufgabe_id = ? OR text LIKE ?)", (pid, start_utc, aid, f"Platz {nr}:%")).fetchone())
             befund = None
             meldung = r.get("meldung")
             if not notbremse and not r.get("abweichungen") and r.get("rc") == 0 and meldung and meldung.get("status") == "erledigt":
@@ -266,6 +352,14 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True):
             entscheidung.anwenden(con, pid, aid, zeile, code, r, meldung, befund, p=p, quelle=quelle)
             if zeile != "E5":
                 return zeile
+            sperre = _regel_7_8(con, pid)                         # P272 (2): neuer Lauf = neue Prüfung der Startregeln 7/8
+            if sperre:
+                from . import waechter
+                waechter.protokollieren(con, pid, aid, {"ok": False, "regel": sperre[0], "grund": sperre[1], "warten": True})
+                entscheidung.anwenden(con, pid, aid, "E6", f"Regel {sperre[0]}", r, meldung,
+                                      dict(befund or {}, grund=f"Nachbesserungslauf nicht gestartet, Regel {sperre[0]}: {sperre[1]}"),
+                                      p=p, quelle=quelle)
+                return "E6"
             teile = [((befund or {}).get(k) or {}).get("ausgabe") or "" for k in ("abnahme", "regression")]
             fehler = "\n".join(t for t in teile if t)[-4000:]
             auftrag = (rueckmeldung.auftrag(con, pid, aid) + "\n\n## Die Abnahme der AMW war rot – bessere nach (einmal)\n"
@@ -281,10 +375,12 @@ def main(argv=None):
     ap.add_argument("--projekt-id", type=int, required=True)
     ap.add_argument("--aufgabe", type=int, required=True)
     ap.add_argument("--platz", type=int, required=True)
+    ap.add_argument("--basis", required=True, help="Basis vom Vorbereiten (P272: nie aus dem Klon, nie nachgelesen)")
+    ap.add_argument("--vermerk", type=int, required=True, help="Nummer des Vermerks platz_belegt dieses Starts")
     ap.add_argument("--prog", help="nur Tests: Programm des Arbeiters als JSON-Liste")
     x = ap.parse_args(argv)
     try:
-        starter(x.projekt_id, x.aufgabe, x.platz, json.loads(x.prog) if x.prog else None)
+        starter(x.projekt_id, x.aufgabe, x.platz, json.loads(x.prog) if x.prog else None, basis=x.basis, vid=x.vermerk)
     except Exception:                                             # noqa: BLE001 – niemand sieht die Ausgabe: ins Protokoll + E1
         import traceback
         tb = traceback.format_exc()[-1500:]

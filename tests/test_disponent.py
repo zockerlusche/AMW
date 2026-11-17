@@ -177,6 +177,76 @@ class Disponent(unittest.TestCase):
         aus = disponent.runde(self.con, prog("bauen"))
         self.assertTrue(any("alle p-Pakete fertig" in x for x in aus), aus)
 
+    def vorbereitet(self, aid, basis_falsch=False):
+        """Wie starten(): Platz vorbereiten, laeuft, Vermerk – für den Starter im selben Prozess."""
+        p = platz.plaetze(self.con, self.pid)[0]
+        r = platz.vorbereiten(p, self.repo, f"paket-A{aid}", aufgabe=aid)
+        arbeitspaket.zustand_setzen(self.con, self.pid, "AMW", aid, "laeuft")
+        with db.schreiben(self.con):
+            vid = db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von="AMW", art=disponent.VERMERK,
+                               aufgabe_id=aid, text=json.dumps({"platz": 1, "basis": r["basis"], "zweig": "z", "starter_pid": None}))
+        return p, r["basis"], vid
+
+    def zeilen(self, aid):
+        return [json.loads(x[0])["zeile"] + " " + json.loads(x[0])["code"] for x in
+                self.con.execute("SELECT text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_entscheidung' ORDER BY id", (aid,))]
+
+    def test_vermerk_muss_zu_diesem_start_passen(self):
+        """P272 (1): Basis und Vermerk kommen als Argument; ein alter oder fremder Vermerk führt nie zu Prüfung C."""
+        self.plaetze()
+        aid = self.paket()
+        p, basis, vid = self.vorbereitet(aid)
+        self.assertEqual(disponent.starter(self.pid, aid, 1, prog("bauen"), lauf_schlange=False, basis="0" * 40, vid=vid), "E1")
+        self.assertEqual(self.zeilen(aid), ["E1 Vermerk fehlt"])
+        b = self.paket()                                                                         # zweiter Start, neue Basis: nur der neue gilt
+        p, alt_basis, alt_vid = self.vorbereitet(b)
+        arbeitspaket.zustand_setzen(self.con, self.pid, "AMW", b, "unklar")
+        arbeitspaket.zustand_setzen(self.con, self.pid, "AMW", b, "startklar")
+        g(self.repo, "commit", "-q", "--allow-empty", "-m", "main geht weiter")
+        p, neu_basis, neu_vid = self.vorbereitet(b)
+        self.assertNotEqual(alt_basis, neu_basis)
+        self.assertIsNone(disponent._vermerk_pruefen(self.con, self.pid, b, alt_vid, alt_basis, 1))     # alter Vermerk: nein
+        self.assertEqual(disponent._vermerk_pruefen(self.con, self.pid, b, neu_vid, neu_basis, 1)["basis"], neu_basis)
+        self.assertEqual(disponent.starter(self.pid, b, 1, prog("bauen"), lauf_schlange=False, basis=neu_basis, vid=neu_vid), "E7")
+
+    def test_nachbesserung_prueft_regel_7(self):
+        """P272 (2): vor dem E5-Lauf gelten Wartungsmodus und Wochenlimit – im Wartungsmodus kein zweiter Lauf, sondern E6."""
+        from amw import waechter
+        self.plaetze()
+        aid = self.paket(befehl="python -X utf8 -m unittest tests.test_immer_rot")
+        with open(os.path.join(self.repo, "tests", "test_immer_rot.py"), "w", encoding="utf-8", newline="\n") as f:
+            f.write("import unittest\n\n\nclass T(unittest.TestCase):\n    def test_rot(self):\n        self.fail()\n")
+        g(self.repo, "add", "-A")
+        g(self.repo, "commit", "-q", "-m", "roter Test")
+        p, basis, vid = self.vorbereitet(aid)
+        waechter.wartung_an("Auslieferung der AMW")
+        self.addCleanup(waechter.wartung_aus)
+        self.assertEqual(disponent.starter(self.pid, aid, 1, prog("bauen"), lauf_schlange=False, basis=basis, vid=vid), "E6")
+        self.assertEqual(self.zeilen(aid), ["E5 C/rot", "E6 Regel 7"])
+        self.assertTrue(self.con.execute("SELECT 1 FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'waechter' AND text LIKE '%Regel 7%'",
+                                         (aid,)).fetchone())
+
+    def test_notbremse_eines_anderen_platzes_zaehlt_nicht(self):
+        """P272 (a): eine Notbremse auf Platz 2 macht das Paket auf Platz 1 nicht zu E1n."""
+        self.plaetze()
+        aid = self.paket()
+        p, basis, vid = self.vorbereitet(aid)
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc="2099-01-01T00:00:00Z", von="Entwickler", art="notbremse",
+                         text="Platz 2: Arbeiter samt Kindprozessen beendet")
+        self.assertEqual(disponent.starter(self.pid, aid, 1, prog("bauen"), lauf_schlange=False, basis=basis, vid=vid), "E7")
+
+    def test_platz_sperre(self):
+        """P272 (b): wer den Platz gerade vorbereitet, hält die Sperre – ein zweiter Start nimmt ihn nicht."""
+        self.plaetze()
+        aid = self.paket()
+        p = platz.plaetze(self.con, self.pid)[0]
+        with disponent._Platzsperre(p):
+            with self.assertRaises(disponent.PlatzBelegt):
+                disponent.starten(self.con, self.pid, aid, p, self.repo, prog("bauen"))
+        self.assertEqual(self.zustand(aid), "startklar")
+        self.assertTrue(os.path.exists(os.path.join(os.path.dirname(p["klon"]), "platz1.sperre")))   # nie gelöscht
+
     def test_handstart_nur_lead_mensch(self):
         aid = self.paket()
         with self.assertRaises(kern.AmwFehler):
