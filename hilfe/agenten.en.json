@@ -114,6 +114,10 @@
   [
    "How is a worker at a work place sealed off – and how do I stop it?",
    "A headless worker (`claude -p`) reads and writes only in the clone of its place, runs only the acceptance command of its package (no git – AMW commits after its own check), and loads no outside settings, hooks or MCP servers. If its start message differs from the expected one (tools, model, permissions), AMW stops it at once. It gets the database and port of its place, never the real database. Only you can stop it: `amw platz notbremse 1 --von Entwickler` ends the worker with all its child processes; what it had already changed is then in the log and with the lead."
+  ],
+  [
+   "How does a package report its result to AMW?",
+   "A worker at a work place reports through its own tool `ergebnis_melden`, which exists only for its run – exactly one status: done (erledigt), blocked (blockiert, with one question) or given up (aufgegeben, with a reason), plus one sentence. The last valid report counts. An agent in the terminal reports the same like this: `echo {\"status\": \"erledigt\", \"zusammenfassung\": \"…\"} | amw paket ergebnis 12 --json -` or with `--status … --zusammenfassung …` – only for its own running package. The report only decides where the package goes; whether the work is right, AMW checks itself. What an agent writes is logged as an unchecked statement; its hint goes to the lead only."
   ]
  ],
  "thema": "agenten",
