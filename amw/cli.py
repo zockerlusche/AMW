@@ -201,7 +201,7 @@ def cmd_agent(a, con):
             # A1865 (B2897): starten nur der Mensch – im eigenen Terminal mit --von Entwickler oder in der Workbench am PC
             # (mit Rückfrage); nie ein Agent (auch nicht über Dateiaustausch/MCP), nie aus einer Claude-Sitzung, nie online
             if (KANAL.get() != "cli" or _von(a) != kern.ENTWICKLER or os.environ.get("AMW_AGENT")
-                    or os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET")):
+                    or os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET") or os.environ.get("CLAUDECODE")):   # CLAUDECODE: jede Sitzung (P256)
                 raise kern.AmwFehler("Agenten startet nur der Mensch: in der Workbench am PC (Kachel › Starten, mit Rückfrage) oder"
                                      " in seinem eigenen Terminal mit --von Entwickler – nie ein Agent und nie online")
             print(steuerung.starten(con, pid, a.kennung, neu=a.neu))

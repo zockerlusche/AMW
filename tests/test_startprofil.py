@@ -80,7 +80,8 @@ class Startprofil(Grund):
     def cli(self, *args, env=None):
         from amw import cli
         aus = io.StringIO()
-        umgebung = {"AMW_DB": os.path.join(self.ordner.name, "t.db"), "AMW_AGENT": "", "CLAUDE_CODE_MESSAGING_SOCKET": "", **(env or {})}
+        umgebung = {"AMW_DB": os.path.join(self.ordner.name, "t.db"), "AMW_AGENT": "", "CLAUDE_CODE_MESSAGING_SOCKET": "", "CLAUDECODE": "",
+                    **(env or {})}
         with mock.patch.dict(os.environ, umgebung), contextlib.redirect_stdout(aus), contextlib.redirect_stderr(aus), \
                 mock.patch.object(steuerung, "starten", return_value="CC1 startet neu (Probe)") as st:
             rc = cli.main(list(args))
@@ -94,6 +95,7 @@ class Startprofil(Grund):
         self.assertEqual((rc, n), (1, 0))                                                   # aus einer Agenten-Sitzung: nein
         self.assertEqual(self.cli("agent", "starten", "CC1", "--von", "Entwickler",
                                   env={"CLAUDE_CODE_MESSAGING_SOCKET": r"\\.\pipe\x"})[2], 0)   # aus einer Claude-Sitzung: nein
+        self.assertEqual(self.cli("agent", "starten", "CC1", "--von", "Entwickler", env={"CLAUDECODE": "1"})[2], 0)   # jede Claude-Sitzung
         rc, aus, n = self.cli("agent", "starten", "CC1", "--von", "Entwickler")
         self.assertEqual((rc, n), (0, 1), aus)                                              # der Mensch im eigenen Terminal: ja
 
