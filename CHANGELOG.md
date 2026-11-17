@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.140.0 – 17.11.2026 · Die AMW startet Pakete am Arbeitsplatz selbst
+- **Neu (für Arbeitsplätze):** Der Dienst startet startklare p-Pakete selbst – Wächter, Platz vorbereiten, Abnahme vor dem Bau
+  rot, Arbeiter in einem eigenen Prozess (übersteht einen Neustart des Dienstes), danach eigene Prüfung und Entscheidung. Ist
+  ein Platz frei und nichts startklar, bekommt der Lead einmal einen Hinweis. Von Hand: `amw paket starten N` (Lead/Mensch).
+
 ## 1.139.0 – 17.11.2026 · Eigene Prüfung nach einem Arbeiter-Lauf
 - **Neu (für Arbeitsplätze):** Nach einem Lauf prüft die AMW selbst – außerhalb des Arbeitsplatzes, mit eigenem Prüf-Repo:
   nur geplante Bereiche, keine gesperrten oder automatisch geladenen Dateien, keine Zugangsdaten, keine neuen Adressen nach

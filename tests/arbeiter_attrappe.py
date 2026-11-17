@@ -13,7 +13,7 @@ def wert(name, vorgabe=None):
     return a[a.index(name) + 1] if name in a else vorgabe
 
 
-art = os.environ.get("ATTRAPPE_ART", "ok")
+art = wert("--attrappe-art") or os.environ.get("ATTRAPPE_ART", "ok")       # Befehlszeile: für den Starter (eigener Prozess)
 auftrag = sys.stdin.read()
 if os.environ.get("ATTRAPPE_UMGEBUNG"):
     with open(os.environ["ATTRAPPE_UMGEBUNG"], "w", encoding="utf-8") as f:
@@ -59,7 +59,12 @@ if art == "fremdes_werkzeug":
     print(json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t1", "name": "Agent", "input": {}}]}}),
           flush=True)
     time.sleep(600)
-for i, m in enumerate(json.loads(os.environ.get("ATTRAPPE_MELDUNGEN", "[]"))):   # S5b: Aufrufe von ergebnis_melden
+meldungen = json.loads(os.environ.get("ATTRAPPE_MELDUNGEN", "[]"))
+if art == "bauen":                          # A1874: repariert lib/rechnen.py im Klon und meldet erledigt
+    with open(os.path.join("lib", "rechnen.py"), "w", encoding="utf-8", newline="\n") as f:
+        f.write("def plus(a, b):\n    return a + b\n")
+    meldungen = [{"status": "erledigt", "zusammenfassung": "plus repariert."}]
+for i, m in enumerate(meldungen):           # S5b: Aufrufe von ergebnis_melden
     ok = m.pop("_ok", True)
     print(json.dumps({"type": "assistant", "message": {"content": [
         {"type": "tool_use", "id": f"m{i}", "name": "mcp__amw-rueckmeldung__ergebnis_melden", "input": m}]}}), flush=True)

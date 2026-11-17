@@ -562,8 +562,12 @@ def cmd_paket(a, con):
     """Arbeitspakete (A1845): zeigen, Zustand wechseln (Lead/Mensch von Hand; später die AMW selbst), Liste der p-Pakete."""
     from . import arbeitspaket
     pid = _projekt(con, a)
-    if a.aktion in ("zeigen", "zustand", "ergebnis") and not a.id:
+    if a.aktion in ("zeigen", "zustand", "ergebnis", "starten") and not a.id:
         raise kern.AmwFehler(f"amw paket {a.aktion} <Aufgabe> …")
+    if a.aktion == "starten":                         # A1874: Handstart zum Probieren – nur Mensch/Lead, der Wächter entscheidet
+        from . import disponent
+        print(disponent.handstart(con, pid, a.id, _von(a)))
+        return
     if a.aktion == "ergebnis":                        # A1857 (§6a.6): Ergebnis eines interaktiven Pakets, gleiches Schema wie -p
         from . import rueckmeldung
         if a.json is not None:
@@ -2761,8 +2765,9 @@ def parser():
     x = s.add_parser("paket", help="Arbeitspakete (Mischbetrieb): zeigen N | zustand N <zustand> [--grund … --beleg …] | liste"
                                    " [--zustand …] | ergebnis N (--json - über stdin oder --status/--zusammenfassung/--frage/"
                                    "--frage-an/--grund/--hinweis; nur der zugeteilte Agent, Art agent/sitzung, Paket läuft)"
+                                   " | starten N (Lead/Mensch: ein startklares p-Paket jetzt starten – der Wächter entscheidet)"
                                    " – Felder setzen: amw aufgabe neu|aendern … --paket p …")
-    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis"])
+    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("zustand", nargs="?", help="zustand: entwurf, startklar, laeuft, abgegeben, abnahme, merge_reihe, gemergt, fertig,"
                                               " blockiert, unklar, wartet_interaktiv, abgebrochen, zurueckgestellt")

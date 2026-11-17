@@ -338,6 +338,12 @@ class Dienst:
             log.warning("Fenster: %s: %s", type(e).__name__, e)
         for lid in betrieb.warteschlange(self.con):                         # eine Warteschlange je Rechner, über alle Projekte
             log.info("Warteschlange: L%s freigegeben", lid)
+        try:                                                                 # A1874: startklare p-Pakete selbst starten
+            from . import disponent
+            for e in disponent.runde(self.con):
+                log.info("Disponent: %s", e)
+        except Exception as e:
+            log.warning("Disponent: %s: %s", type(e).__name__, e)
         try:                                                                 # Warte-Prozess weg → der Dienst rechnet (A1640)
             for e in self.laufdienst.runde():
                 log.info("Laufdienst: %s", e)

@@ -122,6 +122,10 @@
   [
    "Was passiert nach dem Lauf eines Arbeiters?",
    "Die AMW prüft selbst, außerhalb des Arbeitsplatzes: nur geplante Bereiche, keine gesperrten oder automatisch geladenen Dateien, keine Verweise (Junctions, Symlinks) nach außen, keine Zugangsdaten-Muster, keine neuen Adressen nach außen. Dann committet sie den Stand und führt Abnahme und eine feste Kurzsuite in einem frischen Checkout aus. Danach entscheidet eine feste Tabelle (E1–E8): alles grün → bereit zum Merge; Abnahme rot → einmal nachbessern; sonst geht der Befund an den Prüfer (Projekt-Einstellung `paket_pruefer`, sonst der Lead) bzw. bei einer Frage an dich. Hängt ein Lauf (Vorgabe: 20 Minuten still oder 15 Runden ohne Dateiänderung, einstellbar mit `haenge_stille_min` und `haenge_runden`), meldet die AMW es – beenden kannst nur du. Ein Agent im Terminal meldet „erledigt“ bei einem Paket mit Abnahme mit `--zweig`; die AMW stellt dann die Prüfbitte mit ihrem Befund."
+  ],
+  [
+   "Wer startet ein Paket am Arbeitsplatz?",
+   "Die AMW selbst: Ist ein p-Paket startklar und sind Arbeitsplätze eingerichtet, fragt der Dienst den Wächter, bereitet einen freien Platz vor, prüft, dass die Abnahme vor dem Bau rot ist, und startet den Arbeiter in einem eigenen Prozess – ein Neustart des Dienstes beendet ihn nicht. Nach dem Lauf prüft die AMW selbst (über die Lauf-Schlange) und entscheidet, wohin das Paket geht. Ist ein Platz frei, aber nichts startklar – oder sind alle Pakete eines Bogens fertig –, bekommt der Lead einmal einen Hinweis mit dem, was fehlt. Zum Ausprobieren startet der Lead oder du ein Paket von Hand: `amw paket starten 12` – es gelten dieselben Regeln."
   ]
  ],
  "thema": "agenten",

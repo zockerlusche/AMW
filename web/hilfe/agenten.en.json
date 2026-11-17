@@ -122,6 +122,10 @@
   [
    "What happens after a worker's run?",
    "AMW checks on its own, outside the work place: only planned areas, no locked or automatically loaded files, no links (junctions, symlinks) pointing outside, no credential patterns, no new addresses to the outside. Then it commits the state and runs the acceptance command and a fixed short suite in a fresh checkout. A fixed table (E1–E8) decides next: all green → ready to merge; acceptance red → one fix-up run; otherwise the finding goes to the reviewer (project setting `paket_pruefer`, else the lead) or, for a question, to you. If a run hangs (default: 20 minutes silent or 15 rounds without a file change, set with `haenge_stille_min` and `haenge_runden`), AMW reports it – only you can stop it. An agent in the terminal reports \"erledigt\" for a package with an acceptance command with `--zweig`; AMW then files the review request with its finding."
+  ],
+  [
+   "Who starts a package at a work place?",
+   "AMW itself: when a p package is ready (startklar) and work places are set up, the service asks the guard, prepares a free place, checks that the acceptance command fails before building, and starts the worker in its own process – restarting the service does not stop it. After the run AMW checks on its own (through the run queue) and decides where the package goes. If a place is free but nothing is ready – or all packages of a milestone are done –, the lead gets one note with what is missing. To try it out, the lead or you start a package by hand: `amw paket starten 12` – the same rules apply."
   ]
  ],
  "thema": "agenten",

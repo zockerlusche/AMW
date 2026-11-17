@@ -275,11 +275,16 @@ def notbremse_ziehen(con, pid, p, von, aufgabe=None):
     if (von != kern.ENTWICKLER or os.environ.get("AMW_AGENT") or os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET")
             or os.environ.get("CLAUDECODE")):                  # P259 (3): dieselbe Sperre wie der Agentenstart (A1865)
         raise kern.AmwFehler("Die Notbremse zieht nur der Mensch (--von Entwickler, nicht aus einer Agenten-Sitzung)")
+    # A1874: die Absicht zuerst vermerken – der Starter sieht sie, sobald sein Arbeiter endet, und entscheidet E1n statt E1
+    # (vorher war er schneller als dieser Eintrag, und eine Notbremse zählte zur Fehlserie)
+    with db.schreiben(con):
+        eid = db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="notbremse", aufgabe_id=aufgabe,
+                           text=f"Platz {p['nr']}: Notbremse gezogen")
     lief = notbremse(p)
     notiz = uebergabe(p) if os.path.isdir(os.path.join(p["klon"], ".git")) else "kein Klon"
     text = (f"Platz {p['nr']}: " + ("Arbeiter samt Kindprozessen beendet" if lief else "kein laufender Arbeiter") + f" – {notiz}")[:1500]
     with db.schreiben(con):
-        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="notbremse", aufgabe_id=aufgabe, text=text)
+        con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?", (text, eid))
         if lief:
             kern._posten(con, pid, "AMW", kern.lead(con, pid) or kern.ENTWICKLER, "info",
                          f"Notbremse: Platz {p['nr']}" + (f" (A{aufgabe})" if aufgabe else "") + " beendet", text)
