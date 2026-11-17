@@ -1038,7 +1038,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
 .dialog select { width: 100%; padding: 8px; background: var(--grund); border: 1px solid var(--linie); border-radius: 3px; }
 .neu-laden { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px);
   z-index: 30; display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-color: var(--rot); }
-.toast { position: fixed; bottom: 18px; right: 18px; left: auto; padding: 10px 14px; z-index: 20; animation: auf .3s both; }
+.toast { position: fixed; bottom: 18px; right: 18px; left: auto; padding: 10px 14px; z-index: 20; animation: auf .3s both; overflow-wrap: anywhere; }   /* A1865: lange Pfade brechen um (Handy) */
 
 /* --- Handy ---------------------------------------------------------------------------------
    Unten eine Leiste mit den Bereichen (Daumen), oben nur Marke, Zustand und Halt; Suche als eigene Zeile.
