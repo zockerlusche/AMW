@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.137.0 – 17.11.2026 · Ergebnis eines Pakets melden
+- **Neu (für Arbeitsplätze):** Ein Arbeiter meldet sein Ergebnis über ein eigenes Werkzeug, das nur für seinen Lauf da ist –
+  ohne Schlüssel und ohne Datei; es gilt die letzte gültige Meldung, die AMW prüft sie selbst nach. Kosten jedes Laufs werden
+  automatisch erfasst. Agenten im Terminal melden dasselbe mit `amw paket ergebnis N` (JSON über stdin oder einzelne Schalter).
+
 ## 1.136.1 – 17.11.2026 · Auslieferung genauer
 - **Behoben:** Die Auslieferung veröffentlicht eine Zwischenversion nur noch, wenn sie eine eigene grüne Prüfung auf genau
   ihrem Stand hat – sonst geht sie in der obersten Version auf.

@@ -562,8 +562,24 @@ def cmd_paket(a, con):
     """Arbeitspakete (A1845): zeigen, Zustand wechseln (Lead/Mensch von Hand; später die AMW selbst), Liste der p-Pakete."""
     from . import arbeitspaket
     pid = _projekt(con, a)
-    if a.aktion in ("zeigen", "zustand") and not a.id:
+    if a.aktion in ("zeigen", "zustand", "ergebnis") and not a.id:
         raise kern.AmwFehler(f"amw paket {a.aktion} <Aufgabe> …")
+    if a.aktion == "ergebnis":                        # A1857 (§6a.6): Ergebnis eines interaktiven Pakets, gleiches Schema wie -p
+        from . import rueckmeldung
+        if a.json is not None:
+            if a.json != "-":
+                raise kern.AmwFehler("--json nur über stdin: … | amw paket ergebnis <nr> --json - (kein JSON als Argument – "
+                                     "PowerShell verschluckt Anführungszeichen); oder einzelne Schalter --status --zusammenfassung …")
+            try:
+                meldung = json.loads(sys.stdin.read() or "null")
+            except ValueError:
+                raise kern.AmwFehler("--json -: auf stdin kam kein gültiges JSON") from None
+        else:
+            meldung = {k: v for k, v in (("status", a.status), ("zusammenfassung", a.zusammenfassung), ("frage", a.frage),
+                                          ("frage_an", a.frage_an), ("grund", a.grund), ("hinweis", a.hinweis)) if v is not None}
+        rueckmeldung.melden_interaktiv(con, pid, _von(a), a.id, meldung)
+        print(f"A{a.id}: Ergebnis „{meldung['status']}“ angenommen – die AMW prüft selbst; es gilt die letzte gültige Meldung")
+        return
     if a.aktion == "zeigen":
         r = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
         if not r:
@@ -2741,14 +2757,22 @@ def parser():
     x.set_defaults(f=cmd_aufgabe)
 
     x = s.add_parser("paket", help="Arbeitspakete (Mischbetrieb): zeigen N | zustand N <zustand> [--grund … --beleg …] | liste"
-                                   " [--zustand …] – Felder setzen: amw aufgabe neu|aendern … --paket p …")
-    x.add_argument("aktion", choices=["zeigen", "zustand", "liste"])
+                                   " [--zustand …] | ergebnis N (--json - über stdin oder --status/--zusammenfassung/--frage/"
+                                   "--frage-an/--grund/--hinweis; nur der zugeteilte Agent, Art agent/sitzung, Paket läuft)"
+                                   " – Felder setzen: amw aufgabe neu|aendern … --paket p …")
+    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("zustand", nargs="?", help="zustand: entwurf, startklar, laeuft, abgegeben, abnahme, merge_reihe, gemergt, fertig,"
                                               " blockiert, unklar, wartet_interaktiv, abgebrochen, zurueckgestellt")
-    x.add_argument("--grund", help="zustand: warum (steht im Planungs-Protokoll)")
+    x.add_argument("--grund", help="zustand: warum (steht im Planungs-Protokoll) · ergebnis aufgegeben: warum es nicht geht")
     x.add_argument("--beleg", help="zustand fertig: Commit")
     x.add_argument("--nur", help="liste: nur diese Zustände, z. B. startklar,laeuft")
+    x.add_argument("--json", help="ergebnis: „-“ = die Meldung als JSON von stdin")
+    x.add_argument("--status", choices=["erledigt", "blockiert", "aufgegeben"], help="ergebnis: genau ein Status")
+    x.add_argument("--zusammenfassung", help="ergebnis: ein Satz, was gemacht wurde")
+    x.add_argument("--frage", help="ergebnis blockiert: die eine Frage, die dich stoppt")
+    x.add_argument("--frage-an", dest="frage_an", choices=["lead", "mensch"], help="ergebnis blockiert: wer antworten soll (Vorgabe lead)")
+    x.add_argument("--hinweis", help="ergebnis: optional, geht nur an den Lead")
     x.set_defaults(f=cmd_paket)
 
     x = s.add_parser("thema", help="Design-Dokument je Thema: liste [--suche] | zeige TH12 | neu \"Name\" [--pfleger X] [--stil] |"

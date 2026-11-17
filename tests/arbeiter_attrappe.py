@@ -24,8 +24,11 @@ init = {"type": "system", "subtype": "init", "cwd": os.getcwd(), "session_id": "
         "slash_commands": [], "skills": [], "agents": ["claude", "Explore"], "additional_directories": [],
         "plugins": [{"name": "cc-plugin-telemetry", "path": "builtin", "source": "cc-plugin-telemetry@builtin"}],
         "claude_code_version": os.environ.get("ATTRAPPE_VERSION", "2.1.326")}
+if "--mcp-config" in sys.argv:                 # S5b: der Rückmelde-Connector ist verbunden (wie Claude Code ihn meldet)
+    init["mcp_servers"] = [{"name": "amw-rueckmeldung", "status": os.environ.get("ATTRAPPE_MCP_STATUS", "connected")}]
+    init["tools"] = init["tools"] + ["mcp__amw-rueckmeldung__ergebnis_melden"]
 if art == "mcp":
-    init["mcp_servers"] = [{"name": "bus", "status": "connected"}]
+    init["mcp_servers"] = init["mcp_servers"] + [{"name": "bus", "status": "connected"}]
 elif art == "werkzeug":
     init["tools"] = init["tools"] + ["Agent"]
 elif art == "modell":
@@ -52,6 +55,12 @@ if art == "fremdes_werkzeug":
     print(json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t1", "name": "Agent", "input": {}}]}}),
           flush=True)
     time.sleep(600)
+for i, m in enumerate(json.loads(os.environ.get("ATTRAPPE_MELDUNGEN", "[]"))):   # S5b: Aufrufe von ergebnis_melden
+    ok = m.pop("_ok", True)
+    print(json.dumps({"type": "assistant", "message": {"content": [
+        {"type": "tool_use", "id": f"m{i}", "name": "mcp__amw-rueckmeldung__ergebnis_melden", "input": m}]}}), flush=True)
+    print(json.dumps({"type": "user", "message": {"content": [
+        {"type": "tool_result", "tool_use_id": f"m{i}", "is_error": not ok, "content": "angenommen" if ok else "Nicht angenommen"}]}}), flush=True)
 print(json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "fertig"}]}}), flush=True)
 print(json.dumps({"type": "result", "subtype": "success", "is_error": False, "num_turns": 1, "total_cost_usd": 0.001,
                   "session_id": init["session_id"], "result": "fertig", "permission_denials": []}), flush=True)

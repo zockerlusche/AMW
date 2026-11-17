@@ -42,6 +42,8 @@ GESPERRT = (
     ("amw/bruecke.py", "fest", "Rechte (Dateiaustausch)"),
     ("amw/mcp_server.py", "fest", "Rechte (Connector)"),
     ("amw/mcp_schluessel.py", "fest", "Rechte (Connector)"),
+    ("amw/rueckmeldung.py", "fest", "Rückmelde-Connector der Arbeiter (A1857)"),
+    ("amw/vorlagen/*", "fest", "Auftragsvorlage der Arbeiter (A1857)"),
     ("amw/hook.py", "fest", "Hooks"),
     ("amw/schwer.py", "fest", "Hooks (schwere Befehle)"),
     ("*.ps1", "fest", "Skripte"),

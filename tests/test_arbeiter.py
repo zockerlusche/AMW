@@ -299,7 +299,8 @@ class Arbeiter(unittest.TestCase):
             for z in f:
                 e = json.loads(z)
                 if e.get("type") == "assistant":
-                    versucht += [c for c in e["message"].get("content", []) if c.get("type") == "tool_use"]
+                    versucht += [c for c in e["message"].get("content", []) if c.get("type") == "tool_use"
+                                 and c.get("name") != "mcp__amw-rueckmeldung__ergebnis_melden"]   # die Meldung ist kein Zugriff
         abgelehnt = {d["tool_use_id"] for d in r["ergebnis"]["permission_denials"]}
         steuer = lambda c: c["name"] != "Read" and any(x in json.dumps(c["input"]) for x in (".git", ".claude", "CLAUDE.md"))   # Lesen im Klon ist erlaubt
         nach_aussen = [c for c in versucht if fremd in json.dumps(c["input"]) or "settings.json" in json.dumps(c["input"])

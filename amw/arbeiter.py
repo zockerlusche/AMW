@@ -5,10 +5,10 @@ Abschottung (gemessen mit Claude Code 2.1.326, Probe in der Prüfbitte):
 - `--restricted`: Datei-Werkzeuge (auch Lesen) nur im Arbeitsordner des Platzes; Benutzer-, Projekt- und lokale Einstellungen
   (Hooks, Rechte, MCP) werden nicht geladen, auch keine CLAUDE.md; Schreiben in Einstellungen, .git und Werkzeug-Dateien braucht
   einen Menschen → im Modus dontAsk abgelehnt.
-- `--strict-mcp-config`: keine MCP-Server außer denen, die die AMW mitgibt (S5a: keine; S5b: der Rückmelde-Zugang).
-- `--settings` (Datei außerhalb des Klons) mit `defaultMode: dontAsk` und der Freigabeliste: Bash nur genau der Abnahme-Befehl,
-  kein git (TL #28952: die AMW liest die Änderungen selbst und committet nach dem Diff-Tor, S6a)
-  und genau der Abnahme-Befehl – alles andere lehnt Claude Code ohne Rückfrage ab (steht in `permission_denials`).
+- `--strict-mcp-config`: keine MCP-Server außer dem Rückmelde-Connector, den die AMW nur diesem Lauf mitgibt (S5b, rueckmeldung.py).
+- `--settings` (Datei außerhalb des Klons) mit `defaultMode: dontAsk` und der Freigabeliste: Bash nur genau der Abnahme-Befehl, dazu
+  das Werkzeug ergebnis_melden; kein git (TL #28952: die AMW liest die Änderungen selbst und committet nach dem Diff-Tor, S6a).
+  Alles andere lehnt Claude Code ohne Rückfrage ab (steht in `permission_denials`).
 - Umgebung des Platzes (eigene DB, LOCALAPPDATA, TEMP, Port; keine Kennung, kein Nachrichten-Zugang), Auto-Update aus, UTF-8.
 - Das init-Ereignis aus stream-json wird gegen die Sollliste geprüft (Werkzeuge, MCP, Modell, Rechte-Modus, Ordner, keine Skills,
   nur eingebaute Plugins). Abweichung → Lauf sofort beendet. Lücke: das Effort steht nicht im init-Ereignis (nur
@@ -67,16 +67,16 @@ def ordner(p):
     return os.path.join(p["daten"], "arbeiter")
 
 
-def freigabe(pruefbefehl):
+def freigabe(pruefbefehl, mcp_werkzeuge=()):
     """Die Freigabeliste (permissions) für `--settings`. Ohne Eintrag lehnt dontAsk ab."""
     befehl = (pruefbefehl or "").strip()
     if not befehl:
         raise ArbeiterFehler("ohne Abnahme-Befehl startet kein Arbeiter (Regel 1)")
     if any(z in befehl for z in ("&&", "||", ";", "|", ">", "<", "`", "$(", "\n")):
         raise ArbeiterFehler(f"Abnahme-Befehl „{befehl}“: nur ein einzelner Befehl ohne Verkettung oder Umleitung")
-    allow = ["Read", "Glob", "Grep", "Edit", "Write", f"Bash({befehl})"]
+    allow = ["Read", "Glob", "Grep", "Edit", "Write", f"Bash({befehl})", *mcp_werkzeuge]   # S5b: genau das Werkzeug ergebnis_melden
     steuer = [f"{w}({m})" for w in ("Edit", "Write") for m in STEUERDATEIEN]     # Gegenlesen D Nr. 1/2: zusätzlich zu --restricted
-    # „-c “/„-C “ mit Leerzeichen – ohne träfe die Sperre auch das erlaubte „git diff --cached“
+    # „-c “/„-C “ mit Leerzeichen – ohne träfe die Sperre auch harmlose Optionen wie „--cached“ in einem Abnahme-Befehl
     deny = [f"Bash(*{v}*)" for v in GIT_VERBOTEN] + ["Bash(git)", "Bash(git *)", "Bash(git push*)", "Bash(git remote*)", "Bash(git config*)",
             "Bash(git reset*)", "Bash(git checkout*)", "Bash(git switch*)", "Bash(git rebase*)", "Bash(git clean*)", "WebFetch", "WebSearch"] + steuer
     import fnmatch                                             # P259 (1): deny geht vor allow – trifft der Abnahme-Befehl eine
@@ -154,8 +154,9 @@ def umgebung(p, basis=None, zusatz=None):
 
 # --- Sollliste für das init-Ereignis ---------------------------------------------------------------------------------------
 
-def soll(p, modell=None, mcp_namen=()):
-    return {"cwd": p["klon"], "modell": modell or MODELL, "werkzeuge": sorted(WERKZEUGE), "mcp": sorted(mcp_namen),
+def soll(p, modell=None, mcp_namen=(), mcp_werkzeuge=()):
+    """Sollliste. Gemessen 17.11. (2.1.326): mit dem Rückmelde-Connector steht genau sein Werkzeug zusätzlich in tools."""
+    return {"cwd": p["klon"], "modell": modell or MODELL, "werkzeuge": sorted([*WERKZEUGE, *mcp_werkzeuge]), "mcp": sorted(mcp_namen),
             "versionen": GEPRUEFT}
 
 
@@ -185,6 +186,9 @@ def init_pruefen(ereignis, s):
     mcp = sorted((m.get("name") if isinstance(m, dict) else str(m)) for m in (ereignis.get("mcp_servers") or []))
     if mcp != s["mcp"]:
         ab.append(f"MCP-Server {mcp} statt {s['mcp']}")
+    getrennt = [m.get("name") for m in (ereignis.get("mcp_servers") or []) if isinstance(m, dict) and m.get("status") not in (None, "connected")]
+    if getrennt:                                               # §6a.1: zeigt init den Connector nicht verbunden → Lauf beenden
+        ab.append(f"MCP-Server nicht verbunden: {getrennt}")
     for feld in ("skills", "slash_commands"):
         if ereignis.get(feld):
             ab.append(f"{feld}: {ereignis[feld]}")
@@ -282,6 +286,18 @@ def notbremse_ziehen(con, pid, p, von, aufgabe=None):
     return text
 
 
+def nachbereiten(con, pid, aid, r):
+    """Nach dem Lauf (S5b): gültige Meldung als ungeprüfte Angabe speichern, Kosten automatisch erfassen (A1844 messung) – ohne
+    result-Ereignis als Lücke („unbekannt“), nie geschätzt."""
+    from . import messung, rueckmeldung as rm
+    if r.get("meldung"):
+        rm.speichern(con, pid, "AMW", aid, r["meldung"], "p")
+    if r.get("ergebnis") and r["ergebnis"].get("total_cost_usd") is not None:
+        messung.erfassen(con, pid, "AMW", aid, json_text=json.dumps(r["ergebnis"]), notiz=f"claude -p Platz-Lauf {r.get('sitzung') or ''}".strip())
+    else:
+        messung.erfassen(con, pid, "AMW", aid, unbekannt=True, notiz="claude -p ohne Ergebnis-Ereignis")
+
+
 def uebergabe(p, basis=None):
     """Maschinelle Übergabe-Notiz (kein Dateischreiben): Stand im Klon für den, der übernimmt."""
     teile = []
@@ -297,7 +313,7 @@ def uebergabe(p, basis=None):
 # --- Lauf ------------------------------------------------------------------------------------------------------------------
 
 def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_namen=(), sitzung=None, prog=None, basis_umgebung=None,
-           zusatz=None):
+           zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None):
     """Einen Arbeiter im Platz `p` laufen lassen, bis er endet. Rückgabe {"rc", "abweichungen", "init", "ergebnis",
     "sitzung", "protokoll", "dauer_s", "fehler"}. Abweichung im init-Ereignis → sofort beendet (rc None, abweichungen gesetzt)."""
     if os.name != "nt":
@@ -314,11 +330,18 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
         if alt:
             k0.CloseHandle(alt)
             raise ArbeiterFehler(f"Platz {p['nr']}: dort läuft schon ein Arbeiter")
+    from . import rueckmeldung as rm
+    werkzeuge = ()
+    if rueckmeldung:                                           # S5b: eigener Connector nur für diesen Lauf (§6a.1)
+        mcp = os.path.join(o, "rueckmeldung.json")
+        with open(mcp, "w", encoding="utf-8") as f:
+            json.dump(rm.mcp_config(rm.einstieg()), f, ensure_ascii=False, indent=1)
+        mcp_namen, werkzeuge = (rm.NAME,), (rm.VOLL,)
     datei = os.path.join(o, "einstellungen.json")
     with open(datei, "w", encoding="utf-8") as f:
-        json.dump(freigabe(pruefbefehl), f, ensure_ascii=False, indent=1)
+        json.dump(freigabe(pruefbefehl, werkzeuge), f, ensure_ascii=False, indent=1)
     argv = befehl(p, datei, modell, effort, mcp, sitzung, prog)
-    s = soll(p, modell, mcp_namen)
+    s = soll(p, modell, mcp_namen, werkzeuge)
     protokoll = os.path.join(o, "lauf.jsonl")
     t0 = time.monotonic()
     job = abnahme._job_neu(job_name(p))
@@ -367,7 +390,9 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
                             k.TerminateJobObject(wintypes.HANDLE(job), 1)
                             return
                     elif isinstance(e, dict) and e.get("type") == "assistant":   # jeder Werkzeugaufruf gegen die Liste (Nr. 21)
-                        fremd = [c.get("name") for c in (e.get("message") or {}).get("content") or []
+                        nachricht = e.get("message")
+                        inhalt = nachricht.get("content") if isinstance(nachricht, dict) else None
+                        fremd = [c.get("name") for c in (inhalt if isinstance(inhalt, list) else [])
                                  if isinstance(c, dict) and c.get("type") == "tool_use" and c.get("name") not in WERKZEUGE
                                  and not str(c.get("name", "")).startswith(tuple(f"mcp__{m}__" for m in mcp_namen))]
                         if fremd:
@@ -395,8 +420,12 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
             abweichungen = abweichungen + [f"{rest} Prozess(e) im Job nach dem Laufende nicht beendet"]
         if init is None and not abweichungen:
             abweichungen = ["kein init-Ereignis"]
-        return {"rc": None if abweichungen else proc.returncode, "abweichungen": abweichungen, "init": init, "ergebnis": ergebnis,
-                "sitzung": (init or {}).get("session_id"), "protokoll": protokoll, "dauer_s": round(time.monotonic() - t0, 1),
-                "fehler": None}
+        meldung, versuche = rm.auswerten(rm.ereignisse_lesen(protokoll)) if rueckmeldung else (None, 0)
+        r = {"rc": None if abweichungen else proc.returncode, "abweichungen": abweichungen, "init": init, "ergebnis": ergebnis,
+             "sitzung": (init or {}).get("session_id"), "protokoll": protokoll, "dauer_s": round(time.monotonic() - t0, 1),
+             "fehler": None, "meldung": meldung, "meldeversuche": versuche}
+        if con is not None and pid is not None and aid is not None:
+            nachbereiten(con, pid, aid, r)
+        return r
     finally:
         k.CloseHandle(wintypes.HANDLE(job))                                    # KILL_ON_JOB_CLOSE: nichts bleibt zurück
