@@ -16,6 +16,7 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 - **Verbessert:** Die Messung nimmt für p-Pakete die echten Zeitpunkte statt der Näherung.
 - **Neu:** Hilfe „p-Pakete schreiben“ für den Lead. Die Datenbank bekommt dafür eine neue Tabelle (Schema 33); bestehende Daten
   bleiben unverändert.
+
 ## 1.130.0 – 17.11.2026 · Arbeitsplätze löschen nichts
 - **Geändert:** Das Zurücksetzen eines Arbeitsplatzes löscht nichts mehr. Reste – ungesicherte Änderungen als Patch,
   Commits, fremde Dateien, der Datenordner – wandern ins Archiv neben den Plätzen; ist das Paket fertig, schiebt
