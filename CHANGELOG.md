@@ -4,6 +4,17 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.126.0 – 17.11.2026 · Meilenstein-Karte für den Menschen
+- **Neu:** Ein Klick auf einen Balken in der Planung öffnet eine Karte, die zeigt, wo der Meilenstein steht und wo du
+  eingreifen kannst: wer verantwortlich ist, ein Satz wie „5 von 15 Aufgaben fertig · 1 läuft · 1 wartet auf dich ·
+  8 blockiert“, eine Zeitschiene bis zum Ziel und „was läuft, was hängt“ – nach Ursache gebündelt, mit dem passenden Knopf
+  („Frage beantworten“, „Lauf vorziehen“, „Lead anschreiben“). Darunter die Aufgaben selbst, offene zuerst, je mit einer
+  kleinen Zeitlinie und „verschoben aus Meilenstein …“.
+- **Neu:** „Vorziehen“ zieht einen Meilenstein eins nach vorn; der Lead bekommt eine Meldung. Aktivieren, Abschließen,
+  Rückblick und Bearbeiten stehen unter „Mehr … · Für den Lead“.
+- **Verbessert:** Die Zeitleiste ist auch bei Farbsehschwäche lesbar: farbenblind-sichere Farben und zusätzlich Muster
+  (geplant hohl, knapp gerippt, zu spät schräg gestreift).
+
 ## 1.125.3 – 16.11.2026 · Gelesen ist gelesen
 - **Behoben:** Nachrichten, die du gelesen hattest, kamen immer wieder als neu. Jetzt hakt Antippen eine Nachricht als
   gelesen ab; dazu „Gelesen“ je Nachricht und „Alle gelesen“. Neue Nachträge zu einer Frage gelten als gelesen, sobald die
