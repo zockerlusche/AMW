@@ -352,6 +352,20 @@ class Kette(unittest.TestCase):
         self.gesamtlauf()
         self.assertEqual(self.kette().ausliefern("neu")["version"], "1.1.0")
 
+    def test_reihenfolge_nur_neueste_gruene_pruefung_je_aufgabe(self):
+        """17.11.: eine Aufgabe wurde neu aufgesetzt; ihre alte grüne Prüfung (gleicher Zweig, Stand nicht im Ziel) hielt die
+        Kette an, obwohl die neuere grüne Prüfung im Ziel steckt. Jetzt zählt je Aufgabe nur die neueste."""
+        self.g("switch", "-q", "-c", "paket", "main")
+        alt = self.stand("1.1.0", "Vor dem Neuaufsetzen")
+        aid = self.gruen_auf("paket", alt, "Paket")                                               # alte Prüfung, grün + Merge-OK
+        self.g("reset", "-q", "--hard", "main")                                                   # derselbe Zweig neu aufgesetzt
+        neu = self.stand("1.2.0", "Neu aufgesetzt")
+        self.g("switch", "-q", "main")
+        prid = betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "paket", neu, "x", aid)
+        betrieb.pruefung_ergebnis(self.con, self.pid, "TL", prid, "gruen")
+        self.gesamtlauf(sha=neu)
+        self.assertEqual(self.kette("1.2.0").ausliefern("paket")["version"], "1.2.0")
+
     def test_version_nachtragen_nur_kleiner_und_mit_tag(self):
         with db.schreiben(self.con):
             self.con.execute("UPDATE projekt SET einstellungen = ? WHERE id = ?", (json.dumps({"ordner": self.repo}), self.pid))

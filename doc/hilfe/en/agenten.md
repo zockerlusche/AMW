@@ -54,3 +54,6 @@ It does not trust the agent's report but runs the acceptance itself – in the p
 
 ### Who may give the merge OK?
 The lead and you – and the reviewer who set the latest check of a task to green: `amw freigabe merge A12`. This way an agent who only reviews can approve without full lead rights. An exception from the full test run is still recorded only by the lead and you.
+
+### Why does a command from my development folder refuse the database?
+The database belongs to the AMW service. If a command runs with code from another folder (development or check folder) and reaches this database through the settings, it may only read – not change it and not lift it to a new schema. Work there with your own file: `AMW_DB=<own file>`. Run commands for real work from the AMW folder.

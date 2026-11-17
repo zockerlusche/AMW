@@ -232,9 +232,12 @@ class Kette:
         """Liegt eine kleinere Version grün und mit Merge-OK bereit, die dieser Stand NICHT enthält? Dann zuerst sie (TL #24530)."""
         ziel = kern.version_teile(version)
         live = kern.version_teile(self.version_an("main"))
-        gesehen, fehlt = set(), []
+        gesehen, aufgaben, fehlt = set(), set(), []
         for p in self.con.execute("SELECT * FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen' AND aufgabe_id IS NOT NULL"
                                   " ORDER BY id DESC LIMIT 60", (self.pid,)).fetchall():
+            if p["aufgabe_id"] in aufgaben:
+                continue                                 # je Aufgabe zählt nur die neueste grüne Prüfung (17.11.: P246 vor P249)
+            aufgaben.add(p["aufgabe_id"])
             if p["sha"] in gesehen or not betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"]):
                 continue
             gesehen.add(p["sha"])

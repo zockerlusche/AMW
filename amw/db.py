@@ -17,6 +17,65 @@ from datetime import datetime, timezone
 SCHEMA_VERSION = 33        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
 HIER = os.path.dirname(os.path.abspath(__file__))
 STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
+CODE = os.path.dirname(HIER)                       # Ordner dieses Codes (Live-Ordner, Entwicklungsbaum, Prüfbaum, Platz)
+
+
+# --- Schutz der Live-Datenbank (A1862, Vorfall #28835: ein Befehl aus dem Entwicklungsbaum migrierte die Live-DB) ------------
+# Der Dienst vermerkt beim Start neben der Datenbank, aus welchem Ordner sein Code kommt (<db>.code). Öffnet Code aus einem
+# ANDEREN Ordner diese Datenbank, ohne dass AMW_DB ausdrücklich gesetzt ist (Entwicklungsbaum, der über die Einstellung db_pfad
+# bei der Live-DB landet), darf er lesen – aber nicht migrieren und nicht schreiben. Ohne Vermerk (ältere Installation, Tests)
+# bleibt alles wie bisher; mit ausdrücklichem AMW_DB auch (Tests, Plätze, bewusste Kopien).
+
+class LiveSchutz(ValueError):
+    pass
+
+
+class _Verbindung(sqlite3.Connection):
+    fremd = None                                   # Ordner des Dienstes, wenn dieser Code fremd ist
+
+
+def vermerk_pfad(pfad):
+    return pfad + ".code"
+
+
+def vermerken(pfad=None):
+    """Vom Dienst beim Start: dieser Code gehört zu dieser Datenbank."""
+    try:
+        with open(vermerk_pfad(pfad or db_pfad()), "w", encoding="utf-8") as f:
+            f.write(CODE)
+    except OSError:
+        pass
+
+
+def fremder_code(pfad):
+    """Ordner des Dienstes, wenn dieser Code NICHT von dort kommt und AMW_DB nicht ausdrücklich gesetzt ist – sonst None."""
+    if os.environ.get("AMW_DB"):
+        return None
+    try:
+        with open(vermerk_pfad(pfad), encoding="utf-8") as f:
+            dienst = f.read().strip()
+    except OSError:
+        return None
+    norm = lambda x: os.path.normcase(os.path.abspath(x))
+    return dienst if dienst and norm(dienst) != norm(CODE) else None
+
+
+_SCHREIBEN = {getattr(sqlite3, n) for n in ("SQLITE_INSERT", "SQLITE_UPDATE", "SQLITE_DELETE", "SQLITE_CREATE_TABLE", "SQLITE_CREATE_INDEX",
+              "SQLITE_CREATE_TRIGGER", "SQLITE_CREATE_VIEW", "SQLITE_DROP_TABLE", "SQLITE_DROP_INDEX", "SQLITE_DROP_TRIGGER",
+              "SQLITE_DROP_VIEW", "SQLITE_ALTER_TABLE")}
+
+
+def _nur_lesen(aktion, a1, a2, datenbank, ausloeser):
+    if aktion in _SCHREIBEN and datenbank != "temp":
+        return sqlite3.SQLITE_DENY
+    if aktion == sqlite3.SQLITE_PRAGMA and a1 == "user_version" and a2 is not None:
+        return sqlite3.SQLITE_DENY
+    return sqlite3.SQLITE_OK
+
+
+def _schutz_meldung(con, was):
+    return (f"Diese Datenbank gehört zum Dienst in {con.fremd}; Code aus {CODE} darf sie nicht {was}. Befehle von hier mit"
+            f" AMW_DB=<eigene Datei> ausführen – oder aus {con.fremd} (A1862).")
 
 
 def db_pfad():
@@ -87,11 +146,14 @@ def verbinde(pfad=None, nur_lesen=False):
     # schreiben(); sonst bliebe nach einem einzelnen Schreibbefehl die Datenbank für alle anderen gesperrt.
     pfad = pfad or db_pfad()
     if nur_lesen:
-        con = sqlite3.connect(f"file:{pfad}?mode=ro", uri=True, timeout=30, isolation_level=None)
+        con = sqlite3.connect(f"file:{pfad}?mode=ro", uri=True, timeout=30, isolation_level=None, factory=_Verbindung)
     else:
         if not os.path.exists(pfad):
             raise FileNotFoundError(f"{pfad} gibt es nicht – erst `amw einrichten`")
-        con = sqlite3.connect(pfad, timeout=30, isolation_level=None)
+        con = sqlite3.connect(pfad, timeout=30, isolation_level=None, factory=_Verbindung)
+    con.fremd = fremder_code(pfad)
+    if con.fremd:                                  # A1862: auch Schreibbefehle außerhalb von schreiben() abweisen
+        con.set_authorizer(_nur_lesen)
     con.row_factory = sqlite3.Row
     with _warten("oeffnen"):
         con.execute("PRAGMA busy_timeout = 30000")
@@ -106,6 +168,8 @@ def migrieren(con):
     v = con.execute("PRAGMA user_version").fetchone()[0]
     if v == 0 or v >= SCHEMA_VERSION:              # 0 = gerade angelegt bzw. leer: anlegen() setzt die Version
         return
+    if getattr(con, "fremd", None):                # A1862: fremder Code migriert die Live-DB nie
+        raise LiveSchutz(_schutz_meldung(con, f"von Schema {v} auf {SCHEMA_VERSION} migrieren"))
     con.execute("PRAGMA foreign_keys = OFF")       # Tabellen neu anlegen (SQLite: nur außerhalb einer Transaktion
     con.execute("BEGIN IMMEDIATE")                 # umschaltbar); vor dem Abschluss prüft foreign_key_check
     try:
@@ -209,6 +273,8 @@ def sichern(ziel=None, pfad=None, pid=None, name=None):
 @contextmanager
 def schreiben(con):
     """Eine Schreib-Transaktion; sperrt sofort, damit zwei Agenten sich nicht überholen."""
+    if getattr(con, "fremd", None):                # A1862: fremder Code schreibt nicht in die Live-DB
+        raise LiveSchutz(_schutz_meldung(con, "beschreiben"))
     with _warten("sperre"):
         con.execute("BEGIN IMMEDIATE")
     try:

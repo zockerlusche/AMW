@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.131.3 – 17.11.2026 · Datenbank des Dienstes geschützt
+- **Behoben:** Befehle aus einem Entwicklungs- oder Prüfordner können die Datenbank des Dienstes nur noch lesen –
+  nicht mehr ändern oder auf ein neues Schema heben. Dort mit eigener Datei arbeiten (`AMW_DB`).
+- **Behoben:** Die Auslieferung hielt an, wenn eine Aufgabe neu aufgesetzt worden war und ihre alte Prüfung noch grün
+  stand. Jetzt zählt je Aufgabe nur die neueste grüne Prüfung.
+
 ## 1.131.2 – 17.11.2026 · Merge-OK durch den Prüfer
 - **Neu:** Das Merge-OK gibt jetzt auch der Prüfer, der die jüngste Prüfung einer Aufgabe grün gesetzt hat – ohne volle
   Lead-Rechte. Eine Ausnahme vom Gesamtlauf vermerkt weiter nur der Lead.
