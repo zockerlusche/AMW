@@ -265,6 +265,15 @@ def _uebersicht(con, pid, gesund):
                 "zustand": sync["zustand"], "zeit_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - sync["alter_s"]))}}
 
 
+def _startvorschlaege(con, pid):
+    """A1867: „X starten?“ unter „Für dich“ – nie eine Ansicht kaputt machen, wenn etwas fehlt."""
+    try:
+        from . import steuerung
+        return steuerung.startvorschlaege(con, pid)
+    except Exception:
+        return []
+
+
 def daten_start(con, pid):
     gesund = herzschlag.gesundheit()
     alt = altbestand_bis(con, pid)
@@ -381,6 +390,7 @@ def daten_start(con, pid):
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
             "dienst_rot": [g["teil"] for g in gesund["teile"] if g["zustand"] == "rot"], "uebersicht": _uebersicht(con, pid, gesund),
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
+            "startvorschlaege": _startvorschlaege(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 

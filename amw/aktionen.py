@@ -177,13 +177,26 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         return {"erledigt": kern.erledigt(con, pid, kern.ENTWICKLER, ids[:100])}
     if weg.startswith("/api/einstellungen/"):
         return einstellen(con, pid, weg.rsplit("/", 1)[1], daten, kanal, speicher)
+    if weg == "/api/agent/startvorschlag_nein":       # A1867: „Nicht jetzt“ zu einem Startvorschlag – nur am PC
+        if kanal != "seite":
+            raise Ungueltig("Startvorschläge beantwortest du am PC")
+        from . import steuerung
+        try:
+            return steuerung.startvorschlag_ablehnen(con, pid, daten.get("kennung") or "")
+        except (kern.AmwFehler, LookupError) as e:
+            raise Ungueltig(str(e)) from None
     if weg in ("/api/agent/start", "/api/agent/stop"):     # nur am PC: startet/beendet Programme auf diesem PC
         if kanal != "seite":
             raise Ungueltig("Agenten starten und beenden geht nur am PC")
         from . import steuerung
         try:
             if weg.endswith("start"):
-                return {"text": steuerung.starten(con, pid, daten.get("kennung") or "", neu=bool(daten.get("neu")))}
+                text = steuerung.starten(con, pid, daten.get("kennung") or "", neu=bool(daten.get("neu")))
+                if daten.get("vorschlag"):               # A1867: Start auf einen Vorschlag der AMW – im Planungs-Protokoll
+                    with db.schreiben(con):
+                        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=kern.ENTWICKLER,
+                                     art="startvorschlag_ja", text=f"{daten.get('kennung')}: {str(daten.get('vorschlag'))[:200]}")
+                return {"text": text}
             return {"text": steuerung.beenden(con, pid, daten.get("kennung") or "")}
         except (kern.AmwFehler, LookupError, OSError) as e:
             raise Ungueltig(str(e)) from None

@@ -604,3 +604,50 @@ def startskript(con, pid, kennungen=None, alle=False, abstand_s=STARTSKRIPT_ABST
         raise kern.AmwFehler("kein Agent mit Profil-Ordner – amw agent profil <kennung> --ordner <Pfad>")
     zeilen.append(f"echo {n} Agent(en) gestartet.")
     return "\r\n".join(zeilen) + "\r\n"
+
+
+# --- Startvorschläge (A1867, D1258 §6b) --------------------------------------------------------------------------------------
+# Die AMW schlägt einen Start vor; der Mensch bestätigt am PC (W2337 Pkt 7) – sie startet nie von selbst und nie online.
+VORSCHLAG_RUHE_H = 12          # „Nicht jetzt“: so lange kein neuer Vorschlag für diesen Agenten
+
+
+def startvorschlaege(con, pid):
+    """[{"kennung", "grund", "text", "aufgabe"}] – Agenten im Terminal mit Startprofil, die nicht laufen, aber dran wären:
+    Paket der Art sitzung ist startklar (grund „sitzung“), letzte Sitzung endete ohne bewusstes Ende und es gibt Arbeit
+    („absturz“), oder es gibt Arbeit in der Liste („arbeit“). Ohne „Nicht jetzt“ der letzten VORSCHLAG_RUHE_H Stunden."""
+    from . import arbeitsliste
+    grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=VORSCHLAG_RUHE_H)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    abgelehnt = {r[0] for r in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = 'startvorschlag_nein'"
+                                           " AND zeit_utc >= ?", (pid, grenze))}
+    aus = []
+    for a in con.execute("SELECT kennung, ordner FROM agent WHERE projekt_id = ? AND soll != 'aus' AND entfernt_utc IS NULL"
+                         " AND coalesce(arbeitsweise, 'terminal') = 'terminal' AND coalesce(ordner, '') != '' ORDER BY id", (pid,)).fetchall():
+        k = a["kennung"]
+        if k in abgelehnt or laeuft(con, pid, k) or _sitzung_mit_prozess(con, pid, k, auch_ruhend=True)[1]:
+            continue
+        try:
+            paket = con.execute("SELECT a.id, a.titel FROM paket p JOIN aufgabe a ON a.id = p.aufgabe_id WHERE a.projekt_id = ?"
+                                " AND a.agent = ? AND p.art = 'sitzung' AND a.status NOT IN ('fertig', 'verworfen')"
+                                " ORDER BY coalesce(a.rang, 999999), a.id LIMIT 1", (pid, k)).fetchone()
+        except Exception:                                  # ältere Datenbank ohne Tabelle paket
+            paket = None
+        if paket:
+            aus.append({"kennung": k, "grund": "sitzung", "aufgabe": paket["id"], "text": paket["titel"]})
+            continue
+        bereit = [x for x in arbeitsliste.liste(con, pid, k) if x["status"] == "laeuft" or not x["gruende"]]
+        if not bereit:
+            continue
+        s = con.execute("SELECT s.zustand, s.ereignis, s.ereignis_text FROM sitzung s JOIN agent g ON g.id = s.agent_id"
+                        " WHERE g.projekt_id = ? AND g.kennung = ? ORDER BY s.id DESC LIMIT 1", (pid, k)).fetchone()
+        absturz = bool(s and s["zustand"] in ("beendet", "tot")                  # wie Ueberwachung.kandidaten: bewusst =
+                       and not (s["ereignis"] == "beendet" and (s["ereignis_text"] or "") in BEWUSST))   # „beendet“ + BEWUSST
+        aus.append({"kennung": k, "grund": "absturz" if absturz else "arbeit", "aufgabe": bereit[0]["id"], "text": bereit[0]["titel"]})
+    return aus
+
+
+def startvorschlag_ablehnen(con, pid, kennung):
+    """„Nicht jetzt“ des Menschen – steht im Planungs-Protokoll; für VORSCHLAG_RUHE_H Stunden kein neuer Vorschlag."""
+    kern.agent_zeile(con, pid, kennung)
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=kern.ENTWICKLER, art="startvorschlag_nein", text=kennung)
+    return {"kennung": kennung}
