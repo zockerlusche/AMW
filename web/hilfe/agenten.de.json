@@ -113,7 +113,7 @@
   ],
   [
    "Wie ist ein Arbeiter am Arbeitsplatz abgeschottet – und wie halte ich ihn an?",
-   "Ein kopfloser Arbeiter (`claude -p`) liest und schreibt nur im Klon seines Platzes, führt nur feste git-Befehle (Status, Diff, Log, Add, Commit) und den Abnahme-Befehl seines Pakets aus und lädt keine fremden Einstellungen, Hooks oder MCP-Server. Weicht seine Startmeldung von der erwarteten ab (Werkzeuge, Modell, Rechte), beendet die AMW ihn sofort. Er bekommt die Datenbank und den Port des Platzes, nie die echte Datenbank. Anhalten kannst nur du: `amw platz notbremse 1 --von Entwickler` beendet den Arbeiter samt aller Kindprozesse; was er schon geändert hat, steht danach im Protokoll und beim Lead."
+   "Ein kopfloser Arbeiter (`claude -p`) liest und schreibt nur im Klon seines Platzes, führt nur den Abnahme-Befehl seines Pakets aus (kein git – committen tut die AMW nach ihrer Prüfung) und lädt keine fremden Einstellungen, Hooks oder MCP-Server. Weicht seine Startmeldung von der erwarteten ab (Werkzeuge, Modell, Rechte), beendet die AMW ihn sofort. Er bekommt die Datenbank und den Port des Platzes, nie die echte Datenbank. Anhalten kannst nur du: `amw platz notbremse 1 --von Entwickler` beendet den Arbeiter samt aller Kindprozesse; was er schon geändert hat, steht danach im Protokoll und beim Lead."
   ]
  ],
  "thema": "agenten",

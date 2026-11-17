@@ -113,7 +113,7 @@
   ],
   [
    "How is a worker at a work place sealed off – and how do I stop it?",
-   "A headless worker (`claude -p`) reads and writes only in the clone of its place, runs only fixed git commands (status, diff, log, add, commit) and the acceptance command of its package, and loads no outside settings, hooks or MCP servers. If its start message differs from the expected one (tools, model, permissions), AMW stops it at once. It gets the database and port of its place, never the real database. Only you can stop it: `amw platz notbremse 1 --von Entwickler` ends the worker with all its child processes; what it had already changed is then in the log and with the lead."
+   "A headless worker (`claude -p`) reads and writes only in the clone of its place, runs only the acceptance command of its package (no git – AMW commits after its own check), and loads no outside settings, hooks or MCP servers. If its start message differs from the expected one (tools, model, permissions), AMW stops it at once. It gets the database and port of its place, never the real database. Only you can stop it: `amw platz notbremse 1 --von Entwickler` ends the worker with all its child processes; what it had already changed is then in the log and with the lead."
   ]
  ],
  "thema": "agenten",

@@ -6,7 +6,7 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 
 ## 1.136.0 – 17.11.2026 · Abgeschottete Arbeiter am Arbeitsplatz
 - **Neu (für Arbeitsplätze):** Die AMW kann einen kopflosen Arbeiter (`claude -p`) starten, der nur im Klon seines Platzes
-  liest und schreibt, nur feste git-Befehle und den Abnahme-Befehl ausführt und keine fremden Einstellungen, Hooks oder
+  liest und schreibt, nur den Abnahme-Befehl ausführt (kein git – committen tut die AMW) und keine fremden Einstellungen, Hooks oder
   MCP-Server lädt. Weicht seine Startmeldung ab, wird er sofort beendet. Die Notbremse (`amw platz notbremse N`, nur der
   Mensch) beendet ihn samt aller Kindprozesse. Ohne Arbeitsplätze ändert sich nichts.
 

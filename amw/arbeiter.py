@@ -6,7 +6,8 @@ Abschottung (gemessen mit Claude Code 2.1.326, Probe in der Prüfbitte):
   (Hooks, Rechte, MCP) werden nicht geladen, auch keine CLAUDE.md; Schreiben in Einstellungen, .git und Werkzeug-Dateien braucht
   einen Menschen → im Modus dontAsk abgelehnt.
 - `--strict-mcp-config`: keine MCP-Server außer denen, die die AMW mitgibt (S5a: keine; S5b: der Rückmelde-Zugang).
-- `--settings` (Datei außerhalb des Klons) mit `defaultMode: dontAsk` und der Freigabeliste: Bash nur git status/diff/log/add/commit
+- `--settings` (Datei außerhalb des Klons) mit `defaultMode: dontAsk` und der Freigabeliste: Bash nur genau der Abnahme-Befehl,
+  kein git (TL #28952: die AMW liest die Änderungen selbst und committet nach dem Diff-Tor, S6a)
   und genau der Abnahme-Befehl – alles andere lehnt Claude Code ohne Rückfrage ab (steht in `permission_denials`).
 - Umgebung des Platzes (eigene DB, LOCALAPPDATA, TEMP, Port; keine Kennung, kein Nachrichten-Zugang), Auto-Update aus, UTF-8.
 - Das init-Ereignis aus stream-json wird gegen die Sollliste geprüft (Werkzeuge, MCP, Modell, Rechte-Modus, Ordner, keine Skills,
@@ -31,12 +32,8 @@ import time
 from . import abnahme, db, platz
 
 WERKZEUGE = ("Bash", "Edit", "Glob", "Grep", "Read", "Write")
-# git nur in festen Formen: ein Platzhalter hinter diff/log erlaubte --output=<Datei irgendwo> (Schreiben außerhalb) und
-# --no-index (Lesen beliebiger Dateien). Nur add und commit -m haben einen Platzhalter (Pfade bzw. Nachricht).
-GIT_FEST = ("git status", "git status --short", "git diff", "git diff --stat", "git diff --cached", "git diff --cached --stat",
-            "git diff HEAD", "git diff HEAD --stat", "git log --oneline -5", "git log --oneline -20", "git log -1", "git log -1 --stat")
-GIT_FREI = ("git add *", "git commit -m *")
-# … und keine Option, mit der git eine Datei (auch außerhalb des Platzes) einliest (Gegenlesen Nr. 3/4)
+# Kein git für den Arbeiter (TL #28952). Die Sperren unten bleiben als zweite Linie: deny geht vor allow, und ein
+# Abnahme-Befehl, der eine davon trifft, wird gleich abgelehnt.
 GIT_VERBOTEN = ("--output", "--no-index", "--exec", "-C ", "--git-dir", "--work-tree", "-c ", " -F", "--file", "--template", " -t ",
                 "--pathspec-from-file", "--reuse-message", "--reedit-message", "--trailer")
 STEUERDATEIEN = ("./.git/**", "./.claude/**", "./CLAUDE.md", "./.mcp.json", "**/.claude/**", "**/CLAUDE.md", "**/.mcp.json")
@@ -77,10 +74,10 @@ def freigabe(pruefbefehl):
         raise ArbeiterFehler("ohne Abnahme-Befehl startet kein Arbeiter (Regel 1)")
     if any(z in befehl for z in ("&&", "||", ";", "|", ">", "<", "`", "$(", "\n")):
         raise ArbeiterFehler(f"Abnahme-Befehl „{befehl}“: nur ein einzelner Befehl ohne Verkettung oder Umleitung")
-    allow = ["Read", "Glob", "Grep", "Edit", "Write"] + [f"Bash({g})" for g in GIT_FEST + GIT_FREI] + [f"Bash({befehl})"]
+    allow = ["Read", "Glob", "Grep", "Edit", "Write", f"Bash({befehl})"]
     steuer = [f"{w}({m})" for w in ("Edit", "Write") for m in STEUERDATEIEN]     # Gegenlesen D Nr. 1/2: zusätzlich zu --restricted
     # „-c “/„-C “ mit Leerzeichen – ohne träfe die Sperre auch das erlaubte „git diff --cached“
-    deny = [f"Bash(*{v}*)" for v in GIT_VERBOTEN] + ["Bash(git push*)", "Bash(git remote*)", "Bash(git config*)",
+    deny = [f"Bash(*{v}*)" for v in GIT_VERBOTEN] + ["Bash(git)", "Bash(git *)", "Bash(git push*)", "Bash(git remote*)", "Bash(git config*)",
             "Bash(git reset*)", "Bash(git checkout*)", "Bash(git switch*)", "Bash(git rebase*)", "Bash(git clean*)", "WebFetch", "WebSearch"] + steuer
     import fnmatch                                             # P259 (1): deny geht vor allow – trifft der Abnahme-Befehl eine
     trifft = [d for d in deny if d.startswith("Bash(") and fnmatch.fnmatchcase(befehl, d[5:-1])]   # Sperre, könnte ihn der

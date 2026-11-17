@@ -74,10 +74,8 @@ class Arbeiter(unittest.TestCase):
         self.assertEqual(f["defaultMode"], "dontAsk")
         bash = [x for x in f["allow"] if x.startswith("Bash(")]
         self.assertIn("Bash(python -m unittest tests.test_x)", bash)
-        for x in bash:                                                   # git nur status/diff/log/add/commit
-            if x.startswith("Bash(git "):
-                self.assertIn(x.split()[1].rstrip(")"), ("status", "diff", "log", "add", "commit"), x)
-        self.assertFalse([x for x in bash if x.startswith(("Bash(git diff", "Bash(git log", "Bash(git status")) and "*" in x])
+        self.assertEqual(bash, ["Bash(python -m unittest tests.test_x)"])     # TL #28952: kein git für den Arbeiter
+        self.assertIn("Bash(git *)", f["deny"])
         self.assertNotIn("Bash(*)", f["allow"])
         for v in ("--output", "--no-index", "-C ", "git push", " -F", "--template", "--pathspec-from-file"):
             self.assertTrue([d for d in f["deny"] if v in d], v)
