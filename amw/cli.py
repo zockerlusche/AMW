@@ -1123,7 +1123,7 @@ def cmd_waechter(a, con):
         else:
             raise kern.AmwFehler("amw waechter wartung an|aus")
         return
-    waechter.weiter(con)
+    waechter.weiter(con, _projekt(con, a), _von(a))
     print("Wartungsmodus und Pause aufgehoben – p-Pakete dürfen wieder starten (nach den übrigen Regeln)")
 
 

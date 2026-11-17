@@ -114,7 +114,7 @@ class Waechter(unittest.TestCase):
         a = self.paket(bereiche="doc/")
         self.assertEqual(self.regel(a), 9)
         self.assertTrue(waechter.zustand()["pause"])                                          # Pause bleibt …
-        waechter.weiter(self.con)                                                             # … bis Lead/Mensch weiter sagt
+        waechter.weiter(self.con, self.pid, "TL")                                             # … bis Lead/Mensch weiter sagt
         self.assertTrue(waechter.zustand()["pause"] is None)
         r = waechter.pruefen(self.con, self.pid, a, limit=10)                                  # P253: danach darf es wirklich starten
         self.assertTrue(r["ok"], r)
@@ -130,15 +130,19 @@ class Waechter(unittest.TestCase):
         self.assertIsNone(self.regel(a))
 
     def test_weiter_nach_aelterer_datenbank(self):
-        """A1866 (P257): nach dem Zurückspielen einer älteren DB liegt der Merker von „weiter“ über allen Ereignissen – er gilt
-        dann nicht mehr, Regel 9 zählt wieder alle Enden."""
+        """A1866 (P257/P265): der Merker von „weiter“ steht als Ereignis in der Datenbank. Eine ältere DB (ohne dieses Ereignis)
+        zählt wieder alle Enden – eine Zahl aus der Datei dieses PCs spielt keine Rolle mehr."""
         kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, plaetze=3)
-        waechter._setzen(weiter_nach=10 ** 9)                                                   # wie nach dem Zurückspielen
+        waechter._setzen(weiter_nach=10 ** 9)                                                   # alter Merker in der Datei: wirkungslos
         for i in range(2):
             x = self.paket(bereiche=f"web/{i}/")
             arbeitspaket.zustand_setzen(self.con, self.pid, "TL", x, "laeuft")
             arbeitspaket.zustand_setzen(self.con, self.pid, "TL", x, "unklar")
         self.assertEqual(self.regel(self.paket(bereiche="doc/")), 9)
+        waechter.weiter(self.con, self.pid, "TL")
+        e = self.con.execute("SELECT von, text FROM plan_ereignis WHERE art = 'waechter_weiter'").fetchall()
+        self.assertEqual([tuple(x) for x in e], [("TL", "Wartungsmodus und Pause aufgehoben")])
+        self.assertIsNone(self.regel(self.paket(bereiche="neu/")))
 
     def test_regel_10_ohne_plaetze_wie_heute(self):
         a = self.paket()

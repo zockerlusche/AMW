@@ -350,7 +350,7 @@ class Kette:
         for v, c in self.zwischenversionen(sha, version):
             if self.extern(["git", "rev-parse", "-q", "--verify", f"refs/tags/v{v}"], self.repo)[0] == 0:
                 continue                                 # schon getaggt (z. B. von Hand)
-            if not any(g and (c.startswith(g) or g.startswith(c)) for g in gruen):
+            if not any(g and len(g) >= 7 and (c.startswith(g) or g.startswith(c)) for g in gruen):   # P265 (a): wie ist_gruen
                 aufgegangen.append(v)                    # A1866 (17.11.: 1.132.0/1.133.0 nach Umnummerieren): kein eigenes Release
                 continue
             zwischen.append({"version": v, "sha": c, "notizen": self.notizen(c, v)})   # CHANGELOG an ihrem eigenen Stand
@@ -371,7 +371,11 @@ class Kette:
         except Exception as e:                                   # noqa: BLE001 – jeder andere Fehler wird zum Stopp mit Hinweis
             if not getattr(self, "wartung_an", False):
                 raise
-            self.stopp("Unerwarteter Fehler", f"{type(e).__name__}: {str(e)[:300]}")
+            import traceback                                     # P265 (c): der Traceback geht nicht verloren
+            with db.schreiben(self.con):
+                db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von=self.von, art="auslieferung_fehler",
+                             text=traceback.format_exc()[-1500:])
+            self.stopp("Unerwarteter Fehler", f"{type(e).__name__}: {str(e)[:300]} (Traceback im Protokoll: plan_ereignis auslieferung_fehler)")
 
     def _ausliefern(self, zweig, gesamtlauf=None, aufgabe=None):
         v = self.pruefen(zweig, gesamtlauf, aufgabe)

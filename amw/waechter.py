@@ -47,7 +47,7 @@ def zustand():
             d = json.load(f)
     except (OSError, ValueError):
         d = {}
-    return {"wartung": d.get("wartung"), "pause": d.get("pause"), "weiter_nach": d.get("weiter_nach") or 0}
+    return {"wartung": d.get("wartung"), "pause": d.get("pause")}
 
 
 def _setzen(**werte):
@@ -76,11 +76,21 @@ def pause_an(grund):
     _setzen(pause={"seit": _jetzt(), "grund": grund})
 
 
-def weiter(con=None):
-    """Wartungsmodus und Pause aufheben (Lead/Mensch). P253: merkt sich das letzte Ereignis – Regel 9 zählt danach nur neue
-    Enden, sonst setzte die alte Folge „unklar, unklar“ die Pause sofort wieder und kein p-Paket käme mehr los."""
-    nach = con.execute("SELECT coalesce(max(id), 0) FROM plan_ereignis").fetchone()[0] if con is not None else zustand()["weiter_nach"]
-    _setzen(wartung=None, pause=None, weiter_nach=nach)
+def weiter(con=None, pid=None, von="AMW"):
+    """Wartungsmodus und Pause aufheben (Lead/Mensch). P253: Regel 9 zählt danach nur neue Enden, sonst setzte die alte Folge
+    „unklar, unklar“ die Pause sofort wieder. P265 (b): der Merker ist ein Ereignis „waechter_weiter“ in der Datenbank selbst –
+    nach dem Zurückspielen einer älteren DB gilt deren eigener Stand, nicht eine Zahl aus der Datei dieses PCs."""
+    if con is not None and pid is not None:
+        from . import db
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="waechter_weiter",
+                         text="Wartungsmodus und Pause aufgehoben")
+    _setzen(wartung=None, pause=None)
+
+
+def _weiter_nach(con):
+    """Ereignis-Nummer des letzten „weiter“ (alle Projekte – Pause und Wartungsmodus gelten für den ganzen PC)."""
+    return con.execute("SELECT coalesce(max(id), 0) FROM plan_ereignis WHERE art = 'waechter_weiter'").fetchone()[0] or 0
 
 
 def bereiche(text):
@@ -134,10 +144,7 @@ def pruefen(con, pid, aid, limit=None):
         return _nein(7, z["wartung"].get("grund"))
     if z["pause"]:
         return _nein(9, z["pause"].get("grund"))
-    nach = z["weiter_nach"]
-    if nach and nach > (con.execute("SELECT coalesce(max(id), 0) FROM plan_ereignis").fetchone()[0] or 0):
-        nach = 0                                                 # A1866 (P257): ältere DB zurückgespielt – Merker gilt nicht mehr
-    enden = _letzte_enden(con, pid, nach=nach)
+    enden = _letzte_enden(con, pid, nach=_weiter_nach(con))
     if len(enden) == 2 and all(e in ("unklar", "abgebrochen") for e in enden):
         pause_an("zweimal hintereinander unklar oder abgebrochen")
         return _nein(9)

@@ -388,6 +388,19 @@ class Kette(unittest.TestCase):
         self.assertEqual([x[0] for x in self.con.execute("SELECT version FROM release WHERE art = 'version'")], ["1.1.1"])
         self.assertTrue(any("kein eigenes Release: 1.1.0" in z for z in aus), aus)
 
+    def test_zwischenversion_kurzer_sha_zaehlt_nicht(self):
+        """P265 (a): eine grüne Prüfung mit sehr kurzem SHA gibt keine fremde Zwischenversion frei (mindestens 7 Zeichen)."""
+        self.g("switch", "-q", "neu")
+        oben = self.stand("1.1.1", "Neu nummeriert")
+        self.g("switch", "-q", "main")
+        self.gruen_auf("neu", oben, "Oben")
+        with db.schreiben(self.con):                                                             # grüne Prüfung mit 4-Zeichen-SHA
+            db.einfuegen(self.con, "pruefung", projekt_id=self.pid, zweig="x", sha=self.sha[:4], bauer="CC1", pruefer="TL",
+                         ergebnis="gruen", angefragt_utc=db.jetzt())
+        self.gesamtlauf(sha=oben)
+        self.kette("1.1.1").ausliefern("neu")
+        self.assertNotEqual(self.extern(["git", "rev-parse", "-q", "--verify", "refs/tags/v1.1.0"], self.repo)[0], 0)
+
     def test_zweig_der_wie_ein_hash_aussieht(self):
         """17.11.: der Zweig „a1848“ war zugleich ein abgekürzter Hash (git warnt „refname is ambiguous“) – die Kette nahm die
         Warnung als Stand. Jetzt löst sie refs/heads/<zweig> auf und nimmt nur die 40-stellige Hex-Zeile."""
@@ -416,6 +429,9 @@ class Kette(unittest.TestCase):
         self.assertIn("RuntimeError: Netz weg", str(e.exception))
         self.assertIn("amw waechter weiter", str(e.exception))
         self.assertTrue(waechter.zustand()["wartung"])
+        tb = self.con.execute("SELECT text FROM plan_ereignis WHERE art = 'auslieferung_fehler'").fetchone()[0]
+        self.assertIn("Traceback", tb)                                                          # P265 (c)
+        self.assertIn("Netz weg", tb)
 
     def test_reihenfolge_kleinere_gruene_version_zuerst(self):
         self.gruen_auf("neu", self.sha, "Kleiner")                                                 # 1.1.0 grün + Merge-OK, nicht draußen
