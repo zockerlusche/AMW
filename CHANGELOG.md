@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.142.0 – 17.11.2026 · Arbeitspakete im Blick
+- **Neu:** Planung › Aufgaben › Pakete zeigt alle Pakete für kopflose Arbeiter mit Art, Zustand, Kosten und – wenn eines nicht
+  startet – dem Grund in Worten („Startet nicht: alle Arbeitsplätze belegt“). Wartet ein Paket auf den Lead oder auf dich, steht
+  dort, wer dran ist. „Was bedeuten die Zustände?“ zeigt, welcher Zustand als fertig, läuft, wartet oder blockiert zählt.
+- **Neu:** Am PC kannst du ein Paket vorziehen oder zurückstellen, alle neuen Starts pausieren, einem laufenden Arbeiter beim
+  Arbeiten zusehen („Mitlesen“) und ihn mit der Notbremse samt Unterprozessen beenden – jeder Eingriff steht im
+  Planungs-Protokoll. Online und am Handy ist die Liste nur zum Lesen.
+
 ## 1.141.2 – 17.11.2026 · Jeder Stand geprüft
 - **Behoben:** Die Auslieferung geht nur noch, wenn jede Aufgabe mit einem Commit im ausgelieferten Bereich als neueste
   Prüfung „grün“ hat – auf einem Stand, der diesen Commit enthält. Ein roter Stand unter einer grünen Spitze hält sie an.
