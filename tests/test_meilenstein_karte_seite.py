@@ -61,9 +61,9 @@ class Karte(Rundgang):
         self.assertTrue(self.tab.js(f"!!document.querySelector('#bogen-{self.danach} .mk-vorziehen')"))
         self.assertTrue(self.tab.js(f"document.querySelector('#bogen-{self.b} .mk-menue').hidden"))
         self.tab.js(f"document.querySelector('#bogen-{self.b} .mk-mehr > button').click()")
-        menue = self.tab.js(f"document.querySelector('#bogen-{self.b} .mk-menue').innerText")
+        menue = self.tab.js(f"document.querySelector('#bogen-{self.b} .mk-menue').textContent")   # ohne Großschreibung (ß → SS)
         for teil in ("Für den Lead", "Abschließen", "Bearbeiten"):
-            self.assertIn(teil.lower(), menue.lower())
+            self.assertIn(teil, menue)
         # offene Aufgaben zuerst: wartet auf dich vor läuft vor Lauf; Mini-Zeitlinie bei allen
         reihe = self.tab.js(f"[...document.querySelectorAll('#bogen-{self.b} .mk-liste > .mk-a')].map(x => +x.id.split('-')[1])")
         self.assertEqual(reihe[:2], [self.frage, self.laeuft])
@@ -78,8 +78,15 @@ class Karte(Rundgang):
 
     def test_zeitleiste_farben_und_muster(self):
         self.oeffnen("planung", "document.querySelector('.ueb-block')")
-        stil = self.tab.js("(() => { const b = document.querySelector('.ueb-block.aktiv'); return b && getComputedStyle(b).getPropertyValue('--farbe').trim(); })()")
-        self.assertEqual(stil.lower(), "#56b4e9")                                  # dunkel: Okabe-Ito Himmelblau
+        bloecke = self.tab.js("[...document.querySelectorAll('.ueb-block')].map(b => [b.className, getComputedStyle(b).getPropertyValue('--farbe').trim().toLowerCase(),"
+                              " getComputedStyle(b).backgroundImage])")
+        okabe = {"aktiv": "#56b4e9", "knapp": "#e6b800", "rot": "#ef7a3a", "fertig": "#2fbf95"}   # dunkel, Okabe-Ito aufgehellt
+        self.assertTrue(bloecke)
+        for klasse, farbe, muster in bloecke:
+            art = next((k for k in okabe if k in klasse.split()), None)
+            self.assertEqual(farbe, okabe.get(art, "#a39a86"), klasse)               # ohne Art: geplant (grau, hohl)
+            if art in ("knapp", "rot"):
+                self.assertIn("repeating-linear-gradient", muster, klasse)          # nicht nur Farbe: Muster
         self.assertTrue(self.tab.js("[...document.querySelectorAll('.ueb-legende .ueb-muster.geplant')].length === 1"))
 
     def test_rundgang(self):
