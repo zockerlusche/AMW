@@ -1,0 +1,120 @@
+{
+ "titel": "Writing p packages (for the lead)",
+ "kurz": "A p package is a small, clearly checkable task that a fresh `claude -p` worker does alongside the interactive agents. The lead plans it so that AMW can start it, check it and present it for approval without asking: with an acceptance command, narrow areas and the details of what to work with.",
+ "brauchst": [
+  "A task that can be finished on its own – small, without visual design and without decisions a person has to see.",
+  "A command that is red today and turns green once the task is done.",
+  "The lead role (or the person): only whoever plans sets package details."
+ ],
+ "schritte": [
+  {
+   "titel": "Pick candidates",
+   "text": "Good fits: a bug with a clear test, a small extension in a few files, text or docs with a checkable result. Not a fit: anything needing the screen, a GPU, a lot of memory, visual design or open questions – that stays with an interactive agent.",
+   "bilder": []
+  },
+  {
+   "titel": "Write the acceptance command",
+   "text": "A command AMW runs itself, e.g. `python -m unittest tests.test_calculator`. It must be red **before** the work – otherwise it checks nothing, and AMW does not start the package. A dedicated new test is usually the best acceptance command.",
+   "bilder": []
+  },
+  {
+   "titel": "Keep the areas narrow",
+   "text": "Only the files or patterns the package may really change, e.g. `amw/calculator.py,tests/test_calculator.py`. Anything outside counts as a deviation after the run. Two packages with overlapping areas do not run at the same time.",
+   "bilder": []
+  },
+  {
+   "titel": "Create or switch the package",
+   "text": "`amw aufgabe neu --titel … --paket p --pruefbefehl \"python -m unittest tests.test_calculator\" --dateien amw/calculator.py,tests/test_calculator.py --bogen <no>` – or switch an existing task with `amw aufgabe aendern <no> --paket p …`. If something is missing, AMW says so right away as “Achtung”.",
+   "bilder": []
+  },
+  {
+   "titel": "Check and release",
+   "text": "`amw paket zeigen <no>` shows all details, defaults included. When everything is right, `amw paket zustand <no> startklar` releases the package for starting.",
+   "bilder": []
+  }
+ ],
+ "werte": [
+  [
+   "`--paket`",
+   "`p` for a `claude -p` worker; `agent` (default) for an existing interactive agent; `sitzung` for a new session"
+  ],
+  [
+   "`--pruefbefehl`",
+   "the acceptance command – required for `p`, red before the work"
+  ],
+  [
+   "`--dateien`",
+   "the areas – required for `p`, as narrow as possible"
+  ],
+  [
+   "`--modell`, `--effort`",
+   "like `claude --model` / `--effort`; default claude-opus-5-5 and high, medium is often enough for simple packages"
+  ],
+  [
+   "`--gewicht`, `--ressourcen`",
+   "leicht (light, default) / schwer (heavy); gpu, bildschirm (screen) – AMW does not start a p package that is heavy or needs resources"
+  ],
+  [
+   "`--nach`",
+   "only after these tasks (as before)"
+  ],
+  [
+   "`--nie-gleichzeitig`",
+   "never at the same time as these tasks, e.g. `A12,A13`"
+  ],
+  [
+   "`--gleiche-ressource`",
+   "a name; packages with the same name run one after the other"
+  ],
+  [
+   "`--pakettyp`",
+   "`normal` (default) or `test-schreiben` when the package only writes a new test"
+  ],
+  [
+   "`--rang`",
+   "lower = earlier (as before)"
+  ]
+ ],
+ "fehler": [
+  [
+   "“Achtung: Art p ohne Abnahme-Befehl” / “ohne Bereiche”",
+   "AMW does not start the package like this. Add `--pruefbefehl` or `--dateien`."
+  ],
+  [
+   "“Achtung: Art p mit Gewicht schwer oder Ressourcen”",
+   "A p package only runs light and without GPU or screen. Either cut it smaller or give it to an interactive agent with `--paket agent`."
+  ],
+  [
+   "“… → … geht nicht” with `amw paket zustand`",
+   "The change is not allowed; the message lists which states are possible from here."
+  ],
+  [
+   "“Paketfelder setzt der Lead”",
+   "Another agent tried to set package details. The lead plans those."
+  ]
+ ],
+ "danach": [
+  "AMW takes every p package through its states: draft → ready to start → running → handed in → in acceptance → ready to merge → merged → done. Alongside: blocked (question open), unclear (no final line), waiting for interactive, aborted, deferred. In Planning and the overview a p package shows like any task as running, waiting, blocked or done.",
+  "Tasks with `--paket agent` (the default) have none of these states – the task status applies to them as before."
+ ],
+ "fragen": [
+  [
+   "What makes a good acceptance command?",
+   "One that checks exactly what the package should deliver, runs fast and is red today. A whole test run is too broad; a single new test or a small test class is ideal."
+  ],
+  [
+   "When `--nach`, when `--nie-gleichzeitig`, when `--gleiche-ressource`?",
+   "`--nach`: the package needs the result of the other task. `--nie-gleichzeitig`: the two get in each other's way, in either order. `--gleiche-ressource`: many packages share something (e.g. the same test database) – they get the same name and run one after the other."
+  ],
+  [
+   "A p package is stuck – how do I hand it to an interactive agent?",
+   "If it is “waiting for interactive”, “blocked”, “unclear” or “aborted”: `amw aufgabe aendern <no> --paket agent --agent <id>`. From then on the normal task status applies again; the states up to then stay in the planning log."
+  ],
+  [
+   "What does the package type “test-schreiben” do?",
+   "For packages that only write a new test. Their acceptance command is naturally not red before the work; instead the new test must be red against the old state and green against the new one, and the lead reads it."
+  ]
+ ],
+ "thema": "p-pakete",
+ "sprache": "en"
+}
