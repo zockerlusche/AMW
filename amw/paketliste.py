@@ -178,8 +178,8 @@ def pause(con, pid, an, grund=None):
     from . import waechter
     if an:
         waechter.pause_an(grund or "vom Menschen in der Workbench")
-    else:
-        waechter.weiter(con)
+    else:                                             # P271: mit Projekt – sonst fehlt das Ereignis waechter_weiter und
+        waechter.weiter(con, pid, kern.ENTWICKLER)  # Regel 9 zählte die alten Enden weiter (Pause sofort wieder da)
     with db.schreiben(con):
         _log(con, pid, "paket_pause", "Pause an – keine neuen Starts" + (f": {grund}" if grund else "") if an else "Pause aufgehoben")
     return waechter.zustand()

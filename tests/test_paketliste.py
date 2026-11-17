@@ -116,6 +116,20 @@ class Eingriffe(Grund):
         self.assertIsNone(waechter.zustand()["pause"])
         self.assertEqual(self.ereignisse("paket_pause"), ["Pause an – keine neuen Starts", "Pause aufgehoben"])
 
+    def test_pause_aus_wirkt_auch_nach_regel_9(self):
+        """P271: zwei Pakete enden unklar → Pause (Regel 9); „Pause aus“ in der Workbench → das nächste darf wirklich starten."""
+        self.plaetze(1)
+        for aid in (self.a, self.b):
+            for z in ("startklar", "laeuft", "unklar"):
+                ap.zustand_setzen(self.con, self.pid, "AMW", aid, z)
+        dritt = self.paket("Drittes", rang=40)
+        ap.zustand_setzen(self.con, self.pid, "TL", dritt, "startklar")
+        self.assertEqual(waechter.pruefen(self.con, self.pid, dritt, limit=0)["regel"], 9)
+        self.tun("pause", {"an": False})
+        r = waechter.pruefen(self.con, self.pid, dritt, limit=0)
+        self.assertTrue(r["ok"], r)
+        self.assertIsNone(waechter.zustand()["pause"])
+
     def test_notbremse_mit_protokoll(self):
         self.plaetze(1)
         from amw import arbeiter
