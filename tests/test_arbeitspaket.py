@@ -1,9 +1,12 @@
 """Arbeitspakete (A1845, D1258 v4 §3/§4): Felder mit Standardwerten, Zustandsautomat nur für Art p (erlaubte und verbotene
 Übergänge), Spiegelung auf den Status der Aufgabe; Art agent hat keinen Automaten."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import contextlib
+import io
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 from amw import arbeitspaket as ap, db, kern
 
@@ -81,7 +84,7 @@ class Automat(unittest.TestCase):
         ap.art_wechsel_pruefen("agent", "p", None)
 
 
-class Speicher(unittest.TestCase):
+class _Datenbank(unittest.TestCase):
     """Gegen die Tabelle paket (bis Schema 33 freigegeben ist: in der Test-Datenbank angelegt)."""
     def setUp(self):
         self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
@@ -99,6 +102,8 @@ class Speicher(unittest.TestCase):
     def status(self):
         return self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()[0]
 
+
+class Speicher(_Datenbank):
     def test_ohne_zeile_agent_und_heutiger_status(self):
         self.assertEqual(ap.lesen(self.con, self.aid)["art"], "agent")
         with self.assertRaisesRegex(kern.AmwFehler, "nur bei Art p"):
@@ -159,6 +164,47 @@ class Speicher(unittest.TestCase):
         ap.zustand_setzen(self.con, self.pid, "AMW", self.aid, "laeuft")
         with self.assertRaisesRegex(kern.AmwFehler, "solange"):
             ap.setzen(self.con, self.pid, "TL", self.aid, art="agent")
+
+
+class Befehle(_Datenbank):
+    def cli(self, *args):
+        from amw import cli
+        aus = io.StringIO()
+        with mock.patch.dict(os.environ, {"AMW_DB": os.path.join(self.ordner.name, "amw.db")}),                 contextlib.redirect_stdout(aus), contextlib.redirect_stderr(aus):
+            rc = cli.main([*args, "--projekt", "Eins"])
+        return rc, aus.getvalue()
+
+    def test_felder_per_aufgabe_aendern_und_zeigen(self):
+        rc, aus = self.cli("aufgabe", "aendern", str(self.aid), "--paket", "p", "--effort", "medium", "--ressourcen", "gpu",
+                           "--nie-gleichzeitig", f"A{self.andere}", "--pruefbefehl", "python -m unittest tests.test_x", "--von", "TL")
+        self.assertEqual(rc, 0, aus)
+        self.assertIn("Paket p · Entwurf", aus)
+        self.assertIn("ohne Bereiche", aus)                                       # Warnung, kein Fehler
+        self.assertIn("Gewicht schwer oder Ressourcen", aus)
+        rc, aus = self.cli("paket", "zeigen", str(self.aid), "--von", "TL")
+        self.assertEqual(rc, 0, aus)
+        for teil in ("Art: p", "Zustand: Entwurf", "Abnahme-Befehl: python -m unittest tests.test_x", "Ressourcen: gpu",
+                     "Modell: claude-opus-5-5 (Vorgabe)", "Effort: medium", f"nie gleichzeitig mit: A{self.andere}", "– → Entwurf"):
+            self.assertIn(teil, aus)
+
+    def test_neu_mit_paket_und_zustand_und_liste(self):
+        rc, aus = self.cli("aufgabe", "neu", "--titel", "Ein p-Paket", "--paket", "p", "--dateien", "amw/x.py",
+                           "--pruefbefehl", "python -m unittest tests.test_x", "--ohne-bogen", "--von", "TL")
+        self.assertEqual(rc, 0, aus)
+        aid = int(aus.split("A", 1)[1].split()[0])
+        self.assertNotIn("Achtung", aus)
+        rc, aus = self.cli("paket", "zustand", str(aid), "laeuft", "--von", "TL")
+        self.assertNotEqual(rc, 0)
+        self.assertIn("geht nicht", aus)
+        rc, aus = self.cli("paket", "zustand", str(aid), "startklar", "--grund", "Lead", "--von", "TL")
+        self.assertEqual(rc, 0, aus)
+        self.assertIn("Entwurf → startklar (Aufgabe: wartet)", aus)
+        rc, aus = self.cli("paket", "liste", "--nur", "startklar", "--von", "TL")
+        self.assertIn(f"A{aid}", aus)
+        self.assertNotIn(f"A{self.aid} ", aus)
+        rc, aus = self.cli("aufgabe", "aendern", str(aid), "--paket", "p", "--von", "CC1")
+        self.assertNotEqual(rc, 0)
+        self.assertIn("Lead", aus)
 
 
 if __name__ == "__main__":

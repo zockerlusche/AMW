@@ -523,6 +523,73 @@ def _ohne(a):
     return [int(x.strip().lstrip("Aa")) for x in (a.ohne_vorgaenger or "").split(",") if x.strip()]
 
 
+PAKET_OPTIONEN = {"art": "paket", "gewicht": "gewicht", "ressourcen": "ressourcen", "modell": "modell", "effort": "effort",
+                  "pakettyp": "pakettyp", "nie_gleichzeitig": "nie_gleichzeitig", "gleiche_ressource": "gleiche_ressource"}
+
+
+def _paket_setzen(con, pid, a, aid):
+    """Paketfelder aus aufgabe neu/aendern (A1845) – nur, wenn eine Paket-Option angegeben ist; Warnungen ausgeben."""
+    werte = {feld: getattr(a, opt, None) for feld, opt in PAKET_OPTIONEN.items()}
+    if all(v is None for v in werte.values()):
+        return
+    from . import arbeitspaket
+    f, warn = arbeitspaket.setzen(con, pid, _von(a), aid, **werte)
+    print(f"A{aid}: Paket {f['art']}" + (f" · {arbeitspaket.TEXT[f['zustand']]}" if f["zustand"] else ""))
+    for w in warn:
+        print(f"  Achtung: {w}")
+
+
+def _paket_zeilen(f, a):
+    from . import arbeitspaket
+    std = lambda k: " (Vorgabe)" if k in f["standard"] else ""
+    z = [f"Art: {f['art']}{std('art')}" + (f" · Zustand: {arbeitspaket.TEXT[f['zustand']]} seit {f['zustand_utc'] or '–'}" if f["zustand"] else
+                                          " · Zustände: keine (es gilt der Status der Aufgabe)"),
+         f"Abnahme-Befehl: {a['pruefbefehl'] or '–'}", f"Bereiche: {a['dateibereich'] or '–'}",
+         f"Gewicht: {f['gewicht']}{std('gewicht')} · Ressourcen: {', '.join(f['ressourcen']) or 'keine'}{std('ressourcen')}",
+         f"Modell: {f['modell']}{std('modell')} · Effort: {f['effort']}{std('effort')} · Pakettyp: {f['pakettyp']}{std('pakettyp')}",
+         f"Rang: {a['rang']} · nie gleichzeitig mit: {', '.join(f'A{n}' for n in f['nie_gleichzeitig']) or '–'}"
+         f" · gleiche Ressource: {f['gleiche_ressource'] or '–'}"]
+    return z
+
+
+def cmd_paket(a, con):
+    """Arbeitspakete (A1845): zeigen, Zustand wechseln (Lead/Mensch von Hand; später die AMW selbst), Liste der p-Pakete."""
+    from . import arbeitspaket
+    pid = _projekt(con, a)
+    if a.aktion in ("zeigen", "zustand") and not a.id:
+        raise kern.AmwFehler(f"amw paket {a.aktion} <Aufgabe> …")
+    if a.aktion == "zeigen":
+        r = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
+        if not r:
+            raise kern.AmwFehler(f"A{a.id} gibt es nicht")
+        f = arbeitspaket.lesen(con, a.id)
+        print(f"A{a.id} [{r['status']}] {r['titel']}")
+        for z in _paket_zeilen(f, r):
+            print("  " + z)
+        for w in arbeitspaket.warnungen(f, r["pruefbefehl"], r["dateibereich"]):
+            print(f"  Achtung: {w}")
+        for zeit, alt, neu, grund in arbeitspaket.verlauf(con, a.id)[-8:]:
+            print(f"  {zeit[:16].replace('T', ' ')}  {arbeitspaket.TEXT.get(alt, '–') if alt else '–'} → "
+                  f"{arbeitspaket.TEXT.get(neu, '–') if neu else '–'}" + (f"  ({grund})" if grund else ""))
+    elif a.aktion == "zustand":
+        if not a.zustand:
+            raise kern.AmwFehler("amw paket zustand <Aufgabe> <zustand> – möglich: " + ", ".join(arbeitspaket.ZUSTAENDE))
+        alt, neu, status = arbeitspaket.zustand_setzen(con, pid, _von(a), a.id, a.zustand, a.grund, a.beleg)
+        print(f"A{a.id}: {arbeitspaket.TEXT[alt]} → {arbeitspaket.TEXT[neu]} (Aufgabe: {status})")
+    else:
+        nur = {z.strip() for z in (a.nur or "").split(",") if z.strip()}
+        falsch = nur - set(arbeitspaket.ZUSTAENDE)
+        if falsch:
+            raise kern.AmwFehler(f"unbekannter Zustand: {', '.join(sorted(falsch))}")
+        zeilen = con.execute("SELECT a.id, a.titel, a.rang, p.zustand, p.zustand_utc FROM paket p JOIN aufgabe a ON a.id = p.aufgabe_id"
+                             " WHERE a.projekt_id = ? AND p.art = 'p' ORDER BY a.rang, a.id", (pid,)).fetchall()
+        zeilen = [z for z in zeilen if not nur or z["zustand"] in nur]
+        if not zeilen:
+            print("keine p-Pakete" + (f" in {', '.join(sorted(nur))}" if nur else ""))
+        for z in zeilen:
+            print(f"A{z['id']:<5} {arbeitspaket.TEXT.get(z['zustand'], z['zustand'] or '–'):<24} Rang {z['rang']:<4} {z['titel'][:90]}")
+
+
 def cmd_aufgabe(a, con):
     pid = _projekt(con, a)
     from . import planung
@@ -561,6 +628,7 @@ def cmd_aufgabe(a, con):
                   " sofort hinter das laufende Stück: beim Anlegen --sofort")
         else:
             print(f"A{aid} angelegt" + (" (Eingang – der Lead plant ein: amw liste ordnen <Agent> …)" if a.pool else ""))
+        _paket_setzen(con, pid, a, aid)
         if not (a.groesse and a.art):
             print("Tipp: --groesse S|M|L|XL und --art … geben eine Empfehlung für Modell und Denkaufwand (amw aufgabe aendern"
                   f" {aid} --groesse M --art oberflaeche)")
@@ -574,6 +642,7 @@ def cmd_aufgabe(a, con):
         if a.federfuehrend is not None:
             ff = kern.federfuehrung_setzen(con, pid, _von(a), "aufgabe", a.id, a.federfuehrend)
             print(f"A{a.id}: federführend {ff or '– (Meilenstein bzw. Lead)'}")
+        _paket_setzen(con, pid, a, a.id)
         print(f"A{a.id} geändert")
     elif a.aktion == "kriterium":
         liste = planung.kriterium(con, pid, _von(a), a.id, a.nr, not a.nein)
@@ -2601,7 +2670,28 @@ def parser():
     x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben"], help="fertig: Gruppe in den Versionshinweisen")
     x.add_argument("--sofort", action="store_true", help="neu: direkt hinter das laufende Stück des Agenten einplanen statt in den"
                                                           " Eingang (ohne laufendes Stück: wie bisher in die Liste)")
+    # Paketfelder (A1845, AMW 2.0 Mischbetrieb) – Abnahme-Befehl = --pruefbefehl, Bereiche = --dateien, Rang = --rang, nach X = --nach
+    x.add_argument("--paket", choices=["agent", "sitzung", "p"], help="Paket: wer ausführt – agent (interaktiver Agent, Vorgabe),"
+                                                                    " sitzung (neue Sitzung), p (frischer claude -p-Arbeiter)")
+    x.add_argument("--gewicht", choices=["leicht", "schwer"], help="Paket: leicht (Vorgabe) oder schwer")
+    x.add_argument("--ressourcen", help="Paket: gpu,bildschirm (Vorgabe: keine)")
+    x.add_argument("--modell", help="Paket: wie claude --model (Vorgabe claude-opus-5-5)")
+    x.add_argument("--effort", choices=["low", "medium", "high"], help="Paket: wie claude --effort (Vorgabe high)")
+    x.add_argument("--pakettyp", choices=["normal", "test-schreiben"], help="Paket: normal (Vorgabe) oder test-schreiben")
+    x.add_argument("--nie-gleichzeitig", help="Paket: nie gleichzeitig mit diesen Aufgaben, z. B. A12,A13")
+    x.add_argument("--gleiche-ressource", help="Paket: Name einer gemeinsamen Ressource – Pakete mit demselben Namen laufen nacheinander")
     x.set_defaults(f=cmd_aufgabe)
+
+    x = s.add_parser("paket", help="Arbeitspakete (Mischbetrieb): zeigen N | zustand N <zustand> [--grund … --beleg …] | liste"
+                                   " [--zustand …] – Felder setzen: amw aufgabe neu|aendern … --paket p …")
+    x.add_argument("aktion", choices=["zeigen", "zustand", "liste"])
+    x.add_argument("id", type=nummer, nargs="?")
+    x.add_argument("zustand", nargs="?", help="zustand: entwurf, startklar, laeuft, abgegeben, abnahme, merge_reihe, gemergt, fertig,"
+                                              " blockiert, unklar, wartet_interaktiv, abgebrochen, zurueckgestellt")
+    x.add_argument("--grund", help="zustand: warum (steht im Planungs-Protokoll)")
+    x.add_argument("--beleg", help="zustand fertig: Commit")
+    x.add_argument("--nur", help="liste: nur diese Zustände, z. B. startklar,laeuft")
+    x.set_defaults(f=cmd_paket)
 
     x = s.add_parser("thema", help="Design-Dokument je Thema: liste [--suche] | zeige TH12 | neu \"Name\" [--pfleger X] [--stil] |"
                                    " einstellen TH12 --pfleger X | --stil | pflegen TH12 --text-datei … | bestaetigen TH12 |"
