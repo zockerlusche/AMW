@@ -2,6 +2,7 @@
 „Vorziehen“ nur, wenn ein offener Meilenstein davor steht, Lead-Knöpfe unter „Mehr …“; Rundgang in allen Größen und Themen
 (Bilder für die Prüfbitte über AMW_RUNDGANG_BILDER)."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import datetime
 from amw import db, kern, planung, wartegrund
 from tests.rundgang import Rundgang
 
@@ -11,7 +12,7 @@ class Karte(Rundgang):
         kern.agent_neu(self.con, self.pid, "CC1")
         kern.agent_neu(self.con, self.pid, "CC2")
         neu = lambda titel: planung.bogen_neu(self.con, self.pid, "TL", titel, ziel="Die AMW nimmt Routine ab", abnahme="alles grün",
-                                              zieldatum="2099-01-01")
+                                              zieldatum=(datetime.date.today() + datetime.timedelta(days=21)).isoformat())
         self.alt, self.b, self.danach = neu("Schon erledigt"), neu("Tokens sparen und ruhiger Betrieb"), neu("AMW 2.0")
         a = lambda titel, bid, agent="CC1", **k: (lambda x: (planung.schritt_setzen(self.con, self.pid, "TL", aid=x, bogen_id=bid, **k), x)[1])(
             kern.aufgabe_neu(self.con, self.pid, "TL", titel, agent=agent))
@@ -54,7 +55,7 @@ class Karte(Rundgang):
                      f"4 blockiert durch Lauf L{self.lid}", "(Gesamtlauf vor der Auslieferung)", "Platz 1 von 1 in der Schlange", "Lauf vorziehen",
                      "1 bei der Prüfung:", "Prüfbitte P", "Lead anschreiben", "1 läuft:", "CC1",
                      f"verschoben aus Meilenstein {self.danach}", f"1 wartet auf A{self.pruef}", "Offen (9)", "Fertig (1)", "Details"):
-            self.assertIn(teil, text)
+            self.assertIn(teil.lower(), text.lower())                              # Knöpfe stehen in Großbuchstaben (CSS)
         # „Vorziehen“ nur, wenn davor ein offener Meilenstein steht; Lead-Knöpfe nur im Menü
         self.assertFalse(self.tab.js(f"!!document.querySelector('#bogen-{self.b} .mk-vorziehen')"))
         self.assertTrue(self.tab.js(f"!!document.querySelector('#bogen-{self.danach} .mk-vorziehen')"))
@@ -62,7 +63,7 @@ class Karte(Rundgang):
         self.tab.js(f"document.querySelector('#bogen-{self.b} .mk-mehr > button').click()")
         menue = self.tab.js(f"document.querySelector('#bogen-{self.b} .mk-menue').innerText")
         for teil in ("Für den Lead", "Abschließen", "Bearbeiten"):
-            self.assertIn(teil, menue)
+            self.assertIn(teil.lower(), menue.lower())
         # offene Aufgaben zuerst: wartet auf dich vor läuft vor Lauf; Mini-Zeitlinie bei allen
         reihe = self.tab.js(f"[...document.querySelectorAll('#bogen-{self.b} .mk-liste > .mk-a')].map(x => +x.id.split('-')[1])")
         self.assertEqual(reihe[:2], [self.frage, self.laeuft])

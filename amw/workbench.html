@@ -4813,7 +4813,9 @@ function bogenKarte(b) {
   const heute = new Date().toISOString().slice(0, 10);
   const beginn = [b.beginn_ist, ...b.schritte.map(s => (s.angelegt_utc || "").slice(0, 10))].filter(Boolean).sort()[0] || heute;
   const ende = [b.zieldatum, p?.p85, heute, ...b.schritte.map(s => (s.fertig_utc || "").slice(0, 10))].filter(Boolean).sort().pop();
-  const von = mkMs(beginn), bis = Math.max(mkMs(ende), von + 864e5), proz = x => `${Math.max(0, Math.min(100, 100 * (mkMs(x) - von) / (bis - von))).toFixed(1)}%`;
+  /* Lage auf der Schiene: innen 6 px Rand, damit Raute und Prognose-Rahmen am Ende nicht aus der Karte ragen */
+  const von = mkMs(beginn), bis = Math.max(mkMs(ende), von + 864e5), anteil = x => Math.max(0, Math.min(1, (mkMs(x) - von) / (bis - von)));
+  const proz = x => `calc(6px + ${anteil(x).toFixed(4)} * (100% - 12px))`;
   const fertigB = b.status === "fertig";
   const schiene = el("div", { class: "mk-schiene", "aria-label": t("mk_schiene_h", { a: datumKurz(beginn), b: b.zieldatum ? datumKurz(b.zieldatum) : "–" }) },
     el("span", { class: "linie" }), el("span", { class: "bisher" + (fertigB ? " fertig" : ""), style: `width:${proz(fertigB ? (b.fertig_utc || heute).slice(0, 10) : heute)}` }),
@@ -4887,7 +4889,7 @@ function bogenKarte(b) {
     zahl || b.zieldatum ? schiene : null,
     lage.length ? el("div", { class: "mk-lage" }, lage.map(lageZeile)) : null,
     b.schritte.length ? el("div", { class: "mk-liste" },
-      offenSortiert.length ? [el("div", { class: "mk-gruppe" }, t("mk_offen", { n: offenSortiert.length })), offenSortiert.map(x => aufgabeZeile(x.s, x.u))] : null,
+      offenSortiert.length ? [el("div", { class: "mk-gruppe" }, t("mk_offen", { n: offenSortiert.length })), ...offenSortiert.map(x => aufgabeZeile(x.s, x.u))] : null,
       erledigt.length ? el("details", { class: "mk-fertige", open: offenSortiert.length ? null : "" }, el("summary", { class: "mk-gruppe" }, t("mk_fertig", { n: erledigt.length })),
         erledigt.map(s => aufgabeZeile(s, { art: "fertig" }))) : null,
       (b.weg || []).length ? el("details", { class: "mk-fertige" }, el("summary", { class: "mk-gruppe" }, t("mk_weg", { n: b.weg.length })),
