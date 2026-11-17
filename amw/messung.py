@@ -59,7 +59,7 @@ def zeiten(con, pid, aid, jetzt=None):
     sp = [(art, x, max(v, beginn or v), min(b, bau_ende)) for art, x, v, b in wartespannen(con, aid, jetzt)]
     sp = [s for s in sp if beginn and s[3] > s[2]]
     je_art = {}
-    liege = ((beginn or jetzt) - angelegt).total_seconds()
+    liege = ((beginn or ende) - angelegt).total_seconds()   # nie begonnen und abgeschlossen: bis zum Abschluss, nicht bis jetzt
     nach = (ende - abgabe).total_seconds() if abgabe and ende > abgabe else 0
     if liege:
         je_art["vor_start"] = round(liege)

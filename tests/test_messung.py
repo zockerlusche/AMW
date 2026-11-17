@@ -55,6 +55,17 @@ class Messung(unittest.TestCase):
         self.assertEqual(m["warten"], {"vor_start": 1800, "agent": 3600, "lauf": 3600, "nach_abgabe": 4200})
         self.assertFalse(m["offen"])
 
+    def test_nie_begonnen_und_abgeschlossen_waechst_nicht(self):
+        """L2648: eine Aufgabe, die ohne Beginn abgeschlossen wurde, darf nicht mit der Uhr weiterliegen (sonst lädt der
+        Abgleich ihre Ansicht ständig neu hoch)."""
+        with db.schreiben(self.con):
+            aid = db.einfuegen(self.con, "aufgabe", projekt_id=self.pid, titel="Alt", agent="CC1", einstufung="aktiv", status="fertig",
+                               angelegt_utc=z(0), angelegt_von="TL", fertig_utc=z(60))
+        a = messung.zeiten(self.con, self.pid, aid, jetzt=T0 + datetime.timedelta(hours=5))
+        b = messung.zeiten(self.con, self.pid, aid, jetzt=T0 + datetime.timedelta(hours=9))
+        self.assertEqual(a, b)
+        self.assertEqual(a["liege_s"], 3600)
+
     def test_kosten_erfassen_json_und_unbekannt_mit_luecken(self):
         aid = self.aufgabe("Gegenlesen", 0, 1)
         j = {"total_cost_usd": 0.7011, "num_turns": 3, "duration_ms": 241061, "session_id": "s1",
