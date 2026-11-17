@@ -229,7 +229,8 @@ def _pruefbitte_aus_ergebnis(con, pid, von, aid, zeile, meldung, zweig):
     if not quelle:
         raise kern.AmwFehler("Das Projekt hat keinen Ordner (amw projekt ordner …) – die AMW kann den Zweig nicht prüfen")
     bereiche = abnahme_bereiche(zeile["dateibereich"])
-    b = pruefung_c.zweig_befund(quelle, zweig, bereiche, arbeitspaket.lesen(con, aid).get("pakettyp"))
+    b = pruefung_c.zweig_befund(quelle, zweig, bereiche, arbeitspaket.lesen(con, aid).get("pakettyp"),
+                                aussen=kern.projekt_wahl(con, pid, "merge_aussen_pruefung") == "an")
     if b["code"] == "C/technik":
         raise kern.AmwFehler(b["grund"])
     pruefer = entscheidung.empfaenger(con, pid, "pruefer")

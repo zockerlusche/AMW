@@ -383,7 +383,7 @@ def _regel_7_8(con, pid):
 
 def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, vid=None, nachholen=False):
     """Ablauf eines Pakets im eigenen Prozess: Arbeiter → Prüfung C → Entscheidung (E5: ein Nachbesserungslauf)."""
-    from . import arbeiter, arbeitspaket, entscheidung, platz, pruefung_c, rueckmeldung, waechter
+    from . import arbeiter, arbeitspaket, entscheidung, kern, platz, pruefung_c, rueckmeldung, waechter
     con = db.verbinde(pfad)
     try:
         p = next(x for x in platz.plaetze(con, pid) if x["nr"] == nr)
@@ -411,7 +411,9 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
             befund = None
             meldung = r.get("meldung")
             if not notbremse and not r.get("abweichungen") and r.get("rc") == 0 and meldung and meldung.get("status") == "erledigt":
-                pruefen = lambda: pruefung_c.pruefen(p, quelle, v["basis"], aid, a["pruefbefehl"], bereiche, f.get("pakettyp"))
+                aussen = kern.projekt_wahl(con, pid, "merge_aussen_pruefung") == "an"   # A1858: aus = nur Hinweis in der Merge-Liste
+                pruefen = lambda: pruefung_c.pruefen(p, quelle, v["basis"], aid, a["pruefbefehl"], bereiche, f.get("pakettyp"),
+                                                     aussen=aussen)
                 befund = _im_lauf(con, pid, aid, f"Prüfung C A{aid}", pruefen) if lauf_schlange else pruefen()
             zeile, code = entscheidung.entscheiden(r, meldung, befund, entscheidung.nachgebessert(con, pid, aid), notbremse,
                                                    typ=f.get("pakettyp"))

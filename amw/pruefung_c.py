@@ -245,7 +245,7 @@ def _tests_gelaufen(ausgabe):
     return int(m[-1]) if m else 0
 
 
-def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main"):
+def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main", aussen=True):
     """Interaktive Pakete (§6a.6): der leichte Teil von C sofort und ohne schweren Lauf – Netto-Diff des Zweigs gegen main,
     Diff-Tor, automatisch geladene Dateien, Geheimnis-Muster, nach außen. Die Abnahme im frischen Checkout läuft über die
     Lauf-Schlange (Disponent, S6c). Rückgabe wie pruefen() ohne abnahme/regression."""
@@ -283,12 +283,16 @@ def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main"):
                         b["gesperrt"] and f"gesperrt: {', '.join(x for x, _ in b['gesperrt'][:5])}",
                         b["autogeladen"] and f"automatisch geladen: {', '.join(b['autogeladen'][:5])}",
                         b["geheim"] and f"Geheimnis-Muster: {', '.join(f'{x} ({a})' for x, a in b['geheim'][:5])}") if x))
-    if b["aussen"]:
+    if b["aussen"] and aussen:
         return dict(b, code="C/aussen", grund="nach außen: " + "; ".join(f"{x}: {w}" for x, w in b["aussen"][:8]))
+    if b["aussen"]:                                   # A1858: merge_aussen_pruefung = aus – nur Hinweis, kein Befund
+        return dict(b, grund="Diff-Tor ohne Befund; nach außen nur als Hinweis (Außen-Prüfung aus): "
+                    + "; ".join(f"{x}: {w}" for x, w in b["aussen"][:8]))
     return dict(b, grund="Diff-Tor ohne Befund; Geheimnis- und Außen-Muster: keine Treffer (Muster-Prüfung, kein Beweis – §6a.5)")
 
 
-def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahme.FRIST_S, nachricht=None, regression=REGRESSION):
+def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahme.FRIST_S, nachricht=None, regression=REGRESSION,
+           aussen=True):
     """Prüfung C für Paket `aid` im Platz `p`. Rückgabe: Befund mit "code" (None = alles grün) und allen Einzelheiten."""
     b = {"code": None, "kopf": None, "geaendert": [], "ausserhalb": [], "gesperrt": [], "autogeladen": [], "geheim": [], "aussen": [],
          "abnahme": None, "regression": None, "test_schreiben": None, "grund": None}
@@ -317,8 +321,10 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
                         b["gesperrt"] and f"gesperrt: {', '.join(x for x, _ in b['gesperrt'][:5])}",
                         b["autogeladen"] and f"automatisch geladen: {', '.join(b['autogeladen'][:5])}",
                         b["geheim"] and f"Geheimnis-Muster: {', '.join(f'{x} ({a})' for x, a in b['geheim'][:5])}") if x))
-    if b["aussen"]:
+    if b["aussen"] and aussen:
         return dict(b, code="C/aussen", grund="nach außen: " + "; ".join(f"{x}: {w}" for x, w in b["aussen"][:8]))
+    if b["aussen"]:                                   # A1858: merge_aussen_pruefung = aus – grün geht weiter, mit Hinweis
+        b["grund"] = "nach außen nur als Hinweis (Außen-Prüfung aus): " + "; ".join(f"{x}: {w}" for x, w in b["aussen"][:8])
     try:
         q = _frisch(p, kopf)
     except (PruefFehler, subprocess.SubprocessError, OSError) as e:

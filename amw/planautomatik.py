@@ -109,7 +109,15 @@ def ausgeliefert(con, pid, version, sha, enthalten):
         with db.schreiben(con):
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="auto_fertig",
                          bogen_id=a["bogen_id"], aufgabe_id=aid, text=f"{version} · P{p['id']} {p['zweig']}@{p['sha'][:8]}")
-        aus.append({"aufgabe": aid, "titel": a["titel"], "beleg": p["sha"][:7], "kriterien_offen": offen})
+        e = {"aufgabe": aid, "titel": a["titel"], "beleg": p["sha"][:7], "kriterien_offen": offen}
+        try:                                             # A1858: p-Paket merge_reihe → gemergt → fertig, Platz frei (Archiv)
+            from . import mergeliste
+            paket = mergeliste.ausgeliefert(con, pid, aid, p["sha"][:7])
+            if paket:
+                e["paket"] = paket
+        except Exception as f:                           # noqa: BLE001 – die Auslieferung gilt trotzdem; Befund melden
+            e["paket"] = f"Paket nicht weitergesetzt: {type(f).__name__}: {f}"[:300]
+        aus.append(e)
     return aus
 
 

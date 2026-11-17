@@ -199,7 +199,13 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 "farbe": ("bernstein", "gruen", "blau", "violett", "tuerkis", "rot", "grau"),
                 # Versionen (Grund-Regelwerk G-2): pflicht = Plan-Check meldet Fehler ohne Version, Meilenstein schließt nur mit
                 # Version nach seiner letzten fertigen Aufgabe; empfohlen = nur Hinweise; aus = nichts. Neue Projekte: pflicht.
-                "versionen": ("empfohlen", "pflicht", "aus")}
+                "versionen": ("empfohlen", "pflicht", "aus"),
+                # Merge-Freigabe der p-Pakete (A1858, Marcel W2382/B2900) – nur der Mensch stellt sie: merge_blick = wann der Prüfer
+                # vor der Freigabe in den Diff sieht (server = nur bei Online-Server-Code web/*.php); merge_aussen_pruefung = ob
+                # Adressen nach außen / gefährliche Aufrufe das Paket anhalten (Befund C/aussen) oder nur als Hinweis gelten.
+                "merge_blick": ("server", "alle", "aus"),
+                "merge_aussen_pruefung": ("an", "aus")}
+NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung")
 VERSION_FRIST_TAGE = 14            # so lange darf Fertiges ohne Version liegen, bevor der Plan-Check warnt (Projekt: version_frist_tage)
 VERSION_FORM = re.compile(r"(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?")
 
@@ -267,6 +273,8 @@ def projekt_einstellen(con, pid, von, **werte):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         for k, v in werte.items():
             if k in PROJEKT_WAHL:
+                if k in NUR_MENSCH_WAHL and von != ENTWICKLER and v != projekt_wahl(con, pid, k):
+                    raise AmwFehler(f"{k}: stellt nur der Mensch (Workbench › Einstellungen oder --von Entwickler)")
                 if v not in PROJEKT_WAHL[k]:
                     raise AmwFehler(f"{k}: {' | '.join(PROJEKT_WAHL[k])}")
                 e[k] = v

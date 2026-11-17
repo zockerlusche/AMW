@@ -58,6 +58,7 @@ GESPERRT = (
     ("amw/kern.py", "fest", "Rechte und Projekt-Einstellungen"),
     ("amw/steuerung.py", "fest", "Agenten starten und beenden"),
     ("amw/paketliste.py", "fest", "Eingriffe des Menschen in p-Pakete (Pause, Notbremse)"),
+    ("amw/mergeliste.py", "fest", "Merge-Freigabe der p-Pakete"),
     ("amw/cli.py", "fest", "Befehle mit ihren Sperren"),
     ("amw/aktionen.py", "fest", "Aktionen der Oberfläche mit ihren Sperren"),
     ("amw/schluessel.py", "fest", "Rechte (Schlüssel)"),

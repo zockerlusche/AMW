@@ -220,6 +220,12 @@ class Kette:
             self.stopp("Versionshinweise", f"im CHANGELOG fehlt „## {version}“")
         return (m.group("titel") or version).strip(), m.group("text").strip()
 
+    def server_code(self, sha):
+        """Online-Server-Code (web/*.php), den der Stand gegenüber main ändert (A1858, B2900)."""
+        from . import mergeliste
+        rc, aus = self.extern(["git", "-c", "core.quotepath=off", "diff", "--no-renames", "--name-only", f"main...{sha}"], self.repo)
+        return mergeliste.server_code([z.strip() for z in aus.splitlines() if z.strip()]) if rc == 0 else []
+
     def version_an(self, sha):
         """__version__ aus amw/__init__.py an einem Stand, None wenn nicht lesbar."""
         rc, text = self.extern(["git", "show", f"{sha}:amw/__init__.py"], self.repo)
@@ -374,6 +380,9 @@ class Kette:
         if rc == 0:
             self.stopp("Tag", f"v{version} gibt es schon")
         titel, text = self.notizen(sha, version)
+        server = self.server_code(sha)                  # A1858 (B2900): Online-Server-Code im Stand → eigene Zeile im Versionshinweis
+        if server and "Server-Code geändert" not in text:
+            text += f"\n- **Server-Code geändert:** {', '.join(server[:6])}" + (" …" if len(server) > 6 else "")
         fehlt += self.reihenfolge(sha, version)
         fehlt += self.staende(sha, ausnahme_aufgabe=aufgabe if niedrig else None)
         if fehlt:                                        # A1814: alles auf einmal – nicht eine Freigabe nach der anderen
@@ -489,7 +498,8 @@ class Kette:
         ok = [x for x in fertig if not x.get("fehler")]
         if fertig:
             self.schritt("Aufgaben fertig: " + (", ".join(f"A{x['aufgabe']}" for x in ok) or "keine")
-                         + "".join(f" · A{x['aufgabe']} nicht: {x['fehler'][:120]}" for x in fertig if x.get("fehler")))
+                         + "".join(f" · A{x['aufgabe']} nicht: {x['fehler'][:120]}" for x in fertig if x.get("fehler"))
+                         + "".join(f" · A{x['aufgabe']} Paket {x['paket'][:120]}" for x in ok if x.get("paket")))
         fertig_liste = ", ".join(f"A{x['aufgabe']}" for x in ok)
         kriterien = "".join(f" A{x['aufgabe']} hat offene Kriterien: {' | '.join(x['kriterien_offen'][:3])}." for x in ok if x["kriterien_offen"])
         kurz = version.replace(".", "")

@@ -564,6 +564,42 @@ def cmd_paket(a, con):
     pid = _projekt(con, a)
     if a.aktion in ("zeigen", "zustand", "ergebnis", "starten") and not a.id:
         raise kern.AmwFehler(f"amw paket {a.aktion} <Aufgabe> …")
+    if a.aktion == "mergeliste":                      # A1858: Liste „bereit zum Merge“
+        from . import mergeliste
+        d = mergeliste.liste(con, pid, diff=a.diff)
+        print(f"Bereit zum Merge: {len(d['pakete'])} · Blick: {d['merge_blick']} · Außen-Prüfung: {d['merge_aussen_pruefung']}")
+        for e in d["pakete"]:
+            marken = [m for m, ja in (("freigegeben", e["freigegeben"]), ("Server-Code", e["server"]),
+                                      ("Blick nötig", e["blick"] and not e["freigegeben"])) if ja]
+            print()
+            print(f"A{e['aufgabe']} {e['titel'][:80]} – {e['zweig']}@{(e['kopf'] or '–')[:8]}" + (f" [{', '.join(marken)}]" if marken else ""))
+            if e["fehler"]:
+                print(f"  Achtung: {e['fehler']}")
+            for z in e["stat"].splitlines():
+                print("  " + z)
+            for x in e["aussen"]:
+                print(f"  nach außen (Hinweis): {x}")
+            if a.diff:
+                for z in e["diff"].splitlines():
+                    print("  " + z)
+                if e["gekuerzt"]:
+                    print("  … gekürzt")
+        if any(e["blick"] and not e["freigegeben"] for e in d["pakete"]):
+            print()
+            print("Prüfliste für den Blick: " + " · ".join(d["pruefliste"]))
+        if d["pakete"]:
+            print()
+            print("Freigeben: amw paket freigeben --alle | amw paket freigeben <A> [--blick]")
+        return
+    if a.aktion == "freigeben":                       # A1858: eine Freigabe über alle (Prüfer der Pakete, Lead, Mensch)
+        from . import mergeliste
+        if not a.alle and not a.id:
+            raise kern.AmwFehler("amw paket freigeben --alle | amw paket freigeben <Aufgabe> [--blick]")
+        if a.blick and not a.id:
+            raise kern.AmwFehler("--blick gilt für ein einzelnes Paket: amw paket freigeben <Aufgabe> --blick (nach dem Ansehen des Diffs)")
+        for r in mergeliste.freigeben(con, pid, _von(a), None if a.alle else [a.id], blick=[a.id] if a.blick else ()):
+            print(f"A{r['aufgabe']}: {'freigegeben' if r['ok'] else 'nicht freigegeben'} – {r['text']}")
+        return
     if a.aktion == "starten":                         # A1874: Handstart zum Probieren – nur Mensch/Lead, der Wächter entscheidet
         from . import disponent
         print(disponent.handstart(con, pid, a.id, _von(a)))
@@ -2766,14 +2802,19 @@ def parser():
                                    " [--zustand …] | ergebnis N (--json - über stdin oder --status/--zusammenfassung/--frage/"
                                    "--frage-an/--grund/--hinweis; nur der zugeteilte Agent, Art agent/sitzung, Paket läuft)"
                                    " | starten N (Lead/Mensch: ein startklares p-Paket jetzt starten – der Wächter entscheidet)"
+                                   " | mergeliste [--diff] (bereit zum Merge: diff --stat, Server-Code, Blick nötig)"
+                                   " | freigeben --alle | freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch)"
                                    " – Felder setzen: amw aufgabe neu|aendern … --paket p …")
-    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten"])
+    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten", "mergeliste", "freigeben"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("zustand", nargs="?", help="zustand: entwurf, startklar, laeuft, abgegeben, abnahme, merge_reihe, gemergt, fertig,"
                                               " blockiert, unklar, wartet_interaktiv, abgebrochen, zurueckgestellt")
     x.add_argument("--grund", help="zustand: warum (steht im Planungs-Protokoll) · ergebnis aufgegeben: warum es nicht geht")
     x.add_argument("--beleg", help="zustand fertig: Commit")
     x.add_argument("--nur", help="liste: nur diese Zustände, z. B. startklar,laeuft")
+    x.add_argument("--diff", action="store_true", help="mergeliste: auch den gekürzten Diff zeigen")
+    x.add_argument("--alle", action="store_true", help="freigeben: alle Pakete, die bereit zum Merge sind (außer denen, die einen Blick brauchen)")
+    x.add_argument("--blick", action="store_true", help="freigeben N: du hast in den Diff gesehen (nötig laut merge_blick)")
     x.add_argument("--json", help="ergebnis: „-“ = die Meldung als JSON von stdin")
     x.add_argument("--status", choices=["erledigt", "blockiert", "aufgegeben"], help="ergebnis: genau ein Status")
     x.add_argument("--zusammenfassung", help="ergebnis: ein Satz, was gemacht wurde")
