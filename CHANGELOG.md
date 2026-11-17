@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.135.0 – 17.11.2026 · Agenten startet nur der Mensch
+- **Verbessert:** Einen Agenten startet nur noch der Mensch – in der Workbench am PC (mit Rückfrage) oder im eigenen Terminal
+  mit `--von Entwickler`. Ein Agent, auch der Lead, kann keinen Agenten starten, und online gibt es den Knopf nicht.
+- **Verbessert:** Vor dem Start prüft die AMW, ob der Ordner noch da ist und ob ein Zwilling entstünde: Meldet der Ordner jede
+  Sitzung als anderen Agenten oder für ein anderes Projekt an, oder arbeitet dort gerade ein Agent eines anderen Projekts,
+  startet sie nicht und sagt warum.
+- **Verbessert:** Ein Start setzt zuerst die letzte Sitzung fort; gibt es die nicht mehr, beginnt eine neue mit der
+  Startanweisung – wie im Startskript. Lange Pfade in Meldungen brechen auf dem Handy um.
+
 ## 1.134.0 – 17.11.2026 · Wächter für Arbeitsplatz-Pakete
 - **Neu:** Bevor die AMW ein Paket am Arbeitsplatz startet, prüft ein Wächter zehn feste Regeln – fehlende Abnahme,
   Überschneidung, schwere Pakete, volle Plätze, gesperrte Bereiche, Abnahme schon grün, Wartungsmodus, Wochenlimit ab
