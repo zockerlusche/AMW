@@ -110,6 +110,10 @@
   [
    "When does AMW start a package at a work place – and when not?",
    "Before every start it asks the guard. It does not start when the acceptance command or the areas are missing (rule 1), the areas overlap with a running package (2), the package needs the graphics card, the screen or a lot of computing power (3), all places are taken (4), the areas contain locked paths (5), the acceptance is already green before building (6), maintenance mode is on (7), the account's weekly limit is at 80 % or more (8), two runs in a row ended unclear or aborted (9 – pause) or no places are set up (10). Each reason is logged with its number: `amw waechter protokoll`. A delivery of AMW switches on maintenance mode and waits until running packages end. The lead or you lift maintenance mode and pause: `amw waechter weiter`."
+  ],
+  [
+   "How is a worker at a work place sealed off – and how do I stop it?",
+   "A headless worker (`claude -p`) reads and writes only in the clone of its place, runs only the acceptance command of its package (no git – AMW commits after its own check), and loads no outside settings, hooks or MCP servers. If its start message differs from the expected one (tools, model, permissions), AMW stops it at once. It gets the database and port of its place, never the real database. Only you can stop it: `amw platz notbremse 1 --von Entwickler` ends the worker with all its child processes; what it had already changed is then in the log and with the lead."
   ]
  ],
  "thema": "agenten",
