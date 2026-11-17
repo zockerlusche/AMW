@@ -65,7 +65,7 @@
   ],
   [
    "Wie viel verbraucht ein Agent je Aufgabe?",
-   "Klick auf den Agenten › Übersicht › „Verbrauch je Aufgabe“: das Mittel (Median) der letzten zehn fertigen Aufgaben, das eingestellte Modell mit Denkaufwand, die Aufgabe in Arbeit bisher und je Aufgabe der Betrag. Im Fenster einer Aufgabe steht ihr Wert unter „Verbrauch“, in der Befehlszeile bei `amw aufgabe zeige <nr>` und `amw agent profil <name>`. Gezählt wird der Gegenwert in Dollar, den Claude Code je Sitzung meldet – auch im Abo, wo nichts extra bezahlt wird. Je Aufgabe ist er genähert: Was zwischen Beginn und Abschluss anfiel, zählt zu der Aufgabe, die der Agent zuletzt begonnen hat. Die Zahlen helfen beim Einstellen von Modell und Denkaufwand im Profil; sie gelten ab dem nächsten Start."
+   "Klick auf den Agenten › Übersicht › „Verbrauch je Aufgabe“: das Mittel (Median) der letzten zehn fertigen Aufgaben, das eingestellte Modell mit Denkaufwand, die Aufgabe in Arbeit bisher und je Aufgabe der Betrag. Im Fenster einer Aufgabe steht ihr Wert unter „Verbrauch“, in der Befehlszeile bei `amw aufgabe zeige <nr>` und `amw agent profil <name>`. Gezählt wird der Gegenwert in Dollar, den Claude Code je Sitzung meldet – auch im Abo, wo nichts extra bezahlt wird. Je Aufgabe ist er genähert: Was zwischen Beginn und Abschluss anfiel, zählt zu der Aufgabe, die der Agent zuletzt begonnen hat – eine Aufgabe, die gerade wartet, hat dabei Nachrang. Dazu stehen im Fenster der Aufgabe die Zeiten: aktiv und wartet – vor dem Start, beim Bauen nach Grund (Prüfung, Lauf, du …) und nach der Abgabe bis zur Auslieferung. Läufe außerhalb einer Sitzung (z. B. `claude -p`) trägt der Agent mit `amw kosten erfassen --aufgabe <nr> --json <datei>` nach; was nicht gemessen ist, steht unter „Nicht gemessen“. Alle Aufgaben auf einmal: `amw messung`; diese Woche gegen die Vorwoche: `amw messung --vergleich`. Eine Lücke steht bei jeder Aufgabe: Was der Lead für sie tut (Prüfen, Planen), zählt nicht mit – „mit Lücken“ zählt darum nur Aufgaben, bei denen noch etwas anderes fehlt. Die Zahlen helfen beim Einstellen von Modell und Denkaufwand im Profil; sie gelten ab dem nächsten Start."
   ],
   [
    "Wofür geben die Agenten ihr Geld aus?",
@@ -78,6 +78,10 @@
   [
    "Darf der Lead das Profil eines Agenten ändern, wenn ich nicht am PC bin?",
    "Ja, wenn du es ihm gesagt hast: Er nimmt dein Wort als Wortlaut auf und ändert das Profil mit `amw agent profil <Agent> --ordner … --wort W<nr>` – auch über den Dateiaustausch. Das Wort muss aus diesem Projekt und höchstens 24 Stunden alt sein. Es gilt nur für Profilfelder wie Ordner, Zusatzordner, Modell und Denkaufwand; Rolle und die eigenen Rechte oder die Fernsteuerung des Leads ändert nur der Entwickler am PC. Jede Änderung steht mit alt → neu im Verlauf, und du bekommst eine Info dazu."
+  ],
+  [
+   "Was sind Arbeitsplätze?",
+   "Für Agenten, die ohne eigenes Fenster arbeiten (`claude -p`), hält die AMW Arbeitsplätze bereit: je Platz ein eigener Klon des Projekts (nichts wird mit deinem Projektordner geteilt) und daneben ein eigener Datenordner mit eigener Datenbank, eigenen Einstellungen und eigenem Port. Was dort läuft, kommt nie an die echte Datenbank. Wo die Plätze liegen und wie viele es gibt, legst nur du fest: `amw projekt einstellen platz_wurzel=<Ordner> --von Entwickler` und `amw projekt einstellen plaetze=2 --von Entwickler`. Der Ordner darf nicht im Projektordner liegen. Ohne diese Einstellung (Vorgabe 0 Plätze) ändert sich nichts. `amw platz liste` zeigt sie, `amw platz vorbereiten 1` holt Platz 1 auf den Stand von main, `amw platz zuruecksetzen 1` macht ihn wieder sauber – auch nach einem Abbruch. Dabei löscht die AMW nur innerhalb des Platzes."
   ]
  ],
  "thema": "agenten",

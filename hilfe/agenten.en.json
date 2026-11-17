@@ -65,7 +65,7 @@
   ],
   [
    "How much does an agent use per task?",
-   "Click the agent › Overview › “Usage per task”: the median of the last ten finished tasks, the model and effort that are set, the task in progress so far and the amount for each task. A task's window shows its value under “Usage”; on the command line see `amw aufgabe zeige <nr>` and `amw agent profil <name>`. It counts the dollar equivalent Claude Code reports per session – also on a subscription, where nothing is paid extra. Per task it is approximated: what was used between start and finish counts towards the task the agent started last. The numbers help when setting model and effort in the profile; they apply from the next start."
+   "Click the agent › Overview › “Usage per task”: the median of the last ten finished tasks, the model and effort that are set, the task in progress so far and the amount for each task. A task's window shows its value under “Usage”; on the command line see `amw aufgabe zeige <nr>` and `amw agent profil <name>`. It counts the dollar equivalent Claude Code reports per session – also on a subscription, where nothing is paid extra. Per task it is approximated: what was used between start and finish counts towards the task the agent started last – a task that is waiting at that moment comes second. The task's window also shows the times: active and waiting – before the start, while building by reason (review, run, you …) and after hand-in until delivery. Runs outside a session (e.g. `claude -p`) are added by the agent with `amw kosten erfassen --aufgabe <nr> --json <file>`; what is not measured is listed under “Not measured”. All tasks at once: `amw messung`; this week against the week before: `amw messung --vergleich`. One gap is listed for every task: what the lead does for it (reviewing, planning) is not counted – so “with gaps” only counts tasks where something else is missing too. The numbers help when setting model and effort in the profile; they apply from the next start."
   ],
   [
    "What do the agents spend their money on?",
@@ -78,6 +78,10 @@
   [
    "May the lead change an agent's profile while I am away from the PC?",
    "Yes, if you told them to: the lead records your words and changes the profile with `amw agent profil <agent> --ordner … --wort W<nr>` – also through the file exchange. The words must be from this project and at most 24 hours old. It only covers profile fields such as folder, extra folders, model and effort; the role and the lead's own permissions or remote control are changed only by the developer at the PC. Every change appears in the history as old → new, and you get an info about it."
+  ],
+  [
+   "What are work places?",
+   "For agents that work without a window of their own (`claude -p`), AMW keeps work places: per place its own clone of the project (nothing is shared with your project folder) and next to it its own data folder with its own database, settings and port. Whatever runs there never reaches the real database. Only you decide where the places are and how many there are: `amw projekt einstellen platz_wurzel=<folder> --von Entwickler` and `amw projekt einstellen plaetze=2 --von Entwickler`. The folder must not be inside the project folder. Without this setting (default 0 places) nothing changes. `amw platz liste` shows them, `amw platz vorbereiten 1` brings place 1 to the state of main, `amw platz zuruecksetzen 1` cleans it again – also after an abort. AMW deletes only inside the place."
   ]
  ],
  "thema": "agenten",
