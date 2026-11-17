@@ -286,6 +286,12 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
                 return paketliste.pause(con, pid, bool(daten.get("an")), (daten.get("grund") or "").strip()[:300] or None)
             if was == "notbremse":
                 return paketliste.notbremse(con, pid, int(daten.get("platz") or 0), aid)
+            if was == "freigeben":                    # A1858: eine Freigabe über alle (oder ein Paket mit Blick) – der Mensch
+                from . import mergeliste
+                r = mergeliste.freigeben(con, pid, kern.ENTWICKLER, [aid] if aid else None, blick=[aid] if aid and daten.get("blick") else ())
+                ok = [x for x in r if x["ok"]]
+                return {"ergebnis": r, "text": f"{len(ok)} von {len(r)} freigegeben"
+                        + "".join(f" · A{x['aufgabe']}: {x['text']}" for x in r if not x["ok"])}
         except (kern.AmwFehler, ValueError, TypeError, OSError) as e:
             raise Ungueltig(str(e)) from None
         raise LookupError("unbekannt")

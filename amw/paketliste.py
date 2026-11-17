@@ -84,6 +84,11 @@ def daten(con, pid, am_pc=True):
         pakete.append(x)
     aus = {"aus": not plaetze, "pause": z["pause"], "wartung": z["wartung"], "pakete": pakete, "gruppen": GRUPPE,
            "plaetze": [{"nr": p["nr"], "laeuft": _platz_laeuft(p) if am_pc else None} for p in plaetze]}
+    try:                                                    # A1858: bereit zum Merge – online ohne den Diff selbst
+        from . import mergeliste
+        aus["merge"] = mergeliste.liste(con, pid, diff=am_pc)
+    except Exception as e:                                  # noqa: BLE001 – Zusatz; die Paketliste darf daran nie scheitern
+        aus["merge"] = {"pakete": [], "fehler": f"{type(e).__name__}: {e}"[:300]}
     return aus
 
 

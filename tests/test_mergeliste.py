@@ -29,6 +29,37 @@ def schreiben(wurzel, rel, text):
         f.write(text)
 
 
+def projekt_repo(con, pid, repo):
+    """Kleines Projekt-Repo (lib/, web/api.php) als Projektordner eintragen."""
+    for rel, text in {"lib/__init__.py": "", "lib/rechnen.py": "def plus(a, b):\n    return a - b\n", "web/api.php": "<?php\n"}.items():
+        schreiben(repo, rel, text)
+    g(os.path.dirname(repo), "init", "-q", "-b", "main", repo)
+    g(repo, "add", "-A")
+    g(repo, "commit", "-q", "-m", "basis")
+    kern.projekt_ordner_setzen(con, pid, repo)
+
+
+def bereit(con, pid, repo, titel, dateien, nr=1):
+    """Ein p-Paket auf Platz nr bis „bereit zum Merge“ – wie Disponent + Prüfung C + E7 es hinterlassen."""
+    aid = kern.aufgabe_neu(con, pid, "TL", titel, "CC1")
+    arbeitspaket.setzen(con, pid, "TL", aid, art="p")
+    p = platz.plaetze(con, pid)[nr - 1]
+    basis = platz.vorbereiten(p, repo, mergeliste.zweig(aid), aufgabe=aid)["basis"]
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=disponent.VERMERK,
+                     aufgabe_id=aid, text=json.dumps({"platz": nr, "basis": basis, "zweig": mergeliste.zweig(aid)}))
+    for rel, text in dateien.items():
+        schreiben(p["klon"], rel, text)
+    pruefung_c.basis_holen(p, repo, basis)
+    kopf = pruefung_c.einsammeln(p, basis, aid, f"A{aid}: {titel}")
+    for z in ("startklar", "laeuft", "abgegeben", "abnahme", "merge_reihe"):
+        arbeitspaket.zustand_setzen(con, pid, "AMW", aid, z)
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="paket_entscheidung",
+                     aufgabe_id=aid, text=json.dumps({"zeile": "E7", "code": None, "kopf": kopf}))
+    return aid, kopf, p
+
+
 @unittest.skipUnless(shutil.which("git") and os.name == "nt", "git/Windows fehlt")
 class Grund(unittest.TestCase):
     def setUp(self):
@@ -49,35 +80,13 @@ class Grund(unittest.TestCase):
         kern.agent_neu(self.con, self.pid, "CC1")
         kern.agent_neu(self.con, self.pid, "PR1")
         self.repo = os.path.join(o, "projekt")
-        for rel, text in {"lib/__init__.py": "", "lib/rechnen.py": "def plus(a, b):\n    return a - b\n", "web/api.php": "<?php\n"}.items():
-            schreiben(self.repo, rel, text)
-        g(o, "init", "-q", "-b", "main", self.repo)
-        g(self.repo, "add", "-A")
-        g(self.repo, "commit", "-q", "-m", "basis")
-        kern.projekt_ordner_setzen(self.con, self.pid, self.repo)
+        projekt_repo(self.con, self.pid, self.repo)
 
     def plaetze(self, n):
         kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, platz_wurzel=os.path.join(self.ordner.name, "plaetze"), plaetze=n)
 
     def bereit(self, titel, dateien, nr=1):
-        """Ein p-Paket auf Platz nr bis „bereit zum Merge“ – wie Disponent + Prüfung C + E7 es hinterlassen."""
-        aid = kern.aufgabe_neu(self.con, self.pid, "TL", titel, "CC1")
-        arbeitspaket.setzen(self.con, self.pid, "TL", aid, art="p")
-        p = platz.plaetze(self.con, self.pid)[nr - 1]
-        basis = platz.vorbereiten(p, self.repo, mergeliste.zweig(aid), aufgabe=aid)["basis"]
-        with db.schreiben(self.con):
-            db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von="AMW", art=disponent.VERMERK,
-                         aufgabe_id=aid, text=json.dumps({"platz": nr, "basis": basis, "zweig": mergeliste.zweig(aid)}))
-        for rel, text in dateien.items():
-            schreiben(p["klon"], rel, text)
-        pruefung_c.basis_holen(p, self.repo, basis)
-        kopf = pruefung_c.einsammeln(p, basis, aid, f"A{aid}: {titel}")
-        for z in ("startklar", "laeuft", "abgegeben", "abnahme", "merge_reihe"):
-            arbeitspaket.zustand_setzen(self.con, self.pid, "AMW", aid, z)
-        with db.schreiben(self.con):
-            db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von="AMW", art="paket_entscheidung",
-                         aufgabe_id=aid, text=json.dumps({"zeile": "E7", "code": None, "kopf": kopf}))
-        return aid, kopf, p
+        return bereit(self.con, self.pid, self.repo, titel, dateien, nr)
 
 
 class Liste(Grund):
@@ -156,6 +165,18 @@ class Freigabe(Grund):
         self.assertIn("schon mit anderem Stand", r[0]["text"])
         self.assertEqual(g(self.repo, "rev-parse", f"paket-A{a}"), g(self.repo, "rev-parse", "main"))
         self.assertIsNone(self.con.execute("SELECT 1 FROM pruefung WHERE aufgabe_id = ?", (a,)).fetchone())
+
+    def test_seite_nur_am_pc(self):
+        """Workbench: „Alle freigeben“ am PC (als Mensch); online/Handy nie."""
+        from amw import aktionen
+        self.plaetze(1)
+        a, kopf, _ = self.bereit("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"})
+        with self.assertRaisesRegex(aktionen.Ungueltig, "nur am PC"):
+            aktionen.ausfuehren(self.con, self.pid, "/api/paket/freigeben", {}, kanal="netz")
+        self.assertIsNone(self.con.execute("SELECT 1 FROM pruefung WHERE aufgabe_id = ?", (a,)).fetchone())
+        r = aktionen.ausfuehren(self.con, self.pid, "/api/paket/freigeben", {}, kanal="seite")
+        self.assertEqual(r["text"], "1 von 1 freigegeben")
+        self.assertEqual(self.con.execute("SELECT pruefer FROM pruefung WHERE aufgabe_id = ?", (a,)).fetchone()[0], kern.ENTWICKLER)
 
     def test_einstellungen_nur_der_mensch(self):
         for k, v in (("merge_blick", "alle"), ("merge_aussen_pruefung", "aus")):

@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.145.0 – 17.11.2026 · Bereit zum Merge, eine Freigabe für alle
+- **Neu:** Unter Planung › Aufgaben › Pakete steht „Bereit zum Merge“: jedes Paket, das die AMW fertig geprüft hat, mit den
+  geänderten Dateien und den Änderungen zum Aufklappen. „Alle freigeben“ gibt sie am PC auf einmal frei (im Terminal
+  `amw paket freigeben --alle`); die AMW holt je Paket genau seinen Stand als eigenen Zweig ins Projekt und vermerkt Prüfung
+  und Merge-OK – ausgeliefert wird wie immer über die Kette. Danach steht das Paket auf fertig, und sein Arbeitsplatz ist frei.
+- **Neu:** Ändert ein Paket Code auf dem Online-Server, siehst du es dir vor der Freigabe an („erst ansehen“, mit kurzer
+  Prüfliste). Unter Einstellungen › Projekt stellst nur du ein, wann dieser Blick nötig ist und ob Aufrufe nach außen ein Paket
+  anhalten oder nur als Hinweis erscheinen. Ändert eine Auslieferung Server-Code, steht das im Versionshinweis.
+
 ## 1.144.0 – 17.11.2026 · Dienst-Ausfall robust
 - **Verbessert:** War der Dienst lange weg (Absturz, PC aus), meldet er das beim nächsten Start mit Push.
 - **Verbessert:** Steht der Dienst länger als 10 Minuten still, bekommen die Agenten bei jeder Eingabe einen Hinweis und melden es.

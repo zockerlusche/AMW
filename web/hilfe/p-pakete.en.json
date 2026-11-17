@@ -96,7 +96,8 @@
  "danach": [
   "**Follow it in the Workbench:** Work › Packages shows every package with type, state, cost and – if it does not start – the reason in words (e.g. “Does not start: all workspaces in use”). For “waiting for lead/you” it says whose turn it is. On the PC you can move a package up or defer it, pause all new starts, watch a running worker with “Follow along” and end it with its sub-processes using “Emergency stop” – every intervention is in the planning log. Online and on the phone you only see the list; control happens on the PC. “What do the states mean?” below the list shows which state counts as done, running, waiting or blocked.",
   "AMW takes every p package through its states: draft → ready to start → running → handed in → in acceptance → ready to merge → merged → done. Alongside: blocked (question open), unclear (no final line), waiting for interactive, aborted, deferred. In Planning and the overview a p package shows like any task as running, waiting, blocked or done.",
-  "Tasks with `--paket agent` (the default) have none of these states – the task status applies to them as before."
+  "Tasks with `--paket agent` (the default) have none of these states – the task status applies to them as before.",
+  "**Approve what is ready to merge:** Below the list, “Ready to merge” shows every fully checked package: which files it changes (`diff --stat`) and the changes themselves to expand. On the PC, “Approve all” approves them all at once; in the terminal use `amw paket freigeben --alle` (package reviewer, lead or you). AMW then fetches exactly each package's state as branch `paket-A<number>` into the project and records “Prüfung C (AMW) + approval” and the merge OK; delivery runs through the chain as always. Afterwards the package is “merged” and “done”, and its workspace is free again."
  ],
  "fragen": [
   [
@@ -114,6 +115,10 @@
   [
    "What does the package type “test-schreiben” do?",
    "For packages that only write a new test. Their acceptance command is naturally not red before the work; instead the new test must be red against the old state and green against the new one, and the lead reads it."
+  ],
+  [
+   "Why do I have to look at some packages before I approve them?",
+   "If a package changes code that runs online on the server (`web/*.php`), it shows “review first” in the list. “Approve all” skips it; you approve it on its own with “Reviewed – approve” (in the terminal `amw paket freigeben <number> --blick`). Check: new endpoints and their sign-in, outbound calls, shell calls, file and database access, and which data is output. Under Settings › Project only you decide whether a review is needed for server code only, for every package or never, and whether outbound calls stop a package or only show as a note. If a delivery changes server code, the release notes say “Server-Code geändert” (server code changed)."
   ]
  ],
  "thema": "p-pakete",
