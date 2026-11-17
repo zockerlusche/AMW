@@ -3134,12 +3134,11 @@ function nrReiterLeiste(aktiv, eingangOffen, weiter) {
    gewählte Nachricht, Scrollstand. Neue Nachrichten erscheinen trotzdem sofort. Nur beim Neuzeichnen derselben Seite. */
 let nrMerk = null;
 async function sichtNachrichten() {
-  const gleich = gezeichnet.sicht === "nachrichten" && nrMerk;
   let d; try { d = await holen("/api/nachrichten"); } catch (e) { rahmen(t("n_nachrichten")).append(el("div", { class: "leer" }, String(e.message || e))); return; }
   const m = rahmen(t("n_nachrichten"), el("span", { class: "leise" }, t("nr_unter"), " ", hilfeKnopf("nachrichten")));
   const wahl = gemerkt("amw-nr");                     /* ohne gemerkte Wahl: Eingang, wenn dort Neues liegt (D940 Fund 7) */
   let reiter = wahl === "eingang" || wahl === "gesendet" ? wahl : d.zaehler.eingang_offen ? "eingang" : "gesendet", gewaehlt = null, nurOffen = false, such = "", agent = "", bezugWahl = "";
-  const alt = gleich ? nrMerk : null;
+  const alt = gezeichnet.sicht === "nachrichten" ? nrMerk : null;   /* erst nach dem Laden lesen: ein Klick währenddessen gilt */
   if (alt) ({ reiter, gewaehlt } = alt);                /* Filter nicht: ihre Felder kämen leer zurück */
   const merken = () => { nrMerk = { ...nrMerk, reiter, gewaehlt, links: liste.scrollTop, rechtsOben: rechts.scrollTop }; };
   const STUFEN = ["gesendet", "benachrichtigt", "gelesen", "erledigt"];

@@ -192,7 +192,6 @@ _STAND_QUELLEN = {
     "plan_ereignis": "plan_ereignis WHERE projekt_id = :p",
     "termin": "termin WHERE projekt_id = :p",
     "nachricht": "nachricht WHERE projekt_id = :p",
-    "empfang": "empfang x JOIN nachricht n ON n.id = x.nachricht_id WHERE n.projekt_id = :p",   # A1844: gelesen/erledigt
     "beschluss": "beschluss WHERE projekt_id = :p",
     "regel": "regel WHERE projekt_id = :p",
     "wortlaut": "wortlaut WHERE projekt_id = :p",
@@ -212,7 +211,8 @@ STAND_SICHTEN = {
     "dokumente": ("dokument", "dokument_version"),
     "releases": ("release",),
     "teamchat": ("nachricht",),
-    "nachrichten": ("nachricht", "empfang"),   # A1844 (TL #28701): neue Nachrichten erscheinen ohne Seitenwechsel
+    "nachrichten": ("nachricht",),   # A1844 (TL #28701): neue Nachrichten erscheinen ohne Seitenwechsel; eigenes „gelesen“
+                                     # ändert nur empfang und zeichnet die Seite darum nicht neu (Klick und Neuzeichnen kreuzten sich)
 }
 
 
