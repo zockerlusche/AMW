@@ -57,5 +57,27 @@ class TeamPfeile(unittest.TestCase):
         self.assertIsNone(betrieb.warteposition(self.con, self.pid, self.con.execute("SELECT * FROM lauf WHERE id = ?", (self.fremd_lauf,)).fetchone())["platz"])
 
 
+    def test_wartet_auf_dich_nur_wenn_der_mensch_dran_ist(self):
+        """A1860 (Marcel W2356): ein alter Grund „Entwickler“ an einer Aufgabe im Eingang zeigt nicht „wartet auf dich“, wenn der
+        Agent gerade auf den TL wartet; eine aktive Aufgabe, die auf eine offene Frage an den Menschen wartet, schon."""
+        with db.schreiben(self.con):
+            alt = db.einfuegen(self.con, "aufgabe", projekt_id=self.pid, titel="Alt im Eingang", agent="CC1", status="wartet",
+                               einstufung="pool", angelegt_utc=db.jetzt(), angelegt_von="TL")
+            db.einfuegen(self.con, "wartegrund", projekt_id=self.pid, aufgabe_id=alt, art="entwickler", bezug="Entwickler",
+                         angelegt_utc=db.jetzt(), angelegt_von="CC1")
+            jetzt = db.einfuegen(self.con, "aufgabe", projekt_id=self.pid, titel="Prüfung", agent="CC1", status="wartet",
+                                 einstufung="aktiv", angelegt_utc=db.jetzt(), angelegt_von="TL")
+            db.einfuegen(self.con, "wartegrund", projekt_id=self.pid, aufgabe_id=jetzt, art="agent", bezug="TL",
+                         angelegt_utc=db.jetzt(), angelegt_von="CC1")
+        cc1 = lambda: next(a for a in workbench.daten_start(self.con, self.pid)["agenten"] if a["kennung"] == "CC1")
+        self.assertEqual(cc1()["wartet_auf"], ["TL"])
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Welche Farbe?", [("A", "rot")], "A", "weil", geprueft="keine Treffer")
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "wartegrund", projekt_id=self.pid, aufgabe_id=jetzt, art="frage", bezug=f"F{fid}",
+                         angelegt_utc=db.jetzt(), angelegt_von="CC1")
+        self.assertEqual(cc1()["wartet_auf"], ["Entwickler", "TL"])
+        start = abgleich.ansichten(self.con, self.pid)["/api/start"]                 # online dieselbe Liste
+        self.assertEqual(next(a for a in start["agenten"] if a["kennung"] == "CC1")["wartet_auf"], ["Entwickler", "TL"])
+
 if __name__ == "__main__":
     unittest.main()

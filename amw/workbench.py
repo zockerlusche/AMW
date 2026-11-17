@@ -293,10 +293,14 @@ def daten_start(con, pid):
             "SELECT w.aufgabe_id, group_concat(w.bezug, ', ') AS auf FROM wartegrund w JOIN aufgabe x ON x.id = w.aufgabe_id"
             " WHERE x.projekt_id = ? AND x.agent = ? AND x.status IN ('wartet', 'blockiert') AND x.einstufung = 'aktiv'"
             " AND w.erledigt_utc IS NULL GROUP BY w.aufgabe_id ORDER BY w.aufgabe_id LIMIT 2", (pid, a["kennung"]))]
-        a["wartet_auf"] = sorted({r[0] for r in con.execute(                 # Pfeile im Team-Baum: wer wartet auf wen (Agent/Mensch)
-            "SELECT w.bezug FROM wartegrund w JOIN aufgabe x ON x.id = w.aufgabe_id WHERE x.projekt_id = ? AND x.agent = ?"
-            " AND x.status IN ('wartet', 'blockiert') AND w.erledigt_utc IS NULL AND (w.art IN ('agent', 'entwickler'))",
-            (pid, a["kennung"]))})
+        # Pfeile im Team-Baum und „wartet auf dich“: wer wartet auf wen (Agent/Mensch). Nur aktive Aufgaben – ein alter Grund
+        # „Entwickler“ an einer Aufgabe im Eingang oder geparkt zeigte „wartet auf dich“, obwohl der Agent auf den TL wartete
+        # (A1860, Marcel W2356); eine Frage an den Menschen zählt als „Entwickler“.
+        a["wartet_auf"] = sorted({kern.ENTWICKLER if r["art"] == "frage" else r["bezug"] for r in con.execute(
+            "SELECT w.art, w.bezug FROM wartegrund w JOIN aufgabe x ON x.id = w.aufgabe_id WHERE x.projekt_id = ? AND x.agent = ?"
+            " AND x.status IN ('wartet', 'blockiert') AND x.einstufung = 'aktiv' AND w.erledigt_utc IS NULL"
+            " AND (w.art IN ('agent', 'entwickler') OR (w.art = 'frage' AND EXISTS (SELECT 1 FROM frage f WHERE 'F' || f.id = w.bezug"
+            " AND f.an = 'entwickler' AND f.status = 'offen')))", (pid, a["kennung"]))})
         l = con.execute("SELECT * FROM lauf WHERE projekt_id = ? AND agent = ? AND status = 'angemeldet' ORDER BY id LIMIT 1",
                         (pid, a["kennung"])).fetchone()
         from . import betrieb
