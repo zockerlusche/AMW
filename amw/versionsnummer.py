@@ -59,8 +59,12 @@ def pruefen(con, pid, sha, aufgabe_id):
     for tag in (_git(ordner, "tag", "--list", "v*") or "").split():
         if kern.version_teile(tag[1:]):
             belegt.setdefault(tag[1:], f"Tag {tag}")
+    gesehen = set()
     for p in con.execute("SELECT * FROM pruefung WHERE projekt_id = ? AND ergebnis IN ('offen', 'gruen') AND aufgabe_id IS NOT NULL"
                          " AND aufgabe_id != ? ORDER BY id DESC LIMIT 60", (pid, aufgabe_id or 0)).fetchall():
+        if p["aufgabe_id"] in gesehen:                   # A1873 (F1): je Aufgabe belegt nur ihre neueste offene oder grüne Prüfung –
+            continue                                     # eine neu aufgesetzte Aufgabe gibt die alte Nummer frei (17.11.: P248)
+        gesehen.add(p["aufgabe_id"])                     # (rote zählen nicht: nach einer roten bleibt die ältere grüne belegend)
         a = con.execute("SELECT status FROM aufgabe WHERE id = ?", (p["aufgabe_id"],)).fetchone()
         if a and a["status"] in ("fertig", "verworfen"):
             continue

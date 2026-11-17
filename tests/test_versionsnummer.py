@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
-from amw import betrieb, db, kern
+from amw import betrieb, db, kern, versionsnummer
 
 
 class Nummer(unittest.TestCase):
@@ -68,6 +68,19 @@ class Nummer(unittest.TestCase):
         self.g("-c", "commit.gpgsign=false", "commit", "-q", "-m", "ohne")
         a = kern.aufgabe_neu(self.con, self.pid, "TL", "Eins", "CC1")
         self.assertTrue(self.bitte("CC1", "main", self.g("rev-parse", "HEAD"), a))
+
+
+from tests.abnahme_versionsnummer import Abnahme as _AbnahmeF1  # noqa: E402
+
+
+class NeuAufgesetzt(_AbnahmeF1):
+    """A1873 (F1): die Abnahme-Fälle laufen auch im Gesamtlauf; dazu der Fall „neueste rot“ (TL entschieden)."""
+
+    def test_neueste_rot_aeltere_gruene_belegt_weiter(self):
+        self.pruefung(self.a, self.stand("1.2.0", "a-alt"), "gruen")
+        self.pruefung(self.a, self.stand("1.1.0", "a-neu"), "rot")       # die neueste ist rot – sie zählt nicht
+        with self.assertRaises(kern.AmwFehler):
+            versionsnummer.pruefen(self.con, self.pid, self.stand("1.2.0", "b"), self.b)
 
 
 if __name__ == "__main__":
