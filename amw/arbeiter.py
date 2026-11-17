@@ -270,7 +270,8 @@ def notbremse_ziehen(con, pid, p, von, aufgabe=None):
     """Notbremse des Menschen (D1258 §2): Arbeiter + Kinder beenden, Übergabe-Notiz und Protokoll in der AMW (keine Datei),
     Meldung an den Lead. Rückgabe: Text für die Ausgabe."""
     from . import kern
-    if von != kern.ENTWICKLER or os.environ.get("AMW_AGENT") or os.environ.get("CLAUDECODE"):   # P259 (3): nie aus einer Agenten-Sitzung
+    if (von != kern.ENTWICKLER or os.environ.get("AMW_AGENT") or os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET")
+            or os.environ.get("CLAUDECODE")):                  # P259 (3): dieselbe Sperre wie der Agentenstart (A1865)
         raise kern.AmwFehler("Die Notbremse zieht nur der Mensch (--von Entwickler, nicht aus einer Agenten-Sitzung)")
     lief = notbremse(p)
     notiz = uebergabe(p) if os.path.isdir(os.path.join(p["klon"], ".git")) else "kein Klon"

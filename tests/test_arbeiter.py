@@ -220,7 +220,7 @@ class Arbeiter(unittest.TestCase):
             with mock.patch.dict(os.environ, {"CLAUDECODE": "1"}), self.assertRaises(kern.AmwFehler):   # nicht aus einer Agenten-Sitzung
                 arbeiter.notbremse_ziehen(con, pid, self.p, kern.ENTWICKLER)
             self.assertTrue(lebt(kind))
-            for k in ("AMW_AGENT", "CLAUDECODE"):                                                  # wie am Terminal des Menschen
+            for k in ("AMW_AGENT", "CLAUDECODE", "CLAUDE_CODE_MESSAGING_SOCKET"):                  # wie am Terminal des Menschen
                 os.environ.pop(k, None)
             with contextlib.redirect_stdout(aus):
                 cli.cmd_platz(cli.parser().parse_args(["platz", "notbremse", "1", "--aufgabe", "7", "--projekt", "Spiel",

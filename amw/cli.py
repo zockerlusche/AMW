@@ -1147,6 +1147,8 @@ def cmd_platz(a, con):
         return
     if a.aktion == "notbremse":                       # A1848: nur der Mensch – beendet den Arbeiter samt Kindern
         from . import arbeiter
+        if KANAL.get() != "cli":                      # wie der Agentenstart (A1865): nur an der Befehlszeile des PCs
+            raise kern.AmwFehler("Die Notbremse zieht nur der Mensch an diesem PC (amw platz notbremse N --von Entwickler)")
         p = next((x for x in ps if x["nr"] == a.nr), None)
         if not p:
             raise kern.AmwFehler(f"Platz {a.nr} gibt es nicht ({len(ps)} eingerichtet)")
