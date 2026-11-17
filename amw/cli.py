@@ -3013,7 +3013,7 @@ def parser():
     x.add_argument("--ohne-bild", dest="ohne_bild", metavar="GRUND",
                    help="bitte: sichtbare Änderung ausnahmsweise ohne Bild-Dokument an der Aufgabe – mit Grund")
     x.set_defaults(f=cmd_pruefung)
-    x = s.add_parser("freigabe", help="Merge-OK (Lead/Entwickler): freigabe merge A<nr> [--zweig z] [--zurueck] – Abnahme-Kette:"
+    x = s.add_parser("freigabe", help="Merge-OK (Lead/Entwickler oder der Prüfer der jüngsten grünen Prüfung): freigabe merge A<nr> [--zweig z] [--zurueck] – Abnahme-Kette:"
                                       " nach grüner Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst")
     x.add_argument("was", choices=["merge"])
     x.add_argument("aufgabe", type=nummer)

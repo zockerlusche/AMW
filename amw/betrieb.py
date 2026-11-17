@@ -1163,16 +1163,28 @@ def gesamtlauf_ausnahme(con, pid, aufgabe_id):
     return r if r and r["art"] == "gesamtlauf_ausnahme" else None
 
 
+def _pruefer_recht(con, pid, von, aufgabe_id, zweig, ausnahme):
+    """A1864: enges Recht ohne volle Lead-Rechte – das Merge-OK (und seine Rücknahme) gibt auch, wer als Prüfer der jüngsten
+    Prüfung dieser Aufgabe (dieses Zweigs) eingetragen ist, wenn sie grün ist. Eine Ausnahme vom Gesamtlauf bleibt beim Lead."""
+    if ausnahme:
+        raise kern.AmwFehler("Eine Ausnahme vom Gesamtlauf vermerken nur Lead und Entwickler")
+    sql = "SELECT pruefer, ergebnis FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ?" + (" AND zweig = ?" if zweig else "")
+    p = con.execute(sql + " ORDER BY id DESC LIMIT 1", (pid, aufgabe_id, *([zweig] if zweig else []))).fetchone()
+    if not p or p["pruefer"] != von or p["ergebnis"] != "gruen":
+        raise kern.AmwFehler("Das Merge-OK geben Lead und Entwickler – oder der Prüfer, der die jüngste Prüfung dieser Aufgabe"
+                             " grün gesetzt hat")
+
+
 def freigabe_merge(con, pid, von, aufgabe_id, zweig=None, zurueck=False, ausnahme=None):
     """Merge-OK des Leads/Entwicklers für eine Aufgabe (optional nur einen Zweig) – „bei grüner Prüfung gilt mein OK“.
     Liegt schon ein GRÜN auf dem neuesten Stand vor, geht die Merge-Bitte sofort. zurueck: OK zurücknehmen.
     ausnahme: Grund, warum ohne eigenen Gesamtlauf ausgeliefert werden darf (liest amw release ausliefern)."""
-    if not kern.ist_lead(con, pid, von):
-        raise kern.AmwFehler("Das Merge-OK geben Lead und Entwickler")
     if not con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND projekt_id = ?", (aufgabe_id, pid)).fetchone():
         raise kern.AmwFehler(f"A{aufgabe_id} gibt es nicht")
     zweig = (zweig or "").strip() or None
     ausnahme = (ausnahme or "").strip() or None
+    if not kern.ist_lead(con, pid, von):
+        _pruefer_recht(con, pid, von, aufgabe_id, zweig, ausnahme)
     if ausnahme and zurueck:
         raise kern.AmwFehler("--ausnahme gehört zu einem Merge-OK, nicht zur Rücknahme")
     if not zurueck:                                      # A1754: Zweig aus der Prüfung statt von Hand (14.11.: falscher Zweig → 2 h Stillstand)

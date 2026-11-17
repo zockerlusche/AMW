@@ -86,6 +86,10 @@
   [
    "Wie prüft die AMW die Arbeit eines Agenten am Arbeitsplatz?",
    "Sie glaubt nicht seiner Meldung, sondern führt die Abnahme selbst aus – im Platz, mit dessen Daten und Port, mit Zeitlimit; hängt ein Test, beendet sie ihn samt allem, was er gestartet hat. Vor dem Bau muss die Abnahme rot sein, sonst prüft sie nichts. Danach gleicht sie ab, ob nur die geplanten Bereiche geändert sind und kein gesperrter Pfad: Auslieferung, Rechte, Hooks, `.claude/`, `CLAUDE.md`, Abnahme- und Testskripte, Testkonfiguration – Testdateien nur beim Pakettyp „test-schreiben“, und dann muss der neue Test gegen den alten Stand rot sein. Ohne eingerichtete Plätze passiert davon nichts."
+  ],
+  [
+   "Wer darf das Merge-OK geben?",
+   "Der Lead und du – und der Prüfer, der die jüngste Prüfung einer Aufgabe grün gesetzt hat: `amw freigabe merge A12`. So kann ein Agent, der nur prüft, ohne volle Lead-Rechte freigeben. Eine Ausnahme vom Gesamtlauf vermerken weiter nur der Lead und du."
   ]
  ],
  "thema": "agenten",

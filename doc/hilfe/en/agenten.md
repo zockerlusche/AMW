@@ -51,3 +51,6 @@ For agents that work without a window of their own (`claude -p`), AMW keeps work
 
 ### How does AMW check the work of an agent at a work place?
 It does not trust the agent's report but runs the acceptance itself – in the place, with its data and port, with a time limit; if a test hangs, AMW ends it together with everything it started. Before building, the acceptance must be red, otherwise it checks nothing. Afterwards AMW checks that only the planned areas changed and no locked path: delivery, rights, hooks, `.claude/`, `CLAUDE.md`, acceptance and test scripts, test configuration – test files only for the package type “test-schreiben”, and then the new test must be red against the old state. Without work places set up, none of this happens.
+
+### Who may give the merge OK?
+The lead and you – and the reviewer who set the latest check of a task to green: `amw freigabe merge A12`. This way an agent who only reviews can approve without full lead rights. An exception from the full test run is still recorded only by the lead and you.

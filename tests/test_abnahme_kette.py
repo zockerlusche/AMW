@@ -38,6 +38,32 @@ class Kette(unittest.TestCase):
                + (" AND n.art = ?" if art else "") + " ORDER BY n.id")
         return [dict(r) for r in self.con.execute(sql, (an, art) if art else (an,))]
 
+    def test_pruefer_gibt_merge_ok_ohne_lead_rechte(self):
+        """A1864: ein operativer Prüfer (kein Lead) gibt das Merge-OK für die Prüfung, die er grün gesetzt hat – sonst nicht."""
+        with self.assertRaises(kern.AmwFehler):                                                 # noch keine Prüfung
+            betrieb.freigabe_merge(self.con, self.pid, "CC2", self.a)
+        prid = betrieb.pruefbitte(self.con, self.pid, "CC1", "CC2", "feat", "abc1234567", aufgabe_id=self.a)
+        with self.assertRaises(kern.AmwFehler):                                                 # offen: noch nicht
+            betrieb.freigabe_merge(self.con, self.pid, "CC2", self.a)
+        betrieb.pruefung_ergebnis(self.con, self.pid, "CC2", prid, "gruen")
+        with self.assertRaises(kern.AmwFehler):                                                 # nicht sein Prüfer
+            betrieb.freigabe_merge(self.con, self.pid, "CC3", self.a)
+        with self.assertRaises(kern.AmwFehler):                                                 # der Bauer selbst nie
+            betrieb.freigabe_merge(self.con, self.pid, "CC1", self.a)
+        with self.assertRaises(kern.AmwFehler) as e:                                            # Ausnahme bleibt beim Lead
+            betrieb.freigabe_merge(self.con, self.pid, "CC2", self.a, ausnahme="ohne Lauf")
+        self.assertIn("Ausnahme", str(e.exception))
+        betrieb.freigabe_merge(self.con, self.pid, "CC2", self.a)
+        self.assertEqual(betrieb.merge_ok(self.con, self.pid, self.a, "feat")["von"], "CC2")
+        self.assertFalse(kern.ist_lead(self.con, self.pid, "CC2"))                              # keine vollen Lead-Rechte
+        betrieb.freigabe_merge(self.con, self.pid, "CC2", self.a, zurueck=True)                 # Rücknahme darf er auch
+        self.assertIsNone(betrieb.merge_ok(self.con, self.pid, self.a, "feat"))
+        neu = betrieb.pruefbitte(self.con, self.pid, "CC1", "CC3", "feat", "def7654321", aufgabe_id=self.a)
+        betrieb.pruefung_ergebnis(self.con, self.pid, "CC3", neu, "gruen")                      # neuer Stand, anderer Prüfer
+        with self.assertRaises(kern.AmwFehler):                                                 # zählt nur die jüngste Prüfung
+            betrieb.freigabe_merge(self.con, self.pid, "CC2", self.a)
+        betrieb.freigabe_merge(self.con, self.pid, "CC3", self.a)
+
     def test_vorgabe_aus(self):
         self.assertEqual(kern.projekt_wahl(self.con, self.pid, "abnahme_kette"), "aus")
         self.assertIsNone(self.gruen()[1])

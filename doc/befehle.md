@@ -45,7 +45,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`schirm`](#schirm) | Bildschirm-Schalter: zeige ¦ frei --grund … [--bis HH:MM] (Entwickler/Lead; schon frei: ändert nur --bis, ohne --bis = ohne Ende) ¦ zu [--grund …] (alle) |
 | [`server`](#server) | Projekt-Server überwachen: anmelden ¦ abmelden ¦ liste ¦ pruefen |
 | [`pruefung`](#pruefung) | Prüfbitte je Stand (SHA), Ergebnis grün/rot |
-| [`freigabe`](#freigabe) | Merge-OK (Lead/Entwickler): freigabe merge A<nr> [--zweig z] [--zurueck] – Abnahme-Kette: nach grüner Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst |
+| [`freigabe`](#freigabe) | Merge-OK (Lead/Entwickler oder der Prüfer der jüngsten grünen Prüfung): freigabe merge A<nr> [--zweig z] [--zurueck] – Abnahme-Kette: nach grüner Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst |
 | [`hinweis`](#hinweis) | Anweisung an einen Agenten oder alle (z. B. „keine Rechen-Jobs“) |
 | [`rezept`](#rezept) | Lauf-Rezepte als Daten |
 | [`ki`](#ki) | Lokale KIs (PC-weit): liste ¦ neu¦aendern <ki> (nur am PC) ¦ modell <ki> <name> ¦ freigeben¦sperren <ki> <modell> ¦ vorlage <ki> <name> --datei ¦ recht <ki> --wer ¦ auftrag <ki> --prompt … ¦ zeige L<nr> ¦ pruefen ¦ nachweis ¦ vermerk D<nr> --art … ¦ fenster |

@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.131.2 – 17.11.2026 · Merge-OK durch den Prüfer
+- **Neu:** Das Merge-OK gibt jetzt auch der Prüfer, der die jüngste Prüfung einer Aufgabe grün gesetzt hat – ohne volle
+  Lead-Rechte. Eine Ausnahme vom Gesamtlauf vermerkt weiter nur der Lead.
+
 ## 1.131.1 – 17.11.2026 · „wartet auf dich“ nur, wenn du dran bist
 - **Behoben:** Auf der Team-Karte stand „wartet auf dich“, obwohl der Agent auf den TL wartete – eine alte Aufgabe im Eingang
   hatte noch einen Wartegrund beim Menschen. Jetzt zählen nur aktive Aufgaben, die wirklich auf dich warten (auch über eine
