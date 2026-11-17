@@ -94,6 +94,10 @@
   [
    "Warum lehnt ein Befehl aus meinem Entwicklungsordner die Datenbank ab?",
    "Die Datenbank gehört zum Dienst der AMW. Läuft ein Befehl mit Code aus einem anderen Ordner (Entwicklungs- oder Prüfordner) und landet über die Einstellungen bei dieser Datenbank, darf er nur lesen – nicht ändern und nicht auf ein neues Schema heben. Arbeite dort mit einer eigenen Datei: `AMW_DB=<eigene Datei>`. Befehle für die echte Arbeit startest du aus dem Ordner der AMW."
+  ],
+  [
+   "Wann startet die AMW ein Paket am Arbeitsplatz – und wann nicht?",
+   "Vor jedem Start fragt sie den Wächter. Er startet nicht, wenn Abnahme-Befehl oder Bereiche fehlen (Regel 1), die Bereiche sich mit einem laufenden Paket überschneiden (2), das Paket Grafikkarte, Bildschirm oder viel Rechenleistung braucht (3), alle Plätze belegt sind (4), die Bereiche gesperrte Pfade enthalten (5), die Abnahme schon vor dem Bau grün ist (6), der Wartungsmodus an ist (7), das Wochenlimit des Kontos bei 80 % oder mehr steht (8), zweimal hintereinander ein Lauf unklar oder abgebrochen endete (9 – Pause) oder keine Plätze eingerichtet sind (10). Jeder Grund steht mit seiner Nummer im Protokoll: `amw waechter protokoll`. Eine Auslieferung der AMW setzt den Wartungsmodus und wartet, bis laufende Pakete enden. Wartungsmodus und Pause hebt der Lead oder du auf: `amw waechter weiter`."
   ]
  ],
  "thema": "agenten",
