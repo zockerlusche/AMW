@@ -4,7 +4,7 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
-## 1.132.0 – 17.11.2026 · Wächter für Arbeitsplatz-Pakete
+## 1.133.0 – 17.11.2026 · Wächter für Arbeitsplatz-Pakete
 - **Neu:** Bevor die AMW ein Paket am Arbeitsplatz startet, prüft ein Wächter zehn feste Regeln – fehlende Abnahme,
   Überschneidung, schwere Pakete, volle Plätze, gesperrte Bereiche, Abnahme schon grün, Wartungsmodus, Wochenlimit ab
   80 %, Pause nach zwei unklaren Läufen, keine Plätze. Jeder Grund steht mit Nummer im Protokoll (`amw waechter`).
