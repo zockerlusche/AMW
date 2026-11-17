@@ -20,6 +20,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
+| [`waechter`](#waechter) | Wächter für p-Pakete: pruefen A ¦ protokoll [A] ¦ reihenfolge ¦ zustand ¦ wartung an¦aus ¦ weiter |
 | [`platz`](#platz) | Arbeitsplätze für kopflose Arbeiter (claude -p): liste ¦ vorbereiten N ¦ zuruecksetzen N ¦ aufraeumen (nichts wird gelöscht: Reste ins Archiv, fertige Pakete nach _loeschen) |
 | [`messung`](#messung) | Wartezeit und Kosten je Aufgabe (Liegezeit, aktiv, wartet nach Grund, $, Lücken) – nur lesen |
 | [`kosten`](#kosten) | Kosten eines Laufs außerhalb der Sitzungs-Zähler einer Aufgabe zuordnen (z. B. claude -p) |
@@ -540,6 +541,23 @@ positional arguments:
 options:
   -h, --help         show this help message and exit
   --aufgabe AUFGABE
+  --von VON
+  --projekt PROJEKT
+```
+
+## waechter
+```
+usage: amw waechter [-h] [--grund GRUND] [--von VON] [--projekt PROJEKT]
+                    {pruefen,protokoll,reihenfolge,zustand,wartung,weiter}
+                    [nr]
+
+positional arguments:
+  {pruefen,protokoll,reihenfolge,zustand,wartung,weiter}
+  nr                    Aufgabe (pruefen, protokoll) bzw. an|aus (wartung)
+
+options:
+  -h, --help            show this help message and exit
+  --grund GRUND
   --von VON
   --projekt PROJEKT
 ```

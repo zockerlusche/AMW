@@ -348,6 +348,14 @@ class Kette:
         sha, version, ausnahme = v["sha"], v["version"], v["ausnahme"]
         self.ausgabe(f"Version {version} = {sha[:8]} · {'Prüfstufe niedrig (ohne Prüfbitte)' if v['niedrig'] else 'Prüfung grün'} · Merge-OK {v['merge_ok']} · "
                      + (f"Gesamtlauf L{v['lauf']}" if v["lauf"] else f"Ausnahme ({ausnahme})"))
+        from . import waechter                         # A1847: laufende p-Pakete erst enden lassen (Wartungsmodus)
+        wartung = waechter.p_laufend(self.con)
+        if wartung:
+            fertig, rest = waechter.vor_auslieferung(self.con)
+            if not fertig:
+                self.stopp("Wartungsmodus", "p-Pakete laufen noch: " + ", ".join(f"A{x}" for x in rest)
+                           + " – der Wartungsmodus bleibt (keine neuen Starts), später erneut ausliefern")
+            self.schritt("Wartungsmodus – keine p-Pakete mehr laufend")
         from . import dokumente
         ziel = db.sichern(None)
         dokumente.sichern(os.path.splitext(ziel)[0] + "-dokumente")
@@ -427,5 +435,8 @@ class Kette:
                              f"main {sha[:8]}, Tag v{version}, GitHub-Release, Web-Abzug L{lid}, Versionszeile R{rid}."
                              + (f" Gesamtlauf L{v['lauf']}." if v["lauf"] else f" Ohne Gesamtlauf: {ausnahme}.")
                              + (f" Fertig gesetzt: {fertig_liste}." if ok else "") + kriterien)
+        if wartung:
+            waechter.wartung_aus()
+            self.ausgabe("Wartungsmodus aufgehoben")
         self.ausgabe(f"Version {version} live.")
         return {"version": version, "sha": sha, "web_lauf": lid, "release": rid}

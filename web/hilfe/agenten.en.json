@@ -94,6 +94,10 @@
   [
    "Why does a command from my development folder refuse the database?",
    "The database belongs to the AMW service. If a command runs with code from another folder (development or check folder) and reaches this database through the settings, it may only read – not change it and not lift it to a new schema. Work there with your own file: `AMW_DB=<own file>`. Run commands for real work from the AMW folder."
+  ],
+  [
+   "When does AMW start a package at a work place – and when not?",
+   "Before every start it asks the guard. It does not start when the acceptance command or the areas are missing (rule 1), the areas overlap with a running package (2), the package needs the graphics card, the screen or a lot of computing power (3), all places are taken (4), the areas contain locked paths (5), the acceptance is already green before building (6), maintenance mode is on (7), the account's weekly limit is at 80 % or more (8), two runs in a row ended unclear or aborted (9 – pause) or no places are set up (10). Each reason is logged with its number: `amw waechter protokoll`. A delivery of AMW switches on maintenance mode and waits until running packages end. The lead or you lift maintenance mode and pause: `amw waechter weiter`."
   ]
  ],
  "thema": "agenten",

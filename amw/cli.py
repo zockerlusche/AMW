@@ -1078,6 +1078,49 @@ def cmd_kosten(a, con):
                                                 else f"{e['usd']:.2f} $ erfasst"))
 
 
+def cmd_waechter(a, con):
+    """A1847: Wächter für p-Pakete – prüfen (darf A starten?), protokoll, reihenfolge, zustand; wartung an|aus, weiter (Lead/Mensch)."""
+    from . import waechter
+    pid = _projekt(con, a)
+    if a.aktion == "pruefen":
+        if not a.nr:
+            raise kern.AmwFehler("amw waechter pruefen <Aufgabe>")
+        aid = int(str(a.nr).lstrip("Aa"))
+        r = waechter.pruefen(con, pid, aid)
+        print(f"A{aid}: " + ("darf starten (Regel 6 prüft der Starter am Platz)" if r["ok"] else
+                             f"nicht gestartet, Regel {r['regel']}: {r['grund']}" + (" – später erneut" if r["warten"] else "")
+                             if r["regel"] else r["grund"]))
+        return
+    if a.aktion == "protokoll":
+        zeilen = waechter.protokoll(con, pid, int(str(a.nr).lstrip("Aa")) if a.nr else None)
+        print("\n".join(f"{_zeit(z['zeit_utc'])}  {z['text']}" for z in zeilen) or "Noch keine Einträge")
+        return
+    if a.aktion == "reihenfolge":
+        r = waechter.reihenfolge(con, pid)
+        print("\n".join(f"{i}. A{x['id']} (Rang {x['rang'] if x['rang'] is not None else '–'}) {x['titel'][:70]}" for i, x in enumerate(r, 1))
+              or "Kein startklares p-Paket ohne offene Vorgänger")
+        return
+    if a.aktion == "zustand":
+        z = waechter.zustand()
+        print("Wartungsmodus: " + (f"an seit {_zeit(z['wartung']['seit'])} – {z['wartung'].get('grund') or ''}" if z["wartung"] else "aus"))
+        print("Pause: " + (f"an seit {_zeit(z['pause']['seit'])} – {z['pause'].get('grund') or ''}" if z["pause"] else "aus"))
+        return
+    if not kern.ist_lead(con, pid, _von(a)):
+        raise kern.AmwFehler("Wartungsmodus und Pause schalten Lead und Mensch")
+    if a.aktion == "wartung":
+        if a.nr == "an":
+            waechter.wartung_an(a.grund or f"von Hand ({_von(a)})")
+            print("Wartungsmodus an – keine neuen p-Starts, Laufendes läuft zu Ende")
+        elif a.nr == "aus":
+            waechter.wartung_aus()
+            print("Wartungsmodus aus")
+        else:
+            raise kern.AmwFehler("amw waechter wartung an|aus")
+        return
+    waechter.weiter()
+    print("Wartungsmodus und Pause aufgehoben – p-Pakete dürfen wieder starten (nach den übrigen Regeln)")
+
+
 def cmd_platz(a, con):
     """A1855: Arbeitsplätze für -p – zeigen, vorbereiten, zurücksetzen (Lead und Mensch)."""
     from . import platz
@@ -2775,6 +2818,12 @@ def parser():
     x.add_argument("text", nargs="*")
     x.add_argument("--aufgabe", type=nummer)
     x.set_defaults(f=cmd_taetigkeit)
+
+    x = s.add_parser("waechter", help="Wächter für p-Pakete: pruefen A | protokoll [A] | reihenfolge | zustand | wartung an|aus | weiter")
+    x.add_argument("aktion", choices=["pruefen", "protokoll", "reihenfolge", "zustand", "wartung", "weiter"])
+    x.add_argument("nr", nargs="?", help="Aufgabe (pruefen, protokoll) bzw. an|aus (wartung)")
+    x.add_argument("--grund")
+    x.set_defaults(f=cmd_waechter)
 
     x = s.add_parser("platz", help="Arbeitsplätze für kopflose Arbeiter (claude -p): liste | vorbereiten N | zuruecksetzen N | aufraeumen"
                                    " (nichts wird gelöscht: Reste ins Archiv, fertige Pakete nach _loeschen)")
