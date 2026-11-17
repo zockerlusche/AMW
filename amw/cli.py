@@ -1145,6 +1145,13 @@ def cmd_platz(a, con):
             print(f"Platz {p['nr']}: {p['klon']} · Daten {p['daten']} · Port {p['port']} · "
                   + (("sauber" if platz.sauber(p) else "nicht sauber") if da else "noch nicht angelegt"))
         return
+    if a.aktion == "notbremse":                       # A1848: nur der Mensch – beendet den Arbeiter samt Kindern
+        from . import arbeiter
+        p = next((x for x in ps if x["nr"] == a.nr), None)
+        if not p:
+            raise kern.AmwFehler(f"Platz {a.nr} gibt es nicht ({len(ps)} eingerichtet)")
+        print(arbeiter.notbremse_ziehen(con, pid, p, _von(a), a.aufgabe))
+        return
     if not kern.ist_lead(con, pid, _von(a)):
         raise kern.AmwFehler("Arbeitsplätze vorbereiten und zurücksetzen dürfen Lead und Mensch")
     if a.aktion == "aufraeumen":
@@ -2832,8 +2839,9 @@ def parser():
     x.set_defaults(f=cmd_waechter)
 
     x = s.add_parser("platz", help="Arbeitsplätze für kopflose Arbeiter (claude -p): liste | vorbereiten N | zuruecksetzen N | aufraeumen"
-                                   " (nichts wird gelöscht: Reste ins Archiv, fertige Pakete nach _loeschen)")
-    x.add_argument("aktion", choices=["liste", "vorbereiten", "zuruecksetzen", "aufraeumen"])
+                                   " | notbremse N (nur der Mensch: Arbeiter samt Kindern beenden) – nichts wird gelöscht: Reste ins"
+                                   " Archiv, fertige Pakete nach _loeschen")
+    x.add_argument("aktion", choices=["liste", "vorbereiten", "zuruecksetzen", "aufraeumen", "notbremse"])
     x.add_argument("nr", nargs="?", type=int)
     x.add_argument("--aufgabe", type=int, help="Aufgabe des Pakets (Name des Archivs, damit aufraeumen es nach Paketende verschiebt)")
     x.add_argument("--zweig", help="vorbereiten: Name des Zweigs ab main (Vorgabe platzN)")

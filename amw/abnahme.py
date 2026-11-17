@@ -136,15 +136,16 @@ def diff_tor(klon, basis, bereiche, typ=None):
 
 # --- Ausführen im Job-Objekt (Windows): ein Zeitlimit beendet den ganzen Prozessbaum ---------------------------------------
 
-def _job_neu():
-    """Ein Job-Objekt, das beim Schließen alle Prozesse beendet – oder None (kein Windows)."""
+def _job_neu(name=None):
+    """Ein Job-Objekt, das beim Schließen alle Prozesse beendet – oder None (kein Windows). name: benannt (Notbremse, A1848)."""
     if os.name != "nt":
         return None
     import ctypes
     from ctypes import wintypes
     k = ctypes.WinDLL("kernel32", use_last_error=True)
     k.CreateJobObjectW.restype = wintypes.HANDLE
-    job = k.CreateJobObjectW(None, None)
+    k.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
+    job = k.CreateJobObjectW(None, name)
     if not job:
         return None
 

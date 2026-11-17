@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.136.0 – 17.11.2026 · Abgeschottete Arbeiter am Arbeitsplatz
+- **Neu (für Arbeitsplätze):** Die AMW kann einen kopflosen Arbeiter (`claude -p`) starten, der nur im Klon seines Platzes
+  liest und schreibt, nur feste git-Befehle und den Abnahme-Befehl ausführt und keine fremden Einstellungen, Hooks oder
+  MCP-Server lädt. Weicht seine Startmeldung ab, wird er sofort beendet. Die Notbremse (`amw platz notbremse N`, nur der
+  Mensch) beendet ihn samt aller Kindprozesse. Ohne Arbeitsplätze ändert sich nichts.
+
 ## 1.135.0 – 17.11.2026 · Agenten startet nur der Mensch
 - **Verbessert:** Einen Agenten startet nur noch der Mensch – in der Workbench am PC (mit Rückfrage) oder im eigenen Terminal
   mit `--von Entwickler`. Ein Agent, auch der Lead, kann keinen Agenten starten, und online gibt es den Knopf nicht.

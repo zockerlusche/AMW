@@ -21,7 +21,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
 | [`waechter`](#waechter) | Wächter für p-Pakete: pruefen A ¦ protokoll [A] ¦ reihenfolge ¦ zustand ¦ wartung an¦aus ¦ weiter |
-| [`platz`](#platz) | Arbeitsplätze für kopflose Arbeiter (claude -p): liste ¦ vorbereiten N ¦ zuruecksetzen N ¦ aufraeumen (nichts wird gelöscht: Reste ins Archiv, fertige Pakete nach _loeschen) |
+| [`platz`](#platz) | Arbeitsplätze für kopflose Arbeiter (claude -p): liste ¦ vorbereiten N ¦ zuruecksetzen N ¦ aufraeumen ¦ notbremse N (nur der Mensch: Arbeiter samt Kindern beenden) – nichts wird gelöscht: Reste ins Archiv, fertige Pakete nach _loeschen |
 | [`messung`](#messung) | Wartezeit und Kosten je Aufgabe (Liegezeit, aktiv, wartet nach Grund, $, Lücken) – nur lesen |
 | [`kosten`](#kosten) | Kosten eines Laufs außerhalb der Sitzungs-Zähler einer Aufgabe zuordnen (z. B. claude -p) |
 | [`mcp`](#mcp) | Connector für Chat-Leads: schluessel (neu erzeugen – nur der Mensch, einmal sichtbar) ¦ eintrag (Zeile für claude_desktop_config.json) |
@@ -566,10 +566,10 @@ options:
 ```
 usage: amw platz [-h] [--aufgabe AUFGABE] [--zweig ZWEIG] [--von VON]
                  [--projekt PROJEKT]
-                 {liste,vorbereiten,zuruecksetzen,aufraeumen} [nr]
+                 {liste,vorbereiten,zuruecksetzen,aufraeumen,notbremse} [nr]
 
 positional arguments:
-  {liste,vorbereiten,zuruecksetzen,aufraeumen}
+  {liste,vorbereiten,zuruecksetzen,aufraeumen,notbremse}
   nr
 
 options:
