@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.131.1 – 17.11.2026 · „wartet auf dich“ nur, wenn du dran bist
+- **Behoben:** Auf der Team-Karte stand „wartet auf dich“, obwohl der Agent auf den TL wartete – eine alte Aufgabe im Eingang
+  hatte noch einen Wartegrund beim Menschen. Jetzt zählen nur aktive Aufgaben, die wirklich auf dich warten (auch über eine
+  offene Frage an dich); wartet der Agent auf jemand anderen, steht dort grau „wartet auf TL“. Auf dem Handy bricht das
+  Etikett in schmalen Karten um.
+
 ## 1.131.0 – 17.11.2026 · Arbeitspakete für kopflose Arbeiter
 - **Neu:** Jede Aufgabe kann sagen, wer sie ausführt: ein vorhandener Agent (wie bisher), eine neue Sitzung oder ein frischer
   `claude -p`-Arbeiter (`--paket p`). Dazu gibt der Lead an, womit gearbeitet wird – Modell, Effort, Gewicht, Ressourcen,
