@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.141.0 – 17.11.2026 · Sperrliste für Arbeiter vollständig
+- **Behoben (für Arbeitsplätze):** Ein Arbeiter darf keine Datei mehr ändern, die ihn abschottet, prüft, startet oder Rechte
+  vergibt (u. a. Wächter, Prüfung, Entscheidung, Datenbank, Rechte, Befehle), und keine Datei, die Python oder Werkzeuge
+  beim Start von selbst laden. Die Liste gibt es genau einmal.
+
 ## 1.140.0 – 17.11.2026 · Die AMW startet Pakete am Arbeitsplatz selbst
 - **Neu (für Arbeitsplätze):** Der Dienst startet startklare p-Pakete selbst – Wächter, Platz vorbereiten, Abnahme vor dem Bau
   rot, Arbeiter in einem eigenen Prozess (übersteht einen Neustart des Dienstes), danach eigene Prüfung und Entscheidung. Ist

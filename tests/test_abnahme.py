@@ -47,7 +47,7 @@ class Pfade(unittest.TestCase):
             self.assertTrue(abnahme.gesperrt([p], abnahme.TEST_SCHREIBEN), p)        # fest: auch bei test-schreiben
         self.assertTrue(abnahme.gesperrt(["tests/test_neu.py"]))                     # Testdatei: gesperrt …
         self.assertFalse(abnahme.gesperrt(["tests/test_neu.py"], abnahme.TEST_SCHREIBEN))   # … außer bei test-schreiben
-        for p in ("amw/cli.py", "web/hilfe/agenten.de.json", "doc/hilfe/agenten.md", "amw\\messung.py", "./amw/x.py"):
+        for p in ("amw/hilfen.py", "web/hilfe/agenten.de.json", "doc/hilfe/agenten.md", "amw\\messung.py", "./amw/x.py"):   # cli.py seit S3b gesperrt
             self.assertFalse(abnahme.gesperrt([p]), p)
 
     def test_gross_klein_und_vollstaendig(self):

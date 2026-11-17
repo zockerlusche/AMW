@@ -23,9 +23,9 @@ from . import abnahme
 
 # fest im Abnahme-Modul, nicht je Paket wählbar (§6a.3.4): kurz, ohne Fenster, ohne Netz
 REGRESSION = "python -X utf8 -m unittest tests.test_abschotten tests.test_live_schutz tests.test_abnahme tests.test_hilfen"
-# Dateien, die Python/Werkzeuge beim Start von selbst laden (§6a.3.3) – ein Paket darf sie nie anlegen oder ändern
-AUTOGELADEN = ("sitecustomize.py", "*/sitecustomize.py", "usercustomize.py", "*/usercustomize.py", "conftest.py", "*/conftest.py",
-               "*.pth", "pyproject.toml", "*/pyproject.toml", "setup.cfg", "*/setup.cfg", "pytest.ini", "*/pytest.ini", "tox.ini")
+# Dateien, die Python/Werkzeuge beim Start von selbst laden (§6a.3.3): die Liste gibt es genau einmal – in abnahme.GESPERRT
+# (Besitzer Abnahme-Modul, D1258 §5); hier nur die Auswahl für den eigenen Befund „automatisch geladen“
+AUTOGELADEN = tuple(m for m, _, grund in abnahme.GESPERRT if grund.startswith("automatisch geladen")) + ("pytest.ini", "*/pytest.ini")
 GIT_NAME, GIT_EMAIL = "AMW-Arbeiter", "arbeiter@amw.invalid"
 # Geheimnis-Muster: nur der Name des Treffers wird gemeldet, nie der Wert
 GEHEIM = (("privater Schlüssel", r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
