@@ -85,13 +85,12 @@ class Automat(unittest.TestCase):
 
 
 class _Datenbank(unittest.TestCase):
-    """Gegen die Tabelle paket (bis Schema 33 freigegeben ist: in der Test-Datenbank angelegt)."""
+    """Gegen die Tabelle paket (Schema 33)."""
     def setUp(self):
         self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.addCleanup(self.ordner.cleanup)
         self.con = db.anlegen(os.path.join(self.ordner.name, "amw.db"))
         self.addCleanup(self.con.close)
-        self.con.executescript(ap.TABELLE)
         with db.schreiben(self.con):
             self.pid = db.einfuegen(self.con, "projekt", name="Eins", angelegt_utc=db.jetzt())
         kern.agent_neu(self.con, self.pid, "TL", rolle="lead")
@@ -215,6 +214,29 @@ class Befehle(_Datenbank):
                           "--nie-gleichzeitig", "A12"])
         self.assertEqual(mcp_server.befehlszeile("paket_zustand", {"id": self.aid, "zustand": "startklar"}),
                          ["paket", "zustand", str(self.aid), "startklar"])
+
+
+class Migration(unittest.TestCase):
+    def test_33_fuegt_nur_hinzu(self):
+        """Schema 32 → 33: Tabelle paket kommt dazu, bestehende Aufgaben bleiben unverändert und sind Art agent."""
+        ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(ordner.cleanup)
+        pfad = os.path.join(ordner.name, "amw.db")
+        con = db.anlegen(pfad)
+        with db.schreiben(con):
+            pid = db.einfuegen(con, "projekt", name="Eins", angelegt_utc=db.jetzt())
+        kern.agent_neu(con, pid, "TL", rolle="lead")
+        aid = kern.aufgabe_neu(con, pid, "TL", "Alt", agent="TL")
+        vorher = tuple(con.execute("SELECT * FROM aufgabe WHERE id = ?", (aid,)).fetchone())
+        con.execute("DROP TABLE paket")
+        con.execute("PRAGMA user_version = 32")
+        con.close()
+        con = db.verbinde(pfad)
+        self.addCleanup(con.close)
+        self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], 33)
+        self.assertEqual(tuple(con.execute("SELECT * FROM aufgabe WHERE id = ?", (aid,)).fetchone()), vorher)
+        self.assertEqual(con.execute("SELECT count(*) FROM paket").fetchone()[0], 0)
+        self.assertEqual(ap.lesen(con, aid)["art"], "agent")
 
 
 if __name__ == "__main__":

@@ -151,26 +151,7 @@ def warnungen(felder, pruefbefehl, dateibereich):
 
 
 # --- Speicher ------------------------------------------------------------------------------------------------------
-# Tabelle `paket` (1:1 zur Aufgabe, keine Zeile = Art agent mit Standardwerten). Wird mit Schema 33 zur Migration –
-# bis Marcels OK (TL #28767) legen nur die Tests sie an.
-TABELLE = """
-CREATE TABLE IF NOT EXISTS paket (
-  aufgabe_id        INTEGER PRIMARY KEY REFERENCES aufgabe(id),
-  art               TEXT NOT NULL DEFAULT 'agent' CHECK (art IN ('agent', 'sitzung', 'p')),
-  gewicht           TEXT CHECK (gewicht IN ('leicht', 'schwer')),
-  ressourcen        TEXT,                          -- JSON ["gpu", "bildschirm"]
-  modell            TEXT,
-  effort            TEXT CHECK (effort IN ('low', 'medium', 'high')),
-  pakettyp          TEXT CHECK (pakettyp IN ('normal', 'test-schreiben')),
-  nie_gleichzeitig  TEXT,                          -- JSON [Aufgaben-Nummern]
-  gleiche_ressource TEXT,
-  zustand           TEXT CHECK (zustand IN ('entwurf', 'startklar', 'laeuft', 'abgegeben', 'abnahme', 'merge_reihe', 'gemergt',
-                                            'fertig', 'blockiert', 'unklar', 'wartet_interaktiv', 'abgebrochen', 'zurueckgestellt')),
-  zustand_utc       TEXT,
-  herkunft          TEXT NOT NULL DEFAULT '',
-  geaendert_utc     TEXT NOT NULL
-);
-"""
+# Tabelle `paket` (Schema 33, amw/migration_33.sql): 1:1 zur Aufgabe, keine Zeile = Art agent mit Standardwerten.
 JSON_FELDER = ("ressourcen", "nie_gleichzeitig")
 PLANER_FEHLT = "Paketfelder setzt der Lead (oder der Mensch) – er plant, wer was ausführt"
 

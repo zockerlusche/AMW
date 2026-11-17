@@ -104,6 +104,7 @@ class Umstellung(Grund):
             self.con.execute(f"ALTER TABLE aufgabe DROP COLUMN {sp}")
         for sp in ("befehl", "ordner", "ergebnis_datei", "frist_min", "waechter", "ausfuehrer", "spitze_gb"):   # Läufe überleben, Bedarf lernen (Schema 31)
             self.con.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
+        self.con.execute("DROP TABLE paket")               # Arbeitspakete kamen mit Schema 33
         for tab in ("runde_gelesen", "runde"):   # Lead-Runde kam mit Schema 32
             self.con.execute(f"DROP TABLE {tab}")
         self.con.execute("ALTER TABLE agent DROP COLUMN entfernt_utc")      # Agenten entfernen kam mit Schema 28

@@ -998,3 +998,21 @@ CREATE TABLE runde_gelesen (
   bis_id        INTEGER NOT NULL,
   geaendert_utc TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
+
+-- Arbeitspakete für den Mischbetrieb (Schema 33, A1845): keine Zeile = Art agent mit Standardwerten; Zustände nur bei Art p
+CREATE TABLE paket (
+  aufgabe_id        INTEGER PRIMARY KEY REFERENCES aufgabe(id),
+  art               TEXT NOT NULL DEFAULT 'agent' CHECK (art IN ('agent', 'sitzung', 'p')),
+  gewicht           TEXT CHECK (gewicht IN ('leicht', 'schwer')),
+  ressourcen        TEXT,                          -- JSON ["gpu", "bildschirm"]
+  modell            TEXT,
+  effort            TEXT CHECK (effort IN ('low', 'medium', 'high')),
+  pakettyp          TEXT CHECK (pakettyp IN ('normal', 'test-schreiben')),
+  nie_gleichzeitig  TEXT,                          -- JSON [Aufgaben-Nummern]
+  gleiche_ressource TEXT,
+  zustand           TEXT CHECK (zustand IN ('entwurf', 'startklar', 'laeuft', 'abgegeben', 'abnahme', 'merge_reihe', 'gemergt',
+                                            'fertig', 'blockiert', 'unklar', 'wartet_interaktiv', 'abgebrochen', 'zurueckgestellt')),
+  zustand_utc       TEXT,
+  herkunft          TEXT NOT NULL DEFAULT '',
+  geaendert_utc     TEXT NOT NULL
+);

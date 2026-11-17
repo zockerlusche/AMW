@@ -69,6 +69,7 @@ class Empfehlung(unittest.TestCase):
         k.execute("ALTER TABLE aufgabe DROP COLUMN art")
         for sp in ("befehl", "ordner", "ergebnis_datei", "frist_min", "waechter", "ausfuehrer", "spitze_gb"):   # Schema 31
             k.execute(f"ALTER TABLE lauf DROP COLUMN {sp}")
+        k.execute("DROP TABLE paket")               # Arbeitspakete kamen mit Schema 33
         for tab in ("runde_gelesen", "runde"):   # Lead-Runde kam mit Schema 32
             k.execute(f"DROP TABLE {tab}")
         k.execute("PRAGMA user_version = 29")
