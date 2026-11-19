@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.146.0 – 19.11.2026 · Agentenstart sicher
+- **Neu:** Hat die AMW einen Agenten gestartet und meldet sich seine Sitzung nach 3 Minuten nicht an, bekommen du und der Lead
+  eine Meldung „… gestartet, meldet sich nicht an“ – mit den Fehlern des Hooks, falls es welche gab.
+- **Behoben:** Die AMW startet einen Agenten nur noch in einem eingerichteten Ordner. Ohne AMW-Hook meldete sich die Sitzung
+  nie an (keine Benachrichtigungen, Anzeige „beendet“); jetzt sagt der Start, welcher Befehl den Ordner einrichtet.
+- **Behoben:** Lief die letzte Sitzung eines Agenten in einem anderen Ordner, setzt die AMW sie nicht mehr fort, sondern
+  beginnt eine neue – sonst lud der Agent die Notizen jenes Ordners. Das gilt auch für die Startzeilen und das Startskript.
+- **Verbessert:** Scheitert die Anmeldung beim Start einer Sitzung, sagt der Hinweis im Fenster, dass die Sitzung vermutlich
+  nicht angemeldet ist, und der Fehler steht im Protokoll des Hooks.
+
 ## 1.145.3 – 19.11.2026 · Tests ohne Spuren im Arbeitsordner
 - **Behoben:** Die Tests legten bei jedem Lauf ein Startskript `agenten-start.bat` im Arbeitsordner bzw. im Prüfklon ab. Es
   landet jetzt im Temp-Ordner des Testlaufs. Mit `AMW_STARTSKRIPT` lässt sich der Ort des Startskripts auch sonst ändern.

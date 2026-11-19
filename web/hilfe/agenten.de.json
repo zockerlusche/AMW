@@ -18,7 +18,7 @@
   },
   {
    "titel": "Starten",
-   "text": "In der Übersicht den Agenten anklicken › „Starten / fortsetzen“ und die Rückfrage bestätigen. Die AMW öffnet ihn in einem neuen Terminal-Tab: zuerst setzt sie seine letzte Sitzung fort; gibt es die nicht mehr, beginnt eine neue mit der Startanweisung.",
+   "text": "In der Übersicht den Agenten anklicken › „Starten / fortsetzen“ und die Rückfrage bestätigen. Die AMW öffnet ihn in einem neuen Terminal-Tab: zuerst setzt sie seine letzte Sitzung fort; gibt es die nicht mehr, beginnt eine neue mit der Startanweisung. Lief die letzte Sitzung in einem anderen Ordner, beginnt sie gleich neu – sonst lüde der Agent die Notizen jenes Ordners. Meldet sich der Agent nach 3 Minuten nicht bei der AMW an, bekommen du und der Lead eine Meldung.",
    "bilder": []
   }
  ],
@@ -48,6 +48,14 @@
   [
    "Der Ordner gehört schon zu einem anderen Projekt",
    "Ein Ordner gehört zu genau einem Projekt. Für ein zweites Projekt einen eigenen Ordner nehmen."
+  ],
+  [
+   "„nicht gestartet: im Ordner … fehlt der AMW-Hook“",
+   "Der Ordner ist nicht eingerichtet. Eine Sitzung dort meldete sich nie bei der AMW an: keine Benachrichtigungen, Anzeige „beendet“. Einmal Schritt 1 ausführen, dann starten."
+  ],
+  [
+   "„… gestartet, meldet sich nicht an“",
+   "Die AMW hat den Agenten gestartet, aber seine Sitzung hat sich nicht angemeldet. Das Fenster ansehen: Ist der Start gescheitert, oder steht dort „AMW-Hook-Fehler“? Fehler des Hooks stehen auch in der Meldung."
   ],
   [
    "„Ordner … gibt es nicht“ beim Starten",

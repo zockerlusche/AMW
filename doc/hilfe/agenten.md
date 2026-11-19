@@ -9,7 +9,7 @@ Ein Agent arbeitet in einem Ordner auf diesem PC. Damit die AMW ihn benachrichti
 ## Schritte
 1. **Ordner einrichten** `amw einrichten agenten-ordner <ordner> --projekt <projekt>` ausführen. Die AMW trägt ihre Einträge in die Einstellungen von Claude Code in diesem Ordner ein und sichert die Datei vorher. Danach erscheinen „Zustand und Verbrauch“ des Agenten.
 2. **Profil prüfen** Unter Einstellungen › Agenten stehen Ordner, Modell, Denkaufwand, Rechte und Startanweisung. Ändern geht dort oder mit `amw agent profil <name> --ordner … --modell …`.
-3. **Starten** In der Übersicht den Agenten anklicken › „Starten / fortsetzen“ und die Rückfrage bestätigen. Die AMW öffnet ihn in einem neuen Terminal-Tab: zuerst setzt sie seine letzte Sitzung fort; gibt es die nicht mehr, beginnt eine neue mit der Startanweisung.
+3. **Starten** In der Übersicht den Agenten anklicken › „Starten / fortsetzen“ und die Rückfrage bestätigen. Die AMW öffnet ihn in einem neuen Terminal-Tab: zuerst setzt sie seine letzte Sitzung fort; gibt es die nicht mehr, beginnt eine neue mit der Startanweisung. Lief die letzte Sitzung in einem anderen Ordner, beginnt sie gleich neu – sonst lüde der Agent die Notizen jenes Ordners. Meldet sich der Agent nach 3 Minuten nicht bei der AMW an, bekommen du und der Lead eine Meldung.
 
 ## Diese Werte trägst du ein
 | Feld in der AMW | Woher |
@@ -22,6 +22,8 @@ Ein Agent arbeitet in einem Ordner auf diesem PC. Damit die AMW ihn benachrichti
 - **„Nicht verbunden“** – Die Sitzung läuft, kennt aber ihren Namen nicht. Im Fenster des Agenten `amw anmelden --von <name>` ausführen.
 - **„… ist in einer anderen Sitzung angemeldet“** – Ein zweites Claude-Fenster benutzt den Namen eines Agenten, der schon in einem anderen Fenster läuft. Die AMW nimmt von dort keine Befehle unter diesem Namen an. Nur wenn das wirklich der richtige Agent ist: `amw anmelden --von <name> --ersetzen`.
 - **Der Ordner gehört schon zu einem anderen Projekt** – Ein Ordner gehört zu genau einem Projekt. Für ein zweites Projekt einen eigenen Ordner nehmen.
+- **„nicht gestartet: im Ordner … fehlt der AMW-Hook“** – Der Ordner ist nicht eingerichtet. Eine Sitzung dort meldete sich nie bei der AMW an: keine Benachrichtigungen, Anzeige „beendet“. Einmal Schritt 1 ausführen, dann starten.
+- **„… gestartet, meldet sich nicht an“** – Die AMW hat den Agenten gestartet, aber seine Sitzung hat sich nicht angemeldet. Das Fenster ansehen: Ist der Start gescheitert, oder steht dort „AMW-Hook-Fehler“? Fehler des Hooks stehen auch in der Meldung.
 - **„Ordner … gibt es nicht“ beim Starten** – Der Arbeitsordner im Profil fehlt (verschoben oder umbenannt). Unter Einstellungen › Agenten den richtigen Ordner eintragen.
 - **„nicht gestartet: … wäre ein Zwilling“ / „fremder Live-Ordner“** – Der Ordner meldet jede Sitzung als einen anderen Agenten oder für ein anderes Projekt an (Eintrag in `.claude/settings.local.json`), oder dort arbeitet gerade ein Agent eines anderen Projekts. Die AMW startet dann nicht, damit nicht zwei Sitzungen unter einem Namen laufen. Einen eigenen Ordner eintragen oder den anderen Agenten zuerst beenden.
 

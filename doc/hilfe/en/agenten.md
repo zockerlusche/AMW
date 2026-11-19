@@ -9,7 +9,7 @@ An agent works in a folder on this PC. So that the AMW can notify it, monitor it
 ## Steps
 1. **Set up the folder** Run `amw einrichten agenten-ordner <folder> --projekt <project>`. The AMW adds its entries to the Claude Code settings in this folder and backs up the file first. After that, the agent's “State and usage” appears.
 2. **Check the profile** Settings › Agents shows folder, model, effort, permissions and first prompt. Change them there or with `amw agent profil <name> --ordner … --modell …`.
-3. **Start** In the Overview click the agent › “Start / resume” and confirm. The AMW opens it in a new terminal tab: first it resumes the agent's last session; if that no longer exists, a new one begins with the start instruction.
+3. **Start** In the Overview click the agent › “Start / resume” and confirm. The AMW opens it in a new terminal tab: first it resumes the agent's last session; if that no longer exists, a new one begins with the start instruction. If the last session ran in a different folder, a new one begins right away – otherwise the agent would load that folder's notes. If the agent has not registered with the AMW after 3 minutes, you and the lead get a message.
 
 ## Values to enter
 | Field in the AMW | Where from |
@@ -22,6 +22,8 @@ An agent works in a folder on this PC. So that the AMW can notify it, monitor it
 - **“Not connected”** – The session is running but does not know its name. In the agent's window run `amw anmelden --von <name>`.
 - **“… is logged in to another session”** – A second Claude window uses the name of an agent that is already running in another window. The AMW does not accept commands under that name from there. Only if this really is the right agent: `amw anmelden --von <name> --ersetzen`.
 - **The folder already belongs to another project** – A folder belongs to exactly one project. Use a separate folder for a second project.
+- **“nicht gestartet: im Ordner … fehlt der AMW-Hook”** – The folder is not set up. A session there would never register with the AMW: no notifications, shown as “ended”. Run step 1 once, then start.
+- **“… gestartet, meldet sich nicht an”** – The AMW started the agent, but its session did not register. Look at the window: did the start fail, or does it show “AMW-Hook-Fehler”? Hook errors are also included in the message.
 - **“Ordner … gibt es nicht” when starting** – The working folder in the profile is missing (moved or renamed). Enter the right folder under Settings › Agents.
 - **“nicht gestartet: … wäre ein Zwilling” / “fremder Live-Ordner”** – The folder registers every session as a different agent or for a different project (entry in `.claude/settings.local.json`), or an agent of another project is working there right now. The AMW then does not start, so that two sessions never run under one name. Enter a folder of its own or stop the other agent first.
 
