@@ -96,7 +96,8 @@
  "danach": [
   "**In der Workbench verfolgen:** Arbeit › Pakete zeigt jedes Paket mit Art, Zustand, Kosten und – wenn es nicht startet – dem Grund in Worten (etwa „Startet nicht: alle Arbeitsplätze belegt“). Bei „wartet auf Lead/dich“ steht, wer dran ist. Am PC kannst du dort ein Paket vorziehen oder zurückstellen, alle neuen Starts pausieren, einem laufenden Arbeiter mit „Mitlesen“ zusehen und ihn mit „Notbremse“ samt Unterprozessen beenden – jeder Eingriff steht im Planungs-Protokoll. Online und am Handy siehst du die Liste nur; gesteuert wird am PC. „Was bedeuten die Zustände?“ unter der Liste zeigt, welcher Zustand als fertig, läuft, wartet oder blockiert zählt.",
   "Die AMW führt jedes p-Paket durch seine Zustände: Entwurf → startklar → läuft → abgegeben → in der Abnahme → bereit zum Merge → gemergt → fertig. Daneben: blockiert (Frage offen), unklar (keine Schlusszeile), wartet auf interaktiv, abgebrochen, zurückgestellt. In Planung und Übersicht steht ein p-Paket wie jede Aufgabe als läuft, wartet, blockiert oder fertig.",
-  "Aufgaben mit `--paket agent` (die Vorgabe) haben keine dieser Zustände – für sie gilt der Status der Aufgabe wie bisher."
+  "Aufgaben mit `--paket agent` (die Vorgabe) haben keine dieser Zustände – für sie gilt der Status der Aufgabe wie bisher.",
+  "**Bereit zum Merge freigeben:** Unter der Liste steht „Bereit zum Merge“ mit jedem fertig geprüften Paket: welche Dateien es ändert (`diff --stat`) und die Änderungen selbst zum Aufklappen. Am PC gibst du mit „Alle freigeben“ alle auf einmal frei, im Terminal mit `amw paket freigeben --alle` (Prüfer der Pakete, Lead oder du). Die AMW holt dann je Paket genau seinen Stand als Zweig `paket-A<Nummer>` ins Projekt und vermerkt „Prüfung C (AMW) + Freigabe“ und das Merge-OK; ausgeliefert wird wie immer über die Kette. Danach steht das Paket auf „gemergt“ und „fertig“, und sein Arbeitsplatz ist wieder frei."
  ],
  "fragen": [
   [
@@ -114,6 +115,10 @@
   [
    "Was macht der Pakettyp „test-schreiben“?",
    "Für Pakete, die nur einen neuen Test schreiben. Bei ihnen ist der Abnahme-Befehl vor dem Bau naturgemäß nicht rot; dafür muss der neue Test gegen den alten Stand rot und gegen den neuen grün sein, und der Lead liest ihn."
+  ],
+  [
+   "Warum muss ich manche Pakete erst ansehen, bevor ich sie freigebe?",
+   "Ändert ein Paket Code, der online auf dem Server läuft (`web/*.php`), steht es mit „erst ansehen“ in der Liste. „Alle freigeben“ lässt es aus; du gibst es einzeln mit „Angesehen – freigeben“ frei (im Terminal `amw paket freigeben <Nummer> --blick`). Achte dabei auf: neue Endpunkte und deren Anmeldung, Aufrufe nach außen, Shell-Aufrufe, Datei- und Datenbank-Zugriffe und welche Daten ausgegeben werden. Unter Einstellungen › Projekt stellst nur du ein, ob der Blick nur bei Server-Code, bei jedem Paket oder nie nötig ist, und ob Aufrufe nach außen ein Paket anhalten oder nur als Hinweis erscheinen. Ändert eine Auslieferung Server-Code, steht im Versionshinweis „Server-Code geändert“."
   ]
  ],
  "thema": "p-pakete",
