@@ -24,6 +24,19 @@ class Abschotten(unittest.TestCase):
         self.assertEqual(os.environ["LOCALAPPDATA"], tests.abschotten.ORDNER)
         self.assertIn("amw-test-lokal-", tests.abschotten.ORDNER)
 
+    def test_startskript_nie_ins_repo(self):
+        """A1883: das Startskript (agenten-start.bat) landet in Tests im Temp-Ordner, nie im Arbeitsordner oder Prüfklon –
+        auch über die Vorgaben von schnell() und startskript_fuer()."""
+        from amw import assistent, db, einrichtung
+        ordner = os.path.normcase(tests.abschotten.ORDNER)
+        self.assertTrue(os.path.normcase(assistent.STARTSKRIPT).startswith(ordner), assistent.STARTSKRIPT)
+        self.assertFalse(os.path.normcase(assistent.STARTSKRIPT).startswith(os.path.normcase(einrichtung.WURZEL) + os.sep))
+        con = db.anlegen(os.path.join(tests.abschotten.ORDNER, "startskript-probe.db"))
+        self.addCleanup(con.close)
+        with db.schreiben(con):
+            pid = db.einfuegen(con, "projekt", name="Probe", angelegt_utc=db.jetzt())
+        self.assertEqual(assistent.startskript_fuer(con, pid), assistent.STARTSKRIPT)   # Vorgabe erst beim Aufruf
+
 
 if __name__ == "__main__":
     unittest.main()

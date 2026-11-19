@@ -9,7 +9,8 @@ import os
 
 from . import db, einrichtung, einstellungen, kern, steuerung, wissen
 
-STARTSKRIPT = os.path.join(einrichtung.WURZEL, "agenten-start.bat")
+# AMW_STARTSKRIPT: anderer Ort für das Startskript – die Tests lenken es so in ihren Temp-Ordner (tests/abschotten.py, A1883)
+STARTSKRIPT = os.environ.get("AMW_STARTSKRIPT") or os.path.join(einrichtung.WURZEL, "agenten-start.bat")
 
 
 RECHTE = ("vorgabe", "auto", "umgehen")
@@ -25,9 +26,10 @@ def startsatz(kennung, lead=False):
                f", dann hole Arbeit mit `{amw} schritt naechster --nehmen --von {kennung}`."))
 
 
-def startskript_fuer(con, pid, pfad=STARTSKRIPT):
+def startskript_fuer(con, pid, pfad=None):
     """Mit mehreren Projekten eines je Projekt (agenten-start-<Projekt>.ps1); das erste Projekt behält den alten Namen,
     damit ein zweites Projekt nie das Skript des ersten überschreibt."""
+    pfad = pfad or STARTSKRIPT                       # erst beim Aufruf – ein Vorgabewert hielte den Ort vom Laden fest
     if pid == con.execute("SELECT min(id) FROM projekt").fetchone()[0]:
         return pfad
     name = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()["name"]
@@ -36,7 +38,7 @@ def startskript_fuer(con, pid, pfad=STARTSKRIPT):
 
 
 def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe", denkstufe=None, dienst=False,
-            startskript=STARTSKRIPT, hooks=True, ausgabe=print, fernsteuerung=False, regeln_von=None, farbe=None,
+            startskript=None, hooks=True, ausgabe=print, fernsteuerung=False, regeln_von=None, farbe=None,
             lead_chat=False, regelwerk=None):
     """Richtet alles ein; gibt die Liste der erledigten Schritte zurück. regeln_von: ein neues Projekt startet mit einer
     Kopie der Arbeitsregeln dieses Projekts (danach getrennt). Der Projektordner wird Einstellung des Projekts.
@@ -45,6 +47,8 @@ def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe",
     # regelwerk: {"auswahl": [Nummern] | None, "texte": {Nummer: Wortlaut}, "sprache": "de"} – das mitgelieferte Grund-Regelwerk
     # (amw/regelwerk.py) statt einer Kopie; dazu die Definition of Done und die erste Version
     schritte = []
+    if startskript is None:                          # Vorgabe erst jetzt (A1883); "" oder False = kein Startskript
+        startskript = STARTSKRIPT
     if regelwerk is not None and regeln_von:
         raise kern.AmwFehler("Entweder das Grund-Regelwerk oder die Regeln eines anderen Projekts – nicht beides")
     if rechte not in RECHTE:

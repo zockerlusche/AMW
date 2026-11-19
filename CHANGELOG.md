@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.145.3 – 19.11.2026 · Tests ohne Spuren im Arbeitsordner
+- **Behoben:** Die Tests legten bei jedem Lauf ein Startskript `agenten-start.bat` im Arbeitsordner bzw. im Prüfklon ab. Es
+  landet jetzt im Temp-Ordner des Testlaufs. Mit `AMW_STARTSKRIPT` lässt sich der Ort des Startskripts auch sonst ändern.
+
 ## 1.145.2 – 19.11.2026 · Alte Wartegründe sichtbar
 - **Verbessert:** Bekommt eine wartende Aufgabe mit `--auf` einen neuen Grund, bleiben die alten offen. Der Befehl sagt das
   jetzt gleich dazu und nennt den Weg zum Abhaken (`--erledigt <Grund>`, auch zusammen mit `--auf` in einem Schritt). Hilfe
