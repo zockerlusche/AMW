@@ -18,7 +18,7 @@
   },
   {
    "titel": "Start",
-   "text": "In the Overview click the agent › “Start / resume” and confirm. The AMW opens it in a new terminal tab: first it resumes the agent's last session; if that no longer exists, a new one begins with the start instruction.",
+   "text": "In the Overview click the agent › “Start / resume” and confirm. The AMW opens it in a new terminal tab: first it resumes the agent's last session; if that no longer exists, a new one begins with the start instruction. If the last session ran in a different folder, a new one begins right away – otherwise the agent would load that folder's notes. If the agent has not registered with the AMW after 3 minutes, you and the lead get a message.",
    "bilder": []
   }
  ],
@@ -48,6 +48,14 @@
   [
    "The folder already belongs to another project",
    "A folder belongs to exactly one project. Use a separate folder for a second project."
+  ],
+  [
+   "“nicht gestartet: im Ordner … fehlt der AMW-Hook”",
+   "The folder is not set up. A session there would never register with the AMW: no notifications, shown as “ended”. Run step 1 once, then start. If it says “zeigt nicht auf den AMW-Ordner”, the folder is set up for another copy of the AMW: first `amw einrichten agenten-ordner <folder> --entfernen`, then step 1."
+  ],
+  [
+   "“… gestartet, meldet sich nicht an”",
+   "The AMW started the agent, but its session did not register. Look at the window: did the start fail, or does it show “AMW-Hook-Fehler”? Hook errors are also included in the message."
   ],
   [
    "“Ordner … gibt es nicht” when starting",
