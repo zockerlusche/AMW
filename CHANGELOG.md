@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.147.0 – 19.11.2026 · Der Lead merkt, wenn ein Agent nichts zu tun hat
+- **Neu:** Hat ein Agent im Terminal seit 10 Minuten nichts zu tun – keine laufende Aufgabe, keine ohne offenen Grund, und er
+  wartet weder auf einen eigenen Lauf noch auf eine Prüfung –, bekommt der Lead einen Weckruf: welcher Agent, seit wann, und
+  welche Aufgaben der aktiven Meilensteine noch niemand bearbeitet. Einmal je Ruhephase. Wer ihn bekommt und nach wie vielen
+  Minuten, stellen Lead oder Mensch ein (`leerlauf_lead`, `leerlauf_lead_min`); einen Lead, der als Chat arbeitet, weckt die
+  AMW nicht.
+
 ## 1.146.0 – 19.11.2026 · Agentenstart sicher
 - **Neu:** Hat die AMW einen Agenten gestartet und meldet sich seine Sitzung nach 3 Minuten nicht an, bekommen du und der Lead
   eine Meldung „… gestartet, meldet sich nicht an“ – mit den Fehlern des Hooks, falls es welche gab.

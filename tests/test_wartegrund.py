@@ -185,6 +185,7 @@ class Leerlauf(Grund):
                 aid = self.con.execute("SELECT id FROM agent WHERE kennung = ?", (k,)).fetchone()[0]
                 db.einfuegen(self.con, "sitzung", agent_id=aid, gestartet_utc=utc(self.jetzt - 7200), schluessel_datei="x.key",
                              ereignis="frei", ereignis_utc=utc(self.jetzt - 40 * 60))
+            self.con.execute("UPDATE agent SET arbeitsweise = 'chat' WHERE kennung = 'TL'")   # A1884 hier aus (eigene Klasse unten)
 
     def test_frei_mit_arbeit_weckt_einmal(self):
         self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt), [f"CC1 benachrichtigt (Leerlauf, A{self.a})"])
@@ -287,6 +288,72 @@ class SucheZeige(Grund):
         self.assertIn("titel: Onboarding prüfen", aus)
         rc, aus = self.cli("--von", "CC1", "zeige", "B999")
         self.assertEqual(rc, 1)
+
+
+class LeerWeckruf(Grund):
+    """A1884: Ein interaktiver Agent (Terminal, soll an, Sitzung frei) ohne Arbeit → nach der Wartezeit genau ein Weckruf mit
+    Inhalt an den Lead (Einstellung leerlauf_lead, sonst Lead; nur im Terminal). Wer auf einen eigenen Lauf oder eine Prüfung
+    wartet, ist nicht leer."""
+
+    def setUp(self):
+        super().setUp()
+        self.jetzt = time.time()
+        with db.schreiben(self.con):
+            self.cc2 = self.con.execute("SELECT id FROM agent WHERE kennung = 'CC2'").fetchone()[0]
+            db.einfuegen(self.con, "sitzung", agent_id=self.cc2, gestartet_utc=utc(self.jetzt - 7200), schluessel_datei="x.key",
+                         ereignis="frei", ereignis_utc=utc(self.jetzt - 12 * 60))
+            self.bogen = db.einfuegen(self.con, "bogen", projekt_id=self.pid, nr=1, titel="Stufe 1", status="aktiv", angelegt_von="TL",
+                                      angelegt_utc=db.jetzt())
+        self.frei = kern.aufgabe_neu(self.con, self.pid, "TL", "Liste schneller machen")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET bogen_id = ? WHERE id = ?", (self.bogen, self.frei))
+
+    def weckrufe(self, an="TL"):
+        return [(r["kurz"], r["text"]) for r in self.con.execute(
+            "SELECT n.kurz, n.text FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE n.von = 'AMW' AND e.agent = ?"
+            " AND n.kurz LIKE 'Leerlauf: % nichts zu tun'", (an,))]
+
+    def test_genau_ein_weckruf_nach_wartezeit(self):
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt - 3 * 60), [])           # erst 9 min frei (Vorgabe 10)
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt), ["Lead TL: Leerlauf: CC2 hat nichts zu tun"])
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt + 3600), [])             # gleiche Ruhephase: nicht nochmal
+        self.assertEqual(len(self.weckrufe()), 1)
+        with db.schreiben(self.con):                                                       # neue Ruhephase: wieder einmal
+            self.con.execute("UPDATE sitzung SET ereignis_utc = ? WHERE agent_id = ?", (utc(self.jetzt), self.cc2))
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt + 11 * 60), ["Lead TL: Leerlauf: CC2 hat nichts zu tun"])
+
+    def test_inhalt_agent_seit_wann_freie_aufgaben(self):
+        wartegrund.leerlauf(self.con, self.jetzt)
+        kurz, text = self.weckrufe()[0]
+        self.assertEqual(kurz, "Leerlauf: CC2 hat nichts zu tun")
+        self.assertIn(f"CC2: seit {utc(self.jetzt - 12 * 60)[11:16]} UTC frei (12 min)", text)
+        self.assertIn(f"A{self.frei} Liste schneller machen (M{self.bogen})", text)
+        self.assertNotIn(f"A{self.a} ", text)                                             # hat einen Bearbeiter
+
+    def test_wartet_auf_eigenen_lauf_oder_pruefung_kein_weckruf(self):
+        lid = betrieb.lauf_start(self.con, self.pid, "CC2", "Gesamtlauf", schwer=False)
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt), [])
+        betrieb.lauf_ende(self.con, self.pid, "CC2", lid, 0, "ok")
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "pruefung", projekt_id=self.pid, zweig="x", sha="a" * 40, bauer="CC2", pruefer="CC3",
+                         angefragt_utc=db.jetzt())
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt), [])
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE pruefung SET ergebnis = 'gruen'")
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt), ["Lead TL: Leerlauf: CC2 hat nichts zu tun"])
+
+    def test_lead_per_einstellung_nur_im_terminal(self):
+        with self.assertRaisesRegex(kern.AmwFehler, "nur Lead und Entwickler"):
+            kern.projekt_einstellen(self.con, self.pid, "CC1", leerlauf_lead="CC3")
+        kern.projekt_einstellen(self.con, self.pid, "TL", leerlauf_lead="CC3", leerlauf_lead_min=20)
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt), [])                    # 12 < 20 min
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt + 9 * 60), ["Lead CC3: Leerlauf: CC2 hat nichts zu tun"])
+        self.assertEqual(self.weckrufe("TL"), [])
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE agent SET arbeitsweise = 'chat' WHERE kennung = 'CC3'")
+            self.con.execute("DELETE FROM plan_ereignis WHERE art = 'leerlauf_weckruf'")
+        self.assertEqual(wartegrund.leerlauf(self.con, self.jetzt + 9 * 60), [])           # Chat-Lead: die AMW weckt ihn nicht
+        self.assertIsNone(wartegrund.leer_lead(self.con, self.pid))
 
 
 if __name__ == "__main__":

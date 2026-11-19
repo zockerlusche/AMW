@@ -100,6 +100,13 @@ Ist eine Sitzung seit 30 Minuten frei, ohne offene Post, und hat der Agent eine 
 fertig, nicht geparkt), weckt ihn der Dienst mit dieser Aufgabe, einmal je Ruhephase. Warten alle Aufgaben eines freien
 Agenten auf den Entwickler, bekommt der Lead höchstens alle 6 Stunden eine Sammelzeile.
 
+**Nichts zu tun (seit 1.147.0):** Ist ein Agent im Terminal (Soll an) seit 10 Minuten frei, hat keine Aufgabe in „läuft“
+oder ohne offenen Grund und wartet weder auf einen eigenen Lauf noch auf die Prüfung seines Stands, bekommt der Lead einen
+Weckruf: welcher Agent, seit wann frei, und die freien Aufgaben der aktiven Meilensteine ohne Bearbeiter. Je Agent einmal je
+Ruhephase. Empfänger ist die Projekt-Einstellung `leerlauf_lead` (sonst der Lead), aber nur, wenn er im Terminal arbeitet –
+einen Chat-Lead weckt die AMW nicht. Wartezeit: `leerlauf_lead_min` (1–1440, Vorgabe 10). Beides setzen Lead oder Mensch:
+`amw projekt einstellen leerlauf_lead=<Agent> leerlauf_lead_min=<min>`.
+
 ## Arbeitsliste je Agent (seit 1.12.0)
 
 **Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach

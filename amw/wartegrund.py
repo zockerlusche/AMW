@@ -7,12 +7,15 @@ Die Leerlauf-Prüfung im Dienst weckt Agenten, die frei sind, obwohl eine ihrer 
 Alle Funktionen außer `setzen`/`leerlauf` laufen innerhalb eines offenen Schreibvorgangs des Aufrufers.
 """
 import calendar
+import json
 import re
 import time
 
 from . import db, kern
 
 LEERLAUF_MIN = 30         # so lange frei, dann Weckruf, wenn Arbeit da ist (L3)
+LEER_MIN = 10             # A1884: so lange frei OHNE Arbeit, dann ein Weckruf an den Lead (Projekt: leerlauf_lead_min)
+LEER_FREI_ZEIGEN = 8      # so viele freie Aufgaben der aktiven Meilensteine nennt dieser Weckruf
 ENTWICKLER_ZEILE_H = 6    # wartet alles auf den Entwickler: höchstens so oft eine Zeile an den Lead
 ARBEIT_ZEIGEN = 3         # so viele freie Aufgaben nennt der Weckruf
 
@@ -169,26 +172,101 @@ def wartet_auf_entwickler(con, pid, kennung):
     return sorted({g["bezug"] for g in gruende})
 
 
+def wartet_auf_eigenes(con, pid, kennung):
+    """A1884: Wartet der Agent auf einen eigenen Lauf oder auf die Prüfung seines Stands? Dann ist er nicht leer.
+    Rückgabe: „L12“ / „P34“ oder None."""
+    lauf = con.execute("SELECT id FROM lauf WHERE projekt_id = ? AND agent = ? AND status IN ('angemeldet', 'laeuft')"
+                       " ORDER BY id DESC LIMIT 1", (pid, kennung)).fetchone()
+    if lauf:
+        return f"L{lauf['id']}"
+    p = con.execute("SELECT id FROM pruefung WHERE projekt_id = ? AND bauer = ? AND ergebnis = 'offen' ORDER BY id DESC LIMIT 1",
+                    (pid, kennung)).fetchone()
+    return f"P{p['id']}" if p else None
+
+
+def _einst(con, pid, schluessel):
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    try:
+        return json.loads((r[0] if r else None) or "{}").get(schluessel)
+    except ValueError:
+        return None
+
+
+def leer_lead(con, pid):
+    """A1884: Wer den Leerlauf-Weckruf bekommt – Projekt-Einstellung leerlauf_lead, sonst der Lead; nur ein Agent, der im
+    Terminal arbeitet (einen Chat-Lead weckt die AMW nicht). None = in diesem Projekt kein Weckruf."""
+    k = str(_einst(con, pid, "leerlauf_lead") or "").strip() or kern.lead(con, pid)
+    if not k:
+        return None
+    r = con.execute("SELECT arbeitsweise FROM agent WHERE projekt_id = ? AND kennung = ? AND entfernt_utc IS NULL",
+                    (pid, k)).fetchone()
+    return k if r and r["arbeitsweise"] == "terminal" else None
+
+
+def freie_bogen_aufgaben(con, pid):
+    """Offene Aufgaben der aktiven Meilensteine ohne Bearbeiter."""
+    return con.execute("SELECT a.id, a.titel, a.bogen_id FROM aufgabe a JOIN bogen b ON b.id = a.bogen_id WHERE a.projekt_id = ?"
+                       " AND b.status = 'aktiv' AND coalesce(a.agent, '') = '' AND a.status NOT IN ('fertig', 'verworfen')"
+                       " AND a.einstufung = 'aktiv' ORDER BY coalesce(a.rang, 999999), a.id", (pid,)).fetchall()
+
+
+def _leer_weckruf(con, pid, lead, leere):
+    """A1884: ein Weckruf mit Inhalt an den Lead – je Agent höchstens einmal je Ruhephase (Signatur Agent + Beginn)."""
+    neu = []
+    for k, seit, frei_min in leere:
+        signatur = f"{k}:{seit}"
+        if con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'leerlauf_weckruf' AND text = ?",
+                       (pid, signatur)).fetchone():
+            continue                                    # diese Ruhephase ist schon gemeldet – bis sich etwas ändert
+        neu.append((k, seit, frei_min, signatur))
+    if not neu:
+        return None
+    frei = freie_bogen_aufgaben(con, pid)
+    namen = ", ".join(k for k, *_ in neu)
+    kurz = f"Leerlauf: {namen} {'hat' if len(neu) == 1 else 'haben'} nichts zu tun"
+    zeilen = [f"{k}: seit {seit[11:16]} UTC frei ({int(frei_min)} min), keine Aufgabe in „läuft“ oder ohne Wartegrund,"
+              " wartet auf keinen eigenen Lauf und keine Prüfung." for k, seit, frei_min, _ in neu]
+    if frei:
+        zeilen.append("Freie Aufgaben in aktiven Meilensteinen (ohne Bearbeiter): "
+                      + "; ".join(f"A{a['id']} {a['titel'][:70]} (M{a['bogen_id']})" for a in frei[:LEER_FREI_ZEIGEN])
+                      + (f" … und {len(frei) - LEER_FREI_ZEIGEN} weitere" if len(frei) > LEER_FREI_ZEIGEN else ""))
+    else:
+        zeilen.append("In den aktiven Meilensteinen gibt es keine freie Aufgabe ohne Bearbeiter.")
+    zeilen.append(f"Was fehlt: eine Aufgabe zuteilen (amw aufgabe aendern <nr> --agent {neu[0][0]}) oder neue schneiden.")
+    with db.schreiben(con):
+        for *_, signatur in neu:
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="leerlauf_weckruf", text=signatur)
+        kern._posten(con, pid, "AMW", lead, "meldung", kurz[:140], "\n".join(zeilen))
+    return f"Lead {lead}: {kurz}"
+
+
 def leerlauf(con, jetzt=None):
     """Dienst-Runde: freie Sitzungen mit Arbeit wecken, „alles wartet auf den Entwickler“ höchstens alle 6 h an den Lead."""
     jetzt = jetzt or time.time()
     ereignisse = []
     for p in con.execute("SELECT id FROM projekt").fetchall():
         pid = p["id"]
-        entwickler = []
+        entwickler, leere = [], []
+        leer_an = leer_lead(con, pid)                   # A1884: nur mit einem Lead im Terminal
+        try:
+            leer_min = int(_einst(con, pid, "leerlauf_lead_min") or LEER_MIN)
+        except (TypeError, ValueError):
+            leer_min = LEER_MIN
         for s in con.execute(
-                "SELECT s.id, s.ereignis_utc, a.kennung FROM sitzung s JOIN agent a ON a.id = s.agent_id"
+                "SELECT s.id, s.ereignis_utc, a.kennung, a.arbeitsweise FROM sitzung s JOIN agent a ON a.id = s.agent_id"
                 " WHERE a.projekt_id = ? AND a.soll = 'an' AND s.zustand = 'aktiv' AND s.schluessel_datei IS NOT NULL"
                 " AND s.ereignis = 'frei' AND s.ereignis_utc IS NOT NULL", (pid,)).fetchall():
             k = s["kennung"]
             frei_min = (jetzt - _sek(s["ereignis_utc"])) / 60
-            if frei_min < LEERLAUF_MIN or kern.halt_gilt(con, pid, k):
+            if frei_min < min(LEERLAUF_MIN, leer_min) or kern.halt_gilt(con, pid, k):
                 continue
             if con.execute("SELECT 1 FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE n.projekt_id = ?"
                            " AND e.agent = ? AND e.status = 'offen' LIMIT 1", (pid, k)).fetchone():
                 continue                                # ungelesene Post: dafür gibt es Wecken und Stillstand
             arbeit = freie_arbeit(con, pid, k)
             if arbeit:
+                if frei_min < LEERLAUF_MIN:
+                    continue
                 if con.execute("SELECT 1 FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE n.projekt_id = ?"
                                " AND n.von = 'AMW' AND e.agent = ? AND n.kurz LIKE 'Leerlauf:%' AND n.zeit_utc >= ?",
                                (pid, k, s["ereignis_utc"])).fetchone():
@@ -204,7 +282,15 @@ def leerlauf(con, jetzt=None):
             else:
                 worauf = wartet_auf_entwickler(con, pid, k)
                 if worauf:
-                    entwickler.append(f"{k} ({', '.join(worauf)})")
+                    if frei_min >= LEERLAUF_MIN:
+                        entwickler.append(f"{k} ({', '.join(worauf)})")
+                elif (leer_an and k != leer_an and s["arbeitsweise"] == "terminal" and frei_min >= leer_min
+                      and not wartet_auf_eigenes(con, pid, k)):
+                    leere.append((k, s["ereignis_utc"], frei_min))   # A1884: nichts zu tun → Lead wecken
+        if leere:
+            e = _leer_weckruf(con, pid, leer_an, leere)
+            if e:
+                ereignisse.append(e)
         lead = kern.lead(con, pid)
         if entwickler and lead:
             grenze = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - ENTWICKLER_ZEILE_H * 3600))

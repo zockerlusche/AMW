@@ -326,15 +326,15 @@ def projekt_einstellen(con, pid, von, **werte):
                 else:
                     e.pop(k, None)
                 continue
-            if k in ("paket_pruefer", "haenge_stille_min", "haenge_runden"):   # A1849: Empfänger der Befunde, Hänge-Erkennung
+            if k in ("paket_pruefer", "haenge_stille_min", "haenge_runden", "leerlauf_lead", "leerlauf_lead_min"):   # A1849, A1884
                 if not (von == ENTWICKLER or ist_lead(con, pid, von)):
                     raise AmwFehler(f"{k}: setzt der Lead oder der Mensch")
-                if k == "paket_pruefer":
+                if k in ("paket_pruefer", "leerlauf_lead"):
                     v = str(v or "").strip()
                     if v and not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, v)).fetchone():
-                        raise AmwFehler(f"paket_pruefer: Agent {v} gibt es in diesem Projekt nicht")
+                        raise AmwFehler(f"{k}: Agent {v} gibt es in diesem Projekt nicht")
                 else:
-                    grenzen = {"haenge_stille_min": (1, 600), "haenge_runden": (1, 200)}[k]
+                    grenzen = {"haenge_stille_min": (1, 600), "haenge_runden": (1, 200), "leerlauf_lead_min": (1, 1440)}[k]
                     try:
                         v = int(v) if str(v or "").strip() else 0
                     except (TypeError, ValueError):
