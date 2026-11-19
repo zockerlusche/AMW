@@ -613,8 +613,9 @@ VORSCHLAG_RUHE_H = 12          # „Nicht jetzt“: so lange kein neuer Vorschla
 
 def startvorschlaege(con, pid):
     """[{"kennung", "grund", "text", "aufgabe"}] – Agenten im Terminal mit Startprofil, die nicht laufen, aber dran wären:
-    Paket der Art sitzung ist startklar (grund „sitzung“), letzte Sitzung endete ohne bewusstes Ende und es gibt Arbeit
-    („absturz“), oder es gibt Arbeit in der Liste („arbeit“). Ohne „Nicht jetzt“ der letzten VORSCHLAG_RUHE_H Stunden."""
+    Paket der Art sitzung ist dran (grund „sitzung“), letzte Sitzung endete ohne bewusstes Ende und es gibt Arbeit
+    („absturz“), oder es gibt Arbeit in der Liste („arbeit“). Dran = in der Liste ohne offenen Wartegrund; ein p-Paket nur,
+    wenn es auf interaktiv wartet (nie im Entwurf). Ohne „Nicht jetzt“ der letzten VORSCHLAG_RUHE_H Stunden."""
     from . import arbeitsliste
     grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=VORSCHLAG_RUHE_H)).strftime("%Y-%m-%dT%H:%M:%SZ")
     abgelehnt = {r[0] for r in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = 'startvorschlag_nein'"
@@ -625,17 +626,17 @@ def startvorschlaege(con, pid):
         k = a["kennung"]
         if k in abgelehnt or laeuft(con, pid, k) or _sitzung_mit_prozess(con, pid, k, auch_ruhend=True)[1]:
             continue
-        try:
-            paket = con.execute("SELECT a.id, a.titel FROM paket p JOIN aufgabe a ON a.id = p.aufgabe_id WHERE a.projekt_id = ?"
-                                " AND a.agent = ? AND p.art = 'sitzung' AND a.status NOT IN ('fertig', 'verworfen')"
-                                " ORDER BY coalesce(a.rang, 999999), a.id LIMIT 1", (pid, k)).fetchone()
-        except Exception:                                  # ältere Datenbank ohne Tabelle paket
-            paket = None
+        bereit = [x for x in arbeitsliste.liste(con, pid, k) if x["status"] == "laeuft" or not x["gruende"]]
+        art = _paket_arten(con, [x["id"] for x in bereit])
+        # A1878: ein p-Paket ist nur dann Arbeit für den interaktiven Agenten, wenn es auf ihn wartet – im Entwurf ist es
+        # noch nicht freigegeben, sonst führt es der Arbeiter der AMW aus. Art sitzung hat keinen Zustand: „dran“ heißt wie
+        # bei jeder Aufgabe in der Liste (nicht geparkt, kein offener Wartegrund).
+        bereit = [x for x in bereit if art.get(x["id"], ("agent", None))[0] != "p" or art[x["id"]][1] == "wartet_interaktiv"]
+        if not bereit:
+            continue
+        paket = next((x for x in bereit if art.get(x["id"], ("agent", None))[0] == "sitzung"), None)
         if paket:
             aus.append({"kennung": k, "grund": "sitzung", "aufgabe": paket["id"], "text": paket["titel"]})
-            continue
-        bereit = [x for x in arbeitsliste.liste(con, pid, k) if x["status"] == "laeuft" or not x["gruende"]]
-        if not bereit:
             continue
         s = con.execute("SELECT s.zustand, s.ereignis, s.ereignis_text FROM sitzung s JOIN agent g ON g.id = s.agent_id"
                         " WHERE g.projekt_id = ? AND g.kennung = ? ORDER BY s.id DESC LIMIT 1", (pid, k)).fetchone()
@@ -643,6 +644,17 @@ def startvorschlaege(con, pid):
                        and not (s["ereignis"] == "beendet" and (s["ereignis_text"] or "") in BEWUSST))   # „beendet“ + BEWUSST
         aus.append({"kennung": k, "grund": "absturz" if absturz else "arbeit", "aufgabe": bereit[0]["id"], "text": bereit[0]["titel"]})
     return aus
+
+
+def _paket_arten(con, ids):
+    """{aufgabe_id: (art, zustand)} – nur Aufgaben mit Paket-Zeile (keine Zeile = Art agent)."""
+    if not ids:
+        return {}
+    try:
+        return {r[0]: (r[1], r[2]) for r in con.execute(
+            f"SELECT aufgabe_id, art, zustand FROM paket WHERE aufgabe_id IN ({','.join('?' * len(ids))})", ids)}
+    except Exception:                                      # ältere Datenbank ohne Tabelle paket
+        return {}
 
 
 def startvorschlag_ablehnen(con, pid, kennung):

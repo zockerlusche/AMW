@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from amw import aktionen, arbeitspaket as ap, db, kern, steuerung, workbench
+from amw import aktionen, arbeitspaket as ap, db, kern, steuerung, wartegrund, workbench
 
 
 class Grund(unittest.TestCase):
@@ -54,6 +54,33 @@ class Vorschlaege(Grund):
         kern.aufgabe_neu(self.con, self.pid, "TL", "Normale Arbeit", agent="CC1")
         sid = kern.aufgabe_neu(self.con, self.pid, "TL", "Neue Sitzung nötig", agent="CC1", rang=1)
         ap.setzen(self.con, self.pid, "TL", sid, art="sitzung")
+        self.assertEqual(self.vorschlaege(), [("CC1", "sitzung", sid)])
+
+    def test_p_paket_im_entwurf_kein_vorschlag(self):                            # A1878 (P281 Hinweis 1)
+        pid_ = kern.aufgabe_neu(self.con, self.pid, "TL", "Probe T1", agent="CC1")
+        ap.setzen(self.con, self.pid, "TL", pid_, art="p")
+        self.assertEqual(ap.lesen(self.con, pid_)["zustand"], "entwurf")
+        self.assertEqual(self.vorschlaege(), [])                                  # Entwurf: noch nicht freigegeben
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Normale Arbeit", agent="CC1")
+        self.assertEqual(self.vorschlaege(), [("CC1", "arbeit", aid)])            # der Entwurf vorn zählt nicht
+        with db.schreiben(self.con):                                              # wartet auf interaktiv: jetzt ist er dran
+            self.con.execute("UPDATE paket SET zustand = 'wartet_interaktiv' WHERE aufgabe_id = ?", (pid_,))
+            self.con.execute("UPDATE aufgabe SET status = 'blockiert' WHERE id = ?", (pid_,))
+        self.assertEqual(self.vorschlaege(), [("CC1", "arbeit", pid_)])
+
+    def test_paket_art_sitzung_nur_wenn_dran(self):                              # A1878: geparkt/wartend ist nicht dran
+        sid = kern.aufgabe_neu(self.con, self.pid, "TL", "Neue Sitzung nötig", agent="CC1")
+        ap.setzen(self.con, self.pid, "TL", sid, art="sitzung")
+        vor = kern.aufgabe_neu(self.con, self.pid, "TL", "Vorher", agent="TL")
+        with db.schreiben(self.con):
+            wartegrund.anlegen(self.con, self.pid, "TL", sid, f"A{vor}")
+        self.assertEqual(self.vorschlaege(), [])
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE wartegrund SET erledigt_utc = ?", (db.jetzt(),))
+            self.con.execute("UPDATE aufgabe SET einstufung = 'geparkt' WHERE id = ?", (sid,))
+        self.assertEqual(self.vorschlaege(), [])
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET einstufung = 'aktiv' WHERE id = ?", (sid,))
         self.assertEqual(self.vorschlaege(), [("CC1", "sitzung", sid)])
 
     def test_laufend_aus_chat_kein_vorschlag(self):

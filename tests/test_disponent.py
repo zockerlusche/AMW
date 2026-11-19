@@ -165,11 +165,13 @@ class Disponent(unittest.TestCase):
     def test_weckruf_einmal_je_anlass(self):
         self.plaetze()
         with db.schreiben(self.con):
-            b = db.einfuegen(self.con, "bogen", projekt_id=self.pid, nr=50, titel="Mischbetrieb", status="aktiv", angelegt_von="TL",
+            b = db.einfuegen(self.con, "bogen", projekt_id=self.pid, nr=12, titel="Mischbetrieb", status="aktiv", angelegt_von="TL",
                              angelegt_utc=db.jetzt())
+        self.assertNotEqual(b, 12)                                                               # A1878: id ≠ nr, sonst prüft der Test nichts
         aid = self.paket(bogen=b, zustand="entwurf")
         aus = disponent.runde(self.con, prog("bauen"))
-        self.assertTrue(any("kein startklares p-Paket in M50" in x for x in aus), aus)
+        self.assertTrue(any(f"kein startklares p-Paket in M{b} „" in x for x in aus), aus)        # Nummer wie überall: id, nicht nr
+        self.assertFalse(any("M12" in x for x in aus), aus)
         self.assertEqual(disponent.runde(self.con, prog("bauen")), [])                             # gleicher Anlass: nicht nochmal
         n = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'Platz frei%'").fetchall()
         self.assertEqual(len(n), 1)
@@ -177,7 +179,7 @@ class Disponent(unittest.TestCase):
         with db.schreiben(self.con):                                                             # alles fertig → neuer Anlass
             self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'x' WHERE id = ?", (aid,))
         aus = disponent.runde(self.con, prog("bauen"))
-        self.assertTrue(any("alle p-Pakete fertig" in x for x in aus), aus)
+        self.assertTrue(any(f"M{b} „Mischbetrieb“: alle p-Pakete fertig" in x for x in aus), aus)
 
     def vorbereitet(self, aid, basis_falsch=False):
         """Wie starten(): Platz vorbereiten, laeuft, Vermerk – für den Starter im selben Prozess."""

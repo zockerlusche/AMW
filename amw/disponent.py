@@ -275,10 +275,10 @@ def weckruf(con, pid, platz_frei):
     if letzte and letzte[0] == signatur:
         return None
     if art == "bogen_fertig":
-        kurz = f"Bogen M{b['nr']} „{b['titel']}“: alle p-Pakete fertig – nächste Planung"
-        text = kurz + f". {len(pakete)} Paket(e) erledigt. Was fehlt: Bogen abschließen oder neue Pakete schneiden."
+        kurz = f"M{b['id']} „{b['titel']}“: alle p-Pakete fertig – nächste Planung"   # A1878: Nummer wie überall = id, nicht nr
+        text = kurz + f". {len(pakete)} Paket(e) erledigt. Was fehlt: Meilenstein abschließen oder neue Pakete schneiden."
     else:
-        kurz = f"Platz frei, kein startklares p-Paket in M{b['nr']} „{b['titel']}“"
+        kurz = f"Platz frei, kein startklares p-Paket in M{b['id']} „{b['titel']}“"
         text = (kurz + ". Offene Pakete: " + "; ".join(f"A{x['id']} {x['titel']} [{x['zustand']}]" for x in offen[:12])
                 + ". Was fehlt: ein Paket startklar setzen (Felder vollständig), Abhängigkeiten lösen oder Wartendes beantworten.")
     with db.schreiben(con):

@@ -429,6 +429,27 @@ class Kette(unittest.TestCase):
         self.assertEqual([x[0] for x in self.con.execute("SELECT version FROM release WHERE art = 'version'")], ["1.1.1"])
         self.assertTrue(any("kein eigenes Release: 1.1.0" in z for z in aus), aus)
 
+    def test_zwischenversion_gruen_vor_arbeit_der_naechsten(self):
+        """A1878 (#29128: 1.142.0 grün auf b5359ce, danach committete A1867 erst Arbeit – noch unter 1.142.0 – und hob die
+        Nummer später): die Zwischenversion bekommt ihr Tag auf dem neuesten GEPRÜFTEN Commit mit ihrer Nummer, statt in der
+        obersten aufzugehen – und nicht auf dem Arbeits-Commit der nächsten Aufgabe."""
+        self.gruen_auf("neu", self.sha, "Zwischen")                                              # grün auf dem 1.1.0-Stand
+        self.g("switch", "-q", "neu")
+        arbeit = self.stand("1.1.0", "Arbeit der nächsten Aufgabe")                              # noch Nummer 1.1.0, ungeprüft
+        oben = self.stand("1.1.1", "Nächste Aufgabe")
+        self.g("switch", "-q", "main")
+        self.gruen_auf("neu", oben, "Nächste")
+        self.gesamtlauf(sha=oben)
+        aus = []
+        k = self.kette("1.1.1")
+        k.ausgabe = aus.append
+        self.assertEqual(k.ausliefern("neu")["version"], "1.1.1")
+        self.assertEqual(self.g("rev-parse", "v1.1.0^{commit}"), self.sha)                       # der geprüfte Stand …
+        self.assertNotEqual(self.sha, arbeit)                                                    # … nicht der Arbeits-Commit
+        self.assertEqual([b[3] for b in self.extern_aufrufe if b[0] == "gh"], ["v1.1.0", "v1.1.1"])
+        self.assertEqual([x[0] for x in self.con.execute("SELECT version FROM release WHERE art = 'version' ORDER BY id")], ["1.1.0", "1.1.1"])
+        self.assertFalse(any("kein eigenes Release" in z for z in aus), aus)
+
     def test_zwischenversion_kurzer_sha_zaehlt_nicht(self):
         """P265 (a): eine grüne Prüfung mit sehr kurzem SHA gibt keine fremde Zwischenversion frei (mindestens 7 Zeichen)."""
         self.g("switch", "-q", "neu")

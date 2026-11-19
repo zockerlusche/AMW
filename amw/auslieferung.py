@@ -233,18 +233,20 @@ class Kette:
         return m.group(1) if m else None
 
     def zwischenversionen(self, sha, version):
-        """Versionen zwischen main und dem Release-Stand (TL #24530): [(version, letzter Commit mit dieser Nummer)] aufsteigend –
-        die Kette taggt und trägt sie mit ein, damit keine Versionszeile fehlt."""
+        """Versionen zwischen main und dem Release-Stand (TL #24530): [(version, [Commits mit dieser Nummer, alt → neu])]
+        aufsteigend – die Kette taggt und trägt sie mit ein, damit keine Versionszeile fehlt. Welcher Commit getaggt wird,
+        entscheidet vorbereiten() (A1878: der neueste mit grüner Prüfung – nicht einfach der letzte mit der Nummer, denn die
+        nächste Aufgabe committet oft erst Arbeit und hebt die Nummer später)."""
         rc, aus = self.extern(["git", "rev-list", "--reverse", f"main..{sha}"], self.repo)
         if rc != 0:
             self.stopp("Zwischenversionen", aus[-200:])
         jetzt = kern.version_teile(self.version_an("main"))
-        letzte = {}
+        je = {}
         for c in aus.split():
             v = self.version_an(c)
             if v and v != version and kern.version_teile(v) and (not jetzt or kern.version_teile(v) > jetzt):
-                letzte[v] = c
-        return sorted(letzte.items(), key=lambda x: kern.version_teile(x[0]))
+                je.setdefault(v, []).append(c)
+        return sorted(je.items(), key=lambda x: kern.version_teile(x[0]))
 
     def staende(self, sha, ausnahme_aufgabe=None):
         """A1875 (P275/#29058): jeder Stand unter der Spitze ist geprüft. Für jeden Commit in main..sha: die Aufgaben aus seiner
@@ -389,10 +391,13 @@ class Kette:
             self.stopp("Freigaben", f"{len(fehlt)} fehlt: " + " · ".join(fehlt))
         zwischen, aufgegangen = [], []
         gruen = [r[0] for r in self.con.execute("SELECT sha FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen'", (self.pid,))]
-        for v, c in self.zwischenversionen(sha, version):
+        for v, commits in self.zwischenversionen(sha, version):
             if self.extern(["git", "rev-parse", "-q", "--verify", f"refs/tags/v{v}"], self.repo)[0] == 0:
                 continue                                 # schon getaggt (z. B. von Hand)
-            if not any(g and len(g) >= 7 and (c.startswith(g) or g.startswith(c)) for g in gruen):   # P265 (a): wie ist_gruen
+            # A1878 (#29128: 1.142.0 grün auf b5359ce, danach A1867-Arbeit noch unter 1.142.0): der neueste geprüfte Commit
+            c = next((x for x in reversed(commits)
+                      if any(g and len(g) >= 7 and (x.startswith(g) or g.startswith(x)) for g in gruen)), None)   # P265 (a): wie ist_gruen
+            if not c:
                 aufgegangen.append(v)                    # A1866 (17.11.: 1.132.0/1.133.0 nach Umnummerieren): kein eigenes Release
                 continue
             zwischen.append({"version": v, "sha": c, "notizen": self.notizen(c, v)})   # CHANGELOG an ihrem eigenen Stand
