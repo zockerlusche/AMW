@@ -9,7 +9,7 @@ import os
 from unittest import mock
 
 from amw import aktionen, db, kern, steuerung
-from tests.test_steuerung import Grund
+from tests.test_steuerung import Grund, amw_hook
 
 
 class Startprofil(Grund):
@@ -17,6 +17,7 @@ class Startprofil(Grund):
         super().setUp()
         self.arbeit = os.path.join(self.ordner.name, "arbeit")
         os.makedirs(self.arbeit)
+        amw_hook(self.arbeit)
         steuerung.profil_setzen(self.con, self.pid, "Entwickler", "CC1", ordner=self.arbeit, startsatz="Du bist CC1.")
         self.aid = self.con.execute("SELECT id FROM agent WHERE kennung = 'CC1'").fetchone()[0]
 
@@ -24,9 +25,7 @@ class Startprofil(Grund):
         return base64.b64decode(args[-1]).decode("utf-16-le")
 
     def einstellungen(self, env):
-        os.makedirs(os.path.join(self.arbeit, ".claude"), exist_ok=True)
-        with open(os.path.join(self.arbeit, ".claude", "settings.local.json"), "w", encoding="utf-8") as f:
-            json.dump({"env": env, "hooks": {}}, f)
+        amw_hook(self.arbeit, env)
 
     def test_fortsetzen_mit_rueckfall_wie_das_startskript(self):
         with db.schreiben(self.con):

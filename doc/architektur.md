@@ -54,6 +54,7 @@ in seiner Eingabe und wird nach dem aktuellen Schritt gelesen. Während eines Ha
 **Aufsicht (jede Runde, Vorgabe 30 s).** Lebt die Pipe jeder Sitzung? (sonst „beendet“) · Brücken-Sitzungen: Puls ·
 Warteschlange der Läufe · Statusline-Dateien übernehmen, Messpunkte · Projekt-Server prüfen, ggf. neu starten ·
 Warnungen an den Lead · abgestürzte Agenten fortsetzen (nur mit Profil-Einstellung, nur bei offenem Fenster) ·
+gestartet, aber nach 3 min nicht angemeldet → Lead und Mensch ·
 Takt an den Lead · Push.
 
 **Zustand der Agenten.** Die Hooks `UserPromptSubmit` (arbeitet), `Stop` (frei), `Notification` (wartet auf Freigabe

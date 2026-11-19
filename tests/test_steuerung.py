@@ -7,7 +7,15 @@ import time
 import unittest
 from unittest import mock
 
-from amw import db, kern, steuerung
+from amw import db, einrichtung, kern, steuerung
+
+
+def amw_hook(ordner, env=None):
+    """Agenten-Ordner wie nach `amw einrichten agenten-ordner`: SessionStart-Hook der AMW (A1881: ohne ihn kein Start)."""
+    import json
+    os.makedirs(os.path.join(ordner, ".claude"), exist_ok=True)
+    with open(os.path.join(ordner, ".claude", "settings.local.json"), "w", encoding="utf-8") as f:
+        json.dump({"env": env or {}, "hooks": einrichtung.hook_einstellungen()["hooks"]}, f)
 
 
 class Grund(unittest.TestCase):
@@ -18,9 +26,11 @@ class Grund(unittest.TestCase):
             self.pid = db.einfuegen(self.con, "projekt", name="P", angelegt_utc=db.jetzt())
         kern.agent_neu(self.con, self.pid, "TL", rolle="lead")
         kern.agent_neu(self.con, self.pid, "CC1")
-        p = mock.patch.dict(os.environ, {"LOCALAPPDATA": self.ordner.name})
+        p = mock.patch.dict(os.environ, {"LOCALAPPDATA": self.ordner.name,      # Claude-Einstellungen des Benutzers: leer
+                                         "CLAUDE_CONFIG_DIR": os.path.join(self.ordner.name, "claude-benutzer")})
         p.start()
         self.addCleanup(p.stop)
+        amw_hook(self.ordner.name)
         self.gestartet = []
 
     def tearDown(self):

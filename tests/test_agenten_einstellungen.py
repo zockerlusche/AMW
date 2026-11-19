@@ -57,6 +57,8 @@ class Felder(Grund):
             kern.agent_neu(self.con, self.pid, k, arbeitsweise=weise)
             steuerung.profil_setzen(self.con, self.pid, "Entwickler", k, ordner=self.ordner.name)
         gestartet = []
+        from tests.test_steuerung import amw_hook
+        amw_hook(self.ordner.name)                                                    # A1881: Start nur mit AMW-Hook
         with mock.patch.dict(os.environ, {"LOCALAPPDATA": self.ordner.name}):
             steuerung.starten(self.con, self.pid, "Term", ausfuehren=lambda a, f, o: gestartet.append(a))
             for k, wort in (("App", "Desktop-App"), ("Chat", "als Chat")):

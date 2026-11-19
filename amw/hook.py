@@ -180,8 +180,9 @@ def hook_fehler_pfad():
     return os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), "amw", "hook-fehler.log")
 
 
-def hook_fehler(fehler):
-    """Ein Fehler im Hook für schwere Befehle sperrt nichts – er steht nur hier (höchstens ~200 Zeilen, die ältesten fallen weg)."""
+def hook_fehler(fehler, wo=None):
+    """Ein Fehler im Hook sperrt nichts – er steht hier (höchstens ~200 Zeilen, die ältesten fallen weg). wo: z. B.
+    „SessionStart CC1“ – so findet die Meldung „meldet sich nicht an“ (steuerung.anmeldung_pruefen) den Grund."""
     try:
         pfad = hook_fehler_pfad()
         os.makedirs(os.path.dirname(pfad), exist_ok=True)
@@ -190,10 +191,21 @@ def hook_fehler(fehler):
                 alt = f.readlines()[-199:]
         except OSError:
             alt = []
+        zeile = " ".join(str(fehler)[:300].split())
         with open(pfad, "w", encoding="utf-8") as f:
-            f.writelines(alt + [f"{db.jetzt()} {type(fehler).__name__}: {str(fehler)[:300]}\n"])
+            f.writelines(alt + [f"{db.jetzt()} {wo + ' ' if wo else ''}{type(fehler).__name__}: {zeile}\n"])
     except Exception:
         pass
+
+
+def hook_fehler_seit(seit_utc, wo=None):
+    """Zeilen des Fehlerprotokolls ab seit_utc (ohne Zeitstempel), nur mit „wo“ darin, wenn angegeben."""
+    try:
+        with open(hook_fehler_pfad(), encoding="utf-8") as f:
+            zeilen = f.read().splitlines()
+    except OSError:
+        return []
+    return [z[21:] for z in zeilen if z[:20] >= seit_utc and (not wo or wo in z[21:])]
 
 
 def schwere_befehle(eingabe):
@@ -275,9 +287,11 @@ def main():
                 teile.insert(0, kern.kontext(con, pid, kennung))
         finally:
             con.close()
-    except Exception as e:                          # Hook darf die Sitzung nie aufhalten
-        teile.append(f"AMW-Hook-Fehler ({type(e).__name__}: {e}) – Kontext per `amw kontext` holen.")
+    except Exception as e:                          # Hook darf die Sitzung nie aufhalten – aber sichtbar (A1881)
+        teile.append(f"AMW-Hook-Fehler ({type(e).__name__}: {e}) – diese Sitzung ist vermutlich nicht angemeldet."
+                     f" Kontext per `amw kontext` holen, anmelden mit `amw anmelden --von <Name>`.")
         meldung = teile[-1]
+        hook_fehler(e, f"SessionStart {kennung or '?'}")   # → Meldung „meldet sich nicht an“ an Lead und Mensch
     if (still := dienst_still()):                   # A1877 (b): die Agenten sind die Wächter, wenn der Dienst weg ist
         teile.insert(0, still)
         meldung = meldung or still

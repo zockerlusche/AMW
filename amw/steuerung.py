@@ -249,8 +249,8 @@ def startbefehle(con, pid, kennung):
     if not p["ordner"]:
         aus["grund"] = "kein_ordner"
         return aus
-    fort = r["claude_sitzung"] if r else None
-    neue = str(uuid.uuid5(uuid.NAMESPACE_URL, f"amw:{a['uid']}:{fort or ''}:{r['anzahl'] if r else 0}"))
+    fort = fortsetzbar(con, pid, kennung, p["ordner"])[0]     # A1881: nur im selben Claude-Projektordner
+    neue = str(uuid.uuid5(uuid.NAMESPACE_URL, f"amw:{a['uid']}:{r['claude_sitzung'] if r else ''}:{r['anzahl'] if r else 0}"))
 
     def teile(fortsetzen):
         x = ["--resume", fort] if fortsetzen else ["--session-id", neue]
@@ -281,6 +281,45 @@ def letzte_sitzung(con, pid, kennung):
     r = con.execute("SELECT s.claude_sitzung FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
                     " AND a.kennung = ? AND s.claude_sitzung IS NOT NULL ORDER BY s.id DESC LIMIT 1", (pid, kennung)).fetchone()
     return r["claude_sitzung"] if r else None
+
+
+def claude_projektordner(pfad):
+    """Name des Ordners, unter dem Claude Code Sitzungen und Notizen eines Arbeitsordners ablegt (~/.claude/projects/<name>):
+    jedes Zeichen außer Buchstaben und Ziffern wird „-“ (F:\\amw → F--amw)."""
+    return re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(pfad)).casefold()
+
+
+def fortsetzbar(con, pid, kennung, ordner):
+    """A1881/D1301: (Sitzungs-ID zum Fortsetzen oder None, Grund oder None). Fortgesetzt wird nur eine Sitzung, die im selben
+    Claude-Projektordner liegt wie der Profil-Ordner – sonst lüde sie die Notizen eines anderen Ordners (F:\\amw ↔ amw-dev2).
+    Ohne bekannten Arbeitsordner (alte Zeilen) wie bisher."""
+    r = con.execute("SELECT s.claude_sitzung, s.arbeitsordner FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
+                    " AND a.kennung = ? AND s.claude_sitzung IS NOT NULL ORDER BY s.id DESC LIMIT 1", (pid, kennung)).fetchone()
+    if not r:
+        return None, None
+    if r["arbeitsordner"] and claude_projektordner(r["arbeitsordner"]) != claude_projektordner(ordner):
+        return None, f"die letzte Sitzung lief in {r['arbeitsordner']}, nicht in {ordner}"
+    return r["claude_sitzung"], None
+
+
+def _claude_einstellungen():
+    return os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude"), "settings.json")
+
+
+def amw_hook_da(ordner):
+    """Meldet sich eine Sitzung in diesem Ordner bei der AMW an? Ja, wenn ein SessionStart-Hook mit amw-hook.py eingetragen
+    ist – in <ordner>/.claude/settings(.local).json oder in den Claude-Einstellungen des Benutzers."""
+    for datei in (os.path.join(ordner, ".claude", "settings.local.json"), os.path.join(ordner, ".claude", "settings.json"),
+                  _claude_einstellungen()):
+        try:
+            with open(datei, encoding="utf-8") as f:
+                eintraege = (json.load(f).get("hooks") or {}).get("SessionStart") or []
+        except (OSError, ValueError, AttributeError):
+            continue
+        if any("amw-hook" in str((h or {}).get("command") or "") for e in eintraege if isinstance(e, dict)
+               for h in e.get("hooks") or []):
+            return True
+    return False
 
 
 def laeuft(con, pid, kennung):
@@ -342,7 +381,11 @@ def starten(con, pid, kennung, neu=False, ausfuehren=None):
     grund = zwilling(con, pid, p)
     if grund:
         raise kern.AmwFehler(f"{kennung} nicht gestartet: {grund}")
-    fort = None if neu else letzte_sitzung(con, pid, kennung)
+    if not amw_hook_da(p["ordner"]):                  # A1881 (D1301): sonst meldet sich die Sitzung nie an
+        raise kern.AmwFehler(f"{kennung} nicht gestartet: im Ordner {p['ordner']} fehlt der AMW-Hook – die Sitzung meldete sich"
+                             f" nie an (keine Weckrufe, Anzeige „beendet“). Einrichten: {kern.BEFEHL} einrichten agenten-ordner"
+                             f" {p['ordner']} --projekt {p['projekt']}")
+    fort, anders = (None, None) if neu else fortsetzbar(con, pid, kennung, p["ordner"])
     neue = str(uuid.uuid4())                          # neu – oder Rückfall, wenn das Fortsetzen scheitert
     zeile = befehl(p, fort, neue)
     b64 = base64.b64encode(zeile.encode("utf-16-le")).decode()
@@ -358,8 +401,54 @@ def starten(con, pid, kennung, neu=False, ausfuehren=None):
         args = [shell, "-NoExit", "-EncodedCommand", b64]
         flags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
     (ausfuehren or (lambda a, f, o: subprocess.Popen(a, cwd=o, creationflags=f, close_fds=True)))(args, flags, p["ordner"])
+    with db.schreiben(con):                           # A1881: meldet sie sich nicht binnen ANMELDE_FRIST_S → anmeldung_pruefen
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=START_EREIGNIS,
+                     text=f"{kennung}|{p['ordner']}")
     return f"{kennung} " + (f"setzt Sitzung {fort[:8]} fort" if fort else f"startet neu (Sitzung {neue[:8]})") \
-        + (" im Windows Terminal" if wt_exe else " in einem Konsolenfenster")
+        + (" im Windows Terminal" if wt_exe else " in einem Konsolenfenster") \
+        + (f" – nicht fortgesetzt: {anders} (sonst lüde sie fremde Notizen)" if anders else "")
+
+
+# --- Anmeldung nach dem Start (A1881, D1301) ------------------------------------------------------
+START_EREIGNIS = "agent_start"
+ANMELDE_FRIST_S = 180          # so lange darf ein gestarteter Agent brauchen, bis sich seine Sitzung anmeldet
+ANMELDE_FENSTER_S = 1800       # ältere Starts werden nicht mehr nachgemeldet (z. B. nach einer Pause des Dienstes)
+
+
+def anmeldung_pruefen(con, jetzt=None):
+    """Runde des Dienstes: hat die AMW einen Agenten gestartet und hat sich nach ANMELDE_FRIST_S keine Sitzung angemeldet,
+    einmal eine Meldung an Lead und Mensch – statt still „beendet“. Hook-Fehler beim Anmelden seit dem Start stehen dabei.
+    Rückgabe: Ereignisse fürs Log."""
+    from . import hook
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    fmt = "%Y-%m-%dT%H:%M:%SZ"
+    bis = (jetzt - datetime.timedelta(seconds=ANMELDE_FRIST_S)).strftime(fmt)
+    ab = (jetzt - datetime.timedelta(seconds=ANMELDE_FENSTER_S)).strftime(fmt)
+    aus = []
+    for e in con.execute("SELECT id, projekt_id, zeit_utc, text FROM plan_ereignis WHERE art = ? AND zeit_utc <= ? AND zeit_utc >= ?"
+                         " AND NOT EXISTS (SELECT 1 FROM plan_ereignis x WHERE x.art = 'agent_stumm' AND x.text = CAST(plan_ereignis.id AS TEXT))"
+                         " ORDER BY id", (START_EREIGNIS, bis, ab)).fetchall():
+        kennung, _, ordner = (e["text"] or "").partition("|")
+        a = con.execute("SELECT id FROM agent WHERE projekt_id = ? AND kennung = ?", (e["projekt_id"], kennung)).fetchone()
+        if not a or con.execute("SELECT 1 FROM sitzung WHERE agent_id = ? AND gestartet_utc >= ?", (a["id"], e["zeit_utc"])).fetchone():
+            continue
+        fehler = hook.hook_fehler_seit(e["zeit_utc"], "SessionStart")
+        ortszeit = datetime.datetime.strptime(e["zeit_utc"], fmt).replace(tzinfo=datetime.timezone.utc).astimezone().strftime("%H:%M")
+        kurz = f"{kennung} gestartet, meldet sich nicht an"
+        text = (f"Die AMW hat {kennung} um {ortszeit} gestartet (Ordner {ordner}). Nach {ANMELDE_FRIST_S // 60} Minuten hat sich keine"
+                " Sitzung angemeldet – ohne Anmeldung bekommt der Agent keine Weckrufe und erscheint als beendet. Bitte das Fenster"
+                f" ansehen. Häufige Gründe: der Start ist gescheitert, oder der Hook im Ordner fehlt bzw. scheitert"
+                f" ({kern.BEFEHL} einrichten agenten-ordner {ordner} --projekt <Name>).")
+        if fehler:
+            text += " Hook-Fehler seit dem Start: " + " · ".join(fehler[-3:])
+        lead = kern.lead(con, e["projekt_id"])
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=e["projekt_id"], zeit_utc=db.jetzt(), von="AMW", art="agent_stumm",
+                         text=str(e["id"]))
+            kern._posten(con, e["projekt_id"], "AMW", ",".join(dict.fromkeys(x for x in (lead, kern.ENTWICKLER) if x and x != kennung)),
+                         "meldung", kurz, text)
+        aus.append(kurz)
+    return aus
 
 
 def _sitzung_mit_prozess(con, pid, kennung, auch_ruhend=False):
@@ -586,7 +675,8 @@ def startskript(con, pid, kennungen=None, alle=False, abstand_s=STARTSKRIPT_ABST
         if kennungen and a["kennung"] not in kennungen:
             continue
         p = profil(con, pid, a["kennung"])
-        sid = letzte_sitzung(con, pid, a["kennung"]) or str(uuid.uuid5(uuid.NAMESPACE_URL, f"amw:{uid}:{a['kennung']}"))
+        sid = fortsetzbar(con, pid, a["kennung"], p["ordner"])[0] \
+            or str(uuid.uuid5(uuid.NAMESPACE_URL, f"amw:{uid}:{a['kennung']}"))   # A1881: nur im selben Claude-Projektordner
         weiter = _aufruf(["--resume", sid] + _optionen(p) + [NEUSTART_SATZ], lesbar=True)
         neu = _aufruf(["--session-id", sid] + _optionen(p) + ([p["startsatz"]] if p["startsatz"] else []), lesbar=True)
         ps = (f"$env:AMW_AGENT={_ps(p['kennung'])}; $env:AMW_PROJEKT={_ps(projekt)}; {weiter}; "

@@ -360,6 +360,11 @@ class Dienst:
                 log.info("Sichern & beenden: %s", e)
         except Exception as e:
             log.warning("Sichern & beenden: %s: %s", type(e).__name__, e)
+        try:                                                                 # A1881: gestartet, meldet sich nicht an
+            for e in steuerung.anmeldung_pruefen(self.con):
+                log.info("Anmeldung: %s", e)
+        except Exception as e:
+            log.warning("Anmeldung: %s: %s", type(e).__name__, e)
         try:                                                                 # abgestürzte Agenten fortsetzen (Profil)
             for e in self.neustarter.runde():
                 log.info("Neustart: %s", e)

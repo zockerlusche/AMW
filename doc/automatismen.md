@@ -52,6 +52,24 @@ einzeln schließt und ohne dass Arbeit mitten im Schritt abreißt.
 - **Ohne eigenes Feld gespeichert:** als Halt mit Ablaufzeit; ein gewöhnlicher Halt hat keine und wird nie beendet.
 - Agenten ohne Arbeitsordner (z. B. ein Lead, der als Chat arbeitet) betrifft das nicht.
 
+## Agentenstart sicher (seit 1.146.0)
+
+**Wozu:** Ein Agent, dessen Sitzung sich nicht bei der AMW anmeldet, bekommt keine Weckrufe und steht als „beendet“ da,
+obwohl er arbeitet – niemand merkt es.
+
+- **Vor dem Start:** Die AMW startet nur, wenn im Ordner (oder in den Claude-Einstellungen des Benutzers) ihr
+  SessionStart-Hook eingetragen ist; sonst Meldung mit `amw einrichten agenten-ordner <ordner> --projekt <name>`.
+- **Fortsetzen:** nur, wenn die letzte Sitzung im selben Claude-Projektordner liegt wie der Profil-Ordner; sonst beginnt
+  eine neue Sitzung (eine fortgesetzte lüde die Notizen eines anderen Ordners). Ohne bekannten Arbeitsordner wie bisher.
+  Gilt auch für die fertigen Startzeilen (Profil) und das Startskript nach einem PC-Neustart.
+- **Nach dem Start:** Hat sich 3 Minuten nach einem Start durch die AMW keine Sitzung angemeldet, bekommen Lead und Mensch
+  einmal die Meldung „… gestartet, meldet sich nicht an“, mit den Hook-Fehlern seit dem Start. Ältere Starts (über 30
+  Minuten, z. B. nach einer Pause des Dienstes) werden nicht nachgemeldet.
+- **Hook-Fehler:** Scheitert die Anmeldung im SessionStart-Hook, steht der Fehler im Fenster (Systemmeldung) und im
+  Fehlerprotokoll des Hooks (`%LOCALAPPDATA%\amw\hook-fehler.log`).
+- Grenze: Das Startskript nach einem PC-Neustart prüft den Hook nicht, und für seine Starts gibt es keine Meldung
+  „meldet sich nicht an“ (es startet Claude direkt, ohne die AMW).
+
 ## Wartegründe (seit 1.8.0)
 
 **Wozu:** Eine Aufgabe, die „wartet“, ohne zu sagen worauf, bleibt liegen, auch wenn der Grund längst erledigt ist.
