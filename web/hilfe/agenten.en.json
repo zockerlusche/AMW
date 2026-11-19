@@ -65,7 +65,7 @@
  "fragen": [
   [
    "Does the AMW suggest a start by itself?",
-   "Yes. If an agent is not running although it would be due – a “new session” package is due for it, it crashed and still has work, or it has work and no session –, “For you” shows “Start <agent>?” with the reason. On the PC you start it with “Start” (with a confirmation; all checks above apply) or decline with “Not now” – then the AMW does not ask again for that agent for 12 hours. Nothing starts without your confirmation, and on the phone you only see the suggestion. Agents you switched off and chat agents are never suggested."
+   "Yes. If an agent is not running although it would be due – a “new session” package is due for it, it crashed and still has work, or it has work and no session –, “For you” shows “Start <agent>?” with the reason. On the PC you start it with “Start” (with a confirmation; all checks above apply) or decline with “Not now” – then the AMW does not ask again for that agent for 12 hours. Nothing starts without your confirmation, and on the phone you only see the suggestion. Agents you switched off and chat agents are never suggested. Tasks that are parked or waiting for something do not count as work, nor do p packages – unless one is waiting for an agent in the terminal (in draft they are not released yet, otherwise the AMW runs them itself)."
   ],
   [
    "Who may start an agent?",

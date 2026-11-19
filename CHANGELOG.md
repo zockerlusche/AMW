@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.145.1 – 19.11.2026 · Kleine Korrekturen vor dem Probebetrieb
+- **Behoben:** Die Meldung „Platz frei, kein startklares Paket“ nennt den Meilenstein mit der Nummer, die überall sonst steht.
+- **Behoben:** Für ein Paket, das noch im Entwurf ist, schlägt die AMW keinen Agentenstart mehr vor. Ein Paket für eine neue
+  Sitzung schlägt sie nur vor, wenn es dran ist (nicht geparkt, wartet auf nichts).
+- **Behoben:** Liefert die Release-Kette mehrere Versionen auf einmal aus, bekommt eine geprüfte Version darunter ihr eigenes
+  Release, auch wenn danach schon Arbeit für die nächste Version unter ihrer Nummer liegt.
+
 ## 1.145.0 – 17.11.2026 · Bereit zum Merge, eine Freigabe für alle
 - **Neu:** Unter Planung › Aufgaben › Pakete steht „Bereit zum Merge“: jedes Paket, das die AMW fertig geprüft hat, mit den
   geänderten Dateien und den Änderungen zum Aufklappen. „Alle freigeben“ gibt sie am PC auf einmal frei (im Terminal
