@@ -85,7 +85,7 @@
   ],
   [
    "Schlägt die AMW selbst einen Start vor?",
-   "Ja. Läuft ein Agent nicht, obwohl er dran wäre – ein Paket „neue Sitzung“ ist für ihn fällig, er ist abgestürzt und hat noch Arbeit, oder er hat Arbeit und keine Sitzung –, steht unter „Für dich“ „<Agent> starten?“ mit dem Grund. Am PC startest du ihn mit „Starten“ (mit Rückfrage; dann gelten alle Prüfungen von oben) oder lehnst mit „Nicht jetzt“ ab – dann fragt die AMW für diesen Agenten 12 Stunden nicht wieder. Ohne deine Bestätigung startet nichts, und am Handy siehst du den Vorschlag nur. Agenten, die du ausgeschaltet hast, und Chat-Agenten schlägt sie nie vor."
+   "Ja. Läuft ein Agent nicht, obwohl er dran wäre – ein Paket „neue Sitzung“ ist für ihn fällig, er ist abgestürzt und hat noch Arbeit, oder er hat Arbeit und keine Sitzung –, steht unter „Für dich“ „<Agent> starten?“ mit dem Grund. Am PC startest du ihn mit „Starten“ (mit Rückfrage; dann gelten alle Prüfungen von oben) oder lehnst mit „Nicht jetzt“ ab – dann fragt die AMW für diesen Agenten 12 Stunden nicht wieder. Ohne deine Bestätigung startet nichts, und am Handy siehst du den Vorschlag nur. Agenten, die du ausgeschaltet hast, und Chat-Agenten schlägt sie nie vor. Aufgaben, die geparkt sind oder auf etwas warten, zählen nicht als Arbeit, ebenso p-Pakete – außer eines wartet auf einen Agenten im Terminal (im Entwurf sind sie noch nicht freigegeben, sonst führt sie die AMW selbst aus)."
   ],
   [
    "Wer darf einen Agenten starten?",
