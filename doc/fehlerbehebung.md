@@ -20,6 +20,7 @@ sind angemeldet) und das Protokoll `daten\dienst.log` (in der Workbench: Betrieb
 | Schirm geht gleich wieder zu | zwei Eingaben am PC (innerhalb von 2 min) später als 2 min nach dem Freigeben – der Grund nennt das Programm im Vordergrund, neue Fernsitzung, Eingabe in der Workbench am PC | so gewollt ([automatismen.md](automatismen.md)); Grund steht in `amw schirm --verlauf` |
 | Agent unter alter Kennung angesprochen (`--von CC3`) nach dem Umbenennen | so gewollt: die alte Kennung gilt als Alias | nichts; `amw agent liste` zeigt „(früher …)“ |
 | „wartet nur mit --auf“ | Wartegrund fehlt | `amw aufgabe wartet <nr> --auf F…/A…/L…/Agent/Entwickler/Monitor:…`; Erklärung zusätzlich mit `--wartet-auf` |
+| „Hinweis: --auf fügt Gründe hinzu – von vorher noch offen: …“ / Aufgabe wartet weiter auf Erledigtes | `--auf` ergänzt nur, alte Gründe bleiben offen | alten Grund abhaken: `amw aufgabe wartet <nr> --erledigt <Grund>` (auch zusammen mit `--auf <neu>`) |
 | „Ist das schon entschieden? Die AMW findet dazu: …“ bei `frage neu` | Frage an den Entwickler ohne Prüfung | Treffer lesen; passt keiner: `--geprueft "B… passt nicht, weil …"` (ohne Treffer: `--geprueft "keine Treffer"`) |
 | „A… ist fertig – für Neues eine neue Aufgabe“ | `--aufgabe` mit abgeschlossener Aufgabe | neue Aufgabe anlegen oder ohne `--aufgabe` posten |
 | Meldung „Leerlauf: seit … min frei, Arbeit liegt vor“ | Sitzung frei, aber eine eigene Aufgabe wartet auf nichts | weitermachen oder den Grund setzen (`aufgabe wartet … --auf …`) |

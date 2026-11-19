@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.145.2 – 19.11.2026 · Alte Wartegründe sichtbar
+- **Verbessert:** Bekommt eine wartende Aufgabe mit `--auf` einen neuen Grund, bleiben die alten offen. Der Befehl sagt das
+  jetzt gleich dazu und nennt den Weg zum Abhaken (`--erledigt <Grund>`, auch zusammen mit `--auf` in einem Schritt). Hilfe
+  „Reihenfolge“ und die Befehlshilfe erklären es.
+
 ## 1.145.1 – 19.11.2026 · Kleine Korrekturen vor dem Probebetrieb
 - **Behoben:** Die Meldung „Platz frei, kein startklares Paket“ nennt den Meilenstein mit der Nummer, die überall sonst steht.
 - **Behoben:** Für ein Paket, das noch im Entwurf ist, schlägt die AMW keinen Agentenstart mehr vor. Ein Paket für eine neue

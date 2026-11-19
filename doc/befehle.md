@@ -280,9 +280,12 @@ options:
                         --auf)
   --auf AUF             wartet/blockiert: worauf, als Verweise –
                         F12,A120,L7,CC2,Entwickler,Monitor:<was> (Pflicht;
-                        erledigt sich von selbst und benachrichtigt dich)
+                        erledigt sich von selbst und benachrichtigt dich).
+                        Fügt Gründe HINZU – alte bleiben offen, bis sie sich
+                        erledigen oder du sie mit --erledigt abhakst
   --erledigt ERLEDIGT   wartet/blockiert: diese Gründe von Hand abhaken, z. B.
-                        F12 (allein: Status bleibt)
+                        F12 oder CCamw (allein: Status bleibt; mit --auf:
+                        alten Grund abhaken und neuen setzen in einem Schritt)
   --bemerkung BEMERKUNG
   --alle
   --bogen BOGEN         Planung: gehört zu Meilenstein N (neu: Pflicht,

@@ -770,11 +770,18 @@ def cmd_aufgabe(a, con):
         if (a.auf or a.erledigt) and a.aktion not in ("wartet", "blockiert"):
             raise kern.AmwFehler("--auf/--erledigt gibt es nur bei aufgabe wartet|blockiert")
         hinweise = []
+        from . import wartegrund
+        vorher = [g["bezug"] for g in wartegrund.offene(con, a.id)]
         neu = kern.aufgabe_status(con, pid, _von(a), a.id, a.aktion, a.beleg, a.wartet_auf, a.bemerkung, a.zusammenfassung,
                                   a.auf, a.erledigt, hinweise, hinweis=a.hinweis, gruppe=a.gruppe)
-        from . import wartegrund
         offen = [g["bezug"] for g in wartegrund.offene(con, a.id)]
         print(f"A{a.id} → {neu}" + (f" · wartet auf {', '.join(offen)}" if offen and neu in ("wartet", "blockiert") else ""))
+        if a.auf and neu in ("wartet", "blockiert"):   # A1677: --auf fügt hinzu – alte Gründe bleiben offen, bis sie abgehakt sind
+            genannt = {x.strip().lower() for x in wartegrund.teile(a.auf)}
+            alt = [b for b in vorher if b in offen and b.lower() not in genannt]
+            if alt:
+                print(f"Hinweis: --auf fügt Gründe hinzu – von vorher noch offen: {', '.join(alt)}. Erledigt? "
+                      f"amw aufgabe {a.aktion} {a.id} --erledigt {','.join(alt)}")
         for h in hinweise:
             print(h)
 
@@ -2751,8 +2758,10 @@ def parser():
     x.add_argument("--beleg")
     x.add_argument("--wartet-auf", help="wartet/blockiert: Erklärung als Text (zusätzlich zu --auf)")
     x.add_argument("--auf", help="wartet/blockiert: worauf, als Verweise – F12,A120,L7,CC2,Entwickler,Monitor:<was>"
-                                 " (Pflicht; erledigt sich von selbst und benachrichtigt dich)")
-    x.add_argument("--erledigt", help="wartet/blockiert: diese Gründe von Hand abhaken, z. B. F12 (allein: Status bleibt)")
+                                 " (Pflicht; erledigt sich von selbst und benachrichtigt dich). Fügt Gründe HINZU – alte bleiben"
+                                 " offen, bis sie sich erledigen oder du sie mit --erledigt abhakst")
+    x.add_argument("--erledigt", help="wartet/blockiert: diese Gründe von Hand abhaken, z. B. F12 oder CCamw (allein: Status bleibt;"
+                                      " mit --auf: alten Grund abhaken und neuen setzen in einem Schritt)")
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
     x.add_argument("--bogen", type=nummer, help="Planung: gehört zu Meilenstein N (neu: Pflicht, solange es einen aktiven oder"
