@@ -58,7 +58,8 @@ einzeln schließt und ohne dass Arbeit mitten im Schritt abreißt.
 obwohl er arbeitet – niemand merkt es.
 
 - **Vor dem Start:** Die AMW startet nur, wenn im Ordner (oder in den Claude-Einstellungen des Benutzers) ihr
-  SessionStart-Hook eingetragen ist; sonst Meldung mit `amw einrichten agenten-ordner <ordner> --projekt <name>`.
+  SessionStart-Hook eingetragen ist und auf die `amw-hook.py` ihres eigenen Ordners zeigt (ein Hook aus einem
+  Entwicklungsbaum würde beim Anmelden abgewiesen); sonst Meldung mit dem Befehl, der den Ordner (neu) einrichtet.
 - **Fortsetzen:** nur, wenn die letzte Sitzung im selben Claude-Projektordner liegt wie der Profil-Ordner; sonst beginnt
   eine neue Sitzung (eine fortgesetzte lüde die Notizen eines anderen Ordners). Ohne bekannten Arbeitsordner wie bisher.
   Gilt auch für die fertigen Startzeilen (Profil) und das Startskript nach einem PC-Neustart.

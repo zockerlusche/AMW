@@ -51,7 +51,7 @@
   ],
   [
    "“nicht gestartet: im Ordner … fehlt der AMW-Hook”",
-   "The folder is not set up. A session there would never register with the AMW: no notifications, shown as “ended”. Run step 1 once, then start."
+   "The folder is not set up. A session there would never register with the AMW: no notifications, shown as “ended”. Run step 1 once, then start. If it says “zeigt nicht auf den AMW-Ordner”, the folder is set up for another copy of the AMW: first `amw einrichten agenten-ordner <folder> --entfernen`, then step 1."
   ],
   [
    "“… gestartet, meldet sich nicht an”",

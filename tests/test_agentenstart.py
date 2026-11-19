@@ -39,6 +39,19 @@ class OhneHook(Basis):
         self.assertEqual(self.gestartet, [])
         self.assertIsNone(self.con.execute("SELECT 1 FROM plan_ereignis WHERE art = 'agent_start'").fetchone())
 
+    def test_hook_aus_einem_entwicklungsbaum_zaehlt_nicht(self):                           # P289 (a)
+        os.makedirs(os.path.join(self.arbeit, ".claude"))
+        with open(os.path.join(self.arbeit, ".claude", "settings.local.json"), "w", encoding="utf-8") as f:
+            json.dump({"hooks": {"SessionStart": [{"hooks": [{"type": "command",
+                                                              "command": '"python.exe" -X utf8 "X:/amw-dev9/amw-hook.py"'}]}]}}, f)
+        self.assertEqual(len(steuerung.amw_hooks(self.arbeit)), 1)
+        self.assertFalse(steuerung.amw_hook_da(self.arbeit))
+        with self.assertRaises(kern.AmwFehler) as e:
+            self.starten()
+        self.assertIn("zeigt nicht auf den AMW-Ordner", str(e.exception))
+        self.assertIn(f"einrichten agenten-ordner {self.arbeit} --entfernen, danach", str(e.exception))
+        self.assertEqual(self.gestartet, [])
+
     def test_hook_im_ordner_oder_beim_benutzer_reicht(self):
         os.makedirs(os.path.join(self.arbeit, ".claude"))
         with open(os.path.join(self.arbeit, ".claude", "settings.json"), "w", encoding="utf-8") as f:   # nur ein anderer Hook
@@ -124,7 +137,13 @@ class Fortsetzen(Basis):
 
     def test_startskript_setzt_nur_im_selben_ordner_fort(self):
         self.sitzung(claude_sitzung="s-alt", arbeitsordner=os.path.join(self.ordner.name, "anderer"))
-        self.assertNotIn("s-alt", steuerung.startskript(self.con, self.pid, ["CC1"], abstand_s=0))
+        skript = steuerung.startskript(self.con, self.pid, ["CC1"], abstand_s=0)
+        self.assertNotIn("s-alt", skript)
+        self.assertNotIn("--resume", skript)                                               # P289 (b): nur neu, frische ID
+        self.assertIn("--session-id", skript)
+        fest = str(steuerung.uuid.uuid5(steuerung.uuid.NAMESPACE_URL, "amw:"
+                                        + self.con.execute("SELECT uid FROM projekt WHERE id = ?", (self.pid,)).fetchone()[0] + ":CC1"))
+        self.assertNotIn(fest, skript)
         self.sitzung(claude_sitzung="s-hier", arbeitsordner=self.arbeit)
         self.assertIn("--resume s-hier", steuerung.startskript(self.con, self.pid, ["CC1"], abstand_s=0))
 

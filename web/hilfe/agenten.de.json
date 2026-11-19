@@ -51,7 +51,7 @@
   ],
   [
    "„nicht gestartet: im Ordner … fehlt der AMW-Hook“",
-   "Der Ordner ist nicht eingerichtet. Eine Sitzung dort meldete sich nie bei der AMW an: keine Benachrichtigungen, Anzeige „beendet“. Einmal Schritt 1 ausführen, dann starten."
+   "Der Ordner ist nicht eingerichtet. Eine Sitzung dort meldete sich nie bei der AMW an: keine Benachrichtigungen, Anzeige „beendet“. Einmal Schritt 1 ausführen, dann starten. Steht dort „zeigt nicht auf den AMW-Ordner“, ist der Ordner für eine andere AMW-Kopie eingerichtet: erst `amw einrichten agenten-ordner <ordner> --entfernen`, dann Schritt 1."
   ],
   [
    "„… gestartet, meldet sich nicht an“",

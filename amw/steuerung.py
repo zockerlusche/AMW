@@ -306,9 +306,10 @@ def _claude_einstellungen():
     return os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude"), "settings.json")
 
 
-def amw_hook_da(ordner):
-    """Meldet sich eine Sitzung in diesem Ordner bei der AMW an? Ja, wenn ein SessionStart-Hook mit amw-hook.py eingetragen
-    ist – in <ordner>/.claude/settings(.local).json oder in den Claude-Einstellungen des Benutzers."""
+def amw_hooks(ordner):
+    """Befehle der SessionStart-Hooks mit amw-hook in <ordner>/.claude/settings(.local).json und in den Claude-Einstellungen
+    des Benutzers."""
+    aus = []
     for datei in (os.path.join(ordner, ".claude", "settings.local.json"), os.path.join(ordner, ".claude", "settings.json"),
                   _claude_einstellungen()):
         try:
@@ -316,10 +317,20 @@ def amw_hook_da(ordner):
                 eintraege = (json.load(f).get("hooks") or {}).get("SessionStart") or []
         except (OSError, ValueError, AttributeError):
             continue
-        if any("amw-hook" in str((h or {}).get("command") or "") for e in eintraege if isinstance(e, dict)
-               for h in e.get("hooks") or []):
-            return True
-    return False
+        aus += [str(h.get("command")) for e in eintraege if isinstance(e, dict) for h in e.get("hooks") or []
+                if isinstance(h, dict) and "amw-hook" in str(h.get("command") or "")]
+    return aus
+
+
+def _live_hook():
+    from . import einrichtung                         # der AMW-Ordner des laufenden Codes (wie amw einrichten ihn einträgt)
+    return os.path.join(einrichtung.WURZEL, "amw-hook.py").replace("\\", "/").casefold()
+
+
+def amw_hook_da(ordner):
+    """Meldet sich eine Sitzung in diesem Ordner bei der AMW an? Ja, wenn ein SessionStart-Hook auf die amw-hook.py des
+    AMW-Ordners zeigt (P289 a: ein Hook aus einem Entwicklungsbaum wiese der Live-Schutz beim Anmelden ab)."""
+    return any(_live_hook() in b.replace("\\", "/").casefold() for b in amw_hooks(ordner))
 
 
 def laeuft(con, pid, kennung):
@@ -382,9 +393,15 @@ def starten(con, pid, kennung, neu=False, ausfuehren=None):
     if grund:
         raise kern.AmwFehler(f"{kennung} nicht gestartet: {grund}")
     if not amw_hook_da(p["ordner"]):                  # A1881 (D1301): sonst meldet sich die Sitzung nie an
-        raise kern.AmwFehler(f"{kennung} nicht gestartet: im Ordner {p['ordner']} fehlt der AMW-Hook – die Sitzung meldete sich"
-                             f" nie an (keine Weckrufe, Anzeige „beendet“). Einrichten: {kern.BEFEHL} einrichten agenten-ordner"
-                             f" {p['ordner']} --projekt {p['projekt']}")
+        from . import einrichtung
+        einrichten = f"{kern.BEFEHL} einrichten agenten-ordner {p['ordner']} --projekt {p['projekt']}"
+        if amw_hooks(p["ordner"]):                    # vorhandene AMW-Einträge ergänzt einrichten nicht – erst heraus
+            was = f"der AMW-Hook im Ordner {p['ordner']} zeigt nicht auf den AMW-Ordner {einrichtung.WURZEL}"
+            wie = f"Neu einrichten: {kern.BEFEHL} einrichten agenten-ordner {p['ordner']} --entfernen, danach {einrichten}"
+        else:
+            was, wie = f"im Ordner {p['ordner']} fehlt der AMW-Hook", f"Einrichten: {einrichten}"
+        raise kern.AmwFehler(f"{kennung} nicht gestartet: {was} – die Sitzung meldete sich nie an (keine Weckrufe, Anzeige"
+                             f" „beendet“). {wie}")
     fort, anders = (None, None) if neu else fortsetzbar(con, pid, kennung, p["ordner"])
     neue = str(uuid.uuid4())                          # neu – oder Rückfall, wenn das Fortsetzen scheitert
     zeile = befehl(p, fort, neue)
@@ -675,12 +692,17 @@ def startskript(con, pid, kennungen=None, alle=False, abstand_s=STARTSKRIPT_ABST
         if kennungen and a["kennung"] not in kennungen:
             continue
         p = profil(con, pid, a["kennung"])
-        sid = fortsetzbar(con, pid, a["kennung"], p["ordner"])[0] \
-            or str(uuid.uuid5(uuid.NAMESPACE_URL, f"amw:{uid}:{a['kennung']}"))   # A1881: nur im selben Claude-Projektordner
-        weiter = _aufruf(["--resume", sid] + _optionen(p) + [NEUSTART_SATZ], lesbar=True)
+        fort, anders = fortsetzbar(con, pid, a["kennung"], p["ordner"])   # A1881: nur im selben Claude-Projektordner
+        # P289 (b): darf nicht fortgesetzt werden, eine frische ID nur mit --session-id – --resume fände Sitzungen auch in
+        # anderen Claude-Projektordnern, also vielleicht eine frühere mit der festen ID
+        sid = fort or (str(uuid.uuid4()) if anders else str(uuid.uuid5(uuid.NAMESPACE_URL, f"amw:{uid}:{a['kennung']}")))
         neu = _aufruf(["--session-id", sid] + _optionen(p) + ([p["startsatz"]] if p["startsatz"] else []), lesbar=True)
-        ps = (f"$env:AMW_AGENT={_ps(p['kennung'])}; $env:AMW_PROJEKT={_ps(projekt)}; {weiter}; "
-              f"if ($LASTEXITCODE -ne 0) {{ {neu} }}; {MAUS_AUS}")
+        if anders:
+            ps = f"$env:AMW_AGENT={_ps(p['kennung'])}; $env:AMW_PROJEKT={_ps(projekt)}; {neu}; {MAUS_AUS}"
+        else:
+            weiter = _aufruf(["--resume", sid] + _optionen(p) + [NEUSTART_SATZ], lesbar=True)
+            ps = (f"$env:AMW_AGENT={_ps(p['kennung'])}; $env:AMW_PROJEKT={_ps(projekt)}; {weiter}; "
+                  f"if ($LASTEXITCODE -ne 0) {{ {neu} }}; {MAUS_AUS}")
         ordner = p["ordner"].rstrip("\\") or p["ordner"]
         if ordner.endswith(":"):
             ordner += "\\."                                   # "F:\" würde das Anführungszeichen schützen
