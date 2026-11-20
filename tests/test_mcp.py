@@ -124,7 +124,7 @@ class Mcp(unittest.TestCase):
         self.assertEqual(protokoll, ["MCP lesen: abgelehnt – falscher oder fehlender Schlüssel"] * 2 + ["MCP lesen: ok"])
         werkzeuge = self.c.senden("tools/list")["result"]["tools"]
         self.assertTrue(all(w["inputSchema"]["required"][0] == "schluessel" for w in werkzeuge))
-        self.assertTrue(werkzeuge[0]["description"].startswith("[Projekt Spiel · nur für den Lead von Spiel (TL)]"))
+        self.assertTrue(werkzeuge[0]["description"].startswith("[Projekt Spiel · Zugang von TL]"))
 
     def test_aufruf_ist_lebenszeichen_des_chat_leads(self):
         """A1831 (16.11.: Chat-Leads standen als „beendet“): jeder angenommene Aufruf setzt den Puls wie der Dateiaustausch;

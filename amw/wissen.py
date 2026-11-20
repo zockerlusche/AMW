@@ -10,13 +10,14 @@ import re
 from . import db, kern
 
 
-def _nur_lead(con, pid, von, was):
-    if not kern.ist_lead(con, pid, von):
-        raise kern.AmwFehler(f"{was} nur Entwickler und Lead")
+def _nur_lead(con, pid, von, was, co=False):
+    """co: auch der Co-Entwickler (A1887, B2904) – nur für Wortlaut und Beschlüsse."""
+    if not (kern.ist_lead(con, pid, von) or (co and kern.ist_co(con, pid, von))):
+        raise kern.AmwFehler(f"{was} nur Entwickler und Lead" + (" (und der Co-Entwickler)" if co else ""))
 
 
 def wortlaut_neu(con, pid, von, text, kanal, zeit_utc=None, bemerkung=None):
-    _nur_lead(con, pid, von, "Worte des Menschen erfassen")
+    _nur_lead(con, pid, von, "Worte des Menschen erfassen", co=True)
     if not text.strip():
         raise kern.AmwFehler("Der Text ist leer")
     if zeit_utc:                                          # dieselbe Aussage zweimal erfasst (Wiederholung nach Zweifel)
@@ -37,7 +38,7 @@ def beschluss_neu(con, pid, von, stichwort, regel, quelle, thema=None, zeit_utc=
     die neue W-Nummer steht dann in hinweise."""
     """Neuer Beschluss; mit `ersetzt` wird der alte auf ueberholt gesetzt und verweist auf den neuen. Jeder Beschluss gehört
     zu einem Thema (Design-Dokument, themen.py); hinweise bekommt die geltenden Beschlüsse desselben Themas."""
-    _nur_lead(con, pid, von, "Beschlüsse anlegen")
+    _nur_lead(con, pid, von, "Beschlüsse anlegen", co=True)
     if not (stichwort or "").strip() or not (regel or "").strip() or not (quelle or "").strip():
         raise kern.AmwFehler("beschluss neu braucht --stichwort, --text und --quelle")
     from . import themen
@@ -69,7 +70,7 @@ def beschluss_neu(con, pid, von, stichwort, regel, quelle, thema=None, zeit_utc=
 
 def beschluss_status(con, pid, von, bid, status, durch=None):
     """Alte Beschlüsse nicht liegen lassen: ueberholt (optional ersetzt durch B…), unklar, oder wieder gilt. Nur der Lead."""
-    _nur_lead(con, pid, von, "Beschlüsse ändern")
+    _nur_lead(con, pid, von, "Beschlüsse ändern", co=True)
     if status not in ("gilt", "ueberholt", "unklar"):
         raise kern.AmwFehler("Status: gilt | ueberholt | unklar")
     with db.schreiben(con):
@@ -84,7 +85,7 @@ def beschluss_status(con, pid, von, bid, status, durch=None):
 
 def beschluss_thema(con, pid, von, bid, thema, neues_thema=False):
     """Beschluss einem (anderen) Thema zuordnen – zum Aufräumen verstreuter Themen. Nur der Lead."""
-    _nur_lead(con, pid, von, "Beschlüsse ändern")
+    _nur_lead(con, pid, von, "Beschlüsse ändern", co=True)
     from . import themen
     name = themen.zum_beschluss(con, pid, von, thema, neues_thema)
     with db.schreiben(con):

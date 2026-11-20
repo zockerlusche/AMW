@@ -163,6 +163,14 @@ def _arbeit_zeile(con, pid, kennung):
 
 def cmd_agent(a, con):
     pid = _projekt(con, a)
+    if a.aktion == "lead":                           # A1887 (B2904): Führung in einem Schritt übergeben
+        if not a.kennung:
+            raise kern.AmwFehler("amw agent lead <neuer Lead> [--co <bisheriger Lead>] [--zustaendig … --nicht …] --grund …")
+        alt, neu = kern.lead_wechsel(con, pid, _von(a), a.kennung, co=a.co, zustaendig=a.zustaendig, fasst_nicht_an=a.nicht,
+                                     grund=a.grund)
+        print(f"{neu} führt jetzt das Projekt (vorher: {', '.join(alt) or '–'})"
+              + (f"; {a.co} ist Co-Entwickler und behält den Dateiaustausch" if a.co else ""))
+        return
     if a.aktion == "umbenennen":
         if not (a.kennung and a.neu_kennung):
             raise kern.AmwFehler("amw agent umbenennen <alt> <neu> – vorher amw sichern")
@@ -2680,8 +2688,11 @@ def parser():
     x.add_argument("--ordner", help="Projektordner (das Repository, in dem die Agenten arbeiten; vorher selbst anlegen)")
     x.set_defaults(f=cmd_projekt)
 
-    x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript | umbenennen ALT NEU")
-    x.add_argument("aktion", choices=["neu", "liste", "profil", "starten", "beenden", "startskript", "umbenennen"])
+    x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript | umbenennen ALT NEU | lead NEU --co ALT --grund …")
+    x.add_argument("aktion", choices=["neu", "liste", "profil", "starten", "beenden", "startskript", "umbenennen", "lead"])
+    x.add_argument("--co", help="lead: der bisherige Lead wird Co-Entwickler (Wortlaut, Beschlüsse, Fragen an den Menschen,"
+                                " Dokumente; behält den Dateiaustausch)")
+    x.add_argument("--grund", help="lead: warum (z. B. der Beschluss)")
     x.add_argument("kennung", nargs="?")
     x.add_argument("neu_kennung", nargs="?", metavar="neu", help="umbenennen: der neue Name (der alte bleibt als Alias gültig)")
     x.add_argument("--ordner", help="profil: Arbeitsordner")

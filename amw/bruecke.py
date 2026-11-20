@@ -62,12 +62,13 @@ def bruecken(con):
             aus.append({"pid": p["id"], "name": p["name"], "eingang": EINGANG, "kopie": os.path.join(daten, "tl_lesen.db"),
                         "von": VON})
             continue
-        lead = con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead' ORDER BY id LIMIT 1",
-                           (p["id"],)).fetchone()
-        if lead:
+        # A1887 (B2904): gibt das Projekt einen Co-Entwickler an (der frühere Chat-Lead), bleibt der Dateiaustausch bei ihm –
+        # sonst liefen seine Befehle nach einem Lead-Wechsel unter dem Namen des neuen Leads
+        von = kern.co_entwickler(con, p["id"]) or kern.lead(con, p["id"])
+        if von:
             k = db.kurzname(p["name"], p["id"])
             aus.append({"pid": p["id"], "name": p["name"], "eingang": os.path.join(WURZEL, f"eingang-{k}"),
-                        "kopie": os.path.join(daten, f"lesen-{k}.db"), "von": lead[0]})
+                        "kopie": os.path.join(daten, f"lesen-{k}.db"), "von": von})
     return aus
 
 

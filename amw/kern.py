@@ -130,6 +130,65 @@ def ist_lead(con, pid, kennung):
     return bool(r) and r["rolle"] == "lead"
 
 
+def co_entwickler(con, pid):
+    """A1887 (B2904): Kennung des Co-Entwicklers (Projekt-Einstellung co_entwickler) oder None – ein Agent, der mit dem
+    Menschen Konzepte erarbeitet: Wortlaut, Beschlüsse, Fragen direkt an den Menschen, Dokumente, Lesen; er plant nicht,
+    prüft nicht und gibt kein Merge-OK. Über den Dateiaustausch des Projekts handelt er unter seinem Namen."""
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    try:
+        k = str(json.loads((r[0] if r else None) or "{}").get("co_entwickler") or "").strip()
+    except ValueError:
+        return None
+    return k or None
+
+
+def ist_co(con, pid, kennung):
+    return bool(kennung) and kennung == co_entwickler(con, pid)
+
+
+def lead_wechsel(con, pid, von, neu, co=None, zustaendig=None, fasst_nicht_an=None, grund=None):
+    """A1887 (B2904): Die Führung geht in EINEM Schreibvorgang an `neu` – nie zwei Leads, nie keiner. Alle bisherigen Leads
+    verlieren die Rolle; co (optional): ein bisheriger Lead wird Co-Entwickler (Projekt-Einstellung co_entwickler, dann bleibt
+    der Dateiaustausch unter seinem Namen). Darf der Mensch oder der bisherige Lead. Rückgabe: (alte Leads, neu)."""
+    grund = (grund or "").strip()
+    if not grund:
+        raise AmwFehler("Lead-Wechsel nur mit Grund (--grund, z. B. der Beschluss)")
+    if not (von == ENTWICKLER or ist_lead(con, pid, von)):
+        raise AmwFehler("Den Lead wechseln darf der Mensch oder der bisherige Lead")
+    neu = kennung_heute(con, (neu or "").strip(), pid) or (neu or "").strip()
+    a = con.execute("SELECT kennung, entfernt_utc FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, neu)).fetchone()
+    if not a or a["entfernt_utc"]:
+        raise AmwFehler(f"Agent {neu} gibt es in diesem Projekt nicht")
+    if co:
+        co = kennung_heute(con, co.strip(), pid) or co.strip()
+        if co == neu or not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ? AND entfernt_utc IS NULL",
+                                        (pid, co)).fetchone():
+            raise AmwFehler(f"Co-Entwickler {co}: ein anderer Agent dieses Projekts als der neue Lead")
+    alt = [r[0] for r in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead' AND kennung != ? ORDER BY id",
+                                     (pid, neu))]
+    if not alt and lead(con, pid) == neu:
+        raise AmwFehler(f"{neu} ist schon der Lead")
+    with db.schreiben(con):
+        con.execute("UPDATE agent SET rolle = NULL WHERE projekt_id = ? AND rolle = 'lead' AND kennung != ?", (pid, neu))
+        felder = {"rolle": "lead"}
+        if zustaendig is not None:
+            felder["zustaendig"] = " ".join(str(zustaendig).split())[:400] or None
+        if fasst_nicht_an is not None:
+            felder["fasst_nicht_an"] = " ".join(str(fasst_nicht_an).split())[:400] or None
+        con.execute(f"UPDATE agent SET {', '.join(k + ' = ?' for k in felder)} WHERE projekt_id = ? AND kennung = ?",
+                    (*felder.values(), pid, neu))
+        if co:
+            e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
+            e["co_entwickler"] = co
+            con.execute("UPDATE projekt SET einstellungen = ? WHERE id = ?", (json.dumps(e), pid))
+        text = f"{', '.join(alt) or '–'} → {neu}" + (f" (Co-Entwickler: {co})" if co else "") + f" – {grund}"
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="lead_wechsel", text=text)
+        an = ",".join(dict.fromkeys([*alt, neu, *([co] if co else []), ENTWICKLER]))
+        _posten(con, pid, von, an, "info", f"Lead-Wechsel: {neu} führt jetzt das Projekt" + (f", {co} ist Co-Entwickler" if co else ""),
+                f"{text}. Ab jetzt gehen Weckrufe, Fragen an den Lead, Prüfbitten, Planungs- und Leerlauf-Weckrufe an {neu}.")
+    return alt, neu
+
+
 ARBEITSWEISEN = ("terminal", "desktop", "chat")   # Claude Code im Terminal · Claude Code in der Desktop-App · Chat über die Brücke
 
 
@@ -326,10 +385,11 @@ def projekt_einstellen(con, pid, von, **werte):
                 else:
                     e.pop(k, None)
                 continue
-            if k in ("paket_pruefer", "haenge_stille_min", "haenge_runden", "leerlauf_lead", "leerlauf_lead_min"):   # A1849, A1884
+            if k in ("paket_pruefer", "haenge_stille_min", "haenge_runden", "leerlauf_lead", "leerlauf_lead_min",
+                     "co_entwickler"):                   # A1849, A1884, A1887
                 if not (von == ENTWICKLER or ist_lead(con, pid, von)):
                     raise AmwFehler(f"{k}: setzt der Lead oder der Mensch")
-                if k in ("paket_pruefer", "leerlauf_lead"):
+                if k in ("paket_pruefer", "leerlauf_lead", "co_entwickler"):
                     v = str(v or "").strip()
                     if v and not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, v)).fetchone():
                         raise AmwFehler(f"{k}: Agent {v} gibt es in diesem Projekt nicht")
@@ -1270,7 +1330,8 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
         from . import wissen
         wissen.pruefung_verlangen(con, pid, f"{kurz} {worum or ''}", geprueft)
     ueber_lead = (an == "entwickler" and pruefen and von not in (ENTWICKLER, "AMW", db.produkt_entwickler())
-                  and not ist_lead(con, pid, von) and projekt_wahl(con, pid, "agentenfragen") == "lead" and lead(con, pid))
+                  and not ist_lead(con, pid, von) and not ist_co(con, pid, von)       # A1887: der Co-Entwickler fragt direkt
+                  and projekt_wahl(con, pid, "agentenfragen") == "lead" and lead(con, pid))
     if ueber_lead:                                  # Vorgabe des Entwicklers: Agentenfragen zuerst an den Lead
         an = "tl"
     with db.schreiben(con):

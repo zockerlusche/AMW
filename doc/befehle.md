@@ -7,7 +7,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 |---|---|
 | [`init`](#init) | neue Datenbank anlegen |
 | [`projekt`](#projekt) | Projekte: neu <name> ¦ liste ¦ ordner [<name>] – jedes Projekt ist für sich (eigene Agenten, Regeln, Daten); bequemer: Workbench › Projekt-Auswahl › Neues Projekt |
-| [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript ¦ umbenennen ALT NEU |
+| [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript ¦ umbenennen ALT NEU ¦ lead NEU --co ALT --grund … |
 | [`posten`](#posten) | Nachricht schicken: --an CC2 (oder alle, Entwickler) --art auftrag¦frage¦info¦… --kurz … |
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
@@ -102,8 +102,8 @@ options:
 
 ## agent
 ```
-usage: amw agent [-h] [--ordner ORDNER] [--zusatz ZUSATZ]
-                 [--denkstufe DENKSTUFE] [--modell MODELL]
+usage: amw agent [-h] [--co CO] [--grund GRUND] [--ordner ORDNER]
+                 [--zusatz ZUSATZ] [--denkstufe DENKSTUFE] [--modell MODELL]
                  [--startsatz STARTSATZ] [--rechte RECHTE] [--wort WORT]
                  [--fernsteuerung] [--keine-fernsteuerung] [--neustart]
                  [--kein-neustart] [--neu] [--datei DATEI] [--alle]
@@ -112,17 +112,21 @@ usage: amw agent [-h] [--ordner ORDNER] [--zusatz ZUSATZ]
                  [--zustaendig ZUSTAENDIG] [--nicht NICHT]
                  [--startbefehl STARTBEFEHL] [--ohne-rund] [--von VON]
                  [--projekt PROJEKT]
-                 {neu,liste,profil,starten,beenden,startskript,umbenennen}
+                 {neu,liste,profil,starten,beenden,startskript,umbenennen,lead}
                  [kennung] [neu]
 
 positional arguments:
-  {neu,liste,profil,starten,beenden,startskript,umbenennen}
+  {neu,liste,profil,starten,beenden,startskript,umbenennen,lead}
   kennung
   neu                   umbenennen: der neue Name (der alte bleibt als Alias
                         gültig)
 
 options:
   -h, --help            show this help message and exit
+  --co CO               lead: der bisherige Lead wird Co-Entwickler (Wortlaut,
+                        Beschlüsse, Fragen an den Menschen, Dokumente; behält
+                        den Dateiaustausch)
+  --grund GRUND         lead: warum (z. B. der Beschluss)
   --ordner ORDNER       profil: Arbeitsordner
   --zusatz ZUSATZ       profil: weitere Ordner, mit ; getrennt
   --denkstufe DENKSTUFE

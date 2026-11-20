@@ -188,7 +188,7 @@ def werkzeug_liste(projekt=None, von=None):
         s = _schema(felder)
         s["properties"] = {"schluessel": SCHLUESSEL_FELD, **s["properties"]}
         s["required"] = ["schluessel", *s["required"]]
-        vorn = f"[Projekt {projekt} · nur für den Lead von {projekt} ({von})] " if projekt else ""
+        vorn = f"[Projekt {projekt} · Zugang von {von}] " if projekt else ""   # A1887: auch der Co-Entwickler (nicht nur der Lead)
         aus.append({"name": n, "description": vorn + b, "inputSchema": s})
     return aus
 
