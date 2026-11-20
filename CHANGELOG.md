@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.148.0 – 20.11.2026 · Führung übergeben
+- **Neu:** `amw agent lead <neuer Lead> --co <bisheriger Lead> --grund …` übergibt die Führung in einem Schritt – nie zwei
+  Leads, nie keiner. Weckrufe, Fragen an den Lead, Prüfbitten, Planungs- und Leerlauf-Weckrufe gehen danach an den neuen Lead.
+- **Neu:** Der bisherige Lead kann Co-Entwickler werden: Er hält Worte und Beschlüsse fest, legt Dokumente ab und fragt dich
+  direkt, plant aber nicht, prüft nicht und gibt kein Merge-OK. Sein Dateiaustausch läuft weiter unter seinem Namen.
+
 ## 1.147.0 – 19.11.2026 · Der Lead merkt, wenn ein Agent nichts zu tun hat
 - **Neu:** Hat ein Agent im Terminal seit 10 Minuten nichts zu tun – keine laufende Aufgabe, keine ohne offenen Grund, und er
   wartet weder auf einen eigenen Lauf noch auf eine Prüfung –, bekommt der Lead einen Weckruf: welcher Agent, seit wann, und
