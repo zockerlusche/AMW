@@ -161,11 +161,29 @@ def _arbeit_zeile(con, pid, kennung):
     return (f"\n         Aufgabe: A{a['id']} {a['status']}" + (f" auf {', '.join(auf)}" if auf else "") + f" – {a['titel'][:70]}")
 
 
+def _aus_agenten_sitzung():
+    """Läuft dieser Befehl nicht im eigenen Terminal des Menschen? (Dateiaustausch/MCP/Seite, oder aus einer Claude-Sitzung:
+    AMW_AGENT, Postfach, CLAUDECODE – jede Sitzung, P256)."""
+    return (KANAL.get() != "cli" or bool(os.environ.get("AMW_AGENT") or os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET")
+                                          or os.environ.get("CLAUDECODE")))
+
+
+def _rolle_nur_mensch_oder_lead(con, pid, a, was):
+    """A1887 (P293): Wer die Führung vergibt, ist der Lead – oder der Mensch, aber „--von Entwickler“ gilt dafür nur im
+    eigenen Terminal des Menschen. Sonst könnte sich jeder Agent mit --von Entwickler selbst zum Lead machen."""
+    if _von(a) == kern.ENTWICKLER and _aus_agenten_sitzung():
+        raise kern.AmwFehler(f"{was}: als Entwickler nur im eigenen Terminal des Menschen oder in der Workbench am PC –"
+                             " nicht aus einer Agenten-Sitzung")
+    if not kern.ist_lead(con, pid, _von(a)):
+        raise kern.AmwFehler(f"{was}: nur der Lead oder der Mensch")
+
+
 def cmd_agent(a, con):
     pid = _projekt(con, a)
     if a.aktion == "lead":                           # A1887 (B2904): Führung in einem Schritt übergeben
         if not a.kennung:
             raise kern.AmwFehler("amw agent lead <neuer Lead> [--co <bisheriger Lead>] [--zustaendig … --nicht …] --grund …")
+        _rolle_nur_mensch_oder_lead(con, pid, a, "Den Lead wechseln")
         alt, neu = kern.lead_wechsel(con, pid, _von(a), a.kennung, co=a.co, zustaendig=a.zustaendig, fasst_nicht_an=a.nicht,
                                      grund=a.grund)
         print(f"{neu} führt jetzt das Projekt (vorher: {', '.join(alt) or '–'})"
@@ -181,6 +199,8 @@ def cmd_agent(a, con):
         return
     if a.aktion == "neu":
         weise = a.arbeitsweise or "terminal"
+        if kern.lead_und_fach(a.rolle)[0] == "lead":       # A1887 (P293): ein neuer Lead nur vom Lead oder vom Menschen
+            _rolle_nur_mensch_oder_lead(con, pid, a, "Einen Lead anlegen")
         kern.agent_neu(con, pid, a.kennung, a.rolle, a.zustaendig or a.grenzen, a.startbefehl, not a.ohne_rund,
                        fachgebiet=a.fachgebiet, arbeitsweise=weise)
         if a.nicht:
@@ -208,8 +228,7 @@ def cmd_agent(a, con):
         if a.aktion == "starten":
             # A1865 (B2897): starten nur der Mensch – im eigenen Terminal mit --von Entwickler oder in der Workbench am PC
             # (mit Rückfrage); nie ein Agent (auch nicht über Dateiaustausch/MCP), nie aus einer Claude-Sitzung, nie online
-            if (KANAL.get() != "cli" or _von(a) != kern.ENTWICKLER or os.environ.get("AMW_AGENT")
-                    or os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET") or os.environ.get("CLAUDECODE")):   # CLAUDECODE: jede Sitzung (P256)
+            if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():   # CLAUDECODE: jede Sitzung (P256)
                 raise kern.AmwFehler("Agenten startet nur der Mensch: in der Workbench am PC (Kachel › Starten, mit Rückfrage) oder"
                                      " in seinem eigenen Terminal mit --von Entwickler – nie ein Agent und nie online")
             print(steuerung.starten(con, pid, a.kennung, neu=a.neu))
@@ -233,6 +252,8 @@ def cmd_agent(a, con):
                                         denkstufe=a.denkstufe, modell=a.modell, startsatz=a.startsatz, rechte=a.rechte,
                                         fernsteuerung=schalter(a.fernsteuerung, a.keine_fernsteuerung),
                                         neustart_auto=schalter(a.neustart, a.kein_neustart))
+            if "rolle" in wer:                               # A1887 (P293): die Führung nie per --von Entwickler aus einer Sitzung
+                _rolle_nur_mensch_oder_lead(con, pid, a, "Die Rolle ändern")
             if wer:                                          # dieselbe Prüfung wie im Zahnrad „Agenten“
                 kern.agent_einstellen(con, pid, _von(a), a.kennung, **wer)
             z = kern.agent_zeile(con, pid, a.kennung)

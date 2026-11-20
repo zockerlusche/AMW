@@ -9,6 +9,8 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
   Leads, nie keiner. Weckrufe, Fragen an den Lead, Prüfbitten, Planungs- und Leerlauf-Weckrufe gehen danach an den neuen Lead.
 - **Neu:** Der bisherige Lead kann Co-Entwickler werden: Er hält Worte und Beschlüsse fest, legt Dokumente ab und fragt dich
   direkt, plant aber nicht, prüft nicht und gibt kein Merge-OK. Sein Dateiaustausch läuft weiter unter seinem Namen.
+- **Behoben:** Kein Agent kann sich mehr selbst zum Lead machen: die Rolle vergeben, den Lead wechseln oder einen Lead anlegen
+  geht nur durch den Lead oder durch dich – mit `--von Entwickler` nur in deinem eigenen Terminal, nicht aus einer Agenten-Sitzung.
 
 ## 1.147.0 – 19.11.2026 · Der Lead merkt, wenn ein Agent nichts zu tun hat
 - **Neu:** Hat ein Agent im Terminal seit 10 Minuten nichts zu tun – keine laufende Aufgabe, keine ohne offenen Grund, und er

@@ -101,7 +101,7 @@
   ],
   [
    "How does leadership pass to another agent?",
-   "With `amw agent lead <new lead> --co <previous lead> --grund …` – you or the previous lead may do this, also through the file exchange. The AMW switches in one step: there are never two leads and never none. From then on, wake-ups, questions to the lead, review requests, planning and idle wake-ups go to the new lead; all three get an info. With `--co` the previous lead becomes co-developer: they record your words and decisions, file documents and ask you directly, but do not plan, review or give a merge OK. Their file exchange keeps running under their name. With `--zustaendig` and `--nicht` you can set right away what the new lead is responsible for and what they do not touch."
+   "With `amw agent lead <new lead> --co <previous lead> --grund …` – you (in your own terminal or in the Workbench on the PC, never from an agent session) or the previous lead may do this, also through the file exchange. The AMW switches in one step: there are never two leads and never none. From then on, wake-ups, questions to the lead, review requests, planning and idle wake-ups go to the new lead; all three get an info. With `--co` the previous lead becomes co-developer: they record your words and decisions, file documents and ask you directly, but do not plan, review or give a merge OK. Their file exchange keeps running under their name. With `--zustaendig` and `--nicht` you can set right away what the new lead is responsible for and what they do not touch."
   ],
   [
    "May the lead change an agent's profile while I am away from the PC?",

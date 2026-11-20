@@ -101,6 +101,33 @@ class LeadWechsel(unittest.TestCase):
         with self.assertRaises(kern.AmwFehler):
             wissen.wortlaut_neu(self.con, self.pid, "CC1", "x", "chat")                          # ein Coder weiterhin nicht
 
+    def cli(self, *args, env=None):
+        import contextlib
+        import io
+        from amw import cli
+        aus = io.StringIO()
+        mensch = {"AMW_AGENT": "", "CLAUDECODE": "", "CLAUDE_CODE_MESSAGING_SOCKET": ""}          # wie im Terminal des Menschen
+        with mock.patch.dict(os.environ, {**mensch, **(env or {})}), contextlib.redirect_stdout(aus), contextlib.redirect_stderr(aus):
+            rc = cli.main(["--projekt", "Produkt", *args])
+        return rc, aus.getvalue()
+
+    def test_entwickler_nur_im_eigenen_terminal(self):                                          # P293: kein Agent macht sich zum Lead
+        for args in (("agent", "lead", "CC1", "--grund", "x"), ("agent", "profil", "CC1", "--rolle", "lead"),
+                     ("agent", "neu", "CC9", "--rolle", "lead")):
+            for env in ({"CLAUDECODE": "1"}, {"AMW_AGENT": "CC1"}, {"CLAUDE_CODE_MESSAGING_SOCKET": r"\\.\pipe\x"}):
+                rc, aus = self.cli(*args, "--von", "Entwickler", env=env)
+                self.assertNotEqual(rc, 0, (args, env))
+                if "AMW_AGENT" not in env:                                               # dort weist schon _von ab
+                    self.assertIn("nicht aus einer Agenten-Sitzung", aus)
+        self.assertEqual(self.leads(), ["TL"])
+        self.assertIsNone(self.con.execute("SELECT 1 FROM agent WHERE kennung = 'CC9'").fetchone())
+        rc, aus = self.cli("agent", "neu", "CC9", "--rolle", "lead", "--von", "CC1")                # ein Coder legt keinen Lead an
+        self.assertNotEqual(rc, 0)
+        self.assertIn("nur der Lead oder der Mensch", aus)
+        rc, aus = self.cli("agent", "lead", "PL", "--grund", "Marcel am PC", "--von", "Entwickler")  # im Terminal des Menschen: ja
+        self.assertEqual(rc, 0, aus)
+        self.assertEqual(self.leads(), ["PL"])
+
     def test_befehlszeile(self):
         import contextlib
         import io
