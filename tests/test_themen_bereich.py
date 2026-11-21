@@ -211,6 +211,20 @@ class Rechte(Grund):
         self.assertFalse({n for n in namen if n.startswith("thema_") and any(w in n for w in ("freigeb", "zurueck", "markier", "bearbeit"))})
 
 
+class Unterschied(Grund):
+    def test_neue_vorlage_nach_eigener_bearbeitung_zeigt_unterschied(self):           # F5358 Ergänzung (#29401)
+        self.vorlage(0)
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.um(1)
+        themen.bearbeiten(self.con, self.pid, kern.ENTWICKLER, self.tid, "Mein Text.", erwartet=1)
+        self.um(2)
+        self.assertIsNone(themen.seite(self.con, self.pid, self.tid)["freigegeben_text"])     # freigegeben: nichts zu vergleichen
+        self.vorlage(3, "Mein Text.\n\nDazu: Zweitfaktor nur online.")
+        s = themen.seite(self.con, self.pid, self.tid)
+        self.assertEqual((s["zustand"]["status"], s["zustand"]["fassung"], s["zustand"]["freigegeben"]), ("dich", 3, 2))
+        self.assertEqual(s["freigegeben_text"], {"nr": 2, "text": "Mein Text."})
+
+
 class Anzeige(Grund):
     def test_fuer_dich_und_seite(self):
         self.assertEqual(workbench._themen_fuer_dich(self.con, self.pid), [])

@@ -23,13 +23,27 @@ class ThemenSeite(Rundgang):
             self.con.execute("UPDATE thema_fassung SET zeit_utc = '2026-11-01T08:00:00Z' WHERE thema_id = ?", (pruef,))
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, pruef)
         with db.schreiben(self.con):
-            self.con.execute("UPDATE plan_ereignis SET zeit_utc = '2026-11-01T09:00:00Z' WHERE art = 'thema_freigabe'")
+            self.con.execute("UPDATE plan_ereignis SET zeit_utc = CASE art WHEN 'thema_vorgelegt' THEN '2026-11-01T08:00:00Z'"
+                             " ELSE '2026-11-01T09:00:00Z' END WHERE art IN ('thema_vorgelegt', 'thema_freigegeben')")
             db.einfuegen(self.con, "beschluss", projekt_id=self.pid, zeit_utc=db.jetzt(), stichwort="Arbeiter melden sich an", regel="x",
                          quelle="W1", thema="Kopflose Arbeiter", angelegt_von="TL", angelegt_utc=db.jetzt())
         themen.neu(self.con, self.pid, "TL", "Online-Seite", pfleger="CC1")
+        self.geaendert = themen.neu(self.con, self.pid, "TL", "Nachrichten", pfleger="CC1")     # F5358: neue Vorlage nach der Freigabe
+        themen.pflegen(self.con, self.pid, "CC1", self.geaendert, "An dich getrennt von Mitlesen.")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.geaendert)
+        themen.pflegen(self.con, self.pid, "CC1", self.geaendert, "An dich getrennt von Mitlesen.\n\nFragen bleiben ein eigener Menüpunkt.")
 
     ZEIGEN = "zustand.themaOffen = null; zeige('themen')"
     LISTE = "document.querySelector('.th-liste .th-zeile')"
+
+    def test_unterschied_zur_freigabe(self):
+        self.oeffnen("themen", self.LISTE)
+        self.tab.js(f"document.querySelector('.th-zeile[data-th=\"{self.geaendert}\"]').click()")
+        self.warten("document.querySelector('.th-knoepfe button[data-h=unterschied]')")
+        self.tab.js("document.querySelector('.th-knoepfe button[data-h=unterschied]').click()")
+        self.warten("document.querySelector('.th-kasten .th-dazu')")
+        self.assertEqual(self.tab.js("document.querySelector('.th-kasten .th-dazu').textContent"), "Fragen bleiben ein eigener Menüpunkt.")
+        self.assertFalse(self.tab.js("!!document.querySelector('.th-kasten .th-weg')"))
 
     def test_liste_text_handlungen_freigeben(self):
         self.oeffnen("themen", self.LISTE)                                                      # direkt über die Adresse
@@ -37,7 +51,7 @@ class ThemenSeite(Rundgang):
         self.tab.js(f"{self.LISTE}.click()")
         self.warten("document.querySelector('.th-thema h2')?.textContent === 'Anmeldung'")
         text = self.tab.js("document.querySelector('#inhalt').innerText").lower()
-        for teil in ("1 von 4 themen freigegeben", "anmeldung", "firmen-konto", "wartet auf dich"):
+        for teil in ("1 von 5 themen freigegeben", "anmeldung", "firmen-konto", "wartet auf dich"):
             self.assertIn(teil, text)
         self.assertEqual(self.tab.js("document.querySelector('.th-thema h2').textContent"), "Anmeldung")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.th-knoepfe button')].map(b => b.dataset.h).join(',')"),

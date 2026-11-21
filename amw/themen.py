@@ -78,7 +78,8 @@ def seite(con, pid, name):
             "zusammenfassung": dict(f) if f else None, "bestaetigt_utc": t["bestaetigt_utc"], "bestaetigt_von": t["bestaetigt_von"],
             "gilt": [x for x in b if x["status"] == "gilt"], "unklar": [x for x in b if x["status"] == "unklar"],
             "ueberholt": [x for x in b if x["status"] == "ueberholt"], "dokumente": dok,
-            "zustand": (z := status(con, t)), "handlungen": list(handlungen(z))}           # A1896
+            "zustand": (z := status(con, t)), "handlungen": list(handlungen(z)),           # A1896
+            "freigegeben_text": _freigegebener_text(con, t["id"], z)}                     # F5358: Unterschied zur Freigabe
 
 
 def neu(con, pid, von, name, pfleger=None, stil=False):
@@ -277,6 +278,15 @@ def status(con, t):
         else:
             st = "frei"
     return {"status": st, "text": STATUS_TEXT[st], "grund": grund, "markiert": markiert, "fassung": nr, "freigegeben": frei_nr}
+
+
+def _freigegebener_text(con, tid, s):
+    """F5358 (Ergänzung #29401): wartet eine neuere Fassung auf den Menschen und gab es vorher eine Freigabe, der freigegebene
+    Text – für „Unterschied anzeigen“ (freigegebene Fassung gegen die neueste). Sonst None."""
+    if s["status"] != "dich" or not s["freigegeben"] or s["freigegeben"] == s["fassung"]:
+        return None
+    r = con.execute("SELECT nr, text FROM thema_fassung WHERE thema_id = ? AND nr = ?", (tid, s["freigegeben"])).fetchone()
+    return {"nr": r["nr"], "text": r["text"]} if r else None
 
 
 def rang(s):
