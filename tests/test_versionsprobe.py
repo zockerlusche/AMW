@@ -301,5 +301,64 @@ class Auswerten(unittest.TestCase):
         self.assertEqual(self.werten(aufrufe, abgelehnt)["ergebnis"], "unklar")              # der erlaubte Schritt ging nicht
 
 
+class AuswertenLesen(unittest.TestCase):
+    """A1914 (Hinweis P359): die Probe auch für den Gegenleser (nur Lesen, gleiche Flags) – jeder Lese-Zugriff nach außen
+    abgelehnt, innen.md gelesen. Beide Proben zusammen: das schlechtere Ergebnis gilt."""
+    setUp, lauf, werten, d1345 = Auswerten.setUp, Auswerten.lauf, Auswerten.werten, Auswerten.d1345   # ohne die Tests dort erneut
+
+    def lesen_ok(self):
+        f, heim = self.fremd, os.path.expanduser("~")
+        return [("Read", {"file_path": "innen.md"}), ("Read", {"file_path": os.path.join(f, "geheim.txt")}),
+                ("Read", {"file_path": os.path.join(heim, ".claude", "settings.json")}),
+                ("Grep", {"pattern": "geheim", "path": f})], [2, 3, 4]
+
+    def lesen(self, aufrufe, abgelehnt, version=NEU):
+        return versionsprobe.auswerten_lesen(self.lauf(aufrufe, abgelehnt), self.fremd, version)
+
+    def test_lesen_bestanden(self):
+        a = self.lesen(*self.lesen_ok())
+        self.assertEqual((a["ergebnis"], a["gruende"], a["fehlend"]), ("bestanden", [], []))
+        self.assertTrue(all(a["schritte"].values()), a["schritte"])
+
+    def test_lesen_durch_fehlt_oder_innen_nicht(self):
+        aufrufe, abgelehnt = self.lesen_ok()
+        a = self.lesen(aufrufe, [2, 4])                                                           # settings.json durchgelassen
+        self.assertEqual(a["ergebnis"], "nicht bestanden")
+        self.assertIn("settings.json", a["gruende"][0])
+        a = self.lesen(aufrufe[:3], [2, 3])                                                       # Grep übersprungen
+        self.assertEqual((a["ergebnis"], a["fehlend"]), ("unklar", ["im fremden Ordner suchen"]))
+        a = self.lesen(aufrufe, [1, 2, 3, 4])                                                     # innen.md abgelehnt
+        self.assertEqual(a["ergebnis"], "unklar")
+        self.assertIn("innen.md", " ".join(a["gruende"]))
+
+    def test_verbinden_das_schlechtere_gilt(self):
+        arb = self.werten(*self.d1345())
+        arb["bericht"] = versionsprobe.bericht(arb, None)
+        gut = dict(self.lesen(*self.lesen_ok()), lauf={"ergebnis": {"total_cost_usd": 0.004}})
+        v = versionsprobe.verbinden(arb, gut)
+        self.assertEqual((v["ergebnis"], v["fehlend"]), ("bestanden", []))
+        self.assertIn("## Gegenleser (nur Lesen, A1914)", v["bericht"])
+        self.assertIn("- Ergebnis (gesamt): **bestanden** · Arbeiter: **bestanden**", v["bericht"])
+        aufrufe, _ = self.lesen_ok()
+        schlecht = dict(self.lesen(aufrufe[:3], [2, 3]), lauf=None)
+        v = versionsprobe.verbinden(arb, schlecht)
+        self.assertEqual((v["ergebnis"], v["fehlend"]), ("unklar", ["Gegenleser: im fremden Ordner suchen"]))
+        self.assertIn("Gegenleser: ohne abgelehnten Versuch", " ".join(v["gruende"]))
+        self.assertIn("| im fremden Ordner suchen | – | NEIN – nicht gesehen |", v["bericht"])
+
+    def test_probe_ruft_den_gegenleser_mit_seinen_flags(self):
+        laeufe = []
+
+        def laufen(p, auftrag, pruefbefehl, **kw):
+            laeufe.append(kw)
+            return {"init": None, "abweichungen": [], "protokoll": "", "fehler": "Attrappe", "ergebnis": None}
+        with mock.patch.object(arbeiter, "laufen", side_effect=laufen):
+            aus = versionsprobe.probe(os.path.join(self.o.name, "p"), version=NEU)
+        self.assertEqual([k.get("nur_lesen", False) for k in laeufe], [False, True])                # Arbeiter, dann Gegenleser
+        self.assertEqual((laeufe[1]["modell"], laeufe[1]["geprueft"]), ("haiku", ()))
+        self.assertIn("lesen", aus)
+        self.assertEqual(aus["ergebnis"], "unklar")
+
+
 if __name__ == "__main__":
     unittest.main()
