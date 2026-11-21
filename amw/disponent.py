@@ -41,8 +41,9 @@ def belegte_plaetze(con, pid):
     """{platz_nr: aid} der Pakete, die einen Platz halten (laeuft … merge_reihe – der Platz bleibt bis zum Merge)."""
     from . import waechter
     aus = {}
-    for r in con.execute(f"SELECT k.aufgabe_id FROM paket k JOIN aufgabe a ON a.id = k.aufgabe_id WHERE a.projekt_id = ? AND k.art = 'p'"
-                         f" AND k.zustand IN ({','.join('?' * len(waechter.LAUFEND))})", (pid, *waechter.LAUFEND)):
+    for r in waechter.belegt(con, con.execute(f"SELECT k.aufgabe_id, k.zustand FROM paket k JOIN aufgabe a ON a.id = k.aufgabe_id"
+                                              f" WHERE a.projekt_id = ? AND k.art = 'p' AND k.zustand IN ({','.join('?' * len(waechter.LAUFEND))})",
+                                              (pid, *waechter.LAUFEND)).fetchall()):   # A1897 Zusatz 3: angenommene geben den Platz frei
         v = vermerk(con, pid, r[0])
         if v:
             aus[v["platz"]] = r[0]

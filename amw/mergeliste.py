@@ -84,7 +84,8 @@ def annehmen(con, pid, von, aid, grund):
     if f.get("art") != "p" or f.get("zustand") != "wartet_interaktiv":
         raise kern.AmwFehler(f"A{aid} ist nicht „wartet auf interaktiv“ (Zustand {f.get('zustand') or '–'}) – annehmen gilt nur nach E4")
     d = _entscheidung(con, pid, aid)
-    if d.get("zeile") != "E4" or not d.get("kopf"):
+    wieder = d.get("zeile") == "E7" and d.get("code") == "lead_nach_e4"   # A1897 Zusatz 3: schon einmal angenommen, kurz herausgenommen
+    if (d.get("zeile") != "E4" and not wieder) or not d.get("kopf"):
         raise kern.AmwFehler(f"A{aid}: die letzte Entscheidung ist {d.get('zeile') or 'keine'} – annehmen gilt nur nach E4 mit Stand aus Prüfung C")
     kopf, quelle = d["kopf"], kern.projekt_ordner(con, pid)
     rc, da, _ = _git_projekt(quelle, _neutral(con, pid), "rev-parse", "--verify", "--quiet", f"{gesichert(aid)}^{{commit}}")

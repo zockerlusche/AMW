@@ -109,11 +109,27 @@ def _ueberschneiden(a, b):
     return False
 
 
+def angenommen(con, aid):
+    """A1897 Zusatz 3 (#29493): vom Lead nach E4 angenommen – Stand im Projekt-Repo, Platz schon archiviert. Ein solches Paket
+    in merge_reihe belegt keinen Platz und hält keine Auslieferung an."""
+    r = con.execute("SELECT text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_entscheidung' ORDER BY id DESC LIMIT 1",
+                    (aid,)).fetchone()
+    try:
+        return json.loads((r[0] if r else None) or "{}").get("quelle") == "projekt"
+    except ValueError:
+        return False
+
+
+def belegt(con, zeilen, id_spalte="aufgabe_id"):
+    """Zeilen (mit Spalten id_spalte und zustand) ohne angenommene Pakete in merge_reihe."""
+    return [r for r in zeilen if not (r["zustand"] == "merge_reihe" and angenommen(con, r[id_spalte]))]
+
+
 def laufende(con, pid):
     """p-Pakete des Projekts, die einen Platz belegen: [{"id", "bereiche"}]."""
-    return [{"id": r["id"], "bereiche": bereiche(r["dateibereich"])} for r in con.execute(
-        "SELECT a.id, a.dateibereich FROM paket k JOIN aufgabe a ON a.id = k.aufgabe_id WHERE a.projekt_id = ? AND k.art = 'p'"
-        f" AND k.zustand IN ({','.join('?' * len(LAUFEND))})", (pid, *LAUFEND))]
+    return [{"id": r["id"], "bereiche": bereiche(r["dateibereich"])} for r in belegt(con, con.execute(
+        "SELECT a.id, a.dateibereich, k.zustand FROM paket k JOIN aufgabe a ON a.id = k.aufgabe_id WHERE a.projekt_id = ? AND k.art = 'p'"
+        f" AND k.zustand IN ({','.join('?' * len(LAUFEND))})", (pid, *LAUFEND)).fetchall(), "id")]
 
 
 def _letzte_enden(con, pid, n=2, nach=0):
@@ -239,8 +255,8 @@ def p_laufend(con):
     """Laufen auf diesem PC p-Pakete (alle Projekte)? Ohne Tabelle paket (ältere Datenbank): nein."""
     import sqlite3
     try:
-        return bool(con.execute(f"SELECT 1 FROM paket WHERE art = 'p' AND zustand IN ({','.join('?' * len(LAUFEND))}) LIMIT 1",
-                                LAUFEND).fetchone())
+        return bool(belegt(con, con.execute(f"SELECT aufgabe_id, zustand FROM paket WHERE art = 'p' AND zustand IN"
+                                            f" ({','.join('?' * len(LAUFEND))})", LAUFEND).fetchall()))
     except sqlite3.Error:
         return False
 
@@ -248,8 +264,8 @@ def p_laufend(con):
 def vor_auslieferung(con, frist_s=1800, warte_s=15, schlafen=time.sleep):
     """Auslieferung der AMW: Wartungsmodus setzen und warten, bis keine p-Pakete mehr laufen (alle Projekte dieses PCs).
     Rückgabe (fertig: bool, noch_laufend: [A-Nummern]). Ohne laufende p-Pakete sofort fertig."""
-    ids = lambda: [r[0] for r in con.execute(
-        f"SELECT aufgabe_id FROM paket WHERE art = 'p' AND zustand IN ({','.join('?' * len(LAUFEND))})", LAUFEND)]
+    ids = lambda: [r["aufgabe_id"] for r in belegt(con, con.execute(   # A1897 Zusatz 3: angenommene Pakete halten nicht an
+        f"SELECT aufgabe_id, zustand FROM paket WHERE art = 'p' AND zustand IN ({','.join('?' * len(LAUFEND))})", LAUFEND).fetchall())]
     if not zustand()["wartung"]:
         wartung_an("Auslieferung der AMW")
     ende = time.monotonic() + frist_s

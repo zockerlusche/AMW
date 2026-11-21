@@ -73,6 +73,24 @@ class Annehmen(Grund):
         with self.assertRaisesRegex(kern.AmwFehler, "nicht „wartet auf interaktiv“"):              # nur einmal, nur aus E4
             mergeliste.annehmen(self.con, self.pid, "TL", aid, "nochmal")
 
+    def test_angenommen_belegt_keinen_platz_und_haelt_keine_auslieferung(self):   # A1897 Zusatz 3 (#29493)
+        from amw import waechter
+        aid, _, _ = self.e4()
+        mergeliste.annehmen(self.con, self.pid, "TL", aid, "gelesen")
+        self.assertEqual(arbeitspaket.lesen(self.con, aid)["zustand"], "merge_reihe")
+        self.assertEqual(waechter.laufende(self.con, self.pid), [])
+        self.assertFalse(waechter.p_laufend(self.con))
+        self.assertEqual(disponent.belegte_plaetze(self.con, self.pid), {})
+        with mock.patch.object(waechter, "wartung_an"), mock.patch.object(waechter, "zustand", return_value={"wartung": True}):
+            self.assertEqual(waechter.vor_auslieferung(self.con, frist_s=0, schlafen=lambda s: None), (True, []))
+
+    def test_wieder_annehmen_nach_herausnehmen(self):                              # A1897 Zusatz 3
+        aid, kopf, _ = self.e4()
+        mergeliste.annehmen(self.con, self.pid, "TL", aid, "gelesen")
+        arbeitspaket.zustand_setzen(self.con, self.pid, "TL", aid, "wartet_interaktiv", grund="kurz heraus")
+        r = mergeliste.annehmen(self.con, self.pid, "TL", aid, "doch passend")
+        self.assertEqual((r["kopf"], arbeitspaket.lesen(self.con, aid)["zustand"]), (kopf, "merge_reihe"))
+
     def test_befehl_mit_sperre(self):
         import contextlib
         import io
