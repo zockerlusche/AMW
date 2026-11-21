@@ -63,7 +63,9 @@ class Postfach(Grund):
         self.assertIn('rahmen(t("n_fragen"), el("span", { class: "leise" }, t("f_unter")))', html)
         self.assertIn('onclick: () => zeige("teamchat") }, t("n_teamchat"))', leiste)                 # Team-Chat: Reiter unter Nachrichten (A1657)
         self.assertNotIn('<a data-sicht="teamchat"', html)
-        for x in ('n_teamchat: "Mitlesen"', 'n_teamchat: "Read along"',                       # A1889: Team-Chat heißt jetzt „Mitlesen“ 'nr_erledigt_n: "Gelesen ({n})"', 'nr_erledigt_n: "Read ({n})"',
+        for x in ('n_teamchat: "Mitlesen"', 'n_teamchat: "Read along"',                       # A1889: Team-Chat heißt jetzt „Mitlesen“
+                  'nr_erledigt_n: "Erledigt ({n})"', 'nr_erledigt_n: "Done ({n})"',                # A1889 (P308 a): Knopf „Erledigt“
+                  'nr_erledigt: "Erledigt"', 'nr_erledigt: "Done"', 'nr_alle_gelesen: "Alle erledigt ({n})"', 'nr_alle_gelesen: "All done ({n})"',
                   'nr_fragen_offen: "{n} Fragen an dich offen › Fragen"', 'nr_fragen_offen: "{n} questions for you open › Questions"'):
             self.assertIn(x, html)
 

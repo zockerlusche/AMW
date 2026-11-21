@@ -86,6 +86,31 @@ class Posteingang(Daten, Rundgang):
         self.assertEqual(self.offen(self.quer), "erledigt")
         self.assertEqual(self.offen(self.mache), "offen")                                        # das andere Projekt bleibt unberührt
 
+    KNOPF = "[...document.querySelectorAll({wo!r} + ' button')].find(b => b.textContent.startsWith({text!r}))"
+
+    def test_knopf_erledigt(self):                                                                # P308 (a): Knopf „Erledigt“ = amw erledigt
+        self.groesse("pc")
+        self.oeffnen("nachrichten", "document.querySelectorAll('.nr-eintrag').length >= 2")
+        self.warten("document.querySelector('.nr-gespraech h3')?.textContent.includes('Zweitprojekt abschließen')")   # neueste automatisch gewählt
+        self.assertEqual(self.offen(self.quer), "offen")                                         # gewählt ist noch nicht erledigt
+        self.assertFalse(self.tab.js("[...document.querySelectorAll('button')].some(b => b.textContent.startsWith('Gelesen'))"))
+        self.tab.js(self.KNOPF.format(wo=".nr-gespraech .aktionen", text="Erledigt") + ".click()")
+        self.warten("document.querySelector('.nr-offen').textContent === '1 offen für dich'")
+        self.assertEqual(self.offen(self.quer), "erledigt")
+        self.assertEqual(self.offen(self.mache), "offen")
+        self.assertEqual(self.tab.js(self.KNOPF.format(wo=".nr-sammel", text="Alle erledigt") + ".textContent"), "Alle erledigt (1)")
+        self.tab.js(self.KNOPF.format(wo=".nr-sammel", text="Alle erledigt") + ".click()")
+        self.warten("document.querySelector('.nr-offen').textContent === '0 offen für dich'")
+        self.assertEqual(self.offen(self.mache), "erledigt")
+
+    def test_knopf_erledigt_am_handy(self):
+        self.groesse("handy")
+        self.oeffnen("nachrichten", "document.querySelectorAll('.nr-eintrag').length >= 2")
+        self.assertEqual(self.tab.js(self.KNOPF.format(wo=".nr-sammel", text="Alle erledigt") + ".textContent"), "Alle erledigt (2)")   # beide Projekte
+        self.tab.js(self.KNOPF.format(wo=".nr-sammel", text="Alle erledigt") + ".click()")
+        self.warten("!document.querySelector('.nr-sammel button')")
+        self.assertEqual((self.offen(self.quer), self.offen(self.mache)), ("erledigt", "erledigt"))
+
     def test_mitlesen_ueber_alle_projekte(self):
         self.groesse("pc")
         self.oeffnen("teamchat", "document.querySelectorAll('.tc-eintrag').length >= 2")
