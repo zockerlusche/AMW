@@ -775,6 +775,13 @@ def cmd_aufgabe(a, con):
             ff = kern.federfuehrung_setzen(con, pid, _von(a), "aufgabe", a.id, a.federfuehrend)
             print(f"A{a.id}: federführend {ff or '– (Meilenstein bzw. Lead)'}")
         _paket_setzen(con, pid, a, a.id)
+        if a.thema or a.ohne_thema:                               # A1915: Verweise auf Themen (Themen → Pakete)
+            from . import themen
+            if a.thema:
+                themen.verweise_setzen(con, pid, _von(a), a.id, a.thema.split(","))
+            if a.ohne_thema:
+                themen.verweise_setzen(con, pid, _von(a), a.id, a.ohne_thema.split(","), entfernen=True)
+            print(f"A{a.id}: Themen " + (", ".join(f"TH{x}" for x in themen.verweise(con, pid, a.id)) or "–"))
         print(f"A{a.id} geändert")
     elif a.aktion == "kriterium":
         liste = planung.kriterium(con, pid, _von(a), a.id, a.nr, not a.nein)
@@ -811,6 +818,10 @@ def cmd_aufgabe(a, con):
         for k in r.keys():
             if r[k] not in (None, "") and k not in ("uid", "herkunft"):
                 print(f"{k}: {r[k]}")
+        from . import themen
+        th = themen.verweise(con, pid, a.id)
+        if th:                                                    # A1915
+            print("themen: " + ", ".join(f"TH{x} {themen.finden(con, pid, x)['name']}" for x in th))
         for g in con.execute("SELECT * FROM wartegrund WHERE aufgabe_id = ? ORDER BY id", (a.id,)):
             print(f"wartegrund: {g['bezug']} (seit {_zeit(g['angelegt_utc'])}, {g['angelegt_von']})"
                   + (f" – erledigt {_zeit(g['erledigt_utc'])}: {g['erledigt_durch']}" if g["erledigt_utc"] else " – offen"))
@@ -2915,6 +2926,9 @@ def parser():
     x.add_argument("--anforderungen", help="Planung: abgedeckte Anforderungen, z. B. R1,R3")
     x.add_argument("--zusammenfassung", help="fertig: Pflicht für Schritte in einem Meilenstein; aendern: nachtragen")
     x.add_argument("--ohne-vorgaenger", help="aendern: diese Vorgänger lösen, z. B. 115")
+    x.add_argument("--thema", help="aendern: verweist auf diese Themen, z. B. TH3,TH5 – ändert sich ein freigegebenes Thema, meldet"
+                                   " die AMW die Aufgabe zum Prüfen (A1915)")
+    x.add_argument("--ohne-thema", help="aendern: diese Themen-Verweise lösen, z. B. TH3")
     x.add_argument("--text", help="plan: der Plan")
     x.add_argument("--nein", action="store_true", help="kriterium: wieder als offen markieren")
     x.add_argument("--zurueck", action="store_true", help="planfrei: zurückweisen (mit --kommentar)")

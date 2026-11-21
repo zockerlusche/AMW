@@ -146,6 +146,7 @@ def pflegen(con, pid, von, name, text):
     if von != kern.ENTWICKLER:                       # A1914: erst gegenlesen, dann wartet sie auf den Menschen
         from . import gegenlesen
         gegenlesen.anstossen(con, pid, t["id"], nr)
+    thema_geaendert(con, pid, t["id"], nr)           # A1915: betroffene Aufgaben prüfen lassen
     return nr
 
 
@@ -387,6 +388,7 @@ def bearbeiten(con, pid, von, name, text, erwartet=None):
                          f"TH{t['id']} Fassung {nr} stammt vom Menschen – "
                          + ("sie gilt als freigegeben; prüfe die Folgen für andere Themen und Aufgaben." if BEARBEITEN_GIBT_FREI
                             else f"bitte einarbeiten und als neue Fassung liefern: amw thema pflegen TH{t['id']} --text-datei …"))
+    thema_geaendert(con, pid, t["id"], nr)           # A1915: betroffene Aufgaben prüfen lassen
     return status(con, finden(con, pid, t["id"]))
 
 
@@ -438,3 +440,92 @@ def kontext_zeilen(con, pid, kennung):
         z.append("Du pflegst, veraltet: " + "; ".join(f"TH{t['id']} {t['name'][:50]} (seit B{stand(con, t)[1]})" for t in veraltet)
                  + " – amw thema pflegen|bestaetigen")
     return z
+
+
+# --- Themen → Aufgaben (A1915, D1304 v12 §1.3/§6d): Änderungen wirken von oben nach unten, nur Betroffenes wird gemeldet ---------
+# Verweis einer Aufgabe auf Themen ohne Schemaänderung: je Setzen/Lösen ein Ereignis „aufgabe_thema“ (aufgabe_id, Text JSON
+# {"aufgabe", "thema", "an"}); der jüngste Eintrag je Thema gilt. Den Status einer Aufgabe ändert das nie.
+VERWEIS = "aufgabe_thema"
+
+
+def verweise(con, pid, aid):
+    """Themen (Nummern), auf die die Aufgabe gerade verweist."""
+    import json
+    an = {}
+    for r in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND aufgabe_id = ? ORDER BY id", (pid, VERWEIS, aid)):
+        try:
+            d = json.loads(r[0])
+        except ValueError:
+            continue
+        an[d.get("thema")] = bool(d.get("an"))
+    return sorted(k for k, v in an.items() if v and k)
+
+
+def verweise_setzen(con, pid, von, aid, namen, entfernen=False):
+    """`amw aufgabe aendern N --thema TH3,TH5` (dazu) bzw. `--ohne-thema TH3` (lösen). Lead, Mensch, Co-Entwickler oder der
+    Agent der Aufgabe. Rückgabe: die Themen danach."""
+    import json
+    a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    if not a:
+        raise kern.AmwFehler(f"A{aid} gibt es nicht")
+    if not (kern.ist_lead(con, pid, von) or kern.ist_co(con, pid, von) or (a["agent"] and a["agent"] == von)):
+        raise kern.AmwFehler("Themen einer Aufgabe setzen Lead, Entwickler, Co-Entwickler oder ihr Agent")
+    tids = list(dict.fromkeys(finden(con, pid, n)["id"] for n in namen if str(n).strip()))
+    if not tids:
+        raise kern.AmwFehler("welche Themen? z. B. --thema TH3,TH5")
+    vorher = set(verweise(con, pid, aid))
+    with db.schreiben(con):
+        for tid in tids:
+            if (tid in vorher) != (not entfernen):           # nur echte Änderungen eintragen
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=VERWEIS, aufgabe_id=aid,
+                             text=json.dumps({"aufgabe": aid, "thema": tid, "an": not entfernen}))
+    return verweise(con, pid, aid)
+
+
+def aufgaben_zu(con, pid, tid):
+    """Offene Aufgaben (nicht fertig/verworfen), die gerade auf das Thema verweisen."""
+    ids = [r[0] for r in con.execute("SELECT DISTINCT aufgabe_id FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND text LIKE ?",
+                                     (pid, VERWEIS, f'%"thema": {int(tid)},%'))]
+    aus = []
+    for aid in sorted(ids):
+        a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+        if a and a["status"] not in ("fertig", "verworfen") and tid in verweise(con, pid, aid):
+            aus.append(a)
+    return aus
+
+
+def _war_freigegeben(con, pid, tid, nr):
+    """Gab es vor Fassung `nr` eine Freigabe (bzw. eine eigene Bearbeitung des Menschen, F5358 A)?"""
+    arten = (EREIGNIS["freigegeben"], EREIGNIS["bearbeitet"]) if BEARBEITEN_GIBT_FREI else (EREIGNIS["freigegeben"],)
+    return any(e["art"] in arten and (e.get("fassung") or 0) < nr for e in _ereignisse(con, pid, tid))
+
+
+def thema_geaendert(con, pid, tid, nr):
+    """A1915: Ein freigegebenes Thema hat eine neue Fassung (vom Pfleger oder vom Menschen) → die offenen Aufgaben mit Verweis
+    gehen als „Thema geändert – prüfen“ an ihren Agenten, eine Nachricht je Agent. p-Pakete haben keinen eigenen Agenten:
+    ihre Zeile geht an den Lead, ein laufendes wird nicht unterbrochen. Kein Status wird gesetzt. Rückgabe {Empfänger: [A…]}."""
+    from . import arbeitspaket
+    if not _war_freigegeben(con, pid, tid, nr):
+        return {}
+    t = finden(con, pid, tid)
+    lead = kern.lead(con, pid)
+    je = {}
+    for a in aufgaben_zu(con, pid, tid):
+        f = arbeitspaket.lesen(con, a["id"])
+        p = f.get("art") == "p"
+        an = lead if p or not a["agent"] or a["agent"] == kern.ENTWICKLER else a["agent"]
+        if not an or an == kern.ENTWICKLER:
+            continue
+        zusatz = (" – p-Paket läuft weiter, nach dem Lauf prüfen" if f.get("zustand") == "laeuft" else " – p-Paket") if p else ""
+        je.setdefault(an, []).append((a["id"], f"A{a['id']} [{a['status']}] {a['titel'][:90]}{zusatz}"))
+    if not je:
+        return {}
+    with db.schreiben(con):
+        for an, zeilen in je.items():
+            kern._posten(con, pid, "AMW", an, "meldung",
+                         f"Thema geändert – prüfen: TH{tid} „{t['name'][:60]}“ (Fassung {nr}), {len(zeilen)} Aufgabe(n)",
+                         f"TH{tid} „{t['name']}“ hat Fassung {nr} – vorher war es freigegeben. Diese Aufgaben verweisen darauf:\n"
+                         + "\n".join(f"- {z}" for _, z in zeilen)
+                         + f"\n\nPrüfe, ob sie noch passen: amw thema zeige TH{tid}. Passt etwas nicht mehr, frage den Lead"
+                           " oder passe die Aufgabe an. Der Status der Aufgaben bleibt, wie er ist.")
+    return {an: [aid for aid, _ in zeilen] for an, zeilen in je.items()}

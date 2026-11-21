@@ -273,6 +273,20 @@ dass der Pfleger daran denken muss.
 - **Einstellung:** `themen_gegenlesen` = haiku (Vorgabe) | sonnet | aus – Lead oder Mensch. Rollen Gliederung und Machbarkeit
   sind vorbereitet (`gegenlesen.ROLLEN`), aber nicht gebaut. Tests stoßen nie einen echten Gegenleser an (`AMW_GEGENLESEN_AUS`).
 
+### Themen → Aufgaben (A1915, D1304 v12 §1.3/§6d)
+
+**Wozu:** Ändert sich ein Thema, sollen genau die Aufgaben geprüft werden, die darauf bauen – nicht alle, und ohne dass
+jemand daran denken muss.
+
+- **Verweis:** `amw aufgabe aendern N --thema TH3,TH5` / `--ohne-thema TH3` (Lead, Mensch, Co-Entwickler oder der Agent der
+  Aufgabe). Ohne Schemaänderung: je Setzen/Lösen ein Ereignis `aufgabe_thema` (aufgabe_id, JSON `{aufgabe, thema, an}`), der
+  jüngste Eintrag je Thema gilt. `aufgabe zeige` nennt die Themen.
+- **Auslöser:** eine neue Fassung eines Themas, das vorher freigegeben war (`thema pflegen` des Pflegers oder `bearbeiten`
+  des Menschen).
+- **Was geschieht:** die offenen Aufgaben (nicht fertig/verworfen) mit Verweis gehen als Meldung „Thema geändert – prüfen“
+  an ihren Agenten, eine Nachricht je Agent (gebündelt). p-Pakete haben keinen eigenen Agenten – ihre Zeile geht an den
+  Lead; ein laufendes p-Paket wird nicht unterbrochen („läuft weiter, nach dem Lauf prüfen“). Kein Status wird gesetzt.
+
 ## Terminplaner (seit 1.13.0)
 
 **Wozu:** Ein fester Rhythmus für die Tests des Entwicklers und eine gemeinsame Frist für alle Agenten.

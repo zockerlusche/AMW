@@ -252,7 +252,8 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--pruefbefehl PRUEFBEFEHL] [--dateien DATEIEN]
                    [--anforderungen ANFORDERUNGEN]
                    [--zusammenfassung ZUSAMMENFASSUNG]
-                   [--ohne-vorgaenger OHNE_VORGAENGER] [--text TEXT] [--nein]
+                   [--ohne-vorgaenger OHNE_VORGAENGER] [--thema THEMA]
+                   [--ohne-thema OHNE_THEMA] [--text TEXT] [--nein]
                    [--zurueck] [--kommentar KOMMENTAR] [--kurz]
                    [--federfuehrend FEDERFUEHREND] [--pool] [--grund GRUND]
                    [--hinweis HINWEIS] [--gruppe {neu,verbessert,behoben}]
@@ -326,6 +327,11 @@ options:
                         aendern: nachtragen
   --ohne-vorgaenger OHNE_VORGAENGER
                         aendern: diese Vorgänger lösen, z. B. 115
+  --thema THEMA         aendern: verweist auf diese Themen, z. B. TH3,TH5 –
+                        ändert sich ein freigegebenes Thema, meldet die AMW
+                        die Aufgabe zum Prüfen (A1915)
+  --ohne-thema OHNE_THEMA
+                        aendern: diese Themen-Verweise lösen, z. B. TH3
   --text TEXT           plan: der Plan
   --nein                kriterium: wieder als offen markieren
   --zurueck             planfrei: zurückweisen (mit --kommentar)
