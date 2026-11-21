@@ -10,9 +10,11 @@ from amw import kern, themen
 from tests.rundgang import Rundgang
 
 LANGSAM_MS = 1500
-# vor jeder Seite: /api/start antwortet langsam, wenn die Adresse „langsam“ enthält oder window.__langsam gesetzt ist
+# vor jeder Seite: /api/start antwortet langsam, wenn die Adresse „langsam“ enthält oder window.__langsam gesetzt ist; mit
+# „nurerst“ nur der erste Abruf (das erste Laden), spätere sind schnell; window.__langsamWeg: ein beliebiger Weg
 LANGSAM = ("(() => { const f = window.fetch; window.fetch = (u, ...r) => ((/\\/api\\/start/.test(String(u)) &&"
-           " (window.__langsam || location.search.includes('langsam')))"
+           " (window.__langsam || location.search.includes('langsam')"
+           "  || (location.search.includes('nurerst') && !window.__erst && (window.__erst = true))))"
            " || (window.__langsamWeg && String(u).includes(window.__langsamWeg)))"
            f" ? new Promise(ok => setTimeout(ok, {LANGSAM_MS})).then(() => f(u, ...r)) : f(u, ...r); }})()")
 
@@ -47,6 +49,18 @@ class Seitenwechsel(Rundgang):
                 self.bleibt("Themen", ".th-liste .th-zeile")
                 self.assertEqual(self.tab.js("zustand.sicht"), "themen")
                 self.warten("!!zustand.start && document.querySelector('#version').textContent.startsWith('v')")   # Kopfzeile kam trotzdem
+
+    def test_takt_beim_ersten_laden_haelt_die_seite_nicht_auf(self):
+        """Der Takt zeichnet still „start“, solange das erste Laden noch läuft (L2908: Dokumente kamen nie) – die Seite aus
+        der Adresse kommt trotzdem."""
+        for g in ("pc", "handy"):
+            with self.subTest(g=g):
+                self.groesse(g)
+                self.tab.senden("Page.navigate", url=f"{self.basis}?nurerst=1&takt={g}#themen")
+                self.warten("document.readyState === 'complete' && typeof zeige === 'function'")
+                self.tab.js("void zeige('start', true)")                     # wie der Takt alle 15 s (sein Versprechen bleibt offen)
+                self.warten("document.querySelector('.th-liste .th-zeile')", 10)
+                self.bleibt("Themen", ".th-liste .th-zeile")
 
     def test_wechsel_waehrend_die_startseite_laedt(self):
         for g in ("pc", "handy"):

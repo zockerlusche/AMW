@@ -1968,7 +1968,7 @@ function seit(x) {
    Alte zeichnet nicht weiter. Sonst zeichnete eine langsam geladene Seite (z. B. die Startseite beim ersten Laden) über die
    inzwischen gewählte (L2882), und ein Reiter hängte sein Ergebnis an den nächsten. Was nicht zum Inhalt der Seite gehört
    (Projektliste, Kopfzeile, Übertragung online, Dialoge, Gespräch am Objekt), holt abrufen() ohne diese Regel. */
-let wechselNr = 0;
+let wechselNr = 0, seitenNr = 0;                       /* seitenNr: nur echte Wechsel (zeige, nicht still) – fürs erste Laden */
 const veraltet = () => new Promise(() => {});
 async function abrufen(weg, p = projekt) {               /* p: anderes Projekt (A1889: Nachrichten über alle Projekte) */
   const fuerDich = Date.now() - laden.eingabe < 1500;   /* A1676: nur Abrufe, die du ausgelöst hast – nie der Takt im Hintergrund */
@@ -2266,12 +2266,16 @@ function projektWechseln(uid) {
 }
 
 /* --- Kopf, Navigation ---------------------------------------------------------------------- */
-async function kopfAktualisieren() {
-  const nr = wechselNr;                                  /* A1907: Kopfzeile immer; wer darauf wartet (Startseite, erstes Laden), nur ohne Wechsel */
+async function kopfAktualisieren() {                    /* A1907: Kopfzeile immer; wer darauf wartet (Startseite, Takt), nur ohne Wechsel */
+  const nr = wechselNr;
+  await kopfLaden();
+  if (nr !== wechselNr) return veraltet();
+}
+async function kopfLaden() {
   try {
     const d = await abrufen("/api/start"); zustand.start = d;
     if (!spracheGewaehlt && ["de", "en"].includes(d.sprache_vorgabe) && d.sprache_vorgabe !== sprache) {   /* Vorgabe der Installation */
-      spracheGewaehlt = true; sprache = d.sprache_vorgabe; feste_texte(); if (zustand.sicht) zeige(zustand.sicht); }
+      spracheGewaehlt = true; sprache = d.sprache_vorgabe; feste_texte(); if (zustand.sicht) zeige(zustand.sicht, true); }   /* A1907: neu zeichnen, kein Wechsel */
     const wv = d.online?.web_version;
     $("#version").textContent = d.version ? `v${d.version}` + (wv && wv !== d.version ? ` · Web v${wv}` : "") : "";
     const sollen = d.agenten.filter(a => a.soll === "an" && !a.chat), lebend = sollen.filter(a => a.zustand === "aktiv").length;
@@ -2297,7 +2301,6 @@ async function kopfAktualisieren() {
   } catch (e) {
     $("#signale").replaceChildren(el("span", { class: "signal" }, el("span", { class: "punkt rot" }), t("s_dienst_weg")));
   }
-  if (nr !== wechselNr) return veraltet();
 }
 /* ruhig = Selbst-Aktualisierung: keine Einblend-Animation, Scrollposition bleibt (sonst „springen“ die Kacheln) */
 let ruhig = false;
@@ -2322,7 +2325,7 @@ function wissenReiter(aktiv) {
 const wissenExtern = () => [["dokumente", "n_dokumente"], ["releases", "n_releases"]].map(([s, k]) =>
   el("button", { type: "button", onclick: () => zeige(s) }, t(k)));
 function zeige(sicht, still = false) {
-  if (!still) wechselNr++;                               /* A1907: was die vorige Seite noch lädt, zeichnet nicht mehr */
+  if (!still) { wechselNr++; seitenNr++; }                              /* A1907: was die vorige Seite noch lädt, zeichnet nicht mehr */
   ruhig = still;
   const pos = [$("#inhalt").scrollTop, window.scrollY];
   const offen = still && zustand.sicht === sicht        /* still neu gezeichnet: aufgeklappte Abschnitte bleiben offen */
@@ -5984,7 +5987,7 @@ async function sichtEinstellungen() {
   const pruefKnopf = (was, beschriftung) => { const b = el("button", { class: "klein-knopf", type: "button" }, beschriftung);
     const aus = el("div", { class: "mono pruef-aus", role: "status" });
     b.addEventListener("click", async () => { b.disabled = true; aus.className = "sehrleise mono pruef-aus"; aus.textContent = t("pv_laeuft");
-      try { const r = await holen("/api/pruefen?was=" + was);
+      try { const r = await abrufen("/api/pruefen?was=" + was);
         aus.className = "mono pruef-aus";
         aus.replaceChildren(...r.schritte.map(x => el("div", { class: x.ok ? "" : "rot-text" }, (x.ok ? "\u2713 " : "\u2717 ") + t(`pv_${x.name}_${x.ok ? "ok" : "f"}`, { x: x.wert ?? "" }))));
       } catch (f) { aus.className = "rot-text mono pruef-aus"; aus.textContent = f.message; }
@@ -6183,7 +6186,7 @@ async function sichtEinstellungen() {
   baZeichnen();
   const baListe = el("div", { class: "ba-liste" });
   const baLaden = async was => {
-    try { const r = await holen("/api/pruefen?was=" + was);
+    try { const r = await abrufen("/api/pruefen?was=" + was);
       baListe.replaceChildren(...[el("table", { class: "tab" }, el("tr", {}, ["ba_wer", "ba_ziel", "ba_fuehrt", "ba_zustand"].map(k => el("th", {}, t(k)))),
         ...r.zeilen.map(x => el("tr", { class: x.aktiv && !x.erlaubt ? "ba-fehler" : null },
           el("td", {}, t("ba_wer_" + x.wer) + (x.zusatz ? ` (${x.zusatz})` : "")), el("td", { class: "mono" }, `${x.rechner}:${x.port}`), el("td", {}, t("ba_stufe_" + x.stufe)),
@@ -6287,7 +6290,7 @@ function agentenEinstellungen(d, h) {
     f.weise.addEventListener("change", nachWeise);
     const vorschlag = el("div", { class: "ae-vorschlag" }, el("span", { class: "leise" }, t("ae_vorschlag_h")), el("button", { class: "klein-knopf", type: "button", onclick: async ev => {
       const knopf = ev.currentTarget; knopf.disabled = true;
-      try { const v = await holen("/api/agent/vorschlag?kennung=" + encodeURIComponent(a.kennung));
+      try { const v = await abrufen("/api/agent/vorschlag?kennung=" + encodeURIComponent(a.kennung));
         if (!v.fachgebiet && !v.zustaendig) { vorschlag.replaceChildren(el("span", { class: "leise" }, t("ae_vorschlag_nichts", { x: v.grundlage }))); return; }
         vorschlag.replaceChildren(el("span", {}, el("b", {}, t("ae_vorschlag") + " "), [v.fachgebiet ? t("ae_fach") + ": " + v.fachgebiet : null, v.zustaendig ? t("ae_zust") + ": " + v.zustaendig : null].filter(Boolean).join(" · "),
           el("span", { class: "sehrleise" }, " (" + v.grundlage + ")")), el("button", { class: "klein-knopf", type: "button", onclick: () => {
@@ -6386,7 +6389,8 @@ window.addEventListener("hashchange", () => { const s = location.hash.slice(1); 
 projekteLaden().then(() => {
   let startSicht = gemerkt("amw-sicht") || "start";
   if (location.hash.length > 1) startSicht = location.hash.slice(1);
-  return kopfAktualisieren().then(() => zeige(startSicht));
+  const s = seitenNr;                                    /* A1907: nur einem echten Wechsel weichen – nicht dem Takt, der still „start“ zeichnet */
+  return kopfLaden().then(() => { if (s === seitenNr) zeige(startSicht); });
 });
 </script>
 </body>
