@@ -21,7 +21,7 @@ def g(ordner, *args):
 
 
 @unittest.skipUnless(shutil.which("git") and os.name == "nt", "git/Windows fehlt")
-class PruefungC(unittest.TestCase):
+class Grund(unittest.TestCase):
     def setUp(self):
         self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.addCleanup(self.ordner.cleanup)
@@ -57,6 +57,8 @@ class PruefungC(unittest.TestCase):
     def reparieren(self):
         self.schreiben(self.p["klon"], "lib/rechnen.py", "def plus(a, b):\n    return a + b\n")
 
+
+class PruefungC(Grund):
     def test_leer(self):
         self.assertEqual(self.pruefen()["code"], "C/leer")
 
@@ -173,6 +175,53 @@ class PruefungC(unittest.TestCase):
         b = c.pruefen(self.p, self.projekt, self.basis, 7, self.befehl, ["lib/"], None, 120, regression=f'{PY} -c "raise SystemExit(1)"')
         self.assertEqual(b["code"], "C/rot")
         self.assertIn("Regressions-Kurzsuite", b["grund"])
+
+
+class A1911(Grund):
+    """P326-Hinweis: Prüfung C nahm core.autocrlf vom System (true auf dem PC) – das Projekt sagt false. Der frische Checkout
+    hatte CRLF, das Projekt LF: Tests, die Bytes lesen oder git im Checkout fragen, sahen einen anderen Stand als Entwickler
+    und Live-Ordner."""
+
+    def setUp(self):
+        super().setUp()
+        g(self.projekt, "config", "core.autocrlf", "false")                                       # wie F:\\amw\\.git\\config
+        shutil.rmtree(self.p["klon"])
+        subprocess.run(["git", "clone", "-q", "--no-hardlinks", "-c", "core.autocrlf=true", self.projekt, self.p["klon"]], check=True,
+                       capture_output=True, creationflags=OHNE)                                   # Klon wie vor A1911 (CRLF,
+        g(self.p["klon"], "config", "--unset", "core.autocrlf")                                   # ohne eigene Einstellung)
+        u = mock.patch.object(c, "autocrlf", return_value="true")                                 # Systemwert wie auf dem PC
+        u.start()
+        self.addCleanup(u.stop)
+        c._AUTOCRLF_PROJEKT.clear()
+        self.addCleanup(c._AUTOCRLF_PROJEKT.clear)
+
+    def test_frischer_checkout_mit_zeilenenden_des_projekts(self):
+        self.reparieren()
+        pruef = os.path.join(self.ordner.name, "lf.py")
+        with open(pruef, "w", encoding="utf-8", newline="\n") as f:                               # rc 3 bei CR, rc 4 wenn git
+            f.write("import subprocess, sys\n"                                                     # (Umgebung des Arbeiters) etwas
+                    "if any(b'\\r' in open(n, 'rb').read() for n in ('tests/test_rechnen.py', 'lib/rechnen.py')):\n"
+                    "    sys.exit(3)\n"                                                            # geändert sieht
+                    "subprocess.run(['git', 'update-index', '-q', '--refresh'])\n"
+                    "sys.exit(4 if subprocess.run(['git', 'diff', '--quiet', 'HEAD']).returncode else 0)\n")
+        b = self.pruefen(befehl=f"{PY} {pruef.replace(os.sep, '/')}")
+        self.assertIsNone(b["code"], (b["grund"], (b.get("abnahme") or {}).get("rc"), (b.get("abnahme") or {}).get("ausgabe")))
+        blob = subprocess.run(["git", f"--git-dir={c.repo(self.p)}", "cat-file", "-p", f"{b['kopf']}:lib/rechnen.py"], capture_output=True,
+                              creationflags=OHNE).stdout
+        self.assertEqual(blob, b"def plus(a, b):\n    return a + b\n")                            # eingesammelt wie geschrieben
+
+    def test_einsammeln_mit_dem_wert_des_projekts(self):
+        self.reparieren()
+        with mock.patch.object(c, "_frisch", side_effect=c.PruefFehler("hier nicht nötig")):
+            b = self.pruefen()
+        self.assertEqual(b["code"], "C/technik")                                                   # bis zum Einsammeln gelaufen
+        self.assertEqual(b["geaendert"], ["lib/rechnen.py"])                                       # alter CRLF-Klon: nur die echte Änderung
+        self.assertEqual(c.autocrlf_klon(self.p["klon"]), "true")                                 # wie er ausgecheckt ist (System)
+        g(self.p["klon"], "config", "core.autocrlf", "false")
+        self.assertEqual(c.autocrlf_klon(self.p["klon"]), "false")                                # eigene Einstellung (A1911-Klon)
+        self.assertEqual(c._umgebung(dict(self.p, autocrlf="false"))["GIT_CONFIG_VALUE_3"], "false")
+        self.assertEqual(c._umgebung(self.p)["GIT_CONFIG_VALUE_3"], "true")                       # ohne Projekt: Systemwert wie bisher
+        self.assertEqual(c.autocrlf_projekt(self.projekt), "false")
 
 
 if __name__ == "__main__":

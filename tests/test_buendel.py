@@ -256,8 +256,8 @@ class A1909(Basis):
         u = mock.patch.object(pruefung_c, "autocrlf", return_value="true")                        # Systemwert wie auf dem PC
         u.start()
         self.addCleanup(u.stop)
-        buendel._AUTOCRLF.clear()
-        self.addCleanup(buendel._AUTOCRLF.clear)
+        pruefung_c._AUTOCRLF_PROJEKT.clear()
+        self.addCleanup(pruefung_c._AUTOCRLF_PROJEKT.clear)
         kern.projekt_einstellen(self.con, self.pid, "TL", buendel_schritt=json.dumps(        # gleicher Inhalt, neu geschrieben
             {"befehl": 'python -c "p=\'web/hilfe/a.json\'; t=open(p,newline=\'\').read().replace(chr(13),\'\'); '
                        'open(p,\'w\',newline=\'\').write(t)"', "dateien": ["web/*"]}))
@@ -282,8 +282,13 @@ class A1909(Basis):
         ziel = buendel.arbeitsbaum(self.con, self.pid)
         g(self.repo, "-c", "core.autocrlf=true", "worktree", "add", "--detach", ziel, "main")      # wie vor A1909 ausgecheckt
         self.assertIn(b"\r\n", self.roh(ziel, "lib/rechnen.py"))
+        import time
+        time.sleep(1.1)                                                                            # A1911: Index jünger als die
+        g(ziel, "-c", "core.autocrlf=true", "update-index", "-q", "--really-refresh")              # Dateien – Stat passt sicher
         r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
         self.assertNotIn(b"\r", self.roh(ziel, "CHANGELOG.md"))
+        self.assertNotIn(b"\r", self.roh(ziel, "web/hilfe/a.json"))                              # A1911: jede Datei neu, nicht je nach Stat
+        self.assertEqual(g(ziel, "status", "--porcelain", "--untracked-files=no"), "")           # Index frisch, ohne Inhaltsvergleich
         self.assertTrue(betrieb.pruefstand(["python -c pass"], ziel)[2])
 
     def test_nur_stat_anders_zaehlt_nicht_als_verschoben(self):
@@ -334,6 +339,34 @@ class A1909(Basis):
         g(self.repo, "merge", "-q", "--ff-only", r["zweig"])
         with self.assertRaisesRegex(kern.AmwFehler, "schon in main"):
             buendel.gesamtlauf_neu(self.con, self.pid, "TL", r["zweig"], starten=False)
+
+
+class A1911(Basis):
+    """21.11. S8: Nach dem abgebrochenen Bündel buendel-1.152.2 standen die Merge-OKs der Pakete auf dem Bündel-Zweig (A1814
+    überträgt sie) – `amw paket buendeln --alle` fand kein Paket mehr, der Lead musste neu freigeben."""
+
+    def test_nach_buendel_ende_ohne_release_gelten_die_paket_oks_weiter(self):
+        a = self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
+        b = self.paket("minus", {"lib/minus.py": "def minus(a, b):\n    return a - b\n"}, 2)
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
+        for aid in (a, b):
+            self.assertTrue(betrieb.merge_ok(self.con, self.pid, aid, r["zweig"]))
+            self.assertIsNone(betrieb.merge_ok(self.con, self.pid, aid, mergeliste.zweig(aid)))       # Bündel offen: wie bisher
+        betrieb.freigabe_merge(self.con, self.pid, "TL", a, r["zweig"])                                # auch ein OK des Leads
+        buendel._ende(self.con, self.pid, r["zweig"], {"rc": None, "lauf": 1})                          # wie L2896: ohne Release
+        self.assertTrue(betrieb.buendel_beendet(self.con, self.pid, r["zweig"]))
+        for aid in (a, b):
+            self.assertTrue(betrieb.merge_ok(self.con, self.pid, aid, mergeliste.zweig(aid)), aid)
+            self.assertTrue(betrieb.merge_ok(self.con, self.pid, aid, r["zweig"]), aid)                # das Bündel-OK bleibt
+        self.assertTrue(mergeliste.eintrag(self.con, self.pid, a, False)["freigegeben"])
+        self.assertEqual([p["id"] for p in buendel.kandidaten(self.con, self.pid)], [a, b])
+        betrieb.freigabe_merge(self.con, self.pid, "TL", b, zurueck=True)                              # Rücknahme zählt immer
+        self.assertIsNone(betrieb.merge_ok(self.con, self.pid, b, mergeliste.zweig(b)))
+        g(self.repo, "branch", "-m", r["zweig"], "alt-" + r["zweig"])                                  # Name frei, main unverändert
+        r2 = buendel.buendeln(self.con, self.pid, "TL", starten=False)                                 # ohne neue Freigabe
+        self.assertEqual([p["id"] for p in r2["drin"]], [a])
+        self.assertTrue(betrieb.merge_ok(self.con, self.pid, a, r2["zweig"]))                          # wieder übertragen
+        self.assertIsNone(betrieb.merge_ok(self.con, self.pid, a, mergeliste.zweig(a)))               # neues Bündel offen
 
 
 if __name__ == "__main__":

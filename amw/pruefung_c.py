@@ -71,13 +71,47 @@ def autocrlf():
     return _AUTOCRLF["wert"]
 
 
+_AUTOCRLF_PROJEKT = {}
+
+
+def autocrlf_projekt(ordner):
+    """A1909/A1911: core.autocrlf, wie git im Repo von `ordner` (dem Projektordner) selbst ihn sieht – Repo-Einstellung vor
+    System und Benutzer. Mit diesem Wert checken Bündel, Arbeiter-Klone und der frische Checkout von Prüfung C aus, damit sie
+    dieselben Zeilenenden haben wie das Projekt (F:\\amw: false → LF; der Systemwert true gäbe CRLF). Nicht ermittelbar → false."""
+    schluessel = os.path.normcase(os.path.abspath(ordner))
+    if schluessel not in _AUTOCRLF_PROJEKT:
+        try:
+            r = subprocess.run(["git", "-C", ordner, "config", "--get", "core.autocrlf"], capture_output=True, text=True, timeout=30,
+                               stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            v = r.stdout.strip().lower()
+        except (OSError, subprocess.SubprocessError):
+            v = ""
+        _AUTOCRLF_PROJEKT[schluessel] = v if v in ("true", "input", "false") else "false"
+    return _AUTOCRLF_PROJEKT[schluessel]
+
+
+def autocrlf_klon(klon):
+    """A1911: core.autocrlf, mit dem der Arbeiter-Klon ausgecheckt ist – seine eigene Einstellung (seit A1911 die des Projekts,
+    platz.zeilenenden_angleichen), sonst der Systemwert (Klone von vorher). Beim Einsammeln zählt dieser Wert: Mit einem
+    anderen sähe git jede Datei mit anderen Zeilenenden als geändert."""
+    try:
+        r = subprocess.run(["git", "config", "--file", os.path.join(klon, ".git", "config"), "--get", "core.autocrlf"],   # nur lesen,
+                           capture_output=True, text=True, timeout=30,                                            # nur diese Datei
+                           stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        v = r.stdout.strip().lower()
+    except (OSError, subprocess.SubprocessError):
+        v = ""
+    return v if v in ("true", "input", "false") else autocrlf()
+
+
 def _umgebung(p, extra=None):
-    """Neutrale Umgebung für git: keine Konfiguration des Menschen, keine Hooks, kein fsmonitor, keine Rückfragen."""
+    """Neutrale Umgebung für git: keine Konfiguration des Menschen, keine Hooks, kein fsmonitor, keine Rückfragen.
+    core.autocrlf: der Wert des Projekts, wenn `p` ihn trägt (A1911, pruefen setzt ihn), sonst der Systemwert."""
     o, cfg = _leer(p)
     u = {k: v for k, v in os.environ.items() if k.upper() in ("SYSTEMROOT", "PATH", "PATHEXT", "COMSPEC", "TEMP", "TMP", "USERPROFILE",
                                                               "HOMEDRIVE", "HOMEPATH", "WINDIR")}
     u.update(GIT_CONFIG_GLOBAL=cfg, GIT_CONFIG_NOSYSTEM="1", GIT_TERMINAL_PROMPT="0", GIT_CONFIG_COUNT="4",
-             GIT_CONFIG_KEY_3="core.autocrlf", GIT_CONFIG_VALUE_3=autocrlf(),
+             GIT_CONFIG_KEY_3="core.autocrlf", GIT_CONFIG_VALUE_3=p.get("autocrlf") or autocrlf(),
              GIT_CONFIG_KEY_0="core.hooksPath", GIT_CONFIG_VALUE_0=os.path.join(o, "hooks-leer"),
              GIT_CONFIG_KEY_1="core.fsmonitor", GIT_CONFIG_VALUE_1="false", GIT_CONFIG_KEY_2="core.quotepath", GIT_CONFIG_VALUE_2="off",
              GIT_AUTHOR_NAME=GIT_NAME, GIT_AUTHOR_EMAIL=GIT_EMAIL, GIT_COMMITTER_NAME=GIT_NAME, GIT_COMMITTER_EMAIL=GIT_EMAIL)
@@ -207,8 +241,11 @@ def _frisch(p, kopf):
     stempel = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     wurzel = os.path.join(p["daten"], "pruefung", "abnahme", f"{kopf[:10]}-{stempel}")
     klon = os.path.join(wurzel, "stand")
-    subprocess.run(["git", "clone", "-q", "--no-hardlinks", "--no-checkout", repo(p), klon], check=True, capture_output=True,
-                   env=_umgebung(p), creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    # A1911: der Wert steht auch in der Konfiguration des Klons – git in den Tests (Umgebung des Arbeiters, ohne System-
+    # Konfiguration) sieht dann dieselben Zeilenenden wie der Checkout
+    subprocess.run(["git", "clone", "-q", "--no-hardlinks", "--no-checkout", "-c", f"core.autocrlf={p.get('autocrlf') or autocrlf()}",
+                    repo(p), klon], check=True, capture_output=True, env=_umgebung(p),
+                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     r = subprocess.run(["git", "-C", klon, "checkout", "-q", "--detach", kopf], capture_output=True, text=True, env=_umgebung(p),
                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     if r.returncode:
@@ -303,6 +340,7 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
     """Prüfung C für Paket `aid` im Platz `p`. Rückgabe: Befund mit "code" (None = alles grün) und allen Einzelheiten."""
     b = {"code": None, "kopf": None, "geaendert": [], "ausserhalb": [], "gesperrt": [], "autogeladen": [], "geheim": [], "aussen": [],
          "abnahme": None, "regression": None, "test_schreiben": None, "grund": None}
+    p = dict(p, autocrlf=autocrlf_klon(p["klon"]))               # A1911: einsammeln, wie der Klon ausgecheckt ist
     try:
         v = verweise(p["klon"])                                   # P268: vor jedem git add – nichts von außen einsammeln
     except OSError as e:
@@ -335,7 +373,7 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
     if b["aussen"]:                                   # A1858: merge_aussen_pruefung = aus – grün geht weiter, mit Hinweis
         b["grund"] = "nach außen nur als Hinweis (Außen-Prüfung aus): " + "; ".join(f"{x}: {w}" for x, w in b["aussen"][:8])
     try:
-        q = _frisch(p, kopf)
+        q = _frisch(dict(p, autocrlf=autocrlf_projekt(quelle)), kopf)   # A1911: frischer Checkout mit den Zeilenenden des Projekts
     except (PruefFehler, subprocess.SubprocessError, OSError) as e:
         return dict(b, code="C/technik", grund=f"frischer Checkout: {e}")
     b["abnahme"] = _laufen(q, pruefbefehl, frist)

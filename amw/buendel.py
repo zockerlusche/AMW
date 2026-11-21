@@ -81,23 +81,12 @@ def arbeitsbaum(con, pid):
     return os.path.join(wurzel, "buendel")
 
 
-_AUTOCRLF = {}
-
-
 def autocrlf(ordner):
     """A1909: core.autocrlf, wie git im Repo von `ordner` selbst ihn sieht (Repo-Einstellung vor System und Benutzer) – derselbe
     Wert wie beim Stand-Vergleich (betrieb.pruefstand ruft git ohne neutrale Umgebung). Ein Worktree teilt die Einstellung
-    seines Repos. Nicht ermittelbar → false (git-Vorgabe)."""
-    schluessel = os.path.normcase(os.path.abspath(ordner))
-    if schluessel not in _AUTOCRLF:
-        try:
-            r = subprocess.run(["git", "-C", ordner, "config", "--get", "core.autocrlf"], capture_output=True, text=True, timeout=30,
-                               stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-            v = r.stdout.strip().lower()
-        except (OSError, subprocess.SubprocessError):
-            v = ""
-        _AUTOCRLF[schluessel] = v if v in ("true", "input", "false") else "false"
-    return _AUTOCRLF[schluessel]
+    seines Repos. Seit A1911 dieselbe Ermittlung wie für Arbeiter-Klone und Prüfung C (pruefung_c.autocrlf_projekt)."""
+    from . import pruefung_c
+    return pruefung_c.autocrlf_projekt(ordner)
 
 
 def _umgebung(daten, ordner=None):
@@ -288,14 +277,15 @@ def buendeln(con, pid, von, aids=None, titel=None, starten=None):
 
 
 def baum_auf(repo, ziel, daten, rev):
-    """Bündel-Arbeitsbaum auf `rev` (versionierte Dateien wie dort, nichts gelöscht). A1909: checkout-index schreibt jede Datei
-    mit den Zeilenenden des Projekt-Repos neu – auch die, die ein früheres Bündel mit anderen Zeilenenden ausgecheckt hat (die
-    ließe `checkout -f` liegen, weil ihr Index-Eintrag passt) –, danach ist der Index frisch."""
+    """Bündel-Arbeitsbaum auf `rev` (versionierte Dateien wie dort, nichts gelöscht). A1909/A1911: Index leeren und
+    `reset --hard` schreibt jede versionierte Datei mit den Zeilenenden des Projekt-Repos neu – auch die, die ein früheres
+    Bündel mit anderen Zeilenenden ausgecheckt hat (die ließe `checkout -f` liegen, weil ihr Index-Eintrag passt) –, und
+    der Index ist danach frisch. Unversionierte Dateien bleiben liegen."""
     if not os.path.isdir(os.path.join(ziel, ".git")) and not os.path.isfile(os.path.join(ziel, ".git")):
         _git(repo, daten, "worktree", "add", "--detach", ziel, rev)
     _git(ziel, daten, "checkout", "-f", "--detach", rev)
-    _git(ziel, daten, "checkout-index", "-f", "-a")
-    _git(ziel, daten, "update-index", "-q", "--refresh", ok=(0, 1))
+    _git(ziel, daten, "read-tree", "--empty")                     # A1911: statt checkout-index -f -a – das übersprang Dateien,
+    _git(ziel, daten, "reset", "-q", "--hard", rev)               # deren Stat passte (je nach Zeitpunkt); so wird jede neu geschrieben
 
 
 def gesamtlauf_neu(con, pid, von, zweig, starten=None):

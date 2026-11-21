@@ -194,7 +194,7 @@ def darf_freigeben(con, pid, von):
 def _git_projekt(quelle, p, *args):
     from . import pruefung_c
     r = subprocess.run(["git", "-C", quelle, *args], capture_output=True, text=True, encoding="utf-8", errors="replace",
-                       stdin=subprocess.DEVNULL, timeout=300, env=pruefung_c._umgebung(p),
+                       stdin=subprocess.DEVNULL, timeout=300, env=pruefung_c._umgebung(dict(p, autocrlf=pruefung_c.autocrlf_projekt(quelle))),
                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
 

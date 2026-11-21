@@ -200,6 +200,38 @@ class Platz(unittest.TestCase):
             platz.vorbereiten(p, self.repo, "x")
         self.assertTrue(os.path.exists(os.path.join(p["klon"], "fremd.txt")))
 
+    def test_a1911_klon_mit_zeilenenden_des_projekts(self):
+        """P326-Hinweis: Der Klon checkte mit dem Systemwert core.autocrlf=true aus (CRLF), das Projekt sagt false (LF); der
+        Arbeiter ruft git ohne System-Konfiguration auf (false) und sah so Dateien, die er anfasste, ganz als geändert."""
+        from amw import pruefung_c
+        cfg = os.path.join(self.ordner.name, "gitconfig-pc")
+        with open(cfg, "w", encoding="utf-8", newline="\n") as f:
+            f.write("[core]\n\tautocrlf = true\n")                                          # wie der Systemwert auf dem PC
+        u = mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": cfg})
+        u.start()
+        self.addCleanup(u.stop)
+        pruefung_c._AUTOCRLF_PROJEKT.clear()
+        self.addCleanup(pruefung_c._AUTOCRLF_PROJEKT.clear)
+        g(self.repo, "config", "core.autocrlf", "false")
+        roh = lambda p: open(os.path.join(p["klon"], "a.txt"), "rb").read()
+        self.einrichten(1)
+        p = platz.plaetze(self.con, self.pid)[0]
+        platz.vorbereiten(p, self.repo, "paket-7")                                          # neuer Klon: gleich wie das Projekt
+        self.assertEqual((roh(p), g(p["klon"], "config", "--local", "core.autocrlf")), (b"a\n", "false"))
+        g(p["klon"], "config", "--unset", "core.autocrlf")                                  # Klon wie vor A1911
+        os.remove(os.path.join(p["klon"], "a.txt"))
+        g(p["klon"], "checkout", "--", "a.txt")
+        self.assertEqual(roh(p), b"a\r\n")
+        platz.vorbereiten(p, self.repo, "paket-8")                                          # nächstes Paket: angeglichen
+        self.assertEqual((roh(p), g(p["klon"], "config", "--local", "core.autocrlf")), (b"a\n", "false"))
+        self.assertTrue(platz.sauber(p))
+        with open(os.path.join(p["klon"], "a.txt"), "w", encoding="utf-8", newline="\n") as f:
+            f.write("a\n")                                                                  # gleicher Inhalt neu geschrieben
+        arbeiter = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)  # git wie beim Arbeiter
+        r = subprocess.run(["git", "-C", p["klon"], "diff", "--quiet", "HEAD"], env=arbeiter, capture_output=True, creationflags=OHNE)
+        self.assertEqual(r.returncode, 0)
+        self.assertFalse(platz.zeilenenden_angleichen(p["klon"], self.repo))                # schon gleich: nichts neu geschrieben
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1134,12 +1134,28 @@ def kette_an(con, pid):
 
 
 def merge_ok(con, pid, aufgabe_id, zweig=None):
-    """Gilt das Merge-OK des Leads (bzw. Entwicklers) für diese Aufgabe (und diesen Zweig)? Der jüngste Eintrag zählt."""
-    r = con.execute("SELECT * FROM plan_ereignis WHERE projekt_id = ? AND aufgabe_id = ? AND art IN ('merge_ok', 'merge_ok_zurueck')"
-                    " ORDER BY id DESC LIMIT 1", (pid, aufgabe_id)).fetchone()
-    if not r or r["art"] != "merge_ok" or (r["text"] and zweig and r["text"] != zweig):
-        return None
-    return r
+    """Gilt das Merge-OK des Leads (bzw. Entwicklers) für diese Aufgabe (und diesen Zweig)? Der jüngste Eintrag zählt.
+    A1911: Ein Merge-OK für ein Bündel (buendel-X.Y.Z), dessen Gesamtlauf ohne Release zu Ende ist, überdeckt das Merge-OK
+    für einen anderen Zweig (paket-A<n>) nicht – sonst fand `amw paket buendeln --alle` nach einem abgebrochenen Bündel kein
+    Paket mehr (21.11., S8). Eine Rücknahme zählt immer."""
+    for r in con.execute("SELECT * FROM plan_ereignis WHERE projekt_id = ? AND aufgabe_id = ? AND art IN ('merge_ok', 'merge_ok_zurueck')"
+                         " ORDER BY id DESC LIMIT 20", (pid, aufgabe_id)).fetchall():
+        if (r["art"] == "merge_ok" and zweig and r["text"] and r["text"] != zweig and r["text"].startswith("buendel-")
+                and buendel_beendet(con, pid, r["text"])):
+            continue
+        if r["art"] != "merge_ok" or (r["text"] and zweig and r["text"] != zweig):
+            return None
+        return r
+    return None
+
+
+def buendel_beendet(con, pid, zweig):
+    """A1911: Ist der Gesamtlauf des jüngsten Bündels `zweig` zu Ende (buendel_ende nach dem letzten Vermerk)? Ausgeliefert
+    oder nicht, sagt das nicht – ein ausgeliefertes Bündel macht seine Aufgaben fertig. Ohne Vermerk: nein."""
+    muster = f'%"zweig": "{zweig}"%'
+    v = con.execute("SELECT max(id) FROM plan_ereignis WHERE projekt_id = ? AND art = 'buendel' AND text LIKE ?", (pid, muster)).fetchone()[0]
+    return bool(v and con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'buendel_ende' AND id > ? AND text LIKE ?",
+                                  (pid, v, muster)).fetchone())
 
 
 def _neuere_pruefung(con, pid, p):

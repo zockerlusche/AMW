@@ -92,7 +92,9 @@ def vorbereiten(p, quelle, zweig, aufgabe=None):
         if os.path.exists(p["klon"]) and os.listdir(p["klon"]):
             raise PlatzFehler(f"{p['klon']} ist kein Klon und nicht leer – die AMW legt dort nichts an")
         os.makedirs(os.path.dirname(p["klon"]) or ".", exist_ok=True)
-        r = subprocess.run(["git", "clone", "-q", "--no-hardlinks", quelle, p["klon"]], capture_output=True, text=True,
+        from . import pruefung_c                                         # A1911: Zeilenenden wie im Projekt, nicht wie das System
+        r = subprocess.run(["git", "clone", "-q", "--no-hardlinks", "-c", f"core.autocrlf={pruefung_c.autocrlf_projekt(quelle)}",
+                            quelle, p["klon"]], capture_output=True, text=True,
                            encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL, timeout=1800,
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         if r.returncode != 0:
@@ -198,6 +200,8 @@ def zuruecksetzen(p, holen=False, projektordner=None, aufgabe=None):
         _git(p["klon"], "fetch", "-q", "origin", "--prune")
     _git(p["klon"], "checkout", "-q", "-f", "--detach", "origin/main")   # alles Geänderte liegt jetzt im Archiv
     _git(p["klon"], "reset", "-q", "--hard", "origin/main")
+    if projektordner:
+        zeilenenden_angleichen(p["klon"], projektordner)
     if os.path.isdir(p["daten"]) and not _daten_frisch(p):             # 4. Datenordner: verschieben, neu anlegen
         a.verschieben(p["daten"], "daten")
     _daten_anlegen(p)
@@ -205,6 +209,23 @@ def zuruecksetzen(p, holen=False, projektordner=None, aufgabe=None):
         import json as _j
         a.schreiben("platz.json", _j.dumps({"platz": p["nr"], "aufgabe": aufgabe, "inhalt": list(a.inhalt)}, ensure_ascii=False).encode())
     return {"sauber": sauber(p), "archiv": a.pfad if a.inhalt else None, "inhalt": a.inhalt}
+
+
+def zeilenenden_angleichen(klon, projektordner):
+    """A1911: Der Klon checkt mit dem core.autocrlf des Projekts aus (Wert in seiner eigenen Konfiguration, damit auch der
+    Arbeiter ihn sieht – dessen git läuft ohne System-Konfiguration). Vor A1911 angelegte Klone hatten den Systemwert (true →
+    CRLF, das Projekt LF): Weicht der Wert ab, wird er gesetzt und jede versionierte Datei neu geschrieben (checkout-index;
+    `checkout -f` ließe sie liegen, weil ihr Index-Eintrag passt), danach ist der Index frisch. Nur nach dem Zurücksetzen –
+    dann liegt nichts Ungesichertes mehr im Klon. Rückgabe: True, wenn neu geschrieben wurde."""
+    from . import pruefung_c
+    wert = pruefung_c.autocrlf_projekt(projektordner)
+    rc, jetzt = _roh(klon, "config", "--local", "--get", "core.autocrlf")
+    if rc == 0 and jetzt.decode("utf-8", "replace").strip().lower() == wert:
+        return False
+    _git(klon, "config", "--local", "core.autocrlf", wert)
+    _git(klon, "read-tree", "--empty")                                # Index leer → reset schreibt jede versionierte Datei
+    _git(klon, "reset", "-q", "--hard", "HEAD")                       # neu (checkout-index -f übersprang Dateien mit passendem Stat)
+    return True
 
 
 def aufraeumen(con, pid, wurzel):

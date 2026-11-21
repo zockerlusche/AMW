@@ -93,6 +93,16 @@ Nummer und schrieb die Versionshinweise.
   nicht mehr als geändert.
 - **Neu anstoßen:** `amw paket buendeln --gesamtlauf buendel-X.Y.Z` (Lead oder Mensch) – Arbeitsbaum sauber auf die Spitze
   des Bündels, Gesamtlauf und Meldung wie beim ersten Mal; nicht, solange ein Bündel offen ist oder wenn es schon in main ist.
+- **Merge-OK nach einem Bündel ohne Release (A1911):** Beim Bündeln gehen Grün und Merge-OK der Pakete auf `buendel-X.Y.Z` über.
+  Ist der Gesamtlauf des Bündels zu Ende und wurde es nicht ausgeliefert, gelten die Merge-OKs auf `paket-A<n>` wieder –
+  `amw paket buendeln --alle` findet die Pakete ohne neue Freigabe (21.11.: nach dem abgebrochenen Bündel 1.152.2 fand es
+  keins mehr). Eine Rücknahme des Merge-OK zählt immer.
+- **Zeilenenden der Arbeitsplätze und von Prüfung C (A1911):** Arbeiter-Klone und der frische Checkout von Prüfung C checken
+  mit `core.autocrlf` des Projekts aus (der Wert steht auch in der Konfiguration des Klons, denn der Arbeiter ruft git ohne
+  System-Konfiguration auf). Vorher bekamen sie den Systemwert (CRLF bei einem LF-Projekt): Der Arbeiter sah angefasste
+  Dateien ganz als geändert, Tests in Prüfung C liefen auf anderen Bytes als bei Entwicklern und im Live-Ordner. Ältere
+  Klone werden beim nächsten Vorbereiten einmal neu geschrieben; eingesammelt wird mit dem Wert, mit dem der Klon
+  ausgecheckt ist.
 
 ## Freigabereif und Nachwecken (seit 1.152.0)
 
