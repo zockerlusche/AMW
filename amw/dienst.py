@@ -31,6 +31,7 @@ from . import betrieb, db, kern, pipe, push, schirm, statusline, steuerung, uebe
 AUFSICHT_S = 30           # Puls-Prüfung und Wiederholung fehlgeschlagener Zustellungen
 NUR_IM_HALT = ("stopp", "freigabe")
 ARBEITET_S = 120          # so frisch muss das Lebenszeichen sein, damit „arbeitet gerade“ gilt (sonst wecken wie bisher)
+NACHWECKEN_S = 600        # A1897 (c): so lange still nach einem Weckruf (ungelesen, nichts gesendet), dann einmal nachwecken
 SOFORT = ("stopp", "korrektur")   # wecken auch mitten in der Arbeit – dazu alles, was der Mensch schreibt
 ZEILE_MAX = 160
 TEXT_GESAMT = 2400        # Weckruf mit Inhalt (A1645): so viele Zeichen Nachrichtentext insgesamt, je Nachricht mind. TEXT_MIN
@@ -287,6 +288,49 @@ class Dienst:
             log.info("%s benachrichtigt: %s", agent, ", ".join(f"#{z['nachricht_id']}" for z in zeilen))
             geweckt += 1
         return geweckt
+
+    def nachwecken(self, jetzt=None):
+        """A1897 (c): Der Lead wurde zu einer Nachricht geweckt, sie ist nach NACHWECKEN_S noch ungelesen, und er hat seit dem
+        Weckruf nichts gesendet → einmal nachwecken (höchstens einmal je Nachricht, plan_ereignis „nachgeweckt“). Nur aus den
+        Daten; geweckt_utc bleibt der erste Weckruf. Wie beim Zustellen: nicht im Halt (außer stopp/freigabe), nicht ohne
+        lebende Sitzung, nicht während er gerade arbeitet. Rückgabe: Texte fürs Protokoll."""
+        jetzt = jetzt or time.time()
+        grenze = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - NACHWECKEN_S))
+        aus = []
+        for pr in self.con.execute("SELECT id FROM projekt").fetchall():
+            pid, lead = pr["id"], kern.lead(self.con, pr["id"])
+            if not lead:
+                continue
+            zeilen = self.con.execute(
+                "SELECT e.nachricht_id, e.agent, n.projekt_id, n.von, n.art, n.kurz, n.text, n.aufgabe_id, e.geweckt_utc FROM empfang e"
+                " JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
+                " WHERE e.agent = ? AND n.projekt_id = ? AND e.status = 'offen' AND e.geweckt_utc IS NOT NULL AND e.geweckt_utc <= ?"
+                " AND " + kern.WECKT_SQL +
+                " AND NOT EXISTS (SELECT 1 FROM nachricht x WHERE x.projekt_id = n.projekt_id AND x.von = e.agent AND x.zeit_utc > e.geweckt_utc)"
+                " AND NOT EXISTS (SELECT 1 FROM plan_ereignis p WHERE p.projekt_id = n.projekt_id AND p.art = 'nachgeweckt'"
+                "   AND p.text = CAST(n.id AS TEXT)) ORDER BY n.id", (lead, pid, grenze)).fetchall()
+            if not zeilen or self.sperre_bis.get((pid, lead), 0) > jetzt:
+                continue
+            halt = kern.halt_gilt(self.con, pid, lead)
+            if halt:
+                zeilen = [z for z in zeilen if z["art"] in NUR_IM_HALT]
+            s = aktive_sitzung(self.con, pid, lead)
+            if not zeilen or not s or arbeitet_gerade(s):
+                continue
+            try:
+                p, k = lies_schluessel(s)
+                text, _ = weckruf(self.con, pid, lead, zeilen, halt)
+                pipe.senden(p, k, "Nachgeweckt – seit dem Weckruf vor über 10 min still:\n" + text)
+            except (OSError, ValueError, KeyError, pipe.ZustellFehler) as f:
+                log.warning("Nachwecken %s fehlgeschlagen: %s", lead, f)
+                self.sperre_bis[(pid, lead)] = jetzt + AUFSICHT_S
+                continue
+            with db.schreiben(self.con):
+                for z in zeilen:
+                    db.einfuegen(self.con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="nachgeweckt",
+                                 aufgabe_id=z["aufgabe_id"], text=str(z["nachricht_id"]))
+            aus.append(f"{lead}: " + ", ".join(f"#{z['nachricht_id']}" for z in zeilen))
+        return aus
 
     def pruefe_sitzung(self, s):
         try:
@@ -592,6 +636,8 @@ def main(argv=None):
                                                 name="amw-github", daemon=True)
                     gh_faden.start()
                 d.zustellen()                       # Wiederholung nach Fehlschlag, neue Anmeldungen, Takt
+                for z in d.nachwecken():             # A1897 (c): Lead geweckt, aber still → einmal nachwecken
+                    log.info("Nachgeweckt: %s", z)
                 d.ordner_messen()
         except Exception as x:                      # nie sterben; Fehler protokollieren und weiter
             log.exception("Fehler im Durchgang")

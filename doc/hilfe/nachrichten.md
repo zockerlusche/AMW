@@ -32,5 +32,11 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 ### Wann benachrichtigt die AMW einen Agenten?
 Bei Aufträgen, Fragen, Antworten, Freigaben, Prüfbitten und Meldungen – nie bei einer Info; die steht nur im Postfach und wird beim nächsten Lesen gesehen. Arbeitet der Agent gerade, wartet die AMW bis zu seinem nächsten Halt und schickt dann alles zusammen als eine Benachrichtigung. Das spart Kosten. Sofort, auch mitten in der Arbeit, kommen nur Stopp, Korrekturen und alles, was du selbst schreibst.
 
+### Und wenn der Lead nicht reagiert?
+Hat der Lead eine Benachrichtigung bekommen, die Nachricht nach 10 Minuten aber nicht gelesen und seitdem nichts geschrieben, weckt die AMW ihn einmal nach – höchstens einmal je Nachricht. Bittet ein Agent den Lead um etwas (Merge-OK, prüfen, freigeben, entscheiden), muss er das als Frage schicken; als Info lehnt die AMW es ab, weil eine Info nicht weckt.
+
+### Wer erfährt, dass ein Stand freigegeben werden kann?
+Endet ein Gesamtlauf grün auf genau dem Stand, den der Prüfer grün gegeben hat, meldet die AMW dem Prüfer von selbst „freigabereif“ mit dem fertigen Befehl für das Merge-OK. Ist der Gesamtlauf rot, erfahren es Prüfer und Bauer.
+
 ### Wie landet eine Antwort im richtigen Gespräch?
 Antwortet ein Agent nur dir, hängt sich seine Antwort von selbst an deine letzte noch unbeantwortete Nachricht an ihn (bis zu 2 Tage alt) und erbt ihren Bezug.

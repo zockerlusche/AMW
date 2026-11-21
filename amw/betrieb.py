@@ -1027,6 +1027,11 @@ def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speich
             fenster.geschlossen(con, l, rc, bool(schirm_mod.zustand(con)["frei"]))
         from . import wartegrund                     # wer auf diesen Lauf gewartet hat, wird geweckt (L2)
         wartegrund.erledige(con, pid, "lauf", f"L{lid}", f"L{lid} zu Ende (rc {rc})" if rc is not None else f"L{lid} zu Ende")
+    try:                                             # A1897: grüner Gesamtlauf auf einem grün geprüften Stand → „freigabereif“
+        from . import freigabereif
+        freigabereif.nach_lauf(con, pid, lid)
+    except Exception:                                # noqa: BLE001 – eine Meldung darf das Lauf-Ende nie aufhalten
+        pass
     return warteschlange(con, pid, speicher_frei)
 
 
@@ -1092,17 +1097,25 @@ def pruefung_ergebnis(con, pid, pruefer, prid, ergebnis, bemerkung=None):
                 an.append(z)
         kern._posten(con, pid, pruefer, ",".join(an), "meldung",
                      f"P{prid} {ergebnis.upper()}: {p['zweig']}@{p['sha'][:8]}", bemerkung, aufgabe_id=p["aufgabe_id"])
+        rueck = None
         if ergebnis == "gruen" and p["aufgabe_id"] and kette_an(con, pid):
             ok = merge_ok(con, pid, p["aufgabe_id"], p["zweig"])
             if ok:
-                return _merge_bitte(con, pid, p, ok)
-            lead = kern.lead(con, pid)
-            if lead and lead != pruefer:
-                kern._posten(con, pid, "AMW", lead, "meldung",
-                             f"A{p['aufgabe_id']} GRÜN auf {p['zweig']}@{p['sha'][:8]} (P{prid}) – Merge-OK? amw freigabe merge"
-                             f" A{p['aufgabe_id']}", "Abnahme-Kette: Mit deinem OK geht die Merge-Bitte für genau diesen Stand"
-                             f" an {merge_dienst(con, pid)}. Neuer Stand = neue Prüfung.", aufgabe_id=p["aufgabe_id"])
-    return None
+                rueck = _merge_bitte(con, pid, p, ok)
+            else:
+                lead = kern.lead(con, pid)
+                if lead and lead != pruefer:
+                    kern._posten(con, pid, "AMW", lead, "meldung",
+                                 f"A{p['aufgabe_id']} GRÜN auf {p['zweig']}@{p['sha'][:8]} (P{prid}) – Merge-OK? amw freigabe merge"
+                                 f" A{p['aufgabe_id']}", "Abnahme-Kette: Mit deinem OK geht die Merge-Bitte für genau diesen Stand"
+                                 f" an {merge_dienst(con, pid)}. Neuer Stand = neue Prüfung.", aufgabe_id=p["aufgabe_id"])
+    if ergebnis == "gruen":                          # A1897: lief der Gesamtlauf auf genau diesem Stand schon grün → „freigabereif“
+        try:
+            from . import freigabereif
+            freigabereif.nach_gruen(con, pid, prid)
+        except Exception:                            # noqa: BLE001 – das Grün gilt trotzdem
+            pass
+    return rueck
 
 
 # --- Abnahme-Kette (Projekt-Einstellung abnahme_kette, Vorgabe aus) --------------------------------

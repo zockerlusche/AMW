@@ -32,5 +32,11 @@ Everything you write to agents and everything they write to you is in one place 
 ### When does the AMW notify an agent?
 For orders, questions, answers, approvals, review requests and reports – never for an info; that only sits in the inbox and is seen at the next read. If the agent is working right now, the AMW waits until its next stop and then sends everything together as one notification. That saves cost. Immediately, even in the middle of work, only stop, corrections and everything you write yourself get through.
 
+### And if the lead does not react?
+If the lead got a notification but has not read the message after 10 minutes and has written nothing since, the AMW wakes them once more – at most once per message. If an agent asks the lead for something (merge OK, review, approval, decision), it has to send it as a question; as an info the AMW refuses it, because an info does not wake.
+
+### Who learns that a state can be approved?
+If a full test run ends green on exactly the state the reviewer marked green, the AMW tells the reviewer “freigabereif” by itself, with the ready command for the merge OK. If the full run is red, reviewer and builder are told.
+
 ### How does a reply end up in the right conversation?
 When an agent writes only to you, its reply attaches itself to your last unanswered message to it (up to 2 days old) and inherits its reference.

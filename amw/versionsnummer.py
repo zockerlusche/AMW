@@ -43,6 +43,15 @@ def version_im_stand(ordner, sha):
     return v if v and kern.version_teile(v) else None
 
 
+def _gleicher_stand(ordner, a, b):
+    """Gleicher Commit (voller SHA oder Anfang ≥ 7) oder gleicher Baum (nur Betreff anders, z. B. neu geschrieben)."""
+    a, b = (a or "").strip(), (b or "").strip()
+    if len(a) >= 7 and len(b) >= 7 and (a.startswith(b) or b.startswith(a)):
+        return True
+    ta, tb = _git(ordner, "rev-parse", f"{a}^{{tree}}"), _git(ordner, "rev-parse", f"{b}^{{tree}}")
+    return bool(ta and tb and ta.strip() == tb.strip())
+
+
 def pruefen(con, pid, sha, aufgabe_id):
     """Wirft AmwFehler, wenn die Nummer im Stand schon vergeben ist; gibt sie sonst zurück (oder None: nichts zu prüfen)."""
     ordner = kern.projekt_ordner(con, pid)
@@ -70,6 +79,8 @@ def pruefen(con, pid, sha, aufgabe_id):
             continue
         if p["ergebnis"] == "gruen" and _git(ordner, "merge-base", "--is-ancestor", p["sha"], "main") is not None:
             continue                                     # schon draußen
+        if _gleicher_stand(ordner, p["sha"], sha):        # A1897 (21.11. A1894/A1895): ein gemeinsam geprüfter Stand belegt nicht
+            continue
         pv = version_im_stand(ordner, p["sha"])
         if pv:
             belegt.setdefault(pv, f"A{p['aufgabe_id']} (P{p['id']}, {p['zweig']})")

@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.152.0 – 21.11.2026 · Niemand wartet still
+- **Neu:** Endet ein Gesamtlauf grün auf genau dem Stand, den der Prüfer grün gegeben hat, meldet die AMW dem Prüfer von selbst
+  „freigabereif“ mit dem fertigen Befehl für das Merge-OK; ist er rot, erfahren es Prüfer und Bauer.
+- **Neu:** Bleibt eine Nachricht an den Lead nach dem Weckruf 10 Minuten ungelesen und hat er nichts geschrieben, weckt die
+  AMW ihn einmal nach.
+- **Verbessert:** Eine Bitte an den Lead (Merge-OK, prüfen, freigeben, entscheiden) geht nur noch als Frage – als Info, die
+  nicht weckt, lehnt die AMW sie ab.
+- **Behoben:** Zwei Aufgaben auf demselben Stand lassen sich wieder beide prüfen und gemeinsam ausliefern.
+
 ## 1.151.1 – 21.11.2026 · Themen ruhiger
 - **Verbessert:** „neu prüfen“ ist jetzt grau wie „in Arbeit“ – das erledigt die KI, nicht du.
 - **Verbessert:** Der Grund für „neu prüfen“ („wegen: B… · Datum“) steht auch in der Themen-Liste, klein unter dem Namen.

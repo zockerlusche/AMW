@@ -87,6 +87,23 @@ Nummer und schrieb die Versionshinweise.
   (nicht die von den Paketen übernommenen).
 - Grenze: Die Kette liest die Version weiterhin aus `amw/__init__.py` – für andere Projekte ist sie noch nicht eingerichtet.
 
+## Freigabereif und Nachwecken (seit 1.152.0)
+
+**Wozu:** 21.11.: Ein Gesamtlauf war grün auf einem grün geprüften Stand, aber niemand wurde geweckt – der Lead wartete auf
+den Coder, der Coder auf das Merge-OK. Und eine Bitte als Info weckte den Lead nicht.
+
+- **Freigabereif:** Endet ein Gesamtlauf (Beschreibung „Gesamtlauf“ oder der `gesamtlauf_befehl` des Projekts) grün, und gibt es
+  auf genau diesem Stand („Stand <sha> sauber“) eine grüne Prüfung ohne Merge-OK, meldet die AMW dem Prüfer „A<n> freigabereif …
+  Merge-OK: amw freigabe merge …“ (weckt) und dem Bauer zur Info. Rot → „Gesamtlauf rot“ an Prüfer und Bauer. Kommt das Grün
+  erst nach dem Lauf, kommt die Meldung beim Grün-Setzen. Eine Meldung je Prüfung und Stand.
+- **Bitte als Info:** `amw posten --art info` an den Lead wird abgewiesen, wenn sie um eine Handlung bittet (bitte … Merge-OK,
+  prüfen, freigeben, entscheiden, ausliefern) oder zu einer Aufgabe gehört, die auf den Lead wartet: „Bitte um Handlung →
+  --art frage (weckt)“.
+- **Nachwecken:** Der Dienst weckt den Lead einmal nach, wenn eine Nachricht 10 Minuten nach dem Weckruf noch ungelesen ist und
+  er seitdem nichts gesendet hat – höchstens einmal je Nachricht, nicht im Halt, nicht während er arbeitet.
+- **Gemeinsamer Stand:** Eine Prüfung einer anderen Aufgabe auf genau demselben Stand (oder demselben Baum) belegt die
+  Versionsnummer nicht mehr – zwei Aufgaben lassen sich auf einem Stand prüfen und ausliefern.
+
 ## Wartegründe (seit 1.8.0)
 
 **Wozu:** Eine Aufgabe, die „wartet“, ohne zu sagen worauf, bleibt liegen, auch wenn der Grund längst erledigt ist.

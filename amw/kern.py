@@ -993,6 +993,22 @@ def faden_suchen(con, pid, von):
         (von, pid, ENTWICKLER, ZURUECKGEZOGEN, grenze, von)).fetchone()
 
 
+BITTE_UM_HANDLUNG = re.compile(r"\bbitte\b.{0,80}?(merge-?ok|prüf|freigeb|freigabe|entscheid|ausliefer)|merge-?ok\s*\?", re.I | re.S)
+
+
+def bitte_als_info_pruefen(con, pid, an, kurz, text, aufgabe_id):
+    """A1897 (Befund #29430, 21.11.: #29418 als info weckte niemanden): eine info an den Lead, die um eine Handlung bittet (Merge-OK,
+    prüfen, freigeben, entscheiden, ausliefern) oder sich auf eine Aufgabe bezieht, die auf den Lead wartet, wird abgewiesen."""
+    l = lead(con, pid)
+    namen = [t.strip() for t in (an or "").replace(";", ",").split(",") if t.strip()]
+    if not l or l not in namen:
+        return
+    if BITTE_UM_HANDLUNG.search(f"{kurz or ''}\n{text or ''}") or (aufgabe_id and con.execute(
+            "SELECT 1 FROM wartegrund WHERE aufgabe_id = ? AND art = 'agent' AND bezug = ? AND erledigt_utc IS NULL",
+            (aufgabe_id, l)).fetchone()):
+        raise AmwFehler(f"Bitte um Handlung → --art frage (weckt) – eine info an den Lead ({l}) weckt ihn nicht")
+
+
 def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, hinweise=None, bis=None, bezug=None, faden=True):
     """Nachricht von einem Agenten oder dem Entwickler. hinweise: Liste, in die Hinweise für die Ausgabe kommen.
     bis: Bezug, mit dem sich die Meldung von selbst erledigt (leitbild | aufgabe | A<nr> | F<nr>).
@@ -1014,6 +1030,8 @@ def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id
     bezug = bezug_pruefen(con, pid, bezug)
     if bezug and bezug[0] == "A" and not aufgabe_id:                 # die alten Felder mit füllen (alte Abfragen laufen weiter)
         aufgabe_id = int(bezug[1:])
+    if art == "info" and von not in ("AMW", ENTWICKLER):
+        bitte_als_info_pruefen(con, pid, an, kurz, text, aufgabe_id)
     with db.schreiben(con):
         a = None
         if aufgabe_id and von != "AMW":
