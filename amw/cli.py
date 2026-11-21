@@ -2865,7 +2865,7 @@ def parser():
     x.add_argument("--ressourcen", help="Paket: gpu,bildschirm (Vorgabe: keine)")
     x.add_argument("--modell", help="Paket: wie claude --model (Vorgabe claude-opus-5-5)")
     x.add_argument("--effort", choices=["low", "medium", "high"], help="Paket: wie claude --effort (Vorgabe high)")
-    x.add_argument("--pakettyp", choices=["normal", "test-schreiben"], help="Paket: normal (Vorgabe) oder test-schreiben")
+    x.add_argument("--pakettyp", choices=["normal", "test-schreiben", "test-ergaenzen"], help="Paket: normal (Vorgabe), test-schreiben (Test + Änderung, rot gegen alt) oder test-ergaenzen (nur Tests für bestehenden Code, grün; Lead liest)")
     x.add_argument("--nie-gleichzeitig", help="Paket: nie gleichzeitig mit diesen Aufgaben, z. B. A12,A13")
     x.add_argument("--gleiche-ressource", help="Paket: Name einer gemeinsamen Ressource – Pakete mit demselben Namen laufen nacheinander")
     x.set_defaults(f=cmd_aufgabe)

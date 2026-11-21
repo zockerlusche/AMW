@@ -13,7 +13,7 @@ ARTEN = ("agent", "sitzung", "p")
 GEWICHTE = ("leicht", "schwer")
 RESSOURCEN = ("gpu", "bildschirm")
 EFFORTS = ("low", "medium", "high")
-PAKETTYPEN = ("normal", "test-schreiben")
+PAKETTYPEN = ("normal", "test-schreiben", "test-ergaenzen")   # A1895: test-ergaenzen = nur Tests für bestehenden Code
 
 STANDARD = {"art": "agent", "gewicht": "leicht", "ressourcen": [], "modell": "claude-opus-5-5", "effort": "high",
             "pakettyp": "normal", "nie_gleichzeitig": [], "gleiche_ressource": None}

@@ -3,11 +3,11 @@ Einwände D1259 Nr. 1, 28 und D1270 Nr. 14, 22, 25.
 
 Ohne Lead prüft nur die Abnahme – darum führt die AMW sie selbst aus (nie die Meldung des Arbeiters glauben), im Platz, mit
 seinen Daten und Ports, im Windows-Job-Objekt mit Zeitlimit (ein hängender Test wird samt Kindprozessen beendet). Vor dem Bau
-muss sie rot sein (sonst prüft sie nichts), außer beim Pakettyp „test-schreiben“. Nach dem Bau gleicht das Diff-Tor ab: nur
+muss sie rot sein (sonst prüft sie nichts), außer bei den Pakettypen „test-schreiben“ und „test-ergaenzen“. Nach dem Bau gleicht das Diff-Tor ab: nur
 Dateien in den geplanten Bereichen geändert, keine gesperrten Pfade.
 
 Die Liste gesperrter Pfade gibt es genau einmal (dieses Modul ist ihr Besitzer) – für die Startregel 5 und für das Diff-Tor.
-Testskripte und Testkonfiguration sind immer gesperrt; Testdateien sind gesperrt außer beim Pakettyp „test-schreiben“.
+Testskripte und Testkonfiguration sind immer gesperrt; Testdateien sind gesperrt außer bei „test-schreiben“ und „test-ergaenzen“ (dieser darf NUR Testdateien ändern).
 Nichts hier wird ohne eingerichtete Plätze aufgerufen (plaetze = 0: die AMW arbeitet wie bisher).
 """
 import fnmatch
@@ -15,7 +15,7 @@ import os
 import subprocess
 import time
 
-# (Muster, Art, Grund) – Muster relativ zum Repository, mit / getrennt; Art „fest“ = immer gesperrt, „test“ = außer test-schreiben
+# (Muster, Art, Grund) – Muster relativ zum Repository, mit / getrennt; Art „fest“ = immer gesperrt, „test“ = außer test-schreiben/test-ergaenzen
 GESPERRT = (
     (".git/*", "fest", "Git-Verwaltung"),
     ("*/.git/*", "fest", "Git-Verwaltung"),
@@ -122,7 +122,9 @@ GESPERRT = (
     ("tox.ini", "fest", "Testkonfiguration"),
     ("tests/*", "test", "Testdatei"),
 )
-TEST_SCHREIBEN = "test-schreiben"
+TEST_SCHREIBEN = "test-schreiben"          # Test + Änderung: der neue Test ist rot gegen den alten Code
+TEST_ERGAENZEN = "test-ergaenzen"          # A1895: nur Tests für bestehenden, unveränderten Code – grün, nur Testdateien
+TESTTYPEN = (TEST_SCHREIBEN, TEST_ERGAENZEN)   # Testdateien nicht gesperrt, Regel 6 entfällt, immer E4 (Lead liest)
 FRIST_S = 1800
 
 
@@ -139,15 +141,30 @@ def _klein(pfad):
 
 
 def gesperrt(pfade, typ=None):
-    """[(pfad, grund)] der gesperrten unter `pfade` – Testdateien nicht beim Pakettyp test-schreiben."""
+    """[(pfad, grund)] der gesperrten unter `pfade` – Testdateien nicht bei den Pakettypen test-schreiben und test-ergaenzen."""
     aus = []
     for p in pfade:
         n, k = _norm(p), _klein(p)
         for muster, art, grund in GESPERRT:
-            if fnmatch.fnmatchcase(k, muster.lower()) and not (art == "test" and typ == TEST_SCHREIBEN):
+            if fnmatch.fnmatchcase(k, muster.lower()) and not (art == "test" and typ in TESTTYPEN):
                 aus.append((n, grund))
                 break
     return aus
+
+
+def ist_testdatei(pfad):
+    """A1895: eine Testdatei im Sinn der Sperrliste (Art „test“, z. B. tests/*) – und keine der fest gesperrten (Testskripte,
+    Testkonfiguration, tests/abschotten.py …)."""
+    k = _klein(pfad)
+    for muster, art, _ in GESPERRT:
+        if fnmatch.fnmatchcase(k, muster.lower()):
+            return art == "test"
+    return False
+
+
+def nicht_nur_tests(pfade):
+    """A1895 (Pakettyp test-ergaenzen): geänderte Dateien, die keine Testdateien sind – das Paket darf nur Tests anlegen/ändern."""
+    return [_norm(p) for p in pfade if not ist_testdatei(p)]
 
 
 def im_bereich(pfad, bereiche):
@@ -167,7 +184,7 @@ def startregel(bereiche, typ=None):
         n = _klein(b)
         probe = n + "x" if n.endswith("/") else n                  # Ordner: gesperrt, wenn darin Gesperrtes liegen könnte
         treffer = gesperrt([probe], typ) or [(n, g) for m, art, g in GESPERRT
-                                              if (n.endswith("/") and m.lower().startswith(n)) and not (art == "test" and typ == TEST_SCHREIBEN)]
+                                              if (n.endswith("/") and m.lower().startswith(n)) and not (art == "test" and typ in TESTTYPEN)]
         if treffer:
             aus.append((n, treffer[0][1]))
     return aus
@@ -292,8 +309,8 @@ def abnahme(p, befehl, frist=FRIST_S):
 def rot_vor_bau(p, befehl, typ=None, frist=FRIST_S):
     """Regel 6: vor dem Bau muss die Abnahme rot sein – sonst prüft sie nichts. Beim Pakettyp test-schreiben entfällt das
     (dort wird geprüft, dass der neue Test gegen den alten Stand rot ist: test_gegen_basis). Rückgabe {"ok", "grund", …}."""
-    if typ == TEST_SCHREIBEN:
-        return {"ok": True, "grund": "test-schreiben: Prüfung nach dem Bau"}
+    if typ in TESTTYPEN:
+        return {"ok": True, "grund": f"{typ}: Prüfung nach dem Bau"}
     r = abnahme(p, befehl, frist)
     if r.get("fehler"):
         return {**r, "ok": False, "grund": r["fehler"]}

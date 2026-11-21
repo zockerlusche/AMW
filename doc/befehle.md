@@ -258,7 +258,7 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--sofort] [--paket {agent,sitzung,p}]
                    [--gewicht {leicht,schwer}] [--ressourcen RESSOURCEN]
                    [--modell MODELL] [--effort {low,medium,high}]
-                   [--pakettyp {normal,test-schreiben}]
+                   [--pakettyp {normal,test-schreiben,test-ergaenzen}]
                    [--nie-gleichzeitig NIE_GLEICHZEITIG]
                    [--gleiche-ressource GLEICHE_RESSOURCE] [--von VON]
                    [--projekt PROJEKT]
@@ -354,8 +354,10 @@ options:
   --modell MODELL       Paket: wie claude --model (Vorgabe claude-opus-5-5)
   --effort {low,medium,high}
                         Paket: wie claude --effort (Vorgabe high)
-  --pakettyp {normal,test-schreiben}
-                        Paket: normal (Vorgabe) oder test-schreiben
+  --pakettyp {normal,test-schreiben,test-ergaenzen}
+                        Paket: normal (Vorgabe), test-schreiben (Test +
+                        Änderung, rot gegen alt) oder test-ergaenzen (nur
+                        Tests für bestehenden Code, grün; Lead liest)
   --nie-gleichzeitig NIE_GLEICHZEITIG
                         Paket: nie gleichzeitig mit diesen Aufgaben, z. B.
                         A12,A13

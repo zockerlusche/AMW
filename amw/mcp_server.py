@@ -53,7 +53,7 @@ PAKET = [F("paket", "s", "wer ausführt: agent (interaktiver Agent), sitzung (ne
          F("gewicht", "s", "leicht oder schwer", "--gewicht", False, ("leicht", "schwer")),
          F("ressourcen", "s", "gpu,bildschirm (leer: keine)", "--ressourcen"), F("modell", "s", "wie claude --model", "--modell"),
          F("effort", "s", "wie claude --effort", "--effort", False, ("low", "medium", "high")),
-         F("pakettyp", "s", "normal oder test-schreiben", "--pakettyp", False, ("normal", "test-schreiben")),
+         F("pakettyp", "s", "normal, test-schreiben (Test + Änderung) oder test-ergaenzen (nur Tests für bestehenden Code)", "--pakettyp", False, ("normal", "test-schreiben", "test-ergaenzen")),
          F("nie_gleichzeitig", "s", "nie gleichzeitig mit diesen Aufgaben, z. B. A12,A13", "--nie-gleichzeitig"),
          F("gleiche_ressource", "s", "Name einer gemeinsamen Ressource (laufen nacheinander)", "--gleiche-ressource")]
 

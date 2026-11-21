@@ -9,7 +9,7 @@ Kosten, Sitzung). Die Meldung des Arbeiters steuert nur, wohin das Paket geht; o
 | E1n | Notbremse oder Limit-Abbruch                  | abgebrochen        | Lead (Info)              | nein      |
 | E2  | keine gültige Meldung                         | unklar             | Prüfer                   | ja        |
 | E3  | blockiert / aufgegeben                        | wartet_interaktiv  | Prüfer bzw. Mensch       | –         |
-| E4  | C/leer, C/diff, C/aussen, test-schreiben      | wartet_interaktiv  | Prüfer                   | –         |
+| E4  | C/leer, C/diff, C/aussen, test-*             | wartet_interaktiv  | Prüfer                   | –         |
 | E5  | C/rot – erstes Mal                            | laeuft (neuer Lauf)| –                        | –         |
 | E6  | C/rot – nach Nachbesserung                    | wartet_interaktiv  | Prüfer                   | –         |
 | E7  | alles grün                                    | merge_reihe        | (Merge-Freigabe, S6b)    | –         |
@@ -64,8 +64,8 @@ def entscheiden(lauf, meldung=None, befund=None, nachgebessert=False, notbremse=
         return "E4", code
     if code == "C/rot":
         return ("E6" if nachgebessert else "E5"), code
-    if typ == "test-schreiben":
-        return "E4", "test-schreiben"
+    if typ in ("test-schreiben", "test-ergaenzen"):            # A1895: beide Testtypen liest immer der Lead
+        return "E4", typ
     return "E7", "grün"
 
 

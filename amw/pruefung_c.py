@@ -12,6 +12,7 @@ D1258 v14 §6a.3). Die Meldung des Arbeiters steuert nur, wohin das Paket geht �
    Umgebung des Arbeiters (keine Zugänge des Menschen): Paket-Abnahme-Befehl plus feste Regressions-Kurzsuite.
    Nicht ausführbar / Zeitlimit → C/technik; Exit ≠ 0 eines vollständig gelaufenen Befehls → C/rot.
 5. Pakettyp test-schreiben: maschinell rot gegen alten, grün gegen neuen Code, mindestens ein ausgeführter Test.
+   Pakettyp test-ergaenzen (A1895): nur Testdateien geändert, grün, mindestens ein wirklich ausgeführter (nicht übersprungener) Test.
 """
 import datetime
 import fnmatch
@@ -245,6 +246,12 @@ def _tests_gelaufen(ausgabe):
     return int(m[-1]) if m else 0
 
 
+def _tests_uebersprungen(ausgabe):
+    """A1895: „OK (skipped=3)“ bzw. „FAILED (…, skipped=3)“ von unittest – übersprungene Tests beweisen nichts."""
+    m = re.findall(r"skipped=(\d+)", ausgabe or "")
+    return int(m[-1]) if m else 0
+
+
 def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main", aussen=True):
     """Interaktive Pakete (§6a.6): der leichte Teil von C sofort und ohne schweren Lauf – Netto-Diff des Zweigs gegen main,
     Diff-Tor, automatisch geladene Dateien, Geheimnis-Muster, nach außen. Die Abnahme im frischen Checkout läuft über die
@@ -314,10 +321,12 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
     g = geaendert(p, basis, kopf)
     zeilen = zusaetze(p, basis, kopf)
     b.update(geaendert=g, ausserhalb=[x for x in g if not abnahme.im_bereich(x, bereiche)], gesperrt=abnahme.gesperrt(g, typ),
-             autogeladen=autogeladen(g), geheim=geheimnisse(zeilen), aussen=nach_aussen(zeilen))
-    if b["ausserhalb"] or b["gesperrt"] or b["autogeladen"] or b["geheim"]:
+             autogeladen=autogeladen(g), geheim=geheimnisse(zeilen), aussen=nach_aussen(zeilen),
+             keine_tests=abnahme.nicht_nur_tests(g) if typ == abnahme.TEST_ERGAENZEN else [])   # A1895: nur Testdateien
+    if b["ausserhalb"] or b["gesperrt"] or b["autogeladen"] or b["geheim"] or b["keine_tests"]:
         return dict(b, code="C/diff", grund="Diff-Tor: " + "; ".join(
             x for x in (b["ausserhalb"] and f"außerhalb der Bereiche: {', '.join(b['ausserhalb'][:5])}",
+                        b["keine_tests"] and f"test-ergaenzen ändert nur Tests – nicht: {', '.join(b['keine_tests'][:5])}",
                         b["gesperrt"] and f"gesperrt: {', '.join(x for x, _ in b['gesperrt'][:5])}",
                         b["autogeladen"] and f"automatisch geladen: {', '.join(b['autogeladen'][:5])}",
                         b["geheim"] and f"Geheimnis-Muster: {', '.join(f'{x} ({a})' for x, a in b['geheim'][:5])}") if x))
@@ -340,6 +349,11 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
         b["test_schreiben"] = dict(t, tests=_tests_gelaufen(b["abnahme"].get("ausgabe")))
         if not t.get("ok") or b["test_schreiben"]["tests"] < 1:
             return dict(b, code="C/rot", grund="test-schreiben: " + (t.get("grund") or "kein Test ausgeführt"))
+    if typ == abnahme.TEST_ERGAENZEN:                 # A1895: grün reicht, aber nur mit wirklich ausgeführten Tests
+        n, weg = _tests_gelaufen(b["abnahme"].get("ausgabe")), _tests_uebersprungen(b["abnahme"].get("ausgabe"))
+        b["test_ergaenzen"] = {"tests": n, "uebersprungen": weg}
+        if n - weg < 1:
+            return dict(b, code="C/rot", grund="test-ergaenzen: kein Test ausgeführt" + (f" ({weg} übersprungen)" if weg else ""))
     if regression:
         b["regression"] = _laufen(q, regression, frist)
         if b["regression"]["befund"]:
