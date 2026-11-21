@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.152.6 – 21.11.2026 · Probebetrieb S8: Tests für bestehenden Code
+- **Intern:** 6 Paket(e) ohne sichtbare Änderung (Tests und Pflege).
+
 ## 1.152.5 – 21.11.2026 · Pakete bleiben freigegeben, Arbeitsplätze wie das Projekt
 - **Behoben:** Wird ein Bündel nicht ausgeliefert, bleiben seine Pakete freigegeben – das nächste `amw paket buendeln --alle`
   nimmt sie ohne neue Freigabe wieder mit.
