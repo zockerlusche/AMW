@@ -39,7 +39,7 @@ GIT_VERBOTEN = ("--output", "--no-index", "--exec", "-C ", "--git-dir", "--work-
 STEUERDATEIEN = ("./.git/**", "./.claude/**", "./CLAUDE.md", "./.mcp.json", "**/.claude/**", "**/CLAUDE.md", "**/.mcp.json")
 # Claude-Code-Versionen, für die die Negativprobe (test_arbeiter.test_echt_ausserhalb_abgelehnt) bestanden ist – eine andere
 # Version gilt als Abweichung, bis die Probe wiederholt und die Version hier eingetragen ist (Gegenlesen Nr. 21/22).
-GEPRUEFT = ("2.1.326", "2.1.329")             # 2.1.329: Negativprobe 21.11. (A1890)
+GEPRUEFT = ("2.1.326", "2.1.329", "2.1.330")  # 2.1.329: Negativprobe 21.11. (A1890); 2.1.330: Negativprobe 21.11. (A1905)
 # Umgebung als Freigabeliste (Gegenlesen Nr. 7): nur diese Variablen des Menschen werden übernommen – keine Token, keine
 # Umleitungen, keine Python-/Git-Steuerung. Das Login liegt im Benutzerordner (USERPROFILE), deshalb bleibt er gesetzt.
 UMGEBUNG_ERLAUBT = ("SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "PATHEXT", "OS", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE",
