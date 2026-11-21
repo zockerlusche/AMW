@@ -79,7 +79,15 @@ def seite(con, pid, name):
             "gilt": [x for x in b if x["status"] == "gilt"], "unklar": [x for x in b if x["status"] == "unklar"],
             "ueberholt": [x for x in b if x["status"] == "ueberholt"], "dokumente": dok,
             "zustand": (z := status(con, t)), "handlungen": list(handlungen(z)),           # A1896
-            "freigegeben_text": _freigegebener_text(con, t["id"], z)}                     # F5358: Unterschied zur Freigabe
+            "freigegeben_text": _freigegebener_text(con, t["id"], z),                     # F5358: Unterschied zur Freigabe
+            "gegengelesen": _gegengelesen(con, pid, t["id"])}                             # A1914: Ergebnis des Gegenlesers
+
+
+def _gegengelesen(con, pid, tid):
+    """A1914: das jüngste Gegenlesen (Fassung, Modell, Einwände oder Fehler, Kosten, Zeit) – oder None."""
+    from . import gegenlesen
+    e = gegenlesen.letztes(con, pid, tid)
+    return {k: e.get(k) for k in ("fassung", "modell", "einwaende", "fehler", "usd", "lauf", "zeit_utc")} if e else None
 
 
 def neu(con, pid, von, name, pfleger=None, stil=False):
@@ -135,6 +143,9 @@ def pflegen(con, pid, von, name, text):
         db.einfuegen(con, "thema_fassung", thema_id=t["id"], nr=nr, text=text.strip(), von=von, zeit_utc=db.jetzt())
         if von != kern.ENTWICKLER:                   # A1896: Vorlage eines Agenten → wartet auf den Menschen
             _ereignis(con, pid, von, "vorgelegt", t["id"], fassung=nr)
+    if von != kern.ENTWICKLER:                       # A1914: erst gegenlesen, dann wartet sie auf den Menschen
+        from . import gegenlesen
+        gegenlesen.anstossen(con, pid, t["id"], nr)
     return nr
 
 
@@ -271,19 +282,25 @@ def status(con, t):
                  or (BEARBEITEN_GIBT_FREI and e["art"] == EREIGNIS["bearbeitet"])]
     letzte_frei = freigaben[-1] if freigaben else None
     frei_nr = letzte_frei.get("fassung") if letzte_frei else None
-    st, grund = "arbeit", None
+    st, grund, liest = "arbeit", None, None
     if letzte_vorlage and (not letzte_mensch or letzte_vorlage > (letzte_mensch["zeit_utc"], letzte_mensch["id"])):
         st = "dich"
         b = _neuer_beschluss(con, t, letzte_vorlage[0])
         if b:                                          # die Vorlage ist schon wieder überholt → die KI ist dran
             st = "arbeit"
+        elif nr is not None:                           # A1914: liest gerade ein Gegenleser, ist sie noch nicht beim Menschen
+            from . import gegenlesen
+            g = gegenlesen.laeuft(con, t["projekt_id"], t["id"], nr)
+            if g:
+                st, liest = "arbeit", {"seit_utc": g["zeit_utc"], "modell": g.get("modell"), "fassung": nr}
     elif letzte_frei and nr is not None and frei_nr == nr and letzte_mensch is letzte_frei:
         b = _neuer_beschluss(con, t, letzte_frei["zeit_utc"])
         if b:
             st, grund = "pruefen", f"B{b['id']} · {b['angelegt_utc'][8:10]}.{b['angelegt_utc'][5:7]}."
         else:
             st = "frei"
-    return {"status": st, "text": STATUS_TEXT[st], "grund": grund, "markiert": markiert, "fassung": nr, "freigegeben": frei_nr}
+    return {"status": st, "text": STATUS_TEXT[st], "grund": grund, "markiert": markiert, "fassung": nr, "freigegeben": frei_nr,
+            "gegenlesen": liest}
 
 
 def _freigegebener_text(con, tid, s):

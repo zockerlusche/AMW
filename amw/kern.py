@@ -263,7 +263,11 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # vor der Freigabe in den Diff sieht (server = nur bei Online-Server-Code web/*.php); merge_aussen_pruefung = ob
                 # Adressen nach außen / gefährliche Aufrufe das Paket anhalten (Befund C/aussen) oder nur als Hinweis gelten.
                 "merge_blick": ("server", "alle", "aus"),
-                "merge_aussen_pruefung": ("an", "aus")}
+                "merge_aussen_pruefung": ("an", "aus"),
+                # Gegenlesen der Themen (A1914, D1304 v12 §4): liefert ein Pfleger eine neue Fassung, liest ein frischer
+                # claude -p (nur Lesen) sie gegen und schickt dem Pfleger Einwände – haiku (Vorgabe) oder sonnet; aus = nie.
+                # Stellen Lead oder Mensch.
+                "themen_gegenlesen": ("haiku", "sonnet", "aus")}
 NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung")
 BUENDEL_EINSTELLUNGEN = ("version_datei", "changelog_datei", "buendel_schritt", "gesamtlauf_befehl")   # A1876 (D1306 F2)
 VERSION_FRIST_TAGE = 14            # so lange darf Fertiges ohne Version liegen, bevor der Plan-Check warnt (Projekt: version_frist_tage)

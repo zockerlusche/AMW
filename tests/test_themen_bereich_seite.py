@@ -84,3 +84,48 @@ class ThemenSeite(Rundgang):
                 self.assertEqual(self.besuchen("themen", "themen-nachher", bereit=self.LISTE, g=g, t=th), [], f"nachher {g} {th}")
             if g == "handy":                                             # Auflage (a): am Handy zuerst die Liste, kein Thema offen
                 self.assertTrue(self.tab.js("getComputedStyle(document.querySelector('.th-thema')).display === 'none'"))
+
+
+class ThemenGegenlesen(Rundgang):
+    """A1914: liest ein Gegenleser, steht in Liste und Thema nur der Status als Fakt („wird gegengelesen · seit …“, in Arbeit);
+    danach das Ergebnis zum Aufklappen (Fassung, Modell, Kosten, Einwände). Bilder über AMW_RUNDGANG_BILDER."""
+
+    def daten(self):
+        from amw import gegenlesen
+        kern.agent_neu(self.con, self.pid, "CC1")
+        self.liest = themen.neu(self.con, self.pid, "TL", "Anmeldung", pfleger="CC1")
+        themen.pflegen(self.con, self.pid, "CC1", self.liest, "Wer die Online-Seite öffnet, meldet sich mit seinem Firmen-Konto an.")
+        self.fertig = themen.neu(self.con, self.pid, "TL", "Nachrichten", pfleger="CC1")
+        themen.pflegen(self.con, self.pid, "CC1", self.fertig, "An dich getrennt von Mitlesen.")
+        with db.schreiben(self.con):
+            for tid in (self.liest, self.fertig):
+                db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von="AMW", art=gegenlesen.ANGESTOSSEN,
+                             text='{"thema": %d, "fassung": 1, "rolle": "gegenlesen", "modell": "haiku"}' % tid)
+        gegenlesen.abschliessen(self.con, self.pid, self.fertig, 1, {"einwaende": "- Abschnitt 1: „Mitlesen“ ist nicht erklärt.\n"
+                                                                     "- Fehlt: was mit Fragen geschieht.", "usd": 0.0213, "modell": "haiku"}, lauf=7)
+
+    ZEILE = "document.querySelector('.th-zeile[data-th=\"%d\"]')"
+
+    def test_status_als_fakt_und_ergebnis(self):
+        self.oeffnen("themen", "document.querySelector('.th-liste .th-zeile')")
+        zeile = self.ZEILE % self.liest
+        self.warten(f"{zeile}?.querySelector('.th-grund-zeile')")
+        self.assertRegex(self.tab.js(f"{zeile}.querySelector('.th-grund-zeile').textContent"), r"^wird gegengelesen · seit \d\d:\d\d$")
+        self.assertTrue(self.tab.js(f"!!{zeile}.querySelector('.th-status.arbeit')"))
+        self.tab.js(f"{self.ZEILE % self.fertig}.click()")
+        self.warten("document.querySelector('.th-thema h2')?.textContent === 'Nachrichten'")
+        self.warten("document.querySelector('.th-gegengelesen summary')")
+        self.assertEqual(self.tab.js("document.querySelector('.th-gegengelesen summary').textContent"),
+                         "Gegengelesen: Fassung 1 · haiku · 0.02 $")
+        self.assertIn("nicht erklärt", self.tab.js("document.querySelector('.th-gegengelesen').textContent"))
+        self.assertTrue(self.tab.js("!!document.querySelector('.th-knoepfe button[data-h=freigeben]')"))   # danach: bei dir
+
+    def test_bilder(self):
+        liste = "document.querySelector('.th-liste .th-zeile')"
+        offen = (f"{self.ZEILE % self.liest}.click()", "document.querySelector('.th-thema h2')?.textContent === 'Anmeldung'")
+        auf = (f"{self.ZEILE % self.fertig}.click()",
+               "document.querySelector('.th-gegengelesen summary') && (document.querySelector('.th-gegengelesen').open = true)")
+        for g in ("pc", "handy"):
+            for th in ("hell", "dunkel"):
+                for ort, (tun, danach) in (("themen-gegenlesen-liest", offen), ("themen-gegenlesen-ergebnis", auf)):
+                    self.assertEqual(self.besuchen("themen", ort, bereit=liste, tun=tun, danach=danach, g=g, t=th), [], f"{ort} {g} {th}")

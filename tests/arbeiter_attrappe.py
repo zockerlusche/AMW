@@ -17,7 +17,7 @@ art = wert("--attrappe-art") or os.environ.get("ATTRAPPE_ART", "ok")       # Bef
 auftrag = sys.stdin.read()
 if os.environ.get("ATTRAPPE_UMGEBUNG"):
     with open(os.environ["ATTRAPPE_UMGEBUNG"], "w", encoding="utf-8") as f:
-        json.dump({"umgebung": dict(os.environ), "argv": sys.argv, "auftrag": auftrag}, f)
+        json.dump({"umgebung": dict(os.environ), "argv": sys.argv, "auftrag": auftrag, "dateien": sorted(os.listdir("."))}, f)
 modell = {"haiku": "claude-haiku-5-5", "opus": "claude-opus-5-5"}.get(wert("--model"), wert("--model"))
 init = {"type": "system", "subtype": "init", "cwd": os.getcwd(), "session_id": "00000000-0000-4000-8000-000000000001",
         "tools": (wert("--tools") or "").split(","), "mcp_servers": [], "model": modell, "permissionMode": wert("--permission-mode"),
@@ -59,6 +59,13 @@ if art == "fremdes_werkzeug":
     print(json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t1", "name": "Agent", "input": {}}]}}),
           flush=True)
     time.sleep(600)
+if art == "gegenlesen":                     # A1914: liest thema.md und antwortet mit Einwänden (ATTRAPPE_ERGEBNIS)
+    print(json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "r1", "name": "Read",
+                                                                     "input": {"file_path": "thema.md"}}]}}), flush=True)
+if art == "schreibt":                       # A1914: ein Gegenleser versucht zu schreiben – Werkzeug außerhalb der Liste
+    print(json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "w1", "name": "Write",
+                                                                     "input": {"file_path": "x.txt", "content": "x"}}]}}), flush=True)
+    time.sleep(600)
 meldungen = json.loads(os.environ.get("ATTRAPPE_MELDUNGEN", "[]"))
 if art == "bauen":                          # A1874: repariert lib/rechnen.py im Klon und meldet erledigt
     with open(os.path.join("lib", "rechnen.py"), "w", encoding="utf-8", newline="\n") as f:
@@ -72,4 +79,5 @@ for i, m in enumerate(meldungen):           # S5b: Aufrufe von ergebnis_melden
         {"type": "tool_result", "tool_use_id": f"m{i}", "is_error": not ok, "content": "angenommen" if ok else "Nicht angenommen"}]}}), flush=True)
 print(json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "fertig"}]}}), flush=True)
 print(json.dumps({"type": "result", "subtype": "success", "is_error": False, "num_turns": 1, "total_cost_usd": 0.001,
-                  "session_id": init["session_id"], "result": "fertig", "permission_denials": []}), flush=True)
+                  "session_id": init["session_id"], "result": os.environ.get("ATTRAPPE_ERGEBNIS", "fertig"),
+                  "permission_denials": []}), flush=True)

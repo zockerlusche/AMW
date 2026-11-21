@@ -32,6 +32,7 @@ import time
 from . import abnahme, db, platz
 
 WERKZEUGE = ("Bash", "Edit", "Glob", "Grep", "Read", "Write")
+WERKZEUGE_LESEN = ("Glob", "Grep", "Read")   # A1914: Zuarbeit nur lesend (Gegenleser) – kein Bash, kein Schreiben
 # Kein git für den Arbeiter (TL #28952). Die Sperren unten bleiben als zweite Linie: deny geht vor allow, und ein
 # Abnahme-Befehl, der eine davon trifft, wird gleich abgelehnt.
 GIT_VERBOTEN = ("--output", "--no-index", "--exec", "-C ", "--git-dir", "--work-tree", "-c ", " -F", "--file", "--template", " -t ",
@@ -93,6 +94,13 @@ def freigabe(pruefbefehl, mcp_werkzeuge=()):
     return {"permissions": {"defaultMode": "dontAsk", "allow": allow, "deny": deny}, "env": {"DISABLE_AUTOUPDATER": "1"}}
 
 
+def freigabe_lesen():
+    """A1914: Freigabeliste für einen Zuarbeiter, der nur liest – Lesen nur im eigenen Ordner (dontAsk lehnt alles andere ab),
+    Schreiben, Bash und Netz gesperrt (deny geht vor allow)."""
+    deny = ["Bash", "Edit", "Write", "NotebookEdit", "WebFetch", "WebSearch"]
+    return {"permissions": {"defaultMode": "dontAsk", "allow": list(WERKZEUGE_LESEN), "deny": deny}, "env": {"DISABLE_AUTOUPDATER": "1"}}
+
+
 def programm():
     """claude.exe – nicht der npm-Starter claude.cmd (dort ginge die Befehlszeile durch cmd.exe). AMW_CLAUDE_EXE geht vor."""
     if os.environ.get("AMW_CLAUDE_EXE"):
@@ -107,14 +115,14 @@ def programm():
     return w
 
 
-def befehl(p, einstellungen, modell=None, effort=None, mcp=None, sitzung=None, prog=None):
+def befehl(p, einstellungen, modell=None, effort=None, mcp=None, sitzung=None, prog=None, werkzeuge=WERKZEUGE):
     """Argumente für den Arbeiter. Der Auftrag kommt über stdin (keine Längengrenze, keine Anführungszeichen-Fallen)."""
     effort = effort or EFFORT
     if effort not in EFFORTS:
         raise ArbeiterFehler(f"Effort „{effort}“: {', '.join(EFFORTS)}")
     prog = prog or programm()
     a = [*(prog if isinstance(prog, (list, tuple)) else [prog]), "-p", "--model", modell or MODELL, "--effort", effort, "--restricted",
-         "--tools", ",".join(WERKZEUGE), "--strict-mcp-config", "--settings", einstellungen, "--permission-mode", "dontAsk",
+         "--tools", ",".join(werkzeuge), "--strict-mcp-config", "--settings", einstellungen, "--permission-mode", "dontAsk",
          "--output-format", "stream-json", "--verbose", "--disable-slash-commands"]
     if mcp:
         a += ["--mcp-config", mcp]
@@ -161,10 +169,10 @@ def umgebung(p, basis=None, zusatz=None):
 
 # --- Sollliste für das init-Ereignis ---------------------------------------------------------------------------------------
 
-def soll(p, modell=None, mcp_namen=(), mcp_werkzeuge=(), versionen=None):
+def soll(p, modell=None, mcp_namen=(), mcp_werkzeuge=(), versionen=None, werkzeuge=WERKZEUGE):
     """Sollliste. Gemessen 17.11. (2.1.326): mit dem Rückmelde-Connector steht genau sein Werkzeug zusätzlich in tools.
     versionen: geprüfte Claude-Code-Versionen (Vorgabe GEPRUEFT; () = nicht prüfen – nur die Negativprobe selbst, A1906)."""
-    return {"cwd": p["klon"], "modell": modell or MODELL, "werkzeuge": sorted([*WERKZEUGE, *mcp_werkzeuge]), "mcp": sorted(mcp_namen),
+    return {"cwd": p["klon"], "modell": modell or MODELL, "werkzeuge": sorted([*werkzeuge, *mcp_werkzeuge]), "mcp": sorted(mcp_namen),
             "versionen": GEPRUEFT if versionen is None else tuple(versionen)}
 
 
@@ -326,9 +334,10 @@ def uebergabe(p, basis=None):
 # --- Lauf ------------------------------------------------------------------------------------------------------------------
 
 def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_namen=(), sitzung=None, prog=None, basis_umgebung=None,
-           zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None, haenge=None, geprueft=None):
+           zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None, haenge=None, geprueft=None, nur_lesen=False):
     """Einen Arbeiter im Platz `p` laufen lassen, bis er endet. Rückgabe {"rc", "abweichungen", "init", "ergebnis",
-    "sitzung", "protokoll", "dauer_s", "fehler"}. Abweichung im init-Ereignis → sofort beendet (rc None, abweichungen gesetzt)."""
+    "sitzung", "protokoll", "dauer_s", "fehler"}. Abweichung im init-Ereignis → sofort beendet (rc None, abweichungen gesetzt).
+    nur_lesen (A1914): Werkzeuge nur Glob/Grep/Read, kein Abnahme-Befehl, keine Rückmeldung (Zuarbeit wie der Gegenleser)."""
     if os.name != "nt":
         raise ArbeiterFehler("Arbeiter nur unter Windows (Job-Objekt)")
     if not os.path.isdir(os.path.join(p["klon"], ".git")):
@@ -345,6 +354,9 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
             raise ArbeiterFehler(f"Platz {p['nr']}: dort läuft schon ein Arbeiter")
     from . import rueckmeldung as rm
     werkzeuge = ()
+    liste = WERKZEUGE_LESEN if nur_lesen else WERKZEUGE
+    if nur_lesen:
+        rueckmeldung = False
     if rueckmeldung:                                           # S5b: eigener Connector nur für diesen Lauf (§6a.1)
         mcp = os.path.join(o, "rueckmeldung.json")
         with open(mcp, "w", encoding="utf-8") as f:
@@ -352,12 +364,12 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
         mcp_namen, werkzeuge = (rm.NAME,), (rm.VOLL,)
     datei = os.path.join(o, "einstellungen.json")
     with open(datei, "w", encoding="utf-8") as f:
-        json.dump(freigabe(pruefbefehl, werkzeuge), f, ensure_ascii=False, indent=1)
-    argv = befehl(p, datei, modell, effort, mcp, sitzung, prog)
+        json.dump(freigabe_lesen() if nur_lesen else freigabe(pruefbefehl, werkzeuge), f, ensure_ascii=False, indent=1)
+    argv = befehl(p, datei, modell, effort, mcp, sitzung, prog, werkzeuge=liste)
     if geprueft is None and con is not None:                   # A1906: auch die von der AMW selbst geprüften Versionen
         from . import versionsprobe
         geprueft = versionsprobe.geprueft(con)
-    s = soll(p, modell, mcp_namen, werkzeuge, geprueft)
+    s = soll(p, modell, mcp_namen, werkzeuge, geprueft, werkzeuge=liste)
     protokoll = os.path.join(o, "lauf.jsonl")
     t0 = time.monotonic()
     job = abnahme._job_neu(job_name(p))
@@ -414,7 +426,7 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
                                for c in (inhalt if isinstance(inhalt, list) else [])):
                             z["runden"] = 0
                         fremd = [c.get("name") for c in (inhalt if isinstance(inhalt, list) else [])
-                                 if isinstance(c, dict) and c.get("type") == "tool_use" and c.get("name") not in WERKZEUGE
+                                 if isinstance(c, dict) and c.get("type") == "tool_use" and c.get("name") not in liste
                                  and not str(c.get("name", "")).startswith(tuple(f"mcp__{m}__" for m in mcp_namen))]
                         if fremd:
                             z["abweichungen"] = [f"Werkzeug außerhalb der Liste aufgerufen: {fremd}"]

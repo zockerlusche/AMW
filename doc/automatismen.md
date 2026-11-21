@@ -248,6 +248,27 @@ widersprechende Beschlüsse stapeln.
   (`thema dokument TH12 --dokument D5`). Jeder Agent sieht im Pflicht-Kontext „Projekt-Stil: amw thema zeige …“;
   Grafik-Arbeit richtet sich danach, eine Abweichung ist eine Frage.
 
+### Gegenlesen frischer Agenten (A1914, D1304 v12 §4)
+
+**Wozu:** Eine neue Fassung soll erst zum Menschen, wenn ein unbefangener Leser sie gegen die Beschlüsse gelesen hat – ohne
+dass der Pfleger daran denken muss.
+
+- **Auslöser:** `thema pflegen` eines Agenten (nicht der Mensch, nicht `bestaetigen`). Je Runde ein Gegenleser: Kam seit der
+  letzten Handlung des Menschen (freigeben, zurück, bearbeiten) schon einer, ist die neue Fassung die Antwort darauf und geht
+  ohne zweites Gegenlesen weiter.
+- **Was läuft:** ein losgelöster Prozess (`amw-gegenlesen.py`) meldet sich als leichter Lauf in der Lauf-Schlange an und startet
+  einen frischen `claude -p` wie ein Arbeiter, aber nur lesend: Werkzeuge Glob/Grep/Read, `--restricted`, dontAsk, kein Bash,
+  kein Schreiben, kein Netz, kein Connector, in einem leeren eigenen Ordner mit genau `thema.md`, `beschluesse.md` und – falls es
+  eine gibt – `freigegeben.md`. Die init-Prüfung des Arbeiters gilt (Modell, Werkzeuge, geprüfte Claude-Code-Version); ein
+  Werkzeug außerhalb der Liste beendet den Lauf.
+- **Danach:** Einwände als Auftrag an den Pfleger (ohne Einwände eine Meldung), mit Modell, Kosten und Lauf. Kosten stehen im
+  Ergebnis des Laufs und im Ereignis `thema_gegengelesen`. Ein Fehler wird gemeldet und hält das Thema nicht auf.
+- **Für den Menschen:** solange er liest, Status „in Arbeit“ mit „wird gegengelesen · seit HH:MM“ (Liste und Thema), das Thema
+  ist nicht unter „Für dich“; danach „wartet auf dich“ und das Ergebnis zum Aufklappen. Endet ein Gegenleser nicht, zählt er
+  nach 2 h nicht mehr.
+- **Einstellung:** `themen_gegenlesen` = haiku (Vorgabe) | sonnet | aus – Lead oder Mensch. Rollen Gliederung und Machbarkeit
+  sind vorbereitet (`gegenlesen.ROLLEN`), aber nicht gebaut. Tests stoßen nie einen echten Gegenleser an (`AMW_GEGENLESEN_AUS`).
+
 ## Terminplaner (seit 1.13.0)
 
 **Wozu:** Ein fester Rhythmus für die Tests des Entwicklers und eine gemeinsame Frist für alle Agenten.
