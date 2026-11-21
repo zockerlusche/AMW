@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.150.0 – 21.11.2026 · Pakete bündeln ohne Coder
+- **Neu:** `amw paket buendeln --alle` setzt die freigegebenen p-Pakete zu einem Release-Stand zusammen: in einem eigenen
+  Arbeitsordner, mit neuer Versionsnummer, Versionshinweisen aus den Hinweisen der Pakete und einem Gesamtlauf. Ist er grün,
+  bekommt der Lead „Bündel X.Y.Z bereit“ mit den Befehlen zum Freigeben und Ausliefern.
+- **Neu:** Passt ein Paket nicht auf die anderen, bleibt es draußen und wartet auf den Lead; der Rest wird gebündelt.
+- **Neu:** Projekt-Einstellungen `version_datei`, `changelog_datei`, `gesamtlauf_befehl` und `buendel_schritt` sagen, was ein
+  Projekt zum Bündeln braucht.
+
 ## 1.149.1 – 21.11.2026 · Neue Claude-Code-Version für Arbeiter
 - **Behoben:** Arbeiter auf den Arbeitsplätzen laufen wieder mit der aktuellen Claude-Code-Version 2.1.329. Die AMW hatte sie
   abgebrochen, weil diese Version noch nicht geprüft war. Die Probe, dass ein Arbeiter nichts außerhalb seines Platzes ändern

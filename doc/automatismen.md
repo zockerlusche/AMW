@@ -71,7 +71,7 @@ obwohl er arbeitet – niemand merkt es.
 - Grenze: Das Startskript nach einem PC-Neustart prüft den Hook nicht, und für seine Starts gibt es keine Meldung
   „meldet sich nicht an“ (es startet Claude direkt, ohne die AMW).
 
-## Bündeln (seit 1.149.0)
+## Bündeln (seit 1.150.0)
 
 **Wozu:** p-Pakete ohne Coder ausliefern – bisher setzte ein Coder die freigegebenen Pakete von Hand aufeinander, hob die
 Nummer und schrieb die Versionshinweise.
