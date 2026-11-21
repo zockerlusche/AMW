@@ -33,7 +33,6 @@ class ThemenSeite(Rundgang):
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.geaendert)
         themen.pflegen(self.con, self.pid, "CC1", self.geaendert, "An dich getrennt von Mitlesen.\n\nFragen bleiben ein eigener Menüpunkt.")
 
-    ZEIGEN = "zustand.themaOffen = null; zeige('themen')"
     LISTE = "document.querySelector('.th-liste .th-zeile')"
 
     def test_unterschied_zur_freigabe(self):
@@ -80,7 +79,8 @@ class ThemenSeite(Rundgang):
     def test_rundgang_vorher_nachher(self):
         for g in ("pc", "handy"):
             for th in ("hell", "dunkel"):
-                self.assertEqual(self.besuchen("start", "themen-nachher", bereit="typeof zeige === 'function'", tun=self.ZEIGEN,
-                                               danach=self.LISTE, g=g, t=th), [], f"nachher {g} {th}")
+                # direkt über die Adresse (echtes Neuladen, kein Thema offen): über „start“ + zeige('themen') überschrieb die
+                # langsam geladene Startseite unter Last die Themen wieder (L2882, sichtStart zeichnet nach await neu)
+                self.assertEqual(self.besuchen("themen", "themen-nachher", bereit=self.LISTE, g=g, t=th), [], f"nachher {g} {th}")
             if g == "handy":                                             # Auflage (a): am Handy zuerst die Liste, kein Thema offen
                 self.assertTrue(self.tab.js("getComputedStyle(document.querySelector('.th-thema')).display === 'none'"))
