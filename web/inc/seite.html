@@ -1963,11 +1963,24 @@ function seit(x) {
   if (s < 86400) return t("vor_h", { n: Math.round(s / 3600) });
   const tage = Math.round(s / 86400); return tage === 1 ? t("vor_t1") : t("vor_t", { n: tage });
 }
-async function holen(weg, p = projekt) {                 /* p: anderes Projekt (A1889: Nachrichten über alle Projekte) */
+/* A1907: Lade-Nummer je Seitenwechsel und je neuem Zeichnen der Seite (zeige, rahmen – also auch ein Reiter derselben
+   Seite). Was vorher angefragt wurde und erst danach ankommt, verwirft holen() still – das Versprechen bleibt offen, das
+   Alte zeichnet nicht weiter. Sonst zeichnete eine langsam geladene Seite (z. B. die Startseite beim ersten Laden) über die
+   inzwischen gewählte (L2882), und ein Reiter hängte sein Ergebnis an den nächsten. Was nicht zum Inhalt der Seite gehört
+   (Projektliste, Kopfzeile, Übertragung online, Dialoge, Gespräch am Objekt), holt abrufen() ohne diese Regel. */
+let wechselNr = 0;
+const veraltet = () => new Promise(() => {});
+async function abrufen(weg, p = projekt) {               /* p: anderes Projekt (A1889: Nachrichten über alle Projekte) */
   const fuerDich = Date.now() - laden.eingabe < 1500;   /* A1676: nur Abrufe, die du ausgelöst hast – nie der Takt im Hintergrund */
   if (fuerDich) laden.an();
   try { const r = await fetch(ziel(weg, p), { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return await r.json(); }
   finally { if (fuerDich) laden.aus(); }
+}
+async function holen(weg, p = projekt) {
+  const nr = wechselNr;
+  let d;
+  try { d = await abrufen(weg, p); } catch (e) { if (nr === wechselNr) throw e; return veraltet(); }   /* auch Fehler der alten Seite nicht zeigen */
+  return nr === wechselNr ? d : veraltet();
 }
 /* Ladeanzeige (A1676, Marcel W2076, F5341 A): das AMW-Logo, die zwei Kreise wandern auf den Linien des Schriftzugs, der
    Farbverlauf zieht mit. Erscheint erst nach 0,3 s (kurze Abrufe flackern nicht); bei „Bewegung reduzieren“ nur sanftes
@@ -2031,7 +2044,7 @@ const uebertragung = (() => {
   async function nachsehen() {
     uhr = null; if (!offen.length) return;
     anbringen();
-    let r; try { r = await holen("/api/eingang?ids=" + offen.map(x => x.id).join(",")); } catch (e) { uhr = setTimeout(nachsehen, 5000); return; }
+    let r; try { r = await abrufen("/api/eingang?ids=" + offen.map(x => x.id).join(",")); } catch (e) { uhr = setTimeout(nachsehen, 5000); return; }
     for (const x of r) {
       if (x.status === "neu") continue;
       const o = offen.find(y => y.id === x.id); offen = offen.filter(y => y.id !== x.id);
@@ -2091,7 +2104,7 @@ const farbe = p => FARBEN[p?.farbe] || FARBEN.bernstein;
 const pcHinweis = () => projekte.length > 1 ? t("pc_marke_h") : null;       /* erste Zeile: als Hinweistext statt als Kürzel */
 const pcMarke = () => el("span", { class: "pc-marke", title: t("pc_marke_h") }, t("pc_marke"));
 async function projekteLaden() {
-  let d; try { d = await holen("/api/projekte"); } catch (e) { return; }
+  let d; try { d = await abrufen("/api/projekte"); } catch (e) { return; }   /* A1907: das gewählte Projekt gilt für jede Seite */
   projekte = d.projekte || [];
   let gewollt = null, ausLink = false;
   try { gewollt = new URLSearchParams(location.search).get("projekt"); ausLink = !!gewollt; } catch (e) {}
@@ -2208,7 +2221,7 @@ function projektNeuDialog() {
     rwZaehlen();
   };
   regeln.addEventListener("change", rwZeichnen);
-  holen("/api/regelwerk?sprache=" + sprache).then(d => { vorl = d;
+  abrufen("/api/regelwerk?sprache=" + sprache).then(d => { vorl = d;
     for (const r of d.vorlage.regeln) {
       haken[r.nr] = el("input", { type: "checkbox" }); haken[r.nr].checked = d.vorgabe.includes(r.nr) || (leadChat.checked && !!r.chat_lead);
       haken[r.nr].addEventListener("change", rwZaehlen);
@@ -2254,8 +2267,9 @@ function projektWechseln(uid) {
 
 /* --- Kopf, Navigation ---------------------------------------------------------------------- */
 async function kopfAktualisieren() {
+  const nr = wechselNr;                                  /* A1907: Kopfzeile immer; wer darauf wartet (Startseite, erstes Laden), nur ohne Wechsel */
   try {
-    const d = await holen("/api/start"); zustand.start = d;
+    const d = await abrufen("/api/start"); zustand.start = d;
     if (!spracheGewaehlt && ["de", "en"].includes(d.sprache_vorgabe) && d.sprache_vorgabe !== sprache) {   /* Vorgabe der Installation */
       spracheGewaehlt = true; sprache = d.sprache_vorgabe; feste_texte(); if (zustand.sicht) zeige(zustand.sicht); }
     const wv = d.online?.web_version;
@@ -2283,6 +2297,7 @@ async function kopfAktualisieren() {
   } catch (e) {
     $("#signale").replaceChildren(el("span", { class: "signal" }, el("span", { class: "punkt rot" }), t("s_dienst_weg")));
   }
+  if (nr !== wechselNr) return veraltet();
 }
 /* ruhig = Selbst-Aktualisierung: keine Einblend-Animation, Scrollposition bleibt (sonst „springen“ die Kacheln) */
 let ruhig = false;
@@ -2307,6 +2322,7 @@ function wissenReiter(aktiv) {
 const wissenExtern = () => [["dokumente", "n_dokumente"], ["releases", "n_releases"]].map(([s, k]) =>
   el("button", { type: "button", onclick: () => zeige(s) }, t(k)));
 function zeige(sicht, still = false) {
+  if (!still) wechselNr++;                               /* A1907: was die vorige Seite noch lädt, zeichnet nicht mehr */
   ruhig = still;
   const pos = [$("#inhalt").scrollTop, window.scrollY];
   const offen = still && zustand.sicht === sicht        /* still neu gezeichnet: aufgeklappte Abschnitte bleiben offen */
@@ -2375,6 +2391,7 @@ function standPruefen() {
 }
 /* Klasse „still“ erst hier setzen, im selben Schritt wie das Ersetzen – sonst liefe die Animation am alten Inhalt */
 function rahmen(titel, ...rest) {
+  wechselNr++;                                           /* A1907: neu gezeichnet (auch ein Reiter derselben Seite) – Altes zeichnet nicht dazu */
   const m = $("#inhalt"); m.classList.toggle("still", ruhig); m.classList.remove("geteilt-seite");
   const gleich = kopfStand.sicht === zustand.sicht;            /* dieselbe Seite neu gezeichnet: Untermenüs bleiben waagrecht, wo sie waren */
   kopfStand.lage = gleich ? Object.fromEntries([...m.querySelectorAll(":scope > .seitenkopf > *")].map(e => [e.classList[0], (e.querySelector(".reiter-zeile") || e).scrollLeft])) : {};
@@ -2650,10 +2667,10 @@ function startbefehlBlock(s) {
     umschalter, zeilen, el("p", { class: "sehrleise", style: "margin:6px 0 0;font-size:12px" }, t("sb_h")));
 }
 async function startbefehlDialog(k) {
-  let d; try { d = await holen("/api/einstellungen"); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
+  let d; try { d = await abrufen("/api/einstellungen"); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
   const a = (d.agenten || []).find(x => x.kennung === k);
   if (!a?.start) { toast(t("sb_fehlt"), true); return; }
-  let e = null; try { e = (await holen("/api/agent?kennung=" + encodeURIComponent(k))).empfehlung; } catch (f) {}
+  let e = null; try { e = (await abrufen("/api/agent?kennung=" + encodeURIComponent(k))).empfehlung; } catch (f) {}
   dialog(t("sb_titel", { x: k }), e && e.passt === false ? el("p", { class: "bernstein-text", style: "margin-top:0" },
     t("sb_empf", { x: modellStufe(e.modell, e.denkstufe), y: modellStufe(e.profil.modell, e.profil.denkstufe) })) : null, startbefehlBlock(a.start));
 }
@@ -3125,7 +3142,7 @@ function gespraechAnsicht(kennung, profil) {
       if (modus === "aelter") q += "&vor=" + vor;
     }
     let d;
-    try { d = await holen(q); }
+    try { d = await abrufen(q); }
     catch (e) { if (modus === "voll") liste.replaceChildren(el("div", { class: "leer-gs" }, t("fehler", { x: e.message }))); return; }
     if (!wurzel.isConnected) return;
     if (d.warten) { kopf.replaceChildren(); liste.replaceChildren(el("div", { class: "leer-gs" }, t("g_warten"))); uhrwerkStellen(5000); return; }
@@ -3169,7 +3186,7 @@ function gespraechAnsicht(kennung, profil) {
   return wurzel;
 }
 async function agentDialog(kennung, reiter) {
-  let d; try { d = await holen("/api/agent?kennung=" + encodeURIComponent(kennung)); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
+  let d; try { d = await abrufen("/api/agent?kennung=" + encodeURIComponent(kennung)); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
   /* Ein Eintrag = eigener Block: Kopfzeile (Nummer, Kennzeichen, Zeit), darunter der Text; farbiger Rand nach Art/Status */
   const eintrag = (art, ref, etikett, meta, text, zusatz, post) => el("div", { class: "eintrag " + art },
     el("div", { class: "eintrag-kopf" }, el("span", { class: "ref" }, ref), etikett ? el("span", { class: "etikett" }, etikett) : null,
@@ -3496,7 +3513,7 @@ function postKnopf(bezug, text, vorschlag) {
 function gespraechZu(bezug, text, vorschlag) {
   const liste = el("div", { class: "nr-zu-liste" }, el("div", { class: "sehrleise" }, "…"));
   const kopf = el("h4", {}, t("nr_zu_titel", { n: "…" }));
-  holen("/api/nachrichten").then(d => {
+  abrufen("/api/nachrichten").then(d => {
     const alle = [...d.gesendet.map(x => ({ ...x, ich: 1 })), ...d.eingang].filter(x => x.bezug?.kuerzel === bezug).sort((a, b) => a.id - b.id);
     kopf.textContent = t("nr_zu_titel", { n: alle.length });
     liste.replaceChildren(...(alle.length ? alle.map(x => el("div", { class: "nr-blase" + (x.ich ? " ich" : "") },
@@ -3818,7 +3835,7 @@ function pkTabelle(m, d) {
 async function mitlesenDialog(nr) {
   const inhalt = el("div", { class: "pk-mitlesen mono" }, t("lade_text"));
   const laden = async () => {
-    try { const r = await holen("/api/paket/mitlesen?platz=" + nr);
+    try { const r = await abrufen("/api/paket/mitlesen?platz=" + nr);
       inhalt.replaceChildren(...(r.zeilen.length ? r.zeilen.map(z => el("div", { class: "pk-ml " + z.art },
         el("b", {}, t("pk_ml_" + z.art)), " ", z.text)) : [el("div", { class: "sehrleise" }, t("pk_ml_leer"))]));
       inhalt.scrollTop = inhalt.scrollHeight; }
@@ -3843,7 +3860,7 @@ function themenAnsicht(th, q) {
         + (x.unklar ? " · " + t("th_unklar", { n: x.unklar }) : ""))))));
 }
 async function themaDialog(id) {
-  let s; try { s = await holen("/api/thema?id=" + id); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
+  let s; try { s = await abrufen("/api/thema?id=" + id); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
   const z = s.zusammenfassung;
   const bilder = s.dokumente.filter(d => d.vorschau === "bild" && (!API || d.online));
   dialog(`TH${s.id} · ${s.name}`, el("div", { class: "thema-seite" },
@@ -4091,7 +4108,7 @@ function kiVermerkBlock(d, knopf, tun) {
     el("p", { class: "sehrleise", style: "margin:0;font-size:12.5px" }, t("kv_erkl")));
 }
 async function dokumentDialog(id, v) {
-  let d; try { d = await holen(`/api/dokument?id=${id}` + (v ? `&v=${v}` : "")); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
+  let d; try { d = await abrufen(`/api/dokument?id=${id}` + (v ? `&v=${v}` : "")); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
   const ver = d.versionen.find(x => x.nr === d.gezeigt), nurPc = nurAmPc({ ...ver, online: d.online });
   /* online ist ein Text keine Datei auf dem Webspace – Herunterladen dann aus dem gezeigten Text */
   const url = API && ver.vorschau === "text" ? URL.createObjectURL(new Blob([d.text || ""], { type: "text/plain;charset=utf-8" })) : dokUrl(d.id, ver.nr);
@@ -4100,7 +4117,7 @@ async function dokumentDialog(id, v) {
       el("div", { class: "dk-aktionen", style: "justify-content:center" },
         el("button", { class: "knopf haupt", type: "button", onclick: () => tun("/api/dokument/online", { an: true }) }, t("dk_anfordern")),
         d.bezug_art ? el("button", { class: "klein-knopf", type: "button", onclick: async e => { e.target.disabled = true;
-          try { const l = (await holen(`/api/dokumente?bezug_art=${d.bezug_art}&bezug_id=${d.bezug_id}`)).dokumente.filter(nurAmPc);
+          try { const l = (await abrufen(`/api/dokumente?bezug_art=${d.bezug_art}&bezug_id=${d.bezug_id}`)).dokumente.filter(nurAmPc);
             for (const x of l) await schicken("/api/dokument/online", { id: x.id, an: true }); hg.remove(); }
           catch (x) { toast(t("fehler", { x: x.message }), true); e.target.disabled = false; } } },
           t("dk_alle_anfordern", { x: bezugRef(d.bezug_art, d.bezug_id) })) : null))
@@ -4263,7 +4280,7 @@ async function dokVollbild(d, ver, rahmen) {
   }
   let bilder = [{ id: d.id, nr: ver.nr, titel: d.titel }];
   if (d.bezug_art) try {
-    const l = (await holen(`/api/dokumente?bezug_art=${d.bezug_art}&bezug_id=${d.bezug_id}`)).dokumente.filter(x => x.vorschau === "bild" && !nurAmPc(x)).reverse();
+    const l = (await abrufen(`/api/dokumente?bezug_art=${d.bezug_art}&bezug_id=${d.bezug_id}`)).dokumente.filter(x => x.vorschau === "bild" && !nurAmPc(x)).reverse();
     if (l.some(x => x.id === d.id)) bilder = l.map(x => x.id === d.id ? bilder[0] : { id: x.id, nr: x.version, titel: x.titel });
   } catch (e) { /* dann eben nur dieses Bild */ }
   bildVollbild(bilder, bilder.findIndex(x => x.id === d.id));
@@ -4385,7 +4402,7 @@ async function dokVergleich(d, a, b) {
   const va = d.versionen.find(x => x.nr === a), vb = d.versionen.find(x => x.nr === b);
   if (va.vorschau === "text" && vb.vorschau === "text") {
     try {
-      const [ta, tb] = await Promise.all([a, b].map(n => holen(`/api/dokument?id=${d.id}&v=${n}`).then(x => x.text || "")));
+      const [ta, tb] = await Promise.all([a, b].map(n => abrufen(`/api/dokument?id=${d.id}&v=${n}`).then(x => x.text || "")));
       inhalt.replaceChildren(diffAnsicht(ta, tb));
     } catch (e) { inhalt.replaceChildren(el("div", { class: "leer" }, t("fehler", { x: e.message }))); }
     return;
@@ -4437,7 +4454,7 @@ function dokBearbeiten(d, ver) {
     }
   }
   async function konflikt() {
-    let neu; try { neu = await holen(`/api/dokument?id=${d.id}`); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
+    let neu; try { neu = await abrufen(`/api/dokument?id=${d.id}`); } catch (e) { toast(t("fehler", { x: e.message }), true); return; }
     const k = dialog(t("dk_konflikt_titel", { a: neu.gezeigt }), diffAnsicht(neu.text || "", feld.value),
       el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", onclick: () => { basis = neu.gezeigt; k.remove(); speichern(); } },
         t("dk_trotzdem", { n: neu.gezeigt + 1 }))));
@@ -5407,7 +5424,7 @@ const fragenStand = (o, n) => n === 1 ? t(o ? "au_frage_offen" : "au_frage_beant
 /* Eine Aufgabe ganz: Auftrag, Stand, Wartegründe, Fragen (mit Antwort), Dokumente, Beschlüsse, Verlauf, Läufe, Prüfungen.
    Eigene Aufgaben des Entwicklers: erledigt (Notiz = Beleg) / später; zu jeder: Antwort an den Zuständigen. */
 async function aufgabeDialog(id) {
-  let a; try { a = await holen("/api/aufgabe?id=" + id); }
+  let a; try { a = await abrufen("/api/aufgabe?id=" + id); }
   catch (e) { toast(API ? t("au_nur_pc", { a: id }) : t("fehler", { x: e.message }), true); return; }
   const offen = !["fertig", "verworfen"].includes(a.status), an = a.angelegt_von && !["Entwickler", "AMW"].includes(a.angelegt_von) ? a.angelegt_von : (a.zustaendig || "Lead");
   const notiz = el("textarea", { rows: 3, placeholder: t(a.fuer_dich && offen ? "au_notiz_ph" : "au_antwort_ph", { x: an }) });
