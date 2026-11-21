@@ -68,7 +68,7 @@
   ],
   [
    "`--pakettyp`",
-   "`normal` (Vorgabe) oder `test-schreiben`, wenn das Paket nur einen neuen Test schreibt"
+   "`normal` (Vorgabe); `test-schreiben`: ein Test zu einer Änderung (rot gegen den alten Stand); `test-ergaenzen`: nur Tests für bestehenden Code (grün, nur Testdateien)"
   ],
   [
    "`--rang`",
@@ -110,12 +110,20 @@
    "`--nach`: das Paket braucht das Ergebnis der anderen Aufgabe. `--nie-gleichzeitig`: die beiden stören sich, egal in welcher Reihenfolge. `--gleiche-ressource`: viele Pakete teilen sich etwas (z. B. dieselbe Testdatenbank) – sie bekommen denselben Namen und laufen nacheinander."
   ],
   [
+   "Ein Paket wartet nach der Prüfung auf mich – es passt aber. Wie kommt es in die Merge-Liste?",
+   "Manche Pakete gehen nach der Prüfung immer erst an dich bzw. den Lead, etwa der Pakettyp „test-schreiben“ oder ein Hinweis auf Zugriffe nach außen, der sich beim Lesen als harmlos zeigt. Die AMW hebt den geprüften Stand dabei auf. Hast du ihn gelesen und er passt: `amw paket annehmen <nr> --grund „was du gelesen hast“` (Lead oder du). Das Paket steht dann unter „Bereit zum Merge“ und wird freigegeben und ausgeliefert wie jedes andere."
+  ],
+  [
    "Ein p-Paket hängt fest – wie gebe ich es einem interaktiven Agenten?",
    "Steht es auf „wartet auf interaktiv“, „blockiert“, „unklar“ oder „abgebrochen“: `amw aufgabe aendern <nr> --paket agent --agent <Kennung>`. Ab dann gilt wieder der normale Status der Aufgabe; die Zustände bis dahin bleiben im Planungs-Protokoll."
   ],
   [
    "Was macht der Pakettyp „test-schreiben“?",
-   "Für Pakete, die nur einen neuen Test schreiben. Bei ihnen ist der Abnahme-Befehl vor dem Bau naturgemäß nicht rot; dafür muss der neue Test gegen den alten Stand rot und gegen den neuen grün sein, und der Lead liest ihn."
+   "Für Pakete, die einen Test zu einer Änderung schreiben. Bei ihnen ist der Abnahme-Befehl vor dem Bau naturgemäß nicht rot; dafür muss der neue Test gegen den alten Stand rot und gegen den neuen grün sein, und der Lead liest ihn."
+  ],
+  [
+   "Und „test-ergaenzen“?",
+   "Für Pakete, die nur Tests für bestehenden, unveränderten Code schreiben. Solche Tests sind gegen den heutigen Code ehrlicherweise grün – darum prüft die AMW hier nicht „rot gegen alt“, sondern: Das Paket ändert ausschließlich Testdateien, die Tests laufen grün, und mindestens ein Test wurde wirklich ausgeführt (übersprungene zählen nicht). Danach liest der Lead die Tests und nimmt das Paket an (`amw paket annehmen`)."
   ],
   [
    "Warum muss ich manche Pakete erst ansehen, bevor ich sie freigebe?",
