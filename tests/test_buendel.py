@@ -288,6 +288,8 @@ class A1909(Basis):
         r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
         self.assertNotIn(b"\r", self.roh(ziel, "CHANGELOG.md"))
         self.assertNotIn(b"\r", self.roh(ziel, "web/hilfe/a.json"))                              # A1911: jede Datei neu, nicht je nach Stat
+        cr = {n: self.roh(ziel, n).count(b"\r") for n in g(ziel, "ls-files").splitlines()}       # L2919: 357 Dateien w/crlf bei
+        self.assertEqual({n: z for n, z in cr.items() if z}, {})                                  # sauberem status – CR im ganzen Baum
         self.assertEqual(g(ziel, "status", "--porcelain", "--untracked-files=no"), "")           # Index frisch, ohne Inhaltsvergleich
         self.assertTrue(betrieb.pruefstand(["python -c pass"], ziel)[2])
 
