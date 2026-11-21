@@ -25,7 +25,7 @@ A p package is a small, clearly checkable task that a fresh `claude -p` worker d
 | `--nach` | only after these tasks (as before) |
 | `--nie-gleichzeitig` | never at the same time as these tasks, e.g. `A12,A13` |
 | `--gleiche-ressource` | a name; packages with the same name run one after the other |
-| `--pakettyp` | `normal` (default) or `test-schreiben` when the package only writes a new test |
+| `--pakettyp` | `normal` (default); `test-schreiben`: a test for a change (red against the old state); `test-ergaenzen`: only tests for existing code (green, test files only) |
 | `--rang` | lower = earlier (as before) |
 
 ## Common problems
@@ -48,11 +48,17 @@ One that checks exactly what the package should deliver, runs fast and is red to
 ### When `--nach`, when `--nie-gleichzeitig`, when `--gleiche-ressource`?
 `--nach`: the package needs the result of the other task. `--nie-gleichzeitig`: the two get in each other's way, in either order. `--gleiche-ressource`: many packages share something (e.g. the same test database) – they get the same name and run one after the other.
 
+### A package waits for me after the check – but it is fine. How does it get into the merge list?
+Some packages always go to you or the lead after the check first, for example the package type “test-schreiben” or a hint about outside access that turns out to be harmless when you read it. AMW keeps the checked state. Once you have read it and it is fine: `amw paket annehmen <no> --grund "what you read"` (lead or you). The package then appears under “Ready to merge” and is approved and delivered like any other.
+
 ### A p package is stuck – how do I hand it to an interactive agent?
 If it is “waiting for interactive”, “blocked”, “unclear” or “aborted”: `amw aufgabe aendern <no> --paket agent --agent <id>`. From then on the normal task status applies again; the states up to then stay in the planning log.
 
 ### What does the package type “test-schreiben” do?
-For packages that only write a new test. Their acceptance command is naturally not red before the work; instead the new test must be red against the old state and green against the new one, and the lead reads it.
+For packages that write a test for a change. Their acceptance command is naturally not red before the work; instead the new test must be red against the old state and green against the new one, and the lead reads it.
+
+### And “test-ergaenzen”?
+For packages that only write tests for existing, unchanged code. Such tests are honestly green against today's code – so AMW does not check “red against old” here, but: the package changes test files only, the tests run green, and at least one test really ran (skipped ones do not count). Afterwards the lead reads the tests and accepts the package (`amw paket annehmen`).
 
 ### Why do I have to look at some packages before I approve them?
 If a package changes code that runs online on the server (`web/*.php`), it shows “review first” in the list. “Approve all” skips it; you approve it on its own with “Reviewed – approve” (in the terminal `amw paket freigeben <number> --blick`). Check: new endpoints and their sign-in, outbound calls, shell calls, file and database access, and which data is output. Under Settings › Project only you decide whether a review is needed for server code only, for every package or never, and whether outbound calls stop a package or only show as a note. If a delivery changes server code, the release notes say “Server-Code geändert” (server code changed).

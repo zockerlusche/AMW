@@ -68,7 +68,7 @@
   ],
   [
    "`--pakettyp`",
-   "`normal` (default) or `test-schreiben` when the package only writes a new test"
+   "`normal` (default); `test-schreiben`: a test for a change (red against the old state); `test-ergaenzen`: only tests for existing code (green, test files only)"
   ],
   [
    "`--rang`",
@@ -110,12 +110,20 @@
    "`--nach`: the package needs the result of the other task. `--nie-gleichzeitig`: the two get in each other's way, in either order. `--gleiche-ressource`: many packages share something (e.g. the same test database) – they get the same name and run one after the other."
   ],
   [
+   "A package waits for me after the check – but it is fine. How does it get into the merge list?",
+   "Some packages always go to you or the lead after the check first, for example the package type “test-schreiben” or a hint about outside access that turns out to be harmless when you read it. AMW keeps the checked state. Once you have read it and it is fine: `amw paket annehmen <no> --grund \"what you read\"` (lead or you). The package then appears under “Ready to merge” and is approved and delivered like any other."
+  ],
+  [
    "A p package is stuck – how do I hand it to an interactive agent?",
    "If it is “waiting for interactive”, “blocked”, “unclear” or “aborted”: `amw aufgabe aendern <no> --paket agent --agent <id>`. From then on the normal task status applies again; the states up to then stay in the planning log."
   ],
   [
    "What does the package type “test-schreiben” do?",
-   "For packages that only write a new test. Their acceptance command is naturally not red before the work; instead the new test must be red against the old state and green against the new one, and the lead reads it."
+   "For packages that write a test for a change. Their acceptance command is naturally not red before the work; instead the new test must be red against the old state and green against the new one, and the lead reads it."
+  ],
+  [
+   "And “test-ergaenzen”?",
+   "For packages that only write tests for existing, unchanged code. Such tests are honestly green against today's code – so AMW does not check “red against old” here, but: the package changes test files only, the tests run green, and at least one test really ran (skipped ones do not count). Afterwards the lead reads the tests and accepts the package (`amw paket annehmen`)."
   ],
   [
    "Why do I have to look at some packages before I approve them?",

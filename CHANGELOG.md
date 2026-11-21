@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.150.2 – 21.11.2026 · Geprüfte Pakete annehmen, Tests für bestehenden Code
+- **Behoben:** Ein Paket, das nach der Prüfung an den Lead geht (z. B. „test-schreiben“), kam bisher nie in die Merge-Liste,
+  und sein geprüfter Stand lag nur noch im Archiv. Die AMW hebt den Stand jetzt im Projekt auf, und `amw paket annehmen <nr>
+  --grund …` (Lead oder du) bringt das Paket nach dem Lesen unter „Bereit zum Merge“.
+- **Neu:** Pakettyp `test-ergaenzen` für Pakete, die nur Tests für bestehenden Code schreiben: Sie dürfen ausschließlich
+  Testdateien ändern, ihre Tests müssen grün laufen (mindestens einer wirklich ausgeführt), und der Lead liest sie. Der Typ
+  `test-schreiben` bleibt für einen Test zu einer Änderung (rot gegen den alten Stand).
+
 ## 1.150.1 – 21.11.2026 · Nacharbeit Rechte, Leerlauf, Wochenlimit
 - **Behoben:** Einstellungen, die Rechte vergeben (Prüfer der Pakete, Empfänger des Leerlauf-Weckrufs, Halt beim Wochenlimit,
   Blick und Außen-Prüfung vor der Merge-Freigabe), setzt „Entwickler“ nur noch aus dem eigenen Terminal oder der Workbench –

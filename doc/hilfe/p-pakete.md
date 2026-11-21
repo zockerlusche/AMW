@@ -25,7 +25,7 @@ Ein p-Paket ist eine kleine, klar prüfbare Aufgabe, die ein frischer `claude -p
 | `--nach` | erst nach diesen Aufgaben (wie bisher) |
 | `--nie-gleichzeitig` | nie gleichzeitig mit diesen Aufgaben, z. B. `A12,A13` |
 | `--gleiche-ressource` | ein Name; Pakete mit demselben Namen laufen nacheinander |
-| `--pakettyp` | `normal` (Vorgabe) oder `test-schreiben`, wenn das Paket nur einen neuen Test schreibt |
+| `--pakettyp` | `normal` (Vorgabe); `test-schreiben`: ein Test zu einer Änderung (rot gegen den alten Stand); `test-ergaenzen`: nur Tests für bestehenden Code (grün, nur Testdateien) |
 | `--rang` | kleiner = früher (wie bisher) |
 
 ## Typische Fehler
@@ -48,11 +48,17 @@ Einer, der genau das prüft, was das Paket liefern soll, schnell läuft und heut
 ### Wann `--nach`, wann `--nie-gleichzeitig`, wann `--gleiche-ressource`?
 `--nach`: das Paket braucht das Ergebnis der anderen Aufgabe. `--nie-gleichzeitig`: die beiden stören sich, egal in welcher Reihenfolge. `--gleiche-ressource`: viele Pakete teilen sich etwas (z. B. dieselbe Testdatenbank) – sie bekommen denselben Namen und laufen nacheinander.
 
+### Ein Paket wartet nach der Prüfung auf mich – es passt aber. Wie kommt es in die Merge-Liste?
+Manche Pakete gehen nach der Prüfung immer erst an dich bzw. den Lead, etwa der Pakettyp „test-schreiben“ oder ein Hinweis auf Zugriffe nach außen, der sich beim Lesen als harmlos zeigt. Die AMW hebt den geprüften Stand dabei auf. Hast du ihn gelesen und er passt: `amw paket annehmen <nr> --grund „was du gelesen hast“` (Lead oder du). Das Paket steht dann unter „Bereit zum Merge“ und wird freigegeben und ausgeliefert wie jedes andere.
+
 ### Ein p-Paket hängt fest – wie gebe ich es einem interaktiven Agenten?
 Steht es auf „wartet auf interaktiv“, „blockiert“, „unklar“ oder „abgebrochen“: `amw aufgabe aendern <nr> --paket agent --agent <Kennung>`. Ab dann gilt wieder der normale Status der Aufgabe; die Zustände bis dahin bleiben im Planungs-Protokoll.
 
 ### Was macht der Pakettyp „test-schreiben“?
-Für Pakete, die nur einen neuen Test schreiben. Bei ihnen ist der Abnahme-Befehl vor dem Bau naturgemäß nicht rot; dafür muss der neue Test gegen den alten Stand rot und gegen den neuen grün sein, und der Lead liest ihn.
+Für Pakete, die einen Test zu einer Änderung schreiben. Bei ihnen ist der Abnahme-Befehl vor dem Bau naturgemäß nicht rot; dafür muss der neue Test gegen den alten Stand rot und gegen den neuen grün sein, und der Lead liest ihn.
+
+### Und „test-ergaenzen“?
+Für Pakete, die nur Tests für bestehenden, unveränderten Code schreiben. Solche Tests sind gegen den heutigen Code ehrlicherweise grün – darum prüft die AMW hier nicht „rot gegen alt“, sondern: Das Paket ändert ausschließlich Testdateien, die Tests laufen grün, und mindestens ein Test wurde wirklich ausgeführt (übersprungene zählen nicht). Danach liest der Lead die Tests und nimmt das Paket an (`amw paket annehmen`).
 
 ### Warum muss ich manche Pakete erst ansehen, bevor ich sie freigebe?
 Ändert ein Paket Code, der online auf dem Server läuft (`web/*.php`), steht es mit „erst ansehen“ in der Liste. „Alle freigeben“ lässt es aus; du gibst es einzeln mit „Angesehen – freigeben“ frei (im Terminal `amw paket freigeben <Nummer> --blick`). Achte dabei auf: neue Endpunkte und deren Anmeldung, Aufrufe nach außen, Shell-Aufrufe, Datei- und Datenbank-Zugriffe und welche Daten ausgegeben werden. Unter Einstellungen › Projekt stellst nur du ein, ob der Blick nur bei Server-Code, bei jedem Paket oder nie nötig ist, und ob Aufrufe nach außen ein Paket anhalten oder nur als Hinweis erscheinen. Ändert eine Auslieferung Server-Code, steht im Versionshinweis „Server-Code geändert“.
