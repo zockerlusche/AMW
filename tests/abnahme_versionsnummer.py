@@ -46,6 +46,9 @@ class Abnahme(unittest.TestCase):
         os.makedirs(os.path.join(self.repo, "amw"), exist_ok=True)
         with open(os.path.join(self.repo, "amw", "__init__.py"), "w", encoding="utf-8") as f:
             f.write(f'__version__ = "{version}"\n')
+        if zweig:                                    # A1897: eigener Inhalt je Zweig – gleicher Baum gälte als gleicher Stand
+            with open(os.path.join(self.repo, f"{zweig}.txt"), "w", encoding="utf-8") as f:
+                f.write(zweig + "\n")
         self.g("add", "-A")
         self.g("commit", "-q", "-m", version)
         sha = self.g("rev-parse", "HEAD")
