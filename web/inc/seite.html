@@ -1124,6 +1124,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   .projekt-chip { display: inline-flex; align-items: center; gap: 7px; max-width: 46vw; min-height: 36px; padding: 4px 11px; border: 1px solid var(--linie2);
     border-radius: 18px; background: var(--flaeche); color: var(--tinte); font: 600 13px var(--titel); letter-spacing: .03em; cursor: pointer; }
   .projekt-chip span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .projekt-chip[hidden] { display: none; }   /* A1903: bis die Projektliste da ist, kein leerer Knopf (L2908: „Knopf ohne Namen“ unter Last) */
   .dialog-hg.pw-hg { background: rgba(0,0,0,.55); }
   .pw-liste { left: 0 !important; right: 0; top: auto !important; bottom: 0; width: auto; max-width: none; border-radius: 16px 16px 0 0;
     padding: 10px 12px max(18px, env(safe-area-inset-bottom)); }
