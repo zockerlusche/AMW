@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.152.5 – 21.11.2026 · Pakete bleiben freigegeben, Arbeitsplätze wie das Projekt
+- **Behoben:** Wird ein Bündel nicht ausgeliefert, bleiben seine Pakete freigegeben – das nächste `amw paket buendeln --alle`
+  nimmt sie ohne neue Freigabe wieder mit.
+- **Behoben:** Arbeitsplätze und die Prüfung der Pakete haben dieselben Zeilenenden wie das Projekt. Vorher sah ein Arbeiter
+  jede Datei, die er anfasste, ganz als geändert, und die Tests der Prüfung liefen auf anderen Dateien als im Projekt.
+
 ## 1.152.3 – 21.11.2026 · Bündel-Gesamtlauf läuft wieder
 - **Behoben:** Der Gesamtlauf eines Bündels bricht nicht mehr mit „Arbeitsbaum verschoben“ ab, wenn die Nacharbeit (etwa die
   Webseite bauen) Dateien mit gleichem Inhalt neu schreibt. Das Bündel nimmt jetzt dieselben Zeilenenden wie das Projekt.
