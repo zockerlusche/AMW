@@ -38,7 +38,7 @@
   ],
   [
    "An instruction does not reach the agent",
-   "It is working on something else. The instruction is waiting and arrives as soon as the running piece is done or waits. If it belongs to the running piece, send it with `--aufgabe <nr>`."
+   "It is working on something else. The instruction is waiting and arrives as soon as the agent pauses, its running piece waits or is done. If it belongs to the running piece, send it with `--aufgabe <nr>`. If its task comes before the running piece in the list, it does not wait for that piece."
   ]
  ],
  "danach": [

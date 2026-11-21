@@ -38,7 +38,7 @@
   ],
   [
    "Ein Auftrag kommt beim Agenten nicht an",
-   "Er arbeitet gerade an etwas anderem. Der Auftrag liegt bereit und meldet sich, sobald das laufende Stück fertig ist oder wartet. Gehört er zum laufenden Stück, mit `--aufgabe <nr>` schicken."
+   "Er arbeitet gerade an etwas anderem. Der Auftrag liegt bereit und meldet sich, sobald der Agent eine Pause macht, sein laufendes Stück wartet oder fertig ist. Gehört er zum laufenden Stück, mit `--aufgabe <nr>` schicken. Steht seine Aufgabe in der Liste vor dem laufenden Stück, wartet er nicht auf dieses Stück."
   ]
  ],
  "danach": [

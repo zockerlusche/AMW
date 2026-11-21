@@ -14,7 +14,7 @@ Every agent works through its list from top to bottom and finishes one piece bef
 ## Common problems
 - **“A… is still running – one thing at a time”** – An agent wanted to start a second piece. It finishes the running one or lets it wait for a reason (`amw aufgabe wartet <nr> --auf …`).
 - **A task still waits for something that was settled long ago** – `--auf` only adds wait reasons; old ones stay open until they settle by themselves, are ticked off, or the task starts again (a start closes all open reasons). Tick off with `amw aufgabe wartet <nr> --erledigt <reason>`, or tick off the old one and set the new one in one step with `--erledigt <old> --auf <new>`. If an old reason stays open after `--auf`, AMW tells you right away.
-- **An instruction does not reach the agent** – It is working on something else. The instruction is waiting and arrives as soon as the running piece is done or waits. If it belongs to the running piece, send it with `--aufgabe <nr>`.
+- **An instruction does not reach the agent** – It is working on something else. The instruction is waiting and arrives as soon as the agent pauses, its running piece waits or is done. If it belongs to the running piece, send it with `--aufgabe <nr>`. If its task comes before the running piece in the list, it does not wait for that piece.
 
 ## Next
 - If the lead proposes to put something first, you get a question with “Yes” and “No”. “Yes” carries it out.

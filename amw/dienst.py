@@ -127,6 +127,26 @@ def arbeitet_gerade(s, jetzt=None):
     return bool(zeiten) and (time.time() if jetzt is None else jetzt) - max(zeiten) < ARBEITET_S
 
 
+def zurueckhalten(con, pid, agent, s, zeilen):
+    """Eins nach dem anderen: Ein Auftrag zu einer anderen Aufgabe als dem laufenden Stück bleibt draußen – aber nur, solange
+    die Sitzung wirklich arbeitet und das Stück auf nichts wartet. A1910 (21.11.: das Merge-OK für A1909 weckte CCamw zwei
+    Stunden nicht, weil A1906 auf „läuft“ stand, er selbst aber frei war): Ist der Agent frei (arbeitet_gerade nein) oder hat
+    sein Stück einen offenen Wartegrund, weckt der Auftrag. Ein Auftrag zu einer Aufgabe mit kleinerem Rang (früher in der
+    Liste) als das laufende Stück weckt immer. Rückgabe: die Zeilen, die wecken dürfen."""
+    from . import arbeitsliste
+    x = arbeitsliste.laufend(con, pid, agent)
+    if not x or not arbeitet_gerade(s):
+        return zeilen
+    if x.get("wartet_auf") or con.execute("SELECT 1 FROM wartegrund WHERE aufgabe_id = ? AND erledigt_utc IS NULL",
+                                          (x["id"],)).fetchone():
+        return zeilen
+
+    def vorrang(aid):
+        r = con.execute("SELECT rang FROM aufgabe WHERE id = ?", (aid,)).fetchone() if aid else None
+        return bool(r and r["rang"] is not None and x["rang"] is not None and r["rang"] < x["rang"])
+    return [z for z in zeilen if not (z["art"] == "auftrag" and z["aufgabe_id"] != x["id"] and not vorrang(z["aufgabe_id"]))]
+
+
 def sofort(z):
     """Diese Nachricht weckt auch mitten in der Arbeit."""
     return z["art"] in SOFORT or z["von"] == kern.ENTWICKLER
@@ -252,15 +272,12 @@ class Dienst:
                 zeilen = [z for z in zeilen if z["art"] in NUR_IM_HALT]
                 if not zeilen:
                     continue
-            from . import arbeitsliste                    # eins nach dem anderen: ein Auftrag, der nicht zum laufenden Stück
-            x = arbeitsliste.laufend(self.con, pid, agent)  # gehört, weckt erst, wenn es fertig ist oder wartet
-            if x:
-                zeilen = [z for z in zeilen if not (z["art"] == "auftrag" and z["aufgabe_id"] != x["id"])]
-                if not zeilen:
-                    continue
             s = aktive_sitzung(self.con, pid, agent)
             if not s:
                 continue                                   # nicht gestartet: bleibt offen bis zur Anmeldung
+            zeilen = zurueckhalten(self.con, pid, agent, s, zeilen)
+            if not zeilen:
+                continue
             if arbeitet_gerade(s) and not any(sofort(z) for z in zeilen):
                 continue                                   # arbeitet gerade: kommt gesammelt beim nächsten Halt (A1645)
             try:

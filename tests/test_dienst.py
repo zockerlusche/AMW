@@ -143,21 +143,66 @@ class Wecker(unittest.TestCase):
         self.assertEqual(self.d.zustellen(), 1)
         self.assertIn(f"#{n} ", self.gesendet[0][1])
 
-    def test_auftrag_mitten_im_stueck_weckt_erst_beim_wechsel(self):
+    def stueck(self, rang_lauf=5, rang_anderes=9):
         self.anmelden("CC1")
         lauf = kern.aufgabe_neu(self.con, self.pid, "TL", "Laufendes Stück", agent="CC1")
         anderes = kern.aufgabe_neu(self.con, self.pid, "TL", "Anderes", agent="CC1")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET rang = ? WHERE id = ?", (rang_lauf, lauf))
+            self.con.execute("UPDATE aufgabe SET rang = ? WHERE id = ?", (rang_anderes, anderes))
         kern.aufgabe_status(self.con, self.pid, "CC1", lauf, "start")
-        n1, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "neuer Wunsch")                     # gehört nicht dazu
+        return lauf, anderes
+
+    def test_auftrag_mitten_im_stueck_weckt_erst_beim_wechsel(self):
+        lauf, anderes = self.stueck()
+        self.arbeitet()                                                                                     # arbeitet wirklich
+        n1, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "neuer Wunsch", aufgabe_id=anderes)  # gehört nicht dazu
         n2, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "Korrektur dazu", aufgabe_id=lauf)  # gehört zum laufenden Stück
-        n3, _ = kern.posten(self.con, self.pid, "TL", "CC1", "frage", "kurze Frage")                         # andere Arten wecken wie bisher
+        n3, _ = kern.posten(self.con, self.pid, "TL", "CC1", "korrektur", "sofort")                          # weckt mitten in der Arbeit
         self.assertEqual(self.d.zustellen(), 1)
         self.assertEqual(self.geweckt(), {(n2, "CC1"), (n3, "CC1")})
         self.assertEqual(self.con.execute("SELECT status FROM empfang WHERE nachricht_id = ?", (n1,)).fetchone()[0], "offen")   # zugestellt, liegt bereit
         kern.aufgabe_status(self.con, self.pid, "CC1", lauf, "fertig", beleg="abc")
         self.d.zustellen()
-        self.assertIn((n1, "CC1"), self.geweckt())                                                          # beim Wechsel kommt er an
-        self.assertIsNotNone(anderes)
+        self.assertNotIn((n1, "CC1"), self.geweckt())                                                       # arbeitet noch: beim Halt (A1645)
+        self.arbeitet(ereignis="frei")
+        self.d.zustellen()
+        self.assertIn((n1, "CC1"), self.geweckt())                                                          # nach dem Wechsel kommt er an
+
+    def test_a1910_frei_weckt_der_auftrag_trotz_laufendem_stueck(self):
+        """21.11.: #29605 (Merge-OK A1909) weckte CCamw zwei Stunden nicht – A1906 stand auf „läuft“, CCamw war frei."""
+        lauf, anderes = self.stueck()
+        self.arbeitet(vor_s=dienst.ARBEITET_S + 30)                                                         # Hook sagt „arbeitet“, aber alt
+        n1, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "Merge-OK – ausliefern", aufgabe_id=anderes)
+        self.assertEqual(self.d.zustellen(), 1)
+        self.assertEqual(self.geweckt(), {(n1, "CC1")})
+        self.arbeitet(ereignis="frei")                                                                      # Halt: frisch „frei“
+        n2, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "noch einer", aufgabe_id=anderes)
+        self.d.zustellen()
+        self.assertIn((n2, "CC1"), self.geweckt())
+
+    def test_a1910_wartegrund_des_stuecks_laesst_den_auftrag_durch(self):
+        lauf, anderes = self.stueck()
+        self.arbeitet()
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "wartegrund", projekt_id=self.pid, aufgabe_id=lauf, art="agent", bezug="TL",
+                         angelegt_utc=db.jetzt(), angelegt_von="CC1")
+        n1, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "anderes", aufgabe_id=anderes)
+        n2, _ = kern.posten(self.con, self.pid, "TL", "CC1", "korrektur", "sofort")
+        self.d.zustellen()
+        self.assertEqual(self.geweckt(), {(n1, "CC1"), (n2, "CC1")})                                       # kommt mit
+        self.assertEqual(dienst.zurueckhalten(self.con, self.pid, "CC1", dienst.aktive_sitzung(self.con, self.pid, "CC1"),
+                                              [{"art": "auftrag", "aufgabe_id": anderes}]), [{"art": "auftrag", "aufgabe_id": anderes}])
+
+    def test_a1910_auftrag_mit_vorrang_weckt_immer(self):
+        lauf, anderes = self.stueck(rang_lauf=9, rang_anderes=5)                                          # anderes kommt früher
+        self.arbeitet()
+        n1, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "Vorrang", aufgabe_id=anderes)
+        n2, _ = kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "ohne Aufgabe")                      # kein Rang: bleibt draußen
+        n3, _ = kern.posten(self.con, self.pid, "TL", "CC1", "korrektur", "sofort")
+        self.d.zustellen()
+        self.assertEqual(self.geweckt(), {(n1, "CC1"), (n3, "CC1")})
+        self.assertNotIn((n2, "CC1"), self.geweckt())
 
     def test_ordnergroessen_im_hintergrund_einmal_am_tag(self):
         self.d.aufsicht()
