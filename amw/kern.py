@@ -265,6 +265,7 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 "merge_blick": ("server", "alle", "aus"),
                 "merge_aussen_pruefung": ("an", "aus")}
 NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung")
+BUENDEL_EINSTELLUNGEN = ("version_datei", "changelog_datei", "buendel_schritt", "gesamtlauf_befehl")   # A1876 (D1306 F2)
 VERSION_FRIST_TAGE = 14            # so lange darf Fertiges ohne Version liegen, bevor der Plan-Check warnt (Projekt: version_frist_tage)
 VERSION_FORM = re.compile(r"(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?")
 
@@ -410,6 +411,26 @@ def projekt_einstellen(con, pid, von, **werte):
                         raise AmwFehler(f"{k}: Zahl {grenzen[0]}–{grenzen[1]} (leer = Vorgabe)") from None
                     if v and not grenzen[0] <= v <= grenzen[1]:
                         raise AmwFehler(f"{k}: Zahl {grenzen[0]}–{grenzen[1]} (leer = Vorgabe)")
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
+            if k in BUENDEL_EINSTELLUNGEN:                # A1876 (D1306 F2): was ein Bündel je Projekt braucht
+                if not (von == ENTWICKLER or ist_lead(con, pid, von)):
+                    raise AmwFehler(f"{k}: setzt der Lead oder der Mensch")
+                v = str(v or "").strip()
+                if v and k in ("version_datei", "changelog_datei"):
+                    if os.path.isabs(v) or ".." in v.replace("\\", "/").split("/"):
+                        raise AmwFehler(f"{k}: ein Pfad im Projekt, z. B. amw/__init__.py (ohne Laufwerk, ohne ..)")
+                    v = v.replace("\\", "/")
+                if v and k == "buendel_schritt" and v.startswith("{"):
+                    try:
+                        s = json.loads(v)
+                    except ValueError:
+                        raise AmwFehler('buendel_schritt: Befehl oder {"befehl": "…", "dateien": ["muster", …]}') from None
+                    if not isinstance(s, dict) or not str(s.get("befehl") or "").strip() or not isinstance(s.get("dateien", []), list):
+                        raise AmwFehler('buendel_schritt: {"befehl": "…", "dateien": ["muster", …]}')
                 if v:
                     e[k] = v
                 else:

@@ -60,6 +60,7 @@ GESPERRT = (
     ("amw/paketliste.py", "fest", "Eingriffe des Menschen in p-Pakete (Pause, Notbremse)"),
     ("amw/mergeliste.py", "fest", "Merge-Freigabe der p-Pakete"),
     ("amw/limithalt.py", "fest", "Halt beim Wochenlimit"),
+    ("amw/buendel.py", "fest", "Bündeln der p-Pakete zum Release-Stand (A1876)"),
     ("amw/cli.py", "fest", "Befehle mit ihren Sperren"),
     ("amw/aktionen.py", "fest", "Aktionen der Oberfläche mit ihren Sperren"),
     ("amw/schluessel.py", "fest", "Rechte (Schlüssel)"),

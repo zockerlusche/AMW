@@ -629,6 +629,18 @@ def cmd_paket(a, con):
         for r in mergeliste.freigeben(con, pid, _von(a), None if a.alle else [a.id], blick=[a.id] if a.blick else ()):
             print(f"A{r['aufgabe']}: {'freigegeben' if r['ok'] else 'nicht freigegeben'} – {r['text']}")
         return
+    if a.aktion == "buendeln":                        # A1876 (D1306): freigegebene Pakete zu einem Release-Stand (Lead, Mensch)
+        from . import buendel
+        if not a.alle and not a.id:
+            raise kern.AmwFehler("amw paket buendeln --alle | amw paket buendeln <Aufgabe> [--titel …]")
+        r = buendel.buendeln(con, pid, _von(a), None if a.alle else [a.id], titel=a.titel)
+        print(f"Bündel {r['version']}: {r['zweig']}@{r['sha'][:8]} mit {len(r['drin'])} Paket(en): "
+              + ", ".join(f"A{p['id']}" for p in r["drin"]) + f" (Arbeitsbaum {r['ordner']})")
+        for p in r["raus"]:
+            print(f"  nicht im Bündel: A{p['id']} – {p['grund']}")
+        for t in r["uebernommen"]:
+            print(f"  übernommen: {t}")
+        return
     if a.aktion == "starten":                         # A1874: Handstart zum Probieren – nur Mensch/Lead, der Wächter entscheidet
         from . import disponent
         print(disponent.handstart(con, pid, a.id, _von(a)))
@@ -2845,8 +2857,9 @@ def parser():
                                    " | starten N (Lead/Mensch: ein startklares p-Paket jetzt starten – der Wächter entscheidet)"
                                    " | mergeliste [--diff] (bereit zum Merge: diff --stat, Server-Code, Blick nötig)"
                                    " | freigeben --alle | freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch)"
+                                   " | buendeln --alle | buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch)"
                                    " – Felder setzen: amw aufgabe neu|aendern … --paket p …")
-    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten", "mergeliste", "freigeben"])
+    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten", "mergeliste", "freigeben", "buendeln"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("zustand", nargs="?", help="zustand: entwurf, startklar, laeuft, abgegeben, abnahme, merge_reihe, gemergt, fertig,"
                                               " blockiert, unklar, wartet_interaktiv, abgebrochen, zurueckgestellt")
@@ -2856,6 +2869,7 @@ def parser():
     x.add_argument("--diff", action="store_true", help="mergeliste: auch den gekürzten Diff zeigen")
     x.add_argument("--alle", action="store_true", help="freigeben: alle Pakete, die bereit zum Merge sind (außer denen, die einen Blick brauchen)")
     x.add_argument("--blick", action="store_true", help="freigeben N: du hast in den Diff gesehen (nötig laut merge_blick)")
+    x.add_argument("--titel", help="buendeln: Titel des Abschnitts in den Versionshinweisen (sonst aus dem Hinweis bzw. „Gebündelte Pakete“)")
     x.add_argument("--json", help="ergebnis: „-“ = die Meldung als JSON von stdin")
     x.add_argument("--status", choices=["erledigt", "blockiert", "aufgegeben"], help="ergebnis: genau ein Status")
     x.add_argument("--zusammenfassung", help="ergebnis: ein Satz, was gemacht wurde")
