@@ -1,6 +1,6 @@
 """Themen-Bereich in der Seite (A1896): Liste mit je einem Status, Text als Ganzes, nur mögliche Handlungen; am Handy zuerst die
-Liste (Auflage a); „neu prüfen“ mit Grund (Auflage c); „Für dich“ springt zum Thema. Bilder vorher (Wissen › Themen) und
-nachher (Themen) PC/Handy hell/dunkel über AMW_RUNDGANG_BILDER."""
+Liste (Auflage a); „neu prüfen“ mit Grund (Auflage c); „Für dich“ springt zum Thema; Unterschied zur Freigabe. Bilder
+(Themen) PC/Handy hell/dunkel über AMW_RUNDGANG_BILDER – die Vorher-Bilder (Wissen › Themen) liegen als Dokumente vor."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 from amw import db, kern, themen
 from tests.rundgang import Rundgang
@@ -73,5 +73,3 @@ class ThemenSeite(Rundgang):
                                                danach=self.LISTE, g=g, t=th), [], f"nachher {g} {th}")
             if g == "handy":                                             # Auflage (a): am Handy zuerst die Liste, kein Thema offen
                 self.assertTrue(self.tab.js("getComputedStyle(document.querySelector('.th-thema')).display === 'none'"))
-            self.besuchen("start", "themen-vorher", bereit="typeof zeige === 'function'",
-                          tun="zustand.wissenReiter = 'themen'; zeige('wissen')", danach="document.querySelector('#inhalt .reiter')", g=g, t="dunkel")
