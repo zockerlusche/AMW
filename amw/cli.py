@@ -1570,7 +1570,15 @@ def _lauf_ausfuehren(con, pid, a):
         belegung.lauf_vergessen(lid)
         return _lauf_vom_dienst(con, pid, lid)
     stand = betrieb.stand_text(betrieb.pruefstand(befehl, os.getcwd()))   # was beim Start wirklich im Ordner liegt (TL #24259)
-    ausgabe = open(a.ergebnis, "w", encoding="utf-8", errors="replace") if a.ergebnis else None
+    # A1904: die ganze Ausgabe immer auch in eine Datei – ohne --ergebnis nach daten/laeufe/L<nr>.txt (laufdienst.ergebnis_pfad),
+    # damit sie nicht verloren geht, wenn jemand stdout kürzt, und der Prüfer sie dort findet
+    from . import laufdienst
+    ziel = os.path.abspath(a.ergebnis) if a.ergebnis else laufdienst.ergebnis_pfad(betrieb.lauf_zeile(con, pid, lid))
+    try:
+        ausgabe = open(ziel, "w", encoding="utf-8", errors="replace")
+    except OSError as e:                             # Datei geht nicht auf: der Lauf läuft trotzdem, nur ohne Mitschrift
+        print(f"L{lid}: Ausgabe-Datei {ziel} geht nicht auf ({e}) – nur auf dem Bildschirm", flush=True)
+        ausgabe, ziel = None, None
     if ausgabe:
         ausgabe.write(f"# AMW L{lid} · {von} · {beschreibung}\n# Befehl: {' '.join(befehl)}\n# {stand}\n"
                       f"# Start: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -1629,7 +1637,7 @@ def _lauf_ausfuehren(con, pid, a):
         ausgabe.write(f"# Ende: {time.strftime('%Y-%m-%d %H:%M:%S')} · rc {rc_grund if grund else rc}"
                       + (f" · abgebrochen: {grund}" if grund else "") + "\n")
         ausgabe.close()
-    wo = f" · Ausgabe: {a.ergebnis}" if a.ergebnis else ""
+    wo = f" · Ausgabe: {ziel}" if ziel else ""
     if grund:
         if betrieb.lauf_zeile(con, pid, lid)["status"] == "laeuft":
             betrieb.lauf_ende(con, pid, von, lid, rc_grund, f"abgebrochen: {grund}{wo}"[:500], abgebrochen=True)
@@ -1765,6 +1773,9 @@ def cmd_lauf(a, con):
               f"{' GPU' if l['gpu'] else ''}  {l['beschreibung']}")
         print(f"angemeldet {_zeit(l['angemeldet_utc'])} · Start {_zeit(l['start_utc']) or '–'} · Ende {_zeit(l['ende_utc']) or '–'}"
               f" · rc {l['rc'] if l['rc'] is not None else '–'}")
+        from . import laufdienst                     # A1904: wo die ganze Ausgabe liegt
+        pfad = laufdienst.ergebnis_pfad(l)
+        print(f"Ausgabe: {pfad}" + ("" if os.path.isfile(pfad) else " (noch keine Datei)"))
         if l["status"] == "angemeldet":
             print(betrieb.wartegrund(con, pid, l))
     elif a.aktion == "warte":
@@ -3199,7 +3210,7 @@ def parser():
                                                      " (auch KI-Aufträge; ein Lauf mit Fenster wartet ebenfalls)")
     x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--rc", type=int)
-    x.add_argument("--ergebnis", help="ende: Ergebnis-Text · ausfuehren: Datei für die Ausgabe des Befehls")
+    x.add_argument("--ergebnis", help="ende: Ergebnis-Text · ausfuehren: Datei für die Ausgabe des Befehls (ohne: laeufe/L<nr>.txt neben der Datenbank)")
     x.add_argument("--abgebrochen", action="store_true")
     x.add_argument("--grenze", type=int, default=20)
     x.set_defaults(f=cmd_lauf)

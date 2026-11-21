@@ -106,7 +106,8 @@ Datei oder scheitert er, läuft der Befehl normal; der Fehler steht in `%LOCALAP
 Grafikkarte oder Fenster) gehören deshalb in die Warteschlange – sie gilt für den **ganzen Rechner, über alle Projekte**:
 wer zuerst kommt, ist zuerst dran, egal aus welchem Projekt. Am einfachsten mit
 `amw lauf ausfuehren --beschreibung "Tests" --dauer 6 -- <befehl>`: meldet an, wartet, bis der Rechner frei ist, startet
-den Befehl, reicht den Rückgabewert durch und meldet das Ende. Eingelassen wird, wenn ein Platz frei ist (Grafikkarte und
+den Befehl, reicht den Rückgabewert durch und meldet das Ende. Die ganze Ausgabe steht immer auch in einer Datei –
+ohne `--ergebnis DATEI` unter `laeufe/L<nr>.txt` neben der Datenbank; `amw lauf zeige <nr>` nennt den Pfad. Eingelassen wird, wenn ein Platz frei ist (Grafikkarte und
 Bildschirm: ein Lauf zur Zeit; schwere Läufe ohne beides: so viele wie unter „Dieser PC“ eingestellt) und genug
 Arbeitsspeicher: frei − Reserve − vorgemerkt ≥ Bedarf des Laufs. „Vorgemerkt“ ist je laufendem schwerem Lauf sein
 Bedarf minus dem, was er schon belegt – solange er läuft, nicht nur kurz nach dem Start. Was er belegt, misst die AMW

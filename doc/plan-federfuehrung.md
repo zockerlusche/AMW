@@ -47,7 +47,7 @@ amw lauf ausfuehren --beschreibung "…" [--schirm] [--schwer] [--aufgabe N] [--
 
 Der Befehl macht in einem Schritt:
 1. Lauf einreihen und warten, bis er dran ist, mit einer Zeile je Minute.
-2. Den Befehl starten. Seine Ausgabe geht in die Ergebnis-Datei und auf den Bildschirm.
+2. Den Befehl starten. Seine Ausgabe geht in die Ergebnis-Datei (ohne `--ergebnis`: `laeufe/L<nr>.txt` neben der Datenbank) und auf den Bildschirm.
 3. Den Rückgabewert durchreichen und `lauf ende` mit rc und Ergebnis melden.
 4. Beim Schirm-Lauf alle 5 s nachsehen: Geht der Schirm zu oder kommt „L… jetzt beenden“, beendet er den Prozessbaum des
    eigenen Befehls und meldet „abgebrochen“. Das tut der Prozess des Agenten selbst, nicht der Dienst. Der Grundsatz „die

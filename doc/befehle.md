@@ -1021,7 +1021,8 @@ options:
   --aufgabe AUFGABE
   --rc RC
   --ergebnis ERGEBNIS   ende: Ergebnis-Text · ausfuehren: Datei für die
-                        Ausgabe des Befehls
+                        Ausgabe des Befehls (ohne: laeufe/L<nr>.txt neben der
+                        Datenbank)
   --abgebrochen
   --grenze GRENZE
   --von VON

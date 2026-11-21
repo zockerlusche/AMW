@@ -302,6 +302,28 @@ class LaufAusfuehren(Grund):
         self.assertIn("# Ende: ", text)
         self.assertIn("rc 3", text.splitlines()[-1])
 
+    def test_ausgabe_immer_in_die_datei(self):
+        """A1904 (L2840, L2877): auch ohne --ergebnis liegt die ganze Ausgabe unter daten/laeufe/L<nr>.txt; lauf zeige nennt sie."""
+        rc, aus = self.cli("--von", "CC1", "lauf", "ausfuehren", "--beschreibung", "Ohne Datei", "--leicht",
+                           "--", sys.executable, "-c", "print('erste Zeile'); print('letzte Zeile')")
+        self.assertEqual(rc, 0, aus)
+        self.assertIn("erste Zeile", aus)                                                          # stdout wie bisher
+        l = self.lauf()
+        pfad = os.path.join(self.ordner.name, "laeufe", f"L{l['id']}.txt")                      # neben der Datenbank
+        self.assertIn(f"Ausgabe: {pfad}", aus)
+        with open(pfad, encoding="utf-8") as f:
+            text = f.read()
+        self.assertTrue(text.startswith(f"# AMW L{l['id']} · CC1 · Ohne Datei"), text)
+        self.assertIn("erste Zeile", text)
+        self.assertIn("letzte Zeile", text)
+        self.assertIn("rc 0", text.splitlines()[-1])
+        rc, aus = self.cli("--von", "CC1", "lauf", "zeige", str(l["id"]))
+        self.assertIn(f"Ausgabe: {pfad}", aus)
+        self.assertNotIn("noch keine Datei", aus)
+        os.remove(pfad)
+        rc, aus = self.cli("--von", "CC1", "lauf", "zeige", str(l["id"]))
+        self.assertIn("(noch keine Datei)", aus)
+
     def test_frist_beendet_den_baum(self):
         with mock.patch.object(cli, "PRUEF_S", 1):
             t = time.time()
