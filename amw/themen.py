@@ -83,8 +83,14 @@ def seite(con, pid, name):
 
 
 def neu(con, pid, von, name, pfleger=None, stil=False):
-    if not kern.ist_lead(con, pid, von):
-        raise kern.AmwFehler("Themen anlegen dürfen Lead und Entwickler")
+    """Thema anlegen: Lead und Mensch – und der Co-Entwickler (A1908, W2408/B2905: er verantwortet das Konzept, Themen sind
+    Konzept, nicht Planung). Wer Co-Entwickler ist, steht in der Projekt-Einstellung co_entwickler, die nur Lead oder Mensch
+    setzen (kern.projekt_einstellen) – sich selbst dazu machen geht nicht. Pfleger und Stil bleiben beim Lead (wie einstellen)."""
+    co = not kern.ist_lead(con, pid, von) and kern.ist_co(con, pid, von)
+    if not (kern.ist_lead(con, pid, von) or co):
+        raise kern.AmwFehler("Themen anlegen dürfen Lead, Entwickler und der Co-Entwickler")
+    if co and (pfleger or stil):
+        raise kern.AmwFehler("Pfleger und Stil setzen dürfen Lead und Entwickler – das Thema ohne --pfleger/--stil anlegen")
     name = " ".join((name or "").split())
     if not name or len(name) > 120:
         raise kern.AmwFehler("Name des Themas: 1–120 Zeichen")

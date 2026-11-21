@@ -204,6 +204,34 @@ class Rechte(Grund):
         self.assertEqual(rc, 0, aus)
         self.assertEqual(self.st()["status"], "frei")
 
+    def test_a1908_co_entwickler_darf_themen_anlegen(self):
+        """#29564: „amw thema neu“ lehnte den Co-Entwickler ab – Themen sind Konzept (W2408/B2905)."""
+        from amw import mcp_server
+        with self.assertRaisesRegex(kern.AmwFehler, "Lead, Entwickler und der Co-Entwickler"):
+            themen.neu(self.con, self.pid, "CC1", "Ohne Rolle")                                   # ohne Rolle: nein
+        with self.assertRaisesRegex(kern.AmwFehler, "nur Lead und Entwickler"):
+            kern.projekt_einstellen(self.con, self.pid, "CC1", co_entwickler="CC1")             # sich selbst dazu machen: nein
+        kern.projekt_einstellen(self.con, self.pid, "TL", co_entwickler="CC1")
+        tid = themen.neu(self.con, self.pid, "CC1", "Konzept Rollen")
+        self.assertEqual(themen.finden(self.con, self.pid, tid)["angelegt_von"], "CC1")
+        for mehr in ({"pfleger": "CC1"}, {"stil": True}):                                          # Pfleger/Stil bleiben beim Lead
+            with self.assertRaisesRegex(kern.AmwFehler, "Pfleger und Stil setzen dürfen Lead und Entwickler"):
+                themen.neu(self.con, self.pid, "CC1", "Noch eins", **mehr)
+        rc, aus = self.cli("thema", "neu", "Konzept Rechte", "--von", "CC1", env={"AMW_AGENT": "CC1"})   # CLI wie MCP
+        self.assertEqual(rc, 0, aus)
+        argv = mcp_server.befehlszeile("thema_neu", {"name": "Konzept Speicher"}) + ["--projekt", "Produkt", "--von", "CC1"]
+        with mock.patch.dict(os.environ, {"AMW_AGENT": "", "CLAUDECODE": "", "CLAUDE_CODE_MESSAGING_SOCKET": ""}):
+            w = mcp_server.befehl_ausfuehren(argv)
+        self.assertEqual(w[0], 0, w)
+        self.assertEqual(sorted(r[0] for r in self.con.execute("SELECT name FROM thema WHERE angelegt_von = 'CC1'")),
+                         ["Konzept Rechte", "Konzept Rollen", "Konzept Speicher"])
+        for tun in (themen.freigeben, themen.markieren):                                          # Freigeben & Co. bleiben beim Menschen
+            with self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
+                tun(self.con, self.pid, "CC1", tid)
+        kern.projekt_einstellen(self.con, self.pid, "TL", co_entwickler="")                       # Rolle weg: wieder nein
+        with self.assertRaisesRegex(kern.AmwFehler, "Lead, Entwickler und der Co-Entwickler"):
+            themen.neu(self.con, self.pid, "CC1", "Danach")
+
     def test_mcp_kennt_keine_handlung_des_menschen(self):
         from amw import mcp_server
         namen = set(mcp_server.WERKZEUGE)

@@ -6,7 +6,7 @@ A topic collects all decisions about one system – “saving” or “map look�
 - A maintainer: the agent who writes the summary and keeps it up to date.
 
 ## Steps
-1. **Create a topic** `amw thema neu "<name>" --pfleger <agent>`.
+1. **Create a topic** `amw thema neu "<name>" --pfleger <agent>`. You, the lead and the project's co-developer may create topics; you or the lead set the maintainer and the project style.
 2. **Write the summary** The maintainer writes it with `amw thema pflegen <topic> --text-datei <file>`.
 3. **Keep it current** When a new decision about the topic is added, the summary counts as outdated. The maintainer updates it or confirms it with `amw thema bestaetigen <topic>`.
 

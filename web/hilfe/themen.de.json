@@ -7,7 +7,7 @@
  "schritte": [
   {
    "titel": "Thema anlegen",
-   "text": "`amw thema neu \"<name>\" --pfleger <agent>`.",
+   "text": "`amw thema neu \"<name>\" --pfleger <agent>`. Anlegen dürfen du, der Lead und der Co-Entwickler des Projekts; den Betreuer und den Projekt-Stil setzen du oder der Lead.",
    "bilder": []
   },
   {

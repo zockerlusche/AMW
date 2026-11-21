@@ -127,6 +127,8 @@ WERKZEUGE = {
                        F("wortlaut_text", "s", "Aussage des Menschen wörtlich – wird als W… erfasst und verknüpft", "--wortlaut-text"),
                        F("aufgaben", "s", "betroffene Aufgaben, z. B. A12,A13", "--aufgaben")]),
     # A1896: Themen – Agenten lesen den Status und liefern Fassungen; Freigeben/Zurück/Löschen markieren nur der Mensch (Workbench)
+    "thema_neu": ("Thema neu anlegen (Lead, Entwickler und der Co-Entwickler; Pfleger und Stil setzt der Lead).", ["thema", "neu"],
+                  [F("name", "s", "Name des Themas", "#", True)]),
     "thema_status": ("Themen mit je einem Status (wartet auf den Menschen, neu prüfen, in Arbeit, freigegeben).", ["thema", "status"], []),
     "thema_zeige": ("Ein Thema ganz: geltender Text, Status, Beschlüsse.", ["thema", "zeige"],
                     [F("thema", "s", "TH-Nummer oder Name", "#", True)]),

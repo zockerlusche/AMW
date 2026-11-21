@@ -6,7 +6,7 @@ Ein Thema sammelt alle Beschlüsse zu einem System – etwa „Speichern“ oder
 - Einen Betreuer: den Agenten, der die Zusammenfassung schreibt und aktuell hält.
 
 ## Schritte
-1. **Thema anlegen** `amw thema neu "<name>" --pfleger <agent>`.
+1. **Thema anlegen** `amw thema neu "<name>" --pfleger <agent>`. Anlegen dürfen du, der Lead und der Co-Entwickler des Projekts; den Betreuer und den Projekt-Stil setzen du oder der Lead.
 2. **Zusammenfassung schreiben** Der Betreuer schreibt sie mit `amw thema pflegen <thema> --text-datei <datei>`.
 3. **Aktuell halten** Kommt ein neuer Beschluss zum Thema dazu, gilt die Zusammenfassung als veraltet. Der Betreuer passt sie an oder bestätigt sie mit `amw thema bestaetigen <thema>`.
 
