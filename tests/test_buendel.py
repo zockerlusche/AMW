@@ -371,6 +371,59 @@ class A1911(Basis):
         self.assertIsNone(betrieb.merge_ok(self.con, self.pid, a, mergeliste.zweig(a)))               # neues Bündel offen
 
 
+class A1912(Basis):
+    """21.11. S8 (1.152.6): Die Auslieferung des Bündels setzte nur A1868 auf fertig, fünf Pakete blieben offen. Ablauf davor:
+    Bündel 1.152.4 rot, die Pakete neu freigegeben, main weiter, neu gebündelt. Die Übertragung nahm als Quelle die grüne
+    Prüfung aus dem alten Bündel (deren OK nicht mehr galt, die Freigabe stand auf paket-A<n>) und übersprang danach die
+    Prüfung mit gültigem OK, weil das Ziel schon grün war – Grün ging mit, das Merge-OK nicht."""
+
+    def test_alle_pakete_des_buendels_werden_fertig(self):
+        from amw import planautomatik
+        a = self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
+        b = self.paket("minus", {"lib/minus.py": "def minus(a, b):\n    return a - b\n"}, 2)
+        c = self.paket("mal", {"lib/mal.py": "def mal(a, b):\n    return a * b\n"}, 3)
+        r0 = buendel.buendeln(self.con, self.pid, "TL", starten=False)
+        buendel._ende(self.con, self.pid, r0["zweig"], {"rc": 1, "lauf": 1})                          # wie L2919: rot
+        for aid in (a, b):                                                                              # der Lead gibt neu frei
+            betrieb.freigabe_merge(self.con, self.pid, "TL", aid, mergeliste.zweig(aid))
+        schreiben(self.repo, "amw/__init__.py", '__version__ = "1.2.4"\n')                              # main geht weiter
+        g(self.repo, "commit", "-qam", "1.2.4: etwas anderes")
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
+        self.assertNotEqual(r["zweig"], r0["zweig"])
+        self.assertEqual([p["id"] for p in r["drin"]], [a, b, c])
+        for aid in (a, b, c):                                                                           # neu freigegeben oder nicht:
+            self.assertTrue(betrieb.merge_ok(self.con, self.pid, aid, r["zweig"]), aid)                # das OK ging mit
+        rc, _ = buendel.lauf_und_meldung(self.con, self.pid, r["zweig"], warte=lambda s: None)
+        self.assertEqual(rc, 0)
+        betrieb.freigabe_merge(self.con, self.pid, "TL", a, r["zweig"])                                # der Lead gibt das Bündel frei
+        g(self.repo, "merge", "-q", "--ff-only", r["zweig"])                                           # wie ausgeliefert
+        fertig = planautomatik.ausgeliefert(self.con, self.pid, r["version"], r["sha"],
+                                            lambda s: g(self.repo, "merge-base", "--is-ancestor", s, r["sha"]) == "")
+        self.assertEqual(sorted(x["aufgabe"] for x in fertig if not x.get("fehler")), [a, b, c])
+        for aid in (a, b, c):
+            self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (aid,)).fetchone()[0], "fertig")
+            self.assertEqual(arbeitspaket.lesen(self.con, aid)["zustand"], "fertig")
+
+    def test_ausserhalb_von_buendeln_braucht_ein_gruener_stand_sein_eigenes_ok(self):
+        from amw import auslieferung
+        a = self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
+        alt = g(self.repo, "rev-parse", mergeliste.zweig(a))
+        schreiben(self.repo, "lib/anderes.py", "x = 1\n")                                              # main geht weiter
+        g(self.repo, "add", "-A")
+        g(self.repo, "commit", "-qm", "anderes")
+        g(self.repo, "branch", "neu-a", "main")
+        g(self.repo, "checkout", "-q", "neu-a")
+        g(self.repo, "cherry-pick", alt)                                                               # neu aufgesetzt: anderer
+        kopf = g(self.repo, "rev-parse", "HEAD")                                                       # SHA, gleicher Inhalt
+        g(self.repo, "checkout", "-q", "main")
+        self.assertNotEqual(kopf, alt)
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "pruefung", projekt_id=self.pid, aufgabe_id=a, zweig="neu-a", sha=kopf, bauer="CC1",
+                         pruefer="TL", ergebnis="gruen", angefragt_utc=db.jetzt(), ergebnis_utc=db.jetzt())
+        auslieferung.Kette(self.con, self.pid, "TL", self.repo, ausgabe=lambda _: None).uebertragen(kopf, "neu-a")
+        self.assertIsNone(betrieb.merge_ok(self.con, self.pid, a, "neu-a"))                            # wie bisher
+
+
 if __name__ == "__main__":
     import unittest
     unittest.main()

@@ -165,20 +165,29 @@ class Kette:
             if not eigene or eigene not in commit_zu or not set(alt.values()) <= neu_ids:
                 continue                                 # Inhalt geändert oder nicht vollständig im neuen Stand
             ziel = commit_zu[eigene]
-            if betrieb.ist_gruen(self.con, self.pid, ziel):
+            # A1912 (21.11., S8: nach einem abgebrochenen Bündel und neuer Freigabe ging nur das Grün ins neue Bündel, das
+            # Merge-OK nicht – die jüngste grüne Prüfung kam aus dem alten Bündel, dessen OK nicht mehr galt, und die Prüfung
+            # mit gültigem OK wurde übersprungen, weil das Ziel schon grün war): ist das Ziel eines Bündels schon grün, geht
+            # noch das OK mit. Nur für buendel-*: sonst bleibt es dabei, dass ein schon grüner Stand sein eigenes OK braucht.
+            ok_mit = bool(betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"])) and \
+                not betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], zweig)
+            schon_gruen = bool(betrieb.ist_gruen(self.con, self.pid, ziel))
+            if schon_gruen and not (ok_mit and str(zweig).startswith("buendel-")):
                 continue
             alt_ids = set(alt.values())                  # A1834 (16.11.: 99df76e ging ungeprüft mit): jeder Commit bis zum Ziel muss
             if any(neu.get(c) not in alt_ids for c in self.ungeprueft(reihe, ziel)[:-1]):   # im geprüften alten Stand stecken
                 continue                                 # oder unter einem grünen Stand liegen – sonst keine Übernahme
             jetzt = db.jetzt()
             with db.schreiben(self.con):
-                prid = db.einfuegen(self.con, "pruefung", projekt_id=self.pid, aufgabe_id=p["aufgabe_id"], zweig=zweig, sha=ziel,
-                                    bauer=p["bauer"], pruefer=p["pruefer"], ergebnis="gruen", angefragt_utc=jetzt, ergebnis_utc=jetzt,
-                                    punkte=f"Übernommen aus P{p['id']} ({p['zweig']}@{p['sha'][:8]}) – gleicher Inhalt (git patch-id),"
-                                           " nur neu aufgesetzt", bemerkung=f"automatisch von der AMW (A1814), Quelle P{p['id']}")
-                text = f"P{prid} ← P{p['id']}: {p['sha'][:8]} → {ziel[:8]} gleicher Inhalt"
-                if betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"]) and \
-                        not betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], zweig):
+                if schon_gruen:
+                    text = f"P{p['id']}: {p['sha'][:8]} → {ziel[:8]} schon grün"
+                else:
+                    prid = db.einfuegen(self.con, "pruefung", projekt_id=self.pid, aufgabe_id=p["aufgabe_id"], zweig=zweig, sha=ziel,
+                                        bauer=p["bauer"], pruefer=p["pruefer"], ergebnis="gruen", angefragt_utc=jetzt, ergebnis_utc=jetzt,
+                                        punkte=f"Übernommen aus P{p['id']} ({p['zweig']}@{p['sha'][:8]}) – gleicher Inhalt (git patch-id),"
+                                               " nur neu aufgesetzt", bemerkung=f"automatisch von der AMW (A1814), Quelle P{p['id']}")
+                    text = f"P{prid} ← P{p['id']}: {p['sha'][:8]} → {ziel[:8]} gleicher Inhalt"
+                if ok_mit:
                     db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=jetzt, von="AMW", art="merge_ok",
                                  aufgabe_id=p["aufgabe_id"], text=zweig)
                     text += f", Merge-OK für {zweig} übernommen"

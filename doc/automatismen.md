@@ -97,6 +97,10 @@ Nummer und schrieb die Versionshinweise.
   Ist der Gesamtlauf des Bündels zu Ende und wurde es nicht ausgeliefert, gelten die Merge-OKs auf `paket-A<n>` wieder –
   `amw paket buendeln --alle` findet die Pakete ohne neue Freigabe (21.11.: nach dem abgebrochenen Bündel 1.152.2 fand es
   keins mehr). Eine Rücknahme des Merge-OK zählt immer.
+- **Alle Pakete fertig nach dem Release (A1912):** Die Kette setzt jedes Paket des Bündels auf gemergt und fertig, nicht nur
+  das, an dem das Grün des Leads hängt. Dafür geht beim Neubündeln das Merge-OK eines Pakets auch dann ins neue Bündel mit,
+  wenn dessen Stand schon grün ist (21.11., 1.152.6: nach Bündel 1.152.4 rot und neuer Freigabe ging nur Grün mit, das OK nicht –
+  fünf Pakete blieben offen). Außerhalb von Bündeln braucht ein schon grüner Stand weiter sein eigenes Merge-OK.
 - **Zeilenenden der Arbeitsplätze und von Prüfung C (A1911):** Arbeiter-Klone und der frische Checkout von Prüfung C checken
   mit `core.autocrlf` des Projekts aus (der Wert steht auch in der Konfiguration des Klons, denn der Arbeiter ruft git ohne
   System-Konfiguration auf). Vorher bekamen sie den Systemwert (CRLF bei einem LF-Projekt): Der Arbeiter sah angefasste
