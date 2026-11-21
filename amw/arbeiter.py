@@ -40,6 +40,13 @@ STEUERDATEIEN = ("./.git/**", "./.claude/**", "./CLAUDE.md", "./.mcp.json", "**/
 # Claude-Code-Versionen, für die die Negativprobe (test_arbeiter.test_echt_ausserhalb_abgelehnt) bestanden ist – eine andere
 # Version gilt als Abweichung, bis die Probe wiederholt und die Version hier eingetragen ist (Gegenlesen Nr. 21/22).
 GEPRUEFT = ("2.1.326", "2.1.329", "2.1.330")  # 2.1.329: Negativprobe 21.11. (A1890); 2.1.330: Negativprobe 21.11. (A1905)
+# Grundbestand. Seit A1906 prüft die AMW eine neue Version selbst und trägt sie als Ereignis ein (versionsprobe.geprueft).
+VERSION_NEU = "Claude Code"                   # Anfang der Abweichung „ungeprüfte Version“ (entscheidung: E1n, keine Fehlserie)
+
+
+def nur_version(abweichungen):
+    """Weicht nur die Claude-Code-Version ab? (A1906: ein Versionswechsel zählt nie zur Fehlserie)"""
+    return bool(abweichungen) and all(str(x).startswith(VERSION_NEU + " ") and "ist nicht geprüft" in str(x) for x in abweichungen)
 # Umgebung als Freigabeliste (Gegenlesen Nr. 7): nur diese Variablen des Menschen werden übernommen – keine Token, keine
 # Umleitungen, keine Python-/Git-Steuerung. Das Login liegt im Benutzerordner (USERPROFILE), deshalb bleibt er gesetzt.
 UMGEBUNG_ERLAUBT = ("SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "PATHEXT", "OS", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE",
@@ -154,10 +161,11 @@ def umgebung(p, basis=None, zusatz=None):
 
 # --- Sollliste für das init-Ereignis ---------------------------------------------------------------------------------------
 
-def soll(p, modell=None, mcp_namen=(), mcp_werkzeuge=()):
-    """Sollliste. Gemessen 17.11. (2.1.326): mit dem Rückmelde-Connector steht genau sein Werkzeug zusätzlich in tools."""
+def soll(p, modell=None, mcp_namen=(), mcp_werkzeuge=(), versionen=None):
+    """Sollliste. Gemessen 17.11. (2.1.326): mit dem Rückmelde-Connector steht genau sein Werkzeug zusätzlich in tools.
+    versionen: geprüfte Claude-Code-Versionen (Vorgabe GEPRUEFT; () = nicht prüfen – nur die Negativprobe selbst, A1906)."""
     return {"cwd": p["klon"], "modell": modell or MODELL, "werkzeuge": sorted([*WERKZEUGE, *mcp_werkzeuge]), "mcp": sorted(mcp_namen),
-            "versionen": GEPRUEFT}
+            "versionen": GEPRUEFT if versionen is None else tuple(versionen)}
 
 
 def _modell_passt(ist, gewollt):
@@ -193,8 +201,8 @@ def init_pruefen(ereignis, s):
         if ereignis.get(feld):
             ab.append(f"{feld}: {ereignis[feld]}")
     if s.get("versionen") and ereignis.get("claude_code_version") not in s["versionen"]:
-        ab.append(f"Claude Code {ereignis.get('claude_code_version')} ist nicht geprüft (geprüft: {', '.join(s['versionen'])}) – "
-                  "Negativprobe wiederholen, dann in arbeiter.GEPRUEFT eintragen")
+        ab.append(f"{VERSION_NEU} {ereignis.get('claude_code_version')} ist nicht geprüft (geprüft: {', '.join(s['versionen'])}) – "
+                  "die AMW prüft die neue Version selbst (Negativprobe, amw claude status)")
     fremd = [x.get("name") for x in (ereignis.get("plugins") or []) if not isinstance(x, dict) or x.get("path") != "builtin"]
     if fremd:
         ab.append(f"Plugins außer den eingebauten: {fremd}")
@@ -318,7 +326,7 @@ def uebergabe(p, basis=None):
 # --- Lauf ------------------------------------------------------------------------------------------------------------------
 
 def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_namen=(), sitzung=None, prog=None, basis_umgebung=None,
-           zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None, haenge=None):
+           zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None, haenge=None, geprueft=None):
     """Einen Arbeiter im Platz `p` laufen lassen, bis er endet. Rückgabe {"rc", "abweichungen", "init", "ergebnis",
     "sitzung", "protokoll", "dauer_s", "fehler"}. Abweichung im init-Ereignis → sofort beendet (rc None, abweichungen gesetzt)."""
     if os.name != "nt":
@@ -346,7 +354,10 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
     with open(datei, "w", encoding="utf-8") as f:
         json.dump(freigabe(pruefbefehl, werkzeuge), f, ensure_ascii=False, indent=1)
     argv = befehl(p, datei, modell, effort, mcp, sitzung, prog)
-    s = soll(p, modell, mcp_namen, werkzeuge)
+    if geprueft is None and con is not None:                   # A1906: auch die von der AMW selbst geprüften Versionen
+        from . import versionsprobe
+        geprueft = versionsprobe.geprueft(con)
+    s = soll(p, modell, mcp_namen, werkzeuge, geprueft)
     protokoll = os.path.join(o, "lauf.jsonl")
     t0 = time.monotonic()
     job = abnahme._job_neu(job_name(p))

@@ -6,7 +6,7 @@ Kosten, Sitzung). Die Meldung des Arbeiters steuert nur, wohin das Paket geht; o
 
 | Nr  | Befund                                        | Zustand            | Wer bekommt es           | Fehlserie |
 | E1  | Absturz, Exit ≠ 0, Fehler-Ereignis, C/technik | abgebrochen        | Prüfer                   | ja        |
-| E1n | Notbremse oder Limit-Abbruch                  | abgebrochen        | Lead (Info)              | nein      |
+| E1n | Notbremse, Limit-Abbruch, neue Claude-Version | abgebrochen        | Lead (Info)              | nein      |
 | E2  | keine gültige Meldung                         | unklar             | Prüfer                   | ja        |
 | E3  | blockiert / aufgegeben                        | wartet_interaktiv  | Prüfer bzw. Mensch       | –         |
 | E4  | C/leer, C/diff, C/aussen, test-*             | wartet_interaktiv  | Prüfer                   | –         |
@@ -22,7 +22,7 @@ import json
 ZEILEN = {
     "E1": {"zustand": "abgebrochen", "an": "pruefer", "fehlserie": True, "archiv": True,
            "text": "Lauf abgebrochen (Absturz, Exit ≠ 0, Fehler-Ereignis oder Prüfung technisch nicht möglich)"},
-    "E1n": {"zustand": "abgebrochen", "an": "lead", "fehlserie": False, "archiv": True, "text": "Notbremse oder Limit-Abbruch"},
+    "E1n": {"zustand": "abgebrochen", "an": "lead", "fehlserie": False, "archiv": True, "text": "Notbremse, Limit-Abbruch oder neue Claude-Code-Version"},
     "E2": {"zustand": "unklar", "an": "pruefer", "fehlserie": True, "archiv": True, "text": "keine gültige Meldung des Arbeiters"},
     "E3": {"zustand": "wartet_interaktiv", "an": "pruefer", "fehlserie": False, "archiv": True,
            "text": "Arbeiter meldet blockiert/aufgegeben"},
@@ -48,6 +48,9 @@ def entscheiden(lauf, meldung=None, befund=None, nachgebessert=False, notbremse=
     if notbremse or limit:
         return "E1n", "Notbremse" if notbremse else "Limit"
     e = (lauf or {}).get("ergebnis") or {}
+    from . import arbeiter
+    if arbeiter.nur_version((lauf or {}).get("abweichungen")):   # A1906: Versionswechsel – die AMW prüft selbst, keine Fehlserie
+        return "E1n", "Version"
     if (lauf or {}).get("abweichungen") or (lauf or {}).get("fehler") or (lauf or {}).get("rc") not in (0,) \
             or e.get("is_error") or (e and e.get("subtype") not in (None, "success")):
         return "E1", "Prozess"

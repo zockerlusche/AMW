@@ -46,6 +46,7 @@ GESPERRT = (
     ("amw/vorlagen/*", "fest", "Auftragsvorlage der Arbeiter (A1857)"),
     # A1872 (S3b, Befund D1289): alles, was einen Arbeiter abschottet, prüft, startet oder Rechte vergibt
     ("amw/arbeiter.py", "fest", "Abschottung der Arbeiter"),
+    ("amw/versionsprobe.py", "fest", "Negativprobe neuer Claude-Code-Versionen (A1906)"),
     ("amw/waechter.py", "fest", "Startregeln (Wächter)"),
     ("amw/entscheidung.py", "fest", "Entscheidungstabelle nach dem Lauf"),
     ("amw/pruefung_c.py", "fest", "eigene Prüfung der AMW (Prüfung C)"),

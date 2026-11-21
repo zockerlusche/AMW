@@ -1260,6 +1260,30 @@ def cmd_waechter(a, con):
     print("Wartungsmodus und Pause aufgehoben – p-Pakete dürfen wieder starten (nach den übrigen Regeln)")
 
 
+def cmd_claude(a, con):
+    """A1906: Claude-Code-Versionen der Arbeiter – status (installiert, geprüft, Proben) | freigeben X.Y.Z --grund (Sperre wie
+    agent lead; nur nach einer nicht bestandenen oder unklaren Probe nötig – sonst prüft und gibt die AMW selbst frei)."""
+    from . import versionsprobe
+    pid = _projekt(con, a)
+    if a.aktion == "freigeben":
+        _rolle_nur_mensch_oder_lead(con, pid, a, "Claude-Code-Version freigeben")
+        v = versionsprobe.freigeben(con, pid, _von(a), a.version, a.grund)
+        print(f"Claude Code {v} freigegeben (von Hand, {_von(a)}) – ein Wartungsmodus bleibt an, bis ihn der Lead aufhebt")
+        return 0
+    s = versionsprobe.status(con)
+    i = s["installiert"]
+    print(f"Installiert: Claude Code {i or 'unbekannt'}" + ("" if not i else " – geprüft" if i in s["geprueft"]
+                                                             else " – NICHT geprüft: Arbeiter starten nicht (Regel 11), die AMW prüft selbst"))
+    print(f"Grundbestand: {', '.join(s['grundbestand'])}")
+    for e in s["eingetragen"]:
+        print(f"Geprüft {e['version']}: {e['zeit_utc'][:16].replace('T', ' ')} · "
+              + (f"von Hand ({e.get('von')}): {e.get('grund')}" if e.get("hand") else f"Probe D{e.get('dokument')}, L{e.get('lauf')}"))
+    for e in s["proben"]:
+        print(f"Probe {e['version']}: {e['zeit_utc'][:16].replace('T', ' ')} · {e.get('schritt')}"
+              + (f" · {e.get('ergebnis')} · D{e.get('dokument')}" if e.get("schritt") == "ende" else ""))
+    return 0
+
+
 def cmd_platz(a, con):
     """A1855: Arbeitsplätze für -p – zeigen, vorbereiten, zurücksetzen (Lead und Mensch)."""
     from . import platz
@@ -3028,6 +3052,12 @@ def parser():
     x.add_argument("--grund")
     x.set_defaults(f=cmd_waechter)
 
+    x = s.add_parser("claude", help="Claude-Code-Versionen der Arbeiter: status (installiert, geprüft, Proben) | freigeben X.Y.Z --grund"
+                                    " (Lead oder Mensch, nicht aus einer Agenten-Sitzung) – eine neue Version prüft die AMW selbst (A1906)")
+    x.add_argument("aktion", choices=["status", "freigeben"])
+    x.add_argument("version", nargs="?", help="freigeben: die Version, z. B. 2.1.331")
+    x.add_argument("--grund", help="freigeben: warum die Version trotz Probe in Ordnung ist")
+    x.set_defaults(f=cmd_claude)
     x = s.add_parser("platz", help="Arbeitsplätze für kopflose Arbeiter (claude -p): liste | vorbereiten N | zuruecksetzen N | aufraeumen"
                                    " | notbremse N (nur der Mensch: Arbeiter samt Kindern beenden) – nichts wird gelöscht: Reste ins"
                                    " Archiv, fertige Pakete nach _loeschen")

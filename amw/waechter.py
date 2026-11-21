@@ -30,8 +30,9 @@ REGELN = {
     8: "Wochenlimit des Kontos bei 80 % oder mehr",
     9: "zweimal hintereinander unklar oder abgebrochen – Pause",
     10: "keine Arbeitsplätze eingerichtet",
+    11: "neue Claude-Code-Version noch nicht geprüft – die AMW prüft sie selbst (Negativprobe)",
 }
-WARTEN = {2, 4, 7, 8, 9}               # vorübergehend: später erneut prüfen; die anderen: nicht starten, Lead melden
+WARTEN = {2, 4, 7, 8, 9, 11}               # vorübergehend: später erneut prüfen; die anderen: nicht starten, Lead melden
 LIMIT_PROZENT = 80
 LAUFEND = ("laeuft", "abgegeben", "abnahme", "merge_reihe")   # P245: der Platz bleibt bis zum Merge belegt (Resume nur dort)
 
@@ -166,6 +167,10 @@ def pruefen(con, pid, aid, limit=None):
         return _nein(7, z["wartung"].get("grund"))
     if z["pause"]:
         return _nein(9, z["pause"].get("grund"))
+    from . import versionsprobe
+    neu = versionsprobe.sperre(con)                           # A1906: ungeprüfte Version → kein Start, die Probe läuft
+    if neu:
+        return dict(_nein(11, f"Claude Code {neu}"), version=neu)
     enden = _letzte_enden(con, pid, nach=_weiter_nach(con))
     if len(enden) == 2 and all(e in ("unklar", "abgebrochen") for e in enden):
         pause_an("zweimal hintereinander unklar oder abgebrochen")

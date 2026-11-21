@@ -21,6 +21,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
 | [`waechter`](#waechter) | Wächter für p-Pakete: pruefen A ¦ protokoll [A] ¦ reihenfolge ¦ zustand ¦ wartung an¦aus ¦ weiter |
+| [`claude`](#claude) | Claude-Code-Versionen der Arbeiter: status (installiert, geprüft, Proben) ¦ freigeben X.Y.Z --grund (Lead oder Mensch, nicht aus einer Agenten-Sitzung) – eine neue Version prüft die AMW selbst (A1906) |
 | [`platz`](#platz) | Arbeitsplätze für kopflose Arbeiter (claude -p): liste ¦ vorbereiten N ¦ zuruecksetzen N ¦ aufraeumen ¦ notbremse N (nur der Mensch: Arbeiter samt Kindern beenden) – nichts wird gelöscht: Reste ins Archiv, fertige Pakete nach _loeschen |
 | [`messung`](#messung) | Wartezeit und Kosten je Aufgabe (Liegezeit, aktiv, wartet nach Grund, $, Lücken) – nur lesen |
 | [`kosten`](#kosten) | Kosten eines Laufs außerhalb der Sitzungs-Zähler einer Aufgabe zuordnen (z. B. claude -p) |
@@ -597,6 +598,22 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --grund GRUND
+  --von VON
+  --projekt PROJEKT
+```
+
+## claude
+```
+usage: amw claude [-h] [--grund GRUND] [--von VON] [--projekt PROJEKT]
+                  {status,freigeben} [version]
+
+positional arguments:
+  {status,freigeben}
+  version             freigeben: die Version, z. B. 2.1.331
+
+options:
+  -h, --help          show this help message and exit
+  --grund GRUND       freigeben: warum die Version trotz Probe in Ordnung ist
   --von VON
   --projekt PROJEKT
 ```

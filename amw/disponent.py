@@ -237,6 +237,12 @@ def runde(con, prog=None, umgebung=None):
         for kand in waechter.reihenfolge(con, pid):
             antwort = waechter.pruefen(con, pid, kand["id"])
             waechter.protokollieren(con, pid, kand["id"], antwort)
+            if antwort.get("regel") == 11:                       # A1906: neue Claude-Code-Version – einmal je Version prüfen
+                from . import versionsprobe
+                t = versionsprobe.anstossen(con, pid, antwort["version"], umgebung)
+                if t:
+                    aus.append(t)
+                break
             if antwort["ok"] and frei and quelle:
                 try:
                     aus.append(starten(con, pid, kand["id"], frei[0], quelle, prog, umgebung))
@@ -295,6 +301,9 @@ def handstart(con, pid, aid, von, prog=None, umgebung=None):
         raise kern.AmwFehler("Ein p-Paket von Hand starten dürfen Lead und Mensch")
     antwort = waechter.pruefen(con, pid, aid)
     waechter.protokollieren(con, pid, aid, antwort)
+    if antwort.get("regel") == 11:                               # A1906: die Probe anstoßen, dann wie jede Regel ablehnen
+        from . import versionsprobe
+        versionsprobe.anstossen(con, pid, antwort["version"], umgebung)
     if not antwort["ok"]:
         raise kern.AmwFehler(f"A{aid} nicht gestartet" + (f", Regel {antwort['regel']}: {antwort['grund']}" if antwort.get("regel")
                                                            else f": {antwort.get('grund')}"))

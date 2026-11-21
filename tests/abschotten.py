@@ -18,6 +18,7 @@ if not os.environ.get("AMW_TEST_LOKAL"):
     os.environ["LOCALAPPDATA"] = ORDNER
     os.environ["AMW_CLAUDE_BASIS"] = os.path.join(ORDNER, "claude")   # A1779: nie die echten Claude-Ablagen messen
     os.environ["AMW_STARTSKRIPT"] = os.path.join(ORDNER, "agenten-start.bat")   # A1883: nie ins Repo (Arbeitsordner/Prüfklon)
+    os.environ["AMW_CLAUDE_VERSION"] = "2.1.326"   # A1906: nie vom installierten Claude Code abhängen (Grundbestand, wie die Attrappe)
     atexit.register(shutil.rmtree, ORDNER, True)
 else:
     ORDNER = os.environ["AMW_TEST_LOKAL"]

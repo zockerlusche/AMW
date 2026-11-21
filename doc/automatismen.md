@@ -161,6 +161,26 @@ Ruhephase. Empfänger ist die Projekt-Einstellung `leerlauf_lead` (sonst der Lea
 einen Chat-Lead weckt die AMW nicht. Wartezeit: `leerlauf_lead_min` (1–1440, Vorgabe 10). Beides setzen Lead oder Mensch:
 `amw projekt einstellen leerlauf_lead=<Agent> leerlauf_lead_min=<min>`.
 
+## Neue Claude-Code-Version ohne Stillstand (seit 1.153.0)
+
+**Wozu:** 21.11.: Zweimal stand S8 je etwa eine Stunde still, weil sich Claude Code aktualisiert hatte und die geprüften
+Versionen eine Konstante im Code waren (A1890, A1905). Updates kommen jederzeit (W2443).
+
+Geprüft ist eine Version aus dem Grundbestand `arbeiter.GEPRUEFT` oder mit dem Ereignis `claude_version_geprueft` (Version,
+Dokument, Lauf; gilt für alle Projekte dieses PCs). Ist die installierte Version (`claude --version`, höchstens alle 5 min
+gefragt) nicht geprüft, startet kein Arbeiter (Startregel 11, vorübergehend). Der Disponent stößt einmal je Version die
+Negativprobe an (`amw-versionsprobe.py`, losgelöst, angemeldet in der Lauf-Schlange, Haiku): dieselbe Probe wie
+`test_arbeiter.test_echt_ausserhalb_abgelehnt` (`versionsprobe.probe`/`auswerten`).
+- **bestanden** (jeder Zugriff nach außen abgelehnt, `innen.txt` im Platz angelegt, `.git/config` unverändert): Version
+  eingetragen, Bericht als Dokument, Meldung an den Lead „Claude Code X geprüft und freigegeben, D…“, wegen der Version
+  abgebrochene Pakete wieder startklar.
+- **nicht bestanden oder unklar**: Wartungsmodus an, Frage an Lead und Mensch mit dem Bericht. Von Hand freigeben:
+  `amw claude freigeben X --grund …` (Lead oder Mensch, nicht aus einer Agenten-Sitzung); den Wartungsmodus hebt danach der
+  Lead auf.
+
+Bricht ein Lauf trotzdem wegen der Version ab (Update zwischen Prüfung und Start), ist das E1n „Version“ – es zählt nicht zur
+Fehlserie (Regel 9). Stand: `amw claude status`.
+
 ## Halt beim Wochenlimit (seit 1.149.0)
 
 Erreicht der Verbrauch des Wochenlimits die Schwelle `limit_halt` (Prozent, Vorgabe 95; 0 oder leer = aus), hält die AMW

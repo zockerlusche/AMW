@@ -126,6 +126,10 @@
    "Für Pakete, die nur Tests für bestehenden, unveränderten Code schreiben. Solche Tests sind gegen den heutigen Code ehrlicherweise grün – darum prüft die AMW hier nicht „rot gegen alt“, sondern: Das Paket ändert ausschließlich Testdateien, die Tests laufen grün, und mindestens ein Test wurde wirklich ausgeführt (übersprungene zählen nicht). Danach liest der Lead die Tests und nimmt das Paket an (`amw paket annehmen`)."
   ],
   [
+   "Claude Code hat sich aktualisiert – starten die Arbeiter weiter?",
+   "Ja, nach einer kurzen Probe. Bei einer neuen Claude-Code-Version startet die AMW erst keinen Arbeiter (Grund in der Liste: „neue Claude-Code-Version noch nicht geprüft“) und prüft die Version selbst: Ein Arbeiter versucht mit dem kleinsten Modell Zugriffe außerhalb seines Platzes, und jeder muss abgelehnt werden. Das kostet wenige Cent und dauert etwa eine Minute. Besteht die Version, legt die AMW den Bericht als Dokument ab, meldet es dem Lead, und die Arbeiter starten wie gewohnt. Besteht sie nicht oder ist das Ergebnis unklar, schaltet die AMW den Wartungsmodus an und fragt Lead und dich, mit dem Bericht. Freigeben geht dann nur von Hand: `amw claude freigeben <Version> --grund …` (Lead oder du, nicht aus einer Agenten-Sitzung). Den Stand zeigt `amw claude status`. Ein Versionswechsel zählt nie als Fehlschlag."
+  ],
+  [
    "Warum muss ich manche Pakete erst ansehen, bevor ich sie freigebe?",
    "Ändert ein Paket Code, der online auf dem Server läuft (`web/*.php`), steht es mit „erst ansehen“ in der Liste. „Alle freigeben“ lässt es aus; du gibst es einzeln mit „Angesehen – freigeben“ frei (im Terminal `amw paket freigeben <Nummer> --blick`). Achte dabei auf: neue Endpunkte und deren Anmeldung, Aufrufe nach außen, Shell-Aufrufe, Datei- und Datenbank-Zugriffe und welche Daten ausgegeben werden. Unter Einstellungen › Projekt stellst nur du ein, ob der Blick nur bei Server-Code, bei jedem Paket oder nie nötig ist, und ob Aufrufe nach außen ein Paket anhalten oder nur als Hinweis erscheinen. Ändert eine Auslieferung Server-Code, steht im Versionshinweis „Server-Code geändert“."
   ]
