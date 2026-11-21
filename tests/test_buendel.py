@@ -12,12 +12,12 @@ from tests.test_mergeliste import Grund, g, schreiben
 class Basis(Grund):
     def setUp(self):
         super().setUp()
-        schreiben(self.repo, "version.py", '__version__ = "1.2.3"\n')
+        schreiben(self.repo, "amw/__init__.py", '__version__ = "1.2.3"\n')
         schreiben(self.repo, "CHANGELOG.md", "# Änderungen\n\nKopf bleibt oben.\n\n## 1.2.3 – 01.11.2026 · Alt\n- alt\n")
         g(self.repo, "add", "-A")
         g(self.repo, "commit", "-q", "-m", "version")
         self.plaetze(4)
-        for k, v in (("version_datei", "version.py"), ("changelog_datei", "CHANGELOG.md"),
+        for k, v in (("version_datei", "amw/__init__.py"), ("changelog_datei", "CHANGELOG.md"),
                      ("gesamtlauf_befehl", "python -c pass")):
             kern.projekt_einstellen(self.con, self.pid, "TL", **{k: v})
 
@@ -39,14 +39,14 @@ class Buendeln(Basis):
         a = self.paket("plus reparieren", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1,
                        hinweis="Plus rechnet jetzt richtig.", gruppe="neu")
         b = self.paket("minus dazu", {"lib/minus.py": "def minus(a, b):\n    return a - b\n"}, 2)
-        r = buendel.buendeln(self.con, self.pid, "TL")
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
         self.assertEqual((r["version"], r["zweig"], [p["id"] for p in r["drin"]], r["raus"]), ("1.3.0", "buendel-1.3.0", [a, b], []))
         self.assertEqual(g(self.repo, "rev-parse", "buendel-1.3.0"), r["sha"])
         self.assertEqual(g(self.repo, "log", "-1", "--format=%s|%an", r["sha"]), "1.3.0: Bündel (2 Pakete)|AMW-Bündel")
-        self.assertEqual(g(self.repo, "diff", "--name-only", f"{r['sha']}~1", r["sha"]).split(), ["CHANGELOG.md", "version.py"])
+        self.assertEqual(g(self.repo, "diff", "--name-only", f"{r['sha']}~1", r["sha"]).split(), ["CHANGELOG.md", "amw/__init__.py"])
         self.assertIn("return a + b", self.datei(r["sha"], "lib/rechnen.py"))
         self.assertIn("def minus", self.datei(r["sha"], "lib/minus.py"))
-        self.assertEqual(self.datei(r["sha"], "version.py"), '__version__ = "1.3.0"')
+        self.assertEqual(self.datei(r["sha"], "amw/__init__.py"), '__version__ = "1.3.0"')
         log = self.datei(r["sha"], "CHANGELOG.md")
         self.assertTrue(log.startswith("# Änderungen\n\nKopf bleibt oben.\n\n## 1.3.0 – "), log[:80])
         self.assertIn("· Gebündelte Pakete\n- **Neu:** Plus rechnet jetzt richtig.\n\n## 1.2.3", log)
@@ -61,7 +61,7 @@ class Buendeln(Basis):
 
     def test_patch_und_intern_ohne_hinweis(self):
         self.paket("Tests für plus", {"tests_plus.py": "x = 1\n"}, 1)
-        r = buendel.buendeln(self.con, self.pid, "TL", titel="Tests")
+        r = buendel.buendeln(self.con, self.pid, "TL", titel="Tests", starten=False)
         self.assertEqual(r["version"], "1.2.4")
         self.assertIn("## 1.2.4 – ", self.datei(r["sha"], "CHANGELOG.md"))
         self.assertIn("· Tests\n- **Intern:** 1 Paket(e) ohne sichtbare Änderung", self.datei(r["sha"], "CHANGELOG.md"))
@@ -72,7 +72,7 @@ class Buendeln(Basis):
         c = self.paket("nach B", {"lib/mal.py": "def mal(a, b):\n    return a * b\n"}, 3)
         with db.schreiben(self.con):
             self.con.execute("INSERT INTO abhaengigkeit (vor, nach) VALUES (?, ?)", (b, c))
-        r = buendel.buendeln(self.con, self.pid, "TL")
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
         self.assertEqual([p["id"] for p in r["drin"]], [a])
         raus = {p["id"]: p["grund"] for p in r["raus"]}
         self.assertEqual(raus[b], "Konflikt (E8)")
@@ -91,7 +91,7 @@ class Buendeln(Basis):
             {"befehl": 'python -c "open(\'lib/rechnen.py\', \'a\').write(\'# fremd\\n\'); open(\'stand.txt\', \'w\').write(\'x\')"',
              "dateien": ["stand.txt"]}))
         with self.assertRaisesRegex(buendel.BuendelFehler, "Diff-Tor.*lib/rechnen.py"):
-            buendel.buendeln(self.con, self.pid, "TL")
+            buendel.buendeln(self.con, self.pid, "TL", starten=False)
         self.assertNotEqual(g(self.repo, "branch", "--list", "buendel-*"), "buendel-1.2.4")    # nichts committet, kein Zweig
         self.assertEqual(g(self.repo, "branch", "--list", "buendel-*"), "")
 
@@ -99,10 +99,10 @@ class Buendeln(Basis):
         self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
         kern.projekt_einstellen(self.con, self.pid, "TL", buendel_schritt=json.dumps(
             {"befehl": 'python -c "import os; open(\'web/VERSION\', \'w\').write(os.environ[\'AMW_DB\'][-10:])"', "dateien": ["web/*"]}))
-        r = buendel.buendeln(self.con, self.pid, "TL")
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
         self.assertEqual(self.datei(r["sha"], "web/VERSION"), "schritt.db")                    # nie die Live-Datenbank
         self.assertEqual(sorted(g(self.repo, "diff", "--name-only", f"{r['sha']}~1", r["sha"]).split()),
-                         ["CHANGELOG.md", "version.py", "web/VERSION"])
+                         ["CHANGELOG.md", "amw/__init__.py", "web/VERSION"])
 
     def test_hooks_des_projekts_laufen_nicht(self):
         hooks = os.path.join(self.repo, ".git", "hooks")
@@ -110,21 +110,72 @@ class Buendeln(Basis):
         with open(os.path.join(hooks, "pre-commit"), "w", encoding="utf-8", newline="\n") as f:
             f.write("#!/bin/sh\necho gelaufen > \"$(git rev-parse --show-toplevel)/HOOK.txt\"\nexit 1\n")
         self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
-        r = buendel.buendeln(self.con, self.pid, "TL")
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
         self.assertTrue(r["sha"])
         self.assertFalse(os.path.exists(os.path.join(r["ordner"], "HOOK.txt")))
 
     def test_wer_darf_und_was_fehlt(self):
         self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
         with self.assertRaisesRegex(kern.AmwFehler, "Lead oder der Mensch"):
-            buendel.buendeln(self.con, self.pid, "CC1")
+            buendel.buendeln(self.con, self.pid, "CC1", starten=False)
         kern.projekt_einstellen(self.con, self.pid, "TL", version_datei="")
         with self.assertRaisesRegex(buendel.BuendelFehler, "version_datei"):
-            buendel.buendeln(self.con, self.pid, "TL")
+            buendel.buendeln(self.con, self.pid, "TL", starten=False)
         with self.assertRaises(kern.AmwFehler):
             kern.projekt_einstellen(self.con, self.pid, "TL", version_datei="../aussen.py")
         with self.assertRaises(kern.AmwFehler):
             kern.projekt_einstellen(self.con, self.pid, "CC1", changelog_datei="x.md")
+
+
+class GesamtlaufUndRelease(Basis):
+    def test_gruen_mit_lead_als_pruefer_meldung_und_release_nur_mit_seinem_ok(self):
+        from amw import auslieferung
+        a = self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1, hinweis="Plus stimmt.", gruppe="neu")
+        gestartet = []
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=lambda pid, z: gestartet.append((pid, z)) or 4711)
+        self.assertEqual((gestartet, r["starter"]), ([(self.pid, "buendel-1.3.0")], 4711))          # Gesamtlauf im eigenen Prozess
+        runden = []
+
+        def warte(s):
+            runden.append(s)
+            self.assertLess(len(runden), 50, "Lauf kommt nicht dran")
+        rc, lid = buendel.lauf_und_meldung(self.con, self.pid, "buendel-1.3.0", warte=warte)
+        self.assertEqual(rc, 0)
+        l = self.con.execute("SELECT status, rc, ergebnis FROM lauf WHERE id = ?", (lid,)).fetchone()
+        self.assertEqual((l["status"], l["rc"]), ("fertig", 0))
+        self.assertIn(f"Stand {r['sha']} sauber", l["ergebnis"])                                   # daran erkennt die Kette den Lauf
+        p = self.con.execute("SELECT * FROM pruefung WHERE sha = ? AND zweig = 'buendel-1.3.0'", (r["sha"],)).fetchone()
+        self.assertEqual((p["ergebnis"], p["pruefer"], p["bauer"], p["aufgabe_id"]), ("gruen", "TL", "AMW", a))
+        m = self.con.execute("SELECT n.kurz, n.text FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE e.agent = 'TL'"
+                             " AND n.kurz LIKE 'Bündel 1.3.0 bereit%'").fetchone()
+        self.assertIsNotNone(m)
+        self.assertIn("amw/__init__.py", m["text"])                                                # Versions-Diff (--stat)
+        self.assertIn("- **Neu:** Plus stimmt.", m["text"])                                        # CHANGELOG-Abschnitt
+        self.assertIn(f"amw release ausliefern --zweig buendel-1.3.0 --gesamtlauf L{lid}", m["text"])
+        k = auslieferung.Kette(self.con, self.pid, "TL", self.repo, ausgabe=lambda _: None)
+        with self.assertRaisesRegex(auslieferung.Stopp, "Merge-OK: keins für A"):                  # übernommenes OK zählt nicht
+            k.pruefen("buendel-1.3.0", gesamtlauf=lid)
+        betrieb.freigabe_merge(self.con, self.pid, "TL", a, "buendel-1.3.0")                       # der Lead gibt frei
+        v = k.pruefen("buendel-1.3.0", gesamtlauf=lid)
+        self.assertEqual((v["version"], v["sha"], v["lauf"]), ("1.3.0", r["sha"], lid))
+
+    def test_rot_kein_gruen(self):
+        self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
+        kern.projekt_einstellen(self.con, self.pid, "TL", gesamtlauf_befehl='python -c "raise SystemExit(3)"')
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
+        rc, lid = buendel.lauf_und_meldung(self.con, self.pid, r["zweig"], warte=lambda s: None)
+        self.assertEqual(rc, 3)
+        self.assertIsNone(self.con.execute("SELECT 1 FROM pruefung WHERE sha = ? AND bauer = 'AMW' AND zweig = ?",
+                                           (r["sha"], r["zweig"])).fetchone())
+        self.assertIsNotNone(self.con.execute("SELECT 1 FROM nachricht WHERE kurz LIKE ?", (f"Bündel 1.2.4: Gesamtlauf L{lid} rot%",)).fetchone())
+
+
+class Einstieg(Basis):
+    def test_fehler_im_eigenen_prozess_geht_an_den_lead(self):
+        buendel.main([str(self.pid), "buendel-9.9.9"])                                         # gibt es nicht
+        m = self.con.execute("SELECT kurz, text FROM nachricht WHERE kurz LIKE 'Bündel buendel-9.9.9: Gesamtlauf nicht möglich%'").fetchone()
+        self.assertIsNotNone(m)
+        self.assertIn("kein Bündel buendel-9.9.9", m["text"])
 
 
 class Teile(Basis):

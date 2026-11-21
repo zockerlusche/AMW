@@ -158,9 +158,10 @@ def _e8(con, pid, aid, grund):
 
 # --- Bündeln -----------------------------------------------------------------------------------------------------------------
 
-def buendeln(con, pid, von, aids=None, titel=None):
-    """Baut den Bündel-Stand (Schritte 1–5 oben). Rückgabe {version, zweig, sha, drin, raus, ordner}. Ein Paket mit Konflikt
-    geht nach E8; was nicht ins Bündel kam, steht mit Grund in raus."""
+def buendeln(con, pid, von, aids=None, titel=None, starten=None):
+    """Baut den Bündel-Stand (Schritte 1–5 oben) und startet den Gesamtlauf im eigenen Prozess (starten=False: nicht; sonst
+    starten(pid, zweig) bzw. starter_starten). Rückgabe {version, zweig, sha, drin, raus, ordner, uebernommen, starter}. Ein
+    Paket mit Konflikt geht nach E8; was nicht ins Bündel kam, steht mit Grund in raus."""
     from . import auslieferung
     if not (von == kern.ENTWICKLER or kern.ist_lead(con, pid, von)):
         raise kern.AmwFehler("Bündeln darf der Lead oder der Mensch (Releases gibt der Lead frei)")
@@ -247,4 +248,125 @@ def buendeln(con, pid, von, aids=None, titel=None):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="buendel",
                      text=json.dumps({"version": version, "zweig": zweig, "sha": sha, "drin": [p["id"] for p in drin],
                                       "raus": [{"id": p["id"], "grund": p["grund"]} for p in raus]}, ensure_ascii=False))
-    return {"version": version, "zweig": zweig, "sha": sha, "drin": drin, "raus": raus, "ordner": ziel, "uebernommen": uebernommen}
+    gestartet = (starten or starter_starten)(pid, zweig) if starten is not False else None
+    return {"version": version, "zweig": zweig, "sha": sha, "drin": drin, "raus": raus, "ordner": ziel, "uebernommen": uebernommen,
+            "starter": gestartet}
+
+
+# --- Gesamtlauf und Meldung (eigener Prozess) ---------------------------------------------------------------------------------
+
+def starter_starten(pid, zweig):
+    """Losgelöster Prozess für Gesamtlauf und Meldung – der Befehl des Leads kehrt sofort zurück (ein Gesamtlauf dauert ~30 min,
+    der Connector eines Chat-Leads wartet höchstens 2 min). Rückgabe: PID."""
+    import sys
+    from . import einrichtung
+    u = {k: v for k, v in os.environ.items() if k not in ("AMW_AGENT", "AMW_PROJEKT") and not k.startswith("CLAUDE")}
+    flags = (0x00000008 | 0x00000200 | getattr(subprocess, "CREATE_NO_WINDOW", 0)) if os.name == "nt" else 0   # DETACHED, NEW_GROUP
+    proc = subprocess.Popen([sys.executable, "-X", "utf8", "-m", "amw.buendel", str(pid), zweig], cwd=einrichtung.WURZEL,
+                            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True,
+                            creationflags=flags, env=u, start_new_session=os.name != "nt")
+    return proc.pid
+
+
+def _vermerk(con, pid, zweig):
+    r = con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = 'buendel' AND text LIKE ? ORDER BY id DESC LIMIT 1",
+                    (pid, f'%"zweig": "{zweig}"%')).fetchone()
+    if not r:
+        raise BuendelFehler(f"kein Bündel {zweig}")
+    return json.loads(r[0])
+
+
+def _melden(con, pid, kurz, text):
+    lead = kern.lead(con, pid)
+    if lead:
+        with db.schreiben(con):
+            kern._posten(con, pid, "AMW", lead, "meldung", kurz[:200], text)
+
+
+def lauf_und_meldung(con, pid, zweig, warte=None, frist_s=7200):
+    """Gesamtlauf (gesamtlauf_befehl) über die Lauf-Schlange auf genau der Bündel-Spitze im Bündel-Arbeitsbaum. Grün → GRÜN auf
+    die Spitze mit dem Lead als Prüfer (F3b: nur er gibt Merge-OK und Release) und Meldung „Bündel X.Y.Z bereit“ mit dem
+    Versions-Diff und den fertigen Befehlen (F3c). Rot oder Stand verschoben → Meldung, kein GRÜN. Rückgabe: (rc, lauf-nr)."""
+    import time
+    from . import belegung, betrieb, laufdienst
+    warte = warte or time.sleep
+    v = _vermerk(con, pid, zweig)
+    e, ziel = einstellungen(con, pid), arbeitsbaum(con, pid)
+    lead = kern.lead(con, pid)
+    agent = lead or con.execute("SELECT kennung FROM agent WHERE projekt_id = ? ORDER BY id LIMIT 1", (pid,)).fetchone()[0]
+    befehl = [e["gesamtlauf_befehl"]]
+    lid = betrieb.lauf_start(con, pid, agent, f"Gesamtlauf Bündel {v['version']} {zweig}@{v['sha'][:8]}", None, False, False,
+                             v["drin"][0], warten=True, erwartet_min=40, befehl=befehl, ordner=ziel, waechter=os.getpid())
+    belegung.lauf_merken(lid, os.getpid())
+    try:
+        while True:
+            l = betrieb.lauf_zeile(con, pid, lid)
+            if l["status"] == "laeuft":
+                break
+            if l["status"] in ("fertig", "abgebrochen"):
+                _melden(con, pid, f"Bündel {v['version']}: Gesamtlauf L{lid} ist {l['status']}, bevor er rechnete – kein Release",
+                        "Neu anstoßen: amw paket buendeln … (das Bündel liegt als Zweig " + zweig + ")")
+                return None, lid
+            warte(5)
+        if not betrieb.lauf_uebernehmen(con, lid, "agent"):                       # der Dienst rechnet ihn (dieser Prozess galt als tot)
+            while betrieb.lauf_zeile(con, pid, lid)["status"] == "laeuft":
+                warte(15)
+            rc = betrieb.lauf_zeile(con, pid, lid)["rc"]
+        else:
+            s = betrieb.pruefstand(befehl, ziel)
+            stand = betrieb.stand_text(s)
+            l = betrieb.lauf_zeile(con, pid, lid)
+            pfad = laufdienst.ergebnis_pfad(l)
+            if not s or s[1] != v["sha"] or not s[2]:
+                betrieb.lauf_ende(con, pid, agent, lid, 1, f"nicht gerechnet: Bündel-Arbeitsbaum steht nicht sauber auf {v['sha'][:8]} ({stand})")
+                _melden(con, pid, f"Bündel {v['version']}: Arbeitsbaum verschoben – kein Gesamtlauf, kein Release",
+                        f"{ziel} steht auf {stand}, erwartet {v['sha']}. Neu bündeln: amw paket buendeln …")
+                return None, lid
+            with open(pfad, "w", encoding="utf-8", errors="replace") as aus:
+                aus.write(f"# AMW L{lid} · {agent} · Gesamtlauf Bündel {v['version']}\n# Befehl: {befehl[0]}\n# Ordner: {ziel}\n# {stand}\n")
+                aus.flush()
+                try:
+                    rc = subprocess.run(befehl[0], shell=True, cwd=ziel, env=laufdienst.umgebung(), stdout=aus, stderr=subprocess.STDOUT,
+                                        stdin=subprocess.DEVNULL, timeout=frist_s, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).returncode
+                except subprocess.TimeoutExpired:
+                    rc = 124
+            betrieb.lauf_ende(con, pid, agent, lid, rc, f"rc {rc} · {stand} · Ausgabe: {pfad}"[:500])
+    finally:
+        belegung.lauf_vergessen(lid)
+    if rc != 0:
+        _melden(con, pid, f"Bündel {v['version']}: Gesamtlauf L{lid} rot (rc {rc}) – kein Release",
+                f"Zweig {zweig}@{v['sha'][:8]}. Ausgabe beim Lauf L{lid}. Pakete bleiben in der Merge-Reihe.")
+        return rc, lid
+    daten = os.path.join(os.path.dirname(ziel), "buendel-daten")
+    _, stat = _git(ziel, daten, "show", "--stat", "--format=", v["sha"])
+    _, log = _git(ziel, daten, "show", f"{v['sha']}:{e['changelog_datei']}")
+    m = re.search(rf"^## {re.escape(v['version'])} .*?(?=^## |\Z)", log, re.M | re.S)
+    jetzt = db.jetzt()
+    text_gruen = (f"Bündel {v['version']}: Pakete " + ", ".join(f"A{x}" for x in v["drin"]) + f" (je einzeln geprüft und freigegeben),"
+                  f" Versions-Commit nur erlaubte Dateien (Diff-Tor), Gesamtlauf L{lid} grün auf genau {v['sha'][:8]}")
+    with db.schreiben(con):
+        db.einfuegen(con, "pruefung", projekt_id=pid, aufgabe_id=v["drin"][0], zweig=zweig, sha=v["sha"], bauer="AMW", pruefer=lead or agent,
+                     punkte=text_gruen, ergebnis="gruen", bemerkung="automatisch von der AMW (A1876) – Release gibt der Lead frei",
+                     angefragt_utc=jetzt, ergebnis_utc=jetzt)
+    _melden(con, pid, f"Bündel {v['version']} bereit – Release freigeben ({len(v['drin'])} Paket(e), Gesamtlauf L{lid} grün)",
+            f"{text_gruen}.\n\nVersions-Commit:\n{stat}\n\n{(m.group(0) if m else '').strip()}\n\n"
+            f"Freigeben und ausliefern:\namw freigabe merge {v['drin'][0]} --zweig {zweig}\namw release ausliefern --zweig {zweig} --gesamtlauf L{lid}")
+    return rc, lid
+
+
+def main(argv=None):
+    import sys
+    argv = sys.argv[1:] if argv is None else argv
+    con = db.verbinde()
+    try:
+        pid, zweig = int(argv[0]), argv[1]
+        try:
+            lauf_und_meldung(con, pid, zweig)
+        except Exception as f:                                                     # nie still: der Lead erfährt es
+            _melden(con, pid, f"Bündel {zweig}: Gesamtlauf nicht möglich – {type(f).__name__}", str(f)[:500])
+    finally:
+        con.close()
+
+
+if __name__ == "__main__":
+    main()

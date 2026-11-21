@@ -344,6 +344,8 @@ class Kette:
                 fehlt.append(f"Merge-OK: P{p['id']} hängt an keiner Aufgabe – das Merge-OK gilt je Aufgabe")
         else:
             ok = betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"])
+            if ok and str(p["zweig"] or "").startswith("buendel-") and ok["von"] == "AMW":
+                ok = None                                # A1876 (F3b): ein Bündel gibt der Lead selbst frei – kein übernommenes OK
             if not ok:
                 fehlt.append(f"Merge-OK: keins für A{p['aufgabe_id']} ({p['zweig']}) – der Lead gibt es mit amw freigabe merge"
                              f" {p['aufgabe_id']} --zweig {p['zweig']}")

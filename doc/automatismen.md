@@ -71,6 +71,22 @@ obwohl er arbeitet – niemand merkt es.
 - Grenze: Das Startskript nach einem PC-Neustart prüft den Hook nicht, und für seine Starts gibt es keine Meldung
   „meldet sich nicht an“ (es startet Claude direkt, ohne die AMW).
 
+## Bündeln (seit 1.149.0)
+
+**Wozu:** p-Pakete ohne Coder ausliefern – bisher setzte ein Coder die freigegebenen Pakete von Hand aufeinander, hob die
+Nummer und schrieb die Versionshinweise.
+
+- **Auslöser:** nur der Lead oder der Mensch: `amw paket buendeln --alle | <nr> [--titel …]` (D1306 F1).
+- **Was geschieht:** eigener Arbeitsbaum `<platz_wurzel>/buendel` (git worktree, neutrale git-Umgebung ohne Hooks), je
+  freigegebenem Paket ein cherry-pick in Rang-Reihenfolge; Konflikt → E8 an den Lead, „nach“-Pakete bleiben draußen;
+  Versions-Commit (MINOR bei Hinweis-Gruppe „neu“, sonst PATCH; Versionshinweise aus den Hinweisen) mit Diff-Tor: nur
+  `version_datei`, `changelog_datei` und die Dateien von `buendel_schritt`; Zweig `buendel-X.Y.Z`.
+- **Danach im eigenen Prozess:** Gesamtlauf (`gesamtlauf_befehl`) über die Lauf-Schlange auf genau der Spitze; grün → GRÜN mit
+  dem Lead als Prüfer und Meldung „Bündel X.Y.Z bereit“ mit Versions-Diff und Befehlen; rot → Meldung, kein GRÜN.
+- **Release:** gibt der Lead frei – die Kette zählt für `buendel-*` nur ein Merge-OK, das Lead oder Mensch selbst geben
+  (nicht die von den Paketen übernommenen).
+- Grenze: Die Kette liest die Version weiterhin aus `amw/__init__.py` – für andere Projekte ist sie noch nicht eingerichtet.
+
 ## Wartegründe (seit 1.8.0)
 
 **Wozu:** Eine Aufgabe, die „wartet“, ohne zu sagen worauf, bleibt liegen, auch wenn der Grund längst erledigt ist.
