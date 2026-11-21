@@ -126,6 +126,12 @@ WERKZEUGE = {
                        F("quelle", "s", "woher (z. B. W123, #456)", "--quelle"),
                        F("wortlaut_text", "s", "Aussage des Menschen wörtlich – wird als W… erfasst und verknüpft", "--wortlaut-text"),
                        F("aufgaben", "s", "betroffene Aufgaben, z. B. A12,A13", "--aufgaben")]),
+    # A1896: Themen – Agenten lesen den Status und liefern Fassungen; Freigeben/Zurück/Löschen markieren nur der Mensch (Workbench)
+    "thema_status": ("Themen mit je einem Status (wartet auf den Menschen, neu prüfen, in Arbeit, freigegeben).", ["thema", "status"], []),
+    "thema_zeige": ("Ein Thema ganz: geltender Text, Status, Beschlüsse.", ["thema", "zeige"],
+                    [F("thema", "s", "TH-Nummer oder Name", "#", True)]),
+    "thema_pflegen": ("Neue Fassung des Themen-Texts liefern – danach wartet sie auf den Menschen.", ["thema", "pflegen"],
+                      [F("thema", "s", "TH-Nummer oder Name", "#", True), F("text", "s", "der ganze Text", "--text", True)]),
     "wortlaut": ("Aussage des Menschen wörtlich festhalten.", ["wortlaut"],
                  [F("text", "s", "die Aussage, wörtlich", "--text", True), F("zeit", "s", "UTC der Aussage", "--zeit"),
                   F("kanal", "s", "wo gesagt (Vorgabe chat-tl)", "--kanal"), F("bemerkung", "s", "Bemerkung", "--bemerkung")]),

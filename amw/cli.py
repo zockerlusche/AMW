@@ -2059,6 +2059,22 @@ def cmd_thema(a, con):
         tid = themen.neu(con, pid, _von(a), a.name, a.pfleger, a.stil)
         print(f"TH{tid} angelegt")
         return
+    if a.aktion == "status":                          # A1896: Status je Thema (abgeleitet) – für Agenten und den Menschen
+        for t in themen.liste(con, pid):
+            z = t["zustand"]
+            print(f"TH{t['id']:<4} {('zum Löschen markiert' if z['markiert'] else z['text']):<18} {t['name'][:70]}"
+                  + (f"  · Grund: {z['grund']}" if z["grund"] else "") + (f"  · Fassung {z['fassung']}" if z["fassung"] else ""))
+        return
+    if a.aktion in ("freigeben", "zurueck", "markieren", "entmarkieren"):   # A1896: nur der Mensch, nur im eigenen Terminal
+        if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():
+            raise kern.AmwFehler(f"thema {a.aktion}: nur der Mensch in seinem eigenen Terminal oder in der Workbench am PC")
+        if not a.name:
+            raise kern.AmwFehler(f"amw thema {a.aktion} <TH-Nr. oder Name>" + (" --notiz …" if a.aktion == "zurueck" else ""))
+        z = (themen.freigeben(con, pid, _von(a), a.name) if a.aktion == "freigeben"
+             else themen.zurueck(con, pid, _von(a), a.name, a.notiz) if a.aktion == "zurueck"
+             else themen.markieren(con, pid, _von(a), a.name, an=a.aktion == "markieren"))
+        print(f"{a.name}: {'zum Löschen markiert' if z['markiert'] else z['text']}")
+        return
     if not a.name:
         raise kern.AmwFehler(f"amw thema {a.aktion} <TH-Nr. oder Name>")
     if a.aktion == "zeige":
@@ -2902,9 +2918,12 @@ def parser():
 
     x = s.add_parser("thema", help="Design-Dokument je Thema: liste [--suche] | zeige TH12 | neu \"Name\" [--pfleger X] [--stil] |"
                                    " einstellen TH12 --pfleger X | --stil | pflegen TH12 --text-datei … | bestaetigen TH12 |"
-                                   " dokument TH12 --dokument D5 [--loesen]")
+                                   " dokument TH12 --dokument D5 [--loesen] | status (ein Status je Thema) |"
+                                   " freigeben TH12 | zurueck TH12 --notiz … | markieren|entmarkieren TH12 (nur der Mensch)")
     x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "zeige", "neu", "einstellen", "pflegen", "bestaetigen",
-                                                                  "dokument"])
+                                                                  "dokument", "status", "freigeben", "zurueck", "markieren",
+                                                                  "entmarkieren"])
+    x.add_argument("--notiz", help="zurueck: was soll anders werden (Pflicht)")
     x.add_argument("name", nargs="?", help="TH-Nummer oder Name (eindeutiger Anfang reicht)")
     x.add_argument("--pfleger")
     x.add_argument("--stil", action="store_true", help="dieses Thema ist der Projekt-Stil (es gibt höchstens einen)")

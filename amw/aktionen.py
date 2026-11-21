@@ -271,6 +271,23 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         from . import mcp_schluessel
         name = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()[0]
         return {"schluessel": mcp_schluessel.erzeugen(name), "projekt": name}
+    if weg.startswith("/api/thema/"):                 # A1896: Themen – Freigeben/Zurück/Bearbeiten/Löschen markieren, der Mensch am PC
+        if kanal != "seite":
+            raise Ungueltig("Themen freigeben und bearbeiten geht nur am PC (Workbench), online liest du mit")
+        from . import themen
+        was, tid = weg.rsplit("/", 1)[1], daten.get("thema")
+        try:
+            if was == "freigeben":
+                return themen.freigeben(con, pid, kern.ENTWICKLER, tid)
+            if was == "zurueck":
+                return themen.zurueck(con, pid, kern.ENTWICKLER, tid, daten.get("notiz"))
+            if was == "bearbeiten":
+                return themen.bearbeiten(con, pid, kern.ENTWICKLER, tid, daten.get("text"))
+            if was in ("markieren", "entmarkieren"):
+                return themen.markieren(con, pid, kern.ENTWICKLER, tid, an=was == "markieren")
+        except kern.AmwFehler as e:
+            raise Ungueltig(str(e)) from None
+        raise LookupError("unbekannt")
     if weg.startswith("/api/paket/"):                 # A1850: Eingriffe in p-Pakete – nur der Mensch am PC, nie online/Handy
         if kanal != "seite":
             raise Ungueltig("Arbeitspakete steuerst du nur am PC (Workbench), nicht online")

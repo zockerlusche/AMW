@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.151.0 – 21.11.2026 · Themen auf einen Blick
+- **Neu:** Menüpunkt „Themen“: jedes Thema mit genau einem Status – wartet auf dich, neu prüfen (mit Grund), in Arbeit oder
+  freigegeben. Ein Thema öffnet sich als ein lesbarer Text. Am PC gibt es nur, was gerade geht: Freigeben, Zurück mit Notiz,
+  Bearbeiten und Löschen markieren; die Notiz geht als Auftrag an den Betreuer des Themas. Am Handy liest du mit und siehst
+  zuerst die Liste. Wartende Themen stehen unter „Für dich“ und führen direkt hin.
+- **Neu:** Den Status setzt niemand von Hand – die AMW leitet ihn aus Fassungen, Beschlüssen und deinen Handlungen ab. Agenten
+  sehen ihn mit `amw thema status` und liefern neue Fassungen wie bisher.
+
 ## 1.150.2 – 21.11.2026 · Geprüfte Pakete annehmen, Tests für bestehenden Code
 - **Behoben:** Ein Paket, das nach der Prüfung an den Lead geht (z. B. „test-schreiben“), kam bisher nie in die Merge-Liste,
   und sein geprüfter Stand lag nur noch im Archiv. Die AMW hebt den Stand jetzt im Projekt auf, und `amw paket annehmen <nr>

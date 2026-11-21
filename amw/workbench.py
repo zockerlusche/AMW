@@ -265,6 +265,15 @@ def _uebersicht(con, pid, gesund):
                 "zustand": sync["zustand"], "zeit_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - sync["alter_s"]))}}
 
 
+def _themen_fuer_dich(con, pid):
+    """A1896: Themen, die auf den Menschen warten – unter „Für dich“, springt zum Thema (F5355 A)."""
+    try:
+        from . import themen
+        return themen.fuer_dich(con, pid)
+    except Exception:
+        return []
+
+
 def _startvorschlaege(con, pid):
     """A1867: „X starten?“ unter „Für dich“ – nie eine Ansicht kaputt machen, wenn etwas fehlt."""
     try:
@@ -391,6 +400,7 @@ def daten_start(con, pid):
             "dienst_rot": [g["teil"] for g in gesund["teile"] if g["zustand"] == "rot"], "uebersicht": _uebersicht(con, pid, gesund),
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "startvorschlaege": _startvorschlaege(con, pid),
+            "themen_fuer_dich": _themen_fuer_dich(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 
