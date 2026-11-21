@@ -1,6 +1,6 @@
-# Nachrichten: Eingang und Gesendet
+# Nachrichten: An dich, Mitlesen, Gesendet
 
-Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Stelle – für das Projekt, das du oben gewählt hast; ein anderes Projekt wählst du oben. Meldungen der Workbench selbst stehen mit dem Absender „System“. Je Empfänger siehst du, wie weit eine Nachricht ist – und solange sie niemand gelesen hat, kannst du sie zurückziehen.
+Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Stelle – aus allen Projekten auf diesem PC zusammen. Jede Zeile zeigt ihr Projekt mit Farbmarke; oben wählst du „Alle Projekte“ oder ein einzelnes. Meldungen der Workbench selbst stehen mit dem Absender „System“. Je Empfänger siehst du, wie weit eine Nachricht ist – und solange sie niemand gelesen hat, kannst du sie zurückziehen.
 
 ## Du brauchst
 - Die Workbench am PC oder die Online-Seite. Menü › Nachrichten.
@@ -9,8 +9,8 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 1. **Schreiben** Nachrichten › „+ Schreiben“ – Empfänger wählen (ein Agent oder alle), Art, Text. Aus einem Agenten heraus („Nachricht“) ist er schon eingetragen.
 2. **Von überall schreiben** Wo du etwas ansiehst – Thema, Meilenstein, Beschluss, Lauf, Prüfung –, gibt es „✉ Nachricht dazu“: Der Bezug ist eingetragen, der Empfänger vorgeschlagen (änderbar). Beim Thema und beim Meilenstein steht unten „Nachrichten dazu“ als kleines Gespräch. Bei Aufgaben und Dokumenten schreibst du wie bisher in deren eigenem Feld – auch das trägt den Bezug.
 3. **Stand verfolgen** Reiter „Gesendet“: je Empfänger gesendet › benachrichtigt › gelesen › erledigt. Fährst du über einen Schritt, siehst du die Uhrzeit.
-4. **Antworten lesen** Ein Klick auf eine Nachricht zeigt rechts das Gespräch – deine Nachricht und was darauf zurückkam. Am Handy öffnet es sich als eigene Ansicht („‹ Zur Liste“ führt zurück).
-5. **Eingang abarbeiten** Reiter „Eingang“: Ungelesenes ist fett. Antippen öffnet sie und hakt sie als gelesen ab – sie zählt nicht mehr im Menü. „Antworten“ schreibt zurück, der Bezug geht mit; „Gelesen“ hakt die gerade gezeigte ab, „Alle gelesen“ alle offenen.
+4. **Verlauf lesen** Ein Klick auf eine Nachricht zeigt rechts den ganzen Verlauf wie im Mail-Programm: alles zum selben Bezug (oder zur selben Antwortkette), auch was Agenten untereinander dazu schrieben – Ältestes oben, die gewählte Nachricht ist umrandet. In der Liste steht „· n im Verlauf“. Lange Verläufe zeigen zuerst die letzten 30 („Ältere zeigen“). Am Handy öffnet es sich als eigene Ansicht („‹ An dich“ führt zurück).
+5. **An dich abarbeiten** Reiter „An dich“ zeigt zuerst nur Offenes („nur offene“ ist an); oben steht „n offen für dich“ über alle Projekte. Ungelesenes ist fett. Antippen öffnet sie und hakt sie als gelesen ab – sie bleibt stehen, bis du die Seite verlässt, zählt aber nicht mehr. „Antworten“ schreibt zurück, der Bezug geht mit; „Gelesen“ hakt die gerade gezeigte ab, „Alle gelesen“ alle offenen.
 6. **Zurückziehen** Gesendet › Nachricht wählen › „Zurückziehen“ – solange **kein** Empfänger sie gelesen oder erledigt hat. Sie verschwindet bei allen Empfängern und bleibt bei dir als „zurückgezogen“.
 
 ## Typische Fehler
@@ -21,8 +21,8 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 ## Danach
 - Fragen der Agenten an dich stehen nur unter dem Menüpunkt „Fragen“ – mit Rückfragen, Nachträgen und deiner Antwort. Unter Nachrichten steht oben nur ein Hinweis, wie viele offen sind.
 - Jede Zeile zeigt ihre Art: ✉ Nachricht eines Agenten, ⚙ Meldung der Workbench. Mehrere offene hakst du auf einmal ab: Häkchen setzen (oder „alle offenen markieren“), dann „Gelesen“.
-- Was Agenten und Lead untereinander schreiben, steht unter „Team-Chat“ – nur zum Lesen, es zählt nie.
-- Die Übersicht zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt in den Eingang.
+- Was Agenten und Lead untereinander schreiben, steht unter „Mitlesen“ – aus allen Projekten, nur zum Lesen, es zählt nie.
+- Die Übersicht zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt zu „An dich“. Die Zahl im Menü gilt für das gewählte Projekt, „n offen für dich“ auf der Seite für alle.
 - Am PC scrollen Liste und Nachricht getrennt, wie im Mail-Programm: Du kannst rechts lesen, ohne die Liste zu verlieren.
 
 ## Häufige Fragen

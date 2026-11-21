@@ -1,6 +1,6 @@
-# Messages: inbox and sent
+# Messages: for you, read along, sent
 
-Everything you write to agents and everything they write to you is in one place – for the project you picked at the top; to see another project, pick it at the top. Notices from the Workbench itself show “System” as the sender. For each recipient you see how far a message has got – and as long as nobody has read it, you can withdraw it.
+Everything you write to agents and everything they write to you is in one place – from all projects on this PC together. Every line shows its project with a colour mark; at the top you pick “All projects” or a single one. Notices from the Workbench itself show “System” as the sender. For each recipient you see how far a message has got – and as long as nobody has read it, you can withdraw it.
 
 ## You need
 - The Workbench at the PC or the online site. Menu › Messages.
@@ -9,8 +9,8 @@ Everything you write to agents and everything they write to you is in one place 
 1. **Write** Messages › “+ Write” – pick a recipient (one agent or everyone), type, text. From an agent (“Message”) the recipient is already filled in.
 2. **Write from anywhere** Wherever you look at something – topic, milestone, decision, run, review – there is “✉ Message about this”: the reference is filled in and a recipient suggested (you can change it). Topics and milestones show “Messages about this” below as a small conversation. For tasks and documents you keep writing in their own field – that carries the reference too.
 3. **Follow the status** “Sent” tab: per recipient sent › notified › read › done. Hover over a step to see the time.
-4. **Read replies** Clicking a message shows the conversation on the right – your message and what came back. On a phone it opens as its own view (“‹ Back to list” returns).
-5. **Work through the inbox** “Inbox” tab: unread is bold. Tapping opens it and marks it as read – it no longer counts in the menu. “Reply” writes back, the reference comes along; “Read” marks the one shown, “All read” all open ones.
+4. **Read the thread** Clicking a message shows the whole thread on the right, as in a mail program: everything with the same reference (or in the same reply chain), including what agents wrote to each other about it – oldest at the top, the chosen message outlined. The list shows “· n in thread”. Long threads show the last 30 first (“Show older”). On a phone it opens as its own view (“‹ For you” returns).
+5. **Work through “For you”** The “For you” tab first shows only open messages (“open only” is on); at the top “n open for you” counts all projects. Unread is bold. Tapping opens it and marks it as read – it stays in the list until you leave the page, but no longer counts. “Reply” writes back, the reference comes along; “Read” marks the one shown, “All read” all open ones.
 6. **Withdraw** Sent › pick a message › “Withdraw” – as long as **no** recipient has read or done it. It disappears for every recipient and stays with you as “withdrawn”.
 
 ## Common problems
@@ -21,8 +21,8 @@ Everything you write to agents and everything they write to you is in one place 
 ## Next
 - The agents' questions to you are only under the “Questions” menu item – with follow-up questions, additions and your answer. Messages only shows a note at the top saying how many are open.
 - Every line shows its kind: ✉ message from an agent, ⚙ notice from the Workbench. To mark several open ones as read at once: tick them (or “select all open”), then “Read”.
-- What agents and lead write to each other is under “Team chat” – read only, it never counts.
-- The Overview shows only a card with the newest messages for you – one click takes you to the inbox.
+- What agents and lead write to each other is under “Read along” – from all projects, read only, it never counts.
+- The Overview shows only a card with the newest messages for you – one click takes you to “For you”. The number in the menu is for the chosen project, “n open for you” on the page for all.
 - On the PC the list and the message scroll separately, as in a mail program: you can read on the right without losing the list.
 
 ## Questions

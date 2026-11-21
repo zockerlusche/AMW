@@ -1,6 +1,6 @@
 {
- "titel": "Nachrichten: Eingang und Gesendet",
- "kurz": "Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Stelle – für das Projekt, das du oben gewählt hast; ein anderes Projekt wählst du oben. Meldungen der Workbench selbst stehen mit dem Absender „System“. Je Empfänger siehst du, wie weit eine Nachricht ist – und solange sie niemand gelesen hat, kannst du sie zurückziehen.",
+ "titel": "Nachrichten: An dich, Mitlesen, Gesendet",
+ "kurz": "Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Stelle – aus allen Projekten auf diesem PC zusammen. Jede Zeile zeigt ihr Projekt mit Farbmarke; oben wählst du „Alle Projekte“ oder ein einzelnes. Meldungen der Workbench selbst stehen mit dem Absender „System“. Je Empfänger siehst du, wie weit eine Nachricht ist – und solange sie niemand gelesen hat, kannst du sie zurückziehen.",
  "brauchst": [
   "Die Workbench am PC oder die Online-Seite. Menü › Nachrichten."
  ],
@@ -21,13 +21,13 @@
    "bilder": []
   },
   {
-   "titel": "Antworten lesen",
-   "text": "Ein Klick auf eine Nachricht zeigt rechts das Gespräch – deine Nachricht und was darauf zurückkam. Am Handy öffnet es sich als eigene Ansicht („‹ Zur Liste“ führt zurück).",
+   "titel": "Verlauf lesen",
+   "text": "Ein Klick auf eine Nachricht zeigt rechts den ganzen Verlauf wie im Mail-Programm: alles zum selben Bezug (oder zur selben Antwortkette), auch was Agenten untereinander dazu schrieben – Ältestes oben, die gewählte Nachricht ist umrandet. In der Liste steht „· n im Verlauf“. Lange Verläufe zeigen zuerst die letzten 30 („Ältere zeigen“). Am Handy öffnet es sich als eigene Ansicht („‹ An dich“ führt zurück).",
    "bilder": []
   },
   {
-   "titel": "Eingang abarbeiten",
-   "text": "Reiter „Eingang“: Ungelesenes ist fett. Antippen öffnet sie und hakt sie als gelesen ab – sie zählt nicht mehr im Menü. „Antworten“ schreibt zurück, der Bezug geht mit; „Gelesen“ hakt die gerade gezeigte ab, „Alle gelesen“ alle offenen.",
+   "titel": "An dich abarbeiten",
+   "text": "Reiter „An dich“ zeigt zuerst nur Offenes („nur offene“ ist an); oben steht „n offen für dich“ über alle Projekte. Ungelesenes ist fett. Antippen öffnet sie und hakt sie als gelesen ab – sie bleibt stehen, bis du die Seite verlässt, zählt aber nicht mehr. „Antworten“ schreibt zurück, der Bezug geht mit; „Gelesen“ hakt die gerade gezeigte ab, „Alle gelesen“ alle offenen.",
    "bilder": []
   },
   {
@@ -54,8 +54,8 @@
  "danach": [
   "Fragen der Agenten an dich stehen nur unter dem Menüpunkt „Fragen“ – mit Rückfragen, Nachträgen und deiner Antwort. Unter Nachrichten steht oben nur ein Hinweis, wie viele offen sind.",
   "Jede Zeile zeigt ihre Art: ✉ Nachricht eines Agenten, ⚙ Meldung der Workbench. Mehrere offene hakst du auf einmal ab: Häkchen setzen (oder „alle offenen markieren“), dann „Gelesen“.",
-  "Was Agenten und Lead untereinander schreiben, steht unter „Team-Chat“ – nur zum Lesen, es zählt nie.",
-  "Die Übersicht zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt in den Eingang.",
+  "Was Agenten und Lead untereinander schreiben, steht unter „Mitlesen“ – aus allen Projekten, nur zum Lesen, es zählt nie.",
+  "Die Übersicht zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt zu „An dich“. Die Zahl im Menü gilt für das gewählte Projekt, „n offen für dich“ auf der Seite für alle.",
   "Am PC scrollen Liste und Nachricht getrennt, wie im Mail-Programm: Du kannst rechts lesen, ohne die Liste zu verlieren."
  ],
  "fragen": [
