@@ -638,6 +638,15 @@ def cmd_paket(a, con):
         for r in mergeliste.freigeben(con, pid, _von(a), None if a.alle else [a.id], blick=[a.id] if a.blick else ()):
             print(f"A{r['aufgabe']}: {'freigegeben' if r['ok'] else 'nicht freigegeben'} – {r['text']}")
         return
+    if a.aktion == "annehmen":                        # A1894: E4-Paket nach dem Lesen annehmen → Merge-Liste (Lead, Mensch)
+        from . import mergeliste
+        if not a.id:
+            raise kern.AmwFehler("amw paket annehmen <Aufgabe> --grund „was du gelesen hast und warum es passt“")
+        _rolle_nur_mensch_oder_lead(con, pid, a, "Ein Paket annehmen")
+        r = mergeliste.annehmen(con, pid, _von(a), a.id, a.grund)
+        print(f"A{r['aufgabe']} angenommen: {r['zweig']}@{r['kopf'][:8]} steht in der Merge-Liste (bereit zum Merge) –"
+              f" freigeben: amw paket freigeben {r['aufgabe']}")
+        return
     if a.aktion == "buendeln":                        # A1876 (D1306): freigegebene Pakete zu einem Release-Stand (Lead, Mensch)
         from . import buendel
         if not a.alle and not a.id:
@@ -2868,12 +2877,13 @@ def parser():
                                    " | mergeliste [--diff] (bereit zum Merge: diff --stat, Server-Code, Blick nötig)"
                                    " | freigeben --alle | freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch)"
                                    " | buendeln --alle | buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch)"
+                                   " | annehmen N --grund … (E4-Paket nach dem Lesen in die Merge-Liste; Lead, Mensch)"
                                    " – Felder setzen: amw aufgabe neu|aendern … --paket p …")
-    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten", "mergeliste", "freigeben", "buendeln"])
+    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten", "mergeliste", "freigeben", "buendeln", "annehmen"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("zustand", nargs="?", help="zustand: entwurf, startklar, laeuft, abgegeben, abnahme, merge_reihe, gemergt, fertig,"
                                               " blockiert, unklar, wartet_interaktiv, abgebrochen, zurueckgestellt")
-    x.add_argument("--grund", help="zustand: warum (steht im Planungs-Protokoll) · ergebnis aufgegeben: warum es nicht geht")
+    x.add_argument("--grund", help="zustand: warum (steht im Planungs-Protokoll) · ergebnis aufgegeben: warum es nicht geht · annehmen: was du gelesen hast und warum es passt")
     x.add_argument("--beleg", help="zustand fertig: Commit")
     x.add_argument("--nur", help="liste: nur diese Zustände, z. B. startklar,laeuft")
     x.add_argument("--diff", action="store_true", help="mergeliste: auch den gekürzten Diff zeigen")

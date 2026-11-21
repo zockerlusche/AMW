@@ -111,7 +111,8 @@ def nachricht(zeile, code, aid, titel, lauf, meldung, befund, notiz=None):
     if notiz:
         teile.append(f"Übergabe-Notiz: {_kurz(notiz, 800)}")
     teile.append(f"Kosten: {e.get('total_cost_usd', 'unbekannt')} $ · Runden {e.get('num_turns', '–')} · Sitzung {(lauf or {}).get('sitzung') or '–'}")
-    teile.append("Antworten (Stufe 1): nochmal frisch · Paket ändern (Chat-TL) · an interaktiven Agenten · verwerfen · Frage an Marcel")
+    teile.append("Antworten (Stufe 1): nochmal frisch · Paket ändern (Chat-TL) · an interaktiven Agenten · verwerfen · Frage an Marcel"
+                 + (f" · gelesen und passt: amw paket annehmen {aid} --grund …" if zeile == "E4" else ""))   # A1894
     return "\n".join(teile)
 
 
@@ -126,10 +127,17 @@ def anwenden(con, pid, aid, zeile, code, lauf=None, meldung=None, befund=None, p
         arbeitspaket.zustand_setzen(con, pid, "AMW", aid, schritt, grund=grund)
     archiv = None
     notiz = None
+    gesichert = None
+    if zeile in ("E4", "E6") and p is not None and (befund or {}).get("kopf"):
+        from . import mergeliste, pruefung_c            # A1894: Stand vor dem Archivieren ins Projekt-Repo – der Lead kann annehmen
+        try:
+            gesichert = mergeliste.kopf_sichern(con, pid, aid, pruefung_c.repo(p), befund["kopf"]) and mergeliste.gesichert(aid)
+        except Exception as e:                                   # noqa: BLE001 – die Entscheidung gilt trotzdem; Befund melden
+            notiz = f"Stand nicht gesichert: {type(e).__name__}: {e}"
     if z["archiv"] and p is not None:
         from . import arbeiter
         try:
-            notiz = arbeiter.uebergabe(p) if zeile in ("E1", "E1n", "E2") else None
+            notiz = arbeiter.uebergabe(p) if zeile in ("E1", "E1n", "E2") else notiz
             archiv = platz.zuruecksetzen(p, projektordner=quelle, aufgabe=aid).get("archiv")
         except Exception as e:                                   # noqa: BLE001 – die Entscheidung gilt trotzdem; Befund melden
             notiz = (notiz or "") + f" · Platz nicht zurückgesetzt: {type(e).__name__}: {e}"
@@ -137,8 +145,8 @@ def anwenden(con, pid, aid, zeile, code, lauf=None, meldung=None, befund=None, p
     text = nachricht(zeile, code, aid, titel, lauf, meldung, befund, notiz)
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="paket_entscheidung", aufgabe_id=aid,
-                     text=json.dumps({"zeile": zeile, "code": code, "an": an, "archiv": archiv, "kopf": (befund or {}).get("kopf")},
-                                     ensure_ascii=False))
+                     text=json.dumps({"zeile": zeile, "code": code, "an": an, "archiv": archiv, "kopf": (befund or {}).get("kopf"),
+                                      "gesichert": gesichert}, ensure_ascii=False))
         if an:
             kern._posten(con, pid, "AMW", an, "info" if zeile == "E1n" else "meldung", f"{zeile} {code}: A{aid} {titel}"[:140], text,
                          aufgabe_id=aid)

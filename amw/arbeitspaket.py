@@ -42,6 +42,9 @@ UEBERGAENGE = {
     "zurueckgestellt": {"entwurf", "startklar"},
 }
 
+# A1894: der Lead nimmt ein Paket nach E4 an (mergeliste.annehmen) – der einzige Weg von wartet_interaktiv in die Merge-Reihe
+LEAD_ANNAHME = ("wartet_interaktiv", "merge_reihe")
+
 # Spiegel auf aufgabe.status (die Oberfläche fasst zusammen: fertig / läuft / wartet / blockiert)
 SPIEGEL = {"laeuft": "laeuft", "fertig": "fertig",
            **{z: "blockiert" for z in ("blockiert", "unklar", "wartet_interaktiv", "abgebrochen")}}
@@ -231,7 +234,7 @@ def setzen(con, pid, von, aid, **werte):
     return f, warnungen(f, a["pruefbefehl"], a["dateibereich"])
 
 
-def zustand_setzen(con, pid, von, aid, neu, grund=None, beleg=None):
+def zustand_setzen(con, pid, von, aid, neu, grund=None, beleg=None, annahme=False):
     """Zustand eines p-Pakets wechseln – nur erlaubte Übergänge; spiegelt den Status der Aufgabe (eine Stelle) und schreibt
     plan_ereignis „paket_zustand“ (Grundlage der Messung). Wer: die AMW selbst, der Lead oder der Mensch. „fertig“ braucht
     einen Beleg (Commit). Rückgabe: (alt, neu, Status der Aufgabe)."""
@@ -242,10 +245,11 @@ def zustand_setzen(con, pid, von, aid, neu, grund=None, beleg=None):
     f = lesen(con, aid)
     if f["art"] != "p":
         raise kern.AmwFehler(f"A{aid} ist Art {f['art']} – Zustände gibt es nur bei Art p; sonst gilt der Status der Aufgabe")
-    try:
-        uebergang_pruefen(f["zustand"], neu)
-    except Ungueltig as e:
-        raise kern.AmwFehler(f"A{aid}: {e}") from None
+    if not (annahme and (f["zustand"], neu) == LEAD_ANNAHME):    # A1894: wartet_interaktiv → merge_reihe nur über „annehmen“
+        try:
+            uebergang_pruefen(f["zustand"], neu)
+        except Ungueltig as e:
+            raise kern.AmwFehler(f"A{aid}: {e}") from None
     status = spiegel(neu)
     if status == "fertig" and not (beleg or a["beleg"] or "").strip():
         raise kern.AmwFehler(f"A{aid} fertig nur mit Beleg (Commit) – --beleg …")

@@ -12,7 +12,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
 | [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N [--kurz] ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] ¦ nachtrag N --titel … (Folgearbeit zu einer fertigen Aufgabe) |
-| [`paket`](#paket) | Arbeitspakete (Mischbetrieb): zeigen N ¦ zustand N <zustand> [--grund … --beleg …] ¦ liste [--zustand …] ¦ ergebnis N (--json - über stdin oder --status/--zusammenfassung/--frage/--frage-an/--grund/--hinweis; nur der zugeteilte Agent, Art agent/sitzung, Paket läuft) ¦ starten N (Lead/Mensch: ein startklares p-Paket jetzt starten – der Wächter entscheidet) ¦ mergeliste [--diff] (bereit zum Merge: diff --stat, Server-Code, Blick nötig) ¦ freigeben --alle ¦ freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch) ¦ buendeln --alle ¦ buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch) – Felder setzen: amw aufgabe neu¦aendern … --paket p … |
+| [`paket`](#paket) | Arbeitspakete (Mischbetrieb): zeigen N ¦ zustand N <zustand> [--grund … --beleg …] ¦ liste [--zustand …] ¦ ergebnis N (--json - über stdin oder --status/--zusammenfassung/--frage/--frage-an/--grund/--hinweis; nur der zugeteilte Agent, Art agent/sitzung, Paket läuft) ¦ starten N (Lead/Mensch: ein startklares p-Paket jetzt starten – der Wächter entscheidet) ¦ mergeliste [--diff] (bereit zum Merge: diff --stat, Server-Code, Blick nötig) ¦ freigeben --alle ¦ freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch) ¦ buendeln --alle ¦ buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch) ¦ annehmen N --grund … (E4-Paket nach dem Lesen in die Merge-Liste; Lead, Mensch) – Felder setzen: amw aufgabe neu¦aendern … --paket p … |
 | [`thema`](#thema) | Design-Dokument je Thema: liste [--suche] ¦ zeige TH12 ¦ neu "Name" [--pfleger X] [--stil] ¦ einstellen TH12 --pfleger X ¦ --stil ¦ pflegen TH12 --text-datei … ¦ bestaetigen TH12 ¦ dokument TH12 --dokument D5 [--loesen] |
 | [`termin`](#termin) | Terminplaner: neu --titel … --art test¦frist¦schirm¦sonstig --am "2026-11-06 18:00" [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] ¦ liste [--tage 21] ¦ aendern N ¦ absagen N [--am …] ¦ bereit N --text "was testen" ¦ kurzliste N (Planen: Lead/Entwickler) |
 | [`liste`](#liste) | Arbeitsliste je Agent: liste [Agent¦pool] ¦ ordnen <Agent> A12 A15 … ¦ schieben A15 --vor A12 ¦ --nach ¦ --pos N ¦ --oben ¦ --unten (ordnen/schieben: Lead) |
@@ -374,11 +374,11 @@ usage: amw paket [-h] [--grund GRUND] [--beleg BELEG] [--nur NUR] [--diff]
                  [--zusammenfassung ZUSAMMENFASSUNG] [--frage FRAGE]
                  [--frage-an {lead,mensch}] [--hinweis HINWEIS]
                  [--zweig ZWEIG] [--von VON] [--projekt PROJEKT]
-                 {zeigen,zustand,liste,ergebnis,starten,mergeliste,freigeben,buendeln}
+                 {zeigen,zustand,liste,ergebnis,starten,mergeliste,freigeben,buendeln,annehmen}
                  [id] [zustand]
 
 positional arguments:
-  {zeigen,zustand,liste,ergebnis,starten,mergeliste,freigeben,buendeln}
+  {zeigen,zustand,liste,ergebnis,starten,mergeliste,freigeben,buendeln,annehmen}
   id
   zustand               zustand: entwurf, startklar, laeuft, abgegeben,
                         abnahme, merge_reihe, gemergt, fertig, blockiert,
@@ -388,7 +388,8 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --grund GRUND         zustand: warum (steht im Planungs-Protokoll) ·
-                        ergebnis aufgegeben: warum es nicht geht
+                        ergebnis aufgegeben: warum es nicht geht · annehmen:
+                        was du gelesen hast und warum es passt
   --beleg BELEG         zustand fertig: Commit
   --nur NUR             liste: nur diese Zustände, z. B. startklar,laeuft
   --diff                mergeliste: auch den gekürzten Diff zeigen
