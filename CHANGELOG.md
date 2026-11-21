@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.149.0 – 21.11.2026 · Halt beim Wochenlimit
+- **Neu:** Erreicht der Verbrauch des Wochenlimits eine einstellbare Schwelle (Vorgabe 95 %), hält die AMW alle Coder an: Sie
+  beenden ihre Arbeit sauber mit Zwischenstand, nichts wird hart beendet. Du und der Lead bekommen eine Meldung. Mit
+  „weiter“ hebst du den Halt auf, sonst geht es nach dem Wochenwechsel von selbst weiter. Die Schwelle stellst du unter
+  Einstellungen › Projekt ein (leer = aus).
+
 ## 1.148.0 – 20.11.2026 · Führung übergeben
 - **Neu:** `amw agent lead <neuer Lead> --co <bisheriger Lead> --grund …` übergibt die Führung in einem Schritt – nie zwei
   Leads, nie keiner. Weckrufe, Fragen an den Lead, Prüfbitten, Planungs- und Leerlauf-Weckrufe gehen danach an den neuen Lead.

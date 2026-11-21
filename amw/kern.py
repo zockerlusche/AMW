@@ -331,6 +331,15 @@ def projekt_einstellen(con, pid, von, **werte):
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         for k, v in werte.items():
+            if k == "limit_halt":                        # A1888: Halt beim Wochenlimit – Prozent 1–100; 0, leer oder „aus“ = aus
+                try:
+                    v = 0 if str(v if v is not None else "").strip().lower() in ("", "aus") else int(v)
+                except (TypeError, ValueError):
+                    raise AmwFehler("limit_halt: Prozent 1–100 (0 oder leer = aus)") from None
+                if v and not 1 <= v <= 100:
+                    raise AmwFehler("limit_halt: Prozent 1–100 (0 oder leer = aus)")
+                e[k] = v                                 # nie gesetzt = Vorgabe 95 (amw/limithalt.py)
+                continue
             if k in PROJEKT_WAHL:
                 if k in NUR_MENSCH_WAHL and von != ENTWICKLER and v != projekt_wahl(con, pid, k):
                     raise AmwFehler(f"{k}: stellt nur der Mensch (Workbench › Einstellungen oder --von Entwickler)")
@@ -712,8 +721,10 @@ def weiter(con, pid, von, gilt_fuer):
     if not ist_lead(con, pid, von):
         raise AmwFehler("Weiter dürfen nur Entwickler und Lead geben")
     with db.schreiben(con):
-        n = con.execute("UPDATE sperre SET aufgehoben_utc = ? WHERE projekt_id = ? AND art = 'halt'"
-                        " AND gilt_fuer = ? AND aufgehoben_utc IS NULL", (db.jetzt(), pid, gilt_fuer)).rowcount
+        # „alle“ hebt auch die Wochenlimit-Halte der AMW auf, die je Coder einzeln gesetzt sind (A1888, amw/limithalt.py)
+        n = con.execute("UPDATE sperre SET aufgehoben_utc = ? WHERE projekt_id = ? AND art = 'halt' AND aufgehoben_utc IS NULL"
+                        " AND (gilt_fuer = ? OR (? = 'alle' AND von = 'AMW' AND text LIKE 'Wochenlimit%'))",
+                        (db.jetzt(), pid, gilt_fuer, gilt_fuer)).rowcount
         if n:
             _posten(con, pid, von, gilt_fuer, "freigabe", "WEITER: Halt aufgehoben", f"{n} Halt aufgehoben von {von}.")
     return n

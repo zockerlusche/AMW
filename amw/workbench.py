@@ -696,6 +696,11 @@ def _claude_kurz(c, n=8):
                            "arbeitskopien": (s.get("arbeitskopien") or [])[:3]} for s in (c.get("sitzungen") or [])[:n]]}
 
 
+def _limit_halt(con, pid):
+    from . import limithalt
+    return limithalt.schwelle(con, pid)                  # None = aus (Feld leer)
+
+
 def daten_einstellungen(con, pid, speicher=None):
     """Zahnrad: alles, was einstellbar ist – nie Schlüssel oder Passwörter (der Turso-Schlüssel nur als „gespeichert“)."""
     from . import __version__, abgleich, einstellungen, ueberwachung
@@ -759,6 +764,7 @@ def daten_einstellungen(con, pid, speicher=None):
                         "ende_frist_min": pe.get("ende_frist_min", 5),
                         "schwere_befehle": pe.get("schwere_befehle") or [],
                         "info_ablage_h": pe.get("info_ablage_h", INFO_ABLAGE_H),
+                        "limit_halt": _limit_halt(con, pid),                            # A1888: leer = aus
                         "empfehlung": empfehlung.tabelle(con, pid), "empfehlung_standard": empfehlung.STANDARD},
             "agenten": agenten,
             "pc": {**einstellungen.laden(), "datei": einstellungen.pfad(),

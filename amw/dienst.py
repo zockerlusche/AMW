@@ -372,6 +372,12 @@ class Dienst:
             log.warning("Neustart: %s: %s", type(e).__name__, e)
         for e in self.ueberwachung.runde():                                  # Projekt-Server, Stillstand
             log.info("Überwachung: %s", e)
+        try:                                                                 # A1888: Halt beim Wochenlimit
+            from . import limithalt
+            for e in limithalt.runde(self.con):
+                log.info("Wochenlimit-Halt: %s", e)
+        except Exception as e:
+            log.warning("Wochenlimit-Halt: %s: %s", type(e).__name__, e)
         try:                                                                 # frei, obwohl Arbeit da ist
             for e in wartegrund.leerlauf(self.con):
                 log.info("Leerlauf: %s", e)

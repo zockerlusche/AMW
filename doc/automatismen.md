@@ -107,6 +107,16 @@ Ruhephase. Empfänger ist die Projekt-Einstellung `leerlauf_lead` (sonst der Lea
 einen Chat-Lead weckt die AMW nicht. Wartezeit: `leerlauf_lead_min` (1–1440, Vorgabe 10). Beides setzen Lead oder Mensch:
 `amw projekt einstellen leerlauf_lead=<Agent> leerlauf_lead_min=<min>`.
 
+## Halt beim Wochenlimit (seit 1.149.0)
+
+Erreicht der Verbrauch des Wochenlimits die Schwelle `limit_halt` (Prozent, Vorgabe 95; 0 oder leer = aus), hält die AMW
+alle Coder des Projekts an – jeden Agenten außer den Leads, der nicht ausgeschaltet ist. Gemessen wird wie bei Startregel 8.
+Jeder bekommt ein STOPP: laufende Arbeit sauber beenden (Zwischenstand committen, Übergabe-Notiz), nichts Neues anfangen;
+hart beendet wird nichts. Lead und Mensch bekommen eine Meldung. Aufheben: `amw weiter` (Lead oder Mensch) – dann kommt der
+Halt in derselben Woche nicht wieder. Sonst hebt die AMW ihn selbst auf, sobald der Verbrauch nach dem Wochenwechsel unter der
+Schwelle liegt oder die Einstellung aus ist. Einstellen: Workbench › Einstellungen › Projekt oder
+`amw projekt einstellen limit_halt=<Prozent>` (Lead oder Mensch).
+
 ## Arbeitsliste je Agent (seit 1.12.0)
 
 **Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach
