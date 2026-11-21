@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.149.1 – 21.11.2026 · Neue Claude-Code-Version für Arbeiter
+- **Behoben:** Arbeiter auf den Arbeitsplätzen laufen wieder mit der aktuellen Claude-Code-Version 2.1.329. Die AMW hatte sie
+  abgebrochen, weil diese Version noch nicht geprüft war. Die Probe, dass ein Arbeiter nichts außerhalb seines Platzes ändern
+  kann, ist mit 2.1.329 bestanden.
+
 ## 1.149.0 – 21.11.2026 · Halt beim Wochenlimit
 - **Neu:** Erreicht der Verbrauch des Wochenlimits eine einstellbare Schwelle (Vorgabe 95 %), hält die AMW alle Coder an: Sie
   beenden ihre Arbeit sauber mit Zwischenstand, nichts wird hart beendet. Du und der Lead bekommen eine Meldung. Mit
