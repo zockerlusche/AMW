@@ -169,7 +169,7 @@ class Seite(Wiederholt, Grund):
         self.assertIn("1 neue Nachricht an dich", self.tab.js("document.querySelector('#ue-fuer_dich .nr-start').innerText"))   # A1657: Karte „Für dich“
         self.tab.js("document.querySelector('.nr-start').click()")
         self.warten("zustand.sicht === 'nachrichten' && document.querySelector('.nr-reiter button.an')")
-        self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [True, False, False, False])   # Eingang, Gesendet, Team-Chat (A1657), Lead-Runde (nur am PC)
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [True, False, False, False])   # An dich, Mitlesen (A1657/A1889), Gesendet, Lead-Runde (nur am PC)
         self.assertEqual(self.tab.js("document.querySelectorAll('.nr-reiter button')[3].textContent"), "Lead-Runde")
         self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-liste').innerText"))
         n2 = self.con.execute("SELECT max(id) FROM nachricht WHERE von = 'CC1'").fetchone()[0]
@@ -183,7 +183,7 @@ class Seite(Wiederholt, Grund):
         self.tab.js("kopfAktualisieren().then(() => standPruefen())")                 # wie die regelmäßige Abfrage: neuer Stand → neu zeichnen
         self.warten("document.querySelector('.nr-liste').innerText.includes('Neu während des Lesens')")
         self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-eintrag.an').innerText"))   # Auswahl bleibt stehen
-        self.tab.js("document.querySelectorAll('.nr-reiter button')[1].click()")
+        self.tab.js("[...document.querySelectorAll('.nr-reiter button')].find(b => b.textContent.startsWith('Gesendet')).click()")
         self.warten(f"document.querySelector('.nr-liste') && document.querySelector('.nr-liste').innerText.includes('Bitte Linien aufräumen')")
         self.assertIn(f"A{aid} Linien", self.tab.js("document.querySelector('.nr-liste .nr-chip').innerText"))
         self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-gespraech').innerText"))      # Antwort hängt am Faden

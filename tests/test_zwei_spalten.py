@@ -2,7 +2,7 @@
 geöffnete Nachricht gemeinsam – wer unten in der Liste eine Nachricht öffnete und rechts weiterlas, verlor die Liste.
 Jetzt hat am PC jede Spalte ihren eigenen Scrollbereich; die Seite scrollt nicht; die gewählte Zeile bleibt sichtbar.
 Einstellungen › Agenten: die Liste bleibt beim Scrollen stehen. Am Handy wie bisher (eine Spalte, Zurück).
-Dazu D940 Fund 7: Nachrichten öffnet ohne gemerkte Wahl auf „Eingang“, wenn dort Neues liegt."""
+Dazu D940 Fund 7: Nachrichten öffnet ohne gemerkte Wahl auf „An dich“ (bis A1889: „Eingang“), wenn dort Neues liegt."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import unittest
 
@@ -80,7 +80,7 @@ class Nachrichten(Daten, Rundgang):
         self.oeffnen("nachrichten", "document.querySelector('.nr-reiter button.an')")
         self.tab.js("try { Object.keys(localStorage).filter(k => k.includes('amw-nr')).forEach(k => localStorage.removeItem(k)) } catch (e) {}")
         self.oeffnen("nachrichten", "document.querySelector('.nr-reiter button.an')")
-        self.assertIn("Eingang", self.tab.js("document.querySelector('.nr-reiter button.an').textContent"))
+        self.assertIn("An dich", self.tab.js("document.querySelector('.nr-reiter button.an').textContent"))
         self.tab.js("[...document.querySelectorAll('.nr-reiter button')].find(b => b.textContent.startsWith('Gesendet')).click()")   # gemerkt
         self.oeffnen("nachrichten", "document.querySelector('.nr-reiter button.an')")
         self.assertIn("Gesendet", self.tab.js("document.querySelector('.nr-reiter button.an').textContent"))

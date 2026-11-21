@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.153.0 – 21.11.2026 · Posteingang über alle Projekte
+- **Neu:** Nachrichten zeigen alles an dich aus allen Projekten auf diesem PC in einer Liste. Jede Zeile trägt ihr Projekt mit
+  Farbmarke, oben wählst du „Alle Projekte“ oder eines. Die Reiter heißen jetzt „An dich“, „Mitlesen“ (bisher Team-Chat) und
+  „Gesendet“.
+- **Neu:** „An dich“ zeigt zuerst nur Offenes, darüber „n offen für dich“. Was du liest, bleibt stehen, bis du die Seite verlässt.
+- **Verbessert:** Der Knopf heißt jetzt „Erledigt“ (auch „Alle erledigt“) – er hakt die Nachricht ab, am PC, online und am Handy.
+- **Neu:** Rechts steht der ganze Verlauf wie im Mail-Programm – alles zum selben Bezug, auch was Agenten untereinander dazu
+  schrieben. In der Liste siehst du „· n im Verlauf“. Am Handy zeigt das Gespräch nur noch den Verlauf und „‹ zurück“.
+- **Verbessert:** „Mitlesen“ zeigt ebenfalls alle Projekte mit Projekt-Filter. Fragen bleiben ihr eigener Menüpunkt.
 ## 1.152.6 – 21.11.2026 · Probebetrieb S8: Tests für bestehenden Code
 - **Intern:** 6 Paket(e) ohne sichtbare Änderung (Tests und Pflege).
 

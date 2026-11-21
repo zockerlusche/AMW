@@ -774,6 +774,8 @@ main.geteilt-seite { padding-bottom: 16px; }
 .nr-pchip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border: 1px solid var(--linie2); border-radius: 14px; background: none; color: var(--leise); font: inherit; font-size: 13px; cursor: pointer; }
 .nr-pchip.an { border-color: var(--bernstein); color: var(--tinte); background: var(--bernstein-weich); } .nr-pchip .nr-projekt { color: inherit; font-size: 13px; }
 .nr-offen { color: var(--bernstein); font-weight: 600; font-size: 13.5px; white-space: nowrap; } .nr-offen.null { color: var(--leise); font-weight: 400; }
+@media (max-width: 760px) { .nr-offen { display: none; }   /* am Handy steht die Zahl am Reiter „An dich“ – eine Zeile weniger über der Liste */
+  #inhalt:has(.nr-raster.detail) :is(.nr-hinweis, .nr-leiste, .nr-chipzeile, .nr-sammel) { display: none; } }   /* Gespräch am Handy: nur „‹ zurück“ und der Verlauf (D1310) */
 .nr-g-kopf { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } .nr-g-kopf h3 { flex: 1 1 240px; min-width: 0; overflow-wrap: anywhere; }
 .nr-blase.diese { border-color: var(--bernstein); } .nr-im-verlauf { color: var(--leise); font-weight: 400; font-size: 12.5px; } .nr-aelter { align-self: center; font-size: 13px; }
 .sb { display: grid; gap: 8px; } .sb-angaben { display: grid; gap: 2px; } .sb-angabe { display: grid; grid-template-columns: 140px 1fr; gap: 8px; font-size: 13px; }
