@@ -371,8 +371,8 @@ options:
 ## paket
 ```
 usage: amw paket [-h] [--grund GRUND] [--beleg BELEG] [--nur NUR] [--diff]
-                 [--alle] [--blick] [--titel TITEL] [--json JSON]
-                 [--status {erledigt,blockiert,aufgegeben}]
+                 [--alle] [--blick] [--titel TITEL] [--gesamtlauf ZWEIG]
+                 [--json JSON] [--status {erledigt,blockiert,aufgegeben}]
                  [--zusammenfassung ZUSAMMENFASSUNG] [--frage FRAGE]
                  [--frage-an {lead,mensch}] [--hinweis HINWEIS]
                  [--zweig ZWEIG] [--von VON] [--projekt PROJEKT]
@@ -402,6 +402,8 @@ options:
   --titel TITEL         buendeln: Titel des Abschnitts in den
                         Versionshinweisen (sonst aus dem Hinweis bzw.
                         „Gebündelte Pakete“)
+  --gesamtlauf ZWEIG    buendeln: den Gesamtlauf eines vorhandenen Bündels
+                        (buendel-X.Y.Z) neu anstoßen
   --json JSON           ergebnis: „-“ = die Meldung als JSON von stdin
   --status {erledigt,blockiert,aufgegeben}
                         ergebnis: genau ein Status

@@ -792,9 +792,13 @@ def pruefstand(befehl, ordner):
             return None
         st = subprocess.run(["git", "-C", ziel, "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True,
                             timeout=60, stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        sauber = st.returncode == 0 and not st.stdout.strip()
+        if st.returncode == 0 and not sauber:            # A1909 (2): nur Stat (Größe/Zeit) anders, Inhalt gleich → sauber
+            sauber = subprocess.run(["git", "-C", ziel, "diff", "--quiet", "HEAD", "--"], capture_output=True, timeout=120,
+                                    stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).returncode == 0
     except (OSError, subprocess.TimeoutExpired):
         return None
-    return ziel, rev.stdout.strip(), st.returncode == 0 and not st.stdout.strip()
+    return ziel, rev.stdout.strip(), sauber
 
 
 def stand_text(s):

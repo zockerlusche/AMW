@@ -649,8 +649,15 @@ def cmd_paket(a, con):
         return
     if a.aktion == "buendeln":                        # A1876 (D1306): freigegebene Pakete zu einem Release-Stand (Lead, Mensch)
         from . import buendel
+        if a.gesamtlauf:                              # A1909 (3): Gesamtlauf eines vorhandenen Bündels neu anstoßen
+            _rolle_nur_mensch_oder_lead(con, pid, a, "Bündel-Gesamtlauf anstoßen")
+            r = buendel.gesamtlauf_neu(con, pid, _von(a), a.gesamtlauf)
+            print(f"Bündel {r['version']}: Gesamtlauf für {r['zweig']}@{r['sha'][:8]} neu angestoßen (Prozess {r['starter']}) –"
+                  " die Meldung kommt, wenn er zu Ende ist")
+            return
         if not a.alle and not a.id:
-            raise kern.AmwFehler("amw paket buendeln --alle | amw paket buendeln <Aufgabe> [--titel …]")
+            raise kern.AmwFehler("amw paket buendeln --alle | amw paket buendeln <Aufgabe> [--titel …]"
+                                 " | amw paket buendeln --gesamtlauf buendel-X.Y.Z")
         _rolle_nur_mensch_oder_lead(con, pid, a, "Bündeln")   # P298: wie agent lead – kein --von Entwickler aus einer Sitzung
         r = buendel.buendeln(con, pid, _von(a), None if a.alle else [a.id], titel=a.titel)
         print(f"Bündel {r['version']}: {r['zweig']}@{r['sha'][:8]} mit {len(r['drin'])} Paket(en): "
@@ -2906,6 +2913,7 @@ def parser():
     x.add_argument("--alle", action="store_true", help="freigeben: alle Pakete, die bereit zum Merge sind (außer denen, die einen Blick brauchen)")
     x.add_argument("--blick", action="store_true", help="freigeben N: du hast in den Diff gesehen (nötig laut merge_blick)")
     x.add_argument("--titel", help="buendeln: Titel des Abschnitts in den Versionshinweisen (sonst aus dem Hinweis bzw. „Gebündelte Pakete“)")
+    x.add_argument("--gesamtlauf", metavar="ZWEIG", help="buendeln: den Gesamtlauf eines vorhandenen Bündels (buendel-X.Y.Z) neu anstoßen")
     x.add_argument("--json", help="ergebnis: „-“ = die Meldung als JSON von stdin")
     x.add_argument("--status", choices=["erledigt", "blockiert", "aufgegeben"], help="ergebnis: genau ein Status")
     x.add_argument("--zusammenfassung", help="ergebnis: ein Satz, was gemacht wurde")

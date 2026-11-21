@@ -14,6 +14,11 @@ Release-Stand zusammen – ohne Coder.
    Schritt eine andere versionierte Datei → Stopp mit Befund an den Lead. Betreff „X.Y.Z: Bündel (n Pakete)“ ohne A-Nummern.
 5. Zweig buendel-X.Y.Z; GRÜN und Merge-OK der Pakete gehen über die patch-id-Übernahme der Kette (A1814) mit.
 Gesamtlauf, GRÜN auf der Spitze und Meldung „Bündel X.Y.Z bereit“ folgen im zweiten Schritt (lauf_und_meldung).
+
+A1909: core.autocrlf im Bündel ist der Wert, den git im Projekt-Repo selbst sieht (Repo vor System) – derselbe wie beim
+Stand-Vergleich (betrieb.pruefstand) und in jedem Entwicklungsbaum. Vorher galt der Systemwert: das Bündel lag mit CRLF vor, die
+Nacharbeit schrieb LF mit gleichem Inhalt, und git hielt jede neu geschriebene Datei wegen der Größe für geändert.
+`amw paket buendeln --gesamtlauf buendel-X.Y.Z` stößt den Gesamtlauf eines vorhandenen Bündels neu an.
 """
 import datetime
 import fnmatch
@@ -76,15 +81,40 @@ def arbeitsbaum(con, pid):
     return os.path.join(wurzel, "buendel")
 
 
-def _umgebung(daten):
+_AUTOCRLF = {}
+
+
+def autocrlf(ordner):
+    """A1909: core.autocrlf, wie git im Repo von `ordner` selbst ihn sieht (Repo-Einstellung vor System und Benutzer) – derselbe
+    Wert wie beim Stand-Vergleich (betrieb.pruefstand ruft git ohne neutrale Umgebung). Ein Worktree teilt die Einstellung
+    seines Repos. Nicht ermittelbar → false (git-Vorgabe)."""
+    schluessel = os.path.normcase(os.path.abspath(ordner))
+    if schluessel not in _AUTOCRLF:
+        try:
+            r = subprocess.run(["git", "-C", ordner, "config", "--get", "core.autocrlf"], capture_output=True, text=True, timeout=30,
+                               stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            v = r.stdout.strip().lower()
+        except (OSError, subprocess.SubprocessError):
+            v = ""
+        _AUTOCRLF[schluessel] = v if v in ("true", "input", "false") else "false"
+    return _AUTOCRLF[schluessel]
+
+
+def _umgebung(daten, ordner=None):
     from . import pruefung_c                             # dieselbe neutrale Umgebung wie Prüfung C, eigener Autor
-    return pruefung_c._umgebung({"daten": daten}, {"GIT_AUTHOR_NAME": NAME, "GIT_AUTHOR_EMAIL": EMAIL,
-                                                     "GIT_COMMITTER_NAME": NAME, "GIT_COMMITTER_EMAIL": EMAIL})
+    extra = {"GIT_AUTHOR_NAME": NAME, "GIT_AUTHOR_EMAIL": EMAIL, "GIT_COMMITTER_NAME": NAME, "GIT_COMMITTER_EMAIL": EMAIL}
+    if ordner:                                           # A1909: Zeilenenden wie im Projekt-Repo, nicht wie der Systemwert
+        extra["GIT_CONFIG_VALUE_3"] = autocrlf(ordner)
+    u = pruefung_c._umgebung({"daten": daten}, extra)
+    if u.get("GIT_CONFIG_KEY_3") != "core.autocrlf":     # die Stelle in pruefung_c._umgebung, die hier ersetzt wird
+        raise BuendelFehler("neutrale git-Umgebung: core.autocrlf steht nicht mehr an Stelle 3")
+    return u
 
 
 def _git(ordner, daten, *args, ok=(0,)):
     r = subprocess.run(["git", "-C", ordner, *args], capture_output=True, text=True, encoding="utf-8", errors="replace",
-                       stdin=subprocess.DEVNULL, timeout=600, env=_umgebung(daten), creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                       stdin=subprocess.DEVNULL, timeout=600, env=_umgebung(daten, ordner),
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     if r.returncode not in ok:
         raise BuendelFehler(f"git {' '.join(args[:3])}: {(r.stdout + r.stderr).strip()[-300:]}")
     return r.returncode, (r.stdout or "").strip()
@@ -178,9 +208,7 @@ def buendeln(con, pid, von, aids=None, titel=None, starten=None):
     pakete = kandidaten(con, pid, None if aids is None else {int(a) for a in aids})
     if not pakete:
         raise BuendelFehler("Kein freigegebenes Paket in der Merge-Reihe")
-    if not os.path.isdir(os.path.join(ziel, ".git")) and not os.path.isfile(os.path.join(ziel, ".git")):
-        _git(repo, daten, "worktree", "add", "--detach", ziel, "main")
-    _git(ziel, daten, "checkout", "-f", "--detach", "main")       # versionierte Dateien wie main; nichts gelöscht
+    baum_auf(repo, ziel, daten, "main")                          # versionierte Dateien wie main; nichts gelöscht
     _, liegen = _git(ziel, daten, "ls-files", "--others", "--exclude-standard")   # P298 (b): Reste früherer Läufe kommen nie mit
     liegen = {x.strip() for x in liegen.splitlines() if x.strip()}
     drin, raus = [], []
@@ -257,6 +285,48 @@ def buendeln(con, pid, von, aids=None, titel=None, starten=None):
     gestartet = (starten or starter_starten)(pid, zweig) if starten is not False else None
     return {"version": version, "zweig": zweig, "sha": sha, "drin": drin, "raus": raus, "ordner": ziel, "uebernommen": uebernommen,
             "starter": gestartet}
+
+
+def baum_auf(repo, ziel, daten, rev):
+    """Bündel-Arbeitsbaum auf `rev` (versionierte Dateien wie dort, nichts gelöscht). A1909: checkout-index schreibt jede Datei
+    mit den Zeilenenden des Projekt-Repos neu – auch die, die ein früheres Bündel mit anderen Zeilenenden ausgecheckt hat (die
+    ließe `checkout -f` liegen, weil ihr Index-Eintrag passt) –, danach ist der Index frisch."""
+    if not os.path.isdir(os.path.join(ziel, ".git")) and not os.path.isfile(os.path.join(ziel, ".git")):
+        _git(repo, daten, "worktree", "add", "--detach", ziel, rev)
+    _git(ziel, daten, "checkout", "-f", "--detach", rev)
+    _git(ziel, daten, "checkout-index", "-f", "-a")
+    _git(ziel, daten, "update-index", "-q", "--refresh", ok=(0, 1))
+
+
+def gesamtlauf_neu(con, pid, von, zweig, starten=None):
+    """A1909 (3): den Gesamtlauf eines vorhandenen Bündels neu anstoßen (`amw paket buendeln --gesamtlauf buendel-X.Y.Z`) –
+    etwa nach „Arbeitsbaum verschoben“. Der Arbeitsbaum geht sauber auf die Spitze des Bündels; der Vermerk wird neu
+    geschrieben (das Bündel gilt wieder als offen, bis sein Gesamtlauf endet). Rückgabe {version, zweig, sha, starter}."""
+    if not (von == kern.ENTWICKLER or kern.ist_lead(con, pid, von)):
+        raise kern.AmwFehler("Den Gesamtlauf eines Bündels anstoßen darf der Lead oder der Mensch")
+    repo = kern.projekt_ordner(con, pid)
+    if not repo:
+        raise BuendelFehler("Das Projekt hat keinen Ordner (amw projekt ordner …)")
+    v = _vermerk(con, pid, zweig)
+    offen = offenes_buendel(con, pid)
+    if offen:
+        raise BuendelFehler(f"Bündel {offen['zweig']} ist noch offen (Gesamtlauf nicht zu Ende) – erst abwarten")
+    ziel = arbeitsbaum(con, pid)
+    daten = os.path.join(os.path.dirname(ziel), "buendel-daten")
+    os.makedirs(daten, exist_ok=True)
+    rc, spitze = _git(repo, daten, "rev-parse", "--verify", "--quiet", f"refs/heads/{zweig}^{{commit}}", ok=(0, 1))
+    if rc != 0:
+        raise BuendelFehler(f"Zweig {zweig} gibt es nicht mehr")
+    if spitze != v["sha"]:
+        raise BuendelFehler(f"Zweig {zweig} steht auf {spitze[:8]}, das Bündel war {v['sha'][:8]} – neu bündeln (nichts überschrieben)")
+    if _git(repo, daten, "merge-base", "--is-ancestor", v["sha"], "main", ok=(0, 1))[0] == 0:
+        raise BuendelFehler(f"Bündel {zweig} ist schon in main – schon ausgeliefert")
+    baum_auf(repo, ziel, daten, v["sha"])
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="buendel",
+                     text=json.dumps(dict(v, neu_angestossen=True), ensure_ascii=False))
+    gestartet = (starten or starter_starten)(pid, zweig) if starten is not False else None
+    return {"version": v["version"], "zweig": zweig, "sha": v["sha"], "starter": gestartet}
 
 
 # --- Gesamtlauf und Meldung (eigener Prozess) ---------------------------------------------------------------------------------

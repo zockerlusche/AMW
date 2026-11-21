@@ -4,6 +4,7 @@ git-Umgebung, GRÜN/Merge-OK gehen per patch-id mit."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 import os
+from unittest import mock
 
 from amw import arbeitspaket, betrieb, buendel, db, kern, mergeliste
 from tests.test_mergeliste import Grund, g, schreiben
@@ -238,6 +239,101 @@ class Teile(Basis):
         self.assertEqual(buendel.changelog_einfuegen("# K\n\ntext\n", "## 1.0.1 – x\n- y\n"), "# K\n\ntext\n\n## 1.0.1 – x\n- y\n")
         p = [{"hinweis": "B.", "hinweis_gruppe": "behoben"}, {"hinweis": "N.", "hinweis_gruppe": "neu"}, {"hinweis": None, "hinweis_gruppe": None}]
         self.assertEqual(buendel.changelog_abschnitt("1.1.0", "21.11.2026", "T", p), "## 1.1.0 – 21.11.2026 · T\n- **Neu:** N.\n- **Behoben:** B.\n")
+
+
+class A1909(Basis):
+    """Bündel-Gesamtlauf brach mit „Arbeitsbaum verschoben“ ab (L2896, S8): das Bündel checkte mit dem Systemwert
+    core.autocrlf=true aus (CRLF), das Projekt-Repo sagt false; buendel_schritt („web bauen“) schrieb Dateien mit gleichem
+    Inhalt in LF neu → andere Größe als im Index → git status „M“ ohne Inhaltsvergleich → pruefstand „geändert“."""
+
+    def setUp(self):
+        super().setUp()
+        from amw import pruefung_c
+        g(self.repo, "config", "core.autocrlf", "false")                                          # wie F:\\amw\\.git\\config
+        schreiben(self.repo, "web/hilfe/a.json", '{\n  "titel": "A",\n  "text": "eins\\nzwei"\n}\n')
+        g(self.repo, "add", "-A")
+        g(self.repo, "commit", "-q", "-m", "hilfe")
+        u = mock.patch.object(pruefung_c, "autocrlf", return_value="true")                        # Systemwert wie auf dem PC
+        u.start()
+        self.addCleanup(u.stop)
+        buendel._AUTOCRLF.clear()
+        self.addCleanup(buendel._AUTOCRLF.clear)
+        kern.projekt_einstellen(self.con, self.pid, "TL", buendel_schritt=json.dumps(        # gleicher Inhalt, neu geschrieben
+            {"befehl": 'python -c "p=\'web/hilfe/a.json\'; t=open(p,newline=\'\').read().replace(chr(13),\'\'); '
+                       'open(p,\'w\',newline=\'\').write(t)"', "dateien": ["web/*"]}))
+
+    def roh(self, ordner, rel):
+        with open(os.path.join(ordner, *rel.split("/")), "rb") as f:
+            return f.read()
+
+    def test_schritt_schreibt_gleichen_inhalt_neu_baum_bleibt_sauber(self):
+        self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
+        self.assertNotIn(b"\r", self.roh(r["ordner"], "lib/rechnen.py"))                         # Zeilenenden wie im Projekt-Repo
+        self.assertEqual(g(r["ordner"], "status", "--porcelain", "--untracked-files=no"), "")      # ohne neutrale Umgebung, wie pruefstand
+        s = betrieb.pruefstand(["python -c pass"], r["ordner"])
+        self.assertEqual((s[1], s[2]), (r["sha"], True))
+        rc, lid = buendel.lauf_und_meldung(self.con, self.pid, r["zweig"], warte=lambda s: None)
+        self.assertEqual(rc, 0)
+        self.assertIn(f"Stand {r['sha']} sauber", self.con.execute("SELECT ergebnis FROM lauf WHERE id = ?", (lid,)).fetchone()[0])
+
+    def test_baum_eines_frueheren_buendels_mit_crlf_wird_neu_geschrieben(self):
+        self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
+        ziel = buendel.arbeitsbaum(self.con, self.pid)
+        g(self.repo, "-c", "core.autocrlf=true", "worktree", "add", "--detach", ziel, "main")      # wie vor A1909 ausgecheckt
+        self.assertIn(b"\r\n", self.roh(ziel, "lib/rechnen.py"))
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
+        self.assertNotIn(b"\r", self.roh(ziel, "CHANGELOG.md"))
+        self.assertTrue(betrieb.pruefstand(["python -c pass"], ziel)[2])
+
+    def test_nur_stat_anders_zaehlt_nicht_als_verschoben(self):
+        ordner = os.path.join(self.ordner.name, "stat")
+        g(self.ordner.name, "init", "-q", "-b", "main", ordner)
+        g(ordner, "config", "core.autocrlf", "true")
+        schreiben(ordner, "a.txt", "eins\nzwei\n")
+        g(ordner, "add", "-A")
+        g(ordner, "commit", "-q", "-m", "a")
+        os.remove(os.path.join(ordner, "a.txt"))
+        g(ordner, "checkout", "--", "a.txt")                                                        # CRLF auf der Platte, Index mit CRLF-Größe
+        g(ordner, "config", "core.autocrlf", "false")
+        with open(os.path.join(ordner, "a.txt"), "w", encoding="utf-8", newline="\n") as f:         # gleicher Inhalt, LF
+            f.write("eins\nzwei\n")
+        self.assertIn("a.txt", g(ordner, "status", "--porcelain"))                                  # git: „M“ (nur die Größe)
+        self.assertTrue(betrieb.pruefstand(["python -c pass"], ordner)[2])
+        with open(os.path.join(ordner, "a.txt"), "w", encoding="utf-8", newline="\n") as f:
+            f.write("eins\ndrei\n")
+        self.assertFalse(betrieb.pruefstand(["python -c pass"], ordner)[2])                        # echter Unterschied bleibt
+
+    def test_gesamtlauf_fuer_vorhandenes_buendel_neu_anstossen(self):
+        import contextlib
+        import io
+        from amw import cli
+        self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
+        buendel._ende(self.con, self.pid, r["zweig"], {"rc": None, "lauf": 1})                    # wie L2896: ohne Lauf beendet
+        with open(os.path.join(r["ordner"], "lib", "rechnen.py"), "w", encoding="utf-8", newline="\r\n") as f:
+            f.write("def plus(a, b):\n    return a + b\n")                                        # Baum wie damals (CRLF)
+        with self.assertRaisesRegex(kern.AmwFehler, "Zweig buendel-9.9.9|kein Bündel"):
+            buendel.gesamtlauf_neu(self.con, self.pid, "TL", "buendel-9.9.9", starten=False)
+        with self.assertRaisesRegex(kern.AmwFehler, "Lead oder der Mensch"):
+            buendel.gesamtlauf_neu(self.con, self.pid, "CC1", r["zweig"], starten=False)
+        aus = io.StringIO()
+        with mock.patch.object(buendel, "starter_starten", return_value=4711), \
+                mock.patch.dict(os.environ, {"AMW_AGENT": "", "CLAUDECODE": "", "CLAUDE_CODE_MESSAGING_SOCKET": ""}), \
+                contextlib.redirect_stdout(aus), contextlib.redirect_stderr(aus):
+            rc = cli.main(["--projekt", "Spiel", "--von", "TL", "paket", "buendeln", "--gesamtlauf", r["zweig"]])
+        self.assertEqual(rc, 0, aus.getvalue())
+        self.assertIn(f"Gesamtlauf für {r['zweig']}@{r['sha'][:8]} neu angestoßen (Prozess 4711)", aus.getvalue())
+        self.assertEqual(buendel.offenes_buendel(self.con, self.pid)["zweig"], r["zweig"])         # offen, bis der Lauf endet
+        with self.assertRaisesRegex(kern.AmwFehler, "noch offen"):
+            buendel.gesamtlauf_neu(self.con, self.pid, "TL", r["zweig"], starten=False)
+        self.assertTrue(betrieb.pruefstand(["python -c pass"], r["ordner"])[2])                    # Baum sauber auf der Spitze
+        rc, lid = buendel.lauf_und_meldung(self.con, self.pid, r["zweig"], warte=lambda s: None)
+        self.assertEqual(rc, 0)
+        self.assertIsNone(buendel.offenes_buendel(self.con, self.pid))
+        g(self.repo, "merge", "-q", "--ff-only", r["zweig"])
+        with self.assertRaisesRegex(kern.AmwFehler, "schon in main"):
+            buendel.gesamtlauf_neu(self.con, self.pid, "TL", r["zweig"], starten=False)
 
 
 if __name__ == "__main__":

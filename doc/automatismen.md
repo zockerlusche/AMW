@@ -86,6 +86,13 @@ Nummer und schrieb die Versionshinweise.
 - **Release:** gibt der Lead frei – die Kette zählt für `buendel-*` nur ein Merge-OK, das Lead oder Mensch selbst geben
   (nicht die von den Paketen übernommenen).
 - Grenze: Die Kette liest die Version weiterhin aus `amw/__init__.py` – für andere Projekte ist sie noch nicht eingerichtet.
+- **Zeilenenden (seit 1.152.3, A1909):** Im Bündel gilt `core.autocrlf` des Projekt-Repos (Repo vor System), derselbe Wert wie
+  beim Stand-Vergleich vor dem Gesamtlauf; der Arbeitsbaum wird bei jedem Bündel ganz neu geschrieben. Vorher checkte das
+  Bündel mit dem Systemwert (CRLF) aus, die Nacharbeit schrieb Dateien mit gleichem Inhalt in LF neu, und git hielt sie wegen
+  der Größe für geändert („Arbeitsbaum verschoben“, L2896). Der Stand-Vergleich zählt reine Stat-Unterschiede (Inhalt gleich)
+  nicht mehr als geändert.
+- **Neu anstoßen:** `amw paket buendeln --gesamtlauf buendel-X.Y.Z` (Lead oder Mensch) – Arbeitsbaum sauber auf die Spitze
+  des Bündels, Gesamtlauf und Meldung wie beim ersten Mal; nicht, solange ein Bündel offen ist oder wenn es schon in main ist.
 
 ## Freigabereif und Nachwecken (seit 1.152.0)
 
