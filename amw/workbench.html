@@ -324,14 +324,14 @@ main { overflow-wrap: break-word; }   /* lange Pfade/Adressen brechen um statt Ã
 .th-name { min-width: 0; overflow-wrap: anywhere; }
 .th-status { font-size: 12.5px; padding: 1px 10px; border-radius: 11px; border: 1px solid var(--linie2); color: var(--leise); white-space: nowrap; }
 .th-status.dich { border-color: var(--bernstein); color: var(--bernstein); font-weight: 600; }
-.th-status.pruefen { border-color: var(--rot); color: var(--rot); }
 .th-status.frei { border-color: var(--gruen); color: var(--gruen); }
 .th-status.loeschen { border-style: dashed; }
 .th-thema { padding: 16px 22px 28px; min-width: 0; }
 .th-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .th-kopf h2 { margin: 0; flex: 1 1 220px; font: 600 21px var(--titel); letter-spacing: .01em; text-transform: none; color: var(--tinte); display: block; } .th-kopf h2::after { display: none; }
 .th-zur-liste { display: none; }
-.th-grund { color: var(--rot); font-size: 13.5px; margin-top: 6px; }
+.th-grund { color: var(--leise); font-size: 13.5px; margin-top: 6px; }
+.th-grund-zeile { display: block; color: var(--sehrleise); font-size: 12px; margin-top: 2px; }   /* P306 (2): klein und grau unter dem Namen */
 .th-knoepfe { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; } .th-knoepfe .klein-knopf.haupt { border-color: var(--bernstein); color: var(--bernstein); font-weight: 600; }
 .th-kasten:empty { display: none; }
 .th-kasten { border: 1px solid var(--bernstein); border-radius: 8px; padding: 10px 12px; margin: 0 0 14px; }
@@ -3802,7 +3802,9 @@ async function sichtThemen() {
   const zeichneListe = () => links.replaceChildren(...liste.map(x => el("div", {
     class: "th-zeile" + (x.id === offen ? " gewaehlt" : "") + (x.zustand.markiert ? " markiert" : ""), "data-th": x.id,
     onclick: () => { offen = x.id; zustand.themaOffen = x.id; raster.classList.add("offen"); zeichneListe(); zeichneThema(); } },
-    el("span", { class: "th-name" }, x.name), etikett(x.zustand))));
+    el("span", { class: "th-name" }, x.name,
+      x.zustand.grund ? el("span", { class: "th-grund-zeile" }, t("th2_grund", { x: x.zustand.grund })) : null),   /* P306 (2): Grund auch in der Liste */
+    etikett(x.zustand))));
   async function zeichneThema() {
     if (!offen) { rechts.replaceChildren(el("div", { class: "leer" }, t("th2_waehlen"))); return; }
     let s; try { s = await holen(`/api/thema?id=${offen}`); } catch (e) { rechts.replaceChildren(el("div", { class: "leer" }, String(e.message || e))); return; }

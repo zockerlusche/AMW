@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.151.1 – 21.11.2026 · Themen ruhiger
+- **Verbessert:** „neu prüfen“ ist jetzt grau wie „in Arbeit“ – das erledigt die KI, nicht du.
+- **Verbessert:** Der Grund für „neu prüfen“ („wegen: B… · Datum“) steht auch in der Themen-Liste, klein unter dem Namen.
+
 ## 1.151.0 – 21.11.2026 · Themen auf einen Blick
 - **Neu:** Menüpunkt „Themen“: jedes Thema mit genau einem Status – wartet auf dich, neu prüfen (mit Grund), in Arbeit oder
   freigegeben. Ein Thema öffnet sich als ein lesbarer Text. Am PC gibt es nur, was gerade geht: Freigeben, Zurück mit Notiz,

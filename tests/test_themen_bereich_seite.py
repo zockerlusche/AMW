@@ -60,6 +60,17 @@ class ThemenSeite(Rundgang):
         self.warten(f"document.querySelector('.th-zeile[data-th=\"{self.warte}\"] .th-status.frei')")
         self.assertEqual(themen.status(self.con, themen.finden(self.con, self.pid, self.warte))["status"], "frei")
 
+    def test_neu_pruefen_ruhig_mit_grund_in_der_liste(self):
+        """P306 (1)+(2): „neu prüfen“ ist Arbeit der KI – ruhig grau wie „in Arbeit“, Farbe hat nur „wartet auf dich“; der Grund
+        steht auch in der Listenzeile."""
+        self.oeffnen("themen", self.LISTE)
+        zeile = "document.querySelector('.th-zeile .th-status.pruefen').closest('.th-zeile')"
+        self.warten(f"document.querySelector('.th-zeile .th-status.pruefen')")
+        self.assertRegex(self.tab.js(f"{zeile}.querySelector('.th-grund-zeile')?.textContent || ''"), r"^wegen: B\d+ · \d\d\.\d\d\.$")
+        farbe = "c => getComputedStyle(document.querySelector('.th-zeile .th-status.' + c)).color"
+        self.assertEqual(self.tab.js(f"({farbe})('pruefen')"), self.tab.js(f"({farbe})('arbeit')"))
+        self.assertNotEqual(self.tab.js(f"({farbe})('dich')"), self.tab.js(f"({farbe})('arbeit')"))
+
     def test_fuer_dich_springt_zum_thema(self):
         self.oeffnen("start", "[...document.querySelectorAll('.ue-zeile .ref')].some(r => r.textContent.startsWith('TH'))")
         self.tab.js("[...document.querySelectorAll('.ue-zeile')].find(z => z.querySelector('.ref')?.textContent === 'TH%d')"
