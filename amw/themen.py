@@ -59,7 +59,7 @@ def liste(con, pid):
         s, seit = stand(con, t)
         aus.append({"id": t["id"], "name": t["name"], "pfleger": t["pfleger"], "stil": bool(t["stil"]), "gilt": z[0] or 0,
                     "ueberholt": z[1] or 0, "unklar": z[2] or 0, "zuletzt_utc": z[3], "stand": s, "veraltet_seit": seit,
-                    "zustand": status(con, t)})                # A1896: Status für den Menschen (abgeleitet)
+                    "zustand": status(con, t), "neu_erlaubt": MENSCH_LEGT_AN})   # A1896: Status für den Menschen (abgeleitet)
     return aus
 
 
@@ -126,6 +126,8 @@ def pflegen(con, pid, von, name, text):
         f = _fassung(con, t["id"])
         nr = (f["nr"] if f else 0) + 1
         db.einfuegen(con, "thema_fassung", thema_id=t["id"], nr=nr, text=text.strip(), von=von, zeit_utc=db.jetzt())
+        if von != kern.ENTWICKLER:                   # A1896: Vorlage eines Agenten → wartet auf den Menschen
+            _ereignis(con, pid, von, "vorgelegt", t["id"], fassung=nr)
     return nr
 
 
@@ -136,6 +138,8 @@ def bestaetigen(con, pid, von, name):
         raise kern.AmwFehler("es gibt noch keine Zusammenfassung – amw thema pflegen …")
     with db.schreiben(con):
         con.execute("UPDATE thema SET bestaetigt_utc = ?, bestaetigt_von = ? WHERE id = ?", (db.jetzt(), von, t["id"]))
+        if von != kern.ENTWICKLER:                   # A1896: gilt weiter → als Vorlage dem Menschen zeigen
+            _ereignis(con, pid, von, "vorgelegt", t["id"], fassung=_fassung(con, t["id"])["nr"], bestaetigt=True)
 
 
 def dokument(con, pid, von, name, did, loesen=False):
@@ -192,21 +196,27 @@ def nach_beschluss(con, pid, von, bid, thema):
     return hinweise
 
 
-# --- Themen-Bereich für den Menschen (A1896, D1319, W2429–W2431): ein Status je Thema, abgeleitet aus Fakten (B2907) ---------
-# Fakten: die neueste Fassung (von einem Agenten oder vom Menschen), die Bestätigung des Pflegers, neue Beschlüsse im Thema und
-# die Handlungen des Menschen als Ereignisse (plan_ereignis, Text JSON mit "thema" vorn) – ohne Schemaänderung.
+# --- Themen-Bereich für den Menschen (A1896, D1319, W2429–W2431, Einordnung D1326 Teil A): ein Status je Thema (B2907) -------
+# Fakten: Fassungen (thema_fassung.nr), Beschlüsse im Thema und feste Ereignisse je Handlung (plan_ereignis, Text JSON mit
+# "thema" vorn) – ohne Schemaänderung. Den Status setzt niemand von Hand.
 STATUS_TEXT = {"dich": "wartet auf dich", "pruefen": "neu prüfen", "arbeit": "in Arbeit", "frei": "freigegeben"}
-EREIGNIS = {"freigabe": "thema_freigabe", "zurueck": "thema_zurueck", "markiert": "thema_loeschen_markiert",
-            "entmarkiert": "thema_markierung_weg"}
+VORRANG = ("markiert", "dich", "pruefen", "frei", "arbeit")        # D1326 A16: fester Vorrang, die Sortierung folgt ihm
+EREIGNIS = {"vorgelegt": "thema_vorgelegt", "freigegeben": "thema_freigegeben", "zurueck": "thema_zurueck",
+            "bearbeitet": "thema_bearbeitet", "markiert": "thema_loeschen_markiert", "entmarkiert": "thema_markierung_aufgehoben"}
+NUR_MENSCH = ("freigegeben", "zurueck", "bearbeitet", "markiert", "entmarkiert")
 HANDLUNGEN = {"dich": ("freigeben", "zurueck", "bearbeiten", "markieren"), "pruefen": ("freigeben", "zurueck", "bearbeiten", "markieren"),
               "frei": ("zurueck", "bearbeiten", "markieren"), "arbeit": ("bearbeiten", "markieren")}
+# Marcels offene Antworten (D1326 B) – je eine Stelle; bis zur Antwort gilt die Empfehlung A des Leads
+BEARBEITEN_GIBT_FREI = True      # F5358 A: deine eigene Bearbeitung gilt als von dir freigegeben (B: zurück auf „in Arbeit“)
+NEU_PRUEFEN_FUER_DICH = False    # F5359 A: „neu prüfen“ prüft erst die KI, nicht unter „Für dich“ (B: auch unter „Für dich“)
+MENSCH_LEGT_AN = True            # F5360 A: „+ Thema“ für den Menschen (B: Themen nur aus dem Gespräch)
 
 
 def _ereignisse(con, pid, tid):
     import json
     aus = []
-    for r in con.execute("SELECT id, art, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?, ?, ?)"
-                         " AND text LIKE ? ORDER BY id", (pid, *EREIGNIS.values(), f'{{"thema": {tid},%')):
+    for r in con.execute(f"SELECT id, art, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art IN"
+                         f" ({','.join('?' * len(EREIGNIS))}) AND text LIKE ? ORDER BY id", (pid, *EREIGNIS.values(), f'{{"thema": {tid},%')):
         try:
             aus.append({**dict(r), **json.loads(r["text"])})
         except ValueError:
@@ -214,36 +224,63 @@ def _ereignisse(con, pid, tid):
     return aus
 
 
+def _ereignis(con, pid, von, art, tid, **extra):
+    """In der Transaktion des Aufrufers. Die Handlungen des Menschen schreibt nur der Mensch (D1326 A35)."""
+    import json
+    if art in NUR_MENSCH and von != kern.ENTWICKLER:
+        raise kern.AmwFehler("Das darf nur der Mensch")
+    db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=EREIGNIS[art],
+                 text=json.dumps({"thema": tid, **extra}, ensure_ascii=False))
+
+
 def _neuer_beschluss(con, t, seit):
-    return con.execute("SELECT id, stichwort FROM beschluss WHERE projekt_id = ? AND thema = ? COLLATE NOCASE AND status = 'gilt'"
-                       " AND angelegt_utc > ? ORDER BY id LIMIT 1", (t["projekt_id"], t["name"], seit)).fetchone()
+    return con.execute("SELECT id, stichwort, angelegt_utc FROM beschluss WHERE projekt_id = ? AND thema = ? COLLATE NOCASE"
+                       " AND status = 'gilt' AND angelegt_utc > ? ORDER BY id LIMIT 1", (t["projekt_id"], t["name"], seit)).fetchone()
 
 
 def status(con, t):
-    """{"status", "text", "grund", "markiert", "fassung"} – der jüngste Fakt entscheidet:
-    Fassung oder Bestätigung eines Agenten → wartet auf dich (war seitdem ein neuer Beschluss da: in Arbeit);
-    Freigabe → freigegeben, kam danach ein neuer Beschluss: neu prüfen mit Grund; Zurück oder Text vom Menschen → in Arbeit."""
+    """{"status", "text", "grund", "markiert", "fassung", "freigegeben"} nach festem Vorrang (D1326 A16):
+    1 Löschen markiert (Flag, Status darunter bleibt) → 2 wartet auf dich: die neueste Fassung ist eine Vorlage eines Agenten (oder
+    seine Bestätigung) ohne Freigabe/Zurück/Bearbeitung danach → 3 neu prüfen: nach der letzten Freigabe kam ein neuer Beschluss →
+    4 freigegeben: die letzte Freigabe zeigt auf die neueste Fassung → 5 in Arbeit. Der Grund ist ein abgeleiteter Wert."""
     f = _fassung(con, t["id"])
-    fakten = []                                       # (Zeit, Rang bei gleicher Sekunde, Art, Ereignis)
-    if f:
-        fakten.append((f["zeit_utc"], 0, "text_mensch" if f["von"] == kern.ENTWICKLER else "fassung", None))
-    if t["bestaetigt_utc"] and t["bestaetigt_von"] != kern.ENTWICKLER:
-        fakten.append((t["bestaetigt_utc"], 0, "fassung", None))
+    nr = f["nr"] if f else None
+    ev = _ereignisse(con, t["projekt_id"], t["id"])
     markiert = False
-    for e in _ereignisse(con, t["projekt_id"], t["id"]):
+    for e in ev:
         if e["art"] in (EREIGNIS["markiert"], EREIGNIS["entmarkiert"]):
             markiert = e["art"] == EREIGNIS["markiert"]
-        else:
-            fakten.append((e["zeit_utc"], 1, "freigabe" if e["art"] == EREIGNIS["freigabe"] else "zurueck", e))
+    # jüngste Handlung des Menschen und jüngste Vorlage (Zeit, Rang: bei gleicher Sekunde gilt das spätere Ereignis)
+    mensch = [e for e in ev if e["art"] in (EREIGNIS["freigegeben"], EREIGNIS["zurueck"], EREIGNIS["bearbeitet"])]
+    # Reihenfolge: (Zeit, Ereignis-Nummer) – bei gleicher Sekunde gilt das spätere Ereignis; Fassungen ohne Ereignis (vor A1896)
+    # zählen mit Nummer 0
+    vorlagen = [(f["zeit_utc"], 0)] if f and f["von"] != kern.ENTWICKLER else []
+    vorlagen += [(e["zeit_utc"], e["id"]) for e in ev if e["art"] == EREIGNIS["vorgelegt"]]
+    if t["bestaetigt_utc"] and t["bestaetigt_von"] != kern.ENTWICKLER:
+        vorlagen.append((t["bestaetigt_utc"], 0))
+    letzte_vorlage = max(vorlagen) if vorlagen else None
+    letzte_mensch = mensch[-1] if mensch else None
+    freigaben = [e for e in mensch if e["art"] == EREIGNIS["freigegeben"]
+                 or (BEARBEITEN_GIBT_FREI and e["art"] == EREIGNIS["bearbeitet"])]
+    letzte_frei = freigaben[-1] if freigaben else None
+    frei_nr = letzte_frei.get("fassung") if letzte_frei else None
     st, grund = "arbeit", None
-    if fakten:
-        zeit, _, art, _ = max(fakten, key=lambda x: (x[0], x[1]))
-        if art == "fassung":
-            st = "arbeit" if _neuer_beschluss(con, t, zeit) else "dich"
-        elif art == "freigabe":
-            b = _neuer_beschluss(con, t, zeit)
-            st, grund = ("pruefen", f"B{b['id']} {b['stichwort']}") if b else ("frei", None)
-    return {"status": st, "text": STATUS_TEXT[st], "grund": grund, "markiert": markiert, "fassung": f["nr"] if f else None}
+    if letzte_vorlage and (not letzte_mensch or letzte_vorlage > (letzte_mensch["zeit_utc"], letzte_mensch["id"])):
+        st = "dich"
+        b = _neuer_beschluss(con, t, letzte_vorlage[0])
+        if b:                                          # die Vorlage ist schon wieder überholt → die KI ist dran
+            st = "arbeit"
+    elif letzte_frei and nr is not None and frei_nr == nr and letzte_mensch is letzte_frei:
+        b = _neuer_beschluss(con, t, letzte_frei["zeit_utc"])
+        if b:
+            st, grund = "pruefen", f"B{b['id']} · {b['angelegt_utc'][8:10]}.{b['angelegt_utc'][5:7]}."
+        else:
+            st = "frei"
+    return {"status": st, "text": STATUS_TEXT[st], "grund": grund, "markiert": markiert, "fassung": nr, "freigegeben": frei_nr}
+
+
+def rang(s):
+    return VORRANG.index("markiert" if s["markiert"] else s["status"])
 
 
 def handlungen(s):
@@ -260,7 +297,7 @@ def _an_pfleger(con, pid, t):
     return k if k and k != kern.ENTWICKLER else None
 
 
-def _handlung(con, pid, von, name, was, erlaubt):
+def _handlung(con, pid, von, name, was):
     _nur_mensch(von, {"freigeben": "Freigeben", "zurueck": "Zurückgeben", "bearbeiten": "Bearbeiten", "markieren": "Löschen markieren",
                       "entmarkieren": "Markierung aufheben"}[was])
     t = finden(con, pid, name)
@@ -271,17 +308,11 @@ def _handlung(con, pid, von, name, was, erlaubt):
     return t, s
 
 
-def _ereignis(con, pid, von, art, tid, **extra):
-    import json
-    db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=EREIGNIS[art],
-                 text=json.dumps({"thema": tid, **extra}, ensure_ascii=False))
-
-
 def freigeben(con, pid, von, name):
-    t, s = _handlung(con, pid, von, name, "freigeben", None)
+    t, s = _handlung(con, pid, von, name, "freigeben")
     an = _an_pfleger(con, pid, t)
     with db.schreiben(con):
-        _ereignis(con, pid, von, "freigabe", t["id"], fassung=s["fassung"])
+        _ereignis(con, pid, von, "freigegeben", t["id"], fassung=s["fassung"])
         if an:
             kern._posten(con, pid, "AMW", an, "info", f"Thema „{t['name'][:60]}“ freigegeben (Fassung {s['fassung']})",
                          f"TH{t['id']}: {kern.entwickler_name(con, pid)} hat Fassung {s['fassung']} freigegeben.")
@@ -291,7 +322,7 @@ def freigeben(con, pid, von, name):
 def zurueck(con, pid, von, name, notiz):
     if not (notiz or "").strip():
         raise kern.AmwFehler("Zurück nur mit Notiz: was soll anders werden?")
-    t, s = _handlung(con, pid, von, name, "zurueck", None)
+    t, s = _handlung(con, pid, von, name, "zurueck")
     an = _an_pfleger(con, pid, t)
     with db.schreiben(con):
         _ereignis(con, pid, von, "zurueck", t["id"], fassung=s["fassung"], notiz=notiz.strip()[:2000])
@@ -302,37 +333,62 @@ def zurueck(con, pid, von, name, notiz):
     return status(con, finden(con, pid, t["id"]))
 
 
-def bearbeiten(con, pid, von, name, text):
-    """Der Mensch ändert den Text selbst: neue Fassung von ihm → in Arbeit; der Pfleger bekommt den Auftrag, sie einzuarbeiten."""
-    t, s = _handlung(con, pid, von, name, "bearbeiten", None)
+def bearbeiten(con, pid, von, name, text, erwartet=None):
+    """Der Mensch ändert den Text selbst – nur gegen die erwartete Fassung (D1326 A40). F5358 A: gilt als von ihm freigegeben,
+    der Pfleger bekommt einen Hinweis; B: in Arbeit, der Pfleger einen Auftrag."""
+    t, s = _handlung(con, pid, von, name, "bearbeiten")
     if not (text or "").strip():
         raise kern.AmwFehler("Text fehlt")
+    if erwartet not in (None, "") and s["fassung"] != int(erwartet):
+        raise kern.AmwFehler(f"TH{t['id']} hat inzwischen Fassung {s['fassung']} (du hast Fassung {erwartet} bearbeitet) –"
+                             " nichts gespeichert; neu laden und noch einmal")
     an = _an_pfleger(con, pid, t)
     with db.schreiben(con):
         f = _fassung(con, t["id"])
         nr = (f["nr"] if f else 0) + 1
         db.einfuegen(con, "thema_fassung", thema_id=t["id"], nr=nr, text=text.strip(), von=von, zeit_utc=db.jetzt())
+        _ereignis(con, pid, von, "bearbeitet", t["id"], fassung=nr)
         if an:
-            kern._posten(con, pid, "AMW", an, "auftrag", f"Thema „{t['name'][:60]}“: Text von {kern.entwickler_name(con, pid)} geändert",
-                         f"TH{t['id']} Fassung {nr} stammt vom Menschen – bitte einarbeiten und als neue Fassung liefern:"
-                         f" amw thema zeige TH{t['id']} · amw thema pflegen TH{t['id']} --text-datei …")
+            kern._posten(con, pid, "AMW", an, "info" if BEARBEITEN_GIBT_FREI else "auftrag",
+                         f"Thema „{t['name'][:60]}“: Text von {kern.entwickler_name(con, pid)} geändert (Fassung {nr})",
+                         f"TH{t['id']} Fassung {nr} stammt vom Menschen – "
+                         + ("sie gilt als freigegeben; prüfe die Folgen für andere Themen und Aufgaben." if BEARBEITEN_GIBT_FREI
+                            else f"bitte einarbeiten und als neue Fassung liefern: amw thema pflegen TH{t['id']} --text-datei …"))
     return status(con, finden(con, pid, t["id"]))
 
 
 def markieren(con, pid, von, name, an=True):
     """Löschen markieren (B2894: gelöscht wird nichts – löschen tut der Mensch) bzw. die Markierung aufheben."""
-    t, _ = _handlung(con, pid, von, name, "markieren" if an else "entmarkieren", None)
+    t, _ = _handlung(con, pid, von, name, "markieren" if an else "entmarkieren")
     with db.schreiben(con):
         _ereignis(con, pid, von, "markiert" if an else "entmarkiert", t["id"], fassung=None)
     return status(con, finden(con, pid, t["id"]))
 
 
+def anlegen_mensch(con, pid, von, name, text):
+    """F5360 A: der Mensch legt ein Thema an (Titel und Text) – danach „in Arbeit“ für die KI; der Lead bekommt einen Auftrag."""
+    if not MENSCH_LEGT_AN:
+        raise kern.AmwFehler("Themen entstehen aus dem Gespräch mit dem Co-Entwickler")
+    _nur_mensch(von, "Thema anlegen")
+    tid = neu(con, pid, von, name)
+    if (text or "").strip():
+        with db.schreiben(con):
+            db.einfuegen(con, "thema_fassung", thema_id=tid, nr=1, text=text.strip(), von=von, zeit_utc=db.jetzt())
+    lead = kern.lead(con, pid)
+    if lead and lead != kern.ENTWICKLER:
+        with db.schreiben(con):
+            kern._posten(con, pid, "AMW", lead, "auftrag", f"Neues Thema von {kern.entwickler_name(con, pid)}: „{name.strip()[:60]}“",
+                         f"TH{tid}: Pfleger setzen (amw thema einstellen TH{tid} --pfleger …) und ausarbeiten.")
+    return tid
+
+
 def fuer_dich(con, pid):
-    """Themen, die auf den Menschen warten (wartet auf dich, neu prüfen), nicht zum Löschen markiert."""
+    """Themen, die auf den Menschen warten (F5359: „neu prüfen“ nur mit NEU_PRUEFEN_FUER_DICH), nicht zum Löschen markiert."""
+    zaehlt = ("dich", "pruefen") if NEU_PRUEFEN_FUER_DICH else ("dich",)
     aus = []
     for t in con.execute("SELECT * FROM thema WHERE projekt_id = ? ORDER BY name", (pid,)).fetchall():
         s = status(con, t)
-        if not s["markiert"] and s["status"] in ("dich", "pruefen"):
+        if not s["markiert"] and s["status"] in zaehlt:
             aus.append({"id": t["id"], "name": t["name"], **s})
     return aus
 

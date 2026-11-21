@@ -1,6 +1,8 @@
-"""Themen-Bereich (A1896, D1319, W2429–W2431): ein Status je Thema, abgeleitet aus Fakten (B2907, ohne Schemaänderung);
-nur die gerade möglichen Handlungen; Freigeben/Zurück/Löschen markieren nur der Mensch (Workbench am PC, eigenes Terminal);
-Notiz und Freigabe gehen als Nachricht an den Pfleger; „Für dich“ zählt die wartenden Themen."""
+"""Themen-Bereich (A1896, D1319, W2429–W2431, Einordnung D1326 Teil A): ein Status je Thema nach festem Vorrang, abgeleitet aus
+Fassungen, Beschlüssen und festen Ereignissen (B2907, ohne Schemaänderung); die Freigabe zeigt auf eine Fassungsnummer; nur die
+gerade möglichen Handlungen; die Handlungen des Menschen sind gegen Agenten gesperrt (Workbench nur am PC, Terminal nur des
+Menschen, auch über MCP); Speichern nur gegen die erwartete Fassung; Notiz/Freigabe an den Pfleger; „Für dich“ und Zählung ohne
+Markierte. F5358–F5360: bis zu Marcels Antwort die Empfehlung A."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
 import io
@@ -11,7 +13,7 @@ from unittest import mock
 
 from amw import aktionen, db, kern, themen, workbench
 
-T0, T1, T2, T3 = "2026-11-01T08:00:00Z", "2026-11-01T08:01:00Z", "2026-11-01T08:02:00Z", "2026-11-01T08:03:00Z"
+T = ["2026-11-01T08:%02d:00Z" % i for i in range(10)]                  # feste Zeiten, je Schritt eine
 
 
 class Grund(unittest.TestCase):
@@ -30,133 +32,194 @@ class Grund(unittest.TestCase):
         kern.agent_neu(self.con, self.pid, "CC1")
         self.tid = themen.neu(self.con, self.pid, "TL", "Anmeldung", pfleger="CC1")
 
+    def um(self, i):
+        """Alles, was dieser Schritt eben geschrieben hat (Zeit „jetzt“), auf die feste Zeit T[i] setzen."""
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE plan_ereignis SET zeit_utc = ? WHERE art LIKE 'thema_%' AND zeit_utc > '2026-11-10'", (T[i],))
+            self.con.execute("UPDATE thema_fassung SET zeit_utc = ? WHERE zeit_utc > '2026-11-10'", (T[i],))
+            self.con.execute("UPDATE thema SET bestaetigt_utc = ? WHERE bestaetigt_utc > '2026-11-10'", (T[i],))
+
     def st(self):
         return themen.status(self.con, themen.finden(self.con, self.pid, self.tid))
 
-    def fassung(self, von="CC1", zeit=T0, text="Anmeldung mit Firmen-Konto."):
-        themen.pflegen(self.con, self.pid, "TL" if von == kern.ENTWICKLER else von, self.tid, text)
-        with db.schreiben(self.con):
-            self.con.execute("UPDATE thema_fassung SET zeit_utc = ?, von = ? WHERE id = (SELECT max(id) FROM thema_fassung)", (zeit, von))
+    def vorlage(self, i, text="Anmeldung mit Firmen-Konto."):
+        themen.pflegen(self.con, self.pid, "CC1", self.tid, text)
+        self.um(i)
 
-    def letztes_ereignis_um(self, zeit):
+    def beschluss(self, i, stichwort="SSO Pflicht"):
         with db.schreiben(self.con):
-            self.con.execute("UPDATE plan_ereignis SET zeit_utc = ? WHERE id = (SELECT max(id) FROM plan_ereignis WHERE art LIKE 'thema_%')", (zeit,))
-
-    def beschluss(self, zeit, stichwort="SSO Pflicht"):
-        with db.schreiben(self.con):
-            return db.einfuegen(self.con, "beschluss", projekt_id=self.pid, zeit_utc=zeit, stichwort=stichwort, regel="x", quelle="W1",
-                                thema="Anmeldung", angelegt_von="TL", angelegt_utc=zeit)
+            return db.einfuegen(self.con, "beschluss", projekt_id=self.pid, zeit_utc=T[i], stichwort=stichwort, regel="x", quelle="W1",
+                                thema="Anmeldung", angelegt_von="TL", angelegt_utc=T[i])
 
     def post(self, an):
         return [(r["art"], r["kurz"]) for r in self.con.execute(
             "SELECT n.art, n.kurz FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE e.agent = ? AND n.von = 'AMW' ORDER BY n.id", (an,))]
 
 
-class Ableitung(Grund):
+class Vorrang(Grund):
     def test_ohne_text_in_arbeit(self):
         self.assertEqual((self.st()["status"], self.st()["fassung"]), ("arbeit", None))
 
-    def test_fassung_eines_agenten_wartet_auf_dich(self):
-        self.fassung()
+    def test_vorlage_wartet_auf_dich_mit_ereignis(self):
+        self.vorlage(0)
         self.assertEqual((self.st()["status"], self.st()["text"], self.st()["fassung"]), ("dich", "wartet auf dich", 1))
+        self.assertEqual(self.con.execute("SELECT count(*) FROM plan_ereignis WHERE art = 'thema_vorgelegt'").fetchone()[0], 1)
 
-    def test_freigeben_dann_neuer_beschluss_neu_pruefen_mit_grund(self):
-        self.fassung(zeit=T0)
+    def test_freigabe_zeigt_auf_die_fassung(self):
+        self.vorlage(0)
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
-        self.letztes_ereignis_um(T1)
-        self.assertEqual(self.st()["status"], "frei")
-        bid = self.beschluss(T2)
+        self.um(1)
+        self.assertEqual((self.st()["status"], self.st()["freigegeben"]), ("frei", 1))
+        self.vorlage(2, "Neu: auch mit Zweitfaktor.")                                       # neuere Fassung → wieder bei dir
+        self.assertEqual((self.st()["status"], self.st()["fassung"], self.st()["freigegeben"]), ("dich", 2, 1))
+
+    def test_neu_pruefen_mit_grund_als_wert_und_nicht_fuer_dich(self):
+        self.vorlage(0)
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.um(1)
+        bid = self.beschluss(2)
         s = self.st()
-        self.assertEqual((s["status"], s["grund"]), ("pruefen", f"B{bid} SSO Pflicht"))     # Auflage (c): Grund als Fakt
-        with db.schreiben(self.con):                                                          # Pfleger bestätigt: gilt weiter
-            self.con.execute("UPDATE thema SET bestaetigt_utc = ?, bestaetigt_von = 'CC1' WHERE id = ?", (T3, self.tid))
+        self.assertEqual((s["status"], s["grund"]), ("pruefen", f"B{bid} · 01.11."))      # D1326 A10 / Auflage (c)
+        self.assertEqual(workbench._themen_fuer_dich(self.con, self.pid), [])               # F5359 A: erst die KI
+        themen.bestaetigen(self.con, self.pid, "CC1", self.tid)                               # der Pfleger: gilt weiter
+        self.um(3)
         self.assertEqual(self.st()["status"], "dich")
 
-    def test_zurueck_und_text_vom_menschen_in_arbeit(self):
-        self.fassung(zeit=T0)
+    def test_vorlage_durch_neuen_beschluss_ueberholt_in_arbeit(self):
+        self.vorlage(0)
+        self.beschluss(1)
+        self.assertEqual(self.st()["status"], "arbeit")
+
+    def test_zurueck_in_arbeit_neue_vorlage_wieder_bei_dir(self):
+        self.vorlage(0)
         themen.zurueck(self.con, self.pid, kern.ENTWICKLER, self.tid, "Zweitfaktor nur online")
-        self.letztes_ereignis_um(T1)
+        self.um(1)
         self.assertEqual(self.st()["status"], "arbeit")
-        self.fassung(zeit=T2)                                                                 # der Pfleger liefert neu
+        self.vorlage(2)
         self.assertEqual(self.st()["status"], "dich")
-        themen.bearbeiten(self.con, self.pid, kern.ENTWICKLER, self.tid, "Anmeldung mit Firmen-Konto, Zweitfaktor online.")
+
+    def test_gleiche_sekunde_spaeteres_ereignis_gilt(self):
+        themen.pflegen(self.con, self.pid, "CC1", self.tid, "Text")
+        themen.zurueck(self.con, self.pid, kern.ENTWICKLER, self.tid, "anders")
         self.assertEqual(self.st()["status"], "arbeit")
 
-    def test_fassung_veraltet_durch_neuen_beschluss_in_arbeit(self):
-        self.fassung(zeit=T0)
-        self.beschluss(T1)
-        self.assertEqual(self.st()["status"], "arbeit")
+    def test_markiert_geht_vor_und_zaehlt_nicht(self):
+        self.vorlage(0)
+        themen.markieren(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        s = self.st()
+        self.assertTrue(s["markiert"])
+        self.assertEqual(themen.rang(s), 0)
+        self.assertEqual(workbench._themen_fuer_dich(self.con, self.pid), [])
+        self.assertEqual(self.con.execute("SELECT count(*) FROM thema").fetchone()[0], 1)            # nichts gelöscht (B2894)
+
+    def test_rang_folgt_dem_vorrang(self):
+        r = lambda st, m=False: themen.rang({"status": st, "markiert": m})
+        self.assertEqual([r("arbeit", True), r("dich"), r("pruefen"), r("frei"), r("arbeit")], [0, 1, 2, 3, 4])
 
 
 class Handlungen(Grund):
     def test_je_status_nur_moegliche(self):
         self.assertEqual(themen.handlungen(self.st()), ("bearbeiten", "markieren"))
-        self.fassung()
+        self.vorlage(0)
         self.assertEqual(themen.handlungen(self.st()), ("freigeben", "zurueck", "bearbeiten", "markieren"))
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
         self.assertEqual(themen.handlungen(self.st()), ("zurueck", "bearbeiten", "markieren"))
         with self.assertRaisesRegex(kern.AmwFehler, "das geht gerade nicht"):
             themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
         themen.markieren(self.con, self.pid, kern.ENTWICKLER, self.tid)
-        self.assertTrue(self.st()["markiert"])
         self.assertEqual(themen.handlungen(self.st()), ("entmarkieren",))
         themen.markieren(self.con, self.pid, kern.ENTWICKLER, self.tid, an=False)
         self.assertFalse(self.st()["markiert"])
-        self.assertEqual(self.con.execute("SELECT count(*) FROM thema").fetchone()[0], 1)            # nichts gelöscht (B2894)
+
+    def test_eigene_bearbeitung_bleibt_freigegeben(self):                                     # F5358 A
+        self.vorlage(0)
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.um(1)
+        s = themen.bearbeiten(self.con, self.pid, kern.ENTWICKLER, self.tid, "Mein Text.", erwartet=1)
+        self.assertEqual((s["status"], s["fassung"], s["freigegeben"]), ("frei", 2, 2))
+        self.assertEqual(self.post("CC1")[-1][0], "info")                                     # Hinweis an die KI, kein Auftrag
+
+    def test_speichern_nur_gegen_erwartete_fassung(self):
+        self.vorlage(0)
+        self.vorlage(1, "Inzwischen neuer.")
+        with self.assertRaisesRegex(kern.AmwFehler, "inzwischen Fassung 2"):
+            themen.bearbeiten(self.con, self.pid, kern.ENTWICKLER, self.tid, "alt", erwartet=1)
+        self.assertEqual(self.st()["fassung"], 2)
 
     def test_zurueck_nur_mit_notiz_und_nachrichten_an_den_pfleger(self):
-        self.fassung()
+        self.vorlage(0)
         with self.assertRaisesRegex(kern.AmwFehler, "nur mit Notiz"):
             themen.zurueck(self.con, self.pid, kern.ENTWICKLER, self.tid, " ")
         themen.zurueck(self.con, self.pid, kern.ENTWICKLER, self.tid, "Zweitfaktor nur online")
         self.assertEqual(self.post("CC1")[-1], ("auftrag", "Thema „Anmeldung“ zurück: Zweitfaktor nur online"))
-        self.fassung(zeit="2099-01-01T00:00:00Z")
+        self.um(1)
+        self.vorlage(2)
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
         self.assertEqual(self.post("CC1")[-1], ("info", "Thema „Anmeldung“ freigegeben (Fassung 2)"))
+
+    def test_mensch_legt_thema_an(self):                                                      # F5360 A
+        tid = themen.anlegen_mensch(self.con, self.pid, kern.ENTWICKLER, "Online-Seite", "Nur lesen am Handy.")
+        s = themen.status(self.con, themen.finden(self.con, self.pid, tid))
+        self.assertEqual((s["status"], s["fassung"]), ("arbeit", 1))
+        self.assertIn("Neues Thema", self.post("TL")[-1][1])
+        with self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
+            themen.anlegen_mensch(self.con, self.pid, "TL", "Noch eins", "")
 
 
 class Rechte(Grund):
     def test_nur_der_mensch(self):
-        self.fassung()
+        self.vorlage(0)
         for von in ("TL", "CC1"):
-            with self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
-                themen.freigeben(self.con, self.pid, von, self.tid)
-            with self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
-                themen.markieren(self.con, self.pid, von, self.tid)
+            for tun in (lambda v: themen.freigeben(self.con, self.pid, v, self.tid), lambda v: themen.markieren(self.con, self.pid, v, self.tid),
+                        lambda v: themen.zurueck(self.con, self.pid, v, self.tid, "x"), lambda v: themen.bearbeiten(self.con, self.pid, v, self.tid, "x")):
+                with self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
+                    tun(von)
+        with db.schreiben(self.con), self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
+            themen._ereignis(self.con, self.pid, "CC1", "freigegeben", self.tid, fassung=1)          # auch direkt nicht
 
     def test_workbench_nur_am_pc(self):
-        self.fassung()
+        self.vorlage(0)
         with self.assertRaisesRegex(aktionen.Ungueltig, "nur am PC"):
             aktionen.ausfuehren(self.con, self.pid, "/api/thema/freigeben", {"thema": self.tid}, kanal="netz")
         r = aktionen.ausfuehren(self.con, self.pid, "/api/thema/freigeben", {"thema": self.tid}, kanal="seite")
         self.assertEqual(r["status"], "frei")
 
-    def test_befehl_nur_im_terminal_des_menschen(self):
+    def cli(self, *args, env=None):
         from amw import cli
-        self.fassung()
         aus = io.StringIO()
-        with mock.patch.dict(os.environ, {"CLAUDECODE": "1", "AMW_AGENT": "", "CLAUDE_CODE_MESSAGING_SOCKET": ""}), \
-                contextlib.redirect_stdout(aus), contextlib.redirect_stderr(aus):
-            rc = cli.main(["--projekt", "Produkt", "thema", "freigeben", f"TH{self.tid}", "--von", "Entwickler"])
+        mensch = {"AMW_AGENT": "", "CLAUDECODE": "", "CLAUDE_CODE_MESSAGING_SOCKET": ""}
+        with mock.patch.dict(os.environ, {**mensch, **(env or {})}), contextlib.redirect_stdout(aus), contextlib.redirect_stderr(aus):
+            rc = cli.main(["--projekt", "Produkt", *args])
+        return rc, aus.getvalue()
+
+    def test_befehl_nur_im_terminal_des_menschen(self):
+        self.vorlage(0)
+        rc, aus = self.cli("thema", "freigeben", f"TH{self.tid}", "--von", "Entwickler", env={"CLAUDECODE": "1"})
         self.assertNotEqual(rc, 0)
-        self.assertIn("nur der Mensch in seinem eigenen Terminal", aus.getvalue())
+        self.assertIn("nur der Mensch in seinem eigenen Terminal", aus)
+        rc, aus = self.cli("thema", "freigeben", f"TH{self.tid}", "--von", "CC1", env={"CLAUDECODE": "1"})
+        self.assertNotEqual(rc, 0)
         self.assertEqual(self.st()["status"], "dich")
+        rc, aus = self.cli("thema", "freigeben", f"TH{self.tid}", "--von", "Entwickler")
+        self.assertEqual(rc, 0, aus)
+        self.assertEqual(self.st()["status"], "frei")
+
+    def test_mcp_kennt_keine_handlung_des_menschen(self):
+        from amw import mcp_server
+        namen = set(mcp_server.WERKZEUGE)
+        self.assertTrue({"thema_status", "thema_zeige", "thema_pflegen"} <= namen)
+        self.assertFalse({n for n in namen if n.startswith("thema_") and any(w in n for w in ("freigeb", "zurueck", "markier", "bearbeit"))})
 
 
-class FuerDich(Grund):
-    def test_wartende_themen_unter_fuer_dich(self):
+class Anzeige(Grund):
+    def test_fuer_dich_und_seite(self):
         self.assertEqual(workbench._themen_fuer_dich(self.con, self.pid), [])
-        self.fassung()
-        f = workbench._themen_fuer_dich(self.con, self.pid)
-        self.assertEqual([(x["id"], x["status"]) for x in f], [(self.tid, "dich")])
-        themen.markieren(self.con, self.pid, kern.ENTWICKLER, self.tid)
-        self.assertEqual(workbench._themen_fuer_dich(self.con, self.pid), [])               # markiert zählt nicht
-
-    def test_seite_liefert_status_und_handlungen(self):
-        self.fassung()
+        self.vorlage(0)
+        self.assertEqual([(x["id"], x["status"]) for x in workbench._themen_fuer_dich(self.con, self.pid)], [(self.tid, "dich")])
         s = themen.seite(self.con, self.pid, self.tid)
         self.assertEqual((s["zustand"]["status"], s["handlungen"]), ("dich", ["freigeben", "zurueck", "bearbeiten", "markieren"]))
-        self.assertEqual(themen.liste(self.con, self.pid)[0]["zustand"]["status"], "dich")
+        l = themen.liste(self.con, self.pid)[0]
+        self.assertEqual((l["zustand"]["status"], l["neu_erlaubt"]), ("dich", True))
 
 
 if __name__ == "__main__":

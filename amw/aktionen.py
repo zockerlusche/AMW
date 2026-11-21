@@ -282,7 +282,9 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             if was == "zurueck":
                 return themen.zurueck(con, pid, kern.ENTWICKLER, tid, daten.get("notiz"))
             if was == "bearbeiten":
-                return themen.bearbeiten(con, pid, kern.ENTWICKLER, tid, daten.get("text"))
+                return themen.bearbeiten(con, pid, kern.ENTWICKLER, tid, daten.get("text"), daten.get("fassung"))
+            if was == "neu":                          # F5360 A: „+ Thema“ – Titel und Text, danach „in Arbeit“ für die KI
+                return {"thema": themen.anlegen_mensch(con, pid, kern.ENTWICKLER, daten.get("name") or "", daten.get("text") or "")}
             if was in ("markieren", "entmarkieren"):
                 return themen.markieren(con, pid, kern.ENTWICKLER, tid, an=was == "markieren")
         except kern.AmwFehler as e:

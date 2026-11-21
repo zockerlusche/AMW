@@ -7,8 +7,9 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 ## 1.151.0 – 21.11.2026 · Themen auf einen Blick
 - **Neu:** Menüpunkt „Themen“: jedes Thema mit genau einem Status – wartet auf dich, neu prüfen (mit Grund), in Arbeit oder
   freigegeben. Ein Thema öffnet sich als ein lesbarer Text. Am PC gibt es nur, was gerade geht: Freigeben, Zurück mit Notiz,
-  Bearbeiten und Löschen markieren; die Notiz geht als Auftrag an den Betreuer des Themas. Am Handy liest du mit und siehst
-  zuerst die Liste. Wartende Themen stehen unter „Für dich“ und führen direkt hin.
+  Bearbeiten (dein Text gilt als von dir freigegeben) und Löschen markieren; die Notiz geht als Auftrag an den Betreuer des
+  Themas. Mit „+ Thema“ legst du selbst eins an. Am Handy liest du mit und siehst zuerst die Liste. Wartende Themen stehen
+  unter „Für dich“ und führen direkt hin; „neu prüfen“ prüft zuerst die KI.
 - **Neu:** Den Status setzt niemand von Hand – die AMW leitet ihn aus Fassungen, Beschlüssen und deinen Handlungen ab. Agenten
   sehen ihn mit `amw thema status` und liefern neue Fassungen wie bisher.
 
