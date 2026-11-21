@@ -172,12 +172,17 @@ def buendeln(con, pid, von, aids=None, titel=None, starten=None):
     ziel = arbeitsbaum(con, pid)
     daten = os.path.join(os.path.dirname(ziel), "buendel-daten")
     os.makedirs(daten, exist_ok=True)
+    offen = offenes_buendel(con, pid)                              # P298 (c): ein Arbeitsbaum – nie zwei Bündel zugleich
+    if offen:
+        raise BuendelFehler(f"Bündel {offen['zweig']} ist noch offen (Gesamtlauf nicht zu Ende) – erst abwarten")
     pakete = kandidaten(con, pid, None if aids is None else {int(a) for a in aids})
     if not pakete:
         raise BuendelFehler("Kein freigegebenes Paket in der Merge-Reihe")
     if not os.path.isdir(os.path.join(ziel, ".git")) and not os.path.isfile(os.path.join(ziel, ".git")):
         _git(repo, daten, "worktree", "add", "--detach", ziel, "main")
     _git(ziel, daten, "checkout", "-f", "--detach", "main")       # versionierte Dateien wie main; nichts gelöscht
+    _, liegen = _git(ziel, daten, "ls-files", "--others", "--exclude-standard")   # P298 (b): Reste früherer Läufe kommen nie mit
+    liegen = {x.strip() for x in liegen.splitlines() if x.strip()}
     drin, raus = [], []
     fertig = {r[0] for r in con.execute("SELECT id FROM aufgabe WHERE projekt_id = ? AND status = 'fertig'", (pid,))}
     for p in pakete:
@@ -233,6 +238,7 @@ def buendeln(con, pid, von, aids=None, titel=None, starten=None):
     # DIFF-TOR: nur erlaubte Dateien in den Versions-Commit; jede andere geänderte versionierte Datei hält an
     _, versioniert = _git(ziel, daten, "diff", "--name-only", "HEAD")             # geänderte versionierte Dateien
     _, neu = _git(ziel, daten, "ls-files", "--others", "--exclude-standard")     # neue Dateien (nur erlaubte kommen mit)
+    neu = "\n".join(x for x in neu.splitlines() if x.strip() and x.strip() not in liegen)   # nur, was in DIESEM Lauf entstand
     erlaubt = lambda pfad: pfad in (e["version_datei"], e["changelog_datei"]) or any(fnmatch.fnmatch(pfad, m) for m in e["schritt_dateien"])
     geaendert = [x for x in versioniert.splitlines() + neu.splitlines() if x.strip() and erlaubt(x.strip())]
     fremd = [x for x in versioniert.splitlines() if x.strip() and not erlaubt(x.strip())]
@@ -268,6 +274,28 @@ def starter_starten(pid, zweig):
     return proc.pid
 
 
+OFFEN_H = 3                                   # so lange gilt ein Bündel ohne Ende als offen (fällt der Prozess weg, sperrt es nicht ewig)
+
+
+def offenes_buendel(con, pid):
+    """P298 (c): das jüngste Bündel, dessen Gesamtlauf noch kein Ende vermerkt hat (höchstens OFFEN_H Stunden alt) – oder None."""
+    r = con.execute("SELECT id, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = 'buendel' ORDER BY id DESC LIMIT 1",
+                    (pid,)).fetchone()
+    if not r:
+        return None
+    v = json.loads(r["text"])
+    grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=OFFEN_H)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ende = con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'buendel_ende' AND id > ? AND text LIKE ?",
+                       (pid, r["id"], f'%"zweig": "{v["zweig"]}"%')).fetchone()
+    return None if ende or r["zeit_utc"] < grenze else v
+
+
+def _ende(con, pid, zweig, ergebnis):
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="buendel_ende",
+                     text=json.dumps({"zweig": zweig, "ergebnis": ergebnis}, ensure_ascii=False))
+
+
 def _vermerk(con, pid, zweig):
     r = con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = 'buendel' AND text LIKE ? ORDER BY id DESC LIMIT 1",
                     (pid, f'%"zweig": "{zweig}"%')).fetchone()
@@ -286,7 +314,17 @@ def _melden(con, pid, kurz, text):
 def lauf_und_meldung(con, pid, zweig, warte=None, frist_s=7200):
     """Gesamtlauf (gesamtlauf_befehl) über die Lauf-Schlange auf genau der Bündel-Spitze im Bündel-Arbeitsbaum. Grün → GRÜN auf
     die Spitze mit dem Lead als Prüfer (F3b: nur er gibt Merge-OK und Release) und Meldung „Bündel X.Y.Z bereit“ mit dem
-    Versions-Diff und den fertigen Befehlen (F3c). Rot oder Stand verschoben → Meldung, kein GRÜN. Rückgabe: (rc, lauf-nr)."""
+    Versions-Diff, dem benutzten Befehl und den fertigen Befehlen (F3c, P298 a). Rot oder Stand verschoben → Meldung, kein GRÜN.
+    In jedem Fall danach „buendel_ende“ (gibt den Arbeitsbaum frei, P298 c). Rückgabe: (rc, lauf-nr)."""
+    rc, lid = None, None
+    try:
+        rc, lid = _lauf_und_meldung(con, pid, zweig, warte, frist_s)
+        return rc, lid
+    finally:
+        _ende(con, pid, zweig, {"rc": rc, "lauf": lid})
+
+
+def _lauf_und_meldung(con, pid, zweig, warte, frist_s):
     import time
     from . import belegung, betrieb, laufdienst
     warte = warte or time.sleep
@@ -343,7 +381,8 @@ def lauf_und_meldung(con, pid, zweig, warte=None, frist_s=7200):
     m = re.search(rf"^## {re.escape(v['version'])} .*?(?=^## |\Z)", log, re.M | re.S)
     jetzt = db.jetzt()
     text_gruen = (f"Bündel {v['version']}: Pakete " + ", ".join(f"A{x}" for x in v["drin"]) + f" (je einzeln geprüft und freigegeben),"
-                  f" Versions-Commit nur erlaubte Dateien (Diff-Tor), Gesamtlauf L{lid} grün auf genau {v['sha'][:8]}")
+                  f" Versions-Commit nur erlaubte Dateien (Diff-Tor), Gesamtlauf L{lid} grün auf genau {v['sha'][:8]}"
+                  f" (Befehl: {befehl[0]})")
     with db.schreiben(con):
         db.einfuegen(con, "pruefung", projekt_id=pid, aufgabe_id=v["drin"][0], zweig=zweig, sha=v["sha"], bauer="AMW", pruefer=lead or agent,
                      punkte=text_gruen, ergebnis="gruen", bemerkung="automatisch von der AMW (A1876) – Release gibt der Lead frei",

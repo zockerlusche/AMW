@@ -136,6 +136,8 @@ def cmd_projekt(a, con):
             raise kern.AmwFehler("amw projekt einstellen <schluessel>=<wert>, z. B. spec_frei=lead | agentenfragen=direkt |"
                                  " spec_vorlegen=alle | info_ablage_h=24")
         k, _, v = a.name.partition("=")
+        if k.strip() in kern.BUENDEL_EINSTELLUNGEN:    # A1876 (P298): ausführbare Befehle – --von Entwickler nur im eigenen Terminal
+            _rolle_nur_mensch_oder_lead(con, _projekt(con, a), a, f"{k.strip()} setzen")
         e = kern.projekt_einstellen(con, _projekt(con, a), _von(a), **{k.strip(): v.strip()})
         print(f"{k.strip()} = {e.get(k.strip())}")
     elif a.aktion == "ordner":
@@ -633,6 +635,7 @@ def cmd_paket(a, con):
         from . import buendel
         if not a.alle and not a.id:
             raise kern.AmwFehler("amw paket buendeln --alle | amw paket buendeln <Aufgabe> [--titel …]")
+        _rolle_nur_mensch_oder_lead(con, pid, a, "Bündeln")   # P298: wie agent lead – kein --von Entwickler aus einer Sitzung
         r = buendel.buendeln(con, pid, _von(a), None if a.alle else [a.id], titel=a.titel)
         print(f"Bündel {r['version']}: {r['zweig']}@{r['sha'][:8]} mit {len(r['drin'])} Paket(en): "
               + ", ".join(f"A{p['id']}" for p in r["drin"]) + f" (Arbeitsbaum {r['ordner']})")

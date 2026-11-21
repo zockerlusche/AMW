@@ -170,6 +170,58 @@ class GesamtlaufUndRelease(Basis):
         self.assertIsNotNone(self.con.execute("SELECT 1 FROM nachricht WHERE kurz LIKE ?", (f"Bündel 1.2.4: Gesamtlauf L{lid} rot%",)).fetchone())
 
 
+class P298(Basis):
+    def cli(self, *args, **env):
+        import contextlib
+        import io
+        from unittest import mock
+        from amw import cli
+        aus = io.StringIO()
+        with mock.patch.dict(os.environ, {"AMW_AGENT": "", "CLAUDECODE": "", "CLAUDE_CODE_MESSAGING_SOCKET": "", **env}), \
+                mock.patch.object(buendel, "starter_starten", return_value=4711), \
+                contextlib.redirect_stdout(aus), contextlib.redirect_stderr(aus):
+            rc = cli.main(["--projekt", "Spiel", *args])
+        return rc, aus.getvalue()
+
+    def test_ausfuehrbare_einstellungen_und_buendeln_nicht_aus_einer_sitzung(self):
+        for k in ("gesamtlauf_befehl=exit 0", "buendel_schritt=echo x"):
+            for env in ({"CLAUDECODE": "1"}, {"CLAUDE_CODE_MESSAGING_SOCKET": r"\\.\pipe\x"}):
+                rc, aus = self.cli("projekt", "einstellen", k, "--von", "Entwickler", **env)
+                self.assertNotEqual(rc, 0, (k, env))
+                self.assertIn("nicht aus einer Agenten-Sitzung", aus)
+            rc, aus = self.cli("projekt", "einstellen", k, "--von", "CC1")
+            self.assertNotEqual(rc, 0)
+        self.assertEqual(buendel.einstellungen(self.con, self.pid)["gesamtlauf_befehl"], "python -c pass")   # unverändert
+        self.assertEqual(self.cli("projekt", "einstellen", "gesamtlauf_befehl=python -c pass", "--von", "TL")[0], 0)   # Lead: ja
+        self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
+        rc, aus = self.cli("paket", "buendeln", "--alle", "--von", "Entwickler", CLAUDECODE="1")
+        self.assertNotEqual(rc, 0)
+        self.assertIn("nicht aus einer Agenten-Sitzung", aus)
+        rc, aus = self.cli("paket", "buendeln", "--alle", "--von", "TL")
+        self.assertEqual(rc, 0, aus)
+        self.assertIn("Bündel 1.2.4: buendel-1.2.4@", aus)
+
+    def test_ein_bundel_zur_zeit_und_reste_kommen_nicht_mit(self):
+        self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
+        kern.projekt_einstellen(self.con, self.pid, "TL", buendel_schritt=json.dumps(
+            {"befehl": 'python -c "open(\'web/VERSION\', \'w\').write(open(\'amw/__init__.py\').read())"', "dateien": ["web/*"]}))
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
+        self.paket("minus", {"lib/minus.py": "def minus(a, b):\n    return a - b\n"}, 2)
+        with self.assertRaisesRegex(buendel.BuendelFehler, f"Bündel {r['zweig']} ist noch offen"):     # (c)
+            buendel.buendeln(self.con, self.pid, "TL", starten=False)
+        rc, lid = buendel.lauf_und_meldung(self.con, self.pid, r["zweig"], warte=lambda s: None)        # Ende gibt frei
+        self.assertEqual(rc, 0)
+        m = self.con.execute("SELECT n.text FROM nachricht n WHERE n.kurz LIKE 'Bündel 1.2.4 bereit%'").fetchone()[0]
+        self.assertIn("(Befehl: python -c pass)", m)                                                    # (a)
+        g(self.repo, "merge", "-q", "--ff-only", r["zweig"])                                            # wie ausgeliefert
+        schreiben(r["ordner"], "web/ALT.txt", "liegen geblieben")                                       # (b) passt zu web/*
+        r2 = buendel.buendeln(self.con, self.pid, "TL", starten=False)
+        self.assertEqual(r2["version"], "1.2.5")
+        dateien = g(self.repo, "diff", "--name-only", f"{r2['sha']}~1", r2["sha"]).split()
+        self.assertIn("web/VERSION", dateien)
+        self.assertNotIn("web/ALT.txt", dateien)
+
+
 class Einstieg(Basis):
     def test_fehler_im_eigenen_prozess_geht_an_den_lead(self):
         buendel.main([str(self.pid), "buendel-9.9.9"])                                         # gibt es nicht
