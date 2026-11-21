@@ -126,7 +126,9 @@ einen Chat-Lead weckt die AMW nicht. Wartezeit: `leerlauf_lead_min` (1–1440, V
 ## Halt beim Wochenlimit (seit 1.149.0)
 
 Erreicht der Verbrauch des Wochenlimits die Schwelle `limit_halt` (Prozent, Vorgabe 95; 0 oder leer = aus), hält die AMW
-alle Coder des Projekts an – jeden Agenten außer den Leads, der nicht ausgeschaltet ist. Gemessen wird wie bei Startregel 8.
+alle Coder des Projekts an – jeden Agenten außer den Leads, der nicht ausgeschaltet ist, also auch einen Co-Entwickler (etwa
+den Chat-TL nach dem Lead-Wechsel). Gemessen wird wie bei Startregel 8. Der Lead selbst bekommt keinen Halt (er muss aufheben
+können), aber in seiner Meldung steht: auch er fängt nichts Neues an, nur noch Weckrufe, bei denen sonst etwas kaputtginge.
 Jeder bekommt ein STOPP: laufende Arbeit sauber beenden (Zwischenstand committen, Übergabe-Notiz), nichts Neues anfangen;
 hart beendet wird nichts. Lead und Mensch bekommen eine Meldung. Aufheben: `amw weiter` (Lead oder Mensch) – dann kommt der
 Halt in derselben Woche nicht wieder. Sonst hebt die AMW ihn selbst auf, sobald der Verbrauch nach dem Wochenwechsel unter der

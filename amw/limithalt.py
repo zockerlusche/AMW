@@ -94,7 +94,8 @@ def runde(con, lage=None):
                          " keine neuen Läufe, keine Auslieferung, nichts Neues anfangen – bis „weiter“ kommt (Lead oder Mensch,"
                          " sonst von selbst nach dem Wochenwechsel).")
             kern._posten(con, pid, "AMW", _an_lead_und_mensch(con, pid), "meldung", f"Wochenlimit-Halt: {text}",
-                         f"Angehalten: {', '.join(wen)}. Aufheben: amw weiter (Lead oder Mensch) – dann diese Woche kein neuer Halt;"
+                         f"Angehalten: {', '.join(wen)}. Auch du: nichts Neues anfangen, nur noch Weckrufe, bei denen sonst etwas"
+                         " kaputtginge. Aufheben: amw weiter (Lead oder Mensch) – dann diese Woche kein neuer Halt;"
                          " sonst hebt die AMW ihn nach dem Wochenwechsel selbst auf. Schwelle: amw projekt einstellen limit_halt=<Prozent>"
                          " (0 = aus).")
         ereignisse.append(f"P{pid}: Halt für {', '.join(wen)} ({text})")

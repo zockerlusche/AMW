@@ -204,10 +204,13 @@ def leer_lead(con, pid):
 
 
 def freie_bogen_aufgaben(con, pid):
-    """Offene Aufgaben der aktiven Meilensteine ohne Bearbeiter."""
-    return con.execute("SELECT a.id, a.titel, a.bogen_id FROM aufgabe a JOIN bogen b ON b.id = a.bogen_id WHERE a.projekt_id = ?"
+    """Offene Aufgaben der aktiven Meilensteine ohne Bearbeiter – ohne p-Pakete (die führt der Arbeiter der AMW aus, nie ein
+    interaktiver Agent; A1892)."""
+    return con.execute("SELECT a.id, a.titel, a.bogen_id FROM aufgabe a JOIN bogen b ON b.id = a.bogen_id"
+                       " LEFT JOIN paket k ON k.aufgabe_id = a.id WHERE a.projekt_id = ?"
                        " AND b.status = 'aktiv' AND coalesce(a.agent, '') = '' AND a.status NOT IN ('fertig', 'verworfen')"
-                       " AND a.einstufung = 'aktiv' ORDER BY coalesce(a.rang, 999999), a.id", (pid,)).fetchall()
+                       " AND a.einstufung = 'aktiv' AND coalesce(k.art, 'agent') != 'p'"
+                       " ORDER BY coalesce(a.rang, 999999), a.id", (pid,)).fetchall()
 
 
 def _leer_weckruf(con, pid, lead, leere):

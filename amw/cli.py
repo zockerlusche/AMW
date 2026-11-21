@@ -136,7 +136,7 @@ def cmd_projekt(a, con):
             raise kern.AmwFehler("amw projekt einstellen <schluessel>=<wert>, z. B. spec_frei=lead | agentenfragen=direkt |"
                                  " spec_vorlegen=alle | info_ablage_h=24")
         k, _, v = a.name.partition("=")
-        if k.strip() in kern.BUENDEL_EINSTELLUNGEN:    # A1876 (P298): ausführbare Befehle – --von Entwickler nur im eigenen Terminal
+        if k.strip() in GESPERRTE_EINSTELLUNGEN:     # A1876/A1892: Befehle oder Rechte – --von Entwickler nur im eigenen Terminal
             _rolle_nur_mensch_oder_lead(con, _projekt(con, a), a, f"{k.strip()} setzen")
         e = kern.projekt_einstellen(con, _projekt(con, a), _von(a), **{k.strip(): v.strip()})
         print(f"{k.strip()} = {e.get(k.strip())}")
@@ -168,6 +168,13 @@ def _aus_agenten_sitzung():
     AMW_AGENT, Postfach, CLAUDECODE – jede Sitzung, P256)."""
     return (KANAL.get() != "cli" or bool(os.environ.get("AMW_AGENT") or os.environ.get("CLAUDE_CODE_MESSAGING_SOCKET")
                                           or os.environ.get("CLAUDECODE")))
+
+
+# A1892 (P294): Projekt-Einstellungen, die Rechte vergeben (Freigeben in der Merge-Liste, Weckrufe, Halt) – gleiche Sperre wie
+# „agent lead“; merge_blick/merge_aussen_pruefung setzt zusätzlich nur der Mensch (kern.NUR_MENSCH_WAHL)
+RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_blick", "merge_aussen_pruefung")
+# eine Stelle für alle Einstellungen mit dieser Sperre (CCamwTL P299): Rechte (A1892) und ausführbare Bündel-Befehle (A1876, P298)
+GESPERRTE_EINSTELLUNGEN = RECHTE_EINSTELLUNGEN + kern.BUENDEL_EINSTELLUNGEN
 
 
 def _rolle_nur_mensch_oder_lead(con, pid, a, was):

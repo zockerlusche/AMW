@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.150.1 – 21.11.2026 · Nacharbeit Rechte, Leerlauf, Wochenlimit
+- **Behoben:** Einstellungen, die Rechte vergeben (Prüfer der Pakete, Empfänger des Leerlauf-Weckrufs, Halt beim Wochenlimit,
+  Blick und Außen-Prüfung vor der Merge-Freigabe), setzt „Entwickler“ nur noch aus dem eigenen Terminal oder der Workbench –
+  nicht aus einer Agenten-Sitzung. Der Lead darf weiter.
+- **Behoben:** Der Leerlauf-Weckruf nennt keine Pakete für kopflose Arbeiter mehr als freie Aufgaben – die übernimmt nie ein
+  interaktiver Agent.
+- **Verbessert:** Beim Halt am Wochenlimit steht in der Meldung an den Lead, dass auch er nichts Neues anfängt; die Hilfe
+  nennt, dass auch ein Co-Entwickler angehalten wird.
+
 ## 1.150.0 – 21.11.2026 · Pakete bündeln ohne Coder
 - **Neu:** `amw paket buendeln --alle` setzt die freigegebenen p-Pakete zu einem Release-Stand zusammen: in einem eigenen
   Arbeitsordner, mit neuer Versionsnummer, Versionshinweisen aus den Hinweisen der Pakete und einem Gesamtlauf. Ist er grün,
