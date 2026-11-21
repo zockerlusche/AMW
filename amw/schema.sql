@@ -1007,7 +1007,7 @@ CREATE TABLE paket (
   ressourcen        TEXT,                          -- JSON ["gpu", "bildschirm"]
   modell            TEXT,
   effort            TEXT CHECK (effort IN ('low', 'medium', 'high')),
-  pakettyp          TEXT CHECK (pakettyp IN ('normal', 'test-schreiben')),
+  pakettyp          TEXT CHECK (pakettyp IN ('normal', 'test-schreiben', 'test-ergaenzen')),   -- Schema 34: test-ergaenzen (A1898)
   nie_gleichzeitig  TEXT,                          -- JSON [Aufgaben-Nummern]
   gleiche_ressource TEXT,
   zustand           TEXT CHECK (zustand IN ('entwurf', 'startklar', 'laeuft', 'abgegeben', 'abnahme', 'merge_reihe', 'gemergt',

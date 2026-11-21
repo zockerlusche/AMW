@@ -14,7 +14,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = 33        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
+SCHEMA_VERSION = 34        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
 HIER = os.path.dirname(os.path.abspath(__file__))
 STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
 CODE = os.path.dirname(HIER)                       # Ordner dieses Codes (Live-Ordner, Entwicklungsbaum, Prüfbaum, Platz)

@@ -4,6 +4,8 @@ import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im 
 import contextlib
 import io
 import os
+import re
+import sqlite3
 import tempfile
 import unittest
 from unittest import mock
@@ -266,10 +268,67 @@ class Migration(unittest.TestCase):
         con.close()
         con = db.verbinde(pfad)
         self.addCleanup(con.close)
-        self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], 33)
+        self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], db.SCHEMA_VERSION)
         self.assertEqual(tuple(con.execute("SELECT * FROM aufgabe WHERE id = ?", (aid,)).fetchone()), vorher)
         self.assertEqual(con.execute("SELECT count(*) FROM paket").fetchone()[0], 0)
         self.assertEqual(ap.lesen(con, aid)["art"], "agent")
+
+    def test_34_test_ergaenzen_ohne_zeilenverlust(self):
+        """A1898: Schema 33 → 34 legt paket neu an (CHECK um test-ergaenzen erweitert); jede Zeile bleibt, wie sie war."""
+        ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(ordner.cleanup)
+        pfad = os.path.join(ordner.name, "amw.db")
+        con = db.anlegen(pfad)
+        with db.schreiben(con):
+            pid = db.einfuegen(con, "projekt", name="Eins", angelegt_utc=db.jetzt())
+        kern.agent_neu(con, pid, "TL", rolle="lead")
+        con.execute("DROP TABLE paket")                                              # paket wie mit Schema 33
+        with open(os.path.join(os.path.dirname(db.__file__), "migration_33.sql"), encoding="utf-8") as f:
+            con.executescript(f.read())
+        aids = [kern.aufgabe_neu(con, pid, "TL", f"A{i}", agent="TL") for i in range(3)]
+        ap.setzen(con, pid, "TL", aids[0], art="p", pakettyp="test-schreiben", gewicht="schwer", ressourcen=["gpu"])
+        ap.setzen(con, pid, "TL", aids[1], art="sitzung", modell="haiku", effort="low")
+        ap.setzen(con, pid, "TL", aids[2], art="p", pakettyp="normal")
+        with self.assertRaises(sqlite3.IntegrityError):                                # das Problem live (Befund A1898)
+            with db.schreiben(con):
+                con.execute("UPDATE paket SET pakettyp = 'test-ergaenzen' WHERE aufgabe_id = ?", (aids[2],))
+        vorher = [tuple(r) for r in con.execute("SELECT * FROM paket ORDER BY aufgabe_id")]
+        con.execute("PRAGMA user_version = 33")
+        con.close()
+        con = db.verbinde(pfad)
+        self.addCleanup(con.close)
+        self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], 34)
+        self.assertEqual([tuple(r) for r in con.execute("SELECT * FROM paket ORDER BY aufgabe_id")], vorher)   # Zählprobe + Inhalt
+        self.assertEqual(len(vorher), 3)
+        ap.setzen(con, pid, "TL", aids[2], pakettyp="test-ergaenzen")
+        self.assertEqual(ap.lesen(con, aids[2])["pakettyp"], "test-ergaenzen")
+        self.assertEqual(con.execute("PRAGMA foreign_key_check").fetchall(), [])
+        self.assertIsNone(con.execute("SELECT 1 FROM sqlite_master WHERE name = 'paket_neu'").fetchone())
+
+    def test_pakettypen_wie_im_schema(self):
+        """A1898: arbeitspaket.PAKETTYPEN und die CHECK-Liste von paket.pakettyp (schema.sql und neue Datenbank) stimmen überein."""
+        muster = re.compile(r"pakettyp\s+TEXT CHECK \(pakettyp IN \(([^)]*)\)\)")
+        with open(os.path.join(os.path.dirname(db.__file__), "schema.sql"), encoding="utf-8") as f:
+            schema = muster.search(f.read()).group(1)
+        ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(ordner.cleanup)
+        con = db.anlegen(os.path.join(ordner.name, "amw.db"))
+        self.addCleanup(con.close)
+        tabelle = muster.search(con.execute("SELECT sql FROM sqlite_master WHERE name = 'paket'").fetchone()[0]).group(1)
+        for liste in (schema, tabelle):
+            self.assertEqual(tuple(re.findall(r"'([^']+)'", liste)), ap.PAKETTYPEN)
+
+    def test_test_ergaenzen_speichern_und_lesen(self):
+        ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(ordner.cleanup)
+        con = db.anlegen(os.path.join(ordner.name, "amw.db"))
+        self.addCleanup(con.close)
+        with db.schreiben(con):
+            pid = db.einfuegen(con, "projekt", name="Eins", angelegt_utc=db.jetzt())
+        kern.agent_neu(con, pid, "TL", rolle="lead")
+        aid = kern.aufgabe_neu(con, pid, "TL", "Tests ergänzen", agent="TL")
+        ap.setzen(con, pid, "TL", aid, art="p", pakettyp="test-ergaenzen")
+        self.assertEqual((ap.lesen(con, aid)["art"], ap.lesen(con, aid)["pakettyp"]), ("p", "test-ergaenzen"))
 
 
 if __name__ == "__main__":

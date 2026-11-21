@@ -12,6 +12,10 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 - **Verbessert:** Eine Bitte an den Lead (Merge-OK, prüfen, freigeben, entscheiden) geht nur noch als Frage – als Info, die
   nicht weckt, lehnt die AMW sie ab.
 - **Behoben:** Zwei Aufgaben auf demselben Stand lassen sich wieder beide prüfen und gemeinsam ausliefern.
+- **Behoben:** Ein vom Lead angenommenes Paket hält Auslieferungen nicht mehr im Wartungsmodus an; nach kurzem
+  Herausnehmen lässt es sich wieder annehmen.
+- **Behoben:** Der Pakettyp „test-ergaenzen“ lässt sich jetzt speichern (Datenbank-Schema 34; die AMW stellt beim ersten Start
+  von selbst um).
 
 ## 1.151.1 – 21.11.2026 · Themen ruhiger
 - **Verbessert:** „neu prüfen“ ist jetzt grau wie „in Arbeit“ – das erledigt die KI, nicht du.
