@@ -3492,7 +3492,7 @@ def parser():
     x.set_defaults(f=cmd_regelwerk)
 
     x = s.add_parser("befehle", help="Befehlsreferenz als Markdown (für doc/befehle.md)")
-    x.set_defaults(f=lambda a: print(befehle_markdown(), end="") or 0, ohne_db=True)
+    x.set_defaults(f=_befehle_ausgeben, ohne_db=True)
 
     x = s.add_parser("sichern", help="Sicherung der Datenbank (vollständige Kopie, auch während des Betriebs); mit --projekt <name>"
                                      " nur dieses Projekt als eigene Datenbank (z. B. zum Umziehen auf einen anderen Rechner)")
@@ -3538,6 +3538,16 @@ def parser():
             if name not in unter._option_string_actions:
                 unter.add_argument(name, default=argparse.SUPPRESS)
     return p
+
+
+def _befehle_ausgeben(a):
+    """`amw befehle > doc/befehle.md`: Zeilenenden LF auch unter Windows (A1902 – sonst schlägt test_zeilenenden an)."""
+    try:
+        sys.stdout.reconfigure(newline="\n")
+    except (AttributeError, ValueError):                 # umgeleitet auf etwas ohne reconfigure – dann so, wie es ist
+        pass
+    print(befehle_markdown(), end="")
+    return 0
 
 
 def befehle_markdown():

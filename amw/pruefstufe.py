@@ -107,6 +107,52 @@ def zeile(info, hoechstens=4):
     return f"Prüfstufe {s} – {', '.join(treffer[:hoechstens])}{mehr}"
 
 
+# --- A1902: Diff fast nur aus Zeilenenden/Leerzeichen (P309: CHANGELOG.md ganz auf CRLF, 4705 Zeilen) -------------------------
+GRENZE_LEER = 50
+
+
+def _numstat(ordner, basis, sha, *mehr):
+    try:
+        r = subprocess.run(["git", "-C", ordner, "diff", "--numstat", *mehr, f"{basis}...{sha}"], capture_output=True, text=True,
+                           timeout=60, stdin=subprocess.DEVNULL, encoding="utf-8", errors="replace", creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if r.returncode != 0:
+        return None
+    zahlen = {}
+    for z in r.stdout.splitlines():
+        t = z.split("\t", 2)
+        if len(t) == 3 and t[0].isdigit() and t[1].isdigit():             # Binärdateien („-  -“) zählen nicht
+            zahlen[t[2]] = int(t[0]) + int(t[1])
+    return zahlen
+
+
+def nur_leerzeichen(ordner, sha, basis="main", grenze=GRENZE_LEER):
+    """[(datei, zeilen, zeilen_ohne_leerzeichen)] – Dateien, deren Diff um mehr als `grenze` Zeilen größer ist als mit -w
+    (typisch: ganze Datei auf CRLF umgeschrieben). Leer, wenn Git nichts liefert."""
+    if not ordner or not sha:
+        return []
+    voll, ohne = _numstat(ordner, basis, sha), _numstat(ordner, basis, sha, "-w")
+    if voll is None or ohne is None:
+        return []
+    return sorted(((d, n, ohne.get(d, 0)) for d, n in voll.items() if n - ohne.get(d, 0) > grenze), key=lambda x: x[0])
+
+
+def leerzeichen_warnung(con, pid, sha, aufgabe_id=None):
+    """Zeile für die Prüfbitte (keine Sperre): welche Dateien fast nur Zeilenenden oder Leerzeichen ändern."""
+    from . import kern
+    ordner = kern.projekt_ordner(con, pid)
+    if not ordner:
+        return ""
+    treffer = nur_leerzeichen(ordner, sha, _eigene_basis(con, pid, ordner, sha, aufgabe_id))
+    if not treffer:
+        return ""
+    return ("\n\nAchtung: Diese Dateien ändern sich fast nur in Zeilenenden oder Leerzeichen (git diff gegen git diff -w) – "
+            "vor dem Prüfen klären, ob das gewollt ist (Zeilenenden LF; in Python mit open(…, newline=\"\\n\") schreiben): "
+            + ", ".join(f"{d} ({n} Zeilen, ohne Leerzeichen {w})" for d, n, w in treffer[:5])
+            + (f" (+{len(treffer) - 5})" if len(treffer) > 5 else ""))
+
+
 # --- A1755: sichtbare Änderung nur mit Bild (B2750, Lückenliste TL, Marcel W2168) -------------------------------------------
 SICHTBAR = ("web/", "doc/hilfe/", "amw/workbench.html")
 

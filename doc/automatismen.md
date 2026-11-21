@@ -253,6 +253,19 @@ Wörter zählen mehr) und zeigt die besten Treffer. Fragen an den Entwickler bra
 muss es mindestens einen nennen („B5 passt nicht, weil …“). Bei Fragen an den Lead zeigt die AMW die Treffer nur. Die
 Workbench zeigt „Vorher geprüft: …“ an der Frage. Nachschlagen ohne Frage: `amw suche <Stichwort> --wissen`.
 
+## Zeilenenden (seit 1.153.1)
+
+**Wozu:** Eine Datei, die unter Windows ganz auf CRLF umgeschrieben wird (Python `open()` ohne `newline`), bläht den Diff auf
+tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
+
+- **Test in der Suite** (`tests/test_zeilenenden.py`): Jede versionierte Textdatei hat LF ohne CR, außer was `.gitattributes`
+  auf `eol=crlf` setzt (`*.cmd`, `*.ps1`) – die haben überall CRLF. Ein Treffer nennt Datei und Zahl der CR. Was Text ist,
+  sagt Git (`git ls-files --eol`).
+- **Warnung in der Prüfbitte:** `amw pruefung bitte` vergleicht `git diff --numstat` mit `git diff -w --numstat` (gegen
+  dieselbe Basis wie die Bild-Pflicht). Ist eine Datei um mehr als 50 Zeilen größer, steht oben „Achtung: Diese Dateien
+  ändern sich fast nur in Zeilenenden oder Leerzeichen …“ mit Dateinamen – kein Abbruch.
+- `amw befehle > doc/befehle.md` schreibt LF auch unter Windows.
+
 ## Einstellungen
 
 | Wo | Schlüssel | Bedeutung |

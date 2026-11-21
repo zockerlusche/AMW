@@ -83,6 +83,35 @@ class MitRepo(unittest.TestCase):
         text = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE ?", (f"Prüfbitte P{prid}:%",)).fetchone()[0]
         self.assertTrue(text.startswith("Prüfstufe hoch – amw/bruecke.py"), text)
         self.assertIn("Bitte ansehen", text)
+        self.assertNotIn("Zeilenenden", text)                                                   # normale Änderung: keine Warnung
+
+    def binaer(self, name, inhalt):
+        with open(os.path.join(self.repo, name), "wb") as f:
+            f.write(inhalt)
+
+    def test_warnung_wenn_fast_nur_zeilenenden(self):
+        """A1902 (P309): Diff deutlich größer als mit -w → Warnung in der Prüfbitte mit Dateiname, kein Abbruch."""
+        c = ("-c", "user.name=t", "-c", "user.email=t@t", "-c", "core.autocrlf=false")
+        zeilen = "".join(f"Zeile {i}\n" for i in range(80))
+        self.g("switch", "-q", "main")
+        self.binaer("lang.md", zeilen.encode())
+        self.binaer("klein.md", b"a\nb\n")
+        self.g(*c, "add", "-A")
+        self.g(*c, "commit", "-q", "-m", "lang")
+        self.g("switch", "-q", "-c", "crlf")
+        self.binaer("lang.md", (zeilen + "neu\n").replace("\n", "\r\n").encode())             # ganze Datei CRLF + eine echte Zeile
+        self.binaer("klein.md", b"a\r\nb\r\n")                                                  # 4 Zeilen: unter der Grenze
+        self.g(*c, "add", "-A")
+        self.g(*c, "commit", "-q", "-m", "crlf")
+        sha = self.g("rev-parse", "HEAD")
+        self.assertEqual(pruefstufe.nur_leerzeichen(self.repo, sha), [("lang.md", 161, 1)])
+        self.ordner_setzen()
+        prid = betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "crlf", sha)
+        text = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE ?", (f"Prüfbitte P{prid}:%",)).fetchone()[0]
+        self.assertIn("fast nur in Zeilenenden oder Leerzeichen", text)
+        self.assertIn("lang.md (161 Zeilen, ohne Leerzeichen 1)", text)
+        self.assertNotIn("klein.md", text)
+        self.assertEqual(pruefstufe.nur_leerzeichen(None, sha), [])                            # ohne Ordner: nichts
 
     def test_regel_nur_wenn_eingeschaltet(self):
         """pruefstufen = an: hoch → der Lead prüft; mittel → nicht der Bauer selbst; höher einstufen ja, niedriger nie."""
