@@ -13,6 +13,15 @@ für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__ini
 - **Neu:** Rechts steht der ganze Verlauf wie im Mail-Programm – alles zum selben Bezug, auch was Agenten untereinander dazu
   schrieben. In der Liste siehst du „· n im Verlauf“. Am Handy zeigt das Gespräch nur noch den Verlauf und „‹ zurück“.
 - **Verbessert:** „Mitlesen“ zeigt ebenfalls alle Projekte mit Projekt-Filter. Fragen bleiben ihr eigener Menüpunkt.
+- **Verbessert:** Ein Test prüft, dass jede versionierte Textdatei LF hat (außer *.cmd/*.ps1 laut .gitattributes). Ändert eine
+  Prüfbitte eine Datei fast nur in Zeilenenden oder Leerzeichen, warnt sie mit dem Dateinamen.
+- **Verbessert:** `amw lauf ausfuehren` legt die ganze Ausgabe immer auch als Datei ab, ohne `--ergebnis` unter
+  `laeufe/L<nr>.txt` neben der Datenbank; `amw lauf zeige` nennt den Pfad.
+- **Behoben:** Wechselst du die Seite oder einen Reiter, während die vorige noch lädt, zeichnet die vorige nicht mehr
+  darüber – auch nicht beim ersten Laden der Startseite. Dialoge öffnen trotzdem.
+- **Behoben:** Am Handy stand oben kurz ein leerer Projekt-Knopf, solange die Projektliste noch lud.
+- **Behoben:** Fünf Dateien mit CRLF auf LF gebracht; `amw befehle` schreibt LF auch unter Windows.
+
 ## 1.152.6 – 21.11.2026 · Probebetrieb S8: Tests für bestehenden Code
 - **Intern:** 6 Paket(e) ohne sichtbare Änderung (Tests und Pflege).
 
