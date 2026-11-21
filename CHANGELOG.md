@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.152.3 – 21.11.2026 · Bündel-Gesamtlauf läuft wieder
+- **Behoben:** Der Gesamtlauf eines Bündels bricht nicht mehr mit „Arbeitsbaum verschoben“ ab, wenn die Nacharbeit (etwa die
+  Webseite bauen) Dateien mit gleichem Inhalt neu schreibt. Das Bündel nimmt jetzt dieselben Zeilenenden wie das Projekt.
+- **Neu:** `amw paket buendeln --gesamtlauf buendel-X.Y.Z` stößt den Gesamtlauf eines vorhandenen Bündels neu an.
+
 ## 1.152.1 – 21.11.2026 · Neue Claude-Code-Version für Arbeiter
 - **Behoben:** Arbeiter auf den Arbeitsplätzen laufen wieder mit der aktuellen Claude-Code-Version 2.1.330. Die AMW hatte sie
   abgebrochen, weil diese Version noch nicht geprüft war. Die Probe, dass ein Arbeiter nichts außerhalb seines Platzes ändern
