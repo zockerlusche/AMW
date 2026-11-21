@@ -21,6 +21,12 @@ zugeordnet sind“ mit Argumenten durchzusprechen. Dazu kam ein Wunsch des Prüf
   gerade führt.
 - **Ergebnis einer Prüfung** (`pruefung gruen|rot`) geht an den Bauer und in Kopie an den Zuständigen. Ist das nicht der
   Lead, bekommt der Lead nichts. Abschluss und Abweichungen meldet der Federführende.
+- **GRÜN zurücknehmen** (A1917): `amw pruefung zuruecknehmen P… --grund „…“` – der Prüfer der Prüfung, der Lead oder der
+  Mensch (als Mensch nur im eigenen Terminal oder in der Workbench, nicht aus einer Agenten-Sitzung). Nichts wird gelöscht:
+  die Prüfung wird rot mit „ZURÜCKGENOMMEN von … : Grund“ vorn in der Bemerkung, das Ereignis `pruefung_zurueckgenommen`
+  hält fest, dass sie GRÜN war (`pruefung zeige`/`liste`: „rot · zurückgenommen“). Damit gilt der Stand nirgends mehr als
+  geprüft (Kette, freigabereif, Übernahme nach dem Neuaufsetzen); übernommene Kopien („Quelle P…“) fallen mit, ein Merge-OK
+  für den Zweig fällt weg, wenn dort kein anderes GRÜN der Aufgabe gilt. Bauer, Lead und Prüfer bekommen eine Meldung.
 - **Eskalation:** Bleibt eine Frage, Prüfbitte oder ein Auftrag an einen Federführenden 30 min ungelesen
   (Projekt-Einstellung `eskalation_min`, 0 = aus), bekommt der Lead einmal eine weckende Zeile.
 - **Sichtbar:**

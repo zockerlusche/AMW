@@ -103,6 +103,9 @@ WERKZEUGE = {
     "pruefung_urteil": ("Ergebnis einer Prüfbitte eintragen: grün oder rot.", ["pruefung"],
                         [F("ergebnis", "s", "gruen oder rot", "#", True, ("gruen", "rot")), NR("der Prüfbitte"),
                          F("bemerkung", "s", "Begründung bzw. was fehlt", "--bemerkung")]),
+    "pruefung_zuruecknehmen": ("Ein gegebenes GRÜN mit Grund zurücknehmen (Prüfer der Prüfung oder Lead) – der Stand gilt dann nicht"
+                               " mehr als geprüft, ein Merge-OK darauf fällt weg.", ["pruefung", "zuruecknehmen"],
+                               [NR("der Prüfung"), F("grund", "s", "was nicht stimmt", "--grund", True)]),
     "freigabe_merge": ("Merge-OK für eine Aufgabe (Lead): ihr grün geprüfter Stand darf ausgeliefert werden.", ["freigabe", "merge"],
                        [F("aufgabe", "i", "Nummer der Aufgabe", "#", True), F("zweig", "s", "nur für diesen Zweig", "--zweig"),
                         F("zurueck", "b", "OK zurücknehmen", "--zurueck"),

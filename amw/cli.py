@@ -1842,13 +1842,22 @@ def cmd_pruefung(a, con):
     elif a.aktion in ("gruen", "rot"):
         kette = betrieb.pruefung_ergebnis(con, pid, _von(a), a.id, a.aktion, a.bemerkung)
         print(f"P{a.id} → {a.aktion}" + (f" · {kette}" if kette else ""))
+    elif a.aktion == "zuruecknehmen":                   # A1917: ein GRÜN mit Grund widerrufen
+        if not a.id:
+            raise kern.AmwFehler("pruefung zuruecknehmen <nr> --grund „was nicht stimmt“")
+        if _von(a) == kern.ENTWICKLER and _aus_agenten_sitzung():    # Sperre wie agent lead
+            raise kern.AmwFehler("Zurücknehmen als Entwickler nur im eigenen Terminal des Menschen oder in der Workbench am PC –"
+                                 " nicht aus einer Agenten-Sitzung")
+        print(betrieb.pruefung_zuruecknehmen(con, pid, _von(a), a.id, a.grund))
     elif a.aktion == "zeige":                            # A1780: ganze Prüfbitte ohne SQL
         if not a.id:
             raise kern.AmwFehler("pruefung zeige <nr>")
         r = con.execute("SELECT * FROM pruefung WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
         if not r:
             raise kern.AmwFehler(f"P{a.id} gibt es nicht")
-        print(f"P{r['id']} [{r['ergebnis']}] {r['zweig']}@{r['sha']} {r['bauer']} → {r['pruefer']}"
+        z = betrieb.zurueckgenommen(con, pid, r["id"])     # A1917: im Verlauf sichtbar, dass es GRÜN war
+        erg = f"{r['ergebnis']} · zurückgenommen (war GRÜN) am {_zeit(z['zeit_utc'])} von {z['von']}" if z else r["ergebnis"]
+        print(f"P{r['id']} [{erg}] {r['zweig']}@{r['sha']} {r['bauer']} → {r['pruefer']}"
               + (f" · A{r['aufgabe_id']}" if r["aufgabe_id"] else "") + f" · angefragt {_zeit(r['angefragt_utc'])}"
               + (f" · Ergebnis {_zeit(r['ergebnis_utc'])}" if r["ergebnis_utc"] else ""))
         if r["punkte"]:
@@ -1862,7 +1871,8 @@ def cmd_pruefung(a, con):
     else:
         for r in con.execute("SELECT * FROM pruefung WHERE projekt_id = ? AND (? OR ergebnis = 'offen') ORDER BY id DESC LIMIT 50",
                              (pid, int(a.alle))):
-            print(f"P{r['id']:<5} [{r['ergebnis']}] {r['zweig']}@{r['sha'][:8]} {r['bauer']} → {r['pruefer']}"
+            erg = "rot · zurückgenommen" if r["ergebnis"] == "rot" and betrieb.zurueckgenommen(con, pid, r["id"]) else r["ergebnis"]
+            print(f"P{r['id']:<5} [{erg}] {r['zweig']}@{r['sha'][:8]} {r['bauer']} → {r['pruefer']}"
                   + (f" A{r['aufgabe_id']}" if r["aufgabe_id"] else ""))
 
 
@@ -3280,8 +3290,9 @@ def parser():
     x.add_argument("--zustaendig", help="wer bei Ausfall benachrichtigt wird (Vorgabe: du)")
     x.set_defaults(f=cmd_server)
 
-    x = s.add_parser("pruefung", help="Prüfbitte je Stand (SHA), Ergebnis grün/rot")
-    x.add_argument("aktion", choices=["bitte", "gruen", "rot", "ist-gruen", "liste", "zeige"])
+    x = s.add_parser("pruefung", help="Prüfbitte je Stand (SHA), Ergebnis grün/rot; zuruecknehmen N --grund … (ein GRÜN widerrufen:"
+                                      " Prüfer, Lead, Mensch)")
+    x.add_argument("aktion", choices=["bitte", "gruen", "rot", "zuruecknehmen", "ist-gruen", "liste", "zeige"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--pruefer")
     x.add_argument("--zweig")
@@ -3289,6 +3300,7 @@ def parser():
     x.add_argument("--punkte")
     x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--bemerkung")
+    x.add_argument("--grund", help="zuruecknehmen: was nicht stimmt (Pflicht)")
     x.add_argument("--alle", action="store_true")
     x.add_argument("--stufe", choices=["niedrig", "mittel", "hoch"], help="Prüfstufe höher einstufen als die geänderten Dateien ergeben (nie niedriger)")
     x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben"], help="bitte: Versionshinweis der Aufgabe (setzt sie die Release-Kette fertig, gilt er)")

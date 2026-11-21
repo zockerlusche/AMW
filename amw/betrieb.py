@@ -1123,6 +1123,73 @@ def pruefung_ergebnis(con, pid, pruefer, prid, ergebnis, bemerkung=None):
     return rueck
 
 
+ZURUECK_ART = "pruefung_zurueckgenommen"      # A1917: {"pruefung", "zweig", "sha", "grund", "quelle"} – das GRÜN davor bleibt im Verlauf
+
+
+def zurueckgenommen(con, pid, prid):
+    """A1917: Das Ereignis, mit dem ein GRÜN zurückgenommen wurde (Zeile), oder None."""
+    return con.execute("SELECT * FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND text LIKE ? ORDER BY id DESC LIMIT 1",
+                       (pid, ZURUECK_ART, f'{{"pruefung": {int(prid)},%')).fetchone()
+
+
+def pruefung_zuruecknehmen(con, pid, von, prid, grund):
+    """A1917 (21.11., P329: ein Fehler im schon grünen Stand ließ sich nicht mehr festhalten): ein gegebenes GRÜN mit Grund
+    widerrufen – Prüfer der Prüfung, Lead oder Mensch. Gelöscht wird nichts: das Ergebnis wird „rot“ mit „ZURÜCKGENOMMEN …“ vorn in
+    der Bemerkung, das Ereignis pruefung_zurueckgenommen hält fest, dass es GRÜN war. Damit gilt der Stand überall nicht mehr
+    (ist_gruen, freigabereif, Übernahme A1814, die Kette fragen nach ergebnis = 'gruen'). Übernommene Kopien dieses GRÜN
+    („Quelle P…“) fallen mit; ein Merge-OK für den Zweig fällt weg, wenn auf ihm kein anderes GRÜN der Aufgabe mehr gilt.
+    Meldung an Bauer und Lead (und den Prüfer, wenn ein anderer zurücknimmt). Rückgabe: Text."""
+    grund = " ".join((grund or "").split())
+    if not grund:
+        raise kern.AmwFehler("Zurücknehmen nur mit Grund (--grund „was nicht stimmt“)")
+    with db.schreiben(con):
+        p = con.execute("SELECT * FROM pruefung WHERE id = ? AND projekt_id = ?", (prid, pid)).fetchone()
+        if not p:
+            raise kern.AmwFehler(f"Prüfung P{prid} gibt es nicht")
+        if p["pruefer"] != von and not kern.ist_lead(con, pid, von):
+            raise kern.AmwFehler(f"P{prid} nimmt nur der Prüfer ({p['pruefer']}), der Lead oder der Mensch zurück")
+        if p["ergebnis"] != "gruen":
+            raise kern.AmwFehler(f"P{prid} ist {p['ergebnis']} – zurücknehmen lässt sich nur ein GRÜN")
+        jetzt = db.jetzt()
+        alle, offen = [], [p]
+        while offen:                                     # Kopien aus der Übernahme (A1814) und deren Kopien
+            x = offen.pop()
+            if x["id"] in {y["id"] for y in alle}:
+                continue
+            alle.append(x)
+            offen += con.execute("SELECT * FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen' AND bemerkung LIKE ?",
+                                 (pid, f"%Quelle P{x['id']}")).fetchall()
+        for x in alle:
+            kopie = f" (Kopie von P{prid})" if x["id"] != prid else ""
+            con.execute("UPDATE pruefung SET ergebnis = 'rot', ergebnis_utc = ?, bemerkung = ? WHERE id = ?",
+                        (jetzt, f"ZURÜCKGENOMMEN von {von} am {jetzt[:16].replace('T', ' ')} UTC{kopie}: {grund}"
+                         + (f"\n(vorher GRÜN: {x['bemerkung']})" if x["bemerkung"] else ""), x["id"]))
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=jetzt, von=von, art=ZURUECK_ART, aufgabe_id=x["aufgabe_id"],
+                         text=json.dumps({"pruefung": x["id"], "zweig": x["zweig"], "sha": x["sha"], "grund": grund[:500],
+                                          "quelle": prid if x["id"] != prid else None}, ensure_ascii=False))
+        ok_weg = []
+        for aid, zweig in dict.fromkeys((x["aufgabe_id"], x["zweig"]) for x in alle if x["aufgabe_id"]):
+            noch = con.execute("SELECT 1 FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ? AND zweig = ? AND ergebnis = 'gruen'",
+                               (pid, aid, zweig)).fetchone()
+            if not noch and merge_ok(con, pid, aid, zweig):
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=jetzt, von="AMW", art="merge_ok_zurueck", aufgabe_id=aid,
+                             text=zweig)
+                ok_weg.append(f"A{aid} ({zweig})")
+        lead = kern.lead(con, pid)
+        an = [k for k in dict.fromkeys([p["bauer"], lead, p["pruefer"] if p["pruefer"] != von else None])
+              if k and k != von and k != "AMW"]
+        kopien = ", ".join("P" + str(x["id"]) for x in alle[1:])
+        text = (f"P{prid} ({p['zweig']}@{p['sha'][:8]}" + (f", A{p['aufgabe_id']}" if p["aufgabe_id"] else "") + f") war GRÜN und ist"
+                f" zurückgenommen – von {von}: {grund}\nDer Stand gilt nicht mehr als geprüft: keine Auslieferung, kein Merge-OK auf ihm."
+                + (f"\nMit zurückgenommen (Kopien): {kopien}" if kopien else "")
+                + (f"\nMerge-OK weggefallen: {', '.join(ok_weg)}" if ok_weg else "")
+                + "\nWeiter: Fehler beheben, neue Prüfbitte für den neuen Stand.")
+        if an:
+            kern._posten(con, pid, von, ",".join(an), "meldung", f"P{prid} zurückgenommen: {p['zweig']}@{p['sha'][:8]} – {grund[:80]}",
+                         text, aufgabe_id=p["aufgabe_id"])
+    return text
+
+
 # --- Abnahme-Kette (Projekt-Einstellung abnahme_kette, Vorgabe aus) --------------------------------
 
 def merge_dienst(con, pid):
