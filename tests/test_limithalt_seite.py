@@ -15,8 +15,7 @@ class LimitHaltSeite(Rundgang):
                 fehler = self.besuchen("einstellungen", "limit-halt", bereit=self.FINDE,
                                        tun=f"{self.FINDE}.scrollIntoView({{ block: 'center' }})", danach="true", g=g, t=th)
                 self.assertEqual(fehler, [], f"{g} {th}")
-        zeile = f"{self.FINDE}.closest('tr, .einst-zeile, div').parentElement"
-        text = self.tab.js(f"{zeile}.innerText")
-        self.assertIn("hält die AMW alle Coder an", text)
-        self.assertEqual(self.tab.js(f"{zeile}.querySelector('input[type=number]').value"), "95")
+        feld = f"(n => n.matches('input') ? n : n.querySelector('input'))({self.FINDE}.nextElementSibling)"   # Feld neben der Beschriftung
+        self.assertEqual(self.tab.js(f"{feld}.value"), "95")
+        self.assertIn("hält die AMW alle Coder an", self.tab.js("document.querySelector('#inhalt').innerText"))
         self.assertEqual(limithalt.schwelle(self.con, self.pid), 95)
