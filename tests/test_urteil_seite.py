@@ -34,7 +34,7 @@ class UrteilSeite(Rundgang):
         self.assertEqual(self.tab.js(self.zeile() + ".querySelectorAll('button').length"), 2)
 
     def test_meilenstein_themen_und_verweise(self):
-        self.oeffnen("planung", f"document.querySelector('#bogen-{self.b} .mk-details')")
+        self.oeffnen("planung", f"document.querySelector('#bogen-{self.b} .mk-details')", reiter="zeitleiste")
         self.tab.js(f"document.querySelector('#bogen-{self.b} .mk-details').open = true")
         text = self.tab.js(f"document.querySelector('#bogen-{self.b} .mk-details').innerText")
         self.assertIn(f"→ TH{self.tid} Marktlage · freigegeben · Fassung 1", text)
@@ -48,4 +48,4 @@ class UrteilSeite(Rundgang):
                 self.assertEqual(self.besuchen("planung", "meilenstein-themen", bereit=f"document.querySelector('#bogen-{self.b} .mk-details')",
                                                tun=f"document.querySelector('#bogen-{self.b} .mk-details').open = true;"
                                                    f" document.querySelector('#bogen-{self.b} .mk-details').scrollIntoView()",
-                                               g=g, t=th), [], f"{g} {th}")
+                                               g=g, t=th, reiter="zeitleiste"), [], f"{g} {th}")

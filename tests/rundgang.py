@@ -200,9 +200,13 @@ class Rundgang(Wiederholt, Grund):
     def warten(self, bedingung, sekunden=8):
         warte_auf(self, bedingung, sekunden)
 
-    def oeffnen(self, sicht, bereit="true"):
+    def oeffnen(self, sicht, bereit="true", reiter=None):
         self.besuche = getattr(self, "besuche", 0) + 1                    # neue Adresse = echtes Neuladen (nur #… lädt nicht neu,
         self.tab.senden("Page.navigate", url=f"{self.basis}?r={self.besuche}#{sicht}")   # Dialoge blieben offen)
+        if reiter:                                                       # A1950: mit Themen startet die Planung auf „Meilensteine“ –
+            self.warten("document.readyState === 'complete' && typeof zeige === 'function' && typeof zustand === 'object'"
+                        " && document.querySelector('#inhalt .bereich-reiter')")   # wer die Zeitleiste prüft, wählt sie ausdrücklich
+            self.tab.js(f"zustand.planReiter = {reiter!r}; void zeige({sicht!r}, true)")
         self.warten(f"document.readyState === 'complete' && typeof zeige === 'function' && ({bereit})")
 
     def pruefen(self, ort, g, t):
@@ -224,10 +228,10 @@ class Rundgang(Wiederholt, Grund):
                                        ensure_ascii=False) + "\n")
         return [f for f in funde if f[0] == "fehler"]
 
-    def besuchen(self, sicht, ort=None, bereit="true", tun=None, danach=None, g="pc", t="dunkel"):
+    def besuchen(self, sicht, ort=None, bereit="true", tun=None, danach=None, g="pc", t="dunkel", reiter=None):
         """Sicht öffnen, optional etwas tun (Dialog/Menü öffnen) und warten, bis danach gilt; dann prüfen."""
         self.groesse(g)
-        self.oeffnen(sicht, bereit)
+        self.oeffnen(sicht, bereit, reiter)
         self.thema(t)
         if tun:
             self.tab.js(tun)

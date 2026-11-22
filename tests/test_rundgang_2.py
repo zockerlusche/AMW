@@ -39,7 +39,7 @@ class Seiten(Daten, Rundgang):
     """Jede Seite meines Teils in beiden Größen und Themen."""
 
     def test_planung(self):
-        self.ueberall("planung", bereit="document.querySelector('#rechner-heute')")
+        self.ueberall("planung", bereit="document.querySelector('#rechner-heute')", reiter="zeitleiste")
 
     def test_aufgaben_jeder_reiter(self):
         for r in ARBEIT:
@@ -140,7 +140,7 @@ class Online(Daten, OnlineRundgang):
     """Die Online-Seite (echtes PHP, angemeldet wie ein Mensch): dieselben Seiten und Dialoge meines Teils."""
 
     def test_seiten(self):
-        self.ueberall("planung", "online-planung", bereit="document.querySelector('#rechner-heute')")
+        self.ueberall("planung", "online-planung", bereit="document.querySelector('#rechner-heute')", reiter="zeitleiste")
         self.ueberall("arbeit", "online-aufgaben", bereit="document.querySelector('#inhalt .reiter')",
                       tun=reiter("zustand.arbeit.sicht", "offen", "sichtArbeit"),
                       danach="zustand.arbeit.sicht === 'offen' && document.querySelector('#inhalt .board, #inhalt .leer')")
