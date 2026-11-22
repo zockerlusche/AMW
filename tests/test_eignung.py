@@ -88,6 +88,22 @@ class Gemessen(unittest.TestCase):
                          {"quelle": "p", "zelle": ("einfach", "S"), "paar": "sonnet/medium", "pakettyp": "normal", "usd": 0.4,
                           "dauer_s": 120.0, "ohne": True})
 
+    def test_spanne_p50_p85_ab_fuenf_messungen(self):                                       # A1955 (TH165)
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Paket", "TL")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET groesse = 'S', art = 'text' WHERE id = ?", (aid,))
+        arbeitspaket.setzen(self.con, self.pid, "TL", aid, art="p", modell="claude-sonnet-5-5", effort="medium")
+        zs = [dict(zeile("sonnet/medium", True, u), dauer_s=s) for u, s in ((1.0, 600), (2.0, 900), (3.0, 1200), (4.0, 1500))]
+        tab = eignung.tabelle(None, None, zs)
+        self.assertIsNone(eignung.spanne(self.con, self.pid, aid, tab))                         # unter MIN_N: keine Spanne
+        zs.append(dict(zeile("sonnet/medium", True, 5.0), dauer_s=1800))
+        sp = eignung.spanne(self.con, self.pid, aid, eignung.tabelle(None, None, zs))
+        self.assertEqual(sp, {"n": 5, "kosten": (3.0, 4.4), "dauer_s": (1200.0, 1620.0)})
+        self.assertEqual(eignung.spanne_text(sp), "Gemessen (5, P50–P85): Dauer 20–27 min · Kosten 3.00–4.40 $")
+        self.assertEqual(eignung.spanne_text(sp, "en"), "Measured (5, P50–P85): time 20–27 min · cost 3.00–4.40 $")
+        arbeitspaket.setzen(self.con, self.pid, "TL", aid, modell="claude-opus-5-5")             # anderes Modell: andere Messungen
+        self.assertIsNone(eignung.spanne(self.con, self.pid, aid, eignung.tabelle(None, None, zs)))
+
     def test_befehl_tabelle(self):
         self.fuenf()
         rc, aus = self.cli("empfehlung", "tabelle", "--von", "TL", "--projekt", "Eins")

@@ -119,8 +119,45 @@ def _median(xs):
     return round(statistics.median(xs), 2) if xs else None
 
 
+def _p85(xs):
+    """85. Perzentil (lineare Interpolation wie planung._quantil) – None ohne Werte."""
+    xs = sorted(x for x in xs if x is not None)
+    if not xs:
+        return None
+    i = (len(xs) - 1) * .85
+    u = int(i)
+    return round(xs[u] + (xs[min(u + 1, len(xs) - 1)] - xs[u]) * (i - u), 2)
+
+
+def spanne(con, pid, aid, tab=None):
+    """A1955 (TH165): Werte eines Pakets als Spanne P50–P85 aus seiner Zelle der Eignungstabelle (Modell/Effort des Pakets):
+    {"n", "kosten": (p50, p85), "dauer_s": (p50, p85)} – None unter MIN_N Messungen (dann gilt die Schätzung)."""
+    from . import arbeitspaket, empfehlung
+    a = con.execute("SELECT art, groesse FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    f = arbeitspaket.lesen(con, aid) if a else None
+    zelle = _zelle(a, empfehlung) if a else None
+    if not f or not zelle or not f.get("modell"):
+        return None
+    w = (tabelle(con, pid) if tab is None else tab).get(zelle, {}).get(f"{kurz(f['modell'])}/{f['effort']}")
+    if not w or w["n"] < MIN_N:
+        return None
+    return {"n": w["n"], "kosten": (w["kosten_median"], w["kosten_p85"]), "dauer_s": (w["dauer_median_s"], w["dauer_p85_s"])}
+
+
+def spanne_text(sp, sprache="de"):
+    """„Gemessen (n): Dauer 20–35 min · Kosten 1.20–2.10 $“ – fehlt ein Wert, steht „–“."""
+    def zwei(p, fmt):
+        return "–" if p[0] is None else fmt(p[0]) if p[1] is None or p[1] == p[0] else f"{fmt(p[0])}–{fmt(p[1])}"
+    dauer = zwei(sp["dauer_s"], lambda s: f"{s / 60:.0f}") + " min"
+    kosten = zwei(sp["kosten"], lambda u: f"{u:.2f}") + " $"
+    if sprache == "en":
+        return f"Measured ({sp['n']}, P50–P85): time {dauer} · cost {kosten}"
+    return f"Gemessen ({sp['n']}, P50–P85): Dauer {dauer} · Kosten {kosten}"
+
+
 def tabelle(con, pid, messzeilen=None):
-    """{(gruppe, groesse): {"modell/effort": {"n", "ohne_anteil", "kosten_median", "dauer_median_s", "pakettypen"}}}."""
+    """{(gruppe, groesse): {"modell/effort": {"n", "ohne_anteil", "kosten_median", "kosten_p85", "dauer_median_s", "dauer_p85_s",
+    "pakettypen"}}}."""
     gruppen = {}
     for z in (zeilen(con, pid) if messzeilen is None else messzeilen):
         if z["zelle"]:
@@ -133,7 +170,9 @@ def tabelle(con, pid, messzeilen=None):
                 typen[z["pakettyp"]] = typen.get(z["pakettyp"], 0) + 1
             aus.setdefault(zelle, {})[paar] = {"n": len(zs), "ohne_anteil": round(sum(1 for z in zs if z["ohne"]) / len(zs), 2),
                                                "kosten_median": _median(z["usd"] for z in zs),
-                                               "dauer_median_s": _median(z["dauer_s"] for z in zs), "pakettypen": typen}
+                                               "kosten_p85": _p85(z["usd"] for z in zs),
+                                               "dauer_median_s": _median(z["dauer_s"] for z in zs),
+                                               "dauer_p85_s": _p85(z["dauer_s"] for z in zs), "pakettypen": typen}
     return aus
 
 

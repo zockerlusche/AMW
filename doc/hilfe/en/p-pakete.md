@@ -43,7 +43,10 @@ A p package is a small, clearly checkable task that a fresh `claude -p` worker d
 
 ## Questions
 ### What makes a good acceptance command?
-One that checks exactly what the package should deliver, runs fast and is red today. A whole test run is too broad; a single new test or a small test class is ideal.
+One that checks exactly what the package should deliver, runs fast and is red today. A whole test run is too broad; a single new test or a small test class is ideal. If you put the test in place beforehand as `tests/abnahme_<topic>.py` (the worker may not change `tests/`), AMW renames it to `tests/test_abnahme_<topic>.py` when bundling – from then on it runs in every full test run.
+
+### What does the grey range “1.20–2.10” under the cost mean?
+What packages of the same size and kind with the same model have cost so far: the first value holds for half of them (P50), the second for almost all (P85). Point at it to see the expected time as well. The range appears once five packages have been measured; `amw paket zeigen <no>` shows it too.
 
 ### When `--nach`, when `--nie-gleichzeitig`, when `--gleiche-ressource`?
 `--nach`: the package needs the result of the other task. `--nie-gleichzeitig`: the two get in each other's way, in either order. `--gleiche-ressource`: many packages share something (e.g. the same test database) – they get the same name and run one after the other.

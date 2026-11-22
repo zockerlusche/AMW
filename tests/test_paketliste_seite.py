@@ -32,6 +32,17 @@ class Pakete(Rundgang):
             ap.zustand_setzen(self.con, self.pid, "AMW", self.dich, z)
         ap.zustand_setzen(self.con, self.pid, "AMW", self.dich, "wartet_interaktiv", grund="Frage an Marcel: welche Farbe?")
         self.entwurf = paket("Kleiner Textfehler", 40)
+        for i in range(5):                                             # A1955: fünf gemessene Pakete derselben Zelle → Spanne
+            m = kern.aufgabe_neu(self.con, self.pid, "TL", f"Gemessen {i}")
+            ap.setzen(self.con, self.pid, "TL", m, art="p", modell="claude-sonnet-5-5", effort="medium")
+            with db.schreiben(self.con):
+                for art, text in (("paket_entscheidung", {"zeile": "E7", "code": "grün"}),
+                                  ("kosten", {"usd": 1.0 + i * 0.5, "dauer_s": 900 + i * 300})):
+                    db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von="AMW", art=art, aufgabe_id=m,
+                                 text=json.dumps(text))
+        ap.setzen(self.con, self.pid, "TL", self.entwurf, modell="claude-sonnet-5-5", effort="medium")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET groesse = 'S', art = 'text' WHERE projekt_id = ?", (self.pid,))
         p = platz.plaetze(self.con, self.pid)[0]
         os.makedirs(arbeiter.ordner(p), exist_ok=True)
         with open(os.path.join(arbeiter.ordner(p), "lauf.jsonl"), "w", encoding="utf-8") as f:
@@ -55,6 +66,9 @@ class Pakete(Rundgang):
         text = self.tab.js("document.querySelector('#inhalt').innerText").lower()
         for teil in ("startet nicht: alle arbeitsplätze belegt", "du bist dran", "frage an marcel", "platz 1", "mitlesen"):
             self.assertIn(teil, text)
+        sp = f"document.querySelector('.pk-zeile[data-a=\"{self.entwurf}\"] .pk-spanne')"             # A1955: P50–P85 aus fünf Messungen
+        self.assertEqual(self.tab.js(f"{sp}.innerText"), "2,00–2,70")
+        self.assertIn("Erwartet 2,00–2,70 $ und 25–32 min – aus 5 gemessenen Paketen", self.tab.js(f"{sp}.title"))
         zeile = lambda a: f"document.querySelector('.pk-zeile[data-a=\"{a}\"]')"
         self.assertTrue(self.tab.js(f"{zeile(self.wartet)}.classList.contains('gruppe-wartet')"))
         self.assertTrue(self.tab.js(f"{zeile(self.laeuft)}.classList.contains('gruppe-laeuft')"))

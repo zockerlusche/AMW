@@ -63,6 +63,11 @@ def daten(con, pid, am_pc=True):
     plaetze = platz.plaetze(con, pid)
     z = waechter.zustand()
     pakete = []
+    from . import eignung
+    try:                                                    # A1955: Spanne P50–P85 je Paket – eine Tabelle für alle
+        tab = eignung.tabelle(con, pid)
+    except Exception:                                       # noqa: BLE001 – Zusatz; die Liste darf daran nie scheitern
+        tab = None
     for r in con.execute("SELECT a.id, a.titel, a.agent, a.status, a.rang, a.bogen_id, k.art, k.zustand, k.zustand_utc"
                          " FROM paket k JOIN aufgabe a ON a.id = k.aufgabe_id WHERE a.projekt_id = ? AND k.art IN ('p', 'sitzung')"
                          " AND NOT (coalesce(k.zustand, '') = 'fertig' AND a.fertig_utc < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-7 days'))"
@@ -77,6 +82,13 @@ def daten(con, pid, am_pc=True):
             x["usd"] = m["usd"] if m else None
         except Exception:                                   # Messung ist Zusatz – die Liste darf daran nie scheitern
             x["usd"] = None
+        x["spanne"] = None
+        if r["art"] == "p" and tab is not None:
+            try:
+                sp = eignung.spanne(con, pid, r["id"], tab)
+                x["spanne"] = {"n": sp["n"], "kosten": list(sp["kosten"]), "dauer_s": list(sp["dauer_s"])} if sp else None
+            except Exception:                               # noqa: BLE001
+                x["spanne"] = None
         if zust == "startklar":
             x["grund"] = _startgrund(con, pid, r["id"])
         if zust == "wartet_interaktiv":

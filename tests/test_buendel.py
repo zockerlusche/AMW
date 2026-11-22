@@ -60,6 +60,31 @@ class Buendeln(Basis):
         e = json.loads(self.con.execute("SELECT text FROM plan_ereignis WHERE art = 'buendel'").fetchone()[0])
         self.assertEqual((e["version"], e["drin"]), ("1.3.0", [a, b]))
 
+    def test_abnahme_test_wird_im_buendel_umbenannt(self):                                     # A1955 (TH165, #30596)
+        schreiben(self.repo, "tests/abnahme_plus.py", "# roter Abnahme-Test des Leads\n")
+        schreiben(self.repo, "tests/abnahme_minus.py", "# Abnahme minus\n")
+        schreiben(self.repo, "tests/test_abnahme_minus.py", "# gibt es schon\n")
+        schreiben(self.repo, "tests/abnahme_test.py", "# Test-Paket\n")
+        g(self.repo, "add", "-A")
+        g(self.repo, "commit", "-q", "-m", "Abnahme-Tests")
+        a = self.paket("plus", {"lib/plus.py": "x = 1\n"}, 1)
+        b = self.paket("minus", {"lib/minus.py": "x = 2\n"}, 2)
+        c = self.paket("tests", {"lib/t.py": "x = 3\n"}, 3)
+        with db.schreiben(self.con):
+            for aid, befehl in ((a, "python -m unittest tests.abnahme_plus"), (b, "python tests/abnahme_minus.py"),
+                                (c, "python -m unittest tests.abnahme_test")):
+                self.con.execute("UPDATE aufgabe SET pruefbefehl = ? WHERE id = ?", (befehl, aid))
+        arbeitspaket.setzen(self.con, self.pid, "TL", c, pakettyp="test-schreiben")
+        r = buendel.buendeln(self.con, self.pid, "TL", starten=False)
+        self.assertEqual(r["umbenannt"], [("tests/abnahme_plus.py", "tests/test_abnahme_plus.py")])
+        self.assertEqual(r["abnahme_hinweise"], [f"A{b}: tests/test_abnahme_minus.py gibt es schon – tests/abnahme_minus.py bleibt"])
+        self.assertEqual(g(self.repo, "diff", "--name-status", "-M", f"{r['sha']}~1", r["sha"]).split(),
+                         ["M", "CHANGELOG.md", "M", "amw/__init__.py", "R100", "tests/abnahme_plus.py", "tests/test_abnahme_plus.py"])
+        self.assertEqual(self.datei(r["sha"], "tests/test_abnahme_plus.py"), "# roter Abnahme-Test des Leads")
+        self.assertIn("tests/abnahme_test.py", g(self.repo, "ls-tree", "-r", "--name-only", r["sha"]).split())   # Test-Paket: bleibt
+        self.assertEqual(buendel.abnahme_dateien("python -m unittest tests.abnahme_x tests/abnahme_y.py tests.test_z"),
+                         ["tests/abnahme_x.py", "tests/abnahme_y.py"])
+
     def test_patch_und_intern_ohne_hinweis(self):
         self.paket("Tests für plus", {"tests_plus.py": "x = 1\n"}, 1)
         r = buendel.buendeln(self.con, self.pid, "TL", titel="Tests", starten=False)

@@ -732,6 +732,10 @@ def cmd_paket(a, con):
               + ", ".join(f"A{p['id']}" for p in r["drin"]) + f" (Arbeitsbaum {r['ordner']})")
         for p in r["raus"]:
             print(f"  nicht im Bündel: A{p['id']} – {p['grund']}")
+        for alt, neu in r.get("umbenannt") or []:
+            print(f"  Abnahme-Test läuft ab jetzt in der Gesamtsuite: {alt} → {neu}")
+        for h in r.get("abnahme_hinweise") or []:
+            print(f"  Hinweis: {h}")
         for t in r["uebernommen"]:
             print(f"  übernommen: {t}")
         return
@@ -765,6 +769,10 @@ def cmd_paket(a, con):
         print(f"A{a.id} [{r['status']}] {r['titel']}")
         for z in _paket_zeilen(f, r):
             print("  " + z)
+        from . import eignung                            # A1955 (TH165): Werte als Spanne P50–P85 aus der Eignungstabelle
+        sp = eignung.spanne(con, pid, a.id)
+        if sp:
+            print("  " + eignung.spanne_text(sp))
         for w in arbeitspaket.warnungen(f, r["pruefbefehl"], r["dateibereich"]):
             print(f"  Achtung: {w}")
         for zeit, alt, neu, grund in arbeitspaket.verlauf(con, a.id)[-8:]:

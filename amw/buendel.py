@@ -206,15 +206,43 @@ def kandidaten(con, pid, aids=None):
     """Freigegebene p-Pakete in merge_reihe, Rang dann Nummer: [{id, titel, hinweis, hinweis_gruppe, zweig}]."""
     from . import arbeitspaket, betrieb, mergeliste
     aus = []
-    for a in con.execute("SELECT id, titel, hinweis, hinweis_gruppe FROM aufgabe WHERE projekt_id = ? AND status NOT IN ('fertig', 'verworfen')"
-                         " ORDER BY coalesce(rang, 999999), id", (pid,)).fetchall():
+    for a in con.execute("SELECT id, titel, hinweis, hinweis_gruppe, pruefbefehl FROM aufgabe WHERE projekt_id = ?"
+                         " AND status NOT IN ('fertig', 'verworfen') ORDER BY coalesce(rang, 999999), id", (pid,)).fetchall():
         if aids is not None and a["id"] not in aids:
             continue
         f = arbeitspaket.lesen(con, a["id"])
         z = mergeliste.zweig(a["id"])
         if f.get("art") == "p" and f.get("zustand") == "merge_reihe" and betrieb.merge_ok(con, pid, a["id"], z):
-            aus.append({**dict(a), "zweig": z})
+            aus.append({**dict(a), "zweig": z, "pakettyp": f.get("pakettyp") or "normal"})
     return aus
+
+
+ABNAHME = re.compile(r"\btests[/\\.](abnahme_\w+?)(?:\.py)?\b")
+
+
+def abnahme_dateien(pruefbefehl):
+    """A1955 (TH165): die Abnahme-Tests, die ein Abnahme-Befehl nennt (tests/abnahme_x.py oder tests.abnahme_x) → Pfade."""
+    return list(dict.fromkeys(f"tests/{m}.py" for m in ABNAHME.findall(pruefbefehl or "")))
+
+
+def abnahme_umbenennen(ziel, daten, drin):
+    """Pakettyp normal: tests/abnahme_<x>.py → tests/test_abnahme_<x>.py im Bündel (git mv), damit der Test ab jetzt in der
+    Gesamtsuite läuft – schon im Gesamtlauf des Bündels (Entscheidung CCamwTL #30596). Ziel schon vorhanden: bleibt, wie es
+    ist (Hinweis). Rückgabe ([(alt, neu)], [Hinweise])."""
+    paare, hinweise = [], []
+    for p in drin:
+        if p.get("pakettyp", "normal") != "normal":
+            continue                                             # test-schreiben/-ergaenzen bringen ihre test_*.py selbst
+        for alt in abnahme_dateien(p.get("pruefbefehl")):
+            neu = "tests/test_" + alt[len("tests/"):]
+            if not os.path.isfile(os.path.join(ziel, *alt.split("/"))):
+                hinweise.append(f"A{p['id']}: {alt} gibt es im Bündel nicht – nichts umbenannt")
+            elif os.path.exists(os.path.join(ziel, *neu.split("/"))):
+                hinweise.append(f"A{p['id']}: {neu} gibt es schon – {alt} bleibt")
+            else:
+                _git(ziel, daten, "mv", "--", alt, neu)
+                paare.append((alt, neu))
+    return paare, hinweise
 
 
 def _vor(con, aid):
@@ -323,13 +351,15 @@ def buendeln(con, pid, von, aids=None, titel=None, starten=None):
                            errors="replace", stdin=subprocess.DEVNULL, timeout=600, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         if r.returncode != 0:
             raise BuendelFehler(f"Nacharbeit „{e['schritt_befehl']}“ endete mit {r.returncode}: {(r.stdout + r.stderr).strip()[-300:]}")
+    umbenannt, abnahme_hinweise = abnahme_umbenennen(ziel, daten, drin)   # A1955: Abnahme-Tests → test_*.py (git mv, schon vorgemerkt)
     # DIFF-TOR: nur erlaubte Dateien in den Versions-Commit; jede andere geänderte versionierte Datei hält an
     _, versioniert = _git(ziel, daten, "diff", "--name-only", "HEAD")             # geänderte versionierte Dateien
     _, neu = _git(ziel, daten, "ls-files", "--others", "--exclude-standard")     # neue Dateien (nur erlaubte kommen mit)
     neu = "\n".join(x for x in neu.splitlines() if x.strip() and x.strip() not in liegen)   # nur, was in DIESEM Lauf entstand
     eigene = (e["changelog_datei"],) + ((e["version_datei"],) if e["release_modus"] != "tag" else ())   # A1923: bei tag keine Versionsdatei
-    erlaubt = lambda pfad: pfad in eigene or any(fnmatch.fnmatch(pfad, m) for m in e["schritt_dateien"])
-    geaendert = [x for x in versioniert.splitlines() + neu.splitlines() if x.strip() and erlaubt(x.strip())]
+    mv = {x for paar in umbenannt for x in paar}                                # genau diese Umbenennungen erlaubt das Tor
+    erlaubt = lambda pfad: pfad in eigene or pfad in mv or any(fnmatch.fnmatch(pfad, m) for m in e["schritt_dateien"])
+    geaendert = [x for x in versioniert.splitlines() + neu.splitlines() if x.strip() and erlaubt(x.strip()) and x.strip() not in mv]
     fremd = [x for x in versioniert.splitlines() if x.strip() and not erlaubt(x.strip())]
     if fremd:
         raise BuendelFehler("Diff-Tor: der Versions-Commit würde auch andere Dateien ändern: " + ", ".join(fremd[:8])
@@ -342,10 +372,11 @@ def buendeln(con, pid, von, aids=None, titel=None, starten=None):
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="buendel",
                      text=json.dumps({"version": version, "zweig": zweig, "sha": sha, "drin": [p["id"] for p in drin],
-                                      "raus": [{"id": p["id"], "grund": p["grund"]} for p in raus]}, ensure_ascii=False))
+                                      "raus": [{"id": p["id"], "grund": p["grund"]} for p in raus],
+                                      "umbenannt": [list(x) for x in umbenannt], "abnahme_hinweise": abnahme_hinweise}, ensure_ascii=False))
     gestartet = (starten or starter_starten)(pid, zweig) if starten is not False else None
     return {"version": version, "zweig": zweig, "sha": sha, "drin": drin, "raus": raus, "ordner": ziel, "uebernommen": uebernommen,
-            "starter": gestartet}
+            "starter": gestartet, "umbenannt": umbenannt, "abnahme_hinweise": abnahme_hinweise}
 
 
 def baum_auf(repo, ziel, daten, rev):

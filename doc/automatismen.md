@@ -138,6 +138,10 @@ Nummer und schrieb die Versionshinweise.
   freigegebenem Paket ein cherry-pick in Rang-Reihenfolge; Konflikt → E8 an den Lead, „nach“-Pakete bleiben draußen;
   Versions-Commit (MINOR bei Hinweis-Gruppe „neu“, sonst PATCH; Versionshinweise aus den Hinweisen) mit Diff-Tor: nur
   `version_datei`, `changelog_datei` und die Dateien von `buendel_schritt`; Zweig `buendel-X.Y.Z`.
+- **Abnahme-Test (A1955, TH165):** nennt der Abnahme-Befehl eines Pakets vom Typ normal `tests/abnahme_<x>.py`, benennt der
+  Versions-Commit ihn in `tests/test_abnahme_<x>.py` um (git mv; das Diff-Tor erlaubt genau diese Umbenennung) – er läuft
+  damit schon im Gesamtlauf des Bündels und danach in jeder Gesamtsuite. Gibt es das Ziel schon, bleibt die Datei (Hinweis).
+  Pakete vom Typ test-schreiben/test-ergaenzen bringen ihre `test_*.py` selbst mit.
 - **Danach im eigenen Prozess:** Gesamtlauf (`gesamtlauf_befehl`) über die Lauf-Schlange auf genau der Spitze; grün → GRÜN mit
   dem Lead als Prüfer und Meldung „Bündel X.Y.Z bereit“ mit Versions-Diff und Befehlen; rot → Meldung, kein GRÜN.
 - **Release:** gibt der Lead frei – die Kette zählt für `buendel-*` nur ein Merge-OK, das Lead oder Mensch selbst geben
