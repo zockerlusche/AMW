@@ -64,7 +64,16 @@ class Schalter(unittest.TestCase):
             k.close()
         d = self.con.execute("SELECT titel FROM dokument WHERE id = ?", (r["dokument"],)).fetchone()
         self.assertEqual(d["titel"], "Probe Projekt-Schalter GlassWorld")
-        self.assertEqual(r["stufe"], "probe")                                                          # ohne Eintrag → probe
+        self.assertEqual(r["stufe"], "an")                                                             # P406: ohne Eintrag bleibt an
+        self.assertEqual(kern.projekt_schalter(self.con, g), "an")
+        self.assertNotIn("schalter", json.loads(self.con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (g,)).fetchone()[0] or "{}"))
+
+    def test_nur_aus_wird_zu_probe(self):
+        """P406-Auflage: ohne Eintrag (wie die AMW) bleibt ein Projekt nach der Probe an; nur ein ausgeschaltetes wird probe."""
+        g, o = self.pid["GlassWorld"], self.pid["Anderes"]
+        self.assertEqual(schalter.probe(self.con, o, "TL")["stufe"], "an")
+        schalter.umschalten(self.con, g, kern.ENTWICKLER, "aus")
+        self.assertEqual(schalter.probe(self.con, g, "TL")["stufe"], "probe")
         self.assertEqual(kern.projekt_schalter(self.con, g), "probe")
 
     def test_unterschied_wird_gefunden(self):
@@ -84,6 +93,7 @@ class Schalter(unittest.TestCase):
             schalter.probe(self.con, g, "CC1")
         with self.assertRaisesRegex(kern.AmwFehler, "nach einer bestandenen Probe"):
             schalter.umschalten(self.con, g, kern.ENTWICKLER, "an")
+        schalter.umschalten(self.con, g, kern.ENTWICKLER, "aus")
         schalter.probe(self.con, g, "TL")
         with self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
             schalter.umschalten(self.con, g, "TL", "an")
@@ -109,6 +119,7 @@ class Schalter(unittest.TestCase):
         return rc, aus.getvalue()
 
     def test_cli(self):
+        self.assertEqual(self.cli("--von", "Entwickler", "projekt", "schalter", "GlassWorld", "aus")[0], 0)
         rc, aus = self.cli("--von", "TL", "projekt", "schalter", "GlassWorld", "probe")
         self.assertEqual(rc, 0, aus)
         self.assertIn("Probe bestanden – Bericht D", aus)

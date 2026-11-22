@@ -344,8 +344,8 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   - **probe** (Lead oder Mensch): Kopie der Projektdaten (Sicherung `schalter-probe-<projekt>-<zeit>.db` neben der Datenbank,
     bleibt liegen) und Zählprobe – je Tabelle des Projekts Zeilen, Nummern und Verweise auf eigene Ziele, live und in der
     Kopie. Bestanden, wenn alles gleich ist („Nummern bleiben“); Verweise auf andere Projekte leert die Kopie bewusst, sie
-    stehen als Hinweis im Bericht (Dokument). Ein ausgeschaltetes oder noch nicht geschaltetes Projekt steht danach auf
-    probe (keine p-Starts), ein eingeschaltetes bleibt an.
+    stehen als Hinweis im Bericht (Dokument). Nur ein ausgeschaltetes Projekt steht danach auf probe (keine p-Starts);
+    eins ohne Eintrag (wie die AMW) oder mit an bleibt an – eine Probe hält nichts an.
   - **an** (nur der Mensch im eigenen Terminal, nur nach bestandener Probe): p-Pakete und Themen-Ablauf (Gegenlesen) frei.
   - **aus** (nur der Mensch): keine p-Starts (Regel 12), kein automatisches Gegenlesen. Nichts wird gelöscht.
   - `amw projekt einstellen schalter=…` geht nicht – nur über den Schalter mit Probe.

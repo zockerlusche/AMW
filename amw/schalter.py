@@ -3,7 +3,8 @@
 - probe (Lead oder Mensch): eine Kopie der Projektdaten (db.sichern mit nur diesem Projekt – eine lauffähige AMW-Datenbank,
   die Sicherung bleibt liegen) und eine Zählprobe: je Tabelle des Projekts Zeilen und Nummern, dazu die Verweise auf eigene
   Ziele – in der Live-Datenbank und in der Kopie. Bestanden, wenn alles gleich ist („Nummern bleiben“). Bericht als Dokument.
-  Ein ausgeschaltetes Projekt steht danach auf „probe“ (keine p-Starts, Regel 12); ein eingeschaltetes bleibt an.
+  Nur ein ausdrücklich ausgeschaltetes Projekt steht danach auf „probe“ (keine p-Starts, Regel 12); eins ohne Eintrag oder mit
+  „an“ bleibt an (P406-Auflage: ohne Eintrag gilt an, auch bei der Probe – eine Probe auf der AMW hält nichts an).
 - an (nur der Mensch, im eigenen Terminal): nur nach einer bestandenen Probe – p-Pakete (Disponent) und Themen-Ablauf
   (Gegenlesen) für das Projekt frei.
 - aus (nur der Mensch): wie bis 1.15x ohne Schalter-Ablauf: keine p-Starts, kein automatisches Gegenlesen.
@@ -131,18 +132,14 @@ def probe(con, pid, von, ziel=None):
     did = dokumente.ablegen_inhalt(con, pid, "AMW", bericht(name, kopie, live, diff).encode("utf-8"), f"schalter-probe-{pid}.md",
                                    titel=f"Probe Projekt-Schalter {name}", art="bericht")
     alt = stufe(con, pid)
-    neu = "probe" if alt == "aus" or _ohne_eintrag(con, pid) else alt
+    neu = "probe" if alt == "aus" else alt                    # P406: ohne Eintrag bleibt es an (und ohne Eintrag)
     with db.schreiben(con):
-        _setzen(con, pid, neu)
+        if neu != alt:
+            _setzen(con, pid, neu)
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=ART,
                      text=json.dumps({"schritt": "probe", "bestanden": not diff, "dokument": did, "kopie": kopie, "vorher": alt,
                                       "nachher": neu, "unterschiede": len(diff)}, ensure_ascii=False))
     return {"bestanden": not diff, "dokument": did, "kopie": kopie, "unterschiede": diff, "stufe": neu}
-
-
-def _ohne_eintrag(con, pid):
-    e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
-    return "schalter" not in e
 
 
 def letzte_probe(con, pid):
