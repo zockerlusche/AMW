@@ -175,6 +175,15 @@ class Kette:
             if not eigene or eigene not in commit_zu or not set(alt.values()) <= neu_ids:
                 continue                                 # Inhalt geändert oder nicht vollständig im neuen Stand
             ziel = commit_zu[eigene]
+            # A1964 (#30495, 1.162.0): hat die Aufgabe schon ein Grün auf einem SPÄTEREN Commit desselben Stands (z. B. auf der
+            # Stapel-Spitze mit dem Versions-Commit), deckt das auch das Ziel – eine neue Zeile auf dem inneren Commit würde jenes
+            # Grün als neueste Prüfung verdrängen, und „Stände“ hielte an. Seit A1936 (Einzelzweige ohne Version) trifft das jeden Stapel.
+            if ziel in reihe:
+                spaeter = reihe[reihe.index(ziel) + 1:]
+                if spaeter and any(any(c.startswith(r["sha"]) for c in spaeter) for r in self.con.execute(
+                        "SELECT sha FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ? AND ergebnis = 'gruen' AND length(sha) >= 7",
+                        (self.pid, p["aufgabe_id"])).fetchall()):
+                    continue
             # A1912 (21.11., S8: nach einem abgebrochenen Bündel und neuer Freigabe ging nur das Grün ins neue Bündel, das
             # Merge-OK nicht – die jüngste grüne Prüfung kam aus dem alten Bündel, dessen OK nicht mehr galt, und die Prüfung
             # mit gültigem OK wurde übersprungen, weil das Ziel schon grün war): ist das Ziel eines Bündels schon grün, geht

@@ -3,6 +3,7 @@ geschrieben (gleicher Baum, gleiche patch-id). Die Übertragung (A1814) schreibt
 erste, weil das Ziel danach „schon grün“ war –, und eine vom Lead gesetzte Ausnahme vom Gesamtlauf bleibt gültig, wenn das
 neuere Merge-OK nur übertragen ist und der Baum gleich bleibt."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import os
 import unittest
 
 from amw import auslieferung, betrieb, kern
@@ -51,6 +52,52 @@ class Stapel(unittest.TestCase):
         betrieb.freigabe_merge(self.con, self.pid, "TL", self.a, "neu2")                   # ein OK des Leads ohne Ausnahme zählt
         self.assertIsNone(betrieb.gesamtlauf_ausnahme(self.con, self.pid, self.a, baum_gleich=lambda s: True))
 
+
+
+class StapelAusSauberenZweigen(unittest.TestCase):
+    """A1964 (#30495, 1.162.0): Stapel aus einem Einzelzweig ohne eigene Version (A1936) plus Versions-Commit; grün auf dem
+    Einzelzweig UND auf der Stapel-Spitze. Die Übertragung legt keine Zeile auf den inneren Commit (sie würde das Grün der Spitze
+    als neueste Prüfung verdrängen) – die Kette läuft ohne neue Prüfbitten durch. Ohne Grün auf der Spitze überträgt sie wie bisher."""
+    setUp_kette, g, stand, extern, kette = ta.Kette.setUp, ta.Kette.g, ta.Kette.stand, ta.Kette.extern, ta.Kette.kette
+    gesamtlauf = ta.Kette.gesamtlauf
+
+    def setUp(self):
+        self.setUp_kette()
+        self.g("switch", "-q", "-c", "einzel", "main")
+        with open(os.path.join(self.repo, "inhalt.txt"), "w", encoding="utf-8") as f:
+            f.write("Inhalt der Aufgabe\n")
+        self.g("add", "inhalt.txt")
+        self.g("-c", "commit.gpgsign=false", "commit", "-q", "-m", "A1: Inhalt")
+        self.einzel = self.g("rev-parse", "HEAD")
+        self.g("switch", "-q", "-c", "stapel", "main")
+        self.g("-c", "commit.gpgsign=false", "cherry-pick", self.einzel)
+        self.g("-c", "commit.gpgsign=false", "commit", "-q", "--amend", "--no-edit", "--date=2026-01-01T00:00:00")   # neuer SHA, gleiche patch-id
+        self.innen = self.g("rev-parse", "HEAD")
+        self.assertNotEqual(self.innen, self.einzel)
+        self.spitze = self.stand("1.1.0", "Stapel")                                         # Versions-Commit oben drauf
+        self.g("switch", "-q", "main")
+        self.a = kern.aufgabe_neu(self.con, self.pid, "TL", "Inhalt", "CC1")
+
+    def gruen(self, aid, zweig, sha):
+        betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", zweig, sha, "x", aid)
+        betrieb.pruefung_ergebnis(self.con, self.pid, "TL", self.con.execute("SELECT max(id) FROM pruefung").fetchone()[0], "gruen")
+
+    def test_gruen_auf_der_spitze_wird_nicht_verdraengt(self):
+        self.gruen(self.a, "einzel", self.einzel)
+        self.gruen(self.a, "stapel", self.spitze)
+        betrieb.freigabe_merge(self.con, self.pid, "TL", self.a, "stapel")
+        self.assertEqual(self.kette().uebertragen(self.spitze, "stapel"), [])
+        self.assertIsNone(self.con.execute("SELECT 1 FROM pruefung WHERE sha = ?", (self.innen,)).fetchone())
+        self.assertEqual(self.kette().staende(self.spitze), [])
+        self.sha = self.spitze
+        self.gesamtlauf()
+        self.assertEqual(self.kette().ausliefern("stapel")["version"], "1.1.0")                # ohne neue Prüfbitten durch
+
+    def test_ohne_gruen_auf_der_spitze_wie_bisher(self):
+        self.gruen(self.a, "einzel", self.einzel)
+        aus = self.kette().uebertragen(self.spitze, "stapel")
+        self.assertEqual(len(aus), 1, aus)
+        self.assertTrue(self.con.execute("SELECT 1 FROM pruefung WHERE sha = ? AND ergebnis = 'gruen'", (self.innen,)).fetchone())
 
 if __name__ == "__main__":
     unittest.main()

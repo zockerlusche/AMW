@@ -86,6 +86,10 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
   Beschreibung. Ein Teil-Lauf zählt nie, auch nicht mit `--gesamtlauf` („L… ist kein Gesamtlauf“). Liefert die Kette mit
   der Ausnahme des Leads aus, steht „Ausnahme (von <Lead>: Grund)“ in der Ausgabe, in der Info an den Lead und als Ereignis
   `auslieferung_ausnahme` – nie eine L-Nummer.
+- **Übertragung verdrängt kein Grün der Spitze (A1964):** Die Patch-ID-Übertragung (A1814) legt keine grüne Prüfung auf
+  einen inneren Commit, wenn die Aufgabe schon ein Grün auf einem späteren Commit desselben Stands hat (z. B. auf der
+  Stapel-Spitze mit dem Versions-Commit). Sonst würde die neue Zeile jenes Grün als neueste Prüfung verdrängen, und die
+  Kette hielte bei „Stände“ an (1.162.0).
 - **Web-Abzug als Lauf der Kette (A1952):** Der Web-Abzug ist ein leichter Lauf des Agenten „AMW“, nicht des
   ausliefernden Agenten – hat der gerade einen eigenen Lauf (z. B. den Gesamtlauf des nächsten Stapels), geht die Kette
   trotzdem zu Ende und hebt den Wartungsmodus auf. Scheitert der Abzug, stoppt die Kette mit der Anleitung zum Nachholen,
