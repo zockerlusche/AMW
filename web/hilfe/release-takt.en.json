@@ -64,7 +64,7 @@
   ],
   [
    "“Version 1.2.0 ist schon vergeben” on a review request",
-   "Another task already carries this number (open or green review not yet released), it is not above main, or the tag exists. The message names the next free number; change it in the commit and submit again."
+   "Another task already carries this number (open or green review not yet released), it is not above main, or the tag exists. The message names the next free number; change it in the commit and submit again. A branch without its own version (the same as where it branched off main) is not checked – only the stack gets the number."
   ],
   [
    "“Prüfstufe hoch – prüfen muss …”",

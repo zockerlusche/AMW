@@ -56,11 +56,30 @@ class Nummer(unittest.TestCase):
             self.bitte("CC2", "a2", self.stand("1.1.0", "a2"), a2)
         self.assertIn("Version 1.1.0 ist schon vergeben (A", str(e.exception))
         self.assertIn("nächste freie Nummer: 1.1.1 oder 1.2.0", str(e.exception))
-        with self.assertRaises(kern.AmwFehler) as e:
-            self.bitte("CC2", "a2-alt", self.stand("1.0.0", "a2-alt"), a2)
+        with self.assertRaises(kern.AmwFehler) as e:                                 # A1936: unter main (eine eigene, alte Nummer)
+            self.bitte("CC2", "a2-alt", self.stand("0.9.0", "a2-alt"), a2)
         self.assertIn("liegt nicht über main (1.0.0)", str(e.exception))
         self.bitte("CC1", "a1-2", self.stand("1.1.0", "a1-2"), a1)                  # dieselbe Aufgabe: Nummer bleibt
         self.bitte("CC2", "a2-3", self.stand("1.2.0", "a2-3"), a2)                  # freie Nummer: geht
+
+    def test_einzelzweig_ohne_eigene_version(self):
+        """A1936: Ein Zweig, der die Version von seiner Abzweigung behält, wird nicht geprüft – auch wenn main inzwischen
+        höher steht oder eine andere Aufgabe dieselbe Nummer trägt; mit eigener Version gilt die Prüfung wie bisher."""
+        a1 = kern.aufgabe_neu(self.con, self.pid, "TL", "Eins", "CC1")
+        a2 = kern.aufgabe_neu(self.con, self.pid, "TL", "Zwei", "CC2")
+        self.g("switch", "-q", "-c", "nur-inhalt", "main")
+        with open(os.path.join(self.repo, "lib.txt"), "w", encoding="utf-8") as f:
+            f.write("Inhalt\n")
+        self.g("add", "-A")
+        self.g("-c", "commit.gpgsign=false", "commit", "-q", "-m", "nur Inhalt")
+        inhalt = self.g("rev-parse", "HEAD")
+        self.g("switch", "-q", "main")
+        self.assertEqual(self.bitte("CC1", "nur-inhalt", inhalt, a1) > 0, True)                      # Version = main: geht
+        self.stand("1.1.0")                                                                          # main geht weiter
+        self.bitte("CC1", "nur-inhalt", inhalt, a1)                                                  # alte Abzweigung: geht
+        self.bitte("CC2", "a2", self.stand("1.2.0", "a2"), a2)                                       # mit eigener Nummer …
+        with self.assertRaises(kern.AmwFehler):
+            self.bitte("CC1", "a1", self.stand("1.2.0", "a1"), a1)                                   # … wird weiter geprüft
 
     def test_ohne_versionsdatei_keine_pruefung(self):
         os.remove(os.path.join(self.repo, "amw", "__init__.py"))

@@ -7,6 +7,9 @@ die Version aus dem Stand und lehnt ab, wenn sie
   - oder eine andere Aufgabe sie in einer offenen oder grünen, noch nicht ausgelieferten Prüfung trägt.
 Dieselbe Aufgabe darf ihre Nummer behalten (neuer Stand nach ROT, neu aufgesetzt). Die Meldung nennt die nächste freie Nummer.
 Ohne Projektordner oder ohne erkennbare Versionsdatei prüft die AMW nichts (andere Projekte haben andere Schemata).
+
+A1936 (#30046): Ein Einzelzweig ohne eigene Version – die Version im Stand ist dieselbe wie an seiner Abzweigung von main
+(merge-base) – wird nicht geprüft; die Nummer kommt erst beim Aufsetzen des Stapels und wird dort geprüft.
 """
 import json
 import re
@@ -60,6 +63,9 @@ def pruefen(con, pid, sha, aufgabe_id):
     v = version_im_stand(ordner, sha)
     if not v:
         return None
+    basis = (_git(ordner, "merge-base", "main", sha) or "").strip()
+    if basis and version_im_stand(ordner, basis) == v:
+        return None                                      # A1936: keine eigene Version – geprüft wird erst der Stapel
     t = kern.version_teile(v)
     belegt = {}                                          # Nummer → wer sie trägt (für die Meldung und die nächste freie)
     live = version_im_stand(ordner, "main")
