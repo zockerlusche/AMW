@@ -42,13 +42,14 @@ def offen(repo, lauf=None):
     return sorted(tags, key=lambda t: kern.version_teile(t[1:]))
 
 
-def notizen(repo, versionen, lauf=None):
-    """Titel und Text eines GitHub-Release für mehrere Versionen: die CHANGELOG-Abschnitte (Stand main), neueste zuerst."""
+def notizen(repo, versionen, lauf=None, changelog="CHANGELOG.md"):
+    """Titel und Text eines GitHub-Release für mehrere Versionen: die CHANGELOG-Abschnitte (Stand main), neueste zuerst.
+    A1933: CHANGELOG des Projekts (changelog_datei), Abschnitte auch als „## [X.Y.Z] - Datum“ (Keep a Changelog)."""
     lauf = lauf or _laufen
-    rc, log = lauf(["git", "show", "main:CHANGELOG.md"], repo)
+    rc, log = lauf(["git", "show", f"main:{changelog}"], repo)
     teile = []
     for v in sorted(versionen, key=kern.version_teile, reverse=True):
-        m = re.search(rf"^## {re.escape(v)} .*?(?=^## |\Z)", log if rc == 0 else "", re.M | re.S)
+        m = re.search(rf"^## \[?{re.escape(v)}\]?(?![\d.]).*?(?=^## |\Z)", log if rc == 0 else "", re.M | re.S)
         teile.append(m.group(0).strip() if m else f"## {v}")
     neu = max(versionen, key=kern.version_teile)
     kopf = (f"Veröffentlicht nach der Abnahme des Meilensteins – enthält {', '.join(sorted(versionen, key=kern.version_teile))}."
@@ -83,7 +84,8 @@ def veroeffentlichen(con, pid, von, bogen_id=None, lauf=None, repo=None):
         text = "main ist veröffentlicht; keine neue Version seit der letzten Veröffentlichung – kein GitHub-Release"
     else:
         versionen = [t[1:] for t in tags]
-        neu, inhalt = notizen(repo, versionen, lauf)
+        e = json.loads((con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone() or ["{}"])[0] or "{}")
+        neu, inhalt = notizen(repo, versionen, lauf, e.get("changelog_datei") or "CHANGELOG.md")
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8", newline="") as f:
             f.write(inhalt)
             datei = f.name

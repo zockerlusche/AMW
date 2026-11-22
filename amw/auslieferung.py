@@ -92,12 +92,16 @@ def _laufen(befehl, ordner, frist=600):
 class Kette:
     """extern(befehl, ordner) → (rc, Ausgabe) für git/gh/Dienst; start_version() → Version, die der Dienst meldet (Tests)."""
 
-    def __init__(self, con, pid, von, repo, extern=None, start_version=None, ausgabe=print):
+    def __init__(self, con, pid, von, repo, extern=None, start_version=None, ausgabe=print, amw=None):
+        """amw (A1933): liefert die Kette die AMW selbst aus (Dienst, Schema, Versionszeile, Web) oder ein anderes Projekt
+        (Fast-Forward, Tag, Push und Release-Notiz)? Die CLI sagt es (pruefung_c.ist_amw des Projektordners); ohne Angabe
+        nach der Versionsquelle: amw/__init__.py im Modus datei = die AMW."""
         self.con, self.pid, self.von, self.repo = con, pid, von, os.path.abspath(repo)
         self.extern = extern or _laufen
         self.start_version = start_version or self._start_version
         self.ausgabe = ausgabe
         self.erledigt = []
+        self.amw = self.nur_amw() if amw is None else bool(amw)
 
     # --- Hilfen --------------------------------------------------------------------------------------------------------
     def git(self, *args, schritt):
@@ -237,8 +241,7 @@ class Kette:
                 "version_datei": e.get("version_datei") or "amw/__init__.py", "changelog": e.get("changelog_datei") or "CHANGELOG.md"}
 
     def nur_amw(self):
-        """A1923: Die Kette liefert bisher nur die AMW selbst aus (Dienst, Versionszeile, Web) – Projekte mit eigener Versionsquelle
-        stoppen vor dem ersten Schritt nach außen (Mehrprojekt 9, A1933)."""
+        """A1923: Versionsquelle wie die AMW (amw/__init__.py, Modus datei)? Vorgabe für Kette(amw=None)."""
         a = self.release_art()
         return a["modus"] == "datei" and a["version_datei"] == "amw/__init__.py"
 
@@ -480,10 +483,11 @@ class Kette:
         sha, version, ausnahme = v["sha"], v["version"], v["ausnahme"]
         self.ausgabe(f"Version {version} = {sha[:8]} · {'Prüfstufe niedrig (ohne Prüfbitte)' if v['niedrig'] else 'Prüfung grün'} · Merge-OK {v['merge_ok']} · "
                      + (f"Gesamtlauf L{v['lauf']}" if v["lauf"] else f"Ausnahme ({ausnahme})"))
-        if not self.nur_amw():                          # A1923 (#29877): klarer Stopp vor dem ersten Schritt nach außen
-            self.stopp("Projekt", f"Version {version} ist geprüft und freigegeben – ausliefern kann die Kette bisher nur die AMW selbst"
-                       " (Dienst, Web). Für Projekte mit eigener Versionsquelle kommt das mit Mehrprojekt 9 (A1933); nichts geändert,"
-                       " kein Tag gesetzt")
+        if not self.amw:                                # A1933: ein Projekt, das nicht die AMW ist – ohne Dienst, Schema, Web
+            return self._ausliefern_projekt(sha, version, v, ausnahme)
+        if not self.nur_amw():                          # die AMW mit einer anderen Versionsquelle: nicht raten
+            self.stopp("Projekt", f"Version {version}: die AMW liest ihre Version aus amw/__init__.py (release_modus datei) –"
+                       " Einstellung des Projekts prüfen; nichts geändert, kein Tag gesetzt")
         from . import waechter                         # A1847/P253: während jeder Auslieferung keine neuen p-Starts
         wartung = not waechter.zustand()["wartung"]     # schon an (von Hand): bleibt, wie es war
         if wartung:
@@ -532,6 +536,57 @@ class Kette:
         # A1756: erst Versionszeilen und fertige Aufgaben, dann der Web-Abzug – scheitert er (14.11.: Zeitlimit unter Last),
         # ist alles andere schon eingetragen, und die Meldung nennt, wie er nachgeholt wird.
         return self._nach_dienst(sha, version, v, ausnahme, wartung)
+
+    def _ausliefern_projekt(self, sha, version, v, ausnahme):
+        """A1933 (Mehrprojekt 9): ein Projekt, das nicht die AMW ist. Nur der Lead des Projekts oder der Mensch (ein Tag kann im
+        Projekt Workflows starten – Außenwirkung, nie automatisch). Projektordner auf main und sauber; Sicherung der Projektdaten
+        nur mit release_sicherung = an; Fast-Forward, Tags, dann Push und Release-Notiz nach veroeffentlichen (A1928); Aufgaben
+        fertig, Meldung an den Lead. Dienst, Schema, Versionszeile und Web-Abzug gibt es hier nicht."""
+        if not (self.von == kern.ENTWICKLER or kern.ist_lead(self.con, self.pid, self.von)):
+            self.stopp("Wer liefert aus", f"ein Projekt, das nicht die AMW ist, liefert nur sein Lead oder der Mensch aus – nicht {self.von}")
+        kopf = self.git("symbolic-ref", "--short", "HEAD", schritt="Projektordner").strip()   # sauber: prüft schon pruefen()
+        if kopf != "main":
+            self.stopp("Projektordner", f"{self.repo} ist auf {kopf or '?'} – für den Fast-Forward muss main ausgecheckt sein;"
+                       " nichts geändert")
+        if kern.projekt_wahl(self.con, self.pid, "release_sicherung") == "an":
+            name = (self.con.execute("SELECT name FROM projekt WHERE id = ?", (self.pid,)).fetchone() or ["projekt"])[0]
+            ziel = db.sichern(None, pid=self.pid, name=name)
+            self.schritt(f"Sicherung {os.path.basename(ziel)}")
+        self.git("merge", "--ff-only", "-q", sha, schritt="Fast-Forward")
+        self.schritt(f"main → {sha[:8]}")
+        for z in v["zwischen"]:
+            self.git("tag", f"v{z['version']}", z["sha"], schritt="Tag")
+        self.git("tag", f"v{version}", sha, schritt="Tag")
+        self.schritt(f"Tag v{version}" + "".join(f" + v{z['version']}" for z in v["zwischen"]))
+        from . import planautomatik, veroeffentlichung
+        sofort = veroeffentlichung.modus(self.con, self.pid) == "sofort"
+        if sofort:
+            self._veroeffentlichen(version, v)
+        else:
+            with db.schreiben(self.con):
+                db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von=self.von, art=veroeffentlichung.LOKAL,
+                             text=json.dumps({"version": version, "sha": sha}))
+            self.schritt("Lokal fertig – Push und Release-Notiz bei der Abnahme des Meilensteins (veroeffentlichen = meilenstein)")
+        try:
+            fertig = planautomatik.ausgeliefert(self.con, self.pid, version, sha,
+                                                lambda s: self.extern(["git", "merge-base", "--is-ancestor", s, sha], self.repo)[0] == 0)
+        except Exception as e:                           # ausgeliefert ist ausgeliefert – nur melden
+            fertig = [{"aufgabe": 0, "titel": "", "fehler": f"{type(e).__name__}: {e}"}]
+        ok = [x for x in fertig if not x.get("fehler")]
+        if fertig:
+            self.schritt("Aufgaben fertig: " + (", ".join(f"A{x['aufgabe']}" for x in ok) or "keine")
+                         + "".join(f" · A{x['aufgabe']} nicht: {x['fehler'][:120]}" for x in fertig if x.get("fehler")))
+        an = kern.lead(self.con, self.pid)
+        fertig_liste = ", ".join(f"A{x['aufgabe']}" for x in ok)
+        if an and an != self.von:
+            with db.schreiben(self.con):
+                kern._posten(self.con, self.pid, "AMW", an, "info", f"Version {version} {'veröffentlicht' if sofort else 'fertig (lokal)'} – {v['titel']}",
+                             f"main {sha[:8]}, Tag v{version}, " + ("Push und Release-Notiz" if sofort else
+                                                                    "noch nicht gepusht (veröffentlicht wird bei der Abnahme des Meilensteins)")
+                             + (f". Gesamtlauf L{v['lauf']}." if v["lauf"] else f". Ohne Gesamtlauf: {ausnahme}.")
+                             + (f" Fertig gesetzt: {fertig_liste}." if ok else ""))
+        self.ausgabe(f"Version {version} {'veröffentlicht' if sofort else 'lokal fertig'}.")
+        return {"version": version, "sha": sha, "web_lauf": None, "release": None}
 
     def _veroeffentlichen(self, version, v):
         """Wie bis 1.15x bei jeder Auslieferung (veroeffentlichen = sofort): Push main + Tags, GitHub-Release je Version."""

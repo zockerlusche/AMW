@@ -179,7 +179,8 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
                         "sperrmuster",                    # A1919: was p-Pakete im Projekt nie ändern dürfen
                         "regression_befehl", "abnahme_frist_min",   # A1920: was Prüfung C je Projekt ausführt
                         "arbeiter_umgebung",              # A1922: Variablen und Pfade der Arbeiter
-                        "release_modus", "changelog_format")   # A1923: wie Bündel ihre Version und ihren CHANGELOG schreiben
+                        "release_modus", "changelog_format",   # A1923: wie Bündel ihre Version und ihren CHANGELOG schreiben
+                        "release_sicherung")              # A1933: Sicherung vor der Auslieferung eines Projekts
 # eine Stelle für alle Einstellungen mit dieser Sperre (CCamwTL P299): Rechte (A1892) und ausführbare Bündel-Befehle (A1876, P298)
 GESPERRTE_EINSTELLUNGEN = RECHTE_EINSTELLUNGEN + kern.BUENDEL_EINSTELLUNGEN
 
@@ -2347,7 +2348,13 @@ def cmd_release(a, con):
         if KANAL.get() != "cli":
             raise kern.AmwFehler("release ausliefern geht nur im Terminal")
         wurzel = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # das Repository dieser AMW
-        auslieferung.Kette(con, pid, _von(a), wurzel).ausliefern(a.zweig, a.gesamtlauf, a.aufgabe)
+        from . import pruefung_c
+        ordner = kern.projekt_ordner(con, pid)
+        if ordner and not pruefung_c.ist_amw(ordner):        # A1933: ein Projekt, das nicht die AMW ist – sein eigener Ordner
+            _rolle_nur_mensch_oder_lead(con, pid, a, "release ausliefern für dieses Projekt")
+            auslieferung.Kette(con, pid, _von(a), ordner, amw=False).ausliefern(a.zweig, a.gesamtlauf, a.aufgabe)
+        else:
+            auslieferung.Kette(con, pid, _von(a), wurzel, amw=True).ausliefern(a.zweig, a.gesamtlauf, a.aufgabe)
     elif a.aktion == "version":
         oeffentlich = None
         if a.oeffentlich_datei:

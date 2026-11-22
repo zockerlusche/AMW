@@ -109,9 +109,13 @@ Nummer und schrieb die Versionshinweise.
   („## [Unreleased]“ wird „## [X.Y.Z] - JJJJ-MM-TT“ mit Added/Changed/Fixed aus den Hinweisen; was schon darunter stand, bleibt;
   darüber ein neues leeres [Unreleased]). Beide nur Lead oder Mensch, nicht aus einer Agenten-Sitzung. Den Tag setzt das
   Bündel nie – das bleibt `release ausliefern` (Lead bzw. Mensch).
-- Grenze: Die Kette liest Nummer und Notizen je nach Modus (Versionsdatei des Projekts bzw. CHANGELOG), liefert aber bisher nur
-  die AMW selbst aus (Dienst, Web). Ein Projekt mit eigener Versionsquelle stoppt nach der Prüfung mit „Stopp bei Projekt“,
-  nichts geändert, kein Tag – die Kette für diese Projekte kommt mit Mehrprojekt 9 (A1933).
+- **Ausliefern eines Projekts, das nicht die AMW ist (A1933):** `amw release ausliefern --zweig buendel-X.Y.Z` arbeitet im
+  Ordner des Projekts (`amw projekt ordner`); die AMW selbst erkennt sie an ihrem Code im Ordner, nicht am Namen. Nur der
+  Lead des Projekts oder der Mensch im eigenen Terminal – ein Tag kann im Projekt Workflows starten. Prüfungen, Merge-OK und
+  Gesamtlauf wie bei der AMW; der Ordner muss auf main und sauber sein. Sicherung der Projektdaten nur mit
+  `release_sicherung = an`. Dann Fast-Forward, Tag `vX.Y.Z` (Nummer aus Versionsdatei bzw. CHANGELOG, je nach `release_modus`),
+  Push und Release-Notiz nach `veroeffentlichen` (sofort oder bei der Abnahme des Meilensteins), Aufgaben fertig, Meldung an
+  den Lead. Dienst, Schema, Versionszeile und Web-Abzug gibt es hier nicht.
 - **Zeilenenden (seit 1.152.3, A1909):** Im Bündel gilt `core.autocrlf` des Projekt-Repos (Repo vor System), derselbe Wert wie
   beim Stand-Vergleich vor dem Gesamtlauf; der Arbeitsbaum wird bei jedem Bündel ganz neu geschrieben. Vorher checkte das
   Bündel mit dem Systemwert (CRLF) aus, die Nacharbeit schrieb Dateien mit gleichem Inhalt in LF neu, und git hielt sie wegen
@@ -429,6 +433,7 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 
 | Wo | Schlüssel | Bedeutung |
 |---|---|---|
+| `amw projekt einstellen` | `release_sicherung` | `aus` (Vorgabe) oder `an`: Sicherung der Projektdaten vor `release ausliefern` (Projekte, die nicht die AMW sind) |
 | `amw projekt einstellen` | `release_modus` | `datei` (Version in `version_datei`) oder `tag` (Version aus dem Tag) – für Bündel |
 | `amw projekt einstellen` | `changelog_format` | `amw` oder `keepachangelog` ([Unreleased] → [X.Y.Z]) – für Bündel |
 | `amw projekt einstellen` | `arbeiter_umgebung` | zusätzliche Variablen und PATH-Ordner für Arbeiter (keine Zugangsdaten, kein Netz) |

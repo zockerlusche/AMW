@@ -69,22 +69,22 @@ class Tag(Basis):
         self.assertIn("## [1.4.3] - ", m["text"])
         self.assertIn("### Fixed\n- Von Hand eingetragen.\n- Plus stimmt.", m["text"])
 
-    def test_kette_liest_die_version_und_stoppt_vor_dem_ersten_schritt_nach_aussen(self):
-        """#29877 (Zuschnitt A): die Kette liest Nummer und Notizen aus dem CHANGELOG; ausliefern stoppt klar, bis Mehrprojekt 9
-        (A1933) die Kette für Projekte mit eigener Versionsquelle bringt – kein Tag, main unverändert."""
+    def test_kette_liest_die_version_und_die_amw_kette_stoppt(self):
+        """#29877 (Zuschnitt A): die Kette liest Nummer und Notizen aus dem CHANGELOG. Seit Mehrprojekt 9 liefert sie ein solches
+        Projekt selbst aus (test_auslieferung_projekt); die Kette der AMW (amw=True) stoppt bei fremder Versionsquelle weiter klar."""
         from amw import auslieferung, betrieb
         a = self.paket("plus", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1, hinweis="Plus stimmt.", gruppe="behoben")
         buendel.buendeln(self.con, self.pid, "TL", starten=False)
         rc, lid = buendel.lauf_und_meldung(self.con, self.pid, "buendel-1.4.3", warte=lambda s: None)
         betrieb.freigabe_merge(self.con, self.pid, "TL", a, "buendel-1.4.3")
-        k = auslieferung.Kette(self.con, self.pid, "TL", self.repo, ausgabe=lambda _: None)
+        k = auslieferung.Kette(self.con, self.pid, "TL", self.repo, ausgabe=lambda _: None, amw=True)
         v = k.pruefen("buendel-1.4.3", gesamtlauf=lid)
         self.assertEqual(v["version"], "1.4.3")                                              # aus [1.4.3], nicht aus amw/__init__.py
         titel, text = k.notizen(v["sha"], "1.4.3")
         self.assertEqual(titel, "1.4.3")
         self.assertIn("### Fixed\n- Von Hand eingetragen.\n- Plus stimmt.", text)
         main = g(self.repo, "rev-parse", "main")
-        with self.assertRaisesRegex(auslieferung.Stopp, "Stopp bei „Projekt“: Version 1.4.3 .*Mehrprojekt 9 .*erledigt: noch nichts"):
+        with self.assertRaisesRegex(auslieferung.Stopp, "Stopp bei „Projekt“: Version 1.4.3: die AMW liest .*erledigt: noch nichts"):
             k.ausliefern("buendel-1.4.3", gesamtlauf=lid)
         self.assertEqual((g(self.repo, "rev-parse", "main"), g(self.repo, "tag", "--list").split()), (main, ["v1.4.2"]))
 
