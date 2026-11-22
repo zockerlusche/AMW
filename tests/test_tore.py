@@ -194,6 +194,41 @@ class Umsetzung(Basis):
         art, kurz = self.post("TL")[-1]
         self.assertEqual((art, kurz), ("meldung", f"A{self.a1} über Prognose: 3.40 $ statt ≈ 2.00 $"))
 
+    def begonnen(self, status):
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET begonnen_utc = ?, status = ?, beleg = ? WHERE id = ?",
+                             (db.jetzt(), status, "abc1234" if status in ("fertig", "verworfen") else None, self.a1))
+
+    def test_a1971_fertige_pakete_nie(self):
+        """Nur offene Pakete wecken den Lead – ein fertiges oder verworfenes über der Prognose nie."""
+        self.bis_umsetzung()
+        zellen = {("heikel", "M"): {"median": 2.0, "n": 5, "rot": 0}}
+        for status in ("fertig", "verworfen"):
+            self.begonnen(status)
+            with mock.patch("amw.empfehlung.zellen", return_value=zellen), mock.patch("amw.eignung.tabelle", return_value={}),                     mock.patch("amw.aufwand.je_aufgabe", return_value={"usd": 9.0, "modelle": []}):
+                self.assertEqual(tore.prognose_pruefen(self.con, self.pid), [], status)
+        for status in ("blockiert", "wartet"):                                               # offen: gemeldet (einmal)
+            self.begonnen(status)
+        with mock.patch("amw.empfehlung.zellen", return_value=zellen), mock.patch("amw.eignung.tabelle", return_value={}),                 mock.patch("amw.aufwand.je_aufgabe", return_value={"usd": 9.0, "modelle": []}):
+            self.assertEqual(tore.prognose_pruefen(self.con, self.pid), [f"A{self.a1} über Prognose"])
+
+    def test_a1971_prognose_nach_modell_und_effort(self):
+        """Mit ≥ MIN_N Messungen desselben Modells/Efforts zählt deren Median, sonst der Median der Zelle über alle Modelle."""
+        self.bis_umsetzung()
+        self.begonnen("laeuft")
+        zellen = {("heikel", "M"): {"median": 2.0, "n": 9, "rot": 0}}
+        messung = {"usd": 1.8, "modelle": ["claude-opus-5-5/high", "claude-sonnet-5-5/medium"]}
+        def eig(n):
+            return {("heikel", "M"): {"opus/high": {"n": n, "kosten_median": 1.0}, "sonnet/medium": {"n": 9, "kosten_median": 0.5}}}
+        with mock.patch("amw.empfehlung.zellen", return_value=zellen), mock.patch("amw.eignung.tabelle", return_value=eig(4)),                 mock.patch("amw.aufwand.je_aufgabe", return_value=messung):
+            self.assertEqual(tore.prognose_pruefen(self.con, self.pid), [])                     # n = 4 < 5: 1,8 ≤ 1,5 × 2
+        with mock.patch("amw.empfehlung.zellen", return_value=zellen), mock.patch("amw.eignung.tabelle", return_value=eig(5)),                 mock.patch("amw.aufwand.je_aufgabe", return_value=messung):
+            self.assertEqual(tore.prognose_pruefen(self.con, self.pid), [f"A{self.a1} über Prognose"])   # 1,8 > 1,5 × 1,0
+        art, kurz = self.post("TL")[-1]
+        self.assertEqual(kurz, f"A{self.a1} über Prognose: 1.80 $ statt ≈ 1.00 $")
+        text = self.con.execute("SELECT text FROM nachricht WHERE kurz = ?", (kurz,)).fetchone()[0]
+        self.assertIn("opus/high, n = 5", text)
+
 
 if __name__ == "__main__":
     import unittest

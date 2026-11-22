@@ -631,8 +631,10 @@ die der Lead nur noch bestätigt oder ändert.
 - **Was läuft:** (1) Je fertigem Meilenstein ohne Bericht erstellt die AMW den Abschlussbericht gegen die Erfolgskriterien (Ziel,
   „endet mit“, Kriterien der Pakete, Pakete mit Kosten und Prognose, Reste, Lehren aus Rückblick/Prognose/roten Prüfungen) als
   Dokument zum Meilenstein (Ereignis abschluss_bericht) und sagt es dem Menschen bzw. bei co+lead Co und Lead. (2) In laufenden
-  Meilensteinen: kostet ein begonnenes Paket mehr als 1,5 × Prognose (Median gleicher Größe und Art), bekommt der Lead einmal eine
-  Meldung (Ereignis prognose_ueberschritten). (3) Schließt oder öffnet sich ein Tor (Grobplanung bis Abschluss), hält die AMW das
+  Meilensteinen: kostet ein offenes Paket (wartet, läuft, blockiert – fertige und verworfene nie, A1971) mehr als 1,5 × Prognose,
+  bekommt der Lead einmal eine Meldung (Ereignis prognose_ueberschritten). Prognose = Median gleicher Größe und Art; hat die
+  Eignungstabelle für dasselbe Modell/Effort mindestens 5 Messungen, deren Median (Modell/Effort aus dem p-Paket, sonst aus den
+  Sitzungen mit den meisten Kosten). (3) Schließt oder öffnet sich ein Tor (Grobplanung bis Abschluss), hält die AMW das
   fest (Ereignis tor_stand mit dem Stand); Konzept schreibt weiter tor_geschlossen (A1913).
 - **Danach:** Das Tor Abschluss schließt mit dem Ja zu allen Berichten (Mensch allein oder Co + Lead, `amw bogen freigeben N --art
   abschluss`); Zurück mit Notiz geht an den Lead, `amw bogen bericht N` erstellt einen neuen Bericht. Der Stand aller Tore:

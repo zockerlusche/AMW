@@ -238,8 +238,39 @@ def bericht_erstellen(con, pid, bid):
 
 # --- Umsetzung: Prognose überschritten → Lead (einmal je Paket) -------------------------------------------------------------
 
+def _paar(con, aid, messung):
+    """Modell/Effort eines Pakets: aus dem p-Paket, sonst das Modell/Stufe mit den meisten Kosten der Sitzungen – oder None."""
+    from . import arbeitspaket, eignung
+    try:
+        f = arbeitspaket.lesen(con, aid)
+    except Exception:                                    # noqa: BLE001 – kein p-Paket
+        f = None
+    if f and f.get("art") == "p" and f.get("modell") and f.get("effort"):
+        return f"{eignung.kurz(f['modell'])}/{f['effort']}"
+    meist = ((messung or {}).get("modelle") or [None])[0]
+    if not meist:
+        return None
+    m, _, st = meist.partition("/")
+    return f"{eignung.kurz(m)}/{st}" if st else None
+
+
+def prognose(con, pid, a, messung, zellen, eig):
+    """A1971: Prognose eines Pakets = Median gleicher Größe und Art (Gruppe × Größe) – mit gleichem Modell/Effort, wenn die
+    Eignungstabelle dafür mindestens eignung.MIN_N Messungen hat, sonst über alle Modelle der Zelle. (usd, Grundlage) | None."""
+    from . import eignung, empfehlung
+    zelle = (empfehlung.GRUPPE.get(a["art"]), a["groesse"])
+    paar = _paar(con, a["id"], messung)
+    w = (eig.get(zelle) or {}).get(paar) if paar else None
+    if w and w["n"] >= eignung.MIN_N and w.get("kosten_median"):
+        return w["kosten_median"], f"{paar}, n = {w['n']}"
+    z = zellen.get(zelle) or {}
+    return (z["median"], f"alle Modelle, n = {z.get('n')}") if z.get("median") else None
+
+
 def prognose_pruefen(con, pid):
-    from . import aufwand, empfehlung
+    """Umsetzung (TH154): nur OFFENE Pakete (wartet/laeuft/blockiert) eines aktiven Meilensteins über PROGNOSE_FAKTOR × Prognose
+    wecken den Lead – einmal je Paket; fertige oder verworfene nie (A1971: die erste Runde meldete längst fertige)."""
+    from . import aufwand, eignung, empfehlung
     lead = kern.lead(con, pid)
     if not lead:
         return []
@@ -248,19 +279,29 @@ def prognose_pruefen(con, pid):
         zellen = empfehlung.zellen(con, pid)
     except Exception:                                    # noqa: BLE001
         return []
+    eig = None
     aus = []
+    offen = ",".join("?" * len(kern.OFFEN_STATUS))
     for a in con.execute("SELECT a.* FROM aufgabe a JOIN bogen b ON b.id = a.bogen_id WHERE a.projekt_id = ? AND b.status = 'aktiv'"
-                         " AND a.status NOT IN ('verworfen') AND a.begonnen_utc IS NOT NULL", (pid,)).fetchall():
-        if a["id"] in schon or not (a["groesse"] and a["art"]):
-            continue
-        p = (zellen.get((empfehlung.GRUPPE.get(a["art"]), a["groesse"])) or {}).get("median")
-        if not p:
+                         f" AND a.status IN ({offen}) AND a.begonnen_utc IS NOT NULL", (pid, *kern.OFFEN_STATUS)).fetchall():
+        if a["id"] in schon or not (a["groesse"] and a["art"]) or a["art"] not in empfehlung.GRUPPE:
             continue
         try:
             m = aufwand.je_aufgabe(con, pid, a["id"])
         except Exception:                                # noqa: BLE001
             continue
         usd = float(m["usd"]) if m and m.get("usd") else 0
+        if not usd:
+            continue
+        if eig is None:
+            try:
+                eig = eignung.tabelle(con, pid)
+            except Exception:                            # noqa: BLE001
+                eig = {}
+        pg = prognose(con, pid, a, m, zellen, eig)
+        if not pg:
+            continue
+        p, grundlage = pg
         if usd <= PROGNOSE_FAKTOR * p:
             continue
         with db.schreiben(con):
@@ -268,7 +309,7 @@ def prognose_pruefen(con, pid):
                          text=json.dumps({"aufgabe": a["id"], "usd": round(usd, 2), "prognose": p}, ensure_ascii=False))
             kern._posten(con, pid, "AMW", lead, "meldung", f"A{a['id']} über Prognose: {usd:.2f} $ statt ≈ {p:.2f} $"[:140],
                          f"A{a['id']} „{a['titel']}“ ({a['groesse']} · {a['art']}) kostet bisher {usd:.2f} $ – mehr als"
-                         f" {PROGNOSE_FAKTOR:g} × Prognose (≈ {p:.2f} $, Median gleicher Größe und Art). Abweichung in der Umsetzung"
+                         f" {PROGNOSE_FAKTOR:g} × Prognose (≈ {p:.2f} $, Median gleicher Größe und Art, {grundlage}). Abweichung in der Umsetzung"
                          " (TH154): weiterlaufen lassen, neu schneiden oder anhalten?", aufgabe_id=a["id"])
         aus.append(f"A{a['id']} über Prognose")
     return aus
