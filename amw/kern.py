@@ -346,6 +346,33 @@ def projekt_ordner_setzen(con, pid, ordner):
     return ordner
 
 
+def systemlaufwerk():
+    """Laufwerk des Systems (Windows: SystemDrive, meist C:) – dort liegen nie Arbeitsplätze (A1921). Tests setzen
+    AMW_SYSTEMLAUFWERK (tests/abschotten.py), weil ihre Ordner auf dem Systemlaufwerk liegen."""
+    return (os.environ.get("AMW_SYSTEMLAUFWERK") or os.environ.get("SystemDrive") or ("C:" if os.name == "nt" else "")).upper()
+
+
+def platz_wurzel_pruefen(con, pid, wurzel):
+    """A1921 (TH160, W2447): die Platz-Wurzel je Projekt – nie auf dem Systemlaufwerk, nie dieselbe wie die eines anderen
+    Projekts und nicht ineinander (sonst teilten sich zwei Projekte platz1 …, das Bündel und die Merge-Daten)."""
+    w = os.path.normcase(os.path.abspath(wurzel))
+    lw = os.path.splitdrive(w)[0].upper()
+    if lw and lw == systemlaufwerk():
+        raise AmwFehler(f"platz_wurzel: Arbeitsplätze nie auf dem Systemlaufwerk {lw} – ein anderes Laufwerk, z. B."
+                        " D:\\arbeit\\amw\\plaetze")
+    for r in con.execute("SELECT id, name, einstellungen FROM projekt WHERE id != ?", (pid,)).fetchall():
+        try:
+            andere = (json.loads(r["einstellungen"] or "{}").get("platz_wurzel") or "").strip()
+        except ValueError:
+            continue
+        if not andere:
+            continue
+        a = os.path.normcase(os.path.abspath(andere))
+        if a == w or w.startswith(a + os.sep) or a.startswith(w + os.sep):
+            raise AmwFehler(f"platz_wurzel: {andere} gehört zu Projekt {r['name']} – je Projekt ein eigener Ordner, nicht"
+                            " derselbe und nicht ineinander")
+
+
 def projekt_einstellen(con, pid, von, **werte):
     """Zahnrad „Projekt“: takt_min (0 = aus, bis 1440), speicher_grenze_gb (1–512), stillstand_min und
     lauf_ohne_angabe_min (Warnungen, 5–1440), entwickler_name (wie der Mensch in Meldungen heißt). Nur Lead und Entwickler."""
@@ -441,7 +468,7 @@ def projekt_einstellen(con, pid, von, **werte):
                 else:
                     e.pop(k, None)
                 continue
-            if k in ("platz_wurzel", "plaetze"):          # A1855: Arbeitsplätze für -p – die Freigabe gibt nur der Mensch
+            if k in ("platz_wurzel", "plaetze", "platz_lfs"):   # A1855: Arbeitsplätze für -p – die Freigabe gibt nur der Mensch
                 if von != ENTWICKLER:
                     raise AmwFehler(f"{k}: Arbeitsplätze gibt nur der Mensch frei (--von Entwickler bzw. Workbench am PC)")
                 if k == "platz_wurzel":
@@ -451,6 +478,14 @@ def projekt_einstellen(con, pid, von, **werte):
                     po = (e.get("ordner") or "").strip()
                     if v and po and os.path.normcase(os.path.abspath(v)).startswith(os.path.normcase(os.path.abspath(po)) + os.sep):
                         raise AmwFehler("platz_wurzel darf nicht im Projektordner liegen")
+                    if v:
+                        platz_wurzel_pruefen(con, pid, v)       # A1921: nie auf dem Systemlaufwerk, je Projekt ein eigener Ordner
+                elif k == "platz_lfs":                       # A1921: große Repos – LFS-Dateien beim Klonen nicht mitholen
+                    v = str(v or "").strip().lower()
+                    if v not in ("", "aus", "teilen"):
+                        raise AmwFehler("platz_lfs: aus (Vorgabe, wie bisher) | teilen (LFS-Dateien nicht mitklonen, bei Bedarf aus"
+                                        " dem Projekt holen)")
+                    v = "" if v == "aus" else v
                 else:
                     try:
                         v = int(v or 0)

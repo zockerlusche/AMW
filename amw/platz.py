@@ -48,7 +48,34 @@ def pfade(wurzel, nr):
 
 def plaetze(con, pid):
     wurzel, n = einstellung(con, pid)
-    return [pfade(wurzel, i) for i in range(1, n + 1)] if wurzel else []
+    lfs = lfs_modus(con, pid)
+    return [dict(pfade(wurzel, i), lfs=lfs) for i in range(1, n + 1)] if wurzel else []
+
+
+def lfs_modus(con, pid):
+    """A1921: Projekt-Einstellung platz_lfs – „aus“ (Vorgabe: klonen wie bisher) oder „teilen“: LFS-Dateien kommen beim Klonen
+    und bei jedem Auschecken nur als kleine Verweise in den Platz (GIT_LFS_SKIP_SMUDGE, git lfs install --local --skip-smudge);
+    braucht ein Arbeiter eine, holt `git lfs pull --include <pfad>` sie aus dem Projekt-Repo (origin) – dort wird nur gelesen."""
+    e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
+    return "teilen" if (e.get("platz_lfs") or "").strip().lower() == "teilen" else "aus"
+
+
+def _lfs_da():
+    return bool(shutil.which("git-lfs"))
+
+
+def _lfs_einstellen(p):
+    """Im Klon: bei „teilen“ das Auschecken von LFS-Dateien abschalten, bei „aus“ wieder einschalten (nur wenn es abgeschaltet
+    war). Ohne git-lfs gibt es nichts einzustellen – LFS-Dateien sind dann ohnehin nur Verweise."""
+    if not _lfs_da():
+        return
+    r = subprocess.run(["git", "-C", p["klon"], "config", "--local", "--get", "filter.lfs.smudge"], capture_output=True, text=True,
+                       stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    uebersprungen = "--skip" in (r.stdout or "")
+    if p.get("lfs") == "teilen" and not uebersprungen:
+        _git(p["klon"], "lfs", "install", "--local", "--skip-smudge")
+    elif p.get("lfs") != "teilen" and uebersprungen:
+        _git(p["klon"], "lfs", "install", "--local", "--force")
 
 
 def umgebung(p, basis=None):
@@ -93,9 +120,10 @@ def vorbereiten(p, quelle, zweig, aufgabe=None):
             raise PlatzFehler(f"{p['klon']} ist kein Klon und nicht leer – die AMW legt dort nichts an")
         os.makedirs(os.path.dirname(p["klon"]) or ".", exist_ok=True)
         from . import pruefung_c                                         # A1911: Zeilenenden wie im Projekt, nicht wie das System
+        u = dict(os.environ, GIT_LFS_SKIP_SMUDGE="1") if p.get("lfs") == "teilen" else None   # A1921: LFS nur als Verweise
         r = subprocess.run(["git", "clone", "-q", "--no-hardlinks", "-c", f"core.autocrlf={pruefung_c.autocrlf_projekt(quelle)}",
                             quelle, p["klon"]], capture_output=True, text=True,
-                           encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL, timeout=1800,
+                           encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL, timeout=1800, env=u,
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         if r.returncode != 0:
             raise PlatzFehler(f"git clone: {(r.stdout + r.stderr).strip()[-300:]}")
@@ -103,6 +131,7 @@ def vorbereiten(p, quelle, zweig, aufgabe=None):
         if os.path.exists(p["daten"]) and os.listdir(p["daten"]) and not os.path.exists(_marker(p["daten"])):
             raise PlatzFehler(f"{p['daten']} ist nicht leer und kein Datenordner eines Platzes – die AMW fasst ihn nicht an")
         _daten_anlegen(p)
+    _lfs_einstellen(p)                                                   # A1921: vor dem Auschecken
     _git(p["klon"], "remote", "set-url", "origin", quelle)
     zuruecksetzen(p, holen=True, projektordner=quelle, aufgabe=aufgabe)
     _git(p["klon"], "checkout", "-q", "-B", zweig, "origin/main")

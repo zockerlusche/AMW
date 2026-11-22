@@ -25,7 +25,7 @@ def g(ordner, *args):
 
 
 @unittest.skipUnless(shutil.which("git"), "git fehlt")
-class Platz(unittest.TestCase):
+class Grund(unittest.TestCase):
     def setUp(self):
         self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.addCleanup(self.ordner.cleanup)
@@ -53,6 +53,8 @@ class Platz(unittest.TestCase):
     def einrichten(self, n=2):
         kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, platz_wurzel=self.wurzel, plaetze=n)
 
+
+class Platz(Grund):
     def test_ohne_plaetze_wie_bisher_und_nur_der_mensch_gibt_frei(self):
         self.assertEqual(platz.plaetze(self.con, self.pid), [])
         aus = io.StringIO()
@@ -231,6 +233,76 @@ class Platz(unittest.TestCase):
         r = subprocess.run(["git", "-C", p["klon"], "diff", "--quiet", "HEAD"], env=arbeiter, capture_output=True, creationflags=OHNE)
         self.assertEqual(r.returncode, 0)
         self.assertFalse(platz.zeilenenden_angleichen(p["klon"], self.repo))                # schon gleich: nichts neu geschrieben
+
+
+class A1921(Grund):
+    """Große Repos und mehrere Projekte (TH160 F2, W2447): Platz-Wurzel je Projekt (nie auf dem Systemlaufwerk, nie mit einem
+    anderen Projekt geteilt), platz_lfs = aus | teilen (LFS-Dateien nur als Verweise, bei Bedarf aus dem Projekt holen)."""
+
+    def test_wurzel_nie_auf_dem_systemlaufwerk(self):
+        lw = os.path.splitdrive(os.path.abspath(self.wurzel))[0]
+        with mock.patch.dict(os.environ, {"AMW_SYSTEMLAUFWERK": lw.lower() or "-"}):
+            if lw:
+                with self.assertRaisesRegex(kern.AmwFehler, f"nie auf dem Systemlaufwerk {lw.upper()}"):
+                    self.einrichten()
+        self.assertEqual(platz.plaetze(self.con, self.pid), [])
+        self.einrichten()                                                                    # anderes Laufwerk: ja
+
+    def test_wurzel_je_projekt_eigen(self):
+        self.einrichten(1)
+        with db.schreiben(self.con):
+            zwei = db.einfuegen(self.con, "projekt", name="Zwei", angelegt_utc=db.jetzt())
+        for w in (self.wurzel, os.path.join(self.wurzel, "zwei"), os.path.dirname(self.wurzel)):   # gleich, darin, darüber
+            with self.assertRaisesRegex(kern.AmwFehler, "gehört zu Projekt Spiel"):
+                kern.projekt_einstellen(self.con, zwei, kern.ENTWICKLER, platz_wurzel=w, plaetze=1)
+        eigen = os.path.join(self.ordner.name, "plaetze-zwei")
+        kern.projekt_einstellen(self.con, zwei, kern.ENTWICKLER, platz_wurzel=eigen, plaetze=1)
+        self.assertEqual(os.path.dirname(platz.plaetze(self.con, zwei)[0]["klon"]), eigen)          # greift je Projekt
+        self.assertEqual(os.path.dirname(platz.plaetze(self.con, self.pid)[0]["klon"]), self.wurzel)
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, platz_wurzel=self.wurzel)   # die eigene erneut: ja
+
+    def test_lfs_einstellung(self):
+        self.einrichten(1)
+        self.assertEqual(platz.plaetze(self.con, self.pid)[0]["lfs"], "aus")                        # Vorgabe: wie bisher
+        with self.assertRaisesRegex(kern.AmwFehler, "platz_lfs: aus"):
+            kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, platz_lfs="halb")
+        with self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
+            kern.projekt_einstellen(self.con, self.pid, "TL", platz_lfs="teilen")
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, platz_lfs="teilen")
+        self.assertEqual(platz.plaetze(self.con, self.pid)[0]["lfs"], "teilen")
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, platz_lfs="aus")
+        self.assertEqual(platz.plaetze(self.con, self.pid)[0]["lfs"], "aus")
+
+    def test_lfs_teilen_nur_verweise_bei_bedarf_aus_dem_projekt(self):
+        if not shutil.which("git-lfs"):
+            self.skipTest("git-lfs ist nicht installiert – die LFS-Probe läuft nur mit git-lfs")
+        g(self.repo, "lfs", "install", "--local")
+        g(self.repo, "lfs", "track", "*.bin")
+        inhalt = os.urandom(4000)
+        with open(os.path.join(self.repo, "gross.bin"), "wb") as f:
+            f.write(inhalt)
+        g(self.repo, "add", ".gitattributes", "gross.bin")
+        g(self.repo, "commit", "-q", "-m", "gross")
+        self.einrichten(1)
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, platz_lfs="teilen")
+        p = platz.plaetze(self.con, self.pid)[0]
+        platz.vorbereiten(p, self.repo, "paket-1")
+        datei = os.path.join(p["klon"], "gross.bin")
+        with open(datei, "rb") as f:
+            self.assertTrue(f.read().startswith(b"version https://git-lfs"))                    # nur der Verweis
+        objekte = [f for _, _, fs in os.walk(os.path.join(p["klon"], ".git", "lfs", "objects")) for f in fs]
+        self.assertEqual(objekte, [])                                                           # nichts mitgeklont
+        self.assertIn("--skip", g(p["klon"], "config", "--local", "filter.lfs.smudge"))
+        platz.vorbereiten(p, self.repo, "paket-2")                                              # auch beim nächsten Paket
+        with open(datei, "rb") as f:
+            self.assertTrue(f.read().startswith(b"version https://git-lfs"))
+        g(p["klon"], "lfs", "pull", "--include", "gross.bin")                                   # bei Bedarf: aus dem Projekt
+        with open(datei, "rb") as f:
+            self.assertEqual(f.read(), inhalt)
+        self.assertTrue(platz.sauber(p))
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, platz_lfs="aus")           # zurück: wie bisher
+        platz.vorbereiten(platz.plaetze(self.con, self.pid)[0], self.repo, "paket-3")
+        self.assertNotIn("--skip", g(p["klon"], "config", "--local", "filter.lfs.smudge"))
 
 
 if __name__ == "__main__":

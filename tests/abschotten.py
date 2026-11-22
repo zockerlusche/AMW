@@ -20,6 +20,7 @@ if not os.environ.get("AMW_TEST_LOKAL"):
     os.environ["AMW_STARTSKRIPT"] = os.path.join(ORDNER, "agenten-start.bat")   # A1883: nie ins Repo (Arbeitsordner/Prüfklon)
     os.environ["AMW_CLAUDE_VERSION"] = "2.1.326"   # A1906: nie vom installierten Claude Code abhängen (Grundbestand, wie die Attrappe)
     os.environ["AMW_GEGENLESEN_AUS"] = "1"         # A1914: thema pflegen stößt in Tests nie einen echten Gegenleser an
+    os.environ["AMW_SYSTEMLAUFWERK"] = "-"         # A1921: Test-Ordner liegen auf dem Systemlaufwerk – die Sperre prüft test_platz
     atexit.register(shutil.rmtree, ORDNER, True)
 else:
     ORDNER = os.environ["AMW_TEST_LOKAL"]
