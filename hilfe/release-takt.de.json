@@ -64,7 +64,7 @@
   ],
   [
    "„Version 1.2.0 ist schon vergeben“ bei der Prüfbitte",
-   "Eine andere Aufgabe trägt diese Nummer schon (offene oder grüne, noch nicht ausgelieferte Prüfung), sie liegt nicht über main oder es gibt den Tag schon. Die Meldung nennt die nächste freie Nummer; die im Stand ändern und neu einreichen."
+   "Eine andere Aufgabe trägt diese Nummer schon (offene oder grüne, noch nicht ausgelieferte Prüfung), sie liegt nicht über main oder es gibt den Tag schon. Die Meldung nennt die nächste freie Nummer; die im Stand ändern und neu einreichen. Ein Zweig ohne eigene Version (dieselbe wie dort, wo er von main abzweigt) wird nicht geprüft – die Nummer bekommt erst der Stapel."
   ],
   [
    "„Prüfstufe hoch – prüfen muss …“",
