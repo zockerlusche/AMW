@@ -288,6 +288,24 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             return {"text": veroeffentlichung.abnehmen(con, pid, kern.ENTWICKLER, int(daten.get("bogen") or 0))}
         except (kern.AmwFehler, ValueError, TypeError) as e:
             raise Ungueltig(str(e)) from None
+    if weg.startswith("/api/meilenstein/"):           # A1950 (K6): Grob-/Feinplanung – Freigeben, Zurück, Früher/Später, Jetzt starten
+        if kanal != "seite":
+            raise Ungueltig("Meilensteine freigeben geht nur am PC (Workbench), online liest du mit")
+        from . import planansicht
+        was = weg.rsplit("/", 1)[1]
+        try:
+            bid = int(daten.get("bogen") or 0)
+            if was == "freigeben":
+                return planansicht.freigeben(con, pid, kern.ENTWICKLER, bid, daten.get("art"))
+            if was == "zurueck":
+                return planansicht.zurueck(con, pid, kern.ENTWICKLER, bid, daten.get("art"), daten.get("notiz"))
+            if was in ("frueher", "spaeter"):
+                return planansicht.verschieben(con, pid, kern.ENTWICKLER, bid, was)
+            if was == "starten":
+                return {"gestartet": planansicht.jetzt_starten(con, pid, kern.ENTWICKLER)}
+        except (kern.AmwFehler, ValueError, TypeError) as e:
+            raise Ungueltig(str(e)) from None
+        raise LookupError("unbekannt")
     if weg.startswith("/api/thema/"):                 # A1896: Themen – Freigeben/Zurück/Bearbeiten/Löschen markieren, der Mensch am PC
         if kanal != "seite":
             raise Ungueltig("Themen freigeben und bearbeiten geht nur am PC (Workbench), online liest du mit")
