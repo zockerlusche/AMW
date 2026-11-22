@@ -469,11 +469,31 @@ def sprache_an(modus, klon):
 PYRIGHT_FEHLT = "Sprachprüfung übersprungen: pyright fehlt auf diesem PC (npm install -g pyright)"
 
 
+def programm_im_pfad(name, pfad=None):
+    """A1967: wie shutil.which, aber nur über die absoluten Einträge von PATH – nie der aktuelle Ordner (den shutil.which unter
+    Windows vorn einschiebt), nie leere oder relative Einträge („.“, „lib“). Unter Windows mit den Endungen aus PATHEXT.
+    Rückgabe: absoluter Pfad oder None."""
+    pfad = os.environ.get("PATH", "") if pfad is None else pfad
+    endungen = [""]
+    if os.name == "nt":
+        endungen = [e.lower() for e in os.environ.get("PATHEXT", ".COM;.EXE;.BAT;.CMD").split(";") if e.strip()]
+        if os.path.splitext(name)[1].lower() in endungen:
+            endungen = [""]
+    for ordner in pfad.split(os.pathsep):
+        ordner = ordner.strip().strip('"')
+        if not ordner or not os.path.isabs(ordner):
+            continue
+        for e in endungen:
+            kandidat = os.path.join(ordner, name + e)
+            if os.path.isfile(kandidat) and (os.name == "nt" or os.access(kandidat, os.X_OK)):
+                return os.path.abspath(kandidat)
+    return None
+
+
 def pyright_programm():
     """[node.exe, …/node_modules/pyright/index.js] mit absoluten Pfaden aus der Umgebung der AMW – oder None. Nie über die
-    Shell oder den Ordner des Pakets gesucht."""
-    import shutil
-    node, shim = shutil.which("node"), shutil.which("pyright")
+    Shell oder den Ordner des Pakets gesucht (A1967: eigene Suche nur über absolute PATH-Einträge, ohne aktuellen Ordner)."""
+    node, shim = programm_im_pfad("node"), programm_im_pfad("pyright")
     if not (node and shim):
         return None
     js = os.path.join(os.path.dirname(os.path.abspath(shim)), "node_modules", "pyright", "index.js")

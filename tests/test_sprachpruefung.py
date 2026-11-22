@@ -3,7 +3,6 @@ Start-Commit; nur NEUE Fehler (Regel, Datei, Text – ohne Zeile) → C/rot, Aus
 C/technik; läuft auch bei roter Abnahme; Einstellung sprachpruefung auto (mit pyrightconfig.json) | pyright | aus."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
-import shutil
 import unittest
 from unittest import mock
 
@@ -30,6 +29,47 @@ class Vergleich(unittest.TestCase):
             open(os.path.join(d, "pyrightconfig.json"), "w").write("{}")
             self.assertTrue(c.sprache_an("auto", d))
             self.assertFalse(c.sprache_an("aus", d))
+
+
+class PfadSuche(unittest.TestCase):
+    """A1967: pyright und node nur über absolute PATH-Einträge – nicht aus dem aktuellen Ordner, nicht über leere/relative."""
+    def setUp(self):
+        import tempfile
+        self._d = tempfile.TemporaryDirectory()
+        self.addCleanup(self._d.cleanup)
+        self.d = self._d.name
+        self.echt, self.paket = os.path.join(self.d, "echt"), os.path.join(self.d, "paket")
+        for o in (self.echt, self.paket, os.path.join(self.paket, "lib")):
+            os.makedirs(o)
+        ext = ".cmd" if os.name == "nt" else ""
+        for o in (self.echt, self.paket, os.path.join(self.paket, "lib")):
+            for n in ("node" + (".exe" if os.name == "nt" else ""), "pyright" + ext):
+                p = os.path.join(o, n)
+                open(p, "w").write("x")
+                os.chmod(p, 0o755)
+        alt = os.getcwd()
+        os.chdir(self.paket)
+        self.addCleanup(os.chdir, alt)
+
+    def test_aktueller_ordner_wird_nicht_genommen(self):
+        self.assertIsNone(c.programm_im_pfad("node", ""))                              # leerer PATH: nichts, auch nicht cwd
+        self.assertIsNone(c.programm_im_pfad("pyright", os.pathsep.join(["", ".", "lib", "  "])))
+        pfad = os.pathsep.join(["", ".", "lib", self.echt])
+        for n in ("node", "pyright"):
+            gefunden = c.programm_im_pfad(n, pfad)
+            assert gefunden is not None, n
+            self.assertEqual(os.path.dirname(gefunden), self.echt, n)
+
+    def test_pyright_programm_aus_dem_echten_ordner(self):
+        js = os.path.join(self.echt, "node_modules", "pyright")
+        os.makedirs(js)
+        open(os.path.join(js, "index.js"), "w").write("")
+        with mock.patch.dict(os.environ, {"PATH": os.pathsep.join([".", self.echt])}):
+            prog = c.pyright_programm()
+        assert prog is not None
+        self.assertEqual([os.path.dirname(prog[0]), prog[1]], [self.echt, os.path.join(js, "index.js")])
+        with mock.patch.dict(os.environ, {"PATH": "."}):                               # nur cwd im PATH: fehlt
+            self.assertIsNone(c.pyright_programm())
 
 
 class MitPrüfungC(Grund):
@@ -92,7 +132,7 @@ class MitPrüfungC(Grund):
         self.assertIn("lib/a.py:4", b["sprache"]["ausgabe"])
 
 
-@unittest.skipUnless(shutil.which("pyright"), "pyright fehlt auf diesem PC")
+@unittest.skipUnless(c.pyright_programm(), "pyright fehlt auf diesem PC")
 class EchtesPyright(Grund):
     def test_neuer_typfehler_echt(self):
         """Ein echter Lauf: der Start-Commit hat einen alten Fehler, das Paket bringt einen neuen – nur der neue zählt."""
