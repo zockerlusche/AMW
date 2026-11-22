@@ -79,6 +79,13 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
 - **Lokal live** (`amw release ausliefern`): Sicherung, main per Fast-Forward, lokaler Tag, Dienst neu, Versionszeile, Aufgaben
   fertig, Web-Abzug (AMW online bleibt auf derselben Version wie der PC). Kein Push von main und Tags, kein GitHub-Release; die
   Kette schreibt das Ereignis `lokal_live` und meldet „Version X lokal live“.
+- **Nur die ganze Suite ist ein Gesamtlauf (A1961):** Kette, Release-Takt und „freigabereif“ erkennen einen Gesamtlauf
+  gleich: Hat der Lauf einen Befehl, muss er den `gesamtlauf_befehl` des Projekts enthalten (für die AMW die Vorgabe
+  `python -X utf8 -m unittest discover -s tests`), und danach folgt kein weiteres Argument – kein `-k`, `-p`, `-t`, kein
+  einzelnes Modul, nur das Ende oder ein Trenner der Shell. Ohne Befehl (von Hand angemeldet) zählt „Gesamtlauf“ in der
+  Beschreibung. Ein Teil-Lauf zählt nie, auch nicht mit `--gesamtlauf` („L… ist kein Gesamtlauf“). Liefert die Kette mit
+  der Ausnahme des Leads aus, steht „Ausnahme (von <Lead>: Grund)“ in der Ausgabe, in der Info an den Lead und als Ereignis
+  `auslieferung_ausnahme` – nie eine L-Nummer.
 - **Web-Abzug als Lauf der Kette (A1952):** Der Web-Abzug ist ein leichter Lauf des Agenten „AMW“, nicht des
   ausliefernden Agenten – hat der gerade einen eigenen Lauf (z. B. den Gesamtlauf des nächsten Stapels), geht die Kette
   trotzdem zu Ende und hebt den Wartungsmodus auf. Scheitert der Abzug, stoppt die Kette mit der Anleitung zum Nachholen,

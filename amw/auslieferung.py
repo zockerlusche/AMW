@@ -18,7 +18,7 @@ import sys
 import time
 import urllib.request
 
-from . import betrieb, db, kern
+from . import betrieb, db, freigabereif, kern
 
 # Web-Abzug: die Kette rechnet ihn selbst als leichten Lauf (Befund 14.11.: als Dienst-Lauf lehnte der Dienst ihn ab, wenn
 # für den Agenten kein Arbeitsordner eingetragen ist – zu Recht, der Dienst rechnet nur in eingetragenen Ordnern).
@@ -400,10 +400,9 @@ class Kette:
                              f" {p['aufgabe_id']} --zweig {p['zweig']}")
         ausnahme = betrieb.gesamtlauf_ausnahme(self.con, self.pid, p["aufgabe_id"], baum_gleich=lambda s: self.baum(s) == self.baum(sha)) \
             if p["aufgabe_id"] else None                 # A1932: ein übertragenes OK hebt sie bei gleichem Baum nicht auf
-        ausnahme = f"{ausnahme['von']}: {ausnahme['text']}" if ausnahme and not niedrig else None   # ohne Prüfbitte: nur echter Lauf
+        ausnahme = f"von {ausnahme['von']}: {ausnahme['text']}" if ausnahme and not niedrig else None   # ohne Prüfbitte: nur echter Lauf
         # Gesamtlauf: zählt nur, wenn der beim tatsächlichen Start gemerkte Stand genau dieser ist und sauber war (TL #24259) –
         # die Beschreibung kann veralten (Arbeitsbaum zwischen Einreihen und Start gewechselt)
-        stand = f"%{betrieb.stand_text(('', sha, True))}%"
         lauf = None
         if gesamtlauf:
             lauf = self.con.execute("SELECT * FROM lauf WHERE id = ? AND projekt_id = ?", (int(str(gesamtlauf).lstrip("Ll")), self.pid)).fetchone()
@@ -413,9 +412,12 @@ class Kette:
             elif betrieb.stand_text(("", sha, True)) not in (lauf["ergebnis"] or ""):
                 fehlt.append(f"Gesamtlauf: L{gesamtlauf} hat nicht genau {sha[:8]} sauber geprüft (Ergebnis: {(lauf['ergebnis'] or '')[:80]})")
                 lauf = None
-        else:                                           # ein grüner Lauf geht vor; ohne ihn nur die Ausnahme des Leads
-            lauf = self.con.execute("SELECT * FROM lauf WHERE projekt_id = ? AND status = 'fertig' AND rc = 0 AND ergebnis LIKE ?"
-                                    " ORDER BY id DESC LIMIT 1", (self.pid, stand)).fetchone()
+            elif not freigabereif.ist_gesamtlauf(self.con, self.pid, lauf, self.amw):   # A1961: nur die ganze Suite
+                fehlt.append(f"Gesamtlauf: L{gesamtlauf} ist kein Gesamtlauf – sein Befehl prüft nicht die ganze Suite"
+                             f" ({freigabereif._gesamtlauf_befehl(self.con, self.pid, self.amw) or 'gesamtlauf_befehl'})")
+                lauf = None
+        else:                                           # ein grüner Gesamtlauf geht vor; ohne ihn nur die Ausnahme des Leads
+            lauf = freigabereif.gruener_gesamtlauf(self.con, self.pid, sha, self.amw)   # A1961: ein Teil-Lauf zählt nie
             if not lauf and not ausnahme:
                 fehlt.append(f"Gesamtlauf: kein grüner Lauf, der genau {sha[:8]} sauber geprüft hat – --gesamtlauf L<nr>, oder der Lead"
                              f" vermerkt eine Ausnahme: amw freigabe merge {p['aufgabe_id']} --ausnahme \"Grund\"")
@@ -614,6 +616,10 @@ class Kette:
                 wissen.release_version(self.con, self.pid, self.von, z["version"], z["notizen"][0], z["sha"][:7],
                                        oeffentlich=z["notizen"][1], kette=True)
         rid, _ = wissen.release_version(self.con, self.pid, self.von, version, v["titel"], sha[:7], kette=True)
+        if not v["lauf"]:                               # A1961: ohne Gesamtlauf steht die Ausnahme im Protokoll, nie eine L-Nummer
+            with db.schreiben(self.con):
+                db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von=self.von, art="auslieferung_ausnahme",
+                             text=f"{version} ({sha[:8]}) ohne Gesamtlauf – Ausnahme ({ausnahme})"[:500])
         if self.lokal_live:                             # A1928: was noch nicht veröffentlicht ist (Für dich → Abnehmen)
             from . import veroeffentlichung
             with db.schreiben(self.con):

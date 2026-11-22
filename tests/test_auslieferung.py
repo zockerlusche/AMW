@@ -280,7 +280,7 @@ class Kette(unittest.TestCase):
         r = self.kette().ausliefern("neu")
         self.assertEqual(r["version"], "1.1.0")
         info = self.con.execute("SELECT n.text FROM nachricht n WHERE n.kurz LIKE 'Version 1.1.0 live%'").fetchone()[0]
-        self.assertIn("Ohne Gesamtlauf: TL: L1412", info)
+        self.assertIn("Ohne Gesamtlauf: von TL: L1412", info)                                    # A1961: „von <Lead>“
 
     def test_ohne_merge_ok_halt_und_ruecknahme_zaehlt(self):
         self.gesamtlauf()
@@ -324,6 +324,46 @@ class Kette(unittest.TestCase):
         self.ohne_aenderung("genau")
         self.gesamtlauf()                                                                      # so zählt er
         self.assertEqual(self.kette().ausliefern("neu")["version"], "1.1.0")
+
+    def teillauf(self, befehl, beschreibung="Wiederholung test_kopf_handy (3×)"):
+        """A1961: ein grüner Lauf auf genau diesem sauberen Stand mit eigenem Befehl (wie amw lauf ausfuehren ihn ablegt)."""
+        with db.schreiben(self.con):
+            return db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="CC1", beschreibung=beschreibung, status="fertig", rc=0,
+                                angemeldet_utc=db.jetzt(), befehl=json.dumps([befehl]),
+                                ergebnis=f"rc 0 · {betrieb.stand_text(('', self.sha, True))} · Ausgabe: x.txt")
+
+    def test_nur_ein_lauf_der_ganzen_suite_ist_ein_gesamtlauf(self):
+        """A1961 (#30422, 1.161.0): ohne --gesamtlauf nahm die Kette L3033 (3× ein Test) als Gesamtlauf. Ein Teil-Lauf zählt nie –
+        auch nicht mit „Gesamtlauf“ in der Beschreibung; mit --gesamtlauf wird er abgewiesen; die ganze Suite zählt."""
+        self.gruen()
+        teil = self.teillauf("cd /d x && python -X utf8 -m unittest tests.test_kopf_handy")
+        self.teillauf("python -X utf8 -m unittest " + "discover -s tests -k kopf", beschreibung="Gesamtlauf (nur kopf)")
+        self.ohne_aenderung("Gesamtlauf")                                                       # kein Beleg gefunden
+        with self.assertRaises(auslieferung.Stopp) as e:
+            self.kette().ausliefern("neu", gesamtlauf=f"L{teil}")
+        self.assertIn(f"L{teil} ist kein Gesamtlauf", str(e.exception))
+        ganz = self.teillauf("cd /d x && set AMW_AGENT= && python -X utf8 -m unittest " + "discover -s tests > aus.txt",
+                             beschreibung="Lauf ohne das Wort")
+        zeilen = []
+        auslieferung.Kette(self.con, self.pid, "CC1", self.repo, extern=self.extern, start_version=lambda: "1.1.0",
+                           ausgabe=zeilen.append).ausliefern("neu")
+        self.assertIn(f"Gesamtlauf L{ganz}", zeilen[0])
+
+    def test_ausnahme_statt_l_nummer(self):
+        """A1961: Mit Merge-OK-Ausnahme und ohne Gesamtlauf nennt die Kette „Ausnahme (von <Lead>: Grund)“ – nie einen Teil-Lauf."""
+        self.gruen(merge_ok=False)
+        betrieb.freigabe_merge(self.con, self.pid, "TL", self.aid, ausnahme="Wackler test_kopf_handy, sonst grün")
+        self.teillauf("python -X utf8 -m unittest tests.test_kopf_handy")
+        zeilen = []
+        k = auslieferung.Kette(self.con, self.pid, "CC1", self.repo, extern=self.extern, start_version=lambda: "1.1.0", ausgabe=zeilen.append)
+        k.ausliefern("neu")
+        kopf = zeilen[0]
+        self.assertIn("Ausnahme (von TL: Wackler test_kopf_handy, sonst grün)", kopf)
+        self.assertNotIn("Gesamtlauf L", kopf)
+        e = self.con.execute("SELECT text FROM plan_ereignis WHERE art = 'auslieferung_ausnahme'").fetchone()
+        self.assertIn("ohne Gesamtlauf – Ausnahme (von TL: Wackler", e[0])
+        info = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'Version 1.1.0 live%'").fetchone()[0]
+        self.assertIn("Ohne Gesamtlauf: von TL: Wackler", info)
 
     def test_pruefstand_folgt_dem_cd_und_merkt_aenderungen(self):
         self.assertEqual(betrieb.pruefstand([f"cd /d {self.repo} && echo x"], self.ordner.name)[1:], (self.g("rev-parse", "HEAD"), True))

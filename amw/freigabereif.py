@@ -3,7 +3,10 @@ dem Stand einer grünen Prüfung ohne Merge-OK, meldet die AMW dem Prüfer „A<
 Bisher meldete sie ein Lauf-Ende nur, wenn vorher jemand „aufgabe wartet --auf L<nr>“ gesetzt hatte – ein Gebot statt eines
 Automatismus: der Lead wartete auf den Coder, der Coder auf das Merge-OK.
 
-- Gesamtlauf = Beschreibung enthält „Gesamtlauf“ oder der Befehl enthält den gesamtlauf_befehl des Projekts.
+- Gesamtlauf (A1961, eine Erkennung für freigabereif, Release-Kette und Release-Takt): hat der Lauf einen Befehl, zählt nur
+  der Befehl – er enthält den gesamtlauf_befehl des Projekts, und danach folgt kein weiteres Argument (also kein -k, -p, kein
+  einzelnes Modul), nur das Ende oder ein Trenner der Shell. Ohne Befehl (von Hand angemeldet) zählt wie bisher „Gesamtlauf“
+  in der Beschreibung. Ein Teil-Lauf mit „Gesamtlauf“ in der Beschreibung zählt nicht (#30422: L3033, 3× ein Test).
 - Stand = „Stand <sha> sauber“ im Ergebnis des Laufs (dasselbe Merkmal, an dem die Release-Kette den Lauf erkennt).
 - Rot (rc ≠ 0) → „Gesamtlauf rot“ an Prüfer und Bauer der Prüfungen auf diesem Stand.
 - Kommt die grüne Prüfung erst nach dem grünen Lauf, gilt dieselbe Meldung beim Grün-Setzen.
@@ -17,23 +20,46 @@ from . import db, kern
 STAND = re.compile(r"Stand ([0-9a-f]{40}) sauber")
 
 
-def _gesamtlauf_befehl(con, pid):
+def _gesamtlauf_befehl(con, pid, amw=False):
+    """Der Befehl der ganzen Suite: Projekt-Einstellung gesamtlauf_befehl, für die AMW selbst deren Vorgabe; sonst None."""
+    from . import buendel
     try:
-        from . import buendel
         return buendel.einstellungen(con, pid)["gesamtlauf_befehl"]
     except kern.AmwFehler:
-        return None
+        pass
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    try:
+        b = json.loads((r[0] if r else None) or "{}").get("gesamtlauf_befehl")
+    except ValueError:
+        b = None
+    return b or (buendel.vorgaben_amw()["gesamtlauf_befehl"] if amw else None)
 
 
-def ist_gesamtlauf(con, pid, l):
-    if "gesamtlauf" in (l["beschreibung"] or "").lower():
-        return True
-    b = _gesamtlauf_befehl(con, pid)
+TRENNER = r"\s*(?:$|&&?|\|\|?|;|>|\)|\^)"         # nach dem Befehl nur Ende oder Shell-Trenner – kein weiteres Argument
+
+
+def ist_gesamtlauf(con, pid, l, amw=False):
+    """A1961: Lief die ganze Suite? Mit Befehl entscheidet nur der Befehl; ohne Befehl die Beschreibung (von Hand angemeldet).
+    Kennt das Projekt keinen gesamtlauf_befehl (und ist nicht die AMW), bleibt es bei der Beschreibung."""
     try:
         befehl = " ".join(json.loads(l["befehl"] or "[]"))
     except (ValueError, TypeError):
         befehl = str(l["befehl"] or "")
-    return bool(b) and b in befehl
+    befehl = " ".join(befehl.split())
+    b = " ".join((_gesamtlauf_befehl(con, pid, amw) or "").split())
+    if not befehl or not b:
+        return "gesamtlauf" in (l["beschreibung"] or "").lower()
+    return re.search(re.escape(b) + TRENNER, befehl) is not None
+
+
+def gruener_gesamtlauf(con, pid, sha, amw=False):
+    """A1961: der neueste grüne Gesamtlauf, der genau diesen Stand sauber geprüft hat (Zeile) oder None."""
+    from . import betrieb
+    for l in con.execute("SELECT * FROM lauf WHERE projekt_id = ? AND status = 'fertig' AND rc = 0 AND ergebnis LIKE ? ORDER BY id DESC",
+                         (pid, f"%{betrieb.stand_text(('', sha, True))}%")).fetchall():
+        if ist_gesamtlauf(con, pid, l, amw):
+            return l
+    return None
 
 
 def stand(l):

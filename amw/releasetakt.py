@@ -44,8 +44,8 @@ def bereit(con, pid):
         if not betrieb.merge_ok(con, pid, p["aufgabe_id"], p["zweig"]):
             continue
         sha = betrieb.voller_sha(con, pid, p["sha"])           # ältere Prüfbitten nennen kurze Stände
-        lauf = con.execute("SELECT id FROM lauf WHERE projekt_id = ? AND status = 'fertig' AND rc = 0 AND ergebnis LIKE ?"
-                           " ORDER BY id DESC LIMIT 1", (pid, f"%{betrieb.stand_text(('', sha, True))}%")).fetchone()
+        from . import freigabereif
+        lauf = freigabereif.gruener_gesamtlauf(con, pid, sha)          # A1961: nur ein Lauf der ganzen Suite
         if not lauf:
             continue
         if _git(ordner, "merge-base", "--is-ancestor", sha, "main") == 0:         # schon in main: nichts mehr zu tun
