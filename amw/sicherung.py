@@ -9,12 +9,21 @@ Sicherungsziel – ohne neue Version und ohne Homepage.
   dort nicht vorspulen kann (lokal neu aufgesetzt), wird abgewiesen und steht im Fehler; die übrigen Refs gehen trotzdem mit.
 - Ergebnis als Ereignis sicherung_push (Zeit, Ziel ohne Zugangsdaten, Anzahl Refs, Stand, rc); ein Fehler als Meldung an den Lead.
 - `amw sicherung jetzt` (Lead oder Mensch): ein Push von Hand, auch am selben Tag.
+
+P408 (Betriebssicherheit, der Push läuft im Dienst):
+1. Nie eine Anmeldeabfrage: git mit GIT_TERMINAL_PROMPT=0, GCM_INTERACTIVE=never (Git Credential Manager) und ssh im
+   BatchMode. Fehlt die Anmeldung, scheitert der Push sofort und meldet „Anmeldung fehlt – einmal git push von Hand“.
+2. Die Dienst-Runde wartet nicht: im_hintergrund() rechnet in einem eigenen Faden mit eigener Verbindung, höchstens einer zur
+   Zeit, jeder Push mit Frist.
+3. Ein abgewiesener Zweig wird nur EINMAL gemeldet (im Ereignis gemerkt: „gemeldet“), nicht jeden Tag.
 """
 import datetime
 import hashlib
 import json
+import os
 import re
 import subprocess
+import threading
 
 from . import db, kern
 
@@ -23,6 +32,17 @@ REMOTE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}")
 SCP = re.compile(r"[A-Za-z0-9_.-]+@[A-Za-z0-9.-]+:[^\s]+")            # git@github.com:konto/repo.git (ohne Passwort)
 URL = re.compile(r"(https|ssh|file)://[^\s]+")
 FRIST_S = 600
+ANMELDUNG = re.compile(r"Authentication failed|could not read Username|could not read Password|terminal prompts disabled|"
+                       r"Permission denied \(publickey|HTTP Basic: Access denied|The requested URL returned error: 40[13]|"
+                       r"Host key verification failed", re.I)
+_FADEN = {"faden": None}
+
+
+def umgebung():
+    """P408 (1): git darf im Dienst nie nach einer Anmeldung fragen (kein Fenster, kein Hängen bis zur Frist)."""
+    u = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never")
+    u.setdefault("GIT_SSH_COMMAND", "ssh -o BatchMode=yes")
+    return u
 
 
 def ziel_pruefen(v):
@@ -53,8 +73,12 @@ def anzeige(z):
 
 
 def _git(ordner, *args, frist=FRIST_S):
-    r = subprocess.run(["git", "-C", ordner, *args], capture_output=True, text=True, encoding="utf-8", errors="replace",
-                       stdin=subprocess.DEVNULL, timeout=frist, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    try:
+        r = subprocess.run(["git", "-C", ordner, *args], capture_output=True, text=True, encoding="utf-8", errors="replace",
+                           stdin=subprocess.DEVNULL, timeout=frist, env=umgebung(),
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except subprocess.TimeoutExpired:
+        return 124, f"Frist {frist} s überschritten"
     return r.returncode, (r.stdout + r.stderr).strip()
 
 
@@ -86,17 +110,38 @@ def pushen(con, pid, von="AMW"):
         raise kern.AmwFehler("Das Projekt hat keinen Ordner (amw projekt ordner …)")
     s, n = stand(ordner)
     rc, aus = _git(ordner, "push", "--porcelain", z, "refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*")
-    abgewiesen = [x.split("\t")[1].split(":")[0] for x in aus.splitlines() if x.startswith("!") and "\t" in x]
-    e = {"ziel": anzeige(z), "refs": n, "stand": s, "rc": rc, "abgewiesen": abgewiesen[:20], "von": von}
+    abgewiesen = sorted(x.split("\t")[1].split(":")[0] for x in aus.splitlines() if x.startswith("!") and "\t" in x)
+    bisher = set((letzte(con, pid) or {}).get("gemeldet") or [])
+    if rc == 0:
+        fehler = None
+    elif ANMELDUNG.search(aus):
+        fehler = "anmeldung"
+    elif rc == 124:
+        fehler = "frist"
+    elif abgewiesen and "fatal:" not in aus:
+        fehler = None                                         # nur abgewiesene Zweige – der Rest ist gesichert
+    else:
+        fehler = "git"
+    neu = [x for x in abgewiesen if x not in bisher]          # P408 (3): je Zweig nur einmal melden
+    e = {"ziel": anzeige(z), "refs": n, "stand": s, "rc": rc, "fehler": fehler, "abgewiesen": abgewiesen[:50],
+         "gemeldet": sorted(bisher | set(abgewiesen))[:500], "von": von}
+    lead = kern.lead(con, pid) or kern.ENTWICKLER
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=ART, text=json.dumps(e, ensure_ascii=False))
-        if rc != 0:
-            lead = kern.lead(con, pid) or kern.ENTWICKLER
-            grund = (f"{len(abgewiesen)} Zweig(e) am Ziel nicht vorspulbar (lokal neu aufgesetzt?): {', '.join(abgewiesen[:8])}"
-                     if abgewiesen else aus[-300:])
-            kern._posten(con, pid, "AMW", lead, "meldung", f"Sicherung nach {anzeige(z)} unvollständig"[:140],
-                         f"git push (ohne --force, ohne Löschen) endete mit {rc}. {grund}. Die übrigen Refs sind gesichert; am Ziel wurde"
-                         " nichts überschrieben. Nächster Versuch morgen oder mit amw sicherung jetzt.")
+        if fehler == "anmeldung":
+            an = lead if lead == kern.ENTWICKLER else f"{lead},{kern.ENTWICKLER}"
+            kern._posten(con, pid, "AMW", an, "meldung", f"Sicherung nach {anzeige(z)}: Anmeldung fehlt"[:140],
+                         "git hat ohne Abfrage abgebrochen (im Dienst fragt git nie nach einer Anmeldung). Marcel: einmal im eigenen"
+                         f" Terminal `git push {anzeige(z)}` im Projektordner, damit die Anmeldung gespeichert ist – danach geht die"
+                         " tägliche Sicherung wieder von selbst. Nichts wurde gesichert, nichts verändert.")
+        elif fehler:
+            kern._posten(con, pid, "AMW", lead, "meldung", f"Sicherung nach {anzeige(z)} nicht gelungen ({fehler})"[:140],
+                         f"git push (ohne --force, ohne Löschen) endete mit {rc}: {aus[-300:]}. Nächster Versuch morgen oder mit"
+                         " amw sicherung jetzt.")
+        elif neu:
+            kern._posten(con, pid, "AMW", lead, "meldung", f"Sicherung nach {anzeige(z)}: {len(neu)} Zweig(e) nicht vorspulbar"[:140],
+                         f"{', '.join(neu[:12])} – am Ziel nicht vorspulbar (lokal neu aufgesetzt?), dort unverändert gelassen; alle"
+                         " anderen Refs sind gesichert. Diese Zweige meldet die AMW nicht noch einmal.")
     return e
 
 
@@ -115,11 +160,35 @@ def runde(con, heute=None):
         except kern.AmwFehler as f:
             aus.append(f"P{pid}: {f}")
             continue
-        if l and l.get("stand") == s and l.get("rc") == 0:
-            continue                                          # nichts geändert seit dem letzten vollständigen Push
+        if l and l.get("stand") == s and not l.get("fehler") and "fehler" in l:
+            continue                                          # nichts geändert seit dem letzten Push ohne Fehler
         e = pushen(con, pid)
         aus.append(f"P{pid}: Sicherung {e['ziel']} – {e['refs']} Refs, rc {e['rc']}")
     return aus
+
+
+def im_hintergrund(pfad, warten=None):
+    """P408 (2): runde() in einem eigenen Faden mit eigener Verbindung – die Dienst-Runde wartet nie. Läuft schon einer,
+    passiert nichts. Rückgabe: True, wenn gestartet."""
+    f = _FADEN["faden"]
+    if f and f.is_alive():
+        return False
+
+    def lauf():
+        import logging
+        con = db.verbinde(pfad)
+        try:
+            if warten:
+                warten()
+            for x in runde(con):
+                logging.getLogger("amw.dienst").info("Sicherung: %s", x)
+        except Exception as e:                                # noqa: BLE001 – der Faden meldet, er bricht nichts ab
+            logging.getLogger("amw.dienst").warning("Sicherung: %s: %s", type(e).__name__, e)
+        finally:
+            con.close()
+    _FADEN["faden"] = threading.Thread(target=lauf, name="sicherung", daemon=True)
+    _FADEN["faden"].start()
+    return True
 
 
 def _lokaler_tag(zeit_utc):

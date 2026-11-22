@@ -93,7 +93,10 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
   ohne neue Version, ohne Homepage, nur wenn sich seit dem letzten vollständigen Push etwas geändert hat. Nie mit Gewalt: kein
   `--force`, kein `--prune`, kein `--mirror`; ein Zweig, der am Ziel nicht vorspulen kann (lokal neu aufgesetzt), bleibt dort
   wie er war und steht in der Meldung an den Lead, die übrigen Refs gehen mit. Keine Zugangsdaten in der AMW: eine URL mit
-  Benutzer oder Token wird abgelehnt, git nimmt die Anmeldung des Menschen. Ereignis `sicherung_push`; von Hand:
+  Benutzer oder Token wird abgelehnt, git nimmt die Anmeldung des Menschen – im Dienst nie mit Abfrage (kein Fenster, kein
+  Hängen): fehlt sie, kommt sofort „Anmeldung fehlt – einmal git push von Hand“. Der Push läuft in einem eigenen Faden (die
+  Dienst-Runde wartet nicht), höchstens einer zur Zeit, mit Frist; ein abgewiesener Zweig wird nur einmal gemeldet.
+  Ereignis `sicherung_push`; von Hand:
   `amw sicherung jetzt` (Lead oder Mensch), Stand: `amw sicherung`.
 
 ## Bündeln (seit 1.150.0)

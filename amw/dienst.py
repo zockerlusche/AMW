@@ -439,10 +439,9 @@ class Dienst:
                 log.info("Wochenlimit-Halt: %s", e)
         except Exception as e:
             log.warning("Wochenlimit-Halt: %s: %s", type(e).__name__, e)
-        try:                                                                 # A1929: tägliche Sicherung an sicherung_ziel
+        try:                                                                 # A1929: tägliche Sicherung – eigener Faden (P408)
             from . import sicherung
-            for e in sicherung.runde(self.con):
-                log.info("Sicherung: %s", e)
+            sicherung.im_hintergrund(self.con.execute("PRAGMA database_list").fetchone()[2])
         except Exception as e:
             log.warning("Sicherung: %s: %s", type(e).__name__, e)
         try:                                                                 # A1927: Ausfall zurück, freie Agenten bekommen Arbeit

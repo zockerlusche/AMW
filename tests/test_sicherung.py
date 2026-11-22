@@ -131,5 +131,73 @@ class Sicherung(unittest.TestCase):
         self.assertEqual(len(self.refs_am_ziel()), 3)
 
 
+    # --- P408 (Betriebssicherheit im Dienst) -----------------------------------------------------------------------------
+    def test_p408_1_nie_eine_anmeldeabfrage(self):
+        u = sicherung.umgebung()
+        self.assertEqual((u["GIT_TERMINAL_PROMPT"], u["GCM_INTERACTIVE"]), ("0", "never"))
+        self.assertIn("BatchMode=yes", u["GIT_SSH_COMMAND"])
+        gesehen = []
+        echt = subprocess.run
+
+        def lauf(befehl, **kw):
+            gesehen.append(kw.get("env") or {})
+            return echt(befehl, **kw)
+        with mock.patch.object(sicherung.subprocess, "run", side_effect=lauf):
+            sicherung.pushen(self.con, self.pid)
+        self.assertTrue(gesehen and all(e.get("GIT_TERMINAL_PROMPT") == "0" and e.get("GCM_INTERACTIVE") == "never" for e in gesehen))
+        echte_git = sicherung._git
+
+        def ohne_anmeldung(ordner, *a, **k):
+            if a and a[0] == "push":
+                return 128, "fatal: could not read Username for 'https://github.com': terminal prompts disabled"
+            return echte_git(ordner, *a, **k)
+        with mock.patch.object(sicherung, "_git", side_effect=ohne_anmeldung):
+            e = sicherung.pushen(self.con, self.pid)
+        self.assertEqual(e["fehler"], "anmeldung")
+        m = self.con.execute("SELECT n.text FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE e.agent = 'Entwickler'"
+                             " AND n.kurz LIKE '%Anmeldung fehlt'").fetchone()
+        self.assertIn("einmal im eigenen Terminal", m[0])
+        self.assertEqual(sicherung.runde(self.con, heute="2099-01-01")[0][-4:], "rc 0")             # am nächsten Tag wieder versucht
+
+    def test_p408_2_dienst_wartet_nicht(self):
+        import threading
+        los, gestartet = threading.Event(), threading.Event()
+
+        def warten():
+            gestartet.set()
+            los.wait(10)
+        self.assertTrue(sicherung.im_hintergrund(self.pfad, warten=warten))
+        self.assertTrue(gestartet.wait(10))                                                            # läuft, die Runde ist schon zurück
+        self.assertFalse(sicherung.im_hintergrund(self.pfad))                                         # höchstens einer zur Zeit
+        los.set()
+        sicherung._FADEN["faden"].join(30)
+        self.assertEqual(len(self.refs_am_ziel()), 3)                                                 # mit eigener Verbindung gerechnet
+        self.assertTrue(sicherung.im_hintergrund(self.pfad))
+        sicherung._FADEN["faden"].join(30)
+
+    def test_p408_3_abgewiesen_nur_einmal(self):
+        sicherung.pushen(self.con, self.pid)
+        g(self.repo, "checkout", "-q", "--orphan", "neu")
+        self.commit("anders", "y.txt")
+        g(self.repo, "branch", "-f", "a1", "neu")
+        g(self.repo, "checkout", "-q", "main")
+        g(self.repo, "branch", "-D", "neu")
+        meldungen = lambda: self.con.execute("SELECT count(*) FROM nachricht WHERE kurz LIKE '%nicht vorspulbar'").fetchone()[0]
+        e = sicherung.pushen(self.con, self.pid)
+        self.assertEqual((e["abgewiesen"], e["fehler"], meldungen()), (["refs/heads/a1"], None, 1))
+        self.assertEqual(sicherung.runde(self.con, heute="2099-01-01"), [])                         # nur Bekanntes, nichts geändert
+        sicherung.pushen(self.con, self.pid)
+        self.assertEqual(meldungen(), 1)                                                              # nicht noch einmal
+        g(self.repo, "checkout", "-q", "--orphan", "neu2")
+        self.commit("auch anders", "z.txt")
+        g(self.repo, "branch", "-f", "main", "neu2")
+        g(self.repo, "checkout", "-q", "main")
+        g(self.repo, "branch", "-D", "neu2")
+        e = sicherung.pushen(self.con, self.pid)
+        self.assertEqual((sorted(e["abgewiesen"]), meldungen()), (["refs/heads/a1", "refs/heads/main"], 2))
+        m = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE '%nicht vorspulbar' ORDER BY id DESC LIMIT 1").fetchone()[0]
+        self.assertIn("refs/heads/main", m)
+        self.assertNotIn("refs/heads/a1", m)                                                          # nur der neue
+
 if __name__ == "__main__":
     unittest.main()
