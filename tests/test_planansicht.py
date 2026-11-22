@@ -68,25 +68,45 @@ class Daten(Grund):
 
 
 class Handlungen(Grund):
-    def test_freigabe_grob_dann_plan_wer_als_fakt(self):
-        with self.assertRaisesRegex(kern.AmwFehler, "Co, Lead oder der Mensch"):
-            planansicht.freigeben(self.con, self.pid, "CC1", self.m1, "grob")
+    def test_mensch_allein_grob_dann_plan_wer_als_fakt(self):
+        with self.assertRaisesRegex(kern.AmwFehler, "der Mensch frei \\(thema_freigabe = mensch\\)"):
+            planansicht.freigeben(self.con, self.pid, "Co", self.m1, "grob")                    # Vorgabe: nur der Mensch
         with self.assertRaisesRegex(kern.AmwFehler, "erst den Meilenstein freigeben"):
-            planansicht.freigeben(self.con, self.pid, "TL", self.m1, "plan")
-        planansicht.freigeben(self.con, self.pid, "Co", self.m1, "grob")                         # Co darf (B2913/B2914)
+            planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "plan")
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob")
         g = self.m(self.m1)["grob"]
-        self.assertEqual((g["frei"], g["von"]), (True, "Co"))
+        self.assertEqual((g["frei"], g["von"], g["ja_fehlt"]), (True, kern.ENTWICKLER, []))
         with self.assertRaisesRegex(kern.AmwFehler, "schon freigegeben"):
-            planansicht.freigeben(self.con, self.pid, "TL", self.m1, "grob")
+            planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob")
         planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m2, "grob")
         self.assertEqual(self.d()["tor"], "fein")
         with self.assertRaisesRegex(kern.AmwFehler, "noch keine Pakete"):
-            planansicht.freigeben(self.con, self.pid, "TL", self.m2, "plan")
-        planansicht.freigeben(self.con, self.pid, "TL", self.m1, "plan")
+            planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m2, "plan")
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "plan")
         self.assertTrue(self.d()["starten"])                                                   # M2 ist „später“, zählt nicht
 
-    def test_zurueck_mit_notiz_an_den_lead(self):
+    def test_co_und_lead_gemeinsam_b2913(self):
+        """#30329: wie K1 – bei thema_freigabe = co+lead braucht es BEIDE Ja (seit dem letzten Zurück), sonst den Menschen."""
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead")
+        with self.assertRaisesRegex(kern.AmwFehler, "Co-Entwickler und der Lead"):
+            planansicht.freigeben(self.con, self.pid, "CC1", self.m1, "grob")
+        self.assertEqual(planansicht.freigeben(self.con, self.pid, "Co", self.m1, "grob"), {"frei": False, "ja_fehlt": ["Lead"]})
+        g = self.m(self.m1)["grob"]
+        self.assertEqual((g["frei"], g["ja_fehlt"]), (False, ["Lead"]))                         # ein Ja reicht nicht
+        planansicht.zurueck(self.con, self.pid, "TL", self.m1, "grob", "Noch nicht")             # Zurück von einem genügt
+        self.assertEqual(self.m(self.m1)["grob"]["ja_fehlt"], ["Co-Entwickler", "Lead"])        # die Ja davor zählen nicht mehr
         planansicht.freigeben(self.con, self.pid, "TL", self.m1, "grob")
+        self.assertEqual(planansicht.freigeben(self.con, self.pid, "Co", self.m1, "grob"), {"frei": True})
+        g = self.m(self.m1)["grob"]
+        self.assertEqual((g["frei"], g["von"], g["durch"], g["ja_fehlt"]), (True, "AMW", ["Co", "TL"], []))
+        e = self.con.execute("SELECT text FROM plan_ereignis WHERE art = ? ORDER BY id DESC LIMIT 1", (planansicht.FREI,)).fetchone()[0]
+        self.assertIn('"regel_von": "B2913"', e)
+        self.assertIn("freigegeben von Co und Lead", self.post(kern.ENTWICKLER)[-1][1])
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m2, "grob")              # der Mensch kann immer allein
+        self.assertTrue(self.m(self.m2)["grob"]["frei"])
+
+    def test_zurueck_mit_notiz_an_den_lead(self):
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob")
         with self.assertRaisesRegex(kern.AmwFehler, "nur mit Notiz"):
             planansicht.zurueck(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob", " ")
         planansicht.zurueck(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob", "Erst die Sicherung")
@@ -106,8 +126,8 @@ class Handlungen(Grund):
         with self.assertRaisesRegex(kern.AmwFehler, "erst, wenn alle"):
             planansicht.jetzt_starten(self.con, self.pid, "TL")
         for bid in (self.m1, self.m2):
-            planansicht.freigeben(self.con, self.pid, "TL", bid, "grob")
-        planansicht.freigeben(self.con, self.pid, "TL", self.m1, "plan")
+            planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, bid, "grob")
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "plan")
         self.assertEqual(planansicht.jetzt_starten(self.con, self.pid, "TL"), [1])
         self.assertEqual((self.m(self.m1)["status"], self.m(self.m2)["status"], self.d()["tor"]), ("aktiv", "geplant", "umsetzung"))
 

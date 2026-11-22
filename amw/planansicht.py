@@ -4,9 +4,12 @@ Ein Menüpunkt „Planung“, Reiter „Meilensteine“ (Grob) und „Pakete“ 
 - Meilensteine (bogen) in Reihenfolge; ihre Themen ergeben sich aus den Themen-Verweisen ihrer Pakete (A1915) – kein Freitext.
 - Pakete je Meilenstein: Agent bzw. -p mit Modell, Vorgänger (nach), Prüfung, Kosten – gemessen, sonst Median der Zelle
   Größe × Art (empfehlung.zellen); ohne beides „–“. Voll geplant ist ein Meilenstein mit mindestens einem Paket.
-- Freigabe je Meilenstein (Grob) und je Meilenstein-Plan (Fein) durch Co, Lead oder den Menschen (B2913/B2914, K1). Den Knopf
-  gibt es einmal; wer gedrückt hat, steht als Fakt dabei. Ereignisse ohne Schemaänderung: meilenstein_frei
-  {"bogen", "art": "grob"|"plan", "an": true|false, "notiz"} – der jüngste je (Meilenstein, Art) gilt.
+- Freigabe je Meilenstein (Grob) und je Meilenstein-Plan (Fein) wie bei den Themen (K1, A1937, B2913, #30329): der Mensch
+  allein; bei thema_freigabe = co+lead geben Co-Entwickler und Lead je ein Ja – erst mit beiden (seit dem letzten Zurück) gibt
+  die AMW frei („durch“ beide, Regel B2913); in der Ansicht „Ja fehlt noch: …“. Zurück genügt von einem (mit Notiz). Den Knopf
+  gibt es einmal; wer freigegeben hat, steht als Fakt dabei. Ereignisse ohne Schemaänderung: meilenstein_frei
+  {"bogen", "art": "grob"|"plan", "an": true|false, "notiz", "durch", "regel_von"} – der jüngste je (Meilenstein, Art) gilt;
+  meilenstein_ja {"bogen", "art", "rolle": "co"|"lead"}.
 - „Jetzt starten“: erst, wenn alle offenen Meilensteine freigegeben und alle voll geplanten Pläne freigegeben sind; bis K5 live
   ist, setzt er die voll geplanten Meilensteine auf „aktiv“ (planung.bogen_status) – Lead oder Mensch.
 """
@@ -15,6 +18,7 @@ import json
 from . import db, kern
 
 FREI = "meilenstein_frei"
+JA = "meilenstein_ja"
 ARTEN = ("grob", "plan")
 
 
@@ -26,7 +30,24 @@ def _zustaende(con, pid):
             d = json.loads(r["text"])
         except ValueError:
             continue
-        aus[(d.get("bogen"), d.get("art"))] = {"an": bool(d.get("an")), "von": r["von"], "zeit_utc": r["zeit_utc"], "notiz": d.get("notiz")}
+        aus[(d.get("bogen"), d.get("art"))] = {"an": bool(d.get("an")), "von": r["von"], "zeit_utc": r["zeit_utc"], "notiz": d.get("notiz"),
+                                               "durch": d.get("durch")}
+    return aus
+
+
+def _jas(con, pid):
+    """{(bogen, art): {"co": Kennung, "lead": Kennung}} – die Ja seit dem letzten Freigeben oder Zurück (K1: „zur selben Fassung“)."""
+    aus = {}
+    for r in con.execute("SELECT von, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?) ORDER BY id", (pid, FREI, JA)):
+        try:
+            d = json.loads(r["text"])
+        except ValueError:
+            continue
+        k = (d.get("bogen"), d.get("art"))
+        if r["art"] == FREI:
+            aus.pop(k, None)
+        else:
+            aus.setdefault(k, {})[d.get("rolle")] = r["von"]
     return aus
 
 
@@ -50,8 +71,12 @@ def freigeben(con, pid, von, bid, art):
     """Grob: der Meilenstein steht so. Plan: seine Pakete stehen so (erst nach der Grob-Freigabe, nur mit Paketen)."""
     if art not in ARTEN:
         raise kern.AmwFehler("Freigabe: grob | plan")
-    if not darf_freigeben(con, pid, von):
-        raise kern.AmwFehler("Meilensteine und Pläne geben Co, Lead oder der Mensch frei")
+    from . import themen
+    if von != kern.ENTWICKLER:                       # K1 (B2913): nur mit thema_freigabe = co+lead, und dann je ein Ja
+        if themen.freigabe_regel(con, pid) != "co+lead":
+            raise kern.AmwFehler("Meilensteine gibt in diesem Projekt der Mensch frei (thema_freigabe = mensch)")
+        if not (kern.ist_co(con, pid, von) or kern.ist_lead(con, pid, von)):
+            raise kern.AmwFehler("Ein Ja zur Freigabe geben der Co-Entwickler und der Lead (B2913) – sonst gibt der Mensch frei")
     b = _bogen(con, pid, bid)
     if b["status"] not in ("geplant", "aktiv"):
         raise kern.AmwFehler(f"Meilenstein {b['nr']} ist {b['status']}")
@@ -64,8 +89,24 @@ def freigeben(con, pid, von, bid, art):
         if not _pakete(con, pid, bid):
             raise kern.AmwFehler(f"Meilenstein {b['nr']} hat noch keine Pakete – er wird geplant, wenn der davor läuft")
     with db.schreiben(con):
-        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=FREI, bogen_id=bid,
-                     text=json.dumps({"bogen": bid, "art": art, "an": True}, ensure_ascii=False))
+        if von == kern.ENTWICKLER:                   # der Mensch allein
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=FREI, bogen_id=bid,
+                         text=json.dumps({"bogen": bid, "art": art, "an": True}, ensure_ascii=False))
+            return {"frei": True}
+        rolle = "co" if kern.ist_co(con, pid, von) else "lead"
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=JA, bogen_id=bid,
+                     text=json.dumps({"bogen": bid, "art": art, "rolle": rolle}, ensure_ascii=False))
+        j = _jas(con, pid).get((bid, art), {})
+        if not (j.get("co") and j.get("lead")):
+            return {"frei": False, "ja_fehlt": [themen.ROLLEN_JA[r] for r in themen.ROLLEN_JA if not j.get(r)]}
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=FREI, bogen_id=bid,
+                     text=json.dumps({"bogen": bid, "art": art, "an": True, "durch": [j["co"], j["lead"]], "regel_von": "B2913"},
+                                     ensure_ascii=False))
+        was = "Plan für Meilenstein" if art == "plan" else "Meilenstein"
+        kern._posten(con, pid, "AMW", kern.ENTWICKLER, "info", f"{was} {b['nr']} „{b['titel'][:50]}“ freigegeben von Co und Lead",
+                     f"{j['co']} (Co-Entwickler) und {j['lead']} (Lead) haben {was.lower() if art == 'plan' else 'den Meilenstein'}"
+                     f" {b['nr']} „{b['titel']}“ freigegeben (B2913). Zurückholen kannst du jederzeit (Planung › Zurück).")
+    return {"frei": True}
 
 
 def zurueck(con, pid, von, bid, art, notiz):
@@ -133,6 +174,13 @@ def daten(con, pid):
     """Für die Workbench (Planung › Meilensteine/Pakete)."""
     from . import arbeitspaket, empfehlung, planung, themen
     z = _zustaende(con, pid)
+    js, co_lead = _jas(con, pid), themen.freigabe_regel(con, pid) == "co+lead"
+
+    def fehlt(bid, art, frei):
+        if frei or not co_lead:
+            return []
+        j = js.get((bid, art), {})
+        return [themen.ROLLEN_JA[r] for r in themen.ROLLEN_JA if not j.get(r)]
     try:
         zellen = empfehlung.zellen(con, pid)
     except Exception:                                    # noqa: BLE001
@@ -154,9 +202,11 @@ def daten(con, pid):
         ms.append({"id": b["id"], "nr": b["nr"], "titel": b["titel"], "status": b["status"], "endet_mit": b["abnahme"],
                    "themen": [{"id": k, "name": v} for k, v in sorted(th.items())], "pakete": pakete,
                    "summe": round(sum(p["usd"] for p in pakete if p["usd"]), 2) if any(p["usd"] for p in pakete) else None,
-                   "grob": {"frei": bool(g.get("an")), "von": g.get("von"), "zeit_utc": g.get("zeit_utc"), "notiz": None if g.get("an") else g.get("notiz")},
-                   "plan": {"frei": bool(pl.get("an")), "von": pl.get("von"), "zeit_utc": pl.get("zeit_utc"),
-                            "notiz": None if pl.get("an") else pl.get("notiz")}})
+                   "grob": {"frei": bool(g.get("an")), "von": g.get("von"), "durch": g.get("durch"), "zeit_utc": g.get("zeit_utc"),
+                            "notiz": None if g.get("an") else g.get("notiz"), "ja_fehlt": fehlt(b["id"], "grob", g.get("an"))},
+                   "plan": {"frei": bool(pl.get("an")), "von": pl.get("von"), "durch": pl.get("durch"), "zeit_utc": pl.get("zeit_utc"),
+                            "notiz": None if pl.get("an") else pl.get("notiz"),
+                            "ja_fehlt": fehlt(b["id"], "plan", pl.get("an")) if b and _pakete(con, pid, b["id"]) else []}})
     offen = [m for m in ms if m["status"] == "geplant"]
     grob_zu = bool(offen) and all(m["grob"]["frei"] for m in offen)
     voll = [m for m in offen if m["pakete"]]

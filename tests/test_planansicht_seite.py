@@ -44,7 +44,7 @@ class PlanAnsicht(Rundgang):
 
     def test_pakete_und_jetzt_starten(self):
         for bid in (self.m1, self.m2):
-            planansicht.freigeben(self.con, self.pid, "TL", bid, "grob")
+            planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, bid, "grob")
         self.groesse("pc")
         self.tab.senden("Page.navigate", url=f"{self.basis}?r=1#planung")
         self.warten("typeof zustand === 'object' && typeof zeige === 'function'")
@@ -59,7 +59,7 @@ class PlanAnsicht(Rundgang):
         self.assertEqual(planung.bogen_zeile(self.con, self.pid, self.m1)["status"], "aktiv")
 
     def test_bilder(self):
-        planansicht.freigeben(self.con, self.pid, "TL", self.m1, "grob")
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob")
         wahl = lambda r: f"zustand.planReiter = '{r}'; void zeige('planung', true)"
         for g in ("pc", "handy"):
             for th in ("hell", "dunkel"):
