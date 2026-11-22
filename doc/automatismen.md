@@ -273,6 +273,20 @@ Code; ein anderes Projekt hat eigene heikle Stellen (Zugänge, Sicherheit, Zahlu
   Vorgabe 30.
 - Beide nur Lead oder Mensch, nicht aus einer Agenten-Sitzung.
 
+## Sprach-Server-Prüfung in Prüfung C (A1962, TH167 Fassung 3 Pkt 7)
+
+**Wozu:** Typ- und Aufruffehler, die die Tests nicht treffen, fallen vor dem Merge auf – ohne KI-Aufruf, ohne Netz.
+
+- **Was läuft:** Nach Abnahme und Rückschritt-Tests läuft `pyright --outputjson` über das ganze Projekt (Konfiguration
+  `pyrightconfig.json` aus dem Repo) – im frischen Checkout des Pakets und in einem frischen Checkout seines Start-Commits, mit
+  Zeitlimit 10 Minuten je Lauf. Neu ist eine Meldung mit Schweregrad error, verglichen nach Regel, Datei und Text ohne
+  Zeilennummer (gleiche Meldung öfter als vorher zählt). Warnungen zählen nicht.
+- **Danach:** neue Fehler → C/rot; die Liste (Datei:Zeile, Regel, Text) geht mit der Abnahme-Ausgabe in den Nachbesserungslauf
+  (E5). Programm fehlt, stürzt ab oder Zeitlimit → C/technik. Ist die Abnahme rot, läuft die Prüfung trotzdem, damit der neue
+  Lauf beides sieht.
+- **`sprachpruefung`:** `auto` (Vorgabe: an, wenn das Repo eine `pyrightconfig.json` hat) | `pyright` (immer) | `aus` – nur Lead
+  oder Mensch. pyright kommt aus der Umgebung der AMW (npm, vorab installiert); der Arbeiter selbst bekommt es nicht.
+
 ## Werkzeug-Umgebung je Projekt (A1922, TH160)
 
 **Wozu:** Arbeiter (p-Pakete) laufen mit einer neu gebauten, kleinen Umgebung und ohne Netz. Ein Projekt mit eigenem
@@ -645,6 +659,7 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 | `amw projekt einstellen` | `arbeiter_umgebung` | zusätzliche Variablen und PATH-Ordner für Arbeiter (keine Zugangsdaten, kein Netz) |
 | `amw projekt einstellen` | `regression_befehl` | Rückschritt-Tests in Prüfung C (Befehl, `aus`; leer = Vorgabe: nur die AMW selbst) |
 | `amw projekt einstellen` | `abnahme_frist_min` | Zeitlimit je Abnahme in Prüfung C, 1–720 Minuten (Vorgabe 30) |
+| `amw projekt einstellen` | `sprachpruefung` | Sprach-Server in Prüfung C: `auto` (mit pyrightconfig.json), `pyright`, `aus` (Lead oder Mensch) |
 | `amw projekt einstellen` | `sperrmuster` | was Arbeiter in diesem Projekt nie ändern dürfen, zusätzlich zur festen Liste (Lead oder Mensch) |
 | Zahnrad › Projekt | `entwickler_name` | wie der Mensch in Meldungen heißt (Vorgabe „Entwickler“); gilt auch als Wartegrund |
 | Zahnrad › Dieser PC | `fernsitzung_prozess` | Programm einer Fernsitzung für den Schirm (leer = nicht prüfen) |

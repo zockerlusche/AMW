@@ -232,6 +232,7 @@ PROJEKT_TEXTE = {"entwickler_name": 30}       # Text-Einstellungen: Schlüssel �
 PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 "release_modus": ("datei", "tag"),                      # A1923: Version in version_datei oder aus dem Tag
                 "thema_freigabe": ("mensch", "co+lead"),                # A1937 (B2913): Co und Lead geben Themen gemeinsam frei
+                "sprachpruefung": ("auto", "pyright", "aus"),           # A1962: Prüfung C Schritt 7 – auto = mit pyrightconfig.json
                 "changelog_format": ("amw", "keepachangelog"),          # A1923: Abschnitte wie die AMW oder Keep a Changelog
                 "release_sicherung": ("aus", "an"),                     # A1933: Sicherung der Projektdaten vor einer Auslieferung
                 # Wege (Fehlerbericht aus einem Projekt, Entscheid des Entwicklers): Fragen der Agenten an den Entwickler gehen zuerst an den

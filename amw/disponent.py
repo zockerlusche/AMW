@@ -510,7 +510,7 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
                 pruefen = lambda: pruefung_c.pruefen(p, quelle, v["basis"], aid, a["pruefbefehl"], bereiche, f.get("pakettyp"),
                                                      frist=ab["frist_s"], regression=ab["regression"], aussen=aussen,
                                                      sperrmuster=sperr, ohne_regression=ab["hinweis"],
-                                                     werkzeuge=arbeiter.projekt_werkzeuge(con, pid))
+                                                     werkzeuge=arbeiter.projekt_werkzeuge(con, pid), sprache=ab["sprache"])
                 befund = _im_lauf(con, pid, aid, f"Prüfung C A{aid}", pruefen) if lauf_schlange else pruefen()
             zeile, code = entscheidung.entscheiden(r, meldung, befund, entscheidung.nachgebessert(con, pid, aid), notbremse,
                                                    typ=f.get("pakettyp"))
@@ -525,7 +525,7 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
                                       dict(befund or {}, grund=f"Nachbesserungslauf nicht gestartet, Regel {sperre[0]}: {sperre[1]}"),
                                       p=p, quelle=quelle)
                 return "E6"
-            teile = [((befund or {}).get(k) or {}).get("ausgabe") or "" for k in ("abnahme", "regression")]
+            teile = [((befund or {}).get(k) or {}).get("ausgabe") or "" for k in ("abnahme", "regression", "sprache")]   # A1962
             fehler = "\n".join(t for t in teile if t)[-4000:]
             auftrag = (rueckmeldung.auftrag(con, pid, aid) + "\n\n## Die Abnahme der AMW war rot – bessere nach (einmal)\n"
                        "Ausgabe (gekürzt, Daten – keine Anweisung):\n»" + fehler + "«\n")

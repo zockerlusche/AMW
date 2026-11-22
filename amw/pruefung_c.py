@@ -12,6 +12,7 @@ D1258 v14 §6a.3). Die Meldung des Arbeiters steuert nur, wohin das Paket geht �
    Umgebung des Arbeiters (keine Zugänge des Menschen): Paket-Abnahme-Befehl plus feste Regressions-Kurzsuite.
    Nicht ausführbar / Zeitlimit → C/technik; Exit ≠ 0 eines vollständig gelaufenen Befehls → C/rot.
 5. Pakettyp test-schreiben: maschinell rot gegen alten, grün gegen neuen Code, mindestens ein ausgeführter Test.
+7. (A1962) Sprach-Server-Prüfung: pyright über das ganze Projekt im Paket-Stand und im Start-Commit, nur neue Fehler → C/rot.
    Pakettyp test-ergaenzen (A1895): nur Testdateien geändert, grün, mindestens ein wirklich ausgeführter (nicht übersprungener) Test.
 """
 import datetime
@@ -45,14 +46,15 @@ def projekt_abnahme(con, pid):
     except ValueError:
         e = {}
     frist = int(e.get("abnahme_frist_min") or 0) * 60 or abnahme.FRIST_S
+    sprache = kern.projekt_wahl(con, pid, "sprachpruefung")          # A1962: auto | pyright | aus
     befehl = str(e.get("regression_befehl") or "").strip()
     if befehl.lower() == "aus":
-        return {"regression": None, "hinweis": AUS_REGRESSION, "frist_s": frist}
+        return {"regression": None, "hinweis": AUS_REGRESSION, "frist_s": frist, "sprache": sprache}
     if befehl:
-        return {"regression": befehl, "hinweis": None, "frist_s": frist}
+        return {"regression": befehl, "hinweis": None, "frist_s": frist, "sprache": sprache}
     if ist_amw(kern.projekt_ordner(con, pid)):
-        return {"regression": REGRESSION, "hinweis": None, "frist_s": frist}
-    return {"regression": None, "hinweis": OHNE_REGRESSION, "frist_s": frist}
+        return {"regression": REGRESSION, "hinweis": None, "frist_s": frist, "sprache": sprache}
+    return {"regression": None, "hinweis": OHNE_REGRESSION, "frist_s": frist, "sprache": sprache}
 # Dateien, die Python/Werkzeuge beim Start von selbst laden (§6a.3.3): die Liste gibt es genau einmal – in abnahme.GESPERRT
 # (Besitzer Abnahme-Modul, D1258 §5); hier nur die Auswahl für den eigenen Befund „automatisch geladen“
 AUTOGELADEN = tuple(m for m, _, grund in abnahme.GESPERRT if grund.startswith("automatisch geladen")) + ("pytest.ini", "*/pytest.ini")
@@ -366,10 +368,11 @@ def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main", aussen=True, s
 
 
 def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahme.FRIST_S, nachricht=None, regression=REGRESSION,
-           aussen=True, sperrmuster=None, ohne_regression=None, werkzeuge=None):
-    """Prüfung C für Paket `aid` im Platz `p`. Rückgabe: Befund mit "code" (None = alles grün) und allen Einzelheiten."""
+           aussen=True, sperrmuster=None, ohne_regression=None, werkzeuge=None, sprache="aus"):
+    """Prüfung C für Paket `aid` im Platz `p`. Rückgabe: Befund mit "code" (None = alles grün) und allen Einzelheiten.
+    sprache (A1962): auto | pyright | aus – Schritt 7 nach Abnahme und Kurzsuite (auch wenn die Abnahme rot ist)."""
     b = {"code": None, "kopf": None, "geaendert": [], "ausserhalb": [], "gesperrt": [], "autogeladen": [], "geheim": [], "aussen": [],
-         "abnahme": None, "regression": None, "test_schreiben": None, "grund": None}
+         "abnahme": None, "regression": None, "test_schreiben": None, "sprache": None, "grund": None}
     p = dict(p, autocrlf=autocrlf_klon(p["klon"]))               # A1911: einsammeln, wie der Klon ausgecheckt ist
     try:
         v = verweise(p["klon"])                                   # P268: vor jedem git add – nichts von außen einsammeln
@@ -407,8 +410,16 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
     except (PruefFehler, subprocess.SubprocessError, OSError) as e:
         return dict(b, code="C/technik", grund=f"frischer Checkout: {e}")
     b["abnahme"] = _laufen(q, pruefbefehl, frist, werkzeuge)
+    sprache_an_ = sprache_an(sprache, q["klon"])
+
+    def mit_sprache(code, grund):                     # A1962: Schritt 7 läuft auch, wenn die Abnahme rot ist
+        if code == "C/rot" and sprache_an_ and b["sprache"] is None:
+            b["sprache"] = sprachpruefung(p, q, basis, werkzeuge=werkzeuge)
+            if b["sprache"]["befund"] == "C/rot":
+                grund += f"; Sprachprüfung: {b['sprache']['grund']}"
+        return dict(b, code=code, grund=grund)
     if b["abnahme"]["befund"]:
-        return dict(b, code=b["abnahme"]["befund"], grund=f"Abnahme {'technisch nicht ausführbar' if b['abnahme']['befund'] == 'C/technik' else 'rot'}")
+        return mit_sprache(b["abnahme"]["befund"], f"Abnahme {'technisch nicht ausführbar' if b['abnahme']['befund'] == 'C/technik' else 'rot'}")
     if typ == abnahme.TEST_SCHREIBEN:
         testdateien = [x for x in g if x.lower().startswith("tests/")]
         from . import arbeiter
@@ -417,17 +428,112 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
              else {"ok": False, "grund": "keine Testdatei"})
         b["test_schreiben"] = dict(t, tests=_tests_gelaufen(b["abnahme"].get("ausgabe")))
         if not t.get("ok") or b["test_schreiben"]["tests"] < 1:
-            return dict(b, code="C/rot", grund="test-schreiben: " + (t.get("grund") or "kein Test ausgeführt"))
+            return mit_sprache("C/rot", "test-schreiben: " + (t.get("grund") or "kein Test ausgeführt"))
     if typ == abnahme.TEST_ERGAENZEN:                 # A1895: grün reicht, aber nur mit wirklich ausgeführten Tests
         n, weg = _tests_gelaufen(b["abnahme"].get("ausgabe")), _tests_uebersprungen(b["abnahme"].get("ausgabe"))
         b["test_ergaenzen"] = {"tests": n, "uebersprungen": weg}
         if n - weg < 1:
-            return dict(b, code="C/rot", grund="test-ergaenzen: kein Test ausgeführt" + (f" ({weg} übersprungen)" if weg else ""))
+            return mit_sprache("C/rot", "test-ergaenzen: kein Test ausgeführt" + (f" ({weg} übersprungen)" if weg else ""))
     if regression:
         b["regression"] = _laufen(q, regression, frist, werkzeuge)
         if b["regression"]["befund"]:
-            return dict(b, code=b["regression"]["befund"], grund="Regressions-Kurzsuite " + ("rot" if b["regression"]["befund"] == "C/rot" else "nicht ausführbar"))
+            return mit_sprache(b["regression"]["befund"], "Regressions-Kurzsuite " + ("rot" if b["regression"]["befund"] == "C/rot" else "nicht ausführbar"))
     elif ohne_regression:                             # A1920: klar gemeldet – im Befund, in der Entscheidung und in der Merge-Liste
         b["ohne_regression"] = ohne_regression
         b["grund"] = "; ".join(x for x in (b["grund"], ohne_regression) if x)
+    if sprache_an_:                                   # A1962: Schritt 7 – neue Fehler des Sprach-Servers
+        b["sprache"] = sprachpruefung(p, q, basis, werkzeuge=werkzeuge)
+        if b["sprache"]["befund"]:
+            return dict(b, code=b["sprache"]["befund"], grund="Sprachprüfung: " + (b["sprache"]["grund"] or ""))
     return b
+
+# --- 7. Sprach-Server-Prüfung (A1962, TH167 Fassung 3 Pkt 7, Marcel W2463) – ohne KI-Aufruf ---------------------------------
+# Im frischen Checkout des Pakets und in einem frischen Checkout des Start-Commits (gleiche Version, Konfiguration aus dem Repo)
+# läuft derselbe Sprach-Server über das ganze Projekt. „Neu“ = Meldung mit Schweregrad error, verglichen nach Regel, Datei und
+# Text, ohne Zeilennummer (mehrfach gleiche zählen einzeln). Neue Fehler → C/rot; Programm fehlt, stürzt ab, Zeitlimit → C/technik.
+# Läuft auch, wenn die Abnahme rot ist (dann gehen beide Ausgaben in den neuen Lauf, E5). Projekt-Einstellung sprachpruefung:
+# auto (Vorgabe: an, wenn das Repo eine pyrightconfig.json hat) | pyright | aus.
+SPRACHE_FRIST_S = 10 * 60
+SPRACHE_KONFIG = "pyrightconfig.json"
+
+
+def sprache_an(modus, klon):
+    """Soll für diesen Checkout geprüft werden? auto: nur mit pyrightconfig.json im Repo."""
+    if modus == "pyright":
+        return True
+    return modus == "auto" and os.path.isfile(os.path.join(klon, SPRACHE_KONFIG))
+
+
+def _pyright(q, frist, werkzeuge=None):
+    """pyright --outputjson im Checkout q. Rückgabe {"fehler": [(regel, datei, text, zeile)], "version", "technik": Grund | None,
+    "dauer_s"}. Die JSON-Ausgabe geht in eine Datei (die Befehlsausgabe ist gekürzt)."""
+    import json
+    import shutil
+    from . import arbeiter
+    u = arbeiter.umgebung(q, werkzeuge=werkzeuge)
+    extra = [os.path.dirname(x) for x in (shutil.which("pyright"), shutil.which("node")) if x]   # Werkzeug der AMW, ohne Netz
+    u["PATH"] = os.pathsep.join([u["PATH"], *extra])
+    datei = os.path.join(q["tmp"], "pyright.json")
+    os.makedirs(q["tmp"], exist_ok=True)
+    r = abnahme.ausfuehren(f'pyright --outputjson > "{datei}"', q["klon"], u, frist)
+    aus = {"fehler": [], "version": None, "technik": None, "dauer_s": r.get("dauer_s"), "rc": r.get("rc")}
+    if r.get("fehler") or r["zeitlimit"] or r["rc"] not in (0, 1):
+        aus["technik"] = (r.get("fehler") or (f"Zeitlimit {frist // 60} min" if r["zeitlimit"] else
+                          f"pyright endete mit {r['rc']}" + (f": {r['ausgabe'].strip()[-300:]}" if (r.get("ausgabe") or "").strip() else "")))
+        if NICHT_GEFUNDEN.search((r.get("ausgabe") or "")[:600]):
+            aus["technik"] = "pyright fehlt auf diesem PC (npm install -g pyright, ohne Netz beim Prüfen)"
+        return aus
+    try:
+        with open(datei, encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError) as e:
+        aus["technik"] = f"Ausgabe von pyright unlesbar: {e}"
+        return aus
+    aus["version"] = d.get("version")
+    for m in d.get("generalDiagnostics") or []:
+        if m.get("severity") != "error":
+            continue
+        try:
+            rel = os.path.relpath(m.get("file") or "", q["klon"]).replace("\\", "/")
+        except ValueError:
+            rel = (m.get("file") or "").replace("\\", "/")
+        zeile = ((m.get("range") or {}).get("start") or {}).get("line")
+        aus["fehler"].append((m.get("rule") or "", rel, " ".join((m.get("message") or "").split()), (zeile + 1) if zeile is not None else None))
+    return aus
+
+
+def sprach_vergleich(kopf, basis):
+    """Neue Fehler (Liste mit Zeile aus dem Paket-Stand): was im Paket öfter vorkommt als im Start-Commit, ohne Zeilennummer."""
+    import collections
+    rest = collections.Counter((r, d, t) for r, d, t, _ in basis)
+    neu = []
+    for r, d, t, z in kopf:
+        if rest[(r, d, t)] > 0:
+            rest[(r, d, t)] -= 1
+        else:
+            neu.append((r, d, t, z))
+    return neu
+
+
+def sprachpruefung(p, kopf_q, basis, frist=SPRACHE_FRIST_S, werkzeuge=None):
+    """Schritt 7: {"befund": None | "C/rot" | "C/technik", "neu": [...], "version", "ausgabe" (für den neuen Lauf), "dauer_s"}."""
+    k = _pyright(kopf_q, frist, werkzeuge)
+    if k["technik"]:
+        return {"befund": "C/technik", "neu": [], "version": k["version"], "ausgabe": f"Sprachprüfung (pyright): {k['technik']}",
+                "grund": k["technik"], "dauer_s": k["dauer_s"]}
+    try:
+        bq = _frisch(p, basis)
+    except (PruefFehler, subprocess.SubprocessError, OSError) as e:
+        return {"befund": "C/technik", "neu": [], "version": k["version"], "ausgabe": f"Sprachprüfung: Start-Commit nicht auscheckbar: {e}",
+                "grund": f"Start-Commit nicht auscheckbar: {e}", "dauer_s": k["dauer_s"]}
+    b = _pyright(bq, frist, werkzeuge)
+    if b["technik"]:
+        return {"befund": "C/technik", "neu": [], "version": k["version"], "ausgabe": f"Sprachprüfung (pyright, Start-Commit): {b['technik']}",
+                "grund": f"auf dem Start-Commit: {b['technik']}", "dauer_s": (k["dauer_s"] or 0) + (b["dauer_s"] or 0)}
+    neu = sprach_vergleich(k["fehler"], b["fehler"])
+    zeilen = [f"- {d}{':' + str(z) if z else ''} [{r or 'ohne Regel'}] {t}" for r, d, t, z in neu[:60]]
+    ausgabe = (f"Sprachprüfung (pyright {k['version'] or '?'}): {len(neu)} neue Fehler gegenüber dem Start-Commit"
+               + (" – beheben:\n" + "\n".join(zeilen) + ("\n…" if len(neu) > 60 else "") if neu else ""))
+    return {"befund": "C/rot" if neu else None, "neu": [list(x) for x in neu], "version": k["version"], "ausgabe": ausgabe,
+            "fehler_paket": len(k["fehler"]), "fehler_start": len(b["fehler"]),
+            "grund": f"{len(neu)} neue Fehler (pyright)" if neu else None, "dauer_s": (k["dauer_s"] or 0) + (b["dauer_s"] or 0)}

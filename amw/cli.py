@@ -195,6 +195,7 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
                         "veroeffentlichen",               # A1928 (#29781): wann die AMW nach außen veröffentlicht
                         "sperrmuster",                    # A1919: was p-Pakete im Projekt nie ändern dürfen
                         "regression_befehl", "abnahme_frist_min",   # A1920: was Prüfung C je Projekt ausführt
+                        "sprachpruefung",                 # A1962: Sprach-Server in Prüfung C (auto | pyright | aus)
                         "arbeiter_umgebung",              # A1922: Variablen und Pfade der Arbeiter
                         "sicherung_ziel",                 # A1929/A1951: wohin die tägliche Sicherung schiebt (Lead oder Mensch)
                         "thema_freigabe",                 # A1937/A1951: wer Themen freigibt (Lead oder Mensch)
