@@ -206,6 +206,18 @@ def _starten(con, pid, aid, p, quelle, prog=None, umgebung=None):
     return f"A{aid} gestartet auf Platz {p['nr']} (Starter {proc.pid}, Basis {r['basis'][:8]})"
 
 
+def _anbieter_von(con, pid, modell):
+    """A1931: Eintrag des Anbieters eines Pakets (None für anthropic). Nicht freigegeben → Fehler (Regel 13 hielt es schon an)."""
+    from . import anbieter
+    name = anbieter.zerlegen(modell)[0]
+    if name == anbieter.STANDARD:
+        return None
+    e = anbieter.eintrag(con, pid, name)
+    if not e:
+        raise kern.AmwFehler(f"Anbieter {name} nicht freigegeben")
+    return e
+
+
 def projekt_reihe(con):
     """A1925 (W2449): Projekte in der Rangfolge des Menschen (PC-Einstellung projekt_rang, Namen ohne Groß/klein), die
     übrigen danach nach Nummer. [(pid, name)]"""
@@ -305,6 +317,12 @@ def runde(con, prog=None, umgebung=None):
                 if t:
                     aus.append(t)
                 break
+            if antwort.get("regel") == 14:                       # A1931: Anbieter einmal je Version prüfen, andere Pakete weiter
+                from . import versionsprobe
+                t = versionsprobe.anstossen(con, pid, antwort["version"], umgebung, anbieter=antwort["anbieter"])
+                if t:
+                    aus.append(t)
+                continue
             if antwort["ok"] and frei and quelle:
                 try:
                     aus.append(starten(con, pid, kand["id"], frei[0], quelle, prog, umgebung))
@@ -363,9 +381,9 @@ def handstart(con, pid, aid, von, prog=None, umgebung=None):
         raise kern.AmwFehler("Ein p-Paket von Hand starten dürfen Lead und Mensch")
     antwort = waechter.pruefen(con, pid, aid)
     waechter.protokollieren(con, pid, aid, antwort)
-    if antwort.get("regel") == 11:                               # A1906: die Probe anstoßen, dann wie jede Regel ablehnen
+    if antwort.get("regel") in (11, 14):                         # A1906/A1931: die Probe anstoßen, dann wie jede Regel ablehnen
         from . import versionsprobe
-        versionsprobe.anstossen(con, pid, antwort["version"], umgebung)
+        versionsprobe.anstossen(con, pid, antwort["version"], umgebung, anbieter=antwort.get("anbieter"))
     if not antwort["ok"]:
         raise kern.AmwFehler(f"A{aid} nicht gestartet" + (f", Regel {antwort['regel']}: {antwort['grund']}" if antwort.get("regel")
                                                            else f": {antwort.get('grund')}"))
@@ -478,7 +496,8 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
                 r = arbeiter.laufen(p, auftrag, a["pruefbefehl"], modell=f.get("modell"), effort=f.get("effort"), prog=prog,
                                     con=con, pid=pid, aid=aid, haenge=dict(entscheidung.haenge_werte(con, pid),
                                                                           melden=entscheidung.haenge_melder(pid, aid, pfad)),
-                                    umgebung_projekt=arbeiter.projekt_werkzeuge(con, pid))      # A1922: Werkzeuge des Projekts
+                                    umgebung_projekt=arbeiter.projekt_werkzeuge(con, pid),      # A1922: Werkzeuge des Projekts
+                                    anbieter=_anbieter_von(con, pid, f.get("modell")))          # A1931
             notbremse = bool(con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'notbremse' AND zeit_utc >= ?"
                                          " AND (aufgabe_id = ? OR text LIKE ?)", (pid, start_utc, aid, f"Platz {nr}:%")).fetchone())
             befund = None

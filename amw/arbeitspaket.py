@@ -100,6 +100,12 @@ def felder_pruefen(werte):
             v = (v or "").strip() or None
             if v is None:
                 raise Ungueltig("Modell: leer geht nicht (weglassen = Standard)")
+            if "@" in v:                                   # A1931: anbieter@modell
+                from . import anbieter
+                a, m = anbieter.zerlegen(v)
+                if not anbieter.NAME.fullmatch(a) or not m:
+                    raise Ungueltig("Modell eines Anbieters: anbieter@modell, z. B. minimax@MiniMax-M2")
+                v = f"{a}@{m}"
         elif k == "gleiche_ressource":
             v = (v or "").strip() or None
         aus[k] = v
@@ -115,6 +121,8 @@ def mit_standard(gespeichert):
     aus["nie_gleichzeitig"] = list(aus["nie_gleichzeitig"] or [])
     aus["standard"] = sorted(k for k in STANDARD if g.get(k) in (None, "", []))
     aus["zustand"] = (g.get("zustand") or START) if aus["art"] == "p" else None
+    from .anbieter import zerlegen                      # A1931: abgeleitet aus dem Modell, kein eigenes Feld in der Tabelle
+    aus["anbieter"] = zerlegen(aus["modell"])[0]
     return aus
 
 

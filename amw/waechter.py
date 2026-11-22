@@ -32,9 +32,11 @@ REGELN = {
     10: "keine Arbeitsplätze eingerichtet",
     11: "neue Claude-Code-Version noch nicht geprüft – die AMW prüft sie selbst (Negativprobe)",
     12: "Projekt ausgeschaltet (Projekt-Schalter aus oder probe)",
+    13: "Anbieter in diesem Projekt nicht freigegeben (gibt nur der Mensch frei)",
+    14: "Anbieter mit dieser Claude-Code-Version noch nicht geprüft – die AMW prüft ihn selbst (Negativprobe)",
 }
 ARBEITEND = ("laeuft", "abgegeben", "abnahme")   # A1925: zählt für die PC-Grenze (plaetze_pc) – merge_reihe arbeitet nicht mehr
-WARTEN = {2, 4, 7, 8, 9, 11}               # vorübergehend: später erneut prüfen; die anderen: nicht starten, Lead melden
+WARTEN = {2, 4, 7, 8, 9, 11, 14}               # vorübergehend: später erneut prüfen; die anderen: nicht starten, Lead melden
 LIMIT_PROZENT = 80
 LAUFEND = ("laeuft", "abgegeben", "abnahme", "merge_reihe")   # P245: der Platz bleibt bis zum Merge belegt (Resume nur dort)
 
@@ -198,6 +200,16 @@ def pruefen(con, pid, aid, limit=None):
         return _nein(1)
     if f["gewicht"] == "schwer" or f["ressourcen"]:
         return _nein(3)
+    if f["anbieter"] != "anthropic":                     # A1931 (TH159): nur freigegebene Anbieter, lokale belegen die Grafikkarte
+        from . import anbieter, versionsprobe
+        e = anbieter.eintrag(con, pid, f["anbieter"])
+        if not e:
+            return _nein(13, f["anbieter"])
+        if e.get("lokal"):
+            return _nein(3, f"lokaler Anbieter {f['anbieter']} belegt die Grafikkarte")
+        v = versionsprobe.installiert()
+        if v and not versionsprobe.anbieter_geprueft(con, f["anbieter"], v):
+            return dict(_nein(14, f"{f['anbieter']} mit Claude Code {v}"), anbieter=f["anbieter"], version=v)
     gesp = abnahme.startregel(b, f["pakettyp"], abnahme.projekt_muster(con, pid))   # A1919: feste Liste + Muster des Projekts
     if gesp:
         return _nein(5, ", ".join(f"{x} ({g})" for x, g in gesp))

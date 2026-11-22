@@ -380,7 +380,8 @@ def uebergabe(p, basis=None):
 # --- Lauf ------------------------------------------------------------------------------------------------------------------
 
 def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_namen=(), sitzung=None, prog=None, basis_umgebung=None,
-           zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None, haenge=None, geprueft=None, nur_lesen=False, umgebung_projekt=None):
+           zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None, haenge=None, geprueft=None, nur_lesen=False, umgebung_projekt=None,
+           anbieter=None):
     """Einen Arbeiter im Platz `p` laufen lassen, bis er endet. Rückgabe {"rc", "abweichungen", "init", "ergebnis",
     "sitzung", "protokoll", "dauer_s", "fehler"}. Abweichung im init-Ereignis → sofort beendet (rc None, abweichungen gesetzt).
     nur_lesen (A1914): Werkzeuge nur Glob/Grep/Read, kein Abnahme-Befehl, keine Rückmeldung (Zuarbeit wie der Gegenleser)."""
@@ -409,8 +410,12 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
             json.dump(rm.mcp_config(rm.einstieg()), f, ensure_ascii=False, indent=1)
         mcp_namen, werkzeuge = (rm.NAME,), (rm.VOLL,)
     datei = os.path.join(o, "einstellungen.json")
+    from . import anbieter as _anbieter                       # A1931: Basis-URL und apiKeyHelper – nie der Schlüssel selbst
+    einstellungen = freigabe_lesen() if nur_lesen else freigabe(pruefbefehl, werkzeuge)
+    einstellungen.update(_anbieter.settings_teil(anbieter) or {})
+    modell = _anbieter.zerlegen(modell)[1] if modell else modell
     with open(datei, "w", encoding="utf-8") as f:
-        json.dump(freigabe_lesen() if nur_lesen else freigabe(pruefbefehl, werkzeuge), f, ensure_ascii=False, indent=1)
+        json.dump(einstellungen, f, ensure_ascii=False, indent=1)
     argv = befehl(p, datei, modell, effort, mcp, sitzung, prog, werkzeuge=liste)
     if geprueft is None and con is not None:                   # A1906: auch die von der AMW selbst geprüften Versionen
         from . import versionsprobe

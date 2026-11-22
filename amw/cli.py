@@ -1316,6 +1316,33 @@ PC_NUR_MENSCH = ("projekt_rang",)                         # A1925 (E1): nur der 
 PC_LEAD_ODER_MENSCH = ("plaetze_pc", "limit_halt")        # A1925 (E2, E4): Lead oder Mensch, gesperrt wie RECHTE_EINSTELLUNGEN
 
 
+def cmd_anbieter(a, con):
+    """A1931 (TH159): Anbieter je Projekt – liste | freigeben NAME --url … --schluessel-datei … --modelle … [--lokal] |
+    entfernen NAME. Freigeben und entfernen nur der Mensch im eigenen Terminal (auch nicht der Lead). Nie der Schlüssel selbst."""
+    from . import anbieter, versionsprobe
+    pid = _projekt(con, a)
+    if a.aktion in ("freigeben", "entfernen"):
+        if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():
+            raise kern.AmwFehler("Anbieter gibt nur der Mensch frei oder entfernt sie – im eigenen Terminal mit --von Entwickler")
+        if not a.name:
+            raise kern.AmwFehler(f"amw anbieter {a.aktion} <name> …")
+        if a.aktion == "entfernen":
+            print(f"Anbieter {anbieter.entfernen(con, pid, _von(a), a.name)} entfernt – Pakete mit ihm starten nicht mehr (Regel 13)")
+            return
+        name, e = anbieter.freigeben(con, pid, _von(a), a.name, a.url, a.schluessel_datei, a.lokal,
+                                     [m for m in (a.modelle or "").split(",")])
+        print(f"Anbieter {name} freigegeben: {e['basis_url']} · Schlüsseldatei {e['schluessel_datei']} · Modelle {', '.join(e['modelle'])}"
+              + (" · lokal (Grafikkarte – startet erst mit der Lauf-Schlange für gpu)" if e["lokal"] else "")
+              + " – vor dem ersten Paket prüft die AMW ihn selbst (Negativprobe)")
+        return
+    v = versionsprobe.installiert()
+    print("anthropic: Standard (ohne Eintrag freigegeben)")
+    for name, e in sorted(anbieter.liste(con, pid).items()):
+        geprueft = v and versionsprobe.anbieter_geprueft(con, name, v)
+        print(f"{name}: {e.get('basis_url')} · Schlüsseldatei {e.get('schluessel_datei')} · Modelle {', '.join(e.get('modelle') or [])}"
+              + (" · lokal" if e.get("lokal") else "") + f" · Claude Code {v or '?'}: {'geprüft' if geprueft else 'noch nicht geprüft'}")
+
+
 def cmd_pc(a, con):
     """A1925: Einstellungen dieses PCs, die der Disponent über alle Projekte nutzt – zeigen | einstellen k=v."""
     from . import disponent, einstellungen, waechter
@@ -3027,7 +3054,8 @@ def parser():
                                                                     " sitzung (neue Sitzung), p (frischer claude -p-Arbeiter)")
     x.add_argument("--gewicht", choices=["leicht", "schwer"], help="Paket: leicht (Vorgabe) oder schwer")
     x.add_argument("--ressourcen", help="Paket: gpu,bildschirm (Vorgabe: keine)")
-    x.add_argument("--modell", help="Paket: wie claude --model (Vorgabe claude-opus-5-5)")
+    x.add_argument("--modell", help="Paket: wie claude --model (Vorgabe claude-opus-5-5); bei einem freigegebenen Anbieter"
+                                    " anbieter@modell, z. B. minimax@MiniMax-M2 (A1931)")
     x.add_argument("--effort", choices=["low", "medium", "high"], help="Paket: wie claude --effort (Vorgabe high)")
     x.add_argument("--pakettyp", choices=["normal", "test-schreiben", "test-ergaenzen"], help="Paket: normal (Vorgabe), test-schreiben (Test + Änderung, rot gegen alt) oder test-ergaenzen (nur Tests für bestehenden Code, grün; Lead liest)")
     x.add_argument("--nie-gleichzeitig", help="Paket: nie gleichzeitig mit diesen Aufgaben, z. B. A12,A13")
@@ -3171,6 +3199,17 @@ def parser():
     x.add_argument("--aufgabe", type=int, help="Aufgabe des Pakets (Name des Archivs, damit aufraeumen es nach Paketende verschiebt)")
     x.add_argument("--zweig", help="vorbereiten: Name des Zweigs ab main (Vorgabe platzN)")
     x.set_defaults(f=cmd_platz)
+
+    x = s.add_parser("anbieter", help="Anbieter je Projekt (A1931, TH159): liste | freigeben NAME --url https://… --schluessel-datei"
+                                      " <Pfad> --modelle a,b [--lokal] | entfernen NAME – freigeben/entfernen nur der Mensch im eigenen"
+                                      " Terminal; nur der Pfad der Schlüsseldatei wird gespeichert, nie der Schlüssel")
+    x.add_argument("aktion", choices=["liste", "freigeben", "entfernen"], nargs="?", default="liste")
+    x.add_argument("name", nargs="?")
+    x.add_argument("--url", help="Basis-URL der Anthropic-kompatiblen Schnittstelle (https://…; lokal auch http://localhost:…)")
+    x.add_argument("--schluessel-datei", dest="schluessel_datei", help="absoluter Pfad zur Datei mit dem Schlüssel (außerhalb jedes Repos)")
+    x.add_argument("--modelle", help="Modelle des Anbieters, mit Komma (das erste prüft die Negativprobe)")
+    x.add_argument("--lokal", action="store_true", help="lokales Modell (belegt die Grafikkarte)")
+    x.set_defaults(f=cmd_anbieter)
 
     x = s.add_parser("pc", help="Disponent über Projekte (A1925): zeigen (Rangfolge, p-Arbeiter, Kosten je Projekt diese Woche) |"
                                 " einstellen projekt_rang=A,B,C (nur der Mensch) | plaetze_pc=N | limit_halt=P (Lead oder Mensch)")

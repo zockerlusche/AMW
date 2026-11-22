@@ -260,6 +260,31 @@ Werkzeug (SDK, Compiler) oder mit vorbereiteten Caches braucht dafür einzelne V
 - **Wo es gilt:** beim Arbeiter und bei Abnahme und Rückschritt-Tests in Prüfung C. Die Negativprobe bei einer neuen
   Claude-Code-Version (A1906) und der Gegenleser laufen mit der Grundumgebung. Kein Netz bleibt.
 
+## Weitere Anbieter und lokale Modelle (A1931, TH159)
+
+**Wozu:** Arbeiter (p-Pakete) können außer Anthropic auch andere Anbieter mit einer Anthropic-kompatiblen Schnittstelle nutzen
+(z. B. MiniMax) oder lokale Modelle (z. B. Ollama). Jeder Anbieter ist extern, auch Anthropic.
+
+- **Freigeben:** nur der Mensch im eigenen Terminal (auch nicht der Lead):
+  `amw anbieter freigeben minimax --url https://… --schluessel-datei D:\\schluessel\\minimax.key --modelle MiniMax-M2 [--lokal]`;
+  `amw anbieter liste`, `amw anbieter entfernen minimax`. Anthropic ist ohne Eintrag freigegeben (wie bisher).
+- **Schlüssel nur lokal:** Gespeichert wird nur der PFAD der Schlüsseldatei – nie der Schlüssel, nicht in Datenbank, Repo,
+  Nachricht, Bericht oder Ereignis. Die Datei muss außerhalb der AMW, des Projektordners und der Arbeitsplätze liegen.
+- **Paket:** Der Anbieter steht im Modell: `amw aufgabe aendern N --modell minimax@MiniMax-M2` (ohne Präfix: Anthropic).
+- **Zur Laufzeit:** Der Arbeiter bekommt in seiner `--settings`-Datei `ANTHROPIC_BASE_URL` und als `apiKeyHelper`
+  `amw-anbieter-schluessel.py <Pfad>`. Das Skript gibt eine Schlüsseldatei nur aus, wenn ihr Pfad in der Freigabe-Liste der AMW steht
+  (`daten/anbieter-freigabe.json`, nur Pfade). Der Schlüssel steht so in keiner Umgebung und keiner Datei des Platzes.
+- **Startregeln:** Regel 13 – Anbieter in diesem Projekt nicht freigegeben (Meldung an den Lead). Ein lokaler Anbieter belegt
+  die Grafikkarte (Regel 3: bis zur Lauf-Schlange für die Grafikkarte gesperrt). Regel 14 – Anbieter mit der installierten
+  Claude-Code-Version noch nicht geprüft: Die AMW startet die Negativprobe mit diesem Anbieter (einmal je Anbieter und Version),
+  andere Pakete laufen weiter.
+- **Negativprobe je Anbieter:** die neun Schritte nach außen wie bei einer neuen Version, mit dem ersten Modell des Anbieters,
+  dazu „Schlüssel unsichtbar“: Ein Bash-Kind des Arbeiters zeigt seine Umgebung; der Schlüssel (nur im Speicher gelesen) darf
+  weder im Protokoll noch im Platz noch in der `--settings`-Datei stehen. Bestanden → Pakete mit dem Anbieter starten.
+  Nicht bestanden → nur dessen Pakete starten nicht (kein Wartungsmodus), Frage an Lead und Mensch mit dem Bericht.
+- **Restrisiko** (steht in jedem Bericht): Von Arbeitern geschriebener Code läuft in Prüfung C unter dem Benutzerkonto und
+  könnte Dateien außerhalb lesen, auch eine Schlüsseldatei; die Geheimnis-Muster im Diff-Tor bleiben die Bremse.
+
 ## Neue Claude-Code-Version ohne Stillstand (seit 1.154.0)
 
 **Wozu:** 21.11.: Zweimal stand S8 je etwa eine Stunde still, weil sich Claude Code aktualisiert hatte und die geprüften

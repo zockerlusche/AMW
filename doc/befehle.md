@@ -23,6 +23,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`waechter`](#waechter) | Wächter für p-Pakete: pruefen A ¦ protokoll [A] ¦ reihenfolge ¦ zustand ¦ wartung an¦aus ¦ weiter |
 | [`claude`](#claude) | Claude-Code-Versionen der Arbeiter: status (installiert, geprüft, Proben) ¦ freigeben X.Y.Z --grund (Lead oder Mensch, nicht aus einer Agenten-Sitzung) – eine neue Version prüft die AMW selbst (A1906) |
 | [`platz`](#platz) | Arbeitsplätze für kopflose Arbeiter (claude -p): liste ¦ vorbereiten N ¦ zuruecksetzen N ¦ aufraeumen ¦ notbremse N (nur der Mensch: Arbeiter samt Kindern beenden) – nichts wird gelöscht: Reste ins Archiv, fertige Pakete nach _loeschen |
+| [`anbieter`](#anbieter) | Anbieter je Projekt (A1931, TH159): liste ¦ freigeben NAME --url https://… --schluessel-datei <Pfad> --modelle a,b [--lokal] ¦ entfernen NAME – freigeben/entfernen nur der Mensch im eigenen Terminal; nur der Pfad der Schlüsseldatei wird gespeichert, nie der Schlüssel |
 | [`pc`](#pc) | Disponent über Projekte (A1925): zeigen (Rangfolge, p-Arbeiter, Kosten je Projekt diese Woche) ¦ einstellen projekt_rang=A,B,C (nur der Mensch) ¦ plaetze_pc=N ¦ limit_halt=P (Lead oder Mensch) |
 | [`messung`](#messung) | Wartezeit und Kosten je Aufgabe (Liegezeit, aktiv, wartet nach Grund, $, Lücken) – nur lesen |
 | [`kosten`](#kosten) | Kosten eines Laufs außerhalb der Sitzungs-Zähler einer Aufgabe zuordnen (z. B. claude -p) |
@@ -359,7 +360,9 @@ options:
                         Paket: leicht (Vorgabe) oder schwer
   --ressourcen RESSOURCEN
                         Paket: gpu,bildschirm (Vorgabe: keine)
-  --modell MODELL       Paket: wie claude --model (Vorgabe claude-opus-5-5)
+  --modell MODELL       Paket: wie claude --model (Vorgabe claude-opus-5-5);
+                        bei einem freigegebenen Anbieter anbieter@modell, z.
+                        B. minimax@MiniMax-M2 (A1931)
   --effort {low,medium,high}
                         Paket: wie claude --effort (Vorgabe high)
   --pakettyp {normal,test-schreiben,test-ergaenzen}
@@ -640,6 +643,31 @@ options:
   --aufgabe AUFGABE     Aufgabe des Pakets (Name des Archivs, damit aufraeumen
                         es nach Paketende verschiebt)
   --zweig ZWEIG         vorbereiten: Name des Zweigs ab main (Vorgabe platzN)
+  --von VON
+  --projekt PROJEKT
+```
+
+## anbieter
+```
+usage: amw anbieter [-h] [--url URL] [--schluessel-datei SCHLUESSEL_DATEI]
+                    [--modelle MODELLE] [--lokal] [--von VON]
+                    [--projekt PROJEKT]
+                    [{liste,freigeben,entfernen}] [name]
+
+positional arguments:
+  {liste,freigeben,entfernen}
+  name
+
+options:
+  -h, --help            show this help message and exit
+  --url URL             Basis-URL der Anthropic-kompatiblen Schnittstelle
+                        (https://…; lokal auch http://localhost:…)
+  --schluessel-datei SCHLUESSEL_DATEI
+                        absoluter Pfad zur Datei mit dem Schlüssel (außerhalb
+                        jedes Repos)
+  --modelle MODELLE     Modelle des Anbieters, mit Komma (das erste prüft die
+                        Negativprobe)
+  --lokal               lokales Modell (belegt die Grafikkarte)
   --von VON
   --projekt PROJEKT
 ```

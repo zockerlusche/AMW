@@ -47,6 +47,9 @@ GESPERRT = (
     # A1872 (S3b, Befund D1289): alles, was einen Arbeiter abschottet, prüft, startet oder Rechte vergibt
     ("amw/arbeiter.py", "fest", "Abschottung der Arbeiter"),
     ("amw/versionsprobe.py", "fest", "Negativprobe neuer Claude-Code-Versionen (A1906)"),
+    ("amw/anbieter.py", "fest", "Anbieter je Projekt (A1931)"),
+    ("amw/anbieter_schluessel.py", "fest", "apiKeyHelper – gibt nur freigegebene Schlüsseldateien aus (A1931)"),
+    ("amw-anbieter-schluessel.py", "fest", "apiKeyHelper (A1931)"),
     ("amw/gegenlesen.py", "fest", "Gegenleser der Themen – startet claude -p (A1914)"),
     ("amw/verteilen.py", "fest", "Verteilen an Agenten und Ausfall (A1927)"),
     ("amw/veroeffentlichung.py", "fest", "Veröffentlichung nach außen – Push, GitHub-Release (A1928)"),
