@@ -321,11 +321,7 @@ class Kette:
             c, betreff = zeile.split("\t", 1)
             if not re.fullmatch(r"[0-9a-f]{40}", c):
                 continue
-            # A1974 (Befund 1.165.0): der Versions-Commit eines Stapels nennt alle Aufgaben im Betreff – er ist geprüft, wenn ein
-            # grüner Stand ihn enthält (die Spitze, vom Lead geprüft); sonst bräuchte jede Aufgabe ein eigenes Grün auf der Spitze
-            if re.match(r"\d+\.\d+\.\d+:", betreff) and any(
-                    self.extern(["git", "merge-base", "--is-ancestor", c, s], self.repo)[0] == 0 for s in gruene):
-                continue
+            versions_commit = re.match(r"\d+\.\d+\.\d+:", betreff) is not None
             for nr in dict.fromkeys(int(x) for x in re.findall(r"\bA(\d{1,6})\b", betreff)):
                 if nr == ausnahme_aufgabe:
                     continue
@@ -340,6 +336,12 @@ class Kette:
                 elif p["ergebnis"] != "gruen":
                     mangel.append(f"Stände: A{nr} – neueste Prüfung P{p['id']} ist {p['ergebnis']} (Commit {c[:8]})")
                 elif self.extern(["git", "merge-base", "--is-ancestor", c, p["sha"]], self.repo)[0] != 0:
+                    # A1974 (Befund 1.165.0): der Versions-Commit eines Stapels nennt alle Aufgaben im Betreff. Ist die Aufgabe selbst
+                    # grün geprüft (oben) und enthält ein grüner Stand den Versions-Commit (die Spitze, vom Lead geprüft), ist er
+                    # geprüft – sonst bräuchte jede Aufgabe ein eigenes Grün auf der Spitze. Rot oder ohne Prüfung hält weiter an.
+                    if versions_commit and any(self.extern(["git", "merge-base", "--is-ancestor", c, s], self.repo)[0] == 0
+                                               for s in gruene):
+                        continue
                     mangel.append(f"Stände: A{nr} – Commit {c[:8]} steckt nicht im grün geprüften Stand P{p['id']} ({p['sha'][:8]})")
         return list(dict.fromkeys(mangel))
 
