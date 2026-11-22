@@ -73,6 +73,25 @@ class PlanAnsicht(Rundgang):
         self.tab.js("document.querySelector('.pm-entwurf').open = true; document.querySelector('.pm-entwurf button[data-h=plan-ja]').click()")
         self.warten("!document.querySelector('#inhalt .pm-entwurf') && [...document.querySelectorAll('.pm-zeile')].some(z => z.textContent.includes('Online anmelden'))")
 
+    def test_bilder_entwurf(self):
+        from amw import planer
+        th = self.con.execute("SELECT id FROM thema LIMIT 1").fetchone()[0]
+        planer.entwurf_eintragen(self.con, self.pid, th, 1, {"meilensteine": [{"schluessel": "M1", "titel": "Online anmelden",
+                                                                                "endet_mit": "vorfuehrung"}],
+                                                             "pakete": [{"schluessel": "P1", "meilenstein": "M1", "titel": "Login-Maske",
+                                                                         "auftrag": "Bauen.", "groesse": "S", "art": "oberflaeche",
+                                                                         "fertig_quelle": "release"},
+                                                                        {"schluessel": "P2", "meilenstein": "M1", "titel": "Tests",
+                                                                         "auftrag": "Tests.", "groesse": "S", "art": "mechanisch",
+                                                                         "ausfuehrung": "p", "modell": "sonnet", "fertig_quelle": "commit",
+                                                                         "nach": ["P1"], "abnahme_befehl": "python -m unittest tests.test_login"}]},
+                                 modell="sonnet", usd=0.21)
+        for g in ("pc", "handy"):
+            for th_ in ("hell", "dunkel"):
+                self.assertEqual(self.besuchen("planung", "planung-entwurf", bereit="document.querySelector('#inhalt .pm-entwurf')",
+                                               tun="document.querySelector('.pm-entwurf').open = true", danach="document.querySelector('.pm-entwurf').open",
+                                               g=g, t=th_), [], f"{g} {th_}")
+
     def test_bilder(self):
         planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob")
         wahl = lambda r: f"zustand.planReiter = '{r}'; void zeige('planung', true)"
