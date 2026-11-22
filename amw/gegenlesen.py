@@ -205,7 +205,7 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
     t = con.execute("SELECT * FROM thema WHERE id = ? AND projekt_id = ?", (tid, pid)).fetchone()
     agent = kern.lead(con, pid) or kern.ENTWICKLER
     lid = betrieb.lauf_start(con, pid, agent, f"Gegenlesen TH{tid} Fassung {fassung} ({modell}, A1914, automatisch)", None, False, False,
-                             None, warten=True, waechter=os.getpid(), befehl=None, ordner=None)
+                             None, warten=True, waechter=os.getpid(), befehl=None, ordner=None, selbst=True)   # A1948: kein Weckruf
     belegung.lauf_merken(lid, os.getpid())
     aus = None
     try:

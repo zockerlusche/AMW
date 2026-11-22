@@ -701,7 +701,7 @@ def wartende(con, pid=None):
 def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=False, aufgabe_id=None,
                speicher_frei=None, warten=False, erwartet_min=None, gpu=False, dazu=None, sperre=None,
                braucht_gb=None, braucht_vram_gb=None, braucht_platte_gb=None, befehl=None, ordner=None, ergebnis_datei=None,
-               frist_min=None, waechter=None, dauerlauf=False):
+               frist_min=None, waechter=None, dauerlauf=False, selbst=False):
     """Meldet einen Lauf an und startet ihn, wenn er darf. befehl/ordner/ergebnis_datei/frist_min/waechter: von „amw lauf
     ausfuehren“ – stirbt der Warte-Prozess (waechter), startet der Dienst genau diesen Befehl in diesem Ordner (A1640).
     Ohne --braucht-gb (und ohne Rezept) gilt der gelernte Bedarf früherer gleicher Läufe (A1641), sonst die Grenze. Regeln: kein Halt; Schirm und Grafikkarte PC-weit ein Lauf
@@ -709,7 +709,9 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     ≥ Grenze je Lauf; niemand überholt die Warteschlange auf seinem Platz. Darf er nicht: ohne warten AmwFehler mit Grund (nichts wird angelegt), mit warten eingereiht (status
     'angemeldet'); warteschlange() startet ihn, sobald er dran ist, und weckt den Agenten mit einer Freigabe.
     dazu(lid): läuft in derselben Transaktion (KI-Auftrag zum Lauf) – nie ein Lauf ohne seinen Auftrag.
-    sperre: Grund, warum er jetzt nicht starten darf, obwohl der Platz frei wäre (KI-Auftrag mit --nachts)."""
+    sperre: Grund, warum er jetzt nicht starten darf, obwohl der Platz frei wäre (KI-Auftrag mit --nachts).
+    selbst (A1948): die AMW führt den Lauf selbst aus und beendet ihn (Gegenlesen, Planer, Negativprobe, Arbeiter, Bündel …) –
+    kommt er aus der Schlange dran, gibt es keine Meldung und keinen Weckruf („jetzt starten“ wäre falsch und kostet Tokens)."""
     if kern.halt_gilt(con, pid, agent):
         raise kern.AmwFehler("HALT gilt – keine Läufe starten")
     if dauerlauf:                                # A1759: kopflos, ohne KI/GPU/Fenster, feste Grenze
@@ -767,6 +769,8 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
                            braucht_gb=braucht_gb, braucht_vram_gb=braucht_vram_gb, braucht_platte_gb=braucht_platte_gb, rechner=rechner(),
                            befehl=json.dumps(list(befehl), ensure_ascii=False) if befehl else None, ordner=ordner,
                            ergebnis_datei=ergebnis_datei, frist_min=frist_min, waechter=waechter)
+        if selbst:                               # A1948: Kennzeichen ohne Schemaänderung – die Schlange meldet ihn nicht
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=t, von="AMW", art=SELBST, text=json.dumps({"lauf": lid}))
         if dazu:
             dazu(lid)
         else:                                    # ein KI-Auftrag rechnet nicht im Namen des Agenten
@@ -869,7 +873,7 @@ def warteschlange(con, pid=None, speicher_frei=None):
                 continue                             # ließe zu wenig für den wartenden Vorrang-Lauf übrig
             con.execute("UPDATE lauf SET status = 'laeuft', start_utc = ?, speicher_frei_gb = ? WHERE id = ?",
                         (db.jetzt(), speicher_frei, l["id"]))
-            if l["ki_auftrag"]:                      # der KI-Arbeiter im Dienst holt ihn ab
+            if l["ki_auftrag"] or selbst_gestartet(con, l["id"]):   # KI-Arbeiter im Dienst bzw. die AMW selbst (A1948): kein Weckruf
                 gestartet.append(l["id"])
                 continue
             if l["befehl"]:                          # „amw lauf ausfuehren“: der Befehl startet von selbst – nur zur Info (A1641)
@@ -884,6 +888,13 @@ def warteschlange(con, pid=None, speicher_frei=None):
                          aufgabe_id=l["aufgabe_id"])
             gestartet.append(l["id"])
     return gestartet
+
+
+SELBST = "lauf_selbst"          # A1948: plan_ereignis {"lauf": n} – die AMW führt diesen Lauf selbst aus
+
+
+def selbst_gestartet(con, lid):
+    return con.execute("SELECT 1 FROM plan_ereignis WHERE art = ? AND text = ?", (SELBST, json.dumps({"lauf": lid}))).fetchone() is not None
 
 
 def lauf_zeile(con, pid, lid):

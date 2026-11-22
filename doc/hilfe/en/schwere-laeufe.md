@@ -53,7 +53,7 @@ If a run registered without `--schirm` opens a window anyway, AMW notices: from 
 Nothing is lost. `amw lauf ausfuehren` stores the command, folder and result file when it queues. When the run is due and the waiting command in the window is gone, the service starts exactly this command in the same folder and writes the output to the result file; the agent gets a message with the return code at the end. Runs with a window (screen) are not started by the service.
 
 ### Does an agent have to watch the queue?
-No. “is due” and “runs longer than expected” no longer wake anyone – they only show in the Workbench. Only the result wakes. `amw lauf warte` prints the reason only when it changes.
+No. “is due” and “runs longer than expected” no longer wake anyone – they only show in the Workbench. Only the result wakes. `amw lauf warte` prints the reason only when it changes. Runs that AMW executes and ends itself (cross-reading, planner, negative test, workers, bundle) send no message at all when they start – only an error at the end is reported.
 
 ### Why is memory set aside for a running run?
 A run often needs its memory bit by bit. So that no second run starts next to it and takes that memory away, the queue keeps its need free. If it did not state a need, the limit of its project applies – but only for the first 15 minutes; after that, what it really uses counts. The waiting reason says how much is set aside for which run.

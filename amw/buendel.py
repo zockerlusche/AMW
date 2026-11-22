@@ -466,7 +466,8 @@ def _lauf_und_meldung(con, pid, zweig, warte, frist_s):
     agent = lead or con.execute("SELECT kennung FROM agent WHERE projekt_id = ? ORDER BY id LIMIT 1", (pid,)).fetchone()[0]
     befehl = [e["gesamtlauf_befehl"]]
     lid = betrieb.lauf_start(con, pid, agent, f"Gesamtlauf Bündel {v['version']} {zweig}@{v['sha'][:8]}", None, False, False,
-                             v["drin"][0], warten=True, erwartet_min=40, befehl=befehl, ordner=ziel, waechter=os.getpid())
+                             v["drin"][0], warten=True, erwartet_min=40, befehl=befehl, ordner=ziel, waechter=os.getpid(),
+                             selbst=True)                                     # A1948: kein Weckruf
     belegung.lauf_merken(lid, os.getpid())
     try:
         while True:

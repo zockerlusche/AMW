@@ -402,7 +402,7 @@ def _im_lauf(con, pid, aid, beschreibung, fn):
     from . import belegung, betrieb
     agent = con.execute("SELECT agent FROM aufgabe WHERE id = ?", (aid,)).fetchone()[0] or kern.lead(con, pid)
     lid = betrieb.lauf_start(con, pid, agent, beschreibung, None, False, False, aid, warten=True, waechter=os.getpid(),
-                             befehl=None, ordner=None)
+                             befehl=None, ordner=None, selbst=True)          # A1948: die AMW rechnet selbst – kein Weckruf
     belegung.lauf_merken(lid, os.getpid())
     try:
         while True:

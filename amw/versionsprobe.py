@@ -617,7 +617,7 @@ def ausfuehren(con, pid, version, prog=None, pfad=None, anbieter=None):
     e = _anbieter.eintrag(con, pid, anbieter) if anbieter else None
     lid = betrieb.lauf_start(con, pid, agent, f"Negativprobe Claude Code {version}" + (f" · Anbieter {anbieter} (A1931, automatisch)" if anbieter
                                                                        else " (A1906, automatisch)"), None, False, False, None,
-                             warten=True, waechter=os.getpid(), befehl=None, ordner=None)
+                             warten=True, waechter=os.getpid(), befehl=None, ordner=None, selbst=True)   # A1948: kein Weckruf
     belegung.lauf_merken(lid, os.getpid())
     aus = None
     try:

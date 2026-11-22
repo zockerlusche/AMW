@@ -53,7 +53,7 @@ Damit nichts verhungert, rückt ein wartender Lauf je 30 Minuten Wartezeit eine 
 Nichts geht verloren. `amw lauf ausfuehren` merkt sich beim Einreihen Befehl, Ordner und Ergebnis-Datei. Ist der Lauf dran und der wartende Befehl im Fenster lebt nicht mehr, startet der Dienst genau diesen Befehl im selben Ordner und schreibt die Ausgabe in die Ergebnis-Datei; der Agent bekommt am Ende eine Meldung mit dem Rückgabewert. Läufe mit Fenster (Bildschirm) startet der Dienst nicht selbst.
 
 ### Muss ein Agent die Warteschlange beobachten?
-Nein. „ist dran“ und „läuft länger als erwartet“ wecken niemanden mehr – sie stehen nur in der Workbench. Wecken tut erst das Ergebnis. `amw lauf warte` schreibt den Grund nur, wenn er sich ändert.
+Nein. „ist dran“ und „läuft länger als erwartet“ wecken niemanden mehr – sie stehen nur in der Workbench. Wecken tut erst das Ergebnis. `amw lauf warte` schreibt den Grund nur, wenn er sich ändert. Läufe, die die AMW selbst ausführt und beendet (Gegenlesen, Planer, Negativprobe, Arbeiter, Bündel), schicken beim Start gar keine Meldung – nur ein Fehler am Ende wird gemeldet.
 
 ### Warum ist für einen laufenden Lauf Arbeitsspeicher vorgemerkt?
 Ein Lauf braucht seinen Arbeitsspeicher oft erst nach und nach. Damit kein zweiter Lauf daneben startet, der ihm den Speicher wegnimmt, hält die Warteschlange seinen Bedarf frei. Hat er keinen Bedarf angegeben, gilt die Grenze seines Projekts – aber nur in den ersten 15 Minuten; danach zählt, was er wirklich belegt. Der Wartegrund nennt, für welchen Lauf wie viel vorgemerkt ist.
