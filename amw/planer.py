@@ -435,6 +435,8 @@ def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
 # Lauf-Schlange (leicht) in einem losgelösten Prozess, liest Thema, Beschlüsse, Meilensteine und Pakete als Dateien und
 # antwortet mit JSON nach dem Schema oben. Feste Frist; Kosten ins Ereignis.
 ANGESTOSSEN = "thema_planer"                     # {"thema", "fassung", "modell", "prozess"}
+WARTET = "thema_planer_wartet"                   # A1970 {"thema", "fassung", "tag", "usd", "grenze"} – Tagesgrenze erreicht
+TAGESGRENZE_USD = 5.0                            # Vorgabe der Projekt-Einstellung planer_tagesgrenze_usd (0 = keine Grenze)
 EINSTIEG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "amw-planer.py")
 OHNE_FENSTER = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 FRIST_S = 15 * 60
@@ -457,6 +459,106 @@ AUFTRAG = (
 
 def einstellung(con, pid):
     return kern.projekt_wahl(con, pid, "themen_planer")
+
+
+def tagesgrenze(con, pid):
+    """A1970: Dollar je Projekt und Tag für alle Planer-Läufe zusammen – None = keine Grenze (Einstellung 0)."""
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    v = (json.loads(r[0] or "{}") if r else {}).get("planer_tagesgrenze_usd")
+    v = TAGESGRENZE_USD if v is None else float(v)
+    return v if v > 0 else None
+
+
+def _tag(zeit_utc=None):
+    """Der Kalendertag in der Ortszeit des PCs (so meint der Mensch „heute“) – für zeit_utc oder jetzt."""
+    import datetime
+    if zeit_utc is None:
+        return datetime.datetime.now().astimezone().date().isoformat()
+    t = datetime.datetime.strptime(zeit_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    return t.astimezone().date().isoformat()
+
+
+def heute_usd(con, pid, tag=None):
+    """Kosten aller Planer-Läufe des Projekts an diesem Tag (aus den Entwürfen, auch fehlerhaften)."""
+    tag = tag or _tag()
+    summe = 0.0
+    for r in con.execute("SELECT zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = ?", (pid, ENTWURF)):
+        if _tag(r["zeit_utc"]) != tag:
+            continue
+        try:
+            usd = json.loads(r["text"] or "{}").get("usd")
+        except ValueError:
+            continue
+        if isinstance(usd, (int, float)):
+            summe += usd
+    return round(summe, 2)
+
+
+def _wartet(con, pid, tid=None):
+    """Wartende Planer (Tagesgrenze): je Thema das jüngste Warten, das noch nicht durch ein späteres Anstoßen erledigt ist."""
+    aus = {}
+    for r in con.execute("SELECT id, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?) ORDER BY id", (pid, WARTET, ANGESTOSSEN)):
+        try:
+            d = json.loads(r["text"] or "{}")
+        except ValueError:
+            continue
+        if tid is not None and d.get("thema") != int(tid):
+            continue
+        if r["art"] == WARTET:
+            aus[d.get("thema")] = {**d, "id": r["id"]}
+        else:
+            aus.pop(d.get("thema"), None)
+    return aus
+
+
+def _grenze_erreicht(con, pid, tid, fassung, lead):
+    """Ist die Tagesgrenze erreicht, merkt die AMW das Thema vor (einmal je Fassung) und sagt es dem Lead einmal am Tag.
+    Aufruf in einer Schreib-Transaktion. Rückgabe: Text oder None (Grenze nicht erreicht)."""
+    grenze = tagesgrenze(con, pid)
+    if grenze is None:
+        return None
+    tag, usd = _tag(), heute_usd(con, pid)
+    if usd < grenze:
+        return None
+    w = _wartet(con, pid, tid).get(int(tid))
+    if not (w and w.get("fassung") == fassung):
+        heute_gemeldet = any(e.get("tag") == tag and e.get("gemeldet") for e in _alle(con, pid, WARTET))
+        _ereignis(con, pid, "AMW", WARTET, tid, fassung=fassung, tag=tag, usd=usd, grenze=grenze, gemeldet=not heute_gemeldet)
+        if lead and lead != kern.ENTWICKLER and not heute_gemeldet:
+            kern._posten(con, pid, "AMW", lead, "meldung", f"Planer: Tagesgrenze {grenze:.2f} $ erreicht – TH{tid} wartet bis morgen",
+                         f"Die Planer-Läufe haben heute {usd:.2f} $ gekostet (Grenze planer_tagesgrenze_usd = {grenze:.2f} $). "
+                         f"TH{tid} Fassung {fassung} und weitere Themen von heute plant die AMW morgen selbst. Sofort: "
+                         "Grenze erhöhen (amw projekt einstellen planer_tagesgrenze_usd=…) und amw thema planen TH<n>.")
+    return f"TH{tid}: Tagesgrenze der Planer erreicht ({usd:.2f} von {grenze:.2f} $) – plant morgen"
+
+
+def _alle(con, pid, art):
+    aus = []
+    for (t,) in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = ?", (pid, art)):
+        try:
+            aus.append(json.loads(t or "{}"))
+        except ValueError:
+            pass
+    return aus
+
+
+def nachholen(con, pid):
+    """Dienst-Runde: Themen, deren Planer an einem früheren Tag an der Tagesgrenze wartete, jetzt anstoßen (die Grenze gilt
+    wieder). Rückgabe: Texte."""
+    heute = _tag()
+    aus = []
+    for tid, w in sorted(_wartet(con, pid).items()):
+        if w.get("tag") == heute or tid is None:
+            continue
+        t = con.execute("SELECT id FROM thema WHERE id = ? AND projekt_id = ?", (tid, pid)).fetchone()
+        if not t:
+            continue
+        x = anstossen(con, pid, tid, w.get("fassung"), erneut=True)
+        if x:
+            aus.append(x)
+        if x and "Tagesgrenze" in x:                  # heute schon wieder voll: der Rest wartet weiter
+            break
+    return aus
 
 
 def _angestossen(con, pid, tid):
@@ -502,6 +604,9 @@ def anstossen(con, pid, tid, fassung, von="AMW", erneut=False):
             return f"TH{tid}: es plant schon ein Planer" if erneut else None
         if not erneut and (any(e.get("fassung") == fassung for e in _angestossen(con, pid, tid)) or _nichts_vermerkt(con, pid, tid)):
             return None
+        grenze = _grenze_erreicht(con, pid, tid, fassung, kern.lead(con, pid))   # A1970: Kosten je Projekt und Tag
+        if grenze:
+            return grenze
         eid = _ereignis(con, pid, von, ANGESTOSSEN, tid, fassung=fassung, modell=modell)
     try:
         prozess = STARTER(pid, tid, fassung)

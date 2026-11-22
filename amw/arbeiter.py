@@ -94,11 +94,17 @@ def freigabe(pruefbefehl, mcp_werkzeuge=()):
     return {"permissions": {"defaultMode": "dontAsk", "allow": allow, "deny": deny}, "env": {"DISABLE_AUTOUPDATER": "1"}}
 
 
+LESEN_MUSTER = "./**"         # A1970: relativ zum Arbeitsordner (dem eigenen Ordner des Zuarbeiters) – nichts darüber hinaus
+
+
 def freigabe_lesen():
     """A1914: Freigabeliste für einen Zuarbeiter, der nur liest – Lesen nur im eigenen Ordner (dontAsk lehnt alles andere ab),
-    Schreiben, Bash und Netz gesperrt (deny geht vor allow)."""
+    Schreiben, Bash und Netz gesperrt (deny geht vor allow). A1970: Read/Glob/Grep zusätzlich mit Pfad-Muster auf den eigenen
+    Ordner freigegeben (nicht mehr das ganze Werkzeug) – die Versionsprobe (versionsprobe.probe_lesen) belegt, dass Lesen und
+    Suchen außerhalb abgelehnt wird und innen geht."""
     deny = ["Bash", "Edit", "Write", "NotebookEdit", "WebFetch", "WebSearch"]
-    return {"permissions": {"defaultMode": "dontAsk", "allow": list(WERKZEUGE_LESEN), "deny": deny}, "env": {"DISABLE_AUTOUPDATER": "1"}}
+    allow = [f"{w}({LESEN_MUSTER})" for w in WERKZEUGE_LESEN]
+    return {"permissions": {"defaultMode": "dontAsk", "allow": allow, "deny": deny}, "env": {"DISABLE_AUTOUPDATER": "1"}}
 
 
 def programm():

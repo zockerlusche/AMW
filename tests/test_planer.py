@@ -249,6 +249,46 @@ class Anstossen(Grund):
         self.assertEqual(self.post("TL")[-1], ("meldung", f"Planentwurf TH{self.tid} „Anmeldung“ ging nicht"))
         self.assertIsNone(planer.laeuft(self.con, self.pid, self.tid))
 
+    def test_a1970_tagesgrenze_wartet_bis_morgen_und_meldet_einmal(self):
+        """Haben die Planer des Projekts heute die Grenze (Vorgabe 5 $) erreicht, startet keiner mehr: das Thema wartet, der Lead
+        erfährt es einmal am Tag; am nächsten Tag holt die Dienst-Runde es nach. 0 = keine Grenze."""
+        self.assertEqual(planer.tagesgrenze(self.con, self.pid), 5.0)
+        zweites = themen.neu(self.con, self.pid, "TL", "Abmeldung", pfleger="CC1")
+        themen.pflegen(self.con, self.pid, "CC1", zweites, "Abmelden mit einem Klick.")
+        planer.entwurf_eintragen(self.con, self.pid, self.tid, 1, ERGEBNIS, modell="sonnet", usd=3.0)
+        planer.entwurf_eintragen(self.con, self.pid, zweites, 1, ERGEBNIS, modell="sonnet", usd=2.5)    # heute 5,50 $
+        self.assertEqual(planer.heute_usd(self.con, self.pid), 5.5)
+        vorher = len(self.post("TL"))
+        self.assertIn("Tagesgrenze der Planer erreicht (5.50 von 5.00 $)", planer.anstossen(self.con, self.pid, self.tid, 2))
+        self.assertIn("Tagesgrenze", planer.anstossen(self.con, self.pid, zweites, 2))
+        self.assertIn("Tagesgrenze", planer.anstossen(self.con, self.pid, self.tid, 2))         # noch einmal: kein zweites Warten
+        self.assertEqual(len(planer._alle(self.con, self.pid, planer.WARTET)), 2)
+        self.assertEqual(self.gestartet, [])
+        meldungen = self.post("TL")[vorher:]
+        self.assertEqual(meldungen, [("meldung", f"Planer: Tagesgrenze 5.00 $ erreicht – TH{self.tid} wartet bis morgen")])  # einmal
+        self.assertEqual(sorted(planer._wartet(self.con, self.pid)), sorted([self.tid, zweites]))
+        self.assertEqual(planer.nachholen(self.con, self.pid), [])                               # heute nicht
+        with mock.patch.object(planer, "_tag", side_effect=lambda z=None: "2099-01-02" if z is None else "2099-01-01"):
+            aus = planer.nachholen(self.con, self.pid)                                           # morgen: Kosten von gestern zählen nicht
+        self.assertEqual(len(aus), 2, aus)
+        self.assertEqual(sorted(self.gestartet), sorted([(self.tid, 2), (zweites, 2)]))
+        self.assertEqual(planer._wartet(self.con, self.pid), {})
+        kern.projekt_einstellen(self.con, self.pid, "TL", planer_tagesgrenze_usd="0")              # 0 = keine Grenze
+        self.assertIsNone(planer.tagesgrenze(self.con, self.pid))
+        planer.entwurf_eintragen(self.con, self.pid, self.tid, 2, ERGEBNIS, usd=9.0)
+        self.assertIn("angestoßen", planer.anstossen(self.con, self.pid, self.tid, 3))
+
+    def test_a1970_einstellung(self):
+        kern.projekt_einstellen(self.con, self.pid, "TL", planer_tagesgrenze_usd="2,5")
+        self.assertEqual(planer.tagesgrenze(self.con, self.pid), 2.5)
+        for falsch in ("viel", "-1", "5000"):
+            with self.assertRaises(kern.AmwFehler):
+                kern.projekt_einstellen(self.con, self.pid, "TL", planer_tagesgrenze_usd=falsch)
+        with self.assertRaises(kern.AmwFehler):
+            kern.projekt_einstellen(self.con, self.pid, "CC1", planer_tagesgrenze_usd="9")          # nur Lead oder Mensch
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, planer_tagesgrenze_usd="")     # leer = Vorgabe
+        self.assertEqual(planer.tagesgrenze(self.con, self.pid), planer.TAGESGRENZE_USD)
+
     def test_befehle(self):
         from amw import cli
         import contextlib

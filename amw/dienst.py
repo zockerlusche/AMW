@@ -515,6 +515,12 @@ class Dienst:
                             log.info("Tore: %s", e)
                     except Exception as e:
                         log.warning("Tore P%s: %s: %s", p["id"], type(e).__name__, e)
+                    try:                                                     # A1970: Planer, die an der Tagesgrenze warteten
+                        from . import planer
+                        for e in planer.nachholen(self.con, p["id"]):
+                            log.info("Planer: %s", e)
+                    except Exception as e:
+                        log.warning("Planer P%s: %s: %s", p["id"], type(e).__name__, e)
         except Exception as e:
             log.warning("Lücken: %s: %s", type(e).__name__, e)
         try:                                                                 # Grafikkarte belegt ohne Lauf → Leads

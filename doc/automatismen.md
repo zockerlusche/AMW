@@ -682,7 +682,11 @@ die der Lead nur noch bestätigt oder ändert.
   Kosten und Lauf). Der Lead bekommt „Ja oder ändern“; bei Fehlern eine Meldung mit den Funden. Erst `amw thema plan-ja TH<n>`
   (Lead oder Mensch, optional `--datei` mit einem geänderten Entwurf) legt Meilensteine und Pakete an und verknüpft jedes Paket
   mit dem Thema; `amw thema plan TH<n>` zeigt den Entwurf. Kein Anlegen ohne Ja.
-- **Einstellung:** `themen_planer` = sonnet (Vorgabe) | aus – Lead oder Mensch. Tests stoßen nie einen echten Planer an
+- **Einstellung:** `themen_planer` = sonnet (Vorgabe) | aus – Lead oder Mensch. `planer_tagesgrenze_usd` (A1970, Vorgabe 5,
+  0 = keine Grenze, Lead oder Mensch): haben die Planer-Läufe des Projekts heute (Ortszeit) so viel gekostet, startet keiner
+  mehr – das Thema wartet (Ereignis `thema_planer_wartet`), der Lead bekommt einmal am Tag eine Meldung, und die Dienst-Runde
+  stößt die wartenden Themen am nächsten Tag selbst an. Der Planer liest nur im eigenen Ordner: Read/Glob/Grep sind mit dem
+  Muster `./**` freigegeben (wie der Gegenleser), die Versionsprobe belegt, dass Lesen außerhalb abgelehnt wird. Tests stoßen nie einen echten Planer an
   (`AMW_PLANER_AUS`). Die Ansicht dazu kommt mit der Grobplanung (A1916).
 
 ### Thema → Meilenstein → Paket (K8, A1942, TH163)

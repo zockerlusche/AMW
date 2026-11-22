@@ -197,6 +197,7 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
                         "regression_befehl", "abnahme_frist_min",   # A1920: was Prüfung C je Projekt ausführt
                         "sprachpruefung",                 # A1962: Sprach-Server in Prüfung C (auto | pyright | aus)
                         "gesamtlauf_prozesse",            # A1966: Prozesse des parallelen Gesamtlaufs
+                        "planer_tagesgrenze_usd",         # A1970: Kosten der Planer je Projekt und Tag
                         "arbeiter_umgebung",              # A1922: Variablen und Pfade der Arbeiter
                         "sicherung_ziel",                 # A1929/A1951: wohin die tägliche Sicherung schiebt (Lead oder Mensch)
                         "thema_freigabe",                 # A1937/A1951: wer Themen freigibt (Lead oder Mensch)

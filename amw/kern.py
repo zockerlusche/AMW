@@ -417,6 +417,21 @@ def projekt_einstellen(con, pid, von, **werte):
                     from . import dokumente
                     dokumente.online_nach_einstellung(con, pid, v)
                 continue
+            if k == "planer_tagesgrenze_usd":            # A1970: Kosten der Planer je Projekt und Tag (leer = Vorgabe, 0 = keine)
+                if not (von == ENTWICKLER or ist_lead(con, pid, von)):
+                    raise AmwFehler(f"{k}: setzt der Lead oder der Mensch")
+                s = str(v if v is not None else "").strip().replace(",", ".")
+                try:
+                    v = float(s) if s else None
+                except ValueError:
+                    raise AmwFehler(f"{k}: Dollar 0–1000 (leer = Vorgabe 5, 0 = keine Grenze)") from None
+                if v is not None and not 0 <= v <= 1000:
+                    raise AmwFehler(f"{k}: Dollar 0–1000 (leer = Vorgabe 5, 0 = keine Grenze)")
+                if v is None:
+                    e.pop(k, None)
+                else:
+                    e[k] = round(v, 2)
+                continue
             if k == "schalter":                          # A1926: nur über amw projekt schalter (Probe vor dem Einschalten)
                 raise AmwFehler("schalter: amw projekt schalter <Projekt> probe | an | aus")
             if k == "sicherung_ziel":                    # A1929/A1951: Sicherungsziel – Lead oder Mensch, nie mit Zugangsdaten

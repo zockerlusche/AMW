@@ -173,7 +173,7 @@ class NurLesen(Basis):
 
     def test_freigabe_nur_lesen(self):
         f = arbeiter.freigabe_lesen()["permissions"]
-        self.assertEqual((f["defaultMode"], f["allow"]), ("dontAsk", ["Glob", "Grep", "Read"]))
+        self.assertEqual((f["defaultMode"], f["allow"]), ("dontAsk", ["Glob(./**)", "Grep(./**)", "Read(./**)"]))   # A1970: nur der eigene Ordner
         self.assertTrue({"Bash", "Edit", "Write", "WebFetch", "WebSearch"} <= set(f["deny"]))
 
 
