@@ -128,6 +128,26 @@ class Arbeiter(unittest.TestCase):
             r = self.laufen()
         self.assertTrue(any("nicht geprüft" in a for a in r["abweichungen"]), r["abweichungen"])
 
+    def test_projekt_plugins_und_skills_im_klon_laden_nicht(self):
+        """A1959 (P445): Liegt .claude/settings.json mit enabledPlugins (pyright-lsp, php-lsp) – oder .claude/skills – im Klon,
+        laden sie im Arbeiter nicht: er startet mit --restricted. Probe L3043 mit Claude Code 2.1.330 in einem Klon mit beidem:
+        mit --restricted nur die eingebauten Plugins und keine Skills (init besteht), ohne --restricted die Projekt-Plugins
+        (init bricht ab). Beide init-Ereignisse sind hier gekürzt nachgebildet; fiele --restricted weg, würde dieser Test rot."""
+        self.assertIn("--restricted", arbeiter.befehl(self.p, "s.json"))
+        s = arbeiter.soll(self.p, "claude-opus-5-5")
+        eingebaut = [{"name": n, "path": "builtin"} for n in ("cc-plugin-agents-md", "cc-plugin-telemetry", "cc-plugin-privacy",
+                                                               "cc-plugin-plugin-authoring")]
+        basis = {"type": "system", "subtype": "init", "cwd": self.p["klon"], "model": "claude-opus-5-5", "permissionMode": "dontAsk",
+                 "tools": list(arbeiter.WERKZEUGE), "mcp_servers": [], "additional_directories": [], "claude_code_version": arbeiter.GEPRUEFT[0]}
+        mit_restricted = dict(basis, plugins=eingebaut, skills=[], slash_commands=[])
+        self.assertEqual(arbeiter.init_pruefen(mit_restricted, s), [])
+        ohne_restricted = dict(basis, skills=[], slash_commands=[], plugins=[
+            {"name": "pyright-lsp", "path": "C:\\Users\\x\\.claude\\plugins\\cache\\claude-plugins-official\\pyright-lsp\\1.0.0"},
+            {"name": "php-lsp", "path": "C:\\Users\\x\\.claude\\plugins\\cache\\claude-plugins-official\\php-lsp\\1.0.0"},
+            *eingebaut])
+        self.assertEqual(arbeiter.init_pruefen(ohne_restricted, s), ["Plugins außer den eingebauten: ['pyright-lsp', 'php-lsp']"])
+        self.assertTrue(arbeiter.init_pruefen(dict(mit_restricted, skills=["probe-skill"]), s))     # ein Projekt-Skill: Abbruch
+
     def test_steuerdateien_gesperrt(self):
         f = arbeiter.freigabe("python -m unittest")["permissions"]["deny"]
         for w in ("Edit", "Write"):
