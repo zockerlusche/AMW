@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.163.0 – 22.11.2026 · Lücken Thema ↔ Paket, ruhigere Läufe, kürzerer Einstieg
+- **Neu:** Die Planung zeigt selbst, welches freigegebene Thema noch kein Paket hat und welches Paket kein Thema – der Lead
+  bekommt jede neue Lücke einmal gemeldet. Neue Aufgaben nennen ihr Thema (`--thema TH3`) oder bewusst keins mit Grund
+  (`--ohne-thema-grund …`); ein Thema, das nichts braucht, bekommt den Vermerk „nichts zu bauen“ (`amw thema vermerk`).
+- **Verbessert:** Läufe, die die AMW selbst ausführt und beendet (Gegenlesen, Negativprobe, Arbeiter, Bündel), wecken beim Start
+  niemanden mehr mit „jetzt starten“.
+- **Verbessert:** Nach dem Start liest ein Agent nur noch das Einstiegs-Thema des Konzepts und das Thema seines laufenden Pakets
+  (`amw projekt einstellen konzept_einstieg=TH…`) – keine Konzept-Dokumente mehr.
+
 ## 1.162.1 – 22.11.2026 · Auslieferung hält nicht mehr bei „Stände“
 - **Behoben:** Ist ein Stapel an der Spitze grün geprüft, bleibt dieses Grün erhalten; die Auslieferung hält nicht mehr bei
   „Stände“, weil ein übertragenes Grün auf einem inneren Commit es verdrängt hatte.
