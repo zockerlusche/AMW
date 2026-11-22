@@ -164,6 +164,15 @@ class Projekte(unittest.TestCase):
         self.assertNotEqual(rc, 0)
         rc, aus = self.cli("--von", "Entwickler", "pc", "einstellen", "plaetze_pc=1", sitzung=True)     # Mensch nur im Terminal
         self.assertNotEqual(rc, 0)
+        self.assertEqual(self.cli("--von", "TL", "pc", "einstellen", "limit_halt=90")[0], 0)           # P392: strenger darf der Lead
+        for wert in ("96", "0", ""):                                                                   # lockern oder aus: nur der Mensch
+            rc, aus = self.cli("--von", "TL", "pc", "einstellen", f"limit_halt={wert}")
+            self.assertNotEqual(rc, 0, wert)
+            self.assertIn("nur der Mensch im eigenen Terminal", aus)
+        self.assertEqual(einstellungen.wert("limit_halt"), 90)
+        self.assertEqual(self.cli("--von", "Entwickler", "pc", "einstellen", "limit_halt=0")[0], 0)
+        self.assertEqual(einstellungen.wert("limit_halt"), 0)
+        self.assertEqual(self.cli("--von", "TL", "pc", "einstellen", "limit_halt=99")[0], 0)           # von aus: jeder Wert ist strenger
         rc, aus = self.cli("--von", "TL", "pc", "einstellen", "port=9999")
         self.assertIn("im Zahnrad", aus)
         self.assertEqual(einstellungen.wert("plaetze_pc"), 3)

@@ -298,7 +298,8 @@ Schwelle liegt oder die Einstellung aus ist. Einstellen: Workbench › Einstellu
 `amw projekt einstellen limit_halt=<Prozent>` (Lead oder Mensch).
 
 **Seit A1925 für den ganzen PC:** Das Konto ist eines. Es gilt die PC-Einstellung `amw pc einstellen limit_halt=<Prozent>`
-(Vorgabe 95, 0 = aus; Lead oder Mensch, der Mensch nur im eigenen Terminal) für alle Projekte. Ein Wert im Projekt gilt nur,
+(Vorgabe 95, 0 = aus) für alle Projekte – strenger stellen dürfen Lead und Mensch, ausschalten oder lockern nur der Mensch
+im eigenen Terminal. Ein Wert im Projekt gilt nur,
 wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr allein.
 
 ## Disponent über Projekte (A1925, W2449)

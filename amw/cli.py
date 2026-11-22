@@ -1329,6 +1329,15 @@ def cmd_pc(a, con):
                 raise kern.AmwFehler(f"{k}: stellt nur der Mensch im eigenen Terminal ein (--von Entwickler, nicht aus einer Agenten-Sitzung)")
         elif k in PC_LEAD_ODER_MENSCH:
             _rolle_nur_mensch_oder_lead(con, _projekt(con, a), a, f"{k} setzen")
+            if k == "limit_halt" and _von(a) != kern.ENTWICKLER:      # P392 (#29892): der Lead nur strenger
+                try:
+                    neu = int(v.strip() or 0)
+                except ValueError:
+                    neu = None
+                alt = einstellungen.wert("limit_halt")
+                if neu is not None and (neu == 0 or (alt and neu > alt)):
+                    raise kern.AmwFehler(f"limit_halt: ausschalten oder lockern (jetzt {alt or 'aus'}) nur der Mensch im eigenen"
+                                         " Terminal – der Lead stellt ihn nur strenger")
         else:
             raise kern.AmwFehler(f"{k}: hier nur {', '.join(PC_NUR_MENSCH + PC_LEAD_ODER_MENSCH)} – die übrigen im Zahnrad › Dieser PC")
         try:
