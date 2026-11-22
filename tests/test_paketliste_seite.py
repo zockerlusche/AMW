@@ -66,9 +66,12 @@ class Pakete(Rundgang):
         text = self.tab.js("document.querySelector('#inhalt').innerText").lower()
         for teil in ("startet nicht: alle arbeitsplätze belegt", "du bist dran", "frage an marcel", "platz 1", "mitlesen"):
             self.assertIn(teil, text)
-        sp = f"document.querySelector('.pk-zeile[data-a=\"{self.entwurf}\"] .pk-spanne')"             # A1955: P50–P85 aus fünf Messungen
-        self.assertEqual(self.tab.js(f"{sp}.innerText"), "2,00–2,70")
-        self.assertIn("Erwartet 2,00–2,70 $ und 25–32 min – aus 5 gemessenen Paketen", self.tab.js(f"{sp}.title"))
+        zelle = f"document.querySelector('.pk-zeile[data-a=\"{self.entwurf}\"] .pk-kosten')"         # A1955: P50–P85 aus fünf Messungen
+        self.assertEqual(self.tab.js(f"{zelle}.firstChild.textContent"), "≈ 2,00 $")             # TH156 Regel 7: ein Wert
+        self.assertIn("Erwartet 2,00–2,70 $ und 25–32 min – aus 5 gemessenen Paketen", self.tab.js(f"{zelle}.title"))
+        self.assertTrue(self.tab.js(f"{zelle}.querySelector('.pk-spanne').hidden"))              # Spanne nicht auf Vorrat
+        self.tab.js(f"{zelle}.click()")
+        self.assertEqual(self.tab.js(f"{zelle}.querySelector('.pk-spanne').innerText"), "2,00–2,70 $ · 25–32 min")   # auf Antippen
         zeile = lambda a: f"document.querySelector('.pk-zeile[data-a=\"{a}\"]')"
         self.assertTrue(self.tab.js(f"{zeile(self.wartet)}.classList.contains('gruppe-wartet')"))
         self.assertTrue(self.tab.js(f"{zeile(self.laeuft)}.classList.contains('gruppe-laeuft')"))

@@ -45,8 +45,8 @@ Ein p-Paket ist eine kleine, klar prüfbare Aufgabe, die ein frischer `claude -p
 ### Was ist ein guter Abnahme-Befehl?
 Einer, der genau das prüft, was das Paket liefern soll, schnell läuft und heute rot ist. Ein ganzer Testlauf ist zu breit; ein einzelner neuer Test oder eine kleine Testklasse ist ideal. Legst du den Test vorher als `tests/abnahme_<thema>.py` ab (der Arbeiter darf `tests/` nicht ändern), benennt die AMW ihn beim Bündeln in `tests/test_abnahme_<thema>.py` um – ab dann läuft er in jedem Gesamtlauf mit.
 
-### Was heißt die graue Spanne „1,20–2,10“ unter den Kosten?
-Was Pakete derselben Größe und Art mit demselben Modell bisher gekostet haben: der erste Wert gilt für die Hälfte von ihnen (P50), der zweite für fast alle (P85). Zeigst du darauf, steht auch die erwartete Dauer dabei. Die Spanne erscheint erst ab fünf gemessenen Paketen; `amw paket zeigen <nr>` zeigt sie ebenso.
+### Was heißt „≈ 1,20 $“ bei den Kosten?
+Noch nicht gemessen – so viel kosteten Pakete derselben Größe und Art mit demselben Modell bisher meist (P50). Zeigst du darauf oder tippst du darauf, steht die Spanne bis fast immer (P85) und die erwartete Dauer dabei. Die Spanne erscheint erst ab fünf gemessenen Paketen; `amw paket zeigen <nr>` zeigt sie ebenso.
 
 ### Wann `--nach`, wann `--nie-gleichzeitig`, wann `--gleiche-ressource`?
 `--nach`: das Paket braucht das Ergebnis der anderen Aufgabe. `--nie-gleichzeitig`: die beiden stören sich, egal in welcher Reihenfolge. `--gleiche-ressource`: viele Pakete teilen sich etwas (z. B. dieselbe Testdatenbank) – sie bekommen denselben Namen und laufen nacheinander.
