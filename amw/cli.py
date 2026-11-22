@@ -172,7 +172,8 @@ def _aus_agenten_sitzung():
 
 # A1892 (P294): Projekt-Einstellungen, die Rechte vergeben (Freigeben in der Merge-Liste, Weckrufe, Halt) – gleiche Sperre wie
 # „agent lead“; merge_blick/merge_aussen_pruefung setzt zusätzlich nur der Mensch (kern.NUR_MENSCH_WAHL)
-RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_blick", "merge_aussen_pruefung")
+RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_blick", "merge_aussen_pruefung",
+                        "co_entwickler")                  # A1908 (P352): der Co-Entwickler legt Themen an
 # eine Stelle für alle Einstellungen mit dieser Sperre (CCamwTL P299): Rechte (A1892) und ausführbare Bündel-Befehle (A1876, P298)
 GESPERRTE_EINSTELLUNGEN = RECHTE_EINSTELLUNGEN + kern.BUENDEL_EINSTELLUNGEN
 

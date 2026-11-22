@@ -211,6 +211,14 @@ class Rechte(Grund):
             themen.neu(self.con, self.pid, "CC1", "Ohne Rolle")                                   # ohne Rolle: nein
         with self.assertRaisesRegex(kern.AmwFehler, "nur Lead und Entwickler"):
             kern.projekt_einstellen(self.con, self.pid, "CC1", co_entwickler="CC1")             # sich selbst dazu machen: nein
+        for env in ({"CLAUDECODE": "1"}, {"CLAUDE_CODE_MESSAGING_SOCKET": r"\\.\pipe\x"}):         # P352: auch nicht als „Entwickler“
+            rc, aus = self.cli("projekt", "einstellen", "co_entwickler=CC1", "--von", "Entwickler", env=env)   # aus der Sitzung
+            self.assertNotEqual(rc, 0, aus)
+            self.assertIn("nicht aus einer Agenten-Sitzung", aus)
+        self.assertIsNone(kern.co_entwickler(self.con, self.pid))
+        rc, aus = self.cli("projekt", "einstellen", "co_entwickler=CC1", "--von", "Entwickler")    # Terminal des Menschen: ja
+        self.assertEqual((rc, kern.co_entwickler(self.con, self.pid)), (0, "CC1"), aus)
+        kern.projekt_einstellen(self.con, self.pid, "TL", co_entwickler="")
         kern.projekt_einstellen(self.con, self.pid, "TL", co_entwickler="CC1")
         tid = themen.neu(self.con, self.pid, "CC1", "Konzept Rollen")
         self.assertEqual(themen.finden(self.con, self.pid, tid)["angelegt_von"], "CC1")
