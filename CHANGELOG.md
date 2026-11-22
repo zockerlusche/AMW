@@ -4,6 +4,23 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.154.0 – 22.11.2026 · Updates ohne Stillstand, Prüfung zurücknehmen
+- **Neu:** Aktualisiert sich Claude Code, prüft die AMW die neue Version selbst: Ein Arbeiter versucht mit dem kleinsten
+  Modell Zugriffe außerhalb seines Platzes, jeder muss abgelehnt werden (wenige Cent, etwa eine Minute). Besteht die Version,
+  starten die Arbeiter wie gewohnt weiter; der Bericht liegt als Dokument vor. Sonst schaltet die AMW den Wartungsmodus an und
+  fragt Lead und dich. `amw claude status` zeigt den Stand, `amw claude freigeben` gibt von Hand frei.
+- **Neu:** Ein schon gegebenes GRÜN lässt sich mit Grund zurücknehmen (`amw pruefung zuruecknehmen P… --grund …`, Prüfer, Lead
+  oder du). Der Stand gilt danach nicht mehr als geprüft, ein Merge-OK darauf fällt weg; im Verlauf bleibt sichtbar, dass er
+  grün war.
+- **Verbessert:** Ein Versionswechsel von Claude Code zählt nie als Fehlschlag eines Pakets.
+- **Verbessert:** Der Co-Entwickler eines Projekts darf Themen anlegen – im Terminal und über den Connector. Betreuer und
+  Projekt-Stil setzen weiter du oder der Lead; freigeben, zurückgeben und markieren bleibt bei dir.
+- **Behoben:** Ein Auftrag zu einer anderen Aufgabe weckt den Agenten jetzt, sobald er eine Pause macht oder sein laufendes Stück
+  wartet – nicht erst, wenn das Stück fertig ist. Steht die Aufgabe des Auftrags in der Liste vor dem laufenden Stück, wartet er
+  nicht auf dieses Stück.
+- **Behoben:** Nach der Auslieferung eines Bündels stehen alle seine Pakete auf fertig, auch wenn das Bündel vorher einmal
+  neu gebaut wurde. Bisher blieben dann alle bis auf eines offen.
+
 ## 1.153.0 – 21.11.2026 · Posteingang über alle Projekte
 - **Neu:** Nachrichten zeigen alles an dich aus allen Projekten auf diesem PC in einer Liste. Jede Zeile trägt ihr Projekt mit
   Farbmarke, oben wählst du „Alle Projekte“ oder eines. Die Reiter heißen jetzt „An dich“, „Mitlesen“ (bisher Team-Chat) und

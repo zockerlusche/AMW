@@ -161,7 +161,7 @@ Ruhephase. Empfänger ist die Projekt-Einstellung `leerlauf_lead` (sonst der Lea
 einen Chat-Lead weckt die AMW nicht. Wartezeit: `leerlauf_lead_min` (1–1440, Vorgabe 10). Beides setzen Lead oder Mensch:
 `amw projekt einstellen leerlauf_lead=<Agent> leerlauf_lead_min=<min>`.
 
-## Neue Claude-Code-Version ohne Stillstand (seit 1.153.0)
+## Neue Claude-Code-Version ohne Stillstand (seit 1.154.0)
 
 **Wozu:** 21.11.: Zweimal stand S8 je etwa eine Stunde still, weil sich Claude Code aktualisiert hatte und die geprüften
 Versionen eine Konstante im Code waren (A1890, A1905). Updates kommen jederzeit (W2443).
