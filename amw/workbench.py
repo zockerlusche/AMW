@@ -45,22 +45,24 @@ AUFGABE_IN_TEXT = re.compile(r"\bA(\d{3,5})\b")
 
 
 def gerade(con, pid, kennung, sitzung_taetigkeit=None):
-    """Was der Agent gerade macht: eigene Angabe (amw taetigkeit), sonst laufende Aufgabe, sonst die Aufgabe aus
-    seiner letzten Meldung (Nummer oder A1234 im Text). Rückgabe: (text, aufgabe_id, quelle)."""
-    if sitzung_taetigkeit:
-        return sitzung_taetigkeit, None, "angabe"
-    a = con.execute("SELECT id, titel FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'laeuft'"
-                    " ORDER BY begonnen_utc DESC LIMIT 1", (pid, kennung)).fetchone()
-    if a:
-        return f"A{a['id']} · {a['titel']}", a["id"], "aufgabe"
-    m = con.execute("SELECT aufgabe_id, kurz FROM nachricht WHERE projekt_id = ? AND von = ? ORDER BY id DESC LIMIT 1",
-                    (pid, kennung)).fetchone()
-    if m:
-        aid = m["aufgabe_id"] or (int(AUFGABE_IN_TEXT.search(m["kurz"] or "").group(1)) if AUFGABE_IN_TEXT.search(m["kurz"] or "") else None)
-        t = con.execute("SELECT titel FROM aufgabe WHERE projekt_id = ? AND id = ?", (pid, aid)).fetchone() if aid else None
-        if t:
-            return f"A{aid} · {t['titel']}", aid, "meldung"
-    return None, None, None
+    """Was der Agent gerade macht – A1953: von der AMW abgeleitet (Lauf › Aufgabe › Meldung, eigene Angabe nur Ergänzung;
+    amw/gerade.py). Rückgabe: (text, aufgabe_id, quelle). sitzung_taetigkeit wird nicht mehr gebraucht (bleibt für Aufrufer)."""
+    g = gerade_daten(con, pid, kennung)
+    return (g["text"], g["aufgabe"], g["quelle"]) if g else (None, None, None)
+
+
+def gerade_daten(con, pid, kennung):
+    """Felder für Kachel und Übersicht: gerade, gerade_aufgabe, gerade_quelle, gerade_seit, gerade_ergaenzung, gerade_puls,
+    gerade_veraltet (A1953: jeder Wert mit Quelle und Alter)."""
+    from . import gerade as _g
+    return _g.ableiten(con, pid, kennung)
+
+
+def gerade_felder(con, pid, kennung):
+    g = gerade_daten(con, pid, kennung) or {}
+    return {"gerade": g.get("text"), "gerade_aufgabe": g.get("aufgabe"), "gerade_quelle": g.get("quelle"),
+            "gerade_seit": g.get("seit_utc"), "gerade_ergaenzung": g.get("ergaenzung"), "gerade_puls": g.get("puls_utc"),
+            "gerade_veraltet": g.get("veraltet")}
 
 
 def _naechster_test(con, pid):
@@ -323,8 +325,7 @@ def daten_start(con, pid):
         a["liste_n"], a["liste_lauf"] = len(l), next((x["pos"] for x in l if x["status"] == "laeuft"), None)
         boegen, gefuehrt = kern.fuehrt(con, pid, a["kennung"])          # Federführung auf der Kachel
         a["fuehrt"] = [f"B{b['id']}" for b in boegen] + [f"A{x['id']}" for x in gefuehrt]
-        a["gerade"], a["gerade_aufgabe"], a["gerade_quelle"] = gerade(con, pid, a["kennung"],
-                                                                      a["taetigkeit"] if a["zustand"] == "aktiv" else None)
+        a.update(gerade_felder(con, pid, a["kennung"]))                  # A1953: abgeleitet, mit Quelle und Alter
         a["wartet"] = [{"aufgabe": r["aufgabe_id"], "auf": r["auf"]} for r in con.execute(   # Wartegründe auf der Kachel
             "SELECT w.aufgabe_id, group_concat(w.bezug, ', ') AS auf FROM wartegrund w JOIN aufgabe x ON x.id = w.aufgabe_id"
             " WHERE x.projekt_id = ? AND x.agent = ? AND x.status IN ('wartet', 'blockiert') AND x.einstufung = 'aktiv'"
@@ -896,7 +897,7 @@ def daten_agent(con, pid, kennung):
     if not a:
         raise LookupError(kennung)
     alt = altbestand_bis(con, pid)
-    text, aid, quelle = gerade(con, pid, kennung, a["taetigkeit"] if a["zustand"] == "aktiv" else None)
+    aid = gerade(con, pid, kennung)[1]
     from . import aufwand, empfehlung, gespraech, steuerung
     try:
         steuern = {"profil": steuerung.profil(con, pid, kennung), "prozess_laeuft": steuerung.laeuft(con, pid, kennung),
@@ -908,7 +909,7 @@ def daten_agent(con, pid, kennung):
     except Exception:
         steuern["claude_link"] = None
     return {
-        **{k: v for k, v in dict(a).items() if k != "claude_sitzung"}, **steuern, "gerade": text, "gerade_aufgabe": aid, "gerade_quelle": quelle,
+        **{k: v for k, v in dict(a).items() if k != "claude_sitzung"}, **steuern, **gerade_felder(con, pid, kennung),
         "aufwand": aufwand.je_agent(con, pid, kennung),
         "empfehlung": empfehlung.fuer_agent(con, pid, kennung),
         "naechste": zeilen(con.execute(

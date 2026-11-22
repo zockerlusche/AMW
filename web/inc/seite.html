@@ -1334,6 +1334,7 @@ const TEXTE = {
     g_fehlt: "Das Protokoll dieser Sitzung gibt es nicht mehr.", g_warten: "Der PC holt das Gespräch … (meist unter 30 Sekunden)",
     g_online_h: "Online: nur Texte und Namen der Arbeitsschritte, Geheimnisse verdeckt; der PC hält das Gespräch nach dem letzten Abruf 10 Minuten aktuell",
     k_macht: "Arbeitet gerade an", k_quelle_angabe: "eigene Angabe des Agenten", k_quelle_aufgabe: "laufende Aufgabe", k_quelle_meldung: "abgeleitet aus seiner letzten Meldung",
+    k_quelle_lauf: "laufender Lauf", k_veraltet: "veraltet?", k_veraltet_h: "Seit 30 Minuten kein Lebenszeichen der Sitzung – vielleicht stimmt das nicht mehr",
     k_kommt: "Als Nächstes", k_wartet_auf: "wartet auf", k_laeufe: "Läufe", k_pruefungen: "Prüfanfragen",
     k_soll_pruefen: "soll prüfen für {x}", k_wartet_pruefung: "wartet auf Prüfung durch {x}", k_an_ihn: "Neue Nachrichten an ihn",
     k_meldungen: "Seine letzten Meldungen", k_nichts: "nichts", k_nichts_neu: "keine neuen", k_alt: "dazu {n} ältere ungelesene Nachrichten",
@@ -1674,6 +1675,7 @@ const TEXTE = {
     g_fehlt: "The log of this session no longer exists.", g_warten: "The PC is fetching the conversation … (usually under 30 seconds)",
     g_online_h: "Online: texts and step names only, secrets masked; the PC keeps the conversation fresh for 10 minutes after the last view",
     k_macht: "Working on", k_quelle_angabe: "the agent's own statement", k_quelle_aufgabe: "running task", k_quelle_meldung: "derived from its last report",
+    k_quelle_lauf: "running job", k_veraltet: "out of date?", k_veraltet_h: "No sign of life from the session for 30 minutes – this may no longer be true",
     k_kommt: "Up next", k_wartet_auf: "waiting for", k_laeufe: "Runs", k_pruefungen: "Review requests",
     k_soll_pruefen: "to review for {x}", k_wartet_pruefung: "waiting for review by {x}", k_an_ihn: "New messages to it",
     k_meldungen: "Its latest reports", k_nichts: "nothing", k_nichts_neu: "none new", k_alt: "plus {n} older unread messages",
@@ -2895,7 +2897,9 @@ const tmOffen = (a, kurz) => a.offen ? el("span", { class: "tm-offen" + (a.offen
 const tmZustand = a => { const [farbe, text, dauer] = agentZustand(a);
   return el("div", { class: "tm-zustand", title: a.zustand === "aktiv" ? t("k_puls_seit", { t: seit(a.letzter_puls_utc) }) : null }, el("span", { class: "punkt " + farbe }),
     el("span", { class: farbe === "bernstein" ? "bernstein-text" : farbe === "rot" && a.zustand === "aktiv" ? "rot-text" : "" }, text), dauer ? el("span", { class: "sehrleise" }, dauer) : null); };
-const tmAufgabe = (a, n) => a.gerade ? [el("span", { class: "sehrleise" }, t("k_gerade") + " "), tmKurz(a.gerade, n)]
+const tmAufgabe = (a, n) => a.gerade ? [el("span", { class: "sehrleise" }, t("k_gerade") + " "),   /* A1953: Quelle und Alter im Tooltip, veraltet grau */
+    el("span", { class: a.gerade_veraltet ? "sehrleise" : "", title: t("k_quelle_" + a.gerade_quelle) + (a.gerade_seit ? " · " + seit(a.gerade_seit) : "")
+      + (a.gerade_veraltet ? " · " + t("k_veraltet_h") : "") }, tmKurz(a.gerade, n)), a.gerade_veraltet ? el("span", { class: "bernstein-text" }, " " + t("k_veraltet")) : null]
   : [el("span", { class: "sehrleise" }, a.soll === "an" && !a.chat ? t("k_unbekannt") : (a.zustaendig || t("tm_keine")))];
 /* Mit wem er gerade arbeitet (offene Prüfung) oder worauf er wartet – eine Zeile, der Rest steht in der Übersicht */
 function tmNeben(a, d) {
@@ -3265,9 +3269,11 @@ async function agentDialog(kennung, reiter) {
     el("h4", {}, titel, liste && liste.length ? el("span", { class: "anzahl" }, String(liste.length)) : null),
     liste && liste.length ? el("div", { class: "eintraege" }, liste.map(bauen)) : el("div", { class: "sehrleise leer-klein" }, leer || t("k_nichts")));
   const macht = el("section", { class: "abschnitt macht" }, el("h4", {}, t("k_macht")),
-    d.gerade ? el("div", { class: "eintrag " + (d.gerade_quelle === "angabe" ? "laeuft" : "vermutet") },
-      el("div", { class: "eintrag-text gross" }, d.gerade), el("div", { class: "sehrleise eintrag-zusatz" }, t("k_quelle_" + d.gerade_quelle),
-        d.gerade_quelle === "angabe" && d.taetigkeit_utc ? taetigkeitAlter(d.taetigkeit_utc) : null))
+    d.gerade ? el("div", { class: "eintrag " + (d.gerade_veraltet ? "vermutet" : (d.gerade_quelle === "lauf" || d.gerade_quelle === "aufgabe") ? "laeuft" : "vermutet") },
+      el("div", { class: "eintrag-text gross" }, d.gerade),
+      d.gerade_ergaenzung ? el("div", { class: "leise" }, d.gerade_ergaenzung) : null,
+      el("div", { class: "sehrleise eintrag-zusatz" }, t("k_quelle_" + d.gerade_quelle), d.gerade_seit ? " · " + seit(d.gerade_seit) : "",
+        d.gerade_veraltet ? el("span", { class: "bernstein-text", title: t("k_veraltet_h") }, " · " + t("k_veraltet")) : null))
       : el("div", { class: "sehrleise leer-klein" }, t("k_unbekannt")));
   const links = [
     abschnitt(t("k_kommt"), d.naechste, x => eintrag(x.status, `A${x.id}`, t("sp_" + x.status) || x.status, `Rang ${x.rang}`, x.titel,

@@ -91,7 +91,7 @@ amw aufgabe fertig 1201 --beleg <commit> --zusammenfassung "…" --von CC1
 amw lauf start --beschreibung "Build" --dauer 10 --warten --von CC1   # dann: amw lauf ende <nr> --rc 0
 amw pruefung bitte --pruefer CC2 --zweig cc1-x --sha <commit> --von CC1
 amw frage neu --an entwickler --kurz "…" --option "A=…" --option "B=…" --empfehlung A --grund "…" --von TL
-amw taetigkeit "A1201 Login-Formular" --von CC1   # steht beim Agenten unter „Arbeitet an“
+amw taetigkeit "Formular prüfen" --von CC1   # nur Ergänzung – „Arbeitet an“ leitet die AMW aus Lauf/Aufgabe/Meldung ab
 amw kontext --von CC1                     # Pflicht-Kontext
 ```
 **Anmelden von selbst.** Ein Hook, den `amw einrichten agenten-ordner` in jeden Agenten-Ordner einträgt, sieht jeden

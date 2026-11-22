@@ -810,14 +810,16 @@ def eskalieren(con, pid):
 
 
 def taetigkeit_auto(con, pid, kennung, text, aufgabe_id=None):
-    """aufgabe start / lauf start: setzt die Tätigkeit nur, wenn keine da ist oder sie älter als 2 h ist – eine eigene,
-    genauere Angabe wird nicht überschrieben. Läuft in der Transaktion des Aufrufers."""
-    s = con.execute("SELECT s.id, s.taetigkeit, s.taetigkeit_utc FROM sitzung s JOIN agent g ON g.id = s.agent_id"
+    """aufgabe start / lauf start: setzt die Tätigkeit nur, wenn keine da ist, sie älter als 2 h ist oder (A1953) zu einer
+    anderen Aufgabe gehört – eine eigene, genauere Angabe zur selben Aufgabe wird nicht überschrieben. Läuft in der
+    Transaktion des Aufrufers."""
+    s = con.execute("SELECT s.id, s.taetigkeit, s.taetigkeit_utc, s.aufgabe_id FROM sitzung s JOIN agent g ON g.id = s.agent_id"
                     " WHERE g.projekt_id = ? AND g.kennung = ? AND s.zustand = 'aktiv' ORDER BY s.id DESC LIMIT 1",
                     (pid, kennung)).fetchone()
     if not s:
         return False
-    if s["taetigkeit"] and s["taetigkeit_utc"] and alter_s(s["taetigkeit_utc"]) < TAETIGKEIT_ALT_S:
+    andere = aufgabe_id and s["aufgabe_id"] and s["aufgabe_id"] != aufgabe_id    # A1953: Angabe zu einer anderen Aufgabe gilt nicht mehr
+    if s["taetigkeit"] and s["taetigkeit_utc"] and alter_s(s["taetigkeit_utc"]) < TAETIGKEIT_ALT_S and not andere:
         return False
     con.execute("UPDATE sitzung SET taetigkeit = ?, taetigkeit_utc = ?, aufgabe_id = ? WHERE id = ?",
                 (text[:200], db.jetzt(), aufgabe_id, s["id"]))

@@ -469,6 +469,20 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   Planungsdaten der Workbench tragen `abweichung` je Meilenstein und `platz` je Paket (für die Ansichten aus K6).
 - Ohne Schemaänderung.
 
+## „Macht gerade“ abgeleitet (A1953, TH155 Pkt 7)
+
+**Wozu:** Die eigene Angabe (`amw taetigkeit`) hatte Vorrang und wurde beim Start einer neuen Aufgabe nicht ersetzt, solange sie
+jünger als 2 h war – die Kachel zeigte stundenlang eine erledigte Aufgabe oder einen längst beendeten Lauf.
+
+- **Was geschieht (`amw/gerade.py`):** die AMW leitet ab – laufender Lauf des Agenten (nie ein beendeter oder abgebrochener) ›
+  seine zuletzt begonnene laufende Aufgabe › die Aufgabe aus seiner letzten Meldung. Läuft ein Lauf zu einer Aufgabe, steht beides
+  da. Die eigene Angabe ergänzt nur (nicht älter als die Quelle, keine andere Aufgabe); ohne abgeleitete Quelle ist sie allein
+  die Angabe. `aufgabe start`/`lauf start` ersetzen eine Angabe, die zu einer anderen Aufgabe gehört.
+- **Quelle und Alter:** jeder Wert trägt Quelle und Zeit (Workbench: Übersicht des Agenten und Tooltip der Kachel;
+  `amw agent liste`: „macht: … (Aufgabe, seit 20 min)“).
+- **Veraltet:** ohne Puls der Sitzung (Hook, Statuszeile, Ereignis, Angabe) seit 30 min steht „veraltet?“; ist die letzte
+  Sitzung beendet, ruht oder tot, gibt es kein „macht gerade“. Chats und Agenten ohne Sitzung haben keine Hooks – dort kein Urteil.
+
 ## Arbeitsliste je Agent (seit 1.12.0)
 
 **Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach

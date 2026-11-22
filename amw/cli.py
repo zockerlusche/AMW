@@ -332,9 +332,15 @@ def cmd_agent(a, con):
                                                                 if r["letzter_puls_utc"] else "noch nie (Chat)")
         print(f"{r['kennung']:<8} {r['rolle'] or '':<10} soll {r['soll']:<4} ist {ist:<14}"
               f" Puls {_zeit(r['letzter_puls_utc']) or '–':<12} offen {r['offen']}" + (f"  (früher {r['alias']})" if r["alias"] else "")
-              + (f"\n         macht: {r['taetigkeit'][:90]} ({_alter(r['taetigkeit_utc'])})"
-                 if r["taetigkeit"] and r["zustand"] in ("aktiv", "ruht") and not r["chat"] else "")
+              + _macht_zeile(con, pid, r["kennung"])
               + _arbeit_zeile(con, pid, r["kennung"]))
+
+
+def _macht_zeile(con, pid, kennung):
+    """A1953: „macht“ von der AMW abgeleitet (Lauf › Aufgabe › Meldung), mit Quelle und Alter; ohne Puls seit 30 min veraltet."""
+    from . import gerade
+    z = gerade.zeile(gerade.ableiten(con, pid, kennung))
+    return f"\n         macht: {z}" if z else ""
 
 
 def _alter(utc):

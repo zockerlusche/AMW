@@ -182,9 +182,11 @@ class Taetigkeit(Grund):
         kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "start")         # eigene, frische Angabe bleibt
         self.assertEqual(self.con.execute("SELECT taetigkeit FROM sitzung WHERE id = ?", (s,)).fetchone()[0],
                          "A12: Prüfbitte an CC2")
-        with db.schreiben(self.con):
-            self.con.execute("UPDATE sitzung SET taetigkeit_utc = '2026-11-01T10:00:00Z' WHERE id = ?", (s,))
+        with db.schreiben(self.con):                                              # A1953: veraltet = seit 30 min kein Puls
+            self.con.execute("UPDATE sitzung SET taetigkeit_utc = '2026-11-01T10:00:00Z', letzter_puls_utc = '2026-11-01T10:00:00Z',"
+                             " status_utc = NULL, ereignis_utc = NULL WHERE id = ?", (s,))
         rc, aus = self.cli("--von", "TL", "agent", "liste")
+        self.assertIn("macht: A", aus)                                             # abgeleitet aus der laufenden Aufgabe
         self.assertIn("veraltet?", aus)
         betrieb.lauf_start(self.con, self.pid, "CC1", "Proben opa, labor", aufgabe_id=self.a,
                            speicher_frei=30.0)            # fest: sonst hängt der Test am freien Speicher des PCs
