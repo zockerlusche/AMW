@@ -109,7 +109,7 @@
   ],
   [
    "Does an agent have to watch the queue?",
-   "No. “is due” and “runs longer than expected” no longer wake anyone – they only show in the Workbench. Only the result wakes. `amw lauf warte` prints the reason only when it changes."
+   "No. “is due” and “runs longer than expected” no longer wake anyone – they only show in the Workbench. Only the result wakes. `amw lauf warte` prints the reason only when it changes. Runs that AMW executes and ends itself (cross-reading, planner, negative test, workers, bundle) send no message at all when they start – only an error at the end is reported."
   ],
   [
    "Why is memory set aside for a running run?",

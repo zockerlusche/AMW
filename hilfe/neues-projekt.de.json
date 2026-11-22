@@ -71,7 +71,7 @@
  "fragen": [
   [
    "Woher weiß der erste Agent alles?",
-   "Startanweisung – der erste Satz jeder neuen Sitzung, im Profil des Agenten (Kachel › Profil, dort änderbar): wer er ist, wie er die AMW aufruft und womit er anfängt (Lead: planen und verteilen, Agent: Arbeit holen). Startinformationen – bei jedem Start, Fortsetzen und Verdichten gibt der Start-Hook ihm: Befehl und Kurzanleitung, Ziel, Nicht-Ziele und Prinzipien aus dem Leitbild, aktive Meilensteine, seine Aufgabenliste, offene Nachrichten und Regeln. Projektwissen – deine CLAUDE.md im Projektordner liest Claude Code selbst."
+   "Startanweisung – der erste Satz jeder neuen Sitzung, im Profil des Agenten (Kachel › Profil, dort änderbar): wer er ist, wie er die AMW aufruft und womit er anfängt (Lead: planen und verteilen, Agent: Arbeit holen). Startinformationen – bei jedem Start, Fortsetzen und Verdichten gibt der Start-Hook ihm: Befehl und Kurzanleitung, Ziel, Nicht-Ziele und Prinzipien aus dem Leitbild, aktive Meilensteine, das Konzept zum Lesen (das Einstiegs-Thema, `amw projekt einstellen konzept_einstieg=TH1`, und nur das Thema seines laufenden Pakets – keine Konzept-Dokumente), seine Aufgabenliste, offene Nachrichten und Regeln. Projektwissen – deine CLAUDE.md im Projektordner liest Claude Code selbst."
   ],
   [
    "Braucht ein neues Projekt MCP?",

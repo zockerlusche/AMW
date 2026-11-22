@@ -109,7 +109,7 @@
   ],
   [
    "Muss ein Agent die Warteschlange beobachten?",
-   "Nein. „ist dran“ und „läuft länger als erwartet“ wecken niemanden mehr – sie stehen nur in der Workbench. Wecken tut erst das Ergebnis. `amw lauf warte` schreibt den Grund nur, wenn er sich ändert."
+   "Nein. „ist dran“ und „läuft länger als erwartet“ wecken niemanden mehr – sie stehen nur in der Workbench. Wecken tut erst das Ergebnis. `amw lauf warte` schreibt den Grund nur, wenn er sich ändert. Läufe, die die AMW selbst ausführt und beendet (Gegenlesen, Planer, Negativprobe, Arbeiter, Bündel), schicken beim Start gar keine Meldung – nur ein Fehler am Ende wird gemeldet."
   ],
   [
    "Warum ist für einen laufenden Lauf Arbeitsspeicher vorgemerkt?",
