@@ -107,17 +107,17 @@ class BitteAlsInfo(Basis):
         kern.posten(self.con, self.pid, "AMW", "CC1", "info", "bitte prüfen")                         # AMW: Ausnahme wie bisher
         kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC1", "info", "bitte prüfen")                # der Mensch: Ausnahme
 
-    def test_a1934_info_zur_wartenden_aufgabe_des_empfaengers(self):
+    def test_a1934_info_zur_aufgabe_die_auf_den_empfaenger_wartet(self):
         from amw import wartegrund
         kern.posten(self.con, self.pid, "TL", "CC1", "info", "Stand", aufgabe_id=self.aid)            # wartet nicht: ja
         with db.schreiben(self.con):
             wartegrund.anlegen(self.con, self.pid, "CC1", self.aid, "PR")                         # A1 (von CC1) wartet auf PR
-        with self.assertRaisesRegex(kern.AmwFehler, f"A{self.aid} wartet, und sie gehört CC1"):
-            kern.posten(self.con, self.pid, "TL", "CC1", "info", "Stand", aufgabe_id=self.aid)
-        with self.assertRaisesRegex(kern.AmwFehler, f"A{self.aid} wartet auf PR"):
-            kern.posten(self.con, self.pid, "TL", "PR", "info", "Stand", aufgabe_id=self.aid)
-        kern.posten(self.con, self.pid, "TL", "CC1", "antwort", "Stand", aufgabe_id=self.aid)          # weckt: ja
-        kern.posten(self.con, self.pid, "CC1", "TL", "info", "Stand", aufgabe_id=self.aid)            # wartet nicht auf TL, nicht seine
+        with self.assertRaisesRegex(kern.AmwFehler, f"A{self.aid} wartet auf PR; eine info weckt nicht"):
+            kern.posten(self.con, self.pid, "TL", "PR", "info", "Stand", aufgabe_id=self.aid)       # auch an einen Coder
+        kern.posten(self.con, self.pid, "TL", "CC1", "info", "Stand", aufgabe_id=self.aid)            # wartet nicht auf CC1: ja
+        kern.posten(self.con, self.pid, "TL", "PR", "frage", "Stand", aufgabe_id=self.aid)            # weckt: ja
+        kern.posten(self.con, self.pid, "PR", "CC1", "info", "Stand", aufgabe_id=self.aid)            # vom Erwarteten: erledigt den
+        self.assertEqual(wartegrund.offene(self.con, self.aid), [])                               # Grund, die AMW weckt selbst
 
     def test_info_zu_einer_aufgabe_die_auf_den_lead_wartet(self):
         from amw import wartegrund

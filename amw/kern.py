@@ -1069,8 +1069,8 @@ BITTE_UM_HANDLUNG = re.compile(r"\bbitte\b.{0,80}?(merge-?ok|prüf|freigeb|freig
 def bitte_als_info_pruefen(con, pid, an, kurz, text, aufgabe_id, von=None):
     """A1897 (Befund #29430, 21.11.: #29418 als info weckte niemanden), A1934 (#29869 weckte CCamw2 nicht, 1,5 h Stillstand):
     eine info an einen Agenten – Lead oder Coder, auch über „alle“ –, die um eine Handlung bittet (Merge-OK, prüfen, freigeben,
-    entscheiden, ausliefern, jetzt aufsetzen) oder sich auf eine Aufgabe bezieht, die auf ihn wartet bzw. die seine ist und auf
-    etwas wartet, wird abgewiesen: eine info weckt nicht. An den Menschen gilt das nicht (er wird nie geweckt)."""
+    entscheiden, ausliefern, jetzt aufsetzen) oder sich auf eine Aufgabe bezieht, die auf ihn wartet, wird abgewiesen: eine
+    info weckt nicht. An den Menschen gilt das nicht (er wird nie geweckt)."""
     ich = (von or "").lower()
     pe = (db.produkt_entwickler() or "").lower()
     namen = [n for n in dict.fromkeys(empfaenger(con, pid, an or "", von, aufgabe_id))
@@ -1083,12 +1083,12 @@ def bitte_als_info_pruefen(con, pid, an, kurz, text, aufgabe_id, von=None):
         raise AmwFehler(f"Bitte um Handlung → {hilfe} – eine info an {', '.join(namen)} weckt nicht")
     if not aufgabe_id:
         return
-    besitzer = (con.execute("SELECT agent FROM aufgabe WHERE id = ?", (aufgabe_id,)).fetchone() or [None])[0]
+    # Wartet die Aufgabe auf den Absender, erledigt seine Nachricht den Wartegrund – dann weckt die AMW selbst („alle Gründe
+    # erledigt“); nur wenn sie auf den Empfänger wartet, bliebe eine info liegen
     for n in namen:
-        if con.execute("SELECT 1 FROM wartegrund WHERE aufgabe_id = ? AND erledigt_utc IS NULL AND (art = 'agent' AND bezug = ?"
-                       " OR ? = ?) LIMIT 1", (aufgabe_id, n, besitzer or "", n)).fetchone():
-            raise AmwFehler(f"Bitte um Handlung → {hilfe} – A{aufgabe_id} wartet"
-                            + (f" auf {n}" if besitzer != n else f", und sie gehört {n}") + "; eine info weckt nicht")
+        if con.execute("SELECT 1 FROM wartegrund WHERE aufgabe_id = ? AND art = 'agent' AND bezug = ? AND erledigt_utc IS NULL",
+                       (aufgabe_id, n)).fetchone():
+            raise AmwFehler(f"Bitte um Handlung → {hilfe} – A{aufgabe_id} wartet auf {n}; eine info weckt nicht")
 
 
 def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, hinweise=None, bis=None, bezug=None, faden=True):
