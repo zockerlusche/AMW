@@ -142,6 +142,10 @@
   [
    "Who starts a package at a work place?",
    "AMW itself: when a p package is ready (startklar) and work places are set up, the service asks the guard, prepares a free place, checks that the acceptance command fails before building, and starts the worker in its own process – restarting the service does not stop it. After the run AMW checks on its own (through the run queue) and decides where the package goes. If a place is free but nothing is ready – or all packages of a milestone are done –, the lead gets one note with what is missing. To try it out, the lead or you start a package by hand: `amw paket starten 12` – the same rules apply."
+  ],
+  [
+   "What does an agent get at start?",
+   "A short mandatory context: role, project goal and principles, the concept (entry topic and the topic of the running package), its list and open messages, plus the rules as titles only (\"KR3 Weg einer Änderung · …\") – it gets the full text of a rule with `amw regeln KR3`. Detailed guides are Claude Code skills in the repo (`.claude/skills/amw-befehle`, `amw-automatismen`, `amw-anleitungen`, `amw-hilfe`, `amw-fehlerbehebung`); Claude Code loads a skill only when it fits the work. There are deliberately few with short descriptions, because every skill's name and description are in every session. A skill is only an index of the pages under `doc/` – the guide lives in one place. After a docs change: `amw skills bauen` (for another project's agent folder `--ziel <folder>`). How large the start context is per agent and what a package costs on average: `amw messung --hebel7` (keep it as a reference with `--basis`)."
   ]
  ],
  "thema": "agenten",

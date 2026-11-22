@@ -142,6 +142,10 @@
   [
    "Wer startet ein Paket am Arbeitsplatz?",
    "Die AMW selbst: Ist ein p-Paket startklar und sind Arbeitsplätze eingerichtet, fragt der Dienst den Wächter, bereitet einen freien Platz vor, prüft, dass die Abnahme vor dem Bau rot ist, und startet den Arbeiter in einem eigenen Prozess – ein Neustart des Dienstes beendet ihn nicht. Nach dem Lauf prüft die AMW selbst (über die Lauf-Schlange) und entscheidet, wohin das Paket geht. Ist ein Platz frei, aber nichts startklar – oder sind alle Pakete eines Bogens fertig –, bekommt der Lead einmal einen Hinweis mit dem, was fehlt. Zum Ausprobieren startet der Lead oder du ein Paket von Hand: `amw paket starten 12` – es gelten dieselben Regeln."
+  ],
+  [
+   "Was bekommt ein Agent beim Start?",
+   "Einen kurzen Pflichtkontext: Rolle, Projektziel und Prinzipien, das Konzept (Einstiegs-Thema und Thema des laufenden Pakets), seine Liste und offene Nachrichten, dazu die Regeln nur als Titel („KR3 Weg einer Änderung · …“) – den Wortlaut einer Regel holt er mit `amw regeln KR3`. Ausführliche Anleitungen liegen als Claude-Code-Skills im Repo (`.claude/skills/amw-befehle`, `amw-automatismen`, `amw-anleitungen`, `amw-hilfe`, `amw-fehlerbehebung`); Claude Code lädt einen Skill erst, wenn er zur Arbeit passt. Es sind bewusst wenige mit kurzer Beschreibung, denn Name und Beschreibung jedes Skills stehen in jeder Sitzung. Ein Skill ist nur ein Verzeichnis der Seiten unter `doc/` – die Anleitung steht an einer Stelle. Nach einer Doku-Änderung: `amw skills bauen` (für den Agenten-Ordner eines anderen Projekts `--ziel <ordner>`). Wie groß der Startkontext je Agent ist und was ein Paket im Mittel kostet: `amw messung --hebel7` (mit `--basis` als Vergleichswert festhalten)."
   ]
  ],
  "thema": "agenten",
