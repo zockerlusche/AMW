@@ -104,6 +104,10 @@ class Schema(Grund):
 
 
 class Ablauf(Grund):
+    def setUp(self):
+        super().setUp()
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)       # P462 (4): Ja nur zum freigegebenen Thema
+
     def test_entwurf_an_den_lead_und_erst_mit_ja_angelegt(self):
         vorher = self.con.execute("SELECT count(*) FROM aufgabe").fetchone()[0]
         planer.entwurf_eintragen(self.con, self.pid, self.tid, 1, ERGEBNIS, modell="sonnet", usd=0.42, lauf=7)
@@ -228,6 +232,7 @@ class Anstossen(Grund):
         datei = os.path.join(self.ordner.name, "geaendert.json")
         with open(datei, "w", encoding="utf-8") as f:
             json.dump({**ERGEBNIS, "pakete": ERGEBNIS["pakete"][:1]}, f)
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)       # P462 (4)
         rc, aus = befehl("plan-ja", f"TH{self.tid}", "--datei", datei)
         self.assertEqual(rc, 0)
         self.assertIn("angelegt – M1 → M", aus)

@@ -413,13 +413,17 @@ def ja_geben(con, pid, von, name):
     with db.schreiben(con):
         _ereignis(con, pid, von, "ja", t["id"], fassung=s["fassung"], rolle=rolle)
         j = jas(_ereignisse(con, pid, t["id"]), s["fassung"])
-        if j.get("co") and j.get("lead"):
+        frei = bool(j.get("co") and j.get("lead"))
+        if frei:
             _ereignis(con, pid, "AMW", "freigegeben", t["id"], regel=True, fassung=s["fassung"], durch=[j["co"], j["lead"]], regel_von="B2913")
             _tor_nachher(con, pid, "AMW", vorher)
             for k in dict.fromkeys(x for x in (an, kern.ENTWICKLER) if x):
                 kern._posten(con, pid, "AMW", k, "info", f"Thema „{t['name'][:60]}“ freigegeben von Co und Lead (Fassung {s['fassung']})",
                              f"TH{t['id']}: {j['co']} (Co-Entwickler) und {j['lead']} (Lead) haben Fassung {s['fassung']} freigegeben (B2913)."
                              " Zurückholen kann der Mensch jederzeit: amw thema zurueck … --notiz …")
+    if frei:                                         # A1940 (P462): auch die Freigabe durch Co und Lead stößt den Planer an
+        from . import planer
+        planer.anstossen(con, pid, t["id"], s["fassung"])
     return status(con, finden(con, pid, t["id"]))
 
 

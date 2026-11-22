@@ -170,6 +170,12 @@ def pruefen(daten, con=None, pid=None):
                       "nach": nach, "abnahme_befehl": _text(p.get("abnahme_befehl"), "abnahme_befehl", wo, f, pflicht=False)})
         if aus_p[-1]["ausfuehrung"] == "p" and not aus_p[-1]["abnahme_befehl"]:
             f.append(f"{wo}: ein p-Paket braucht einen Abnahme-Befehl (die AMW nimmt es selbst ab)")
+        if aus_p[-1]["abnahme_befehl"]:                  # P462 (2): wie beim Start des Arbeiters – ein Befehl, keine Verkettung
+            from . import arbeiter
+            try:
+                arbeiter.freigabe(aus_p[-1]["abnahme_befehl"])
+            except arbeiter.ArbeiterFehler as x:
+                f.append(f"{wo}: {x}")
     kreis = _kreis({p["schluessel"]: [v for v in p["nach"] if v in p_namen] for p in aus_p})
     if kreis:
         f.append("Abhängigkeiten im Kreis: " + " → ".join(kreis))
@@ -283,6 +289,9 @@ def zusammenfassung(entwurf):
                 zeilen.append(f"  {p['schluessel']} {p['titel']} · {p['groesse']} · {p['art']} · {p['ausfuehrung']}"
                               + (f" {p['modell']}" if p["modell"] else "") + f" · fertig: {p['fertig_quelle']}"
                               + (f" · nach {', '.join(p['nach'])}" if p["nach"] else ""))
+                zeilen.append(f"    Auftrag: {' '.join((p['auftrag'] or '').split())[:600]}")   # P462 (2): was angelegt wird
+                if p["abnahme_befehl"]:
+                    zeilen.append(f"    Abnahme-Befehl: {p['abnahme_befehl']}")
     return "\n".join(zeilen)
 
 
@@ -315,8 +324,32 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
     entwurf = pruefen(geaendert, con, pid) if geaendert is not None else e.get("entwurf")
     if not entwurf:
         raise kern.AmwFehler(f"Der Planentwurf zu TH{tid} passte nicht zum Schema – neu planen lassen oder geändert übergeben")
+    s = themen.status(con, themen.finden(con, pid, tid))     # P462 (4): nur für die freigegebene Fassung, die er gelesen hat
+    if s["status"] != "frei":
+        raise kern.AmwFehler(f"TH{tid} ist nicht freigegeben ({s['text']}) – erst freigeben, dann planen lassen")
+    if e.get("fassung") is not None and s["fassung"] != e.get("fassung"):
+        raise kern.AmwFehler(f"Der Entwurf gilt für Fassung {e.get('fassung')}, TH{tid} hat jetzt Fassung {s['fassung']} – neu planen lassen")
+    for m in entwurf.get("meilensteine") or []:
+        if m.get("bestehend") and not con.execute("SELECT 1 FROM bogen WHERE projekt_id = ? AND nr = ? AND status IN ('geplant', 'aktiv')",
+                                                  (pid, m["bestehend"])).fetchone():
+            raise kern.AmwFehler(f"Meilenstein {m['bestehend']} aus dem Entwurf gibt es nicht mehr offen – neu planen lassen oder geändert übergeben")
+    with db.schreiben(con):                          # P462 (4): angenommen wird einmal – Marke zuerst, in einer Transaktion
+        if erledigt(con, pid, e["id"]):
+            raise kern.AmwFehler(f"Der Planentwurf zu TH{tid} ist schon angenommen")
+        merke = _ereignis(con, pid, von, JA, tid, entwurf=e["id"], angelegt={}, laeuft=True)
+    try:
+        return _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke)
+    except Exception:
+        with db.schreiben(con):                      # ging etwas schief: die Marke wieder lösen, Angelegtes meldet der Fehler
+            con.execute("DELETE FROM plan_ereignis WHERE id = ?", (merke,))
+        raise
+
+
+def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke):
+    from . import arbeitspaket, planung, themen
     if entwurf["nichts_zu_bauen"]:
         with db.schreiben(con):
+            con.execute("DELETE FROM plan_ereignis WHERE id = ?", (merke,))
             _ereignis(con, pid, von, NICHTS, tid, entwurf=e["id"], grund=entwurf["grund"])
         return {}
     angelegt, bogen = {}, {}
@@ -340,6 +373,7 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
         themen.verweise_setzen(con, pid, von, aid, [tid])
         angelegt[p["schluessel"]] = f"A{aid}"
     with db.schreiben(con):
+        con.execute("DELETE FROM plan_ereignis WHERE id = ?", (merke,))
         _ereignis(con, pid, von, JA, tid, entwurf=e["id"], angelegt=angelegt, geaendert=geaendert is not None,
                   fertig_quellen={p["schluessel"]: p["fertig_quelle"] for p in entwurf["pakete"]})   # K2 übernimmt sie
     return angelegt
@@ -354,7 +388,7 @@ ANGESTOSSEN = "thema_planer"                     # {"thema", "fassung", "modell"
 EINSTIEG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "amw-planer.py")
 OHNE_FENSTER = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 FRIST_S = 15 * 60
-LAEUFT_H = 1
+LAEUFT_H = 6                                     # P462 (6): Warten in der Lauf-Schlange + Frist 15 min, mit Luft
 AUFTRAG = (
     "Du bist der Planer eines Software-Projekts. Lies thema.md (ein vom Menschen freigegebenes Konzept-Thema), beschluesse.md, "
     "meilensteine.md und pakete.md (was es schon gibt) sowie schema.md (das Antwort-Format). Entwirf, was gebaut werden muss, "

@@ -2472,6 +2472,9 @@ def cmd_thema(a, con):
         weg = planansicht.anhalten(con, pid, _von(a), t["id"], bid)
         print(f"TH{t['id']}: " + (f"angehalten: {', '.join(f'A{x}' for x in weg)}" if weg else "keine nicht begonnenen Pakete"))
         return
+    if a.aktion in ("planen", "plan-ja") and _von(a) == kern.ENTWICKLER and _aus_agenten_sitzung():   # P462 (3)
+        raise kern.AmwFehler(f"thema {a.aktion}: als Entwickler nur im eigenen Terminal des Menschen oder in der Workbench am PC –"
+                             " nicht aus einer Agenten-Sitzung")
     if a.aktion in ("planen", "plan", "plan-ja"):     # A1940 (K4): Grobplanung aus Themen per -p-Planer
         from . import planer
         if not a.name:

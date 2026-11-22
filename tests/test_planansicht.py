@@ -141,6 +141,8 @@ class Entwuerfe(Grund):
 
     def test_entwurf_erscheint_und_ja_legt_an(self):
         from amw import planer
+        themen.pflegen(self.con, self.pid, "CC1", self.th, "Text.")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.th)          # P462 (4): Ja nur zum freigegebenen Thema
         planer.entwurf_eintragen(self.con, self.pid, self.th, 1, self.ERGEBNIS, modell="sonnet", usd=0.21)
         e = self.d()["entwuerfe"]
         self.assertEqual([(x["thema"], x["meilensteine"], x["pakete"], x["usd"]) for x in e], [(self.th, 1, 1, 0.21)])

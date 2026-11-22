@@ -22,8 +22,31 @@ JA = "meilenstein_ja"
 ARTEN = ("grob", "plan", "abschluss")       # abschluss: Ja zum Abschlussbericht (K7, A1944)
 
 
+def fingerabdruck(con, pid, bid, art):
+    """P461 (1), B2913 „zur selben Fassung“: was ein Ja bzw. eine Freigabe gesehen hat. grob: Titel, Ziel, Abnahme, Zieldatum und
+    die Themen des Meilensteins; plan: seine Pakete (Nummer, Titel, Auftrag, Größe, Art, Abnahme-Befehl, Vorgänger, Ausführung)
+    – nicht Status, Agent oder Zeiten, die sich in der Umsetzung ändern; abschluss: der Bericht. Kurz-Hash."""
+    import hashlib
+    from . import arbeitspaket, planung, themen
+    b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
+    if not b:
+        return None
+    pakete = _pakete(con, pid, bid)
+    if art == "grob":
+        teile = [b["titel"], b["ziel"], b["abnahme"], b["zieldatum"],
+                 sorted({t for a in pakete for t in themen.verweise(con, pid, a["id"])})]
+    elif art == "plan":
+        teile = [[a["id"], a["titel"], a["auftrag"], a["groesse"], a["art"], a["pruefbefehl"], planung.vorgaenger(con, a["id"]),
+                  arbeitspaket.lesen(con, a["id"]).get("art")] for a in sorted(pakete, key=lambda x: x["id"])]
+    else:
+        from . import tore
+        teile = [tore.bericht(con, pid, bid)]
+    return hashlib.sha256(json.dumps(teile, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()[:16]
+
+
 def _zustaende(con, pid):
-    """{(bogen, art): {"an", "von", "zeit_utc", "notiz"}} – der jüngste Eintrag je Meilenstein und Art."""
+    """{(bogen, art): {"an", "von", "zeit_utc", "notiz", "geaendert"}} – der jüngste Eintrag je Meilenstein und Art. P461 (1): hat
+    sich der Meilenstein bzw. Plan seit der Freigabe geändert (Fingerabdruck), gilt sie als offen (geaendert = True)."""
     aus = {}
     for r in con.execute("SELECT id, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id", (pid, FREI)):
         try:
@@ -31,13 +54,17 @@ def _zustaende(con, pid):
         except ValueError:
             continue
         aus[(d.get("bogen"), d.get("art"))] = {"an": bool(d.get("an")), "von": r["von"], "zeit_utc": r["zeit_utc"], "notiz": d.get("notiz"), "id": r["id"],
-                                               "durch": d.get("durch")}
+                                               "durch": d.get("durch"), "fp": d.get("fp"), "geaendert": False}
+    for (bid, art), z in aus.items():
+        if z["an"] and z["fp"] and fingerabdruck(con, pid, bid, art) != z["fp"]:
+            z.update(an=False, geaendert=True)
     return aus
 
 
 def _jas(con, pid):
-    """{(bogen, art): {"co": Kennung, "lead": Kennung}} – die Ja seit dem letzten Freigeben oder Zurück (K1: „zur selben Fassung“)."""
-    aus = {}
+    """{(bogen, art): {"co": Kennung, "lead": Kennung}} – die Ja seit dem letzten Freigeben oder Zurück, die zum JETZIGEN Stand
+    passen (P461 (1), K1 „zur selben Fassung“: ein Ja zu einem älteren Stand zählt nicht)."""
+    roh, fp = {}, {}
     for r in con.execute("SELECT von, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?) ORDER BY id", (pid, FREI, JA)):
         try:
             d = json.loads(r["text"])
@@ -45,9 +72,14 @@ def _jas(con, pid):
             continue
         k = (d.get("bogen"), d.get("art"))
         if r["art"] == FREI:
-            aus.pop(k, None)
+            roh.pop(k, None)
         else:
-            aus.setdefault(k, {})[d.get("rolle")] = r["von"]
+            roh.setdefault(k, {})[d.get("rolle")] = (r["von"], d.get("fp"))
+    aus = {}
+    for k, j in roh.items():
+        if k not in fp:
+            fp[k] = fingerabdruck(con, pid, *k)
+        aus[k] = {rolle: von for rolle, (von, f) in j.items() if f is None or f == fp[k]}
     return aus
 
 
@@ -94,20 +126,21 @@ def freigeben(con, pid, von, bid, art):
             raise kern.AmwFehler(f"Meilenstein {b['nr']}: erst den Meilenstein freigeben, dann seinen Plan")
         if not _pakete(con, pid, bid):
             raise kern.AmwFehler(f"Meilenstein {b['nr']} hat noch keine Pakete – er wird geplant, wenn der davor läuft")
+    fp = fingerabdruck(con, pid, bid, art)           # P461 (1): Ja und Freigabe gelten für genau diesen Stand
     with db.schreiben(con):
         if von == kern.ENTWICKLER:                   # der Mensch allein
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=FREI, bogen_id=bid,
-                         text=json.dumps({"bogen": bid, "art": art, "an": True}, ensure_ascii=False))
+                         text=json.dumps({"bogen": bid, "art": art, "an": True, "fp": fp}, ensure_ascii=False))
             return {"frei": True}
         rolle = "co" if kern.ist_co(con, pid, von) else "lead"
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=JA, bogen_id=bid,
-                     text=json.dumps({"bogen": bid, "art": art, "rolle": rolle}, ensure_ascii=False))
+                     text=json.dumps({"bogen": bid, "art": art, "rolle": rolle, "fp": fp}, ensure_ascii=False))
         j = _jas(con, pid).get((bid, art), {})
         if not (j.get("co") and j.get("lead")):
             return {"frei": False, "ja_fehlt": [themen.ROLLEN_JA[r] for r in themen.ROLLEN_JA if not j.get(r)]}
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=FREI, bogen_id=bid,
-                     text=json.dumps({"bogen": bid, "art": art, "an": True, "durch": [j["co"], j["lead"]], "regel_von": "B2913"},
-                                     ensure_ascii=False))
+                     text=json.dumps({"bogen": bid, "art": art, "an": True, "durch": [j["co"], j["lead"]], "regel_von": "B2913",
+                                      "fp": fp}, ensure_ascii=False))
         was = {"plan": "Plan für Meilenstein", "abschluss": "Abschlussbericht für Meilenstein"}.get(art, "Meilenstein")
         kern._posten(con, pid, "AMW", kern.ENTWICKLER, "info", f"{was} {b['nr']} „{b['titel'][:50]}“ freigegeben von Co und Lead",
                      f"{j['co']} (Co-Entwickler) und {j['lead']} (Lead) haben {'den ' + was if art != 'grob' else 'den Meilenstein'}"
@@ -144,7 +177,9 @@ def verschieben(con, pid, von, bid, richtung):
         raise kern.AmwFehler("Die Reihenfolge ändern Co, Lead oder der Mensch")
     b = _bogen(con, pid, bid)
     offen = con.execute("SELECT * FROM bogen WHERE projekt_id = ? AND status IN ('geplant', 'aktiv') ORDER BY nr, id", (pid,)).fetchall()
-    i = next(k for k, x in enumerate(offen) if x["id"] == bid)
+    i = next((k for k, x in enumerate(offen) if x["id"] == bid), None)
+    if i is None:                                    # P461 (3): fertige/verworfene Meilensteine verschiebt man nicht
+        raise kern.AmwFehler(f"Meilenstein {b['nr']} ist {b['status']} – nur geplante und laufende lassen sich verschieben")
     j = i - 1 if richtung == "frueher" else i + 1
     if richtung not in ("frueher", "spaeter") or not 0 <= j < len(offen):
         raise kern.AmwFehler(f"Meilenstein {b['nr']} steht schon ganz {'vorn' if richtung == 'frueher' else 'hinten'}")
@@ -221,9 +256,10 @@ def daten(con, pid):
                    "summe": round(sum(p["usd"] for p in pakete if p["usd"]), 2) if any(p["usd"] for p in pakete) else None,
                    "geaendert": geaendert,
                    "grob": {"frei": bool(g.get("an")), "von": g.get("von"), "durch": g.get("durch"), "zeit_utc": g.get("zeit_utc"),
-                            "notiz": None if g.get("an") else g.get("notiz"), "ja_fehlt": fehlt(b["id"], "grob", g.get("an"))},
+                            "notiz": None if g.get("an") else g.get("notiz"), "ja_fehlt": fehlt(b["id"], "grob", g.get("an")),
+                            "geaendert": bool(g.get("geaendert"))},
                    "plan": {"frei": bool(pl.get("an")), "von": pl.get("von"), "durch": pl.get("durch"), "zeit_utc": pl.get("zeit_utc"),
-                            "notiz": None if pl.get("an") else pl.get("notiz"),
+                            "notiz": None if pl.get("an") else pl.get("notiz"), "geaendert": bool(pl.get("geaendert")),
                             "ja_fehlt": fehlt(b["id"], "plan", pl.get("an")) if b and _pakete(con, pid, b["id"]) else []},
                    "abschluss": _abschluss(con, pid, b, ab, fehlt)})
     offen = [m for m in ms if m["status"] == "geplant"]
@@ -400,10 +436,15 @@ def entwuerfe(con, pid, namen):
     return {"entwuerfe": offen, "planer_laeuft": laufend}
 
 
-def entwurf_ja(con, pid, von, tid):
-    """Ja zum Entwurf (A1940): legt Meilensteine und Pakete an – Lead oder Mensch (planer.uebernehmen prüft)."""
+def entwurf_ja(con, pid, von, tid, eid=None):
+    """Ja zum Entwurf (A1940): legt Meilensteine und Pakete an – Lead oder Mensch (planer.uebernehmen prüft). eid (P462 (5)):
+    genau der Entwurf, den die Seite zeigte – ist inzwischen ein neuerer da, gilt das Ja nicht für ihn."""
     from . import planer
-    return planer.uebernehmen(con, pid, von, int(tid))
+    if eid is not None:
+        neu = planer.letzter_entwurf(con, pid, int(tid))
+        if neu and neu["id"] != int(eid):
+            raise kern.AmwFehler("Inzwischen gibt es einen neueren Entwurf – bitte die Seite neu laden und ihn ansehen")
+    return planer.uebernehmen(con, pid, von, int(tid), eid=int(eid) if eid is not None else None)
 
 
 def neu_planen(con, pid, von, tid):
@@ -422,6 +463,8 @@ def jetzt_starten(con, pid, von):
     """„Jetzt starten“ (TH164): die voll geplanten, freigegebenen Meilensteine gehen in die Umsetzung. Bis K5 (Disponent) live
     ist: Status „aktiv“. Lead oder Mensch."""
     from . import planung
+    if not (von == kern.ENTWICKLER or kern.ist_lead(con, pid, von)):   # P461 (4)
+        raise kern.AmwFehler("Jetzt starten dürfen der Lead oder der Mensch")
     d = daten(con, pid)
     if not d["starten"]:
         raise kern.AmwFehler("Jetzt starten geht erst, wenn alle Meilensteine und alle geplanten Pläne freigegeben sind")

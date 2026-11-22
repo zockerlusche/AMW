@@ -62,6 +62,8 @@ class PlanAnsicht(Rundgang):
         """A1940: ein offener Entwurf steht oben in „Meilensteine“; „Ja – anlegen“ legt Meilenstein und Pakete an."""
         from amw import planer
         th = self.con.execute("SELECT id FROM thema LIMIT 1").fetchone()[0]
+        themen.pflegen(self.con, self.pid, "CC1", th, "Text.")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, th)               # P462 (4): Ja nur zum freigegebenen Thema
         planer.entwurf_eintragen(self.con, self.pid, th, 1, {"meilensteine": [{"schluessel": "M1", "titel": "Online anmelden",
                                                                                 "endet_mit": "vorfuehrung"}],
                                                              "pakete": [{"schluessel": "P1", "meilenstein": "M1", "titel": "Login-Maske",
@@ -150,6 +152,8 @@ class PlanAnsicht(Rundgang):
     def test_bilder_entwurf(self):
         from amw import planer
         th = self.con.execute("SELECT id FROM thema LIMIT 1").fetchone()[0]
+        themen.pflegen(self.con, self.pid, "CC1", th, "Text.")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, th)               # P462 (4): Ja nur zum freigegebenen Thema
         planer.entwurf_eintragen(self.con, self.pid, th, 1, {"meilensteine": [{"schluessel": "M1", "titel": "Online anmelden",
                                                                                 "endet_mit": "vorfuehrung"}],
                                                              "pakete": [{"schluessel": "P1", "meilenstein": "M1", "titel": "Login-Maske",

@@ -307,7 +307,7 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
                 from . import tore
                 return {"dokument": tore.bericht_erstellen(con, pid, bid)}
             if was == "plan-ja":                      # A1940: Ja zum Entwurf des Planers
-                return {"angelegt": planansicht.entwurf_ja(con, pid, kern.ENTWICKLER, daten.get("thema"))}
+                return {"angelegt": planansicht.entwurf_ja(con, pid, kern.ENTWICKLER, daten.get("thema"), daten.get("eid"))}
             if was == "anhalten":                     # K8 (A1942): nicht begonnene Pakete eines geänderten Themas anhalten
                 return {"angehalten": planansicht.anhalten(con, pid, kern.ENTWICKLER, int(daten.get("thema")), bid or None)}
             if was in ("aenderung-ja", "aenderung-verwerfen"):   # A1957: über die eigene Änderung entscheiden
