@@ -41,4 +41,4 @@ class AgentEnde(Rundgang):
             steuerung.ende_pruefen(self.con, beenden_mit=lambda p: lebend.discard(p))
         self.assertEqual(self.con.execute("SELECT zustand FROM sitzung").fetchone()[0], "beendet")
         self.assertFalse(self.start_grau())                                     # Kachel und Menü wie agent liste: beendet
-        self.assertNotIn("läuft", self.tab.js("document.querySelector('.tm-knoten[data-k=CC1]').textContent"))
+        self.assertIn("läuft nicht", self.tab.js("document.querySelector('.tm-knoten[data-k=CC1]').textContent"))
