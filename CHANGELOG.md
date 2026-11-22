@@ -4,6 +4,24 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.156.0 – 22.11.2026 · Mehrere Projekte auf einem PC
+- **Neu:** Jedes Projekt kann eigene Muster für Dateien eintragen, die Arbeiter nie ändern dürfen – zusätzlich zur festen
+  Liste der AMW (`amw projekt einstellen sperrmuster='["src/sicherheit/*", "*.key"]'`, nur Lead oder du).
+- **Neu:** Jedes Projekt stellt selbst ein, welche Rückschritt-Tests nach einem Paket laufen und wie lange eine Abnahme dauern
+  darf (`regression_befehl`, `abnahme_frist_min`). Ohne Einstellung laufen die Tests der AMW nur in der AMW selbst; in anderen
+  Projekten steht bei „Bereit zum Merge“, dass ohne geprüft wurde.
+- **Neu:** Arbeiter eines Projekts können eigene Werkzeuge nutzen – einzelne Variablen und Ordner im PATH, etwa für ein SDK
+  (`arbeiter_umgebung`). Namen wie Zugangsdaten lehnt die AMW ab; Arbeiter bleiben ohne Netz.
+- **Neu:** Ein Projekt kann seine Versionsnummer aus dem Git-Tag nehmen und seinen CHANGELOG im Format „Keep a Changelog“
+  führen (`release_modus=tag`, `changelog_format=keepachangelog`).
+- **Neu:** `amw release ausliefern` liefert auch Projekte aus, die nicht die AMW sind: Fast-Forward, Tag, Push und
+  Release-Notiz im Ordner des Projekts. Auslösen darf nur der Lead des Projekts oder du.
+- **Neu:** Du legst fest, welches Projekt bei den Arbeitsplätzen zuerst dran ist (`amw pc einstellen
+  projekt_rang=AMW,GlassWorld,LayerIT`) und wie viele Arbeiter über alle Projekte gleichzeitig laufen (`plaetze_pc`). Ein
+  Paket, das wartet, sagt, worauf. `amw pc` zeigt die Kosten je Projekt; montags kommt ein Wochenbericht.
+- **Verbessert:** Der Halt beim Wochenlimit gilt für den ganzen PC (`amw pc einstellen limit_halt=…`) – ein Projekt kann ihn nur
+  strenger stellen, nicht abschalten.
+
 ## 1.155.1 – 22.11.2026 · Seiten laden zuverlässig
 - **Behoben:** Beim Öffnen blieb eine Seite manchmal leer mit „Failed to fetch“, wenn sie viel auf einmal lud. Der Server nimmt
   jetzt viele Verbindungen gleichzeitig an.
