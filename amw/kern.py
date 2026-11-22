@@ -404,6 +404,8 @@ def projekt_einstellen(con, pid, von, **werte):
                     from . import dokumente
                     dokumente.online_nach_einstellung(con, pid, v)
                 continue
+            if k == "schalter":                          # A1926: nur über amw projekt schalter (Probe vor dem Einschalten)
+                raise AmwFehler("schalter: amw projekt schalter <Projekt> probe | an | aus")
             if k == "arbeiter_umgebung":                 # A1922: Werkzeug-Umgebung je Projekt (Variablen, PATH-Einträge)
                 from . import arbeiter
                 try:

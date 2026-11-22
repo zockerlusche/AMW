@@ -11,7 +11,7 @@ PFLICHT = ("amw/arbeiter.py", "amw/waechter.py", "amw/entscheidung.py", "amw/pru
            "amw/einstellungen.py", "amw/betrieb.py", "amw/laufdienst.py", "amw/belegung.py", "amw/kern.py", "amw/steuerung.py",
            "amw/cli.py", "amw/aktionen.py", "amw/schluessel.py", "amw/versionsnummer.py", "amw/versionshinweise.py", "amw/__main__.py",
            "amw/disponent.py", "amw/rueckmeldung.py", "amw/abnahme.py", "amw/platz.py", "amw/auslieferung.py", "amw/dienst.py",
-           "amw/vorlagen/auftrag_p.md", "amw-cli.py", "amw-arbeiter.py", "amw/versionsprobe.py", "amw-versionsprobe.py", "amw/anbieter.py", "amw/anbieter_schluessel.py", "amw-anbieter-schluessel.py", "amw/gegenlesen.py", "amw-gegenlesen.py", "amw/verteilen.py", "amw/veroeffentlichung.py", "amw-rueckmeldung.py", "amw-hook.py", "start_dienst.pyw",
+           "amw/vorlagen/auftrag_p.md", "amw-cli.py", "amw-arbeiter.py", "amw/versionsprobe.py", "amw-versionsprobe.py", "amw/anbieter.py", "amw/anbieter_schluessel.py", "amw/schalter.py", "amw-anbieter-schluessel.py", "amw/gegenlesen.py", "amw-gegenlesen.py", "amw/verteilen.py", "amw/veroeffentlichung.py", "amw-rueckmeldung.py", "amw-hook.py", "start_dienst.pyw",
            # P274
            "amw/schema.sql", "amw/migration_34.sql", "amw/workbench.py", "amw/abgleich.py", "amw/einrichtung.py", "amw/assistent.py",
            "amw/pruefstufe.py", "amw/schirm.py", "amw/ki.py", "amw/pipe.py", "amw/tray.py", "amw/paket.py", "amw/push.py",

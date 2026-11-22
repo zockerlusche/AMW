@@ -340,8 +340,15 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   alle Projekte (gezählt: läuft, abgegeben, Prüfung C; ein Paket in „bereit zum Merge“ arbeitet nicht mehr). 0 = keine
   Grenze. Ist sie erreicht, wartet ein Paket sichtbar (Regel 4: „wartet auf einen Platz (PC: 2 von 2 belegt: AMW A…,
   GlassWorld A…)“); ein frei werdender Platz geht an das Projekt weiter vorn. Die Platz-Ordner bleiben je Projekt.
-- **Projekt-Schalter:** `schalter` im Projekt (aus | probe | an, ohne Eintrag an; gesetzt von `amw projekt schalter`) – bei aus
-  und probe keine p-Starts (Regel 12).
+- **Projekt-Schalter (A1926, D1304 §5):** `amw projekt schalter <Projekt> probe | an | aus` – ohne Eintrag an (wie bisher).
+  - **probe** (Lead oder Mensch): Kopie der Projektdaten (Sicherung `schalter-probe-<projekt>-<zeit>.db` neben der Datenbank,
+    bleibt liegen) und Zählprobe – je Tabelle des Projekts Zeilen, Nummern und Verweise auf eigene Ziele, live und in der
+    Kopie. Bestanden, wenn alles gleich ist („Nummern bleiben“); Verweise auf andere Projekte leert die Kopie bewusst, sie
+    stehen als Hinweis im Bericht (Dokument). Ein ausgeschaltetes oder noch nicht geschaltetes Projekt steht danach auf
+    probe (keine p-Starts), ein eingeschaltetes bleibt an.
+  - **an** (nur der Mensch im eigenen Terminal, nur nach bestandener Probe): p-Pakete und Themen-Ablauf (Gegenlesen) frei.
+  - **aus** (nur der Mensch): keine p-Starts (Regel 12), kein automatisches Gegenlesen. Nichts wird gelöscht.
+  - `amw projekt einstellen schalter=…` geht nicht – nur über den Schalter mit Probe.
 - **Wochenlimit:** Regel 8 misst das ganze Konto – ist es erreicht, startet in keinem Projekt etwas; `limit_halt` siehe oben.
 - **Messung:** `amw pc` zeigt Rangfolge, laufende p-Arbeiter und je Projekt Schalter, Plätze und Kosten dieser Woche. Montags
   bekommt der Mensch einen Wochenbericht (Kosten und Pakete der Vorwoche je Projekt) – nur, wenn etwas gelaufen ist.

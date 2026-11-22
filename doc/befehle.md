@@ -86,11 +86,13 @@ options:
 ```
 usage: amw projekt [-h] [--beschreibung BESCHREIBUNG] [--regeln-von PROJEKT]
                    [--ordner ORDNER] [--von VON] [--projekt PROJEKT]
-                   {neu,liste,ordner,einstellen} [name]
+                   {neu,liste,ordner,einstellen,schalter} [name] [wert]
 
 positional arguments:
-  {neu,liste,ordner,einstellen}
-  name                  einstellen: schluessel=wert
+  {neu,liste,ordner,einstellen,schalter}
+  name                  einstellen: schluessel=wert · schalter: Projektname
+  wert                  schalter: probe (Lead oder Mensch) | an | aus (nur der
+                        Mensch im eigenen Terminal)
 
 options:
   -h, --help            show this help message and exit

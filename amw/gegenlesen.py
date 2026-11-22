@@ -104,6 +104,9 @@ def anstossen(con, pid, tid, fassung, rolle="gegenlesen"):
     Einstellung ist aus, es ist schon einer für diese Fassung da oder es gab in dieser Runde schon einen. Rückgabe: Text oder None."""
     if os.environ.get("AMW_GEGENLESEN_AUS") or einstellung(con, pid) == "aus" or not ROLLEN[rolle]["gebaut"]:
         return None
+    from . import kern
+    if kern.projekt_schalter(con, pid) != "an":               # A1926: Themen-Ablauf nur bei eingeschaltetem Projekt
+        return None
     modell = MODELLE[einstellung(con, pid)]
     with db.schreiben(con):                                   # in einer Schreib-Transaktion: nie doppelt angestoßen
         if _schon_in_dieser_runde(con, pid, tid):

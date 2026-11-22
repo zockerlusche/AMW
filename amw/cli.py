@@ -140,6 +140,22 @@ def cmd_projekt(a, con):
             _rolle_nur_mensch_oder_lead(con, _projekt(con, a), a, f"{k.strip()} setzen")
         e = kern.projekt_einstellen(con, _projekt(con, a), _von(a), **{k.strip(): v.strip()})
         print(f"{k.strip()} = {e.get(k.strip())}")
+    elif a.aktion == "schalter":                     # A1926 (D1304 §5): Projekt-Schalter mit Probe an einer Kopie
+        from . import schalter
+        if not a.name or a.wert not in schalter.STUFEN:
+            raise kern.AmwFehler("amw projekt schalter <Projekt> probe | an | aus")
+        pid = db.projekt_id(con, a.name)
+        if a.wert == "probe":
+            _rolle_nur_mensch_oder_lead(con, pid, a, "Probe des Projekt-Schalters")
+            r = schalter.probe(con, pid, _von(a))
+            print(f"Probe {'bestanden' if r['bestanden'] else 'NICHT bestanden'} – Bericht D{r['dokument']}, Kopie {r['kopie']} ·"
+                  f" Schalter {r['stufe']}" + ("" if r["bestanden"] else f" · {len(r['unterschiede'])} Unterschied(e), siehe Bericht"))
+            return
+        if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():
+            raise kern.AmwFehler("Ein- und ausschalten nur der Mensch im eigenen Terminal (--von Entwickler)")
+        alt, neu = schalter.umschalten(con, pid, _von(a), a.wert)
+        print(f"{a.name}: Schalter {alt} → {neu}" + (" – p-Pakete und Themen-Ablauf frei" if neu == "an" else
+                                                    " – keine p-Starts, kein automatisches Gegenlesen"))
     elif a.aktion == "ordner":
         pid = db.projekt_id(con, a.name) if a.name else _projekt(con, a)
         if a.ordner:
@@ -2920,8 +2936,9 @@ def parser():
 
     x = s.add_parser("projekt", help="Projekte: neu <name> | liste | ordner [<name>] – jedes Projekt ist für sich (eigene Agenten,"
                                      " Regeln, Daten); bequemer: Workbench › Projekt-Auswahl › Neues Projekt")
-    x.add_argument("aktion", choices=["neu", "liste", "ordner", "einstellen"])
-    x.add_argument("name", nargs="?", help="einstellen: schluessel=wert")
+    x.add_argument("aktion", choices=["neu", "liste", "ordner", "einstellen", "schalter"])
+    x.add_argument("name", nargs="?", help="einstellen: schluessel=wert · schalter: Projektname")
+    x.add_argument("wert", nargs="?", help="schalter: probe (Lead oder Mensch) | an | aus (nur der Mensch im eigenen Terminal)")
     x.add_argument("--beschreibung")
     x.add_argument("--regeln-von", dest="regeln_von", metavar="PROJEKT",
                    help="neu: die Arbeitsregeln (KR) eines Projekts einmal kopieren – danach getrennt änderbar")
