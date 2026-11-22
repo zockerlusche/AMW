@@ -56,7 +56,7 @@
  "fehler": [
   [
    "Nach dem Neu-Aufsetzen ist alles wieder offen",
-   "Nicht mehr: Hat sich nur die Grundlage geändert (gleicher Inhalt, neuer Commit), übernimmt `amw release ausliefern` Grün und Merge-OK selbst und vermerkt die Quelle. Hat sich der Inhalt geändert, braucht es eine neue Prüfung. Fehlt etwas, nennt die Kette alle fehlenden Freigaben in einer Meldung."
+   "Nicht mehr: Hat sich nur die Grundlage geändert (gleicher Inhalt, neuer Commit), übernimmt `amw release ausliefern` Grün und Merge-OK selbst und vermerkt die Quelle – bei einem Stapel mehrerer Aufgaben auf einem Stand für jede Aufgabe. Eine Ausnahme vom Gesamtlauf, die der Lead gesetzt hat, bleibt dabei gültig, solange der Inhalt (Baum) gleich ist. Hat sich der Inhalt geändert, braucht es eine neue Prüfung. Fehlt etwas, nennt die Kette alle fehlenden Freigaben in einer Meldung."
   ],
   [
    "„Der Stand ändert Sichtbares … – Prüfbitte nur mit Bild“",

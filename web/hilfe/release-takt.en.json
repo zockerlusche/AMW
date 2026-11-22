@@ -56,7 +56,7 @@
  "fehler": [
   [
    "After rebasing, everything is open again",
-   "No longer: if only the base changed (same content, new commit), `amw release ausliefern` takes over the green review and the merge approval itself and records the source. If the content changed, a new review is needed. If something is missing, the chain lists all missing approvals in one message."
+   "No longer: if only the base changed (same content, new commit), `amw release ausliefern` takes over the green review and the merge approval itself and records the source – for a stack of several tasks on one state, for each task. An exception from the full test run set by the lead stays valid as long as the content (tree) is the same. If the content changed, a new review is needed. If something is missing, the chain lists all missing approvals in one message."
   ],
   [
    "“Der Stand ändert Sichtbares … – Prüfbitte nur mit Bild”",

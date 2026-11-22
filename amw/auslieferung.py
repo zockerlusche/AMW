@@ -134,6 +134,11 @@ class Kette:
             if len(aus) == n:
                 return aus
 
+    def baum(self, sha):
+        """A1932: Baum eines Stands (git rev-parse <sha>^{tree}) oder None."""
+        rc, aus = self.extern(["git", "rev-parse", f"{sha}^{{tree}}"], self.repo)
+        return aus.strip() if rc == 0 and aus.strip() else None
+
     def reihe(self, sha):
         """Commits main..sha, älteste zuerst."""
         rc, aus = self.extern(["git", "rev-list", "--reverse", f"main..{sha}"], self.repo)
@@ -171,7 +176,9 @@ class Kette:
             # noch das OK mit. Nur für buendel-*: sonst bleibt es dabei, dass ein schon grüner Stand sein eigenes OK braucht.
             ok_mit = bool(betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], p["zweig"])) and \
                 not betrieb.merge_ok(self.con, self.pid, p["aufgabe_id"], zweig)
-            schon_gruen = bool(betrieb.ist_gruen(self.con, self.pid, ziel))
+            # A1932 (22.11., stapel2): „schon grün“ je Aufgabe – teilen mehrere Aufgaben einen Stapel-SHA, bekommt jede ihre Zeile
+            schon_gruen = bool(self.con.execute("SELECT 1 FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ? AND sha = ?"
+                                                " AND ergebnis = 'gruen'", (self.pid, p["aufgabe_id"], ziel)).fetchone())
             if schon_gruen and not (ok_mit and str(zweig).startswith("buendel-")):
                 continue
             alt_ids = set(alt.values())                  # A1834 (16.11.: 99df76e ging ungeprüft mit): jeder Commit bis zum Ziel muss
@@ -358,7 +365,8 @@ class Kette:
             if not ok:
                 fehlt.append(f"Merge-OK: keins für A{p['aufgabe_id']} ({p['zweig']}) – der Lead gibt es mit amw freigabe merge"
                              f" {p['aufgabe_id']} --zweig {p['zweig']}")
-        ausnahme = betrieb.gesamtlauf_ausnahme(self.con, self.pid, p["aufgabe_id"]) if p["aufgabe_id"] else None
+        ausnahme = betrieb.gesamtlauf_ausnahme(self.con, self.pid, p["aufgabe_id"], baum_gleich=lambda s: self.baum(s) == self.baum(sha)) \
+            if p["aufgabe_id"] else None                 # A1932: ein übertragenes OK hebt sie bei gleichem Baum nicht auf
         ausnahme = f"{ausnahme['von']}: {ausnahme['text']}" if ausnahme and not niedrig else None   # ohne Prüfbitte: nur echter Lauf
         # Gesamtlauf: zählt nur, wenn der beim tatsächlichen Start gemerkte Stand genau dieser ist und sauber war (TL #24259) –
         # die Beschreibung kann veralten (Arbeitsbaum zwischen Einreihen und Start gewechselt)

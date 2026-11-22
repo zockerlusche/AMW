@@ -1256,12 +1256,29 @@ def _merge_bitte(con, pid, p, ok):
     return f"Merge-Bitte an {dienst}: {p['zweig']}@{p['sha'][:8]} (P{p['id']})"
 
 
-def gesamtlauf_ausnahme(con, pid, aufgabe_id):
+def gesamtlauf_ausnahme(con, pid, aufgabe_id, baum_gleich=None):
     """Ausnahme vom Gesamtlauf, die Lead/Entwickler mit dem Merge-OK vermerkt hat (freigabe merge … --ausnahme „Grund“) –
-    die Zeile oder None. Gilt nur, solange danach kein neues Merge-OK ohne Ausnahme und keine Rücknahme kam (A1644, TL P138)."""
-    r = con.execute("SELECT * FROM plan_ereignis WHERE projekt_id = ? AND aufgabe_id = ? AND art IN ('merge_ok', 'merge_ok_zurueck',"
-                    " 'gesamtlauf_ausnahme') ORDER BY id DESC LIMIT 1", (pid, aufgabe_id)).fetchone()
-    return r if r and r["art"] == "gesamtlauf_ausnahme" else None
+    die Zeile oder None. Gilt nur, solange danach kein neues Merge-OK ohne Ausnahme und keine Rücknahme kam (A1644, TL P138).
+    A1932 (22.11., stapel2): ein Merge-OK, das die AMW nur übertragen hat (von AMW, A1814), hebt sie nicht auf, wenn der Stand,
+    für den die Ausnahme galt, denselben Baum hat wie der Stand jetzt – baum_gleich(sha) → bool (die Kette fragt git).
+    Ohne baum_gleich zählt jedes neuere Merge-OK wie bisher."""
+    uebertragen = False
+    for r in con.execute("SELECT * FROM plan_ereignis WHERE projekt_id = ? AND aufgabe_id = ? AND art IN ('merge_ok', 'merge_ok_zurueck',"
+                         " 'gesamtlauf_ausnahme') ORDER BY id DESC LIMIT 30", (pid, aufgabe_id)).fetchall():
+        if r["art"] == "gesamtlauf_ausnahme":
+            if not uebertragen:
+                return r
+            ok = con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND aufgabe_id = ? AND art = 'merge_ok' AND id < ?"
+                             " ORDER BY id DESC LIMIT 1", (pid, aufgabe_id, r["id"])).fetchone()
+            p = con.execute("SELECT sha FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ? AND ergebnis = 'gruen' AND zweig = ?"
+                            " AND ergebnis_utc <= ? ORDER BY id DESC LIMIT 1",
+                            (pid, aufgabe_id, (ok["text"] if ok else "") or "", r["zeit_utc"])).fetchone() if ok else None
+            return r if p and baum_gleich(p["sha"]) else None
+        if r["art"] == "merge_ok" and r["von"] == "AMW" and baum_gleich is not None:
+            uebertragen = True                         # übertragen: weiter zurück, die Ausnahme davor zählt bei gleichem Baum
+            continue
+        return None
+    return None
 
 
 def _pruefer_recht(con, pid, von, aufgabe_id, zweig, ausnahme):
