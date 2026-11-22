@@ -183,5 +183,16 @@ class Projekte(unittest.TestCase):
         self.assertIn("1. AMW: Schalter an · 2 Plätze · diese Woche 0.00 $ in 0 Paket(en)", aus)
 
 
+    def test_limit_halt_nie_gesetzt_gilt_die_vorgabe(self):
+        """A1935 (P392-Auflage absichern): Ist der PC-Wert nie gesetzt, gilt die Vorgabe 95 – der Lead darf nur darunter."""
+        self.assertFalse(os.path.exists(einstellungen.pfad()))                                      # keine Einstellungsdatei
+        self.assertEqual(einstellungen.wert("limit_halt"), 95)
+        rc, aus = self.cli("--von", "TL", "pc", "einstellen", "limit_halt=96")
+        self.assertNotEqual(rc, 0)
+        self.assertIn("lockern (jetzt 95) nur der Mensch im eigenen Terminal", aus)
+        self.assertFalse(os.path.exists(einstellungen.pfad()))                                      # nichts geschrieben
+        self.assertEqual(self.cli("--von", "TL", "pc", "einstellen", "limit_halt=90")[0], 0)
+        self.assertEqual(einstellungen.wert("limit_halt"), 90)
+
 if __name__ == "__main__":
     unittest.main()
