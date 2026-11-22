@@ -4,6 +4,21 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.158.0 – 22.11.2026 · Anbieter, Projekt-Schalter, Eignung, Sicherung
+- **Neu:** Arbeiter können außer Anthropic auch andere Anbieter mit Anthropic-kompatibler Schnittstelle nutzen (z. B. MiniMax).
+  Freigeben kannst nur du (`amw anbieter freigeben …`); gespeichert wird nur der Pfad zur Schlüsseldatei, nie der Schlüssel.
+  Vor dem ersten Paket prüft die AMW den Anbieter selbst – auch, dass der Schlüssel für den Arbeiter unsichtbar bleibt.
+- **Neu:** Ein Projekt wird mit `amw projekt schalter <Projekt> probe` an einer Kopie geprüft (Einträge, Nummern und Verweise
+  bleiben gleich, Bericht als Dokument) und erst danach von dir eingeschaltet (`… an`); `… aus` hält Arbeitsplätze und
+  Themen-Ablauf an. Gelöscht wird nichts.
+- **Neu:** Die AMW misst, welches Modell mit welchem Denkaufwand welche Arbeit ohne Nacharbeit schafft und was es kostet
+  (`amw empfehlung tabelle`). Ab fünf Aufgaben je Paar ersetzt das Gemessene die Startwerte der Empfehlung.
+- **Neu:** Die AMW sichert einmal am Tag alle Zweige und Tags an ein Ziel, das du einstellst
+  (`amw projekt einstellen sicherung_ziel=…`) – ohne am Ziel etwas zu überschreiben oder zu löschen, ohne Zugangsdaten zu
+  speichern und ohne je nach einer Anmeldung zu fragen. Von Hand: `amw sicherung jetzt`.
+- **Verbessert:** Die Startwerte der Empfehlung folgen TH159 (klein Sonnet, normal Opus medium, schwer Opus high); das
+  Gegenlesen von Themen läuft jetzt mit Opus high (umstellbar auf haiku, sonnet oder aus).
+
 ## 1.157.0 – 22.11.2026 · Wo das Konzept steht, große Repos
 - **Neu:** Oben auf der Themen-Seite steht, wo das Projekt steht: „Konzept · 2 von 7 Themen freigegeben“ (zum Löschen markierte
   zählen nicht). Gibst du das letzte offene Thema frei, fragt die Seite vorher „Damit schließt das Tor Konzept“ – einen eigenen
