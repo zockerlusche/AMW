@@ -17,6 +17,11 @@ LANGSAM = ("(() => { const f = window.fetch; window.fetch = (u, ...r) => ((/\\/a
            "  || (location.search.includes('nurerst') && !window.__erst && (window.__erst = true))))"
            " || (window.__langsamWeg && String(u).includes(window.__langsamWeg)))"
            f" ? new Promise(ok => setTimeout(ok, {LANGSAM_MS})).then(() => f(u, ...r)) : f(u, ...r); }})()")
+# der Takt mitten im ersten Laden: 300 ms nach dem ersten (langsamen) /api/start zeichnet er still „start“ – sicher, bevor
+# das erste Laden fertig ist, auch wenn der Rechner ausgelastet ist (vom Test aus gerufen kam er unter Last zu spät, L2942)
+TAKT = ("(() => { const f = window.fetch; window.fetch = (u, ...r) => { if (location.search.includes('takt') && !window.__taktGeplant"
+        " && String(u).includes('/api/start')) { window.__taktGeplant = true;"
+        " setTimeout(() => { window.__takt = String(zustand.sicht); void zeige('start', true); }, 300); } return f(u, ...r); }; })()")
 
 
 class Seitenwechsel(Rundgang):
@@ -53,12 +58,13 @@ class Seitenwechsel(Rundgang):
     def test_takt_beim_ersten_laden_haelt_die_seite_nicht_auf(self):
         """Der Takt zeichnet still „start“, solange das erste Laden noch läuft (L2908: Dokumente kamen nie) – die Seite aus
         der Adresse kommt trotzdem."""
+        self.tab.senden("Page.addScriptToEvaluateOnNewDocument", source=TAKT)
         for g in ("pc", "handy"):
             with self.subTest(g=g):
                 self.groesse(g)
                 self.tab.senden("Page.navigate", url=f"{self.basis}?nurerst=1&takt={g}#themen")
-                self.warten("document.readyState === 'complete' && typeof zeige === 'function'")
-                self.tab.js("void zeige('start', true)")                     # wie der Takt alle 15 s (sein Versprechen bleibt offen)
+                self.warten("document.readyState === 'complete' && typeof zeige === 'function' && window.__takt !== undefined")
+                self.assertNotEqual(self.tab.js("window.__takt"), "themen")   # der Takt kam, bevor das erste Laden die Themen zeigte
                 self.warten("document.querySelector('.th-liste .th-zeile')", 10)
                 self.bleibt("Themen", ".th-liste .th-zeile")
 
