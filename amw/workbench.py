@@ -283,6 +283,15 @@ def _themen_fuer_dich(con, pid):
         return []
 
 
+def _aufgaben_zur_abnahme(con, pid):
+    """A1939 (K3): Aufgaben, die an einem Urteil hängen und bereit sind – unter „Für dich“, ein Ja genügt."""
+    try:
+        from . import urteil
+        return urteil.zur_abnahme(con, pid)
+    except Exception:
+        return []
+
+
 def _startvorschlaege(con, pid):
     """A1867: „X starten?“ unter „Für dich“ – nie eine Ansicht kaputt machen, wenn etwas fehlt."""
     try:
@@ -410,7 +419,7 @@ def daten_start(con, pid):
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "startvorschlaege": _startvorschlaege(con, pid),
             "themen_fuer_dich": _themen_fuer_dich(con, pid),
-            "zur_abnahme": _zur_abnahme(con, pid),
+            "zur_abnahme": _zur_abnahme(con, pid), "aufgaben_zur_abnahme": _aufgaben_zur_abnahme(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 
@@ -470,6 +479,12 @@ def daten_planung(con, pid):
         b["specs"] = {s["teil"]: {**{k: s[k] for k in ("status", "version", "kommentar", "text", "geaendert_utc", "geschrieben_von")},
                                   **dict(zip(("vorgelegt_von", "frei_von"), planung.spec_wer(con, b["id"], s["teil"], s["version"])))}
                       for s in con.execute("SELECT * FROM spezifikation WHERE bogen_id = ?", (b["id"],))}
+        try:                                             # A1939 (K3): Themen des Meilensteins, Ziel und Abnahme als Verweis
+            from . import urteil
+            b["themen"] = urteil.bogen_themen(con, pid, b["id"])
+            b["verweise"] = {f: [{**v, "text": urteil.verweis_text(v)} for v in urteil.verweise(con, pid, b[f])] for f in ("ziel", "abnahme")}
+        except Exception:
+            b["themen"], b["verweise"] = [], {"ziel": [], "abnahme": []}
         b["klaerungen"] = zeilen(con.execute("SELECT id, kurz, status, fundstellen FROM frage WHERE projekt_id = ? AND fundstellen LIKE ?",
                                              (pid, f"bogen:{b['id']}:%")))
         schritte = zeilen(con.execute(

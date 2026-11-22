@@ -96,8 +96,7 @@ def bogen_neu(con, pid, von, titel, ziel=None, abnahme=None, zieldatum=None, nr=
             nr = (con.execute("SELECT max(nr) FROM bogen WHERE projekt_id = ?", (pid,)).fetchone()[0] or 0) + 1
         bid = db.einfuegen(con, "bogen", projekt_id=pid, nr=int(nr), titel=titel.strip(), ziel=ziel, abnahme=abnahme,
                            zieldatum=_datum(zieldatum), angelegt_von=von, angelegt_utc=db.jetzt())
-        for t in TEILE:
-            db.einfuegen(con, "spezifikation", bogen_id=bid, teil=t)
+        # A1939 (K3): keine Spezifikation mehr – das Konzept steht in Themen; alte Meilensteine behalten ihre (alter Bestand)
         _log(con, pid, von, "bogen_neu", titel.strip(), bogen_id=bid)
     return bid
 
@@ -217,9 +216,17 @@ def zuwachs(con, b):
 
 # --- Spezifikation -------------------------------------------------------------------------------
 
+def hat_spec(con, bid):
+    """A1939 (K3): nur Meilensteine aus der Zeit vor den Themen haben eine Spezifikation (alter Bestand)."""
+    return bool(con.execute("SELECT 1 FROM spezifikation WHERE bogen_id = ? LIMIT 1", (bid,)).fetchone())
+
+
 def spec(con, bid, teil):
     s = con.execute("SELECT * FROM spezifikation WHERE bogen_id = ? AND teil = ?", (bid, teil)).fetchone()
     if not s:
+        if not hat_spec(con, bid):
+            raise kern.AmwFehler(f"Meilenstein {bid} hat keine Spezifikation – das Konzept steht in Themen"
+                                 " (amw thema …; Aufgaben verweisen mit amw aufgabe aendern <nr> --thema TH<n>)")
         raise kern.AmwFehler(f"Teil {teil} gibt es nicht (anforderungen | entwurf | schritte)")
     return s
 
@@ -719,13 +726,6 @@ CHECKS = {
         "en": ("Milestone {b} “{titel}” has no target date",
                "The forecast runs ({p50} – {p85}), but there is no date to compare with: the schedule light stays grey and nobody notices a slip.",
                "Set a target date – the forecast's P85 is realistic. If the milestone deliberately has no date, accept.")}),
-    "aktiv_ohne_anforderungen": ("warnung", "du", "spec_anforderungen", {
-        "de": ("Meilenstein {b} ist aktiv, die Anforderungen sind nicht freigegeben",
-               "Agenten arbeiten auf Anforderungen, die du noch nicht bestätigt hast – ändern sie sich, ist die Arbeit dafür verloren.",
-               "Anforderungen ansehen und freigeben oder zurückgeben."),
-        "en": ("Milestone {b} is active but its requirements are not approved",
-               "Agents work on requirements you have not confirmed – if they change, that work is lost.",
-               "Review the requirements and approve or return them.")}),
     "prognose_rot": ("fehler", "du", "bogen", {
         "de": ("Meilenstein {b} „{titel}“ wird voraussichtlich zu spät fertig",
                "Schon die mittlere Prognose ({p50}) liegt nach dem Zieldatum {ziel}: wahrscheinlicher verspätet als pünktlich.",
@@ -864,13 +864,11 @@ def pruefen(con, pid, prog=None, mit_akzeptierten=False):
             add("bogen_ohne_abnahme", r, g, bid, **bw)
         if not b["zieldatum"]:
             add("bogen_ohne_zieldatum", r, g, bid, **bw)
-        if b["status"] == "aktiv" and b["spec"].get("anforderungen") != "frei":
-            add("aktiv_ohne_anforderungen", r, g, bid, **bw)
         if p.get("ampel") == "rot":
             add("prognose_rot", r, g, bid, **bw)
         elif p.get("ampel") == "gelb":
             add("prognose_gelb", r, g, bid, **bw)
-        anf = set(ANFORDERUNG.findall(spec(con, b["id"], "anforderungen")["text"]))
+        anf = set(ANFORDERUNG.findall(spec(con, b["id"], "anforderungen")["text"])) if b["spec"].get("anforderungen") else set()
         gedeckt = set()
         for (x,) in con.execute("SELECT anforderungen FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (b["id"],)):
             gedeckt |= set(ANFORDERUNG.findall(x or ""))

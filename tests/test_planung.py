@@ -10,6 +10,13 @@ import unittest
 from amw import db, kern, planung
 
 
+
+def alter_bestand(con, bid):
+    """A1939 (K3): neue Meilensteine haben keine Spezifikation mehr – für Tests des alten Bestands die Zeilen wie früher anlegen."""
+    with db.schreiben(con):
+        for teil in planung.TEILE:
+            db.einfuegen(con, "spezifikation", bogen_id=bid, teil=teil)
+
 class Grund(unittest.TestCase):
     def setUp(self):
         self.ordner = tempfile.TemporaryDirectory()
@@ -23,8 +30,11 @@ class Grund(unittest.TestCase):
         self.con.close()
         self.ordner.cleanup()
 
-    def bogen(self, **k):
-        return planung.bogen_neu(self.con, self.pid, "TL", k.pop("titel", "Erster Bogen"), **k)
+    def bogen(self, alte_spec=True, **k):
+        bid = planung.bogen_neu(self.con, self.pid, "TL", k.pop("titel", "Erster Bogen"), **k)
+        if alte_spec:                                       # A1939: Spezifikation nur noch als alter Bestand
+            alter_bestand(self.con, bid)
+        return bid
 
     def schritt(self, titel="S", **k):
         return planung.schritt_setzen(self.con, self.pid, "TL", titel=titel, **k)

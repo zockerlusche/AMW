@@ -399,6 +399,21 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   Quelle bleibt ein Kriterium ein Ja des Leads.
 - Der Dienst prüft das höchstens alle 15 Minuten; Ereignisse `fertig_quelle`, `kriterium_abgehakt`. Ohne Schemaänderung.
 
+## Meilenstein automatisch: bereit zur Abnahme, Themen, Verweise (A1939, K3, TH155)
+
+- **Bereit zur Abnahme:** Eine Aufgabe mit `--fertig-wenn ja` hängt an einem Urteil – die AMW schließt sie nie selbst. Steht
+  ihr Ergebnis (der Bearbeiter meldet `amw aufgabe bereit N`, eine grüne Prüfung oder ein Ergebnis/Bericht zur Aufgabe, seit
+  Beginn und nach dem letzten „Zurück“), steht sie unter „Für dich“. **Ein Ja genügt** (Knopf „Ja“ am PC oder
+  `amw aufgabe abnehmen N`; der Mensch oder der Lead, nie der Bearbeiter selbst): die AMW hakt die offenen Kriterien ohne
+  Prüfquelle mit „Ja von …“ ab, setzt fertig und schreibt Beleg und Zusammenfassung. „Zurück“ braucht einen Grund und geht
+  an den Bearbeiter. Ereignisse `zur_abnahme`, `abnahme_ja`, `abnahme_zurueck`.
+- **Meilenstein fertig:** wie bisher, wenn alle Aufgaben fertig oder verworfen sind (`meilenstein_fertig = automatisch`).
+- **Themen statt Spezifikation:** Der Meilenstein zeigt die Themen seiner Aufgaben (`amw aufgabe aendern N --thema TH<n>`)
+  mit Status. Neue Meilensteine haben keine Spezifikation mehr; `amw bogen neu` verlangt sie nicht und der Plan-Check meldet
+  nichts mehr dazu. Alte Meilensteine behalten ihre Spezifikation als alten Bestand (lesbar, `amw spec …`).
+- **Verweise:** Ziel und Abnahme dürfen `TH<n>` und `D<n>` nennen; Seite und `amw bogen zeigen` zeigen dazu Titel und geltende
+  Fassung („TH12 Marktlage · freigegeben (Fassung 3)“, „D1258 Konzept · Fassung 15“).
+
 ## Arbeitsliste je Agent (seit 1.12.0)
 
 **Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach

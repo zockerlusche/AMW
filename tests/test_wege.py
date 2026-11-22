@@ -35,6 +35,8 @@ class Grund(unittest.TestCase):
 
     def bogen(self):
         bid = planung.bogen_neu(self.con, self.pid, "TL", "Welt bauen", abnahme="läuft")
+        from tests.test_planung import alter_bestand        # A1939: Spezifikation nur noch als alter Bestand
+        alter_bestand(self.con, bid)
         return bid
 
 

@@ -229,6 +229,15 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         if kanal != "seite":
             raise Ungueltig("Hochladen läuft online über die Seite")
         return hochladen(daten)
+    if weg == "/api/aufgabe/abnehmen":                # A1939 (K3): Ja oder Zurück – der Mensch am PC, den Status setzt die AMW
+        if kanal != "seite":
+            raise Ungueltig("Abnehmen geht am PC (Workbench), online siehst du es unter „Für dich“")
+        from . import urteil
+        try:
+            r = urteil.entscheiden(con, pid, kern.ENTWICKLER, int(daten.get("aufgabe") or 0), bool(daten.get("ja", True)), daten.get("grund"))
+        except (kern.AmwFehler, ValueError, TypeError) as e:
+            raise Ungueltig(str(e)) from None
+        return {"text": "fertig" if r == "fertig" else "zurueck"}
     if weg.startswith("/api/aufgabe/"):              # Aufgabe: erledigt / später (eigene), Antwort an den Zuständigen
         return aufgabe(con, pid, weg.rsplit("/", 1)[1], daten)
     if weg.startswith("/api/plan/"):                 # Planung – auch von unterwegs (Freigaben!)

@@ -3,7 +3,9 @@
 Die Planung folgt einer bewährten Kette – angepasst an einen Menschen, einen Team-Lead-Agenten und mehrere Agenten
 (Methode und Quellen: `doc/recherche/planung.md`):
 
-**Leitbild → Bögen → Spezifikation (mit deiner Freigabe) → Schritte → Ausführung → Abnahme → Prognose und Status.**
+**Leitbild → Themen (mit deiner Freigabe) → Bögen → Schritte → Ausführung → Abnahme → Prognose und Status.**
+
+Seit A1939 steht das Konzept in **Themen** (`amw thema …`), nicht mehr in einer Spezifikation je Bogen: ein Bogen zeigt die Themen seiner Aufgaben, Ziel und Abnahme dürfen auf `TH<n>` und `D<n>` verweisen. §3 gilt nur noch für alte Bögen (alter Bestand).
 
 Befehle in dieser Anleitung führt meist der Lead-Agent aus (`--von TL`); du selbst arbeitest in der Workbench oder an der
 Kommandozeile mit `--von Entwickler`. Beispiele ohne `--von` setzen voraus, dass `AMW_AGENT` gesetzt ist.
@@ -25,15 +27,16 @@ Protokoll (Änderungssteuerung).
 - Workbench: Planung › „Neuer Bogen“, auf der Karte „Aktivieren“ / „Abschließen“ / „Bearbeiten“
 - `amw bogen neu --titel … --ziel … --abnahme … --zieldatum 2026-12-01` · `amw bogen status <n> aktiv` · `amw bogen liste`
 
-## 3 Spezifikation – erst klären, dann bauen
-Jeder Bogen hat drei Teile, die nacheinander zur Freigabe kommen (wie GitHub Spec Kit / Kiro):
+## 3 Spezifikation – nur noch alter Bestand
+Neue Bögen haben keine Spezifikation mehr (A1939) – das Konzept steht in Themen.
+Alte Bögen behalten ihre drei Teile, die nacheinander zur Freigabe kommen (wie GitHub Spec Kit / Kiro):
 1. **Anforderungen** – je Zeile eine mit ID (`R1 …`); unklare Stellen als `[KLÄREN: Frage?]` – daraus wird automatisch
    eine Frage an dich, und die Freigabe wartet, bis sie beantwortet ist (nicht raten!).
 2. **Entwurf** – wie es gebaut wird (vorlegen erst nach freigegebenen Anforderungen).
 3. **Schritte** – die Zerlegung als Text (vorlegen erst nach freigegebenem Entwurf).
 
 Die Reihenfolge gilt für das **Vorlegen** der Teile. Schritte als Aufgaben (`amw aufgabe neu --bogen …`) kann der Lead
-jederzeit anlegen – der Plan-Check (§6) meldet aktive Bögen, deren Anforderungen noch nicht freigegeben sind. In `amw bogen zeigen`
+jederzeit anlegen. In `amw bogen zeigen`
 steht je Teil der Stand: *in Arbeit* (noch nicht vorgelegt), *vorgelegt*, *frei*, *zurück*.
 
 Der TL schreibt und legt vor (`amw spec schreiben <n> anforderungen --datei a.md`, `amw spec vorlegen <n> anforderungen`),

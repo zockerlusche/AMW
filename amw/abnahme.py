@@ -52,6 +52,7 @@ GESPERRT = (
     ("amw/eignung.py", "fest", "Eignungstabelle – gemessen, ersetzt Startwerte der Empfehlung (A1930)"),
     ("amw/sicherung.py", "fest", "tägliche Sicherung an sicherung_ziel – nie Force, nie löschen (A1929)"),
     ("amw/fertigquelle.py", "fest", "Fertig-Quelle und Prüfquellen – die AMW schließt Aufgaben selbst (A1938)"),
+    ("amw/urteil.py", "fest", "bereit zur Abnahme und Ja – den Status setzt die AMW (A1939)"),
     ("amw/anbieter_schluessel.py", "fest", "apiKeyHelper – gibt nur freigegebene Schlüsseldateien aus (A1931)"),
     ("amw-anbieter-schluessel.py", "fest", "apiKeyHelper (A1931)"),
     ("amw/gegenlesen.py", "fest", "Gegenleser der Themen – startet claude -p (A1914)"),

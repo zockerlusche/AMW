@@ -821,6 +821,14 @@ def cmd_aufgabe(a, con):
                 themen.verweise_setzen(con, pid, _von(a), a.id, a.ohne_thema.split(","), entfernen=True)
             print(f"A{a.id}: Themen " + (", ".join(f"TH{x}" for x in themen.verweise(con, pid, a.id)) or "–"))
         print(f"A{a.id} geändert")
+    elif a.aktion == "bereit":                        # A1939 (K3): der Bearbeiter meldet – das Ergebnis steht
+        from . import urteil
+        urteil.bereit_melden(con, pid, _von(a), a.id)
+        print(f"A{a.id} bereit zur Abnahme – steht unter „Für dich“; ein Ja genügt, den Status setzt die AMW")
+    elif a.aktion == "abnehmen":                      # A1939 (K3): Ja (oder --zurueck --kommentar) – Mensch oder Lead
+        from . import urteil
+        r = urteil.entscheiden(con, pid, _von(a), a.id, not a.zurueck, a.kommentar)
+        print(f"A{a.id} abgenommen – fertig" if r == "fertig" else f"A{a.id} zurück an den Bearbeiter")
     elif a.aktion == "kriterium":
         if getattr(a, "quelle", None) is not None:              # A1938 (K2): Prüfquelle statt Abhaken von Hand
             from . import fertigquelle
@@ -933,7 +941,8 @@ def cmd_bogen(a, con):
     pid = _projekt(con, a)
     if a.aktion == "neu":
         bid = planung.bogen_neu(con, pid, _von(a), a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr)
-        print(f"Meilenstein {bid} angelegt – Spezifikation: amw spec schreiben {bid} anforderungen --datei …")
+        print(f"Meilenstein {bid} angelegt – Ziel und Abnahme dürfen auf Themen und Dokumente verweisen (TH<n>, D<n>);"
+              " seine Themen kommen aus den Aufgaben (amw aufgabe aendern <nr> --thema TH<n>)")
     elif a.aktion == "abnehmen":                      # A1928 (TH158): nur der Mensch – danach veröffentlicht die AMW
         if not a.id:
             raise kern.AmwFehler("bogen abnehmen <Nummer des Meilensteins>")
@@ -958,8 +967,17 @@ def cmd_bogen(a, con):
         print(f"Meilenstein {b['id']} [{b['status']}] {b['titel']} · Ziel: {b['ziel'] or '–'} · Abnahme: {b['abnahme'] or '–'}"
               f" · Zieldatum {b['zieldatum'] or '–'} (Baseline {b['baseline_datum'] or '–'})"
               + (f" · federführend {b['federfuehrend']}" if b.get("federfuehrend") else ""))
-        stand = {"entwurf": "in Arbeit", "zurueck": "zurück"}
-        print("Spezifikation: " + ", ".join(f"{t} {stand.get(b['spec'].get(t), b['spec'].get(t) or '–')}" for t in planung.TEILE))
+        from . import urteil                              # A1939 (K3): Verweise mit geltender Fassung, Themen statt Spezifikation
+        for feld in ("ziel", "abnahme"):
+            for v in urteil.verweise(con, pid, b[feld]):
+                print(f"  {feld}: {urteil.verweis_text(v)}")
+        th = urteil.bogen_themen(con, pid, a.id)
+        if th:
+            from . import themen
+            print("Themen: " + " · ".join(f"TH{x['id']} {x['name']} ({themen.STATUS_TEXT.get(x['status'], x['status'])})" for x in th))
+        if b["spec"]:
+            stand = {"entwurf": "in Arbeit", "zurueck": "zurück"}
+            print("Spezifikation (alter Bestand): " + ", ".join(f"{t} {stand.get(b['spec'].get(t), b['spec'].get(t) or '–')}" for t in planung.TEILE))
         stufe = planung.wellen(con, [r[0] for r in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ?", (a.id,))])
         for r in con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? ORDER BY rang, id", (a.id,)):
             print(f"  Stufe {stufe.get(r['id'], 1)}  A{r['id']:<5} {r['agent'] or '–':<10} [{r['status']}] {r['titel'][:90]}"
@@ -3088,11 +3106,12 @@ def parser():
     x.set_defaults(f=cmd_erledigt)
 
     x = s.add_parser("aufgabe", help="neu | aendern N | liste | zeige N [--kurz] | start | fertig | … | kriterium N nr |"
+                                     " bereit N (Ergebnis steht, bei --fertig-wenn ja) | abnehmen N [--zurueck --kommentar] |"
                                      " plan N --text | planfrei N [--zurueck --kommentar] | nachtrag N --titel … (Folgearbeit"
                                      " zu einer fertigen Aufgabe)")
     x.add_argument("aktion", choices=["neu", "aendern", "liste", "zeige", "start", "blockiert", "wartet", "fertig", "verwerfen",
                                        "parken", "aktiv", "keine_prio", "pool", "kriterium", "plan", "planfrei", "nachtrag",
-                                       "dazwischen"])
+                                       "dazwischen", "bereit", "abnehmen"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("nr", type=int, nargs="?", help="kriterium: Nummer des Kriteriums")
     x.add_argument("--titel")
@@ -3137,7 +3156,7 @@ def parser():
     x.add_argument("--ohne-thema", help="aendern: diese Themen-Verweise lösen, z. B. TH3")
     x.add_argument("--text", help="plan: der Plan")
     x.add_argument("--nein", action="store_true", help="kriterium: wieder als offen markieren")
-    x.add_argument("--zurueck", action="store_true", help="planfrei: zurückweisen (mit --kommentar)")
+    x.add_argument("--zurueck", action="store_true", help="planfrei, abnehmen: zurückweisen (mit --kommentar)")
     x.add_argument("--kommentar")
     x.add_argument("--kurz", action="store_true", help="zeige: nur Status, Agent, Titel und Wartegründe")
     x.add_argument("--federfuehrend", help="aendern: wer diese Aufgabe führt (Lead/Entwickler; leer = weg)")

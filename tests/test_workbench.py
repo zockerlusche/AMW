@@ -91,6 +91,8 @@ class Workbench(unittest.TestCase):
         self.assertEqual(status, 200, text)
         bid = json.loads(text)["bogen"]
         con = db.verbinde()
+        from tests.test_planung import alter_bestand        # A1939: Spezifikation nur noch als alter Bestand
+        alter_bestand(con, bid)
         planung.spec_schreiben(con, self.pid, "TL", bid, "anforderungen", "R1 Anmelden")
         planung.spec_vorlegen(con, self.pid, "TL", bid, "anforderungen")
         con.close()
