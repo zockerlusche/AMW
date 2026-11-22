@@ -307,6 +307,9 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
                 return {"angelegt": planansicht.entwurf_ja(con, pid, kern.ENTWICKLER, daten.get("thema"))}
             if was == "anhalten":                     # K8 (A1942): nicht begonnene Pakete eines geänderten Themas anhalten
                 return {"angehalten": planansicht.anhalten(con, pid, kern.ENTWICKLER, int(daten.get("thema")), bid or None)}
+            if was in ("aenderung-ja", "aenderung-verwerfen"):   # A1957: über die eigene Änderung entscheiden
+                from . import folgen
+                return {"stand": folgen.entscheiden(con, pid, kern.ENTWICKLER, int(daten.get("aenderung")), was == "aenderung-ja")}
             if was == "neu-planen":
                 return {"text": planansicht.neu_planen(con, pid, kern.ENTWICKLER, daten.get("thema"))}
         except (kern.AmwFehler, ValueError, TypeError) as e:
@@ -524,9 +527,12 @@ def planen(con, pid, was, d):
                 return {"ok": True}
             if d.get("aktion") == "vorziehen":            # A1777: der Knopf des Menschen auf der Meilenstein-Karte
                 return planung.bogen_vorziehen(con, pid, e, zahl("bogen"))
-            planung.bogen_aendern(con, pid, e, zahl("bogen"), d.get("titel"), d.get("ziel"), d.get("abnahme"),
-                                  d.get("zieldatum"), zahl("nr"), d.get("grund"))
-            return {"ok": True}
+            from . import folgen                       # A1957: die eigene Änderung erst als Vorschlag, ein Prüfer prüft die Folgen
+            if zahl("nr") is not None:                 # die Reihenfolge ist keine inhaltliche Änderung
+                planung.bogen_aendern(con, pid, e, zahl("bogen"), nr=zahl("nr"))
+            r = folgen.vorschlagen(con, pid, e, "meilenstein", zahl("bogen"), grund=d.get("grund"), titel=d.get("titel"),
+                                   ziel=d.get("ziel"), abnahme=d.get("abnahme"), zieldatum=d.get("zieldatum") or None)
+            return {"ok": True, **r}
         if was == "check":                         # Befund bewusst akzeptieren oder wieder zählen lassen
             if d.get("wieder"):
                 planung.check_wieder(con, pid, e, d.get("schluessel") or "")

@@ -829,6 +829,15 @@ def cmd_aufgabe(a, con):
     elif a.aktion == "aendern":
         werte, nach = _schritt_werte(a)
         werte["zusammenfassung"] = a.zusammenfassung              # auch nachträglich (Plan-Check)
+        if _von(a) == kern.ENTWICKLER and not _aus_agenten_sitzung():   # A1957: Titel/Auftrag/Kriterien/Meilenstein erst als Vorschlag
+            from . import folgen
+            inhalt = {"titel": a.titel, "auftrag": werte.pop("auftrag", None), "kriterien": werte.pop("kriterien", None),
+                      "bogen_id": werte.pop("bogen_id", None)}
+            a.titel = None
+            r = folgen.vorschlagen(con, pid, kern.ENTWICKLER, "paket", a.id, **inhalt)
+            if r["stand"] == "prueft":
+                print(f"A{a.id}: Änderung wird geprüft (Ä{r['aenderung']}) – gilt von selbst, wenn Ziel, Erfolg und Kosten nicht berührt"
+                      " sind; sonst Ja in der Planung")
         if any(v is not None for v in werte.values()) or nach or a.titel:
             planung.schritt_setzen(con, pid, _von(a), aid=a.id, titel=a.titel, nach=nach, **werte)
         if _ohne(a):
@@ -977,7 +986,17 @@ def cmd_bogen(a, con):
         from . import veroeffentlichung
         print(veroeffentlichung.abnehmen(con, pid, kern.ENTWICKLER, a.id))
     elif a.aktion == "aendern":
-        planung.bogen_aendern(con, pid, _von(a), a.id, a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr, a.grund)
+        if _von(a) == kern.ENTWICKLER and not _aus_agenten_sitzung():   # A1957: die eigene Änderung erst als Vorschlag
+            from . import folgen
+            if a.nr is not None:
+                planung.bogen_aendern(con, pid, _von(a), a.id, nr=a.nr)
+            r = folgen.vorschlagen(con, pid, kern.ENTWICKLER, "meilenstein", a.id, grund=a.grund, titel=a.titel, ziel=a.ziel,
+                                   abnahme=a.abnahme, zieldatum=a.zieldatum)
+            if r["stand"] == "prueft":
+                print(f"Meilenstein {a.id}: Änderung wird geprüft (Ä{r['aenderung']}) – gilt von selbst, wenn Ziel, Erfolg und Kosten"
+                      " nicht berührt sind; sonst Ja in der Planung")
+        else:
+            planung.bogen_aendern(con, pid, _von(a), a.id, a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr, a.grund)
         if a.federfuehrend is not None:
             ff = kern.federfuehrung_setzen(con, pid, _von(a), "bogen", a.id, a.federfuehrend)
             print(f"Meilenstein {a.id}: federführend {ff or '– (Lead)'}")

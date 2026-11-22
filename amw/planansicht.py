@@ -225,7 +225,16 @@ def daten(con, pid):
             if t["zustand"]["status"] == "frei" and not t["zustand"]["markiert"] and t["id"] not in in_bogen]
     tor = "umsetzung" if any(m["status"] == "aktiv" for m in ms) else ("fein" if grob_zu else "grob")
     return {"meilensteine": ms, "tor": tor, "grob_zu": grob_zu, "fein_zu": fein_zu, "ohne_meilenstein": ohne,
-            "hat_themen": bool(namen), "starten": fein_zu, **entwuerfe(con, pid, namen)}
+            "hat_themen": bool(namen), "starten": fein_zu, **entwuerfe(con, pid, namen), "aenderungen": _aenderungen(con, pid)}
+
+
+def _aenderungen(con, pid):
+    """A1957: eigene Änderungen des Menschen, über die noch nicht entschieden ist (wird geprüft | wartet auf Ja | Prüfung ging nicht)."""
+    from . import folgen
+    try:
+        return folgen.offene(con, pid)
+    except Exception:                                    # noqa: BLE001 – die Ansicht darf daran nie scheitern
+        return []
 
 
 # --- K8 (A1942, Plan Co #30105, TH163 Rückkopplung): Änderungen von oben nach unten – Thema → Meilenstein → Paket ----------

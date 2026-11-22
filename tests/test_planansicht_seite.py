@@ -94,6 +94,28 @@ class PlanAnsicht(Rundgang):
                 self.assertEqual(self.besuchen("planung", "planung-k8", bereit="document.querySelector('#inhalt .pm-zeile')", tun=tun,
                                                danach="document.querySelector('.pm-geaendert')", g=g, t=th_), [], f"{g} {th_}")
 
+    def test_k8b_eigene_aenderung_wird_geprueft(self):
+        """A1957: die eigene Änderung erscheint sofort als „wird geprüft“; berührt sie die Kosten, gilt sie erst mit Ja."""
+        import json
+        import os
+        from unittest import mock
+        from amw import folgen
+        with mock.patch.dict(os.environ, {"AMW_FOLGEN_AUS": ""}), mock.patch.object(folgen, "STARTER", lambda pid, eid: 1):
+            r = folgen.vorschlagen(self.con, self.pid, kern.ENTWICKLER, "meilenstein", self.m1, titel="Anmelden online")
+        self.groesse("pc")
+        self.oeffnen("planung", "document.querySelector('#inhalt .pm-aenderungen [data-stand=prueft]')")
+        self.assertIn("wird geprüft", self.tab.js("document.querySelector('.pm-aenderungen').textContent"))
+        self.assertFalse(self.tab.js("!!document.querySelector('.pm-aenderungen button[data-h=ae-ja]')"))     # erst nach der Prüfung
+        folgen.abschliessen(self.con, self.pid, r["aenderung"], json.dumps({"beruehrt_ziel": False, "beruehrt_erfolg": False,
+                                                                             "beruehrt_kosten": True, "folgen": ["A2 wird größer"]}))
+        for g in ("pc", "handy"):
+            for th_ in ("hell", "dunkel"):
+                self.assertEqual(self.besuchen("planung", "planung-k8b", bereit="document.querySelector('#inhalt .pm-aenderungen [data-stand=wartet]')",
+                                               g=g, t=th_), [], f"{g} {th_}")
+        self.tab.js("document.querySelector('.pm-aenderungen button[data-h=ae-ja]').click()")
+        self.warten("!document.querySelector('#inhalt .pm-aenderungen')")
+        self.assertEqual(planung.bogen_zeile(self.con, self.pid, self.m1)["titel"], "Anmelden online")
+
     def test_bilder_entwurf(self):
         from amw import planer
         th = self.con.execute("SELECT id FROM thema LIMIT 1").fetchone()[0]

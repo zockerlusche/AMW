@@ -546,6 +546,18 @@ die der Lead nur noch bestätigt oder ändert.
   (neue Fassung oder Zurück nach der Freigabe des Meilensteins), mit „Neu planen“ und „Nicht begonnene anhalten“. Anhalten:
   p-Pakete zurückgestellt, die übrigen „wartet“ auf den Lead mit Grund (Ereignis paket_angehalten).
 
+### Folgenprüfung eigener Änderungen (K8b, A1957, F5353/F5358/F5359)
+
+- **Auslöser:** der Mensch ändert selbst einen Meilenstein (Planung › Meilenstein bearbeiten oder `amw bogen aendern --von
+  Entwickler` im eigenen Terminal: Titel, Ziel, Abnahme, Zieldatum) oder ein Paket (`amw aufgabe aendern --von Entwickler`:
+  Titel, Auftrag, Kriterien, Meilenstein). Änderungen von Agenten und Lead gelten wie bisher sofort.
+- **Was läuft:** die Änderung wird Vorschlag (Ereignis aenderung_vorgeschlagen); ein losgelöster Prozess (`amw-folgen.py`) prüft
+  als leichter Lauf der Schlange (ohne Weckruf) mit einem frischen `claude -p` (nur Lesen, Modell wie themen_gegenlesen, Frist
+  10 min) `aenderung.md` und `darunter.md` und antwortet mit JSON (berührt Ziel/Erfolg/Kosten, Folgen). Kosten ins Ereignis.
+- **Danach:** nichts berührt → gilt von selbst (Info mit Folgen an den Menschen); sonst Planung › „Deine Änderungen“ mit alt →
+  neu und Folgen, gilt erst mit Ja (oder Verwerfen). Frist/Fehler/unbrauchbare Antwort → bleibt Vorschlag, „Ja übernimmt
+  trotzdem“. themen_gegenlesen=aus: gilt wie früher sofort. Tests: AMW_FOLGEN_AUS.
+
 ### Themen → Aufgaben (A1915, D1304 v12 §1.3/§6d)
 
 **Wozu:** Ändert sich ein Thema, sollen genau die Aufgaben geprüft werden, die darauf bauen – nicht alle, und ohne dass
