@@ -590,6 +590,22 @@ def _bogen_pruefen(con, pid, a):
                          f"{liste}\nVorschlag: --bogen {offen[0]['id']}. Bewusst ohne Meilenstein: --ohne-bogen")
 
 
+def _thema_pruefen(con, pid, a):
+    """A1947 (Marcel W2458): eine neue Aufgabe nennt ihr Thema (--thema TH3) – oder bewusst keins (--ohne-thema-grund …, interne
+    Pflege). Ohne beides: mit thema_pflicht=an Abbruch (vor dem Anlegen), sonst ein Hinweis. Nur, wenn das Projekt Themen hat."""
+    if a.thema or getattr(a, "ohne_thema_grund", None) or not getattr(a, "titel", None):
+        if getattr(a, "ohne_thema_grund", None) is not None and not a.ohne_thema_grund.strip():
+            raise kern.AmwFehler("--ohne-thema-grund: bitte einen Grund (z. B. Aufräumen, Fehlerbehebung)")
+        return None
+    if not con.execute("SELECT 1 FROM thema WHERE projekt_id = ? LIMIT 1", (pid,)).fetchone():
+        return None
+    text = ("Zu welchem Thema gehört die Aufgabe? --thema TH… (amw thema liste) – bewusst ohne (interne Pflege, z. B. Aufräumen,"
+            " Fehlerbehebung): --ohne-thema-grund \"…\"")
+    if kern.projekt_wahl(con, pid, "thema_pflicht") == "an":
+        raise kern.AmwFehler(text + " – nichts angelegt (Projekt-Einstellung thema_pflicht=an)")
+    return "Hinweis: " + text + " – ohne Thema steht sie in der Planung unter „Paket ohne Thema“."
+
+
 def _ohne(a):
     return [int(x.strip().lstrip("Aa")) for x in (a.ohne_vorgaenger or "").split(",") if x.strip()]
 
@@ -771,6 +787,7 @@ def cmd_aufgabe(a, con):
         return
     if a.aktion == "neu":
         _bogen_pruefen(con, pid, a)
+        thema_hinweis = _thema_pruefen(con, pid, a)          # A1947: kein Paket ohne Thema
         werte, nach = _schritt_werte(a)
         if any(v is not None for k, v in werte.items() if k not in ("agent", "auftrag", "pruefer", "groesse", "art")) or nach:
             aid = planung.schritt_setzen(con, pid, _von(a), titel=a.titel, nach=nach, rang=a.rang, **werte)
@@ -798,6 +815,14 @@ def cmd_aufgabe(a, con):
             print(f"A{aid} angelegt" + (" (Eingang – der Lead plant ein: amw liste ordnen <Agent> …)" if a.pool else ""))
         _paket_setzen(con, pid, a, aid)
         _fertig_wenn(con, pid, a, aid)
+        if a.thema:                                          # A1947: gleich beim Anlegen mit dem Thema verknüpfen (A1915)
+            from . import themen
+            print("Thema: " + ", ".join(f"TH{t}" for t in themen.verweise_setzen(con, pid, _von(a), aid, a.thema.split(","))))
+        elif a.ohne_thema_grund:
+            from . import themen
+            themen.ohne_thema_vermerken(con, pid, _von(a), aid, a.ohne_thema_grund)
+        elif thema_hinweis:
+            print(thema_hinweis)
         if not (a.groesse and a.art):
             print("Tipp: --groesse S|M|L|XL und --art … geben eine Empfehlung für Modell und Denkaufwand (amw aufgabe aendern"
                   f" {aid} --groesse M --art oberflaeche)")
@@ -2337,6 +2362,21 @@ def cmd_thema(a, con):
         themen.nur_mensch_setzen(con, pid, _von(a), a.name, an=a.aktion == "nur_mensch")
         print(f"{a.name}: " + ("gibt nur der Mensch frei" if a.aktion == "nur_mensch" else "Freigabe wieder nach thema_freigabe"))
         return
+    if a.aktion == "luecken":                        # A1947: was die AMW als Lücke zeigt
+        l = themen.luecken(con, pid)
+        print(f"Freigegebene Themen ohne Paket: {len(l['thema_ohne_paket'])}")
+        for x in l["thema_ohne_paket"]:
+            print(f"  TH{x['id']:<4} {x['name'][:80]}")
+        print(f"Pakete ohne Thema: {len(l['paket_ohne_thema'])}")
+        for x in l["paket_ohne_thema"]:
+            print(f"  A{x['id']:<5} [{x['status']}] {x['titel'][:80]} ({x['agent'] or '–'})")
+        return
+    if a.aktion == "vermerk":                        # A1947: „nichts zu bauen“ mit Grund (Lead, Mensch, Co-Entwickler)
+        if not a.name or not (a.nichts_zu_bauen or a.aufheben):
+            raise kern.AmwFehler("amw thema vermerk TH<n> --nichts-zu-bauen --grund … (aufheben: --aufheben)")
+        tid = themen.nichts_zu_bauen(con, pid, _von(a), a.name, a.grund, aufheben=a.aufheben)
+        print(f"TH{tid}: " + ("Vermerk „nichts zu bauen“ aufgehoben" if a.aufheben else "„nichts zu bauen“ vermerkt – keine Lücke mehr"))
+        return
     if a.aktion in ("freigeben", "zurueck", "markieren", "entmarkieren"):   # A1896: nur der Mensch, nur im eigenen Terminal
         if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():
             raise kern.AmwFehler(f"thema {a.aktion}: nur der Mensch in seinem eigenen Terminal oder in der Workbench am PC")
@@ -3151,9 +3191,10 @@ def parser():
     x.add_argument("--anforderungen", help="Planung: abgedeckte Anforderungen, z. B. R1,R3")
     x.add_argument("--zusammenfassung", help="fertig: Pflicht für Schritte in einem Meilenstein; aendern: nachtragen")
     x.add_argument("--ohne-vorgaenger", help="aendern: diese Vorgänger lösen, z. B. 115")
-    x.add_argument("--thema", help="aendern: verweist auf diese Themen, z. B. TH3,TH5 – ändert sich ein freigegebenes Thema, meldet"
+    x.add_argument("--thema", help="neu/aendern: verweist auf diese Themen, z. B. TH3,TH5 – ändert sich ein freigegebenes Thema, meldet"
                                    " die AMW die Aufgabe zum Prüfen (A1915)")
     x.add_argument("--ohne-thema", help="aendern: diese Themen-Verweise lösen, z. B. TH3")
+    x.add_argument("--ohne-thema-grund", help="neu: bewusst ohne Thema (interne Pflege, z. B. Aufräumen, Fehlerbehebung) – mit Grund (A1947)")
     x.add_argument("--text", help="plan: der Plan")
     x.add_argument("--nein", action="store_true", help="kriterium: wieder als offen markieren")
     x.add_argument("--zurueck", action="store_true", help="planfrei, abnehmen: zurückweisen (mit --kommentar)")
@@ -3215,10 +3256,14 @@ def parser():
                                    " dokument TH12 --dokument D5 [--loesen] | status (ein Status je Thema) |"
                                    " freigeben TH12 | zurueck TH12 --notiz … | markieren|entmarkieren TH12 (nur der Mensch;"
                                    " bei thema_freigabe=co+lead gibt freigeben von Co und Lead je ein Ja, B2913) |"
-                                   " nur_mensch TH12 (Pfleger, Lead, Mensch) | nicht_nur_mensch TH12 (nur der Mensch)")
+                                   " nur_mensch TH12 (Pfleger, Lead, Mensch) | nicht_nur_mensch TH12 (nur der Mensch) |"
+                                   " vermerk TH12 --nichts-zu-bauen --grund … [--aufheben] | luecken (Thema ohne Paket, Paket ohne Thema)")
     x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "zeige", "neu", "einstellen", "pflegen", "bestaetigen",
                                                                   "dokument", "status", "freigeben", "zurueck", "markieren",
-                                                                  "entmarkieren", "nur_mensch", "nicht_nur_mensch"])
+                                                                  "entmarkieren", "nur_mensch", "nicht_nur_mensch", "vermerk", "luecken"])
+    x.add_argument("--nichts-zu-bauen", action="store_true", help="vermerk: das Thema braucht kein Paket (mit --grund) – A1947")
+    x.add_argument("--aufheben", action="store_true", help="vermerk: den Vermerk „nichts zu bauen“ wieder aufheben")
+    x.add_argument("--grund")
     x.add_argument("--notiz", help="zurueck: was soll anders werden (Pflicht)")
     x.add_argument("name", nargs="?", help="TH-Nummer oder Name (eindeutiger Anfang reicht)")
     x.add_argument("--pfleger")

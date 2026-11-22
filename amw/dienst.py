@@ -31,6 +31,7 @@ from . import betrieb, db, kern, pipe, push, schirm, statusline, steuerung, uebe
 AUFSICHT_S = 30           # Puls-Prüfung und Wiederholung fehlgeschlagener Zustellungen
 NUR_IM_HALT = ("stopp", "freigabe")
 ARBEITET_S = 120          # so frisch muss das Lebenszeichen sein, damit „arbeitet gerade“ gilt (sonst wecken wie bisher)
+LUECKEN_S = 600           # A1947: Lücken Thema ↔ Paket höchstens alle 10 min prüfen (Status je Thema kostet Abfragen)
 NACHWECKEN_S = 600        # A1897 (c): so lange still nach einem Weckruf (ungelesen, nichts gesendet), dann einmal nachwecken
 SOFORT = ("stopp", "korrektur")   # wecken auch mitten in der Arbeit – dazu alles, was der Mensch schreibt
 ZEILE_MAX = 160
@@ -197,6 +198,7 @@ class Dienst:
     def __init__(self, con):
         self.con = con
         self.sperre_bis = {}      # (projekt_id, agent) → Zeitpunkt des nächsten Versuchs nach Fehlschlag
+        self._luecken_zuletzt = 0.0
         self.ueberwachung = ueberwachung.Waechter(con)
         self.neustarter = steuerung.Neustarter(con)
         from . import gpu
@@ -468,6 +470,15 @@ class Dienst:
                     log.info("Termin: %s", e)
         except Exception as e:
             log.warning("Termin: %s: %s", type(e).__name__, e)
+        try:                                                                 # A1947: Lücken Thema ↔ Paket → Lead (je Lücke einmal)
+            if time.time() - self._luecken_zuletzt >= LUECKEN_S:
+                self._luecken_zuletzt = time.time()
+                from . import themen
+                for p in self.con.execute("SELECT id FROM projekt").fetchall():
+                    for e in themen.luecken_melden(self.con, p["id"]):
+                        log.info("Lücken: %s", e)
+        except Exception as e:
+            log.warning("Lücken: %s: %s", type(e).__name__, e)
         try:                                                                 # Grafikkarte belegt ohne Lauf → Leads
             for e in self.gpu.runde():
                 log.info("GPU: %s", e)

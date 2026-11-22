@@ -673,3 +673,121 @@ def thema_geaendert(con, pid, tid, nr):
                          + f"\n\nPrüfe, ob sie noch passen: amw thema zeige TH{tid}. Passt etwas nicht mehr, frage den Lead"
                            " oder passe die Aufgabe an. Der Status der Aufgaben bleibt, wie er ist.")
     return {an: [aid for aid, _ in zeilen] for an, zeilen in je.items()}
+
+
+# --- Lücken Thema ↔ Paket (A1947, Marcel W2458, Co #30113): kein Paket ohne Thema, kein freigegebenes Thema ohne Paket ---------
+# Die AMW zeigt beide Lücken selbst (Planung, Fakt-Zeile) und weckt den Lead einmal je neuer Lücke (Dienst-Runde). Vermerke ohne
+# Schemaänderung als Ereignisse: „nichts zu bauen“ je Thema (Grund; auch der Planer aus A1940 schreibt es) und „ohne Thema“ je
+# Aufgabe (Grund: interne Pflege – Aufräumen, Fehlerbehebung).
+NICHTS_ZU_BAUEN = "thema_nichts_zu_bauen"      # {"thema", "grund", "an"} – ohne "an" (Planer, A1940) gilt es als gesetzt
+OHNE_THEMA = "aufgabe_ohne_thema"              # {"aufgabe", "grund"}
+LUECKE_GEMELDET = "luecke_gemeldet"            # {"art": "thema" | "paket", "id"} – je Lücke einmal an den Lead
+
+
+def nichts_zu_bauen(con, pid, von, name, grund, aufheben=False):
+    """`amw thema vermerk TH<n> --nichts-zu-bauen --grund …` (bzw. --aufheben): Lead, Mensch oder Co-Entwickler."""
+    if not (kern.ist_lead(con, pid, von) or kern.ist_co(con, pid, von)):
+        raise kern.AmwFehler("„nichts zu bauen“ vermerken Lead, Mensch oder Co-Entwickler")
+    if not aufheben and not (grund or "").strip():
+        raise kern.AmwFehler("Grund fehlt: warum braucht das Thema kein Paket? (--grund …)")
+    t = finden(con, pid, name)
+    with db.schreiben(con):
+        _ereignis_frei(con, pid, von, NICHTS_ZU_BAUEN, {"thema": t["id"], "grund": (grund or "").strip()[:1000], "an": not aufheben})
+    return t["id"]
+
+
+def _ereignis_frei(con, pid, von, art, daten, aufgabe_id=None):
+    import json
+    db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=art, aufgabe_id=aufgabe_id,
+                 text=json.dumps(daten, ensure_ascii=False))
+
+
+def ohne_thema_vermerken(con, pid, von, aid, grund):
+    """Beim Anlegen (--ohne-thema-grund): die Aufgabe ist bewusst ohne Thema – interne Pflege. Kein Grund, kein Vermerk."""
+    if not (grund or "").strip():
+        raise kern.AmwFehler("--ohne-thema-grund: bitte einen Grund (z. B. Aufräumen, Fehlerbehebung)")
+    with db.schreiben(con):
+        _ereignis_frei(con, pid, von, OHNE_THEMA, {"aufgabe": aid, "grund": grund.strip()[:300]}, aufgabe_id=aid)
+
+
+def _json_zeilen(con, pid, art):
+    import json
+    for r in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id", (pid, art)):
+        try:
+            yield json.loads(r[0])
+        except ValueError:
+            continue
+
+
+def nichts_vermerkt(con, pid):
+    """{Thema: Grund} – Themen mit gültigem Vermerk „nichts zu bauen“ (der jüngste Eintrag je Thema gilt)."""
+    aus = {}
+    for d in _json_zeilen(con, pid, NICHTS_ZU_BAUEN):
+        if d.get("an", True):
+            aus[d.get("thema")] = d.get("grund") or ""
+        else:
+            aus.pop(d.get("thema"), None)
+    return aus
+
+
+def luecken(con, pid):
+    """{"thema_ohne_paket": [{id, name}], "paket_ohne_thema": [{id, titel, agent, status}]} – nur, wenn das Projekt Themen hat.
+    Thema ohne Paket: freigegeben (nicht zum Löschen markiert), keine verknüpfte Aufgabe (offen oder fertig; verworfene zählen
+    nicht) und kein Vermerk „nichts zu bauen“. Paket ohne Thema: offene Aufgabe (nicht fertig/verworfen) ohne Thema-Verweis und
+    ohne Vermerk „ohne Thema“."""
+    themen_ = con.execute("SELECT * FROM thema WHERE projekt_id = ? ORDER BY name", (pid,)).fetchall()
+    if not themen_:
+        return {"thema_ohne_paket": [], "paket_ohne_thema": []}
+    import json
+    verweis = {}                                     # Aufgabe → Themen (der jüngste Eintrag je Paar gilt)
+    for r in con.execute("SELECT aufgabe_id, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id", (pid, VERWEIS)):
+        try:
+            d = json.loads(r[1])
+        except ValueError:
+            continue
+        (verweis.setdefault(r[0], set()).add if d.get("an") else verweis.setdefault(r[0], set()).discard)(d.get("thema"))
+    status = dict(con.execute("SELECT id, status FROM aufgabe WHERE projekt_id = ?", (pid,)).fetchall())
+    verknuepft = {t for aid, ts in verweis.items() if status.get(aid) not in (None, "verworfen") for t in ts}
+    nichts = nichts_vermerkt(con, pid)
+    ohne = {d.get("aufgabe") for d in _json_zeilen(con, pid, OHNE_THEMA)}
+    tl = []
+    for t in themen_:
+        s = status_(con, t)
+        if s["status"] == "frei" and not s["markiert"] and t["id"] not in verknuepft and t["id"] not in nichts:
+            tl.append({"id": t["id"], "name": t["name"]})
+    pl = [{"id": a["id"], "titel": a["titel"], "agent": a["agent"], "status": a["status"]}
+          for a in con.execute("SELECT id, titel, agent, status FROM aufgabe WHERE projekt_id = ? AND status NOT IN ('fertig', 'verworfen')"
+                               " ORDER BY id", (pid,)).fetchall()
+          if not verweis.get(a["id"]) and a["id"] not in ohne]
+    return {"thema_ohne_paket": tl, "paket_ohne_thema": pl}
+
+
+status_ = status                                 # luecken() hat eine lokale Variable „status“
+
+
+def luecken_melden(con, pid):
+    """Dienst-Runde: neue Lücken (noch nie gemeldet) einmal als Frage an den Lead – nicht täglich wiederholt. Rückgabe: Texte."""
+    lead = kern.lead(con, pid)
+    if not lead or lead == kern.ENTWICKLER:
+        return []
+    l = luecken(con, pid)
+    schon = {(d.get("art"), d.get("id")) for d in _json_zeilen(con, pid, LUECKE_GEMELDET)}
+    neu_t = [x for x in l["thema_ohne_paket"] if ("thema", x["id"]) not in schon]
+    neu_p = [x for x in l["paket_ohne_thema"] if ("paket", x["id"]) not in schon]
+    if not neu_t and not neu_p:
+        return []
+    teile = ([f"{len(neu_t)} freigegebene(s) Thema/Themen ohne Paket"] if neu_t else []) + ([f"{len(neu_p)} Paket(e) ohne Thema"] if neu_p else [])
+    text = ("Die AMW hat Lücken zwischen Themen und Paketen gefunden (A1947):\n"
+            + "".join(f"\n- TH{x['id']} {x['name']} – freigegeben, aber kein Paket" for x in neu_t)
+            + "".join(f"\n- A{x['id']} {x['titel'][:80]} ({x['agent'] or '–'}, {x['status']}) – ohne Thema" for x in neu_p[:40])
+            + (f"\n- … und {len(neu_p) - 40} weitere" if len(neu_p) > 40 else "")
+            + "\n\nSchließen: Paket anlegen bzw. verknüpfen (amw aufgabe aendern <nr> --thema TH…), „nichts zu bauen“ vermerken"
+              " (amw thema vermerk TH… --nichts-zu-bauen --grund …) oder die Aufgabe ist interne Pflege (beim Anlegen"
+              " --ohne-thema-grund …). Jede Lücke meldet die AMW nur einmal; offen stehen sie in der Planung.")
+    with db.schreiben(con):
+        kern._posten(con, pid, "AMW", lead, "frage", "Lücken Thema ↔ Paket: " + " · ".join(teile), text)
+        for x in neu_t:
+            _ereignis_frei(con, pid, "AMW", LUECKE_GEMELDET, {"art": "thema", "id": x["id"]})
+        for x in neu_p:
+            _ereignis_frei(con, pid, "AMW", LUECKE_GEMELDET, {"art": "paket", "id": x["id"]}, aufgabe_id=x["id"])
+    return [f"{pid}: " + " · ".join(teile)]

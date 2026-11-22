@@ -84,6 +84,8 @@ WERKZEUGE = {
                     [F("titel", "s", "kurzer Titel", "--titel", True), F("agent", "s", "Bearbeiter (Kennung oder Entwickler)", "--agent"),
                      F("auftrag", "s", "was genau zu tun ist", "--auftrag"), F("bogen", "i", "Meilenstein", "--bogen"),
                      F("ohne_bogen", "b", "bewusst ohne Meilenstein (Lead)", "--ohne-bogen"),
+                     F("thema", "s", "Thema bzw. Themen, z. B. TH3,TH5 (A1947: kein Paket ohne Thema)", "--thema"),
+                     F("ohne_thema_grund", "s", "bewusst ohne Thema – Grund (interne Pflege)", "--ohne-thema-grund"),
                      F("kriterien", "as", "Abnahmekriterien", "--kriterium"), F("rang", "i", "Rang (kleiner = früher)", "--rang"),
                      F("groesse", "s", "Größe", "--groesse", False, GROESSE), *PAKET]),
     "aufgabe_aendern": ("Eine Aufgabe ändern (nur die angegebenen Felder).", ["aufgabe", "aendern"],

@@ -255,6 +255,9 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # Neue Aufgaben (A1740): meilenstein = wie bisher (der Lead nennt --bogen oder bewusst --ohne-bogen); eingang =
                 # ohne --bogen landen sie im Eingang (Einstufung pool), der Lead zieht sie bewusst in einen Meilenstein.
                 "neue_aufgaben": ("meilenstein", "eingang"),
+                # Thema-Pflicht (A1947, Marcel W2458): an = „aufgabe neu“ ohne --thema bricht ab, außer mit --ohne-thema-grund
+                # (interne Pflege); aus = nur ein Hinweis. Gilt nur, wenn das Projekt Themen hat. Lead oder Mensch.
+                "thema_pflicht": ("aus", "an"),
                 # Meilenstein fertig (A1742): sind alle Aufgaben fertig, schlägt die AMW dem Lead das Abschließen vor (vorschlag)
                 # oder schließt selbst ab (automatisch) – die Versions-Pflicht gilt in beiden Fällen.
                 "meilenstein_fertig": ("vorschlag", "automatisch"),
