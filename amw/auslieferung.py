@@ -27,6 +27,7 @@ from . import betrieb, db, kern
 WEB_AUTOR = ["-c", "user.name=AMW", "-c", "user.email=amw@invalid"]
 DIENST_WARTEN_S = 90
 WEB_FRIST_S = 600
+KETTE = "AMW"                    # A1952: Läufe der Kette selbst (Web-Abzug) – nie gegen die Läufe des ausliefernden Agenten
 
 
 def web_commit(lauf, version, sha, kurz):
@@ -633,13 +634,27 @@ class Kette:
         fertig_liste = ", ".join(f"A{x['aufgabe']}" for x in ok)
         kriterien = "".join(f" A{x['aufgabe']} hat offene Kriterien: {' | '.join(x['kriterien_offen'][:3])}." for x in ok if x["kriterien_offen"])
         kurz = version.replace(".", "")
-        lid = betrieb.lauf_start(self.con, self.pid, self.von, f"Web-Abzug {version} (leicht)", schwer=False, ordner=self.repo)
-        rc, aus = self.web_abzug(version, sha, kurz)
-        betrieb.lauf_ende(self.con, self.pid, self.von, lid, rc, (f"rc {rc} · " + (aus[-300:] if rc else "web-Zweig aktualisiert"))[:500])
+        # A1952 (#30271, 1.158.0): der Web-Abzug ist ein Lauf der Kette (Agent „AMW“) – er zählt nicht gegen die Läufe des
+        # ausliefernden Agenten („nie zwei Läufe zugleich“), sonst stoppte die Kette, wenn der gerade einen Gesamtlauf hatte
+        try:
+            lid = betrieb.lauf_start(self.con, self.pid, KETTE, f"Web-Abzug {version} (leicht) – Auslieferung von {self.von}",
+                                     schwer=False, ordner=self.repo)
+        except kern.AmwFehler as e:
+            lid, rc, aus = None, 1, f"Lauf nicht angemeldet: {e}"
+        else:
+            rc, aus = self.web_abzug(version, sha, kurz)
+            betrieb.lauf_ende(self.con, self.pid, KETTE, lid, rc, (f"rc {rc} · " + (aus[-300:] if rc else "web-Zweig aktualisiert"))[:500])
         if rc != 0:
-            self.stopp("Web-Abzug", f"L{lid}: {aus[-300:]} – Versionszeilen und Aufgaben sind schon eingetragen; nachholen: ein"
-                                    f" Commit mit dem Baum {sha[:8]}:web und origin/web als Eltern (git commit-tree), dann"
-                                    " Fast-Forward-Push nach web")
+            nachholen = (f"nachholen: ein Commit mit dem Baum {sha[:8]}:web und origin/web als Eltern (git commit-tree), dann"
+                         " Fast-Forward-Push nach web")
+            an = kern.lead(self.con, self.pid)
+            if an and an != self.von:                    # A1952: bricht der Abzug ab, erfährt es der Lead
+                with db.schreiben(self.con):
+                    kern._posten(self.con, self.pid, "AMW", an, "frage", f"Version {version}: Web-Abzug gescheitert – bitte nachholen",
+                                 f"{'L' + str(lid) if lid else 'Kein Lauf'}: {aus[-300:]}. Versionszeilen und Aufgaben sind schon"
+                                 f" eingetragen; {nachholen}.")
+            self.stopp("Web-Abzug", f"{'L' + str(lid) if lid else 'kein Lauf'}: {aus[-300:]} – Versionszeilen und Aufgaben sind"
+                                    f" schon eingetragen; {nachholen}")
         self.schritt(f"Web-Abzug L{lid}")
         an = kern.lead(self.con, self.pid)
         if an and an != self.von:

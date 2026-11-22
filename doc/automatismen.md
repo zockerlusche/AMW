@@ -79,6 +79,10 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
 - **Lokal live** (`amw release ausliefern`): Sicherung, main per Fast-Forward, lokaler Tag, Dienst neu, Versionszeile, Aufgaben
   fertig, Web-Abzug (AMW online bleibt auf derselben Version wie der PC). Kein Push von main und Tags, kein GitHub-Release; die
   Kette schreibt das Ereignis `lokal_live` und meldet „Version X lokal live“.
+- **Web-Abzug als Lauf der Kette (A1952):** Der Web-Abzug ist ein leichter Lauf des Agenten „AMW“, nicht des
+  ausliefernden Agenten – hat der gerade einen eigenen Lauf (z. B. den Gesamtlauf des nächsten Stapels), geht die Kette
+  trotzdem zu Ende und hebt den Wartungsmodus auf. Scheitert der Abzug, stoppt die Kette mit der Anleitung zum Nachholen,
+  und der Lead bekommt eine Frage.
 - **Abnahme:** Unter „Für dich“ steht ein fertiger Meilenstein, der seit der letzten Veröffentlichung fertig wurde, mit
   „Abnehmen“ (am PC; online nur zu sehen). Im Terminal: `amw bogen abnehmen N` – nur der Mensch, nicht aus einer Agenten-Sitzung,
   nur für einen fertigen Meilenstein. Ereignis `bogen_abgenommen`.

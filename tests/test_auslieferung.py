@@ -204,6 +204,21 @@ class Kette(unittest.TestCase):
         self.kette().ausliefern("neu")
         self.assertEqual(waechter.zustand()["wartung"]["grund"], "von Hand")
 
+    def test_web_abzug_wenn_der_agent_einen_lauf_hat(self):
+        """A1952 (#30271, 1.158.0): Der ausliefernde Agent hat gerade einen eigenen Lauf („nie zwei Läufe zugleich“) – der
+        Web-Abzug läuft trotzdem (Lauf der Kette, Agent AMW), die Kette geht zu Ende und hebt den Wartungsmodus auf."""
+        from amw import betrieb, waechter
+        self.lad()
+        self.gruen()
+        self.gesamtlauf()
+        eigen = betrieb.lauf_start(self.con, self.pid, "CC1", "Gesamtlauf nächster Stapel", schwer=False)
+        r = self.kette().ausliefern("neu")
+        w = self.con.execute("SELECT agent, status, rc FROM lauf WHERE id = ?", (r["web_lauf"],)).fetchone()
+        self.assertEqual(tuple(w), (auslieferung.KETTE, "fertig", 0))
+        self.assertEqual(self.con.execute("SELECT status FROM lauf WHERE id = ?", (eigen,)).fetchone()[0], "laeuft")   # bleibt
+        self.assertIsNone(waechter.zustand()["wartung"])
+        self.assertEqual(self.g("rev-parse", "origin/web^{tree}"), self.g("rev-parse", f"{self.sha}:web"))
+
     def test_web_abzug_scheitert_versionszeilen_stehen_trotzdem(self):
         """A1756 (14.11.: Web-Abzug lief unter Last ins Zeitlimit, danach fehlten die Versionszeilen und der Lead musste sie von
         Hand eintragen): Versionszeile und fertige Aufgaben kommen vor dem Web-Abzug."""
@@ -220,6 +235,8 @@ class Kette(unittest.TestCase):
         self.assertIn("Web-Abzug", str(e.exception))
         self.assertIn("Versionszeilen und Aufgaben sind schon eingetragen", str(e.exception))
         self.assertIn("Versionszeile R", str(e.exception))                                         # in „erledigt: …“
+        self.assertTrue(                                                                           # A1952: der Lead (TL) erfährt es
+            self.con.execute("SELECT 1 FROM nachricht WHERE art = 'frage' AND kurz LIKE '%Web-Abzug gescheitert%'").fetchone())
         self.assertEqual(self.con.execute("SELECT version FROM release WHERE art = 'version'").fetchone()[0], "1.1.0")
         self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()[0], "fertig")
 
