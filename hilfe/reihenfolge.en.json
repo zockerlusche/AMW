@@ -24,6 +24,11 @@
    "titel": "Put first when it really matters",
    "text": "Open the task and press “Put first” (with a reason). The agent saves its work, does this task first, and then continues with the interrupted piece.",
    "bilder": []
+  },
+  {
+   "titel": "Free agents get work",
+   "text": "When an agent is free, AMW looks for the next suitable task ready to start without an assignee in an active milestone – by rank, and at equal rank the one with more waiting successors first – and proposes it to the lead. If you or the lead set `amw projekt einstellen verteilen=an`, it assigns the task itself and gives the reason (field and size fit). If an agent's model does not fit the size, it stays a proposal. If an agent drops out, its running task goes back with a handover note, and you get the question whether its session should restart – only you start it.",
+   "bilder": []
   }
  ],
  "werte": [],

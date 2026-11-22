@@ -32,6 +32,11 @@
    "titel": "Releasing closes the tasks",
    "text": "After `amw release ausliefern`, every task whose green commit with merge approval is included counts as done – the reviewed commit is the evidence. Give the sentence for the release notes right in the review request: `amw pruefung bitte … --aufgabe <no> --gruppe neu --hinweis \"…\"`. Open criteria do not block this; the lead is told about them. A task waiting for the developer (for example a confirmation on the device) stays open. Projects that merge through GitHub pull requests: when the title of a merged PR starts with the task (“A1234: …”, “[A1234] …”) or its text says “fertig: A1234” or “closes A1234”, and its checks are green, the task is set to done as well (evidence = merge commit). Merely mentioning a task (“groundwork for A1235”) does not count. AMW asks with `gh` in the project folder – only when there is a reason (merge approval, delivery, end of a run with a task, a “merged” message), otherwise at most once an hour and only while there are open tasks with a branch – only if the operating mode allows the connection (github.com only in “Cloud”); `gh` keeps its own sign-in. To switch it off: Settings › Project › Automatic planning.",
    "bilder": []
+  },
+  {
+   "titel": "Live locally, published on acceptance",
+   "text": "`amw release ausliefern` updates AMW on the PC (and AMW online), but pushes nothing and creates no GitHub release. When a milestone is done, it appears under “For you” with “Accept”. When you accept it (on the PC or `amw bogen abnehmen <no>`), AMW publishes all versions since the last publication once – with one GitHub release. As before on every delivery: setting `veroeffentlichen=sofort`.",
+   "bilder": []
   }
  ],
  "werte": [
@@ -51,7 +56,7 @@
  "fehler": [
   [
    "After rebasing, everything is open again",
-   "No longer: if only the base changed (same content, new commit), `amw release ausliefern` takes over the green review and the merge approval itself and records the source. If the content changed, a new review is needed. If something is missing, the chain lists all missing approvals in one message."
+   "No longer: if only the base changed (same content, new commit), `amw release ausliefern` takes over the green review and the merge approval itself and records the source – for a stack of several tasks on one state, for each task. An exception from the full test run set by the lead stays valid as long as the content (tree) is the same. If the content changed, a new review is needed. If something is missing, the chain lists all missing approvals in one message."
   ],
   [
    "“Der Stand ändert Sichtbares … – Prüfbitte nur mit Bild”",

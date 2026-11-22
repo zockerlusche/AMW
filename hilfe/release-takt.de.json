@@ -32,6 +32,11 @@
    "titel": "Aufgaben schließt die Auslieferung",
    "text": "Nach `amw release ausliefern` gilt jede Aufgabe als fertig, deren grüner Stand mit Merge-OK darin steckt – Beleg ist der geprüfte Stand. Den Satz für die Versionshinweise gibst du gleich in der Prüfbitte mit: `amw pruefung bitte … --aufgabe <nr> --gruppe neu --hinweis \"…\"`. Offene Kriterien halten das nicht auf; der Lead erfährt sie. Wartet eine Aufgabe auf den Entwickler (etwa eine Bestätigung am Gerät), bleibt sie offen. Projekte, die über GitHub-Pull-Requests mergen: Beginnt der Titel eines gemergten PRs mit der Aufgabe („A1234: …“, „[A1234] …“) oder steht im Text „fertig: A1234“ bzw. „closes A1234“, und sind seine Prüfungen grün, steht die Aufgabe ebenfalls auf fertig (Beleg = Merge-Commit). Bloßes Erwähnen („Vorarbeit für A1235“) zählt nicht. Die AMW fragt dafür mit `gh` im Projektordner nach – nur auf Anlass (Merge-OK, Auslieferung, Ende eines Laufs mit Aufgabe, eine Meldung „gemergt“), sonst höchstens einmal je Stunde und nur, solange es offene Aufgaben mit Zweig gibt – nur, wenn die Betriebsart die Verbindung erlaubt (github.com nur in „Cloud“); die Anmeldung hält `gh` selbst. Abschalten: Einstellungen › Projekt › Planung automatisch.",
    "bilder": []
+  },
+  {
+   "titel": "Lokal live, veröffentlicht wird bei der Abnahme",
+   "text": "`amw release ausliefern` macht die AMW auf dem PC neu (und AMW online), pusht aber nichts und legt kein GitHub-Release an. Ist ein Meilenstein fertig, steht er unter „Für dich“ mit „Abnehmen“. Nimmst du ihn ab (am PC oder `amw bogen abnehmen <nr>`), veröffentlicht die AMW einmal alle Versionen seit der letzten Veröffentlichung – mit einem GitHub-Release. Wie früher bei jeder Auslieferung: Einstellung `veroeffentlichen=sofort`.",
+   "bilder": []
   }
  ],
  "werte": [
@@ -51,7 +56,7 @@
  "fehler": [
   [
    "Nach dem Neu-Aufsetzen ist alles wieder offen",
-   "Nicht mehr: Hat sich nur die Grundlage geändert (gleicher Inhalt, neuer Commit), übernimmt `amw release ausliefern` Grün und Merge-OK selbst und vermerkt die Quelle. Hat sich der Inhalt geändert, braucht es eine neue Prüfung. Fehlt etwas, nennt die Kette alle fehlenden Freigaben in einer Meldung."
+   "Nicht mehr: Hat sich nur die Grundlage geändert (gleicher Inhalt, neuer Commit), übernimmt `amw release ausliefern` Grün und Merge-OK selbst und vermerkt die Quelle – bei einem Stapel mehrerer Aufgaben auf einem Stand für jede Aufgabe. Eine Ausnahme vom Gesamtlauf, die der Lead gesetzt hat, bleibt dabei gültig, solange der Inhalt (Baum) gleich ist. Hat sich der Inhalt geändert, braucht es eine neue Prüfung. Fehlt etwas, nennt die Kette alle fehlenden Freigaben in einer Meldung."
   ],
   [
    "„Der Stand ändert Sichtbares … – Prüfbitte nur mit Bild“",
