@@ -363,9 +363,12 @@ options:
   --grund GRUND         dazwischen: warum diese Aufgabe vor das laufende Stück
                         muss (Pflicht)
   --hinweis HINWEIS     fertig: ein Satz für die Versionshinweise, in der
-                        Sprache der Nutzer
+                        Sprache der Nutzer (ohne: die AMW leitet ihn ab – aus
+                        Commit-Betreff, Thema oder Titel)
   --gruppe {neu,verbessert,behoben}
-                        fertig: Gruppe in den Versionshinweisen
+                        fertig: Gruppe in den Versionshinweisen (ohne: die AMW
+                        leitet sie ab – Art fehlersuche = behoben, sonst nach
+                        Stichworten)
   --sofort              neu: direkt hinter das laufende Stück des Agenten
                         einplanen statt in den Eingang (ohne laufendes Stück:
                         wie bisher in die Liste)

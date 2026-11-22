@@ -41,21 +41,109 @@ def regel(titel, zusammenfassung):
     return "behoben" if BEHOBEN.search(text) else "neu" if NEU.search(text) else "verbessert"
 
 
+SHA = re.compile(r"^[0-9a-f]{7,40}$")
+KOPF = re.compile(r"^(?:(?:A\d+|K\d+[a-z]?|TH\d+|P\d+)(?:\s*\+\s*(?:A\d+|K\d+[a-z]?|TH\d+))*\s*[:,]?\s+)+")
+ABGELEITET = "hinweis_abgeleitet"          # plan_ereignis: der Hinweis stammt von der AMW, nicht vom Agenten (A1954)
+MIN_WOERTER = 3                            # kürzer („Versionsnummer“) sagt einem Nutzer nichts – dann die nächste Quelle
+
+
+def kurz(text):
+    """Ein Betreff oder Titel als Satz für Nutzer: Aufgaben-/Themen-Kopf weg, nur der erste Teil vor „ – “ oder „; “,
+    interne Verweise weg (satz)."""
+    t = " ".join((text or "").split())
+    t = KOPF.sub("", t)
+    t = re.split(r"\s[–—]\s|;\s", t)[0]
+    t = re.sub(r"\s*\([^()]*#\d+[^()]*\)", "", t)              # (… #30434): Verweis auf eine Nachricht
+    if t.count("(") > t.count(")"):                           # beim Abschneiden offen gebliebene Klammer
+        t = t[:t.rfind("(")]
+    return satz(t)
+
+
+def _genug(text):
+    return len(text.split()) >= MIN_WOERTER
+
+
+def betreff(ordner, sha):
+    """Commit-Betreff zu einem Beleg im Repo des Projekts (None, wenn kein Commit oder kein Repo)."""
+    sha = (sha or "").strip()
+    if not ordner or not SHA.match(sha):
+        return None
+    import subprocess
+    try:
+        r = subprocess.run(["git", "-C", ordner, "log", "-1", "--format=%s", sha], capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", timeout=20, stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    s = r.stdout.strip() if r.returncode == 0 else ""
+    if not s or re.match(r"^\d+\.\d+\.\d+\b", s):            # Versions-Commit eines Stapels: sagt nichts über die eine Aufgabe
+        return None
+    return s
+
+
+def ableiten(con, pid, a, beleg=None, zusammenfassung=None, automatik=False):
+    """A1954 (TH151): Gruppe und Satz für die Versionshinweise ohne KI – {"gruppe", "text", "quelle"} oder None.
+    Gruppe: Art der Aufgabe (fehlersuche → behoben), sonst Stichworte (regel). Satz: geschlossen über die Fertig-Quelle
+    „thema“ → der Name des Themas; sonst der Commit-Betreff des Belegs; sonst die Zusammenfassung des Agenten; sonst der
+    Titel – die erste Quelle mit mindestens MIN_WOERTER Wörtern. Die Zusammenfassung einer von der AMW geschlossenen
+    Aufgabe (automatik) ist kein Satz für Nutzer und zählt nie."""
+    from . import fertigquelle, kern
+    if NICHT.search(zusammenfassung or a["zusammenfassung"] or ""):     # nichts ausgeliefert
+        return None
+    q = fertigquelle.lesen(con, a["id"])
+    kandidaten = []
+    if q and q.get("art") == "thema":
+        t = con.execute("SELECT name FROM thema WHERE projekt_id = ? AND id = ?", (pid, q.get("thema"))).fetchone()
+        if t:
+            kandidaten.append((t["name"], f"Thema TH{q['thema']}"))
+    s = betreff(kern.projekt_ordner(con, pid), beleg or a["beleg"])
+    if s:
+        kandidaten.append((s, f"Commit {str(beleg or a['beleg'])[:8]}"))
+    if not automatik and (zusammenfassung or "").strip():    # vom Agenten selbst geschrieben
+        kandidaten.append((zusammenfassung, "Zusammenfassung"))
+    kandidaten.append((a["titel"], "Titel"))
+    roh = text = quelle = None
+    for r, qu in kandidaten:                                  # die erste Quelle mit einem Satz, der etwas sagt
+        k = kurz(r)
+        if text is None or (_genug(k) and not _genug(text)):
+            roh, text, quelle = r, k, qu
+        if _genug(text):
+            break
+    if not text:
+        return None
+    gruppe = "behoben" if a["art"] == "fehlersuche" else regel(a["titel"], roh)
+    if gruppe is None:
+        return None
+    return {"gruppe": gruppe, "text": text[:300], "quelle": quelle}
+
+
 def seit(con, pid):
     """Zeitpunkt der letzten eingetragenen Version dieses Projekts (oder None)."""
     r = con.execute("SELECT max(zeit_utc) FROM release WHERE projekt_id = ? AND art = 'version'", (pid,)).fetchone()
     return r[0] if r else None
 
 
+def _abgeleitet(con, pid):
+    """Aufgaben, deren gespeicherter Hinweistext von der AMW abgeleitet ist (das neueste Ereignis je Aufgabe zählt)."""
+    import json
+    aus = {}
+    for r in con.execute("SELECT aufgabe_id, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id", (pid, ABGELEITET)):
+        try:
+            aus[r[0]] = bool(json.loads(r[1] or "{}").get("text"))
+        except ValueError:
+            continue
+    return {k for k, v in aus.items() if v}
+
+
 def entwurf(con, pid, ab=None):
     """{gruppe: [{"id", "text", "vorschlag": bool}]} aus den fertigen Aufgaben seit `ab` (Vorgabe: letzte Version)."""
     ab = ab if ab is not None else seit(con, pid)
     aus = {g: [] for g in GRUPPEN}
+    abgeleitet = _abgeleitet(con, pid)
     for a in con.execute("SELECT id, titel, zusammenfassung, hinweis, hinweis_gruppe FROM aufgabe WHERE projekt_id = ? AND status = 'fertig'"
                          " AND (? IS NULL OR fertig_utc > ?) ORDER BY fertig_utc, id", (pid, ab, ab)):
         if a["hinweis"]:
             g = a["hinweis_gruppe"] or regel(a["titel"], a["zusammenfassung"]) or "verbessert"
-            aus[g].append({"id": a["id"], "text": a["hinweis"].strip(), "vorschlag": False})
+            aus[g].append({"id": a["id"], "text": a["hinweis"].strip(), "vorschlag": a["id"] in abgeleitet})
             continue
         g = a["hinweis_gruppe"] or regel(a["titel"], a["zusammenfassung"])
         if g is None:

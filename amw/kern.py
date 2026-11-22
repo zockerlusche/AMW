@@ -1434,6 +1434,19 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
                 raise AmwFehler(str(e)) from None
             if (hinweis or "").strip():
                 felder["hinweis"] = " ".join(hinweis.split())[:300]
+        if neu == "fertig":                          # A1954 (TH151): was fehlt, leitet die AMW ab – der Agent ergänzt höchstens
+            from . import versionshinweise
+            fehlt_text = not felder.get("hinweis") and not a["hinweis"]
+            fehlt_gruppe = not felder.get("hinweis_gruppe") and not a["hinweis_gruppe"]
+            v = versionshinweise.ableiten(con, pid, a, beleg, zusammenfassung, automatik) if (fehlt_text or fehlt_gruppe) else None
+            if v:
+                if fehlt_gruppe:
+                    felder["hinweis_gruppe"] = v["gruppe"]
+                if fehlt_text:
+                    felder["hinweis"] = v["text"]
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=versionshinweise.ABGELEITET,
+                             aufgabe_id=aid, text=json.dumps({"quelle": v["quelle"], "gruppe": fehlt_gruppe, "text": fehlt_text},
+                                                             ensure_ascii=False))
         if wartet_auf is not None or neu in ("laeuft", "fertig", "verworfen"):
             felder["wartet_auf"] = wartet_auf
         if bemerkung:

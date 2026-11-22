@@ -1,7 +1,9 @@
 """Versionshinweise ohne KI: Satz für Nutzer und Gruppe beim Abschließen, Entwurf aus den fertigen Aufgaben seit der
 letzten Version (mit Vorschlag aus der Zusammenfassung, wenn der Satz fehlt), Eintragen einer Version, Daten der Seite."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import json
 import os
+import subprocess
 import tempfile
 import unittest
 
@@ -58,6 +60,90 @@ class Entwurf(Grund):
     def test_satz_bereinigt_interne_verweise(self):
         self.assertEqual(versionshinweise.satz("STARTSEITE: Team als Baum (W9999, #99999), live geprüft. Rest"), "Startseite: Team als Baum.")
         self.assertEqual(versionshinweise.satz(""), "")
+
+
+class Ableiten(Grund):
+    """A1954 (TH151): den Hinweis leitet die AMW beim Schließen ab – der Agent ergänzt höchstens."""
+
+    def ereignis(self, aid):
+        r = self.con.execute("SELECT text FROM plan_ereignis WHERE aufgabe_id = ? AND art = ?", (aid, versionshinweise.ABGELEITET)).fetchone()
+        return json.loads(r[0]) if r else None
+
+    def hinweis(self, aid):
+        r = self.con.execute("SELECT hinweis, hinweis_gruppe FROM aufgabe WHERE id = ?", (aid,)).fetchone()
+        return r["hinweis"], r["hinweis_gruppe"]
+
+    def repo(self, *betreffe):
+        ordner = os.path.join(self.ordner.name, "repo")
+        os.makedirs(ordner)
+        g = lambda *a: subprocess.run(["git", "-C", ordner, *a], check=True, capture_output=True, text=True, encoding="utf-8")  # noqa: E731
+        g("init", "-q")
+        g("config", "user.email", "t@t")
+        g("config", "user.name", "t")
+        shas = []
+        for b in betreffe:
+            g("commit", "-q", "--allow-empty", "-m", b)
+            shas.append(g("rev-parse", "HEAD").stdout.strip())
+        kern.projekt_ordner_setzen(self.con, self.pid, ordner)
+        return shas
+
+    def schliessen(self, titel, beleg, zusammenfassung="", art=None, **mehr):
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", titel, agent="CC1")
+        if art:
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE aufgabe SET art = ? WHERE id = ?", (art, aid))
+        kern.aufgabe_status(self.con, self.pid, "CC1", aid, "start")
+        kern.aufgabe_status(self.con, self.pid, "CC1", aid, "fertig", beleg=beleg, zusammenfassung=zusammenfassung or None, **mehr)
+        return aid
+
+    def test_kurz_macht_aus_betreff_einen_satz(self):
+        self.assertEqual(versionshinweise.kurz("A1964: Patch-ID-Übertragung legt kein Grün – sonst verdrängte es das Grün"),
+                         "Patch-ID-Übertragung legt kein Grün")
+        self.assertEqual(versionshinweise.kurz("K5 + A12: Reihenfolge rechnet die AMW; Tests, Doku"), "Reihenfolge rechnet die AMW")
+        self.assertEqual(versionshinweise.kurz("A1: Plugins laden im Arbeiter nicht (--restricted; Probe L3043)"),
+                         "Plugins laden im Arbeiter nicht")                                  # offene Klammer nach dem Schnitt
+        self.assertEqual(versionshinweise.kurz("A2: typescript-lsp heraus (CCamwTL #30434) – Grund"), "Typescript-lsp heraus")
+
+    def test_aus_dem_commit_betreff_mit_art_fehlersuche(self):
+        sha, = self.repo("A7: Speichern mit leerem Namen bricht sauber ab – intern: Prüfung in speichern()")
+        aid = self.schliessen("Leerer Name", sha[:7], "lange technische Zusammenfassung", art="fehlersuche")
+        self.assertEqual(self.hinweis(aid), ("Speichern mit leerem Namen bricht sauber ab", "behoben"))
+        self.assertEqual(self.ereignis(aid), {"quelle": f"Commit {sha[:7]}", "gruppe": True, "text": True})
+        e = versionshinweise.entwurf(self.con, self.pid)
+        self.assertEqual(e["behoben"], [{"id": aid, "text": "Speichern mit leerem Namen bricht sauber ab", "vorschlag": True}])
+
+    def test_versions_commit_und_zu_kurze_quelle_zaehlen_nicht(self):
+        v, k = self.repo("1.4.0: Stapel – A8 und A9", "A9: Versionsnummer")
+        a = self.schliessen("Neue Ansicht für Termine", v[:7])                              # Versions-Commit → Titel
+        b = self.schliessen("Kalender zeigt Wochen", k[:7], "Die Wochenansicht zeigt Feiertage farbig an.")
+        self.assertEqual(self.hinweis(a), ("Neue Ansicht für Termine", "neu"))
+        self.assertEqual(self.hinweis(b)[0], "Die Wochenansicht zeigt Feiertage farbig an.")   # ein Wort → nächste Quelle
+        self.assertEqual(self.ereignis(b)["quelle"], "Zusammenfassung")
+
+    def test_der_agent_ergaenzt_hoechstens(self):
+        a = self.schliessen("Fehler beim Export", "abc1234", hinweis="Der Export klappt wieder mit Umlauten.")
+        self.assertEqual(self.hinweis(a), ("Der Export klappt wieder mit Umlauten.", "behoben"))   # nur die Gruppe abgeleitet
+        self.assertEqual(self.ereignis(a), {"quelle": "Titel", "gruppe": True, "text": False})
+        self.assertEqual(versionshinweise.entwurf(self.con, self.pid)["behoben"][0]["vorschlag"], False)
+        b = self.schliessen("Etwas", "abc1234", hinweis="Ein eigener Satz.", gruppe="neu")
+        self.assertEqual((self.hinweis(b), self.ereignis(b)), (("Ein eigener Satz.", "neu"), None))  # nichts abgeleitet
+        c = self.schliessen("Doku", "abc1234", "Nicht umgesetzt, Entscheidung des Leads")
+        self.assertEqual((self.hinweis(c), self.ereignis(c)), ((None, None), None))               # nichts ausgeliefert
+
+    def test_fertig_quelle_thema_und_automatik(self):
+        from amw import fertigquelle, themen
+        neu = themen.neu(self.con, self.pid, "TL", "Termine im Kalender verschieben")
+        tid = neu if isinstance(neu, int) else neu["id"]
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", "TH9 umsetzen", agent="CC1")
+        fertigquelle.setzen(self.con, self.pid, "TL", aid, f"thema TH{tid}")
+        kern.aufgabe_status(self.con, self.pid, "AMW", aid, "fertig", beleg=f"TH{tid} Fassung 1", automatik=True,
+                            zusammenfassung=f"Fertig: Thema TH{tid} ist freigegeben (Fassung 1) – die AMW hat die Aufgabe geschlossen.")
+        self.assertEqual(self.hinweis(aid)[0], "Termine im Kalender verschieben")
+        self.assertEqual(self.ereignis(aid)["quelle"], f"Thema TH{tid}")
+        b = kern.aufgabe_neu(self.con, self.pid, "TL", "Liste nach Datum sortieren", agent="CC1")
+        kern.aufgabe_status(self.con, self.pid, "AMW", b, "fertig", beleg="abc1234", automatik=True,
+                            zusammenfassung="Fertig: 7 Tage nach 1.2.0 ohne Revert – von der AMW geschlossen.")
+        self.assertEqual(self.hinweis(b)[0], "Liste nach Datum sortieren")                     # nie die Zusammenfassung der AMW
 
 
 if __name__ == "__main__":

@@ -114,6 +114,20 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
   Ereignis `sicherung_push`; von Hand:
   `amw sicherung jetzt` (Lead oder Mensch), Stand: `amw sicherung`.
 
+## Versionshinweis ableiten (A1954, TH151)
+
+**Wozu:** Der Agent musste beim Abschließen Gruppe und Satz für die Versionshinweise selbst angeben; fehlten sie, stand im
+Entwurf ein Satz aus der Zusammenfassung – bei von der AMW geschlossenen Aufgaben ein interner Text („Fertig: Thema … ist
+freigegeben“).
+
+- **Auslöser:** jedes Setzen auf fertig (Agent, Lead, Release-Kette, Fertig-Quelle, Urteil), wenn Satz oder Gruppe fehlen.
+- **Was geschieht (ohne KI, `versionshinweise.ableiten`):** Gruppe aus der Art der Aufgabe (fehlersuche → behoben), sonst
+  nach Stichworten. Satz aus der ersten Quelle mit mindestens drei Wörtern: Fertig-Quelle „thema“ → Name des Themas;
+  Commit-Betreff des Belegs im Projektordner (ohne Kopf „A12:“, nur bis „ – “ oder „; “, ohne Verweise; nie ein
+  Versions-Commit); die Zusammenfassung des Agenten (nie die der AMW); der Titel.
+- **Gespeichert:** in `hinweis`/`hinweis_gruppe` der Aufgabe, dazu das Ereignis `hinweis_abgeleitet` (Quelle, was abgeleitet
+  wurde). Der Entwurf zeigt einen abgeleiteten Satz als Vorschlag. Was der Agent angibt, geht immer vor; er ergänzt höchstens.
+
 ## Bündeln (seit 1.150.0)
 
 **Wozu:** p-Pakete ohne Coder ausliefern – bisher setzte ein Coder die freigegebenen Pakete von Hand aufeinander, hob die

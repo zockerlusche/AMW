@@ -8,7 +8,7 @@ Jede Auslieferung bekommt eine Nummer der Form MAJOR.MINOR.PATCH, zum Beispiel 1
 
 ## Schritte
 1. **Ausliefern** Wie im Projekt üblich (Merge, Tag, Paket).
-2. **Eintragen** `amw release version --version 1.4.0 --titel "Kurzer Name"` – die Versionshinweise kommen aus den fertigen Aufgaben seit der letzten Version.
+2. **Eintragen** `amw release version --version 1.4.0 --titel "Kurzer Name"` – die Versionshinweise kommen aus den fertigen Aufgaben seit der letzten Version. Hat eine Aufgabe keinen eigenen Satz, leitet die AMW ihn aus dem Commit, dem Thema oder dem Titel ab.
 3. **Nummer wählen** Neues oder Verbessertes: MINOR erhöhen (1.4.0 → 1.5.0). Nur Korrekturen: PATCH (1.4.0 → 1.4.1). Bricht etwas Bestehendes: MAJOR.
 
 ## Typische Fehler

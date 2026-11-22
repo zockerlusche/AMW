@@ -8,7 +8,7 @@ Every delivery gets a number of the form MAJOR.MINOR.PATCH, for example 1.4.0. T
 
 ## Steps
 1. **Ship** As usual in the project (merge, tag, package).
-2. **Record** `amw release version --version 1.4.0 --titel "Short name"` – the release notes come from the tasks finished since the last version.
+2. **Record** `amw release version --version 1.4.0 --titel "Short name"` – the release notes come from the tasks finished since the last version. If a task has no sentence of its own, AMW works one out from the commit, the topic or the title.
 3. **Pick the number** New or improved things: raise MINOR (1.4.0 → 1.5.0). Fixes only: PATCH (1.4.0 → 1.4.1). Breaking something existing: MAJOR.
 
 ## Common problems

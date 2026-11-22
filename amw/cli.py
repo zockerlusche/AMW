@@ -3370,8 +3370,10 @@ def parser():
     x.add_argument("--federfuehrend", help="aendern: wer diese Aufgabe führt (Lead/Entwickler; leer = weg)")
     x.add_argument("--pool", action="store_true", help="neu: in den Eingang (noch in keiner Arbeitsliste)")
     x.add_argument("--grund", help="dazwischen: warum diese Aufgabe vor das laufende Stück muss (Pflicht)")
-    x.add_argument("--hinweis", help="fertig: ein Satz für die Versionshinweise, in der Sprache der Nutzer")
-    x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben"], help="fertig: Gruppe in den Versionshinweisen")
+    x.add_argument("--hinweis", help="fertig: ein Satz für die Versionshinweise, in der Sprache der Nutzer (ohne: die AMW leitet"
+                   " ihn ab – aus Commit-Betreff, Thema oder Titel)")
+    x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben"], help="fertig: Gruppe in den Versionshinweisen (ohne: die AMW"
+                   " leitet sie ab – Art fehlersuche = behoben, sonst nach Stichworten)")
     x.add_argument("--sofort", action="store_true", help="neu: direkt hinter das laufende Stück des Agenten einplanen statt in den"
                                                           " Eingang (ohne laufendes Stück: wie bisher in die Liste)")
     # Paketfelder (A1845, AMW 2.0 Mischbetrieb) – Abnahme-Befehl = --pruefbefehl, Bereiche = --dateien, Rang = --rang, nach X = --nach
