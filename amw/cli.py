@@ -977,6 +977,32 @@ def cmd_bogen(a, con):
         bid = planung.bogen_neu(con, pid, _von(a), a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr)
         print(f"Meilenstein {bid} angelegt – Ziel und Abnahme dürfen auf Themen und Dokumente verweisen (TH<n>, D<n>);"
               " seine Themen kommen aus den Aufgaben (amw aufgabe aendern <nr> --thema TH<n>)")
+    elif a.aktion in ("freigeben", "zurueck"):        # K6/K7: Ja (Co, Lead; der Mensch allein) bzw. zurück mit Notiz
+        from . import planansicht
+        if not a.id or not a.art:
+            raise kern.AmwFehler(f"amw bogen {a.aktion} <Nummer> --art grob|plan|abschluss" + (" --notiz …" if a.aktion == "zurueck" else ""))
+        if a.aktion == "zurueck":
+            planansicht.zurueck(con, pid, _von(a), a.id, a.art, a.notiz)
+            print(f"Meilenstein {a.id} ({a.art}): zurück")
+        else:
+            r = planansicht.freigeben(con, pid, _von(a), a.id, a.art)
+            print(f"Meilenstein {a.id} ({a.art}): " + ("freigegeben" if r.get("frei") else "dein Ja steht – fehlt noch: "
+                                                       + ", ".join(r.get("ja_fehlt") or [])))
+    elif a.aktion == "bericht":                       # K7: Abschlussbericht (neu) erstellen – Lead oder Mensch
+        from . import tore
+        if not a.id:
+            raise kern.AmwFehler("amw bogen bericht <Nummer des Meilensteins>")
+        if not kern.ist_lead(con, pid, _von(a)):
+            raise kern.AmwFehler("Einen Abschlussbericht neu erstellen lassen Lead oder Mensch")
+        print(f"Abschlussbericht D{tore.bericht_erstellen(con, pid, a.id)}")
+    elif a.aktion == "tore":                          # K7: Stand der fünf Tore
+        from . import tore
+        s = tore.stand(con, pid)
+        print(s["zeile"])
+        for x in s["tore"]:
+            print(f"  {'✓' if x['zu'] else ('●' if x['tor'] == s['aktuell'] else '○')} {x['name']:<12} {x['text']}")
+        for x in s["nichts_offen"]:
+            print(f"  „nichts zu bauen“ TH{x['id']} {x['name']} wartet auf Bestätigung des Co (amw thema vermerk TH{x['id']} --bestaetigen)")
     elif a.aktion == "abnehmen":                      # A1928 (TH158): nur der Mensch – danach veröffentlicht die AMW
         if not a.id:
             raise kern.AmwFehler("bogen abnehmen <Nummer des Meilensteins>")
@@ -2421,8 +2447,13 @@ def cmd_thema(a, con):
             print(f"  A{x['id']:<5} [{x['status']}] {x['titel'][:80]} ({x['agent'] or '–'})")
         return
     if a.aktion == "vermerk":                        # A1947: „nichts zu bauen“ mit Grund (Lead, Mensch, Co-Entwickler)
-        if not a.name or not (a.nichts_zu_bauen or a.aufheben):
+        if not a.name or not (a.nichts_zu_bauen or a.aufheben or a.bestaetigen):
             raise kern.AmwFehler("amw thema vermerk TH<n> --nichts-zu-bauen --grund … (aufheben: --aufheben)")
+        if a.bestaetigen:                             # K7 (TH154): der Co bestätigt den Grund des Leads
+            from . import tore
+            tid = tore.nichts_bestaetigen(con, pid, _von(a), a.name)
+            print(f"TH{tid}: „nichts zu bauen“ bestätigt")
+            return
         tid = themen.nichts_zu_bauen(con, pid, _von(a), a.name, a.grund, aufheben=a.aufheben)
         print(f"TH{tid}: " + ("Vermerk „nichts zu bauen“ aufgehoben" if a.aufheben else "„nichts zu bauen“ vermerkt – keine Lücke mehr"))
         return
@@ -3359,6 +3390,7 @@ def parser():
     x.add_argument("--meilenstein", type=int, help="anhalten: nur in diesem Meilenstein (Nummer) – K8")
     x.add_argument("--nichts-zu-bauen", action="store_true", help="vermerk: das Thema braucht kein Paket (mit --grund) – A1947")
     x.add_argument("--aufheben", action="store_true", help="vermerk: den Vermerk „nichts zu bauen“ wieder aufheben")
+    x.add_argument("--bestaetigen", action="store_true", help="vermerk: „nichts zu bauen“ bestätigen (Co-Entwickler oder Mensch) – K7")
     x.add_argument("--grund")
     x.add_argument("--datei", help="plan-ja: geänderter Entwurf als JSON-Datei (gleiches Schema, wird neu geprüft) – A1940")
     x.add_argument("--notiz", help="zurueck: was soll anders werden (Pflicht)")
@@ -3573,7 +3605,8 @@ def parser():
 
     x = s.add_parser("bogen", help="Meilensteine: liste | neu | zeigen N | aendern N | status N aktiv|fertig|geplant|verworfen |"
                                    " abnehmen N (nur der Mensch: fertigen Meilenstein abnehmen, danach veröffentlicht die AMW)")
-    x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status", "abnehmen"])
+    x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status", "abnehmen", "freigeben", "zurueck", "bericht",
+                                      "tore"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("wert", nargs="?", help="status: aktiv | fertig | geplant | verworfen")
     x.add_argument("--titel")
@@ -3584,6 +3617,9 @@ def parser():
     x.add_argument("--nr", type=int, help="Reihenfolge")
     x.add_argument("--grund", help="nötig, wenn das Zieldatum nach der Baseline geändert wird")
     x.add_argument("--erzwingen", action="store_true")
+    x.add_argument("--art", choices=["grob", "plan", "abschluss"], help="freigeben/zurueck: Meilenstein (grob), sein Plan oder sein"
+                                                                       " Abschlussbericht – K6/K7")
+    x.add_argument("--notiz", help="zurueck: was soll anders werden (Pflicht)")
     x.set_defaults(f=cmd_bogen)
 
     x = s.add_parser("spec", help="Spezifikation je Meilenstein: zeigen N [teil] | schreiben N teil --text/--datei | vorlegen N teil |"

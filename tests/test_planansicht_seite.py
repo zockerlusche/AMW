@@ -22,7 +22,7 @@ class PlanAnsicht(Rundgang):
 
     def ueber_rand(self):
         return self.tab.js("document.documentElement.scrollWidth > innerWidth + 1 || [...document.querySelectorAll('header, nav, .kopf,"
-                           " .pm-stand, .bereich-reiter, .th-kopf')].some(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX"
+                           " .pm-stand, .tore-leiste, .bereich-reiter, .th-kopf')].some(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX"
                            " !== 'auto')")
 
     def test_grob_freigeben_und_tor_zeile(self):
@@ -93,6 +93,37 @@ class PlanAnsicht(Rundgang):
                 tun = f"document.querySelector('#inhalt .th-zeile[data-ms=\"{self.m1}\"]').click()"
                 self.assertEqual(self.besuchen("planung", "planung-k8", bereit="document.querySelector('#inhalt .pm-zeile')", tun=tun,
                                                danach="document.querySelector('.pm-geaendert')", g=g, t=th_), [], f"{g} {th_}")
+
+    def test_k7_tore_leiste_und_abschluss(self):
+        """K7 (A1944): die Tor-Leiste zeigt alle fünf Tore (● jetzt, ✓ zu); ein fertiger Meilenstein bekommt den Abschlussbericht der
+        AMW und das Ja dazu – danach ist das Tor Abschluss zu. Die Themen-Seite zeigt dieselbe Leiste."""
+        from amw import db, tore
+        self.groesse("pc")
+        self.oeffnen("planung", "document.querySelector('#inhalt .tore-leiste')")
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('#inhalt .tore .tor')].map(e => e.dataset.t + ':' + e.className).join(',')"),
+                         "konzept:tor jetzt,grobplanung:tor spaeter,feinplanung:tor spaeter,umsetzung:tor spaeter,abschluss:tor spaeter")
+        self.assertEqual(self.tab.js("document.querySelector('#inhalt .tore-text').textContent"), "Konzept · 0 von 1 Themen freigegeben")
+        kern.projekt_einstellen(self.con, self.pid, "TL", versionen="aus")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', fertig_utc = ?, beleg = 'abc1234' WHERE bogen_id = ?", (db.jetzt(), self.m1))
+        planung.bogen_status(self.con, self.pid, "TL", self.m1, "fertig")
+        tore.runde(self.con, self.pid)
+        tun = f"document.querySelector('#inhalt .th-zeile[data-ms=\"{self.m1}\"]').click()"
+        for g in ("pc", "handy"):
+            for th_ in ("hell", "dunkel"):
+                self.assertEqual(self.besuchen("planung", "planung-k7", bereit="document.querySelector('#inhalt .pm-zeile')", tun=tun,
+                                               danach="document.querySelector('.pm-abschluss[data-ab=wartet]')", g=g, t=th_), [], f"{g} {th_}")
+                self.assertFalse(self.ueber_rand(), f"{g} {th_}")
+        self.groesse("pc")
+        self.oeffnen("planung", "document.querySelector('#inhalt .pm-zeile')")
+        self.tab.js(tun)
+        self.warten("document.querySelector('.pm-abschluss button[data-h=ab-ja]')")
+        self.assertTrue(self.tab.js("document.querySelector('.pm-abschluss a.ref').textContent.startsWith('D')"))
+        self.tab.js("document.querySelector('.pm-abschluss button[data-h=ab-ja]').click()")
+        self.warten("document.querySelector('.pm-abschluss[data-ab=frei]')")
+        self.assertTrue(next(x for x in tore.stand(self.con, self.pid)["tore"] if x["tor"] == "abschluss")["n"] == 1)
+        self.oeffnen("themen", "document.querySelector('#inhalt .th-tore .tore-leiste')")
+        self.assertEqual(self.tab.js("document.querySelectorAll('#inhalt .th-tore .tor').length"), 5)
 
     def test_k8b_eigene_aenderung_wird_geprueft(self):
         """A1957: die eigene Änderung erscheint sofort als „wird geprüft“; berührt sie die Kosten, gilt sie erst mit Ja."""

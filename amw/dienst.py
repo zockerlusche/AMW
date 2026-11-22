@@ -477,6 +477,13 @@ class Dienst:
                 for p in self.con.execute("SELECT id FROM projekt").fetchall():
                     for e in themen.luecken_melden(self.con, p["id"]):
                         log.info("Lücken: %s", e)
+                from . import tore                                           # K7 (A1944): Abschlussberichte, Prognose, Tore
+                for p in self.con.execute("SELECT id FROM projekt").fetchall():
+                    try:
+                        for e in tore.runde(self.con, p["id"]):
+                            log.info("Tore: %s", e)
+                    except Exception as e:
+                        log.warning("Tore P%s: %s: %s", p["id"], type(e).__name__, e)
         except Exception as e:
             log.warning("Lücken: %s: %s", type(e).__name__, e)
         try:                                                                 # Grafikkarte belegt ohne Lauf → Leads

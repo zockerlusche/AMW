@@ -546,6 +546,19 @@ die der Lead nur noch bestätigt oder ändert.
   (neue Fassung oder Zurück nach der Freigabe des Meilensteins), mit „Neu planen“ und „Nicht begonnene anhalten“. Anhalten:
   p-Pakete zurückgestellt, die übrigen „wartet“ auf den Lead mit Grund (Ereignis paket_angehalten).
 
+### Tore, Abschlussbericht und Prognose (K7, A1944, TH154 Fassung 4)
+
+- **Auslöser:** Dienst-Runde alle 10 Minuten (mit den Lücken Thema ↔ Paket), je Projekt.
+- **Was läuft:** (1) Je fertigem Meilenstein ohne Bericht erstellt die AMW den Abschlussbericht gegen die Erfolgskriterien (Ziel,
+  „endet mit“, Kriterien der Pakete, Pakete mit Kosten und Prognose, Reste, Lehren aus Rückblick/Prognose/roten Prüfungen) als
+  Dokument zum Meilenstein (Ereignis abschluss_bericht) und sagt es dem Menschen bzw. bei co+lead Co und Lead. (2) In laufenden
+  Meilensteinen: kostet ein begonnenes Paket mehr als 1,5 × Prognose (Median gleicher Größe und Art), bekommt der Lead einmal eine
+  Meldung (Ereignis prognose_ueberschritten). (3) Schließt oder öffnet sich ein Tor (Grobplanung bis Abschluss), hält die AMW das
+  fest (Ereignis tor_stand mit dem Stand); Konzept schreibt weiter tor_geschlossen (A1913).
+- **Danach:** Das Tor Abschluss schließt mit dem Ja zu allen Berichten (Mensch allein oder Co + Lead, `amw bogen freigeben N --art
+  abschluss`); Zurück mit Notiz geht an den Lead, `amw bogen bericht N` erstellt einen neuen Bericht. Der Stand aller Tore:
+  `amw bogen tore`, Planung und Themen (Leiste oben).
+
 ### Folgenprüfung eigener Änderungen (K8b, A1957, F5353/F5358/F5359)
 
 - **Auslöser:** der Mensch ändert selbst einen Meilenstein (Planung › Meilenstein bearbeiten oder `amw bogen aendern --von

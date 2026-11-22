@@ -19,7 +19,7 @@ from . import db, kern
 
 FREI = "meilenstein_frei"
 JA = "meilenstein_ja"
-ARTEN = ("grob", "plan")
+ARTEN = ("grob", "plan", "abschluss")       # abschluss: Ja zum Abschlussbericht (K7, A1944)
 
 
 def _zustaende(con, pid):
@@ -70,7 +70,7 @@ def _pakete(con, pid, bid):
 def freigeben(con, pid, von, bid, art):
     """Grob: der Meilenstein steht so. Plan: seine Pakete stehen so (erst nach der Grob-Freigabe, nur mit Paketen)."""
     if art not in ARTEN:
-        raise kern.AmwFehler("Freigabe: grob | plan")
+        raise kern.AmwFehler("Freigabe: grob | plan | abschluss")
     from . import themen
     if von != kern.ENTWICKLER:                       # K1 (B2913): nur mit thema_freigabe = co+lead, und dann je ein Ja
         if themen.freigabe_regel(con, pid) != "co+lead":
@@ -78,7 +78,13 @@ def freigeben(con, pid, von, bid, art):
         if not (kern.ist_co(con, pid, von) or kern.ist_lead(con, pid, von)):
             raise kern.AmwFehler("Ein Ja zur Freigabe geben der Co-Entwickler und der Lead (B2913) – sonst gibt der Mensch frei")
     b = _bogen(con, pid, bid)
-    if b["status"] not in ("geplant", "aktiv"):
+    if art == "abschluss":                           # K7: das Ja zum Abschlussbericht – erst, wenn er fertig ist und einen Bericht hat
+        from . import tore
+        if b["status"] != "fertig":
+            raise kern.AmwFehler(f"Meilenstein {b['nr']} ist noch nicht fertig – der Abschluss kommt danach")
+        if tore.bericht(con, pid, bid) is None:
+            raise kern.AmwFehler(f"Meilenstein {b['nr']}: der Abschlussbericht fehlt noch (die AMW erstellt ihn; sonst amw bogen bericht {bid})")
+    elif b["status"] not in ("geplant", "aktiv"):
         raise kern.AmwFehler(f"Meilenstein {b['nr']} ist {b['status']}")
     z = _zustaende(con, pid)
     if (z.get((bid, art)) or {}).get("an"):
@@ -102,9 +108,9 @@ def freigeben(con, pid, von, bid, art):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=FREI, bogen_id=bid,
                      text=json.dumps({"bogen": bid, "art": art, "an": True, "durch": [j["co"], j["lead"]], "regel_von": "B2913"},
                                      ensure_ascii=False))
-        was = "Plan für Meilenstein" if art == "plan" else "Meilenstein"
+        was = {"plan": "Plan für Meilenstein", "abschluss": "Abschlussbericht für Meilenstein"}.get(art, "Meilenstein")
         kern._posten(con, pid, "AMW", kern.ENTWICKLER, "info", f"{was} {b['nr']} „{b['titel'][:50]}“ freigegeben von Co und Lead",
-                     f"{j['co']} (Co-Entwickler) und {j['lead']} (Lead) haben {was.lower() if art == 'plan' else 'den Meilenstein'}"
+                     f"{j['co']} (Co-Entwickler) und {j['lead']} (Lead) haben {'den ' + was if art != 'grob' else 'den Meilenstein'}"
                      f" {b['nr']} „{b['titel']}“ freigegeben (B2913). Zurückholen kannst du jederzeit (Planung › Zurück).")
     return {"frei": True}
 
@@ -112,7 +118,7 @@ def freigeben(con, pid, von, bid, art):
 def zurueck(con, pid, von, bid, art, notiz):
     """Zurück mit Notiz (Pflicht): die Freigabe gilt nicht mehr; die Notiz geht als Auftrag an den Lead (bzw. Federführenden)."""
     if art not in ARTEN:
-        raise kern.AmwFehler("Zurück: grob | plan")
+        raise kern.AmwFehler("Zurück: grob | plan | abschluss")
     if not darf_freigeben(con, pid, von):
         raise kern.AmwFehler("Zurückgeben dürfen Co, Lead oder der Mensch")
     if not (notiz or "").strip():
@@ -124,9 +130,12 @@ def zurueck(con, pid, von, bid, art, notiz):
                      text=json.dumps({"bogen": bid, "art": art, "an": False, "notiz": notiz.strip()[:2000]}, ensure_ascii=False))
         if an and an not in (von, kern.ENTWICKLER):
             kern._posten(con, pid, "AMW", an, "auftrag",
-                         f"Meilenstein {b['nr']} „{b['titel'][:50]}“ zurück ({'Plan' if art == 'plan' else 'Meilenstein'}): {notiz.strip()[:60]}",
+                         f"Meilenstein {b['nr']} „{b['titel'][:50]}“ zurück ({ {'plan': 'Plan', 'abschluss': 'Abschluss'}.get(art, 'Meilenstein')}):"
+                         f" {notiz.strip()[:60]}",
                          f"{kern.entwickler_name(con, pid) if von == kern.ENTWICKLER else von} hat "
-                         f"{'den Plan' if art == 'plan' else 'den Meilenstein'} {b['nr']} „{b['titel']}“ zurückgegeben:\n{notiz.strip()}")
+                         f"{ {'plan': 'den Plan', 'abschluss': 'den Abschlussbericht'}.get(art, 'den Meilenstein')} {b['nr']} „{b['titel']}“"
+                         f" zurückgegeben:\n{notiz.strip()}"
+                         + ("\nNach der Nacharbeit: amw bogen bericht " + str(bid) + " (neuer Bericht)" if art == "abschluss" else ""))
 
 
 def verschieben(con, pid, von, bid, richtung):
@@ -199,7 +208,7 @@ def daten(con, pid):
             pakete.append({"id": a["id"], "titel": a["titel"], "status": a["status"], "wer": _wer(a, p), "p": p.get("art") == "p",
                            "nach": planung.vorgaenger(con, a["id"]), "pruefung": a["pruefer"] or ("AMW" if p.get("art") == "p" else "–"),
                            "usd": usd, "gemessen": gemessen})
-        g, pl = z.get((b["id"], "grob")) or {}, z.get((b["id"], "plan")) or {}
+        g, pl, ab = z.get((b["id"], "grob")) or {}, z.get((b["id"], "plan")) or {}, z.get((b["id"], "abschluss")) or {}
         geaendert = []                                   # K8: Themen, die sich seit der Freigabe des Meilensteins geändert haben
         if g.get("an") and b["status"] in ("geplant", "aktiv"):
             for tid in th:
@@ -215,7 +224,8 @@ def daten(con, pid):
                             "notiz": None if g.get("an") else g.get("notiz"), "ja_fehlt": fehlt(b["id"], "grob", g.get("an"))},
                    "plan": {"frei": bool(pl.get("an")), "von": pl.get("von"), "durch": pl.get("durch"), "zeit_utc": pl.get("zeit_utc"),
                             "notiz": None if pl.get("an") else pl.get("notiz"),
-                            "ja_fehlt": fehlt(b["id"], "plan", pl.get("an")) if b and _pakete(con, pid, b["id"]) else []}})
+                            "ja_fehlt": fehlt(b["id"], "plan", pl.get("an")) if b and _pakete(con, pid, b["id"]) else []},
+                   "abschluss": _abschluss(con, pid, b, ab, fehlt)})
     offen = [m for m in ms if m["status"] == "geplant"]
     grob_zu = bool(offen) and all(m["grob"]["frei"] for m in offen)
     voll = [m for m in offen if m["pakete"]]
@@ -225,7 +235,25 @@ def daten(con, pid):
             if t["zustand"]["status"] == "frei" and not t["zustand"]["markiert"] and t["id"] not in in_bogen]
     tor = "umsetzung" if any(m["status"] == "aktiv" for m in ms) else ("fein" if grob_zu else "grob")
     return {"meilensteine": ms, "tor": tor, "grob_zu": grob_zu, "fein_zu": fein_zu, "ohne_meilenstein": ohne,
-            "hat_themen": bool(namen), "starten": fein_zu, **entwuerfe(con, pid, namen), "aenderungen": _aenderungen(con, pid)}
+            "hat_themen": bool(namen), "starten": fein_zu, **entwuerfe(con, pid, namen), "aenderungen": _aenderungen(con, pid),
+            "tore": _tore(con, pid)}
+
+
+def _abschluss(con, pid, b, ab, fehlt):
+    """K7: für fertige Meilensteine – Abschlussbericht (Dokument), Ja (frei, wer, ja_fehlt) oder zurück mit Notiz."""
+    if b["status"] != "fertig":
+        return None
+    from . import tore
+    return {"bericht": tore.bericht(con, pid, b["id"]), "frei": bool(ab.get("an")), "von": ab.get("von"), "durch": ab.get("durch"),
+            "notiz": None if ab.get("an") else ab.get("notiz"), "ja_fehlt": fehlt(b["id"], "abschluss", ab.get("an"))}
+
+
+def _tore(con, pid):
+    from . import tore
+    try:
+        return tore.stand(con, pid)
+    except Exception:                                    # noqa: BLE001 – die Ansicht darf daran nie scheitern
+        return None
 
 
 def _aenderungen(con, pid):

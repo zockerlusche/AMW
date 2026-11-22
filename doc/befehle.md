@@ -451,10 +451,10 @@ options:
 ## thema
 ```
 usage: amw thema [-h] [--meilenstein MEILENSTEIN] [--nichts-zu-bauen]
-                 [--aufheben] [--grund GRUND] [--datei DATEI] [--notiz NOTIZ]
-                 [--pfleger PFLEGER] [--stil] [--kein-stil] [--text TEXT]
-                 [--text-datei TEXT_DATEI] [--dokument DOKUMENT] [--loesen]
-                 [--suche SUCHE] [--grenze GRENZE] [--von VON]
+                 [--aufheben] [--bestaetigen] [--grund GRUND] [--datei DATEI]
+                 [--notiz NOTIZ] [--pfleger PFLEGER] [--stil] [--kein-stil]
+                 [--text TEXT] [--text-datei TEXT_DATEI] [--dokument DOKUMENT]
+                 [--loesen] [--suche SUCHE] [--grenze GRENZE] [--von VON]
                  [--projekt PROJEKT]
                  [{liste,zeige,neu,einstellen,pflegen,bestaetigen,dokument,status,freigeben,zurueck,markieren,entmarkieren,nur_mensch,nicht_nur_mensch,vermerk,luecken,planen,plan,plan-ja,anhalten}]
                  [name]
@@ -470,6 +470,8 @@ options:
   --nichts-zu-bauen     vermerk: das Thema braucht kein Paket (mit --grund) –
                         A1947
   --aufheben            vermerk: den Vermerk „nichts zu bauen“ wieder aufheben
+  --bestaetigen         vermerk: „nichts zu bauen“ bestätigen (Co-Entwickler
+                        oder Mensch) – K7
   --grund GRUND
   --datei DATEI         plan-ja: geänderter Entwurf als JSON-Datei (gleiches
                         Schema, wird neu geprüft) – A1940
@@ -956,12 +958,14 @@ options:
 ```
 usage: amw bogen [-h] [--titel TITEL] [--ziel ZIEL] [--abnahme ABNAHME]
                  [--zieldatum ZIELDATUM] [--federfuehrend FEDERFUEHREND]
-                 [--nr NR] [--grund GRUND] [--erzwingen] [--von VON]
+                 [--nr NR] [--grund GRUND] [--erzwingen]
+                 [--art {grob,plan,abschluss}] [--notiz NOTIZ] [--von VON]
                  [--projekt PROJEKT]
-                 {liste,neu,zeigen,aendern,status,abnehmen} [id] [wert]
+                 {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore}
+                 [id] [wert]
 
 positional arguments:
-  {liste,neu,zeigen,aendern,status,abnehmen}
+  {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore}
   id
   wert                  status: aktiv | fertig | geplant | verworfen
 
@@ -979,6 +983,10 @@ options:
   --grund GRUND         nötig, wenn das Zieldatum nach der Baseline geändert
                         wird
   --erzwingen
+  --art {grob,plan,abschluss}
+                        freigeben/zurueck: Meilenstein (grob), sein Plan oder
+                        sein Abschlussbericht – K6/K7
+  --notiz NOTIZ         zurueck: was soll anders werden (Pflicht)
   --von VON
   --projekt PROJEKT
 ```

@@ -303,6 +303,9 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
                 return planansicht.verschieben(con, pid, kern.ENTWICKLER, bid, was)
             if was == "starten":
                 return {"gestartet": planansicht.jetzt_starten(con, pid, kern.ENTWICKLER)}
+            if was == "bericht":                      # K7 (A1944): Abschlussbericht neu erstellen (nach einem Zurück)
+                from . import tore
+                return {"dokument": tore.bericht_erstellen(con, pid, bid)}
             if was == "plan-ja":                      # A1940: Ja zum Entwurf des Planers
                 return {"angelegt": planansicht.entwurf_ja(con, pid, kern.ENTWICKLER, daten.get("thema"))}
             if was == "anhalten":                     # K8 (A1942): nicht begonnene Pakete eines geänderten Themas anhalten

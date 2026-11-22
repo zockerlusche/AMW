@@ -1432,6 +1432,7 @@ def baue_handler(port, token, netz=None):
                     "/api/aufgaben": lambda c, p: daten_aufgaben(c, p, q),
                     "/api/listen": lambda c, p: daten_listen(c, p),
                     "/api/themen": lambda c, p: daten_themen(c, p),
+                    "/api/tore": lambda c, p: __import__("amw.tore", fromlist=["stand"]).stand(c, p),   # K7 (A1944)
                     "/api/thema": lambda c, p: daten_thema(c, p, q.get("id", ["0"])[0]),
                     "/api/aufgabe": lambda c, p: daten_aufgabe(c, p, q.get("id", ["0"])[0] or 0),
                     "/api/wissen": lambda c, p: daten_wissen(c, p, q),
