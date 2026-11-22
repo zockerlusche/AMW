@@ -99,5 +99,58 @@ class StapelAusSauberenZweigen(unittest.TestCase):
         self.assertEqual(len(aus), 1, aus)
         self.assertTrue(self.con.execute("SELECT 1 FROM pruefung WHERE sha = ? AND ergebnis = 'gruen'", (self.innen,)).fetchone())
 
+class StapelMitAufgeloestemKonflikt(unittest.TestCase):
+    """A1974 (Befund 1.165.0, #30707): Stapel aus zwei Einzelzweigen – A mit aufgelöstem Konflikt (anderer Inhalt), B sauber
+    übertragen – plus Versions-Commit, dessen Betreff beide Aufgaben nennt. Der Lead gibt Grün für A auf der Spitze. Dann
+    überträgt die AMW das Grün von B auf dessen inneren Commit (die Spitze deckt alles darunter), und der Versions-Commit gilt
+    als geprüft – keine Prüfbitte je Aufgabe auf der Spitze mehr nötig."""
+    setUp_kette, g, stand, extern, kette = ta.Kette.setUp, ta.Kette.g, ta.Kette.stand, ta.Kette.extern, ta.Kette.kette
+    gesamtlauf = ta.Kette.gesamtlauf
+    gruen = StapelAusSauberenZweigen.gruen
+
+    def datei(self, name, text, betreff):
+        with open(os.path.join(self.repo, name), "w", encoding="utf-8") as f:
+            f.write(text)
+        self.g("add", name)
+        self.g("-c", "commit.gpgsign=false", "commit", "-q", "-m", betreff)
+        return self.g("rev-parse", "HEAD")
+
+    def setUp(self):
+        self.setUp_kette()
+        self.a = kern.aufgabe_neu(self.con, self.pid, "TL", "A", "CC1")
+        self.b = kern.aufgabe_neu(self.con, self.pid, "TL", "B", "CC1")
+        self.g("switch", "-q", "-c", "zweig-a", "main")
+        self.einzel_a = self.datei("a.txt", "A wie geprüft\n", f"A{self.a}: a")
+        self.g("switch", "-q", "-c", "zweig-b", "main")
+        self.einzel_b = self.datei("b.txt", "B\n", f"A{self.b}: b")
+        self.g("switch", "-q", "-c", "stapel", "main")
+        self.innen_a = self.datei("a.txt", "A wie geprüft – beim Zusammenführen aufgelöst\n", f"A{self.a}: a")   # anderer Inhalt
+        self.g("-c", "commit.gpgsign=false", "cherry-pick", self.einzel_b)
+        self.innen_b = self.g("rev-parse", "HEAD")
+        self.spitze = self.stand("1.1.0", f"Stapel – A{self.a} + A{self.b}")
+        self.g("switch", "-q", "main")
+
+    def test_spitze_deckt_den_stapel_und_den_versions_commit(self):
+        self.gruen(self.a, "zweig-a", self.einzel_a)
+        self.gruen(self.b, "zweig-b", self.einzel_b)
+        self.gruen(self.a, "stapel", self.spitze)                                            # Lead prüft den Stapel (wie P482)
+        betrieb.freigabe_merge(self.con, self.pid, "TL", self.a, "stapel")
+        betrieb.freigabe_merge(self.con, self.pid, "TL", self.b, "zweig-b")                  # geht mit der Übertragung mit
+        aus = self.kette().uebertragen(self.spitze, "stapel")
+        self.assertEqual(len(aus), 1, aus)                                                    # B: gleicher Inhalt, A: nicht
+        self.assertTrue(self.con.execute("SELECT 1 FROM pruefung WHERE aufgabe_id = ? AND sha = ? AND ergebnis = 'gruen'",
+                                         (self.b, self.innen_b)).fetchone())
+        self.assertEqual(self.kette().staende(self.spitze), [])
+        self.sha = self.spitze
+        self.gesamtlauf()
+        self.assertEqual(self.kette().ausliefern("stapel")["version"], "1.1.0")
+
+    def test_ohne_gruen_auf_der_spitze_haelt_staende(self):
+        self.gruen(self.a, "zweig-a", self.einzel_a)
+        self.gruen(self.b, "zweig-b", self.einzel_b)
+        self.assertEqual(self.kette().uebertragen(self.spitze, "stapel"), [])                 # A ungeprüft darunter: nichts
+        self.assertTrue(self.kette().staende(self.spitze))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -196,8 +196,9 @@ class Kette:
             if schon_gruen and not (ok_mit and str(zweig).startswith("buendel-")):
                 continue
             alt_ids = set(alt.values())                  # A1834 (16.11.: 99df76e ging ungeprüft mit): jeder Commit bis zum Ziel muss
-            if any(neu.get(c) not in alt_ids for c in self.ungeprueft(reihe, ziel)[:-1]):   # im geprüften alten Stand stecken
-                continue                                 # oder unter einem grünen Stand liegen – sonst keine Übernahme
+            gedeckt = set(reihe) - set(self.ungeprueft(reihe))   # A1974: auch ein Grün ÜBER dem Ziel (Stapel-Spitze, vom Lead geprüft)
+            if any(neu.get(c) not in alt_ids for c in self.ungeprueft(reihe, ziel)[:-1] if c not in gedeckt):   # deckt alles darunter
+                continue                                 # im geprüften alten Stand stecken oder unter einem grünen Stand liegen
             jetzt = db.jetzt()
             with db.schreiben(self.con):
                 if schon_gruen:
@@ -312,11 +313,18 @@ class Kette:
         if rc != 0:
             return [f"Stände: git log main..{sha[:8]} ging nicht"]
         mangel, gesehen = [], {}
+        gruene = [r["sha"] for r in self.con.execute("SELECT DISTINCT sha FROM pruefung WHERE projekt_id = ? AND ergebnis = 'gruen'"
+                                                      " AND length(sha) = 40 ORDER BY id DESC LIMIT 60", (self.pid,)).fetchall()]
         for zeile in aus.splitlines():
             if "\t" not in zeile:
                 continue
             c, betreff = zeile.split("\t", 1)
             if not re.fullmatch(r"[0-9a-f]{40}", c):
+                continue
+            # A1974 (Befund 1.165.0): der Versions-Commit eines Stapels nennt alle Aufgaben im Betreff – er ist geprüft, wenn ein
+            # grüner Stand ihn enthält (die Spitze, vom Lead geprüft); sonst bräuchte jede Aufgabe ein eigenes Grün auf der Spitze
+            if re.match(r"\d+\.\d+\.\d+:", betreff) and any(
+                    self.extern(["git", "merge-base", "--is-ancestor", c, s], self.repo)[0] == 0 for s in gruene):
                 continue
             for nr in dict.fromkeys(int(x) for x in re.findall(r"\bA(\d{1,6})\b", betreff)):
                 if nr == ausnahme_aufgabe:

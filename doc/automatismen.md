@@ -93,6 +93,11 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
   laufen alle nacheinander in einem eigenen Prozess. Je Prozess ein eigener Temp-Ordner, `AMW_DB`/`AMW_AGENT`/`AMW_PROJEKT`
   leer. Ausgabe wie unittest: die Fehlerberichte, dann „Ran N tests in X s“ und „OK (…)“ bzw. „FAILED (…)“; rc 0 nur bei
   Grün. Der Hook für schwere Befehle erkennt ihn als „Test-Suite“.
+- **Grün auf der Stapel-Spitze deckt den Stapel (A1974, Befund 1.165.0):** Bei der Übertragung zählt für die Commits unter dem
+  Ziel auch ein Grün ÜBER dem Ziel (die Spitze, vom Lead geprüft) – so bekommen sauber übertragene Aufgaben ihr Grün auch dann,
+  wenn darunter eine Aufgabe mit aufgelöstem Konflikt liegt. „Stände“ nimmt den Versions-Commit eines Stapels (Betreff
+  „X.Y.Z: …“ mit allen Aufgaben) als geprüft, wenn ein grüner Stand ihn enthält. Eine Aufgabe, deren Inhalt beim Zusammenführen
+  geändert wurde, braucht weiter ihr eigenes Grün auf dem Stapel.
 - **Übertragung verdrängt kein Grün der Spitze (A1964):** Die Patch-ID-Übertragung (A1814) legt keine grüne Prüfung auf
   einen inneren Commit, wenn die Aufgabe schon ein Grün auf einem späteren Commit desselben Stands hat (z. B. auf der
   Stapel-Spitze mit dem Versions-Commit). Sonst würde die neue Zeile jenes Grün als neueste Prüfung verdrängen, und die
