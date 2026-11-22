@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.155.1 – 22.11.2026 · Seiten laden zuverlässig
+- **Behoben:** Beim Öffnen blieb eine Seite manchmal leer mit „Failed to fetch“, wenn sie viel auf einmal lud. Der Server nimmt
+  jetzt viele Verbindungen gleichzeitig an.
+
 ## 1.155.0 – 22.11.2026 · Themen gegenlesen, Arbeit verteilen, lokal live
 - **Neu:** Liefert der Betreuer eine neue Fassung eines Themas, liest ein frischer Agent sie zuerst gegen – er liest nur und
   kostet wenige Cent. Seine Einwände gehen an den Betreuer; erst danach wartet das Thema auf dich. Solange steht dort
