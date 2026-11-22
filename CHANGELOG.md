@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.159.0 – 22.11.2026 · Themen freigeben durch Co-Entwickler und Lead, Prüfbitte ohne eigene Version
+- **Neu:** Auf Wunsch geben Co-Entwickler und Lead Themen gemeinsam frei (`amw projekt einstellen thema_freigabe=co+lead`, nur
+  du stellst um); du kannst jederzeit selbst freigeben oder zurückholen. Themen zu Löschen, Kosten, Schema oder Außenwirkung
+  bleiben bei dir. Am Thema steht, wessen Ja noch fehlt.
+- **Verbessert:** Eine Prüfbitte auf einem Zweig ohne eigene Versionsnummer geht jetzt durch; die Nummer bekommt erst der
+  Stapel, der mehrere Aufgaben gemeinsam ausliefert.
+- **Intern:** Das alte Feld „Grenzen“ eines Agenten heißt im Code nur noch „Zuständig für“; die bisherigen Befehle gehen weiter.
+
 ## 1.158.0 – 22.11.2026 · Anbieter, Projekt-Schalter, Eignung, Sicherung
 - **Neu:** Arbeiter können außer Anthropic auch andere Anbieter mit Anthropic-kompatibler Schnittstelle nutzen (z. B. MiniMax).
   Freigeben kannst nur du (`amw anbieter freigeben …`); gespeichert wird nur der Pfad zur Schlüsseldatei, nie der Schlüssel.

@@ -2841,7 +2841,7 @@ const tmZustand = a => { const [farbe, text, dauer] = agentZustand(a);
   return el("div", { class: "tm-zustand", title: a.zustand === "aktiv" ? t("k_puls_seit", { t: seit(a.letzter_puls_utc) }) : null }, el("span", { class: "punkt " + farbe }),
     el("span", { class: farbe === "bernstein" ? "bernstein-text" : farbe === "rot" && a.zustand === "aktiv" ? "rot-text" : "" }, text), dauer ? el("span", { class: "sehrleise" }, dauer) : null); };
 const tmAufgabe = (a, n) => a.gerade ? [el("span", { class: "sehrleise" }, t("k_gerade") + " "), tmKurz(a.gerade, n)]
-  : [el("span", { class: "sehrleise" }, a.soll === "an" && !a.chat ? t("k_unbekannt") : (a.grenzen || t("tm_keine")))];
+  : [el("span", { class: "sehrleise" }, a.soll === "an" && !a.chat ? t("k_unbekannt") : (a.zustaendig || t("tm_keine")))];
 /* Mit wem er gerade arbeitet (offene Prüfung) oder worauf er wartet – eine Zeile, der Rest steht in der Übersicht */
 function tmNeben(a, d) {
   const ende = (d.ende || []).find(x => x.kennung === a.kennung);
