@@ -31,7 +31,7 @@ class Reihenfolge(unittest.TestCase):
             kern.agent_neu(self.con, self.pid, k, rolle=r)
         self.bid = planung.bogen_neu(self.con, self.pid, "TL", "Lieferung 1")
 
-    def paket(self, titel, agent="CC1", groesse=None, nach=None, bogen=True, **werte):
+    def paket(self, titel, agent: str | None = "CC1", groesse=None, nach=None, bogen=True, **werte):
         aid = kern.aufgabe_neu(self.con, self.pid, "TL", titel, agent)
         planung.schritt_setzen(self.con, self.pid, "TL", aid=aid, bogen_id=self.bid if bogen else None, groesse=groesse,
                                nach=nach, **werte)
@@ -50,6 +50,21 @@ class Reihenfolge(unittest.TestCase):
             self.assertEqual(reihenfolge._gemessen(self.con, self.pid), {("einfach", "M"): (2.0, 3)})
         with mock.patch("amw.eignung.zeilen", return_value=[{"zelle": ("einfach", "M"), "dauer_s": 3600}] * 2):
             self.assertEqual(reihenfolge._gemessen(self.con, self.pid), {})               # unter MIN_MESSUNGEN: Schätzung/Vorgabe
+
+    def test_p_paket_wartet_auf_interaktiv_ist_startklar(self):
+        # ein p-Paket, das auf den interaktiven Agenten wartet (Aufgabe blockiert), ist für ihn dran – nicht hinter startklarer Arbeit
+        p = self.paket("Probe", groesse="M", rang=10)
+        arbeitspaket.setzen(self.con, self.pid, "TL", p, art="p")
+        a = self.paket("Normale Arbeit", groesse="M", rang=20)
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE paket SET zustand = 'blockiert' WHERE aufgabe_id = ?", (p,))
+            self.con.execute("UPDATE aufgabe SET status = 'blockiert' WHERE id = ?", (p,))
+        z = {x["aid"]: x["zustand"] for x in reihenfolge.berechnen(self.con, self.pid)}
+        self.assertEqual((z[p], self.platz()), ("wartet", [a, p]))                  # blockiert (Arbeiter): wartet
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE paket SET zustand = 'wartet_interaktiv' WHERE aufgabe_id = ?", (p,))
+        z = {x["aid"]: x["zustand"] for x in reihenfolge.berechnen(self.con, self.pid)}
+        self.assertEqual((z[p], self.platz()), ("startklar", [p, a]))               # wartet auf interaktiv: dran
 
     def test_kritischer_pfad_vor_rang(self):
         einzeln = self.paket("Einzeln groß", groesse="L", rang=1)                      # 8 h, kleiner Rang

@@ -105,11 +105,14 @@ def berechnen(con, pid):
     gemessen = _gemessen(con, pid)
     d = {a["id"]: dauer(a, gemessen) for a in offen}
     rest = rest_pfad(con, [a["id"] for a in offen], {k: v[0] for k, v in d.items()})
+    interaktiv = _wartet_interaktiv(con, [a["id"] for a in offen])
     zeilen = []
     for a in offen:
+        # ein p-Paket, das auf den interaktiven Agenten wartet (Aufgabe blockiert), ist für ihn jetzt dran – startklar
+        bereit = a["status"] == "wartet" or (a["status"] == "blockiert" and a["id"] in interaktiv)
         if a["status"] == "laeuft":
             zustand = "laeuft"
-        elif a["status"] == "wartet" and not wartegrund.offene(con, a["id"]) and not planung.offene_vorgaenger(con, a["id"]):
+        elif bereit and not wartegrund.offene(con, a["id"]) and not planung.offene_vorgaenger(con, a["id"]):
             zustand = "startklar"
         else:
             zustand = "wartet"
@@ -126,6 +129,17 @@ def berechnen(con, pid):
                       f" · {z['dauer_h']:g} h {z['quelle']}")
         aus.append(z)
     return aus
+
+
+def _wartet_interaktiv(con, ids):
+    """Die Aufgaben unter ids, deren p-Paket auf den interaktiven Agenten wartet."""
+    if not ids:
+        return set()
+    try:
+        return {r[0] for r in con.execute(f"SELECT aufgabe_id FROM paket WHERE zustand = 'wartet_interaktiv'"
+                                          f" AND aufgabe_id IN ({','.join('?' * len(ids))})", ids)}
+    except Exception:                                      # ältere Datenbank ohne Tabelle paket
+        return set()
 
 
 def plaetze(con, pid):
