@@ -174,7 +174,8 @@ def _aus_agenten_sitzung():
 # „agent lead“; merge_blick/merge_aussen_pruefung setzt zusätzlich nur der Mensch (kern.NUR_MENSCH_WAHL)
 RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_blick", "merge_aussen_pruefung",
                         "co_entwickler",                  # A1908 (P352): der Co-Entwickler legt Themen an
-                        "verteilen", "verteilen_fach")    # A1927 (#29773, P374): ob und wem die AMW Arbeit zuteilt
+                        "verteilen", "verteilen_fach",    # A1927 (#29773, P374): ob und wem die AMW Arbeit zuteilt
+                        "veroeffentlichen")               # A1928 (#29781): wann die AMW nach außen veröffentlicht
 # eine Stelle für alle Einstellungen mit dieser Sperre (CCamwTL P299): Rechte (A1892) und ausführbare Bündel-Befehle (A1876, P298)
 GESPERRTE_EINSTELLUNGEN = RECHTE_EINSTELLUNGEN + kern.BUENDEL_EINSTELLUNGEN
 
@@ -886,6 +887,14 @@ def cmd_bogen(a, con):
     if a.aktion == "neu":
         bid = planung.bogen_neu(con, pid, _von(a), a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr)
         print(f"Meilenstein {bid} angelegt – Spezifikation: amw spec schreiben {bid} anforderungen --datei …")
+    elif a.aktion == "abnehmen":                      # A1928 (TH158): nur der Mensch – danach veröffentlicht die AMW
+        if not a.id:
+            raise kern.AmwFehler("bogen abnehmen <Nummer des Meilensteins>")
+        if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():
+            raise kern.AmwFehler("Einen Meilenstein nimmt nur der Mensch ab – im eigenen Terminal (--von Entwickler) oder in der"
+                                 " Workbench am PC, nicht aus einer Agenten-Sitzung")
+        from . import veroeffentlichung
+        print(veroeffentlichung.abnehmen(con, pid, kern.ENTWICKLER, a.id))
     elif a.aktion == "aendern":
         planung.bogen_aendern(con, pid, _von(a), a.id, a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr, a.grund)
         if a.federfuehrend is not None:
@@ -3166,8 +3175,9 @@ def parser():
     x.add_argument("--dod", action="append", help="Definition of Done, mehrfach; ersetzt die Liste")
     x.set_defaults(f=cmd_leitbild)
 
-    x = s.add_parser("bogen", help="Meilensteine: liste | neu | zeigen N | aendern N | status N aktiv|fertig|geplant|verworfen")
-    x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status"])
+    x = s.add_parser("bogen", help="Meilensteine: liste | neu | zeigen N | aendern N | status N aktiv|fertig|geplant|verworfen |"
+                                   " abnehmen N (nur der Mensch: fertigen Meilenstein abnehmen, danach veröffentlicht die AMW)")
+    x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status", "abnehmen"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("wert", nargs="?", help="status: aktiv | fertig | geplant | verworfen")
     x.add_argument("--titel")

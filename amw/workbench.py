@@ -265,6 +265,15 @@ def _uebersicht(con, pid, gesund):
                 "zustand": sync["zustand"], "zeit_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - sync["alter_s"]))}}
 
 
+def _zur_abnahme(con, pid):
+    """A1928: fertige Meilensteine, die auf die Abnahme durch den Menschen warten (danach veröffentlicht die AMW)."""
+    try:
+        from . import veroeffentlichung
+        return veroeffentlichung.zur_abnahme(con, pid)
+    except Exception:
+        return []
+
+
 def _themen_fuer_dich(con, pid):
     """A1896: Themen, die auf den Menschen warten – unter „Für dich“, springt zum Thema (F5355 A)."""
     try:
@@ -401,6 +410,7 @@ def daten_start(con, pid):
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "startvorschlaege": _startvorschlaege(con, pid),
             "themen_fuer_dich": _themen_fuer_dich(con, pid),
+            "zur_abnahme": _zur_abnahme(con, pid),
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 

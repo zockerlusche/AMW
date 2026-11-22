@@ -271,6 +271,14 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         from . import mcp_schluessel
         name = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()[0]
         return {"schluessel": mcp_schluessel.erzeugen(name), "projekt": name}
+    if weg == "/api/bogen/abnehmen":                  # A1928 (TH158): Meilenstein abnehmen – der Mensch am PC, danach veröffentlichen
+        if kanal != "seite":
+            raise Ungueltig("Einen Meilenstein nimmst du am PC ab (Workbench), online siehst du ihn unter „Für dich“")
+        from . import veroeffentlichung
+        try:
+            return {"text": veroeffentlichung.abnehmen(con, pid, kern.ENTWICKLER, int(daten.get("bogen") or 0))}
+        except (kern.AmwFehler, ValueError, TypeError) as e:
+            raise Ungueltig(str(e)) from None
     if weg.startswith("/api/thema/"):                 # A1896: Themen – Freigeben/Zurück/Bearbeiten/Löschen markieren, der Mensch am PC
         if kanal != "seite":
             raise Ungueltig("Themen freigeben und bearbeiten geht nur am PC (Workbench), online liest du mit")

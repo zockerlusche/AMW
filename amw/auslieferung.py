@@ -481,6 +481,19 @@ class Kette:
         if uv != schema or qc != "ok":
             self.stopp("Datenbank prüfen", f"Schema {uv} (erwartet {schema}), quick_check {qc}")
         self.schritt(f"Dienst {version}, Schema {schema}, quick_check ok")
+        from . import veroeffentlichung                 # A1928 (TH158): Push und GitHub-Release erst bei der Abnahme des Meilensteins
+        sofort = veroeffentlichung.modus(self.con, self.pid) == "sofort"
+        if not sofort:
+            self.schritt("Lokal live – Push und GitHub-Release bei der Abnahme des Meilensteins (veroeffentlichen = meilenstein)")
+        else:
+            self._veroeffentlichen(version, v)
+        self.lokal_live = not sofort
+        # A1756: erst Versionszeilen und fertige Aufgaben, dann der Web-Abzug – scheitert er (14.11.: Zeitlimit unter Last),
+        # ist alles andere schon eingetragen, und die Meldung nennt, wie er nachgeholt wird.
+        return self._nach_dienst(sha, version, v, ausnahme, wartung)
+
+    def _veroeffentlichen(self, version, v):
+        """Wie bis 1.15x bei jeder Auslieferung (veroeffentlichen = sofort): Push main + Tags, GitHub-Release je Version."""
         self.git("push", "-q", "origin", "main", *[f"v{z['version']}" for z in v["zwischen"]], f"v{version}", schritt="Push")
         self.schritt("Push main + Tag")
         for nummer, notiztext, neueste in [(z["version"], z["notizen"][1], False) for z in v["zwischen"]] + [(version, v["text"], True)]:
@@ -495,15 +508,20 @@ class Kette:
             if rc != 0:
                 self.stopp("GitHub-Release", f"v{nummer}: {aus[-300:]}")
         self.schritt("GitHub-Release" + (f" (+ {', '.join(z['version'] for z in v['zwischen'])})" if v["zwischen"] else ""))
-        # A1756: erst Versionszeilen und fertige Aufgaben, dann der Web-Abzug – scheitert er (14.11.: Zeitlimit unter Last),
-        # ist alles andere schon eingetragen, und die Meldung nennt, wie er nachgeholt wird.
-        from . import wissen
+
+    def _nach_dienst(self, sha, version, v, ausnahme, wartung):
+        from . import waechter, wissen
         for z in v["zwischen"]:                         # aufsteigend vor der obersten – „größer als die letzte“ bleibt wahr
             if not self.con.execute("SELECT 1 FROM release WHERE projekt_id = ? AND art = 'version' AND version = ?",
                                     (self.pid, z["version"])).fetchone():
                 wissen.release_version(self.con, self.pid, self.von, z["version"], z["notizen"][0], z["sha"][:7],
                                        oeffentlich=z["notizen"][1], kette=True)
         rid, _ = wissen.release_version(self.con, self.pid, self.von, version, v["titel"], sha[:7], kette=True)
+        if self.lokal_live:                             # A1928: was noch nicht veröffentlicht ist (Für dich → Abnehmen)
+            from . import veroeffentlichung
+            with db.schreiben(self.con):
+                db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von=self.von, art=veroeffentlichung.LOKAL,
+                             text=json.dumps({"version": version, "sha": sha}))
         self.schritt(f"Versionszeile R{rid}" + (f" (+ {', '.join(z['version'] for z in v['zwischen'])})" if v["zwischen"] else ""))
         from . import planautomatik                     # A1738: was dieser Stand enthält, ist fertig (Beleg = geprüfter Stand)
         try:
@@ -530,12 +548,14 @@ class Kette:
         an = kern.lead(self.con, self.pid)
         if an and an != self.von:
             with db.schreiben(self.con):
-                kern._posten(self.con, self.pid, "AMW", an, "info", f"Version {version} live – {v['titel']}",
-                             f"main {sha[:8]}, Tag v{version}, GitHub-Release, Web-Abzug L{lid}, Versionszeile R{rid}."
+                kern._posten(self.con, self.pid, "AMW", an, "info", f"Version {version} {'lokal ' if self.lokal_live else ''}live – {v['titel']}",
+                             f"main {sha[:8]}, Tag v{version}, " + ("lokal (veröffentlicht wird bei der Abnahme des Meilensteins)"
+                                                                    if self.lokal_live else "GitHub-Release")
+                             + f", Web-Abzug L{lid}, Versionszeile R{rid}."
                              + (f" Gesamtlauf L{v['lauf']}." if v["lauf"] else f" Ohne Gesamtlauf: {ausnahme}.")
                              + (f" Fertig gesetzt: {fertig_liste}." if ok else "") + kriterien)
         if wartung:
             waechter.wartung_aus()
             self.ausgabe("Wartungsmodus aufgehoben")
-        self.ausgabe(f"Version {version} live.")
+        self.ausgabe(f"Version {version} {'lokal ' if self.lokal_live else ''}live.")
         return {"version": version, "sha": sha, "web_lauf": lid, "release": rid}

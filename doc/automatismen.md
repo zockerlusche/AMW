@@ -71,6 +71,24 @@ obwohl er arbeitet – niemand merkt es.
 - Grenze: Das Startskript nach einem PC-Neustart prüft den Hook nicht, und für seine Starts gibt es keine Meldung
   „meldet sich nicht an“ (es startet Claude direkt, ohne die AMW).
 
+## Releases in drei Ebenen (A1928, TH158)
+
+**Wozu:** Jede Auslieferung soll die AMW auf dem PC sofort neu machen, aber nicht jedes Mal nach außen gehen. Veröffentlicht
+wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung abgenommen hat.
+
+- **Lokal live** (`amw release ausliefern`): Sicherung, main per Fast-Forward, lokaler Tag, Dienst neu, Versionszeile, Aufgaben
+  fertig, Web-Abzug (AMW online bleibt auf derselben Version wie der PC). Kein Push von main und Tags, kein GitHub-Release; die
+  Kette schreibt das Ereignis `lokal_live` und meldet „Version X lokal live“.
+- **Abnahme:** Unter „Für dich“ steht ein fertiger Meilenstein, der seit der letzten Veröffentlichung fertig wurde, mit
+  „Abnehmen“ (am PC; online nur zu sehen). Im Terminal: `amw bogen abnehmen N` – nur der Mensch, nicht aus einer Agenten-Sitzung,
+  nur für einen fertigen Meilenstein. Ereignis `bogen_abgenommen`.
+- **Veröffentlichung:** danach einmal von selbst – Push von main und allen lokalen Tags, die es bei GitHub noch nicht gibt, und
+  ein GitHub-Release für die neueste Version mit den CHANGELOG-Abschnitten aller dieser Versionen (neueste zuerst). Ereignis
+  `veroeffentlicht`, Meldung an Lead und Mensch. Geht etwas schief, meldet die AMW es; `amw bogen abnehmen N` noch einmal stößt
+  die Veröffentlichung erneut an.
+- **Einstellung `veroeffentlichen`:** meilenstein (Vorgabe) | sofort (wie früher: Push und GitHub-Release bei jeder
+  Auslieferung). Nur Lead oder Mensch, nicht aus einer Agenten-Sitzung.
+
 ## Bündeln (seit 1.150.0)
 
 **Wozu:** p-Pakete ohne Coder ausliefern – bisher setzte ein Coder die freigegebenen Pakete von Hand aufeinander, hob die

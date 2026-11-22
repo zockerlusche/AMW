@@ -34,7 +34,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`suche`](#suche) | Volltext über Aufgaben, Beschlüsse, Fragen, Deine Worte, Nachrichten, Dokumente: amw suche Modem |
 | [`zeige`](#zeige) | Einträge ganz lesen: amw zeige B5 F12 A120 W3 16000 D5 KR3 PR4 (Nachricht ohne #: in der Shell beginnt mit # ein Kommentar) |
 | [`leitbild`](#leitbild) | Projektziel, Kennzahlen, Nicht-Ziele, Prinzipien, Definition of Done: zeigen ¦ setzen |
-| [`bogen`](#bogen) | Meilensteine: liste ¦ neu ¦ zeigen N ¦ aendern N ¦ status N aktiv¦fertig¦geplant¦verworfen |
+| [`bogen`](#bogen) | Meilensteine: liste ¦ neu ¦ zeigen N ¦ aendern N ¦ status N aktiv¦fertig¦geplant¦verworfen ¦ abnehmen N (nur der Mensch: fertigen Meilenstein abnehmen, danach veröffentlicht die AMW) |
 | [`spec`](#spec) | Spezifikation je Meilenstein: zeigen N [teil] ¦ schreiben N teil --text/--datei ¦ vorlegen N teil ¦ frei N teil ¦ zurueck N teil --kommentar  (teil: anforderungen ¦ entwurf ¦ schritte) |
 | [`schritt`](#schritt) | naechster [--nehmen]: nächster bereiter Schritt (aktiver Meilenstein, ohne offene Vorgänger) |
 | [`risiko`](#risiko) | liste ¦ neu --titel … ¦ setzen N --status … |
@@ -839,10 +839,10 @@ usage: amw bogen [-h] [--titel TITEL] [--ziel ZIEL] [--abnahme ABNAHME]
                  [--zieldatum ZIELDATUM] [--federfuehrend FEDERFUEHREND]
                  [--nr NR] [--grund GRUND] [--erzwingen] [--von VON]
                  [--projekt PROJEKT]
-                 {liste,neu,zeigen,aendern,status} [id] [wert]
+                 {liste,neu,zeigen,aendern,status,abnehmen} [id] [wert]
 
 positional arguments:
-  {liste,neu,zeigen,aendern,status}
+  {liste,neu,zeigen,aendern,status,abnehmen}
   id
   wert                  status: aktiv | fertig | geplant | verworfen
 

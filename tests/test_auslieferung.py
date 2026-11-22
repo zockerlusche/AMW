@@ -30,6 +30,7 @@ class Kette(unittest.TestCase):
             self.pid = db.einfuegen(self.con, "projekt", name="P", angelegt_utc=db.jetzt())
         kern.agent_neu(self.con, self.pid, "TL", rolle="lead")
         kern.agent_neu(self.con, self.pid, "CC1")
+        kern.projekt_einstellen(self.con, self.pid, "TL", veroeffentlichen="sofort")   # A1928: hier die Kette wie bisher (mit Push)
         self.ursprung = os.path.join(self.ordner.name, "ursprung.git")
         self.repo = os.path.join(self.ordner.name, "repo")
         self.g("init", "-q", "--bare", "-b", "main", self.ursprung, ordner=self.ordner.name)

@@ -270,7 +270,10 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 "themen_gegenlesen": ("haiku", "sonnet", "aus"),
                 # Verteilen an interaktive Agenten (A1927, TH157): vorschlag = der Lead bekommt die Zuteilung als Frage (Vorgabe);
                 # an = die AMW teilt einem freien Agenten das nächste passende startklare Paket selbst zu; aus = nie.
-                "verteilen": ("vorschlag", "an", "aus")}
+                "verteilen": ("vorschlag", "an", "aus"),
+                # Releases in drei Ebenen (A1928, TH158): meilenstein = release ausliefern ist lokal live (ohne Push und GitHub-
+                # Release); veröffentlicht wird nach der Abnahme des Meilensteins durch den Menschen; sofort = wie früher.
+                "veroeffentlichen": ("meilenstein", "sofort")}
 NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung")
 BUENDEL_EINSTELLUNGEN = ("version_datei", "changelog_datei", "buendel_schritt", "gesamtlauf_befehl")   # A1876 (D1306 F2)
 VERSION_FRIST_TAGE = 14            # so lange darf Fertiges ohne Version liegen, bevor der Plan-Check warnt (Projekt: version_frist_tage)
