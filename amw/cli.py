@@ -138,8 +138,6 @@ def cmd_projekt(a, con):
         k, _, v = a.name.partition("=")
         if k.strip() in GESPERRTE_EINSTELLUNGEN:     # A1876/A1892: Befehle oder Rechte – --von Entwickler nur im eigenen Terminal
             _rolle_nur_mensch_oder_lead(con, _projekt(con, a), a, f"{k.strip()} setzen")
-        if k.strip() == "sicherung_ziel" and (_von(a) != kern.ENTWICKLER or _aus_agenten_sitzung()):   # A1929
-            raise kern.AmwFehler("sicherung_ziel setzt nur der Mensch im eigenen Terminal (--von Entwickler)")
         e = kern.projekt_einstellen(con, _projekt(con, a), _von(a), **{k.strip(): v.strip()})
         print(f"{k.strip()} = {e.get(k.strip())}")
     elif a.aktion == "schalter":                     # A1926 (D1304 §5): Projekt-Schalter mit Probe an einer Kopie
@@ -189,7 +187,8 @@ def _aus_agenten_sitzung():
 
 
 # A1892 (P294): Projekt-Einstellungen, die Rechte vergeben (Freigeben in der Merge-Liste, Weckrufe, Halt) – gleiche Sperre wie
-# „agent lead“; merge_blick/merge_aussen_pruefung setzt zusätzlich nur der Mensch (kern.NUR_MENSCH_WAHL)
+# „agent lead“; merge_blick/merge_aussen_pruefung setzt zusätzlich nur der Mensch (kern.NUR_MENSCH_WAHL); thema_freigabe und
+# sicherung_ziel Lead oder Mensch (A1951, kern.LEAD_ODER_MENSCH_WAHL)
 RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_blick", "merge_aussen_pruefung",
                         "co_entwickler",                  # A1908 (P352): der Co-Entwickler legt Themen an
                         "verteilen", "verteilen_fach",    # A1927 (#29773, P374): ob und wem die AMW Arbeit zuteilt
@@ -197,7 +196,8 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
                         "sperrmuster",                    # A1919: was p-Pakete im Projekt nie ändern dürfen
                         "regression_befehl", "abnahme_frist_min",   # A1920: was Prüfung C je Projekt ausführt
                         "arbeiter_umgebung",              # A1922: Variablen und Pfade der Arbeiter
-                        "sicherung_ziel",                 # A1929: wohin die tägliche Sicherung schiebt (nur der Mensch)
+                        "sicherung_ziel",                 # A1929/A1951: wohin die tägliche Sicherung schiebt (Lead oder Mensch)
+                        "thema_freigabe",                 # A1937/A1951: wer Themen freigibt (Lead oder Mensch)
                         "release_modus", "changelog_format",   # A1923: wie Bündel ihre Version und ihren CHANGELOG schreiben
                         "release_sicherung")              # A1933: Sicherung vor der Auslieferung eines Projekts
 # eine Stelle für alle Einstellungen mit dieser Sperre (CCamwTL P299): Rechte (A1892) und ausführbare Bündel-Befehle (A1876, P298)
@@ -1385,7 +1385,7 @@ def cmd_sicherung(a, con):
         return
     z = sicherung.ziel(con, pid)
     l = sicherung.letzte(con, pid)
-    print(f"Ziel: {sicherung.anzeige(z) if z else 'keins (amw projekt einstellen sicherung_ziel=… – nur der Mensch)'}")
+    print(f"Ziel: {sicherung.anzeige(z) if z else 'keins (amw projekt einstellen sicherung_ziel=… – Lead oder Mensch)'}")
     if l:
         print(f"Zuletzt: {l['zeit_utc'][:16].replace('T', ' ')} · {l.get('refs')} Refs · rc {l.get('rc')}"
               + (f" · abgewiesen: {', '.join(l['abgewiesen'])}" if l.get("abgewiesen") else ""))

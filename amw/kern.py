@@ -278,7 +278,10 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # Releases in drei Ebenen (A1928, TH158): meilenstein = release ausliefern ist lokal live (ohne Push und GitHub-
                 # Release); veröffentlicht wird nach der Abnahme des Meilensteins durch den Menschen; sofort = wie früher.
                 "veroeffentlichen": ("meilenstein", "sofort")}
-NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung", "thema_freigabe")
+NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung")
+# A1951 (Marcel W2460, B2914: „Wir sind Dev und TL“): Lead oder Mensch – nie ein anderer Agent; ändert der Lead, steht es im Protokoll
+LEAD_ODER_MENSCH_WAHL = ("thema_freigabe", "sicherung_ziel")
+LEAD_GRUND = "W2460/B2914"
 BUENDEL_EINSTELLUNGEN = ("version_datei", "changelog_datei", "buendel_schritt", "gesamtlauf_befehl")   # A1876 (D1306 F2)
 VERSION_FRIST_TAGE = 14            # so lange darf Fertiges ohne Version liegen, bevor der Plan-Check warnt (Projekt: version_frist_tage)
 VERSION_FORM = re.compile(r"(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?")
@@ -385,6 +388,7 @@ def projekt_einstellen(con, pid, von, **werte):
                "abnahme_frist_min": (1, 720)}                  # A1920: Zeitlimit je Abnahme in Prüfung C (Vorgabe 30)
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
+        alt = dict(e)
         for k, v in werte.items():
             if k == "limit_halt":                        # A1888: Halt beim Wochenlimit – Prozent 1–100; 0, leer oder „aus“ = aus
                 try:
@@ -407,10 +411,8 @@ def projekt_einstellen(con, pid, von, **werte):
                 continue
             if k == "schalter":                          # A1926: nur über amw projekt schalter (Probe vor dem Einschalten)
                 raise AmwFehler("schalter: amw projekt schalter <Projekt> probe | an | aus")
-            if k == "sicherung_ziel":                    # A1929: Sicherungsziel – nur der Mensch, nie mit Zugangsdaten
+            if k == "sicherung_ziel":                    # A1929/A1951: Sicherungsziel – Lead oder Mensch, nie mit Zugangsdaten
                 from . import sicherung
-                if von != ENTWICKLER:
-                    raise AmwFehler("sicherung_ziel setzt nur der Mensch (--von Entwickler im eigenen Terminal)")
                 try:
                     v = sicherung.ziel_pruefen(v)
                 except ValueError as f:
@@ -605,6 +607,10 @@ def projekt_einstellen(con, pid, von, **werte):
                 raise AmwFehler(f"{k}: zwischen {lo} und {hi}")
             e[k] = int(v) if v == int(v) else v
         con.execute("UPDATE projekt SET einstellungen = ? WHERE id = ?", (json.dumps(e), pid))
+        for k in LEAD_ODER_MENSCH_WAHL:                  # A1951: was der Lead statt des Menschen umstellt, steht im Protokoll
+            if k in werte and von != ENTWICKLER and e.get(k) != alt.get(k):
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="einstellung_lead",
+                             text=json.dumps({"schluessel": k, "alt": alt.get(k), "neu": e.get(k), "grund": LEAD_GRUND}, ensure_ascii=False))
     return e
 
 

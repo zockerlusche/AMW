@@ -1,7 +1,7 @@
 """Sicherung (A1929, TH158 Ebene 2, Marcel W2453): Die AMW schiebt einmal am Tag ALLE Zweige und Tags des Projekt-Repos an ein
 Sicherungsziel – ohne neue Version und ohne Homepage.
 
-- Ziel: Projekt-Einstellung sicherung_ziel (URL oder Name eines Remotes; setzen nur der Mensch im eigenen Terminal). Ohne
+- Ziel: Projekt-Einstellung sicherung_ziel (URL oder Name eines Remotes; setzen Lead oder Mensch, A1951). Ohne
   Einstellung geschieht nichts. Keine Zugangsdaten in der AMW: Eine URL mit Benutzer/Passwort/Token wird abgelehnt; git
   nutzt die vorhandene Anmeldung des Menschen.
 - Dienst-Runde: höchstens ein Versuch je Tag und Projekt, und nur, wenn sich die Refs seit dem letzten Push geändert haben.

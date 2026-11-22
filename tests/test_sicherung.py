@@ -68,9 +68,9 @@ class Sicherung(unittest.TestCase):
             with self.assertRaises(ValueError, msg=schlecht):
                 sicherung.ziel_pruefen(schlecht)
 
-    def test_nur_der_mensch_setzt_das_ziel(self):
-        with self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
-            kern.projekt_einstellen(self.con, self.pid, "TL", sicherung_ziel="https://github.com/k/r.git")
+    def test_lead_oder_mensch_setzt_das_ziel(self):
+        with self.assertRaisesRegex(kern.AmwFehler, "nur Lead und Entwickler"):                  # A1951: kein Coder
+            kern.projekt_einstellen(self.con, self.pid, "CC1", sicherung_ziel="https://github.com/k/r.git")
         with self.assertRaisesRegex(kern.AmwFehler, "keine Zugangsdaten"):
             kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, sicherung_ziel="https://u:p@github.com/k/r.git")
         aus = io.StringIO()

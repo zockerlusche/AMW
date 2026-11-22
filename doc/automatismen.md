@@ -89,7 +89,7 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
 - **Einstellung `veroeffentlichen`:** meilenstein (Vorgabe) | sofort (wie früher: Push und GitHub-Release bei jeder
   Auslieferung). Nur Lead oder Mensch, nicht aus einer Agenten-Sitzung.
 - **Sicherung (Ebene 2, A1929):** Einmal am Tag schiebt die AMW ALLE Zweige und Tags des Projekt-Repos an
-  `sicherung_ziel` (URL, `git@host:pfad` oder Name eines Remotes; setzen nur der Mensch im eigenen Terminal; ohne Ziel nichts) –
+  `sicherung_ziel` (URL, `git@host:pfad` oder Name eines Remotes; setzen Lead oder Mensch, A1951; ohne Ziel nichts) –
   ohne neue Version, ohne Homepage, nur wenn sich seit dem letzten vollständigen Push etwas geändert hat. Nie mit Gewalt: kein
   `--force`, kein `--prune`, kein `--mirror`; ein Zweig, der am Ziel nicht vorspulen kann (lokal neu aufgesetzt), bleibt dort
   wie er war und steht in der Meldung an den Lead, die übrigen Refs gehen mit. Keine Zugangsdaten in der AMW: eine URL mit
@@ -489,7 +489,8 @@ dass der Pfleger daran denken muss.
 
 ### Freigabe durch Co-Entwickler und Lead (A1937, B2913)
 
-- **Einstellung `thema_freigabe`:** mensch (Vorgabe) | co+lead – setzen nur der Mensch.
+- **Einstellung `thema_freigabe`:** mensch (Vorgabe) | co+lead – setzen Lead oder Mensch (A1951, W2460/B2914); stellt der
+  Lead um, steht es im Protokoll (Ereignis `einstellung_lead` mit Grund).
 - **co+lead:** Co-Entwickler und Lead geben je ihr Ja zur aktuellen Fassung (`amw thema freigeben TH…` aus ihrer Sitzung).
   Mit beiden Ja ist das Thema freigegeben (Ereignis von der AMW, mit beiden Namen); der Mensch bekommt eine Info. Eine neue
   Fassung braucht neue Ja. Der Mensch gibt weiter selbst frei und holt jederzeit zurück.
@@ -564,8 +565,8 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 | `amw pc einstellen` | `projekt_rang` | Rangfolge der Projekte für den Disponenten (nur der Mensch im eigenen Terminal) |
 | `amw pc einstellen` | `plaetze_pc` | höchstens so viele p-Arbeiter gleichzeitig über alle Projekte (0 = keine Grenze) |
 | `amw pc einstellen` | `limit_halt` | Halt beim Wochenlimit für alle Projekte (Vorgabe 95, 0 = aus; ein Projekt nur strenger) |
-| `amw projekt einstellen` | `sicherung_ziel` | wohin die tägliche Sicherung aller Zweige und Tags geht (nur der Mensch, ohne Zugangsdaten) |
-| `amw projekt einstellen` | `thema_freigabe` | `mensch` (Vorgabe) oder `co+lead`: wer Themen freigibt (nur der Mensch stellt um) |
+| `amw projekt einstellen` | `sicherung_ziel` | wohin die tägliche Sicherung aller Zweige und Tags geht (Lead oder Mensch, ohne Zugangsdaten) |
+| `amw projekt einstellen` | `thema_freigabe` | `mensch` (Vorgabe) oder `co+lead`: wer Themen freigibt (Lead oder Mensch stellt um, A1951) |
 | `amw projekt einstellen` | `release_sicherung` | `aus` (Vorgabe) oder `an`: Sicherung der Projektdaten vor `release ausliefern` (Projekte, die nicht die AMW sind) |
 | `amw projekt einstellen` | `release_modus` | `datei` (Version in `version_datei`) oder `tag` (Version aus dem Tag) – für Bündel |
 | `amw projekt einstellen` | `changelog_format` | `amw` oder `keepachangelog` ([Unreleased] → [X.Y.Z]) – für Bündel |

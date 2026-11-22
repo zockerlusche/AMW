@@ -44,8 +44,8 @@ class Freigabe(unittest.TestCase):
         with self.assertRaisesRegex(kern.AmwFehler, "thema_freigabe = mensch"):
             themen.ja_geben(self.con, self.pid, "TL", "Anmeldung")
         self.assertNotIn("ja_fehlt", self.st())
-        with self.assertRaises(kern.AmwFehler):                                                   # nur der Mensch stellt um
-            kern.projekt_einstellen(self.con, self.pid, "TL", thema_freigabe="co+lead")
+        with self.assertRaises(kern.AmwFehler):                                                   # A1951: kein Coder
+            kern.projekt_einstellen(self.con, self.pid, "CC1", thema_freigabe="co+lead")
 
     def test_co_und_lead_geben_frei(self):
         self.co_lead()
