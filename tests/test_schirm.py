@@ -10,6 +10,8 @@ from unittest import mock
 
 from amw import aktionen, betrieb, bruecke, cli, db, kern, schirm
 
+GELADEN = time.time()        # beim Laden des Moduls – der Testprozess lief da schon; Grenze unabhängig von der Laufdauer
+
 
 class Grund(unittest.TestCase):
     def setUp(self):
@@ -290,7 +292,10 @@ class Messen(unittest.TestCase):
         if p:                                                                         # unter Windows: wir selbst laufen
             self.assertTrue(any(n.startswith("python") for n in p))
             eigen = os.getpid()
-            self.assertLess(abs(schirm.startzeit(eigen) - time.time()), 3600)
+            start = schirm.startzeit(eigen)                                          # nicht „jünger als 1 h“: ein langer
+            assert start is not None
+            self.assertLess(start, time.time() + 5)                                  # Gesamtlauf (L3076, 6896 s) kommt erst
+            self.assertGreater(start, GELADEN - 3600)                                # spät an diesen Test
 
     def test_fernsitzung_zuerst_gesehen_und_nur_wenn_eingestellt(self):
         schirm._gesehen.clear()
