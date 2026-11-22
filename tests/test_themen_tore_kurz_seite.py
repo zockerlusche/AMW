@@ -42,7 +42,7 @@ class ToreKurz(Rundgang):
         self.assertEqual(self.tab.js("document.querySelector('#inhalt .tor[data-t=konzept]').getAttribute('aria-expanded')"), "true")
         self.tab.js("document.querySelector('#inhalt .tor[data-t=grobplanung]').click()")
         self.assertEqual(self.tab.js("document.querySelector('#inhalt .tore-info').innerText"),
-                         "Grobplanung · 0 von 1 Themen in Meilensteinen · 0 von 1 Meilensteinen freigegeben")
+                         "Grobplanung · 1 von 1 Themen in Meilensteinen · 0 von 1 Meilensteinen freigegeben")   # „nichts zu bauen“ zählt
         self.tab.js("document.querySelector('#inhalt .tor[data-t=grobplanung]').click()")             # zweiter Klick schließt
         self.assertTrue(self.tab.js("document.querySelector('#inhalt .tore-info').hidden"))
 

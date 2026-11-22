@@ -50,7 +50,7 @@ class ThemenSeite(Rundgang):
         self.tab.js(f"{self.LISTE}.click()")
         self.warten("document.querySelector('.th-thema h2')?.textContent === 'Anmeldung'")
         text = self.tab.js("document.querySelector('#inhalt').innerText").lower()
-        for teil in ("1 von 5 themen freigegeben", "anmeldung", "firmen-konto", "wartet auf dich"):
+        for teil in ("wartet auf dich: 2 themen", "anmeldung", "firmen-konto", "wartet auf dich"):   # A1972: Zeile statt Zahlenkette
             self.assertIn(teil, text)
         self.assertEqual(self.tab.js("document.querySelector('.th-thema h2').textContent"), "Anmeldung")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.th-knoepfe button')].map(b => b.dataset.h).join(',')"),
