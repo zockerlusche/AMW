@@ -4288,10 +4288,11 @@ def main(argv=None):
                         nachlesen.merken(db.projekt_name(con, _projekt(con, a)), _von(a), a.cmd)
                     except Exception:                        # noqa: BLE001 – Messen darf den Befehl nie stören
                         pass
-                if _von(a) not in (kern.ENTWICKLER, "AMW", None, ""):      # A1943 (K9): Befehle je Paket zählen
+                wer = getattr(a, "von", None) or os.environ.get("AMW_AGENT")   # nie _von(): ohne Absender kein Abbruch
+                if wer and wer not in (kern.ENTWICKLER, "AMW"):              # A1943 (K9): Befehle je Paket zählen
                     from . import startwissen
                     try:
-                        startwissen.befehl_merken(db.projekt_name(con, _projekt(con, a)), _von(a), a.cmd)
+                        startwissen.befehl_merken(db.projekt_name(con, _projekt(con, a)), wer, a.cmd)
                     except Exception:                        # noqa: BLE001 – Messen darf den Befehl nie stören
                         pass
                 rc = a.f(a, con)
