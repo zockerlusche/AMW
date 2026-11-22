@@ -58,6 +58,21 @@ class PlanAnsicht(Rundgang):
         self.warten(f"({self.STAND} || '').startsWith('Umsetzung')")
         self.assertEqual(planung.bogen_zeile(self.con, self.pid, self.m1)["status"], "aktiv")
 
+    def test_entwurf_des_planers_ja_legt_an(self):
+        """A1940: ein offener Entwurf steht oben in „Meilensteine“; „Ja – anlegen“ legt Meilenstein und Pakete an."""
+        from amw import planer
+        th = self.con.execute("SELECT id FROM thema LIMIT 1").fetchone()[0]
+        planer.entwurf_eintragen(self.con, self.pid, th, 1, {"meilensteine": [{"schluessel": "M1", "titel": "Online anmelden",
+                                                                                "endet_mit": "vorfuehrung"}],
+                                                             "pakete": [{"schluessel": "P1", "meilenstein": "M1", "titel": "Login-Maske",
+                                                                         "auftrag": "Bauen.", "groesse": "S", "art": "oberflaeche",
+                                                                         "fertig_quelle": "release"}]}, modell="sonnet", usd=0.21)
+        self.groesse("pc")
+        self.oeffnen("planung", "document.querySelector('#inhalt .pm-entwurf')")
+        self.assertIn("1 Meilenstein(e), 1 Pakete", self.tab.js("document.querySelector('.pm-entwurf summary').textContent"))
+        self.tab.js("document.querySelector('.pm-entwurf').open = true; document.querySelector('.pm-entwurf button[data-h=plan-ja]').click()")
+        self.warten("!document.querySelector('#inhalt .pm-entwurf') && [...document.querySelectorAll('.pm-zeile')].some(z => z.textContent.includes('Online anmelden'))")
+
     def test_bilder(self):
         planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob")
         wahl = lambda r: f"zustand.planReiter = '{r}'; void zeige('planung', true)"

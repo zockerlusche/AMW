@@ -216,7 +216,46 @@ def daten(con, pid):
             if t["zustand"]["status"] == "frei" and not t["zustand"]["markiert"] and t["id"] not in in_bogen]
     tor = "umsetzung" if any(m["status"] == "aktiv" for m in ms) else ("fein" if grob_zu else "grob")
     return {"meilensteine": ms, "tor": tor, "grob_zu": grob_zu, "fein_zu": fein_zu, "ohne_meilenstein": ohne,
-            "hat_themen": bool(namen), "starten": fein_zu}
+            "hat_themen": bool(namen), "starten": fein_zu, **entwuerfe(con, pid, namen)}
+
+
+def entwuerfe(con, pid, namen):
+    """A1940 (K4): offene Entwürfe des Planers zum Ja/Neu-planen und Planer, die gerade laufen – je Thema."""
+    from . import planer
+    offen, laufend = [], []
+    for tid, name in sorted(namen.items()):
+        l = planer.laeuft(con, pid, tid)
+        if l:
+            laufend.append({"thema": tid, "name": name, "seit_utc": l["zeit_utc"]})
+            continue
+        e = planer.letzter_entwurf(con, pid, tid)
+        if not e or planer.erledigt(con, pid, e["id"]):
+            continue
+        d = e.get("entwurf")
+        offen.append({"thema": tid, "name": name, "eid": e["id"], "zeit_utc": e["zeit_utc"], "modell": e.get("modell"), "usd": e.get("usd"),
+                      "fehler": e.get("fehler"), "nichts": bool(d and d["nichts_zu_bauen"]), "grund": d.get("grund") if d else None,
+                      "meilensteine": len(d["meilensteine"]) if d and not d["nichts_zu_bauen"] else 0,
+                      "pakete": len(d["pakete"]) if d and not d["nichts_zu_bauen"] else 0,
+                      "zeilen": planer.zusammenfassung(d).split(chr(10)) if d and not d["nichts_zu_bauen"] else []})
+    return {"entwuerfe": offen, "planer_laeuft": laufend}
+
+
+def entwurf_ja(con, pid, von, tid):
+    """Ja zum Entwurf (A1940): legt Meilensteine und Pakete an – Lead oder Mensch (planer.uebernehmen prüft)."""
+    from . import planer
+    return planer.uebernehmen(con, pid, von, int(tid))
+
+
+def neu_planen(con, pid, von, tid):
+    """Den Planer für die aktuelle Fassung noch einmal anstoßen (Lead, Co oder Mensch)."""
+    from . import planer, themen
+    if not darf_freigeben(con, pid, von):
+        raise kern.AmwFehler("Neu planen lassen Lead, Co-Entwickler oder der Mensch")
+    t = themen.finden(con, pid, int(tid))
+    s = themen.status(con, t)
+    if not s["fassung"]:
+        raise kern.AmwFehler(f"TH{t['id']} hat noch keinen Text")
+    return planer.anstossen(con, pid, t["id"], s["fassung"], von=von, erneut=True)
 
 
 def jetzt_starten(con, pid, von):

@@ -303,6 +303,10 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
                 return planansicht.verschieben(con, pid, kern.ENTWICKLER, bid, was)
             if was == "starten":
                 return {"gestartet": planansicht.jetzt_starten(con, pid, kern.ENTWICKLER)}
+            if was == "plan-ja":                      # A1940: Ja zum Entwurf des Planers
+                return {"angelegt": planansicht.entwurf_ja(con, pid, kern.ENTWICKLER, daten.get("thema"))}
+            if was == "neu-planen":
+                return {"text": planansicht.neu_planen(con, pid, kern.ENTWICKLER, daten.get("thema"))}
         except (kern.AmwFehler, ValueError, TypeError) as e:
             raise Ungueltig(str(e)) from None
         raise LookupError("unbekannt")

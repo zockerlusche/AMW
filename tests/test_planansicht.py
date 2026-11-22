@@ -132,5 +132,36 @@ class Handlungen(Grund):
         self.assertEqual((self.m(self.m1)["status"], self.m(self.m2)["status"], self.d()["tor"]), ("aktiv", "geplant", "umsetzung"))
 
 
+
+class Entwuerfe(Grund):
+    """A1940 (K4) in der Ansicht: offene Entwürfe des Planers zum Ja/Neu-planen, laufende Planer als Fakt."""
+    ERGEBNIS = {"meilensteine": [{"schluessel": "M1", "titel": "Online anmelden", "endet_mit": "vorfuehrung"}],
+                "pakete": [{"schluessel": "P1", "meilenstein": "M1", "titel": "Login-Maske", "auftrag": "Bauen.", "groesse": "S",
+                            "art": "oberflaeche", "fertig_quelle": "release"}]}
+
+    def test_entwurf_erscheint_und_ja_legt_an(self):
+        from amw import planer
+        planer.entwurf_eintragen(self.con, self.pid, self.th, 1, self.ERGEBNIS, modell="sonnet", usd=0.21)
+        e = self.d()["entwuerfe"]
+        self.assertEqual([(x["thema"], x["meilensteine"], x["pakete"], x["usd"]) for x in e], [(self.th, 1, 1, 0.21)])
+        self.assertIn("P1 Login-Maske · S · oberflaeche · agent · fertig: release", e[0]["zeilen"][1])
+        a = planansicht.entwurf_ja(self.con, self.pid, kern.ENTWICKLER, self.th)
+        self.assertEqual(sorted(a), ["M1", "P1"])
+        self.assertEqual(self.d()["entwuerfe"], [])                                            # angenommen: weg
+        self.assertIn("Online anmelden", [m["titel"] for m in self.d()["meilensteine"]])
+
+    def test_laeuft_und_neu_planen(self):
+        from amw import planer
+        gestartet = []
+        with mock.patch.object(planer, "STARTER", lambda pid, tid, f: gestartet.append(tid) or 1), \
+                mock.patch.dict(os.environ, {"AMW_PLANER_AUS": ""}):
+            themen.pflegen(self.con, self.pid, "CC1", self.th, "Text.")
+            with self.assertRaisesRegex(kern.AmwFehler, "Neu planen lassen"):
+                planansicht.neu_planen(self.con, self.pid, "CC1", self.th)
+            self.assertIn("angestoßen", planansicht.neu_planen(self.con, self.pid, kern.ENTWICKLER, self.th))
+        self.assertEqual(gestartet, [self.th])
+        self.assertEqual([x["thema"] for x in self.d()["planer_laeuft"]], [self.th])
+
+
 if __name__ == "__main__":
     unittest.main()
