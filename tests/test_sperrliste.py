@@ -33,6 +33,7 @@ EINGEORDNET_FREI = {
     "amw/takt.py": "Lead-Durchgang (nur Lesen/Melden)",
     "amw/termine.py": "Lead-Sperre für Termine",
     "amw/themen.py": "Lead-Sperre für Design-Seiten",
+    "amw/planansicht.py": "Freigabe-Regeln für Meilensteine und Pläne (Fach-Aktion wie planung.py, K1-Regel B2913) – keine Abschottung/Rechte",
     "amw/verlauf.py": "Absender Entwickler (Anzeige)",
     "amw/wartegrund.py": "Absender Entwickler in Wartegründen",
 }
