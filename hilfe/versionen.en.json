@@ -13,7 +13,7 @@
   },
   {
    "titel": "Record",
-   "text": "`amw release version --version 1.4.0 --titel \"Short name\"` – the release notes come from the tasks finished since the last version.",
+   "text": "`amw release version --version 1.4.0 --titel \"Short name\"` – the release notes come from the tasks finished since the last version. If a task has no sentence of its own, AMW works one out from the commit, the topic or the title.",
    "bilder": []
   },
   {
