@@ -57,6 +57,8 @@ GESPERRT = (
     ("amw/anbieter_schluessel.py", "fest", "apiKeyHelper – gibt nur freigegebene Schlüsseldateien aus (A1931)"),
     ("amw-anbieter-schluessel.py", "fest", "apiKeyHelper (A1931)"),
     ("amw/gegenlesen.py", "fest", "Gegenleser der Themen – startet claude -p (A1914)"),
+    ("amw/stil.py", "fest", "Stil-Prüfung der Prüfbitten – startet claude -p (A1973)"),
+    ("amw-stil.py", "fest", "Stil-Leser (A1973)"),
     ("amw/planer.py", "fest", "Planer der Themen – startet claude -p (A1940)"),
     ("amw/folgen.py", "fest", "Folgenprüfer eigener Änderungen – startet claude -p (A1957)"),
     ("pyrightconfig.json", "fest", "Konfiguration der Sprachprüfung in Prüfung C (A1962) – ein Paket schaltet sie nicht ab"),
