@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.162.0 – 22.11.2026 · Sprach-Server für die Agenten, sicherere Auslieferung
+- **Neu:** Die Agenten sehen Fehler in Python und PHP gleich beim Schreiben (Sprach-Server), statt sie erst beim Testen zu
+  finden. Gilt für die Sitzungen der Agenten, nicht für die Arbeiter im Hintergrund.
+- **Verbessert:** Nach einem roten Gesamtlauf und einer Korrektur gehen neue Prüfbitten durch, ohne dass ältere Prüfungen
+  desselben Stapels von Hand zurückgenommen werden müssen.
+- **Behoben:** Als Beleg für eine Auslieferung zählt nur noch ein Lauf aller Tests; ein Teil-Lauf wird nie mehr als Gesamtlauf
+  gewertet.
+
 ## 1.161.0 – 22.11.2026 · Aufgaben schließen sich selbst, Abnehmen mit einem Ja
 - **Neu:** Eine Aufgabe kann sagen, wann sie fertig ist (`--fertig-wenn`: Thema freigegeben, oder einige Tage nach einer
   Version ohne Fehler); die AMW schließt sie dann selbst und schreibt Beleg und Zusammenfassung. Kriterien mit einer
