@@ -19,6 +19,11 @@ A1909: core.autocrlf im Bündel ist der Wert, den git im Projekt-Repo selbst sie
 Stand-Vergleich (betrieb.pruefstand) und in jedem Entwicklungsbaum. Vorher galt der Systemwert: das Bündel lag mit CRLF vor, die
 Nacharbeit schrieb LF mit gleichem Inhalt, und git hielt jede neu geschriebene Datei wegen der Größe für geändert.
 `amw paket buendeln --gesamtlauf buendel-X.Y.Z` stößt den Gesamtlauf eines vorhandenen Bündels neu an.
+
+A1923 (TH160 F2, Mehrprojekt 5): release_modus = datei (Vorgabe: Nummer in version_datei) | tag (Nummer aus dem höchsten Tag
+vX.Y.Z des Projekt-Repos, kein Versions-Commit an einer Datei – der Bündel-Commit ändert nur den CHANGELOG); changelog_format =
+amw (Vorgabe: „## X.Y.Z – TT.MM.JJJJ · Titel“) | keepachangelog („## [Unreleased]“ → „## [X.Y.Z] - JJJJ-MM-TT“ mit Added/Changed/
+Fixed, darüber ein neues leeres [Unreleased]). Den Tag setzt das Bündel nie: das bleibt `release ausliefern` (Lead bzw. Mensch).
 """
 import datetime
 import fnmatch
@@ -32,6 +37,8 @@ from . import db, kern
 NAME, EMAIL = "AMW-Bündel", "buendel@amw.invalid"
 VERSION = re.compile(r"\b(\d+)\.(\d+)\.(\d+)\b")
 GRUPPEN = (("neu", "Neu"), ("verbessert", "Verbessert"), ("behoben", "Behoben"))
+KAC_GRUPPEN = (("neu", "Added"), ("verbessert", "Changed"), ("behoben", "Fixed"))     # Keep a Changelog 1.1.0
+UNRELEASED = re.compile(r"^## \[Unreleased\][^\n]*\n", re.M | re.I)
 
 
 class BuendelFehler(kern.AmwFehler):
@@ -57,7 +64,10 @@ def einstellungen(con, pid):
     ordner = kern.projekt_ordner(con, pid)
     amw = bool(ordner) and os.path.normcase(os.path.abspath(ordner)) == os.path.normcase(os.path.abspath(einrichtung.WURZEL))
     v = {k: (e.get(k) or (vorgaben_amw()[k] if amw else "")) for k in kern.BUENDEL_EINSTELLUNGEN}
-    fehlt = [k for k in ("version_datei", "changelog_datei", "gesamtlauf_befehl") if not v[k]]
+    v["release_modus"] = kern.projekt_wahl(con, pid, "release_modus")              # A1923
+    v["changelog_format"] = kern.projekt_wahl(con, pid, "changelog_format")
+    fehlt = [k for k in (("version_datei",) if v["release_modus"] == "datei" else ()) + ("changelog_datei", "gesamtlauf_befehl")
+             if not v[k]]
     if fehlt:
         raise BuendelFehler(f"Bündeln braucht die Projekt-Einstellungen {', '.join(fehlt)} – z. B. amw projekt einstellen"
                             f" {fehlt[0]}=…")
@@ -129,6 +139,57 @@ def changelog_abschnitt(version, datum, titel, pakete):
     if len(zeilen) == 1:
         zeilen.append(f"- **Intern:** {len(pakete)} Paket(e) ohne sichtbare Änderung (Tests und Pflege).")
     return "\n".join(zeilen) + "\n"
+
+
+def version_aus_tags(tags):
+    """A1923: höchste Nummer unter den Tags vX.Y.Z (auch X.Y.Z) – „0.0.0“, wenn es noch keinen gibt."""
+    best = (0, 0, 0)
+    for x in tags:
+        m = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)", x.strip())
+        if m:
+            best = max(best, tuple(int(y) for y in m.groups()))
+    return ".".join(str(y) for y in best)
+
+
+def kac_abschnitt(version, datum, pakete, vorhanden=""):
+    """A1923: „## [X.Y.Z] - JJJJ-MM-TT“ mit ### Added/Changed/Fixed aus den Hinweisen; was schon unter [Unreleased] stand
+    (vorhanden), bleibt erhalten und kommt in dieselben Gruppen. Ohne jeden Eintrag: ### Changed – Intern."""
+    gruppen, reihe, aktuell, frei = {}, [], None, []
+    for z in vorhanden.strip("\n").splitlines():
+        m = re.match(r"^### (.+?)\s*$", z)
+        if m:
+            aktuell = m.group(1)
+            if aktuell not in gruppen:
+                gruppen[aktuell] = []
+                reihe.append(aktuell)
+        elif z.strip():
+            (gruppen[aktuell] if aktuell else frei).append(z)
+    for gruppe, wort in KAC_GRUPPEN:
+        for p in pakete:
+            if p["hinweis"] and (p["hinweis_gruppe"] or "verbessert") == gruppe:
+                if wort not in gruppen:
+                    gruppen[wort] = []
+                    reihe.append(wort)
+                gruppen[wort].append(f"- {' '.join(p['hinweis'].split())}")
+    if not frei and not any(gruppen.values()):
+        gruppen["Changed"], reihe = [f"- Intern: {len(pakete)} Paket(e) ohne sichtbare Änderung (Tests und Pflege)."], ["Changed"]
+    teile = [f"## [{version}] - {datum}"] + frei
+    for wort in sorted(reihe, key=lambda w: [k for _, k in KAC_GRUPPEN].index(w) if w in [k for _, k in KAC_GRUPPEN] else 9):
+        if gruppen[wort]:
+            teile += ["", f"### {wort}", *gruppen[wort]]
+    return "\n".join(teile) + "\n"
+
+
+def kac_einfuegen(text, version, datum, pakete):
+    """A1923: [Unreleased] wird zu [X.Y.Z] - Datum (mit seinem Inhalt), darüber ein neues leeres [Unreleased]. Ohne
+    [Unreleased]: beides vor den ersten Abschnitt „## …“ (sonst ans Ende)."""
+    m = UNRELEASED.search(text)
+    if m:
+        ende = re.search(r"^## ", text[m.end():], re.M)
+        bis = m.end() + (ende.start() if ende else len(text) - m.end())
+        vorhanden, rest = text[m.end():bis], text[bis:]
+        return text[:m.start()] + "## [Unreleased]\n\n" + kac_abschnitt(version, datum, pakete, vorhanden) + ("\n" + rest if rest else "")
+    return changelog_einfuegen(text, "## [Unreleased]\n\n" + kac_abschnitt(version, datum, pakete))
 
 
 def changelog_einfuegen(text, abschnitt):
@@ -222,27 +283,37 @@ def buendeln(con, pid, von, aids=None, titel=None, starten=None):
     if not drin:
         raise BuendelFehler("Kein Paket ließ sich aufsetzen: " + "; ".join(f"A{p['id']} {p['grund']}" for p in raus))
     # Versions-Commit
-    vpfad, cpfad = os.path.join(ziel, *e["version_datei"].split("/")), os.path.join(ziel, *e["changelog_datei"].split("/"))
-    try:
-        with open(vpfad, encoding="utf-8") as f:
-            vtext = f.read()
-        alt = VERSION.search(vtext).group(0) if VERSION.search(vtext) else ""
-    except OSError:
-        raise BuendelFehler(f"Versionsdatei {e['version_datei']} fehlt im Projekt") from None
-    version = naechste_version(alt, any(p["hinweis"] and p["hinweis_gruppe"] == "neu" for p in drin))
+    cpfad = os.path.join(ziel, *e["changelog_datei"].split("/"))
+    neu_dabei = any(p["hinweis"] and p["hinweis_gruppe"] == "neu" for p in drin)
+    if e["release_modus"] == "tag":                                # A1923: Nummer aus den Tags, keine Versionsdatei
+        _, tags = _git(repo, daten, "tag", "--list")
+        version = naechste_version(version_aus_tags(tags.splitlines()), neu_dabei)   # über dem höchsten Tag: nie schon vergeben
+    else:
+        vpfad = os.path.join(ziel, *e["version_datei"].split("/"))
+        try:
+            with open(vpfad, encoding="utf-8") as f:
+                vtext = f.read()
+            alt = VERSION.search(vtext).group(0) if VERSION.search(vtext) else ""
+        except OSError:
+            raise BuendelFehler(f"Versionsdatei {e['version_datei']} fehlt im Projekt") from None
+        version = naechste_version(alt, neu_dabei)
     zweig = f"buendel-{version}"
     if _git(repo, daten, "rev-parse", "--verify", "--quiet", f"refs/heads/{zweig}", ok=(0, 1))[0] == 0:
         raise BuendelFehler(f"Zweig {zweig} gibt es schon – erst ausliefern oder den Lead fragen (nichts überschrieben)")
-    with open(vpfad, "w", encoding="utf-8", newline="") as f:
-        f.write(vtext.replace(alt, version, 1))
+    if e["release_modus"] != "tag":
+        with open(vpfad, "w", encoding="utf-8", newline="") as f:
+            f.write(vtext.replace(alt, version, 1))
+    kac = e["changelog_format"] == "keepachangelog"
     try:
         with open(cpfad, encoding="utf-8") as f:
             ctext = f.read()
     except OSError:
-        ctext = "# Änderungen\n\n"
+        ctext = "# Changelog\n\n" if kac else "# Änderungen\n\n"
     titel = (titel or "").strip() or ("Gebündelte Pakete" if len(drin) > 1 else (drin[0]["hinweis"] or "Pflege")[:60].rstrip(" ."))
+    heute = datetime.date.today()
     with open(cpfad, "w", encoding="utf-8", newline="") as f:
-        f.write(changelog_einfuegen(ctext, changelog_abschnitt(version, datetime.date.today().strftime("%d.%m.%Y"), titel, drin)))
+        f.write(kac_einfuegen(ctext, version, heute.isoformat(), drin) if kac
+                else changelog_einfuegen(ctext, changelog_abschnitt(version, heute.strftime("%d.%m.%Y"), titel, drin)))
     if e["schritt_befehl"]:
         u = {k: v for k, v in os.environ.items() if k not in ("AMW_AGENT", "AMW_PROJEKT") and not k.startswith("CLAUDE")}
         u["AMW_DB"] = os.path.join(daten, "schritt.db")             # nie die Live-Datenbank (Entwicklungsbaum öffnet sonst amw.db)
@@ -256,7 +327,8 @@ def buendeln(con, pid, von, aids=None, titel=None, starten=None):
     _, versioniert = _git(ziel, daten, "diff", "--name-only", "HEAD")             # geänderte versionierte Dateien
     _, neu = _git(ziel, daten, "ls-files", "--others", "--exclude-standard")     # neue Dateien (nur erlaubte kommen mit)
     neu = "\n".join(x for x in neu.splitlines() if x.strip() and x.strip() not in liegen)   # nur, was in DIESEM Lauf entstand
-    erlaubt = lambda pfad: pfad in (e["version_datei"], e["changelog_datei"]) or any(fnmatch.fnmatch(pfad, m) for m in e["schritt_dateien"])
+    eigene = (e["changelog_datei"],) + ((e["version_datei"],) if e["release_modus"] != "tag" else ())   # A1923: bei tag keine Versionsdatei
+    erlaubt = lambda pfad: pfad in eigene or any(fnmatch.fnmatch(pfad, m) for m in e["schritt_dateien"])
     geaendert = [x for x in versioniert.splitlines() + neu.splitlines() if x.strip() and erlaubt(x.strip())]
     fremd = [x for x in versioniert.splitlines() if x.strip() and not erlaubt(x.strip())]
     if fremd:
@@ -438,7 +510,7 @@ def _lauf_und_meldung(con, pid, zweig, warte, frist_s):
     daten = os.path.join(os.path.dirname(ziel), "buendel-daten")
     _, stat = _git(ziel, daten, "show", "--stat", "--format=", v["sha"])
     _, log = _git(ziel, daten, "show", f"{v['sha']}:{e['changelog_datei']}")
-    m = re.search(rf"^## {re.escape(v['version'])} .*?(?=^## |\Z)", log, re.M | re.S)
+    m = re.search(rf"^## \[?{re.escape(v['version'])}\b.*?(?=^## |\Z)", log, re.M | re.S)      # A1923: auch [X.Y.Z]
     jetzt = db.jetzt()
     text_gruen = (f"Bündel {v['version']}: Pakete " + ", ".join(f"A{x}" for x in v["drin"]) + f" (je einzeln geprüft und freigegeben),"
                   f" Versions-Commit nur erlaubte Dateien (Diff-Tor), Gesamtlauf L{lid} grün auf genau {v['sha'][:8]}"

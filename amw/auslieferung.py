@@ -228,10 +228,25 @@ class Kette:
     def datei(self, sha, pfad):
         return self.git("show", f"{sha}:{pfad}", schritt="Stand lesen")
 
+    def release_art(self):
+        """A1923: woher die Version kommt – {"modus": datei | tag, "version_datei", "changelog"} aus den Projekt-Einstellungen
+        (release_modus, version_datei, changelog_datei); ohne Einstellung wie die AMW (amw/__init__.py, CHANGELOG.md)."""
+        r = self.con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (self.pid,)).fetchone()
+        e = json.loads((r[0] if r else None) or "{}")
+        return {"modus": kern.projekt_wahl(self.con, self.pid, "release_modus"),
+                "version_datei": e.get("version_datei") or "amw/__init__.py", "changelog": e.get("changelog_datei") or "CHANGELOG.md"}
+
+    def nur_amw(self):
+        """A1923: Die Kette liefert bisher nur die AMW selbst aus (Dienst, Versionszeile, Web) – Projekte mit eigener Versionsquelle
+        stoppen vor dem ersten Schritt nach außen (Mehrprojekt 9, A1933)."""
+        a = self.release_art()
+        return a["modus"] == "datei" and a["version_datei"] == "amw/__init__.py"
+
     def notizen(self, sha, version):
-        """Abschnitt der Version aus dem CHANGELOG des Stands: (Titel, Text)."""
-        text = self.datei(sha, "CHANGELOG.md")
-        m = re.search(rf"^## {re.escape(version)}\b[^\n]*?(?:·\s*(?P<titel>[^\n]+))?\n(?P<text>.*?)(?=^## |\Z)", text, re.M | re.S)
+        """Abschnitt der Version aus dem CHANGELOG des Stands: (Titel, Text). A1923: auch Keep a Changelog („## [X.Y.Z] - Datum“)."""
+        text = self.datei(sha, self.release_art()["changelog"])
+        m = re.search(rf"^## \[?{re.escape(version)}\]?(?![\d.])[^\n]*?(?:·\s*(?P<titel>[^\n]+))?\n(?P<text>.*?)(?=^## |\Z)",
+                      text, re.M | re.S)
         if not m:
             self.stopp("Versionshinweise", f"im CHANGELOG fehlt „## {version}“")
         return (m.group("titel") or version).strip(), m.group("text").strip()
@@ -243,9 +258,20 @@ class Kette:
         return mergeliste.server_code([z.strip() for z in aus.splitlines() if z.strip()]) if rc == 0 else []
 
     def version_an(self, sha):
-        """__version__ aus amw/__init__.py an einem Stand, None wenn nicht lesbar."""
-        rc, text = self.extern(["git", "show", f"{sha}:amw/__init__.py"], self.repo)
-        m = re.search(r'__version__ = "([^"]+)"', text) if rc == 0 else None
+        """Version an einem Stand, None wenn nicht lesbar: __version__ aus amw/__init__.py (die AMW). A1923: aus der
+        version_datei des Projekts (erste Nummer X.Y.Z) bzw. bei release_modus = tag aus dem obersten Abschnitt des CHANGELOG
+        unter [Unreleased] – dort schreibt das Bündel die Nummer hin."""
+        a = self.release_art()
+        pfad = a["changelog"] if a["modus"] == "tag" else a["version_datei"]
+        rc, text = self.extern(["git", "show", f"{sha}:{pfad}"], self.repo)
+        if rc != 0:
+            return None
+        if a["modus"] == "tag":
+            m = re.search(r"^## \[?v?(\d+\.\d+\.\d+)\b", text, re.M)
+        elif pfad == "amw/__init__.py":
+            m = re.search(r'__version__ = "([^"]+)"', text)
+        else:
+            m = re.search(r"\b(\d+\.\d+\.\d+)\b", text)
         return m.group(1) if m else None
 
     def zwischenversionen(self, sha, version):
@@ -329,10 +355,13 @@ class Kette:
     # --- Vorbedingungen -------------------------------------------------------------------------------------------------
     def pruefen(self, zweig, gesamtlauf=None, aufgabe=None):
         sha = self.stand(zweig)
-        m = re.search(r'__version__ = "([^"]+)"', self.datei(sha, "amw/__init__.py"))
-        if not m:
-            self.stopp("Version", "amw/__init__.py nennt keine Version")
-        version = m.group(1)
+        a = self.release_art()                           # A1923: Versionsquelle des Projekts
+        quelle = f"{a['changelog']} (release_modus tag)" if a["modus"] == "tag" else a["version_datei"]
+        if a["modus"] != "tag":
+            self.datei(sha, a["version_datei"])          # fehlt die Datei: Stopp „Stand lesen“ wie bisher
+        version = self.version_an(sha)
+        if not version:
+            self.stopp("Version", f"{quelle} nennt keine Version")
         for z in self.uebertragen(sha, zweig):           # A1814: gleicher Inhalt nach dem Neu-Aufsetzen – Grün/Merge-OK gehen mit
             self.ausgabe(f"Freigabe übernommen – {z}")
         fehlt = []                                       # A1814: alle fehlenden Freigaben auf einmal nennen
@@ -451,6 +480,10 @@ class Kette:
         sha, version, ausnahme = v["sha"], v["version"], v["ausnahme"]
         self.ausgabe(f"Version {version} = {sha[:8]} · {'Prüfstufe niedrig (ohne Prüfbitte)' if v['niedrig'] else 'Prüfung grün'} · Merge-OK {v['merge_ok']} · "
                      + (f"Gesamtlauf L{v['lauf']}" if v["lauf"] else f"Ausnahme ({ausnahme})"))
+        if not self.nur_amw():                          # A1923 (#29877): klarer Stopp vor dem ersten Schritt nach außen
+            self.stopp("Projekt", f"Version {version} ist geprüft und freigegeben – ausliefern kann die Kette bisher nur die AMW selbst"
+                       " (Dienst, Web). Für Projekte mit eigener Versionsquelle kommt das mit Mehrprojekt 9 (A1933); nichts geändert,"
+                       " kein Tag gesetzt")
         from . import waechter                         # A1847/P253: während jeder Auslieferung keine neuen p-Starts
         wartung = not waechter.zustand()["wartung"]     # schon an (von Hand): bleibt, wie es war
         if wartung:

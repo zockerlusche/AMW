@@ -103,7 +103,15 @@ Nummer und schrieb die Versionshinweise.
   dem Lead als Prüfer und Meldung „Bündel X.Y.Z bereit“ mit Versions-Diff und Befehlen; rot → Meldung, kein GRÜN.
 - **Release:** gibt der Lead frei – die Kette zählt für `buendel-*` nur ein Merge-OK, das Lead oder Mensch selbst geben
   (nicht die von den Paketen übernommenen).
-- Grenze: Die Kette liest die Version weiterhin aus `amw/__init__.py` – für andere Projekte ist sie noch nicht eingerichtet.
+- **Release-Modus je Projekt (A1923, TH160):** `release_modus` = `datei` (Vorgabe: Nummer in `version_datei`) | `tag` (Nummer
+  aus dem höchsten Tag `vX.Y.Z` des Projekt-Repos, ohne Tag 0.x; kein Versions-Commit an einer Datei – der Bündel-Commit
+  ändert nur den CHANGELOG). `changelog_format` = `amw` (Vorgabe: „## X.Y.Z – TT.MM.JJJJ · Titel“) | `keepachangelog`
+  („## [Unreleased]“ wird „## [X.Y.Z] - JJJJ-MM-TT“ mit Added/Changed/Fixed aus den Hinweisen; was schon darunter stand, bleibt;
+  darüber ein neues leeres [Unreleased]). Beide nur Lead oder Mensch, nicht aus einer Agenten-Sitzung. Den Tag setzt das
+  Bündel nie – das bleibt `release ausliefern` (Lead bzw. Mensch).
+- Grenze: Die Kette liest Nummer und Notizen je nach Modus (Versionsdatei des Projekts bzw. CHANGELOG), liefert aber bisher nur
+  die AMW selbst aus (Dienst, Web). Ein Projekt mit eigener Versionsquelle stoppt nach der Prüfung mit „Stopp bei Projekt“,
+  nichts geändert, kein Tag – die Kette für diese Projekte kommt mit Mehrprojekt 9 (A1933).
 - **Zeilenenden (seit 1.152.3, A1909):** Im Bündel gilt `core.autocrlf` des Projekt-Repos (Repo vor System), derselbe Wert wie
   beim Stand-Vergleich vor dem Gesamtlauf; der Arbeitsbaum wird bei jedem Bündel ganz neu geschrieben. Vorher checkte das
   Bündel mit dem Systemwert (CRLF) aus, die Nacharbeit schrieb Dateien mit gleichem Inhalt in LF neu, und git hielt sie wegen
@@ -421,6 +429,8 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 
 | Wo | Schlüssel | Bedeutung |
 |---|---|---|
+| `amw projekt einstellen` | `release_modus` | `datei` (Version in `version_datei`) oder `tag` (Version aus dem Tag) – für Bündel |
+| `amw projekt einstellen` | `changelog_format` | `amw` oder `keepachangelog` ([Unreleased] → [X.Y.Z]) – für Bündel |
 | `amw projekt einstellen` | `arbeiter_umgebung` | zusätzliche Variablen und PATH-Ordner für Arbeiter (keine Zugangsdaten, kein Netz) |
 | `amw projekt einstellen` | `regression_befehl` | Rückschritt-Tests in Prüfung C (Befehl, `aus`; leer = Vorgabe: nur die AMW selbst) |
 | `amw projekt einstellen` | `abnahme_frist_min` | Zeitlimit je Abnahme in Prüfung C, 1–720 Minuten (Vorgabe 30) |

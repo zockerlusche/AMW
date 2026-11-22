@@ -230,6 +230,8 @@ PROJEKT_TEXTE = {"entwickler_name": 30}       # Text-Einstellungen: Schlüssel �
 # Auswahl-Einstellungen: Schlüssel → erlaubte Werte, der erste ist die Vorgabe.
 # dateien_online: welche Dateien von Dokumenten von selbst „auch online“ stehen (wunsch = nur auf Wunsch, wie bis 1.10.0)
 PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
+                "release_modus": ("datei", "tag"),                      # A1923: Version in version_datei oder aus dem Tag
+                "changelog_format": ("amw", "keepachangelog"),          # A1923: Abschnitte wie die AMW oder Keep a Changelog
                 # Wege (Fehlerbericht aus einem Projekt, Entscheid des Entwicklers): Fragen der Agenten an den Entwickler gehen zuerst an den
                 # Lead (er beantwortet selbst oder leitet weiter), Spezifikationen legt nur der Lead vor; freigeben darf
                 # der Lead nur, wo es eingeschaltet ist (spec_frei = lead).
