@@ -4,6 +4,23 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.155.0 – 22.11.2026 · Themen gegenlesen, Arbeit verteilen, lokal live
+- **Neu:** Liefert der Betreuer eine neue Fassung eines Themas, liest ein frischer Agent sie zuerst gegen – er liest nur und
+  kostet wenige Cent. Seine Einwände gehen an den Betreuer; erst danach wartet das Thema auf dich. Solange steht dort
+  „wird gegengelesen · seit …“, danach klappst du das Ergebnis auf. Abschalten: `amw projekt einstellen themen_gegenlesen=aus`.
+- **Neu:** Aufgaben können auf Themen verweisen (`amw aufgabe aendern <nr> --thema TH3`). Bekommt ein freigegebenes Thema eine
+  neue Fassung, meldet die AMW die offenen Aufgaben mit Verweis ihrem Agenten zum Prüfen – eine Nachricht je Agent.
+- **Neu:** Ist ein Agent frei, schlägt die AMW dem Lead die nächste passende Aufgabe nach dem Plan vor – nach Rang, bei gleichem
+  Rang die mit mehr wartenden Nachfolgern zuerst, passend nach Fachgebiet und Größe. Mit `amw projekt einstellen verteilen=an`
+  teilt sie selbst zu und nennt den Grund.
+- **Neu:** Fällt ein Agent aus, geht seine laufende Aufgabe mit einer Übergabe-Notiz zurück, und du bekommst die Frage, ob seine
+  Sitzung neu starten soll – starten tut nur du.
+- **Neu:** `amw release ausliefern` kann lokal live machen, ohne zu veröffentlichen: Ist ein Meilenstein fertig, steht er unter
+  „Für dich“ mit „Abnehmen“; danach veröffentlicht die AMW alle Versionen seit der letzten Veröffentlichung mit einem
+  GitHub-Release (`amw projekt einstellen veroeffentlichen=meilenstein`; Vorgabe für neue Projekte).
+- **Behoben:** Wird ein Stapel mehrerer Aufgaben nur neu aufgesetzt, übernimmt die Auslieferung Grün und Merge-OK für jede Aufgabe,
+  und eine Ausnahme vom Gesamtlauf bleibt bei gleichem Inhalt gültig.
+
 ## 1.154.0 – 22.11.2026 · Updates ohne Stillstand, Prüfung zurücknehmen
 - **Neu:** Aktualisiert sich Claude Code, prüft die AMW die neue Version selbst: Ein Arbeiter versucht mit dem kleinsten
   Modell Zugriffe außerhalb seines Platzes, jeder muss abgelehnt werden (wenige Cent, etwa eine Minute). Besteht die Version,
