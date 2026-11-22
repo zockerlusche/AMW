@@ -92,6 +92,45 @@ class Schema(Grund):
         self.assertTrue(any("nach A999 – die Aufgabe gibt es im Projekt nicht" in x for x in f))
         self.assertTrue(any("Meilenstein 7 gibt es im Projekt nicht" in x for x in f))
 
+    def test_a1976_schon_gebaut_oberflaeche_und_nur_offene_meilensteine(self):
+        """Ein Vorschlag, der einem fertigen Paket desselben Themas gleicht → „schon gebaut: A…“; Oberfläche nie als p;
+        „bestehend“ nur ein offener Meilenstein. Ähnliche Pakete anderer Themen oder offene stören nicht."""
+        gebaut = kern.aufgabe_neu(self.con, self.pid, "TL", "Release-Modus je Projekt einstellbar (gesammelt/sofort)", "CC1")
+        offen = kern.aufgabe_neu(self.con, self.pid, "TL", "Anmeldung mit dem Firmen-Konto", "CC1")
+        anderes = themen.neu(self.con, self.pid, "TL", "Betrieb", pfleger="CC1")
+        fremd = kern.aufgabe_neu(self.con, self.pid, "TL", "Tests für die Anmeldung", "CC1")
+        themen.verweise_setzen(self.con, self.pid, "TL", gebaut, [f"TH{self.tid}"])
+        themen.verweise_setzen(self.con, self.pid, "TL", offen, [f"TH{self.tid}"])
+        themen.verweise_setzen(self.con, self.pid, "TL", fremd, [f"TH{anderes}"])
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234' WHERE id IN (?, ?)", (gebaut, fremd))
+        fertig = planung.bogen_neu(self.con, self.pid, "TL", "Alt")
+        planung.bogen_status(self.con, self.pid, "TL", fertig, "fertig")
+        d = copy.deepcopy(ERGEBNIS)
+        d["pakete"].append({**ERGEBNIS["pakete"][0], "schluessel": "P3", "titel": "Release-Modus je Projekt"})
+        d["pakete"].append({**ERGEBNIS["pakete"][1], "schluessel": "P4", "titel": "Knopf auf der Seite", "art": "oberflaeche", "nach": []})
+        d["meilensteine"].append({"schluessel": "M2", "bestehend": planung.bogen_zeile(self.con, self.pid, fertig)["nr"]})
+        self.assertEqual(planer.pruefen(copy.deepcopy(ERGEBNIS), self.con, self.pid, self.tid)["pakete"][0]["titel"],
+                         "Anmeldung mit Firmen-Konto")                    # offen verknüpft / fertig in anderem Thema: kein Fund
+        with self.assertRaises(planer.PlanFehler) as f:
+            planer.pruefen(d, self.con, self.pid, self.tid)
+        funde = f.exception.fehler
+        self.assertIn(f"Paket P3: schon gebaut: A{gebaut} „Release-Modus je Projekt einstellbar (gesammelt/sofort)“", funde)
+        self.assertEqual([x for x in funde if "schon gebaut" in x and "P3" not in x], [])
+        self.assertTrue(any("Paket P4: ein Oberflächen-Paket nie als p" in x for x in funde), funde)
+        self.assertTrue(any("ist fertig – „bestehend“ nur ein offener Meilenstein" in x for x in funde), funde)
+        planer.entwurf_eintragen(self.con, self.pid, self.tid, 1, d)                             # auch beim Eintragen geprüft
+        self.assertTrue(any("schon gebaut" in x for x in planer.letzter_entwurf(self.con, self.pid, self.tid)["fehler"]))
+
+    def test_a1976_aehnlich(self):
+        for a, b in (("Release-Modus je Projekt", "Release-Modus je Projekt einstellbar"),
+                     ("Disponent über Projekte", "Disponent über alle Projekte hinweg"),
+                     ("Anmeldung mit Firmen-Konto", "Anmeldung mit Firmenkonto")):
+            self.assertTrue(planer.aehnlich(a, b), (a, b))
+        for a, b in (("Login-Maske", "Release-Modus je Projekt"), ("Tests für die Anmeldung", "Anmeldung mit Firmen-Konto"),
+                     ("Seite", "Seite drucken und teilen"), ("", "x")):
+            self.assertFalse(planer.aehnlich(a, b), (a, b))
+
     def test_nichts_zu_bauen(self):
         self.assertEqual(planer.pruefen({"nichts_zu_bauen": True, "grund": "Nur ein Begriff, schon erfüllt."}),
                          {"nichts_zu_bauen": True, "grund": "Nur ein Begriff, schon erfüllt."})
@@ -271,8 +310,39 @@ class Lauf(Grund):
         self.assertIn("Firmen-Konto", lies("thema.md"))
         self.assertIn(f"- {planung.bogen_zeile(self.con, self.pid, bid)['nr']}: Online", lies("meilensteine.md"))
         self.assertIn(f"- A{aid} [", lies("pakete.md"))
-        self.assertIn("Login-Maske ★", lies("pakete.md"))                                       # schon mit dem Thema verknüpft
+        zu, weitere = lies("pakete.md").split("# Weitere offene Pakete")
+        self.assertIn("Login-Maske", zu)                                                         # schon mit dem Thema verknüpft
+        self.assertNotIn("Login-Maske", weitere)
         self.assertIn('"nichts_zu_bauen": true', lies("schema.md"))
+
+    def test_a1976_fertiges_und_passende_meilensteine_als_kontext(self):
+        """Der Planer sieht die Pakete des Themas MIT Status (auch fertige) und nur offene Meilensteine – ★ am Meilenstein,
+        dessen Ziel auf das Thema verweist; der Auftrag sagt: Fertiges nie neu, passenden Meilenstein nutzen, Oberfläche als agent."""
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        passt = planung.bogen_neu(self.con, self.pid, "TL", "Übernahme", ziel=f"TH{self.tid} Anmeldung")
+        anderer = planung.bogen_neu(self.con, self.pid, "TL", "Bestand", ziel="TH99 Sonstiges")
+        alt = planung.bogen_neu(self.con, self.pid, "TL", "Längst fertig")
+        planung.bogen_status(self.con, self.pid, "TL", alt, "fertig")
+        gebaut = kern.aufgabe_neu(self.con, self.pid, "TL", "Release-Modus je Projekt", "CC1")
+        themen.verweise_setzen(self.con, self.pid, "TL", gebaut, [f"TH{self.tid}"])
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234' WHERE id = ?", (gebaut,))
+        fremd = kern.aufgabe_neu(self.con, self.pid, "TL", "Etwas anderes", "CC1")
+        ordner = os.path.join(self.ordner.name, "planer")
+        os.makedirs(ordner)
+        planer._dateien(self.con, self.pid, themen.finden(self.con, self.pid, self.tid), 1, ordner)
+        lies = lambda n: open(os.path.join(ordner, n), encoding="utf-8").read()
+        nr = lambda b: planung.bogen_zeile(self.con, self.pid, b)["nr"]
+        ms = lies("meilensteine.md")
+        self.assertIn(f"- {nr(passt)}: Übernahme [geplant] – Ziel: TH{self.tid} Anmeldung ★", ms)
+        self.assertIn(f"- {nr(anderer)}: Bestand [geplant] – Ziel: TH99 Sonstiges\n", ms + "\n")         # ohne ★
+        self.assertNotIn("Längst fertig", ms)                                                    # nur offene Meilensteine
+        zu, weitere = lies("pakete.md").split("# Weitere offene Pakete")
+        self.assertIn(f"- A{gebaut} [fertig] Release-Modus je Projekt", zu)
+        self.assertIn(f"- A{fremd} [", weitere)
+        for satz in ("nie neu vor", "(★)", "bestehend", "Oberflächen-Pakete (art oberflaeche) laufen immer mit ausfuehrung agent",
+                     "Kleinprobe"):
+            self.assertIn(satz, planer.AUFTRAG)
 
     def test_json_aus_text(self):
         self.assertEqual(json.loads(planer.json_aus_text("```json\n{\"a\": 1}\n```")), {"a": 1})

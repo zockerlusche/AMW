@@ -676,14 +676,15 @@ def verweise_setzen(con, pid, von, aid, namen, entfernen=False):
     return verweise(con, pid, aid)
 
 
-def aufgaben_zu(con, pid, tid):
-    """Offene Aufgaben (nicht fertig/verworfen), die gerade auf das Thema verweisen."""
+def aufgaben_zu(con, pid, tid, alle=False):
+    """Offene Aufgaben (nicht fertig/verworfen), die gerade auf das Thema verweisen – mit alle=True auch fertige und verworfene
+    (A1976: der Planer sieht, was zum Thema schon gebaut ist)."""
     ids = [r[0] for r in con.execute("SELECT DISTINCT aufgabe_id FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND text LIKE ?",
                                      (pid, VERWEIS, f'%"thema": {int(tid)},%'))]
     aus = []
     for aid in sorted(ids):
         a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
-        if a and a["status"] not in ("fertig", "verworfen") and tid in verweise(con, pid, aid):
+        if a and (alle or a["status"] not in ("fertig", "verworfen")) and tid in verweise(con, pid, aid):
             aus.append(a)
     return aus
 

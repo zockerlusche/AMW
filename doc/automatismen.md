@@ -601,10 +601,13 @@ die der Lead nur noch bestätigt oder ändert.
   TH<n>` (Lead, Mensch, Co-Entwickler). Je Fassung ein Planer; nicht bei „nichts zu bauen“; auf Befehl auch noch einmal.
 - **Was läuft:** ein losgelöster Prozess (`amw-planer.py`) als leichter Lauf der Lauf-Schlange startet einen frischen
   `claude -p` (Sonnet, Effort medium) nur lesend wie der Gegenleser, mit fester Frist (15 min, danach beendet). Er liest
-  `thema.md`, `beschluesse.md`, `meilensteine.md`, `pakete.md` (★ = schon mit dem Thema verknüpft) und `schema.md` und
-  antwortet nur mit JSON: Meilensteine (neu oder bestehend) und Pakete (Größe, Art, agent oder p, Modell/Effort, Fertig-Quelle,
-  Abhängigkeiten, Abnahme-Befehl) – oder `nichts_zu_bauen` mit Grund.
-- **Danach:** Die AMW prüft das Schema (alle Funde auf einmal) und trägt den Entwurf ein (`thema_planentwurf`, mit Modell,
+  `thema.md`, `beschluesse.md`, `meilensteine.md` (nur offene, ★ = Ziel verweist auf das Thema), `pakete.md` (die Pakete des
+  Themas mit Status, auch fertige, dann die übrigen offenen) und `schema.md` und antwortet nur mit JSON: Meilensteine (neu oder
+  bestehend) und Pakete (Größe, Art, agent oder p, Modell/Effort, Fertig-Quelle, Abhängigkeiten, Abnahme-Befehl) – oder
+  `nichts_zu_bauen` mit Grund. Der Auftrag sagt: Fertiges nie neu vorschlagen, einen passenden offenen Meilenstein nutzen,
+  Oberflächen-Pakete als agent mit Kleinprobe zuerst (A1976).
+- **Danach:** Die AMW prüft das Schema (alle Funde auf einmal; A1976 dazu: „bestehend“ nur ein offener Meilenstein, ein
+  Oberflächen-Paket nie als p, ein Paket mit fast gleichem Titel wie ein fertiges Paket des Themas → „schon gebaut: A…“) und trägt den Entwurf ein (`thema_planentwurf`, mit Modell,
   Kosten und Lauf). Der Lead bekommt „Ja oder ändern“; bei Fehlern eine Meldung mit den Funden. Erst `amw thema plan-ja TH<n>`
   (Lead oder Mensch, optional `--datei` mit einem geänderten Entwurf) legt Meilensteine und Pakete an und verknüpft jedes Paket
   mit dem Thema; `amw thema plan TH<n>` zeigt den Entwurf. Kein Anlegen ohne Ja.

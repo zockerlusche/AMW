@@ -20,8 +20,10 @@ Schema des Planer-Ergebnisses (JSON):
                "nach": ["P0", "A1234"], "abnahme_befehl": "python -m unittest tests.test_x" | null}]}
   oder {"nichts_zu_bauen": true, "grund": "…"}
 """
+import difflib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -37,6 +39,7 @@ EFFORTS = ("low", "medium", "high")
 MAX_PAKETE, MAX_MEILENSTEINE = 30, 5
 LAENGE = {"titel": 120, "auftrag": 4000, "grund": 1000, "abnahme_befehl": 300}
 ENDET_MIT = {"vorfuehrung": "Vorführung", "bericht": "Bericht"}   # TH164: ein Meilenstein endet mit Vorführung oder Bericht
+AEHNLICH = 0.85                                                     # A1976: Titel-Ähnlichkeit, ab der ein Paket „schon gebaut“ ist
 
 
 class PlanFehler(kern.AmwFehler):
@@ -69,9 +72,34 @@ def _wahl(x, erlaubt, feld, wo, f, klein=True):
     return v
 
 
-def pruefen(daten, con=None, pid=None):
+def _woerter(text):
+    """Bedeutungstragende Wörter eines Titels (klein, ohne Satzzeichen, ab 4 Zeichen) – für den Vergleich mit dem Bestand."""
+    return {w for w in re.findall(r"\w+", (text or "").lower()) if len(w) >= 4}
+
+
+def aehnlich(a, b):
+    """A1976: Sind zwei Paket-Titel so ähnlich, dass es dasselbe Paket ist? Fast gleiche Zeichenfolge, oder (ab zwei Wörtern)
+    drei Viertel der Wörter des kürzeren Titels stecken im längeren."""
+    x, y = " ".join((a or "").lower().split()), " ".join((b or "").lower().split())
+    if not x or not y:
+        return False
+    if difflib.SequenceMatcher(None, x, y).ratio() >= AEHNLICH:
+        return True
+    wa, wb = _woerter(x), _woerter(y)
+    kurz = min(len(wa), len(wb))
+    return kurz >= 2 and len(wa & wb) / kurz >= 0.75
+
+
+def gebaut_zum_thema(con, pid, tid):
+    """Fertige Pakete, die auf das Thema verweisen: [(id, titel)]."""
+    from . import themen
+    return [(a["id"], a["titel"]) for a in themen.aufgaben_zu(con, pid, tid, alle=True) if a["status"] == "fertig"]
+
+
+def pruefen(daten, con=None, pid=None, tid=None):
     """Prüft ein Planer-Ergebnis (dict oder JSON-Text) gegen das Schema und gibt es vereinheitlicht zurück. Mit con/pid auch:
-    bestehende Meilensteine und Aufgaben (Verweise „A1234“) gibt es im Projekt. Fehler: PlanFehler mit allen Funden."""
+    „bestehend“ ist ein OFFENER Meilenstein des Projekts, Aufgaben (Verweise „A1234“) gibt es im Projekt; mit tid (A1976) auch:
+    kein Paket wiederholt ein fertiges Paket desselben Themas („schon gebaut: A…“). Fehler: PlanFehler mit allen Funden."""
     from . import empfehlung
     if isinstance(daten, str):
         try:
@@ -121,8 +149,11 @@ def pruefen(daten, con=None, pid=None):
             except ValueError:
                 f.append(f"{wo}: bestehend ist keine Meilenstein-Nummer")
                 continue
-            if con is not None and not con.execute("SELECT 1 FROM bogen WHERE projekt_id = ? AND nr = ?", (pid, nr)).fetchone():
+            b = con.execute("SELECT status FROM bogen WHERE projekt_id = ? AND nr = ?", (pid, nr)).fetchone() if con is not None else None
+            if con is not None and not b:
                 f.append(f"{wo}: Meilenstein {nr} gibt es im Projekt nicht")
+            elif b and b["status"] not in ("geplant", "aktiv"):     # A1976: nur offene Meilensteine dieses Projekts
+                f.append(f"{wo}: Meilenstein {nr} ist {b['status']} – „bestehend“ nur ein offener Meilenstein (geplant oder aktiv)")
             aus_m.append({"schluessel": s, "bestehend": nr})
             continue
         if m.get("ziel") or m.get("abnahme"):           # TH164: Ziel und Abnahme als Verweis (aufs Thema), nicht als Freitext
@@ -168,6 +199,8 @@ def pruefen(daten, con=None, pid=None):
                       "effort": _wahl(p.get("effort"), EFFORTS, "effort", wo, f) if p.get("effort") else None,
                       "fertig_quelle": _wahl(p.get("fertig_quelle"), FERTIG_QUELLEN, "fertig_quelle", wo, f),
                       "nach": nach, "abnahme_befehl": _text(p.get("abnahme_befehl"), "abnahme_befehl", wo, f, pflicht=False)})
+        if aus_p[-1]["ausfuehrung"] == "p" and aus_p[-1]["art"] == "oberflaeche":   # A1976 (TH156): zuerst eine Kleinprobe
+            f.append(f"{wo}: ein Oberflächen-Paket nie als p – ausfuehrung agent, mit Kleinprobe zuerst (TH156)")
         if aus_p[-1]["ausfuehrung"] == "p" and not aus_p[-1]["abnahme_befehl"]:
             f.append(f"{wo}: ein p-Paket braucht einen Abnahme-Befehl (die AMW nimmt es selbst ab)")
         if aus_p[-1]["abnahme_befehl"]:                  # P462 (2): wie beim Start des Arbeiters – ein Befehl, keine Verkettung
@@ -176,6 +209,12 @@ def pruefen(daten, con=None, pid=None):
                 arbeiter.freigabe(aus_p[-1]["abnahme_befehl"])
             except arbeiter.ArbeiterFehler as x:
                 f.append(f"{wo}: {x}")
+    if con is not None and tid is not None:              # A1976: Fertiges nie neu vorschlagen
+        gebaut = gebaut_zum_thema(con, pid, tid)
+        for p in aus_p:
+            treffer = [f"A{i} „{t}“" for i, t in gebaut if aehnlich(p["titel"], t)]
+            if treffer:
+                f.append(f"Paket {p['schluessel']}: schon gebaut: " + ", ".join(treffer[:3]))
     kreis = _kreis({p["schluessel"]: [v for v in p["nach"] if v in p_namen] for p in aus_p})
     if kreis:
         f.append("Abhängigkeiten im Kreis: " + " → ".join(kreis))
@@ -254,7 +293,7 @@ def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, l
         entwurf, fehler = None, [f"Planer-Lauf: {fehler}"]
     else:
         try:
-            entwurf, fehler = pruefen(ergebnis, con, pid), None
+            entwurf, fehler = pruefen(ergebnis, con, pid, tid), None
         except PlanFehler as e:
             entwurf, fehler = None, e.fehler
     lead = kern.lead(con, pid)
@@ -321,7 +360,7 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
         raise kern.AmwFehler(f"TH{tid} hat keinen Planentwurf" + (f" Nr. {eid}" if eid else ""))
     if erledigt(con, pid, e["id"]):
         raise kern.AmwFehler(f"Der Planentwurf zu TH{tid} ist schon angenommen")
-    entwurf = pruefen(geaendert, con, pid) if geaendert is not None else e.get("entwurf")
+    entwurf = pruefen(geaendert, con, pid, tid) if geaendert is not None else e.get("entwurf")
     if not entwurf:
         raise kern.AmwFehler(f"Der Planentwurf zu TH{tid} passte nicht zum Schema – neu planen lassen oder geändert übergeben")
     s = themen.status(con, themen.finden(con, pid, tid))     # P462 (4): nur für die freigegebene Fassung, die er gelesen hat
@@ -407,7 +446,11 @@ AUFTRAG = (
     "endet_mit; kein Ziel- oder Abnahme-Text, der Meilenstein verweist auf das Thema; "
     "einen bestehenden Meilenstein nimmst du mit \"bestehend\": Nummer) und kleine Pakete (je eins für einen Agenten an einem Tag "
     "oder weniger), mit Abhängigkeiten. Was es schon gibt, planst du nicht noch einmal; brauchst du ein vorhandenes Paket als "
-    "Vorgänger, nennst du es als \"A1234\". Braucht das Thema nichts (schon gebaut, nur ein Begriff), antworte mit "
+    "Vorgänger, nennst du es als \"A1234\". Was in pakete.md zu diesem Thema als [fertig] steht, schlägst du nie neu vor. "
+    "Steht in meilensteine.md ein offener Meilenstein, dessen Ziel auf dieses Thema verweist (★), hängst du die Pakete dort an "
+    "(\"bestehend\": Nummer), statt einen neuen anzulegen. Oberflächen-Pakete (art oberflaeche) laufen immer mit ausfuehrung "
+    "agent, das erste davon ist eine Kleinprobe zum Ansehen; ausfuehrung p nur mit einem Abnahme-Befehl, den die AMW selbst "
+    "ausführen kann. Braucht das Thema nichts (schon gebaut, nur ein Begriff), antworte mit "
     "nichts_zu_bauen und Grund. Antworte NUR mit dem JSON-Objekt nach schema.md – kein Text davor oder danach. "
     "Du änderst nichts, du schreibst keine Dateien, du führst nichts aus.")
 
@@ -481,19 +524,25 @@ def _dateien(con, pid, t, fassung, ordner):
         raise kern.AmwFehler(f"TH{t['id']} hat keine Fassung {fassung}")
     b = con.execute("SELECT id, stichwort, regel FROM beschluss WHERE projekt_id = ? AND thema = ? COLLATE NOCASE AND status = 'gilt'"
                     " ORDER BY id", (pid, t["name"])).fetchall()
-    ms = con.execute("SELECT nr, titel, status, ziel FROM bogen WHERE projekt_id = ? AND status != 'verworfen' ORDER BY nr", (pid,)).fetchall()
-    zum_thema = {a["id"] for a in themen.aufgaben_zu(con, pid, t["id"])}
+    ms = con.execute("SELECT nr, titel, status, ziel FROM bogen WHERE projekt_id = ? AND status IN ('geplant', 'aktiv') ORDER BY nr",
+                     (pid,)).fetchall()                  # A1976: nur offene – fertige taugen nicht als „bestehend“
+    verknuepft = themen.aufgaben_zu(con, pid, t["id"], alle=True)
+    zum_thema = {a["id"] for a in verknuepft}
+    th = f"TH{t['id']}"
     offen = con.execute("SELECT id, titel, status FROM aufgabe WHERE projekt_id = ? AND status NOT IN ('fertig', 'verworfen')"
                         " ORDER BY id DESC LIMIT 200", (pid,)).fetchall()
     teile = {"thema.md": f"# TH{t['id']} {t['name']} – Fassung {fassung}\n\n{f['text']}\n",
              "beschluesse.md": "# Geltende Beschlüsse zum Thema\n\n"
                                + ("\n".join(f"- B{x['id']} {x['stichwort']}: {x['regel']}" for x in b) or "(keine)") + "\n",
-             "meilensteine.md": "# Meilensteine des Projekts\n\n"
-                                + ("\n".join(f"- {x['nr']}: {x['titel']} [{x['status']}]" + (f" – {x['ziel']}" if x["ziel"] else "")
-                                             for x in ms) or "(keine)") + "\n",
-             "pakete.md": "# Offene Pakete des Projekts (★ = schon mit diesem Thema verknüpft)\n\n"
-                          + ("\n".join(f"- A{x['id']} [{x['status']}] {x['titel']}" + (" ★" if x["id"] in zum_thema else "")
-                                       for x in offen) or "(keine)") + "\n",
+             "meilensteine.md": f"# Offene Meilensteine des Projekts (★ = Ziel verweist auf {th})\n\n"
+                                + ("\n".join(f"- {x['nr']}: {x['titel']} [{x['status']}]" + (f" – Ziel: {x['ziel']}" if x["ziel"] else "")
+                                             + (" ★" if th in re.findall(r"TH\d+", x["ziel"] or "") else "") for x in ms)
+                                   or "(keine)") + "\n",
+             "pakete.md": f"# Pakete zu {th} mit Status ([fertig] = schon gebaut, nie neu vorschlagen)\n\n"
+                          + ("\n".join(f"- A{x['id']} [{x['status']}] {x['titel']}" for x in verknuepft) or "(keine)")
+                          + "\n\n# Weitere offene Pakete des Projekts\n\n"
+                          + ("\n".join(f"- A{x['id']} [{x['status']}] {x['titel']}" for x in offen if x["id"] not in zum_thema)
+                             or "(keine)") + "\n",
              "schema.md": "# Antwort-Format\n\n" + SCHEMA_TEXT + "\n"}
     for name, text in teile.items():
         with open(os.path.join(ordner, name), "w", encoding="utf-8", newline="\n") as d:
