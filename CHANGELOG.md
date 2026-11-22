@@ -4,6 +4,18 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.161.0 – 22.11.2026 · Aufgaben schließen sich selbst, Abnehmen mit einem Ja
+- **Neu:** Eine Aufgabe kann sagen, wann sie fertig ist (`--fertig-wenn`: Thema freigegeben, oder einige Tage nach einer
+  Version ohne Fehler); die AMW schließt sie dann selbst und schreibt Beleg und Zusammenfassung. Kriterien mit einer
+  Prüfquelle (Lauf, Prüfung, Thema, Testzahl) hakt die AMW selbst ab; ist nur noch ein Urteil offen, fragt sie den Lead.
+- **Neu:** Hängt eine Aufgabe an deinem Urteil und ihr Ergebnis steht, siehst du sie unter „Für dich“; ein Ja genügt, den
+  Status setzt die AMW. Ein Meilenstein zeigt seine Themen, und Ziel und Abnahme dürfen auf Themen und Dokumente verweisen
+  (mit geltender Fassung). Neue Meilensteine brauchen keine Spezifikation mehr.
+- **Verbessert:** Ob Themen von Co-Entwickler und Lead freigegeben werden und wohin die tägliche Sicherung geht, kann jetzt auch
+  der Lead einstellen; jede Änderung durch ihn steht im Protokoll.
+- **Behoben:** Eine Auslieferung geht jetzt auch dann bis zum Ende, wenn der ausliefernde Agent gerade einen eigenen Lauf hat;
+  scheitert die Aktualisierung der Online-Seite, erfährt es der Lead.
+
 ## 1.159.0 – 22.11.2026 · Themen freigeben durch Co-Entwickler und Lead, Prüfbitte ohne eigene Version
 - **Neu:** Auf Wunsch geben Co-Entwickler und Lead Themen gemeinsam frei (`amw projekt einstellen thema_freigabe=co+lead`, nur
   du stellst um); du kannst jederzeit selbst freigeben oder zurückholen. Themen zu Löschen, Kosten, Schema oder Außenwirkung
