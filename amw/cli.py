@@ -175,7 +175,8 @@ def _aus_agenten_sitzung():
 RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_blick", "merge_aussen_pruefung",
                         "co_entwickler",                  # A1908 (P352): der Co-Entwickler legt Themen an
                         "verteilen", "verteilen_fach",    # A1927 (#29773, P374): ob und wem die AMW Arbeit zuteilt
-                        "veroeffentlichen")               # A1928 (#29781): wann die AMW nach außen veröffentlicht
+                        "veroeffentlichen",               # A1928 (#29781): wann die AMW nach außen veröffentlicht
+                        "sperrmuster")                    # A1919: was p-Pakete im Projekt nie ändern dürfen
 # eine Stelle für alle Einstellungen mit dieser Sperre (CCamwTL P299): Rechte (A1892) und ausführbare Bündel-Befehle (A1876, P298)
 GESPERRTE_EINSTELLUNGEN = RECHTE_EINSTELLUNGEN + kern.BUENDEL_EINSTELLUNGEN
 

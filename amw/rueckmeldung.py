@@ -230,7 +230,8 @@ def _pruefbitte_aus_ergebnis(con, pid, von, aid, zeile, meldung, zweig):
         raise kern.AmwFehler("Das Projekt hat keinen Ordner (amw projekt ordner …) – die AMW kann den Zweig nicht prüfen")
     bereiche = abnahme_bereiche(zeile["dateibereich"])
     b = pruefung_c.zweig_befund(quelle, zweig, bereiche, arbeitspaket.lesen(con, aid).get("pakettyp"),
-                                aussen=kern.projekt_wahl(con, pid, "merge_aussen_pruefung") == "an")
+                                aussen=kern.projekt_wahl(con, pid, "merge_aussen_pruefung") == "an",
+                                sperrmuster=abnahme.projekt_muster(con, pid))             # A1919
     if b["code"] == "C/technik":
         raise kern.AmwFehler(b["grund"])
     pruefer = entscheidung.empfaenger(con, pid, "pruefer")

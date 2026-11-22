@@ -144,8 +144,42 @@ def _klein(pfad):
     return _norm(pfad).lower()
 
 
-def gesperrt(pfade, typ=None):
-    """[(pfad, grund)] der gesperrten unter `pfade` – Testdateien nicht bei den Pakettypen test-schreiben und test-ergaenzen."""
+def projekt_muster(con, pid):
+    """A1919 (TH160 F2): Sperrmuster des Projekts (Projekt-Einstellung sperrmuster) – zusätzlich zur festen Liste GESPERRT."""
+    import json
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    try:
+        m = json.loads((r[0] if r else None) or "{}").get("sperrmuster") or []
+    except ValueError:
+        return []
+    return [str(x) for x in m if str(x).strip()]
+
+
+def muster_pruefen(v):
+    """Projekt-Einstellung sperrmuster: Liste (JSON oder durch Komma getrennt), je Muster bis 200 Zeichen, höchstens 50."""
+    import json
+    if isinstance(v, str):
+        s = v.strip()
+        v = json.loads(s) if s.startswith(("[", "{")) else s.split(",")
+    if not isinstance(v, list):
+        raise ValueError("eine Liste von Mustern, z. B. [\"src/sicherheit/*\", \"*.key\"]")
+    aus = []
+    for x in v:
+        x = str(x).strip().replace("\\", "/")
+        if not x:
+            continue
+        if len(x) > 200 or x.startswith("/") or ".." in x.split("/"):
+            raise ValueError(f"Muster „{x[:60]}“: relativ zum Projektordner, ohne .., bis 200 Zeichen")
+        aus.append(x)
+    if len(aus) > 50:
+        raise ValueError("höchstens 50 Muster")
+    return list(dict.fromkeys(aus))
+
+
+def gesperrt(pfade, typ=None, projekt=None):
+    """[(pfad, grund)] der gesperrten unter `pfade` – Testdateien nicht bei den Pakettypen test-schreiben und test-ergaenzen.
+    projekt (A1919): die Sperrmuster des Projekts (projekt_muster) – gelten zusätzlich und für jeden Pakettyp; die feste Liste
+    GESPERRT gilt immer."""
     aus = []
     for p in pfade:
         n, k = _norm(p), _klein(p)
@@ -153,6 +187,11 @@ def gesperrt(pfade, typ=None):
             if fnmatch.fnmatchcase(k, muster.lower()) and not (art == "test" and typ in TESTTYPEN):
                 aus.append((n, grund))
                 break
+        else:
+            for muster in projekt or []:
+                if fnmatch.fnmatchcase(k, muster.lower()):
+                    aus.append((n, f"gesperrt im Projekt ({muster})"))
+                    break
     return aus
 
 
@@ -181,14 +220,15 @@ def im_bereich(pfad, bereiche):
     return False
 
 
-def startregel(bereiche, typ=None):
-    """Regel 5 vor dem Start: Bereiche, die gesperrte Pfade enthalten oder sind → [(bereich, grund)]."""
+def startregel(bereiche, typ=None, projekt=None):
+    """Regel 5 vor dem Start: Bereiche, die gesperrte Pfade enthalten oder sind → [(bereich, grund)]. projekt: A1919."""
     aus = []
     for b in bereiche or []:
         n = _klein(b)
         probe = n + "x" if n.endswith("/") else n                  # Ordner: gesperrt, wenn darin Gesperrtes liegen könnte
-        treffer = gesperrt([probe], typ) or [(n, g) for m, art, g in GESPERRT
-                                              if (n.endswith("/") and m.lower().startswith(n)) and not (art == "test" and typ in TESTTYPEN)]
+        treffer = gesperrt([probe], typ, projekt) or [(n, g) for m, art, g in GESPERRT
+                                                      if (n.endswith("/") and m.lower().startswith(n)) and not (art == "test" and typ in TESTTYPEN)] \
+            or [(n, f"gesperrt im Projekt ({m})") for m in (projekt or []) if n.endswith("/") and m.lower().startswith(n)]
         if treffer:
             aus.append((n, treffer[0][1]))
     return aus
@@ -211,11 +251,11 @@ def geaendert(klon, basis):
     return sorted(n for n in (_norm(p) for p in pfade if p) if not zwischen(n))
 
 
-def diff_tor(klon, basis, bereiche, typ=None):
+def diff_tor(klon, basis, bereiche, typ=None, projekt=None):
     """{"ok", "ausserhalb": [pfad], "gesperrt": [(pfad, grund)], "geaendert": [pfad]} – nur geplante Bereiche, nichts Gesperrtes."""
     g = geaendert(klon, basis)
     ausserhalb = [p for p in g if not im_bereich(p, bereiche)]
-    gesp = gesperrt(g, typ)
+    gesp = gesperrt(g, typ, projekt)
     return {"ok": bool(g) and not ausserhalb and not gesp, "leer": not g, "ausserhalb": ausserhalb, "gesperrt": gesp, "geaendert": g}
 
 

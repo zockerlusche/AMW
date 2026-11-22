@@ -253,5 +253,14 @@ class Interaktiv(Grundlage):
         self.assertIsNone(r["pruefbitte"])                                                       # blockiert braucht keinen Zweig
 
 
+    def test_sperrmuster_des_projekts(self):
+        """A1919: auch für interaktive Pakete gelten die Sperrmuster des Projekts im Diff-Tor."""
+        u = {"AMW_AGENT": "CC1"}
+        self.zweig("doku-b", "b\n")
+        kern.projekt_einstellen(self.con, self.pid, "TL", sperrmuster="doc/b.md")
+        r = rm.melden_interaktiv(self.con, self.pid, "CC1", self.aid, GUT, u, zweig="doku-b")
+        self.assertEqual(r["pruefbitte"]["befund"], "C/diff")
+        self.assertIn("gesperrt: doc/b.md", self.con.execute("SELECT punkte FROM pruefung WHERE id = ?", (r["pruefbitte"]["id"],)).fetchone()[0])
+
 if __name__ == "__main__":
     unittest.main()

@@ -204,6 +204,19 @@ bekommen; fällt ein Agent aus, geht seine Arbeit nicht verloren.
   und als Ereignis `uebergabe`. Der Mensch bekommt die Frage „Sitzung von … neu starten?“; die AMW startet nie selbst.
 - Ohne Schemaänderung: Ereignisse `verteilt`, `verteil_vorschlag`, `ausfall`, `uebergabe`.
 
+## Sperrliste je Projekt (A1919, TH160)
+
+**Wozu:** Ein Arbeiter (p-Paket oder interaktives Paket) darf manche Dateien nie ändern. Für die AMW selbst steht das fest im
+Code; ein anderes Projekt hat eigene heikle Stellen (Zugänge, Sicherheit, Zahlungen) und trägt sie selbst ein.
+
+- **Feste Liste:** `abnahme.GESPERRT` – Kette, Rechte, Hooks, Testkonfiguration der AMW. Gilt in jedem Projekt.
+- **Muster je Projekt:** `amw projekt einstellen sperrmuster='["src/sicherheit/*", "*.key"]'` (oder durch Komma getrennt;
+  leer = keine). Muster relativ zum Projektordner wie bei `fnmatch`, ohne `..`, höchstens 50. Nur Lead oder Mensch, nicht
+  aus einer Agenten-Sitzung. Gelten zusätzlich und für jeden Pakettyp, auch für Test-Pakete.
+- **Wo es greift:** vor dem Start (Startregel 5: ein Bereich, der ein Muster ist oder enthält, startet nicht) und im Diff-Tor
+  von Prüfung C (geänderte Datei trifft ein Muster → C/diff, Befund „gesperrt: …“ an den Lead), bei p-Paketen und bei
+  interaktiven Paketen mit Zweig. Grund im Befund: „gesperrt im Projekt (Muster)“.
+
 ## Neue Claude-Code-Version ohne Stillstand (seit 1.154.0)
 
 **Wozu:** 21.11.: Zweimal stand S8 je etwa eine Stunde still, weil sich Claude Code aktualisiert hatte und die geprüften
@@ -379,5 +392,6 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 
 | Wo | Schlüssel | Bedeutung |
 |---|---|---|
+| `amw projekt einstellen` | `sperrmuster` | was Arbeiter in diesem Projekt nie ändern dürfen, zusätzlich zur festen Liste (Lead oder Mensch) |
 | Zahnrad › Projekt | `entwickler_name` | wie der Mensch in Meldungen heißt (Vorgabe „Entwickler“); gilt auch als Wartegrund |
 | Zahnrad › Dieser PC | `fernsitzung_prozess` | Programm einer Fernsitzung für den Schirm (leer = nicht prüfen) |

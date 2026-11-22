@@ -192,7 +192,7 @@ def pruefen(con, pid, aid, limit=None):
         return _nein(1)
     if f["gewicht"] == "schwer" or f["ressourcen"]:
         return _nein(3)
-    gesp = abnahme.startregel(b, f["pakettyp"])
+    gesp = abnahme.startregel(b, f["pakettyp"], abnahme.projekt_muster(con, pid))   # A1919: feste Liste + Muster des Projekts
     if gesp:
         return _nein(5, ", ".join(f"{x} ({g})" for x, g in gesp))
     lauf = [x for x in laufende(con, pid) if x["id"] != aid]

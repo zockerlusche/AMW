@@ -213,6 +213,19 @@ class Disponent(unittest.TestCase):
         self.assertEqual(disponent._vermerk_pruefen(self.con, self.pid, b, neu_vid, neu_basis, 1)["basis"], neu_basis)
         self.assertEqual(disponent.starter(self.pid, b, 1, prog("bauen"), lauf_schlange=False, basis=neu_basis, vid=neu_vid), "E7")
 
+    def test_sperrmuster_des_projekts_im_diff_tor(self):
+        """A1919: die Sperrmuster des Projekts gelten auch in Prüfung C – hier nach dem Start gesetzt (vor dem Start hielte schon
+        Regel 5 das Paket an)."""
+        self.plaetze()
+        aid = self.paket()
+        p, basis, vid = self.vorbereitet(aid)
+        kern.projekt_einstellen(self.con, self.pid, "TL", sperrmuster="lib/rechnen.py")
+        zeile = disponent.starter(self.pid, aid, 1, prog("bauen"), lauf_schlange=False, basis=basis, vid=vid)
+        self.assertEqual(zeile, "E4")                                                           # sonst E7
+        e = self.con.execute("SELECT text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_entscheidung'", (aid,)).fetchall()
+        self.assertIn('"code": "C/diff"', e[-1][0])
+        self.assertTrue(self.con.execute("SELECT 1 FROM nachricht WHERE text LIKE ?", ("%Diff-Tor: gesperrt: lib/rechnen.py%",)).fetchone())
+
     def test_nachbesserung_prueft_regel_7(self):
         """P272 (2): vor dem E5-Lauf gelten Wartungsmodus und Wochenlimit – im Wartungsmodus kein zweiter Lauf, sondern E6."""
         from amw import waechter

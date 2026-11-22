@@ -362,6 +362,17 @@ def projekt_einstellen(con, pid, von, **werte):
                     from . import dokumente
                     dokumente.online_nach_einstellung(con, pid, v)
                 continue
+            if k == "sperrmuster":                       # A1919 (TH160 F2): zusätzlich zur festen Sperrliste der AMW
+                from . import abnahme
+                try:
+                    v = abnahme.muster_pruefen(v if v is not None else [])
+                except ValueError as f:
+                    raise AmwFehler(f"sperrmuster: {f}") from None
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k == "verteilen_fach":                    # A1927: Art → passende Fachgebiete (Verteilen)
                 from . import verteilen
                 try:

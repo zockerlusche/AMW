@@ -289,7 +289,7 @@ def _tests_uebersprungen(ausgabe):
     return int(m[-1]) if m else 0
 
 
-def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main", aussen=True):
+def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main", aussen=True, sperrmuster=None):
     """Interaktive Pakete (§6a.6): der leichte Teil von C sofort und ohne schweren Lauf – Netto-Diff des Zweigs gegen main,
     Diff-Tor, automatisch geladene Dateien, Geheimnis-Muster, nach außen. Die Abnahme im frischen Checkout läuft über die
     Lauf-Schlange (Disponent, S6c). Rückgabe wie pruefen() ohne abnahme/regression."""
@@ -316,7 +316,8 @@ def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main", aussen=True):
     except (PruefFehler, subprocess.SubprocessError, OSError) as e:
         return dict(b, code="C/technik", grund=f"Zweig {zweig} ließ sich nicht lesen: {e}")
     b.update(kopf=kopf, geaendert=g, ausserhalb=[x for x in g if not abnahme.im_bereich(x, bereiche)] if bereiche else [],
-             gesperrt=abnahme.gesperrt(g, typ), autogeladen=autogeladen(g), geheim=geheimnisse(zeilen), aussen=nach_aussen(zeilen))
+             gesperrt=abnahme.gesperrt(g, typ, sperrmuster), autogeladen=autogeladen(g), geheim=geheimnisse(zeilen),
+             aussen=nach_aussen(zeilen))
     if not g:
         return dict(b, code="C/leer", grund="keine Änderungen gegen main")
     if links:
@@ -336,7 +337,7 @@ def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main", aussen=True):
 
 
 def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahme.FRIST_S, nachricht=None, regression=REGRESSION,
-           aussen=True):
+           aussen=True, sperrmuster=None):
     """Prüfung C für Paket `aid` im Platz `p`. Rückgabe: Befund mit "code" (None = alles grün) und allen Einzelheiten."""
     b = {"code": None, "kopf": None, "geaendert": [], "ausserhalb": [], "gesperrt": [], "autogeladen": [], "geheim": [], "aussen": [],
          "abnahme": None, "regression": None, "test_schreiben": None, "grund": None}
@@ -358,7 +359,7 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
     b["kopf"] = kopf
     g = geaendert(p, basis, kopf)
     zeilen = zusaetze(p, basis, kopf)
-    b.update(geaendert=g, ausserhalb=[x for x in g if not abnahme.im_bereich(x, bereiche)], gesperrt=abnahme.gesperrt(g, typ),
+    b.update(geaendert=g, ausserhalb=[x for x in g if not abnahme.im_bereich(x, bereiche)], gesperrt=abnahme.gesperrt(g, typ, sperrmuster),
              autogeladen=autogeladen(g), geheim=geheimnisse(zeilen), aussen=nach_aussen(zeilen),
              keine_tests=abnahme.nicht_nur_tests(g) if typ == abnahme.TEST_ERGAENZEN else [])   # A1895: nur Testdateien
     if b["ausserhalb"] or b["gesperrt"] or b["autogeladen"] or b["geheim"] or b["keine_tests"]:

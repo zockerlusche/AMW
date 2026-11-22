@@ -422,8 +422,10 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
             meldung = r.get("meldung")
             if not notbremse and not r.get("abweichungen") and r.get("rc") == 0 and meldung and meldung.get("status") == "erledigt":
                 aussen = kern.projekt_wahl(con, pid, "merge_aussen_pruefung") == "an"   # A1858: aus = nur Hinweis in der Merge-Liste
+                from . import abnahme as _abnahme
+                sperr = _abnahme.projekt_muster(con, pid)                      # A1919: Muster des Projekts im Diff-Tor
                 pruefen = lambda: pruefung_c.pruefen(p, quelle, v["basis"], aid, a["pruefbefehl"], bereiche, f.get("pakettyp"),
-                                                     aussen=aussen)
+                                                     aussen=aussen, sperrmuster=sperr)
                 befund = _im_lauf(con, pid, aid, f"Prüfung C A{aid}", pruefen) if lauf_schlange else pruefen()
             zeile, code = entscheidung.entscheiden(r, meldung, befund, entscheidung.nachgebessert(con, pid, aid), notbremse,
                                                    typ=f.get("pakettyp"))
