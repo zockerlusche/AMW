@@ -81,11 +81,18 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
   Kette schreibt das Ereignis `lokal_live` und meldet „Version X lokal live“.
 - **Nur die ganze Suite ist ein Gesamtlauf (A1961):** Kette, Release-Takt und „freigabereif“ erkennen einen Gesamtlauf
   gleich: Hat der Lauf einen Befehl, muss er den `gesamtlauf_befehl` des Projekts enthalten (für die AMW die Vorgabe
-  `python -X utf8 -m unittest discover -s tests`), und danach folgt kein weiteres Argument – kein `-k`, `-p`, `-t`, kein
-  einzelnes Modul, nur das Ende oder ein Trenner der Shell. Ohne Befehl (von Hand angemeldet) zählt „Gesamtlauf“ in der
+  `python -X utf8 -m amw.testlauf`; der serielle `python -X utf8 -m unittest discover -s tests` zählt gleich, A1966), und
+  danach folgt kein weiteres Argument – kein `-k`, `-p`, `-t`, kein einzelnes Modul, nur das Ende oder ein Trenner der Shell. Ohne Befehl (von Hand angemeldet) zählt „Gesamtlauf“ in der
   Beschreibung. Ein Teil-Lauf zählt nie, auch nicht mit `--gesamtlauf` („L… ist kein Gesamtlauf“). Liefert die Kette mit
   der Ausnahme des Leads aus, steht „Ausnahme (von <Lead>: Grund)“ in der Ausgabe, in der Info an den Lead und als Ereignis
   `auslieferung_ausnahme` – nie eine L-Nummer.
+- **Gesamtlauf parallel (A1966):** `python -X utf8 -m amw.testlauf` verteilt die Module von `tests/test_*.py` auf N Prozesse
+  (Projekt-Einstellung `gesamtlauf_prozesse`, die `amw lauf ausfuehren` als `AMW_TESTPROZESSE` weitergibt; Vorgabe die halbe
+  Kernzahl, mindestens 2). Verteilt wird nach der gemessenen Dauer je Modul aus früheren Läufen (`%LOCALAPPDATA%\AMW\testdauer.json`,
+  außerhalb des Repos; ohne Messung nach Dateigröße), das längste zuerst an den leichtesten Prozess. Browser-Tests (Edge)
+  laufen alle nacheinander in einem eigenen Prozess. Je Prozess ein eigener Temp-Ordner, `AMW_DB`/`AMW_AGENT`/`AMW_PROJEKT`
+  leer. Ausgabe wie unittest: die Fehlerberichte, dann „Ran N tests in X s“ und „OK (…)“ bzw. „FAILED (…)“; rc 0 nur bei
+  Grün. Der Hook für schwere Befehle erkennt ihn als „Test-Suite“.
 - **Übertragung verdrängt kein Grün der Spitze (A1964):** Die Patch-ID-Übertragung (A1814) legt keine grüne Prüfung auf
   einen inneren Commit, wenn die Aufgabe schon ein Grün auf einem späteren Commit desselben Stands hat (z. B. auf der
   Stapel-Spitze mit dem Versions-Commit). Sonst würde die neue Zeile jenes Grün als neueste Prüfung verdrängen, und die

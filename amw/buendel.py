@@ -52,7 +52,12 @@ def vorgaben_amw():
     return {"version_datei": "amw/__init__.py", "changelog_datei": "CHANGELOG.md",
             "buendel_schritt": json.dumps({"befehl": "python -X utf8 amw-cli.py web bauen",
                                            "dateien": ["web/inc/VERSION", "web/hilfe/*.json", "web/inc/seite.html"]}),
-            "gesamtlauf_befehl": "python -X utf8 -m unittest discover -s tests"}
+            "gesamtlauf_befehl": GESAMTLAUF_PARALLEL}
+
+
+# A1966: die ganze Suite parallel (amw/testlauf.py); der serielle Befehl zählt weiter als Gesamtlauf (freigabereif.ist_gesamtlauf)
+GESAMTLAUF_PARALLEL = "python -X utf8 -m amw.testlauf"
+GESAMTLAUF_SERIELL = "python -X utf8 -m unittest discover -s tests"
 
 
 def einstellungen(con, pid):

@@ -15,6 +15,7 @@ class Erkennen(unittest.TestCase):
     def test_was_als_schwer_gilt(self):
         for befehl, name in (
                 ("python -X utf8 -m unittest discover -s tests", "Test-Suite"),
+                ("python -X utf8 -m amw.testlauf", "Test-Suite"),                       # A1966: der parallele Gesamtlauf
                 ("cd F:/x && env -u A python -m unittest discover -s tests 2>&1 | tail -5", "Test-Suite"),
                 ("pytest", "Test-Suite"), ("pytest tests/ -q", "Test-Suite"), ("dotnet test", "Test-Suite"), ("npm test", "Test-Suite"),
                 ("npm run test", "Test-Suite"), ("python -m unittest tests.test_bedienung", "Browser-Tests"),

@@ -349,6 +349,20 @@ class Kette(unittest.TestCase):
                            ausgabe=zeilen.append).ausliefern("neu")
         self.assertIn(f"Gesamtlauf L{ganz}", zeilen[0])
 
+    def test_paralleler_gesamtlauf_zaehlt_wie_der_serielle(self):
+        """A1966: python -X utf8 -m amw.testlauf ist dieselbe ganze Suite – ein Arbeiter-Aufruf mit Argumenten nie."""
+        from amw import freigabereif
+        self.gruen()
+        arbeiter = self.teillauf("python -X utf8 -m amw.testlauf --arbeiter m.json b.json", beschreibung="Gesamtlauf Teil")
+        self.ohne_aenderung("Gesamtlauf")
+        ganz = self.teillauf("cd /d x && set AMW_AGENT= && python -X utf8 -m amw.testlauf", beschreibung="Lauf ohne das Wort")
+        zeile = lambda lid: self.con.execute("SELECT * FROM lauf WHERE id = ?", (lid,)).fetchone()   # noqa: E731
+        self.assertEqual([freigabereif.ist_gesamtlauf(self.con, self.pid, zeile(x), amw=True) for x in (arbeiter, ganz)], [False, True])
+        zeilen = []
+        auslieferung.Kette(self.con, self.pid, "CC1", self.repo, extern=self.extern, start_version=lambda: "1.1.0",
+                           ausgabe=zeilen.append).ausliefern("neu")
+        self.assertIn(f"Gesamtlauf L{ganz}", zeilen[0])
+
     def test_ausnahme_statt_l_nummer(self):
         """A1961: Mit Merge-OK-Ausnahme und ohne Gesamtlauf nennt die Kette „Ausnahme (von <Lead>: Grund)“ – nie einen Teil-Lauf."""
         self.gruen(merge_ok=False)

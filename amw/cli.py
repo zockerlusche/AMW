@@ -196,6 +196,7 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
                         "sperrmuster",                    # A1919: was p-Pakete im Projekt nie ändern dürfen
                         "regression_befehl", "abnahme_frist_min",   # A1920: was Prüfung C je Projekt ausführt
                         "sprachpruefung",                 # A1962: Sprach-Server in Prüfung C (auto | pyright | aus)
+                        "gesamtlauf_prozesse",            # A1966: Prozesse des parallelen Gesamtlaufs
                         "arbeiter_umgebung",              # A1922: Variablen und Pfade der Arbeiter
                         "sicherung_ziel",                 # A1929/A1951: wohin die tägliche Sicherung schiebt (Lead oder Mensch)
                         "thema_freigabe",                 # A1937/A1951: wer Themen freigibt (Lead oder Mensch)
@@ -1952,11 +1953,19 @@ def _lauf_ausfuehren(con, pid, a):
         ausgabe.write(f"# AMW L{lid} · {von} · {beschreibung}\n# Befehl: {' '.join(befehl)}\n# {stand}\n"
                       f"# Start: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
     eins = len(befehl) == 1                      # ein String mit Leerzeichen: als Befehlszeile der Shell
+    umgebung = None
+    try:                                             # A1966: Prozesse des parallelen Gesamtlaufs aus der Projekt-Einstellung
+        n = int(json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
+                .get("gesamtlauf_prozesse") or 0)
+    except (TypeError, ValueError):
+        n = 0
+    if n >= 1:
+        umgebung = {**os.environ, "AMW_TESTPROZESSE": str(n)}
     try:
         # FENSTER_GEWOLLT (A1783): läuft im Terminal des Agenten und erbt dessen Konsole – ohne Konsole öffnete jedes Kind
         # (z. B. Godot_*_console.exe) ein eigenes Fenster
         proc = subprocess.Popen(befehl[0] if eins else befehl, shell=eins, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                stdin=subprocess.DEVNULL, start_new_session=os.name != "nt")
+                                stdin=subprocess.DEVNULL, start_new_session=os.name != "nt", env=umgebung)
     except OSError as e:
         betrieb.lauf_ende(con, pid, von, lid, 127, f"Start fehlgeschlagen: {e}")
         raise kern.AmwFehler(f"L{lid}: Befehl ließ sich nicht starten ({e}) – Lauf beendet")

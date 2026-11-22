@@ -21,6 +21,6 @@
 - [Plan Dokumente](plan-dokumente.md) – Ausarbeitungen, Bilder und Mockups in der AMW (freigegeben; D1 umgesetzt)
 - Recherchen: [Projektplanung](recherche/planung.md) · [Agenten-Workbenches](recherche/workbenches.md) · [Push-Dienste](recherche/push.md)
 
-Für Entwickler an AMW: Tests mit `python -m unittest discover -s tests`; neue Datenbank-Versionen als
+Für Entwickler an AMW: Tests mit `python -X utf8 -m amw.testlauf` (parallel; nacheinander: `python -m unittest discover -s tests`); neue Datenbank-Versionen als
 `amw/migration_<n>.sql` und `SCHEMA_VERSION` in `amw/db.py`; nach Änderungen an `amw/workbench.html` `amw web bauen`,
 nach Änderungen an Befehlen `amw befehle > doc/befehle.md` (beides prüfen Tests).

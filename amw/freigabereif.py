@@ -49,7 +49,9 @@ def ist_gesamtlauf(con, pid, l, amw=False):
     b = " ".join((_gesamtlauf_befehl(con, pid, amw) or "").split())
     if not befehl or not b:
         return "gesamtlauf" in (l["beschreibung"] or "").lower()
-    return re.search(re.escape(b) + TRENNER, befehl) is not None
+    from . import buendel                            # A1966: parallel und seriell sind dieselbe ganze Suite
+    gleich = (buendel.GESAMTLAUF_PARALLEL, buendel.GESAMTLAUF_SERIELL)
+    return any(re.search(re.escape(x) + TRENNER, befehl) for x in ((b,) + (gleich if b in gleich else ())))
 
 
 def gruener_gesamtlauf(con, pid, sha, amw=False):

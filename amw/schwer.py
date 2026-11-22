@@ -12,7 +12,7 @@ import re
 # (Name, Muster). Der Name steht in der Warteschlange als Beschreibung, wenn der Agent keine eigene angibt.
 MUSTER = (
     ("Browser-Tests", r"\b(playwright\s+test|cypress\s+run)\b|-m\s+unittest\b[^|;&]*\btest_bedienung\b(?![\w.]*\.)"),
-    ("Test-Suite", r"-m\s+unittest\s+discover\b|\bpytest\b(?![^|;&]*(\s-k\s|::))|\bdotnet\s+test\b|\bnpm\s+(run\s+)?test\b"
+    ("Test-Suite", r"-m\s+unittest\s+discover\b|-m\s+amw\.testlauf\b(?!\s+--arbeiter)|\bpytest\b(?![^|;&]*(\s-k\s|::))|\bdotnet\s+test\b|\bnpm\s+(run\s+)?test\b"
                    r"|\bcargo\s+test\b|\bgo\s+test\s+\./\.\.\."),
     ("Build", r"\bdotnet\s+(build|publish)\b|\bmsbuild\b|\bnpm\s+run\s+build\b|\bcargo\s+build\b"
               r"|\bgodot\S*\s[^|;&]*--(build-solutions|export-release|export-debug|import)\b"),
