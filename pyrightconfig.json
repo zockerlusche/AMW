@@ -1,0 +1,32 @@
+{
+  "include": [
+    "amw",
+    "tests",
+    "proben",
+    "amw-anbieter-schluessel.py",
+    "amw-arbeiter.py",
+    "amw-cli.py",
+    "amw-gegenlesen.py",
+    "amw-hook.py",
+    "amw-mcp.py",
+    "amw-rueckmeldung.py",
+    "amw-statusline.py",
+    "amw-versionsprobe.py"
+  ],
+  "exclude": [
+    "**/daten",
+    "**/arbeitsplaetze",
+    "**/_archiv",
+    "**/_loeschen",
+    "**/_to_delete",
+    "**/node_modules",
+    "**/.git",
+    "**/__pycache__",
+    "web",
+    "intern",
+    "eingang-*"
+  ],
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "basic",
+  "reportMissingModuleSource": false
+}
