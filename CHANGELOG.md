@@ -4,6 +4,18 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.166.0 – 23.11.2026 · Startwissen für Agenten, Stil-Prüfung als Automatik, ein Gesamtlauf zur Zeit
+- **Neu:** Agenten bekommen beim Start das Wissen zu ihren Dateien und eine Projekt-Landkarte; Anfangen und Abgeben geht mit
+  je einem Befehl (`amw paket holen`, `amw paket fertig`).
+- **Neu:** Prüfbitten mit sichtbarer Änderung bekommen automatisch einen Stil-Befund je Regel; Grün trotz Verstoß nur mit
+  Begründung.
+- **Verbessert:** Es läuft höchstens ein ganzer Testlauf zur Zeit auf dem Rechner; ein zweiter wartet von selbst in der Schlange.
+- **Verbessert:** Aufgaben, die nicht in die Versionshinweise gehören, lassen sich als intern markieren – auch nach dem Abschließen.
+- **Behoben:** Ein vom Lead geprüfter Stapel geht ohne zusätzliche Prüfbitte je Aufgabe live, auch wenn darunter ein Konflikt
+  aufgelöst wurde.
+- **Behoben:** Der Hook für schwere Befehle hält einen Befehl nicht mehr an, nur weil sein Text in einer Nachricht oder
+  Commit-Beschreibung steht.
+
 ## 1.165.2 – 22.11.2026 · „Über Prognose“ nur für offene Pakete, Planer kennt den Bestand
 - **Behoben:** Die Meldung „über Prognose“ an den Lead kommt nur noch für offene Pakete, nie für fertige; die Prognose nimmt,
   wenn genug Messungen da sind, Pakete mit gleichem Modell und Denkaufwand.
