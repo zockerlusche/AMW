@@ -29,7 +29,7 @@ class UrteilSeite(Rundgang):
     def test_fuer_dich(self):
         self.oeffnen("start", self.zeile())
         text = self.tab.js(self.zeile() + ".innerText")
-        for teil in ("„Marktübersicht schreiben“ ist bereit zur Abnahme", "gemeldet von CC1", "1 offene Kriterien hakt dein Ja ab"):
+        for teil in ("„Marktübersicht schreiben“ ist bereit zur Abnahme", "gemeldet von CC1", "1 offenes Kriterium hakt dein Ja ab"):
             self.assertIn(teil, text)
         self.assertEqual(self.tab.js(self.zeile() + ".querySelectorAll('button').length"), 2)
 
