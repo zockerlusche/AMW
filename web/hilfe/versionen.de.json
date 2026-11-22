@@ -13,7 +13,7 @@
   },
   {
    "titel": "Eintragen",
-   "text": "`amw release version --version 1.4.0 --titel \"Kurzer Name\"` – die Versionshinweise kommen aus den fertigen Aufgaben seit der letzten Version.",
+   "text": "`amw release version --version 1.4.0 --titel \"Kurzer Name\"` – die Versionshinweise kommen aus den fertigen Aufgaben seit der letzten Version. Hat eine Aufgabe keinen eigenen Satz, leitet die AMW ihn aus dem Commit, dem Thema oder dem Titel ab.",
    "bilder": []
   },
   {
