@@ -80,6 +80,7 @@ def seite(con, pid, name):
             "ueberholt": [x for x in b if x["status"] == "ueberholt"], "dokumente": dok,
             "zustand": (z := status(con, t)), "handlungen": list(handlungen(z)),           # A1896
             "freigegeben_text": _freigegebener_text(con, t["id"], z),                     # F5358: Unterschied zur Freigabe
+            "tor": tor(con, pid, t["id"]),                                                # A1913: Hinweis vor dem Schließen
             "gegengelesen": _gegengelesen(con, pid, t["id"])}                             # A1914: Ergebnis des Gegenlesers
 
 
@@ -345,8 +346,10 @@ def _handlung(con, pid, von, name, was):
 def freigeben(con, pid, von, name):
     t, s = _handlung(con, pid, von, name, "freigeben")
     an = _an_pfleger(con, pid, t)
+    vorher = tor(con, pid)
     with db.schreiben(con):
         _ereignis(con, pid, von, "freigegeben", t["id"], fassung=s["fassung"])
+        _tor_nachher(con, pid, von, vorher)                                   # A1913: die letzte Freigabe schließt das Tor
         if an:
             kern._posten(con, pid, "AMW", an, "info", f"Thema „{t['name'][:60]}“ freigegeben (Fassung {s['fassung']})",
                          f"TH{t['id']}: {kern.entwickler_name(con, pid)} hat Fassung {s['fassung']} freigegeben.")
@@ -377,11 +380,13 @@ def bearbeiten(con, pid, von, name, text, erwartet=None):
         raise kern.AmwFehler(f"TH{t['id']} hat inzwischen Fassung {s['fassung']} (du hast Fassung {erwartet} bearbeitet) –"
                              " nichts gespeichert; neu laden und noch einmal")
     an = _an_pfleger(con, pid, t)
+    vorher = tor(con, pid)
     with db.schreiben(con):
         f = _fassung(con, t["id"])
         nr = (f["nr"] if f else 0) + 1
         db.einfuegen(con, "thema_fassung", thema_id=t["id"], nr=nr, text=text.strip(), von=von, zeit_utc=db.jetzt())
         _ereignis(con, pid, von, "bearbeitet", t["id"], fassung=nr)
+        _tor_nachher(con, pid, von, vorher)                                   # A1913: eigene Bearbeitung gilt als Freigabe
         if an:
             kern._posten(con, pid, "AMW", an, "info" if BEARBEITEN_GIBT_FREI else "auftrag",
                          f"Thema „{t['name'][:60]}“: Text von {kern.entwickler_name(con, pid)} geändert (Fassung {nr})",
@@ -395,8 +400,10 @@ def bearbeiten(con, pid, von, name, text, erwartet=None):
 def markieren(con, pid, von, name, an=True):
     """Löschen markieren (B2894: gelöscht wird nichts – löschen tut der Mensch) bzw. die Markierung aufheben."""
     t, _ = _handlung(con, pid, von, name, "markieren" if an else "entmarkieren")
+    vorher = tor(con, pid)
     with db.schreiben(con):
         _ereignis(con, pid, von, "markiert" if an else "entmarkiert", t["id"], fassung=None)
+        _tor_nachher(con, pid, von, vorher)                                   # A1913: markierte zählen nicht
     return status(con, finden(con, pid, t["id"]))
 
 
@@ -425,6 +432,66 @@ def fuer_dich(con, pid):
         s = status(con, t)
         if not s["markiert"] and s["status"] in zaehlt:
             aus.append({"id": t["id"], "name": t["name"], **s})
+    return aus
+
+
+# --- Tor Konzept (A1913, D1304 v12 §2, Marcel W2449): kein Knopf „Tor schließen“ – das Tor schließt automatisch mit der letzten
+# nötigen Freigabe; vorher sagt die Oberfläche „Damit schließt das Tor Konzept“. Der Zustand wird abgeleitet (kein Statusfeld):
+# zu, wenn es zählende Themen gibt und alle freigegeben sind (markierte zählen nicht). Wird danach eines zurückgegeben, neu
+# angelegt, neu vorgelegt oder auf „neu prüfen“ gesetzt, ist es wieder offen. Das Ereignis tor_geschlossen (Themen mit
+# Fassungsnummern) hält nur fest, wann und womit es schloss – zur Nachvollziehbarkeit.
+TORE = ("konzept", "grobplanung", "feinplanung", "umsetzung", "abschluss")
+TOR_GESCHLOSSEN = "tor_geschlossen"
+
+
+def _zustaende(con, pid):
+    return {t["id"]: status(con, t) for t in con.execute("SELECT * FROM thema WHERE projekt_id = ?", (pid,)).fetchall()}
+
+
+def _tor_aus(z):
+    zaehlt = {k: s for k, s in z.items() if not s["markiert"]}
+    n = sum(s["status"] == "frei" for s in zaehlt.values())
+    zu = bool(zaehlt) and n == len(zaehlt)
+    return {"tor": TORE[1] if zu else TORE[0], "konzept_zu": zu, "n": n, "g": len(zaehlt)}
+
+
+def tor(con, pid, tid=None):
+    """Wo das Projekt steht: {"tor": konzept|grobplanung, "konzept_zu", "n" (freigegeben), "g" (zählende Themen)}; mit tid dazu
+    "schliesst": die Handlungen an diesem Thema, mit denen das Tor Konzept jetzt schlösse (für den Hinweis vorher)."""
+    z = _zustaende(con, pid)
+    aus = _tor_aus(z)
+    if tid is not None and tid in z and not aus["konzept_zu"]:
+        s = z[tid]
+        nachher = {"freigeben": dict(s, status="frei", markiert=False),
+                   "bearbeiten": dict(s, status="frei" if BEARBEITEN_GIBT_FREI else "arbeit", markiert=False),
+                   "markieren": dict(s, markiert=True), "entmarkieren": dict(s, markiert=False)}
+        aus["schliesst"] = [h for h in handlungen(s) if h in nachher and _tor_aus({**z, tid: nachher[h]})["konzept_zu"]]
+    elif tid is not None:
+        aus["schliesst"] = []
+    return aus
+
+
+def _tor_nachher(con, pid, von, vorher):
+    """In der Transaktion des Aufrufers, nach der Handlung: schloss sie das Tor Konzept, das Ereignis dazu schreiben."""
+    import json
+    z = _zustaende(con, pid)
+    if vorher["konzept_zu"] or not _tor_aus(z)["konzept_zu"]:
+        return
+    themen_ = [{"thema": k, "fassung": s["fassung"]} for k, s in sorted(z.items()) if not s["markiert"]]
+    db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=TOR_GESCHLOSSEN,
+                 text=json.dumps({"tor": TORE[0], "themen": themen_}, ensure_ascii=False))
+
+
+def tor_ereignisse(con, pid):
+    """Wann das Tor Konzept schloss und mit welchen Themen und Fassungen (neueste zuerst)."""
+    import json
+    aus = []
+    for r in con.execute("SELECT id, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id DESC",
+                         (pid, TOR_GESCHLOSSEN)):
+        try:
+            aus.append({"id": r["id"], "von": r["von"], "zeit_utc": r["zeit_utc"], **json.loads(r["text"])})
+        except ValueError:
+            continue
     return aus
 
 

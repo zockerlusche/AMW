@@ -86,6 +86,67 @@ class ThemenSeite(Rundgang):
                 self.assertTrue(self.tab.js("getComputedStyle(document.querySelector('.th-thema')).display === 'none'"))
 
 
+class ThemenTor(Rundgang):
+    """A1913 (W2449): oben steht, wo das Projekt steht („Konzept · n von g Themen freigegeben“, markierte zählen nicht). Kein Knopf
+    „Tor schließen“: das Freigeben des letzten offenen Themas fragt vorher „Damit schließt das Tor Konzept“ – erst danach gilt
+    es; dann zeigt die Zeile das nächste Tor (Grobplanung). Bilder vorher/nachher über AMW_RUNDGANG_BILDER."""
+
+    def daten(self):
+        kern.agent_neu(self.con, self.pid, "CC1")
+        frei = themen.neu(self.con, self.pid, "TL", "Ziele und Rahmen", pfleger="CC1")
+        themen.pflegen(self.con, self.pid, "CC1", frei, "Leitstand für einen Menschen mit KI-Agenten.")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, frei)
+        self.letzt = themen.neu(self.con, self.pid, "TL", "Anmeldung", pfleger="CC1")
+        themen.pflegen(self.con, self.pid, "CC1", self.letzt, "Wer die Online-Seite öffnet, meldet sich mit seinem Firmen-Konto an.")
+        weg = themen.neu(self.con, self.pid, "TL", "Altes Menü", pfleger="CC1")
+        themen.markieren(self.con, self.pid, kern.ENTWICKLER, weg)                    # zählt nicht
+
+    STAND = "document.querySelector('#inhalt .th-stand')"
+    OFFEN = ("document.querySelector('.th-zeile[data-th=\"%d\"]').click()",
+             "document.querySelector('.th-thema h2')?.textContent === 'Anmeldung' && document.querySelector('.th-knoepfe button[data-h=freigeben]')")
+
+    def test_letzte_freigabe_fragt_und_schliesst_das_tor(self):
+        schon = len(themen.tor_ereignisse(self.con, self.pid))       # in daten() schloss das erste Thema allein das Tor schon einmal
+        self.oeffnen("themen", "document.querySelector('.th-liste .th-zeile')")
+        self.assertEqual(self.tab.js(f"{self.STAND}.querySelector('span').textContent"), "Konzept · 1 von 2 Themen freigegeben")
+        self.assertEqual(self.tab.js(f"{self.STAND}.dataset.tor"), "konzept")
+        self.tab.js(self.OFFEN[0] % self.letzt)
+        self.warten(self.OFFEN[1])
+        self.tab.js("window.__fragen = []; window.confirm = x => { window.__fragen.push(x); return false; };"
+                    " document.querySelector('.th-knoepfe button[data-h=freigeben]').click()")
+        self.assertEqual(self.tab.js("window.__fragen"), ["Damit schließt das Tor Konzept. Als Nächstes kommt die Grobplanung."])
+        self.assertEqual(themen.status(self.con, themen.finden(self.con, self.pid, self.letzt))["status"], "dich")   # abgebrochen
+        self.tab.js("window.confirm = x => { window.__fragen.push(x); return true; };"
+                    " document.querySelector('.th-knoepfe button[data-h=freigeben]').click()")
+        self.warten(f"{self.STAND}?.dataset.tor === 'grobplanung'")
+        self.assertEqual(self.tab.js(f"{self.STAND}.querySelector('span').textContent"), "Grobplanung · Konzept fertig: 2 von 2 Themen freigegeben")
+        self.assertEqual(len(themen.tor_ereignisse(self.con, self.pid)), schon + 1)
+        self.assertEqual(self.tab.js("window.__fragen.length"), 2)
+
+    def test_zurueck_ohne_frage(self):
+        """Zurückgeben schließt nie – keine Frage."""
+        self.oeffnen("themen", "document.querySelector('.th-liste .th-zeile')")
+        self.tab.js(self.OFFEN[0] % self.letzt)
+        self.warten(self.OFFEN[1])
+        self.tab.js("window.__fragen = []; window.confirm = x => { window.__fragen.push(x); return true; };"
+                    " document.querySelector('.th-knoepfe button[data-h=zurueck]').click()")
+        self.warten("document.querySelector('.th-kasten textarea')")
+        self.tab.js("document.querySelector('.th-kasten textarea').value = 'Noch die Sicherung';"
+                    " document.querySelector('.th-kasten .klein-knopf.haupt').click()")
+        self.warten(f"document.querySelector('.th-zeile[data-th=\"{self.letzt}\"] .th-status.arbeit')")
+        self.assertEqual(self.tab.js("window.__fragen"), [])
+
+    def test_bilder(self):
+        liste = "document.querySelector('.th-liste .th-zeile')"
+        for ort in ("themen-tor-offen", "themen-tor-zu"):
+            if ort == "themen-tor-zu":
+                themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.letzt)
+            for g in ("pc", "handy"):
+                for th in ("hell", "dunkel"):
+                    tun, danach = (self.OFFEN[0] % self.letzt, self.OFFEN[1]) if ort == "themen-tor-offen" else (None, None)
+                    self.assertEqual(self.besuchen("themen", ort, bereit=liste, tun=tun, danach=danach, g=g, t=th), [], f"{ort} {g} {th}")
+
+
 class ThemenGegenlesen(Rundgang):
     """A1914: liest ein Gegenleser, steht in Liste und Thema nur der Status als Fakt („wird gegengelesen · seit …“, in Arbeit);
     danach das Ergebnis zum Aufklappen (Fassung, Modell, Kosten, Einwände). Bilder über AMW_RUNDGANG_BILDER."""

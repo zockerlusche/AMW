@@ -8,6 +8,7 @@ import contextlib
 import io
 import os
 import tempfile
+import types
 import unittest
 from unittest import mock
 
@@ -270,6 +271,97 @@ class Anzeige(Grund):
         self.assertEqual((s["zustand"]["status"], s["handlungen"]), ("dich", ["freigeben", "zurueck", "bearbeiten", "markieren"]))
         l = themen.liste(self.con, self.pid)[0]
         self.assertEqual((l["zustand"]["status"], l["neu_erlaubt"]), ("dich", True))
+
+
+class Tor(Grund):
+    """A1913 (D1304 v12 §2, W2449): kein Knopf – das Tor Konzept schließt mit der letzten nötigen Freigabe, vorher weiß die Seite,
+    welche Handlung es schlösse; abgeleitet, also wieder offen bei Zurück, neuem Thema, neuer Vorlage oder „neu prüfen“."""
+    def setUp(self):
+        super().setUp()
+        self.zwei = themen.neu(self.con, self.pid, "TL", "Speichern", pfleger="CC1")
+        for tid in (self.tid, self.zwei):
+            themen.pflegen(self.con, self.pid, "CC1", tid, f"Text {tid}.")
+        self.um(0)
+
+    def tor(self, tid=None):
+        return themen.tor(self.con, self.pid, tid)
+
+    def geschlossen(self):
+        return themen.tor_ereignisse(self.con, self.pid)
+
+    def test_zaehlt_und_schliesst_mit_der_letzten_freigabe(self):
+        self.assertEqual(self.tor(), {"tor": "konzept", "konzept_zu": False, "n": 0, "g": 2})
+        self.assertEqual(self.tor(self.tid)["schliesst"], [])                           # zwei offen: keine schließt
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertEqual(self.tor()["n"], 1)
+        self.assertEqual(self.tor(self.zwei)["schliesst"], ["freigeben", "bearbeiten", "markieren"])   # das letzte offene
+        self.assertEqual(self.tor(self.tid)["schliesst"], [])                           # das freigegebene schließt nichts
+        self.assertEqual(themen.seite(self.con, self.pid, self.zwei)["tor"]["schliesst"], ["freigeben", "bearbeiten", "markieren"])
+        self.assertEqual(self.geschlossen(), [])
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.zwei)
+        self.assertEqual(self.tor(), {"tor": "grobplanung", "konzept_zu": True, "n": 2, "g": 2})
+        e = self.geschlossen()
+        self.assertEqual(len(e), 1)
+        self.assertEqual((e[0]["tor"], e[0]["von"], e[0]["themen"]),
+                         ("konzept", kern.ENTWICKLER, [{"thema": self.tid, "fassung": 1}, {"thema": self.zwei, "fassung": 1}]))
+        self.assertEqual(self.tor(self.tid)["schliesst"], [])                           # zu: nichts mehr zu schließen
+
+    def test_wieder_offen_abgeleitet_und_neu_geschlossen(self):
+        for tid in (self.tid, self.zwei):
+            themen.freigeben(self.con, self.pid, kern.ENTWICKLER, tid)
+        self.um(1)
+        themen.zurueck(self.con, self.pid, kern.ENTWICKLER, self.zwei, "Noch die Sicherung")   # Zurück öffnet
+        self.assertEqual(self.tor(), {"tor": "konzept", "konzept_zu": False, "n": 1, "g": 2})
+        self.um(2)
+        themen.pflegen(self.con, self.pid, "CC1", self.zwei, "Mit Sicherung.")
+        self.um(3)
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.zwei)
+        self.assertTrue(self.tor()["konzept_zu"])
+        self.assertEqual([x["themen"][1]["fassung"] for x in self.geschlossen()], [2, 1])   # zweimal, mit den Fassungen
+        self.um(4)
+        self.beschluss(5)                                                                  # „neu prüfen“ öffnet
+        self.assertEqual((self.tor()["konzept_zu"], self.tor()["n"]), (False, 1))
+        self.beschluss_weg()
+        dritt = themen.anlegen_mensch(self.con, self.pid, kern.ENTWICKLER, "Online-Seite", "")   # neues Thema öffnet
+        self.assertEqual(self.tor(), {"tor": "konzept", "konzept_zu": False, "n": 2, "g": 3})
+        themen.markieren(self.con, self.pid, kern.ENTWICKLER, dritt)                       # markierte zählen nicht: schließt
+        self.assertTrue(self.tor()["konzept_zu"])
+        self.assertEqual(len(self.geschlossen()), 3)
+        self.assertEqual(self.tor(dritt)["schliesst"], [])
+
+    def beschluss_weg(self):
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE beschluss SET status = 'ueberholt' WHERE projekt_id = ?", (self.pid,))
+
+    def test_eigene_bearbeitung_des_letzten_schliesst(self):                               # F5358 A: gilt als Freigabe
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        themen.bearbeiten(self.con, self.pid, kern.ENTWICKLER, self.zwei, "Mein Text.", erwartet=1)
+        self.assertTrue(self.tor()["konzept_zu"])
+        self.assertEqual(self.geschlossen()[0]["themen"][1], {"thema": self.zwei, "fassung": 2})
+
+    def test_ohne_zaehlende_themen_bleibt_es_offen(self):
+        with db.schreiben(self.con):
+            pid = db.einfuegen(self.con, "projekt", name="Leer", angelegt_utc=db.jetzt())
+        self.assertEqual(themen.tor(self.con, pid), {"tor": "konzept", "konzept_zu": False, "n": 0, "g": 0})   # ohne Themen: offen
+        tid = themen.neu(self.con, pid, kern.ENTWICKLER, "Ohne Text")
+        self.assertEqual(themen.tor(self.con, pid, tid)["schliesst"], ["bearbeiten"])      # „in Arbeit“: nur dein eigener Text schlösse
+        themen.markieren(self.con, pid, kern.ENTWICKLER, tid)
+        self.assertEqual(themen.tor(self.con, pid), {"tor": "konzept", "konzept_zu": False, "n": 0, "g": 0})   # nichts zählt: nicht zu
+        self.assertEqual(themen.tor(self.con, pid, tid)["schliesst"], [])                  # aufheben: wieder „in Arbeit“
+        self.assertEqual(themen.tor_ereignisse(self.con, pid), [])
+
+    def test_befehl_nennt_das_tor(self):
+        from amw import cli
+        a = types.SimpleNamespace(aktion="status", projekt=None, von=kern.ENTWICKLER, suche=None, name=None)
+        with mock.patch.object(cli, "_projekt", return_value=self.pid), contextlib.redirect_stdout(io.StringIO()) as aus:
+            cli.cmd_thema(a, self.con)
+        self.assertEqual(aus.getvalue().splitlines()[0], "Konzept · 0 von 2 Themen freigegeben")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        a = types.SimpleNamespace(aktion="freigeben", projekt=None, von=kern.ENTWICKLER, suche=None, notiz=None, name=f"TH{self.zwei}")
+        with mock.patch.object(cli, "_projekt", return_value=self.pid), mock.patch.object(cli, "_von", return_value=kern.ENTWICKLER), \
+                mock.patch.object(cli, "_aus_agenten_sitzung", return_value=False), contextlib.redirect_stdout(io.StringIO()) as aus:
+            cli.cmd_thema(a, self.con)
+        self.assertIn("Damit ist das Tor Konzept geschlossen – Grobplanung · Konzept fertig: 2 von 2 Themen freigegeben", aus.getvalue())
 
 
 if __name__ == "__main__":

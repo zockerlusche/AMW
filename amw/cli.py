@@ -2171,6 +2171,11 @@ def cmd_beschluss(a, con):
         print(h)
 
 
+def _tor_zeile(x):
+    return (f"Grobplanung · Konzept fertig: {x['g']} von {x['g']} Themen freigegeben" if x["konzept_zu"]
+            else f"Konzept · {x['n']} von {x['g']} Themen freigegeben")
+
+
 def cmd_thema(a, con):
     """Design-Dokument je Thema: liste | zeige | neu | einstellen | pflegen | bestaetigen | dokument."""
     from . import themen
@@ -2188,6 +2193,7 @@ def cmd_thema(a, con):
         print(f"TH{tid} angelegt")
         return
     if a.aktion == "status":                          # A1896: Status je Thema (abgeleitet) – für Agenten und den Menschen
+        print(_tor_zeile(themen.tor(con, pid)))       # A1913: wo das Projekt steht
         for t in themen.liste(con, pid):
             z = t["zustand"]
             print(f"TH{t['id']:<4} {('zum Löschen markiert' if z['markiert'] else z['text']):<18} {t['name'][:70]}"
@@ -2198,10 +2204,15 @@ def cmd_thema(a, con):
             raise kern.AmwFehler(f"thema {a.aktion}: nur der Mensch in seinem eigenen Terminal oder in der Workbench am PC")
         if not a.name:
             raise kern.AmwFehler(f"amw thema {a.aktion} <TH-Nr. oder Name>" + (" --notiz …" if a.aktion == "zurueck" else ""))
+        vorher = themen.tor(con, pid)
         z = (themen.freigeben(con, pid, _von(a), a.name) if a.aktion == "freigeben"
              else themen.zurueck(con, pid, _von(a), a.name, a.notiz) if a.aktion == "zurueck"
              else themen.markieren(con, pid, _von(a), a.name, an=a.aktion == "markieren"))
         print(f"{a.name}: {'zum Löschen markiert' if z['markiert'] else z['text']}")
+        nachher = themen.tor(con, pid)
+        if nachher["konzept_zu"] != vorher["konzept_zu"]:                  # A1913: das Tor schließt bzw. öffnet von selbst
+            print("Damit ist das Tor Konzept geschlossen – " + _tor_zeile(nachher) if nachher["konzept_zu"]
+                  else "Das Tor Konzept ist wieder offen – " + _tor_zeile(nachher))
         return
     if not a.name:
         raise kern.AmwFehler(f"amw thema {a.aktion} <TH-Nr. oder Name>")
