@@ -17,10 +17,10 @@ GRUPPE = {"text": "einfach", "mechanisch": "einfach", "fehlersuche": "mittel", "
 GRUPPEN = ("einfach", "mittel", "heikel")
 MODELLE = ("haiku", "sonnet", "opus", "fable")          # Kurznamen, wie `claude --model` sie nimmt
 STUFEN = ("low", "medium", "high", "xhigh", "max")
-STANDARD = {                                            # Startwerte (D906 Abschnitt 2) – Annahme, nicht gemessen
-    "einfach": {"S": "sonnet/low", "M": "sonnet/medium", "L": "sonnet/medium", "XL": "opus/medium"},
-    "mittel": {"S": "sonnet/medium", "M": "opus/medium", "L": "opus/high", "XL": "opus/high"},
-    "heikel": {"S": "opus/medium", "M": "opus/high", "L": "opus/high", "XL": "opus/xhigh"},
+STANDARD = {                                            # Startwerte TH159 (A1930, #29978): klein Sonnet medium, normal Opus
+    "einfach": {"S": "sonnet/medium", "M": "opus/medium", "L": "opus/high", "XL": "opus/high"},   # medium, schwer Opus high;
+    "mittel": {"S": "sonnet/medium", "M": "opus/medium", "L": "opus/high", "XL": "opus/high"},    # heikel eine Stufe höher.
+    "heikel": {"S": "opus/high", "M": "opus/high", "L": "opus/high", "XL": "opus/high"},          # Fable nie als Empfehlung
 }
 LETZTE = 10                                             # je Agent: häufigste Zelle seiner letzten so vielen Aufgaben
 
@@ -54,10 +54,33 @@ def tabelle_pruefen(t):
     return aus
 
 
-def tabelle(con, pid):
+def tabelle(con, pid, gemessen=True):
+    """Empfehlung je Zelle. Reihenfolge: ein ausdrücklich gesetzter Wert des Projekts (Lead oder Mensch) – sonst, A1930, der
+    gemessene beste Wert der Eignungstabelle (eignung.beste, ab n ≥ 5) – sonst der Startwert (STANDARD)."""
+    return {g: {gr: w for gr, (w, _) in zeile.items()} for g, zeile in herkunft(con, pid, gemessen).items()}
+
+
+def herkunft(con, pid, gemessen=True):
+    """{gruppe: {groesse: (wert, "projekt" | "gemessen" | "start")}}."""
+    from . import eignung
     r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
     eigen = (json.loads(r[0] or "{}") if r else {}).get("empfehlung") or {}
-    return {g: {gr: (eigen.get(g) or {}).get(gr) or STANDARD[g][gr] for gr in GROESSEN} for g in GRUPPEN}
+    t = eignung.tabelle(con, pid) if gemessen else {}
+    aus = {}
+    for g in GRUPPEN:
+        for gr in GROESSEN:
+            if (eigen.get(g) or {}).get(gr):
+                aus.setdefault(g, {})[gr] = (eigen[g][gr], "projekt")
+                continue
+            b = eignung.beste(t.get((g, gr)), STANDARD[g][gr])
+            ok = False
+            if b:
+                try:
+                    ok = wert_pruefen(b) == b
+                except ValueError:
+                    ok = False                         # z. B. ein fremder Anbieter: keine Empfehlung fürs Profil
+            aus.setdefault(g, {})[gr] = (b, "gemessen") if ok else (STANDARD[g][gr], "start")
+    return aus
 
 
 def _teile(w):

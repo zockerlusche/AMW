@@ -81,7 +81,7 @@ class Empfehlung(unittest.TestCase):
 
     def test_tabelle_standard_abweichung_und_pruefung(self):
         self.assertEqual(empfehlung.tabelle(self.con, self.pid), empfehlung.STANDARD)
-        e = kern.projekt_einstellen(self.con, self.pid, "TL", empfehlung={"einfach": {"S": "Haiku/Low", "M": "sonnet/medium"}})
+        e = kern.projekt_einstellen(self.con, self.pid, "TL", empfehlung={"einfach": {"S": "Haiku/Low", "M": "opus/medium"}})   # M = Startwert (A1930: TH159)
         self.assertEqual(e["empfehlung"], {"einfach": {"S": "haiku/low"}})              # nur die Abweichung
         self.assertEqual(empfehlung.tabelle(self.con, self.pid)["einfach"]["S"], "haiku/low")
         for falsch in ({"einfach": {"S": "gpt/high"}}, {"einfach": {"XXL": "opus/high"}}, {"lustig": {"S": "opus/high"}}):
@@ -115,7 +115,7 @@ class Empfehlung(unittest.TestCase):
         self.assertIsNone(empfehlung.fuer_aufgabe(self.con, self.pid, int(aus.split()[0][1:])))
         rc, aus = self.cli("aufgabe", "aendern", str(aid), "--art", "text", "--von", "TL", "--projekt", "Eins")
         self.assertEqual(rc, 0, aus)
-        self.assertEqual(empfehlung.fuer_aufgabe(self.con, self.pid, aid)["modell"], "sonnet")
+        self.assertEqual(empfehlung.fuer_aufgabe(self.con, self.pid, aid)["modell"], "opus")         # A1930: einfach · M = opus/medium
         with self.assertRaises(kern.AmwFehler):
             planung.schritt_setzen(self.con, self.pid, "TL", aid=aid, groesse="riesig")
 
@@ -125,11 +125,11 @@ class Empfehlung(unittest.TestCase):
         self.fertig("S", "mechanisch", z(9), z(9, 30), 1.0, 2.0, sid)
         self.fertig("L", "konzept", z(10), z(10, 30), 2.0, 9.0, sid)
         e = empfehlung.fuer_agent(self.con, self.pid, "CC1")
-        self.assertEqual((e["modell"], e["denkstufe"], e["groesse"], e["gruppe"], e["n"], e["von"]), ("sonnet", "low", "S", "einfach", 2, 3))
+        self.assertEqual((e["modell"], e["denkstufe"], e["groesse"], e["gruppe"], e["n"], e["von"]), ("sonnet", "medium", "S", "einfach", 2, 3))   # A1930: TH159 klein
         self.assertIs(e["passt"], False)
         rc, aus = self.cli("agent", "profil", "CC1", "--von", "TL", "--projekt", "Eins")
-        self.assertIn("sonnet/low (meist S · einfach, 2 von 3 letzten Aufgaben) – weicht vom Profil ab", aus)
-        steuerung.profil_setzen(self.con, self.pid, kern.ENTWICKLER, "CC1", modell="sonnet", denkstufe="low")   # wie „Ins Profil übernehmen“
+        self.assertIn("sonnet/medium (meist S · einfach, 2 von 3 letzten Aufgaben) – weicht vom Profil ab", aus)
+        steuerung.profil_setzen(self.con, self.pid, kern.ENTWICKLER, "CC1", modell="sonnet", denkstufe="medium")   # wie „Ins Profil übernehmen“
         self.assertIs(empfehlung.fuer_agent(self.con, self.pid, "CC1")["passt"], True)
         self.assertEqual(workbench.daten_agent(self.con, self.pid, "CC1")["empfehlung"]["modell"], "sonnet")
         self.assertIsNone(empfehlung.passt({"modell": None, "denkstufe": "high"}, {"modell": "opus", "denkstufe": "high"}))

@@ -49,6 +49,7 @@ GESPERRT = (
     ("amw/versionsprobe.py", "fest", "Negativprobe neuer Claude-Code-Versionen (A1906)"),
     ("amw/anbieter.py", "fest", "Anbieter je Projekt (A1931)"),
     ("amw/schalter.py", "fest", "Projekt-Schalter mit Probe (A1926)"),
+    ("amw/eignung.py", "fest", "Eignungstabelle – gemessen, ersetzt Startwerte der Empfehlung (A1930)"),
     ("amw/anbieter_schluessel.py", "fest", "apiKeyHelper – gibt nur freigegebene Schlüsseldateien aus (A1931)"),
     ("amw-anbieter-schluessel.py", "fest", "apiKeyHelper (A1931)"),
     ("amw/gegenlesen.py", "fest", "Gegenleser der Themen – startet claude -p (A1914)"),

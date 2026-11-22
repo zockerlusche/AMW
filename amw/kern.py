@@ -270,7 +270,7 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # Gegenlesen der Themen (A1914, D1304 v12 §4): liefert ein Pfleger eine neue Fassung, liest ein frischer
                 # claude -p (nur Lesen) sie gegen und schickt dem Pfleger Einwände – haiku (Vorgabe) oder sonnet; aus = nie.
                 # Stellen Lead oder Mensch.
-                "themen_gegenlesen": ("haiku", "sonnet", "aus"),
+                "themen_gegenlesen": ("opus", "haiku", "sonnet", "aus"),     # A1930: Vorgabe opus/high (TH159)
                 # Verteilen an interaktive Agenten (A1927, TH157): vorschlag = der Lead bekommt die Zuteilung als Frage (Vorgabe);
                 # an = die AMW teilt einem freien Agenten das nächste passende startklare Paket selbst zu; aus = nie.
                 "verteilen": ("vorschlag", "an", "aus"),

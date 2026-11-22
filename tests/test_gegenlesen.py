@@ -39,7 +39,7 @@ class Ablauf(Basis):
         nr = themen.pflegen(self.con, self.pid, "CC1", self.tid, "Anmeldung mit Firmen-Konto.")
         self.assertEqual(self.gestartet, [(self.pid, self.tid, nr)])                          # genau einer, über den Starter
         s = self.st()
-        self.assertEqual((s["status"], s["gegenlesen"]["modell"], s["gegenlesen"]["fassung"]), ("arbeit", "haiku", nr))
+        self.assertEqual((s["status"], s["gegenlesen"]["modell"], s["gegenlesen"]["fassung"]), ("arbeit", "opus", nr))   # A1930: Vorgabe opus
         self.assertTrue(s["gegenlesen"]["seit_utc"])                                         # „wird gegengelesen · seit …“
         self.assertEqual(themen.fuer_dich(self.con, self.pid), [])                           # noch nicht beim Menschen
         gegenlesen.abschliessen(self.con, self.pid, self.tid, nr, {"einwaende": "- Abschnitt 2 widerspricht B1.", "usd": 0.0213,
@@ -89,8 +89,8 @@ class Ablauf(Basis):
     def test_abschaltbar_nur_lead_oder_mensch_und_der_mensch_selbst_nie(self):
         with self.assertRaises(kern.AmwFehler):
             kern.projekt_einstellen(self.con, self.pid, "CC1", themen_gegenlesen="aus")
-        with self.assertRaisesRegex(kern.AmwFehler, "haiku | sonnet | aus"):
-            kern.projekt_einstellen(self.con, self.pid, "TL", themen_gegenlesen="opus")
+        with self.assertRaisesRegex(kern.AmwFehler, "opus | haiku | sonnet | aus"):                 # A1930: opus wählbar (Vorgabe)
+            kern.projekt_einstellen(self.con, self.pid, "TL", themen_gegenlesen="fable")
         kern.projekt_einstellen(self.con, self.pid, "TL", themen_gegenlesen="aus")
         themen.pflegen(self.con, self.pid, "CC1", self.tid, "Text.")
         self.assertEqual((self.gestartet, self.st()["status"]), ([], "dich"))                  # aus: wie bisher
@@ -115,7 +115,7 @@ class Lauf(Basis):
             gegenlesen.ausfuehren(self.con, self.pid, self.tid, nr)
         l = self.con.execute("SELECT id, status, rc, beschreibung, ergebnis FROM lauf ORDER BY id DESC LIMIT 1").fetchone()
         self.assertEqual((l["status"], l["rc"]), ("fertig", 0))
-        self.assertEqual(l["beschreibung"], f"Gegenlesen TH{self.tid} Fassung 1 (haiku, A1914, automatisch)")
+        self.assertEqual(l["beschreibung"], f"Gegenlesen TH{self.tid} Fassung 1 (opus, A1914, automatisch)")
         self.assertIn("0.02 $", l["ergebnis"])
         self.assertEqual(themen.seite(self.con, self.pid, self.tid)["gegengelesen"]["lauf"], l["id"])
         self.assertEqual(self.st()["status"], "dich")

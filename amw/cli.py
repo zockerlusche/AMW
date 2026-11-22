@@ -1332,6 +1332,26 @@ PC_NUR_MENSCH = ("projekt_rang",)                         # A1925 (E1): nur der 
 PC_LEAD_ODER_MENSCH = ("plaetze_pc", "limit_halt")        # A1925 (E2, E4): Lead oder Mensch, gesperrt wie RECHTE_EINSTELLUNGEN
 
 
+def cmd_empfehlung(a, con):
+    """A1930 (TH159): Eignungstabelle – je Zelle (Gruppe × Größe) und Modell/Effort: Anzahl, Anteil ohne Nacharbeit, Median Kosten
+    und Dauer, Pakettypen; dazu, was die Empfehlung nimmt (Projektwert, gemessen oder Startwert)."""
+    from . import eignung, empfehlung
+    pid = _projekt(con, a)
+    t = eignung.tabelle(con, pid)
+    h = empfehlung.herkunft(con, pid)
+    print(f"Eignungstabelle – gemessen ersetzt den Startwert ab {eignung.MIN_N} Aufgaben je Paar; ohne Nacharbeit nach F5362")
+    for g in empfehlung.GRUPPEN:
+        for gr in empfehlung.GROESSEN:
+            w, woher = h[g][gr]
+            print(f"\n{g} · {gr}: Empfehlung {w} ({ {'projekt': 'vom Projekt gesetzt', 'gemessen': 'gemessen', 'start': 'Startwert'}[woher] })")
+            for paar, x in sorted((t.get((g, gr)) or {}).items(), key=lambda p: -p[1]["n"]):
+                kosten = f"{x['kosten_median']:.2f} $" if x["kosten_median"] is not None else "– $"
+                dauer = f"{x['dauer_median_s'] / 60:.0f} min" if x["dauer_median_s"] is not None else "– min"
+                typen = ", ".join(f"{k} {n}" for k, n in sorted(x["pakettypen"].items()))
+                print(f"  {'→' if paar == w else ' '} {paar:<16} n {x['n']:<3} ohne Nacharbeit {x['ohne_anteil'] * 100:.0f} %"
+                      f" · Median {kosten} · {dauer} · {typen}")
+
+
 def cmd_anbieter(a, con):
     """A1931 (TH159): Anbieter je Projekt – liste | freigeben NAME --url … --schluessel-datei … --modelle … [--lokal] |
     entfernen NAME. Freigeben und entfernen nur der Mensch im eigenen Terminal (auch nicht der Lead). Nie der Schlüssel selbst."""
@@ -3216,6 +3236,11 @@ def parser():
     x.add_argument("--aufgabe", type=int, help="Aufgabe des Pakets (Name des Archivs, damit aufraeumen es nach Paketende verschiebt)")
     x.add_argument("--zweig", help="vorbereiten: Name des Zweigs ab main (Vorgabe platzN)")
     x.set_defaults(f=cmd_platz)
+
+    x = s.add_parser("empfehlung", help="Eignungstabelle (A1930, TH159): tabelle – je Zelle und Modell/Effort Anzahl, Anteil ohne"
+                                        " Nacharbeit, Median Kosten und Dauer; was die Empfehlung nimmt (nur lesen)")
+    x.add_argument("aktion", choices=["tabelle"], nargs="?", default="tabelle")
+    x.set_defaults(f=cmd_empfehlung)
 
     x = s.add_parser("anbieter", help="Anbieter je Projekt (A1931, TH159): liste | freigeben NAME --url https://… --schluessel-datei"
                                       " <Pfad> --modelle a,b [--lokal] | entfernen NAME – freigeben/entfernen nur der Mensch im eigenen"

@@ -29,7 +29,8 @@ ANGESTOSSEN, FERTIG = "thema_gegenlesen", "thema_gegengelesen"
 EINSTIEG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "amw-gegenlesen.py")
 OHNE_FENSTER = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 LAEUFT_H = 2                 # so lange gilt ein Gegenleser ohne Ende als laufend (fällt der Prozess weg, sperrt er das Thema nicht)
-MODELLE = {"haiku": "haiku", "sonnet": "sonnet"}
+MODELLE = {"opus": "opus", "haiku": "haiku", "sonnet": "sonnet"}
+EFFORT = {"opus": "high", "haiku": "low", "sonnet": "low"}     # A1930 (TH159, #29978): Gegenlesen Opus high als Vorgabe
 # D1304 v12 §4: Rollen der Zuarbeit. Gebaut ist nur das Gegenlesen; die anderen sind vorbereitet (gebaut: False).
 ROLLEN = {
     "gegenlesen": {"gebaut": True, "titel": "Gegenlesen",
@@ -159,7 +160,7 @@ def lesen(con, pid, t, fassung, modell, prog=None, zusatz=None):
         subprocess.run(["git", "init", "-q", "-b", "main", p["klon"]], check=True, capture_output=True, creationflags=OHNE_FENSTER)
         dateien = _dateien(con, pid, t, fassung, p["klon"])
         auftrag = ROLLEN["gegenlesen"]["auftrag"] + "\n\nDateien: " + ", ".join(dateien)
-        r = arbeiter.laufen(p, auftrag, None, modell=modell, effort="low", prog=prog, zusatz=zusatz, nur_lesen=True,
+        r = arbeiter.laufen(p, auftrag, None, modell=modell, effort=EFFORT.get(modell, "low"), prog=prog, zusatz=zusatz, nur_lesen=True,
                             geprueft=versionsprobe.geprueft(con))
     erg = r.get("ergebnis") or {}
     usd = erg.get("total_cost_usd")

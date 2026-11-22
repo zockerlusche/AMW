@@ -285,6 +285,22 @@ Werkzeug (SDK, Compiler) oder mit vorbereiteten Caches braucht dafür einzelne V
 - **Restrisiko** (steht in jedem Bericht): Von Arbeitern geschriebener Code läuft in Prüfung C unter dem Benutzerkonto und
   könnte Dateien außerhalb lesen, auch eine Schlüsseldatei; die Geheimnis-Muster im Diff-Tor bleiben die Bremse.
 
+## Eignungstabelle: gemessen statt geschätzt (A1930, TH159)
+
+**Wozu:** Welches Modell mit welchem Denkaufwand passt zu welcher Arbeit, misst die AMW selbst – und empfiehlt danach.
+
+- **Messung (nichts von Hand):** je erledigter Arbeit eine Zeile. p-Pakete: Modell und Effort des Pakets, Kosten und Dauer aus
+  den Kosten-Ereignissen; „ohne Nacharbeit“ nach F5362: erste Entscheidung E7, bei Test-Paketen auch E4 mit Annahme des Leads
+  ohne Änderung – ein zweiter Lauf (E5), die Abgabe an einen interaktiven Agenten (E8) oder jedes andere Ende zählt als
+  Nacharbeit. Interaktive Aufgaben: Modell und Stufe der Sitzungen, die die Aufgabe am meisten gekostet haben, aktive Zeit,
+  ohne Nacharbeit = keine rote Prüfung. Zelle = Gruppe der Art × Größe; der Pakettyp steht nur zur Anzeige dabei.
+- **`amw empfehlung tabelle`:** je Zelle und Modell/Effort Anzahl, Anteil ohne Nacharbeit, Median der Kosten und der Dauer;
+  die Zeile, die die Empfehlung nimmt, ist markiert, mit Herkunft (vom Projekt gesetzt, gemessen, Startwert).
+- **Regel:** Unter den Paaren mit mindestens 5 Aufgaben gewinnt der höchste Anteil ohne Nacharbeit, bei Gleichstand die
+  niedrigeren Median-Kosten; es ersetzt den Startwert nur, wenn es mindestens so gut ist wie der gemessene Startwert. Ein im
+  Projekt gesetzter Wert (`amw projekt einstellen empfehlung=…`) geht vor. Fable ist nie eine Empfehlung.
+- **Startwerte (TH159):** klein Sonnet medium, normal Opus medium, schwer Opus high; heikle Arten eine Stufe höher (Opus high).
+
 ## Neue Claude-Code-Version ohne Stillstand (seit 1.154.0)
 
 **Wozu:** 21.11.: Zweimal stand S8 je etwa eine Stunde still, weil sich Claude Code aktualisiert hatte und die geprüften
@@ -424,7 +440,7 @@ dass der Pfleger daran denken muss.
 - **Für den Menschen:** solange er liest, Status „in Arbeit“ mit „wird gegengelesen · seit HH:MM“ (Liste und Thema), das Thema
   ist nicht unter „Für dich“; danach „wartet auf dich“ und das Ergebnis zum Aufklappen. Endet ein Gegenleser nicht, zählt er
   nach 2 h nicht mehr.
-- **Einstellung:** `themen_gegenlesen` = haiku (Vorgabe) | sonnet | aus – Lead oder Mensch. Rollen Gliederung und Machbarkeit
+- **Einstellung:** `themen_gegenlesen` = opus (Vorgabe seit A1930, Opus/high nach TH159) | haiku | sonnet | aus – Lead oder Mensch. Rollen Gliederung und Machbarkeit
   sind vorbereitet (`gegenlesen.ROLLEN`), aber nicht gebaut. Tests stoßen nie einen echten Gegenleser an (`AMW_GEGENLESEN_AUS`).
 
 ### Themen → Aufgaben (A1915, D1304 v12 §1.3/§6d)
