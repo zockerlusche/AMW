@@ -40,7 +40,7 @@ class Einstellungen(unittest.TestCase):
 
     def test_vorgabe_je_projekt(self):
         a = pruefung_c.projekt_abnahme(self.con, self.amw)
-        self.assertEqual(a, {"regression": pruefung_c.REGRESSION, "hinweis": None, "frist_s": abnahme.FRIST_S})
+        self.assertEqual(a, {"regression": pruefung_c.REGRESSION, "hinweis": None, "frist_s": abnahme.FRIST_S, "sprache": "auto"})
         s = pruefung_c.projekt_abnahme(self.con, self.spiel)
         self.assertEqual((s["regression"], s["hinweis"], s["frist_s"]), (None, pruefung_c.OHNE_REGRESSION, abnahme.FRIST_S))
 

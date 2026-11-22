@@ -313,7 +313,7 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
     """Ja des Leads (oder des Menschen): den jüngsten (oder genannten) Entwurf anlegen – neue Meilensteine, Pakete mit Größe,
     Art, Ausführung, Modell/Effort, Abnahme-Befehl und Abhängigkeiten, je Paket der Verweis aufs Thema (A1915). geaendert:
     ein vom Lead geänderter Entwurf (gleiches Schema, wird neu geprüft). Rückgabe: {Schlüssel: "M<nr>" | "A<id>"}."""
-    from . import arbeitspaket, planung, themen
+    from . import themen
     if not (von == kern.ENTWICKLER or kern.ist_lead(con, pid, von)):
         raise kern.AmwFehler("Den Planentwurf nimmt der Lead an (oder der Mensch)")
     e = next((x for x in _ereignisse(con, pid, tid, ENTWURF) if x["id"] == eid), None) if eid else letzter_entwurf(con, pid, tid)
@@ -337,22 +337,33 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
         if erledigt(con, pid, e["id"]):
             raise kern.AmwFehler(f"Der Planentwurf zu TH{tid} ist schon angenommen")
         merke = _ereignis(con, pid, von, JA, tid, entwurf=e["id"], angelegt={}, laeuft=True)
+    schon = {}
     try:
-        return _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke)
-    except Exception:
-        with db.schreiben(con):                      # ging etwas schief: die Marke wieder lösen, Angelegtes meldet der Fehler
-            con.execute("DELETE FROM plan_ereignis WHERE id = ?", (merke,))
+        return _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, schon)
+    except Exception as x:
+        with db.schreiben(con):
+            if not schon:                            # nichts angelegt: die Marke lösen, ein neues Ja darf es noch einmal versuchen
+                con.execute("DELETE FROM plan_ereignis WHERE id = ?", (merke,))
+            else:                                    # Vorab-Prüfung 1.164.0 (8): teilweise angelegt – die Marke bleibt (kein
+                con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?",   # zweites Anlegen), sie nennt, was schon da ist
+                            (json.dumps({"thema": tid, "entwurf": e["id"], "angelegt": schon, "abgebrochen": str(x)[:300]},
+                                        ensure_ascii=False), merke))
+                kern._posten(con, pid, "AMW", kern.lead(con, pid) or kern.ENTWICKLER, "meldung",
+                             f"Planentwurf TH{tid} nur teilweise angelegt"[:140],
+                             f"Abbruch beim Anlegen: {str(x)[:300]}\nSchon angelegt: "
+                             + ", ".join(f"{k} → {v}" for k, v in schon.items())
+                             + "\nDer Rest fehlt – bitte von Hand ergänzen oder das Angelegte prüfen; ein neues Ja legt nichts doppelt an.")
         raise
 
 
-def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke):
+def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
     from . import arbeitspaket, planung, themen
     if entwurf["nichts_zu_bauen"]:
         with db.schreiben(con):
             con.execute("DELETE FROM plan_ereignis WHERE id = ?", (merke,))
             _ereignis(con, pid, von, NICHTS, tid, entwurf=e["id"], grund=entwurf["grund"])
         return {}
-    angelegt, bogen = {}, {}
+    bogen = {}
     for m in entwurf["meilensteine"]:                    # erst prüfen (pruefen oben), dann anlegen
         if m.get("bestehend"):
             bogen[m["schluessel"]] = con.execute("SELECT id FROM bogen WHERE projekt_id = ? AND nr = ?", (pid, m["bestehend"])).fetchone()[0]

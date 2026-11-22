@@ -106,6 +106,7 @@ class PlanAnsicht(Rundgang):
                          "konzept:tor jetzt,grobplanung:tor spaeter,feinplanung:tor spaeter,umsetzung:tor spaeter,abschluss:tor spaeter")
         self.assertEqual(self.tab.js("document.querySelector('#inhalt .tore-text').textContent"), "Konzept · 0 von 1 Themen freigegeben")
         kern.projekt_einstellen(self.con, self.pid, "TL", versionen="aus")
+        tore.runde(self.con, self.pid)                                          # Stichtag (erste Dienst-Runde mit K7)
         with db.schreiben(self.con):
             self.con.execute("UPDATE aufgabe SET status = 'fertig', fertig_utc = ?, beleg = 'abc1234' WHERE bogen_id = ?", (db.jetzt(), self.m1))
         planung.bogen_status(self.con, self.pid, "TL", self.m1, "fertig")

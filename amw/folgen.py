@@ -29,7 +29,7 @@ NAMEN = {"titel": "Titel", "ziel": "Ziel", "abnahme": "Abnahme", "zieldatum": "Z
 EINSTIEG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "amw-folgen.py")
 OHNE_FENSTER = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 FRIST_S = 10 * 60
-LAEUFT_H = 1
+LAEUFT_H = 6                                         # Vorab-Prüfung 1.164.0 (7): Schlange + Frist mit Luft, wie der Planer
 AUFTRAG = (
     "Du prüfst die Folgen einer Änderung, die der Mensch an der Planung eines Software-Projekts machen will. Lies aenderung.md "
     "(was sich ändert: alt → neu) und darunter.md (was davon abhängt: Pakete, Themen, Ziele). Beurteile: Berührt die Änderung ein "
@@ -89,6 +89,38 @@ def _anwenden(con, pid, v):
         planung.schritt_setzen(con, pid, kern.ENTWICKLER, aid=v["id"], **{k: n[k] for k in n})
 
 
+def _entscheiden(con, pid, von, v, gilt, automatisch):
+    """Vorab-Prüfung 1.164.0 (5): die Entscheidung im selben Schreibvorgang wie die Prüfung „schon entschieden“ (zwei Wege –
+    Ja/Verwerfen und das automatische Gelten – überholen sich nicht) und nur, wenn der Stand noch der ist, den der Vorschlag
+    sah (sonst „veraltet“: ein später Vorschlag überschreibt nichts Zwischenzeitliches). Anwenden danach; scheitert es, wird
+    die Entscheidung wieder gelöst und der Grund gemeldet. Rückgabe: gilt | verworfen | veraltet | None (schon entschieden)."""
+    eid = v["eid"]
+    with db.schreiben(con):
+        if _entschieden(con, pid, eid):
+            return None
+        jetzt = _alt(con, pid, v["ebene"], v["id"])
+        veraltet = gilt and any(jetzt.get(k) != v["alt"].get(k) for k in v["neu"])
+        marke = _ereignis(con, pid, von, ENTSCHIEDEN, aenderung=eid, gilt=bool(gilt) and not veraltet, automatisch=automatisch,
+                          **({"veraltet": True} if veraltet else {}))
+    if veraltet:
+        with db.schreiben(con):
+            kern._posten(con, pid, "AMW", kern.ENTWICKLER, "info", f"Änderung nicht übernommen: {_was(con, pid, v)}",
+                         "Seit dem Vorschlag hat sich genau das schon geändert – die Änderung würde einen neueren Stand überschreiben."
+                         " Wenn sie noch gilt, bitte neu vornehmen.")
+        return "veraltet"
+    if not gilt:
+        return "verworfen"
+    try:
+        _anwenden(con, pid, v)
+    except Exception as x:                           # noqa: BLE001 – (6): nicht hängen bleiben, Vorschlag bleibt offen
+        with db.schreiben(con):
+            con.execute("DELETE FROM plan_ereignis WHERE id = ?", (marke,))
+            kern._posten(con, pid, "AMW", kern.ENTWICKLER, "info", f"Änderung ließ sich nicht übernehmen: {_was(con, pid, v)}",
+                         f"{x}\nDer Vorschlag bleibt offen (Planung › Meilensteine).")
+        raise
+    return "gilt"
+
+
 def vorschlagen(con, pid, von, ebene, oid, grund=None, **neu):
     """Die eigene Änderung des Menschen als Vorschlag (nur geänderte Felder). Rückgabe {"aenderung": eid, "stand": ...}:
     "gilt" (Prüfung aus – sofort angewendet), "prueft" (Prüfer angestoßen) oder "unveraendert"."""
@@ -100,6 +132,10 @@ def vorschlagen(con, pid, von, ebene, oid, grund=None, **neu):
     neu = {k: v for k, v in neu.items() if k in FELDER[ebene] and v is not None and v != alt.get(k)}
     if not neu:
         return {"aenderung": None, "stand": "unveraendert"}
+    if ebene == "meilenstein" and "zieldatum" in neu and not (grund or "").strip():   # (6): wie bogen_aendern, aber gleich
+        b = con.execute("SELECT baseline_datum FROM bogen WHERE id = ?", (oid,)).fetchone()
+        if b and b["baseline_datum"]:
+            raise FolgenFehler(f"Meilenstein {oid} hat eine Baseline ({b['baseline_datum']}) – neues Zieldatum nur mit Grund")
     v = {"ebene": ebene, "id": oid, "alt": {k: alt.get(k) for k in neu}, "neu": neu, "grund": grund}
     if _aus(con, pid):                                  # wie bisher: gilt sofort
         _anwenden(con, pid, v)
@@ -183,9 +219,13 @@ def abschliessen(con, pid, eid, ergebnis, modell_=None, usd=None, lauf=None, feh
                          f"{fehler}\nDie Änderung wartet als Vorschlag – Ja übernimmt sie trotzdem (Planung › Meilensteine).")
         return "wartet"
     if not (e["beruehrt_ziel"] or e["beruehrt_erfolg"] or e["beruehrt_kosten"]):
-        _anwenden(con, pid, v)
+        try:
+            r = _entscheiden(con, pid, "AMW", v, True, True)
+        except Exception:                            # noqa: BLE001 – schon gemeldet; der Vorschlag wartet auf das Ja
+            return "wartet"
+        if r != "gilt":
+            return r
         with db.schreiben(con):
-            _ereignis(con, pid, "AMW", ENTSCHIEDEN, aenderung=eid, gilt=True, automatisch=True)
             kern._posten(con, pid, "AMW", kern.ENTWICKLER, "info", f"Änderung gilt: {was}",
                          "Ziel, Erfolgskriterien und Kosten sind nicht berührt (F5353). Folgen:\n"
                          + ("\n".join(f"- {x}" for x in e["folgen"]) or "- keine"))
@@ -213,13 +253,10 @@ def entscheiden(con, pid, von, eid, ja):
     if von != kern.ENTWICKLER:
         raise FolgenFehler("Über die eigene Änderung entscheidet der Mensch")
     v = vorschlag(con, pid, eid)
-    if _entschieden(con, pid, eid):
+    r = _entscheiden(con, pid, von, v, bool(ja), False)
+    if r is None:
         raise FolgenFehler(f"Ä{eid} ist schon entschieden")
-    if ja:
-        _anwenden(con, pid, v)
-    with db.schreiben(con):
-        _ereignis(con, pid, von, ENTSCHIEDEN, aenderung=eid, gilt=bool(ja), automatisch=False)
-    return "gilt" if ja else "verworfen"
+    return r
 
 
 def offene(con, pid):

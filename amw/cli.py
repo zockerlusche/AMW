@@ -205,6 +205,14 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
 GESPERRTE_EINSTELLUNGEN = RECHTE_EINSTELLUNGEN + kern.BUENDEL_EINSTELLUNGEN
 
 
+def _nicht_als_mensch_aus_sitzung(a, was):
+    """--von Entwickler gilt nur im eigenen Terminal des Menschen (oder in der Workbench am PC), nie aus einer Agenten-Sitzung –
+    sonst gäbe eine Sitzung als Mensch allein frei (B2913)."""
+    if _von(a) == kern.ENTWICKLER and _aus_agenten_sitzung():
+        raise kern.AmwFehler(f"{was}: als Entwickler nur im eigenen Terminal des Menschen oder in der Workbench am PC –"
+                             " nicht aus einer Agenten-Sitzung")
+
+
 def _rolle_nur_mensch_oder_lead(con, pid, a, was):
     """A1887 (P293): Wer die Führung vergibt, ist der Lead – oder der Mensch, aber „--von Entwickler“ gilt dafür nur im
     eigenen Terminal des Menschen. Sonst könnte sich jeder Agent mit --von Entwickler selbst zum Lead machen."""
@@ -980,6 +988,7 @@ def cmd_bogen(a, con):
               " seine Themen kommen aus den Aufgaben (amw aufgabe aendern <nr> --thema TH<n>)")
     elif a.aktion in ("freigeben", "zurueck"):        # K6/K7: Ja (Co, Lead; der Mensch allein) bzw. zurück mit Notiz
         from . import planansicht
+        _nicht_als_mensch_aus_sitzung(a, f"bogen {a.aktion}")   # Vorab-Prüfung 1.164.0 (1)
         if not a.id or not a.art:
             raise kern.AmwFehler(f"amw bogen {a.aktion} <Nummer> --art grob|plan|abschluss" + (" --notiz …" if a.aktion == "zurueck" else ""))
         if a.aktion == "zurueck":
@@ -991,6 +1000,7 @@ def cmd_bogen(a, con):
                                                        + ", ".join(r.get("ja_fehlt") or [])))
     elif a.aktion == "bericht":                       # K7: Abschlussbericht (neu) erstellen – Lead oder Mensch
         from . import tore
+        _nicht_als_mensch_aus_sitzung(a, "bogen bericht")
         if not a.id:
             raise kern.AmwFehler("amw bogen bericht <Nummer des Meilensteins>")
         if not kern.ist_lead(con, pid, _von(a)):
@@ -2451,6 +2461,7 @@ def cmd_thema(a, con):
         if not a.name or not (a.nichts_zu_bauen or a.aufheben or a.bestaetigen):
             raise kern.AmwFehler("amw thema vermerk TH<n> --nichts-zu-bauen --grund … (aufheben: --aufheben)")
         if a.bestaetigen:                             # K7 (TH154): der Co bestätigt den Grund des Leads
+            _nicht_als_mensch_aus_sitzung(a, "thema vermerk --bestaetigen")
             from . import tore
             tid = tore.nichts_bestaetigen(con, pid, _von(a), a.name)
             print(f"TH{tid}: „nichts zu bauen“ bestätigt")

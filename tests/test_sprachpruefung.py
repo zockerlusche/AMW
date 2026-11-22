@@ -60,9 +60,22 @@ class MitPrüfungC(Grund):
         self.assertIsNone(b["code"], b.get("grund"))
         self.assertEqual(b["sprache"]["neu"], [])
 
-    def test_programm_fehlt_technik(self):
-        b, _ = self.pruefen_mit(kopf=[], technik="pyright fehlt auf diesem PC")
+    def test_absturz_technik(self):
+        b, _ = self.pruefen_mit(kopf=[], technik="pyright endete mit 2")
         self.assertEqual((b["code"], b["sprache"]["befund"]), ("C/technik", "C/technik"))
+
+    def test_programm_fehlt_nur_hinweis(self):
+        """Vorab-Prüfung 1.164.0 (3): fehlt pyright auf dem PC, bleibt grün grün – mit Hinweis im Befund."""
+        with mock.patch.object(c, "pyright_programm", return_value=None):
+            b = c.pruefen(self.p, self.projekt, self.basis, 7, self.befehl, ["lib/"], None, 120, regression=None, sprache="pyright")
+        self.assertIsNone(b["code"], b.get("grund"))
+        self.assertIn("pyright fehlt", b["grund"])
+        self.assertEqual(b["sprache"]["hinweis"], c.PYRIGHT_FEHLT)
+
+    def test_konfiguration_gesperrt(self):
+        from amw import abnahme
+        self.assertTrue(abnahme.gesperrt(["pyrightconfig.json"]))
+        self.assertTrue(abnahme.gesperrt(["unter/pyrightconfig.json"]))
 
     def test_aus_und_auto_ohne_konfiguration(self):
         for modus in ("aus", "auto"):
@@ -96,6 +109,28 @@ class EchtesPyright(Grund):
         self.assertEqual([x[1] for x in b["sprache"]["neu"]], ["lib/neu.py"])
         self.assertEqual((b["sprache"]["fehler_start"], b["sprache"]["fehler_paket"]), (1, 2))
         self.assertTrue(b["sprache"]["version"])
+
+    def test_untergeschobenes_programm_ersetzt_die_pruefung_nicht(self):
+        """Vorab-Prüfung 1.164.0 (4): eine pyright.cmd oder node.cmd im Paket, die „alles gut“ meldet, wird nicht ausgeführt."""
+        self.schreiben(self.projekt, "pyrightconfig.json", '{"include": ["lib"], "typeCheckingMode": "basic"}\n')
+        g(self.projekt, "add", "-A")
+        g(self.projekt, "commit", "-q", "-m", "mit Konfiguration")
+        self.basis = g(self.projekt, "rev-parse", "HEAD")
+        g(self.p["klon"], "pull", "-q")
+        self.reparieren()
+        self.schreiben(self.p["klon"], "lib/neu.py", "def f() -> int:\n    return 'neu'\n")
+        leer = '@echo {"version": "falsch", "generalDiagnostics": [], "summary": {}}\r\n@exit /b 0\r\n'
+        for name in ("pyright.cmd", "node.cmd"):
+            self.schreiben(self.p["klon"], name, leer)
+        b = c.pruefen(self.p, self.projekt, self.basis, 7, self.befehl, ["lib/", "pyright.cmd", "node.cmd"], None, 300, regression=None,
+                      sprache="auto")
+        self.assertEqual(b["code"], "C/diff")                                  # 1. das Diff-Tor sperrt *.cmd ohnehin
+        self.assertIn("gesperrt", b["grund"])
+        q = dict(self.p, tmp=os.path.join(self.p["daten"], "tmp-probe"))       # 2. der Starter selbst: im Ordner liegende
+        r = c._pyright(q, 300)                                                 #    pyright.cmd/node.cmd werden nicht benutzt
+        self.assertIsNone(r["technik"], r)
+        self.assertNotEqual(r["version"], "falsch")
+        self.assertEqual([x[1] for x in r["fehler"]], ["lib/neu.py"])
 
 
 if __name__ == "__main__":

@@ -26,6 +26,19 @@ STAND = "tor_stand"                      # {"tor", "zu", "womit"}
 BERICHT = "abschluss_bericht"            # {"bogen", "dokument"}
 NICHTS_JA = "thema_nichts_ja"            # {"thema"} – der Co bestätigt „nichts zu bauen“
 UEBER = "prognose_ueberschritten"        # {"aufgabe", "usd", "prognose"}
+SEIT = "tore_seit"                       # {"seit"} – Stichtag: erst danach fertige Meilensteine bekommen einen Abschlussbericht
+
+
+def seit(con, pid):
+    """Der Stichtag des Abschluss-Tors (erste Dienst-Runde mit K7) oder None. Ältere fertige Meilensteine sind Altbestand:
+    kein Bericht, kein Ja nötig (Vorab-Prüfung 1.164.0 (2))."""
+    r = con.execute("SELECT zeit_utc FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id LIMIT 1", (pid, SEIT)).fetchone()
+    return r[0] if r else None
+
+
+def _neu_fertig(con, pid, b):
+    s = seit(con, pid)
+    return bool(s) and (b["fertig_utc"] or "") >= s
 PROGNOSE_FAKTOR = 1.5
 
 
@@ -84,6 +97,7 @@ def _meilensteine(con, pid):
         pakete = planansicht._pakete(con, pid, b["id"])
         th = {tid for a in pakete for tid in themen.verweise(con, pid, a["id"])}
         aus.append({"id": b["id"], "nr": b["nr"], "titel": b["titel"], "status": b["status"], "themen": th,
+                    "neu_fertig": b["status"] == "fertig" and _neu_fertig(con, pid, b),
                     "pakete": len(pakete), "fertig": sum(a["status"] == "fertig" for a in pakete),
                     "grob": bool((z.get((b["id"], "grob")) or {}).get("an")), "plan": bool((z.get((b["id"], "plan")) or {}).get("an")),
                     "abschluss": bool((z.get((b["id"], "abschluss")) or {}).get("an"))})
@@ -110,8 +124,9 @@ def stand(con, pid):
     um_zu = fein_zu and bool(fertig) and not laufend and not geplant
     p_g = sum(m["pakete"] for m in laufend)
     p_n = sum(m["fertig"] for m in laufend)
-    ab = [m for m in fertig if m["abschluss"]]
-    ab_zu = um_zu and len(ab) == len(fertig)
+    zu_schliessen = [m for m in fertig if m["neu_fertig"]]        # Altbestand vor dem Stichtag zählt nicht
+    ab = [m for m in zu_schliessen if m["abschluss"]]
+    ab_zu = um_zu and len(ab) == len(zu_schliessen)
     t = [
         {"tor": "konzept", "zu": k["konzept_zu"], "n": k["n"], "g": k["g"], "text": f"{k['n']} von {k['g']} Themen freigegeben"},
         {"tor": "grobplanung", "zu": grob_zu, "n": len(zugeordnet), "g": len(frei), "mn": len(grob_frei), "mg": len(geplant),
@@ -122,7 +137,8 @@ def stand(con, pid):
                   else "noch kein Meilenstein mit Paketen")},
         {"tor": "umsetzung", "zu": um_zu, "n": p_n, "g": p_g, "laufend": bool(laufend), "mn": len(fertig), "mg": len(ms),
          "text": (f"{p_n} von {p_g} Paketen fertig" if laufend else f"{len(fertig)} von {len(ms)} Meilensteinen fertig")},
-        {"tor": "abschluss", "zu": ab_zu, "n": len(ab), "g": len(fertig), "text": f"{len(ab)} von {len(fertig)} Abschlussberichten bestätigt"},
+        {"tor": "abschluss", "zu": ab_zu, "n": len(ab), "g": len(zu_schliessen),
+         "text": f"{len(ab)} von {len(zu_schliessen)} Abschlussberichten bestätigt"},
     ]
     for x in t:
         x["name"] = NAMEN[x["tor"]]
@@ -255,7 +271,14 @@ def prognose_pruefen(con, pid):
 def runde(con, pid):
     """Berichte für fertige Meilensteine ohne Bericht, Prognose-Abweichungen, Wechsel der Tore festhalten. Rückgabe: Texte."""
     aus = []
-    for (bid,) in con.execute("SELECT id FROM bogen WHERE projekt_id = ? AND status = 'fertig' ORDER BY id", (pid,)).fetchall():
+    if seit(con, pid) is None:                       # erste Runde: Stichtag – was vorher fertig war, ist Altbestand
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=SEIT,
+                         text=json.dumps({"seit": db.jetzt()}, ensure_ascii=False))
+    for b in con.execute("SELECT * FROM bogen WHERE projekt_id = ? AND status = 'fertig' ORDER BY id", (pid,)).fetchall():
+        bid = b["id"]
+        if not _neu_fertig(con, pid, b):
+            continue
         if bericht(con, pid, bid) is None and con.execute("SELECT 1 FROM aufgabe WHERE bogen_id = ? LIMIT 1", (bid,)).fetchone():
             aus.append(f"Abschlussbericht M{bid}: D{bericht_erstellen(con, pid, bid)}")
     aus += prognose_pruefen(con, pid)

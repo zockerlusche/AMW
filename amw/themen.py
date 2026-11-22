@@ -453,7 +453,10 @@ def zurueck(con, pid, von, name, notiz):
                          f"Neue Fassung: amw thema pflegen TH{t['id']} --text-datei …")
     if zurueck_bei:                                   # K8 (A1942): ein freigegebenes Thema zurück → Meilensteine prüfen
         from . import planansicht
-        planansicht.folgen_melden(con, pid, t["id"], "zurück")
+        try:
+            planansicht.folgen_melden(con, pid, t["id"], "zurück")
+        except Exception:                            # noqa: BLE001 – das Zurückgeben selbst gilt; die Meldung ist Zusatz
+            pass
     return status(con, finden(con, pid, t["id"]))
 
 

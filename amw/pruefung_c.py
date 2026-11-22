@@ -445,6 +445,8 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
         b["sprache"] = sprachpruefung(p, q, basis, werkzeuge=werkzeuge)
         if b["sprache"]["befund"]:
             return dict(b, code=b["sprache"]["befund"], grund="Sprachprüfung: " + (b["sprache"]["grund"] or ""))
+        if b["sprache"].get("hinweis"):
+            b["grund"] = "; ".join(x for x in (b["grund"], b["sprache"]["hinweis"]) if x)
     return b
 
 # --- 7. Sprach-Server-Prüfung (A1962, TH167 Fassung 3 Pkt 7, Marcel W2463) – ohne KI-Aufruf ---------------------------------
@@ -464,24 +466,37 @@ def sprache_an(modus, klon):
     return modus == "auto" and os.path.isfile(os.path.join(klon, SPRACHE_KONFIG))
 
 
+PYRIGHT_FEHLT = "Sprachprüfung übersprungen: pyright fehlt auf diesem PC (npm install -g pyright)"
+
+
+def pyright_programm():
+    """[node.exe, …/node_modules/pyright/index.js] mit absoluten Pfaden aus der Umgebung der AMW – oder None. Nie über die
+    Shell oder den Ordner des Pakets gesucht."""
+    import shutil
+    node, shim = shutil.which("node"), shutil.which("pyright")
+    if not (node and shim):
+        return None
+    js = os.path.join(os.path.dirname(os.path.abspath(shim)), "node_modules", "pyright", "index.js")
+    return [os.path.abspath(node), js] if os.path.isfile(js) else None
+
+
 def _pyright(q, frist, werkzeuge=None):
     """pyright --outputjson im Checkout q. Rückgabe {"fehler": [(regel, datei, text, zeile)], "version", "technik": Grund | None,
     "dauer_s"}. Die JSON-Ausgabe geht in eine Datei (die Befehlsausgabe ist gekürzt)."""
     import json
-    import shutil
     from . import arbeiter
+    prog = pyright_programm()
+    if not prog:                                     # Vorab-Prüfung 1.164.0 (3): fehlt pyright, ist das ein Hinweis, nicht rot
+        return {"fehler": [], "version": None, "technik": None, "fehlt": PYRIGHT_FEHLT, "dauer_s": 0, "rc": None}
     u = arbeiter.umgebung(q, werkzeuge=werkzeuge)
-    extra = [os.path.dirname(x) for x in (shutil.which("pyright"), shutil.which("node")) if x]   # Werkzeug der AMW, ohne Netz
-    u["PATH"] = os.pathsep.join([u["PATH"], *extra])
     datei = os.path.join(q["tmp"], "pyright.json")
     os.makedirs(q["tmp"], exist_ok=True)
-    r = abnahme.ausfuehren(f'pyright --outputjson > "{datei}"', q["klon"], u, frist)
+    # (4): absolute Pfade, keine Shell – eine pyright.cmd oder node.cmd im Paket kann die Prüfung nicht ersetzen
+    r = abnahme.ausfuehren([*prog, "--outputjson"], q["klon"], u, frist, stdout_datei=datei)
     aus = {"fehler": [], "version": None, "technik": None, "dauer_s": r.get("dauer_s"), "rc": r.get("rc")}
     if r.get("fehler") or r["zeitlimit"] or r["rc"] not in (0, 1):
         aus["technik"] = (r.get("fehler") or (f"Zeitlimit {frist // 60} min" if r["zeitlimit"] else
                           f"pyright endete mit {r['rc']}" + (f": {r['ausgabe'].strip()[-300:]}" if (r.get("ausgabe") or "").strip() else "")))
-        if NICHT_GEFUNDEN.search((r.get("ausgabe") or "")[:600]):
-            aus["technik"] = "pyright fehlt auf diesem PC (npm install -g pyright, ohne Netz beim Prüfen)"
         return aus
     try:
         with open(datei, encoding="utf-8") as f:
@@ -518,6 +533,8 @@ def sprach_vergleich(kopf, basis):
 def sprachpruefung(p, kopf_q, basis, frist=SPRACHE_FRIST_S, werkzeuge=None):
     """Schritt 7: {"befund": None | "C/rot" | "C/technik", "neu": [...], "version", "ausgabe" (für den neuen Lauf), "dauer_s"}."""
     k = _pyright(kopf_q, frist, werkzeuge)
+    if k.get("fehlt"):                               # nur Hinweis: grün bleibt grün, der Befund sagt es
+        return {"befund": None, "neu": [], "version": None, "ausgabe": k["fehlt"], "grund": None, "hinweis": k["fehlt"], "dauer_s": 0}
     if k["technik"]:
         return {"befund": "C/technik", "neu": [], "version": k["version"], "ausgabe": f"Sprachprüfung (pyright): {k['technik']}",
                 "grund": k["technik"], "dauer_s": k["dauer_s"]}

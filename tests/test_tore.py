@@ -16,6 +16,7 @@ class Basis(Grund):
         super().setUp()
         themen.pflegen(self.con, self.pid, "CC1", self.th, "Text.")
         kern.projekt_einstellen(self.con, self.pid, "TL", versionen="aus")
+        tore.runde(self.con, self.pid)                       # erste Dienst-Runde: Stichtag für Abschlussberichte
 
     def tor(self, name):
         return next(x for x in tore.stand(self.con, self.pid)["tore"] if x["tor"] == name)
@@ -144,6 +145,22 @@ class Ableitung(Basis):
         self.assertTrue(aus.startswith("Konzept · 0 von 1 Themen freigegeben"))
         self.assertIn("● Konzept", aus)
         self.assertIn("○ Abschluss", aus)
+
+
+class Altbestand(Grund):
+    def test_vor_dem_stichtag_fertig_kein_bericht_und_kein_ja(self):
+        """Vorab-Prüfung 1.164.0 (2): Meilensteine, die schon vor K7 fertig waren, bekommen keinen Bericht und halten das Tor nicht."""
+        themen.pflegen(self.con, self.pid, "CC1", self.th, "Text.")
+        kern.projekt_einstellen(self.con, self.pid, "TL", versionen="aus")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', fertig_utc = '2026-01-01T00:00:00Z', beleg = 'abc1234' WHERE bogen_id = ?",
+                             (self.m1,))
+            self.con.execute("UPDATE bogen SET status = 'fertig', fertig_utc = '2026-01-01T00:00:00Z' WHERE id = ?", (self.m1,))
+        self.assertEqual([x for x in tore.runde(self.con, self.pid) if x.startswith("Abschlussbericht")], [])
+        self.assertIsNone(tore.bericht(self.con, self.pid, self.m1))
+        self.assertEqual(next(x for x in tore.stand(self.con, self.pid)["tore"] if x["tor"] == "abschluss")["g"], 0)
+        self.assertIsNone(self.m(self.m1)["abschluss"])
+        self.assertEqual(self.post("Entwickler"), [])
 
 
 class Umsetzung(Basis):

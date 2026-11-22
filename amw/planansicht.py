@@ -280,6 +280,8 @@ def _abschluss(con, pid, b, ab, fehlt):
     if b["status"] != "fertig":
         return None
     from . import tore
+    if not tore._neu_fertig(con, pid, b) and tore.bericht(con, pid, b["id"]) is None:
+        return None                                  # Altbestand vor dem Stichtag: kein Abschluss nötig
     return {"bericht": tore.bericht(con, pid, b["id"]), "frei": bool(ab.get("an")), "von": ab.get("von"), "durch": ab.get("durch"),
             "notiz": None if ab.get("an") else ab.get("notiz"), "ja_fehlt": fehlt(b["id"], "abschluss", ab.get("an"))}
 

@@ -58,6 +58,8 @@ GESPERRT = (
     ("amw/gegenlesen.py", "fest", "Gegenleser der Themen – startet claude -p (A1914)"),
     ("amw/planer.py", "fest", "Planer der Themen – startet claude -p (A1940)"),
     ("amw/folgen.py", "fest", "Folgenprüfer eigener Änderungen – startet claude -p (A1957)"),
+    ("pyrightconfig.json", "fest", "Konfiguration der Sprachprüfung in Prüfung C (A1962) – ein Paket schaltet sie nicht ab"),
+    ("*/pyrightconfig.json", "fest", "Konfiguration der Sprachprüfung in Prüfung C (A1962)"),
     ("amw/verteilen.py", "fest", "Verteilen an Agenten und Ausfall (A1927)"),
     ("amw/veroeffentlichung.py", "fest", "Veröffentlichung nach außen – Push, GitHub-Release (A1928)"),
     ("amw/waechter.py", "fest", "Startregeln (Wächter)"),
@@ -312,15 +314,30 @@ def _in_job(job, handle):
     return bool(k.AssignProcessToJobObject(wintypes.HANDLE(job), wintypes.HANDLE(handle)))
 
 
-def ausfuehren(befehl, ordner, umgebung, frist=FRIST_S):
+def ausfuehren(befehl, ordner, umgebung, frist=FRIST_S, stdout_datei=None):
     """Befehl (Shell-Zeile) im Ordner mit Umgebung ausführen; nach `frist` Sekunden wird der ganze Prozessbaum beendet.
     Rückgabe {"rc", "ausgabe", "zeitlimit": bool, "dauer_s"}. Der Prozess startet angehalten und kommt erst ins Job-Objekt,
-    dann läuft er – so entkommt kein Kindprozess."""
+    dann läuft er – so entkommt kein Kindprozess. befehl als Liste (A1962): ohne Shell – das Programm kommt dann aus dem
+    absoluten Pfad, nie aus dem Ordner; stdout_datei: die Standardausgabe geht ungekürzt in diese Datei, „ausgabe“ ist stderr."""
     t0 = time.monotonic()
     job = _job_neu()
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | (0x4 if job else 0)       # CREATE_SUSPENDED
-    p = subprocess.Popen(befehl, cwd=ordner, env=umgebung, shell=True, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT, creationflags=flags)
+    ziel = open(stdout_datei, "wb") if stdout_datei else None
+    try:
+        p = subprocess.Popen(befehl, cwd=ordner, env=umgebung, shell=not isinstance(befehl, list), stdin=subprocess.DEVNULL,
+                             stdout=ziel or subprocess.PIPE, stderr=subprocess.PIPE if ziel else subprocess.STDOUT, creationflags=flags)
+    except BaseException:
+        if ziel:
+            ziel.close()
+        raise
+    try:
+        return _abwarten(p, job, frist, t0, ziel)
+    finally:
+        if ziel:
+            ziel.close()
+
+
+def _abwarten(p, job, frist, t0, ziel):
     if job:
         import ctypes
         from ctypes import wintypes
@@ -333,7 +350,7 @@ def ausfuehren(befehl, ordner, umgebung, frist=FRIST_S):
         ctypes.WinDLL("ntdll").NtResumeProcess(wintypes.HANDLE(int(p._handle)))
     zeitlimit = False
     try:
-        aus, _ = p.communicate(timeout=frist)
+        aus, fehl = p.communicate(timeout=frist)
     except subprocess.TimeoutExpired:
         zeitlimit = True
         if job:
@@ -342,12 +359,14 @@ def ausfuehren(befehl, ordner, umgebung, frist=FRIST_S):
             ctypes.WinDLL("kernel32").TerminateJobObject(wintypes.HANDLE(job), 1)
         else:
             p.kill()
-        aus, _ = p.communicate()
+        aus, fehl = p.communicate()
     finally:
         if job:
             import ctypes
             from ctypes import wintypes
             ctypes.WinDLL("kernel32").CloseHandle(wintypes.HANDLE(job))
+    if ziel:
+        aus = fehl
     return {"rc": p.returncode, "ausgabe": (aus or b"").decode("utf-8", "replace")[-4000:], "zeitlimit": zeitlimit,
             "dauer_s": round(time.monotonic() - t0, 1)}
 
