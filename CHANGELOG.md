@@ -4,6 +4,17 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.157.0 – 22.11.2026 · Wo das Konzept steht, große Repos
+- **Neu:** Oben auf der Themen-Seite steht, wo das Projekt steht: „Konzept · 2 von 7 Themen freigegeben“ (zum Löschen markierte
+  zählen nicht). Gibst du das letzte offene Thema frei, fragt die Seite vorher „Damit schließt das Tor Konzept“ – einen eigenen
+  Knopf dafür gibt es nicht. Danach steht dort „Grobplanung · Konzept fertig“. Gibst du später ein Thema zurück oder kommt eines
+  dazu, ist das Konzept wieder offen.
+- **Neu:** Arbeitsplätze für große Repos: Mit `amw projekt einstellen platz_lfs=teilen` kommen Git-LFS-Dateien nur als kleine
+  Verweise in die Plätze; ein Arbeiter holt eine bei Bedarf aus deinem Projekt. Die Plätze liegen nie auf dem Systemlaufwerk,
+  und jedes Projekt hat seinen eigenen Ordner dafür.
+- **Behoben:** Bittet ein Agent einen anderen Agenten per Info um etwas (etwa „jetzt aufsetzen“), weist die AMW das ab – eine
+  Info weckt nicht. Bisher galt das nur für Nachrichten an den Lead; jetzt für jeden Agenten.
+
 ## 1.156.0 – 22.11.2026 · Mehrere Projekte auf einem PC
 - **Neu:** Jedes Projekt kann eigene Muster für Dateien eintragen, die Arbeiter nie ändern dürfen – zusätzlich zur festen
   Liste der AMW (`amw projekt einstellen sperrmuster='["src/sicherheit/*", "*.key"]'`, nur Lead oder du).
