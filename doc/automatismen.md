@@ -516,6 +516,24 @@ dass der Pfleger daran denken muss.
   `amw thema nur_mensch TH…` (Pfleger, Lead oder Mensch), aufheben `amw thema nicht_nur_mensch TH…` (nur der Mensch).
 - **Anzeige:** `amw thema status` und die Seite zeigen, wessen Ja noch fehlt („Ja fehlt noch: Lead“) bzw. „Gibst nur du frei“.
   Die Tor-Zeile zählt diese Freigaben wie die des Menschen.
+### Planer: Grobplanung aus Themen (A1940, K4, D1304 v12 §2)
+
+**Wozu:** Aus einem freigegebenen Thema entstehen Meilensteine und Pakete, ohne dass jemand sie von Hand schneidet – als Daten,
+die der Lead nur noch bestätigt oder ändert.
+
+- **Auslöser:** Freigabe eines Themas (auch die eigene Bearbeitung des Menschen, die als Freigabe gilt) und `amw thema planen
+  TH<n>` (Lead, Mensch, Co-Entwickler). Je Fassung ein Planer; nicht bei „nichts zu bauen“; auf Befehl auch noch einmal.
+- **Was läuft:** ein losgelöster Prozess (`amw-planer.py`) als leichter Lauf der Lauf-Schlange startet einen frischen
+  `claude -p` (Sonnet, Effort medium) nur lesend wie der Gegenleser, mit fester Frist (15 min, danach beendet). Er liest
+  `thema.md`, `beschluesse.md`, `meilensteine.md`, `pakete.md` (★ = schon mit dem Thema verknüpft) und `schema.md` und
+  antwortet nur mit JSON: Meilensteine (neu oder bestehend) und Pakete (Größe, Art, agent oder p, Modell/Effort, Fertig-Quelle,
+  Abhängigkeiten, Abnahme-Befehl) – oder `nichts_zu_bauen` mit Grund.
+- **Danach:** Die AMW prüft das Schema (alle Funde auf einmal) und trägt den Entwurf ein (`thema_planentwurf`, mit Modell,
+  Kosten und Lauf). Der Lead bekommt „Ja oder ändern“; bei Fehlern eine Meldung mit den Funden. Erst `amw thema plan-ja TH<n>`
+  (Lead oder Mensch, optional `--datei` mit einem geänderten Entwurf) legt Meilensteine und Pakete an und verknüpft jedes Paket
+  mit dem Thema; `amw thema plan TH<n>` zeigt den Entwurf. Kein Anlegen ohne Ja.
+- **Einstellung:** `themen_planer` = sonnet (Vorgabe) | aus – Lead oder Mensch. Tests stoßen nie einen echten Planer an
+  (`AMW_PLANER_AUS`). Die Ansicht dazu kommt mit der Grobplanung (A1916).
 
 ### Themen → Aufgaben (A1915, D1304 v12 §1.3/§6d)
 

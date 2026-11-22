@@ -386,6 +386,8 @@ def freigeben(con, pid, von, name):
         if an:
             kern._posten(con, pid, "AMW", an, "info", f"Thema „{t['name'][:60]}“ freigegeben (Fassung {s['fassung']})",
                          f"TH{t['id']}: {kern.entwickler_name(con, pid)} hat Fassung {s['fassung']} freigegeben.")
+    from . import planer                             # A1940 (K4): ein freigegebenes Thema stößt den Planer an
+    planer.anstossen(con, pid, t["id"], s["fassung"])
     return status(con, finden(con, pid, t["id"]))
 
 
@@ -471,6 +473,9 @@ def bearbeiten(con, pid, von, name, text, erwartet=None):
                          + ("sie gilt als freigegeben; prüfe die Folgen für andere Themen und Aufgaben." if BEARBEITEN_GIBT_FREI
                             else f"bitte einarbeiten und als neue Fassung liefern: amw thema pflegen TH{t['id']} --text-datei …"))
     thema_geaendert(con, pid, t["id"], nr)           # A1915: betroffene Aufgaben prüfen lassen
+    if BEARBEITEN_GIBT_FREI:                         # A1940: die eigene Bearbeitung gilt als Freigabe → Planer
+        from . import planer
+        planer.anstossen(con, pid, t["id"], nr)
     return status(con, finden(con, pid, t["id"]))
 
 

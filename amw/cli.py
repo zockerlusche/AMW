@@ -2377,6 +2377,36 @@ def cmd_thema(a, con):
         tid = themen.nichts_zu_bauen(con, pid, _von(a), a.name, a.grund, aufheben=a.aufheben)
         print(f"TH{tid}: " + ("Vermerk „nichts zu bauen“ aufgehoben" if a.aufheben else "„nichts zu bauen“ vermerkt – keine Lücke mehr"))
         return
+    if a.aktion in ("planen", "plan", "plan-ja"):     # A1940 (K4): Grobplanung aus Themen per -p-Planer
+        from . import planer
+        if not a.name:
+            raise kern.AmwFehler(f"amw thema {a.aktion} TH<n>")
+        t = themen.finden(con, pid, a.name)
+        if a.aktion == "planen":
+            if not (kern.ist_lead(con, pid, _von(a)) or kern.ist_co(con, pid, _von(a))):
+                raise kern.AmwFehler("Den Planer stoßen Lead, Mensch oder Co-Entwickler an")
+            s = themen.status(con, t)
+            if not s["fassung"]:
+                raise kern.AmwFehler(f"TH{t['id']} hat noch keinen Text – erst eine Fassung")
+            print(planer.anstossen(con, pid, t["id"], s["fassung"], von=_von(a), erneut=True))
+            return
+        e = planer.letzter_entwurf(con, pid, t["id"])
+        if a.aktion == "plan":
+            if not e:
+                print(f"TH{t['id']}: noch kein Planentwurf" + (" – der Planer läuft" if planer.laeuft(con, pid, t["id"]) else ""))
+                return
+            kopf = f"TH{t['id']} Planentwurf (Fassung {e.get('fassung')}, {e.get('modell') or '–'}" + (
+                f", {e['usd']:.2f} $" if isinstance(e.get("usd"), (int, float)) else "") + ")"
+            print(kopf + (" – schon angenommen" if planer.erledigt(con, pid, e["id"]) else ""))
+            print(planer.zusammenfassung(e["entwurf"]) if e.get("entwurf") else "Fehler:" + chr(10) + chr(10).join(f"- {x}" for x in e.get("fehler") or []))
+            return
+        geaendert = None
+        if a.datei:
+            with open(a.datei, encoding="utf-8") as f:
+                geaendert = f.read()
+        angelegt = planer.uebernehmen(con, pid, _von(a), t["id"], geaendert=geaendert)
+        print(f"TH{t['id']}: " + ("„nichts zu bauen“ vermerkt" if not angelegt else "angelegt – " + ", ".join(f"{k} → {v}" for k, v in angelegt.items())))
+        return
     if a.aktion in ("freigeben", "zurueck", "markieren", "entmarkieren"):   # A1896: nur der Mensch, nur im eigenen Terminal
         if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():
             raise kern.AmwFehler(f"thema {a.aktion}: nur der Mensch in seinem eigenen Terminal oder in der Workbench am PC")
@@ -3257,13 +3287,15 @@ def parser():
                                    " freigeben TH12 | zurueck TH12 --notiz … | markieren|entmarkieren TH12 (nur der Mensch;"
                                    " bei thema_freigabe=co+lead gibt freigeben von Co und Lead je ein Ja, B2913) |"
                                    " nur_mensch TH12 (Pfleger, Lead, Mensch) | nicht_nur_mensch TH12 (nur der Mensch) |"
-                                   " vermerk TH12 --nichts-zu-bauen --grund … [--aufheben] | luecken (Thema ohne Paket, Paket ohne Thema)")
+                                   " vermerk TH12 --nichts-zu-bauen --grund … [--aufheben] | luecken (Thema ohne Paket, Paket ohne Thema) |"
+                                   " planen TH12 (Planer anstoßen, Lead/Co) | plan TH12 (Entwurf zeigen) | plan-ja TH12 [--datei geändert.json] (Lead)")
     x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "zeige", "neu", "einstellen", "pflegen", "bestaetigen",
                                                                   "dokument", "status", "freigeben", "zurueck", "markieren",
-                                                                  "entmarkieren", "nur_mensch", "nicht_nur_mensch", "vermerk", "luecken"])
+                                                                  "entmarkieren", "nur_mensch", "nicht_nur_mensch", "vermerk", "luecken", "planen", "plan", "plan-ja"])
     x.add_argument("--nichts-zu-bauen", action="store_true", help="vermerk: das Thema braucht kein Paket (mit --grund) – A1947")
     x.add_argument("--aufheben", action="store_true", help="vermerk: den Vermerk „nichts zu bauen“ wieder aufheben")
     x.add_argument("--grund")
+    x.add_argument("--datei", help="plan-ja: geänderter Entwurf als JSON-Datei (gleiches Schema, wird neu geprüft) – A1940")
     x.add_argument("--notiz", help="zurueck: was soll anders werden (Pflicht)")
     x.add_argument("name", nargs="?", help="TH-Nummer oder Name (eindeutiger Anfang reicht)")
     x.add_argument("--pfleger")

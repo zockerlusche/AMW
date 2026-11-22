@@ -56,6 +56,7 @@ GESPERRT = (
     ("amw/anbieter_schluessel.py", "fest", "apiKeyHelper – gibt nur freigegebene Schlüsseldateien aus (A1931)"),
     ("amw-anbieter-schluessel.py", "fest", "apiKeyHelper (A1931)"),
     ("amw/gegenlesen.py", "fest", "Gegenleser der Themen – startet claude -p (A1914)"),
+    ("amw/planer.py", "fest", "Planer der Themen – startet claude -p (A1940)"),
     ("amw/verteilen.py", "fest", "Verteilen an Agenten und Ausfall (A1927)"),
     ("amw/veroeffentlichung.py", "fest", "Veröffentlichung nach außen – Push, GitHub-Release (A1928)"),
     ("amw/waechter.py", "fest", "Startregeln (Wächter)"),

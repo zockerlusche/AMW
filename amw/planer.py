@@ -21,6 +21,11 @@ Schema des Planer-Ergebnisses (JSON):
   oder {"nichts_zu_bauen": true, "grund": "…"}
 """
 import json
+import os
+import subprocess
+import sys
+import tempfile
+import time
 
 from . import db, kern
 
@@ -230,16 +235,19 @@ def _ereignis(con, pid, von, art, tid, **werte):
                         text=json.dumps({"thema": int(tid), **werte}, ensure_ascii=False))
 
 
-def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, lauf=None):
-    """Das Ergebnis des Planers eintragen: geprüft als Entwurf – oder mit den Funden als Fehler. Der Lead bekommt einen Auftrag
-    (Ja oder ändern) bzw. eine Meldung. Rückgabe: Nummer des Ereignisses."""
+def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, lauf=None, fehler=None):
+    """Das Ergebnis des Planers eintragen: geprüft als Entwurf – oder mit den Funden als Fehler (fehler: der Lauf selbst ging
+    nicht). Der Lead bekommt einen Auftrag (Ja oder ändern) bzw. eine Meldung. Rückgabe: Nummer des Ereignisses."""
     t = con.execute("SELECT * FROM thema WHERE id = ? AND projekt_id = ?", (tid, pid)).fetchone()
     if not t:
         raise kern.AmwFehler(f"TH{tid} gibt es nicht")
-    try:
-        entwurf, fehler = pruefen(ergebnis, con, pid), None
-    except PlanFehler as e:
-        entwurf, fehler = None, e.fehler
+    if fehler:
+        entwurf, fehler = None, [f"Planer-Lauf: {fehler}"]
+    else:
+        try:
+            entwurf, fehler = pruefen(ergebnis, con, pid), None
+        except PlanFehler as e:
+            entwurf, fehler = None, e.fehler
     lead = kern.lead(con, pid)
     kosten = f"{usd:.2f} $" if isinstance(usd, (int, float)) else "Kosten unbekannt"
     with db.schreiben(con):
@@ -247,7 +255,8 @@ def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, l
                         **({"entwurf": entwurf} if entwurf else {"fehler": fehler}))
         if lead and lead != kern.ENTWICKLER:
             if fehler:
-                kern._posten(con, pid, "AMW", lead, "meldung", f"Planentwurf TH{tid} „{t['name'][:50]}“ passt nicht zum Schema",
+                kern._posten(con, pid, "AMW", lead, "meldung", f"Planentwurf TH{tid} „{t['name'][:50]}“ "
+                             + ("ging nicht" if fehler[0].startswith("Planer-Lauf:") else "passt nicht zum Schema"),
                              "Funde:\n" + "\n".join(f"- {x}" for x in fehler[:20]) + f"\n\n({modell or '–'}, {kosten})")
             elif entwurf["nichts_zu_bauen"]:
                 kern._posten(con, pid, "AMW", lead, "auftrag", f"Planentwurf TH{tid} „{t['name'][:50]}“: nichts zu bauen – stimmt das?",
@@ -328,3 +337,191 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
         _ereignis(con, pid, von, JA, tid, entwurf=e["id"], angelegt=angelegt, geaendert=geaendert is not None,
                   fertig_quellen={p["schluessel"]: p["fertig_quelle"] for p in entwurf["pakete"]})   # K2 übernimmt sie
     return angelegt
+
+
+# --- der Planer-Lauf (frischer claude -p, nur Lesen) – #30117 ----------------------------------------------------------------
+# Auslöser: Freigabe eines Themas (auch die eigene Bearbeitung des Menschen, F5358 A) und `amw thema planen TH<n>` (Lead/Co).
+# Projekt-Einstellung themen_planer = sonnet (Vorgabe) | aus. Er läuft wie der Gegenleser als angemeldeter Lauf der
+# Lauf-Schlange (leicht) in einem losgelösten Prozess, liest Thema, Beschlüsse, Meilensteine und Pakete als Dateien und
+# antwortet mit JSON nach dem Schema oben. Feste Frist; Kosten ins Ereignis.
+ANGESTOSSEN = "thema_planer"                     # {"thema", "fassung", "modell", "prozess"}
+EINSTIEG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "amw-planer.py")
+OHNE_FENSTER = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+FRIST_S = 15 * 60
+LAEUFT_H = 1
+AUFTRAG = (
+    "Du bist der Planer eines Software-Projekts. Lies thema.md (ein vom Menschen freigegebenes Konzept-Thema), beschluesse.md, "
+    "meilensteine.md und pakete.md (was es schon gibt) sowie schema.md (das Antwort-Format). Entwirf, was gebaut werden muss, "
+    "damit das Thema erfüllt ist: einen oder wenige Meilensteine (Lieferpunkte, die mit einer Vorführung oder einem Bericht enden; "
+    "einen bestehenden Meilenstein nimmst du mit \"bestehend\": Nummer) und kleine Pakete (je eins für einen Agenten an einem Tag "
+    "oder weniger), mit Abhängigkeiten. Was es schon gibt, planst du nicht noch einmal; brauchst du ein vorhandenes Paket als "
+    "Vorgänger, nennst du es als \"A1234\". Braucht das Thema nichts (schon gebaut, nur ein Begriff), antworte mit "
+    "nichts_zu_bauen und Grund. Antworte NUR mit dem JSON-Objekt nach schema.md – kein Text davor oder danach. "
+    "Du änderst nichts, du schreibst keine Dateien, du führst nichts aus.")
+
+
+def einstellung(con, pid):
+    return kern.projekt_wahl(con, pid, "themen_planer")
+
+
+def _angestossen(con, pid, tid):
+    return _ereignisse(con, pid, tid, ANGESTOSSEN)
+
+
+def laeuft(con, pid, tid):
+    """Plant gerade ein Planer dieses Thema? Das Ereignis „angestoßen“ ohne Entwurf danach (und nicht älter als LAEUFT_H)."""
+    import datetime
+    an = _angestossen(con, pid, tid)
+    if not an:
+        return None
+    if any(e["id"] > an[-1]["id"] for e in _ereignisse(con, pid, tid, ENTWURF)):
+        return None
+    t = datetime.datetime.strptime(an[-1]["zeit_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    return None if (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() > LAEUFT_H * 3600 else an[-1]
+
+
+def _spawn(pid, tid, fassung, umgebung=None):
+    befehl = [sys.executable, "-I", "-X", "utf8", EINSTIEG, "--projekt-id", str(pid), "--thema", str(tid), "--fassung", str(fassung)]
+    flags = (0x00000008 | 0x00000200 | OHNE_FENSTER) if os.name == "nt" else 0        # DETACHED, NEW_GROUP wie der Gegenleser
+    return subprocess.Popen(befehl, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True,
+                            creationflags=flags, env=umgebung, start_new_session=os.name != "nt").pid
+
+
+STARTER = _spawn             # Tests setzen eine Attrappe; tests/abschotten schaltet das Anstoßen ganz ab (AMW_PLANER_AUS)
+
+
+def _nichts_vermerkt(con, pid, tid):
+    ev = _ereignisse(con, pid, tid, NICHTS)
+    return bool(ev) and ev[-1].get("an", True)
+
+
+def anstossen(con, pid, tid, fassung, von="AMW", erneut=False):
+    """Nach der Freigabe (themen.freigeben/bearbeiten, eigene Transaktion) bzw. auf Befehl: einen Planer anstoßen – außer die
+    Einstellung ist aus, das Thema hat „nichts zu bauen“, für diese Fassung gab es schon einen (ohne erneut) oder einer läuft.
+    Rückgabe: Text oder None."""
+    if os.environ.get("AMW_PLANER_AUS") or einstellung(con, pid) == "aus":
+        return "Planer ist aus (themen_planer=aus)" if erneut else None
+    modell = einstellung(con, pid)
+    with db.schreiben(con):                               # in einer Schreib-Transaktion: nie doppelt angestoßen
+        if laeuft(con, pid, tid):
+            return f"TH{tid}: es plant schon ein Planer" if erneut else None
+        if not erneut and (any(e.get("fassung") == fassung for e in _angestossen(con, pid, tid)) or _nichts_vermerkt(con, pid, tid)):
+            return None
+        eid = _ereignis(con, pid, von, ANGESTOSSEN, tid, fassung=fassung, modell=modell)
+    try:
+        prozess = STARTER(pid, tid, fassung)
+    except OSError as e:                                  # ließ sich nicht starten → Entwurf mit Fehler, der Lead erfährt es
+        entwurf_eintragen(con, pid, tid, fassung, None, modell=modell, fehler=f"Planer ließ sich nicht starten: {e}")
+        return f"TH{tid}: Planer ließ sich nicht starten ({e})"
+    with db.schreiben(con):
+        con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?",
+                    (json.dumps({"thema": int(tid), "fassung": fassung, "modell": modell, "prozess": prozess}, ensure_ascii=False), eid))
+    return f"TH{tid} Fassung {fassung}: Planer ({modell}) angestoßen"
+
+
+SCHEMA_TEXT = __doc__[__doc__.index("Schema des Planer-Ergebnisses"):].strip()
+
+
+def _dateien(con, pid, t, fassung, ordner):
+    from . import themen
+    f = con.execute("SELECT text FROM thema_fassung WHERE thema_id = ? AND nr = ?", (t["id"], fassung)).fetchone()
+    if not f:
+        raise kern.AmwFehler(f"TH{t['id']} hat keine Fassung {fassung}")
+    b = con.execute("SELECT id, stichwort, regel FROM beschluss WHERE projekt_id = ? AND thema = ? COLLATE NOCASE AND status = 'gilt'"
+                    " ORDER BY id", (pid, t["name"])).fetchall()
+    ms = con.execute("SELECT nr, titel, status, ziel FROM bogen WHERE projekt_id = ? AND status != 'verworfen' ORDER BY nr", (pid,)).fetchall()
+    zum_thema = {a["id"] for a in themen.aufgaben_zu(con, pid, t["id"])}
+    offen = con.execute("SELECT id, titel, status FROM aufgabe WHERE projekt_id = ? AND status NOT IN ('fertig', 'verworfen')"
+                        " ORDER BY id DESC LIMIT 200", (pid,)).fetchall()
+    teile = {"thema.md": f"# TH{t['id']} {t['name']} – Fassung {fassung}\n\n{f['text']}\n",
+             "beschluesse.md": "# Geltende Beschlüsse zum Thema\n\n"
+                               + ("\n".join(f"- B{x['id']} {x['stichwort']}: {x['regel']}" for x in b) or "(keine)") + "\n",
+             "meilensteine.md": "# Meilensteine des Projekts\n\n"
+                                + ("\n".join(f"- {x['nr']}: {x['titel']} [{x['status']}]" + (f" – {x['ziel']}" if x["ziel"] else "")
+                                             for x in ms) or "(keine)") + "\n",
+             "pakete.md": "# Offene Pakete des Projekts (★ = schon mit diesem Thema verknüpft)\n\n"
+                          + ("\n".join(f"- A{x['id']} [{x['status']}] {x['titel']}" + (" ★" if x["id"] in zum_thema else "")
+                                       for x in offen) or "(keine)") + "\n",
+             "schema.md": "# Antwort-Format\n\n" + SCHEMA_TEXT + "\n"}
+    for name, text in teile.items():
+        with open(os.path.join(ordner, name), "w", encoding="utf-8", newline="\n") as d:
+            d.write(text)
+    return sorted(teile)
+
+
+def json_aus_text(text):
+    """Das JSON-Objekt aus der Antwort (auch in einem Code-Block oder mit einem Satz drumherum) – oder der Text selbst."""
+    s = (text or "").strip()
+    a, b = s.find("{"), s.rfind("}")
+    return s[a:b + 1] if 0 <= a < b else s
+
+
+def planen(con, pid, t, fassung, modell, prog=None, zusatz=None):
+    """Der Planer selbst, in einem leeren eigenen Ordner (wie ein Platz). Rückgabe {"ergebnis", "usd", "fehler"}."""
+    from . import arbeiter, platz, versionsprobe
+    with tempfile.TemporaryDirectory(prefix="amw-planer-", ignore_cleanup_errors=True) as ordner:
+        p = platz.pfade(os.path.join(ordner, "plaetze"), 1)
+        os.makedirs(p["klon"])
+        subprocess.run(["git", "init", "-q", "-b", "main", p["klon"]], check=True, capture_output=True, creationflags=OHNE_FENSTER)
+        dateien = _dateien(con, pid, t, fassung, p["klon"])
+        r = arbeiter.laufen(p, AUFTRAG + "\n\nDateien: " + ", ".join(dateien), None, modell=modell, effort="medium", prog=prog,
+                            zusatz=zusatz, nur_lesen=True, geprueft=versionsprobe.geprueft(con), frist_s=FRIST_S)
+    erg = r.get("ergebnis") or {}
+    usd = erg.get("total_cost_usd")
+    if r.get("abweichungen"):
+        return {"ergebnis": None, "usd": usd, "fehler": "; ".join(r["abweichungen"])[:500]}
+    text = (erg.get("result") or "").strip()
+    if r.get("rc") != 0 or erg.get("is_error") or not text:
+        return {"ergebnis": None, "usd": usd, "fehler": r.get("fehler") or f"kein Ergebnis (rc {r.get('rc')})"}
+    return {"ergebnis": json_aus_text(text), "usd": usd, "fehler": None}
+
+
+def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
+    """Als angemeldeter Lauf der Lauf-Schlange (leicht): warten, bis er dran ist, planen, Entwurf eintragen (auch einen Fehler)."""
+    from . import belegung, betrieb
+    modell = (_angestossen(con, pid, tid) or [{}])[-1].get("modell") or "sonnet"
+    t = con.execute("SELECT * FROM thema WHERE id = ? AND projekt_id = ?", (tid, pid)).fetchone()
+    agent = kern.lead(con, pid) or kern.ENTWICKLER
+    lid = betrieb.lauf_start(con, pid, agent, f"Planer TH{tid} Fassung {fassung} ({modell}, A1940, automatisch)", None, False, False,
+                             None, warten=True, waechter=os.getpid(), befehl=None, ordner=None)
+    belegung.lauf_merken(lid, os.getpid())
+    aus = None
+    try:
+        while True:
+            l = betrieb.lauf_zeile(con, pid, lid)
+            if l["status"] == "laeuft":
+                break
+            if l["status"] in ("fertig", "abgebrochen"):
+                raise RuntimeError(f"L{lid} ist {l['status']} – nicht geplant")
+            time.sleep(5)
+        betrieb.lauf_uebernehmen(con, lid, "agent")
+        if not t:
+            raise kern.AmwFehler(f"TH{tid} gibt es nicht")
+        aus = planen(con, pid, t, fassung, modell, prog=prog, zusatz=zusatz)
+    except Exception as e:                                # noqa: BLE001 – niemand sieht die Ausgabe: als Fehler eintragen
+        aus = {"ergebnis": None, "usd": None, "fehler": f"{type(e).__name__}: {e}"[:300]}
+    finally:
+        aus = aus or {"ergebnis": None, "usd": None, "fehler": "abgebrochen"}
+        kosten = f"{aus['usd']:.2f} $" if isinstance(aus.get("usd"), (int, float)) else "Kosten unbekannt"
+        try:
+            betrieb.lauf_ende(con, pid, agent, lid, 1 if aus.get("fehler") else 0,
+                              (f"Planer TH{tid} Fassung {fassung}: " + (f"Fehler – {aus['fehler']}" if aus.get("fehler") else "fertig")
+                               + f" · {kosten}")[:500])
+        finally:
+            belegung.lauf_vergessen(lid)
+    entwurf_eintragen(con, pid, tid, fassung, aus.get("ergebnis"), modell=modell, usd=aus.get("usd"), lauf=lid, fehler=aus.get("fehler"))
+    return aus
+
+
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(prog="amw-planer")
+    ap.add_argument("--projekt-id", type=int, required=True)
+    ap.add_argument("--thema", type=int, required=True)
+    ap.add_argument("--fassung", type=int, required=True)
+    x = ap.parse_args(argv)
+    con = db.verbinde()
+    try:
+        ausfuehren(con, x.projekt_id, x.thema, x.fassung)
+    finally:
+        con.close()

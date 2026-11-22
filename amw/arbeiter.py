@@ -381,10 +381,11 @@ def uebergabe(p, basis=None):
 
 def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_namen=(), sitzung=None, prog=None, basis_umgebung=None,
            zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None, haenge=None, geprueft=None, nur_lesen=False, umgebung_projekt=None,
-           anbieter=None):
+           anbieter=None, frist_s=None):
     """Einen Arbeiter im Platz `p` laufen lassen, bis er endet. Rückgabe {"rc", "abweichungen", "init", "ergebnis",
     "sitzung", "protokoll", "dauer_s", "fehler"}. Abweichung im init-Ereignis → sofort beendet (rc None, abweichungen gesetzt).
-    nur_lesen (A1914): Werkzeuge nur Glob/Grep/Read, kein Abnahme-Befehl, keine Rückmeldung (Zuarbeit wie der Gegenleser)."""
+    nur_lesen (A1914): Werkzeuge nur Glob/Grep/Read, kein Abnahme-Befehl, keine Rückmeldung (Zuarbeit wie der Gegenleser).
+    frist_s (A1940): feste Frist – danach beendet die AMW den Job, Abweichung „Frist … überschritten“ (Zuarbeit wie der Planer)."""
     if os.name != "nt":
         raise ArbeiterFehler("Arbeiter nur unter Windows (Job-Objekt)")
     if not os.path.isdir(os.path.join(p["klon"], ".git")):
@@ -502,6 +503,16 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
                         gemeldet.add("runden")
                         haenge["melden"]("runden", f"{z['runden']} Runden ohne Dateiänderung")
             threading.Thread(target=wachen, daemon=True).start()
+        if frist_s:                                               # A1940: Zuarbeit mit fester Frist – danach hart beenden
+            def frist():
+                ende = time.monotonic() + frist_s
+                while proc.poll() is None:
+                    if time.monotonic() > ende:
+                        z["abweichungen"] = list(z["abweichungen"]) + [f"Frist {round(frist_s / 60, 1):g} min überschritten – beendet"]
+                        k.TerminateJobObject(wintypes.HANDLE(job), 1)
+                        return
+                    time.sleep(1)
+            threading.Thread(target=frist, daemon=True).start()
         proc.wait()
         leser.join(NACHLAUF_S)
         k.TerminateJobObject(wintypes.HANDLE(job), 0)          # D1258 v9 §6a 3.1: Lauf zu Ende → Job hart beenden, keine Reste

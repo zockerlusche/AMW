@@ -5,11 +5,13 @@ import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im 
 import copy
 import json
 import os
+import shutil
 import tempfile
 import unittest
 from unittest import mock
 
 from amw import arbeitspaket, db, kern, planer, planung, themen
+from tests.test_arbeiter import ATTRAPPE
 
 ERGEBNIS = {
     "meilensteine": [{"schluessel": "M1", "titel": "Anmelden online", "ziel": "Marcel meldet sich online an.",
@@ -157,6 +159,142 @@ class Ablauf(Grund):
         aid = int(a["P1"][1:])
         self.assertEqual(self.con.execute("SELECT bogen_id FROM aufgabe WHERE id = ?", (aid,)).fetchone()[0], bid)
         self.assertEqual(planung.vorgaenger(self.con, aid), [alt])
+
+
+class Anstossen(Grund):
+    """#30117: Auslöser Freigabe (auch eigene Bearbeitung) und `amw thema planen` (Lead/Co); je Fassung einmal; nicht bei
+    „nichts zu bauen“ oder Einstellung aus; der Starter ist in Tests eine Attrappe."""
+
+    def setUp(self):
+        super().setUp()
+        self.gestartet = []
+        p = mock.patch.object(planer, "STARTER", lambda pid, tid, fassung: self.gestartet.append((tid, fassung)) or 4711)
+        p.start()
+        self.addCleanup(p.stop)
+        u = mock.patch.dict(os.environ)
+        u.start()
+        self.addCleanup(u.stop)
+        os.environ.pop("AMW_PLANER_AUS", None)
+
+    def test_freigabe_stoesst_an_einmal_je_fassung(self):
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertEqual(self.gestartet, [(self.tid, 1)])
+        self.assertEqual(planer.laeuft(self.con, self.pid, self.tid)["prozess"], 4711)
+        self.assertIsNone(planer.anstossen(self.con, self.pid, self.tid, 1))                    # läuft schon / gab es schon
+        planer.entwurf_eintragen(self.con, self.pid, self.tid, 1, ERGEBNIS)
+        self.assertIsNone(planer.laeuft(self.con, self.pid, self.tid))
+        self.assertIsNone(planer.anstossen(self.con, self.pid, self.tid, 1))                    # diese Fassung ist geplant
+        themen.bearbeiten(self.con, self.pid, kern.ENTWICKLER, self.tid, "Neu: auch mit Passkey.", erwartet=1)
+        self.assertEqual(self.gestartet, [(self.tid, 1), (self.tid, 2)])                         # eigene Bearbeitung = Freigabe
+
+    def test_nicht_bei_aus_oder_nichts_zu_bauen_und_befehl_erneut(self):
+        kern.projekt_einstellen(self.con, self.pid, "TL", themen_planer="aus")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertEqual(self.gestartet, [])
+        kern.projekt_einstellen(self.con, self.pid, "TL", themen_planer="sonnet")
+        with db.schreiben(self.con):
+            planer._ereignis(self.con, self.pid, "TL", planer.NICHTS, self.tid, grund="schon gebaut")
+        self.assertIsNone(planer.anstossen(self.con, self.pid, self.tid, 1))
+        self.assertIn("angestoßen", planer.anstossen(self.con, self.pid, self.tid, 1, von="TL", erneut=True))   # auf Befehl doch
+        self.assertIn("plant schon", planer.anstossen(self.con, self.pid, self.tid, 1, von="TL", erneut=True))
+
+    def test_starter_geht_nicht_meldet_dem_lead(self):
+        with mock.patch.object(planer, "STARTER", side_effect=OSError("kein Python")):
+            self.assertIn("ließ sich nicht starten", planer.anstossen(self.con, self.pid, self.tid, 1))
+        self.assertEqual(self.post("TL")[-1], ("meldung", f"Planentwurf TH{self.tid} „Anmeldung“ ging nicht"))
+        self.assertIsNone(planer.laeuft(self.con, self.pid, self.tid))
+
+    def test_befehle(self):
+        from amw import cli
+        import contextlib
+        import io
+
+        def befehl(*args, von="TL"):
+            aus = io.StringIO()
+            with contextlib.redirect_stdout(aus):
+                rc = cli.main(["thema", *args, "--projekt", "Produkt", "--von", von])
+            return rc, aus.getvalue()
+
+        self.assertNotEqual(befehl("planen", f"TH{self.tid}", von="CC1")[0], 0)                  # nur Lead/Mensch/Co
+        rc, aus = befehl("planen", f"TH{self.tid}")
+        self.assertIn("Planer (sonnet) angestoßen", aus)
+        self.assertIn("noch kein Planentwurf – der Planer läuft", befehl("plan", f"TH{self.tid}")[1])
+        planer.entwurf_eintragen(self.con, self.pid, self.tid, 1, ERGEBNIS, modell="sonnet", usd=0.31)
+        aus = befehl("plan", f"TH{self.tid}")[1]
+        self.assertIn("Planentwurf (Fassung 1, sonnet, 0.31 $)", aus)
+        self.assertIn("P2 Tests für die Anmeldung · S · mechanisch · p sonnet · fertig: commit · nach P1", aus)
+        datei = os.path.join(self.ordner.name, "geaendert.json")
+        with open(datei, "w", encoding="utf-8") as f:
+            json.dump({**ERGEBNIS, "pakete": ERGEBNIS["pakete"][:1]}, f)
+        rc, aus = befehl("plan-ja", f"TH{self.tid}", "--datei", datei)
+        self.assertEqual(rc, 0)
+        self.assertIn("angelegt – M1 → M", aus)
+        self.assertNotIn("P2", aus)
+
+
+class Lauf(Grund):
+    def test_als_lauf_der_schlange_mit_kosten_und_entwurf(self):
+        with db.schreiben(self.con):
+            planer._ereignis(self.con, self.pid, "AMW", planer.ANGESTOSSEN, self.tid, fassung=1, modell="sonnet")
+        antwort = "Hier der Plan:\n```json\n" + json.dumps(ERGEBNIS) + "\n```"
+        with mock.patch.object(planer, "planen", return_value={"ergebnis": planer.json_aus_text(antwort), "usd": 0.214, "fehler": None}):
+            planer.ausfuehren(self.con, self.pid, self.tid, 1)
+        l = self.con.execute("SELECT status, rc, beschreibung, ergebnis FROM lauf ORDER BY id DESC LIMIT 1").fetchone()
+        self.assertEqual((l["status"], l["rc"]), ("fertig", 0))
+        self.assertEqual(l["beschreibung"], f"Planer TH{self.tid} Fassung 1 (sonnet, A1940, automatisch)")
+        self.assertIn("0.21 $", l["ergebnis"])
+        e = planer.letzter_entwurf(self.con, self.pid, self.tid)
+        self.assertEqual((e["usd"], len(e["entwurf"]["pakete"])), (0.214, 2))
+        self.assertIn("Ja oder ändern", self.post("TL")[-1][1])
+        with mock.patch.object(planer, "planen", side_effect=RuntimeError("weg")):
+            planer.ausfuehren(self.con, self.pid, self.tid, 1)
+        self.assertEqual(self.con.execute("SELECT rc FROM lauf ORDER BY id DESC LIMIT 1").fetchone()[0], 1)
+        self.assertIn("Planer-Lauf: RuntimeError: weg", planer.letzter_entwurf(self.con, self.pid, self.tid)["fehler"][0])
+
+    def test_dateien_fuer_den_planer(self):
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        bid = planung.bogen_neu(self.con, self.pid, "TL", "Online", ziel="Online-Seite steht")
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Login-Maske", "CC1")
+        themen.verweise_setzen(self.con, self.pid, "TL", aid, [f"TH{self.tid}"])
+        ordner = os.path.join(self.ordner.name, "planer")
+        os.makedirs(ordner)
+        namen = planer._dateien(self.con, self.pid, themen.finden(self.con, self.pid, self.tid), 1, ordner)
+        self.assertEqual(namen, ["beschluesse.md", "meilensteine.md", "pakete.md", "schema.md", "thema.md"])
+        lies = lambda n: open(os.path.join(ordner, n), encoding="utf-8").read()
+        self.assertIn("Firmen-Konto", lies("thema.md"))
+        self.assertIn(f"- {planung.bogen_zeile(self.con, self.pid, bid)['nr']}: Online", lies("meilensteine.md"))
+        self.assertIn(f"- A{aid} [", lies("pakete.md"))
+        self.assertIn("Login-Maske ★", lies("pakete.md"))                                       # schon mit dem Thema verknüpft
+        self.assertIn('"nichts_zu_bauen": true', lies("schema.md"))
+
+    def test_json_aus_text(self):
+        self.assertEqual(json.loads(planer.json_aus_text("```json\n{\"a\": 1}\n```")), {"a": 1})
+        self.assertEqual(planer.json_aus_text("kein JSON"), "kein JSON")
+
+
+@unittest.skipUnless(os.name == "nt" and shutil.which("git"), "Arbeiter nur unter Windows (Job-Objekt)")
+class MitAttrappe(Grund):
+    """Der Planer mit der Arbeiter-Attrappe: nur Lesen, Sonnet medium, Antwort als JSON; hängt er, beendet ihn die Frist."""
+
+    def planen(self, art, **env):
+        datei = os.path.join(self.ordner.name, "aufruf.json")
+        aus = planer.planen(self.con, self.pid, themen.finden(self.con, self.pid, self.tid), 1, "sonnet", prog=ATTRAPPE,
+                            zusatz={"ATTRAPPE_ART": art, "ATTRAPPE_UMGEBUNG": datei, **env})
+        return aus, datei
+
+    def test_liest_und_antwortet_mit_json(self):
+        aus, datei = self.planen("gegenlesen", ATTRAPPE_ERGEBNIS="```json\n" + json.dumps(ERGEBNIS) + "\n```")
+        self.assertIsNone(aus["fehler"])
+        self.assertEqual(planer.pruefen(aus["ergebnis"])["pakete"][1]["schluessel"], "P2")
+        with open(datei, encoding="utf-8") as f:
+            a = json.load(f)["argv"]
+        self.assertEqual((a[a.index("--tools") + 1], a[a.index("--model") + 1], a[a.index("--effort") + 1]), ("Glob,Grep,Read", "sonnet", "medium"))
+
+    def test_frist_beendet_einen_haengenden_planer(self):
+        with mock.patch.object(planer, "FRIST_S", 3):
+            aus, _ = self.planen("haengt")
+        self.assertIsNone(aus["ergebnis"])
+        self.assertIn("Frist", aus["fehler"])
 
 
 if __name__ == "__main__":

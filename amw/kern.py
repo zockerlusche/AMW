@@ -275,6 +275,8 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # claude -p (nur Lesen) sie gegen und schickt dem Pfleger Einwände – haiku (Vorgabe) oder sonnet; aus = nie.
                 # Stellen Lead oder Mensch.
                 "themen_gegenlesen": ("opus", "haiku", "sonnet", "aus"),     # A1930: Vorgabe opus/high (TH159)
+                # Planer (A1940, K4): nach der Freigabe eines Themas entwirft ein frischer -p Meilensteine und Pakete als Daten
+                "themen_planer": ("sonnet", "aus"),
                 # Verteilen an interaktive Agenten (A1927, TH157): vorschlag = der Lead bekommt die Zuteilung als Frage (Vorgabe);
                 # an = die AMW teilt einem freien Agenten das nächste passende startklare Paket selbst zu; aus = nie.
                 "verteilen": ("vorschlag", "an", "aus"),
