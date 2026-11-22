@@ -1,17 +1,6 @@
 {
   "include": [
-    "amw",
-    "tests",
-    "proben",
-    "amw-anbieter-schluessel.py",
-    "amw-arbeiter.py",
-    "amw-cli.py",
-    "amw-gegenlesen.py",
-    "amw-hook.py",
-    "amw-mcp.py",
-    "amw-rueckmeldung.py",
-    "amw-statusline.py",
-    "amw-versionsprobe.py"
+    "."
   ],
   "exclude": [
     "**/daten",
