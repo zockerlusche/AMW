@@ -150,6 +150,17 @@ def passt(con, pid, kennung, a):
 
 # --- Verteilen -------------------------------------------------------------------------------------------------------------
 
+def offener_vorschlag(con, pid, kennung):
+    """A1927 (P374): die Aufgabe eines noch offenen Vorschlags an diesen Agenten (noch ohne Bearbeiter, nicht fertig) oder None."""
+    for r in con.execute("SELECT aufgabe_id FROM plan_ereignis WHERE projekt_id = ? AND art = 'verteil_vorschlag' AND text LIKE ?"
+                         " ORDER BY id DESC", (pid, f"{kennung}:%")).fetchall():
+        a = con.execute("SELECT id FROM aufgabe WHERE id = ? AND coalesce(agent, '') = '' AND status NOT IN ('fertig', 'verworfen')",
+                        (r[0],)).fetchone()
+        if a:
+            return a["id"]
+    return None
+
+
 def _schon(con, pid, art, text):
     return con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND text = ?", (pid, art, text)).fetchone()
 

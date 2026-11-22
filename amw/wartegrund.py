@@ -203,6 +203,12 @@ def leer_lead(con, pid):
     return k if r and r["arbeitsweise"] == "terminal" else None
 
 
+def _verteil_offen(con, pid, kennung):
+    """A1927 (P374): Gibt es zu diesem Agenten einen offenen Vorschlag des Verteilens? Dann keine zweite Meldung „nichts zu tun“."""
+    from . import verteilen
+    return bool(verteilen.offener_vorschlag(con, pid, kennung))
+
+
 def freie_bogen_aufgaben(con, pid):
     """Offene Aufgaben der aktiven Meilensteine ohne Bearbeiter – ohne p-Pakete (die führt der Arbeiter der AMW aus, nie ein
     interaktiver Agent; A1892)."""
@@ -288,7 +294,7 @@ def leerlauf(con, jetzt=None):
                     if frei_min >= LEERLAUF_MIN:
                         entwickler.append(f"{k} ({', '.join(worauf)})")
                 elif (leer_an and k != leer_an and s["arbeitsweise"] == "terminal" and frei_min >= leer_min
-                      and not wartet_auf_eigenes(con, pid, k)):
+                      and not wartet_auf_eigenes(con, pid, k) and not _verteil_offen(con, pid, k)):
                     leere.append((k, s["ereignis_utc"], frei_min))   # A1884: nichts zu tun → Lead wecken
         if leere:
             e = _leer_weckruf(con, pid, leer_an, leere)

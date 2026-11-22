@@ -122,6 +122,29 @@ class Verteilen(Grund):
         self.assertNotEqual(rc, 0)
         self.assertIn("nicht aus einer Agenten-Sitzung", aus.getvalue())
         self.assertEqual(verteilen.fach_tabelle(self.con, self.pid)["konzept"], ["konzept"])
+        aus = io.StringIO()                                                               # P374 (1): auch verteilen selbst
+        with mock.patch.dict(os.environ, {"AMW_DB": os.path.join(self.ordner.name, "t.db"), "AMW_AGENT": "", "CLAUDECODE": "1",
+                                          "CLAUDE_CODE_MESSAGING_SOCKET": ""}), contextlib.redirect_stdout(aus), contextlib.redirect_stderr(aus):
+            rc = cli.main(["--projekt", "P", "--von", "Entwickler", "projekt", "einstellen", "verteilen=an"])
+        self.assertNotEqual(rc, 0)
+        self.assertIn("nicht aus einer Agenten-Sitzung", aus.getvalue())
+        self.assertEqual(verteilen.einstellung(self.con, self.pid), "vorschlag")
+
+    def test_kein_leerlauf_weckruf_bei_offenem_vorschlag(self):
+        """P374 (2): solange zu einem Agenten ein Vorschlag offen ist, kommt kein zweiter Weckruf „hat nichts zu tun“."""
+        from amw import wartegrund
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE agent SET arbeitsweise = 'terminal'")
+            self.con.execute("UPDATE sitzung SET ereignis_utc = ?", (utc(self.jetzt - 15 * 60),))
+        a = self.aufgabe("Liste schneller machen", art="fehlersuche")
+        verteilen.verteilen(self.con, self.pid)                                          # Vorschlag A… an CC1 (CC2: Grafik passt nicht)
+        self.assertEqual(verteilen.offener_vorschlag(self.con, self.pid, "CC1"), a)
+        wartegrund.leerlauf(self.con, self.jetzt)
+        weckrufe = [k for _, k, _ in self.post("TL") if k.startswith("Leerlauf:") and "nichts zu tun" in k]
+        self.assertEqual(weckrufe, ["Leerlauf: CC2 hat nichts zu tun"])                  # CC1 nicht, CC2 schon
+        with db.schreiben(self.con):                                                     # vergeben → Vorschlag nicht mehr offen
+            self.con.execute("UPDATE aufgabe SET agent = 'CC2' WHERE id = ?", (a,))
+        self.assertIsNone(verteilen.offener_vorschlag(self.con, self.pid, "CC1"))
 
     def test_nur_freie_terminal_agenten_keine_p_pakete_nichts_bei_aus(self):
         p = self.aufgabe("Paket", rang=1, art="mechanisch")

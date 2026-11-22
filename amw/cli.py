@@ -174,7 +174,7 @@ def _aus_agenten_sitzung():
 # „agent lead“; merge_blick/merge_aussen_pruefung setzt zusätzlich nur der Mensch (kern.NUR_MENSCH_WAHL)
 RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_blick", "merge_aussen_pruefung",
                         "co_entwickler",                  # A1908 (P352): der Co-Entwickler legt Themen an
-                        "verteilen_fach")                 # A1927 (#29773): wem die AMW Arbeit zuteilt
+                        "verteilen", "verteilen_fach")    # A1927 (#29773, P374): ob und wem die AMW Arbeit zuteilt
 # eine Stelle für alle Einstellungen mit dieser Sperre (CCamwTL P299): Rechte (A1892) und ausführbare Bündel-Befehle (A1876, P298)
 GESPERRTE_EINSTELLUNGEN = RECHTE_EINSTELLUNGEN + kern.BUENDEL_EINSTELLUNGEN
 
