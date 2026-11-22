@@ -638,6 +638,92 @@ def _fertig_wenn(con, pid, a, aid):
         print(f"A{aid}: fertig wenn {fertigquelle.text(q)}")
 
 
+def _paket_holen(con, pid, a):
+    """A1943 (K9): nächste Aufgabe (oder N) starten, Auftrag + Startwissen zeigen, Zweig a<N> und – mit baum_wurzel – Arbeitsbaum
+    anlegen (nur anlegen, nie entfernen; nie im Projektordner)."""
+    import subprocess
+    from . import arbeitsliste, startwissen
+    von = _von(a)
+    aid = a.id
+    if not aid:
+        frei = [x for x in arbeitsliste.liste(con, pid, von) if x["status"] == "wartet" and not x["gruende"]]
+        laeuft = [x for x in arbeitsliste.liste(con, pid, von) if x["status"] == "laeuft"]
+        if laeuft:
+            raise kern.AmwFehler(f"A{laeuft[0]['id']} läuft noch – eins nach dem anderen (erst fertig oder wartet)")
+        if not frei:
+            raise kern.AmwFehler("In deiner Liste ist nichts startklar")
+        aid = frei[0]["id"]
+    kern.aufgabe_status(con, pid, von, aid, "start")
+    r = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    print(f"A{aid} → laeuft · {r['titel']}")
+    if r["auftrag"]:
+        print(f"Auftrag: {r['auftrag']}")
+    from . import planung, themen
+    for i, k in enumerate(planung._json(r["kriterien"], []), 1):
+        print(f"Kriterium {i}: {k.get('text')}" + (" ✓" if k.get("erfuellt") else ""))
+    th = themen.verweise(con, pid, aid)
+    if th:
+        print("Thema: " + ", ".join(f"TH{t}" for t in th))
+    _startwissen_drucken(con, pid, aid)
+    ordner = kern.projekt_ordner(con, pid)
+    e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
+    zweig, wurzel = f"a{aid}", e.get("baum_wurzel")
+    if not ordner:
+        return 0
+    if not wurzel:
+        print(f"\nZweig: git -C {ordner} worktree add -b {zweig} <eigener Ordner>/{zweig} main  (mit amw projekt einstellen"
+              " baum_wurzel=<Ordner> legt holen ihn selbst an)")
+        return 0
+    ziel = os.path.join(wurzel, zweig)
+    if os.path.exists(ziel):
+        print(f"\nArbeitsbaum {ziel} gibt es schon – nichts angelegt")
+        return 0
+    vorhanden = subprocess.run(["git", "-C", ordner, "rev-parse", "--verify", "--quiet", f"refs/heads/{zweig}"], capture_output=True,
+                               stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).returncode == 0
+    args = ["git", "-C", ordner, "worktree", "add"] + ([ziel, zweig] if vorhanden else ["-b", zweig, ziel, "main"])
+    p = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    print(f"\nArbeitsbaum {ziel} ({zweig}" + (", vorhandener Zweig" if vorhanden else ", neu auf main") + ")" if p.returncode == 0
+          else f"\nArbeitsbaum nicht angelegt: {(p.stderr or p.stdout).strip()[:200]}")
+    if p.returncode == 0:
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="paket_holen", aufgabe_id=aid,
+                         text=json.dumps({"zweig": zweig, "baum": ziel}, ensure_ascii=False))
+    return 0
+
+
+def _paket_fertig(con, pid, a):
+    """A1943 (K9): Tests-Hinweis, Prüfbitte an den Prüfer, Aufgabe wartet auf ihn, Messung – ein Befehl."""
+    from . import startwissen
+    von, aid = _von(a), a.id
+    r = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    if not r:
+        raise kern.AmwFehler(f"A{aid} gibt es nicht")
+    if not (a.sha and a.punkte):
+        raise kern.AmwFehler("amw paket fertig <N> --sha <Commit> --punkte \"was du geprüft hast\" [--zweig … --pruefer … --gruppe … --hinweis …]")
+    pruefer = a.pruefer or r["pruefer"] or kern.lead(con, pid)
+    if not pruefer:
+        raise kern.AmwFehler("Kein Prüfer: --pruefer <Agent>")
+    zweig = a.zweig or f"a{aid}"
+    ordner = kern.projekt_ordner(con, pid)
+    if ordner:
+        dateien = (startwissen._git(ordner, "diff", "--name-only", f"main...{a.sha}") or "").split()
+        tests = startwissen.tests_zu(ordner, dateien)
+        if tests:
+            print("Tests zu den geänderten Dateien: " + " ".join(tests))
+    prid = betrieb.pruefbitte(con, pid, von, pruefer, zweig, a.sha, a.punkte, aid, gruppe=a.gruppe, hinweis=a.hinweis,
+                              ohne_bild=a.ohne_bild)
+    print(f"P{prid} an {pruefer}")
+    neu = kern.aufgabe_status(con, pid, von, aid, "wartet", auf=pruefer, wartet_auf=f"Prüfung P{prid}")
+    print(f"A{aid} → {neu} · wartet auf {pruefer}")
+    holen = con.execute("SELECT 1 FROM plan_ereignis WHERE aufgabe_id = ? AND art IN ('paket_holen', 'startwissen')", (aid,)).fetchone()
+    n = startwissen.befehle_seit(db.projekt_name(con, pid), von, r["begonnen_utc"])
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=startwissen.MESSUNG, aufgabe_id=aid,
+                     text=json.dumps({"befehle": n, "holen": bool(holen), "pruefung": prid}, ensure_ascii=False))
+    return 0
+
+
 def _paket_setzen(con, pid, a, aid):
     """Paketfelder aus aufgabe neu/aendern (A1845) – nur, wenn eine Paket-Option angegeben ist; Warnungen ausgeben."""
     werte = {feld: getattr(a, opt, None) for feld, opt in PAKET_OPTIONEN.items()}
@@ -667,8 +753,12 @@ def cmd_paket(a, con):
     """Arbeitspakete (A1845): zeigen, Zustand wechseln (Lead/Mensch von Hand; später die AMW selbst), Liste der p-Pakete."""
     from . import arbeitspaket
     pid = _projekt(con, a)
-    if a.aktion in ("zeigen", "zustand", "ergebnis", "starten") and not a.id:
+    if a.aktion in ("zeigen", "zustand", "ergebnis", "starten", "fertig") and not a.id:
         raise kern.AmwFehler(f"amw paket {a.aktion} <Aufgabe> …")
+    if a.aktion == "holen":                            # A1943 (K9): ein Befehl statt vieler zum Anfangen
+        return _paket_holen(con, pid, a)
+    if a.aktion == "fertig":                           # A1943 (K9): ein Befehl statt vieler zum Abgeben
+        return _paket_fertig(con, pid, a)
     if a.aktion == "mergeliste":                      # A1858: Liste „bereit zum Merge“
         from . import mergeliste
         d = mergeliste.liste(con, pid, diff=a.diff)
@@ -978,6 +1068,18 @@ def cmd_aufgabe(a, con):
                       f"amw aufgabe {a.aktion} {a.id} --erledigt {','.join(alt)}")
         for h in hinweise:
             print(h)
+        if neu == "laeuft" and a.aktion == "start":     # A1943 (K9): Startwissen mit festem Budget (#30728)
+            _startwissen_drucken(con, pid, a.id)
+
+
+def _startwissen_drucken(con, pid, aid):
+    from . import startwissen
+    try:
+        t = startwissen.startwissen(con, pid, aid)
+    except Exception:                                  # noqa: BLE001 – Startwissen ist Zusatz
+        t = ""
+    if t:
+        print("\n" + t)
 
 
 def cmd_leitbild(a, con):
@@ -3414,8 +3516,11 @@ def parser():
                                    " | freigeben --alle | freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch)"
                                    " | buendeln --alle | buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch)"
                                    " | annehmen N --grund … (E4-Paket nach dem Lesen in die Merge-Liste; Lead, Mensch)"
+                                   " | holen [N] (interaktiv: nächste Aufgabe nehmen, Auftrag + Startwissen, Zweig/Arbeitsbaum)"
+                                   " | fertig N --sha … --punkte … (interaktiv: Tests-Hinweis, Prüfbitte, wartet auf den Prüfer)"
                                    " – Felder setzen: amw aufgabe neu|aendern … --paket p …")
-    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten", "mergeliste", "freigeben", "buendeln", "annehmen"])
+    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten", "mergeliste", "freigeben", "buendeln", "annehmen",
+                                      "holen", "fertig"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("zustand", nargs="?", help="zustand: entwurf, startklar, laeuft, abgegeben, abnahme, merge_reihe, gemergt, fertig,"
                                               " blockiert, unklar, wartet_interaktiv, abgebrochen, zurueckgestellt")
@@ -3434,7 +3539,12 @@ def parser():
     x.add_argument("--frage-an", dest="frage_an", choices=["lead", "mensch"], help="ergebnis blockiert: wer antworten soll (Vorgabe lead)")
     x.add_argument("--hinweis", help="ergebnis: optional, geht nur an den Lead")
     x.add_argument("--zweig", help="ergebnis erledigt bei einem Paket mit Abnahme-Befehl: dein Zweig (Pflicht) – die AMW prüft ihn und"
-                                    " stellt die Prüfbitte mit ihrem Befund")
+                                    " stellt die Prüfbitte mit ihrem Befund · fertig: dein Zweig (Vorgabe a<N>)")
+    x.add_argument("--sha", help="fertig: der genaue Stand (Commit) für die Prüfbitte")
+    x.add_argument("--punkte", help="fertig: was du geprüft hast (Proben, Läufe) – steht in der Prüfbitte")
+    x.add_argument("--pruefer", help="fertig: wer prüft (Vorgabe: Prüfer der Aufgabe, sonst der Lead)")
+    x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben"], help="fertig: Gruppe für die Versionshinweise")
+    x.add_argument("--ohne-bild", dest="ohne_bild", help="fertig: sichtbare Änderung ausnahmsweise ohne Bild – mit Grund")
     x.set_defaults(f=cmd_paket)
 
     x = s.add_parser("thema", help="Design-Dokument je Thema: liste [--suche] | zeige TH12 | neu \"Name\" [--pfleger X] [--stil] |"
@@ -4176,6 +4286,12 @@ def main(argv=None):
                     from . import nachlesen
                     try:
                         nachlesen.merken(db.projekt_name(con, _projekt(con, a)), _von(a), a.cmd)
+                    except Exception:                        # noqa: BLE001 – Messen darf den Befehl nie stören
+                        pass
+                if _von(a) not in (kern.ENTWICKLER, "AMW", None, ""):      # A1943 (K9): Befehle je Paket zählen
+                    from . import startwissen
+                    try:
+                        startwissen.befehl_merken(db.projekt_name(con, _projekt(con, a)), _von(a), a.cmd)
                     except Exception:                        # noqa: BLE001 – Messen darf den Befehl nie stören
                         pass
                 rc = a.f(a, con)

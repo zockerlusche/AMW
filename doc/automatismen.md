@@ -508,6 +508,23 @@ jünger als 2 h war – die Kachel zeigte stundenlang eine erledigte Aufgabe ode
 - **Veraltet:** ohne Puls der Sitzung (Hook, Statuszeile, Ereignis, Angabe) seit 30 min steht „veraltet?“; ist die letzte
   Sitzung beendet, ruht oder tot, gibt es kein „macht gerade“. Chats und Agenten ohne Sitzung haben keine Hooks – dort kein Urteil.
 
+## Startwissen und gebündelte Befehle (A1943, K9)
+
+**Wozu:** Interaktive Agenten brauchten je Paket 10–20 Einzelbefehle und lasen sich jedes Mal neu ins Projekt ein.
+
+- **Bereichs-Wissen:** schließt eine Aufgabe, hält die AMW ohne KI fest, welche Dateien ihre Commits in main berührt haben
+  (`git log --grep "^A<n>[: (]"`) und einen Satz dazu (Versionshinweis, sonst Zusammenfassung) – Ereignis `bereich_wissen`.
+- **Startwissen:** beim Start (`amw aufgabe start`, `amw paket holen`) die letzten 3 Einträge je Datei des Dateibereichs (sonst
+  der Dateien, die Titel oder Auftrag nennen) und die Projekt-Landkarte (Ordner, je Modul die erste Docstring-Zeile; je
+  main-Stand zwischengespeichert neben der Datenbank). Festes Budget 1500 Zeichen, gekürzt wird zuerst die Landkarte;
+  Größe als Ereignis `startwissen`.
+- **`amw paket holen [N]`:** nächste startklare Aufgabe (oder N) starten, Auftrag, Kriterien, Thema und Startwissen zeigen;
+  mit der Projekt-Einstellung `baum_wurzel` (nie im Projektordner) Zweig `a<N>` und Arbeitsbaum `<baum_wurzel>/a<N>` auf main
+  anlegen – nur anlegen, nie entfernen; ohne Einstellung steht der Befehl dafür da.
+- **`amw paket fertig N --sha … --punkte …`:** Testmodule zu den geänderten Dateien, Prüfbitte an den Prüfer der Aufgabe (sonst
+  den Lead), Aufgabe wartet auf ihn; Ereignis `k9_paket` mit der Zahl der amw-Befehle seit Beginn (gezählt in `befehle.jsonl`
+  neben der Datenbank, nie Inhalte).
+
 ## Arbeitsliste je Agent (seit 1.12.0)
 
 **Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach

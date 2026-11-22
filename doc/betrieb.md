@@ -92,6 +92,8 @@ amw lauf start --beschreibung "Build" --dauer 10 --warten --von CC1   # dann: am
 amw pruefung bitte --pruefer CC2 --zweig cc1-x --sha <commit> --von CC1
 amw frage neu --an entwickler --kurz "…" --option "A=…" --option "B=…" --empfehlung A --grund "…" --von TL
 amw taetigkeit "Formular prüfen" --von CC1   # nur Ergänzung – „Arbeitet an“ leitet die AMW aus Lauf/Aufgabe/Meldung ab
+amw paket holen --von CC1                 # nächste Aufgabe: starten, Auftrag + Startwissen, Zweig/Arbeitsbaum (baum_wurzel)
+amw paket fertig 1201 --sha <commit> --punkte "…" --von CC1   # Tests-Hinweis, Prüfbitte, wartet auf den Prüfer
 amw kontext --von CC1                     # Pflicht-Kontext
 ```
 **Anmelden von selbst.** Ein Hook, den `amw einrichten agenten-ordner` in jeden Agenten-Ordner einträgt, sieht jeden

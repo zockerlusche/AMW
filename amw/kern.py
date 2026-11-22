@@ -440,6 +440,20 @@ def projekt_einstellen(con, pid, von, **werte):
                 else:
                     e.pop(k, None)
                 continue
+            if k == "baum_wurzel":                       # A1943 (K9): dort legt „paket holen“ Arbeitsbäume an (nie im Projektordner)
+                v = str(v if v is not None else "").strip()
+                if v:
+                    v = os.path.abspath(v)
+                    ordner = projekt_ordner(con, pid)
+                    if ordner and os.path.normcase(v).startswith(os.path.normcase(os.path.abspath(ordner)) + os.sep) \
+                            or ordner and os.path.normcase(v) == os.path.normcase(os.path.abspath(ordner)):
+                        raise AmwFehler("baum_wurzel: nicht im Projektordner selbst – ein eigener Ordner daneben")
+                    if not os.path.isdir(v):
+                        raise AmwFehler(f"baum_wurzel: {v} gibt es nicht – lege den Ordner zuerst an")
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k == "regression_befehl":                 # A1920: Rückschritt-Tests je Projekt (Befehl | aus | leer = Vorgabe)
                 v = str(v if v is not None else "").strip()
                 if len(v) > 500 or "\n" in v or "\r" in v:
@@ -1454,6 +1468,12 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
             felder["bemerkung"] = ((a["bemerkung"] + " || ") if a["bemerkung"] else "") + f"{von} {t}: {bemerkung}"
         satz = ", ".join(f"{k} = ?" for k in felder)
         con.execute(f"UPDATE aufgabe SET {satz} WHERE id = ?", (*felder.values(), aid))
+        if neu == "fertig":                          # A1943 (K9): Bereichs-Wissen für das Startwissen späterer Pakete
+            try:
+                from . import startwissen
+                startwissen.bereich_merken(con, pid, aid)
+            except Exception:                        # noqa: BLE001 – Wissen ist Zusatz; das Schließen darf daran nie scheitern
+                pass
         if neu in ("fertig", "verworfen"):            # wer abgeschlossen hat (kann der Lead statt des Bearbeiters sein)
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=t, von=von, art="aufgabe_abschluss",
                          bogen_id=a["bogen_id"], aufgabe_id=aid, text=neu)
