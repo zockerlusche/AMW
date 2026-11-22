@@ -2280,7 +2280,23 @@ def cmd_thema(a, con):
         for t in themen.liste(con, pid):
             z = t["zustand"]
             print(f"TH{t['id']:<4} {('zum Löschen markiert' if z['markiert'] else z['text']):<18} {t['name'][:70]}"
-                  + (f"  · Grund: {z['grund']}" if z["grund"] else "") + (f"  · Fassung {z['fassung']}" if z["fassung"] else ""))
+                  + (f"  · Grund: {z['grund']}" if z["grund"] else "") + (f"  · Fassung {z['fassung']}" if z["fassung"] else "")
+                  + (f"  · Ja fehlt: {', '.join(z['ja_fehlt'])}" if z.get("ja_fehlt") else "")      # A1937
+                  + ("  · nur der Mensch" if z.get("nur_mensch") else ""))
+        return
+    if a.aktion == "freigeben" and _von(a) != kern.ENTWICKLER and themen.freigabe_regel(con, pid) == "co+lead":   # A1937 (B2913)
+        if not a.name:
+            raise kern.AmwFehler("amw thema freigeben <TH-Nr. oder Name>")
+        z = themen.ja_geben(con, pid, _von(a), a.name)
+        print(f"{a.name}: Ja gegeben – {z['text']}" + (f" · es fehlt noch: {', '.join(z['ja_fehlt'])}" if z.get("ja_fehlt") else ""))
+        return
+    if a.aktion in ("nur_mensch", "nicht_nur_mensch"):           # A1937: Thema bleibt beim Menschen (G12)
+        if not a.name:
+            raise kern.AmwFehler(f"amw thema {a.aktion} <TH-Nr. oder Name>")
+        if a.aktion == "nicht_nur_mensch" and (_von(a) != kern.ENTWICKLER or _aus_agenten_sitzung()):
+            raise kern.AmwFehler("„nur der Mensch“ aufheben: nur der Mensch in seinem eigenen Terminal")
+        themen.nur_mensch_setzen(con, pid, _von(a), a.name, an=a.aktion == "nur_mensch")
+        print(f"{a.name}: " + ("gibt nur der Mensch frei" if a.aktion == "nur_mensch" else "Freigabe wieder nach thema_freigabe"))
         return
     if a.aktion in ("freigeben", "zurueck", "markieren", "entmarkieren"):   # A1896: nur der Mensch, nur im eigenen Terminal
         if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():
@@ -3153,10 +3169,12 @@ def parser():
     x = s.add_parser("thema", help="Design-Dokument je Thema: liste [--suche] | zeige TH12 | neu \"Name\" [--pfleger X] [--stil] |"
                                    " einstellen TH12 --pfleger X | --stil | pflegen TH12 --text-datei … | bestaetigen TH12 |"
                                    " dokument TH12 --dokument D5 [--loesen] | status (ein Status je Thema) |"
-                                   " freigeben TH12 | zurueck TH12 --notiz … | markieren|entmarkieren TH12 (nur der Mensch)")
+                                   " freigeben TH12 | zurueck TH12 --notiz … | markieren|entmarkieren TH12 (nur der Mensch;"
+                                   " bei thema_freigabe=co+lead gibt freigeben von Co und Lead je ein Ja, B2913) |"
+                                   " nur_mensch TH12 (Pfleger, Lead, Mensch) | nicht_nur_mensch TH12 (nur der Mensch)")
     x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "zeige", "neu", "einstellen", "pflegen", "bestaetigen",
                                                                   "dokument", "status", "freigeben", "zurueck", "markieren",
-                                                                  "entmarkieren"])
+                                                                  "entmarkieren", "nur_mensch", "nicht_nur_mensch"])
     x.add_argument("--notiz", help="zurueck: was soll anders werden (Pflicht)")
     x.add_argument("name", nargs="?", help="TH-Nummer oder Name (eindeutiger Anfang reicht)")
     x.add_argument("--pfleger")

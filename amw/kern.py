@@ -231,6 +231,7 @@ PROJEKT_TEXTE = {"entwickler_name": 30}       # Text-Einstellungen: Schlüssel �
 # dateien_online: welche Dateien von Dokumenten von selbst „auch online“ stehen (wunsch = nur auf Wunsch, wie bis 1.10.0)
 PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 "release_modus": ("datei", "tag"),                      # A1923: Version in version_datei oder aus dem Tag
+                "thema_freigabe": ("mensch", "co+lead"),                # A1937 (B2913): Co und Lead geben Themen gemeinsam frei
                 "changelog_format": ("amw", "keepachangelog"),          # A1923: Abschnitte wie die AMW oder Keep a Changelog
                 "release_sicherung": ("aus", "an"),                     # A1933: Sicherung der Projektdaten vor einer Auslieferung
                 # Wege (Fehlerbericht aus einem Projekt, Entscheid des Entwicklers): Fragen der Agenten an den Entwickler gehen zuerst an den
@@ -277,7 +278,7 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # Releases in drei Ebenen (A1928, TH158): meilenstein = release ausliefern ist lokal live (ohne Push und GitHub-
                 # Release); veröffentlicht wird nach der Abnahme des Meilensteins durch den Menschen; sofort = wie früher.
                 "veroeffentlichen": ("meilenstein", "sofort")}
-NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung")
+NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung", "thema_freigabe")
 BUENDEL_EINSTELLUNGEN = ("version_datei", "changelog_datei", "buendel_schritt", "gesamtlauf_befehl")   # A1876 (D1306 F2)
 VERSION_FRIST_TAGE = 14            # so lange darf Fertiges ohne Version liegen, bevor der Plan-Check warnt (Projekt: version_frist_tage)
 VERSION_FORM = re.compile(r"(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?")

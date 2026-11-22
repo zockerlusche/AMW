@@ -453,6 +453,17 @@ dass der Pfleger daran denken muss.
 - **Einstellung:** `themen_gegenlesen` = opus (Vorgabe seit A1930, Opus/high nach TH159) | haiku | sonnet | aus – Lead oder Mensch. Rollen Gliederung und Machbarkeit
   sind vorbereitet (`gegenlesen.ROLLEN`), aber nicht gebaut. Tests stoßen nie einen echten Gegenleser an (`AMW_GEGENLESEN_AUS`).
 
+### Freigabe durch Co-Entwickler und Lead (A1937, B2913)
+
+- **Einstellung `thema_freigabe`:** mensch (Vorgabe) | co+lead – setzen nur der Mensch.
+- **co+lead:** Co-Entwickler und Lead geben je ihr Ja zur aktuellen Fassung (`amw thema freigeben TH…` aus ihrer Sitzung).
+  Mit beiden Ja ist das Thema freigegeben (Ereignis von der AMW, mit beiden Namen); der Mensch bekommt eine Info. Eine neue
+  Fassung braucht neue Ja. Der Mensch gibt weiter selbst frei und holt jederzeit zurück.
+- **Nur der Mensch:** Themen, die Löschen, Kosten, Schema oder Außenwirkung betreffen, bleiben beim Menschen (G12):
+  `amw thema nur_mensch TH…` (Pfleger, Lead oder Mensch), aufheben `amw thema nicht_nur_mensch TH…` (nur der Mensch).
+- **Anzeige:** `amw thema status` und die Seite zeigen, wessen Ja noch fehlt („Ja fehlt noch: Lead“) bzw. „Gibst nur du frei“.
+  Die Tor-Zeile zählt diese Freigaben wie die des Menschen.
+
 ### Themen → Aufgaben (A1915, D1304 v12 §1.3/§6d)
 
 **Wozu:** Ändert sich ein Thema, sollen genau die Aufgaben geprüft werden, die darauf bauen – nicht alle, und ohne dass
@@ -520,6 +531,7 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 | `amw pc einstellen` | `plaetze_pc` | höchstens so viele p-Arbeiter gleichzeitig über alle Projekte (0 = keine Grenze) |
 | `amw pc einstellen` | `limit_halt` | Halt beim Wochenlimit für alle Projekte (Vorgabe 95, 0 = aus; ein Projekt nur strenger) |
 | `amw projekt einstellen` | `sicherung_ziel` | wohin die tägliche Sicherung aller Zweige und Tags geht (nur der Mensch, ohne Zugangsdaten) |
+| `amw projekt einstellen` | `thema_freigabe` | `mensch` (Vorgabe) oder `co+lead`: wer Themen freigibt (nur der Mensch stellt um) |
 | `amw projekt einstellen` | `release_sicherung` | `aus` (Vorgabe) oder `an`: Sicherung der Projektdaten vor `release ausliefern` (Projekte, die nicht die AMW sind) |
 | `amw projekt einstellen` | `release_modus` | `datei` (Version in `version_datei`) oder `tag` (Version aus dem Tag) – für Bündel |
 | `amw projekt einstellen` | `changelog_format` | `amw` oder `keepachangelog` ([Unreleased] → [X.Y.Z]) – für Bündel |

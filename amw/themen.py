@@ -222,7 +222,9 @@ def nach_beschluss(con, pid, von, bid, thema):
 STATUS_TEXT = {"dich": "wartet auf dich", "pruefen": "neu prüfen", "arbeit": "in Arbeit", "frei": "freigegeben"}
 VORRANG = ("markiert", "dich", "pruefen", "frei", "arbeit")        # D1326 A16: fester Vorrang, die Sortierung folgt ihm
 EREIGNIS = {"vorgelegt": "thema_vorgelegt", "freigegeben": "thema_freigegeben", "zurueck": "thema_zurueck",
-            "bearbeitet": "thema_bearbeitet", "markiert": "thema_loeschen_markiert", "entmarkiert": "thema_markierung_aufgehoben"}
+            "bearbeitet": "thema_bearbeitet", "markiert": "thema_loeschen_markiert", "entmarkiert": "thema_markierung_aufgehoben",
+            "ja": "thema_ja", "nur_mensch": "thema_nur_mensch"}                    # A1937 (B2913): Ja von Co/Lead, nur der Mensch
+ROLLEN_JA = {"co": "Co-Entwickler", "lead": "Lead"}
 NUR_MENSCH = ("freigegeben", "zurueck", "bearbeitet", "markiert", "entmarkiert")
 HANDLUNGEN = {"dich": ("freigeben", "zurueck", "bearbeiten", "markieren"), "pruefen": ("freigeben", "zurueck", "bearbeiten", "markieren"),
               "frei": ("zurueck", "bearbeiten", "markieren"), "arbeit": ("bearbeiten", "markieren")}
@@ -244,10 +246,11 @@ def _ereignisse(con, pid, tid):
     return aus
 
 
-def _ereignis(con, pid, von, art, tid, **extra):
-    """In der Transaktion des Aufrufers. Die Handlungen des Menschen schreibt nur der Mensch (D1326 A35)."""
+def _ereignis(con, pid, von, art, tid, regel=False, **extra):
+    """In der Transaktion des Aufrufers. Die Handlungen des Menschen schreibt nur der Mensch (D1326 A35) – außer der Freigabe
+    nach B2913 (regel=True: Co-Entwickler und Lead haben beide Ja gesagt, A1937)."""
     import json
-    if art in NUR_MENSCH and von != kern.ENTWICKLER:
+    if art in NUR_MENSCH and von != kern.ENTWICKLER and not regel:
         raise kern.AmwFehler("Das darf nur der Mensch")
     db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=EREIGNIS[art],
                  text=json.dumps({"thema": tid, **extra}, ensure_ascii=False))
@@ -301,8 +304,38 @@ def status(con, t):
             st, grund = "pruefen", f"B{b['id']} · {b['angelegt_utc'][8:10]}.{b['angelegt_utc'][5:7]}."
         else:
             st = "frei"
-    return {"status": st, "text": STATUS_TEXT[st], "grund": grund, "markiert": markiert, "fassung": nr, "freigegeben": frei_nr,
-            "gegenlesen": liest}
+    aus = {"status": st, "text": STATUS_TEXT[st], "grund": grund, "markiert": markiert, "fassung": nr, "freigegeben": frei_nr,
+           "gegenlesen": liest}
+    if freigabe_regel(con, t["projekt_id"]) == "co+lead":          # A1937: wessen Ja fehlt (nur, wo eine Freigabe ansteht)
+        aus["nur_mensch"] = nur_mensch(ev)
+        if st in ("dich", "pruefen") and nr is not None and not aus["nur_mensch"]:
+            j = jas(ev, nr)
+            aus["ja"] = j
+            aus["ja_fehlt"] = [ROLLEN_JA[r] for r in ROLLEN_JA if not j.get(r)]
+    return aus
+
+
+def freigabe_regel(con, pid):
+    """A1937 (B2913): wer ein Thema freigibt – mensch (Vorgabe) | co+lead (Co-Entwickler und Lead je ein Ja; Marcel jederzeit)."""
+    return kern.projekt_wahl(con, pid, "thema_freigabe")
+
+
+def nur_mensch(ev):
+    """A1937: Thema bleibt beim Menschen (Löschen, Kosten, Schema, Außenwirkung – G12): letzter Merker gesetzt?"""
+    an = False
+    for e in ev:
+        if e["art"] == EREIGNIS["nur_mensch"]:
+            an = bool(e.get("an"))
+    return an
+
+
+def jas(ev, fassung):
+    """{"co": Kennung, "lead": Kennung} – die Ja zu genau dieser Fassung."""
+    aus = {}
+    for e in ev:
+        if e["art"] == EREIGNIS["ja"] and e.get("fassung") == fassung:
+            aus[e.get("rolle")] = e["von"]
+    return aus
 
 
 def _freigegebener_text(con, tid, s):
@@ -353,6 +386,50 @@ def freigeben(con, pid, von, name):
         if an:
             kern._posten(con, pid, "AMW", an, "info", f"Thema „{t['name'][:60]}“ freigegeben (Fassung {s['fassung']})",
                          f"TH{t['id']}: {kern.entwickler_name(con, pid)} hat Fassung {s['fassung']} freigegeben.")
+    return status(con, finden(con, pid, t["id"]))
+
+
+def ja_geben(con, pid, von, name):
+    """A1937 (B2913): Co-Entwickler oder Lead gibt sein Ja zur aktuellen Fassung. Mit beiden Ja ist das Thema freigegeben
+    (Ereignis thema_freigegeben, von AMW, „durch“ beide). Nur bei thema_freigabe = co+lead und nicht bei Themen „nur der Mensch“."""
+    if freigabe_regel(con, pid) != "co+lead":
+        raise kern.AmwFehler("Themen gibt in diesem Projekt der Mensch frei (thema_freigabe = mensch)")
+    if kern.ist_co(con, pid, von):
+        rolle = "co"
+    elif von != kern.ENTWICKLER and kern.ist_lead(con, pid, von):
+        rolle = "lead"
+    else:
+        raise kern.AmwFehler("Ein Ja zur Freigabe geben der Co-Entwickler und der Lead (B2913) – sonst gibt der Mensch frei")
+    t = finden(con, pid, name)
+    s = status(con, t)
+    if s.get("nur_mensch"):
+        raise kern.AmwFehler(f"TH{t['id']} bleibt beim Menschen (Löschen, Kosten, Schema oder Außenwirkung) – er gibt es frei")
+    if "freigeben" not in handlungen(s) or s["fassung"] is None:
+        raise kern.AmwFehler(f"TH{t['id']} ist „{s['text']}“ – da steht keine Freigabe an")
+    an = _an_pfleger(con, pid, t)
+    vorher = tor(con, pid)
+    with db.schreiben(con):
+        _ereignis(con, pid, von, "ja", t["id"], fassung=s["fassung"], rolle=rolle)
+        j = jas(_ereignisse(con, pid, t["id"]), s["fassung"])
+        if j.get("co") and j.get("lead"):
+            _ereignis(con, pid, "AMW", "freigegeben", t["id"], regel=True, fassung=s["fassung"], durch=[j["co"], j["lead"]], regel_von="B2913")
+            _tor_nachher(con, pid, "AMW", vorher)
+            for k in dict.fromkeys(x for x in (an, kern.ENTWICKLER) if x):
+                kern._posten(con, pid, "AMW", k, "info", f"Thema „{t['name'][:60]}“ freigegeben von Co und Lead (Fassung {s['fassung']})",
+                             f"TH{t['id']}: {j['co']} (Co-Entwickler) und {j['lead']} (Lead) haben Fassung {s['fassung']} freigegeben (B2913)."
+                             " Zurückholen kann der Mensch jederzeit: amw thema zurueck … --notiz …")
+    return status(con, finden(con, pid, t["id"]))
+
+
+def nur_mensch_setzen(con, pid, von, name, an=True):
+    """A1937: Merker „nur der Mensch gibt frei“ – setzen Pfleger, Lead oder Mensch; aufheben nur der Mensch."""
+    t = finden(con, pid, name)
+    if an and not (von == kern.ENTWICKLER or von == t["pfleger"] or kern.ist_lead(con, pid, von)):
+        raise kern.AmwFehler("„nur der Mensch“ setzen Pfleger, Lead oder Mensch")
+    if not an and von != kern.ENTWICKLER:
+        raise kern.AmwFehler("„nur der Mensch“ aufheben darf nur der Mensch")
+    with db.schreiben(con):
+        _ereignis(con, pid, von, "nur_mensch", t["id"], an=bool(an))
     return status(con, finden(con, pid, t["id"]))
 
 
