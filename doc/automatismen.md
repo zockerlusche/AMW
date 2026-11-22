@@ -147,9 +147,11 @@ den Coder, der Coder auf das Merge-OK. Und eine Bitte als Info weckte den Lead n
   auf genau diesem Stand („Stand <sha> sauber“) eine grüne Prüfung ohne Merge-OK, meldet die AMW dem Prüfer „A<n> freigabereif …
   Merge-OK: amw freigabe merge …“ (weckt) und dem Bauer zur Info. Rot → „Gesamtlauf rot“ an Prüfer und Bauer. Kommt das Grün
   erst nach dem Lauf, kommt die Meldung beim Grün-Setzen. Eine Meldung je Prüfung und Stand.
-- **Bitte als Info:** `amw posten --art info` an den Lead wird abgewiesen, wenn sie um eine Handlung bittet (bitte … Merge-OK,
-  prüfen, freigeben, entscheiden, ausliefern) oder zu einer Aufgabe gehört, die auf den Lead wartet: „Bitte um Handlung →
-  --art frage (weckt)“.
+- **Bitte als Info:** `amw posten --art info` an einen Agenten – Lead oder Coder, auch über `--an alle` – wird abgewiesen, wenn
+  sie um eine Handlung bittet (bitte … Merge-OK, prüfen, freigeben, entscheiden, ausliefern, aufsetzen; jetzt … aufsetzen,
+  ausliefern, prüfen) oder zu einer Aufgabe gehört, die auf ihn wartet oder die seine ist und auf etwas wartet: „Bitte um
+  Handlung → --art auftrag oder frage (weckt)“. Eine info weckt nicht. Ausgenommen: AMW und der Mensch als Absender, der Mensch
+  als Empfänger.
 - **Nachwecken:** Der Dienst weckt den Lead einmal nach, wenn eine Nachricht 10 Minuten nach dem Weckruf noch ungelesen ist und
   er seitdem nichts gesendet hat – höchstens einmal je Nachricht, nicht im Halt, nicht während er arbeitet.
 - **Gemeinsamer Stand:** Eine Prüfung einer anderen Aufgabe auf genau demselben Stand (oder demselben Baum) belegt die

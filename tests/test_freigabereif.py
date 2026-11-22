@@ -1,5 +1,5 @@
 """A1897: „freigabereif“ von selbst (grüner Gesamtlauf auf einem grün geprüften Stand ohne Merge-OK → Meldung an den Prüfer),
-info mit Bitte um Handlung an den Lead abweisen, gemeinsam geprüfter Stand belegt keine Versionsnummer, Lead nachwecken."""
+info mit Bitte um Handlung an den Lead (A1934: an jeden Agenten) abweisen, gemeinsam geprüfter Stand belegt keine Versionsnummer, Lead nachwecken."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import os
 import shutil
@@ -84,13 +84,40 @@ class Freigabereif(Basis):
 
 class BitteAlsInfo(Basis):
     def test_info_mit_bitte_an_den_lead_abgewiesen(self):
-        with self.assertRaisesRegex(kern.AmwFehler, r"Bitte um Handlung → --art frage \(weckt\)"):
+        with self.assertRaisesRegex(kern.AmwFehler, r"Bitte um Handlung → --art auftrag oder frage \(weckt\)"):
             kern.posten(self.con, self.pid, "CC1", "TL", "info", "A1 fertig – bitte Merge-OK geben")
         with self.assertRaisesRegex(kern.AmwFehler, "Bitte um Handlung"):
             kern.posten(self.con, self.pid, "CC1", "TL,PR", "info", "Stand", text="Merge-OK?")
         kern.posten(self.con, self.pid, "CC1", "TL", "frage", "A1 fertig – bitte Merge-OK geben")      # als Frage: ja
         kern.posten(self.con, self.pid, "CC1", "TL", "info", "1.0.1 live")                           # reine Info: ja
-        kern.posten(self.con, self.pid, "CC1", "PR", "info", "bitte prüfen")                         # nicht an den Lead: ja
+
+    def test_a1934_auch_an_coder_und_ueber_alle(self):
+        """#29869: die info des Leads „CCamw2: A1918 jetzt … aufsetzen“ weckte den Coder nicht – jetzt abgewiesen."""
+        with self.assertRaisesRegex(kern.AmwFehler, r"Bitte um Handlung → --art auftrag oder frage \(weckt\) – eine info an PR weckt nicht"):
+            kern.posten(self.con, self.pid, "CC1", "PR", "info", "bitte prüfen")
+        with self.assertRaisesRegex(kern.AmwFehler, "Bitte um Handlung"):
+            kern.posten(self.con, self.pid, "TL", "CC1", "info", "1.0.1 ist live",
+                        text="1.0.1 ist live. CC1: A1 jetzt auf main abc123 aufsetzen und einzeln ausliefern.")
+        with self.assertRaisesRegex(kern.AmwFehler, "Bitte um Handlung"):
+            kern.posten(self.con, self.pid, "TL", "alle", "info", "Stand", text="Bitte jetzt alle prüfen")   # über „alle“
+        for art in ("auftrag", "frage"):                                                         # weckt: ja
+            kern.posten(self.con, self.pid, "TL", "CC1", art, "A1 jetzt aufsetzen")
+        kern.posten(self.con, self.pid, "TL", "CC1", "info", "1.0.1 live – nichts zu tun")             # reine Info: ja
+        kern.posten(self.con, self.pid, "TL", "Entwickler", "info", "bitte prüfen")                  # an den Menschen: ja
+        kern.posten(self.con, self.pid, "AMW", "CC1", "info", "bitte prüfen")                         # AMW: Ausnahme wie bisher
+        kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC1", "info", "bitte prüfen")                # der Mensch: Ausnahme
+
+    def test_a1934_info_zur_wartenden_aufgabe_des_empfaengers(self):
+        from amw import wartegrund
+        kern.posten(self.con, self.pid, "TL", "CC1", "info", "Stand", aufgabe_id=self.aid)            # wartet nicht: ja
+        with db.schreiben(self.con):
+            wartegrund.anlegen(self.con, self.pid, "CC1", self.aid, "PR")                         # A1 (von CC1) wartet auf PR
+        with self.assertRaisesRegex(kern.AmwFehler, f"A{self.aid} wartet, und sie gehört CC1"):
+            kern.posten(self.con, self.pid, "TL", "CC1", "info", "Stand", aufgabe_id=self.aid)
+        with self.assertRaisesRegex(kern.AmwFehler, f"A{self.aid} wartet auf PR"):
+            kern.posten(self.con, self.pid, "TL", "PR", "info", "Stand", aufgabe_id=self.aid)
+        kern.posten(self.con, self.pid, "TL", "CC1", "antwort", "Stand", aufgabe_id=self.aid)          # weckt: ja
+        kern.posten(self.con, self.pid, "CC1", "TL", "info", "Stand", aufgabe_id=self.aid)            # wartet nicht auf TL, nicht seine
 
     def test_info_zu_einer_aufgabe_die_auf_den_lead_wartet(self):
         from amw import wartegrund

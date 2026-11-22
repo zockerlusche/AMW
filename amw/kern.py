@@ -1061,20 +1061,34 @@ def faden_suchen(con, pid, von):
         (von, pid, ENTWICKLER, ZURUECKGEZOGEN, grenze, von)).fetchone()
 
 
-BITTE_UM_HANDLUNG = re.compile(r"\bbitte\b.{0,80}?(merge-?ok|prüf|freigeb|freigabe|entscheid|ausliefer)|merge-?ok\s*\?", re.I | re.S)
+# „bitte … prüfen/freigeben/ausliefern/aufsetzen“, „Merge-OK?“ und (A1934, #29869) „jetzt … aufsetzen/ausliefern/prüfen“
+BITTE_UM_HANDLUNG = re.compile(r"\bbitte\b.{0,80}?(merge-?ok|prüf|freigeb|freigabe|entscheid|ausliefer|aufsetz)|merge-?ok\s*\?"
+                               r"|\bjetzt\b.{0,60}?(aufsetz|ausliefer|prüf|freigeb|entscheid)", re.I | re.S)
 
 
-def bitte_als_info_pruefen(con, pid, an, kurz, text, aufgabe_id):
-    """A1897 (Befund #29430, 21.11.: #29418 als info weckte niemanden): eine info an den Lead, die um eine Handlung bittet (Merge-OK,
-    prüfen, freigeben, entscheiden, ausliefern) oder sich auf eine Aufgabe bezieht, die auf den Lead wartet, wird abgewiesen."""
-    l = lead(con, pid)
-    namen = [t.strip() for t in (an or "").replace(";", ",").split(",") if t.strip()]
-    if not l or l not in namen:
+def bitte_als_info_pruefen(con, pid, an, kurz, text, aufgabe_id, von=None):
+    """A1897 (Befund #29430, 21.11.: #29418 als info weckte niemanden), A1934 (#29869 weckte CCamw2 nicht, 1,5 h Stillstand):
+    eine info an einen Agenten – Lead oder Coder, auch über „alle“ –, die um eine Handlung bittet (Merge-OK, prüfen, freigeben,
+    entscheiden, ausliefern, jetzt aufsetzen) oder sich auf eine Aufgabe bezieht, die auf ihn wartet bzw. die seine ist und auf
+    etwas wartet, wird abgewiesen: eine info weckt nicht. An den Menschen gilt das nicht (er wird nie geweckt)."""
+    ich = (von or "").lower()
+    pe = (db.produkt_entwickler() or "").lower()
+    namen = [n for n in dict.fromkeys(empfaenger(con, pid, an or "", von, aufgabe_id))
+             if n.lower() not in (ENTWICKLER.lower(), ich, pe)
+             and con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, n)).fetchone()]
+    if not namen:
         return
-    if BITTE_UM_HANDLUNG.search(f"{kurz or ''}\n{text or ''}") or (aufgabe_id and con.execute(
-            "SELECT 1 FROM wartegrund WHERE aufgabe_id = ? AND art = 'agent' AND bezug = ? AND erledigt_utc IS NULL",
-            (aufgabe_id, l)).fetchone()):
-        raise AmwFehler(f"Bitte um Handlung → --art frage (weckt) – eine info an den Lead ({l}) weckt ihn nicht")
+    hilfe = "--art auftrag oder frage (weckt)"
+    if BITTE_UM_HANDLUNG.search(f"{kurz or ''}\n{text or ''}"):
+        raise AmwFehler(f"Bitte um Handlung → {hilfe} – eine info an {', '.join(namen)} weckt nicht")
+    if not aufgabe_id:
+        return
+    besitzer = (con.execute("SELECT agent FROM aufgabe WHERE id = ?", (aufgabe_id,)).fetchone() or [None])[0]
+    for n in namen:
+        if con.execute("SELECT 1 FROM wartegrund WHERE aufgabe_id = ? AND erledigt_utc IS NULL AND (art = 'agent' AND bezug = ?"
+                       " OR ? = ?) LIMIT 1", (aufgabe_id, n, besitzer or "", n)).fetchone():
+            raise AmwFehler(f"Bitte um Handlung → {hilfe} – A{aufgabe_id} wartet"
+                            + (f" auf {n}" if besitzer != n else f", und sie gehört {n}") + "; eine info weckt nicht")
 
 
 def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, hinweise=None, bis=None, bezug=None, faden=True):
@@ -1099,7 +1113,7 @@ def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id
     if bezug and bezug[0] == "A" and not aufgabe_id:                 # die alten Felder mit füllen (alte Abfragen laufen weiter)
         aufgabe_id = int(bezug[1:])
     if art == "info" and von not in ("AMW", ENTWICKLER):
-        bitte_als_info_pruefen(con, pid, an, kurz, text, aufgabe_id)
+        bitte_als_info_pruefen(con, pid, an, kurz, text, aufgabe_id, von=von)
     with db.schreiben(con):
         a = None
         if aufgabe_id and von != "AMW":
