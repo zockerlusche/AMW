@@ -46,7 +46,7 @@ class WertPruefen(unittest.TestCase):
 
 class TabellePruefen(unittest.TestCase):
     def test_nur_abweichungen_vom_standard(self):
-        t = {"einfach": {"S": "haiku/low", "M": "sonnet/medium"}, "heikel": {"XL": "opus/xhigh"}}
+        t = {"einfach": {"S": "haiku/low", "M": "opus/medium"}, "heikel": {"XL": "opus/high"}}      # A1930: Startwerte TH159
         self.assertEqual(empfehlung.tabelle_pruefen(t), {"einfach": {"S": "haiku/low"}})
 
     def test_standard_selbst_ergibt_leere_tabelle(self):
@@ -61,8 +61,8 @@ class TabellePruefen(unittest.TestCase):
                          {"mittel": {"S": "fable/max", "L": "opus/xhigh"}})
 
     def test_json_text(self):
-        t = json.dumps({"heikel": {"S": "opus/high", "M": "opus/high"}})
-        self.assertEqual(empfehlung.tabelle_pruefen(t), {"heikel": {"S": "opus/high"}})
+        t = json.dumps({"heikel": {"S": "opus/xhigh", "M": "opus/high"}})                         # A1930: heikel = opus/high
+        self.assertEqual(empfehlung.tabelle_pruefen(t), {"heikel": {"S": "opus/xhigh"}})
         self.assertEqual(empfehlung.tabelle_pruefen(json.dumps(empfehlung.STANDARD)), {})
         self.assertEqual(empfehlung.tabelle_pruefen(""), {})                # leerer Text wie {}
 
