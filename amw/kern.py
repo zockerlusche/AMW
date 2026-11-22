@@ -267,7 +267,10 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # Gegenlesen der Themen (A1914, D1304 v12 §4): liefert ein Pfleger eine neue Fassung, liest ein frischer
                 # claude -p (nur Lesen) sie gegen und schickt dem Pfleger Einwände – haiku (Vorgabe) oder sonnet; aus = nie.
                 # Stellen Lead oder Mensch.
-                "themen_gegenlesen": ("haiku", "sonnet", "aus")}
+                "themen_gegenlesen": ("haiku", "sonnet", "aus"),
+                # Verteilen an interaktive Agenten (A1927, TH157): vorschlag = der Lead bekommt die Zuteilung als Frage (Vorgabe);
+                # an = die AMW teilt einem freien Agenten das nächste passende startklare Paket selbst zu; aus = nie.
+                "verteilen": ("vorschlag", "an", "aus")}
 NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung")
 BUENDEL_EINSTELLUNGEN = ("version_datei", "changelog_datei", "buendel_schritt", "gesamtlauf_befehl")   # A1876 (D1306 F2)
 VERSION_FRIST_TAGE = 14            # so lange darf Fertiges ohne Version liegen, bevor der Plan-Check warnt (Projekt: version_frist_tage)
@@ -332,7 +335,8 @@ def projekt_einstellen(con, pid, von, **werte):
     if not ist_lead(con, pid, von):
         raise AmwFehler("Projekt-Einstellungen dürfen nur Lead und Entwickler ändern")
     grenzen = {"takt_min": (0, 1440), "speicher_grenze_gb": (1, 512), "stillstand_min": (5, 1440), "lauf_ohne_angabe_min": (5, 1440),
-               "eskalation_min": (0, 1440), "info_ablage_h": (1, 168), "version_frist_tage": (1, 365), "ende_frist_min": (1, 60)}
+               "eskalation_min": (0, 1440), "info_ablage_h": (1, 168), "version_frist_tage": (1, 365), "ende_frist_min": (1, 60),
+               "ausfall_min": (5, 1440)}                       # A1927: so lange darf eine Sitzung beendet sein, dann Ausfall
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         for k, v in werte.items():
@@ -354,6 +358,17 @@ def projekt_einstellen(con, pid, von, **werte):
                 if k == "dateien_online" and v != "wunsch":       # vorhandene Dateien gleich mit (zurück: je Dokument)
                     from . import dokumente
                     dokumente.online_nach_einstellung(con, pid, v)
+                continue
+            if k == "verteilen_fach":                    # A1927: Art → passende Fachgebiete (Verteilen)
+                from . import verteilen
+                try:
+                    v = verteilen.fach_pruefen(v or {})
+                except ValueError as f:
+                    raise AmwFehler(f"verteilen_fach: {f}") from None
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
                 continue
             if k == "schwere_befehle":                   # eigene Muster für schwere Läufe (amw/schwer.py), zusätzlich zu den mitgelieferten
                 from . import schwer

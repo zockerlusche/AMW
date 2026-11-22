@@ -10,6 +10,7 @@ Jeder Agent arbeitet seine Liste von oben nach unten ab und macht ein Stück fer
 2. **Einplanen** Der Lead ordnet die Aufgabe in die Liste ein – frühestens hinter das laufende Stück. Als Befehl: `amw liste ordnen <agent> A12 A15`.
 3. **Warten erlaubt das Nächste** Muss das laufende Stück warten (Prüfung, Lauf, Frage), trägt der Agent den Grund ein und darf das nächste beginnen. Ist der Grund erledigt, kommt das wartende Stück dran, sobald das aktuelle fertig ist.
 4. **Dazwischenschieben, wenn es wirklich sein muss** Öffne die Aufgabe und drücke „Dazwischenschieben“ (mit Grund). Der Agent speichert seinen Stand, macht diese Aufgabe zuerst, danach geht es mit dem unterbrochenen Stück weiter.
+5. **Freie Agenten bekommen Arbeit** Ist ein Agent frei, sucht die AMW die nächste passende startklare Aufgabe ohne Bearbeiter in einem aktiven Meilenstein – nach Rang, bei gleichem Rang die mit mehr wartenden Nachfolgern zuerst – und schlägt sie dem Lead vor. Stellen du oder der Lead `amw projekt einstellen verteilen=an`, teilt sie selbst zu und nennt den Grund (Fachgebiet und Größe passen). Passt das Modell eines Agenten nicht zur Größe, bleibt es beim Vorschlag. Fällt ein Agent aus, geht seine laufende Aufgabe mit einer Übergabe-Notiz zurück, und du bekommst die Frage, ob seine Sitzung neu starten soll – starten tut nur du.
 
 ## Typische Fehler
 - **„A… läuft noch – eins nach dem anderen“** – Ein Agent wollte ein zweites Stück starten. Er macht das laufende fertig oder lässt es mit Grund warten (`amw aufgabe wartet <nr> --auf …`).

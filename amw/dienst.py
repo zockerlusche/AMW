@@ -439,6 +439,12 @@ class Dienst:
                 log.info("Wochenlimit-Halt: %s", e)
         except Exception as e:
             log.warning("Wochenlimit-Halt: %s: %s", type(e).__name__, e)
+        try:                                                                 # A1927: Ausfall zurück, freie Agenten bekommen Arbeit
+            from . import verteilen
+            for e in verteilen.runde(self.con):
+                log.info("Verteilen: %s", e)
+        except Exception as e:
+            log.warning("Verteilen: %s: %s", type(e).__name__, e)
         try:                                                                 # frei, obwohl Arbeit da ist
             for e in wartegrund.leerlauf(self.con):
                 log.info("Leerlauf: %s", e)

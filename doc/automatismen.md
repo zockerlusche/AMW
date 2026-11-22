@@ -161,6 +161,31 @@ Ruhephase. Empfänger ist die Projekt-Einstellung `leerlauf_lead` (sonst der Lea
 einen Chat-Lead weckt die AMW nicht. Wartezeit: `leerlauf_lead_min` (1–1440, Vorgabe 10). Beides setzen Lead oder Mensch:
 `amw projekt einstellen leerlauf_lead=<Agent> leerlauf_lead_min=<min>`.
 
+## Verteilen an freie Agenten (A1927, TH157)
+
+**Wozu:** Ein interaktiver Agent, der frei ist, soll ohne Umweg über den Lead die nächste passende Aufgabe nach dessen Plan
+bekommen; fällt ein Agent aus, geht seine Arbeit nicht verloren.
+
+- **Frei:** Agent im Terminal mit aktiver Sitzung, Soll an, nicht Lead und nicht Co-Entwickler, kein Halt, ohne Aufgabe in
+  „läuft“ und ohne Aufgabe ohne Wartegrund.
+- **Kandidaten:** offene Aufgaben ohne Bearbeiter in aktiven Meilensteinen, Art agent (keine p-Pakete), startklar (wartet,
+  kein offener Wartegrund, kein Wartetext, kein offener Vorgänger). Reihenfolge: Rang, dann kritischer Pfad (die längere
+  Kette offener Nachfolger zuerst).
+- **Passt (Option A, #29773):** Fachgebiet – ein Wort aus der Tabelle der Art steht im Fachgebiet des Agenten (Vorgabe: text →
+  text/doku/code; mechanisch, fehlersuche, sicherheit → code; oberflaeche → code/grafik; konzept → konzept; je Projekt
+  `verteilen_fach`, nur Lead oder Mensch, nicht aus einer Agenten-Sitzung). Größe – Modell und Denkaufwand im Profil nicht
+  schwächer als die Empfehlung für Größe und Art; ist das Profil schwächer, teilt die AMW nie selbst zu, sondern schlägt dem
+  Lead vor („A… bräuchte opus/high, CC1 hat sonnet/medium“), weil Modell und Denkaufwand in einer laufenden Sitzung nicht
+  wechseln (TH159). Ohne Fachgebiet, ohne Art oder mit offenem Profil passt es. Die Begründung nennt beide Treffer.
+- **Einstellung `verteilen`:** vorschlag (Vorgabe) – der Lead bekommt „Vorschlag: A… an CC1?“ als Frage mit dem Befehl;
+  an – die AMW teilt zu (Auftrag an den Agenten mit Begründung, Meldung an den Lead); aus. Je Paar Agent/Aufgabe ein
+  Vorschlag.
+- **Ausfall:** Hat ein Agent eine Aufgabe in „läuft“ und ist seine Sitzung seit `ausfall_min` (Vorgabe 30, 5–1440) beendet
+  ohne neue (die Aufsicht prüft die Pipe – ein stiller, wartender Agent hat Puls), geht die Aufgabe ohne Bearbeiter in den
+  Pool zurück. Übergabe-Notiz: letzter Commit zur Aufgabe, letzte Tätigkeit, offene Kriterien und Wartegründe – an den Lead
+  und als Ereignis `uebergabe`. Der Mensch bekommt die Frage „Sitzung von … neu starten?“; die AMW startet nie selbst.
+- Ohne Schemaänderung: Ereignisse `verteilt`, `verteil_vorschlag`, `ausfall`, `uebergabe`.
+
 ## Neue Claude-Code-Version ohne Stillstand (seit 1.154.0)
 
 **Wozu:** 21.11.: Zweimal stand S8 je etwa eine Stunde still, weil sich Claude Code aktualisiert hatte und die geprüften

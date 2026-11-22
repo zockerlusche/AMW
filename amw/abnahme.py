@@ -48,6 +48,7 @@ GESPERRT = (
     ("amw/arbeiter.py", "fest", "Abschottung der Arbeiter"),
     ("amw/versionsprobe.py", "fest", "Negativprobe neuer Claude-Code-Versionen (A1906)"),
     ("amw/gegenlesen.py", "fest", "Gegenleser der Themen – startet claude -p (A1914)"),
+    ("amw/verteilen.py", "fest", "Verteilen an Agenten und Ausfall (A1927)"),
     ("amw/waechter.py", "fest", "Startregeln (Wächter)"),
     ("amw/entscheidung.py", "fest", "Entscheidungstabelle nach dem Lauf"),
     ("amw/pruefung_c.py", "fest", "eigene Prüfung der AMW (Prüfung C)"),
