@@ -488,7 +488,7 @@ def daten_planung(con, pid):
             b["abweichung"] = None
         b["specs"] = {s["teil"]: {**{k: s[k] for k in ("status", "version", "kommentar", "text", "geaendert_utc", "geschrieben_von")},
                                   **dict(zip(("vorgelegt_von", "frei_von"), planung.spec_wer(con, b["id"], s["teil"], s["version"])))}
-                      for s in con.execute("SELECT * FROM spezifikation WHERE bogen_id = ?", (b["id"],))}
+                      for s in con.execute(f"SELECT * FROM spezifikation WHERE bogen_id = ? AND {planung.MIT_INHALT}", (b["id"],))}
         try:                                             # A1939 (K3): Themen des Meilensteins, Ziel und Abnahme als Verweis
             from . import urteil
             b["themen"] = urteil.bogen_themen(con, pid, b["id"])

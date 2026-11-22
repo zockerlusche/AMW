@@ -187,7 +187,8 @@ def boegen(con, pid):
     for b in con.execute("SELECT * FROM bogen WHERE projekt_id = ? ORDER BY nr, id", (pid,)).fetchall():
         z = con.execute("SELECT count(*) AS gesamt, sum(status = 'fertig') AS fertig, sum(status = 'verworfen') AS verworfen,"
                         " sum(status = 'laeuft') AS laeuft FROM aufgabe WHERE bogen_id = ?", (b["id"],)).fetchone()
-        spec = {s["teil"]: s["status"] for s in con.execute("SELECT teil, status FROM spezifikation WHERE bogen_id = ?", (b["id"],))}
+        spec = {s["teil"]: s["status"] for s in con.execute(f"SELECT teil, status FROM spezifikation WHERE bogen_id = ? AND {MIT_INHALT}",
+                                                            (b["id"],))}
         blockiert = sum(1 for (aid,) in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ? AND status NOT IN ('fertig', 'verworfen')",
                                                     (b["id"],)).fetchall() if offene_vorgaenger(con, aid))
         aus.append({**dict(b), "gesamt": z["gesamt"] or 0, "fertig": z["fertig"] or 0, "verworfen": z["verworfen"] or 0,
@@ -215,6 +216,9 @@ def zuwachs(con, b):
 
 
 # --- Spezifikation -------------------------------------------------------------------------------
+
+MIT_INHALT = "trim(coalesce(text, '')) != ''"     # A1968: leere Entwurfszeilen aus „bogen neu“ (vor K3) sind keine Spezifikation
+
 
 def hat_spec(con, bid):
     """A1939 (K3): nur Meilensteine aus der Zeit vor den Themen haben eine Spezifikation (alter Bestand)."""

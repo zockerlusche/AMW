@@ -6,6 +6,7 @@ import os
 import random
 import tempfile
 import unittest
+from unittest import mock
 
 from amw import db, kern, planung
 
@@ -108,6 +109,34 @@ class Spezifikation(Grund):
         planung.spec_entscheiden(self.con, self.pid, "Entwickler", bid, "anforderungen", True)
         self.assertEqual(planung.spec_schreiben(self.con, self.pid, "TL", bid, "anforderungen", "R1 b"), 2)
         self.assertEqual(planung.spec(self.con, bid, "anforderungen")["status"], "entwurf")
+
+    def test_leere_entwurfszeilen_sind_keine_spezifikation(self):                     # A1968 (#30620): M52 zeigte „in Arbeit“
+        from amw import workbench
+        bid = self.bogen()                                                             # leere Zeilen wie früher „bogen neu“
+        spec = lambda: next(b for b in planung.boegen(self.con, self.pid) if b["id"] == bid)["spec"]   # noqa: E731
+        specs = lambda: next(b for b in workbench.daten_planung(self.con, self.pid)["boegen"] if b["id"] == bid)["specs"]   # noqa: E731
+        self.assertEqual((spec(), specs()), ({}, {}))
+        rc, aus = self.cli("bogen", "zeigen", str(bid))
+        self.assertEqual(rc, 0, aus)
+        self.assertNotIn("Spezifikation", aus)
+        planung.spec_schreiben(self.con, self.pid, "TL", bid, "anforderungen", "R1 Login")   # mit Inhalt: wieder da
+        self.assertEqual((spec(), list(specs())), ({"anforderungen": "entwurf"}, ["anforderungen"]))
+        rc, aus = self.cli("bogen", "zeigen", str(bid))
+        self.assertIn("Spezifikation (alter Bestand): anforderungen in Arbeit, entwurf –, schritte –", aus)
+        self.assertEqual(self.con.execute("SELECT count(*) FROM spezifikation WHERE bogen_id = ?", (bid,)).fetchone()[0], 3)   # nichts gelöscht
+
+    def cli(self, *args):
+        import contextlib
+        import io
+        from amw import cli
+        aus = io.StringIO()
+        with mock.patch.dict(os.environ, {"AMW_DB": os.path.join(self.ordner.name, "t.db")}), contextlib.redirect_stdout(aus), \
+                contextlib.redirect_stderr(aus):
+            try:
+                rc = cli.main([*args, "--von", "TL", "--projekt", "P"])
+            except SystemExit as e:
+                rc = e.code
+        return rc or 0, aus.getvalue()
 
 
 class Schritte(Grund):
