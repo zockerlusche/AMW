@@ -1085,6 +1085,12 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
             vh = f"\n\nVersionshinweis ({gruppe or '–'}): {felder.get('hinweis') or '–'}"
         kern._posten(con, pid, bauer, pruefer, "pruefbitte", f"Prüfbitte P{prid}: {zweig}@{sha[:8]}",
                      stufe + leer + ("\n\n" + punkte if punkte else "") + vh + bilder, aufgabe_id=aufgabe_id)
+    if bilder.startswith("\n\nBilder:"):              # A1973: sichtbar und mit Bildern → Stil-Leser (Befund kommt als Meldung)
+        from . import stil
+        try:
+            stil.anstossen(con, pid, prid, True)
+        except Exception:                            # noqa: BLE001 – die Prüfbitte gilt; ohne Befund prüft der Prüfer selbst
+            pass
     return prid
 
 
@@ -1104,6 +1110,9 @@ def pruefung_ergebnis(con, pid, pruefer, prid, ergebnis, bemerkung=None):
             raise kern.AmwFehler(f"P{prid} prüft {p['pruefer']}")
         if p["ergebnis"] != "offen":
             raise kern.AmwFehler(f"P{prid} ist schon {p['ergebnis']} – neue Prüfbitte für einen neuen Stand")
+        if ergebnis == "gruen":                      # A1973: Stil-Verstoß → Grün nur mit Begründung
+            from . import stil
+            stil.gruen_pruefen(con, pid, prid, bemerkung)
         con.execute("UPDATE pruefung SET ergebnis = ?, bemerkung = ?, ergebnis_utc = ? WHERE id = ?",
                     (ergebnis, bemerkung, db.jetzt(), prid))
         an = [p["bauer"]]

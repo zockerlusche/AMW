@@ -2304,6 +2304,17 @@ def cmd_pruefung(a, con):
             raise kern.AmwFehler("Zurücknehmen als Entwickler nur im eigenen Terminal des Menschen oder in der Workbench am PC –"
                                  " nicht aus einer Agenten-Sitzung")
         print(betrieb.pruefung_zuruecknehmen(con, pid, _von(a), a.id, a.grund))
+    elif a.aktion == "stil":                             # A1973: Stil-Prüfung (neu) anstoßen
+        if not a.id:
+            raise kern.AmwFehler("pruefung stil <nr>")
+        r = con.execute("SELECT pruefer FROM pruefung WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
+        if not r:
+            raise kern.AmwFehler(f"P{a.id} gibt es nicht")
+        if _von(a) not in (r["pruefer"], kern.ENTWICKLER) and not kern.ist_lead(con, pid, _von(a)):
+            raise kern.AmwFehler("Die Stil-Prüfung stoßen Prüfer, Lead oder Mensch an")
+        from . import stil
+        z = stil.anstossen(con, pid, a.id, True)
+        print(z.strip() or f"P{a.id}: keine Stil-Prüfung – kein Stil-Thema, keine Bilder an der Aufgabe oder abgeschaltet (themen_gegenlesen=aus)")
     elif a.aktion == "zeige":                            # A1780: ganze Prüfbitte ohne SQL
         if not a.id:
             raise kern.AmwFehler("pruefung zeige <nr>")
@@ -3923,8 +3934,9 @@ def parser():
     x.set_defaults(f=cmd_server)
 
     x = s.add_parser("pruefung", help="Prüfbitte je Stand (SHA), Ergebnis grün/rot; zuruecknehmen N --grund … (ein GRÜN widerrufen:"
+                                      " Prüfer, Lead, Mensch); stil N (Stil-Prüfung der Bilder nach dem Stil-Thema neu anstoßen:"
                                       " Prüfer, Lead, Mensch)")
-    x.add_argument("aktion", choices=["bitte", "gruen", "rot", "zuruecknehmen", "ist-gruen", "liste", "zeige"])
+    x.add_argument("aktion", choices=["bitte", "gruen", "rot", "zuruecknehmen", "ist-gruen", "liste", "zeige", "stil"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--pruefer")
     x.add_argument("--zweig")

@@ -525,6 +525,20 @@ jünger als 2 h war – die Kachel zeigte stundenlang eine erledigte Aufgabe ode
   den Lead), Aufgabe wartet auf ihn; Ereignis `k9_paket` mit der Zahl der amw-Befehle seit Beginn (gezählt in `befehle.jsonl`
   neben der Datenbank, nie Inhalte).
 
+## Stil-Prüfung als Automatik (A1973, TH156)
+
+**Wozu:** Marcel W2464: „Jedes Mal fallen wir in die Falle.“ Die Stil-Regeln wurden als Gebot vergessen.
+
+- **Auslöser:** eine Prüfbitte, deren Stand Sichtbares ändert (wie die Bild-Pflicht) und an deren Aufgabe Bilder hängen; neu
+  anstoßen mit `amw pruefung stil <P>` (Prüfer, Lead, Mensch). Aus mit `themen_gegenlesen=aus`.
+- **Was geschieht (`amw/stil.py`, `amw-stil.py`):** ein losgelöster Prozess meldet einen Lauf an und lässt einen frischen
+  `claude -p` (nur Lesen, `--restricted`, Modell aus `themen_gegenlesen`) das Stil-Thema des Projekts (`thema.stil = 1`,
+  geltende Fassung), die Punkte der Prüfbitte und die Bilder der Aufgabe lesen. Er urteilt je Regel 1–9 NUR über die Änderung
+  (erfüllt / verstößt / nicht prüfbar); was schon vorher so war, steht getrennt unter „alter Bestand“ und zählt nicht.
+- **Ergebnis:** Dokument (bericht) an der Aufgabe, Meldung an den Prüfer „P… Stil: 9/9 erfüllt“ bzw. „Stil: 2 Verstöße – R3,
+  R7“, Ereignis `stil_befund` mit Kosten. Grün auf eine Prüfung mit Verstoß nur mit `--bemerkung`. Geht der Lauf schief, bekommt
+  der Prüfer das als Meldung und prüft selbst – die Prüfbitte gilt trotzdem.
+
 ## Arbeitsliste je Agent (seit 1.12.0)
 
 **Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach

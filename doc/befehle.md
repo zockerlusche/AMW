@@ -51,7 +51,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`rechner`](#rechner) | Der Rechner auf einen Blick: Arbeitsspeicher, was außerhalb der Warteschlange Speicher belegt, freier Platz je Laufwerk, Aufräumvorschläge für alte Sicherungen (nur Anzeige) |
 | [`schirm`](#schirm) | Bildschirm-Schalter: zeige ¦ frei --grund … [--bis HH:MM] (Entwickler/Lead; schon frei: ändert nur --bis, ohne --bis = ohne Ende) ¦ zu [--grund …] (alle) |
 | [`server`](#server) | Projekt-Server überwachen: anmelden ¦ abmelden ¦ liste ¦ pruefen |
-| [`pruefung`](#pruefung) | Prüfbitte je Stand (SHA), Ergebnis grün/rot; zuruecknehmen N --grund … (ein GRÜN widerrufen: Prüfer, Lead, Mensch) |
+| [`pruefung`](#pruefung) | Prüfbitte je Stand (SHA), Ergebnis grün/rot; zuruecknehmen N --grund … (ein GRÜN widerrufen: Prüfer, Lead, Mensch); stil N (Stil-Prüfung der Bilder nach dem Stil-Thema neu anstoßen: Prüfer, Lead, Mensch) |
 | [`freigabe`](#freigabe) | Merge-OK (Lead/Entwickler oder der Prüfer der jüngsten grünen Prüfung): freigabe merge A<nr> [--zweig z] [--zurueck] – Abnahme-Kette: nach grüner Prüfung geht die Merge-Bitte von selbst an den Merge-Dienst |
 | [`hinweis`](#hinweis) | Anweisung an einen Agenten oder alle (z. B. „keine Rechen-Jobs“) |
 | [`rezept`](#rezept) | Lauf-Rezepte als Daten |
@@ -1283,10 +1283,11 @@ usage: amw pruefung [-h] [--pruefer PRUEFER] [--zweig ZWEIG] [--sha SHA]
                     [--stufe {niedrig,mittel,hoch}]
                     [--gruppe {neu,verbessert,behoben}] [--hinweis HINWEIS]
                     [--ohne-bild GRUND] [--von VON] [--projekt PROJEKT]
-                    {bitte,gruen,rot,zuruecknehmen,ist-gruen,liste,zeige} [id]
+                    {bitte,gruen,rot,zuruecknehmen,ist-gruen,liste,zeige,stil}
+                    [id]
 
 positional arguments:
-  {bitte,gruen,rot,zuruecknehmen,ist-gruen,liste,zeige}
+  {bitte,gruen,rot,zuruecknehmen,ist-gruen,liste,zeige,stil}
   id
 
 options:
