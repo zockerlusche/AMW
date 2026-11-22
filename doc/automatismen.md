@@ -380,6 +380,23 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   bekommt der Mensch einen Wochenbericht (Kosten und Pakete der Vorwoche je Projekt) – nur, wenn etwas gelaufen ist.
 - Die Lauf-Schlange (schwere Läufe) ordnet weiter nach `vorrang`; die Rangfolge dort kommt mit Mehrprojekt 6.
 
+## Fertig-Quelle und Prüfquellen: die AMW schließt selbst (A1938, K2, TH155/TH165)
+
+**Wozu:** Agenten liefern nur Fakten (B2907); abschließen, abhaken, Beleg und Zusammenfassung schreibt die AMW.
+
+- **Fertig-Quelle je Aufgabe:** `amw aufgabe neu|aendern N --fertig-wenn …` (Lead, Mensch oder Bearbeiter; das Neueste gilt).
+  - `commit` – wie bisher: die Auslieferung setzt die Aufgabe fertig.
+  - `thema TH<n>` – fertig, sobald das Thema freigegeben ist (auch durch Co und Lead).
+  - `frist <Tage> nach <Version>` – fertig, wenn so viele Tage nach dem Release vergangen sind ohne Fehler: kein Revert
+    eines ihrer Commits in main (Betreff „A<nr>…“), keine neue „behoben“-Aufgabe mit Verweis, keine rote Prüfung.
+  - `ja` – ein Urteil: nie automatisch (Abnahme über den Meilenstein).
+  Beleg und Zusammenfassung schreibt die AMW; offene Kriterien ohne Quelle stehen in der Zusammenfassung und gehen an den Lead.
+- **Prüfquelle je Kriterium:** `amw aufgabe kriterium N nr --quelle …` (leer entfernt sie). Seit Beginn der Aufgabe zählt:
+  `lauf <Befehl>` (ein Lauf der Lauf-Schlange zur Aufgabe mit genau diesem Befehl, rc 0 – der Dienst führt nie selbst etwas
+  aus), `pruefung` (grüne Prüfung), `thema TH<n>` (freigegeben), `tests <N>` (Lauf mit rc 0 und „Ran ≥ N tests“). Ohne
+  Quelle bleibt ein Kriterium ein Ja des Leads.
+- Der Dienst prüft das höchstens alle 15 Minuten; Ereignisse `fertig_quelle`, `kriterium_abgehakt`. Ohne Schemaänderung.
+
 ## Arbeitsliste je Agent (seit 1.12.0)
 
 **Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach

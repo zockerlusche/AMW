@@ -598,6 +598,14 @@ PAKET_OPTIONEN = {"art": "paket", "gewicht": "gewicht", "ressourcen": "ressource
                   "pakettyp": "pakettyp", "nie_gleichzeitig": "nie_gleichzeitig", "gleiche_ressource": "gleiche_ressource"}
 
 
+def _fertig_wenn(con, pid, a, aid):
+    """A1938 (K2): --fertig-wenn aus aufgabe neu/aendern."""
+    if getattr(a, "fertig_wenn", None):
+        from . import fertigquelle
+        q = fertigquelle.setzen(con, pid, _von(a), aid, a.fertig_wenn)
+        print(f"A{aid}: fertig wenn {fertigquelle.text(q)}")
+
+
 def _paket_setzen(con, pid, a, aid):
     """Paketfelder aus aufgabe neu/aendern (A1845) – nur, wenn eine Paket-Option angegeben ist; Warnungen ausgeben."""
     werte = {feld: getattr(a, opt, None) for feld, opt in PAKET_OPTIONEN.items()}
@@ -789,6 +797,7 @@ def cmd_aufgabe(a, con):
         else:
             print(f"A{aid} angelegt" + (" (Eingang – der Lead plant ein: amw liste ordnen <Agent> …)" if a.pool else ""))
         _paket_setzen(con, pid, a, aid)
+        _fertig_wenn(con, pid, a, aid)
         if not (a.groesse and a.art):
             print("Tipp: --groesse S|M|L|XL und --art … geben eine Empfehlung für Modell und Denkaufwand (amw aufgabe aendern"
                   f" {aid} --groesse M --art oberflaeche)")
@@ -803,6 +812,7 @@ def cmd_aufgabe(a, con):
             ff = kern.federfuehrung_setzen(con, pid, _von(a), "aufgabe", a.id, a.federfuehrend)
             print(f"A{a.id}: federführend {ff or '– (Meilenstein bzw. Lead)'}")
         _paket_setzen(con, pid, a, a.id)
+        _fertig_wenn(con, pid, a, a.id)
         if a.thema or a.ohne_thema:                               # A1915: Verweise auf Themen (Themen → Pakete)
             from . import themen
             if a.thema:
@@ -812,9 +822,16 @@ def cmd_aufgabe(a, con):
             print(f"A{a.id}: Themen " + (", ".join(f"TH{x}" for x in themen.verweise(con, pid, a.id)) or "–"))
         print(f"A{a.id} geändert")
     elif a.aktion == "kriterium":
-        liste = planung.kriterium(con, pid, _von(a), a.id, a.nr, not a.nein)
+        if getattr(a, "quelle", None) is not None:              # A1938 (K2): Prüfquelle statt Abhaken von Hand
+            from . import fertigquelle
+            liste = fertigquelle.pruefquelle_setzen(con, pid, _von(a), a.id, a.nr, a.quelle)
+        else:
+            liste = planung.kriterium(con, pid, _von(a), a.id, a.nr, not a.nein)
         for i, k in enumerate(liste, 1):
-            print(f"  {i}. [{'x' if k.get('erfuellt') else ' '}] {k['text']}")
+            q = k.get("quelle")
+            print(f"  {i}. [{'x' if k.get('erfuellt') else ' '}] {k['text']}"
+                  + (f"  · Quelle: {q['art']}{(' ' + str(q.get('befehl') or q.get('thema') or q.get('mindestens'))) if len(q) > 1 else ''}" if q else "")
+                  + (f"  · {k['beleg']}" if k.get("beleg") else ""))
     elif a.aktion == "plan":
         planung.plan_vorlegen(con, pid, _von(a), a.id, a.text or "")
         print(f"Plan für A{a.id} vorgelegt – umsetzen erst nach Freigabe")
@@ -846,6 +863,10 @@ def cmd_aufgabe(a, con):
         for k in r.keys():
             if r[k] not in (None, "") and k not in ("uid", "herkunft"):
                 print(f"{k}: {r[k]}")
+        from . import fertigquelle
+        q = fertigquelle.lesen(con, a.id)
+        if q:                                                     # A1938 (K2)
+            print(f"fertig_wenn: {fertigquelle.text(q)}")
         from . import themen
         th = themen.verweise(con, pid, a.id)
         if th:                                                    # A1915
@@ -3093,6 +3114,10 @@ def parser():
     x.add_argument("--ohne-bogen", action="store_true", help="neu: Lead – bewusst ohne Meilenstein; steht dann in der Planung"
                                                             " unter „Ohne Meilenstein“")
     x.add_argument("--kriterium", action="append", help="Planung: Abnahmekriterium, mehrfach (ersetzt die Liste)")
+    x.add_argument("--fertig-wenn", dest="fertig_wenn", help="neu/aendern (A1938): Fertig-Quelle – commit | thema TH<n> |"
+                                                             " frist <Tage> nach <Version> | ja; die AMW schließt die Aufgabe selbst")
+    x.add_argument("--quelle", help="kriterium N nr (A1938): Prüfquelle – lauf <Befehl> | pruefung | thema TH<n> | tests <N>;"
+                                    " leer entfernt sie; die AMW hakt selbst ab")
     x.add_argument("--schaetzung", type=float, help="Planung: Stunden")
     x.add_argument("--komplexitaet", type=int, help="Planung: 1–10; ab 7 braucht der Schritt einen freigegebenen Plan")
     x.add_argument("--groesse", type=str.upper, choices=["S", "M", "L", "XL"],

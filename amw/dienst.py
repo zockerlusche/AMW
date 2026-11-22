@@ -439,6 +439,12 @@ class Dienst:
                 log.info("Wochenlimit-Halt: %s", e)
         except Exception as e:
             log.warning("Wochenlimit-Halt: %s: %s", type(e).__name__, e)
+        try:                                                                 # A1938 (K2): Fertig-Quellen und Prüfquellen
+            from . import fertigquelle
+            for e in fertigquelle.runde(self.con):
+                log.info("Fertig-Quelle: %s", e)
+        except Exception as e:
+            log.warning("Fertig-Quelle: %s: %s", type(e).__name__, e)
         try:                                                                 # A1929: tägliche Sicherung – eigener Faden (P408)
             from . import sicherung
             sicherung.im_hintergrund(self.con.execute("PRAGMA database_list").fetchone()[2])

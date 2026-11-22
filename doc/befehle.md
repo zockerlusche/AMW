@@ -251,6 +251,7 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--wartet-auf WARTET_AUF] [--auf AUF] [--erledigt ERLEDIGT]
                    [--bemerkung BEMERKUNG] [--alle] [--bogen BOGEN]
                    [--ohne-bogen] [--kriterium KRITERIUM]
+                   [--fertig-wenn FERTIG_WENN] [--quelle QUELLE]
                    [--schaetzung SCHAETZUNG] [--komplexitaet KOMPLEXITAET]
                    [--groesse {S,M,L,XL}]
                    [--art {text,mechanisch,fehlersuche,oberflaeche,sicherheit,konzept}]
@@ -307,6 +308,13 @@ options:
   --kriterium KRITERIUM
                         Planung: Abnahmekriterium, mehrfach (ersetzt die
                         Liste)
+  --fertig-wenn FERTIG_WENN
+                        neu/aendern (A1938): Fertig-Quelle – commit | thema
+                        TH<n> | frist <Tage> nach <Version> | ja; die AMW
+                        schließt die Aufgabe selbst
+  --quelle QUELLE       kriterium N nr (A1938): Prüfquelle – lauf <Befehl> |
+                        pruefung | thema TH<n> | tests <N>; leer entfernt sie;
+                        die AMW hakt selbst ab
   --schaetzung SCHAETZUNG
                         Planung: Stunden
   --komplexitaet KOMPLEXITAET
