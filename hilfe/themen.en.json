@@ -7,7 +7,7 @@
  "schritte": [
   {
    "titel": "Create a topic",
-   "text": "`amw thema neu \"<name>\" --pfleger <agent>`.",
+   "text": "`amw thema neu \"<name>\" --pfleger <agent>`. You, the lead and the project's co-developer may create topics; you or the lead set the maintainer and the project style.",
    "bilder": []
   },
   {
