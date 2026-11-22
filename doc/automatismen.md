@@ -390,7 +390,9 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   - `frist <Tage> nach <Version>` – fertig, wenn so viele Tage nach dem Release vergangen sind ohne Fehler: kein Revert
     eines ihrer Commits in main (Betreff „A<nr>…“), keine neue „behoben“-Aufgabe mit Verweis, keine rote Prüfung.
   - `ja` – ein Urteil: nie automatisch (Abnahme über den Meilenstein).
-  Beleg und Zusammenfassung schreibt die AMW; offene Kriterien ohne Quelle stehen in der Zusammenfassung und gehen an den Lead.
+  Beleg und Zusammenfassung schreibt die AMW. Ist noch ein Kriterium ohne Quelle offen, schließt sie nicht, sondern fragt den
+  Lead einmal „bereit zur Abnahme – Ja des Leads fehlt für: …“; nach seinem Ja (`amw aufgabe kriterium N nr`) schließt sie.
+  Fehlt noch ein Fakt eines Kriteriums mit Quelle, wartet sie.
 - **Prüfquelle je Kriterium:** `amw aufgabe kriterium N nr --quelle …` (leer entfernt sie). Seit Beginn der Aufgabe zählt:
   `lauf <Befehl>` (ein Lauf der Lauf-Schlange zur Aufgabe mit genau diesem Befehl, rc 0 – der Dienst führt nie selbst etwas
   aus), `pruefung` (grüne Prüfung), `thema TH<n>` (freigegeben), `tests <N>` (Lauf mit rc 0 und „Ran ≥ N tests“). Ohne

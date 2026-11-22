@@ -19,7 +19,9 @@ Prüfquellen je Kriterium (`amw aufgabe kriterium N nr --quelle …`), geprüft 
 - pruefung: eine grüne Prüfung der Aufgabe.
 - thema TH<n>: das Thema ist freigegeben.
 - tests <N>: ein Lauf zur Aufgabe mit rc 0, dessen Ergebnis „Ran ≥ N tests“ zeigt.
-Ohne Quelle bleibt ein Kriterium ein Ja des Leads (amw aufgabe kriterium N nr).
+Ohne Quelle bleibt ein Kriterium ein Ja des Leads (amw aufgabe kriterium N nr). Ist die Fertig-Quelle eingetreten und nur
+noch so ein Kriterium offen, schließt die AMW nicht: sie fragt den Lead einmal je Stand („bereit zur Abnahme – Ja des Leads
+fehlt für: …“) und schließt in der Runde nach seinem Ja (P429).
 """
 import datetime
 import json
@@ -31,6 +33,7 @@ from . import db, kern
 
 ART = "fertig_quelle"
 ABGEHAKT = "kriterium_abgehakt"
+WARTET_JA = "fertig_wartet_ja"     # P429: Fertig-Quelle eingetreten, aber ein Kriterium ohne Quelle offen – einmal je Stand gemeldet
 AUTO = "AMW"
 _ZULETZT = {"t": 0.0}
 TAKT_S = 900                      # die Dienst-Runde prüft höchstens alle 15 Minuten
@@ -277,9 +280,25 @@ def runde(con, jetzt=None, immer=False):
         ergebnis = fertig_wenn(con, pid, a, q, jetzt) if q else None
         if ergebnis:
             beleg, zusammen = ergebnis
+            if any(k.get("quelle") and not k.get("erfuellt") for k in liste):
+                continue                                 # ein Fakt fehlt noch – die nächste Runde sieht wieder nach
             offen = [k["text"] for k in liste if not k.get("erfuellt")]
-            if offen:
-                zusammen += " Offene Kriterien (Ja des Leads): " + " | ".join(offen[:5])
+            if offen:                                    # P429 (TH155 Pkt 3): ein offenes Urteil wird nie übergangen
+                stand = json.dumps(offen, ensure_ascii=False)
+                if not con.execute("SELECT 1 FROM plan_ereignis WHERE aufgabe_id = ? AND art = ? AND text = ?",
+                                   (a["id"], WARTET_JA, stand)).fetchone():
+                    an = kern.lead(con, pid) or kern.ENTWICKLER
+                    nummern = [i for i, k in enumerate(liste, 1) if not k.get("erfuellt")]
+                    with db.schreiben(con):
+                        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=AUTO, art=WARTET_JA, aufgabe_id=a["id"],
+                                     text=stand)
+                        kern._posten(con, pid, AUTO, an, "frage", f"A{a['id']} bereit zur Abnahme – Ja des Leads fehlt für: "
+                                     + " | ".join(offen[:3])[:100],
+                                     f"{beleg}: die Fertig-Quelle ist eingetreten, offen sind nur noch Kriterien ohne Prüfquelle. Ja je"
+                                     " Kriterium: " + ", ".join(f"amw aufgabe kriterium {a['id']} {n}" for n in nummern)
+                                     + " – danach schließt die AMW die Aufgabe selbst.", aufgabe_id=a["id"])
+                    aus.append(f"A{a['id']}: wartet auf das Ja des Leads ({len(offen)} Kriterien)")
+                continue
             kern.aufgabe_status(con, pid, AUTO, a["id"], "fertig", beleg=beleg, zusammenfassung=zusammen, automatik=True)
             lead = kern.lead(con, pid)
             if lead or a["agent"]:

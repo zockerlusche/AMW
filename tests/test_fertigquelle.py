@@ -142,6 +142,33 @@ class Fertig(unittest.TestCase):
         self.assertEqual(self.a()["status"], "laeuft")                                             # Kriterien schließen nicht
         self.assertEqual(self.con.execute("SELECT count(*) FROM plan_ereignis WHERE art = ?", (fertigquelle.ABGEHAKT,)).fetchone()[0], 3)
 
+    def test_offenes_urteil_wird_nicht_uebergangen(self):
+        """P429 (TH155 Pkt 3): Fertig-Quelle eingetreten, ein Kriterium ohne Quelle offen → offen + eine Frage an den Lead; nach
+        seinem Ja → fertig. Ein offenes Kriterium mit Quelle wartet still."""
+        tid = themen.neu(self.con, self.pid, "TL", "Anmeldung", pfleger="CC1")
+        themen.pflegen(self.con, self.pid, "CC1", tid, "Text.")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, tid)
+        planung.schritt_setzen(self.con, self.pid, "TL", aid=self.aid, kriterien=["liest sich gut", "geprüft"])
+        fertigquelle.pruefquelle_setzen(self.con, self.pid, "TL", self.aid, 2, "pruefung")
+        fertigquelle.setzen(self.con, self.pid, "TL", self.aid, f"thema TH{tid}")
+        self.assertEqual(self.runde(), [])                                                         # Fakt „pruefung“ fehlt: still
+        self.assertEqual(self.a()["status"], "laeuft")
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "pruefung", projekt_id=self.pid, aufgabe_id=self.aid, zweig="z", sha="d" * 40, bauer="CC1",
+                         pruefer="TL", ergebnis="gruen", angefragt_utc="2099-01-01T00:00:00Z", ergebnis_utc="2099-01-01T00:00:00Z")
+        aus = self.runde()
+        self.assertEqual(aus[-1], f"A{self.aid}: wartet auf das Ja des Leads (1 Kriterien)")
+        self.assertEqual(self.a()["status"], "laeuft")
+        fragen = self.con.execute("SELECT n.kurz, n.text FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE n.art = 'frage'"
+                                  " AND e.agent = 'TL' AND n.kurz LIKE ?", (f"A{self.aid} bereit zur Abnahme%",)).fetchall()
+        self.assertEqual(len(fragen), 1)
+        self.assertIn("Ja des Leads fehlt für: liest sich gut", fragen[0]["kurz"])
+        self.assertIn(f"amw aufgabe kriterium {self.aid} 1", fragen[0]["text"])
+        self.assertEqual(self.runde(), [])                                                         # einmal je Stand
+        planung.kriterium(self.con, self.pid, "TL", self.aid, 1)                                   # das Ja des Leads
+        self.assertEqual(self.runde(), [f"A{self.aid}: fertig (TH{tid} Fassung 1)"])
+        self.assertEqual(self.a()["status"], "fertig")
+
     def test_takt(self):
         fertigquelle._ZULETZT["t"] = 0.0
         fertigquelle.runde(self.con)
