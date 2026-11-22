@@ -33,13 +33,36 @@ def muster(eigene=None):
     return aus + [(name, re.compile(m, re.I)) for name, m in MUSTER]
 
 
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?\n\s*\2\s*(?:\n|$)", re.S)        # bash: <<'EOF' … EOF
+HERESTRING = re.compile(r"@(['\"])\r?\n.*?\r?\n\1@", re.S)                               # PowerShell: @' … '@
+STARTER_VOR = re.compile(r"(?:\b(?:cmd(?:\.exe)?\s+/[ck]|(?:ba|z)?sh\s+-l?c|pwsh(?:\.exe)?(?:\s+-\w+)*\s+-(?:Command|c)|"
+                         r"powershell(?:\.exe)?(?:\s+-\w+)*\s+-(?:Command|c)|python\S*\s+-c)\s*)$", re.I)
+ZITAT = re.compile(r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"", re.S)
+
+
+def _ohne_text(befehl):
+    """A1975: was nur Text ist, fällt weg – Heredocs, Here-Strings, Inhalt in Anführungszeichen. Ausnahme: Anführungszeichen
+    direkt nach einem Shell-Aufruf (cmd /c "…", bash -c '…', powershell -Command "…") – dort steht ein Befehl, der läuft."""
+    t = HERESTRING.sub(" ", HEREDOC.sub(" ", str(befehl or "")))
+    aus, pos = [], 0
+    for m in ZITAT.finditer(t):
+        aus.append(t[pos:m.start()])
+        aus.append(m.group(0)[1:-1] if STARTER_VOR.search(t[:m.start()]) else "''")
+        pos = m.end()
+    aus.append(t[pos:])
+    return "".join(aus)
+
+
 def erkennen(befehl, eigene=None):
-    """Name der Art, wenn der Befehl schwer ist und nicht schon über die Warteschlange läuft – sonst None."""
-    befehl = " ".join(str(befehl or "").split())
+    """Name der Art, wenn der Befehl schwer ist und nicht schon über die Warteschlange läuft – sonst None. A1975: nur was
+    ausgeführt wird, zählt – derselbe Text als Nachricht, Commit-Text oder Datei-Inhalt nicht."""
+    roh = str(befehl or "")
+    befehl = " ".join(roh.split())
     if not befehl or SCHON_ANGEMELDET.search(befehl):
         return None
+    ausgefuehrt = " ".join(_ohne_text(roh).split())               # erst Text heraus (Zeilen zählen), dann Leerzeichen
     for name, m in muster(eigene):
-        if m.search(befehl):
+        if m.search(ausgefuehrt):
             return name
     return None
 

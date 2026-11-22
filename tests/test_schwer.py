@@ -29,6 +29,19 @@ class Erkennen(unittest.TestCase):
                        "git status", "dotnet --version", "npm install", "echo dotnet testen", "", None):
             self.assertIsNone(schwer.erkennen(befehl), befehl)
 
+    def test_nur_was_ausgefuehrt_wird_zaehlt(self):                                          # A1975 (#30718)
+        for befehl in ('python F:/amw/amw-cli.py posten --an TL --kurz "Gesamtlauf mit python -X utf8 -m amw.testlauf" --von CC1',
+                       '"Hinweis: python -m unittest discover -s tests" | Set-Content -Encoding utf8 f.txt',
+                       'git commit -q -m "A1: pytest-Lauf beschleunigt"',
+                       "cat > f.md <<'EOF'\nZum Testen: python -m unittest discover -s tests\nEOF",
+                       "$t = @'\nnpm test läuft lange\n'@; Set-Content f.txt $t"):
+            self.assertIsNone(schwer.erkennen(befehl), befehl)
+        for befehl, name in (('cmd /c "python -m unittest discover -s tests"', "Test-Suite"),
+                             ("bash -c 'cd x && pytest'", "Test-Suite"),
+                             ('pwsh -NoProfile -Command "npm test"', "Test-Suite"),
+                             ('cd /d "F:/x y" && python -X utf8 -m amw.testlauf', "Test-Suite")):
+            self.assertEqual(schwer.erkennen(befehl), name, befehl)
+
     def test_was_schon_ueber_die_warteschlange_laeuft(self):
         for befehl in ('amw lauf ausfuehren --beschreibung "Tests" -- python -m unittest discover -s tests',
                        "python F:/amw/amw-cli.py lauf ausfuehren --beschreibung T -- pytest", "amw lauf start --beschreibung Build --warten && dotnet build"):
