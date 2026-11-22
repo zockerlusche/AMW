@@ -102,8 +102,14 @@ class ImBetrieb(unittest.TestCase):
         with mock.patch.object(belegung, "prozesse", lambda: liste), mock.patch.object(betrieb, "speicher_frei_gb", lambda: (4.3, 32.0)):
             grund = betrieb.wartegrund(self.con, self.pid, l)
             self.assertIn("nur 4.3 GB frei", grund)
-            self.assertRegex(grund, r"außerhalb der Warteschlange belegt: llama-server \(16,4 GB, seit \d\d:\d\d\) \(beenden kann das nur der Mensch\)")
+            # A1983: zwischen 0:00 und 0:30 lag der Start am Vortag – dann steht das Datum dabei („seit 22.11. 23:58“)
+            self.assertRegex(grund, r"außerhalb der Warteschlange belegt: llama-server \(16,4 GB, seit (?:\d\d\.\d\d\. )?\d\d:\d\d\)"
+                                    r" \(beenden kann das nur der Mensch\)")
             self.assertNotIn("llama", betrieb.wartegrund(self.con, self.pid, l, speicher_frei=4.3))   # vorgegebener Wert: ohne Messung des Rechners
+        alt = [dict(liste[0], seit=datetime.datetime.now(UTC) - datetime.timedelta(hours=25))]   # A1983: Start an einem anderen Tag
+        with mock.patch.object(belegung, "prozesse", lambda: alt), mock.patch.object(betrieb, "speicher_frei_gb", lambda: (4.3, 32.0)):
+            belegung._gemerkt[:] = [0.0, None, []]
+            self.assertRegex(betrieb.wartegrund(self.con, self.pid, l), r"llama-server \(16,4 GB, seit \d\d\.\d\d\. \d\d:\d\d\)")
         with mock.patch.object(belegung, "prozesse", lambda: liste), mock.patch.object(betrieb, "speicher_frei_gb", lambda: (30.0, 32.0)):
             belegung._gemerkt[:] = [0.0, None, []]
             self.assertNotIn("llama", betrieb.wartegrund(self.con, self.pid, l))                 # genug frei: kein Hinweis
