@@ -26,7 +26,7 @@ class Grund(unittest.TestCase):
 class Felder(Grund):
     def test_lead_ist_ein_schalter_fachgebiet_ein_eigenes_feld(self):
         kern.agent_neu(self.con, self.pid, "Chef", rolle="lead", fachgebiet="Planung", arbeitsweise="chat")
-        kern.agent_neu(self.con, self.pid, "Maler", rolle="Grafik", grenzen="nur Bilder")          # frühere Schreibweise
+        kern.agent_neu(self.con, self.pid, "Maler", rolle="Grafik", zustaendig="nur Bilder")       # frühere Rolle = Fachgebiet
         self.assertEqual((self.zeile("Chef")["rolle"], self.zeile("Chef")["fachgebiet"], self.zeile("Chef")["arbeitsweise"]), ("lead", "Planung", "chat"))
         m = self.zeile("Maler")
         self.assertEqual((m["rolle"], m["fachgebiet"], m["zustaendig"], m["arbeitsweise"]), (None, "Grafik", "nur Bilder", "terminal"))

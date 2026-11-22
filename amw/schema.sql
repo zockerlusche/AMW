@@ -30,7 +30,7 @@ CREATE TABLE agent (
   projekt_id       INTEGER NOT NULL REFERENCES projekt(id),
   kennung          TEXT NOT NULL,                -- z. B. TL, CC1, CCamw
   rolle            TEXT,
-  grenzen          TEXT,                         -- z. B. „nur 3D“
+  grenzen          TEXT,                         -- unbenutzt seit Schema 22 (→ zustaendig); fällt mit der nächsten Schemaänderung weg (A1612)
   startbefehl      TEXT,
   soll             TEXT NOT NULL DEFAULT 'an' CHECK (soll IN ('an', 'aus', 'ruht')),
   empfaengt_rund   INTEGER NOT NULL DEFAULT 1,   -- bekommt Rundschreiben („alle“)

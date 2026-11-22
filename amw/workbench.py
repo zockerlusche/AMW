@@ -296,7 +296,7 @@ def daten_start(con, pid):
     gesund = herzschlag.gesundheit()
     alt = altbestand_bis(con, pid)
     agenten = zeilen(con.execute(
-        "SELECT g.kennung, g.rolle, g.fachgebiet, coalesce(g.arbeitsweise, 'terminal') AS arbeitsweise, g.soll, g.zustaendig AS grenzen,"
+        "SELECT g.kennung, g.rolle, g.fachgebiet, coalesce(g.arbeitsweise, 'terminal') AS arbeitsweise, g.soll, g.zustaendig,"
         " (g.arbeitsweise = 'chat') AS chat, (coalesce(g.arbeitsweise, 'terminal') = 'terminal' AND g.ordner IS NOT NULL AND g.ordner != '') AS startbar, s.zustand, s.letzter_puls_utc, s.gestartet_utc, s.taetigkeit,"
         " s.taetigkeit_utc, s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc,"
         " (SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
@@ -729,7 +729,7 @@ def daten_einstellungen(con, pid, speicher=None):
     from .betrieb import SPEICHER_GRENZE_GB
     from .dienst import TAKT_MIN
     agenten = zeilen(con.execute("SELECT kennung, rolle, fachgebiet, coalesce(arbeitsweise, 'terminal') AS arbeitsweise, zustaendig, fasst_nicht_an,"
-                                 " soll, zustaendig AS grenzen, empfaengt_rund, puls_grenze_s, ordner, zusatzordner,"
+                                 " soll, empfaengt_rund, puls_grenze_s, ordner, zusatzordner,"
                                  " denkstufe, modell, startsatz, rechte, fernsteuerung, neustart_auto, entfernt_utc FROM agent"
                                  " WHERE projekt_id = ? ORDER BY id", (pid,)))
     for a in agenten:
@@ -863,7 +863,7 @@ def agent_vorschlag(con, pid, kennung):
 def daten_agent(con, pid, kennung):
     """Klick auf die Kachel: was macht er, was kommt noch, was liegt bei ihm."""
     a = con.execute("SELECT g.kennung, g.rolle, g.fachgebiet, coalesce(g.arbeitsweise, 'terminal') AS arbeitsweise, g.zustaendig, g.fasst_nicht_an,"
-                    " g.soll, g.zustaendig AS grenzen, s.zustand, s.letzter_puls_utc, s.gestartet_utc,"
+                    " g.soll, s.zustand, s.letzter_puls_utc, s.gestartet_utc,"
                     " s.ereignis, s.ereignis_text, s.ereignis_utc, s.kontext_prozent, s.limit_5h, s.limit_5h_reset_utc, s.limit_7t, s.limit_7t_reset_utc, s.kosten_usd, s.modell, s.denkstufe, s.status_utc, s.taetigkeit, s.taetigkeit_utc, s.claude_sitzung FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
                     " WHERE g.projekt_id = ? AND g.kennung = ?", (pid, kennung)).fetchone()
     if not a:

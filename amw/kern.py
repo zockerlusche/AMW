@@ -201,7 +201,7 @@ def lead_und_fach(rolle, fachgebiet=None):
     return None, fachgebiet or rolle
 
 
-def agent_neu(con, pid, kennung, rolle=None, grenzen=None, startbefehl=None, empfaengt_rund=True, fachgebiet=None,
+def agent_neu(con, pid, kennung, rolle=None, zustaendig=None, startbefehl=None, empfaengt_rund=True, fachgebiet=None,
               arbeitsweise="terminal"):
     if kennung_heute(con, kennung, pid) != kennung:
         raise AmwFehler(f"„{kennung}“ ist der frühere Name von {kennung_heute(con, kennung, pid)}")
@@ -210,7 +210,7 @@ def agent_neu(con, pid, kennung, rolle=None, grenzen=None, startbefehl=None, emp
     rolle, fachgebiet = lead_und_fach(rolle, fachgebiet)
     with db.schreiben(con):
         return db.einfuegen(con, "agent", projekt_id=pid, kennung=kennung, rolle=rolle, fachgebiet=fachgebiet,
-                            zustaendig=(grenzen or "").strip() or None, arbeitsweise=arbeitsweise,
+                            zustaendig=(zustaendig or "").strip() or None, arbeitsweise=arbeitsweise,
                             startbefehl=startbefehl, empfaengt_rund=int(empfaengt_rund), angelegt_utc=db.jetzt(),
                             fernsteuerung=0)            # Remote Control nur auf Wunsch (Profil)
 
