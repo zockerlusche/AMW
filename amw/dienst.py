@@ -439,6 +439,12 @@ class Dienst:
                 log.info("Wochenlimit-Halt: %s", e)
         except Exception as e:
             log.warning("Wochenlimit-Halt: %s: %s", type(e).__name__, e)
+        try:                                                                 # A1929: tägliche Sicherung an sicherung_ziel
+            from . import sicherung
+            for e in sicherung.runde(self.con):
+                log.info("Sicherung: %s", e)
+        except Exception as e:
+            log.warning("Sicherung: %s: %s", type(e).__name__, e)
         try:                                                                 # A1927: Ausfall zurück, freie Agenten bekommen Arbeit
             from . import verteilen
             for e in verteilen.runde(self.con):

@@ -88,6 +88,13 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
   die Veröffentlichung erneut an.
 - **Einstellung `veroeffentlichen`:** meilenstein (Vorgabe) | sofort (wie früher: Push und GitHub-Release bei jeder
   Auslieferung). Nur Lead oder Mensch, nicht aus einer Agenten-Sitzung.
+- **Sicherung (Ebene 2, A1929):** Einmal am Tag schiebt die AMW ALLE Zweige und Tags des Projekt-Repos an
+  `sicherung_ziel` (URL, `git@host:pfad` oder Name eines Remotes; setzen nur der Mensch im eigenen Terminal; ohne Ziel nichts) –
+  ohne neue Version, ohne Homepage, nur wenn sich seit dem letzten vollständigen Push etwas geändert hat. Nie mit Gewalt: kein
+  `--force`, kein `--prune`, kein `--mirror`; ein Zweig, der am Ziel nicht vorspulen kann (lokal neu aufgesetzt), bleibt dort
+  wie er war und steht in der Meldung an den Lead, die übrigen Refs gehen mit. Keine Zugangsdaten in der AMW: eine URL mit
+  Benutzer oder Token wird abgelehnt, git nimmt die Anmeldung des Menschen. Ereignis `sicherung_push`; von Hand:
+  `amw sicherung jetzt` (Lead oder Mensch), Stand: `amw sicherung`.
 
 ## Bündeln (seit 1.150.0)
 
@@ -509,6 +516,7 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 | `amw pc einstellen` | `projekt_rang` | Rangfolge der Projekte für den Disponenten (nur der Mensch im eigenen Terminal) |
 | `amw pc einstellen` | `plaetze_pc` | höchstens so viele p-Arbeiter gleichzeitig über alle Projekte (0 = keine Grenze) |
 | `amw pc einstellen` | `limit_halt` | Halt beim Wochenlimit für alle Projekte (Vorgabe 95, 0 = aus; ein Projekt nur strenger) |
+| `amw projekt einstellen` | `sicherung_ziel` | wohin die tägliche Sicherung aller Zweige und Tags geht (nur der Mensch, ohne Zugangsdaten) |
 | `amw projekt einstellen` | `release_sicherung` | `aus` (Vorgabe) oder `an`: Sicherung der Projektdaten vor `release ausliefern` (Projekte, die nicht die AMW sind) |
 | `amw projekt einstellen` | `release_modus` | `datei` (Version in `version_datei`) oder `tag` (Version aus dem Tag) – für Bündel |
 | `amw projekt einstellen` | `changelog_format` | `amw` oder `keepachangelog` ([Unreleased] → [X.Y.Z]) – für Bündel |

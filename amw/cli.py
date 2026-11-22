@@ -138,6 +138,8 @@ def cmd_projekt(a, con):
         k, _, v = a.name.partition("=")
         if k.strip() in GESPERRTE_EINSTELLUNGEN:     # A1876/A1892: Befehle oder Rechte – --von Entwickler nur im eigenen Terminal
             _rolle_nur_mensch_oder_lead(con, _projekt(con, a), a, f"{k.strip()} setzen")
+        if k.strip() == "sicherung_ziel" and (_von(a) != kern.ENTWICKLER or _aus_agenten_sitzung()):   # A1929
+            raise kern.AmwFehler("sicherung_ziel setzt nur der Mensch im eigenen Terminal (--von Entwickler)")
         e = kern.projekt_einstellen(con, _projekt(con, a), _von(a), **{k.strip(): v.strip()})
         print(f"{k.strip()} = {e.get(k.strip())}")
     elif a.aktion == "schalter":                     # A1926 (D1304 §5): Projekt-Schalter mit Probe an einer Kopie
@@ -195,6 +197,7 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
                         "sperrmuster",                    # A1919: was p-Pakete im Projekt nie ändern dürfen
                         "regression_befehl", "abnahme_frist_min",   # A1920: was Prüfung C je Projekt ausführt
                         "arbeiter_umgebung",              # A1922: Variablen und Pfade der Arbeiter
+                        "sicherung_ziel",                 # A1929: wohin die tägliche Sicherung schiebt (nur der Mensch)
                         "release_modus", "changelog_format",   # A1923: wie Bündel ihre Version und ihren CHANGELOG schreiben
                         "release_sicherung")              # A1933: Sicherung vor der Auslieferung eines Projekts
 # eine Stelle für alle Einstellungen mit dieser Sperre (CCamwTL P299): Rechte (A1892) und ausführbare Bündel-Befehle (A1876, P298)
@@ -1330,6 +1333,23 @@ def cmd_claude(a, con):
 
 PC_NUR_MENSCH = ("projekt_rang",)                         # A1925 (E1): nur der Mensch im eigenen Terminal
 PC_LEAD_ODER_MENSCH = ("plaetze_pc", "limit_halt")        # A1925 (E2, E4): Lead oder Mensch, gesperrt wie RECHTE_EINSTELLUNGEN
+
+
+def cmd_sicherung(a, con):
+    """A1929: tägliche Sicherung aller Zweige und Tags – zeigen | jetzt (Lead oder Mensch, ein Push von Hand)."""
+    from . import sicherung
+    pid = _projekt(con, a)
+    if a.aktion == "jetzt":
+        _rolle_nur_mensch_oder_lead(con, pid, a, "Sicherung von Hand")
+        e = sicherung.pushen(con, pid, _von(a))
+        print(f"Sicherung nach {e['ziel']}: {e['refs']} Refs, rc {e['rc']}" + (f" – abgewiesen: {', '.join(e['abgewiesen'])}" if e["abgewiesen"] else ""))
+        return
+    z = sicherung.ziel(con, pid)
+    l = sicherung.letzte(con, pid)
+    print(f"Ziel: {sicherung.anzeige(z) if z else 'keins (amw projekt einstellen sicherung_ziel=… – nur der Mensch)'}")
+    if l:
+        print(f"Zuletzt: {l['zeit_utc'][:16].replace('T', ' ')} · {l.get('refs')} Refs · rc {l.get('rc')}"
+              + (f" · abgewiesen: {', '.join(l['abgewiesen'])}" if l.get("abgewiesen") else ""))
 
 
 def cmd_empfehlung(a, con):
@@ -3236,6 +3256,11 @@ def parser():
     x.add_argument("--aufgabe", type=int, help="Aufgabe des Pakets (Name des Archivs, damit aufraeumen es nach Paketende verschiebt)")
     x.add_argument("--zweig", help="vorbereiten: Name des Zweigs ab main (Vorgabe platzN)")
     x.set_defaults(f=cmd_platz)
+
+    x = s.add_parser("sicherung", help="Tägliche Sicherung aller Zweige und Tags an sicherung_ziel (A1929): zeigen | jetzt (Lead oder"
+                                       " Mensch) – ohne --force, nie löschen, keine Zugangsdaten")
+    x.add_argument("aktion", choices=["zeigen", "jetzt"], nargs="?", default="zeigen")
+    x.set_defaults(f=cmd_sicherung)
 
     x = s.add_parser("empfehlung", help="Eignungstabelle (A1930, TH159): tabelle – je Zelle und Modell/Effort Anzahl, Anteil ohne"
                                         " Nacharbeit, Median Kosten und Dauer; was die Empfehlung nimmt (nur lesen)")

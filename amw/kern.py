@@ -406,6 +406,19 @@ def projekt_einstellen(con, pid, von, **werte):
                 continue
             if k == "schalter":                          # A1926: nur über amw projekt schalter (Probe vor dem Einschalten)
                 raise AmwFehler("schalter: amw projekt schalter <Projekt> probe | an | aus")
+            if k == "sicherung_ziel":                    # A1929: Sicherungsziel – nur der Mensch, nie mit Zugangsdaten
+                from . import sicherung
+                if von != ENTWICKLER:
+                    raise AmwFehler("sicherung_ziel setzt nur der Mensch (--von Entwickler im eigenen Terminal)")
+                try:
+                    v = sicherung.ziel_pruefen(v)
+                except ValueError as f:
+                    raise AmwFehler(f"sicherung_ziel: {f}") from None
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k == "arbeiter_umgebung":                 # A1922: Werkzeug-Umgebung je Projekt (Variablen, PATH-Einträge)
                 from . import arbeiter
                 try:

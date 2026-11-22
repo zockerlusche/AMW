@@ -23,6 +23,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`waechter`](#waechter) | Wächter für p-Pakete: pruefen A ¦ protokoll [A] ¦ reihenfolge ¦ zustand ¦ wartung an¦aus ¦ weiter |
 | [`claude`](#claude) | Claude-Code-Versionen der Arbeiter: status (installiert, geprüft, Proben) ¦ freigeben X.Y.Z --grund (Lead oder Mensch, nicht aus einer Agenten-Sitzung) – eine neue Version prüft die AMW selbst (A1906) |
 | [`platz`](#platz) | Arbeitsplätze für kopflose Arbeiter (claude -p): liste ¦ vorbereiten N ¦ zuruecksetzen N ¦ aufraeumen ¦ notbremse N (nur der Mensch: Arbeiter samt Kindern beenden) – nichts wird gelöscht: Reste ins Archiv, fertige Pakete nach _loeschen |
+| [`sicherung`](#sicherung) | Tägliche Sicherung aller Zweige und Tags an sicherung_ziel (A1929): zeigen ¦ jetzt (Lead oder Mensch) – ohne --force, nie löschen, keine Zugangsdaten |
 | [`empfehlung`](#empfehlung) | Eignungstabelle (A1930, TH159): tabelle – je Zelle und Modell/Effort Anzahl, Anteil ohne Nacharbeit, Median Kosten und Dauer; was die Empfehlung nimmt (nur lesen) |
 | [`anbieter`](#anbieter) | Anbieter je Projekt (A1931, TH159): liste ¦ freigeben NAME --url https://… --schluessel-datei <Pfad> --modelle a,b [--lokal] ¦ entfernen NAME – freigeben/entfernen nur der Mensch im eigenen Terminal; nur der Pfad der Schlüsseldatei wird gespeichert, nie der Schlüssel |
 | [`pc`](#pc) | Disponent über Projekte (A1925): zeigen (Rangfolge, p-Arbeiter, Kosten je Projekt diese Woche) ¦ einstellen projekt_rang=A,B,C (nur der Mensch) ¦ plaetze_pc=N ¦ limit_halt=P (Lead oder Mensch) |
@@ -646,6 +647,19 @@ options:
   --aufgabe AUFGABE     Aufgabe des Pakets (Name des Archivs, damit aufraeumen
                         es nach Paketende verschiebt)
   --zweig ZWEIG         vorbereiten: Name des Zweigs ab main (Vorgabe platzN)
+  --von VON
+  --projekt PROJEKT
+```
+
+## sicherung
+```
+usage: amw sicherung [-h] [--von VON] [--projekt PROJEKT] [{zeigen,jetzt}]
+
+positional arguments:
+  {zeigen,jetzt}
+
+options:
+  -h, --help         show this help message and exit
   --von VON
   --projekt PROJEKT
 ```
