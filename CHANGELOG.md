@@ -4,6 +4,25 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.164.0 – 22.11.2026 · Grob- und Feinplanung, Planer aus Themen, alle fünf Tore
+- **Neu:** Planung › Meilensteine und Pakete: jeder Meilenstein mit seinen Themen und womit er endet, je Meilenstein die Pakete
+  mit Agent, Reihenfolge, Prüfung und Kosten (Summe oben). Freigeben je Meilenstein und je Plan – wer freigegeben hat, steht
+  dabei; ändert sich danach etwas, muss neu freigegeben werden. „Jetzt starten“ erscheint, sobald alles freigegeben ist.
+- **Neu:** Wird ein Thema freigegeben, entwirft ein Planer (ein eigener, nur lesender Agent mit fester Frist) Meilensteine und
+  Pakete dafür – mit Auftrag und Abnahme-Befehl je Paket zum Ansehen; angelegt wird erst mit „Ja – anlegen“.
+- **Neu:** Oben in Planung und Themen steht eine Leiste mit allen fünf Toren (Konzept, Grobplanung, Feinplanung, Umsetzung,
+  Abschluss). Ist ein Meilenstein fertig, schreibt die AMW einen Abschlussbericht gegen die Erfolgskriterien – mit Resten und
+  Lehren – und das Tor schließt mit dem Ja dazu. Kostet ein Paket deutlich mehr als geschätzt, bekommt der Lead eine Meldung.
+- **Neu:** Ändert sich ein freigegebenes Thema, zeigt der Meilenstein das mit „Neu planen“ und „Nicht begonnene anhalten“.
+  Änderst du selbst einen Meilenstein oder ein Paket, prüft ein Agent erst die Folgen: Berührt die Änderung weder Ziel noch
+  Erfolgskriterien noch Kosten, gilt sie von selbst, sonst siehst du alt → neu mit den Folgen und entscheidest.
+- **Verbessert:** Agenten starten mit einem kürzeren Einstieg – Regeln nur als Titel (ganz mit `amw regeln KR3`), ausführliche
+  Anleitungen als Skills, die nur bei Bedarf geladen werden (`amw messung --hebel7` zeigt die Größe).
+- **Verbessert:** Bevor ein Arbeiter-Paket zusammengeführt wird, prüft die AMW mit pyright, ob es neue Typfehler bringt
+  (`amw projekt einstellen sprachpruefung=auto|pyright|aus`).
+- **Behoben:** Nach „Speichern & beenden“ zeigt die Kachel des Agenten nicht mehr „läuft“, und „Starten / fortsetzen“ ist
+  wieder wählbar.
+
 ## 1.163.0 – 22.11.2026 · Lücken Thema ↔ Paket, ruhigere Läufe, kürzerer Einstieg
 - **Neu:** Die Planung zeigt selbst, welches freigegebene Thema noch kein Paket hat und welches Paket kein Thema – der Lead
   bekommt jede neue Lücke einmal gemeldet. Neue Aufgaben nennen ihr Thema (`--thema TH3`) oder bewusst keins mit Grund
