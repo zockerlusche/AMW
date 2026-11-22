@@ -588,6 +588,17 @@ def projekt_einstellen(con, pid, von, **werte):
                 else:
                     e.pop(k, None)
                 continue
+            if k == "lauf_fenster":                      # A1924: schwere Läufe des Projekts nur in diesem Zeitfenster (Ortszeit;
+                from . import einstellungen              # Lead oder Mensch – prüft projekt_einstellen schon allgemein)
+                try:
+                    v = einstellungen._fenster(str(v or "").strip().removeprefix("schwer:").removeprefix("schwer="))
+                except ValueError as f:
+                    raise AmwFehler(f"lauf_fenster: {f} – gilt für schwere Läufe des Projekts, z. B. 18:00-07:00") from None
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k in ("paket_pruefer", "haenge_stille_min", "haenge_runden", "leerlauf_lead", "leerlauf_lead_min",
                      "co_entwickler"):                   # A1849, A1884, A1887
                 if not (von == ENTWICKLER or ist_lead(con, pid, von)):

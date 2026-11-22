@@ -572,6 +572,17 @@ def vorrang_liste(con):
     return sorted(({"projekt": n, "stufe": v[n]} for n in namen if n in v), key=lambda x: (-VORRANG[x["stufe"]], x["projekt"]))
 
 
+def projekt_rang_stellen(con):
+    """A1924 (#29885): {Projekt-id: Stelle} aus der PC-Einstellung projekt_rang (nur der Mensch; Namen ohne Groß/klein) –
+    zweites Kriterium der Schlange nach dem Vorrang. Leer: {} (dann wie bisher nur Ankunft)."""
+    from . import einstellungen
+    namen = [n.lower() for n in einstellungen.wert("projekt_rang") or []]
+    if not namen:
+        return {}
+    return {r["id"]: namen.index(r["name"].lower()) for r in con.execute("SELECT id, name FROM projekt")
+            if r["name"].lower() in namen}
+
+
 MELDUNG_MIN = 20     # wartet ein Lauf mit Vorrang „hoch“ länger, bekommt der Mensch eine Meldung mit Grund (A1623 V2)
 
 
@@ -645,12 +656,53 @@ def t_vorrang(stufe):
     return {"hoch": "Vorrang", "niedrig": "niedriger Vorrang"}.get(stufe, "")
 
 
+# --- Zeitfenster je Projekt (A1924, TH160 F2, D1258 §12 Pkt 7 Rechnerzeiten) -------------------------------------------
+# Projekt-Einstellung lauf_fenster „18:00-07:00“ (Ortszeit, darf über Mitternacht gehen): schwere Läufe des Projekts starten nur
+# darin; außerhalb wartet ein schwerer Lauf sichtbar („wartet auf das Zeitfenster ab 18:00“) und hält niemanden auf – wie ein
+# KI-Auftrag mit --nachts. Leichte Läufe und KI-Aufträge (eigenes KI-Fenster) sind nicht betroffen. Grafikkarte und
+# Bildschirm bleiben PC-weit ein Lauf zur Zeit (_plaetze).
+
+def uhr():
+    """Jetzt in Ortszeit – Tests setzen eine feste Uhr."""
+    import datetime
+    return datetime.datetime.now().astimezone()
+
+
+def lauf_fenster(con, pid):
+    """(Anfang, Ende) in Minuten nach Mitternacht aus der Projekt-Einstellung lauf_fenster, None = jederzeit."""
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    try:
+        v = json.loads((r[0] if r else None) or "{}").get("lauf_fenster") or ""
+    except ValueError:
+        v = ""
+    if not v:
+        return None
+    a, b = (int(x[:2]) * 60 + int(x[3:]) for x in v.split("-"))
+    return a, b
+
+
+def fenster_sperre(con, pid, schwer, ki_auftrag=False, jetzt=None):
+    """Warum ein schwerer Lauf des Projekts jetzt nicht starten darf (Text) – oder None."""
+    if not schwer or ki_auftrag:
+        return None
+    f = lauf_fenster(con, pid)
+    if not f:
+        return None
+    from . import ki
+    if ki.im_fenster(jetzt or uhr(), f):
+        return None
+    return (f"wartet auf das Zeitfenster ab {f[0] // 60:02d}:{f[0] % 60:02d} (schwere Läufe von {projekt_name(con, pid)} nur"
+            f" {ki.fenster_text(f)}; Einstellung lauf_fenster) – bis dahin überholen ihn alle anderen")
+
+
 def _lebt(con, pid, l):
     """Darf der Lauf jetzt überhaupt starten: KI-Auftrag (rechnet der Dienst) oder Agent mit lebender Sitzung, ohne Halt."""
     if l["nachts"]:                              # KI-Auftrag mit --nachts: außerhalb des KI-Fensters wie nicht da
         from . import ki
         if ki.nacht_sperre(con):
             return False
+    if fenster_sperre(con, pid, l["schwer"], l["ki_auftrag"]):   # A1924: außerhalb des Zeitfensters wie nicht da
+        return False
     lebt = l["ki_auftrag"] or (l["befehl"] and not l["schirm"]) or con.execute(   # gespeicherter Befehl: startet notfalls der Dienst (A1640)
         "SELECT 1 FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ?"
         " AND a.kennung = ? AND s.zustand = 'aktiv'", (pid, l["agent"])).fetchone()
@@ -717,8 +769,11 @@ def wartende(con, pid=None):
     v = vorrang()
     stufe = {z["id"]: lauf_stufe(con, z, v) for z in zeilen}      # mit Aufrücken nach Wartezeit (A1623 V2)
     basis = {p: VORRANG[vorrang_stufe(con, p, v)] for p in {z["projekt_id"] for z in zeilen}}
-    # bei gleicher Stufe zuerst die Stufe des Projekts (echtes „hoch“ vor aufgerücktem, TL #23284), dann Ankunft
-    rest = sorted((z for z in zeilen if z["rang"] < MENSCH_RANG), key=lambda z: (-stufe[z["id"]], -basis[z["projekt_id"]], z["id"]))
+    rang = projekt_rang_stellen(con)
+    # bei gleicher Stufe zuerst die Stufe des Projekts (echtes „hoch“ vor aufgerücktem, TL #23284), dann die Rangfolge der
+    # Projekte (A1924, PC-Einstellung projekt_rang des Menschen; nicht genannte danach), dann Ankunft
+    rest = sorted((z for z in zeilen if z["rang"] < MENSCH_RANG),
+                  key=lambda z: (-stufe[z["id"]], -basis[z["projekt_id"]], rang.get(z["projekt_id"], len(rang)), z["id"]))
     je_projekt = {}
     for z in rest:
         je_projekt.setdefault(z["projekt_id"], []).append(z)
@@ -768,11 +823,14 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     if speicher_frei is None:
         speicher_frei = speicher_frei_gb()[0]
     plaetze = _plaetze(schwer, schirm, gpu, None if dazu else agent, pid, ist_gesamt(befehl))
+    sperre = sperre or fenster_sperre(con, pid, schwer, bool(dazu))   # A1924: Zeitfenster des Projekts
     with db.schreiben(con):
         w = wartende(con, pid)
         eigene = VORRANG[vorrang_stufe(con, pid)]          # nur wer nach der Reihenfolge vor ihm stünde, hält ihn auf
+        rang = projekt_rang_stellen(con)
         w_vor = [x for x in w if x["rang"] >= MENSCH_RANG             # ein neuer Lauf hat noch nicht gewartet: Stufe = Projekt-Stufe;
-                 or (lauf_stufe(con, x), VORRANG[vorrang_stufe(con, x["projekt_id"])]) >= (eigene, eigene)]   # Gleichstand wie wartende()
+                 or (lauf_stufe(con, x), VORRANG[vorrang_stufe(con, x["projekt_id"])], -rang.get(x["projekt_id"], len(rang)))
+                 >= (eigene, eigene, -rang.get(pid, len(rang)))]   # Gleichstand wie wartende() (A1924: dann projekt_rang)
         schirm_zu = schirm_mod.sperrgrund(con) if schirm or any(x["schirm"] for x in w) else None
         grund = sperre or (schirm_zu if schirm else None) or _besetzt(con, pid, plaetze)[0]
         gesperrt = _gesperrt(con, pid, w_vor, schirm_zu, speicher_frei=speicher_frei) if not sperre else {}
@@ -950,6 +1008,9 @@ def wartegrund(con, pid, l, speicher_frei=None):
         s = ki.nacht_sperre(con)
         if s:
             gruende.append(s + " – bis dahin überholen ihn alle anderen")
+    zf = fenster_sperre(con, pid, l["schwer"], bool(ki_auftrag))    # A1924
+    if zf:
+        gruende.append(zf)
     if kern.halt_gilt(con, pid, l["agent"]):
         gruende.append("HALT gilt")
     b = _besetzt(con, pid, plaetze)[0]
