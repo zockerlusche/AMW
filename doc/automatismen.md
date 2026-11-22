@@ -446,6 +446,29 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
 - **Verweise:** Ziel und Abnahme dürfen `TH<n>` und `D<n>` nennen; Seite und `amw bogen zeigen` zeigen dazu Titel und geltende
   Fassung („TH12 Marktlage · freigegeben (Fassung 3)“, „D1258 Konzept · Fassung 15“).
 
+## Reihenfolge, Timeline und „Jetzt starten“ (A1941, K5, TH164)
+
+**Wozu:** Die AMW rechnet die Arbeitsreihenfolge selbst; der Lead greift nur mit Grund ein.
+
+- **Dauer je Paket:** gemessen (Median aus der Eignungstabelle für Art-Gruppe × Größe, ab 3 Messungen) → geschätzt
+  (`schaetzung_h`) → Vorgabe je Größe (S 1 h, M 3 h, L 8 h, XL 20 h; ohne Größe 3 h).
+- **Reihenfolge:** aktiver Meilenstein vor geplantem vor „ohne Meilenstein“ (dann nach Nummer) · was läuft vor startklar vor
+  wartend · längerer Rest-Pfad zuerst (kritischer Pfad über „nach“) · Rang nur noch bei Gleichstand · Nummer.
+  `amw bogen reihenfolge [N]` zeigt sie mit Grund, Dauer und Prognose (P50/P85).
+- **Wer ihr folgt:** die Liste je Agent (`amw liste`, das laufende Stück bleibt vorn), das Verteilen an freie Agenten und die
+  Prognose (Warteschlangen je Bearbeiter).
+- **Handordnung nur mit Grund:** `amw liste ordnen <Agent> A… --grund …` bzw. `amw liste schieben A… --grund …` (schieben ohne
+  Grund nur als Verfeinerung einer geltenden Handordnung). „Dazwischen“ des Menschen und „später“ in der Workbench sind
+  Handordnungen mit ihrem Text. Sie gilt, bis sich die offene Liste ändert; dann ordnet wieder die AMW und meldet das dem
+  Lead einmal. Ereignisse `liste_hand`, `liste_hand_ende`.
+- **Jetzt starten:** `amw bogen starten N` (Lead oder Mensch): prüft je Paket die Pflichtfelder (Ziel = Auftrag, Thema,
+  Fertig-Quelle; bei Art p Abnahme-Befehl und Bereiche), setzt den Meilenstein aktiv, p-Pakete ohne Lücke auf startklar,
+  merkt den Plan-Stand (P50 je Paket und Meilenstein, Ereignis `plan_stand`) und lässt einmal verteilen. Pakete mit Lücke
+  bleiben Entwurf; die Meldung an den Lead nennt das fehlende Feld.
+- **Abweichung:** `amw bogen zeigen N` nennt „Abweichung seit dem Start: ±n Tage“ (P50 jetzt gegen den Plan-Stand); die
+  Planungsdaten der Workbench tragen `abweichung` je Meilenstein und `platz` je Paket (für die Ansichten aus K6).
+- Ohne Schemaänderung.
+
 ## Arbeitsliste je Agent (seit 1.12.0)
 
 **Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach

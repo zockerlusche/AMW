@@ -426,7 +426,7 @@ class Arbeitsliste(Grund):
         self.assertIn(idee, [x["id"] for x in self.al.pool(self.con, self.pid)])
         with self.assertRaises(kern.AmwFehler):
             self.al.ordnen(self.con, self.pid, "CC1", "CC1", [self.c])                  # nur Lead
-        rc, aus = self.cli("--von", "TL", "liste", "ordnen", "CC1", f"A{self.c}", f"A{idee}")
+        rc, aus = self.cli("--von", "TL", "liste", "ordnen", "CC1", f"A{self.c}", f"A{idee}", "--grund", "Kunde wartet")
         self.assertEqual(rc, 0, aus)
         self.assertEqual(self.ids(), [self.c, idee, self.a, self.b])                   # Rest dahinter, Idee zugeteilt
         self.assertNotIn(idee, [x["id"] for x in self.al.pool(self.con, self.pid)])
@@ -459,7 +459,7 @@ class Arbeitsliste(Grund):
 
     def test_laufendes_stueck_bleibt_vorn(self):
         kern.aufgabe_status(self.con, self.pid, "CC1", self.b, "start")                 # Pos 2 läuft
-        self.al.ordnen(self.con, self.pid, "TL", "CC1", [self.c, self.a])               # ordnen: das laufende Stück bleibt vorn
+        self.al.ordnen(self.con, self.pid, "TL", "CC1", [self.c, self.a], "Test")       # ordnen: das laufende Stück bleibt vorn
         self.assertEqual(self.ids(), [self.b, self.c, self.a])
         self.al.schieben(self.con, self.pid, "TL", self.a, oben=True)                    # ganz nach oben = direkt dahinter
         self.assertEqual(self.ids(), [self.b, self.a, self.c])
@@ -481,7 +481,7 @@ class Arbeitsliste(Grund):
         e1 = kern.aufgabe_neu(self.con, self.pid, "TL", "Variante wählen", agent="Entwickler")
         e2 = kern.aufgabe_neu(self.con, self.pid, "TL", "Level 1 testen", agent="Chris")             # sein Name geht auch
         self.assertEqual(self.ids(kern.ENTWICKLER), [e1, e2])
-        self.al.ordnen(self.con, self.pid, "TL", "Entwickler", [e2])
+        self.al.ordnen(self.con, self.pid, "TL", "Entwickler", [e2], "erst testen")
         self.assertEqual(self.ids(kern.ENTWICKLER), [e2, e1])
         from amw import workbench
         d = workbench.daten_listen(self.con, self.pid)
@@ -497,7 +497,7 @@ class Arbeitsliste(Grund):
         self.assertIn(neu, [x["id"] for x in self.al.pool(self.con, self.pid)])        # … sondern im Eingang
         from amw import workbench
         self.assertEqual(workbench.daten_start(self.con, self.pid)["eingang"], 1)
-        self.al.ordnen(self.con, self.pid, "TL", "CC1", [neu])                           # einplanen: hinter das laufende Stück
+        self.al.ordnen(self.con, self.pid, "TL", "CC1", [neu], "Wunsch")                 # einplanen: hinter das laufende Stück
         self.assertEqual(self.ids()[:2], [self.a, neu])
         rc, aus = self.cli("--von", "TL", "aufgabe", "neu", "--titel", "Gleich danach", "--agent", "CC1", "--sofort")
         self.assertIn(int(aus.split()[0][1:]), self.ids())                               # --sofort: gleich in die Liste

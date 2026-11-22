@@ -106,7 +106,11 @@ def kandidaten(con, pid):
                 or planung.offene_vorgaenger(con, a["id"]):
             continue
         aus.append((a["rang"] if a["rang"] is not None else 999999, -_tiefe(con, a["id"]), a["id"], a))
-    return [(x[3], -x[1]) for x in sorted(aus, key=lambda x: x[:3])]
+    if not aus:
+        return []
+    from . import reihenfolge                            # A1941 (K5): kritischer Pfad vor Rang – die berechnete Reihenfolge
+    platz = reihenfolge.plaetze(con, pid)
+    return [(x[3], -x[1]) for x in sorted(aus, key=lambda x: (platz.get(x[2], 10 ** 9), x[2]))]
 
 
 def _rang(liste, wert):

@@ -14,14 +14,22 @@ ABSTAND = 10                                    # rang-Schritte beim Neu-Nummeri
 
 
 def liste(con, pid, agent):
-    """Die Liste eines Agenten in Reihenfolge: dict je Aufgabe mit pos und offenen Gründen."""
+    """Die Liste eines Agenten in Reihenfolge: dict je Aufgabe mit pos und offenen Gründen. A1941 (K5): die Reihenfolge rechnet
+    die AMW (reihenfolge.berechnen – kritischer Pfad), das laufende Stück vorn; gilt eine Handordnung des Leads mit Grund
+    (liste ordnen/schieben), zählt deren Rang – bis sich die offene Liste ändert. d["hand"]: die geltende Handordnung."""
+    from . import reihenfolge
+    zeilen = con.execute("SELECT * FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status IN ('wartet', 'laeuft', 'blockiert')"
+                         " AND einstufung IN ('aktiv', 'keine_prio') ORDER BY rang, id", (pid, agent)).fetchall()
+    h = reihenfolge.hand(con, pid, agent, [r["id"] for r in zeilen]) if zeilen else None
+    if not h and len(zeilen) > 1:
+        platz = reihenfolge.plaetze(con, pid)
+        zeilen = sorted(zeilen, key=lambda r: (r["status"] != "laeuft", platz.get(r["id"], 10 ** 9), r["id"]))
     aus = []
-    for i, r in enumerate(con.execute(
-            "SELECT * FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status IN ('wartet', 'laeuft', 'blockiert')"
-            " AND einstufung IN ('aktiv', 'keine_prio') ORDER BY rang, id", (pid, agent)).fetchall(), 1):
+    for i, r in enumerate(zeilen, 1):
         d = dict(r)
         d["pos"] = i
         d["gruende"] = [g["bezug"] for g in wartegrund.offene(con, r["id"])]
+        d["hand"] = h
         aus.append(d)
     return aus
 
@@ -115,7 +123,10 @@ def dazwischen_ausfuehren(con, pid, von, a, grund):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=t, von=von, art="unterbrochen", aufgabe_id=x["id"],
                      text=f"für A{aid}: {grund}")
     rest = [y["id"] for y in liste(con, pid, agent) if y["id"] not in (aid, x["id"] if x else None)]
-    _nummerieren(con, [aid] + ([x["id"]] if x else []) + rest)
+    reihe = [aid] + ([x["id"]] if x else []) + rest
+    _nummerieren(con, reihe)
+    from . import reihenfolge                            # A1941: eine Entscheidung des Menschen – Handordnung mit seinem Grund
+    reihenfolge.hand_setzen(con, pid, von, agent, reihe, f"dazwischen: {grund}")
     if x:
         kern._posten(con, pid, "AMW", agent, "auftrag", f"Dazwischen: A{aid} vor A{x['id']} – {grund}"[:200],
                      f"Speichere deinen Stand zu A{x['id']}: Zwischenstand committen (eigener Zweig) und in drei Zeilen notieren,"
@@ -135,11 +146,14 @@ def _nummerieren(con, ids):
         con.execute("UPDATE aufgabe SET rang = ? WHERE id = ?", (i * ABSTAND, aid))
 
 
-def ordnen(con, pid, von, agent, ids):
+def ordnen(con, pid, von, agent, ids, grund=None):
     """Lead: diese Aufgaben in dieser Reihenfolge oben in die Liste des Agenten (aus dem Pool oder ohne Agent: werden
-    ihm zugeteilt), der Rest seiner Liste folgt dahinter in bisheriger Reihenfolge."""
+    ihm zugeteilt), der Rest seiner Liste folgt dahinter in bisheriger Reihenfolge. A1941: nur mit Grund – die Reihenfolge
+    rechnet sonst die AMW; die Handordnung gilt, bis sich die offene Liste ändert."""
     if not kern.ist_lead(con, pid, von):
         raise kern.AmwFehler("Listen ordnen dürfen nur Lead und Entwickler")
+    if not (grund or "").strip():
+        raise kern.AmwFehler("Die Reihenfolge rechnet die AMW (kritischer Pfad) – von Hand ordnen nur mit Grund: --grund …")
     agent = kern.bearbeiter(con, pid, agent)
     if len(set(ids)) != len(ids):
         raise kern.AmwFehler("eine Aufgabe doppelt genannt")
@@ -157,18 +171,25 @@ def ordnen(con, pid, von, agent, ids):
         rest = [x["id"] for x in liste(con, pid, agent) if x["id"] not in ids]
         reihe, _ = _hinter_laufendem(con, pid, agent, list(ids) + rest)   # das laufende Stück bleibt vorn
         _nummerieren(con, reihe)
+        from . import reihenfolge
+        reihenfolge.hand_setzen(con, pid, von, agent, reihe, grund.strip())
     return liste(con, pid, agent)
 
 
-def schieben(con, pid, von, aid, vor=None, nach=None, pos=None, oben=False, unten=False):
-    """Lead: eine Aufgabe innerhalb ihrer Liste verschieben (vor/nach einer anderen, an Position pos, ganz oben/unten)."""
+def schieben(con, pid, von, aid, vor=None, nach=None, pos=None, oben=False, unten=False, grund=None):
+    """Lead: eine Aufgabe innerhalb ihrer Liste verschieben (vor/nach einer anderen, an Position pos, ganz oben/unten).
+    A1941: Handordnung – mit Grund, oder als Verfeinerung einer geltenden Handordnung (deren Grund bleibt)."""
     if not kern.ist_lead(con, pid, von):
         raise kern.AmwFehler("Listen ordnen dürfen nur Lead und Entwickler")
     p = position(con, pid, aid)
     if not p:
         raise kern.AmwFehler(f"A{aid} steht in keiner Liste (offen, mit Agent, nicht geparkt/pool)")
     agent = p[0]
-    ids = [x["id"] for x in liste(con, pid, agent) if x["id"] != aid]
+    alle = liste(con, pid, agent)
+    grund = (grund or "").strip() or ((alle[0].get("hand") or {}).get("grund") if alle else None)
+    if not grund:
+        raise kern.AmwFehler("Die Reihenfolge rechnet die AMW (kritischer Pfad) – von Hand schieben nur mit Grund: --grund …")
+    ids = [x["id"] for x in alle if x["id"] != aid]
     if oben:
         i = 0
     elif unten:
@@ -186,6 +207,8 @@ def schieben(con, pid, von, aid, vor=None, nach=None, pos=None, oben=False, unte
     ids, _ = _hinter_laufendem(con, pid, agent, ids)          # nie vor das laufende Stück
     with db.schreiben(con):
         _nummerieren(con, ids)
+        from . import reihenfolge
+        reihenfolge.hand_setzen(con, pid, von, agent, ids, grund)
     return liste(con, pid, agent)
 
 

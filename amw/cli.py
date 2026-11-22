@@ -454,11 +454,11 @@ def cmd_liste(a, con):
         if len(a.rest) < 2:
             raise kern.AmwFehler("amw liste ordnen <Agent> A12 A15 …")
         ids = [nummer(x) for x in a.rest[1:]]
-        l = arbeitsliste.ordnen(con, pid, _von(a), a.rest[0], ids)
+        l = arbeitsliste.ordnen(con, pid, _von(a), a.rest[0], ids, a.grund)
     elif wer.lower() == "schieben":
         if len(a.rest) != 1:
             raise kern.AmwFehler("amw liste schieben A15 --vor A12 | --nach A12 | --pos N | --oben | --unten")
-        l = arbeitsliste.schieben(con, pid, _von(a), nummer(a.rest[0]), a.vor, a.nach, a.pos, a.oben, a.unten)
+        l = arbeitsliste.schieben(con, pid, _von(a), nummer(a.rest[0]), a.vor, a.nach, a.pos, a.oben, a.unten, a.grund)
     elif wer.lower() == "pool":
         p = arbeitsliste.pool(con, pid)
         for x in p:
@@ -1041,6 +1041,23 @@ def cmd_bogen(a, con):
     elif a.aktion == "status":
         planung.bogen_status(con, pid, _von(a), a.id, a.wert, a.erzwingen)
         print(f"Meilenstein {a.id} → {a.wert}")
+    elif a.aktion == "starten":                       # A1941 (K5): Jetzt starten – an den Disponenten
+        if not a.id:
+            raise kern.AmwFehler("bogen starten <Nummer des Meilensteins>")
+        from . import reihenfolge
+        r = reihenfolge.starten(con, pid, _von(a), a.id)
+        print(f"Meilenstein {a.id} gestartet – {len(r['startklar'])} Pakete startklar" + (f", verteilt: {'; '.join(r['verteilt'])}" if r["verteilt"] else ""))
+        for aid, f in r["fehlt"].items():
+            print(f"  noch nicht startklar: A{aid} – fehlt {', '.join(f)}")
+    elif a.aktion == "reihenfolge":                   # A1941 (K5): die berechnete Reihenfolge
+        from . import reihenfolge
+        prog = planung.prognose(con, pid, laeufe=300)
+        for z in reihenfolge.berechnen(con, pid):
+            if a.id and z["bogen"] != a.id:
+                continue
+            p = prog["schritte"].get(z["aid"]) or {}
+            print(f"{z['platz']:>3}. A{z['aid']:<5} {z['agent'] or '–':<10} {z['titel'][:60]:<60} {z['grund']}"
+                  + (f" · P50 {p['p50']} / P85 {p['p85']}" if p.get("p50") else ""))
     elif a.aktion == "zeigen":
         b = next((x for x in planung.boegen(con, pid) if x["id"] == a.id), None)
         if not b:
@@ -1059,6 +1076,11 @@ def cmd_bogen(a, con):
         if b["spec"]:
             stand = {"entwurf": "in Arbeit", "zurueck": "zurück"}
             print("Spezifikation (alter Bestand): " + ", ".join(f"{t} {stand.get(b['spec'].get(t), b['spec'].get(t) or '–')}" for t in planung.TEILE))
+        from . import reihenfolge                         # A1941: Abweichung gegenüber dem Plan-Stand beim Start
+        ab = reihenfolge.abweichung(con, pid, a.id)
+        if ab:
+            print(f"Abweichung seit dem Start ({ab['seit'][:16].replace('T', ' ')}): Meilenstein {ab['bogen']:+d} Tage" if ab["bogen"] is not None
+                  else "Abweichung: keine Prognose")
         stufe = planung.wellen(con, [r[0] for r in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ?", (a.id,))])
         for r in con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? ORDER BY rang, id", (a.id,)):
             print(f"  Stufe {stufe.get(r['id'], 1)}  A{r['id']:<5} {r['agent'] or '–':<10} [{r['status']}] {r['titel'][:90]}"
@@ -3439,8 +3461,9 @@ def parser():
     x.add_argument("--tage", type=int, default=21)
     x.set_defaults(f=cmd_termin)
 
-    x = s.add_parser("liste", help="Arbeitsliste je Agent: liste [Agent|pool] | ordnen <Agent> A12 A15 … | schieben A15 --vor A12"
-                                   " | --nach | --pos N | --oben | --unten (ordnen/schieben: Lead)")
+    x = s.add_parser("liste", help="Arbeitsliste je Agent: liste [Agent|pool] | ordnen <Agent> A12 A15 … --grund … | schieben A15"
+                                   " --vor A12 | --nach | --pos N | --oben | --unten [--grund …] (ordnen/schieben: Lead; die"
+                                   " Reihenfolge rechnet sonst die AMW)")
     x.add_argument("wer", nargs="?", help="Agent, pool, ordnen oder schieben")
     x.add_argument("rest", nargs="*", help="ordnen: Agent und Aufgaben-Nummern · schieben: die Aufgabe")
     x.add_argument("--vor", type=nummer)
@@ -3448,6 +3471,7 @@ def parser():
     x.add_argument("--pos", type=int)
     x.add_argument("--oben", action="store_true")
     x.add_argument("--unten", action="store_true")
+    x.add_argument("--grund", help="ordnen/schieben (A1941): warum von Hand – sonst rechnet die AMW die Reihenfolge")
     x.set_defaults(f=cmd_liste)
 
     x = s.add_parser("frage", help="Fragen an den Entwickler oder Lead: neu | liste [--geparkt] | antworten | nachtrag | verlauf |"
@@ -3619,9 +3643,10 @@ def parser():
     x.set_defaults(f=cmd_leitbild)
 
     x = s.add_parser("bogen", help="Meilensteine: liste | neu | zeigen N | aendern N | status N aktiv|fertig|geplant|verworfen |"
+                                   " starten N (Jetzt starten: an den Disponenten) | reihenfolge [N] (berechnet, kritischer Pfad) |"
                                    " abnehmen N (nur der Mensch: fertigen Meilenstein abnehmen, danach veröffentlicht die AMW)")
     x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status", "abnehmen", "freigeben", "zurueck", "bericht",
-                                      "tore"])
+                                      "tore", "starten", "reihenfolge"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("wert", nargs="?", help="status: aktiv | fertig | geplant | verworfen")
     x.add_argument("--titel")

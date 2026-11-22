@@ -474,8 +474,17 @@ def daten_planung(con, pid):
     schlange = _betrieb.wartende(con)                  # A1777: Platz eines Laufs in der Schlange des Rechners (alle Projekte)
     from . import termine
     termin_liste = termine.vorkommen(con, pid, tage=28, mit_vergangenen_h=24)
+    from . import reihenfolge                         # A1941 (K5): berechnete Reihenfolge und Abweichung seit „Jetzt starten“
+    try:
+        platz = reihenfolge.plaetze(con, pid)
+    except Exception:
+        platz = {}
     for b in boegen:
         b["prognose"] = prog["boegen"].get(b["id"])
+        try:
+            b["abweichung"] = reihenfolge.abweichung(con, pid, b["id"], prog)
+        except Exception:
+            b["abweichung"] = None
         b["specs"] = {s["teil"]: {**{k: s[k] for k in ("status", "version", "kommentar", "text", "geaendert_utc", "geschrieben_von")},
                                   **dict(zip(("vorgelegt_von", "frei_von"), planung.spec_wer(con, b["id"], s["teil"], s["version"])))}
                       for s in con.execute("SELECT * FROM spezifikation WHERE bogen_id = ?", (b["id"],))}
@@ -498,6 +507,7 @@ def daten_planung(con, pid):
             s["blockiert_durch"] = planung.offene_vorgaenger(con, s["id"]) if s["status"] not in ("fertig", "verworfen") else []
             s["kriterien"] = planung._json(s["kriterien"], [])
             s["prognose"] = prog["schritte"].get(s["id"])
+            s["platz"] = platz.get(s["id"])
             s["gruende"], s["pruefung"] = _karte_lage(con, pid, s, schlange) if s["status"] not in ("fertig", "verworfen") else ([], None)
             hierher = con.execute("SELECT zeit_utc, text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'aufgabe_bogen' AND bogen_id = ?"
                                   " ORDER BY id DESC LIMIT 1", (s["id"], b["id"])).fetchone()      # A1777: „verschoben aus B… am …“

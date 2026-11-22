@@ -606,6 +606,9 @@ def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
         " AND b.status IN ('geplant', 'aktiv') ORDER BY b.status != 'aktiv', b.nr, a.status != 'laeuft', a.rang, a.id", (pid,)).fetchall()
     if not offen:
         return {"schritte": {}, "boegen": {}}
+    from . import reihenfolge                            # A1941 (K5): Warteschlangen in der berechneten Reihenfolge
+    platz = reihenfolge.plaetze(con, pid)
+    offen = sorted(offen, key=lambda a: (platz.get(a["id"], 10 ** 9), a["id"]))
     schlangen = {}
     for a in offen:
         schlangen.setdefault(a["agent"] or "", []).append(a["id"])

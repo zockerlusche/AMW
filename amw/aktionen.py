@@ -489,7 +489,7 @@ def aufgabe(con, pid, was, d):
             kurz = f"A{aid} dazwischengeschoben" + (f" (A{unterbrochen} wartet)" if unterbrochen else "") + f": {text[:150]}"
         elif was == "spaeter":
             from . import arbeitsliste
-            arbeitsliste.schieben(con, pid, e, aid, unten=True)
+            arbeitsliste.schieben(con, pid, e, aid, unten=True, grund=f"später (Workbench){': ' + text[:200] if text else ''}")
             kurz = f"A{aid} später" + (f": {text[:200]}" if text else " (ans Ende meiner Liste)")
         elif was == "antwort":
             if not text:
