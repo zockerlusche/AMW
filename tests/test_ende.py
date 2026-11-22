@@ -93,6 +93,19 @@ class Ende(unittest.TestCase):
         self.assertEqual(self.beendet, [101])
         self.assertIn("abgemeldet", aus[0])
 
+    def test_a1965_nach_dem_beenden_kachel_beendet_und_starten_moeglich(self):
+        """A1965 (Befund #30514): nach „Speichern & beenden“ blieb die Sitzung auf „ruht“ – die Kachel zeigte „läuft“, Starten
+        war grau. Jetzt: beendet, wie agent liste, und die Einstellungen sagen „läuft nicht“."""
+        self.sitzung("Bauer", 101)
+        steuerung.ende_anfordern(self.con, self.pid, ["Bauer"], jetzt=self.jetzt)
+        kern.abmelden(self.con, self.pid, "Bauer")
+        self.pruefen(1)
+        self.assertEqual(self.con.execute("SELECT zustand FROM sitzung").fetchone()[0], "beendet")
+        a = next(x for x in workbench.daten_start(self.con, self.pid)["agenten"] if x["kennung"] == "Bauer")
+        self.assertEqual(a["zustand"], "beendet")                                   # Menü: weder „lebt“ noch „ruht“ → Starten frei
+        b = next(x for x in workbench.daten_einstellungen(self.con, self.pid)["agenten"] if x["kennung"] == "Bauer")
+        self.assertFalse(b["laeuft"])
+
     def test_selbst_beendet_hebt_nur_den_halt_auf(self):
         self.sitzung("Bauer", 101)
         steuerung.ende_anfordern(self.con, self.pid, ["Bauer"], jetzt=self.jetzt)

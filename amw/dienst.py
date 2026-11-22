@@ -351,6 +351,20 @@ class Dienst:
             aus.append(f"{lead}: " + ", ".join(f"#{z['nachricht_id']}" for z in zeilen))
         return aus
 
+    def pruefe_ruhend(self, s):
+        """Ruhende Sitzung: lebt ihr Postfach noch (Fenster offen, Claude wartet), bleibt sie; sonst beendet. Kein Puls."""
+        try:
+            p, _ = lies_schluessel(s)
+            lebend = pipe.lebt(p)
+        except (OSError, ValueError, KeyError, pipe.ZustellFehler):
+            lebend = False
+        if not lebend:
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE sitzung SET zustand = 'beendet', beendet_utc = ? WHERE id = ? AND zustand = 'ruht'",
+                                 (db.jetzt(), s["id"]))
+            log.info("Ruhende Sitzung %s beendet (Prozess weg)", s["id"])
+        return lebend
+
     def pruefe_sitzung(self, s):
         try:
             p, _ = lies_schluessel(s)
@@ -367,6 +381,10 @@ class Dienst:
         return lebend
 
     def aufsicht(self):
+        # A1965: auch abgemeldete Sitzungen („ruht“) mit eigenem Postfach – ist ihr Prozess weg, sind sie beendet (sonst bliebe die
+        # Kachel auf „läuft“ und „Starten“ grau, obwohl nichts mehr läuft)
+        for s in self.con.execute("SELECT * FROM sitzung WHERE zustand = 'ruht' AND schluessel_datei IS NOT NULL").fetchall():
+            self.pruefe_ruhend(s)
         for s in self.con.execute("SELECT * FROM sitzung WHERE zustand = 'aktiv'").fetchall():
             if s["schluessel_datei"] is None:            # Brücken-Sitzung (TL): kein Postfach, lebt vom Puls
                 grenze = self.con.execute("SELECT puls_grenze_s FROM agent WHERE id = ?", (s["agent_id"],)).fetchone()[0]

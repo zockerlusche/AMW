@@ -491,6 +491,10 @@ def beenden(con, pid, kennung, beenden_mit=None, auch_ruhend=False):
         con.execute("UPDATE sitzung SET ereignis = 'beendet', ereignis_text = 'amw', ereignis_utc = ? WHERE id = ?",
                     (db.jetzt(), r["id"]))
     (beenden_mit or (lambda p: subprocess.run(["taskkill", "/PID", str(p), "/T", "/F"], capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))))(cpid)
+    if not lebt(cpid):                                # A1965: die Sitzung ist zu Ende – Kachel, Menü und agent liste sagen es sofort
+        with db.schreiben(con):
+            con.execute("UPDATE sitzung SET zustand = 'beendet', beendet_utc = ? WHERE id = ? AND zustand IN ('aktiv', 'ruht')",
+                        (db.jetzt(), r["id"]))
     return f"{kennung}: Claude-Prozess {cpid} beendet (Fenster bleibt offen)"
 
 

@@ -272,6 +272,16 @@ class Wecker(unittest.TestCase):
         self.d.aufsicht()
         self.assertEqual(self.con.execute("SELECT zustand FROM sitzung").fetchone()[0], "beendet")
 
+    def test_a1965_ruhende_sitzung_ohne_prozess_wird_beendet(self):
+        self.anmelden("CC1")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE sitzung SET zustand = 'ruht'")
+        self.d.aufsicht()
+        self.assertEqual(self.con.execute("SELECT zustand FROM sitzung").fetchone()[0], "ruht")     # Fenster offen: bleibt
+        self.lebt = False
+        self.d.aufsicht()
+        self.assertEqual(self.con.execute("SELECT zustand FROM sitzung").fetchone()[0], "beendet")
+
 
 class Anmelden(unittest.TestCase):
     """Doppelte Anmeldung: eine Hintergrund-Sitzung darf sich nie als Agent anmelden."""

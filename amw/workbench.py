@@ -750,8 +750,9 @@ def daten_einstellungen(con, pid, speicher=None):
                                  " WHERE projekt_id = ? ORDER BY id", (pid,)))
     for a in agenten:
         a["verlauf"] = kern.agent_verlauf(con, pid, a["kennung"])        # entfernen/löschen: was am Agenten hängt
-        a["laeuft"] = con.execute("SELECT 1 FROM sitzung s JOIN agent g ON g.id = s.agent_id WHERE g.projekt_id = ? AND g.kennung = ?"
-                                  " AND s.zustand = 'aktiv'", (pid, a["kennung"])).fetchone() is not None
+        z = con.execute("SELECT s.zustand FROM sitzung s JOIN agent g ON g.id = s.agent_id WHERE g.projekt_id = ? AND g.kennung = ?"
+                        " ORDER BY s.id DESC LIMIT 1", (pid, a["kennung"])).fetchone()      # A1965: die jüngste Sitzung, wie agent liste
+        a["laeuft"] = bool(z and z[0] == "aktiv")
         try:
             a["zusatzordner"] = json.loads(a["zusatzordner"] or "[]")
         except ValueError:
