@@ -114,6 +114,9 @@ class Bruecke(unittest.TestCase):
             f.write("SCHLUESSEL")
         self.einwerfen("1.json", {"befehl": "leitbild", "aktion": "setzen", "ziel": "Spiel fertig", "prinzip": ["Klar|Ist es klar?"]})
         self.einwerfen("2.json", {"befehl": "bogen", "aktion": "neu", "titel": "Etappe 1", "ziel": "Login", "zieldatum": "2026-12-01"})
+        bruecke.befehle(self.eingang)
+        from tests.test_planung import alter_bestand        # A1939: Spezifikation nur noch als alter Bestand
+        alter_bestand(self.con, 1)
         self.einwerfen("3.json", {"befehl": "spec", "aktion": "schreiben", "bogen": 1, "teil": "anforderungen", "datei": "plan/anf.md"})
         self.einwerfen("4.json", {"befehl": "spec", "aktion": "vorlegen", "bogen": 1, "teil": "anforderungen"})
         self.einwerfen("5.json", {"befehl": "spec", "aktion": "frei", "bogen": 1, "teil": "anforderungen"})
