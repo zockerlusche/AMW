@@ -15,7 +15,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`paket`](#paket) | Arbeitspakete (Mischbetrieb): zeigen N ¦ zustand N <zustand> [--grund … --beleg …] ¦ liste [--zustand …] ¦ ergebnis N (--json - über stdin oder --status/--zusammenfassung/--frage/--frage-an/--grund/--hinweis; nur der zugeteilte Agent, Art agent/sitzung, Paket läuft) ¦ starten N (Lead/Mensch: ein startklares p-Paket jetzt starten – der Wächter entscheidet) ¦ mergeliste [--diff] (bereit zum Merge: diff --stat, Server-Code, Blick nötig) ¦ freigeben --alle ¦ freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch) ¦ buendeln --alle ¦ buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch) ¦ annehmen N --grund … (E4-Paket nach dem Lesen in die Merge-Liste; Lead, Mensch) – Felder setzen: amw aufgabe neu¦aendern … --paket p … |
 | [`thema`](#thema) | Design-Dokument je Thema: liste [--suche] ¦ zeige TH12 ¦ neu "Name" [--pfleger X] [--stil] ¦ einstellen TH12 --pfleger X ¦ --stil ¦ pflegen TH12 --text-datei … ¦ bestaetigen TH12 ¦ dokument TH12 --dokument D5 [--loesen] ¦ status (ein Status je Thema) ¦ freigeben TH12 ¦ zurueck TH12 --notiz … ¦ markieren¦entmarkieren TH12 (nur der Mensch; bei thema_freigabe=co+lead gibt freigeben von Co und Lead je ein Ja, B2913) ¦ nur_mensch TH12 (Pfleger, Lead, Mensch) ¦ nicht_nur_mensch TH12 (nur der Mensch) ¦ vermerk TH12 --nichts-zu-bauen --grund … [--aufheben] ¦ luecken (Thema ohne Paket, Paket ohne Thema) ¦ planen TH12 (Planer anstoßen, Lead/Co) ¦ plan TH12 (Entwurf zeigen) ¦ plan-ja TH12 [--datei geändert.json] (Lead) ¦ anhalten TH12 [--meilenstein N] (nicht begonnene Pakete eines geänderten Themas, Lead/Co) |
 | [`termin`](#termin) | Terminplaner: neu --titel … --art test¦frist¦schirm¦sonstig --am "2026-11-06 18:00" [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] ¦ liste [--tage 21] ¦ aendern N ¦ absagen N [--am …] ¦ bereit N --text "was testen" ¦ kurzliste N (Planen: Lead/Entwickler) |
-| [`liste`](#liste) | Arbeitsliste je Agent: liste [Agent¦pool] ¦ ordnen <Agent> A12 A15 … ¦ schieben A15 --vor A12 ¦ --nach ¦ --pos N ¦ --oben ¦ --unten (ordnen/schieben: Lead) |
+| [`liste`](#liste) | Arbeitsliste je Agent: liste [Agent¦pool] ¦ ordnen <Agent> A12 A15 … --grund … ¦ schieben A15 --vor A12 ¦ --nach ¦ --pos N ¦ --oben ¦ --unten [--grund …] (ordnen/schieben: Lead; die Reihenfolge rechnet sonst die AMW) |
 | [`frage`](#frage) | Fragen an den Entwickler oder Lead: neu ¦ liste [--geparkt] ¦ antworten ¦ nachtrag ¦ verlauf ¦ parken N [--grund] ¦ aufnehmen N ¦ weiterleiten N [--text] (Lead → Entwickler) |
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
@@ -39,7 +39,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`suche`](#suche) | Volltext über Aufgaben, Beschlüsse, Fragen, Deine Worte, Nachrichten, Dokumente: amw suche Modem |
 | [`zeige`](#zeige) | Einträge ganz lesen: amw zeige B5 F12 A120 W3 16000 D5 KR3 PR4 (Nachricht ohne #: in der Shell beginnt mit # ein Kommentar) |
 | [`leitbild`](#leitbild) | Projektziel, Kennzahlen, Nicht-Ziele, Prinzipien, Definition of Done: zeigen ¦ setzen |
-| [`bogen`](#bogen) | Meilensteine: liste ¦ neu ¦ zeigen N ¦ aendern N ¦ status N aktiv¦fertig¦geplant¦verworfen ¦ abnehmen N (nur der Mensch: fertigen Meilenstein abnehmen, danach veröffentlicht die AMW) |
+| [`bogen`](#bogen) | Meilensteine: liste ¦ neu ¦ zeigen N ¦ aendern N ¦ status N aktiv¦fertig¦geplant¦verworfen ¦ starten N (Jetzt starten: an den Disponenten) ¦ reihenfolge [N] (berechnet, kritischer Pfad) ¦ abnehmen N (nur der Mensch: fertigen Meilenstein abnehmen, danach veröffentlicht die AMW) |
 | [`spec`](#spec) | Spezifikation je Meilenstein: zeigen N [teil] ¦ schreiben N teil --text/--datei ¦ vorlegen N teil ¦ frei N teil ¦ zurueck N teil --kommentar  (teil: anforderungen ¦ entwurf ¦ schritte) |
 | [`schritt`](#schritt) | naechster [--nehmen]: nächster bereiter Schritt (aktiver Meilenstein, ohne offene Vorgänger) |
 | [`risiko`](#risiko) | liste ¦ neu --titel … ¦ setzen N --status … |
@@ -527,7 +527,7 @@ options:
 ## liste
 ```
 usage: amw liste [-h] [--vor VOR] [--nach NACH] [--pos POS] [--oben] [--unten]
-                 [--von VON] [--projekt PROJEKT]
+                 [--grund GRUND] [--von VON] [--projekt PROJEKT]
                  [wer] [rest ...]
 
 positional arguments:
@@ -542,6 +542,8 @@ options:
   --pos POS
   --oben
   --unten
+  --grund GRUND      ordnen/schieben (A1941): warum von Hand – sonst rechnet
+                     die AMW die Reihenfolge
   --von VON
   --projekt PROJEKT
 ```
@@ -964,11 +966,11 @@ usage: amw bogen [-h] [--titel TITEL] [--ziel ZIEL] [--abnahme ABNAHME]
                  [--nr NR] [--grund GRUND] [--erzwingen]
                  [--art {grob,plan,abschluss}] [--notiz NOTIZ] [--von VON]
                  [--projekt PROJEKT]
-                 {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore}
+                 {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore,starten,reihenfolge}
                  [id] [wert]
 
 positional arguments:
-  {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore}
+  {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore,starten,reihenfolge}
   id
   wert                  status: aktiv | fertig | geplant | verworfen
 

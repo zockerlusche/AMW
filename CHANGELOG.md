@@ -4,6 +4,20 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.165.0 – 22.11.2026 · Reihenfolge rechnet die AMW, schnellerer Gesamtlauf, „macht gerade“ abgeleitet
+- **Neu:** Die AMW rechnet die Reihenfolge der Arbeit selbst (kritischer Pfad und gemessene Dauer); Listen, Verteilen und
+  Prognose folgen ihr, von Hand ordnen geht nur mit Grund. `amw bogen starten` gibt einen Meilenstein an den Disponenten,
+  `amw bogen reihenfolge` zeigt die berechnete Reihenfolge.
+- **Neu:** Der Gesamtlauf der Tests verteilt sich auf mehrere Prozesse und ist damit deutlich schneller
+  (`python -X utf8 -m amw.testlauf`; Anzahl über die Projekt-Einstellung `gesamtlauf_prozesse`).
+- **Verbessert:** Was ein Agent gerade macht, leitet die AMW selbst ab (laufender Lauf, laufende Aufgabe, letzte Meldung) und
+  zeigt Quelle und Alter; ohne Lebenszeichen seit 30 Minuten steht „veraltet?“ dabei.
+- **Verbessert:** Fehlt beim Abschließen der Satz für die Versionshinweise, schlägt die AMW ihn selbst vor – aus Commit, Thema
+  oder Titel.
+- **Verbessert:** Ein Abnahme-Test läuft nach dem Bündeln in jedem Gesamtlauf mit; Pakete zeigen die erwarteten Kosten als
+  Spanne aus gemessenen Paketen.
+- **Behoben:** Meilensteine ohne Spezifikation zeigen keine leeren Spezifikationsteile mehr.
+
 ## 1.164.0 – 22.11.2026 · Grob- und Feinplanung, Planer aus Themen, alle fünf Tore
 - **Neu:** Planung › Meilensteine und Pakete: jeder Meilenstein mit seinen Themen und womit er endet, je Meilenstein die Pakete
   mit Agent, Reihenfolge, Prüfung und Kosten (Summe oben). Freigeben je Meilenstein und je Plan – wer freigegeben hat, steht
