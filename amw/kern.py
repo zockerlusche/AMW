@@ -313,6 +313,17 @@ def projekt_wahl(con, pid, schluessel):
     return v if v in PROJEKT_WAHL[schluessel] else PROJEKT_WAHL[schluessel][0]
 
 
+def projekt_schalter(con, pid):
+    """A1925/A1926 (#29883): Projekt-Schalter aus | probe | an (projekt.einstellungen.schalter); ohne Eintrag „an“ –
+    ohne Plätze startet ohnehin nichts. Nur bei „an“ bekommt das Projekt p-Starts."""
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    try:
+        v = json.loads((r[0] if r else None) or "{}").get("schalter")
+    except ValueError:
+        v = None
+    return v if v in ("aus", "probe", "an") else "an"
+
+
 def projekt_ordner(con, pid):
     """Projektordner: das Repository, in dem die Agenten des Projekts arbeiten (None: nicht eingetragen)."""
     r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()

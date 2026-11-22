@@ -127,6 +127,27 @@ def _vorrang(v):
     return aus
 
 
+def _projekt_rang(v):
+    """A1925 (W2449): Rangfolge der Projekte für den Disponenten – Liste von Projektnamen (oder mit Komma getrennt)."""
+    if isinstance(v, str):
+        s = v.strip()
+        v = json.loads(s) if s.startswith("[") else [x for x in s.split(",")]
+    if not isinstance(v, list):
+        raise ValueError("Projektnamen in der Reihenfolge, z. B. AMW, GlassWorld, LayerIT")
+    aus = []
+    for name in v:
+        name = " ".join(str(name).split())
+        if not name:
+            continue
+        if len(name) > 60:
+            raise ValueError("Projektnamen bis 60 Zeichen")
+        if name.lower() not in [x.lower() for x in aus]:
+            aus.append(name)
+    if len(aus) > 30:
+        raise ValueError("höchstens 30 Projekte")
+    return aus
+
+
 def _heimnetz(v):
     """Heimnetz (A1643): privater IPv4-Bereich in CIDR, z. B. 192.168.178.0/24 – leer = aus. Nur 10/8, 172.16/12, 192.168/16."""
     import ipaddress
@@ -184,6 +205,11 @@ FELDER = {
     "cpu_laeufe": (2, _ganz(1, 8)),
     # Vorrang der Projekte in der Warteschlange: {Projektname: hoch|niedrig}, fehlt eins = normal (A1623)
     "vorrang": ({}, _vorrang),
+    # A1925 (W2449): Disponent über Projekte – Rangfolge (nur der Mensch), gemeinsame Grenze für p-Arbeiter (0 = keine, wie bis
+    # 1.15x) und Halt beim Wochenlimit für alle Projekte (das Konto ist eines; ein Projektwert gilt nur, wenn er strenger ist)
+    "projekt_rang": ([], _projekt_rang),
+    "plaetze_pc": (0, _ganz(0, 64)),
+    "limit_halt": (95, _ganz(0, 100)),
     "vorrang_aufruecken_min": (30, _ganz(0, 1440)),   # wer so lange wartet, rückt eine Stufe höher (0 = aus)
     "vorrang_platz_freihalten": (True, _wahr),        # wartet ein Lauf mit Vorrang: andere nur, wenn sein Speicher frei bleibt
     # so viel Arbeitsspeicher bleibt frei, bevor die Warteschlange einen schweren Lauf einlässt (für den Menschen am Rechner)

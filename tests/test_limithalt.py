@@ -4,8 +4,9 @@ import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im 
 import os
 import tempfile
 import unittest
+from unittest import mock
 
-from amw import db, kern, limithalt
+from amw import db, einstellungen, kern, limithalt
 
 WOCHE1, WOCHE2 = "2026-11-14 07:00:00", "2026-11-21 07:00:00"
 
@@ -14,6 +15,9 @@ class LimitHalt(unittest.TestCase):
     def setUp(self):
         self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.addCleanup(self.ordner.cleanup)
+        u = mock.patch.dict(os.environ, {"LOCALAPPDATA": os.path.join(self.ordner.name, "lad")})   # A1925: eigene PC-Einstellungen
+        u.start()
+        self.addCleanup(u.stop)
         self.con = db.anlegen(os.path.join(self.ordner.name, "amw.db"))
         self.addCleanup(self.con.close)
         with db.schreiben(self.con):
@@ -50,9 +54,15 @@ class LimitHalt(unittest.TestCase):
         kern.projekt_einstellen(self.con, self.pid, "TL", limit_halt=90)
         self.assertEqual(limithalt.schwelle(self.con, self.pid), 90)
         self.assertEqual(len(self.runde(91.0)), 1)
-        for leer in ("", None, 0, "aus"):
+        for leer in ("", None, 0, "aus"):                                     # A1925 (E4): das Projekt schaltet nicht ab –
             kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, limit_halt=leer)
-            self.assertIsNone(limithalt.schwelle(self.con, self.pid), leer)
+            self.assertEqual(limithalt.schwelle(self.con, self.pid), 95, leer)  # es gilt der PC-Wert
+        kern.projekt_einstellen(self.con, self.pid, "TL", limit_halt=97)          # weniger streng: zählt nicht
+        self.assertEqual(limithalt.schwelle(self.con, self.pid), 95)
+        einstellungen.speichern({"limit_halt": 0})                               # PC aus …
+        self.assertEqual(limithalt.schwelle(self.con, self.pid), 97)             # … dann gilt das Projekt
+        kern.projekt_einstellen(self.con, self.pid, "TL", limit_halt="")
+        self.assertIsNone(limithalt.schwelle(self.con, self.pid))
         with self.assertRaisesRegex(kern.AmwFehler, "Prozent 1–100"):
             kern.projekt_einstellen(self.con, self.pid, "TL", limit_halt=101)
         with self.assertRaisesRegex(kern.AmwFehler, "nur Lead und Entwickler"):
@@ -60,7 +70,7 @@ class LimitHalt(unittest.TestCase):
 
     def test_aus_setzt_keinen_halt_und_hebt_auf(self):
         self.runde(99.0)
-        kern.projekt_einstellen(self.con, self.pid, "TL", limit_halt="")
+        einstellungen.speichern({"limit_halt": 0})                               # A1925: aus ist eine PC-Einstellung
         self.assertEqual(self.runde(99.0), [f"P{self.pid}: Halt aufgehoben (Halt beim Wochenlimit ist aus)"])
         self.assertEqual(self.gehalten(), [])
         self.assertEqual(self.runde(99.0), [])

@@ -17,19 +17,18 @@ TEXT = "Wochenlimit"                                # Anfang des Halt-Texts – 
 
 
 def schwelle(con, pid):
-    """Schwelle in Prozent oder None (aus). Nicht gesetzt = Vorgabe 95; 0 = aus."""
+    """Schwelle in Prozent oder None (aus). A1925 (E4, #29883): Das Konto ist eines – es gilt die PC-Einstellung limit_halt
+    (Vorgabe 95, 0 = aus) für alle Projekte; ein Wert des Projekts gilt nur, wenn er strenger (kleiner) ist."""
+    from . import einstellungen
+    pc = einstellungen.wert("limit_halt")
     r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
     try:
         e = json.loads((r[0] if r else None) or "{}")
-    except ValueError:
-        e = {}
-    if "limit_halt" not in e:
-        return VORGABE
-    try:
-        v = int(e["limit_halt"] or 0)
+        eigen = int(e.get("limit_halt") or 0)
     except (TypeError, ValueError):
-        return VORGABE
-    return v if 1 <= v <= 100 else None
+        eigen = 0
+    werte = [v for v in (pc, eigen) if 1 <= v <= 100]
+    return min(werte) if werte else None
 
 
 def aktive(con, pid):

@@ -297,6 +297,28 @@ Halt in derselben Woche nicht wieder. Sonst hebt die AMW ihn selbst auf, sobald 
 Schwelle liegt oder die Einstellung aus ist. Einstellen: Workbench › Einstellungen › Projekt oder
 `amw projekt einstellen limit_halt=<Prozent>` (Lead oder Mensch).
 
+**Seit A1925 für den ganzen PC:** Das Konto ist eines. Es gilt die PC-Einstellung `amw pc einstellen limit_halt=<Prozent>`
+(Vorgabe 95, 0 = aus; Lead oder Mensch, der Mensch nur im eigenen Terminal) für alle Projekte. Ein Wert im Projekt gilt nur,
+wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr allein.
+
+## Disponent über Projekte (A1925, W2449)
+
+**Wozu:** Mehrere Projekte teilen sich einen PC und ein Konto. Der Mensch legt fest, welches Projekt zuerst dran ist.
+
+- **Rangfolge:** `amw pc einstellen projekt_rang=AMW,GlassWorld,LayerIT` – nur der Mensch im eigenen Terminal (nicht aus einer
+  Agenten-Sitzung, auch nicht der Lead). Der Disponent geht die Projekte in dieser Reihenfolge durch, innerhalb eines Projekts
+  nach Paketrang wie bisher. Nicht genannte Projekte kommen danach (nach Nummer); ohne Einstellung wie bisher.
+- **Gemeinsame Grenze:** `amw pc einstellen plaetze_pc=<n>` (Lead oder Mensch) – höchstens so viele p-Arbeiter gleichzeitig über
+  alle Projekte (gezählt: läuft, abgegeben, Prüfung C; ein Paket in „bereit zum Merge“ arbeitet nicht mehr). 0 = keine
+  Grenze. Ist sie erreicht, wartet ein Paket sichtbar (Regel 4: „wartet auf einen Platz (PC: 2 von 2 belegt: AMW A…,
+  GlassWorld A…)“); ein frei werdender Platz geht an das Projekt weiter vorn. Die Platz-Ordner bleiben je Projekt.
+- **Projekt-Schalter:** `schalter` im Projekt (aus | probe | an, ohne Eintrag an; gesetzt von `amw projekt schalter`) – bei aus
+  und probe keine p-Starts (Regel 12).
+- **Wochenlimit:** Regel 8 misst das ganze Konto – ist es erreicht, startet in keinem Projekt etwas; `limit_halt` siehe oben.
+- **Messung:** `amw pc` zeigt Rangfolge, laufende p-Arbeiter und je Projekt Schalter, Plätze und Kosten dieser Woche. Montags
+  bekommt der Mensch einen Wochenbericht (Kosten und Pakete der Vorwoche je Projekt) – nur, wenn etwas gelaufen ist.
+- Die Lauf-Schlange (schwere Läufe) ordnet weiter nach `vorrang`; die Rangfolge dort kommt mit Mehrprojekt 6.
+
 ## Arbeitsliste je Agent (seit 1.12.0)
 
 **Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach
@@ -433,6 +455,9 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 
 | Wo | Schlüssel | Bedeutung |
 |---|---|---|
+| `amw pc einstellen` | `projekt_rang` | Rangfolge der Projekte für den Disponenten (nur der Mensch im eigenen Terminal) |
+| `amw pc einstellen` | `plaetze_pc` | höchstens so viele p-Arbeiter gleichzeitig über alle Projekte (0 = keine Grenze) |
+| `amw pc einstellen` | `limit_halt` | Halt beim Wochenlimit für alle Projekte (Vorgabe 95, 0 = aus; ein Projekt nur strenger) |
 | `amw projekt einstellen` | `release_sicherung` | `aus` (Vorgabe) oder `an`: Sicherung der Projektdaten vor `release ausliefern` (Projekte, die nicht die AMW sind) |
 | `amw projekt einstellen` | `release_modus` | `datei` (Version in `version_datei`) oder `tag` (Version aus dem Tag) – für Bündel |
 | `amw projekt einstellen` | `changelog_format` | `amw` oder `keepachangelog` ([Unreleased] → [X.Y.Z]) – für Bündel |

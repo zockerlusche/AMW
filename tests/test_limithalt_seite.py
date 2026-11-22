@@ -18,4 +18,6 @@ class LimitHaltSeite(Rundgang):
         feld = f"(n => n.matches('input') ? n : n.querySelector('input'))({self.FINDE}.nextElementSibling)"   # Feld neben der Beschriftung
         self.assertEqual(self.tab.js(f"{feld}.value"), "95")
         self.assertIn("hält die AMW alle Coder an", self.tab.js("document.querySelector('#inhalt').innerText"))
+        self.assertIn("Leer = es gilt der Wert für den ganzen PC (Vorgabe 95); hier zählt nur ein strengerer.",   # A1925
+                      self.tab.js("document.querySelector('#inhalt').innerText"))
         self.assertEqual(limithalt.schwelle(self.con, self.pid), 95)

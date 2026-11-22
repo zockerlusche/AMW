@@ -31,7 +31,9 @@ REGELN = {
     9: "zweimal hintereinander unklar oder abgebrochen – Pause",
     10: "keine Arbeitsplätze eingerichtet",
     11: "neue Claude-Code-Version noch nicht geprüft – die AMW prüft sie selbst (Negativprobe)",
+    12: "Projekt ausgeschaltet (Projekt-Schalter aus oder probe)",
 }
+ARBEITEND = ("laeuft", "abgegeben", "abnahme")   # A1925: zählt für die PC-Grenze (plaetze_pc) – merge_reihe arbeitet nicht mehr
 WARTEN = {2, 4, 7, 8, 9, 11}               # vorübergehend: später erneut prüfen; die anderen: nicht starten, Lead melden
 LIMIT_PROZENT = 80
 LAUFEND = ("laeuft", "abgegeben", "abnahme", "merge_reihe")   # P245: der Platz bleibt bis zum Merge belegt (Resume nur dort)
@@ -162,6 +164,10 @@ def pruefen(con, pid, aid, limit=None):
     plaetze = platz.plaetze(con, pid)
     if not plaetze:
         return _nein(10)
+    from . import kern
+    s = kern.projekt_schalter(con, pid)
+    if s != "an":                                         # A1925 (E5): aus/probe – keine p-Starts
+        return _nein(12, f"Schalter {s}")
     z = zustand()
     if z["wartung"]:
         return _nein(7, z["wartung"].get("grund"))
@@ -198,6 +204,10 @@ def pruefen(con, pid, aid, limit=None):
     lauf = [x for x in laufende(con, pid) if x["id"] != aid]
     if len(lauf) >= len(plaetze):
         return _nein(4, f"{len(lauf)} von {len(plaetze)} belegt")
+    pc = pc_belegt(con, aid)                             # A1925 (E2): gemeinsame Grenze über alle Projekte
+    if pc["grenze"] and len(pc["arbeiten"]) >= pc["grenze"]:
+        return _nein(4, f"wartet auf einen Platz (PC: {len(pc['arbeiten'])} von {pc['grenze']} belegt: "
+                        + ", ".join(f"{n} A{a}" for n, a in pc["arbeiten"]) + ")")
     for x in lauf:
         if _ueberschneiden(b, x["bereiche"]):
             return _nein(2, f"mit A{x['id']}")
@@ -237,6 +247,16 @@ def protokoll(con, pid, aid=None, grenze=50):
         sql += " AND aufgabe_id = ?"
         p.append(aid)
     return [dict(r) for r in con.execute(sql + " ORDER BY id DESC LIMIT ?", (*p, grenze))]
+
+
+def pc_belegt(con, ohne=None):
+    """A1925: {"grenze": plaetze_pc (0 = keine), "arbeiten": [(Projektname, Aufgabe) …]} – p-Arbeiter aller Projekte, die
+    gerade arbeiten (ARBEITEND), ohne die Aufgabe `ohne`."""
+    from . import einstellungen
+    zeilen = con.execute("SELECT a.id, p.name FROM paket k JOIN aufgabe a ON a.id = k.aufgabe_id JOIN projekt p ON p.id = a.projekt_id"
+                         f" WHERE k.art = 'p' AND k.zustand IN ({','.join('?' * len(ARBEITEND))}) ORDER BY a.id",
+                         ARBEITEND).fetchall()
+    return {"grenze": einstellungen.wert("plaetze_pc"), "arbeiten": [(r["name"], r["id"]) for r in zeilen if r["id"] != ohne]}
 
 
 def reihenfolge(con, pid):

@@ -1312,6 +1312,44 @@ def cmd_claude(a, con):
     return 0
 
 
+PC_NUR_MENSCH = ("projekt_rang",)                         # A1925 (E1): nur der Mensch im eigenen Terminal
+PC_LEAD_ODER_MENSCH = ("plaetze_pc", "limit_halt")        # A1925 (E2, E4): Lead oder Mensch, gesperrt wie RECHTE_EINSTELLUNGEN
+
+
+def cmd_pc(a, con):
+    """A1925: Einstellungen dieses PCs, die der Disponent über alle Projekte nutzt – zeigen | einstellen k=v."""
+    from . import disponent, einstellungen, waechter
+    if a.aktion == "einstellen":
+        if not a.wert or "=" not in a.wert:
+            raise kern.AmwFehler("amw pc einstellen projekt_rang=AMW,GlassWorld,LayerIT | plaetze_pc=2 | limit_halt=90")
+        k, _, v = a.wert.partition("=")
+        k = k.strip()
+        if k in PC_NUR_MENSCH:
+            if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():
+                raise kern.AmwFehler(f"{k}: stellt nur der Mensch im eigenen Terminal ein (--von Entwickler, nicht aus einer Agenten-Sitzung)")
+        elif k in PC_LEAD_ODER_MENSCH:
+            _rolle_nur_mensch_oder_lead(con, _projekt(con, a), a, f"{k} setzen")
+        else:
+            raise kern.AmwFehler(f"{k}: hier nur {', '.join(PC_NUR_MENSCH + PC_LEAD_ODER_MENSCH)} – die übrigen im Zahnrad › Dieser PC")
+        try:
+            print(f"{k} = {einstellungen.speichern({k: v.strip()})[k]}")
+        except ValueError as e:
+            raise kern.AmwFehler(str(e)) from None
+        return
+    pc = waechter.pc_belegt(con)
+    print(f"Rangfolge: {', '.join(n for _, n in disponent.projekt_reihe(con))}"
+          + ("" if einstellungen.wert("projekt_rang") else " (ohne projekt_rang: nach Nummer)"))
+    print(f"p-Arbeiter: {len(pc['arbeiten'])}" + (f" von {pc['grenze']} (plaetze_pc)" if pc["grenze"] else " (keine gemeinsame Grenze)")
+          + "".join(f" · {n} A{x}" for n, x in pc["arbeiten"]))
+    print(f"Halt beim Wochenlimit: {einstellungen.wert('limit_halt') or 'aus'} % für alle Projekte (ein Projekt nur strenger)")
+    seit = disponent.wochenbeginn()
+    for nr, (pid, name) in enumerate(disponent.projekt_reihe(con), 1):
+        from . import platz
+        k = disponent.kosten_woche(con, pid, seit)
+        print(f"{nr}. {name}: Schalter {kern.projekt_schalter(con, pid)} · {len(platz.plaetze(con, pid))} Plätze · diese Woche"
+              f" {k['usd']:.2f} $ in {k['pakete']} Paket(en)")
+
+
 def cmd_platz(a, con):
     """A1855: Arbeitsplätze für -p – zeigen, vorbereiten, zurücksetzen (Lead und Mensch)."""
     from . import platz
@@ -3113,6 +3151,12 @@ def parser():
     x.add_argument("--aufgabe", type=int, help="Aufgabe des Pakets (Name des Archivs, damit aufraeumen es nach Paketende verschiebt)")
     x.add_argument("--zweig", help="vorbereiten: Name des Zweigs ab main (Vorgabe platzN)")
     x.set_defaults(f=cmd_platz)
+
+    x = s.add_parser("pc", help="Disponent über Projekte (A1925): zeigen (Rangfolge, p-Arbeiter, Kosten je Projekt diese Woche) |"
+                                " einstellen projekt_rang=A,B,C (nur der Mensch) | plaetze_pc=N | limit_halt=P (Lead oder Mensch)")
+    x.add_argument("aktion", choices=["zeigen", "einstellen"], nargs="?", default="zeigen")
+    x.add_argument("wert", nargs="?", help="schluessel=wert")
+    x.set_defaults(f=cmd_pc)
 
     x = s.add_parser("messung", help="Wartezeit und Kosten je Aufgabe (Liegezeit, aktiv, wartet nach Grund, $, Lücken) – nur lesen")
     x.add_argument("nr", nargs="?", help="eine Aufgabe (A12 oder 12); ohne: alle begonnenen")

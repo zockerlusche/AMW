@@ -23,6 +23,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`waechter`](#waechter) | Wächter für p-Pakete: pruefen A ¦ protokoll [A] ¦ reihenfolge ¦ zustand ¦ wartung an¦aus ¦ weiter |
 | [`claude`](#claude) | Claude-Code-Versionen der Arbeiter: status (installiert, geprüft, Proben) ¦ freigeben X.Y.Z --grund (Lead oder Mensch, nicht aus einer Agenten-Sitzung) – eine neue Version prüft die AMW selbst (A1906) |
 | [`platz`](#platz) | Arbeitsplätze für kopflose Arbeiter (claude -p): liste ¦ vorbereiten N ¦ zuruecksetzen N ¦ aufraeumen ¦ notbremse N (nur der Mensch: Arbeiter samt Kindern beenden) – nichts wird gelöscht: Reste ins Archiv, fertige Pakete nach _loeschen |
+| [`pc`](#pc) | Disponent über Projekte (A1925): zeigen (Rangfolge, p-Arbeiter, Kosten je Projekt diese Woche) ¦ einstellen projekt_rang=A,B,C (nur der Mensch) ¦ plaetze_pc=N ¦ limit_halt=P (Lead oder Mensch) |
 | [`messung`](#messung) | Wartezeit und Kosten je Aufgabe (Liegezeit, aktiv, wartet nach Grund, $, Lücken) – nur lesen |
 | [`kosten`](#kosten) | Kosten eines Laufs außerhalb der Sitzungs-Zähler einer Aufgabe zuordnen (z. B. claude -p) |
 | [`mcp`](#mcp) | Connector für Chat-Leads: schluessel (neu erzeugen – nur der Mensch, einmal sichtbar) ¦ eintrag (Zeile für claude_desktop_config.json) |
@@ -639,6 +640,21 @@ options:
   --aufgabe AUFGABE     Aufgabe des Pakets (Name des Archivs, damit aufraeumen
                         es nach Paketende verschiebt)
   --zweig ZWEIG         vorbereiten: Name des Zweigs ab main (Vorgabe platzN)
+  --von VON
+  --projekt PROJEKT
+```
+
+## pc
+```
+usage: amw pc [-h] [--von VON] [--projekt PROJEKT]
+              [{zeigen,einstellen}] [wert]
+
+positional arguments:
+  {zeigen,einstellen}
+  wert                 schluessel=wert
+
+options:
+  -h, --help           show this help message and exit
   --von VON
   --projekt PROJEKT
 ```

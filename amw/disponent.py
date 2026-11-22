@@ -206,12 +206,73 @@ def _starten(con, pid, aid, p, quelle, prog=None, umgebung=None):
     return f"A{aid} gestartet auf Platz {p['nr']} (Starter {proc.pid}, Basis {r['basis'][:8]})"
 
 
+def projekt_reihe(con):
+    """A1925 (W2449): Projekte in der Rangfolge des Menschen (PC-Einstellung projekt_rang, Namen ohne Groß/klein), die
+    übrigen danach nach Nummer. [(pid, name)]"""
+    from . import einstellungen
+    rang = [n.lower() for n in einstellungen.wert("projekt_rang")]
+    alle = [(r["id"], r["name"]) for r in con.execute("SELECT id, name FROM projekt ORDER BY id").fetchall()]
+    return sorted(alle, key=lambda x: (rang.index(x[1].lower()) if x[1].lower() in rang else len(rang), x[0]))
+
+
+def kosten_woche(con, pid, seit, bis="9999"):
+    """A1925 (E6): Kosten der p-Pakete des Projekts von `seit` bis vor `bis` (UTC-Text): {"usd", "pakete"}."""
+    usd, pakete = 0.0, set()
+    for r in con.execute("SELECT e.aufgabe_id, e.text FROM plan_ereignis e JOIN paket k ON k.aufgabe_id = e.aufgabe_id"
+                         " WHERE e.projekt_id = ? AND e.art = 'kosten' AND k.art = 'p' AND e.zeit_utc >= ? AND e.zeit_utc < ?",
+                         (pid, seit, bis)).fetchall():
+        try:
+            usd += float(json.loads(r["text"]).get("usd") or 0)
+        except (ValueError, TypeError):
+            continue
+        pakete.add(r["aufgabe_id"])
+    return {"usd": round(usd, 2), "pakete": len(pakete)}
+
+
+def wochenbeginn(jetzt=None):
+    """Montag 00:00 UTC der laufenden Woche als UTC-Text (wie zeit_utc)."""
+    import datetime
+    t = (jetzt or datetime.datetime.now(datetime.timezone.utc)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return (t - datetime.timedelta(days=t.weekday())).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def wochenbericht(con, jetzt=None):
+    """A1925 (E6): einmal je Woche (montags, erste Runde) an den Menschen – je Projekt mit Plätzen Rang, Kosten und Pakete der
+    Vorwoche. Steht im ersten Projekt der Rangfolge mit Plätzen. Rückgabe: Text oder None."""
+    import datetime
+    from . import platz
+    reihe = [(pid, name) for pid, name in projekt_reihe(con) if platz.plaetze(con, pid)]
+    if not reihe:
+        return None
+    diese = wochenbeginn(jetzt)
+    if con.execute("SELECT 1 FROM plan_ereignis WHERE art = 'wochenbericht' AND text = ?", (diese,)).fetchone():
+        return None
+    vor = (datetime.datetime.strptime(diese, "%Y-%m-%dT%H:%M:%SZ") - datetime.timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    zeilen, summe = [], 0
+    for nr, (pid, name) in enumerate(reihe, 1):
+        k = kosten_woche(con, pid, vor, diese)
+        summe += k["pakete"]
+        zeilen.append(f"{nr}. {name}: {k['usd']:.2f} $ · {k['pakete']} Paket(e)")
+    text = f"Woche ab {vor[:10]} – p-Pakete je Projekt (Rangfolge):\n" + "\n".join(zeilen)
+    with db.schreiben(con):                                    # die Woche ist erledigt – auch ohne Bericht (nichts gelaufen)
+        db.einfuegen(con, "plan_ereignis", projekt_id=reihe[0][0], zeit_utc=db.jetzt(), von="AMW", art="wochenbericht", text=diese)
+        if summe:
+            kern._posten(con, reihe[0][0], "AMW", kern.ENTWICKLER, "info", f"Wochenbericht Arbeitsplätze ab {vor[:10]}", text)
+    return text if summe else None
+
+
 def runde(con, prog=None, umgebung=None):
-    """Eine Runde für alle Projekte mit Plätzen. Rückgabe: Liste von Texten fürs Dienst-Protokoll."""
+    """Eine Runde für alle Projekte mit Plätzen – A1925: in der Rangfolge des Menschen (projekt_rang); die PC-Grenze
+    plaetze_pc prüft der Wächter (Regel 4). Rückgabe: Liste von Texten fürs Dienst-Protokoll."""
     from . import entscheidung, platz, waechter
     aus = []
-    for prj in con.execute("SELECT id FROM projekt").fetchall():
-        pid = prj["id"]
+    try:
+        t = wochenbericht(con)
+        if t:
+            aus.append("Wochenbericht an den Menschen")
+    except Exception as e:                                     # noqa: BLE001 – der Bericht hält keine Runde an
+        aus.append(f"Wochenbericht fehlgeschlagen ({type(e).__name__}: {e})")
+    for pid, _name in projekt_reihe(con):
         plaetze = platz.plaetze(con, pid)
         if not plaetze:
             continue                                              # Plätze = 0 → die AMW verhält sich wie heute
