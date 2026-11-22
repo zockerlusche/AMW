@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.165.2 – 22.11.2026 · „Über Prognose“ nur für offene Pakete, Planer kennt den Bestand
+- **Behoben:** Die Meldung „über Prognose“ an den Lead kommt nur noch für offene Pakete, nie für fertige; die Prognose nimmt,
+  wenn genug Messungen da sind, Pakete mit gleichem Modell und Denkaufwand.
+- **Verbessert:** Der Planer sieht, was zu einem Thema schon gebaut ist und welche offenen Meilensteine dazu passen; die AMW
+  weist Vorschläge zurück, die ein fertiges Paket wiederholen, und plant Oberflächen nie ohne Kleinprobe.
+
 ## 1.165.1 – 22.11.2026 · Themen-Seite zeigt nur, was auf dich wartet; pyright nur an festen Orten
 - **Verbessert:** Die Themen-Seite zeigt oben nur noch die fünf Tore; die Werte eines Tors erscheinen auf Klick, und nur wenn
   du etwas tun musst, steht darunter eine Zeile („Wartet auf dich: 1 Thema · 1 Meilenstein“) mit Sprung dorthin.
