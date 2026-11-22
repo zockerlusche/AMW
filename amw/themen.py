@@ -572,6 +572,40 @@ def tor_ereignisse(con, pid):
     return aus
 
 
+def konzept_zeile(con, pid, kennung):
+    """A1949 (Co #30170, W2458): was ein Agent nach Start oder Kompaktierung liest – das Einstiegs-Thema des Projekts
+    (Projekt-Einstellung konzept_einstieg) und nur das Thema seines laufenden Pakets; keine Konzept-Dokumente. Ohne laufendes
+    Paket nur der Einstieg; ohne beides None."""
+    import json
+    from . import arbeitsliste
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    try:
+        einstieg = json.loads((r[0] if r else None) or "{}").get("konzept_einstieg")
+    except ValueError:
+        einstieg = None
+    teile = []
+    if einstieg:
+        try:
+            t = finden(con, pid, einstieg)
+            teile.append(f"TH{t['id']} {t['name']} (Einstieg)")
+        except kern.AmwFehler:
+            pass
+    a = arbeitsliste.laufend(con, pid, kennung)
+    lesen = [f"TH{t['id']}" for t in ([finden(con, pid, einstieg)] if teile else [])]
+    if a:
+        ts = [finden(con, pid, x) for x in verweise(con, pid, a["id"])]
+        if ts:
+            teile.append(f"dein Paket A{a['id']} → " + ", ".join(f"TH{t['id']} {t['name']} (Fassung {status(con, t)['fassung'] or '–'})"
+                                                                for t in ts))
+            lesen += [f"TH{t['id']}" for t in ts]
+        else:
+            teile.append(f"dein Paket A{a['id']} hat noch kein Thema")
+    if not teile:
+        return None
+    return ("Konzept: " + " · ".join(teile) + " – lesen: " + " · ".join(f"amw thema zeige {x}" for x in dict.fromkeys(lesen))
+            + (" (nur diese; abgelöste Konzept-Dokumente nicht)" if lesen else ""))
+
+
 def kontext_zeilen(con, pid, kennung):
     z = []
     s = con.execute("SELECT * FROM thema WHERE projekt_id = ? AND stil = 1", (pid,)).fetchone()

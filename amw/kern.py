@@ -519,6 +519,15 @@ def projekt_einstellen(con, pid, von, **werte):
                 else:
                     e.pop(k, None)
                 continue
+            if k == "konzept_einstieg":                  # A1949: Einstiegs-Thema des Konzepts (z. B. TH161) – Lead oder Mensch
+                v = str(v or "").strip()
+                if v:
+                    from . import themen
+                    v = f"TH{themen.finden(con, pid, v)['id']}"
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k in ("paket_pruefer", "haenge_stille_min", "haenge_runden", "leerlauf_lead", "leerlauf_lead_min",
                      "co_entwickler"):                   # A1849, A1884, A1887
                 if not (von == ENTWICKLER or ist_lead(con, pid, von)):
@@ -1696,6 +1705,13 @@ def kontext(con, pid, kennung):
          " version <D-nr> <datei> --notiz …`) · Frage an den Menschen: `amw frage neu --an entwickler --kurz … --option A=… --empfehlung A"
          " --grund …` (Varianten zum Ansehen: `--anhang A=bild.png`) · Hilfe: `amw <befehl> --help`."]
 
+    try:                                            # A1949: Konzept = Einstiegs-Thema + das Thema des laufenden Pakets
+        from . import themen as _themen
+        kz = _themen.konzept_zeile(con, pid, kennung)
+        if kz:
+            z.append(kz)
+    except Exception:
+        pass
     halte = aktive_sperren(con, pid, kennung, "halt")
     if halte:
         z.append("!! HALT GILT: " + " | ".join(f"#{s['id']} {s['von']}: {s['text']}" for s in halte)

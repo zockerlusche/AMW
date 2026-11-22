@@ -15,7 +15,7 @@ A project stands on its own: its own agents, rules, tasks and documents. The onl
 
 ## Questions
 ### How does the first agent know everything?
-Start prompt – the first sentence of every new session, in the agent's profile (tile › Profile, editable there): who it is, how it calls AMW and what to start with (lead: plan and distribute, agent: fetch work). Start information – on every start, resume and compaction the start hook gives it: command and short guide, goal, non-goals and principles from the mission, active milestones, its task list, open messages and rules. Project knowledge – Claude Code reads your CLAUDE.md in the project folder by itself.
+Start prompt – the first sentence of every new session, in the agent's profile (tile › Profile, editable there): who it is, how it calls AMW and what to start with (lead: plan and distribute, agent: fetch work). Start information – on every start, resume and compaction the start hook gives it: command and short guide, goal, non-goals and principles from the mission, active milestones, the concept to read (the entry topic, `amw projekt einstellen konzept_einstieg=TH1`, and only the topic of its running package – no concept documents), its task list, open messages and rules. Project knowledge – Claude Code reads your CLAUDE.md in the project folder by itself.
 
 ### Does a new project need MCP?
 No. Agents work through the hooks and the amw command; “Create” sets up both in the project folder. Only a lead without direct access (e.g. in Cowork or a VM) uses the file exchange: Settings › This PC › file exchange on; commands in eingang-<project>\befehle in the AMW folder, read copy daten\lesen-<project>.db – the AMW folder must be connected in the desktop app.
