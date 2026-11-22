@@ -1495,6 +1495,10 @@ class Server(ThreadingHTTPServer):
     """Ohne SO_REUSEADDR: unter Windows ließe es den Port eines anderen Programms mitbenutzen – die Workbench liefe
     dann still „neben“ einem fremden Server, und der Browser sähe den fremden. Belegter Port → OSError beim Start."""
     allow_reuse_address = False
+    # A1918: Warteschlange für Verbindungen, die noch nicht angenommen sind. Der Standard (5) reicht nicht: Die Seite lädt
+    # beim Öffnen vieles gleichzeitig (je Projekt, A1889), jede Anfrage ist eine eigene Verbindung (HTTP/1.0). Ist der
+    # Server kurz beschäftigt, nahm Windows die sechste nicht an – im Browser „Failed to fetch“, die Seite blieb leer.
+    request_queue_size = 128
 
     def server_bind(self):
         if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
