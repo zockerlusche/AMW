@@ -28,7 +28,8 @@ TESTS = "tests"
 MUSTER = re.compile(r"^test_\w+\.py$")
 BROWSER = re.compile(r"test_aktualisieren import|tests\.rundgang|from tests import rundgang|\bmsedge\b|--headless")
 DAUER_DATEI = os.path.join(os.environ.get("LOCALAPPDATA") or tempfile.gettempdir(), "AMW", "testdauer.json")
-PAKET_WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # dort liegt amw/ – für -m amw.testlauf im Prozess
+PAKET_WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # dort liegt amw/ – nur für den Start eines Prozesses
+START = "import sys; sys.path.insert(1, {0!r}); from amw import testlauf; sys.exit(testlauf.main())"   # [0] = Arbeitsordner
 
 
 def module(wurzel="."):
@@ -154,7 +155,7 @@ def steuern(n=None, wurzel=".", aus=sys.stdout, dauer_datei=None):
     mods = module(wurzel)
     browser = {name for name, p in mods if ist_browser(p)}
     gruppen = verteilen(mods, n or prozesse(), dauern_lesen(dauer_datei), browser)
-    basis = tempfile.mkdtemp(prefix="amw-testlauf-")
+    basis = tempfile.mkdtemp(prefix="gl-")                 # kurz und neutral: Tests suchen Texte wie „amw-test“ in Pfaden
     laeufe = []
     for i, namen in enumerate(gruppen):
         ordner = os.path.join(basis, f"p{i}")
@@ -164,11 +165,14 @@ def steuern(n=None, wurzel=".", aus=sys.stdout, dauer_datei=None):
             json.dump(namen, f)
         env = {k: v for k, v in os.environ.items() if k not in ("AMW_DB", "AMW_AGENT", "AMW_PROJEKT")}
         env.update(TMP=os.path.join(ordner, "tmp"), TEMP=os.path.join(ordner, "tmp"), TMPDIR=os.path.join(ordner, "tmp"),
-                   PYTHONIOENCODING="utf-8",
-                   PYTHONPATH=os.pathsep.join(x for x in (os.path.abspath(wurzel), PAKET_WURZEL, env.get("PYTHONPATH")) if x))
+                   PYTHONIOENCODING="utf-8")
         logf = open(log, "w", encoding="utf-8", errors="replace")
-        p = subprocess.Popen([sys.executable, "-X", "utf8", "-m", "amw.testlauf", "--arbeiter", liste, bericht], cwd=wurzel, env=env,
-                             stdout=logf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
+        # kein PYTHONPATH: Tests, die selbst Python in einem anderen Repo starten, fänden sonst dieses Paket tests (test_abnahme)
+        p = subprocess.Popen([sys.executable, "-X", "utf8", "-c", START.format(PAKET_WURZEL), "--arbeiter", liste, bericht], cwd=wurzel,
+                             env=env, stdout=logf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                             | (0 if (i == 0 and browser) else getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0)))
+        # Browser-Tests warten auf Zeichnen und Zeitgeber – unter Volllast wackeln sie; die anderen Prozesse treten zurück
         laeufe.append({"nr": i, "namen": namen, "proc": p, "log": log, "logf": logf, "bericht": bericht, "browser": i == 0 and bool(browser)})
     print(f"Gesamtlauf parallel: {len(mods)} Module auf {len(gruppen)} Prozesse"
           + (f" (Browser-Tests: {len(browser)} Module nacheinander in Prozess 0)" if browser else ""), file=aus, flush=True)
