@@ -1478,9 +1478,10 @@ def baue_handler(port, token, netz=None):
             try:
                 con = db.verbinde(nur_lesen=True)
                 try:
-                    return self._senden(200, weg(con, self._projekt(con, q)))
+                    aus = weg(con, self._projekt(con, q))
                 finally:
-                    con.close()
+                    con.close()                       # A1979: erst schließen, dann antworten – der Client darf sofort aufräumen
+                return self._senden(200, aus)
             except LookupError:
                 return self._senden(404, {"fehler": "unbekannt"})
             except kern.AmwFehler as e:
@@ -1504,14 +1505,15 @@ def baue_handler(port, token, netz=None):
             q = parse_qs(u.query)
             try:
                 con = db.verbinde()
-                try:
-                    return self._senden(200, aktionen.ausfuehren(con, self._projekt(con, q), u.path, daten))
-                except aktionen.Ungueltig as e:
-                    return self._senden(400, {"fehler": str(e)})
+                try:                                  # A1979: erst die Verbindung schließen, dann antworten – sonst hält der
+                    code, aus = 200, aktionen.ausfuehren(con, self._projekt(con, q), u.path, daten)   # Thread die Datei noch,
+                except aktionen.Ungueltig as e:       # wenn der Client schon weitermacht (Tests: WinError 32 beim Aufräumen)
+                    code, aus = 400, {"fehler": str(e)}
                 except LookupError:
-                    return self._senden(404, {"fehler": "unbekannt"})
+                    code, aus = 404, {"fehler": "unbekannt"}
                 finally:
                     con.close()
+                return self._senden(code, aus)
             except kern.AmwFehler as e:
                 return self._senden(409, {"fehler": str(e)})
             except Exception as e:

@@ -5,6 +5,7 @@ Läufe und Prüfbitten sind Daten, keine Freitext-Nachrichten: das nimmt dem Nac
 """
 import ctypes
 import json
+import re
 
 from . import db, kern
 from . import schirm as schirm_mod     # „schirm“ ist hier schon der Name der Spalte/des Parameters
@@ -362,7 +363,22 @@ def leichte_laeufe():
     return einstellungen.wert("leichte_laeufe")
 
 
-def _plaetze(schwer, schirm, gpu=0, agent=None, pid=None):
+GESAMT = re.compile(r"-m\s+amw\.testlauf\b(?!\s+--arbeiter)|-m\s+unittest\s+discover\b(?![^&|;>]*\s-[kpt]\b)")
+
+
+def ist_gesamt(befehl):
+    """A1979 (CCamwTL #30758): die ganze Test-Suite (paralleler Runner oder unittest discover ohne Auswahl) – sie belegt den
+    ganzen Rechner; höchstens EINE zur Zeit (Platz „gesamt“). befehl: Liste, JSON-Text oder Text."""
+    if isinstance(befehl, str):
+        try:
+            befehl = json.loads(befehl)
+        except ValueError:
+            pass
+    text = " ".join(befehl) if isinstance(befehl, (list, tuple)) else str(befehl or "")
+    return bool(GESAMT.search(" ".join(text.split())))
+
+
+def _plaetze(schwer, schirm, gpu=0, agent=None, pid=None, gesamt=False):
     """Spuren: Grafikkarte und Schirm (PC-weit ein Lauf zur Zeit; ein Fenster rechnet auf der Grafikkarte), „cpu“ für schwere
     Läufe ohne beides (cpu_laeufe() zugleich) und – A1822 – „leicht“ für leichte Läufe (leichte_laeufe() zugleich; sie warten
     nie auf schwere). agent: Läufe eines Agenten nie gleichzeitig – er rechnet in seinem Klon (zwei Godot-Imports oder zwei
@@ -372,11 +388,18 @@ def _plaetze(schwer, schirm, gpu=0, agent=None, pid=None):
         p.add("cpu" if schwer else "leicht")
     if agent:
         p.add(f"agent:{pid}:{agent}")              # je Projekt: gleiche Kennung in zwei Projekten = zwei Agenten, zwei Klone
+    if gesamt:
+        p.add("gesamt")                            # A1979: ein Gesamtlauf zur Zeit auf dem Rechner (alle Projekte)
     return p
 
 
+def _befehl_von(l):
+    return l["befehl"] if "befehl" in l.keys() else None
+
+
 def _plaetze_von(l):
-    return _plaetze(l["schwer"], l["schirm"], l["gpu"], None if l["ki_auftrag"] else l["agent"], l["projekt_id"])
+    return _plaetze(l["schwer"], l["schirm"], l["gpu"], None if l["ki_auftrag"] else l["agent"], l["projekt_id"],
+                    ist_gesamt(_befehl_von(l)))
 
 
 MENSCH_RANG = 1000            # ab hier: vom Menschen vorgezogen – gilt über alle Projekte; darunter sortiert ein Lead nur
@@ -431,6 +454,11 @@ def _besetzt(con, pid, plaetze):
         n = cpu_laeufe()
         if len(r) >= n:
             return f"CPU-Spur voll ({len(r)} von {n} Läufen ohne Fenster: {', '.join('L%d' % x['id'] for x in r)})", "cpu"
+    if "gesamt" in plaetze:                          # A1979: läuft schon eine ganze Test-Suite, wartet die zweite
+        for b in con.execute("SELECT l.id, l.projekt_id, l.agent, l.beschreibung, l.befehl, l.start_utc, l.erwartet_min, l.braucht_gb"
+                             " FROM lauf l WHERE l.status = 'laeuft' AND " + HIER + " ORDER BY l.id", (rechner(),)).fetchall():
+            if ist_gesamt(b["befehl"]):
+                return f"Gesamtlauf {lauf_nennen(pid, b)} belegt den Rechner – höchstens einer zur Zeit", "gesamt"
     if "leicht" in plaetze:                          # A1822: nur leichte zählen – schwere halten leichte nie auf
         r = con.execute("SELECT l.id FROM lauf l WHERE l.status = 'laeuft' AND l.schwer = 0 AND l.schirm = 0 AND l.gpu = 0 AND NOT coalesce("
                         + DAUERLAUF + ", 0) AND " + HIER + " ORDER BY l.id", (rechner(),)).fetchall()
@@ -739,7 +767,7 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     grenze = _grenze(con, pid, braucht_gb or (rez["braucht_speicher_gb"] if rez else None), schwer)   # eigene Angabe geht vor
     if speicher_frei is None:
         speicher_frei = speicher_frei_gb()[0]
-    plaetze = _plaetze(schwer, schirm, gpu, None if dazu else agent, pid)
+    plaetze = _plaetze(schwer, schirm, gpu, None if dazu else agent, pid, ist_gesamt(befehl))
     with db.schreiben(con):
         w = wartende(con, pid)
         eigene = VORRANG[vorrang_stufe(con, pid)]          # nur wer nach der Reihenfolge vor ihm stünde, hält ihn auf
@@ -911,7 +939,7 @@ def wartegrund(con, pid, l, speicher_frei=None):
     platz = next((i for i, x in enumerate(w, 1) if x["id"] == l["id"]), None)
     ki_auftrag = con.execute("SELECT id, json_extract(parameter, '$.nachts') AS nachts FROM ki_auftrag WHERE lauf_id = ?",
                              (l["id"],)).fetchone()
-    plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"], None if ki_auftrag else l["agent"], pid)
+    plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"], None if ki_auftrag else l["agent"], pid, ist_gesamt(_befehl_von(l)))
     frei = speicher_frei if speicher_frei is not None else speicher_frei_gb()[0]
     gruende = []
     schirm_zu = schirm_mod.sperrgrund(con) if l["schirm"] or any(x["schirm"] for x in w) else None
@@ -975,7 +1003,7 @@ def warteposition(con, pid, l):
     l = next((x for x in w if x["id"] == l["id"]), l)      # die Zeile der Schlange (mit dem angemeldeten Bedarf)
     namen = dict(con.execute("SELECT id, name FROM projekt"))
     ki = con.execute("SELECT 1 FROM ki_auftrag WHERE lauf_id = ?", (l["id"],)).fetchone()
-    plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"], None if ki else l["agent"], pid)
+    plaetze = _plaetze(l["schwer"], l["schirm"], l["gpu"], None if ki else l["agent"], pid, ist_gesamt(_befehl_von(l)))
     schirm_zu = schirm_mod.sperrgrund(con) if l["schirm"] or any(x["schirm"] for x in w) else None
     vor = sorted({x["id"]: x for p in plaetze for x in (_gesperrt(con, pid, w, schirm_zu, bis=l["id"], speicher_frei=speicher_frei_gb()[0]) if platz else {}).get(p, [])}.values(),
                  key=lambda x: x["id"])

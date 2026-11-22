@@ -42,6 +42,30 @@ class Grund(unittest.TestCase):
         return [l["id"] for l in betrieb.wartende(self.con)]
 
 
+class EinGesamtlauf(Grund):
+    """A1979 (CCamwTL #30758): ein Gesamtlauf belegt den ganzen Rechner – ein zweiter wartet in der Schlange (auch aus einem
+    anderen Projekt); Teil-Läufe laufen daneben weiter."""
+
+    def test_erkennen(self):
+        for b, ja in ((["cd /d x && set A= && python -X utf8 -m amw.testlauf"], True), ('["python -m unittest discover -s tests"]', True),
+                      ("python -m unittest discover -s tests -k kopf", False), (["python -X utf8 -m amw.testlauf --arbeiter m.json b.json"], False),
+                      (["python -m unittest tests.test_kern"], False), (None, False)):
+            self.assertEqual(betrieb.ist_gesamt(b), ja, b)
+
+    def test_zweiter_gesamtlauf_wartet_teillauf_nicht(self):
+        with mock.patch.object(betrieb, "leichte_laeufe", return_value=4):
+            a = self.start("Eins", "A", "Gesamtlauf eins", schwer=False, befehl=["cd x && python -X utf8 -m amw.testlauf"])
+            self.assertEqual(self.status(a), "laeuft")
+            b = self.start("Zwei", "B", "Gesamtlauf zwei", schwer=False, befehl=["python -m unittest discover -s tests"])
+            self.assertEqual(self.status(b), "angemeldet")
+            self.assertIn("höchstens einer zur Zeit", betrieb.wartegrund(self.con, self.p["Zwei"], betrieb.lauf_zeile(self.con, self.p["Zwei"], b)))
+            c = self.start("Eins", "C", "Teil", schwer=False, befehl=["python -m unittest tests.test_kern"])
+            self.assertEqual(self.status(c), "laeuft")                                         # ein Teil-Lauf darf daneben
+            betrieb.lauf_ende(self.con, self.p["Eins"], "A", a, 0, "fertig")
+            betrieb.warteschlange(self.con)
+            self.assertEqual(self.status(b), "laeuft")
+
+
 class Reihenfolge(Grund):
     def test_wer_zuerst_kommt_ist_zuerst_dran_auch_ueber_projekte(self):
         laeuft = self.start("Eins", "A")                     # belegt die einzige Spur für schwere Läufe

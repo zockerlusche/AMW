@@ -98,6 +98,11 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
   wenn darunter eine Aufgabe mit aufgelöstem Konflikt liegt. „Stände“ nimmt den Versions-Commit eines Stapels (Betreff
   „X.Y.Z: …“ mit allen Aufgaben) als geprüft, wenn ein grüner Stand ihn enthält. Eine Aufgabe, deren Inhalt beim Zusammenführen
   geändert wurde, braucht weiter ihr eigenes Grün auf dem Stapel.
+- **Ein Gesamtlauf zur Zeit (A1979, #30758):** ein Gesamtlauf belegt den ganzen Rechner. Die Lauf-Schlange gibt jedem Lauf, der
+  die ganze Suite rechnet (paralleler Runner oder `unittest discover` ohne `-k`/`-p`/`-t`), zusätzlich den Platz „gesamt“ –
+  läuft schon einer (auch aus einem anderen Projekt), wartet der zweite in der Schlange („Gesamtlauf … belegt den Rechner –
+  höchstens einer zur Zeit“). Teil-Läufe laufen daneben weiter. Die Workbench schließt ihre Datenbank-Verbindung, bevor sie
+  antwortet – ein Client, der sofort aufräumt, findet die Datei nicht mehr gesperrt.
 - **Übertragung verdrängt kein Grün der Spitze (A1964):** Die Patch-ID-Übertragung (A1814) legt keine grüne Prüfung auf
   einen inneren Commit, wenn die Aufgabe schon ein Grün auf einem späteren Commit desselben Stands hat (z. B. auf der
   Stapel-Spitze mit dem Versions-Commit). Sonst würde die neue Zeile jenes Grün als neueste Prüfung verdrängen, und die
