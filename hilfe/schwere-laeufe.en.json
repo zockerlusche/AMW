@@ -13,7 +13,7 @@
   },
   {
    "titel": "What happens then",
-   "text": "If an agent starts a heavy command directly (for example the whole test suite), the command is not executed. Instead the agent gets the ready-made replacement: `amw lauf ausfuehren --leicht --beschreibung \"Test-Suite\" -- <its command>`. It waits until the computer is free, then runs and returns the result.",
+   "text": "If an agent starts a heavy command directly (for example the whole test suite), the command is not executed. Instead the agent gets the ready-made replacement: `amw lauf ausfuehren --leicht --beschreibung \"Test-Suite\" -- <its command>`. It waits until the computer is free, then runs and returns the result. If the same command only appears as quoted text (for example in a message or a commit description) or in a heredoc, this does not apply – only what actually runs is checked; after `cmd /c \"…\"` or `bash -c '…'` the content counts as a command.",
    "bilder": []
   },
   {

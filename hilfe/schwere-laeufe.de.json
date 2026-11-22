@@ -13,7 +13,7 @@
   },
   {
    "titel": "So läuft es dann",
-   "text": "Startet ein Agent einen schweren Befehl direkt (zum Beispiel die ganze Test-Suite), wird der Befehl nicht ausgeführt. Der Agent bekommt stattdessen den fertigen Ersatz: `amw lauf ausfuehren --leicht --beschreibung \"Test-Suite\" -- <sein Befehl>`. Der wartet, bis der Rechner frei ist, läuft dann und gibt das Ergebnis zurück.",
+   "text": "Startet ein Agent einen schweren Befehl direkt (zum Beispiel die ganze Test-Suite), wird der Befehl nicht ausgeführt. Der Agent bekommt stattdessen den fertigen Ersatz: `amw lauf ausfuehren --leicht --beschreibung \"Test-Suite\" -- <sein Befehl>`. Der wartet, bis der Rechner frei ist, läuft dann und gibt das Ergebnis zurück. Steht derselbe Befehl nur als Text in Anführungszeichen (etwa in einer Nachricht oder einer Commit-Beschreibung) oder in einem Heredoc, gilt das nicht – geprüft wird nur, was wirklich läuft; nach `cmd /c \"…\"` oder `bash -c '…'` zählt der Inhalt als Befehl.",
    "bilder": []
   },
   {
