@@ -1790,7 +1790,10 @@ def kontext(con, pid, kennung):
                          (pid,)).fetchall()
     if regeln:
         neu = [r for r in regeln if vorher and r["stand_utc"] > vorher]
-        z.append(f"Regeln: {len(regeln)} gültig (`amw regeln`)."
+        from . import skills                         # A1956 (TH168 Hebel 7): Kurzregeln – je Regel nur der Titel, ganz bei Bedarf
+        z.append(f"Regeln ({len(regeln)}, ganz: `amw regeln KR<n>`): " + " · ".join(skills.kurzregeln(con, pid))
+                 + " · Vor Commit, Push, Release, Löschen, Daten- oder Schemaänderung und Freigabe: die Regel dazu ganz lesen."
+                 + " · Prüfwerkzeuge (LSP/Lint): nur NEUE Meldungen in deinen eigenen Bereichen beheben, fremde und alte nicht anfassen."
                  + (" GEÄNDERT seit deiner letzten Sitzung: " + " | ".join(
                      f"{'KR' if r['ebene'] == 'arbeit' else 'PR'}{r['nr']}: {r['text']}" for r in neu) if neu else ""))
         # Ein Lead, der als Chat arbeitet, wird nicht geweckt – die Takt-Regel aus dem Grund-Regelwerk steht deshalb im Wortlaut da
@@ -1798,6 +1801,7 @@ def kontext(con, pid, kennung):
             for r in regeln:
                 if (r["vorlage"] or "").startswith("W4/"):
                     z.append(f"Dein Rhythmus (KR{r['nr']}): {r['text']}")
+    z.append("Ausführliche Anleitungen: Skills amw-befehle, amw-automatismen, amw-anleitungen, amw-hilfe, amw-fehlerbehebung (Claude Code lädt sie bei Bedarf), sonst `amw <befehl> --help`.")   # A1956
     version = con.execute("SELECT version FROM release WHERE projekt_id = ? AND art = 'version' ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
     if version:
         z.append(f"Version: aktuell {version['version']} · Schema MAJOR.MINOR.PATCH · jede Auslieferung eintragen: `amw release version`")

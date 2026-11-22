@@ -243,7 +243,7 @@ class Getrennt(ZweiProjekte):
         self.assertIn("KR1", aus)
         self.assertIn("Kassenbon", aus)
         self.assertNotIn("spielen", aus)
-        self.assertIn("Regeln: 1 gültig", kern.kontext(self.con, self.b, "Spiel1"))
+        self.assertIn("Regeln (1, ganz: `amw regeln KR<n>`): KR1 ", kern.kontext(self.con, self.b, "Spiel1"))
         self.assertNotIn("Kassenbon", kern.kontext(self.con, self.b, "Spiel1"))
         rc, aus = self.cli("zeige", "KR1", "--von", "Spiel1")
         self.assertIn("spielen", aus)

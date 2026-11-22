@@ -28,12 +28,13 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`anbieter`](#anbieter) | Anbieter je Projekt (A1931, TH159): liste ¦ freigeben NAME --url https://… --schluessel-datei <Pfad> --modelle a,b [--lokal] ¦ entfernen NAME – freigeben/entfernen nur der Mensch im eigenen Terminal; nur der Pfad der Schlüsseldatei wird gespeichert, nie der Schlüssel |
 | [`pc`](#pc) | Disponent über Projekte (A1925): zeigen (Rangfolge, p-Arbeiter, Kosten je Projekt diese Woche) ¦ einstellen projekt_rang=A,B,C (nur der Mensch) ¦ plaetze_pc=N ¦ limit_halt=P (Lead oder Mensch) |
 | [`messung`](#messung) | Wartezeit und Kosten je Aufgabe (Liegezeit, aktiv, wartet nach Grund, $, Lücken) – nur lesen |
+| [`skills`](#skills) | Anleitungen als Claude-Code-Skills: bauen (aus doc nach .claude/skills, A1956) |
 | [`kosten`](#kosten) | Kosten eines Laufs außerhalb der Sitzungs-Zähler einer Aufgabe zuordnen (z. B. claude -p) |
 | [`mcp`](#mcp) | Connector für Chat-Leads: schluessel (neu erzeugen – nur der Mensch, einmal sichtbar) ¦ eintrag (Zeile für claude_desktop_config.json) |
 | [`takt`](#takt) | ein Durchgang für Leads: Postfach mit Text, Prüfbitten, Fragen, Antworten des Menschen, Läufe, Lead-Runde, Auslieferungen – knapp, je Punkt eine Zeile |
 | [`kontext`](#kontext) | Startinformationen für einen Agenten |
 | [`runde`](#runde) | Lead-Runde: Kanal nur zwischen den Leads aller Projekte – nur Information, nie Befehle (runde schreiben --kurz … [--an Projekt] · runde lesen [--neu]) |
-| [`regeln`](#regeln) | alle geltenden Regeln (Arbeits- und Projektregeln) |
+| [`regeln`](#regeln) | alle geltenden Regeln (Arbeits- und Projektregeln) – oder eine ganz: amw regeln KR3 |
 | [`verbrauch`](#verbrauch) | Verbrauch nach Anlass (Pareto): wofür die Agenten des Projekts ihr Geld ausgeben |
 | [`suche`](#suche) | Volltext über Aufgaben, Beschlüsse, Fragen, Deine Worte, Nachrichten, Dokumente: amw suche Modem |
 | [`zeige`](#zeige) | Einträge ganz lesen: amw zeige B5 F12 A120 W3 16000 D5 KR3 PR4 (Nachricht ohne #: in der Shell beginnt mit # ein Kommentar) |
@@ -741,8 +742,8 @@ options:
 
 ## messung
 ```
-usage: amw messung [-h] [--seit SEIT] [--agent AGENT] [--vergleich]
-                   [--von VON] [--projekt PROJEKT]
+usage: amw messung [-h] [--seit SEIT] [--agent AGENT] [--vergleich] [--hebel7]
+                   [--basis] [--von VON] [--projekt PROJEKT]
                    [nr]
 
 positional arguments:
@@ -755,6 +756,25 @@ options:
   --agent AGENT
   --vergleich        letzte 7 Tage gegen die 7 Tage davor (Mediane, D1258 v2
                      §8)
+  --hebel7           Startkontext je Agent (Zeilen/Zeichen) und Kosten je
+                     Paket (Median der letzten 10) – A1956, TH168 Hebel 7
+  --basis            mit --hebel7: als Basis festhalten (Ereignis
+                     basis_hebel7; Lead oder Mensch)
+  --von VON
+  --projekt PROJEKT
+```
+
+## skills
+```
+usage: amw skills [-h] [--ziel ZIEL] [--von VON] [--projekt PROJEKT] {bauen}
+
+positional arguments:
+  {bauen}
+
+options:
+  -h, --help         show this help message and exit
+  --ziel ZIEL        anderer Ordner für .claude/skills (z. B. der Agenten-
+                     Ordner eines anderen Projekts)
   --von VON
   --projekt PROJEKT
 ```
@@ -850,7 +870,10 @@ options:
 
 ## regeln
 ```
-usage: amw regeln [-h] [--von VON] [--projekt PROJEKT]
+usage: amw regeln [-h] [--von VON] [--projekt PROJEKT] [nr]
+
+positional arguments:
+  nr                 eine Regel: KR3, PR2 oder 3 (= KR3)
 
 options:
   -h, --help         show this help message and exit

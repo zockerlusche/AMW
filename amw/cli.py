@@ -1296,7 +1296,28 @@ def _messung_zeile(m):
             + (f" ({w})" if w else "") + f" · {m['usd']:.2f} $" + (" – noch offen" if m["offen"] else ""))
 
 
+def cmd_skills(a, con):
+    """A1956: die Hilfe-Seiten als Skills ins Repo schreiben (Quelle bleibt doc/hilfe)."""
+    from . import skills
+    namen, verwaist = skills.bauen(os.path.join(a.ziel, ".claude", "skills") if a.ziel else skills.ZIEL)
+    ziel = a.ziel or skills.WURZEL
+    print(f"{len(namen)} Skills in {ziel}" + (f" · ohne Hilfe-Seite (liegen gelassen): {', '.join(verwaist)}" if verwaist else ""))
+
+
 def cmd_messung(a, con):
+    if getattr(a, "hebel7", False):                  # A1956 (TH168 Hebel 7): Startkontext und Kosten je Agent
+        from . import skills
+        pid = _projekt(con, a)
+        if a.basis and not kern.ist_lead(con, pid, _von(a)):
+            raise kern.AmwFehler("Die Basis halten Lead oder Mensch fest")
+        m = skills.basis_merken(con, pid, _von(a)) if a.basis else skills.kontext_masse(con, pid)
+        for x in m:
+            print(f"{x['agent']:<14} Kontext {x['kontext_zeilen']:>3} Zeilen / {x['kontext_zeichen']:>6} Zeichen · Regeln"
+                  f" {x['regeln_zeilen']:>3} / {x['regeln_zeichen']:>6} · Paket-Median "
+                  + (f"{x['usd_median']:.2f} $ (n={x['n']})" if x["usd_median"] is not None else "–"))
+        if a.basis:
+            print("als Basis festgehalten (basis_hebel7)")
+        return
     """A1844: Wartezeit und Kosten je Aufgabe – nur lesen."""
     from . import messung
     pid = _projekt(con, a)
@@ -1726,6 +1747,15 @@ def cmd_runde(a, con):
 def cmd_regeln(a, con):
     pid = _projekt(con, a)
     regeln = con.execute("SELECT ebene, nr, text, stand_utc, vorlage FROM regel WHERE projekt_id = ? ORDER BY ebene, nr", (pid,)).fetchall()
+    if getattr(a, "nr", None):                       # A1956: eine Regel ganz (KR3, PR2, 3 = KR3)
+        import re as _re
+        m = _re.fullmatch(r"(KR|PR)?(\d+)", a.nr.strip().upper())
+        if not m:
+            raise kern.AmwFehler("amw regeln KR3 | PR2 | 3")
+        ebene = "projekt" if m.group(1) == "PR" else "arbeit"
+        regeln = [r for r in regeln if r["ebene"] == ebene and r["nr"] == int(m.group(2))]
+        if not regeln:
+            raise kern.AmwFehler(f"{a.nr} gibt es nicht – amw regeln")
     for r in regeln:
         grund = f" · Grundregel {r['vorlage'].split('/')[0]}" if r["vorlage"] else ""
         print(f"{'KR' if r['ebene'] == 'arbeit' else 'PR'}{r['nr']}{grund} (Stand {_zeit(r['stand_utc'])}): {r['text']}\n")
@@ -3463,7 +3493,15 @@ def parser():
     x.add_argument("--seit", help="nur Aufgaben, die ab dann noch liefen (17.11. oder ISO-Zeit)")
     x.add_argument("--agent")
     x.add_argument("--vergleich", action="store_true", help="letzte 7 Tage gegen die 7 Tage davor (Mediane, D1258 v2 §8)")
+    x.add_argument("--hebel7", action="store_true", help="Startkontext je Agent (Zeilen/Zeichen) und Kosten je Paket (Median der"
+                                                        " letzten 10) – A1956, TH168 Hebel 7")
+    x.add_argument("--basis", action="store_true", help="mit --hebel7: als Basis festhalten (Ereignis basis_hebel7; Lead oder Mensch)")
     x.set_defaults(f=cmd_messung)
+
+    x = s.add_parser("skills", help="Anleitungen als Claude-Code-Skills: bauen (aus doc nach .claude/skills, A1956)")
+    x.add_argument("aktion", choices=["bauen"])
+    x.add_argument("--ziel", help="anderer Ordner für .claude/skills (z. B. der Agenten-Ordner eines anderen Projekts)")
+    x.set_defaults(f=cmd_skills)
 
     x = s.add_parser("kosten", help="Kosten eines Laufs außerhalb der Sitzungs-Zähler einer Aufgabe zuordnen (z. B. claude -p)")
     x.add_argument("aktion", choices=["erfassen"])
@@ -3503,7 +3541,8 @@ def parser():
     x.add_argument("--neu", action="store_true", help="lesen: nur Ungelesenes")
     x.set_defaults(f=cmd_runde)
 
-    x = s.add_parser("regeln", help="alle geltenden Regeln (Arbeits- und Projektregeln)")
+    x = s.add_parser("regeln", help="alle geltenden Regeln (Arbeits- und Projektregeln) – oder eine ganz: amw regeln KR3")
+    x.add_argument("nr", nargs="?", help="eine Regel: KR3, PR2 oder 3 (= KR3)")
     x.set_defaults(f=cmd_regeln)
 
     x = s.add_parser("verbrauch", help="Verbrauch nach Anlass (Pareto): wofür die Agenten des Projekts ihr Geld ausgeben")
