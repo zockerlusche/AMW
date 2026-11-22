@@ -231,6 +231,21 @@ Code; ein anderes Projekt hat eigene heikle Stellen (Zugänge, Sicherheit, Zahlu
   Vorgabe 30.
 - Beide nur Lead oder Mensch, nicht aus einer Agenten-Sitzung.
 
+## Werkzeug-Umgebung je Projekt (A1922, TH160)
+
+**Wozu:** Arbeiter (p-Pakete) laufen mit einer neu gebauten, kleinen Umgebung und ohne Netz. Ein Projekt mit eigenem
+Werkzeug (SDK, Compiler) oder mit vorbereiteten Caches braucht dafür einzelne Variablen und Ordner im PATH.
+
+- **Einstellung:** `amw projekt einstellen arbeiter_umgebung='{"variablen": ["JAVA_HOME", "GRADLE_USER_HOME"], "pfade":
+  ["C:\\Android\\platform-tools"]}'` – nur Lead oder Mensch, nicht aus einer Agenten-Sitzung; leer = nur die Grundumgebung.
+- **Variablen:** Nur der Name steht in der Einstellung, der Wert kommt aus der Umgebung der AMW. Abgelehnt: Namen wie
+  Zugangsdaten (`*TOKEN*`, `*KEY*`, `*SECRET*`, `*PASSWORD*`, `*PASSWD*`, `*CREDENTIAL*`, `*AUTH*`, `*COOKIE*`, `*SESSION*`),
+  Netz (`*PROXY*`) und alles, was die AMW selbst setzt (`AMW_*`, `CLAUDE*`, `ANTHROPIC*`, `GIT_*`, `PATH`, `TEMP` …).
+  Höchstens 30.
+- **Pfade:** absolute Ordner, hinter dem minimalen PATH der AMW, höchstens 20.
+- **Wo es gilt:** beim Arbeiter und bei Abnahme und Rückschritt-Tests in Prüfung C. Die Negativprobe bei einer neuen
+  Claude-Code-Version (A1906) und der Gegenleser laufen mit der Grundumgebung. Kein Netz bleibt.
+
 ## Neue Claude-Code-Version ohne Stillstand (seit 1.154.0)
 
 **Wozu:** 21.11.: Zweimal stand S8 je etwa eine Stunde still, weil sich Claude Code aktualisiert hatte und die geprüften
@@ -406,6 +421,7 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 
 | Wo | Schlüssel | Bedeutung |
 |---|---|---|
+| `amw projekt einstellen` | `arbeiter_umgebung` | zusätzliche Variablen und PATH-Ordner für Arbeiter (keine Zugangsdaten, kein Netz) |
 | `amw projekt einstellen` | `regression_befehl` | Rückschritt-Tests in Prüfung C (Befehl, `aus`; leer = Vorgabe: nur die AMW selbst) |
 | `amw projekt einstellen` | `abnahme_frist_min` | Zeitlimit je Abnahme in Prüfung C, 1–720 Minuten (Vorgabe 30) |
 | `amw projekt einstellen` | `sperrmuster` | was Arbeiter in diesem Projekt nie ändern dürfen, zusätzlich zur festen Liste (Lead oder Mensch) |

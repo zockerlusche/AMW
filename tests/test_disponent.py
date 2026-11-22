@@ -250,6 +250,19 @@ class Disponent(unittest.TestCase):
         self.assertIn("raise SystemExit(1)", c.call_args.kwargs["regression"])
         self.assertIn("Regressions-Kurzsuite rot", " ".join(r[0] for r in self.con.execute("SELECT text FROM nachricht WHERE aufgabe_id = ?", (b,))))
 
+    def test_werkzeug_umgebung_des_projekts(self):
+        """A1922: Arbeiter und Abnahme in Prüfung C bekommen die Werkzeug-Umgebung des Projekts."""
+        from amw import arbeiter, pruefung_c
+        self.plaetze()
+        kern.projekt_einstellen(self.con, self.pid, "TL", arbeiter_umgebung='{"variablen": ["JAVA_HOME"]}')
+        aid = self.paket()
+        p, basis, vid = self.vorbereitet(aid)
+        with mock.patch.object(arbeiter, "laufen", wraps=arbeiter.laufen) as a, \
+                mock.patch.object(pruefung_c, "pruefen", wraps=pruefung_c.pruefen) as c:
+            self.assertEqual(disponent.starter(self.pid, aid, 1, prog("bauen"), lauf_schlange=False, basis=basis, vid=vid), "E7")
+        self.assertEqual(a.call_args.kwargs["umgebung_projekt"], {"variablen": ["JAVA_HOME"]})
+        self.assertEqual(c.call_args.kwargs["werkzeuge"], {"variablen": ["JAVA_HOME"]})
+
     def test_nachbesserung_prueft_regel_7(self):
         """P272 (2): vor dem E5-Lauf gelten Wartungsmodus und Wochenlimit – im Wartungsmodus kein zweiter Lauf, sondern E6."""
         from amw import waechter

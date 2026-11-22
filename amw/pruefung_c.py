@@ -294,9 +294,9 @@ NICHT_GEFUNDEN = re.compile(r"(konnte nicht gefunden werden|ist entweder falsch 
                             r"|command not found)", re.I)
 
 
-def _laufen(q, befehl, frist):
+def _laufen(q, befehl, frist, werkzeuge=None):
     from . import arbeiter
-    r = abnahme.ausfuehren(befehl, q["klon"], arbeiter.umgebung(q), frist)    # dieselbe minimale Umgebung wie der Arbeiter
+    r = abnahme.ausfuehren(befehl, q["klon"], arbeiter.umgebung(q, werkzeuge=werkzeuge), frist)   # dieselbe Umgebung wie der Arbeiter
     nicht_da = r["rc"] not in (0, None) and NICHT_GEFUNDEN.search((r.get("ausgabe") or "")[:600])
     if r.get("fehler") or r["zeitlimit"] or r["rc"] in TECHNIK_RC or r["rc"] is None or nicht_da:
         r["befund"] = "C/technik"
@@ -366,7 +366,7 @@ def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main", aussen=True, s
 
 
 def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahme.FRIST_S, nachricht=None, regression=REGRESSION,
-           aussen=True, sperrmuster=None, ohne_regression=None):
+           aussen=True, sperrmuster=None, ohne_regression=None, werkzeuge=None):
     """Prüfung C für Paket `aid` im Platz `p`. Rückgabe: Befund mit "code" (None = alles grün) und allen Einzelheiten."""
     b = {"code": None, "kopf": None, "geaendert": [], "ausserhalb": [], "gesperrt": [], "autogeladen": [], "geheim": [], "aussen": [],
          "abnahme": None, "regression": None, "test_schreiben": None, "grund": None}
@@ -406,13 +406,14 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
         q = _frisch(dict(p, autocrlf=autocrlf_projekt(quelle)), kopf)   # A1911: frischer Checkout mit den Zeilenenden des Projekts
     except (PruefFehler, subprocess.SubprocessError, OSError) as e:
         return dict(b, code="C/technik", grund=f"frischer Checkout: {e}")
-    b["abnahme"] = _laufen(q, pruefbefehl, frist)
+    b["abnahme"] = _laufen(q, pruefbefehl, frist, werkzeuge)
     if b["abnahme"]["befund"]:
         return dict(b, code=b["abnahme"]["befund"], grund=f"Abnahme {'technisch nicht ausführbar' if b['abnahme']['befund'] == 'C/technik' else 'rot'}")
     if typ == abnahme.TEST_SCHREIBEN:
         testdateien = [x for x in g if x.lower().startswith("tests/")]
         from . import arbeiter
-        t = (abnahme.test_gegen_basis(q, pruefbefehl, basis, testdateien, frist, umgebung=arbeiter.umgebung(q)) if testdateien
+        t = (abnahme.test_gegen_basis(q, pruefbefehl, basis, testdateien, frist, umgebung=arbeiter.umgebung(q, werkzeuge=werkzeuge))
+             if testdateien
              else {"ok": False, "grund": "keine Testdatei"})
         b["test_schreiben"] = dict(t, tests=_tests_gelaufen(b["abnahme"].get("ausgabe")))
         if not t.get("ok") or b["test_schreiben"]["tests"] < 1:
@@ -423,7 +424,7 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
         if n - weg < 1:
             return dict(b, code="C/rot", grund="test-ergaenzen: kein Test ausgeführt" + (f" ({weg} übersprungen)" if weg else ""))
     if regression:
-        b["regression"] = _laufen(q, regression, frist)
+        b["regression"] = _laufen(q, regression, frist, werkzeuge)
         if b["regression"]["befund"]:
             return dict(b, code=b["regression"]["befund"], grund="Regressions-Kurzsuite " + ("rot" if b["regression"]["befund"] == "C/rot" else "nicht ausführbar"))
     elif ohne_regression:                             # A1920: klar gemeldet – im Befund, in der Entscheidung und in der Merge-Liste

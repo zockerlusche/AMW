@@ -145,18 +145,64 @@ def _pfad():
     return os.pathsep.join(dict.fromkeys(t for t in teile if os.path.isdir(t)))
 
 
-def umgebung(p, basis=None, zusatz=None):
+# A1922 (TH160 F2): Werkzeug-Umgebung je Projekt (Projekt-Einstellung arbeiter_umgebung) – zusätzliche Variablen (Wert aus der
+# Umgebung der AMW) und PATH-Einträge, z. B. für SDKs und vorbereitete Caches. Nie Zugangsdaten, nie Netz, nie was die AMW selbst setzt.
+NAMEN_GESPERRT = ("*TOKEN*", "*KEY*", "*SECRET*", "*PASSWORD*", "*PASSWD*", "*CREDENTIAL*", "*AUTH*", "*COOKIE*", "*SESSION*",
+                  "*PROXY*", "AMW_*", "CLAUDE*", "ANTHROPIC*", "GIT_*", "PATH", "TEMP", "TMP", "LOCALAPPDATA",
+                  "DISABLE_AUTOUPDATER", "PYTHONUTF8", "PYTHONIOENCODING", "PYTHONDONTWRITEBYTECODE")
+
+
+def werkzeuge_pruefen(v):
+    """arbeiter_umgebung: {"variablen": [Name …], "pfade": [absoluter Ordner …]} (JSON). Abgelehnt: Namen wie Zugangsdaten oder
+    Netz (NAMEN_GESPERRT), was die AMW selbst setzt, relative Pfade, Pfade mit ; – höchstens 30 Namen und 20 Pfade."""
+    import fnmatch
+    import re
+    if isinstance(v, str):
+        v = json.loads(v) if v.strip() else {}
+    if not isinstance(v, dict) or set(v) - {"variablen", "pfade"}:
+        raise ValueError('{"variablen": ["JAVA_HOME"], "pfade": ["C:\\Android\\platform-tools"]}')
+    namen = [str(x).strip().upper() for x in v.get("variablen") or [] if str(x).strip()]
+    pfade = [str(x).strip() for x in v.get("pfade") or [] if str(x).strip()]
+    for n in namen:
+        if not re.fullmatch(r"[A-Z_][A-Z0-9_()]{0,63}", n):
+            raise ValueError(f"Variable „{n[:40]}“: Buchstaben, Ziffern, _ (bis 64)")
+        treffer = next((m for m in NAMEN_GESPERRT if fnmatch.fnmatchcase(n, m)), None)
+        if treffer:
+            raise ValueError(f"Variable {n} nicht erlaubt ({treffer}: Zugangsdaten, Netz oder von der AMW gesetzt)")
+    for x in pfade:
+        if ";" in x or len(x) > 260 or not os.path.isabs(x) or "\n" in x:
+            raise ValueError(f"Pfad „{x[:60]}“: absolut, ohne ;, bis 260 Zeichen")
+    if len(namen) > 30 or len(pfade) > 20:
+        raise ValueError("höchstens 30 Variablen und 20 Pfade")
+    return {k: w for k, w in (("variablen", list(dict.fromkeys(namen))), ("pfade", list(dict.fromkeys(pfade)))) if w}
+
+
+def projekt_werkzeuge(con, pid):
+    """A1922: die Werkzeug-Umgebung des Projekts – {"variablen", "pfade"} (leer = nur die Grundumgebung)."""
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    try:
+        w = json.loads((r[0] if r else None) or "{}").get("arbeiter_umgebung") or {}
+        return werkzeuge_pruefen(w)                       # noch einmal geprüft: auch ein von Hand geänderter Eintrag hält die Regeln ein
+    except (ValueError, TypeError, AttributeError):
+        return {}
+
+
+def umgebung(p, basis=None, zusatz=None, werkzeuge=None):
     """Umgebung neu gebaut (Freigabeliste UMGEBUNG_ERLAUBT) + Werte des Platzes (platz.umgebung: DB, LOCALAPPDATA, TEMP, Port)
-    + minimaler PATH, Auto-Update aus, UTF-8, git ohne globale/System-Konfiguration, ohne Hooks und fsmonitor (Nr. 1, 6–8)."""
+    + minimaler PATH, Auto-Update aus, UTF-8, git ohne globale/System-Konfiguration, ohne Hooks und fsmonitor (Nr. 1, 6–8).
+    werkzeuge (A1922): Werkzeug-Umgebung des Projekts (projekt_werkzeuge) – zusätzliche Variablen aus der Umgebung der AMW und
+    PATH-Einträge hinter dem minimalen PATH; alles, was die AMW danach setzt, geht vor."""
     quelle = dict(os.environ if basis is None else basis)
     gross = {k.upper(): v for k, v in quelle.items()}
     u = {k: gross[k] for k in UMGEBUNG_ERLAUBT if k in gross}
+    w = werkzeuge_pruefen(werkzeuge) if werkzeuge else {}
+    u.update({k: gross[k] for k in w.get("variablen", []) if k in gross})
     platz_werte = platz.umgebung(p, {})
     u.update(platz_werte)
     leer = os.path.join(ordner(p), "git-leer")
     os.makedirs(os.path.join(leer, "hooks"), exist_ok=True)
     open(os.path.join(leer, "gitconfig"), "a").close()
-    u.update(PATH=_pfad(), DISABLE_AUTOUPDATER="1", PYTHONUTF8="1", PYTHONIOENCODING="utf-8", PYTHONDONTWRITEBYTECODE="1",
+    u.update(PATH=os.pathsep.join([_pfad(), *w.get("pfade", [])]), DISABLE_AUTOUPDATER="1", PYTHONUTF8="1", PYTHONIOENCODING="utf-8", PYTHONDONTWRITEBYTECODE="1",
              GIT_CONFIG_GLOBAL=os.path.join(leer, "gitconfig"), GIT_CONFIG_NOSYSTEM="1", GIT_TERMINAL_PROMPT="0",
              GIT_CONFIG_COUNT="3", GIT_CONFIG_KEY_0="core.hooksPath", GIT_CONFIG_VALUE_0=os.path.join(leer, "hooks"),
              GIT_CONFIG_KEY_1="core.fsmonitor", GIT_CONFIG_VALUE_1="false", GIT_CONFIG_KEY_2="core.pager", GIT_CONFIG_VALUE_2="cat")
@@ -334,7 +380,7 @@ def uebergabe(p, basis=None):
 # --- Lauf ------------------------------------------------------------------------------------------------------------------
 
 def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_namen=(), sitzung=None, prog=None, basis_umgebung=None,
-           zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None, haenge=None, geprueft=None, nur_lesen=False):
+           zusatz=None, rueckmeldung=True, con=None, pid=None, aid=None, haenge=None, geprueft=None, nur_lesen=False, umgebung_projekt=None):
     """Einen Arbeiter im Platz `p` laufen lassen, bis er endet. Rückgabe {"rc", "abweichungen", "init", "ergebnis",
     "sitzung", "protokoll", "dauer_s", "fehler"}. Abweichung im init-Ereignis → sofort beendet (rc None, abweichungen gesetzt).
     nur_lesen (A1914): Werkzeuge nur Glob/Grep/Read, kein Abnahme-Befehl, keine Rückmeldung (Zuarbeit wie der Gegenleser)."""
@@ -383,7 +429,7 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
     k = _kernel()
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | 0x4                     # CREATE_SUSPENDED
     try:
-        proc = subprocess.Popen(argv, cwd=p["klon"], env=umgebung(p, basis_umgebung, zusatz), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        proc = subprocess.Popen(argv, cwd=p["klon"], env=umgebung(p, basis_umgebung, zusatz, umgebung_projekt), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, creationflags=flags)
         if not abnahme._in_job(job, int(proc._handle)):
             proc.kill()

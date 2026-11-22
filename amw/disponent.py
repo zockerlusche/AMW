@@ -416,7 +416,8 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
             else:
                 r = arbeiter.laufen(p, auftrag, a["pruefbefehl"], modell=f.get("modell"), effort=f.get("effort"), prog=prog,
                                     con=con, pid=pid, aid=aid, haenge=dict(entscheidung.haenge_werte(con, pid),
-                                                                          melden=entscheidung.haenge_melder(pid, aid, pfad)))
+                                                                          melden=entscheidung.haenge_melder(pid, aid, pfad)),
+                                    umgebung_projekt=arbeiter.projekt_werkzeuge(con, pid))      # A1922: Werkzeuge des Projekts
             notbremse = bool(con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'notbremse' AND zeit_utc >= ?"
                                          " AND (aufgabe_id = ? OR text LIKE ?)", (pid, start_utc, aid, f"Platz {nr}:%")).fetchone())
             befund = None
@@ -428,7 +429,8 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
                 ab = pruefung_c.projekt_abnahme(con, pid)                     # A1920: Kurzsuite und Frist des Projekts
                 pruefen = lambda: pruefung_c.pruefen(p, quelle, v["basis"], aid, a["pruefbefehl"], bereiche, f.get("pakettyp"),
                                                      frist=ab["frist_s"], regression=ab["regression"], aussen=aussen,
-                                                     sperrmuster=sperr, ohne_regression=ab["hinweis"])
+                                                     sperrmuster=sperr, ohne_regression=ab["hinweis"],
+                                                     werkzeuge=arbeiter.projekt_werkzeuge(con, pid))
                 befund = _im_lauf(con, pid, aid, f"Prüfung C A{aid}", pruefen) if lauf_schlange else pruefen()
             zeile, code = entscheidung.entscheiden(r, meldung, befund, entscheidung.nachgebessert(con, pid, aid), notbremse,
                                                    typ=f.get("pakettyp"))

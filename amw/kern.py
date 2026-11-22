@@ -363,6 +363,17 @@ def projekt_einstellen(con, pid, von, **werte):
                     from . import dokumente
                     dokumente.online_nach_einstellung(con, pid, v)
                 continue
+            if k == "arbeiter_umgebung":                 # A1922: Werkzeug-Umgebung je Projekt (Variablen, PATH-Einträge)
+                from . import arbeiter
+                try:
+                    v = arbeiter.werkzeuge_pruefen(v if v is not None else {})
+                except (ValueError, TypeError) as f:
+                    raise AmwFehler(f"arbeiter_umgebung: {f}") from None
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k == "regression_befehl":                 # A1920: Rückschritt-Tests je Projekt (Befehl | aus | leer = Vorgabe)
                 v = str(v if v is not None else "").strip()
                 if len(v) > 500 or "\n" in v or "\r" in v:

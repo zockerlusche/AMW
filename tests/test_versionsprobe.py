@@ -355,6 +355,7 @@ class AuswertenLesen(unittest.TestCase):
         with mock.patch.object(arbeiter, "laufen", side_effect=laufen):
             aus = versionsprobe.probe(os.path.join(self.o.name, "p"), version=NEU)
         self.assertEqual([k.get("nur_lesen", False) for k in laeufe], [False, True])                # Arbeiter, dann Gegenleser
+        self.assertEqual([k.get("umgebung_projekt") for k in laeufe], [None, None])                        # A1922: Grundumgebung
         self.assertEqual((laeufe[1]["modell"], laeufe[1]["geprueft"]), ("haiku", ()))
         self.assertIn("lesen", aus)
         self.assertEqual(aus["ergebnis"], "unklar")

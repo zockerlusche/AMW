@@ -177,7 +177,8 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
                         "verteilen", "verteilen_fach",    # A1927 (#29773, P374): ob und wem die AMW Arbeit zuteilt
                         "veroeffentlichen",               # A1928 (#29781): wann die AMW nach außen veröffentlicht
                         "sperrmuster",                    # A1919: was p-Pakete im Projekt nie ändern dürfen
-                        "regression_befehl", "abnahme_frist_min")   # A1920: was Prüfung C je Projekt ausführt
+                        "regression_befehl", "abnahme_frist_min",   # A1920: was Prüfung C je Projekt ausführt
+                        "arbeiter_umgebung")              # A1922: Variablen und Pfade der Arbeiter
 # eine Stelle für alle Einstellungen mit dieser Sperre (CCamwTL P299): Rechte (A1892) und ausführbare Bündel-Befehle (A1876, P298)
 GESPERRTE_EINSTELLUNGEN = RECHTE_EINSTELLUNGEN + kern.BUENDEL_EINSTELLUNGEN
 
