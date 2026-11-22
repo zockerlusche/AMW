@@ -101,15 +101,16 @@ class ThemenTor(Rundgang):
         weg = themen.neu(self.con, self.pid, "TL", "Altes Menü", pfleger="CC1")
         themen.markieren(self.con, self.pid, kern.ENTWICKLER, weg)                    # zählt nicht
 
-    STAND = "document.querySelector('#inhalt .th-stand')"
+    KONZEPT = "document.querySelector('#inhalt .th-tore .tor[data-t=konzept]')"     # A1972: nur noch die Chips, keine Zahlenzeile
+    DICH = "document.querySelector('#inhalt .tore-dich')"
     OFFEN = ("document.querySelector('.th-zeile[data-th=\"%d\"]').click()",
              "document.querySelector('.th-thema h2')?.textContent === 'Anmeldung' && document.querySelector('.th-knoepfe button[data-h=freigeben]')")
 
     def test_letzte_freigabe_fragt_und_schliesst_das_tor(self):
         schon = len(themen.tor_ereignisse(self.con, self.pid))       # in daten() schloss das erste Thema allein das Tor schon einmal
-        self.oeffnen("themen", "document.querySelector('.th-liste .th-zeile')")
-        self.assertEqual(self.tab.js(f"{self.STAND}.querySelector('span').textContent"), "Konzept · 1 von 2 Themen freigegeben")
-        self.assertEqual(self.tab.js(f"{self.STAND}.dataset.tor"), "konzept")
+        self.oeffnen("themen", f"document.querySelector('.th-liste .th-zeile') && {self.KONZEPT} && {self.DICH}")
+        self.assertEqual(self.tab.js(f"{self.KONZEPT}.className"), "tor jetzt")
+        self.assertEqual(self.tab.js(f"{self.DICH}.innerText"), "Wartet auf dich: 1 Thema")
         self.tab.js(self.OFFEN[0] % self.letzt)
         self.warten(self.OFFEN[1])
         self.tab.js("window.__fragen = []; window.confirm = x => { window.__fragen.push(x); return false; };"
@@ -118,8 +119,9 @@ class ThemenTor(Rundgang):
         self.assertEqual(themen.status(self.con, themen.finden(self.con, self.pid, self.letzt))["status"], "dich")   # abgebrochen
         self.tab.js("window.confirm = x => { window.__fragen.push(x); return true; };"
                     " document.querySelector('.th-knoepfe button[data-h=freigeben]').click()")
-        self.warten(f"{self.STAND}?.dataset.tor === 'grobplanung'")
-        self.assertEqual(self.tab.js(f"{self.STAND}.querySelector('span').textContent"), "Grobplanung · Konzept fertig: 2 von 2 Themen freigegeben")
+        self.warten(f"{self.KONZEPT}?.className === 'tor zu'")
+        self.assertEqual(self.tab.js(f"document.querySelector('#inhalt .tore-leiste').dataset.tor"), "grobplanung")
+        self.assertIsNone(self.tab.js(self.DICH))                                     # nichts mehr für dich: keine Zeile
         self.assertEqual(len(themen.tor_ereignisse(self.con, self.pid)), schon + 1)
         self.assertEqual(self.tab.js("window.__fragen.length"), 2)
 

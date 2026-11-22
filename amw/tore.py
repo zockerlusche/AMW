@@ -106,7 +106,8 @@ def _meilensteine(con, pid):
 
 def stand(con, pid):
     """{"tore": [{"tor", "name", "zu", "n", "g", "text"}], "aktuell": erstes offenes Tor (oder None), "zeile": Text für eine Zeile,
-    "nichts_offen": [Themen mit unbestätigtem Vermerk]}. n/g: was gezählt wird (Text sagt was)."""
+    "nichts_offen": [Themen mit unbestätigtem Vermerk], "fuer_dich": {"themen", "meilensteine"} – A1972: was auf den Menschen
+    wartet}. n/g: was gezählt wird (Text sagt was)."""
     from . import themen
     k = themen.tor(con, pid)
     frei = {t["id"]: t["name"] for t in themen.liste(con, pid) if t["zustand"]["status"] == "frei" and not t["zustand"]["markiert"]}
@@ -143,8 +144,15 @@ def stand(con, pid):
     for x in t:
         x["name"] = NAMEN[x["tor"]]
     aktuell = next((x for x in t if not x["zu"]), None)
-    zeile = (f"{aktuell['name']} · {aktuell['text']}" if aktuell else "Abschluss · alle Tore geschlossen")
-    return {"tore": t, "aktuell": aktuell["tor"] if aktuell else None, "zeile": zeile,
+    # A1972 (TH156 Regel 3/5/6): was der Mensch jetzt tun muss – nur Anzahlen für EINE Zeile mit Sprung. Meilensteine nur, wenn
+    # der Mensch freigibt (thema_freigabe = mensch); bei co+lead geben Co und Lead das Ja, das ist dann kein Handlungsbedarf.
+    ms_dich = 0
+    if themen.freigabe_regel(con, pid) != "co+lead":
+        ms_dich = (sum(1 for m in geplant if not m["grob"] or (m["pakete"] and not m["plan"]))
+                   + sum(1 for m in zu_schliessen if not m["abschluss"] and bericht(con, pid, m["id"]) is not None))
+    fuer_dich = {"themen": len(themen.fuer_dich(con, pid)), "meilensteine": ms_dich}
+    zeile =(f"{aktuell['name']} · {aktuell['text']}" if aktuell else "Abschluss · alle Tore geschlossen")
+    return {"tore": t, "aktuell": aktuell["tor"] if aktuell else None, "zeile": zeile, "fuer_dich": fuer_dich,
             "nichts_offen": [{"id": tid, "name": frei.get(tid, f"TH{tid}"), "grund": d["grund"], "von": d["von"]}
                              for tid, d in sorted(nichts.items()) if not d["bestaetigt"] and tid in frei]}
 

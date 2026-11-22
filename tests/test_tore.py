@@ -91,6 +91,21 @@ class Ableitung(Basis):
         s = tore.stand(self.con, self.pid)
         self.assertEqual((s["aktuell"], s["zeile"]), (None, "Abschluss · alle Tore geschlossen"))
 
+    def test_a1972_fuer_dich_nur_was_der_mensch_tun_muss(self):
+        """A1972: Themen, die auf dich warten, und Meilensteine, deren Freigabe (grob, Plan, Abschluss) bei dir liegt; bei co+lead
+        geben Co und Lead die Meilensteine frei – das ist kein Handlungsbedarf für den Menschen."""
+        f = lambda: tore.stand(self.con, self.pid)["fuer_dich"]                     # noqa: E731
+        self.assertEqual(f(), {"themen": 1, "meilensteine": 2})                     # Thema vorgelegt; zwei Meilensteine ohne Grob-Ja
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.th)
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob")
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m2, "grob")
+        self.assertEqual(f(), {"themen": 0, "meilensteine": 1})                     # m1 hat Pakete: der Plan wartet auf dich
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "plan")
+        self.assertEqual(f(), {"themen": 0, "meilensteine": 0})
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead")
+        planansicht.zurueck(self.con, self.pid, kern.ENTWICKLER, self.m1, "plan", "Tests fehlen")
+        self.assertEqual(f()["meilensteine"], 0)
+
     def test_bericht_gegen_erfolgskriterien_mit_resten_und_lehren(self):
         planung.schritt_setzen(self.con, self.pid, "TL", aid=self.a1, kriterien=["SSO geht", "Abmelden geht"])
         planung.kriterium(self.con, self.pid, "TL", self.a1, 1, True)
