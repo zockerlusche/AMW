@@ -14,8 +14,7 @@ from amw import arbeitspaket, db, kern, planer, planung, themen
 from tests.test_arbeiter import ATTRAPPE
 
 ERGEBNIS = {
-    "meilensteine": [{"schluessel": "M1", "titel": "Anmelden online", "ziel": "Marcel meldet sich online an.",
-                      "abnahme": "Vorführung: Anmeldung mit Firmen-Konto am Handy"}],
+    "meilensteine": [{"schluessel": "M1", "titel": "Anmelden online", "endet_mit": "vorfuehrung"}],
     "pakete": [
         {"schluessel": "P1", "meilenstein": "M1", "titel": "Anmeldung mit Firmen-Konto", "auftrag": "SSO-Anmeldung bauen.",
          "groesse": "m", "art": "sicherheit", "ausfuehrung": "agent", "fertig_quelle": "release"},
@@ -72,8 +71,11 @@ class Schema(Grund):
 
     def test_meilenstein_ohne_pakete(self):
         d = copy.deepcopy(ERGEBNIS)
-        d["meilensteine"].append({"schluessel": "M2", "titel": "Leer", "ziel": "x", "abnahme": "y"})
+        d["meilensteine"].append({"schluessel": "M2", "titel": "Leer", "endet_mit": "bericht"})
         self.assertIn("neue Meilensteine ohne Pakete: M2", self.funde(d))
+        d["meilensteine"][1].update(ziel="Freitext", endet_mit="feier")                     # TH164: kein Freitext, Vorführung|Bericht
+        f = self.funde(d)
+        self.assertTrue(any("ziel/abnahme nicht als Text" in x for x in f) and any("endet_mit „feier“" in x for x in f), f)
 
     def test_kreis_und_selbst(self):
         d = copy.deepcopy(ERGEBNIS)
@@ -112,7 +114,7 @@ class Ablauf(Grund):
         a = planer.uebernehmen(self.con, self.pid, "TL", self.tid)
         self.assertEqual(sorted(a), ["M1", "P1", "P2"])
         b = planung.bogen_zeile(self.con, self.pid, self.con.execute("SELECT id FROM bogen WHERE nr = ?", (int(a["M1"][1:]),)).fetchone()[0])
-        self.assertEqual((b["titel"], b["ziel"]), ("Anmelden online", "Marcel meldet sich online an."))
+        self.assertEqual((b["titel"], b["ziel"], b["abnahme"]), ("Anmelden online", f"TH{self.tid} Anmeldung", "Vorführung"))   # Verweis
         p1, p2 = (self.con.execute("SELECT * FROM aufgabe WHERE id = ?", (int(a[k][1:]),)).fetchone() for k in ("P1", "P2"))
         self.assertEqual((p1["groesse"], p1["art"], p1["bogen_id"]), ("M", "sicherheit", b["id"]))
         self.assertEqual((p2["pruefbefehl"], arbeitspaket.lesen(self.con, p2["id"])["art"], arbeitspaket.lesen(self.con, p2["id"])["modell"]),

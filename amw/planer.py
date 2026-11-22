@@ -13,7 +13,7 @@ Ereignisse (plan_ereignis, ohne Schemaänderung, Text JSON mit "thema" vorn wie 
 
 Schema des Planer-Ergebnisses (JSON):
   {"nichts_zu_bauen": false,
-   "meilensteine": [{"schluessel": "M1", "titel": "…", "ziel": "…", "abnahme": "…"}  |  {"schluessel": "M1", "bestehend": 52}],
+   "meilensteine": [{"schluessel": "M1", "titel": "…", "endet_mit": "vorfuehrung|bericht"}  |  {"schluessel": "M1", "bestehend": 52}],
    "pakete": [{"schluessel": "P1", "meilenstein": "M1", "titel": "…", "auftrag": "…", "groesse": "S|M|L|XL",
                "art": "text|mechanisch|fehlersuche|oberflaeche|sicherheit|konzept", "ausfuehrung": "agent|p",
                "modell": "haiku|sonnet|opus", "effort": "low|medium|high", "fertig_quelle": "commit|release|thema|dokument|frist|ja",
@@ -35,7 +35,8 @@ AUSFUEHRUNG = ("agent", "p")
 MODELLE = ("haiku", "sonnet", "opus")
 EFFORTS = ("low", "medium", "high")
 MAX_PAKETE, MAX_MEILENSTEINE = 30, 5
-LAENGE = {"titel": 120, "auftrag": 4000, "ziel": 1000, "abnahme": 1000, "grund": 1000, "abnahme_befehl": 300}
+LAENGE = {"titel": 120, "auftrag": 4000, "grund": 1000, "abnahme_befehl": 300}
+ENDET_MIT = {"vorfuehrung": "Vorführung", "bericht": "Bericht"}   # TH164: ein Meilenstein endet mit Vorführung oder Bericht
 
 
 class PlanFehler(kern.AmwFehler):
@@ -124,8 +125,10 @@ def pruefen(daten, con=None, pid=None):
                 f.append(f"{wo}: Meilenstein {nr} gibt es im Projekt nicht")
             aus_m.append({"schluessel": s, "bestehend": nr})
             continue
-        aus_m.append({"schluessel": s, "titel": _text(m.get("titel"), "titel", wo, f), "ziel": _text(m.get("ziel"), "ziel", wo, f),
-                      "abnahme": _text(m.get("abnahme"), "abnahme", wo, f)})
+        if m.get("ziel") or m.get("abnahme"):           # TH164: Ziel und Abnahme als Verweis (aufs Thema), nicht als Freitext
+            f.append(f"{wo}: ziel/abnahme nicht als Text – ein Meilenstein verweist auf seine Themen und endet_mit")
+        aus_m.append({"schluessel": s, "titel": _text(m.get("titel"), "titel", wo, f),
+                      "endet_mit": _wahl(m.get("endet_mit"), tuple(ENDET_MIT), "endet_mit", wo, f)})
     m_namen = {m["schluessel"] for m in aus_m}
     p_namen = [str(p.get("schluessel") or "").strip() for p in ps if isinstance(p, dict)]
     for i, p in enumerate(ps, 1):
@@ -273,7 +276,8 @@ def zusammenfassung(entwurf):
         return f"Nichts zu bauen: {entwurf['grund']}"
     zeilen = []
     for m in entwurf["meilensteine"]:
-        zeilen.append(f"{m['schluessel']} " + (f"(bestehender Meilenstein {m['bestehend']})" if m.get("bestehend") else m["titel"]))
+        zeilen.append(f"{m['schluessel']} " + (f"(bestehender Meilenstein {m['bestehend']})" if m.get("bestehend")
+                                                else f"{m['titel']} · endet mit {ENDET_MIT[m['endet_mit']]}"))
         for p in reihenfolge(entwurf):
             if p["meilenstein"] == m["schluessel"]:
                 zeilen.append(f"  {p['schluessel']} {p['titel']} · {p['groesse']} · {p['art']} · {p['ausfuehrung']}"
@@ -321,7 +325,9 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
             bogen[m["schluessel"]] = con.execute("SELECT id FROM bogen WHERE projekt_id = ? AND nr = ?", (pid, m["bestehend"])).fetchone()[0]
             angelegt[m["schluessel"]] = f"M{m['bestehend']}"
         else:
-            bid = planung.bogen_neu(con, pid, von, m["titel"], ziel=m["ziel"], abnahme=m["abnahme"])
+            t = con.execute("SELECT name FROM thema WHERE id = ?", (tid,)).fetchone()
+            bid = planung.bogen_neu(con, pid, von, m["titel"], ziel=f"TH{tid} {t['name'] if t else ''}".strip(),   # Verweis (TH164)
+                                    abnahme=ENDET_MIT[m["endet_mit"]])
             bogen[m["schluessel"]] = bid
             angelegt[m["schluessel"]] = f"M{planung.bogen_zeile(con, pid, bid)['nr']}"
     for p in reihenfolge(entwurf):
@@ -352,7 +358,8 @@ LAEUFT_H = 1
 AUFTRAG = (
     "Du bist der Planer eines Software-Projekts. Lies thema.md (ein vom Menschen freigegebenes Konzept-Thema), beschluesse.md, "
     "meilensteine.md und pakete.md (was es schon gibt) sowie schema.md (das Antwort-Format). Entwirf, was gebaut werden muss, "
-    "damit das Thema erfüllt ist: einen oder wenige Meilensteine (Lieferpunkte, die mit einer Vorführung oder einem Bericht enden; "
+    "damit das Thema erfüllt ist: einen oder wenige Meilensteine (Lieferpunkte, die mit einer Vorführung oder einem Bericht enden – "
+    "endet_mit; kein Ziel- oder Abnahme-Text, der Meilenstein verweist auf das Thema; "
     "einen bestehenden Meilenstein nimmst du mit \"bestehend\": Nummer) und kleine Pakete (je eins für einen Agenten an einem Tag "
     "oder weniger), mit Abhängigkeiten. Was es schon gibt, planst du nicht noch einmal; brauchst du ein vorhandenes Paket als "
     "Vorgänger, nennst du es als \"A1234\". Braucht das Thema nichts (schon gebaut, nur ein Begriff), antworte mit "
