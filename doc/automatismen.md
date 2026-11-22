@@ -217,6 +217,20 @@ Code; ein anderes Projekt hat eigene heikle Stellen (Zugänge, Sicherheit, Zahlu
   von Prüfung C (geänderte Datei trifft ein Muster → C/diff, Befund „gesperrt: …“ an den Lead), bei p-Paketen und bei
   interaktiven Paketen mit Zweig. Grund im Befund: „gesperrt im Projekt (Muster)“.
 
+## Rückschritt-Tests und Zeitlimit je Projekt (A1920, TH160)
+
+**Wozu:** Prüfung C führt nach dem Abnahme-Befehl des Pakets eine kurze Testfolge gegen Rückschritte aus
+(Regressions-Kurzsuite). Die der AMW passt nur zur AMW; ein anderes Projekt hat eigene Tests und oft längere Testfolgen.
+
+- **Ohne Einstellung:** Ist der Projektordner die AMW selbst (`amw/pruefung_c.py` und `amw-cli.py` darin – nicht am Namen
+  erkannt), läuft die Kurzsuite der AMW. Jedes andere Projekt läuft ohne. Das steht dann im Befund, in der Entscheidung und in
+  „Bereit zum Merge“: „Ohne Rückschritt-Tests geprüft – für dieses Projekt sind keine eingestellt.“
+- **`regression_befehl`:** ein Befehl in einer Zeile (bis 500 Zeichen), der im frischen Checkout läuft wie der Abnahme-Befehl;
+  `aus` = keine (auch für die AMW); leer = wieder die Vorgabe. Der Abnahme-Befehl je Paket bleibt.
+- **`abnahme_frist_min`:** Zeitlimit für Abnahme, Rückschritt-Tests und die Prüfung vor dem Bau (Regel 6), 1–720 Minuten,
+  Vorgabe 30.
+- Beide nur Lead oder Mensch, nicht aus einer Agenten-Sitzung.
+
 ## Neue Claude-Code-Version ohne Stillstand (seit 1.154.0)
 
 **Wozu:** 21.11.: Zweimal stand S8 je etwa eine Stunde still, weil sich Claude Code aktualisiert hatte und die geprüften
@@ -392,6 +406,8 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 
 | Wo | Schlüssel | Bedeutung |
 |---|---|---|
+| `amw projekt einstellen` | `regression_befehl` | Rückschritt-Tests in Prüfung C (Befehl, `aus`; leer = Vorgabe: nur die AMW selbst) |
+| `amw projekt einstellen` | `abnahme_frist_min` | Zeitlimit je Abnahme in Prüfung C, 1–720 Minuten (Vorgabe 30) |
 | `amw projekt einstellen` | `sperrmuster` | was Arbeiter in diesem Projekt nie ändern dürfen, zusätzlich zur festen Liste (Lead oder Mensch) |
 | Zahnrad › Projekt | `entwickler_name` | wie der Mensch in Meldungen heißt (Vorgabe „Entwickler“); gilt auch als Wartegrund |
 | Zahnrad › Dieser PC | `fernsitzung_prozess` | Programm einer Fernsitzung für den Schirm (leer = nicht prüfen) |

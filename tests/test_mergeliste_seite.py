@@ -23,6 +23,9 @@ class MergeSeite(Rundgang):
         self.lib, _, _ = bereit(self.con, self.pid, repo, "Rechnen korrigieren", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"})
         self.web, _, _ = bereit(self.con, self.pid, repo, "Schnittstelle erweitern",
                                 {"web/api.php": "<?php\necho json_encode(['ok' => true]);\n"}, nr=2)
+        with db.schreiben(self.con):                                      # A1920: Projekt ohne Rückschritt-Tests – klar gemeldet
+            self.con.execute("UPDATE plan_ereignis SET text = json_set(text, '$.ohne_regression', ?) WHERE aufgabe_id = ?"
+                             " AND art = 'paket_entscheidung'", ("ohne Rückschritt-Tests geprüft", self.lib))
 
     ZEIGEN = "zustand.arbeit.sicht = 'pakete'; zeige('arbeit')"
     MERGE = "document.querySelector('.pk-merge')"
@@ -38,6 +41,10 @@ class MergeSeite(Rundgang):
         for teil in ("bereit zum merge (2)", "rechnen korrigieren", "lib/rechnen.py", "web/api.php", "server-code", "erst ansehen",
                      "alle freigeben (1)", "angesehen – freigeben"):
             self.assertIn(teil, text)
+        karte = "document.querySelector('.pk-merge-paket[data-a=\"%s\"]').innerText"
+        self.assertIn("ohne rückschritt-tests geprüft – für dieses projekt sind keine eingestellt.",
+                      self.tab.js(karte % self.lib).lower())                                     # A1920
+        self.assertNotIn("rückschritt", self.tab.js(karte % self.web).lower())
         self.tab.js("window.confirm = () => true; document.querySelector('#mg-alle').click()")
         lib = f"document.querySelector('.pk-merge-paket[data-a=\"{self.lib}\"] .etikett.gruen')"   # Etikett: Großbuchstaben per CSS
         self.warten(f"{lib} && {lib}.textContent === t('mg_freigegeben')", 20)

@@ -149,7 +149,8 @@ def anwenden(con, pid, aid, zeile, code, lauf=None, meldung=None, befund=None, p
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="paket_entscheidung", aufgabe_id=aid,
                      text=json.dumps({"zeile": zeile, "code": code, "an": an, "archiv": archiv, "kopf": (befund or {}).get("kopf"),
-                                      "gesichert": gesichert}, ensure_ascii=False))
+                                      "gesichert": gesichert, **({"ohne_regression": befund["ohne_regression"]}
+                                                                 if (befund or {}).get("ohne_regression") else {})}, ensure_ascii=False))
         if an:
             kern._posten(con, pid, "AMW", an, "info" if zeile == "E1n" else "meldung", f"{zeile} {code}: A{aid} {titel}"[:140], text,
                          aufgabe_id=aid)

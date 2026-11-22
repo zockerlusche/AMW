@@ -226,6 +226,30 @@ class Disponent(unittest.TestCase):
         self.assertIn('"code": "C/diff"', e[-1][0])
         self.assertTrue(self.con.execute("SELECT 1 FROM nachricht WHERE text LIKE ?", ("%Diff-Tor: gesperrt: lib/rechnen.py%",)).fetchone())
 
+    def test_rueckschritt_tests_und_frist_je_projekt(self):
+        """A1920: das Projekt ist nicht die AMW – ohne Einstellung keine Rückschritt-Tests, klar vermerkt (Entscheidung, Merge-Liste);
+        mit regression_befehl läuft genau dieser, mit der Frist aus abnahme_frist_min."""
+        from amw import mergeliste, pruefung_c
+        self.plaetze()
+        aid = self.paket()
+        p, basis, vid = self.vorbereitet(aid)
+        with mock.patch.object(pruefung_c, "pruefen", wraps=pruefung_c.pruefen) as c:
+            self.assertEqual(disponent.starter(self.pid, aid, 1, prog("bauen"), lauf_schlange=False, basis=basis, vid=vid), "E7")
+        self.assertEqual((c.call_args.kwargs["regression"], c.call_args.kwargs["frist"]), (None, 1800))
+        e = json.loads(self.con.execute("SELECT text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_entscheidung'"
+                                        " ORDER BY id DESC LIMIT 1", (aid,)).fetchone()[0])
+        self.assertEqual(e["ohne_regression"], pruefung_c.OHNE_REGRESSION)
+        self.assertEqual(mergeliste.eintrag(self.con, self.pid, aid, diff=False)["ohne_regression"], pruefung_c.OHNE_REGRESSION)
+        b = self.paket()
+        kern.projekt_einstellen(self.con, self.pid, "TL", regression_befehl=f'"{sys.executable}" -c "raise SystemExit(1)"',
+                                abnahme_frist_min="7")
+        p, basis, vid = self.vorbereitet(b)
+        with mock.patch.object(pruefung_c, "pruefen", wraps=pruefung_c.pruefen) as c:
+            self.assertNotEqual(disponent.starter(self.pid, b, 1, prog("bauen"), lauf_schlange=False, basis=basis, vid=vid), "E7")
+        self.assertEqual(c.call_args.kwargs["frist"], 420)
+        self.assertIn("raise SystemExit(1)", c.call_args.kwargs["regression"])
+        self.assertIn("Regressions-Kurzsuite rot", " ".join(r[0] for r in self.con.execute("SELECT text FROM nachricht WHERE aufgabe_id = ?", (b,))))
+
     def test_nachbesserung_prueft_regel_7(self):
         """P272 (2): vor dem E5-Lauf gelten Wartungsmodus und Wochenlimit – im Wartungsmodus kein zweiter Lauf, sondern E6."""
         from amw import waechter

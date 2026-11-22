@@ -138,10 +138,12 @@ def eintrag(con, pid, aid, diff=True):
     a = con.execute("SELECT id, titel, rang FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
     kopf = _kopf(con, pid, aid)
     p, basis = _platz(con, pid, aid)
-    projekt = _entscheidung(con, pid, aid).get("quelle") == "projekt"   # A1894: vom Lead nach E4 angenommen, Platz archiviert
+    ent = _entscheidung(con, pid, aid)
+    projekt = ent.get("quelle") == "projekt"                           # A1894: vom Lead nach E4 angenommen, Platz archiviert
     e = {"aufgabe": aid, "titel": a["titel"] if a else "", "zweig": zweig(aid), "kopf": kopf, "basis": basis,
          "platz": p["nr"] if p else None, "stat": "", "diff": "", "gekuerzt": False, "geaendert": [], "server": [], "blick": False,
-         "aussen": [], "freigegeben": bool(betrieb.merge_ok(con, pid, aid, zweig(aid))), "fehler": None, "angenommen": projekt}
+         "aussen": [], "freigegeben": bool(betrieb.merge_ok(con, pid, aid, zweig(aid))), "fehler": None, "angenommen": projekt,
+         "ohne_regression": ent.get("ohne_regression")}                # A1920
     if not (kopf and basis and (p or projekt)):
         e["fehler"] = "kein Stand aus Prüfung C (Kopf, Basis oder Platz fehlt)"
         return e

@@ -339,7 +339,8 @@ def projekt_einstellen(con, pid, von, **werte):
         raise AmwFehler("Projekt-Einstellungen dürfen nur Lead und Entwickler ändern")
     grenzen = {"takt_min": (0, 1440), "speicher_grenze_gb": (1, 512), "stillstand_min": (5, 1440), "lauf_ohne_angabe_min": (5, 1440),
                "eskalation_min": (0, 1440), "info_ablage_h": (1, 168), "version_frist_tage": (1, 365), "ende_frist_min": (1, 60),
-               "ausfall_min": (5, 1440)}                       # A1927: so lange darf eine Sitzung beendet sein, dann Ausfall
+               "ausfall_min": (5, 1440),                       # A1927: so lange darf eine Sitzung beendet sein, dann Ausfall
+               "abnahme_frist_min": (1, 720)}                  # A1920: Zeitlimit je Abnahme in Prüfung C (Vorgabe 30)
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         for k, v in werte.items():
@@ -361,6 +362,15 @@ def projekt_einstellen(con, pid, von, **werte):
                 if k == "dateien_online" and v != "wunsch":       # vorhandene Dateien gleich mit (zurück: je Dokument)
                     from . import dokumente
                     dokumente.online_nach_einstellung(con, pid, v)
+                continue
+            if k == "regression_befehl":                 # A1920: Rückschritt-Tests je Projekt (Befehl | aus | leer = Vorgabe)
+                v = str(v if v is not None else "").strip()
+                if len(v) > 500 or "\n" in v or "\r" in v:
+                    raise AmwFehler("regression_befehl: ein Befehl in einer Zeile, bis 500 Zeichen (aus = keine; leer = Vorgabe)")
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
                 continue
             if k == "sperrmuster":                       # A1919 (TH160 F2): zusätzlich zur festen Sperrliste der AMW
                 from . import abnahme

@@ -176,7 +176,8 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
                         "co_entwickler",                  # A1908 (P352): der Co-Entwickler legt Themen an
                         "verteilen", "verteilen_fach",    # A1927 (#29773, P374): ob und wem die AMW Arbeit zuteilt
                         "veroeffentlichen",               # A1928 (#29781): wann die AMW nach außen veröffentlicht
-                        "sperrmuster")                    # A1919: was p-Pakete im Projekt nie ändern dürfen
+                        "sperrmuster",                    # A1919: was p-Pakete im Projekt nie ändern dürfen
+                        "regression_befehl", "abnahme_frist_min")   # A1920: was Prüfung C je Projekt ausführt
 # eine Stelle für alle Einstellungen mit dieser Sperre (CCamwTL P299): Rechte (A1892) und ausführbare Bündel-Befehle (A1876, P298)
 GESPERRTE_EINSTELLUNGEN = RECHTE_EINSTELLUNGEN + kern.BUENDEL_EINSTELLUNGEN
 
@@ -621,6 +622,8 @@ def cmd_paket(a, con):
                 print("  " + z)
             for x in e["aussen"]:
                 print(f"  nach außen (Hinweis): {x}")
+            if e.get("ohne_regression"):
+                print(f"  Hinweis: {e['ohne_regression']}")
             if a.diff:
                 for z in e["diff"].splitlines():
                     print("  " + z)

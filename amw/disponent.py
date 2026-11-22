@@ -176,7 +176,8 @@ def _starten(con, pid, aid, p, quelle, prog=None, umgebung=None):
     f = arbeitspaket.lesen(con, aid)
     zweig = f"paket-A{aid}"
     r = platz.vorbereiten(p, quelle, zweig, aufgabe=aid)
-    rot = abnahme.rot_vor_bau(p, a["pruefbefehl"], f.get("pakettyp"))
+    from . import pruefung_c
+    rot = abnahme.rot_vor_bau(p, a["pruefbefehl"], f.get("pakettyp"), pruefung_c.projekt_abnahme(con, pid)["frist_s"])   # A1920
     if not rot["ok"]:                                          # Regel 6: prüft nichts → nicht starten, Lead melden
         antwort = waechter.regel6(rot)
         waechter.protokollieren(con, pid, aid, antwort)
@@ -424,8 +425,10 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
                 aussen = kern.projekt_wahl(con, pid, "merge_aussen_pruefung") == "an"   # A1858: aus = nur Hinweis in der Merge-Liste
                 from . import abnahme as _abnahme
                 sperr = _abnahme.projekt_muster(con, pid)                      # A1919: Muster des Projekts im Diff-Tor
+                ab = pruefung_c.projekt_abnahme(con, pid)                     # A1920: Kurzsuite und Frist des Projekts
                 pruefen = lambda: pruefung_c.pruefen(p, quelle, v["basis"], aid, a["pruefbefehl"], bereiche, f.get("pakettyp"),
-                                                     aussen=aussen, sperrmuster=sperr)
+                                                     frist=ab["frist_s"], regression=ab["regression"], aussen=aussen,
+                                                     sperrmuster=sperr, ohne_regression=ab["hinweis"])
                 befund = _im_lauf(con, pid, aid, f"Prüfung C A{aid}", pruefen) if lauf_schlange else pruefen()
             zeile, code = entscheidung.entscheiden(r, meldung, befund, entscheidung.nachgebessert(con, pid, aid), notbremse,
                                                    typ=f.get("pakettyp"))

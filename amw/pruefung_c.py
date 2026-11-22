@@ -22,8 +22,37 @@ import subprocess
 
 from . import abnahme
 
-# fest im Abnahme-Modul, nicht je Paket wählbar (§6a.3.4): kurz, ohne Fenster, ohne Netz
+# nicht je Paket wählbar (§6a.3.4): kurz, ohne Fenster, ohne Netz. A1919/A1920 (TH160 F2): je Projekt (regression_befehl);
+# ohne Einstellung gilt diese Kurzsuite nur für das Projekt, das die AMW selbst ist (ist_amw), andere Projekte ohne
 REGRESSION = "python -X utf8 -m unittest tests.test_abschotten tests.test_live_schutz tests.test_abnahme tests.test_hilfen"
+OHNE_REGRESSION = "ohne Rückschritt-Tests geprüft (für dieses Projekt keine eingestellt: amw projekt einstellen regression_befehl=…)"
+AUS_REGRESSION = "ohne Rückschritt-Tests geprüft (für dieses Projekt ausgeschaltet: regression_befehl=aus)"
+
+
+def ist_amw(ordner):
+    """A1920: Ist der Projektordner die AMW selbst? (eigener Code und Befehl darin – nicht am Namen des Projekts erkannt)"""
+    return bool(ordner) and os.path.isfile(os.path.join(ordner, "amw", "pruefung_c.py")) and os.path.isfile(os.path.join(ordner, "amw-cli.py"))
+
+
+def projekt_abnahme(con, pid):
+    """A1920: {"regression": Befehl oder None, "hinweis": Text oder None, "frist_s"} für Pakete des Projekts – aus den
+    Projekt-Einstellungen regression_befehl (Befehl | aus) und abnahme_frist_min; ohne Einstellung wie oben."""
+    import json
+    from . import kern
+    r = con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()
+    try:
+        e = json.loads((r[0] if r else None) or "{}")
+    except ValueError:
+        e = {}
+    frist = int(e.get("abnahme_frist_min") or 0) * 60 or abnahme.FRIST_S
+    befehl = str(e.get("regression_befehl") or "").strip()
+    if befehl.lower() == "aus":
+        return {"regression": None, "hinweis": AUS_REGRESSION, "frist_s": frist}
+    if befehl:
+        return {"regression": befehl, "hinweis": None, "frist_s": frist}
+    if ist_amw(kern.projekt_ordner(con, pid)):
+        return {"regression": REGRESSION, "hinweis": None, "frist_s": frist}
+    return {"regression": None, "hinweis": OHNE_REGRESSION, "frist_s": frist}
 # Dateien, die Python/Werkzeuge beim Start von selbst laden (§6a.3.3): die Liste gibt es genau einmal – in abnahme.GESPERRT
 # (Besitzer Abnahme-Modul, D1258 §5); hier nur die Auswahl für den eigenen Befund „automatisch geladen“
 AUTOGELADEN = tuple(m for m, _, grund in abnahme.GESPERRT if grund.startswith("automatisch geladen")) + ("pytest.ini", "*/pytest.ini")
@@ -337,7 +366,7 @@ def zweig_befund(quelle, zweig, bereiche, typ=None, haupt="main", aussen=True, s
 
 
 def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahme.FRIST_S, nachricht=None, regression=REGRESSION,
-           aussen=True, sperrmuster=None):
+           aussen=True, sperrmuster=None, ohne_regression=None):
     """Prüfung C für Paket `aid` im Platz `p`. Rückgabe: Befund mit "code" (None = alles grün) und allen Einzelheiten."""
     b = {"code": None, "kopf": None, "geaendert": [], "ausserhalb": [], "gesperrt": [], "autogeladen": [], "geheim": [], "aussen": [],
          "abnahme": None, "regression": None, "test_schreiben": None, "grund": None}
@@ -397,4 +426,7 @@ def pruefen(p, quelle, basis, aid, pruefbefehl, bereiche, typ=None, frist=abnahm
         b["regression"] = _laufen(q, regression, frist)
         if b["regression"]["befund"]:
             return dict(b, code=b["regression"]["befund"], grund="Regressions-Kurzsuite " + ("rot" if b["regression"]["befund"] == "C/rot" else "nicht ausführbar"))
+    elif ohne_regression:                             # A1920: klar gemeldet – im Befund, in der Entscheidung und in der Merge-Liste
+        b["ohne_regression"] = ohne_regression
+        b["grund"] = "; ".join(x for x in (b["grund"], ohne_regression) if x)
     return b
