@@ -2377,6 +2377,20 @@ def cmd_thema(a, con):
         tid = themen.nichts_zu_bauen(con, pid, _von(a), a.name, a.grund, aufheben=a.aufheben)
         print(f"TH{tid}: " + ("Vermerk „nichts zu bauen“ aufgehoben" if a.aufheben else "„nichts zu bauen“ vermerkt – keine Lücke mehr"))
         return
+    if a.aktion == "anhalten":                        # K8 (A1942): nicht begonnene Pakete eines geänderten Themas anhalten
+        from . import planansicht
+        if not a.name:
+            raise kern.AmwFehler("amw thema anhalten TH<n> [--meilenstein N]")
+        t = themen.finden(con, pid, a.name)
+        bid = None
+        if a.meilenstein is not None:
+            r = con.execute("SELECT id FROM bogen WHERE projekt_id = ? AND nr = ?", (pid, a.meilenstein)).fetchone()
+            if not r:
+                raise kern.AmwFehler(f"Meilenstein {a.meilenstein} gibt es nicht")
+            bid = r[0]
+        weg = planansicht.anhalten(con, pid, _von(a), t["id"], bid)
+        print(f"TH{t['id']}: " + (f"angehalten: {', '.join(f'A{x}' for x in weg)}" if weg else "keine nicht begonnenen Pakete"))
+        return
     if a.aktion in ("planen", "plan", "plan-ja"):     # A1940 (K4): Grobplanung aus Themen per -p-Planer
         from . import planer
         if not a.name:
@@ -3288,10 +3302,12 @@ def parser():
                                    " bei thema_freigabe=co+lead gibt freigeben von Co und Lead je ein Ja, B2913) |"
                                    " nur_mensch TH12 (Pfleger, Lead, Mensch) | nicht_nur_mensch TH12 (nur der Mensch) |"
                                    " vermerk TH12 --nichts-zu-bauen --grund … [--aufheben] | luecken (Thema ohne Paket, Paket ohne Thema) |"
-                                   " planen TH12 (Planer anstoßen, Lead/Co) | plan TH12 (Entwurf zeigen) | plan-ja TH12 [--datei geändert.json] (Lead)")
+                                   " planen TH12 (Planer anstoßen, Lead/Co) | plan TH12 (Entwurf zeigen) | plan-ja TH12 [--datei geändert.json] (Lead) |"
+                                   " anhalten TH12 [--meilenstein N] (nicht begonnene Pakete eines geänderten Themas, Lead/Co)")
     x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "zeige", "neu", "einstellen", "pflegen", "bestaetigen",
                                                                   "dokument", "status", "freigeben", "zurueck", "markieren",
-                                                                  "entmarkieren", "nur_mensch", "nicht_nur_mensch", "vermerk", "luecken", "planen", "plan", "plan-ja"])
+                                                                  "entmarkieren", "nur_mensch", "nicht_nur_mensch", "vermerk", "luecken", "planen", "plan", "plan-ja", "anhalten"])
+    x.add_argument("--meilenstein", type=int, help="anhalten: nur in diesem Meilenstein (Nummer) – K8")
     x.add_argument("--nichts-zu-bauen", action="store_true", help="vermerk: das Thema braucht kein Paket (mit --grund) – A1947")
     x.add_argument("--aufheben", action="store_true", help="vermerk: den Vermerk „nichts zu bauen“ wieder aufheben")
     x.add_argument("--grund")

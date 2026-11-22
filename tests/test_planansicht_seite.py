@@ -73,6 +73,27 @@ class PlanAnsicht(Rundgang):
         self.tab.js("document.querySelector('.pm-entwurf').open = true; document.querySelector('.pm-entwurf button[data-h=plan-ja]').click()")
         self.warten("!document.querySelector('#inhalt .pm-entwurf') && [...document.querySelectorAll('.pm-zeile')].some(z => z.textContent.includes('Online anmelden'))")
 
+    def test_k8_thema_geaendert_am_meilenstein(self):
+        """K8 (A1942): ändert sich ein Thema nach der Freigabe des Meilensteins, steht das am Meilenstein – mit „Neu planen“ und
+        „Nicht begonnene anhalten“ (hält nur nicht begonnene an)."""
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob")
+        th = self.con.execute("SELECT id FROM thema LIMIT 1").fetchone()[0]
+        themen.pflegen(self.con, self.pid, "CC1", th, "Neue Fassung.")
+        self.groesse("pc")
+        self.oeffnen("planung", self.BEREIT)
+        self.tab.js(f"document.querySelector('#inhalt .th-zeile[data-ms=\"{self.m1}\"]').click()")
+        self.warten("document.querySelector('#inhalt .pm-geaendert')")
+        self.assertTrue(self.tab.js("document.querySelector('.pm-geaendert').textContent.startsWith('Thema geändert: TH')"))
+        self.tab.js("window.confirm = () => true; document.querySelector('.pm-geaendert button[data-h=anhalten]').click()")
+        self.warten("!document.querySelector('.pm-geaendert button[data-h=anhalten]')")
+        st = lambda: [r[0] for r in self.con.execute("SELECT status FROM aufgabe WHERE bogen_id = ? ORDER BY id", (self.m1,))]
+        self.assertEqual(st(), ["wartet", "wartet"])
+        for g in ("pc", "handy"):
+            for th_ in ("hell", "dunkel"):
+                tun = f"document.querySelector('#inhalt .th-zeile[data-ms=\"{self.m1}\"]').click()"
+                self.assertEqual(self.besuchen("planung", "planung-k8", bereit="document.querySelector('#inhalt .pm-zeile')", tun=tun,
+                                               danach="document.querySelector('.pm-geaendert')", g=g, t=th_), [], f"{g} {th_}")
+
     def test_bilder_entwurf(self):
         from amw import planer
         th = self.con.execute("SELECT id FROM thema LIMIT 1").fetchone()[0]

@@ -305,6 +305,8 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
                 return {"gestartet": planansicht.jetzt_starten(con, pid, kern.ENTWICKLER)}
             if was == "plan-ja":                      # A1940: Ja zum Entwurf des Planers
                 return {"angelegt": planansicht.entwurf_ja(con, pid, kern.ENTWICKLER, daten.get("thema"))}
+            if was == "anhalten":                     # K8 (A1942): nicht begonnene Pakete eines geänderten Themas anhalten
+                return {"angehalten": planansicht.anhalten(con, pid, kern.ENTWICKLER, int(daten.get("thema")), bid or None)}
             if was == "neu-planen":
                 return {"text": planansicht.neu_planen(con, pid, kern.ENTWICKLER, daten.get("thema"))}
         except (kern.AmwFehler, ValueError, TypeError) as e:

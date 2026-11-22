@@ -535,6 +535,17 @@ die der Lead nur noch bestätigt oder ändert.
 - **Einstellung:** `themen_planer` = sonnet (Vorgabe) | aus – Lead oder Mensch. Tests stoßen nie einen echten Planer an
   (`AMW_PLANER_AUS`). Die Ansicht dazu kommt mit der Grobplanung (A1916).
 
+### Thema → Meilenstein → Paket (K8, A1942, TH163)
+
+- **Auslöser:** ein freigegebenes Thema bekommt eine neue Fassung (wie A1915) oder wird zurückgegeben.
+- **Was geschieht:** Die AMW ermittelt die Meilensteine (geplant/aktiv), deren Pakete auf das Thema verweisen, und darunter die
+  Pakete nach Stand (nicht begonnen, laufend, fertig). Der Lead bekommt einen Auftrag mit dieser Liste und dem Vorschlag: neu
+  planen (`amw thema planen TH…`, K4) und die nicht begonnenen anhalten (`amw thema anhalten TH… [--meilenstein N]`). Angehalten
+  wird nichts von selbst; laufende bauen zu Ende.
+- **Anzeige:** Planung › Meilensteine zeigt am Meilenstein „Thema geändert: TH… (Fassung n)“, abgeleitet aus den Ereignissen
+  (neue Fassung oder Zurück nach der Freigabe des Meilensteins), mit „Neu planen“ und „Nicht begonnene anhalten“. Anhalten:
+  p-Pakete zurückgestellt, die übrigen „wartet“ auf den Lead mit Grund (Ereignis paket_angehalten).
+
 ### Themen → Aufgaben (A1915, D1304 v12 §1.3/§6d)
 
 **Wozu:** Ändert sich ein Thema, sollen genau die Aufgaben geprüft werden, die darauf bauen – nicht alle, und ohne dass

@@ -25,12 +25,12 @@ ARTEN = ("grob", "plan")
 def _zustaende(con, pid):
     """{(bogen, art): {"an", "von", "zeit_utc", "notiz"}} – der jüngste Eintrag je Meilenstein und Art."""
     aus = {}
-    for r in con.execute("SELECT von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id", (pid, FREI)):
+    for r in con.execute("SELECT id, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id", (pid, FREI)):
         try:
             d = json.loads(r["text"])
         except ValueError:
             continue
-        aus[(d.get("bogen"), d.get("art"))] = {"an": bool(d.get("an")), "von": r["von"], "zeit_utc": r["zeit_utc"], "notiz": d.get("notiz"),
+        aus[(d.get("bogen"), d.get("art"))] = {"an": bool(d.get("an")), "von": r["von"], "zeit_utc": r["zeit_utc"], "notiz": d.get("notiz"), "id": r["id"],
                                                "durch": d.get("durch")}
     return aus
 
@@ -175,6 +175,7 @@ def daten(con, pid):
     from . import arbeitspaket, empfehlung, planung, themen
     z = _zustaende(con, pid)
     js, co_lead = _jas(con, pid), themen.freigabe_regel(con, pid) == "co+lead"
+    halt = _angehalten(con, pid)                         # K8: schon angehaltene zählen nicht mehr als „nicht begonnen“
 
     def fehlt(bid, art, frei):
         if frei or not co_lead:
@@ -199,9 +200,17 @@ def daten(con, pid):
                            "nach": planung.vorgaenger(con, a["id"]), "pruefung": a["pruefer"] or ("AMW" if p.get("art") == "p" else "–"),
                            "usd": usd, "gemessen": gemessen})
         g, pl = z.get((b["id"], "grob")) or {}, z.get((b["id"], "plan")) or {}
+        geaendert = []                                   # K8: Themen, die sich seit der Freigabe des Meilensteins geändert haben
+        if g.get("an") and b["status"] in ("geplant", "aktiv"):
+            for tid in th:
+                f = _geaendert_seit(con, pid, tid, g["id"])
+                if f is not None:
+                    offen = [aid for x in betroffen(con, pid, tid) if x["bogen"]["id"] == b["id"] for aid in x["offen"] if aid not in halt]
+                    geaendert.append({"id": tid, "name": th[tid], "fassung": f, "offen": offen})   # offen: anhaltbar (dieses Thema)
         ms.append({"id": b["id"], "nr": b["nr"], "titel": b["titel"], "status": b["status"], "endet_mit": b["abnahme"],
                    "themen": [{"id": k, "name": v} for k, v in sorted(th.items())], "pakete": pakete,
                    "summe": round(sum(p["usd"] for p in pakete if p["usd"]), 2) if any(p["usd"] for p in pakete) else None,
+                   "geaendert": geaendert,
                    "grob": {"frei": bool(g.get("an")), "von": g.get("von"), "durch": g.get("durch"), "zeit_utc": g.get("zeit_utc"),
                             "notiz": None if g.get("an") else g.get("notiz"), "ja_fehlt": fehlt(b["id"], "grob", g.get("an"))},
                    "plan": {"frei": bool(pl.get("an")), "von": pl.get("von"), "durch": pl.get("durch"), "zeit_utc": pl.get("zeit_utc"),
@@ -217,6 +226,120 @@ def daten(con, pid):
     tor = "umsetzung" if any(m["status"] == "aktiv" for m in ms) else ("fein" if grob_zu else "grob")
     return {"meilensteine": ms, "tor": tor, "grob_zu": grob_zu, "fein_zu": fein_zu, "ohne_meilenstein": ohne,
             "hat_themen": bool(namen), "starten": fein_zu, **entwuerfe(con, pid, namen)}
+
+
+# --- K8 (A1942, Plan Co #30105, TH163 Rückkopplung): Änderungen von oben nach unten – Thema → Meilenstein → Paket ----------
+# Ändert sich ein Thema (neue Fassung nach einer Freigabe, oder Zurück), zeigt die AMW die betroffenen Meilensteine und darunter
+# die Pakete und schlägt die Anpassung vor (neu planen über K4, nicht begonnene anhalten); laufende bauen zu Ende, der Lead
+# entscheidet. Abgeleitet, ohne Schemaänderung: ein Meilenstein ist betroffen, wenn eins seiner Themen nach der Freigabe des
+# Meilensteins (grob) eine neue Fassung bekam oder zurückgegeben wurde.
+ANGEHALTEN = "paket_angehalten"           # {"aufgabe", "thema", "bogen"} – zur Nachvollziehbarkeit
+
+
+def _verweise_alle(con, pid):
+    """{Aufgabe: {Themen}} – die geltenden Themen-Verweise (A1915) in einem Durchgang."""
+    from . import themen
+    aus = {}
+    for r in con.execute("SELECT aufgabe_id, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id", (pid, themen.VERWEIS)):
+        try:
+            d = json.loads(r[1])
+        except ValueError:
+            continue
+        (aus.setdefault(r[0], set()).add if d.get("an") else aus.setdefault(r[0], set()).discard)(d.get("thema"))
+    return aus
+
+
+def _nicht_begonnen(a):
+    return a["status"] not in ("laeuft", "fertig", "verworfen") and not a["begonnen_utc"]
+
+
+def _angehalten(con, pid):
+    """Aufgaben, die K8 angehalten hat und die noch stehen (wartet/blockiert bzw. p-Paket zurückgestellt)."""
+    from . import arbeitspaket
+    aus = set()
+    for (aid,) in con.execute("SELECT DISTINCT aufgabe_id FROM plan_ereignis WHERE projekt_id = ? AND art = ?", (pid, ANGEHALTEN)):
+        a = con.execute("SELECT status FROM aufgabe WHERE id = ?", (aid,)).fetchone()
+        if a and (a["status"] in ("wartet", "blockiert") or arbeitspaket.lesen(con, aid).get("zustand") == "zurueckgestellt"):
+            aus.add(aid)
+    return aus
+
+
+def betroffen(con, pid, tid):
+    """[{"bogen": {id, nr, titel, status}, "offen": [A…], "laeuft": [A…], "fertig": [A…]}] – Meilensteine, deren Pakete auf
+    das Thema verweisen (geplante und laufende Meilensteine), mit ihren Paketen nach Stand."""
+    vw = _verweise_alle(con, pid)
+    je = {}
+    for aid, ts in vw.items():
+        if tid not in ts:
+            continue
+        a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+        if not a or not a["bogen_id"] or a["status"] == "verworfen":
+            continue
+        b = con.execute("SELECT id, nr, titel, status FROM bogen WHERE id = ?", (a["bogen_id"],)).fetchone()
+        if not b or b["status"] not in ("geplant", "aktiv"):
+            continue
+        z = je.setdefault(b["id"], {"bogen": dict(b), "offen": [], "laeuft": [], "fertig": []})
+        z["fertig" if a["status"] == "fertig" else "laeuft" if not _nicht_begonnen(a) else "offen"].append(aid)
+    return sorted(je.values(), key=lambda x: x["bogen"]["nr"])
+
+
+def folgen_melden(con, pid, tid, anlass):
+    """Nach einer Änderung des Themas (themen.thema_geaendert / zurueck): dem Lead die betroffenen Meilensteine und Pakete mit
+    dem Vorschlag – nichts wird von selbst angehalten. Rückgabe: Liste der Meilenstein-Nummern."""
+    bt = betroffen(con, pid, tid)
+    lead = kern.lead(con, pid)
+    if not bt or not lead or lead == kern.ENTWICKLER:
+        return []
+    t = con.execute("SELECT name FROM thema WHERE id = ?", (tid,)).fetchone()
+    zeilen = [f"- Meilenstein {x['bogen']['nr']} „{x['bogen']['titel'][:60]}“ [{x['bogen']['status']}]: "
+              + ", ".join(f"{len(x[k])} {w}" for k, w in (("offen", "nicht begonnen"), ("laeuft", "laufend"), ("fertig", "fertig")) if x[k])
+              + (f" (nicht begonnen: {', '.join(f'A{a}' for a in x['offen'])})" if x["offen"] else "") for x in bt]
+    with db.schreiben(con):
+        kern._posten(con, pid, "AMW", lead, "auftrag",
+                     f"Thema geändert: TH{tid} „{(t['name'] if t else '')[:50]}“ ({anlass}) – betrifft {len(bt)} Meilenstein(e)",
+                     "Betroffen:\n" + "\n".join(zeilen) + "\n\nVorschlag: neu planen (amw thema planen TH" + str(tid) + ") und die nicht"
+                     " begonnenen Pakete anhalten (amw thema anhalten TH" + str(tid) + " [--meilenstein N] oder Planung › Meilensteine)."
+                     " Laufende bauen zu Ende. Du entscheidest – angehalten wird nichts von selbst.")
+    return [x["bogen"]["nr"] for x in bt]
+
+
+def anhalten(con, pid, von, tid, bid=None):
+    """Die nicht begonnenen Pakete eines Themas anhalten (alle betroffenen Meilensteine oder nur bid): p-Pakete zurückgestellt,
+    die übrigen „wartet“ auf den Lead (bzw. den Menschen) mit Grund. Lead, Co oder Mensch. Rückgabe: angehaltene Aufgaben."""
+    from . import arbeitspaket
+    if not darf_freigeben(con, pid, von):
+        raise kern.AmwFehler("Pakete anhalten dürfen Lead, Co-Entwickler oder der Mensch")
+    lead = kern.lead(con, pid) or kern.ENTWICKLER
+    grund = f"Thema TH{tid} geändert (K8) – der Lead prüft, ob das Paket noch passt"
+    schon = _angehalten(con, pid)
+    aus = []
+    for x in betroffen(con, pid, tid):
+        if bid is not None and x["bogen"]["id"] != bid:
+            continue
+        for aid in x["offen"]:
+            if aid in schon:
+                continue
+            p = arbeitspaket.lesen(con, aid)
+            if p.get("art") == "p":
+                if p.get("zustand") in ("zurueckgestellt",) or "zurueckgestellt" not in arbeitspaket.UEBERGAENGE.get(p.get("zustand"), ()):
+                    continue
+                arbeitspaket.zustand_setzen(con, pid, von if von != kern.ENTWICKLER else lead, aid, "zurueckgestellt", grund=grund)
+            else:
+                kern.aufgabe_status(con, pid, von if von != kern.ENTWICKLER else lead, aid, "wartet", wartet_auf=grund, auf=lead)
+            with db.schreiben(con):
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=ANGEHALTEN, aufgabe_id=aid,
+                             bogen_id=x["bogen"]["id"], text=json.dumps({"aufgabe": aid, "thema": tid, "bogen": x["bogen"]["id"]}))
+            aus.append(aid)
+    return aus
+
+
+def _geaendert_seit(con, pid, tid, seit_id):
+    """Bekam das Thema nach dem Ereignis seit_id eine neue Fassung (vorgelegt, eigene Bearbeitung) oder wurde es zurückgegeben?
+    Fassungsnummer oder None. Ereignis-Nummern statt Zeiten: gleiche Sekunde zählt richtig."""
+    from . import themen
+    arten = (themen.EREIGNIS["vorgelegt"], themen.EREIGNIS["bearbeitet"], themen.EREIGNIS["zurueck"])
+    z = [e for e in themen._ereignisse(con, pid, tid) if e["art"] in arten and e["id"] > seit_id]
+    return z[-1].get("fassung") if z else None
 
 
 def entwuerfe(con, pid, namen):

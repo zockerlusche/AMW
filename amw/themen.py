@@ -442,10 +442,14 @@ def zurueck(con, pid, von, name, notiz):
     an = _an_pfleger(con, pid, t)
     with db.schreiben(con):
         _ereignis(con, pid, von, "zurueck", t["id"], fassung=s["fassung"], notiz=notiz.strip()[:2000])
+        zurueck_bei = s["freigegeben"]
         if an:
             kern._posten(con, pid, "AMW", an, "auftrag", f"Thema „{t['name'][:60]}“ zurück: {notiz.strip()[:80]}",
                          f"TH{t['id']} (Fassung {s['fassung']}) – Notiz von {kern.entwickler_name(con, pid)}:\n{notiz.strip()}\n\n"
                          f"Neue Fassung: amw thema pflegen TH{t['id']} --text-datei …")
+    if zurueck_bei:                                   # K8 (A1942): ein freigegebenes Thema zurück → Meilensteine prüfen
+        from . import planansicht
+        planansicht.folgen_melden(con, pid, t["id"], "zurück")
     return status(con, finden(con, pid, t["id"]))
 
 
@@ -690,6 +694,11 @@ def thema_geaendert(con, pid, tid, nr):
     from . import arbeitspaket
     if not _war_freigegeben(con, pid, tid, nr):
         return {}
+    try:                                              # K8 (A1942): auch die Ebene Meilenstein – Vorschlag an den Lead
+        from . import planansicht
+        planansicht.folgen_melden(con, pid, tid, f"Fassung {nr}")
+    except Exception:                                 # noqa: BLE001 – die Meldung darf die Fassung nie verhindern
+        pass
     t = finden(con, pid, tid)
     lead = kern.lead(con, pid)
     je = {}
