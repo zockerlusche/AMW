@@ -13,7 +13,7 @@
   },
   {
    "titel": "Record",
-   "text": "`amw release version --version 1.4.0 --titel \"Short name\"` – the release notes come from the tasks finished since the last version. If a task has no sentence of its own, AMW works one out from the commit, the topic or the title.",
+   "text": "`amw release version --version 1.4.0 --titel \"Short name\"` – the release notes come from the tasks finished since the last version. If a task has no sentence of its own, AMW works one out from the commit, the topic or the title. If a task does not belong in the release notes (a probe, for example), take it out with `amw aufgabe hinweis <no> --gruppe intern` – also after closing it, as long as the version has not been recorded yet.",
    "bilder": []
   },
   {

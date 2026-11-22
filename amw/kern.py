@@ -1441,15 +1441,23 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
         if neu in ("fertig", "verworfen"):
             felder["fertig_utc"] = t
             felder["beleg"] = beleg
+        intern = False
         if neu == "fertig" and (hinweis or gruppe):   # für die Versionshinweise (amw release)
             from . import versionshinweise
             try:
-                felder["hinweis_gruppe"] = versionshinweise.gruppe_pruefen(gruppe)
+                g = versionshinweise.gruppe_pruefen(gruppe, intern_erlaubt=True)
             except ValueError as e:
                 raise AmwFehler(str(e)) from None
-            if (hinweis or "").strip():
-                felder["hinweis"] = " ".join(hinweis.split())[:300]
-        if neu == "fertig":                          # A1954 (TH151): was fehlt, leitet die AMW ab – der Agent ergänzt höchstens
+            intern = g == versionshinweise.GRUPPE_INTERN          # A1978: intern – kein Hinweis, keine Ableitung
+            if not intern:
+                felder["hinweis_gruppe"] = g
+                if (hinweis or "").strip():
+                    felder["hinweis"] = " ".join(hinweis.split())[:300]
+        from . import versionshinweise as _vh
+        if neu == "fertig" and intern:
+            _vh.intern_setzen(con, pid, von, aid, True)
+        elif neu == "fertig" and not _vh.ist_intern(con, aid):
+            # A1954 (TH151): was fehlt, leitet die AMW ab – der Agent ergänzt höchstens (nie bei einer internen Aufgabe, A1978)
             from . import versionshinweise
             fehlt_text = not felder.get("hinweis") and not a["hinweis"]
             fehlt_gruppe = not felder.get("hinweis_gruppe") and not a["hinweis_gruppe"]

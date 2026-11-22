@@ -265,19 +265,20 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--ohne-thema-grund OHNE_THEMA_GRUND] [--text TEXT]
                    [--nein] [--zurueck] [--kommentar KOMMENTAR] [--kurz]
                    [--federfuehrend FEDERFUEHREND] [--pool] [--grund GRUND]
-                   [--hinweis HINWEIS] [--gruppe {neu,verbessert,behoben}]
-                   [--sofort] [--paket {agent,sitzung,p}]
-                   [--gewicht {leicht,schwer}] [--ressourcen RESSOURCEN]
-                   [--modell MODELL] [--effort {low,medium,high}]
+                   [--hinweis HINWEIS]
+                   [--gruppe {neu,verbessert,behoben,intern}] [--sofort]
+                   [--paket {agent,sitzung,p}] [--gewicht {leicht,schwer}]
+                   [--ressourcen RESSOURCEN] [--modell MODELL]
+                   [--effort {low,medium,high}]
                    [--pakettyp {normal,test-schreiben,test-ergaenzen}]
                    [--nie-gleichzeitig NIE_GLEICHZEITIG]
                    [--gleiche-ressource GLEICHE_RESSOURCE] [--von VON]
                    [--projekt PROJEKT]
-                   {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen,bereit,abnehmen}
+                   {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen,bereit,abnehmen,hinweis}
                    [id] [nr]
 
 positional arguments:
-  {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen,bereit,abnehmen}
+  {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen,bereit,abnehmen,hinweis}
   id
   nr                    kriterium: Nummer des Kriteriums
 
@@ -362,13 +363,14 @@ options:
   --pool                neu: in den Eingang (noch in keiner Arbeitsliste)
   --grund GRUND         dazwischen: warum diese Aufgabe vor das laufende Stück
                         muss (Pflicht)
-  --hinweis HINWEIS     fertig: ein Satz für die Versionshinweise, in der
-                        Sprache der Nutzer (ohne: die AMW leitet ihn ab – aus
-                        Commit-Betreff, Thema oder Titel)
-  --gruppe {neu,verbessert,behoben}
-                        fertig: Gruppe in den Versionshinweisen (ohne: die AMW
-                        leitet sie ab – Art fehlersuche = behoben, sonst nach
-                        Stichworten)
+  --hinweis HINWEIS     fertig|hinweis: ein Satz für die Versionshinweise, in
+                        der Sprache der Nutzer (ohne: die AMW leitet ihn ab –
+                        aus Commit-Betreff, Thema oder Titel)
+  --gruppe {neu,verbessert,behoben,intern}
+                        fertig|hinweis: Gruppe in den Versionshinweisen (ohne:
+                        die AMW leitet sie ab – Art fehlersuche = behoben,
+                        sonst nach Stichworten; intern = nie in den
+                        Versionshinweisen)
   --sofort              neu: direkt hinter das laufende Stück des Agenten
                         einplanen statt in den Eingang (ohne laufendes Stück:
                         wie bisher in die Liste)

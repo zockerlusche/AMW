@@ -146,5 +146,33 @@ class Ableiten(Grund):
         self.assertEqual(self.hinweis(b)[0], "Liste nach Datum sortieren")                     # nie die Zusammenfassung der AMW
 
 
+class Intern(Grund):
+    """A1978 (#30740/#30741): --gruppe intern – nie in den Versionshinweisen, auch nachträglich vor dem nächsten Versionseintrag."""
+
+    def ids(self):
+        return [x["id"] for g in versionshinweise.entwurf(self.con, self.pid).values() for x in g]
+
+    def test_intern_beim_schliessen_und_nachtraeglich(self):
+        a = self.fertig("Probe Sprach-Server", "Probe: keine Diagnosen im Arbeiter", gruppe="intern")
+        b = self.fertig("Export als CSV", "csv.py", hinweis="Listen lassen sich als CSV speichern.", gruppe="verbessert")
+        r = self.con.execute("SELECT hinweis, hinweis_gruppe FROM aufgabe WHERE id = ?", (a,)).fetchone()
+        self.assertEqual((tuple(r), versionshinweise.ist_intern(self.con, a)), ((None, None), True))   # keine Ableitung (A1954)
+        self.assertEqual(self.ids(), [b])
+        self.assertEqual(versionshinweise.nachtragen(self.con, self.pid, "CC1", b, "intern"), "intern")   # wie A1963
+        self.assertEqual(self.ids(), [])
+        self.assertEqual(versionshinweise.nachtragen(self.con, self.pid, "TL", b, "behoben", "CSV-Export geht wieder."), "behoben")
+        self.assertFalse(versionshinweise.ist_intern(self.con, b))
+        e = versionshinweise.entwurf(self.con, self.pid)
+        self.assertEqual(e["behoben"], [{"id": b, "text": "CSV-Export geht wieder.", "vorschlag": False}])
+        kern.agent_neu(self.con, self.pid, "CC2")
+        with self.assertRaisesRegex(kern.AmwFehler, "Bearbeiter, der Lead"):
+            versionshinweise.nachtragen(self.con, self.pid, "CC2", b, "intern")
+        with self.assertRaisesRegex(kern.AmwFehler, "intern"):
+            versionshinweise.nachtragen(self.con, self.pid, "CC1", b, "sonstiges")
+        wissen.release_version(self.con, self.pid, "TL", "1.1.0", "Export")
+        with self.assertRaisesRegex(kern.AmwFehler, "schon in einer eingetragenen Version"):
+            versionshinweise.nachtragen(self.con, self.pid, "CC1", b, "intern")
+
+
 if __name__ == "__main__":
     unittest.main()

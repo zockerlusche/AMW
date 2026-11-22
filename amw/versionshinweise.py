@@ -5,6 +5,7 @@ Quelle ist zuerst der Satz für Nutzer, den der Agent beim Abschließen angibt (
 interne Verweise entfernt, Gruppe nach Stichworten) – erkennbar als Vorschlag. Der Lead gibt den Text mit
 `amw release version … ` frei; erst dann steht er für alle da.
 """
+import json
 import re
 
 GRUPPEN = ("neu", "verbessert", "behoben")
@@ -16,11 +17,66 @@ INTERN = re.compile(r"\s*\((?:[^()]*\b(?:[WBDF]\d{3,}|#\d{3,}|[0-9a-f]{7,40})\b[
                     r"|\bRelease \d+\.\d+\.\d+\b|\bFix [0-9a-f]{7}\b|,?\s*live geprüft")
 
 
-def gruppe_pruefen(g):
+GRUPPE_INTERN = "intern"                   # A1978: nie in den Versionshinweisen – als Ereignis (die Spalte kennt nur GRUPPEN)
+INTERN_ART = "hinweis_intern"
+
+
+def gruppe_pruefen(g, intern_erlaubt=False):
     g = (g or "").strip().lower()
+    if g == GRUPPE_INTERN and intern_erlaubt:
+        return g
     if g and g not in GRUPPEN:
-        raise ValueError(f"Gruppe „{g}“ gibt es nicht – neu, verbessert oder behoben")
+        raise ValueError(f"Gruppe „{g}“ gibt es nicht – neu, verbessert, behoben" + (" oder intern" if intern_erlaubt else ""))
     return g or None
+
+
+def ist_intern(con, aid):
+    """Das neueste Ereignis hinweis_intern der Aufgabe zählt ({"intern": true|false})."""
+    r = con.execute("SELECT text FROM plan_ereignis WHERE aufgabe_id = ? AND art = ? ORDER BY id DESC LIMIT 1", (aid, INTERN_ART)).fetchone()
+    try:
+        return bool(r and json.loads(r[0] or "{}").get("intern"))
+    except ValueError:
+        return False
+
+
+def intern_setzen(con, pid, von, aid, intern):
+    """In der Transaktion des Aufrufers: intern → Gruppe und Satz leer, Ereignis; zurück (intern=False) nur das Ereignis."""
+    from . import db
+    if intern:
+        con.execute("UPDATE aufgabe SET hinweis = NULL, hinweis_gruppe = NULL WHERE id = ?", (aid,))
+    db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=INTERN_ART, aufgabe_id=aid,
+                 text=json.dumps({"intern": bool(intern)}))
+
+
+def nachtragen(con, pid, von, aid, gruppe=None, hinweis=None):
+    """A1978: Gruppe/Satz einer Aufgabe ändern – auch nach dem Abschließen, solange keine Version sie schon enthält.
+    Bearbeiter oder Lead. gruppe intern nimmt sie aus den Versionshinweisen."""
+    from . import db, kern
+    a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    if not a:
+        raise kern.AmwFehler(f"A{aid} gibt es nicht")
+    if von not in (a["agent"], kern.ENTWICKLER) and not kern.ist_lead(con, pid, von):
+        raise kern.AmwFehler("Den Versionshinweis ändern der Bearbeiter, der Lead oder der Mensch")
+    s = seit(con, pid)
+    if a["status"] == "fertig" and s and a["fertig_utc"] and a["fertig_utc"] <= s:
+        raise kern.AmwFehler(f"A{aid} steht schon in einer eingetragenen Version – dort ändert ihn nur der Lead (amw release version)")
+    try:
+        g = gruppe_pruefen(gruppe, intern_erlaubt=True)
+    except ValueError as e:
+        raise kern.AmwFehler(str(e)) from None
+    if not g and not (hinweis or "").strip():
+        raise kern.AmwFehler("--gruppe neu|verbessert|behoben|intern und/oder --hinweis „Satz“")
+    with db.schreiben(con):
+        if g == GRUPPE_INTERN:
+            intern_setzen(con, pid, von, aid, True)
+            return "intern"
+        felder = {k: v for k, v in (("hinweis_gruppe", g), ("hinweis", " ".join((hinweis or "").split())[:300] or None)) if v}
+        con.execute(f"UPDATE aufgabe SET {', '.join(k + ' = ?' for k in felder)} WHERE id = ?", (*felder.values(), aid))
+        if ist_intern(con, aid):
+            intern_setzen(con, pid, von, aid, False)
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=ABGELEITET, aufgabe_id=aid,
+                     text=json.dumps({"quelle": f"von {von}", "gruppe": False, "text": False}))   # ab jetzt kein Vorschlag mehr
+    return g or "Satz"
 
 
 def satz(text):
@@ -141,6 +197,8 @@ def entwurf(con, pid, ab=None):
     abgeleitet = _abgeleitet(con, pid)
     for a in con.execute("SELECT id, titel, zusammenfassung, hinweis, hinweis_gruppe FROM aufgabe WHERE projekt_id = ? AND status = 'fertig'"
                          " AND (? IS NULL OR fertig_utc > ?) ORDER BY fertig_utc, id", (pid, ab, ab)):
+        if ist_intern(con, a["id"]):                 # A1978: intern – nie in den Versionshinweisen
+            continue
         if a["hinweis"]:
             g = a["hinweis_gruppe"] or regel(a["titel"], a["zusammenfassung"]) or "verbessert"
             aus[g].append({"id": a["id"], "text": a["hinweis"].strip(), "vorschlag": a["id"] in abgeleitet})

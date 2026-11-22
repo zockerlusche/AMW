@@ -1000,6 +1000,12 @@ def cmd_aufgabe(a, con):
             gruende = ", ".join(g["bezug"] for g in wartegrund.offene(con, r["id"]))
             print(f"A{r['id']:<5} {r['agent'] or '–':<8} [{r['status']}/{r['einstufung']}] {r['titel'][:110]}"
                   + (f"  ⇢ {gruende}" if gruende else "") + (f"  ⇢ {r['wartet_auf']}" if r["wartet_auf"] else ""))
+    elif a.aktion == "hinweis":                       # A1978: Versionshinweis ändern oder zurücknehmen (intern), auch nach fertig
+        if not a.id:
+            raise kern.AmwFehler("amw aufgabe hinweis <nr> --gruppe neu|verbessert|behoben|intern [--hinweis „Satz“]")
+        from . import versionshinweise
+        r = versionshinweise.nachtragen(con, pid, _von(a), a.id, a.gruppe, a.hinweis)
+        print(f"A{a.id}: " + ("intern – erscheint nicht in den Versionshinweisen" if r == "intern" else f"Versionshinweis ({r}) gesetzt"))
     elif a.aktion == "nachtrag":
         if not a.id:
             raise kern.AmwFehler("amw aufgabe nachtrag <nr> --titel … [--auftrag …] [--agent …]")
@@ -3448,7 +3454,7 @@ def parser():
                                      " zu einer fertigen Aufgabe)")
     x.add_argument("aktion", choices=["neu", "aendern", "liste", "zeige", "start", "blockiert", "wartet", "fertig", "verwerfen",
                                        "parken", "aktiv", "keine_prio", "pool", "kriterium", "plan", "planfrei", "nachtrag",
-                                       "dazwischen", "bereit", "abnehmen"])
+                                       "dazwischen", "bereit", "abnehmen", "hinweis"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("nr", type=int, nargs="?", help="kriterium: Nummer des Kriteriums")
     x.add_argument("--titel")
@@ -3500,10 +3506,10 @@ def parser():
     x.add_argument("--federfuehrend", help="aendern: wer diese Aufgabe führt (Lead/Entwickler; leer = weg)")
     x.add_argument("--pool", action="store_true", help="neu: in den Eingang (noch in keiner Arbeitsliste)")
     x.add_argument("--grund", help="dazwischen: warum diese Aufgabe vor das laufende Stück muss (Pflicht)")
-    x.add_argument("--hinweis", help="fertig: ein Satz für die Versionshinweise, in der Sprache der Nutzer (ohne: die AMW leitet"
+    x.add_argument("--hinweis", help="fertig|hinweis: ein Satz für die Versionshinweise, in der Sprache der Nutzer (ohne: die AMW leitet"
                    " ihn ab – aus Commit-Betreff, Thema oder Titel)")
-    x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben"], help="fertig: Gruppe in den Versionshinweisen (ohne: die AMW"
-                   " leitet sie ab – Art fehlersuche = behoben, sonst nach Stichworten)")
+    x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben", "intern"], help="fertig|hinweis: Gruppe in den Versionshinweisen"
+                   " (ohne: die AMW leitet sie ab – Art fehlersuche = behoben, sonst nach Stichworten; intern = nie in den Versionshinweisen)")
     x.add_argument("--sofort", action="store_true", help="neu: direkt hinter das laufende Stück des Agenten einplanen statt in den"
                                                           " Eingang (ohne laufendes Stück: wie bisher in die Liste)")
     # Paketfelder (A1845, AMW 2.0 Mischbetrieb) – Abnahme-Befehl = --pruefbefehl, Bereiche = --dateien, Rang = --rang, nach X = --nach

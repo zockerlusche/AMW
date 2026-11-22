@@ -139,6 +139,10 @@ freigegeben“).
   Versions-Commit); die Zusammenfassung des Agenten (nie die der AMW); der Titel.
 - **Gespeichert:** in `hinweis`/`hinweis_gruppe` der Aufgabe, dazu das Ereignis `hinweis_abgeleitet` (Quelle, was abgeleitet
   wurde). Der Entwurf zeigt einen abgeleiteten Satz als Vorschlag. Was der Agent angibt, geht immer vor; er ergänzt höchstens.
+- **Intern (A1978):** `--gruppe intern` beim Abschließen oder `amw aufgabe hinweis N --gruppe intern` danach (Bearbeiter, Lead,
+  Mensch; nur solange keine eingetragene Version die Aufgabe enthält) nimmt eine Aufgabe aus den Versionshinweisen – ohne Schema
+  als Ereignis `hinweis_intern`; Gruppe und Satz werden geleert, die Ableitung läuft für sie nie. `amw aufgabe hinweis N --gruppe
+  neu|verbessert|behoben [--hinweis …]` setzt sie wieder.
 
 ## Bündeln (seit 1.150.0)
 
