@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.162.1 – 22.11.2026 · Auslieferung hält nicht mehr bei „Stände“
+- **Behoben:** Ist ein Stapel an der Spitze grün geprüft, bleibt dieses Grün erhalten; die Auslieferung hält nicht mehr bei
+  „Stände“, weil ein übertragenes Grün auf einem inneren Commit es verdrängt hatte.
+
 ## 1.162.0 – 22.11.2026 · Sprach-Server für die Agenten, sicherere Auslieferung
 - **Neu:** Die Agenten sehen Fehler in Python und PHP gleich beim Schreiben (Sprach-Server), statt sie erst beim Testen zu
   finden. Gilt für die Sitzungen der Agenten, nicht für die Arbeiter im Hintergrund.
