@@ -170,6 +170,9 @@ den Coder, der Coder auf das Merge-OK. Und eine Bitte als Info weckte den Lead n
   er seitdem nichts gesendet hat – höchstens einmal je Nachricht, nicht im Halt, nicht während er arbeitet.
 - **Gemeinsamer Stand:** Eine Prüfung einer anderen Aufgabe auf genau demselben Stand (oder demselben Baum) belegt die
   Versionsnummer nicht mehr – zwei Aufgaben lassen sich auf einem Stand prüfen und ausliefern.
+- **Weitergebauter Stapel (A1958):** Auch eine Prüfung auf einem Vorgänger des neuen Stands belegt die Nummer nicht –
+  nach einem roten Gesamtlauf und einem Korrektur-Commit gehen die neuen Prüfbitten durch, ohne dass der Lead die grünen
+  Prüfungen des Vorgängers zurücknehmen muss. Ein fremder Stand mit derselben Nummer belegt weiter.
 
 ## Wartegründe (seit 1.8.0)
 

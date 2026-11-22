@@ -81,6 +81,28 @@ class Nummer(unittest.TestCase):
         with self.assertRaises(kern.AmwFehler):
             self.bitte("CC1", "a1", self.stand("1.2.0", "a1"), a1)                                   # … wird weiter geprüft
 
+    def test_vorgaenger_desselben_stapels_belegt_nicht(self):
+        """A1958 (1.158.0, 1.159.0, 1.161.0): Nach rotem Gesamtlauf kommt ein Korrektur-Commit auf den Stapel – die grünen Prüfungen
+        der anderen Aufgaben auf dem Vorgänger-SHA halten die Nummer nicht fest; ein fremder Stand mit derselben Nummer weiter."""
+        a1 = kern.aufgabe_neu(self.con, self.pid, "TL", "Eins", "CC1")
+        a2 = kern.aufgabe_neu(self.con, self.pid, "TL", "Zwei", "CC1")
+        a3 = kern.aufgabe_neu(self.con, self.pid, "TL", "Drei", "CC2")
+        alt = self.stand("1.1.0", "stapel")
+        for a in (a1, a2):
+            p = self.bitte("CC1", "stapel", alt, a)
+            betrieb.pruefung_ergebnis(self.con, self.pid, "TL", p, "gruen", "ok")
+        self.g("switch", "-q", "stapel")
+        with open(os.path.join(self.repo, "fix.txt"), "w", encoding="utf-8") as f:
+            f.write("Testfix\n")
+        self.g("add", "-A")
+        self.g("-c", "commit.gpgsign=false", "commit", "-q", "-m", "Testfix")
+        neu = self.g("rev-parse", "HEAD")
+        self.g("switch", "-q", "main")
+        self.assertTrue(self.bitte("CC1", "stapel", neu, a2))                                       # Vorgänger: belegt nicht
+        with self.assertRaises(kern.AmwFehler) as e:                                                  # fremder Stand: belegt weiter
+            self.bitte("CC2", "anders", self.stand("1.1.0", "anders"), a3)
+        self.assertIn("Version 1.1.0 ist schon vergeben (A", str(e.exception))
+
     def test_ohne_versionsdatei_keine_pruefung(self):
         os.remove(os.path.join(self.repo, "amw", "__init__.py"))
         self.g("add", "-A")

@@ -87,6 +87,8 @@ def pruefen(con, pid, sha, aufgabe_id):
             continue                                     # schon draußen
         if _gleicher_stand(ordner, p["sha"], sha):        # A1897 (21.11. A1894/A1895): ein gemeinsam geprüfter Stand belegt nicht
             continue
+        if _git(ordner, "merge-base", "--is-ancestor", p["sha"], sha) is not None:
+            continue                                     # A1958: Vorgänger desselben Stapels (weitergebaut nach rotem Lauf) belegt nicht
         pv = version_im_stand(ordner, p["sha"])
         if pv:
             belegt.setdefault(pv, f"A{p['aufgabe_id']} (P{p['id']}, {p['zweig']})")
