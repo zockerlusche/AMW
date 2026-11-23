@@ -55,6 +55,43 @@ def _gleicher_stand(ordner, a, b):
     return bool(ta and tb and ta.strip() == tb.strip())
 
 
+VERSIONSDATEIEN = {"CHANGELOG.md", "amw/__init__.py", "web/inc/VERSION", "VERSION", "package.json"}
+
+
+def _inhalte(ordner, sha):
+    """patch-ids der Inhalts-Commits von merge-base(main, sha)..sha – Versions-Commits (nur Versionsdateien) zählen nicht.
+    None, wenn git versagt."""
+    basis = (_git(ordner, "merge-base", "main", sha) or "").strip()
+    commits = _git(ordner, "rev-list", "--no-merges", f"{basis}..{sha}") if basis else None
+    if commits is None:
+        return None
+    ids = set()
+    for c in commits.split():
+        dateien = set((_git(ordner, "diff-tree", "--no-commit-id", "--name-only", "-r", c) or "").split())
+        if not dateien or dateien <= VERSIONSDATEIEN:
+            continue
+        diff = _git(ordner, "show", "--format=", c)
+        try:
+            r = subprocess.run(["git", "-C", ordner, "patch-id", "--stable"], input=diff or "", capture_output=True, text=True,
+                               encoding="utf-8", errors="replace", timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        if r.returncode or not r.stdout.split():
+            return None
+        ids.add(r.stdout.split()[0])
+    return ids
+
+
+def _ersetzt(ordner, alt, neu):
+    """A1982 (Befund 23.11., P499–P504): der alte Stand ist neu aufgesetzt – alle seine Inhalts-Commits stecken patch-id-gleich im
+    neuen Stand (anderer Basis-Commit, andere Versionsnummer). Dann belegt er keine Nummer mehr."""
+    a = _inhalte(ordner, alt)
+    if not a:
+        return False
+    n = _inhalte(ordner, neu)
+    return bool(n) and a <= n
+
+
 def pruefen(con, pid, sha, aufgabe_id):
     """Wirft AmwFehler, wenn die Nummer im Stand schon vergeben ist; gibt sie sonst zurück (oder None: nichts zu prüfen)."""
     ordner = kern.projekt_ordner(con, pid)
@@ -90,6 +127,8 @@ def pruefen(con, pid, sha, aufgabe_id):
         if _git(ordner, "merge-base", "--is-ancestor", p["sha"], sha) is not None:
             continue                                     # A1958: Vorgänger desselben Stapels (weitergebaut nach rotem Lauf) belegt nicht
         pv = version_im_stand(ordner, p["sha"])
+        if pv and pv not in belegt and _ersetzt(ordner, p["sha"], sha):
+            continue                                     # A1982: derselbe Inhalt neu aufgesetzt – der alte Stand ist verworfen
         if pv:
             belegt.setdefault(pv, f"A{p['aufgabe_id']} (P{p['id']}, {p['zweig']})")
     hoechste = max((kern.version_teile(x) for x in belegt), default=(0, 0, 0))

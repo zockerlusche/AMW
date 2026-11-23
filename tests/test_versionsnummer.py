@@ -103,6 +103,44 @@ class Nummer(unittest.TestCase):
             self.bitte("CC2", "anders", self.stand("1.1.0", "anders"), a3)
         self.assertIn("Version 1.1.0 ist schon vergeben (A", str(e.exception))
 
+    def commit(self, dateien, nachricht):
+        for name, text in dateien.items():
+            os.makedirs(os.path.dirname(os.path.join(self.repo, name)) or self.repo, exist_ok=True)
+            with open(os.path.join(self.repo, name), "w", encoding="utf-8") as f:
+                f.write(text)
+        self.g("add", "-A")
+        self.g("-c", "commit.gpgsign=false", "commit", "-q", "-m", nachricht)
+        return self.g("rev-parse", "HEAD")
+
+    def test_neu_aufgesetzter_stapel_belegt_nicht(self):
+        """A1982 (23.11., P499–P504): derselbe Stapel auf einer neueren main neu aufgesetzt – die Prüfungen auf dem verworfenen
+        Stand halten die Nummer nicht fest. Ein Stand mit Inhalt, der im neuen fehlt, oder ein fremder Stand belegt weiter."""
+        a1, a2 = (kern.aufgabe_neu(self.con, self.pid, "TL", t, "CC1") for t in ("Eins", "Zwei"))
+        a3 = kern.aufgabe_neu(self.con, self.pid, "TL", "Drei", "CC2")
+        self.g("switch", "-q", "-c", "st14", "main")
+        i1 = self.commit({"a.txt": "Eins\n"}, "A1: eins")
+        i2 = self.commit({"b.txt": "Zwei\n"}, "A2: zwei")
+        alt = self.commit({"amw/__init__.py": '__version__ = "1.1.0"\n', "CHANGELOG.md": "## 1.1.0\n"}, "1.1.0")
+        self.g("switch", "-q", "main")
+        for a in (a1, a2):
+            betrieb.pruefung_ergebnis(self.con, self.pid, "TL", self.bitte("CC1", "st14", alt, a), "gruen", "ok")
+        self.stand("1.0.1")
+        self.g("tag", "v1.0.1")                                                                   # main geht weiter
+        self.g("switch", "-q", "-c", "st15", "main")
+        self.g("-c", "commit.gpgsign=false", "cherry-pick", i1, i2)
+        neu = self.commit({"amw/__init__.py": '__version__ = "1.1.0"\n', "CHANGELOG.md": "## 1.1.0\n## 1.0.1\n"}, "1.1.0 neu")
+        self.g("switch", "-q", "main")
+        self.assertTrue(self.bitte("CC1", "st15", neu, a2))                                         # A1 auf st14: ersetzt
+        self.g("switch", "-q", "-c", "st15-halb", "main")                                          # nur A1 übernommen: A2s
+        self.g("-c", "commit.gpgsign=false", "cherry-pick", i1)                                     # alter Stand trägt mehr
+        halb = self.commit({"amw/__init__.py": '__version__ = "1.1.0"\n'}, "1.1.0 halb")
+        self.g("switch", "-q", "main")
+        with self.assertRaises(kern.AmwFehler):
+            self.bitte("CC2", "st15-halb", halb, a3)
+        with self.assertRaises(kern.AmwFehler) as e:                                                  # fremder Stand: belegt weiter
+            self.bitte("CC2", "anders", self.stand("1.1.0", "anders"), a3)
+        self.assertIn("Version 1.1.0 ist schon vergeben (A", str(e.exception))
+
     def test_ohne_versionsdatei_keine_pruefung(self):
         os.remove(os.path.join(self.repo, "amw", "__init__.py"))
         self.g("add", "-A")

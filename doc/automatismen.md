@@ -229,6 +229,9 @@ den Coder, der Coder auf das Merge-OK. Und eine Bitte als Info weckte den Lead n
 - **Weitergebauter Stapel (A1958):** Auch eine Prüfung auf einem Vorgänger des neuen Stands belegt die Nummer nicht –
   nach einem roten Gesamtlauf und einem Korrektur-Commit gehen die neuen Prüfbitten durch, ohne dass der Lead die grünen
   Prüfungen des Vorgängers zurücknehmen muss. Ein fremder Stand mit derselben Nummer belegt weiter.
+- **Neu aufgesetzter Stapel (A1982):** Wird ein Stapel auf einer neueren main neu aufgesetzt (anderer Basis-Commit), belegt
+  der alte Stand die Nummer nicht mehr, wenn alle seine Inhalts-Commits patch-id-gleich im neuen Stand stecken – Versions-Commits
+  (nur CHANGELOG, `amw/__init__.py`, `web/inc/VERSION`) zählen dabei nicht. Fehlt im neuen Stand Inhalt des alten, belegt er weiter.
 
 ## Wartegründe (seit 1.8.0)
 
