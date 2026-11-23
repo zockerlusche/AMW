@@ -22,7 +22,7 @@ class AnteilP(Rundgang):
         for g in ("pc", "handy"):
             for t in ("hell", "dunkel"):
                 self.assertEqual(self.besuchen("betrieb", "betrieb-a2004", bereit=KARTE, g=g, t=t), [], f"{g} {t}")
-        self.assertEqual(self.tab.js(f"{KARTE}.querySelector('.wert').textContent"), "25 %")
-        self.assertEqual(self.tab.js(f"{KARTE}.querySelector('.sehrleise').textContent"), "1 von 4 fertigen Paketen als p · Ziel ≥ 50 %")
+        self.assertEqual(self.tab.js(f"{KARTE}.querySelector('.wert').textContent"), "25 %")
+        self.assertEqual(self.tab.js(f"{KARTE}.querySelector('.sehrleise').textContent"), "1 von 4 fertigen Paketen als p · Ziel ≥ 50 %")
         self.assertIn("bernstein", self.tab.js(f"{KARTE}.querySelector('.wert').getAttribute('style')"))
         self.assertFalse(self.tab.js("document.documentElement.scrollWidth > innerWidth + 1"))

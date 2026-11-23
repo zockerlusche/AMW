@@ -1567,8 +1567,8 @@ const TEXTE = {
     wissen: "Wissen", wissen_ph: "in Beschlüssen, Regeln und deinen Worten suchen …", beschluesse: "Beschlüsse ({n})", regeln: "Regeln ({n})", wortlaut: "Deine Worte ({n})",
     arbeitsregel: "Arbeitsregel", projektregel: "Projektregel", nichts_gefunden: "Nichts gefunden.",
     betrieb: "Betrieb", speicher_frei: "Arbeitsspeicher frei", von_gb: "von {n} GB · Grenze für Läufe {g} GB", aktive_sitzungen: "Aktive Sitzungen",
-    ueber_hook: "automatisch angemeldet", sperren: "Sperren", halt_anweisungen: "Anhalten und Anweisungen", bt_p: "Anteil p (7 Tage)", bt_p_h: "{p} von {n} fertigen Paketen als p · Ziel ≥ {z} %",
-    bt_p_leer: "noch keine fertigen Pakete · Ziel ≥ {z} %", datenbank: "Datenbank",
+    ueber_hook: "automatisch angemeldet", sperren: "Sperren", halt_anweisungen: "Anhalten und Anweisungen", bt_p: "Anteil p (7 Tage)", bt_p_h: "{p} von {n} fertigen Paketen als p · Ziel ≥ {z} %",
+    bt_p_leer: "noch keine fertigen Pakete · Ziel ≥ {z} %", datenbank: "Datenbank",
     keine_sperren: "Keine Sperren.", sitzungen: "Sitzungen", keine_sitzung: "Noch keine Sitzung angemeldet.", laeufe: "Läufe", keine_laeufe: "Keine Läufe.",
     ki: "Lokale KI", ki_erkl: "Aufträge an die lokalen KIs laufen über die Warteschlange (Grafikkarte: auf dem ganzen PC ein Lauf zur Zeit) und werden von der AMW selbst ausgeführt; jedes Ergebnis wird ein Dokument mit Herkunft.",
     ki_keine: "Keine lokale KI eingetragen.", ki_immer: "immer an", ki_bedarf: "nur bei Bedarf", ki_von_amw: "von der AMW gestartet – endet nach {n} min ohne Auftrag", ki_bedarf_h: "Startet erst, wenn ein Auftrag für sie dran ist; die AMW beendet nur KIs, die sie selbst gestartet hat.", ki_modelle: "Modelle", ki_vorlagen: "Vorlagen", ki_vorlagen_h: "gehören diesem Projekt",
@@ -1905,8 +1905,8 @@ const TEXTE = {
     wissen: "Knowledge", wissen_ph: "search decisions, rules and your words …", beschluesse: "Decisions ({n})", regeln: "Rules ({n})", wortlaut: "Your words ({n})",
     arbeitsregel: "Working rule", projektregel: "Project rule", nichts_gefunden: "Nothing found.",
     betrieb: "Operations", speicher_frei: "Free memory", von_gb: "of {n} GB · limit for runs {g} GB", aktive_sitzungen: "Active sessions",
-    ueber_hook: "signed in automatically", sperren: "Locks", halt_anweisungen: "Pause and instructions", bt_p: "Share p (7 days)", bt_p_h: "{p} of {n} finished packages as p · goal ≥ {z} %",
-    bt_p_leer: "no finished packages yet · goal ≥ {z} %", datenbank: "Database",
+    ueber_hook: "signed in automatically", sperren: "Locks", halt_anweisungen: "Pause and instructions", bt_p: "Share p (7 days)", bt_p_h: "{p} of {n} finished packages as p · goal ≥ {z} %",
+    bt_p_leer: "no finished packages yet · goal ≥ {z} %", datenbank: "Database",
     keine_sperren: "No locks.", sitzungen: "Sessions", keine_sitzung: "No session registered yet.", laeufe: "Runs", keine_laeufe: "No runs.",
     ki: "Local AI", ki_erkl: "Jobs for the local AIs go through the queue (graphics card: one run at a time on the whole PC) and are run by the AMW itself; every result becomes a document with its origin.",
     ki_keine: "No local AI registered.", ki_immer: "always on", ki_bedarf: "only when needed", ki_von_amw: "started by AMW – stops after {n} min without a job", ki_bedarf_h: "Starts only when a job for it is due; AMW only stops AIs it started itself.", ki_modelle: "Models", ki_vorlagen: "Templates", ki_vorlagen_h: "belong to this project",
@@ -6039,7 +6039,7 @@ async function sichtBetrieb() {
     el("div", { class: "karte" }, el("div", { class: "leise" }, t("sperren")), el("div", { class: "wert" }, d.sperren.length), el("div", { class: "sehrleise" }, t("halt_anweisungen"))),
     d.p_quote ? el("div", { class: "karte", "data-k": "p-quote" }, el("div", { class: "leise" }, t("bt_p")),   /* A2004: Anteil p, Ziel ≥ 50 % */
       el("div", { class: "wert", style: d.p_quote.n && d.p_quote.anteil < d.p_quote.ziel ? "color:var(--bernstein)" : "" },
-        d.p_quote.n ? `${Math.round(d.p_quote.anteil * 100)} %` : "–"),
+        d.p_quote.n ? `${Math.round(d.p_quote.anteil * 100)} %` : "–"),
       el("div", { class: "sehrleise" }, d.p_quote.n ? t("bt_p_h", { p: d.p_quote.p, n: d.p_quote.n, z: Math.round(d.p_quote.ziel * 100) })
         : t("bt_p_leer", { z: Math.round(d.p_quote.ziel * 100) }))) : null,
     el("div", { class: "karte" }, el("div", { class: "leise" }, t("datenbank")), el("div", { class: "mono", style: "margin-top:10px;overflow-wrap:anywhere" }, d.db))));
