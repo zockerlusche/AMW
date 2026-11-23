@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.171.0 – 23.11.2026 · Agenten per Befehl entfernen und zurückholen
+- **Verbessert:** Agenten lassen sich auch per Befehl entfernen und wieder aufnehmen; ein entfernter Agent führt nie das Projekt.
+
 ## 1.170.3 – 23.11.2026 · Planer nur bei eingeschaltetem Projekt
 - **Behoben:** Bei ausgeschaltetem Projekt oder im Probebetrieb startet kein Planer mehr.
 
