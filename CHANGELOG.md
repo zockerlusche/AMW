@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.170.0 – 23.11.2026 · Konzepte übernehmen, Pläne startklar
+- **Neu:** Ein Konzept als Markdown wird auf Wunsch zu Themen-Entwürfen – mit Vorschau und Zählprobe, freigegeben wird nichts (`amw thema uebernehmen`).
+- **Behoben:** Pakete aus einem angenommenen Plan haben ihre Fertig-Quelle gleich mit und sind ohne Nacharbeit startklar.
+
 ## 1.169.1 – 23.11.2026 · Fragen richtig gezählt
 - **Behoben:** Unter „Für dich“ zählt „Fragen n“ alle offenen Fragen, auch wenn mehr als 20 offen sind.
 
