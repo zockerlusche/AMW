@@ -73,6 +73,9 @@ def _groesse(pfad):
     return summe
 
 
+_SICHERUNG_GROESSE = {}      # A2001: (Pfad, Größe, Änderungszeit) → Bytes samt Dokumente-Ablage (135 Sicherungen: 16 s je Aufruf)
+
+
 def sicherungen(ordner=None):
     """Sicherungen im Ordner der Datenbank, neueste zuerst: [{"name", "zeit" (Ortszeit laut Name), "bytes"}] – die
     Dokumente-Ablage daneben („…-dokumente“) zählt zur Größe."""
@@ -89,10 +92,15 @@ def sicherungen(ordner=None):
         try:
             zeit = datetime.datetime(*(int(x) for x in m.groups()))
             pfad = os.path.join(ordner, n)
-            groesse = os.path.getsize(pfad)
-            ablage = os.path.splitext(pfad)[0] + "-dokumente"
-            if os.path.isdir(ablage):
-                groesse += _groesse(ablage)
+            st = os.stat(pfad)
+            merk = (pfad, st.st_size, st.st_mtime_ns)          # A2001: eine Sicherung ändert sich nicht – Größe einmal zählen
+            groesse = _SICHERUNG_GROESSE.get(merk)
+            if groesse is None:
+                groesse = st.st_size
+                ablage = os.path.splitext(pfad)[0] + "-dokumente"
+                if os.path.isdir(ablage):
+                    groesse += _groesse(ablage)
+                _SICHERUNG_GROESSE[merk] = groesse
             aus.append({"name": n, "zeit": zeit, "bytes": groesse})
         except (OSError, ValueError):
             pass

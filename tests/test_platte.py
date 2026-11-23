@@ -102,6 +102,18 @@ class Sicherungen(Grund):
         self.assertEqual(platte.aufraeumen(liste, 50, jetzt=jetzt), [])
         self.assertEqual(platte.aufraeumen([], 3), [])
 
+    def test_a2001_groesse_je_sicherung_nur_einmal_gezaehlt(self):
+        """A2001: 135 Sicherungen mit Dokumente-Ablage kosteten 16 s je Aufruf (Zahnrad, jede Synchronisierungsrunde) – eine
+        Sicherung ändert sich nicht, ihre Größe wird einmal gezählt; eine neue (oder geänderte) Datei wird neu gezählt."""
+        self.sicherung("sicherung-2026-11-01-0800.db", 2, dokumente_mb=1)
+        with mock.patch.object(platte, "_groesse", wraps=platte._groesse) as zaehlen:
+            self.assertEqual(platte.sicherungen()[0]["bytes"], 3 * 2 ** 20)
+            self.assertEqual(platte.sicherungen()[0]["bytes"], 3 * 2 ** 20)
+            self.assertEqual(zaehlen.call_count, 1)
+            self.sicherung("sicherung-2026-11-02-0800.db", 1, dokumente_mb=1)
+            self.assertEqual([x["bytes"] for x in platte.sicherungen()], [2 * 2 ** 20, 3 * 2 ** 20])
+            self.assertEqual(zaehlen.call_count, 2)
+
     def test_sicherungen_im_ordner_und_anzeige(self):
         self.sicherung("sicherung-2026-11-01-0800.db", 2, dokumente_mb=1)
         self.sicherung("sicherung-2026-11-03-0900.db", 1)
