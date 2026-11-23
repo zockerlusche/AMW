@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.172.1 – 23.11.2026 · Online wieder aktuell
+- **Behoben:** Die Online-Seite wird wieder aktuell gehalten, und das Zahnrad öffnet sich schnell.
+
 ## 1.172.0 – 23.11.2026 · Meilensteine mit Abnahme schließen erst nach dem Ja
 - **Verbessert:** Ein Meilenstein, der mit Vorführung, Bericht oder Probe endet, schließt erst mit dem Ja zum Abschluss – vorher steht er auf „bereit zur Abnahme“.
 - **Behoben:** Wer einen entfernten Agenten wieder aufnimmt, macht ihn nie nebenbei zum zweiten Lead.
