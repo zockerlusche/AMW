@@ -152,7 +152,7 @@ def ist_co(con, pid, kennung):
     return bool(kennung) and kennung == co_entwickler(con, pid)
 
 
-def lead_wechsel(con, pid, von, neu, co=None, zustaendig=None, fasst_nicht_an=None, grund=None):
+def lead_wechsel(con, pid, von, neu, co=None, zustaendig=None, fasst_nicht_an=None, grund=None, wort=None):
     """A1887 (B2904): Die Führung geht in EINEM Schreibvorgang an `neu` – nie zwei Leads, nie keiner. Alle bisherigen Leads
     verlieren die Rolle; co (optional): ein bisheriger Lead wird Co-Entwickler (Projekt-Einstellung co_entwickler, dann bleibt
     der Dateiaustausch unter seinem Namen). Darf der Mensch oder der bisherige Lead. Rückgabe: (alte Leads, neu)."""
@@ -161,6 +161,9 @@ def lead_wechsel(con, pid, von, neu, co=None, zustaendig=None, fasst_nicht_an=No
         raise AmwFehler("Lead-Wechsel nur mit Grund (--grund, z. B. der Beschluss)")
     if not (von == ENTWICKLER or ist_lead(con, pid, von)):
         raise AmwFehler("Den Lead wechseln darf der Mensch oder der bisherige Lead")
+    if wort and von != ENTWICKLER:                   # A2000: der Lead auf ein frisches Wort des Menschen – steht im Protokoll
+        from . import steuerung
+        grund += f" (auf Wort W{steuerung.wort_pruefen(con, pid, wort, 'einen Lead-Wechsel')['id']})"
     neu = kennung_heute(con, (neu or "").strip(), pid) or (neu or "").strip()
     a = con.execute("SELECT kennung, entfernt_utc FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, neu)).fetchone()
     if not a:
@@ -732,14 +735,25 @@ def agent_entfernen(con, pid, von, kennung):
     return {"agent": a["kennung"], "endet": bool(ende and ende.get("agenten")), "bis_utc": (ende or {}).get("bis_utc")}
 
 
-def agent_wiederaufnehmen(con, pid, von, kennung):
+def agent_wiederaufnehmen(con, pid, von, kennung, wort=None):
+    """Der Mensch – oder der Lead auf ein frisches Wort des Menschen (A2000, Marcel 23.11.: --wort W<nr>, gleiche Prüfung wie
+    agent profil --wort); dann steht es im Verlauf, und der Mensch bekommt eine Info. Entfernen und Löschen bleiben beim Menschen."""
+    w = None
     if von != ENTWICKLER:
-        raise AmwFehler("Agenten nimmt nur der Mensch wieder auf")
+        if not (wort and ist_lead(con, pid, von)):
+            raise AmwFehler("Agenten nimmt der Mensch wieder auf – oder der Lead auf ein frisches Wort des Menschen (--wort W<nr>)")
+        from . import steuerung
+        w = steuerung.wort_pruefen(con, pid, wort, "das Wiederaufnehmen eines Agenten")
     a = agent_zeile(con, pid, kennung)
     if not a["entfernt_utc"]:
         raise AmwFehler(f"{a['kennung']} ist nicht entfernt")
     with db.schreiben(con):
         con.execute("UPDATE agent SET entfernt_utc = NULL WHERE id = ?", (a["id"],))
+        if w:
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="wiederaufnahme_auf_wort",
+                         text=f"{a['kennung']} wieder aufgenommen · W{w['id']}")
+            _posten(con, pid, "AMW", ENTWICKLER, "info", f"{von} hat {a['kennung']} wieder aufgenommen (auf dein Wort W{w['id']})",
+                    f"{a['kennung']} ist wieder im Team (ausgeschaltet, bis jemand ihn startet).\n\nDein Wort: „{(w['text'] or '')[:300]}“")
     return {"agent": a["kennung"], "soll": "aus"}
 
 

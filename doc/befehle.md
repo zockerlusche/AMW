@@ -7,7 +7,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 |---|---|
 | [`init`](#init) | neue Datenbank anlegen |
 | [`projekt`](#projekt) | Projekte: neu <name> ¦ liste ¦ ordner [<name>] – jedes Projekt ist für sich (eigene Agenten, Regeln, Daten); bequemer: Workbench › Projekt-Auswahl › Neues Projekt |
-| [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript ¦ umbenennen ALT NEU ¦ lead NEU --co ALT --grund … ¦ entfernen ¦ wiederaufnehmen AGENT (nur der Mensch) |
+| [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript ¦ umbenennen ALT NEU ¦ lead NEU --co ALT --grund … ¦ entfernen ¦ wiederaufnehmen AGENT (der Mensch; wiederaufnehmen auch der Lead mit --wort W<nr>) |
 | [`posten`](#posten) | Nachricht schicken: --an CC2 (oder alle, Entwickler) --art auftrag¦frage¦info¦… --kurz … |
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
@@ -144,9 +144,9 @@ options:
   --startsatz STARTSATZ
                         profil: erste Anweisung einer neuen Sitzung
   --rechte RECHTE       profil: vorgabe | auto | umgehen
-  --wort WORT           profil: Änderung auf ein Wort des Entwicklers (W<nr>,
-                        höchstens 24 h alt) – darf der Lead, auch über den
-                        Dateiaustausch
+  --wort WORT           profil, wiederaufnehmen, lead: auf ein Wort des
+                        Entwicklers (W<nr>, höchstens 24 h alt) – darf der
+                        Lead, auch über den Dateiaustausch
   --fernsteuerung       profil: Remote Control an
   --keine-fernsteuerung
   --neustart            profil: nach Absturz automatisch fortsetzen

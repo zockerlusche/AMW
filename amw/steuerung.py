@@ -93,8 +93,9 @@ WORT_GUELTIG_H = 24
 WORT_NIE_FUER_SICH = ("rechte", "fernsteuerung", "neustart_auto")   # der Lead erhöht sich selbst nie über ein Wort
 
 
-def wort_pruefen(con, pid, wort):
-    """W<nr> muss ein Wortlaut des Entwicklers aus diesem Projekt und den letzten WORT_GUELTIG_H Stunden sein (A1662)."""
+def wort_pruefen(con, pid, wort, wozu="eine Profiländerung"):
+    """W<nr> muss ein Wortlaut des Entwicklers aus diesem Projekt und den letzten WORT_GUELTIG_H Stunden sein (A1662; auch
+    Wiederaufnehmen und Lead-Wechsel durch den Lead, A2000)."""
     import datetime
     nr = str(wort or "").strip().upper().lstrip("W")
     if not nr.isdigit():
@@ -104,7 +105,7 @@ def wort_pruefen(con, pid, wort):
         raise kern.AmwFehler(f"W{nr} gibt es in diesem Projekt nicht")
     grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=WORT_GUELTIG_H)).strftime("%Y-%m-%dT%H:%M:%SZ")
     if w["zeit_utc"] < grenze:
-        raise kern.AmwFehler(f"W{nr} ist älter als {WORT_GUELTIG_H} Stunden – für eine Profiländerung braucht es ein frisches Wort")
+        raise kern.AmwFehler(f"W{nr} ist älter als {WORT_GUELTIG_H} Stunden – für {wozu} braucht es ein frisches Wort")
     return w
 
 

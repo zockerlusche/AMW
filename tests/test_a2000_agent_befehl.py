@@ -71,7 +71,8 @@ class AgentBefehl(unittest.TestCase):
         self.assertIn("amw agent entfernen <Agent>", aus)
 
     def test_1_hilfe_und_befehlsreferenz(self):
-        self.assertIn("entfernen ¦ wiederaufnehmen AGENT (nur der Mensch)", cli.befehle_markdown())
+        self.assertIn("entfernen ¦ wiederaufnehmen AGENT (der Mensch; wiederaufnehmen auch der Lead mit --wort W<nr>)",
+                      cli.befehle_markdown())
         wurzel = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         for datei, text in (("doc/befehle.md", "wiederaufnehmen AGENT"), ("doc/hilfe/agenten.md", "amw agent wiederaufnehmen"),
                             ("doc/hilfe/en/agenten.md", "amw agent wiederaufnehmen")):
@@ -133,6 +134,56 @@ class AgentBefehl(unittest.TestCase):
         self.assertIsNone(kern.co_entwickler(self.con, self.pid))
         kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, co_entwickler="PL")          # ein aktiver geht
         self.assertEqual(kern.co_entwickler(self.con, self.pid), "PL")
+
+    def wort(self, stunden=1):
+        import datetime
+        z = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=stunden)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        with db.schreiben(self.con):
+            return db.einfuegen(self.con, "wortlaut", projekt_id=self.pid, zeit_utc=z, text="mach du das",
+                                kanal="chat-tl", erfasst_von="TL", erfasst_utc=db.jetzt())
+
+    def test_6_lead_nimmt_auf_frisches_wort_wieder_auf(self):
+        kern.agent_entfernen(self.con, self.pid, kern.ENTWICKLER, "CC1")
+        with self.assertRaisesRegex(kern.AmwFehler, "oder der Lead auf ein frisches Wort"):          # ohne Wort nicht
+            kern.agent_wiederaufnehmen(self.con, self.pid, "TL", "CC1")
+        alt = self.wort(stunden=30)
+        with self.assertRaisesRegex(kern.AmwFehler, "älter als 24 Stunden – für das Wiederaufnehmen"):
+            kern.agent_wiederaufnehmen(self.con, self.pid, "TL", "CC1", wort=f"W{alt}")
+        w = self.wort()
+        with self.assertRaises(kern.AmwFehler):                                                  # ein Coder auch mit Wort nicht
+            kern.agent_wiederaufnehmen(self.con, self.pid, "PL", "CC1", wort=f"W{w}")
+        self.assertTrue(self.entfernt("CC1"))
+        rc, aus = self.cli("agent", "wiederaufnehmen", "CC1", "--wort", f"W{w}", "--von", "TL", env={"CLAUDECODE": "1"})
+        self.assertEqual(rc, 0, aus)                                                             # auch aus seiner Sitzung
+        self.assertFalse(self.entfernt("CC1"))
+        self.assertIn(f"CC1 wieder aufgenommen · W{w}", self.con.execute(
+            "SELECT text FROM plan_ereignis WHERE art = 'wiederaufnahme_auf_wort'").fetchone()[0])
+        info = self.con.execute("SELECT n.kurz FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE e.agent = ?"
+                                " AND n.kurz LIKE '%wieder aufgenommen%'", (kern.ENTWICKLER,)).fetchone()
+        self.assertIn(f"TL hat CC1 wieder aufgenommen (auf dein Wort W{w})", info[0])
+
+    def test_6_entfernen_und_loeschen_bleiben_beim_menschen(self):
+        w = self.wort()
+        for f in (kern.agent_entfernen, kern.agent_loeschen):
+            with self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
+                f(self.con, self.pid, "TL", "CC1")
+        rc, aus = self.cli("agent", "entfernen", "CC1", "--wort", f"W{w}", "--von", "TL")
+        self.assertNotEqual(rc, 0)
+        self.assertFalse(self.entfernt("CC1"))
+
+    def test_6_lead_wechsel_mit_co_auf_wort(self):
+        """B2917: der Lead nimmt den alten Lead auf dein Wort wieder auf und macht ihn zum Co-Entwickler."""
+        kern.lead_wechsel(self.con, self.pid, kern.ENTWICKLER, "PL", grund="x")
+        kern.agent_entfernen(self.con, self.pid, kern.ENTWICKLER, "TL")
+        w = self.wort()
+        kern.agent_wiederaufnehmen(self.con, self.pid, "PL", "TL", wort=f"W{w}")
+        rc, aus = self.cli("agent", "lead", "PL", "--co", "TL", "--grund", "mach du das", "--wort", f"W{w}", "--von", "PL")
+        self.assertEqual(rc, 0, aus)
+        self.assertEqual((kern.lead(self.con, self.pid), kern.co_entwickler(self.con, self.pid)), ("PL", "TL"))
+        self.assertIn(f"(auf Wort W{w})", self.con.execute(
+            "SELECT text FROM plan_ereignis WHERE art = 'lead_wechsel' ORDER BY id DESC").fetchone()[0])
+        with self.assertRaisesRegex(kern.AmwFehler, "älter als 24 Stunden – für einen Lead-Wechsel"):
+            kern.lead_wechsel(self.con, self.pid, "PL", "CC1", grund="x", wort=f"W{self.wort(stunden=30)}")
 
 
 if __name__ == "__main__":

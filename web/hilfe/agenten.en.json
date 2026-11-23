@@ -105,7 +105,7 @@
   ],
   [
    "How do I remove an agent – and bring it back?",
-   "In the Workbench on the PC (Settings › Agents) or in your own terminal: `amw agent entfernen <agent> --von Entwickler`. The agent is switched off and hidden from all lists; its history stays readable. If a session is running, it is saved and ended first. You bring it back with `amw agent wiederaufnehmen <agent> --von Entwickler`; it then stays switched off until you start it. Only you may do either, never an agent. A removed agent never leads the project and cannot become co-developer. The AMW removes the lead only after they have handed over leadership (`amw agent lead <new lead> --grund …`)."
+   "In the Workbench on the PC (Settings › Agents) or in your own terminal: `amw agent entfernen <agent> --von Entwickler`. The agent is switched off and hidden from all lists; its history stays readable. If a session is running, it is saved and ended first. You bring it back with `amw agent wiederaufnehmen <agent> --von Entwickler`; it then stays switched off until you start it. Only you may remove an agent. The lead may also bring one back if you told them to: they record your words and pass them with `--wort W<nr>` (at most 24 hours old, as for the profile); you then get an info. In the same way they may hand over leadership on your word: `amw agent lead <new lead> --co <agent> --grund … --wort W<nr>`. A removed agent never leads the project and cannot become co-developer. The AMW removes the lead only after they have handed over leadership (`amw agent lead <new lead> --grund …`)."
   ],
   [
    "May the lead change an agent's profile while I am away from the PC?",

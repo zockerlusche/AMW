@@ -232,16 +232,17 @@ def cmd_agent(a, con):
             raise kern.AmwFehler("amw agent lead <neuer Lead> [--co <bisheriger Lead>] [--zustaendig … --nicht …] --grund …")
         _rolle_nur_mensch_oder_lead(con, pid, a, "Den Lead wechseln")
         alt, neu = kern.lead_wechsel(con, pid, _von(a), a.kennung, co=a.co, zustaendig=a.zustaendig, fasst_nicht_an=a.nicht,
-                                     grund=a.grund)
+                                     grund=a.grund, wort=a.wort)
         if not alt and a.co:                          # A2000: war schon Lead – nur der Co-Entwickler ist neu
             print(f"{neu} bleibt Lead; {a.co} ist Co-Entwickler und behält den Dateiaustausch")
             return
         print(f"{neu} führt jetzt das Projekt (vorher: {', '.join(alt) or '–'})"
               + (f"; {a.co} ist Co-Entwickler und behält den Dateiaustausch" if a.co else ""))
         return
-    if a.aktion in ("entfernen", "wiederaufnehmen"):  # A2000 (B2917): wie /api/agent/… – nur der Mensch im eigenen Terminal
-        if not a.kennung:
-            raise kern.AmwFehler(f"amw agent {a.aktion} <Agent> --von Entwickler")
+    if a.aktion in ("entfernen", "wiederaufnehmen"):  # A2000 (B2917): wie /api/agent/… – der Mensch im eigenen Terminal;
+        if not a.kennung:                             # wiederaufnehmen auch der Lead auf ein frisches Wort (--wort W<nr>)
+            raise kern.AmwFehler(f"amw agent {a.aktion} <Agent> --von Entwickler"
+                                 + (" (oder als Lead mit --wort W<nr>)" if a.aktion == "wiederaufnehmen" else ""))
         _nicht_als_mensch_aus_sitzung(a, f"Agenten {a.aktion}")
         if a.aktion == "entfernen":
             r = kern.agent_entfernen(con, pid, _von(a), a.kennung)
@@ -249,7 +250,7 @@ def cmd_agent(a, con):
                   + ("; die laufende Sitzung wird gesichert und beendet" if r["endet"] else "")
                   + f" – zurück: amw agent wiederaufnehmen {r['agent']} --von Entwickler")
         else:
-            r = kern.agent_wiederaufnehmen(con, pid, _von(a), a.kennung)
+            r = kern.agent_wiederaufnehmen(con, pid, _von(a), a.kennung, wort=a.wort)
             print(f"{r['agent']} ist wieder aufgenommen (Soll aus – starten: amw agent starten {r['agent']})")
         return
     if a.aktion == "umbenennen":
@@ -3427,7 +3428,7 @@ def parser():
     x.set_defaults(f=cmd_projekt)
 
     x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript | umbenennen ALT NEU | lead NEU --co ALT --grund …"
-                                   " | entfernen | wiederaufnehmen AGENT (nur der Mensch)")
+                                   " | entfernen | wiederaufnehmen AGENT (der Mensch; wiederaufnehmen auch der Lead mit --wort W<nr>)")
     x.add_argument("aktion", choices=["neu", "liste", "profil", "starten", "beenden", "startskript", "umbenennen", "lead",
                                       "entfernen", "wiederaufnehmen"])
     x.add_argument("--co", help="lead: der bisherige Lead wird Co-Entwickler (Wortlaut, Beschlüsse, Fragen an den Menschen,"
@@ -3441,7 +3442,8 @@ def parser():
     x.add_argument("--modell", help="profil: z. B. opus, sonnet (leer = Vorgabe)")
     x.add_argument("--startsatz", help="profil: erste Anweisung einer neuen Sitzung")
     x.add_argument("--rechte", help="profil: vorgabe | auto | umgehen")
-    x.add_argument("--wort", help="profil: Änderung auf ein Wort des Entwicklers (W<nr>, höchstens 24 h alt) – darf der Lead, auch über den Dateiaustausch")
+    x.add_argument("--wort", help="profil, wiederaufnehmen, lead: auf ein Wort des Entwicklers (W<nr>, höchstens 24 h alt) – darf der"
+                                  " Lead, auch über den Dateiaustausch")
     x.add_argument("--fernsteuerung", action="store_true", help="profil: Remote Control an")
     x.add_argument("--keine-fernsteuerung", action="store_true")
     x.add_argument("--neustart", action="store_true", help="profil: nach Absturz automatisch fortsetzen")
