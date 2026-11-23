@@ -297,6 +297,11 @@ def _grenzen(job):
 
 def aktive(job):
     """Anzahl der Prozesse im Job-Objekt (JobObjectBasicAccountingInformation)."""
+    return buchung(job)[1]
+
+
+def buchung(job):
+    """(je im Job gewesen, jetzt aktiv) – (-1, -1), wenn die Abfrage scheitert."""
     import ctypes
     from ctypes import wintypes
 
@@ -306,7 +311,10 @@ def aktive(job):
                     ("ActiveProcesses", wintypes.DWORD), ("TotalTerminatedProcesses", wintypes.DWORD)]
     b = Buchung()
     ok = ctypes.WinDLL("kernel32").QueryInformationJobObject(wintypes.HANDLE(job), 1, ctypes.byref(b), ctypes.sizeof(b), None)
-    return b.ActiveProcesses if ok else -1
+    return (b.TotalProcesses, b.ActiveProcesses) if ok else (-1, -1)
+
+
+NOCH_NICHT_IM_JOB_S = 20   # A1984: so lange wartet die Notbremse auf einen Arbeiter, der gerade erst startet
 
 
 def notbremse(p):
@@ -318,6 +326,11 @@ def notbremse(p):
     if not job:
         return False
     try:
+        # A1984 (L3119): der Starter legt den Job an, BEVOR er den Arbeiter hineinnimmt – eine Notbremse in dieser Lücke beendete
+        # einen leeren Job, der Arbeiter kam danach hinein und lief weiter. War noch nie ein Prozess drin: kurz auf ihn warten.
+        frist = time.monotonic() + NOCH_NICHT_IM_JOB_S
+        while buchung(job)[0] == 0 and time.monotonic() < frist:
+            time.sleep(0.1)
         ok = bool(k.TerminateJobObject(job, 1))
         for _ in range(50):                                    # Rückmeldung: ist wirklich nichts mehr übrig? (Nr. 20)
             if aktive(job) == 0:

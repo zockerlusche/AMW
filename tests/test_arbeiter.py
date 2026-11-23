@@ -191,6 +191,30 @@ class Arbeiter(unittest.TestCase):
         self.assertNotEqual(ergebnis["rc"], 0)
         self.assertFalse(arbeiter.notbremse(self.p))                                       # nichts mehr da
 
+    @unittest.skipUnless(os.name == "nt", "Job-Objekt nur unter Windows")
+    def test_notbremse_in_der_startluecke(self):
+        """A1984 (L3119): Job schon angelegt, Arbeiter noch nicht drin – die Notbremse wartet auf ihn statt einen leeren Job zu
+        beenden; war schon einer drin und ist fertig, wartet sie nicht."""
+        import ctypes
+        from ctypes import wintypes
+        from amw import abnahme
+        job = abnahme._job_neu(arbeiter.job_name(self.p))
+        self.addCleanup(arbeiter._kernel().CloseHandle, job)
+        aus = {}
+        t = threading.Thread(target=lambda: aus.update(lief=arbeiter.notbremse(self.p)))
+        t.start()
+        time.sleep(1.5)                                                                          # die Lücke, wie unter Last
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"], creationflags=0x4 | 0x08000000)
+        self.addCleanup(proc.kill)
+        self.assertTrue(abnahme._in_job(job, int(proc._handle)))
+        ctypes.WinDLL("ntdll").NtResumeProcess(wintypes.HANDLE(int(proc._handle)))
+        t.join(30)
+        self.assertTrue(aus.get("lief"))
+        self.assertIsNotNone(proc.wait(10))                                                      # beendet, nicht weitergelaufen
+        t0 = time.monotonic()
+        arbeiter.notbremse(self.p)                                                               # jetzt leer, aber schon benutzt
+        self.assertLess(time.monotonic() - t0, 5)
+
     def test_laufende_beendet_zurueckgelassene_kinder(self):
         """D1258 v9 §6a 3.1: endet der Arbeiter normal, aber ein Kindprozess läuft weiter, beendet die AMW ihn mit dem Job."""
         with mock.patch.dict(os.environ, {"ATTRAPPE_ART": "kind_bleibt"}):
