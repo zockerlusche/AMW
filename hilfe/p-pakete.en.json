@@ -102,6 +102,10 @@
  ],
  "fragen": [
   [
+   "Is p the default?",
+   "Yes. Packages of size S – and M of type mechanical – that are not user interface work, need no locked area and neither the screen nor the graphics card run as p. The planner cuts them that way (with an acceptance command, narrow areas and, if needed, package type `test-schreiben`); it then takes model and effort from the project's recommendation. Such a package stays interactive only with a reason (look and feel, exploration, locked area, your eye) – the reason is in the task (“Interaktiv, Grund: …”). If it is missing, the yes to the plan reports “Achtung”, and `amw aufgabe neu` says “p possible – or a reason” for S or M-mechanical without `--paket`. How many packages really run as p is shown by `amw messung --p` (per day, with cost and waiting times p versus interactive) and Operations › “Share p”; if the share of the last seven days is below 50 %, the lead gets one notice a day (only in projects with work places)."
+  ],
+  [
    "What makes a good acceptance command?",
    "One that checks exactly what the package should deliver, runs fast and is red today. A whole test run is too broad; a single new test or a small test class is ideal. If you put the test in place beforehand as `tests/abnahme_<topic>.py` (the worker may not change `tests/`), AMW renames it to `tests/test_abnahme_<topic>.py` when bundling – from then on it runs in every full test run."
   ],

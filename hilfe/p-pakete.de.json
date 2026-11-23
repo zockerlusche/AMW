@@ -102,6 +102,10 @@
  ],
  "fragen": [
   [
+   "Ist p die Vorgabe?",
+   "Ja. Pakete der Größe S – und M bei Art mechanisch –, die keine Oberfläche sind, keinen gesperrten Bereich brauchen und weder Bildschirm noch Grafikkarte, laufen als p. Der Planer schneidet sie so (mit Abnahme-Befehl, engen Bereichen und, wenn nötig, Pakettyp `test-schreiben`); Modell und Denkaufwand nimmt er dann aus der Empfehlung des Projekts. Interaktiv bleibt so ein Paket nur mit Grund (Optik, Erkundung, gesperrter Bereich, dein Auge) – der Grund steht im Auftrag („Interaktiv, Grund: …“). Fehlt er, meldet das Ja zum Plan „Achtung“, und `amw aufgabe neu` sagt bei S oder M-mechanisch ohne `--paket` „p möglich – oder Grund“. Wie viele Pakete wirklich als p laufen, zeigt `amw messung --p` (je Tag, mit Kosten und Wartezeiten p gegen interaktiv) und Betrieb › „Anteil p“; liegt der Anteil der letzten sieben Tage unter 50 %, bekommt der Lead einmal am Tag eine Meldung (nur in Projekten mit Arbeitsplätzen)."
+  ],
+  [
    "Was ist ein guter Abnahme-Befehl?",
    "Einer, der genau das prüft, was das Paket liefern soll, schnell läuft und heute rot ist. Ein ganzer Testlauf ist zu breit; ein einzelner neuer Test oder eine kleine Testklasse ist ideal. Legst du den Test vorher als `tests/abnahme_<thema>.py` ab (der Arbeiter darf `tests/` nicht ändern), benennt die AMW ihn beim Bündeln in `tests/test_abnahme_<thema>.py` um – ab dann läuft er in jedem Gesamtlauf mit."
   ],
