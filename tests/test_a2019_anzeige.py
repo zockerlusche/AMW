@@ -59,6 +59,8 @@ class TeamSeite(Rundgang):
                 self.assertIn("Co-Entwickler Co", self.tab.js(self.NAME))
                 co = "[...document.querySelectorAll('#team [data-k=\"Co\"]')].map(e => e.textContent).join(' ')"
                 self.assertNotIn("Lauf-Schlange", self.tab.js(co))                            # nicht „arbeitet an A…“
+                cc1 = "[...document.querySelectorAll('#team [data-k=\"CC1\"] .tm-liste-n')].map(e => e.textContent).join(' ')"
+                self.assertIn("Arbeitsliste: 1", self.tab.js(cc1))                           # (3) nicht als „Plätze 1/1“ lesbar
         self.groesse("pc")
         self.tab.js("agentDialog('Co')")
         self.warten("document.querySelector('.agent-kopf h3')")
