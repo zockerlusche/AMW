@@ -53,7 +53,7 @@ ZUSTAND = ("(() => { try { const i = document.querySelector('#inhalt') || docume
 
 def seitenzustand(test):
     try:
-        return test.tab.js(ZUSTAND)
+        return f"{test.tab.js(ZUSTAND)} · Netzfehler des Browsers: {getattr(test.tab, 'netzfehler', None)}"
     except Exception as e:                       # Verbindung zum Browser weg – auch das ist ein Befund
         return f"Browser nicht erreichbar: {type(e).__name__}: {e}"
 
@@ -160,6 +160,7 @@ class _Tab:
         while b"\r\n\r\n" not in puffer:
             puffer += self.s.recv(4096)
         self.rest, self.n = puffer.split(b"\r\n\r\n", 1)[1], 0
+        self.anfragen, self.netzfehler = {}, []      # A2016: mit Network.enable – gescheiterte Abrufe samt Fehlercode des Browsers
 
     def _lesen(self, n):
         while len(self.rest) < n:
@@ -189,8 +190,16 @@ class _Tab:
             elif laenge == 127:
                 laenge = struct.unpack(">Q", self._lesen(8))[0]
             m = json.loads(self._lesen(laenge))
+            self._ereignis(m)
             if m.get("id") == self.n:
                 return m.get("result", m)
+
+    def _ereignis(self, m):
+        art, p = m.get("method"), m.get("params") or {}
+        if art == "Network.requestWillBeSent" and "/api/" in p.get("request", {}).get("url", ""):
+            self.anfragen[p["requestId"]] = p["request"]["url"].split("/api/", 1)[1][:40]
+        elif art == "Network.loadingFailed" and p.get("requestId") in self.anfragen:
+            self.netzfehler = (self.netzfehler + [(self.anfragen[p["requestId"]], p.get("errorText"), p.get("canceled"))])[-8:]
 
     def js(self, ausdruck):
         r = self.senden("Runtime.evaluate", expression=ausdruck, returnByValue=True, awaitPromise=True)

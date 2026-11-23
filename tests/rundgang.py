@@ -177,6 +177,7 @@ class Rundgang(Wiederholt, Grund):
         self.assertIsNotNone(ziel, "Edge meldet sich nicht")
         self.tab = _Tab(ziel["webSocketDebuggerUrl"])
         self.tab.senden("Page.enable")
+        self.tab.senden("Network.enable")               # A2016: Fehlercode gescheiterter Abrufe für den Seitenzustand
         self.tab.senden("Page.addScriptToEvaluateOnNewDocument", source=FEHLER_FANGEN)
         self.funde = []
         self.anmelden()
