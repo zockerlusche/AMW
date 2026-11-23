@@ -55,7 +55,8 @@ class TeamSeite(Rundgang):
     def test_team_zeigt_co_entwickler_ohne_fremde_aufgabe(self):
         for g in ("pc", "handy"):
             for th in ("hell", "dunkel"):
-                self.assertEqual(self.besuchen("start", "team-a2019", bereit="document.querySelector('#team .tm-name')", g=g, t=th), [], f"{g} {th}")
+                self.assertEqual(self.besuchen("start", "team-a2019", bereit="document.querySelector('#team .tm-name')", g=g, t=th,
+                                               tun="document.querySelector('#team').scrollIntoView()", danach="true"), [], f"{g} {th}")   # Bild zeigt das Team
                 self.assertIn("Co-Entwickler Co", self.tab.js(self.NAME))
                 co = "[...document.querySelectorAll('#team [data-k=\"Co\"]')].map(e => e.textContent).join(' ')"
                 self.assertNotIn("Lauf-Schlange", self.tab.js(co))                            # nicht „arbeitet an A…“
