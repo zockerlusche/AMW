@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.167.0 – 23.11.2026 · Fragen gebündelt
+- **Neu:** Fragen an dich kommen gebündelt höchstens alle vier Stunden; bleibt eine einen Tag liegen, plant die AMW um, damit der
+  Rest weiterläuft.
+- **Behoben:** Die Versionshinweise einer Version zeigen wieder genau, was sie gebracht hat; der Lead kann eingetragene Versionen
+  aus dem CHANGELOG berichtigen (`amw release berichtigen`).
+
 ## 1.166.0 – 23.11.2026 · Startwissen für Agenten, Stil-Prüfung als Automatik, ein Gesamtlauf zur Zeit
 - **Neu:** Agenten bekommen beim Start das Wissen zu ihren Dateien und eine Projekt-Landkarte; Anfangen und Abgeben geht mit
   je einem Befehl (`amw paket holen`, `amw paket fertig`).
