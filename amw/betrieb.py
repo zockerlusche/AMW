@@ -1080,6 +1080,27 @@ def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speich
 
 # --- Prüfungen -----------------------------------------------------------------------------------
 
+def fremde_a_nummern(con, pid, sha, aufgabe_id):
+    """A1988 (Befund #30955): die Release-Kette (Kette.staende) nimmt jede A-Nummer im Betreff eines Commits in main..sha als
+    Aufgabe dieses Commits – ein Zitat wie „(A1984: bis 20 s)“ hielt erst beim Ausliefern an. Gehören dürfen: die Aufgabe der
+    Prüfbitte und die Aufgaben, die ein Versions-Commit („1.2.3: …“) des Bereichs nennt (Stapel). Rückgabe: [(Commit, A-Nummer)]
+    für jede andere Aufgabe dieses Projekts; ohne Projektordner oder git: []."""
+    from . import versionsnummer
+    ordner = kern.projekt_ordner(con, pid)
+    aus = versionsnummer._git(ordner, "log", "--format=%H%x09%s", f"main..{sha}") if ordner else None
+    if not aus:
+        return []
+    zeilen = [z.split("\t", 1) for z in aus.splitlines() if "\t" in z]
+    nummern = lambda betreff: [int(x) for x in re.findall(r"\bA(\d{1,6})\b", betreff)]          # noqa: E731 – wie die Kette
+    erlaubt = {aufgabe_id} | {n for _, b in zeilen if re.match(r"\d+\.\d+\.\d+:", b) for n in nummern(b)}
+    fremd = []
+    for c, betreff in zeilen:
+        for n in dict.fromkeys(nummern(betreff)):
+            if n not in erlaubt and con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND projekt_id = ?", (n, pid)).fetchone():
+                fremd.append((c, n))
+    return fremd
+
+
 def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=None, stufe=None, gruppe=None, hinweis=None,
                ohne_bild=None):
     """gruppe/hinweis (A1738): der Versionshinweis steht fest, wenn die Arbeit fertig ist – die Release-Kette übernimmt ihn,
@@ -1095,6 +1116,12 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
             raise kern.AmwFehler(str(e)) from None
         kern._aufgabe_fuer_aenderung(con, pid, bauer, aufgabe_id)
     sha = voller_sha(con, pid, sha)                  # gespeichert wird der volle Stand – die Release-Kette vergleicht genau
+    if aufgabe_id:                                   # A1988: fremde A-Nummer im Betreff hielte die Kette erst beim Ausliefern an
+        fremd = fremde_a_nummern(con, pid, sha, aufgabe_id)
+        if fremd:
+            raise kern.AmwFehler("Betreff nennt eine andere Aufgabe – die Release-Kette zählt sie als Aufgabe dieses Stands und hält beim"
+                                 " Ausliefern: " + ", ".join(f"Commit {c[:8]} nennt A{n}" for c, n in fremd)
+                                 + " – Betreff umformulieren (Verweis in den Text des Commits, ohne „A“ vor der Nummer)")
     from . import versionsnummer                     # A1753: Nummer frei? (nicht live, kein Tag, nicht von einer anderen Aufgabe belegt)
     versionsnummer.pruefen(con, pid, sha, aufgabe_id)
     from . import pruefstufe                         # A1656: welche Dateien der Stand ändert → Prüfstufe (vor dem Schreiben, ruft git)

@@ -93,6 +93,10 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
   laufen alle nacheinander in einem eigenen Prozess. Je Prozess ein eigener Temp-Ordner, `AMW_DB`/`AMW_AGENT`/`AMW_PROJEKT`
   leer. Ausgabe wie unittest: die Fehlerberichte, dann „Ran N tests in X s“ und „OK (…)“ bzw. „FAILED (…)“; rc 0 nur bei
   Grün. Der Hook für schwere Befehle erkennt ihn als „Test-Suite“.
+- **Fremde A-Nummer im Betreff (A1988):** „Stände“ nimmt jede A-Nummer in einem Commit-Betreff als Aufgabe dieses Commits.
+  Darum lehnt schon `amw pruefung bitte` (und `amw paket fertig`) einen Stand ab, dessen Betreffe eine andere Aufgabe des
+  Projekts nennen als die der Prüfbitte oder die im Versions-Commit des Stapels („X.Y.Z: … A1 + A2“) – mit dem Commit in der
+  Meldung. Verweise gehören in den Text des Commits, ohne „A“ vor der Nummer.
 - **Grün auf der Stapel-Spitze deckt den Stapel (A1974, Befund 1.165.0):** Bei der Übertragung zählt für die Commits unter dem
   Ziel auch ein Grün ÜBER dem Ziel (die Spitze, vom Lead geprüft) – so bekommen sauber übertragene Aufgaben ihr Grün auch dann,
   wenn darunter eine Aufgabe mit aufgelöstem Konflikt liegt. „Stände“ nimmt den Versions-Commit eines Stapels (Betreff
