@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.170.3 – 23.11.2026 · Planer nur bei eingeschaltetem Projekt
+- **Behoben:** Bei ausgeschaltetem Projekt oder im Probebetrieb startet kein Planer mehr.
+
 ## 1.170.2 – 23.11.2026 · Projekte online sauber getrennt
 - **Behoben:** Online zeigt ein Projekt vor seinem ersten Abgleich „Noch kein Abgleich von diesem Rechner.“ statt Daten eines anderen Projekts.
 
