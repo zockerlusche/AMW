@@ -2026,7 +2026,7 @@ const veraltet = () => new Promise(() => {});
 async function abrufen(weg, p = projekt) {               /* p: anderes Projekt (A1889: Nachrichten über alle Projekte) */
   const fuerDich = Date.now() - laden.eingabe < 1500;   /* A1676: nur Abrufe, die du ausgelöst hast – nie der Takt im Hintergrund */
   if (fuerDich) laden.an();
-  try { const r = await fetch(ziel(weg, p), { cache: "no-store" }); if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.leer ? t(j.leer) : (j.fehler || r.status)); }   /* A1998 */
+  try { const r = await fetch(ziel(weg, p), { cache: "no-store" }); if (!r.ok) { const j = await r.json().catch(() => ({})); throw Object.assign(new Error(j.leer ? t(j.leer) : (j.fehler || r.status)), { leer: j.leer || null }); }   /* A1998 */
         return await r.json(); }
   finally { if (fuerDich) laden.aus(); }
 }
@@ -2354,6 +2354,7 @@ async function kopfLaden() {
     }
   } catch (e) {
     zustand.startFehler = String(e.message || e);      /* A1998: die Startseite zeigt den Grund (z. B. „Noch kein Abgleich …“) */
+    if (e.leer) { $("#signale").replaceChildren(); return; }   /* P552: kein Abgleich ist kein Ausfall – ein Status, im Inhalt */
     $("#signale").replaceChildren(el("span", { class: "signal" }, el("span", { class: "punkt rot" }), t("s_dienst_weg")));
   }
 }

@@ -43,18 +43,35 @@ class KeinAbgleich(rundgang.OnlineRundgang):
         self.thema("hell")
         self.sieht("Noch kein Abgleich von diesem Rechner.")
         self.assertNotIn(ALT, self.tab.js("document.body.innerText"))
-        fehler = self.pruefen("kein-abgleich-start", "handy", "hell")
-        self.assertEqual(fehler, [])
-        ziel = (os.environ.get("AMW_FOTO") or "").strip()
-        if ziel:
-            os.makedirs(ziel, exist_ok=True)
-            bild = self.tab.senden("Page.captureScreenshot", format="png")["data"]
-            with open(os.path.join(ziel, "a1998-kein-abgleich-handy-hell.png"), "wb") as f:
-                f.write(base64.b64decode(bild))
+        # P552 (TH156 Regeln 1, 4, 6): ein Status an einem Ort – kein rotes „Dienst nicht erreichbar“ oben
+        self.assertEqual(self.tab.js("document.querySelectorAll('#signale .punkt.rot').length"), 0)
+        self.assertNotIn("Dienst nicht erreichbar", self.tab.js("document.body.innerText"))
+        for g, t in (("handy", "hell"), ("handy", "dunkel"), ("pc", "hell")):
+            self.groesse(g)
+            self.thema(t)
+            self.assertEqual(self.pruefen(f"kein-abgleich-start-{g}-{t}", g, t), [])
+            self.assertEqual(self.tab.js("document.querySelectorAll('#signale .punkt.rot').length"), 0)
+            self.foto(f"a1998-kein-abgleich-{g}-{t}.png")
         for sicht in ("aufgaben", "fragen"):
             self.zu_b(sicht)
             self.sieht("Noch kein Abgleich von diesem Rechner.")
             self.assertNotIn(ALT, self.tab.js("document.body.innerText"))
+
+    def foto(self, name):
+        ziel = (os.environ.get("AMW_FOTO") or "").strip()
+        if ziel:
+            os.makedirs(ziel, exist_ok=True)
+            bild = self.tab.senden("Page.captureScreenshot", format="png")["data"]
+            with open(os.path.join(ziel, name), "wb") as f:
+                f.write(base64.b64decode(bild))
+
+    def test_echter_ausfall_bleibt_rot(self):
+        """Antwortet der Webhoster nicht mit „kein Abgleich“ (Netz, 5xx), bleibt das rote Signal – nur der leere Zustand ist ruhig."""
+        self.zu_b("start")
+        self.sieht("Noch kein Abgleich von diesem Rechner.")
+        self.tab.js("window.fetch = () => Promise.reject(new TypeError('Failed to fetch')); kopfLaden()")
+        self.warten("document.querySelectorAll('#signale .punkt.rot').length === 1")
+        self.assertIn("Dienst nicht erreichbar", self.tab.js("document.querySelector('#signale').innerText"))
 
     def test_englisch(self):
         self.zu_b("start", sprache="en")
