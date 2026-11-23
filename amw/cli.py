@@ -2378,6 +2378,10 @@ def cmd_pruefung(a, con):
             print(r["punkte"])
         if r["bemerkung"]:
             print("Bemerkung: " + r["bemerkung"])
+        from . import vorpruefung                         # A2004: Befund der Sprachprüfung am Eintrag
+        s = vorpruefung.letzter_befund(con, pid, r["id"])
+        if s:
+            print(vorpruefung.zeile(s) + ("\n" + s["text"] if s.get("stand") == "neu" and s.get("text") else ""))
     elif a.aktion == "ist-gruen":
         r = betrieb.ist_gruen(con, pid, a.sha)
         print(f"grün: P{r['id']}" if r else "NICHT grün")

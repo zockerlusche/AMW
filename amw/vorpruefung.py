@@ -1,0 +1,182 @@
+"""Sprachprüfung vor der Prüfung (A2004 Punkt 3, TL #31260): nach jeder Prüfbitte stößt die AMW – wie den Stil-Leser (A1973) –
+einen losgelösten leichten Lauf der Lauf-Schlange an. Er fährt die vorhandene Sprachprüfung von Prüfung C
+(pruefung_c.sprachpruefung: pyright, nur neue Fehler gegen den Start-Commit) auf genau dem SHA der Prüfbitte gegen den merge-base
+mit main – in zwei frischen Checkouts in einem eigenen Arbeitsordner, nie im Baum des Bearbeiters. Der Befund geht als Meldung an
+den Prüfer und steht an der Prüfbitte (`amw pruefung zeige`). Fällt etwas aus (Start, Lauf-Schlange, Checkout, pyright fehlt), ist
+das der Befund „Sprachprüfung nicht gelaufen“ mit Grund – nie still. Projekt-Einstellung sprachpruefung (A1962): auto (nur mit
+pyrightconfig.json im Projektordner) | pyright | aus.
+
+Ereignisse (plan_ereignis, ohne Schemaänderung):
+  sprache_angestossen {"pruefung", "prozess"}
+  sprache_befund      {"pruefung", "stand": "ok" | "neu" | "nicht_gelaufen", "neu": n, "text", "lauf"}
+"""
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import time
+
+from . import db, kern
+
+ANGESTOSSEN, BEFUND = "sprache_angestossen", "sprache_befund"
+EINSTIEG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "amw-vorpruefung.py")
+OHNE_FENSTER = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+NICHT_GELAUFEN = "Sprachprüfung nicht gelaufen"
+
+
+def einstellung(con, pid):
+    return kern.projekt_wahl(con, pid, "sprachpruefung")
+
+
+def _spawn(pid, prid, umgebung=None):
+    befehl = [sys.executable, "-I", "-X", "utf8", EINSTIEG, "--projekt-id", str(pid), "--pruefung", str(prid)]
+    flags = (0x00000008 | 0x00000200 | OHNE_FENSTER) if os.name == "nt" else 0        # DETACHED, NEW_GROUP wie der Stil-Leser
+    return subprocess.Popen(befehl, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True,
+                            creationflags=flags, env=umgebung, start_new_session=os.name != "nt").pid
+
+
+STARTER = _spawn             # Tests setzen eine Attrappe; tests/abschotten schaltet das Anstoßen ganz ab (AMW_SPRACHE_AUS)
+
+
+def gilt(con, pid):
+    """Soll für dieses Projekt geprüft werden? aus: nie; pyright: immer; auto: nur mit pyrightconfig.json im Projektordner."""
+    from . import pruefung_c
+    modus = einstellung(con, pid)
+    if modus == "aus":
+        return False
+    ordner = kern.projekt_ordner(con, pid)
+    return modus == "pyright" or bool(ordner and pruefung_c.sprache_an(modus, ordner))
+
+
+def anstossen(con, pid, prid):
+    """Nach jeder Prüfbitte. Rückgabe: Zeile für die Prüfbitte oder „“ (abgeschaltet bzw. ohne pyright-Konfiguration)."""
+    if os.environ.get("AMW_SPRACHE_AUS") or not gilt(con, pid):
+        return ""
+    p = con.execute("SELECT * FROM pruefung WHERE id = ? AND projekt_id = ?", (prid, pid)).fetchone()
+    if not p:
+        return ""
+    with db.schreiben(con):
+        eid = db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=ANGESTOSSEN, aufgabe_id=p["aufgabe_id"],
+                           text=json.dumps({"pruefung": prid}, ensure_ascii=False))
+    try:
+        prozess = STARTER(pid, prid)
+    except OSError as e:
+        abschliessen(con, pid, prid, {"stand": "nicht_gelaufen", "text": f"{NICHT_GELAUFEN}: Lauf ließ sich nicht starten ({e})"})
+        return f"\n\nSprachprüfung: nicht gelaufen ({e})"
+    with db.schreiben(con):
+        con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?", (json.dumps({"pruefung": prid, "prozess": prozess}, ensure_ascii=False), eid))
+    return "\n\nSprachprüfung: läuft (pyright, nur neue Fehler gegen main) – Befund folgt als Meldung"
+
+
+def _git(args, umgebung, cwd=None):
+    r = subprocess.run(["git", *args], capture_output=True, text=True, env=umgebung, cwd=cwd, stdin=subprocess.DEVNULL,
+                       timeout=600, creationflags=OHNE_FENSTER)
+    if r.returncode:
+        raise RuntimeError(f"git {' '.join(args[:2])}: {(r.stdout + r.stderr).strip()[-300:]}")
+    return r.stdout.strip()
+
+
+def pruefen(con, pid, sha, arbeit, werkzeuge=None):
+    """Die Sprachprüfung auf `sha` gegen den merge-base mit main – in `arbeit` (eigener Ordner). Rückgabe wie abschliessen
+    sie braucht: {"stand", "neu", "text"}."""
+    from . import pruefung_c
+    ordner = kern.projekt_ordner(con, pid)
+    if not ordner or not os.path.isdir(ordner):
+        return {"stand": "nicht_gelaufen", "text": f"{NICHT_GELAUFEN}: kein Projektordner"}
+    p = {"nr": 0, "daten": arbeit, "port": 0, "autocrlf": pruefung_c.autocrlf_projekt(ordner)}
+    u = pruefung_c._umgebung(p)
+    repo = pruefung_c.repo_anlegen(p)                # eigenes Prüf-Repo (bare) – nie das .git des Projekts
+    _git(["--git-dir", repo, "fetch", "-q", "--no-tags", ordner, "+refs/heads/*:refs/heads/*"], u)
+    try:
+        _git(["--git-dir", repo, "cat-file", "-e", f"{sha}^{{commit}}"], u)
+    except RuntimeError:
+        return {"stand": "nicht_gelaufen", "text": f"{NICHT_GELAUFEN}: {sha[:8]} steht in keinem Zweig des Projekts"}
+    basis = _git(["--git-dir", repo, "merge-base", sha, "refs/heads/main"], u)
+    q = pruefung_c._frisch(p, sha)
+    r = pruefung_c.sprachpruefung(p, q, basis, werkzeuge=werkzeuge)
+    if r.get("hinweis"):                             # pyright fehlt auf diesem PC
+        return {"stand": "nicht_gelaufen", "text": f"{NICHT_GELAUFEN}: {r['hinweis']}"}
+    if r["befund"] == "C/technik":
+        return {"stand": "nicht_gelaufen", "text": f"{NICHT_GELAUFEN}: {r.get('grund') or r['ausgabe']}"}
+    return {"stand": "neu" if r["neu"] else "ok", "neu": len(r["neu"]), "text": r["ausgabe"], "basis": basis[:8]}
+
+
+def zeile(aus):
+    if aus.get("stand") == "ok":
+        return "Sprachprüfung: keine neuen Fehler"
+    if aus.get("stand") == "neu":
+        return f"Sprachprüfung: {aus.get('neu')} neue Fehler"
+    return (aus.get("text") or NICHT_GELAUFEN).split("\n")[0][:160]
+
+
+def abschliessen(con, pid, prid, aus, lauf=None):
+    """Befund eintragen und dem Prüfer melden – auch „nicht gelaufen“ (dann prüft der Prüfer selbst)."""
+    p = con.execute("SELECT * FROM pruefung WHERE id = ? AND projekt_id = ?", (prid, pid)).fetchone()
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=BEFUND, aufgabe_id=p["aufgabe_id"] if p else None,
+                     text=json.dumps({"pruefung": prid, "stand": aus.get("stand"), "neu": aus.get("neu"), "text": (aus.get("text") or "")[:4000],
+                                      "lauf": lauf}, ensure_ascii=False))
+        if p:
+            kern._posten(con, pid, "AMW", p["pruefer"], "meldung", f"P{prid} {zeile(aus)}"[:140],
+                         (aus.get("text") or NICHT_GELAUFEN) + (f"\n\nStand {p['sha'][:8]} gegen main ({aus['basis']})." if aus.get("basis") else ""),
+                         aufgabe_id=p["aufgabe_id"])
+
+
+def letzter_befund(con, pid, prid):
+    for (t,) in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id DESC", (pid, BEFUND)):
+        try:
+            e = json.loads(t or "{}")
+        except ValueError:
+            continue
+        if e.get("pruefung") == prid:
+            return e
+    return None
+
+
+def ausfuehren(con, pid, prid, werkzeuge=None):
+    """Im losgelösten Prozess: als leichter Lauf anmelden, warten bis er dran ist, prüfen, Befund eintragen."""
+    from . import belegung, betrieb
+    p = con.execute("SELECT * FROM pruefung WHERE id = ? AND projekt_id = ?", (prid, pid)).fetchone()
+    agent = kern.lead(con, pid) or kern.ENTWICKLER
+    aus, lid = None, None
+    try:
+        lid = betrieb.lauf_start(con, pid, agent, f"Sprachprüfung P{prid} (pyright, A2004, automatisch)", None, False, False,
+                                 p["aufgabe_id"] if p else None, warten=True, waechter=os.getpid(), befehl=None, ordner=None, selbst=True)
+        belegung.lauf_merken(lid, os.getpid())
+        while True:
+            l = betrieb.lauf_zeile(con, pid, lid)
+            if l["status"] == "laeuft":
+                break
+            if l["status"] in ("fertig", "abgebrochen"):
+                raise RuntimeError(f"L{lid} ist {l['status']} – in der Lauf-Schlange nicht drangekommen")
+            time.sleep(5)
+        betrieb.lauf_uebernehmen(con, lid, "agent")
+        if not p:
+            raise kern.AmwFehler(f"P{prid} gibt es nicht")
+        with tempfile.TemporaryDirectory(prefix="amw-vorpruefung-", ignore_cleanup_errors=True) as arbeit:
+            aus = pruefen(con, pid, p["sha"], arbeit, werkzeuge=werkzeuge)
+    except Exception as e:                                    # noqa: BLE001 – niemand sieht die Ausgabe: als Befund eintragen
+        aus = {"stand": "nicht_gelaufen", "text": f"{NICHT_GELAUFEN}: {type(e).__name__}: {e}"[:400]}
+    finally:
+        aus = aus or {"stand": "nicht_gelaufen", "text": f"{NICHT_GELAUFEN}: abgebrochen"}
+        if lid:
+            try:
+                betrieb.lauf_ende(con, pid, agent, lid, 0 if aus["stand"] != "nicht_gelaufen" else 1, f"P{prid} {zeile(aus)}"[:500])
+            finally:
+                belegung.lauf_vergessen(lid)
+    abschliessen(con, pid, prid, aus, lid)
+    return aus
+
+
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(prog="amw-vorpruefung")
+    ap.add_argument("--projekt-id", type=int, required=True)
+    ap.add_argument("--pruefung", type=int, required=True)
+    x = ap.parse_args(argv)
+    con = db.verbinde()
+    try:
+        ausfuehren(con, x.projekt_id, x.pruefung)
+    finally:
+        con.close()

@@ -1146,6 +1146,14 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
             stil.anstossen(con, pid, prid, True)
         except Exception:                            # noqa: BLE001 – die Prüfbitte gilt; ohne Befund prüft der Prüfer selbst
             pass
+    from . import vorpruefung                        # A2004: Sprachprüfung (pyright) auf genau diesem Stand – Befund als Meldung
+    try:
+        vorpruefung.anstossen(con, pid, prid)
+    except Exception as e:                           # noqa: BLE001 – die Prüfbitte gilt; der Ausfall wird sichtbar, nicht still
+        try:
+            vorpruefung.abschliessen(con, pid, prid, {"stand": "nicht_gelaufen", "text": f"{vorpruefung.NICHT_GELAUFEN}: {type(e).__name__}: {e}"[:400]})
+        except Exception:                            # noqa: BLE001
+            pass
     return prid
 
 

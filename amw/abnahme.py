@@ -60,6 +60,8 @@ GESPERRT = (
     ("amw/fragentopf.py", "fest", "Fragen-Topf – Push-Takt, Frist, weckt Lead und Agenten (A1945)"),
     ("amw/stil.py", "fest", "Stil-Prüfung der Prüfbitten – startet claude -p (A1973)"),
     ("amw-stil.py", "fest", "Stil-Leser (A1973)"),
+    ("amw/vorpruefung.py", "fest", "Sprachprüfung jeder Prüfbitte – startet einen losgelösten Lauf (A2004)"),
+    ("amw-vorpruefung.py", "fest", "Sprachprüfung jeder Prüfbitte (A2004)"),
     ("amw/planer.py", "fest", "Planer der Themen – startet claude -p (A1940)"),
     ("amw/folgen.py", "fest", "Folgenprüfer eigener Änderungen – startet claude -p (A1957)"),
     ("pyrightconfig.json", "fest", "Konfiguration der Sprachprüfung in Prüfung C (A1962) – ein Paket schaltet sie nicht ab"),

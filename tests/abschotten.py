@@ -21,6 +21,7 @@ if not os.environ.get("AMW_TEST_LOKAL"):
     os.environ["AMW_CLAUDE_VERSION"] = "2.1.326"   # A1906: nie vom installierten Claude Code abhängen (Grundbestand, wie die Attrappe)
     os.environ["AMW_GEGENLESEN_AUS"] = "1"         # A1914: thema pflegen stößt in Tests nie einen echten Gegenleser an
     os.environ["AMW_STIL_AUS"] = "1"               # A1973: eine Prüfbitte mit Bildern stößt in Tests nie einen echten Stil-Leser an
+    os.environ["AMW_SPRACHE_AUS"] = "1"            # A2004: eine Prüfbitte stößt in Tests nie eine echte Sprachprüfung an
     os.environ["AMW_FOLGEN_AUS"] = "1"             # A1957: eigene Änderungen des Menschen gelten in Tests sofort (ohne Prüfer)
     os.environ["AMW_PLANER_AUS"] = "1"             # A1940: thema freigeben stößt in Tests nie einen echten Planer an
     os.environ["AMW_SYSTEMLAUFWERK"] = "-"         # A1921: Test-Ordner liegen auf dem Systemlaufwerk – die Sperre prüft test_platz

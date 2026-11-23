@@ -577,6 +577,22 @@ jünger als 2 h war – die Kachel zeigte stundenlang eine erledigte Aufgabe ode
   R7“, Ereignis `stil_befund` mit Kosten. Grün auf eine Prüfung mit Verstoß nur mit `--bemerkung`. Geht der Lauf schief, bekommt
   der Prüfer das als Meldung und prüft selbst – die Prüfbitte gilt trotzdem.
 
+## Sprachprüfung jeder Prüfbitte (A2004, TL #31260)
+
+**Wozu:** Befunde sollen fertig vorliegen, wenn der Prüfer anfängt – Automatismus statt Gebot. Bis dahin lief pyright nur in
+Prüfung C der p-Pakete; interaktive Prüfbitten bekamen keine Sprachprüfung.
+
+- **Auslöser:** jede Prüfbitte (`amw pruefung bitte`), wenn die Projekt-Einstellung `sprachpruefung` es will: `auto` (Vorgabe:
+  nur mit `pyrightconfig.json` im Projektordner) | `pyright` | `aus`.
+- **Was geschieht (`amw/vorpruefung.py`, `amw-vorpruefung.py`):** wie beim Stil-Leser ein losgelöster Prozess, der sich als
+  leichter Lauf der Lauf-Schlange anmeldet. Er holt die Zweige des Projekts in ein eigenes Prüf-Repo (in einem eigenen
+  Arbeitsordner, nie im Baum des Bearbeiters), checkt genau den SHA der Prüfbitte und den merge-base mit main frisch aus und
+  fährt die vorhandene Sprachprüfung von Prüfung C (`pruefung_c.sprachpruefung`: pyright, nur neue Fehler gegen den
+  Start-Commit). Kein Modell, keine Kosten außer PC-Zeit.
+- **Ergebnis:** Meldung an den Prüfer „P… Sprachprüfung: keine neuen Fehler“ bzw. „… n neue Fehler“ (mit Liste), Ereignis
+  `sprache_befund`, und an der Prüfbitte in `amw pruefung zeige`. Fällt etwas aus – Start, Lauf-Schlange, Checkout, pyright fehlt,
+  Zeit um –, lautet der Befund „Sprachprüfung nicht gelaufen: <Grund>“; die Prüfbitte gilt trotzdem, still fehlt nichts.
+
 ## Fragen-Topf (A1945, K10)
 
 **Wozu:** Jede Frage an den Menschen kam einzeln als Push; blieb eine liegen, merkte niemand, was an ihr hängt.
