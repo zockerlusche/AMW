@@ -17,8 +17,16 @@ Schema des Planer-Ergebnisses (JSON):
    "pakete": [{"schluessel": "P1", "meilenstein": "M1", "titel": "…", "auftrag": "…", "groesse": "S|M|L|XL",
                "art": "text|mechanisch|fehlersuche|oberflaeche|sicherheit|konzept", "ausfuehrung": "agent|p",
                "modell": "haiku|sonnet|opus", "effort": "low|medium|high", "fertig_quelle": "commit|release|thema|dokument|frist|ja",
-               "nach": ["P0", "A1234"], "abnahme_befehl": "python -m unittest tests.test_x" | null}]}
+               "nach": ["P0", "A1234"], "abnahme_befehl": "python -m unittest tests.test_x" | null,
+               "bereiche": "amw/x.py, tests/test_x.py" | null, "pakettyp": "normal|test-schreiben|test-ergaenzen" | null,
+               "interaktiv_grund": "…" | null}]}
   oder {"nichts_zu_bauen": true, "grund": "…"}
+
+  p ist die Vorgabe (A2004, TH164/TH166): ein Paket der Größe S – oder M bei Art mechanisch –, das keine Oberfläche ist, läuft
+  mit "ausfuehrung": "p", mit "abnahme_befehl" (vor dem Bau rot: ein neuer Test im Paket, "pakettyp": "test-schreiben", oder ein
+  vorgezogenes Test-Paket als Vorgänger) und engen "bereiche" (Dateien/Ordner, die es ändern darf). "modell"/"effort" weglassen
+  heißt: nach der Empfehlung des Projekts. "ausfuehrung": "agent" für so ein Paket nur mit "interaktiv_grund" (Optik, Erkundung,
+  gesperrter Bereich, Marcels Auge) – sonst meldet die AMW beim Ja „Achtung“.
 """
 import difflib
 import json
@@ -37,7 +45,34 @@ AUSFUEHRUNG = ("agent", "p")
 MODELLE = ("haiku", "sonnet", "opus")
 EFFORTS = ("low", "medium", "high")
 MAX_PAKETE, MAX_MEILENSTEINE = 30, 5
-LAENGE = {"titel": 120, "auftrag": 4000, "grund": 1000, "abnahme_befehl": 300}
+LAENGE = {"titel": 120, "auftrag": 4000, "grund": 1000, "abnahme_befehl": 300, "bereiche": 400, "interaktiv_grund": 300}
+PAKETTYPEN = ("normal", "test-schreiben", "test-ergaenzen")
+
+
+def p_vorgabe(p):
+    """A2004 (TH164/TH166, TL #31229): soll dieses Paket als p laufen? S – oder M bei Art mechanisch –, keine Oberfläche."""
+    return p.get("art") != "oberflaeche" and (p.get("groesse") == "S" or (p.get("groesse") == "M" and p.get("art") == "mechanisch"))
+
+
+def achtung(entwurf):
+    """A2004: Pakete, die nach der Vorgabe p wären, aber interaktiv ohne Grund geplant sind – Texte für „Achtung“ beim Ja."""
+    if not entwurf or entwurf.get("nichts_zu_bauen"):
+        return []
+    return [f"{p['schluessel']} „{p['titel']}“ ({p['groesse']} · {p['art']}) läuft interaktiv ohne Grund – p wäre die Vorgabe"
+            for p in entwurf.get("pakete") or [] if p_vorgabe(p) and p.get("ausfuehrung") != "p" and not p.get("interaktiv_grund")]
+
+
+def p_modell(con, pid, p):
+    """A2004: Modell/Effort eines p-Pakets – aus dem Plan, sonst nach der Empfehlung des Projekts (Gruppe × Größe)."""
+    from . import empfehlung
+    modell, effort = p.get("modell"), p.get("effort")
+    if (modell and effort) or not p.get("art") or not p.get("groesse"):
+        return modell, effort
+    try:
+        m, _, s = empfehlung.tabelle(con, pid)[empfehlung.GRUPPE[p["art"]]][p["groesse"]].partition("/")
+    except (KeyError, ValueError):
+        return modell, effort
+    return modell or m, effort or ({"xhigh": "high", "max": "high"}.get(s, s) if s in EFFORTS + ("xhigh", "max") else None)
 ENDET_MIT = {"vorfuehrung": "Vorführung", "bericht": "Bericht"}   # TH164: ein Meilenstein endet mit Vorführung oder Bericht
 AEHNLICH = 0.85                                                     # A1976: Titel-Ähnlichkeit, ab der ein Paket „schon gebaut“ ist
 
@@ -198,11 +233,23 @@ def pruefen(daten, con=None, pid=None, tid=None):
                       "modell": _wahl(p.get("modell"), MODELLE, "modell", wo, f) if p.get("modell") else None,
                       "effort": _wahl(p.get("effort"), EFFORTS, "effort", wo, f) if p.get("effort") else None,
                       "fertig_quelle": _wahl(p.get("fertig_quelle"), FERTIG_QUELLEN, "fertig_quelle", wo, f),
-                      "nach": nach, "abnahme_befehl": _text(p.get("abnahme_befehl"), "abnahme_befehl", wo, f, pflicht=False)})
+                      "nach": nach, "abnahme_befehl": _text(p.get("abnahme_befehl"), "abnahme_befehl", wo, f, pflicht=False),
+                      "bereiche": _text(p.get("bereiche"), "bereiche", wo, f, pflicht=False),          # A2004
+                      "pakettyp": _wahl(p.get("pakettyp"), PAKETTYPEN, "pakettyp", wo, f) if p.get("pakettyp") else None,
+                      "interaktiv_grund": _text(p.get("interaktiv_grund"), "interaktiv_grund", wo, f, pflicht=False)})
         if aus_p[-1]["ausfuehrung"] == "p" and aus_p[-1]["art"] == "oberflaeche":   # A1976 (TH156): zuerst eine Kleinprobe
             f.append(f"{wo}: ein Oberflächen-Paket nie als p – ausfuehrung agent, mit Kleinprobe zuerst (TH156)")
         if aus_p[-1]["ausfuehrung"] == "p" and not aus_p[-1]["abnahme_befehl"]:
             f.append(f"{wo}: ein p-Paket braucht einen Abnahme-Befehl (die AMW nimmt es selbst ab)")
+        if aus_p[-1]["ausfuehrung"] == "p" and not aus_p[-1]["bereiche"]:          # A2004: sonst startet der Wächter es nie
+            f.append(f"{wo}: ein p-Paket braucht enge Bereiche (bereiche: Dateien/Ordner, die es ändern darf)")
+        if aus_p[-1]["ausfuehrung"] == "p" and aus_p[-1]["bereiche"]:
+            from . import abnahme
+            gesperrt = abnahme.startregel([x.strip() for x in aus_p[-1]["bereiche"].replace(";", ",").split(",") if x.strip()],
+                                          aus_p[-1]["pakettyp"])
+            if gesperrt:
+                f.append(f"{wo}: Bereiche enthalten gesperrte Pfade ({', '.join(b for b, _ in gesperrt[:3])}) – dann ausfuehrung agent mit"
+                         " interaktiv_grund „gesperrter Bereich“")
         if aus_p[-1]["abnahme_befehl"]:                  # P462 (2): wie beim Start des Arbeiters – ein Befehl, keine Verkettung
             from . import arbeiter
             try:
@@ -331,6 +378,13 @@ def zusammenfassung(entwurf):
                 zeilen.append(f"    Auftrag: {' '.join((p['auftrag'] or '').split())[:600]}")   # P462 (2): was angelegt wird
                 if p["abnahme_befehl"]:
                     zeilen.append(f"    Abnahme-Befehl: {p['abnahme_befehl']}")
+                if p.get("bereiche"):
+                    zeilen.append(f"    Bereiche: {p['bereiche']}" + (f" · {p['pakettyp']}" if p.get("pakettyp") else ""))
+                if p.get("interaktiv_grund"):                                                       # A2004
+                    zeilen.append(f"    Interaktiv, Grund: {p['interaktiv_grund']}")
+    hinweise = achtung(entwurf)
+    if hinweise:
+        zeilen += ["", "Achtung (p ist die Vorgabe):"] + [f"  {h}" for h in hinweise]
     return "\n".join(zeilen)
 
 
@@ -416,10 +470,13 @@ def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
     fristen = []
     for p in reihenfolge(entwurf):
         nach = [int(v[1:]) if v.startswith("A") else int(angelegt[v][1:]) for v in p["nach"]]
-        aid = planung.schritt_setzen(con, pid, von, titel=p["titel"], auftrag=p["auftrag"], bogen_id=bogen[p["meilenstein"]],
-                                     groesse=p["groesse"], art=p["art"], pruefbefehl=p["abnahme_befehl"], nach=nach or None)
-        felder = {"art": p["ausfuehrung"], **({"modell": p["modell"]} if p["modell"] else {}),
-                  **({"effort": p["effort"]} if p["effort"] else {})}
+        auftrag = p["auftrag"] + (f"\n\nInteraktiv, Grund: {p['interaktiv_grund']}" if p.get("interaktiv_grund") else "")   # A2004
+        aid = planung.schritt_setzen(con, pid, von, titel=p["titel"], auftrag=auftrag, bogen_id=bogen[p["meilenstein"]],
+                                     groesse=p["groesse"], art=p["art"], pruefbefehl=p["abnahme_befehl"], nach=nach or None,
+                                     **({"dateibereich": p["bereiche"]} if p.get("bereiche") else {}))
+        modell, effort = p_modell(con, pid, p) if p["ausfuehrung"] == "p" else (p["modell"], p["effort"])
+        felder = {"art": p["ausfuehrung"], **({"modell": modell} if modell else {}), **({"effort": effort} if effort else {}),
+                  **({"pakettyp": p["pakettyp"]} if p.get("pakettyp") else {})}
         arbeitspaket.setzen(con, pid, von, aid, **felder)
         themen.verweise_setzen(con, pid, von, aid, [tid])
         q = fertig_aus_plan(p["fertig_quelle"], tid)                # A1996 (K2): die Fertig-Quelle gehört ins Paket
@@ -433,6 +490,14 @@ def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
         con.execute("DELETE FROM plan_ereignis WHERE id = ?", (merke,))
         _ereignis(con, pid, von, JA, tid, entwurf=e["id"], angelegt=angelegt, geaendert=geaendert is not None,
                   fertig_quellen={p["schluessel"]: p["fertig_quelle"] for p in entwurf["pakete"]})   # wie geplant (A1996: im Paket)
+        hinweise = achtung(entwurf)                  # A2004: p ist die Vorgabe – interaktiv ohne Grund fällt auf
+        if hinweise:
+            kern._posten(con, pid, "AMW", kern.lead(con, pid) or kern.ENTWICKLER, "meldung",
+                         f"TH{tid}: Achtung – {len(hinweise)} Paket(e) interaktiv ohne Grund"[:140],
+                         "p ist die Vorgabe für S und M-mechanisch (ohne Oberfläche). Diese Pakete laufen interaktiv, ohne dass der Plan"
+                         " einen Grund nennt:\n" + "\n".join(f"- {h}" for h in hinweise)
+                         + "\nUmstellen: amw aufgabe aendern <N> --paket p --pruefbefehl … --dateien … – oder den Grund in den Auftrag"
+                           " schreiben („Interaktiv, Grund: …“).")
         if fristen:                                  # A1996: „frist“ braucht Tage und Version – die stehen nicht im Plan
             kern._posten(con, pid, "AMW", kern.lead(con, pid) or kern.ENTWICKLER, "meldung",
                          f"TH{tid}: Fertig-Quelle „frist“ vorerst „ja“ – {', '.join(fristen)}"[:140],
@@ -476,7 +541,11 @@ AUFTRAG = (
     "Steht in meilensteine.md ein offener Meilenstein, dessen Ziel auf dieses Thema verweist (★), hängst du die Pakete dort an "
     "(\"bestehend\": Nummer), statt einen neuen anzulegen. Oberflächen-Pakete (art oberflaeche) laufen immer mit ausfuehrung "
     "agent, das erste davon ist eine Kleinprobe zum Ansehen; ausfuehrung p nur mit einem Abnahme-Befehl, den die AMW selbst "
-    "ausführen kann. Braucht das Thema nichts (schon gebaut, nur ein Begriff), antworte mit "
+    "ausführen kann. p ist die Vorgabe: jedes Paket der Größe S – und M bei Art mechanisch –, das keine Oberfläche ist, keinen "
+    "gesperrten Bereich braucht und weder Bildschirm noch Grafikkarte, schneidest du als ausfuehrung p, mit abnahme_befehl (vor "
+    "dem Bau rot: ein neuer Test im Paket mit pakettyp test-schreiben oder ein vorgezogenes Test-Paket als Vorgänger) und engen "
+    "bereiche; modell/effort lässt du weg (dann gilt die Empfehlung des Projekts). Interaktiv (ausfuehrung agent) so ein Paket "
+    "nur mit interaktiv_grund (Optik, Erkundung, gesperrter Bereich, Marcels Auge). Braucht das Thema nichts (schon gebaut, nur ein Begriff), antworte mit "
     "nichts_zu_bauen und Grund. Antworte NUR mit dem JSON-Objekt nach schema.md – kein Text davor oder danach. "
     "Du änderst nichts, du schreibst keine Dateien, du führst nichts aus.")
 

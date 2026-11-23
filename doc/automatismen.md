@@ -695,6 +695,13 @@ die der Lead nur noch bestätigt oder ändert.
   mit dem Thema; `amw thema plan TH<n>` zeigt den Entwurf. Kein Anlegen ohne Ja. Jedes Paket bekommt dabei seine
   Fertig-Quelle (A1996): commit und release → `commit`, thema → `thema TH<n>` des Plans, ja und dokument → `ja`; frist → `ja`,
   bis jemand Tage und Version setzt (die stehen nicht im Plan) – dazu eine Meldung an den Lead mit den Paketen.
+- **p als Vorgabe (A2004):** S – und M bei Art mechanisch –, keine Oberfläche: der Planer schneidet es als p mit
+  Abnahme-Befehl, `bereiche` (Pflicht für p, keine gesperrten Pfade) und `pakettyp`; ohne Modell/Effort gilt die Empfehlung des
+  Projekts. Interaktiv nur mit `interaktiv_grund` (steht dann im Auftrag). Fehlt er, meldet das Ja „Achtung“ an den Lead
+  (auch `plan-ja` im Terminal); `amw aufgabe neu` sagt bei S/M-mechanisch ohne `--paket` „p möglich – oder Grund“.
+- **Anteil p (A2004):** Je Aufsichtsrunde prüft der Dienst den Anteil p an den fertigen Paketen der letzten 7 Tage; liegt
+  er unter 50 %, bekommt der Lead einmal je Tag eine Meldung (Ereignis `p_quote_meldung`) – nur in Projekten mit
+  Arbeitsplätzen. Zahlen: `amw messung --p` (je Tag, Kosten und Wartezeiten p gegen interaktiv), Betrieb › „Anteil p“.
 - **Projekt-Schalter (A1999):** wie der Gegenleser nur bei eingeschaltetem Projekt – steht `amw projekt schalter` auf aus
   oder probe, stößt weder die Freigabe noch die Dienst-Runde einen Planer an; `amw thema planen` antwortet „Projekt ist
   ausgeschaltet – Planer läuft erst nach dem Einschalten“ (bzw. „Projekt steht auf Probe – …“). Ein Thema, das an der

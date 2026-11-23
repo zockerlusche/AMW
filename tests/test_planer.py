@@ -20,7 +20,8 @@ ERGEBNIS = {
          "groesse": "m", "art": "sicherheit", "ausfuehrung": "agent", "fertig_quelle": "release"},
         {"schluessel": "P2", "meilenstein": "M1", "titel": "Tests für die Anmeldung", "auftrag": "Tests ergänzen.",
          "groesse": "S", "art": "mechanisch", "ausfuehrung": "p", "modell": "sonnet", "effort": "medium", "fertig_quelle": "commit",
-         "nach": ["P1"], "abnahme_befehl": "python -m unittest tests.test_anmeldung"},
+         "nach": ["P1"], "abnahme_befehl": "python -m unittest tests.test_anmeldung", "bereiche": "tests/test_anmeldung.py",
+         "pakettyp": "test-schreiben"},
     ]}
 
 

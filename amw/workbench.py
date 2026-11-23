@@ -1267,7 +1267,12 @@ def daten_betrieb(con, pid):
     frei, gesamt = speicher_frei_gb()
     from . import statusline
     from . import ki
-    return {"sitzungen": sitz, "laeufe": laeufe, "fremd": fremd, "sperren": sperren, "server": server,
+    from . import messung
+    try:                                             # A2004: Kennzahl Anteil p (7 Tage, Ziel ≥ 50 %) – nur die Anzahl, ohne Kosten
+        p_quote = messung.p_quote(con, pid, kosten=False)
+    except Exception:                                # noqa: BLE001 – eine Kennzahl darf die Seite nie verhindern
+        p_quote = None
+    return {"p_quote": p_quote, "sitzungen": sitz, "laeufe": laeufe, "fremd": fremd, "sperren": sperren, "server": server,
             "log": [z.rstrip() for z in log],
             "verbrauch": statusline.verbrauch_tage(con, pid, 7), "ki": ki.uebersicht(con, pid), "gesundheit": herzschlag.gesundheit(),
             "speicher": {"frei": frei, "gesamt": gesamt, "grenze": speicher_grenze(con, pid)}, "db": db.db_pfad()}

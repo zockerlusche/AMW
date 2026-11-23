@@ -772,7 +772,8 @@ options:
 ## messung
 ```
 usage: amw messung [-h] [--seit SEIT] [--agent AGENT] [--vergleich] [--hebel7]
-                   [--basis] [--von VON] [--projekt PROJEKT]
+                   [--basis] [--p] [--tage TAGE] [--von VON]
+                   [--projekt PROJEKT]
                    [nr]
 
 positional arguments:
@@ -789,6 +790,9 @@ options:
                      Paket (Median der letzten 10) – A1956, TH168 Hebel 7
   --basis            mit --hebel7: als Basis festhalten (Ereignis
                      basis_hebel7; Lead oder Mensch)
+  --p                Anteil p an fertigen Paketen je Tag (Ziel ≥ 50 %) und
+                     Kosten p gegen interaktiv (Median, Summe) – A2004
+  --tage TAGE        mit --p: so viele Tage zurück (Vorgabe 7)
   --von VON
   --projekt PROJEKT
 ```

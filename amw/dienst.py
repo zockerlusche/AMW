@@ -410,6 +410,12 @@ class Dienst:
                 log.info("Meilenstein %s: %s", bid, was)
         except Exception as e:
             log.warning("Meilensteine: %s: %s", type(e).__name__, e)
+        try:                                                                 # A2004: Anteil p unter dem Ziel → Lead, einmal je Tag
+            from . import messung
+            for e in messung.p_quote_runde(self.con):
+                log.info("Anteil p: %s", e)
+        except Exception as e:
+            log.warning("Anteil p: %s: %s", type(e).__name__, e)
         try:                                                                 # A1747: Lauf ohne --schirm mit Fenster → melden
             from . import fenster
             for lid, programm in fenster.pruefen(self.con):

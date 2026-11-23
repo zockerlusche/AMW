@@ -947,6 +947,11 @@ def cmd_aufgabe(a, con):
             print(f"A{aid} angelegt" + (" (Eingang – der Lead plant ein: amw liste ordnen <Agent> …)" if a.pool else ""))
         _paket_setzen(con, pid, a, aid)
         _fertig_wenn(con, pid, a, aid)
+        from . import planer                                 # A2004: p ist die Vorgabe für S und M-mechanisch
+        if not getattr(a, "paket", None) and planer.p_vorgabe({"groesse": a.groesse, "art": a.art}) \
+                and "interaktiv, grund" not in (a.auftrag or "").lower():
+            print(f"Hinweis: A{aid} ({a.groesse} · {a.art}) – p möglich: amw aufgabe aendern {aid} --paket p --pruefbefehl … --dateien …"
+                  " – oder den Grund in den Auftrag („Interaktiv, Grund: …“)")
         if a.thema:                                          # A1947: gleich beim Anlegen mit dem Thema verknüpfen (A1915)
             from . import themen
             print("Thema: " + ", ".join(f"TH{t}" for t in themen.verweise_setzen(con, pid, _von(a), aid, a.thema.split(","))))
@@ -1524,6 +1529,20 @@ def cmd_messung(a, con):
     """A1844: Wartezeit und Kosten je Aufgabe – nur lesen."""
     from . import messung
     pid = _projekt(con, a)
+    if getattr(a, "p", False):                       # A2004: Anteil p je Tag, Kosten p gegen interaktiv
+        q = messung.p_quote(con, pid, tage=a.tage or 7)
+        ziel = f"Ziel ≥ {round(q['ziel'] * 100)} %"
+        print(f"Anteil p (letzte {a.tage or 7} Tage): " + (f"{q['p']} von {q['n']} = {round(q['anteil'] * 100)} % · {ziel}"
+                                                          + (" – erreicht" if q["anteil"] >= q["ziel"] else " – darunter")
+                                                          if q["n"] else f"keine fertigen Pakete · {ziel}"))
+        for t in q["tage"]:
+            print(f"  {t['tag']}: {t['p']} von {t['n']} p ({round(t['anteil'] * 100)} %)")
+        for k, name in (("p", "p"), ("interaktiv", "interaktiv")):
+            w = q["kosten"][k]
+            print(f"  Kosten {name}: " + (f"Median {w['median']:.2f} $ · Summe {w['summe']:.2f} $ · n = {w['n']}" if w["n"] else "–")
+                  + "".join(f" · {txt} Median {messung.dauer(w[s])}" for s, txt in (("vor_start_median_s", "vor dem Start"),
+                                                                                    ("nach_abgabe_median_s", "nach der Abgabe")) if w.get(s)))
+        return
     if a.nr:
         m = messung.je_aufgabe(con, pid, int(str(a.nr).lstrip("Aa")))
         if not m:
@@ -2714,6 +2733,12 @@ def cmd_thema(a, con):
                 geaendert = f.read()
         angelegt = planer.uebernehmen(con, pid, _von(a), t["id"], geaendert=geaendert)
         print(f"TH{t['id']}: " + ("„nichts zu bauen“ vermerkt" if not angelegt else "angelegt – " + ", ".join(f"{k} → {v}" for k, v in angelegt.items())))
+        try:
+            ent = planer.pruefen(geaendert) if geaendert is not None else (e or {}).get("entwurf")
+        except planer.PlanFehler:
+            ent = None
+        for h in planer.achtung(ent):                     # A2004: p ist die Vorgabe
+            print(f"Achtung: {h} ({', '.join(f'{k} → {v}' for k, v in angelegt.items() if h.startswith(k + ' '))})")
         return
     if a.aktion in ("freigeben", "zurueck", "markieren", "entmarkieren"):   # A1896: nur der Mensch, nur im eigenen Terminal
         if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():
@@ -3773,6 +3798,9 @@ def parser():
     x.add_argument("--hebel7", action="store_true", help="Startkontext je Agent (Zeilen/Zeichen) und Kosten je Paket (Median der"
                                                         " letzten 10) – A1956, TH168 Hebel 7")
     x.add_argument("--basis", action="store_true", help="mit --hebel7: als Basis festhalten (Ereignis basis_hebel7; Lead oder Mensch)")
+    x.add_argument("--p", action="store_true", help="Anteil p an fertigen Paketen je Tag (Ziel ≥ 50 %%) und Kosten p gegen interaktiv"
+                                                   " (Median, Summe) – A2004")
+    x.add_argument("--tage", type=int, help="mit --p: so viele Tage zurück (Vorgabe 7)")
     x.set_defaults(f=cmd_messung)
 
     x = s.add_parser("skills", help="Anleitungen als Claude-Code-Skills: bauen (aus doc nach .claude/skills, A1956)")

@@ -190,7 +190,8 @@ class PlanAnsicht(Rundgang):
                                                                         {"schluessel": "P2", "meilenstein": "M1", "titel": "Tests",
                                                                          "auftrag": "Tests.", "groesse": "S", "art": "mechanisch",
                                                                          "ausfuehrung": "p", "modell": "sonnet", "fertig_quelle": "commit",
-                                                                         "nach": ["P1"], "abnahme_befehl": "python -m unittest tests.test_login"}]},
+                                                                         "nach": ["P1"], "abnahme_befehl": "python -m unittest tests.test_login",
+                                                                         "bereiche": "tests/test_login.py"}]},
                                  modell="sonnet", usd=0.21)
         for g in ("pc", "handy"):
             for th_ in ("hell", "dunkel"):

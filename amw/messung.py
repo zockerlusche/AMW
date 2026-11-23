@@ -188,6 +188,87 @@ def vergleich(con, pid, jetzt=None, tage=7):
     return {"diese": aus[0], "vorher": aus[1]}
 
 
+# --- A2004: p als Vorgabe – Anteil p an fertigen Paketen je Tag, Kosten p gegen interaktiv -----------------------------------
+ZIEL_P = 0.5                                     # TL #31229 / Marcel 23.11.: mindestens die Hälfte der Pakete als p
+P_MELDUNG = "p_quote_meldung"                    # plan_ereignis {"tag", "anteil", "n"} – einmal je Tag an den Lead
+
+
+def _tag(utc):
+    return _t(utc).astimezone().date().isoformat()         # Ortszeit des PCs – so meint der Mensch „heute“
+
+
+def p_quote(con, pid, tage=7, jetzt=None, kosten=True):
+    """Fertige Aufgaben der letzten `tage` Tage: je Tag (Ortszeit) Anzahl, davon p, Anteil; dazu gesamt und – kosten=True –
+    Kosten p gegen interaktiv (Median, Summe, Anzahl mit Messwert; aus je_aufgabe, Lücken zählen nicht als 0)."""
+    import statistics
+    from . import arbeitspaket
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    seit = (jetzt - datetime.timedelta(days=tage)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    je_tag, usd = {}, {"p": [], "interaktiv": []}
+    warten = {k: {"vor_start": [], "nach_abgabe": []} for k in usd}
+    for r in con.execute("SELECT id, fertig_utc FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND fertig_utc >= ?"
+                         " ORDER BY fertig_utc", (pid, seit)).fetchall():
+        ist_p = arbeitspaket.lesen(con, r["id"])["art"] == "p"
+        d = je_tag.setdefault(_tag(r["fertig_utc"]), {"n": 0, "p": 0})
+        d["n"] += 1
+        d["p"] += ist_p
+        if kosten:
+            m = je_aufgabe(con, pid, r["id"], jetzt)
+            k = "p" if ist_p else "interaktiv"
+            if m and m["usd"] > 0:
+                usd[k].append(m["usd"])
+            for w in ("vor_start", "nach_abgabe"):                 # Wartezeiten aus den Ereignissen (zeiten())
+                if m and m["warten"].get(w):
+                    warten[k][w].append(m["warten"][w])
+    n, p = sum(d["n"] for d in je_tag.values()), sum(d["p"] for d in je_tag.values())
+    aus = {"tage": [{"tag": t, **d, "anteil": round(d["p"] / d["n"], 2)} for t, d in sorted(je_tag.items())],
+           "n": n, "p": p, "anteil": round(p / n, 2) if n else None, "ziel": ZIEL_P}
+    if kosten:
+        aus["kosten"] = {k: {"n": len(v), "median": round(statistics.median(v), 2) if v else None, "summe": round(sum(v), 2),
+                             **{f"{w}_median_s": round(statistics.median(x)) if x else None for w, x in warten[k].items()}}
+                         for k, v in usd.items()}
+    return aus
+
+
+def p_quote_melden(con, pid, jetzt=None):
+    """Einmal je Tag (Ortszeit): liegt der Anteil p der letzten 7 Tage unter ZIEL_P, eine Meldung an den Lead. Nur in Projekten
+    mit Arbeitsplätzen (ohne Platz kann kein p laufen) und mit mindestens einem fertigen Paket. Rückgabe: Text oder None."""
+    from . import platz
+    if not platz.einstellung(con, pid)[1]:
+        return None
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    heute = jetzt.astimezone().date().isoformat()
+    if con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND text LIKE ?",
+                   (pid, P_MELDUNG, f'{{"tag": "{heute}"%')).fetchone():
+        return None
+    q = p_quote(con, pid, jetzt=jetzt, kosten=False)
+    lead = kern.lead(con, pid)
+    if not q["n"] or q["anteil"] >= ZIEL_P or not lead:
+        return None
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=P_MELDUNG,
+                     text=json.dumps({"tag": heute, "anteil": q["anteil"], "n": q["n"]}, ensure_ascii=False))
+        kern._posten(con, pid, "AMW", lead, "meldung", f"Anteil p {round(q['anteil'] * 100)} % (Ziel ≥ {round(ZIEL_P * 100)} %)",
+                     f"In den letzten 7 Tagen liefen {q['p']} von {q['n']} fertigen Paketen als p. p ist die Vorgabe für S und"
+                     " M-mechanisch ohne Oberfläche; interaktiv nur mit Grund. Je Tag: "
+                     + ", ".join(f"{t['tag'][5:]} {t['p']}/{t['n']}" for t in q["tage"])
+                     + ". Kosten p gegen interaktiv: amw messung --p.")
+    return f"Anteil p {round(q['anteil'] * 100)} % – Meldung an {lead}"
+
+
+def p_quote_runde(con, jetzt=None):
+    """Vom Dienst je Aufsichtsrunde: alle Projekte; ein Projekt hält die anderen nie auf."""
+    aus = []
+    for (pid,) in con.execute("SELECT id FROM projekt").fetchall():
+        try:
+            t = p_quote_melden(con, pid, jetzt)
+        except Exception as x:                           # noqa: BLE001
+            t = f"Projekt {pid}: {type(x).__name__}: {x}"
+        if t:
+            aus.append(t)
+    return aus
+
+
 def dauer(s):
     """„2 h 05 min“, „12 min“, „40 s“."""
     s = int(s or 0)
