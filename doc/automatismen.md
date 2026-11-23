@@ -273,6 +273,13 @@ Ruhephase. Empfänger ist die Projekt-Einstellung `leerlauf_lead` (sonst der Lea
 einen Chat-Lead weckt die AMW nicht. Wartezeit: `leerlauf_lead_min` (1–1440, Vorgabe 10). Beides setzen Lead oder Mensch:
 `amw projekt einstellen leerlauf_lead=<Agent> leerlauf_lead_min=<min>`.
 
+**Warten auf einen Agenten (A1997):** Hat ein Agent nur noch Aufgaben, die auf einen anderen Agenten warten (keine in
+„läuft“, jede wartende hat offene Gründe, alle sind Agenten), prüft die Dienst-Runde je Grund: Kam seit `warten_agent_min`
+Minuten (5–1440, Vorgabe 60; gezählt ab dem Grund oder der letzten Nachricht des Erwarteten an den Wartenden) nichts, bekommt
+der Lead einmal „CC1 wartet seit … auf CC2 (A12) – Grund noch aktuell?“. Ist seit dem Grund eine Version live gegangen,
+kommt diese Meldung sofort, und der Wartende bekommt einen Weckruf mit der Version. Einmal je Funkstille bzw. je Grund und
+Version (Ereignis `warten_agent`); abgehakt wird nichts automatisch. Setzen: `amw projekt einstellen warten_agent_min=<min>`.
+
 ## Verteilen an freie Agenten (A1927, TH157)
 
 **Wozu:** Ein interaktiver Agent, der frei ist, soll ohne Umweg über den Lead die nächste passende Aufgabe nach dessen Plan
@@ -807,5 +814,6 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 | `amw projekt einstellen` | `abnahme_frist_min` | Zeitlimit je Abnahme in Prüfung C, 1–720 Minuten (Vorgabe 30) |
 | `amw projekt einstellen` | `sprachpruefung` | Sprach-Server in Prüfung C: `auto` (mit pyrightconfig.json), `pyright`, `aus` (Lead oder Mensch) |
 | `amw projekt einstellen` | `sperrmuster` | was Arbeiter in diesem Projekt nie ändern dürfen, zusätzlich zur festen Liste (Lead oder Mensch) |
+| `amw projekt einstellen` | `warten_agent_min` | Funkstille beim Warten auf einen anderen Agenten, dann Meldung an den Lead (5–1440 min, Vorgabe 60) |
 | Zahnrad › Projekt | `entwickler_name` | wie der Mensch in Meldungen heißt (Vorgabe „Entwickler“); gilt auch als Wartegrund |
 | Zahnrad › Dieser PC | `fernsitzung_prozess` | Programm einer Fernsitzung für den Schirm (leer = nicht prüfen) |

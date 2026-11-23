@@ -489,6 +489,12 @@ class Dienst:
                 log.info("Verteilen: %s", e)
         except Exception as e:
             log.warning("Verteilen: %s: %s", type(e).__name__, e)
+        try:                                                                 # A1997: Warten auf einen Agenten ohne Nachricht
+            from . import warten_agent
+            for e in warten_agent.runde(self.con):
+                log.info("Warten auf Agent: %s", e)
+        except Exception as e:
+            log.warning("Warten auf Agent: %s: %s", type(e).__name__, e)
         try:                                                                 # frei, obwohl Arbeit da ist
             for e in wartegrund.leerlauf(self.con):
                 log.info("Leerlauf: %s", e)
