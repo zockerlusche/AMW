@@ -2618,6 +2618,18 @@ def cmd_thema(a, con):
         themen.nur_mensch_setzen(con, pid, _von(a), a.name, an=a.aktion == "nur_mensch")
         print(f"{a.name}: " + ("gibt nur der Mensch frei" if a.aktion == "nur_mensch" else "Freigabe wieder nach thema_freigabe"))
         return
+    if a.aktion == "uebernehmen":                    # A1994: Konzept-Markdown halbautomatisch in Themen-Entwürfe
+        from . import konzept_uebernahme
+        datei = a.datei or a.name
+        if not datei:
+            raise kern.AmwFehler("amw thema uebernehmen --datei <konzept.md im Projektordner> [--ebene 2] [--anlegen]")
+        r = konzept_uebernahme.uebernehmen(con, pid, _von(a), datei, ebene=a.ebene, anlegen=a.anlegen)
+        print("\n".join(konzept_uebernahme.zeilen(r)))
+        if r["angelegt"]:
+            print(f"Bericht: D{r['bericht']} · Status: amw thema status – freigegeben ist nichts")
+        else:
+            print("Anlegen: derselbe Befehl mit --anlegen")
+        return 0 if r["bestanden"] else 1
     if a.aktion == "luecken":                        # A1947: was die AMW als Lücke zeigt
         l = themen.luecken(con, pid)
         print(f"Freigegebene Themen ohne Paket: {len(l['thema_ohne_paket'])}")
@@ -3587,16 +3599,23 @@ def parser():
                                    " nur_mensch TH12 (Pfleger, Lead, Mensch) | nicht_nur_mensch TH12 (nur der Mensch) |"
                                    " vermerk TH12 --nichts-zu-bauen --grund … [--aufheben] | luecken (Thema ohne Paket, Paket ohne Thema) |"
                                    " planen TH12 (Planer anstoßen, Lead/Co) | plan TH12 (Entwurf zeigen) | plan-ja TH12 [--datei geändert.json] (Lead) |"
-                                   " anhalten TH12 [--meilenstein N] (nicht begonnene Pakete eines geänderten Themas, Lead/Co)")
+                                   " anhalten TH12 [--meilenstein N] (nicht begonnene Pakete eines geänderten Themas, Lead/Co) |"
+                                   " uebernehmen --datei konzept.md [--ebene 2] [--anlegen] (Konzept-Markdown aus dem Projektordner"
+                                   " in Themen-Entwürfe, mit Zählprobe; ohne --anlegen nur Vorschau – Lead/Co)")
     x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "zeige", "neu", "einstellen", "pflegen", "bestaetigen",
                                                                   "dokument", "status", "freigeben", "zurueck", "markieren",
-                                                                  "entmarkieren", "nur_mensch", "nicht_nur_mensch", "vermerk", "luecken", "planen", "plan", "plan-ja", "anhalten"])
+                                                                  "entmarkieren", "nur_mensch", "nicht_nur_mensch", "vermerk", "luecken", "planen", "plan", "plan-ja", "anhalten",
+                                                                  "uebernehmen"])
+    x.add_argument("--ebene", type=int, choices=range(1, 7), metavar="1-6",
+                   help="uebernehmen: welche Überschriften-Ebene zu Themen wird (Vorgabe: die Gliederung unter dem Titel)")
+    x.add_argument("--anlegen", action="store_true", help="uebernehmen: wirklich anlegen (ohne: nur Vorschau, nichts geschrieben)")
     x.add_argument("--meilenstein", type=int, help="anhalten: nur in diesem Meilenstein (Nummer) – K8")
     x.add_argument("--nichts-zu-bauen", action="store_true", help="vermerk: das Thema braucht kein Paket (mit --grund) – A1947")
     x.add_argument("--aufheben", action="store_true", help="vermerk: den Vermerk „nichts zu bauen“ wieder aufheben")
     x.add_argument("--bestaetigen", action="store_true", help="vermerk: „nichts zu bauen“ bestätigen (Co-Entwickler oder Mensch) – K7")
     x.add_argument("--grund")
-    x.add_argument("--datei", help="plan-ja: geänderter Entwurf als JSON-Datei (gleiches Schema, wird neu geprüft) – A1940")
+    x.add_argument("--datei", help="plan-ja: geänderter Entwurf als JSON-Datei (gleiches Schema, wird neu geprüft) – A1940;"
+                                   " uebernehmen: die Konzept-Datei (.md) im Projektordner – A1994")
     x.add_argument("--notiz", help="zurueck: was soll anders werden (Pflicht)")
     x.add_argument("name", nargs="?", help="TH-Nummer oder Name (eindeutiger Anfang reicht)")
     x.add_argument("--pfleger")

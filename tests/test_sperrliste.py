@@ -35,6 +35,7 @@ EINGEORDNET_FREI = {
     "amw/themen.py": "Lead-Sperre für Design-Seiten",
     "amw/planansicht.py": "Freigabe-Regeln für Meilensteine und Pläne (Fach-Aktion wie planung.py, K1-Regel B2913) – keine Abschottung/Rechte",
     "amw/tore.py": "Tore abgeleitet, Abschlussbericht, Bestätigung „nichts zu bauen“ durch den Co (Fach-Regel TH154 wie planansicht.py) – keine Abschottung/Rechte",
+    "amw/konzept_uebernahme.py": "Lead/Co legen Themen-Entwürfe aus einem Konzept an (Fach-Regel wie themen.py, A1994) – keine Abschottung/Rechte",
     "amw/verlauf.py": "Absender Entwickler (Anzeige)",
     "amw/wartegrund.py": "Absender Entwickler in Wartegründen",
 }

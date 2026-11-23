@@ -13,7 +13,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
 | [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N [--kurz] ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ bereit N (Ergebnis steht, bei --fertig-wenn ja) ¦ abnehmen N [--zurueck --kommentar] ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] ¦ nachtrag N --titel … (Folgearbeit zu einer fertigen Aufgabe) |
 | [`paket`](#paket) | Arbeitspakete (Mischbetrieb): zeigen N ¦ zustand N <zustand> [--grund … --beleg …] ¦ liste [--zustand …] ¦ ergebnis N (--json - über stdin oder --status/--zusammenfassung/--frage/--frage-an/--grund/--hinweis; nur der zugeteilte Agent, Art agent/sitzung, Paket läuft) ¦ starten N (Lead/Mensch: ein startklares p-Paket jetzt starten – der Wächter entscheidet) ¦ mergeliste [--diff] (bereit zum Merge: diff --stat, Server-Code, Blick nötig) ¦ freigeben --alle ¦ freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch) ¦ buendeln --alle ¦ buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch) ¦ annehmen N --grund … (E4-Paket nach dem Lesen in die Merge-Liste; Lead, Mensch) ¦ holen [N] (interaktiv: nächste Aufgabe nehmen, Auftrag + Startwissen, Zweig/Arbeitsbaum) ¦ fertig N --sha … --punkte … (interaktiv: Tests-Hinweis, Prüfbitte, wartet auf den Prüfer) – Felder setzen: amw aufgabe neu¦aendern … --paket p … |
-| [`thema`](#thema) | Design-Dokument je Thema: liste [--suche] ¦ zeige TH12 ¦ neu "Name" [--pfleger X] [--stil] ¦ einstellen TH12 --pfleger X ¦ --stil ¦ pflegen TH12 --text-datei … ¦ bestaetigen TH12 ¦ dokument TH12 --dokument D5 [--loesen] ¦ status (ein Status je Thema) ¦ freigeben TH12 ¦ zurueck TH12 --notiz … ¦ markieren¦entmarkieren TH12 (nur der Mensch; bei thema_freigabe=co+lead gibt freigeben von Co und Lead je ein Ja, B2913) ¦ nur_mensch TH12 (Pfleger, Lead, Mensch) ¦ nicht_nur_mensch TH12 (nur der Mensch) ¦ vermerk TH12 --nichts-zu-bauen --grund … [--aufheben] ¦ luecken (Thema ohne Paket, Paket ohne Thema) ¦ planen TH12 (Planer anstoßen, Lead/Co) ¦ plan TH12 (Entwurf zeigen) ¦ plan-ja TH12 [--datei geändert.json] (Lead) ¦ anhalten TH12 [--meilenstein N] (nicht begonnene Pakete eines geänderten Themas, Lead/Co) |
+| [`thema`](#thema) | Design-Dokument je Thema: liste [--suche] ¦ zeige TH12 ¦ neu "Name" [--pfleger X] [--stil] ¦ einstellen TH12 --pfleger X ¦ --stil ¦ pflegen TH12 --text-datei … ¦ bestaetigen TH12 ¦ dokument TH12 --dokument D5 [--loesen] ¦ status (ein Status je Thema) ¦ freigeben TH12 ¦ zurueck TH12 --notiz … ¦ markieren¦entmarkieren TH12 (nur der Mensch; bei thema_freigabe=co+lead gibt freigeben von Co und Lead je ein Ja, B2913) ¦ nur_mensch TH12 (Pfleger, Lead, Mensch) ¦ nicht_nur_mensch TH12 (nur der Mensch) ¦ vermerk TH12 --nichts-zu-bauen --grund … [--aufheben] ¦ luecken (Thema ohne Paket, Paket ohne Thema) ¦ planen TH12 (Planer anstoßen, Lead/Co) ¦ plan TH12 (Entwurf zeigen) ¦ plan-ja TH12 [--datei geändert.json] (Lead) ¦ anhalten TH12 [--meilenstein N] (nicht begonnene Pakete eines geänderten Themas, Lead/Co) ¦ uebernehmen --datei konzept.md [--ebene 2] [--anlegen] (Konzept-Markdown aus dem Projektordner in Themen-Entwürfe, mit Zählprobe; ohne --anlegen nur Vorschau – Lead/Co) |
 | [`termin`](#termin) | Terminplaner: neu --titel … --art test¦frist¦schirm¦sonstig --am "2026-11-06 18:00" [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] ¦ liste [--tage 21] ¦ aendern N ¦ absagen N [--am …] ¦ bereit N --text "was testen" ¦ kurzliste N (Planen: Lead/Entwickler) |
 | [`liste`](#liste) | Arbeitsliste je Agent: liste [Agent¦pool] ¦ ordnen <Agent> A12 A15 … --grund … ¦ schieben A15 --vor A12 ¦ --nach ¦ --pos N ¦ --oben ¦ --unten [--grund …] (ordnen/schieben: Lead; die Reihenfolge rechnet sonst die AMW) |
 | [`frage`](#frage) | Fragen an den Entwickler oder Lead: neu ¦ liste [--geparkt] ¦ antworten ¦ nachtrag ¦ verlauf ¦ parken N [--grund] ¦ aufnehmen N ¦ weiterleiten N [--text] (Lead → Entwickler) |
@@ -468,21 +468,26 @@ options:
 
 ## thema
 ```
-usage: amw thema [-h] [--meilenstein MEILENSTEIN] [--nichts-zu-bauen]
-                 [--aufheben] [--bestaetigen] [--grund GRUND] [--datei DATEI]
-                 [--notiz NOTIZ] [--pfleger PFLEGER] [--stil] [--kein-stil]
-                 [--text TEXT] [--text-datei TEXT_DATEI] [--dokument DOKUMENT]
-                 [--loesen] [--suche SUCHE] [--grenze GRENZE] [--von VON]
+usage: amw thema [-h] [--ebene 1-6] [--anlegen] [--meilenstein MEILENSTEIN]
+                 [--nichts-zu-bauen] [--aufheben] [--bestaetigen]
+                 [--grund GRUND] [--datei DATEI] [--notiz NOTIZ]
+                 [--pfleger PFLEGER] [--stil] [--kein-stil] [--text TEXT]
+                 [--text-datei TEXT_DATEI] [--dokument DOKUMENT] [--loesen]
+                 [--suche SUCHE] [--grenze GRENZE] [--von VON]
                  [--projekt PROJEKT]
-                 [{liste,zeige,neu,einstellen,pflegen,bestaetigen,dokument,status,freigeben,zurueck,markieren,entmarkieren,nur_mensch,nicht_nur_mensch,vermerk,luecken,planen,plan,plan-ja,anhalten}]
+                 [{liste,zeige,neu,einstellen,pflegen,bestaetigen,dokument,status,freigeben,zurueck,markieren,entmarkieren,nur_mensch,nicht_nur_mensch,vermerk,luecken,planen,plan,plan-ja,anhalten,uebernehmen}]
                  [name]
 
 positional arguments:
-  {liste,zeige,neu,einstellen,pflegen,bestaetigen,dokument,status,freigeben,zurueck,markieren,entmarkieren,nur_mensch,nicht_nur_mensch,vermerk,luecken,planen,plan,plan-ja,anhalten}
+  {liste,zeige,neu,einstellen,pflegen,bestaetigen,dokument,status,freigeben,zurueck,markieren,entmarkieren,nur_mensch,nicht_nur_mensch,vermerk,luecken,planen,plan,plan-ja,anhalten,uebernehmen}
   name                  TH-Nummer oder Name (eindeutiger Anfang reicht)
 
 options:
   -h, --help            show this help message and exit
+  --ebene 1-6           uebernehmen: welche Überschriften-Ebene zu Themen wird
+                        (Vorgabe: die Gliederung unter dem Titel)
+  --anlegen             uebernehmen: wirklich anlegen (ohne: nur Vorschau,
+                        nichts geschrieben)
   --meilenstein MEILENSTEIN
                         anhalten: nur in diesem Meilenstein (Nummer) – K8
   --nichts-zu-bauen     vermerk: das Thema braucht kein Paket (mit --grund) –
@@ -492,7 +497,8 @@ options:
                         oder Mensch) – K7
   --grund GRUND
   --datei DATEI         plan-ja: geänderter Entwurf als JSON-Datei (gleiches
-                        Schema, wird neu geprüft) – A1940
+                        Schema, wird neu geprüft) – A1940; uebernehmen: die
+                        Konzept-Datei (.md) im Projektordner – A1994
   --notiz NOTIZ         zurueck: was soll anders werden (Pflicht)
   --pfleger PFLEGER
   --stil                dieses Thema ist der Projekt-Stil (es gibt höchstens
