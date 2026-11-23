@@ -10,15 +10,18 @@ kopfzeilen(false);
 header('Content-Type: application/json; charset=utf-8');
 
 /* Projekt der Anfrage (→ doc/plan-projektwahl.md): Kennung aus dem Verzeichnis, ohne Angabe das erste. Ansichten liegen
- * unter „<Kennung>:<Weg>“; solange der PC noch ohne Kennungen hochlädt (vor 1.19.0), gelten die alten Schlüssel. */
+ * unter „<Kennung>:<Weg>“. A1998: kein Rückfall auf die alten Schlüssel ohne Kennung (vor 1.19.0) – sonst zeigte ein neues
+ * Projekt vor seinem ersten Abgleich Daten eines anderen. Nur ein Speicher ganz ohne Verzeichnis (vor 1.19.0) liest sie noch. */
 $projekt = '';
 $verzeichnis = [];
 function ansicht_zeile(string $weg): ?array {
     global $projekt;
     $z = sql([['SELECT inhalt, stand_utc FROM ansicht WHERE weg = ?', [$projekt === '' ? $weg : "$projekt:$weg"]]])[0];
-    if (!$z && $projekt !== '') $z = sql([['SELECT inhalt, stand_utc FROM ansicht WHERE weg = ?', [$weg]]])[0];
     return $z ? $z[0] : null;
 }
+
+/* A1998: fehlt die Ansicht dieses Projekts, ein klarer leerer Zustand (die Seite zeigt ihn übersetzt, Schlüssel „leer“). */
+const KEIN_ABGLEICH = ['fehler' => 'Noch kein Abgleich von diesem Rechner.', 'leer' => 'kein_abgleich'];
 
 function antwort(int $code, $daten): never {
     http_response_code($code);
@@ -254,7 +257,7 @@ try {
         $ab = (string)($q['ab'] ?? '');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $ab)) antwort(400, ['fehler' => 'ab']);
         $z = ansicht_zeile('/api/seit');
-        if (!$z) antwort(404, ['fehler' => 'Noch keine Daten vom PC.']);
+        if (!$z) antwort(404, KEIN_ABGLEICH);
         $d = json_decode($z[0], true);
         $aus = array_fill_keys(['an_dich', 'erledigt', 'laeufe', 'gruen', 'rot', 'fragen_neu', 'beschluesse', 'boegen_fertig'], 0);
         foreach ($d['ereignisse'] as [$zeit, $art]) {
@@ -306,7 +309,7 @@ try {
     $offen = briefkasten_wirkt($projekt, $zeile[1] ?? null);   // was der Mensch getan hat und diese Ansicht noch nicht zeigt
     register_shutdown_function('dateien_nachholen', $neu);
     if (!$zeile && $pfad === '/api/dokument') antwort(404, ['fehler' => 'Dieses Dokument gibt es online (noch) nicht.']);
-    if (!$zeile) antwort(404, ['fehler' => 'Noch keine Daten vom PC – läuft der AMW-Dienst mit Abgleich?']);
+    if (!$zeile) antwort(404, KEIN_ABGLEICH);
     $d = json_decode($zeile[0], true);
     $unterwegs = array_column($offen, 0);
 

@@ -150,6 +150,37 @@ class GanzerWeg(unittest.TestCase):
         self.assertIn("gibt es schon", st[doppelt["eingang"]]["fehler"])
 
 
+    def test_a1998_kein_rueckfall_auf_ansichten_ohne_kennung(self):
+        """A1998 (D1430 Lücke 1): Ein Projekt ohne eigene Ansicht (vor seinem ersten Abgleich) zeigt nie die alten Ansichten
+        ohne Projekt-Kennung (vor 1.19.0) oder Daten eines anderen Projekts – sondern den leeren Zustand „kein_abgleich“."""
+        import urllib.error
+        alt = {"zaehler": {"nachrichten": 99}, "geheim": "ALTE-DATEN-AUS-PROJEKT-A"}
+        jetzt = "2026-11-23T10:00:00Z"
+        self.sp.ausfuehren([
+            ("INSERT INTO ansicht (weg, inhalt, pruef, stand_utc) VALUES (?, ?, 'x', ?)", [w, json.dumps(alt), jetzt])
+            for w in ("/api/start", "/api/seit", "/api/aufgaben", "/intern/dateien")] + [
+            ("INSERT INTO projekt (uid, name, farbe, rechner, gesehen_utc, fragen, agenten, halt) VALUES (?, ?, NULL, 'anderer', ?, 0, 0, 0)",
+             ["uid-neu-b", "B", jetzt])])
+
+        def fehler(weg):
+            try:
+                self.op.open(self.basis + "api.php?weg=" + weg)
+            except urllib.error.HTTPError as e:
+                return e.code, json.loads(e.read().decode())
+            self.fail(f"{weg}: Antwort statt 404")
+
+        for weg in ("/api/start", "/api/aufgaben", "/api/seit?ab=2026-11-01T00:00:00Z"):
+            code, d = fehler(weg + "&projekt=uid-neu-b")
+            self.assertEqual((code, d.get("leer")), (404, "kein_abgleich"), weg)
+            self.assertEqual(d["fehler"], "Noch kein Abgleich von diesem Rechner.")
+            self.assertNotIn("ALTE-DATEN", json.dumps(d))
+        code, d = fehler("/api/dokument/datei?id=1&v=1&projekt=uid-neu-b")         # Dateien-Karte: nur die eigene
+        self.assertEqual((code, d["fehler"]), (404, "Diese Datei liegt nur am PC."))
+        uid_p = self.con.execute("SELECT uid FROM projekt WHERE id = ?", (self.pid,)).fetchone()[0]
+        d = self.hole("/api/start&projekt=" + uid_p)                     # das abgeglichene Projekt zeigt seine eigene Ansicht
+        self.assertNotIn("ALTE-DATEN", json.dumps(d))
+        self.assertNotEqual(d["zaehler"].get("nachrichten"), 99)
+
     def test_nachrichten_nur_das_gewaehlte_projekt(self):
         """Seite „Nachrichten“ online: nur das oben gewählte Projekt (Marcel 13.11., B2691) – ‚alle=1‘ legt nichts mehr
         zusammen, das Menü zählt nur dieses Projekt; Geschriebenes im Briefkasten steht beim richtigen Projekt."""
