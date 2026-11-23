@@ -193,27 +193,28 @@ class Arbeiter(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "nt", "Job-Objekt nur unter Windows")
     def test_notbremse_in_der_startluecke(self):
-        """A1984 (L3119): Job schon angelegt, Arbeiter noch nicht drin – die Notbremse wartet auf ihn statt einen leeren Job zu
-        beenden; war schon einer drin und ist fertig, wartet sie nicht."""
-        import ctypes
-        from ctypes import wintypes
+        """A1984/A1987 (L3119): die Notbremse fällt zwischen Job-Anlage und Start – laufen() startet den angehaltenen Arbeiter
+        nicht, sondern beendet ihn; die Notbremse kehrt sofort zurück. Nach dem nächsten vorbereiten läuft der Platz wieder."""
         from amw import abnahme
-        job = abnahme._job_neu(arbeiter.job_name(self.p))
-        self.addCleanup(arbeiter._kernel().CloseHandle, job)
-        aus = {}
-        t = threading.Thread(target=lambda: aus.update(lief=arbeiter.notbremse(self.p)))
-        t.start()
-        time.sleep(1.5)                                                                          # die Lücke, wie unter Last
-        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"], creationflags=0x4 | 0x08000000)
-        self.addCleanup(proc.kill)
-        self.assertTrue(abnahme._in_job(job, int(proc._handle)))
-        ctypes.WinDLL("ntdll").NtResumeProcess(wintypes.HANDLE(int(proc._handle)))
-        t.join(30)
-        self.assertTrue(aus.get("lief"))
-        self.assertIsNotNone(proc.wait(10))                                                      # beendet, nicht weitergelaufen
-        t0 = time.monotonic()
-        arbeiter.notbremse(self.p)                                                               # jetzt leer, aber schon benutzt
-        self.assertLess(time.monotonic() - t0, 5)
+        echt, gesehen = abnahme._in_job, {}
+
+        def mit_bremse(job, handle):                     # genau in der Lücke: Prozess im Job, aber noch angehalten
+            ok = echt(job, handle)
+            gesehen["pid"] = __import__("ctypes").windll.kernel32.GetProcessId(handle)
+            t0 = time.monotonic()
+            arbeiter.notbremse(self.p)
+            gesehen["dauer"] = time.monotonic() - t0
+            return ok
+        with mock.patch.dict(os.environ, {"ATTRAPPE_ART": "haengt"}), mock.patch.object(abnahme, "_in_job", mit_bremse):
+            r = self.laufen()
+        self.assertEqual(r["fehler"], "Notbremse gezogen – nicht gestartet")
+        self.assertLess(gesehen["dauer"], 5)                                                     # kein Warten mehr (A1984: bis 20 s)
+        self.assertFalse(lebt(str(gesehen["pid"])))
+        self.assertTrue(arbeiter.gebremst(self.p))
+        time.sleep(0.05)
+        arbeiter.stempel(self.p, "vorbereitet")                                                   # wie platz.vorbereiten
+        self.assertFalse(arbeiter.gebremst(self.p))
+        self.assertEqual(self.laufen()["rc"], 0)                                                 # nächstes Paket läuft
 
     def test_laufende_beendet_zurueckgelassene_kinder(self):
         """D1258 v9 §6a 3.1: endet der Arbeiter normal, aber ein Kindprozess läuft weiter, beendet die AMW ihn mit dem Job."""

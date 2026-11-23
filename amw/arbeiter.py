@@ -314,23 +314,41 @@ def buchung(job):
     return (b.TotalProcesses, b.ActiveProcesses) if ok else (-1, -1)
 
 
-NOCH_NICHT_IM_JOB_S = 20   # A1984: so lange wartet die Notbremse auf einen Arbeiter, der gerade erst startet
+def gebremst_pfad(p, art="gebremst"):
+    """A1987: Marke „gebremst“ je Platz – neben den Platz-Ordnern, nicht im Klon und nicht in den Daten (der Arbeiter erreicht sie
+    nicht). Die Notbremse setzt sie; platz.vorbereiten (nächstes Paket) setzt den Stempel „vorbereitet“ – gebremst ist der Platz,
+    solange die Marke neuer ist als der Stempel (nichts wird gelöscht)."""
+    return os.path.join(os.path.dirname(os.path.abspath(p["klon"])), f"platz{p['nr']}.{art}")
+
+
+def stempel(p, art):
+    os.makedirs(os.path.dirname(gebremst_pfad(p, art)), exist_ok=True)
+    with open(gebremst_pfad(p, art), "w", encoding="utf-8", newline="\n") as f:
+        f.write(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + "\n")
+
+
+def gebremst(p):
+    def zeit(art):
+        try:
+            return os.stat(gebremst_pfad(p, art)).st_mtime_ns
+        except OSError:
+            return None
+    b = zeit("gebremst")
+    return b is not None and b > (zeit("vorbereitet") or 0)
 
 
 def notbremse(p):
-    """Beendet den Arbeiter des Platzes samt aller Kindprozesse (TerminateJobObject über den Namen). True = es lief einer."""
+    """Beendet den Arbeiter des Platzes samt aller Kindprozesse (TerminateJobObject über den Namen). True = es lief einer.
+    A1987: setzt zuerst die Marke „gebremst“ – ein Arbeiter in der Startlücke (Job schon da, Prozess noch nicht gestartet) wird
+    von laufen() vor dem Start beendet; darum muss die Notbremse nicht mehr auf ihn warten (vorher bis 20 s, A1984)."""
     if os.name != "nt":
         raise ArbeiterFehler("Notbremse gibt es nur unter Windows (Job-Objekt)")
+    stempel(p, "gebremst")
     k = _kernel()
     job = k.OpenJobObjectW(0x0008 | 0x0004, False, job_name(p))          # JOB_OBJECT_TERMINATE | QUERY
     if not job:
         return False
     try:
-        # A1984 (L3119): der Starter legt den Job an, BEVOR er den Arbeiter hineinnimmt – eine Notbremse in dieser Lücke beendete
-        # einen leeren Job, der Arbeiter kam danach hinein und lief weiter. War noch nie ein Prozess drin: kurz auf ihn warten.
-        frist = time.monotonic() + NOCH_NICHT_IM_JOB_S
-        while buchung(job)[0] == 0 and time.monotonic() < frist:
-            time.sleep(0.1)
         ok = bool(k.TerminateJobObject(job, 1))
         for _ in range(50):                                    # Rückmeldung: ist wirklich nichts mehr übrig? (Nr. 20)
             if aktive(job) == 0:
@@ -455,6 +473,11 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
             proc.communicate()
             return {"rc": None, "abweichungen": [], "init": None, "ergebnis": None, "sitzung": None, "protokoll": protokoll,
                     "dauer_s": round(time.monotonic() - t0, 1), "fehler": "Prozess ließ sich nicht ins Job-Objekt nehmen – nicht gestartet"}
+        if gebremst(p):                                        # A1987: Notbremse in der Startlücke – nicht starten, beenden
+            proc.kill()                                        # (erst NACH dem Aufnehmen in den Job prüfen: kommt die Bremse
+            proc.communicate()                                 # später, trifft TerminateJobObject den Prozess schon im Job)
+            return {"rc": None, "abweichungen": [], "init": None, "ergebnis": None, "sitzung": None, "protokoll": protokoll,
+                    "dauer_s": round(time.monotonic() - t0, 1), "fehler": "Notbremse gezogen – nicht gestartet"}
         ctypes.WinDLL("ntdll").NtResumeProcess(wintypes.HANDLE(int(proc._handle)))
         try:
             proc.stdin.write(auftrag.encode("utf-8"))
