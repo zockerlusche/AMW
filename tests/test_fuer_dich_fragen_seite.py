@@ -37,6 +37,10 @@ class FuerDichFragen(Rundgang):
         self.assertIn(str(self.f2), zeilen)
         self.assertIn("blockiert", text)
         self.assertIn("seit 5 h", text)
+        self.assertIn("neu", text)                                                                 # unter 1 min (nicht „seit 0 h“)
+        self.assertNotIn("seit 0", text)
+        self.assertFalse(self.tab.js("!!document.querySelector('#ue-fuer_dich h3 .ue-zahl')"))     # F5370: Kopf ohne Zählung
+        self.assertEqual(self.tab.js("t('uk_seit_t', {n: 2})"), "seit 2 T")
         self.assertNotIn("hängt", text)
         self.tab.js(f"{self.GRUPPE}.querySelector('.ue-zeile').click()")
         self.warten("zustand.sicht === 'fragen'")                                                  # Details auf Klick

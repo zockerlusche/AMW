@@ -348,7 +348,7 @@ def daten_start(con, pid):
         "SELECT f.id, f.kurz, f.von, f.zeit_utc, f.blockiert, (SELECT count(*) FROM frage_verlauf v JOIN empfang e"
         "   ON e.nachricht_id = v.nachricht_id AND e.agent = :e AND e.status = 'offen' WHERE v.frage_id = f.id) AS nachtraege"
         " FROM frage f WHERE f.projekt_id = :p AND f.an = 'entwickler' AND f.status = 'offen' AND f.geparkt_utc IS NULL"
-        " ORDER BY f.blockiert DESC, f.id DESC LIMIT 20", {"p": pid, "e": kern.ENTWICKLER}))
+        " ORDER BY f.blockiert DESC, f.id ASC LIMIT 20", {"p": pid, "e": kern.ENTWICKLER}))   # A1990: älteste zuerst (fehlen sonst)
     from . import fragentopf                # A1990 (K10): blockiert auch, wenn ein Agent an ihr hängt und sonst nichts hat
     for f in fragen:
         f["blockiert"] = 1 if f["blockiert"] or fragentopf.blockiert(con, pid, f["id"]) else 0
