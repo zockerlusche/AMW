@@ -133,7 +133,8 @@ def ist_lead(con, pid, kennung):
 
 
 def _entfernt_hinweis(kennung):
-    return f"{kennung} ist entfernt – erst wieder aufnehmen: amw agent wiederaufnehmen {kennung} --von Entwickler (nur der Mensch)"
+    return (f"{kennung} ist entfernt – erst wieder aufnehmen: amw agent wiederaufnehmen {kennung} --von Entwickler"
+            " (oder der Lead auf ein frisches Wort: --wort W<nr>)")
 
 
 def co_entwickler(con, pid):
@@ -747,8 +748,9 @@ def agent_wiederaufnehmen(con, pid, von, kennung, wort=None):
     a = agent_zeile(con, pid, kennung)
     if not a["entfernt_utc"]:
         raise AmwFehler(f"{a['kennung']} ist nicht entfernt")
-    with db.schreiben(con):
-        con.execute("UPDATE agent SET entfernt_utc = NULL WHERE id = ?", (a["id"],))
+    with db.schreiben(con):                          # A2003: nie ein zweiter Lead – die Führung gibt nur agent lead
+        con.execute("UPDATE agent SET entfernt_utc = NULL, rolle = CASE WHEN rolle = 'lead' THEN NULL ELSE rolle END WHERE id = ?",
+                    (a["id"],))
         if w:
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="wiederaufnahme_auf_wort",
                          text=f"{a['kennung']} wieder aufgenommen · W{w['id']}")

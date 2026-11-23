@@ -185,6 +185,22 @@ class AgentBefehl(unittest.TestCase):
         with self.assertRaisesRegex(kern.AmwFehler, "älter als 24 Stunden – für einen Lead-Wechsel"):
             kern.lead_wechsel(self.con, self.pid, "PL", "CC1", grund="x", wort=f"W{self.wort(stunden=30)}")
 
+    def test_a2003_hinweis_nennt_den_lead_mit_wort(self):
+        kern.agent_entfernen(self.con, self.pid, kern.ENTWICKLER, "CC1")
+        with self.assertRaisesRegex(kern.AmwFehler, r"oder der Lead auf ein frisches Wort: --wort W<nr>"):
+            kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, co_entwickler="CC1")
+
+    def test_a2003_wiederaufnehmen_weckt_keinen_zweiten_lead(self):
+        """Altbestand vor A2000: ein entfernter Agent mit Rolle lead – beim Wiederaufnehmen verliert er die Rolle."""
+        kern.lead_wechsel(self.con, self.pid, kern.ENTWICKLER, "PL", grund="x")
+        self.alt_entfernt("CC1")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE agent SET rolle = 'lead' WHERE projekt_id = ? AND kennung = 'CC1'", (self.pid,))
+        kern.agent_wiederaufnehmen(self.con, self.pid, kern.ENTWICKLER, "CC1")
+        self.assertEqual([r[0] for r in self.con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead'",
+                                                         (self.pid,))], ["PL"])
+        self.assertFalse(kern.ist_lead(self.con, self.pid, "CC1"))
+
 
 if __name__ == "__main__":
     unittest.main()
