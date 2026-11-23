@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.175.0 – 23.11.2026 · Nur der Lead fragt dich
+- **Verbessert:** Dich fragt nur noch der Lead: Fragen der Agenten gehen an ihn, er stellt sie dir – auch gebündelt.
+
 ## 1.174.1 – 23.11.2026 · Team zeigt den Co-Entwickler richtig
 - **Behoben:** Der Co-Entwickler heißt in der Workbench „Co-Entwickler“, und das Team zeigt bei ihm keine fremde Aufgabe mehr.
 
