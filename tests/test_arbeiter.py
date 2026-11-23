@@ -37,6 +37,15 @@ def lebt(pid):
         k.CloseHandle(h)
 
 
+def beendet(pid, sekunden=10):
+    """A2016: Ist der Prozess binnen der Frist weg? Beenden unter Windows ist asynchron (TerminateProcess kehrt sofort zurück) –
+    unter Last lebte ein beendetes Kind nach festen 0,5 s noch (L3199). Kehrt zurück, sobald er weg ist."""
+    ende = time.time() + sekunden
+    while lebt(pid) and time.time() < ende:
+        time.sleep(0.1)
+    return not lebt(pid)
+
+
 @unittest.skipUnless(os.name == "nt", "Job-Objekt nur unter Windows")
 class Arbeiter(unittest.TestCase):
     def setUp(self):
@@ -185,9 +194,8 @@ class Arbeiter(unittest.TestCase):
             self.assertTrue(arbeiter.notbremse(self.p))
             t.join(30)
             self.assertFalse(t.is_alive())
-        time.sleep(0.5)
-        self.assertFalse(lebt(eltern))
-        self.assertFalse(lebt(kind))                                                       # keine Waisen
+        self.assertTrue(beendet(eltern))
+        self.assertTrue(beendet(kind))                                                       # keine Waisen
         self.assertNotEqual(ergebnis["rc"], 0)
         self.assertFalse(arbeiter.notbremse(self.p))                                       # nichts mehr da
 
@@ -209,7 +217,7 @@ class Arbeiter(unittest.TestCase):
             r = self.laufen()
         self.assertEqual(r["fehler"], "Notbremse gezogen – nicht gestartet")
         self.assertLess(gesehen["dauer"], 5)                                                     # kein Warten mehr (A1984: bis 20 s)
-        self.assertFalse(lebt(str(gesehen["pid"])))
+        self.assertTrue(beendet(str(gesehen["pid"])))
         self.assertTrue(arbeiter.gebremst(self.p, 0))
         time.sleep(0.05)
         self.assertFalse(arbeiter.gebremst(self.p, time.time_ns()))                              # ältere Bremse zählt nicht
@@ -223,8 +231,7 @@ class Arbeiter(unittest.TestCase):
             eltern, kind = f.read().split()
         self.assertEqual((r["rc"], r["abweichungen"]), (0, []))
         self.assertEqual(r["ergebnis"]["subtype"], "success")
-        time.sleep(0.3)
-        self.assertFalse(lebt(kind))
+        self.assertTrue(beendet(kind))
 
     def test_enkel_haelt_pipe_offen(self):
         """P260: hält ein Enkelprozess die Ausgabe-Pipe offen, endet der Lauf trotzdem (kurz nach claude) und der Enkel ist weg."""
@@ -237,17 +244,15 @@ class Arbeiter(unittest.TestCase):
         with open(os.environ["ATTRAPPE_PID"]) as f:
             eltern, enkel = f.read().split()
         self.assertEqual(ergebnis["ergebnis"]["subtype"], "success")
-        time.sleep(0.3)
-        self.assertFalse(lebt(enkel))
+        self.assertTrue(beendet(enkel))
 
     def test_abweichung_beendet_auch_kinder(self):
         with mock.patch.dict(os.environ, {"ATTRAPPE_ART": "abweichung_kind"}):
             r = self.laufen()
         with open(os.environ["ATTRAPPE_PID"]) as f:
             eltern, kind = f.read().split()
-        time.sleep(0.5)
         self.assertTrue(r["abweichungen"])
-        self.assertFalse(lebt(kind))
+        self.assertTrue(beendet(kind))
 
     def test_notbremse_befehl_nur_mensch_mit_protokoll(self):
         """Notbremse über die Befehlszeile: nur der Mensch; Übergabe-Notiz + Protokoll in der AMW, Meldung an den Lead. Ohne
@@ -282,8 +287,7 @@ class Arbeiter(unittest.TestCase):
                 cli.cmd_platz(cli.parser().parse_args(["platz", "notbremse", "1", "--aufgabe", "7", "--projekt", "Spiel",
                                                        "--von", "Entwickler"]), con)
             t.join(30)
-            time.sleep(0.5)
-            self.assertFalse(lebt(kind))
+            self.assertTrue(beendet(kind))
             self.assertIn("Arbeiter samt Kindprozessen beendet", aus.getvalue())
             e = con.execute("SELECT text, aufgabe_id FROM plan_ereignis WHERE art = 'notbremse'").fetchone()
             self.assertEqual(e["aufgabe_id"], 7)
