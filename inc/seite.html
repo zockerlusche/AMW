@@ -2581,6 +2581,7 @@ function uebersichtKarten(d) {
   const u = d.uebersicht || {}, pw = d.planung_wartet || { spezifikationen: [], plaene: [], eigene: [] };
   const kurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : (x || "");
   /* Für dich */
+  const fragenN = Math.max(d.fragen_anzahl ?? 0, (d.fragen || []).length);   /* A1993: alle offenen (geladen sind höchstens 20) */
   const fragen = [...(d.fragen || [])].sort((a, b) => (b.blockiert ? 1 : 0) - (a.blockiert ? 1 : 0) || String(a.zeit_utc).localeCompare(String(b.zeit_utc)));
   const seit = z => { const m = Math.max(0, Math.floor((Date.now() - Date.parse(z)) / 60000));    /* A1990: neu · min · h · Tage */
     return m < 1 ? t("uk_seit_neu") : m < 60 ? t("uk_seit_min", { n: m }) : m < 1440 ? t("uk_seit_h", { n: Math.floor(m / 60) }) : t("uk_seit_t", { n: Math.floor(m / 1440) }); };
@@ -2588,7 +2589,7 @@ function uebersichtKarten(d) {
     el("span", { class: "ref" }, `F${f.id}`), el("span", { class: "ue-text" }, kurz(f.kurz, 150)),
     f.blockiert ? el("span", { class: "etikett bernstein" }, t("blockiert")) : el("span", { class: "ue-frage-zeit" }, seit(f.zeit_utc)));
   const fragenGruppe = fragen.length ? el("div", { class: "ue-gruppe", id: "ue-fragen" },     /* A1990: eine Gruppe, je Frage eine Zeile */
-    el("h4", {}, t("uk_fragen_gruppe"), el("b", {}, String(fragen.length))), fragen.slice(0, 6).map(frageZeile)) : null;
+    el("h4", {}, t("uk_fragen_gruppe"), el("b", {}, String(fragenN))), fragen.slice(0, 6).map(frageZeile)) : null;
   const dran = [
     ...pw.spezifikationen.map(x => ueZeile(bogenRef(x.bogen_id), t("pl_spec_frei", { b: x.bogen_id, x: x.titel, teil: t("teil_" + x.teil), v: x.version }),
       t("uk_ansehen"), () => { zustand.planReiter = "zeitleiste"; zeige("planung"); })),
@@ -2606,7 +2607,7 @@ function uebersichtKarten(d) {
   const fuer = ueKarte("uk_fuer_dich", anzahl,
     fragenGruppe,
     dran.length ? el("div", { class: "ue-liste" }, dran) : fragenGruppe ? null : el("p", { class: "ue-leer" }, t("nichts_offen")),
-    fragen.length > 6 ? el("a", { class: "verweis ue-mehr", onclick: () => zeige("fragen") }, t("uk_mehr_fragen", { n: fragen.length - 6 })) : null,
+    fragenN > 6 ? el("a", { class: "verweis ue-mehr", onclick: () => zeige("fragen") }, t("uk_mehr_fragen", { n: fragenN - 6 })) : null,
     frisch.length || aelterIds.length ? el("div", { class: "ue-fuss" },
       frisch.length ? el("a", { class: "verweis nr-start", onclick: zuNachrichten }, t(frisch.length === 1 ? "uk_nachricht1" : "uk_nachrichten", { n: frisch.length })) : null,
       aelterIds.length ? el("span", { class: "sehrleise", title: t("an_dich_alt_h") }, t("an_dich_alt", { n: aelterIds.length })) : null,
