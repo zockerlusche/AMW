@@ -27,7 +27,8 @@ class Ableitung(unittest.TestCase):
         self.eigen = kern.aufgabe_neu(self.con, self.pid, "Lead", "Konzept Navigation", agent="TL")
 
     def test_nachricht_ueber_fremde_aufgabe_ist_nicht_seine_arbeit(self):
-        kern.posten(self.con, self.pid, "TL", "Lead", "info", f"A{self.fremd} freigegeben – Marcel hat Ja gesagt")
+        kern.posten(self.con, self.pid, "TL", "Lead", "info", f"A{self.fremd} freigegeben – Marcel hat Ja gesagt",   # wie --bezug
+                    aufgabe_id=self.fremd)
         self.assertIsNone(gerade.ableiten(self.con, self.pid, "TL"))                           # vorher: „A… Lauf-Schlange …“
         kern.posten(self.con, self.pid, "TL", "Lead", "info", f"A{self.eigen}: Entwurf steht", aufgabe_id=self.eigen)
         g = gerade.ableiten(self.con, self.pid, "TL")
@@ -47,7 +48,7 @@ class TeamSeite(Rundgang):
         kern.agent_neu(self.con, self.pid, "Co", arbeitsweise="chat")
         kern.projekt_einstellen(self.con, self.pid, "TL", co_entwickler="Co")
         aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Lauf-Schlange mit Zeitfenster", agent="CC1")
-        kern.posten(self.con, self.pid, "Co", "TL", "info", f"A{aid} freigegeben")
+        kern.posten(self.con, self.pid, "Co", "TL", "info", f"A{aid} freigegeben", aufgabe_id=aid)
 
     NAME = "[...document.querySelectorAll('#team .tm-name')].map(e => e.textContent).join('|')"
 
