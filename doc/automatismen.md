@@ -692,6 +692,11 @@ die der Lead nur noch bestätigt oder ändert.
   mit dem Thema; `amw thema plan TH<n>` zeigt den Entwurf. Kein Anlegen ohne Ja. Jedes Paket bekommt dabei seine
   Fertig-Quelle (A1996): commit und release → `commit`, thema → `thema TH<n>` des Plans, ja und dokument → `ja`; frist → `ja`,
   bis jemand Tage und Version setzt (die stehen nicht im Plan) – dazu eine Meldung an den Lead mit den Paketen.
+- **Projekt-Schalter (A1999):** wie der Gegenleser nur bei eingeschaltetem Projekt – steht `amw projekt schalter` auf aus
+  oder probe, stößt weder die Freigabe noch die Dienst-Runde einen Planer an; `amw thema planen` antwortet „Projekt ist
+  ausgeschaltet – Planer läuft erst nach dem Einschalten“ (bzw. „Projekt steht auf Probe – …“). Ein Thema, das an der
+  Tagesgrenze wartete, wird dann nicht nachgeholt (Warten erledigt, „Projekt ausgeschaltet“); nach dem Einschalten stößt der
+  Lead mit `amw thema planen` an.
 - **Einstellung:** `themen_planer` = sonnet (Vorgabe) | aus – Lead oder Mensch. `planer_tagesgrenze_usd` (A1970, Vorgabe 5,
   0 = keine Grenze, Lead oder Mensch): haben die Planer-Läufe des Projekts heute (Ortszeit) so viel gekostet, startet keiner
   mehr – das Thema wartet (Ereignis `thema_planer_wartet`), der Lead bekommt einmal am Tag eine Meldung, und die Dienst-Runde

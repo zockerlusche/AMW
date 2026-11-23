@@ -269,6 +269,40 @@ class Anstossen(Grund):
         self.assertIn("angestoßen", planer.anstossen(self.con, self.pid, self.tid, 1, von="TL", erneut=True))   # auf Befehl doch
         self.assertIn("plant schon", planer.anstossen(self.con, self.pid, self.tid, 1, von="TL", erneut=True))
 
+    def schalter(self, wert):
+        from amw import schalter
+        with db.schreiben(self.con):
+            schalter._setzen(self.con, self.pid, wert)
+
+    def test_a1999_projekt_schalter_aus_oder_probe_kein_lauf(self):
+        """Wie der Gegenleser (A1926): nur bei eingeschaltetem Projekt; `amw thema planen` sagt, warum nicht."""
+        self.schalter("aus")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)                          # Freigabe stößt nicht an
+        for wert, text in (("aus", "Projekt ist ausgeschaltet"), ("probe", "Projekt steht auf Probe")):
+            self.schalter(wert)
+            self.assertIsNone(planer.anstossen(self.con, self.pid, self.tid, 1))
+            self.assertEqual(planer.anstossen(self.con, self.pid, self.tid, 1, von="TL", erneut=True),
+                             f"{text} – Planer läuft erst nach dem Einschalten")
+            self.assertEqual((self.gestartet, planer._angestossen(self.con, self.pid, self.tid)), ([], []), wert)
+        self.schalter("an")
+        self.assertIn("angestoßen", planer.anstossen(self.con, self.pid, self.tid, 1, von="TL", erneut=True) or "")
+        self.assertEqual(self.gestartet, [(self.tid, 1)])
+
+    def test_a1999_ausgeschaltet_nichts_nachholen(self):
+        """Wartete ein Thema an der Tagesgrenze und ist das Projekt inzwischen aus: Warten erledigt, auch nach dem Einschalten
+        kein Lauf von selbst."""
+        planer.entwurf_eintragen(self.con, self.pid, self.tid, 1, ERGEBNIS, modell="sonnet", usd=6.0)   # Grenze erreicht
+        zweites = themen.neu(self.con, self.pid, "TL", "Abmeldung", pfleger="CC1")
+        themen.pflegen(self.con, self.pid, "CC1", zweites, "Abmelden mit einem Klick.")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, zweites)
+        self.assertEqual(sorted(planer._wartet(self.con, self.pid)), [zweites])
+        self.schalter("aus")
+        with mock.patch.object(planer, "_tag", side_effect=lambda z=None: "2099-01-02" if z is None else "2099-01-01"):
+            self.assertEqual(planer.nachholen(self.con, self.pid), [f"TH{zweites}: Warten erledigt – Projekt ausgeschaltet"])
+            self.schalter("an")
+            self.assertEqual(planer.nachholen(self.con, self.pid), [])
+        self.assertEqual(self.gestartet, [])
+
     def test_starter_geht_nicht_meldet_dem_lead(self):
         with mock.patch.object(planer, "STARTER", side_effect=OSError("kein Python")):
             self.assertIn("ließ sich nicht starten", planer.anstossen(self.con, self.pid, self.tid, 1))

@@ -571,17 +571,20 @@ def _alle(con, pid, art):
 def nachholen(con, pid):
     """Dienst-Runde: Themen, deren Planer an einem früheren Tag an der Tagesgrenze wartete, jetzt anstoßen (die Grenze gilt
     wieder) – nur, wenn das Thema noch freigegeben ist, die wartende Fassung die freigegebene ist und kein „nichts zu bauen“
-    vermerkt ist; sonst ist das Warten erledigt (Ereignis, kommt nie wieder). Angestoßen wird wie nach der Freigabe (ohne
-    erneut): alle Prüfungen von anstossen gelten. Rückgabe: Texte."""
+    vermerkt ist; sonst ist das Warten erledigt (Ereignis, kommt nie wieder) – auch, wenn der Projekt-Schalter nicht auf „an“
+    steht (A1999: beim Einschalten wird nichts nachgeholt, der Lead stößt mit `amw thema planen` an). Angestoßen wird wie nach
+    der Freigabe (ohne erneut): alle Prüfungen von anstossen gelten. Rückgabe: Texte."""
     from . import themen
     heute = _tag()
     aus = []
+    ausgeschaltet = kern.projekt_schalter(con, pid) != "an"   # A1999: nichts nachholen – nach dem Einschalten stößt der Lead an
     for tid, w in sorted(_wartet(con, pid).items()):
         if w.get("tag") == heute or tid is None:
             continue
         t = con.execute("SELECT * FROM thema WHERE id = ? AND projekt_id = ?", (tid, pid)).fetchone()
         s = themen.status(con, t) if t else None
-        grund = ("Thema gibt es nicht mehr" if not t else "nichts zu bauen" if _nichts_vermerkt(con, pid, tid)
+        grund = ("Thema gibt es nicht mehr" if not t else "Projekt ausgeschaltet" if ausgeschaltet
+                 else "nichts zu bauen" if _nichts_vermerkt(con, pid, tid)
                  else "nicht mehr freigegeben" if s["status"] != "frei"
                  else f"freigegeben ist Fassung {s['freigegeben']}" if s["freigegeben"] != w.get("fassung") else None)
         if grund:
@@ -628,12 +631,23 @@ def _nichts_vermerkt(con, pid, tid):
     return bool(ev) and ev[-1].get("an", True)
 
 
+def schalter_text(con, pid):
+    """A1999: Steht der Projekt-Schalter nicht auf „an“, läuft kein Planer – Rückgabe: die Antwort für `amw thema planen`, sonst None."""
+    s = kern.projekt_schalter(con, pid)
+    if s == "an":
+        return None
+    return ("Projekt ist ausgeschaltet" if s == "aus" else "Projekt steht auf Probe") + " – Planer läuft erst nach dem Einschalten"
+
+
 def anstossen(con, pid, tid, fassung, von="AMW", erneut=False):
     """Nach der Freigabe (themen.freigeben/bearbeiten, eigene Transaktion) bzw. auf Befehl: einen Planer anstoßen – außer die
     Einstellung ist aus, das Thema hat „nichts zu bauen“, für diese Fassung gab es schon einen (ohne erneut) oder einer läuft.
     Rückgabe: Text oder None."""
     if os.environ.get("AMW_PLANER_AUS") or einstellung(con, pid) == "aus":
         return "Planer ist aus (themen_planer=aus)" if erneut else None
+    aus = schalter_text(con, pid)                         # A1999: wie der Gegenleser (A1926) – nur bei eingeschaltetem Projekt
+    if aus:
+        return aus if erneut else None
     modell = einstellung(con, pid)
     with db.schreiben(con):                               # in einer Schreib-Transaktion: nie doppelt angestoßen
         if laeuft(con, pid, tid):
