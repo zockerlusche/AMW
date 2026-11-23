@@ -396,7 +396,7 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
 
 
 def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
-    from . import arbeitspaket, planung, themen
+    from . import arbeitspaket, fertigquelle, planung, themen
     if entwurf["nichts_zu_bauen"]:
         with db.schreiben(con):
             con.execute("DELETE FROM plan_ereignis WHERE id = ?", (merke,))
@@ -413,6 +413,7 @@ def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
                                     abnahme=ENDET_MIT[m["endet_mit"]])
             bogen[m["schluessel"]] = bid
             angelegt[m["schluessel"]] = f"M{planung.bogen_zeile(con, pid, bid)['nr']}"
+    fristen = []
     for p in reihenfolge(entwurf):
         nach = [int(v[1:]) if v.startswith("A") else int(angelegt[v][1:]) for v in p["nach"]]
         aid = planung.schritt_setzen(con, pid, von, titel=p["titel"], auftrag=p["auftrag"], bogen_id=bogen[p["meilenstein"]],
@@ -421,12 +422,34 @@ def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
                   **({"effort": p["effort"]} if p["effort"] else {})}
         arbeitspaket.setzen(con, pid, von, aid, **felder)
         themen.verweise_setzen(con, pid, von, aid, [tid])
+        q = fertig_aus_plan(p["fertig_quelle"], tid)                # A1996 (K2): die Fertig-Quelle gehört ins Paket
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=fertigquelle.ART, aufgabe_id=aid,
+                         text=json.dumps(q, ensure_ascii=False))
+        if q.get("aus_plan") == "frist":
+            fristen.append(f"A{aid}")
         angelegt[p["schluessel"]] = f"A{aid}"
     with db.schreiben(con):
         con.execute("DELETE FROM plan_ereignis WHERE id = ?", (merke,))
         _ereignis(con, pid, von, JA, tid, entwurf=e["id"], angelegt=angelegt, geaendert=geaendert is not None,
-                  fertig_quellen={p["schluessel"]: p["fertig_quelle"] for p in entwurf["pakete"]})   # K2 übernimmt sie
+                  fertig_quellen={p["schluessel"]: p["fertig_quelle"] for p in entwurf["pakete"]})   # wie geplant (A1996: im Paket)
+        if fristen:                                  # A1996: „frist“ braucht Tage und Version – die stehen nicht im Plan
+            kern._posten(con, pid, "AMW", kern.lead(con, pid) or kern.ENTWICKLER, "meldung",
+                         f"TH{tid}: Fertig-Quelle „frist“ vorerst „ja“ – {', '.join(fristen)}"[:140],
+                         "Der Plan nennt für diese Pakete „frist“, aber keine Tage und keine Version. Bis jemand sie setzt, gilt"
+                         " „ja“ (Urteil): " + ", ".join(fristen) + "\nSetzen: amw aufgabe aendern <N> --fertig-wenn \"frist 7 nach <Version>\"")
     return angelegt
+
+
+def fertig_aus_plan(wert, tid):
+    """A1996 (K2): Fertig-Quelle des Plans → Fertig-Quelle des Pakets (fertigquelle.quelle_lesen-Form).
+    commit/release → commit (die Kette schließt beim Release); thema → das Thema des Plans; ja/dokument → ja (Urteil – eine
+    Quelle „dokument“ gibt es nicht); frist → ja, bis Tage und Version gesetzt sind (stehen nicht im Plan)."""
+    if wert in ("commit", "release"):
+        return {"art": "commit", "aus_plan": wert}
+    if wert == "thema":
+        return {"art": "thema", "thema": int(tid), "aus_plan": wert}
+    return {"art": "ja", "aus_plan": wert}
 
 
 # --- der Planer-Lauf (frischer claude -p, nur Lesen) – #30117 ----------------------------------------------------------------

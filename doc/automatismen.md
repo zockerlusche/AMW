@@ -682,7 +682,9 @@ die der Lead nur noch bestätigt oder ändert.
   Oberflächen-Paket nie als p, ein Paket mit fast gleichem Titel wie ein fertiges Paket des Themas → „schon gebaut: A…“) und trägt den Entwurf ein (`thema_planentwurf`, mit Modell,
   Kosten und Lauf). Der Lead bekommt „Ja oder ändern“; bei Fehlern eine Meldung mit den Funden. Erst `amw thema plan-ja TH<n>`
   (Lead oder Mensch, optional `--datei` mit einem geänderten Entwurf) legt Meilensteine und Pakete an und verknüpft jedes Paket
-  mit dem Thema; `amw thema plan TH<n>` zeigt den Entwurf. Kein Anlegen ohne Ja.
+  mit dem Thema; `amw thema plan TH<n>` zeigt den Entwurf. Kein Anlegen ohne Ja. Jedes Paket bekommt dabei seine
+  Fertig-Quelle (A1996): commit und release → `commit`, thema → `thema TH<n>` des Plans, ja und dokument → `ja`; frist → `ja`,
+  bis jemand Tage und Version setzt (die stehen nicht im Plan) – dazu eine Meldung an den Lead mit den Paketen.
 - **Einstellung:** `themen_planer` = sonnet (Vorgabe) | aus – Lead oder Mensch. `planer_tagesgrenze_usd` (A1970, Vorgabe 5,
   0 = keine Grenze, Lead oder Mensch): haben die Planer-Läufe des Projekts heute (Ortszeit) so viel gekostet, startet keiner
   mehr – das Thema wartet (Ereignis `thema_planer_wartet`), der Lead bekommt einmal am Tag eine Meldung, und die Dienst-Runde

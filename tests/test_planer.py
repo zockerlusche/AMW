@@ -192,6 +192,32 @@ class Ablauf(Grund):
         e = planer._ereignisse(self.con, self.pid, self.tid, planer.NICHTS)
         self.assertEqual(e[-1]["grund"], "Ist schon gebaut (A1896).")
 
+    def test_a1996_fertig_quelle_kommt_ins_paket(self):
+        from amw import fertigquelle, reihenfolge
+        werte = ("commit", "release", "thema", "dokument", "frist", "ja")
+        d = {"meilensteine": ERGEBNIS["meilensteine"],
+             "pakete": [{**ERGEBNIS["pakete"][0], "schluessel": f"P{i}", "titel": f"Paket {w}", "fertig_quelle": w}
+                        for i, w in enumerate(werte, 1)]}
+        planer.entwurf_eintragen(self.con, self.pid, self.tid, 1, d)
+        a = planer.uebernehmen(self.con, self.pid, "TL", self.tid)
+        erwartet = {"commit": {"art": "commit"}, "release": {"art": "commit"}, "thema": {"art": "thema", "thema": self.tid},
+                    "dokument": {"art": "ja"}, "frist": {"art": "ja"}, "ja": {"art": "ja"}}
+        for i, w in enumerate(werte, 1):
+            aid = int(a[f"P{i}"][1:])
+            q = fertigquelle.lesen(self.con, aid)
+            self.assertEqual({k: v for k, v in q.items() if k != "aus_plan"}, erwartet[w], w)
+            self.assertEqual(q["aus_plan"], w)
+            self.assertNotIn("Fertig-Quelle", reihenfolge.fehlende_felder(
+                self.con, self.pid, self.con.execute("SELECT * FROM aufgabe WHERE id = ?", (aid,)).fetchone()))
+        frist = int(a["P5"][1:])
+        m = [x for x in self.post("TL") if x[0] == "meldung" and "frist" in x[1]]
+        self.assertEqual(len(m), 1)
+        self.assertIn(f"A{frist}", m[0][1])
+        bid = self.con.execute("SELECT id FROM bogen WHERE nr = ?", (int(a["M1"][1:]),)).fetchone()[0]
+        r = reihenfolge.starten(self.con, self.pid, "TL", bid)
+        self.assertEqual(r["fehlt"], {})                                  # bogen starten meldet keine Lücke
+        self.assertEqual(len(r["startklar"]), 6)
+
     def test_bestehender_meilenstein_und_vorgaenger_im_projekt(self):
         bid = planung.bogen_neu(self.con, self.pid, "TL", "Schon da")
         nr = planung.bogen_zeile(self.con, self.pid, bid)["nr"]
