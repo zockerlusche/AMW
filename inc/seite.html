@@ -1182,6 +1182,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   .signale { order: 2; flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow: hidden; }
   .signale .signal { padding: 3px 7px; font-size: 11px; }
   .signale .signal.unwichtig { display: none; }
+  .signale:empty { display: none; }   /* A1998: ohne Signal (kein Abgleich) bleibt „Abmelden“ rechts oben */
   .suche { order: 3; flex: 1 0 100%; margin: 0; }
   .suche input { width: 100%; padding: 10px 12px 10px 30px; }
   .suche::before { top: 8px; }
@@ -1534,7 +1535,7 @@ const TEXTE = {
     dk_zeichen: "{n} Zeichen", dk_geaendert: "geändert", dk_unterschiede: "Unterschiede zur neuesten Fassung", dk_trotzdem: "Meinen Text trotzdem als v{n} speichern",
     dk_konflikt_titel: "Neueste Fassung v{a} → dein Text", dk_ed_hilfe: "Strg+S speichert · Esc schließt", dk_ed_basis: "Auf Grundlage von v{v} – wird v{n}",
     dk_vergleichen: "Vergleichen", dk_vergleich: "Vergleich", dk_df_gleich: "Keine Unterschiede.", dk_df_luecke: "… {n} unveränderte Zeilen – zeigen",
-    dk_df_zeilen: "Zeilen", dk_laedt: "Lädt …", lade_text: "Lädt …",
+    dk_df_zeilen: "Zeilen", dk_laedt: "Lädt …", lade_text: "Lädt …", kein_abgleich: "Noch kein Abgleich von diesem Rechner.",
     dk_hochladen: "Hochladen", dk_hl_titel: "Dokument hochladen", dk_hl_zone: "Dateien hierher ziehen oder ein Bildschirmfoto mit Strg+V einfügen", dk_hl_zone_netz: "Foto aufnehmen oder Datei wählen",
     dk_hl_waehlen: "Datei wählen", dk_hl_foto: "Foto aufnehmen", dk_hl_titel_mehr: "Mehrere Dateien: der Titel kommt je Datei aus dem Dateinamen.",
     dk_art_auto: "nach Format", dk_bezug_ph: "z. B. A1234, F12, B5 oder Meilenstein 3 (optional)", dk_bezug_falsch: "Die Angabe wurde nicht erkannt. Beispiele: A1234, F12, B5, Meilenstein 3",
@@ -1873,7 +1874,7 @@ const TEXTE = {
     dk_zeichen: "{n} characters", dk_geaendert: "changed", dk_unterschiede: "Differences from the latest version", dk_trotzdem: "Save my text as v{n} anyway",
     dk_konflikt_titel: "Newest version v{a} → your text", dk_ed_hilfe: "Ctrl+S saves · Esc closes", dk_ed_basis: "Based on v{v} – becomes v{n}",
     dk_vergleichen: "Compare", dk_vergleich: "Comparison", dk_df_gleich: "No differences.", dk_df_luecke: "… {n} unchanged lines – show",
-    dk_df_zeilen: "lines", dk_laedt: "Loading …", lade_text: "Loading …",
+    dk_df_zeilen: "lines", dk_laedt: "Loading …", kein_abgleich: "No sync from this computer yet.", lade_text: "Loading …",
     dk_hochladen: "Upload", dk_hl_titel: "Upload document", dk_hl_zone: "Drop files here or paste a screenshot with Ctrl+V", dk_hl_zone_netz: "Take a photo or choose a file",
     dk_hl_waehlen: "Choose file", dk_hl_foto: "Take photo", dk_hl_titel_mehr: "Several files: each title comes from the file name.",
     dk_art_auto: "by format", dk_bezug_ph: "e.g. A1234, F12, B5 or milestone 3 (optional)", dk_bezug_falsch: "Reference not recognised. Examples: A1234, F12, B5, milestone 3",
@@ -2026,7 +2027,8 @@ const veraltet = () => new Promise(() => {});
 async function abrufen(weg, p = projekt) {               /* p: anderes Projekt (A1889: Nachrichten über alle Projekte) */
   const fuerDich = Date.now() - laden.eingabe < 1500;   /* A1676: nur Abrufe, die du ausgelöst hast – nie der Takt im Hintergrund */
   if (fuerDich) laden.an();
-  try { const r = await fetch(ziel(weg, p), { cache: "no-store" }); if (!r.ok) throw new Error((await r.json()).fehler || r.status); return await r.json(); }
+  try { const r = await fetch(ziel(weg, p), { cache: "no-store" }); if (!r.ok) { const j = await r.json().catch(() => ({})); throw Object.assign(new Error(j.leer ? t(j.leer) : (j.fehler || r.status)), { leer: j.leer || null }); }   /* A1998 */
+        return await r.json(); }
   finally { if (fuerDich) laden.aus(); }
 }
 async function holen(weg, p = projekt) {
@@ -2326,7 +2328,7 @@ async function kopfAktualisieren() {                    /* A1907: Kopfzeile imme
 }
 async function kopfLaden() {
   try {
-    const d = await abrufen("/api/start"); zustand.start = d;
+    const d = await abrufen("/api/start"); zustand.start = d; zustand.startFehler = null;
     if (!spracheGewaehlt && ["de", "en"].includes(d.sprache_vorgabe) && d.sprache_vorgabe !== sprache) {   /* Vorgabe der Installation */
       spracheGewaehlt = true; sprache = d.sprache_vorgabe; feste_texte(); if (zustand.sicht) zeige(zustand.sicht, true); }   /* A1907: neu zeichnen, kein Wechsel */
     const wv = d.online?.web_version;
@@ -2352,6 +2354,8 @@ async function kopfLaden() {
       const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", ["fragen", "freigaben"].includes(z.dataset.zahl) && n > 0);
     }
   } catch (e) {
+    zustand.startFehler = String(e.message || e);      /* A1998: die Startseite zeigt den Grund (z. B. „Noch kein Abgleich …“) */
+    if (e.leer) { $("#signale").replaceChildren(); return; }   /* P552: kein Abgleich ist kein Ausfall – ein Status, im Inhalt */
     $("#signale").replaceChildren(el("span", { class: "signal" }, el("span", { class: "punkt rot" }), t("s_dienst_weg")));
   }
 }
@@ -2661,7 +2665,8 @@ function uebersichtKarten(d) {
   return el("div", { class: "ue-raster" }, fuer, laeuft, stand, zust);
 }
 async function sichtStart() {
-  await kopfAktualisieren(); const d = zustand.start; if (!d) return;
+  await kopfAktualisieren(); const d = zustand.start;
+  if (!d) { if (zustand.startFehler) rahmen(t("n_start")).append(el("div", { class: "leer" }, zustand.startFehler)); return; }   /* A1998 */
   const m = rahmen(t("n_start"), el("span", { class: "leise" }, t("stand", { t: zeit(d.zeit) })));
   /* „Seit du weg warst“: letzter Besuch je Gerät (localStorage); in dieser Sitzung bleibt der Wert stehen */
   let seitBesuch = null;
