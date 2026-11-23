@@ -319,6 +319,7 @@ def daten_start(con, pid):
         " (SELECT zeit_utc FROM nachricht WHERE projekt_id = g.projekt_id AND von = g.kennung ORDER BY id DESC LIMIT 1) AS zuletzt_utc"
         " FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
         " WHERE g.projekt_id = :p AND g.entfernt_utc IS NULL ORDER BY g.id", {"p": pid, "alt": alt}))
+    co_k = kern.co_entwickler(con, pid)
     for a in agenten:
         from . import arbeitsliste                                        # Arbeitsliste: Länge und was in Arbeit ist
         l = arbeitsliste.liste(con, pid, a["kennung"])
@@ -342,6 +343,7 @@ def daten_start(con, pid):
                         (pid, a["kennung"])).fetchone()
         from . import betrieb
         a["warteplatz"] = betrieb.warteposition(con, pid, l) if l else None   # Lauf in der Schlange des Rechners: Platz, auf wen
+        a["co"] = a["kennung"] == co_k                                   # A2019 (W2482): angezeigt als „Co-Entwickler“
     # Lead zuerst, gleiche Fachgebiete nebeneinander, sonst in der angelegten Reihenfolge
     agenten.sort(key=lambda a: (a["rolle"] != "lead", (a["fachgebiet"] or "~").casefold()))
     fragen = zeilen(con.execute(           # nachtraege: ungelesene Nachträge im Verlauf der Frage (stehen dort, nicht doppelt)
@@ -915,6 +917,7 @@ def daten_agent(con, pid, kennung):
         steuern["claude_link"] = None
     return {
         **{k: v for k, v in dict(a).items() if k != "claude_sitzung"}, **steuern, **gerade_felder(con, pid, kennung),
+        "co": kennung == kern.co_entwickler(con, pid),                       # A2019: angezeigt als „Co-Entwickler“
         "aufwand": aufwand.je_agent(con, pid, kennung),
         "empfehlung": empfehlung.fuer_agent(con, pid, kennung),
         "naechste": zeilen(con.execute(

@@ -1334,7 +1334,7 @@ const TEXTE = {
     e_info_ablage: "Infos ausblenden nach (Stunden)", e_info_ablage_h: "Infos an dich ohne Bezug zu einer Aufgabe werden nach so vielen Stunden unter „Ältere Infos“ eingeklappt und zählen nicht mehr mit.",
     antworten: "Antworten", gelesen: "Gelesen ✓", art_meldung: "Meldung", art_antwort: "Antwort", art_takt: "Rhythmus", art_pruefbitte: "Prüfanfrage", art_stopp: "Stopp", art_freigabe: "Freigabe",
     k_details: "Details anzeigen", k_offen_h: "ungelesene Nachrichten an diesen Agenten",
-    k_gerade: "Arbeitet an:", k_vermutet: "(aus letzter Meldung)", k_unbekannt: "keine Angabe", k_zuletzt: "Letzte Meldung", k_offen_n: "✉ {n} offen", k_puls_seit: "zuletzt aktiv {t}", k_mitlesen: "Mitlesen",
+    k_gerade: "Arbeitet an:", co_entwickler: "Co-Entwickler", k_vermutet: "(aus letzter Meldung)", k_unbekannt: "keine Angabe", k_zuletzt: "Letzte Meldung", k_offen_n: "✉ {n} offen", k_puls_seit: "zuletzt aktiv {t}", k_mitlesen: "Mitlesen",
     k_wartet: "{a} wartet auf {x}", lead: "Lead",
     g_tab: "Gespräch", g_tab_uebersicht: "Übersicht", g_knopf_h: "Das Gespräch des Agenten mit Claude Code lesen (live)",
     g_claude: "In Claude öffnen ↗", g_claude_h: "Öffnet die laufende Sitzung auf claude.ai bzw. in der Claude-App – dort schreibst du direkt mit dem Agenten",
@@ -1676,7 +1676,7 @@ const TEXTE = {
     e_info_ablage: "Hide infos after (hours)", e_info_ablage_h: "Infos to you not linked to a task are collapsed under “Older infos” after this many hours and are no longer counted.",
     antworten: "Reply", gelesen: "Read ✓", art_meldung: "Report", art_antwort: "Answer", art_takt: "Rhythm", art_pruefbitte: "Review request", art_stopp: "Stop", art_freigabe: "Release",
     k_details: "Show details", k_offen_h: "unread messages to this agent",
-    k_gerade: "Working on:", k_vermutet: "(from last report)", k_unbekannt: "not specified", k_zuletzt: "Last report", k_offen_n: "✉ {n} open", k_puls_seit: "last active {t}", k_mitlesen: "Watch",
+    k_gerade: "Working on:", co_entwickler: "Co-developer", k_vermutet: "(from last report)", k_unbekannt: "not specified", k_zuletzt: "Last report", k_offen_n: "✉ {n} open", k_puls_seit: "last active {t}", k_mitlesen: "Watch",
     k_wartet: "{a} waits for {x}", lead: "Lead",
     g_tab: "Conversation", g_tab_uebersicht: "Overview", g_knopf_h: "Read the agent's conversation with Claude Code (live)",
     g_claude: "Open in Claude ↗", g_claude_h: "Opens the running session on claude.ai or in the Claude app – write to the agent directly there",
@@ -2917,6 +2917,7 @@ const tmWeise = a => tmZeichen(a.arbeitsweise === "chat" || a.chat ? "chat" : a.
 const tmFach = a => a.rolle === "lead" ? el("span", { class: "tm-fach lead", title: a.fachgebiet || null }, t("lead") + (a.fachgebiet ? " · " + a.fachgebiet : ""))
   : a.fachgebiet ? el("span", { class: "tm-fach" }, a.fachgebiet) : null;
 const tmKurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : x;
+const agentName = a => a.co ? [t("co_entwickler"), el("span", { class: "sehrleise tm-kennung" }, " " + a.kennung)] : a.kennung;   /* A2019 */
 const tmMehr = a => el("button", { class: "klein-knopf mehr-knopf", type: "button", title: t("m_titel", { x: a.kennung }), "aria-haspopup": "menu",
   onclick: e => { e.stopPropagation(); agentMenue(a, e.currentTarget); } }, "⋯");
 const tmOffen = (a, kurz) => a.offen ? el("span", { class: "tm-offen" + (a.offen > 10 ? " viel" : ""), title: t("k_offen_n", { n: a.offen }) + " – " + t("k_offen_h", { n: a.offen_alt || 0 }) },
@@ -2977,11 +2978,11 @@ function teamBaum(d, leads, rest) {
   const du = el("div", { class: "tm-knoten tm-du", "data-k": "*du" }, tmZeichen("mensch", ""), el("span", { class: "tm-name" }, t("tm_du")), el("span", { class: "leise" }, t("tm_leitet")),
     tmDu(d).map(([n, k]) => el("span", { class: "tm-zahl" }, el("b", {}, n), " " + t(k))));
   const lead = a => karte(a, "tm-lead" + (agentZustand(a)[0] === "rot" ? " tot" : ""),
-    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, a.kennung), tmFach(a), tmZustand(a)),
+    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, agentName(a)), tmFach(a), tmZustand(a)),
     el("dl", {}, tmLeadInfo(a, d).flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)])),
     el("div", { class: "tm-rechts" }, el("span", { class: "tm-zeile" }, tmOffen(a), tmMehr(a)), el("span", { class: "tm-zeile sehrleise" }, tmWeise(a), tmFuss(a)[2])));
   const agent = a => karte(a, "tm-agent" + (agentZustand(a)[0] === "rot" && a.zustand !== "aktiv" ? " tot" : "") + (a.soll !== "an" ? " aus" : ""),
-    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, a.kennung), tmFach(a),
+    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, agentName(a)), tmFach(a),
       (a.wartet_auf || []).includes("Entwickler") ? el("span", { class: "tm-auf-dich", title: t("tm_wartet_du_h") }, "\u23f3 " + t("tm_wartet_du"))
         : (a.wartet_auf || []).length ? el("span", { class: "tm-auf-andere", title: t("tm_wartet_andere_h") }, "\u23f3 " + t("wartet_auf_x", { x: a.wartet_auf.slice(0, 2).join(", ") }))
         : null,                                                   /* A1860: „wartet auf dich“ nur, wenn du wirklich dran bist */
@@ -3057,7 +3058,7 @@ function tmLinien(baum, svg, d) {
 }
 function teamListe(d, leads, rest) {
   const zeile = (a, ast, klasse) => { const z = el("div", { class: `tm-z ${klasse || ""} klickbar` + (a.soll !== "an" ? " aus" : ""), "data-k": a.kennung, title: t("k_details") },
-    el("div", { class: "tm-wer" }, el("span", { class: "tm-astz" }, ast), tmWeise(a), el("span", { class: "tm-name" }, a.kennung), tmOffen(a)), el("span", {}, tmFach(a)), tmZustand(a),
+    el("div", { class: "tm-wer" }, el("span", { class: "tm-astz" }, ast), tmWeise(a), el("span", { class: "tm-name" }, agentName(a)), tmOffen(a)), el("span", {}, tmFach(a)), tmZustand(a),
     el("div", { class: "tm-auf" }, a.rolle === "lead" && d.team?.bogen ? [el("span", { class: "sehrleise" }, t("tm_plant") + ": "), tmLeadInfo(a, d)[0][1]] : tmAufgabe(a, 120)),
     tmNeben(a, d) || el("span", {}), el("span", { class: "tm-fuss" }, tmFuss(a).slice(1)), tmMehr(a));
     z.addEventListener("click", () => agentDialog(a.kennung)); return z; };
@@ -3330,7 +3331,7 @@ async function agentDialog(kennung, reiter) {
   }
   const hg = el("div", { class: "dialog-hg", onclick: e => { if (e.target === hg) hg.remove(); } },
     el("div", { class: "karte dialog agent-dialog" },
-      el("div", { class: "agent-kopf" }, el("h3", {}, d.kennung),
+      el("div", { class: "agent-kopf" }, el("h3", {}, agentName(d)),
         el("span", { class: "leise" }, `${[d.rolle === "lead" ? t("lead") : null, d.fachgebiet].filter(Boolean).join(" · ") || t("agent")} · ${d.zustand === "aktiv" ? t("laeuft") : (d.zustand || t("nie_gestartet"))}` +
           (d.letzter_puls_utc ? ` · ${t("puls", { t: seit(d.letzter_puls_utc) })}` : "")),
         el("span", { style: "margin-left:auto;display:flex;gap:8px;flex-wrap:wrap" }, ...steuerKnoepfe(d, () => hg.remove()),

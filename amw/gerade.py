@@ -4,7 +4,8 @@ Reihenfolge der Quellen (die erste, die es gibt):
 1. Lauf: ein Lauf des Agenten mit Status „läuft“ (nie ein beendeter oder abgebrochener) – Zeit = Start des Laufs.
 2. Aufgabe: seine zuletzt begonnene laufende Aufgabe – Zeit = Beginn.
 3. Meldung: die Aufgabe aus seiner letzten eigenen Nachricht (Nummer oder A1234 im Text) – Zeit = Nachricht; nur, wenn die
-   Aufgabe nicht fertig oder verworfen ist (A1989).
+   Aufgabe nicht fertig oder verworfen ist (A1989) und ihm gehört (A2019: wer über die Aufgabe eines anderen schreibt, arbeitet
+   nicht an ihr).
 Läuft ein Lauf zu einer Aufgabe, zeigt der Text beides („A12 · Titel – L34 läuft“).
 
 `amw taetigkeit` ergänzt nur: der Text erscheint dazu, wenn er nicht älter als die abgeleitete Quelle ist und keine andere
@@ -60,8 +61,10 @@ def ableiten(con, pid, kennung):
         if m:
             treffer = AUFGABE_IN_TEXT.search(m["kurz"] or "")
             aid = m["aufgabe_id"] or (int(treffer.group(1)) if treffer else None)
-            t = con.execute("SELECT titel, status FROM aufgabe WHERE projekt_id = ? AND id = ?", (pid, aid)).fetchone() if aid else None
-            if t and t["status"] not in ("fertig", "verworfen"):      # A1989: Fertiges macht er nicht mehr
+            t = con.execute("SELECT titel, status, agent FROM aufgabe WHERE projekt_id = ? AND id = ?", (pid, aid)).fetchone() if aid else None
+            # A1989: Fertiges macht er nicht mehr. A2019 (W2482): nur seine eigene Aufgabe – wer über die Aufgabe eines anderen
+            # schreibt (Lead oder Co-Entwickler: „A1924 freigegeben“), arbeitet nicht an ihr
+            if t and t["status"] not in ("fertig", "verworfen") and t["agent"] == kennung:
                 aus = {"text": f"A{aid} · {t['titel']}", "aufgabe": aid, "quelle": "meldung", "seit_utc": m["zeit_utc"]}
     angabe = (s["taetigkeit"] or "").strip() if s and s["zustand"] == "aktiv" else ""
     if angabe and _nennt_beendeten_lauf(con, pid, angabe):
