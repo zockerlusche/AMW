@@ -9,6 +9,7 @@ ist es eine Näherung (naeherung). Kein KI-Aufruf, kein Schema.
 import statistics
 
 LETZTE = 10                                   # je Agent: Median über so viele zuletzt fertige Aufgaben mit Messwert
+NEU_UNTER_USD = 1.0                           # A1992: gesunkener Zähler unter diesem Wert = neu begonnen (zählt ganz)
 
 
 def _aufgaben(con, pid, kennung):
@@ -34,7 +35,12 @@ def _zuordnen(con, pid, kennung, aufgaben, ab):
         vorher[z["sitzung_id"]] = z["kosten_usd"]
         if alt is None:                       # erster Messpunkt: Stand davor unbekannt, ab hier wird gezählt
             continue
-        zuwachs = z["kosten_usd"] if z["kosten_usd"] < alt else z["kosten_usd"] - alt   # gesunken: Sitzung zählt neu
+        if z["kosten_usd"] >= alt:
+            zuwachs = z["kosten_usd"] - alt
+        else:   # A1992 (Befund 23.11.): gesunken. Ein frisch begonnener Zähler startet nahe 0 – nur dann zählt der Wert ganz.
+            # Ein nach dem Neustart fortgesetzter Prozess meldet weiter eine (neu berechnete) Summe, z. B. 177.51 → 133.85: das
+            # ist kein Zuwachs von 133.85 $, sondern eine neue Grundlinie (vorher wurde A1989 so 135.69 $ statt ≈ 1 $).
+            zuwachs = z["kosten_usd"] if z["kosten_usd"] < NEU_UNTER_USD else 0.0
         if zuwachs <= 0:
             continue
         t = z["zeit_utc"]

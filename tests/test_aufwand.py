@@ -1,5 +1,5 @@
 """Verbrauch je Aufgabe und je Agent (A1611 E1): Zuwächse des Kosten-Zählers gehören zur zuletzt begonnenen offenen
-Aufgabe; erster Messpunkt zählt nicht, ein gesunkener Zähler zählt neu; gleiche Kennung in zwei Projekten bleibt
+Aufgabe; erster Messpunkt zählt nicht, ein gesunkener Zähler zählt neu nur unter 1 $ (sonst neue Grundlinie, A1992); gleiche Kennung in zwei Projekten bleibt
 getrennt; Median der letzten fertigen; Anzeige in Aufgabe, Agent, Befehlszeile und Workbench (DE+EN)."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
@@ -62,9 +62,19 @@ class Aufwand(unittest.TestCase):
     def test_gesunkener_zaehler_und_modelle_nach_anteil(self):
         a = self.aufgabe("eins", z(8), z(12))
         self.messen([(z(8, 5), 0.0), (z(9), 2.0)], modell="Sonnet 5.5", stufe="medium")
-        self.messen([(z(9, 5), 10.0), (z(10), 14.0), (z(11), 3.0)])     # 4 $, dann neu gezählt: 3 $
+        self.messen([(z(9, 5), 10.0), (z(10), 14.0), (z(11), 0.5)])     # 4 $, dann neu begonnen (unter 1 $): 0.5 $
         v = aufwand.je_aufgabe(self.con, self.pid, a)
-        self.assertEqual(v, {"usd": 9.0, "modelle": ["Opus 5.5/high", "Sonnet 5.5/medium"]})
+        self.assertEqual(v, {"usd": 6.5, "modelle": ["Opus 5.5/high", "Sonnet 5.5/medium"]})
+
+    def test_fortgesetzter_zaehler_nach_neustart(self):
+        """A1992 (Befund 23.11., Rechner-Reset): Sitzung 1034 meldete 177.51 → 133.85 → 135.07 – der fortgesetzte Prozess zählt
+        weiter kumuliert (neu berechnet), das Sinken ist kein Zuwachs von 133.85 $; nur 1.22 $ gehören zur Aufgabe."""
+        a = self.aufgabe("A1989", z(5), z(6))
+        self.messen([(z(5, 14), 177.51), (z(5, 20), 133.85), (z(5, 25), 135.07)])
+        self.assertAlmostEqual(aufwand.je_aufgabe(self.con, self.pid, a)["usd"], 1.22, places=2)
+        b = self.aufgabe("B", z(7), z(8))
+        self.messen([(z(7, 5), 40.0), (z(7, 10), 0.3), (z(7, 20), 0.9)])        # wirklich neu begonnen: 0.3 + 0.6
+        self.assertAlmostEqual(aufwand.je_aufgabe(self.con, self.pid, b)["usd"], 0.9, places=2)
 
     def test_projekte_getrennt_und_ohne_messwert(self):
         a = self.aufgabe("eins", z(8), z(12))
