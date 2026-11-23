@@ -81,10 +81,11 @@ def ableiten(con, pid, kennung):
 
 
 def _nennt_beendeten_lauf(con, pid, text):
-    """Nennt die eigene Angabe einen Lauf, der nicht (mehr) läuft? Unbekannte Nummern zählen nicht."""
+    """Nennt die eigene Angabe einen beendeten Lauf (fertig, abgebrochen …)? Ein Lauf, der läuft oder in der Schlange wartet
+    (angemeldet), zählt nicht als beendet; unbekannte Nummern auch nicht."""
     for n in {int(x) for x in LAUF_IN_TEXT.findall(text)}:
         l = con.execute("SELECT status FROM lauf WHERE projekt_id = ? AND id = ?", (pid, n)).fetchone()
-        if l and l["status"] != "laeuft":
+        if l and l["status"] not in ("laeuft", "angemeldet"):
             return True
     return False
 

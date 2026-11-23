@@ -530,7 +530,7 @@ jünger als 2 h war – die Kachel zeigte stundenlang eine erledigte Aufgabe ode
   seine zuletzt begonnene laufende Aufgabe › die Aufgabe aus seiner letzten Meldung, nur wenn sie nicht fertig oder verworfen
   ist (A1989). Läuft ein Lauf zu einer Aufgabe, steht beides da. Die eigene Angabe ergänzt nur (nicht älter als die Quelle,
   keine andere Aufgabe); ohne abgeleitete Quelle ist sie allein die Angabe. Nennt sie einen Lauf L…, der nicht mehr läuft,
-  fällt sie weg (A1989). `aufgabe start`/`lauf start` ersetzen eine Angabe, die zu einer anderen Aufgabe gehört.
+  fällt sie weg (A1989; ein Lauf in der Schlange zählt nicht als beendet). `aufgabe start`/`lauf start` ersetzen eine Angabe, die zu einer anderen Aufgabe gehört.
 - **Quelle und Alter:** jeder Wert trägt Quelle und Zeit (Workbench: Übersicht des Agenten und Tooltip der Kachel;
   `amw agent liste`: „macht: … (Aufgabe, seit 20 min)“).
 - **Veraltet:** ohne Puls der Sitzung (Hook, Statuszeile, Ereignis, Angabe) seit 30 min steht „veraltet?“; ist die letzte

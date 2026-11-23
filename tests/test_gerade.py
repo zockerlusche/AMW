@@ -75,6 +75,11 @@ class Gerade(unittest.TestCase):
         self.assertEqual((self.g()["quelle"], self.g()["aufgabe"]), ("meldung", b))
 
     def test_a1989_angabe_mit_beendetem_lauf_faellt_weg(self):                              # #30969: „L3096 Planer … seit 9 h“
+        wartet = self.lauf(status="angemeldet", beschreibung="Tests")                          # P533: in der Schlange
+        self.angabe(f"warte auf L{wartet}", 5)
+        self.assertEqual((self.g()["quelle"], self.g()["text"]), ("angabe", f"warte auf L{wartet}"))  # bleibt
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE lauf SET status = 'fertig' WHERE id = ?", (wartet,))
         lid = self.lauf(beschreibung="Planer")
         self.angabe(f"L{lid} Planer prüfen", 5)
         self.assertEqual((self.g()["quelle"], self.g()["ergaenzung"]), ("lauf", f"L{lid} Planer prüfen"))
