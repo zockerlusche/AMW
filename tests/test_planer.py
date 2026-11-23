@@ -259,10 +259,10 @@ class Anstossen(Grund):
         planer.entwurf_eintragen(self.con, self.pid, zweites, 1, ERGEBNIS, modell="sonnet", usd=2.5)    # heute 5,50 $
         self.assertEqual(planer.heute_usd(self.con, self.pid), 5.5)
         vorher = len(self.post("TL"))
-        self.assertIn("Tagesgrenze der Planer erreicht (5.50 von 5.00 $)", planer.anstossen(self.con, self.pid, self.tid, 2))
-        self.assertIn("Tagesgrenze", planer.anstossen(self.con, self.pid, zweites, 2))
-        self.assertIn("Tagesgrenze", planer.anstossen(self.con, self.pid, self.tid, 2))         # noch einmal: kein zweites Warten
-        self.assertEqual(len(planer._alle(self.con, self.pid, planer.WARTET)), 2)
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)                         # Freigabe stößt an → Grenze
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, zweites)
+        self.assertIn("Tagesgrenze der Planer erreicht (5.50 von 5.00 $)", planer.anstossen(self.con, self.pid, self.tid, 1))
+        self.assertEqual(len(planer._alle(self.con, self.pid, planer.WARTET)), 2)                # kein zweites Warten
         self.assertEqual(self.gestartet, [])
         meldungen = self.post("TL")[vorher:]
         self.assertEqual(meldungen, [("meldung", f"Planer: Tagesgrenze 5.00 $ erreicht – TH{self.tid} wartet bis morgen")])  # einmal
@@ -271,12 +271,43 @@ class Anstossen(Grund):
         with mock.patch.object(planer, "_tag", side_effect=lambda z=None: "2099-01-02" if z is None else "2099-01-01"):
             aus = planer.nachholen(self.con, self.pid)                                           # morgen: Kosten von gestern zählen nicht
         self.assertEqual(len(aus), 2, aus)
-        self.assertEqual(sorted(self.gestartet), sorted([(self.tid, 2), (zweites, 2)]))
+        self.assertEqual(sorted(self.gestartet), sorted([(self.tid, 1), (zweites, 1)]))
         self.assertEqual(planer._wartet(self.con, self.pid), {})
+        self.assertEqual(planer.nachholen(self.con, self.pid), [])                               # erledigt: kommt nie wieder
         kern.projekt_einstellen(self.con, self.pid, "TL", planer_tagesgrenze_usd="0")              # 0 = keine Grenze
         self.assertIsNone(planer.tagesgrenze(self.con, self.pid))
         planer.entwurf_eintragen(self.con, self.pid, self.tid, 2, ERGEBNIS, usd=9.0)
         self.assertIn("angestoßen", planer.anstossen(self.con, self.pid, self.tid, 3))
+
+    def test_a1970_nachholen_nur_freigegeben_und_geltende_fassung(self):
+        """P532: über Nacht „nichts zu bauen“, zurückgenommen oder neue Fassung → kein Planer am nächsten Tag; das Warten ist
+        erledigt (Ereignis) und kommt in keiner Runde wieder."""
+        namen = ("Nichts", "Zurück", "Neu")
+        tids = []
+        for n in namen:
+            t = themen.neu(self.con, self.pid, "TL", n, pfleger="CC1")
+            themen.pflegen(self.con, self.pid, "CC1", t, f"{n} – Inhalt.")
+            themen.freigeben(self.con, self.pid, kern.ENTWICKLER, t)
+            tids.append(t)
+        self.gestartet.clear()
+        planer.entwurf_eintragen(self.con, self.pid, self.tid, 1, ERGEBNIS, modell="sonnet", usd=6.0)   # Grenze erreicht
+        with db.schreiben(self.con):
+            self.con.execute("DELETE FROM plan_ereignis WHERE art = ?", (planer.ANGESTOSSEN,))      # nur im Test: frisch freigegeben
+        for t in tids:
+            self.assertIn("Tagesgrenze", planer.anstossen(self.con, self.pid, t, 1))
+        nichts, zurueck, neu = tids
+        with db.schreiben(self.con):
+            planer._ereignis(self.con, self.pid, "TL", planer.NICHTS, nichts, grund="schon da")
+        themen.zurueck(self.con, self.pid, kern.ENTWICKLER, zurueck, "doch nicht")
+        themen.pflegen(self.con, self.pid, "CC1", neu, "Neu – andere Fassung.")                 # Fassung 2 wartet auf den Menschen
+        with mock.patch.object(planer, "_tag", side_effect=lambda z=None: "2099-01-02" if z is None else "2099-01-01"):
+            aus = planer.nachholen(self.con, self.pid)
+            self.assertEqual(planer.nachholen(self.con, self.pid), [])                           # nicht jede Runde wieder
+        self.assertEqual(sorted(aus), sorted([f"TH{nichts}: Warten erledigt – nichts zu bauen",
+                                              f"TH{zurueck}: Warten erledigt – nicht mehr freigegeben",
+                                              f"TH{neu}: Warten erledigt – nicht mehr freigegeben"]))
+        self.assertEqual(self.gestartet, [])
+        self.assertEqual(planer._wartet(self.con, self.pid), {})
 
     def test_a1970_einstellung(self):
         kern.projekt_einstellen(self.con, self.pid, "TL", planer_tagesgrenze_usd="2,5")

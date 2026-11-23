@@ -436,6 +436,7 @@ def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
 # antwortet mit JSON nach dem Schema oben. Feste Frist; Kosten ins Ereignis.
 ANGESTOSSEN = "thema_planer"                     # {"thema", "fassung", "modell", "prozess"}
 WARTET = "thema_planer_wartet"                   # A1970 {"thema", "fassung", "tag", "usd", "grenze"} – Tagesgrenze erreicht
+WARTEN_ERLEDIGT = "thema_planer_wartet_erledigt"  # A1970 {"thema", "fassung", "grund"} – Thema nicht mehr frei oder neue Fassung
 TAGESGRENZE_USD = 5.0                            # Vorgabe der Projekt-Einstellung planer_tagesgrenze_usd (0 = keine Grenze)
 EINSTIEG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "amw-planer.py")
 OHNE_FENSTER = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -495,9 +496,11 @@ def heute_usd(con, pid, tag=None):
 
 
 def _wartet(con, pid, tid=None):
-    """Wartende Planer (Tagesgrenze): je Thema das jüngste Warten, das noch nicht durch ein späteres Anstoßen erledigt ist."""
+    """Wartende Planer (Tagesgrenze): je Thema das jüngste Warten, das noch nicht durch ein späteres Anstoßen oder ein
+    „Warten erledigt“ abgeschlossen ist."""
     aus = {}
-    for r in con.execute("SELECT id, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?) ORDER BY id", (pid, WARTET, ANGESTOSSEN)):
+    for r in con.execute("SELECT id, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?, ?) ORDER BY id",
+                         (pid, WARTET, ANGESTOSSEN, WARTEN_ERLEDIGT)):
         try:
             d = json.loads(r["text"] or "{}")
         except ValueError:
@@ -544,16 +547,26 @@ def _alle(con, pid, art):
 
 def nachholen(con, pid):
     """Dienst-Runde: Themen, deren Planer an einem früheren Tag an der Tagesgrenze wartete, jetzt anstoßen (die Grenze gilt
-    wieder). Rückgabe: Texte."""
+    wieder) – nur, wenn das Thema noch freigegeben ist, die wartende Fassung die freigegebene ist und kein „nichts zu bauen“
+    vermerkt ist; sonst ist das Warten erledigt (Ereignis, kommt nie wieder). Angestoßen wird wie nach der Freigabe (ohne
+    erneut): alle Prüfungen von anstossen gelten. Rückgabe: Texte."""
+    from . import themen
     heute = _tag()
     aus = []
     for tid, w in sorted(_wartet(con, pid).items()):
         if w.get("tag") == heute or tid is None:
             continue
-        t = con.execute("SELECT id FROM thema WHERE id = ? AND projekt_id = ?", (tid, pid)).fetchone()
-        if not t:
+        t = con.execute("SELECT * FROM thema WHERE id = ? AND projekt_id = ?", (tid, pid)).fetchone()
+        s = themen.status(con, t) if t else None
+        grund = ("Thema gibt es nicht mehr" if not t else "nichts zu bauen" if _nichts_vermerkt(con, pid, tid)
+                 else "nicht mehr freigegeben" if s["status"] != "frei"
+                 else f"freigegeben ist Fassung {s['freigegeben']}" if s["freigegeben"] != w.get("fassung") else None)
+        if grund:
+            with db.schreiben(con):
+                _ereignis(con, pid, "AMW", WARTEN_ERLEDIGT, tid, fassung=w.get("fassung"), grund=grund)
+            aus.append(f"TH{tid}: Warten erledigt – {grund}")
             continue
-        x = anstossen(con, pid, tid, w.get("fassung"), erneut=True)
+        x = anstossen(con, pid, tid, w.get("fassung"))
         if x:
             aus.append(x)
         if x and "Tagesgrenze" in x:                  # heute schon wieder voll: der Rest wartet weiter

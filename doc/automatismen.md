@@ -685,7 +685,8 @@ die der Lead nur noch bestätigt oder ändert.
 - **Einstellung:** `themen_planer` = sonnet (Vorgabe) | aus – Lead oder Mensch. `planer_tagesgrenze_usd` (A1970, Vorgabe 5,
   0 = keine Grenze, Lead oder Mensch): haben die Planer-Läufe des Projekts heute (Ortszeit) so viel gekostet, startet keiner
   mehr – das Thema wartet (Ereignis `thema_planer_wartet`), der Lead bekommt einmal am Tag eine Meldung, und die Dienst-Runde
-  stößt die wartenden Themen am nächsten Tag selbst an. Der Planer liest nur im eigenen Ordner: Read/Glob/Grep sind mit dem
+  stößt die wartenden Themen am nächsten Tag selbst an – nur, wenn das Thema noch freigegeben ist, die wartende Fassung die
+  freigegebene ist und kein „nichts zu bauen“ vermerkt ist; sonst ist das Warten erledigt (`thema_planer_wartet_erledigt`). Der Planer liest nur im eigenen Ordner: Read/Glob/Grep sind mit dem
   Muster `./**` freigegeben (wie der Gegenleser), die Versionsprobe belegt, dass Lesen außerhalb abgelehnt wird. Tests stoßen nie einen echten Planer an
   (`AMW_PLANER_AUS`). Die Ansicht dazu kommt mit der Grobplanung (A1916).
 
