@@ -498,7 +498,10 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   `amw aufgabe abnehmen N`; der Mensch oder der Lead, nie der Bearbeiter selbst): die AMW hakt die offenen Kriterien ohne
   Prüfquelle mit „Ja von …“ ab, setzt fertig und schreibt Beleg und Zusammenfassung. „Zurück“ braucht einen Grund und geht
   an den Bearbeiter. Ereignisse `zur_abnahme`, `abnahme_ja`, `abnahme_zurueck`.
-- **Meilenstein fertig:** wie bisher, wenn alle Aufgaben fertig oder verworfen sind (`meilenstein_fertig = automatisch`).
+- **Meilenstein fertig:** wie bisher, wenn alle Aufgaben fertig oder verworfen sind (`meilenstein_fertig = automatisch`) – aber
+  nur ohne Urteil. Endet er mit einem Urteil (Abnahme-Text mehr als „alle Pakete fertig“: Vorführung, Bericht, Probe), bleibt er
+  offen und ist „bereit zur Abnahme“: Abschlussbericht und eine Meldung an Lead und Co (bzw. den Menschen) je Stand, Ereignis
+  `bogen_bereit_abnahme`; fertig wird er erst mit dem Ja zum Abschluss (`amw bogen freigeben N --art abschluss`, A2002).
 - **Themen statt Spezifikation:** Der Meilenstein zeigt die Themen seiner Aufgaben (`amw aufgabe aendern N --thema TH<n>`)
   mit Status. Neue Meilensteine haben keine Spezifikation mehr; `amw bogen neu` verlangt sie nicht und der Plan-Check meldet
   nichts mehr dazu. Alte Meilensteine behalten ihre Spezifikation als alten Bestand (lesbar, `amw spec …`).

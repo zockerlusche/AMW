@@ -175,7 +175,10 @@ def bericht_text(con, pid, bid):
         zellen = {}
     z = [f"# Abschlussbericht Meilenstein {b['nr']} „{b['titel']}“", "",
          f"Ziel: {b['ziel'] or '–'}  ", f"Endet mit (Erfolgskriterium): {b['abnahme'] or '–'}  ",
-         f"Zieldatum: {b['zieldatum'] or '–'} · fertig: {(b['fertig_utc'] or '–')[:10]}", "", "## Erfolgskriterien", ""]
+         f"Zieldatum: {b['zieldatum'] or '–'} · "
+         + (f"fertig: {(b['fertig_utc'] or '–')[:10]}" if b["status"] == "fertig"
+            else "bereit zur Abnahme – fertig mit dem Ja zum Abschluss"),   # A2002
+         "", "## Erfolgskriterien", ""]
     offen_k, summe, prog = [], 0.0, 0.0
     fertig = [a for a in alle if a["status"] == "fertig"]
     z.append(f"- Meilenstein: {b['abnahme'] or 'ohne Erfolgskriterium'} – {len(fertig)} von {len([a for a in alle if a['status'] != 'verworfen'])}"
@@ -219,13 +222,27 @@ def bericht_text(con, pid, bid):
     return "\n".join(z) + "\n"
 
 
-def bericht_erstellen(con, pid, bid):
+def bericht_erstellen(con, pid, bid, bereit=False):
+    """bereit (A2002): der Meilenstein endet mit einem Urteil und alle Pakete sind fertig – der Bericht geht als Meldung „bereit
+    zur Abnahme“ an Lead und Co (und an den Menschen, wenn er freigibt); fertig wird der Meilenstein erst mit dem Ja."""
     from . import dokumente, planansicht
     b = planansicht._bogen(con, pid, bid)
     did = dokumente.ablegen_inhalt(con, pid, "AMW", bericht_text(con, pid, bid).encode("utf-8"), f"abschluss-m{b['nr']}.md",
                                    titel=f"Abschlussbericht Meilenstein {b['nr']} „{b['titel'][:80]}“", art="bericht", bogen=bid)
     from . import themen
     an = kern.co_entwickler(con, pid) if themen.freigabe_regel(con, pid) == "co+lead" else None
+    if bereit:
+        mensch = themen.freigabe_regel(con, pid) != "co+lead"
+        wer_ja = "Co-Entwickler und Lead" if not mensch else "der Mensch"
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=BERICHT, bogen_id=bid,
+                         text=json.dumps({"bogen": bid, "dokument": did}, ensure_ascii=False))
+            for wer in dict.fromkeys(x for x in (kern.lead(con, pid), kern.co_entwickler(con, pid), kern.ENTWICKLER if mensch else None) if x):
+                kern._posten(con, pid, "AMW", wer, "meldung", f"Meilenstein {b['nr']} „{b['titel'][:50]}“ bereit zur Abnahme (D{did})",
+                             f"Alle Pakete sind fertig. Der Meilenstein endet mit: {b['abnahme']}. Die AMW hat den Abschlussbericht"
+                             f" erstellt (D{did}, mit Resten und Lehren). Fertig wird der Meilenstein erst mit dem Ja zum Abschluss"
+                             f" ({wer_ja}): Planung › Meilensteine (Ja oder Zurück mit Notiz) oder amw bogen freigeben {bid} --art abschluss.")
+        return did
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=BERICHT, bogen_id=bid,
                      text=json.dumps({"bogen": bid, "dokument": did}, ensure_ascii=False))

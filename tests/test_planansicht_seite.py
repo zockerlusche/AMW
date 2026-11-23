@@ -128,6 +128,33 @@ class PlanAnsicht(Rundgang):
         self.oeffnen("themen", "document.querySelector('#inhalt .th-tore .tore-leiste')")
         self.assertEqual(self.tab.js("document.querySelectorAll('#inhalt .th-tore .tor').length"), 5)
 
+    def test_a2002_bereit_zur_abnahme_dann_ja(self):
+        """A2002: endet der Meilenstein mit einem Urteil (hier „Vorführung“), steht er nach dem letzten Paket auf „bereit zur
+        Abnahme“ mit Abschlussbericht und Ja – fertig erst mit dem Ja."""
+        from amw import db, planautomatik, tore
+        kern.projekt_einstellen(self.con, self.pid, "TL", versionen="aus", meilenstein_fertig="automatisch")
+        tore.runde(self.con, self.pid)
+        planung.bogen_status(self.con, self.pid, "TL", self.m1, "aktiv")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', fertig_utc = ?, beleg = 'abc1234' WHERE bogen_id = ?", (db.jetzt(), self.m1))
+        self.assertEqual(planautomatik.meilenstein_projekt(self.con, self.pid), [(self.m1, "bereit")])
+        zeile = f"document.querySelector('#inhalt .th-zeile[data-ms=\"{self.m1}\"]')"
+        tun = f"{zeile}.click()"
+        for g in ("pc", "handy"):
+            for th_ in ("hell", "dunkel"):
+                self.assertEqual(self.besuchen("planung", "planung-a2002", bereit="document.querySelector('#inhalt .pm-zeile')", tun=tun,
+                                               danach="document.querySelector('.pm-abschluss[data-ab=wartet]')", g=g, t=th_), [], f"{g} {th_}")
+                self.assertFalse(self.ueber_rand(), f"{g} {th_}")
+        self.groesse("pc")
+        self.oeffnen("planung", "document.querySelector('#inhalt .pm-zeile')")
+        self.assertEqual(self.tab.js(f"{zeile}.querySelector('.th-status').textContent"), "bereit zur Abnahme")
+        self.tab.js(tun)
+        self.warten("document.querySelector('.pm-abschluss button[data-h=ab-ja]')")
+        self.assertEqual(self.tab.js("document.querySelector('.th-kopf .th-status').textContent"), "bereit zur Abnahme")
+        self.tab.js("document.querySelector('.pm-abschluss button[data-h=ab-ja]').click()")
+        self.warten("document.querySelector('.pm-abschluss[data-ab=frei]')")
+        self.assertEqual(planung.bogen_zeile(self.con, self.pid, self.m1)["status"], "fertig")
+
     def test_k8b_eigene_aenderung_wird_geprueft(self):
         """A1957: die eigene Änderung erscheint sofort als „wird geprüft“; berührt sie die Kosten, gilt sie erst mit Ja."""
         import json

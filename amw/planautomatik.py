@@ -290,12 +290,51 @@ def github_runde():
 
 # --- A1742: Meilenstein fertig, wenn alle Aufgaben fertig sind ----------------------------------------------------------
 VORSCHLAG = "bogen_fertig_vorschlag"      # plan_ereignis.art – einmal je Stand (neue fertige Aufgabe danach → neu)
+BEREIT = "bogen_bereit_abnahme"           # A2002: plan_ereignis.art – „bereit zur Abnahme“ gemeldet, einmal je Stand
+BEREIT_TEXT = "bereit zur Abnahme"
+# A2002 (TL #31197): ein Abnahme-Text, der nur „alle Pakete fertig“ sagt, ist kein Urteil – jeder andere (Vorführung, Bericht,
+# Probe, „Marcel nimmt … ab“) braucht das Ja zum Abschluss
+_NUR_PAKETE = re.compile(r"^(alle\s+(pakete|aufgaben|schritte)(\s+sind)?\s+(fertig|erledigt|abgeschlossen)"
+                         r"|all\s+(packages|tasks|steps)(\s+are)?\s+(done|finished|complete))[.!]?$", re.IGNORECASE)
+
+
+def mit_urteil(b):
+    """A2002: endet der Meilenstein mit einem Urteil (Abnahme-Text, der kein reines „alle Pakete fertig“ ist)?"""
+    t = " ".join(str(b["abnahme"] or "").split()).strip(" –-")
+    return bool(t) and not _NUR_PAKETE.match(t)
+
+
+def bereit_zur_abnahme(con, b):
+    """A2002: Meilenstein mit Urteil, geplant oder aktiv, mit Paketen und ohne offenes – wartet auf das Ja zum Abschluss."""
+    if b["status"] not in ("geplant", "aktiv") or not mit_urteil(b):
+        return False
+    n = con.execute("SELECT count(*), sum(status NOT IN ('fertig', 'verworfen')) FROM aufgabe WHERE bogen_id = ?", (b["id"],)).fetchone()
+    return bool(n[0]) and not n[1]
+
+
+def _bereit_melden(con, pid, b, letzte):
+    """A2002: einmal je Stand – Abschlussbericht erstellen (er geht als „bereit zur Abnahme“ an Lead und Co bzw. den Menschen)."""
+    from . import tore
+    pakete = ",".join(str(r[0]) for r in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ? AND status = 'fertig' ORDER BY id",
+                                                      (b["id"],)))
+    stand = f"[Stand {pakete} · {letzte}]"           # welche Pakete, wann zuletzt fertig – nicht nur die Zeit (Sekunden)
+    vorher = con.execute("SELECT text FROM plan_ereignis WHERE bogen_id = ? AND art = ? ORDER BY id DESC LIMIT 1",
+                         (b["id"], BEREIT)).fetchone()
+    if vorher and vorher[0].endswith(stand):
+        return None
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=BEREIT, bogen_id=b["id"],
+                     text=f"Meilenstein {b['nr']}: {BEREIT_TEXT} – {b['abnahme'][:200]} {stand}")
+    tore.bericht_erstellen(con, pid, b["id"], bereit=True)
+    return (b["id"], "bereit")
 
 
 def meilenstein_projekt(con, pid):
     """Geplante oder aktive Meilensteine mit mindestens einer Aufgabe und keiner offenen: Vorschlag an den Lead (einmal je Stand)
     oder – Projekt-Einstellung meilenstein_fertig = automatisch – selbst abschließen; hält die Versions-Pflicht das auf, wird es
-    ein Vorschlag mit Grund. Rückgabe [(Bogen-Nr, „fertig“ | „vorschlag“)]."""
+    ein Vorschlag mit Grund. A2002: endet er mit einem Urteil, bleibt er offen und ist „bereit zur Abnahme“ (Abschlussbericht,
+    Meldung an Lead und Co) – fertig wird er erst mit dem Ja zum Abschluss (planansicht.freigeben). Rückgabe [(Bogen-Nr,
+    „fertig“ | „vorschlag“ | „bereit“)]."""
     from . import planung
     if not an(con, pid):
         return []
@@ -308,6 +347,11 @@ def meilenstein_projekt(con, pid):
             " AND a.status NOT IN ('fertig', 'verworfen'))", (pid,)).fetchall():
         letzte = con.execute("SELECT max(coalesce(fertig_utc, geaendert_utc, angelegt_utc)) FROM aufgabe WHERE bogen_id = ?",
                              (b["id"],)).fetchone()[0] or ""
+        if mit_urteil(b):                                # A2002: nie selbst schließen, nie „abschließen?“ – das Urteil fehlt noch
+            r = _bereit_melden(con, pid, b, letzte)
+            if r:
+                aus.append(r)
+            continue
         if con.execute("SELECT 1 FROM plan_ereignis WHERE bogen_id = ? AND art = ? AND zeit_utc >= ?",
                        (b["id"], VORSCHLAG, letzte)).fetchone():
             continue                                     # schon vorgeschlagen, seitdem nichts Neues fertig

@@ -215,7 +215,7 @@ class MeilensteinFertig(Grund):
 
     def bogen(self, *stati):
         from amw import planung
-        bid = planung.bogen_neu(self.con, self.pid, "TL", "Karte", ziel="z", abnahme="a")
+        bid = planung.bogen_neu(self.con, self.pid, "TL", "Karte", ziel="z", abnahme="alle Pakete fertig")   # ohne Urteil (A2002)
         for i, st in enumerate(stati):
             a = self.aufgabe(titel=f"Schritt {i}")
             planung.schritt_setzen(self.con, self.pid, "TL", aid=a, bogen_id=bid)

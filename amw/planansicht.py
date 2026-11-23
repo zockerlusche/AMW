@@ -110,10 +110,13 @@ def freigeben(con, pid, von, bid, art):
         if not (kern.ist_co(con, pid, von) or kern.ist_lead(con, pid, von)):
             raise kern.AmwFehler("Ein Ja zur Freigabe geben der Co-Entwickler und der Lead (B2913) – sonst gibt der Mensch frei")
     b = _bogen(con, pid, bid)
+    bereit = False
     if art == "abschluss":                           # K7: das Ja zum Abschlussbericht – erst, wenn er fertig ist und einen Bericht hat
-        from . import tore
-        if b["status"] != "fertig":
-            raise kern.AmwFehler(f"Meilenstein {b['nr']} ist noch nicht fertig – der Abschluss kommt danach")
+        from . import planautomatik, tore
+        bereit = planautomatik.bereit_zur_abnahme(con, b)   # A2002: endet mit Urteil – das Ja macht ihn erst fertig
+        if b["status"] != "fertig" and not bereit:
+            raise kern.AmwFehler(f"Meilenstein {b['nr']} ist noch nicht {planautomatik.BEREIT_TEXT} – erst alle Pakete fertig,"
+                                 " dann der Abschluss")
         if tore.bericht(con, pid, bid) is None:
             raise kern.AmwFehler(f"Meilenstein {b['nr']}: der Abschlussbericht fehlt noch (die AMW erstellt ihn; sonst amw bogen bericht {bid})")
     elif b["status"] not in ("geplant", "aktiv"):
@@ -121,6 +124,12 @@ def freigeben(con, pid, von, bid, art):
     z = _zustaende(con, pid)
     if (z.get((bid, art)) or {}).get("an"):
         raise kern.AmwFehler(f"Meilenstein {b['nr']}: schon freigegeben")
+    if bereit:                                       # A2002: gibt dieses Ja frei, wird der Meilenstein zuerst fertig (fertig_utc) –
+        rolle = "co" if kern.ist_co(con, pid, von) else "lead"   # scheitert das (Versions-Pflicht), bleibt alles, wie es war
+        anderes = (_jas(con, pid).get((bid, art)) or {}).get("lead" if rolle == "co" else "co")
+        if von == kern.ENTWICKLER or anderes:
+            from . import planung
+            planung.bogen_status(con, pid, von, bid, "fertig", automatik=True)
     if art == "plan":
         if not (z.get((bid, "grob")) or {}).get("an"):
             raise kern.AmwFehler(f"Meilenstein {b['nr']}: erst den Meilenstein freigeben, dann seinen Plan")
@@ -216,7 +225,7 @@ def _wer(a, paket):
 
 def daten(con, pid):
     """Für die Workbench (Planung › Meilensteine/Pakete)."""
-    from . import arbeitspaket, empfehlung, planung, themen
+    from . import arbeitspaket, empfehlung, planautomatik, planung, themen
     z = _zustaende(con, pid)
     js, co_lead = _jas(con, pid), themen.freigabe_regel(con, pid) == "co+lead"
     halt = _angehalten(con, pid)                         # K8: schon angehaltene zählen nicht mehr als „nicht begonnen“
@@ -252,6 +261,7 @@ def daten(con, pid):
                     offen = [aid for x in betroffen(con, pid, tid) if x["bogen"]["id"] == b["id"] for aid in x["offen"] if aid not in halt]
                     geaendert.append({"id": tid, "name": th[tid], "fassung": f, "offen": offen})   # offen: anhaltbar (dieses Thema)
         ms.append({"id": b["id"], "nr": b["nr"], "titel": b["titel"], "status": b["status"], "endet_mit": b["abnahme"],
+                   "bereit": planautomatik.bereit_zur_abnahme(con, b),                                   # A2002
                    "themen": [{"id": k, "name": v} for k, v in sorted(th.items())], "pakete": pakete,
                    "summe": round(sum(p["usd"] for p in pakete if p["usd"]), 2) if any(p["usd"] for p in pakete) else None,
                    "geaendert": geaendert,
@@ -276,11 +286,13 @@ def daten(con, pid):
 
 
 def _abschluss(con, pid, b, ab, fehlt):
-    """K7: für fertige Meilensteine – Abschlussbericht (Dokument), Ja (frei, wer, ja_fehlt) oder zurück mit Notiz."""
-    if b["status"] != "fertig":
+    """K7: für fertige Meilensteine – Abschlussbericht (Dokument), Ja (frei, wer, ja_fehlt) oder zurück mit Notiz. A2002: auch für
+    Meilensteine, die bereit zur Abnahme sind (das Ja macht sie fertig)."""
+    from . import planautomatik, tore
+    bereit = planautomatik.bereit_zur_abnahme(con, b)
+    if b["status"] != "fertig" and not bereit:
         return None
-    from . import tore
-    if not tore._neu_fertig(con, pid, b) and tore.bericht(con, pid, b["id"]) is None:
+    if not bereit and not tore._neu_fertig(con, pid, b) and tore.bericht(con, pid, b["id"]) is None:
         return None                                  # Altbestand vor dem Stichtag: kein Abschluss nötig
     return {"bericht": tore.bericht(con, pid, b["id"]), "frei": bool(ab.get("an")), "von": ab.get("von"), "durch": ab.get("durch"),
             "notiz": None if ab.get("an") else ab.get("notiz"), "ja_fehlt": fehlt(b["id"], "abschluss", ab.get("an"))}
