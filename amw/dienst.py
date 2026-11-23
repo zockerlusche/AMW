@@ -472,6 +472,12 @@ class Dienst:
                 log.info("Fertig-Quelle: %s", e)
         except Exception as e:
             log.warning("Fertig-Quelle: %s: %s", type(e).__name__, e)
+        try:                                                                 # A1945 (K10): Frist der Fragen an den Menschen
+            from . import fragentopf
+            for e in fragentopf.runde(self.con):
+                log.info("Fragen-Topf: %s", e)
+        except Exception as e:
+            log.warning("Fragen-Topf: %s: %s", type(e).__name__, e)
         try:                                                                 # A1929: tägliche Sicherung – eigener Faden (P408)
             from . import sicherung
             sicherung.im_hintergrund(self.con.execute("PRAGMA database_list").fetchone()[2])

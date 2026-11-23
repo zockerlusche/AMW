@@ -392,7 +392,8 @@ def projekt_einstellen(con, pid, von, **werte):
                "eskalation_min": (0, 1440), "info_ablage_h": (1, 168), "version_frist_tage": (1, 365), "ende_frist_min": (1, 60),
                "ausfall_min": (5, 1440),                       # A1927: so lange darf eine Sitzung beendet sein, dann Ausfall
                "abnahme_frist_min": (1, 720),                  # A1920: Zeitlimit je Abnahme in Prüfung C (Vorgabe 30)
-               "gesamtlauf_prozesse": (1, 64)}                 # A1966: Prozesse des parallelen Gesamtlaufs (Vorgabe: halbe Kernzahl)
+               "gesamtlauf_prozesse": (1, 64),
+               "fragen_takt_h": (0, 24), "fragen_frist_h": (1, 168)}   # A1945 (K10): Fragen gebündelt (0 = sofort), Frist                 # A1966: Prozesse des parallelen Gesamtlaufs (Vorgabe: halbe Kernzahl)
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         alt = dict(e)

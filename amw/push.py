@@ -384,6 +384,9 @@ def runde(con, pid, cfg=None, jetzt=None):
               and p["schluessel"].rsplit(":", 1)[0] in schon]:
         faellig.remove(p)
         ueberholt.append((p["id"], "doppelt: Frage ist schon im Bündel"))
+    from . import fragentopf                            # A1945 (K10): Fragen gebündelt – höchstens alle fragen_takt_h Stunden
+    halten = fragentopf.zurueckhalten(con, pid, faellig, jetzt_s)   # (eine blockierende geht sofort, mit allen anderen)
+    faellig = [p for p in faellig if p["id"] not in halten]
     if ueberholt:
         with db.schreiben(con):
             for pid_, grund in ueberholt:

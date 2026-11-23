@@ -559,6 +559,19 @@ jünger als 2 h war – die Kachel zeigte stundenlang eine erledigte Aufgabe ode
   R7“, Ereignis `stil_befund` mit Kosten. Grün auf eine Prüfung mit Verstoß nur mit `--bemerkung`. Geht der Lauf schief, bekommt
   der Prüfer das als Meldung und prüft selbst – die Prüfbitte gilt trotzdem.
 
+## Fragen-Topf (A1945, K10)
+
+**Wozu:** Jede Frage an den Menschen kam einzeln als Push; blieb eine liegen, merkte niemand, was an ihr hängt.
+
+- **Bündeln:** Fragen an den Menschen gehen höchstens alle `fragen_takt_h` Stunden (Projekt-Einstellung, Vorgabe 4; 0 = sofort)
+  als ein Push „n neue Fragen an dich“. Sofort geht es, wenn eine Frage blockiert: als blockierend gestellt, oder ein Agent, der
+  an ihr hängt, hat sonst nichts Startklares – dann gehen alle wartenden mit.
+- **Was hängt:** `amw frage liste` zeigt je Frage „hängt: A12 (CC1), …“ – die Aufgaben mit offenem Wartegrund F<n>.
+- **Frist:** ist eine Frage länger als `fragen_frist_h` (Vorgabe 24) offen, meldet die Dienst-Runde das einmal dem Lead („F…
+  seit 25 h ohne Antwort“, mit allem, was hängt) und sagt jedem hängenden Agenten, womit er weitermacht (seine nächste startklare
+  Aufgabe). Die AMW verwirft nichts und nimmt keine Empfehlung an. Ereignis `frage_frist` (einmal je Frage).
+- Die Anzeige unter „Für dich“ kommt erst nach einer Kleinprobe (TH156).
+
 ## Arbeitsliste je Agent (seit 1.12.0)
 
 **Wozu:** Wer vieles gleichzeitig anfängt, macht wenig fertig. Jeder Agent arbeitet eine geordnete Liste von oben nach

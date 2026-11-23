@@ -110,6 +110,10 @@ class Push(Grund):
         self.assertIn("überholt", weg[0]["fehler"])
 
     def test_vorlaeufiger_fehler_wird_wiederholt_endgueltiger_nicht(self):
+        from amw import fragentopf                     # A1945: hier geht es um den Versand, nicht ums Bündeln – Takt 0 = sofort
+        p = mock.patch.object(fragentopf, "TAKT_H", 0)
+        p.start()
+        self.addCleanup(p.stop)
         self.fehler = push.Fehler("nicht erreichbar", True)
         self.frage()
         self.runde()

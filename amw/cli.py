@@ -1391,10 +1391,13 @@ def cmd_frage(a, con):
             for r in kern.offene_fragen(con, pid, a.an, geparkt=True):
                 print(f"F{r['id']} an {r['an']} von {r['von']}: {r['kurz']}  (geparkt {_zeit(r['geparkt_utc'])} von {r['geparkt_von']})")
             return
+        from . import fragentopf
         for r in kern.offene_fragen(con, pid, a.an):
             opt = " · ".join(f"{o['kenn']}) {o['text']}" for o in json.loads(r["optionen"]))
+            h = fragentopf.haengt(con, pid, r["id"])         # A1945 (K10): was an der Frage hängt
             print(f"F{r['id']} an {r['an']} von {r['von']}{' BLOCKIERT' if r['blockiert'] else ''}: {r['kurz']}"
-                  + (f"\n   {opt}" if opt else "") + (f"  → Empfehlung {r['empfehlung']}" if r["empfehlung"] else ""))
+                  + (f"\n   {opt}" if opt else "") + (f"  → Empfehlung {r['empfehlung']}" if r["empfehlung"] else "")
+                  + ("\n   hängt: " + ", ".join(f"A{x['aufgabe']}" + (f" ({x['agent']})" if x["agent"] else "") for x in h) if h else ""))
     elif a.aktion == "nachtrag":                    # Fragesteller: Antwort auf eine Rückfrage oder Ergänzung
         if not a.id or not a.text:
             raise kern.AmwFehler("frage nachtrag <nr> --text \"…\"")
