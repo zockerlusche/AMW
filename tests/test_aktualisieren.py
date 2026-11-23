@@ -54,7 +54,11 @@ ZUSTAND = ("(() => { try { const i = document.querySelector('#inhalt') || docume
 def seitenzustand(test):
     try:
         z = test.tab.js(ZUSTAND)                     # liest dabei auch die Netz-Ereignisse bis jetzt
-        return f"{z} · Netzfehler des Browsers: {test.tab.netzfehler} · noch offen (Weg, s): {test.tab.offen()}"
+        s = getattr(test, "server_zeiten", None)
+        server = "" if s is None else (f" · Server: langsam (Weg, s) {s['langsam']}, läuft gerade"
+                                       f" {[(w, round(time.time() - t0, 1)) for (_, w), t0 in list(s['laeuft'].items())]}")
+        return (f"{z} · Netzfehler des Browsers: {test.tab.netzfehler} · im Browser nicht abgeschlossen (Weg, s; auch: Antwort von"
+                f" der Seite nicht gelesen): {test.tab.offen()}{server}")
     except Exception as e:                       # Verbindung zum Browser weg – auch das ist ein Befund
         return f"Browser nicht erreichbar: {type(e).__name__}: {e}"
 

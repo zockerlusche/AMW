@@ -39,7 +39,9 @@ class Seitenwechsel(Rundgang):
         return self.tab.js("document.querySelector('#inhalt h1')?.textContent")
 
     def bleibt(self, h1, liste):
-        time.sleep(LANGSAM_MS / 1000 + 1)                                                       # die Startseite ist längst da
+        # A2016: Erst wenn das langsame erste Laden da ist und die Liste danach 0,5 s am Stück steht (ein stilles Neuzeichnen
+        # wegen des neuen Stands ist dann vorbei) – eine feste Pause fiel unter Last mitten in dieses Neuzeichnen (L3249/L3261)
+        self.stabil(f"!!zustand.start && document.querySelector({liste!r})")
         self.assertEqual(self.ueberschrift(), h1)
         self.assertTrue(self.tab.js(f"!!document.querySelector({liste!r})"), seitenzustand(self))   # A2016: was stattdessen da war
         self.assertEqual(self.tab.js("location.hash"), "#" + self.tab.js("zustand.sicht"))

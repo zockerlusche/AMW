@@ -29,7 +29,7 @@ import unittest
 import urllib.request
 
 from amw import kern, workbench
-from tests.test_aktualisieren import EDGE, Grund, Wiederholt, _Tab, edge_beenden, freier_port, warte_auf
+from tests.test_aktualisieren import EDGE, ZEIT, Grund, Wiederholt, _Tab, edge_beenden, freier_port, seitenzustand, warte_auf
 
 GROESSEN = {"pc": dict(width=1440, height=900, deviceScaleFactor=1, mobile=False),
             "handy": dict(width=390, height=844, deviceScaleFactor=2, mobile=True),
@@ -151,7 +151,26 @@ class Rundgang(Wiederholt, Grund):
         self.srv = workbench.starten(self.port)
         self.addCleanup(self.srv.server_close)
         self.addCleanup(self.srv.shutdown)
+        self.server_messen()
         return f"http://127.0.0.1:{self.port}/"
+
+    def server_messen(self):
+        """A2016: Dauer jeder Anfrage auf der Server-Seite – der Seitenzustand nennt langsame (> 2 s) und noch laufende."""
+        self.server_zeiten = {"laeuft": {}, "langsam": []}
+        z, h = self.server_zeiten, self.srv.RequestHandlerClass
+
+        def gemessen(alt):
+            def f(handler):
+                k, t0 = (id(handler), handler.path[:60]), time.time()
+                z["laeuft"][k] = t0
+                try:
+                    return alt(handler)
+                finally:
+                    z["laeuft"].pop(k, None)
+                    if time.time() - t0 > 2:
+                        z["langsam"] = (z["langsam"] + [(k[1], round(time.time() - t0, 1))])[-6:]
+            return f
+        h.do_GET, h.do_POST = gemessen(h.do_GET), gemessen(h.do_POST)
 
     def anmelden(self):
         """Nach dem Start des Browsers: anmelden, falls die Seite das braucht (am PC nicht)."""
@@ -200,6 +219,24 @@ class Rundgang(Wiederholt, Grund):
 
     def warten(self, bedingung, sekunden=8):
         warte_auf(self, bedingung, sekunden)
+
+    def stabil(self, bedingung, ruhe=0.5, sekunden=8):
+        """A2016: wartet, bis die Bedingung `ruhe` Sekunden am Stück gilt – ein stilles Neuzeichnen (Inhalt kurz leer, dann neu)
+        ist dann vorbei. Statt einer festen Pause, die unter Last mitten in dieses Neuzeichnen fiel (L3249, L3261)."""
+        grenze, seit = time.time() + sekunden * ZEIT, None
+        while time.time() < grenze:
+            try:
+                gilt = self.tab.js(f"!!({bedingung})")
+            except AssertionError:
+                gilt = False
+            if not gilt:
+                seit = None
+            elif seit is None:
+                seit = time.time()
+            elif time.time() - seit >= ruhe:
+                return
+            time.sleep(0.1)
+        self.fail(f"nach {sekunden * ZEIT:.0f} s nicht {ruhe} s am Stück erfüllt: {bedingung}\nSeite: {seitenzustand(self)}")
 
     def oeffnen(self, sicht, bereit="true", reiter=None):
         self.besuche = getattr(self, "besuche", 0) + 1                    # neue Adresse = echtes Neuladen (nur #… lädt nicht neu,
