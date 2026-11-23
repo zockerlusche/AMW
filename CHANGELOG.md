@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.174.1 – 23.11.2026 · Team zeigt den Co-Entwickler richtig
+- **Behoben:** Der Co-Entwickler heißt in der Workbench „Co-Entwickler“, und das Team zeigt bei ihm keine fremde Aufgabe mehr.
+
 ## 1.174.0 – 23.11.2026 · Zeitfenster für schwere Läufe je Projekt
 - **Neu:** Je Projekt lässt sich ein Zeitfenster für schwere Läufe setzen (z. B. 18:00–07:00); außerhalb warten sie sichtbar und halten niemanden auf. Ohne Fenster bleibt alles wie bisher.
 
