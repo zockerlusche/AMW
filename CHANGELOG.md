@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.173.0 – 23.11.2026 · p als Vorgabe, Anteil p und Sprachprüfung
+- **Verbessert:** Kleine Pakete plant die AMW als p; Betrieb zeigt den Anteil p, und jede Prüfbitte bekommt eine Sprachprüfung.
+
 ## 1.172.1 – 23.11.2026 · Online wieder aktuell
 - **Behoben:** Die Online-Seite wird wieder aktuell gehalten, und das Zahnrad öffnet sich schnell.
 
