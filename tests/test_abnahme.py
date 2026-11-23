@@ -182,6 +182,25 @@ class Beispielzweige(unittest.TestCase):
         self.assertTrue(abnahme.diff_tor(self.p["klon"], self.basis, ["tests/test_wert.py", "wert.txt"], abnahme.TEST_SCHREIBEN)["ok"])
         self.assertFalse(abnahme.diff_tor(self.p["klon"], self.basis, ["tests/test_wert.py", "wert.txt"])["ok"])   # sonst gesperrt
 
+    def test_a2036_neues_modul_fehlt_im_alten_stand(self):
+        """A2036 (A2025/A2026 E6): legt das Paket ein NEUES Modul an, fehlt es im alten Stand – der neue Test ist dagegen rot.
+        Vorher blieb das Modul beim Gegenlauf liegen, der Test war „schon grün“ und das Paket fiel als „prüft nichts“ durch."""
+        test = "tests/test_neu.py"
+        self.schreiben(test, "import unittest\nimport neumodul\nclass T(unittest.TestCase):\n    def test_n(self):\n"
+                             "        self.assertEqual(neumodul.WERT, 3)\n")
+        self.schreiben("neumodul.py", "WERT = 3\n")
+        self.schreiben("notiz.txt", "nicht committet\n", commit=False)                        # neu, nicht committet
+        befehl = f"{PY} -m unittest {test.replace('/', '.')[:-3]}"
+        self.assertTrue(abnahme.abnahme(self.p, befehl)["gruen"])
+        r = abnahme.test_gegen_basis(self.p, befehl, self.basis, [test])
+        self.assertTrue(r["ok"], r)                                                             # gegen alt: rot (Modul fehlt)
+        for name, inhalt in (("neumodul.py", "WERT = 3\n"), ("notiz.txt", "nicht committet\n"), (test, None)):
+            pfad = os.path.join(self.p["klon"], name)
+            self.assertTrue(os.path.isfile(pfad), name)                                         # alles wieder da
+            if inhalt:
+                self.assertEqual(open(pfad).read(), inhalt, name)
+        self.assertEqual(g(self.p["klon"], "status", "--porcelain", "--untracked-files=no").strip(), "")
+
     def test_marker_schuetzt(self):
         os.remove(os.path.join(self.p["klon"], ".git", platz.MARKER))
         with self.assertRaises(platz.PlatzFehler):

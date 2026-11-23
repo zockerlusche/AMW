@@ -404,15 +404,34 @@ def test_gegen_basis(p, befehl, basis, testdateien, frist=FRIST_S, umgebung=None
     from . import platz
     if _git(p["klon"], "status", "--porcelain", "--untracked-files=no"):   # unverfolgte (z. B. __pycache__) bleiben ohnehin unberührt
         return {"ok": False, "grund": "nicht alles committet – der alte Stand lässt sich so nicht sauber herstellen", "rc": None}
+    import shutil
+    import tempfile
     kopf = _git(p["klon"], "rev-parse", "HEAD").strip()
-    in_basis = set(_git(p["klon"], "ls-tree", "-r", "--name-only", basis).split())
-    andere = [x for x in geaendert(p["klon"], basis) if x not in set(_norm(t) for t in testdateien) and x in in_basis]
+    in_basis = set(_git(p["klon"], "ls-tree", "-r", "--name-only", basis).splitlines())
+    tests = set(_norm(t) for t in testdateien)
+    code = [x for x in geaendert(p["klon"], basis) if x not in tests]
+    andere = [x for x in code if x in in_basis]
+    # A2036: neue Dateien (nicht in der Basis, keine Tests) gibt es im alten Stand nicht – sie kommen für den Gegenlauf beiseite,
+    # sonst ist ein Test für ein neues Modul gegen „alt“ grün und prüft scheinbar nichts (E6)
+    neue = [x for x in code if x not in in_basis and os.path.isfile(os.path.join(p["klon"], x))]
+    ablage = tempfile.mkdtemp(prefix="amw-gegenlauf-") if neue else ""
+    weg = []
     try:
         if andere:
             _git(p["klon"], "checkout", basis, "--", *andere)
+        for x in neue:
+            ziel = os.path.join(ablage, x)
+            os.makedirs(os.path.dirname(ziel), exist_ok=True)
+            shutil.move(os.path.join(p["klon"], x), ziel)
+            weg.append(x)
         r = ausfuehren(befehl, p["klon"], umgebung or platz.umgebung(p), frist)   # A1849: Prüfung C gibt die minimale Umgebung mit
     finally:
-        _git(p["klon"], "checkout", kopf, "--", ".")          # alles war committet: der Stand des Arbeiters ist unverändert
+        for x in weg:                                      # erst die beiseite gelegten zurück (auch nicht committete), …
+            os.makedirs(os.path.dirname(os.path.join(p["klon"], x)) or p["klon"], exist_ok=True)
+            shutil.move(os.path.join(ablage, x), os.path.join(p["klon"], x))
+        if ablage:
+            shutil.rmtree(ablage, ignore_errors=True)      # leer – nur der eigene Zwischenordner
+        _git(p["klon"], "checkout", kopf, "--", ".")          # … dann der Code: alles war committet, der Stand bleibt unverändert
     if r.get("fehler"):
         return {**r, "ok": False, "grund": r["fehler"]}
     gruen = r["rc"] == 0 and not r["zeitlimit"]
