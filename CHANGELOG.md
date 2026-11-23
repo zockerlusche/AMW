@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.175.1 – 24.11.2026 · Prüfung C erkennt Tests für neue Module
+- **Behoben:** Prüfung C erkennt jetzt Tests für neue Module richtig; solche p-Pakete fallen nicht mehr fälschlich als „prüft nichts“ durch.
+
 ## 1.175.0 – 23.11.2026 · Nur der Lead fragt dich
 - **Verbessert:** Dich fragt nur noch der Lead: Fragen der Agenten gehen an ihn, er stellt sie dir – auch gebündelt.
 
