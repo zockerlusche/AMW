@@ -3,11 +3,13 @@
 Reihenfolge der Quellen (die erste, die es gibt):
 1. Lauf: ein Lauf des Agenten mit Status „läuft“ (nie ein beendeter oder abgebrochener) – Zeit = Start des Laufs.
 2. Aufgabe: seine zuletzt begonnene laufende Aufgabe – Zeit = Beginn.
-3. Meldung: die Aufgabe aus seiner letzten eigenen Nachricht (Nummer oder A1234 im Text) – Zeit = Nachricht.
+3. Meldung: die Aufgabe aus seiner letzten eigenen Nachricht (Nummer oder A1234 im Text) – Zeit = Nachricht; nur, wenn die
+   Aufgabe nicht fertig oder verworfen ist (A1989).
 Läuft ein Lauf zu einer Aufgabe, zeigt der Text beides („A12 · Titel – L34 läuft“).
 
 `amw taetigkeit` ergänzt nur: der Text erscheint dazu, wenn er nicht älter als die abgeleitete Quelle ist und keine andere
-Aufgabe nennt. Gibt es keine abgeleitete Quelle, ist er allein die Angabe (Quelle „angabe“).
+Aufgabe nennt. Gibt es keine abgeleitete Quelle, ist er allein die Angabe (Quelle „angabe“). Nennt der Text einen Lauf L1234,
+der nicht mehr läuft, fällt er weg (A1989) – das gilt auch für die Angabe, die beim Laufstart gesetzt wurde.
 
 Alter und veraltet: jeder Wert trägt Quelle und Zeit. Deckendes Ereignis ist der Puls der Sitzung (Hook, Statuszeile,
 Ereignis, eigene Angabe). Ohne Puls seit VERALTET_S gilt der Wert als veraltet. Ist die letzte Sitzung eines Terminal-Agenten
@@ -20,6 +22,7 @@ from . import kern
 
 VERALTET_S = 30 * 60
 AUFGABE_IN_TEXT = re.compile(r"\bA(\d{3,6})\b")
+LAUF_IN_TEXT = re.compile(r"\bL(\d{1,6})\b")
 
 
 def _neuester(*zeiten):
@@ -57,10 +60,12 @@ def ableiten(con, pid, kennung):
         if m:
             treffer = AUFGABE_IN_TEXT.search(m["kurz"] or "")
             aid = m["aufgabe_id"] or (int(treffer.group(1)) if treffer else None)
-            t = con.execute("SELECT titel FROM aufgabe WHERE projekt_id = ? AND id = ?", (pid, aid)).fetchone() if aid else None
-            if t:
+            t = con.execute("SELECT titel, status FROM aufgabe WHERE projekt_id = ? AND id = ?", (pid, aid)).fetchone() if aid else None
+            if t and t["status"] not in ("fertig", "verworfen"):      # A1989: Fertiges macht er nicht mehr
                 aus = {"text": f"A{aid} · {t['titel']}", "aufgabe": aid, "quelle": "meldung", "seit_utc": m["zeit_utc"]}
     angabe = (s["taetigkeit"] or "").strip() if s and s["zustand"] == "aktiv" else ""
+    if angabe and _nennt_beendeten_lauf(con, pid, angabe):
+        angabe = ""                                    # A1989: „L3096 Planer …“, aber L3096 ist längst fertig
     angabe_utc = s["taetigkeit_utc"] if angabe else None
     if aus is None:
         if not angabe:
@@ -73,6 +78,15 @@ def ableiten(con, pid, kennung):
     aus["puls_utc"] = puls
     aus["veraltet"] = None if (chat or not s) else (not puls or kern.alter_s(puls) >= VERALTET_S)   # ohne Hooks: kein Urteil
     return aus
+
+
+def _nennt_beendeten_lauf(con, pid, text):
+    """Nennt die eigene Angabe einen Lauf, der nicht (mehr) läuft? Unbekannte Nummern zählen nicht."""
+    for n in {int(x) for x in LAUF_IN_TEXT.findall(text)}:
+        l = con.execute("SELECT status FROM lauf WHERE projekt_id = ? AND id = ?", (pid, n)).fetchone()
+        if l and l["status"] != "laeuft":
+            return True
+    return False
 
 
 def _nennt_andere(text, aid):

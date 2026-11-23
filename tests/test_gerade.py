@@ -62,6 +62,32 @@ class Gerade(unittest.TestCase):
         self.assertEqual(g["text"], f"A{a} · Gesamtlauf parallel – L{lid} läuft: Messlauf 3")
         self.assertFalse(g["veraltet"])
 
+    def test_a1989_fertige_aufgabe_aus_meldung_nie(self):                                   # #30969: „A1971 … (letzte Meldung)“
+        a = kern.aufgabe_neu(self.con, self.pid, "TL", "Schon erledigt", agent="CC1")
+        kern._posten(self.con, self.pid, "CC1", "TL", "info", f"A{a} ausgeliefert", "", aufgabe_id=a)
+        self.assertEqual(self.g()["quelle"], "meldung")
+        for status in ("fertig", "verworfen"):
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE aufgabe SET status = ?, beleg = 'abc1234' WHERE id = ?", (status, a))
+            self.assertIsNone(self.g(), status)
+        b = kern.aufgabe_neu(self.con, self.pid, "TL", "Noch offen", agent="CC1")
+        kern._posten(self.con, self.pid, "CC1", "TL", "info", f"A{b} wartet auf Prüfung", "", aufgabe_id=b)
+        self.assertEqual((self.g()["quelle"], self.g()["aufgabe"]), ("meldung", b))
+
+    def test_a1989_angabe_mit_beendetem_lauf_faellt_weg(self):                              # #30969: „L3096 Planer … seit 9 h“
+        lid = self.lauf(beschreibung="Planer")
+        self.angabe(f"L{lid} Planer prüfen", 5)
+        self.assertEqual((self.g()["quelle"], self.g()["ergaenzung"]), ("lauf", f"L{lid} Planer prüfen"))
+        for status in ("fertig", "abgebrochen"):
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE lauf SET status = ? WHERE id = ?", (status, lid))
+            self.assertIsNone(self.g(), status)                                                # auch nicht als alleinige Angabe
+        a = self.aufgabe("Etwas anderes")
+        self.angabe(f"L{lid} nachsehen", 1, aid=a)
+        self.assertEqual((self.g()["quelle"], self.g()["ergaenzung"]), ("aufgabe", None))      # nicht als Ergänzung
+        self.angabe("L99999 und Tests", 1, aid=a)                                              # unbekannter Lauf: bleibt
+        self.assertEqual(self.g()["ergaenzung"], "L99999 und Tests")
+
     def test_beendeter_lauf_und_beendete_sitzung_nie(self):                                 # #30625: L3054 „seit 1 h“
         a = self.aufgabe("Etwas")
         self.lauf(status="fertig", aid=a)
