@@ -234,7 +234,8 @@ def nennen(liste, hoechstens=2):
     teile = []
     for x in liste[:hoechstens]:
         try:
-            seit = datetime.datetime.strptime(x["seit_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).astimezone()
+            from . import db
+            seit = db.utc_lesen(x["seit_utc"]).astimezone()
             wann = seit.strftime("%H:%M") if seit.date() == datetime.datetime.now().astimezone().date() else seit.strftime("%d.%m. %H:%M")
         except ValueError:
             wann = "?"

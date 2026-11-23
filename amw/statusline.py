@@ -120,8 +120,8 @@ def uebernehmen(con):
 
 
 def _sek(utc):
-    import calendar
-    return calendar.timegm(time.strptime(utc, "%Y-%m-%dT%H:%M:%SZ"))
+    from . import db
+    return db.utc_sek(utc)
 
 
 def verbrauch_tage(con, pid, tage=7):

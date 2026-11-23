@@ -137,6 +137,25 @@ def jetzt():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+_UTC_MUSTER = re.compile(r"\s*(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?\s*(?:Z|[+-]00:?00|UTC)?\s*")
+
+
+def utc_lesen(utc):
+    """A2001: eine gespeicherte UTC-Zeit lesen – an EINER Stelle und tolerant: „2026-11-23T08:00:00Z“ (das Format der AMW) wie
+    ältere Einträge „2026-10-21 07:08:44“ (SQLite datetime('now')), mit Bruchteilen oder „+00:00“. Gibt eine Zeit mit
+    Zeitzone UTC zurück; was keine Zeit ist, gibt ValueError (wie strptime)."""
+    m = _UTC_MUSTER.fullmatch(utc or "") if isinstance(utc, str) else None
+    if not m:
+        raise ValueError(f"keine UTC-Zeit: {utc!r}")
+    j, mo, t, h, mi, s = (int(x or 0) for x in m.groups())
+    return datetime(j, mo, t, h, mi, s, tzinfo=timezone.utc)
+
+
+def utc_sek(utc):
+    """Wie utc_lesen, als Sekunden seit 1970 (ganze Zahl wie calendar.timegm)."""
+    return int(utc_lesen(utc).timestamp())
+
+
 def herkunft():
     return socket.gethostname()
 

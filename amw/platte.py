@@ -264,7 +264,7 @@ def faellig(con, jetzt=None):
     letzte = con.execute("SELECT max(zeit_utc) FROM ordner_messung").fetchone()[0]
     if letzte:
         try:
-            alt = (jetzt - datetime.datetime.strptime(letzte, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)).total_seconds()
+            alt = (jetzt - db.utc_lesen(letzte)).total_seconds()
         except ValueError:
             alt = MESSEN_ALLE_S
         if alt < MESSEN_ALLE_S:
@@ -302,8 +302,7 @@ def ablagerungen(con, pid=None, n=10, jetzt=None):
         tage = None
         if r["zuletzt_utc"]:
             try:
-                tage = max(0, (jetzt - datetime.datetime.strptime(r["zuletzt_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(
-                    tzinfo=datetime.timezone.utc)).days)
+                tage = max(0, (jetzt - db.utc_lesen(r["zuletzt_utc"])).days)
             except ValueError:
                 pass
         aus.append({"ordner": r["ordner"], "art": r["art"], "bytes": r["bytes"], "tage": tage})
@@ -349,7 +348,7 @@ def _arbeitskopien(pfad, tiefe=5):
 
 def _alter_tage(utc, jetzt):
     try:
-        return max(0, (jetzt - datetime.datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)).days)
+        return max(0, (jetzt - db.utc_lesen(utc)).days)
     except (TypeError, ValueError):
         return None
 

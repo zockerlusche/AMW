@@ -544,7 +544,7 @@ def ende_anfordern(con, pid, kennungen=None, frist_min=None, jetzt=None):
     if kennungen and not laufend:
         raise kern.AmwFehler(f"{', '.join(kennungen)} läuft nicht" if not set(kennungen) & schon
                              else f"{', '.join(kennungen)}: Sichern & beenden läuft schon")
-    ortszeit = datetime.datetime.strptime(bis, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).astimezone().strftime("%H:%M")
+    ortszeit = db.utc_lesen(bis).astimezone().strftime("%H:%M")
     with db.schreiben(con):
         for k in laufend:
             sid = db.einfuegen(con, "sperre", projekt_id=pid, art="halt", gilt_fuer=k, von=kern.ENTWICKLER,
@@ -660,7 +660,7 @@ class Neustarter:
 
 def db_sek(utc):
     import calendar
-    return calendar.timegm(time.strptime(utc, "%Y-%m-%dT%H:%M:%SZ"))
+    return db.utc_sek(utc)
 
 
 # --- Startskript ---------------------------------------------------------------------------------

@@ -193,7 +193,7 @@ def im_hintergrund(pfad, warten=None):
 
 def _lokaler_tag(zeit_utc):
     try:
-        t = datetime.datetime.strptime(zeit_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+        t = db.utc_lesen(zeit_utc)
     except (TypeError, ValueError):
         return None
     return t.astimezone().date().isoformat()

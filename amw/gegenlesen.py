@@ -62,7 +62,7 @@ def _ereignisse(con, pid, tid, art=None):
 
 
 def _alt(zeit_utc, jetzt=None):
-    t = datetime.datetime.strptime(zeit_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    t = db.utc_lesen(zeit_utc)
     return ((jetzt or datetime.datetime.now(datetime.timezone.utc)) - t).total_seconds() > LAEUFT_H * 3600
 
 

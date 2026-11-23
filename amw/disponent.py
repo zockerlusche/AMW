@@ -125,7 +125,7 @@ class _Platzsperre:
 def _alter_s(utc):
     import datetime
     try:
-        t = datetime.datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+        t = db.utc_lesen(utc)
         return (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds()
     except (TypeError, ValueError):
         return 10 ** 9

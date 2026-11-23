@@ -1236,7 +1236,7 @@ def daten_projekte(con, pid):
         if f["uid"] in eigene:
             continue
         try:
-            gesehen = datetime.datetime.strptime(f["gesehen_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()
+            gesehen = db.utc_lesen(f["gesehen_utc"]).timestamp()
         except (TypeError, ValueError):
             gesehen = 0
         aus.append({"uid": f["uid"], "name": f["name"], "farbe": f["farbe"] or "bernstein", "fragen": int(f["fragen"] or 0),

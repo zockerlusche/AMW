@@ -6,7 +6,6 @@ meldet sich zur Aufgabe, der Entwickler antwortet), weckt die AMW den Besitzer d
 Die Leerlauf-Prüfung im Dienst weckt Agenten, die frei sind, obwohl eine ihrer Aufgaben auf nichts mehr wartet.
 Alle Funktionen außer `setzen`/`leerlauf` laufen innerhalb eines offenen Schreibvorgangs des Aufrufers.
 """
-import calendar
 import json
 import re
 import time
@@ -23,7 +22,7 @@ ERLEDIGT_TEXT = {"frage": "beantwortet", "aufgabe": "abgeschlossen", "lauf": "zu
 
 
 def _sek(utc):
-    return calendar.timegm(time.strptime(utc, "%Y-%m-%dT%H:%M:%SZ"))
+    return db.utc_sek(utc)
 
 
 def bezug_lesen(con, pid, teil):

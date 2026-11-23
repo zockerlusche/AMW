@@ -43,6 +43,7 @@ log = logging.getLogger("amw.abgleich")
 GESPRAECH_S = 600    # Gespräch eines Agenten online: nur auf Wunsch der Seite, so lange nach dem letzten Abruf
 HOCH_S = 30          # Ansichten höchstens so oft hochladen (nur bei Änderung)
 PULS_S = 300         # spätestens dann Start/Betrieb neu (zeigt online: „PC zuletzt gesehen“)
+FEHLER_RUNDEN = 3    # A2001: so viele Runden in Folge derselbe Fehler einer Ansicht → einmal Meldung an den Lead
 EINGANG_S = 15       # Briefkasten so oft leeren
 TEIL = 256 * 1024    # Datei-Teil in Bytes (Base64 ~350 KB je Zeile)
 TEILE_JE_ANFRAGE = 4             # ~1,4 MB je Anfrage an den Speicher
@@ -323,46 +324,75 @@ def _fremde_ohne_namen(start, pid, con):
     return start
 
 
-def ansichten(con, pid, speicher=None):
-    """Dieselben Antworten wie die lokale Workbench, Schlüssel = Weg, wie ihn die Seite anfragt."""
+def _sicher(fehler, weg, f, *args, **kw):
+    """A2001: eine Ansicht bauen – scheitert sie (z. B. ein Datensatz mit kaputter Zeit), wird sie übersprungen und der Fehler
+    gemerkt (fehler: Liste [(weg, text)]); die übrigen Ansichten gehen trotzdem hoch. Ohne Liste: der Fehler fliegt wie bisher."""
+    if fehler is None:
+        return f(*args, **kw)
+    try:
+        return f(*args, **kw)
+    except Exception as e:                                # noqa: BLE001 – jede Ansicht für sich; gemeldet wird gesammelt
+        fehler.append((weg, f"{type(e).__name__}: {e}"))
+        return None
+
+
+def ansichten(con, pid, speicher=None, fehler=None):
+    """Dieselben Antworten wie die lokale Workbench, Schlüssel = Weg, wie ihn die Seite anfragt. fehler (A2001): Liste, in die
+    gescheiterte Ansichten kommen – sie fehlen dann im Ergebnis (online bleibt der alte Stand), der Rest geht hoch."""
     from . import paketliste
     leer = {"agent": [""], "q": [""]}
-    a = {"/api/start": _fremde_ohne_namen(workbench.daten_start(con, pid), pid, con),
-         "/api/fragen": workbench.daten_fragen(con, pid),
-         "/api/nachrichten": workbench.daten_nachrichten(con, pid),
-         "/api/teamchat": workbench.daten_teamchat(con, pid),
-         "/api/runde": workbench.daten_runde(con, pid),       # A1680: online nur lesen, nur System-Admins (api.php prüft)
-         "/api/fragen?alle=1": workbench.daten_fragen(con, pid, True),
-         "/api/fragen?erledigt=1": workbench.daten_fragen_erledigt(con, pid),   # A1657
-         "/api/wissen": workbench.daten_wissen(con, pid, {"q": [""]}),
-         "/api/betrieb": _betrieb_ohne_namen(workbench.daten_betrieb(con, pid)),
-         "/api/releases": workbench.daten_releases(con, pid),
-         "/api/versionshinweise": workbench.daten_versionshinweise(con, pid),
-         "/api/projekte": workbench.daten_projekte(con, pid),
-         "/api/einstellungen": workbench.daten_einstellungen(con, pid, speicher),
-         "/api/agenten": workbench.daten_agenten_alle(con, pid),
-         "/api/planung": workbench.daten_planung(con, pid),
-         "/api/pakete": paketliste.daten(con, pid, am_pc=False),   # A1850: online nur lesen – ohne Platz-Abfrage, ohne Mitlesen
-         "/api/verlauf": workbench.daten_verlauf(con, pid, {"tage": ["3"]}),
-         "/api/seit": verlauf.seit_daten(con, pid),
-         "/api/listen": workbench.daten_listen(con, pid),
-         "/api/themen": workbench.daten_themen(con, pid)}
-    a["/api/start"]["heimnetz"] = None                   # Heimnetz (A1643): nur am PC von Belang
+    bauen = {"/api/start": lambda: _fremde_ohne_namen(workbench.daten_start(con, pid), pid, con),
+             "/api/fragen": lambda: workbench.daten_fragen(con, pid),
+             "/api/nachrichten": lambda: workbench.daten_nachrichten(con, pid),
+             "/api/teamchat": lambda: workbench.daten_teamchat(con, pid),
+             "/api/runde": lambda: workbench.daten_runde(con, pid),       # A1680: online nur lesen, nur System-Admins (api.php prüft)
+             "/api/fragen?alle=1": lambda: workbench.daten_fragen(con, pid, True),
+             "/api/fragen?erledigt=1": lambda: workbench.daten_fragen_erledigt(con, pid),   # A1657
+             "/api/wissen": lambda: workbench.daten_wissen(con, pid, {"q": [""]}),
+             "/api/betrieb": lambda: _betrieb_ohne_namen(workbench.daten_betrieb(con, pid)),
+             "/api/releases": lambda: workbench.daten_releases(con, pid),
+             "/api/versionshinweise": lambda: workbench.daten_versionshinweise(con, pid),
+             "/api/projekte": lambda: workbench.daten_projekte(con, pid),
+             "/api/einstellungen": lambda: workbench.daten_einstellungen(con, pid, speicher),
+             "/api/agenten": lambda: workbench.daten_agenten_alle(con, pid),
+             "/api/planung": lambda: workbench.daten_planung(con, pid),
+             "/api/pakete": lambda: paketliste.daten(con, pid, am_pc=False),   # A1850: online nur lesen – ohne Platz-Abfrage, ohne Mitlesen
+             "/api/verlauf": lambda: workbench.daten_verlauf(con, pid, {"tage": ["3"]}),
+             "/api/seit": lambda: verlauf.seit_daten(con, pid),
+             "/api/listen": lambda: workbench.daten_listen(con, pid),
+             "/api/themen": lambda: workbench.daten_themen(con, pid)}
+    a = {}
+    for weg, f in bauen.items():
+        x = _sicher(fehler, weg, f)
+        if x is not None:
+            a[weg] = x
     eigen = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()["name"]
-    re_ = a["/api/start"].get("rechner")
-    if isinstance(re_, dict):                     # Vorrang der Projekte (A1623): fremde Projektnamen bleiben am PC
-        re_["vorrang"] = [x for x in re_.get("vorrang") or [] if x["projekt"] == eigen]
-    pc = a["/api/einstellungen"].get("pc") or {}
-    pc["vorrang"] = {k: v for k, v in (pc.get("vorrang") or {}).items() if k == eigen}
-    pc["vorrang_projekte"] = [eigen]
-    for t in a["/api/themen"]:
-        a[f"/api/thema?id={t['id']}"] = workbench.daten_thema(con, pid, t["id"])
+    if "/api/start" in a:
+        a["/api/start"]["heimnetz"] = None               # Heimnetz (A1643): nur am PC von Belang
+        re_ = a["/api/start"].get("rechner")
+        if isinstance(re_, dict):                     # Vorrang der Projekte (A1623): fremde Projektnamen bleiben am PC
+            re_["vorrang"] = [x for x in re_.get("vorrang") or [] if x["projekt"] == eigen]
+    if "/api/einstellungen" in a:
+        pc = a["/api/einstellungen"].get("pc") or {}
+        pc["vorrang"] = {k: v for k, v in (pc.get("vorrang") or {}).items() if k == eigen}
+        pc["vorrang_projekte"] = [eigen]
+    for t in a.get("/api/themen") or []:
+        weg = f"/api/thema?id={t['id']}"
+        x = _sicher(fehler, weg, workbench.daten_thema, con, pid, t["id"])
+        if x is not None:
+            a[weg] = x
     for s in SICHTEN:
-        a[f"/api/aufgaben?sicht={s}"] = workbench.daten_aufgaben(con, pid, {"sicht": [s], **leer})
+        weg = f"/api/aufgaben?sicht={s}"
+        x = _sicher(fehler, weg, workbench.daten_aufgaben, con, pid, {"sicht": [s], **leer})
+        if x is not None:
+            a[weg] = x
     for (aid,) in con.execute("SELECT id FROM aufgabe WHERE projekt_id = ? AND (status IN ('wartet', 'laeuft', 'blockiert')"
                               " OR fertig_utc >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-3 days'))", (pid,)).fetchall():
-        a[f"/api/aufgabe?id={aid}"] = workbench.daten_aufgabe(con, pid, aid)      # offene und kürzlich abgeschlossene
-    a.update(dokument_ansichten(con, pid))
+        weg = f"/api/aufgabe?id={aid}"                    # offene und kürzlich abgeschlossene
+        x = _sicher(fehler, weg, workbench.daten_aufgabe, con, pid, aid)
+        if x is not None:
+            a[weg] = x
+    a.update(_sicher(fehler, "dokumente", dokument_ansichten, con, pid) or {})
     return a
 
 
@@ -504,6 +534,7 @@ class Abgleich:
         self.nur = pid                         # nur dieses Projekt (Tests); sonst alle Projekte dieser AMW
         self.bekannt = {}                      # Schlüssel „<uid>:<weg>“ → Prüfsumme, wie sie online liegt
         self.alt_weg = False                   # Ansichten aus der Zeit vor den Projekt-Kennungen sind gelöscht
+        self.fehler = {}                       # A2001: (pid, weg, text) → (Runden in Folge, gemeldet)
         self.letzt_hoch = self.letzt_puls = self.letzt_index = self.letzt_oben = 0.0
         self.oben = {}                         # sha → Status der Dateien im Speicher (unterwegs | abgelegt)
         self.paare = set()                     # (sha, uid): welche Datei zu welchem Projekt gehört
@@ -614,10 +645,16 @@ class Abgleich:
         index = alle or time.time() - self.letzt_index >= INDEX_S
         rechner = einstellungen.wert("rechner")
         verzeichnis = []
+        fehler_runde = {}                             # A2001: (pid, weg) → Fehlertext dieser Runde
         for pid, uid in self.projekte():
-            alle_ansichten = ansichten(self.con, pid, self.sp)
+            fehler = []
+            alle_ansichten = ansichten(self.con, pid, self.sp, fehler)
             if index:
-                alle_ansichten["/api/suchindex"] = suchindex(self.con, pid)
+                x = _sicher(fehler, "/api/suchindex", suchindex, self.con, pid)
+                if x is not None:
+                    alle_ansichten["/api/suchindex"] = x
+            for weg, text in fehler:
+                fehler_runde[(pid, weg)] = text
             for weg, inhalt in alle_ansichten.items():
                 p = _pruef(inhalt)
                 if alle or self.bekannt.get(f"{uid}:{weg}") != p:
@@ -652,7 +689,28 @@ class Abgleich:
                 self.bekannt.pop(w)
         self.sp.ausfuehren(verzeichnis)
         self.verzeichnis_lesen()
+        self.fehler_zaehlen(fehler_runde)
         return n
+
+    def fehler_zaehlen(self, fehler_runde):
+        """A2001: Gescheiterte Ansichten zählen. Ins Log nur beim ersten Mal; derselbe Fehler FEHLER_RUNDEN Runden in Folge →
+        einmal eine Meldung an den Lead des Projekts (danach still, bis der Fehler weg ist und wiederkommt)."""
+        alt = self.fehler
+        self.fehler = {}
+        for (pid, weg), text in fehler_runde.items():
+            n, gemeldet = alt.get((pid, weg, text), (0, False))
+            n += 1
+            if n == 1:
+                log.warning("Synchronisierung: %s übersprungen (Projekt %s): %s", weg, pid, text)
+            if n >= FEHLER_RUNDEN and not gemeldet:
+                gemeldet = True
+                lead = kern.lead(self.con, pid)
+                if lead:
+                    with db.schreiben(self.con):
+                        kern._posten(self.con, pid, "AMW", lead, "meldung",
+                                     f"Synchronisierung: {weg} lässt sich seit {n} Runden nicht bauen – übersprungen"[:140],
+                                     f"{text}\nDie übrigen Ansichten gehen weiter hoch; online bleibt für {weg} der alte Stand.")
+            self.fehler[(pid, weg, text)] = (n, gemeldet)
 
     def verzeichnis_lesen(self):
         """Alle Projekte im Online-Speicher (auch anderer Rechner) für die Projekt-Auswahl am PC merken."""

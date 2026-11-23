@@ -14,6 +14,10 @@ PC (Wächter)                               Online-Speicher (Turso)             
 - **Schaufenster:** Der Wächter berechnet dieselben Ansichten wie die Workbench (Start, Fragen, Aufgaben, Planung,
   Verlauf, Wissen, Betrieb, Release Notes, Agenten, Dokumente mit Texten, Suchindex) und lädt sie nur bei Änderung hoch (höchstens alle 30 s,
   sonst alle 5 min als Lebenszeichen). Online liegen keine Tabellen, nur diese Ansichten.
+- **Eine Ansicht scheitert (seit A2001):** Jede Ansicht wird für sich gebaut. Scheitert eine (etwa ein Datensatz mit kaputtem
+  Inhalt), bleibt online ihr alter Stand, und alle übrigen gehen trotzdem hoch. Ins Dienst-Log kommt das einmal; hält derselbe
+  Fehler 3 Runden an, bekommt der Lead des Projekts einmal eine Meldung. Gespeicherte Zeiten liest die AMW an einer Stelle
+  (`db.utc_lesen`): im eigenen Format `2026-11-23T08:00:00Z` wie in älteren Einträgen `2026-10-21 07:08:44`.
 - **Briefkasten:** Online erlaubt sind: Frage beantworten, Nachricht an Agenten (Auftrag, Frage, Info, Korrektur,
   Freigabe), Nachrichten an dich als gelesen markieren, Halt, Weiter, Projekt-/Agenten-/Seiten-Einstellungen,
   Planung (Freigaben, Leitbild, Bögen, Risiken, Rückblick), Aufgaben (eigene erledigt/später, Antwort an den

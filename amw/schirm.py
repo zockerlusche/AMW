@@ -7,7 +7,6 @@ Fernsitzung beginnt (wenn ihr Programm in den PC-Einstellungen steht), eine Eing
 bis-Uhrzeit ist erreicht. Schreibt er vom Handy (Online-Seite, Chat, Wortlaut), bleibt der Bildschirm frei. Die Lauf-Schlange startet Läufe mit Fenster nur bei frei und wenn der PC seit RUHE_S ruht
 (betrieb.py). Die AMW beendet selbst keine Prozesse – sie meldet.
 """
-import calendar
 import re
 import ctypes
 import time
@@ -27,7 +26,7 @@ BIS_GEAENDERT = " · bis geändert um "
 
 
 def _sek(utc):
-    return calendar.timegm(time.strptime(utc, "%Y-%m-%dT%H:%M:%SZ"))
+    return db.utc_sek(utc)
 
 
 def _utc(sek):

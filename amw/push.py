@@ -288,7 +288,7 @@ def _minuten_alt(utc):
 
 
 def db_sek(utc):
-    return datetime.datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()
+    return db.utc_lesen(utc).timestamp()
 
 
 def ereignisse(con, pid, cfg, jetzt=None):

@@ -68,7 +68,7 @@ def zurueckhalten(con, pid, eintraege, jetzt_s):
                     " AND ergebnis IN ('gesendet', 'teilweise')", (pid,)).fetchone()[0]
     if not r:
         return set()                                   # noch nie gebündelt: jetzt
-    alt = jetzt_s - datetime.datetime.strptime(r, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()
+    alt = jetzt_s - db.utc_lesen(r).timestamp()
     return {p["id"] for p in fragen} if alt < takt * 3600 else set()
 
 
@@ -85,7 +85,7 @@ def runde(con, jetzt=None):
     aus = []
     for f in con.execute("SELECT * FROM frage WHERE an = 'entwickler' AND status = 'offen' AND geparkt_utc IS NULL").fetchall():
         pid = f["projekt_id"]
-        alt_h = (jetzt - datetime.datetime.strptime(f["zeit_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)).total_seconds() / 3600
+        alt_h = (jetzt - db.utc_lesen(f["zeit_utc"])).total_seconds() / 3600
         if alt_h < frist_h(con, pid) or con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND text = ?",
                                                    (pid, FRIST_ART, f"F{f['id']}")).fetchone():
             continue

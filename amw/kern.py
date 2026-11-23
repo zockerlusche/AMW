@@ -904,7 +904,7 @@ def taetigkeit_auto(con, pid, kennung, text, aufgabe_id=None):
 def alter_s(utc):
     """Sekunden seit einem Zeitstempel der Datenbank (UTC, ISO)."""
     from datetime import datetime, timezone
-    return (datetime.now(timezone.utc) - datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)).total_seconds()
+    return (datetime.now(timezone.utc) - db.utc_lesen(utc)).total_seconds()
 
 
 def abmelden(con, pid, kennung):

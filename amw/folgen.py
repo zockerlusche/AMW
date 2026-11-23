@@ -271,7 +271,7 @@ def offene(con, pid):
         p = _pruefung(con, pid, v["eid"])
         stand = "prueft" if not p else ("fehler" if p.get("fehler") else "wartet")
         if stand == "prueft":                           # hängt ein Prüfer länger als LAEUFT_H, zählt er als fehlgeschlagen
-            t = datetime.datetime.strptime(v["zeit_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+            t = db.utc_lesen(v["zeit_utc"])
             if (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() > LAEUFT_H * 3600:
                 stand = "fehler"
         aus.append({"aenderung": v["eid"], "ebene": v["ebene"], "id": v["id"], "was": _was(con, pid, v), "alt": v["alt"], "neu": v["neu"],

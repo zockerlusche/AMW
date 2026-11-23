@@ -13,7 +13,6 @@ wartende Aufgabe hat offene Gründe, und alle sind Agenten-Gründe), je offenem 
   Version (einmal je Grund und Version).
 Nichts wird automatisch abgehakt. Ereignis `warten_agent` (Text: Grund-Nummer und Anlass). Kein Schema.
 """
-import calendar
 import json
 import time
 
@@ -24,7 +23,7 @@ ART = "warten_agent"
 
 
 def _sek(utc):
-    return calendar.timegm(time.strptime(utc, "%Y-%m-%dT%H:%M:%SZ"))
+    return db.utc_sek(utc)
 
 
 def _utc(sek):

@@ -11,7 +11,6 @@
 Der Startbefehl kommt nur über die Kommandozeile am PC in die Datenbank – nie über die Brücke des TL oder die
 Online-Seite (sonst könnte von außen ein Befehl auf diesem PC landen).
 """
-import calendar
 import json
 import os
 import socket
@@ -29,7 +28,7 @@ LIMIT_GRENZE = 90          # % der 5-Stunden-Grenze
 
 
 def _sek(utc):
-    return calendar.timegm(time.strptime(utc, "%Y-%m-%dT%H:%M:%SZ"))
+    return db.utc_sek(utc)
 
 
 def _einstellung(con, pid, schluessel, vorgabe):

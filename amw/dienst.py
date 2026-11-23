@@ -17,7 +17,6 @@ Der Dienst beendet nie Claude-Code-Sitzungen und startet keine Agenten; er beend
 Aufruf: python -X utf8 -m amw.dienst [--einmal] [--takt 1.0]
 """
 import argparse
-import calendar
 import json
 import logging
 import logging.handlers
@@ -559,7 +558,7 @@ class Dienst:
 
 
 def _sekunden(utc):
-    return calendar.timegm(time.strptime(utc, "%Y-%m-%dT%H:%M:%SZ"))
+    return db.utc_sek(utc)
 
 
 def einrichten_log():

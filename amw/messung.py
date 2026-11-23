@@ -20,7 +20,7 @@ ARTEN = ("frage", "aufgabe", "lauf", "agent", "entwickler", "monitor")
 
 
 def _t(utc):
-    return datetime.datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    return db.utc_lesen(utc)
 
 
 def _vereinigt(spannen):

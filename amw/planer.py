@@ -498,7 +498,7 @@ def _tag(zeit_utc=None):
     import datetime
     if zeit_utc is None:
         return datetime.datetime.now().astimezone().date().isoformat()
-    t = datetime.datetime.strptime(zeit_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    t = db.utc_lesen(zeit_utc)
     return t.astimezone().date().isoformat()
 
 
@@ -612,7 +612,7 @@ def laeuft(con, pid, tid):
         return None
     if any(e["id"] > an[-1]["id"] for e in _ereignisse(con, pid, tid, ENTWURF)):
         return None
-    t = datetime.datetime.strptime(an[-1]["zeit_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    t = db.utc_lesen(an[-1]["zeit_utc"])
     return None if (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() > LAEUFT_H * 3600 else an[-1]
 
 

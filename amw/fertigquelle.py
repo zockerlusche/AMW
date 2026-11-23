@@ -238,7 +238,7 @@ def fertig_wenn(con, pid, a, q, jetzt=None):
         seit = _release_zeit(con, pid, q["version"])
         if not seit:
             return None
-        t0 = datetime.datetime.strptime(seit, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+        t0 = db.utc_lesen(seit)
         jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
         if jetzt - t0 < datetime.timedelta(days=q["tage"]) or frist_fehler(con, pid, a, seit):
             return None

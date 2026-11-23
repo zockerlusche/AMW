@@ -564,7 +564,7 @@ def _baum_beenden(prozess_id):
 
 
 def _utc_sek(utc):
-    return datetime.datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()
+    return db.utc_lesen(utc).timestamp()
 
 
 def nutzung(ki, jetzt=None):
