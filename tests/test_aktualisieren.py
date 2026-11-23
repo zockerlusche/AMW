@@ -53,7 +53,8 @@ ZUSTAND = ("(() => { try { const i = document.querySelector('#inhalt') || docume
 
 def seitenzustand(test):
     try:
-        return f"{test.tab.js(ZUSTAND)} · Netzfehler des Browsers: {getattr(test.tab, 'netzfehler', None)}"
+        z = test.tab.js(ZUSTAND)                     # liest dabei auch die Netz-Ereignisse bis jetzt
+        return f"{z} · Netzfehler des Browsers: {test.tab.netzfehler} · noch offen (Weg, s): {test.tab.offen()}"
     except Exception as e:                       # Verbindung zum Browser weg – auch das ist ein Befund
         return f"Browser nicht erreichbar: {type(e).__name__}: {e}"
 
@@ -161,6 +162,7 @@ class _Tab:
             puffer += self.s.recv(4096)
         self.rest, self.n = puffer.split(b"\r\n\r\n", 1)[1], 0
         self.anfragen, self.netzfehler = {}, []      # A2016: mit Network.enable – gescheiterte Abrufe samt Fehlercode des Browsers
+        self.unterwegs = {}                          # A2016: abgeschickt, noch nicht abgeschlossen
 
     def _lesen(self, n):
         while len(self.rest) < n:
@@ -198,8 +200,15 @@ class _Tab:
         art, p = m.get("method"), m.get("params") or {}
         if art == "Network.requestWillBeSent" and "/api/" in p.get("request", {}).get("url", ""):
             self.anfragen[p["requestId"]] = p["request"]["url"].split("/api/", 1)[1][:40]
+            self.unterwegs[p["requestId"]] = (self.anfragen[p["requestId"]], p.get("wallTime") or time.time())
         elif art == "Network.loadingFailed" and p.get("requestId") in self.anfragen:
             self.netzfehler = (self.netzfehler + [(self.anfragen[p["requestId"]], p.get("errorText"), p.get("canceled"))])[-8:]
+        if art in ("Network.loadingFinished", "Network.loadingFailed"):
+            self.unterwegs.pop(p.get("requestId"), None)
+
+    def offen(self):
+        """A2016: API-Abrufe, die der Browser abgeschickt, aber noch nicht abgeschlossen hat – mit Alter in Sekunden."""
+        return [(weg, round(time.time() - seit, 1)) for weg, seit in self.unterwegs.values()]
 
     def js(self, ausdruck):
         r = self.senden("Runtime.evaluate", expression=ausdruck, returnByValue=True, awaitPromise=True)

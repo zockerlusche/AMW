@@ -8,6 +8,7 @@ import unittest
 
 from amw import kern, themen
 from tests.rundgang import Rundgang
+from tests.test_aktualisieren import seitenzustand
 
 LANGSAM_MS = 1500
 # vor jeder Seite: /api/start antwortet langsam, wenn die Adresse „langsam“ enthält oder window.__langsam gesetzt ist; mit
@@ -40,7 +41,7 @@ class Seitenwechsel(Rundgang):
     def bleibt(self, h1, liste):
         time.sleep(LANGSAM_MS / 1000 + 1)                                                       # die Startseite ist längst da
         self.assertEqual(self.ueberschrift(), h1)
-        self.assertTrue(self.tab.js(f"!!document.querySelector({liste!r})"))
+        self.assertTrue(self.tab.js(f"!!document.querySelector({liste!r})"), seitenzustand(self))   # A2016: was stattdessen da war
         self.assertEqual(self.tab.js("location.hash"), "#" + self.tab.js("zustand.sicht"))
 
     def test_wechsel_beim_ersten_laden(self):
