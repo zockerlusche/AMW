@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.168.0 – 23.11.2026 · Fragen unter „Für dich“
+- **Verbessert:** Unter „Für dich“ stehen offene Fragen als eine Gruppe; blockierende zuerst, je Frage eine Zeile.
+
 ## 1.167.4 – 23.11.2026 · Prüfbitte prüft Betreffe
 - **Verbessert:** Eine Prüfbitte meldet gleich, wenn ein Commit-Betreff eine fremde Aufgabe nennt, statt dass die Auslieferung
   später anhält.
