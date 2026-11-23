@@ -211,6 +211,18 @@ class Pruefungen(Grund):
         self.assertIn(f"P{prid} (cc1-y@fedcba98)", str(e.exception))
         self.assertIn("amw pruefung rot <Nummer>", str(e.exception))
 
+    def test_a1991_rot_nur_mit_begruendung(self):
+        """P530: ‚amw pruefung rot 530 --grund …‘ setzte ROT ohne Text – --grund wurde still verworfen."""
+        prid = betrieb.pruefbitte(self.con, self.pid, "CC1", "CC2", "cc1-z", "1234567abc", "P1")
+        for leer in (None, "", "   "):
+            with self.assertRaises(kern.AmwFehler) as e:
+                betrieb.pruefung_ergebnis(self.con, self.pid, "CC2", prid, "rot", leer)
+            self.assertIn("ROT nur mit Begründung", str(e.exception))
+        self.assertEqual(self.con.execute("SELECT ergebnis FROM pruefung WHERE id = ?", (prid,)).fetchone()[0], "offen")
+        betrieb.pruefung_ergebnis(self.con, self.pid, "CC2", prid, "rot", "Test fehlt")
+        self.assertEqual(tuple(self.con.execute("SELECT ergebnis, bemerkung FROM pruefung WHERE id = ?", (prid,)).fetchone()),
+                         ("rot", "Test fehlt"))
+
 
 class Anweisungen(Grund):
     def test_hinweis_erscheint_im_kontext_und_laesst_sich_aufheben(self):
@@ -281,9 +293,17 @@ class Kommandozeile(Grund):
                                        "--sha", "fff000"]), 0)
             self.assertEqual(cli.main(["--von", "CC2", "pruefung", "gruen", "1"]), 0)
             self.assertEqual(cli.main(["--von", "CC1", "pruefung", "ist-gruen", "--sha", "fff000"]), 0)
+            for sha in ("eee000", "ddd000"):                                                   # A1991: P2, P3
+                self.assertEqual(cli.main(["--von", "CC1", "pruefung", "bitte", "--pruefer", "CC2", "--zweig", "z", "--sha", sha]), 0)
+            self.assertNotEqual(cli.main(["--von", "CC2", "pruefung", "rot", "2"]), 0)              # ohne Begründung: nichts
+            self.assertNotEqual(cli.main(["--von", "CC2", "pruefung", "rot", "2", "--grund", "a", "--bemerkung", "b"]), 0)
+            self.assertEqual(cli.main(["--von", "CC2", "pruefung", "rot", "2", "--grund", "Test fehlt"]), 0)  # --grund zählt
+            self.assertEqual(cli.main(["--von", "CC2", "pruefung", "gruen", "3", "--grund", "passt"]), 0)
         finally:
             os.environ.pop("AMW_DB", None)
             self.con = db.verbinde(os.path.join(self.ordner.name, "t.db"))
+        p = {r["id"]: (r["ergebnis"], r["bemerkung"]) for r in self.con.execute("SELECT id, ergebnis, bemerkung FROM pruefung")}
+        self.assertEqual((p[2], p[3]), (("rot", "Test fehlt"), ("gruen", "passt")))
 
 
 class NotizEntfernen(Grund):

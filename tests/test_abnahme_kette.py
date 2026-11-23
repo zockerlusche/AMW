@@ -31,7 +31,7 @@ class Kette(unittest.TestCase):
 
     def gruen(self, sha="abc1234567", zweig="feat", ergebnis="gruen"):
         prid = betrieb.pruefbitte(self.con, self.pid, "CC1", "CC2", zweig, sha, aufgabe_id=self.a)
-        return prid, betrieb.pruefung_ergebnis(self.con, self.pid, "CC2", prid, ergebnis)
+        return prid, betrieb.pruefung_ergebnis(self.con, self.pid, "CC2", prid, ergebnis, "Befund")
 
     def post(self, an, art=None):
         sql = ("SELECT n.art, n.kurz, n.text FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE e.agent = ?"

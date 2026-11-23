@@ -2305,7 +2305,9 @@ def cmd_pruefung(a, con):
                                   gruppe=a.gruppe, hinweis=a.hinweis, ohne_bild=a.ohne_bild)
         print(f"P{prid} an {a.pruefer}")
     elif a.aktion in ("gruen", "rot"):
-        kette = betrieb.pruefung_ergebnis(con, pid, _von(a), a.id, a.aktion, a.bemerkung)
+        if a.grund and a.bemerkung:                   # A1991: --grund nie still verwerfen – gleichwertig zu --bemerkung
+            raise kern.AmwFehler(f"pruefung {a.aktion}: --bemerkung oder --grund, nicht beides")
+        kette = betrieb.pruefung_ergebnis(con, pid, _von(a), a.id, a.aktion, a.bemerkung or a.grund)
         print(f"P{a.id} → {a.aktion}" + (f" · {kette}" if kette else ""))
     elif a.aktion == "zuruecknehmen":                   # A1917: ein GRÜN mit Grund widerrufen
         if not a.id:
@@ -3962,8 +3964,8 @@ def parser():
     x.add_argument("--sha")
     x.add_argument("--punkte")
     x.add_argument("--aufgabe", type=nummer)
-    x.add_argument("--bemerkung")
-    x.add_argument("--grund", help="zuruecknehmen: was nicht stimmt (Pflicht)")
+    x.add_argument("--bemerkung", help="gruen/rot: Befund (bei rot Pflicht)")
+    x.add_argument("--grund", help="zuruecknehmen: was nicht stimmt (Pflicht) · gruen/rot: wie --bemerkung")
     x.add_argument("--alle", action="store_true")
     x.add_argument("--stufe", choices=["niedrig", "mittel", "hoch"], help="Prüfstufe höher einstufen als die geänderten Dateien ergeben (nie niedriger)")
     x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben"], help="bitte: Versionshinweis der Aufgabe (setzt sie die Release-Kette fertig, gilt er)")

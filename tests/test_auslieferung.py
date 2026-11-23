@@ -452,7 +452,7 @@ class Kette(unittest.TestCase):
         self.g("switch", "-q", "main")
         if mit_pruefung:
             pa = betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "stapel", unten, "x", a)
-            betrieb.pruefung_ergebnis(self.con, self.pid, "TL", pa, unten_ergebnis)
+            betrieb.pruefung_ergebnis(self.con, self.pid, "TL", pa, unten_ergebnis, "Befund")
             if unten_ergebnis == "gruen":
                 betrieb.freigabe_merge(self.con, self.pid, "TL", a, "stapel")
         pb = betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "stapel", oben, "x", b)

@@ -1165,6 +1165,9 @@ def pruefung_ergebnis(con, pid, pruefer, prid, ergebnis, bemerkung=None):
             raise kern.AmwFehler(f"P{prid} prüft {p['pruefer']}")
         if p["ergebnis"] != "offen":
             raise kern.AmwFehler(f"P{prid} ist schon {p['ergebnis']} – neue Prüfbitte für einen neuen Stand")
+        bemerkung = (bemerkung or "").strip() or None
+        if ergebnis == "rot" and not bemerkung:      # A1991: ein Rot ohne Grund hilft dem Bauer nicht
+            raise kern.AmwFehler(f"ROT nur mit Begründung: amw pruefung rot {prid} --bemerkung „was fehlt oder falsch ist“")
         if ergebnis == "gruen":                      # A1973: Stil-Verstoß → Grün nur mit Begründung
             from . import stil
             stil.gruen_pruefen(con, pid, prid, bemerkung)
