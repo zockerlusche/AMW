@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.169.1 – 23.11.2026 · Fragen richtig gezählt
+- **Behoben:** Unter „Für dich“ zählt „Fragen n“ alle offenen Fragen, auch wenn mehr als 20 offen sind.
+
 ## 1.169.0 – 23.11.2026 · Planer mit Kostengrenze, genauere Anzeigen
 - **Verbessert:** Die Planer eines Projekts kosten höchstens 5 $ am Tag (einstellbar); danach plant die AMW am nächsten Tag weiter.
 - **Verbessert:** Eine Prüfung lässt sich nur mit Begründung auf Rot setzen; `--grund` zählt dabei wie `--bemerkung`.
