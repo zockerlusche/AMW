@@ -51,6 +51,9 @@ class KeinAbgleich(rundgang.OnlineRundgang):
             self.thema(t)
             self.assertEqual(self.pruefen(f"kein-abgleich-start-{g}-{t}", g, t), [])
             self.assertEqual(self.tab.js("document.querySelectorAll('#signale .punkt.rot').length"), 0)
+            if g == "handy":                                              # „Abmelden“ bleibt rechts oben (A1614)
+                self.assertTrue(self.tab.js("(() => { const b = document.querySelector('#abmelden').getBoundingClientRect();"
+                                            " return innerWidth - b.right < 40; })()"))
             self.foto(f"a1998-kein-abgleich-{g}-{t}.png")
         for sicht in ("aufgaben", "fragen"):
             self.zu_b(sicht)

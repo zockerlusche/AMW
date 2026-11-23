@@ -1182,6 +1182,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
   .signale { order: 2; flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow: hidden; }
   .signale .signal { padding: 3px 7px; font-size: 11px; }
   .signale .signal.unwichtig { display: none; }
+  .signale:empty { display: none; }   /* A1998: ohne Signal (kein Abgleich) bleibt „Abmelden“ rechts oben */
   .suche { order: 3; flex: 1 0 100%; margin: 0; }
   .suche input { width: 100%; padding: 10px 12px 10px 30px; }
   .suche::before { top: 8px; }
