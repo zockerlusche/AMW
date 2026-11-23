@@ -1513,6 +1513,15 @@ def baue_handler(port, token, netz=None):
                 return self._senden(500, {"fehler": f"{type(e).__name__}: {e}"})
 
         def do_POST(self):
+            # A2016: den Körper immer zuerst lesen, auch wenn die Antwort „nicht erlaubt“ ist. Kopf und Körper kommen oft
+            # getrennt an (http.client und Browser senden sie einzeln); schließt der Server nach der Antwort, während der Körper
+            # noch ungelesen ankommt, setzt Windows die Verbindung zurück, und der Absender bekommt statt der Antwort
+            # WinError 10053 (Gesamtlauf unter Last: test_workbench.test_schreiben_nur_mit_schluessel).
+            try:
+                laenge = min(int(self.headers.get("Content-Length") or 0), 3_000_000)   # Text berichtigen bis 400 000 Zeichen
+            except ValueError:
+                laenge = None
+            roh = self.rfile.read(laenge) if laenge and laenge > 0 else b""
             herkunft = self.headers.get("Origin")
             if not zugelassen(self.client_address[0], netz) or not host_ok(self.headers.get("Host"), port, netz) \
                     or (herkunft and not host_ok(herkunft.split("//", 1)[-1], port, netz)):
@@ -1520,8 +1529,9 @@ def baue_handler(port, token, netz=None):
             if self.headers.get("X-AMW-Token") != token:     # meist: Seite stammt von vor einem Neustart der Workbench
                 return self._senden(403, {"fehler": "nicht erlaubt", "neu_laden": True})
             try:
-                laenge = min(int(self.headers.get("Content-Length") or 0), 3_000_000)   # Text berichtigen bis 400 000 Zeichen
-                daten = json.loads(self.rfile.read(laenge) or b"{}")
+                if laenge is None:
+                    raise ValueError("Content-Length")
+                daten = json.loads(roh or b"{}")
             except ValueError:
                 return self._senden(400, {"fehler": "JSON"})
             u = urlparse(self.path)

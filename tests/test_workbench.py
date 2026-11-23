@@ -5,6 +5,7 @@ import json
 import os
 import socket
 import tempfile
+import time
 import unittest
 
 from amw import db, kern, workbench
@@ -169,6 +170,29 @@ class Workbench(unittest.TestCase):
         status, text = self.anfrage("POST", f"/api/frage/{self.fid}/antwort", {"art": "option", "wert": "B"},
                                     {"X-AMW-Token": self.token})
         self.assertEqual((status, json.loads(text)["status"]), (200, "beantwortet"))
+
+    def test_abgelehnt_auch_wenn_der_koerper_spaet_kommt(self):
+        """A2016: Kopf und Körper getrennt, der Körper erst nach der Prüfung des Schlüssels (wie unter Last im Gesamtlauf) –
+        die Antwort 403 kommt an, statt dass Windows die Verbindung zurücksetzt (WinError 10053)."""
+        body = json.dumps({"art": "option", "wert": "A"}).encode()
+        for kopf in ("X-AMW-Token: von-vor-dem-neustart", f"X-AMW-Token: {self.token}\r\nOrigin: http://boese.example"):
+            with socket.create_connection(("127.0.0.1", self.port), timeout=5) as c:
+                c.sendall(f"POST /api/frage/{self.fid}/antwort HTTP/1.1\r\nHost: 127.0.0.1:{self.port}\r\n"
+                          f"Content-Type: application/json\r\n{kopf}\r\nContent-Length: {len(body)}\r\n\r\n".encode())
+                time.sleep(0.05)
+                c.sendall(body)
+                time.sleep(0.05)
+                antwort = b""
+                while t := c.recv(65536):
+                    antwort += t
+            self.assertTrue(antwort.startswith(b"HTTP/1.0 403"), antwort[:60])
+        with socket.create_connection(("127.0.0.1", self.port), timeout=5) as c:   # Länge kaputt: 400 wie bisher
+            c.sendall(f"POST /api/halt HTTP/1.1\r\nHost: 127.0.0.1:{self.port}\r\nX-AMW-Token: {self.token}\r\n"
+                      "Content-Length: viel\r\n\r\n".encode())
+            antwort = b""
+            while t := c.recv(65536):
+                antwort += t
+        self.assertTrue(antwort.startswith(b"HTTP/1.0 400"), antwort[:60])
 
     def test_halt_ueber_seite(self):
         status, _ = self.anfrage("POST", "/api/halt", {"fuer": "alle", "text": "Pause"}, {"X-AMW-Token": self.token})
