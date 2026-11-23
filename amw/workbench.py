@@ -349,6 +349,8 @@ def daten_start(con, pid):
         "   ON e.nachricht_id = v.nachricht_id AND e.agent = :e AND e.status = 'offen' WHERE v.frage_id = f.id) AS nachtraege"
         " FROM frage f WHERE f.projekt_id = :p AND f.an = 'entwickler' AND f.status = 'offen' AND f.geparkt_utc IS NULL"
         " ORDER BY f.blockiert DESC, f.id ASC LIMIT 20", {"p": pid, "e": kern.ENTWICKLER}))   # A1990: älteste zuerst (fehlen sonst)
+    fragen_anzahl = con.execute("SELECT count(*) FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
+                                " AND geparkt_utc IS NULL", (pid,)).fetchone()[0]   # A1993: alle offenen, nicht nur die geladenen 20
     from . import fragentopf                # A1990 (K10): blockiert auch, wenn ein Agent an ihr hängt und sonst nichts hat
     for f in fragen:
         f["blockiert"] = 1 if f["blockiert"] or fragentopf.blockiert(con, pid, f["id"]) else 0
@@ -417,7 +419,7 @@ def daten_start(con, pid):
     team = {"zusammen": zusammen, "bogen": dict(b) if b else None, "takt_min": takt}
     from . import arbeitsliste, betrieb                # Auslastung des Rechners: Läufe aller Projekte, nur als Zahlen; Eingang
     from . import einstellungen as _e
-    return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "heimnetz": _e.wert("heimnetz") or None, "rechner": betrieb.auslastung(con, pid), "token": _token_lage(con), "agenten": agenten, "fragen": fragen, "an_dich": an_dich, "eingang": len(arbeitsliste.pool(con, pid)), "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
+    return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "heimnetz": _e.wert("heimnetz") or None, "rechner": betrieb.auslastung(con, pid), "token": _token_lage(con), "agenten": agenten, "fragen": fragen, "fragen_anzahl": fragen_anzahl, "an_dich": an_dich, "eingang": len(arbeitsliste.pool(con, pid)), "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
             "dienst_rot": [g["teil"] for g in gesund["teile"] if g["zustand"] == "rot"], "uebersicht": _uebersicht(con, pid, gesund),
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),

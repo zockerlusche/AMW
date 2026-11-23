@@ -45,6 +45,21 @@ class FuerDichFragen(Rundgang):
         self.tab.js(f"{self.GRUPPE}.querySelector('.ue-zeile').click()")
         self.warten("zustand.sicht === 'fragen'")                                                  # Details auf Klick
 
+    def test_zahl_zaehlt_alle_offenen(self):
+        """A1993: geladen werden höchstens 20 Fragen – die Zahl an „Fragen n“ und „… weitere Fragen“ zählt alle offenen."""
+        from amw import workbench
+        for i in range(23):
+            fid = kern.frage_neu(self.con, self.pid, "CC1", "entwickler", f"Frage {i}?", [("A", "ja")], "A", "weil", geprueft="x")
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE frage SET an = 'entwickler' WHERE id = ?", (fid,))
+        offen = self.con.execute("SELECT count(*) FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
+                                 " AND geparkt_utc IS NULL", (self.pid,)).fetchone()[0]
+        d = workbench.daten_start(self.con, self.pid)
+        self.assertEqual((len(d["fragen"]), d["fragen_anzahl"]), (20, offen))
+        self.oeffnen("start", self.GRUPPE)
+        self.assertTrue(self.tab.js(f"{self.GRUPPE}.querySelector('h4').innerText").endswith(str(offen)))
+        self.assertIn(str(offen - 6), self.tab.js("document.querySelector('#ue-fuer_dich .ue-mehr').innerText"))
+
     def test_rundgang(self):
         for g in ("pc", "handy"):
             for th in ("hell", "dunkel"):
