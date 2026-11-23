@@ -36,7 +36,13 @@ def muster(eigene=None):
 HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?\n\s*\2\s*(?:\n|$)", re.S)        # bash: <<'EOF' … EOF
 HERESTRING = re.compile(r"@(['\"])\r?\n.*?\r?\n\1@", re.S)                               # PowerShell: @' … '@
 STARTER_VOR = re.compile(r"(?:\b(?:cmd(?:\.exe)?\s+/[ck]|(?:ba|z)?sh\s+-l?c|pwsh(?:\.exe)?(?:\s+-\w+)*\s+-(?:Command|c)|"
-                         r"powershell(?:\.exe)?(?:\s+-\w+)*\s+-(?:Command|c)|python\S*\s+-c)\s*)$", re.I)
+                         r"powershell(?:\.exe)?(?:\s+-\w+)*\s+-(?:Command|c)|python\S*\s+-c"
+                         # A1980 (#30776): weitere Aufrufe, die Text ausführen – Invoke-Expression/iex, Start-Process (Programm oder
+                         # -ArgumentList, auch als Liste "a", "b"), start [/x] ["Titel"] am Befehlsanfang, Aufruf-Operator & (nicht &&)
+                         r"|(?:Invoke-Expression|iex)(?:\s+-Command)?"
+                         r"|Start-Process(?:\s+-FilePath)?|Start-Process\b[^;|\n]*?-(?:ArgumentList|Args)(?:\s*(?:'[^']*'|\"[^\"]*\")\s*,)*"
+                         r")\s*|(?:^|[;|(\n]|&&|\bcmd(?:\.exe)?\s+/[ck])\s*start\b(?:\s+/\w+)*\s+(?:(?:\"[^\"]*\"|'[^']*')\s+)?"
+                         r"|(?:^|[^&])&\s*)$", re.I)
 ZITAT = re.compile(r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"", re.S)
 
 

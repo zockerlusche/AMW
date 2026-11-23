@@ -42,6 +42,18 @@ class Erkennen(unittest.TestCase):
                              ('cd /d "F:/x y" && python -X utf8 -m amw.testlauf', "Test-Suite")):
             self.assertEqual(schwer.erkennen(befehl), name, befehl)
 
+    def test_weitere_text_ausfuehrer(self):                                                  # A1980 (#30776)
+        lauf = "python -m unittest discover -s tests"
+        for befehl in (f'iex "{lauf}"', f"Invoke-Expression -Command '{lauf}'", f'Start-Process python -ArgumentList "-m unittest discover -s tests"',
+                       'Start-Process python -ArgumentList "-X", "utf8", "-m amw.testlauf"', f'Start-Process "{lauf}"',
+                       f'start "" "{lauf}"', f'cmd /c start /b "Titel" {lauf}', f'start "{lauf}"', f'& "{lauf}"',
+                       f'cd x; & "{lauf}"'):
+            self.assertEqual(schwer.erkennen(befehl), "Test-Suite", befehl)
+        for befehl in (f'python F:/amw/amw-cli.py posten --kurz "iex {lauf}" --von CC1',        # dieselben Wörter als reine Nachricht
+                       f'git commit -m "Start-Process -ArgumentList {lauf}"', f'echo "start {lauf}"',
+                       f'echo "& {lauf}"', f'cd x && echo "{lauf}"', f'Write-Output "Invoke-Expression {lauf}"'):
+            self.assertIsNone(schwer.erkennen(befehl), befehl)
+
     def test_was_schon_ueber_die_warteschlange_laeuft(self):
         for befehl in ('amw lauf ausfuehren --beschreibung "Tests" -- python -m unittest discover -s tests',
                        "python F:/amw/amw-cli.py lauf ausfuehren --beschreibung T -- pytest", "amw lauf start --beschreibung Build --warten && dotnet build"):
