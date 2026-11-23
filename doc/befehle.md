@@ -1863,20 +1863,26 @@ options:
 
 ## release
 ```
-usage: amw release [-h] [--zweig ZWEIG] [--gesamtlauf GESAMTLAUF]
-                   [--aufgabe AUFGABE] [--oeffentlich-datei OEFFENTLICH_DATEI]
-                   [--titel TITEL] [--commit COMMIT] [--nachtrag]
-                   [--version VERSION] [--aufgaben AUFGABEN] [--text TEXT]
+usage: amw release [-h] [--aus-changelog] [--zweig ZWEIG]
+                   [--gesamtlauf GESAMTLAUF] [--aufgabe AUFGABE]
+                   [--oeffentlich-datei OEFFENTLICH_DATEI] [--titel TITEL]
+                   [--commit COMMIT] [--nachtrag] [--version VERSION]
+                   [--aufgaben AUFGABEN] [--text TEXT]
                    [--text-datei TEXT_DATEI] [--von VON] [--projekt PROJEKT]
-                   {merge,version,liste,entwurf,ausliefern}
+                   {merge,version,liste,entwurf,ausliefern,berichtigen}
 
 positional arguments:
-  {merge,version,liste,entwurf,ausliefern}
+  {merge,version,liste,entwurf,ausliefern,berichtigen}
                         ausliefern --zweig X: die ganze Release-Kette in einem
                         Schritt (Prüfung GRÜN, Merge-OK und Gesamtlauf nötig)
+                        · berichtigen --version X --aus-changelog |
+                        --oeffentlich-datei … [--aufgaben …] (Lead/Mensch:
+                        Text einer eingetragenen Version)
 
 options:
   -h, --help            show this help message and exit
+  --aus-changelog       berichtigen: Text aus dem Abschnitt der Version im
+                        CHANGELOG auf main
   --zweig ZWEIG         ausliefern: Zweig oder Stand, der live gehen soll
   --gesamtlauf GESAMTLAUF
                         ausliefern: grüner Gesamtlauf L<nr> (sonst sucht die

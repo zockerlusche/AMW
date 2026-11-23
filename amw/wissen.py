@@ -214,6 +214,43 @@ def release_version(con, pid, von, version, titel, commit_sha=None, text=None, o
     return rid, len(merges)
 
 
+def release_berichtigen(con, pid, von, version, oeffentlich=None, aus_changelog=False, aufgaben=None):
+    """A1985: den öffentlichen Text (und die Aufgabenliste) einer eingetragenen Version berichtigen – nur Lead/Mensch.
+    aus_changelog: der Abschnitt „## <version>“ aus dem CHANGELOG des Projekts in main (Einstellung changelog_datei, für die
+    AMW CHANGELOG.md). Der alte Text bleibt als Ereignis release_berichtigt erhalten."""
+    import subprocess
+    _nur_lead(con, pid, von, "Versionen berichtigen")
+    r = con.execute("SELECT * FROM release WHERE projekt_id = ? AND art = 'version' AND version = ?", (pid, version)).fetchone()
+    if not r:
+        raise kern.AmwFehler(f"Version {version} ist nicht eingetragen")
+    if aus_changelog:
+        ordner = kern.projekt_ordner(con, pid)
+        from . import buendel
+        try:
+            datei = buendel.einstellungen(con, pid)["changelog_datei"]
+        except kern.AmwFehler:
+            datei = "CHANGELOG.md"
+        p = subprocess.run(["git", "-C", ordner or ".", "show", f"main:{datei}"], capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        abschnitt = changelog_abschnitt(p.stdout if p.returncode == 0 else "", version)
+        if not abschnitt:
+            raise kern.AmwFehler(f"Im {datei} auf main steht kein Abschnitt „## {version}“")
+        oeffentlich = abschnitt[1]
+    if not (oeffentlich or "").strip() and aufgaben is None:
+        raise kern.AmwFehler("--aus-changelog, --oeffentlich-datei … oder --aufgaben …")
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="release_berichtigt",
+                     text=json.dumps({"version": version, "alt_text": r["text_oeffentlich"], "alt_aufgaben": r["aufgaben"]},
+                                     ensure_ascii=False)[:20000])
+        felder = {}
+        if (oeffentlich or "").strip():
+            felder["text_oeffentlich"] = (oeffentlich or "").strip()
+        if aufgaben is not None:
+            felder["aufgaben"] = aufgaben.strip() or None
+        con.execute(f"UPDATE release SET {', '.join(k + ' = ?' for k in felder)} WHERE id = ?", (*felder.values(), r["id"]))
+    return r["id"]
+
+
 def changelog_abschnitt(text, version):
     """(Titel, Text) des Abschnitts „## <version> – … · Titel“ aus einem CHANGELOG, None wenn er fehlt."""
     m = re.search(rf"^## {re.escape(version)}\b[^\n]*?(?:·\s*(?P<titel>[^\n]+))?\n(?P<text>.*?)(?=^## |\Z)", text or "", re.M | re.S)

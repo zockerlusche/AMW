@@ -17,6 +17,7 @@ INTERN = re.compile(r"\s*\((?:[^()]*\b(?:[WBDF]\d{3,}|#\d{3,}|[0-9a-f]{7,40})\b[
                     r"|\bRelease \d+\.\d+\.\d+\b|\bFix [0-9a-f]{7}\b|,?\s*live geprüft")
 
 
+AMW_TEXT = re.compile(r"\s*(?:Ausgeliefert in \d+\.\d+\.\d+|Fertig: )")   # Zusammenfassungen, die die AMW selbst schreibt
 GRUPPE_INTERN = "intern"                   # A1978: nie in den Versionshinweisen – als Ereignis (die Spalte kennt nur GRUPPEN)
 INTERN_ART = "hinweis_intern"
 
@@ -206,7 +207,10 @@ def entwurf(con, pid, ab=None):
         g = a["hinweis_gruppe"] or regel(a["titel"], a["zusammenfassung"])
         if g is None:
             continue
-        text = satz(a["zusammenfassung"] or a["titel"])
+        z = a["zusammenfassung"] or ""
+        if AMW_TEXT.match(z):                        # A1985: den Satz der Kette („Ausgeliefert in 1.165.0 …“) nie zeigen – der Titel sagt mehr
+            z = ""
+        text = satz(z or a["titel"])
         if text:
             aus[g].append({"id": a["id"], "text": text, "vorschlag": True})
     return aus

@@ -628,7 +628,14 @@ class Kette:
         self.schritt("GitHub-Release" + (f" (+ {', '.join(z['version'] for z in v['zwischen'])})" if v["zwischen"] else ""))
 
     def _nach_dienst(self, sha, version, v, ausnahme, wartung):
-        from . import waechter, wissen
+        from . import planautomatik, waechter, wissen
+        # A1985 (Befund 23.11.): erst die Aufgaben dieses Stands fertig, DANN die Versionszeile – sie fasst die seit der letzten
+        # Version fertigen Aufgaben zusammen; umgekehrt trug jede Version die Hinweise der vorigen Auslieferung (1.165.1 = 1.165.0 …)
+        try:
+            fertig = planautomatik.ausgeliefert(self.con, self.pid, version, sha,
+                                                lambda s: self.extern(["git", "merge-base", "--is-ancestor", s, sha], self.repo)[0] == 0)
+        except Exception as e:                           # ausgeliefert ist ausgeliefert – nur melden
+            fertig = [{"aufgabe": 0, "titel": "", "fehler": f"{type(e).__name__}: {e}"}]
         for z in v["zwischen"]:                         # aufsteigend vor der obersten – „größer als die letzte“ bleibt wahr
             if not self.con.execute("SELECT 1 FROM release WHERE projekt_id = ? AND art = 'version' AND version = ?",
                                     (self.pid, z["version"])).fetchone():
@@ -645,13 +652,7 @@ class Kette:
                 db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von=self.von, art=veroeffentlichung.LOKAL,
                              text=json.dumps({"version": version, "sha": sha}))
         self.schritt(f"Versionszeile R{rid}" + (f" (+ {', '.join(z['version'] for z in v['zwischen'])})" if v["zwischen"] else ""))
-        from . import planautomatik                     # A1738: was dieser Stand enthält, ist fertig (Beleg = geprüfter Stand)
-        try:
-            fertig = planautomatik.ausgeliefert(self.con, self.pid, version, sha,
-                                                lambda s: self.extern(["git", "merge-base", "--is-ancestor", s, sha], self.repo)[0] == 0)
-        except Exception as e:                           # ausgeliefert ist ausgeliefert – nur melden
-            fertig = [{"aufgabe": 0, "titel": "", "fehler": f"{type(e).__name__}: {e}"}]
-        ok = [x for x in fertig if not x.get("fehler")]
+        ok = [x for x in fertig if not x.get("fehler")]   # A1738: was dieser Stand enthält, ist fertig (oben, vor der Versionszeile)
         if fertig:
             self.schritt("Aufgaben fertig: " + (", ".join(f"A{x['aufgabe']}" for x in ok) or "keine")
                          + "".join(f" · A{x['aufgabe']} nicht: {x['fehler'][:120]}" for x in fertig if x.get("fehler"))

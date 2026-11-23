@@ -103,6 +103,12 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
   läuft schon einer (auch aus einem anderen Projekt), wartet der zweite in der Schlange („Gesamtlauf … belegt den Rechner –
   höchstens einer zur Zeit“). Teil-Läufe laufen daneben weiter. Die Workbench schließt ihre Datenbank-Verbindung, bevor sie
   antwortet – ein Client, der sofort aufräumt, findet die Datei nicht mehr gesperrt.
+- **Versionszeile nach dem Schließen (A1985, Befund 23.11.):** die Kette setzt erst die Aufgaben des Stands auf fertig und trägt
+  DANN die Versionszeile ein – sie fasst die seit der letzten Version fertigen Aufgaben zusammen. Vorher war es umgekehrt, und jede
+  Version trug die Hinweise der vorigen Auslieferung. Die Zusammenfassung, die die AMW selbst schreibt („Ausgeliefert in …“,
+  „Fertig: …“), wird nie zum Satz in den Versionshinweisen. Eingetragene Versionen berichtigt der Lead mit
+  `amw release berichtigen --version X.Y.Z --aus-changelog | --oeffentlich-datei … [--aufgaben …]` (alter Text als Ereignis
+  `release_berichtigt`).
 - **Übertragung verdrängt kein Grün der Spitze (A1964):** Die Patch-ID-Übertragung (A1814) legt keine grüne Prüfung auf
   einen inneren Commit, wenn die Aufgabe schon ein Grün auf einem späteren Commit desselben Stands hat (z. B. auf der
   Stapel-Spitze mit dem Versions-Commit). Sonst würde die neue Zeile jenes Grün als neueste Prüfung verdrängen, und die

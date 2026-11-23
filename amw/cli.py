@@ -2880,6 +2880,15 @@ def cmd_release(a, con):
         if n:
             print(f"\n{n} Satz/Sätze sind Vorschläge aus der Zusammenfassung (kein Satz für Nutzer beim Abschließen) –"
                   " mit eigenem Text: amw release version … --oeffentlich-datei <datei>")
+    elif a.aktion == "berichtigen":                  # A1985: Text einer eingetragenen Version berichtigen (Lead/Mensch)
+        if not a.version:
+            raise kern.AmwFehler("amw release berichtigen --version X.Y.Z --aus-changelog | --oeffentlich-datei <datei> [--aufgaben …]")
+        text = None
+        if a.oeffentlich_datei:
+            with open(a.oeffentlich_datei, encoding="utf-8") as f:
+                text = f.read()
+        rid = wissen.release_berichtigen(con, pid, _von(a), a.version, oeffentlich=text, aus_changelog=a.aus_changelog, aufgaben=a.aufgaben)
+        print(f"R{rid} ({a.version}) berichtigt – der alte Text steht im Verlauf (release_berichtigt)")
     elif a.aktion == "ausliefern":                   # Release-Kette in einem Schritt (A1644)
         from . import auslieferung
         if not a.zweig:
@@ -4221,8 +4230,12 @@ def parser():
     x.set_defaults(f=cmd_hook, ohne_db=True)
 
     x = s.add_parser("release", help="Versionshinweise: je Merge eine Zeile, Version fasst zusammen")
-    x.add_argument("aktion", choices=["merge", "version", "liste", "entwurf", "ausliefern"],
-                   help="ausliefern --zweig X: die ganze Release-Kette in einem Schritt (Prüfung GRÜN, Merge-OK und Gesamtlauf nötig)")
+    x.add_argument("aktion", choices=["merge", "version", "liste", "entwurf", "ausliefern", "berichtigen"],
+                   help="ausliefern --zweig X: die ganze Release-Kette in einem Schritt (Prüfung GRÜN, Merge-OK und Gesamtlauf nötig) ·"
+                        " berichtigen --version X --aus-changelog | --oeffentlich-datei … [--aufgaben …] (Lead/Mensch: Text einer"
+                        " eingetragenen Version)")
+    x.add_argument("--aus-changelog", dest="aus_changelog", action="store_true",
+                   help="berichtigen: Text aus dem Abschnitt der Version im CHANGELOG auf main")
     x.add_argument("--zweig", help="ausliefern: Zweig oder Stand, der live gehen soll")
     x.add_argument("--gesamtlauf", help="ausliefern: grüner Gesamtlauf L<nr> (sonst sucht die AMW den Lauf, der genau diesen Stand sauber geprüft hat)")
     x.add_argument("--aufgabe", type=nummer, help="ausliefern ohne Prüfbitte (Prüfstufe niedrig, nur Doku/Tests): die Aufgabe mit dem Merge-OK")
