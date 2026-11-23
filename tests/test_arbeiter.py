@@ -194,7 +194,7 @@ class Arbeiter(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "Job-Objekt nur unter Windows")
     def test_notbremse_in_der_startluecke(self):
         """A1984/A1987 (L3119): die Notbremse fällt zwischen Job-Anlage und Start – laufen() startet den angehaltenen Arbeiter
-        nicht, sondern beendet ihn; die Notbremse kehrt sofort zurück. Nach dem nächsten vorbereiten läuft der Platz wieder."""
+        nicht, sondern beendet ihn; die Notbremse kehrt sofort zurück. Der nächste Lauf startet wieder (ältere Bremse zählt nicht)."""
         from amw import abnahme
         echt, gesehen = abnahme._in_job, {}
 
@@ -210,11 +210,10 @@ class Arbeiter(unittest.TestCase):
         self.assertEqual(r["fehler"], "Notbremse gezogen – nicht gestartet")
         self.assertLess(gesehen["dauer"], 5)                                                     # kein Warten mehr (A1984: bis 20 s)
         self.assertFalse(lebt(str(gesehen["pid"])))
-        self.assertTrue(arbeiter.gebremst(self.p))
+        self.assertTrue(arbeiter.gebremst(self.p, 0))
         time.sleep(0.05)
-        arbeiter.stempel(self.p, "vorbereitet")                                                   # wie platz.vorbereiten
-        self.assertFalse(arbeiter.gebremst(self.p))
-        self.assertEqual(self.laufen()["rc"], 0)                                                 # nächstes Paket läuft
+        self.assertFalse(arbeiter.gebremst(self.p, time.time_ns()))                              # ältere Bremse zählt nicht
+        self.assertEqual(self.laufen()["rc"], 0)                                                 # nächster Lauf startet
 
     def test_laufende_beendet_zurueckgelassene_kinder(self):
         """D1258 v9 §6a 3.1: endet der Arbeiter normal, aber ein Kindprozess läuft weiter, beendet die AMW ihn mit dem Job."""

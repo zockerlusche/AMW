@@ -314,27 +314,19 @@ def buchung(job):
     return (b.TotalProcesses, b.ActiveProcesses) if ok else (-1, -1)
 
 
-def gebremst_pfad(p, art="gebremst"):
+def gebremst_pfad(p):
     """A1987: Marke „gebremst“ je Platz – neben den Platz-Ordnern, nicht im Klon und nicht in den Daten (der Arbeiter erreicht sie
-    nicht). Die Notbremse setzt sie; platz.vorbereiten (nächstes Paket) setzt den Stempel „vorbereitet“ – gebremst ist der Platz,
-    solange die Marke neuer ist als der Stempel (nichts wird gelöscht)."""
-    return os.path.join(os.path.dirname(os.path.abspath(p["klon"])), f"platz{p['nr']}.{art}")
+    nicht). Die Notbremse setzt sie (Zeitpunkt = Änderungszeit der Datei); nichts wird gelöscht."""
+    return os.path.join(os.path.dirname(os.path.abspath(p["klon"])), f"platz{p['nr']}.gebremst")
 
 
-def stempel(p, art):
-    os.makedirs(os.path.dirname(gebremst_pfad(p, art)), exist_ok=True)
-    with open(gebremst_pfad(p, art), "w", encoding="utf-8", newline="\n") as f:
-        f.write(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + "\n")
-
-
-def gebremst(p):
-    def zeit(art):
-        try:
-            return os.stat(gebremst_pfad(p, art)).st_mtime_ns
-        except OSError:
-            return None
-    b = zeit("gebremst")
-    return b is not None and b > (zeit("vorbereitet") or 0)
+def gebremst(p, seit_ns):
+    """Wurde die Notbremse seit `seit_ns` (time.time_ns() beim Beginn eines Laufs) gezogen? Eine ältere Bremse gilt nicht – so
+    braucht kein Startweg (Disponent, Planer, Gegenlesen, Stil …) die Marke zurückzusetzen."""
+    try:
+        return os.stat(gebremst_pfad(p)).st_mtime_ns >= seit_ns
+    except OSError:
+        return False
 
 
 def notbremse(p):
@@ -343,7 +335,9 @@ def notbremse(p):
     von laufen() vor dem Start beendet; darum muss die Notbremse nicht mehr auf ihn warten (vorher bis 20 s, A1984)."""
     if os.name != "nt":
         raise ArbeiterFehler("Notbremse gibt es nur unter Windows (Job-Objekt)")
-    stempel(p, "gebremst")
+    os.makedirs(os.path.dirname(gebremst_pfad(p)), exist_ok=True)
+    with open(gebremst_pfad(p), "w", encoding="utf-8", newline="\n") as f:
+        f.write(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + "\n")
     k = _kernel()
     job = k.OpenJobObjectW(0x0008 | 0x0004, False, job_name(p))          # JOB_OBJECT_TERMINATE | QUERY
     if not job:
@@ -455,6 +449,7 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
     s = soll(p, modell, mcp_namen, werkzeuge, geprueft, werkzeuge=liste)
     protokoll = os.path.join(o, "lauf.jsonl")
     t0 = time.monotonic()
+    beginn_ns = time.time_ns() - 1_000_000             # A1987: eine Notbremse ab jetzt (1 ms Spielraum für die Dateizeit) zählt
     job = abnahme._job_neu(job_name(p))
     if not job:
         raise ArbeiterFehler("Job-Objekt ließ sich nicht anlegen – ohne Notbremse kein Start")
@@ -473,7 +468,7 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
             proc.communicate()
             return {"rc": None, "abweichungen": [], "init": None, "ergebnis": None, "sitzung": None, "protokoll": protokoll,
                     "dauer_s": round(time.monotonic() - t0, 1), "fehler": "Prozess ließ sich nicht ins Job-Objekt nehmen – nicht gestartet"}
-        if gebremst(p):                                        # A1987: Notbremse in der Startlücke – nicht starten, beenden
+        if gebremst(p, beginn_ns):                             # A1987: Notbremse in der Startlücke – nicht starten, beenden
             proc.kill()                                        # (erst NACH dem Aufnehmen in den Job prüfen: kommt die Bremse
             proc.communicate()                                 # später, trifft TerminateJobObject den Prozess schon im Job)
             return {"rc": None, "abweichungen": [], "init": None, "ergebnis": None, "sitzung": None, "protokoll": protokoll,

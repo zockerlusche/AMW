@@ -115,8 +115,6 @@ def vorbereiten(p, quelle, zweig, aufgabe=None):
     quelle = os.path.abspath(quelle)
     if os.path.normcase(os.path.abspath(p["klon"])).startswith(os.path.normcase(quelle) + os.sep):
         raise PlatzFehler("Der Platz darf nicht im Projektordner liegen")
-    from . import arbeiter
-    arbeiter.stempel(p, "vorbereitet")                   # A1987: neues Paket – eine frühere Notbremse gilt nicht mehr
     if not os.path.isdir(os.path.join(p["klon"], ".git")):
         if os.path.exists(p["klon"]) and os.listdir(p["klon"]):
             raise PlatzFehler(f"{p['klon']} ist kein Klon und nicht leer – die AMW legt dort nichts an")
