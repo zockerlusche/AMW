@@ -1300,7 +1300,9 @@ options:
   --punkte PUNKTE
   --aufgabe AUFGABE
   --bemerkung BEMERKUNG
-  --grund GRUND         zuruecknehmen: was nicht stimmt (Pflicht)
+                        gruen/rot: Befund (bei rot Pflicht)
+  --grund GRUND         zuruecknehmen: was nicht stimmt (Pflicht) · gruen/rot:
+                        wie --bemerkung
   --alle
   --stufe {niedrig,mittel,hoch}
                         Prüfstufe höher einstufen als die geänderten Dateien
