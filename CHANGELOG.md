@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.170.2 – 23.11.2026 · Projekte online sauber getrennt
+- **Behoben:** Online zeigt ein Projekt vor seinem ersten Abgleich „Noch kein Abgleich von diesem Rechner.“ statt Daten eines anderen Projekts.
+
 ## 1.170.1 – 23.11.2026 · Nachfragen bei langem Warten
 - **Verbessert:** Wartet ein Agent lange auf einen anderen, ohne dass etwas kommt, oder ist inzwischen eine Version live, fragt die AMW beim Lead nach, ob der Grund noch gilt.
 
