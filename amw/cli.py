@@ -233,8 +233,24 @@ def cmd_agent(a, con):
         _rolle_nur_mensch_oder_lead(con, pid, a, "Den Lead wechseln")
         alt, neu = kern.lead_wechsel(con, pid, _von(a), a.kennung, co=a.co, zustaendig=a.zustaendig, fasst_nicht_an=a.nicht,
                                      grund=a.grund)
+        if not alt and a.co:                          # A2000: war schon Lead – nur der Co-Entwickler ist neu
+            print(f"{neu} bleibt Lead; {a.co} ist Co-Entwickler und behält den Dateiaustausch")
+            return
         print(f"{neu} führt jetzt das Projekt (vorher: {', '.join(alt) or '–'})"
               + (f"; {a.co} ist Co-Entwickler und behält den Dateiaustausch" if a.co else ""))
+        return
+    if a.aktion in ("entfernen", "wiederaufnehmen"):  # A2000 (B2917): wie /api/agent/… – nur der Mensch im eigenen Terminal
+        if not a.kennung:
+            raise kern.AmwFehler(f"amw agent {a.aktion} <Agent> --von Entwickler")
+        _nicht_als_mensch_aus_sitzung(a, f"Agenten {a.aktion}")
+        if a.aktion == "entfernen":
+            r = kern.agent_entfernen(con, pid, _von(a), a.kennung)
+            print(f"{r['agent']} ist entfernt (Soll aus, ausgeblendet; der Verlauf bleibt)"
+                  + ("; die laufende Sitzung wird gesichert und beendet" if r["endet"] else "")
+                  + f" – zurück: amw agent wiederaufnehmen {r['agent']} --von Entwickler")
+        else:
+            r = kern.agent_wiederaufnehmen(con, pid, _von(a), a.kennung)
+            print(f"{r['agent']} ist wieder aufgenommen (Soll aus – starten: amw agent starten {r['agent']})")
         return
     if a.aktion == "umbenennen":
         if not (a.kennung and a.neu_kennung):
@@ -3410,10 +3426,12 @@ def parser():
     x.add_argument("--ordner", help="Projektordner (das Repository, in dem die Agenten arbeiten; vorher selbst anlegen)")
     x.set_defaults(f=cmd_projekt)
 
-    x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript | umbenennen ALT NEU | lead NEU --co ALT --grund …")
-    x.add_argument("aktion", choices=["neu", "liste", "profil", "starten", "beenden", "startskript", "umbenennen", "lead"])
+    x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript | umbenennen ALT NEU | lead NEU --co ALT --grund …"
+                                   " | entfernen | wiederaufnehmen AGENT (nur der Mensch)")
+    x.add_argument("aktion", choices=["neu", "liste", "profil", "starten", "beenden", "startskript", "umbenennen", "lead",
+                                      "entfernen", "wiederaufnehmen"])
     x.add_argument("--co", help="lead: der bisherige Lead wird Co-Entwickler (Wortlaut, Beschlüsse, Fragen an den Menschen,"
-                                " Dokumente; behält den Dateiaustausch)")
+                                " Dokumente; behält den Dateiaustausch); ist NEU schon Lead, setzt --co nur den Co-Entwickler")
     x.add_argument("--grund", help="lead: warum (z. B. der Beschluss)")
     x.add_argument("kennung", nargs="?")
     x.add_argument("neu_kennung", nargs="?", metavar="neu", help="umbenennen: der neue Name (der alte bleibt als Alias gültig)")

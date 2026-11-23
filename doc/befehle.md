@@ -7,7 +7,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 |---|---|
 | [`init`](#init) | neue Datenbank anlegen |
 | [`projekt`](#projekt) | Projekte: neu <name> ¦ liste ¦ ordner [<name>] – jedes Projekt ist für sich (eigene Agenten, Regeln, Daten); bequemer: Workbench › Projekt-Auswahl › Neues Projekt |
-| [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript ¦ umbenennen ALT NEU ¦ lead NEU --co ALT --grund … |
+| [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript ¦ umbenennen ALT NEU ¦ lead NEU --co ALT --grund … ¦ entfernen ¦ wiederaufnehmen AGENT (nur der Mensch) |
 | [`posten`](#posten) | Nachricht schicken: --an CC2 (oder alle, Entwickler) --art auftrag¦frage¦info¦… --kurz … |
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
@@ -120,11 +120,11 @@ usage: amw agent [-h] [--co CO] [--grund GRUND] [--ordner ORDNER]
                  [--zustaendig ZUSTAENDIG] [--nicht NICHT]
                  [--startbefehl STARTBEFEHL] [--ohne-rund] [--von VON]
                  [--projekt PROJEKT]
-                 {neu,liste,profil,starten,beenden,startskript,umbenennen,lead}
+                 {neu,liste,profil,starten,beenden,startskript,umbenennen,lead,entfernen,wiederaufnehmen}
                  [kennung] [neu]
 
 positional arguments:
-  {neu,liste,profil,starten,beenden,startskript,umbenennen,lead}
+  {neu,liste,profil,starten,beenden,startskript,umbenennen,lead,entfernen,wiederaufnehmen}
   kennung
   neu                   umbenennen: der neue Name (der alte bleibt als Alias
                         gültig)
@@ -133,7 +133,8 @@ options:
   -h, --help            show this help message and exit
   --co CO               lead: der bisherige Lead wird Co-Entwickler (Wortlaut,
                         Beschlüsse, Fragen an den Menschen, Dokumente; behält
-                        den Dateiaustausch)
+                        den Dateiaustausch); ist NEU schon Lead, setzt --co
+                        nur den Co-Entwickler
   --grund GRUND         lead: warum (z. B. der Beschluss)
   --ordner ORDNER       profil: Arbeitsordner
   --zusatz ZUSATZ       profil: weitere Ordner, mit ; getrennt

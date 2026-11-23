@@ -118,16 +118,22 @@ def agent_umbenennen(con, pid, von, alt, neu):
 
 
 def lead(con, pid):
-    """Kennung des Lead-Agenten (oder None)."""
-    r = con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead' ORDER BY id LIMIT 1", (pid,)).fetchone()
+    """Kennung des Lead-Agenten (oder None). Ein entfernter Agent ist nie Lead (A2000, B2917), auch wenn seine Rolle noch
+    „lead“ ist."""
+    r = con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead' AND entfernt_utc IS NULL ORDER BY id LIMIT 1",
+                    (pid,)).fetchone()
     return r["kennung"] if r else None
 
 
 def ist_lead(con, pid, kennung):
     if kennung == ENTWICKLER:
         return True
-    r = con.execute("SELECT rolle FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, kennung)).fetchone()
+    r = con.execute("SELECT rolle FROM agent WHERE projekt_id = ? AND kennung = ? AND entfernt_utc IS NULL", (pid, kennung)).fetchone()
     return bool(r) and r["rolle"] == "lead"
+
+
+def _entfernt_hinweis(kennung):
+    return f"{kennung} ist entfernt – erst wieder aufnehmen: amw agent wiederaufnehmen {kennung} --von Entwickler (nur der Mensch)"
 
 
 def co_entwickler(con, pid):
@@ -157,17 +163,31 @@ def lead_wechsel(con, pid, von, neu, co=None, zustaendig=None, fasst_nicht_an=No
         raise AmwFehler("Den Lead wechseln darf der Mensch oder der bisherige Lead")
     neu = kennung_heute(con, (neu or "").strip(), pid) or (neu or "").strip()
     a = con.execute("SELECT kennung, entfernt_utc FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, neu)).fetchone()
-    if not a or a["entfernt_utc"]:
+    if not a:
         raise AmwFehler(f"Agent {neu} gibt es in diesem Projekt nicht")
+    if a["entfernt_utc"]:                                # A2000: den Grund nennen und den Weg zurück
+        raise AmwFehler(f"Neuer Lead: {_entfernt_hinweis(neu)}")
     if co:
         co = kennung_heute(con, co.strip(), pid) or co.strip()
-        if co == neu or not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ? AND entfernt_utc IS NULL",
-                                        (pid, co)).fetchone():
+        c = con.execute("SELECT entfernt_utc FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, co)).fetchone()
+        if c and c["entfernt_utc"]:
+            raise AmwFehler(f"Co-Entwickler: {_entfernt_hinweis(co)}")
+        if co == neu or not c:
             raise AmwFehler(f"Co-Entwickler {co}: ein anderer Agent dieses Projekts als der neue Lead")
     alt = [r[0] for r in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead' AND kennung != ? ORDER BY id",
                                      (pid, neu))]
     if not alt and lead(con, pid) == neu:
-        raise AmwFehler(f"{neu} ist schon der Lead")
+        if not co:
+            raise AmwFehler(f"{neu} ist schon der Lead (nur den Co-Entwickler setzen: --co <Agent>)")
+        with db.schreiben(con):                          # A2000: der Lead bleibt, nur der Co-Entwickler wird gesetzt
+            e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
+            e["co_entwickler"] = co
+            con.execute("UPDATE projekt SET einstellungen = ? WHERE id = ?", (json.dumps(e), pid))
+            text = f"{neu} bleibt Lead, Co-Entwickler: {co} – {grund}"
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="lead_wechsel", text=text)
+            _posten(con, pid, von, ",".join(dict.fromkeys([neu, co, ENTWICKLER])), "info", f"{co} ist jetzt Co-Entwickler",
+                    f"{text}.")
+        return [], neu
     with db.schreiben(con):
         con.execute("UPDATE agent SET rolle = NULL WHERE projekt_id = ? AND rolle = 'lead' AND kennung != ?", (pid, neu))
         felder = {"rolle": "lead"}
@@ -183,7 +203,8 @@ def lead_wechsel(con, pid, von, neu, co=None, zustaendig=None, fasst_nicht_an=No
             con.execute("UPDATE projekt SET einstellungen = ? WHERE id = ?", (json.dumps(e), pid))
         text = f"{', '.join(alt) or '–'} → {neu}" + (f" (Co-Entwickler: {co})" if co else "") + f" – {grund}"
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="lead_wechsel", text=text)
-        an = ",".join(dict.fromkeys([*alt, neu, *([co] if co else []), ENTWICKLER]))
+        weg = {r[0] for r in con.execute("SELECT kennung FROM agent WHERE projekt_id = ? AND entfernt_utc IS NOT NULL", (pid,))}
+        an = ",".join(dict.fromkeys([*(k for k in alt if k not in weg), neu, *([co] if co else []), ENTWICKLER]))   # A2000
         _posten(con, pid, von, an, "info", f"Lead-Wechsel: {neu} führt jetzt das Projekt" + (f", {co} ist Co-Entwickler" if co else ""),
                 f"{text}. Ab jetzt gehen Weckrufe, Fragen an den Lead, Prüfbitten, Planungs- und Leerlauf-Weckrufe an {neu}.")
     return alt, neu
@@ -569,8 +590,11 @@ def projekt_einstellen(con, pid, von, **werte):
                     raise AmwFehler(f"{k}: setzt der Lead oder der Mensch")
                 if k in ("paket_pruefer", "leerlauf_lead", "co_entwickler"):
                     v = str(v or "").strip()
-                    if v and not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, v)).fetchone():
+                    g = con.execute("SELECT entfernt_utc FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, v)).fetchone() if v else None
+                    if v and not g:
                         raise AmwFehler(f"{k}: Agent {v} gibt es in diesem Projekt nicht")
+                    if g and g["entfernt_utc"] and k == "co_entwickler":       # A2000
+                        raise AmwFehler(f"{k}: {_entfernt_hinweis(v)}")
                 else:
                     grenzen = {"haenge_stille_min": (1, 600), "haenge_runden": (1, 200), "leerlauf_lead_min": (1, 1440)}[k]
                     try:
@@ -692,6 +716,9 @@ def agent_entfernen(con, pid, von, kennung):
     a = agent_zeile(con, pid, kennung)
     if a["entfernt_utc"]:
         raise AmwFehler(f"{a['kennung']} ist schon entfernt")
+    if a["rolle"] == "lead":                         # A2000 (B2917): nie ein Projekt mit entferntem Lead – erst übergeben
+        raise AmwFehler(f"{a['kennung']} führt das Projekt – erst die Führung übergeben: amw agent lead <neuer Lead> --grund …,"
+                        " dann entfernen")
     from . import steuerung
     laeuft = con.execute("SELECT 1 FROM sitzung WHERE agent_id = ? AND zustand = 'aktiv'", (a["id"],)).fetchone() is not None
     ende = None
