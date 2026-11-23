@@ -349,6 +349,9 @@ def daten_start(con, pid):
         "   ON e.nachricht_id = v.nachricht_id AND e.agent = :e AND e.status = 'offen' WHERE v.frage_id = f.id) AS nachtraege"
         " FROM frage f WHERE f.projekt_id = :p AND f.an = 'entwickler' AND f.status = 'offen' AND f.geparkt_utc IS NULL"
         " ORDER BY f.blockiert DESC, f.id DESC LIMIT 20", {"p": pid, "e": kern.ENTWICKLER}))
+    from . import fragentopf                # A1990 (K10): blockiert auch, wenn ein Agent an ihr hängt und sonst nichts hat
+    for f in fragen:
+        f["blockiert"] = 1 if f["blockiert"] or fragentopf.blockiert(con, pid, f["id"]) else 0
     an_dich = zeilen(con.execute(           # ohne Nachträge zu offenen Fragen – die zeigt die Frage selbst (geparkte nicht)
         "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf, n.bis FROM empfang e JOIN nachricht n"
         " ON n.id = e.nachricht_id WHERE n.projekt_id = ? AND e.agent = ? AND e.status != 'erledigt'"
