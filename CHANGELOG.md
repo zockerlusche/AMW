@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.167.2 – 23.11.2026 · Neu aufgesetzte Stapel
+- **Behoben:** Ein neu aufgesetzter Stapel gibt die Versionsnummer seines alten Stands frei; alte Prüfungen müssen nicht mehr
+  von Hand zurückgenommen werden.
+
 ## 1.167.1 – 23.11.2026 · Notbremse auch beim Start
 - **Behoben:** Die Notbremse hält einen Arbeiter auch dann an, wenn er gerade erst startet.
 - **Verbessert:** Der Schutz vor versehentlichen schweren Läufen erkennt mehr Arten, einen Befehl zu starten.
