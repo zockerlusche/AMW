@@ -120,7 +120,7 @@ class Nummer(unittest.TestCase):
         self.g("switch", "-q", "-c", "st14", "main")
         i1 = self.commit({"a.txt": "Eins\n"}, "A1: eins")
         i2 = self.commit({"b.txt": "Zwei\n"}, "A2: zwei")
-        alt = self.commit({"amw/__init__.py": '__version__ = "1.1.0"\n', "CHANGELOG.md": "## 1.1.0\n"}, "1.1.0")
+        alt = self.commit({"amw/__init__.py": '__version__ = "1.1.0"\n', "CHANGELOG.md": "## 1.1.0\n"}, f"1.1.0: Stapel – A{a1} + A{a2}")
         self.g("switch", "-q", "main")
         for a in (a1, a2):
             betrieb.pruefung_ergebnis(self.con, self.pid, "TL", self.bitte("CC1", "st14", alt, a), "gruen", "ok")
@@ -128,14 +128,15 @@ class Nummer(unittest.TestCase):
         self.g("tag", "v1.0.1")                                                                   # main geht weiter
         self.g("switch", "-q", "-c", "st15", "main")
         self.g("-c", "commit.gpgsign=false", "cherry-pick", i1, i2)
-        neu = self.commit({"amw/__init__.py": '__version__ = "1.1.0"\n', "CHANGELOG.md": "## 1.1.0\n## 1.0.1\n"}, "1.1.0 neu")
+        neu = self.commit({"amw/__init__.py": '__version__ = "1.1.0"\n', "CHANGELOG.md": "## 1.1.0\n## 1.0.1\n"},
+                          f"1.1.0: Stapel – A{a1} + A{a2} neu")
         self.g("switch", "-q", "main")
         self.assertTrue(self.bitte("CC1", "st15", neu, a2))                                         # A1 auf st14: ersetzt
         self.g("switch", "-q", "-c", "st15-halb", "main")                                          # nur A1 übernommen: A2s
         self.g("-c", "commit.gpgsign=false", "cherry-pick", i1)                                     # alter Stand trägt mehr
-        halb = self.commit({"amw/__init__.py": '__version__ = "1.1.0"\n'}, "1.1.0 halb")
+        halb = self.commit({"amw/__init__.py": '__version__ = "1.1.0"\n'}, f"1.1.0: Stapel – A{a1} + A{a3}")
         self.g("switch", "-q", "main")
-        with self.assertRaises(kern.AmwFehler):
+        with self.assertRaisesRegex(kern.AmwFehler, "schon vergeben"):
             self.bitte("CC2", "st15-halb", halb, a3)
         with self.assertRaises(kern.AmwFehler) as e:                                                  # fremder Stand: belegt weiter
             self.bitte("CC2", "anders", self.stand("1.1.0", "anders"), a3)
