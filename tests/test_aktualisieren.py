@@ -39,7 +39,23 @@ def warte_auf(test, bedingung, sekunden):
         except AssertionError:
             pass
         time.sleep(0.15)
-    test.fail(f"nach {grenze:.0f} s nicht erfüllt: {bedingung}")
+    test.fail(f"nach {grenze:.0f} s nicht erfüllt: {bedingung}\nSeite: {seitenzustand(test)}")
+
+
+# A2016: Was die Seite zeigte, als eine Bedingung nicht kam – damit ein Ausreißer unter Last eine Ursache hat statt nur „32 s“.
+ZUSTAND = ("(() => { try { const i = document.querySelector('#inhalt') || document.body;"
+           " return JSON.stringify({adresse: location.href, geladen: document.readyState, zeige: typeof zeige,"
+           " offen: typeof laden === 'object' ? laden.offen : null, text: i ? i.innerText.replace(/\\s+/g, ' ').slice(0, 300) : null,"
+           " fehler: (window.__rundgang || []).slice(-5), api: performance.getEntriesByType('resource')"   # fertige Abrufe: Weg, ms,
+           ".filter(e => e.name.includes('/api/')).slice(-8).map(e => [e.name.split('/api/')[1].slice(0, 40),"   # Status – ein
+           " Math.round(e.duration), e.responseStatus])}); } catch (e) { return 'Zustand nicht lesbar: ' + e; } })()")   # hängender fehlt
+
+
+def seitenzustand(test):
+    try:
+        return test.tab.js(ZUSTAND)
+    except Exception as e:                       # Verbindung zum Browser weg – auch das ist ein Befund
+        return f"Browser nicht erreichbar: {type(e).__name__}: {e}"
 
 
 def edge_beenden(prozess):
