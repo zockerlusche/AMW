@@ -351,6 +351,7 @@ def daten_start(con, pid):
         "   ON e.nachricht_id = v.nachricht_id AND e.agent = :e AND e.status = 'offen' WHERE v.frage_id = f.id) AS nachtraege"
         " FROM frage f WHERE f.projekt_id = :p AND f.an = 'entwickler' AND f.status = 'offen' AND f.geparkt_utc IS NULL"
         " ORDER BY f.blockiert DESC, f.id ASC LIMIT 20", {"p": pid, "e": kern.ENTWICKLER}))   # A1990: älteste zuerst (fehlen sonst)
+    fragen = [_ueber_lead(con, pid, f) for f in fragen]                 # A2021: weitergeleitet fragt der Lead
     fragen_anzahl = con.execute("SELECT count(*) FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen'"
                                 " AND geparkt_utc IS NULL", (pid,)).fetchone()[0]   # A1993: alle offenen, nicht nur die geladenen 20
     from . import fragentopf                # A1990 (K10): blockiert auch, wenn ein Agent an ihr hängt und sonst nichts hat
@@ -997,13 +998,22 @@ def haelt(con, pid, f):
     return aus
 
 
+def _ueber_lead(con, pid, d):
+    """A2021: hat der Lead die Frage weitergeleitet, fragt er sie den Menschen – „von“ ist dann der Lead, der ursprüngliche
+    Fragesteller steht in „fragesteller“ (und im Verlauf)."""
+    u = kern.frage_ueber(con, pid, d["id"])
+    if u and u != d.get("von"):
+        d["fragesteller"], d["von"] = d.get("von"), u
+    return d
+
+
 def daten_fragen_erledigt(con, pid, grenze=60):
     """A1657 Fragen › Erledigt: die zuletzt beantworteten oder verworfenen Fragen an den Menschen, neueste zuerst."""
     aus = []
     for f in con.execute("SELECT id, von, kurz, status, antwort_art, antwort, antwort_utc, optionen FROM frage WHERE projekt_id = ?"
                          " AND an = 'entwickler' AND status != 'offen' ORDER BY coalesce(antwort_utc, zeit_utc) DESC, id DESC LIMIT ?",
                          (pid, grenze)).fetchall():
-        d = dict(f)
+        d = _ueber_lead(con, pid, dict(f))
         if d["antwort_art"] == "option":                  # Text der gewählten Option dazu
             d["option_text"] = next((o.get("text") for o in json.loads(f["optionen"] or "[]") if o.get("kenn") == d["antwort"]), None)
         del d["optionen"]
@@ -1018,7 +1028,7 @@ def daten_fragen(con, pid, alle=False):
         sql += " AND geparkt_utc IS NULL"
     aus = []
     for f in con.execute(sql + " ORDER BY geparkt_utc IS NOT NULL, blockiert DESC, id DESC LIMIT 80", (pid,)).fetchall():
-        d = dict(f)
+        d = _ueber_lead(con, pid, dict(f))
         d["optionen"] = json.loads(f["optionen"] or "[]")
         d["vorgeschichte"] = vorgeschichte(con, pid, f)
         d["verlauf"] = zeilen(con.execute("SELECT zeit_utc, von, art, text FROM frage_verlauf WHERE frage_id = ?"

@@ -50,7 +50,7 @@ du und der Lead bekommen dazu eine Meldung „Freigabe … aufgehoben“ mit dem
 |---|---|---|
 | `spec_vorlegen` | `lead` | Agenten schreiben Spezifikationen, **vorlegen** darf nur der Lead (nach seiner Prüfung). `alle`: jeder Agent. |
 | `spec_frei` | `entwickler` | Nur du gibst frei. `lead`: auch der Lead gibt konforme Spezifikationen frei, an dich gehen nur Einzelfragen. |
-| `agentenfragen` | `lead` | Fragen der Agenten an dich gehen **zuerst an den Lead**; er beantwortet sie selbst oder leitet sie mit `amw frage weiterleiten <F> [--text …]` weiter – dieselbe Frage mit Nummer, Optionen und Verlauf. `direkt`: wie früher. |
+| `agentenfragen` | `lead` | Seit A2021 ohne Wirkung: Fragen der Agenten (außer Lead und Co-Entwickler) an dich gehen **immer an den Lead**. Er beantwortet sie selbst, leitet sie mit `amw frage weiterleiten <F> [--text … --kurz … --option A=… --empfehlung A --grund …]` als seine Frage weiter (vorher überarbeitet) oder bündelt mehrere: `amw frage neu --an entwickler … --buendeln F12,F13` (die Antwort gilt auch für die alten). `posten --an Entwickler --art frage|auftrag` eines Agenten geht ebenfalls an den Lead. |
 | `info_ablage_h` | `24` | Infos an dich ohne Bezug wandern nach so vielen Stunden eingeklappt unter „Ältere Infos“. |
 
 Die Spec-Karte nennt beide: „verfasst: GW1 · vorgelegt: TL (geprüft)“.

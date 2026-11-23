@@ -577,7 +577,8 @@ usage: amw frage [-h] [--an {entwickler,tl,zustaendig}] [--kurz KURZ]
                  [--fundstellen FUNDSTELLEN] [--geprueft GEPRUEFT]
                  [--aufgabe AUFGABE] [--blockiert] [--text TEXT]
                  [--rueckfrage RUECKFRAGE] [--grund GRUND] [--geparkt]
-                 [--anhang ANHANG] [--von VON] [--projekt PROJEKT]
+                 [--buendeln BUENDELN] [--anhang ANHANG] [--von VON]
+                 [--projekt PROJEKT]
                  {neu,liste,zeige,antworten,nachtrag,verlauf,parken,aufnehmen,weiterleiten}
                  [id]
 
@@ -606,6 +607,9 @@ options:
   --grund GRUND         neu: warum du das empfiehlst; parken/aufnehmen: warum
                         (steht im Verlauf)
   --geparkt             liste: nur die geparkten
+  --buendeln BUENDELN   neu (Lead): diese offenen Fragen der Agenten in eine
+                        neue Frage an den Entwickler bündeln, z. B. F12,F13 –
+                        die Antwort gilt auch für sie (A2021)
   --anhang ANHANG       neu: Bild/Mockup zu einer Option, 'A=datei.png' oder
                         'A=D12' (mehrfach) – erscheint als Variante zum
                         Anklicken, auch online

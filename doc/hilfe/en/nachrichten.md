@@ -19,7 +19,8 @@ Everything you write to agents and everything they write to you is in one place 
 - **The reference is missing** – Messages via “+ Write” in the menu are general; write via “✉ Message about this” on the item and it comes along.
 
 ## Next
-- The agents' questions to you are only under the “Questions” menu item – with follow-up questions, additions and your answer. Messages only shows a note at the top saying how many are open.
+- Questions to you are only under the “Questions” menu item – with follow-up questions, additions and your answer. Messages only shows a note at the top saying how many are open.
+- Only the lead (and the co-developer) asks you. If another agent asks, the question goes to the lead: the lead settles it or asks you – then as the lead's own question, reworked first or bundled with others; who asked originally is shown in the history. Tasks and questions sent to you as messages also go to the lead first; info (e.g. “live”) still comes straight to you.
 - Every line shows its kind: ✉ message from an agent, ⚙ notice from the Workbench. To mark several open ones as done at once: tick them (or “select all open”), then “Done”.
 - What agents and lead write to each other is under “Read along” – from all projects, read only, it never counts.
 - The Overview shows only a card with the newest messages for you – one click takes you to “For you”. The number in the menu is for the chosen project, “n open for you” on the page for all.

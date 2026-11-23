@@ -1374,23 +1374,30 @@ def cmd_plan(a, con):
             print(f"Meilenstein {bid}: P50 {p['p50']} P85 {p['p85']} Ampel {p['ampel'] or '–'}")
 
 
+def _frage_optionen(liste):
+    """--option „A=Text“ (auch „A: Text“) → [(kenn, text)]."""
+    optionen = []
+    for o in liste or []:
+        kenn, gleich, text = o.partition("=")
+        m = None if gleich and text.strip() else re.match(r"\s*([^\s=:)]{1,12})\s*[:)]\s+(.+)", o, re.S)
+        if m:                                   # „V0: Text“ statt „V0=Text“ – gemeint ist dasselbe
+            kenn, text = m.groups()
+        optionen.append((kenn.strip(), text.strip()))
+    return optionen
+
+
 def cmd_frage(a, con):
     pid = _projekt(con, a)
     if a.aktion == "neu":
         if not (a.an and (a.kurz or "").strip()):
             raise kern.AmwFehler("frage neu braucht --an entwickler|tl und --kurz \"die Frage in einem Satz\""
                                  " (--text gibt es nur bei antworten/nachtrag)")
-        optionen = []
-        for o in a.option or []:
-            kenn, gleich, text = o.partition("=")
-            m = None if gleich and text.strip() else re.match(r"\s*([^\s=:)]{1,12})\s*[:)]\s+(.+)", o, re.S)
-            if m:                                   # „V0: Text“ statt „V0=Text“ – gemeint ist dasselbe
-                kenn, text = m.groups()
-            optionen.append((kenn.strip(), text.strip()))
+        optionen = _frage_optionen(a.option)
         from . import dokumente
         anhaenge = dokumente.anhaenge_pruefen(con, pid, a.anhang or [], [k for k, _ in optionen])   # vor dem Anlegen
         fid = kern.frage_neu(con, pid, _von(a), a.an, a.kurz, optionen, a.empfehlung, a.grund, a.worum,
-                             a.fundstellen, a.aufgabe, a.blockiert, geprueft=a.geprueft)
+                             a.fundstellen, a.aufgabe, a.blockiert, geprueft=a.geprueft,
+                             buendel=[x for x in (a.buendeln or "").replace(";", ",").split(",") if x.strip()] or None)
         if a.an == "tl":                            # an den Lead: Treffer nur zeigen
             liste = wissen.treffer(con, pid, f"{a.kurz} {a.worum or ''}")
             if liste:
@@ -1398,13 +1405,14 @@ def cmd_frage(a, con):
         zusatz = dokumente.anhaenge_setzen(con, pid, _von(a), fid, anhaenge)
         print(f"F{fid} angelegt" + (" – Varianten: " + ", ".join(f"{k}=D{d}" for k, d in zusatz.items()) if zusatz else ""))
         if a.an == "entwickler" and con.execute("SELECT an FROM frage WHERE id = ?", (fid,)).fetchone()[0] == "tl":
-            print(f"→ geht zuerst an den Lead {kern.lead(con, pid)} (Projekt-Regel: Agentenfragen über den Lead) – er beantwortet"
-                  " sie selbst oder leitet sie an den Entwickler weiter")
+            print(f"→ geht an den Lead {kern.lead(con, pid)} – den Entwickler fragt nur der Lead (A2021); er beantwortet sie selbst"
+                  " oder stellt sie ihm, auch gebündelt mit anderen")
     elif a.aktion == "weiterleiten":
         if not a.id:
-            raise kern.AmwFehler("frage weiterleiten <nr> [--text \"Notiz für den Entwickler\"]")
-        kern.frage_weiterleiten(con, pid, _von(a), a.id, a.text)
-        print(f"F{a.id} an den Entwickler weitergeleitet")
+            raise kern.AmwFehler("frage weiterleiten <nr> [--text \"Notiz\"] [--kurz … --worum … --option A=… --empfehlung A --grund …]")
+        kern.frage_weiterleiten(con, pid, _von(a), a.id, a.text, kurz=a.kurz, worum=a.worum,          # A2021: vorher überarbeiten
+                                optionen=_frage_optionen(a.option) or None, empfehlung=a.empfehlung, grund=a.grund)
+        print(f"F{a.id} an den Entwickler weitergeleitet – er sieht sie als deine Frage")
     elif a.aktion in ("parken", "aufnehmen"):
         if not a.id:
             raise kern.AmwFehler(f"frage {a.aktion} <nr> [--grund \"…\"]")
@@ -3728,6 +3736,8 @@ def parser():
     x.add_argument("--rueckfrage")
     x.add_argument("--grund", help="neu: warum du das empfiehlst; parken/aufnehmen: warum (steht im Verlauf)")
     x.add_argument("--geparkt", action="store_true", help="liste: nur die geparkten")
+    x.add_argument("--buendeln", help="neu (Lead): diese offenen Fragen der Agenten in eine neue Frage an den Entwickler bündeln,"
+                                     " z. B. F12,F13 – die Antwort gilt auch für sie (A2021)")
     x.add_argument("--anhang", action="append", help="neu: Bild/Mockup zu einer Option, 'A=datei.png' oder 'A=D12' (mehrfach) –"
                                                      " erscheint als Variante zum Anklicken, auch online")
     x.set_defaults(f=cmd_frage)

@@ -1251,11 +1251,33 @@ def bitte_als_info_pruefen(con, pid, an, kurz, text, aufgabe_id, von=None):
             raise AmwFehler(f"Bitte um Handlung → {hilfe} – A{aufgabe_id} wartet auf {n}; eine info weckt nicht")
 
 
+def _nur_lead_umleiten(con, pid, von, an, art, kurz, hinweise):
+    """A2021 (Marcel 23.11. 20:28 „Nur noch der Teamleiter fragt“): schreibt ein Agent (nicht Lead, nicht Co-Entwickler) eine
+    Frage oder einen Auftrag an den Menschen, geht sie an den Lead; der Absender erfährt es. info/antwort an den Menschen
+    (z. B. „live“) bleiben. Rückgabe: die Empfänger."""
+    teile = [t.strip() for t in str(an or "").replace(";", ",").split(",") if t.strip()]
+    if art not in ("frage", "auftrag") or not any(t.lower() == ENTWICKLER.lower() for t in teile) or not nur_lead_fragt(con, pid, von):
+        return an
+    l = lead(con, pid)
+    if not l or l == von:
+        return an
+    neu = ",".join(dict.fromkeys(l if t.lower() == ENTWICKLER.lower() else t for t in teile))
+    satz = (f"An {entwickler_name(con, pid)} fragt nur der Lead – deine {art} „{kurz[:60]}“ geht an {l}; er klärt selbst oder"
+            " fragt gebündelt mit Empfehlung")
+    if hinweise is not None:
+        hinweise.append(satz)
+    else:                                            # Dateiaustausch/MCP: der Absender sieht keine Ausgabe – eine Meldung
+        with db.schreiben(con):
+            _posten(con, pid, "AMW", von, "meldung", satz[:140], satz)
+    return neu
+
+
 def posten(con, pid, von, an, art, kurz, text=None, antwort_auf=None, aufgabe_id=None, hinweise=None, bis=None, bezug=None, faden=True):
     """Nachricht von einem Agenten oder dem Entwickler. hinweise: Liste, in die Hinweise für die Ausgabe kommen.
     bis: Bezug, mit dem sich die Meldung von selbst erledigt (leitbild | aufgabe | A<nr> | F<nr>).
     bezug: worum es geht (A/F/D/M/P/L/T/B<nr>, @Kennung); ohne: aus aufgabe_id, „bis“ oder der Nachricht, auf die sie antwortet.
     faden: schreibt ein Agent nur an den Menschen, ohne antwort_auf, hängt sich die Nachricht an dessen letzte offene an ihn."""
+    an = _nur_lead_umleiten(con, pid, von, an, art, kurz, hinweise)     # A2021: Fragen/Aufträge an den Menschen stellt der Lead
     bis = bis_pruefen(con, pid, bis)
     if (faden and not antwort_auf and von not in ("AMW", ENTWICKLER)
             and [t.strip().lower() for t in an.replace(";", ",").split(",") if t.strip()] == [ENTWICKLER.lower()]):
@@ -1625,8 +1647,29 @@ def aufgaben(con, pid, agent=None, alle=False):
 OPTION_KENN = re.compile(r"[^\s=:)]{1,12}")
 
 
+def nur_lead_fragt(con, pid, von):
+    """A2021: darf `von` den Menschen nicht direkt fragen oder beauftragen? Alle Agenten außer Lead und Co-Entwickler; der Mensch
+    selbst und die AMW nie."""
+    return (von not in (ENTWICKLER, "AMW", db.produkt_entwickler()) and not ist_lead(con, pid, von) and not ist_co(con, pid, von))
+
+
+FRAGE_UEBER = "frage_ueber"          # A2021: plan_ereignis {"frage", "lead", "fragesteller"} – der Lead stellt die Frage dem Menschen
+FRAGE_BUENDEL = "frage_buendel"      # A2021: plan_ereignis {"frage", "alt": [Nummern]} – die Antwort gilt auch für die alten
+
+
+def frage_ueber(con, pid, fid):
+    """Wer stellt die Frage dem Menschen? Der Lead, wenn er sie weitergeleitet (oder gebündelt) hat – sonst None."""
+    for (t,) in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND text LIKE ? ORDER BY id DESC LIMIT 1",
+                            (pid, FRAGE_UEBER, f'{{"frage": {int(fid)},%')):
+        try:
+            return json.loads(t).get("lead")
+        except ValueError:
+            return None
+    return None
+
+
 def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, worum=None, fundstellen=None,
-              aufgabe_id=None, blockiert=False, folge_von=None, geprueft=None, pruefen=True):
+              aufgabe_id=None, blockiert=False, folge_von=None, geprueft=None, pruefen=True, buendel=None):
     zu_zustaendig = an in ZUSTAENDIG                 # Frage an die Federführung der Aufgabe – gespeichert wie eine an den Lead
     if zu_zustaendig:
         if not aufgabe_id:
@@ -1648,11 +1691,21 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
     if an == "entwickler" and pruefen:
         from . import wissen
         wissen.pruefung_verlangen(con, pid, f"{kurz} {worum or ''}", geprueft)
-    ueber_lead = (an == "entwickler" and pruefen and von not in (ENTWICKLER, "AMW", db.produkt_entwickler())
-                  and not ist_lead(con, pid, von) and not ist_co(con, pid, von)       # A1887: der Co-Entwickler fragt direkt
-                  and projekt_wahl(con, pid, "agentenfragen") == "lead" and lead(con, pid))
-    if ueber_lead:                                  # Vorgabe des Entwicklers: Agentenfragen zuerst an den Lead
+    # A2021 (Marcel 23.11. 20:28 „Nur noch der Teamleiter fragt“): eine Frage eines Agenten an den Menschen geht IMMER an den
+    # Lead – unabhängig von agentenfragen; Lead und Co-Entwickler fragen direkt (A1887), die AMW selbst auch
+    ueber_lead = (an == "entwickler" and pruefen and nur_lead_fragt(con, pid, von) and lead(con, pid))
+    if ueber_lead:
         an = "tl"
+    alte = []
+    if buendel:                                      # A2021: der Lead bündelt Fragen der Agenten zu einer an den Menschen
+        if not (von == ENTWICKLER or ist_lead(con, pid, von)) or an != "entwickler":
+            raise AmwFehler("Bündeln: der Lead stellt eine neue Frage an den Entwickler und nennt die alten (--buendeln F12,F13)")
+        for x in buendel:
+            n = int(str(x).strip().lstrip("Ff"))
+            f = con.execute("SELECT id, status, an FROM frage WHERE id = ? AND projekt_id = ?", (n, pid)).fetchone()
+            if not f or f["status"] != "offen" or f["an"] != "tl":
+                raise AmwFehler(f"F{n}: bündeln geht nur mit offenen Fragen beim Lead")
+            alte.append(n)
     with db.schreiben(con):
         fid = db.einfuegen(con, "frage", projekt_id=pid, an=an, von=von, zeit_utc=db.jetzt(), kurz=kurz,
                            worum=worum, optionen=json.dumps([{"kenn": k, "text": t} for k, t in optionen],
@@ -1665,11 +1718,32 @@ def frage_neu(con, pid, von, an, kurz, optionen, empfehlung=None, grund=None, wo
                 _posten(con, pid, von, ziel, "frage", (f"Frage F{fid} für den Entwickler – selbst beantworten oder weiterleiten"
                                                      f" (amw frage weiterleiten {fid}): {kurz}") if ueber_lead
                         else f"Frage F{fid}: {kurz}", aufgabe_id=aufgabe_id)
+        if alte:
+            jetzt = db.jetzt()
+            for n in alte:                           # die alten bleiben offen, stehen aber nicht mehr in der Liste des Leads
+                db.einfuegen(con, "frage_verlauf", frage_id=n, zeit_utc=jetzt, von=von, art="nachtrag",
+                             text=f"Gebündelt in F{fid} – die Antwort dort gilt auch hier")
+                con.execute("UPDATE frage SET geparkt_utc = ?, geparkt_von = ? WHERE id = ?", (jetzt, von, n))
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=jetzt, von=von, art=FRAGE_BUENDEL,
+                         text=json.dumps({"frage": fid, "alt": alte}))
     return fid
 
 
-def frage_weiterleiten(con, pid, von, fid, notiz=None):
-    """Der Lead gibt eine Frage an den Entwickler weiter – dieselbe Frage (Nummer, Optionen, Verlauf bleiben)."""
+def frage_gebuendelt(con, pid, fid):
+    """A2021: die alten Fragen, die in F`fid` gebündelt sind."""
+    for (t,) in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND text LIKE ? ORDER BY id DESC LIMIT 1",
+                            (pid, FRAGE_BUENDEL, f'{{"frage": {int(fid)},%')):
+        try:
+            return [int(x) for x in json.loads(t).get("alt") or []]
+        except ValueError:
+            return []
+    return []
+
+
+def frage_weiterleiten(con, pid, von, fid, notiz=None, kurz=None, worum=None, optionen=None, empfehlung=None, grund=None):
+    """Der Lead gibt eine Frage an den Entwickler weiter – dieselbe Frage (Nummer, Verlauf bleiben). A2021: der Mensch sieht sie als
+    Frage des Leads (Ereignis frage_ueber; der Fragesteller steht im Verlauf); der Lead kann vorher Text, Optionen, Empfehlung und
+    Grund überarbeiten (je Feld; was er nicht nennt, bleibt)."""
     if von == ENTWICKLER or not ist_lead(con, pid, von):
         raise AmwFehler("Fragen leitet nur der Lead weiter")
     f = con.execute("SELECT * FROM frage WHERE id = ? AND projekt_id = ?", (fid, pid)).fetchone()
@@ -1677,12 +1751,28 @@ def frage_weiterleiten(con, pid, von, fid, notiz=None):
         raise AmwFehler(f"Frage F{fid} gibt es nicht")
     if f["status"] != "offen" or f["an"] != "tl":
         raise AmwFehler(f"F{fid} ist {'schon beim Entwickler' if f['an'] == 'entwickler' else f['status']}")
-    if json.loads(f["optionen"] or "[]") and not (f["empfehlung"] and f["grund"]):
-        raise AmwFehler(f"F{fid}: Fragen an den Entwickler brauchen Empfehlung und Grund – erst eine neue Frage mit beidem stellen")
+    neu = {k: v for k, v in (("kurz", (kurz or "").strip()), ("worum", (worum or "").strip()),
+                             ("empfehlung", (empfehlung or "").strip()), ("grund", (grund or "").strip())) if v}
+    if optionen:
+        for k, t in optionen:
+            if not OPTION_KENN.fullmatch(k or "") or not (t or "").strip():
+                raise AmwFehler(f"Option „{(k or '')[:40]}“: Form --option \"A=Text\"")
+        neu["optionen"] = json.dumps([{"kenn": k, "text": t} for k, t in optionen], ensure_ascii=False)
+    kenn = [o["kenn"] for o in json.loads(neu.get("optionen") or f["optionen"] or "[]")]
+    empf = neu.get("empfehlung", f["empfehlung"])
+    if empf and kenn and empf not in kenn:
+        raise AmwFehler(f"Empfehlung „{empf}“ ist keine der Optionen {kenn}")
+    if kenn and not (empf and neu.get("grund", f["grund"])):
+        raise AmwFehler(f"F{fid}: Fragen an den Entwickler brauchen Empfehlung und Grund – mit --empfehlung/--grund ergänzen")
     with db.schreiben(con):
-        con.execute("UPDATE frage SET an = 'entwickler' WHERE id = ?", (fid,))
+        con.execute(f"UPDATE frage SET an = 'entwickler'{''.join(f', {k} = ?' for k in neu)}, geaendert_utc = ? WHERE id = ?",
+                    (*neu.values(), db.jetzt(), fid))              # Spaltennamen nur aus der festen Liste oben
+        geaendert = (" – überarbeitet: " + ", ".join(neu)) if neu else ""
         db.einfuegen(con, "frage_verlauf", frage_id=fid, zeit_utc=db.jetzt(), von=von, art="nachtrag",
-                     text=f"Weitergeleitet von {von} an {entwickler_name(con, pid)}" + (f": {notiz.strip()}" if (notiz or "").strip() else ""))
+                     text=f"Weitergeleitet von {von} an {entwickler_name(con, pid)} (gestellt von {f['von']}){geaendert}"
+                          + (f": {(notiz or '').strip()}" if (notiz or "").strip() else ""))
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=FRAGE_UEBER,
+                     text=json.dumps({"frage": fid, "lead": von, "fragesteller": f["von"]}))
         if f["von"] not in (von, ENTWICKLER, "AMW"):
             _posten(con, pid, von, f["von"], "info", f"F{fid} an {entwickler_name(con, pid)} weitergeleitet", bis=f"F{fid}")
     return fid
@@ -1735,6 +1825,10 @@ def frage_antworten(con, pid, fid, antwort_art, antwort, kanal, von=ENTWICKLER):
         con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ? WHERE agent = ? AND status != 'erledigt'"
                     " AND nachricht_id IN (SELECT nachricht_id FROM frage_verlauf WHERE frage_id = ? AND nachricht_id IS NOT NULL)",
                     (t, von, fid))
+    if status == "beantwortet":                      # A2021: gebündelte Fragen bekommen dieselbe Antwort – ihr Fragesteller wird geweckt
+        for n in frage_gebuendelt(con, pid, fid):
+            if con.execute("SELECT 1 FROM frage WHERE id = ? AND status = 'offen'", (n,)).fetchone():
+                frage_antworten(con, pid, n, "text", f"Antwort auf F{fid}: {antwort}"[:2000], kanal, von="AMW")
     return status
 
 

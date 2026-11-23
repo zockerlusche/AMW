@@ -155,10 +155,10 @@ class Fragen(Grund):
         with self.assertRaises(kern.AmwFehler):
             kern.frage_weiterleiten(self.con, self.pid, "TL", fid)                           # schon dort
 
-    def test_lead_und_umgestelltes_projekt_fragen_direkt(self):
+    def test_lead_fragt_direkt_agenten_immer_ueber_den_lead(self):
         self.assertEqual(self.con.execute("SELECT an FROM frage WHERE id = ?", (self.frage(von="TL"),)).fetchone()[0], "entwickler")
-        kern.projekt_einstellen(self.con, self.pid, "TL", agentenfragen="direkt")
-        self.assertEqual(self.con.execute("SELECT an FROM frage WHERE id = ?", (self.frage(),)).fetchone()[0], "entwickler")
+        kern.projekt_einstellen(self.con, self.pid, "TL", agentenfragen="direkt")      # A2021: die Einstellung führt nicht mehr vorbei
+        self.assertEqual(self.con.execute("SELECT an FROM frage WHERE id = ?", (self.frage(),)).fetchone()[0], "tl")
 
     def test_geparkte_frage_heisst_in_der_lesekopie_und_der_suche_geparkt(self):
         fid = self.frage(von="TL")
