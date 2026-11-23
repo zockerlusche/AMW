@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.174.0 – 23.11.2026 · Zeitfenster für schwere Läufe je Projekt
+- **Neu:** Je Projekt lässt sich ein Zeitfenster für schwere Läufe setzen (z. B. 18:00–07:00); außerhalb warten sie sichtbar und halten niemanden auf. Ohne Fenster bleibt alles wie bisher.
+
 ## 1.173.0 – 23.11.2026 · p als Vorgabe, Anteil p und Sprachprüfung
 - **Verbessert:** Kleine Pakete plant die AMW als p; Betrieb zeigt den Anteil p, und jede Prüfbitte bekommt eine Sprachprüfung.
 
