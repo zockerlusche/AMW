@@ -7,6 +7,7 @@ import socket
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 from amw import db, kern, workbench
 
@@ -193,6 +194,18 @@ class Workbench(unittest.TestCase):
             while t := c.recv(65536):
                 antwort += t
         self.assertTrue(antwort.startswith(b"HTTP/1.0 400"), antwort[:60])
+
+    def test_nicht_zugelassen_abgelehnt_ohne_zu_lesen(self):
+        """CCamwTL P574: Ein nicht zugelassener Rechner bekommt 403, ohne dass der Server seinen Körper liest – kündigt er einen
+        Körper an und schickt keinen, hält er trotzdem keinen Thread fest."""
+        with mock.patch.object(workbench, "zugelassen", lambda *a: False), \
+                socket.create_connection(("127.0.0.1", self.port), timeout=5) as c:
+            c.sendall(f"POST /api/halt HTTP/1.1\r\nHost: 127.0.0.1:{self.port}\r\nX-AMW-Token: {self.token}\r\n"
+                      "Content-Length: 100\r\n\r\n".encode())               # 100 Bytes angekündigt, keines geschickt
+            antwort = b""
+            while t := c.recv(65536):                                       # ohne Fix: Zeitüberschreitung (Server liest)
+                antwort += t
+        self.assertTrue(antwort.startswith(b"HTTP/1.0 403"), antwort[:60])
 
     def test_halt_ueber_seite(self):
         status, _ = self.anfrage("POST", "/api/halt", {"fuer": "alle", "text": "Pause"}, {"X-AMW-Token": self.token})
