@@ -281,11 +281,13 @@ class Online(Daten, OnlineRundgang):
             md = dokumente.ablegen(self.con, self.pid, "CC1", p, "Prüfbericht", "bericht", online=True)
         self.ab.hochladen(alle=True)
         self.oeffnen("dokumente", "document.querySelector('#inhalt')")
-        ids = lambda q: self.tab.js(f"holen('/api/dokumente?status=alle&q={q}').then(d => d.dokumente.map(x => x.id))")
+        # A2052: abrufen() statt holen() – holen() lässt sein Versprechen absichtlich offen, wenn der Takt die Seite zwischendurch neu
+        # zeichnet (A1907); der Test wartete dann ewig (L3332/L3335/L3337 hingen hier)
+        ids = lambda q: self.tab.js(f"abrufen('/api/dokumente?status=alle&q={q}').then(d => d.dokumente.map(x => x.id))")
         self.assertIn(md, ids(""))
         self.assertIn(md, ids("zwiebelturm"))                                           # im Inhalt, nicht im Titel
         self.assertNotIn(md, ids("gibtesnicht"))
-        self.assertFalse(self.tab.js("holen('/api/dokumente?status=alle').then(d => d.dokumente.some(x => 'such' in x))"))
+        self.assertFalse(self.tab.js("abrufen('/api/dokumente?status=alle').then(d => d.dokumente.some(x => 'such' in x))"))
 
     def test_agent_dialog_und_menue(self):
         self.ueberall("start", "online-agent", bereit=self.START, tun="agentDialog('CC1')", danach="document.querySelector('.agent-dialog')")
