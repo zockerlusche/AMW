@@ -1640,7 +1640,8 @@ def cmd_waechter(a, con):
         return
     if a.aktion == "reihenfolge":
         r = waechter.reihenfolge(con, pid)
-        print("\n".join(f"{i}. A{x['id']} (Rang {x['rang'] if x['rang'] is not None else '–'}) {x['titel'][:70]}" for i, x in enumerate(r, 1))
+        print("\n".join(f"{i}. A{x['id']} (Platz {x['platz'] if x.get('platz') is not None else '–'} der Reihenfolge, Rang"
+                        f" {x['rang'] if x['rang'] is not None else '–'}) {x['titel'][:70]}" for i, x in enumerate(r, 1))
               or "Kein startklares p-Paket ohne offene Vorgänger")
         return
     if a.aktion == "zustand":

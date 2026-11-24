@@ -272,11 +272,19 @@ def pc_belegt(con, ohne=None):
 
 
 def reihenfolge(con, pid):
-    """Startklare p-Pakete in Startfolge: Rang (kleiner zuerst), dann Nummer; Pakete, deren Vorgänger („nach X“) noch nicht
-    fertig/gemergt sind, fehlen. [{"id", "titel", "rang"}]"""
-    kandidaten = con.execute(
+    """Startklare p-Pakete in Startfolge – dieselbe Reihenfolge, die die AMW anzeigt (A2041, D1531 §8: reihenfolge.berechnen:
+    aktiver Meilenstein zuerst, dann der längste Rest-Pfad, dann Rang und Nummer); was die Berechnung nicht kennt, kommt danach
+    nach Rang und Nummer. Pakete, deren Vorgänger („nach X“) noch nicht fertig/gemergt sind, fehlen. Die Regeln des Wächters
+    gelten weiter (pruefen). [{"id", "titel", "rang", "platz"}]"""
+    from . import reihenfolge as rf
+    try:
+        platz = {z["aid"]: z["platz"] for z in rf.berechnen(con, pid)}
+    except Exception:                                    # noqa: BLE001 – ohne Berechnung startet der Disponent wie bisher
+        platz = {}
+    kandidaten = sorted(con.execute(
         "SELECT a.id, a.titel, a.rang FROM paket k JOIN aufgabe a ON a.id = k.aufgabe_id WHERE a.projekt_id = ? AND k.art = 'p'"
-        " AND k.zustand = 'startklar' ORDER BY coalesce(a.rang, 999999), a.id", (pid,)).fetchall()
+        " AND k.zustand = 'startklar'", (pid,)).fetchall(),
+        key=lambda k: (platz.get(k["id"], 10 ** 9), k["rang"] if k["rang"] is not None else 999999, k["id"]))
     aus = []
     for k in kandidaten:
         offen = con.execute(
@@ -284,7 +292,7 @@ def reihenfolge(con, pid):
             " WHERE d.nach = ? AND d.extern IS NULL AND NOT (v.status IN ('fertig', 'verworfen') OR coalesce(pv.zustand, '') IN ('gemergt', 'fertig'))",
             (k["id"],)).fetchone()
         if not offen:
-            aus.append({"id": k["id"], "titel": k["titel"], "rang": k["rang"]})
+            aus.append({"id": k["id"], "titel": k["titel"], "rang": k["rang"], "platz": platz.get(k["id"])})
     return aus
 
 

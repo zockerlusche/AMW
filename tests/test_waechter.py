@@ -181,7 +181,9 @@ class Waechter(unittest.TestCase):
         c = self.paket("C", bereiche="web/c/", rang=2)
         with db.schreiben(self.con):
             db.einfuegen(self.con, "abhaengigkeit", vor=a, nach=c)                             # C erst nach A
-        self.assertEqual([x["id"] for x in waechter.reihenfolge(self.con, self.pid)], [b, a])
+        # A2041: dieselbe Reihenfolge wie die Anzeige (reihenfolge.berechnen) – A hat mit C einen Nachfolger, also den längeren
+        # Rest-Pfad, und kommt vor B, obwohl B den kleineren Rang hat; C fehlt, solange A nicht fertig ist
+        self.assertEqual([x["id"] for x in waechter.reihenfolge(self.con, self.pid)], [a, b])
         with db.schreiben(self.con):
             self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'x' WHERE id = ?", (a,))
             self.con.execute("UPDATE paket SET zustand = 'fertig' WHERE aufgabe_id = ?", (a,))

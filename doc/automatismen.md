@@ -452,7 +452,8 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
 
 - **Rangfolge:** `amw pc einstellen projekt_rang=AMW,GlassWorld,LayerIT` – nur der Mensch im eigenen Terminal (nicht aus einer
   Agenten-Sitzung, auch nicht der Lead). Der Disponent geht die Projekte in dieser Reihenfolge durch, innerhalb eines Projekts
-  nach Paketrang wie bisher. Nicht genannte Projekte kommen danach (nach Nummer); ohne Einstellung wie bisher.
+  in der berechneten Reihenfolge (A2041: dieselbe, die Planung und Lagebild anzeigen – `reihenfolge.berechnen`: aktiver
+  Meilenstein zuerst, dann der längste Rest-Pfad, dann Rang und Nummer; `amw waechter reihenfolge` nennt den Platz). Nicht genannte Projekte kommen danach (nach Nummer); ohne Einstellung wie bisher.
 - **Gemeinsame Grenze:** `amw pc einstellen plaetze_pc=<n>` (Lead oder Mensch) – höchstens so viele p-Arbeiter gleichzeitig über
   alle Projekte (gezählt: läuft, abgegeben, Prüfung C; ein Paket in „bereit zum Merge“ arbeitet nicht mehr). 0 = keine
   Grenze. Ist sie erreicht, wartet ein Paket sichtbar (Regel 4: „wartet auf einen Platz (PC: 2 von 2 belegt: AMW A…,
