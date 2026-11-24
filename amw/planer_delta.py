@@ -1,12 +1,14 @@
 """A2027 (TH164 „Konzeptänderung“): der Planer je Thema im Delta-Modus.
 
 Ändert sich ein freigegebenes Thema, das schon geplante Pakete hat, bekommt der Planer das Ergebnis aus A2026
-(konzeptaenderung.aenderung: betroffene Meilensteine und Pakete, eingeteilt in stoppen / zu_ende / nacharbeit) und den
+(konzeptaenderung.aenderung: betroffene Meilensteine und Pakete, eingeteilt in stoppen / zu_ende / fertig) und den
 Unterschied zwischen der alten und der neuen freigegebenen Fassung. Er schlägt NUR die Änderung vor:
 
 - neue Pakete (auch Nacharbeit für fertige) und neue Meilensteine – im gewohnten Schema (pakete, meilensteine),
 - "aendern": ein nicht begonnenes Paket bekommt einen neuen Titel oder Auftrag,
-- "verwerfen": ein nicht begonnenes Paket wird nicht mehr gebraucht.
+- "verwerfen": ein nicht begonnenes Paket wird nicht mehr gebraucht,
+- "nacharbeit": ein fertiges Paket muss wegen der Änderung wirklich nachgearbeitet werden (A2059) – dazu ein neues Paket.
+  Fertige Pakete, die die Änderung nicht berührt, nennt der Planer nicht; die AMW führt fertige nicht pauschal als Nacharbeit.
 
 Laufende Pakete bauen zu Ende (der Lead entscheidet), fertige ändert niemand – für sie gibt es Nacharbeit als neues Paket.
 Bestehendes plant der Planer nicht neu. Das Delta legt die AMW dem Menschen als EINEN Block zur Freigabe vor; wer freigibt,
@@ -31,8 +33,10 @@ AUFTRAG = (
     "Pakete (auch Nacharbeit für fertige Pakete) und – nur wenn nötig – neue Meilensteine im gewohnten Schema; dazu "
     "\"aendern\": [{\"paket\": \"A123\", \"titel\": \"…\" | null, \"auftrag\": \"…\" | null, \"grund\": \"…\"}] für nicht "
     "begonnene Pakete, deren Inhalt sich ändert, und \"verwerfen\": [{\"paket\": \"A123\", \"grund\": \"…\"}] für nicht "
-    "begonnene Pakete, die nicht mehr gebraucht werden. Laufende und fertige Pakete änderst du nicht (für fertige: ein neues "
-    "Nacharbeits-Paket). Ändert die neue Fassung am Plan nichts, antworte mit nichts_zu_bauen und Grund.")
+    "begonnene Pakete, die nicht mehr gebraucht werden. Laufende und fertige Pakete änderst du nicht. Prüfe jedes fertige "
+    "Paket: Muss es wegen der Änderung wirklich nachgearbeitet werden, nenne es in \"nacharbeit\": [{\"paket\": \"A123\", "
+    "\"grund\": \"…\"}] und plane dafür ein neues Paket; berührt die Änderung es nicht, nennst du es nicht. Ändert die neue "
+    "Fassung am Plan nichts, antworte mit nichts_zu_bauen und Grund.")
 
 
 def kontext(con, pid, tid):
@@ -88,13 +92,13 @@ def _text(x, feld, wo, f, pflicht=True):
 
 
 def pruefen_teil(daten, delta, f):
-    """Prüft "aendern" und "verwerfen" gegen die betroffenen Pakete: nur „nicht begonnen“ (stoppen). Rückgabe (aendern,
-    verwerfen) bereinigt; Funde kommen in f."""
+    """Prüft "aendern" und "verwerfen" gegen die betroffenen Pakete: nur „nicht begonnen“ (stoppen); "nacharbeit" (A2059): nur
+    fertige betroffene Pakete, mit Grund. Rückgabe (aendern, verwerfen, nacharbeit) bereinigt; Funde kommen in f."""
     from . import konzeptaenderung
     gruppen = {int(k): v for k, v in (delta or {}).get("pakete", {}).items()}
-    aus = {"aendern": [], "verwerfen": []}
-    gesehen = set()
-    for art in ("aendern", "verwerfen"):
+    aus = {"aendern": [], "verwerfen": [], "nacharbeit": []}
+    gesehen, nach = set(), set()
+    for art in ("aendern", "verwerfen", "nacharbeit"):
         liste = daten.get(art) or []
         if not isinstance(liste, list):
             f.append(f"{art} ist keine Liste")
@@ -114,12 +118,19 @@ def pruefen_teil(daten, delta, f):
             g = gruppen.get(aid)
             if g is None:
                 f.append(f"{wo}: A{aid} ist kein betroffenes Paket dieses Themas")
+            elif art == "nacharbeit":
+                if g != "fertig":
+                    f.append(f"{wo}: A{aid} ist {konzeptaenderung.TEXT[g]} – Nacharbeit nur für fertige Pakete")
+                if aid in nach:
+                    f.append(f"{wo}: A{aid} steht doppelt in nacharbeit")
+                nach.add(aid)
             elif g != "stoppen":
                 f.append(f"{wo}: A{aid} ist {konzeptaenderung.TEXT[g]} – ändern oder verwerfen nur nicht begonnene; für fertige ein "
-                         "Nacharbeits-Paket")
-            if aid in gesehen:
-                f.append(f"{wo}: A{aid} steht doppelt in aendern/verwerfen")
-            gesehen.add(aid)
+                         "Nacharbeits-Paket (nacharbeit)")
+            if art != "nacharbeit":
+                if aid in gesehen:
+                    f.append(f"{wo}: A{aid} steht doppelt in aendern/verwerfen")
+                gesehen.add(aid)
             e = {"paket": aid, "grund": _text(x.get("grund"), "grund", wo, f)}
             if art == "aendern":
                 e["titel"] = _text(x.get("titel"), "titel", wo, f, pflicht=False)
@@ -127,7 +138,7 @@ def pruefen_teil(daten, delta, f):
                 if not (e["titel"] or e["auftrag"]):
                     f.append(f"{wo}: titel oder auftrag nötig")
             aus[art].append(e)
-    return aus["aendern"], aus["verwerfen"]
+    return aus["aendern"], aus["verwerfen"], aus["nacharbeit"]
 
 
 def kurz(delta):
@@ -147,6 +158,8 @@ def zeilen(entwurf):
                                                                        e.get("auftrag") and "neuer Auftrag") if x) + f" – {e['grund']}")
     for e in entwurf.get("verwerfen") or []:
         z.append(f"  verwerfen A{e['paket']} – {e['grund']}")
+    for e in entwurf.get("nacharbeit") or []:                # A2059: nur, was der Planer ausdrücklich nennt
+        z.append(f"  Nacharbeit nötig A{e['paket']} – {e['grund']}")
     return z
 
 
@@ -196,7 +209,7 @@ def anwenden(con, pid, von, tid, eid, entwurf):
         if g == "stoppen":
             return True
         aus["uebersprungen"].append(f"A{e['paket']} {konzeptaenderung.TEXT.get(g, 'verworfen') if g else 'gibt es nicht mehr'}"
-                                    .replace("laufend – zu Ende bauen", "läuft inzwischen").replace("fertig – Nacharbeit nötig",
+                                    .replace("laufend – zu Ende bauen", "läuft inzwischen").replace("fertig – Planer prüft, ob betroffen",
                                                                                                     "ist inzwischen fertig"))
         return False
     for e in entwurf.get("aendern") or []:

@@ -147,16 +147,16 @@ def pruefen(daten, con=None, pid=None, tid=None, delta=None):
     if not isinstance(daten, dict):
         raise PlanFehler(["oben muss ein Objekt stehen"])
     f = []
-    unbekannt = set(daten) - {"nichts_zu_bauen", "grund", "meilensteine", "pakete"} - ({"aendern", "verwerfen"} if delta else set())
+    unbekannt = set(daten) - {"nichts_zu_bauen", "grund", "meilensteine", "pakete"} - ({"aendern", "verwerfen", "nacharbeit"} if delta else set())
     if unbekannt:
         f.append("unbekannte Felder: " + ", ".join(sorted(unbekannt)))
-    aendern, verwerfen = [], []
-    if delta:                                            # A2027: Delta-Modus – nur die Änderung
+    aendern, verwerfen, nacharbeit = [], [], []
+    if delta:                                            # A2027: Delta-Modus – nur die Änderung; A2059: Nacharbeit nur ausdrücklich
         from . import planer_delta
-        aendern, verwerfen = planer_delta.pruefen_teil(daten, delta, f)
+        aendern, verwerfen, nacharbeit = planer_delta.pruefen_teil(daten, delta, f)
     if daten.get("nichts_zu_bauen") is True:
         grund = _text(daten.get("grund"), "grund", "nichts zu bauen", f)
-        if daten.get("meilensteine") or daten.get("pakete") or aendern or verwerfen:
+        if daten.get("meilensteine") or daten.get("pakete") or aendern or verwerfen or nacharbeit:
             f.append("nichts zu bauen, aber Meilensteine oder Pakete angegeben" + (" (oder Änderungen)" if aendern or verwerfen else ""))
         if f:
             raise PlanFehler(f)
@@ -282,7 +282,7 @@ def pruefen(daten, con=None, pid=None, tid=None, delta=None):
     aus = {"nichts_zu_bauen": False, "meilensteine": aus_m, "pakete": aus_p}
     if delta:
         from . import planer_delta
-        aus.update(aendern=aendern, verwerfen=verwerfen, delta=planer_delta.kurz(delta))
+        aus.update(aendern=aendern, verwerfen=verwerfen, nacharbeit=nacharbeit, delta=planer_delta.kurz(delta))
     return aus
 
 
@@ -385,8 +385,9 @@ def _delta_melden(con, pid, lead, t, tid, entwurf, modell, kosten):
     if not e.get("delta"):
         return False
     kern._posten(con, pid, "AMW", lead, "meldung",
-                 f"Delta TH{tid} „{t['name'][:40]}“: {len(e['pakete'])} neu, {len(e['aendern'])} ändern,"
-                 f" {len(e['verwerfen'])} verwerfen – Freigabe als Block"[:140],
+                 (f"Delta TH{tid} „{t['name'][:40]}“: {len(e['pakete'])} neu, {len(e['aendern'])} ändern,"
+                  f" {len(e['verwerfen'])} verwerfen" + (f", {len(e.get('nacharbeit') or [])} Nacharbeit" if e.get("nacharbeit") else "")
+                  + " – Freigabe als Block")[:140],
                  zusammenfassung(e) + f"\n\n({modell or '–'}, {kosten})\nFreigeben: amw thema plan-ja TH{tid}"
                  " (der Mensch; bei feinplan_freigabe = co+lead Co und Lead je ein Ja)")
     return True

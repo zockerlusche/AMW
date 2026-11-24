@@ -72,7 +72,7 @@ class Kontext(Grund):
         d = planer_delta.kontext(self.con, self.pid, self.tid)
         assert d is not None
         self.assertEqual((d["art"], d["alt"]["fassung"], d["neu"]["fassung"]), ("geaendert", 1, 2))
-        self.assertEqual(d["pakete"], {self.p1: "nacharbeit", self.p2: "zu_ende", self.p3: "stoppen"})
+        self.assertEqual(d["pakete"], {self.p1: "fertig", self.p2: "zu_ende", self.p3: "stoppen"})
         text = planer_delta.datei(self.con, self.pid, d)
         self.assertIn("-Passwort vergessen per Mail.", text)
         self.assertIn("+Passwort vergessen entfällt.", text)
@@ -106,11 +106,31 @@ class Pruefen(Grund):
         self.aendern()
         self.d = planer_delta.kontext(self.con, self.pid, self.tid)
 
+    def test_nacharbeit_nur_ausdruecklich_und_nur_fertige(self):
+        """A2059 (TH158 F4→F5): ein fertiges Paket ist nicht von selbst „Nacharbeit nötig“ – nur, wenn der Delta-Planer es in
+        "nacharbeit" nennt (mit Grund); laufende und nicht begonnene gehen dort nicht."""
+        ohne = planer.pruefen(self.delta_plan(), self.con, self.pid, self.tid, delta=self.d)
+        self.assertEqual(ohne["nacharbeit"], [])
+        self.assertFalse([z for z in planer_delta.zeilen(ohne) if "Nacharbeit" in z])          # fertiges p1 erscheint nicht als Nacharbeit
+        mit = planer.pruefen(self.delta_plan(nacharbeit=[{"paket": f"A{self.p1}", "grund": "Anmeldung braucht den Passkey"}]),
+                             self.con, self.pid, self.tid, delta=self.d)
+        self.assertEqual(mit["nacharbeit"], [{"paket": self.p1, "grund": "Anmeldung braucht den Passkey"}])
+        self.assertIn(f"  Nacharbeit nötig A{self.p1} – Anmeldung braucht den Passkey", planer_delta.zeilen(mit))
+        for paket, erwartet in ((self.p2, "Nacharbeit nur für fertige"), (self.p3, "Nacharbeit nur für fertige"),
+                                (99999, "kein betroffenes Paket")):
+            with self.assertRaises(planer.PlanFehler) as f:
+                planer.pruefen(self.delta_plan(nacharbeit=[{"paket": f"A{paket}", "grund": "x"}]), self.con, self.pid, self.tid, delta=self.d)
+            self.assertIn(erwartet, " | ".join(f.exception.fehler))
+        with self.assertRaises(planer.PlanFehler) as f:
+            planer.pruefen(self.delta_plan(nacharbeit=[{"paket": f"A{self.p1}"}]), self.con, self.pid, self.tid, delta=self.d)
+        self.assertIn("grund fehlt", " | ".join(f.exception.fehler))
+        self.assertIn("nacharbeit", planer_delta.AUFTRAG)
+
     def test_aendern_und_verwerfen_nur_nicht_begonnene(self):
         e = planer.pruefen(self.delta_plan(aendern=[{"paket": f"A{self.p3}", "titel": "x", "grund": "y"}], verwerfen=[]),
                            self.con, self.pid, self.tid, delta=self.d)
         self.assertEqual(e["aendern"][0]["paket"], self.p3)
-        for paket, erwartet in ((self.p1, "fertig – Nacharbeit nötig"), (self.p2, "laufend – zu Ende bauen"),
+        for paket, erwartet in ((self.p1, "fertig – Planer prüft, ob betroffen"), (self.p2, "laufend – zu Ende bauen"),
                                 (99999, "kein betroffenes Paket")):
             with self.assertRaises(planer.PlanFehler) as f:
                 planer.pruefen(self.delta_plan(verwerfen=[{"paket": f"A{paket}", "grund": "weg"}]), self.con, self.pid, self.tid,

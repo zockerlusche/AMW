@@ -11,15 +11,16 @@ bestimmt die AMW über die Verknüpfungen, welche Meilensteine und Pakete es bet
 Die betroffenen Pakete teilt sie ein in
 - „stoppen“      – nicht begonnen: anhalten, bevor sie nach dem alten Konzept gebaut werden,
 - „zu_ende“      – laufend: zu Ende bauen, danach prüfen,
-- „nacharbeit“   – fertig (auch gemergte p-Pakete): gebaut nach dem alten Stand, Nacharbeit nötig.
+- „fertig“       – fertig (auch gemergte p-Pakete): gebaut nach dem alten Stand; ob Nacharbeit nötig ist, sagt der Planer
+                   (A2059: nicht pauschal – oft betrifft die Änderung ein fertiges Paket gar nicht).
 
 Nur lesen: nichts wird gesetzt, angehalten oder gemeldet. Nicht betroffene Meilensteine bleiben unberührt – sie stehen
 nur als Nummern unter „unberuehrt“, damit die Anzeige zeigen kann, dass sie geprüft wurden.
 """
 import json
 
-GRUPPEN = ("stoppen", "zu_ende", "nacharbeit")
-TEXT = {"stoppen": "nicht begonnen – stoppen", "zu_ende": "laufend – zu Ende bauen", "nacharbeit": "fertig – Nacharbeit nötig"}
+GRUPPEN = ("stoppen", "zu_ende", "fertig")
+TEXT = {"stoppen": "nicht begonnen – stoppen", "zu_ende": "laufend – zu Ende bauen", "fertig": "fertig – Planer prüft, ob betroffen"}
 ART_TEXT = {"geaendert": "freigegebenes Thema geändert", "neu": "Thema neu dazugekommen"}
 
 _P_NICHT_BEGONNEN = (None, "", "entwurf", "startklar", "zurueckgestellt")
@@ -27,17 +28,17 @@ _P_FERTIG = ("gemergt", "fertig")
 
 
 def einteilen(con, a):
-    """Gruppe eines Pakets (Zeile aus aufgabe): stoppen | zu_ende | nacharbeit – None für verworfene."""
+    """Gruppe eines Pakets (Zeile aus aufgabe): stoppen | zu_ende | fertig – None für verworfene."""
     from . import arbeitspaket
     if a["status"] == "verworfen":
         return None
     if a["status"] == "fertig":
-        return "nacharbeit"
+        return "fertig"
     p = arbeitspaket.lesen(con, a["id"])
     if p.get("art") == "p":
         z = p.get("zustand")
         if z in _P_FERTIG:
-            return "nacharbeit"
+            return "fertig"
         if z not in _P_NICHT_BEGONNEN:
             return "zu_ende"
     if a["status"] == "laeuft" or a["begonnen_utc"]:
@@ -71,7 +72,7 @@ def betroffene(con, pid, themen_):
     """Betroffene der Änderung eines oder mehrerer Themen (Nummern, „TH3“ oder Namen).
 
     Rückgabe {"themen": [TH-Nummern], "meilensteine": [{"bogen": {id, nr, titel, status}, "themen": [...],
-    "stoppen": [A…], "zu_ende": [A…], "nacharbeit": [A…]}] (nach Reihenfolge), "pakete": {A: Gruppe},
+    "stoppen": [A…], "zu_ende": [A…], "fertig": [A…]}] (nach Reihenfolge), "pakete": {A: Gruppe},
     "unberuehrt": [Meilenstein-Nummern (id) ohne betroffenes Paket]}."""
     tids = _thema_ids(con, pid, themen_)
     gesucht = set(tids)

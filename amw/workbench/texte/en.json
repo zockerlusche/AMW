@@ -2120,6 +2120,7 @@
   "pjw_in_x": "in {x}",
   "pjw_geaendert_lbl": "Changed",
   "pjw_verworfen_lbl": "No longer needed",
+  "pjw_nacharbeit_lbl": "Rework needed (says the planner)",
   "pjw_ziel_ms": "Milestone",
   "pjw_warum_fenster": "Why in a window",
   "pjw_laeuft_jetzt": "running now",

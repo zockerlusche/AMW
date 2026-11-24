@@ -185,19 +185,22 @@ def _entwurf_karten(con, pid, d):
                        "groesse": x.get("groesse"), "ziel": ziel(x.get("meilenstein")), "auftrag": (x.get("auftrag") or "")[:800],
                        "abnahme": x.get("abnahme_befehl"), "bereiche": x.get("bereiche"), "grund": x.get("interaktiv_grund"),
                        "nach": x.get("nach") or []})
-    aendern, verwerfen = [], []
+    aendern, verwerfen, nacharbeit = [], [], []
     for y in d.get("aendern") or []:
         aid, alt = _paket_titel(con, pid, y.get("paket"))
         aendern.append({"aufgabe": aid, "alt": alt, "titel": y.get("titel"), "grund": y.get("grund")})
     for y in d.get("verwerfen") or []:
         aid, alt = _paket_titel(con, pid, y.get("paket"))
         verwerfen.append({"aufgabe": aid, "alt": alt, "grund": y.get("grund")})
+    for y in d.get("nacharbeit") or []:                      # A2059: nur, was der Planer ausdrücklich als Nacharbeit nennt
+        aid, alt = _paket_titel(con, pid, y.get("paket"))
+        nacharbeit.append({"aufgabe": aid, "alt": alt, "grund": y.get("grund")})
     ziele = []
     for k in karten:
         z = k["ziel"]
         if z not in ziele:
             ziele.append(z)
-    return {"karten": karten, "aendern": aendern, "verwerfen": verwerfen, "ziele": ziele}
+    return {"karten": karten, "aendern": aendern, "verwerfen": verwerfen, "nacharbeit": nacharbeit, "ziele": ziele}
 
 
 def umsetzung(fein_):

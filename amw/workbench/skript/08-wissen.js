@@ -298,6 +298,8 @@ function pwDeltaKarte(x, einzig, haupt) {
     x.aendern.map(y => el("div", {}, `A${y.aufgabe} ${y.alt || ""}`, y.titel ? el("span", { class: "leise" }, ` → ${y.titel}`) : null))));
   if (x.verwerfen.length) karte.append(el("div", { class: "pjw-hinweise" }, el("div", { class: "pjw-lbl" }, t("pjw_verworfen_lbl")),
     x.verwerfen.map(y => el("div", {}, `A${y.aufgabe} ${y.alt || ""}`, y.grund ? el("span", { class: "leise" }, ` – ${y.grund}`) : null))));
+  if ((x.nacharbeit || []).length) karte.append(el("div", { class: "pjw-hinweise" }, el("div", { class: "pjw-lbl" }, t("pjw_nacharbeit_lbl")),   /* A2059 */
+    x.nacharbeit.map(y => el("div", {}, `A${y.aufgabe} ${y.alt || ""}`, y.grund ? el("span", { class: "leise" }, ` – ${y.grund}`) : null))));
   if (API) return karte;
   const ja = pwKnopf(knopfText, () => pwTun("/api/meilenstein/plan-ja", { thema: x.thema, eid: x.eid }, t("pjw_ok_delta")), haupt);
   if (einzig) pwHaupt = ja;

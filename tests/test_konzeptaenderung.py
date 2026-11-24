@@ -73,10 +73,10 @@ class Konzeptaenderung(unittest.TestCase):
         m = aus["meilensteine"][0]
         self.assertEqual(sorted(m["stoppen"]), sorted([self.offen, self.p]))
         self.assertEqual(m["zu_ende"], [self.laeuft])
-        self.assertEqual(m["nacharbeit"], [self.fertig])
+        self.assertEqual(m["fertig"], [self.fertig])
         self.assertEqual(m["themen"], [self.th])
         self.assertNotIn(self.fremd, aus["pakete"])                      # Paket mit anderem Thema im selben Meilenstein
-        self.assertEqual(aus["pakete"][self.fertig], "nacharbeit")
+        self.assertEqual(aus["pakete"][self.fertig], "fertig")
 
     def test_nicht_betroffene_meilensteine_bleiben_unberuehrt(self):
         vorher = self.stand()
@@ -102,7 +102,7 @@ class Konzeptaenderung(unittest.TestCase):
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, neu)
         aus = konzeptaenderung.aenderung(self.con, self.pid, f"TH{neu}")
         self.assertEqual(aus["art"], "neu")
-        self.assertEqual([(x["bogen"]["id"], x["stoppen"], x["zu_ende"], x["nacharbeit"]) for x in aus["meilensteine"]],
+        self.assertEqual([(x["bogen"]["id"], x["stoppen"], x["zu_ende"], x["fertig"]) for x in aus["meilensteine"]],
                          [(self.m1, [self.offen], [], [])])
         self.assertEqual(set(aus["unberuehrt"]), {self.m2})
 
@@ -113,14 +113,14 @@ class Konzeptaenderung(unittest.TestCase):
         aus = konzeptaenderung.betroffene(self.con, self.pid, [self.th, "Grafik"])
         self.assertEqual([x["bogen"]["id"] for x in aus["meilensteine"]], [self.m1, self.m2])
         self.assertEqual(aus["meilensteine"][0]["themen"], sorted([self.th, self.anderes]))
-        self.assertEqual(aus["meilensteine"][1]["nacharbeit"], [self.m2_paket])   # fertig gebaut → Nacharbeit
+        self.assertEqual(aus["meilensteine"][1]["fertig"], [self.m2_paket])   # fertig gebaut → der Planer prüft (A2059)
         self.assertEqual(aus["pakete"][self.fremd], "stoppen")
         self.assertEqual(aus["unberuehrt"], [])
 
     def test_p_paket_nach_zustand(self):
         a = self.con.execute("SELECT * FROM aufgabe WHERE id = ?", (self.p,)).fetchone()
         self.assertEqual(konzeptaenderung.einteilen(self.con, a), "stoppen")
-        for z, g in (("laeuft", "zu_ende"), ("gemergt", "nacharbeit"), ("zurueckgestellt", "stoppen")):
+        for z, g in (("laeuft", "zu_ende"), ("gemergt", "fertig"), ("zurueckgestellt", "stoppen")):
             with mock.patch.object(arbeitspaket, "lesen", return_value={"art": "p", "zustand": z}):
                 self.assertEqual(konzeptaenderung.einteilen(self.con, a), g, z)
 
@@ -135,7 +135,7 @@ class Konzeptaenderung(unittest.TestCase):
         self.assertIn("freigegebenes Thema geändert", z)
         self.assertIn(f"nicht begonnen – stoppen: A{min(self.offen, self.p)}", z)
         self.assertIn(f"laufend – zu Ende bauen: A{self.laeuft}", z)
-        self.assertIn(f"fertig – Nacharbeit nötig: A{self.fertig}", z)
+        self.assertIn(f"fertig – Planer prüft, ob betroffen: A{self.fertig}", z)
         self.assertIn("Unberührt: 1 Meilenstein(e).", z)
         self.assertEqual(konzeptaenderung.zeilen({"meilensteine": []}), ["Keine Meilensteine betroffen."])
 
