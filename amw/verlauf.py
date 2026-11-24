@@ -5,13 +5,133 @@
 - Verlauf: eine Zeitleiste aus den vorhandenen Daten (Nachrichten, Erledigtes, Läufe, Prüfungen, Fragen, Beschlüsse,
   Planung, Sitzungen) – nichts wird doppelt erfasst.
 - Zusammenfassung seit einem Zeitpunkt („Seit du weg warst“, täglicher Push-Rückblick): nur Zahlen.
+- Projektweg (A2024, TH164 „Verlauf“): „wer hat was getan“ – Mensch, AMW, Planer, Prüfer, Agent – mit Uhrzeit und Text über
+  den ganzen Weg, älteste zuerst (projektweg). Was die AMW schon festhält (Themen, Gegenlesen, Planer, Freigaben und
+  Abnahmen der Meilensteine), wird gelesen, nicht doppelt gespeichert; was keine eigene Stelle hat, speichert ereignis()
+  als plan_ereignis art „protokoll“ (Text als JSON {"rolle", "text"}) – keine neue Tabelle.
 """
 import datetime
+import json
+import re
 
 from . import db, kern
 
 ARTEN = ("gut", "schlecht", "massnahme", "gelernt")
 VERLAUF_ARTEN = ("nachricht", "erledigt", "lauf", "pruefung", "frage", "beschluss", "plan", "sitzung", "dokument")
+
+PROTOKOLL = "protokoll"                         # plan_ereignis.art der eigens gespeicherten Ereignisse im Projektweg
+ROLLEN = ("mensch", "amw", "planer", "pruefer", "agent")
+_VON_VORGABE = {"mensch": kern.ENTWICKLER, "amw": "AMW", "planer": "Planer", "pruefer": "Prüfer"}   # Agent: Kennung Pflicht
+_ZEIT = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
+# Was die AMW im Projektweg schon festhält: art → (feste Rolle oder None = nach „von“, Text). {t} Thema, {f} Fassung,
+# {m} Meilenstein-Nummer, {x} Zusatz aus dem Ereignis.
+WEG_ARTEN = {
+    "thema_vorgelegt": (None, "TH{t} Fassung {f} vorgelegt"),
+    "thema_bearbeitet": (None, "TH{t} bearbeitet (Fassung {f})"),
+    "thema_freigegeben": (None, "TH{t} freigegeben"),
+    "thema_zurueck": (None, "TH{t} zurückgegeben"),
+    "thema_ja": (None, "TH{t}: Ja"),
+    "thema_loeschen_markiert": (None, "TH{t} zum Löschen markiert"),
+    "thema_markierung_aufgehoben": (None, "TH{t}: Löschmarkierung aufgehoben"),
+    "thema_gegenlesen": ("amw", "TH{t} Fassung {f}: Gegenlesen angestoßen"),
+    "thema_gegengelesen": ("pruefer", "TH{t} Fassung {f} gegengelesen"),
+    "thema_planer": ("amw", "TH{t} Fassung {f}: Planer angestoßen"),
+    "thema_planentwurf": ("planer", "TH{t} Fassung {f}: {x}"),
+    "thema_plan_ja": (None, "TH{t}: Plan angenommen"),
+    "thema_nichts_zu_bauen": (None, "TH{t}: nichts zu bauen"),
+    "konzept_uebernommen": (None, "Konzept übernommen"),
+    "meilenstein_frei": (None, "M{m}: {x} freigegeben"),
+    "meilenstein_ja": (None, "M{m}: Ja zu {x}"),
+    "abschluss_bericht": ("amw", "M{m}: Abschlussbericht vorbereitet"),
+}
+
+
+def ereignis(con, pid, rolle, text, von=None, aufgabe_id=None, bogen_id=None, zeit_utc=None):
+    """Ein Ereignis im Projektweg speichern, das keine eigene Stelle in der AMW hat. rolle: mensch | amw | planer | pruefer |
+    agent; von: wer genau (beim Agenten Pflicht, sonst Vorgabe je Rolle). Rückgabe: id des Eintrags."""
+    if rolle not in ROLLEN:
+        raise kern.AmwFehler("Rolle: " + " | ".join(ROLLEN))
+    text = (text or "").strip()
+    if not text:
+        raise kern.AmwFehler("Text fehlt")
+    von = (von or "").strip() or _VON_VORGABE.get(rolle)
+    if not von:
+        raise kern.AmwFehler("wer (von) fehlt – beim Agenten die Kennung")
+    zeit_utc = zeit_utc or db.jetzt()
+    if not _ZEIT.match(zeit_utc):
+        raise kern.AmwFehler(f"Uhrzeit {zeit_utc!r}: Format JJJJ-MM-TTThh:mm:ssZ (UTC)")
+    if aufgabe_id is not None and not con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND projekt_id = ?",
+                                                  (aufgabe_id, pid)).fetchone():
+        raise kern.AmwFehler(f"Aufgabe {aufgabe_id} gibt es nicht")
+    if bogen_id is not None and not con.execute("SELECT 1 FROM bogen WHERE id = ? AND projekt_id = ?", (bogen_id, pid)).fetchone():
+        raise kern.AmwFehler(f"Meilenstein {bogen_id} gibt es nicht")
+    with db.schreiben(con):
+        return db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=zeit_utc, von=von, art=PROTOKOLL,
+                            aufgabe_id=aufgabe_id, bogen_id=bogen_id,
+                            text=json.dumps({"rolle": rolle, "text": text}, ensure_ascii=False))
+
+
+def _rolle(von, fest=None):
+    if fest:
+        return fest
+    if von == kern.ENTWICKLER:
+        return "mensch"
+    return "amw" if von == "AMW" else "agent"
+
+
+def _json(text):
+    try:
+        d = json.loads(text or "{}")
+    except ValueError:
+        return {}
+    return d if isinstance(d, dict) else {}
+
+
+FREIGABE_TEXT = {"grob": "Grobplan", "plan": "Feinplan", "abschluss": "Abschluss"}     # planansicht.ARTEN
+ROLLE_TEXT = {"co": "Co-Entwickler", "lead": "Lead"}
+
+
+def _weg_text(art, d, nr):
+    fest, muster = WEG_ARTEN[art]
+    x = ""
+    if art == "thema_planentwurf":
+        x = "Planer meldet einen Fehler" if d.get("fehler") else (
+            "Planer: nichts zu bauen" if (d.get("entwurf") or {}).get("nichts_zu_bauen") else "Planentwurf liegt vor")
+    elif art in ("meilenstein_frei", "meilenstein_ja"):
+        x = FREIGABE_TEXT.get(d.get("art"), d.get("art") or "?")
+    t = muster.format(t=d.get("thema", "?"), f=d.get("fassung", "?"), m=nr if nr is not None else "?", x=x)
+    if art == "meilenstein_frei" and d.get("an") is False:
+        t = t.replace(" freigegeben", ": Freigabe zurückgenommen")
+    if art in ("thema_ja", "meilenstein_ja") and d.get("rolle"):
+        t += f" ({ROLLE_TEXT.get(d['rolle'], d['rolle'])})"
+    return fest, t
+
+
+def projektweg(con, pid, ab_utc=None, bis_utc=None, rolle=None, grenze=2000):
+    """Der ganze Projektweg (oder [ab_utc, bis_utc)) in zeitlicher Reihenfolge, älteste zuerst; gleiche Sekunde nach Eingang.
+    Je Eintrag {"id", "zeit", "rolle", "von", "text", "art", "aufgabe_id", "bogen_id"}."""
+    if rolle is not None and rolle not in ROLLEN:
+        raise kern.AmwFehler("Rolle: " + " | ".join(ROLLEN))
+    arten = (PROTOKOLL, *WEG_ARTEN)
+    sql = ("SELECT e.id, e.zeit_utc, e.von, e.art, e.text, e.aufgabe_id, e.bogen_id, b.nr FROM plan_ereignis e"
+           " LEFT JOIN bogen b ON b.id = e.bogen_id WHERE e.projekt_id = ? AND e.art IN (" + ", ".join("?" * len(arten)) + ")")
+    par = [pid, *arten]
+    for bed, wert in (("e.zeit_utc >= ?", ab_utc), ("e.zeit_utc < ?", bis_utc)):
+        if wert is not None:
+            sql += " AND " + bed
+            par.append(wert)
+    aus = []
+    for r in con.execute(sql + " ORDER BY e.zeit_utc, e.id", par):
+        d = _json(r["text"])
+        if r["art"] == PROTOKOLL:
+            ro, text = d.get("rolle") or _rolle(r["von"]), d.get("text") or (r["text"] or "")
+        else:
+            fest, text = _weg_text(r["art"], d, r["nr"])
+            ro = _rolle(r["von"], fest)
+        if rolle is None or ro == rolle:
+            aus.append({"id": r["id"], "zeit": r["zeit_utc"], "rolle": ro, "von": r["von"], "text": text, "art": r["art"],
+                        "aufgabe_id": r["aufgabe_id"], "bogen_id": r["bogen_id"]})
+    return aus[-int(grenze):]
 
 
 def rueckblick_neu(con, pid, von, bogen_id, art, text):

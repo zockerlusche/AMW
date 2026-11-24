@@ -43,6 +43,81 @@ class Rueckblick(Grund):
         self.assertEqual([r["art"] for r in verlauf.rueckblicke(self.con, self.pid, self.bid)], ["gut", "massnahme", "massnahme"])
 
 
+class Projektweg(Grund):
+    """A2024: „wer hat was getan“ im Projektweg – Mensch, AMW, Planer, Prüfer, Agent – mit Uhrzeit und Text, zeitlich."""
+
+    def test_eigens_gespeichert_jede_rolle_mit_zeit_und_text(self):
+        a = kern.aufgabe_neu(self.con, self.pid, "TL", "Bauen", "CC1")
+        werte = [("mensch", None, "Konzept abgeschlossen"), ("amw", None, "Grobplanung gestartet"), ("planer", None, "Plan steht"),
+                 ("agent", "CC1", "Test geschrieben"), ("pruefer", "TL", "Prüfung grün")]
+        ids = [verlauf.ereignis(self.con, self.pid, r, t, von=v, aufgabe_id=a) for r, v, t in werte]
+        self.assertEqual(len(set(ids)), 5)
+        weg = verlauf.projektweg(self.con, self.pid)
+        self.assertEqual([(e["rolle"], e["text"]) for e in weg], [(r, t) for r, _, t in werte])
+        self.assertEqual([e["von"] for e in weg], [kern.ENTWICKLER, "AMW", "Planer", "CC1", "TL"])
+        for e in weg:
+            self.assertRegex(e["zeit"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
+            self.assertEqual(e["aufgabe_id"], a)
+
+    def test_ganzer_weg_in_zeitlicher_reihenfolge(self):
+        verlauf.ereignis(self.con, self.pid, "pruefer", "spät", von="TL", zeit_utc="2026-01-03T10:00:00Z")
+        verlauf.ereignis(self.con, self.pid, "mensch", "früh", zeit_utc="2026-01-01T08:00:00Z")
+        verlauf.ereignis(self.con, self.pid, "agent", "mittel 1", von="CC1", zeit_utc="2026-01-02T09:00:00Z")
+        verlauf.ereignis(self.con, self.pid, "amw", "mittel 2", zeit_utc="2026-01-02T09:00:00Z")   # gleiche Sekunde: Eingang zählt
+        self.assertEqual([e["text"] for e in verlauf.projektweg(self.con, self.pid)], ["früh", "mittel 1", "mittel 2", "spät"])
+        self.assertEqual([e["text"] for e in verlauf.projektweg(self.con, self.pid, ab_utc="2026-01-02T00:00:00Z",
+                                                                bis_utc="2026-01-03T00:00:00Z")], ["mittel 1", "mittel 2"])
+        self.assertEqual([e["text"] for e in verlauf.projektweg(self.con, self.pid, rolle="agent")], ["mittel 1"])
+        with db.schreiben(self.con):
+            p2 = db.einfuegen(self.con, "projekt", name="Q", angelegt_utc=db.jetzt())
+        verlauf.ereignis(self.con, p2, "mensch", "fremd")
+        self.assertNotIn("fremd", [e["text"] for e in verlauf.projektweg(self.con, self.pid)])
+
+    def test_ungueltiges_wird_abgelehnt(self):
+        for args, kw in ((("chef", "x"), {}), (("mensch", "  "), {}), (("agent", "x"), {}),
+                         (("amw", "x"), {"zeit_utc": "gestern"}), (("amw", "x"), {"aufgabe_id": 999}),
+                         (("amw", "x"), {"bogen_id": 999})):
+            with self.assertRaises(kern.AmwFehler, msg=str(args)):
+                verlauf.ereignis(self.con, self.pid, *args, **kw)
+        self.assertEqual(verlauf.projektweg(self.con, self.pid), [])
+        with self.assertRaises(kern.AmwFehler):
+            verlauf.projektweg(self.con, self.pid, rolle="chef")
+
+    def test_was_die_amw_schon_festhaelt_wird_gelesen_nicht_doppelt(self):
+        """Themen, Gegenlesen, Planer und Meilenstein-Freigaben stehen schon in der AMW – der Weg liest sie mit Rolle und Text."""
+        from amw import planansicht, planer, themen
+        tid = themen.neu(self.con, self.pid, "TL", "Anmeldung", pfleger="CC1")
+        themen.pflegen(self.con, self.pid, "CC1", tid, "Wer die Seite öffnet, meldet sich an.")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, tid)
+        with db.schreiben(self.con):
+            planer._ereignis(self.con, self.pid, "AMW", planer.ANGESTOSSEN, tid, fassung=1, modell="sonnet")
+            db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von="TL", art="thema_gegengelesen",
+                         text='{"thema": %d, "fassung": 1}' % tid)
+        planer.entwurf_eintragen(self.con, self.pid, tid, 1, None, modell="sonnet", fehler=["kein JSON"])
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von="TL", art=planansicht.JA,
+                         bogen_id=self.bid, text='{"bogen": %d, "art": "grob", "rolle": "lead"}' % self.bid)
+            db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von=kern.ENTWICKLER,
+                         art=planansicht.FREI, bogen_id=self.bid, text='{"bogen": %d, "art": "plan", "an": true}' % self.bid)
+            db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von="TL", art="bogen_status",
+                         bogen_id=self.bid, text="nicht im Projektweg")
+        nr = self.con.execute("SELECT nr FROM bogen WHERE id = ?", (self.bid,)).fetchone()[0]
+        weg = [(e["rolle"], e["von"], e["text"]) for e in verlauf.projektweg(self.con, self.pid)]
+        self.assertIn(("agent", "CC1", f"TH{tid} Fassung 1 vorgelegt"), weg)
+        self.assertIn(("mensch", kern.ENTWICKLER, f"TH{tid} freigegeben"), weg)
+        self.assertIn(("amw", "AMW", f"TH{tid} Fassung 1: Planer angestoßen"), weg)
+        self.assertIn(("pruefer", "TL", f"TH{tid} Fassung 1 gegengelesen"), weg)
+        self.assertIn(("planer", "AMW", f"TH{tid} Fassung 1: Planer meldet einen Fehler"), weg)
+        self.assertIn(("agent", "TL", f"M{nr}: Ja zu Grobplan (Lead)"), weg)
+        self.assertIn(("mensch", kern.ENTWICKLER, f"M{nr}: Feinplan freigegeben"), weg)
+        self.assertNotIn("nicht im Projektweg", [t for _, _, t in weg])
+        self.assertEqual(len(weg), len({e["id"] for e in verlauf.projektweg(self.con, self.pid)}))
+        self.assertEqual([e["zeit"] for e in verlauf.projektweg(self.con, self.pid)],
+                         sorted(e["zeit"] for e in verlauf.projektweg(self.con, self.pid)))
+        self.assertEqual([t for r, _, t in weg if r == "mensch"],
+                         [e["text"] for e in verlauf.projektweg(self.con, self.pid, rolle="mensch")])
+
+
 class Verlauf(Grund):
     def test_ereignisse_aus_vielen_quellen_filter_und_zusammenfassung(self):
         ab = db.jetzt()
