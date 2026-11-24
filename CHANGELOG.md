@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.187.0 – 24.11.2026 · Konzeptänderung ohne pauschale Nacharbeit, Projektweg zeigt offene Änderungen
+- **Verbessert:** Ändert sich ein freigegebenes Thema, gelten fertige Pakete nicht mehr von selbst als „Nacharbeit nötig“. Nacharbeit steht nur bei Paketen, die die Änderung wirklich berührt – der Planer nennt sie mit Grund.
+- **Behoben:** Wartet eine Änderung am Konzept auf dein Ja, zeigt die Seite Projektweg den Schritt Feinplanung als „wartet auf dich“ – auch wenn der Feinplan schon erledigt war.
+- **Verbessert:** Bei der Übernahme eines Projekts mit Bestand zählt ein Thema mit „nichts zu bauen“ nicht mehr als Lücke; der Verlauf nennt die Übernahme unter AMW.
+- **Verbessert:** Die Workbench-Seite liegt jetzt in Bausteinen mit eigenen Sprachdateien – für dich ändert sich nichts, Übersetzen und Ändern wird leichter.
+
 ## 1.186.0 – 24.11.2026 · Bestand als Grobplan, nur Riskantes zum Lead
 - **Neu:** Hat ein Projekt schon Meilensteine, übernimmt die AMW sie als Grobplan (Fassung 0); er gilt als angenommen, der Projektweg steht beim richtigen Schritt, und die Grobplanung zeigt die Meilensteine mit ihren Themen. „Konzept abschließen“ plant einen Bestand nicht mehr neu.
 - **Neu:** Pakete aus dem Fenster eines Agenten laufen durch dieselbe Prüfung wie Headless-Pakete; ist sie grün und nichts riskant, nimmt die AMW sie selbst ab. Der Lead liest nur noch Riskantes – mit Begründung je Regel – und bekommt jede Woche, wie viele Pakete die AMW selbst abgenommen hat und wie viele zurückgenommen wurden.
