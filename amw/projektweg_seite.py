@@ -138,8 +138,64 @@ def fein(con, pid, freigaben):
     for x in e["entwuerfe"]:
         d = (planer.letzter_entwurf(con, pid, x["thema"]) or {}).get("entwurf") or {}
         if d.get("delta"):
-            delta.append({**x, "hinweise": planhinweis.offene(con, pid, x["thema"])})
+            delta.append({**{k: v for k, v in x.items() if k != "zeilen"}, **_entwurf_karten(con, pid, d),
+                          "hinweise": planhinweis.offene(con, pid, x["thema"])})
     return {"meilensteine": aus, "delta": delta}
+
+
+def _paket_titel(con, pid, ref):
+    try:
+        aid = int(str(ref).lstrip("Aa"))
+    except ValueError:
+        return None, None
+    r = con.execute("SELECT id, titel FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    return (r["id"], r["titel"]) if r else (aid, None)
+
+
+def _entwurf_karten(con, pid, d):
+    """A2065: ein Entwurf des Planers (auch ein Delta) als Karten – neue Pakete in Stufen (aus „nach“ innerhalb des Entwurfs),
+    „wer“ in Worten, Ziel-Meilenstein mit Projektnummer (bestehend) oder als neu; dazu geändert/verworfen mit dem bisherigen Titel.
+    Auftrag, Abnahme-Befehl, Bereiche und Grund nur für das Seitenfenster."""
+    ms = {m.get("schluessel"): m for m in d.get("meilensteine") or []}
+
+    def ziel(k):
+        m = ms.get(k) or {}
+        if m.get("bestehend"):
+            r = con.execute("SELECT nr, titel FROM bogen WHERE id = ? AND projekt_id = ?", (m["bestehend"], pid)).fetchone()
+            return {"nr": r["nr"] if r else None, "titel": r["titel"] if r else None, "neu": False}
+        return {"nr": None, "titel": m.get("titel") or k, "neu": True}
+    pakete = d.get("pakete") or []
+    nach_key = {x.get("schluessel"): [v for v in x.get("nach") or [] if v in {y.get("schluessel") for y in pakete}] for x in pakete}
+    stufe = {}
+
+    def tiefe(k, pfad=()):
+        if k in stufe:
+            return stufe[k]
+        if k in pfad:
+            return 1
+        stufe[k] = 1 + max((tiefe(v, pfad + (k,)) for v in nach_key.get(k) or []), default=0)
+        return stufe[k]
+    karten = []
+    for x in pakete:
+        modell = (x.get("modell") or "").capitalize()
+        karten.append({"schluessel": x.get("schluessel"), "titel": x.get("titel"), "stufe": tiefe(x.get("schluessel")),
+                       "wer": ("Headless" + (f" · {modell}" if modell else "")) if x.get("ausfuehrung") == "p" else "Fenster",
+                       "groesse": x.get("groesse"), "ziel": ziel(x.get("meilenstein")), "auftrag": (x.get("auftrag") or "")[:800],
+                       "abnahme": x.get("abnahme_befehl"), "bereiche": x.get("bereiche"), "grund": x.get("interaktiv_grund"),
+                       "nach": x.get("nach") or []})
+    aendern, verwerfen = [], []
+    for y in d.get("aendern") or []:
+        aid, alt = _paket_titel(con, pid, y.get("paket"))
+        aendern.append({"aufgabe": aid, "alt": alt, "titel": y.get("titel"), "grund": y.get("grund")})
+    for y in d.get("verwerfen") or []:
+        aid, alt = _paket_titel(con, pid, y.get("paket"))
+        verwerfen.append({"aufgabe": aid, "alt": alt, "grund": y.get("grund")})
+    ziele = []
+    for k in karten:
+        z = k["ziel"]
+        if z not in ziele:
+            ziele.append(z)
+    return {"karten": karten, "aendern": aendern, "verwerfen": verwerfen, "ziele": ziele}
 
 
 def umsetzung(fein_):
