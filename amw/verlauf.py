@@ -116,6 +116,11 @@ def _weg_text(art, d, nr):
              + f": {str(d.get('text') or '')[:200]}")
     t = muster.format(t=d.get("thema", "?"), f=d.get("fassung", "?"), m=nr if nr is not None else "?", x=x,
                       n=len(d.get("themen") or {}))
+    if art in ("grobplan_entwurf", "grobplan_ja") and d.get("uebernahme"):       # A2062 (b): nicht wie ein Lauf/Ja des Menschen
+        t = (f"Bestand übernommen: Grobplan Fassung 0 mit {len((d.get('entwurf') or {}).get('meilensteine') or [])} Meilensteinen"
+             if art == "grobplan_entwurf" else f"Bestand übernommen – Fassung 0 gilt als angenommen ({x})")
+    if art == "meilenstein_frei" and d.get("quelle") == "uebernahme":
+        t = f"M{nr if nr is not None else '?'} grob freigegeben – Bestand übernommen"
     if art == "meilenstein_frei" and d.get("an") is False:
         t = t.replace(" freigegeben", ": Freigabe zurückgenommen")
     if art in ("thema_ja", "meilenstein_ja", "konzept_abschluss_ja", "grobplan_ja_stimme") and d.get("rolle"):

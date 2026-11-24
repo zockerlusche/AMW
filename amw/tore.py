@@ -116,7 +116,15 @@ def stand(con, pid):
     nichts = nichts_gilt(con, pid)
     ms = _meilensteine(con, pid)
     in_ms = {tid for m in ms for tid in m["themen"]}
-    zugeordnet = {tid for tid in frei if tid in in_ms or (nichts.get(tid) or {}).get("bestaetigt")}
+    uebernommen = set()                                           # A2062 (b): Fassung 0 = Bestand gilt als angenommen – ihre
+    from . import grobplan                                        # Zuordnung zählt, freigegebene Themen ohne Meilenstein (Befund
+    ja = grobplan.angenommen(con, pid)                            # „abdeckung“) plant der Planer je Thema
+    if ja and ja.get("uebernahme"):
+        d = (grobplan.entwurf(con, pid, 0) or {}).get("entwurf") or {}
+        in_ms |= {tid for m in d.get("meilensteine") or [] if m.get("status") != "verworfen" for tid in m.get("themen") or []}
+        uebernommen = {int(x[2:]) for b in d.get("befunde") or [] if b.get("art") == "abdeckung" for x in b.get("themen") or []
+                       if str(x).startswith("TH") and str(x)[2:].isdigit()}
+    zugeordnet = {tid for tid in frei if tid in in_ms or tid in uebernommen or (nichts.get(tid) or {}).get("bestaetigt")}
     geplant = [m for m in ms if m["status"] == "geplant"]
     grob_frei = [m for m in geplant if m["grob"]]
     grob_zu = k["konzept_zu"] and bool(frei) and len(zugeordnet) == len(frei) and len(grob_frei) == len(geplant) and bool(ms)

@@ -219,13 +219,25 @@ class Uebernahme(Grund):
         with db.schreiben(self.con):
             self.con.execute("UPDATE aufgabe SET bogen_id = ? WHERE id = ?", (m1, aid))
         themen.verweise_setzen(self.con, self.pid, "TL", aid, [self.t2])
+        alt = planung.bogen_neu(self.con, self.pid, "TL", "Früher fertig")
+        weg = planung.bogen_neu(self.con, self.pid, "TL", "Abgebrochen")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE bogen SET status = 'fertig' WHERE id = ?", (alt,))
+            self.con.execute("UPDATE bogen SET status = 'verworfen' WHERE id = ?", (weg,))
         r = grobplan.uebernehmen(self.con, self.pid)
-        self.assertEqual((r["fassung"], r["meilensteine"], r["ohne_meilenstein"]), (0, 1, []))
+        self.assertEqual((r["fassung"], r["meilensteine"], r["offen"], r["ohne_meilenstein"]), (0, 3, 1, []))   # alle drin, 1 offen
+        frei = [json.loads(t[0]) for t in self.con.execute("SELECT text FROM plan_ereignis WHERE art = 'meilenstein_frei' AND projekt_id = ?",
+                                                           (self.pid,))]
+        self.assertEqual(sorted(f["bogen"] for f in frei), sorted([m1, alt]))                     # verworfen ohne Freigabe
+        self.assertTrue(all(f["quelle"] == "uebernahme" and f["grobplan_ja"] for f in frei))      # erkennbar übernommen
+        texte = [x.get("text") or x.get("kurz") or "" for x in verlauf.projektweg(self.con, self.pid, grenze=50)]
+        self.assertTrue(any("Bestand übernommen" in str(t) for t in texte), texte)
         self.assertTrue(grobplan.angenommen(self.con, self.pid))
         g = projektweg_seite.grob(self.con, self.pid)
         self.assertEqual(g["angenommen"]["fassung"], 0)
         m = g["fassungen"][0]["meilensteine"][0]                                                  # Befund 2: Grob nicht leer
         self.assertEqual((m["schluessel"], m["bestehend"], sorted(m["themen"]), m["status"]), ("M1", 1, sorted([self.t1, self.t2]), "aktiv"))
+        self.assertEqual([x["status"] for x in g["fassungen"][0]["meilensteine"]], ["aktiv", "fertig", "verworfen"])
         self.assertNotEqual(projektweg.sicht(self.con, self.pid)["dran"], "grob")
         self.assertIsNone(grobplan.uebernehmen(self.con, self.pid))                               # einmal
         with self.assertRaisesRegex(kern.AmwFehler, "schon angenommen"):

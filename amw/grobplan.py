@@ -673,12 +673,14 @@ def uebernehmen(con, pid, von=UEBERNAHME):
     from . import planansicht
     if angenommen(con, pid) or not bestand(con, pid):
         return None
-    boegen = con.execute("SELECT * FROM bogen WHERE projekt_id = ? AND status != 'verworfen' ORDER BY nr", (pid,)).fetchall()
+    boegen = con.execute("SELECT * FROM bogen WHERE projekt_id = ? ORDER BY nr", (pid,)).fetchall()   # alle – auch fertige/verworfene
+    offen_b = [b for b in boegen if b["status"] not in ("fertig", "verworfen")]                         # (Lead F5391 (3))
     frei = themen_frei(con, pid)
     meilensteine, gedeckt = [], set()
     for b in boegen:
         th = _bestand_themen(con, pid, b)
-        gedeckt.update(th)
+        if b["status"] != "verworfen":                     # verworfen deckt kein Thema ab
+            gedeckt.update(th)
         abnahme = (b["abnahme"] or "").strip()
         meilensteine.append({"schluessel": f"M{b['nr']}", "bestehend": b["nr"], "titel": b["titel"], "ziel": b["ziel"] or b["titel"],
                              "themen": th, "fertig_wenn": abnahme or "–",
@@ -693,18 +695,22 @@ def uebernehmen(con, pid, von=UEBERNAHME):
         eid = _ereignis(con, pid, "AMW", ENTWURF, fassung=0, modell=None, usd=0, lauf=None, themen=_stand(frei), entwurf=entwurf_,
                         uebernahme=True)
         angelegt = {m["schluessel"]: m["schluessel"] for m in meilensteine}
-        _ereignis(con, pid, "AMW", JA, fassung=0, entwurf=eid, angelegt=angelegt, durch=[von], uebernahme=True, nach={}, gleichzeitig={})
-        for b in boegen:                                  # gilt als freigegeben – Grob-Freigabe je Meilenstein, als übernommen
+        ja = _ereignis(con, pid, "AMW", JA, fassung=0, entwurf=eid, angelegt=angelegt, durch=[von], uebernahme=True, nach={},
+                       gleichzeitig={}, offen=[m["schluessel"] for m in meilensteine if m["status"] not in ("fertig", "verworfen")])
+        for b in boegen:                                  # gilt als freigegeben – Grob-Freigabe je Meilenstein, erkennbar übernommen
+            if b["status"] == "verworfen":
+                continue
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=planansicht.FREI, bogen_id=b["id"],
                          text=json.dumps({"bogen": b["id"], "art": "grob", "an": True, "fp": planansicht.fingerabdruck(con, pid, b["id"], "grob"),
-                                          "grobplan": eid, "uebernommen": True, "durch": [von]}, ensure_ascii=False))
+                                          "grobplan": eid, "grobplan_ja": ja, "quelle": "uebernahme", "durch": [von]}, ensure_ascii=False))
         lead = kern.lead(con, pid)
         if lead:
             kern._posten(con, pid, "AMW", lead, "meldung", f"Grobplan übernommen: Fassung 0 = Bestand ({len(meilensteine)} Meilensteine)"[:140],
                          "Der Bestand gilt als angenommener Grobplan (A2062): " + ", ".join(f"M{b['nr']} {b['titel'][:40]}" for b in boegen[:12])
                          + (f"\nFreigegebene Themen ohne Meilenstein: {', '.join(f'TH{t}' for t in offen)} – der Planer je Thema plant sie."
                             if offen else "\nAlle freigegebenen Themen stecken in einem Meilenstein."))
-    return {"uebernommen": True, "fassung": 0, "meilensteine": len(meilensteine), "ohne_meilenstein": offen, "entwurf": eid}
+    return {"uebernommen": True, "fassung": 0, "meilensteine": len(meilensteine), "offen": len(offen_b), "ohne_meilenstein": offen,
+            "entwurf": eid}
 
 
 def uebernahme_runde(con):
