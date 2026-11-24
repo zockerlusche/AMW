@@ -19,6 +19,9 @@ Aufruf (der gesamtlauf_befehl der AMW): `python -X utf8 -m amw.testlauf` im Wurz
   neuen Prozess weiterlaufen. Fortschritt: je fertigem Modul eine Zeile „[n/N] modul ok|ROT Xs (pK)“.
 - Frist (A2051): setzt `amw lauf ausfuehren` AMW_LAUF_ENDE (Ende der Frist, Sekunden seit 1970), hört die Steuerung kurz
   davor selbst auf: je Arbeiter „Läuft gerade: …“ mit Modul, Testmethode und bisheriger Ausgabe, dann FAILED und rc 124.
+- Baum (A2055): am Anfang und am Ende Stand (HEAD) und geänderte Dateien des Repos (git status, ohne daten/) samt Größe und
+  Zeit; hat sich etwas geändert (jemand baut im selben Baum), steht „!! Baum während des Laufs geändert: …“ da, das Ergebnis
+  ist FAILED und rc 3 – der Lauf gilt nicht als Beleg. Kein Git-Repo: keine Prüfung.
 """
 import json
 import os
@@ -368,8 +371,52 @@ class _Steuerung:
                   + (f" – danach noch {len(rest)} Module" if rest else ""), file=self.aus, flush=True)
 
 
+RC_BAUM = 3
+AUSGENOMMEN = ("daten/",)                                 # Daten der AMW im Baum zählen nicht als Änderung
+
+
+def baum_stand(wurzel="."):
+    """(HEAD, {Pfad: (Kennung, Größe, Zeit)}) der geänderten und neuen Dateien – oder None ohne Git."""
+    def git(*a):
+        r = subprocess.run(["git", "-C", wurzel, *a], capture_output=True, text=True, encoding="utf-8", errors="replace",
+                           stdin=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), timeout=120)
+        return r.stdout if r.returncode == 0 else None
+    try:
+        kopf = git("rev-parse", "HEAD")
+        status = git("status", "--porcelain", "-uall", "-z")
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if kopf is None or status is None:
+        return None
+    dateien = {}
+    for eintrag in status.split("\0"):
+        if len(eintrag) < 4:
+            continue
+        pfad = eintrag[3:]
+        if pfad.startswith(AUSGENOMMEN):
+            continue
+        try:
+            st = os.stat(os.path.join(wurzel, pfad))
+            dateien[pfad] = (eintrag[:2], st.st_size, st.st_mtime_ns)
+        except OSError:
+            dateien[pfad] = (eintrag[:2], None, None)
+    return kopf.strip(), dateien
+
+
+def baum_unterschied(vorher, nachher):
+    """Was sich zwischen zwei baum_stand geändert hat: [Text] (leer = gleich)."""
+    if vorher is None or nachher is None:
+        return []
+    aus = [f"HEAD {vorher[0][:8]} → {nachher[0][:8]}"] if vorher[0] != nachher[0] else []
+    for pfad in sorted(set(vorher[1]) | set(nachher[1])):
+        if vorher[1].get(pfad) != nachher[1].get(pfad):
+            aus.append(pfad)
+    return aus
+
+
 def steuern(n=None, wurzel=".", aus=sys.stdout, dauer_datei=None, grenze_s=None, ende=None):
     t0 = time.monotonic()
+    baum = baum_stand(wurzel)                             # A2055
     dauer_datei = dauer_datei or DAUER_DATEI
     grenze_s = grenze_s or zeitgrenze()
     ende = ende if ende is not None else lauf_ende()
@@ -395,10 +442,19 @@ def steuern(n=None, wurzel=".", aus=sys.stdout, dauer_datei=None, grenze_s=None,
     dauern_schreiben(s.dauern, dauer_datei)
     shutil.rmtree(s.basis, ignore_errors=True)
     print("-" * 70, file=aus)
+    geaendert = baum_unterschied(baum, baum_stand(wurzel))
+    if geaendert:                                         # A2055: der geprüfte Stand ist nicht mehr der, der im Baum liegt
+        print(f"!! Baum während des Laufs geändert: {', '.join(geaendert[:20])}" + (f" … und {len(geaendert) - 20} weitere"
+              if len(geaendert) > 20 else "") + " – dieser Lauf gilt nicht als Beleg", file=aus)
     print(f"Ran {s.summe['ran']} tests in {time.monotonic() - t0:.3f}s\n", file=aus)
-    print(ergebnis_zeile(s.summe), file=aus, flush=True)
+    zeile = ergebnis_zeile(s.summe)
+    if geaendert:
+        zeile = "FAILED (baum geaendert" + (", " + zeile.split("(", 1)[1] if "(" in zeile else ")")
+    print(zeile, file=aus, flush=True)
     if frist:
         return 124
+    if geaendert:
+        return RC_BAUM
     return 0 if not (s.summe["failures"] or s.summe["errors"] or s.summe["unexpected_successes"]) else 1
 
 

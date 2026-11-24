@@ -41,7 +41,9 @@ class Verteilen(unittest.TestCase):
             self.assertGreaterEqual(testlauf.prozesse(), 2)
 
 
-class Lauf(unittest.TestCase):
+class LaufGrund(unittest.TestCase):
+    """Hilfen für Läufe in einem eigenen Ordner – ohne eigene Tests."""
+
     def setUp(self):
         self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.addCleanup(self.ordner.cleanup)
@@ -58,6 +60,8 @@ class Lauf(unittest.TestCase):
         rc = testlauf.steuern(n=n, wurzel=self.ordner.name, aus=aus, dauer_datei=self.dauer, **kw)
         return rc, aus.getvalue()
 
+
+class Lauf(LaufGrund):
     def test_gruen_parallel_gleiche_zahl_wie_seriell_und_dauer_gemessen(self):
         for i in range(4):
             self.datei(f"test_m{i}.py", GRUEN)
@@ -89,7 +93,7 @@ SCHLAEFT = ("import time\nimport unittest\n\nclass S(unittest.TestCase):\n    de
             "    def test_haengt(self):\n        print('jetzt hänge ich', flush=True)\n        time.sleep(120)\n")
 
 
-class Zeitgrenze(Lauf):
+class Zeitgrenze(LaufGrund):
     """A2051: ein hängender Arbeiter wird beendet, sein Modul rot mit Testmethode gemeldet, die restlichen Module laufen weiter."""
 
     def test_haenger_beendet_rest_laeuft_weiter(self):
@@ -136,6 +140,42 @@ class Zeitgrenze(Lauf):
         with mock.patch.dict(os.environ, {"AMW_TEST_ZEITGRENZE_S": "x", "AMW_LAUF_ENDE": ""}):
             self.assertEqual((testlauf.zeitgrenze(), testlauf.lauf_ende()), (testlauf.ZEITGRENZE_S, None))
         self.assertEqual(testlauf.haenger("[3/9] test_x ok 1.0s (p1)\nRan 3 tests"),["zuletzt fertig: [3/9] test_x ok 1.0s (p1)"])
+
+
+class Baum(LaufGrund):
+    """A2055: ändert sich der Baum während des Laufs (HEAD oder Dateien, ohne daten/), ist der Lauf kein Beleg: rc 3, FAILED."""
+
+    def git(self, *a):
+        import subprocess
+        subprocess.run(["git", "-C", self.ordner.name, *a], check=True, capture_output=True,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+
+    def setUp(self):
+        super().setUp()
+        self.datei("test_m0.py", GRUEN)
+        with open(os.path.join(self.ordner.name, ".gitignore"), "w", encoding="utf-8") as f:
+            f.write("__pycache__/\ndauer.json\n")
+        self.git("init", "-q")
+        self.git("-c", "user.name=t", "-c", "user.email=t@t", "add", "-A")
+        self.git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "x")
+
+    def test_unveraendert_gruen(self):
+        rc, aus = self.lauf(1, ende=0)
+        self.assertEqual(rc, 0, aus)
+        self.assertNotIn("Baum während", aus)
+
+    def test_datei_im_baum_geaendert_kein_beleg(self):
+        self.datei("test_m1.py", "import os\nimport unittest\n\nclass B(unittest.TestCase):\n    def test_baut(self):\n"
+                                 "        open(os.path.join(os.getcwd(), 'halb.js'), 'w').write('x')\n"
+                                 "        os.makedirs(os.path.join(os.getcwd(), 'daten'), exist_ok=True)\n"
+                                 "        open(os.path.join(os.getcwd(), 'daten', 'egal.txt'), 'w').write('x')\n")
+        vorher = testlauf.baum_stand(self.ordner.name)
+        rc, aus = self.lauf(1, ende=0)
+        self.assertEqual(rc, testlauf.RC_BAUM, aus)
+        self.assertIn("!! Baum während des Laufs geändert: halb.js – dieser Lauf gilt nicht als Beleg", aus)   # daten/ zählt nicht
+        self.assertEqual(aus.splitlines()[-1], "FAILED (baum geaendert)")
+        self.assertIsNotNone(vorher)
+        self.assertIsNone(testlauf.baum_stand(os.path.join(self.ordner.name, "gibt-es-nicht")))   # ohne Git: keine Prüfung
 
 
 if __name__ == "__main__":

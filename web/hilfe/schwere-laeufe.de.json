@@ -85,6 +85,10 @@
    "Steht ein Test länger als 5 Minuten still, beendet der Gesamtlauf diesen einen Testprozess samt Browser, zeigt das Modul mit dem Test als rot („Zeitgrenze“) und läuft mit den übrigen Modulen weiter. Ein Gesamtlauf endet spätestens nach der Frist (Vorgabe 60 Minuten, Projekt-Einstellung `gesamtlauf_frist_min`); vorher schreibt er unter „Läuft gerade“, welcher Test zuletzt lief, und der Lead bekommt eine Meldung."
   ],
   [
+   "„!! Baum während des Laufs geändert“",
+   "Während des Gesamtlaufs hat sich im geprüften Ordner etwas geändert (ein neuer Commit oder geänderte Dateien, ohne `daten/`), zum Beispiel weil dort gebaut wurde. Der Lauf endet dann mit FAILED und gilt nicht als Beleg. Baue in einem anderen Ordner und starte den Lauf neu."
+  ],
+  [
    "Ein einzelner kurzer Test wird abgewiesen",
    "Das Muster ist zu weit gefasst. Einzelne Test-Module bleiben frei; eigene Muster enger fassen."
   ],

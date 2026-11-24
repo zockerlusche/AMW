@@ -104,6 +104,10 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
   Projekt-Einstellung `gesamtlauf_frist_min` (Vorgabe 60, 0 = keine); ihr Ende geht als `AMW_LAUF_ENDE` an den Befehl, der
   45 s vorher selbst aufhört, je Prozess „Läuft gerade: …“ mit Modul, Test und Ausgabe schreibt und mit rc 124 endet. Bei rc 124
   bekommt der Lead eine Meldung mit dem zuletzt laufenden Modul – auch wenn der Dienst den Lauf rechnet.
+- **Baum unverändert (A2055):** `amw.testlauf` merkt sich am Anfang HEAD und die geänderten und neuen Dateien des Repos (git
+  status, ohne `daten/`, mit Größe und Zeit) und vergleicht am Ende. Weicht etwas ab, steht „!! Baum während des Laufs geändert:
+  …“ in der Ausgabe, das Ergebnis ist „FAILED (baum geaendert …)“ und rc 3 – der Lauf ist kein Beleg (freigabereif und Kette
+  zählen nur rc 0).
 - **Fremde A-Nummer im Betreff (A1988):** „Stände“ nimmt jede A-Nummer in einem Commit-Betreff als Aufgabe dieses Commits.
   Darum lehnt schon `amw pruefung bitte` (und `amw paket fertig`) einen Stand ab, dessen Betreffe eine andere Aufgabe des
   Projekts nennen als die der Prüfbitte oder die im Versions-Commit des Stapels („X.Y.Z: … A1 + A2“) – mit dem Commit in der
