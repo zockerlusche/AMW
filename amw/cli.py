@@ -1472,11 +1472,13 @@ def cmd_frage(a, con):
 
 
 def cmd_halt(a, con):
+    _nicht_als_mensch_aus_sitzung(a, "halt")          # A2038: der Lead hält mit eigenem Namen an, der Mensch nur im eigenen Terminal
     sid = kern.halt(con, _projekt(con, a), _von(a), a.fuer, a.text)
     print(f"Halt #{sid} für {a.fuer} gesetzt; STOPP verschickt")
 
 
 def cmd_weiter(a, con):
+    _nicht_als_mensch_aus_sitzung(a, "weiter")
     n = kern.weiter(con, _projekt(con, a), _von(a), a.fuer)
     print(f"{n} Halt aufgehoben" if n else "kein Halt aktiv")
 

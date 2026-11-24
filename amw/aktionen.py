@@ -392,6 +392,8 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             return {"probe": push.probe(daten.get("anbieter") or None)}
         except kern.AmwFehler as e:
             raise Ungueltig(str(e)) from None
+    if weg in ("/api/halt", "/api/weiter") and kanal not in ("seite", "netz"):   # A2038: nur Workbench am PC (Token) oder Online-Seite
+        raise Ungueltig("Halt und Weiter gibt es nur in der Workbench am PC oder auf der Online-Seite")
     if weg == "/api/halt":
         return {"halt": kern.halt(con, pid, kern.ENTWICKLER, daten.get("fuer") or "alle",
                                   (daten.get("text") or "Halt vom Entwickler").strip()[:2000])}
