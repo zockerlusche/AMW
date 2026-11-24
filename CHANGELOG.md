@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.186.0 – 24.11.2026 · Bestand als Grobplan, nur Riskantes zum Lead
+- **Neu:** Hat ein Projekt schon Meilensteine, übernimmt die AMW sie als Grobplan (Fassung 0); er gilt als angenommen, der Projektweg steht beim richtigen Schritt, und die Grobplanung zeigt die Meilensteine mit ihren Themen. „Konzept abschließen“ plant einen Bestand nicht mehr neu.
+- **Neu:** Pakete aus dem Fenster eines Agenten laufen durch dieselbe Prüfung wie Headless-Pakete; ist sie grün und nichts riskant, nimmt die AMW sie selbst ab. Der Lead liest nur noch Riskantes – mit Begründung je Regel – und bekommt jede Woche, wie viele Pakete die AMW selbst abgenommen hat und wie viele zurückgenommen wurden.
+- **Neu:** „Lead liest“ markiert ein Paket, das die AMW nie selbst abnimmt (`amw paket lead-liest <nr>`).
+- **Neu:** `amw messung --kosten` zeigt die Kosten der Agenten im Fenster je Tag und Tätigkeit (bauen, stapeln, prüfen lassen, warten, Fehlersuche); die Warnung „über Prognose“ zählt nur noch das Bauen.
+- **Verbessert:** Der Feinplaner kennt die gesperrten Bereiche; passt sein Plan nicht, bessert er einmal selbst nach, bevor du davon hörst.
+- **Behoben:** Die Sprachprüfung vergleicht mit dem Start-Commit des Pakets, nicht mit dem aktuellen Stand von main; ohne Vergleich sagt sie das.
+- **Behoben:** Ein Versions-Commit mit Code hält die Auslieferung an.
+
 ## 1.185.0 – 24.11.2026 · Projektweg ruhig und passend für laufende Projekte
 - **Behoben:** Die Seite Projektweg baut sich nicht mehr alle paar Sekunden neu auf; sie zeichnet nur, wenn sich wirklich etwas geändert hat. Scroll-Stand und offenes Seitenfenster bleiben.
 - **Verbessert:** Bei Projekten mit Bestand zeigt die Grobplanung die vorhandenen Meilensteine, die Umsetzung die laufenden – der jüngste oben, fertige Pakete eingeklappt. „Konzept abschließen“ steht dort nicht mehr, bis die Übernahme kommt.
