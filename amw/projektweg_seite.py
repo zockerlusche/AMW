@@ -315,9 +315,18 @@ def daten(con, pid):
         if x["schritt"] == "grob" and x["zustand"] == "dran" and g["fassungen"] and not g["angenommen"] and not g["laeuft"]                 and not g["fassungen"][-1]["fehler"]:
             wer = projektweg._freigebende(con, pid, "grob")      # A2030: ein Grobplan liegt vor – das Ja gibt, wer Grobpläne freigibt
         schritte.append({**x, "wer": wer, "nr": SCHRITT_NR[x["schritt"]], "bei_dir": x["zustand"] == "dran" and ich in wer})
+    dran = s["dran"]
+    if f["delta"]:                                       # A2068: eine offene Änderung wartet auf ihr Ja – auch nach erledigtem Feinplan
+        wer_plan = projektweg._freigebende(con, pid, "plan")
+        for x in schritte:
+            if x["schritt"] == "fein":
+                x.update(zustand="dran", zeichen=projektweg.ZEICHEN["dran"], wer=wer_plan, bei_dir=ich in wer_plan,
+                         fehlt=f"{len(f['delta'])} Änderung(en) am Konzept warten auf das Ja")
+        if dran in (None, "umsetzung", "abschluss"):    # früher Offenes (Konzept, Grobplan) geht vor
+            dran = "fein"
     k = konzept(con, pid, g["bestand"])
     g_themen = k["themen"]
-    return {"schritte": schritte, "dran": s["dran"], "zeile": s["zeile"], "konzept": k, "grob": g,
+    return {"schritte": schritte, "dran": dran, "zeile": s["zeile"], "konzept": k, "grob": g,
             "fein": f, "umsetzung": umsetzung(f), "abschluss": abschluss(con, pid, fr), "fragen": fragen(con, pid),
             "laeufe": planer_fortschritt.laufende(con, pid),
             "verlauf": verlauf_lesbar(verlauf.projektweg(con, pid, grenze=VERLAUF_GRENZE),

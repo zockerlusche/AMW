@@ -299,6 +299,29 @@ class PruefungNachholen(Grund):
             aktionen.ausfuehren(self.con, self.pid, "/api/projektweg/pruefung-starten", {"bogen": m3})
 
 
+class OffeneAenderung(Grund):
+    def test_offene_aenderung_macht_feinplanung_zu_wartet_auf_dich(self):
+        """A2068 (D1601): nach erledigtem Feinplan stand der Schritt auf ✓ „–“, obwohl ein Delta auf Marcel wartete."""
+        from amw import feinplanung, planansicht
+        t = demo(self.con, self.pid, "fein")
+        m1 = self.con.execute("SELECT id FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0]
+        feinplanung.plan_starten(self.con, self.pid, kern.ENTWICKLER, m1)
+        d = self.daten()
+        fein = next(x for x in d["schritte"] if x["schritt"] == "fein")
+        self.assertEqual((fein["zustand"], fein["bei_dir"]), ("erledigt", False))           # ohne Änderung: erledigt
+        entwurf = {"delta": True, "meilensteine": [{"schluessel": "M1", "bestehend": m1}],
+                   "pakete": [{"schluessel": "P1", "meilenstein": "M1", "titel": "Schlagwort", "ausfuehrung": "p", "groesse": "S", "nach": []}]}
+        offen = {"entwuerfe": [{"thema": t[2], "name": "Speichern und Laden", "eid": 999, "zeit_utc": "2026-11-24T16:00:00Z", "modell": "sonnet",
+                                "usd": 0.03, "fehler": None, "nichts": False, "grund": "x", "meilensteine": 0, "pakete": 1, "zeilen": []}],
+                 "planer_laeuft": []}
+        with mock.patch.object(planansicht, "entwuerfe", return_value=offen), \
+                mock.patch.object(planer, "letzter_entwurf", return_value={"id": 999, "entwurf": entwurf}):
+            d = self.daten()
+        fein = next(x for x in d["schritte"] if x["schritt"] == "fein")
+        self.assertEqual((fein["zustand"], fein["zeichen"], fein["bei_dir"]), ("dran", "●", True))
+        self.assertEqual(d["dran"], "fein")                                                 # die Seite öffnet dort
+
+
 class Abschluss(Grund):
     def test_abnehmen_ist_das_ja_zum_abschluss(self):
         demo(self.con, self.pid, "abschluss")
@@ -535,6 +558,7 @@ class SeiteDelta(Rundgang):
         self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-delta .pjw-snr').length"), 2)
         knopf = self.tab.js("[...document.querySelectorAll('.pjw-ansicht button')].map(b => b.textContent).find(x => x.startsWith('Änderung TH'))")
         self.assertIn("2 Pakete in M", knopf)
+        self.assertIn("wartet auf dich", self.tab.js("document.querySelector('.pjw-schritt[data-schritt=fein] .pjw-wert').innerText"))   # A2068
         self.assertIn("1 geändert", knopf)
         self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-ansicht .knopf.haupt').length"), 1)   # oben „Plan M… freigeben und starten“
         self.assertTrue(self.tab.js("/^Plan M/.test(document.querySelector('.pjw-ansicht .knopf.haupt').textContent)"))

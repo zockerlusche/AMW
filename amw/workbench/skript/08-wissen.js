@@ -150,6 +150,8 @@ function pwWert(d, i) {
     const l = g.fassungen.at(-1); return l ? t("pjw_fassung", { n: l.fassung }) : "–"; }
   if (i === 2) { const l = f.meilensteine.find(m => m.laeuft); if (l) return t("pjw_in_arbeit");
     const w = pwFeinOffen(d); if (w) return w.fehler ? t("pjw_w_fein_fehler", { m: pwM(w) }) : t("pjw_w_fein", { m: pwM(w), n: w.pakete.length });
+    if (f.delta.length) return f.delta.length === 1 ? t("pjw_w_delta1", { t: `TH${f.delta[0].thema}`, n: f.delta[0].karten.length })   /* A2068 */
+      : t("pjw_w_delta_n", { n: f.delta.length });
     const z = f.meilensteine.filter(m => m.frei && m.status !== "fertig").at(-1); return z ? `${pwM(z)} · ${t("pjw_freigegeben")}` : "–"; }
   if (i === 3) { const ms = u.meilensteine; if (!ms.length) return "–";
     const q = pwFragenIn(d, 3).length, fr = q ? " · " + (q === 1 ? t("pjw_frage1") : t("pjw_fragen", { n: q })) : "";

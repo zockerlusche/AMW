@@ -2121,6 +2121,8 @@
   "pjw_geaendert_lbl": "Changed",
   "pjw_verworfen_lbl": "No longer needed",
   "pjw_nacharbeit_lbl": "Rework needed (says the planner)",
+  "pjw_w_delta1": "Change {t} · {n} packages",
+  "pjw_w_delta_n": "{n} concept changes",
   "pjw_ziel_ms": "Milestone",
   "pjw_warum_fenster": "Why in a window",
   "pjw_laeuft_jetzt": "running now",

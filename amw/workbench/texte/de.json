@@ -2121,6 +2121,8 @@
   "pjw_geaendert_lbl": "Geändert",
   "pjw_verworfen_lbl": "Nicht mehr nötig",
   "pjw_nacharbeit_lbl": "Nacharbeit nötig (sagt der Planer)",
+  "pjw_w_delta1": "Änderung {t} · {n} Pakete",
+  "pjw_w_delta_n": "{n} Änderungen am Konzept",
   "pjw_ziel_ms": "Meilenstein",
   "pjw_warum_fenster": "Warum im Fenster",
   "pjw_laeuft_jetzt": "laufen gerade",
