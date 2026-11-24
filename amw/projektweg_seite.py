@@ -84,8 +84,15 @@ def grob(con, pid):
         fassungen.append(x)
     ja = grobplan.angenommen(con, pid)
     return {"fassungen": fassungen, "laeuft": bool(grobplan.laeuft(con, pid)), "bestand": bestand(con, pid),
-            "angenommen": {"fassung": ja.get("fassung"), "angelegt": ja.get("angelegt") or {}} if ja else None,
+            "angenommen": {"fassung": ja.get("fassung"), "angelegt": ja.get("angelegt") or {}, "n": _gueltige(con, pid, ja)} if ja else None,
             "hinweise": planhinweis.alle(con, pid, "grob") if fassungen else []}
+
+
+def _gueltige(con, pid, ja):
+    """A2075: Meilensteine des angenommenen Grobplans ohne die verworfenen – wie der Verlauf „Bestand übernommen: n“."""
+    nrn = {int(str(v).lstrip("Mm")) for v in (ja.get("angelegt") or {}).values() if str(v).lstrip("Mm").isdigit()}
+    weg = {r[0] for r in con.execute("SELECT nr FROM bogen WHERE projekt_id = ? AND status = 'verworfen'", (pid,))}
+    return len(nrn - weg)
 
 
 def _wer(ap, aufgabe):

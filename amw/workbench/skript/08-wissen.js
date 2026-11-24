@@ -147,7 +147,7 @@ function pwWert(d, i) {
   const k = d.konzept, g = d.grob, f = d.fein, u = d.umsetzung, a = d.abschluss;
   if (i === 0) return t("pjw_w_konzept", { n: k.n, g: k.g });
   if (i === 1) { if (g.laeuft) return t("pjw_in_arbeit");
-    if (g.angenommen) return t("pjw_w_grob_ok", { n: Object.keys(g.angenommen.angelegt || {}).length });
+    if (g.angenommen) return t("pjw_w_grob_ok", { n: g.angenommen.n });
     if (!g.fassungen.length && (g.bestand || []).length) return t("pjw_w_grob_bestand", { n: g.bestand.length });
     const l = g.fassungen.at(-1); return l ? t("pjw_fassung", { n: l.fassung }) : "–"; }
   if (i === 2) { const l = f.meilensteine.find(m => m.laeuft); if (l) return t("pjw_in_arbeit");

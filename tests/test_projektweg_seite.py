@@ -308,6 +308,16 @@ class UebernahmeImVerlauf(Grund):
         self.assertEqual(sum("Bestand übernommen" in (e["text"] or "") for e in v), 1)
         self.assertEqual([e["schritt"] for e in v if e["art"] == "meilenstein_frei"], ["grob", "grob"])
 
+    def test_leiste_zaehlt_verworfene_nicht_mit(self):
+        _, alt, neu = bestand(self.con, self.pid)
+        weg = planung.bogen_neu(self.con, self.pid, "TL", "Verworfen")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE bogen SET status = 'verworfen' WHERE id = ?", (weg,))
+        grobplan.uebernehmen(self.con, self.pid)
+        a = self.daten()["grob"]["angenommen"]
+        self.assertEqual((a["n"], len(a["angelegt"])), (2, 3))                              # wie „Bestand übernommen: 2 Meilensteine“
+        self.assertIn("Bestand übernommen: 2 Meilensteine", [e["zeile"] for e in self.daten()["verlauf"]])
+
     def test_zahl_stimmt_auch_wenn_die_grenze_schneidet(self):
         from amw import verlauf
         bestand(self.con, self.pid)
