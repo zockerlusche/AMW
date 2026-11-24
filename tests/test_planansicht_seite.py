@@ -42,7 +42,8 @@ class PlanAnsicht(Rundgang):
             self.assertTrue(self.tab.js("getComputedStyle(document.querySelector('#inhalt .th-thema')).display === 'none'"))
             self.assertFalse(self.ueber_rand(), th)
 
-    def test_pakete_und_jetzt_starten(self):
+    def test_pakete_plan_freigeben_und_starten(self):
+        """A2031: im Reiter „Pakete“ ist das Ja zum Plan zugleich der Start – ein Klick, der Meilenstein läuft."""
         for bid in (self.m1, self.m2):
             planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, bid, "grob")
         self.groesse("pc")
@@ -51,10 +52,10 @@ class PlanAnsicht(Rundgang):
         self.tab.js("zustand.planReiter = 'pakete'; void zeige('planung', true)")
         self.warten("document.querySelector('#inhalt .pm-ansicht')?.dataset.pm === 'plan' && document.querySelector('.pm-pakete')")
         self.assertEqual(self.tab.js("document.querySelectorAll('.pm-pakete tbody tr:not(.pm-summe)').length"), 2)
-        self.assertFalse(self.tab.js("!!document.querySelector('.pm-start-knopf')"))           # erst wenn alles frei
-        self.tab.js("document.querySelector('.th-knoepfe button[data-h=freigeben]').click()")
-        self.warten("document.querySelector('.pm-start-knopf')")
-        self.tab.js("window.confirm = () => true; document.querySelector('.pm-start-knopf').click()")
+        self.assertFalse(self.tab.js("!!document.querySelector('.th-knoepfe button[data-h=freigeben]')"))   # kein zweiter Schritt
+        self.assertEqual(self.tab.js("document.querySelector('.th-knoepfe button[data-h=plan-starten]').textContent"),
+                         "Plan freigeben und starten")
+        self.tab.js("document.querySelector('.th-knoepfe button[data-h=plan-starten]').click()")
         self.warten(f"({self.STAND} || '').startsWith('Umsetzung')")
         self.assertEqual(planung.bogen_zeile(self.con, self.pid, self.m1)["status"], "aktiv")
 
