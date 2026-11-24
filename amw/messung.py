@@ -333,10 +333,8 @@ def projekt_kosten(con, pid):
     zaehler = {}
     for (kennung,) in con.execute("SELECT DISTINCT agent FROM aufgabe WHERE projekt_id = ? AND agent IS NOT NULL AND begonnen_utc IS NOT NULL",
                                   (pid,)).fetchall():
-        alle = aufwand._aufgaben(con, pid, kennung)
-        if alle:
-            for aid, e in aufwand._zuordnen(con, pid, kennung, alle, alle[0]["begonnen_utc"]).items():
-                zaehler[aid] = zaehler.get(aid, 0.0) + e["usd"]
+        for aid, e in aufwand.je_agent_alle(con, pid, kennung).items():
+            zaehler[aid] = zaehler.get(aid, 0.0) + e["usd"]
     erf = _erfasst_je_aufgabe(con, pid)
     try:
         zellen = empfehlung.zellen(con, pid)

@@ -99,6 +99,12 @@ def rest_pfad(con, ids, dauern):
 
 
 def berechnen(con, pid):
+    """Wie _berechnen – je Anfrage bzw. Runde nur einmal (A2081)."""
+    from . import einmal
+    return einmal.einmal(con, ("reihenfolge", pid), lambda: _berechnen(con, pid), kopie=True)
+
+
+def _berechnen(con, pid):
     """Die Reihenfolge aller offenen Pakete: [{aid, titel, agent, bogen, platz, dauer_h, quelle, rest_h, zustand, grund}]."""
     from . import planung, wartegrund
     offen = _offene(con, pid)

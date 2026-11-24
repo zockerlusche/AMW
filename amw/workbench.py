@@ -21,7 +21,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import aktionen, anfragezeit, db, herzschlag, kern
+from . import aktionen, anfragezeit, db, einmal, herzschlag, kern
 from .betrieb import speicher_frei_gb, speicher_grenze
 
 STANDARD_PORT = 8780
@@ -1598,7 +1598,8 @@ def baue_handler(port, token, netz=None):
             try:
                 con = db.verbinde(nur_lesen=True)
                 try:
-                    aus = weg(con, self._projekt(con, q))
+                    with einmal.merken(con, schnappschuss=True):          # A2081: je Anfrage dasselbe nur einmal rechnen
+                        aus = weg(con, self._projekt(con, q))
                 finally:
                     con.close()                       # A1979: erst schließen, dann antworten – der Client darf sofort aufräumen
                 return self._senden(200, aus)

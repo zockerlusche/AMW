@@ -97,12 +97,17 @@ def passt(profil, vorschlag):
 
 
 def zellen(con, pid):
+    """Wie _zellen – je Anfrage bzw. Runde nur einmal (A2081)."""
+    from . import einmal
+    return einmal.einmal(con, ("empfehlung.zellen", pid), lambda: _zellen(con, pid), kopie=True)
+
+
+def _zellen(con, pid):
     """Gemessen je Zelle (gruppe, groesse): Median, Anzahl fertiger Aufgaben mit Messwert, davon mit roter Prüfung."""
     werte = {}
     for (kennung,) in con.execute("SELECT DISTINCT agent FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND groesse IS NOT NULL"
                                   " AND art IS NOT NULL AND begonnen_utc IS NOT NULL AND agent IS NOT NULL", (pid,)).fetchall():
-        alle = aufwand._aufgaben(con, pid, kennung)
-        werte.update({aid: e["usd"] for aid, e in aufwand._zuordnen(con, pid, kennung, alle, alle[0]["begonnen_utc"]).items()})
+        werte.update({aid: e["usd"] for aid, e in aufwand.je_agent_alle(con, pid, kennung).items()})
     aus = {}
     for a in con.execute("SELECT a.id, a.groesse, a.art, EXISTS (SELECT 1 FROM pruefung p WHERE p.aufgabe_id = a.id AND p.ergebnis = 'rot')"
                          " AS rot FROM aufgabe a WHERE a.projekt_id = ? AND a.status = 'fertig' AND a.groesse IS NOT NULL AND a.art IS NOT NULL",

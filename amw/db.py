@@ -32,6 +32,8 @@ class LiveSchutz(ValueError):
 
 class _Verbindung(sqlite3.Connection):
     fremd = None                                   # Ordner des Dienstes, wenn dieser Code fremd ist
+    merker = None                                  # A2081: einmal.merken – gemerkte Ergebnisse dieser Anfrage bzw. Runde
+    schnappschuss = False                          # … und sie liest dafür einen festen Stand
 
 
 def vermerk_pfad(pfad):

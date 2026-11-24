@@ -262,6 +262,12 @@ def _neuer_beschluss(con, t, seit):
 
 
 def status(con, t):
+    """Wie _status – je Anfrage bzw. Runde und Thema nur einmal (A2081)."""
+    from . import einmal
+    return einmal.einmal(con, ("themen.status", t["id"]), lambda: _status(con, t), kopie=True)
+
+
+def _status(con, t):
     """{"status", "text", "grund", "markiert", "fassung", "freigegeben"} nach festem Vorrang (D1326 A16):
     1 Löschen markiert (Flag, Status darunter bleibt) → 2 wartet auf dich: die neueste Fassung ist eine Vorlage eines Agenten (oder
     seine Bestätigung) ohne Freigabe/Zurück/Bearbeitung danach → 3 neu prüfen: nach der letzten Freigabe kam ein neuer Beschluss →
@@ -650,15 +656,25 @@ VERWEIS = "aufgabe_thema"
 
 def verweise(con, pid, aid):
     """Themen (Nummern), auf die die Aufgabe gerade verweist."""
+    from . import einmal
+    if getattr(con, "merker", None) is None:
+        return _verweise_aus(con.execute("SELECT aufgabe_id, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND aufgabe_id = ?"
+                                         " ORDER BY id", (pid, VERWEIS, aid))).get(aid, [])
+    # A2081: in einer Anfrage oder Runde alle Verweise des Projekts mit einer Abfrage
+    return list(einmal.einmal(con, ("verweise", pid), lambda: _verweise_aus(con.execute(
+        "SELECT aufgabe_id, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id", (pid, VERWEIS)))).get(aid, []))
+
+
+def _verweise_aus(zeilen):
     import json
-    an = {}
-    for r in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND aufgabe_id = ? ORDER BY id", (pid, VERWEIS, aid)):
+    je = {}
+    for r in zeilen:
         try:
-            d = json.loads(r[0])
+            d = json.loads(r["text"])
         except ValueError:
             continue
-        an[d.get("thema")] = bool(d.get("an"))
-    return sorted(k for k, v in an.items() if v and k)
+        je.setdefault(r["aufgabe_id"], {})[d.get("thema")] = bool(d.get("an"))
+    return {aid: sorted(k for k, v in an.items() if v and k) for aid, an in je.items()}
 
 
 def verweise_setzen(con, pid, von, aid, namen, entfernen=False):

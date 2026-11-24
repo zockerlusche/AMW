@@ -73,6 +73,12 @@ def _kosten(con, aid):
 
 
 def zeilen(con, pid):
+    """Wie _zeilen – je Anfrage bzw. Runde nur einmal (A2081)."""
+    from . import einmal
+    return einmal.einmal(con, ("eignung", pid), lambda: _zeilen(con, pid), kopie=True)
+
+
+def _zeilen(con, pid):
     """Alle Messzeilen des Projekts: [{"aufgabe", "quelle", "zelle", "paar", "pakettyp", "usd", "dauer_s", "ohne"}]."""
     from . import arbeitspaket, aufwand, empfehlung, messung
     aus = []
@@ -89,10 +95,7 @@ def zeilen(con, pid):
     agenten = [k for (k,) in con.execute("SELECT DISTINCT agent FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND agent IS NOT NULL"
                                          " AND agent != ? AND begonnen_utc IS NOT NULL", (pid, kern.ENTWICKLER)).fetchall()]
     for kennung in agenten:
-        alle = aufwand._aufgaben(con, pid, kennung)
-        if not alle:
-            continue
-        gemessen = aufwand._zuordnen(con, pid, kennung, alle, alle[0]["begonnen_utc"])
+        gemessen = aufwand.je_agent_alle(con, pid, kennung)
         for a in con.execute("SELECT id, art, groesse FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'fertig'"
                              " AND groesse IS NOT NULL AND art IS NOT NULL", (pid, kennung)).fetchall():
             e = gemessen.get(a["id"])

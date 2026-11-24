@@ -36,7 +36,7 @@ import urllib.parse
 import urllib.request
 import zlib
 
-from . import aktionen, db, kern, verlauf, workbench
+from . import aktionen, db, einmal, kern, verlauf, workbench
 
 log = logging.getLogger("amw.abgleich")
 
@@ -649,7 +649,8 @@ class Abgleich:
         fehler_runde = {}                             # A2001: (pid, weg) → Fehlertext dieser Runde
         for pid, uid in self.projekte():
             fehler = []
-            alle_ansichten = ansichten(self.con, pid, self.sp, fehler)
+            with einmal.merken(self.con, schnappschuss=True):              # A2081: alle Ansichten eines Projekts rechnen dasselbe nur einmal
+                alle_ansichten = ansichten(self.con, pid, self.sp, fehler)
             if index:
                 x = _sicher(fehler, "/api/suchindex", suchindex, self.con, pid)
                 if x is not None:

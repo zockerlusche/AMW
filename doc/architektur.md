@@ -103,3 +103,12 @@ Spalte für Spalte einer neu angelegten gleicht.
 - Mehrere Agenten schreiben gleichzeitig: SQLite-WAL, Schreib-Transaktionen sperren sofort (`BEGIN IMMEDIATE`), Wartezeit 30 s.
 - Ein PC mit den Agenten; der Online-Teil ist ein Spiegel mit Briefkasten, kein Zwei-Wege-Abgleich zwischen mehreren PCs.
 - Die Prognose rechnet in Stückzahlen (Durchsatz je Bearbeiter); sie wird besser, je ähnlicher die Schritte groß sind.
+
+## 6 Einmal rechnen je Anfrage und Runde (A2081)
+
+`amw/einmal.py` hält Ergebnisse für die Dauer einer Seiten-Anfrage, einer Aufsichts-Runde des Dienstes oder einer Projekt-Runde der
+Online-Synchronisierung an der Verbindung (`with einmal.merken(con)`): Kosten je Agent (`aufwand.je_agent_alle`), Messzeilen
+(`eignung.zeilen`, `empfehlung.zellen`), Reihenfolge, Themen-Zustände und Themen-Verweise. Gültig ist ein Wert nur, solange sich die
+Datenbank nicht ändert (`PRAGMA data_version`, eigene `total_changes`), nie nach Zeit. Anfragen und Synchronisierung lesen dabei
+einen festen Stand (`schnappschuss=True`, Lese-Transaktion im WAL-Modus) und dürfen nichts schreiben; die Dienst-Runde schreibt und
+hat keinen. Wer eine teure Ableitung neu baut, die je Anfrage mehrfach gebraucht wird, hängt sie hier ein.

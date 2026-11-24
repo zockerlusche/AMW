@@ -25,7 +25,7 @@ import sys
 import threading
 import time
 
-from . import betrieb, db, kern, pipe, push, schirm, statusline, steuerung, ueberwachung, wartegrund
+from . import betrieb, db, einmal, kern, pipe, push, schirm, statusline, steuerung, ueberwachung, wartegrund
 
 AUFSICHT_S = 30           # Puls-Prüfung und Wiederholung fehlgeschlagener Zustellungen
 NUR_IM_HALT = ("stopp", "freigabe")
@@ -750,7 +750,8 @@ def main(argv=None):
                 d.zustellen()
             if time.time() - letzte_aufsicht >= AUFSICHT_S:
                 letzte_aufsicht = time.time()
-                d.aufsicht()
+                with einmal.merken(con):            # A2081: in einer Runde dasselbe nur einmal rechnen
+                    d.aufsicht()
                 d.takt()
                 from . import releasetakt           # A1656: bereit zum Ausliefern anstoßen (pusht nie selbst)
                 for z in releasetakt.runde(con):

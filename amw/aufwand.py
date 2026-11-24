@@ -96,13 +96,21 @@ def _form(e):
             **({"naeherung": True} if e.get("naeherung") else {})}
 
 
+def je_agent_alle(con, pid, kennung):
+    """Die Zuordnung über alle Sitzungen des Agenten: {aufgabe_id: …} – je Anfrage bzw. Runde nur einmal (A2081). Für jede Aufgabe
+    dasselbe Ergebnis wie ab ihrem Beginn gerechnet (_zeilen nimmt ganze Sitzungen). Nur lesen, nicht verändern."""
+    from . import einmal
+    return einmal.einmal(con, ("aufwand", pid, kennung), lambda: _zuordnen(con, pid, kennung, _aufgaben(con, pid, kennung), ""))
+
+
 def je_aufgabe(con, pid, aid):
     """Gemessener Verbrauch einer Aufgabe oder None (nicht begonnen, ohne Agent, keine Messpunkte in ihrer Zeit)."""
     a = con.execute("SELECT agent, begonnen_utc FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
     if not a or not a["agent"] or not a["begonnen_utc"]:
         return None
-    aufgaben = _aufgaben(con, pid, a["agent"])
-    return _form(_zuordnen(con, pid, a["agent"], aufgaben, a["begonnen_utc"]).get(aid))
+    if getattr(con, "merker", None) is None:
+        return _form(_zuordnen(con, pid, a["agent"], _aufgaben(con, pid, a["agent"]), a["begonnen_utc"]).get(aid))
+    return _form(je_agent_alle(con, pid, a["agent"]).get(aid))
 
 
 def je_agent(con, pid, kennung, letzte=LETZTE):
@@ -118,7 +126,8 @@ def je_agent(con, pid, kennung, letzte=LETZTE):
     beginn = [a["begonnen_utc"] for a in kandidaten + laeuft]
     if not beginn:
         return None
-    werte = _zuordnen(con, pid, kennung, aufgaben, min(beginn))
+    werte = (je_agent_alle(con, pid, kennung) if getattr(con, "merker", None) is not None
+             else _zuordnen(con, pid, kennung, aufgaben, min(beginn)))
     liste = []
     for a in kandidaten:
         e = _form(werte.get(a["id"]))
