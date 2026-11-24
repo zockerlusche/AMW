@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.190.0 – 24.11.2026 · Schnellere Seiten
+- **Verbessert:** Planung, Projektweg und Startseite laden schneller: Kosten, Reihenfolge und Zustände der Themen rechnet die AMW je Anfrage, Dienst-Runde und Synchronisierung nur einmal. Ändert sich die Datenbank, rechnet sie neu; veraltete Werte zeigt sie nicht.
+
 ## 1.189.0 – 24.11.2026 · Läufe nach einem Rechner-Neustart, ruhigerer Projektweg
 - **Neu:** Startet der Rechner neu oder verschwindet der Prozess eines Laufs, schließt die AMW den Lauf als abgebrochen ab, meldet es und weckt den Agenten. Ein abgebrochener Lauf gibt keine wartende Aufgabe frei; ein Gesamtlauf bekommt höchstens einen Ersatz, und nur für eine offene Aufgabe. Grenze: Windows-Schnellstart und ein echter Rechner-Neustart sind nicht ausprobiert, nur mit Attrappen.
 - **Verbessert:** Auf „Projektweg“ öffnet sich das Fortschritts-Fenster nur für Läufe, die du selbst mit einem Klick gestartet hast. Alles andere steht als kleine Zeile „läuft gerade“ am Schritt, mit richtiger Beschriftung und wer es ausgelöst hat.
