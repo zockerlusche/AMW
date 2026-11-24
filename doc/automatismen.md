@@ -793,6 +793,13 @@ die der Lead nur noch bestätigt oder ändert.
 
 ### Grobplanung einmal fürs ganze Konzept (A2030, TH164 Schritt 2)
 
+- **Bestand (A2062):** Hat ein Projekt schon Meilensteine (nicht verworfen) und keinen angenommenen Grobplan, weist
+  `konzept-abschliessen` ab (CLI und Workbench) – der Planer würde sonst alles neu planen. Stattdessen übernimmt der Dienst den
+  Bestand einmal als **Grobplan Fassung 0** (ohne Planer, ohne Kosten): je Meilenstein `{"schluessel": "M<nr>", "bestehend": nr,
+  "themen": […], "status"}` – die Themen aus den TH-Verweisen im Ziel und den Themen seiner Aufgaben; freigegebene Themen ohne
+  Meilenstein als Befund „abdeckung“. Fassung 0 gilt als angenommen (`grobplan_ja` mit `uebernahme`) und jeder Meilenstein als
+  grob freigegeben („übernommen“); der Lead bekommt eine Meldung. Danach plant der Planer je Thema (K4) Änderungen und Fehlendes.
+
 - **Auslöser:** `amw thema konzept-abschliessen` – nur bei geschlossenem Konzept-Tor (alle zählenden Themen frei) und solange
   kein Grobplan angenommen ist. Ja sagt der Mensch; bei `thema_freigabe = co+lead` (Grobplan-Ja: `grobplan_freigabe`) Co-Entwickler und Lead je ein Ja zum selben
   Stand der Themen (Ereignisse `konzept_abschluss_ja`, `konzept_abschluss`).

@@ -56,7 +56,7 @@ def konzept(con, pid, best=None):
 
 def _meilenstein(m):
     return {k: m.get(k) for k in ("schluessel", "titel", "ziel", "themen", "fertig_wenn", "endet_mit", "nach", "gleichzeitig",
-                                  "aufwand", "tage", "usd")}
+                                  "aufwand", "tage", "usd", "bestehend", "status")}          # A2062: übernommener Bestand
 
 
 def grob(con, pid):

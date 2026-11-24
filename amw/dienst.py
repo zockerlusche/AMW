@@ -416,6 +416,12 @@ class Dienst:
                 log.info("Feinplanung Meilenstein %s: %s", bid, was)
         except Exception as e:
             log.warning("Feinplanung: %s: %s", type(e).__name__, e)
+        try:                                                                 # A2062 (b): Bestand als Grobplan Fassung 0 übernehmen
+            from . import grobplan
+            for e in grobplan.uebernahme_runde(self.con):
+                log.info("Grobplan: %s", e)
+        except Exception as e:
+            log.warning("Grobplan-Übernahme: %s: %s", type(e).__name__, e)
         try:                                                                 # A2042: Pause mit abgelaufenem Ende aufheben
             from . import pause
             for pid, was in pause.runde(self.con):

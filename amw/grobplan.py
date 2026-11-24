@@ -154,8 +154,8 @@ def aus_grobplan(con, pid, nr):
 
 
 BESTAND = ("Das Projekt hat schon {n} Meilenstein(e) – „Konzept abschließen“ ist bei Bestand gesperrt, sonst plante der Planer"
-           " alles neu. Die Übernahme (Grobplan Fassung 0 = Bestand, der Planer schlägt nur Fehlendes vor) kommt mit A2062;"
-           " bis dahin plant der Planer Änderungen je Thema (amw thema planen TH<n>).")
+           " alles neu. Die AMW übernimmt den Bestand in ihrer nächsten Runde als Grobplan Fassung 0 (A2062); Änderungen danach plant"
+           " der Planer je Thema (amw thema planen TH<n>).")
 
 
 def bestand(con, pid):
@@ -648,6 +648,77 @@ def annehmen(con, pid, von, fassung=None):
                              + ", ".join(f"{k} → {v}" for k, v in angelegt.items()) + "\nDer Rest fehlt – bitte von Hand ergänzen.")
         raise
     return {"angenommen": True, "angelegt": angelegt}
+
+
+# --- Übernahme bei Bestand (A2062 b): Fassung 0 = Bestand, gilt als angenommen -----------------------------------------------
+
+UEBERNAHME = "AMW (Übernahme des Bestands)"
+
+
+def _bestand_themen(con, pid, b):
+    """Themen eines bestehenden Meilensteins: TH-Verweise im Ziel und die Themen seiner Aufgaben (themen.verweise)."""
+    from . import themen
+    ids = {int(x) for x in re.findall(r"\bTH(\d+)\b", (b["ziel"] or "") + " " + (b["titel"] or ""))}
+    for (aid,) in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (b["id"],)):
+        ids.update(themen.verweise(con, pid, aid))
+    vorhanden = {r[0] for r in con.execute("SELECT id FROM thema WHERE projekt_id = ?", (pid,))}
+    return sorted(i for i in ids if i in vorhanden)
+
+
+def uebernehmen(con, pid, von=UEBERNAHME):
+    """A2062 (b, Lead #32160): Projekt mit Meilensteinen und ohne angenommenen Grobplan → Fassung 0 = Bestand (ohne Planer, ohne
+    Kosten), sie gilt als angenommen: Grobplan-Ja mit angelegt {M<nr>: M<nr>} und Grob-Freigabe je Meilenstein („übernommen“).
+    Die Zuordnung Thema → Meilenstein steht in der Fassung (themen je Meilenstein) – Daten für die Grob-Karten. Freigegebene Themen
+    ohne Meilenstein stehen als Befund „abdeckung“ da (der Planer je Thema plant sie). Rückgabe {"uebernommen", …} oder None."""
+    from . import planansicht
+    if angenommen(con, pid) or not bestand(con, pid):
+        return None
+    boegen = con.execute("SELECT * FROM bogen WHERE projekt_id = ? AND status != 'verworfen' ORDER BY nr", (pid,)).fetchall()
+    frei = themen_frei(con, pid)
+    meilensteine, gedeckt = [], set()
+    for b in boegen:
+        th = _bestand_themen(con, pid, b)
+        gedeckt.update(th)
+        abnahme = (b["abnahme"] or "").strip()
+        meilensteine.append({"schluessel": f"M{b['nr']}", "bestehend": b["nr"], "titel": b["titel"], "ziel": b["ziel"] or b["titel"],
+                             "themen": th, "fertig_wenn": abnahme or "–",
+                             "endet_mit": "vorfuehrung" if "vorführ" in abnahme.lower() else "bericht", "nach": [], "gleichzeitig": [],
+                             "aufwand": "M", "tage": None, "usd": None, "status": b["status"]})
+    offen = [t for t in sorted(frei) if t not in gedeckt]
+    entwurf_ = {"meilensteine": meilensteine, "fragen": [],
+                "befunde": [{"art": "abdeckung", "themen": [f"TH{t}" for t in offen], "text": "freigegeben, aber noch in keinem Meilenstein"
+                             " des Bestands – der Planer je Thema plant es (amw thema planen TH<n>)", "vorschlag": None}] if offen else [],
+                "grund": f"Übernahme: Fassung 0 ist der Bestand ({len(meilensteine)} Meilensteine) und gilt als angenommen (A2062)."}
+    with db.schreiben(con):
+        eid = _ereignis(con, pid, "AMW", ENTWURF, fassung=0, modell=None, usd=0, lauf=None, themen=_stand(frei), entwurf=entwurf_,
+                        uebernahme=True)
+        angelegt = {m["schluessel"]: m["schluessel"] for m in meilensteine}
+        _ereignis(con, pid, "AMW", JA, fassung=0, entwurf=eid, angelegt=angelegt, durch=[von], uebernahme=True, nach={}, gleichzeitig={})
+        for b in boegen:                                  # gilt als freigegeben – Grob-Freigabe je Meilenstein, als übernommen
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=planansicht.FREI, bogen_id=b["id"],
+                         text=json.dumps({"bogen": b["id"], "art": "grob", "an": True, "fp": planansicht.fingerabdruck(con, pid, b["id"], "grob"),
+                                          "grobplan": eid, "uebernommen": True, "durch": [von]}, ensure_ascii=False))
+        lead = kern.lead(con, pid)
+        if lead:
+            kern._posten(con, pid, "AMW", lead, "meldung", f"Grobplan übernommen: Fassung 0 = Bestand ({len(meilensteine)} Meilensteine)"[:140],
+                         "Der Bestand gilt als angenommener Grobplan (A2062): " + ", ".join(f"M{b['nr']} {b['titel'][:40]}" for b in boegen[:12])
+                         + (f"\nFreigegebene Themen ohne Meilenstein: {', '.join(f'TH{t}' for t in offen)} – der Planer je Thema plant sie."
+                            if offen else "\nAlle freigegebenen Themen stecken in einem Meilenstein."))
+    return {"uebernommen": True, "fassung": 0, "meilensteine": len(meilensteine), "ohne_meilenstein": offen, "entwurf": eid}
+
+
+def uebernahme_runde(con):
+    """Dienst: jedes Projekt mit Bestand und ohne angenommenen Grobplan übernehmen (einmal; danach gilt „angenommen“)."""
+    aus = []
+    for (pid,) in con.execute("SELECT id FROM projekt").fetchall():
+        try:
+            r = uebernehmen(con, pid)
+        except Exception as e:                            # noqa: BLE001 – ein Projekt hält die anderen nicht auf
+            aus.append(f"Projekt {pid}: Übernahme ging nicht: {type(e).__name__}: {e}")
+            continue
+        if r:
+            aus.append(f"Projekt {pid}: Grobplan Fassung 0 = Bestand ({r['meilensteine']} Meilensteine)")
+    return aus
 
 
 # --- Einstieg für amw-planer.py --grob -------------------------------------------------------------------------------------

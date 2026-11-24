@@ -206,6 +206,46 @@ class Bestand(Grund):
         self.assertEqual(len(self.gestartet), 1)
 
 
+class Uebernahme(Grund):
+    """A2062 (b): Projekt mit Bestand → Grobplan Fassung 0 = Bestand, gilt als angenommen und grob freigegeben; Thema → Meilenstein
+    als Daten der Grob-Karten (Ziel-Verweise und Themen der Aufgaben); Marcels Befunde 1/2: Schritt nicht mehr Grob, Grob nicht leer."""
+
+    def test_bestand_wird_fassung_0_und_gilt(self):
+        from amw import projektweg, projektweg_seite
+        self.frei()
+        m1 = planung.bogen_neu(self.con, self.pid, "TL", "Anmelden", ziel=f"TH{self.t1} Anmeldung")
+        planung.bogen_status(self.con, self.pid, "TL", m1, "aktiv")
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Sichern bauen", "CC1")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET bogen_id = ? WHERE id = ?", (m1, aid))
+        themen.verweise_setzen(self.con, self.pid, "TL", aid, [self.t2])
+        r = grobplan.uebernehmen(self.con, self.pid)
+        self.assertEqual((r["fassung"], r["meilensteine"], r["ohne_meilenstein"]), (0, 1, []))
+        self.assertTrue(grobplan.angenommen(self.con, self.pid))
+        g = projektweg_seite.grob(self.con, self.pid)
+        self.assertEqual(g["angenommen"]["fassung"], 0)
+        m = g["fassungen"][0]["meilensteine"][0]                                                  # Befund 2: Grob nicht leer
+        self.assertEqual((m["schluessel"], m["bestehend"], sorted(m["themen"]), m["status"]), ("M1", 1, sorted([self.t1, self.t2]), "aktiv"))
+        self.assertNotEqual(projektweg.sicht(self.con, self.pid)["dran"], "grob")
+        self.assertIsNone(grobplan.uebernehmen(self.con, self.pid))                               # einmal
+        with self.assertRaisesRegex(kern.AmwFehler, "schon angenommen"):
+            grobplan.abschliessen(self.con, self.pid, kern.ENTWICKLER)
+        self.assertEqual(self.gestartet, [])                                                      # ohne Planer, ohne Kosten
+        self.assertTrue(any("Grobplan übernommen" in k for _, k, _ in self.post("TL")))
+
+    def test_ohne_bestand_nichts_und_runde(self):
+        self.frei()
+        self.assertIsNone(grobplan.uebernehmen(self.con, self.pid))                               # Gegenprobe: kein Bestand
+        self.assertEqual(grobplan.uebernahme_runde(self.con), [])
+        planung.bogen_neu(self.con, self.pid, "TL", "Sichern", ziel=f"TH{self.t2}")
+        aus = grobplan.uebernahme_runde(self.con)
+        self.assertEqual(len(aus), 1)
+        r = grobplan.angenommen(self.con, self.pid)
+        self.assertEqual(r["fassung"], 0)
+        e = grobplan.entwurf(self.con, self.pid, 0)["entwurf"]
+        self.assertEqual(e["befunde"][0]["themen"], [f"TH{self.t1}"])                             # frei, aber ohne Meilenstein
+
+
 class Lauf(Grund):
     def setUp(self):
         super().setUp()
