@@ -178,6 +178,21 @@ class Daten(Grund):
             aktionen.ausfuehren(self.con, self.pid, "/api/projektweg/gibtesnicht", {})
 
 
+class FeinFehler(Grund):
+    def test_abgelehnter_feinplan_ist_sichtbar(self):
+        """A2056: passt der Feinplan nicht (z. B. gesperrte Bereiche), legt die AMW nichts an – die Seite zeigt den Grund statt
+        „Noch kein Feinplan“, und „Überarbeiten lassen“ plant mit Hinweis neu."""
+        from amw import feinplanung
+        demo(self.con, self.pid, "grob2")
+        grobplan.annehmen(self.con, self.pid, kern.ENTWICKLER, 2)
+        m1 = self.con.execute("SELECT id FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0]
+        feinplanung.entwurf_eintragen(self.con, self.pid, [m1], 1, None, modell="sonnet", usd=0.07,
+                                      fehler="Paket P1: Bereiche enthalten gesperrte Pfade (tests/x.py)")
+        m = self.daten()["fein"]["meilensteine"][0]
+        self.assertEqual((m["bogen"], m["pakete"], m["fassung"]), (m1, [], 1))
+        self.assertIn("gesperrte Pfade", " ".join(m["fehler"]))
+
+
 class Abschluss(Grund):
     def test_abnehmen_ist_das_ja_zum_abschluss(self):
         demo(self.con, self.pid, "abschluss")

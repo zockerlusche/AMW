@@ -103,14 +103,19 @@ def fein(con, pid, freigaben):
     """Je Meilenstein: Pakete in Stufen, Plan frei?, Feinplaner läuft?; dazu offene Entwürfe der Planer je Thema (Delta, A2027)."""
     from . import feinplanung, planansicht, planhinweis
     frei = {f["bogen"]: f["frei"] for f in freigaben["fein"]}
+    entwuerfe = feinplanung._ereignisse(con, pid, feinplanung.ENTWURF)
     aus = []
     for b in _meilensteine(con, pid):
         pakete = _pakete(con, pid, b["id"])
         laeuft = bool(feinplanung.laeuft(con, pid, [b["id"]]))
-        if not pakete and not laeuft:
+        letzter = next((e for e in reversed(entwuerfe) if b["id"] in (e.get("boegen") or [])), None)
+        fehler = letzter.get("fehler") if letzter and not pakete and not laeuft else None   # A2056: ein abgelehnter Feinplan ist sichtbar
+        if not pakete and not laeuft and not fehler:
             continue
         aus.append({"bogen": b["id"], "nr": b["nr"], "titel": b["titel"], "status": b["status"], "ziel": b["ziel"],
-                    "abnahme": b["abnahme"], "frei": bool(frei.get(b["id"])), "laeuft": laeuft, "pakete": pakete})
+                    "abnahme": b["abnahme"], "frei": bool(frei.get(b["id"])), "laeuft": laeuft, "pakete": pakete,
+                    "fehler": ([fehler] if isinstance(fehler, str) else list(fehler)) if fehler else None,
+                    "fassung": letzter.get("fassung") if letzter else None})
     namen = {t["id"]: t["name"] for t in _themen(con, pid)}
     e = planansicht.entwuerfe(con, pid, namen)
     from . import planer
