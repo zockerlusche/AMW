@@ -574,10 +574,11 @@ def _tag(zeit_utc=None):
 
 def heute_usd(con, pid, tag=None):
     """Kosten aller Planer-Läufe des Projekts an diesem Tag (aus den Entwürfen, auch fehlerhaften) – je Thema und, seit A2030,
-    die Grob-Planer über das ganze Konzept (grobplan_entwurf): eine gemeinsame Tagesgrenze."""
+    die Grob-Planer über das ganze Konzept (grobplan_entwurf) und, seit A2031, die Feinplaner je Meilenstein (feinplan_entwurf):
+    eine gemeinsame Tagesgrenze."""
     tag = tag or _tag()
     summe = 0.0
-    for r in con.execute("SELECT zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, 'grobplan_entwurf')",
+    for r in con.execute("SELECT zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, 'grobplan_entwurf', 'feinplan_entwurf')",
                          (pid, ENTWURF)):
         if _tag(r["zeit_utc"]) != tag:
             continue
@@ -868,6 +869,9 @@ def main(argv=None):
     if "--grob" in (argv if argv is not None else sys.argv[1:]):   # A2030: Grob-Planer über das ganze Konzept
         from . import grobplan
         return grobplan.main([x for x in (argv if argv is not None else sys.argv[1:]) if x != "--grob"])
+    if "--fein" in (argv if argv is not None else sys.argv[1:]):   # A2031: Feinplaner je Meilenstein
+        from . import feinplanung
+        return feinplanung.main([x for x in (argv if argv is not None else sys.argv[1:]) if x != "--fein"])
     ap.add_argument("--projekt-id", type=int, required=True)
     ap.add_argument("--thema", type=int, required=True)
     ap.add_argument("--fassung", type=int, required=True)

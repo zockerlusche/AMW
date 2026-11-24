@@ -1152,6 +1152,12 @@ def cmd_bogen(a, con):
             print(f"Meilenstein {a.id} ({a.art}): " + ("freigegeben" if r.get("frei") else "dein Ja steht – fehlt noch: "
                                                        + ", ".join(r.get("ja_fehlt") or []))
                   + (f" · gestartet, {len(r['gestartet']['startklar'])} Pakete startklar" if r.get("gestartet") else ""))
+    elif a.aktion == "feinplanen":                    # A2031: Feinplan (neu) planen lassen – „Überarbeiten lassen“
+        from . import feinplanung
+        _nicht_als_mensch_aus_sitzung(a, "bogen feinplanen")
+        if not a.id:
+            raise kern.AmwFehler("amw bogen feinplanen <Nummer des Meilensteins> [--hinweis …]")
+        print(feinplanung.neu_planen(con, pid, _von(a), a.id, a.hinweis)["text"])
     elif a.aktion == "bericht":                       # K7: Abschlussbericht (neu) erstellen – Lead oder Mensch
         from . import tore
         _nicht_als_mensch_aus_sitzung(a, "bogen bericht")
@@ -3977,7 +3983,7 @@ def parser():
                                    " starten N (Jetzt starten: an den Disponenten) | reihenfolge [N] (berechnet, kritischer Pfad) |"
                                    " abnehmen N (nur der Mensch: fertigen Meilenstein abnehmen, danach veröffentlicht die AMW)")
     x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status", "abnehmen", "freigeben", "zurueck", "bericht",
-                                      "tore", "starten", "reihenfolge"])
+                                      "tore", "starten", "reihenfolge", "feinplanen"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("wert", nargs="?", help="status: aktiv | fertig | geplant | verworfen")
     x.add_argument("--titel")
@@ -3991,6 +3997,7 @@ def parser():
     x.add_argument("--art", choices=["grob", "plan", "abschluss"], help="freigeben/zurueck: Meilenstein (grob), sein Plan oder sein"
                                                                        " Abschlussbericht – K6/K7")
     x.add_argument("--notiz", help="zurueck: was soll anders werden (Pflicht)")
+    x.add_argument("--hinweis", help="feinplanen: Hinweis an den Feinplaner (was er anders machen soll)")
     x.add_argument("--starten", action="store_true", help="freigeben --art plan: Plan freigeben und den Meilenstein gleich starten"
                                                           " (ein Klick wie in der Workbench)")
     x.set_defaults(f=cmd_bogen)

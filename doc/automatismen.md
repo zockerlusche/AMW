@@ -761,6 +761,26 @@ die der Lead nur noch bestätigt oder ändert.
 - **Fortschritt gegen den Laufstatus (P575):** Steht ein Planer-Stand auf „läuft“, der Lauf ist aber fertig oder
   abgebrochen, zeigt die AMW ihn als Fehler („L<n> ist abgebrochen, ohne dass der Planer ein Ende gemeldet hat“).
 
+### Rollende Feinplanung (A2031, TH164 Schritt 3)
+
+- **Auslöser:** je Aufsichtsrunde des Dienstes (`feinplanung.runde`), wenn `plan_automatik` an ist. Fällig ist der nächste
+  geplante Meilenstein (kleinste Nummer) mit Grob-Freigabe und ohne Pakete – nur wenn kein Meilenstein davor noch auf das Ja
+  zu seinem Plan wartet. Anlass: „erster“ (kein Meilenstein läuft, alle geplanten sind grob freigegeben), „bereit“ (der
+  laufende ist bereit zur Abnahme) oder „letztes“ (in ihm laufen nur noch Pakete, keins wartet). Einmal je Meilenstein
+  (`feinplan_faellig`). Meilensteine, die laut Grobplan `gleichzeitig` mit ihm laufen dürfen, kommen in denselben Lauf.
+- **Was läuft:** ein Feinplaner (`amw-planer.py --fein`) wie der Grob-Planer: leichter Lauf der Lauf-Schlange, frischer
+  `claude -p` nur lesend, Opus mit Effort high, Frist 20 min. Er liest Meilenstein(e), ihre Themen (TH-Verweise im Ziel),
+  Beschlüsse, den ganzen Grobplan, offene und zu diesen Themen fertige Pakete und Hinweise des Menschen und antwortet mit
+  Paketen nach dem Paket-Schema des Planers (zusätzlich je Paket sein Thema), Fragen und Grund. Fortschritt Art `feinplaner`,
+  Kosten zählen zur gemeinsamen Tagesgrenze. Ist der Planer aus oder die Grenze erreicht, bekommt der Lead den Auftrag.
+- **Danach:** Die AMW prüft wie beim Planer je Thema (Schema, p-Regeln, Abnahme-Befehl, gesperrte Bereiche, kein Kreis) und
+  dazu: Thema gehört zum Meilenstein, jeder Meilenstein hat ein Paket, nichts schon Gebautes. Geprüft legt sie die Pakete an
+  (wartet, nichts startet) und meldet dem Lead „wartet auf das Ja“; Fragen gehen an den Lead. Eine neue Fassung
+  (`amw bogen feinplanen N --hinweis …`, Lead oder Mensch) verwirft die nicht begonnenen Pakete der vorigen.
+- **Ja = Start:** „Plan freigeben und starten“ (Workbench, `amw bogen freigeben N --art plan --starten`) gibt den Plan frei und
+  übergibt den Meilenstein sofort an den Disponenten (`reihenfolge.starten`) – auch während der vorige auf seine Abnahme wartet.
+  Bei `thema_freigabe = co+lead` startet er mit dem zweiten Ja.
+
 ### Thema → Meilenstein → Paket (K8, A1942, TH163)
 
 - **Auslöser:** ein freigegebenes Thema bekommt eine neue Fassung (wie A1915) oder wird zurückgegeben.

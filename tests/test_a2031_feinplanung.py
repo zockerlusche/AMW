@@ -4,6 +4,7 @@ Meilenstein; „Plan freigeben und starten“ ist ein Klick und geht auch, währ
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
 import io
+import json
 import os
 import tempfile
 import unittest
@@ -37,7 +38,7 @@ class Grund(unittest.TestCase):
         self.a2 = self.paket("Tests", self.m1, nach=[self.a1], pruefbefehl="python -m unittest tests.test_x", dateibereich="tests/test_x.py")
         arbeitspaket.setzen(self.con, self.pid, "TL", self.a2, art="p", modell="sonnet")
         self.angestossen = []
-        a = mock.patch.object(feinplanung, "ANSTOSSEN", side_effect=lambda _con, _pid, b, grund: self.angestossen.append((b["id"], grund)))
+        a = mock.patch.object(feinplanung, "ANSTOSSEN", side_effect=lambda _con, _pid, boegen, grund: self.angestossen.append((boegen[0]["id"], grund)))
         a.start()
         self.addCleanup(a.stop)
 
@@ -171,6 +172,156 @@ class PlanStarten(Grund):
             rc = cli.main(["--projekt", "P", "bogen", "freigeben", str(self.m3), "--art", "grob", "--starten", "--von", "Entwickler"])
         self.assertNotEqual(rc, 0)
         self.assertIn("--starten gibt es nur mit --art plan", aus.getvalue())
+
+
+class Feinplaner(unittest.TestCase):
+    """Der Feinplaner-Lauf: anstoßen (Attrappe), Entwurf prüfen, Pakete anlegen, neue Fassung, gleichzeitige Meilensteine."""
+    def setUp(self):
+        self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(self.ordner.cleanup)
+        u = mock.patch.dict(os.environ, {"AMW_DB": os.path.join(self.ordner.name, "amw.db")})
+        u.start()
+        self.addCleanup(u.stop)
+        os.environ.pop("AMW_PLANER_AUS", None)
+        self.con = db.anlegen(os.environ["AMW_DB"])
+        self.addCleanup(self.con.close)
+        with db.schreiben(self.con):
+            self.pid = db.einfuegen(self.con, "projekt", name="P", angelegt_utc=db.jetzt())
+            from amw import schalter
+            schalter._setzen(self.con, self.pid, "an")
+        kern.agent_neu(self.con, self.pid, "TL", rolle="lead")
+        kern.agent_neu(self.con, self.pid, "CC1")
+        self.t1 = themen.neu(self.con, self.pid, "TL", "Anmeldung", pfleger="CC1")
+        self.t2 = themen.neu(self.con, self.pid, "TL", "Sicherung", pfleger="CC1")
+        self.t3 = themen.neu(self.con, self.pid, "TL", "Hilfe", pfleger="CC1")
+        self.m1 = planung.bogen_neu(self.con, self.pid, "TL", "Anmelden", ziel=f"TH{self.t1} Anmeldung mit Firmenkonto",
+                                    abnahme="Vorführung")
+        self.m2 = planung.bogen_neu(self.con, self.pid, "TL", "Sichern", ziel=f"TH{self.t2} Sicherung", abnahme="Bericht")
+        self.m3 = planung.bogen_neu(self.con, self.pid, "TL", "Hilfe", ziel=f"TH{self.t3} Hilfe", abnahme="Bericht")
+        self.gestartet = []
+        p = mock.patch.object(feinplanung, "STARTER", lambda _pid, boegen, fassung: self.gestartet.append((boegen, fassung)) or 4711)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def plan(self, m="M1", th=None, **mehr):
+        th = th or f"TH{self.t1}"
+        return {"pakete": [{"schluessel": "P1", "meilenstein": m, "thema": th, "titel": "Login-Seite bauen", "auftrag": "Seite mit Firmenkonto.",
+                            "groesse": "M", "art": "oberflaeche", "ausfuehrung": "agent", "fertig_quelle": "commit",
+                            "interaktiv_grund": "Oberfläche"},
+                           {"schluessel": "P2", "meilenstein": m, "thema": th, "titel": "Tests für die Anmeldung", "auftrag": "Tests.",
+                            "groesse": "S", "art": "mechanisch", "ausfuehrung": "p", "fertig_quelle": "commit", "nach": ["P1"],
+                            "abnahme_befehl": "python -m unittest tests.test_anmeldung", "bereiche": "tests/test_anmeldung.py",
+                            "pakettyp": "test-schreiben"}], "grund": "erst die Seite, dann die Tests", **mehr}
+
+    def post(self, an="TL"):
+        return [(r["art"], r["kurz"]) for r in self.con.execute(
+            "SELECT n.art, n.kurz FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE e.agent = ? AND n.von = 'AMW' ORDER BY n.id", (an,))]
+
+    def pakete(self, bid, status=None):
+        sql = "SELECT id, titel, status FROM aufgabe WHERE bogen_id = ?" + (" AND status = ?" if status else "") + " ORDER BY id"
+        return [tuple(r) for r in self.con.execute(sql, (bid, status) if status else (bid,))]
+
+    def test_anstossen_einmal_und_tagesgrenze(self):
+        r = feinplanung.anstossen(self.con, self.pid, [self.m1], hinweis="erst die Seite")
+        self.assertTrue(r["gestartet"], r)
+        self.assertEqual(self.gestartet, [([self.m1], 1)])
+        self.assertFalse(feinplanung.anstossen(self.con, self.pid, [self.m1])["gestartet"])     # läuft schon
+        an = feinplanung._ereignisse(self.con, self.pid, feinplanung.ANGESTOSSEN)
+        self.assertEqual((an[-1]["hinweis"], an[-1]["prozess"]), ("erst die Seite", 4711))
+        kern.projekt_einstellen(self.con, self.pid, "TL", planer_tagesgrenze_usd="0.5")
+        feinplanung.entwurf_eintragen(self.con, self.pid, [self.m1], 1, None, usd=0.7, fehler="Zeitüberschreitung")
+        r = feinplanung.anstossen(self.con, self.pid, [self.m1])
+        self.assertFalse(r["gestartet"])
+        self.assertIn("Tagesgrenze", r["text"])
+        from amw import planer
+        self.assertEqual(planer.heute_usd(self.con, self.pid), 0.7)                              # gemeinsame Grenze zählt mit
+
+    def test_entwurf_legt_pakete_an_und_wartet_aufs_ja(self):
+        feinplanung.anstossen(self.con, self.pid, [self.m1])
+        e = feinplanung.entwurf_eintragen(self.con, self.pid, [self.m1], 1, self.plan(), modell="opus", usd=0.9)
+        self.assertEqual(sorted(e["angelegt"]), ["P1", "P2"])
+        p1, p2 = (int(e["angelegt"][k][1:]) for k in ("P1", "P2"))
+        self.assertEqual(self.pakete(self.m1), [(p1, "Login-Seite bauen", "wartet"), (p2, "Tests für die Anmeldung", "wartet")])
+        self.assertEqual(themen.verweise(self.con, self.pid, p2), [self.t1])
+        self.assertEqual(fertigquelle.lesen(self.con, p2)["art"], "commit")
+        self.assertEqual((arbeitspaket.lesen(self.con, p2)["art"], arbeitspaket.lesen(self.con, p1)["art"]), ("p", "agent"))
+        self.assertEqual(planung.vorgaenger(self.con, p2), [p1])
+        self.assertEqual(self.post()[-1], ("meldung", "Feinplan M1 Fassung 1: 2 Pakete angelegt – wartet auf das Ja"))
+        self.assertIsNone(feinplanung.laeuft(self.con, self.pid, [self.m1]))
+        self.assertEqual(self.con.execute("SELECT status FROM bogen WHERE id = ?", (self.m1,)).fetchone()[0], "geplant")   # nichts startet
+
+    def test_neue_fassung_verwirft_die_alte(self):
+        e1 = feinplanung.entwurf_eintragen(self.con, self.pid, [self.m1], 1, self.plan())
+        r = feinplanung.neu_planen(self.con, self.pid, "TL", self.m1, "Tests zuerst")
+        self.assertTrue(r["gestartet"])
+        self.assertEqual(self.gestartet[-1], ([self.m1], 1))
+        plan2 = self.plan()
+        plan2["pakete"][0]["titel"] = "Anmeldeseite mit Firmenkonto"
+        e2 = feinplanung.entwurf_eintragen(self.con, self.pid, [self.m1], 2, plan2)
+        alt = {int(v[1:]) for v in e1["angelegt"].values()}
+        self.assertEqual({a for a, _, _ in self.pakete(self.m1, "verworfen")}, alt)
+        self.assertEqual(len(self.pakete(self.m1, "wartet")), 2)
+        self.assertIn("Verworfen", self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'Feinplan M1 Fassung 2%'").fetchone()[0])
+        self.assertTrue(e2["angelegt"])
+
+    def test_pruefen_findet_fehler(self):
+        from amw import planer
+        f = self.plan(th=f"TH{self.t2}")                                                       # fremdes Thema
+        f["unsinn"] = 1
+        with self.assertRaises(planer.PlanFehler) as x:
+            feinplanung.pruefen(f, self.con, self.pid, [self.m1])
+        text = " ".join(x.exception.fehler)
+        self.assertIn(f"TH{self.t2} gehört nicht zu M1", text)
+        self.assertIn("unbekannte Felder: unsinn", text)
+        with self.assertRaises(planer.PlanFehler) as x:
+            feinplanung.pruefen(self.plan(), self.con, self.pid, [self.m1, self.m2])            # M2 ohne Paket
+        self.assertIn("M2: kein Paket", " ".join(x.exception.fehler))
+        e = feinplanung.entwurf_eintragen(self.con, self.pid, [self.m1], 1, "kein json")
+        self.assertTrue(e["fehler"])
+        self.assertEqual(self.pakete(self.m1), [])
+        self.assertIn("passt nicht", self.post()[-1][1])
+
+    def test_fragen_gehen_an_den_lead(self):
+        f = self.plan(fragen=[{"frage": "Firmenkonto oder Passwort zuerst?", "optionen": {"A": "Firmenkonto", "B": "Passwort"},
+                               "empfehlung": "A", "grund": "die meisten melden sich so an"}])
+        feinplanung.entwurf_eintragen(self.con, self.pid, [self.m1], 1, f)
+        q = self.con.execute("SELECT * FROM frage ORDER BY id DESC LIMIT 1").fetchone()
+        self.assertEqual((q["von"], q["kurz"]), ("AMW", "Feinplan M1: Firmenkonto oder Passwort zuerst?"))
+
+    def test_gleichzeitige_meilensteine_zusammen(self):
+        nr = {b: self.con.execute("SELECT nr FROM bogen WHERE id = ?", (b,)).fetchone()[0] for b in (self.m1, self.m2, self.m3)}
+        with db.schreiben(self.con):
+            self.con.execute("INSERT INTO plan_ereignis (projekt_id, zeit_utc, von, art, text) VALUES (?, ?, 'TL', 'grobplan_ja', ?)",
+                             (self.pid, db.jetzt(), json.dumps({"angelegt": {}, "nach": {}, "gleichzeitig": {f"M{nr[self.m1]}": [f"M{nr[self.m2]}"]}})))
+        for m in (self.m1, self.m2, self.m3):
+            planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, m, "grob")
+        self.assertEqual(feinplanung.projekt(self.con, self.pid), [(self.m1, "erster"), (self.m2, "erster")])
+        self.assertEqual(self.gestartet, [(sorted([self.m1, self.m2]), 1)])                    # ein Lauf für beide
+        plan = self.plan(m=f"M{nr[self.m1]}")
+        plan["pakete"].append({"schluessel": "P3", "meilenstein": f"M{nr[self.m2]}", "thema": f"TH{self.t2}", "titel": "Nachtsicherung",
+                               "auftrag": "Jede Nacht.", "groesse": "M", "art": "sicherheit", "ausfuehrung": "agent", "fertig_quelle": "commit",
+                               "nach": ["P2"], "interaktiv_grund": "gesperrter Bereich"})
+        e = feinplanung.entwurf_eintragen(self.con, self.pid, [self.m1, self.m2], 1, plan)
+        self.assertEqual((len(self.pakete(self.m1)), len(self.pakete(self.m2))), (2, 1))
+        self.assertEqual(planung.vorgaenger(self.con, int(e["angelegt"]["P3"][1:])), [int(e["angelegt"]["P2"][1:])])
+
+    def test_ohne_planer_plant_der_lead(self):
+        os.environ["AMW_PLANER_AUS"] = "1"
+        feinplanung._planer_anstossen(self.con, self.pid, [planung.bogen_zeile(self.con, self.pid, self.m1)], "Der Grobplan steht")
+        self.assertEqual(self.gestartet, [])
+        self.assertEqual(self.post()[-1], ("auftrag", "Meilenstein 1 „Anmelden“ jetzt fein planen"))
+
+    def test_neu_planen_nur_lead_oder_mensch(self):
+        with self.assertRaisesRegex(kern.AmwFehler, "Lead oder der Mensch"):
+            feinplanung.neu_planen(self.con, self.pid, "CC1", self.m1)
+        r = aktionen.ausfuehren(self.con, self.pid, "/api/meilenstein/fein-neu", {"bogen": self.m1, "hinweis": "kleiner"}, kanal="seite")
+        self.assertTrue(r["gestartet"])
+
+    def test_einstieg_amw_planer_fein(self):
+        from amw import planer
+        with mock.patch.object(feinplanung, "ausfuehren") as aus, mock.patch("amw.db.verbinde", return_value=mock.MagicMock()):
+            planer.main(["--fein", "--projekt-id", "3", "--boegen", "7,8", "--fassung", "2"])
+        self.assertEqual(aus.call_args[0][1:], (3, [7, 8], 2))
 
 
 if __name__ == "__main__":

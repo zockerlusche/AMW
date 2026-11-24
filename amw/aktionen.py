@@ -306,6 +306,9 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             if was == "plan-starten":                 # A2031: „Plan freigeben und starten“ – das Feinplan-Ja ist der Start
                 from . import feinplanung
                 return feinplanung.plan_starten(con, pid, kern.ENTWICKLER, bid)
+            if was == "fein-neu":                     # A2031: „Überarbeiten lassen“ – neue Fassung des Feinplans mit Hinweis
+                from . import feinplanung
+                return feinplanung.neu_planen(con, pid, kern.ENTWICKLER, bid, daten.get("hinweis"))
             if was == "bericht":                      # K7 (A1944): Abschlussbericht neu erstellen (nach einem Zurück)
                 from . import tore
                 return {"dokument": tore.bericht_erstellen(con, pid, bid)}

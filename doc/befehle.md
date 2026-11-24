@@ -998,13 +998,14 @@ options:
 usage: amw bogen [-h] [--titel TITEL] [--ziel ZIEL] [--abnahme ABNAHME]
                  [--zieldatum ZIELDATUM] [--federfuehrend FEDERFUEHREND]
                  [--nr NR] [--grund GRUND] [--erzwingen]
-                 [--art {grob,plan,abschluss}] [--notiz NOTIZ] [--starten]
-                 [--von VON] [--projekt PROJEKT]
-                 {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore,starten,reihenfolge}
+                 [--art {grob,plan,abschluss}] [--notiz NOTIZ]
+                 [--hinweis HINWEIS] [--starten] [--von VON]
+                 [--projekt PROJEKT]
+                 {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore,starten,reihenfolge,feinplanen}
                  [id] [wert]
 
 positional arguments:
-  {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore,starten,reihenfolge}
+  {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore,starten,reihenfolge,feinplanen}
   id
   wert                  status: aktiv | fertig | geplant | verworfen
 
@@ -1026,6 +1027,8 @@ options:
                         freigeben/zurueck: Meilenstein (grob), sein Plan oder
                         sein Abschlussbericht – K6/K7
   --notiz NOTIZ         zurueck: was soll anders werden (Pflicht)
+  --hinweis HINWEIS     feinplanen: Hinweis an den Feinplaner (was er anders
+                        machen soll)
   --starten             freigeben --art plan: Plan freigeben und den
                         Meilenstein gleich starten (ein Klick wie in der
                         Workbench)
