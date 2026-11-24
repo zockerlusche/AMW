@@ -862,6 +862,9 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
             dazu(lid)
         else:                                    # ein KI-Auftrag rechnet nicht im Namen des Agenten
             kern.taetigkeit_auto(con, pid, agent, f"L{lid} {beschreibung or ''}".strip(), aufgabe_id)
+        if not selbst and not dazu:              # A2058: eigener Lauf – die Kosten bis dahin waren Arbeit, danach „warten“
+            from . import taetigkeit
+            taetigkeit.merken(con, pid, agent, "warten", aufgabe_id)
     if not dazu:                                 # Planung automatisch (A1741): Lauf zu einer nicht begonnenen eigenen Aufgabe → läuft
         from . import planautomatik
         planautomatik.lauf_gestartet(con, pid, agent, lid, aufgabe_id, beschreibung, ordner)
@@ -1162,6 +1165,9 @@ def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speich
             fenster.geschlossen(con, l, rc, bool(schirm_mod.zustand(con)["frei"]))
         from . import wartegrund                     # wer auf diesen Lauf gewartet hat, wird geweckt (L2)
         wartegrund.erledige(con, pid, "lauf", f"L{lid}", f"L{lid} zu Ende (rc {rc})" if rc is not None else f"L{lid} zu Ende")
+        if rc not in (0, None) and not abgebrochen:  # A2058: eigener Lauf rot – was jetzt kostet, ist Fehlersuche
+            from . import taetigkeit
+            taetigkeit.merken(con, pid, l["agent"], "fehlersuche", l["aufgabe_id"])
     try:                                             # A1897: grüner Gesamtlauf auf einem grün geprüften Stand → „freigabereif“
         from . import freigabereif
         freigabereif.nach_lauf(con, pid, lid)
@@ -1230,6 +1236,8 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
             felder = {k: v for k, v in (("hinweis_gruppe", gruppe), ("hinweis", " ".join((hinweis or "").split())[:300] or None)) if v}
             con.execute(f"UPDATE aufgabe SET {', '.join(k + ' = ?' for k in felder)} WHERE id = ?", (*felder.values(), aufgabe_id))
             vh = f"\n\nVersionshinweis ({gruppe or '–'}): {felder.get('hinweis') or '–'}"
+        from . import taetigkeit                      # A2058: ab hier „prüfen lassen“
+        taetigkeit.merken(con, pid, bauer, "pruefen_lassen", aufgabe_id)
         kern._posten(con, pid, bauer, pruefer, "pruefbitte", f"Prüfbitte P{prid}: {zweig}@{sha[:8]}",
                      stufe + leer + ("\n\n" + punkte if punkte else "") + vh + bilder, aufgabe_id=aufgabe_id)
     if aufgabe_id:                                   # A2053: wartet die Aufgabe des Bauers schon, wartet sie jetzt auch auf diese

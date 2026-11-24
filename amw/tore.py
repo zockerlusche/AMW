@@ -320,7 +320,7 @@ def prognose_pruefen(con, pid):
             m = messung.kosten(con, pid, a["id"])           # A2040: auch Headless-Läufe – sonst warnte die AMW bei p nie
         except Exception:                                # noqa: BLE001
             continue
-        usd = float(m["usd"]) if m and m.get("usd") else 0
+        usd = float(m.get("bauen_usd", m["usd"]) or 0) if m and m.get("usd") else 0   # A2058: nur der Anteil „bauen“
         if not usd:
             continue
         if eig is None:

@@ -812,7 +812,7 @@ options:
 ```
 usage: amw messung [-h] [--seit SEIT] [--agent AGENT] [--vergleich] [--hebel7]
                    [--basis] [--p] [--tage TAGE] [--prognose] [--gesamt]
-                   [--von VON] [--projekt PROJEKT]
+                   [--kosten] [--von VON] [--projekt PROJEKT]
                    [nr]
 
 positional arguments:
@@ -837,6 +837,9 @@ options:
                      Faktor, je Quelle; mit --seit – A2046
   --gesamt           Kosten des Projekts: bisher (gemessen, Fenster-Agenten
                      und Headless), noch (Schätzung offener Pakete) und gesamt
+  --kosten           Kosten der Fenster-Agenten je Tag und Tätigkeit (bauen,
+                     stapeln, prüfen lassen, warten, Fehlersuche, sonstiges);
+                     mit --tage (Vorgabe 7) – A2058
   --von VON
   --projekt PROJEKT
 ```

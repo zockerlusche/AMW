@@ -501,6 +501,11 @@ class Kette:
         """Die ganze Kette. A1866 (P257): bricht sie mit einem unerwarteten Fehler ab (keine Stopp-Meldung), wird daraus ein Stopp
         mit dem Hinweis auf den Wartungsmodus – sonst bliebe er ohne Hinweis an."""
         try:
+            from . import taetigkeit                     # A2058: die Kette fahren ist „stapeln“
+            taetigkeit.merken(self.con, self.pid, self.von, "stapeln", int(aufgabe) if aufgabe else None)
+        except Exception:                                        # noqa: BLE001 – Messung hält die Kette nie auf
+            pass
+        try:
             aus = self._ausliefern(zweig, gesamtlauf, aufgabe)
             self._stapel_erledigt(zweig)
             return aus

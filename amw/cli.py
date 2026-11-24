@@ -1672,6 +1672,20 @@ def cmd_messung(a, con):
     """A1844: Wartezeit und Kosten je Aufgabe – nur lesen."""
     from . import messung
     pid = _projekt(con, a)
+    if getattr(a, "kosten", False):                  # A2058: Fensterkosten je Tag und Tätigkeit
+        from . import taetigkeit
+        tage = a.tage or 7
+        import datetime as _dt
+        ab = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=tage)).strftime("%Y-%m-%dT00:00:00Z")
+        d = taetigkeit.je_tag(con, pid, ab)
+        if not d:
+            print(f"Keine Kosten der Fenster-Agenten in den letzten {tage} Tagen.")
+            return
+        spalten = list(taetigkeit.TAETIGKEITEN)
+        print("Tag         " + "".join(f"{taetigkeit.NAMEN[s]:>15}" for s in spalten) + f"{'zusammen':>12}")
+        for tag, w in d.items():
+            print(f"{tag}  " + "".join(f"{w.get(s, 0):>14.2f} " for s in spalten) + f"{sum(w.values()):>11.2f}")
+        return
     if getattr(a, "prognose", False):                # A2046 (V8): Schätzung gegen Ist, Trefferquote
         from . import prognosemessung
         seit = (a.seit.strip() if re.fullmatch(r"\d{4}-\d{2}-\d{2}T[\d:]+Z?", a.seit.strip()) else _datum(a.seit)) if a.seit else None
@@ -4124,6 +4138,8 @@ def parser():
                                                           " im Rahmen 0,67–1,5× und Median-Faktor, je Quelle; mit --seit – A2046")
     x.add_argument("--gesamt", action="store_true", help="Kosten des Projekts: bisher (gemessen, Fenster-Agenten und Headless), noch"
                                                          " (Schätzung offener Pakete) und gesamt")
+    x.add_argument("--kosten", action="store_true", help="Kosten der Fenster-Agenten je Tag und Tätigkeit (bauen, stapeln, prüfen"
+                                                         " lassen, warten, Fehlersuche, sonstiges); mit --tage (Vorgabe 7) – A2058")
     x.set_defaults(f=cmd_messung)
 
     x = s.add_parser("skills", help="Anleitungen als Claude-Code-Skills: bauen (aus doc nach .claude/skills, A1956)")

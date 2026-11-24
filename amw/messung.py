@@ -309,7 +309,10 @@ def kosten(con, pid, aid):
     if not z and not usd_e and not unbekannt:
         return None
     zu = (z or {}).get("usd") or 0.0
-    return {"usd": round(zu + usd_e, 2), "modelle": (z or {}).get("modelle") or [], "zaehler_usd": round(zu, 2),
+    b_z = (z or {}).get("bauen_usd")
+    bauen = (b_z if isinstance(b_z, (int, float)) else zu) + usd_e   # A2058: Headless = bauen
+    return {"usd": round(zu + usd_e, 2), "bauen_usd": round(bauen, 2), "taetigkeiten": (z or {}).get("taetigkeiten") or {},
+            "modelle": (z or {}).get("modelle") or [], "zaehler_usd": round(zu, 2),
             "erfasst_usd": round(usd_e, 2), "unbekannt": unbekannt, **({"naeherung": True} if (z or {}).get("naeherung") else {})}
 
 

@@ -1587,6 +1587,13 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
         if neu in ("fertig", "verworfen"):            # wer abgeschlossen hat (kann der Lead statt des Bearbeiters sein)
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=t, von=von, art="aufgabe_abschluss",
                          bogen_id=a["bogen_id"], aufgabe_id=aid, text=neu)
+        from . import taetigkeit                     # A2058: Wechsel der Tätigkeit – Kosten je Abschnitt
+        if neu == "laeuft":
+            taetigkeit.merken(con, pid, a["agent"] or von, "bauen", aid)
+        elif neu in ("wartet", "blockiert"):
+            taetigkeit.merken(con, pid, a["agent"] or von, taetigkeit.beim_warten(con, aid), aid)
+        elif neu in ("fertig", "verworfen"):
+            taetigkeit.merken(con, pid, a["agent"] or von, "sonstiges", None)
         if neu in ("laeuft", "fertig", "verworfen"):
             wartegrund.schliessen(con, aid, f"A{aid} {neu}")
         if neu == "laeuft":                          # „alle Gründe erledigt – weiter“ ist damit abgearbeitet

@@ -857,6 +857,17 @@ die der Lead nur noch bestätigt oder ändert.
 - **Fortschritt gegen den Laufstatus (P575):** Steht ein Planer-Stand auf „läuft“, der Lauf ist aber fertig oder
   abgebrochen, zeigt die AMW ihn als Fehler („L<n> ist abgebrochen, ohne dass der Planer ein Ende gemeldet hat“).
 
+### Fensterkosten je Tätigkeit (A2058)
+
+- **Marken:** bei jedem Wechsel der Tätigkeit eines Agenten ein `plan_ereignis taetigkeit` (ohne Schemaänderung): Aufgabe starten →
+  bauen; Aufgabe wartet/blockiert → nach der Art des Wartegrunds (Prüfung → prüfen lassen, Stapel → stapeln, sonst warten);
+  fertig/verworfen → sonstiges; Prüfbitte → prüfen lassen; eigener Lauf angemeldet → warten, eigener Lauf rot zu Ende → Fehlersuche;
+  `release ausliefern` → stapeln.
+- **Zuordnung:** jeder Zuwachs des Sitzungs-Zählers (`verbrauch`) gehört weiter zur laufenden Aufgabe und zusätzlich zur Tätigkeit
+  der letzten Marke davor; ohne Marke gilt „bauen“. Die Prognose-Warnung („über Prognose“) vergleicht nur den Anteil „bauen“
+  (Headless-Läufe zählen ganz als bauen).
+- **Anzeige:** `amw messung --kosten [--tage N]` – Kosten der Fenster-Agenten je Tag und Tätigkeit.
+
 ### Rollende Feinplanung (A2031, TH164 Schritt 3)
 
 - **Gesperrte Bereiche und eine Nachbesserung (A2067):** Der Feinplaner bekommt `sperrliste.md` – die feste Sperrliste

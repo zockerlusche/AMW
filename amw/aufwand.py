@@ -17,14 +17,44 @@ def _aufgaben(con, pid, kennung):
                        " AND begonnen_utc IS NOT NULL ORDER BY begonnen_utc, id", (pid, kennung)).fetchall()
 
 
-def _zuordnen(con, pid, kennung, aufgaben, ab):
-    """{aufgabe_id: {"usd", "modelle": {"Modell/Stufe": usd}}} aus den Sitzungen mit Messpunkten ab `ab`."""
-    zeilen = con.execute(
+def _zeilen(con, pid, kennung, ab):
+    return con.execute(
         "SELECT v.sitzung_id, v.zeit_utc, v.kosten_usd, s.modell, s.denkstufe FROM verbrauch v JOIN sitzung s ON s.id = v.sitzung_id"
         " JOIN agent g ON g.id = s.agent_id AND g.projekt_id = ? AND g.kennung = ?"     # gleiche Kennung in zwei Projekten
         " WHERE v.agent = ? AND v.kosten_usd IS NOT NULL AND v.sitzung_id IN (SELECT sitzung_id FROM verbrauch WHERE agent = ?"
         " AND zeit_utc >= ?) ORDER BY v.sitzung_id, v.zeit_utc",          # ganze Sitzungen: gleiche Summe, egal ab wann gefragt
         (pid, kennung, kennung, kennung, ab)).fetchall()
+
+
+def _zuwachs(z, alt):
+    if z["kosten_usd"] >= alt:
+        return z["kosten_usd"] - alt
+    # A1992 (Befund 23.11.): gesunken. Ein frisch begonnener Zähler startet nahe 0 – nur dann zählt der Wert ganz.
+    # Ein nach dem Neustart fortgesetzter Prozess meldet weiter eine (neu berechnete) Summe, z. B. 177.51 → 133.85: das
+    # ist kein Zuwachs von 133.85 $, sondern eine neue Grundlinie (vorher wurde A1989 so 135.69 $ statt ≈ 1 $).
+    return z["kosten_usd"] if z["kosten_usd"] < NEU_UNTER_USD else 0.0
+
+
+def zuwaechse(con, pid, kennung, ab):
+    """A2058: [(zeit_utc, zuwachs_usd)] der Sitzungs-Zähler des Agenten ab `ab` – dieselbe Rechnung wie _zuordnen."""
+    aus, vorher = [], {}
+    for z in _zeilen(con, pid, kennung, ab):
+        alt = vorher.get(z["sitzung_id"])
+        vorher[z["sitzung_id"]] = z["kosten_usd"]
+        if alt is None:
+            continue
+        w = _zuwachs(z, alt)
+        if w > 0:
+            aus.append((z["zeit_utc"], w))
+    return aus
+
+
+def _zuordnen(con, pid, kennung, aufgaben, ab):
+    """{aufgabe_id: {"usd", "modelle": {"Modell/Stufe": usd}, "taetigkeiten": {taetigkeit: usd}}} aus den Sitzungen mit
+    Messpunkten ab `ab` (A2058: je Zuwachs die Tätigkeit der letzten Marke davor)."""
+    from . import taetigkeit
+    zeilen = _zeilen(con, pid, kennung, ab)
+    marken = taetigkeit.marken(con, pid, kennung)
     aus, vorher = {}, {}
     warten = {}                                   # A1844: Wartegründe je Aufgabe – eine wartende Aufgabe hat Nachrang
     for a in aufgaben:
@@ -35,12 +65,7 @@ def _zuordnen(con, pid, kennung, aufgaben, ab):
         vorher[z["sitzung_id"]] = z["kosten_usd"]
         if alt is None:                       # erster Messpunkt: Stand davor unbekannt, ab hier wird gezählt
             continue
-        if z["kosten_usd"] >= alt:
-            zuwachs = z["kosten_usd"] - alt
-        else:   # A1992 (Befund 23.11.): gesunken. Ein frisch begonnener Zähler startet nahe 0 – nur dann zählt der Wert ganz.
-            # Ein nach dem Neustart fortgesetzter Prozess meldet weiter eine (neu berechnete) Summe, z. B. 177.51 → 133.85: das
-            # ist kein Zuwachs von 133.85 $, sondern eine neue Grundlinie (vorher wurde A1989 so 135.69 $ statt ≈ 1 $).
-            zuwachs = z["kosten_usd"] if z["kosten_usd"] < NEU_UNTER_USD else 0.0
+        zuwachs = _zuwachs(z, alt)
         if zuwachs <= 0:
             continue
         t = z["zeit_utc"]
@@ -49,9 +74,11 @@ def _zuordnen(con, pid, kennung, aufgaben, ab):
             continue                          # Zeit zwischen den Aufgaben (Lesen, Nachrichten) – keiner Aufgabe zuzuordnen
         aktiv = [a for a in offen if not any(v <= t < b for v, b in warten[a["id"]])] or offen
         a = max(aktiv, key=lambda x: (x["begonnen_utc"], x["id"]))
-        e = aus.setdefault(a["id"], {"usd": 0.0, "modelle": {}, "naeherung": False})
+        e = aus.setdefault(a["id"], {"usd": 0.0, "modelle": {}, "naeherung": False, "taetigkeiten": {}})
         e["naeherung"] = e["naeherung"] or len(aktiv) > 1
         e["usd"] += zuwachs
+        tk = taetigkeit.bei(marken, t)                    # A2058
+        e["taetigkeiten"][tk] = e["taetigkeiten"].get(tk, 0.0) + zuwachs
         m = "/".join(x for x in (z["modell"], z["denkstufe"]) if x)
         if m:
             e["modelle"][m] = e["modelle"].get(m, 0.0) + zuwachs
@@ -62,7 +89,10 @@ def _form(e):
     """Ausgabe: Summe gerundet, Modelle nach Anteil (größter zuerst)."""
     if not e:
         return None
+    tk = e.get("taetigkeiten") or {}
+    andere = set(tk) - {"bauen"}                      # A2058: nur mit anderen Tätigkeiten als „bauen“ ein eigener Anteil
     return {"usd": round(e["usd"], 2), "modelle": [m for m, _ in sorted(e["modelle"].items(), key=lambda x: -x[1])],
+            **({"bauen_usd": round(tk.get("bauen", 0.0), 2), "taetigkeiten": {k: round(v, 2) for k, v in tk.items()}} if andere else {}),
             **({"naeherung": True} if e.get("naeherung") else {})}
 
 
