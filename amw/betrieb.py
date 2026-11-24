@@ -144,6 +144,7 @@ def tagesverlauf(con, pid, jetzt=None, tage=60):
             continue
         eigen = l["projekt_id"] == pid
         heute.append({"id": l["id"] if eigen else None, "eigen": eigen, "wer": l["agent"] if eigen else None,
+                      "ausgabe": bool(eigen and l["ergebnis_datei"]),          # A2044: Ausgabe ansehen (nur am PC)
                       "text": kurzfassung(l["beschreibung"], 80) if eigen else None,
                       "status": "wartet" if wartet else l["status"], "angemeldet_utc": l["angemeldet_utc"] if wartet else None,
                       "start_utc": None if wartet else l["start_utc"], "ende_utc": l["ende_utc"], "erwartet_min": l["erwartet_min"],
@@ -981,6 +982,36 @@ SELBST = "lauf_selbst"          # A1948: plan_ereignis {"lauf": n} – die AMW f
 
 def selbst_gestartet(con, lid):
     return con.execute("SELECT 1 FROM plan_ereignis WHERE art = ? AND text = ?", (SELBST, json.dumps({"lauf": lid}))).fetchone() is not None
+
+
+AUSGABE_BYTES = 64 * 1024            # A2044: so viel liest die Ansicht höchstens vom Ende der Ausgabedatei
+AUSGABE_ZEILEN = 200
+
+
+def ausgabe(con, pid, lid, zeilen=AUSGABE_ZEILEN):
+    """A2044 (V4, D1531 §3): das Ende der Ausgabedatei eines Laufs dieses Projekts – für die Ansicht im Takt (nur am PC, die Datei
+    liegt hier). Liest höchstens AUSGABE_BYTES vom Ende, Zeilenenden egal, kaputte Bytes werden ersetzt. Rückgabe {"lauf",
+    "status", "rc", "beschreibung", "start_utc", "ende_utc", "datei", "zeilen", "gekuerzt"}; ohne Datei zeilen = []."""
+    import os
+    l = lauf_zeile(con, pid, lid)
+    aus = {"lauf": l["id"], "status": l["status"], "rc": l["rc"], "beschreibung": l["beschreibung"], "start_utc": l["start_utc"],
+           "ende_utc": l["ende_utc"], "datei": l["ergebnis_datei"], "zeilen": [], "gekuerzt": False}
+    pfad = l["ergebnis_datei"]
+    if not pfad or not os.path.isfile(pfad):
+        return aus
+    with open(pfad, "rb") as f:
+        f.seek(0, os.SEEK_END)
+        groesse = f.tell()
+        f.seek(max(0, groesse - AUSGABE_BYTES))
+        roh = f.read()
+    teile = roh.decode("utf-8", errors="replace").splitlines()
+    if groesse > AUSGABE_BYTES:
+        teile = teile[1:]                           # die erste Zeile ist angeschnitten
+    if teile and teile[-1] == "":
+        teile = teile[:-1]
+    aus["gekuerzt"] = groesse > AUSGABE_BYTES or len(teile) > zeilen
+    aus["zeilen"] = teile[-zeilen:]
+    return aus
 
 
 def lauf_zeile(con, pid, lid):

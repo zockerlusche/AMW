@@ -1088,6 +1088,17 @@ def daten_mitlesen(con, pid, q):
     return paketliste.mitlesen(con, pid, nr)
 
 
+def daten_lauf_ausgabe(con, pid, q):
+    """A2044: das Ende der Ausgabedatei eines Laufs dieses Projekts (nur am PC – die Datei liegt hier; geht nicht in die
+    Synchronisierung)."""
+    from . import betrieb
+    try:
+        lid = int((q.get("lauf") or ["0"])[0])
+    except ValueError:
+        lid = 0
+    return betrieb.ausgabe(con, pid, lid)
+
+
 def daten_aufgaben(con, pid, q):
     sql = ("SELECT id, titel, agent, status, einstufung, rang, wartet_auf, angelegt_utc, fertig_utc, geaendert_utc FROM aufgabe"
            " WHERE projekt_id = ?")
@@ -1499,6 +1510,7 @@ def baue_handler(port, token, netz=None):
                     "/api/pakete": lambda c, p: daten_pakete(c, p),
                     "/api/paket/mitlesen": lambda c, p: daten_mitlesen(c, p, q),
                     "/api/pause": lambda c, p: daten_pause(c, p),
+                    "/api/lauf/ausgabe": lambda c, p: daten_lauf_ausgabe(c, p, q),
                     "/api/kosten": lambda c, p: daten_kosten(c, p),
                     "/api/verlauf": lambda c, p: daten_verlauf(c, p, q),
                     "/api/seit": lambda c, p: daten_seit(c, p, q),
