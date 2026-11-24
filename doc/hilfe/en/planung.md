@@ -61,6 +61,9 @@ How good is the forecast? `amw messung --prognose` compares, for each finished p
 ### What happens when a milestone is done?
 Before it shows as “ready for acceptance”, the project's full test and a checker run: it compares every topic of the milestone with what was built and prepares the demo – both then appear in the closing report. If something is missing or the test is red, AMW creates rework in the same milestone and starts it right away; you get a note. At acceptance you can request rework instead of saying yes (`amw bogen nacharbeit N --hinweis "what is missing"`): the planner plans new packages for it, and they start without another yes.
 
+### What does the “Project path” page show?
+The whole path in five steps – Concept, Rough planning, Detailed planning, Delivery, Closing – as a bar: ✓ done, ● current, ○ not yet; “waiting for you” appears only when your yes is missing. Click a step to see it: in rough planning every version from the planner with the changes against the previous one, in detailed planning the packages in stages with “who” (headless or window agent), in delivery the state of each package and the lead's questions, in closing the full test, the check against the concept and the demo. Clicking a topic, milestone or package opens the details on the right (Esc closes); from there a note goes to the planner, and “Have it revised” passes it on. While a planner runs, a window shows its progress and closes as soon as the result is in. The history on the right shows who did what and when. Approving works on the PC; online you can follow along.
+
 ### The five gates
 At the top of Planning (and on the Topics page) a bar shows all five gates: **Concept → Rough planning → Detailed planning → Delivery → Closing** – ✓ closed, ● where the project stands, ○ still to come; next to it, what the current gate still needs. AMW works the state out itself, nobody sets it by hand:
 - **Concept** closes when the last needed topic is approved.

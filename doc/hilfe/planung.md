@@ -61,6 +61,9 @@ Wie gut trifft die Prognose? `amw messung --prognose` vergleicht je fertigem Pak
 ### Was passiert, wenn ein Meilenstein fertig ist?
 Bevor er „bereit zur Abnahme“ steht, laufen der Gesamttest des Projekts und ein Prüfer: Er gleicht jedes Thema des Meilensteins gegen das Gebaute ab und bereitet die Vorführung vor – beides steht danach im Abschlussbericht. Fehlt etwas oder ist der Test rot, legt die AMW Nacharbeit im selben Meilenstein an und startet sie gleich, du bekommst eine Info. Bei der Abnahme kannst du statt „Ja“ auch Nacharbeit anfordern (`amw bogen nacharbeit N --hinweis „was fehlt“`): der Planer plant neue Pakete dazu, sie starten ohne weiteres Ja.
 
+### Was zeigt die Seite „Projektweg“?
+Den ganzen Weg in fünf Schritten – Konzept, Grobplanung, Feinplanung, Umsetzung, Abschluss – als Leiste: ✓ erledigt, ● dran, ○ noch nicht; „wartet auf dich“ steht nur, wenn dein Ja fehlt. Ein Klick auf einen Schritt zeigt ihn: im Grobplan jede Fassung des Planers mit Änderungen gegenüber der vorigen, im Feinplan die Pakete in Stufen mit „wer“ (Headless oder Fenster-Agent), in der Umsetzung den Stand je Paket und die Fragen des Leads, im Abschluss Gesamttest, Prüfung gegen das Konzept und Vorführung. Ein Klick auf Thema, Meilenstein oder Paket öffnet die Einzelheiten rechts (Esc schließt); dort geht ein Hinweis an den Planer, „Überarbeiten lassen“ gibt ihn weiter. Läuft ein Planer, zeigt ein Fenster seinen Fortschritt und schließt sich, sobald das Ergebnis da ist. Rechts steht der Verlauf: wer wann was getan hat. Freigeben geht am PC, online liest du mit.
+
 ### Die fünf Tore
 Oben in der Planung (und auf der Seite Themen) steht eine Leiste mit allen fünf Toren: **Konzept → Grobplanung → Feinplanung → Umsetzung → Abschluss** – ✓ geschlossen, ● hier steht das Projekt, ○ kommt noch; daneben, was dem aktuellen Tor noch fehlt. Die AMW rechnet den Stand aus, niemand setzt ihn von Hand:
 - **Konzept** schließt mit der Freigabe des letzten nötigen Themas.

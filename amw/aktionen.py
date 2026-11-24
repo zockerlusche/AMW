@@ -327,6 +327,28 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         except (kern.AmwFehler, ValueError, TypeError) as e:
             raise Ungueltig(str(e)) from None
         raise LookupError("unbekannt")
+    if weg.startswith("/api/projektweg/"):            # A2033: Projektweg – Konzept abschließen, Grobplan freigeben, Hinweis, Überarbeiten
+        if kanal != "seite":
+            raise Ungueltig("Den Projektweg steuerst du am PC (Workbench), online liest du mit")
+        from . import grobplan, planhinweis
+        was = weg.rsplit("/", 1)[1]
+        try:
+            if was == "konzept-abschliessen":         # A2030: Konzept-Ja – startet den Grob-Planer
+                return grobplan.abschliessen(con, pid, kern.ENTWICKLER)
+            if was == "grob-freigeben":               # A2030: Grobplan-Ja – legt die Meilensteine an
+                f = daten.get("fassung")
+                return grobplan.annehmen(con, pid, kern.ENTWICKLER, int(f) if f not in (None, "") else None)
+            if was == "hinweis":                      # A2028: Hinweis an den Planer (ganzer Plan oder eine Karte)
+                return {"hinweis": planhinweis.hinweis(con, pid, kern.ENTWICKLER, daten.get("plan") or "grob", daten.get("text"),
+                                                       daten.get("zu") or None)}
+            if was == "ueberarbeiten":                # A2028: Planer mit den offenen Hinweisen neu starten
+                plan = daten.get("plan") or "grob"
+                if (daten.get("text") or "").strip():
+                    planhinweis.hinweis(con, pid, kern.ENTWICKLER, plan, daten.get("text"), daten.get("zu") or None)
+                return {"text": str(planhinweis.ueberarbeiten(con, pid, kern.ENTWICKLER, plan))}
+        except (kern.AmwFehler, ValueError, TypeError) as e:
+            raise Ungueltig(str(e)) from None
+        raise LookupError("unbekannt")
     if weg.startswith("/api/thema/"):                 # A1896: Themen – Freigeben/Zurück/Bearbeiten/Löschen markieren, der Mensch am PC
         if kanal != "seite":
             raise Ungueltig("Themen freigeben und bearbeiten geht nur am PC (Workbench), online liest du mit")

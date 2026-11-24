@@ -356,6 +356,7 @@ def ansichten(con, pid, speicher=None, fehler=None):
              "/api/einstellungen": lambda: workbench.daten_einstellungen(con, pid, speicher),
              "/api/agenten": lambda: workbench.daten_agenten_alle(con, pid),
              "/api/planung": lambda: workbench.daten_planung(con, pid),
+             "/api/projektweg": lambda: workbench.daten_projektweg(con, pid),   # A2033: online nur lesen
              "/api/pakete": lambda: paketliste.daten(con, pid, am_pc=False),   # A1850: online nur lesen – ohne Platz-Abfrage, ohne Mitlesen
              "/api/verlauf": lambda: workbench.daten_verlauf(con, pid, {"tage": ["3"]}),
              "/api/seit": lambda: verlauf.seit_daten(con, pid),

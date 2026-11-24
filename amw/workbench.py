@@ -208,6 +208,7 @@ STAND_SICHTEN = {
     "fragen": ("frage", "frage_verlauf", "dokument"),
     "arbeit": ("aufgabe", "abhaengigkeit", "frage", "pruefung", "lauf"),
     "planung": ("bogen", "aufgabe", "abhaengigkeit", "spezifikation", "risiko", "rueckblick", "plan_ereignis", "termin", "frage"),
+    "projektweg": ("bogen", "aufgabe", "abhaengigkeit", "plan_ereignis", "frage", "thema", "thema_fassung", "lauf"),   # A2033
     "verlauf": ("nachricht", "aufgabe", "lauf", "pruefung", "beschluss"),
     "wissen": ("beschluss", "regel", "wortlaut", "notiz", "thema", "thema_fassung"),
     "dokumente": ("dokument", "dokument_version"),
@@ -1099,6 +1100,12 @@ def daten_lauf_ausgabe(con, pid, q):
     return betrieb.ausgabe(con, pid, lid)
 
 
+def daten_projektweg(con, pid):
+    """A2033: die Seite „Projektweg“ – Leiste, Ansicht je Schritt, Verlauf, Fortschritt der Planer (projektweg_seite.daten)."""
+    from . import projektweg_seite
+    return projektweg_seite.daten(con, pid)
+
+
 def daten_zeitplan(con, pid):
     """A2045 (V7): geplante Start- und Endzeit je offenem Paket (zeitplan.berechnen) – für Lagebild und Planung."""
     from . import zeitplan
@@ -1524,6 +1531,7 @@ def baue_handler(port, token, netz=None):
                     "/api/pause": lambda c, p: daten_pause(c, p),
                     "/api/lauf/ausgabe": lambda c, p: daten_lauf_ausgabe(c, p, q),
                     "/api/zeitplan": lambda c, p: daten_zeitplan(c, p),
+                    "/api/projektweg": lambda c, p: daten_projektweg(c, p),
                     "/api/agent/ende-stand": lambda c, p: daten_ende_stand(c, p),
                     "/api/kosten": lambda c, p: daten_kosten(c, p),
                     "/api/verlauf": lambda c, p: daten_verlauf(c, p, q),
