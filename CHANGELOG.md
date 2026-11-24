@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.177.1 – 24.11.2026 · Seite bleibt unter Last nicht hängen
+- **Behoben:** Scheitert unter Last ein Abruf der Seite an der Verbindung, versucht sie ihn einmal neu – statt bis zum Neuladen „Failed to fetch“ zu zeigen.
+
 ## 1.177.0 – 24.11.2026 · Wer Meilensteine freigibt, stellst du ein
 - **Neu:** Je Projekt stellst du ein, wer Meilensteine, Pläne und Abschlüsse freigibt: du allein (Vorgabe) oder Co-Entwickler und Lead gemeinsam. Die Einstellung für Themen gilt nur noch für Themen.
 
