@@ -44,7 +44,10 @@ class Bausteine(unittest.TestCase):
     def test_sprachdateien_sind_json(self):
         for sprache in ("de", "en"):
             with open(os.path.join(workbench.BAUSTEINE, "texte", f"{sprache}.json"), encoding="utf-8") as f:
-                d = json.load(f)
+                paare = json.load(f, object_pairs_hook=list)          # json.load nähme bei doppeltem Schlüssel still den letzten
+            schluessel = [k for k, _ in paare]
+            self.assertEqual(sorted({k for k in schluessel if schluessel.count(k) > 1}), [], f"{sprache}.json: Schlüssel doppelt")
+            d = dict(paare)
             self.assertTrue(all(isinstance(v, str) for v in d.values()))
         self.assertEqual(sorted(os.listdir(os.path.join(workbench.BAUSTEINE, "texte"))), ["de.json", "en.json"])
 
