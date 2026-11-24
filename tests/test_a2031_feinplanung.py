@@ -145,7 +145,7 @@ class PlanStarten(Grund):
         self.assertEqual(r["gestartet"]["startklar"], [a3])
 
     def test_co_und_lead_erst_mit_dem_zweiten_ja(self):
-        kern.projekt_einstellen(self.con, self.pid, "TL", thema_freigabe="co+lead")
+        kern.projekt_einstellen(self.con, self.pid, "TL", grobplan_freigabe="co+lead", feinplan_freigabe="co+lead")   # A2032: je Art
         planansicht.freigeben(self.con, self.pid, "Co", self.m1, "grob")
         planansicht.freigeben(self.con, self.pid, "TL", self.m1, "grob")
         r = feinplanung.plan_starten(self.con, self.pid, "Co", self.m1)
