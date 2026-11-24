@@ -215,13 +215,15 @@ def _noch_nicht_begonnen(con, pid, aid):
     return konzeptaenderung.einteilen(con, a) if a else None
 
 
-def anwenden(con, pid, von, tid, eid, entwurf):
+def anwenden(con, pid, von, tid, eid, entwurf, aus=None):
     """„aendern“ und „verwerfen“ ausführen (nach dem Anlegen der neuen Pakete) – je Paket neu eingeteilt: was inzwischen läuft
     oder fertig ist, bleibt unberührt und steht unter „uebersprungen“ („A123 läuft inzwischen“). Rückgabe {"geaendert",
-    "verworfen", "uebersprungen"}; der Lead bekommt eine Meldung, wenn etwas übersprungen wurde."""
+    "verworfen", "uebersprungen"}; der Lead bekommt eine Meldung, wenn etwas übersprungen wurde. aus (A2085): wird laufend gefüllt –
+    so weiß der Aufrufer nach einem Abbruch, was schon geschehen ist."""
     from . import konzeptaenderung, planung
     anleger = von if kern.ist_lead(con, pid, von) else (kern.lead(con, pid) or kern.ENTWICKLER)
-    aus = {"geaendert": [], "verworfen": [], "uebersprungen": []}
+    aus = {} if aus is None else aus
+    aus.update(geaendert=[], verworfen=[], uebersprungen=[])
 
     def frei(e):
         g = _noch_nicht_begonnen(con, pid, e["paket"])
@@ -254,6 +256,14 @@ def anwenden(con, pid, von, tid, eid, entwurf):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=ANGEWANDT,
                      text=json.dumps({"thema": int(tid), "entwurf": eid, **aus}, ensure_ascii=False))
     return aus
+
+
+def noch_offen(entwurf, stand):
+    """Nach einem Abbruch: die Pakete aus „aendern“/„verwerfen“, mit denen noch nichts geschehen ist."""
+    fertig = set(stand.get("geaendert") or []) | set(stand.get("verworfen") or [])
+    uebersprungen = {str(x).split(" ", 1)[0] for x in stand.get("uebersprungen") or []}
+    return [f"A{x['paket']}" for k in ("aendern", "verwerfen") for x in entwurf.get(k) or []
+            if f"A{x['paket']}" not in fertig | uebersprungen]
 
 
 def letzte(con, pid, tid):

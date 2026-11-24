@@ -188,9 +188,16 @@ def _teilweise(con, pid, namen):
         ja = planer._ereignisse(con, pid, tid, planer.JA)
         e = planer.letzter_entwurf(con, pid, tid) if ja and ja[-1].get("abgebrochen") else None
         if e and e["id"] < ja[-1]["id"] and (e.get("entwurf") or {}).get("delta") and not planer.laeuft(con, pid, tid):
-            da = ", ".join(str(v) for v in (ja[-1].get("angelegt") or {}).values()) or "–"
+            def titel(liste):
+                return ", ".join(f"„{t or a}“" for a in liste for t in [_paket_titel(con, pid, a)[1]])
+            j = ja[-1]
+            bestehend = {m["schluessel"] for m in (e.get("entwurf") or {}).get("meilensteine") or [] if m.get("bestehend")}
+            da = ", ".join(str(v) for k, v in (j.get("angelegt") or {}).items() if k not in bestehend)
+            gruende = [{"art": "teil_" + art, "x": {"x": text}} for art, text in (
+                ("angelegt", da), ("geaendert", titel(j.get("geaendert") or [])), ("verworfen", titel(j.get("verworfen") or [])),
+                ("offen", titel(j.get("offen") or []))) if text]
             aus.append({"thema": tid, "name": name, "eid": e["id"], "fassung": e.get("fassung"), "teilweise": True,
-                        "gruende": [{"art": "teilweise", "x": {"x": da}}], "hinweise": planhinweis.offene(con, pid, tid)})
+                        "gruende": gruende + [{"art": "teil_lead", "x": {}}], "hinweise": planhinweis.offene(con, pid, tid)})
     return aus
 
 

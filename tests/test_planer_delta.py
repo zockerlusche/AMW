@@ -317,8 +317,7 @@ class Freigabe(Grund):
         self.assertTrue(planer.erledigt(self.con, self.pid, self.eid))
 
 
-class BlockStart(Grund):
-    """A2080: das Ja zu einer Konzeptänderung ist ein Block – es gibt frei und startet."""
+class BlockGrund(Grund):
     def setUp(self):
         super().setUp()
         from amw import schalter
@@ -361,6 +360,9 @@ class BlockStart(Grund):
         (feinplanung.plan_starten if aktiv else lambda c, p, v, b: planansicht.freigeben(c, p, v, b, "plan"))(
             self.con, self.pid, kern.ENTWICKLER, self.m1)
 
+
+class BlockStart(BlockGrund):
+    """A2080: das Ja zu einer Konzeptänderung ist ein Block – es gibt frei und startet."""
     def test_neuer_meilenstein_laeuft_nach_dem_ja(self):
         eid = self.entwurf()
         planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
@@ -571,9 +573,102 @@ class BlockStart(Grund):
         self.assertEqual(self.bogen()["status"], "geplant")
         self.assertEqual(delta_start.wartende(self.con, self.pid), {})                   # halb Angelegtes startet niemand mit einem Klick
         x = projektweg_seite._teilweise(self.con, self.pid, {self.tid: "Anmeldung"})
-        self.assertEqual([(y["thema"], y["gruende"][0]["art"]) for y in x], [(self.tid, "teilweise")])
+        self.assertEqual([(y["thema"], y["gruende"][0]["art"]) for y in x], [(self.tid, "teil_angelegt")])
         with self.assertRaisesRegex(kern.AmwFehler, "schon angenommen"):
             planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+
+
+class AbbruchBeimAnwenden(BlockGrund):
+    """A2085: planer_delta.anwenden scheitert mittendrin – über planer.uebernehmen, mit und ohne neue Pakete."""
+    def setUp(self):
+        super().setUp()
+        from amw import planung
+        self.weitere = []
+        for i in range(4):
+            aid = planung.schritt_setzen(self.con, self.pid, "TL", titel=f"Altpaket {i}", auftrag="alt", bogen_id=self.m1, groesse="S", art="mechanisch")
+            themen.verweise_setzen(self.con, self.pid, "TL", aid, [self.tid])
+            self.weitere.append(aid)
+
+    def scheitert(self, bei, neu):
+        """Entwurf mit vier Änderungen (neu: dazu ein neues Paket); das Setzen des bei-ten Pakets scheitert."""
+        from amw import planung
+        mehr = {"aendern": [{"paket": f"A{a}", "titel": f"Neu {i}", "auftrag": "neu", "grund": "Passkey"} for i, a in enumerate(self.weitere)]}
+        if not neu:
+            mehr.update(meilensteine=[], pakete=[])
+        eid = self.entwurf(neu=False, **mehr)
+        echt, n = planung.schritt_setzen, [0]
+
+        def setzen(con, pid, von, *a, **k):
+            if k.get("aid") in self.weitere:
+                n[0] += 1
+                if n[0] == bei:
+                    raise kern.AmwFehler("Platte voll")
+            return echt(con, pid, von, *a, **k)
+        with mock.patch.object(planung, "schritt_setzen", setzen):
+            with self.assertRaisesRegex(kern.AmwFehler, "Platte voll"):
+                planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        return eid
+
+    def titel(self):
+        return [self.con.execute("SELECT titel FROM aufgabe WHERE id = ?", (a,)).fetchone()[0] for a in self.weitere]
+
+    def ja(self):
+        return [json.loads(r[0]) for r in self.con.execute("SELECT text FROM plan_ereignis WHERE art = ?", (planer.JA,))][1:]   # ohne das erste Ja (setUp)
+
+    def test_erstes_paket_ohne_neue_nimmt_das_ja_zurueck(self):
+        echt = planer._anlegen
+
+        def anlegen(con, pid, *a, **k):                                     # ein Ereignis dazwischen: sonst trägt das Ja zufällig die Nummer der Marke
+            with db.schreiben(con):
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="TL", art="probe", text="{}")
+            return echt(con, pid, *a, **k)
+        with mock.patch.object(planer, "_anlegen", anlegen):
+            eid = self.scheitert(1, neu=False)
+        self.assertEqual(self.ja(), [])
+        self.assertFalse(planer.erledigt(self.con, self.pid, eid))
+        self.assertEqual(self.titel(), [f"Altpaket {i}" for i in range(4)])
+        planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid, eid=eid)                   # ein neues Ja geht
+        self.assertEqual(self.titel(), [f"Neu {i}" for i in range(4)])
+        self.assertTrue(planer.erledigt(self.con, self.pid, eid))
+
+    def test_drittes_paket_ohne_neue_ist_vermerkt_und_gemeldet(self):
+        from amw import projektweg_seite
+        eid = self.scheitert(3, neu=False)
+        a = self.weitere
+        j = self.ja()[-1]
+        self.assertEqual((j["abgebrochen"], j["geaendert"], j["offen"]), ("Platte voll", [f"A{a[0]}", f"A{a[1]}"], [f"A{a[2]}", f"A{a[3]}"]))
+        art, kurz, text = self.post("TL")[-1]
+        self.assertIn("nur teilweise", kurz)
+        self.assertIn(f"Schon geändert: A{a[0]}, A{a[1]}", text)
+        self.assertIn(f"noch offen: A{a[2]}, A{a[3]}", text)
+        x = projektweg_seite._teilweise(self.con, self.pid, {self.tid: "Anmeldung"})
+        self.assertEqual([g["art"] for g in x[0]["gruende"]], ["teil_geaendert", "teil_offen", "teil_lead"])
+        self.assertIn("„Altpaket 2“, „Altpaket 3“", x[0]["gruende"][1]["x"]["x"])
+        with self.assertRaisesRegex(kern.AmwFehler, "schon angenommen"):
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid, eid=eid)
+
+    def test_erstes_paket_mit_neuem_bleibt_vermerkt(self):
+        self.scheitert(1, neu=True)                                                                  # das neue Paket ist schon angelegt
+        j = self.ja()[-1]
+        self.assertEqual((j["geaendert"], len(j["offen"])), ([], 4))
+        self.assertTrue(any(v.startswith("A") for v in j["angelegt"].values()))
+        self.assertIn("nur teilweise", self.post("TL")[-1][1])
+
+    def test_drittes_paket_mit_neuem_bleibt_vermerkt(self):
+        self.scheitert(3, neu=True)
+        j = self.ja()[-1]
+        self.assertEqual((len(j["geaendert"]), len(j["offen"])), (2, 2))
+        self.assertTrue(any(v.startswith("A") for v in j["angelegt"].values()))
+
+    def test_verwerfen_scheitert_nach_einer_aenderung(self):
+        a = self.weitere
+        self.entwurf(neu=False, meilensteine=[], pakete=[], aendern=[{"paket": f"A{a[0]}", "titel": "Neu 0", "auftrag": "neu", "grund": "Passkey"}],
+                     verwerfen=[{"paket": f"A{a[1]}", "grund": "entfällt"}])
+        with mock.patch.object(kern, "aufgabe_status", side_effect=kern.AmwFehler("gesperrt")):
+            with self.assertRaisesRegex(kern.AmwFehler, "gesperrt"):
+                planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        j = self.ja()[-1]
+        self.assertEqual((j["geaendert"], j["verworfen"], j["offen"]), ([f"A{a[0]}"], [], [f"A{a[1]}"]))
 
 
 if __name__ == "__main__":

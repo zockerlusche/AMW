@@ -116,8 +116,9 @@ def dateien(con, pid, plan):
     md = [f"# Hinweise zum Plan ({'Grobplan' if s == 'grob' else s}), zur Fassung {(e or {}).get('fassung')}", ""]
     for x in h:
         md.append(f"- {x['von']}" + (f" zu {x['bezug']}" if x["bezug"] else " zum ganzen Plan") + f": {x['text']}")
-    if (e or {}).get("fehler"):                          # A2076: der vorige Entwurf passte nicht – die Funde gehören zu den Hinweisen
-        md += ["", "## Der vorige Entwurf wurde abgelehnt (vorige.json ist deshalb leer). Funde:", ""] + [f"- {x}" for x in e["fehler"][:25]]
+    funde = (e or {}).get("fehler")
+    if funde:                          # A2076: der vorige Entwurf passte nicht – die Funde gehören zu den Hinweisen
+        md += ["", "## Der vorige Entwurf wurde abgelehnt (vorige.json ist deshalb leer). Funde:", ""] + [f"- {x}" for x in funde[:25]]
     return {"vorige.json": json.dumps(vorher, ensure_ascii=False, indent=1), "hinweise.md": "\n".join(md) + "\n"}
 
 
