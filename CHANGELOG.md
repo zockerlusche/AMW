@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.182.0 – 24.11.2026 · Der Projektweg als eigene Seite
+- **Neu:** Seite „Projektweg“: der ganze Weg in fünf Schritten – Konzept, Grobplanung, Feinplanung, Umsetzung, Abschluss – als Leiste; „wartet auf dich“ nur, wenn dein Ja fehlt, und die Handlung dazu steht gleich oben neben dem Schritt.
+- **Neu:** Im Grobplan siehst du jede Fassung des Planers mit den Änderungen gegenüber der vorigen, im Feinplan die Pakete in Stufen mit „wer“ (Headless oder Fenster-Agent), in der Umsetzung die Fragen des Leads, im Abschluss Gesamttest, Prüfung und Vorführung.
+- **Neu:** Ein Klick auf Thema, Meilenstein oder Paket zeigt die Einzelheiten rechts; von dort geht ein Hinweis an den Planer. Läuft ein Planer, zeigt ein Fenster seinen Fortschritt und schließt sich, sobald das Ergebnis da ist. Rechts steht, wer wann was getan hat.
+
 ## 1.181.0 – 24.11.2026 · Laufausgabe live, Zeitplan je Paket, Prognose messen, alle beenden
 - **Neu:** Bei einem eigenen Lauf im Zeitstrahl „Was der Rechner heute gemacht hat“ öffnest du die Ausgabe; sie lädt alle 3 s nach, bis der Lauf endet. Das Mitlesen bei Headless-Paketen lädt ebenso selbst nach.
 - **Neu:** Zeitplan je Paket (`amw bogen zeitplan [N]`): geplante Start- und Endzeit, was gleichzeitig läuft und um wie viele Minuten sich etwas verschiebt.
