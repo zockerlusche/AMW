@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.177.0 – 24.11.2026 · Wer Meilensteine freigibt, stellst du ein
+- **Neu:** Je Projekt stellst du ein, wer Meilensteine, Pläne und Abschlüsse freigibt: du allein (Vorgabe) oder Co-Entwickler und Lead gemeinsam. Die Einstellung für Themen gilt nur noch für Themen.
+
 ## 1.176.0 – 24.11.2026 · Konzept abschließen und einmal grob planen
 - **Neu:** Sind alle Themen freigegeben, schließt du das Konzept ab; ein Planer plant dann einmal das ganze Konzept: Meilensteine mit Themen, Reihenfolge, Aufwand und Kosten, dazu Doppeltes, Unklares und Lücken. Mit deinem Ja legt die AMW die Meilensteine an.
 - **Verbessert:** In einem neuen Projekt ohne Meilensteine startet die Freigabe eines Themas keinen eigenen Planer mehr – erst kommt die Grobplanung über alle Themen.
