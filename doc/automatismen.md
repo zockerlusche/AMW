@@ -859,6 +859,12 @@ die der Lead nur noch bestätigt oder ändert.
 
 ### Rollende Feinplanung (A2031, TH164 Schritt 3)
 
+- **Gesperrte Bereiche und eine Nachbesserung (A2067):** Der Feinplaner bekommt `sperrliste.md` – die feste Sperrliste
+  (`abnahme.GESPERRT`), die Testdateien und die Sperrmuster des Projekts – mit der Regel: ein p-Paket nennt keinen gesperrten Pfad,
+  Testdateien nur mit `pakettyp` test-schreiben/test-ergaenzen, sonst `agent` mit `interaktiv_grund` „gesperrter Bereich“. Passt
+  seine Antwort nicht zum Schema, gehen die Funde einmal automatisch an ihn zurück (zweiter Lauf, Kosten zählen zusammen); erst
+  wenn auch die zweite nicht passt, steht „Plan passte nicht“ da.
+
 - **Auslöser:** je Aufsichtsrunde des Dienstes (`feinplanung.runde`), wenn `plan_automatik` an ist. Fällig ist der nächste
   geplante Meilenstein (kleinste Nummer) mit Grob-Freigabe und ohne Pakete – nur wenn kein Meilenstein davor noch auf das Ja
   zu seinem Plan wartet. Anlass: „erster“ (kein Meilenstein läuft, alle geplanten sind grob freigegeben), „bereit“ (der

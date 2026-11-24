@@ -221,6 +221,46 @@ class Feinplaner(unittest.TestCase):
         sql = "SELECT id, titel, status FROM aufgabe WHERE bogen_id = ?" + (" AND status = ?" if status else "") + " ORDER BY id"
         return [tuple(r) for r in self.con.execute(sql, (bid, status) if status else (bid,))]
 
+    def test_sperrliste_beim_planer(self):
+        """A2067: der Planer bekommt die gesperrten Bereiche (feste Liste, Testdateien, Muster des Projekts) und die Regel."""
+        kern.projekt_einstellen(self.con, self.pid, "TL", sperrmuster="*.cmd")
+        ordner = os.path.join(self.ordner.name, "plan")
+        os.makedirs(ordner)
+        dateien = feinplanung._dateien(self.con, self.pid, feinplanung._zeilen(self.con, self.pid, [self.m1]), None, ordner)
+        self.assertIn("sperrliste.md", dateien)
+        text = open(os.path.join(ordner, "sperrliste.md"), encoding="utf-8").read()
+        for teil in ("`tests/*`", "test-schreiben", "`.claude/*`", "`*.cmd`", "interaktiv_grund"):
+            self.assertIn(teil, text)
+        self.assertIn("sperrliste.md", feinplanung.AUFTRAG)
+
+    def test_eine_nachbesserung_dann_erst_der_mensch(self):
+        """A2067: passt die erste Antwort nicht, geht der Fund einmal an den Planer zurück; Gegenprobe: passt sie, kein zweiter Lauf."""
+        schlecht = self.plan()
+        schlecht["pakete"][1]["pakettyp"] = None                                                  # p-Paket mit tests/… ohne Testtyp
+        laeufe, hinweise = [], []
+
+        def planen(con, pid, zeilen, hinweis, modell, prog=None, zusatz=None):
+            laeufe.append(1)
+            hinweise.append(hinweis)
+            return {"ergebnis": json.dumps(schlecht if len(laeufe) == 1 else self.plan()), "usd": 0.4, "fehler": None}
+        meldungen = []
+        with mock.patch.object(feinplanung, "planen", planen):
+            aus = feinplanung.planen_mit_nachbesserung(self.con, self.pid, [self.m1], feinplanung._zeilen(self.con, self.pid, [self.m1]),
+                                                       "erst die Seite", "sonnet", melden=meldungen.append)
+        self.assertEqual(len(laeufe), 2)
+        self.assertIn("passte nicht", hinweise[1])
+        self.assertIn("erst die Seite", hinweise[1])
+        self.assertEqual(aus["usd"], 0.8)                                                         # beide Läufe zählen
+        self.assertTrue(aus["nachgebessert"])
+        self.assertEqual(len(meldungen), 1)
+        feinplanung.pruefen(aus["ergebnis"], self.con, self.pid, [self.m1])                       # die zweite passt
+        laeufe.clear()
+        with mock.patch.object(feinplanung, "planen", lambda *a, **k: (laeufe.append(1), {"ergebnis": json.dumps(self.plan()), "usd": 0.4,
+                                                                                         "fehler": None})[1]):
+            aus = feinplanung.planen_mit_nachbesserung(self.con, self.pid, [self.m1], feinplanung._zeilen(self.con, self.pid, [self.m1]),
+                                                       None, "sonnet")
+        self.assertEqual((len(laeufe), aus.get("nachgebessert")), (1, None))
+
     def test_anstossen_einmal_und_tagesgrenze(self):
         r = feinplanung.anstossen(self.con, self.pid, [self.m1], hinweis="erst die Seite")
         self.assertTrue(r["gestartet"], r)

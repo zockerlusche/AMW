@@ -66,11 +66,13 @@ AUFTRAG = (
     "Du bist der Planer eines Software-Projekts und machst die Feinplanung für den nächsten Meilenstein (oder die Meilensteine, "
     "die gleichzeitig laufen dürfen). Lies meilenstein.md (was zu planen ist: Ziel, fertig wenn, Themen), jede Datei unter "
     "themen/, beschluesse.md, meilensteine.md (der ganze Grobplan), pakete.md (offene Pakete), gebaut.md (fertige Pakete zu "
-    "diesen Themen – nichts davon noch einmal planen), hinweise.md (Hinweise des Menschen, falls vorhanden) und schema.md (das "
-    "Antwort-Format). Zerlege jeden Meilenstein in Arbeitspakete: je Paket Ziel (auftrag), Thema, Dateien (bereiche), Abnahme "
+    "diesen Themen – nichts davon noch einmal planen), hinweise.md (Hinweise des Menschen, falls vorhanden), sperrliste.md (Pfade, "
+    "die ein p-Paket nie ändern darf) und schema.md (das Antwort-Format). Zerlege jeden Meilenstein in Arbeitspakete: je Paket Ziel (auftrag), Thema, Dateien (bereiche), Abnahme "
     "mit Prüfbefehl, Abhängigkeiten (nach), Größe und Art, und die Entscheidung, wer es ausführt: p (headless) ist die Vorgabe "
     "für kleine Pakete ohne Oberfläche, sonst ein Agent im Fenster mit Grund; Modell und Denkstufe nur, wenn sie von der "
-    "Empfehlung abweichen sollen. Pakete, die gleichzeitig laufen, ändern nie dieselben Dateien. Die Arbeitsschritte im Paket "
+    "Empfehlung abweichen sollen. Ein p-Paket nennt in bereiche nie einen Pfad aus sperrliste.md: Testdateien (tests/…) nur mit "
+    "pakettyp test-schreiben oder test-ergaenzen; braucht ein Paket andere gesperrte Pfade, läuft es als agent mit interaktiv_grund "
+    "„gesperrter Bereich“ (A2067). Pakete, die gleichzeitig laufen, ändern nie dieselben Dateien. Die Arbeitsschritte im Paket "
     "planst du nicht. Unklares, das den Schnitt ändert, stellst du als Frage mit Optionen, Empfehlung und Grund. Antworte NUR "
     "mit dem JSON-Objekt nach schema.md – kein Text davor oder danach. Du änderst nichts, du schreibst keine Dateien, du führst "
     "nichts aus.")
@@ -375,10 +377,47 @@ def _dateien(con, pid, zeilen, hinweis, ordner):
     teile["gebaut.md"] = "# Schon gebaut zu diesen Themen\n\n" + ("\n".join(gebaut) or "(nichts)") + "\n"
     teile["hinweise.md"] = "# Hinweise des Menschen\n\n" + ((hinweis or "").strip() or "(keine)") + "\n"
     teile["schema.md"] = "# Antwort-Format\n\n" + SCHEMA_TEXT + "\n"
+    teile["sperrliste.md"] = sperrliste_text(con, pid)                       # A2067
     for name, text in teile.items():
         with open(os.path.join(ordner, *name.split("/")), "w", encoding="utf-8", newline="\n") as d:
             d.write(text)
     return sorted(teile)
+
+
+def sperrliste_text(con, pid):
+    """A2067: die gesperrten Bereiche für den Planer – feste Liste (abnahme.GESPERRT) und Muster des Projekts, mit der Regel."""
+    from . import abnahme
+    fest = [f"- `{m}` – {g}" for m, art, g in abnahme.GESPERRT if art == "fest"]
+    test = [f"- `{m}` – {g} (frei nur mit pakettyp test-schreiben oder test-ergaenzen)" for m, art, g in abnahme.GESPERRT if art == "test"]
+    projekt = [f"- `{m}` – Sperrmuster des Projekts" for m in abnahme.projekt_muster(con, pid)]
+    return ("# Gesperrte Bereiche – ein p-Paket ändert sie nie\n\n"
+            "Regel: Ein Paket mit \"ausfuehrung\": \"p\" nennt in \"bereiche\" keinen dieser Pfade. Testdateien nur mit \"pakettyp\": "
+            "\"test-schreiben\" oder \"test-ergaenzen\" (oder ein eigenes Test-Paket als Vorgänger). Braucht ein Paket einen anderen "
+            "gesperrten Pfad, läuft es als \"agent\" mit \"interaktiv_grund\": \"gesperrter Bereich\".\n\n"
+            "## Testdateien\n\n" + ("\n".join(test) or "(keine)") + "\n\n## Immer gesperrt\n\n" + ("\n".join(fest) or "(keine)")
+            + "\n\n## Muster des Projekts\n\n" + ("\n".join(projekt) or "(keine)") + "\n")
+
+
+def planen_mit_nachbesserung(con, pid, boegen, zeilen, hinweis, modell, prog=None, zusatz=None, melden=None):
+    """A2067: planen; passt die Antwort nicht zum Schema (pruefen), geht der Fund EINMAL automatisch zurück an den Planer – erst
+    eine zweite Antwort, die nicht passt, sieht der Mensch als „Plan passte nicht“. Kosten beider Läufe zählen zusammen."""
+    from . import planer
+    aus = planen(con, pid, zeilen, hinweis, modell, prog=prog, zusatz=zusatz)
+    if aus.get("fehler") or aus.get("ergebnis") is None:
+        return aus
+    try:
+        pruefen(aus["ergebnis"], con, pid, boegen)
+        return aus
+    except planer.PlanFehler as e:
+        funde = e.fehler
+    if melden:
+        melden(f"Antwort passte nicht ({len(funde)} Funde) – eine Nachbesserung")
+    zweiter = ((hinweis or "").strip() + "\n\n" if (hinweis or "").strip() else "") + (
+        "Deine erste Antwort passte nicht zum Schema bzw. zu den Regeln. Bessere genau diese Funde nach und antworte wieder nur mit "
+        "dem JSON:\n" + "\n".join(f"- {f}" for f in funde[:25]))
+    neu = planen(con, pid, zeilen, zweiter, modell, prog=prog, zusatz=zusatz)
+    usd = [x for x in (aus.get("usd"), neu.get("usd")) if isinstance(x, (int, float))]
+    return {**neu, "usd": round(sum(usd), 4) if usd else None, "nachgebessert": funde}
 
 
 def planen(con, pid, zeilen, hinweis, modell, prog=None, zusatz=None):
@@ -427,7 +466,8 @@ def ausfuehren(con, pid, boegen, fassung, prog=None, zusatz=None):
             time.sleep(5)
         betrieb.lauf_uebernehmen(con, lid, "agent")
         fortschritt(was=f"Feinplan {namen} Fassung {fassung}: Meilenstein wird in Pakete zerlegt", sofort=True)
-        aus = planen(con, pid, zeilen, an.get("hinweis"), modell, prog=prog, zusatz=zusatz)
+        aus = planen_mit_nachbesserung(con, pid, boegen, zeilen, an.get("hinweis"), modell, prog=prog, zusatz=zusatz,   # A2067
+                                       melden=lambda t: fortschritt(was=f"Feinplan {namen} Fassung {fassung}: {t}", sofort=True))
     except Exception as e:                                # noqa: BLE001 – niemand sieht die Ausgabe: als Fehler eintragen
         aus = {"ergebnis": None, "usd": None, "fehler": f"{type(e).__name__}: {e}"[:300]}
     finally:
