@@ -4,12 +4,13 @@ Nacharbeit im selben Meilenstein an und startet sie ohne neues Ja; „Nacharbeit
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
 import io
+import json
 import os
 import tempfile
 import unittest
 from unittest import mock
 
-from amw import abschluss, db, feinplanung, kern, planautomatik, planung, themen
+from amw import abschluss, db, feinplanung, kern, planautomatik, planer, planung, themen
 
 
 class Grund(unittest.TestCase):
@@ -194,6 +195,161 @@ class Grenzen(Grund):
         self.assertIn(("meldung", "Meilenstein 1: nach 2 Nacharbeits-Runden noch offen"), self.post("TL"))
         from amw import tore
         self.assertIn("Nach 2 automatischen Nacharbeits-Runden noch offen", tore.bericht_text(self.con, self.pid, self.m))
+
+
+class AntwortLesen(Grund):
+    """A2072 (Lead #32391): die erste echte Abschlussprüfung (M18) scheiterte mit „oben muss ein Objekt stehen“ – der Prüfer
+    liefert Text, _pruefen las ihn nie als JSON. Jetzt: Text lesen, einmal nachbessern, Rohantwort bei Fehlern behalten."""
+
+    def test_text_antwort_wird_als_json_gelesen(self):
+        self.runde()
+        roh = "Hier mein Urteil:\n```json\n" + json.dumps(self.urteil()) + "\n```"
+        e = abschluss.eintragen(self.con, self.pid, self.m, self.stand(), {"befehl": None, "rc": None}, planer.json_aus_text(roh))
+        self.assertTrue(e["ok"], e.get("fehler"))
+        self.assertEqual([t["erfuellt"] for t in e["themen"]], [True, True])
+        self.assertNotIn("roh", e)                                                         # ohne Fehler bleibt die Rohantwort weg
+
+    def test_kein_json_fehler_mit_rohantwort_im_bericht(self):
+        from amw import tore
+        self.runde()
+        e = abschluss.eintragen(self.con, self.pid, self.m, self.stand(), {"befehl": None, "rc": None}, "{nicht: json}",
+                                roh="Ich konnte die Dateien nicht lesen. {nicht: json}")
+        self.assertIn("kein JSON", e["fehler"])
+        self.assertTrue(e["roh"].startswith("Ich konnte die Dateien nicht lesen"))
+        self.assertIn("Anfang seiner Antwort: Ich konnte", tore.bericht_text(self.con, self.pid, self.m))
+
+    def test_einmal_nachbessern(self):
+        b = planung.bogen_zeile(self.con, self.pid, self.m)
+        halb = self.urteil()
+        halb["themen"] = halb["themen"][:1]
+        antworten, auftraege = [json.dumps(halb), json.dumps(self.urteil())], []
+
+        def attrappe(_con, _pid, _b, _test, prog=None, zusatz=None, nachbessern=None):
+            auftraege.append(nachbessern)
+            return {"ergebnis": antworten[len(auftraege) - 1], "usd": 0.5, "fehler": None, "roh": antworten[len(auftraege) - 1]}
+        with mock.patch.object(abschluss, "pruefer", attrappe):
+            aus = abschluss.pruefer_mit_nachbesserung(self.con, self.pid, b, {"befehl": None, "rc": None})
+        self.assertEqual(len(auftraege), 2)
+        self.assertIsNone(auftraege[0])
+        self.assertIn(f"nicht bewertet: TH{self.t2}", " ".join(auftraege[1]))                # die Funde gehen zurück
+        self.assertEqual((aus["usd"], aus["nachgebessert"]), (1.0, auftraege[1]))
+        self.runde()
+        e = abschluss.eintragen(self.con, self.pid, self.m, self.stand(), {"befehl": None, "rc": None}, aus["ergebnis"],
+                                nachgebessert=aus["nachgebessert"])
+        self.assertTrue(e["ok"])
+        self.assertIn("einmal nachgebessert", "\n".join(abschluss.bericht_teil(self.con, self.pid, self.m)))
+
+    def test_passt_gleich_kein_zweiter_lauf(self):
+        b = planung.bogen_zeile(self.con, self.pid, self.m)
+        aufrufe = []
+        with mock.patch.object(abschluss, "pruefer", lambda *a, **k: aufrufe.append(k) or {"ergebnis": json.dumps(self.urteil()),
+                                                                                          "usd": 0.5, "fehler": None, "roh": "x"}):
+            aus = abschluss.pruefer_mit_nachbesserung(self.con, self.pid, b, {"befehl": None, "rc": None})
+        self.assertEqual(len(aufrufe), 1)
+        self.assertNotIn("nachgebessert", aus)
+
+
+class EchterWeg(Grund):
+    """A2072 (5, Lead #32394): durch den echten Weg – ausfuehren → pruefer → arbeiter.laufen (Attrappe) → eintragen – mit einer
+    Antwort als TEXT, wie claude -p sie liefert (Prosa und JSON im Codeblock). Rot gegen 1.186.0."""
+
+    def laufen(self, *antworten):
+        self.auftraege = []
+
+        def attrappe(_p, auftrag, *_a, **_k):
+            self.auftraege.append(auftrag)
+            return {"rc": 0, "abweichungen": [], "ergebnis": {"result": antworten[len(self.auftraege) - 1], "total_cost_usd": 0.25}}
+        with mock.patch("amw.arbeiter.laufen", attrappe):
+            return abschluss.ausfuehren(self.con, self.pid, self.m, self.stand())
+
+    def test_prosa_und_json_im_codeblock(self):
+        self.runde()
+        e = self.laufen("Ich habe alle Dateien gelesen. Hier das Urteil:\n\n```json\n" + json.dumps(self.urteil(), ensure_ascii=False, indent=2)
+                        + "\n```\n\nViel Erfolg bei der Vorführung!")
+        self.assertTrue(e["ok"], e.get("fehler"))
+        self.assertEqual(len(self.auftraege), 1)
+        self.assertEqual(self.runde(), [(self.m, "bereit")])
+
+    def test_unpassend_dann_nachgebessert(self):
+        self.runde()
+        halb = self.urteil()
+        halb["themen"] = halb["themen"][:1]
+        e = self.laufen("Urteil: " + json.dumps(halb), "```json\n" + json.dumps(self.urteil()) + "\n```")
+        self.assertTrue(e["ok"], e.get("fehler"))
+        self.assertEqual(len(self.auftraege), 2)
+        self.assertIn(f"nicht bewertet: TH{self.t2}", self.auftraege[1])
+        self.assertEqual((e["usd"], len(e["nachgebessert"])), (0.5, 1))
+
+    def test_zweimal_unpassend_fehler_mit_rohantwort(self):
+        self.runde()
+        e = self.laufen("Leider kann ich das nicht beurteilen.", "Immer noch nicht.")
+        self.assertIn("kein JSON", e["fehler"])
+        self.assertEqual(e["roh"], "Immer noch nicht.")
+        self.assertEqual(self.runde(), [(self.m, "bereit")])                               # wie bisher: bereit, Prüfung fehlt
+
+    def test_tagesgrenze_gilt_fuer_die_nachbesserung(self):
+        self.runde()
+        with mock.patch.object(planer, "tagesgrenze", lambda *_: 1.0), mock.patch.object(planer, "heute_usd", lambda *_a, **_k: 0.9):
+            e = self.laufen("kein JSON", "nie gefragt")
+        self.assertEqual(len(self.auftraege), 1)
+        self.assertIn("Tagesgrenze", e["fehler"])
+
+
+class ErneutStarten(Grund):
+    """A2072 (4): ein Ergebnis mit Fehler zählt nicht als Ergebnis – „Prüfung starten“ (A2064) geht dann erneut."""
+
+    def test_nach_fehler_erneut_starten(self):
+        from amw import projektweg_seite
+        self.runde()
+        abschluss.eintragen(self.con, self.pid, self.m, self.stand(), {"befehl": None, "rc": None}, None, fehler="kein JSON: x")
+        self.assertEqual(self.runde(), [(self.m, "bereit")])
+        frei = {"abnahme": [{"bogen": self.m, "nr": 1, "titel": "Anmelden", "frei": False, "bericht": None}]}
+        karte = projektweg_seite.abschluss(self.con, self.pid, frei)[0]
+        self.assertEqual((karte["pruefung"]["fehler"], karte["pruefung_laeuft"]), ("kein JSON: x", False))
+        self.assertEqual(projektweg_seite.pruefung_starten(self.con, self.pid, "TL", self.m), {"ergebnis": "pruefung"})
+        self.assertEqual(len(self.gestartet), 2)
+        karte = projektweg_seite.abschluss(self.con, self.pid, frei)[0]
+        self.assertEqual((karte["pruefung"], karte["pruefung_laeuft"]), (None, True))         # läuft – nicht der alte Fehler
+        with self.assertRaisesRegex(kern.AmwFehler, "läuft schon"):
+            projektweg_seite.pruefung_starten(self.con, self.pid, "TL", self.m)
+        abschluss.eintragen(self.con, self.pid, self.m, self.stand(), {"befehl": None, "rc": None}, json.dumps(self.urteil()))
+        karte = projektweg_seite.abschluss(self.con, self.pid, frei)[0]
+        self.assertTrue(karte["pruefung"]["ok"])
+        with self.assertRaisesRegex(kern.AmwFehler, "schon ein Prüf-Ergebnis"):                 # Gegenprobe: gutes Ergebnis bleibt
+            projektweg_seite.pruefung_starten(self.con, self.pid, "TL", self.m)
+
+
+class OhneThemen(Grund):
+    """A2072: Meilenstein ohne Themen (M18 Wartung) – der Prüfer urteilt im Feld ziel über Ziel und „fertig wenn“."""
+
+    def setUp(self):
+        super().setUp()
+        self.w = planung.bogen_neu(self.con, self.pid, "TL", "Wartung", ziel="Fehler aus dem Betrieb beheben", abnahme="Bericht")
+        planung.schritt_setzen(self.con, self.pid, "TL", titel="Fehler 1", bogen_id=self.w, agent="CC1")
+        self.b = planung.bogen_zeile(self.con, self.pid, self.w)
+        self.assertEqual(feinplanung.themen_der(self.con, self.pid, self.b), [])
+
+    def test_ziel_statt_themen(self):
+        with self.assertRaises(planer.PlanFehler) as x:
+            abschluss._pruefen({"themen": [], "vorfuehrung": []}, self.con, self.pid, self.b, False)
+        self.assertIn("hat keine Themen – ziel braucht", " ".join(x.exception.fehler))
+        e = abschluss._pruefen({"themen": [], "ziel": {"erfuellt": True, "beleg": "alle Fehler behoben"}}, self.con, self.pid, self.b, False)
+        self.assertTrue(e["ok"])
+        self.assertEqual(e["ziel"]["beleg"], "alle Fehler behoben")
+        with self.assertRaises(planer.PlanFehler) as x:                                   # nicht erfüllt ohne Nacharbeit
+            abschluss._pruefen({"themen": [], "ziel": {"erfuellt": False, "fehlt": "Fehler 1 offen"}}, self.con, self.pid, self.b, False)
+        self.assertIn("keine nacharbeit", " ".join(x.exception.fehler))
+
+    def test_meilenstein_datei_sagt_es_und_bericht_zeigt_ziel(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+            abschluss._dateien(self.con, self.pid, self.b, {"befehl": None}, d)
+            with open(os.path.join(d, "meilenstein.md"), encoding="utf-8") as f:
+                self.assertIn("keine: urteile im Feld ziel", f.read())
+        self.assertIn("Feld ziel", abschluss.AUFTRAG)
+        self.assertIn('"ziel"', abschluss.SCHEMA_TEXT)
+        abschluss.eintragen(self.con, self.pid, self.w, "s1", {"befehl": None, "rc": None},
+                            json.dumps({"themen": [], "ziel": {"erfuellt": True, "beleg": "alle Fehler behoben"}}))
+        self.assertIn("- Ziel und „fertig wenn“: erfüllt – alle Fehler behoben", abschluss.bericht_teil(self.con, self.pid, self.w))
 
 
 if __name__ == "__main__":

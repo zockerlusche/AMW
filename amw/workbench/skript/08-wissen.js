@@ -337,7 +337,8 @@ function pwAbschlussKarte(x, einzig, haupt) {
   const p = x.pruefung, test = (p && p.test) || {};
   const zeile = (ok, text) => el("div", {}, el("span", { class: ok ? "pjw-ok" : "pjw-nein" }, ok ? "✓" : "○"), el("span", {}, text));
   const testOk = !!p && (!test.befehl || test.rc === 0);
-  const themenOk = !!p && p.themen.length > 0 && p.themen.every(th => th.erfuellt);
+  const themenOk = !!p && (p.ziel ? p.ziel.erfuellt && p.themen.every(th => th.erfuellt)       // A2072: Meilenstein ohne Themen – das Ziel
+                                  : p.themen.length > 0 && p.themen.every(th => th.erfuellt));
   const listeOk = testOk && themenOk && !p.fehler;
   const karte = el("div", { class: "pjw-karte pjw-ab-karte", "data-bogen": x.bogen },
     el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x)} ${x.titel}`), pwStatus(t("pjw_wartet_dich"), "dran")));
@@ -346,6 +347,8 @@ function pwAbschlussKarte(x, einzig, haupt) {
     karte.append(el("div", { class: "pjw-pruefung" },
       zeile(testOk, !test.befehl ? t("pjw_test_kein") : test.rc === 0 ? t("pjw_test_gruen", { n: x.pakete }) : t("pjw_test_rot", { l: test.lauf })),
       ...p.themen.map(th => zeile(th.erfuellt, th.erfuellt ? t("pjw_thema_ok", { x: th.thema }) + (th.beleg ? " – " + th.beleg : "") : t("pjw_thema_fehlt", { x: th.thema, y: th.fehlt || "–" }))),
+      p.ziel ? zeile(p.ziel.erfuellt, p.ziel.erfuellt ? t("pjw_thema_ok", { x: t("pjw_ziel_fertig") }) + (p.ziel.beleg ? " – " + p.ziel.beleg : "")
+                                                      : t("pjw_thema_fehlt", { x: t("pjw_ziel_fertig"), y: p.ziel.fehlt || "–" })) : null,
       p.fehler ? zeile(false, t("pjw_a_pruefer_fehler_z", { x: p.fehler })) : null,
       zeile(false, t("pjw_dein_ja"))));
     if (p.vorfuehrung.length) karte.append(el("div", { class: "pjw-wie" }, el("span", { class: "pjw-lbl" }, t("pjw_vorfuehrung")), el("ol", {}, p.vorfuehrung.map(s => el("li", {}, s)))));
@@ -356,7 +359,8 @@ function pwAbschlussKarte(x, einzig, haupt) {
      die vor A2029 bereit wurden, bekommen sie nie von selbst). Hauptknopf nur auf der ersten Karte (eine Hauptaktion je Ansicht). */
   const handlung = listeOk && x.bericht
     ? pwKnopf(t("pjw_abnehmen_m", { m: pwM(x) }), () => pwTun("/api/meilenstein/freigeben", { bogen: x.bogen, art: "abschluss" }, t("pjw_ok_abgenommen")), haupt)
-    : !p && !x.pruefung_laeuft ? pwKnopf(t("pjw_a_starten"), () => pwTun("/api/projektweg/pruefung-starten", { bogen: x.bogen }, t("pjw_ok_pruefung")), haupt) : null;
+    : (!p || p.fehler) && !x.pruefung_laeuft ? pwKnopf(t(p ? "pjw_a_erneut" : "pjw_a_starten"),       // A2072: nach einem Fehler erneut
+        () => pwTun("/api/projektweg/pruefung-starten", { bogen: x.bogen }, t("pjw_ok_pruefung")), haupt) : null;
   if (!(listeOk && x.bericht)) karte.append(el("div", { class: "leise" }, !p ? (x.pruefung_laeuft ? t("pjw_a_laeuft_lang") : t("pjw_a_ohne_lang"))
     : p.fehler ? t("pjw_a_pruefer_fehler") : !listeOk ? t("pjw_a_nicht_erfuellt") : t("pjw_bericht_kommt")));
   if (handlung && einzig) pwHaupt = handlung;
@@ -394,7 +398,7 @@ function pwFensterZeichnen() {
     const f = d.grob.fassungen.find(y => y.fassung === w.fassung) || d.grob.fassungen.at(-1), m = f.meilensteine.find(y => y.schluessel === w.id);
     if (!m) return;
     titel = `${m.schluessel} ${m.titel}`;
-    felder = [[t("pjw_ziel"), m.ziel || "–"], [t("pjw_fertig_wenn_k"), m.fertig_wenn || "–"], [t("pjw_themen"), (m.themen || []).map(n => `TH${n} ${pwThemaName(d, n)}`).join(" · ") || "–"],
+    felder = [[t("pjw_ziel_fertig"), m.ziel || "–"], [t("pjw_fertig_wenn_k"), m.fertig_wenn || "–"], [t("pjw_themen"), (m.themen || []).map(n => `TH${n} ${pwThemaName(d, n)}`).join(" · ") || "–"],
       [t("pjw_reihenfolge"), [(m.nach || []).length ? t("pjw_nach", { x: m.nach.join(", ") }) : t("pjw_ohne_vorgaenger"), (m.gleichzeitig || []).length ? t("pjw_gleichzeitig", { x: m.gleichzeitig.join(", ") }) : null].filter(Boolean).join(" · ")],
       [t("pjw_aufwand"), [m.aufwand, m.tage ? (m.tage === 1 ? t("pjw_tag1") : t("pjw_tage", { n: m.tage })) : null].filter(Boolean).join(" · ") || "–"],
       [t("pjw_kosten"), typeof m.usd === "number" ? `≈ ${m.usd.toFixed(2)} $` : "–"]];

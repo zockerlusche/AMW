@@ -20,9 +20,15 @@ Ereignisse (plan_ereignis, Text JSON):
 
 Schema des Prüfers (JSON):
   {"themen": [{"thema": "TH12", "erfuellt": true, "beleg": "welches Paket / welcher Commit es zeigt", "fehlt": "…" | null}],
+   "ziel": {"erfuellt": true, "beleg": "…", "fehlt": "…" | null},
    "vorfuehrung": ["Schritt 1 …", "Schritt 2 …"],
    "nacharbeit": [Pakete wie im Feinplan: {"schluessel": "N1", "meilenstein": "M7", "thema": "TH12", "titel", "auftrag", …}]}
-  "nacharbeit" nur, wenn ein Thema nicht erfüllt oder der Gesamttest rot ist – dann mindestens ein Paket.
+  "ziel" nur bei einem Meilenstein ohne Themen (z. B. Wartung): dann ist "themen" leer und das Urteil gilt Ziel und „fertig wenn“.
+  "nacharbeit" nur, wenn ein Thema (bzw. das Ziel) nicht erfüllt oder der Gesamttest rot ist – dann mindestens ein Paket.
+
+A2072: die Antwort wird als JSON gelesen (wie Planer und Feinplaner); passt sie nicht zum Schema, bekommt der Prüfer die Funde
+EINMAL zurück (wie A2067 beim Feinplaner) – erst eine zweite unpassende Antwort ist „Abschlussprüfung ging nicht“, dann mit dem
+Anfang der Rohantwort im Ergebnis (roh), damit die Ursache sichtbar bleibt.
 """
 import datetime
 import json
@@ -36,6 +42,7 @@ from . import db, kern
 ANGESTOSSEN, ERGEBNIS = "abschluss_angestossen", "abschluss_ergebnis"
 MODELL, EFFORT = "sonnet", "medium"
 FRIST_S = 20 * 60
+ROH_ZEICHEN = 4000             # A2072: so viel der Rohantwort bleibt bei einem Fehler im Ergebnis
 TEST_FRIST_S = 2 * 3600
 LAEUFT_H = 6
 MAX_RUNDEN = 2                 # TL #31785 (b): höchstens so viele automatische Nacharbeits-Runden je Meilenstein
@@ -46,7 +53,8 @@ AUFTRAG = (
     "meilenstein.md (Ziel, fertig wenn, Themen), jede Datei unter themen/, pakete.md (was gebaut wurde, mit Belegen) und "
     "test.md (Ergebnis des Gesamttests) sowie schema.md (das Antwort-Format). Prüfe für JEDES Thema des Meilensteins, ob das "
     "Gebaute es erfüllt – mit Beleg (Paket, Commit) oder dem, was fehlt. Schreib die Vorführung für den Menschen in wenigen "
-    "Schritten. Fehlt etwas oder ist der Gesamttest rot, schlage Nacharbeits-Pakete nach schema.md vor (klein, mit Abnahme). "
+    "Schritten. Hat der Meilenstein keine Themen (meilenstein.md: „Themen: –“), lass themen leer und urteile im Feld ziel, ob "
+    "die Pakete Ziel und „fertig wenn“ erfüllen. Fehlt etwas oder ist der Gesamttest rot, schlage Nacharbeits-Pakete nach schema.md vor (klein, mit Abnahme). "
     "Antworte NUR mit dem JSON-Objekt – kein Text davor oder danach. Du änderst nichts, du schreibst keine Dateien, du führst "
     "nichts aus.")
 
@@ -77,7 +85,8 @@ def ergebnis(con, pid, bid, stand=None):
 
 def _laeuft(con, pid, bid, stand):
     an = [x for x in _ereignisse(con, pid, ANGESTOSSEN, bid) if x.get("stand") == stand]
-    if not an or ergebnis(con, pid, bid, stand):
+    e = ergebnis(con, pid, bid, stand)
+    if not an or (e and e["id"] > an[-1]["id"]):          # A2072: nach einem Fehler-Ergebnis neu angestoßen → läuft wieder
         return None
     t = db.utc_lesen(an[-1]["zeit_utc"])
     return None if (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() > LAEUFT_H * 3600 else an[-1]
@@ -97,11 +106,14 @@ def _spawn(pid, bid, stand, umgebung=None):
 STARTER = _spawn             # Tests setzen eine Attrappe; tests/abschotten schaltet das Anstoßen ganz ab (AMW_PLANER_AUS)
 
 
-def vor_bereit(con, pid, b, stand):
+def vor_bereit(con, pid, b, stand, erneut=False):
     """Aus planautomatik, bevor ein Meilenstein „bereit zur Abnahme“ gemeldet wird: „melden“ (geprüft und erfüllt – oder kein
-    Prüfer möglich), „pruefung“ (gerade angestoßen oder läuft) oder „nacharbeit“ (nicht erfüllt, Pakete angelegt)."""
+    Prüfer möglich), „pruefung“ (gerade angestoßen oder läuft) oder „nacharbeit“ (nicht erfüllt, Pakete angelegt).
+    erneut (A2072, „Prüfung starten“): ein Ergebnis mit Fehler zählt nicht als Ergebnis – die Prüfung startet noch einmal."""
     from . import planer
     e = ergebnis(con, pid, b["id"], stand)
+    if e and erneut and e.get("fehler") and not e.get("angelegt"):
+        e = None
     if e:
         return "melden" if e.get("ok") or e.get("fehler") or e.get("grenze") else "nacharbeit"
     if os.environ.get("AMW_PLANER_AUS") or planer.schalter_text(con, pid):
@@ -182,7 +194,7 @@ def _dateien(con, pid, b, test, ordner):
     os.makedirs(os.path.join(ordner, "themen"), exist_ok=True)
     themen = feinplanung.themen_der(con, pid, b)
     teile = {"meilenstein.md": f"# M{b['nr']} {b['titel']}\n\nZiel: {b['ziel'] or '–'}\nFertig, wenn: {b['abnahme'] or '–'}\n"
-                               f"Themen: {', '.join(f'TH{t}' for t in themen) or '–'}\n"}
+                               f"Themen: {', '.join(f'TH{t}' for t in themen) or '– (keine: urteile im Feld ziel über Ziel und „fertig wenn“)'}\n"}
     frei = grobplan.themen_frei(con, pid)
     for tid in themen:
         t = con.execute("SELECT name FROM thema WHERE id = ?", (tid,)).fetchone()
@@ -200,44 +212,82 @@ def _dateien(con, pid, b, test, ordner):
     return sorted(teile)
 
 
-def pruefer(con, pid, b, test, prog=None, zusatz=None):
-    """Der Prüfer (claude -p, nur Lesen). {"ergebnis", "usd", "fehler"}."""
+def pruefer(con, pid, b, test, prog=None, zusatz=None, nachbessern=None):
+    """Der Prüfer (claude -p, nur Lesen). {"ergebnis", "usd", "fehler", "roh"} – ergebnis ist der JSON-Text der Antwort, roh die
+    ganze Antwort. nachbessern (A2072): Funde der ersten Antwort, die der Prüfer genau nachbessern soll."""
     from . import arbeiter, planer, platz, versionsprobe
+    auftrag = AUFTRAG
+    if nachbessern:
+        auftrag += ("\n\nDeine erste Antwort passte nicht zum Schema bzw. zu den Regeln. Bessere genau diese Funde nach und antworte "
+                    "wieder nur mit dem JSON-Objekt:\n" + "\n".join(f"- {f}" for f in nachbessern[:25]))
     with tempfile.TemporaryDirectory(prefix="amw-abschluss-", ignore_cleanup_errors=True) as ordner:
         p = platz.pfade(os.path.join(ordner, "plaetze"), 1)
         os.makedirs(p["klon"])
         subprocess.run(["git", "init", "-q", "-b", "main", p["klon"]], check=True, capture_output=True, creationflags=planer.OHNE_FENSTER)
         dateien = _dateien(con, pid, b, test, p["klon"])
-        r = arbeiter.laufen(p, AUFTRAG + "\n\nDateien: " + ", ".join(dateien), None, modell=MODELL, effort=EFFORT, prog=prog,
+        r = arbeiter.laufen(p, auftrag + "\n\nDateien: " + ", ".join(dateien), None, modell=MODELL, effort=EFFORT, prog=prog,
                             zusatz=zusatz, nur_lesen=True, geprueft=versionsprobe.geprueft(con), frist_s=FRIST_S)
     erg = r.get("ergebnis") or {}
     usd = erg.get("total_cost_usd")
     text = (erg.get("result") or "").strip()
     if r.get("abweichungen") or r.get("rc") != 0 or erg.get("is_error") or not text:
-        return {"ergebnis": None, "usd": usd, "fehler": "; ".join(r.get("abweichungen") or []) or r.get("fehler") or f"kein Ergebnis (rc {r.get('rc')})"}
-    return {"ergebnis": planer.json_aus_text(text), "usd": usd, "fehler": None}
+        return {"ergebnis": None, "usd": usd, "roh": text or None,
+                "fehler": "; ".join(r.get("abweichungen") or []) or r.get("fehler") or f"kein Ergebnis (rc {r.get('rc')})"}
+    return {"ergebnis": planer.json_aus_text(text), "usd": usd, "fehler": None, "roh": text}
+
+
+def pruefer_mit_nachbesserung(con, pid, b, test, prog=None, zusatz=None):
+    """A2072: Prüfer; passt die Antwort nicht (_pruefen), geht der Fund EINMAL zurück an ihn – erst die zweite unpassende Antwort
+    wird „Abschlussprüfung ging nicht“. Kosten beider Läufe zählen zusammen."""
+    from . import planer
+    aus = pruefer(con, pid, b, test, prog=prog, zusatz=zusatz)
+    if aus.get("fehler") or aus.get("ergebnis") is None:
+        return aus
+    rot = test.get("befehl") is not None and test.get("rc") != 0
+    try:
+        _pruefen(aus["ergebnis"], con, pid, b, rot)
+        return aus
+    except planer.PlanFehler as e:
+        funde = e.fehler
+    grenze = planer.tagesgrenze(con, pid)                 # die Tagesgrenze der Planer gilt auch für die Nachbesserung
+    if grenze is not None and planer.heute_usd(con, pid) + (aus.get("usd") or 0) >= grenze:
+        return {**aus, "fehler": f"Antwort passte nicht ({'; '.join(funde)[:300]}) – keine Nachbesserung: Tagesgrenze der Planer erreicht"}
+    neu = pruefer(con, pid, b, test, prog=prog, zusatz=zusatz, nachbessern=funde)
+    usd = [x for x in (aus.get("usd"), neu.get("usd")) if isinstance(x, (int, float))]
+    return {**neu, "usd": round(sum(usd), 4) if usd else None, "nachgebessert": funde}
 
 
 def ausfuehren(con, pid, bid, stand, prog=None, zusatz=None):
-    """Der losgelöste Prozess: Gesamttest, dann Prüfer, dann eintragen (auch einen Fehler)."""
+    """Der losgelöste Prozess: Gesamttest, dann Prüfer (mit einer Nachbesserung), dann eintragen (auch einen Fehler)."""
     b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
     test, aus = {"befehl": None, "rc": None}, None
     try:
         test = gesamttest(con, pid, b)
-        aus = pruefer(con, pid, b, test, prog=prog, zusatz=zusatz)
+        aus = pruefer_mit_nachbesserung(con, pid, b, test, prog=prog, zusatz=zusatz)
     except Exception as x:                                # noqa: BLE001 – niemand sieht die Ausgabe: als Fehler eintragen
         aus = {"ergebnis": None, "usd": None, "fehler": f"{type(x).__name__}: {x}"[:300]}
-    return eintragen(con, pid, bid, stand, test, aus.get("ergebnis"), usd=aus.get("usd"), fehler=aus.get("fehler"))
+    return eintragen(con, pid, bid, stand, test, aus.get("ergebnis"), usd=aus.get("usd"), fehler=aus.get("fehler"),
+                     roh=aus.get("roh"), nachgebessert=aus.get("nachgebessert"))
+
+
+def _lesen(daten):
+    """A2072: die Antwort des Prüfers als Objekt – Text wird als JSON gelesen (wie Planer und Feinplaner), sonst PlanFehler."""
+    from . import planer
+    if isinstance(daten, str):
+        try:
+            daten = json.loads(planer.json_aus_text(daten))
+        except ValueError as e:
+            raise planer.PlanFehler([f"kein JSON: {e}"]) from None
+    if not isinstance(daten, dict):
+        raise planer.PlanFehler(["oben muss ein Objekt stehen"])
+    return daten
 
 
 def _pruefen(daten, con, pid, b, rot):
-    """Prüft das Ergebnis des Prüfers: jedes Thema bewertet; Nacharbeit (Feinplan-Schema) genau dann, wenn etwas fehlt oder der
-    Test rot ist. Rückgabe vereinheitlicht oder planer.PlanFehler."""
+    """Prüft das Ergebnis des Prüfers: jedes Thema bewertet (ohne Themen: das Ziel); Nacharbeit (Feinplan-Schema) genau dann,
+    wenn etwas fehlt oder der Test rot ist. Rückgabe vereinheitlicht oder planer.PlanFehler."""
     from . import feinplanung, planer
-    if isinstance(daten, str):
-        daten = planer.json_aus_text(daten)
-    if not isinstance(daten, dict):
-        raise planer.PlanFehler(["oben muss ein Objekt stehen"])
+    daten = _lesen(daten)
     f, themen = [], feinplanung.themen_der(con, pid, b)
     bewertet = {}
     for t in daten.get("themen") or []:
@@ -253,8 +303,15 @@ def _pruefen(daten, con, pid, b, rot):
     fehlen = [f"TH{x}" for x in themen if x not in bewertet]
     if fehlen:
         f.append("nicht bewertet: " + ", ".join(fehlen))
+    ziel = None
+    if not themen:                                        # A2072: Meilenstein ohne Themen (Wartung) – Urteil über Ziel und „fertig wenn“
+        z = daten.get("ziel")
+        if not isinstance(z, dict) or not isinstance(z.get("erfuellt"), bool) or not str(z.get("beleg") or z.get("fehlt") or "").strip():
+            f.append(f"ziel: M{b['nr']} hat keine Themen – ziel braucht erfuellt (ja/nein) und beleg bzw. fehlt")
+        else:
+            ziel = {"erfuellt": z["erfuellt"], "beleg": str(z.get("beleg") or "")[:500] or None, "fehlt": str(z.get("fehlt") or "")[:500] or None}
     vf = [str(x)[:300] for x in (daten.get("vorfuehrung") or []) if str(x).strip()][:12]
-    ok = all(x["erfuellt"] for x in bewertet.values()) and not rot
+    ok = all(x["erfuellt"] for x in bewertet.values()) and (ziel is None or ziel["erfuellt"]) and not rot
     nach = daten.get("nacharbeit") or []
     pakete = None
     if not ok:
@@ -267,10 +324,10 @@ def _pruefen(daten, con, pid, b, rot):
                 f += [f"nacharbeit: {m}" for m in x.fehler]
     if f:
         raise planer.PlanFehler(f)
-    return {"themen": [bewertet[x] for x in themen], "vorfuehrung": vf, "ok": ok, "pakete": pakete}
+    return {"themen": [bewertet[x] for x in themen], "vorfuehrung": vf, "ok": ok, "pakete": pakete, **({"ziel": ziel} if ziel else {})}
 
 
-def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None):
+def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None, roh=None, nachgebessert=None):
     """Das Ergebnis eintragen. Erfüllt → nichts weiter (planautomatik meldet „bereit“ mit Bericht). Nicht erfüllt → die
     Nacharbeit anlegen und starten (kein neues Start-Ja). Ging der Prüfer nicht, wird es ein Fehler-Ergebnis – dann meldet
     planautomatik „bereit“ wie bisher, und der Lead weiß, dass die Prüfung fehlt. Rückgabe: das Ereignis."""
@@ -303,6 +360,12 @@ def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None):
         starter = kern.lead(con, pid) or kern.ENTWICKLER
         if b["status"] == "aktiv":
             reihenfolge.starten(con, pid, starter, bid)
+    if e and e.get("ziel"):
+        werte["ziel"] = e["ziel"]
+    if nachgebessert:                                     # A2072: die erste Antwort passte nicht – sichtbar im Ergebnis
+        werte["nachgebessert"] = list(nachgebessert)[:25]
+    if fehler and roh:                                    # A2072: Rohantwort bei einem Fehler behalten – sonst ist die Ursache weg
+        werte["roh"] = roh[:ROH_ZEICHEN]
     werte.update({"themen": (e or {}).get("themen") or [], "vorfuehrung": (e or {}).get("vorfuehrung") or [],
                   "ok": bool(e and e["ok"]), "angelegt": angelegt, **({"fehler": fehler} if fehler and not angelegt else {}),
                   **({"grenze": True} if grenze else {})})
@@ -356,10 +419,18 @@ def bericht_teil(con, pid, bid):
                            + (" · grün" if t.get("rc") == 0 else " · rot"))]
     if e.get("fehler"):
         z.append(f"Prüfer: ging nicht – {e['fehler']}")
+        if e.get("roh"):
+            z.append("Anfang seiner Antwort: " + " ".join(e["roh"].split())[:300])
+    if e.get("nachgebessert"):
+        z.append(f"Prüfer: erste Antwort passte nicht ({len(e['nachgebessert'])} Funde) – einmal nachgebessert")
     if e.get("grenze"):
         z.append(f"Nach {MAX_RUNDEN} automatischen Nacharbeits-Runden noch offen – keine weitere Nacharbeit angelegt:")
     z += [f"- {x['thema']}: {'erfüllt' if x['erfuellt'] else 'nicht erfüllt'}" + (f" – {x['beleg']}" if x.get("beleg") else "")
           + (f" – fehlt: {x['fehlt']}" if x.get("fehlt") else "") for x in e.get("themen") or []]
+    if e.get("ziel"):                                     # A2072: Meilenstein ohne Themen
+        x = e["ziel"]
+        z.append(f"- Ziel und „fertig wenn“: {'erfüllt' if x['erfuellt'] else 'nicht erfüllt'}" + (f" – {x['beleg']}" if x.get("beleg") else "")
+                 + (f" – fehlt: {x['fehlt']}" if x.get("fehlt") else ""))
     if e.get("vorfuehrung"):
         z += ["", "## Vorführung", ""] + [f"{i}. {s}" for i, s in enumerate(e["vorfuehrung"], 1)]
     return z

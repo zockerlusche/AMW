@@ -930,6 +930,13 @@ die der Lead nur noch bestätigt oder ändert.
   Sonst legt die AMW die Nacharbeit im selben Meilenstein an und startet sie ohne neues Start-Ja (bei rotem Test ohne
   Vorschlag: ein Paket „Gesamttest rot beheben“); Meldung an den Lead, Info an den Menschen. Danach prüft sie erneut. Ging der
   Prüfer nicht, wird der Meilenstein „bereit“ wie bisher, und der Lead erfährt, dass die Prüfung fehlt.
+- **Antwort lesen (A2072):** Die Antwort des Prüfers wird als JSON gelesen, auch mit Text drumherum oder im Codeblock. Passt sie
+  nicht zum Schema, bekommt der Prüfer die Funde einmal zurück und antwortet neu (Kosten zusammen, die Tagesgrenze gilt auch
+  dafür); erst eine zweite unpassende Antwort heißt „Abschlussprüfung ging nicht“ – dann mit dem Anfang der Rohantwort im
+  Ergebnis (`roh`) und im Bericht. Ein Ergebnis mit Fehler zählt nicht als Prüfung: auf der Seite Projektweg startet
+  „Prüfung erneut starten“ (Mensch oder Lead, Weg von A2064) sie noch einmal.
+- **Meilenstein ohne Themen (A2072, z. B. Wartung):** Der Prüfer urteilt im Feld `ziel`, ob die Pakete Ziel und „fertig, wenn“
+  erfüllen; die Karte und der Bericht zeigen die Zeile „Ziel und „fertig, wenn““.
 - **Grenzen (TL #31785):** Die Kosten des Prüfers zählen zur gemeinsamen Tagesgrenze der Planer (`planer_tagesgrenze_usd`);
   ist sie erreicht, startet keine Prüfung, und der Meilenstein wird „bereit“ mit Meldung an den Lead. Höchstens 2 automatische
   Nacharbeits-Runden je Meilenstein – danach legt die AMW keine weiteren Pakete an, der Meilenstein wird „bereit“, die offenen
