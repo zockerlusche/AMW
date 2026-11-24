@@ -43,6 +43,10 @@ einzeln schließt und ohne dass Arbeit mitten im Schritt abreißt.
 
 - **Auslöser:** nur der Mensch am PC – Leitstand „Alle sichern & beenden“ oder Aktionsmenü ⋯ einer Kachel. Nicht über
   die Online-Seite, nicht über die Brücke, nicht per Befehl eines Agenten.
+- **Sammelbefehl (A2048):** `amw agent alle-beenden [--alle-projekte] [--frist N] --von Entwickler` im eigenen Terminal des
+  Menschen (nie aus einer Agenten-Sitzung, nie ein Agent) – alle laufenden Fenster-Agenten des Projekts bzw. aller Projekte.
+- **Rückmeldung (A2048):** `amw agent ende-stand [--alle-projekte]` bzw. `/api/agent/ende-stand` – je Agent des jüngsten
+  Auftrags (2 h): sichert (bis HH:MM) · abgemeldet (der Wächter beendet gleich) · beendet; „alle beendet“, wenn keiner mehr läuft.
 - **Was geschieht:** Der Agent bekommt einen Halt mit Frist (5 Minuten) und ein STOPP „Sichern und beenden bis HH:MM“:
   laufenden Schritt abschließen oder Zwischenstand festhalten, nichts Neues anfangen, `amw abmelden`.
 - **Der Wächter** beendet die Sitzung, sobald sie abgemeldet ist – spätestens zur Frist – und hebt den Halt auf. Hat der

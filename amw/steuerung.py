@@ -557,6 +557,40 @@ def ende_anfordern(con, pid, kennungen=None, frist_min=None, jetzt=None):
     return {"agenten": laufend, "bis_utc": bis if laufend else None}
 
 
+ENDE_STAND_H = 2                  # A2048: so lange zeigt die Rückmeldung einen Auftrag nach seinem Anfang
+
+
+def ende_stand(con, pid, jetzt=None):
+    """A2048 (V12, D1531 §4): Rückmeldung zu „Sichern & beenden“ je Agent – der jüngste Auftrag der letzten ENDE_STAND_H Stunden:
+    sichert (Sitzung arbeitet noch, bis zur Frist) · abgemeldet (wartet aufs Beenden durch den Wächter) · beendet (Auftrag
+    erledigt). Rückgabe {"agenten": [{kennung, zustand, bis_utc}], "fertig": alle beendet}."""
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc)
+    seit = (jetzt - datetime.timedelta(hours=ENDE_STAND_H)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    je = {}
+    for r in con.execute("SELECT id, gilt_fuer AS kennung, bis_utc, aufgehoben_utc FROM sperre WHERE projekt_id = ? AND art = 'halt'"
+                         " AND bis_utc IS NOT NULL AND text LIKE ? AND seit_utc >= ? ORDER BY id", (pid, ENDE_TEXT + "%", seit)):
+        je[r["kennung"]] = dict(r)
+    aus = []
+    for k, e in je.items():
+        if e["aufgehoben_utc"]:
+            zustand = "beendet"
+        else:
+            s, cpid = _sitzung_mit_prozess(con, pid, k, auch_ruhend=True)
+            zustand = "beendet" if not cpid else "abgemeldet" if s and s["zustand"] == "ruht" else "sichert"
+        aus.append({"kennung": k, "zustand": zustand, "bis_utc": e["bis_utc"]})
+    return {"agenten": aus, "fertig": bool(aus) and all(x["zustand"] == "beendet" for x in aus)}
+
+
+def alle_beenden(con, projekte, frist_min=None):
+    """A2048: „Alle speichern & beenden“ über mehrere Projekte – je Projekt ende_anfordern für alle laufenden Fenster-Agenten.
+    Rückgabe {Projektname: {"agenten", "bis_utc"}}."""
+    aus = {}
+    for pid in projekte:
+        name = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()
+        aus[name["name"] if name else str(pid)] = ende_anfordern(con, pid, None, frist_min)
+    return aus
+
+
 def ende_pruefen(con, jetzt=None, beenden_mit=None):
     """Runde des Wächters: abgemeldete oder überfällige Sitzungen mit offenem Auftrag beenden, Halt aufheben.
     Rückgabe: Ereignisse fürs Log."""

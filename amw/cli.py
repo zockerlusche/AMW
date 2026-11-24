@@ -277,6 +277,27 @@ def cmd_agent(a, con):
             steuerung.profil_setzen(con, pid, _von(a), a.kennung, ordner=ordner)
         print(f"Agent {a.kennung} angelegt" + (f" – arbeitet in {ordner}" if ordner and os.path.isdir(ordner) else ""))
         return
+    if a.aktion in ("alle-beenden", "ende-stand"):          # A2048 (V12): Sammelbefehl „Alle speichern & beenden“, Rückmeldung
+        from . import steuerung
+        projekte = [r[0] for r in con.execute("SELECT id FROM projekt ORDER BY id")] if a.alle_projekte else [pid]
+        namen = {r[0]: r[1] for r in con.execute("SELECT id, name FROM projekt")}
+        if a.aktion == "alle-beenden":
+            if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():   # Prozesse beendet nur der Mensch (G14), nie aus einer Sitzung
+                raise kern.AmwFehler("Alle speichern & beenden lässt nur der Mensch: in seinem eigenen Terminal mit --von Entwickler"
+                                     " oder in der Workbench am PC (Leitstand › Sitzungen)")
+            for name, r in steuerung.alle_beenden(con, projekte, a.frist).items():
+                print(f"{name}: " + (f"{', '.join(r['agenten'])} sichern – beendet spätestens {_zeit(r['bis_utc'])}" if r["agenten"]
+                                     else "keine laufende Sitzung"))
+            print("Rückmeldung: amw agent ende-stand" + (" --alle-projekte" if a.alle_projekte else ""))
+            return
+        for p in projekte:
+            st = steuerung.ende_stand(con, p)
+            if not st["agenten"]:
+                continue
+            print(f"{namen.get(p, p)}: " + ("alle beendet" if st["fertig"] else "läuft noch"))
+            for x in st["agenten"]:
+                print(f"  {x['kennung']:<12} {x['zustand']}" + (f" (bis {_zeit(x['bis_utc'])})" if x["zustand"] != "beendet" else ""))
+        return
     if a.aktion in ("profil", "starten", "beenden", "startskript"):
         from . import steuerung
         if a.aktion == "startskript":
@@ -3672,9 +3693,13 @@ def parser():
     x.set_defaults(f=cmd_projekt)
 
     x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript | umbenennen ALT NEU | lead NEU --co ALT --grund …"
-                                   " | entfernen | wiederaufnehmen AGENT (der Mensch; wiederaufnehmen auch der Lead mit --wort W<nr>)")
+                                   " | entfernen | wiederaufnehmen AGENT (der Mensch; wiederaufnehmen auch der Lead mit --wort W<nr>)"
+                                   " | alle-beenden [--alle-projekte] [--frist N] (alle Fenster-Agenten sichern und beenden lassen; nur der Mensch)"
+                                   " | ende-stand [--alle-projekte] (Rückmeldung: sichert, abgemeldet, beendet) – A2048")
     x.add_argument("aktion", choices=["neu", "liste", "profil", "starten", "beenden", "startskript", "umbenennen", "lead",
-                                      "entfernen", "wiederaufnehmen"])
+                                      "entfernen", "wiederaufnehmen", "alle-beenden", "ende-stand"])
+    x.add_argument("--alle-projekte", action="store_true", help="alle-beenden, ende-stand: über alle Projekte auf diesem PC – A2048")
+    x.add_argument("--frist", type=int, help="alle-beenden: Minuten bis zum Beenden (Vorgabe: Projekt-Einstellung ende_frist_min, 5)")
     x.add_argument("--co", help="lead: der bisherige Lead wird Co-Entwickler (Wortlaut, Beschlüsse, Fragen an den Menschen,"
                                 " Dokumente; behält den Dateiaustausch); ist NEU schon Lead, setzt --co nur den Co-Entwickler")
     x.add_argument("--grund", help="lead: warum (z. B. der Beschluss)")

@@ -1105,6 +1105,12 @@ def daten_zeitplan(con, pid):
     return zeitplan.berechnen(con, pid)
 
 
+def daten_ende_stand(con, pid):
+    """A2048 (V12): Rückmeldung zu „Alle speichern & beenden“ – je Agent sichert, abgemeldet oder beendet."""
+    from . import steuerung
+    return steuerung.ende_stand(con, pid)
+
+
 def daten_aufgaben(con, pid, q):
     sql = ("SELECT id, titel, agent, status, einstufung, rang, wartet_auf, angelegt_utc, fertig_utc, geaendert_utc FROM aufgabe"
            " WHERE projekt_id = ?")
@@ -1518,6 +1524,7 @@ def baue_handler(port, token, netz=None):
                     "/api/pause": lambda c, p: daten_pause(c, p),
                     "/api/lauf/ausgabe": lambda c, p: daten_lauf_ausgabe(c, p, q),
                     "/api/zeitplan": lambda c, p: daten_zeitplan(c, p),
+                    "/api/agent/ende-stand": lambda c, p: daten_ende_stand(c, p),
                     "/api/kosten": lambda c, p: daten_kosten(c, p),
                     "/api/verlauf": lambda c, p: daten_verlauf(c, p, q),
                     "/api/seit": lambda c, p: daten_seit(c, p, q),

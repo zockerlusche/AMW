@@ -7,7 +7,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 |---|---|
 | [`init`](#init) | neue Datenbank anlegen |
 | [`projekt`](#projekt) | Projekte: neu <name> ¦ liste ¦ ordner [<name>] – jedes Projekt ist für sich (eigene Agenten, Regeln, Daten); bequemer: Workbench › Projekt-Auswahl › Neues Projekt |
-| [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript ¦ umbenennen ALT NEU ¦ lead NEU --co ALT --grund … ¦ entfernen ¦ wiederaufnehmen AGENT (der Mensch; wiederaufnehmen auch der Lead mit --wort W<nr>) |
+| [`agent`](#agent) | neu ¦ liste ¦ profil ¦ starten ¦ beenden ¦ startskript ¦ umbenennen ALT NEU ¦ lead NEU --co ALT --grund … ¦ entfernen ¦ wiederaufnehmen AGENT (der Mensch; wiederaufnehmen auch der Lead mit --wort W<nr>) ¦ alle-beenden [--alle-projekte] [--frist N] (alle Fenster-Agenten sichern und beenden lassen; nur der Mensch) ¦ ende-stand [--alle-projekte] (Rückmeldung: sichert, abgemeldet, beendet) – A2048 |
 | [`posten`](#posten) | Nachricht schicken: --an CC2 (oder alle, Entwickler) --art auftrag¦frage¦info¦… --kurz … |
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
@@ -111,8 +111,9 @@ options:
 
 ## agent
 ```
-usage: amw agent [-h] [--co CO] [--grund GRUND] [--ordner ORDNER]
-                 [--zusatz ZUSATZ] [--denkstufe DENKSTUFE] [--modell MODELL]
+usage: amw agent [-h] [--alle-projekte] [--frist FRIST] [--co CO]
+                 [--grund GRUND] [--ordner ORDNER] [--zusatz ZUSATZ]
+                 [--denkstufe DENKSTUFE] [--modell MODELL]
                  [--startsatz STARTSATZ] [--rechte RECHTE] [--wort WORT]
                  [--fernsteuerung] [--keine-fernsteuerung] [--neustart]
                  [--kein-neustart] [--neu] [--datei DATEI] [--alle]
@@ -121,17 +122,21 @@ usage: amw agent [-h] [--co CO] [--grund GRUND] [--ordner ORDNER]
                  [--zustaendig ZUSTAENDIG] [--nicht NICHT]
                  [--startbefehl STARTBEFEHL] [--ohne-rund] [--von VON]
                  [--projekt PROJEKT]
-                 {neu,liste,profil,starten,beenden,startskript,umbenennen,lead,entfernen,wiederaufnehmen}
+                 {neu,liste,profil,starten,beenden,startskript,umbenennen,lead,entfernen,wiederaufnehmen,alle-beenden,ende-stand}
                  [kennung] [neu]
 
 positional arguments:
-  {neu,liste,profil,starten,beenden,startskript,umbenennen,lead,entfernen,wiederaufnehmen}
+  {neu,liste,profil,starten,beenden,startskript,umbenennen,lead,entfernen,wiederaufnehmen,alle-beenden,ende-stand}
   kennung
   neu                   umbenennen: der neue Name (der alte bleibt als Alias
                         gültig)
 
 options:
   -h, --help            show this help message and exit
+  --alle-projekte       alle-beenden, ende-stand: über alle Projekte auf
+                        diesem PC – A2048
+  --frist FRIST         alle-beenden: Minuten bis zum Beenden (Vorgabe:
+                        Projekt-Einstellung ende_frist_min, 5)
   --co CO               lead: der bisherige Lead wird Co-Entwickler (Wortlaut,
                         Beschlüsse, Fragen an den Menschen, Dokumente; behält
                         den Dateiaustausch); ist NEU schon Lead, setzt --co
