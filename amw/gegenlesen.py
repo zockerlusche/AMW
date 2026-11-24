@@ -101,7 +101,7 @@ def _spawn(pid, tid, fassung, umgebung=None):
 STARTER = _spawn             # Tests setzen eine Attrappe; tests/abschotten schaltet das Anstoßen ganz ab (AMW_GEGENLESEN_AUS)
 
 
-def anstossen(con, pid, tid, fassung, rolle="gegenlesen"):
+def anstossen(con, pid, tid, fassung, rolle="gegenlesen", von="AMW"):
     """Nach einer neuen Fassung eines Agenten (themen.pflegen, eigene Transaktion): einen Gegenleser anstoßen – außer die
     Einstellung ist aus, es ist schon einer für diese Fassung da oder es gab in dieser Runde schon einen. Rückgabe: Text oder None."""
     if os.environ.get("AMW_GEGENLESEN_AUS") or einstellung(con, pid) == "aus" or not ROLLEN[rolle]["gebaut"]:
@@ -110,11 +110,12 @@ def anstossen(con, pid, tid, fassung, rolle="gegenlesen"):
     if kern.projekt_schalter(con, pid) != "an":               # A1926: Themen-Ablauf nur bei eingeschaltetem Projekt
         return None
     modell = MODELLE[einstellung(con, pid)]
+    wer = planer_fortschritt.ausloeser(von)                   # A2078: wer die Fassung vorgelegt hat
     with db.schreiben(con):                                   # in einer Schreib-Transaktion: nie doppelt angestoßen
         if _schon_in_dieser_runde(con, pid, tid):
             return None
         eid = db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=ANGESTOSSEN,
-                           text=json.dumps({"thema": tid, "fassung": fassung, "rolle": rolle, "modell": modell}, ensure_ascii=False))
+                           text=json.dumps({"thema": tid, "fassung": fassung, "rolle": rolle, "modell": modell, **wer}, ensure_ascii=False))
     try:
         prozess = STARTER(pid, tid, fassung)
     except OSError as e:                                      # ließ sich nicht starten → fertig mit Fehler, das Thema wartet nicht
@@ -123,7 +124,7 @@ def anstossen(con, pid, tid, fassung, rolle="gegenlesen"):
         return f"TH{tid}: Gegenleser ließ sich nicht starten ({e})"
     with db.schreiben(con):
         con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?",
-                    (json.dumps({"thema": tid, "fassung": fassung, "rolle": rolle, "modell": modell, "prozess": prozess},
+                    (json.dumps({"thema": tid, "fassung": fassung, "rolle": rolle, "modell": modell, "prozess": prozess, **wer},
                                 ensure_ascii=False), eid))
     return f"TH{tid} Fassung {fassung}: Gegenleser ({modell}) angestoßen"
 
@@ -210,7 +211,7 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
     belegung.lauf_merken(lid, os.getpid())
     name = f"TH{tid}" + (f" {t['name']}" if t else "")
     fortschritt = functools.partial(planer_fortschritt.melden_still, con, pid, lid, art="gegenlesen", thema=tid, agent=agent,
-                                    modell=modell)            # A2025: Stand in der AMW, gedrosselt
+                                    modell=modell, fassung=fassung, **planer_fortschritt.vom(an[-1] if an else {}))            # A2025: Stand in der AMW, gedrosselt
     fortschritt(was=f"{name}: wartet auf einen Platz in der Lauf-Schlange",
                 dauer_s=planer_fortschritt.schaetzung(con, pid, "gegenlesen"), sofort=True)
     aus = None

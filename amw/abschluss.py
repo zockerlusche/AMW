@@ -105,6 +105,21 @@ def _laeuft(con, pid, bid, stand):
     return None if (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() > LAEUFT_H * 3600 else an[-1]
 
 
+def laufende(con, pid):
+    """A2078: laufende Abschlussprüfungen im Format von planer_fortschritt.laufende (sie führen keinen eigenen Stand)."""
+    from . import planer_fortschritt
+    aus = []
+    for (bid, nr) in con.execute("SELECT id, nr FROM bogen WHERE projekt_id = ? AND status IN ('geplant', 'aktiv')", (pid,)).fetchall():
+        an = _ereignisse(con, pid, ANGESTOSSEN, bid)
+        a = _laeuft(con, pid, bid, an[-1].get("stand")) if an else None
+        if a:
+            seit = (datetime.datetime.now(datetime.timezone.utc) - db.utc_lesen(a["zeit_utc"])).total_seconds()
+            aus.append({"lauf": f"ab{a['id']}", "art": "abschluss", "ziel": f"M{nr}", "zustand": "laeuft", "seit_s": round(seit),
+                        **{k: None for k in ("thema", "agent", "modell", "was", "nr", "gesamt", "dauer_s", "usd", "fehler", "fassung", "ausloeser", "anlass")},
+                        **planer_fortschritt.vom(a)})
+    return aus
+
+
 # --- vor „bereit zur Abnahme“ (aus planautomatik) ----------------------------------------------------------------------------
 
 def _spawn(pid, bid, stand, umgebung=None):
@@ -123,7 +138,7 @@ def vor_bereit(con, pid, b, stand, erneut=False):
     """Aus planautomatik, bevor ein Meilenstein „bereit zur Abnahme“ gemeldet wird: „melden“ (geprüft und erfüllt – oder kein
     Prüfer möglich), „pruefung“ (gerade angestoßen oder läuft) oder „nacharbeit“ (nicht erfüllt, Pakete angelegt).
     erneut (A2072, „Prüfung starten“): ein Ergebnis mit Fehler zählt nicht als Ergebnis – die Prüfung startet noch einmal."""
-    from . import planer
+    from . import planer, planer_fortschritt
     e = ergebnis(con, pid, b["id"], stand)
     if e and erneut and e.get("fehler") and not e.get("angelegt"):
         e = None
@@ -136,7 +151,8 @@ def vor_bereit(con, pid, b, stand, erneut=False):
             return "pruefung"
         grenze, usd = planer.tagesgrenze(con, pid), planer.heute_usd(con, pid)   # TL #31785 (a): gemeinsame Tagesgrenze der Planer
         if grenze is None or usd < grenze:
-            eid = _ereignis(con, pid, ANGESTOSSEN, bogen=b["id"], stand=stand)
+            wer = planer_fortschritt.ausloeser("AMW")        # A2078
+            eid = _ereignis(con, pid, ANGESTOSSEN, bogen=b["id"], stand=stand, **wer)
         else:
             eid = None
     if eid is None:
@@ -150,7 +166,7 @@ def vor_bereit(con, pid, b, stand, erneut=False):
         return "melden"
     with db.schreiben(con):
         con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?",
-                    (json.dumps({"bogen": b["id"], "stand": stand, "prozess": prozess}, ensure_ascii=False), eid))
+                    (json.dumps({"bogen": b["id"], "stand": stand, "prozess": prozess, **wer}, ensure_ascii=False), eid))
     return "pruefung"
 
 

@@ -447,6 +447,13 @@ function pwFensterZeichnen() {
       [t("pjw_abnahme"), p.pruefbefehl || "–"], [t("pjw_nach_k"), p.nach.length ? p.nach.map(titelVon).join(" · ") : "–"], [t("pjw_auftrag"), p.auftrag_mehr ? pwAuftragMehr(p) : p.auftrag || "–"]];
     if (!API && !ms.frei && !ms.laeuft) hinweis = { bogen: ms.bogen, zu: `A${p.id}` };
   }
+  else if (w.art === "lauf") {                                           /* A2078: Modell, Dauer, Kosten nur hier */
+    const l = d.laeufe.find(y => y.lauf === w.id); if (!l) return;
+    const min = s => `${Math.max(0, Math.round((s || 0) / 60))} min`;
+    titel = pwLaufTitel(l);
+    felder = [[t("pjw_wer"), pwLaufWer(l) || "–"], [t("pjw_lauf_was"), l.was || "–"], [t("pjw_modell"), l.modell || "–"],
+      [t("pjw_lauf_dauer"), l.dauer_s ? `${min(l.seit_s)} / ≈ ${min(l.dauer_s)}` : min(l.seit_s)], [t("pjw_kosten"), typeof l.usd === "number" ? `${l.usd.toFixed(2)} $` : "–"]];
+  }
   else if (w.art === "dpaket") {                                         /* A2065: Paket eines Entwurfs – das Technische nur hier */
     const x = d.fein.delta.find(y => y.thema === w.thema), k = x?.karten.find(y => y.schluessel === w.id);
     if (!k) return;
@@ -467,16 +474,23 @@ function pwFensterZeichnen() {
   }
   $("#inhalt").append(el("div", { id: "pjw-fenster" }, el("div", { class: "pjw-schleier", onclick: zu }), el("div", { class: "pjw-fenster", role: "dialog" }, ...teile)));
 }
+/* A2078: was läuft, in Worten; wer es ausgelöst hat, mit Rolle. Modell, Dauer und Kosten nur im Seitenfenster. */
+const pwLaufTitel = l => t("pjw_lt_" + (["gegenlesen", "grobplaner", "feinplaner", "planer", "abschluss"].includes(l.art) ? l.art : "sonst"),
+  { th: l.thema ? `TH${l.thema}` : "", f: l.fassung ?? "", z: l.ziel || "" }).trim();
+const pwLaufWer = l => l.rolle === "mensch" ? t("du") : l.rolle === "amw" ? "AMW" : l.rolle === "lead" || l.rolle === "co" ? `${l.ausloeser} (${t("pjw_rolle_" + l.rolle)})` : l.ausloeser || "";
+function pwLaufZeilen(d, schritt) {
+  return d.laeufe.filter(l => l.schritt === schritt).map(l => el("button", { class: "pjw-laeuft", type: "button", onclick: () => pwOeffne({ art: "lauf", id: l.lauf }) },
+    el("span", { class: "pjw-puls" }), t("pjw_laeuft_gerade", { x: pwLaufTitel(l) }), pwLaufWer(l) ? el("span", { class: "leise" }, " · " + pwLaufWer(l)) : null));
+}
 function pwUeberZeichnen(d) {
   document.getElementById("pjw-ueber")?.remove();
-  const l = d.laeufe.find(x => x.lauf !== zustand.pwLaufZu); if (!l) return;
+  const l = d.laeufe.find(x => x.mein && x.lauf !== zustand.pwLaufZu); if (!l) return;
   const anteil = l.gesamt ? Math.min(1, (l.nr || 0) / l.gesamt) : null, min = s => Math.max(0, Math.round((s || 0) / 60));
-  const titel = t("pjw_l_" + (["grobplaner", "feinplaner", "planer", "abschluss"].includes(l.art) ? l.art : "sonst"));
   $("#inhalt").append(el("div", { id: "pjw-ueber" }, el("div", { class: "pjw-schleier" }), el("div", { class: "pjw-lauf pjw-lauf-ueber", role: "status" },
-    el("div", { class: "pjw-was" }, el("span", { class: "pjw-puls" }), titel),
+    el("div", { class: "pjw-was" }, el("span", { class: "pjw-puls" }), pwLaufTitel(l)),
     l.was ? el("div", {}, l.was) : null,
     anteil !== null ? el("div", { class: "pjw-balken" }, el("span", { style: `width:${Math.round(anteil * 100)}%` })) : null,
-    el("div", { class: "pjw-werte" }, l.agent ? el("span", {}, el("b", {}, l.agent)) : null, el("span", {}, el("b", {}, "Headless")), l.modell ? el("span", {}, el("b", {}, l.modell)) : null,
+    el("div", { class: "pjw-werte" }, pwLaufWer(l) ? el("span", {}, el("b", {}, pwLaufWer(l))) : null,
       el("span", {}, el("b", {}, l.dauer_s ? `${min(l.seit_s)} / ≈ ${min(l.dauer_s)} min` : `${min(l.seit_s)} min`)),
       typeof l.usd === "number" ? el("span", {}, el("b", {}, `${l.usd.toFixed(2)} $`)) : null),
     el("div", { class: "pjw-handlungen" }, pwKnopf(t("pjw_l_hintergrund"), () => { zustand.pwLaufZu = l.lauf; document.getElementById("pjw-ueber")?.remove(); })))));
@@ -510,6 +524,7 @@ async function sichtProjektweg() {
     el("div", { class: "pjw-kopf" }, el("button", { class: "knopf still pjw-zurueck", type: "button", onclick: () => { zustand.pwOffen = false; zeige("projektweg", true); } }, t("pjw_zurueck")),
       el("h2", {}, `${v + 1} · ${t("pjw_s_" + PW_SCHRITTE[v])}`), pwHaupt,
       nochNicht ? pwStatus(t("pjw_noch_nicht")) : el("button", { class: "knopf still", type: "button", onclick: () => { zustand.pwWie = zustand.pwWie === v ? null : v; zeige("projektweg", true); } }, t("pjw_wie"))),
+    ...pwLaufZeilen(d, PW_SCHRITTE[v]),
     nochNicht || zustand.pwWie === v ? wie : null,
     ...(nochNicht ? [] : inhalt.length ? inhalt : [el("div", { class: "leer" }, t("pjw_nichts"))]));
   const heute = new Date().toDateString();

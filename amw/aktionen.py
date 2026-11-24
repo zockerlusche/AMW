@@ -18,6 +18,11 @@ class Ungueltig(ValueError):
     """Eingabe unvollständig oder nicht erlaubt (HTTP 400)."""
 
 
+# A2078: Klicks, die einen Lauf starten, den der Mensch als Fenster sehen will – nicht die Freigabe eines Themas (Folge)
+LAUF_KLICKS = ("/api/projektweg/konzept-abschliessen", "/api/projektweg/ueberarbeiten", "/api/projektweg/pruefung-starten",
+               "/api/meilenstein/fein-neu", "/api/meilenstein/nacharbeit", "/api/meilenstein/neu-planen")
+
+
 def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
     """Führt die Aktion aus. Jede Eingabe des Entwicklers in der Workbench am PC heißt: er sitzt davor – ein freier
     Schirm geht zu. Online (Handy) nicht: er ist unterwegs, der Bildschirm bleibt frei."""
@@ -29,6 +34,8 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         ok, grund = benutzer.darf(con, name, pid, benutzer.klasse(weg, daten))
         if not ok:
             raise Ungueltig(f"Nicht erlaubt: {grund}")
+    from . import planer_fortschritt
+    klick = planer_fortschritt.KLICK.set({"ausloeser": kern.ENTWICKLER, "anlass": "klick"} if kanal == "seite" and weg in LAUF_KLICKS else None)
     marke = benutzer.AKTUELL.set(name if name and name != benutzer.ZUGANG else None)
     try:
         if weg == "/api/schirm":
@@ -36,6 +43,7 @@ def ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
         aus = _ausfuehren(con, pid, weg, daten, kanal, speicher)
     finally:
         benutzer.AKTUELL.reset(marke)
+        planer_fortschritt.KLICK.reset(klick)
     if kanal == "seite" and (weg != "/api/hochladen" or daten.get("schritt") == "start"):   # Upload in Teilen: einmal
         from . import schirm
         schirm.entwickler_da(con, "Workbench")

@@ -404,9 +404,25 @@ def _abnahme_dran(con, pid, schritte, dran, f, u, ab, ich):
     return dran
 
 
+LAUF_SCHRITT = {"gegenlesen": "konzept", "grobplaner": "grob", "feinplaner": "fein", "planer": "fein", "abschluss": "abschluss"}
+
+
+def laeufe(con, pid):
+    """A2078: was gerade läuft – mit Schritt, wer es ausgelöst hat (Rolle) und ob der Mensch es selbst angeklickt hat („mein“:
+    nur dann öffnet sich das Fenster). Alte Einträge ohne Auslöser: kein Fenster."""
+    from . import abschluss as ab, planer_fortschritt
+    aus = []
+    for l in planer_fortschritt.laufende(con, pid) + ab.laufende(con, pid):
+        a = l.get("ausloeser")
+        rolle = ("mensch" if a == kern.ENTWICKLER else "amw" if a == "AMW" else "lead" if a and kern.ist_lead(con, pid, a)
+                 else "co" if a and kern.ist_co(con, pid, a) else "agent" if a else None)
+        aus.append({**l, "schritt": LAUF_SCHRITT.get(l.get("art"), "fein"), "rolle": rolle, "mein": rolle == "mensch" and l.get("anlass") == "klick"})
+    return aus
+
+
 def daten(con, pid):
     """Alles für die Seite in einer Antwort (eine Anfrage je Neuzeichnen, auch online)."""
-    from . import planer_fortschritt, planfunde, verlauf
+    from . import planfunde, verlauf
     s = projektweg.sicht(con, pid)
     fr = s["freigaben"]
     f = fein(con, pid, fr)
@@ -445,6 +461,6 @@ def daten(con, pid):
     dran = _abnahme_dran(con, pid, schritte, dran, f, u, ab, ich)
     return {"schritte": schritte, "dran": dran, "zeile": s["zeile"], "konzept": k, "grob": g,
             "fein": f, "umsetzung": u, "abschluss": ab, "fragen": fragen(con, pid),
-            "laeufe": planer_fortschritt.laufende(con, pid),
+            "laeufe": laeufe(con, pid),
             "verlauf": verlauf_lesbar(verlauf.projektweg(con, pid, grenze=VERLAUF_GRENZE, buendeln=True),
                                       {t["id"]: t["name"] for t in g_themen}, lambda x: planfunde.saetze(con, pid, x))}

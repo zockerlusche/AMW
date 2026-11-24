@@ -294,7 +294,7 @@ def anstossen(con, pid, boegen, von="AMW", hinweis=None, nacharbeit=False) -> di
     """Den Feinplaner für diese Meilensteine anstoßen (nacharbeit, A2029: neue Pakete in einem laufenden Meilenstein, die gleich
     starten) – außer er ist aus, das Projekt ist nicht eingeschaltet, einer läuft
     schon oder die Tagesgrenze der Planer ist erreicht. Rückgabe {"gestartet": bool, "text"}."""
-    from . import planer
+    from . import planer, planer_fortschritt
     boegen = sorted(boegen)
     if os.environ.get("AMW_PLANER_AUS"):
         return {"gestartet": False, "text": "Planer ist aus"}
@@ -312,7 +312,7 @@ def anstossen(con, pid, boegen, von="AMW", hinweis=None, nacharbeit=False) -> di
                                                 " (amw projekt einstellen planer_tagesgrenze_usd=…) und neu planen lassen"}
         fassung = _naechste_fassung(con, pid, boegen)
         werte = {"boegen": boegen, "fassung": fassung, "modell": MODELL, "hinweis": (hinweis or "").strip()[:2000] or None,
-                 **({"nacharbeit": True} if nacharbeit else {})}
+                 **({"nacharbeit": True} if nacharbeit else {}), **planer_fortschritt.ausloeser(von)}
         eid = _ereignis(con, pid, von, ANGESTOSSEN, **werte)
     try:
         prozess = STARTER(pid, boegen, fassung)
@@ -454,7 +454,8 @@ def ausfuehren(con, pid, boegen, fassung, prog=None, zusatz=None):
     lid = betrieb.lauf_start(con, pid, agent, f"Feinplaner {namen} Fassung {fassung} ({modell}, A2031, automatisch)", None,
                              False, False, None, warten=True, waechter=os.getpid(), befehl=None, ordner=None, selbst=True)
     belegung.lauf_merken(lid, os.getpid())
-    fortschritt = functools.partial(planer_fortschritt.melden_still, con, pid, lid, art=FORTSCHRITT, agent=agent, modell=modell)
+    fortschritt = functools.partial(planer_fortschritt.melden_still, con, pid, lid, art=FORTSCHRITT, agent=agent, modell=modell, ziel=namen, fassung=fassung,
+                                    **planer_fortschritt.vom(an))
     fortschritt(was=f"Feinplan {namen} Fassung {fassung}: wartet auf einen Platz in der Lauf-Schlange",
                 dauer_s=planer_fortschritt.schaetzung(con, pid, FORTSCHRITT), sofort=True)
     aus = None

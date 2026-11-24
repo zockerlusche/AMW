@@ -146,7 +146,7 @@ def pflegen(con, pid, von, name, text):
             _ereignis(con, pid, von, "vorgelegt", t["id"], fassung=nr)
     if von != kern.ENTWICKLER:                       # A1914: erst gegenlesen, dann wartet sie auf den Menschen
         from . import gegenlesen
-        gegenlesen.anstossen(con, pid, t["id"], nr)
+        gegenlesen.anstossen(con, pid, t["id"], nr, von=von)
     thema_geaendert(con, pid, t["id"], nr)           # A1915: betroffene Aufgaben prüfen lassen
     return nr
 

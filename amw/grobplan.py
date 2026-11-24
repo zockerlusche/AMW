@@ -245,7 +245,8 @@ def anstossen(con, pid, von="AMW"):
             return (f"Tagesgrenze der Planer erreicht ({usd:.2f} von {grenze:.2f} $) – Grenze erhöhen (amw projekt einstellen"
                     " planer_tagesgrenze_usd=…) und neu planen lassen")
         fassung = _naechste_fassung(con, pid)
-        eid = _ereignis(con, pid, von, ANGESTOSSEN, fassung=fassung, modell=MODELL, themen=_stand(frei))
+        wer = planer_fortschritt.ausloeser(von)               # A2078
+        eid = _ereignis(con, pid, von, ANGESTOSSEN, fassung=fassung, modell=MODELL, themen=_stand(frei), **wer)
     try:
         prozess = STARTER(pid, fassung)
     except OSError as e:
@@ -253,7 +254,7 @@ def anstossen(con, pid, von="AMW"):
         return f"Grob-Planer ließ sich nicht starten ({e})"
     with db.schreiben(con):
         con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?",
-                    (json.dumps({"fassung": fassung, "modell": MODELL, "themen": _stand(frei), "prozess": prozess},
+                    (json.dumps({"fassung": fassung, "modell": MODELL, "themen": _stand(frei), "prozess": prozess, **wer},
                                 ensure_ascii=False), eid))
     return f"Grobplan Fassung {fassung}: Planer ({MODELL}) angestoßen – {len(frei)} Themen"
 
@@ -315,7 +316,8 @@ def ausfuehren(con, pid, fassung, prog=None, zusatz=None):
     lid = betrieb.lauf_start(con, pid, agent, f"Grob-Planer Fassung {fassung} ({modell}, {len(frei)} Themen, A2030, automatisch)", None,
                              False, False, None, warten=True, waechter=os.getpid(), befehl=None, ordner=None, selbst=True)
     belegung.lauf_merken(lid, os.getpid())
-    fortschritt = functools.partial(planer_fortschritt.melden_still, con, pid, lid, art=FORTSCHRITT, agent=agent, modell=modell)
+    fortschritt = functools.partial(planer_fortschritt.melden_still, con, pid, lid, art=FORTSCHRITT, agent=agent, modell=modell, fassung=fassung,
+                                    **planer_fortschritt.vom(an))
     fortschritt(was=f"Grobplan Fassung {fassung}: wartet auf einen Platz in der Lauf-Schlange",
                 dauer_s=planer_fortschritt.schaetzung(con, pid, FORTSCHRITT), sofort=True)
     aus = None

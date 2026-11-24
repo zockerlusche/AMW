@@ -1335,6 +1335,7 @@ button.pjw-karte:hover { background: var(--flaeche2); }
 .pjw-chip.an { border-color: var(--linie2); color: var(--tinte); }
 .pjw-balken { position: relative; height: 6px; border-radius: 3px; background: var(--flaeche2); overflow: hidden; }
 .pjw-balken span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--gruen); }
+.pjw-laeuft { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; border: 0; background: none; padding: 2px 0; color: var(--leise); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
 .pjw-lauf { border: 1px solid var(--linie2); border-radius: 8px; padding: 12px 16px; background: var(--flaeche); display: flex; flex-direction: column; gap: 8px; }
 .pjw-was { font: 600 16px var(--titel); }
 .pjw-puls { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--gruen); margin-right: 8px; animation: pjw-puls 1.2s ease-in-out infinite; vertical-align: middle; }
@@ -1811,8 +1812,9 @@ const TEXTE = {
     pjw_fragt: "{x} fragt", pjw_aus_paket: "aus Paket „{x}“", pjw_status: "Status", pjw_reihenfolge: "Reihenfolge", pjw_aufwand: "Aufwand", pjw_kosten: "Kosten",
     pjw_themen: "Themen", pjw_ziel: "Ziel", pjw_wer: "Wer", pjw_modell: "Modell", pjw_groesse: "Größe", pjw_dateien: "Dateien",
     pjw_abnahme: "Abnahme", pjw_nach_k: "Nach", pjw_auftrag: "Auftrag", pjw_thema_oeffnen: "Thema öffnen →", pjw_ergaenzen: "Ergänzen oder ändern", pjw_ergaenzen_ph: "geht als Hinweis an den Planer",
-    pjw_als_hinweis: "Als Hinweis an den Planer", pjw_ok_hinweis: "Hinweis gemerkt – „Überarbeiten lassen“ gibt ihn an den Planer.", pjw_mit_hinweis: "Überarbeiten lassen mit diesem Hinweis", pjw_schliessen: "Schließen", pjw_l_grobplaner: "Planer liest die Themen", pjw_l_feinplaner: "Planer zerlegt den Meilenstein in Pakete",
-    pjw_l_planer: "Planer plant die Änderung eines Themas", pjw_l_abschluss: "Prüfer gleicht gegen das Konzept ab", pjw_l_sonst: "Planer arbeitet", pjw_l_hintergrund: "Im Hintergrund weiterlaufen lassen", n_themen: "Themen", th2_stand: "Konzept · {n} von {g} Themen freigegeben",
+    pjw_als_hinweis: "Als Hinweis an den Planer", pjw_ok_hinweis: "Hinweis gemerkt – „Überarbeiten lassen“ gibt ihn an den Planer.", pjw_mit_hinweis: "Überarbeiten lassen mit diesem Hinweis", pjw_schliessen: "Schließen", pjw_lt_gegenlesen: "Gegenleser prüft {th} Fassung {f}", pjw_lt_grobplaner: "Grob-Planer plant Fassung {f}",
+    pjw_lt_feinplaner: "Feinplaner zerlegt {z} in Pakete", pjw_lt_planer: "Planer der Änderung plant {th} Fassung {f}", pjw_lt_abschluss: "Prüfer gleicht {z} gegen das Konzept ab", pjw_lt_sonst: "Planer arbeitet", pjw_laeuft_gerade: "läuft gerade: {x}", pjw_rolle_lead: "Lead",
+    pjw_rolle_co: "Co-Entwickler", pjw_lauf_was: "Gerade", pjw_lauf_dauer: "Dauer", pjw_l_hintergrund: "Im Hintergrund weiterlaufen lassen", n_themen: "Themen", th2_stand: "Konzept · {n} von {g} Themen freigegeben",
     th2_leer: "Noch keine Themen.", th2_waehlen: "Thema wählen.", th2_dich: "wartet auf dich", th2_pruefen: "neu prüfen", th2_arbeit: "in Arbeit", th2_frei: "freigegeben",
     th2_markiert: "zum Löschen markiert", th2_grund: "wegen: {x}", th2_ja_fehlt: "Ja fehlt noch: {x}", th2_nur_mensch: "Gibst nur du frei (Löschen, Kosten, Schema oder Außenwirkung)", ua_bereit: "„{x}“ ist bereit zur Abnahme", ua_gemeldet: "gemeldet von {r}",
     ua_pruefung: "Prüfung {r} grün", ua_dokument: "Ergebnis {r} abgelegt", ua_offen: "{n} offene Kriterien hakt dein Ja ab", ua_offen1: "1 offenes Kriterium hakt dein Ja ab", ua_ja: "Ja", ua_zurueck: "Zurück",
@@ -2218,8 +2220,9 @@ const TEXTE = {
     pjw_fragt: "{x} asks", pjw_aus_paket: "from package “{x}”", pjw_status: "Status", pjw_reihenfolge: "Order", pjw_aufwand: "Effort", pjw_kosten: "Cost",
     pjw_themen: "Topics", pjw_ziel: "Goal", pjw_wer: "Who", pjw_modell: "Model", pjw_groesse: "Size", pjw_dateien: "Files",
     pjw_abnahme: "Acceptance", pjw_nach_k: "After", pjw_auftrag: "Task", pjw_thema_oeffnen: "Open topic →", pjw_ergaenzen: "Add or change", pjw_ergaenzen_ph: "goes to the planner as a note",
-    pjw_als_hinweis: "Send as note to the planner", pjw_ok_hinweis: "Note kept – “Have it revised” passes it to the planner.", pjw_mit_hinweis: "Have it revised with this note", pjw_schliessen: "Close", pjw_l_grobplaner: "Planner reads the topics", pjw_l_feinplaner: "Planner splits the milestone into packages",
-    pjw_l_planer: "Planner plans a topic change", pjw_l_abschluss: "Checker compares against the concept", pjw_l_sonst: "Planner at work", pjw_l_hintergrund: "Let it run in the background", n_themen: "Topics", th2_stand: "Concept · {n} of {g} topics approved",
+    pjw_als_hinweis: "Send as note to the planner", pjw_ok_hinweis: "Note kept – “Have it revised” passes it to the planner.", pjw_mit_hinweis: "Have it revised with this note", pjw_schliessen: "Close", pjw_lt_gegenlesen: "Reviewer checks {th} version {f}", pjw_lt_grobplaner: "Rough planner plans version {f}",
+    pjw_lt_feinplaner: "Detail planner splits {z} into packages", pjw_lt_planer: "Change planner plans {th} version {f}", pjw_lt_abschluss: "Checker compares {z} with the concept", pjw_lt_sonst: "Planner is working", pjw_laeuft_gerade: "running now: {x}", pjw_rolle_lead: "lead",
+    pjw_rolle_co: "co-developer", pjw_lauf_was: "Now", pjw_lauf_dauer: "Duration", pjw_l_hintergrund: "Let it run in the background", n_themen: "Topics", th2_stand: "Concept · {n} of {g} topics approved",
     th2_leer: "No topics yet.", th2_waehlen: "Pick a topic.", th2_dich: "waiting for you", th2_pruefen: "check again", th2_arbeit: "in progress", th2_frei: "approved",
     th2_markiert: "marked for deletion", th2_grund: "because of: {x}", th2_ja_fehlt: "Still missing a yes from: {x}", th2_nur_mensch: "Only you approve this (deletion, cost, schema or external effect)", ua_bereit: "“{x}” is ready for your acceptance", ua_gemeldet: "reported by {r}",
     ua_pruefung: "review {r} green", ua_dokument: "result {r} filed", ua_offen: "your yes ticks {n} open criteria", ua_offen1: "your yes ticks 1 open criterion", ua_ja: "Yes", ua_zurueck: "Send back",
@@ -4700,6 +4703,13 @@ function pwFensterZeichnen() {
       [t("pjw_abnahme"), p.pruefbefehl || "–"], [t("pjw_nach_k"), p.nach.length ? p.nach.map(titelVon).join(" · ") : "–"], [t("pjw_auftrag"), p.auftrag_mehr ? pwAuftragMehr(p) : p.auftrag || "–"]];
     if (!API && !ms.frei && !ms.laeuft) hinweis = { bogen: ms.bogen, zu: `A${p.id}` };
   }
+  else if (w.art === "lauf") {                                           /* A2078: Modell, Dauer, Kosten nur hier */
+    const l = d.laeufe.find(y => y.lauf === w.id); if (!l) return;
+    const min = s => `${Math.max(0, Math.round((s || 0) / 60))} min`;
+    titel = pwLaufTitel(l);
+    felder = [[t("pjw_wer"), pwLaufWer(l) || "–"], [t("pjw_lauf_was"), l.was || "–"], [t("pjw_modell"), l.modell || "–"],
+      [t("pjw_lauf_dauer"), l.dauer_s ? `${min(l.seit_s)} / ≈ ${min(l.dauer_s)}` : min(l.seit_s)], [t("pjw_kosten"), typeof l.usd === "number" ? `${l.usd.toFixed(2)} $` : "–"]];
+  }
   else if (w.art === "dpaket") {                                         /* A2065: Paket eines Entwurfs – das Technische nur hier */
     const x = d.fein.delta.find(y => y.thema === w.thema), k = x?.karten.find(y => y.schluessel === w.id);
     if (!k) return;
@@ -4720,16 +4730,23 @@ function pwFensterZeichnen() {
   }
   $("#inhalt").append(el("div", { id: "pjw-fenster" }, el("div", { class: "pjw-schleier", onclick: zu }), el("div", { class: "pjw-fenster", role: "dialog" }, ...teile)));
 }
+/* A2078: was läuft, in Worten; wer es ausgelöst hat, mit Rolle. Modell, Dauer und Kosten nur im Seitenfenster. */
+const pwLaufTitel = l => t("pjw_lt_" + (["gegenlesen", "grobplaner", "feinplaner", "planer", "abschluss"].includes(l.art) ? l.art : "sonst"),
+  { th: l.thema ? `TH${l.thema}` : "", f: l.fassung ?? "", z: l.ziel || "" }).trim();
+const pwLaufWer = l => l.rolle === "mensch" ? t("du") : l.rolle === "amw" ? "AMW" : l.rolle === "lead" || l.rolle === "co" ? `${l.ausloeser} (${t("pjw_rolle_" + l.rolle)})` : l.ausloeser || "";
+function pwLaufZeilen(d, schritt) {
+  return d.laeufe.filter(l => l.schritt === schritt).map(l => el("button", { class: "pjw-laeuft", type: "button", onclick: () => pwOeffne({ art: "lauf", id: l.lauf }) },
+    el("span", { class: "pjw-puls" }), t("pjw_laeuft_gerade", { x: pwLaufTitel(l) }), pwLaufWer(l) ? el("span", { class: "leise" }, " · " + pwLaufWer(l)) : null));
+}
 function pwUeberZeichnen(d) {
   document.getElementById("pjw-ueber")?.remove();
-  const l = d.laeufe.find(x => x.lauf !== zustand.pwLaufZu); if (!l) return;
+  const l = d.laeufe.find(x => x.mein && x.lauf !== zustand.pwLaufZu); if (!l) return;
   const anteil = l.gesamt ? Math.min(1, (l.nr || 0) / l.gesamt) : null, min = s => Math.max(0, Math.round((s || 0) / 60));
-  const titel = t("pjw_l_" + (["grobplaner", "feinplaner", "planer", "abschluss"].includes(l.art) ? l.art : "sonst"));
   $("#inhalt").append(el("div", { id: "pjw-ueber" }, el("div", { class: "pjw-schleier" }), el("div", { class: "pjw-lauf pjw-lauf-ueber", role: "status" },
-    el("div", { class: "pjw-was" }, el("span", { class: "pjw-puls" }), titel),
+    el("div", { class: "pjw-was" }, el("span", { class: "pjw-puls" }), pwLaufTitel(l)),
     l.was ? el("div", {}, l.was) : null,
     anteil !== null ? el("div", { class: "pjw-balken" }, el("span", { style: `width:${Math.round(anteil * 100)}%` })) : null,
-    el("div", { class: "pjw-werte" }, l.agent ? el("span", {}, el("b", {}, l.agent)) : null, el("span", {}, el("b", {}, "Headless")), l.modell ? el("span", {}, el("b", {}, l.modell)) : null,
+    el("div", { class: "pjw-werte" }, pwLaufWer(l) ? el("span", {}, el("b", {}, pwLaufWer(l))) : null,
       el("span", {}, el("b", {}, l.dauer_s ? `${min(l.seit_s)} / ≈ ${min(l.dauer_s)} min` : `${min(l.seit_s)} min`)),
       typeof l.usd === "number" ? el("span", {}, el("b", {}, `${l.usd.toFixed(2)} $`)) : null),
     el("div", { class: "pjw-handlungen" }, pwKnopf(t("pjw_l_hintergrund"), () => { zustand.pwLaufZu = l.lauf; document.getElementById("pjw-ueber")?.remove(); })))));
@@ -4763,6 +4780,7 @@ async function sichtProjektweg() {
     el("div", { class: "pjw-kopf" }, el("button", { class: "knopf still pjw-zurueck", type: "button", onclick: () => { zustand.pwOffen = false; zeige("projektweg", true); } }, t("pjw_zurueck")),
       el("h2", {}, `${v + 1} · ${t("pjw_s_" + PW_SCHRITTE[v])}`), pwHaupt,
       nochNicht ? pwStatus(t("pjw_noch_nicht")) : el("button", { class: "knopf still", type: "button", onclick: () => { zustand.pwWie = zustand.pwWie === v ? null : v; zeige("projektweg", true); } }, t("pjw_wie"))),
+    ...pwLaufZeilen(d, PW_SCHRITTE[v]),
     nochNicht || zustand.pwWie === v ? wie : null,
     ...(nochNicht ? [] : inhalt.length ? inhalt : [el("div", { class: "leer" }, t("pjw_nichts"))]));
   const heute = new Date().toDateString();

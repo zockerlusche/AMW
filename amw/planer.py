@@ -838,7 +838,8 @@ def anstossen(con, pid, tid, fassung, von="AMW", erneut=False):
         grenze = _grenze_erreicht(con, pid, tid, fassung, kern.lead(con, pid))   # A1970: Kosten je Projekt und Tag
         if grenze:
             return grenze
-        eid = _ereignis(con, pid, von, ANGESTOSSEN, tid, fassung=fassung, modell=modell)
+        wer = planer_fortschritt.ausloeser(von)           # A2078
+        eid = _ereignis(con, pid, von, ANGESTOSSEN, tid, fassung=fassung, modell=modell, **wer)
     try:
         prozess = STARTER(pid, tid, fassung)
     except OSError as e:                                  # ließ sich nicht starten → Entwurf mit Fehler, der Lead erfährt es
@@ -846,7 +847,7 @@ def anstossen(con, pid, tid, fassung, von="AMW", erneut=False):
         return f"TH{tid}: Planer ließ sich nicht starten ({e})"
     with db.schreiben(con):
         con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?",
-                    (json.dumps({"thema": int(tid), "fassung": fassung, "modell": modell, "prozess": prozess}, ensure_ascii=False), eid))
+                    (json.dumps({"thema": int(tid), "fassung": fassung, "modell": modell, "prozess": prozess, **wer}, ensure_ascii=False), eid))
     return f"TH{tid} Fassung {fassung}: Planer ({modell}) angestoßen"
 
 
@@ -973,7 +974,7 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
     belegung.lauf_merken(lid, os.getpid())
     name = f"TH{tid}" + (f" {t['name']}" if t else "")
     fortschritt = functools.partial(planer_fortschritt.melden_still, con, pid, lid, art="planer", thema=tid, agent=agent,
-                                    modell=modell)            # A2025: Stand in der AMW, gedrosselt
+                                    modell=modell, fassung=fassung, **planer_fortschritt.vom((_angestossen(con, pid, tid) or [{}])[-1]))            # A2025: Stand in der AMW, gedrosselt
     fortschritt(was=f"{name}: wartet auf einen Platz in der Lauf-Schlange",
                 dauer_s=planer_fortschritt.schaetzung(con, pid, "planer"), sofort=True)
     aus = None

@@ -291,6 +291,87 @@ class KartenUndVerlauf(Grund):
         self.assertEqual(projektweg_seite.verlauf_lesbar([{"art": "meilenstein_frei", "rolle": "mensch", "text": "M3: Abschluss freigegeben"}], {})[0]["schritt"], "abschluss")
 
 
+class Ausloeser(Grund):
+    """A2078: wer einen Lauf ausgelöst hat – das Fenster nur beim eigenen Klick auf der Seite."""
+    def setUp(self):
+        super().setUp()
+        from amw import abschluss, feinplanung, gegenlesen, schalter
+        u = mock.patch.dict(os.environ)
+        u.start()
+        self.addCleanup(u.stop)
+        os.environ["AMW_GEGENLESEN_AUS"] = "1"                                             # nur ein Test lässt gegenlesen
+        os.environ.pop("AMW_PLANER_AUS", None)
+        for ziel in (gegenlesen, feinplanung, abschluss):
+            m = mock.patch.object(ziel, "STARTER", lambda *a, **k: 4711)
+            m.start()
+            self.addCleanup(m.stop)
+        with db.schreiben(self.con):
+            schalter._setzen(self.con, self.pid, "an")
+
+    def an(self, art):
+        return [json.loads(r[0]) for r in self.con.execute("SELECT text FROM plan_ereignis WHERE art = ? ORDER BY id", (art,))]
+
+    def lauf(self):
+        with db.schreiben(self.con):
+            return db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="TL", beschreibung="x", status="laeuft", angemeldet_utc=db.jetzt(), start_utc=db.jetzt())
+
+    def test_gegenleser_eines_agenten(self):
+        os.environ.pop("AMW_GEGENLESEN_AUS")
+        tid = themen.neu(self.con, self.pid, "TL", "Neu", pfleger="CC1")
+        themen.pflegen(self.con, self.pid, "CC1", tid, "Ein Text.")
+        e = self.an("thema_gegenlesen")[-1]
+        self.assertEqual((e["ausloeser"], e.get("anlass")), ("CC1", None))
+
+    def test_klick_auf_der_seite_und_kein_klick_danach(self):
+        demo(self.con, self.pid, "konzept")
+        aktionen.ausfuehren(self.con, self.pid, "/api/projektweg/konzept-abschliessen", {})
+        e = self.an("grobplan_angestossen")[-1]
+        self.assertEqual((e["ausloeser"], e["anlass"], e["prozess"]), (kern.ENTWICKLER, "klick", 4711))   # bleibt auch nach dem Start stehen
+        self.assertIsNone(planer_fortschritt.KLICK.get())
+        grobplan.entwurf_eintragen(self.con, self.pid, 1, None, fehler="x")
+        grobplan.anstossen(self.con, self.pid, von="TL")
+        e = self.an("grobplan_angestossen")[-1]
+        self.assertEqual((e["ausloeser"], e.get("anlass")), ("TL", None))
+
+    def test_themen_ja_ist_eine_folge_kein_fenster(self):
+        t = demo(self.con, self.pid, "fein")
+        themen.pflegen(self.con, self.pid, "CC1", t[2], "Neue Fassung.")
+        aktionen.ausfuehren(self.con, self.pid, "/api/thema/freigeben", {"thema": t[2]})
+        e = self.an("thema_planer")[-1]
+        self.assertEqual((e["ausloeser"], e.get("anlass")), ("AMW", None))
+
+    def test_laeufe_mit_schritt_rolle_und_mein(self):
+        kern.agent_neu(self.con, self.pid, "Co")
+        kern.projekt_einstellen(self.con, self.pid, "TL", co_entwickler="Co")
+        for kw in (dict(art="gegenlesen", thema=3, fassung=8, ausloeser="TL"), dict(art="planer", thema=3, fassung=2, ausloeser="Co"),
+                   dict(art="feinplaner", ziel="M1", ausloeser="AMW"), dict(art="grobplaner", fassung=1, ausloeser=kern.ENTWICKLER, anlass="klick"),
+                   dict(art="grobplaner", fassung=1, ausloeser=kern.ENTWICKLER), dict(art="grobplaner", fassung=1)):    # zuletzt: ohne Klick, alter Eintrag
+            planer_fortschritt.melden(self.con, self.pid, self.lauf(), was="x", sofort=True, **kw)
+        x = {(l["art"], l["ausloeser"], l["anlass"]): (l["schritt"], l["rolle"], l["mein"]) for l in self.daten()["laeufe"]}
+        self.assertEqual(x[("gegenlesen", "TL", None)], ("konzept", "lead", False))
+        self.assertEqual(x[("planer", "Co", None)], ("fein", "co", False))
+        self.assertEqual(x[("feinplaner", "AMW", None)], ("fein", "amw", False))
+        self.assertEqual(x[("grobplaner", kern.ENTWICKLER, "klick")], ("grob", "mensch", True))
+        self.assertEqual(x[("grobplaner", kern.ENTWICKLER, None)], ("grob", "mensch", False))
+        self.assertEqual(x[("grobplaner", None, None)], ("grob", None, False))
+
+    def test_der_lauf_reicht_den_ausloeser_weiter(self):
+        t = demo(self.con, self.pid, "fein")
+        with db.schreiben(self.con):
+            planer._ereignis(self.con, self.pid, "AMW", planer.ANGESTOSSEN, t[0], fassung=1, modell="sonnet", ausloeser=kern.ENTWICKLER, anlass="klick")
+        with mock.patch.object(planer, "planen", return_value={"ergebnis": "kein JSON", "usd": 0.1, "fehler": None}):
+            planer.ausfuehren(self.con, self.pid, t[0], 1)
+        s = [l for l in planer_fortschritt.alle(self.con, self.pid) if l["art"] == "planer"][0]
+        self.assertEqual((s["ausloeser"], s["anlass"], s["fassung"]), (kern.ENTWICKLER, "klick", 1))
+
+    def test_pruefung_starten_laeuft_als_mein(self):
+        demo(self.con, self.pid, "abschluss-ohne")
+        x = self.daten()["abschluss"][0]
+        aktionen.ausfuehren(self.con, self.pid, "/api/projektweg/pruefung-starten", {"bogen": x["bogen"]})
+        l = [y for y in self.daten()["laeufe"] if y["art"] == "abschluss"]
+        self.assertEqual([(y["ziel"], y["schritt"], y["mein"]) for y in l], [(f"M{x['nr']}", "abschluss", True)])
+
+
 class UebernahmeImVerlauf(Grund):
     """A2075: die Übernahme des Bestands ist EINE Zeile in der Grobplanung; echte Freigaben bleiben einzeln."""
     def test_eine_zeile_in_der_grobplanung(self):
@@ -576,7 +657,8 @@ class Seite(Rundgang):
         with db.schreiben(self.con):
             lid = db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="AMW", beschreibung="Grob-Planer", status="laeuft",
                                angemeldet_utc=db.jetzt(), start_utc=db.jetzt())
-        planer_fortschritt.melden(self.con, self.pid, lid, art="grobplaner", modell="opus", was="Thema 2 von 4", nr=2, gesamt=4, usd=0.3)
+        planer_fortschritt.melden(self.con, self.pid, lid, art="grobplaner", modell="opus", was="Thema 2 von 4", nr=2, gesamt=4, usd=0.3,
+                                  ausloeser=kern.ENTWICKLER, anlass="klick")                 # A2078: nur der eigene Klick öffnet das Fenster
         self.oeffnen("projektweg", "document.querySelector('#pjw-ueber .pjw-lauf')")
         self.assertIn("Thema 2 von 4", self.tab.js("document.querySelector('#pjw-ueber').innerText"))
         planer_fortschritt.melden(self.con, self.pid, lid, zustand="fertig", sofort=True)
@@ -730,6 +812,53 @@ class SeiteUebernahme(Rundgang):
                                        tun=f"zustand.pwSicht = {schritt}; zustand.pwOffen = true; zeige('projektweg', true)",
                                        danach="document.querySelector('.pjw-ansicht')", g=g, t=th)
                 self.assertEqual(fehler, [], f"{g} {th}")
+
+
+class SeiteLaeuft(Rundgang):
+    """A2078: Lauf eines Agenten = Zeile am Schritt, kein Fenster; eigener Klick = Fenster, auch nach Neuladen; alter Eintrag = kein Fenster."""
+    def daten(self):
+        kern.agent_neu(self.con, self.pid, "CC1")
+        for ziel in (grobplan, planer):
+            p = mock.patch.object(ziel, "STARTER", lambda *a, **k: 4711)
+            p.start()
+            self.addCleanup(p.stop)
+        self.t = demo(self.con, self.pid, "grob1")
+
+    def melden(self, **kw):
+        with db.schreiben(self.con):
+            lid = db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="TL", beschreibung="x", status="laeuft", angemeldet_utc=db.jetzt(), start_utc=db.jetzt())
+        planer_fortschritt.melden(self.con, self.pid, lid, modell="opus", was="Thema wird gelesen", sofort=True, **kw)
+
+    def test_agent_zeile_klick_fenster_alter_eintrag(self):
+        self.melden(art="gegenlesen", thema=self.t[2], fassung=8, ausloeser="TL")
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.tab.js("zustand.pwSicht = 0; zustand.pwOffen = true; zeige('projektweg', true)")
+        self.warten("document.querySelector('.pjw-laeuft')")
+        zeile = self.tab.js("document.querySelector('.pjw-laeuft').innerText")
+        self.assertIn(f"Gegenleser prüft TH{self.t[2]} Fassung 8", zeile)
+        self.assertIn("TL (Lead)", zeile)
+        self.assertNotIn("opus", zeile)
+        self.assertFalse(self.tab.js("!!document.querySelector('#pjw-ueber')"))
+        self.tab.js("document.querySelector('.pjw-laeuft').click(); 1")
+        self.warten("document.querySelector('#pjw-fenster') && document.querySelector('#pjw-fenster').innerText.includes('opus')")
+        self.tab.js("zustand.pwFenster = null; document.getElementById('pjw-fenster').remove(); 1")
+        self.melden(art="grobplaner", fassung=2)                                       # alter Eintrag ohne Auslöser
+        self.tab.js("zeige('projektweg', true)")
+        self.warten("zustand.pwDaten.laeufe.length === 2")
+        self.assertFalse(self.tab.js("!!document.querySelector('#pjw-ueber')"))
+        self.melden(art="grobplaner", fassung=2, ausloeser=kern.ENTWICKLER, anlass="klick")
+        self.tab.js("zeige('projektweg', true)")
+        self.warten("document.querySelector('#pjw-ueber')")
+        self.assertIn("Grob-Planer plant Fassung 2", self.tab.js("document.querySelector('#pjw-ueber').innerText"))
+        self.oeffnen("projektweg", "document.querySelector('#pjw-ueber .pjw-lauf')")    # wieder geöffnet: noch da, solange er läuft
+
+    def test_rundgang(self):
+        self.melden(art="gegenlesen", thema=self.t[2], fassung=8, ausloeser="TL")
+        for g, th in (("pc", "hell"), ("handy", "dunkel")):
+            fehler = self.besuchen("projektweg", "projektweg-laeuft", bereit="document.querySelector('.pjw-schritt')",
+                                   tun="zustand.pwSicht = 0; zustand.pwOffen = true; zeige('projektweg', true)",
+                                   danach="document.querySelector('.pjw-laeuft')", g=g, t=th)
+            self.assertEqual(fehler, [], f"{g} {th}")
 
 
 class SeiteOhnePruefung(Rundgang):
