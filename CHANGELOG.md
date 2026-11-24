@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.179.0 – 24.11.2026 · Änderungen am Konzept als ein Block, Hinweise an den Planer
+- **Neu:** Änderst du ein schon geplantes Thema, schlägt der Planer nur die Änderung vor – neue Pakete, geänderte oder nicht mehr nötige, die noch nicht begonnen sind. Du gibst sie als einen Block frei.
+- **Neu:** Passt an einem Entwurf etwas nicht, gib dem Planer einen Hinweis zu einer Karte und lass ihn überarbeiten; jede Fassung bleibt sichtbar, Neues, Geändertes und Entfallenes ist markiert.
+
 ## 1.178.0 – 24.11.2026 · Rollende Feinplanung: der nächste Meilenstein ist geplant, bevor der laufende fertig ist
 - **Neu:** Die AMW plant den nächsten Meilenstein selbst fein, sobald der laufende bereit zur Abnahme ist oder sein letztes Paket läuft: ein Planer zerlegt ihn in Pakete mit Ziel, Thema, Dateien, Abnahme, Abhängigkeiten und wer sie ausführt.
 - **Neu:** „Plan freigeben und starten“ – dein Ja zum Feinplan ist zugleich der Start, auch während der vorige Meilenstein noch auf deine Abnahme wartet.
