@@ -130,7 +130,9 @@ let pwTakt = null, pwHaupt = null, pwStand = null;   /* pwStand: zuletzt gezeich
 const pwDranNr = d => d.dran ? PW_SCHRITTE.indexOf(d.dran) : 4;
 const pwM = m => "M" + m.nr;                         /* eine Nummer je Meilenstein: die Projektnummer (TH156, TL #32159 Punkt 7) */
 const pwThemaName = (d, id) => (d.konzept.themen.find(x => x.id === id) || {}).name || "";
-const pwFeinOffen = d => d.fein.meilensteine.find(m => (!m.frei || m.delta_start) && !m.laeuft && (m.pakete.length || m.fehler) && m.status === "geplant");   /* A2061: laufende sind Umsetzung */
+const pwFeinOffen = d => { const o = d.fein.meilensteine.filter(m => (!m.frei || m.delta_start) && !m.laeuft && (m.pakete.length || m.fehler) && m.status === "geplant");
+  return o.find(m => !m.fehler) || o[0]; };                            /* ein Plan, der auf dich wartet, geht vor einem abgelehnten */
+const pwPakete = n => n === 1 ? t("pjw_ein_paket") : t("pjw_so_viele_pakete", { n });   /* A2061: laufende sind Umsetzung */
 function pwFragenIn(d, i) {                    /* Paket im laufenden Meilenstein → Umsetzung, sonst Feinplan; ohne Paket → wo es gerade steht */
   const aktiv = new Set(d.umsetzung.meilensteine.map(m => m.bogen)), dran = Math.min(pwDranNr(d), 3);
   return d.fragen.filter(f => f.bogen ? (aktiv.has(f.bogen) ? 3 : 2) === i : i === dran);
@@ -149,10 +151,10 @@ function pwWert(d, i) {
     if (!g.fassungen.length && (g.bestand || []).length) return t("pjw_w_grob_bestand", { n: g.bestand.length });
     const l = g.fassungen.at(-1); return l ? t("pjw_fassung", { n: l.fassung }) : "–"; }
   if (i === 2) { const l = f.meilensteine.find(m => m.laeuft); if (l) return t("pjw_in_arbeit");
-    const w = pwFeinOffen(d); if (w) return w.fehler ? t("pjw_w_fein_fehler", { m: pwM(w) }) : t("pjw_w_fein", { m: pwM(w), n: w.pakete.length });
+    const w = pwFeinOffen(d); if (w) return w.fehler ? t("pjw_w_fein_fehler", { m: pwM(w) }) : t("pjw_w_fein", { m: pwM(w), p: pwPakete(w.pakete.length) });
     if (f.delta_fehler.length && !f.delta.length) return f.delta_fehler.length === 1 ? t("pjw_w_delta_fehler1", { t: `TH${f.delta_fehler[0].thema}` })   /* A2076 */
       : t("pjw_w_delta_fehler_n", { n: f.delta_fehler.length });
-    if (f.delta.length) return f.delta.length === 1 ? t("pjw_w_delta1", { t: `TH${f.delta[0].thema}`, n: f.delta[0].karten.length })   /* A2068 */
+    if (f.delta.length) return f.delta.length === 1 ? t("pjw_w_delta1", { t: `TH${f.delta[0].thema}`, p: pwPakete(f.delta[0].karten.length) })   /* A2068 */
       : t("pjw_w_delta_n", { n: f.delta.length });
     const z = f.meilensteine.filter(m => m.frei && m.status !== "fertig").at(-1); return z ? `${pwM(z)} · ${t("pjw_freigegeben")}` : "–"; }
   if (i === 3) { const ms = u.meilensteine; if (!ms.length) return "–";
@@ -250,22 +252,24 @@ function pwGrob(d) {
 }
 function pwFein(d) {
   const f = d.fein, teile = [];
-  const planWartet = !API && !!pwFeinOffen(d);                         /* eine Hauptaktion je Ansicht (TH156, TL #32217): zuerst der Plan */
+  const offenerPlan = pwFeinOffen(d), lead = f.lead_klaert;
+  const planWartet = !API && !!offenerPlan && !(offenerPlan.fehler && lead);                         /* eine Hauptaktion je Ansicht (TH156, TL #32217): zuerst der Plan */
   f.delta.forEach((x, i) => teile.push(pwDeltaKarte(x, f.delta.length === 1 && !planWartet, !planWartet && i === 0)));   /* A2065: Karten statt Textwand */
-  f.delta_fehler.forEach((x, i) => teile.push(pwDeltaFehler(x, !planWartet && !f.delta.length && i === 0)));   /* A2076 */
+  f.delta_fehler.forEach((x, i) => teile.push(pwDeltaFehler(x, !lead && !planWartet && !f.delta.length && i === 0, lead)));   /* A2076 */
   if (!f.meilensteine.length) return teile.concat(teile.length ? [] : [el("div", { class: "leer" }, t("pjw_f_leer"))]);
   const offen = f.meilensteine.filter(m => m.status !== "fertig");                  /* A2061: fertige Meilensteine nicht in der Auswahl */
   const gew = f.meilensteine.find(m => m.bogen === zustand.pwMs) || pwFeinOffen(d) || f.meilensteine.find(m => m.laeuft) || offen.at(-1) || f.meilensteine.at(-1);
   const chips = offen.includes(gew) ? offen : [...offen, gew];
   if (chips.length > 1) teile.push(el("div", { class: "pjw-chips" }, chips.map(m => el("button", { type: "button", class: "pjw-chip" + (m === gew ? " an" : ""),
     onclick: () => { zustand.pwMs = m.bogen; zeige("projektweg", true); } }, `${pwM(m)} ${m.titel}`))));
-  teile.push(el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(gew)} ${gew.titel}`), gew.laeuft ? pwStatus(t("pjw_in_arbeit")) : gew.status === "aktiv" ? pwStatus(t("pjw_laeuft")) : gew.status === "fertig" ? pwStatus(t("pjw_p_fertig"), "frei") : gew.frei ? pwStatus(t("pjw_freigegeben"), "frei") : pwStatus(t("pjw_wartet_dich"), "dran")));
+  teile.push(el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(gew)} ${gew.titel}`), gew.laeuft ? pwStatus(t("pjw_in_arbeit")) : gew.status === "aktiv" ? pwStatus(t("pjw_laeuft")) : gew.status === "fertig" ? pwStatus(t("pjw_p_fertig"), "frei") : gew.frei ? pwStatus(t("pjw_freigegeben"), "frei")
+    : gew.fehler && lead ? pwStatus(t("pjw_lead_klaert", { x: lead })) : pwStatus(t("pjw_wartet_dich"), "dran")));
   if (gew.delta_start?.fehler) teile.push(el("div", { class: "pjw-fehler" }, el("b", {}, t("pjw_delta_nicht_gestartet")), el("div", {}, gew.delta_start.fehler)));   /* A2080 (4) */
   if (gew.laeuft) teile.push(el("div", { class: "leer" }, t("pjw_f_laeuft", { n: gew.nr })));
-  if (gew.fehler) teile.push(el("div", { class: "pjw-fehler" }, el("b", {}, t("pjw_f_fehler", { n: gew.nr, f: gew.fassung || 1 })),   /* A2056 */
+  if (gew.fehler) teile.push(el("div", { class: "pjw-fehler" + (lead ? " ruhig" : "") }, el("b", {}, t("pjw_f_fehler", { n: gew.nr, f: gew.fassung || 1 })),   /* A2056 */
     el("ul", {}, gew.gruende.slice(0, 8).map(g => el("li", {}, t("pjw_fx_" + g.art, g.x))))));
   if (gew.pakete.length) {
-    teile.push(el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, gew.pakete.length), " ", t("pjw_pakete_w")),
+    teile.push(el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, gew.pakete.length), " ", t(gew.pakete.length === 1 ? "pjw_paket_w" : "pjw_pakete_w")),
       el("span", {}, el("b", {}, gew.pakete.filter(p => p.art === "p").length), " Headless")));
     teile.push(pwStufen(gew.pakete, gew.frei));
   }
@@ -273,7 +277,7 @@ function pwFein(d) {
   if (!API && gew.fehler) {                                             /* A2056: abgelehnter Feinplan → mit Hinweis neu planen lassen */
     teile.push(pwHinweisFeld(t("pjw_f_fehler_ph")));
     teile.push(pwHandlungen(pwKnopf(t("pjw_ueberarbeiten"), () => { const x = pwHinweisText(); if (!x) { toast(t("pjw_text_fehlt"), true); return; }
-      pwTun("/api/meilenstein/fein-neu", { bogen: gew.bogen, hinweis: x }, t("pjw_ok_ueberarbeiten")); }, true)));
+      pwTun("/api/meilenstein/fein-neu", { bogen: gew.bogen, hinweis: x }, t("pjw_ok_ueberarbeiten")); }, !lead && !f.delta.length)));
   }
   if (!API && (!gew.frei || gew.delta_start) && !gew.laeuft && gew.pakete.length && gew.status === "geplant") {
     if (!gew.delta_start) teile.push(pwHinweisFeld(t("pjw_f_hinweis_ph")));
@@ -286,11 +290,11 @@ function pwFein(d) {
   return teile;
 }
 const pwZielText = z => z.neu ? t("pjw_neuer_ms", { x: z.titel }) : `M${z.nr}`;
-function pwDeltaFehler(x, haupt) {
+function pwDeltaFehler(x, haupt, lead) {
   /* A2076: eine gescheiterte Konzeptänderung – Grund in Menschensprache, Hinweis und „Überarbeiten lassen“ (wie beim Feinplan, A2056). */
   const karte = el("div", { class: "pjw-karte pjw-delta pjw-delta-fehler", "data-thema": x.thema },
-    el("div", { class: "pjw-kopf" }, el("h3", {}, t("pjw_delta", { x: `TH${x.thema} ${x.name}` })), pwStatus(t("pjw_wartet_dich"), "dran")),
-    el("div", { class: "pjw-fehler" }, el("b", {}, t(x.teilweise ? "pjw_delta_teilweise" : "pjw_delta_fehler")), el("ul", {}, x.gruende.slice(0, 8).map(g => el("li", {}, t("pjw_fx_" + g.art, g.x))))));
+    el("div", { class: "pjw-kopf" }, el("h3", {}, t("pjw_delta", { x: `TH${x.thema} ${x.name}` })), lead ? pwStatus(t("pjw_lead_klaert", { x: lead })) : pwStatus(t("pjw_wartet_dich"), "dran")),
+    el("div", { class: "pjw-fehler" + (lead ? " ruhig" : "") }, el("b", {}, t(x.teilweise ? "pjw_delta_teilweise" : "pjw_delta_fehler")), el("ul", {}, x.gruende.slice(0, 8).map(g => el("li", {}, t("pjw_fx_" + g.art, g.x))))));
   if (x.hinweise.length) karte.append(el("div", { class: "pjw-hinweise" }, el("div", { class: "pjw-lbl" }, t("pjw_hinweise")), x.hinweise.map(h => el("div", {}, h.text))));
   if (API) return karte;
   const id = "pjw-hwd-" + x.thema;
@@ -303,12 +307,12 @@ function pwDeltaKarte(x, einzig, haupt) {
   /* A2065 (Marcel 24.11.): die Änderung als Karten in Stufen wie der Feinplan; was der Knopf freigibt, steht auf dem Knopf. */
   const ziele = x.ziele.map(pwZielText).join(", ");
   const wohin = x.neuer_ms ? t("pjw_delta_neu") : ziele ? t("pjw_delta_in", { m: ziele }) : "";     /* A2080: kurz – der Titel steht in der Karte */
-  const knopfText = t(x.startet ? "pjw_delta_start_n" : "pjw_delta_ja_n", { t: `TH${x.thema}`, p: x.karten.length === 1 ? t("pjw_ein_paket") : t("pjw_so_viele_pakete", { n: x.karten.length }), m: wohin })
+  const knopfText = t(x.startet ? "pjw_delta_start_n" : "pjw_delta_ja_n", { t: `TH${x.thema}`, p: pwPakete(x.karten.length), m: wohin })
     + (x.aendern.length ? " · " + t("pjw_n_geaendert", { n: x.aendern.length }) : "") + (x.verwerfen.length ? " · " + t("pjw_n_verworfen", { n: x.verwerfen.length }) : "");
   const karte = el("div", { class: "pjw-karte pjw-delta", "data-thema": x.thema },
     el("div", { class: "pjw-kopf" }, el("h3", {}, t("pjw_delta", { x: `TH${x.thema} ${x.name}` })), pwStatus(t("pjw_wartet_dich"), "dran")),
-    el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, x.karten.length), " ", t("pjw_pakete_w")),
-      el("span", {}, el("b", {}, x.karten.filter(k => k.wer.startsWith("Headless")).length), " Headless"), ziele ? el("span", {}, t("pjw_in_x", { x: ziele })) : null));
+    el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, x.karten.length), " ", t(x.karten.length === 1 ? "pjw_paket_w" : "pjw_pakete_w")),
+      el("span", {}, el("b", {}, x.karten.filter(k => k.wer.startsWith("Headless")).length), " Headless"), ziele ? el("span", {}, t("pjw_in_x", { x: x.ziele.map(z => z.neu ? t("pjw_neuem_ms", { x: z.titel }) : `M${z.nr}`).join(", ") })) : null));
   if (x.karten.length) {
     const stufen = [...new Set(x.karten.map(k => k.stufe))].sort((a, b) => a - b);
     karte.append(el("div", { class: "pjw-stufen" }, stufen.map(s => el("div", { class: "pjw-stufe" }, el("span", { class: "pjw-snr" }, s),

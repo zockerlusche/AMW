@@ -198,7 +198,7 @@ class FeinFehler(Grund):
         self.assertIn("gesperrte Pfade", " ".join(m["fehler"]))
 
     def test_leiste_wartet_auf_dich_und_menschensprache(self):
-        """A2076 (5): die Leiste sagt „wartet auf dich“ wie die Karte, die Gründe stehen ohne „Sperre Bash(…)“."""
+        """A2076 (5), B2938: zuerst klärt es der Lead (Leiste ohne „wartet auf dich“), ohne Lead der Mensch; Gründe ohne „Sperre Bash(…)“."""
         from amw import feinplanung, planfunde
         demo(self.con, self.pid, "grob2")
         grobplan.annehmen(self.con, self.pid, kern.ENTWICKLER, 2)
@@ -213,7 +213,10 @@ class FeinFehler(Grund):
         self.assertIn({"art": "sperre", "x": {}}, m["gruende"])
         self.assertNotIn("Bash(", " ".join(planfunde.saetze(self.con, self.pid, m["fehler"])))
         fein = next(s for s in d["schritte"] if s["schritt"] == "fein")
-        self.assertEqual((fein["zustand"], fein["bei_dir"]), ("dran", True))
+        self.assertEqual((fein["zustand"], fein["wer"], fein["bei_dir"]), ("dran", ["TL"], False))
+        with mock.patch.object(kern, "lead", return_value=None):
+            fein = next(s for s in self.daten()["schritte"] if s["schritt"] == "fein")
+            self.assertEqual((fein["zustand"], fein["bei_dir"]), ("dran", True))
 
 
 def bestand(con, pid):
@@ -368,20 +371,37 @@ class GescheiterteAenderung(Grund):
         self.assertEqual([(y["thema"], y["fassung"]) for y in x], [(t[2], 2)])
         self.assertEqual(x[0]["gruende"], [{"art": "laeuft", "x": {"p": "Speichern und Laden"}}])
         fein = next(s for s in d["schritte"] if s["schritt"] == "fein")
-        self.assertEqual((fein["zustand"], fein["bei_dir"]), ("dran", True))
-        self.assertEqual(d["dran"], "fein")
+        self.assertEqual((fein["zustand"], fein["wer"], fein["bei_dir"], d["fein"]["lead_klaert"]), ("dran", ["TL"], False, "TL"))   # B2938
+        self.assertEqual(d["dran"], "umsetzung")                                            # der Mensch bleibt bei seinem Schritt
         e = [y for y in d["verlauf"] if y["art"] == "thema_planentwurf"][-1]
         self.assertEqual(e["schritt"], "fein")
         self.assertIn("Planer meldet einen Fehler", e["zeile"])
         self.assertIn("wird gerade gebaut", e["lang"])
         self.assertNotIn("nacharbeit 1", e["lang"])
 
-    def test_wer_gilt_die_freigaberegel_des_feinplans(self):
-        kern.agent_neu(self.con, self.pid, "Co")
+    def test_ohne_lead_wartet_es_auf_den_menschen(self):
         gescheiterte_aenderung(self.con, self.pid)
-        kern.projekt_einstellen(self.con, self.pid, "TL", co_entwickler="Co", feinplan_freigabe="co+lead")
-        fein = next(s for s in self.daten()["schritte"] if s["schritt"] == "fein")
-        self.assertEqual((sorted(fein["wer"]), fein["bei_dir"]), (["Co", "TL"], False))
+        with mock.patch.object(kern, "lead", return_value=None):
+            d = self.daten()
+        fein = next(s for s in d["schritte"] if s["schritt"] == "fein")
+        self.assertEqual((fein["zustand"], fein["bei_dir"], d["dran"], d["fein"]["lead_klaert"]), ("dran", True, "fein", None))
+
+    def test_nichts_zu_bauen_blendet_aus(self):
+        t = gescheiterte_aenderung(self.con, self.pid)
+        self.assertEqual(len(self.daten()["fein"]["delta_fehler"]), 1)
+        themen.nichts_zu_bauen(self.con, self.pid, "TL", f"TH{t[2]}", "gebaut mit A1")
+        self.assertEqual(self.daten()["fein"]["delta_fehler"], [])
+        themen.nichts_zu_bauen(self.con, self.pid, "TL", f"TH{t[2]}", "doch nicht", aufheben=True)
+        self.assertEqual(len(self.daten()["fein"]["delta_fehler"]), 1)
+
+    def test_ein_frueherer_vermerk_blendet_nicht_aus(self):
+        t = gescheiterte_aenderung(self.con, self.pid)
+        e = planer.letzter_entwurf(self.con, self.pid, t[2])
+        assert e is not None
+        themen.nichts_zu_bauen(self.con, self.pid, "TL", f"TH{t[2]}", "alter Vermerk")
+        with db.schreiben(self.con):                                                        # der Vermerk lag vor dem Entwurf
+            self.con.execute("UPDATE plan_ereignis SET id = 999999 WHERE id = ?", (e["id"],))
+        self.assertEqual(len(self.daten()["fein"]["delta_fehler"]), 1)
 
     def test_ein_altes_ereignis_ohne_delta_feld_zaehlt_auch(self):
         t = gescheiterte_aenderung(self.con, self.pid)
@@ -785,14 +805,17 @@ class SeiteDeltaFehler(Rundgang):
 
     def test_grund_und_ueberarbeiten_klicken(self):
         self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
-        self.assertIn("Plan passte nicht", self.tab.js("document.querySelector('.pjw-schritt[data-schritt=fein] .pjw-wert').innerText"))
+        leiste = self.tab.js("document.querySelector('.pjw-schritt[data-schritt=fein] .pjw-wert').innerText")
+        self.assertIn("Plan passte nicht", leiste)
+        self.assertNotIn("wartet auf dich", leiste)                                         # B2938: der Lead klärt es
         self.tab.js("zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)")
         self.warten("document.querySelector('.pjw-delta-fehler li')")
         text = self.tab.js("document.querySelector('.pjw-delta-fehler').innerText")
         self.assertIn("wird gerade gebaut", text)
         for wort in ("nacharbeit", "Schema", "verwerfen", "zu_ende"):
             self.assertNotIn(wort, text)
-        self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-ansicht .knopf.haupt').length"), 1)
+        self.assertIn("klärt es", text)
+        self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-delta-fehler .knopf.haupt').length"), 0)   # normaler Knopf
         self.tab.js("document.querySelector('.pjw-delta-fehler textarea').value = 'Speicherplätze erst danach'; "
                     "[...document.querySelectorAll('.pjw-delta-fehler button')].find(b => b.textContent === t('pjw_ueberarbeiten')).click(); 1")
         self.warten("!document.querySelector('.pjw-delta-fehler')")
@@ -830,7 +853,10 @@ class SeiteAenderungStarten(Rundgang):
         self.tab.js("zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)")
         self.warten(self.knopf("Änderung TH"))
         self.assertIn("freigeben und starten (1 Paket, neuer Meilenstein)", self.tab.js(self.knopf("Änderung TH") + ".textContent"))
-        self.assertIn("Das Ja gibt:", self.tab.js("document.querySelector('.pjw-delta').innerText"))
+        karte = self.tab.js("document.querySelector('.pjw-delta').innerText")
+        for teil in ("Das Ja gibt:", "in neuem Meilenstein", "1 Paket"):
+            self.assertIn(teil, karte)
+        self.assertNotIn("1 Pakete", karte + self.tab.js("document.querySelector('.pjw-schritt[data-schritt=fein]').innerText"))
         self.tab.js(self.knopf("Änderung TH") + ".click(); 1")
         self.warten("!document.querySelector('.pjw-delta')")
         self.assertEqual(self.status(), "aktiv")

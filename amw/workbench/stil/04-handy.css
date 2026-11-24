@@ -186,6 +186,7 @@ button.pjw-karte:hover { background: var(--flaeche2); }
 .pjw-fertig summary { cursor: pointer; color: var(--leise); font-size: 14px; padding: 4px 0; }
 .pjw-ab-karte { cursor: default; gap: 10px; }
 .pjw-fehler { border: 1px solid var(--bernstein); border-radius: 8px; padding: 10px 14px; background: var(--flaeche); font-size: 14px; }
+.pjw-fehler.ruhig { border-color: var(--linie2); }
 .pjw-fehler ul { margin: 6px 0 0; padding-left: 18px; } .pjw-fehler li { margin-bottom: 3px; overflow-wrap: anywhere; }
 .pjw-verlauf { border: 1px solid var(--linie); border-radius: 8px; background: var(--flaeche); padding: 10px 14px; position: sticky; top: 12px; max-height: calc(100vh - 140px); overflow-y: auto; }
 .pjw-eintrag { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--linie); font-size: 13px; }

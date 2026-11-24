@@ -153,7 +153,22 @@ def fein(con, pid, freigaben):
                           **{k: v for k, v in x.items() if k != "zeilen"}, **_entwurf_karten(con, pid, d),
                           "hinweise": planhinweis.offene(con, pid, x["thema"])})
     delta_fehler += _teilweise(con, pid, namen)
-    return {"meilensteine": aus, "delta": delta, "delta_fehler": delta_fehler}
+    return {"meilensteine": aus, "delta": delta, "delta_fehler": delta_fehler, "lead_klaert": lead_klaert(con, pid)}
+
+
+def _geklaert(con, pid, tid, eid):
+    """Nach diesem Entwurf „nichts zu bauen“ vermerkt (oder bestätigt) oder ein Plan angenommen? Dann ist nichts mehr zu tun."""
+    from . import planer, tore
+    nichts = [x for x in planer._ereignisse(con, pid, tid, planer.NICHTS) if x["id"] > eid]
+    if nichts:
+        return bool(nichts[-1].get("an", True))
+    return any(x["id"] > eid for art in (planer.JA, tore.NICHTS_JA) for x in planer._ereignisse(con, pid, tid, art))
+
+
+def lead_klaert(con, pid):
+    """B2938: Ein gescheiterter Planer ist zuerst Sache des Leads – sein Name, oder None (kein Lead: der Mensch)."""
+    lead = kern.lead(con, pid)
+    return lead if lead and lead != kern.ENTWICKLER else None
 
 
 def _laeuft_frei(con, pid, d, meilensteine):
@@ -180,7 +195,7 @@ def _ist_aenderung(con, pid, tid, e):
     """Gehört dieser abgelehnte Entwurf zur freigegebenen Fassung und war er eine Konzeptänderung? Ältere Ereignisse ohne das Feld
     delta: nach dem heutigen Stand des Themas."""
     from . import planer_delta, themen
-    if themen.status(con, themen.finden(con, pid, tid)).get("freigegeben") != e.get("fassung"):
+    if themen.status(con, themen.finden(con, pid, tid)).get("freigegeben") != e.get("fassung") or _geklaert(con, pid, tid, e["id"]):
         return False
     return bool(e.get("delta")) or planer_delta.kontext(con, pid, tid) is not None
 
@@ -387,21 +402,25 @@ def daten(con, pid):
             wer = projektweg._freigebende(con, pid, "grob")      # A2030: ein Grobplan liegt vor – das Ja gibt, wer Grobpläne freigibt
         schritte.append({**x, "wer": wer, "nr": SCHRITT_NR[x["schritt"]], "bei_dir": x["zustand"] == "dran" and ich in wer})
     dran = s["dran"]
-    if any(m["fehler"] and m["status"] == "geplant" for m in f["meilensteine"]):   # A2076: abgelehnter Feinplan wartet wie die Karte
-        wer_plan = projektweg._freigebende(con, pid, "plan")
+    lead = f["lead_klaert"]
+    fehler_wer = [lead] if lead else projektweg._freigebende(con, pid, "plan")      # A2076/B2938: zuerst der Lead, ohne Lead der Mensch
+    if any(m["fehler"] and m["status"] == "geplant" for m in f["meilensteine"]) and not any(
+            m["pakete"] and not m["frei"] and m["status"] == "geplant" for m in f["meilensteine"]):
+        wer_plan = fehler_wer
         for x in schritte:
             if x["schritt"] == "fein" and x["zustand"] == "dran":
                 x.update(wer=wer_plan, bei_dir=ich in wer_plan)
     start = [m for m in f["meilensteine"] if m["delta_start"]]         # A2080 (5): wartet auf „freigeben und starten“
     if f["delta"] or f["delta_fehler"] or start:                  # A2076: auch eine gescheiterte Änderung; A2068: eine offene Änderung wartet auf ihr Ja – auch nach erledigtem Feinplan
-        wer_plan = f["delta"][0]["wer"] if f["delta"] else [ich] if start else projektweg._freigebende(con, pid, "plan")
+        wer_plan = f["delta"][0]["wer"] if f["delta"] else [ich] if start else fehler_wer
         for x in schritte:
             if x["schritt"] == "fein":
                 x.update(zustand="dran", zeichen=projektweg.ZEICHEN["dran"], wer=wer_plan, bei_dir=ich in wer_plan,
                          fehlt=(f"{len(f['delta'])} Änderung(en) am Konzept warten auf das Ja" if f["delta"]
                                 else f"{len(f['delta_fehler'])} Änderung(en) am Konzept: der Plan passte nicht" if f["delta_fehler"]
                                 else f"{len(start)} Meilenstein(e) einer Änderung warten auf das Starten"))
-        if dran in (None, "umsetzung", "abschluss") or (dran == "grob" and start and g["angenommen"]):   # früher Offenes geht vor –
+        nur_lead = lead and not f["delta"] and not start     # B2938: was der Lead klärt, holt den Menschen nicht von seinem Schritt weg
+        if not nur_lead and dran in (None, "umsetzung", "abschluss") or (dran == "grob" and start and g["angenommen"]):   # früher Offenes geht vor –
             dran = "fein"                                # außer der Grobplan steht schon und nur der Start der Änderung fehlt
     k = konzept(con, pid, g["bestand"])
     g_themen = k["themen"]
