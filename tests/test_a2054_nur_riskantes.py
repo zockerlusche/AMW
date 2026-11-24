@@ -92,6 +92,14 @@ class Regeln(Grund):
         self.assertIn("g12", self.regeln({"lib/x.py": "tagesgrenze = 5\n"}, name="z-kosten"))
         self.assertIn("schema", self.regeln({"amw/schema.sql": "CREATE TABLE x (a);\n"}, name="z-schema2"))
 
+    def test_pruefung_selbst_auch_stufe_arbeiter_rueckmeldung(self):
+        """A2070 (Lead #32305): wer pruefstufe.py, arbeiter.py oder rueckmeldung.py ändert, ändert die Prüfung – der Lead liest."""
+        for pfad in ("amw/pruefstufe.py", "amw/arbeiter.py", "amw/rueckmeldung.py"):
+            with self.subTest(pfad=pfad):
+                self.assertIn("pruefung", self.regeln({pfad: "X = 1\n"}, name="z-" + pfad.split("/")[1][:-3]))
+        self.assertNotIn("pruefung", self.regeln({"lib/stufe.py": "X = 1\n"}, name="z-gegen"))          # Gegenprobe
+        self.assertIn("v2", riskant.VERSION)
+
     def test_tests_geschwaecht(self):
         self.assertIn("tests_geschwaecht", self.regeln({}, weg=("tests/test_x.py",), name="z-weg"))
         self.assertIn("tests_geschwaecht", self.regeln({"tests/test_x.py": "import unittest\n\nclass T(unittest.TestCase):\n"

@@ -380,7 +380,7 @@ Code; ein anderes Projekt hat eigene heikle Stellen (Zugänge, Sicherheit, Zahlu
   Riskantes werden E7. Der Beleg steht in `paket_entscheidung` („riskant“).
 - **Riskant-Regeln** (`amw/riskant.py`, eine Funktion mit Begründung je Treffer): aussen · server (web/*.php) · schutz (gesperrte
   Pfade „fest“ und Projekt-Muster, Prüfstufe hoch, Art sicherheit, Geheimnis-Verdacht) · schema · g12 (Löschen, Kosten,
-  Außenwirkung) · lead_liest · auffaellig (E2/E4/E6/E8) · pruefung (Änderung an der Prüfung selbst) · claude_p · tests_geschwaecht
+  Außenwirkung) · lead_liest · auffaellig (E2/E4/E6/E8) · pruefung (Änderung an der Prüfung selbst, auch pruefstufe.py, arbeiter.py, rueckmeldung.py – A2070) · claude_p · tests_geschwaecht
   (Test gelöscht/übersprungen, weniger Testmethoden oder Assertions) · oberflaeche (sichtbar: die Stil-Prüfung läuft noch nicht im
   Autopfad).
 - **„Lead liest“:** `amw paket lead-liest <nr> [--aus]` (Lead, Mensch) bzw. Planfeld `"lead_liest": true` (Grob- und Feinplaner);

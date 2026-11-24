@@ -16,14 +16,15 @@ import json
 import re
 import subprocess
 
-VERSION = "riskant v1 (24.11.2026)"
+VERSION = "riskant v2 (24.11.2026)"
 REGELN = ("aussen", "server", "schutz", "schema", "g12", "lead_liest", "auffaellig", "pruefung", "claude_p", "tests_geschwaecht",
           "oberflaeche")
 LEAD_LIEST = "lead_liest"                                   # plan_ereignis: {"an": true|false} – Lead oder Planer setzt es
 
 PRUEFUNG_SELBST = ("amw/abnahme.py", "amw/testlauf.py", "tests/test_sperrliste.py", "pyrightconfig.json", "amw/pruefung_c.py",
                    "amw/entscheidung.py", "amw/stil.py", "amw/riskant.py", "amw/fensterpruefung.py", "amw/vorpruefung.py",
-                   "amw/auslieferung.py", "amw/buendel.py", "amw/dienst.py", "amw/mergeliste.py", "amw/freigabereif.py")
+                   "amw/auslieferung.py", "amw/buendel.py", "amw/dienst.py", "amw/mergeliste.py", "amw/freigabereif.py",
+                   "amw/pruefstufe.py", "amw/arbeiter.py", "amw/rueckmeldung.py")      # A2070: Stufe hoch, Claude-Versionen, Weg der Ergebnisse
 SCHEMA = ("amw/schema.sql", "amw/migration_*.sql", "*migration*", "amw/db.py", "amw/sicherung.py")
 AUSSENWIRKUNG = ("amw/veroeffentlichung.py", "amw/abgleich.py", "amw/push*.py", "amw/ntfy*.py", "web/*")
 LOESCHEN = re.compile(r"\b(os\.remove|os\.unlink|shutil\.rmtree|os\.rmdir|\.unlink\(|DELETE\s+FROM|DROP\s+TABLE|git\s+branch\s+-D"
