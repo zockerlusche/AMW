@@ -9,6 +9,9 @@
 - Neustart des Dienstes: Lebt ein vom Dienst gestarteter Befehl noch, passt die neue Runde weiter auf ihn auf (Rückgabewert
   dann unbekannt); ist er weg, endet der Lauf mit diesem Hinweis.
 - Spitze: je laufendem Lauf mit bekanntem Prozess der belegte Speicher des Prozessbaums, das Maximum steht in lauf.spitze_gb.
+- Frist eines Gesamtlaufs (A2051): ohne --frist gilt die Projekt-Einstellung gesamtlauf_frist_min (Vorgabe 60, 0 = keine); das
+  Ende geht als AMW_LAUF_ENDE an den Befehl (amw.testlauf hört kurz vorher auf und hält fest, was gerade läuft). Endet ein
+  Gesamtlauf mit rc 124, bekommt der Lead eine Meldung mit dem zuletzt laufenden Modul.
 """
 import json
 import logging
@@ -28,6 +31,47 @@ def umgebung():
     """Umgebung für einen Dienst-Lauf: die des Dienstes, ohne Kennung des Agenten und ohne alles von Claude Code."""
     return {k: v for k, v in os.environ.items()
             if k not in ("AMW_AGENT", "AMW_PROJEKT") and not k.startswith("CLAUDE_CODE_") and k != "CLAUDECODE"}
+
+
+FRIST_GESAMTLAUF_MIN = 60
+
+
+def ist_gesamtlauf(con, pid, befehl, beschreibung=""):
+    """Ist dieser Befehl die ganze Suite (freigabereif.ist_gesamtlauf; der Befehl als Liste wie beim Einreihen)?"""
+    from . import freigabereif
+    try:
+        return freigabereif.ist_gesamtlauf(con, pid, {"befehl": json.dumps(list(befehl)), "beschreibung": beschreibung or ""})
+    except Exception:                                   # nie den Lauf stören
+        return False
+
+
+def gesamtlauf_frist(con, pid):
+    """Vorgabe-Frist eines Gesamtlaufs in Minuten (Projekt-Einstellung gesamtlauf_frist_min, sonst 60; 0 = keine)."""
+    try:
+        e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
+        v = e.get("gesamtlauf_frist_min")
+        return FRIST_GESAMTLAUF_MIN if v is None or v == "" else float(v)
+    except (TypeError, ValueError):
+        return FRIST_GESAMTLAUF_MIN
+
+
+def frist_melden(con, pid, lid, agent, beschreibung, pfad, aufgabe_id=None):
+    """Gesamtlauf mit rc 124: Meldung an den Lead (sonst an den Agenten), welches Modul und welcher Test zuletzt liefen."""
+    from . import testlauf
+    try:
+        with open(pfad, encoding="utf-8", errors="replace") as f:
+            zeilen = testlauf.haenger(f.read())
+    except (OSError, TypeError):
+        zeilen = []
+    an = kern.lead(con, pid) or agent
+    kurz = f"L{lid} Gesamtlauf an der Frist beendet (rc 124): " + (zeilen[0][:90] if zeilen else "Stand unbekannt")
+    text = (f"{betrieb.kurzfassung(beschreibung, 120)} · von {agent}\n" + ("\n".join(zeilen[:8]) or "Keine Zeile „Läuft gerade“ in der Ausgabe.")
+            + f"\nAusgabe: {pfad}")
+    try:
+        with db.schreiben(con):
+            kern._posten(con, pid, "AMW", an, "meldung", kurz[:200], text, aufgabe_id=aufgabe_id)
+    except kern.AmwFehler as e:
+        log.warning("L%s: Frist-Meldung ging nicht: %s", lid, e)
 
 
 def ergebnis_pfad(l):
@@ -128,9 +172,15 @@ def rechnen(lid):
             f.write(f"# AMW L{lid} · {l['agent']} · {l['beschreibung']}\n# Befehl: {' '.join(befehl)}\n"
                     f"# Ordner: {l['ordner']}\n# {stand}\n# Start: {time.strftime('%Y-%m-%d %H:%M:%S')} · gerechnet vom Dienst (Warte-Prozess war weg)\n")
         eins = len(befehl) == 1
+        gesamt = ist_gesamtlauf(con, l["projekt_id"], befehl, l["beschreibung"])
+        frist_min = l["frist_min"] or (gesamtlauf_frist(con, l["projekt_id"]) if gesamt else None)
+        frist = time.time() + frist_min * 60 if frist_min else None
+        env = umgebung()
+        if frist:                                       # A2051: der Gesamtlauf hört kurz vorher selbst auf
+            env["AMW_LAUF_ENDE"] = str(int(frist))
         try:
             with open(pfad, "a", encoding="utf-8", errors="replace") as aus:
-                proc = subprocess.Popen(befehl[0] if eins else befehl, shell=eins, cwd=l["ordner"] or None, env=umgebung(),
+                proc = subprocess.Popen(befehl[0] if eins else befehl, shell=eins, cwd=l["ordner"] or None, env=env,
                                         stdout=aus, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), start_new_session=os.name != "nt")
         except OSError as e:
@@ -138,7 +188,6 @@ def rechnen(lid):
             return
         belegung.lauf_merken(lid, proc.pid)
         log.info("L%s: Befehl gestartet (PID %s)", lid, proc.pid)
-        frist = time.time() + l["frist_min"] * 60 if l["frist_min"] else None
         grund, rc_grund = None, None
         while proc.poll() is None:
             time.sleep(PRUEF_S)
@@ -148,7 +197,7 @@ def rechnen(lid):
             if s != "laeuft":
                 grund, rc_grund = f"L{lid} wurde beendet ({s})", RC_BEENDET
             elif frist and time.time() >= frist:
-                grund, rc_grund = f"Frist {l['frist_min']:g} min erreicht", RC_FRIST
+                grund, rc_grund = f"Frist {frist_min:g} min erreicht", RC_FRIST
             if grund:
                 _baum_beenden(proc.pid)
                 try:
@@ -158,6 +207,8 @@ def rechnen(lid):
                 break
         belegung.lauf_vergessen(lid)
         _abschliessen(con, l, rc_grund if grund else proc.returncode, pfad, grund, stand=stand)
+        if gesamt and (rc_grund if grund else proc.returncode) == RC_FRIST:
+            frist_melden(con, l["projekt_id"], lid, l["agent"], l["beschreibung"], pfad, l["aufgabe_id"])
     except Exception as e:                              # nie den Dienst stören – aber den Lauf nicht hängen lassen
         log.warning("L%s: %s: %s", lid, type(e).__name__, e)
         try:

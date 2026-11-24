@@ -5,6 +5,7 @@ import io
 import json
 import os
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -52,9 +53,9 @@ class Lauf(unittest.TestCase):
         with open(os.path.join(self.tests, name), "w", encoding="utf-8") as f:
             f.write(text)
 
-    def lauf(self, n):
+    def lauf(self, n, **kw):
         aus = io.StringIO()
-        rc = testlauf.steuern(n=n, wurzel=self.ordner.name, aus=aus, dauer_datei=self.dauer)
+        rc = testlauf.steuern(n=n, wurzel=self.ordner.name, aus=aus, dauer_datei=self.dauer, **kw)
         return rc, aus.getvalue()
 
     def test_gruen_parallel_gleiche_zahl_wie_seriell_und_dauer_gemessen(self):
@@ -82,6 +83,59 @@ class Lauf(unittest.TestCase):
         self.assertIn("gibt_es_nicht_xyz", aus)
         self.assertIn("Ran 6 tests in", aus)                                          # 3 + 2 + 1 (Modul lädt nicht)
         self.assertEqual(aus.splitlines()[-1], "FAILED (failures=1, errors=1, skipped=1)")
+
+
+SCHLAEFT = ("import time\nimport unittest\n\nclass S(unittest.TestCase):\n    def test_vorher(self):\n        print('vor dem Hänger')\n\n"
+            "    def test_haengt(self):\n        print('jetzt hänge ich', flush=True)\n        time.sleep(120)\n")
+
+
+class Zeitgrenze(Lauf):
+    """A2051: ein hängender Arbeiter wird beendet, sein Modul rot mit Testmethode gemeldet, die restlichen Module laufen weiter."""
+
+    def test_haenger_beendet_rest_laeuft_weiter(self):
+        self.datei("test_a_schlaeft.py", SCHLAEFT)
+        for i in range(3):
+            self.datei(f"test_m{i}.py", GRUEN)
+        t0 = time.monotonic()
+        rc, aus = self.lauf(1, grenze_s=3, ende=0)                                  # ein Prozess: schlaeft zuerst, dann m0–m2
+        self.assertLess(time.monotonic() - t0, 60, aus)                              # nicht 120 s gewartet
+        self.assertEqual(rc, 1, aus)
+        self.assertIn("!! Zeitgrenze: test_a_schlaeft (test_a_schlaeft.S.test_haengt) in p0", aus)
+        self.assertIn("weiter mit 3 Modulen", aus)
+        self.assertIn("ERROR: test_a_schlaeft.S.test_haengt (Zeitgrenze: Prozess p0", aus)
+        self.assertIn("jetzt hänge ich", aus)                                        # Ausgabe des Arbeiters gerettet (-u)
+        for i in range(3):
+            self.assertRegex(aus, rf"\[\d/4\] test_m{i} ok \d+\.\ds \(p0\)")         # Fortschritt je Modul
+        self.assertIn("Ran 10 tests in", aus)                                        # 9 grün + der Hänger (test_haengt läuft vor test_vorher)
+        self.assertEqual(aus.splitlines()[-1], "FAILED (errors=1)")
+        with open(self.dauer, encoding="utf-8") as f:
+            self.assertNotIn("test_a_schlaeft", json.load(f))                        # keine falsche Dauer gemessen
+
+    def test_gegenprobe_ohne_haenger_keine_zeitgrenze(self):
+        self.datei("test_m0.py", GRUEN)
+        rc, aus = self.lauf(2, grenze_s=30, ende=0)
+        self.assertEqual(rc, 0, aus)
+        self.assertNotIn("Zeitgrenze:", aus)
+        self.assertIn("[1/1] test_m0 ok", aus)
+
+    def test_frist_haelt_stand_fest_rc_124(self):
+        self.datei("test_a_schlaeft.py", SCHLAEFT)
+        self.datei("test_m0.py", GRUEN)
+        rc, aus = self.lauf(2, grenze_s=600, ende=time.time() + testlauf.RESERVE_S + 4)
+        self.assertEqual(rc, 124, aus)
+        self.assertIn("=== Frist erreicht – Stand der Arbeiter", aus)
+        self.assertIn("Läuft gerade: p", aus)
+        self.assertIn("test_a_schlaeft · test_a_schlaeft.S.test_haengt", aus)
+        self.assertIn("jetzt hänge ich", aus)
+        self.assertTrue(aus.splitlines()[-1].startswith("FAILED"))
+        self.assertEqual(testlauf.haenger(aus)[0][:len("Läuft gerade: p")], "Läuft gerade: p")
+
+    def test_zeitgrenze_und_frist_aus_der_umgebung(self):
+        with mock.patch.dict(os.environ, {"AMW_TEST_ZEITGRENZE_S": "90", "AMW_LAUF_ENDE": "1700000000"}):
+            self.assertEqual((testlauf.zeitgrenze(), testlauf.lauf_ende()), (90.0, 1700000000.0))
+        with mock.patch.dict(os.environ, {"AMW_TEST_ZEITGRENZE_S": "x", "AMW_LAUF_ENDE": ""}):
+            self.assertEqual((testlauf.zeitgrenze(), testlauf.lauf_ende()), (testlauf.ZEITGRENZE_S, None))
+        self.assertEqual(testlauf.haenger("[3/9] test_x ok 1.0s (p1)\nRan 3 tests"),["zuletzt fertig: [3/9] test_x ok 1.0s (p1)"])
 
 
 if __name__ == "__main__":

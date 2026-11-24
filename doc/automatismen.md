@@ -93,6 +93,13 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
   laufen alle nacheinander in einem eigenen Prozess. Je Prozess ein eigener Temp-Ordner, `AMW_DB`/`AMW_AGENT`/`AMW_PROJEKT`
   leer. Ausgabe wie unittest: die Fehlerberichte, dann „Ran N tests in X s“ und „OK (…)“ bzw. „FAILED (…)“; rc 0 nur bei
   Grün. Der Hook für schwere Befehle erkennt ihn als „Test-Suite“.
+- **Gesamtlauf mit Zeitgrenze und Frist (A2051):** Fortschritt je fertigem Modul („[n/N] modul ok|ROT Xs (pK)“). Beginnt in einem
+  Prozess länger als `AMW_TEST_ZEITGRENZE_S` (Vorgabe 300 s) kein neuer Test, beendet `amw.testlauf` genau diesen eigenen
+  Prozess samt Kindern (Edge, php), meldet das Modul mit Testmethode und bisheriger Ausgabe als rot („Zeitgrenze“) und lässt
+  die restlichen Module in einem neuen Prozess weiterlaufen. Ein Gesamtlauf hat immer eine Frist: ohne `--frist` die
+  Projekt-Einstellung `gesamtlauf_frist_min` (Vorgabe 60, 0 = keine); ihr Ende geht als `AMW_LAUF_ENDE` an den Befehl, der
+  45 s vorher selbst aufhört, je Prozess „Läuft gerade: …“ mit Modul, Test und Ausgabe schreibt und mit rc 124 endet. Bei rc 124
+  bekommt der Lead eine Meldung mit dem zuletzt laufenden Modul – auch wenn der Dienst den Lauf rechnet.
 - **Fremde A-Nummer im Betreff (A1988):** „Stände“ nimmt jede A-Nummer in einem Commit-Betreff als Aufgabe dieses Commits.
   Darum lehnt schon `amw pruefung bitte` (und `amw paket fertig`) einen Stand ab, dessen Betreffe eine andere Aufgabe des
   Projekts nennen als die der Prüfbitte oder die im Versions-Commit des Stapels („X.Y.Z: … A1 + A2“) – mit dem Commit in der

@@ -197,6 +197,7 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
                         "regression_befehl", "abnahme_frist_min",   # A1920: was Prüfung C je Projekt ausführt
                         "sprachpruefung",                 # A1962: Sprach-Server in Prüfung C (auto | pyright | aus)
                         "gesamtlauf_prozesse",            # A1966: Prozesse des parallelen Gesamtlaufs
+                        "gesamtlauf_frist_min",           # A2051: Vorgabe-Frist eines Gesamtlaufs (0 = keine)
                         "planer_tagesgrenze_usd",         # A1970: Kosten der Planer je Projekt und Tag
                         "arbeiter_umgebung",              # A1922: Variablen und Pfade der Arbeiter
                         "sicherung_ziel",                 # A1929/A1951: wohin die tägliche Sicherung schiebt (Lead oder Mensch)
@@ -2130,6 +2131,10 @@ def _lauf_ausfuehren(con, pid, a):
         raise kern.AmwFehler("lauf ausfuehren --leicht|--schwer --beschreibung … [--schirm] -- <befehl …> (der Befehl steht nach --)")
     beschreibung = a.beschreibung or a.rezept or " ".join(befehl)[:120]
     von = _von(a)
+    from . import laufdienst
+    gesamt = laufdienst.ist_gesamtlauf(con, pid, befehl, beschreibung)
+    if gesamt and not a.frist:                       # A2051: ein Gesamtlauf hat immer eine Frist (Projekt-Einstellung)
+        a.frist = laufdienst.gesamtlauf_frist(con, pid) or None
     lid = betrieb.lauf_start(con, pid, von, beschreibung, a.rezept, _schwer(a, a.rezept, getattr(a, "dauerlauf", False)), a.schirm, a.aufgabe, warten=True,
                              erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb, braucht_vram_gb=a.braucht_vram_gb,
                              braucht_platte_gb=a.braucht_platte_gb, befehl=befehl, ordner=os.getcwd(),
@@ -2156,7 +2161,6 @@ def _lauf_ausfuehren(con, pid, a):
     stand = betrieb.stand_text(betrieb.pruefstand(befehl, os.getcwd()))   # was beim Start wirklich im Ordner liegt (TL #24259)
     # A1904: die ganze Ausgabe immer auch in eine Datei – ohne --ergebnis nach daten/laeufe/L<nr>.txt (laufdienst.ergebnis_pfad),
     # damit sie nicht verloren geht, wenn jemand stdout kürzt, und der Prüfer sie dort findet
-    from . import laufdienst
     ziel = os.path.abspath(a.ergebnis) if a.ergebnis else laufdienst.ergebnis_pfad(betrieb.lauf_zeile(con, pid, lid))
     try:
         ausgabe = open(ziel, "w", encoding="utf-8", errors="replace")
@@ -2175,6 +2179,9 @@ def _lauf_ausfuehren(con, pid, a):
         n = 0
     if n >= 1:
         umgebung = {**os.environ, "AMW_TESTPROZESSE": str(n)}
+    frist = time.time() + a.frist * 60 if a.frist else None
+    if frist:                                        # A2051: der Gesamtlauf hört kurz vorher selbst auf und hält den Stand fest
+        umgebung = {**(umgebung or os.environ), "AMW_LAUF_ENDE": str(int(frist))}
     try:
         # FENSTER_GEWOLLT (A1783): läuft im Terminal des Agenten und erbt dessen Konsole – ohne Konsole öffnete jedes Kind
         # (z. B. Godot_*_console.exe) ein eigenes Fenster
@@ -2199,7 +2206,6 @@ def _lauf_ausfuehren(con, pid, a):
     leser = threading.Thread(target=mitschreiben, daemon=True)
     leser.start()
     grund, rc_grund = None, None
-    frist = time.time() + a.frist * 60 if a.frist else None
     try:
         while proc.poll() is None:
             for _ in range(PRUEF_S * 10):            # kurz schlafen, damit ein schneller Befehl nicht 5 s „hängt“
@@ -2230,6 +2236,8 @@ def _lauf_ausfuehren(con, pid, a):
                       + (f" · abgebrochen: {grund}" if grund else "") + "\n")
         ausgabe.close()
     wo = f" · Ausgabe: {ziel}" if ziel else ""
+    if gesamt and (rc_grund if grund else rc) == RC_FRIST:   # A2051: der Lead erfährt, welches Modul zuletzt lief
+        laufdienst.frist_melden(con, pid, lid, von, beschreibung, ziel, a.aufgabe)
     if grund:
         if betrieb.lauf_zeile(con, pid, lid)["status"] == "laeuft":
             betrieb.lauf_ende(con, pid, von, lid, rc_grund, f"abgebrochen: {grund}{wo}"[:500], abgebrochen=True)

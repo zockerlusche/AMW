@@ -13,6 +13,12 @@ Aufruf (der gesamtlauf_befehl der AMW): `python -X utf8 -m amw.testlauf` im Wurz
 - Ausgabe: die Fehlerberichte aller Prozesse, dann wie unittest „Ran N tests in X.XXXs“ und „OK (…)“ bzw. „FAILED (…)“ –
   daran erkennen freigabereif, Kette und fertigquelle den Lauf. rc 0 nur, wenn alles grün ist.
 - Keine neue Abhängigkeit: nur die Standardbibliothek.
+- Zeitgrenze (A2051): steht ein Arbeiter länger als AMW_TEST_ZEITGRENZE_S Sekunden (Vorgabe 300) still – kein neuer Test hat
+  begonnen –, beendet die Steuerung genau diesen eigenen Prozess samt Kindern (Edge, php), meldet das Modul mit Testmethode
+  als rot („Zeitgrenze“, mit der bisherigen Ausgabe des Arbeiters) und lässt die restlichen Module dieses Arbeiters in einem
+  neuen Prozess weiterlaufen. Fortschritt: je fertigem Modul eine Zeile „[n/N] modul ok|ROT Xs (pK)“.
+- Frist (A2051): setzt `amw lauf ausfuehren` AMW_LAUF_ENDE (Ende der Frist, Sekunden seit 1970), hört die Steuerung kurz
+  davor selbst auf: je Arbeiter „Läuft gerade: …“ mit Modul, Testmethode und bisheriger Ausgabe, dann FAILED und rc 124.
 """
 import json
 import os
@@ -22,6 +28,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import typing
 import unittest
 
 TESTS = "tests"
@@ -100,37 +107,81 @@ def verteilen(mods, n, dauern, browser):
 
 # --- ein Prozess ---------------------------------------------------------------------------------------------------------------
 
+ZAEHLER = ("ran", "failures", "errors", "skipped", "expected_failures", "unexpected_successes")
+
+
+def _dateien(bericht):
+    """Neben dem Bericht: stand.txt (Modul und Test, die gerade laufen – ihre Änderungszeit ist das Lebenszeichen) und
+    fortschritt.jsonl (je fertigem Modul eine Zeile)."""
+    ordner = os.path.dirname(bericht)
+    return os.path.join(ordner, "stand.txt"), os.path.join(ordner, "fortschritt.jsonl")
+
+
+def _stand_schreiben(datei, modul, test=""):
+    try:
+        with open(datei, "w", encoding="utf-8") as f:
+            f.write(f"{modul}\t{test}\n")
+    except OSError:
+        pass                                              # Lebenszeichen ist Zusatz – der Test läuft trotzdem
+
+
+def _json_ersetzen(datei, daten):
+    tmp = datei + ".neu"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(daten, f)
+    os.replace(tmp, datei)
+
+
 def arbeiter(namen, bericht):
-    """Läuft im eigenen Prozess: die Module nacheinander, je Modul die Dauer; Bericht als JSON."""
+    """Läuft im eigenen Prozess: die Module nacheinander, je Modul die Dauer. Der Bericht (JSON) steht nach jedem Modul
+    aktuell auf der Platte – wird der Prozess an der Zeitgrenze beendet, zählt, was schon fertig war."""
     sys.path.insert(0, os.path.abspath(TESTS))
+    stand, fortschritt = _dateien(bericht)
+    modul = [""]
+
+    class Ergebnis(unittest.TextTestResult):
+        def startTest(self, test):                        # A2051: jeder Test ein Lebenszeichen mit Modul und Methode
+            _stand_schreiben(stand, modul[0], test.id())
+            super().startTest(test)
+
     loader = unittest.TestLoader()
-    runner = unittest.TextTestRunner(stream=sys.stdout, verbosity=1)
-    summe = {"ran": 0, "failures": 0, "errors": 0, "skipped": 0, "expected_failures": 0, "unexpected_successes": 0, "dauer": {}}
+    runner = unittest.TextTestRunner(stream=sys.stdout, verbosity=1, resultclass=typing.cast(typing.Any, Ergebnis))
+    summe = {**{k: 0 for k in ZAEHLER}, "dauer": {}}
     for name in namen:
+        modul[0] = name
+        _stand_schreiben(stand, name)
         t0 = time.monotonic()
+        vorher = {k: summe[k] for k in ZAEHLER}
         try:
             suite = loader.loadTestsFromName(name)
         except Exception as e:                            # noqa: BLE001 – Modul lädt nicht (z. B. Syntaxfehler): ein Fehler, wie discover
             print("=" * 70 + f"\nERROR: {name} (Modul lädt nicht)\n" + "-" * 70 + f"\n{type(e).__name__}: {e}\n", flush=True)
             summe["errors"] += 1
             summe["ran"] += 1
-            summe["dauer"][name] = time.monotonic() - t0
-            continue
-        r = runner.run(suite)
+        else:
+            r = runner.run(suite)
+            summe["ran"] += r.testsRun
+            summe["failures"] += len(r.failures)
+            summe["errors"] += len(r.errors)
+            summe["skipped"] += len(r.skipped)
+            summe["expected_failures"] += len(r.expectedFailures)
+            summe["unexpected_successes"] += len(r.unexpectedSuccesses)
         summe["dauer"][name] = time.monotonic() - t0
-        summe["ran"] += r.testsRun
-        summe["failures"] += len(r.failures)
-        summe["errors"] += len(r.errors)
-        summe["skipped"] += len(r.skipped)
-        summe["expected_failures"] += len(r.expectedFailures)
-        summe["unexpected_successes"] += len(r.unexpectedSuccesses)
         sys.stdout.flush()
-    with open(bericht, "w", encoding="utf-8") as f:
-        json.dump(summe, f)
+        rot = any(summe[k] > vorher[k] for k in ("failures", "errors", "unexpected_successes"))
+        _json_ersetzen(bericht, summe)
+        with open(fortschritt, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"modul": name, "dauer": round(summe["dauer"][name], 1), "rot": rot}) + "\n")
+    _json_ersetzen(bericht, summe)
     return 0 if not (summe["failures"] or summe["errors"] or summe["unexpected_successes"]) else 1
 
 
 # --- Steuerung -----------------------------------------------------------------------------------------------------------------
+
+ZEITGRENZE_S = 300                                        # A2051: so lange darf ein Arbeiter ohne neuen Test still stehen
+RESERVE_S = 45                                            # vor dem Ende der Frist: Zeit zum Aufschreiben und Beenden
+SCHAU_S = 0.5
+
 
 def prozesse():
     try:
@@ -138,6 +189,24 @@ def prozesse():
     except ValueError:
         n = 0
     return n if n >= 1 else max(2, (os.cpu_count() or 2) // 2)
+
+
+def zeitgrenze():
+    """Sekunden ohne neuen Test, dann gilt ein Arbeiter als hängend: AMW_TEST_ZEITGRENZE_S, sonst ZEITGRENZE_S."""
+    try:
+        s = float(os.environ.get("AMW_TEST_ZEITGRENZE_S") or 0)
+    except ValueError:
+        s = 0
+    return s if s > 0 else ZEITGRENZE_S
+
+
+def lauf_ende():
+    """Ende der Frist des Laufs (time.time()-Sekunden) aus AMW_LAUF_ENDE, sonst None."""
+    try:
+        e = float(os.environ.get("AMW_LAUF_ENDE") or 0)
+    except ValueError:
+        return None
+    return e or None
 
 
 def ergebnis_zeile(s):
@@ -149,16 +218,34 @@ def ergebnis_zeile(s):
     return ("FAILED" if rot else "OK") + (f" ({', '.join(teile)})" if teile else "")
 
 
-def steuern(n=None, wurzel=".", aus=sys.stdout, dauer_datei=None):
-    t0 = time.monotonic()
-    dauer_datei = dauer_datei or DAUER_DATEI
-    mods = module(wurzel)
-    browser = {name for name, p in mods if ist_browser(p)}
-    gruppen = verteilen(mods, n or prozesse(), dauern_lesen(dauer_datei), browser)
-    basis = tempfile.mkdtemp(prefix="gl-")                 # kurz und neutral: Tests suchen Texte wie „amw-test“ in Pfaden
-    laeufe = []
-    for i, namen in enumerate(gruppen):
-        ordner = os.path.join(basis, f"p{i}")
+def _beenden(proc):
+    """Nur den eigenen Arbeiter samt seinen Kindern (Edge, php -S) beenden – nie fremde Prozesse (KR14)."""
+    if proc.poll() is not None:
+        return
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    else:
+        import signal
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except OSError:
+            proc.kill()
+    try:
+        proc.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        pass
+
+
+class _Steuerung:
+    def __init__(self, wurzel, aus, browser, gesamt):
+        self.wurzel, self.aus, self.browser, self.gesamt = wurzel, aus, browser, gesamt
+        self.basis = tempfile.mkdtemp(prefix="gl-")        # kurz und neutral: Tests suchen Texte wie „amw-test“ in Pfaden
+        self.summe = {k: 0 for k in ZAEHLER}
+        self.dauern, self.berichte, self.fertig, self.laufend = {}, [], 0, []
+
+    def starten(self, nr, namen, versuch=0):
+        ordner = os.path.join(self.basis, f"p{nr}" + (f"-{versuch}" if versuch else ""))
         os.makedirs(os.path.join(ordner, "tmp"))
         liste, bericht, log = (os.path.join(ordner, x) for x in ("module.json", "bericht.json", "ausgabe.txt"))
         with open(liste, "w", encoding="utf-8") as f:
@@ -167,44 +254,162 @@ def steuern(n=None, wurzel=".", aus=sys.stdout, dauer_datei=None):
         env.update(TMP=os.path.join(ordner, "tmp"), TEMP=os.path.join(ordner, "tmp"), TMPDIR=os.path.join(ordner, "tmp"),
                    PYTHONIOENCODING="utf-8")
         logf = open(log, "w", encoding="utf-8", errors="replace")
-        # kein PYTHONPATH: Tests, die selbst Python in einem anderen Repo starten, fänden sonst dieses Paket tests (test_abnahme)
-        p = subprocess.Popen([sys.executable, "-X", "utf8", "-c", START.format(PAKET_WURZEL), "--arbeiter", liste, bericht], cwd=wurzel,
-                             env=env, stdout=logf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+        browser = nr == 0 and bool(self.browser)
+        # kein PYTHONPATH: Tests, die selbst Python in einem anderen Repo starten, fänden sonst dieses Paket tests (test_abnahme).
+        # -u (A2051): die Ausgabe steht sofort in der Datei – auch wenn der Arbeiter an der Zeitgrenze beendet wird
+        p = subprocess.Popen([sys.executable, "-u", "-X", "utf8", "-c", START.format(PAKET_WURZEL), "--arbeiter", liste, bericht],
+                             cwd=self.wurzel, env=env, stdout=logf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
-                             | (0 if (i == 0 and browser) else getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0)))
+                             | (0 if browser else getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0)),
+                             start_new_session=os.name != "nt")
         # Browser-Tests warten auf Zeichnen und Zeitgeber – unter Volllast wackeln sie; die anderen Prozesse treten zurück
-        laeufe.append({"nr": i, "namen": namen, "proc": p, "log": log, "logf": logf, "bericht": bericht, "browser": i == 0 and bool(browser)})
-    print(f"Gesamtlauf parallel: {len(mods)} Module auf {len(gruppen)} Prozesse"
-          + (f" (Browser-Tests: {len(browser)} Module nacheinander in Prozess 0)" if browser else ""), file=aus, flush=True)
-    summe = {"ran": 0, "failures": 0, "errors": 0, "skipped": 0, "expected_failures": 0, "unexpected_successes": 0}
-    dauern = {}
-    for l in laeufe:
-        rc = l["proc"].wait()
-        l["logf"].close()
+        stand, fortschritt = _dateien(bericht)
+        self.laufend.append({"nr": nr, "namen": namen, "proc": p, "log": log, "logf": logf, "bericht": bericht, "stand": stand,
+                             "fortschritt": fortschritt, "gelesen": 0, "erledigt": [], "start": time.time(), "versuch": versuch})
+
+    def _fortschritt(self, w):
         try:
-            with open(l["bericht"], encoding="utf-8") as f:
+            with open(w["fortschritt"], encoding="utf-8") as f:
+                f.seek(w["gelesen"])
+                neu = f.read()
+        except OSError:
+            return
+        ganz = neu[:neu.rfind("\n") + 1]                   # nur ganze Zeilen
+        w["gelesen"] += len(ganz.encode("utf-8"))
+        for z in ganz.splitlines():
+            try:
+                d = json.loads(z)
+            except ValueError:
+                continue
+            self.fertig += 1
+            w["erledigt"].append(d["modul"])
+            print(f"[{self.fertig}/{self.gesamt}] {d['modul']} {'ROT' if d.get('rot') else 'ok'} {d.get('dauer', 0):.1f}s (p{w['nr']})",
+                  file=self.aus, flush=True)
+
+    @staticmethod
+    def _stand(w):
+        """(Modul, Test, Sekunden still) des Arbeiters."""
+        try:
+            with open(w["stand"], encoding="utf-8") as f:
+                modul, _, test = f.read().strip().partition("\t")
+            seit = os.path.getmtime(w["stand"])
+        except OSError:
+            modul, test, seit = (w["namen"][0] if w["namen"] else ""), "", w["start"]
+        return modul, test, time.time() - max(seit, w["start"])
+
+    @staticmethod
+    def _text(w):
+        try:
+            with open(w["log"], encoding="utf-8", errors="replace") as f:
+                return f.read()
+        except OSError:
+            return ""
+
+    def _zaehlen(self, w):
+        """Bericht des Arbeiters (auch unvollständig) in die Summe; Fehlerblöcke merken. False: kein Bericht da."""
+        try:
+            with open(w["bericht"], encoding="utf-8") as f:
                 b = json.load(f)
         except (OSError, ValueError):
-            b = None
-        with open(l["log"], encoding="utf-8", errors="replace") as f:
-            text = f.read()
-        if b is None:                                     # der Prozess starb ohne Bericht: zählt als Fehler, Ausgabe zeigen
-            summe["errors"] += 1
-            print(f"\n=== Prozess {l['nr']} endete ohne Bericht (rc {rc}) – Module: {', '.join(l['namen'])}\n{text[-20000:]}", file=aus)
-            continue
-        for k in summe:
-            summe[k] += b[k]
-        dauern.update(b["dauer"])
-        rot = b["failures"] or b["errors"] or b["unexpected_successes"]
-        if rot:                                          # die Fehlerberichte (=== FAIL/ERROR …) wie unittest sie schreibt
-            print(f"\n=== Prozess {l['nr']}: {ergebnis_zeile(b)}", file=aus)
-            print("\n".join(z for z in _berichte(text)), file=aus)
-    dauern_schreiben(dauern, dauer_datei)
-    shutil.rmtree(basis, ignore_errors=True)
+            return False
+        for k in ZAEHLER:
+            self.summe[k] += b[k]
+        self.dauern.update(b["dauer"])
+        if b["failures"] or b["errors"] or b["unexpected_successes"]:   # die Fehlerberichte (=== FAIL/ERROR …) wie unittest
+            self.berichte.append(f"\n=== Prozess {w['nr']}: {ergebnis_zeile(b)}\n" + "\n".join(_berichte(self._text(w))))
+        return True
+
+    def abschliessen(self, w):
+        w["logf"].close()
+        self._fortschritt(w)
+        if not self._zaehlen(w) and w["namen"]:              # der Prozess starb ohne Bericht: zählt als Fehler, Ausgabe zeigen
+            self.summe["errors"] += 1
+            self.berichte.append(f"\n=== Prozess {w['nr']} endete ohne Bericht (rc {w['proc'].returncode}) – Module: "
+                                 f"{', '.join(w['namen'])}\n{self._text(w)[-20000:]}")
+
+    def abbrechen(self, w, warum):
+        """Arbeiter beenden (eigener Prozess samt Kindern), das laufende Modul als rot mit Testmethode und bisheriger Ausgabe.
+        Rückgabe: die Module, die danach noch dran gewesen wären."""
+        modul, test, still = self._stand(w)
+        _beenden(w["proc"])
+        w["logf"].close()
+        self._fortschritt(w)
+        self._zaehlen(w)
+        self.summe["errors"] += 1
+        self.summe["ran"] += 1
+        self.berichte.append("=" * 70 + f"\nERROR: {test or modul} ({warum}: Prozess p{w['nr']} seit {still:.0f} s still – beendet)\n"
+                             + "-" * 70 + f"\nModul {modul}. Bisherige Ausgabe des Arbeiters:\n{self._text(w)[-8000:]}\n")
+        rest = [m for m in w["namen"] if m not in w["erledigt"] and m != modul]
+        return modul, test, still, rest
+
+    def runde(self, grenze_s):
+        for w in list(self.laufend):
+            self._fortschritt(w)
+            if w["proc"].poll() is not None:
+                self.laufend.remove(w)
+                self.abschliessen(w)
+                continue
+            _, _, still = self._stand(w)
+            if still > grenze_s:
+                self.laufend.remove(w)
+                modul, test, still, rest = self.abbrechen(w, "Zeitgrenze")
+                print(f"!! Zeitgrenze: {modul} ({test or 'beim Laden'}) in p{w['nr']} seit {still:.0f} s still – Prozess beendet"
+                      + (f", weiter mit {len(rest)} Modulen" if rest else ""), file=self.aus, flush=True)
+                if rest:
+                    self.starten(w["nr"], rest, w["versuch"] + 1)
+
+    def frist(self):
+        """Kurz vor dem Ende der Frist: je Arbeiter festhalten, was gerade läuft, dann alle beenden."""
+        print(f"\n=== Frist erreicht – Stand der Arbeiter ({len(self.laufend)} laufen noch)", file=self.aus, flush=True)
+        for w in list(self.laufend):
+            self.laufend.remove(w)
+            modul, test, still, rest = self.abbrechen(w, "Frist")
+            print(f"Läuft gerade: p{w['nr']} {modul} · {test or 'beim Laden'} (still seit {still:.0f} s)"
+                  + (f" – danach noch {len(rest)} Module" if rest else ""), file=self.aus, flush=True)
+
+
+def steuern(n=None, wurzel=".", aus=sys.stdout, dauer_datei=None, grenze_s=None, ende=None):
+    t0 = time.monotonic()
+    dauer_datei = dauer_datei or DAUER_DATEI
+    grenze_s = grenze_s or zeitgrenze()
+    ende = ende if ende is not None else lauf_ende()
+    mods = module(wurzel)
+    browser = {name for name, p in mods if ist_browser(p)}
+    gruppen = verteilen(mods, n or prozesse(), dauern_lesen(dauer_datei), browser)
+    s = _Steuerung(wurzel, aus, browser, len(mods))
+    for i, namen in enumerate(gruppen):
+        s.starten(i, namen)
+    print(f"Gesamtlauf parallel: {len(mods)} Module auf {len(gruppen)} Prozesse"
+          + (f" (Browser-Tests: {len(browser)} Module nacheinander in Prozess 0)" if browser else "")
+          + f" · Zeitgrenze {grenze_s:g} s ohne neuen Test", file=aus, flush=True)
+    frist = False
+    while s.laufend:
+        if ende and time.time() >= ende - RESERVE_S:
+            s.frist()
+            frist = True
+            break
+        time.sleep(SCHAU_S)
+        s.runde(grenze_s)
+    for b in s.berichte:
+        print(b, file=aus)
+    dauern_schreiben(s.dauern, dauer_datei)
+    shutil.rmtree(s.basis, ignore_errors=True)
     print("-" * 70, file=aus)
-    print(f"Ran {summe['ran']} tests in {time.monotonic() - t0:.3f}s\n", file=aus)
-    print(ergebnis_zeile(summe), file=aus, flush=True)
-    return 0 if not (summe["failures"] or summe["errors"] or summe["unexpected_successes"]) else 1
+    print(f"Ran {s.summe['ran']} tests in {time.monotonic() - t0:.3f}s\n", file=aus)
+    print(ergebnis_zeile(s.summe), file=aus, flush=True)
+    if frist:
+        return 124
+    return 0 if not (s.summe["failures"] or s.summe["errors"] or s.summe["unexpected_successes"]) else 1
+
+
+def haenger(text):
+    """Für die Meldung an den Lead (A2051): die Zeilen „Läuft gerade: …“ und „!! Zeitgrenze: …“ aus der Ausgabe, sonst die
+    letzte Fortschrittszeile."""
+    z = [x.strip() for x in text.splitlines() if x.startswith(("Läuft gerade:", "!! Zeitgrenze:"))]
+    if z:
+        return z
+    f = [x.strip() for x in text.splitlines() if re.match(r"^\[\d+/\d+\] ", x)]
+    return [f"zuletzt fertig: {f[-1]}"] if f else []
 
 
 def _berichte(text):
