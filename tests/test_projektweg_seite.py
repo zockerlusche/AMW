@@ -227,6 +227,44 @@ class Bestand(Grund):
         self.assertEqual((self.daten()["konzept"]["bestand"], self.daten()["grob"]["bestand"]), (0, []))
 
 
+class KartenUndVerlauf(Grund):
+    def test_delta_als_karten_mit_zielen(self):
+        """A2065: ein Entwurf als Karten in Stufen, „wer“ in Worten, Ziel-Meilenstein mit Projektnummer bzw. neu; geändert und
+        verworfen mit dem bisherigen Titel."""
+        demo(self.con, self.pid, "fein")
+        m1, nr = self.con.execute("SELECT id, nr FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()
+        alt = self.con.execute("SELECT id, titel FROM aufgabe WHERE titel = 'Tests für Speichern'").fetchone()
+        d = {"delta": True, "meilensteine": [{"schluessel": "M1", "bestehend": m1}, {"schluessel": "M2", "titel": "Export"}],
+             "pakete": [{"schluessel": "P1", "meilenstein": "M1", "titel": "Schlagwort speichern", "ausfuehrung": "p", "modell": "sonnet",
+                         "groesse": "S", "nach": [], "abnahme_befehl": "python -m unittest tests.test_tag"},
+                        {"schluessel": "P2", "meilenstein": "M2", "titel": "Export als Markdown", "ausfuehrung": "agent", "groesse": "M",
+                         "nach": ["P1"], "interaktiv_grund": "gesperrter Bereich"}],
+             "aendern": [{"paket": f"A{alt[0]}", "titel": "Tests für Speichern mit Schlagwort", "grund": "Schlagwort"}],
+             "verwerfen": []}
+        k = projektweg_seite._entwurf_karten(self.con, self.pid, d)
+        self.assertEqual([(x["titel"], x["stufe"], x["wer"]) for x in k["karten"]],
+                         [("Schlagwort speichern", 1, "Headless · Sonnet"), ("Export als Markdown", 2, "Fenster")])
+        self.assertEqual(k["ziele"], [{"nr": nr, "titel": "Welt sichtbar", "neu": False}, {"nr": None, "titel": "Export", "neu": True}])
+        self.assertEqual((k["aendern"][0]["aufgabe"], k["aendern"][0]["alt"]), (alt[0], alt[1]))
+
+    def test_verlauf_je_schritt_in_menschensprache(self):
+        """A2063: jeder Eintrag hat einen Schritt; TH-Nummern werden zum Thema mit Namen, interne Kürzel fallen weg, Langes auf Klick."""
+        t = demo(self.con, self.pid, "grob2")
+        v = self.daten()["verlauf"]
+        schritte = {e["art"]: e["schritt"] for e in v}
+        self.assertEqual((schritte["thema_freigegeben"], schritte["grobplan_entwurf"], schritte["konzept_abschluss"]), ("konzept", "grob", "konzept"))
+        frei = next(e for e in v if e["art"] == "thema_freigegeben")
+        self.assertTrue(frei["zeile"].startswith("Thema „"), frei["zeile"])
+        self.assertNotIn(f"TH{t[0]} ", frei["zeile"])
+        x = projektweg_seite.verlauf_lesbar([{"art": "protokoll", "rolle": "agent", "text": "P4 fertig – siehe #31234 " + "lang " * 60}], {})[0]
+        self.assertEqual(x["schritt"], "umsetzung")
+        self.assertNotIn("P4", x["zeile"])
+        self.assertNotIn("#31234", x["zeile"])
+        self.assertTrue(x["zeile"].endswith("…") and x["lang"])
+        self.assertEqual(projektweg_seite.verlauf_lesbar([{"art": "plan_hinweis", "rolle": "mensch", "text": "Hinweis an den Planer – Grobplan: mehr"}], {})[0]["schritt"], "grob")
+        self.assertEqual(projektweg_seite.verlauf_lesbar([{"art": "meilenstein_frei", "rolle": "mensch", "text": "M3: Abschluss freigegeben"}], {})[0]["schritt"], "abschluss")
+
+
 class Abschluss(Grund):
     def test_abnehmen_ist_das_ja_zum_abschluss(self):
         demo(self.con, self.pid, "abschluss")

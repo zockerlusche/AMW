@@ -14,9 +14,11 @@ Zustand (G12) – alles kommt aus den Modulen, die den Weg schon führen:
 Handlungen (Konzept abschließen, Grobplan freigeben, Hinweis, Überarbeiten lassen) laufen über aktionen.py → die Module selbst;
 sie prüfen Rechte und Reihenfolge (projektweg.uebergang_pruefen, Freigaben je Projekt A2032).
 """
+import re
+
 from . import kern, projektweg
 
-VERLAUF_GRENZE = 80
+VERLAUF_GRENZE = 400                            # A2063: je Schritt gefiltert – darum mehr als früher 80
 SCHRITT_NR = {s: i for i, s in enumerate(projektweg.SCHRITTE)}
 
 
@@ -231,6 +233,44 @@ def fragen(con, pid):
     return aus
 
 
+_SCHRITT_ART = {
+    "konzept": ("thema_vorgelegt", "thema_bearbeitet", "thema_freigegeben", "thema_zurueck", "thema_ja", "thema_loeschen_markiert",
+                "thema_markierung_aufgehoben", "thema_gegenlesen", "thema_gegengelesen", "konzept_uebernommen", "konzept_abschluss_ja",
+                "konzept_abschluss"),
+    "grob": ("grobplan_angestossen", "grobplan_entwurf", "grobplan_ja_stimme", "grobplan_ja"),
+    "fein": ("thema_planer", "thema_planentwurf", "thema_plan_ja", "thema_nichts_zu_bauen"),   # ein Planer zu einer Konzeptänderung gehört zu Fein
+    "abschluss": ("abschluss_bericht",),
+}
+_ART_SCHRITT = {art: schritt for schritt, arten in _SCHRITT_ART.items() for art in arten}
+ZEILE_MAX = 140
+_TH = re.compile(r"\bTH(\d+)\b")
+_KUERZEL = re.compile(r"(#\d+|\b[PF]\d+\b)")
+
+
+def _schritt_des_eintrags(e):
+    """Zu welchem Schritt gehört ein Eintrag im Verlauf? (A2063, TL #32153)"""
+    art, text = e["art"], e.get("text") or ""
+    if art in _ART_SCHRITT:
+        return _ART_SCHRITT[art]
+    if art in ("meilenstein_frei", "meilenstein_ja"):
+        return "grob" if "Grobplan" in text else "abschluss" if "Abschluss" in text else "fein"
+    if art == "plan_hinweis":
+        return "grob" if "– Grobplan" in text else "fein"
+    return {"pruefer": "abschluss", "planer": "fein"}.get(e.get("rolle"), "umsetzung")   # eigens gespeicherte Ereignisse (A2024)
+
+
+def verlauf_lesbar(eintraege, namen):
+    """Je Eintrag: Schritt, eine Zeile in Menschensprache (Thema mit Namen statt TH-Nummer, ohne interne Kürzel wie #…, P4, F4),
+    der ganze Text nur, wenn er länger ist (auf Klick)."""
+    aus = []
+    for e in eintraege:
+        text = _TH.sub(lambda m: f"Thema „{namen[int(m.group(1))]}“" if int(m.group(1)) in namen else m.group(0), e.get("text") or "")
+        text = re.sub(r"\s{2,}", " ", _KUERZEL.sub("", text)).strip(" ·–,")
+        zeile = text if len(text) <= ZEILE_MAX else text[:ZEILE_MAX].rsplit(" ", 1)[0] + " …"
+        aus.append({**e, "schritt": _schritt_des_eintrags(e), "zeile": zeile, "lang": text if zeile != text else None})
+    return aus
+
+
 def daten(con, pid):
     """Alles für die Seite in einer Antwort (eine Anfrage je Neuzeichnen, auch online)."""
     from . import planer_fortschritt, verlauf
@@ -245,7 +285,10 @@ def daten(con, pid):
         if x["schritt"] == "grob" and x["zustand"] == "dran" and g["fassungen"] and not g["angenommen"] and not g["laeuft"]                 and not g["fassungen"][-1]["fehler"]:
             wer = projektweg._freigebende(con, pid, "grob")      # A2030: ein Grobplan liegt vor – das Ja gibt, wer Grobpläne freigibt
         schritte.append({**x, "wer": wer, "nr": SCHRITT_NR[x["schritt"]], "bei_dir": x["zustand"] == "dran" and ich in wer})
-    return {"schritte": schritte, "dran": s["dran"], "zeile": s["zeile"], "konzept": konzept(con, pid, g["bestand"]), "grob": g,
+    k = konzept(con, pid, g["bestand"])
+    g_themen = k["themen"]
+    return {"schritte": schritte, "dran": s["dran"], "zeile": s["zeile"], "konzept": k, "grob": g,
             "fein": f, "umsetzung": umsetzung(f), "abschluss": abschluss(con, pid, fr), "fragen": fragen(con, pid),
             "laeufe": planer_fortschritt.laufende(con, pid),
-            "verlauf": verlauf.projektweg(con, pid, grenze=VERLAUF_GRENZE)}
+            "verlauf": verlauf_lesbar(verlauf.projektweg(con, pid, grenze=VERLAUF_GRENZE),
+                                      {t["id"]: t["name"] for t in g_themen})}
