@@ -34,14 +34,29 @@ def _lesen(*teile):
         return f.read()
 
 
+def texte(sprache):
+    """A2005: die festen Texte einer Sprache aus texte/<sprache>.json – {Schlüssel: Text}, Reihenfolge wie in der Datei."""
+    return json.loads(_lesen("texte", f"{sprache}.json"))
+
+
+def _texte(sprache):
+    """Die Sprachdatei als Teil des TEXTE-Objekts im Skript, wie es vorher von Hand stand: „  de: {", dann Zeilen mit
+    „schluessel: "Text", …“, dann „  },“ (Schlüssel sind Bezeichner, die Texte JSON-Strings – gültiges JavaScript, gewohnt lesbar)."""
+    teile = [f"{k}: {json.dumps(v, ensure_ascii=False)}" for k, v in texte(sprache).items()]
+    zeilen = [", ".join(teile[i:i + 6]) + "," for i in range(0, len(teile), 6)]
+    return f"  {sprache}: {{\n" + "".join(f"    {z}\n" for z in zeilen) + "  },\n"
+
+
 def seite():
-    """A2005: die ganze Seite aus amw/workbench/ – Gerüst (seite.html), Stil-Teile (stil/*.css), Sprachdateien (texte/de.js,
-    texte/en.js) und Skript-Bausteine (skript/*.js), je Ordner in der Reihenfolge der Dateinamen. Ersetzt das frühere
+    """A2005: die ganze Seite aus amw/workbench/ – Gerüst (seite.html), Stil-Teile (stil/*.css), Sprachdateien (texte/de.json,
+    texte/en.json) und Skript-Bausteine (skript/*.js), je Ordner in der Reihenfolge der Dateinamen. Ersetzt das frühere
     amw/workbench.html (verschoben, nicht gelöscht – Git behält sie); alle Leser holen die Seite nur hierüber."""
     def ordner(name):
         return "".join(_lesen(name, f) for f in sorted(os.listdir(os.path.join(BAUSTEINE, name))))
-    skript = ordner("skript").replace("@@TEXTE_DE@@\n", _lesen("texte", "de.js")).replace("@@TEXTE_EN@@\n", _lesen("texte", "en.js"))
+    skript = ordner("skript").replace("@@TEXTE_DE@@\n", _texte("de")).replace("@@TEXTE_EN@@\n", _texte("en"))
     return _lesen("seite.html").replace("@@STIL@@\n", ordner("stil")).replace("@@SKRIPT@@\n", skript)
+
+
 HILFE = os.path.join(HIER, "hilfe")          # Bilder der Anleitungen in der Workbench (z. B. „Neues Projekt“)
 
 
