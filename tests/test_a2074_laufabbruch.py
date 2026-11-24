@@ -316,7 +316,7 @@ class Ersatz(Grund):
         self.assertNotIn("AMW_AGENT", laufdienst.umgebung())
         self.assertEqual([g["bezug"] for g in wartegrund.offene(self.con, a)], [f"L{n['id']}"])
         text = self.post("CC1", True)[0][2]
-        self.assertIn(f"Ersatz L{n['id']} läuft (vom Dienst gerechnet) – nicht selbst starten", text)
+        self.assertIn(f"Ersatz L{n['id']} ist eingereiht oder läuft (vom Dienst gerechnet) – nicht selbst starten", text)
         self.assertNotIn("Neu starten:", text)
         self.assertEqual(len([1 for _, k in self.post("CC1") if f"L{lid} abgebrochen" in k]), 1)
 
@@ -377,6 +377,18 @@ class Ersatz(Grund):
     def toter_kopf(self):
         with open(self.datei, "w", encoding="utf-8") as f:
             f.write(f"# Stand {self.sha} sauber\n")
+
+    def test_aufgabe_inzwischen_fertig_kein_ersatz(self):
+        aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Bauen", "CC1")
+        lid = self.toter(aufgabe_id=aid)
+        kern.aufgabe_status(self.con, self.pid, "TL", aid, "fertig", beleg="abc1234")
+        self.runde()
+        self.assertEqual(self.z(lid)["status"], "abgebrochen")
+        self.assertEqual(self.neue(lid), [])
+        offen = kern.aufgabe_neu(self.con, self.pid, "TL", "Prüfen", "CC1")                    # Gegenprobe: offene Aufgabe
+        lid = self.toter(aufgabe_id=offen)
+        self.runde()
+        self.assertEqual([x["aufgabe_id"] for x in self.neue(lid)], [offen])
 
     def test_lauf_der_amw_selbst_nur_abschliessen(self):
         lid = self.toter(agent="TL")

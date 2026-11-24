@@ -219,7 +219,7 @@ def abschliessen(con, l, grund):
     selbst = betrieb.selbst_gestartet(con, lid)
     if neu:
         weiter = (f"L{neu} rechnet diesen Stand schon – nicht selbst starten." if schon else
-                  f"Ersatz L{neu} läuft (vom Dienst gerechnet) – nicht selbst starten.")
+                  f"Ersatz L{neu} ist eingereiht oder läuft (vom Dienst gerechnet) – nicht selbst starten.")
     elif selbst:
         weiter = "Ein Lauf der AMW selbst – sie startet ihn auf ihrem eigenen Weg neu, hier wird nichts eingereiht."
     else:
@@ -266,8 +266,8 @@ def ersatz(con, l, pfad):
     """(Nummer, schon da): neuer Gesamtlauf statt des toten – oder der neuere, der diesen Ordner schon rechnet; (None, False) ohne."""
     from . import laufdienst
     pid, lid = l["projekt_id"], l["id"]
-    if l["ausfuehrer"] != "agent" or l["schirm"] or not l["ordner"]:
-        return None, False
+    if l["ausfuehrer"] != "agent" or l["schirm"] or not l["ordner"] or (l["aufgabe_id"] and not _offen(con, l["aufgabe_id"])):
+        return None, False                                # ist die Aufgabe inzwischen fertig, lohnt kein Ersatz
     b = gesamtlauf(con, l)
     if not b:
         return None, False
@@ -292,7 +292,7 @@ def ersatz(con, l, pfad):
         return None, False
     try:
         neu = betrieb.lauf_start(con, pid, l["agent"], f"{l['beschreibung']} (Ersatz für L{lid})", None, bool(l["schwer"]), False,
-                                 l["aufgabe_id"] if _offen(con, l["aufgabe_id"]) else None, warten=True, erwartet_min=l["erwartet_min"],
+                                 l["aufgabe_id"], warten=True, erwartet_min=l["erwartet_min"],
                                  braucht_gb=l["braucht_gb"], befehl=[b], ordner=l["ordner"], frist_min=l["frist_min"])
     except kern.AmwFehler as e:
         log.info("L%s: kein Ersatz: %s", lid, e)
