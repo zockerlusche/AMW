@@ -70,6 +70,21 @@ def demo(con, pid, bis="grob2"):
         if p:
             arbeitspaket.setzen(con, pid, "TL", aid, art="p", modell="sonnet")
         ids[key] = aid
+    if bis == "fein":
+        return t
+    from amw import feinplanung, planautomatik, abschluss
+    feinplanung.plan_starten(con, pid, kern.ENTWICKLER, m1)
+    for aid in ids.values():
+        with db.schreiben(con):                                              # Umsetzung im Zeitraffer: alle Pakete fertig
+            con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234', fertig_utc = ? WHERE id = ?", (db.jetzt(), aid))
+    kern.projekt_einstellen(con, pid, "TL", plan_automatik="an")
+    with db.schreiben(con):                                                  # Ergebnis des Prüfers, wie abschluss.eintragen es schreibt
+        abschluss._ereignis(con, pid, abschluss.ERGEBNIS, bogen=m1, stand="x", test={"befehl": "godot --headless -s tests/alle.gd", "lauf": 7, "rc": 0},
+                            themen=[{"thema": f"TH{t[0]}", "erfuellt": True, "beleg": "Aquarium-Szene mit Kamera"},
+                                    {"thema": f"TH{t[2]}", "erfuellt": True, "beleg": "Speichern und Laden"}],
+                            vorfuehrung=["Aquarium starten", "Welt speichern", "neu laden – alles ist noch da"], ok=True, angelegt={})
+    with mock.patch.object(abschluss, "vor_bereit", return_value="melden"):  # Gesamttest und Prüfer: hier schon durch
+        planautomatik.meilenstein_projekt(con, pid)
     return t
 
 
@@ -163,6 +178,18 @@ class Daten(Grund):
             aktionen.ausfuehren(self.con, self.pid, "/api/projektweg/gibtesnicht", {})
 
 
+class Abschluss(Grund):
+    def test_abnehmen_ist_das_ja_zum_abschluss(self):
+        demo(self.con, self.pid, "abschluss")
+        d = self.daten()
+        x = d["abschluss"][0]
+        self.assertEqual((x["bereit"], x["frei"], x["status"]), (True, False, "aktiv"))
+        self.assertIsNotNone(x["bericht"])
+        aktionen.ausfuehren(self.con, self.pid, "/api/meilenstein/freigeben", {"bogen": x["bogen"], "art": "abschluss"})
+        x = self.daten()["abschluss"][0]
+        self.assertEqual((x["frei"], x["status"]), (True, "fertig"))
+
+
 FENSTER = "document.querySelector('#pjw-fenster .pjw-fenster')"
 
 
@@ -247,6 +274,34 @@ class SeiteFein(Seite):
                                        tun="zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)",
                                        danach="document.querySelector('.pjw-paket')", g=g, t=th)
                 self.assertEqual(fehler, [], f"{g} {th}")
+
+
+
+class SeiteAbschluss(Rundgang):
+    """Der Klick auf „Abnehmen“ macht den Meilenstein fertig (vorher ging er an /api/bogen/abnehmen und scheiterte bei „aktiv“)."""
+    def daten(self):
+        kern.agent_neu(self.con, self.pid, "CC1")
+        for ziel in (grobplan, planer):
+            p = mock.patch.object(ziel, "STARTER", lambda *a, **k: 4711)
+            p.start()
+            self.addCleanup(p.stop)
+        demo(self.con, self.pid, "abschluss")
+
+    def test_abnehmen_klicken(self):
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt[data-schritt=abschluss]')")
+        self.tab.js("zustand.pwSicht = 4; zeige('projektweg', true)")
+        knopf = "[...document.querySelectorAll('.pjw-ansicht > .pjw-kopf button')].find(b => b.textContent === t('pjw_abnehmen'))"
+        self.warten(knopf)
+        self.tab.js(knopf + ".click()")
+        self.warten("document.querySelector('.pjw-ansicht .pjw-status.frei') && document.querySelector('.pjw-ansicht .pjw-status.frei').textContent === t('pjw_abgenommen')")
+        self.assertEqual(self.con.execute("SELECT status FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0], "fertig")
+
+    def test_rundgang(self):
+        for g, th in (("pc", "hell"), ("handy", "dunkel")):
+            fehler = self.besuchen("projektweg", "projektweg-abschluss", bereit="document.querySelector('.pjw-schritt')",
+                                   tun="zustand.pwSicht = 4; zustand.pwOffen = true; zeige('projektweg', true)",
+                                   danach="document.querySelector('.pjw-pruefung')", g=g, t=th)
+            self.assertEqual(fehler, [], f"{g} {th}")
 
 
 if __name__ == "__main__":
