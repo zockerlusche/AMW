@@ -139,6 +139,34 @@ class Pruefen(Grund):
         self.assertIn("steht in keinem Zweig", aus["text"])
 
 
+class StartCommit(Grund):
+    """A2057: Vergleichsbasis = Start-Commit zum Zeitpunkt der Prüfbitte; main rückt vor (Gegenprobe) – es bleibt bei ihm;
+    Stand = Basis (schon gemergt) → „kein Vergleich möglich“ statt „keine neuen Fehler“."""
+
+    def setUp(self):
+        super().setUp()
+        self.modus("pyright")
+
+    def test_basis_bei_der_pruefbitte_gemerkt_main_rueckt_vor(self):
+        with mock.patch.object(vorpruefung, "STARTER", lambda pid, prid: 1):
+            vorpruefung.anstossen(self.con, self.pid, self.prid)
+        self.assertEqual(vorpruefung.gemerkte_basis(self.con, self.pid, self.prid), self.main)
+        git(self.repo, "checkout", "-q", "main")
+        git(self.repo, "merge", "-q", "--ff-only", "a12")                                        # gemergt: main = geprüfter Stand
+        gesehen = {}
+
+        def sprache(p, q, basis, werkzeuge=None):
+            gesehen["basis"] = basis
+            return {"befund": None, "neu": [], "ausgabe": "Sprachprüfung (pyright 1.1): 0 neue Fehler gegenüber dem Start-Commit"}
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as arbeit, mock.patch.object(pruefung_c, "sprachpruefung", sprache):
+            aus = vorpruefung.pruefen(self.con, self.pid, self.sha, arbeit, basis=vorpruefung.gemerkte_basis(self.con, self.pid, self.prid))
+        self.assertEqual((gesehen["basis"], aus["stand"]), (self.main, "ok"))                     # gegen den Start-Commit, nicht main
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as arbeit, mock.patch.object(pruefung_c, "sprachpruefung", sprache):
+            ohne = vorpruefung.pruefen(self.con, self.pid, self.sha, arbeit)                      # Gegenprobe: ohne Merken = main
+        self.assertEqual(ohne["stand"], "kein_vergleich")
+        self.assertEqual(vorpruefung.zeile(ohne), "Sprachprüfung: kein Vergleich möglich (Start-Commit = geprüfter Stand)")
+
+
 class Ausfuehren(Grund):
     def test_schlange_bricht_ab_wird_befund(self):
         with mock.patch.object(betrieb, "lauf_start", return_value=77), mock.patch.object(betrieb, "lauf_zeile", return_value={"status": "abgebrochen"}), \

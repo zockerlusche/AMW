@@ -7,8 +7,12 @@ das der Befund „Sprachprüfung nicht gelaufen“ mit Grund – nie still. Proj
 pyrightconfig.json im Projektordner) | pyright | aus.
 
 Ereignisse (plan_ereignis, ohne Schemaänderung):
-  sprache_angestossen {"pruefung", "prozess"}
-  sprache_befund      {"pruefung", "stand": "ok" | "neu" | "nicht_gelaufen", "neu": n, "text", "lauf"}
+  sprache_angestossen {"pruefung", "prozess", "basis"}
+  sprache_befund      {"pruefung", "stand": "ok" | "neu" | "kein_vergleich" | "nicht_gelaufen", "neu": n, "text", "lauf", "basis"}
+
+A2057: die Vergleichsbasis ist der Start-Commit des Pakets – git merge-base <Stand> main ZUM ZEITPUNKT DER PRÜFBITTE, gespeichert in
+sprache_angestossen. Rückt main während der Prüfung vor (oder ist der Stand schon gemergt), vergleicht die Prüfung trotzdem mit
+dem Start-Commit; ist die Basis der geprüfte Stand selbst, heißt der Befund „kein Vergleich möglich“ statt „keine neuen Fehler“.
 """
 import json
 import os
@@ -56,17 +60,42 @@ def anstossen(con, pid, prid):
     p = con.execute("SELECT * FROM pruefung WHERE id = ? AND projekt_id = ?", (prid, pid)).fetchone()
     if not p:
         return ""
+    basis = start_commit(con, pid, p["sha"])         # A2057: jetzt festhalten – main rückt bis zum Lauf vielleicht vor
     with db.schreiben(con):
         eid = db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=ANGESTOSSEN, aufgabe_id=p["aufgabe_id"],
-                           text=json.dumps({"pruefung": prid}, ensure_ascii=False))
+                           text=json.dumps({"pruefung": prid, "basis": basis}, ensure_ascii=False))
     try:
         prozess = STARTER(pid, prid)
     except OSError as e:
         abschliessen(con, pid, prid, {"stand": "nicht_gelaufen", "text": f"{NICHT_GELAUFEN}: Lauf ließ sich nicht starten ({e})"})
         return f"\n\nSprachprüfung: nicht gelaufen ({e})"
     with db.schreiben(con):
-        con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?", (json.dumps({"pruefung": prid, "prozess": prozess}, ensure_ascii=False), eid))
-    return "\n\nSprachprüfung: läuft (pyright, nur neue Fehler gegen main) – Befund folgt als Meldung"
+        con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?",
+                    (json.dumps({"pruefung": prid, "prozess": prozess, "basis": basis}, ensure_ascii=False), eid))
+    return "\n\nSprachprüfung: läuft (pyright, nur neue Fehler gegen den Start-Commit) – Befund folgt als Meldung"
+
+
+def start_commit(con, pid, sha):
+    """git merge-base <sha> main im Projektordner (voller SHA) oder None."""
+    ordner = kern.projekt_ordner(con, pid)
+    if not ordner:
+        return None
+    try:
+        return _git(["-C", ordner, "merge-base", sha, "main"], None) or None
+    except (RuntimeError, OSError, subprocess.SubprocessError):
+        return None
+
+
+def gemerkte_basis(con, pid, prid):
+    """Die bei der Prüfbitte gemerkte Basis (A2057) oder None."""
+    for (t,) in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id DESC", (pid, ANGESTOSSEN)):
+        try:
+            e = json.loads(t or "{}")
+        except ValueError:
+            continue
+        if e.get("pruefung") == prid:
+            return e.get("basis")
+    return None
 
 
 def _git(args, umgebung, cwd=None):
@@ -77,9 +106,9 @@ def _git(args, umgebung, cwd=None):
     return r.stdout.strip()
 
 
-def pruefen(con, pid, sha, arbeit, werkzeuge=None):
-    """Die Sprachprüfung auf `sha` gegen den merge-base mit main – in `arbeit` (eigener Ordner). Rückgabe wie abschliessen
-    sie braucht: {"stand", "neu", "text"}."""
+def pruefen(con, pid, sha, arbeit, werkzeuge=None, basis=None):
+    """Die Sprachprüfung auf `sha` gegen `basis` (A2057: der bei der Prüfbitte gemerkte Start-Commit; ohne ihn der merge-base mit
+    main) – in `arbeit` (eigener Ordner). Rückgabe wie abschliessen sie braucht: {"stand", "neu", "text", "basis"}."""
     from . import pruefung_c
     ordner = kern.projekt_ordner(con, pid)
     if not ordner or not os.path.isdir(ordner):
@@ -92,7 +121,15 @@ def pruefen(con, pid, sha, arbeit, werkzeuge=None):
         _git(["--git-dir", repo, "cat-file", "-e", f"{sha}^{{commit}}"], u)
     except RuntimeError:
         return {"stand": "nicht_gelaufen", "text": f"{NICHT_GELAUFEN}: {sha[:8]} steht in keinem Zweig des Projekts"}
-    basis = _git(["--git-dir", repo, "merge-base", sha, "refs/heads/main"], u)
+    if basis:
+        try:
+            _git(["--git-dir", repo, "cat-file", "-e", f"{basis}^{{commit}}"], u)
+        except RuntimeError:
+            basis = None
+    basis = basis or _git(["--git-dir", repo, "merge-base", sha, "refs/heads/main"], u)
+    if basis.startswith(sha) or sha.startswith(basis):   # A2057: Stand = Basis (z. B. schon gemergt) – kein Vergleich, kein „ok“
+        return {"stand": "kein_vergleich", "neu": 0, "basis": basis[:8],
+                "text": f"Sprachprüfung: kein Vergleich möglich – der Start-Commit ist der geprüfte Stand selbst ({sha[:8]})."}
     q = pruefung_c._frisch(p, sha)
     r = pruefung_c.sprachpruefung(p, q, basis, werkzeuge=werkzeuge)
     if r.get("hinweis"):                             # pyright fehlt auf diesem PC
@@ -107,6 +144,8 @@ def zeile(aus):
         return "Sprachprüfung: keine neuen Fehler"
     if aus.get("stand") == "neu":
         return f"Sprachprüfung: {aus.get('neu')} neue Fehler"
+    if aus.get("stand") == "kein_vergleich":
+        return "Sprachprüfung: kein Vergleich möglich (Start-Commit = geprüfter Stand)"
     return (aus.get("text") or NICHT_GELAUFEN).split("\n")[0][:160]
 
 
@@ -116,10 +155,10 @@ def abschliessen(con, pid, prid, aus, lauf=None):
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=BEFUND, aufgabe_id=p["aufgabe_id"] if p else None,
                      text=json.dumps({"pruefung": prid, "stand": aus.get("stand"), "neu": aus.get("neu"), "text": (aus.get("text") or "")[:4000],
-                                      "lauf": lauf}, ensure_ascii=False))
+                                      "lauf": lauf, "basis": aus.get("basis")}, ensure_ascii=False))
         if p:
             kern._posten(con, pid, "AMW", p["pruefer"], "meldung", f"P{prid} {zeile(aus)}"[:140],
-                         (aus.get("text") or NICHT_GELAUFEN) + (f"\n\nStand {p['sha'][:8]} gegen main ({aus['basis']})." if aus.get("basis") else ""),
+                         (aus.get("text") or NICHT_GELAUFEN) + (f"\n\nStand {p['sha'][:8]} gegen den Start-Commit {aus['basis']}." if aus.get("basis") else ""),
                          aufgabe_id=p["aufgabe_id"])
 
 
@@ -155,7 +194,7 @@ def ausfuehren(con, pid, prid, werkzeuge=None):
         if not p:
             raise kern.AmwFehler(f"P{prid} gibt es nicht")
         with tempfile.TemporaryDirectory(prefix="amw-vorpruefung-", ignore_cleanup_errors=True) as arbeit:
-            aus = pruefen(con, pid, p["sha"], arbeit, werkzeuge=werkzeuge)
+            aus = pruefen(con, pid, p["sha"], arbeit, werkzeuge=werkzeuge, basis=gemerkte_basis(con, pid, prid))
     except Exception as e:                                    # noqa: BLE001 – niemand sieht die Ausgabe: als Befund eintragen
         aus = {"stand": "nicht_gelaufen", "text": f"{NICHT_GELAUFEN}: {type(e).__name__}: {e}"[:400]}
     finally:

@@ -670,10 +670,13 @@ Prüfung C der p-Pakete; interaktive Prüfbitten bekamen keine Sprachprüfung.
   nur mit `pyrightconfig.json` im Projektordner) | `pyright` | `aus`.
 - **Was geschieht (`amw/vorpruefung.py`, `amw-vorpruefung.py`):** wie beim Stil-Leser ein losgelöster Prozess, der sich als
   leichter Lauf der Lauf-Schlange anmeldet. Er holt die Zweige des Projekts in ein eigenes Prüf-Repo (in einem eigenen
-  Arbeitsordner, nie im Baum des Bearbeiters), checkt genau den SHA der Prüfbitte und den merge-base mit main frisch aus und
+  Arbeitsordner, nie im Baum des Bearbeiters), checkt genau den SHA der Prüfbitte und seinen Start-Commit frisch aus – A2057: den
+  merge-base mit main zum Zeitpunkt der Prüfbitte (gemerkt in `sprache_angestossen`), auch wenn main inzwischen vorgerückt oder
+  der Stand schon gemergt ist – und
   fährt die vorhandene Sprachprüfung von Prüfung C (`pruefung_c.sprachpruefung`: pyright, nur neue Fehler gegen den
   Start-Commit). Kein Modell, keine Kosten außer PC-Zeit.
-- **Ergebnis:** Meldung an den Prüfer „P… Sprachprüfung: keine neuen Fehler“ bzw. „… n neue Fehler“ (mit Liste), Ereignis
+- **Ergebnis:** Meldung an den Prüfer „P… Sprachprüfung: keine neuen Fehler“ bzw. „… n neue Fehler“ (mit Liste) bzw. – ist der
+  Start-Commit der geprüfte Stand selbst – „kein Vergleich möglich“ (nie „keine neuen Fehler“ ohne Vergleich), Ereignis
   `sprache_befund`, und an der Prüfbitte in `amw pruefung zeige`. Fällt etwas aus – Start, Lauf-Schlange, Checkout, pyright fehlt,
   Zeit um –, lautet der Befund „Sprachprüfung nicht gelaufen: <Grund>“; die Prüfbitte gilt trotzdem, still fehlt nichts.
 
