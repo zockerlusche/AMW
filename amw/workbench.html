@@ -4237,7 +4237,7 @@ async function sichtThemen() {
    der Browser merkt sich nur, welcher Schritt, welcher Meilenstein, welche Fassung und welches Seitenfenster offen ist.
    Läuft ein Planer, öffnet sich die Fortschrittsanzeige (Überlagerung) und schließt sich, sobald sein Ergebnis da ist. */
 const PW_SCHRITTE = ["konzept", "grob", "fein", "umsetzung", "abschluss"];
-let pwTakt = null, pwHaupt = null;                /* pwHaupt: die Handlung des Schritts – steht oben neben der Überschrift (TL #31991) */
+let pwTakt = null, pwHaupt = null, pwStand = null;   /* pwStand: zuletzt gezeichnete Daten + Auswahl (A2060) */                /* pwHaupt: die Handlung des Schritts – steht oben neben der Überschrift (TL #31991) */
 const pwDranNr = d => d.dran ? PW_SCHRITTE.indexOf(d.dran) : 4;
 const pwM = id => "M" + id;                          /* A2061: Meilenstein-Nummer wie überall in der AMW (Id), nicht bogen.nr */
 const pwThemaName = (d, id) => (d.konzept.themen.find(x => x.id === id) || {}).name || "";
@@ -4487,9 +4487,19 @@ function pwUeberZeichnen(d) {
       typeof l.usd === "number" ? el("span", {}, el("b", {}, `${l.usd.toFixed(2)} $`)) : null),
     el("div", { class: "pjw-handlungen" }, pwKnopf(t("pjw_l_hintergrund"), () => { zustand.pwLaufZu = l.lauf; document.getElementById("pjw-ueber")?.remove(); })))));
 }
+function pwNachsehen(d) {
+  clearTimeout(pwTakt);                                   /* solange ein Planer läuft: alle 3 s nachsehen (Fortschritt, Ende) */
+  if (d.laeufe.length) pwTakt = setTimeout(() => { if (zustand.sicht === "projektweg") frischZeichnen(); }, 3000);
+}
 async function sichtProjektweg() {
+  /* A2060 (Marcel 24.11.: alle ~10 s war rechts alles weg): erst laden, dann vergleichen. Gleiche Daten und gleiche Auswahl –
+     nichts neu zeichnen, Scroll und Seitenfenster bleiben. Vorher leerte rahmen() die Seite sofort, und der Abruf (1–3 s) ließ
+     sie so lange leer; der Takt zeichnete bei jeder Änderung irgendwo im Projekt (Aufgaben, Ereignisse) neu. */
+  let d; try { d = await holen("/api/projektweg"); } catch (e) { rahmen(t("n_projektweg")).append(el("div", { class: "leer" }, String(e.message || e))); return; }
+  const stand = JSON.stringify([d, zustand.pwSicht, zustand.pwOffen, zustand.pwMs, zustand.pwFassung, zustand.pwWie, zustand.pwLaufZu, sprache]);
+  if (stand === pwStand && document.querySelector("#inhalt .pjw-seite")) { pwNachsehen(d); return; }
+  pwStand = stand;
   const m = rahmen(t("n_projektweg"));
-  let d; try { d = await holen("/api/projektweg"); } catch (e) { m.append(el("div", { class: "leer" }, String(e.message || e))); return; }
   zustand.pwDaten = d;
   const dranNr = pwDranNr(d), v = zustand.pwSicht ?? dranNr;
   const schritte = el("div", { class: "pjw-schritte" }, d.schritte.map((s, i) => {
@@ -4518,8 +4528,7 @@ async function sichtProjektweg() {
   m.append(el("div", { class: "pjw-seite" + (zustand.pwOffen ? " offen" : "") }, schritte, verlaufHandy, el("div", { class: "pjw-weg" }, ansicht, verlauf)));
   pwUeberZeichnen(d);
   pwFensterZeichnen();
-  clearTimeout(pwTakt);                                   /* solange ein Planer läuft: alle 3 s nachsehen (Fortschritt, Ende) */
-  if (d.laeufe.length) pwTakt = setTimeout(() => { if (zustand.sicht === "projektweg") frischZeichnen(); }, 3000);
+  pwNachsehen(d);
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape" && zustand.pwFenster && zustand.sicht === "projektweg") { zustand.pwFenster = null; document.getElementById("pjw-fenster")?.remove(); } });
 async function sichtWissen() {
