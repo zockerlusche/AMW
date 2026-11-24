@@ -1142,9 +1142,16 @@ def cmd_bogen(a, con):
             planansicht.zurueck(con, pid, _von(a), a.id, a.art, a.notiz)
             print(f"Meilenstein {a.id} ({a.art}): zurück")
         else:
-            r = planansicht.freigeben(con, pid, _von(a), a.id, a.art)
+            if a.starten and a.art != "plan":
+                raise kern.AmwFehler("--starten gibt es nur mit --art plan")
+            if a.starten:                             # A2031: das Feinplan-Ja ist der Start
+                from . import feinplanung
+                r = feinplanung.plan_starten(con, pid, _von(a), a.id)
+            else:
+                r = planansicht.freigeben(con, pid, _von(a), a.id, a.art)
             print(f"Meilenstein {a.id} ({a.art}): " + ("freigegeben" if r.get("frei") else "dein Ja steht – fehlt noch: "
-                                                       + ", ".join(r.get("ja_fehlt") or [])))
+                                                       + ", ".join(r.get("ja_fehlt") or []))
+                  + (f" · gestartet, {len(r['gestartet']['startklar'])} Pakete startklar" if r.get("gestartet") else ""))
     elif a.aktion == "bericht":                       # K7: Abschlussbericht (neu) erstellen – Lead oder Mensch
         from . import tore
         _nicht_als_mensch_aus_sitzung(a, "bogen bericht")
@@ -3984,6 +3991,8 @@ def parser():
     x.add_argument("--art", choices=["grob", "plan", "abschluss"], help="freigeben/zurueck: Meilenstein (grob), sein Plan oder sein"
                                                                        " Abschlussbericht – K6/K7")
     x.add_argument("--notiz", help="zurueck: was soll anders werden (Pflicht)")
+    x.add_argument("--starten", action="store_true", help="freigeben --art plan: Plan freigeben und den Meilenstein gleich starten"
+                                                          " (ein Klick wie in der Workbench)")
     x.set_defaults(f=cmd_bogen)
 
     x = s.add_parser("spec", help="Spezifikation je Meilenstein: zeigen N [teil] | schreiben N teil --text/--datei | vorlegen N teil |"

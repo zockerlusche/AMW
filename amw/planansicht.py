@@ -138,7 +138,7 @@ def freigeben(con, pid, von, bid, art):
         if not (z.get((bid, "grob")) or {}).get("an"):
             raise kern.AmwFehler(f"Meilenstein {b['nr']}: erst den Meilenstein freigeben, dann seinen Plan")
         if not _pakete(con, pid, bid):
-            raise kern.AmwFehler(f"Meilenstein {b['nr']} hat noch keine Pakete – er wird geplant, wenn der davor läuft")
+            raise kern.AmwFehler(f"Meilenstein {b['nr']} hat noch keine Pakete – die AMW plant ihn, sobald der davor bereit zur Abnahme ist oder sein letztes Paket läuft")
     fp = fingerabdruck(con, pid, bid, art)           # P461 (1): Ja und Freigabe gelten für genau diesen Stand
     with db.schreiben(con):
         if von == kern.ENTWICKLER:                   # der Mensch allein

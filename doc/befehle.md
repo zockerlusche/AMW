@@ -998,8 +998,8 @@ options:
 usage: amw bogen [-h] [--titel TITEL] [--ziel ZIEL] [--abnahme ABNAHME]
                  [--zieldatum ZIELDATUM] [--federfuehrend FEDERFUEHREND]
                  [--nr NR] [--grund GRUND] [--erzwingen]
-                 [--art {grob,plan,abschluss}] [--notiz NOTIZ] [--von VON]
-                 [--projekt PROJEKT]
+                 [--art {grob,plan,abschluss}] [--notiz NOTIZ] [--starten]
+                 [--von VON] [--projekt PROJEKT]
                  {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore,starten,reihenfolge}
                  [id] [wert]
 
@@ -1026,6 +1026,9 @@ options:
                         freigeben/zurueck: Meilenstein (grob), sein Plan oder
                         sein Abschlussbericht – K6/K7
   --notiz NOTIZ         zurueck: was soll anders werden (Pflicht)
+  --starten             freigeben --art plan: Plan freigeben und den
+                        Meilenstein gleich starten (ein Klick wie in der
+                        Workbench)
   --von VON
   --projekt PROJEKT
 ```

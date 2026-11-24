@@ -410,6 +410,12 @@ class Dienst:
                 log.info("Meilenstein %s: %s", bid, was)
         except Exception as e:
             log.warning("Meilensteine: %s: %s", type(e).__name__, e)
+        try:                                                                 # A2031: rollende Feinplanung des nächsten Meilensteins
+            from . import feinplanung
+            for bid, was in feinplanung.runde(self.con):
+                log.info("Feinplanung Meilenstein %s: %s", bid, was)
+        except Exception as e:
+            log.warning("Feinplanung: %s: %s", type(e).__name__, e)
         try:                                                                 # A2004: Anteil p unter dem Ziel → Lead, einmal je Tag
             from . import messung
             for e in messung.p_quote_runde(self.con):
