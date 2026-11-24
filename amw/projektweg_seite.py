@@ -207,14 +207,41 @@ def umsetzung(fein_):
     return {"meilensteine": laufend}
 
 
+def _pruef_stand(con, b):
+    """Der Stand, zu dem die AMW die Abschlussprüfung führt – derselbe wie in planautomatik.meilenstein_projekt."""
+    from . import planautomatik
+    letzte = con.execute("SELECT max(coalesce(fertig_utc, geaendert_utc, angelegt_utc)) FROM aufgabe WHERE bogen_id = ?",
+                         (b["id"],)).fetchone()[0] or ""
+    return planautomatik._stand(con, b, letzte)
+
+
+def pruefung_starten(con, pid, von, bid):
+    """A2064 (TL #32217): Meilensteine, die vor A2029 „bereit zur Abnahme“ wurden, bekommen ihre Prüfung nie von selbst – der
+    Mensch (oder der Lead) holt sie nach: Gesamttest und Prüfer gegen das Konzept (abschluss.vor_bereit, Tagesgrenze der Planer
+    gilt). Rückgabe {"ergebnis": "pruefung" | "melden" | "nacharbeit"}."""
+    from . import abschluss as ab, planautomatik
+    if not (von == kern.ENTWICKLER or kern.ist_lead(con, pid, von)):
+        raise kern.AmwFehler("Die Abschlussprüfung holen der Mensch oder der Lead nach")
+    b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
+    if not b:
+        raise kern.AmwFehler(f"Meilenstein {bid} gibt es nicht")
+    if not planautomatik.bereit_zur_abnahme(con, b):
+        raise kern.AmwFehler(f"M{b['nr']} ist nicht bereit zur Abnahme – die Prüfung startet die AMW selbst, wenn alle Pakete fertig sind")
+    if ab.ergebnis(con, pid, bid):
+        raise kern.AmwFehler(f"M{b['nr']} hat schon ein Prüf-Ergebnis – bei Bedarf Nacharbeit anfordern")
+    return {"ergebnis": ab.vor_bereit(con, pid, b, _pruef_stand(con, b))}
+
+
 def abschluss(con, pid, freigaben):
     from . import abschluss as ab, planautomatik
     aus = []
     for a in freigaben["abnahme"]:
         b = con.execute("SELECT * FROM bogen WHERE id = ?", (a["bogen"],)).fetchone()
         e = ab.ergebnis(con, pid, a["bogen"]) or {}
+        bereit = bool(planautomatik.bereit_zur_abnahme(con, b))
         aus.append({"bogen": a["bogen"], "nr": a["nr"], "titel": a["titel"], "status": b["status"], "frei": a["frei"],
-                    "bereit": bool(planautomatik.bereit_zur_abnahme(con, b)), "bericht": a["bericht"],
+                    "bereit": bereit, "bericht": a["bericht"],
+                    "pruefung_laeuft": bool(bereit and not e and ab._laeuft(con, pid, a["bogen"], _pruef_stand(con, b))),
                     "pakete": con.execute("SELECT count(*) FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (a["bogen"],)).fetchone()[0],
                     "pruefung": {"test": e.get("test"), "themen": e.get("themen") or [], "vorfuehrung": e.get("vorfuehrung") or [],
                                  "ok": e.get("ok"), "fehler": e.get("fehler")} if e else None})

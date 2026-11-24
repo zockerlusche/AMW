@@ -78,6 +78,11 @@ def demo(con, pid, bis="grob2"):
         with db.schreiben(con):                                              # Umsetzung im Zeitraffer: alle Pakete fertig
             con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234', fertig_utc = ? WHERE id = ?", (db.jetzt(), aid))
     kern.projekt_einstellen(con, pid, "TL", plan_automatik="an")
+    if bis == "abschluss-ohne":                                              # bereit wie vor A2029: ohne Prüf-Ergebnis
+        kern.projekt_einstellen(con, pid, "TL", plan_automatik="an")
+        with mock.patch.object(abschluss, "vor_bereit", return_value="melden"):
+            planautomatik.meilenstein_projekt(con, pid)
+        return t
     with db.schreiben(con):                                                  # Ergebnis des Prüfers, wie abschluss.eintragen es schreibt
         abschluss._ereignis(con, pid, abschluss.ERGEBNIS, bogen=m1, stand="x", test={"befehl": "godot --headless -s tests/alle.gd", "lauf": 7, "rc": 0},
                             themen=[{"thema": f"TH{t[0]}", "erfuellt": True, "beleg": "Aquarium-Szene mit Kamera"},
@@ -265,6 +270,35 @@ class KartenUndVerlauf(Grund):
         self.assertEqual(projektweg_seite.verlauf_lesbar([{"art": "meilenstein_frei", "rolle": "mensch", "text": "M3: Abschluss freigegeben"}], {})[0]["schritt"], "abschluss")
 
 
+class PruefungNachholen(Grund):
+    def test_pruefung_starten_fuer_alte_meilensteine(self):
+        """A2064 (TL #32217): bereit, aber nie geprüft – „Prüfung starten“ holt Gesamttest und Prüfer nach (abschluss.vor_bereit)."""
+        from amw import abschluss
+        demo(self.con, self.pid, "abschluss-ohne")
+        x = self.daten()["abschluss"][0]
+        self.assertEqual((x["bereit"], x["pruefung"], x["pruefung_laeuft"]), (True, None, False))
+        gestartet = []
+        from amw import schalter
+        with db.schreiben(self.con):
+            schalter._setzen(self.con, self.pid, "an")                       # Planer an (sonst „melden“ wie ohne Planer)
+        with mock.patch.object(abschluss, "STARTER", lambda pid, bid, stand: gestartet.append((bid, stand)) or 4711),                 mock.patch.dict(os.environ, {"AMW_PLANER_AUS": ""}):
+            r = aktionen.ausfuehren(self.con, self.pid, "/api/projektweg/pruefung-starten", {"bogen": x["bogen"]})
+        self.assertEqual(r, {"ergebnis": "pruefung"})
+        self.assertEqual(gestartet[0][0], x["bogen"])
+        self.assertTrue(self.daten()["abschluss"][0]["pruefung_laeuft"])
+        with self.assertRaisesRegex(aktionen.Ungueltig, "am PC"):
+            aktionen.ausfuehren(self.con, self.pid, "/api/projektweg/pruefung-starten", {"bogen": x["bogen"]}, kanal="netz")
+
+    def test_nicht_bei_ergebnis_und_nicht_wenn_nicht_bereit(self):
+        demo(self.con, self.pid, "abschluss")
+        x = self.daten()["abschluss"][0]
+        with self.assertRaisesRegex(aktionen.Ungueltig, "schon ein Prüf-Ergebnis"):
+            aktionen.ausfuehren(self.con, self.pid, "/api/projektweg/pruefung-starten", {"bogen": x["bogen"]})
+        m3 = self.con.execute("SELECT id FROM bogen WHERE titel = 'Spieler greift ein'").fetchone()[0]
+        with self.assertRaisesRegex(aktionen.Ungueltig, "nicht bereit"):
+            aktionen.ausfuehren(self.con, self.pid, "/api/projektweg/pruefung-starten", {"bogen": m3})
+
+
 class Abschluss(Grund):
     def test_abnehmen_ist_das_ja_zum_abschluss(self):
         demo(self.con, self.pid, "abschluss")
@@ -431,6 +465,38 @@ class SeiteBestand(Rundgang):
                                    tun="zustand.pwSicht = 1; zustand.pwOffen = true; zeige('projektweg', true)",
                                    danach="document.querySelector('.pjw-ansicht .pjw-liste')", g=g, t=th)
             self.assertEqual(fehler, [], f"{g} {th}")
+
+
+
+class SeiteOhnePruefung(Rundgang):
+    """A2064: „ohne Abschlussprüfung“ und der Klick auf „Prüfung starten“ – danach „läuft“ statt Knopf."""
+    def daten(self):
+        kern.agent_neu(self.con, self.pid, "CC1")
+        for ziel in (grobplan, planer):
+            p = mock.patch.object(ziel, "STARTER", lambda *a, **k: 4711)
+            p.start()
+            self.addCleanup(p.stop)
+        from amw import abschluss
+        p = mock.patch.object(abschluss, "STARTER", lambda *a, **k: 4711)
+        p.start()
+        self.addCleanup(p.stop)
+        demo(self.con, self.pid, "abschluss-ohne")
+        from amw import schalter
+        with db.schreiben(self.con):
+            schalter._setzen(self.con, self.pid, "an")                       # Planer an: der Prüfer würde wirklich starten (Starter ersetzt)
+        p = mock.patch.dict(os.environ, {"AMW_PLANER_AUS": ""})
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_pruefung_starten_klicken(self):
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.tab.js("zustand.pwSicht = 4; zeige('projektweg', true)")
+        knopf = "[...document.querySelectorAll('.pjw-ansicht > .pjw-kopf button')].find(b => b.textContent === t('pjw_a_starten'))"
+        self.warten(knopf)
+        self.assertIn(self.tab.js("t('pjw_a_ohne')"), self.tab.js("document.querySelector('.pjw-ab-karte').innerText"))
+        self.tab.js(knopf + ".click()")
+        self.warten("document.querySelector('.pjw-ab-karte') && document.querySelector('.pjw-ab-karte').innerText.includes(t('pjw_a_laeuft'))")
+        self.assertFalse(self.tab.js(f"!!({knopf})"))
 
 
 if __name__ == "__main__":
