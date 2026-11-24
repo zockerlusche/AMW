@@ -193,6 +193,40 @@ class FeinFehler(Grund):
         self.assertIn("gesperrte Pfade", " ".join(m["fehler"]))
 
 
+def bestand(con, pid):
+    """Projekt mit Bestand (A2061): Themen frei, alte Meilensteine mit Paketen – einer läuft, einer fertig –, kein Grobplan."""
+    t = demo(con, pid, "konzept")
+    alt = planung.bogen_neu(con, pid, "TL", "Altbestand fertig")
+    neu = planung.bogen_neu(con, pid, "TL", "Laufender Bestand")
+    for bid, n, status in ((alt, 2, "fertig"), (neu, 3, "laeuft")):
+        for i in range(n):
+            aid = planung.schritt_setzen(con, pid, "TL", titel=f"Paket {bid}-{i}", bogen_id=bid, groesse="S", art="mechanisch", agent="CC1")
+            if status == "fertig" or i == 0:
+                with db.schreiben(con):
+                    con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234', fertig_utc = ? WHERE id = ?", (db.jetzt(), aid))
+    with db.schreiben(con):
+        con.execute("UPDATE bogen SET status = 'fertig' WHERE id = ?", (alt,))
+        con.execute("UPDATE bogen SET status = 'aktiv' WHERE id = ?", (neu,))
+    return t, alt, neu
+
+
+class Bestand(Grund):
+    def test_bestand_ohne_grobplan(self):
+        """A2061 (Marcel 24.11.): bei Bestand kein „Konzept abschließen“ (A2030 legte alles neu an), Grob zeigt den Bestand, ein
+        laufender Meilenstein ohne Plan-Ja ist Umsetzung und nicht „Feinplan wartet auf dich“."""
+        _, alt, neu = bestand(self.con, self.pid)
+        d = self.daten()
+        self.assertEqual(d["konzept"]["bestand"], 2)
+        self.assertEqual([(b["bogen"], b["status"], b["pakete"], b["fertig"]) for b in d["grob"]["bestand"]], [(neu, "aktiv", 3, 1), (alt, "fertig", 2, 2)])
+        self.assertEqual([m["bogen"] for m in d["umsetzung"]["meilensteine"]], [neu])
+        demo2 = projektweg_seite.bestand(self.con, self.pid)
+        self.assertEqual(len(demo2), 2)
+
+    def test_neues_projekt_ohne_bestand(self):
+        demo(self.con, self.pid, "grob2")
+        self.assertEqual((self.daten()["konzept"]["bestand"], self.daten()["grob"]["bestand"]), (0, []))
+
+
 class Abschluss(Grund):
     def test_abnehmen_ist_das_ja_zum_abschluss(self):
         demo(self.con, self.pid, "abschluss")
@@ -316,6 +350,48 @@ class SeiteAbschluss(Rundgang):
             fehler = self.besuchen("projektweg", "projektweg-abschluss", bereit="document.querySelector('.pjw-schritt')",
                                    tun="zustand.pwSicht = 4; zustand.pwOffen = true; zeige('projektweg', true)",
                                    danach="document.querySelector('.pjw-pruefung')", g=g, t=th)
+            self.assertEqual(fehler, [], f"{g} {th}")
+
+
+
+class SeiteBestand(Rundgang):
+    """A2061 in der Seite: Nummern wie überall (M<Id>), kein „Konzept abschließen“ bei Bestand, Grob zeigt den Bestand.
+    A2060: ohne Änderung wird nichts neu gezeichnet (das Element bleibt dasselbe), mit Änderung schon."""
+    def daten(self):
+        kern.agent_neu(self.con, self.pid, "CC1")
+        for ziel in (grobplan, planer):
+            p = mock.patch.object(ziel, "STARTER", lambda *a, **k: 4711)
+            p.start()
+            self.addCleanup(p.stop)
+        _, self.alt, self.neu = bestand(self.con, self.pid)
+        self.nr_neu = self.con.execute("SELECT nr FROM bogen WHERE id = ?", (self.neu,)).fetchone()[0]
+
+    def test_bestand_und_kein_flackern(self):
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.tab.js("zustand.pwSicht = 0; zeige('projektweg', true)")
+        self.warten("document.querySelectorAll('.pjw-zeile[data-th]').length === 4")
+        self.assertFalse(self.tab.js("[...document.querySelectorAll('.pjw-ansicht button')].some(b => b.textContent === t('pjw_k_abschliessen'))"))
+        self.assertIn("Meilensteine", self.tab.js("document.querySelector('.pjw-ansicht').innerText"))
+        self.assertIn(f"M{self.nr_neu}", self.tab.js("document.querySelector('.pjw-schritt[data-schritt=umsetzung] .pjw-wert').innerText"))
+        self.assertNotIn("wartet", self.tab.js("document.querySelector('.pjw-schritt[data-schritt=fein] .pjw-wert').innerText"))
+        self.tab.js("zustand.pwSicht = 1; zeige('projektweg', true)")
+        self.warten(f"document.querySelector('.pjw-ansicht .pjw-liste') && document.querySelector('.pjw-ansicht .pjw-liste').innerText.includes('M{self.nr_neu}')")
+        # A2060: zweimal „still“ neu zeichnen ohne Änderung – das Element bleibt dasselbe (nichts verschwindet)
+        self.tab.js("window._seite = document.querySelector('.pjw-seite'); zeige('projektweg', true).then(() => zeige('projektweg', true)).then(() => window._fertig = 1)")
+        self.warten("window._fertig === 1")
+        self.assertTrue(self.tab.js("window._seite === document.querySelector('.pjw-seite')"))
+        with db.schreiben(self.con):                                         # eine echte Änderung: jetzt wird neu gezeichnet
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'x', fertig_utc = ? WHERE bogen_id = ? AND status != 'fertig'",
+                             (db.jetzt(), self.neu))
+        self.tab.js("window._fertig = 0; zeige('projektweg', true).then(() => window._fertig = 1)")
+        self.warten("window._fertig === 1")
+        self.assertFalse(self.tab.js("window._seite === document.querySelector('.pjw-seite')"))
+
+    def test_rundgang(self):
+        for g, th in (("pc", "hell"), ("handy", "dunkel")):
+            fehler = self.besuchen("projektweg", "projektweg-bestand", bereit="document.querySelector('.pjw-schritt')",
+                                   tun="zustand.pwSicht = 1; zustand.pwOffen = true; zeige('projektweg', true)",
+                                   danach="document.querySelector('.pjw-ansicht .pjw-liste')", g=g, t=th)
             self.assertEqual(fehler, [], f"{g} {th}")
 
 

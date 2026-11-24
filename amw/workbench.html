@@ -4239,7 +4239,7 @@ async function sichtThemen() {
 const PW_SCHRITTE = ["konzept", "grob", "fein", "umsetzung", "abschluss"];
 let pwTakt = null, pwHaupt = null, pwStand = null;   /* pwStand: zuletzt gezeichnete Daten + Auswahl (A2060) */                /* pwHaupt: die Handlung des Schritts – steht oben neben der Überschrift (TL #31991) */
 const pwDranNr = d => d.dran ? PW_SCHRITTE.indexOf(d.dran) : 4;
-const pwM = id => "M" + id;                          /* A2061: Meilenstein-Nummer wie überall in der AMW (Id), nicht bogen.nr */
+const pwM = m => "M" + m.nr;                         /* eine Nummer je Meilenstein: die Projektnummer (TH156, TL #32159 Punkt 7) */
 const pwThemaName = (d, id) => (d.konzept.themen.find(x => x.id === id) || {}).name || "";
 const pwFeinOffen = d => d.fein.meilensteine.find(m => !m.frei && !m.laeuft && (m.pakete.length || m.fehler) && m.status === "geplant");   /* A2061: laufende sind Umsetzung */
 function pwFragenIn(d, i) {                    /* Paket im laufenden Meilenstein → Umsetzung, sonst Feinplan; ohne Paket → wo es gerade steht */
@@ -4260,14 +4260,14 @@ function pwWert(d, i) {
     if (!g.fassungen.length && (g.bestand || []).length) return t("pjw_w_grob_bestand", { n: g.bestand.length });
     const l = g.fassungen.at(-1); return l ? t("pjw_fassung", { n: l.fassung }) : "–"; }
   if (i === 2) { const l = f.meilensteine.find(m => m.laeuft); if (l) return t("pjw_in_arbeit");
-    const w = pwFeinOffen(d); if (w) return w.fehler ? t("pjw_w_fein_fehler", { m: pwM(w.bogen) }) : t("pjw_w_fein", { m: pwM(w.bogen), n: w.pakete.length });
-    const z = f.meilensteine.filter(m => m.frei && m.status !== "fertig").at(-1); return z ? `${pwM(z.bogen)} · ${t("pjw_freigegeben")}` : "–"; }
+    const w = pwFeinOffen(d); if (w) return w.fehler ? t("pjw_w_fein_fehler", { m: pwM(w) }) : t("pjw_w_fein", { m: pwM(w), n: w.pakete.length });
+    const z = f.meilensteine.filter(m => m.frei && m.status !== "fertig").at(-1); return z ? `${pwM(z)} · ${t("pjw_freigegeben")}` : "–"; }
   if (i === 3) { const ms = u.meilensteine; if (!ms.length) return "–";
     const q = pwFragenIn(d, 3).length, fr = q ? " · " + (q === 1 ? t("pjw_frage1") : t("pjw_fragen", { n: q })) : "";
     if (ms.length > 1) return t("pjw_w_ums_n", { n: ms.length, f: ms.reduce((s, m) => s + m.fertig, 0), g: ms.reduce((s, m) => s + m.pakete.length, 0) }) + fr;   /* A2061 */
-    return t("pjw_w_ums", { m: pwM(ms[0].bogen), f: ms[0].fertig, n: ms[0].pakete.length }) + fr; }
-  const w = a.filter(x => x.bereit && !x.frei); if (w.length) return `${w.map(x => pwM(x.bogen)).join(", ")} · ${t("pjw_bereit")}`;
-  const z = a.filter(x => x.frei).at(-1); return z ? `${pwM(z.bogen)} · ${t("pjw_abgenommen")}` : "–";
+    return t("pjw_w_ums", { m: pwM(ms[0]), f: ms[0].fertig, n: ms[0].pakete.length }) + fr; }
+  const w = a.filter(x => x.bereit && !x.frei); if (w.length) return `${w.map(x => pwM(x)).join(", ")} · ${t("pjw_bereit")}`;
+  const z = a.filter(x => x.frei).at(-1); return z ? `${pwM(z)} · ${t("pjw_abgenommen")}` : "–";
 }
 const pwStatus = (text, art) => el("span", { class: "pjw-status" + (art ? " " + art : "") }, text);
 const pwKnopf = (text, onclick, haupt) => el("button", { class: "knopf" + (haupt ? " haupt" : ""), type: "button", onclick }, text);
@@ -4309,7 +4309,7 @@ function pwGrob(d) {
   const g = d.grob, teile = [];
   if (g.laeuft) teile.push(el("div", { class: "leer" }, t("pjw_g_laeuft")));
   if (!g.fassungen.length && (g.bestand || []).length) return [el("div", { class: "leise" }, t("pjw_g_bestand", { n: g.bestand.length })),   /* A2061 */
-    el("div", { class: "pjw-liste" }, g.bestand.map(b => el("div", { class: "pjw-zeile pjw-zeile-statisch" }, el("span", { class: "pjw-nr" }, pwM(b.bogen)), el("span", {}, b.titel),
+    el("div", { class: "pjw-liste" }, g.bestand.map(b => el("div", { class: "pjw-zeile pjw-zeile-statisch" }, el("span", { class: "pjw-nr" }, pwM(b)), el("span", {}, b.titel),
       el("span", { class: "pjw-rechts" }, b.status === "fertig" ? t("pjw_p_fertig") : t("pjw_f_von_n", { f: b.fertig, n: b.pakete })))))];
   if (!g.fassungen.length) return g.laeuft ? teile : [el("div", { class: "leer" }, t("pjw_g_leer"))];
   const nrs = g.fassungen.map(f => f.fassung);
@@ -4365,10 +4365,10 @@ function pwFein(d) {
   const gew = f.meilensteine.find(m => m.bogen === zustand.pwMs) || pwFeinOffen(d) || f.meilensteine.find(m => m.laeuft) || offen.at(-1) || f.meilensteine.at(-1);
   const chips = offen.includes(gew) ? offen : [...offen, gew];
   if (chips.length > 1) teile.push(el("div", { class: "pjw-chips" }, chips.map(m => el("button", { type: "button", class: "pjw-chip" + (m === gew ? " an" : ""),
-    onclick: () => { zustand.pwMs = m.bogen; zeige("projektweg", true); } }, `${pwM(m.bogen)} ${m.titel}`))));
-  teile.push(el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(gew.bogen)} ${gew.titel}`), gew.laeuft ? pwStatus(t("pjw_in_arbeit")) : gew.status === "aktiv" ? pwStatus(t("pjw_laeuft")) : gew.status === "fertig" ? pwStatus(t("pjw_p_fertig"), "frei") : gew.frei ? pwStatus(t("pjw_freigegeben"), "frei") : pwStatus(t("pjw_wartet_dich"), "dran")));
-  if (gew.laeuft) teile.push(el("div", { class: "leer" }, t("pjw_f_laeuft", { n: gew.bogen })));
-  if (gew.fehler) teile.push(el("div", { class: "pjw-fehler" }, el("b", {}, t("pjw_f_fehler", { n: gew.bogen, f: gew.fassung || 1 })),   /* A2056 */
+    onclick: () => { zustand.pwMs = m.bogen; zeige("projektweg", true); } }, `${pwM(m)} ${m.titel}`))));
+  teile.push(el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(gew)} ${gew.titel}`), gew.laeuft ? pwStatus(t("pjw_in_arbeit")) : gew.status === "aktiv" ? pwStatus(t("pjw_laeuft")) : gew.status === "fertig" ? pwStatus(t("pjw_p_fertig"), "frei") : gew.frei ? pwStatus(t("pjw_freigegeben"), "frei") : pwStatus(t("pjw_wartet_dich"), "dran")));
+  if (gew.laeuft) teile.push(el("div", { class: "leer" }, t("pjw_f_laeuft", { n: gew.nr })));
+  if (gew.fehler) teile.push(el("div", { class: "pjw-fehler" }, el("b", {}, t("pjw_f_fehler", { n: gew.nr, f: gew.fassung || 1 })),   /* A2056 */
     el("ul", {}, gew.fehler.slice(0, 8).map(x => el("li", {}, x)))));
   if (gew.pakete.length) {
     teile.push(el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, gew.pakete.length), " ", t("pjw_pakete_w")),
@@ -4383,7 +4383,7 @@ function pwFein(d) {
   }
   if (!API && !gew.frei && !gew.laeuft && gew.pakete.length && gew.status === "geplant") {
     teile.push(pwHinweisFeld(t("pjw_f_hinweis_ph")));
-    pwHaupt = pwKnopf(t("pjw_plan_starten", { n: gew.bogen }), () => pwTun("/api/meilenstein/plan-starten", { bogen: gew.bogen }, t("pjw_ok_plan")), true);
+    pwHaupt = pwKnopf(t("pjw_plan_starten", { n: gew.nr }), () => pwTun("/api/meilenstein/plan-starten", { bogen: gew.bogen }, t("pjw_ok_plan")), true);
     teile.push(pwHandlungen(pwKnopf(t("pjw_ueberarbeiten"), () => { const x = pwHinweisText(); if (!x) { toast(t("pjw_text_fehlt"), true); return; }
         pwTun("/api/meilenstein/fein-neu", { bogen: gew.bogen, hinweis: x }, t("pjw_ok_ueberarbeiten")); })));
   }
@@ -4394,7 +4394,7 @@ function pwUmsetzung(d) {
   if (!u.meilensteine.length) return [el("div", { class: "leer" }, t("pjw_u_leer"))];
   const teile = [];
   for (const m of [...u.meilensteine].sort((a, b) => b.bogen - a.bogen)) {           /* A2061: der jüngste oben */
-    teile.push(el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(m.bogen)} ${m.titel}`), pwStatus(t("pjw_f_von_n", { f: m.fertig, n: m.pakete.length }))));
+    teile.push(el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(m)} ${m.titel}`), pwStatus(t("pjw_f_von_n", { f: m.fertig, n: m.pakete.length }))));
     teile.push(el("div", { class: "pjw-balken" }, el("span", { style: `width:${m.pakete.length ? Math.round(m.fertig / m.pakete.length * 100) : 0}%` })));
     teile.push(...pwFragenIn(d, 3).filter(f => f.bogen === m.bogen || !f.bogen).map(pwFrage));
     teile.push(pwStufen(m.pakete, true));
@@ -4406,7 +4406,7 @@ function pwAbschluss(d) {
   const a = d.abschluss;
   if (!a.length) return [el("div", { class: "leer" }, t("pjw_a_leer"))];
   const x = a.find(y => y.bereit && !y.frei) || a.at(-1), p = x.pruefung, teile = [];
-  teile.push(el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x.bogen)} ${x.titel}`),
+  teile.push(el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x)} ${x.titel}`),
     x.frei ? pwStatus(t("pjw_abgenommen"), "frei") : x.bereit ? pwStatus(t("pjw_wartet_dich"), "dran") : pwStatus(t("pjw_in_arbeit"))));
   const zeile = (ok, text) => el("div", {}, el("span", { class: ok ? "pjw-ok" : "pjw-nein" }, ok ? "✓" : "○"), el("span", {}, text));
   if (p) {
