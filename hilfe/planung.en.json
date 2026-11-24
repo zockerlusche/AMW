@@ -10,7 +10,7 @@
   },
   {
    "titel": "Read the overview",
-   "text": "Each milestone is a bar from its start to the forecast. Colour AND pattern tell you how it stands: hollow with a dashed edge = planned, blue = in progress, yellow ribbed = tight, orange-red diagonal stripes = late, bluish green = done. The vertical line marked “Now” is now; hover over it to see date, time and what is running. Hover over a bar or a diamond to see title, status, progress, forecast and target date.",
+   "text": "Each milestone is a bar from its start to the forecast. Colour AND pattern tell you how it stands: hollow with a dashed edge = planned, blue = in progress, yellow ribbed = tight, orange-red diagonal stripes = late, bluish green = done. The vertical line marked “Now” is now; hover over it to see date, time and what is running. Hover over a bar or a diamond to see title, status, progress, forecast and target date. When what is due: `amw bogen zeitplan` shows the planned start and end time of each open package – from the order, the duration and free slots –, what starts at the same time and where something takes longer than planned (“+n min”).",
    "bilder": []
   },
   {
@@ -87,7 +87,7 @@
   ],
   [
    "What has the project cost so far, and what is still to come?",
-   "`amw messung --gesamt` (Workbench data: `/api/kosten`) shows the cost **so far** – measured from the cost counter of the agents in a window and the recorded runs of headless packages –, **still to come** (estimate for open packages: median of the same size and kind, minus what is already measured) and **total**. Open packages without enough measurements of the same size and kind count as “no estimate”. The costs in Planning, in the closing report and the “over forecast” message now count both sources as well."
+   "`amw messung --gesamt` (Workbench data: `/api/kosten`) shows the cost **so far** – measured from the cost counter of the agents in a window and the recorded runs of headless packages –, **still to come** (estimate for open packages: median of the same size and kind, minus what is already measured) and **total**. Open packages without enough measurements of the same size and kind count as “no estimate”. The costs in Planning, in the closing report and the “over forecast” message now count both sources as well. How good is the forecast? `amw messung --prognose` compares, for each finished package, the duration AMW expected at its start with the real duration: hit rate (within 1.5 times), median factor and per source (measured, estimated, default by size); `--seit 20.11.` for a period."
   ],
   [
    "What happens when a milestone is done?",
