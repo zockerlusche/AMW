@@ -543,6 +543,10 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   Startminute), „nach A…“ und „+n min“, wenn Laufendes länger dauert als geplant (es endet dann „jetzt“, die Pakete dahinter
   rücken mit). Ohne Agent bzw. ohne Platz steht das dabei. Nur Rechnung bei jedem Abruf; „nie gleichzeitig“ und „gleiche
   Ressource“ rechnet er nicht.
+- **Prognose messen (A2046):** Die Aufsichtsrunde des Dienstes hält je Paket beim Start einmal die Dauer fest, mit der Reihenfolge
+  und Zeitplan rechnen (`prognose_start`), und beim Ende das Ist von Beginn bis fertig (`prognose_ist`, mit Faktor Ist/Schätzung)
+  – für jeden Abschlussweg. Fehlt der Start, gilt die Schätzung beim Ende. `amw messung --prognose [--seit …]` zeigt die
+  Trefferquote (im Rahmen 0,67–1,5×), den Median des Faktors und beides je Quelle.
 - **Wer ihr folgt:** die Liste je Agent (`amw liste`, das laufende Stück bleibt vorn), das Verteilen an freie Agenten und die
   Prognose (Warteschlangen je Bearbeiter).
 - **Handordnung nur mit Grund:** `amw liste ordnen <Agent> A… --grund …` bzw. `amw liste schieben A… --grund …` (schieben ohne

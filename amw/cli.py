@@ -1597,6 +1597,21 @@ def cmd_messung(a, con):
     """A1844: Wartezeit und Kosten je Aufgabe – nur lesen."""
     from . import messung
     pid = _projekt(con, a)
+    if getattr(a, "prognose", False):                # A2046 (V8): Schätzung gegen Ist, Trefferquote
+        from . import prognosemessung
+        seit = (a.seit.strip() if re.fullmatch(r"\d{4}-\d{2}-\d{2}T[\d:]+Z?", a.seit.strip()) else _datum(a.seit)) if a.seit else None
+        q = prognosemessung.trefferquote(con, pid, seit)
+        if not q["n"]:
+            print("Noch keine Messung – die AMW hält Schätzung und Ist je fertigem Paket fest (ab dem nächsten Ende).")
+            return
+        r = prognosemessung.IM_RAHMEN
+        print(f"Trefferquote {round(q['quote'] * 100)} % ({q['treffer']} von {q['n']} Paketen im Rahmen {1 / r:.2g}–{r:g}×)"
+              f" · Faktor Ist/Schätzung Median {q['faktor_median']:g} · zu lang {q['zu_lang']} · zu kurz {q['zu_kurz']}")
+        for k, v in q["je_quelle"].items():
+            print(f"  {k:<10} {round(v['quote'] * 100):>3} % von {v['n']:>3} · Median ×{v['faktor_median']:g}")
+        for x in q["pakete"][-10:]:
+            print(f"  A{x['aufgabe']:<5} geschätzt {x['schaetzung_h']:g} h ({x['quelle']}) · gebraucht {x['ist_h']:g} h · ×{x['faktor']:g}")
+        return
     if getattr(a, "gesamt", False):                  # A2040: Summe und Rest je Projekt
         k = messung.projekt_kosten(con, pid)
         print(f"Kosten bisher {k['bisher']:.2f} $ (Fenster-Agenten {k['fenster_usd']:.2f} $ · Headless und erfasst {k['erfasst_usd']:.2f} $)"
@@ -4022,6 +4037,8 @@ def parser():
     x.add_argument("--p", action="store_true", help="Anteil p an fertigen Paketen je Tag (Ziel ≥ 50 %%) und Kosten p gegen interaktiv"
                                                    " (Median, Summe) – A2004")
     x.add_argument("--tage", type=int, help="mit --p: so viele Tage zurück (Vorgabe 7)")
+    x.add_argument("--prognose", action="store_true", help="Prognose messen: Schätzung (P50) gegen Ist je fertigem Paket, Trefferquote"
+                                                          " im Rahmen 0,67–1,5× und Median-Faktor, je Quelle; mit --seit – A2046")
     x.add_argument("--gesamt", action="store_true", help="Kosten des Projekts: bisher (gemessen, Fenster-Agenten und Headless), noch"
                                                          " (Schätzung offener Pakete) und gesamt")
     x.set_defaults(f=cmd_messung)

@@ -544,6 +544,12 @@ class Dienst:
                             log.info("Planer: %s", e)
                     except Exception as e:
                         log.warning("Planer P%s: %s: %s", p["id"], type(e).__name__, e)
+                    try:                                                     # A2046: Schätzung gegen Ist je fertigem Paket
+                        from . import prognosemessung
+                        for e in prognosemessung.runde(self.con, p["id"]):
+                            log.info("Prognose: %s", e)
+                    except Exception as e:
+                        log.warning("Prognose P%s: %s: %s", p["id"], type(e).__name__, e)
         except Exception as e:
             log.warning("Lücken: %s: %s", type(e).__name__, e)
         try:                                                                 # Grafikkarte belegt ohne Lauf → Leads

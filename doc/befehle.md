@@ -801,8 +801,8 @@ options:
 ## messung
 ```
 usage: amw messung [-h] [--seit SEIT] [--agent AGENT] [--vergleich] [--hebel7]
-                   [--basis] [--p] [--tage TAGE] [--gesamt] [--von VON]
-                   [--projekt PROJEKT]
+                   [--basis] [--p] [--tage TAGE] [--prognose] [--gesamt]
+                   [--von VON] [--projekt PROJEKT]
                    [nr]
 
 positional arguments:
@@ -822,6 +822,9 @@ options:
   --p                Anteil p an fertigen Paketen je Tag (Ziel ≥ 50 %) und
                      Kosten p gegen interaktiv (Median, Summe) – A2004
   --tage TAGE        mit --p: so viele Tage zurück (Vorgabe 7)
+  --prognose         Prognose messen: Schätzung (P50) gegen Ist je fertigem
+                     Paket, Trefferquote im Rahmen 0,67–1,5× und Median-
+                     Faktor, je Quelle; mit --seit – A2046
   --gesamt           Kosten des Projekts: bisher (gemessen, Fenster-Agenten
                      und Headless), noch (Schätzung offener Pakete) und gesamt
   --von VON

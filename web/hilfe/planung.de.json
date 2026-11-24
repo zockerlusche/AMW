@@ -87,7 +87,7 @@
   ],
   [
    "Was kostet das Projekt bisher, und was kommt noch?",
-   "`amw messung --gesamt` (Workbench-Daten: `/api/kosten`) nennt die Kosten **bisher** – gemessen aus dem Kosten-Zähler der Agenten im Fenster und den erfassten Läufen der Headless-Pakete –, **noch** (Schätzung der offenen Pakete: Median gleicher Größe und Art, abzüglich dessen, was schon gemessen ist) und **gesamt**. Offene Pakete ohne genug Messungen gleicher Größe und Art zählen als „ohne Schätzung“. Auch die Kosten in der Planung, im Abschlussbericht und die Meldung „über Prognose“ zählen jetzt beide Quellen."
+   "`amw messung --gesamt` (Workbench-Daten: `/api/kosten`) nennt die Kosten **bisher** – gemessen aus dem Kosten-Zähler der Agenten im Fenster und den erfassten Läufen der Headless-Pakete –, **noch** (Schätzung der offenen Pakete: Median gleicher Größe und Art, abzüglich dessen, was schon gemessen ist) und **gesamt**. Offene Pakete ohne genug Messungen gleicher Größe und Art zählen als „ohne Schätzung“. Auch die Kosten in der Planung, im Abschlussbericht und die Meldung „über Prognose“ zählen jetzt beide Quellen. Wie gut trifft die Prognose? `amw messung --prognose` vergleicht je fertigem Paket die Dauer, mit der die AMW beim Start gerechnet hat, mit der wirklichen Dauer: Trefferquote (im Rahmen bis 1,5-fach), Median des Faktors und je Quelle (gemessen, geschätzt, Vorgabe nach Größe); `--seit 20.11.` für einen Zeitraum."
   ],
   [
    "Was passiert, wenn ein Meilenstein fertig ist?",

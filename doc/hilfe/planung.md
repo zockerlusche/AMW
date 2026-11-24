@@ -56,6 +56,8 @@ Voll geplant ist immer nur der nächste Meilenstein. Die AMW stößt seine Feinp
 ### Was kostet das Projekt bisher, und was kommt noch?
 `amw messung --gesamt` (Workbench-Daten: `/api/kosten`) nennt die Kosten **bisher** – gemessen aus dem Kosten-Zähler der Agenten im Fenster und den erfassten Läufen der Headless-Pakete –, **noch** (Schätzung der offenen Pakete: Median gleicher Größe und Art, abzüglich dessen, was schon gemessen ist) und **gesamt**. Offene Pakete ohne genug Messungen gleicher Größe und Art zählen als „ohne Schätzung“. Auch die Kosten in der Planung, im Abschlussbericht und die Meldung „über Prognose“ zählen jetzt beide Quellen.
 
+Wie gut trifft die Prognose? `amw messung --prognose` vergleicht je fertigem Paket die Dauer, mit der die AMW beim Start gerechnet hat, mit der wirklichen Dauer: Trefferquote (im Rahmen bis 1,5-fach), Median des Faktors und je Quelle (gemessen, geschätzt, Vorgabe nach Größe); `--seit 20.11.` für einen Zeitraum.
+
 ### Was passiert, wenn ein Meilenstein fertig ist?
 Bevor er „bereit zur Abnahme“ steht, laufen der Gesamttest des Projekts und ein Prüfer: Er gleicht jedes Thema des Meilensteins gegen das Gebaute ab und bereitet die Vorführung vor – beides steht danach im Abschlussbericht. Fehlt etwas oder ist der Test rot, legt die AMW Nacharbeit im selben Meilenstein an und startet sie gleich, du bekommst eine Info. Bei der Abnahme kannst du statt „Ja“ auch Nacharbeit anfordern (`amw bogen nacharbeit N --hinweis „was fehlt“`): der Planer plant neue Pakete dazu, sie starten ohne weiteres Ja.
 
