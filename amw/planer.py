@@ -613,11 +613,12 @@ def _tag(zeit_utc=None):
 
 def heute_usd(con, pid, tag=None):
     """Kosten aller Planer-Läufe des Projekts an diesem Tag (aus den Entwürfen, auch fehlerhaften) – je Thema und, seit A2030,
-    die Grob-Planer über das ganze Konzept (grobplan_entwurf) und, seit A2031, die Feinplaner je Meilenstein (feinplan_entwurf):
+    die Grob-Planer über das ganze Konzept (grobplan_entwurf), seit A2031 die Feinplaner je Meilenstein (feinplan_entwurf) und,
+    seit A2029, die Prüfer zum Abschluss (abschluss_ergebnis):
     eine gemeinsame Tagesgrenze."""
     tag = tag or _tag()
     summe = 0.0
-    for r in con.execute("SELECT zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, 'grobplan_entwurf', 'feinplan_entwurf')",
+    for r in con.execute("SELECT zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, 'grobplan_entwurf', 'feinplan_entwurf', 'abschluss_ergebnis')",
                          (pid, ENTWURF)):
         if _tag(r["zeit_utc"]) != tag:
             continue

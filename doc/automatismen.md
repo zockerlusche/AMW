@@ -830,6 +830,10 @@ die der Lead nur noch bestätigt oder ändert.
   Sonst legt die AMW die Nacharbeit im selben Meilenstein an und startet sie ohne neues Start-Ja (bei rotem Test ohne
   Vorschlag: ein Paket „Gesamttest rot beheben“); Meldung an den Lead, Info an den Menschen. Danach prüft sie erneut. Ging der
   Prüfer nicht, wird der Meilenstein „bereit“ wie bisher, und der Lead erfährt, dass die Prüfung fehlt.
+- **Grenzen (TL #31785):** Die Kosten des Prüfers zählen zur gemeinsamen Tagesgrenze der Planer (`planer_tagesgrenze_usd`);
+  ist sie erreicht, startet keine Prüfung, und der Meilenstein wird „bereit“ mit Meldung an den Lead. Höchstens 2 automatische
+  Nacharbeits-Runden je Meilenstein – danach legt die AMW keine weiteren Pakete an, der Meilenstein wird „bereit“, die offenen
+  Punkte stehen im Abschlussbericht, und der Lead bekommt eine Meldung.
 - **Nacharbeit anfordern:** `amw bogen nacharbeit N --hinweis …` (Lead oder Mensch; Workbench-Weg `/api/meilenstein/nacharbeit`):
   der Feinplaner plant mit dem Hinweis neue Pakete im laufenden Meilenstein, die AMW legt sie an und startet sie gleich.
   Nach dem Ja zum Abschluss plant die AMW den nächsten Meilenstein fein (A2031).

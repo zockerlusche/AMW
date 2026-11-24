@@ -155,5 +155,44 @@ class NacharbeitAnfordern(Grund):
         self.assertEqual(a.call_args[0][1:], (3, 7, "[Stand 1 · x]"))
 
 
+class Grenzen(Grund):
+    """TL #31785: Kosten- und Schleifenschutz."""
+    def n(self, titel):
+        return [{"schluessel": "N1", "meilenstein": "M1", "thema": f"TH{self.t1}", "titel": titel, "auftrag": "Nachbessern.",
+                 "groesse": "S", "art": "text", "ausfuehrung": "agent", "fertig_quelle": "commit", "interaktiv_grund": "Prüfer-Befund"}]
+
+    def alle_fertig(self):
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'def5678', fertig_utc = ? WHERE bogen_id = ? AND status != 'fertig'",
+                             (db.jetzt(), self.m))
+
+    def test_tagesgrenze_gilt_auch_fuer_den_pruefer(self):
+        from amw import planer
+        kern.projekt_einstellen(self.con, self.pid, "TL", planer_tagesgrenze_usd="0.5")
+        abschluss.eintragen(self.con, self.pid, self.m, "[alter Stand]", {"befehl": None, "rc": None}, self.urteil(), usd=0.7)
+        self.assertEqual(planer.heute_usd(self.con, self.pid), 0.7)                        # Prüfer-Kosten zählen mit
+        self.assertEqual(self.runde(), [(self.m, "bereit")])                               # nicht gestartet, bereit wie bisher
+        self.assertEqual(self.gestartet, [])
+        self.assertIn("Tagesgrenze", abschluss.ergebnis(self.con, self.pid, self.m)["fehler"])
+
+    def test_hoechstens_zwei_automatische_runden(self):
+        titel = {1: "Firmenkonto anbinden", 2: "Fehlermeldung beim Anmelden verbessern", 3: "Sitzung nach Abmeldung beenden"}
+        for i in (1, 2):
+            self.runde()
+            stand = self.gestartet[-1][1]
+            e = abschluss.eintragen(self.con, self.pid, self.m, stand, {"befehl": None, "rc": None}, self.urteil((False, True), self.n(titel[i])))
+            self.assertTrue(e["angelegt"], i)
+            self.alle_fertig()
+        self.runde()
+        e = abschluss.eintragen(self.con, self.pid, self.m, self.gestartet[-1][1], {"befehl": None, "rc": None},
+                                self.urteil((False, True), self.n(titel[3])))
+        self.assertEqual((e["angelegt"], e.get("grenze")), ({}, True))                    # keine dritte Runde
+        self.assertEqual(self.offen(), [])
+        self.assertEqual(self.runde(), [(self.m, "bereit")])
+        self.assertIn(("meldung", "Meilenstein 1: nach 2 Nacharbeits-Runden noch offen"), self.post("TL"))
+        from amw import tore
+        self.assertIn("Nach 2 automatischen Nacharbeits-Runden noch offen", tore.bericht_text(self.con, self.pid, self.m))
+
+
 if __name__ == "__main__":
     unittest.main()

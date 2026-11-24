@@ -38,6 +38,7 @@ MODELL, EFFORT = "sonnet", "medium"
 FRIST_S = 20 * 60
 TEST_FRIST_S = 2 * 3600
 LAEUFT_H = 6
+MAX_RUNDEN = 2                 # TL #31785 (b): höchstens so viele automatische Nacharbeits-Runden je Meilenstein
 SCHEMA_TEXT = (__doc__ or "")[(__doc__ or "").find("Schema des Prüfers"):].strip()
 
 AUFTRAG = (
@@ -102,13 +103,21 @@ def vor_bereit(con, pid, b, stand):
     from . import planer
     e = ergebnis(con, pid, b["id"], stand)
     if e:
-        return "melden" if e.get("ok") or e.get("fehler") else "nacharbeit"
+        return "melden" if e.get("ok") or e.get("fehler") or e.get("grenze") else "nacharbeit"
     if os.environ.get("AMW_PLANER_AUS") or planer.schalter_text(con, pid):
         return "melden"                                  # ohne Planer wie bisher: gleich bereit
     with db.schreiben(con):
         if _laeuft(con, pid, b["id"], stand):
             return "pruefung"
-        eid = _ereignis(con, pid, ANGESTOSSEN, bogen=b["id"], stand=stand)
+        grenze, usd = planer.tagesgrenze(con, pid), planer.heute_usd(con, pid)   # TL #31785 (a): gemeinsame Tagesgrenze der Planer
+        if grenze is None or usd < grenze:
+            eid = _ereignis(con, pid, ANGESTOSSEN, bogen=b["id"], stand=stand)
+        else:
+            eid = None
+    if eid is None:
+        eintragen(con, pid, b["id"], stand, None, None, fehler=f"Tagesgrenze der Planer erreicht ({usd:.2f} von {grenze:.2f} $) –"
+                                                               " Abschlussprüfung nicht gestartet")
+        return "melden"
     try:
         prozess = STARTER(pid, b["id"], stand)
     except OSError as x:
@@ -285,14 +294,18 @@ def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None):
                        " finden und beheben, bis er grün ist.", "groesse": "M", "art": "fehlersuche", "ausfuehrung": "agent",
             "modell": None, "effort": None, "fertig_quelle": "commit", "abnahme_befehl": None, "bereiche": None, "pakettyp": None,
             "interaktiv_grund": "Fehlersuche über die ganze Suite"}]}
-    angelegt = {}
-    if e and not e["ok"] and e["pakete"]:
+    angelegt, grenze = {}, False
+    runden = sum(1 for x in _ereignisse(con, pid, ERGEBNIS, bid) if x.get("angelegt"))
+    if e and not e["ok"] and e["pakete"] and runden >= MAX_RUNDEN:
+        grenze = True                                     # TL #31785 (b): keine dritte Runde – „bereit“ mit offenen Punkten
+    elif e and not e["ok"] and e["pakete"]:
         angelegt = feinplanung._anlegen(con, pid, [b], {"pakete": e["pakete"]})
         starter = kern.lead(con, pid) or kern.ENTWICKLER
         if b["status"] == "aktiv":
             reihenfolge.starten(con, pid, starter, bid)
     werte.update({"themen": (e or {}).get("themen") or [], "vorfuehrung": (e or {}).get("vorfuehrung") or [],
-                  "ok": bool(e and e["ok"]), "angelegt": angelegt, **({"fehler": fehler} if fehler and not angelegt else {})})
+                  "ok": bool(e and e["ok"]), "angelegt": angelegt, **({"fehler": fehler} if fehler and not angelegt else {}),
+                  **({"grenze": True} if grenze else {})})
     lead = kern.lead(con, pid) or kern.ENTWICKLER
     with db.schreiben(con):
         eid = _ereignis(con, pid, ERGEBNIS, **werte)
@@ -305,6 +318,11 @@ def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None):
                 kern._posten(con, pid, "AMW", wer, art, f"Meilenstein {b['nr']}: Nacharbeit – {len(angelegt)} Paket(e) gestartet"[:140],
                              f"Die Abschlussprüfung von Meilenstein {b['nr']} „{b['titel']}“ ergab: {grund}. Die AMW hat die Nacharbeit"
                              f" im selben Meilenstein angelegt und gestartet: {', '.join(angelegt.values())}. Danach prüft sie erneut.")
+        elif grenze:
+            kern._posten(con, pid, "AMW", lead, "meldung", f"Meilenstein {b['nr']}: nach {MAX_RUNDEN} Nacharbeits-Runden noch offen"[:140],
+                         f"Die Abschlussprüfung von Meilenstein {b['nr']} „{b['titel']}“ findet noch Lücken, aber die AMW legt nach"
+                         f" {MAX_RUNDEN} automatischen Runden keine weitere Nacharbeit an. Der Meilenstein geht „bereit zur Abnahme“; die"
+                         " offenen Punkte stehen im Abschlussbericht. Abnehmen oder Nacharbeit von Hand: amw bogen nacharbeit N --hinweis …")
         elif fehler:
             kern._posten(con, pid, "AMW", lead, "meldung", f"Meilenstein {b['nr']}: Abschlussprüfung ging nicht"[:140],
                          f"{fehler}\nDer Meilenstein geht trotzdem „bereit zur Abnahme“ – die Prüfung gegen das Konzept fehlt im Bericht.")
@@ -338,6 +356,8 @@ def bericht_teil(con, pid, bid):
                            + (" · grün" if t.get("rc") == 0 else " · rot"))]
     if e.get("fehler"):
         z.append(f"Prüfer: ging nicht – {e['fehler']}")
+    if e.get("grenze"):
+        z.append(f"Nach {MAX_RUNDEN} automatischen Nacharbeits-Runden noch offen – keine weitere Nacharbeit angelegt:")
     z += [f"- {x['thema']}: {'erfüllt' if x['erfuellt'] else 'nicht erfüllt'}" + (f" – {x['beleg']}" if x.get("beleg") else "")
           + (f" – fehlt: {x['fehlt']}" if x.get("fehlt") else "") for x in e.get("themen") or []]
     if e.get("vorfuehrung"):
