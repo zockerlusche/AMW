@@ -120,6 +120,10 @@
    "Nothing is lost. `amw lauf ausfuehren` stores the command, folder and result file when it queues. When the run is due and the waiting command in the window is gone, the service starts exactly this command in the same folder and writes the output to the result file; the agent gets a message with the return code at the end. Runs with a window (screen) are not started by the service."
   ],
   [
+   "What happens to runs when the computer restarts?",
+   "At the next start the AMW detects which runs were cut off, frees their slot and tells the agent and the lead how far they got – with the ready-made command to start again. The output so far is kept. The AMW restarts a full test run once by itself if the folder is clean and on the same state; the agent starts everything else. If a task is waiting for an aborted run, it keeps waiting until a replacement is named. The AMW does not end any programs."
+  ],
+  [
    "Does an agent have to watch the queue?",
    "No. “is due” and “runs longer than expected” no longer wake anyone – they only show in the Workbench. Only the result wakes. `amw lauf warte` prints the reason only when it changes. Runs that AMW executes and ends itself (cross-reading, planner, negative test, workers, bundle) send no message at all when they start – only an error at the end is reported."
   ],
