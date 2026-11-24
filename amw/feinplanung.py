@@ -67,7 +67,7 @@ AUFTRAG = (
     "die gleichzeitig laufen dürfen). Lies meilenstein.md (was zu planen ist: Ziel, fertig wenn, Themen), jede Datei unter "
     "themen/, beschluesse.md, meilensteine.md (der ganze Grobplan), pakete.md (offene Pakete), gebaut.md (fertige Pakete zu "
     "diesen Themen – nichts davon noch einmal planen), hinweise.md (Hinweise des Menschen, falls vorhanden), sperrliste.md (Pfade, "
-    "die ein p-Paket nie ändern darf) und schema.md (das Antwort-Format). Zerlege jeden Meilenstein in Arbeitspakete: je Paket Ziel (auftrag), Thema, Dateien (bereiche), Abnahme "
+    "die ein p-Paket nie ändern darf), befehle.md (Befehle, die als Abnahme-Befehl gesperrt sind – kein python -c, nichts Verkettetes) und schema.md (das Antwort-Format). Zerlege jeden Meilenstein in Arbeitspakete: je Paket Ziel (auftrag), Thema, Dateien (bereiche), Abnahme "
     "mit Prüfbefehl, Abhängigkeiten (nach), Größe und Art, und die Entscheidung, wer es ausführt: p (headless) ist die Vorgabe "
     "für kleine Pakete ohne Oberfläche, sonst ein Agent im Fenster mit Grund; Modell und Denkstufe nur, wenn sie von der "
     "Empfehlung abweichen sollen. Ein p-Paket nennt in bereiche nie einen Pfad aus sperrliste.md: Testdateien (tests/…) nur mit "
@@ -378,6 +378,8 @@ def _dateien(con, pid, zeilen, hinweis, ordner):
     teile["hinweise.md"] = "# Hinweise des Menschen\n\n" + ((hinweis or "").strip() or "(keine)") + "\n"
     teile["schema.md"] = "# Antwort-Format\n\n" + SCHEMA_TEXT + "\n"
     teile["sperrliste.md"] = sperrliste_text(con, pid)                       # A2067
+    from . import arbeiter
+    teile["befehle.md"] = arbeiter.befehle_text()                            # A2076
     for name, text in teile.items():
         with open(os.path.join(ordner, *name.split("/")), "w", encoding="utf-8", newline="\n") as d:
             d.write(text)

@@ -114,7 +114,7 @@
 .pjw-schritt.offen-z { opacity: .62; }
 .pjw-schritt .pjw-zeichen { display: inline-block; width: 1.2em; }
 .pjw-schritt.ok-z .pjw-zeichen { color: var(--gruen); }
-.pjw-schritt .pjw-wert.dran { color: var(--bernstein); font-weight: 600; }
+.pjw-schritt .pjw-wert.dran { color: var(--bernstein); font-weight: 600; white-space: normal; }
 .pjw-weg { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; }
 .pjw-ansicht { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 .pjw-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

@@ -149,6 +149,108 @@ class Pruefen(Grund):
             planer.pruefen({}, self.con, self.pid, self.tid, delta=self.d)
 
 
+class Nachbessern(Grund):
+    """A2076: über den echten Weg – die Planer-Attrappe antwortet mit TEXT (Prosa + JSON), wie claude -p."""
+    def lauf(self, *antworten, kosten=0.1):
+        from amw import arbeiter
+        self.gesehen = []
+
+        def laufen(p, auftrag, *_a, **_k):
+            x = {}
+            for name in ("erlaubt", "nachbessern", "befehle"):
+                datei = os.path.join(p["klon"], name + ".md")
+                x[name] = None
+                if os.path.exists(datei):
+                    with open(datei, encoding="utf-8") as f:
+                        x[name] = f.read()
+            self.gesehen.append({"auftrag": auftrag, **x})
+            a = antworten[len(self.gesehen) - 1]
+            if isinstance(a, Exception):
+                raise a
+            return {"rc": 0, "ergebnis": {"result": "Hier der Plan:\n```json\n" + json.dumps(a, ensure_ascii=False) + "\n```\nFertig.", "total_cost_usd": kosten}}
+        u = mock.patch.dict(os.environ)
+        u.start()
+        self.addCleanup(u.stop)
+        os.environ.pop("AMW_PLANER_AUS", None)
+        from amw import schalter
+        with db.schreiben(self.con):
+            schalter._setzen(self.con, self.pid, "an")
+            planer._ereignis(self.con, self.pid, "AMW", planer.ANGESTOSSEN, self.tid, fassung=2, modell="sonnet")
+        with mock.patch.object(arbeiter, "laufen", side_effect=laufen):
+            planer.ausfuehren(self.con, self.pid, self.tid, 2)
+        e = planer.letzter_entwurf(self.con, self.pid, self.tid)
+        assert e is not None
+        return e
+
+    def falsch(self):                                                   # das laufende Paket P2 als Nacharbeit (L3452)
+        return self.delta_plan(nacharbeit=[{"paket": f"A{self.p2}", "grund": "Passkey"}])
+
+    def test_erst_falsch_dann_richtig_sind_zwei_laeufe(self):
+        self.aendern()
+        e = self.lauf(self.falsch(), self.delta_plan())
+        self.assertEqual(len(self.gesehen), 2)
+        self.assertNotIn("fehler", e)
+        self.assertTrue(e["entwurf"]["delta"])
+        self.assertEqual(e["usd"], 0.2)                                 # beide Läufe zählen
+        self.assertIsNone(self.gesehen[0]["nachbessern"])
+        self.assertIn("NACHBESSERN", self.gesehen[1]["auftrag"])
+        self.assertIn("Nacharbeit nur für fertige Pakete", self.gesehen[1]["nachbessern"])
+        self.assertIn("Passkey nachrüsten", self.gesehen[1]["nachbessern"])       # die erste Antwort liegt dabei
+
+    def test_ohne_fund_ein_lauf(self):
+        self.aendern()
+        e = self.lauf(self.delta_plan())
+        self.assertEqual((len(self.gesehen), "fehler" in e, e["usd"]), (1, False, 0.1))
+
+    def test_zweimal_falsch_merkt_die_aenderung_und_meldet_dem_lead(self):
+        self.aendern()
+        e = self.lauf(self.falsch(), self.falsch())
+        self.assertEqual(len(self.gesehen), 2)
+        self.assertIn("Nacharbeit nur für fertige Pakete", " ".join(e["fehler"]))
+        self.assertEqual(e["delta"]["neu"], 2)
+        art, kurz, text = self.post("TL")[-1]
+        self.assertEqual(art, "meldung")
+        self.assertIn("passt nicht zum Schema", kurz)
+        self.assertIn("Auch die eine automatische Nachbesserung passte nicht.", text)
+
+    def test_vor_dem_zweiten_lauf_gilt_die_tagesgrenze(self):
+        self.aendern()
+        kern.projekt_einstellen(self.con, self.pid, "TL", planer_tagesgrenze_usd="0.1")
+        e = self.lauf(self.falsch(), self.delta_plan())
+        self.assertEqual(len(self.gesehen), 1)
+        self.assertEqual(e["usd"], 0.1)
+        self.assertIn("Tagesgrenze", self.post("TL")[-1][2])
+
+    def test_zweiter_lauf_geht_nicht_kosten_und_funde_bleiben(self):
+        self.aendern()
+        e = self.lauf(self.falsch(), RuntimeError("weg"))
+        self.assertEqual(e["usd"], 0.1)
+        self.assertIn("Planer-Lauf: RuntimeError: weg", e["fehler"][0])
+        self.assertIn("Nacharbeit nur für fertige Pakete", " ".join(e["fehler"][1:]))
+
+    def test_planer_bekommt_die_erlaubten_je_gruppe(self):
+        self.aendern()
+        self.lauf(self.delta_plan())
+        teile = self.gesehen[0]["erlaubt"].split("## ")
+        je = {t.split(" ", 1)[0]: t for t in teile[1:]}
+        self.assertIn(f"A{self.p3} Passwort vergessen", je["nicht"])
+        self.assertIn(f"A{self.p2} Abmelden", je["läuft"])
+        self.assertIn("neues Paket danach", je["läuft"])
+        self.assertIn(f"A{self.p1} Anmeldung", je["fertig"])
+        self.assertIn("erlaubt.md", self.gesehen[0]["auftrag"])
+        self.assertIn("`*-c *`", self.gesehen[0]["befehle"])                      # (6): gesperrte Abnahme-Befehle
+        self.assertIn("befehle.md", self.gesehen[0]["auftrag"])
+
+    def test_ueberarbeiten_gibt_die_funde_mit(self):
+        from amw import planhinweis
+        self.aendern()
+        self.lauf(self.falsch(), self.falsch())
+        planhinweis.hinweis(self.con, self.pid, kern.ENTWICKLER, f"TH{self.tid}", "Abmelden so lassen")
+        d = planhinweis.dateien(self.con, self.pid, f"TH{self.tid}")
+        self.assertIn("Abmelden so lassen", d["hinweise.md"])
+        self.assertIn("Nacharbeit nur für fertige Pakete", d["hinweise.md"])
+
+
 class Freigabe(Grund):
     def setUp(self):
         super().setUp()

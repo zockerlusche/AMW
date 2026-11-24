@@ -75,18 +75,35 @@ def ordner(p):
     return os.path.join(p["daten"], "arbeiter")
 
 
+VERKETTUNG = ("&&", "||", ";", "|", ">", "<", "`", "$(", "\n")          # ein Abnahme-Befehl ist ein einzelner Befehl
+
+
+def befehl_sperren():
+    """Die Sperrmuster für Befehle (deny geht vor allow) – ein Abnahme-Befehl, der eins trifft, könnte nie laufen."""
+    return [f"Bash(*{v}*)" for v in GIT_VERBOTEN] + ["Bash(git)", "Bash(git *)", "Bash(git push*)", "Bash(git remote*)", "Bash(git config*)",
+            "Bash(git reset*)", "Bash(git checkout*)", "Bash(git switch*)", "Bash(git rebase*)", "Bash(git clean*)"]
+
+
+def befehle_text():
+    """A2076: befehle.md für die Planer – welche Abnahme-Befehle nie gehen (dieselben Muster wie freigabe)."""
+    return ("# Abnahme-Befehle\n\nEin abnahme_befehl ist EIN einzelner Befehl. Verkettung und Umleitung sind gesperrt: "
+            + " ".join(f"`{z}`" for z in VERKETTUNG if z.strip()).replace("```", "`` ` ``") + " und Zeilenumbruch.\n\n"
+            "Gesperrt ist jeder Befehl, der eines dieser Muster trifft (* = beliebig), zum Beispiel `python -c \"…\"` oder `git …`:\n\n"
+            + "\n".join(f"- `{m[5:-1]}`" for m in befehl_sperren())
+            + "\n\nGut: `python -m unittest tests.test_x` – braucht die Prüfung mehr, gehört sie in einen Test.\n")
+
+
 def freigabe(pruefbefehl, mcp_werkzeuge=()):
     """Die Freigabeliste (permissions) für `--settings`. Ohne Eintrag lehnt dontAsk ab."""
     befehl = (pruefbefehl or "").strip()
     if not befehl:
         raise ArbeiterFehler("ohne Abnahme-Befehl startet kein Arbeiter (Regel 1)")
-    if any(z in befehl for z in ("&&", "||", ";", "|", ">", "<", "`", "$(", "\n")):
+    if any(z in befehl for z in VERKETTUNG):
         raise ArbeiterFehler(f"Abnahme-Befehl „{befehl}“: nur ein einzelner Befehl ohne Verkettung oder Umleitung")
     allow = ["Read", "Glob", "Grep", "Edit", "Write", f"Bash({befehl})", *mcp_werkzeuge]   # S5b: genau das Werkzeug ergebnis_melden
     steuer = [f"{w}({m})" for w in ("Edit", "Write") for m in STEUERDATEIEN]     # Gegenlesen D Nr. 1/2: zusätzlich zu --restricted
     # „-c “/„-C “ mit Leerzeichen – ohne träfe die Sperre auch harmlose Optionen wie „--cached“ in einem Abnahme-Befehl
-    deny = [f"Bash(*{v}*)" for v in GIT_VERBOTEN] + ["Bash(git)", "Bash(git *)", "Bash(git push*)", "Bash(git remote*)", "Bash(git config*)",
-            "Bash(git reset*)", "Bash(git checkout*)", "Bash(git switch*)", "Bash(git rebase*)", "Bash(git clean*)", "WebFetch", "WebSearch"] + steuer
+    deny = befehl_sperren() + ["WebFetch", "WebSearch"] + steuer
     import fnmatch                                             # P259 (1): deny geht vor allow – trifft der Abnahme-Befehl eine
     trifft = [d for d in deny if d.startswith("Bash(") and fnmatch.fnmatchcase(befehl, d[5:-1])]   # Sperre, könnte ihn der
     if trifft:                                                 # Arbeiter nie ausführen (unklar → Regel 9): gleich ablehnen

@@ -150,6 +150,8 @@ function pwWert(d, i) {
     const l = g.fassungen.at(-1); return l ? t("pjw_fassung", { n: l.fassung }) : "–"; }
   if (i === 2) { const l = f.meilensteine.find(m => m.laeuft); if (l) return t("pjw_in_arbeit");
     const w = pwFeinOffen(d); if (w) return w.fehler ? t("pjw_w_fein_fehler", { m: pwM(w) }) : t("pjw_w_fein", { m: pwM(w), n: w.pakete.length });
+    if (f.delta_fehler.length && !f.delta.length) return f.delta_fehler.length === 1 ? t("pjw_w_delta_fehler1", { t: `TH${f.delta_fehler[0].thema}` })   /* A2076 */
+      : t("pjw_w_delta_fehler_n", { n: f.delta_fehler.length });
     if (f.delta.length) return f.delta.length === 1 ? t("pjw_w_delta1", { t: `TH${f.delta[0].thema}`, n: f.delta[0].karten.length })   /* A2068 */
       : t("pjw_w_delta_n", { n: f.delta.length });
     const z = f.meilensteine.filter(m => m.frei && m.status !== "fertig").at(-1); return z ? `${pwM(z)} · ${t("pjw_freigegeben")}` : "–"; }
@@ -250,6 +252,7 @@ function pwFein(d) {
   const f = d.fein, teile = [];
   const planWartet = !API && !!pwFeinOffen(d);                         /* eine Hauptaktion je Ansicht (TH156, TL #32217): zuerst der Plan */
   f.delta.forEach((x, i) => teile.push(pwDeltaKarte(x, f.delta.length === 1 && !planWartet, !planWartet && i === 0)));   /* A2065: Karten statt Textwand */
+  f.delta_fehler.forEach((x, i) => teile.push(pwDeltaFehler(x, !planWartet && !f.delta.length && i === 0)));   /* A2076 */
   if (!f.meilensteine.length) return teile.concat(teile.length ? [] : [el("div", { class: "leer" }, t("pjw_f_leer"))]);
   const offen = f.meilensteine.filter(m => m.status !== "fertig");                  /* A2061: fertige Meilensteine nicht in der Auswahl */
   const gew = f.meilensteine.find(m => m.bogen === zustand.pwMs) || pwFeinOffen(d) || f.meilensteine.find(m => m.laeuft) || offen.at(-1) || f.meilensteine.at(-1);
@@ -259,7 +262,7 @@ function pwFein(d) {
   teile.push(el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(gew)} ${gew.titel}`), gew.laeuft ? pwStatus(t("pjw_in_arbeit")) : gew.status === "aktiv" ? pwStatus(t("pjw_laeuft")) : gew.status === "fertig" ? pwStatus(t("pjw_p_fertig"), "frei") : gew.frei ? pwStatus(t("pjw_freigegeben"), "frei") : pwStatus(t("pjw_wartet_dich"), "dran")));
   if (gew.laeuft) teile.push(el("div", { class: "leer" }, t("pjw_f_laeuft", { n: gew.nr })));
   if (gew.fehler) teile.push(el("div", { class: "pjw-fehler" }, el("b", {}, t("pjw_f_fehler", { n: gew.nr, f: gew.fassung || 1 })),   /* A2056 */
-    el("ul", {}, gew.fehler.slice(0, 8).map(x => el("li", {}, x)))));
+    el("ul", {}, gew.gruende.slice(0, 8).map(g => el("li", {}, t("pjw_fx_" + g.art, g.x))))));
   if (gew.pakete.length) {
     teile.push(el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, gew.pakete.length), " ", t("pjw_pakete_w")),
       el("span", {}, el("b", {}, gew.pakete.filter(p => p.art === "p").length), " Headless")));
@@ -280,6 +283,19 @@ function pwFein(d) {
   return teile;
 }
 const pwZielText = z => z.neu ? t("pjw_neuer_ms", { x: z.titel }) : `M${z.nr}`;
+function pwDeltaFehler(x, haupt) {
+  /* A2076: eine gescheiterte Konzeptänderung – Grund in Menschensprache, Hinweis und „Überarbeiten lassen“ (wie beim Feinplan, A2056). */
+  const karte = el("div", { class: "pjw-karte pjw-delta pjw-delta-fehler", "data-thema": x.thema },
+    el("div", { class: "pjw-kopf" }, el("h3", {}, t("pjw_delta", { x: `TH${x.thema} ${x.name}` })), pwStatus(t("pjw_wartet_dich"), "dran")),
+    el("div", { class: "pjw-fehler" }, el("b", {}, t("pjw_delta_fehler")), el("ul", {}, x.gruende.slice(0, 8).map(g => el("li", {}, t("pjw_fx_" + g.art, g.x))))));
+  if (x.hinweise.length) karte.append(el("div", { class: "pjw-hinweise" }, el("div", { class: "pjw-lbl" }, t("pjw_hinweise")), x.hinweise.map(h => el("div", {}, h.text))));
+  if (API) return karte;
+  const id = "pjw-hwd-" + x.thema;
+  karte.append(pwHinweisFeld(t("pjw_delta_fehler_ph"), id),
+    pwHandlungen(pwKnopf(t("pjw_ueberarbeiten"), () => { const h = pwHinweisText(id); if (!h && !x.hinweise.length) { toast(t("pjw_text_fehlt"), true); return; }
+      pwTun("/api/projektweg/ueberarbeiten", { plan: `TH${x.thema}`, text: h }, t("pjw_ok_ueberarbeiten")); }, haupt)));
+  return karte;
+}
 function pwDeltaKarte(x, einzig, haupt) {
   /* A2065 (Marcel 24.11.): die Änderung als Karten in Stufen wie der Feinplan; was der Knopf freigibt, steht auf dem Knopf. */
   const ziele = x.ziele.map(pwZielText).join(", ");

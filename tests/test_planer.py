@@ -500,7 +500,7 @@ class Lauf(Grund):
         ordner = os.path.join(self.ordner.name, "planer")
         os.makedirs(ordner)
         namen = planer._dateien(self.con, self.pid, themen.finden(self.con, self.pid, self.tid), 1, ordner)
-        self.assertEqual(namen, ["beschluesse.md", "meilensteine.md", "pakete.md", "schema.md", "thema.md"])
+        self.assertEqual(namen, ["befehle.md", "beschluesse.md", "meilensteine.md", "pakete.md", "schema.md", "thema.md"])
         lies = lambda n: open(os.path.join(ordner, n), encoding="utf-8").read()
         self.assertIn("Firmen-Konto", lies("thema.md"))
         self.assertIn(f"- {planung.bogen_zeile(self.con, self.pid, bid)['nr']}: Online", lies("meilensteine.md"))

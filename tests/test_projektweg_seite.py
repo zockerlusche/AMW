@@ -197,6 +197,24 @@ class FeinFehler(Grund):
         self.assertEqual((m["bogen"], m["pakete"], m["fassung"]), (m1, [], 1))
         self.assertIn("gesperrte Pfade", " ".join(m["fehler"]))
 
+    def test_leiste_wartet_auf_dich_und_menschensprache(self):
+        """A2076 (5): die Leiste sagt „wartet auf dich“ wie die Karte, die Gründe stehen ohne „Sperre Bash(…)“."""
+        from amw import feinplanung, planfunde
+        demo(self.con, self.pid, "grob2")
+        grobplan.annehmen(self.con, self.pid, kern.ENTWICKLER, 2)
+        m1 = self.con.execute("SELECT id FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0]
+        thema = feinplanung.themen_der(self.con, self.pid, self.con.execute("SELECT * FROM bogen WHERE id = ?", (m1,)).fetchone())[0]
+        plan = {"pakete": [{"schluessel": "P1", "meilenstein": "M1", "thema": f"TH{thema}", "titel": "Gerüst", "auftrag": "Gerüst anlegen.",
+                            "groesse": "S", "art": "mechanisch", "ausfuehrung": "p", "fertig_quelle": "commit", "bereiche": "welt.gd",
+                            "abnahme_befehl": "python -c \"import welt\""}]}
+        feinplanung.entwurf_eintragen(self.con, self.pid, [m1], 1, plan, modell="sonnet", usd=0.07)
+        d = self.daten()
+        m = d["fein"]["meilensteine"][0]
+        self.assertIn({"art": "sperre", "x": {}}, m["gruende"])
+        self.assertNotIn("Bash(", " ".join(planfunde.saetze(self.con, self.pid, m["fehler"])))
+        fein = next(s for s in d["schritte"] if s["schritt"] == "fein")
+        self.assertEqual((fein["zustand"], fein["bei_dir"]), ("dran", True))
+
 
 def bestand(con, pid):
     """Projekt mit Bestand (A2061): Themen frei, alte Meilensteine mit Paketen – einer läuft, einer fertig –, kein Grobplan."""
@@ -320,6 +338,72 @@ class OffeneAenderung(Grund):
         fein = next(x for x in d["schritte"] if x["schritt"] == "fein")
         self.assertEqual((fein["zustand"], fein["zeichen"], fein["bei_dir"]), ("dran", "●", True))
         self.assertEqual(d["dran"], "fein")                                                 # die Seite öffnet dort
+
+
+def gescheiterte_aenderung(con, pid):
+    """A2076: M1 läuft (ein Paket fertig, eines läuft, eines offen), das Thema „Speichern und Laden“ wird geändert, der Planer nennt
+    zweimal das laufende Paket als Nacharbeit – wie in der Vorführung (L3452)."""
+    from amw import feinplanung, planer_delta
+    t = demo(con, pid, "fein")
+    m1 = con.execute("SELECT id FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0]
+    feinplanung.plan_starten(con, pid, kern.ENTWICKLER, m1)
+    ids = {r["titel"]: r["id"] for r in con.execute("SELECT id, titel FROM aufgabe WHERE bogen_id = ?", (m1,))}
+    for titel in ("Projekt anlegen, Godot-Gerüst", "Speichern und Laden", "Tests für Speichern"):
+        themen.verweise_setzen(con, pid, "TL", ids[titel], [f"TH{t[2]}"])
+    with db.schreiben(con):
+        con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234' WHERE id = ?", (ids["Projekt anlegen, Godot-Gerüst"],))
+        con.execute("UPDATE aufgabe SET status = 'laeuft', begonnen_utc = ? WHERE id = ?", (db.jetzt(), ids["Speichern und Laden"]))
+    themen.bearbeiten(con, pid, kern.ENTWICKLER, t[2], "Die Welt bleibt erhalten, auch nach einem Neustart, mit drei Speicherplätzen.")
+    antwort = json.dumps({"meilensteine": [], "pakete": [], "nacharbeit": [{"paket": f"A{ids['Speichern und Laden']}", "grund": "Plätze"}],
+                          "verwerfen": [{"paket": f"A{ids['Tests für Speichern']}", "grund": "kommt neu"}]})
+    planer.entwurf_eintragen(con, pid, t[2], 2, antwort, modell="sonnet", usd=0.05, delta=planer_delta.kontext(con, pid, t[2]))
+    return t
+
+
+class GescheiterteAenderung(Grund):
+    def test_schritt_ist_dran_mit_grund_in_menschensprache(self):
+        t = gescheiterte_aenderung(self.con, self.pid)
+        d = self.daten()
+        x = d["fein"]["delta_fehler"]
+        self.assertEqual([(y["thema"], y["fassung"]) for y in x], [(t[2], 2)])
+        self.assertEqual(x[0]["gruende"], [{"art": "laeuft", "x": {"p": "Speichern und Laden"}}])
+        fein = next(s for s in d["schritte"] if s["schritt"] == "fein")
+        self.assertEqual((fein["zustand"], fein["bei_dir"]), ("dran", True))
+        self.assertEqual(d["dran"], "fein")
+        e = [y for y in d["verlauf"] if y["art"] == "thema_planentwurf"][-1]
+        self.assertEqual(e["schritt"], "fein")
+        self.assertIn("Planer meldet einen Fehler", e["zeile"])
+        self.assertIn("wird gerade gebaut", e["lang"])
+        self.assertNotIn("nacharbeit 1", e["lang"])
+
+    def test_wer_gilt_die_freigaberegel_des_feinplans(self):
+        kern.agent_neu(self.con, self.pid, "Co")
+        gescheiterte_aenderung(self.con, self.pid)
+        kern.projekt_einstellen(self.con, self.pid, "TL", co_entwickler="Co", feinplan_freigabe="co+lead")
+        fein = next(s for s in self.daten()["schritte"] if s["schritt"] == "fein")
+        self.assertEqual((sorted(fein["wer"]), fein["bei_dir"]), (["Co", "TL"], False))
+
+    def test_ein_altes_ereignis_ohne_delta_feld_zaehlt_auch(self):
+        t = gescheiterte_aenderung(self.con, self.pid)
+        e = planer.letzter_entwurf(self.con, self.pid, t[2])
+        assert e is not None
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?", (json.dumps(
+                {"thema": t[2], "fassung": 2, "fehler": ["verwerfen 1: grund länger als 1000 Zeichen"]}, ensure_ascii=False), e["id"]))
+        self.assertEqual(self.daten()["fein"]["delta_fehler"][0]["gruende"], [{"art": "lang", "x": {"n": 1000}}])
+
+    def test_alte_fassung_und_erster_plan_stehen_nicht_da(self):
+        t = gescheiterte_aenderung(self.con, self.pid)
+        themen.bearbeiten(self.con, self.pid, kern.ENTWICKLER, t[2], "Noch eine Fassung.")
+        self.assertEqual(self.daten()["fein"]["delta_fehler"], [])
+        planer.entwurf_eintragen(self.con, self.pid, t[3], 1, "kein JSON")        # nie geplant: keine Konzeptänderung
+        self.assertEqual(self.daten()["fein"]["delta_fehler"], [])
+
+    def test_jede_art_hat_texte_in_beiden_sprachen(self):
+        from amw import planfunde, workbench
+        arten = {a for _, a in planfunde._ARTEN} | {"sonst"}
+        for s in ("de", "en"):
+            self.assertEqual([a for a in arten if "pjw_fx_" + a not in workbench.texte(s)], [])
 
 
 class Abschluss(Grund):
@@ -624,6 +708,48 @@ class SeiteDelta(Rundgang):
             fehler = self.besuchen("projektweg", "projektweg-delta", bereit="document.querySelector('.pjw-schritt')",
                                    tun="zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)",
                                    danach="document.querySelector('.pjw-delta .pjw-paket')", g=g, t=th)
+            self.assertEqual(fehler, [], f"{g} {th}")
+
+
+class SeiteDeltaFehler(Rundgang):
+    """A2076: eine gescheiterte Konzeptänderung auf der Seite – Leiste, Grund, Hinweis, „Überarbeiten lassen“."""
+    def daten(self):
+        from amw import schalter
+        kern.agent_neu(self.con, self.pid, "CC1")
+        u = mock.patch.dict(os.environ)
+        u.start()
+        self.addCleanup(u.stop)
+        os.environ.pop("AMW_PLANER_AUS", None)
+        for ziel in (grobplan, planer):
+            p = mock.patch.object(ziel, "STARTER", lambda *a, **k: 4711)
+            p.start()
+            self.addCleanup(p.stop)
+        with db.schreiben(self.con):
+            schalter._setzen(self.con, self.pid, "an")
+        self.t = gescheiterte_aenderung(self.con, self.pid)
+
+    def test_grund_und_ueberarbeiten_klicken(self):
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.assertIn("Plan passte nicht", self.tab.js("document.querySelector('.pjw-schritt[data-schritt=fein] .pjw-wert').innerText"))
+        self.tab.js("zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)")
+        self.warten("document.querySelector('.pjw-delta-fehler li')")
+        text = self.tab.js("document.querySelector('.pjw-delta-fehler').innerText")
+        self.assertIn("wird gerade gebaut", text)
+        for wort in ("nacharbeit", "Schema", "verwerfen", "zu_ende"):
+            self.assertNotIn(wort, text)
+        self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-ansicht .knopf.haupt').length"), 1)
+        self.tab.js("document.querySelector('.pjw-delta-fehler textarea').value = 'Speicherplätze erst danach'; "
+                    "[...document.querySelectorAll('.pjw-delta-fehler button')].find(b => b.textContent === t('pjw_ueberarbeiten')).click(); 1")
+        self.warten("!document.querySelector('.pjw-delta-fehler')")
+        art = [r[0] for r in self.con.execute("SELECT art FROM plan_ereignis ORDER BY id DESC LIMIT 6")]
+        self.assertIn("plan_hinweis", art)
+        self.assertTrue(planer.laeuft(self.con, self.pid, self.t[2]))
+
+    def test_rundgang(self):
+        for g, th in (("pc", "hell"), ("handy", "dunkel")):
+            fehler = self.besuchen("projektweg", "projektweg-delta-fehler", bereit="document.querySelector('.pjw-schritt')",
+                                   tun="zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)",
+                                   danach="document.querySelector('.pjw-delta-fehler')", g=g, t=th)
             self.assertEqual(fehler, [], f"{g} {th}")
 
 

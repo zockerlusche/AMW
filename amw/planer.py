@@ -343,14 +343,16 @@ def _ereignis(con, pid, von, art, tid, **werte):
                         text=json.dumps({"thema": int(tid), **werte}, ensure_ascii=False))
 
 
-def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, lauf=None, fehler=None, delta=None):
+def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, lauf=None, fehler=None, delta=None, vorher=None,
+                      nachgebessert=None):
     """Das Ergebnis des Planers eintragen: geprüft als Entwurf – oder mit den Funden als Fehler (fehler: der Lauf selbst ging
-    nicht). Der Lead bekommt einen Auftrag (Ja oder ändern) bzw. eine Meldung. Rückgabe: Nummer des Ereignisses."""
+    nicht; vorher: die Funde der ersten Antwort, wenn die Nachbesserung selbst nicht ging). nachgebessert (A2076): Text dazu für
+    den Lead. Der Lead bekommt einen Auftrag (Ja oder ändern) bzw. eine Meldung. Rückgabe: Nummer des Ereignisses."""
     t = con.execute("SELECT * FROM thema WHERE id = ? AND projekt_id = ?", (tid, pid)).fetchone()
     if not t:
         raise kern.AmwFehler(f"TH{tid} gibt es nicht")
     if fehler:
-        entwurf, fehler = None, [f"Planer-Lauf: {fehler}"]
+        entwurf, fehler = None, [f"Planer-Lauf: {fehler}", *(vorher or [])]
     else:
         try:
             entwurf, fehler = pruefen(ergebnis, con, pid, tid, delta=delta), None
@@ -360,12 +362,13 @@ def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, l
     kosten = f"{usd:.2f} $" if isinstance(usd, (int, float)) else "Kosten unbekannt"
     with db.schreiben(con):
         eid = _ereignis(con, pid, "AMW", ENTWURF, tid, fassung=fassung, modell=modell, usd=usd, lauf=lauf,
-                        **({"entwurf": entwurf} if entwurf else {"fehler": fehler}))
+                        **({"entwurf": entwurf} if entwurf else {"fehler": fehler, **_delta_kurz(delta)}))
         if lead and lead != kern.ENTWICKLER:
             if fehler:
                 kern._posten(con, pid, "AMW", lead, "meldung", f"Planentwurf TH{tid} „{t['name'][:50]}“ "
                              + ("ging nicht" if fehler[0].startswith("Planer-Lauf:") else "passt nicht zum Schema"),
-                             "Funde:\n" + "\n".join(f"- {x}" for x in fehler[:20]) + f"\n\n({modell or '–'}, {kosten})")
+                             "Funde:\n" + "\n".join(f"- {x}" for x in fehler[:20]) + (f"\n\n{nachgebessert}" if nachgebessert else "")
+                             + f"\n\n({modell or '–'}, {kosten})")
             elif entwurf["nichts_zu_bauen"]:
                 kern._posten(con, pid, "AMW", lead, "auftrag", f"Planentwurf TH{tid} „{t['name'][:50]}“: nichts zu bauen – stimmt das?",
                              f"Grund des Planers: {entwurf['grund']}\n\nJa oder neu planen lassen. ({kosten})")
@@ -376,6 +379,12 @@ def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, l
                              f"Planentwurf TH{tid} „{t['name'][:50]}“: {len(entwurf['meilensteine'])} Meilenstein(e), "
                              f"{len(entwurf['pakete'])} Pakete – Ja oder ändern", zusammenfassung(entwurf) + f"\n\n({modell or '–'}, {kosten})")
     return eid
+
+
+def _delta_kurz(delta):
+    """A2076: auch ein abgelehnter Entwurf merkt sich, dass er eine Konzeptänderung war (für die Seite)."""
+    from . import planer_delta
+    return {"delta": planer_delta.kurz(delta)} if delta else {}
 
 
 def _delta_melden(con, pid, lead, t, tid, entwurf, modell, kosten):
@@ -587,7 +596,7 @@ AUFTRAG = (
     "Steht in meilensteine.md ein offener Meilenstein, dessen Ziel auf dieses Thema verweist (★), hängst du die Pakete dort an "
     "(\"bestehend\": Nummer), statt einen neuen anzulegen. Oberflächen-Pakete (art oberflaeche) laufen immer mit ausfuehrung "
     "agent, das erste davon ist eine Kleinprobe zum Ansehen; ausfuehrung p nur mit einem Abnahme-Befehl, den die AMW selbst "
-    "ausführen kann. p ist die Vorgabe: jedes Paket der Größe S – und M bei Art mechanisch –, das keine Oberfläche ist, keinen "
+    "ausführen kann – befehle.md nennt, welche gesperrt sind (kein python -c, nichts Verkettetes). p ist die Vorgabe: jedes Paket der Größe S – und M bei Art mechanisch –, das keine Oberfläche ist, keinen "
     "gesperrten Bereich braucht und weder Bildschirm noch Grafikkarte, schneidest du als ausfuehrung p, mit abnahme_befehl (vor "
     "dem Bau rot: ein neuer Test im Paket mit pakettyp test-schreiben oder ein vorgezogenes Test-Paket als Vorgänger) und engen "
     "bereiche; modell/effort lässt du weg (dann gilt die Empfehlung des Projekts). Interaktiv (ausfuehrung agent) so ein Paket "
@@ -802,7 +811,7 @@ def anstossen(con, pid, tid, fassung, von="AMW", erneut=False):
 SCHEMA_TEXT = __doc__[__doc__.index("Schema des Planer-Ergebnisses"):].strip()
 
 
-def _dateien(con, pid, t, fassung, ordner, delta=None):
+def _dateien(con, pid, t, fassung, ordner, delta=None, nachbessern=None):
     from . import themen
     f = con.execute("SELECT text FROM thema_fassung WHERE thema_id = ? AND nr = ?", (t["id"], fassung)).fetchone()
     if not f:
@@ -829,9 +838,16 @@ def _dateien(con, pid, t, fassung, ordner, delta=None):
                           + ("\n".join(f"- A{x['id']} [{x['status']}] {x['titel']}" for x in offen if x["id"] not in zum_thema)
                              or "(keine)") + "\n",
              "schema.md": "# Antwort-Format\n\n" + SCHEMA_TEXT + "\n"}
+    from . import arbeiter
+    teile["befehle.md"] = arbeiter.befehle_text()        # A2076: gesperrte Abnahme-Befehle
     if delta:                                            # A2027: was sich am Thema geändert hat und wen es betrifft
         from . import planer_delta
         teile["aenderung.md"] = planer_delta.datei(con, pid, delta)
+        teile["erlaubt.md"] = planer_delta.erlaubt(con, delta)          # A2076: je Paket, was der Planer damit darf
+    if nachbessern:                                      # A2076: die erste Antwort passte nicht – genau diese Funde
+        teile["nachbessern.md"] = ("# Deine erste Antwort passte nicht\n\n## Funde\n\n"
+                                   + "\n".join(f"- {x}" for x in nachbessern["funde"][:25])
+                                   + "\n\n## Deine erste Antwort\n\n" + str(nachbessern.get("antwort") or "")[:40000] + "\n")
     for name, text in teile.items():
         with open(os.path.join(ordner, name), "w", encoding="utf-8", newline="\n") as d:
             d.write(text)
@@ -845,7 +861,42 @@ def json_aus_text(text):
     return s[a:b + 1] if 0 <= a < b else s
 
 
-def planen(con, pid, t, fassung, modell, prog=None, zusatz=None):
+NACHBESSERN = (
+    "NACHBESSERN: Deine erste Antwort passte nicht zum Schema bzw. zu den Regeln. Lies nachbessern.md (die Funde und deine erste "
+    "Antwort), bessere genau diese Funde nach und antworte wieder nur mit dem vollständigen JSON.")
+
+
+def planen_mit_nachbesserung(con, pid, t, fassung, modell, prog=None, zusatz=None, melden=None):
+    """A2076 (Muster A2067): planen; passt die Antwort nicht (pruefen), gehen die Funde EINMAL zurück an den Planer. Vorher wird
+    noch einmal geprüft, ob er darf: Tagesgrenze (samt dem ersten Lauf), Projekt-Schalter, Einstellung. Kosten zählen zusammen.
+    Rückgabe wie planen, dazu "nachgebessert" (Text für den Lead) und "vorher" (Funde der ersten Antwort), wenn die erste nicht passte."""
+    aus = planen(con, pid, t, fassung, modell, prog=prog, zusatz=zusatz)
+    if aus.get("fehler") or aus.get("ergebnis") is None:
+        return aus
+    try:
+        pruefen(aus["ergebnis"], con, pid, t["id"], delta=aus.get("delta"))
+        return aus
+    except PlanFehler as e:
+        funde = e.fehler
+    grenze = tagesgrenze(con, pid)
+    stand = heute_usd(con, pid) + (aus["usd"] if isinstance(aus.get("usd"), (int, float)) else 0)
+    warum = ("die Tagesgrenze der Planer ist erreicht" if grenze is not None and stand >= grenze
+             else schalter_text(con, pid) or ("der Planer ist aus" if os.environ.get("AMW_PLANER_AUS") or einstellung(con, pid) == "aus" else None))
+    if warum:
+        return {**aus, "nachgebessert": f"Nicht nachgebessert: {warum}."}
+    if melden:
+        melden(f"Antwort passte nicht ({len(funde)} Funde) – eine Nachbesserung")
+    try:
+        neu = planen(con, pid, t, fassung, modell, prog=prog, zusatz=zusatz, nachbessern={"funde": funde, "antwort": aus["ergebnis"]})
+    except Exception as e:                                # noqa: BLE001 – die Kosten des ersten Laufs bleiben gezählt
+        neu = {"ergebnis": None, "usd": None, "fehler": f"{type(e).__name__}: {e}"[:300], "delta": aus.get("delta")}
+    usd = [x for x in (aus.get("usd"), neu.get("usd")) if isinstance(x, (int, float))]
+    return {**neu, "usd": round(sum(usd), 4) if usd else None, "vorher": funde,
+            "nachgebessert": "Auch die eine automatische Nachbesserung passte nicht." if not neu.get("fehler")
+            else "Die automatische Nachbesserung ging nicht."}
+
+
+def planen(con, pid, t, fassung, modell, prog=None, zusatz=None, nachbessern=None):
     """Der Planer selbst, in einem leeren eigenen Ordner (wie ein Platz). Rückgabe {"ergebnis", "usd", "fehler"}."""
     from . import arbeiter, planer_delta, planhinweis, platz, versionsprobe
     with tempfile.TemporaryDirectory(prefix="amw-planer-", ignore_cleanup_errors=True) as ordner:
@@ -853,9 +904,10 @@ def planen(con, pid, t, fassung, modell, prog=None, zusatz=None):
         os.makedirs(p["klon"])
         subprocess.run(["git", "init", "-q", "-b", "main", p["klon"]], check=True, capture_output=True, creationflags=OHNE_FENSTER)
         delta = planer_delta.kontext(con, pid, t["id"])  # A2027: geändertes, schon geplantes Thema → nur die Änderung
-        dateien = _dateien(con, pid, t, fassung, p["klon"], delta)
+        dateien = _dateien(con, pid, t, fassung, p["klon"], delta, nachbessern)
         extra = planhinweis.schreiben(con, pid, t["id"], p["klon"])     # A2028: Überarbeiten nach Hinweisen
         r = arbeiter.laufen(p, AUFTRAG + ("\n\n" + planer_delta.AUFTRAG if delta else "") + ("\n\n" + planhinweis.AUFTRAG if extra else "")
+                            + ("\n\n" + NACHBESSERN if nachbessern else "")
                             + "\n\nDateien: " + ", ".join(dateien + extra), None, modell=modell, effort="medium", prog=prog,
                             zusatz=zusatz, nur_lesen=True, geprueft=versionsprobe.geprueft(con), frist_s=FRIST_S)
     erg = r.get("ergebnis") or {}
@@ -895,7 +947,8 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
         if not t:
             raise kern.AmwFehler(f"TH{tid} gibt es nicht")
         fortschritt(was=f"{name}: Fassung {fassung} wird geplant", sofort=True)
-        aus = planen(con, pid, t, fassung, modell, prog=prog, zusatz=zusatz)
+        aus = planen_mit_nachbesserung(con, pid, t, fassung, modell, prog=prog, zusatz=zusatz,             # A2076
+                                       melden=lambda x: fortschritt(was=f"{name}: {x}", sofort=True))
     except Exception as e:                                # noqa: BLE001 – niemand sieht die Ausgabe: als Fehler eintragen
         aus = {"ergebnis": None, "usd": None, "fehler": f"{type(e).__name__}: {e}"[:300]}
     finally:
@@ -908,7 +961,7 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
         finally:
             belegung.lauf_vergessen(lid)
     entwurf_eintragen(con, pid, tid, fassung, aus.get("ergebnis"), modell=modell, usd=aus.get("usd"), lauf=lid, fehler=aus.get("fehler"),
-                      delta=aus.get("delta"))
+                      delta=aus.get("delta"), vorher=aus.get("vorher"), nachgebessert=aus.get("nachgebessert"))
     if aus.get("fehler"):
         fortschritt(was=f"{name}: nicht geplant", usd=aus.get("usd"), zustand="fehler", fehler=aus["fehler"])
     else:

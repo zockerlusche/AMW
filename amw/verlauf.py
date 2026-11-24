@@ -152,7 +152,8 @@ def projektweg(con, pid, ab_utc=None, bis_utc=None, rolle=None, grenze=2000):
             ro = _rolle(r["von"], fest)
         if rolle is None or ro == rolle:
             aus.append({"id": r["id"], "zeit": r["zeit_utc"], "rolle": ro, "von": r["von"], "text": text, "art": r["art"],
-                        "aufgabe_id": r["aufgabe_id"], "bogen_id": r["bogen_id"]})
+                        "aufgabe_id": r["aufgabe_id"], "bogen_id": r["bogen_id"],
+                        **({"fehler": d["fehler"]} if r["art"] == "thema_planentwurf" and d.get("fehler") else {})})   # A2076: der Grund
     return aus[-int(grenze):]
 
 

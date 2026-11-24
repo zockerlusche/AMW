@@ -233,6 +233,19 @@ class Feinplaner(unittest.TestCase):
             self.assertIn(teil, text)
         self.assertIn("sperrliste.md", feinplanung.AUFTRAG)
 
+    def test_gesperrte_abnahme_befehle_beim_planer(self):
+        """A2076: der Planer bekommt die gesperrten Abnahme-Befehle – dieselben Muster, an denen freigabe ablehnt."""
+        from amw import arbeiter
+        ordner = os.path.join(self.ordner.name, "plan")
+        os.makedirs(ordner)
+        self.assertIn("befehle.md", feinplanung._dateien(self.con, self.pid, feinplanung._zeilen(self.con, self.pid, [self.m1]), None, ordner))
+        with open(os.path.join(ordner, "befehle.md"), encoding="utf-8") as f:
+            text = f.read()
+        for m in arbeiter.befehl_sperren():
+            self.assertIn(f"`{m[5:-1]}`", text)
+        self.assertIn("`&&`", text)
+        self.assertIn("befehle.md", feinplanung.AUFTRAG)
+
     def test_eine_nachbesserung_dann_erst_der_mensch(self):
         """A2067: passt die erste Antwort nicht, geht der Fund einmal an den Planer zurück; Gegenprobe: passt sie, kein zweiter Lauf."""
         schlecht = self.plan()

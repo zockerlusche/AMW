@@ -118,7 +118,7 @@ def _meilensteine(con, pid):
 
 def fein(con, pid, freigaben):
     """Je Meilenstein: Pakete in Stufen, Plan frei?, Feinplaner läuft?; dazu offene Entwürfe der Planer je Thema (Delta, A2027)."""
-    from . import feinplanung, planansicht, planhinweis
+    from . import feinplanung, planansicht, planfunde, planhinweis
     frei = {f["bogen"]: f["frei"] for f in freigaben["fein"]}
     entwuerfe = feinplanung._ereignisse(con, pid, feinplanung.ENTWURF)
     aus = []
@@ -132,17 +132,32 @@ def fein(con, pid, freigaben):
         aus.append({"bogen": b["id"], "nr": b["nr"], "titel": b["titel"], "status": b["status"], "ziel": b["ziel"],
                     "abnahme": b["abnahme"], "frei": bool(frei.get(b["id"])), "laeuft": laeuft, "pakete": pakete,
                     "fehler": ([fehler] if isinstance(fehler, str) else list(fehler)) if fehler else None,
+                    "gruende": planfunde.deuten(con, pid, fehler) if fehler else [],          # A2076: in Menschensprache
                     "fassung": letzter.get("fassung") if letzter else None})
     namen = {t["id"]: t["name"] for t in _themen(con, pid)}
     e = planansicht.entwuerfe(con, pid, namen)
     from . import planer
-    delta = []
+    delta, delta_fehler = [], []
     for x in e["entwuerfe"]:
-        d = (planer.letzter_entwurf(con, pid, x["thema"]) or {}).get("entwurf") or {}
+        letzter = planer.letzter_entwurf(con, pid, x["thema"]) or {}
+        d = letzter.get("entwurf") or {}
+        if letzter.get("fehler") and _ist_aenderung(con, pid, x["thema"], letzter):    # A2076: gescheiterte Änderung – mit Grund
+            delta_fehler.append({"thema": x["thema"], "name": x["name"], "eid": x["eid"], "fassung": letzter.get("fassung"),
+                                 "gruende": planfunde.deuten(con, pid, letzter["fehler"]),
+                                 "hinweise": planhinweis.offene(con, pid, x["thema"])})
         if d.get("delta"):
             delta.append({**{k: v for k, v in x.items() if k != "zeilen"}, **_entwurf_karten(con, pid, d),
                           "hinweise": planhinweis.offene(con, pid, x["thema"])})
-    return {"meilensteine": aus, "delta": delta}
+    return {"meilensteine": aus, "delta": delta, "delta_fehler": delta_fehler}
+
+
+def _ist_aenderung(con, pid, tid, e):
+    """Gehört dieser abgelehnte Entwurf zur freigegebenen Fassung und war er eine Konzeptänderung? Ältere Ereignisse ohne das Feld
+    delta: nach dem heutigen Stand des Themas."""
+    from . import planer_delta, themen
+    if themen.status(con, themen.finden(con, pid, tid)).get("freigegeben") != e.get("fassung"):
+        return False
+    return bool(e.get("delta")) or planer_delta.kontext(con, pid, tid) is not None
 
 
 def _paket_titel(con, pid, ref):
@@ -297,21 +312,25 @@ def _schritt_des_eintrags(e):
     return {"pruefer": "abschluss", "planer": "fein"}.get(e.get("rolle"), "umsetzung")   # eigens gespeicherte Ereignisse (A2024)
 
 
-def verlauf_lesbar(eintraege, namen):
+def verlauf_lesbar(eintraege, namen, saetze=None):
     """Je Eintrag: Schritt, eine Zeile in Menschensprache (Thema mit Namen statt TH-Nummer, ohne interne Kürzel wie #…, P4, F4),
-    der ganze Text nur, wenn er länger ist (auf Klick)."""
+    der ganze Text nur, wenn er länger ist (auf Klick). saetze (A2076): macht aus den Funden eines Eintrags Sätze – als Grund auf Klick."""
     aus = []
     for e in eintraege:
         text = _TH.sub(lambda m: f"Thema „{namen[int(m.group(1))]}“" if int(m.group(1)) in namen else m.group(0), e.get("text") or "")
         text = re.sub(r"\s{2,}", " ", _KUERZEL.sub("", text)).strip(" ·–,")
         zeile = text if len(text) <= ZEILE_MAX else text[:ZEILE_MAX].rsplit(" ", 1)[0] + " …"
-        aus.append({**e, "schritt": _schritt_des_eintrags(e), "zeile": zeile, "lang": text if zeile != text else None})
+        lang = text if zeile != text else None
+        grund = saetze(e["fehler"]) if saetze and e.get("fehler") else None
+        if grund:
+            lang = (lang + " – " if lang else "") + " ".join(grund)
+        aus.append({**{k: v for k, v in e.items() if k != "fehler"}, "schritt": _schritt_des_eintrags(e), "zeile": zeile, "lang": lang})
     return aus
 
 
 def daten(con, pid):
     """Alles für die Seite in einer Antwort (eine Anfrage je Neuzeichnen, auch online)."""
-    from . import planer_fortschritt, verlauf
+    from . import planer_fortschritt, planfunde, verlauf
     s = projektweg.sicht(con, pid)
     fr = s["freigaben"]
     f = fein(con, pid, fr)
@@ -324,12 +343,18 @@ def daten(con, pid):
             wer = projektweg._freigebende(con, pid, "grob")      # A2030: ein Grobplan liegt vor – das Ja gibt, wer Grobpläne freigibt
         schritte.append({**x, "wer": wer, "nr": SCHRITT_NR[x["schritt"]], "bei_dir": x["zustand"] == "dran" and ich in wer})
     dran = s["dran"]
-    if f["delta"]:                                       # A2068: eine offene Änderung wartet auf ihr Ja – auch nach erledigtem Feinplan
+    if any(m["fehler"] and m["status"] == "geplant" for m in f["meilensteine"]):   # A2076: abgelehnter Feinplan wartet wie die Karte
+        wer_plan = projektweg._freigebende(con, pid, "plan")
+        for x in schritte:
+            if x["schritt"] == "fein" and x["zustand"] == "dran":
+                x.update(wer=wer_plan, bei_dir=ich in wer_plan)
+    if f["delta"] or f["delta_fehler"]:                  # A2076: auch eine gescheiterte Änderung; A2068: eine offene Änderung wartet auf ihr Ja – auch nach erledigtem Feinplan
         wer_plan = projektweg._freigebende(con, pid, "plan")
         for x in schritte:
             if x["schritt"] == "fein":
                 x.update(zustand="dran", zeichen=projektweg.ZEICHEN["dran"], wer=wer_plan, bei_dir=ich in wer_plan,
-                         fehlt=f"{len(f['delta'])} Änderung(en) am Konzept warten auf das Ja")
+                         fehlt=(f"{len(f['delta'])} Änderung(en) am Konzept warten auf das Ja" if f["delta"]
+                                else f"{len(f['delta_fehler'])} Änderung(en) am Konzept: der Plan passte nicht"))
         if dran in (None, "umsetzung", "abschluss"):    # früher Offenes (Konzept, Grobplan) geht vor
             dran = "fein"
     k = konzept(con, pid, g["bestand"])
@@ -338,4 +363,4 @@ def daten(con, pid):
             "fein": f, "umsetzung": umsetzung(f), "abschluss": abschluss(con, pid, fr), "fragen": fragen(con, pid),
             "laeufe": planer_fortschritt.laufende(con, pid),
             "verlauf": verlauf_lesbar(verlauf.projektweg(con, pid, grenze=VERLAUF_GRENZE),
-                                      {t["id"]: t["name"] for t in g_themen})}
+                                      {t["id"]: t["name"] for t in g_themen}, lambda x: planfunde.saetze(con, pid, x))}

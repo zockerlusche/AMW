@@ -33,7 +33,9 @@ AUFTRAG = (
     "Pakete (auch Nacharbeit für fertige Pakete) und – nur wenn nötig – neue Meilensteine im gewohnten Schema; dazu "
     "\"aendern\": [{\"paket\": \"A123\", \"titel\": \"…\" | null, \"auftrag\": \"…\" | null, \"grund\": \"…\"}] für nicht "
     "begonnene Pakete, deren Inhalt sich ändert, und \"verwerfen\": [{\"paket\": \"A123\", \"grund\": \"…\"}] für nicht "
-    "begonnene Pakete, die nicht mehr gebraucht werden. Laufende und fertige Pakete änderst du nicht. Prüfe jedes fertige "
+    "begonnene Pakete, die nicht mehr gebraucht werden. erlaubt.md sagt je Paket, was erlaubt ist: in \"aendern\" und "
+    "\"verwerfen\" nur „nicht begonnen“, in \"nacharbeit\" nur „fertig“. Ein laufendes Paket nennst du in keiner der drei Listen: "
+    "es wird zu Ende gebaut, die Anpassung ist ein NEUES Paket danach (nach: [\"A123\"]). Prüfe jedes fertige "
     "Paket: Muss es wegen der Änderung wirklich nachgearbeitet werden, nenne es in \"nacharbeit\": [{\"paket\": \"A123\", "
     "\"grund\": \"…\"}] und plane dafür ein neues Paket; berührt die Änderung es nicht, nennst du es nicht. Ändert die neue "
     "Fassung am Plan nichts, antworte mit nichts_zu_bauen und Grund.")
@@ -75,6 +77,23 @@ def datei(con, pid, delta):
         if a and g == "stoppen" and a["auftrag"]:
             zeilen.append(f"  Auftrag: {' '.join(a['auftrag'].split())[:800]}")
     return "\n".join(zeilen) + "\n"
+
+
+DARF = {"stoppen": ("nicht begonnen", "aendern oder verwerfen"), "zu_ende": ("läuft", "in keine Liste – Anpassung als neues Paket danach"),
+        "fertig": ("fertig", "nacharbeit (mit neuem Paket) – oder nicht nennen")}
+
+
+def erlaubt(con, delta):
+    """A2076: der Inhalt von erlaubt.md – die betroffenen Pakete je Gruppe und was der Planer damit darf."""
+    z = ["# Was mit welchem Paket erlaubt ist", ""]
+    for g, (name, darf) in DARF.items():
+        z += [f"## {name} – {darf}", ""]
+        ids = sorted(a for a, x in delta["pakete"].items() if x == g)
+        for aid in ids:
+            a = con.execute("SELECT titel FROM aufgabe WHERE id = ?", (aid,)).fetchone()
+            z.append(f"- A{aid} {a['titel'] if a else ''}")
+        z += ["(keins)" if not ids else "", ""]
+    return "\n".join(z) + "\n"
 
 
 def _text(x, feld, wo, f, pflicht=True):
