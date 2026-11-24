@@ -499,5 +499,55 @@ class SeiteOhnePruefung(Rundgang):
         self.assertFalse(self.tab.js(f"!!({knopf})"))
 
 
+class SeiteDelta(Rundgang):
+    """A2065: eine Änderung als Karten in Stufen; der Knopf nennt den Umfang; eine Hauptaktion je Ansicht (TL #32217)."""
+    def daten(self):
+        from amw import planansicht
+        kern.agent_neu(self.con, self.pid, "CC1")
+        for ziel in (grobplan, planer):
+            p = mock.patch.object(ziel, "STARTER", lambda *a, **k: 4711)
+            p.start()
+            self.addCleanup(p.stop)
+        t = demo(self.con, self.pid, "fein")
+        m1 = self.con.execute("SELECT id FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0]
+        alt = self.con.execute("SELECT id FROM aufgabe WHERE titel = 'Tests für Speichern'").fetchone()[0]
+        weg = self.con.execute("SELECT id FROM aufgabe WHERE titel = 'Farben und Schrift nach Stil'").fetchone()[0]
+        entwurf = {"delta": True, "meilensteine": [{"schluessel": "M1", "bestehend": m1}],
+                   "pakete": [{"schluessel": "P1", "meilenstein": "M1", "titel": "Schlagwort beim Speichern ablegen", "ausfuehrung": "p", "modell": "sonnet",
+                               "groesse": "S", "nach": [], "abnahme_befehl": "python -m unittest tests.test_tag", "bereiche": "scripts/speicher.gd"},
+                              {"schluessel": "P2", "meilenstein": "M1", "titel": "Schlagwort im Aquarium anzeigen", "ausfuehrung": "agent", "groesse": "M",
+                               "nach": ["P1"], "interaktiv_grund": "Optik – Marcels Auge"}],
+                   "aendern": [{"paket": f"A{alt}", "titel": "Tests für Speichern mit Schlagwort", "grund": "Schlagwort kommt dazu"}],
+                   "verwerfen": [{"paket": f"A{weg}", "grund": "Stil steht schon im Grundgerüst"}]}
+        offen = {"entwuerfe": [{"thema": t[2], "name": "Speichern und Laden", "eid": 999, "zeit_utc": "2026-11-24T16:00:00Z", "modell": "sonnet",
+                                "usd": 0.03, "fehler": None, "nichts": False, "grund": "Schlagwort", "meilensteine": 0, "pakete": 2, "zeilen": []}],
+                 "planer_laeuft": []}
+        for ziel, name, wert in ((planansicht, "entwuerfe", offen), (planer, "letzter_entwurf", {"id": 999, "entwurf": entwurf})):
+            p = mock.patch.object(ziel, name, return_value=wert)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_karten_knopf_und_eine_hauptaktion(self):
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.tab.js("zustand.pwSicht = 2; zeige('projektweg', true)")
+        self.warten("document.querySelector('.pjw-delta .pjw-paket')")
+        self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-delta .pjw-paket').length"), 2)
+        self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-delta .pjw-snr').length"), 2)
+        knopf = self.tab.js("[...document.querySelectorAll('.pjw-ansicht button')].map(b => b.textContent).find(x => x.startsWith('Änderung TH'))")
+        self.assertIn("2 Pakete in M", knopf)
+        self.assertIn("1 geändert", knopf)
+        self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-ansicht .knopf.haupt').length"), 1)   # oben „Plan M… freigeben und starten“
+        self.assertTrue(self.tab.js("/^Plan M/.test(document.querySelector('.pjw-ansicht .knopf.haupt').textContent)"))
+        self.tab.js("document.querySelector('.pjw-delta .pjw-paket').click()")
+        self.warten("document.querySelector('#pjw-fenster .pjw-fenster') && document.querySelector('#pjw-fenster .pjw-fenster').innerText.includes('python -m unittest tests.test_tag')")
+
+    def test_rundgang(self):
+        for g, th in (("pc", "hell"), ("handy", "dunkel")):
+            fehler = self.besuchen("projektweg", "projektweg-delta", bereit="document.querySelector('.pjw-schritt')",
+                                   tun="zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)",
+                                   danach="document.querySelector('.pjw-delta .pjw-paket')", g=g, t=th)
+            self.assertEqual(fehler, [], f"{g} {th}")
+
+
 if __name__ == "__main__":
     unittest.main()

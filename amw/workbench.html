@@ -4362,7 +4362,8 @@ function pwGrob(d) {
 }
 function pwFein(d) {
   const f = d.fein, teile = [];
-  for (const x of f.delta) teile.push(pwDeltaKarte(x, f.delta.length === 1 && !pwFeinOffen(d)));   /* A2065: Karten statt Textwand */
+  const planWartet = !API && !!pwFeinOffen(d);                         /* eine Hauptaktion je Ansicht (TH156, TL #32217): zuerst der Plan */
+  f.delta.forEach((x, i) => teile.push(pwDeltaKarte(x, f.delta.length === 1 && !planWartet, !planWartet && i === 0)));   /* A2065: Karten statt Textwand */
   if (!f.meilensteine.length) return teile.concat(teile.length ? [] : [el("div", { class: "leer" }, t("pjw_f_leer"))]);
   const offen = f.meilensteine.filter(m => m.status !== "fertig");                  /* A2061: fertige Meilensteine nicht in der Auswahl */
   const gew = f.meilensteine.find(m => m.bogen === zustand.pwMs) || pwFeinOffen(d) || f.meilensteine.find(m => m.laeuft) || offen.at(-1) || f.meilensteine.at(-1);
@@ -4393,7 +4394,7 @@ function pwFein(d) {
   return teile;
 }
 const pwZielText = z => z.neu ? t("pjw_neuer_ms", { x: z.titel }) : `M${z.nr}`;
-function pwDeltaKarte(x, einzig) {
+function pwDeltaKarte(x, einzig, haupt) {
   /* A2065 (Marcel 24.11.): die Änderung als Karten in Stufen wie der Feinplan; was der Knopf freigibt, steht auf dem Knopf. */
   const ziele = x.ziele.map(pwZielText).join(", ");
   const knopfText = t("pjw_delta_ja_n", { t: `TH${x.thema}`, n: x.karten.length, m: ziele || "–" })
@@ -4414,7 +4415,7 @@ function pwDeltaKarte(x, einzig) {
   if (x.verwerfen.length) karte.append(el("div", { class: "pjw-hinweise" }, el("div", { class: "pjw-lbl" }, t("pjw_verworfen_lbl")),
     x.verwerfen.map(y => el("div", {}, `A${y.aufgabe} ${y.alt || ""}`, y.grund ? el("span", { class: "leise" }, ` – ${y.grund}`) : null))));
   if (API) return karte;
-  const ja = pwKnopf(knopfText, () => pwTun("/api/meilenstein/plan-ja", { thema: x.thema, eid: x.eid }, t("pjw_ok_delta")), true);
+  const ja = pwKnopf(knopfText, () => pwTun("/api/meilenstein/plan-ja", { thema: x.thema, eid: x.eid }, t("pjw_ok_delta")), haupt);
   if (einzig) pwHaupt = ja;
   else karte.append(pwHandlungen(ja));
   return karte;
