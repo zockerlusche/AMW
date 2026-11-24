@@ -448,7 +448,7 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
     """Ja des Leads (oder des Menschen): den jüngsten (oder genannten) Entwurf anlegen – neue Meilensteine, Pakete mit Größe,
     Art, Ausführung, Modell/Effort, Abnahme-Befehl und Abhängigkeiten, je Paket der Verweis aufs Thema (A1915). geaendert:
     ein vom Lead geänderter Entwurf (gleiches Schema, wird neu geprüft). Rückgabe: {Schlüssel: "M<nr>" | "A<id>"}."""
-    from . import planer_delta, themen
+    from . import delta_start, planer_delta, themen
     e = next((x for x in _ereignisse(con, pid, tid, ENTWURF) if x["id"] == eid), None) if eid else letzter_entwurf(con, pid, tid)
     ist_delta = bool(((e or {}).get("entwurf") or {}).get("delta"))   # A2027: ein Delta gibt der Mensch frei (feinplan_freigabe)
     if not ist_delta and not (von == kern.ENTWICKLER or kern.ist_lead(con, pid, von)):
@@ -475,16 +475,17 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
         if erledigt(con, pid, e["id"]):
             raise kern.AmwFehler(f"Der Planentwurf zu TH{tid} ist schon angenommen")
         if ist_delta:
+            delta_start.recht_pruefen(con, pid, von, entwurf)     # A2080: neuer Meilenstein → wer auch Grobpläne freigibt
             fehlt = planer_delta.stimme(con, pid, von, tid, e["id"])
             if fehlt:
                 return {"ja_fehlt": ", ".join(fehlt)}     # gleicher Typ wie {Schlüssel: "A123"} – P593 (Sprachprüfung)
         merke = _ereignis(con, pid, von, JA, tid, entwurf=e["id"], angelegt={}, laeuft=True)
     schon = {}
+    vorher = delta_start.merken(con, pid, entwurf) if ist_delta else {}
     try:
         angelegt = _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, schon)
         if ist_delta:                                    # A2027: dann ändern und verwerfen, was der Planer vorschlägt
             planer_delta.anwenden(con, pid, von, tid, e["id"], entwurf)
-        return angelegt
     except Exception as x:
         with db.schreiben(con):
             if not schon:                            # nichts angelegt: die Marke lösen, ein neues Ja darf es noch einmal versuchen
@@ -492,13 +493,21 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
             else:                                    # Vorab-Prüfung 1.164.0 (8): teilweise angelegt – die Marke bleibt (kein
                 con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?",   # zweites Anlegen), sie nennt, was schon da ist
                             (json.dumps({"thema": tid, "entwurf": e["id"], "angelegt": schon, "abgebrochen": str(x)[:300]},
-                                        ensure_ascii=False), merke))
+                                        ensure_ascii=False), (delta_start._letztes_ja(con, pid, e["id"]) or {}).get("id", merke)))
                 kern._posten(con, pid, "AMW", kern.lead(con, pid) or kern.ENTWICKLER, "meldung",
                              f"Planentwurf TH{tid} nur teilweise angelegt"[:140],
                              f"Abbruch beim Anlegen: {str(x)[:300]}\nSchon angelegt: "
                              + ", ".join(f"{k} → {v}" for k, v in schon.items())
                              + "\nDer Rest fehlt – bitte von Hand ergänzen oder das Angelegte prüfen; ein neues Ja legt nichts doppelt an.")
         raise
+    if ist_delta and not entwurf["nichts_zu_bauen"]:     # A2080: das Ja ist auch die Freigabe – und startet
+        try:
+            delta_start.nach_dem_ja(con, pid, von, tid, e["id"], entwurf, angelegt, vorher)
+        except Exception as x:                           # noqa: BLE001 – angelegt ist alles: die Seite zeigt den wartenden Meilenstein
+            with db.schreiben(con):
+                kern._posten(con, pid, "AMW", kern.lead(con, pid) or kern.ENTWICKLER, "meldung",
+                             f"Änderung TH{tid}: angelegt, aber nicht gestartet"[:140], str(x)[:500])
+    return angelegt
 
 
 def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):

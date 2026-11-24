@@ -344,6 +344,9 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             if was == "pruefung-starten":             # A2064: Abschlussprüfung für Meilensteine nachholen, die vor A2029 bereit wurden
                 from . import projektweg_seite
                 return projektweg_seite.pruefung_starten(con, pid, kern.ENTWICKLER, int(daten.get("bogen") or 0))
+            if was == "delta-starten":                # A2080: Meilenstein einer freigegebenen Änderung freigeben und starten (nachholen)
+                from . import delta_start
+                return delta_start.nachholen(con, pid, kern.ENTWICKLER, int(daten.get("bogen") or 0))
             if was == "ueberarbeiten":                # A2028: Planer mit den offenen Hinweisen neu starten
                 plan = daten.get("plan") or "grob"
                 if (daten.get("text") or "").strip():

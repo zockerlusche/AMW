@@ -22,12 +22,19 @@ JA = "meilenstein_ja"
 ARTEN = ("grob", "plan", "abschluss")       # abschluss: Ja zum Abschlussbericht (K7, A1944)
 
 
+def plan_teil(con, a):
+    """Ein Paket, wie es der Fingerabdruck des Plans sieht (auch delta_start: was hat ein Ja geändert?)."""
+    from . import arbeitspaket, planung
+    return [a["id"], a["titel"], a["auftrag"], a["groesse"], a["art"], a["pruefbefehl"], planung.vorgaenger(con, a["id"]),
+            arbeitspaket.lesen(con, a["id"]).get("art")]
+
+
 def fingerabdruck(con, pid, bid, art):
     """P461 (1), B2913 „zur selben Fassung“: was ein Ja bzw. eine Freigabe gesehen hat. grob: Titel, Ziel, Abnahme, Zieldatum und
     die Themen des Meilensteins; plan: seine Pakete (Nummer, Titel, Auftrag, Größe, Art, Abnahme-Befehl, Vorgänger, Ausführung)
     – nicht Status, Agent oder Zeiten, die sich in der Umsetzung ändern; abschluss: der Bericht. Kurz-Hash."""
     import hashlib
-    from . import arbeitspaket, planung, themen
+    from . import themen
     b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
     if not b:
         return None
@@ -39,8 +46,7 @@ def fingerabdruck(con, pid, bid, art):
         th = [] if grobplan.aus_grobplan(con, pid, b["nr"]) else sorted({t for a in pakete for t in themen.verweise(con, pid, a["id"])})
         teile = [b["titel"], b["ziel"], b["abnahme"], b["zieldatum"], th]
     elif art == "plan":
-        teile = [[a["id"], a["titel"], a["auftrag"], a["groesse"], a["art"], a["pruefbefehl"], planung.vorgaenger(con, a["id"]),
-                  arbeitspaket.lesen(con, a["id"]).get("art")] for a in sorted(pakete, key=lambda x: x["id"])]
+        teile = [plan_teil(con, a) for a in sorted(pakete, key=lambda x: x["id"])]
     else:
         from . import tore
         teile = [tore.bericht(con, pid, bid)]

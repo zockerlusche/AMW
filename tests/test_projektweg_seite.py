@@ -406,6 +406,61 @@ class GescheiterteAenderung(Grund):
             self.assertEqual([a for a in arten if "pjw_fx_" + a not in workbench.texte(s)], [])
 
 
+class AbnahmeDran(Grund):
+    def schritt(self, name, d=None):
+        return next(s for s in (d or self.daten())["schritte"] if s["schritt"] == name)
+
+    def test_abschluss_dran_umsetzung_nicht_mehr(self):
+        """A2080 (7): alle Pakete fertig, M1 wartet auf Abnahme – die Leiste sagt es (vorher ○ grau, Umsetzung ● bei 5 von 5)."""
+        demo(self.con, self.pid, "abschluss")
+        d = self.daten()
+        self.assertEqual((self.schritt("abschluss", d)["zustand"], self.schritt("abschluss", d)["bei_dir"]), ("dran", True))
+        self.assertNotEqual(self.schritt("umsetzung", d)["zustand"], "dran")
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, abschluss_freigabe="co+lead", co_entwickler="CC1")
+        x = self.schritt("abschluss")
+        self.assertEqual((x["zustand"], x["bei_dir"]), ("dran", False))
+
+    def test_umsetzung_bleibt_dran_solange_ein_paket_offen_ist(self):
+        from amw import feinplanung
+        demo(self.con, self.pid, "fein")
+        m1 = self.con.execute("SELECT id FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0]
+        feinplanung.plan_starten(self.con, self.pid, kern.ENTWICKLER, m1)
+        self.assertEqual(self.schritt("umsetzung")["zustand"], "dran")
+        self.assertEqual(self.schritt("abschluss")["zustand"], "offen")
+
+
+def wartende_aenderung(con, pid):
+    """A2080: M1 läuft, das Thema „Speichern und Laden“ wurde geändert, der Planer schlägt einen neuen Meilenstein vor."""
+    from amw import feinplanung, planer_delta
+    t = demo(con, pid, "fein")
+    m1 = con.execute("SELECT id FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0]
+    feinplanung.plan_starten(con, pid, kern.ENTWICKLER, m1)
+    for (aid,) in con.execute("SELECT id FROM aufgabe WHERE titel IN ('Speichern und Laden', 'Tests für Speichern')").fetchall():
+        themen.verweise_setzen(con, pid, "TL", aid, [f"TH{t[2]}"])
+    themen.bearbeiten(con, pid, kern.ENTWICKLER, t[2], "Die Welt bleibt erhalten, auch nach einem Neustart, mit drei Speicherplätzen.")
+    plan = {"meilensteine": [{"schluessel": "M9", "titel": "Drei Speicherplätze", "endet_mit": "vorfuehrung"}],
+            "pakete": [{"schluessel": "P1", "meilenstein": "M9", "titel": "Speicherplatz wählen", "auftrag": "Drei Plätze anbieten.", "groesse": "S",
+                        "art": "mechanisch", "ausfuehrung": "p", "fertig_quelle": "commit", "abnahme_befehl": "python -m unittest tests.test_platz",
+                        "bereiche": "scripts/speicher.gd"}]}
+    planer.entwurf_eintragen(con, pid, t[2], 2, plan, modell="sonnet", usd=0.05, delta=planer_delta.kontext(con, pid, t[2]))
+    return t
+
+
+class AenderungStarten(Grund):
+    def test_altfall_macht_feinplanung_dran(self):
+        from amw import delta_start
+        t = wartende_aenderung(self.con, self.pid)
+        d = self.daten()["fein"]["delta"][0]
+        self.assertEqual((d["startet"], d["neuer_ms"], d["wer"]), (True, True, [kern.entwickler_name(self.con, self.pid)]))
+        with mock.patch.object(delta_start, "nach_dem_ja", return_value=None):
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, t[2])
+        d = self.daten()
+        m = next(x for x in d["fein"]["meilensteine"] if x["titel"] == "Drei Speicherplätze")
+        self.assertEqual((m["delta_start"]["thema"], m["delta_start"]["fehler"]), (t[2], None))
+        fein = next(s for s in d["schritte"] if s["schritt"] == "fein")
+        self.assertEqual((fein["zustand"], fein["bei_dir"], d["dran"]), ("dran", True, "fein"))
+
+
 class Abschluss(Grund):
     def test_abnehmen_ist_das_ja_zum_abschluss(self):
         demo(self.con, self.pid, "abschluss")
@@ -750,6 +805,54 @@ class SeiteDeltaFehler(Rundgang):
             fehler = self.besuchen("projektweg", "projektweg-delta-fehler", bereit="document.querySelector('.pjw-schritt')",
                                    tun="zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)",
                                    danach="document.querySelector('.pjw-delta-fehler')", g=g, t=th)
+            self.assertEqual(fehler, [], f"{g} {th}")
+
+
+class SeiteAenderungStarten(Rundgang):
+    """A2080: ein Klick gibt die Änderung frei und startet – und der Altfall holt es nach."""
+    def daten(self):
+        kern.agent_neu(self.con, self.pid, "CC1")
+        for ziel in (grobplan, planer):
+            p = mock.patch.object(ziel, "STARTER", lambda *a, **k: 4711)
+            p.start()
+            self.addCleanup(p.stop)
+        self.t = wartende_aenderung(self.con, self.pid)
+
+    def status(self):
+        r = self.con.execute("SELECT status FROM bogen WHERE titel = 'Drei Speicherplätze'").fetchone()
+        return r and r[0]
+
+    def knopf(self, anfang):
+        return f"[...document.querySelectorAll('.pjw-ansicht button')].find(b => b.textContent.startsWith('{anfang}'))"
+
+    def test_klick_gibt_frei_und_startet(self):
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.tab.js("zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)")
+        self.warten(self.knopf("Änderung TH"))
+        self.assertIn("freigeben und starten (1 Paket, neuer Meilenstein)", self.tab.js(self.knopf("Änderung TH") + ".textContent"))
+        self.assertIn("Das Ja gibt:", self.tab.js("document.querySelector('.pjw-delta').innerText"))
+        self.tab.js(self.knopf("Änderung TH") + ".click(); 1")
+        self.warten("!document.querySelector('.pjw-delta')")
+        self.assertEqual(self.status(), "aktiv")
+
+    def test_altfall_klick_holt_es_nach(self):
+        from amw import delta_start
+        with mock.patch.object(delta_start, "nach_dem_ja", return_value=None):
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.t[2])
+        self.assertEqual(self.status(), "geplant")
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.tab.js("zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)")
+        self.warten("[...document.querySelectorAll('.pjw-ansicht button')].some(b => b.textContent.includes('aus Änderung TH'))")
+        self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-ansicht .knopf.haupt').length"), 1)
+        self.tab.js("[...document.querySelectorAll('.pjw-ansicht button')].find(b => b.textContent.includes('aus Änderung TH')).click(); 1")
+        self.warten("![...document.querySelectorAll('.pjw-ansicht button')].some(b => b.textContent.includes('aus Änderung TH'))")
+        self.assertEqual(self.status(), "aktiv")
+
+    def test_rundgang(self):
+        for g, th in (("pc", "hell"), ("handy", "dunkel")):
+            fehler = self.besuchen("projektweg", "projektweg-aenderung-starten", bereit="document.querySelector('.pjw-schritt')",
+                                   tun="zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)",
+                                   danach="document.querySelector('.pjw-delta')", g=g, t=th)
             self.assertEqual(fehler, [], f"{g} {th}")
 
 

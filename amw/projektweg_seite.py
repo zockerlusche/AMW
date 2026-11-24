@@ -118,7 +118,8 @@ def _meilensteine(con, pid):
 
 def fein(con, pid, freigaben):
     """Je Meilenstein: Pakete in Stufen, Plan frei?, Feinplaner läuft?; dazu offene Entwürfe der Planer je Thema (Delta, A2027)."""
-    from . import feinplanung, planansicht, planfunde, planhinweis
+    from . import delta_start, feinplanung, planansicht, planfunde, planhinweis
+    warten = delta_start.wartende(con, pid)                  # A2080: aus einer freigegebenen Änderung, noch nicht gestartet
     frei = {f["bogen"]: f["frei"] for f in freigaben["fein"]}
     entwuerfe = feinplanung._ereignisse(con, pid, feinplanung.ENTWURF)
     aus = []
@@ -133,7 +134,8 @@ def fein(con, pid, freigaben):
                     "abnahme": b["abnahme"], "frei": bool(frei.get(b["id"])), "laeuft": laeuft, "pakete": pakete,
                     "fehler": ([fehler] if isinstance(fehler, str) else list(fehler)) if fehler else None,
                     "gruende": planfunde.deuten(con, pid, fehler) if fehler else [],          # A2076: in Menschensprache
-                    "fassung": letzter.get("fassung") if letzter else None})
+                    "fassung": letzter.get("fassung") if letzter else None,
+                    "delta_start": (lambda w: {"thema": w["thema"], "fehler": w["fehler"]} if w else None)(warten.get(b["id"]))})
     namen = {t["id"]: t["name"] for t in _themen(con, pid)}
     e = planansicht.entwuerfe(con, pid, namen)
     from . import planer
@@ -146,9 +148,32 @@ def fein(con, pid, freigaben):
                                  "gruende": planfunde.deuten(con, pid, letzter["fehler"]),
                                  "hinweise": planhinweis.offene(con, pid, x["thema"])})
         if d.get("delta"):
-            delta.append({**{k: v for k, v in x.items() if k != "zeilen"}, **_entwurf_karten(con, pid, d),
+            delta.append({"wer": delta_start.wer(con, pid, d), "neuer_ms": delta_start.legt_an(d),
+                          "startet": delta_start.legt_an(d) or _laeuft_frei(con, pid, d, aus),
+                          **{k: v for k, v in x.items() if k != "zeilen"}, **_entwurf_karten(con, pid, d),
                           "hinweise": planhinweis.offene(con, pid, x["thema"])})
+    delta_fehler += _teilweise(con, pid, namen)
     return {"meilensteine": aus, "delta": delta, "delta_fehler": delta_fehler}
+
+
+def _laeuft_frei(con, pid, d, meilensteine):
+    """Zielt die Änderung auf einen laufenden Meilenstein mit freiem Plan? Dann starten die neuen Pakete mit dem Ja (A2080)."""
+    ziele = {m["bestehend"] for m in d.get("meilensteine") or [] if m.get("bestehend")}
+    return any(m["nr"] in ziele and m["frei"] and m["status"] == "aktiv" for m in meilensteine)
+
+
+def _teilweise(con, pid, namen):
+    """A2080 (4): das jüngste Ja zu einer Änderung brach beim Anlegen ab – solange kein neuer Entwurf vorliegt, steht es da."""
+    from . import planer, planhinweis
+    aus = []
+    for tid, name in sorted(namen.items()):
+        ja = planer._ereignisse(con, pid, tid, planer.JA)
+        e = planer.letzter_entwurf(con, pid, tid) if ja and ja[-1].get("abgebrochen") else None
+        if e and e["id"] < ja[-1]["id"] and (e.get("entwurf") or {}).get("delta") and not planer.laeuft(con, pid, tid):
+            da = ", ".join(str(v) for v in (ja[-1].get("angelegt") or {}).values()) or "–"
+            aus.append({"thema": tid, "name": name, "eid": e["id"], "fassung": e.get("fassung"), "teilweise": True,
+                        "gruende": [{"art": "teilweise", "x": {"x": da}}], "hinweise": planhinweis.offene(con, pid, tid)})
+    return aus
 
 
 def _ist_aenderung(con, pid, tid, e):
@@ -328,6 +353,25 @@ def verlauf_lesbar(eintraege, namen, saetze=None):
     return aus
 
 
+def _abnahme_dran(con, pid, schritte, dran, f, u, ab, ich):
+    """A2080 (7): wartet ein Meilenstein auf seine Abnahme, ist Abschluss dran; sind alle Pakete aller laufenden Meilensteine
+    fertig, ist Umsetzung nicht mehr dran (erledigt, wenn nichts mehr geplant ist – sonst offen). Rückgabe: der Schritt, der dran ist."""
+    je = {x["schritt"]: x for x in schritte}
+    alles_fertig = bool(u["meilensteine"]) and all(m["pakete"] and all(p["status"] in ("fertig", "verworfen") for p in m["pakete"])
+                                                   for m in u["meilensteine"])
+    um = je["umsetzung"]
+    if alles_fertig and um["zustand"] == "dran":
+        geplant = con.execute("SELECT 1 FROM bogen WHERE projekt_id = ? AND status = 'geplant' LIMIT 1", (pid,)).fetchone()
+        z = "offen" if geplant else "erledigt"
+        um.update(zustand=z, zeichen=projektweg.ZEICHEN[z], wer=[], bei_dir=False)
+    if any(x["bereit"] and not x["frei"] for x in ab):
+        wer = projektweg._freigebende(con, pid, "abschluss")
+        je["abschluss"].update(zustand="dran", zeichen=projektweg.ZEICHEN["dran"], wer=wer, bei_dir=ich in wer)
+        if dran is None or (dran == "umsetzung" and alles_fertig):
+            dran = "abschluss"
+    return dran
+
+
 def daten(con, pid):
     """Alles für die Seite in einer Antwort (eine Anfrage je Neuzeichnen, auch online)."""
     from . import planer_fortschritt, planfunde, verlauf
@@ -348,19 +392,23 @@ def daten(con, pid):
         for x in schritte:
             if x["schritt"] == "fein" and x["zustand"] == "dran":
                 x.update(wer=wer_plan, bei_dir=ich in wer_plan)
-    if f["delta"] or f["delta_fehler"]:                  # A2076: auch eine gescheiterte Änderung; A2068: eine offene Änderung wartet auf ihr Ja – auch nach erledigtem Feinplan
-        wer_plan = projektweg._freigebende(con, pid, "plan")
+    start = [m for m in f["meilensteine"] if m["delta_start"]]         # A2080 (5): wartet auf „freigeben und starten“
+    if f["delta"] or f["delta_fehler"] or start:                  # A2076: auch eine gescheiterte Änderung; A2068: eine offene Änderung wartet auf ihr Ja – auch nach erledigtem Feinplan
+        wer_plan = f["delta"][0]["wer"] if f["delta"] else [ich] if start else projektweg._freigebende(con, pid, "plan")
         for x in schritte:
             if x["schritt"] == "fein":
                 x.update(zustand="dran", zeichen=projektweg.ZEICHEN["dran"], wer=wer_plan, bei_dir=ich in wer_plan,
                          fehlt=(f"{len(f['delta'])} Änderung(en) am Konzept warten auf das Ja" if f["delta"]
-                                else f"{len(f['delta_fehler'])} Änderung(en) am Konzept: der Plan passte nicht"))
-        if dran in (None, "umsetzung", "abschluss"):    # früher Offenes (Konzept, Grobplan) geht vor
-            dran = "fein"
+                                else f"{len(f['delta_fehler'])} Änderung(en) am Konzept: der Plan passte nicht" if f["delta_fehler"]
+                                else f"{len(start)} Meilenstein(e) einer Änderung warten auf das Starten"))
+        if dran in (None, "umsetzung", "abschluss") or (dran == "grob" and start and g["angenommen"]):   # früher Offenes geht vor –
+            dran = "fein"                                # außer der Grobplan steht schon und nur der Start der Änderung fehlt
     k = konzept(con, pid, g["bestand"])
     g_themen = k["themen"]
+    u, ab = umsetzung(f), abschluss(con, pid, fr)
+    dran = _abnahme_dran(con, pid, schritte, dran, f, u, ab, ich)
     return {"schritte": schritte, "dran": dran, "zeile": s["zeile"], "konzept": k, "grob": g,
-            "fein": f, "umsetzung": umsetzung(f), "abschluss": abschluss(con, pid, fr), "fragen": fragen(con, pid),
+            "fein": f, "umsetzung": u, "abschluss": ab, "fragen": fragen(con, pid),
             "laeufe": planer_fortschritt.laufende(con, pid),
             "verlauf": verlauf_lesbar(verlauf.projektweg(con, pid, grenze=VERLAUF_GRENZE),
                                       {t["id"]: t["name"] for t in g_themen}, lambda x: planfunde.saetze(con, pid, x))}

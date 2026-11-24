@@ -317,5 +317,197 @@ class Freigabe(Grund):
         self.assertTrue(planer.erledigt(self.con, self.pid, self.eid))
 
 
+class BlockStart(Grund):
+    """A2080: das Ja zu einer Konzeptänderung ist ein Block – es gibt frei und startet."""
+    def setUp(self):
+        super().setUp()
+        from amw import schalter
+        u = mock.patch.dict(os.environ, {"AMW_PLANER_AUS": "1"})
+        u.start()
+        self.addCleanup(u.stop)
+        with db.schreiben(self.con):
+            schalter._setzen(self.con, self.pid, "an")
+        self.m1 = self.con.execute("SELECT bogen_id FROM aufgabe WHERE id = ?", (self.p1,)).fetchone()[0]
+        self.aendern()
+
+    def paket(self, ms):
+        return {"schluessel": "N1", "meilenstein": ms, "titel": "Passkey nachrüsten", "auftrag": "Passkey zur Anmeldung.", "groesse": "S",
+                "art": "mechanisch", "ausfuehrung": "p", "fertig_quelle": "commit", "abnahme_befehl": "python -m unittest tests.test_passkey",
+                "bereiche": "app/passkey.py"}
+
+    def entwurf(self, neu=True, **mehr):
+        d = planer_delta.kontext(self.con, self.pid, self.tid)
+        plan = {"meilensteine": [{"schluessel": "M2", "titel": "Passkey", "endet_mit": "vorfuehrung"} if neu else {"schluessel": "M1", "bestehend": 1}],
+                "pakete": [self.paket("M2" if neu else "M1")], **mehr}
+        eid = planer.entwurf_eintragen(self.con, self.pid, self.tid, 2, plan, delta=d)
+        self.assertNotIn("fehler", planer.letzter_entwurf(self.con, self.pid, self.tid) or {})
+        return eid
+
+    def zustand(self, bid, art):
+        from amw import planansicht
+        return bool((planansicht._zustaende(self.con, self.pid).get((bid, art)) or {}).get("an"))
+
+    def bogen(self, titel="Passkey"):
+        return self.con.execute("SELECT * FROM bogen WHERE titel = ?", (titel,)).fetchone()
+
+    def neues_paket(self):
+        from amw import arbeitspaket
+        a = self.con.execute("SELECT id FROM aufgabe WHERE titel = 'Passkey nachrüsten'").fetchone()[0]
+        return arbeitspaket.lesen(self.con, a)["zustand"]
+
+    def m1_frei(self, aktiv=True):
+        from amw import feinplanung, planansicht
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob")
+        (feinplanung.plan_starten if aktiv else lambda c, p, v, b: planansicht.freigeben(c, p, v, b, "plan"))(
+            self.con, self.pid, kern.ENTWICKLER, self.m1)
+
+    def test_neuer_meilenstein_laeuft_nach_dem_ja(self):
+        eid = self.entwurf()
+        planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        b = self.bogen()
+        self.assertEqual(b["status"], "aktiv")
+        self.assertTrue(self.zustand(b["id"], "grob") and self.zustand(b["id"], "plan"))
+        self.assertEqual(self.neues_paket(), "startklar")
+        ja = [json.loads(r[0]) for r in self.con.execute("SELECT text FROM plan_ereignis WHERE art = 'meilenstein_frei' AND bogen_id = ?", (b["id"],))]
+        self.assertEqual([(x["art"], x["quelle"], x["durch"]) for x in ja], [("grob", "delta", [kern.ENTWICKLER]), ("plan", "delta", [kern.ENTWICKLER])])
+        jid = self.con.execute("SELECT id FROM plan_ereignis WHERE art = ? ORDER BY id DESC", (planer.JA,)).fetchone()[0]
+        self.assertEqual({x["ja"] for x in ja}, {jid})
+        with self.assertRaisesRegex(kern.AmwFehler, "schon angenommen"):                 # ein zweites Ja legt nichts doppelt an
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid, eid=eid)
+        self.assertEqual(self.con.execute("SELECT count(*) FROM bogen WHERE titel = 'Passkey'").fetchone()[0], 1)
+
+    def test_bestehender_plan_bleibt_frei_und_das_neue_paket_startklar(self):
+        self.m1_frei()
+        self.entwurf(neu=False)
+        planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertTrue(self.zustand(self.m1, "plan"))
+        self.assertTrue(self.zustand(self.m1, "grob"))
+        self.assertEqual(self.neues_paket(), "startklar")
+
+    def test_war_der_plan_offen_bleibt_er_offen(self):
+        self.entwurf(neu=False)                                                          # M1 nie freigegeben
+        planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertFalse(self.zustand(self.m1, "plan"))
+        self.assertNotEqual(self.neues_paket(), "startklar")
+
+    def test_war_der_plan_geaendert_bleibt_er_offen(self):
+        self.m1_frei()
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET titel = 'Abmelden neu' WHERE id = ?", (self.p2,))
+        self.assertFalse(self.zustand(self.m1, "plan"))
+        self.entwurf(neu=False)
+        planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertFalse(self.zustand(self.m1, "plan"))
+
+    def test_fremde_aenderung_waehrend_des_ja_wird_nicht_mit_freigegeben(self):
+        self.m1_frei()
+        self.entwurf(neu=False)
+        echt = planer_delta.anwenden
+
+        def anwenden(*a, **k):
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE aufgabe SET auftrag = 'heimlich anders' WHERE id = ?", (self.p2,))
+            return echt(*a, **k)
+        with mock.patch.object(planer_delta, "anwenden", side_effect=anwenden):
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertFalse(self.zustand(self.m1, "plan"))
+        art, kurz, text = self.post("TL")[-1]
+        self.assertIn("nicht frei oder nicht gestartet", kurz)
+        self.assertIn(f"A{self.p2}", text)
+
+    def test_geplanter_meilenstein_mit_freiem_plan_bleibt_frei_startet_aber_nicht(self):
+        self.m1_frei(aktiv=False)
+        self.entwurf(neu=False)
+        planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertTrue(self.zustand(self.m1, "plan"))
+        self.assertEqual(self.con.execute("SELECT status FROM bogen WHERE id = ?", (self.m1,)).fetchone()[0], "geplant")
+
+    def test_vier_rechte_faelle_bei_neuem_meilenstein(self):
+        from amw import delta_start
+        for grob, plan, darf in (("mensch", "mensch", False), ("mensch", "co+lead", False), ("co+lead", "mensch", False), ("co+lead", "co+lead", True)):
+            with self.subTest(grob=grob, plan=plan):
+                kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, grobplan_freigabe=grob, feinplan_freigabe=plan)
+                eid = self.entwurf()
+                e = (planer.letzter_entwurf(self.con, self.pid, self.tid) or {})["entwurf"]
+                self.assertEqual(delta_start.wer(self.con, self.pid, e), ["Co", "TL"] if darf else [kern.entwickler_name(self.con, self.pid)])
+                if not darf:
+                    for wer in ("Co", "TL"):
+                        with self.assertRaisesRegex(kern.AmwFehler, "der Mensch"):
+                            planer.uebernehmen(self.con, self.pid, wer, self.tid)
+                    self.assertFalse(planer.erledigt(self.con, self.pid, eid))
+                    self.assertIsNone(self.con.execute("SELECT 1 FROM plan_ereignis WHERE art = ?", (planer_delta.STIMME,)).fetchone())
+                    continue
+                self.assertEqual(planer.uebernehmen(self.con, self.pid, "Co", self.tid), {"ja_fehlt": "Lead"})
+                self.assertIsNone(self.bogen())
+                planer.uebernehmen(self.con, self.pid, "TL", self.tid)
+                self.assertEqual(self.bogen()["status"], "aktiv")
+                f = [json.loads(r[0]) for r in self.con.execute("SELECT text FROM plan_ereignis WHERE art = 'meilenstein_frei' AND bogen_id = ?",
+                                                                (self.bogen()["id"],))]
+                self.assertEqual([(x["durch"], x["regel_von"]) for x in f], [(["Co", "TL"], "B2913")] * 2)
+
+    def test_ein_einzelnes_altes_ja_zaehlt_nicht_fuer_einen_neuen_entwurf(self):
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, grobplan_freigabe="co+lead", feinplan_freigabe="co+lead")
+        self.entwurf()
+        planer.uebernehmen(self.con, self.pid, "Co", self.tid)
+        self.entwurf()
+        self.assertEqual(planer.uebernehmen(self.con, self.pid, "TL", self.tid), {"ja_fehlt": "Co-Entwickler"})
+
+    def test_bestehender_meilenstein_co_lead_ohne_grob_recht(self):
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, grobplan_freigabe="mensch", feinplan_freigabe="co+lead")
+        self.m1_frei()
+        self.entwurf(neu=False)
+        planer.uebernehmen(self.con, self.pid, "Co", self.tid)
+        planer.uebernehmen(self.con, self.pid, "TL", self.tid)
+        self.assertTrue(self.zustand(self.m1, "plan"))
+
+    def test_start_scheitert_steht_da_und_laesst_sich_nachholen(self):
+        from amw import delta_start, reihenfolge
+        eid = self.entwurf()
+        with mock.patch.object(reihenfolge, "starten", side_effect=kern.AmwFehler("kein Platz")):
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        b = self.bogen()
+        self.assertEqual(b["status"], "geplant")
+        self.assertEqual(delta_start.wartende(self.con, self.pid)[b["id"]]["fehler"], "kein Platz")
+        self.assertIn("kein Platz", self.post("TL")[-1][2])
+        with self.assertRaisesRegex(kern.AmwFehler, "schon angenommen"):
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid, eid=eid)
+        with self.assertRaisesRegex(kern.AmwFehler, "der Mensch"):
+            delta_start.nachholen(self.con, self.pid, "TL", b["id"])
+        delta_start.nachholen(self.con, self.pid, kern.ENTWICKLER, b["id"])
+        self.assertEqual(self.bogen()["status"], "aktiv")
+        self.assertEqual(delta_start.wartende(self.con, self.pid), {})
+        with self.assertRaisesRegex(kern.AmwFehler, "wartet nicht"):
+            delta_start.nachholen(self.con, self.pid, kern.ENTWICKLER, b["id"])
+
+    def test_altfall_ohne_freigabe_wartet_und_startet_nach_dem_klick(self):
+        from amw import aktionen, delta_start, planansicht
+        self.entwurf()
+        with mock.patch.object(delta_start, "nach_dem_ja", return_value=None):           # wie vor A2080
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        b = self.bogen()
+        self.assertEqual((b["status"], self.zustand(b["id"], "plan")), ("geplant", False))
+        self.assertEqual(list(delta_start.wartende(self.con, self.pid)), [b["id"]])
+        planansicht.zurueck(self.con, self.pid, kern.ENTWICKLER, b["id"], "grob", "so nicht")
+        self.assertEqual(delta_start.wartende(self.con, self.pid), {})                   # zurückgegeben: wartet nicht auf ihn
+        with db.schreiben(self.con):
+            self.con.execute("DELETE FROM plan_ereignis WHERE art = 'meilenstein_frei' AND bogen_id = ?", (b["id"],))
+        aktionen.ausfuehren(self.con, self.pid, "/api/projektweg/delta-starten", {"bogen": b["id"]})
+        self.assertEqual(self.bogen()["status"], "aktiv")
+        self.assertTrue(self.zustand(b["id"], "grob") and self.zustand(b["id"], "plan"))
+
+    def test_abbruch_beim_anlegen_startet_nichts(self):
+        from amw import delta_start, projektweg_seite
+        self.entwurf()
+        with mock.patch.object(themen, "verweise_setzen", side_effect=kern.AmwFehler("Platte voll")):
+            with self.assertRaisesRegex(kern.AmwFehler, "Platte voll"):
+                planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertEqual(self.bogen()["status"], "geplant")
+        self.assertEqual(delta_start.wartende(self.con, self.pid), {})                   # halb Angelegtes startet niemand mit einem Klick
+        x = projektweg_seite._teilweise(self.con, self.pid, {self.tid: "Anmeldung"})
+        self.assertEqual([(y["thema"], y["gruende"][0]["art"]) for y in x], [(self.tid, "teilweise")])
+        with self.assertRaisesRegex(kern.AmwFehler, "schon angenommen"):
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+
+
 if __name__ == "__main__":
     unittest.main()
