@@ -29,12 +29,27 @@ def _themen(con, pid):
     return aus
 
 
-def konzept(con, pid):
+def bestand(con, pid):
+    """A2061: Meilensteine aus der Zeit vor dem Grobplan (Projekt mit Bestand, ohne Grobplan-Ja und ohne Grobplan-Fassung) –
+    neueste zuerst; [] bei einem neuen Projekt oder sobald es einen Grobplan gibt. A2030 kennt noch keine Übernahme
+    (Themen den vorhandenen Meilensteinen zuordnen) – bis dahin zeigt die Seite den Bestand und kein „Konzept abschließen“."""
+    from . import grobplan
+    if grobplan.angenommen(con, pid) or grobplan.fassungen(con, pid):
+        return []
+    return [{"bogen": r["id"], "nr": r["nr"], "titel": r["titel"], "status": r["status"], "pakete": r["n"] or 0, "fertig": r["f"] or 0}
+            for r in con.execute("SELECT b.id, b.nr, b.titel, b.status, (SELECT count(*) FROM aufgabe a WHERE a.bogen_id = b.id AND a.status != 'verworfen') n,"
+                                 " (SELECT count(*) FROM aufgabe a WHERE a.bogen_id = b.id AND a.status = 'fertig') f FROM bogen b"
+                                 " WHERE b.projekt_id = ? AND b.status IN ('geplant', 'aktiv', 'fertig')"
+                                 " ORDER BY CASE b.status WHEN 'aktiv' THEN 0 WHEN 'geplant' THEN 1 ELSE 2 END, b.id DESC", (pid,))]
+
+
+def konzept(con, pid, best=None):
     from . import grobplan, themen
     tor = themen.tor(con, pid)
+    best = bestand(con, pid) if best is None else best
     return {"themen": _themen(con, pid), "n": tor["n"], "g": tor["g"], "zu": bool(tor["konzept_zu"]),
             "abgeschlossen": bool(grobplan.abgeschlossen(con, pid)), "grob_angenommen": bool(grobplan.angenommen(con, pid)),
-            "grob_laeuft": bool(grobplan.laeuft(con, pid))}
+            "grob_laeuft": bool(grobplan.laeuft(con, pid)), "bestand": len(best)}
 
 
 def _meilenstein(m):
@@ -65,7 +80,7 @@ def grob(con, pid):
             vorige = d
         fassungen.append(x)
     ja = grobplan.angenommen(con, pid)
-    return {"fassungen": fassungen, "laeuft": bool(grobplan.laeuft(con, pid)),
+    return {"fassungen": fassungen, "laeuft": bool(grobplan.laeuft(con, pid)), "bestand": bestand(con, pid),
             "angenommen": {"fassung": ja.get("fassung"), "angelegt": ja.get("angelegt") or {}} if ja else None,
             "hinweise": planhinweis.alle(con, pid, "grob") if fassungen else []}
 
@@ -174,7 +189,7 @@ def daten(con, pid):
         if x["schritt"] == "grob" and x["zustand"] == "dran" and g["fassungen"] and not g["angenommen"] and not g["laeuft"]                 and not g["fassungen"][-1]["fehler"]:
             wer = projektweg._freigebende(con, pid, "grob")      # A2030: ein Grobplan liegt vor – das Ja gibt, wer Grobpläne freigibt
         schritte.append({**x, "wer": wer, "nr": SCHRITT_NR[x["schritt"]], "bei_dir": x["zustand"] == "dran" and ich in wer})
-    return {"schritte": schritte, "dran": s["dran"], "zeile": s["zeile"], "konzept": konzept(con, pid), "grob": g,
+    return {"schritte": schritte, "dran": s["dran"], "zeile": s["zeile"], "konzept": konzept(con, pid, g["bestand"]), "grob": g,
             "fein": f, "umsetzung": umsetzung(f), "abschluss": abschluss(con, pid, fr), "fragen": fragen(con, pid),
             "laeufe": planer_fortschritt.laufende(con, pid),
             "verlauf": verlauf.projektweg(con, pid, grenze=VERLAUF_GRENZE)}
