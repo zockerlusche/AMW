@@ -280,6 +280,26 @@ class Annehmen(Grund):
         self.assertTrue(next(x for x in tore.stand(self.con, self.pid)["tore"] if x["tor"] == "grobplanung")["zu"])
         self.assertEqual(projektweg.sicht(self.con, self.pid)["dran"], "fein")
 
+    def test_pakete_der_feinplanung_aendern_die_grob_freigabe_nicht(self):
+        """CCamw2 #31619: Kommen später Pakete mit Themen in einen Meilenstein aus dem Grobplan, bleibt seine Grob-Freigabe
+        gültig, und sein Plan lässt sich freigeben. Ein Meilenstein von früher (nicht aus dem Grobplan) rechnet wie bisher."""
+        from amw import planansicht
+        grobplan.annehmen(self.con, self.pid, kern.ENTWICKLER)
+        m2 = self.con.execute("SELECT id FROM bogen WHERE projekt_id = ? AND nr = 2", (self.pid,)).fetchone()[0]
+        for bid in (m2, self.alt):
+            aid = planung.schritt_setzen(self.con, self.pid, "TL", titel="Login-Maske", auftrag="bauen", bogen_id=bid)
+            themen.verweise_setzen(self.con, self.pid, "TL", aid, [f"TH{self.t1}"])
+        z = planansicht._zustaende(self.con, self.pid)
+        self.assertTrue(z[(m2, "grob")]["an"])
+        self.assertFalse(z[(m2, "grob")]["geaendert"])
+        self.assertTrue(grobplan.aus_grobplan(self.con, self.pid, 2))
+        self.assertFalse(grobplan.aus_grobplan(self.con, self.pid, 1))
+        self.assertEqual(planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, m2, "plan"), {"frei": True})
+        fp_alt = planansicht.fingerabdruck(self.con, self.pid, self.alt, "grob")
+        aid = planung.schritt_setzen(self.con, self.pid, "TL", titel="Noch eins", auftrag="bauen", bogen_id=self.alt)
+        themen.verweise_setzen(self.con, self.pid, "TL", aid, [f"TH{self.t2}"])
+        self.assertNotEqual(planansicht.fingerabdruck(self.con, self.pid, self.alt, "grob"), fp_alt)   # alter Weg unverändert
+
     def test_nicht_wenn_sich_das_konzept_geaendert_hat(self):
         themen.bearbeiten(self.con, self.pid, kern.ENTWICKLER, self.t2, "Jede Stunde eine Sicherung.")
         with self.assertRaisesRegex(kern.AmwFehler, "haben sich die freigegebenen Themen geändert"):

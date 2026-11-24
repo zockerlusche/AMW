@@ -147,6 +147,12 @@ def angenommen(con, pid):
     return a[-1] if a else None
 
 
+def aus_grobplan(con, pid, nr):
+    """Wurde Meilenstein Nummer nr mit dem Grobplan-Ja angelegt? (Seine Themen stehen dann im Ziel.)"""
+    ja = angenommen(con, pid)
+    return bool(ja) and f"M{nr}" in (ja.get("angelegt") or {}).values()
+
+
 def abschliessen(con, pid, von):
     """„Konzept abschließen und Grobplanung starten“. Nur bei geschlossenem Konzept-Tor (alle zählenden Themen frei) und solange
     kein Grobplan angenommen ist. Ein zweiter Abschluss (Konzept seitdem geändert) plant neu. Rückgabe: {"abgeschlossen",

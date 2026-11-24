@@ -33,8 +33,11 @@ def fingerabdruck(con, pid, bid, art):
         return None
     pakete = _pakete(con, pid, bid)
     if art == "grob":
-        teile = [b["titel"], b["ziel"], b["abnahme"], b["zieldatum"],
-                 sorted({t for a in pakete for t in themen.verweise(con, pid, a["id"])})]
+        from . import grobplan
+        # A2030 (CCamw2 #31619): ein Meilenstein aus dem Grobplan nennt seine Themen im Ziel – die Pakete der Feinplanung
+        # kommen erst danach und ändern die Grob-Freigabe nicht. Alle anderen wie bisher (Themen aus den Paketen).
+        th = [] if grobplan.aus_grobplan(con, pid, b["nr"]) else sorted({t for a in pakete for t in themen.verweise(con, pid, a["id"])})
+        teile = [b["titel"], b["ziel"], b["abnahme"], b["zieldatum"], th]
     elif art == "plan":
         teile = [[a["id"], a["titel"], a["auftrag"], a["groesse"], a["art"], a["pruefbefehl"], planung.vorgaenger(con, a["id"]),
                   arbeitspaket.lesen(con, a["id"]).get("art")] for a in sorted(pakete, key=lambda x: x["id"])]
