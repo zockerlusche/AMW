@@ -4,6 +4,9 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.175.2 – 24.11.2026 · Workbench antwortet auch unter Last sauber
+- **Behoben:** Eine abgelehnte Eingabe (z. B. von einer Seite vor dem Neustart) bekommt auch unter Last die Antwort „neu laden“ statt eines Verbindungsfehlers.
+
 ## 1.175.1 – 24.11.2026 · Prüfung C erkennt Tests für neue Module
 - **Behoben:** Prüfung C erkennt jetzt Tests für neue Module richtig; solche p-Pakete fallen nicht mehr fälschlich als „prüft nichts“ durch.
 
