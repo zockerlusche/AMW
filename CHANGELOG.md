@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.181.0 – 24.11.2026 · Laufausgabe live, Zeitplan je Paket, Prognose messen, alle beenden
+- **Neu:** Bei einem eigenen Lauf im Zeitstrahl „Was der Rechner heute gemacht hat“ öffnest du die Ausgabe; sie lädt alle 3 s nach, bis der Lauf endet. Das Mitlesen bei Headless-Paketen lädt ebenso selbst nach.
+- **Neu:** Zeitplan je Paket (`amw bogen zeitplan [N]`): geplante Start- und Endzeit, was gleichzeitig läuft und um wie viele Minuten sich etwas verschiebt.
+- **Neu:** Die AMW misst, wie gut ihre Dauer-Schätzungen treffen – `amw messung --prognose` zeigt die Trefferquote, auch je Quelle.
+- **Neu:** Beim Start eines Headless-Pakets hält die AMW fest, warum gerade dieses dran war: Platz in der Reihenfolge, Arbeitsplatz und wer gestartet hat.
+- **Neu:** `amw agent alle-beenden` bittet alle Fenster-Agenten (mit `--alle-projekte` über alle Projekte) zu sichern und sich zu beenden; `amw agent ende-stand` zeigt je Agent: sichert, abgemeldet oder beendet.
+
 ## 1.180.0 – 24.11.2026 · Abschluss je Meilenstein mit Prüfer, Pause für alles, Gesamtlauf ohne Hänger
 - **Neu:** Bevor ein Meilenstein „bereit zur Abnahme“ steht, laufen der Gesamttest und ein Prüfer: Er gleicht jedes Thema gegen das Gebaute ab und bereitet die Vorführung vor – beides steht im Abschlussbericht. Fehlt etwas oder ist der Test rot, legt die AMW Nacharbeit im selben Meilenstein an und startet sie gleich.
 - **Neu:** „Nacharbeit anfordern“ (`amw bogen nacharbeit N --hinweis …`): der Planer plant neue Pakete im selben Meilenstein, sie starten ohne weiteres Ja.
