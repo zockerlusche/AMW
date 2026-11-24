@@ -16,6 +16,7 @@ Zur Nachvollziehbarkeit hält runde() fest, wann ein Tor schloss oder wieder auf
 Meilensteinen); Konzept schreibt sein tor_geschlossen weiter selbst (A1913).
 """
 import json
+import re
 
 from . import db, kern
 
@@ -96,6 +97,7 @@ def _meilensteine(con, pid):
                          (pid,)).fetchall():
         pakete = planansicht._pakete(con, pid, b["id"])
         th = {tid for a in pakete for tid in themen.verweise(con, pid, a["id"])}
+        th |= {int(x) for x in re.findall(r"\bTH(\d+)\b", b["ziel"] or "")}   # A2030: der Grobplan verweist im Ziel auf Themen
         aus.append({"id": b["id"], "nr": b["nr"], "titel": b["titel"], "status": b["status"], "themen": th,
                     "neu_fertig": b["status"] == "fertig" and _neu_fertig(con, pid, b),
                     "pakete": len(pakete), "fertig": sum(a["status"] == "fertig" for a in pakete),

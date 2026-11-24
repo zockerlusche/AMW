@@ -573,10 +573,12 @@ def _tag(zeit_utc=None):
 
 
 def heute_usd(con, pid, tag=None):
-    """Kosten aller Planer-Läufe des Projekts an diesem Tag (aus den Entwürfen, auch fehlerhaften)."""
+    """Kosten aller Planer-Läufe des Projekts an diesem Tag (aus den Entwürfen, auch fehlerhaften) – je Thema und, seit A2030,
+    die Grob-Planer über das ganze Konzept (grobplan_entwurf): eine gemeinsame Tagesgrenze."""
     tag = tag or _tag()
     summe = 0.0
-    for r in con.execute("SELECT zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = ?", (pid, ENTWURF)):
+    for r in con.execute("SELECT zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, 'grobplan_entwurf')",
+                         (pid, ENTWURF)):
         if _tag(r["zeit_utc"]) != tag:
             continue
         try:
@@ -852,6 +854,9 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
 def main(argv=None):
     import argparse
     ap = argparse.ArgumentParser(prog="amw-planer")
+    if "--grob" in (argv if argv is not None else sys.argv[1:]):   # A2030: Grob-Planer über das ganze Konzept
+        from . import grobplan
+        return grobplan.main([x for x in (argv if argv is not None else sys.argv[1:]) if x != "--grob"])
     ap.add_argument("--projekt-id", type=int, required=True)
     ap.add_argument("--thema", type=int, required=True)
     ap.add_argument("--fassung", type=int, required=True)

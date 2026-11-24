@@ -2627,10 +2627,56 @@ def _tor_zeile(x):
             else f"Konzept · {x['n']} von {x['g']} Themen freigegeben")
 
 
+def _grobplan_befehl(con, pid, a):
+    """A2030: konzept-abschliessen | grobplan [--fassung N] [--neu] | grobplan-ja [--fassung N]."""
+    from . import grobplan
+    von = _von(a)
+    if a.aktion == "konzept-abschliessen":
+        r = grobplan.abschliessen(con, pid, von)
+        if not r["abgeschlossen"]:
+            print("Dein Ja ist vermerkt – es fehlt noch: " + ", ".join(r["ja_fehlt"]))
+            return 0
+        print("Konzept abgeschlossen – " + (r["planer"] or "Grobplanung startet"))
+        return 0
+    if a.aktion == "grobplan-ja":
+        r = grobplan.annehmen(con, pid, von, a.fassung)
+        if not r["angenommen"]:
+            print("Dein Ja ist vermerkt – es fehlt noch: " + ", ".join(r["ja_fehlt"]))
+            return 0
+        print("Grobplan angenommen – Meilensteine angelegt und grob freigegeben: "
+              + ", ".join(f"{k} → {v}" for k, v in r["angelegt"].items()))
+        return 0
+    if a.neu:
+        if not (von == kern.ENTWICKLER or kern.ist_lead(con, pid, von) or kern.ist_co(con, pid, von)):
+            raise kern.AmwFehler("Neu planen lassen dürfen Lead, Co-Entwickler und der Mensch")
+        print(grobplan.anstossen(con, pid, von=von))
+        return 0
+    ab = grobplan.abgeschlossen(con, pid)
+    if not ab:
+        print("Konzept noch nicht abgeschlossen – amw thema konzept-abschliessen (wenn alle Themen frei sind)")
+        return 0
+    for f in grobplan.fassungen(con, pid):
+        if f.get("laeuft"):
+            print(f"Fassung {f['fassung']}: der Grob-Planer läuft ({f['modell']}, seit {_zeit(f['zeit_utc'])})")
+            continue
+        kosten = f"{f['usd']:.2f} $" if isinstance(f.get("usd"), (int, float)) else "Kosten unbekannt"
+        print(f"Fassung {f['fassung']}: " + (f"Fehler ({len(f['fehler'] or [])} Funde)" if f["fehler"] else
+                                             f"{f['meilensteine']} Meilensteine, {f['befunde']} Befunde, {f['fragen']} Fragen")
+              + f" · {f['modell'] or '–'} · {kosten}" + (" · angenommen" if f["angenommen"] else ""))
+    e = grobplan.entwurf(con, pid, a.fassung)
+    if e:
+        print()
+        print(f"Grobplan Fassung {e.get('fassung')}:")
+        print(grobplan.zusammenfassung(e["entwurf"]) if e.get("entwurf") else "Funde:\n" + "\n".join(f"- {x}" for x in e.get("fehler") or []))
+    return 0
+
+
 def cmd_thema(a, con):
     """Design-Dokument je Thema: liste | zeige | neu | einstellen | pflegen | bestaetigen | dokument."""
     from . import themen
     pid = _projekt(con, a)
+    if a.aktion in ("konzept-abschliessen", "grobplan", "grobplan-ja"):    # A2030: Grobplanung einmal fürs ganze Konzept
+        return _grobplan_befehl(con, pid, a)
     if a.aktion == "liste":
         for t in themen.liste(con, pid):
             if a.suche and a.suche.lower() not in t["name"].lower():
@@ -3658,11 +3704,16 @@ def parser():
                                    " planen TH12 (Planer anstoßen, Lead/Co) | plan TH12 (Entwurf zeigen) | plan-ja TH12 [--datei geändert.json] (Lead) |"
                                    " anhalten TH12 [--meilenstein N] (nicht begonnene Pakete eines geänderten Themas, Lead/Co) |"
                                    " uebernehmen --datei konzept.md [--ebene 2] [--anlegen] (Konzept-Markdown aus dem Projektordner"
-                                   " in Themen-Entwürfe, mit Zählprobe; ohne --anlegen nur Vorschau – Lead/Co)")
+                                   " in Themen-Entwürfe, mit Zählprobe; ohne --anlegen nur Vorschau – Lead/Co) |"
+                                   " konzept-abschliessen (alle Themen frei: Konzept-Ja, startet die Grobplanung über alle Themen) |"
+                                   " grobplan [--fassung N] [--neu] (Fassungen und Entwurf zeigen, neu planen lassen) |"
+                                   " grobplan-ja [--fassung N] (legt die Meilensteine an – wer Ja sagt wie bei den Themen) – A2030")
     x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "zeige", "neu", "einstellen", "pflegen", "bestaetigen",
                                                                   "dokument", "status", "freigeben", "zurueck", "markieren",
                                                                   "entmarkieren", "nur_mensch", "nicht_nur_mensch", "vermerk", "luecken", "planen", "plan", "plan-ja", "anhalten",
-                                                                  "uebernehmen"])
+                                                                  "uebernehmen", "konzept-abschliessen", "grobplan", "grobplan-ja"])
+    x.add_argument("--fassung", type=int, help="grobplan, grobplan-ja: diese Fassung des Grobplans statt der neuesten – A2030")
+    x.add_argument("--neu", action="store_true", help="grobplan: den Grob-Planer neu planen lassen (neue Fassung) – A2030")
     x.add_argument("--ebene", type=int, choices=range(1, 7), metavar="1-6",
                    help="uebernehmen: welche Überschriften-Ebene zu Themen wird (Vorgabe: die Gliederung unter dem Titel)")
     x.add_argument("--anlegen", action="store_true", help="uebernehmen: wirklich anlegen (ohne: nur Vorschau, nichts geschrieben)")

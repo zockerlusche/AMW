@@ -731,6 +731,27 @@ die der Lead nur noch bestätigt oder ändert.
   Muster `./**` freigegeben (wie der Gegenleser), die Versionsprobe belegt, dass Lesen außerhalb abgelehnt wird. Tests stoßen nie einen echten Planer an
   (`AMW_PLANER_AUS`). Die Ansicht dazu kommt mit der Grobplanung (A1916).
 
+### Grobplanung einmal fürs ganze Konzept (A2030, TH164 Schritt 2)
+
+- **Auslöser:** `amw thema konzept-abschliessen` – nur bei geschlossenem Konzept-Tor (alle zählenden Themen frei) und solange
+  kein Grobplan angenommen ist. Ja sagt der Mensch; bei `thema_freigabe = co+lead` Co-Entwickler und Lead je ein Ja zum selben
+  Stand der Themen (Ereignisse `konzept_abschluss_ja`, `konzept_abschluss`).
+- **Was läuft:** EIN Grob-Planer (`amw-planer.py --grob`) als leichter Lauf der Lauf-Schlange, frischer `claude -p` nur lesend,
+  Opus mit Effort high, Frist 30 min. Er liest alle freigegebenen Themen in ihrer freigegebenen Fassung (`uebersicht.md`,
+  `themen/TH<n>.md`), alle geltenden Beschlüsse, die Meilensteine und die offenen Pakete und antwortet nur mit JSON: Befunde
+  (doppelt, zu groß, unklar, Widerspruch, Abdeckung), Fragen mit Optionen und Empfehlung, Meilensteine (Ziel mit TH-Verweisen,
+  „fertig, wenn“, Vorführung oder Bericht, nach · gleichzeitig mit, Aufwand, Tage, Kosten) und Grund. Fortschritt wie beim
+  Planer je Thema (A2025), Kosten zählen zur gemeinsamen Tagesgrenze `planer_tagesgrenze_usd`.
+- **Danach:** Die AMW prüft das Schema, die Verweise, Kreise und die Abdeckung (jedes Thema in einem Meilenstein oder ein Befund
+  „abdeckung“ mit Grund) und trägt eine Fassung ein (`grobplan_entwurf`, jede bleibt). Der Lead bekommt die Zusammenfassung;
+  Fragen des Planers gehen als Fragen der AMW an den Lead. Ansehen: `amw thema grobplan [--fassung N]`, neu planen lassen:
+  `--neu` (Lead, Co, Mensch).
+- **Grobplan-Ja:** `amw thema grobplan-ja [--fassung N]` (wer Ja sagt wie oben) legt die Meilensteine in der Reihenfolge der
+  Abhängigkeiten an (Nummern je Projekt), ergänzt fehlende TH-Verweise im Ziel und vermerkt je Meilenstein die Grob-Freigabe –
+  das Ja ist diese Freigabe. Nur einmal, und nur, solange die freigegebenen Themen dieselben sind wie beim Planen. Das
+  Grob-Tor zählt Themen auch über die TH-Verweise im Ziel eines Meilensteins (nicht nur über Pakete). Danach plant der Planer
+  je Thema nur noch Änderungen.
+
 ### Thema → Meilenstein → Paket (K8, A1942, TH163)
 
 - **Auslöser:** ein freigegebenes Thema bekommt eine neue Fassung (wie A1915) oder wird zurückgegeben.

@@ -43,6 +43,12 @@ WEG_ARTEN = {
     "meilenstein_frei": (None, "M{m}: {x} freigegeben"),
     "meilenstein_ja": (None, "M{m}: Ja zu {x}"),
     "abschluss_bericht": ("amw", "M{m}: Abschlussbericht vorbereitet"),
+    "konzept_abschluss_ja": (None, "Konzept abschließen: Ja"),                  # A2030
+    "konzept_abschluss": (None, "Konzept abgeschlossen ({n} Themen)"),
+    "grobplan_angestossen": ("amw", "Grobplan Fassung {f}: Planer angestoßen"),
+    "grobplan_entwurf": ("planer", "Grobplan Fassung {f}: {x}"),
+    "grobplan_ja_stimme": (None, "Grobplan: Ja"),
+    "grobplan_ja": (None, "Grobplan Fassung {f} angenommen – {x}"),
 }
 
 
@@ -99,10 +105,16 @@ def _weg_text(art, d, nr):
             "Planer: nichts zu bauen" if (d.get("entwurf") or {}).get("nichts_zu_bauen") else "Planentwurf liegt vor")
     elif art in ("meilenstein_frei", "meilenstein_ja"):
         x = FREIGABE_TEXT.get(d.get("art"), d.get("art") or "?")
-    t = muster.format(t=d.get("thema", "?"), f=d.get("fassung", "?"), m=nr if nr is not None else "?", x=x)
+    elif art == "grobplan_entwurf":
+        x = "Planer meldet einen Fehler" if d.get("fehler") else (
+            f"Entwurf mit {len((d.get('entwurf') or {}).get('meilensteine') or [])} Meilensteinen liegt vor")
+    elif art == "grobplan_ja":
+        x = ", ".join((d.get("angelegt") or {}).values()) or "wird angelegt"
+    t = muster.format(t=d.get("thema", "?"), f=d.get("fassung", "?"), m=nr if nr is not None else "?", x=x,
+                      n=len(d.get("themen") or {}))
     if art == "meilenstein_frei" and d.get("an") is False:
         t = t.replace(" freigegeben", ": Freigabe zurückgenommen")
-    if art in ("thema_ja", "meilenstein_ja") and d.get("rolle"):
+    if art in ("thema_ja", "meilenstein_ja", "konzept_abschluss_ja", "grobplan_ja_stimme") and d.get("rolle"):
         t += f" ({ROLLE_TEXT.get(d['rolle'], d['rolle'])})"
     return fest, t
 
