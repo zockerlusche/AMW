@@ -161,7 +161,7 @@
   ],
   [
    "My agent is waiting for a review – does it get other work meanwhile?",
-   "Yes. If its task waits for a review (P…), a stack (`stapel:<branch>`) or a run (L…), the agent is free at once: with “Distribute” set to “on”, AMW assigns the next ready package and wakes the agent, otherwise the lead gets a suggestion. If it waits for an answer or another package, this happens only after 10 minutes. The review request sets the reason itself and the review result clears it; then the waiting task comes first. You give the kind with `amw aufgabe wartet <nr> --auf … --art pruefung|stapel|lauf|antwort|paket`."
+   "Yes. If its task waits for a review (P…), a stack (`stapel:<branch>`) or a run (L…), the agent is free at once: with “Distribute” set to “on”, AMW assigns the next ready package and wakes the agent, otherwise the lead gets a suggestion. If it waits for an answer or another package, this happens only after 10 minutes. If you set the task to “wartet” (waiting), an open review request for it counts as a reason by itself, and the review result clears it; then the waiting task comes first. You give the kind with `amw aufgabe wartet <nr> --auf … --art pruefung|stapel|lauf|antwort|paket`."
   ]
  ],
  "thema": "agenten",

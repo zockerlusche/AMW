@@ -67,7 +67,10 @@ class Pruefung(Grund):
                 mock.patch("amw.pruefstufe.leerzeichen_warnung", lambda *x: ""), mock.patch("amw.vorpruefung.anstossen", lambda *x: None):
             prid = betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "a1", "1" * 40, "Punkte", a)
         z = self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (a,)).fetchone()[0]
-        self.assertEqual((z, [g["bezug"] for g in wartegrund.offene(self.con, a)]), ("wartet", [f"pruefung:P{prid}"]))
+        self.assertEqual((z, wartegrund.offene(self.con, a)), ("laeuft", []))          # L3357: Status bleibt – Nachbessern geht
+        kern.aufgabe_status(self.con, self.pid, "CC1", a, "wartet", auf="TL")            # parkt er sie, zählt die offene Prüfung mit
+        self.assertEqual(sorted(g["bezug"] for g in wartegrund.offene(self.con, a)), sorted(["TL", f"pruefung:P{prid}"]))
+        wartegrund.von_hand(self.con, self.pid, "CC1", a, "TL")
         self.assertIsNone(wartegrund.haelt_fest(self.con, self.pid, "CC1"))              # Prüfung hält nicht fest
         betrieb.pruefung_ergebnis(self.con, self.pid, "TL", prid, "rot", "fehlt")
         self.assertEqual(wartegrund.offene(self.con, a), [])

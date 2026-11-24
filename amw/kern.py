@@ -1524,6 +1524,10 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
         if neu in ("wartet", "blockiert"):         # „wartet“ mit Freitext weckt niemanden, wenn es weitergeht
             if auf:
                 wartegrund.anlegen(con, pid, von, aid, auf, art)       # A2053: art = Sorte (pruefung|stapel|lauf|antwort|paket)
+            offen_p = con.execute("SELECT max(id) FROM pruefung WHERE aufgabe_id = ? AND bauer = ? AND ergebnis = 'offen'",
+                                  (aid, a["agent"] or von)).fetchone()[0]
+            if offen_p:                                # A2053: die neueste offene Prüfung dieser Aufgabe ist immer auch ein Grund
+                wartegrund.anlegen(con, pid, von, aid, f"P{offen_p}")
             if not wartegrund.offene(con, aid):
                 raise AmwFehler(f"{neu} nur mit --auf: worauf? F<nr>, A<nr>, L<nr>, Agent, Entwickler, Monitor:<was>"
                                 " (Erklärung dazu mit --wartet-auf)")

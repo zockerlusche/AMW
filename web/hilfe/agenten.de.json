@@ -161,7 +161,7 @@
   ],
   [
    "Mein Agent wartet auf eine Prüfung – bekommt er derweil anderes?",
-   "Ja. Wartet seine Aufgabe auf eine Prüfung (P…), einen Stapel (`stapel:<zweig>`) oder einen Lauf (L…), ist er sofort frei: Steht „Verteilen“ auf „an“, teilt ihm die AMW das nächste startklare Paket zu und weckt ihn, sonst bekommt der Lead einen Vorschlag. Wartet sie auf eine Antwort oder ein anderes Paket, geschieht das erst nach 10 Minuten. Die Prüfbitte setzt den Grund selbst, das Ergebnis der Prüfung hebt ihn auf; dann kommt die wartende Aufgabe zuerst dran. Die Art gibst du mit `amw aufgabe wartet <nr> --auf … --art pruefung|stapel|lauf|antwort|paket` an."
+   "Ja. Wartet seine Aufgabe auf eine Prüfung (P…), einen Stapel (`stapel:<zweig>`) oder einen Lauf (L…), ist er sofort frei: Steht „Verteilen“ auf „an“, teilt ihm die AMW das nächste startklare Paket zu und weckt ihn, sonst bekommt der Lead einen Vorschlag. Wartet sie auf eine Antwort oder ein anderes Paket, geschieht das erst nach 10 Minuten. Setzt du die Aufgabe auf „wartet“, zählt eine offene Prüfbitte zu ihr von selbst als Grund, das Ergebnis der Prüfung hebt ihn auf; dann kommt die wartende Aufgabe zuerst dran. Die Art gibst du mit `amw aufgabe wartet <nr> --auf … --art pruefung|stapel|lauf|antwort|paket` an."
   ]
  ],
  "thema": "agenten",

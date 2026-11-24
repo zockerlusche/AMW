@@ -263,7 +263,7 @@ den Coder, der Coder auf das Merge-OK. Und eine Bitte als Info weckte den Lead n
   | `CC2` (Kennung) | dieser Agent eine Nachricht mit `--aufgabe` dieser Aufgabe schickt |
   | `Entwickler` (oder sein eingestellter Name) | er eine Frage zu dieser Aufgabe beantwortet oder in der Workbench dazu schreibt |
   | `Monitor:<was>` | nur von Hand |
-  | `P601` (Prüfung, A2053) | die Prüfung grün oder rot ist – die Prüfbitte (`amw pruefung bitte --aufgabe`, `amw paket fertig`) setzt ihn selbst |
+  | `P601` (Prüfung, A2053) | die Prüfung grün oder rot ist – gesetzt von selbst, sobald die Aufgabe wartet und eine Prüfbitte zu ihr offen ist (`amw pruefung bitte --aufgabe`, `amw paket fertig`); den Status ändert die Prüfbitte nicht, ein laufendes Paket darf nachbessern |
   | `stapel:<zweig>` (A2053) | `amw release ausliefern --zweig <zweig>` durch ist |
 
 - **Art des Wartegrunds (A2053, TH155):** jeder Grund hat eine von fünf Arten. `--art pruefung|stapel|lauf|antwort|paket`

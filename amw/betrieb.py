@@ -1232,13 +1232,12 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
             vh = f"\n\nVersionshinweis ({gruppe or '–'}): {felder.get('hinweis') or '–'}"
         kern._posten(con, pid, bauer, pruefer, "pruefbitte", f"Prüfbitte P{prid}: {zweig}@{sha[:8]}",
                      stufe + leer + ("\n\n" + punkte if punkte else "") + vh + bilder, aufgabe_id=aufgabe_id)
-    if aufgabe_id:                                   # A2053: die Aufgabe des Bauers wartet jetzt auf genau diese Prüfung
-        a = con.execute("SELECT agent, status FROM aufgabe WHERE id = ?", (aufgabe_id,)).fetchone()
-        if a and a["agent"] == bauer and a["status"] in ("laeuft", "wartet", "blockiert"):
-            try:
-                kern.aufgabe_status(con, pid, bauer, aufgabe_id, "blockiert" if a["status"] == "blockiert" else "wartet", auf=f"P{prid}")
-            except kern.AmwFehler:                   # z. B. Halt oder Planungsregel – die Prüfbitte gilt trotzdem
-                pass
+    if aufgabe_id:                                   # A2053: wartet die Aufgabe des Bauers schon, wartet sie jetzt auch auf diese
+        a = con.execute("SELECT agent, status FROM aufgabe WHERE id = ?", (aufgabe_id,)).fetchone()   # Prüfung. Den Status
+        if a and a["agent"] == bauer and a["status"] in ("wartet", "blockiert"):    # ändert die Prüfbitte nie (L3357: ein
+            from . import wartegrund                 # laufendes Paket darf während der Prüfung nachbessern); setzt er sie
+            with db.schreiben(con):                  # später auf „wartet“, kommt die offene Prüfung dazu (kern.aufgabe_status)
+                wartegrund.anlegen(con, pid, bauer, aufgabe_id, f"P{prid}")
     if bilder.startswith("\n\nBilder:"):              # A1973: sichtbar und mit Bildern → Stil-Leser (Befund kommt als Meldung)
         from . import stil
         try:
