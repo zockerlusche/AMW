@@ -168,7 +168,7 @@ def bericht(con, pid, bid):
 
 
 def bericht_text(con, pid, bid):
-    from . import aufwand, empfehlung, planansicht
+    from . import empfehlung, messung, planansicht
     b = planansicht._bogen(con, pid, bid)
     alle = con.execute("SELECT * FROM aufgabe WHERE projekt_id = ? AND bogen_id = ? ORDER BY rang, id", (pid, bid)).fetchall()
     try:
@@ -196,7 +196,7 @@ def bericht_text(con, pid, bid):
     for a in alle:
         usd = None
         try:
-            m = aufwand.je_aufgabe(con, pid, a["id"]) if a["begonnen_utc"] else None
+            m = messung.kosten(con, pid, a["id"]) if a["begonnen_utc"] else None   # A2040: auch Headless-Läufe
             usd = round(float(m["usd"]), 2) if m and m.get("usd") else None
         except Exception:                                # noqa: BLE001 – eine Messung darf den Bericht nie verhindern
             usd = None
@@ -289,7 +289,7 @@ def prognose(con, pid, a, messung, zellen, eig):
 def prognose_pruefen(con, pid):
     """Umsetzung (TH154): nur OFFENE Pakete (wartet/laeuft/blockiert) eines aktiven Meilensteins über PROGNOSE_FAKTOR × Prognose
     wecken den Lead – einmal je Paket; fertige oder verworfene nie (A1971: die erste Runde meldete längst fertige)."""
-    from . import aufwand, eignung, empfehlung
+    from . import eignung, empfehlung, messung
     lead = kern.lead(con, pid)
     if not lead:
         return []
@@ -306,7 +306,7 @@ def prognose_pruefen(con, pid):
         if a["id"] in schon or not (a["groesse"] and a["art"]) or a["art"] not in empfehlung.GRUPPE:
             continue
         try:
-            m = aufwand.je_aufgabe(con, pid, a["id"])
+            m = messung.kosten(con, pid, a["id"])           # A2040: auch Headless-Läufe – sonst warnte die AMW bei p nie
         except Exception:                                # noqa: BLE001
             continue
         usd = float(m["usd"]) if m and m.get("usd") else 0

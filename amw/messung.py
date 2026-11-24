@@ -277,3 +277,80 @@ def dauer(s):
     if s >= 60:
         return f"{s // 60} min"
     return f"{s} s"
+
+
+# --- A2040 (D1531 §10): Kosten aus beiden Quellen, Summe und Rest je Projekt -------------------------------------------------
+
+def _erfasst_je_aufgabe(con, pid):
+    """{aufgabe_id: (usd, unbekannt)} aus allen kosten-Ereignissen des Projekts – eine Abfrage."""
+    aus = {}
+    for r in con.execute("SELECT aufgabe_id, text FROM plan_ereignis WHERE projekt_id = ? AND art = 'kosten' AND aufgabe_id IS NOT NULL",
+                         (pid,)):
+        try:
+            e = json.loads(r["text"] or "{}")
+        except ValueError:
+            continue
+        usd, unb = aus.get(r["aufgabe_id"], (0.0, 0))
+        aus[r["aufgabe_id"]] = (usd + (e["usd"] if isinstance(e.get("usd"), (int, float)) else 0.0), unb + bool(e.get("unbekannt")))
+    return aus
+
+
+def kosten(con, pid, aid):
+    """Gemessene Kosten einer Aufgabe aus BEIDEN Quellen: Kosten-Zähler der Sitzung (Fenster-Agent, aufwand.je_aufgabe) und
+    erfasste Läufe (plan_ereignis „kosten“: Headless-Pakete aus der stream-json-Ausgabe, von Hand). Ohne zeiten() – für Ansichten,
+    Berichte und die Prognose-Warnung. {"usd", "modelle", "zaehler_usd", "erfasst_usd", "unbekannt", "naeherung"?} oder None,
+    wenn es keine Messung gibt. Vorher lasen Planansicht, Abschlussbericht und Warnung nur den Zähler (D1531 §10)."""
+    from . import aufwand
+    try:
+        z = aufwand.je_aufgabe(con, pid, aid)
+    except Exception:                                    # noqa: BLE001 – eine Messung darf die Ansicht nie verhindern
+        z = None
+    usd_e, unbekannt = _erfasst_je_aufgabe_eine(con, pid, aid)
+    if not z and not usd_e and not unbekannt:
+        return None
+    zu = (z or {}).get("usd") or 0.0
+    return {"usd": round(zu + usd_e, 2), "modelle": (z or {}).get("modelle") or [], "zaehler_usd": round(zu, 2),
+            "erfasst_usd": round(usd_e, 2), "unbekannt": unbekannt, **({"naeherung": True} if (z or {}).get("naeherung") else {})}
+
+
+def _erfasst_je_aufgabe_eine(con, pid, aid):
+    usd, unb = 0.0, 0
+    for e in erfasst(con, pid, aid):
+        usd += e["usd"] if isinstance(e.get("usd"), (int, float)) else 0.0
+        unb += bool(e.get("unbekannt"))
+    return usd, unb
+
+
+def projekt_kosten(con, pid):
+    """Kosten je Projekt: bisher (gemessen: Zähler der Fenster-Agenten + erfasste Läufe), noch (Schätzung der offenen Pakete:
+    Median gleicher Größe und Art, abzüglich schon Gemessenem, nie unter 0), gesamt; dazu der Anteil Headless (erfasste Läufe)
+    an „bisher“ und wie viele offene Pakete keine Schätzung haben. Nur lesen, kein KI-Aufruf.
+    {"bisher", "noch", "gesamt", "fenster_usd", "erfasst_usd", "offen", "ohne_schaetzung", "unbekannt"}"""
+    from . import aufwand, empfehlung
+    zaehler = {}
+    for (kennung,) in con.execute("SELECT DISTINCT agent FROM aufgabe WHERE projekt_id = ? AND agent IS NOT NULL AND begonnen_utc IS NOT NULL",
+                                  (pid,)).fetchall():
+        alle = aufwand._aufgaben(con, pid, kennung)
+        if alle:
+            for aid, e in aufwand._zuordnen(con, pid, kennung, alle, alle[0]["begonnen_utc"]).items():
+                zaehler[aid] = zaehler.get(aid, 0.0) + e["usd"]
+    erf = _erfasst_je_aufgabe(con, pid)
+    try:
+        zellen = empfehlung.zellen(con, pid)
+    except Exception:                                    # noqa: BLE001
+        zellen = {}
+    noch, offen, ohne = 0.0, 0, 0
+    for a in con.execute(f"SELECT id, groesse, art FROM aufgabe WHERE projekt_id = ? AND status IN ({','.join('?' * len(kern.OFFEN_STATUS))})",
+                         (pid, *kern.OFFEN_STATUS)).fetchall():
+        offen += 1
+        z = zellen.get((empfehlung.GRUPPE.get(a["art"]), a["groesse"])) if a["groesse"] and a["art"] else None
+        if not z or z.get("median") is None:
+            ohne += 1
+            continue
+        noch += max(0.0, z["median"] - zaehler.get(a["id"], 0.0) - erf.get(a["id"], (0.0, 0))[0])
+    fenster = sum(zaehler.values())
+    erfasst_usd = sum(u for u, _ in erf.values())
+    bisher = fenster + erfasst_usd
+    return {"bisher": round(bisher, 2), "noch": round(noch, 2), "gesamt": round(bisher + noch, 2), "fenster_usd": round(fenster, 2),
+            "erfasst_usd": round(erfasst_usd, 2), "offen": offen, "ohne_schaetzung": ohne,
+            "unbekannt": sum(n for _, n in erf.values())}

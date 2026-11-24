@@ -780,7 +780,7 @@ options:
 ## messung
 ```
 usage: amw messung [-h] [--seit SEIT] [--agent AGENT] [--vergleich] [--hebel7]
-                   [--basis] [--p] [--tage TAGE] [--von VON]
+                   [--basis] [--p] [--tage TAGE] [--gesamt] [--von VON]
                    [--projekt PROJEKT]
                    [nr]
 
@@ -801,6 +801,8 @@ options:
   --p                Anteil p an fertigen Paketen je Tag (Ziel ≥ 50 %) und
                      Kosten p gegen interaktiv (Median, Summe) – A2004
   --tage TAGE        mit --p: so viele Tage zurück (Vorgabe 7)
+  --gesamt           Kosten des Projekts: bisher (gemessen, Fenster-Agenten
+                     und Headless), noch (Schätzung offener Pakete) und gesamt
   --von VON
   --projekt PROJEKT
 ```

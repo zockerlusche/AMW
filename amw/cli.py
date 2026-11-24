@@ -1553,6 +1553,13 @@ def cmd_messung(a, con):
     """A1844: Wartezeit und Kosten je Aufgabe – nur lesen."""
     from . import messung
     pid = _projekt(con, a)
+    if getattr(a, "gesamt", False):                  # A2040: Summe und Rest je Projekt
+        k = messung.projekt_kosten(con, pid)
+        print(f"Kosten bisher {k['bisher']:.2f} $ (Fenster-Agenten {k['fenster_usd']:.2f} $ · Headless und erfasst {k['erfasst_usd']:.2f} $)"
+              f" · noch ≈ {k['noch']:.2f} $ · gesamt ≈ {k['gesamt']:.2f} $")
+        print(f"  {k['offen']} offene Pakete, davon {k['ohne_schaetzung']} ohne Schätzung (zu wenig Messungen gleicher Größe und Art)"
+              + (f" · {k['unbekannt']} Läufe ohne Kostenangabe" if k["unbekannt"] else ""))
+        return
     if getattr(a, "p", False):                       # A2004: Anteil p je Tag, Kosten p gegen interaktiv
         q = messung.p_quote(con, pid, tage=a.tage or 7)
         ziel = f"Ziel ≥ {round(q['ziel'] * 100)} %"
@@ -3904,6 +3911,8 @@ def parser():
     x.add_argument("--p", action="store_true", help="Anteil p an fertigen Paketen je Tag (Ziel ≥ 50 %%) und Kosten p gegen interaktiv"
                                                    " (Median, Summe) – A2004")
     x.add_argument("--tage", type=int, help="mit --p: so viele Tage zurück (Vorgabe 7)")
+    x.add_argument("--gesamt", action="store_true", help="Kosten des Projekts: bisher (gemessen, Fenster-Agenten und Headless), noch"
+                                                         " (Schätzung offener Pakete) und gesamt")
     x.set_defaults(f=cmd_messung)
 
     x = s.add_parser("skills", help="Anleitungen als Claude-Code-Skills: bauen (aus doc nach .claude/skills, A1956)")

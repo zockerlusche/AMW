@@ -206,10 +206,10 @@ def verschieben(con, pid, von, bid, richtung):
 
 def _kosten(con, pid, a, zellen):
     """(usd, gemessen) – gemessen aus dem Verbrauch, sonst Median der Zelle Größe × Art; sonst (None, False)."""
-    from . import aufwand, empfehlung
+    from . import empfehlung, messung
     if a["begonnen_utc"]:
         try:
-            m = aufwand.je_aufgabe(con, pid, a["id"])
+            m = messung.kosten(con, pid, a["id"])             # A2040: Zähler UND erfasste Läufe (Headless)
         except Exception:                                # noqa: BLE001 – eine Messung darf die Ansicht nie verhindern
             m = None
         if m and m.get("usd"):

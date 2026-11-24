@@ -1066,6 +1066,12 @@ def daten_pakete(con, pid):
     return paketliste.daten(con, pid)
 
 
+def daten_kosten(con, pid):
+    """A2040 (D1531 §10): Kosten des Projekts – bisher (gemessen), noch (Schätzung offener Pakete), gesamt (messung.projekt_kosten)."""
+    from . import messung
+    return messung.projekt_kosten(con, pid)
+
+
 def daten_mitlesen(con, pid, q):
     """A1850: was der Arbeiter auf Platz N gerade tut (stream-json) – nur am PC, geht nicht in die Synchronisierung."""
     from . import paketliste
@@ -1486,6 +1492,7 @@ def baue_handler(port, token, netz=None):
                     "/api/planung": lambda c, p: daten_planung(c, p),
                     "/api/pakete": lambda c, p: daten_pakete(c, p),
                     "/api/paket/mitlesen": lambda c, p: daten_mitlesen(c, p, q),
+                    "/api/kosten": lambda c, p: daten_kosten(c, p),
                     "/api/verlauf": lambda c, p: daten_verlauf(c, p, q),
                     "/api/seit": lambda c, p: daten_seit(c, p, q),
                     "/api/dokumente": lambda c, p: daten_dokumente(c, p, q),
