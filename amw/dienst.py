@@ -506,6 +506,12 @@ class Dienst:
             sicherung.im_hintergrund(self.con.execute("PRAGMA database_list").fetchone()[2])
         except Exception as e:
             log.warning("Sicherung: %s: %s", type(e).__name__, e)
+        try:                                                                 # A2054: Prüfung C für Fenster-Pakete (eigener Faden)
+            from . import fensterpruefung
+            for e in fensterpruefung.runde(self.con) + fensterpruefung.bericht_runde(self.con):
+                log.info("Fenster-Prüfung: %s", e)
+        except Exception as e:
+            log.warning("Fenster-Prüfung: %s: %s", type(e).__name__, e)
         try:                                                                 # A1927: Ausfall zurück, freie Agenten bekommen Arbeit
             from . import verteilen
             for e in verteilen.runde(self.con):

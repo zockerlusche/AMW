@@ -12,7 +12,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
 | [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N [--kurz] ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ bereit N (Ergebnis steht, bei --fertig-wenn ja) ¦ abnehmen N [--zurueck --kommentar] ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] ¦ nachtrag N --titel … (Folgearbeit zu einer fertigen Aufgabe) |
-| [`paket`](#paket) | Arbeitspakete (Mischbetrieb): zeigen N ¦ zustand N <zustand> [--grund … --beleg …] ¦ liste [--zustand …] ¦ ergebnis N (--json - über stdin oder --status/--zusammenfassung/--frage/--frage-an/--grund/--hinweis; nur der zugeteilte Agent, Art agent/sitzung, Paket läuft) ¦ starten N (Lead/Mensch: ein startklares p-Paket jetzt starten – der Wächter entscheidet) ¦ mergeliste [--diff] (bereit zum Merge: diff --stat, Server-Code, Blick nötig) ¦ freigeben --alle ¦ freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch) ¦ buendeln --alle ¦ buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch) ¦ annehmen N --grund … (E4-Paket nach dem Lesen in die Merge-Liste; Lead, Mensch) ¦ holen [N] (interaktiv: nächste Aufgabe nehmen, Auftrag + Startwissen, Zweig/Arbeitsbaum) ¦ fertig N --sha … --punkte … (interaktiv: Tests-Hinweis, Prüfbitte, wartet auf den Prüfer) – Felder setzen: amw aufgabe neu¦aendern … --paket p … |
+| [`paket`](#paket) | Arbeitspakete (Mischbetrieb): zeigen N ¦ zustand N <zustand> [--grund … --beleg …] ¦ liste [--zustand …] ¦ ergebnis N (--json - über stdin oder --status/--zusammenfassung/--frage/--frage-an/--grund/--hinweis; nur der zugeteilte Agent, Art agent/sitzung, Paket läuft) ¦ starten N (Lead/Mensch: ein startklares p-Paket jetzt starten – der Wächter entscheidet) ¦ mergeliste [--diff] (bereit zum Merge: diff --stat, Server-Code, Blick nötig) ¦ freigeben --alle ¦ freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch) ¦ buendeln --alle ¦ buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch) ¦ annehmen N --grund … (E4-Paket nach dem Lesen in die Merge-Liste; Lead, Mensch) ¦ holen [N] (interaktiv: nächste Aufgabe nehmen, Auftrag + Startwissen, Zweig/Arbeitsbaum) ¦ fertig N --sha … --punkte … (interaktiv: Tests-Hinweis, Prüfung C der AMW bzw. Prüfbitte, wartet) ¦ lead-liest N [--aus] (Lead, Mensch: dieses Paket liest immer der Lead – A2054) – Felder setzen: amw aufgabe neu¦aendern … --paket p … |
 | [`thema`](#thema) | Design-Dokument je Thema: liste [--suche] ¦ zeige TH12 ¦ neu "Name" [--pfleger X] [--stil] ¦ einstellen TH12 --pfleger X ¦ --stil ¦ pflegen TH12 --text-datei … ¦ bestaetigen TH12 ¦ dokument TH12 --dokument D5 [--loesen] ¦ status (ein Status je Thema) ¦ freigeben TH12 ¦ zurueck TH12 --notiz … ¦ markieren¦entmarkieren TH12 (nur der Mensch; bei thema_freigabe=co+lead gibt freigeben von Co und Lead je ein Ja, B2913) ¦ nur_mensch TH12 (Pfleger, Lead, Mensch) ¦ nicht_nur_mensch TH12 (nur der Mensch) ¦ vermerk TH12 --nichts-zu-bauen --grund … [--aufheben] ¦ luecken (Thema ohne Paket, Paket ohne Thema) ¦ planen TH12 (Planer anstoßen, Lead/Co) ¦ plan TH12 (Entwurf zeigen) ¦ plan-ja TH12 [--datei geändert.json] (Lead) ¦ anhalten TH12 [--meilenstein N] (nicht begonnene Pakete eines geänderten Themas, Lead/Co) ¦ uebernehmen --datei konzept.md [--ebene 2] [--anlegen] (Konzept-Markdown aus dem Projektordner in Themen-Entwürfe, mit Zählprobe; ohne --anlegen nur Vorschau – Lead/Co) ¦ konzept-abschliessen (alle Themen frei: Konzept-Ja, startet die Grobplanung über alle Themen) ¦ grobplan [--fassung N] [--neu] (Fassungen und Entwurf zeigen, neu planen lassen) ¦ grobplan-ja [--fassung N] (legt die Meilensteine an – wer Ja sagt wie bei den Themen) – A2030 ¦ hinweis grob¦TH12 --text … [--zu TH3¦M2¦P4¦A123] (Ergänzung an den Planer) ¦ ueberarbeiten grob¦TH12 (Planer legt mit den offenen Hinweisen eine neue Fassung vor; Mensch, Lead, Co) – A2028 |
 | [`termin`](#termin) | Terminplaner: neu --titel … --art test¦frist¦schirm¦sonstig --am "2026-11-06 18:00" [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] ¦ liste [--tage 21] ¦ aendern N ¦ absagen N [--am …] ¦ bereit N --text "was testen" ¦ kurzliste N (Planen: Lead/Entwickler) |
 | [`liste`](#liste) | Arbeitsliste je Agent: liste [Agent¦pool] ¦ ordnen <Agent> A12 A15 … --grund … ¦ schieben A15 --vor A12 ¦ --nach ¦ --pos N ¦ --oben ¦ --unten [--grund …] (ordnen/schieben: Lead; die Reihenfolge rechnet sonst die AMW) |
@@ -413,19 +413,20 @@ options:
 
 ## paket
 ```
-usage: amw paket [-h] [--grund GRUND] [--beleg BELEG] [--nur NUR] [--diff]
-                 [--alle] [--blick] [--titel TITEL] [--gesamtlauf ZWEIG]
-                 [--json JSON] [--status {erledigt,blockiert,aufgegeben}]
+usage: amw paket [-h] [--aus] [--grund GRUND] [--beleg BELEG] [--nur NUR]
+                 [--diff] [--alle] [--blick] [--titel TITEL]
+                 [--gesamtlauf ZWEIG] [--json JSON]
+                 [--status {erledigt,blockiert,aufgegeben}]
                  [--zusammenfassung ZUSAMMENFASSUNG] [--frage FRAGE]
                  [--frage-an {lead,mensch}] [--hinweis HINWEIS]
                  [--zweig ZWEIG] [--sha SHA] [--punkte PUNKTE]
                  [--pruefer PRUEFER] [--gruppe {neu,verbessert,behoben}]
                  [--ohne-bild OHNE_BILD] [--von VON] [--projekt PROJEKT]
-                 {zeigen,zustand,liste,ergebnis,starten,mergeliste,freigeben,buendeln,annehmen,holen,fertig}
+                 {zeigen,zustand,liste,ergebnis,starten,mergeliste,freigeben,buendeln,annehmen,holen,fertig,lead-liest}
                  [id] [zustand]
 
 positional arguments:
-  {zeigen,zustand,liste,ergebnis,starten,mergeliste,freigeben,buendeln,annehmen,holen,fertig}
+  {zeigen,zustand,liste,ergebnis,starten,mergeliste,freigeben,buendeln,annehmen,holen,fertig,lead-liest}
   id
   zustand               zustand: entwurf, startklar, laeuft, abgegeben,
                         abnahme, merge_reihe, gemergt, fertig, blockiert,
@@ -434,6 +435,7 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
+  --aus                 lead-liest: die Markierung wieder aufheben
   --grund GRUND         zustand: warum (steht im Planungs-Protokoll) ·
                         ergebnis aufgegeben: warum es nicht geht · annehmen:
                         was du gelesen hast und warum es passt

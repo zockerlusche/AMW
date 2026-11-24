@@ -69,6 +69,8 @@ GESPERRT = (
     ("amw/projektweg_seite.py", "fest", "Seite Projektweg – wer die Abschlussprüfung nachholt (Mensch oder Lead, A2064)"),
     ("amw/feinplanung.py", "fest", "Feinplaner je Meilenstein – startet claude -p (A2031)"),
     ("amw/abschluss.py", "fest", "Prüfer zum Abschluss je Meilenstein – startet claude -p (A2029)"),
+    ("amw/riskant.py", "fest", "Riskant-Einordnung: was der Lead liest – Teil der Prüfung (A2054)"),
+    ("amw/fensterpruefung.py", "fest", "Prüfung C für Fenster-Pakete, Auto-Grün der AMW (A2054)"),
     ("amw/folgen.py", "fest", "Folgenprüfer eigener Änderungen – startet claude -p (A1957)"),
     ("pyrightconfig.json", "fest", "Konfiguration der Sprachprüfung in Prüfung C (A1962) – ein Paket schaltet sie nicht ab"),
     ("*/pyrightconfig.json", "fest", "Konfiguration der Sprachprüfung in Prüfung C (A1962)"),
@@ -153,6 +155,13 @@ GESPERRT = (
 TEST_SCHREIBEN = "test-schreiben"          # Test + Änderung: der neue Test ist rot gegen den alten Code
 TEST_ERGAENZEN = "test-ergaenzen"          # A1895: nur Tests für bestehenden, unveränderten Code – grün, nur Testdateien
 TESTTYPEN = (TEST_SCHREIBEN, TEST_ERGAENZEN)   # Testdateien nicht gesperrt, Regel 6 entfällt, immer E4 (Lead liest)
+FENSTER = "fenster"                       # A2054: Fenster-Paket – Tests schreiben gehört zur Arbeit (Testdateien frei wie bei den
+                                          # Testtypen); geschwächte Tests fängt riskant.py (tests_geschwaecht) – dann liest der Lead
+
+
+def fenster_typ(pakettyp):
+    """A2054: der Typ für das Diff-Tor eines Fenster-Pakets – die Testtypen bleiben, alles andere (auch „normal“) ist FENSTER."""
+    return pakettyp if pakettyp in TESTTYPEN else FENSTER
 FRIST_S = 1800
 
 
@@ -208,7 +217,7 @@ def gesperrt(pfade, typ=None, projekt=None):
     for p in pfade:
         n, k = _norm(p), _klein(p)
         for muster, art, grund in GESPERRT:
-            if fnmatch.fnmatchcase(k, muster.lower()) and not (art == "test" and typ in TESTTYPEN):
+            if fnmatch.fnmatchcase(k, muster.lower()) and not (art == "test" and (typ in TESTTYPEN or typ == FENSTER)):
                 aus.append((n, grund))
                 break
         else:

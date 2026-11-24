@@ -127,11 +127,11 @@
   ],
   [
    "Was macht der Pakettyp „test-schreiben“?",
-   "Für Pakete, die einen Test zu einer Änderung schreiben. Bei ihnen ist der Abnahme-Befehl vor dem Bau naturgemäß nicht rot; dafür muss der neue Test gegen den alten Stand rot und gegen den neuen grün sein, und der Lead liest ihn."
+   "Für Pakete, die einen Test zu einer Änderung schreiben. Bei ihnen ist der Abnahme-Befehl vor dem Bau naturgemäß nicht rot; dafür muss der neue Test gegen den alten Stand rot und gegen den neuen grün sein. Ist das erfüllt und nichts riskant, nimmt die AMW das Paket selbst ab; sonst liest der Lead."
   ],
   [
    "Und „test-ergaenzen“?",
-   "Für Pakete, die nur Tests für bestehenden, unveränderten Code schreiben. Solche Tests sind gegen den heutigen Code ehrlicherweise grün – darum prüft die AMW hier nicht „rot gegen alt“, sondern: Das Paket ändert ausschließlich Testdateien, die Tests laufen grün, und mindestens ein Test wurde wirklich ausgeführt (übersprungene zählen nicht). Danach liest der Lead die Tests und nimmt das Paket an (`amw paket annehmen`)."
+   "Für Pakete, die nur Tests für bestehenden, unveränderten Code schreiben. Solche Tests sind gegen den heutigen Code ehrlicherweise grün – darum prüft die AMW hier nicht „rot gegen alt“, sondern: Das Paket ändert ausschließlich Testdateien, die Tests laufen grün, und mindestens ein Test wurde wirklich ausgeführt (übersprungene zählen nicht). Ist das erfüllt und nichts riskant, nimmt die AMW das Paket selbst ab; sonst liest der Lead die Tests und nimmt es an (`amw paket annehmen`)."
   ],
   [
    "Claude Code hat sich aktualisiert – starten die Arbeiter weiter?",
@@ -140,6 +140,10 @@
   [
    "Warum muss ich manche Pakete erst ansehen, bevor ich sie freigebe?",
    "Ändert ein Paket Code, der online auf dem Server läuft (`web/*.php`), steht es mit „erst ansehen“ in der Liste. „Alle freigeben“ lässt es aus; du gibst es einzeln mit „Angesehen – freigeben“ frei (im Terminal `amw paket freigeben <Nummer> --blick`). Achte dabei auf: neue Endpunkte und deren Anmeldung, Aufrufe nach außen, Shell-Aufrufe, Datei- und Datenbank-Zugriffe und welche Daten ausgegeben werden. Unter Einstellungen › Projekt stellst nur du ein, ob der Blick nur bei Server-Code, bei jedem Paket oder nie nötig ist, und ob Aufrufe nach außen ein Paket anhalten oder nur als Hinweis erscheinen. Ändert eine Auslieferung Server-Code, steht im Versionshinweis „Server-Code geändert“."
+  ],
+  [
+   "Welche Pakete liest der Lead noch selbst?",
+   "Nur riskante. Ist die Prüfung C grün, nimmt die AMW ein Paket selbst ab – ein p-Paket wie ein Paket aus dem Fenster eines Agenten. Der Lead liest, wenn mindestens eins zutrifft: Aufrufe nach außen, Server-Code (`web/*.php`), geschützte Dateien, Rechte oder Sicherheit, ein Verdacht auf Geheimnisse, Schema oder Datenbank, Löschen, Kosten oder Außenwirkung (das geht zusätzlich an dich), eine Änderung an der Prüfung selbst, ein Modul, das `claude -p` startet, geschwächte Tests, eine sichtbare Änderung, eine frühere Auffälligkeit – oder das Paket ist als „Lead liest“ markiert (`amw paket lead-liest <nr>`). Das Grün der AMW steht mit Prüfer „AMW“ und dem Beleg da, den der Lead nachprüfen kann. Das Merge-OK gibt weiter der Lead über die Liste „bereit zum Merge“. Einmal je Woche bekommt der Lead, wie viele Pakete die AMW selbst abgenommen hat und wie viele danach zurückgenommen wurden."
   ]
  ],
  "thema": "p-pakete",

@@ -752,17 +752,50 @@ def _paket_fertig(con, pid, a):
         tests = startwissen.tests_zu(ordner, dateien)
         if tests:
             print("Tests zu den geänderten Dateien: " + " ".join(tests))
-    prid = betrieb.pruefbitte(con, pid, von, pruefer, zweig, a.sha, a.punkte, aid, gruppe=a.gruppe, hinweis=a.hinweis,
-                              ohne_bild=a.ohne_bild)
-    print(f"P{prid} an {pruefer}")
-    neu = kern.aufgabe_status(con, pid, von, aid, "wartet", auf=f"P{prid}", wartet_auf=f"Prüfung P{prid} bei {pruefer}")
-    print(f"A{aid} → {neu} · wartet auf P{prid} ({pruefer})")
+    eid = _fenster_pruefung(con, pid, von, aid, r, zweig, a.sha) if ordner else None   # A2054: erst die Prüfung C der AMW
+    if eid:
+        if a.gruppe or a.hinweis:                    # Versionshinweis wie bei der Prüfbitte an der Aufgabe hinterlegen
+            from . import versionshinweise
+            felder = {k: v for k, v in (("hinweis_gruppe", versionshinweise.gruppe_pruefen(a.gruppe) if a.gruppe else None),
+                                        ("hinweis", " ".join((a.hinweis or "").split())[:300] or None)) if v}
+            with db.schreiben(con):
+                con.execute(f"UPDATE aufgabe SET {', '.join(k + ' = ?' for k in felder)} WHERE id = ?", (*felder.values(), aid))
+        from . import fensterpruefung
+        with db.schreiben(con):
+            fensterpruefung.warten_auf(con, pid, von, aid)
+        neu = kern.aufgabe_status(con, pid, von, aid, "wartet", wartet_auf=f"Prüfung C der AMW auf {zweig}@{a.sha[:8]}")
+        print(f"Prüfung C angemeldet (der Dienst rechnet sie über die Lauf-Schlange) · A{aid} → {neu} · wartet auf die Prüfung C;"
+              " grün und nichts Riskantes → die AMW nimmt selbst ab, sonst Prüfbitte an den Lead")
+        prid = None
+    else:
+        prid = betrieb.pruefbitte(con, pid, von, pruefer, zweig, a.sha, a.punkte, aid, gruppe=a.gruppe, hinweis=a.hinweis,
+                                  ohne_bild=a.ohne_bild)
+        print(f"P{prid} an {pruefer}")
+        neu = kern.aufgabe_status(con, pid, von, aid, "wartet", auf=f"P{prid}", wartet_auf=f"Prüfung P{prid} bei {pruefer}")
+        print(f"A{aid} → {neu} · wartet auf P{prid} ({pruefer})")
     holen = con.execute("SELECT 1 FROM plan_ereignis WHERE aufgabe_id = ? AND art IN ('paket_holen', 'startwissen')", (aid,)).fetchone()
     n = startwissen.befehle_seit(db.projekt_name(con, pid), von, r["begonnen_utc"])
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=startwissen.MESSUNG, aufgabe_id=aid,
                      text=json.dumps({"befehle": n, "holen": bool(holen), "pruefung": prid}, ensure_ascii=False))
     return 0
+
+
+def _fenster_pruefung(con, pid, von, aid, r, zweig, sha):
+    """A2054: Fenster-Paket mit Abnahme-Befehl – leichter Teil der Prüfung C sofort; ohne Befund und mit passendem Kopf wird die
+    volle Prüfung C angemeldet (Rückgabe: Ereignis-Nr.). Mit Befund, ohne Abnahme-Befehl oder abweichendem Kopf: None (Prüfbitte
+    wie bisher – der Lead liest)."""
+    from . import abnahme, arbeitspaket, fensterpruefung, pruefung_c, rueckmeldung
+    if not (r["pruefbefehl"] or "").strip():
+        return None
+    b = pruefung_c.zweig_befund(kern.projekt_ordner(con, pid), zweig, rueckmeldung.abnahme_bereiche(r["dateibereich"]),
+                                abnahme.fenster_typ(arbeitspaket.lesen(con, aid).get("pakettyp")),
+                                aussen=kern.projekt_wahl(con, pid, "merge_aussen_pruefung") == "an", sperrmuster=abnahme.projekt_muster(con, pid))
+    if b["code"] or not b["kopf"] or not b["kopf"].startswith(sha.strip().lower()):
+        if b["code"]:
+            print(f"Prüfung C (leichter Teil): {b['code']} – {b['grund']}")
+        return None
+    return fensterpruefung.anmelden(con, pid, aid, zweig, von)
 
 
 def _paket_setzen(con, pid, a, aid):
@@ -838,6 +871,19 @@ def cmd_paket(a, con):
         for r in mergeliste.freigeben(con, pid, _von(a), None if a.alle else [a.id], blick=[a.id] if a.blick else ()):
             print(f"A{r['aufgabe']}: {'freigegeben' if r['ok'] else 'nicht freigegeben'} – {r['text']}")
         return
+    if a.aktion == "lead-liest":                      # A2054: „Lead liest“ – das Paket nimmt die AMW nie selbst ab
+        from . import riskant
+        if not a.id:
+            raise kern.AmwFehler("amw paket lead-liest <Aufgabe> [--aus]")
+        _rolle_nur_mensch_oder_lead(con, pid, a, "„Lead liest“ setzen")
+        if not con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone():
+            raise kern.AmwFehler(f"A{a.id} gibt es nicht")
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=_von(a), art=riskant.LEAD_LIEST, aufgabe_id=a.id,
+                         text=json.dumps({"an": not a.aus}))
+        print(f"A{a.id}: " + ("„Lead liest“ aufgehoben – bei Grün und nichts anderem Riskantem nimmt die AMW selbst ab" if a.aus
+                              else "„Lead liest“ – die AMW nimmt dieses Paket nie selbst ab, die Prüfbitte geht an den Lead"))
+        return
     if a.aktion == "annehmen":                        # A1894: E4-Paket nach dem Lesen annehmen → Merge-Liste (Lead, Mensch)
         from . import mergeliste
         if not a.id:
@@ -890,7 +936,9 @@ def cmd_paket(a, con):
                                           ("frage_an", a.frage_an), ("grund", a.grund), ("hinweis", a.hinweis)) if v is not None}
         r = rueckmeldung.melden_interaktiv(con, pid, _von(a), a.id, meldung, zweig=a.zweig)
         print(f"A{a.id}: Ergebnis „{meldung['status']}“ angenommen – die AMW prüft selbst; es gilt die letzte gültige Meldung"
-              + (f" · P{r['pruefbitte']['id']} an {r['pruefbitte']['an']} mit Befund {r['pruefbitte']['befund'] or 'ohne Befund'}"
+              + (" · Prüfung C angemeldet – grün und nichts Riskantes → die AMW nimmt selbst ab, sonst Prüfbitte an den Lead"
+                 if (r.get("pruefbitte") or {}).get("pruefung_c") else
+                 f" · P{r['pruefbitte']['id']} an {r['pruefbitte']['an']} mit Befund {r['pruefbitte']['befund'] or 'ohne Befund'}"
                  if r.get("pruefbitte") else ""))
         return
     if a.aktion == "zeigen":
@@ -3858,11 +3906,13 @@ def parser():
                                    " | buendeln --alle | buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch)"
                                    " | annehmen N --grund … (E4-Paket nach dem Lesen in die Merge-Liste; Lead, Mensch)"
                                    " | holen [N] (interaktiv: nächste Aufgabe nehmen, Auftrag + Startwissen, Zweig/Arbeitsbaum)"
-                                   " | fertig N --sha … --punkte … (interaktiv: Tests-Hinweis, Prüfbitte, wartet auf den Prüfer)"
+                                   " | fertig N --sha … --punkte … (interaktiv: Tests-Hinweis, Prüfung C der AMW bzw. Prüfbitte, wartet)"
+                                   " | lead-liest N [--aus] (Lead, Mensch: dieses Paket liest immer der Lead – A2054)"
                                    " – Felder setzen: amw aufgabe neu|aendern … --paket p …")
     x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten", "mergeliste", "freigeben", "buendeln", "annehmen",
-                                      "holen", "fertig"])
+                                      "holen", "fertig", "lead-liest"])
     x.add_argument("id", type=nummer, nargs="?")
+    x.add_argument("--aus", action="store_true", help="lead-liest: die Markierung wieder aufheben")
     x.add_argument("zustand", nargs="?", help="zustand: entwurf, startklar, laeuft, abgegeben, abnahme, merge_reihe, gemergt, fertig,"
                                               " blockiert, unklar, wartet_interaktiv, abgebrochen, zurueckgestellt")
     x.add_argument("--grund", help="zustand: warum (steht im Planungs-Protokoll) · ergebnis aufgegeben: warum es nicht geht · annehmen: was du gelesen hast und warum es passt")

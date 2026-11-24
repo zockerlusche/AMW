@@ -30,13 +30,14 @@ Schema des Feinplans (JSON):
                "modell": "haiku|sonnet|opus", "effort": "low|medium|high", "fertig_quelle": "commit|release|thema|dokument|frist|ja",
                "nach": ["P0", "A1234"], "abnahme_befehl": "python -m unittest tests.test_x" | null,
                "bereiche": "amw/x.py, tests/test_x.py" | null, "pakettyp": "normal|test-schreiben|test-ergaenzen" | null,
-               "interaktiv_grund": "…" | null}],
+               "interaktiv_grund": "…" | null, "lead_liest": true | false}],
    "fragen": [{"frage": "…", "optionen": {"A": "…", "B": "…"}, "empfehlung": "A", "grund": "…"}],
    "grund": "warum dieser Schnitt und diese Reihenfolge"}
 
   "meilenstein" ist die Nummer eines der zu planenden Meilensteine (M7), "thema" eines seiner Themen. Jeder dieser Meilensteine
   bekommt mindestens ein Paket. p ist die Vorgabe (A2004): ein Paket der Größe S – oder M bei Art mechanisch –, das keine
   Oberfläche ist, läuft mit "ausfuehrung": "p", mit "abnahme_befehl" und engen "bereiche"; "agent" nur mit "interaktiv_grund".
+  "lead_liest": true bei Urteils-Arbeit (Konzepttexte, Architektur) – das Paket nimmt die AMW nie selbst ab (A2054).
   "nach": erst wenn das andere Paket gemergt ist. Die Arbeitsschritte im Paket plant niemand vorher.
 """
 import datetime
@@ -552,6 +553,9 @@ def _anlegen(con, pid, zeilen, entwurf):
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=fertigquelle.ART, aufgabe_id=aid,
                          text=json.dumps(planer.fertig_aus_plan(p["fertig_quelle"] if p.get("thema") or p["fertig_quelle"] != "thema"
                                                                 else "ja", p.get("thema")), ensure_ascii=False))
+            if p.get("lead_liest"):                                 # A2054: „Lead liest“ – nie automatisch abnehmen
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="lead_liest", aufgabe_id=aid,
+                             text=json.dumps({"an": True}))
         angelegt[p["schluessel"]] = f"A{aid}"
     return angelegt
 

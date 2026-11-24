@@ -362,6 +362,34 @@ Code; ein anderes Projekt hat eigene heikle Stellen (Zugänge, Sicherheit, Zahlu
   Vorgabe 30.
 - Beide nur Lead oder Mensch, nicht aus einer Agenten-Sitzung.
 
+## Nur Riskantes zum Lead (A2054, TH167 Fassung 4)
+
+**Wozu:** Der Lead liest nur, was riskant ist – sonst nimmt die AMW bei Grün der Prüfung C selbst ab.
+
+- **Fenster-Pakete:** `amw paket ergebnis` (erledigt, mit Abnahme-Befehl, `--zweig`) und `amw paket fertig` prüfen sofort den
+  leichten Teil (Diff-Tor, Geheimnis, nach außen); trifft er, geht wie bisher eine Prüfbitte an den Lead. Sonst meldet die AMW die
+  volle Prüfung C an (`plan_ereignis fenster_pruefung`), der Dienst rechnet sie im eigenen Faden über die Lauf-Schlange
+  (`amw/fensterpruefung.py`): frischer Checkout genau des Zweig-Kopfs, Abnahme, Testproben, Kurzsuite, Sprachprüfung. Testdateien
+  sind für Fenster-Pakete frei (Pakettyp „fenster“ im Diff-Tor), geschwächte Tests fängt die Riskant-Regel. `paket fertig`
+  lässt die Aufgabe auf `pruefung:C-A<nr>` warten (gibt den Agenten frei).
+- **Entscheidung:** grün und nichts Riskantes → E7: Prüfung „grün“ mit Prüfer AMW und Beleg (Lauf der Prüfung C, Abnahme, Kurzsuite,
+  Sprachprüfung, Riskant-Einordnung „keine Regel getroffen“ mit Version); das Merge-OK gibt weiter der Lead (Liste bzw. `amw freigabe
+  merge`). Grün, aber riskant → Prüfbitte an den Lead mit den Regeln (bei g12 zusätzlich eine Info an den Menschen). Rot → zuerst ein
+  Auftrag an den Agenten (nachbessern, neu melden), beim zweiten Rot der Lead. Leer/Diff/aussen/technisch → Prüfbitte an den Lead.
+- **p-Pakete:** E7 mit einer Riskant-Regel wird E4 (Lead liest); test-schreiben/test-ergaenzen mit erfüllter Probe und ohne
+  Riskantes werden E7. Der Beleg steht in `paket_entscheidung` („riskant“).
+- **Riskant-Regeln** (`amw/riskant.py`, eine Funktion mit Begründung je Treffer): aussen · server (web/*.php) · schutz (gesperrte
+  Pfade „fest“ und Projekt-Muster, Prüfstufe hoch, Art sicherheit, Geheimnis-Verdacht) · schema · g12 (Löschen, Kosten,
+  Außenwirkung) · lead_liest · auffaellig (E2/E4/E6/E8) · pruefung (Änderung an der Prüfung selbst) · claude_p · tests_geschwaecht
+  (Test gelöscht/übersprungen, weniger Testmethoden oder Assertions) · oberflaeche (sichtbar: die Stil-Prüfung läuft noch nicht im
+  Autopfad).
+- **„Lead liest“:** `amw paket lead-liest <nr> [--aus]` (Lead, Mensch) bzw. Planfeld `"lead_liest": true` (Grob- und Feinplaner);
+  gespeichert als `plan_ereignis lead_liest` ohne Schemaänderung.
+- **Merge-Tor Versions-Commit:** `release ausliefern` stoppt, wenn ein Commit, der die Versionsdatei ändert, mehr ändert als
+  CHANGELOG, Versionsdatei und `web/inc/VERSION`.
+- **Messen:** einmal je Woche (ISO) eine Info an den Lead – automatisch abgenommen (erstes E7, p und Fenster) von allen entschiedenen
+  Paketen der Vorwoche und welche danach zurückgenommen wurden (E8, zurückgenommene Prüfung, Revert in main).
+
 ## Sprach-Server-Prüfung in Prüfung C (A1962, TH167 Fassung 3 Pkt 7)
 
 **Wozu:** Typ- und Aufruffehler, die die Tests nicht treffen, fallen vor dem Merge auf – ohne KI-Aufruf, ohne Netz.

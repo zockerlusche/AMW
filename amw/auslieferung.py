@@ -376,6 +376,21 @@ class Kette:
         return fehlt
 
     # --- Vorbedingungen -------------------------------------------------------------------------------------------------
+    def versions_commits(self, sha, art):
+        """A2054: ein Commit, der die Versionsdatei ändert (der Versions-Commit), ändert nur CHANGELOG, Versionsdatei und
+        web/inc/VERSION – mechanisch geprüft, damit kein Code ungeprüft im Versions-Commit mitfährt. Rückgabe: fehlende Punkte."""
+        erlaubt = {x for x in (art.get("changelog"), art.get("version_datei"), "web/inc/VERSION") if x}
+        versionsdatei = art.get("version_datei")
+        if not versionsdatei:
+            return []
+        aus = []
+        for c in self.git("rev-list", f"main..{sha}", schritt="Versions-Commit").split():
+            dateien = set(self.git("show", "--no-renames", "--name-only", "--format=", c, schritt="Versions-Commit").split())
+            if versionsdatei in dateien and dateien - erlaubt:
+                aus.append(f"Versions-Commit {c[:8]} ändert mehr als {', '.join(sorted(erlaubt))}: {', '.join(sorted(dateien - erlaubt)[:5])}"
+                           " – Code gehört in einen eigenen, geprüften Commit")
+        return aus
+
     def pruefen(self, zweig, gesamtlauf=None, aufgabe=None):
         sha = self.stand(zweig)
         a = self.release_art()                           # A1923: Versionsquelle des Projekts
@@ -459,6 +474,7 @@ class Kette:
         if server and "Server-Code geändert" not in text:
             text += f"\n- **Server-Code geändert:** {', '.join(server[:6])}" + (" …" if len(server) > 6 else "")
         fehlt += self.reihenfolge(sha, version)
+        fehlt += self.versions_commits(sha, a)            # A2054 (TH167 F4 Merge-Tor 4)
         fehlt += self.staende(sha, ausnahme_aufgabe=aufgabe if niedrig else None)
         if fehlt:                                        # A1814: alles auf einmal – nicht eine Freigabe nach der anderen
             self.stopp("Freigaben", f"{len(fehlt)} fehlt: " + " · ".join(fehlt))

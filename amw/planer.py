@@ -19,14 +19,15 @@ Schema des Planer-Ergebnisses (JSON):
                "modell": "haiku|sonnet|opus", "effort": "low|medium|high", "fertig_quelle": "commit|release|thema|dokument|frist|ja",
                "nach": ["P0", "A1234"], "abnahme_befehl": "python -m unittest tests.test_x" | null,
                "bereiche": "amw/x.py, tests/test_x.py" | null, "pakettyp": "normal|test-schreiben|test-ergaenzen" | null,
-               "interaktiv_grund": "…" | null}]}
+               "interaktiv_grund": "…" | null, "lead_liest": true | false}]}
   oder {"nichts_zu_bauen": true, "grund": "…"}
 
   p ist die Vorgabe (A2004, TH164/TH166): ein Paket der Größe S – oder M bei Art mechanisch –, das keine Oberfläche ist, läuft
   mit "ausfuehrung": "p", mit "abnahme_befehl" (vor dem Bau rot: ein neuer Test im Paket, "pakettyp": "test-schreiben", oder ein
   vorgezogenes Test-Paket als Vorgänger) und engen "bereiche" (Dateien/Ordner, die es ändern darf). "modell"/"effort" weglassen
   heißt: nach der Empfehlung des Projekts. "ausfuehrung": "agent" für so ein Paket nur mit "interaktiv_grund" (Optik, Erkundung,
-  gesperrter Bereich, Marcels Auge) – sonst meldet die AMW beim Ja „Achtung“.
+  gesperrter Bereich, Marcels Auge) – sonst meldet die AMW beim Ja „Achtung“. "lead_liest": true bei Urteils-Arbeit (Konzepttexte,
+  Architektur): dieses Paket nimmt die AMW nie selbst ab, der Lead liest es (A2054, TH167 F4).
 """
 import difflib
 import functools
@@ -243,7 +244,8 @@ def pruefen(daten, con=None, pid=None, tid=None, delta=None):
                       "nach": nach, "abnahme_befehl": _text(p.get("abnahme_befehl"), "abnahme_befehl", wo, f, pflicht=False),
                       "bereiche": _text(p.get("bereiche"), "bereiche", wo, f, pflicht=False),          # A2004
                       "pakettyp": _wahl(p.get("pakettyp"), PAKETTYPEN, "pakettyp", wo, f) if p.get("pakettyp") else None,
-                      "interaktiv_grund": _text(p.get("interaktiv_grund"), "interaktiv_grund", wo, f, pflicht=False)})
+                      "interaktiv_grund": _text(p.get("interaktiv_grund"), "interaktiv_grund", wo, f, pflicht=False),
+                      "lead_liest": p.get("lead_liest") is True})                                     # A2054
         if aus_p[-1]["ausfuehrung"] == "p" and aus_p[-1]["art"] == "oberflaeche":   # A1976 (TH156): zuerst eine Kleinprobe
             f.append(f"{wo}: ein Oberflächen-Paket nie als p – ausfuehrung agent, mit Kleinprobe zuerst (TH156)")
         if aus_p[-1]["ausfuehrung"] == "p" and not aus_p[-1]["abnahme_befehl"]:
@@ -523,6 +525,9 @@ def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
         with db.schreiben(con):
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=fertigquelle.ART, aufgabe_id=aid,
                          text=json.dumps(q, ensure_ascii=False))
+            if p.get("lead_liest"):                                 # A2054: „Lead liest“ – nie automatisch abnehmen
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="lead_liest", aufgabe_id=aid,
+                             text=json.dumps({"an": True}))
         if q.get("aus_plan") == "frist":
             fristen.append(f"A{aid}")
         angelegt[p["schluessel"]] = f"A{aid}"

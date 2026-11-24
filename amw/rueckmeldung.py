@@ -229,11 +229,14 @@ def _pruefbitte_aus_ergebnis(con, pid, von, aid, zeile, meldung, zweig):
     if not quelle:
         raise kern.AmwFehler("Das Projekt hat keinen Ordner (amw projekt ordner …) – die AMW kann den Zweig nicht prüfen")
     bereiche = abnahme_bereiche(zeile["dateibereich"])
-    b = pruefung_c.zweig_befund(quelle, zweig, bereiche, arbeitspaket.lesen(con, aid).get("pakettyp"),
+    b = pruefung_c.zweig_befund(quelle, zweig, bereiche, abnahme.fenster_typ(arbeitspaket.lesen(con, aid).get("pakettyp")),   # A2054
                                 aussen=kern.projekt_wahl(con, pid, "merge_aussen_pruefung") == "an",
                                 sperrmuster=abnahme.projekt_muster(con, pid))             # A1919
     if b["code"] == "C/technik":
         raise kern.AmwFehler(b["grund"])
+    if b["code"] is None:                                        # A2054 (TH167 F4): ohne Befund rechnet die AMW die volle Prüfung C
+        from . import fensterpruefung                            # und nimmt bei Grün und nichts Riskantem selbst ab
+        return {"id": None, "an": None, "befund": None, "pruefung_c": fensterpruefung.anmelden(con, pid, aid, zweig, von)}
     pruefer = entscheidung.empfaenger(con, pid, "pruefer")
     punkte = (f"Aus dem Ergebnis erzeugt (§6a.6, Stufe 1 ohne Autopfad). Meldung des Agenten (ungeprüft): {meldung['status']} – "
               f"{meldung['zusammenfassung']}" + (f" · hinweis: {meldung['hinweis']}" if meldung.get("hinweis") else "")

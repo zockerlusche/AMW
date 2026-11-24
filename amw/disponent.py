@@ -433,6 +433,25 @@ def handstart(con, pid, aid, von, prog=None, umgebung=None):
 
 # --- der Starter (eigener Prozess) ---------------------------------------------------------------------------------------
 
+def _nur_riskantes(con, pid, aid, p, basis, befund, zeile, code, typ):
+    """A2054 (TH167 F4): Grün (E7) mit einer Riskant-Regel geht als E4 an den Lead; test-schreiben/test-ergaenzen mit erfüllter
+    Probe und ohne Riskantes nimmt die AMW selbst ab (E7 statt E4). Der Beleg steht im Befund (riskant_beleg → paket_entscheidung)."""
+    test = zeile == "E4" and code in ("test-schreiben", "test-ergaenzen")
+    if not (zeile == "E7" or test) or not (befund or {}).get("kopf"):
+        return zeile, code
+    from . import pruefung_c, riskant
+    try:
+        gruende = riskant.einordnen(con, pid, aid, riskant.aus_git(["git", f"--git-dir={pruefung_c.repo(p)}"], basis, befund["kopf"]),
+                                    befund, typ)
+    except Exception as e:                                        # noqa: BLE001 – ohne Einordnung nie automatisch
+        gruende = [("einordnung", f"nicht möglich: {type(e).__name__}: {e}"[:200])]
+    befund["riskant_beleg"] = riskant.beleg(gruende)
+    if gruende:
+        befund["grund"] = "; ".join(x for x in (befund.get("grund"), befund["riskant_beleg"]) if x)
+        return "E4", ("riskant: " + ", ".join(r for r, _ in gruende))[:120]
+    return ("E7", f"grün ({code}, Probe erfüllt)") if test else (zeile, code)
+
+
 def _im_lauf(con, pid, aid, beschreibung, fn):
     """fn() als angemeldeter Lauf der Lauf-Schlange (leicht) – wie amw lauf ausfuehren: einreihen, warten, übernehmen, ende."""
     from . import belegung, betrieb
@@ -550,6 +569,7 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
                 befund = _im_lauf(con, pid, aid, f"Prüfung C A{aid}", pruefen) if lauf_schlange else pruefen()
             zeile, code = entscheidung.entscheiden(r, meldung, befund, entscheidung.nachgebessert(con, pid, aid), notbremse,
                                                    typ=f.get("pakettyp"))
+            zeile, code = _nur_riskantes(con, pid, aid, p, v["basis"], befund, zeile, code, f.get("pakettyp"))   # A2054
             entscheidung.anwenden(con, pid, aid, zeile, code, r, meldung, befund, p=p, quelle=quelle)
             if zeile != "E5":
                 return zeile
