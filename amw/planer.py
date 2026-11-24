@@ -915,6 +915,9 @@ def main(argv=None):
     if "--grob" in (argv if argv is not None else sys.argv[1:]):   # A2030: Grob-Planer über das ganze Konzept
         from . import grobplan
         return grobplan.main([x for x in (argv if argv is not None else sys.argv[1:]) if x != "--grob"])
+    if "--abschluss" in (argv if argv is not None else sys.argv[1:]):   # A2029: Gesamttest und Prüfer zum Abschluss
+        from . import abschluss
+        return abschluss.main([x for x in (argv if argv is not None else sys.argv[1:]) if x != "--abschluss"])
     if "--fein" in (argv if argv is not None else sys.argv[1:]):   # A2031: Feinplaner je Meilenstein
         from . import feinplanung
         return feinplanung.main([x for x in (argv if argv is not None else sys.argv[1:]) if x != "--fein"])

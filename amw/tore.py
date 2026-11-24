@@ -206,7 +206,10 @@ def bericht_text(con, pid, bid):
         if usd and p and usd > PROGNOSE_FAKTOR * p:
             ueber.append(f"A{a['id']} kostete {usd:.2f} $ statt ≈ {p:.2f} $")
         z.append(f"| A{a['id']} {a['titel'][:70]} | {a['status']} | {f'{usd:.2f} $' if usd else '–'} | {f'≈ {p:.2f} $' if p else '–'} |")
-    z += ["", f"Summe: {summe:.2f} $ gemessen" + (f" · Prognose ≈ {prog:.2f} $" if prog else ""), "", "## Reste", ""]
+    z += ["", f"Summe: {summe:.2f} $ gemessen" + (f" · Prognose ≈ {prog:.2f} $" if prog else "")]
+    from . import abschluss                              # A2029: Gesamttest, Prüfung je Thema, Vorführung
+    z += abschluss.bericht_teil(con, pid, bid)
+    z += ["", "## Reste", ""]
     reste = [f"verworfen: A{a['id']} {a['titel']}" for a in alle if a["status"] == "verworfen"]
     reste += [f"offenes Kriterium {k}" for k in offen_k]
     reste += [f"nicht fertig: A{a['id']} {a['titel']} ({a['status']})" for a in alle if a["status"] not in ("fertig", "verworfen")]

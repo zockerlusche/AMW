@@ -312,15 +312,23 @@ def bereit_zur_abnahme(con, b):
     return bool(n[0]) and not n[1]
 
 
+def _stand(con, b, letzte):
+    pakete = ",".join(str(r[0]) for r in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ? AND status = 'fertig' ORDER BY id",
+                                                      (b["id"],)))
+    return f"[Stand {pakete} · {letzte}]"            # welche Pakete, wann zuletzt fertig – nicht nur die Zeit (Sekunden)
+
+
+def _schon_bereit(con, b, letzte):
+    vorher = con.execute("SELECT text FROM plan_ereignis WHERE bogen_id = ? AND art = ? ORDER BY id DESC LIMIT 1",
+                         (b["id"], BEREIT)).fetchone()
+    return bool(vorher and vorher[0].endswith(_stand(con, b, letzte)))
+
+
 def _bereit_melden(con, pid, b, letzte):
     """A2002: einmal je Stand – Abschlussbericht erstellen (er geht als „bereit zur Abnahme“ an Lead und Co bzw. den Menschen)."""
     from . import tore
-    pakete = ",".join(str(r[0]) for r in con.execute("SELECT id FROM aufgabe WHERE bogen_id = ? AND status = 'fertig' ORDER BY id",
-                                                      (b["id"],)))
-    stand = f"[Stand {pakete} · {letzte}]"           # welche Pakete, wann zuletzt fertig – nicht nur die Zeit (Sekunden)
-    vorher = con.execute("SELECT text FROM plan_ereignis WHERE bogen_id = ? AND art = ? ORDER BY id DESC LIMIT 1",
-                         (b["id"], BEREIT)).fetchone()
-    if vorher and vorher[0].endswith(stand):
+    stand = _stand(con, b, letzte)
+    if _schon_bereit(con, b, letzte):
         return None
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=BEREIT, bogen_id=b["id"],
@@ -348,6 +356,9 @@ def meilenstein_projekt(con, pid):
         letzte = con.execute("SELECT max(coalesce(fertig_utc, geaendert_utc, angelegt_utc)) FROM aufgabe WHERE bogen_id = ?",
                              (b["id"],)).fetchone()[0] or ""
         if mit_urteil(b):                                # A2002: nie selbst schließen, nie „abschließen?“ – das Urteil fehlt noch
+            from . import abschluss                      # A2029: erst Gesamttest und Prüfer gegen das Konzept, dann „bereit“
+            if not _schon_bereit(con, b, letzte) and abschluss.vor_bereit(con, pid, b, _stand(con, b, letzte)) != "melden":
+                continue
             r = _bereit_melden(con, pid, b, letzte)
             if r:
                 aus.append(r)

@@ -54,6 +54,9 @@ Only the next milestone is planned in full. AMW starts its detailed planning by 
 ### What has the project cost so far, and what is still to come?
 `amw messung --gesamt` (Workbench data: `/api/kosten`) shows the cost **so far** – measured from the cost counter of the agents in a window and the recorded runs of headless packages –, **still to come** (estimate for open packages: median of the same size and kind, minus what is already measured) and **total**. Open packages without enough measurements of the same size and kind count as “no estimate”. The costs in Planning, in the closing report and the “over forecast” message now count both sources as well.
 
+### What happens when a milestone is done?
+Before it shows as “ready for acceptance”, the project's full test and a checker run: it compares every topic of the milestone with what was built and prepares the demo – both then appear in the closing report. If something is missing or the test is red, AMW creates rework in the same milestone and starts it right away; you get a note. At acceptance you can request rework instead of saying yes (`amw bogen nacharbeit N --hinweis "what is missing"`): the planner plans new packages for it, and they start without another yes.
+
 ### The five gates
 At the top of Planning (and on the Topics page) a bar shows all five gates: **Concept → Rough planning → Detailed planning → Delivery → Closing** – ✓ closed, ● where the project stands, ○ still to come; next to it, what the current gate still needs. AMW works the state out itself, nobody sets it by hand:
 - **Concept** closes when the last needed topic is approved.

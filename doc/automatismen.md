@@ -805,6 +805,23 @@ die der Lead nur noch bestätigt oder ändert.
   (neu / geändert mit Feldern / entfallen, verglichen über den Titel) und alle Hinweise (offen oder bearbeitet). Der Verlauf
   (Projektweg) nennt jeden Hinweis. Der Feinplan je Meilenstein (A2031) hängt sich an dieselbe Stelle an.
 
+### Abschluss je Meilenstein: Gesamttest und Prüfer (A2029, TH164 Schritt 5)
+
+- **Auslöser:** Ein Meilenstein, der mit einem Urteil endet, hat alle Pakete fertig (wie A2002). Bevor die AMW ihn „bereit zur
+  Abnahme“ meldet, stößt sie einmal je Stand (welche Pakete, wann zuletzt fertig) die Abschlussprüfung an
+  (`amw-planer.py --abschluss`, Ereignis `abschluss_angestossen`). Ist der Planer aus, meldet sie gleich „bereit“ wie bisher.
+- **Was läuft:** erst der Gesamttest – `gesamtlauf_befehl` des Projekts im Projektordner als schwerer Lauf der Schlange (ohne
+  Befehl: „nicht eingestellt“, hält nichts auf) –, dann ein Prüfer (frischer `claude -p`, nur lesend, Sonnet): er bewertet
+  jedes Thema des Meilensteins gegen die fertigen Pakete (erfüllt mit Beleg oder was fehlt), schreibt die Vorführung und
+  schlägt bei Lücken oder rotem Test Nacharbeits-Pakete nach dem Feinplan-Schema vor (`abschluss_ergebnis`).
+- **Danach:** Erfüllt und grün → „bereit zur Abnahme“; der Abschlussbericht enthält Gesamttest, Prüfung je Thema und Vorführung.
+  Sonst legt die AMW die Nacharbeit im selben Meilenstein an und startet sie ohne neues Start-Ja (bei rotem Test ohne
+  Vorschlag: ein Paket „Gesamttest rot beheben“); Meldung an den Lead, Info an den Menschen. Danach prüft sie erneut. Ging der
+  Prüfer nicht, wird der Meilenstein „bereit“ wie bisher, und der Lead erfährt, dass die Prüfung fehlt.
+- **Nacharbeit anfordern:** `amw bogen nacharbeit N --hinweis …` (Lead oder Mensch; Workbench-Weg `/api/meilenstein/nacharbeit`):
+  der Feinplaner plant mit dem Hinweis neue Pakete im laufenden Meilenstein, die AMW legt sie an und startet sie gleich.
+  Nach dem Ja zum Abschluss plant die AMW den nächsten Meilenstein fein (A2031).
+
 ### Thema → Meilenstein → Paket (K8, A1942, TH163)
 
 - **Auslöser:** ein freigegebenes Thema bekommt eine neue Fassung (wie A1915) oder wird zurückgegeben.

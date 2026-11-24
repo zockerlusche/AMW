@@ -287,8 +287,9 @@ def _spawn(pid, boegen, fassung, umgebung=None):
 STARTER = _spawn             # Tests setzen eine Attrappe; tests/abschotten schaltet das Anstoßen ganz ab (AMW_PLANER_AUS)
 
 
-def anstossen(con, pid, boegen, von="AMW", hinweis=None):
-    """Den Feinplaner für diese Meilensteine anstoßen – außer er ist aus, das Projekt ist nicht eingeschaltet, einer läuft
+def anstossen(con, pid, boegen, von="AMW", hinweis=None, nacharbeit=False):
+    """Den Feinplaner für diese Meilensteine anstoßen (nacharbeit, A2029: neue Pakete in einem laufenden Meilenstein, die gleich
+    starten) – außer er ist aus, das Projekt ist nicht eingeschaltet, einer läuft
     schon oder die Tagesgrenze der Planer ist erreicht. Rückgabe {"gestartet": bool, "text"}."""
     from . import planer
     boegen = sorted(boegen)
@@ -307,7 +308,8 @@ def anstossen(con, pid, boegen, von="AMW", hinweis=None):
             return {"gestartet": False, "text": f"Tagesgrenze der Planer erreicht ({usd:.2f} von {grenze:.2f} $) – Grenze erhöhen"
                                                 " (amw projekt einstellen planer_tagesgrenze_usd=…) und neu planen lassen"}
         fassung = _naechste_fassung(con, pid, boegen)
-        werte = {"boegen": boegen, "fassung": fassung, "modell": MODELL, "hinweis": (hinweis or "").strip()[:2000] or None}
+        werte = {"boegen": boegen, "fassung": fassung, "modell": MODELL, "hinweis": (hinweis or "").strip()[:2000] or None,
+                 **({"nacharbeit": True} if nacharbeit else {})}
         eid = _ereignis(con, pid, von, ANGESTOSSEN, **werte)
     try:
         prozess = STARTER(pid, boegen, fassung)
@@ -561,6 +563,8 @@ def entwurf_eintragen(con, pid, boegen, fassung, ergebnis, modell=None, usd=None
     boegen = sorted(boegen)
     zeilen = _zeilen(con, pid, boegen)
     namen = ", ".join(f"M{b['nr']}" for b in zeilen)
+    an = next((e for e in _ereignisse(con, pid, ANGESTOSSEN, boegen) if e.get("fassung") == fassung), {})
+    nacharbeit = bool(an.get("nacharbeit"))                 # A2029: neue Pakete im laufenden Meilenstein, starten gleich
     entwurf, funde, angelegt, verworfen = None, None, {}, []
     if fehler:
         funde = [f"Feinplaner-Lauf: {fehler}"]
@@ -569,13 +573,20 @@ def entwurf_eintragen(con, pid, boegen, fassung, ergebnis, modell=None, usd=None
             entwurf = pruefen(planer.json_aus_text(ergebnis) if isinstance(ergebnis, str) else ergebnis, con, pid, boegen)
         except planer.PlanFehler as e:
             funde = e.fehler
-    if entwurf:
+    if entwurf and nacharbeit:
+        if any(b["status"] != "aktiv" for b in zeilen):
+            entwurf, funde = None, [f"{namen} läuft nicht mehr – Nacharbeit nicht angelegt"]
+    elif entwurf:
         if any(b["status"] != "geplant" for b in zeilen) or any((_zustaende(con, pid).get((b["id"], "plan")) or {}).get("an") for b in zeilen):
             entwurf, funde = None, [f"{namen} läuft schon oder der Plan ist freigegeben – Entwurf nicht angelegt"]
     if entwurf:
-        verworfen = _verwerfen_alt(con, pid, boegen, fassung)
+        verworfen = [] if nacharbeit else _verwerfen_alt(con, pid, boegen, fassung)
         angelegt = _anlegen(con, pid, zeilen, entwurf)
-    werte = {"boegen": boegen, "fassung": fassung, "modell": modell, "usd": usd, "lauf": lauf}
+        if nacharbeit:                                    # kein neues Start-Ja: der Meilenstein läuft schon
+            from . import reihenfolge
+            for b in zeilen:
+                reihenfolge.starten(con, pid, kern.lead(con, pid) or kern.ENTWICKLER, b["id"])
+    werte = {"boegen": boegen, "fassung": fassung, "modell": modell, "usd": usd, "lauf": lauf, **({"nacharbeit": True} if nacharbeit else {})}
     werte.update({"entwurf": entwurf, "angelegt": angelegt} if entwurf else {"fehler": funde})
     lead = kern.lead(con, pid) or kern.ENTWICKLER
     kosten = f"{usd:.2f} $" if isinstance(usd, (int, float)) else "Kosten unbekannt"
@@ -587,7 +598,8 @@ def entwurf_eintragen(con, pid, boegen, fassung, ergebnis, modell=None, usd=None
                          f"Neu planen lassen: amw bogen feinplanen {boegen[0]} [--hinweis …]")
         else:
             kern._posten(con, pid, "AMW", lead, "meldung",
-                         f"Feinplan {namen} Fassung {fassung}: {len(angelegt)} Pakete angelegt – wartet auf das Ja"[:140],
+                         (f"Nacharbeit {namen}: {len(angelegt)} Pakete angelegt und gestartet" if nacharbeit else
+                          f"Feinplan {namen} Fassung {fassung}: {len(angelegt)} Pakete angelegt – wartet auf das Ja")[:140],
                          planer.zusammenfassung({"nichts_zu_bauen": False, "pakete": entwurf["pakete"],
                                                  "meilensteine": [{"schluessel": f"M{b['nr']}", "bestehend": b["nr"]} for b in zeilen]})
                          + (f"\n\nVerworfen (vorige Fassung, nicht begonnen): {', '.join(f'A{x}' for x in verworfen)}" if verworfen else "")
