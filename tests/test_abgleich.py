@@ -68,12 +68,18 @@ class Abgleich(unittest.TestCase):
         from unittest import mock
         from amw import belegung, betrieb, platte, tokenprognose
         from tests.test_tokenprognose import plan_mit_verbrauch
-        plan_mit_verbrauch(self.con, self.pid)                                   # Meilenstein, Schritte, Verbrauch: Wochenlimit mit Pause
+        # A2081: beide Zeitpunkte (jetzt und 400 s später) am selben Tag – sonst zeigt „Rechner – heute“ kurz vor Mitternacht einen
+        # anderen Tag, und der Test fällt (25.11., 23:57, schon vor A2081)
+        start = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+        if (start.astimezone() + datetime.timedelta(seconds=600)).date() != start.astimezone().date():
+            start -= datetime.timedelta(minutes=20)
+        plan_mit_verbrauch(self.con, self.pid, jetzt=start)                      # Meilenstein, Schritte, Verbrauch: Wochenlimit mit Pause
+        iso = lambda x: x.strftime("%Y-%m-%dT%H:%M:%SZ")                         # noqa: E731
         with db.schreiben(self.con):
             db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="CC1", beschreibung="Gesamtlauf", status="laeuft",
-                         angemeldet_utc=db.jetzt(), start_utc=db.jetzt(), erwartet_min=30)
+                         angemeldet_utc=iso(start - datetime.timedelta(hours=1)), start_utc=iso(start - datetime.timedelta(hours=1)), erwartet_min=30)
         Platz = collections.namedtuple("Platz", "total used free")
-        GB, start = 2 ** 30, datetime.datetime.now(datetime.timezone.utc)
+        GB = 2 ** 30
 
         def stand(speicher, platz_frei, ki_gb, nach_s, programme=("llama-server",)):
             jetzt = start + datetime.timedelta(seconds=nach_s)
