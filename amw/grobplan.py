@@ -670,7 +670,7 @@ def uebernehmen(con, pid, von=UEBERNAHME):
     Kosten), sie gilt als angenommen: Grobplan-Ja mit angelegt {M<nr>: M<nr>} und Grob-Freigabe je Meilenstein („übernommen“).
     Die Zuordnung Thema → Meilenstein steht in der Fassung (themen je Meilenstein) – Daten für die Grob-Karten. Freigegebene Themen
     ohne Meilenstein stehen als Befund „abdeckung“ da (der Planer je Thema plant sie). Rückgabe {"uebernommen", …} oder None."""
-    from . import planansicht
+    from . import planansicht, themen
     if angenommen(con, pid) or not bestand(con, pid):
         return None
     boegen = con.execute("SELECT * FROM bogen WHERE projekt_id = ? ORDER BY nr", (pid,)).fetchall()   # alle – auch fertige/verworfene
@@ -686,7 +686,8 @@ def uebernehmen(con, pid, von=UEBERNAHME):
                              "themen": th, "fertig_wenn": abnahme or "–",
                              "endet_mit": "vorfuehrung" if "vorführ" in abnahme.lower() else "bericht", "nach": [], "gleichzeitig": [],
                              "aufwand": "M", "tage": None, "usd": None, "status": b["status"]})
-    offen = [t for t in sorted(frei) if t not in gedeckt]
+    nichts = set(themen.nichts_vermerkt(con, pid))        # A2071 (Lead A2069 (3)): „nichts zu bauen“ ist keine Lücke
+    offen = [t for t in sorted(frei) if t not in gedeckt and t not in nichts]
     entwurf_ = {"meilensteine": meilensteine, "fragen": [],
                 "befunde": [{"art": "abdeckung", "themen": list(offen), "text": "freigegeben, aber noch in keinem Meilenstein"
                              " des Bestands – der Planer je Thema plant es (amw thema planen TH<n>)", "vorschlag": None}] if offen else [],

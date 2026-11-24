@@ -264,6 +264,16 @@ class Uebernahme(Grund):
         e = (grobplan.entwurf(self.con, self.pid, 0) or {})["entwurf"]
         self.assertEqual(e["befunde"][0]["themen"], [self.t1])                                    # frei, ohne Meilenstein – als Zahl
 
+    def test_nichts_zu_bauen_ist_keine_luecke(self):
+        """A2071 (Lead A2069 (3)): ein Thema mit Vermerk „nichts zu bauen“ steht nicht im Befund „abdeckung“."""
+        self.frei()
+        planung.bogen_neu(self.con, self.pid, "TL", "Sichern", ziel=f"TH{self.t2}")
+        themen.nichts_zu_bauen(self.con, self.pid, "TL", f"TH{self.t1}", "nur Vorgabe, kein Code")
+        r = grobplan.uebernehmen(self.con, self.pid) or {}
+        self.assertEqual(r["ohne_meilenstein"], [])
+        e = (grobplan.entwurf(self.con, self.pid, 0) or {})["entwurf"]
+        self.assertEqual(e["befunde"], [])
+
 
 class Lauf(Grund):
     def setUp(self):

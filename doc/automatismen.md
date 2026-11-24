@@ -828,7 +828,7 @@ die der Lead nur noch bestätigt oder ändert.
   `konzept-abschliessen` ab (CLI und Workbench) – der Planer würde sonst alles neu planen. Stattdessen übernimmt der Dienst den
   Bestand einmal als **Grobplan Fassung 0** (ohne Planer, ohne Kosten): je Meilenstein `{"schluessel": "M<nr>", "bestehend": nr,
   "themen": […], "status"}` – die Themen aus den TH-Verweisen im Ziel und den Themen seiner Aufgaben; freigegebene Themen ohne
-  Meilenstein als Befund „abdeckung“. Fassung 0 gilt als angenommen (`grobplan_ja` mit `uebernahme`) und jeder Meilenstein als
+  Meilenstein als Befund „abdeckung“ (ohne Themen mit Vermerk „nichts zu bauen“, A2071). Fassung 0 gilt als angenommen (`grobplan_ja` mit `uebernahme`) und jeder Meilenstein als
   grob freigegeben (Freigabe mit `quelle: uebernahme` und Bezug auf das Ja, Verlauf „Bestand übernommen“); fertige und verworfene
   Meilensteine stehen mit in Fassung 0, zählen aber nicht als offen. Das Grob-Tor zählt die Zuordnung der Fassung 0 und die Themen
   des Befunds „abdeckung“ als zugeordnet. Der Lead bekommt eine Meldung. Danach plant der Planer je Thema (K4) Änderungen und Fehlendes.
