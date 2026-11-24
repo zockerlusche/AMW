@@ -11,7 +11,7 @@ PFLICHT = ("amw/arbeiter.py", "amw/waechter.py", "amw/entscheidung.py", "amw/pru
            "amw/einstellungen.py", "amw/betrieb.py", "amw/laufdienst.py", "amw/belegung.py", "amw/kern.py", "amw/steuerung.py",
            "amw/cli.py", "amw/aktionen.py", "amw/schluessel.py", "amw/versionsnummer.py", "amw/versionshinweise.py", "amw/__main__.py",
            "amw/disponent.py", "amw/rueckmeldung.py", "amw/abnahme.py", "amw/platz.py", "amw/auslieferung.py", "amw/dienst.py",
-           "amw/vorlagen/auftrag_p.md", "amw-cli.py", "amw-arbeiter.py", "amw/versionsprobe.py", "amw-versionsprobe.py", "amw/anbieter.py", "amw/anbieter_schluessel.py", "amw/schalter.py", "amw/eignung.py", "amw/sicherung.py", "amw/fertigquelle.py", "amw/urteil.py", "amw/reihenfolge.py", "amw-anbieter-schluessel.py", "amw/gegenlesen.py", "amw-gegenlesen.py", "amw/fragentopf.py", "amw/stil.py", "amw-stil.py", "amw/vorpruefung.py", "amw-vorpruefung.py", "amw/planer.py", "amw-planer.py", "amw/folgen.py", "amw-folgen.py", "amw/verteilen.py", "amw/veroeffentlichung.py", "amw-rueckmeldung.py", "amw-hook.py", "start_dienst.pyw",
+           "amw/vorlagen/auftrag_p.md", "amw-cli.py", "amw-arbeiter.py", "amw/versionsprobe.py", "amw-versionsprobe.py", "amw/anbieter.py", "amw/anbieter_schluessel.py", "amw/schalter.py", "amw/eignung.py", "amw/sicherung.py", "amw/fertigquelle.py", "amw/urteil.py", "amw/reihenfolge.py", "amw-anbieter-schluessel.py", "amw/gegenlesen.py", "amw-gegenlesen.py", "amw/fragentopf.py", "amw/stil.py", "amw-stil.py", "amw/vorpruefung.py", "amw-vorpruefung.py", "amw/planer.py", "amw-planer.py", "amw/feinplanung.py", "amw/abschluss.py", "amw/folgen.py", "amw-folgen.py", "amw/verteilen.py", "amw/veroeffentlichung.py", "amw-rueckmeldung.py", "amw-hook.py", "start_dienst.pyw",
            # P274
            "amw/schema.sql", "amw/migration_34.sql", "amw/workbench.py", "amw/abgleich.py", "amw/einrichtung.py", "amw/assistent.py",
            "amw/pruefstufe.py", "amw/schirm.py", "amw/ki.py", "amw/pipe.py", "amw/tray.py", "amw/paket.py", "amw/push.py",
@@ -33,8 +33,6 @@ EINGEORDNET_FREI = {
     "amw/takt.py": "Lead-Durchgang (nur Lesen/Melden)",
     "amw/termine.py": "Lead-Sperre für Termine",
     "amw/themen.py": "Lead-Sperre für Design-Seiten",
-    "amw/abschluss.py": "Abschluss je Meilenstein: wer Nacharbeit anfordert (Lead oder Mensch, Fach-Aktion wie planansicht.py, A2029) – keine Abschottung/Rechte",
-    "amw/feinplanung.py": "rollende Feinplanung: wer den freigegebenen Plan startet (Lead oder Mensch, Fach-Aktion wie planansicht.py, A2031) – keine Abschottung/Rechte",
     "amw/pause.py": "Pause für alles: wer sie schaltet (Lead oder Mensch, wie amw halt) – setzt nur Halt und Wächter-Pause, keine Abschottung (A2042)",
     "amw/planansicht.py": "Freigabe-Regeln für Meilensteine und Pläne (Fach-Aktion wie planung.py, K1-Regel B2913) – keine Abschottung/Rechte",
     "amw/tore.py": "Tore abgeleitet, Abschlussbericht, Bestätigung „nichts zu bauen“ durch den Co (Fach-Regel TH154 wie planansicht.py) – keine Abschottung/Rechte",

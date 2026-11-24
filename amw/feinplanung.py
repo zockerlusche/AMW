@@ -207,7 +207,7 @@ def runde(con):
     return aus
 
 
-def plan_starten(con, pid, von, bid):
+def plan_starten(con, pid, von, bid) -> dict:
     """„Plan freigeben und starten“ – ein Klick: das Ja zum Feinplan; ist der Plan damit frei (Mensch allein, oder das zweite Ja
     von Co bzw. Lead), geht der Meilenstein sofort in die Umsetzung (reihenfolge.starten: aktiv, startklar, verteilen) –
     auch während der vorige noch auf seine Abnahme wartet. {"frei", "ja_fehlt"?, "gestartet"?}"""
@@ -287,7 +287,7 @@ def _spawn(pid, boegen, fassung, umgebung=None):
 STARTER = _spawn             # Tests setzen eine Attrappe; tests/abschotten schaltet das Anstoßen ganz ab (AMW_PLANER_AUS)
 
 
-def anstossen(con, pid, boegen, von="AMW", hinweis=None, nacharbeit=False):
+def anstossen(con, pid, boegen, von="AMW", hinweis=None, nacharbeit=False) -> dict:
     """Den Feinplaner für diese Meilensteine anstoßen (nacharbeit, A2029: neue Pakete in einem laufenden Meilenstein, die gleich
     starten) – außer er ist aus, das Projekt ist nicht eingeschaltet, einer läuft
     schon oder die Tagesgrenze der Planer ist erreicht. Rückgabe {"gestartet": bool, "text"}."""
@@ -322,7 +322,7 @@ def anstossen(con, pid, boegen, von="AMW", hinweis=None, nacharbeit=False):
     return {"gestartet": True, "text": f"Feinplan {namen} Fassung {fassung}: Planer ({MODELL}) angestoßen"}
 
 
-def neu_planen(con, pid, von, bid, hinweis=None):
+def neu_planen(con, pid, von, bid, hinweis=None) -> dict:
     """„Überarbeiten lassen“: eine neue Fassung des Feinplans, mit Hinweis an den Planer – Lead oder Mensch, solange der Plan
     nicht freigegeben ist und der Meilenstein noch nicht läuft."""
     if not (von == kern.ENTWICKLER or kern.ist_lead(con, pid, von)):
@@ -468,7 +468,8 @@ def pruefen(daten, con, pid, boegen):
         f.append("unbekannte Felder: " + ", ".join(sorted(unbekannt)))
     zeilen = _zeilen(con, pid, boegen)
     themen = {f"M{b['nr']}": themen_der(con, pid, b) for b in zeilen}
-    pakete = daten.get("pakete") if isinstance(daten.get("pakete"), list) else []
+    roh = daten.get("pakete")
+    pakete: list = roh if isinstance(roh, list) else []
     zu = {}
     for i, p in enumerate(pakete, 1):
         if not isinstance(p, dict):

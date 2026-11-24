@@ -60,7 +60,7 @@ def bis_aus(text, jetzt=None):
         raise kern.AmwFehler(f"Ende „{text}“: HH:MM, 2h oder 90min") from None
 
 
-def an(con, pid, von, bis=None, grund=None):
+def an(con, pid, von, bis=None, grund=None) -> dict:
     """Pause für alles. bis: UTC-ISO (bis_aus) oder None (bis „Pause aus“). Lead oder Mensch."""
     from . import waechter
     if not kern.ist_lead(con, pid, von):
@@ -108,7 +108,7 @@ def runde(con):
     return aus_
 
 
-def zustand(con, pid):
+def zustand(con, pid) -> dict:
     """Rückmeldung: {"an", "bis", "grund", "seit", "agenten": [{"kennung", "zustand"}], "pakete": [{"aid", "titel", "zustand"}],
     "laeufe": [{"lauf", "beschreibung", "zustand"}]} – für die Workbench (/api/pause) und `amw pause zeige`."""
     p = _letzte(con, pid)

@@ -1146,12 +1146,13 @@ def cmd_bogen(a, con):
                 raise kern.AmwFehler("--starten gibt es nur mit --art plan")
             if a.starten:                             # A2031: das Feinplan-Ja ist der Start
                 from . import feinplanung
-                r = feinplanung.plan_starten(con, pid, _von(a), a.id)
+                r: dict = feinplanung.plan_starten(con, pid, _von(a), a.id)
             else:
-                r = planansicht.freigeben(con, pid, _von(a), a.id, a.art)
-            print(f"Meilenstein {a.id} ({a.art}): " + ("freigegeben" if r.get("frei") else "dein Ja steht – fehlt noch: "
-                                                       + ", ".join(r.get("ja_fehlt") or []))
-                  + (f" · gestartet, {len(r['gestartet']['startklar'])} Pakete startklar" if r.get("gestartet") else ""))
+                r = dict(planansicht.freigeben(con, pid, _von(a), a.id, a.art))
+            fehlt = [str(x) for x in (r.get("ja_fehlt") or [])]
+            gestartet = r.get("gestartet") or {}
+            print(f"Meilenstein {a.id} ({a.art}): " + ("freigegeben" if r.get("frei") else "dein Ja steht – fehlt noch: " + ", ".join(fehlt))
+                  + (f" · gestartet, {len(gestartet.get('startklar') or [])} Pakete startklar" if gestartet else ""))
     elif a.aktion == "nacharbeit":                    # A2029: „Nacharbeit anfordern“ – neue Pakete im selben Meilenstein, starten gleich
         from . import abschluss
         _nicht_als_mensch_aus_sitzung(a, "bogen nacharbeit")

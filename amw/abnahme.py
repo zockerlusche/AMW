@@ -66,6 +66,8 @@ GESPERRT = (
     ("amw/grobplan.py", "fest", "Grob-Planer über das ganze Konzept – startet claude -p (A2030)"),
     ("amw/planer_delta.py", "fest", "Delta-Planer – wer ein Delta freigibt (feinplan_freigabe), ändert/verwirft Pakete (A2027)"),
     ("amw/planhinweis.py", "fest", "Hinweise an den Planer – wer Hinweise gibt und überarbeiten lässt (A2028)"),
+    ("amw/feinplanung.py", "fest", "Feinplaner je Meilenstein – startet claude -p (A2031)"),
+    ("amw/abschluss.py", "fest", "Prüfer zum Abschluss je Meilenstein – startet claude -p (A2029)"),
     ("amw/folgen.py", "fest", "Folgenprüfer eigener Änderungen – startet claude -p (A1957)"),
     ("pyrightconfig.json", "fest", "Konfiguration der Sprachprüfung in Prüfung C (A1962) – ein Paket schaltet sie nicht ab"),
     ("*/pyrightconfig.json", "fest", "Konfiguration der Sprachprüfung in Prüfung C (A1962)"),
