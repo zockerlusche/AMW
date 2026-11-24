@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.189.0 – 24.11.2026 · Läufe nach einem Rechner-Neustart, ruhigerer Projektweg
+- **Neu:** Startet der Rechner neu oder verschwindet der Prozess eines Laufs, schließt die AMW den Lauf als abgebrochen ab, meldet es und weckt den Agenten. Ein abgebrochener Lauf gibt keine wartende Aufgabe frei; ein Gesamtlauf bekommt höchstens einen Ersatz, und nur für eine offene Aufgabe. Grenze: Windows-Schnellstart und ein echter Rechner-Neustart sind nicht ausprobiert, nur mit Attrappen.
+- **Verbessert:** Auf „Projektweg“ öffnet sich das Fortschritts-Fenster nur für Läufe, die du selbst mit einem Klick gestartet hast. Alles andere steht als kleine Zeile „läuft gerade“ am Schritt, mit richtiger Beschriftung und wer es ausgelöst hat.
+- **Verbessert:** Die Übernahme des Bestands steht im Verlauf als eine Zeile in der Grobplanung; die Leiste zählt verworfene Meilensteine nicht mehr mit. Im Seitenfenster zeigt „mehr“ den ganzen Auftrag eines Pakets.
+- **Behoben:** Bricht eine freigegebene Änderung mittendrin ab, gilt dein Ja nicht, wenn noch nichts geschehen ist; sonst sagt die Karte, was angelegt, geändert und noch offen ist, und ein neues Ja legt nichts doppelt an. Grenze: Was entstanden ist, erkennt die AMW an Nummer und Titel; legt jemand in denselben Sekunden im selben Projekt ein gleich benanntes Paket an, hielte sie es für ihres.
+
 ## 1.188.0 – 24.11.2026 · Das Ja zu einer Konzeptänderung startet sie
 - **Neu:** Gibst du eine Änderung am Konzept frei, startet sie: Ein neuer Meilenstein ist mit deinem Ja grob und fein freigegeben und läuft. War der Plan eines bestehenden Meilensteins frei, bleibt er frei, und nur die neuen Pakete starten. Der Knopf sagt es („freigeben und starten“), die Karte nennt, wer das Ja gibt und welchen Paketen noch Angaben fehlen.
 - **Neu:** Passt der Plan zu einer Änderung nicht, bessert der Planer einmal selbst nach. Passt er dann noch nicht, klärt es der Lead; auf „Projektweg“ steht im Schritt Feinplanung der Grund in normaler Sprache, und mit einem Hinweis kannst du ihn überarbeiten lassen.
