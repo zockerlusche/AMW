@@ -98,17 +98,28 @@ def _aufbereiten(text):
 def stand(con, pid, lauf):
     """Der zuletzt geschriebene Stand eines Laufs (dict) oder None."""
     r = _zeile(con, pid, lauf)
-    return _aufbereiten(r["text"]) if r else None
+    return _abgleichen(con, _aufbereiten(r["text"])) if r else None
+
+
+def _abgleichen(con, s):
+    """P575 (TL #31608): Steht ein Stand auf „läuft“, der Lauf in der Lauf-Schlange ist aber schon fertig oder abgebrochen
+    (Prozess weg, ohne Ende zu melden), gilt er als Fehler mit klarer Meldung – sonst stünde er ewig auf „läuft“."""
+    if s["zustand"] != "laeuft":
+        return s
+    l = con.execute("SELECT status FROM lauf WHERE id = ?", (s["lauf"],)).fetchone()
+    if l and l["status"] in ("fertig", "abgebrochen"):
+        return {**s, "zustand": "fehler", "fehler": f"L{s['lauf']} ist {l['status']}, ohne dass der Planer ein Ende gemeldet hat"}
+    return s
 
 
 def alle(con, pid):
-    """Der Stand jedes Laufs des Projekts, neuester zuerst."""
+    """Der Stand jedes Laufs des Projekts, neuester zuerst – „läuft“ gegen den echten Laufstatus abgeglichen."""
     aus, gesehen = [], set()
     for r in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id DESC", (pid, ART)):
         s = _aufbereiten(r["text"])
         if s["lauf"] not in gesehen:
             gesehen.add(s["lauf"])
-            aus.append(s)
+            aus.append(_abgleichen(con, s))
     return aus
 
 

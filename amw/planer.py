@@ -711,6 +711,15 @@ def schalter_text(con, pid):
     return ("Projekt ist ausgeschaltet" if s == "aus" else "Projekt steht auf Probe") + " – Planer läuft erst nach dem Einschalten"
 
 
+def neues_projekt(con, pid):
+    """A2030 (TL #31613 A): Ein Projekt ohne Konzept-Abschluss und ohne Meilensteine geht den neuen Weg – erst „Konzept
+    abschließen“, dann EIN Grob-Planer über alle Themen. Bis dahin stößt die Freigabe eines Themas keinen Planer je Thema an
+    (`amw thema planen` von Hand geht immer). Bestehende Projekte mit Meilensteinen bleiben wie bisher."""
+    if con.execute("SELECT 1 FROM bogen WHERE projekt_id = ? AND status != 'verworfen' LIMIT 1", (pid,)).fetchone():
+        return False
+    return not con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'konzept_abschluss' LIMIT 1", (pid,)).fetchone()
+
+
 def anstossen(con, pid, tid, fassung, von="AMW", erneut=False):
     """Nach der Freigabe (themen.freigeben/bearbeiten, eigene Transaktion) bzw. auf Befehl: einen Planer anstoßen – außer die
     Einstellung ist aus, das Thema hat „nichts zu bauen“, für diese Fassung gab es schon einen (ohne erneut) oder einer läuft.
@@ -720,6 +729,8 @@ def anstossen(con, pid, tid, fassung, von="AMW", erneut=False):
     aus = schalter_text(con, pid)                         # A1999: wie der Gegenleser (A1926) – nur bei eingeschaltetem Projekt
     if aus:
         return aus if erneut else None
+    if not erneut and neues_projekt(con, pid):           # A2030 (TL #31613 A): erst die Grobplanung über das ganze Konzept
+        return None
     modell = einstellung(con, pid)
     with db.schreiben(con):                               # in einer Schreib-Transaktion: nie doppelt angestoßen
         if laeuft(con, pid, tid):

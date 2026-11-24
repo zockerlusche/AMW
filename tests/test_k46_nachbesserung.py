@@ -71,6 +71,7 @@ class K4(test_planer.Grund):
     def test_planer_auch_bei_freigabe_durch_co_und_lead(self):
         kern.agent_neu(self.con, self.pid, "Co")
         kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, co_entwickler="Co", thema_freigabe="co+lead")
+        planung.bogen_neu(self.con, self.pid, "TL", "Bestand")        # A2030: bestehendes Projekt – Planer je Thema wie bisher
         gestartet = []
         with mock.patch.object(planer, "STARTER", lambda pid, tid, fassung: gestartet.append((tid, fassung)) or 1), \
                 mock.patch.dict(os.environ, {"AMW_PLANER_AUS": ""}):

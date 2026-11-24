@@ -247,6 +247,22 @@ class Anstossen(Grund):
         u.start()
         self.addCleanup(u.stop)
         os.environ.pop("AMW_PLANER_AUS", None)
+        self.bestand = planung.bogen_neu(self.con, self.pid, "TL", "Bestand")   # A2030: bestehendes Projekt – wie bisher
+
+    def test_a2030_neues_projekt_erst_grobplanung(self):
+        """TL #31613 A: Ohne Meilensteine und ohne Konzept-Abschluss stößt die Freigabe keinen Planer je Thema an; von Hand
+        (`amw thema planen`) geht es immer. Mit einem Meilenstein oder nach dem Konzept-Abschluss wieder wie bisher."""
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE bogen SET status = 'verworfen' WHERE id = ?", (self.bestand,))
+        self.assertTrue(planer.neues_projekt(self.con, self.pid))
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertEqual(self.gestartet, [])
+        self.assertIn("angestoßen", planer.anstossen(self.con, self.pid, self.tid, 1, von="TL", erneut=True) or "")
+        self.assertEqual(self.gestartet, [(self.tid, 1)])
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von=kern.ENTWICKLER,
+                         art="konzept_abschluss", text="{}")
+        self.assertFalse(planer.neues_projekt(self.con, self.pid))
 
     def test_freigabe_stoesst_an_einmal_je_fassung(self):
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)

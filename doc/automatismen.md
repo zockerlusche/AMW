@@ -751,6 +751,11 @@ die der Lead nur noch bestätigt oder ändert.
   das Ja ist diese Freigabe. Nur einmal, und nur, solange die freigegebenen Themen dieselben sind wie beim Planen. Das
   Grob-Tor zählt Themen auch über die TH-Verweise im Ziel eines Meilensteins (nicht nur über Pakete). Danach plant der Planer
   je Thema nur noch Änderungen.
+- **Neue Projekte (TL #31613):** Hat ein Projekt noch keinen Meilenstein und keinen Konzept-Abschluss, stößt die Freigabe
+  eines Themas keinen Planer je Thema an – erst kommt die Grobplanung über das ganze Konzept. Projekte mit Meilensteinen
+  bleiben wie bisher; `amw thema planen TH<n>` geht von Hand immer.
+- **Fortschritt gegen den Laufstatus (P575):** Steht ein Planer-Stand auf „läuft“, der Lauf ist aber fertig oder
+  abgebrochen, zeigt die AMW ihn als Fehler („L<n> ist abgebrochen, ohne dass der Planer ein Ende gemeldet hat“).
 
 ### Thema → Meilenstein → Paket (K8, A1942, TH163)
 

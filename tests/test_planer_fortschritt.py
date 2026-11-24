@@ -169,6 +169,24 @@ class PlanerFortschritt(unittest.TestCase):
         self.assertTrue(pf.melden_still(self.con, self.pid, 1, nr=1, gesamt=2, uhr=self.uhr))
         self.assertEqual(self.st(1)["was"], "Thema 1 von 2")
 
+    def test_12_laeuft_gegen_den_echten_laufstatus(self):
+        """P575 (TL #31608): Ist der Lauf in der Schlange fertig oder abgebrochen, ohne dass der Planer ein Ende meldete, gilt
+        der Stand als Fehler mit klarer Meldung – nicht ewig „läuft“. Ohne Lauf-Zeile (oder Lauf läuft) bleibt er."""
+        with db.schreiben(self.con):
+            ids = [db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="TL", beschreibung=f"Planer {i}", status=st,
+                                angemeldet_utc=db.jetzt()) for i, st in enumerate(("laeuft", "abgebrochen", "fertig"))]
+        for l in ids:
+            self.melden(l, art="planer", thema=3)
+        self.melden(999, art="planer", thema=4)
+        self.assertEqual([s["lauf"] for s in pf.laufende(self.con, self.pid)], [999, ids[0]])
+        s = self.st(ids[1])
+        self.assertEqual(s["zustand"], "fehler")
+        self.assertIn(f"L{ids[1]} ist abgebrochen, ohne dass der Planer ein Ende gemeldet hat", s["fehler"])
+        self.assertEqual(self.st(ids[2])["zustand"], "fehler")
+        self.assertEqual(self.st(ids[0])["zustand"], "laeuft")
+        self.melden(ids[1], zustand="fertig", sofort=True)                    # ein spätes Ende gilt
+        self.assertEqual(self.st(ids[1])["zustand"], "fertig")
+
     def test_9_nichts_ausserhalb_des_projekts(self):
         self.assertFalse(hasattr(pf, "LOCALAPPDATA"))
         with open(pf.__file__, encoding="utf-8") as f:

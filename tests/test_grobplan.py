@@ -125,6 +125,26 @@ class Pruefen(Grund):
         self.assertEqual(len(grobplan.pruefen(d, frei)["meilensteine"]), 1)  # … mit Befund „abdeckung“ ist das in Ordnung
 
 
+class Tore(Grund):
+    def test_thema_zaehlt_ueber_den_verweis_im_ziel(self):
+        """Gegenprobe zu tore.stand: ein Meilenstein ohne Pakete zählt ein Thema nur, wenn sein Ziel auf das Thema verweist."""
+        self.frei()
+        planung.bogen_neu(self.con, self.pid, "TL", "Anmelden", ziel="Anmeldung mit Firmen-Konto")
+        g = lambda: next(x for x in tore.stand(self.con, self.pid)["tore"] if x["tor"] == "grobplanung")
+        self.assertEqual((g()["n"], g()["g"]), (0, 2))
+        planung.bogen_neu(self.con, self.pid, "TL", "Sichern", ziel=f"TH{self.t2} Sicherung")
+        self.assertEqual(g()["n"], 1)
+        planung.bogen_neu(self.con, self.pid, "TL", "Fremd", ziel="TH9999 gibt es nicht")
+        self.assertEqual((g()["n"], g()["g"]), (1, 2))
+
+    def test_neues_projekt_freigabe_ohne_planer_je_thema(self):
+        """TL #31613 A: Im neuen Projekt (keine Meilensteine, kein Abschluss) stößt die Freigabe keinen Planer je Thema an."""
+        gestartet = []
+        with mock.patch.object(planer, "STARTER", lambda pid, tid, fassung: gestartet.append(tid) or 1):
+            self.frei()
+        self.assertEqual(gestartet, [])
+
+
 class Abschliessen(Grund):
     def test_erst_wenn_alle_themen_frei(self):
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.t1)
