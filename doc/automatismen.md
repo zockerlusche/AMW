@@ -473,6 +473,9 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   Agenten-Sitzung, auch nicht der Lead). Der Disponent geht die Projekte in dieser Reihenfolge durch, innerhalb eines Projekts
   in der berechneten Reihenfolge (A2041: dieselbe, die Planung und Lagebild anzeigen – `reihenfolge.berechnen`: aktiver
   Meilenstein zuerst, dann der längste Rest-Pfad, dann Rang und Nummer; `amw waechter reihenfolge` nennt den Platz). Nicht genannte Projekte kommen danach (nach Nummer); ohne Einstellung wie bisher.
+- **Warum dieses jetzt (A2047):** Bei jedem Headless-Start speichert der Disponent den Grund (`headless_start`: Platz in der
+  berechneten Reihenfolge mit deren Grund, Arbeitsplatz, „von Hand gestartet (…)“ beim Handstart) – wie `verteilt` bei
+  Fenster-Agenten. `disponent.warum` liefert den jüngsten der beiden je Paket (für Lagebild und Paketansicht).
 - **Gemeinsame Grenze:** `amw pc einstellen plaetze_pc=<n>` (Lead oder Mensch) – höchstens so viele p-Arbeiter gleichzeitig über
   alle Projekte (gezählt: läuft, abgegeben, Prüfung C; ein Paket in „bereit zum Merge“ arbeitet nicht mehr). 0 = keine
   Grenze. Ist sie erreicht, wartet ein Paket sichtbar (Regel 4: „wartet auf einen Platz (PC: 2 von 2 belegt: AMW A…,

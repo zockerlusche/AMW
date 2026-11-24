@@ -162,15 +162,47 @@ def _vermerk_id(con, pid, aid):
     return r[0] if r else 0
 
 
-def starten(con, pid, aid, p, quelle, prog=None, umgebung=None):
-    """Platz vorbereiten, Basis vermerken, Regel 6, Zustand laeuft, Starter losgelöst starten. Rückgabe: Text fürs Protokoll."""
+START_GRUND = "headless_start"   # A2047 (V9, D1531 §9): {"aufgabe", "platz", "reihe", "grund", "von"} – warum dieses Paket jetzt
+
+
+def warum(con, pid, aid):
+    """A2047: Der zuletzt gespeicherte Grund, warum ein Paket gestartet bzw. zugeteilt wurde – Headless (headless_start) oder
+    Fenster-Agent (verteilt): {"art", "zeit_utc", …} oder None."""
+    r = con.execute("SELECT art, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND aufgabe_id = ? AND art IN (?, 'verteilt')"
+                    " ORDER BY id DESC LIMIT 1", (pid, aid, START_GRUND)).fetchone()
+    if not r:
+        return None
+    try:
+        d = json.loads(r["text"] or "{}")
+    except ValueError:
+        d = {}
+    return {**d, "art": r["art"], "zeit_utc": r["zeit_utc"]}
+
+
+def _start_grund(con, pid, aid, p, von):
+    """Warum dieses Paket jetzt: Platz in der berechneten Reihenfolge und ihr Grund (reihenfolge.berechnen) – oder von Hand."""
+    from . import reihenfolge
+    try:
+        z = next((x for x in reihenfolge.berechnen(con, pid) if x["aid"] == aid), None)
+    except Exception:                                    # noqa: BLE001 – ohne Berechnung bleibt der Start, der Grund ist knapper
+        z = None
+    teile = [f"von Hand gestartet ({von})"] if von != "AMW" else []
+    if z:
+        teile.append(f"Platz {z['platz']} in der Reihenfolge · {z['grund']}")
+    teile.append(f"Arbeitsplatz {p['nr']} frei, Regeln des Wächters erfüllt")
+    return {"aufgabe": aid, "platz": p["nr"], "reihe": z["platz"] if z else None, "grund": " · ".join(teile), "von": von}
+
+
+def starten(con, pid, aid, p, quelle, prog=None, umgebung=None, von="AMW"):
+    """Platz vorbereiten, Basis vermerken, Regel 6, Zustand laeuft, Starter losgelöst starten. Rückgabe: Text fürs Protokoll.
+    von: AMW (Disponent) oder wer von Hand startet – steht im gespeicherten Grund (A2047)."""
     with _Platzsperre(p):
         if p["nr"] in belegte_plaetze(con, pid):                  # nach dem Sperren nochmal: ein anderer Start war schneller
             raise PlatzBelegt(f"Platz {p['nr']} ist inzwischen belegt")
-        return _starten(con, pid, aid, p, quelle, prog, umgebung)
+        return _starten(con, pid, aid, p, quelle, prog, umgebung, von)
 
 
-def _starten(con, pid, aid, p, quelle, prog=None, umgebung=None):
+def _starten(con, pid, aid, p, quelle, prog=None, umgebung=None, von="AMW"):
     from . import abnahme, arbeitspaket, platz, waechter
     a = con.execute("SELECT pruefbefehl FROM aufgabe WHERE id = ?", (aid,)).fetchone()
     f = arbeitspaket.lesen(con, aid)
@@ -187,7 +219,11 @@ def _starten(con, pid, aid, p, quelle, prog=None, umgebung=None):
                          f"A{aid}: {rot.get('grund')} – das Paket ist zurückgestellt; Abnahme-Befehl ändern, dann wieder startklar.",
                          aufgabe_id=aid)
         return f"A{aid} nicht gestartet, Regel 6: {rot.get('grund')}"
+    g = _start_grund(con, pid, aid, p, von)                    # A2047: vor dem Zustand rechnen – danach läuft es schon
     arbeitspaket.zustand_setzen(con, pid, "AMW", aid, "laeuft", grund=f"Start auf Platz {p['nr']}")
+    with db.schreiben(con):
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=START_GRUND, aufgabe_id=aid,
+                     text=json.dumps(g, ensure_ascii=False))
     # P272 (1): der Vermerk mit der Basis steht VOR dem Start des Starters; der Starter bekommt Basis und Vermerk-Nummer als
     # Argument und liest keinen (womöglich alten) Vermerk nach
     v = {"platz": p["nr"], "basis": r["basis"], "zweig": zweig, "starter_pid": None, "start_utc": db.jetzt()}
@@ -392,7 +428,7 @@ def handstart(con, pid, aid, von, prog=None, umgebung=None):
     quelle = kern.projekt_ordner(con, pid)
     if not frei or not quelle:
         raise kern.AmwFehler("Kein freier Platz" if quelle else "Das Projekt hat keinen Ordner (amw projekt ordner …)")
-    return starten(con, pid, aid, frei[0], quelle, prog, umgebung)
+    return starten(con, pid, aid, frei[0], quelle, prog, umgebung, von=von)
 
 
 # --- der Starter (eigener Prozess) ---------------------------------------------------------------------------------------
