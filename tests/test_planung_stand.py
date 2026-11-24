@@ -140,7 +140,7 @@ class NeueAufgabe(Grund):
 
 class Seite(unittest.TestCase):
     def test_texte_und_teile(self):
-        with open(os.path.join(os.path.dirname(workbench.__file__), "workbench.html"), encoding="utf-8") as f:
+        with io.StringIO(workbench.seite()) as f:
             html = f.read()
         for x in ('sj_titel: "Wo stehen wir gerade?"', 'sj_titel: "Where do we stand right now?"', 'ob_titel: "Ohne Meilenstein ({n})"',
                   'ob_titel: "Without milestone ({n})"', 'ue_jetzt: "Jetzt"', 'ue_jetzt: "Now"', 'ue_erkl: "Jeder Balken ist ein Meilenstein',

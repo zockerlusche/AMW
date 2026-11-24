@@ -1,6 +1,7 @@
 """Sieben Menüpunkte (A1657, Marcel 14.11., B47): Übersicht · Fragen · Planung · Nachrichten · Wissen · Betrieb · Einstellungen.
 Was früher ein eigener Menüpunkt war, ist ein Reiter seines Bereichs; die alten Adressen bleiben gültig."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import io
 import os
 import re
 import unittest
@@ -10,7 +11,7 @@ from amw import workbench
 
 class Menue(unittest.TestCase):
     def setUp(self):
-        with open(os.path.join(os.path.dirname(workbench.__file__), "workbench.html"), encoding="utf-8") as f:
+        with io.StringIO(workbench.seite()) as f:
             self.html = f.read()
 
     def test_sieben_punkte_und_namen(self):

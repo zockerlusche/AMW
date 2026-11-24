@@ -166,7 +166,7 @@ class Nachrichten(unittest.TestCase):
             self.assertEqual(start["nachrichten"], d["zaehler"]["eingang_offen"])
         self.assertNotIn("aus Q", [x["kurz"] for x in workbench.daten_nachrichten(self.con, self.pid)["eingang"]])
         self.assertFalse(hasattr(workbench, "daten_nachrichten_alle"))
-        with open(os.path.join(os.path.dirname(__file__), "..", "amw", "workbench.html"), encoding="utf-8") as f:
+        with io.StringIO(workbench.seite()) as f:
             html = f.read()
         self.assertNotIn("/api/nachrichten?alle=1", html)
         self.assertNotIn("nr_alle_projekte", html.split("async function sichtNachrichten")[1].split("\nasync function ")[0])

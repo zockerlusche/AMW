@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#13120e">
+<title>AMW Workbench</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzEzMTIwZSIvPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0idiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIHgxPSI0IiB5MT0iMCIgeDI9IjI4IiB5Mj0iMCI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZjBhOTNhIi8+PHN0b3Agb2Zmc2V0PSIuNSIgc3RvcC1jb2xvcj0iI2U4NzQzYiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzZmYTNjOCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxwYXRoIGQ9Ik00IDI2IEw5LjUgNiBMMTYgMTkgTDIyLjUgNiBMMjggMjYiIHN0cm9rZT0idXJsKCN2KSIgc3Ryb2tlLXdpZHRoPSIzLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTkiIHI9IjMuOSIgZmlsbD0iI2U4NzQzYiIgc3Ryb2tlPSIjMTMxMjBlIiBzdHJva2Utd2lkdGg9IjEuNCIvPjwvc3ZnPg==">
+<style>
+@@STIL@@
+</style>
+</head>
+<body>
+<div class="rahmen">
+  <header>
+    <div class="marke"><svg class="logo" viewBox="-2 -3 50 31" role="img" aria-label="AMW"><defs><linearGradient id="amw-logo-v" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="48" y2="0"><stop offset="0" style="stop-color:var(--bernstein)"/><stop offset=".5" style="stop-color:var(--glut)"/><stop offset="1" style="stop-color:var(--blau)"/></linearGradient></defs><path d="M2 24 L8 3 L14 24 L18.5 3 L23 15 L27.5 3 L32 24 L36.5 13 L41 24 L45.5 3" stroke="url(#amw-logo-v)" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round" fill="none"/><path d="M4.6 16.6 H11.4" stroke="url(#amw-logo-v)" stroke-width="2.6" stroke-linecap="round"/><circle cx="2" cy="24" r="2.5" style="fill:var(--grund);stroke:var(--bernstein)" stroke-width="1.8"/><circle cx="45.5" cy="3" r="2.5" style="fill:var(--grund);stroke:var(--blau)" stroke-width="1.8"/><circle cx="23" cy="15" r="5.4" style="fill:var(--glut);opacity:.22"/><circle cx="23" cy="15" r="3.2" style="fill:var(--glut)"/></svg><span id="marke-text"></span></div>
+    <button class="projekt-chip" id="projekt-chip" type="button" hidden></button>
+    <div class="signale" id="signale"></div>
+    <div class="suche"><input id="suche" autocomplete="off" data-t-ph="suche"></div>
+    <button class="knopf" id="abmelden" type="button" data-t="abmelden" hidden></button>
+  </header>
+  <nav id="nav">
+    <div id="projektwahl"></div>
+    <a data-sicht="start"><span class="sym">◉</span><span data-t="n_start"></span></a>
+    <a data-sicht="fragen"><span class="sym">?</span><span data-t="n_fragen"></span> <span class="zahl" data-zahl="fragen"></span></a>
+    <a data-sicht="projektweg" class="im-mehr"><span class="sym">➔</span><span data-t="n_projektweg"></span></a>
+    <a data-sicht="planung"><span class="sym">◇</span><span data-t="n_planung"></span> <span class="zahl" data-zahl="freigaben"></span></a>
+    <a data-sicht="themen" class="im-mehr"><span class="sym">≡</span><span data-t="n_themen"></span> <span class="zahl" data-zahl="themen"></span></a>
+    <a data-sicht="nachrichten"><span class="sym">✉</span><span data-t="n_nachrichten" data-t-lang></span><span data-t="n_nachrichten_kurz" data-t-kurz hidden></span> <span class="zahl" data-zahl="nachrichten"></span></a>
+    <a data-sicht="wissen" class="im-mehr"><span class="sym">§</span><span data-t="n_wissen"></span> <span class="zahl" data-zahl="beschluesse"></span></a>
+    <a data-sicht="betrieb" class="im-mehr"><span class="sym">◈</span><span data-t="n_betrieb"></span></a>
+    <a data-sicht="einstellungen" class="im-mehr"><span class="sym">⚙</span><span data-t="n_einst" data-t-lang></span><span data-t="n_einst_kurz" data-t-kurz hidden></span></a>
+    <a class="nur-handy" id="mehr" role="button" aria-haspopup="dialog"><span class="sym">☰</span><span data-t="n_mehr"></span></a>
+    <div class="fuss">
+      <div class="version" id="version"></div>
+      <button class="klein-knopf" id="thema" type="button" data-t="thema"></button>
+      <button class="klein-knopf" id="sprache" type="button">DE / EN</button>
+    </div>
+  </nav>
+  <main id="inhalt"></main>
+</div>
+
+<script>
+@@SKRIPT@@
+</script>
+</body>
+</html>

@@ -2,12 +2,13 @@
 Reihenfolge erst Vorziehen durch den Menschen, dann Vorrang, dann Ankunft; Laufendes bleibt unberührt; Wartegrund nennt
 Vorrang und Speicherbedarf des Vordermanns; Läufe ohne eigene Angabe halten die Projekt-Grenze nur beim Anlaufen frei."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import io
 import datetime
 import os
 import unittest
 from unittest import mock
 
-from amw import aktionen, betrieb, db, einstellungen, kern
+from amw import aktionen, betrieb, db, einstellungen, kern, workbench
 from tests.test_rechner_schlange import Grund
 
 
@@ -318,7 +319,7 @@ class Online(Grund):
 
 class Texte(unittest.TestCase):
     def test_texte_de_en(self):
-        with open(os.path.join(os.path.dirname(__file__), "..", "amw", "workbench.html"), encoding="utf-8") as f:
+        with io.StringIO(workbench.seite()) as f:
             html = f.read()
         for x in ('e_vorrang: "Vorrang der Projekte"', 'e_vorrang: "Project priority"', 'vr_niedrig: "niedrig"', 'vr_niedrig: "low"',
                   'rh_l_vorrang: "Vorrang (Einstellung dieses PCs)"', 'rh_l_vorrang: "Priority (setting of this PC)"',

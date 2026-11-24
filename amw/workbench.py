@@ -1,6 +1,6 @@
 """Workbench-Oberfläche: kleiner HTTP-Server auf 127.0.0.1, auf Wunsch auch fürs Heimnetz (→ doc/architektur.md).
 
-Liefert eine Seite (workbench.html) und eine JSON-Schnittstelle. Läuft als Faden im amw-dienst oder allein:
+Liefert eine Seite (seite() aus den Bausteinen in amw/workbench/, A2005) und eine JSON-Schnittstelle. Läuft als Faden im amw-dienst oder allein:
   python -X utf8 -m amw.workbench [--port 8780]
 Sicherheit (Stufe 1): nur 127.0.0.1 – mit Einstellung „heimnetz“ (A1643) zusätzlich Geräte aus diesem privaten Bereich (zugelassen(),
 host_ok(): Absender-IP im Bereich, Host/Origin nur localhost oder IP aus dem Bereich); Schreibwege nur mit dem Sitzungs-Schlüssel der Seite (X-AMW-Token, bei jedem
@@ -26,6 +26,22 @@ from .betrieb import speicher_frei_gb, speicher_grenze
 
 STANDARD_PORT = 8780
 HIER = os.path.dirname(os.path.abspath(__file__))
+BAUSTEINE = os.path.join(HIER, "workbench")          # A2005: die Seite in Bausteinen – eine Quelle (F5386 A)
+
+
+def _lesen(*teile):
+    with open(os.path.join(BAUSTEINE, *teile), encoding="utf-8", newline="") as f:
+        return f.read()
+
+
+def seite():
+    """A2005: die ganze Seite aus amw/workbench/ – Gerüst (seite.html), Stil-Teile (stil/*.css), Sprachdateien (texte/de.js,
+    texte/en.js) und Skript-Bausteine (skript/*.js), je Ordner in der Reihenfolge der Dateinamen. Ersetzt das frühere
+    amw/workbench.html (verschoben, nicht gelöscht – Git behält sie); alle Leser holen die Seite nur hierüber."""
+    def ordner(name):
+        return "".join(_lesen(name, f) for f in sorted(os.listdir(os.path.join(BAUSTEINE, name))))
+    skript = ordner("skript").replace("@@TEXTE_DE@@\n", _lesen("texte", "de.js")).replace("@@TEXTE_EN@@\n", _lesen("texte", "en.js"))
+    return _lesen("seite.html").replace("@@STIL@@\n", ordner("stil")).replace("@@SKRIPT@@\n", skript)
 HILFE = os.path.join(HIER, "hilfe")          # Bilder der Anleitungen in der Workbench (z. B. „Neues Projekt“)
 
 
@@ -1408,8 +1424,7 @@ def host_ok(host, port, netz):
 
 def baue_handler(port, token, netz=None):
     anfragezeit.einhaengen()                          # A2035: externe Aufrufe je Anfrage mitzählen
-    with open(os.path.join(HIER, "workbench.html"), encoding="utf-8") as f:
-        seite = f.read().replace("__AMW_TOKEN__", token).encode("utf-8")
+    seite_ = seite().replace("__AMW_TOKEN__", token).encode("utf-8")   # A2005: aus den Bausteinen
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "amw-workbench"
@@ -1505,7 +1520,7 @@ def baue_handler(port, token, netz=None):
             u = urlparse(self.path)
             q = parse_qs(u.query)
             if u.path in ("/", "/index.html"):
-                return self._senden(200, seite, "text/html; charset=utf-8")
+                return self._senden(200, seite_, "text/html; charset=utf-8")
             if u.path == "/api/dokument/datei":
                 return self._datei(q)
             if u.path.startswith("/hilfe/"):               # Bilder der Anleitungen (online: web/hilfe/, → amw web bauen)

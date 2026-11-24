@@ -109,7 +109,7 @@ class Lesen(Grund):
         online = abgleich.ansichten(self.con, self.zwei)["/api/runde"]                 # A1680: online nur lesen …
         self.assertEqual([x["kurz"] for x in online["eintraege"]], ["Hallo Runde"])
         self.assertEqual(runde.neu(self.con, self.zwei), 1)
-        with open(os.path.join(os.path.dirname(workbench.__file__), "workbench.html"), encoding="utf-8") as f:
+        with io.StringIO(workbench.seite()) as f:
             html = f.read()
         for x in ('const runde = API && !darfFreigeben() ? null', 'nr_runde: "Lead-Runde"', 'nr_runde: "Lead round"', "runde: sichtRunde"):
             self.assertIn(x, html)

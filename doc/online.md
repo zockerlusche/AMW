@@ -54,7 +54,7 @@ PC (Wächter)                               Online-Speicher (Turso)             
   - Dateien gehören über `datei_projekt` zu Projekten. Eine Datei verschwindet erst, wenn kein Projekt sie mehr nennt.
   - Einen zweiten Rechner richtest du wie den ersten ein und gibst ihm denselben Online-Speicher, siehe
     [installation.md](installation.md) „Weiterer Rechner“.
-- **Eine Seite für beide:** `amw/workbench.html`; `amw web bauen` kopiert sie nach `web/inc/seite.html`.
+- **Eine Seite für beide:** die Bausteine in `amw/workbench/` (A2005); `amw web bauen` setzt sie mit `workbench.seite()` zusammen und schreibt `web/inc/seite.html`.
 
 ## 1a Eigener Server statt Turso (Betriebsart „eigener Server im Firmennetz“)
 Der Online-Speicher kann auch ein **eigener libSQL-Server** (sqld) im Firmennetz sein – derselbe Server, auf dem Turso

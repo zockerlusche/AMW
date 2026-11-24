@@ -1,0 +1,114 @@
+/* --- Rahmen ------------------------------------------------------------------------------- */
+.rahmen { display: grid; grid-template-columns: 216px 1fr; grid-template-rows: 58px 1fr; height: 100vh; height: 100dvh; }
+header {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; padding: 0 18px 0 0;
+  border-bottom: 1px solid var(--linie); background: color-mix(in srgb, var(--grund) 85%, transparent);
+  backdrop-filter: blur(6px); position: relative; z-index: 2;
+}
+header::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--projekt-farbe); }
+.marke { width: 216px; height: 100%; display: flex; align-items: center; gap: 10px; padding-left: 18px; border-right: 1px solid var(--linie); flex: none; }
+.marke .logo { width: 66px; height: 41px; flex: none; }   /* Logo A·M·W als Neuronenzug (F5229) */
+.marke span { font: 10px/1.2 var(--titel); letter-spacing: .06em; color: var(--sehrleise); text-transform: uppercase; }
+.marke span i { font-style: normal; font-weight: 600; color: var(--tinte); }
+.signale { display: flex; gap: 8px; align-items: center; flex: 0 1 auto; min-width: 0; overflow: hidden; }   /* ganze Wörter statt Kürzel: eine Zeile, die Suche gibt Platz ab */
+.signal { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border: 1px solid var(--linie);
+  border-radius: 3px; font: 12.5px var(--text); color: var(--leise); background: var(--flaeche); white-space: nowrap; flex: none; }
+.punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--sehrleise); flex: none; }
+.punkt.gruen { background: var(--gruen); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gruen) 20%, transparent); }
+.punkt.bernstein { background: var(--bernstein); box-shadow: 0 0 0 3px var(--bernstein-weich); }
+.punkt.rot { background: var(--rot); box-shadow: 0 0 0 3px var(--rot-weich); animation: puls 1.6s infinite; }
+@keyframes puls { 50% { opacity: .35; } }
+.suche { margin-left: auto; position: relative; flex: 0 1000 380px; min-width: 150px; }   /* gibt zuerst Platz ab, dann erst die Hinweise */
+.suche input { width: 100%; max-width: 380px; min-width: 0; padding: 8px 12px 8px 30px; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; outline: none; }
+.suche input:focus { border-color: var(--bernstein); }
+.suche::before { content: "⌕"; position: absolute; left: 10px; top: 6px; color: var(--sehrleise); font-size: 16px; }
+
+nav { border-right: 1px solid var(--linie); padding: 14px 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+nav .gruppe { font: 11px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--sehrleise); padding: 14px 18px 6px; }
+nav a { display: flex; align-items: baseline; gap: 10px; padding: 8px 18px; color: var(--leise); text-decoration: none; cursor: pointer;
+  border-left: 3px solid transparent; font: 15px var(--titel); letter-spacing: .02em; }
+nav a .sym { display: none; }
+nav a.nur-handy { display: none; }
+.mehr-liste { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mehr-liste button { display: grid; justify-items: center; gap: 4px; padding: 12px 4px; min-height: 72px; border: 1px solid var(--linie);
+  border-radius: 8px; background: var(--grund); color: var(--tinte); font: 13px var(--titel); cursor: pointer; position: relative; }
+.mehr-liste button.an { border-color: var(--bernstein); color: var(--bernstein); }
+.mehr-liste .sym { font-size: 20px; line-height: 1; }
+.mehr-liste .zahl { position: absolute; top: 6px; right: 8px; font: 11px var(--mono); color: var(--sehrleise); }
+.mehr-fuss { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+.mehr-fuss .version { margin-left: auto; font: 11px var(--mono); color: var(--sehrleise); }
+nav a:hover { color: var(--tinte); background: var(--flaeche); }
+nav a.an { color: var(--tinte); border-left-color: var(--bernstein); background: linear-gradient(90deg, var(--bernstein-weich), transparent); }
+nav a .zahl { margin-left: auto; font: 12px var(--mono); color: var(--sehrleise); }
+nav a .zahl.heiss { color: #1b1408; background: var(--bernstein); padding: 0 7px; border-radius: 9px; font-weight: 600; }
+nav .fuss { margin-top: auto; padding: 14px 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+/* Projekt-Auswahl: oben in der Navigation, am Handy als Chip im Kopf (doc/plan-projektwahl.md) */
+.pw { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 9px; align-items: center; width: calc(100% - 24px); margin: 0 12px 6px; padding: 7px 10px;
+  border: 1px solid var(--linie2); border-radius: 3px; background: var(--flaeche); color: var(--tinte); cursor: pointer; text-align: left; font: inherit; }
+.pw:hover, .pw:focus-visible { border-color: var(--leise); }
+.pw-farbe { width: 10px; height: 10px; border-radius: 2px; background: var(--projekt-farbe); flex: none; }
+.pw-klein { display: block; font: 10px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); }
+.pw-name { display: block; font: 600 15px var(--titel); letter-spacing: .03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-pfeil { color: var(--leise); font-size: 12px; }
+.pw.still { cursor: default; } .pw.still .pw-pfeil { display: none; }
+.projekt-chip { display: none; }
+.dialog-hg.pw-hg { background: transparent; display: block; padding: 0; }
+.bn-liste{display:grid;gap:10px;margin-bottom:12px}.bn-zeile{border:1px solid var(--linie);border-radius:6px;padding:10px 12px;display:grid;gap:8px}.bn-kopf{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:14px}.bn-felder{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:12px}@media (max-width:640px){.bn-felder{grid-template-columns:1fr}}.bn-label{display:grid;gap:4px;font-size:12px;color:var(--leise)}.bn-projekte{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--text)}.bn-projekt{display:inline-flex;align-items:center;gap:4px;cursor:pointer}.bn-projekte[hidden],.bn-label [hidden]{display:none}.bn-knoepfe{display:flex;gap:8px;flex-wrap:wrap}.bn-neu{display:flex;gap:8px;flex-wrap:wrap}.bn-neu input{max-width:260px}.bn-code{font-size:clamp(20px,5vw,30px);letter-spacing:.08em;padding:14px;text-align:center;border:1px dashed var(--linie);border-radius:6px;user-select:all}
+.pw-liste { position: absolute; width: 310px; max-width: calc(100vw - 24px); border: 1px solid var(--linie2); background: var(--flaeche2); border-radius: 4px;
+  box-shadow: 0 16px 40px -10px rgba(0,0,0,.7); padding: 6px; }
+.pw-liste .dialog-zu { display: none; }
+.pw-liste h3 { display: none; }
+.pw-eintrag { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; padding: 9px 10px; border: 0;
+  border-radius: 3px; background: none; color: var(--tinte); text-align: left; font: inherit; cursor: pointer; min-height: 48px; }
+.pw-eintrag:hover, .pw-eintrag:focus-visible { background: var(--flaeche); }
+.pw-eintrag.an { background: var(--bernstein-weich); }
+.pw-eintrag b { font: 600 15px var(--titel); letter-spacing: .03em; }
+.pw-eintrag small { display: block; color: var(--leise); font-size: 12px; }
+.pw-zahl { font: 600 12px var(--titel); color: var(--bernstein); white-space: nowrap; }
+.pw-fuss { border-top: 1px solid var(--linie); margin-top: 6px; padding: 8px 10px 4px; display: grid; gap: 4px; }
+.pc-marke { display: inline-block; font: 10.5px var(--titel); letter-spacing: .08em; text-transform: uppercase; padding: 1px 6px; border: 1px solid var(--blau);
+  border-radius: 2px; color: var(--blau); vertical-align: middle; }
+tr.fremd td { color: var(--sehrleise); font-style: italic; }
+.klein-knopf { font: 12px var(--titel); letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border: 1px solid var(--linie2);
+  background: transparent; border-radius: 3px; cursor: pointer; color: var(--leise); }
+.klein-knopf:hover { color: var(--tinte); border-color: var(--leise); }
+
+main { overflow-y: auto; padding: 26px 30px 60px; }
+.kopf { display: flex; align-items: baseline; gap: 14px; margin: 0 0 18px; flex-wrap: wrap; }
+/* Fester Seitenkopf – ein Baustein für alle Seiten: Die Titelzeile läuft beim Scrollen hinaus, die Untermenüs der Seite
+   (Reiter, Filter, Sprungmarken) bleiben oben stehen. Wie weit er hinausläuft (top), setzt seitenkopf(). */
+.seitenkopf { position: relative; }
+.seitenkopf.mit-menue { position: sticky; z-index: 6; margin: -26px -30px 16px; padding: 26px 30px 0; border-bottom: 1px solid transparent;
+  transition: background-color .15s, box-shadow .15s; }
+.seitenkopf.mit-menue > :last-child { margin-bottom: 0; }
+.seitenkopf.mit-menue > :last-child:not(.reiter) { padding-bottom: 10px; }
+.seitenkopf.fest { background: color-mix(in srgb, var(--grund) 90%, transparent); backdrop-filter: blur(8px); border-bottom-color: var(--linie);
+  box-shadow: 0 14px 18px -20px rgba(0,0,0,.7); }
+.seitenkopf.fest:has(> .reiter:last-child) { border-bottom-color: transparent; }
+.reiter-zeile { display: contents; }
+h1 { font: 600 28px/1.1 var(--titel); letter-spacing: .03em; margin: 0; }
+h2 { font: 600 13px var(--titel); letter-spacing: .16em; text-transform: uppercase; color: var(--leise); margin: 30px 0 12px;
+  display: flex; align-items: center; gap: 10px; }
+h2::after { content: ""; flex: 1; height: 1px; background: var(--linie); }
+.zeile-reveal > * { animation: auf .45s cubic-bezier(.2,.7,.2,1) both; }
+.zeile-reveal > *:nth-child(2) { animation-delay: .04s } .zeile-reveal > *:nth-child(3) { animation-delay: .08s }
+.zeile-reveal > *:nth-child(4) { animation-delay: .12s } .zeile-reveal > *:nth-child(5) { animation-delay: .16s }
+.zeile-reveal > *:nth-child(n+6) { animation-delay: .2s }
+.still .zeile-reveal > * { animation: none; }
+nav .fuss .version { width: 100%; font: 11px var(--mono); color: var(--sehrleise); letter-spacing: 0; }
+.einst { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 980px; }
+main { overflow-wrap: break-word; }   /* lange Pfade/Adressen brechen um statt über den Rand (A1707) */
+.einst > * { min-width: 0; }   /* sonst zieht die breite Agenten-Tabelle alle Karten über den Handy-Rand */
+.einst .karte { padding: 16px 18px; }
+.einst h3, .dialog > h3 { font: 600 15px var(--titel); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; }
+.einst .feld { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 6px 14px; align-items: start; padding: 5px 0; }
+.einst .feld > label { color: var(--leise); font-size: 13px; padding-top: 7px; }
+.einst input:not([type=checkbox]), .einst select { width: 100%; max-width: 420px; padding: 7px 9px; background: var(--grund); color: var(--tinte);
+  border: 1px solid var(--linie); border-radius: 3px; font: inherit; font-size: 14px; }
+.einst input[type=checkbox] { width: 18px; height: 18px; margin-top: 8px; accent-color: var(--bernstein); }
+.einst table.tab input:not([type=checkbox]), .einst table.tab select { min-width: 70px; }
+.einst table.tab td { vertical-align: middle; }
+.einst .gesperrt { opacity: .65; }
+@keyframes auf { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+

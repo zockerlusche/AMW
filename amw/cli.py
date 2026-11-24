@@ -3429,10 +3429,10 @@ def cmd_web(a, con):
     if a.aktion == "paket":
         return _web_paket(a)
     if a.aktion == "bauen":
-        quelle = os.path.join(os.path.dirname(__file__), "workbench.html")
+        from . import workbench                       # A2005: die Seite aus den Bausteinen (amw/workbench/)
         ziel = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "inc", "seite.html")
-        with open(quelle, encoding="utf-8") as f, open(ziel, "w", encoding="utf-8", newline="\n") as g:
-            g.write(f.read())
+        with open(ziel, "w", encoding="utf-8", newline="\n") as g:
+            g.write(workbench.seite())
         from . import __version__
         with open(os.path.join(os.path.dirname(ziel), "VERSION"), "w", encoding="utf-8", newline="\n") as g:
             g.write(__version__ + "\n")

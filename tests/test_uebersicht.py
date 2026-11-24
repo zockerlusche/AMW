@@ -1,6 +1,7 @@
 """Übersicht und Fragen-Reiter (A1657, Marcel 14.11.): Daten der Karten „Stand“, „Läuft gerade“, „Zustand“ und der
 Reiter „Erledigt“; die Zeit der letzten Synchronisierung löst allein kein Hochladen aus."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import io
 import json
 import os
 import tempfile
@@ -92,7 +93,7 @@ class Uebersicht(unittest.TestCase):
         „Läuft gerade“ statt „wird übertragen …“. Je Sprache darf jeder Schlüssel nur einmal vorkommen."""
         import collections
         import re
-        s = open(os.path.join(os.path.dirname(workbench.__file__), "workbench.html"), encoding="utf-8").read()
+        s = io.StringIO(workbench.seite()).read()
         for anfang, ende in (('n_start: "Übersicht"', 'n_start: "Overview"'), ('n_start: "Overview"', "\n  },")):
             i = s.index(anfang)
             blk = s[i:s.index(ende, i + 1)]

@@ -2,6 +2,7 @@
 ki_leerlauf_min ohne Auftrag – nur einen Prozess, den sie selbst gestartet hat (PID + Startzeit). KIs in ki_immer_an hält sie
 wie früher am Laufen."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import io
 import os
 import subprocess
 import sys
@@ -144,7 +145,7 @@ class Bedarf(Grund):
         self.assertEqual((k["betrieb"], k["von_amw"], k["leerlauf_min"]), ("bedarf", True, 30))
         with mock.patch.object(ki, "immer_an", return_value={"comfy"}):
             self.assertEqual(ki.uebersicht(self.con, self.pid)["kis"][0]["betrieb"], "immer")
-        with open(os.path.join(os.path.dirname(workbench.__file__), "workbench.html"), encoding="utf-8") as f:
+        with io.StringIO(workbench.seite()) as f:
             html = f.read()
         for x in ('ki_bedarf: "nur bei Bedarf"', 'ki_bedarf: "only when needed"', 'pcFeld("ki_leerlauf_min"', 'pcFeld("ki_immer_an"',
                   'e_ki_immer: "Lokale KIs immer an"', 'e_ki_immer: "Local AIs always on"'):

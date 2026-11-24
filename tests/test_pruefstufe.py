@@ -14,7 +14,7 @@ from amw import betrieb, db, kern, pruefstufe
 class Einstufen(unittest.TestCase):
     def test_vorgabe(self):
         m = pruefstufe.VORGABE
-        self.assertEqual(pruefstufe.einstufen(["amw/migration_33.sql", "amw/workbench.html", "README.md"], m),
+        self.assertEqual(pruefstufe.einstufen(["amw/migration_33.sql", "amw/workbench/skript/05-start.js", "README.md"], m),
                          ("hoch", ["amw/migration_33.sql"]))
         self.assertEqual(pruefstufe.einstufen(["doc/hilfe/dienst.md", "tests/x.py"], m), ("mittel", ["doc/hilfe/dienst.md"]))
         self.assertEqual(pruefstufe.einstufen(["web/hilfe/a.de.json"], m)[0], "mittel")       # * passt auch über / hinweg
@@ -117,7 +117,7 @@ class MitRepo(unittest.TestCase):
         """pruefstufen = an: hoch → der Lead prüft; mittel → nicht der Bauer selbst; höher einstufen ja, niedriger nie."""
         self.ordner_setzen()
         hoch = {"stufe": "hoch", "treffer": ["amw/bruecke.py"], "dateien": ["amw/bruecke.py"]}
-        mittel = {"stufe": "mittel", "treffer": ["amw/workbench.html"], "dateien": ["amw/workbench.html"]}
+        mittel = {"stufe": "mittel", "treffer": ["amw/workbench/skript/05-start.js"], "dateien": ["amw/workbench/skript/05-start.js"]}
         kern.agent_neu(self.con, self.pid, "CC2")
         self.assertEqual(pruefstufe.regel(self.con, self.pid, hoch, "CC1", "CC2"), "hoch")          # aus: nur anzeigen
         kern.projekt_einstellen(self.con, self.pid, "TL", pruefstufen="an")

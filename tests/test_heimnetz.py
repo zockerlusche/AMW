@@ -2,6 +2,7 @@
 Ist sie an, lauscht die Workbench auf allen Adressen, nimmt aber nur Anfragen vom PC selbst und aus dem Bereich an; Host und
 Origin müssen localhost bzw. eine IP aus dem Bereich sein (nie ein Name – DNS-Rebinding). Aus = wie bisher, nur 127.0.0.1."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import io
 import ipaddress
 import json
 import os
@@ -89,7 +90,7 @@ class Server(Grund):
         self.assertEqual(workbench.daten_start(self.con, self.pid)["heimnetz"], "192.168.178.0/24")
         self.assertIsNone(abgleich.ansichten(self.con, self.pid)["/api/start"]["heimnetz"])          # online nicht
         self.assertEqual(str(workbench.heimnetz()), "192.168.178.0/24")
-        with open(os.path.join(os.path.dirname(__file__), "..", "amw", "workbench.html"), encoding="utf-8") as f:
+        with io.StringIO(workbench.seite()) as f:
             html = f.read()
         for x in ('e_heimnetz: "Aus dem Heimnetz erreichbar"', 'e_heimnetz: "Reachable from the home network"',
                   "Jedes Gerät in diesem Netz hat volle Rechte ohne Anmeldung.", "Every device in this network has full rights without signing in.",

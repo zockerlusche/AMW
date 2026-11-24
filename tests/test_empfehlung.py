@@ -137,7 +137,7 @@ class Empfehlung(unittest.TestCase):
         self.assertIsNone(empfehlung.fuer_agent(self.con, self.pid, "TL"))
 
     def test_oberflaeche_texte_und_einstellung(self):
-        with open(os.path.join(WURZEL, "amw", "workbench.html"), encoding="utf-8") as f:
+        with io.StringIO(workbench.seite()) as f:
             html = f.read()
         schluessel = ["au_empfehlung", "au_empf_x", "au_empf_zelle", "au_empf_keine_zelle", "au_empf_profil", "empf_h", "k_empf",
                       "k_empf_passt", "k_empf_uebernehmen", "k_empf_frage", "k_empf_ok", "sb_empf", "e_empfehlung", "e_empfehlung_h",

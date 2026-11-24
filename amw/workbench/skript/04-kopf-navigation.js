@@ -1,0 +1,203 @@
+/* --- Kopf, Navigation ---------------------------------------------------------------------- */
+async function kopfAktualisieren() {                    /* A1907: Kopfzeile immer; wer darauf wartet (Startseite, Takt), nur ohne Wechsel */
+  const nr = wechselNr;
+  await kopfLaden();
+  if (nr !== wechselNr) return veraltet();
+}
+async function kopfLaden() {
+  try {
+    const d = await abrufen("/api/start"); zustand.start = d; zustand.startFehler = null;
+    if (!spracheGewaehlt && ["de", "en"].includes(d.sprache_vorgabe) && d.sprache_vorgabe !== sprache) {   /* Vorgabe der Installation */
+      spracheGewaehlt = true; sprache = d.sprache_vorgabe; feste_texte(); if (zustand.sicht) zeige(zustand.sicht, true); }   /* A1907: neu zeichnen, kein Wechsel */
+    const wv = d.online?.web_version;
+    $("#version").textContent = d.version ? `v${d.version}` + (wv && wv !== d.version ? ` · Web v${wv}` : "") : "";
+    const sollen = d.agenten.filter(a => a.soll === "an" && !a.chat), lebend = sollen.filter(a => a.zustand === "aktiv").length;
+    const extra = d.agenten.filter(a => a.soll !== "an" && a.zustand === "aktiv").length;     /* laufen, ohne zu sollen */
+    const sp = d.speicher.frei;
+    $("#signale").replaceChildren(...[
+      d.online ? el("span", { class: "signal" + (d.online.pc_frisch ? " unwichtig" : "") }, el("span", { class: "punkt " + (d.online.pc_frisch ? "gruen" : "bernstein") }),
+        t(d.online.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online.pc_gesehen_utc) }) + (d.online.briefkasten ? " · " + t("s_briefkasten", { n: d.online.briefkasten }) : ""))
+        : (() => { const [f, x] = dienstLage(d); return el("span", { class: "signal" + (f === "gruen" ? " unwichtig" : ""), title: pcHinweis() },
+            el("span", { class: "punkt " + f }), t({ gruen: "s_dienst", bernstein: "s_dienst", rot: "s_dienst_stoerung", "": "s_dienst_aus" }[f])); })(),
+      el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: sollen.length }) + (extra ? " · " + t("s_extra", { n: extra }) : "")),
+      el("span", { class: "signal unwichtig", title: pcHinweis() }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: Math.round(sp) })),
+      /* Steuern geschieht im Leitstand (Start, unter den Agenten); hier steht nur, was vom Normalfall abweicht – Klick führt hin */
+      d.halt.length ? el("span", { class: "signal knopflich", title: t("ls_hin"), onclick: zumLeitstand }, el("span", { class: "punkt rot" }), t("halt_an")) : null,
+      d.schirm?.frei ? el("span", { class: "signal knopflich", title: [d.schirm.grund, t("ls_hin")].filter(Boolean).join(" · "), onclick: zumLeitstand },
+        el("span", { class: "punkt bernstein" }), t("s_schirm_frei")) : null,
+      (d.ende || []).length ? el("span", { class: "signal knopflich", title: t("ls_hin"), onclick: zumLeitstand }, el("span", { class: "punkt bernstein" }),
+        t("s_ende", { n: d.ende.length, x: zeit(d.ende[0].bis_utc) })) : null,
+    ].filter(Boolean));
+    for (const z of document.querySelectorAll("[data-zahl]")) {
+      const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", ["fragen", "freigaben"].includes(z.dataset.zahl) && n > 0);
+    }
+  } catch (e) {
+    zustand.startFehler = String(e.message || e);      /* A1998: die Startseite zeigt den Grund (z. B. „Noch kein Abgleich …“) */
+    if (e.leer) { $("#signale").replaceChildren(); return; }   /* P552: kein Abgleich ist kein Ausfall – ein Status, im Inhalt */
+    $("#signale").replaceChildren(el("span", { class: "signal" }, el("span", { class: "punkt rot" }), t("s_dienst_weg")));
+  }
+}
+/* ruhig = Selbst-Aktualisierung: keine Einblend-Animation, Scrollposition bleibt (sonst „springen“ die Kacheln) */
+let ruhig = false;
+/* Sieben Menüpunkte (A1657, Marcel 14.11.): was früher ein eigener Punkt war, ist jetzt ein Reiter seines Bereichs. Die alten
+   Adressen (#arbeit, #verlauf, #teamchat, #dokumente, #releases) bleiben gültig und zeigen den Reiter. */
+const BEREICH = { arbeit: "planung", verlauf: "planung", teamchat: "nachrichten", runde: "nachrichten", dokumente: "wissen", releases: "wissen" };
+function bereichReiter(teile, aktiv, ...rechts) {
+  return el("div", { class: "reiter bereich-reiter" }, teile.map(([k, text, tun]) => el("button", { type: "button", class: k === aktiv ? "an" : "", onclick: tun }, text)), ...rechts);
+}
+function planReiter(aktiv, n = {}) {
+  const plan = k => () => { zustand.planReiter = k; zeige("planung"); };
+  return bereichReiter([...(n.meilensteine ? [["meilensteine", t("pm_meilensteine"), plan("meilensteine")], ["pakete", t("pm_pakete"), plan("pakete")]] : []),   /* A1950 */
+    ["zeitleiste", t("pr_zeitleiste"), plan("zeitleiste")], ["arbeit", t("n_aufgaben"), () => zeige("arbeit")],
+    ["termine", t("pr_termine"), plan("termine")], ["verlauf", t("n_verlauf"), () => zeige("verlauf")], ["leitbild", t("pr_leitbild"), plan("leitbild")],
+    ["risiken", t("pr_risiken") + (n.risiken !== undefined ? ` (${n.risiken})` : ""), plan("risiken")],
+    ["check", t("pr_check") + (n.check ? ` (${n.check})` : ""), plan("check")], ["protokoll", t("pr_protokoll"), plan("protokoll")]], aktiv);
+}
+function wissenReiter(aktiv) {
+  const w = k => () => { zustand.wissenReiter = k; zeige("wissen"); };
+  return bereichReiter([...["themen", "beschluesse", "regeln", "wortlaut", "notizen"].map(k => [k, t("rb_" + k), w(k)]),
+    ["dokumente", t("n_dokumente"), () => zeige("dokumente")], ["releases", t("n_releases"), () => zeige("releases")]], aktiv);
+}
+const wissenExtern = () => [["dokumente", "n_dokumente"], ["releases", "n_releases"]].map(([s, k]) =>
+  el("button", { type: "button", onclick: () => zeige(s) }, t(k)));
+function zeige(sicht, still = false) {
+  if (!still) { wechselNr++; seitenNr++; }                              /* A1907: was die vorige Seite noch lädt, zeichnet nicht mehr */
+  ruhig = still;
+  const pos = [$("#inhalt").scrollTop, window.scrollY];
+  const offen = still && zustand.sicht === sicht        /* still neu gezeichnet: aufgeklappte Abschnitte bleiben offen */
+    ? new Set([...$("#inhalt").querySelectorAll("details[open] > summary")].map(s => s.textContent)) : null;
+  zustand.sicht = sicht;
+  gezeichnet.sicht = sicht; gezeichnet.stempel = stempel(sicht); gezeichnet.um = Date.now();
+  $("#neuer-stand")?.remove();
+  const bereich = BEREICH[sicht] || sicht;               /* A1657: Unterseiten gehören zu einem der sieben Menüpunkte */
+  for (const a of document.querySelectorAll("nav a[data-sicht]")) a.classList.toggle("an", a.dataset.sicht === bereich);
+  $("#mehr")?.classList.toggle("an", !!document.querySelector(`nav a.im-mehr[data-sicht="${bereich}"]`));
+  try { localStorage.setItem(ablage("amw-sicht"), sicht); } catch (e) {}
+  if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
+  const fertig = ({ start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, projektweg: sichtProjektweg, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, runde: sichtRunde, wissen: sichtWissen, themen: sichtThemen, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
+  if (!still) { $("#inhalt").scrollTop = 0; return fertig; }
+  return Promise.resolve(fertig).then(() => {
+    if (offen?.size) for (const s of $("#inhalt").querySelectorAll("details > summary")) if (offen.has(s.textContent)) s.parentElement.open = true;
+    $("#inhalt").scrollTop = pos[0]; window.scrollTo(0, pos[1]); });
+}
+/* Seiten aktualisieren sich selbst – am PC, online und am Handy:
+   - nach einer eigenen Aktion (jedes schicken) gleich danach,
+   - bei Änderungen von außen (Agenten, Brücke, Handy): /api/start bringt je Sicht einen Stempel (jüngste Änderung und Anzahl
+     ihrer Tabellen); ändert er sich, wird die offene Sicht still neu gezeichnet. Start und Betrieb laden ohnehin im Takt.
+   Nie, wenn dabei etwas verloren ginge (Tippen, ungespeicherte Eingabe, markierter Text, offener Dialog) – dann steht unten
+   „Neuer Stand“ mit Knopf. Online kommt die Ansicht der Sicht evtl. erst eine Runde nach dem Stempel: einmal nachladen. */
+const gezeichnet = { sicht: null, stempel: null, um: 0, nachlauf: false };
+const stempel = s => s === "start" || s === "betrieb" || s === "einstellungen" ? null
+  : (zustand.start?.stand?.[s] ?? null) === null ? null : zustand.start.stand[s] + "|" + (zustand.start.online?.briefkasten ?? "");
+function ungespeichert() {
+  for (const x of $("#inhalt").querySelectorAll("textarea, input, select")) {
+    if (x.disabled || x.dataset.filter) continue;     /* gesperrt = schon abgeschickt; Filter sind keine Eingabe (A1844, nur Nachrichten) */
+    if (x.tagName === "SELECT") { if ([...x.options].some(o => o.selected !== o.defaultSelected)) return true; }
+    else if (x.type === "checkbox" || x.type === "radio") { if (x.checked !== x.defaultChecked) return true; }
+    else if (!["button", "submit", "file", "hidden"].includes(x.type) && x.value !== x.defaultValue) return true;
+  }
+  return false;
+}
+function stoerfrei(dialogErlaubt = false) {
+  const tippt = ["TEXTAREA", "INPUT", "SELECT"].includes(document.activeElement?.tagName);
+  const markiert = String(window.getSelection?.() || "").trim() !== "";
+  return !document.hidden && !tippt && !markiert && (dialogErlaubt || !document.querySelector(".dialog-hg")) && !ungespeichert();
+}
+function neuerStandLeiste() {
+  if (document.getElementById("neuer-stand")) return;
+  const k = el("button", { class: "knopf haupt", type: "button", onclick: () => zeige(zustand.sicht, true) }, t("neuer_stand_knopf"));
+  document.body.append(el("div", { class: "karte neuer-stand", id: "neuer-stand", role: "status" }, el("span", { class: "leise", style: "flex:1;min-width:0" }, t("neuer_stand")), k));
+}
+function frischZeichnen(dialogErlaubt = false) {
+  if (zustand.sicht === "einstellungen") return;
+  if (stoerfrei(dialogErlaubt)) zeige(zustand.sicht, true); else neuerStandLeiste();
+}
+function nachAktion() {             /* mehrere schicken hintereinander (z. B. Hochladen in Teilen): nur das letzte zählt */
+  const z = gezeichnet.aktion = Date.now();
+  setTimeout(async () => {
+    if (gezeichnet.aktion !== z) return;
+    await kopfAktualisieren();
+    if (gezeichnet.aktion !== z || gezeichnet.um >= z) return;           /* die Aktion hat schon selbst neu gezeichnet (auch in derselben Millisekunde) */
+    frischZeichnen(true);
+  }, 900);
+}
+function standPruefen() {
+  const s = zustand.sicht, neu = stempel(s);
+  if (neu === null || gezeichnet.sicht !== s) return;
+  if (neu === gezeichnet.stempel && !gezeichnet.nachlauf) return;
+  gezeichnet.nachlauf = !!API && neu !== gezeichnet.stempel;
+  frischZeichnen();
+}
+/* Klasse „still“ erst hier setzen, im selben Schritt wie das Ersetzen – sonst liefe die Animation am alten Inhalt */
+function rahmen(titel, ...rest) {
+  wechselNr++;                                           /* A1907: neu gezeichnet (auch ein Reiter derselben Seite) – Altes zeichnet nicht dazu */
+  const m = $("#inhalt"); m.classList.toggle("still", ruhig); m.classList.remove("geteilt-seite");
+  const gleich = kopfStand.sicht === zustand.sicht;            /* dieselbe Seite neu gezeichnet: Untermenüs bleiben waagrecht, wo sie waren */
+  kopfStand.lage = gleich ? Object.fromEntries([...m.querySelectorAll(":scope > .seitenkopf > *")].map(e => [e.classList[0], (e.querySelector(".reiter-zeile") || e).scrollLeft])) : {};
+  kopfStand.sicht = zustand.sicht; kopfStand.weg = 0;
+  const k = el("div", { class: "seitenkopf" }, el("div", { class: "kopf" }, el("h1", {}, titel), ...rest));
+  m.replaceChildren(k); kopfStand.groesse.disconnect(); kopfStand.groesse.observe(k); return m;
+}
+/* Liste links, Inhalt rechts (A1628) – wie im Mail-Programm: am PC füllen beide Spalten das Fenster unter dem Kopf und
+   scrollen je für sich; die Seite selbst scrollt dann nicht, die Liste bleibt stehen, wenn man rechts liest. Am Handy
+   (eine Spalte: Liste → Inhalt mit Zurück) bleibt alles, wie es war. Rückgabe: passen() – nach dem Neuzeichnen aufrufen. */
+const BREIT = matchMedia("(min-width: 761px)");
+function geteilt(raster) {
+  const m = $("#inhalt");
+  raster.classList.add("geteilt");
+  const ro = new ResizeObserver(() => passen());
+  const passen = () => {
+    if (!raster.isConnected) { ro.disconnect(); BREIT.removeEventListener("change", passen); return; }
+    m.classList.toggle("geteilt-seite", BREIT.matches);
+    if (!BREIT.matches) { raster.style.height = ""; return; }
+    const oben = raster.getBoundingClientRect().top - m.getBoundingClientRect().top + m.scrollTop;
+    raster.style.height = Math.max(320, m.clientHeight - oben - parseFloat(getComputedStyle(m).paddingBottom || 0)) + "px";
+  };
+  ro.observe(m);
+  for (let x = raster.previousElementSibling; x; x = x.previousElementSibling) ro.observe(x);   /* Kopf, Filter: ändern die Höhe darüber */
+  BREIT.addEventListener("change", passen);
+  requestAnimationFrame(passen);
+  return passen;
+}
+/* Fester Seitenkopf: rahmen() legt ihn an; jedes Untermenü, das eine Seite direkt darunter hängt (Reiter, Filter, Sprungmarken),
+   wandert von selbst hinein – keine Seite braucht dafür eigenen Code. Beim Scrollen läuft die Titelzeile hinaus (top negativ),
+   die Untermenüs bleiben stehen; Sprungziele landen darunter (scroll-padding). */
+const UNTERMENUE = ".reiter, .vl-filter, .dk-arten, .dk-filter, .sprung";
+/* Am Handy wischbare Untermenüs: ein Verlauf an der Kante zeigt, dass es dort weitergeht (sonst endet ein Reiter mitten im Wort) */
+function kante(w) {
+  const rest = w.scrollWidth - w.clientWidth - w.scrollLeft;
+  w.classList.toggle("weiter-r", rest > 2);
+  w.classList.toggle("weiter-l", w.scrollLeft > 2);
+}
+const kopfStand = { sicht: null, lage: {}, weg: 0, groesse: new ResizeObserver(() => seitenkopf()) };
+function seitenkopf() {
+  const m = $("#inhalt"), k = m.firstElementChild;
+  if (!k?.classList.contains("seitenkopf")) return;
+  for (let n; (n = k.nextElementSibling) && n.matches(UNTERMENUE);) {
+    k.append(n);
+    let w = n;                                   /* w = was sich am Handy waagrecht wischen lässt */
+    if (n.classList.contains("reiter")) { w = el("div", { class: "reiter-zeile" }); w.append(...n.querySelectorAll(":scope > button")); n.prepend(w); }
+    const an = w.querySelector("button.an");
+    if (kopfStand.lage[n.classList[0]]) w.scrollLeft = kopfStand.lage[n.classList[0]];
+    else if (an && w.scrollWidth > w.clientWidth) w.scrollLeft += an.getBoundingClientRect().left - w.getBoundingClientRect().left - (w.clientWidth - an.offsetWidth) / 2;
+    w.addEventListener("scroll", () => kante(w), { passive: true });
+  }
+  for (const w of k.querySelectorAll(":scope > .reiter > .reiter-zeile, :scope > :is(.vl-filter, .dk-arten, .dk-filter, .sprung)")) kante(w);
+  const erstes = k.querySelector(`:scope > :is(${UNTERMENUE})`);
+  k.classList.toggle("mit-menue", !!erstes);
+  kopfStand.weg = erstes ? Math.max(0, erstes.offsetTop - 8) : 0;        /* so viel läuft oben hinaus: Titelzeile samt Abstand */
+  k.style.top = erstes ? -(kopfStand.weg + parseFloat(getComputedStyle(m).paddingTop)) + "px" : "";   /* top zählt ab dem Innenabstand von main */
+  m.style.scrollPaddingTop = erstes ? k.offsetHeight - kopfStand.weg + 10 + "px" : "";
+  m.style.setProperty("--kopf", (erstes ? k.offsetHeight - kopfStand.weg : 0) + "px");      /* was oben stehen bleibt (A1628) */
+  k.classList.toggle("fest", !!erstes && m.scrollTop > kopfStand.weg);
+}
+new MutationObserver(seitenkopf).observe($("#inhalt"), { childList: true });
+$("#inhalt").addEventListener("scroll", () => { const k = $("#inhalt").firstElementChild;
+  if (k?.classList.contains("mit-menue")) k.classList.toggle("fest", $("#inhalt").scrollTop > kopfStand.weg); }, { passive: true });
+/* Sprungmarken aus den Abschnitten (h2) einer langen Seite – sie landen wie jedes Untermenü im festen Seitenkopf */
+function sprungmarken(m) {
+  const marken = [...m.querySelectorAll(":scope > h2")].map(h => el("a", { onclick: () => h.scrollIntoView({ behavior: "smooth", block: "start" }) },
+    [...h.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent).join("").trim() || h.textContent));
+  if (marken.length > 2) m.querySelector(":scope > .seitenkopf")?.after(el("div", { class: "sprung" }, marken));
+}
+

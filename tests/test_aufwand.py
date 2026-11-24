@@ -112,7 +112,7 @@ class Aufwand(unittest.TestCase):
         self.assertIn(f"A{lauf} bisher 0.50 $", aus.getvalue())
 
     def test_texte_de_und_en(self):
-        with open(os.path.join(WURZEL, "amw", "workbench.html"), encoding="utf-8") as f:
+        with io.StringIO(workbench.seite()) as f:
             html = f.read()
         for schluessel in ("k_aufwand_titel", "k_aufwand_median", "k_aufwand_eingestellt", "k_aufwand_laeuft", "k_aufwand_leer",
                            "k_aufwand_h", "au_verbrauch", "au_verbrauch_x"):

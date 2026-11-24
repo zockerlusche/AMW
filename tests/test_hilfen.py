@@ -1,6 +1,8 @@
 """Schritt-für-Schritt-Hilfen (R1a): ein Baustein, gespeist aus doc/hilfe/ – Aufbau der Dateien, beide Sprachen, jede
 Hilfe, auf die die Oberfläche verweist, gibt es; am PC und online unter derselben Adresse."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import io
+from amw import workbench  # A2005: die Seite aus den Bausteinen
 import json
 import os
 import re
@@ -99,7 +101,7 @@ class Inhalt(unittest.TestCase):
                     self.assertTrue(os.path.isfile(os.path.join(WURZEL, "amw", "hilfe", b["name"] + ".webp")), b["name"])
 
     def test_oberflaeche_verweist_nur_auf_vorhandene_hilfen(self):
-        with open(os.path.join(WURZEL, "amw", "workbench.html"), encoding="utf-8") as f:
+        with io.StringIO(workbench.seite()) as f:
             seite = f.read()
         gemeint = set(re.findall(r'(?:hilfe|hilfeKnopf|mitHilfe)\("([a-z0-9-]+)"', seite))
         self.assertTrue({"neues-projekt", "ntfy", "online-speicher-turso"} <= gemeint, gemeint)

@@ -6,6 +6,7 @@
   eine neue Frage von außen erscheint ohne Klick; eine ungespeicherte Eingabe bleibt, stattdessen „Neuer Stand“.
 """
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import io
 import base64
 import json
 import os
@@ -124,7 +125,7 @@ class Stempel(Grund):
         return workbench.daten_start(self.con, self.pid)["stand"]
 
     def test_jede_sicht_hat_einen_stempel_und_die_seite_kennt_sie(self):
-        html = open(os.path.join(os.path.dirname(workbench.__file__), "workbench.html"), encoding="utf-8").read()
+        html = io.StringIO(workbench.seite()).read()
         for s in workbench.STAND_SICHTEN:
             self.assertIn(f" {s}: sicht", html)                 # Sicht gibt es in zeige()
         self.assertEqual(set(self.stand()), set(workbench.STAND_SICHTEN))

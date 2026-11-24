@@ -3,6 +3,7 @@ im Postfach „Nachrichten“ (dort nur ein Hinweis); Nachrichten zeigen die Art
 mehrere auf einmal erledigen; neuer Menüpunkt „Team-Chat“ für Agenten untereinander (nur lesen, zählt nie). Dazu der Fix
 der Faden-Zuordnung: Nachrichten hängen sich nicht mehr von selbst an eine Rückfrage zu einer Frage."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import io
 import os
 import tempfile
 import unittest
@@ -52,7 +53,7 @@ class Postfach(Grund):
                 kern.frage_parken(self.con, self.pid, E, fid)                                   # auch geparkt: Nachträge bleiben bei der Frage
 
     def test_seite_kennt_hinweis_arten_und_sammel_erledigt(self):
-        with open(os.path.join(os.path.dirname(__file__), "..", "amw", "workbench.html"), encoding="utf-8") as f:
+        with io.StringIO(workbench.seite()) as f:
             html = f.read()
         nr = html.split("async function sichtNachrichten")[1].split("\nasync function ")[0]
         for x in ('d.zaehler.fragen_offen', '"nr_fragen_offen"', 'class: "nr-sammel"', 'schicken("/api/gelesen", { ids }, p)',

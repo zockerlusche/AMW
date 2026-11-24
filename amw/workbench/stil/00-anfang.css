@@ -1,0 +1,36 @@
+:root {
+  --grund: #13120e; --flaeche: #1c1a15; --flaeche2: #24211b; --linie: #353026; --linie2: #4a4335;
+  --tinte: #ece5d3; --leise: #a39a86; --sehrleise: #6f6858;
+  --bernstein: #f0a93a; --bernstein-weich: rgba(240,169,58,.12);
+  --gruen: #86b46f; --rot: #e5583a; --rot-weich: rgba(229,88,58,.14); --blau: #6fa3c8; --glut: #e8743b;
+  --token: #c9a0ff;                                 /* Token-Pause: Violett – in keinem anderen Zustand benutzt */
+  --z-plan: #56b4e9; --z-fertig: #2fbf95; --z-spaet: #ef7a3a; --z-knapp: #e6b800; --z-geplant: #a39a86;   /* A1777: Okabe-Ito, für dunkel aufgehellt */
+  --projekt-farbe: var(--bernstein);
+  --schatten: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 30px -18px rgba(0,0,0,.8);
+  --titel: "Bahnschrift", "DIN Alternate", "Barlow Semi Condensed", "Arial Narrow", sans-serif;
+  --text: "Segoe UI Variable Text", "Segoe UI", "Source Sans 3", -apple-system, "Roboto", sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", "JetBrains Mono", "SF Mono", Consolas, monospace;
+}
+:root[data-thema="hell"] {
+  --grund: #efe9da; --flaeche: #f8f4ea; --flaeche2: #f1ebdc; --linie: #d8cfba; --linie2: #c4b99f;
+  --tinte: #211e17; --leise: #6b6250; --sehrleise: #9a907b;
+  --bernstein: #b46d07; --bernstein-weich: rgba(180,109,7,.10);
+  --gruen: #4c7d36; --rot: #b8381c; --rot-weich: rgba(184,56,28,.10); --blau: #2f6f9a; --glut: #c4501f;
+  --token: #6c3fb5;
+  --z-plan: #0062a0; --z-fertig: #007a5a; --z-spaet: #b84a00; --z-knapp: #8a6d00; --z-geplant: #6b6250;
+  --schatten: 0 10px 24px -18px rgba(60,45,10,.45);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--grund); color: var(--tinte); font: 14px/1.45 var(--text);
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(255,255,255,.018) 31px 32px),
+    radial-gradient(1200px 500px at 85% -10%, var(--bernstein-weich), transparent 60%);
+}
+:root[data-thema="hell"] body { background-image: repeating-linear-gradient(0deg, transparent 0 31px, rgba(0,0,0,.03) 31px 32px); }
+button, input, select, textarea { font: inherit; color: inherit; }
+.mono { font-family: var(--mono); font-size: 12.5px; letter-spacing: -.01em; }
+.leise { color: var(--leise); }
+.sehrleise { color: var(--sehrleise); }
+

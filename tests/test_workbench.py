@@ -1,5 +1,6 @@
 """Tests für die Workbench-Schnittstelle: Lesen, Antworten, Schutz der Schreibwege."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import io
 import http.client
 import json
 import os
@@ -124,7 +125,7 @@ class Workbench(unittest.TestCase):
         node = shutil.which("node")
         if not node:
             self.skipTest("node nicht installiert")
-        html = open(os.path.join(os.path.dirname(workbench.__file__), "workbench.html"), encoding="utf-8").read()
+        html = io.StringIO(workbench.seite()).read()
         skript = html[html.index("<script>") + 8:html.rindex("</script>")]
         datei = os.path.join(self.ordner.name, "seite.js")
         with open(datei, "w", encoding="utf-8") as f:

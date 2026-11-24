@@ -18,7 +18,7 @@ VORGABE = {"hoch": ["amw/migration_*.sql", "amw/schema.sql", "amw/db.py", "amw/b
                     "amw/hook.py", "amw/bruecke.py", "amw/laufdienst.py", "amw/auslieferung.py", "amw/betrieb.py", "amw/cli.py",
                     "amw/aktionen.py", "amw/workbench.py", "amw/dienst.py", "amw/ki.py", "amw/einstellungen.py", "amw/runde.py",
                     "web/*.php"],
-           "mittel": ["amw/workbench.html", "web/*", "doc/hilfe/*"],
+           "mittel": ["amw/workbench/*", "web/*", "doc/hilfe/*"],
            "niedrig": ["doc/*", "tests/*", "*.md", "amw/__init__.py", "web/inc/VERSION"]}
 STUFEN = ("niedrig", "mittel", "hoch")
 UNBEKANNT = "unbekannt"
@@ -154,7 +154,7 @@ def leerzeichen_warnung(con, pid, sha, aufgabe_id=None):
 
 
 # --- A1755: sichtbare Änderung nur mit Bild (B2750, Lückenliste TL, Marcel W2168) -------------------------------------------
-SICHTBAR = ("web/", "doc/hilfe/", "amw/workbench.html")
+SICHTBAR = ("web/", "doc/hilfe/", "amw/workbench/")                 # A2005: Bausteine statt workbench.html
 
 
 def _eigene_basis(con, pid, ordner, sha, aufgabe_id):

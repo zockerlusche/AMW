@@ -14,6 +14,7 @@ import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im 
 import contextlib
 import http.cookiejar
 import io
+from amw import workbench  # A2005: die Seite aus den Bausteinen
 import os
 import re
 import shutil
@@ -147,7 +148,7 @@ class Paket(unittest.TestCase):
         self.assertNotIn("speicher_ca", k)
         self.assertIn("Die ZIP ist ein Geheimnis", aus)                          # Pflicht-Hinweis (TL)
         self.assertIn("DIESE ZIP IST EIN GEHEIMNIS", z.read("amw-paket/LIESMICH.txt").decode("utf-8"))
-        with open(os.path.join(WURZEL, "amw", "workbench.html"), encoding="utf-8") as f:   # Knöpfe so, wie sie in der Workbench heißen
+        with io.StringIO(workbench.seite()) as f:   # Knöpfe so, wie sie in der Workbench heißen
             knoepfe = re.findall(r'pv_(?:speicher|seite): "([^"]+)"', f.read())
         self.assertEqual(knoepfe, ["Verbindung testen", "Online-Seite testen", "Test connection", "Test online page"])
         liesmich = z.read("amw-paket/LIESMICH.txt").decode("utf-8")

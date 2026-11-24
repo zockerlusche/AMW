@@ -1,5 +1,7 @@
 """Tests für den Abgleich mit dem Online-Speicher – statt Turso eine lokale SQLite-Datei."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import io
+from amw import workbench  # A2005: die Seite aus den Bausteinen
 import json
 import os
 import sqlite3
@@ -160,7 +162,7 @@ class Abgleich(unittest.TestCase):
 
     def test_seite_fuer_webhoster_ist_aktuell(self):
         wurzel = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        with open(os.path.join(wurzel, "amw", "workbench.html"), encoding="utf-8") as a, \
+        with io.StringIO(workbench.seite()) as a, \
                 open(os.path.join(wurzel, "web", "inc", "seite.html"), encoding="utf-8") as b:
             self.assertEqual(a.read(), b.read(), "web/inc/seite.html veraltet – `amw web bauen`")
         from amw import __version__
