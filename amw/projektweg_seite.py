@@ -195,7 +195,7 @@ def _teilweise(con, pid, namen):
             da = ", ".join(str(v) for k, v in (j.get("angelegt") or {}).items() if k not in bestehend)
             gruende = [{"art": "teil_" + art, "x": {"x": text}} for art, text in (
                 ("angelegt", da), ("geaendert", titel(j.get("geaendert") or [])), ("verworfen", titel(j.get("verworfen") or [])),
-                ("offen", titel(j.get("offen") or []))) if text]
+                ("offen", ", ".join(y for y in (titel(j.get("offen") or []), ", ".join(f"„{t}“" for t in j.get("offen_neu") or [])) if y))) if text]
             aus.append({"thema": tid, "name": name, "eid": e["id"], "fassung": e.get("fassung"), "teilweise": True,
                         "gruende": gruende + [{"art": "teil_lead", "x": {}}], "hinweise": planhinweis.offene(con, pid, tid)})
     return aus

@@ -660,6 +660,82 @@ class AbbruchBeimAnwenden(BlockGrund):
         self.assertEqual((len(j["geaendert"]), len(j["offen"])), (2, 2))
         self.assertTrue(any(v.startswith("A") for v in j["angelegt"].values()))
 
+    def halb(self, ziel, name, bei=1):
+        """Der bei-te Aufruf von ziel.name scheitert, während das Ja das eine neue Paket in einem bestehenden Meilenstein anlegt."""
+        eid = self.entwurf(neu=False)
+        echt, n = getattr(ziel, name), [0]
+
+        def scheitert(*a, **k):
+            n[0] += 1
+            if n[0] == bei:
+                raise kern.AmwFehler("Platte voll")
+            return echt(*a, **k)
+        with mock.patch.object(ziel, name, scheitert):
+            with self.assertRaisesRegex(kern.AmwFehler, "Platte voll"):
+                planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        return eid
+
+    def pruefe_halb(self, eid):
+        aid = self.con.execute("SELECT id FROM aufgabe WHERE titel = 'Passkey nachrüsten'").fetchall()
+        self.assertEqual(len(aid), 1)
+        j = self.ja()[-1]
+        self.assertEqual((j["abgebrochen"], j["unfertig"], j["angelegt"]["N1"]), ("Platte voll", ["N1"], f"A{aid[0][0]}"))
+        self.assertIn(f"N1 → A{aid[0][0]} (vielleicht unvollständig)", self.post("TL")[-1][2])
+        with self.assertRaisesRegex(kern.AmwFehler, "schon angenommen"):                             # kein doppeltes Paket
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid, eid=eid)
+        self.assertEqual(len(self.con.execute("SELECT id FROM aufgabe WHERE titel = 'Passkey nachrüsten'").fetchall()), 1)
+
+    def test_erstes_neues_paket_halb_angelegt_arbeitspaket(self):
+        from amw import arbeitspaket
+        self.pruefe_halb(self.halb(arbeitspaket, "setzen"))
+
+    def test_erstes_neues_paket_halb_angelegt_zweite_transaktion(self):
+        from amw import planung
+        echt, n = db.schreiben, [0]
+
+        def schreiben(con):
+            if n[0] >= 0 and con.execute("SELECT 1 FROM aufgabe WHERE titel = 'Passkey nachrüsten'").fetchone():
+                n[0] = -1                                                                            # die Aufgabe ist da, die Werte fehlen noch
+                raise kern.AmwFehler("Platte voll")
+            return echt(con)
+        eid = self.entwurf(neu=False)
+        with mock.patch.object(planung.db, "schreiben", schreiben):
+            with self.assertRaisesRegex(kern.AmwFehler, "Platte voll"):
+                planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.pruefe_halb(eid)
+
+    def test_halb_angelegter_neuer_meilenstein(self):
+        from amw import planung
+        eid = self.entwurf()
+        with mock.patch.object(planung, "bogen_zeile", side_effect=kern.AmwFehler("Platte voll")):   # der Meilenstein ist da, seine Nummer noch nicht notiert
+            with self.assertRaisesRegex(kern.AmwFehler, "Platte voll"):
+                planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        j = self.ja()[-1]
+        self.assertEqual((j["unfertig"], j["offen_neu"]), (["M2"], ["Passkey nachrüsten"]))
+        with self.assertRaisesRegex(kern.AmwFehler, "schon angenommen"):
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid, eid=eid)
+
+    def test_noch_nicht_angelegte_neue_pakete_stehen_da(self):
+        from amw import planung, projektweg_seite
+        fuenf = [{**self.paket("M1"), "schluessel": f"N{i}", "titel": t} for i, t in enumerate(
+            ("Schlüssel speichern", "Anzeige im Profil", "Gerät entfernen", "Mail bei neuem Gerät", "Hilfe schreiben"))]
+        self.entwurf(neu=False, pakete=fuenf)
+        echt, n = planung.schritt_setzen, [0]
+
+        def setzen(*a, **k):
+            n[0] += 1
+            if n[0] == 3:
+                raise kern.AmwFehler("Platte voll")
+            return echt(*a, **k)
+        with mock.patch.object(planung, "schritt_setzen", setzen):
+            with self.assertRaisesRegex(kern.AmwFehler, "Platte voll"):
+                planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        j = self.ja()[-1]
+        self.assertEqual((j["offen_neu"], j["unfertig"]), (["Gerät entfernen", "Mail bei neuem Gerät", "Hilfe schreiben"], []))
+        self.assertIn("Noch nicht angelegt: „Gerät entfernen“, „Mail bei neuem Gerät“, „Hilfe schreiben“", self.post("TL")[-1][2])
+        x = projektweg_seite._teilweise(self.con, self.pid, {self.tid: "Anmeldung"})[0]["gruende"]
+        self.assertIn("„Gerät entfernen“, „Mail bei neuem Gerät“", next(g for g in x if g["art"] == "teil_offen")["x"]["x"])
+
     def test_verwerfen_scheitert_nach_einer_aenderung(self):
         a = self.weitere
         self.entwurf(neu=False, meilensteine=[], pakete=[], aendern=[{"paket": f"A{a[0]}", "titel": "Neu 0", "auftrag": "neu", "grund": "Passkey"}],

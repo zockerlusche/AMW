@@ -480,6 +480,7 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
             if fehlt:
                 return {"ja_fehlt": ", ".join(fehlt)}     # gleicher Typ wie {Schlüssel: "A123"} – P593 (Sprachprüfung)
         merke = _ereignis(con, pid, von, JA, tid, entwurf=e["id"], angelegt={}, laeuft=True)
+        zuvor = [con.execute(f"SELECT coalesce(max(id), 0) FROM {tab}").fetchone()[0] for tab in ("aufgabe", "bogen")]   # A2085
     schon, stand = {}, {}
     vorher = delta_start.merken(con, pid, entwurf) if ist_delta else {}
     try:
@@ -487,22 +488,27 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
         if ist_delta:                                    # A2027: dann ändern und verwerfen, was der Planer vorschlägt
             planer_delta.anwenden(con, pid, von, tid, e["id"], entwurf, stand)
     except Exception as x:
+        unfertig = _entstanden(con, pid, entwurf, schon, zuvor)   # halb Angelegtes zählt: sonst legte das nächste Ja es doppelt an
         bestehend = {m["schluessel"] for m in entwurf.get("meilensteine") or [] if m.get("bestehend")}
         getan = any(k not in bestehend for k in schon) or bool(stand.get("geaendert") or stand.get("verworfen"))
         ja = delta_start._letztes_ja(con, pid, e["id"]) or {}     # A2085: _anlegen hat die Marke vielleicht schon durch das Ja ersetzt
         offen = planer_delta.noch_offen(entwurf, stand) if ist_delta else []
+        offen_neu = [x["titel"] for x in (entwurf.get("meilensteine") or []) + (entwurf.get("pakete") or [])
+                     if x["schluessel"] not in schon and not x.get("bestehend")]
         with db.schreiben(con):
             if not getan:                            # nichts geschehen: das Ja zurücknehmen, ein neues darf es noch einmal versuchen
                 con.execute("DELETE FROM plan_ereignis WHERE id IN (?, ?) AND art = ?", (merke, ja.get("id", merke), JA))
             else:                                    # Vorab-Prüfung 1.164.0 (8): teilweise angelegt – die Marke bleibt (kein
                 con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?",   # zweites Anlegen), sie nennt, was schon da ist
                             (json.dumps({"thema": tid, "entwurf": e["id"], "angelegt": schon, "abgebrochen": str(x)[:300],
+                                         "unfertig": unfertig, "offen_neu": offen_neu,
                                          **({"geaendert": stand.get("geaendert") or [], "verworfen": stand.get("verworfen") or [],
                                              "offen": offen} if ist_delta else {})}, ensure_ascii=False), ja.get("id", merke)))
                 kern._posten(con, pid, "AMW", kern.lead(con, pid) or kern.ENTWICKLER, "meldung",
                              f"Planentwurf TH{tid} nur teilweise angelegt"[:140],
                              f"Abbruch beim Anlegen: {str(x)[:300]}\nSchon angelegt: "
-                             + (", ".join(f"{k} → {v}" for k, v in schon.items()) or "nichts")
+                             + (", ".join(f"{k} → {v}" + (" (vielleicht unvollständig)" if k in unfertig else "") for k, v in schon.items()) or "nichts")
+                             + "\nNoch nicht angelegt: " + (", ".join(f"„{t}“" for t in offen_neu) or "nichts")
                              + (f"\nSchon geändert: {', '.join(stand.get('geaendert') or []) or 'nichts'} · schon verworfen: "
                                 f"{', '.join(stand.get('verworfen') or []) or 'nichts'} · noch offen: {', '.join(offen) or 'nichts'}" if ist_delta else "")
                              + "\nDer Rest fehlt – bitte von Hand ergänzen oder das Angelegte prüfen; ein neues Ja legt nichts doppelt an.")
@@ -515,6 +521,26 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
                 kern._posten(con, pid, "AMW", kern.lead(con, pid) or kern.ENTWICKLER, "meldung",
                              f"Änderung TH{tid}: angelegt, aber nicht gestartet"[:140], str(x)[:500])
     return angelegt
+
+
+def _entstanden(con, pid, entwurf, schon, zuvor):
+    """A2085: Was ist seit der Marke wirklich entstanden? Meilensteine und Pakete des Entwurfs, die es schon gibt, obwohl _anlegen sie
+    nicht mehr eingetragen hat (Abbruch mittendrin) – ergänzt schon. Rückgabe: die Schlüssel, die so gefunden wurden (vielleicht
+    unvollständig)."""
+    gefunden = []
+    for liste, tab, spalte, vor, k0 in ((entwurf.get("meilensteine") or [], "bogen", "nr", "M", zuvor[1]),
+                                        (entwurf.get("pakete") or [], "aufgabe", "id", "A", zuvor[0])):
+        neu = con.execute(f"SELECT id, titel, {spalte} AS nummer FROM {tab} WHERE projekt_id = ? AND id > ? ORDER BY id", (pid, k0)).fetchall()
+        vergeben = set(schon.values())
+        for x in liste:
+            if x["schluessel"] in schon or x.get("bestehend"):
+                continue
+            r = next((r for r in neu if r["titel"] == x["titel"] and f"{vor}{r['nummer']}" not in vergeben), None)
+            if r:
+                schon[x["schluessel"]] = f"{vor}{r['nummer']}"
+                vergeben.add(schon[x["schluessel"]])
+                gefunden.append(x["schluessel"])
+    return gefunden
 
 
 def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
