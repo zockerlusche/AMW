@@ -264,6 +264,7 @@ function pwFein(d) {
     onclick: () => { zustand.pwMs = m.bogen; zeige("projektweg", true); } }, `${pwM(m)} ${m.titel}`))));
   teile.push(el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(gew)} ${gew.titel}`), gew.laeuft ? pwStatus(t("pjw_in_arbeit")) : gew.status === "aktiv" ? pwStatus(t("pjw_laeuft")) : gew.status === "fertig" ? pwStatus(t("pjw_p_fertig"), "frei") : gew.frei ? pwStatus(t("pjw_freigegeben"), "frei")
     : gew.fehler && lead ? pwStatus(t("pjw_lead_klaert", { x: lead })) : pwStatus(t("pjw_wartet_dich"), "dran")));
+  if (gew.start_fehlt.length) teile.push(el("div", { class: "pjw-fehler ruhig" }, t("pjw_start_fehlt", { x: gew.start_fehlt.map(x => `„${x}“`).join(", ") })));   /* A2080 */
   if (gew.delta_start?.fehler) teile.push(el("div", { class: "pjw-fehler" }, el("b", {}, t("pjw_delta_nicht_gestartet")), el("div", {}, gew.delta_start.fehler)));   /* A2080 (4) */
   if (gew.laeuft) teile.push(el("div", { class: "leer" }, t("pjw_f_laeuft", { n: gew.nr })));
   if (gew.fehler) teile.push(el("div", { class: "pjw-fehler" + (lead ? " ruhig" : "") }, el("b", {}, t("pjw_f_fehler", { n: gew.nr, f: gew.fassung || 1 })),   /* A2056 */

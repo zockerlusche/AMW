@@ -384,6 +384,73 @@ class BlockStart(Grund):
         self.assertTrue(self.zustand(self.m1, "grob"))
         self.assertEqual(self.neues_paket(), "startklar")
 
+    def nachbar(self):
+        """Ein p-Paket in M1, das der Lead zurückhält (Zustand entwurf, alle Angaben da)."""
+        from amw import arbeitspaket, fertigquelle, planung
+        aid = planung.schritt_setzen(self.con, self.pid, "TL", titel="Zurückgehalten", auftrag="später", bogen_id=self.m1, groesse="S",
+                                     art="mechanisch", pruefbefehl="python -m unittest tests.test_y", dateibereich="app/y.py")
+        arbeitspaket.setzen(self.con, self.pid, "TL", aid, art="p", modell="sonnet")
+        themen.verweise_setzen(self.con, self.pid, "TL", aid, [self.tid])
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von="TL", art=fertigquelle.ART, aufgabe_id=aid,
+                         text=json.dumps({"art": "commit"}))
+        return aid
+
+    def plan_stand(self):
+        from amw import reihenfolge
+        return [tuple(r) for r in self.con.execute("SELECT id, text FROM plan_ereignis WHERE art = ? AND bogen_id = ?", (reihenfolge.PLAN_STAND, self.m1))]
+
+    def test_nachbar_paket_und_plan_stand_bleiben_unberuehrt(self):
+        from amw import arbeitspaket, planansicht, reihenfolge
+        aid = self.nachbar()
+        a = self.con.execute("SELECT * FROM aufgabe WHERE id = ?", (aid,)).fetchone()
+        self.assertEqual(reihenfolge.fehlende_felder(self.con, self.pid, a), [])          # könnte starten – der Lead hält es zurück
+        self.m1_frei()
+        vorher_zustand = arbeitspaket.lesen(self.con, aid)["zustand"]
+        arbeitspaket.zustand_setzen(self.con, self.pid, "TL", aid, "entwurf", grund="zurückgehalten")   # der Lead nimmt es nach dem Start zurück
+        self.assertEqual((vorher_zustand, arbeitspaket.lesen(self.con, aid)["zustand"]), ("startklar", "entwurf"))
+        self.assertTrue((planansicht._zustaende(self.con, self.pid)[(self.m1, "plan")])["an"])
+        stand = self.plan_stand()
+        self.assertTrue(stand)
+        self.entwurf(neu=False)
+        planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertEqual(self.neues_paket(), "startklar")
+        self.assertEqual(arbeitspaket.lesen(self.con, aid)["zustand"], "entwurf")
+        self.assertEqual(self.plan_stand(), stand)
+
+    def test_reines_aendern_startet_nichts(self):
+        from amw import arbeitspaket, reihenfolge, verteilen
+        aid = self.nachbar()
+        self.m1_frei()
+        arbeitspaket.zustand_setzen(self.con, self.pid, "TL", aid, "entwurf", grund="zurückgehalten")
+        stand = self.plan_stand()
+        self.entwurf(neu=False, meilensteine=[], pakete=[], aendern=[{"paket": f"A{self.p3}", "titel": "Passwort zurücksetzen", "auftrag": "Link mit Passkey.", "grund": "neu"}])
+        with mock.patch.object(reihenfolge, "starten") as starten, mock.patch.object(verteilen, "verteilen") as vert:
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertFalse(starten.called or vert.called)
+        self.assertEqual(arbeitspaket.lesen(self.con, aid)["zustand"], "entwurf")
+        self.assertEqual(self.plan_stand(), stand)
+        self.assertTrue(self.zustand(self.m1, "plan"))                                    # der freie Plan bleibt frei
+
+    def test_fehlende_angaben_stehen_beim_lead_und_auf_der_seite(self):
+        from amw import delta_start, projektweg_seite, reihenfolge
+        self.m1_frei()
+        for neu in (True, False):
+            with self.subTest(neuer_meilenstein=neu):
+                self.entwurf(neu=neu)
+                with mock.patch.object(reihenfolge, "fehlende_felder", side_effect=lambda c, p, a: ["Bereiche"] if a["titel"] == "Passkey nachrüsten" else []):
+                    planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+                    bid = self.bogen()["id"] if neu else self.m1
+                    self.assertEqual(delta_start.unvollstaendig(self.con, self.pid).get(bid), ["Passkey nachrüsten"])
+                    m = [x for x in projektweg_seite.daten(self.con, self.pid)["fein"]["meilensteine"] if x["bogen"] == bid][0]
+                    self.assertEqual(m["start_fehlt"], ["Passkey nachrüsten"])
+                kurz, text = self.post("TL")[-1][1:]
+                self.assertIn("starten noch nicht", kurz)
+                self.assertIn("Passkey nachrüsten: Bereiche", text)
+                self.assertEqual(delta_start.unvollstaendig(self.con, self.pid), {})      # ergänzt: der Satz ist weg
+                with db.schreiben(self.con):
+                    self.con.execute("UPDATE aufgabe SET status = 'verworfen', beleg = 'Probe' WHERE titel = 'Passkey nachrüsten'")
+
     def test_war_der_plan_offen_bleibt_er_offen(self):
         self.entwurf(neu=False)                                                          # M1 nie freigegeben
         planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)

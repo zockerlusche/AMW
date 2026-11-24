@@ -119,6 +119,7 @@ def _meilensteine(con, pid):
 def fein(con, pid, freigaben):
     """Je Meilenstein: Pakete in Stufen, Plan frei?, Feinplaner läuft?; dazu offene Entwürfe der Planer je Thema (Delta, A2027)."""
     from . import delta_start, feinplanung, planansicht, planfunde, planhinweis
+    fehlt = delta_start.unvollstaendig(con, pid)
     warten = delta_start.wartende(con, pid)                  # A2080: aus einer freigegebenen Änderung, noch nicht gestartet
     frei = {f["bogen"]: f["frei"] for f in freigaben["fein"]}
     entwuerfe = feinplanung._ereignisse(con, pid, feinplanung.ENTWURF)
@@ -135,6 +136,7 @@ def fein(con, pid, freigaben):
                     "fehler": ([fehler] if isinstance(fehler, str) else list(fehler)) if fehler else None,
                     "gruende": planfunde.deuten(con, pid, fehler) if fehler else [],          # A2076: in Menschensprache
                     "fassung": letzter.get("fassung") if letzter else None,
+                    "start_fehlt": fehlt.get(b["id"]) or [],
                     "delta_start": (lambda w: {"thema": w["thema"], "fehler": w["fehler"]} if w else None)(warten.get(b["id"]))})
     namen = {t["id"]: t["name"] for t in _themen(con, pid)}
     e = planansicht.entwuerfe(con, pid, namen)

@@ -2179,6 +2179,7 @@
   "pjw_lead_klaert": "{x} klärt es",
   "pjw_neuem_ms": "neuem Meilenstein „{x}“",
   "pjw_paket_w": "Paket",
+  "pjw_start_fehlt": "Diese Pakete starten noch nicht, weil Angaben fehlen: {x}. Der Lead ergänzt sie.",
   "pjw_delta_neu": ", neuer Meilenstein",
   "pjw_delta_in": " in {m}",
   "pjw_delta_wer": "Das Ja gibt: {x}",

@@ -2,13 +2,14 @@
 
 - Neuer Meilenstein aus der Änderung: Das Ja ist zugleich seine Grob- und Plan-Freigabe, und er startet (reihenfolge.starten).
 - Bestehender Meilenstein: War sein Plan vor dem Ja frei, bleibt er frei (neuer Fingerabdruck, nur durch dieses Ja); läuft er,
-  werden die neuen Pakete startklar. War der Plan schon offen oder geändert, bleibt er offen.
+  werden genau die mit diesem Ja angelegten Pakete startklar – kein anderes (zurückgehaltene bleiben), und der Plan-Stand
+  (Grundlage der Abweichung) bleibt. War der Plan schon offen oder geändert, bleibt er offen.
 - Kein neues Recht: Legt die Änderung einen neuen Meilenstein an, gibt sie nur frei, wer Grobplan UND Feinplan freigeben darf.
 - Erneuert wird nur, was das Ja selbst geändert hat: Hat sich am Meilenstein daneben noch etwas anderes bewegt (ein Paket eines
   anderen, Titel, Ziel), bleibt die Freigabe offen und der Lead bekommt eine Meldung.
 
 Ereignisse (plan_ereignis, kein Schema): Freigaben wie planansicht.freigeben, dazu "quelle": "delta", "ja": <Ereignis>, "durch";
-thema_delta_start {"thema", "entwurf", "ja", "gestartet": [bogen], "erneuert": [bogen], "offen": {bogen: Grund}, "fehler": {bogen: Text}}.
+thema_delta_start {"thema", "entwurf", "ja", "gestartet": [bogen], "erneuert": [bogen], "offen": {bogen: Grund}, "fehler": {bogen: Text}, "fehlt": {Paket: [Felder]}} – fehlt: neue Pakete, die noch nicht starten können.
 """
 import json
 
@@ -124,9 +125,26 @@ def _frei(con, pid, von, bid, art, ja, durch):
                                   "ja": ja, "durch": durch, **({} if mensch else {"regel_von": "B2913"})}, ensure_ascii=False))
 
 
-def _starten(con, pid, von, bid):
-    from . import reihenfolge
-    reihenfolge.starten(con, pid, von if kern.ist_lead(con, pid, von) else (kern.lead(con, pid) or kern.ENTWICKLER), bid)
+def _starter(con, pid, von):
+    return von if kern.ist_lead(con, pid, von) else (kern.lead(con, pid) or kern.ENTWICKLER)
+
+
+def _neue_startklar(con, pid, von, bid, neu, aus):
+    """In einem laufenden Meilenstein nur die Pakete dieses Ja startklar setzen (Pflichtfelder wie reihenfolge.starten) und verteilen."""
+    from . import arbeitspaket, reihenfolge, verteilen
+    if not neu:
+        return                                            # nur geändert oder verworfen: nichts zu starten
+    for a in con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? AND status IN ('wartet', 'laeuft', 'blockiert') ORDER BY id", (bid,)).fetchall():
+        if a["id"] not in neu:
+            continue
+        fehlt = reihenfolge.fehlende_felder(con, pid, a)
+        if fehlt:
+            aus["fehlt"][str(a["id"])] = fehlt
+            continue
+        f = arbeitspaket.lesen(con, a["id"])
+        if f["art"] == "p" and f["zustand"] in (None, "entwurf"):
+            arbeitspaket.zustand_setzen(con, pid, _starter(con, pid, von), a["id"], "startklar", grund="Änderung freigegeben")
+    verteilen.verteilen(con, pid)
 
 
 def _ergebnis(con, pid, tid, eid, ja, aus):
@@ -136,6 +154,10 @@ def _ergebnis(con, pid, tid, eid, ja, aus):
                      text=json.dumps({"thema": int(tid), "entwurf": eid, "ja": ja, **aus}, ensure_ascii=False))
         offen = {**aus["fehler"], **aus["offen"]}
         lead = kern.lead(con, pid)
+        if aus["fehlt"] and lead and lead != kern.ENTWICKLER:     # der Lead ist oft selbst der Starter – dann meldet starten nichts
+            titel = {r["id"]: r["titel"] for r in con.execute("SELECT id, titel FROM aufgabe WHERE projekt_id = ?", (pid,))}
+            kern._posten(con, pid, "AMW", lead, "meldung", f"Änderung TH{tid}: {len(aus['fehlt'])} Paket(e) starten noch nicht – Angaben fehlen"[:140],
+                         "\n".join(f"- A{a} {titel.get(int(a), '')}: {', '.join(f)}" for a, f in aus["fehlt"].items()))
         if offen and lead and lead != kern.ENTWICKLER:
             nr = {r["id"]: r["nr"] for r in con.execute("SELECT id, nr FROM bogen WHERE projekt_id = ?", (pid,))}
             kern._posten(con, pid, "AMW", lead, "meldung", f"Änderung TH{tid}: {len(offen)} Meilenstein(e) nicht frei oder nicht gestartet"[:140],
@@ -150,7 +172,7 @@ def nach_dem_ja(con, pid, von, tid, eid, entwurf, angelegt, vorher):
     if not ja:
         return None
     durch = _durch(con, pid, von, eid)
-    aus = {"gestartet": [], "erneuert": [], "offen": {}, "fehler": {}}
+    aus = {"gestartet": [], "erneuert": [], "offen": {}, "fehler": {}, "fehlt": {}}
     neue = []
     for m in entwurf.get("meilensteine") or []:
         if not m.get("bestehend") and m["schluessel"] in angelegt:
@@ -159,7 +181,8 @@ def nach_dem_ja(con, pid, von, tid, eid, entwurf, angelegt, vorher):
                 neue.append(r[0])
     for bid in neue:
         _neuer(con, pid, von, bid, ja["id"], durch, aus)
-    eigene = {int(v[1:]) for v in angelegt.values() if v.startswith("A")}
+    neu = {int(v[1:]) for v in angelegt.values() if v.startswith("A")}
+    eigene = set(neu)
     for k in ("aendern", "verwerfen"):
         eigene |= {int(str(x["paket"]).lstrip("Aa")) for x in entwurf.get(k) or []}
     from . import planansicht, themen
@@ -179,8 +202,8 @@ def nach_dem_ja(con, pid, von, tid, eid, entwurf, angelegt, vorher):
                 if not (z.get((bid, "plan")) or {}).get("an"):
                     _frei(con, pid, von, bid, "plan", ja["id"], durch)
             aus["erneuert"].append(bid)
-            if con.execute("SELECT status FROM bogen WHERE id = ?", (bid,)).fetchone()[0] == "aktiv" and _offene(con, bid):
-                _starten(con, pid, von, bid)
+            if con.execute("SELECT status FROM bogen WHERE id = ?", (bid,)).fetchone()[0] == "aktiv":
+                _neue_startklar(con, pid, von, bid, neu, aus)
         except Exception as x:                           # noqa: BLE001 – angelegt ist schon alles; der Fehler gehört auf die Seite
             aus["fehler"][str(bid)] = str(x)[:300]
     return _ergebnis(con, pid, tid, eid, ja["id"], aus)
@@ -191,14 +214,15 @@ def _offene(con, bid):
 
 
 def _neuer(con, pid, von, bid, ja, durch, aus):
-    from . import planansicht
+    from . import planansicht, reihenfolge
     try:
         z = planansicht._zustaende(con, pid)
         with db.schreiben(con):
             for art in ("grob", "plan"):
                 if not (z.get((bid, art)) or {}).get("an"):
                     _frei(con, pid, von, bid, art, ja, durch)
-        _starten(con, pid, von, bid)
+        r = reihenfolge.starten(con, pid, _starter(con, pid, von), bid)
+        aus["fehlt"].update({str(a): f for a, f in (r.get("fehlt") or {}).items()})
         aus["gestartet"].append(bid)
     except Exception as x:                               # noqa: BLE001 – siehe nach_dem_ja
         aus["fehler"][str(bid)] = str(x)[:300]
@@ -238,6 +262,19 @@ def wartende(con, pid):
     return aus
 
 
+def unvollstaendig(con, pid):
+    """{bogen: [Titel]} – mit einer Änderung angelegte Pakete, die noch nicht starten können (Angaben fehlen immer noch)."""
+    from . import reihenfolge
+    aus, gesehen = {}, set()
+    for (t,) in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = ?", (pid, START)).fetchall():
+        for aid in (json.loads(t or "{}").get("fehlt") or {}):
+            a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ? AND status IN ('wartet', 'blockiert')", (int(aid), pid)).fetchone()
+            if a and a["id"] not in gesehen and reihenfolge.fehlende_felder(con, pid, a):
+                gesehen.add(a["id"])
+                aus.setdefault(a["bogen_id"], []).append(a["titel"])
+    return aus
+
+
 def nachholen(con, pid, von, bid):
     """Der Mensch gibt einen wartenden Meilenstein einer Änderung frei und startet ihn (wie das Ja zum Block heute)."""
     if von != kern.ENTWICKLER:
@@ -245,7 +282,7 @@ def nachholen(con, pid, von, bid):
     w = wartende(con, pid).get(int(bid))
     if not w:
         raise kern.AmwFehler("Dieser Meilenstein wartet nicht (mehr) auf das Starten einer Änderung")
-    aus = {"gestartet": [], "erneuert": [], "offen": {}, "fehler": {}}
+    aus = {"gestartet": [], "erneuert": [], "offen": {}, "fehler": {}, "fehlt": {}}
     _neuer(con, pid, von, int(bid), w["ja"], [kern.ENTWICKLER], aus)
     _ergebnis(con, pid, w["thema"], w["entwurf"], w["ja"], aus)
     if aus["fehler"]:
