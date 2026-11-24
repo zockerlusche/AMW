@@ -2023,10 +2023,22 @@ function seit(x) {
    (Projektliste, Kopfzeile, Übertragung online, Dialoge, Gespräch am Objekt), holt abrufen() ohne diese Regel. */
 let wechselNr = 0, seitenNr = 0;                       /* seitenNr: nur echte Wechsel (zeige, nicht still) – fürs erste Laden */
 const veraltet = () => new Promise(() => {});
+/* A2037 (D1515 v2 §2.3): unter Last scheitert selten ein Lese-Abruf als Netzfehler (fetch wirft TypeError, Status 0) – dann
+   einmal nach kurzer Pause wiederholen. Nie bei einer HTTP-Antwort (auch nicht 4xx/5xx) und nie beim Schreiben (schicken):
+   ein GET ändert nichts, die Wiederholung ist gefahrlos. */
+const NETZ_WIEDER_MS = 300;
+async function lesenMitWiederholung(url) {
+  try { return await fetch(url, { cache: "no-store" }); }
+  catch (e) {
+    if (!(e instanceof TypeError)) throw e;
+    await new Promise(r => setTimeout(r, NETZ_WIEDER_MS));
+    return await fetch(url, { cache: "no-store" });
+  }
+}
 async function abrufen(weg, p = projekt) {               /* p: anderes Projekt (A1889: Nachrichten über alle Projekte) */
   const fuerDich = Date.now() - laden.eingabe < 1500;   /* A1676: nur Abrufe, die du ausgelöst hast – nie der Takt im Hintergrund */
   if (fuerDich) laden.an();
-  try { const r = await fetch(ziel(weg, p), { cache: "no-store" }); if (!r.ok) { const j = await r.json().catch(() => ({})); throw Object.assign(new Error(j.leer ? t(j.leer) : (j.fehler || r.status)), { leer: j.leer || null }); }   /* A1998 */
+  try { const r = await lesenMitWiederholung(ziel(weg, p)); if (!r.ok) { const j = await r.json().catch(() => ({})); throw Object.assign(new Error(j.leer ? t(j.leer) : (j.fehler || r.status)), { leer: j.leer || null }); }   /* A1998 */
         return await r.json(); }
   finally { if (fuerDich) laden.aus(); }
 }
@@ -2225,7 +2237,7 @@ function mitAuszeichnung(text) {
 }
 async function hilfe(thema) {
   let d;
-  try { const r = await fetch(`hilfe/${thema}.${sprache}.json`, { cache: "no-store" }); if (!r.ok) throw new Error(r.status); d = await r.json(); }
+  try { const r = await lesenMitWiederholung(`hilfe/${thema}.${sprache}.json`); if (!r.ok) throw new Error(r.status); d = await r.json(); }
   catch (e) { toast(t("h_fehlt", { x: thema }), true); return; }
   const liste = (titel, eintraege, zeile) => eintraege?.length
     ? [el("h4", {}, titel), el("ul", { class: "npa-liste" }, eintraege.map(x => el("li", {}, zeile ? zeile(x) : mitAuszeichnung(x))))] : [];
