@@ -212,6 +212,11 @@ class Seite(Rundgang):
                 fehler = self.besuchen("projektweg", "projektweg-grob", bereit="document.querySelector('.pjw-karte[data-ms=M3]')"
                                        + (" || document.querySelector('.pjw-schritt')" if g == "handy" else ""), g=g, t=th)
                 self.assertEqual(fehler, [], f"{g} {th}")
+                fehler = self.besuchen("projektweg", "projektweg-grob-offen", bereit="document.querySelector('.pjw-schritt')",
+                                       tun="zustand.pwSicht = 1; zustand.pwOffen = true; zeige('projektweg', true)",
+                                       danach="[...document.querySelectorAll('.pjw-ansicht > .pjw-kopf button')].some(b => b.textContent === t('pjw_g_freigeben'))",
+                                       g=g, t=th)                         # TL #31991: die Handlung steht oben neben der Überschrift
+                self.assertEqual(fehler, [], f"offen {g} {th}")
                 fehler = self.besuchen("projektweg", "projektweg-fenster", bereit="document.querySelector('.pjw-schritt')",
                                        tun="zustand.pwSicht = 1; zustand.pwOffen = true; zeige('projektweg', true).then(() => pwOeffne({art: 'ms', id: 'M3', fassung: 2}))",
                                        danach=FENSTER, g=g, t=th)
