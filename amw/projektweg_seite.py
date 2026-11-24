@@ -18,6 +18,7 @@ import re
 
 from . import kern, projektweg
 
+AUFTRAG_KURZ = 600                              # A2075: so viel steht gleich da, „mehr“ holt den ganzen Auftrag des Pakets
 VERLAUF_GRENZE = 400                            # A2063: je Schritt gefiltert – darum mehr als früher 80
 SCHRITT_NR = {s: i for i, s in enumerate(projektweg.SCHRITTE)}
 
@@ -106,7 +107,7 @@ def _pakete(con, pid, bid):
         nach = [x[0] for x in con.execute("SELECT vor FROM abhaengigkeit WHERE nach = ?", (r["id"],))]
         aus.append({"id": r["id"], "titel": r["titel"], "status": r["status"], "stufe": stufe.get(r["id"], 1), "agent": r["agent"],
                     "art": ap.get("art"), "wer": _wer(ap, r), "modell": ap.get("modell"), "effort": ap.get("effort"),
-                    "groesse": r["groesse"], "auftrag": (r["auftrag"] or "")[:600], "pruefbefehl": r["pruefbefehl"],
+                    "groesse": r["groesse"], "auftrag": (r["auftrag"] or "")[:AUFTRAG_KURZ], "auftrag_mehr": len(r["auftrag"] or "") > AUFTRAG_KURZ, "pruefbefehl": r["pruefbefehl"],
                     "dateibereich": r["dateibereich"], "nach": nach, "beleg": r["beleg"]})
     return aus
 
@@ -239,7 +240,7 @@ def _entwurf_karten(con, pid, d):
         modell = (x.get("modell") or "").capitalize()
         karten.append({"schluessel": x.get("schluessel"), "titel": x.get("titel"), "stufe": tiefe(x.get("schluessel")),
                        "wer": ("Headless" + (f" · {modell}" if modell else "")) if x.get("ausfuehrung") == "p" else "Fenster",
-                       "groesse": x.get("groesse"), "ziel": ziel(x.get("meilenstein")), "auftrag": (x.get("auftrag") or "")[:800],
+                       "groesse": x.get("groesse"), "ziel": ziel(x.get("meilenstein")), "auftrag": x.get("auftrag") or "",
                        "abnahme": x.get("abnahme_befehl"), "bereiche": x.get("bereiche"), "grund": x.get("interaktiv_grund"),
                        "nach": x.get("nach") or []})
     aendern, verwerfen, nacharbeit = [], [], []
@@ -362,11 +363,11 @@ def verlauf_lesbar(eintraege, namen, saetze=None):
         text = _TH.sub(lambda m: f"Thema „{namen[int(m.group(1))]}“" if int(m.group(1)) in namen else m.group(0), e.get("text") or "")
         text = re.sub(r"\s{2,}", " ", _KUERZEL.sub("", text)).strip(" ·–,")
         zeile = text if len(text) <= ZEILE_MAX else text[:ZEILE_MAX].rsplit(" ", 1)[0] + " …"
-        lang = text if zeile != text else None
+        lang = text if zeile != text else e.get("mehr")        # A2075: z. B. die Meilensteine einer Übernahme
         grund = saetze(e["fehler"]) if saetze and e.get("fehler") else None
         if grund:
             lang = (lang + " – " if lang else "") + " ".join(grund)
-        aus.append({**{k: v for k, v in e.items() if k != "fehler"}, "schritt": _schritt_des_eintrags(e), "zeile": zeile, "lang": lang})
+        aus.append({**{k: v for k, v in e.items() if k not in ("fehler", "mehr")}, "schritt": _schritt_des_eintrags(e), "zeile": zeile, "lang": lang})
     return aus
 
 
@@ -431,5 +432,5 @@ def daten(con, pid):
     return {"schritte": schritte, "dran": dran, "zeile": s["zeile"], "konzept": k, "grob": g,
             "fein": f, "umsetzung": u, "abschluss": ab, "fragen": fragen(con, pid),
             "laeufe": planer_fortschritt.laufende(con, pid),
-            "verlauf": verlauf_lesbar(verlauf.projektweg(con, pid, grenze=VERLAUF_GRENZE),
+            "verlauf": verlauf_lesbar(verlauf.projektweg(con, pid, grenze=VERLAUF_GRENZE, buendeln=True),
                                       {t["id"]: t["name"] for t in g_themen}, lambda x: planfunde.saetze(con, pid, x))}

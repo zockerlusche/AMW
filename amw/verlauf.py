@@ -129,9 +129,39 @@ def _weg_text(art, d, nr):
     return fest, t
 
 
-def projektweg(con, pid, ab_utc=None, bis_utc=None, rolle=None, grenze=2000):
+def _uebernahme(art, eid, d):
+    """Zu welcher Übernahme des Bestands (Nummer des Grobplan-Entwurfs) gehört dieses Ereignis? None: zu keiner."""
+    if art == "grobplan_entwurf" and d.get("uebernahme"):
+        return eid
+    if art == "grobplan_ja" and d.get("uebernahme"):
+        return d.get("entwurf")
+    if art == "meilenstein_frei" and d.get("quelle") == "uebernahme":
+        return d.get("grobplan")
+    return None
+
+
+def _buendeln(aus, je):
+    """A2075: alles zu einer Übernahme als EIN Eintrag an der Stelle des Grobplan-Ja (sonst des letzten). je: {Ereignis: (Übernahme,
+    Meilenstein-Nummer oder None)}. Die Nummern stehen im Feld „mehr“ (auf Klick)."""
+    gruppen = {}
+    for e in aus:
+        if e["id"] in je:
+            gruppen.setdefault(je[e["id"]][0], []).append(e)
+    erste = {}
+    for u, liste in gruppen.items():
+        e = next((x for x in liste if x["art"] == "grobplan_ja"), liste[-1])
+        nrn = sorted({je[x["id"]][1] for x in liste if x["art"] == "meilenstein_frei" and je[x["id"]][1] is not None})
+        n = len(nrn)
+        erste[e["id"]] = {**e, "art": "grobplan_ja", "bogen_id": None,
+                          "text": "Bestand übernommen" + (f": {n} Meilenstein{'e' if n != 1 else ''}" if n else ""),
+                          "mehr": ", ".join(f"M{x}" for x in nrn) or None}
+    return [erste.get(e["id"], e) for e in aus if e["id"] not in je or e["id"] in erste]
+
+
+def projektweg(con, pid, ab_utc=None, bis_utc=None, rolle=None, grenze=2000, buendeln=False):
     """Der ganze Projektweg (oder [ab_utc, bis_utc)) in zeitlicher Reihenfolge, älteste zuerst; gleiche Sekunde nach Eingang.
-    Je Eintrag {"id", "zeit", "rolle", "von", "text", "art", "aufgabe_id", "bogen_id"}."""
+    Je Eintrag {"id", "zeit", "rolle", "von", "text", "art", "aufgabe_id", "bogen_id"}. buendeln (A2075): eine Übernahme des Bestands
+    als ein Eintrag – vor der Grenze, damit die Zahl stimmt."""
     if rolle is not None and rolle not in ROLLEN:
         raise kern.AmwFehler("Rolle: " + " | ".join(ROLLEN))
     arten = (PROTOKOLL, *WEG_ARTEN)
@@ -142,9 +172,12 @@ def projektweg(con, pid, ab_utc=None, bis_utc=None, rolle=None, grenze=2000):
         if wert is not None:
             sql += " AND " + bed
             par.append(wert)
-    aus = []
+    aus, je = [], {}
     for r in con.execute(sql + " ORDER BY e.zeit_utc, e.id", par):
         d = _json(r["text"])
+        u = _uebernahme(r["art"], r["id"], d) if buendeln else None
+        if u is not None:
+            je[r["id"]] = (u, r["nr"])
         if r["art"] == PROTOKOLL:
             ro, text = d.get("rolle") or _rolle(r["von"]), d.get("text") or (r["text"] or "")
         else:
@@ -154,7 +187,7 @@ def projektweg(con, pid, ab_utc=None, bis_utc=None, rolle=None, grenze=2000):
             aus.append({"id": r["id"], "zeit": r["zeit_utc"], "rolle": ro, "von": r["von"], "text": text, "art": r["art"],
                         "aufgabe_id": r["aufgabe_id"], "bogen_id": r["bogen_id"],
                         **({"fehler": d["fehler"]} if r["art"] == "thema_planentwurf" and d.get("fehler") else {})})   # A2076: der Grund
-    return aus[-int(grenze):]
+    return (_buendeln(aus, je) if je else aus)[-int(grenze):]
 
 
 def rueckblick_neu(con, pid, von, bogen_id, art, text):

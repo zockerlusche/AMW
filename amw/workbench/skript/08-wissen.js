@@ -408,6 +408,14 @@ function pwAbschluss(d) {
   return [warten.length > 1 ? el("div", { class: "leise" }, t("pjw_a_warten_n", { n: warten.length })) : null,
     ...warten.map((x, i) => pwAbschlussKarte(x, warten.length === 1, i === 0))].filter(Boolean);
 }
+function pwAuftragMehr(p) {
+  /* A2075: der Anfang steht da, „mehr“ holt den ganzen Auftrag (wie der Aufgaben-Dialog, auch online für offene Pakete). */
+  const text = el("span", { class: "pjw-auftrag" }, p.auftrag + " … ");
+  text.append(el("button", { class: "klein-knopf pjw-mehr", type: "button", onclick: async () => {
+    try { const a = await holen(`/api/aufgabe?id=${p.id}`); text.replaceChildren(a.auftrag ?? a.aufgabe?.auftrag ?? p.auftrag); }
+    catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("pjw_mehr")));
+  return text;
+}
 function pwOeffne(was) { zustand.pwFenster = was; pwFensterZeichnen(); }
 function pwFensterZeichnen() {
   document.getElementById("pjw-fenster")?.remove();
@@ -436,7 +444,7 @@ function pwFensterZeichnen() {
     titel = p.titel;
     felder = [[t("pjw_status"), t("pjw_p_" + (["laeuft", "fertig", "blockiert", "wartet"].includes(p.status) ? p.status : "offen"))], [t("pjw_wer"), p.wer],
       [t("pjw_modell"), [p.modell, p.effort].filter(Boolean).join(" · ") || "–"], [t("pjw_groesse"), p.groesse || "–"], [t("pjw_dateien"), p.dateibereich || "–"],
-      [t("pjw_abnahme"), p.pruefbefehl || "–"], [t("pjw_nach_k"), p.nach.length ? p.nach.map(titelVon).join(" · ") : "–"], [t("pjw_auftrag"), p.auftrag || "–"]];
+      [t("pjw_abnahme"), p.pruefbefehl || "–"], [t("pjw_nach_k"), p.nach.length ? p.nach.map(titelVon).join(" · ") : "–"], [t("pjw_auftrag"), p.auftrag_mehr ? pwAuftragMehr(p) : p.auftrag || "–"]];
     if (!API && !ms.frei && !ms.laeuft) hinweis = { bogen: ms.bogen, zu: `A${p.id}` };
   }
   else if (w.art === "dpaket") {                                         /* A2065: Paket eines Entwurfs – das Technische nur hier */

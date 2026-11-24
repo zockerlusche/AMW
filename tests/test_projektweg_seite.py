@@ -291,6 +291,40 @@ class KartenUndVerlauf(Grund):
         self.assertEqual(projektweg_seite.verlauf_lesbar([{"art": "meilenstein_frei", "rolle": "mensch", "text": "M3: Abschluss freigegeben"}], {})[0]["schritt"], "abschluss")
 
 
+class UebernahmeImVerlauf(Grund):
+    """A2075: die Übernahme des Bestands ist EINE Zeile in der Grobplanung; echte Freigaben bleiben einzeln."""
+    def test_eine_zeile_in_der_grobplanung(self):
+        from amw import planansicht
+        _, alt, neu = bestand(self.con, self.pid)
+        self.assertTrue(grobplan.uebernehmen(self.con, self.pid))
+        v = self.daten()["verlauf"]
+        x = [e for e in v if "Bestand übernommen" in (e["text"] or "")]
+        self.assertEqual([(e["zeile"], e["schritt"], e["rolle"]) for e in x], [("Bestand übernommen: 2 Meilensteine", "grob", "amw")])
+        self.assertEqual(x[0]["lang"], "M1, M2")
+        self.assertEqual([e for e in v if e["schritt"] == "fein"], [])
+        planansicht.zurueck(self.con, self.pid, kern.ENTWICKLER, neu, "grob", "nochmal")            # eine echte Entscheidung
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, neu, "grob")
+        v = self.daten()["verlauf"]
+        self.assertEqual(sum("Bestand übernommen" in (e["text"] or "") for e in v), 1)
+        self.assertEqual([e["schritt"] for e in v if e["art"] == "meilenstein_frei"], ["grob", "grob"])
+
+    def test_zahl_stimmt_auch_wenn_die_grenze_schneidet(self):
+        from amw import verlauf
+        bestand(self.con, self.pid)
+        grobplan.uebernehmen(self.con, self.pid)
+        e = verlauf.projektweg(self.con, self.pid, grenze=1, buendeln=True)
+        self.assertEqual([x["text"] for x in e], ["Bestand übernommen: 2 Meilensteine"])
+        self.assertGreater(len(verlauf.projektweg(self.con, self.pid)), len(verlauf.projektweg(self.con, self.pid, buendeln=True)))
+
+    def test_langer_auftrag_ist_als_gekuerzt_markiert(self):
+        _, _, neu = bestand(self.con, self.pid)
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET auftrag = ? WHERE bogen_id = ? AND status != 'fertig'", ("Satz. " * 300, neu))
+        p = [x for m in self.daten()["fein"]["meilensteine"] if m["bogen"] == neu for x in m["pakete"]]
+        self.assertEqual({(x["auftrag_mehr"], len(x["auftrag"])) for x in p if x["status"] != "fertig"}, {(True, projektweg_seite.AUFTRAG_KURZ)})
+        self.assertEqual({x["auftrag_mehr"] for x in p if x["status"] == "fertig"}, {False})
+
+
 class PruefungNachholen(Grund):
     def test_pruefung_starten_fuer_alte_meilensteine(self):
         """A2064 (TL #32217): bereit, aber nie geprüft – „Prüfung starten“ holt Gesamttest und Prüfer nach (abschluss.vor_bereit)."""
@@ -650,6 +684,42 @@ class SeiteBestand(Rundgang):
                                    danach="document.querySelector('.pjw-ansicht .pjw-liste')", g=g, t=th)
             self.assertEqual(fehler, [], f"{g} {th}")
 
+
+
+class SeiteUebernahme(Rundgang):
+    """A2075: Übernahme im Verlauf und der ganze Auftrag im Seitenfenster."""
+    def daten(self):
+        kern.agent_neu(self.con, self.pid, "CC1")
+        for ziel in (grobplan, planer):
+            p = mock.patch.object(ziel, "STARTER", lambda *a, **k: 4711)
+            p.start()
+            self.addCleanup(p.stop)
+        _, _, self.neu = bestand(self.con, self.pid)
+        grobplan.uebernehmen(self.con, self.pid)
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET auftrag = ? WHERE bogen_id = ?", ("Ein Satz im Auftrag. " * 60 + "Das ist das Ende.", self.neu))
+
+    def test_verlauf_und_mehr(self):
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.tab.js("zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)")
+        self.warten("document.querySelector('.pjw-paket')")
+        self.assertNotIn("Bestand übernommen", self.tab.js("document.querySelector('.pjw-verlauf').innerText"))
+        self.tab.js("document.querySelector('.pjw-paket').click(); 1")
+        self.warten("document.querySelector('#pjw-fenster .pjw-mehr')")
+        self.assertNotIn("Das ist das Ende.", self.tab.js("document.querySelector('#pjw-fenster').innerText"))
+        self.tab.js("document.querySelector('#pjw-fenster .pjw-mehr').click(); 1")
+        self.warten("document.querySelector('#pjw-fenster').innerText.includes('Das ist das Ende.')")
+        self.assertFalse(self.tab.js("!!document.querySelector('#pjw-fenster .pjw-mehr')"))
+        self.tab.js("zustand.pwFenster = null; document.getElementById('pjw-fenster').remove(); zustand.pwSicht = 1; zeige('projektweg', true)")
+        self.warten("document.querySelector('.pjw-verlauf').innerText.includes('Bestand übernommen: 2 Meilensteine')")
+
+    def test_rundgang(self):
+        for g, th in (("pc", "hell"), ("handy", "dunkel")):
+            for schritt in (1, 2):
+                fehler = self.besuchen("projektweg", f"projektweg-uebernahme-{schritt}", bereit="document.querySelector('.pjw-schritt')",
+                                       tun=f"zustand.pwSicht = {schritt}; zustand.pwOffen = true; zeige('projektweg', true)",
+                                       danach="document.querySelector('.pjw-ansicht')", g=g, t=th)
+                self.assertEqual(fehler, [], f"{g} {th}")
 
 
 class SeiteOhnePruefung(Rundgang):

@@ -2180,6 +2180,7 @@
   "pjw_neuem_ms": "new milestone “{x}”",
   "pjw_paket_w": "package",
   "pjw_start_fehlt": "These packages do not start yet because details are missing: {x}. The lead adds them.",
+  "pjw_mehr": "more",
   "pjw_delta_neu": ", new milestone",
   "pjw_delta_in": " in {m}",
   "pjw_delta_wer": "Approved by: {x}",
