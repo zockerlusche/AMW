@@ -355,7 +355,8 @@ class NeuesProjekt(ZweiProjekte):
         with self.assertRaisesRegex(aktionen.Ungueltig, "gehört schon zum Projekt Laden"):
             self.neu(name="Zweiter Laden")                                           # ein Ordner, ein Projekt
         self.assertIsNone(self.con.execute("SELECT 1 FROM projekt WHERE name = 'Zweiter Laden'").fetchone())
-        rc, aus = self.cli("agent", "neu", "CC3", "--von", kern.ENTWICKLER, "--projekt", "Laden")
+        with mock.patch.dict(os.environ, {"AMW_AGENT": "", "CLAUDECODE": "", "CLAUDE_CODE_MESSAGING_SOCKET": ""}):   # A2039: im Terminal
+            rc, aus = self.cli("agent", "neu", "CC3", "--von", kern.ENTWICKLER, "--projekt", "Laden")   # des Menschen
         self.assertIn(f"arbeitet in {os.path.abspath(self.repo)}", aus)             # neuer Agent: Projektordner als Profil
 
     def test_lead_als_chat_wird_nie_gestartet(self):

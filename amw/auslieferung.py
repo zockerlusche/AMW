@@ -531,7 +531,8 @@ class Kette:
             self.git("tag", f"v{z['version']}", z["sha"], schritt="Tag")
         self.git("tag", f"v{version}", sha, schritt="Tag")
         self.schritt(f"Tag v{version}" + "".join(f" + v{z['version']}" for z in v["zwischen"]))
-        rc, aus = self.extern([sys.executable, "-X", "utf8", os.path.join(self.repo, "amw-cli.py"), "dienst", "neustart"], self.repo)
+        rc, aus = self.extern([sys.executable, "-X", "utf8", os.path.join(self.repo, "amw-cli.py"), "dienst", "neustart",
+                              "--von", "AMW"], self.repo)                 # A2039: die Kette startet als AMW neu, nicht als Agent
         if rc != 0:
             self.stopp("Dienst neu", aus[-300:])
         ende = time.time() + DIENST_WARTEN_S

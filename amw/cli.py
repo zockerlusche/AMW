@@ -264,8 +264,8 @@ def cmd_agent(a, con):
         return
     if a.aktion == "neu":
         weise = a.arbeitsweise or "terminal"
-        if kern.lead_und_fach(a.rolle)[0] == "lead":       # A1887 (P293): ein neuer Lead nur vom Lead oder vom Menschen
-            _rolle_nur_mensch_oder_lead(con, pid, a, "Einen Lead anlegen")
+        _rolle_nur_mensch_oder_lead(con, pid, a, "Einen Lead anlegen" if kern.lead_und_fach(a.rolle)[0] == "lead"   # A1887 (P293)
+                                    else "Einen Agenten anlegen")   # A2039 (D1531 §6): jeder neue Agent nur vom Lead oder Menschen
         kern.agent_neu(con, pid, a.kennung, a.rolle, a.zustaendig or a.grenzen, a.startbefehl, not a.ohne_rund,
                        fachgebiet=a.fachgebiet, arbeitsweise=weise)
         if a.nicht:
@@ -3261,6 +3261,26 @@ def cmd_web(a, con):
     return 0
 
 
+def _dienst_neustart_darf(a):
+    """A2039 (D1531 §7): Den Dienst startet der Mensch neu (eigenes Terminal, Workbench am PC), die AMW selbst (Release-Kette,
+    --von AMW) oder der Lead – nicht ein beliebiger Agent aus seiner Sitzung: ein Neustart unterbricht Zustellung, Läufe und
+    Wächter für alle. Gegen Versehen, keine Sperre gegen Absicht (wer PowerShell hat, kann die Aufgabe selbst anstoßen)."""
+    if not _aus_agenten_sitzung():
+        return
+    von = getattr(a, "von", None) or os.environ.get("AMW_AGENT")
+    if von == "AMW":
+        return
+    if von and von != kern.ENTWICKLER:
+        con = db.verbinde()
+        try:
+            if any(kern.ist_lead(con, pid, von) for (pid,) in con.execute("SELECT id FROM projekt").fetchall()):
+                return
+        finally:
+            con.close()
+    raise kern.AmwFehler("dienst neustart: nur der Mensch im eigenen Terminal oder in der Workbench, der Lead oder die"
+                         " Release-Kette – nicht aus einer Agenten-Sitzung. Bitte den Lead fragen.")
+
+
 def cmd_dienst(a):
     from . import einrichtung
     from . import einstellungen
@@ -3271,6 +3291,8 @@ def cmd_dienst(a):
     if a.aktion == "vordergrund":                   # zum Ausprobieren ohne geplante Aufgabe; Strg+C beendet
         from . import dienst
         return dienst.main(["--port", str(a.port)])
+    if a.aktion == "neustart":
+        _dienst_neustart_darf(a)
     fremd = einrichtung.fremde_aufgabe()
     if fremd and a.aktion in ("neustart", "entfernen"):
         raise kern.AmwFehler(fremd)

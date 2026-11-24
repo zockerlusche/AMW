@@ -103,6 +103,7 @@ class Kette(unittest.TestCase):
         self.assertEqual(self.g("rev-parse", "v1.1.0^{commit}", ordner=self.ursprung), self.sha)
         self.assertIn("**Neu:** Neues Ding für alle.", self.notizen)                              # Notizen aus dem CHANGELOG
         self.assertTrue(any(b[0] == "gh" and "v1.1.0" in b for b in self.extern_aufrufe))
+        self.assertEqual([b[-4:] for b in self.extern_aufrufe if "dienst" in b], [["dienst", "neustart", "--von", "AMW"]])   # A2039
         w = self.con.execute("SELECT * FROM lauf WHERE id = ?", (r["web_lauf"],)).fetchone()        # Web-Abzug: rechnet die Kette selbst
         self.assertEqual((w["schwer"], w["status"], w["rc"], w["ordner"]), (0, "fertig", 0, self.repo))
         self.assertFalse([b for b in self.extern_aufrufe if "subtree" in b])                          # 1.118.1: kein Split mehr
