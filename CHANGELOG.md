@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.180.0 – 24.11.2026 · Abschluss je Meilenstein mit Prüfer, Pause für alles, Gesamtlauf ohne Hänger
+- **Neu:** Bevor ein Meilenstein „bereit zur Abnahme“ steht, laufen der Gesamttest und ein Prüfer: Er gleicht jedes Thema gegen das Gebaute ab und bereitet die Vorführung vor – beides steht im Abschlussbericht. Fehlt etwas oder ist der Test rot, legt die AMW Nacharbeit im selben Meilenstein an und startet sie gleich.
+- **Neu:** „Nacharbeit anfordern“ (`amw bogen nacharbeit N --hinweis …`): der Planer plant neue Pakete im selben Meilenstein, sie starten ohne weiteres Ja.
+- **Neu:** Höchstens zwei automatische Nacharbeits-Runden je Meilenstein; die Kosten des Prüfers zählen zur Tagesgrenze der Planer.
+- **Neu:** Pause für alles (`amw pause an --bis 2h`): alle Agenten halten an, keine neuen Headless-Pakete und Läufe; zum Ende geht es von selbst weiter. `amw pause zeige` zeigt je Agent, wo er steht.
+- **Behoben:** Ein hängender Test hält den Gesamtlauf nicht mehr auf: nach 5 Minuten Stillstand wird nur dieser Testprozess beendet und als rot mit Modul und Test gezeigt, der Rest läuft weiter. Ein Gesamtlauf hat immer eine Frist (Vorgabe 60 Minuten); vorher hält er fest, was gerade lief, und der Lead bekommt eine Meldung.
+
 ## 1.179.0 – 24.11.2026 · Änderungen am Konzept als ein Block, Hinweise an den Planer
 - **Neu:** Änderst du ein schon geplantes Thema, schlägt der Planer nur die Änderung vor – neue Pakete, geänderte oder nicht mehr nötige, die noch nicht begonnen sind. Du gibst sie als einen Block frei.
 - **Neu:** Passt an einem Entwurf etwas nicht, gib dem Planer einen Hinweis zu einer Karte und lass ihn überarbeiten; jede Fassung bleibt sichtbar, Neues, Geändertes und Entfallenes ist markiert.
