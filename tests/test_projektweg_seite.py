@@ -380,7 +380,7 @@ class SeiteAbschluss(Rundgang):
         knopf = "[...document.querySelectorAll('.pjw-ansicht > .pjw-kopf button')].find(b => /abnehmen/.test(b.textContent))"           # „M… abnehmen“ (A2064)
         self.warten(knopf)
         self.tab.js(knopf + ".click()")
-        self.warten("document.querySelector('.pjw-ansicht .leer') && document.querySelector('.pjw-ansicht .leer').textContent.includes('Zuletzt abgenommen')")
+        self.warten("document.querySelector('.pjw-ansicht .pjw-a-zuletzt') && document.querySelector('.pjw-ansicht .pjw-a-zuletzt').textContent.includes('Zuletzt abgenommen')")
         self.assertEqual(self.con.execute("SELECT status FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0], "fertig")
 
     def test_rundgang(self):

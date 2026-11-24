@@ -4480,7 +4480,8 @@ function pwAbschluss(d) {
   const warten = a.filter(x => x.bereit && !x.frei).sort((x, y) => y.bogen - x.bogen);
   if (!warten.length) {
     const z = a.filter(x => x.frei).at(-1);
-    return [el("div", { class: "leer" }, z ? t("pjw_a_keiner_z", { m: pwM(z), x: z.titel }) : a.length ? t("pjw_a_keiner") : t("pjw_a_leer"))];
+    if (z) return [el("div", { class: "leise pjw-a-zuletzt" }, t("pjw_a_keiner_z", { m: pwM(z), x: z.titel }))];   /* Inhalt, nicht „leer“: sonst zeigte der offene Schritt nur „So läuft …“ */
+    return [el("div", { class: "leer" }, a.length ? t("pjw_a_keiner") : t("pjw_a_leer"))];
   }
   return [warten.length > 1 ? el("div", { class: "leise" }, t("pjw_a_warten_n", { n: warten.length })) : null,
     ...warten.map(x => pwAbschlussKarte(x, warten.length === 1))].filter(Boolean);
