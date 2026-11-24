@@ -2852,7 +2852,7 @@ def _grobplan_befehl(con, pid, a):
         print(grobplan.anstossen(con, pid, von=von))
         return 0
     ab = grobplan.abgeschlossen(con, pid)
-    if not ab:
+    if not ab and not grobplan.angenommen(con, pid):     # A2071: bei Übernahme (Fassung 0 = Bestand) gibt es kein Konzept-Ja
         print("Konzept noch nicht abgeschlossen – amw thema konzept-abschliessen (wenn alle Themen frei sind)")
         return 0
     for f in grobplan.fassungen(con, pid):

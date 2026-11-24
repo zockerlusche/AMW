@@ -224,14 +224,21 @@ class Uebernahme(Grund):
         with db.schreiben(self.con):
             self.con.execute("UPDATE bogen SET status = 'fertig' WHERE id = ?", (alt,))
             self.con.execute("UPDATE bogen SET status = 'verworfen' WHERE id = ?", (weg,))
-        r = grobplan.uebernehmen(self.con, self.pid)
+        r = grobplan.uebernehmen(self.con, self.pid) or {}
         self.assertEqual((r["fassung"], r["meilensteine"], r["offen"], r["ohne_meilenstein"]), (0, 3, 1, []))   # alle drin, 1 offen
         frei = [json.loads(t[0]) for t in self.con.execute("SELECT text FROM plan_ereignis WHERE art = 'meilenstein_frei' AND projekt_id = ?",
                                                            (self.pid,))]
         self.assertEqual(sorted(f["bogen"] for f in frei), sorted([m1, alt]))                     # verworfen ohne Freigabe
         self.assertTrue(all(f["quelle"] == "uebernahme" and f["grobplan_ja"] for f in frei))      # erkennbar übernommen
-        texte = [x.get("text") or x.get("kurz") or "" for x in verlauf.projektweg(self.con, self.pid, grenze=50)]
+        eintraege = verlauf.projektweg(self.con, self.pid, grenze=50)
+        texte = [x.get("text") or x.get("kurz") or "" for x in eintraege]
         self.assertTrue(any("Bestand übernommen" in str(t) for t in texte), texte)
+        rollen = {x["rolle"] for x in eintraege if "Bestand übernommen: Grobplan" in str(x.get("text"))}
+        self.assertEqual(rollen, {"amw"})                                                         # A2071: kein Planer lief
+        rc, aus = self.befehl("grobplan", von="TL")                                              # A2071: Fassung 0 statt „nicht abgeschlossen“
+        self.assertEqual(rc, 0, aus)
+        self.assertIn("Fassung 0: 3 Meilensteine", aus)
+        self.assertNotIn("Konzept noch nicht abgeschlossen", aus)
         self.assertTrue(grobplan.angenommen(self.con, self.pid))
         g = projektweg_seite.grob(self.con, self.pid)
         self.assertEqual(g["angenommen"]["fassung"], 0)
@@ -252,9 +259,9 @@ class Uebernahme(Grund):
         planung.bogen_neu(self.con, self.pid, "TL", "Sichern", ziel=f"TH{self.t2}")
         aus = grobplan.uebernahme_runde(self.con)
         self.assertEqual(len(aus), 1)
-        r = grobplan.angenommen(self.con, self.pid)
+        r = grobplan.angenommen(self.con, self.pid) or {}
         self.assertEqual(r["fassung"], 0)
-        e = grobplan.entwurf(self.con, self.pid, 0)["entwurf"]
+        e = (grobplan.entwurf(self.con, self.pid, 0) or {})["entwurf"]
         self.assertEqual(e["befunde"][0]["themen"], [self.t1])                                    # frei, ohne Meilenstein – als Zahl
 
 
