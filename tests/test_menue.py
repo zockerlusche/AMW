@@ -16,8 +16,8 @@ class Menue(unittest.TestCase):
     def test_sieben_punkte_und_namen(self):
         nav = self.html.split('<nav id="nav">')[1].split("</nav>")[0]
         self.assertEqual(re.findall(r'<a data-sicht="(\w+)"', nav),
-                         ["start", "fragen", "planung", "themen", "nachrichten", "wissen", "betrieb", "einstellungen"])   # A1896: + Themen (W2429/W2431)
-        self.assertEqual(re.findall(r'<a data-sicht="(\w+)" class="im-mehr"', nav), ["themen", "wissen", "betrieb", "einstellungen"])   # am Handy unter „Mehr“
+                         ["start", "fragen", "projektweg", "planung", "themen", "nachrichten", "wissen", "betrieb", "einstellungen"])   # A1896: + Themen (W2429/W2431); A2033: + Projektweg (TL #31935, bis A2018)
+        self.assertEqual(re.findall(r'<a data-sicht="(\w+)" class="im-mehr"', nav), ["projektweg", "themen", "wissen", "betrieb", "einstellungen"])   # am Handy unter „Mehr“
         for x in ('n_start: "Übersicht"', 'n_start: "Overview"', 'n_fragen: "Fragen"', 'n_planung: "Planung"', 'n_nachrichten: "Nachrichten"'):
             self.assertIn(x, self.html)
 
