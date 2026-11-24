@@ -4634,7 +4634,7 @@ function pwFensterZeichnen() {
     const f = d.grob.fassungen.find(y => y.fassung === w.fassung) || d.grob.fassungen.at(-1), m = f.meilensteine.find(y => y.schluessel === w.id);
     if (!m) return;
     titel = `${m.schluessel} ${m.titel}`;
-    felder = [[t("pjw_ziel_fertig"), m.ziel || "–"], [t("pjw_fertig_wenn_k"), m.fertig_wenn || "–"], [t("pjw_themen"), (m.themen || []).map(n => `TH${n} ${pwThemaName(d, n)}`).join(" · ") || "–"],
+    felder = [[t("pjw_ziel"), m.ziel || "–"], [t("pjw_fertig_wenn_k"), m.fertig_wenn || "–"], [t("pjw_themen"), (m.themen || []).map(n => `TH${n} ${pwThemaName(d, n)}`).join(" · ") || "–"],
       [t("pjw_reihenfolge"), [(m.nach || []).length ? t("pjw_nach", { x: m.nach.join(", ") }) : t("pjw_ohne_vorgaenger"), (m.gleichzeitig || []).length ? t("pjw_gleichzeitig", { x: m.gleichzeitig.join(", ") }) : null].filter(Boolean).join(" · ")],
       [t("pjw_aufwand"), [m.aufwand, m.tage ? (m.tage === 1 ? t("pjw_tag1") : t("pjw_tage", { n: m.tage })) : null].filter(Boolean).join(" · ") || "–"],
       [t("pjw_kosten"), typeof m.usd === "number" ? `≈ ${m.usd.toFixed(2)} $` : "–"]];

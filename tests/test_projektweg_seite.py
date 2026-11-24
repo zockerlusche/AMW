@@ -357,6 +357,8 @@ class Seite(Rundgang):
         self.assertIn("geändert", self.tab.js("document.querySelector('.pjw-karte[data-ms=M3]').innerText"))
         self.tab.js("document.querySelector('.pjw-karte[data-ms=M2]').click()")
         self.warten(f"{FENSTER} && {FENSTER}.innerText.includes('Ein Bewohner lebt')")
+        namen = self.tab.js("[...document.querySelectorAll('#pjw-fenster .pjw-felder > span:nth-child(odd)')].map(x => x.textContent)")
+        self.assertEqual(namen[:3], ["Ziel", "Fertig, wenn", "Themen"])                   # A2072 (CCamwTL #32485): nicht „Ziel und …“
         self.tab.js("document.querySelector('#pjw-erg').value = 'M2 mit zwei Bewohnern'; [...document.querySelectorAll('#pjw-fenster button')]"
                     ".find(b => b.textContent === 'Als Hinweis an den Planer').click()")
         self.warten(f"!{FENSTER} && document.querySelector('.pjw-hinweise') && document.querySelector('.pjw-hinweise').innerText.includes('M2 mit zwei Bewohnern')")
