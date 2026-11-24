@@ -1094,7 +1094,7 @@ def cmd_aufgabe(a, con):
     elif a.aktion == "liste":
         from . import wartegrund
         for r in kern.aufgaben(con, pid, a.agent, a.alle):
-            gruende = ", ".join(g["bezug"] for g in wartegrund.offene(con, r["id"]))
+            gruende = ", ".join(wartegrund.anzeige(con, pid, g) for g in wartegrund.offene(con, r["id"]))
             print(f"A{r['id']:<5} {r['agent'] or '–':<8} [{r['status']}/{r['einstufung']}] {r['titel'][:110]}"
                   + (f"  ⇢ {gruende}" if gruende else "") + (f"  ⇢ {r['wartet_auf']}" if r["wartet_auf"] else ""))
     elif a.aktion == "hinweis":                       # A1978: Versionshinweis ändern oder zurücknehmen (intern), auch nach fertig
@@ -1118,7 +1118,7 @@ def cmd_aufgabe(a, con):
             raise kern.AmwFehler(f"A{a.id} gibt es nicht")
         if getattr(a, "kurz", False):
             from . import wartegrund
-            offen = [g["bezug"] for g in wartegrund.offene(con, a.id)]
+            offen = [wartegrund.anzeige(con, pid, g) for g in wartegrund.offene(con, a.id)]
             print(f"A{r['id']} [{r['status']}] {r['agent'] or '–'} · {r['titel']}"
                   + (f" · wartet auf {', '.join(offen)}" if offen else "")
                   + (f" · {r['wartet_auf']}" if r["wartet_auf"] and r["status"] in ("wartet", "blockiert") else ""))

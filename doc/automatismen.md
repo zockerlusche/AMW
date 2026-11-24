@@ -263,7 +263,7 @@ den Coder, der Coder auf das Merge-OK. Und eine Bitte als Info weckte den Lead n
   |---|---|
   | `F12` | die Frage beantwortet ist (eine Rückfrage zählt nicht) |
   | `A120` | die Aufgabe fertig oder verworfen ist |
-  | `L7` | der Lauf zu Ende ist |
+  | `L7` | der Lauf mit einem Ergebnis zu Ende ist – ein abgebrochener Lauf erledigt nichts (A2074) |
   | `CC2` (Kennung) | dieser Agent eine Nachricht mit `--aufgabe` dieser Aufgabe schickt |
   | `Entwickler` (oder sein eingestellter Name) | er eine Frage zu dieser Aufgabe beantwortet oder in der Workbench dazu schreibt |
   | `Monitor:<was>` | nur von Hand |
@@ -279,6 +279,10 @@ den Coder, der Coder auf das Merge-OK. Und eine Bitte als Info weckte den Lead n
   für anderes – mit `verteilen = an` teilt die AMW ihm das nächste startklare Paket zu und weckt ihn; mit `vorschlag` geht der
   Vorschlag an den Lead. Wartet sie auf eine Antwort oder ein anderes Paket, gilt das erst nach 10 Minuten. Das wartende Paket
   bleibt seins; ist sein Grund erledigt, weckt die AMW ihn dafür.
+- **Abgebrochener Lauf (A2074):** endet ein Lauf ohne Ergebnis (abgebrochen – auch gewollt oder aus der Schlange genommen – oder
+  Rückgabewert verloren), bleibt der Grund offen; die Liste zeigt „L7 (abgebrochen)“. Besitzer des Laufs, Besitzer der wartenden
+  Aufgaben und Lead bekommen je eine Nachricht mit der Liste. Ein genannter Ersatz (`--auf L9`) löst ihn ab, `--erledigt L7` hebt
+  ihn auf; auf einen abgebrochenen Lauf neu zu warten lehnt die AMW ab. Nach der Frist von `warten_agent` einmal „Grund noch aktuell?“.
 - **Startklar ohne Grund (A2053):** steht eine Aufgabe mit Bearbeiter auf „wartet“, ohne offenen Grund und mit fertigen
   Vorgängern, und hat er nichts in „läuft“, bekommt er einmal „A… ist startklar – weiter: amw aufgabe start N“.
 
@@ -288,6 +292,25 @@ den Coder, der Coder auf das Merge-OK. Und eine Bitte als Info weckte den Lead n
   einer fremden Aufgabe kommt ein Hinweis. Eine `info`, `meldung` oder `antwort` zu einer fremden Aufgabe geht in Kopie an
   ihren Besitzer.
 - Workbench: An jeder offenen Frage steht, welche Aufgabe sie aufhält; die Kacheln zeigen „A… wartet auf …“.
+
+## Tote Läufe: Rechner-Neustart, Warte-Prozess weg (A2074)
+
+- **Wozu:** Ein Lauf, dessen Prozess weg ist, stand weiter auf „läuft“, hielt Platz und Speicher-Vormerkung, und niemand erfuhr es.
+- **Erkennen (Dienst, jede Runde, Läufe dieses Rechners, alle Projekte, auch mit Fenster und ohne Befehl):** begonnen vor dem
+  Rechnerstart (60 s Spielraum) → „Rechner-Neustart“; sonst Warte-Prozess weg → „Warte-Prozess weg“. Eine lebende Nummer zählt nur,
+  wenn der Prozess nicht jünger ist als der Lauf. Lebt Warte-Prozess oder Befehl nachweislich, schließt nichts den Lauf; ist die
+  Startzeit nicht lesbar, gilt er als lebend. Ohne Prozessnummer (`lauf start`/`lauf ende`) zählt nur der Rechnerstart. KI-Aufträge
+  und Läufe, die der Dienst selbst übernimmt (A1640), bleiben auf ihrem Weg. Beendet wird dabei nie ein Prozess.
+- **Nur der Befehl lebt noch:** der Lauf bleibt „läuft“, der Besitzer erfährt es einmal, nach der Frist des Laufs einmal der Lead.
+  Endet auch der Befehl, ist der Rückgabewert unbekannt: abgebrochen, kein Beleg.
+- **Abschluss:** abgebrochen mit Grund, die Ausgabe bleibt, Platz und Vormerkung sind frei. Besitzer (auftrag) und Lead (meldung)
+  bekommen Nummer, letzten Ausgabestand, die wartenden Aufgaben und den fertigen Befehl zum Neustart.
+- **Ersatz:** nur ein Gesamtlauf eines Agenten, sauber im selben Ordner auf demselben Stand, höchstens einmal. Der Dienst startet
+  dafür nur den eingestellten `gesamtlauf_befehl` in diesem Ordner, nie den gespeicherten Text. Rechnet ein neuerer Lauf den Ordner
+  schon, gilt der als Ersatz. Die Nachricht sagt dann „nicht selbst starten“; die Wartegründe wandern mit. Läufe der AMW selbst
+  werden nur abgeschlossen.
+- **Weckruf nach dem Rechner-Neustart:** die erste neue Sitzung eines Agenten, dessen Aufgabe seit vor dem Start läuft, bekommt je
+  Rechnerstart einmal die Aufgabe und seine abgebrochenen Läufe genannt.
 
 ## Leerlauf-Prüfung (seit 1.8.0)
 

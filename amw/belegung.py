@@ -113,6 +113,14 @@ def lauf_pid(lid):
         return None
 
 
+def lauf_pid_zeit(lid):
+    """Wann die Prozessnummer dieses Laufs vermerkt wurde (Sekunden) – der Prozess selbst ist älter; jünger heißt: Nummer neu vergeben."""
+    try:
+        return os.path.getmtime(os.path.join(_ordner(), f"{int(lid)}.pid"))
+    except (OSError, ValueError):
+        return None
+
+
 def prozess_da(prozess_id):
     """Läuft ein Prozess mit dieser Nummer? (nur nachsehen – ändert nichts)"""
     if not prozess_id:

@@ -85,6 +85,7 @@ GESPERRT = (
     ("amw/einstellungen.py", "fest", "Einstellungen dieses PCs (Datenbank-Pfad)"),
     ("amw/betrieb.py", "fest", "Läufe, Prüfungen, Merge-OK"),
     ("amw/laufdienst.py", "fest", "Lauf-Schlange"),
+    ("amw/laufabbruch.py", "fest", "Lauf-Schlange: tote Läufe abschließen, Ersatz einreihen (A2074)"),
     ("amw/belegung.py", "fest", "Lauf-Schlange"),
     ("amw/kern.py", "fest", "Rechte und Projekt-Einstellungen"),
     ("amw/steuerung.py", "fest", "Agenten starten und beenden"),

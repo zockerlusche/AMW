@@ -120,6 +120,10 @@
    "Nichts geht verloren. `amw lauf ausfuehren` merkt sich beim Einreihen Befehl, Ordner und Ergebnis-Datei. Ist der Lauf dran und der wartende Befehl im Fenster lebt nicht mehr, startet der Dienst genau diesen Befehl im selben Ordner und schreibt die Ausgabe in die Ergebnis-Datei; der Agent bekommt am Ende eine Meldung mit dem Rückgabewert. Läufe mit Fenster (Bildschirm) startet der Dienst nicht selbst."
   ],
   [
+   "Was passiert mit Läufen, wenn der Rechner neu startet?",
+   "Die AMW erkennt beim nächsten Start, welche Läufe dabei abgebrochen wurden, gibt ihren Platz frei und sagt dem Agenten und dem Lead, wie weit sie waren – mit dem fertigen Befehl zum Neustart. Die bisherige Ausgabe bleibt erhalten. Einen Gesamtlauf startet die AMW einmal selbst neu, wenn der Ordner sauber auf demselben Stand steht; alles andere startet der Agent. Wartet eine Aufgabe auf einen abgebrochenen Lauf, bleibt sie wartend, bis ein Ersatz genannt ist. Programme beendet die AMW dabei nicht."
+  ],
+  [
    "Muss ein Agent die Warteschlange beobachten?",
    "Nein. „ist dran“ und „läuft länger als erwartet“ wecken niemanden mehr – sie stehen nur in der Workbench. Wecken tut erst das Ergebnis. `amw lauf warte` schreibt den Grund nur, wenn er sich ändert. Läufe, die die AMW selbst ausführt und beendet (Gegenlesen, Planer, Negativprobe, Arbeiter, Bündel), schicken beim Start gar keine Meldung – nur ein Fehler am Ende wird gemeldet."
   ],

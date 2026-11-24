@@ -7,7 +7,8 @@
   Läufe mit Fenster (Bildschirm) übernimmt der Dienst nicht.
 - Umgebung: die des Dienstes ohne AMW_AGENT, AMW_PROJEKT und alles von Claude Code (CLAUDE_CODE_*) – gespeichert wird keine.
 - Neustart des Dienstes: Lebt ein vom Dienst gestarteter Befehl noch, passt die neue Runde weiter auf ihn auf (Rückgabewert
-  dann unbekannt); ist er weg, endet der Lauf mit diesem Hinweis.
+  dann unbekannt); ist er weg, endet der Lauf mit diesem Hinweis. Die Nummer allein zählt nicht – auch die Startzeit (A2074).
+- Tote Läufe (Rechner-Neustart, Warte-Prozess weg): laufabbruch, zu Beginn jeder Runde.
 - Spitze: je laufendem Lauf mit bekanntem Prozess der belegte Speicher des Prozessbaums, das Maximum steht in lauf.spitze_gb.
 - Frist eines Gesamtlaufs (A2051): ohne --frist gilt die Projekt-Einstellung gesamtlauf_frist_min (Vorgabe 60, 0 = keine); das
   Ende geht als AMW_LAUF_ENDE an den Befehl (amw.testlauf hört kurz vorher auf und hält fest, was gerade läuft). Endet ein
@@ -146,10 +147,21 @@ def _abschliessen(con, l, rc, pfad, grund=None, rc_bekannt=True, stand=None):
             + (f" · abgebrochen: {grund}" if grund else ""))[:500]
     jetzt = betrieb.lauf_zeile(con, l["projekt_id"], l["id"])
     if jetzt["status"] == "laeuft":
-        betrieb.lauf_ende(con, l["projekt_id"], l["agent"], l["id"], rc if rc_bekannt else None, text, abgebrochen=bool(grund))
+        betrieb.lauf_ende(con, l["projekt_id"], l["agent"], l["id"], rc if rc_bekannt else None, text, abgebrochen=bool(grund),
+                          unbekannt=not rc_bekannt, melden=False)
     kurz = (f"L{l['id']} {'abgebrochen' if grund else 'fertig'}, rc {rc if rc_bekannt else '?'} – vom Dienst gerechnet "
             f"(dein Warte-Prozess war weg): {betrieb.kurzfassung(l['beschreibung'], 70)}")
     text = f"Ausgabe: {pfad}" + (f"\n{letzte}" if letzte else "")
+    from . import wartegrund
+    warten = wartegrund.wartet_auf_lauf(con, l["projekt_id"], l["id"])    # A2074: ohne Ergebnis bleibt der Grund offen – eine Nachricht
+    if warten:
+        text += wartegrund.warteliste(l["id"], warten)
+        an = dict.fromkeys([kern.lead(con, l["projekt_id"])] + [a["agent"] for a in warten])
+        an = [k for k in an if k and k != l["agent"] and con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?"
+                                                                     " AND entfernt_utc IS NULL", (l["projekt_id"], k)).fetchone()]
+        if an:
+            with db.schreiben(con):
+                kern._posten(con, l["projekt_id"], "AMW", ",".join(an), "meldung", kurz, text)
     try:
         with db.schreiben(con):
             kern._posten(con, l["projekt_id"], "AMW", l["agent"], "meldung", kurz, text, aufgabe_id=l["aufgabe_id"])
@@ -223,9 +235,10 @@ def rechnen(lid):
 
 def aufpassen(lid, prozess_id):
     """Nach einem Neustart des Dienstes: auf einen noch laufenden, früher gestarteten Befehl warten (Rückgabewert unbekannt)."""
+    from . import laufabbruch
     con = db.verbinde()
     try:
-        while belegung.prozess_da(prozess_id):
+        while laufabbruch.Prozesse().lebt(prozess_id, belegung.lauf_pid_zeit(lid)):
             s = con.execute("SELECT status FROM lauf WHERE id = ?", (lid,)).fetchone()["status"]
             if s != "laeuft":
                 _baum_beenden(prozess_id)
@@ -266,12 +279,18 @@ class Laufdienst:
             self.spitzen()
         except Exception as e:
             log.warning("Spitzen: %s: %s", type(e).__name__, e)
+        from . import laufabbruch
+        prozesse, start = laufabbruch.Prozesse(), laufabbruch.rechnerstart()
+        try:                                             # A2074: tote Läufe abschließen, melden, Gesamtläufe ersetzen
+            ereignisse += laufabbruch.runde(self.con, self.faeden, start, prozesse)
+        except Exception as e:                           # nie die Übernahme aufhalten
+            log.warning("Tote Läufe: %s: %s", type(e).__name__, e)
         for l in self.con.execute("SELECT * FROM lauf l WHERE status = 'laeuft' AND befehl IS NOT NULL AND schirm = 0 AND "
                                   + betrieb.HIER, (betrieb.rechner(),)).fetchall():
             lid = l["id"]
             if lid in self.faeden:
                 continue
-            if l["ausfuehrer"] is None and not belegung.prozess_da(l["waechter"]):
+            if l["ausfuehrer"] is None and not prozesse.warte_prozess(l):
                 if betrieb.lauf_uebernehmen(self.con, lid, "dienst"):
                     self.faeden[lid] = True
                     grund = darf_ausfuehren(self.con, l)
@@ -284,7 +303,7 @@ class Laufdienst:
             elif l["ausfuehrer"] == "dienst":           # vom Dienst gestartet, aber nicht von diesem: Neustart dazwischen
                 self.faeden[lid] = True
                 p = belegung.lauf_pid(lid)
-                if p and belegung.prozess_da(p):
+                if prozesse.befehl(l):
                     self.starten(aufpassen, lid, p)
                     ereignisse.append(f"L{lid}: passe nach Neustart weiter auf (PID {p})")
                 else:

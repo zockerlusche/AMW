@@ -1966,7 +1966,7 @@ def kontext(con, pid, kennung):
     eigene = aufgaben(con, pid, kennung)
 
     def worauf(x):
-        g = ", ".join(r["bezug"] for r in wartegrund.offene(con, x["id"]))
+        g = ", ".join(wartegrund.anzeige(con, pid, r) for r in wartegrund.offene(con, x["id"]))
         t = "; ".join(v for v in (g, x["wartet_auf"]) if v)
         return f" (wartet auf {t})" if t else ""
     from . import termine, themen

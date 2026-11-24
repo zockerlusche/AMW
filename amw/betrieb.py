@@ -1148,8 +1148,10 @@ def lauf_vorziehen(con, pid, von, lid):
                                                           " (z. B. mit Vorrang) stellt ihn nur der Entwickler")
 
 
-def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speicher_frei=None):
-    """Beendet einen Lauf (oder nimmt einen wartenden aus der Schlange) und startet den nächsten wartenden."""
+def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speicher_frei=None, unbekannt=False, melden=True):
+    """Beendet einen Lauf (oder nimmt einen wartenden aus der Schlange) und startet den nächsten wartenden. Ein abgebrochener
+    Lauf – oder einer mit verlorenem Rückgabewert (unbekannt) – erledigt keinen Wartegrund (A2074); melden=False: der Aufrufer
+    benachrichtigt selbst."""
     with db.schreiben(con):
         l = con.execute("SELECT * FROM lauf WHERE id = ? AND projekt_id = ?", (lid, pid)).fetchone()
         if not l:
@@ -1164,7 +1166,10 @@ def lauf_ende(con, pid, agent, lid, rc, ergebnis=None, abgebrochen=False, speich
             from . import fenster
             fenster.geschlossen(con, l, rc, bool(schirm_mod.zustand(con)["frei"]))
         from . import wartegrund                     # wer auf diesen Lauf gewartet hat, wird geweckt (L2)
-        wartegrund.erledige(con, pid, "lauf", f"L{lid}", f"L{lid} zu Ende (rc {rc})" if rc is not None else f"L{lid} zu Ende")
+        if abgebrochen or unbekannt or l["status"] == "angemeldet":
+            wartegrund.lauf_abgebrochen(con, pid, lid, l["agent"], ergebnis, melden)
+        else:
+            wartegrund.erledige(con, pid, "lauf", f"L{lid}", f"L{lid} zu Ende (rc {rc})" if rc is not None else f"L{lid} zu Ende")
         if rc not in (0, None) and not abgebrochen:  # A2058: eigener Lauf rot – was jetzt kostet, ist Fehlersuche
             from . import taetigkeit
             taetigkeit.merken(con, pid, l["agent"], "fehlersuche", l["aufgabe_id"])

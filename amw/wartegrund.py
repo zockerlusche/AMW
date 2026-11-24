@@ -127,10 +127,75 @@ def anlegen(con, pid, von, aid, auf, art=None):
             raise kern.AmwFehler(f"A{aid} kann nicht auf sich selbst warten")
         if bezug in schon or bezug in neu:
             continue
+        if art_db == "lauf" and lauf_tot(con, pid, bezug):      # A2074: ein abgebrochener Lauf endet nicht mehr
+            raise kern.AmwFehler(f"{bezug} ist abgebrochen – nenne den Ersatz (--auf L<neu>)")
         db.einfuegen(con, "wartegrund", projekt_id=pid, aufgabe_id=aid, art=art_db, bezug=bezug, angelegt_utc=db.jetzt(),
                      angelegt_von=von)
         neu.append(bezug)
+        if art_db == "lauf":                                    # A2074: der Ersatz löst den abgebrochenen Lauf ab
+            for g in offene(con, aid):
+                if g["art"] == "lauf" and lauf_tot(con, pid, g["bezug"]):
+                    con.execute("UPDATE wartegrund SET erledigt_utc = ?, erledigt_durch = ? WHERE id = ?",
+                                (db.jetzt(), f"ersetzt durch {bezug}", g["id"]))
     return neu
+
+
+# --- Abgebrochene Läufe (A2074) ------------------------------------------------------------------
+
+UNBEKANNT = "lauf_unbekannt"     # plan_ereignis {"lauf": n}: zu Ende, aber der Rückgabewert ging verloren
+
+
+def lauf_tot(con, pid, bezug):
+    """Ist das ein Lauf ohne Ergebnis (abgebrochen oder Rückgabewert verloren)? Auf den wartet niemand mit Erfolg."""
+    m = re.fullmatch(r"L(\d+)", bezug or "")
+    if not m:
+        return False
+    r = con.execute("SELECT status FROM lauf WHERE id = ? AND projekt_id = ?", (int(m.group(1)), pid)).fetchone()
+    return bool(r) and (r[0] == "abgebrochen" or con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND text = ?",
+                                                             (pid, UNBEKANNT, json.dumps({"lauf": int(m.group(1))}))).fetchone() is not None)
+
+
+def anzeige(con, pid, g):
+    return g["bezug"] + (" (abgebrochen)" if g["art"] == "lauf" and lauf_tot(con, pid, g["bezug"]) else "")
+
+
+def wartet_auf_lauf(con, pid, lid):
+    """Aufgaben, die noch offen auf diesen Lauf warten."""
+    return con.execute("SELECT DISTINCT a.* FROM wartegrund w JOIN aufgabe a ON a.id = w.aufgabe_id WHERE w.projekt_id = ? AND w.art = 'lauf'"
+                       " AND w.bezug = ? AND w.erledigt_utc IS NULL AND a.status IN ('wartet', 'blockiert') ORDER BY a.id",
+                       (pid, f"L{lid}")).fetchall()
+
+
+def warteliste(lid, warten):
+    return ("\nEs warten: " + ", ".join(f"A{a['id']} ({a['agent'] or '–'})" for a in warten)
+            + f" – der Grund bleibt offen. Ersatz nennen: amw aufgabe wartet <nr> --auf L<neu> · aufheben: --erledigt L{lid}")
+
+
+def lauf_abgebrochen(con, pid, lid, agent, ergebnis=None, melden=True):
+    """Ein Lauf endete ohne Ergebnis: die Gründe bleiben offen, bis ein Ersatz genannt oder der Grund aufgehoben wird. Eine
+    Nachricht je Empfänger (Besitzer des Laufs, Besitzer der wartenden Aufgaben, Lead) mit der Liste – nur wenn jemand wartet."""
+    if con.execute("SELECT status FROM lauf WHERE id = ?", (lid,)).fetchone()[0] != "abgebrochen":
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=UNBEKANNT, text=json.dumps({"lauf": lid}))
+    warten = wartet_auf_lauf(con, pid, lid)
+    if not melden or not warten:
+        return warten
+    an = dict.fromkeys([agent] + [a["agent"] for a in warten] + [kern.lead(con, pid)])
+    an = [k for k in an if k and con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ? AND entfernt_utc IS NULL", (pid, k)).fetchone()]
+    if an:
+        kern._posten(con, pid, "AMW", ",".join(an), "meldung",
+                     f"L{lid} abgebrochen – {', '.join('A' + str(a['id']) for a in warten)}: Grund bleibt offen"[:140],
+                     (ergebnis or "") + warteliste(lid, warten))
+    return warten
+
+
+def lauf_ersetzen(con, pid, alt, neu):
+    """Die AMW hat einen Ersatz: offene Gründe auf L<alt> gelten jetzt für L<neu>, still."""
+    for a in wartet_auf_lauf(con, pid, alt):
+        if f"L{neu}" in {g["bezug"] for g in offene(con, a["id"])}:
+            con.execute("UPDATE wartegrund SET erledigt_utc = ?, erledigt_durch = ? WHERE aufgabe_id = ? AND bezug = ? AND erledigt_utc IS NULL",
+                        (db.jetzt(), f"ersetzt durch L{neu}", a["id"], f"L{alt}"))
+        else:
+            anlegen(con, pid, "AMW", a["id"], f"L{neu}")
 
 
 def schliessen(con, aid, durch):
