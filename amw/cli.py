@@ -755,8 +755,8 @@ def _paket_fertig(con, pid, a):
     prid = betrieb.pruefbitte(con, pid, von, pruefer, zweig, a.sha, a.punkte, aid, gruppe=a.gruppe, hinweis=a.hinweis,
                               ohne_bild=a.ohne_bild)
     print(f"P{prid} an {pruefer}")
-    neu = kern.aufgabe_status(con, pid, von, aid, "wartet", auf=pruefer, wartet_auf=f"Prüfung P{prid}")
-    print(f"A{aid} → {neu} · wartet auf {pruefer}")
+    neu = kern.aufgabe_status(con, pid, von, aid, "wartet", auf=f"P{prid}", wartet_auf=f"Prüfung P{prid} bei {pruefer}")
+    print(f"A{aid} → {neu} · wartet auf P{prid} ({pruefer})")
     holen = con.execute("SELECT 1 FROM plan_ereignis WHERE aufgabe_id = ? AND art IN ('paket_holen', 'startwissen')", (aid,)).fetchone()
     n = startwissen.befehle_seit(db.projekt_name(con, pid), von, r["begonnen_utc"])
     with db.schreiben(con):
@@ -932,6 +932,9 @@ def cmd_paket(a, con):
 def cmd_aufgabe(a, con):
     pid = _projekt(con, a)
     from . import planung
+    if getattr(a, "art", None) in ("pruefung", "stapel", "lauf", "antwort", "paket") and a.aktion not in ("wartet", "blockiert"):
+        raise kern.AmwFehler(f"--art {a.art} ist eine Wartegrund-Art (nur bei aufgabe wartet|blockiert); Art einer Aufgabe: text,"
+                             " mechanisch, fehlersuche, oberflaeche, sicherheit, konzept")
     if a.aktion == "dazwischen":                     # nur der Mensch; der Lead schlägt vor (Ja/Nein-Frage an den Menschen)
         from . import arbeitsliste
         if not a.id:
@@ -1105,11 +1108,14 @@ def cmd_aufgabe(a, con):
             raise kern.AmwFehler("Aufgaben-Nummer fehlt")
         if (a.auf or a.erledigt) and a.aktion not in ("wartet", "blockiert"):
             raise kern.AmwFehler("--auf/--erledigt gibt es nur bei aufgabe wartet|blockiert")
+        warteart = getattr(a, "art", None)
+        if warteart and (a.aktion not in ("wartet", "blockiert") or warteart not in ("pruefung", "stapel", "lauf", "antwort", "paket")):
+            raise kern.AmwFehler("--art bei wartet/blockiert: pruefung | stapel | lauf | antwort | paket")
         hinweise = []
         from . import wartegrund
         vorher = [g["bezug"] for g in wartegrund.offene(con, a.id)]
         neu = kern.aufgabe_status(con, pid, _von(a), a.id, a.aktion, a.beleg, a.wartet_auf, a.bemerkung, a.zusammenfassung,
-                                  a.auf, a.erledigt, hinweise, hinweis=a.hinweis, gruppe=a.gruppe)
+                                  a.auf, a.erledigt, hinweise, hinweis=a.hinweis, gruppe=a.gruppe, art=warteart)
         offen = [g["bezug"] for g in wartegrund.offene(con, a.id)]
         print(f"A{a.id} → {neu}" + (f" · wartet auf {', '.join(offen)}" if offen and neu in ("wartet", "blockiert") else ""))
         if a.auf and neu in ("wartet", "blockiert"):   # A1677: --auf fügt hinzu – alte Gründe bleiben offen, bis sie abgehakt sind
@@ -3800,9 +3806,11 @@ def parser():
     x.add_argument("--komplexitaet", type=int, help="Planung: 1–10; ab 7 braucht der Schritt einen freigegebenen Plan")
     x.add_argument("--groesse", type=str.upper, choices=["S", "M", "L", "XL"],
                    help="Größe (für die Empfehlung Modell/Denkaufwand): S klein … XL sehr groß")
-    x.add_argument("--art", choices=["text", "mechanisch", "fehlersuche", "oberflaeche", "sicherheit", "konzept"],
-                   help="Art (für die Empfehlung): text = Text/Doku, mechanisch = mechanische Änderung, fehlersuche,"
-                        " oberflaeche, sicherheit, konzept = Architektur/Konzept")
+    x.add_argument("--art", choices=["text", "mechanisch", "fehlersuche", "oberflaeche", "sicherheit", "konzept",
+                                     "pruefung", "stapel", "lauf", "antwort", "paket"],
+                   help="neu/aendern – Art (für die Empfehlung): text = Text/Doku, mechanisch = mechanische Änderung, fehlersuche,"
+                        " oberflaeche, sicherheit, konzept = Architektur/Konzept · wartet/blockiert – worauf (A2053): pruefung,"
+                        " stapel, lauf (geben dich für anderes frei) oder antwort, paket (halten 10 min fest)")
     x.add_argument("--nach", "--abhaengig-von", dest="nach", help="Vorgänger, z. B. 1201,1203 (startbar erst, wenn sie fertig sind)")
     x.add_argument("--verantwortlich", help="Planung: wer abnimmt bzw. Pläne freigibt")
     x.add_argument("--pruefbefehl", help="Planung: wie der Bearbeiter selbst prüft")

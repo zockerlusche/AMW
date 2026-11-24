@@ -485,7 +485,9 @@ class Kette:
         """Die ganze Kette. A1866 (P257): bricht sie mit einem unerwarteten Fehler ab (keine Stopp-Meldung), wird daraus ein Stopp
         mit dem Hinweis auf den Wartungsmodus – sonst bliebe er ohne Hinweis an."""
         try:
-            return self._ausliefern(zweig, gesamtlauf, aufgabe)
+            aus = self._ausliefern(zweig, gesamtlauf, aufgabe)
+            self._stapel_erledigt(zweig)
+            return aus
         except Stopp:
             raise
         except Exception as e:                                   # noqa: BLE001 – jeder andere Fehler wird zum Stopp mit Hinweis
@@ -499,6 +501,16 @@ class Kette:
             except Exception:                                    # noqa: BLE001
                 pass
             self.stopp("Unerwarteter Fehler", f"{type(e).__name__}: {str(e)[:300]} (Traceback im Protokoll: plan_ereignis auslieferung_fehler)")
+
+    def _stapel_erledigt(self, zweig):
+        """A2053: wer auf diesen Stapel gewartet hat (Wartegrund stapel:<zweig>), wird geweckt – die Auslieferung ist durch."""
+        from . import wartegrund
+        try:
+            with db.schreiben(self.con):
+                art, bezug = wartegrund.stichwort("wartet_stapel", zweig)
+                wartegrund.erledige(self.con, self.pid, art, bezug, f"Stapel {zweig} ausgeliefert")
+        except Exception:                                        # noqa: BLE001 – ausgeliefert ist ausgeliefert
+            pass
 
     def _ausliefern(self, zweig, gesamtlauf=None, aufgabe=None):
         v = self.pruefen(zweig, gesamtlauf, aufgabe)

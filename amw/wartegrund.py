@@ -5,6 +5,13 @@ Grund ist eine Zeile in `wartegrund`. Wird ein Grund erledigt (Frage beantwortet
 meldet sich zur Aufgabe, der Entwickler antwortet), weckt die AMW den Besitzer der Aufgabe, Kopie an den Lead.
 Die Leerlauf-Prüfung im Dienst weckt Agenten, die frei sind, obwohl eine ihrer Aufgaben auf nichts mehr wartet.
 Alle Funktionen außer `setzen`/`leerlauf` laufen innerhalb eines offenen Schreibvorgangs des Aufrufers.
+
+Feste Art (A2053, TH155): jeder Grund hat eine Sorte – wartet_pruefung · wartet_stapel · wartet_lauf · wartet_antwort ·
+wartet_paket. Ohne Schemaänderung (Lead F5388): Prüfung und Stapel stehen als maschinenlesbares Stichwort im Bezug
+(Art „monitor“, Bezug „pruefung:P604“ / „stapel:stapel41“; mit --art auch „pruefung:CCamwTL“); L… ist wartet_lauf, A… wartet_paket,
+alles andere wartet_antwort (sicher: hält fest). Nur stichwort()/sorte() kennen diese Speicherung – eine spätere Migration
+tauscht nur sie. Prüfung, Stapel und Lauf geben den Agenten frei (die AMW verteilt weiter, verteilen.freie_agenten); Antwort
+und Paket erst nach HALTEN_MIN.
 """
 import json
 import re
@@ -19,15 +26,71 @@ ENTWICKLER_ZEILE_H = 6    # wartet alles auf den Entwickler: höchstens so oft e
 ARBEIT_ZEIGEN = 3         # so viele freie Aufgaben nennt der Weckruf
 
 ERLEDIGT_TEXT = {"frage": "beantwortet", "aufgabe": "abgeschlossen", "lauf": "zu Ende"}
+SORTEN = ("wartet_pruefung", "wartet_stapel", "wartet_lauf", "wartet_antwort", "wartet_paket")
+FREIGEBEND = ("wartet_pruefung", "wartet_stapel", "wartet_lauf")   # der Agent ist frei für anderes, sofort
+HALTEN_MIN = 10           # wartet_antwort/wartet_paket halten den Agenten so lange fest, dann ist er frei für anderes
+STICHWORT = ("pruefung", "stapel", "lauf", "antwort", "paket")
+
+
+def stichwort(sorte, ref):
+    """(art, bezug) für eine Sorte mit Verweis – die einzige Stelle, die die Speicherung als Stichwort kennt."""
+    kurz = sorte.removeprefix("wartet_")
+    return "monitor", f"{kurz}:{ref}"
+
+
+def sorte(art, bezug, text=None):
+    """Sorte eines Grundes aus (art, bezug); ohne Grund aus dem Freitext (grob, unbekannt = wartet_antwort)."""
+    if art is None:
+        return _sorte_text(text)
+    m = re.match(r"(pruefung|stapel|lauf|antwort|paket):", bezug or "")
+    if art == "monitor" and m:
+        return "wartet_" + m.group(1)
+    return {"lauf": "wartet_lauf", "aufgabe": "wartet_paket"}.get(art, "wartet_antwort")
+
+
+def _sorte_text(text):
+    t = (text or "").lower()
+    if re.search(r"prüf|pruef|\bp\d+", t):
+        return "wartet_pruefung"
+    if re.search(r"stapel|release|auslieferung|kette", t):
+        return "wartet_stapel"
+    if re.search(r"\bl\d+|gesamtlauf", t):
+        return "wartet_lauf"
+    return "wartet_antwort"
 
 
 def _sek(utc):
     return db.utc_sek(utc)
 
 
-def bezug_lesen(con, pid, teil):
-    """„F12“ → ("frage", "F12"); ebenso A…, L…, Agent-Kennung, Entwickler (oder sein eingestellter Name), Monitor[:was]."""
+def bezug_lesen(con, pid, teil, art=None):
+    """„F12“ → ("frage", "F12"); ebenso A…, L…, Agent-Kennung, Entwickler (oder sein eingestellter Name), Monitor[:was];
+    A2053: P604 / pruefung:P604 → Prüfung, stapel:<zweig> → Stapel. art (--art: pruefung|stapel|lauf|antwort|paket) setzt die
+    Sorte, wenn der Verweis sie nicht schon hat (z. B. --auf CCamwTL --art pruefung)."""
     t = teil.strip()
+    m = re.fullmatch(r"(?i)(pruefung|stapel|lauf|antwort|paket)\s*:\s*(.+)", t)
+    if m and not art:
+        return bezug_lesen(con, pid, m.group(2), m.group(1).lower())
+    if art:
+        art = art.lower().removeprefix("wartet_")
+        if art not in STICHWORT:
+            raise kern.AmwFehler(f"Art „{art}“ – erlaubt: {', '.join(STICHWORT)}")
+    m = re.fullmatch(r"[Pp]\s*(\d+)", t)
+    if m:
+        if not con.execute("SELECT 1 FROM pruefung WHERE id = ? AND projekt_id = ?", (int(m.group(1)), pid)).fetchone():
+            raise kern.AmwFehler(f"P{m.group(1)} gibt es nicht")
+        return stichwort("wartet_" + (art or "pruefung"), f"P{m.group(1)}")
+    if art == "stapel":
+        if not re.fullmatch(r"[\w./-]{1,80}", t):
+            raise kern.AmwFehler(f"stapel:<zweig> – „{t}“ ist kein Zweig")
+        return stichwort("wartet_stapel", t)
+    a, b = _bezug_alt(con, pid, t)
+    if art and sorte(a, b) != "wartet_" + art:
+        return stichwort("wartet_" + art, b)
+    return a, b
+
+
+def _bezug_alt(con, pid, t):
     m = re.fullmatch(r"([FfAaLl])\s*(\d+)", t)
     if m:
         art, tabelle = {"f": ("frage", "frage"), "a": ("aufgabe", "aufgabe"), "l": ("lauf", "lauf")}[m.group(1).lower()]
@@ -42,7 +105,8 @@ def bezug_lesen(con, pid, teil):
     try:
         return "agent", kern.agent_zeile(con, pid, t)["kennung"]
     except kern.AmwFehler:
-        raise kern.AmwFehler(f"„{t}“ ist kein Wartegrund – erlaubt: F<nr>, A<nr>, L<nr>, Name eines Agenten, Entwickler, Monitor:<was>")
+        raise kern.AmwFehler(f"„{t}“ ist kein Wartegrund – erlaubt: F<nr>, A<nr>, L<nr>, P<nr>, stapel:<zweig>, Name eines Agenten,"
+                             " Entwickler, Monitor:<was>")
 
 
 def teile(text):
@@ -53,17 +117,17 @@ def offene(con, aid):
     return con.execute("SELECT * FROM wartegrund WHERE aufgabe_id = ? AND erledigt_utc IS NULL ORDER BY id", (aid,)).fetchall()
 
 
-def anlegen(con, pid, von, aid, auf):
+def anlegen(con, pid, von, aid, auf, art=None):
     """Neue Gründe zu einer Aufgabe (doppelte offene werden nicht noch einmal angelegt). Gibt die Bezüge zurück."""
     neu = []
     schon = {r["bezug"] for r in offene(con, aid)}
     for t in teile(auf):
-        art, bezug = bezug_lesen(con, pid, t)
-        if art == "aufgabe" and bezug == f"A{aid}":
+        art_db, bezug = bezug_lesen(con, pid, t, art)
+        if art_db == "aufgabe" and bezug == f"A{aid}":
             raise kern.AmwFehler(f"A{aid} kann nicht auf sich selbst warten")
         if bezug in schon or bezug in neu:
             continue
-        db.einfuegen(con, "wartegrund", projekt_id=pid, aufgabe_id=aid, art=art, bezug=bezug, angelegt_utc=db.jetzt(),
+        db.einfuegen(con, "wartegrund", projekt_id=pid, aufgabe_id=aid, art=art_db, bezug=bezug, angelegt_utc=db.jetzt(),
                      angelegt_von=von)
         neu.append(bezug)
     return neu
@@ -152,6 +216,52 @@ def freie_arbeit(con, pid, kennung):
     return aus
 
 
+def haelt_fest(con, pid, kennung, jetzt=None):
+    """A2053: Hält eine wartende Aufgabe den Agenten fest? Prüfung, Stapel und Lauf nie (FREIGEBEND); Antwort und Paket nur in
+    den ersten HALTEN_MIN Minuten (danach darf die AMW ihm anderes startklares geben). Rückgabe: der festhaltende Bezug oder None."""
+    jetzt = jetzt or time.time()
+    for a in con.execute("SELECT id, wartet_auf, geaendert_utc FROM aufgabe WHERE projekt_id = ? AND agent = ? AND einstufung = 'aktiv'"
+                         " AND status IN ('wartet', 'blockiert')", (pid, kennung)).fetchall():
+        gruende = offene(con, a["id"])
+        if not gruende and (a["wartet_auf"] or "").strip():
+            gruende = [{"art": None, "bezug": a["wartet_auf"], "angelegt_utc": a["geaendert_utc"]}]
+        for g in gruende:
+            if sorte(g["art"], g["bezug"], g["bezug"]) in FREIGEBEND:
+                continue
+            if g["angelegt_utc"] and (jetzt - _sek(g["angelegt_utc"])) / 60 < HALTEN_MIN:
+                return g["bezug"]
+    return None
+
+
+def startklar_wecken(con, pid):
+    """A2053 (4): Aufgabe mit Besitzer, „wartet“/„blockiert“ ohne offenen Grund und ohne Freitext, alle Vorgänger fertig, Besitzer
+    ohne laufendes Stück → einmal ein Weckruf „A… ist startklar“ (je Aufgabe und Änderungsstand; nicht, wenn die AMW zu dieser
+    Aufgabe seitdem schon geschrieben hat, z. B. „alle Gründe erledigt“). Rückgabe: Texte."""
+    from . import planung
+    aus = []
+    for a in con.execute("SELECT a.* FROM aufgabe a JOIN agent g ON g.projekt_id = a.projekt_id AND g.kennung = a.agent"
+                         " LEFT JOIN paket k ON k.aufgabe_id = a.id WHERE a.projekt_id = ? AND a.status IN ('wartet', 'blockiert')"
+                         " AND a.einstufung = 'aktiv' AND g.entfernt_utc IS NULL AND coalesce(k.art, 'agent') != 'p'", (pid,)).fetchall():
+        if offene(con, a["id"]) or (a["wartet_auf"] or "").strip() or planung.offene_vorgaenger(con, a["id"]):
+            continue
+        if con.execute("SELECT 1 FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'laeuft'", (pid, a["agent"])).fetchone():
+            continue                                    # eins nach dem anderen: er kommt dazu, wenn das laufende fertig ist
+        zeichen = f"{a['id']}:{a['geaendert_utc']}"
+        if con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'startklar_geweckt' AND text = ?", (pid, zeichen)).fetchone():
+            continue
+        if con.execute("SELECT 1 FROM nachricht WHERE projekt_id = ? AND von = 'AMW' AND aufgabe_id = ? AND zeit_utc >= ?",
+                       (pid, a["id"], a["geaendert_utc"] or "")).fetchone():
+            continue                                    # schon geweckt (alle Gründe erledigt, zugeteilt …)
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="startklar_geweckt",
+                         aufgabe_id=a["id"], text=zeichen)
+            kern._posten(con, pid, "AMW", a["agent"], "auftrag", f"A{a['id']} ist startklar – weiter: amw aufgabe start {a['id']}",
+                         f"„{a['titel'][:100]}“ wartet auf nichts mehr: kein offener Grund, alle Vorgänger fertig.",
+                         aufgabe_id=a["id"])
+        aus.append(f"{a['agent']} geweckt: A{a['id']} startklar")
+    return aus
+
+
 def wartet_auf_entwickler(con, pid, kennung):
     """Offene Gründe der Aufgaben des Agenten, wenn sie alle auf den Entwickler warten (direkt oder Frage an ihn), sonst []."""
     gruende = con.execute(
@@ -200,6 +310,15 @@ def leer_lead(con, pid):
     r = con.execute("SELECT arbeitsweise FROM agent WHERE projekt_id = ? AND kennung = ? AND entfernt_utc IS NULL",
                     (pid, k)).fetchone()
     return k if r and r["arbeitsweise"] == "terminal" else None
+
+
+def _bekommt_paket(con, pid, kennung):
+    """A2053 (3): Mit „Verteilen an“ und einem startklaren Paket, das passt, teilt die AMW selbst zu – dann keine Meldung an den
+    Lead. Die Meldung „nichts zu tun“ bleibt für den Fall ohne startklares (oder ohne passendes) Paket."""
+    from . import verteilen
+    if verteilen.einstellung(con, pid) != "an":
+        return False
+    return any(verteilen.passt(con, pid, kennung, a)[0] == "ja" for a, _ in verteilen.kandidaten(con, pid))
 
 
 def _verteil_offen(con, pid, kennung):
@@ -254,6 +373,7 @@ def leerlauf(con, jetzt=None):
     ereignisse = []
     for p in con.execute("SELECT id FROM projekt").fetchall():
         pid = p["id"]
+        ereignisse += startklar_wecken(con, pid)        # A2053 (4)
         entwickler, leere = [], []
         leer_an = leer_lead(con, pid)                   # A1884: nur mit einem Lead im Terminal
         try:
@@ -293,7 +413,8 @@ def leerlauf(con, jetzt=None):
                     if frei_min >= LEERLAUF_MIN:
                         entwickler.append(f"{k} ({', '.join(worauf)})")
                 elif (leer_an and k != leer_an and s["arbeitsweise"] == "terminal" and frei_min >= leer_min
-                      and not wartet_auf_eigenes(con, pid, k) and not _verteil_offen(con, pid, k)):
+                      and not wartet_auf_eigenes(con, pid, k) and not _verteil_offen(con, pid, k)
+                      and not _bekommt_paket(con, pid, k)):
                     leere.append((k, s["ereignis_utc"], frei_min))   # A1884: nichts zu tun → Lead wecken
         if leere:
             e = _leer_weckruf(con, pid, leer_an, leere)

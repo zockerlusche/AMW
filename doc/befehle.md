@@ -262,7 +262,7 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--fertig-wenn FERTIG_WENN] [--quelle QUELLE]
                    [--schaetzung SCHAETZUNG] [--komplexitaet KOMPLEXITAET]
                    [--groesse {S,M,L,XL}]
-                   [--art {text,mechanisch,fehlersuche,oberflaeche,sicherheit,konzept}]
+                   [--art {text,mechanisch,fehlersuche,oberflaeche,sicherheit,konzept,pruefung,stapel,lauf,antwort,paket}]
                    [--nach NACH] [--verantwortlich VERANTWORTLICH]
                    [--pruefbefehl PRUEFBEFEHL] [--dateien DATEIEN]
                    [--anforderungen ANFORDERUNGEN]
@@ -332,10 +332,13 @@ options:
                         freigegebenen Plan
   --groesse {S,M,L,XL}  Größe (für die Empfehlung Modell/Denkaufwand): S klein
                         … XL sehr groß
-  --art {text,mechanisch,fehlersuche,oberflaeche,sicherheit,konzept}
-                        Art (für die Empfehlung): text = Text/Doku, mechanisch
-                        = mechanische Änderung, fehlersuche, oberflaeche,
-                        sicherheit, konzept = Architektur/Konzept
+  --art {text,mechanisch,fehlersuche,oberflaeche,sicherheit,konzept,pruefung,stapel,lauf,antwort,paket}
+                        neu/aendern – Art (für die Empfehlung): text =
+                        Text/Doku, mechanisch = mechanische Änderung,
+                        fehlersuche, oberflaeche, sicherheit, konzept =
+                        Architektur/Konzept · wartet/blockiert – worauf
+                        (A2053): pruefung, stapel, lauf (geben dich für
+                        anderes frei) oder antwort, paket (halten 10 min fest)
   --nach NACH, --abhaengig-von NACH
                         Vorgänger, z. B. 1201,1203 (startbar erst, wenn sie
                         fertig sind)

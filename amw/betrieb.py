@@ -1232,6 +1232,13 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
             vh = f"\n\nVersionshinweis ({gruppe or '–'}): {felder.get('hinweis') or '–'}"
         kern._posten(con, pid, bauer, pruefer, "pruefbitte", f"Prüfbitte P{prid}: {zweig}@{sha[:8]}",
                      stufe + leer + ("\n\n" + punkte if punkte else "") + vh + bilder, aufgabe_id=aufgabe_id)
+    if aufgabe_id:                                   # A2053: die Aufgabe des Bauers wartet jetzt auf genau diese Prüfung
+        a = con.execute("SELECT agent, status FROM aufgabe WHERE id = ?", (aufgabe_id,)).fetchone()
+        if a and a["agent"] == bauer and a["status"] in ("laeuft", "wartet", "blockiert"):
+            try:
+                kern.aufgabe_status(con, pid, bauer, aufgabe_id, "blockiert" if a["status"] == "blockiert" else "wartet", auf=f"P{prid}")
+            except kern.AmwFehler:                   # z. B. Halt oder Planungsregel – die Prüfbitte gilt trotzdem
+                pass
     if bilder.startswith("\n\nBilder:"):              # A1973: sichtbar und mit Bildern → Stil-Leser (Befund kommt als Meldung)
         from . import stil
         try:
@@ -1280,6 +1287,8 @@ def pruefung_ergebnis(con, pid, pruefer, prid, ergebnis, bemerkung=None):
                 an.append(z)
         kern._posten(con, pid, pruefer, ",".join(an), "meldung",
                      f"P{prid} {ergebnis.upper()}: {p['zweig']}@{p['sha'][:8]}", bemerkung, aufgabe_id=p["aufgabe_id"])
+        from . import wartegrund                     # A2053: wer auf genau diese Prüfung wartet, wird geweckt
+        wartegrund.erledige(con, pid, *wartegrund.stichwort("wartet_pruefung", f"P{prid}"), f"P{prid} {ergebnis.upper()}")
         rueck = None
         if ergebnis == "gruen" and p["aufgabe_id"] and kette_an(con, pid):
             ok = merge_ok(con, pid, p["aufgabe_id"], p["zweig"])

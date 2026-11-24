@@ -263,6 +263,20 @@ den Coder, der Coder auf das Merge-OK. Und eine Bitte als Info weckte den Lead n
   | `CC2` (Kennung) | dieser Agent eine Nachricht mit `--aufgabe` dieser Aufgabe schickt |
   | `Entwickler` (oder sein eingestellter Name) | er eine Frage zu dieser Aufgabe beantwortet oder in der Workbench dazu schreibt |
   | `Monitor:<was>` | nur von Hand |
+  | `P601` (Prüfung, A2053) | die Prüfung grün oder rot ist – die Prüfbitte (`amw pruefung bitte --aufgabe`, `amw paket fertig`) setzt ihn selbst |
+  | `stapel:<zweig>` (A2053) | `amw release ausliefern --zweig <zweig>` durch ist |
+
+- **Art des Wartegrunds (A2053, TH155):** jeder Grund hat eine von fünf Arten. `--art pruefung|stapel|lauf|antwort|paket`
+  setzt sie ausdrücklich (z. B. `--auf CCamwTL --art pruefung`); sonst leitet die AMW sie ab: `P…` Prüfung, `stapel:…` Stapel,
+  `L…` Lauf, `A…` Paket, alles andere (Frage, Agent, Entwickler, Monitor) Antwort; reiner Freitext grob nach Stichwort
+  („Prüf…“, „Stapel/Release/Auslieferung/Kette“, „L…/Gesamtlauf“), sonst Antwort. Gespeichert wird ohne Schemaänderung als
+  Stichwort im Bezug (`pruefung:P601`, `stapel:stapel41`).
+- **Warten gibt frei (A2053):** wartet eine Aufgabe auf eine Prüfung, einen Stapel oder einen Lauf, ist ihr Agent sofort frei
+  für anderes – mit `verteilen = an` teilt die AMW ihm das nächste startklare Paket zu und weckt ihn; mit `vorschlag` geht der
+  Vorschlag an den Lead. Wartet sie auf eine Antwort oder ein anderes Paket, gilt das erst nach 10 Minuten. Das wartende Paket
+  bleibt seins; ist sein Grund erledigt, weckt die AMW ihn dafür.
+- **Startklar ohne Grund (A2053):** steht eine Aufgabe mit Bearbeiter auf „wartet“, ohne offenen Grund und mit fertigen
+  Vorgängern, und hat er nichts in „läuft“, bekommt er einmal „A… ist startklar – weiter: amw aufgabe start N“.
 
 - Ist ein Grund erledigt, weckt die AMW den Besitzer der Aufgabe („A120: F12 beantwortet – noch offen: CC2“ bzw. „alle
   Gründe erledigt – weiter“), mit Kopie an den Lead. Von Hand abhaken: `amw aufgabe wartet <nr> --erledigt F12`.
@@ -282,7 +296,8 @@ oder ohne offenen Grund und wartet weder auf einen eigenen Lauf noch auf die Pr�
 Weckruf: welcher Agent, seit wann frei, und die freien Aufgaben der aktiven Meilensteine ohne Bearbeiter. Je Agent einmal je
 Ruhephase. Empfänger ist die Projekt-Einstellung `leerlauf_lead` (sonst der Lead), aber nur, wenn er im Terminal arbeitet –
 einen Chat-Lead weckt die AMW nicht. Wartezeit: `leerlauf_lead_min` (1–1440, Vorgabe 10). Beides setzen Lead oder Mensch:
-`amw projekt einstellen leerlauf_lead=<Agent> leerlauf_lead_min=<min>`.
+`amw projekt einstellen leerlauf_lead=<Agent> leerlauf_lead_min=<min>`. Mit `verteilen = an` und einem startklaren Paket, das
+zum Agenten passt, teilt die AMW selbst zu (A2053) – dann geht keine Meldung an den Lead.
 
 **Warten auf einen Agenten (A1997):** Hat ein Agent nur noch Aufgaben, die auf einen anderen Agenten warten (keine in
 „läuft“, jede wartende hat offene Gründe, alle sind Agenten), prüft die Dienst-Runde je Grund: Kam seit `warten_agent_min`

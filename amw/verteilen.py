@@ -5,7 +5,8 @@ Pfad zuerst. Fällt ein Agent aus, geht sein Paket mit Übergabe-Notiz zurück. 
 schlägt sie vor.
 
 - Frei: Agent im Terminal mit aktiver Sitzung, nicht Lead oder Co-Entwickler, kein Halt, ohne Aufgabe in „läuft“ und ohne
-  Aufgabe ohne Wartegrund (wartegrund.freie_arbeit leer).
+  Aufgabe ohne Wartegrund (wartegrund.freie_arbeit leer). A2053: Warten auf Prüfung, Stapel oder Lauf gibt ihn sofort frei,
+  Warten auf eine Antwort oder ein anderes Paket erst nach 10 Minuten (wartegrund.haelt_fest).
 - Kandidaten: offene Aufgaben ohne Bearbeiter in aktiven Meilensteinen, Art agent (keine p-Pakete), startklar: Status wartet,
   kein offener Wartegrund, kein Wartetext, kein offener Vorgänger. Reihenfolge: Rang, dann kritischer Pfad (die längere
   Kette offener Nachfolger zuerst), dann Nummer.
@@ -82,6 +83,8 @@ def freie_agenten(con, pid):
                          (pid,)).fetchall():
         k = s["kennung"]
         if k in (co, lead) or kern.halt_gilt(con, pid, k) or wartegrund.freie_arbeit(con, pid, k):
+            continue
+        if wartegrund.haelt_fest(con, pid, k):                # A2053: Antwort/Paket in den ersten 10 min – Prüfung/Stapel/Lauf nie
             continue
         if k not in [x for x, _ in aus]:
             aus.append((k, s))

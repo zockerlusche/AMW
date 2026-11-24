@@ -1495,7 +1495,7 @@ def _aufgabe_fuer_aenderung(con, pid, von, aid):
 
 
 def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, bemerkung=None, zusammenfassung=None,
-                   auf=None, erledigt=None, hinweise=None, hinweis=None, gruppe=None, automatik=False):
+                   auf=None, erledigt=None, hinweise=None, hinweis=None, gruppe=None, automatik=False, art=None):
     """auf: Wartegründe als Verweise (F…, A…, L…, Agent, Entwickler, Monitor:…) – Pflicht bei wartet/blockiert.
     erledigt: Gründe von Hand abhaken; allein (ohne auf) ändert es den Status nicht.
     automatik (A1738, nur die AMW selbst – nie von der Befehlszeile): Besitz zählt nicht, offene Kriterien sperren „fertig“
@@ -1523,7 +1523,7 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
             wartegrund.von_hand(con, pid, von, aid, erledigt)
         if neu in ("wartet", "blockiert"):         # „wartet“ mit Freitext weckt niemanden, wenn es weitergeht
             if auf:
-                wartegrund.anlegen(con, pid, von, aid, auf)
+                wartegrund.anlegen(con, pid, von, aid, auf, art)       # A2053: art = Sorte (pruefung|stapel|lauf|antwort|paket)
             if not wartegrund.offene(con, aid):
                 raise AmwFehler(f"{neu} nur mit --auf: worauf? F<nr>, A<nr>, L<nr>, Agent, Entwickler, Monitor:<was>"
                                 " (Erklärung dazu mit --wartet-auf)")

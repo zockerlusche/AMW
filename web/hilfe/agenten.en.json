@@ -158,6 +158,10 @@
   [
    "What does an agent get at start?",
    "A short mandatory context: role, project goal and principles, the concept (entry topic and the topic of the running package), its list and open messages, plus the rules as titles only (\"KR3 Weg einer Änderung · …\") – it gets the full text of a rule with `amw regeln KR3`. Detailed guides are Claude Code skills in the repo (`.claude/skills/amw-befehle`, `amw-automatismen`, `amw-anleitungen`, `amw-hilfe`, `amw-fehlerbehebung`); Claude Code loads a skill only when it fits the work. There are deliberately few with short descriptions, because every skill's name and description are in every session. A skill is only an index of the pages under `doc/` – the guide lives in one place. After a docs change: `amw skills bauen` (for another project's agent folder `--ziel <folder>`). How large the start context is per agent and what a package costs on average: `amw messung --hebel7` (keep it as a reference with `--basis`)."
+  ],
+  [
+   "My agent is waiting for a review – does it get other work meanwhile?",
+   "Yes. If its task waits for a review (P…), a stack (`stapel:<branch>`) or a run (L…), the agent is free at once: with “Distribute” set to “on”, AMW assigns the next ready package and wakes the agent, otherwise the lead gets a suggestion. If it waits for an answer or another package, this happens only after 10 minutes. The review request sets the reason itself and the review result clears it; then the waiting task comes first. You give the kind with `amw aufgabe wartet <nr> --auf … --art pruefung|stapel|lauf|antwort|paket`."
   ]
  ],
  "thema": "agenten",

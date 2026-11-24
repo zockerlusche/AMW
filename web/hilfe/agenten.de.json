@@ -158,6 +158,10 @@
   [
    "Was bekommt ein Agent beim Start?",
    "Einen kurzen Pflichtkontext: Rolle, Projektziel und Prinzipien, das Konzept (Einstiegs-Thema und Thema des laufenden Pakets), seine Liste und offene Nachrichten, dazu die Regeln nur als Titel („KR3 Weg einer Änderung · …“) – den Wortlaut einer Regel holt er mit `amw regeln KR3`. Ausführliche Anleitungen liegen als Claude-Code-Skills im Repo (`.claude/skills/amw-befehle`, `amw-automatismen`, `amw-anleitungen`, `amw-hilfe`, `amw-fehlerbehebung`); Claude Code lädt einen Skill erst, wenn er zur Arbeit passt. Es sind bewusst wenige mit kurzer Beschreibung, denn Name und Beschreibung jedes Skills stehen in jeder Sitzung. Ein Skill ist nur ein Verzeichnis der Seiten unter `doc/` – die Anleitung steht an einer Stelle. Nach einer Doku-Änderung: `amw skills bauen` (für den Agenten-Ordner eines anderen Projekts `--ziel <ordner>`). Wie groß der Startkontext je Agent ist und was ein Paket im Mittel kostet: `amw messung --hebel7` (mit `--basis` als Vergleichswert festhalten)."
+  ],
+  [
+   "Mein Agent wartet auf eine Prüfung – bekommt er derweil anderes?",
+   "Ja. Wartet seine Aufgabe auf eine Prüfung (P…), einen Stapel (`stapel:<zweig>`) oder einen Lauf (L…), ist er sofort frei: Steht „Verteilen“ auf „an“, teilt ihm die AMW das nächste startklare Paket zu und weckt ihn, sonst bekommt der Lead einen Vorschlag. Wartet sie auf eine Antwort oder ein anderes Paket, geschieht das erst nach 10 Minuten. Die Prüfbitte setzt den Grund selbst, das Ergebnis der Prüfung hebt ihn auf; dann kommt die wartende Aufgabe zuerst dran. Die Art gibst du mit `amw aufgabe wartet <nr> --auf … --art pruefung|stapel|lauf|antwort|paket` an."
   ]
  ],
  "thema": "agenten",
