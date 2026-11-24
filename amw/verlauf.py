@@ -49,6 +49,7 @@ WEG_ARTEN = {
     "grobplan_entwurf": ("planer", "Grobplan Fassung {f}: {x}"),
     "grobplan_ja_stimme": (None, "Grobplan: Ja"),
     "grobplan_ja": (None, "Grobplan Fassung {f} angenommen – {x}"),
+    "plan_hinweis": (None, "Hinweis an den Planer – {x}"),                     # A2028
 }
 
 
@@ -110,6 +111,9 @@ def _weg_text(art, d, nr):
             f"Entwurf mit {len((d.get('entwurf') or {}).get('meilensteine') or [])} Meilensteinen liegt vor")
     elif art == "grobplan_ja":
         x = ", ".join((d.get("angelegt") or {}).values()) or "wird angelegt"
+    elif art == "plan_hinweis":
+        x = (("Grobplan" if d.get("plan") == "grob" else d.get("plan") or "?") + (f", zu {d['bezug']}" if d.get("bezug") else "")
+             + f": {str(d.get('text') or '')[:200]}")
     t = muster.format(t=d.get("thema", "?"), f=d.get("fassung", "?"), m=nr if nr is not None else "?", x=x,
                       n=len(d.get("themen") or {}))
     if art == "meilenstein_frei" and d.get("an") is False:

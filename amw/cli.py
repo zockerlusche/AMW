@@ -2651,6 +2651,27 @@ def _tor_zeile(x):
             else f"Konzept · {x['n']} von {x['g']} Themen freigegeben")
 
 
+def _plan_aenderungen_zeigen(con, pid, plan, e, vorher):
+    """A2028: Änderungen gegenüber der vorigen gültigen Fassung markieren und die Hinweise des Plans zeigen."""
+    from . import grobplan, planer, planhinweis
+    alt = None
+    for v in reversed(vorher):
+        x = grobplan.entwurf(con, pid, v["fassung"]) if plan == "grob" else next(
+            (y for y in planer._ereignisse(con, pid, int(plan[2:]), planer.ENTWURF) if y["id"] == v["id"]), None)
+        if x and x.get("entwurf"):
+            alt = (x, v)
+            break
+    if alt and e.get("entwurf"):
+        gegen = f"Fassung {alt[1]['fassung']}" if plan == "grob" else f"Entwurf {alt[1]['nr']}"
+        for z in planhinweis.zeilen(alt[0]["entwurf"], e["entwurf"], gegen):
+            print(z)
+    h = planhinweis.alle(con, pid, plan)
+    if h:
+        print("Hinweise an den Planer:")
+        for x in h:
+            print(f"  {'offen' if x['offen'] else 'bearbeitet'} · {x['von']}" + (f" zu {x['bezug']}" if x["bezug"] else "") + f": {x['text']}")
+
+
 def _grobplan_befehl(con, pid, a):
     """A2030: konzept-abschliessen | grobplan [--fassung N] [--neu] | grobplan-ja [--fassung N]."""
     from . import grobplan
@@ -2692,6 +2713,8 @@ def _grobplan_befehl(con, pid, a):
         print()
         print(f"Grobplan Fassung {e.get('fassung')}:")
         print(grobplan.zusammenfassung(e["entwurf"]) if e.get("entwurf") else "Funde:\n" + "\n".join(f"- {x}" for x in e.get("fehler") or []))
+        _plan_aenderungen_zeigen(con, pid, "grob", e,
+                                 [x for x in grobplan.fassungen(con, pid) if not x.get("laeuft") and x["id"] < e["id"]])
     return 0
 
 
@@ -2699,6 +2722,17 @@ def cmd_thema(a, con):
     """Design-Dokument je Thema: liste | zeige | neu | einstellen | pflegen | bestaetigen | dokument."""
     from . import themen
     pid = _projekt(con, a)
+    if a.aktion in ("hinweis", "ueberarbeiten"):                         # A2028: Hinweis an den Planer, neue Fassung
+        from . import planhinweis
+        if not a.name:
+            raise kern.AmwFehler("Welcher Plan? grob oder TH<n>")
+        if a.aktion == "hinweis":
+            planhinweis.hinweis(con, pid, _von(a), a.name, a.text, a.zu)
+            n = len(planhinweis.offene(con, pid, a.name))
+            print(f"Hinweis vermerkt ({n} offen) – überarbeiten lassen: amw thema ueberarbeiten {a.name}")
+            return 0
+        print(planhinweis.ueberarbeiten(con, pid, _von(a), a.name))
+        return 0
     if a.aktion in ("konzept-abschliessen", "grobplan", "grobplan-ja"):    # A2030: Grobplanung einmal fürs ganze Konzept
         return _grobplan_befehl(con, pid, a)
     if a.aktion == "liste":
@@ -2808,6 +2842,9 @@ def cmd_thema(a, con):
                 f", {e['usd']:.2f} $" if isinstance(e.get("usd"), (int, float)) else "") + ")"
             print(kopf + (" – schon angenommen" if planer.erledigt(con, pid, e["id"]) else ""))
             print(planer.zusammenfassung(e["entwurf"]) if e.get("entwurf") else "Fehler:" + chr(10) + chr(10).join(f"- {x}" for x in e.get("fehler") or []))
+            alle = planer._ereignisse(con, pid, t["id"], planer.ENTWURF)                  # A2028: Änderungen und Hinweise
+            _plan_aenderungen_zeigen(con, pid, f"TH{t['id']}", e,
+                                     [{"id": x["id"], "nr": i, "fassung": x.get("fassung")} for i, x in enumerate(alle, 1) if x["id"] < e["id"]])
             return
         geaendert = None
         if a.datei:
@@ -3764,11 +3801,15 @@ def parser():
                                    " in Themen-Entwürfe, mit Zählprobe; ohne --anlegen nur Vorschau – Lead/Co) |"
                                    " konzept-abschliessen (alle Themen frei: Konzept-Ja, startet die Grobplanung über alle Themen) |"
                                    " grobplan [--fassung N] [--neu] (Fassungen und Entwurf zeigen, neu planen lassen) |"
-                                   " grobplan-ja [--fassung N] (legt die Meilensteine an – wer Ja sagt wie bei den Themen) – A2030")
+                                   " grobplan-ja [--fassung N] (legt die Meilensteine an – wer Ja sagt wie bei den Themen) – A2030 |"
+                                   " hinweis grob|TH12 --text … [--zu TH3|M2|P4|A123] (Ergänzung an den Planer) |"
+                                   " ueberarbeiten grob|TH12 (Planer legt mit den offenen Hinweisen eine neue Fassung vor; Mensch, Lead, Co) – A2028")
     x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "zeige", "neu", "einstellen", "pflegen", "bestaetigen",
                                                                   "dokument", "status", "freigeben", "zurueck", "markieren",
                                                                   "entmarkieren", "nur_mensch", "nicht_nur_mensch", "vermerk", "luecken", "planen", "plan", "plan-ja", "anhalten",
-                                                                  "uebernehmen", "konzept-abschliessen", "grobplan", "grobplan-ja"])
+                                                                  "uebernehmen", "konzept-abschliessen", "grobplan", "grobplan-ja",
+                                                                  "hinweis", "ueberarbeiten"])
+    x.add_argument("--zu", help="hinweis: die Karte – TH3, M2, P4 oder A123 (ohne: der ganze Plan) – A2028")
     x.add_argument("--fassung", type=int, help="grobplan, grobplan-ja: diese Fassung des Grobplans statt der neuesten – A2030")
     x.add_argument("--neu", action="store_true", help="grobplan: den Grob-Planer neu planen lassen (neue Fassung) – A2030")
     x.add_argument("--ebene", type=int, choices=range(1, 7), metavar="1-6",

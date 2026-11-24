@@ -794,6 +794,17 @@ die der Lead nur noch bestätigt oder ändert.
   nicht (dann neu planen). Mit der Freigabe legt die AMW die neuen Pakete an und führt `aendern`/`verwerfen` aus (Ereignis
   `thema_delta_angewandt`).
 
+### Hinweise an den Planer und „Überarbeiten lassen“ (A2028, TH164)
+
+- **Hinweis:** `amw thema hinweis grob|TH<n> --text … [--zu TH3|M2|P4|A123]` – Mensch, Lead oder Co-Entwickler; nur zu einem
+  vorliegenden Entwurf (Ereignis `plan_hinweis`). Offen bleibt ein Hinweis, bis ein neuer Entwurf desselben Plans kommt.
+- **Überarbeiten lassen:** `amw thema ueberarbeiten grob|TH<n>` startet den Grob-Planer bzw. den Planer des Themas neu; er
+  bekommt `vorige.json` (sein letzter Entwurf) und `hinweise.md` und den Auftrag, nur zu ändern, was die Hinweise verlangen.
+  Beliebig oft; jede Fassung bleibt.
+- **Markiert:** `amw thema grobplan` bzw. `amw thema plan TH<n>` zeigen die Änderungen gegenüber der vorigen gültigen Fassung
+  (neu / geändert mit Feldern / entfallen, verglichen über den Titel) und alle Hinweise (offen oder bearbeitet). Der Verlauf
+  (Projektweg) nennt jeden Hinweis. Der Feinplan je Meilenstein (A2031) hängt sich an dieselbe Stelle an.
+
 ### Thema → Meilenstein → Paket (K8, A1942, TH163)
 
 - **Auslöser:** ein freigegebenes Thema bekommt eine neue Fassung (wie A1915) oder wird zurückgegeben.

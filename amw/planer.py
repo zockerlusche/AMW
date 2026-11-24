@@ -840,14 +840,16 @@ def json_aus_text(text):
 
 def planen(con, pid, t, fassung, modell, prog=None, zusatz=None):
     """Der Planer selbst, in einem leeren eigenen Ordner (wie ein Platz). Rückgabe {"ergebnis", "usd", "fehler"}."""
-    from . import arbeiter, planer_delta, platz, versionsprobe
+    from . import arbeiter, planer_delta, planhinweis, platz, versionsprobe
     with tempfile.TemporaryDirectory(prefix="amw-planer-", ignore_cleanup_errors=True) as ordner:
         p = platz.pfade(os.path.join(ordner, "plaetze"), 1)
         os.makedirs(p["klon"])
         subprocess.run(["git", "init", "-q", "-b", "main", p["klon"]], check=True, capture_output=True, creationflags=OHNE_FENSTER)
         delta = planer_delta.kontext(con, pid, t["id"])  # A2027: geändertes, schon geplantes Thema → nur die Änderung
         dateien = _dateien(con, pid, t, fassung, p["klon"], delta)
-        r = arbeiter.laufen(p, AUFTRAG + ("\n\n" + planer_delta.AUFTRAG if delta else "") + "\n\nDateien: " + ", ".join(dateien), None, modell=modell, effort="medium", prog=prog,
+        extra = planhinweis.schreiben(con, pid, t["id"], p["klon"])     # A2028: Überarbeiten nach Hinweisen
+        r = arbeiter.laufen(p, AUFTRAG + ("\n\n" + planer_delta.AUFTRAG if delta else "") + ("\n\n" + planhinweis.AUFTRAG if extra else "")
+                            + "\n\nDateien: " + ", ".join(dateien + extra), None, modell=modell, effort="medium", prog=prog,
                             zusatz=zusatz, nur_lesen=True, geprueft=versionsprobe.geprueft(con), frist_s=FRIST_S)
     erg = r.get("ergebnis") or {}
     usd = erg.get("total_cost_usd")
