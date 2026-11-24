@@ -339,10 +339,10 @@ class SeiteAbschluss(Rundgang):
     def test_abnehmen_klicken(self):
         self.oeffnen("projektweg", "document.querySelector('.pjw-schritt[data-schritt=abschluss]')")
         self.tab.js("zustand.pwSicht = 4; zeige('projektweg', true)")
-        knopf = "[...document.querySelectorAll('.pjw-ansicht > .pjw-kopf button')].find(b => b.textContent === t('pjw_abnehmen'))"
+        knopf = "[...document.querySelectorAll('.pjw-ansicht > .pjw-kopf button')].find(b => /abnehmen/.test(b.textContent))"           # „M… abnehmen“ (A2064)
         self.warten(knopf)
         self.tab.js(knopf + ".click()")
-        self.warten("document.querySelector('.pjw-ansicht .pjw-status.frei') && document.querySelector('.pjw-ansicht .pjw-status.frei').textContent === t('pjw_abgenommen')")
+        self.warten("document.querySelector('.pjw-ansicht .leer') && document.querySelector('.pjw-ansicht .leer').textContent.includes('Zuletzt abgenommen')")
         self.assertEqual(self.con.execute("SELECT status FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0], "fertig")
 
     def test_rundgang(self):
