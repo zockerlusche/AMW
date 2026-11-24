@@ -401,6 +401,16 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             return {"probe": push.probe(daten.get("anbieter") or None)}
         except kern.AmwFehler as e:
             raise Ungueltig(str(e)) from None
+    if weg == "/api/pause":                          # A2042: Pause für alles – an (mit Ende) oder aus; wie Halt: PC oder Online-Seite
+        if kanal not in ("seite", "netz"):
+            raise Ungueltig("Die Pause gibt es nur in der Workbench am PC oder auf der Online-Seite")
+        from . import pause
+        try:
+            if daten.get("an"):
+                return pause.an(con, pid, kern.ENTWICKLER, pause.bis_aus(daten.get("bis")), daten.get("grund"))
+            return pause.aus(con, pid, kern.ENTWICKLER)
+        except kern.AmwFehler as e:
+            raise Ungueltig(str(e)) from None
     if weg in ("/api/halt", "/api/weiter") and kanal not in ("seite", "netz"):   # A2038: nur Workbench am PC (Token) oder Online-Seite
         raise Ungueltig("Halt und Weiter gibt es nur in der Workbench am PC oder auf der Online-Seite")
     if weg == "/api/halt":

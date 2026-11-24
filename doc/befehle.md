@@ -17,6 +17,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`termin`](#termin) | Terminplaner: neu --titel … --art test¦frist¦schirm¦sonstig --am "2026-11-06 18:00" [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] ¦ liste [--tage 21] ¦ aendern N ¦ absagen N [--am …] ¦ bereit N --text "was testen" ¦ kurzliste N (Planen: Lead/Entwickler) |
 | [`liste`](#liste) | Arbeitsliste je Agent: liste [Agent¦pool] ¦ ordnen <Agent> A12 A15 … --grund … ¦ schieben A15 --vor A12 ¦ --nach ¦ --pos N ¦ --oben ¦ --unten [--grund …] (ordnen/schieben: Lead; die Reihenfolge rechnet sonst die AMW) |
 | [`frage`](#frage) | Fragen an den Entwickler oder Lead: neu ¦ liste [--geparkt] ¦ antworten ¦ nachtrag ¦ verlauf ¦ parken N [--grund] ¦ aufnehmen N ¦ weiterleiten N [--text] (Lead → Entwickler) |
+| [`pause`](#pause) | Pause für alles (A2042): an [--bis HH:MM¦2h¦90min] [--grund …] ¦ aus ¦ zeige (Rückmeldung je Agent) |
 | [`halt`](#halt) | alle oder einen Agenten anhalten |
 | [`weiter`](#weiter) | Halt aufheben |
 | [`taetigkeit`](#taetigkeit) | was ich gerade tue (zeigt die Workbench), z. B. taetigkeit "A12 Login-Formular" |
@@ -619,6 +620,24 @@ options:
   --anhang ANHANG       neu: Bild/Mockup zu einer Option, 'A=datei.png' oder
                         'A=D12' (mehrfach) – erscheint als Variante zum
                         Anklicken, auch online
+  --von VON
+  --projekt PROJEKT
+```
+
+## pause
+```
+usage: amw pause [-h] [--bis BIS] [--grund GRUND] [--von VON]
+                 [--projekt PROJEKT]
+                 {an,aus,zeige}
+
+positional arguments:
+  {an,aus,zeige}
+
+options:
+  -h, --help         show this help message and exit
+  --bis BIS          an: Ende – HH:MM (heute, sonst morgen), 2h oder 90min;
+                     ohne: bis „amw pause aus“
+  --grund GRUND
   --von VON
   --projekt PROJEKT
 ```

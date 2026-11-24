@@ -446,6 +446,18 @@ Schwelle liegt oder die Einstellung aus ist. Einstellen: Workbench › Einstellu
 im eigenen Terminal. Ein Wert im Projekt gilt nur,
 wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr allein.
 
+### Pause für alles (A2042, D1531 §1/§7)
+
+- **Schalter:** `amw pause an [--bis HH:MM|2h|90min] [--grund …]` · `amw pause aus` · `amw pause zeige` (Lead oder Mensch; der
+  Mensch nur im eigenen Terminal oder in der Workbench, `/api/pause`). „An“ setzt einen Halt für alle (stopp: Arbeit sauber
+  beenden, nichts Neues) – damit startet und rückt auch kein Lauf der Schlange nach – und die Wächter-Pause (keine neuen
+  Headless-Pakete). Was läuft, wird nicht abgebrochen.
+- **Ende:** Mit `--bis` gilt der Halt ab dann nicht mehr (`sperre.bis_utc`), die Wächter-Pause endet, und der Dienst hebt die
+  Pause in der nächsten Runde auf: alle bekommen „WEITER: Pause vorbei“ (`pause_aus`).
+- **Rückmeldung je Agent** (`amw pause zeige`, `/api/pause`): „wird pausiert“ (stopp noch nicht zugestellt), „beendet Schritt“
+  (arbeitet noch, Lebenszeichen jünger als 2 min), „pausiert“ (steht oder keine Sitzung); Headless-Pakete und Läufe, die schon
+  liefen: „läuft zu Ende“, wartende Läufe: „wartet“.
+
 ## Disponent über Projekte (A1925, W2449)
 
 **Wozu:** Mehrere Projekte teilen sich einen PC und ein Konto. Der Mensch legt fest, welches Projekt zuerst dran ist.

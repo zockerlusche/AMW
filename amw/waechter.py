@@ -46,13 +46,17 @@ def _datei():
 
 
 def zustand():
-    """{"wartung": {"seit", "grund"} | None, "pause": {"seit", "grund"} | None}"""
+    """{"wartung": {"seit", "grund"} | None, "pause": {"seit", "grund", "bis"?} | None} – eine Pause mit abgelaufenem Ende
+    (A2042) gilt nicht mehr."""
     try:
         with open(_datei(), encoding="utf-8") as f:
             d = json.load(f)
     except (OSError, ValueError):
         d = {}
-    return {"wartung": d.get("wartung"), "pause": d.get("pause")}
+    pause = d.get("pause")
+    if pause and pause.get("bis") and pause["bis"] <= _jetzt():
+        pause = None
+    return {"wartung": d.get("wartung"), "pause": pause}
 
 
 def _setzen(**werte):
@@ -77,8 +81,9 @@ def wartung_aus():
     _setzen(wartung=None)
 
 
-def pause_an(grund):
-    _setzen(pause={"seit": _jetzt(), "grund": grund})
+def pause_an(grund, bis=None):
+    """bis (A2042): UTC-ISO – danach gilt die Pause nicht mehr (zustand)."""
+    _setzen(pause={"seit": _jetzt(), "grund": grund, **({"bis": bis} if bis else {})})
 
 
 def weiter(con=None, pid=None, von="AMW"):

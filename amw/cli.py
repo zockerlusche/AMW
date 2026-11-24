@@ -1496,6 +1496,33 @@ def cmd_halt(a, con):
     print(f"Halt #{sid} für {a.fuer} gesetzt; STOPP verschickt")
 
 
+def cmd_pause(a, con):
+    """A2042: eine Pause für alles – Halt (alle), Wächter-Pause und Lauf-Schlange, mit Ende; Rückmeldung je Agent."""
+    from . import pause
+    pid = _projekt(con, a)
+    if a.aktion == "zeige":
+        z = pause.zustand(con, pid)
+        if not z["an"]:
+            print("Keine Pause")
+            return
+        print(f"Pause seit {_zeit(z['seit'])}" + (f" bis {_zeit(z['bis'])}" if z["bis"] else " (bis „amw pause aus“)") + f" – {z['grund']}")
+        for x in z["agenten"]:
+            print(f"  {x['kennung']:<14} {x['zustand']}")
+        for x in z["pakete"]:
+            print(f"  A{x['aid']:<13} {x['zustand']} – {x['titel'][:60]}")
+        for x in z["laeufe"]:
+            print(f"  L{x['lauf']:<13} {x['zustand']} – {x['beschreibung'][:60]}")
+        return
+    _nicht_als_mensch_aus_sitzung(a, f"pause {a.aktion}")
+    if a.aktion == "an":
+        r = pause.an(con, pid, _von(a), pause.bis_aus(a.bis), a.grund)
+        print("Pause an – Halt für alle, keine neuen Headless-Pakete und Läufe" + (f", bis {_zeit(r['bis'])}" if r["bis"] else "")
+              + ". Rückmeldung: amw pause zeige")
+    else:
+        pause.aus(con, pid, _von(a))
+        print("Pause aus – alle bekommen „weiter“")
+
+
 def cmd_weiter(a, con):
     _nicht_als_mensch_aus_sitzung(a, "weiter")
     n = kern.weiter(con, _projekt(con, a), _von(a), a.fuer)
@@ -3897,6 +3924,12 @@ def parser():
     x.add_argument("--anhang", action="append", help="neu: Bild/Mockup zu einer Option, 'A=datei.png' oder 'A=D12' (mehrfach) –"
                                                      " erscheint als Variante zum Anklicken, auch online")
     x.set_defaults(f=cmd_frage)
+
+    x = s.add_parser("pause", help="Pause für alles (A2042): an [--bis HH:MM|2h|90min] [--grund …] | aus | zeige (Rückmeldung je Agent)")
+    x.add_argument("aktion", choices=["an", "aus", "zeige"])
+    x.add_argument("--bis", help="an: Ende – HH:MM (heute, sonst morgen), 2h oder 90min; ohne: bis „amw pause aus“")
+    x.add_argument("--grund")
+    x.set_defaults(f=cmd_pause)
 
     x = s.add_parser("halt", help="alle oder einen Agenten anhalten")
     x.add_argument("--fuer", default="alle")

@@ -1066,6 +1066,12 @@ def daten_pakete(con, pid):
     return paketliste.daten(con, pid)
 
 
+def daten_pause(con, pid):
+    """A2042: Pause für alles – an/bis/grund und die Rückmeldung je Agent, Headless-Paket und Lauf (pause.zustand)."""
+    from . import pause
+    return pause.zustand(con, pid)
+
+
 def daten_kosten(con, pid):
     """A2040 (D1531 §10): Kosten des Projekts – bisher (gemessen), noch (Schätzung offener Pakete), gesamt (messung.projekt_kosten)."""
     from . import messung
@@ -1492,6 +1498,7 @@ def baue_handler(port, token, netz=None):
                     "/api/planung": lambda c, p: daten_planung(c, p),
                     "/api/pakete": lambda c, p: daten_pakete(c, p),
                     "/api/paket/mitlesen": lambda c, p: daten_mitlesen(c, p, q),
+                    "/api/pause": lambda c, p: daten_pause(c, p),
                     "/api/kosten": lambda c, p: daten_kosten(c, p),
                     "/api/verlauf": lambda c, p: daten_verlauf(c, p, q),
                     "/api/seit": lambda c, p: daten_seit(c, p, q),

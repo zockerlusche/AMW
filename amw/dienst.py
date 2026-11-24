@@ -416,6 +416,12 @@ class Dienst:
                 log.info("Feinplanung Meilenstein %s: %s", bid, was)
         except Exception as e:
             log.warning("Feinplanung: %s: %s", type(e).__name__, e)
+        try:                                                                 # A2042: Pause mit abgelaufenem Ende aufheben
+            from . import pause
+            for pid, was in pause.runde(self.con):
+                log.info("Projekt %s: %s", pid, was)
+        except Exception as e:
+            log.warning("Pause: %s: %s", type(e).__name__, e)
         try:                                                                 # A2004: Anteil p unter dem Ziel → Lead, einmal je Tag
             from . import messung
             for e in messung.p_quote_runde(self.con):
