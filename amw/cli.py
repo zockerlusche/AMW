@@ -1105,8 +1105,12 @@ def cmd_aufgabe(a, con):
         print(f"A{a.id}: " + ("intern – erscheint nicht in den Versionshinweisen" if r == "intern" else f"Versionshinweis ({r}) gesetzt"))
     elif a.aktion == "nachtrag":
         if not a.id:
-            raise kern.AmwFehler("amw aufgabe nachtrag <nr> --titel … [--auftrag …] [--agent …]")
-        aid = kern.aufgabe_nachtrag(con, pid, _von(a), a.id, a.titel, a.auftrag, a.agent)
+            raise kern.AmwFehler("amw aufgabe nachtrag <nr> --titel … --auftrag …|--text …|--text-datei … [--agent …]")
+        auftrag = a.auftrag or a.text                    # A2073: --text ging bisher still verloren
+        if a.text_datei:
+            with open(a.text_datei, encoding="utf-8") as f:
+                auftrag = ((auftrag + "\n") if auftrag else "") + f.read()
+        aid = kern.aufgabe_nachtrag(con, pid, _von(a), a.id, a.titel, auftrag, a.agent)
         print(f"A{aid} angelegt (Nachtrag zu A{a.id}) – Nachrichten und Läufe dazu mit --aufgabe {aid}")
     elif a.aktion == "zeige":
         r = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (a.id, pid)).fetchone()
@@ -3884,7 +3888,8 @@ def parser():
                                    " die AMW die Aufgabe zum Prüfen (A1915)")
     x.add_argument("--ohne-thema", help="aendern: diese Themen-Verweise lösen, z. B. TH3")
     x.add_argument("--ohne-thema-grund", help="neu: bewusst ohne Thema (interne Pflege, z. B. Aufräumen, Fehlerbehebung) – mit Grund (A1947)")
-    x.add_argument("--text", help="plan: der Plan")
+    x.add_argument("--text", help="plan: der Plan; nachtrag: der Auftrag (wie --auftrag)")
+    x.add_argument("--text-datei", help="nachtrag: der Auftrag aus einer Datei (UTF-8)")
     x.add_argument("--nein", action="store_true", help="kriterium: wieder als offen markieren")
     x.add_argument("--zurueck", action="store_true", help="planfrei, abnehmen: zurückweisen (mit --kommentar)")
     x.add_argument("--kommentar")

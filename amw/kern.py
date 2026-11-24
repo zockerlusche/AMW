@@ -1163,7 +1163,7 @@ def aufgabe_bezug(con, pid, von, aid, antwort_auf=None):
     if not a:
         raise AmwFehler(f"A{aid} gibt es nicht – Nummer prüfen (amw aufgabe liste --agent {von})")
     if a["status"] in ("fertig", "verworfen"):
-        raise AmwFehler(f"A{aid} ist {a['status']} – Folgearbeit dazu: amw aufgabe nachtrag {aid} --titel …"
+        raise AmwFehler(f"A{aid} ist {a['status']} – Folgearbeit dazu: amw aufgabe nachtrag {aid} --titel … --auftrag …"
                         " (neue Aufgabe mit Bezug), sonst ohne --aufgabe")
     hinweis = None
     if (a["agent"] and a["agent"] != von and not ist_lead(con, pid, von) and a["pruefer"] != von
@@ -1642,6 +1642,8 @@ def aufgabe_nachtrag(con, pid, von, aid, titel, auftrag=None, agent=None):
         raise AmwFehler(f"Nachtrag zu A{aid}: nur {alt['agent']} oder der Lead")
     if not (titel or "").strip():
         raise AmwFehler("--titel fehlt")
+    if not (auftrag or "").strip():                  # A2073: ein Nachtrag ohne Auftrag ist nach einer Kompaktierung nicht mehr zu verstehen
+        raise AmwFehler("Auftrag fehlt: was ist zu tun? (--auftrag … oder --text-datei …)")
     text = f"Nachtrag zu A{aid} ({alt['titel'][:80]}, {alt['status']})." + (f"\n{auftrag}" if auftrag else "")
     return aufgabe_neu(con, pid, von, f"Nachtrag A{aid}: {titel.strip()}", agent or alt["agent"] or None, text,
                        alt["rang"], alt["pruefer"], sofort=False)

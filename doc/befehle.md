@@ -270,7 +270,8 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--ohne-vorgaenger OHNE_VORGAENGER] [--thema THEMA]
                    [--ohne-thema OHNE_THEMA]
                    [--ohne-thema-grund OHNE_THEMA_GRUND] [--text TEXT]
-                   [--nein] [--zurueck] [--kommentar KOMMENTAR] [--kurz]
+                   [--text-datei TEXT_DATEI] [--nein] [--zurueck]
+                   [--kommentar KOMMENTAR] [--kurz]
                    [--federfuehrend FEDERFUEHREND] [--pool] [--grund GRUND]
                    [--hinweis HINWEIS]
                    [--gruppe {neu,verbessert,behoben,intern}] [--sofort]
@@ -362,7 +363,9 @@ options:
   --ohne-thema-grund OHNE_THEMA_GRUND
                         neu: bewusst ohne Thema (interne Pflege, z. B.
                         Aufräumen, Fehlerbehebung) – mit Grund (A1947)
-  --text TEXT           plan: der Plan
+  --text TEXT           plan: der Plan; nachtrag: der Auftrag (wie --auftrag)
+  --text-datei TEXT_DATEI
+                        nachtrag: der Auftrag aus einer Datei (UTF-8)
   --nein                kriterium: wieder als offen markieren
   --zurueck             planfrei, abnehmen: zurückweisen (mit --kommentar)
   --kommentar KOMMENTAR

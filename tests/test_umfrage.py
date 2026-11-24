@@ -207,13 +207,35 @@ class Nachtrag(Grund):
         with self.assertRaises(kern.AmwFehler) as f:
             kern.posten(self.con, self.pid, "TL", "CC1", "auftrag", "noch was", aufgabe_id=self.a)
         self.assertIn(f"amw aufgabe nachtrag {self.a}", str(f.exception))
-        rc, aus = self.cli("--von", "TL", "aufgabe", "nachtrag", f"A{self.a}", "--titel", "Anker-Licht")
+        rc, aus = self.cli("--von", "TL", "aufgabe", "nachtrag", f"A{self.a}", "--titel", "Anker-Licht", "--auftrag", "Licht am Anker")
         self.assertEqual(rc, 0, aus)
         neu = self.con.execute("SELECT * FROM aufgabe WHERE id != ? ORDER BY id DESC LIMIT 1", (self.a,)).fetchone()
         self.assertEqual((neu["titel"], neu["agent"]), (f"Nachtrag A{self.a}: Anker-Licht", "CC1"))
         self.assertIn(f"Nachtrag zu A{self.a}", neu["auftrag"])
+        self.assertIn("Licht am Anker", neu["auftrag"])
         with self.assertRaises(kern.AmwFehler):                                  # fremde Aufgabe: nur Besitzer oder Lead
-            kern.aufgabe_nachtrag(self.con, self.pid, "CC2", self.a, "x")
+            kern.aufgabe_nachtrag(self.con, self.pid, "CC2", self.a, "x", "y")
+
+    def test_auftrag_aus_text_und_datei_und_ohne_auftrag_abgelehnt(self):
+        """A2073: --text ging still verloren (alle Nachträge des Leads am 24.11. ohne Auftrag) – jetzt gespeichert, --text-datei
+        auch, und ohne Auftrag lehnt nachtrag ab."""
+        import tempfile
+        kern.aufgabe_status(self.con, self.pid, "TL", self.a, "fertig", beleg="abc")
+        letzte = lambda: self.con.execute("SELECT auftrag FROM aufgabe ORDER BY id DESC LIMIT 1").fetchone()[0]   # noqa: E731
+        rc, aus = self.cli("--von", "TL", "aufgabe", "nachtrag", f"A{self.a}", "--titel", "Mit Text", "--text", "Punkt 1: Anker\nPunkt 2: Licht")
+        self.assertEqual(rc, 0, aus)
+        self.assertIn("Punkt 1: Anker", letzte())
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as f:
+            f.write("Aus der Datei: (1) robust lesen\n(2) nachbessern\n")
+        self.addCleanup(os.remove, f.name)
+        rc, aus = self.cli("--von", "TL", "aufgabe", "nachtrag", f"A{self.a}", "--titel", "Mit Datei", "--text-datei", f.name)
+        self.assertEqual(rc, 0, aus)
+        self.assertIn("(2) nachbessern", letzte())
+        vorher = self.con.execute("SELECT count(*) FROM aufgabe").fetchone()[0]
+        rc, aus = self.cli("--von", "TL", "aufgabe", "nachtrag", f"A{self.a}", "--titel", "Ohne")                  # Gegenprobe
+        self.assertNotEqual(rc, 0)
+        self.assertIn("Auftrag fehlt", aus)
+        self.assertEqual(self.con.execute("SELECT count(*) FROM aufgabe").fetchone()[0], vorher)
 
 
 class Hinweis(Grund):
