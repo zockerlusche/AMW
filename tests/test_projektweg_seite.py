@@ -343,9 +343,10 @@ class Ausloeser(Grund):
     def test_laeufe_mit_schritt_rolle_und_mein(self):
         kern.agent_neu(self.con, self.pid, "Co")
         kern.projekt_einstellen(self.con, self.pid, "TL", co_entwickler="Co")
-        for kw in (dict(art="gegenlesen", thema=3, fassung=8, ausloeser="TL"), dict(art="planer", thema=3, fassung=2, ausloeser="Co"),
+        faelle: list[dict] = [dict(art="gegenlesen", thema=3, fassung=8, ausloeser="TL"), dict(art="planer", thema=3, fassung=2, ausloeser="Co"),
                    dict(art="feinplaner", ziel="M1", ausloeser="AMW"), dict(art="grobplaner", fassung=1, ausloeser=kern.ENTWICKLER, anlass="klick"),
-                   dict(art="grobplaner", fassung=1, ausloeser=kern.ENTWICKLER), dict(art="grobplaner", fassung=1)):    # zuletzt: ohne Klick, alter Eintrag
+                   dict(art="grobplaner", fassung=1, ausloeser=kern.ENTWICKLER), dict(art="grobplaner", fassung=1)]   # zuletzt: ohne Klick, alter Eintrag
+        for kw in faelle:
             planer_fortschritt.melden(self.con, self.pid, self.lauf(), was="x", sofort=True, **kw)
         x = {(l["art"], l["ausloeser"], l["anlass"]): (l["schritt"], l["rolle"], l["mein"]) for l in self.daten()["laeufe"]}
         self.assertEqual(x[("gegenlesen", "TL", None)], ("konzept", "lead", False))
