@@ -147,11 +147,11 @@ def stand(con, pid):
         x["name"] = NAMEN[x["tor"]]
     aktuell = next((x for x in t if not x["zu"]), None)
     # A1972 (TH156 Regel 3/5/6): was der Mensch jetzt tun muss – nur Anzahlen für EINE Zeile mit Sprung. Meilensteine nur, wenn
-    # der Mensch freigibt (thema_freigabe = mensch); bei co+lead geben Co und Lead das Ja, das ist dann kein Handlungsbedarf.
-    ms_dich = 0
-    if themen.freigabe_regel(con, pid) != "co+lead":
-        ms_dich = (sum(1 for m in geplant if not m["grob"] or (m["pakete"] and not m["plan"]))
-                   + sum(1 for m in zu_schliessen if not m["abschluss"] and bericht(con, pid, m["id"]) is not None))
+    # der Mensch freigibt (A2032: je Art grobplan_/feinplan_/abschluss_freigabe = mensch); bei co+lead geben Co und Lead das Ja,
+    # das ist dann kein Handlungsbedarf.
+    mensch = {art: themen.freigabe_regel(con, pid, art) != "co+lead" for art in ("grob", "plan", "abschluss")}
+    ms_dich = (sum(1 for m in geplant if (mensch["grob"] and not m["grob"]) or (mensch["plan"] and m["grob"] and m["pakete"] and not m["plan"]))
+               + (sum(1 for m in zu_schliessen if not m["abschluss"] and bericht(con, pid, m["id"]) is not None) if mensch["abschluss"] else 0))
     fuer_dich = {"themen": len(themen.fuer_dich(con, pid)), "meilensteine": ms_dich}
     zeile =(f"{aktuell['name']} · {aktuell['text']}" if aktuell else "Abschluss · alle Tore geschlossen")
     return {"tore": t, "aktuell": aktuell["tor"] if aktuell else None, "zeile": zeile, "fuer_dich": fuer_dich,
@@ -232,9 +232,9 @@ def bericht_erstellen(con, pid, bid, bereit=False):
     did = dokumente.ablegen_inhalt(con, pid, "AMW", bericht_text(con, pid, bid).encode("utf-8"), f"abschluss-m{b['nr']}.md",
                                    titel=f"Abschlussbericht Meilenstein {b['nr']} „{b['titel'][:80]}“", art="bericht", bogen=bid)
     from . import themen
-    an = kern.co_entwickler(con, pid) if themen.freigabe_regel(con, pid) == "co+lead" else None
+    an = kern.co_entwickler(con, pid) if themen.freigabe_regel(con, pid, "abschluss") == "co+lead" else None
     if bereit:
-        mensch = themen.freigabe_regel(con, pid) != "co+lead"
+        mensch = themen.freigabe_regel(con, pid, "abschluss") != "co+lead"
         wer_ja = "Co-Entwickler und Lead" if not mensch else "der Mensch"
         with db.schreiben(con):
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=BERICHT, bogen_id=bid,

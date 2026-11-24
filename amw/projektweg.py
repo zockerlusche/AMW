@@ -62,10 +62,10 @@ def freigaben(con, pid):
 
 # --- wer ist dran -----------------------------------------------------------------------------------------------------------
 
-def _freigebende(con, pid):
-    """Wer das Ja gibt: der Mensch (thema_freigabe = mensch) oder Co-Entwickler und Lead (co+lead)."""
+def _freigebende(con, pid, stufe):
+    """Wer das Ja gibt: der Mensch oder Co-Entwickler und Lead (co+lead) – A2032: je Stufe die eigene Einstellung."""
     from . import themen
-    if themen.freigabe_regel(con, pid) == "co+lead":
+    if themen.freigabe_regel(con, pid, stufe) == "co+lead":
         aus = [x for x in (kern.co_entwickler(con, pid), kern.lead(con, pid)) if x]
         if aus:
             return aus
@@ -79,20 +79,20 @@ def _lead(con, pid):
 def _wer(con, pid, schritt, st, fr):
     from . import themen
     if schritt == "konzept":
-        return _freigebende(con, pid) if themen.fuer_dich(con, pid) else _lead(con, pid)
+        return _freigebende(con, pid, "konzept") if themen.fuer_dich(con, pid) else _lead(con, pid)
     if schritt == "grob":
         tor = next(x for x in st["tore"] if x["tor"] == "grobplanung")
         alle_drin = tor["n"] == tor["g"] and tor["g"] > 0 and not st.get("nichts_offen")
-        return _freigebende(con, pid) if alle_drin and fr["grob"]["g"] and not fr["grob"]["frei"] else _lead(con, pid)
+        return _freigebende(con, pid, "grob") if alle_drin and fr["grob"]["g"] and not fr["grob"]["frei"] else _lead(con, pid)
     if schritt == "fein":
         if any(not f["frei"] for f in fr["fein"]):
-            return _freigebende(con, pid)
+            return _freigebende(con, pid, "plan")
         return _lead(con, pid)                       # planen bzw. „Jetzt starten“
     if schritt == "abschluss":
         offen = [a for a in fr["abnahme"] if not a["frei"]]
         if offen and all(a["bericht"] is None for a in offen):
             return ["AMW"]                           # der Abschlussbericht kommt von der AMW
-        return _freigebende(con, pid)
+        return _freigebende(con, pid, "abschluss")
     return _lead(con, pid)
 
 

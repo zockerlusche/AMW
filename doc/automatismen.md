@@ -682,7 +682,11 @@ dass der Pfleger daran denken muss.
 ### Freigabe durch Co-Entwickler und Lead (A1937, B2913)
 
 - **Einstellung `thema_freigabe`:** mensch (Vorgabe) | co+lead – setzen Lead oder Mensch (A1951, W2460/B2914); stellt der
-  Lead um, steht es im Protokoll (Ereignis `einstellung_lead` mit Grund).
+  Lead um, steht es im Protokoll (Ereignis `einstellung_lead` mit Grund). Sie gilt für Themen und das Konzept-Ja (A2030).
+- **Freigaben je Meilenstein (A2032):** `grobplan_freigabe` (Grob-Freigabe und Grobplan-Ja), `feinplan_freigabe` (Plan),
+  `abschluss_freigabe` (Abschluss) – je mensch (Vorgabe) | co+lead, gleiche Rechte und Protokoll wie `thema_freigabe`.
+  Bis 1.175 galt `thema_freigabe` auch für Meilensteine; jetzt gibt sie der Mensch frei, bis er die Art umstellt.
+  Danach richten sich auch „für dich“, „wer ist dran“ im Projektweg und die Meldung „bereit zur Abnahme“.
 - **co+lead:** Co-Entwickler und Lead geben je ihr Ja zur aktuellen Fassung (`amw thema freigeben TH…` aus ihrer Sitzung).
   Mit beiden Ja ist das Thema freigegeben (Ereignis von der AMW, mit beiden Namen); der Mensch bekommt eine Info. Eine neue
   Fassung braucht neue Ja. Der Mensch gibt weiter selbst frei und holt jederzeit zurück.
@@ -734,7 +738,7 @@ die der Lead nur noch bestätigt oder ändert.
 ### Grobplanung einmal fürs ganze Konzept (A2030, TH164 Schritt 2)
 
 - **Auslöser:** `amw thema konzept-abschliessen` – nur bei geschlossenem Konzept-Tor (alle zählenden Themen frei) und solange
-  kein Grobplan angenommen ist. Ja sagt der Mensch; bei `thema_freigabe = co+lead` Co-Entwickler und Lead je ein Ja zum selben
+  kein Grobplan angenommen ist. Ja sagt der Mensch; bei `thema_freigabe = co+lead` (Grobplan-Ja: `grobplan_freigabe`) Co-Entwickler und Lead je ein Ja zum selben
   Stand der Themen (Ereignisse `konzept_abschluss_ja`, `konzept_abschluss`).
 - **Was läuft:** EIN Grob-Planer (`amw-planer.py --grob`) als leichter Lauf der Lauf-Schlange, frischer `claude -p` nur lesend,
   Opus mit Effort high, Frist 30 min. Er liest alle freigegebenen Themen in ihrer freigegebenen Fassung (`uebersicht.md`,
@@ -863,6 +867,7 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 | `amw pc einstellen` | `limit_halt` | Halt beim Wochenlimit für alle Projekte (Vorgabe 95, 0 = aus; ein Projekt nur strenger) |
 | `amw projekt einstellen` | `sicherung_ziel` | wohin die tägliche Sicherung aller Zweige und Tags geht (Lead oder Mensch, ohne Zugangsdaten) |
 | `amw projekt einstellen` | `thema_freigabe` | `mensch` (Vorgabe) oder `co+lead`: wer Themen freigibt (Lead oder Mensch stellt um, A1951) |
+| `amw projekt einstellen` | `grobplan_freigabe`, `feinplan_freigabe`, `abschluss_freigabe` | `mensch` (Vorgabe) oder `co+lead`: wer Meilensteine, Pläne und Abschlüsse freigibt (Lead oder Mensch stellt um, A2032) |
 | `amw projekt einstellen` | `release_sicherung` | `aus` (Vorgabe) oder `an`: Sicherung der Projektdaten vor `release ausliefern` (Projekte, die nicht die AMW sind) |
 | `amw projekt einstellen` | `release_modus` | `datei` (Version in `version_datei`) oder `tag` (Version aus dem Tag) – für Bündel |
 | `amw projekt einstellen` | `changelog_format` | `amw` oder `keepachangelog` ([Unreleased] → [X.Y.Z]) – für Bündel |

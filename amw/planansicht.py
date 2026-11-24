@@ -107,9 +107,10 @@ def freigeben(con, pid, von, bid, art):
     if art not in ARTEN:
         raise kern.AmwFehler("Freigabe: grob | plan | abschluss")
     from . import themen
-    if von != kern.ENTWICKLER:                       # K1 (B2913): nur mit thema_freigabe = co+lead, und dann je ein Ja
-        if themen.freigabe_regel(con, pid) != "co+lead":
-            raise kern.AmwFehler("Meilensteine gibt in diesem Projekt der Mensch frei (thema_freigabe = mensch)")
+    if von != kern.ENTWICKLER:                       # K1 (B2913), A2032: je Art die eigene Einstellung, und dann je ein Ja
+        if themen.freigabe_regel(con, pid, art) != "co+lead":
+            raise kern.AmwFehler(f"{ {'grob': 'Meilensteine', 'plan': 'Pläne', 'abschluss': 'Abschlüsse'}[art]} gibt in diesem"
+                                 f" Projekt der Mensch frei ({themen.FREIGABE_EINSTELLUNG[art]} = mensch)")
         if not (kern.ist_co(con, pid, von) or kern.ist_lead(con, pid, von)):
             raise kern.AmwFehler("Ein Ja zur Freigabe geben der Co-Entwickler und der Lead (B2913) – sonst gibt der Mensch frei")
     b = _bogen(con, pid, bid)
@@ -230,11 +231,12 @@ def daten(con, pid):
     """Für die Workbench (Planung › Meilensteine/Pakete)."""
     from . import arbeitspaket, empfehlung, planautomatik, planung, themen
     z = _zustaende(con, pid)
-    js, co_lead = _jas(con, pid), themen.freigabe_regel(con, pid) == "co+lead"
+    js = _jas(con, pid)
+    co_lead = {art: themen.freigabe_regel(con, pid, art) == "co+lead" for art in ARTEN}     # A2032: je Art
     halt = _angehalten(con, pid)                         # K8: schon angehaltene zählen nicht mehr als „nicht begonnen“
 
     def fehlt(bid, art, frei):
-        if frei or not co_lead:
+        if frei or not co_lead[art]:
             return []
         j = js.get((bid, art), {})
         return [themen.ROLLEN_JA[r] for r in themen.ROLLEN_JA if not j.get(r)]

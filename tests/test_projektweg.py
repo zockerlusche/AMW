@@ -70,7 +70,7 @@ class Projektweg(Basis):
         self.assertEqual(projektweg.wiedereinstieg(self.con, self.pid)["schritt"], None)
 
     def test_co_und_lead_sind_dran_bei_co_lead(self):
-        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead")
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead", grobplan_freigabe="co+lead", feinplan_freigabe="co+lead", abschluss_freigabe="co+lead")
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.th)
         self.assertEqual(projektweg.sicht(self.con, self.pid)["schritte"][1]["wer"], ["Co", "TL"])
 

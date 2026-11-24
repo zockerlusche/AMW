@@ -307,7 +307,7 @@ class Annehmen(Grund):
         self.assertEqual(self.con.execute("SELECT count(*) FROM bogen WHERE projekt_id = ?", (self.pid,)).fetchone()[0], 1)
 
     def test_co_und_lead_und_verlauf(self):
-        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead")
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, grobplan_freigabe="co+lead")
         self.assertEqual(grobplan.annehmen(self.con, self.pid, "TL"), {"angenommen": False, "ja_fehlt": ["Co-Entwickler"]})
         r = grobplan.annehmen(self.con, self.pid, "Co")
         self.assertTrue(r["angenommen"])

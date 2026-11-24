@@ -315,9 +315,15 @@ def status(con, t):
     return aus
 
 
-def freigabe_regel(con, pid):
-    """A1937 (B2913): wer ein Thema freigibt – mensch (Vorgabe) | co+lead (Co-Entwickler und Lead je ein Ja; Marcel jederzeit)."""
-    return kern.projekt_wahl(con, pid, "thema_freigabe")
+FREIGABE_EINSTELLUNG = {"thema": "thema_freigabe", "konzept": "thema_freigabe", "grob": "grobplan_freigabe",
+                        "plan": "feinplan_freigabe", "fein": "feinplan_freigabe", "abschluss": "abschluss_freigabe"}
+
+
+def freigabe_regel(con, pid, stufe="thema"):
+    """A1937 (B2913): wer freigibt – mensch (Vorgabe) | co+lead (Co-Entwickler und Lead je ein Ja; Marcel jederzeit). A2032: je
+    Stufe eine Einstellung – thema/konzept: thema_freigabe, grob: grobplan_freigabe, plan/fein: feinplan_freigabe,
+    abschluss: abschluss_freigabe."""
+    return kern.projekt_wahl(con, pid, FREIGABE_EINSTELLUNG[stufe])
 
 
 def nur_mensch(ev):

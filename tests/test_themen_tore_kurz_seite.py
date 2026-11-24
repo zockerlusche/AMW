@@ -58,7 +58,7 @@ class ToreKurz(Rundgang):
 
     def test_ohne_handlungsbedarf_keine_zeile(self):
         """Regel 4/7: muss der Mensch nichts tun, steht unter den Chips nichts – auch nicht, wenn Co und Lead freigeben."""
-        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead")         # Meilensteine geben Co und Lead frei
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead", grobplan_freigabe="co+lead", feinplan_freigabe="co+lead", abschluss_freigabe="co+lead")         # Meilensteine geben Co und Lead frei
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, f"TH{self.dich}")
         self.assertEqual(tore.stand(self.con, self.pid)["fuer_dich"], {"themen": 0, "meilensteine": 0})
         self.groesse("handy")

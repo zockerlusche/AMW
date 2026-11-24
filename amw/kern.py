@@ -257,6 +257,10 @@ PROJEKT_TEXTE = {"entwickler_name": 30}       # Text-Einstellungen: Schlüssel �
 PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 "release_modus": ("datei", "tag"),                      # A1923: Version in version_datei oder aus dem Tag
                 "thema_freigabe": ("mensch", "co+lead"),                # A1937 (B2913): Co und Lead geben Themen gemeinsam frei
+                # A2032 (TH164 „Freigaben“): wer Grobplan, Feinplan und Abschluss je Meilenstein freigibt – Vorgabe der Mensch
+                "grobplan_freigabe": ("mensch", "co+lead"),
+                "feinplan_freigabe": ("mensch", "co+lead"),
+                "abschluss_freigabe": ("mensch", "co+lead"),
                 "sprachpruefung": ("auto", "pyright", "aus"),           # A1962: Prüfung C Schritt 7 – auto = mit pyrightconfig.json
                 "changelog_format": ("amw", "keepachangelog"),          # A1923: Abschnitte wie die AMW oder Keep a Changelog
                 "release_sicherung": ("aus", "an"),                     # A1933: Sicherung der Projektdaten vor einer Auslieferung
@@ -311,7 +315,7 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 "veroeffentlichen": ("meilenstein", "sofort")}
 NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung")
 # A1951 (Marcel W2460, B2914: „Wir sind Dev und TL“): Lead oder Mensch – nie ein anderer Agent; ändert der Lead, steht es im Protokoll
-LEAD_ODER_MENSCH_WAHL = ("thema_freigabe", "sicherung_ziel")
+LEAD_ODER_MENSCH_WAHL = ("thema_freigabe", "sicherung_ziel", "grobplan_freigabe", "feinplan_freigabe", "abschluss_freigabe")
 LEAD_GRUND = "W2460/B2914"
 BUENDEL_EINSTELLUNGEN = ("version_datei", "changelog_datei", "buendel_schritt", "gesamtlauf_befehl")   # A1876 (D1306 F2)
 VERSION_FRIST_TAGE = 14            # so lange darf Fertiges ohne Version liegen, bevor der Plan-Check warnt (Projekt: version_frist_tage)

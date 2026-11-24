@@ -69,7 +69,7 @@ class Daten(Grund):
 
 class Handlungen(Grund):
     def test_mensch_allein_grob_dann_plan_wer_als_fakt(self):
-        with self.assertRaisesRegex(kern.AmwFehler, "der Mensch frei \\(thema_freigabe = mensch\\)"):
+        with self.assertRaisesRegex(kern.AmwFehler, "der Mensch frei \\(grobplan_freigabe = mensch\\)"):
             planansicht.freigeben(self.con, self.pid, "Co", self.m1, "grob")                    # Vorgabe: nur der Mensch
         with self.assertRaisesRegex(kern.AmwFehler, "erst den Meilenstein freigeben"):
             planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "plan")
@@ -87,7 +87,7 @@ class Handlungen(Grund):
 
     def test_co_und_lead_gemeinsam_b2913(self):
         """#30329: wie K1 – bei thema_freigabe = co+lead braucht es BEIDE Ja (seit dem letzten Zurück), sonst den Menschen."""
-        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead")
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead", grobplan_freigabe="co+lead", feinplan_freigabe="co+lead", abschluss_freigabe="co+lead")
         with self.assertRaisesRegex(kern.AmwFehler, "Co-Entwickler und der Lead"):
             planansicht.freigeben(self.con, self.pid, "CC1", self.m1, "grob")
         self.assertEqual(planansicht.freigeben(self.con, self.pid, "Co", self.m1, "grob"), {"frei": False, "ja_fehlt": ["Lead"]})

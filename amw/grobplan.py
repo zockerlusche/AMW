@@ -111,14 +111,14 @@ def _stand(frei):
     return {str(tid): x["fassung"] for tid, x in sorted(frei.items())}
 
 
-def _stimme(con, pid, von, art_stimme, bezug):
+def _stimme(con, pid, von, art_stimme, bezug, stufe):
     """Wer Ja sagt: der Mensch allein → ("mensch", [von]). Bei thema_freigabe = co+lead geben Co und Lead je ein Ja zum selben
     Bezug; das zweite macht es gültig → ("co+lead", [co, lead]); vorher ("fehlt", [was fehlt]). In einer Schreib-Transaktion."""
     from . import themen
     if von == kern.ENTWICKLER:
         return "mensch", [von]
-    if themen.freigabe_regel(con, pid) != "co+lead":
-        raise kern.AmwFehler("Das Ja gibt in diesem Projekt der Mensch (thema_freigabe = mensch)")
+    if themen.freigabe_regel(con, pid, stufe) != "co+lead":                 # A2032: konzept → thema_freigabe, grob → grobplan_freigabe
+        raise kern.AmwFehler(f"Das Ja gibt in diesem Projekt der Mensch ({themen.FREIGABE_EINSTELLUNG[stufe]} = mensch)")
     if kern.ist_co(con, pid, von):
         rolle = "co"
     elif kern.ist_lead(con, pid, von):
@@ -169,7 +169,7 @@ def abschliessen(con, pid, von):
     stand = _stand(frei)
     bezug = json.dumps(stand, sort_keys=True)
     with db.schreiben(con):
-        wer, namen = _stimme(con, pid, von, ABSCHLUSS_JA, bezug)
+        wer, namen = _stimme(con, pid, von, ABSCHLUSS_JA, bezug, "konzept")
         if wer == "fehlt":
             return {"abgeschlossen": False, "ja_fehlt": namen}
         _ereignis(con, pid, von if wer == "mensch" else "AMW", ABSCHLUSS, themen=stand, durch=namen)   # Verlauf liest es (A2024)
@@ -592,7 +592,7 @@ def annehmen(con, pid, von, fassung=None):
     if (e.get("themen") or {}) != _stand(themen_frei(con, pid)):
         raise kern.AmwFehler(f"Seit Fassung {e.get('fassung')} haben sich die freigegebenen Themen geändert – Konzept neu abschließen")
     with db.schreiben(con):
-        wer, namen = _stimme(con, pid, von, JA_STIMME, e["id"])
+        wer, namen = _stimme(con, pid, von, JA_STIMME, e["id"], "grob")
         if wer == "fehlt":
             return {"angenommen": False, "ja_fehlt": namen}
         if angenommen(con, pid):

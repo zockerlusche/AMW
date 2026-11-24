@@ -201,6 +201,7 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
                         "arbeiter_umgebung",              # A1922: Variablen und Pfade der Arbeiter
                         "sicherung_ziel",                 # A1929/A1951: wohin die tägliche Sicherung schiebt (Lead oder Mensch)
                         "thema_freigabe",                 # A1937/A1951: wer Themen freigibt (Lead oder Mensch)
+                        "grobplan_freigabe", "feinplan_freigabe", "abschluss_freigabe",   # A2032: wer Meilensteine freigibt
                         "release_modus", "changelog_format",   # A1923: wie Bündel ihre Version und ihren CHANGELOG schreiben
                         "release_sicherung")              # A1933: Sicherung vor der Auslieferung eines Projekts
 # eine Stelle für alle Einstellungen mit dieser Sperre (CCamwTL P299): Rechte (A1892) und ausführbare Bündel-Befehle (A1876, P298)

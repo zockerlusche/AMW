@@ -102,7 +102,7 @@ class Ableitung(Basis):
         self.assertEqual(f(), {"themen": 0, "meilensteine": 1})                     # m1 hat Pakete: der Plan wartet auf dich
         planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "plan")
         self.assertEqual(f(), {"themen": 0, "meilensteine": 0})
-        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead")
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead", grobplan_freigabe="co+lead", feinplan_freigabe="co+lead", abschluss_freigabe="co+lead")
         planansicht.zurueck(self.con, self.pid, kern.ENTWICKLER, self.m1, "plan", "Tests fehlen")
         self.assertEqual(f()["meilensteine"], 0)
 
@@ -121,7 +121,7 @@ class Ableitung(Basis):
             self.assertIn(teil, t)
 
     def test_co_und_lead_bestaetigen_den_bericht(self):
-        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead")
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead", grobplan_freigabe="co+lead", feinplan_freigabe="co+lead", abschluss_freigabe="co+lead")
         self.bis_umsetzung()
         with db.schreiben(self.con):
             self.con.execute("UPDATE aufgabe SET status = 'fertig', fertig_utc = ?, beleg = 'abc1234' WHERE bogen_id = ?", (db.jetzt(), self.m1))

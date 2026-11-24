@@ -65,7 +65,7 @@ class Urteil(Basis):
         self.assertEqual(len([1 for _ in self.con.execute("SELECT 1 FROM plan_ereignis WHERE art = 'abschluss_bericht'")]), 1)
 
     def test_co_und_lead_je_ein_ja(self):
-        kern.projekt_einstellen(self.con, self.pid, "TL", thema_freigabe="co+lead")
+        kern.projekt_einstellen(self.con, self.pid, "TL", thema_freigabe="co+lead", grobplan_freigabe="co+lead", feinplan_freigabe="co+lead", abschluss_freigabe="co+lead")
         self.fertig(self.a1, self.a2)
         planautomatik.meilenstein_projekt(self.con, self.pid)
         self.assertEqual(self.meldungen(kern.ENTWICKLER), [])                                    # co+lead: nicht an dich

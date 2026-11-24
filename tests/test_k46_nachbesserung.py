@@ -18,7 +18,7 @@ from tests.test_planer import ERGEBNIS
 class K6(test_planansicht.Grund):
     def setUp(self):
         super().setUp()
-        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead")
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, thema_freigabe="co+lead", grobplan_freigabe="co+lead", feinplan_freigabe="co+lead", abschluss_freigabe="co+lead")
 
     def test_ja_gilt_nur_zum_gesehenen_stand(self):
         planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "grob")
@@ -70,7 +70,7 @@ class K6(test_planansicht.Grund):
 class K4(test_planer.Grund):
     def test_planer_auch_bei_freigabe_durch_co_und_lead(self):
         kern.agent_neu(self.con, self.pid, "Co")
-        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, co_entwickler="Co", thema_freigabe="co+lead")
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, co_entwickler="Co", thema_freigabe="co+lead", grobplan_freigabe="co+lead", feinplan_freigabe="co+lead", abschluss_freigabe="co+lead")
         planung.bogen_neu(self.con, self.pid, "TL", "Bestand")        # A2030: bestehendes Projekt – Planer je Thema wie bisher
         gestartet = []
         with mock.patch.object(planer, "STARTER", lambda pid, tid, fassung: gestartet.append((tid, fassung)) or 1), \
