@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.185.0 – 24.11.2026 · Projektweg ruhig und passend für laufende Projekte
+- **Behoben:** Die Seite Projektweg baut sich nicht mehr alle paar Sekunden neu auf; sie zeichnet nur, wenn sich wirklich etwas geändert hat. Scroll-Stand und offenes Seitenfenster bleiben.
+- **Verbessert:** Bei Projekten mit Bestand zeigt die Grobplanung die vorhandenen Meilensteine, die Umsetzung die laufenden – der jüngste oben, fertige Pakete eingeklappt. „Konzept abschließen“ steht dort nicht mehr, bis die Übernahme kommt.
+- **Verbessert:** Im Abschluss stehen alle Meilensteine, die auf deine Abnahme warten; abnehmen geht erst mit vollständiger Prüfliste. Meilensteine, die vor der Prüfung gegen das Konzept bereit wurden, bekommen „Prüfung starten“.
+- **Verbessert:** Feinplan und Änderungen erscheinen als Karten in Stufen; der Knopf nennt genau, was du freigibst.
+- **Verbessert:** Der Verlauf zeigt, was zum gewählten Schritt gehört – eine Zeile je Eintrag, Langes auf Klick, umschaltbar auf alle Schritte. Meilensteine tragen überall ihre Projektnummer.
+
 ## 1.184.0 – 24.11.2026 · Abnehmen und Feinplan-Funde auf der Seite Projektweg
 - **Behoben:** „Abnehmen“ im Schritt Abschluss der Seite Projektweg nimmt einen Meilenstein, der bereit zur Abnahme ist, jetzt wirklich ab; vorher kam eine Fehlermeldung. Der Knopf erscheint, sobald der Abschlussbericht da ist.
 - **Behoben:** Passt ein Feinplan nicht (zum Beispiel, weil ein Paket gesperrte Dateien ändern würde), zeigt die Seite Projektweg den Grund und „Überarbeiten lassen“ – vorher stand dort nur „Noch kein Feinplan“.
