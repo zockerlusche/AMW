@@ -173,7 +173,9 @@ class Grenzen(Grund):
         self.assertEqual(planer.heute_usd(self.con, self.pid), 0.7)                        # Prüfer-Kosten zählen mit
         self.assertEqual(self.runde(), [(self.m, "bereit")])                               # nicht gestartet, bereit wie bisher
         self.assertEqual(self.gestartet, [])
-        self.assertIn("Tagesgrenze", abschluss.ergebnis(self.con, self.pid, self.m)["fehler"])
+        e = abschluss.ergebnis(self.con, self.pid, self.m)
+        self.assertIsNotNone(e)
+        self.assertIn("Tagesgrenze", (e or {})["fehler"])
 
     def test_hoechstens_zwei_automatische_runden(self):
         titel = {1: "Firmenkonto anbinden", 2: "Fehlermeldung beim Anmelden verbessern", 3: "Sitzung nach Abmeldung beenden"}
