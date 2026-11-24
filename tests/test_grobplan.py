@@ -185,6 +185,27 @@ class Abschliessen(Grund):
         self.assertEqual(self.gestartet, [])
 
 
+class Bestand(Grund):
+    """A2062 (a): Projekt mit Meilensteinen → „Konzept abschließen“ abgewiesen (CLI und API über grobplan.abschliessen),
+    mit Hinweis auf die Übernahme; ohne Meilensteine (Gegenprobe) startet der Planer wie bisher."""
+
+    def test_bestand_sperrt_ohne_bestand_startet(self):
+        self.frei()
+        planung.bogen_neu(self.con, self.pid, "TL", "Schon da")
+        with self.assertRaisesRegex(kern.AmwFehler, "1 Meilenstein.*bei Bestand gesperrt.*A2062"):
+            grobplan.abschliessen(self.con, self.pid, kern.ENTWICKLER)
+        self.assertEqual(self.gestartet, [])
+        from amw import aktionen
+        with self.assertRaisesRegex(aktionen.Ungueltig, "bei Bestand gesperrt"):          # die Seite zeigt den Text als Fehler
+            aktionen.ausfuehren(self.con, self.pid, "/api/projektweg/konzept-abschliessen", {}, kanal="seite")
+        rc, aus = self.befehl("konzept-abschliessen", von=kern.ENTWICKLER)
+        self.assertEqual(rc, 1)
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE bogen SET status = 'verworfen' WHERE projekt_id = ?", (self.pid,))
+        self.assertTrue(grobplan.abschliessen(self.con, self.pid, kern.ENTWICKLER)["abgeschlossen"])   # verworfen zählt nicht
+        self.assertEqual(len(self.gestartet), 1)
+
+
 class Lauf(Grund):
     def setUp(self):
         super().setUp()
@@ -246,8 +267,8 @@ class Annehmen(Grund):
     def setUp(self):
         super().setUp()
         self.frei()
-        self.alt = planung.bogen_neu(self.con, self.pid, "TL", "Bestand")        # schon da: neue Nummern zählen weiter
-        grobplan.abschliessen(self.con, self.pid, kern.ENTWICKLER)
+        grobplan.abschliessen(self.con, self.pid, kern.ENTWICKLER)              # A2062 (a): vor jedem Meilenstein – Bestand sperrt
+        self.alt = planung.bogen_neu(self.con, self.pid, "TL", "Bestand")        # danach angelegt: neue Nummern zählen weiter
         grobplan.entwurf_eintragen(self.con, self.pid, 1, json.dumps(plan(self.t1, self.t2)), modell="opus", usd=1.0, lauf=None)
 
     def test_ja_legt_meilensteine_an_und_gibt_sie_grob_frei(self):

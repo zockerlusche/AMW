@@ -153,6 +153,16 @@ def aus_grobplan(con, pid, nr):
     return bool(ja) and f"M{nr}" in (ja.get("angelegt") or {}).values()
 
 
+BESTAND = ("Das Projekt hat schon {n} Meilenstein(e) – „Konzept abschließen“ ist bei Bestand gesperrt, sonst plante der Planer"
+           " alles neu. Die Übernahme (Grobplan Fassung 0 = Bestand, der Planer schlägt nur Fehlendes vor) kommt mit A2062;"
+           " bis dahin plant der Planer Änderungen je Thema (amw thema planen TH<n>).")
+
+
+def bestand(con, pid):
+    """A2062 (a): Meilensteine, die es schon gibt (nicht verworfen) – ohne angenommenen Grobplan heißt das: Projekt mit Bestand."""
+    return con.execute("SELECT count(*) FROM bogen WHERE projekt_id = ? AND status != 'verworfen'", (pid,)).fetchone()[0]
+
+
 def abschliessen(con, pid, von):
     """„Konzept abschließen und Grobplanung starten“. Nur bei geschlossenem Konzept-Tor (alle zählenden Themen frei) und solange
     kein Grobplan angenommen ist. Ein zweiter Abschluss (Konzept seitdem geändert) plant neu. Rückgabe: {"abgeschlossen",
@@ -160,6 +170,9 @@ def abschliessen(con, pid, von):
     from . import themen
     if angenommen(con, pid):
         raise kern.AmwFehler("Der Grobplan ist schon angenommen – Änderungen am Konzept plant der Planer je Thema (amw thema planen TH<n>)")
+    n = bestand(con, pid)
+    if n:                                           # A2062 (a): bei Bestand sofort gesperrt (Übernahme Fassung 0 kommt mit Teil b)
+        raise kern.AmwFehler(BESTAND.format(n=n))
     t = themen.tor(con, pid)
     if not t["konzept_zu"]:
         raise kern.AmwFehler(f"Erst alle Themen freigeben: {t['n']} von {t['g']} Themen freigegeben")
