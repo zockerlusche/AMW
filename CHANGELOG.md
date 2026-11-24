@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.178.0 – 24.11.2026 · Rollende Feinplanung: der nächste Meilenstein ist geplant, bevor der laufende fertig ist
+- **Neu:** Die AMW plant den nächsten Meilenstein selbst fein, sobald der laufende bereit zur Abnahme ist oder sein letztes Paket läuft: ein Planer zerlegt ihn in Pakete mit Ziel, Thema, Dateien, Abnahme, Abhängigkeiten und wer sie ausführt.
+- **Neu:** „Plan freigeben und starten“ – dein Ja zum Feinplan ist zugleich der Start, auch während der vorige Meilenstein noch auf deine Abnahme wartet.
+- **Verbessert:** Headless-Pakete starten in derselben Reihenfolge, die die Planung anzeigt (aktiver Meilenstein zuerst, dann der längste Weg bis zum Ende).
+- **Behoben:** Kosten in der Planung, im Abschlussbericht und die Meldung „über Prognose“ zählen jetzt auch die Läufe der Headless-Pakete; neu: Kosten des Projekts bisher, noch und gesamt (`amw messung --gesamt`).
+- **Behoben:** Anhalten und Weiter als Entwickler gehen nur noch im eigenen Terminal oder in der Workbench, nicht aus einer Agenten-Sitzung; der Lead hält weiter mit eigenem Namen an.
+- **Behoben:** Neue Agenten legen nur noch der Lead oder der Mensch an; den Dienst starten der Mensch, der Lead oder die Auslieferung neu.
+
 ## 1.177.1 – 24.11.2026 · Seite bleibt unter Last nicht hängen
 - **Behoben:** Scheitert unter Last ein Abruf der Seite an der Verbindung, versucht sie ihn einmal neu – statt bis zum Neuladen „Failed to fetch“ zu zeigen.
 
