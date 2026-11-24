@@ -4,6 +4,10 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.184.0 – 24.11.2026 · Abnehmen und Feinplan-Funde auf der Seite Projektweg
+- **Behoben:** „Abnehmen“ im Schritt Abschluss der Seite Projektweg nimmt einen Meilenstein, der bereit zur Abnahme ist, jetzt wirklich ab; vorher kam eine Fehlermeldung. Der Knopf erscheint, sobald der Abschlussbericht da ist.
+- **Behoben:** Passt ein Feinplan nicht (zum Beispiel, weil ein Paket gesperrte Dateien ändern würde), zeigt die Seite Projektweg den Grund und „Überarbeiten lassen“ – vorher stand dort nur „Noch kein Feinplan“.
+
 ## 1.183.0 – 24.11.2026 · Warten gibt frei: die AMW verteilt selbst weiter
 - **Neu:** Jeder Wartegrund hat eine Art – Prüfung, Stapel, Lauf, Antwort oder Paket. Wartet eine Aufgabe, zählt eine offene Prüfbitte zu ihr von selbst als Grund, das Ergebnis hebt ihn auf; nach einer Auslieferung ist „wartet auf Stapel“ erledigt.
 - **Neu:** Wartet ein Agent auf eine Prüfung, einen Stapel oder einen Lauf, ist er sofort frei für das nächste startklare Paket (mit „Verteilen an“ teilt die AMW selbst zu); bei einer Antwort oder einem anderen Paket nach 10 Minuten. Eine Aufgabe, die auf nichts mehr wartet, weckt ihren Agenten.
