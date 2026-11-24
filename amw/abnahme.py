@@ -64,6 +64,7 @@ GESPERRT = (
     ("amw-vorpruefung.py", "fest", "Sprachprüfung jeder Prüfbitte (A2004)"),
     ("amw/planer.py", "fest", "Planer der Themen – startet claude -p (A1940)"),
     ("amw/grobplan.py", "fest", "Grob-Planer über das ganze Konzept – startet claude -p (A2030)"),
+    ("amw/planer_delta.py", "fest", "Delta-Planer – wer ein Delta freigibt (feinplan_freigabe), ändert/verwirft Pakete (A2027)"),
     ("amw/folgen.py", "fest", "Folgenprüfer eigener Änderungen – startet claude -p (A1957)"),
     ("pyrightconfig.json", "fest", "Konfiguration der Sprachprüfung in Prüfung C (A1962) – ein Paket schaltet sie nicht ab"),
     ("*/pyrightconfig.json", "fest", "Konfiguration der Sprachprüfung in Prüfung C (A1962)"),
