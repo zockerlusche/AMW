@@ -1106,7 +1106,7 @@ def cmd_aufgabe(a, con):
     elif a.aktion == "nachtrag":
         if not a.id:
             raise kern.AmwFehler("amw aufgabe nachtrag <nr> --titel … --auftrag …|--text …|--text-datei … [--agent …]")
-        auftrag = a.auftrag or a.text                    # A2073: --text ging bisher still verloren
+        auftrag = "\n".join(x for x in (a.auftrag, a.text) if x)      # A2073: --text ging bisher still verloren – auch neben --auftrag
         if a.text_datei:
             with open(a.text_datei, encoding="utf-8") as f:
                 auftrag = ((auftrag + "\n") if auftrag else "") + f.read()

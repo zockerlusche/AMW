@@ -225,6 +225,9 @@ class Nachtrag(Grund):
         rc, aus = self.cli("--von", "TL", "aufgabe", "nachtrag", f"A{self.a}", "--titel", "Mit Text", "--text", "Punkt 1: Anker\nPunkt 2: Licht")
         self.assertEqual(rc, 0, aus)
         self.assertIn("Punkt 1: Anker", letzte())
+        rc, aus = self.cli("--von", "TL", "aufgabe", "nachtrag", f"A{self.a}", "--titel", "Beides", "--auftrag", "Erst das", "--text", "dann jenes")
+        self.assertEqual(rc, 0, aus)
+        self.assertTrue(letzte().endswith("Erst das\ndann jenes"), letzte())                                     # nichts geht verloren
         with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as f:
             f.write("Aus der Datei: (1) robust lesen\n(2) nachbessern\n")
         self.addCleanup(os.remove, f.name)
