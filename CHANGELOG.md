@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.183.0 – 24.11.2026 · Warten gibt frei: die AMW verteilt selbst weiter
+- **Neu:** Jeder Wartegrund hat eine Art – Prüfung, Stapel, Lauf, Antwort oder Paket. Wartet eine Aufgabe, zählt eine offene Prüfbitte zu ihr von selbst als Grund, das Ergebnis hebt ihn auf; nach einer Auslieferung ist „wartet auf Stapel“ erledigt.
+- **Neu:** Wartet ein Agent auf eine Prüfung, einen Stapel oder einen Lauf, ist er sofort frei für das nächste startklare Paket (mit „Verteilen an“ teilt die AMW selbst zu); bei einer Antwort oder einem anderen Paket nach 10 Minuten. Eine Aufgabe, die auf nichts mehr wartet, weckt ihren Agenten.
+- **Neu:** Die Pause zeigt einen Agenten, dessen Lauf oder Headless-Paket noch läuft, als „läuft zu Ende“.
+- **Verbessert:** Langsame Anfragen der Workbench (ab 1 Sekunde) stehen mit ihren längsten Teilschritten im Protokoll.
+- **Behoben:** Ändert sich der geprüfte Ordner während eines Gesamtlaufs, zählt der Lauf nicht mehr als Beleg.
+
 ## 1.182.0 – 24.11.2026 · Der Projektweg als eigene Seite
 - **Neu:** Seite „Projektweg“: der ganze Weg in fünf Schritten – Konzept, Grobplanung, Feinplanung, Umsetzung, Abschluss – als Leiste; „wartet auf dich“ nur, wenn dein Ja fehlt, und die Handlung dazu steht gleich oben neben dem Schritt.
 - **Neu:** Im Grobplan siehst du jede Fassung des Planers mit den Änderungen gegenüber der vorigen, im Feinplan die Pakete in Stufen mit „wer“ (Headless oder Fenster-Agent), in der Umsetzung die Fragen des Leads, im Abschluss Gesamttest, Prüfung und Vorführung.
