@@ -1,7 +1,7 @@
 """A2005 (F5386 A, TH156 AUFRÄUMEN): die Workbench-Seite in Bausteinen – eine Quelle in amw/workbench/ (Gerüst, Stil-Teile,
 Sprachdateien texte/de.json und texte/en.json, Skript-Bausteine), zusammengesetzt von workbench.seite().
 
-Der Schnitt-Commit belegte die Byte-Gleichheit mit der letzten amw/workbench.html (SHA-256 238abb7a…, 844070 Bytes). Mit dem
+Der Schnitt-Commit belegte die Byte-Gleichheit mit der letzten amw/workbench.html (SHA-256 a9bf6c2d…, 845706 Bytes). Mit dem
 JSON-Schritt ersetzt dieser Test ihn durch „jeder Baustein genau einmal, keine Reste“ (Lead F5392 (2)) – das ist kein geschwächter
 Test: er prüft jede Zeile jedes Bausteins und jeden Text jeder Sprache einzeln, statt eine Summe über die alte Datei."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
