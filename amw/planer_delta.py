@@ -175,19 +175,49 @@ def stimme(con, pid, von, tid, eid):
     return fehlt or None
 
 
+def _noch_nicht_begonnen(con, pid, aid):
+    """P593: Zwischen Entwurf und Ja vergehen oft Stunden – ein Paket kann inzwischen laufen oder fertig sein. Beim Anwenden
+    wird es deshalb neu eingeteilt; nur „stoppen“ (nicht begonnen) darf geändert oder verworfen werden."""
+    from . import konzeptaenderung
+    a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
+    return konzeptaenderung.einteilen(con, a) if a else None
+
+
 def anwenden(con, pid, von, tid, eid, entwurf):
-    """„aendern“ und „verwerfen“ ausführen (nach dem Anlegen der neuen Pakete). Rückgabe {"geaendert": [A…], "verworfen": [A…]}."""
-    from . import planung
+    """„aendern“ und „verwerfen“ ausführen (nach dem Anlegen der neuen Pakete) – je Paket neu eingeteilt: was inzwischen läuft
+    oder fertig ist, bleibt unberührt und steht unter „uebersprungen“ („A123 läuft inzwischen“). Rückgabe {"geaendert",
+    "verworfen", "uebersprungen"}; der Lead bekommt eine Meldung, wenn etwas übersprungen wurde."""
+    from . import konzeptaenderung, planung
     anleger = von if kern.ist_lead(con, pid, von) else (kern.lead(con, pid) or kern.ENTWICKLER)
-    aus = {"geaendert": [], "verworfen": []}
+    aus = {"geaendert": [], "verworfen": [], "uebersprungen": []}
+
+    def frei(e):
+        g = _noch_nicht_begonnen(con, pid, e["paket"])
+        if g == "stoppen":
+            return True
+        aus["uebersprungen"].append(f"A{e['paket']} {konzeptaenderung.TEXT.get(g, 'verworfen') if g else 'gibt es nicht mehr'}"
+                                    .replace("laufend – zu Ende bauen", "läuft inzwischen").replace("fertig – Nacharbeit nötig",
+                                                                                                    "ist inzwischen fertig"))
+        return False
     for e in entwurf.get("aendern") or []:
+        if not frei(e):
+            continue
         werte = {k: e[k] for k in ("auftrag",) if e.get(k)}
         planung.schritt_setzen(con, pid, anleger, aid=e["paket"], titel=e.get("titel"), **werte)
         aus["geaendert"].append(f"A{e['paket']}")
     for e in entwurf.get("verwerfen") or []:
+        if not frei(e):
+            continue
         kern.aufgabe_status(con, pid, anleger, e["paket"], "verwerfen", beleg=f"Konzeptänderung TH{tid}: {e['grund']}"[:300],
                             automatik=True)
         aus["verworfen"].append(f"A{e['paket']}")
+    if aus["uebersprungen"]:
+        lead = kern.lead(con, pid)
+        if lead:
+            with db.schreiben(con):
+                kern._posten(con, pid, "AMW", lead, "meldung", f"Delta TH{tid}: {len(aus['uebersprungen'])} Paket(e) nicht angewandt"[:140],
+                             "Seit dem Entwurf haben diese Pakete begonnen oder sind fertig – sie bleiben, wie sie sind:" + chr(10)
+                             + chr(10).join(f"- {x}" for x in aus["uebersprungen"]) + chr(10) + "Bei Bedarf neu planen lassen (amw thema planen).")
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=ANGEWANDT,
                      text=json.dumps({"thema": int(tid), "entwurf": eid, **aus}, ensure_ascii=False))

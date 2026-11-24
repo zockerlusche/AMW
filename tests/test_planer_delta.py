@@ -163,6 +163,18 @@ class Freigabe(Grund):
         self.assertTrue(planer.erledigt(self.con, self.pid, self.eid))
         self.assertEqual(planer_delta.letzte(self.con, self.pid, self.tid)["verworfen"], [f"A{self.p3}"])
 
+    def test_inzwischen_begonnen_bleibt_unberuehrt(self):
+        """P593: Zwischen Entwurf und Ja startet das Paket, das verworfen werden sollte – es bleibt, wie es ist; die Anwendung nennt
+        es, der Lead bekommt eine Meldung."""
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'laeuft' WHERE id = ?", (self.p3,))
+        a = planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        self.assertIn("N1", a)                                                   # die neuen Pakete kommen trotzdem
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.p3,)).fetchone()[0], "laeuft")
+        d = planer_delta.letzte(self.con, self.pid, self.tid)
+        self.assertEqual((d["verworfen"], d["uebersprungen"]), ([], [f"A{self.p3} läuft inzwischen"]))
+        self.assertIn(f"A{self.p3} läuft inzwischen", self.post("TL")[-1][2])
+
     def test_aendern_setzt_titel_und_auftrag(self):
         d = planer_delta.kontext(self.con, self.pid, self.tid)
         planer.entwurf_eintragen(self.con, self.pid, self.tid, 2, {"aendern": [
@@ -176,7 +188,7 @@ class Freigabe(Grund):
         kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, feinplan_freigabe="co+lead")
         with self.assertRaisesRegex(kern.AmwFehler, "Co-Entwickler und der Lead"):
             planer.uebernehmen(self.con, self.pid, "CC1", self.tid)
-        self.assertEqual(planer.uebernehmen(self.con, self.pid, "Co", self.tid), {"ja_fehlt": ["Lead"]})
+        self.assertEqual(planer.uebernehmen(self.con, self.pid, "Co", self.tid), {"ja_fehlt": "Lead"})
         self.assertFalse(planer.erledigt(self.con, self.pid, self.eid))
         a = planer.uebernehmen(self.con, self.pid, "TL", self.tid)
         self.assertIn("N1", a)

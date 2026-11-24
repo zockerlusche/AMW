@@ -2852,7 +2852,7 @@ def cmd_thema(a, con):
                 geaendert = f.read()
         angelegt = planer.uebernehmen(con, pid, _von(a), t["id"], geaendert=geaendert)
         if "ja_fehlt" in angelegt:                         # A2027: Delta bei feinplan_freigabe = co+lead
-            print(f"TH{t['id']}: dein Ja zum Delta ist vermerkt – es fehlt noch: " + ", ".join(angelegt["ja_fehlt"]))
+            print(f"TH{t['id']}: dein Ja zum Delta ist vermerkt – es fehlt noch: " + angelegt["ja_fehlt"])
             return
         if ((e or {}).get("entwurf") or {}).get("delta"):
             from . import planer_delta
@@ -2860,7 +2860,8 @@ def cmd_thema(a, con):
             print(f"TH{t['id']}: Delta freigegeben – " + "; ".join(x for x in (
                 ", ".join(f"{k} → {v}" for k, v in angelegt.items()) and "angelegt " + ", ".join(f"{k} → {v}" for k, v in angelegt.items()),
                 d.get("geaendert") and "geändert " + ", ".join(d["geaendert"]),
-                d.get("verworfen") and "verworfen " + ", ".join(d["verworfen"])) if x))
+                d.get("verworfen") and "verworfen " + ", ".join(d["verworfen"]),
+                d.get("uebersprungen") and "nicht angewandt: " + ", ".join(d["uebersprungen"])) if x))
             return
         print(f"TH{t['id']}: " + ("„nichts zu bauen“ vermerkt" if not angelegt else "angelegt – " + ", ".join(f"{k} → {v}" for k, v in angelegt.items())))
         try:

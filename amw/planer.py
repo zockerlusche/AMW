@@ -465,7 +465,7 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
         if ist_delta:
             fehlt = planer_delta.stimme(con, pid, von, tid, e["id"])
             if fehlt:
-                return {"ja_fehlt": fehlt}
+                return {"ja_fehlt": ", ".join(fehlt)}     # gleicher Typ wie {Schlüssel: "A123"} – P593 (Sprachprüfung)
         merke = _ereignis(con, pid, von, JA, tid, entwurf=e["id"], angelegt={}, laeuft=True)
     schon = {}
     try:
