@@ -688,7 +688,7 @@ def uebernehmen(con, pid, von=UEBERNAHME):
                              "aufwand": "M", "tage": None, "usd": None, "status": b["status"]})
     offen = [t for t in sorted(frei) if t not in gedeckt]
     entwurf_ = {"meilensteine": meilensteine, "fragen": [],
-                "befunde": [{"art": "abdeckung", "themen": [f"TH{t}" for t in offen], "text": "freigegeben, aber noch in keinem Meilenstein"
+                "befunde": [{"art": "abdeckung", "themen": list(offen), "text": "freigegeben, aber noch in keinem Meilenstein"
                              " des Bestands – der Planer je Thema plant es (amw thema planen TH<n>)", "vorschlag": None}] if offen else [],
                 "grund": f"Übernahme: Fassung 0 ist der Bestand ({len(meilensteine)} Meilensteine) und gilt als angenommen (A2062)."}
     with db.schreiben(con):

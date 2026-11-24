@@ -122,8 +122,8 @@ def stand(con, pid):
     if ja and ja.get("uebernahme"):
         d = (grobplan.entwurf(con, pid, 0) or {}).get("entwurf") or {}
         in_ms |= {tid for m in d.get("meilensteine") or [] if m.get("status") != "verworfen" for tid in m.get("themen") or []}
-        uebernommen = {int(x[2:]) for b in d.get("befunde") or [] if b.get("art") == "abdeckung" for x in b.get("themen") or []
-                       if str(x).startswith("TH") and str(x)[2:].isdigit()}
+        uebernommen = {int(str(x).removeprefix("TH")) for b in d.get("befunde") or [] if b.get("art") == "abdeckung"
+                       for x in b.get("themen") or [] if str(x).removeprefix("TH").isdigit()}   # Zahlen (wie grobplan.pruefen)
     zugeordnet = {tid for tid in frei if tid in in_ms or tid in uebernommen or (nichts.get(tid) or {}).get("bestaetigt")}
     geplant = [m for m in ms if m["status"] == "geplant"]
     grob_frei = [m for m in geplant if m["grob"]]

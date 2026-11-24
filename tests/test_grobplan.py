@@ -255,7 +255,7 @@ class Uebernahme(Grund):
         r = grobplan.angenommen(self.con, self.pid)
         self.assertEqual(r["fassung"], 0)
         e = grobplan.entwurf(self.con, self.pid, 0)["entwurf"]
-        self.assertEqual(e["befunde"][0]["themen"], [f"TH{self.t1}"])                             # frei, aber ohne Meilenstein
+        self.assertEqual(e["befunde"][0]["themen"], [self.t1])                                    # frei, ohne Meilenstein – als Zahl
 
 
 class Lauf(Grund):
