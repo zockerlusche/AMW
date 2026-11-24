@@ -139,10 +139,12 @@ class Lauf(Basis):
         self.assertEqual((unterwegs[0]["lauf"], unterwegs[0]["zustand"], unterwegs[0]["modell"]), (lid, "laeuft", "opus"))
         self.assertIn("wird gegengelesen", unterwegs[0]["was"])
         s = pf.stand(self.con, self.pid, lid)
+        assert s is not None
         self.assertEqual((s["zustand"], s["usd"]), ("fertig", 0.0187))
         with mock.patch.object(gegenlesen, "lesen", side_effect=RuntimeError("weg")):
             gegenlesen.ausfuehren(self.con, self.pid, self.tid, nr)
         s = pf.stand(self.con, self.pid, self.con.execute("SELECT id FROM lauf ORDER BY id DESC LIMIT 1").fetchone()[0])
+        assert s is not None
         self.assertEqual(s["zustand"], "fehler")
         self.assertIn("RuntimeError: weg", s["fehler"])
 

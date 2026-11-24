@@ -451,6 +451,7 @@ class Lauf(Grund):
         self.assertEqual(unterwegs["ansicht"][0]["fortschritt"]["lauf"], lid)
         self.assertIn("läuft", unterwegs["ansicht"][0]["fortschritt_zeile"])
         s = pf.stand(self.con, self.pid, lid)
+        assert s is not None
         self.assertEqual(s["zustand"], "fertig")
         self.assertAlmostEqual(s["usd"], 0.214)
         self.assertEqual(pf.laufende(self.con, self.pid), [])
@@ -458,6 +459,7 @@ class Lauf(Grund):
             planer.ausfuehren(self.con, self.pid, self.tid, 1)
         lid2 = self.con.execute("SELECT id FROM lauf ORDER BY id DESC LIMIT 1").fetchone()[0]
         s = pf.stand(self.con, self.pid, lid2)
+        assert s is not None
         self.assertEqual(s["zustand"], "fehler")
         self.assertIn("RuntimeError: weg", s["fehler"])
         self.assertEqual(len(self.con.execute("SELECT id FROM plan_ereignis WHERE art = ?", (pf.ART,)).fetchall()), 2)
@@ -470,7 +472,9 @@ class Lauf(Grund):
         with mock.patch.object(pf, "melden", side_effect=RuntimeError("gesperrt")), \
                 mock.patch.object(planer, "planen", return_value={"ergebnis": json.dumps(ERGEBNIS), "usd": 0.1, "fehler": None}):
             planer.ausfuehren(self.con, self.pid, self.tid, 1)
-        self.assertEqual(len(planer.letzter_entwurf(self.con, self.pid, self.tid)["entwurf"]["pakete"]), 2)
+        e = planer.letzter_entwurf(self.con, self.pid, self.tid)
+        assert e is not None
+        self.assertEqual(len(e["entwurf"]["pakete"]), 2)
 
     def test_dateien_fuer_den_planer(self):
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)

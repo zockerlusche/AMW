@@ -157,8 +157,8 @@ class PlanerFortschritt(unittest.TestCase):
         self.melden(6, art="planer", thema=8)
         self.melden(7, art="planer", thema=7, zustand="fehler", fehler="kaputt")
         self.assertEqual(pf.schaetzung(self.con, self.pid, "planer"), 200)    # Median, nur fertige derselben Art
-        self.assertEqual(pf.zum_thema(self.con, self.pid, 7)["lauf"], 5)
-        self.assertEqual(pf.zum_thema(self.con, self.pid, 8, art="planer")["lauf"], 6)
+        self.assertEqual((pf.zum_thema(self.con, self.pid, 7) or {}).get("lauf"), 5)
+        self.assertEqual((pf.zum_thema(self.con, self.pid, 8, art="planer") or {}).get("lauf"), 6)
         self.assertIsNone(pf.zum_thema(self.con, self.pid, 7, art="gegenlesen"))
         self.assertIsNone(pf.zum_thema(self.con, self.pid2, 7))
         self.assertEqual(self.st(5)["thema"], 7)
