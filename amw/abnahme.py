@@ -66,6 +66,7 @@ GESPERRT = (
     ("amw/grobplan.py", "fest", "Grob-Planer über das ganze Konzept – startet claude -p (A2030)"),
     ("amw/planer_delta.py", "fest", "Delta-Planer – wer ein Delta freigibt (feinplan_freigabe), ändert/verwirft Pakete (A2027)"),
     ("amw/planhinweis.py", "fest", "Hinweise an den Planer – wer Hinweise gibt und überarbeiten lässt (A2028)"),
+    ("amw/projektweg_seite.py", "fest", "Seite Projektweg – wer die Abschlussprüfung nachholt (Mensch oder Lead, A2064)"),
     ("amw/feinplanung.py", "fest", "Feinplaner je Meilenstein – startet claude -p (A2031)"),
     ("amw/abschluss.py", "fest", "Prüfer zum Abschluss je Meilenstein – startet claude -p (A2029)"),
     ("amw/folgen.py", "fest", "Folgenprüfer eigener Änderungen – startet claude -p (A1957)"),
