@@ -81,6 +81,10 @@
    "At its start a run records the commit of the folder its command switches to with `cd`, otherwise of the folder you queue it from. If only a script changes the folder, AMW cannot see it: start the command with `cd /d <folder> &&` or queue it from the worktree it checks. The line “# Stand …” at the top of the output shows the recorded commit."
   ],
   [
+   "A full run hangs",
+   "If a test makes no progress for more than 5 minutes, the full run stops that one test process together with its browser, shows the module and the test as failed (“Zeitgrenze”, time limit) and continues with the remaining modules. A full run ends at the latest after its deadline (default 60 minutes, project setting `gesamtlauf_frist_min`); before that it writes under “Läuft gerade” (running now) which test ran last, and the lead gets a message."
+  ],
+  [
    "A single short test is rejected",
    "The pattern is too broad. Single test modules stay free; make your own patterns narrower."
   ],
