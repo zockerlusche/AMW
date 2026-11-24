@@ -537,6 +537,12 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
 - **Reihenfolge:** aktiver Meilenstein vor geplantem vor „ohne Meilenstein“ (dann nach Nummer) · was läuft vor startklar vor
   wartend · längerer Rest-Pfad zuerst (kritischer Pfad über „nach“) · Rang nur noch bei Gleichstand · Nummer.
   `amw bogen reihenfolge [N]` zeigt sie mit Grund, Dauer und Prognose (P50/P85).
+- **Zeitplan (A2045):** `amw bogen zeitplan [N]` bzw. `/api/zeitplan` legt die Pakete in dieser Reihenfolge auf ihre
+  Ressourcen – Headless auf die Arbeitsplätze (so viele gleichzeitig wie Plätze), Fenster-Pakete auf ihren Agenten (eins nach
+  dem anderen), dazu die offenen Vorgänger. Ergebnis je Paket: geplante Start- und Endzeit, Dauer, „gleichzeitig mit“ (gleiche
+  Startminute), „nach A…“ und „+n min“, wenn Laufendes länger dauert als geplant (es endet dann „jetzt“, die Pakete dahinter
+  rücken mit). Ohne Agent bzw. ohne Platz steht das dabei. Nur Rechnung bei jedem Abruf; „nie gleichzeitig“ und „gleiche
+  Ressource“ rechnet er nicht.
 - **Wer ihr folgt:** die Liste je Agent (`amw liste`, das laufende Stück bleibt vorn), das Verteilen an freie Agenten und die
   Prognose (Warteschlangen je Bearbeiter).
 - **Handordnung nur mit Grund:** `amw liste ordnen <Agent> A… --grund …` bzw. `amw liste schieben A… --grund …` (schieben ohne

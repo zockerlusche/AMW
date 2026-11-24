@@ -10,7 +10,7 @@
   },
   {
    "titel": "Read the overview",
-   "text": "Each milestone is a bar from its start to the forecast. Colour AND pattern tell you how it stands: hollow with a dashed edge = planned, blue = in progress, yellow ribbed = tight, orange-red diagonal stripes = late, bluish green = done. The vertical line marked “Now” is now; hover over it to see date, time and what is running. Hover over a bar or a diamond to see title, status, progress, forecast and target date.",
+   "text": "Each milestone is a bar from its start to the forecast. Colour AND pattern tell you how it stands: hollow with a dashed edge = planned, blue = in progress, yellow ribbed = tight, orange-red diagonal stripes = late, bluish green = done. The vertical line marked “Now” is now; hover over it to see date, time and what is running. Hover over a bar or a diamond to see title, status, progress, forecast and target date. When what is due: `amw bogen zeitplan` shows the planned start and end time of each open package – from the order, the duration and free slots –, what starts at the same time and where something takes longer than planned (“+n min”).",
    "bilder": []
   },
   {

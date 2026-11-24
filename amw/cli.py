@@ -1226,6 +1226,15 @@ def cmd_bogen(a, con):
             p = prog["schritte"].get(z["aid"]) or {}
             print(f"{z['platz']:>3}. A{z['aid']:<5} {z['agent'] or '–':<10} {z['titel'][:60]:<60} {z['grund']}"
                   + (f" · P50 {p['p50']} / P85 {p['p85']}" if p.get("p50") else ""))
+    elif a.aktion == "zeitplan":                      # A2045 (V7): geplante Start- und Endzeit je Paket
+        from . import zeitplan
+        z = zeitplan.berechnen(con, pid)
+        bogen = {r[0]: r[1] for r in con.execute("SELECT id, bogen_id FROM aufgabe WHERE projekt_id = ?", (pid,))}
+        print(f"Zeitplan · jetzt {_zeit(z['jetzt'])} · {z['plaetze']} Headless-Platz/Plätze")
+        for x in z["pakete"]:
+            if a.id and bogen.get(x["aid"]) != a.id:
+                continue
+            print(f"{x['platz']:>3}. {zeitplan.zeile(x)} · {x['agent'] or ('Headless' if x['art'] == 'headless' else '–')} · {x['titel'][:60]}")
     elif a.aktion == "zeigen":
         b = next((x for x in planung.boegen(con, pid) if x["id"] == a.id), None)
         if not b:
@@ -4092,9 +4101,10 @@ def parser():
 
     x = s.add_parser("bogen", help="Meilensteine: liste | neu | zeigen N | aendern N | status N aktiv|fertig|geplant|verworfen |"
                                    " starten N (Jetzt starten: an den Disponenten) | reihenfolge [N] (berechnet, kritischer Pfad) |"
+                                   " zeitplan [N] (geplante Start- und Endzeit je Paket, gleichzeitig, +n min – A2045) |"
                                    " abnehmen N (nur der Mensch: fertigen Meilenstein abnehmen, danach veröffentlicht die AMW)")
     x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status", "abnehmen", "freigeben", "zurueck", "bericht",
-                                      "tore", "starten", "reihenfolge", "feinplanen", "nacharbeit"])
+                                      "tore", "starten", "reihenfolge", "zeitplan", "feinplanen", "nacharbeit"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("wert", nargs="?", help="status: aktiv | fertig | geplant | verworfen")
     x.add_argument("--titel")

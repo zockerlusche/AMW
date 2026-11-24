@@ -1099,6 +1099,12 @@ def daten_lauf_ausgabe(con, pid, q):
     return betrieb.ausgabe(con, pid, lid)
 
 
+def daten_zeitplan(con, pid):
+    """A2045 (V7): geplante Start- und Endzeit je offenem Paket (zeitplan.berechnen) – für Lagebild und Planung."""
+    from . import zeitplan
+    return zeitplan.berechnen(con, pid)
+
+
 def daten_aufgaben(con, pid, q):
     sql = ("SELECT id, titel, agent, status, einstufung, rang, wartet_auf, angelegt_utc, fertig_utc, geaendert_utc FROM aufgabe"
            " WHERE projekt_id = ?")
@@ -1511,6 +1517,7 @@ def baue_handler(port, token, netz=None):
                     "/api/paket/mitlesen": lambda c, p: daten_mitlesen(c, p, q),
                     "/api/pause": lambda c, p: daten_pause(c, p),
                     "/api/lauf/ausgabe": lambda c, p: daten_lauf_ausgabe(c, p, q),
+                    "/api/zeitplan": lambda c, p: daten_zeitplan(c, p),
                     "/api/kosten": lambda c, p: daten_kosten(c, p),
                     "/api/verlauf": lambda c, p: daten_verlauf(c, p, q),
                     "/api/seit": lambda c, p: daten_seit(c, p, q),

@@ -10,7 +10,7 @@
   },
   {
    "titel": "Übersicht lesen",
-   "text": "Jeder Meilenstein ist ein Balken von seinem Start bis zur Prognose. Farbe UND Muster sagen, wie er steht: hohl mit gestricheltem Rand = geplant, blau = in Arbeit, gelb gerippt = knapp, orange-rot schräg gestreift = zu spät, blaugrün = erledigt. Die senkrechte Linie mit „Jetzt“ ist jetzt; fährst du darüber, siehst du Datum, Uhrzeit und was gerade läuft. Fährst du über einen Balken oder eine Raute, siehst du Titel, Status, Fortschritt, Prognose und Zieldatum.",
+   "text": "Jeder Meilenstein ist ein Balken von seinem Start bis zur Prognose. Farbe UND Muster sagen, wie er steht: hohl mit gestricheltem Rand = geplant, blau = in Arbeit, gelb gerippt = knapp, orange-rot schräg gestreift = zu spät, blaugrün = erledigt. Die senkrechte Linie mit „Jetzt“ ist jetzt; fährst du darüber, siehst du Datum, Uhrzeit und was gerade läuft. Fährst du über einen Balken oder eine Raute, siehst du Titel, Status, Fortschritt, Prognose und Zieldatum. Wann was dran ist: `amw bogen zeitplan` zeigt je offenem Paket die geplante Start- und Endzeit – aus der Reihenfolge, der Dauer und den freien Plätzen –, was gleichzeitig startet und wo etwas länger dauert als geplant („+n min“).",
    "bilder": []
   },
   {
