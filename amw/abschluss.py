@@ -83,6 +83,19 @@ def ergebnis(con, pid, bid, stand=None):
     return e[-1] if e else None
 
 
+_GRUENDE = (("grenze", r"Tagesgrenze"), ("start", r"ließ sich nicht starten"), ("lesbar", r"kein JSON|oben muss ein Objekt"),
+            ("unvollstaendig", r"nicht bewertet|gehört nicht zu M|braucht erfuellt|keine nacharbeit|nacharbeit:"),
+            ("frist", r"Frist .*überschritten|TimeoutExpired"), ("lauf", r"kein Ergebnis \(rc|^\w*(Error|Fehler|Exception): "))
+
+
+def deuten(fehler):
+    """A2072 (TH156, wie planfunde.deuten): warum die Prüfung nicht ging, als Arten – die Seite setzt daraus den Satz in der
+    Sprache des Nutzers (Texte pjw_ax_<art>); der technische Wortlaut steht nur im Abschlussbericht und beim Lead."""
+    import re
+    aus = [{"art": art, "x": {}} for art, muster in _GRUENDE if re.search(muster, fehler or "")]
+    return aus or ([{"art": "sonst", "x": {}}] if fehler else [])
+
+
 def _laeuft(con, pid, bid, stand):
     an = [x for x in _ereignisse(con, pid, ANGESTOSSEN, bid) if x.get("stand") == stand]
     e = ergebnis(con, pid, bid, stand)

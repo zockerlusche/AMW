@@ -335,7 +335,7 @@ function pwAbschlussKarte(x, einzig, haupt) {
   /* A2064: Abnehmen nur mit Prüfliste – Gesamttest ✓ (oder keiner eingestellt), jedes Thema erfüllt, Prüfer ohne Fehler,
      Abschlussbericht da. Sonst steht da, was noch fehlt; Nacharbeit geht immer. */
   const p = x.pruefung, test = (p && p.test) || {};
-  const zeile = (ok, text) => el("div", {}, el("span", { class: ok ? "pjw-ok" : "pjw-nein" }, ok ? "✓" : "○"), el("span", {}, text));
+  const zeile = (ok, text) => el("div", {}, el("span", { class: ok === null ? "leise" : ok ? "pjw-ok" : "pjw-nein" }, ok === null ? "–" : ok ? "✓" : "○"), el("span", {}, text));
   const testOk = !!p && (!test.befehl || test.rc === 0);
   const themenOk = !!p && (p.ziel ? p.ziel.erfuellt && p.themen.every(th => th.erfuellt)       // A2072: Meilenstein ohne Themen – das Ziel
                                   : p.themen.length > 0 && p.themen.every(th => th.erfuellt));
@@ -345,11 +345,11 @@ function pwAbschlussKarte(x, einzig, haupt) {
   if (!p) karte.append(el("div", { class: "pjw-pruefung" }, zeile(false, x.pruefung_laeuft ? t("pjw_a_laeuft") : t("pjw_a_ohne")), zeile(false, t("pjw_dein_ja"))));
   else {
     karte.append(el("div", { class: "pjw-pruefung" },
-      zeile(testOk, !test.befehl ? t("pjw_test_kein") : test.rc === 0 ? t("pjw_test_gruen", { n: x.pakete }) : t("pjw_test_rot", { l: test.lauf })),
+      zeile(test.befehl ? testOk : null, !test.befehl ? t("pjw_test_kein") : test.rc === 0 ? t("pjw_test_gruen", { n: x.pakete }) : t("pjw_test_rot", { l: test.lauf })),
       ...p.themen.map(th => zeile(th.erfuellt, th.erfuellt ? t("pjw_thema_ok", { x: th.thema }) + (th.beleg ? " – " + th.beleg : "") : t("pjw_thema_fehlt", { x: th.thema, y: th.fehlt || "–" }))),
       p.ziel ? zeile(p.ziel.erfuellt, p.ziel.erfuellt ? t("pjw_thema_ok", { x: t("pjw_ziel_fertig") }) + (p.ziel.beleg ? " – " + p.ziel.beleg : "")
                                                       : t("pjw_thema_fehlt", { x: t("pjw_ziel_fertig"), y: p.ziel.fehlt || "–" })) : null,
-      p.fehler ? zeile(false, t("pjw_a_pruefer_fehler_z", { x: p.fehler })) : null,
+      p.fehler ? zeile(false, t("pjw_a_pruefer_fehler_z", { x: p.gruende.map(g => t("pjw_ax_" + g.art, g.x)).join(" · ") })) : null,
       zeile(false, t("pjw_dein_ja"))));
     if (p.vorfuehrung.length) karte.append(el("div", { class: "pjw-wie" }, el("span", { class: "pjw-lbl" }, t("pjw_vorfuehrung")), el("ol", {}, p.vorfuehrung.map(s => el("li", {}, s)))));
   }

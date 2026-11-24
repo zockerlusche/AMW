@@ -524,6 +524,58 @@ class SeiteOhnePruefung(Rundgang):
         self.assertFalse(self.tab.js(f"!!({knopf})"))
 
 
+class SeitePruefungErneut(Rundgang):
+    """A2072 (P633): die Prüfung ging nicht – die Karte nennt den Grund in Menschensprache, ein nicht eingestellter Gesamttest hat
+    keinen Haken, und der Klick auf „Prüfung erneut starten“ startet sie wirklich (danach „läuft“)."""
+    FEHLER = "kein JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+
+    def daten(self):
+        from amw import abschluss, schalter
+        kern.agent_neu(self.con, self.pid, "CC1")
+        self.gestartet = []
+        for ziel, f in ((grobplan, lambda *a, **k: 4711), (planer, lambda *a, **k: 4711),
+                        (abschluss, lambda pid, bid, stand: self.gestartet.append(bid) or 4711)):
+            p = mock.patch.object(ziel, "STARTER", f)
+            p.start()
+            self.addCleanup(p.stop)
+        demo(self.con, self.pid, "abschluss-ohne")
+        self.m1 = self.con.execute("SELECT id FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0]
+        with db.schreiben(self.con):
+            schalter._setzen(self.con, self.pid, "an")
+            b = self.con.execute("SELECT * FROM bogen WHERE id = ?", (self.m1,)).fetchone()
+            abschluss._ereignis(self.con, self.pid, abschluss.ERGEBNIS, bogen=self.m1, stand=projektweg_seite._pruef_stand(self.con, b),
+                                test={"befehl": None, "lauf": None, "rc": None}, themen=[], vorfuehrung=[], ok=False, angelegt={},
+                                fehler=self.FEHLER, roh="{nicht: json}")
+        p = mock.patch.dict(os.environ, {"AMW_PLANER_AUS": ""})
+        p.start()
+        self.addCleanup(p.stop)
+
+    KNOPF = "[...document.querySelectorAll('.pjw-ansicht > .pjw-kopf button')].find(b => b.textContent === t('pjw_a_erneut'))"
+
+    def test_grund_und_klick(self):
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.tab.js("zustand.pwSicht = 4; zeige('projektweg', true)")
+        self.warten(self.KNOPF)
+        text = self.tab.js("document.querySelector('.pjw-ab-karte').innerText")
+        self.assertIn("Prüfung ging nicht: Antwort des Prüfers nicht lesbar", text)
+        for wort in ("JSON", "Expecting", "column", "(char"):
+            self.assertNotIn(wort, text)
+        erste = "document.querySelector('.pjw-pruefung > div > span')"
+        self.assertEqual(self.tab.js(erste + ".textContent"), "–")                       # nicht gelaufen: kein Haken
+        self.assertNotIn("pjw-ok", self.tab.js(erste + ".className"))
+        self.tab.js(self.KNOPF + ".click()")
+        self.warten("document.querySelector('.pjw-ab-karte') && document.querySelector('.pjw-ab-karte').innerText.includes(t('pjw_a_laeuft'))")
+        self.assertFalse(self.tab.js(f"!!({self.KNOPF})"))
+        self.assertEqual(self.gestartet, [self.m1])
+
+    def test_rundgang(self):
+        for g, th in (("pc", "hell"), ("handy", "dunkel")):
+            fehler = self.besuchen("projektweg", "projektweg-pruefung-erneut", bereit="document.querySelector('.pjw-schritt')",
+                                   tun="zustand.pwSicht = 4; zustand.pwOffen = true; zeige('projektweg', true)",
+                                   danach="document.querySelector('.pjw-pruefung')", g=g, t=th)
+            self.assertEqual(fehler, [], f"{g} {th}")
+
+
 class SeiteDelta(Rundgang):
     """A2065: eine Änderung als Karten in Stufen; der Knopf nennt den Umfang; eine Hauptaktion je Ansicht (TL #32217)."""
     def daten(self):

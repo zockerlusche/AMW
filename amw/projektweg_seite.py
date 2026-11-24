@@ -254,7 +254,8 @@ def abschluss(con, pid, freigaben):
                     "pruefung_laeuft": laeuft,
                     "pakete": con.execute("SELECT count(*) FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (a["bogen"],)).fetchone()[0],
                     "pruefung": {"test": e.get("test"), "themen": e.get("themen") or [], "vorfuehrung": e.get("vorfuehrung") or [],
-                                 "ok": e.get("ok"), "fehler": e.get("fehler"), "ziel": e.get("ziel")} if e else None})
+                                 "ok": e.get("ok"), "fehler": bool(e.get("fehler")), "gruende": ab.deuten(e.get("fehler")),
+                                 "ziel": e.get("ziel")} if e else None})
     return aus
 
 

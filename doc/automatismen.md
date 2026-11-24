@@ -934,7 +934,8 @@ die der Lead nur noch bestätigt oder ändert.
   nicht zum Schema, bekommt der Prüfer die Funde einmal zurück und antwortet neu (Kosten zusammen, die Tagesgrenze gilt auch
   dafür); erst eine zweite unpassende Antwort heißt „Abschlussprüfung ging nicht“ – dann mit dem Anfang der Rohantwort im
   Ergebnis (`roh`) und im Bericht. Ein Ergebnis mit Fehler zählt nicht als Prüfung: auf der Seite Projektweg startet
-  „Prüfung erneut starten“ (Mensch oder Lead, Weg von A2064) sie noch einmal.
+  „Prüfung erneut starten“ (Mensch oder Lead, Weg von A2064) sie noch einmal. Die Karte nennt den Grund
+  je Art in Menschensprache (`abschluss.deuten`, Texte `pjw_ax_…`), der technische Wortlaut steht nur im Abschlussbericht.
 - **Meilenstein ohne Themen (A2072, z. B. Wartung):** Der Prüfer urteilt im Feld `ziel`, ob die Pakete Ziel und „fertig, wenn“
   erfüllen; die Karte und der Bericht zeigen die Zeile „Ziel und „fertig, wenn““.
 - **Grenzen (TL #31785):** Die Kosten des Prüfers zählen zur gemeinsamen Tagesgrenze der Planer (`planer_tagesgrenze_usd`);

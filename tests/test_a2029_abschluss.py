@@ -295,6 +295,27 @@ class EchterWeg(Grund):
         self.assertIn("Tagesgrenze", e["fehler"])
 
 
+class GruendeInMenschensprache(Grund):
+    """A2072 (P633, TH156): die Karte nennt eine Art je Grund – kein technischer Wortlaut, beide Sprachen."""
+
+    def test_jede_fehlerart(self):
+        from amw import workbench
+        for fehler, arten in (("kein JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)", ["lesbar"]),
+                              ("oben muss ein Objekt stehen", ["lesbar"]),
+                              ("nicht bewertet: TH3; nicht erfüllt oder Test rot, aber keine nacharbeit", ["unvollstaendig"]),
+                              ("ziel: M18 hat keine Themen – ziel braucht erfuellt (ja/nein) und beleg bzw. fehlt", ["unvollstaendig"]),
+                              ("Tagesgrenze der Planer erreicht (5.00 von 5.00 $) – Abschlussprüfung nicht gestartet", ["grenze"]),
+                              ("Antwort passte nicht (kein JSON: x) – keine Nachbesserung: Tagesgrenze der Planer erreicht", ["grenze", "lesbar"]),
+                              ("Prüfer ließ sich nicht starten: [WinError 2]", ["start"]), ("Frist 1200 s überschritten", ["frist"]),
+                              ("kein Ergebnis (rc 1)", ["lauf"]), ("AmwFehler: HALT gilt – keine Läufe starten", ["lauf"]), ("etwas Neues", ["sonst"])):
+            self.assertEqual([g["art"] for g in abschluss.deuten(fehler)], arten, fehler)
+        self.assertEqual(abschluss.deuten(None), [])
+        for sprache in ("de", "en"):
+            texte = workbench.texte(sprache)
+            for art in [a for a, _ in abschluss._GRUENDE] + ["sonst"]:
+                self.assertIn("pjw_ax_" + art, texte)
+
+
 class ErneutStarten(Grund):
     """A2072 (4): ein Ergebnis mit Fehler zählt nicht als Ergebnis – „Prüfung starten“ (A2064) geht dann erneut."""
 
@@ -305,7 +326,8 @@ class ErneutStarten(Grund):
         self.assertEqual(self.runde(), [(self.m, "bereit")])
         frei = {"abnahme": [{"bogen": self.m, "nr": 1, "titel": "Anmelden", "frei": False, "bericht": None}]}
         karte = projektweg_seite.abschluss(self.con, self.pid, frei)[0]
-        self.assertEqual((karte["pruefung"]["fehler"], karte["pruefung_laeuft"]), ("kein JSON: x", False))
+        self.assertEqual((karte["pruefung"]["fehler"], karte["pruefung_laeuft"]), (True, False))
+        self.assertEqual(karte["pruefung"]["gruende"], [{"art": "lesbar", "x": {}}])
         self.assertEqual(projektweg_seite.pruefung_starten(self.con, self.pid, "TL", self.m), {"ergebnis": "pruefung"})
         self.assertEqual(len(self.gestartet), 2)
         karte = projektweg_seite.abschluss(self.con, self.pid, frei)[0]
