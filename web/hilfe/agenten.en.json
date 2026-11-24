@@ -85,7 +85,7 @@
   ],
   [
    "How do I pause everything at once – say for two hours?",
-   "`amw pause an --bis 2h --grund …` (or `--bis 14:30`): all agents get a halt and finish their step, no new headless packages and no new runs start; what is already running finishes. `amw pause zeige` shows per agent “wird pausiert” (pausing), “beendet Schritt” (finishing step) or “pausiert” (paused). At the end AMW lifts the pause itself and everyone continues; earlier with `amw pause aus`."
+   "`amw pause an --bis 2h --grund …` (or `--bis 14:30`): all agents get a halt and finish their step, no new headless packages and no new runs start; what is already running finishes. `amw pause zeige` shows per agent “wird pausiert” (pausing), “beendet Schritt” (finishing step), “läuft zu Ende” (finishing: their run or headless package is still running) or “pausiert” (paused). At the end AMW lifts the pause itself and everyone continues; earlier with `amw pause aus`."
   ],
   [
    "How do I start an agent by hand – for example after restarting the PC?",

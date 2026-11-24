@@ -8,7 +8,8 @@
   Pause in ihrer nächsten Runde auf und gibt allen „weiter“.
 „Pause aus“ hebt alles wieder auf. Was gerade läuft, wird nicht abgebrochen – die Rückmeldung je Agent zeigt, wo jeder steht:
 „wird pausiert“ (stopp noch nicht zugestellt), „beendet Schritt“ (arbeitet noch), „pausiert“ (steht oder keine Sitzung); dazu
-„läuft zu Ende“ für Headless-Pakete und Läufe, die schon liefen.
+„läuft zu Ende“ für Headless-Pakete und Läufe, die schon liefen – und für einen Agenten ohne laufenden Schritt, dessen eigener
+Lauf oder Headless-Paket noch läuft (A2043).
 
 Ereignisse (plan_ereignis): pause_an {"bis", "grund", "halt", "stopp"} · pause_aus {"durch"}
 """
@@ -108,6 +109,13 @@ def runde(con):
     return aus_
 
 
+def _laeuft_noch(con, pid, kennung):
+    """A2043: Hat der Agent einen eigenen laufenden Lauf oder ein laufendes Headless-Paket?"""
+    return bool(con.execute("SELECT 1 FROM lauf WHERE projekt_id = ? AND agent = ? AND status = 'laeuft'", (pid, kennung)).fetchone()
+                or con.execute("SELECT 1 FROM paket k JOIN aufgabe a ON a.id = k.aufgabe_id WHERE a.projekt_id = ? AND a.agent = ?"
+                               " AND k.art = 'p' AND k.zustand = 'laeuft'", (pid, kennung)).fetchone())
+
+
 def zustand(con, pid) -> dict:
     """Rückmeldung: {"an", "bis", "grund", "seit", "agenten": [{"kennung", "zustand"}], "pakete": [{"aid", "titel", "zustand"}],
     "laeufe": [{"lauf", "beschreibung", "zustand"}]} – für die Workbench (/api/pause) und `amw pause zeige`."""
@@ -128,6 +136,8 @@ def zustand(con, pid) -> dict:
             z = "beendet Schritt"
         else:
             z = "pausiert"
+        if z == "pausiert" and _laeuft_noch(con, pid, g["kennung"]):
+            z = "läuft zu Ende"                          # A2043: sein Lauf oder Headless-Paket läuft noch
         agenten.append({"kennung": g["kennung"], "zustand": z})
     pakete = [{"aid": r["id"], "titel": r["titel"], "zustand": "läuft zu Ende"} for r in con.execute(
         "SELECT a.id, a.titel FROM paket k JOIN aufgabe a ON a.id = k.aufgabe_id WHERE a.projekt_id = ? AND k.art = 'p'"

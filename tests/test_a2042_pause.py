@@ -100,6 +100,28 @@ class Rueckmeldung(Grund):
         self.assertEqual((z["CC1"], z["CC2"]), ("beendet Schritt", "pausiert"))
         self.assertEqual(workbench.daten_pause(self.con, self.pid)["agenten"], pause.zustand(self.con, self.pid)["agenten"])
 
+    def test_eigener_lauf_laeuft_zu_ende(self):
+        """A2043: ohne laufenden Schritt, aber mit eigenem Lauf oder Headless-Paket → „läuft zu Ende“; Gegenprobe: ohne → „pausiert“."""
+        from amw import planung
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="CC1", beschreibung="Gesamtlauf", status="laeuft",
+                         angemeldet_utc=db.jetzt())
+            db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="CC2", beschreibung="alt", status="fertig", angemeldet_utc=db.jetzt())
+        pause.an(self.con, self.pid, "TL", grund="Test")
+        z = {a["kennung"]: a["zustand"] for a in pause.zustand(self.con, self.pid)["agenten"]}
+        self.assertEqual((z["CC1"], z["CC2"], z["TL"]), ("läuft zu Ende", "pausiert", "pausiert"))
+        aid = planung.schritt_setzen(self.con, self.pid, "TL", titel="Kopf bauen", groesse="S", art="mechanisch")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET agent = 'CC2' WHERE id = ?", (aid,))
+            db.einfuegen(self.con, "paket", aufgabe_id=aid, art="p", zustand="laeuft", zustand_utc=db.jetzt(), geaendert_utc=db.jetzt())
+        z = {a["kennung"]: a["zustand"] for a in pause.zustand(self.con, self.pid)["agenten"]}
+        self.assertEqual(z["CC2"], "läuft zu Ende")                                        # Headless-Paket läuft noch
+        self.sitzung("CC1", "arbeitet")                                                    # arbeitet selbst: bleibt bei seinem Schritt
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE empfang SET geweckt_utc = ? WHERE agent = 'CC1'", (db.jetzt(),))
+        z = {a["kennung"]: a["zustand"] for a in pause.zustand(self.con, self.pid)["agenten"]}
+        self.assertEqual(z["CC1"], "beendet Schritt")
+
     def test_workbench_und_befehl(self):
         r = aktionen.ausfuehren(self.con, self.pid, "/api/pause", {"an": True, "bis": "90min", "grund": "Arzt"}, kanal="seite")
         self.assertTrue(r["an"])

@@ -466,7 +466,7 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
 - **Ende:** Mit `--bis` gilt der Halt ab dann nicht mehr (`sperre.bis_utc`), die Wächter-Pause endet, und der Dienst hebt die
   Pause in der nächsten Runde auf: alle bekommen „WEITER: Pause vorbei“ (`pause_aus`).
 - **Rückmeldung je Agent** (`amw pause zeige`, `/api/pause`): „wird pausiert“ (stopp noch nicht zugestellt), „beendet Schritt“
-  (arbeitet noch, Lebenszeichen jünger als 2 min), „pausiert“ (steht oder keine Sitzung); Headless-Pakete und Läufe, die schon
+  (arbeitet noch, Lebenszeichen jünger als 2 min), „läuft zu Ende“ (steht selbst, aber sein Lauf oder Headless-Paket läuft noch, A2043), „pausiert“ (steht oder keine Sitzung); Headless-Pakete und Läufe, die schon
   liefen: „läuft zu Ende“, wartende Läufe: „wartet“.
 
 ## Disponent über Projekte (A1925, W2449)
