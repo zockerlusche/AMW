@@ -782,6 +782,18 @@ die der Lead nur noch bestätigt oder ändert.
   übergibt den Meilenstein sofort an den Disponenten (`reihenfolge.starten`) – auch während der vorige auf seine Abnahme wartet.
   Bei `thema_freigabe = co+lead` startet er mit dem zweiten Ja.
 
+### Delta-Planer bei einer Konzeptänderung (A2027, TH164)
+
+- **Wann:** Der Planer je Thema läuft für ein Thema, das schon freigegeben und geplant war und eine neue freigegebene Fassung hat
+  (A2026: es gibt betroffene Pakete). Dann bekommt er zusätzlich `aenderung.md` (Unterschied alte/neue Fassung, betroffene
+  Meilensteine und Pakete mit stoppen / zu Ende / Nacharbeit) und den Auftrag, NUR die Änderung vorzuschlagen.
+- **Antwort:** neue Pakete (auch Nacharbeit für fertige) und nur nötige neue Meilensteine im gewohnten Schema, dazu `aendern`
+  (Titel/Auftrag) und `verwerfen` – beides nur für nicht begonnene betroffene Pakete; laufende und fertige ändert niemand.
+- **Freigabe als ein Block:** Der Lead bekommt eine Meldung „Delta … – Freigabe als Block“; frei gibt der Mensch
+  (`amw thema plan-ja TH<n>`), bei `feinplan_freigabe = co+lead` Co-Entwickler und Lead je ein Ja. Ändern lässt sich ein Delta
+  nicht (dann neu planen). Mit der Freigabe legt die AMW die neuen Pakete an und führt `aendern`/`verwerfen` aus (Ereignis
+  `thema_delta_angewandt`).
+
 ### Thema → Meilenstein → Paket (K8, A1942, TH163)
 
 - **Auslöser:** ein freigegebenes Thema bekommt eine neue Fassung (wie A1915) oder wird zurückgegeben.

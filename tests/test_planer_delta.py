@@ -1,0 +1,187 @@
+"""A2027: Planer im Delta-Modus – ein geändertes, schon geplantes Thema bekommt nur die Änderung vorgeschlagen (neue Pakete,
+„aendern“/„verwerfen“ nur für nicht begonnene), und der Mensch gibt das Delta als einen Block frei (feinplan_freigabe)."""
+import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
+import contextlib
+import copy
+import io
+import json
+import os
+import tempfile
+import unittest
+from unittest import mock
+
+from amw import db, kern, planer, planer_delta, themen
+
+PLAN = {
+    "meilensteine": [{"schluessel": "M1", "titel": "Anmelden online", "endet_mit": "vorfuehrung"}],
+    "pakete": [
+        {"schluessel": "P1", "meilenstein": "M1", "titel": "Anmeldung mit Firmen-Konto", "auftrag": "SSO-Anmeldung bauen.",
+         "groesse": "M", "art": "sicherheit", "ausfuehrung": "agent", "fertig_quelle": "release"},
+        {"schluessel": "P2", "meilenstein": "M1", "titel": "Abmelden", "auftrag": "Abmelden-Knopf.",
+         "groesse": "S", "art": "oberflaeche", "ausfuehrung": "agent", "fertig_quelle": "commit"},
+        {"schluessel": "P3", "meilenstein": "M1", "titel": "Passwort vergessen", "auftrag": "Mail mit Link.",
+         "groesse": "S", "art": "oberflaeche", "ausfuehrung": "agent", "fertig_quelle": "commit"}]}
+
+
+class Grund(unittest.TestCase):
+    def setUp(self):
+        self.ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(self.ordner.cleanup)
+        u = mock.patch.dict(os.environ, {"AMW_DB": os.path.join(self.ordner.name, "amw.db")})
+        u.start()
+        self.addCleanup(u.stop)
+        self.con = db.anlegen(os.environ["AMW_DB"])
+        self.addCleanup(self.con.close)
+        with db.schreiben(self.con):
+            self.pid = db.einfuegen(self.con, "projekt", name="Produkt", angelegt_utc=db.jetzt())
+        kern.agent_neu(self.con, self.pid, "TL", rolle="lead")
+        kern.agent_neu(self.con, self.pid, "CC1")
+        kern.agent_neu(self.con, self.pid, "Co")
+        kern.projekt_einstellen(self.con, self.pid, "TL", co_entwickler="Co")
+        self.tid = themen.neu(self.con, self.pid, "TL", "Anmeldung", pfleger="CC1")
+        themen.pflegen(self.con, self.pid, "CC1", self.tid, "Anmelden mit Firmen-Konto.\nAbmelden oben rechts.\nPasswort vergessen per Mail.")
+        themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        planer.entwurf_eintragen(self.con, self.pid, self.tid, 1, PLAN)
+        a = planer.uebernehmen(self.con, self.pid, "TL", self.tid)
+        self.p1, self.p2, self.p3 = (int(str(a[k])[1:]) for k in ("P1", "P2", "P3"))
+        with db.schreiben(self.con):                                    # P1 fertig, P2 läuft, P3 nicht begonnen
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234' WHERE id = ?", (self.p1,))
+            self.con.execute("UPDATE aufgabe SET status = 'laeuft' WHERE id = ?", (self.p2,))
+
+    def aendern(self, text="Anmelden mit Firmen-Konto und Passkey.\nAbmelden oben rechts.\nPasswort vergessen entfällt."):
+        themen.bearbeiten(self.con, self.pid, kern.ENTWICKLER, self.tid, text)
+
+    def delta_plan(self, **mehr):
+        d = {"meilensteine": [{"schluessel": "M1", "bestehend": 1}],
+             "pakete": [{"schluessel": "N1", "meilenstein": "M1", "titel": "Passkey nachrüsten", "auftrag": "Passkey zur Anmeldung.",
+                         "groesse": "S", "art": "sicherheit", "ausfuehrung": "agent", "fertig_quelle": "commit"}],
+             "verwerfen": [{"paket": f"A{self.p3}", "grund": "Passwort vergessen entfällt"}]}
+        d.update(mehr)
+        return d
+
+    def post(self, an):
+        return [(r["art"], r["kurz"], r["text"]) for r in self.con.execute(
+            "SELECT n.art, n.kurz, n.text FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE e.agent = ? AND n.von = 'AMW'"
+            " ORDER BY n.id", (an,))]
+
+
+class Kontext(Grund):
+    def test_erst_nach_der_aenderung_mit_unterschied_und_gruppen(self):
+        self.assertIsNone(planer_delta.kontext(self.con, self.pid, self.tid))      # nur freigegeben, nicht geändert
+        self.aendern()
+        d = planer_delta.kontext(self.con, self.pid, self.tid)
+        assert d is not None
+        self.assertEqual((d["art"], d["alt"]["fassung"], d["neu"]["fassung"]), ("geaendert", 1, 2))
+        self.assertEqual(d["pakete"], {self.p1: "nacharbeit", self.p2: "zu_ende", self.p3: "stoppen"})
+        text = planer_delta.datei(self.con, self.pid, d)
+        self.assertIn("-Passwort vergessen per Mail.", text)
+        self.assertIn("+Passwort vergessen entfällt.", text)
+        self.assertIn(f"- A{self.p3} [nicht begonnen – stoppen] Passwort vergessen", text)
+        self.assertIn("Auftrag: Mail mit Link.", text)
+
+    def test_planer_bekommt_aenderung_und_delta_auftrag(self):
+        self.aendern()
+        gesehen = {}
+
+        def laufen(p, auftrag, *_a, **_k):
+            gesehen["auftrag"] = auftrag
+            gesehen["datei"] = open(os.path.join(p["klon"], "aenderung.md"), encoding="utf-8").read()
+            return {"rc": 0, "ergebnis": {"result": json.dumps(self.delta_plan()), "total_cost_usd": 0.1}}
+        from amw import arbeiter
+        with mock.patch.object(arbeiter, "laufen", side_effect=laufen):
+            aus = planer.planen(self.con, self.pid, themen.finden(self.con, self.pid, self.tid), 2, "sonnet")
+        self.assertIn("DELTA-MODUS", gesehen["auftrag"])
+        self.assertIn("aenderung.md", gesehen["auftrag"])
+        self.assertIn("Unterschied", gesehen["datei"])
+        self.assertEqual(aus["delta"]["art"], "geaendert")
+        e = planer.entwurf_eintragen(self.con, self.pid, self.tid, 2, aus["ergebnis"], delta=aus["delta"])
+        ent = (planer.letzter_entwurf(self.con, self.pid, self.tid) or {}).get("entwurf") or {}
+        self.assertEqual(ent["delta"]["neu"], 2)
+        self.assertTrue(e)
+
+
+class Pruefen(Grund):
+    def setUp(self):
+        super().setUp()
+        self.aendern()
+        self.d = planer_delta.kontext(self.con, self.pid, self.tid)
+
+    def test_aendern_und_verwerfen_nur_nicht_begonnene(self):
+        e = planer.pruefen(self.delta_plan(aendern=[{"paket": f"A{self.p3}", "titel": "x", "grund": "y"}], verwerfen=[]),
+                           self.con, self.pid, self.tid, delta=self.d)
+        self.assertEqual(e["aendern"][0]["paket"], self.p3)
+        for paket, erwartet in ((self.p1, "fertig – Nacharbeit nötig"), (self.p2, "laufend – zu Ende bauen"),
+                                (99999, "kein betroffenes Paket")):
+            with self.assertRaises(planer.PlanFehler) as f:
+                planer.pruefen(self.delta_plan(verwerfen=[{"paket": f"A{paket}", "grund": "weg"}]), self.con, self.pid, self.tid,
+                               delta=self.d)
+            self.assertIn(erwartet, " | ".join(f.exception.fehler))
+        with self.assertRaises(planer.PlanFehler) as f:
+            planer.pruefen(self.delta_plan(aendern=[{"paket": f"A{self.p3}", "grund": "y"}]), self.con, self.pid, self.tid, delta=self.d)
+        self.assertIn("titel oder auftrag nötig", " | ".join(f.exception.fehler))
+
+    def test_nur_aenderungen_ohne_neue_pakete(self):
+        e = planer.pruefen({"verwerfen": [{"paket": f"A{self.p3}", "grund": "entfällt"}]}, self.con, self.pid, self.tid, delta=self.d)
+        self.assertEqual((e["pakete"], len(e["verwerfen"])), ([], 1))
+        with self.assertRaisesRegex(planer.PlanFehler, "unbekannte Felder: verwerfen"):       # ohne Delta gibt es das nicht
+            planer.pruefen({**copy.deepcopy(PLAN), "verwerfen": []}, self.con, self.pid, self.tid)
+        with self.assertRaisesRegex(planer.PlanFehler, "meilensteine: mindestens einer"):
+            planer.pruefen({}, self.con, self.pid, self.tid, delta=self.d)
+
+
+class Freigabe(Grund):
+    def setUp(self):
+        super().setUp()
+        self.aendern()
+        d = planer_delta.kontext(self.con, self.pid, self.tid)
+        self.eid = planer.entwurf_eintragen(self.con, self.pid, self.tid, 2, self.delta_plan(
+            aendern=[], verwerfen=[{"paket": f"A{self.p3}", "grund": "Passwort vergessen entfällt"}]), delta=d)
+
+    def test_meldung_an_den_lead_als_block(self):
+        k, t = self.post("TL")[-1][1:]
+        self.assertIn(f"Delta TH{self.tid}", k)
+        self.assertIn("1 neu, 0 ändern, 1 verwerfen – Freigabe als Block", k)
+        self.assertIn("Freigabe als ein Block", t)
+        self.assertIn(f"verwerfen A{self.p3} – Passwort vergessen entfällt", t)
+
+    def test_der_mensch_gibt_den_block_frei(self):
+        with self.assertRaisesRegex(kern.AmwFehler, r"feinplan_freigabe = mensch"):
+            planer.uebernehmen(self.con, self.pid, "TL", self.tid)
+        with self.assertRaisesRegex(kern.AmwFehler, "als ein Block freigegeben, nicht geändert"):
+            planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid, geaendert="{}")
+        from amw import cli
+        aus = io.StringIO()
+        mensch = {"AMW_AGENT": "", "CLAUDECODE": "", "CLAUDE_CODE_MESSAGING_SOCKET": ""}          # wie im Terminal des Menschen
+        with contextlib.redirect_stdout(aus), mock.patch.dict(os.environ, mensch):
+            rc = cli.main(["thema", "plan-ja", f"TH{self.tid}", "--projekt", "Produkt", "--von", kern.ENTWICKLER])
+        self.assertFalse(rc, aus.getvalue())
+        self.assertIn("Delta freigegeben – angelegt M1 → M1, N1 → A", aus.getvalue())
+        self.assertIn(f"verworfen A{self.p3}", aus.getvalue())
+        self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.p3,)).fetchone()[0], "verworfen")
+        neu = self.con.execute("SELECT id, bogen_id FROM aufgabe WHERE titel = 'Passkey nachrüsten'").fetchone()
+        self.assertEqual(neu["bogen_id"], self.con.execute("SELECT bogen_id FROM aufgabe WHERE id = ?", (self.p1,)).fetchone()[0])
+        self.assertTrue(planer.erledigt(self.con, self.pid, self.eid))
+        self.assertEqual(planer_delta.letzte(self.con, self.pid, self.tid)["verworfen"], [f"A{self.p3}"])
+
+    def test_aendern_setzt_titel_und_auftrag(self):
+        d = planer_delta.kontext(self.con, self.pid, self.tid)
+        planer.entwurf_eintragen(self.con, self.pid, self.tid, 2, {"aendern": [
+            {"paket": f"A{self.p3}", "titel": "Passwort zurücksetzen", "auftrag": "Link mit Passkey.", "grund": "neu gefasst"}]}, delta=d)
+        planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.tid)
+        r = self.con.execute("SELECT titel, auftrag, status FROM aufgabe WHERE id = ?", (self.p3,)).fetchone()
+        self.assertEqual((r["titel"], r["auftrag"]), ("Passwort zurücksetzen", "Link mit Passkey."))
+        self.assertNotEqual(r["status"], "verworfen")
+
+    def test_co_und_lead_bei_feinplan_freigabe_co_lead(self):
+        kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, feinplan_freigabe="co+lead")
+        with self.assertRaisesRegex(kern.AmwFehler, "Co-Entwickler und der Lead"):
+            planer.uebernehmen(self.con, self.pid, "CC1", self.tid)
+        self.assertEqual(planer.uebernehmen(self.con, self.pid, "Co", self.tid), {"ja_fehlt": ["Lead"]})
+        self.assertFalse(planer.erledigt(self.con, self.pid, self.eid))
+        a = planer.uebernehmen(self.con, self.pid, "TL", self.tid)
+        self.assertIn("N1", a)
+        self.assertTrue(planer.erledigt(self.con, self.pid, self.eid))
+
+
+if __name__ == "__main__":
+    unittest.main()

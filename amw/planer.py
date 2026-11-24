@@ -132,10 +132,11 @@ def gebaut_zum_thema(con, pid, tid):
     return [(a["id"], a["titel"]) for a in themen.aufgaben_zu(con, pid, tid, alle=True) if a["status"] == "fertig"]
 
 
-def pruefen(daten, con=None, pid=None, tid=None):
+def pruefen(daten, con=None, pid=None, tid=None, delta=None):
     """Prüft ein Planer-Ergebnis (dict oder JSON-Text) gegen das Schema und gibt es vereinheitlicht zurück. Mit con/pid auch:
     „bestehend“ ist ein OFFENER Meilenstein des Projekts, Aufgaben (Verweise „A1234“) gibt es im Projekt; mit tid (A1976) auch:
-    kein Paket wiederholt ein fertiges Paket desselben Themas („schon gebaut: A…“). Fehler: PlanFehler mit allen Funden."""
+    kein Paket wiederholt ein fertiges Paket desselben Themas („schon gebaut: A…“). Mit delta (A2027, planer_delta.kontext) auch
+    "aendern"/"verwerfen" für nicht begonnene betroffene Pakete; dann dürfen neue Pakete fehlen. Fehler: PlanFehler mit allen Funden."""
     from . import empfehlung
     if isinstance(daten, str):
         try:
@@ -145,23 +146,28 @@ def pruefen(daten, con=None, pid=None, tid=None):
     if not isinstance(daten, dict):
         raise PlanFehler(["oben muss ein Objekt stehen"])
     f = []
-    unbekannt = set(daten) - {"nichts_zu_bauen", "grund", "meilensteine", "pakete"}
+    unbekannt = set(daten) - {"nichts_zu_bauen", "grund", "meilensteine", "pakete"} - ({"aendern", "verwerfen"} if delta else set())
     if unbekannt:
         f.append("unbekannte Felder: " + ", ".join(sorted(unbekannt)))
+    aendern, verwerfen = [], []
+    if delta:                                            # A2027: Delta-Modus – nur die Änderung
+        from . import planer_delta
+        aendern, verwerfen = planer_delta.pruefen_teil(daten, delta, f)
     if daten.get("nichts_zu_bauen") is True:
         grund = _text(daten.get("grund"), "grund", "nichts zu bauen", f)
-        if daten.get("meilensteine") or daten.get("pakete"):
-            f.append("nichts zu bauen, aber Meilensteine oder Pakete angegeben")
+        if daten.get("meilensteine") or daten.get("pakete") or aendern or verwerfen:
+            f.append("nichts zu bauen, aber Meilensteine oder Pakete angegeben" + (" (oder Änderungen)" if aendern or verwerfen else ""))
         if f:
             raise PlanFehler(f)
         return {"nichts_zu_bauen": True, "grund": grund}
     ms, ps = daten.get("meilensteine"), daten.get("pakete")
-    if not isinstance(ms, list) or not ms:
+    nur_aenderung = bool(delta) and bool(aendern or verwerfen) and not ms and not ps    # A2027: ein Delta ohne neue Pakete
+    if not nur_aenderung and (not isinstance(ms, list) or not ms):
         f.append("meilensteine: mindestens einer")
-        ms = []
-    if not isinstance(ps, list) or not ps:
+    if not nur_aenderung and (not isinstance(ps, list) or not ps):
         f.append("pakete: mindestens eins")
-        ps = []
+    ms = ms if isinstance(ms, list) else []
+    ps = ps if isinstance(ps, list) else []
     if len(ms) > MAX_MEILENSTEINE:
         f.append(f"höchstens {MAX_MEILENSTEINE} Meilensteine je Thema")
     if len(ps) > MAX_PAKETE:
@@ -271,7 +277,11 @@ def pruefen(daten, con=None, pid=None, tid=None):
         f.append("neue Meilensteine ohne Pakete: " + ", ".join(leer))
     if f:
         raise PlanFehler(f)
-    return {"nichts_zu_bauen": False, "meilensteine": aus_m, "pakete": aus_p}
+    aus = {"nichts_zu_bauen": False, "meilensteine": aus_m, "pakete": aus_p}
+    if delta:
+        from . import planer_delta
+        aus.update(aendern=aendern, verwerfen=verwerfen, delta=planer_delta.kurz(delta))
+    return aus
 
 
 def _kreis(nach):
@@ -331,7 +341,7 @@ def _ereignis(con, pid, von, art, tid, **werte):
                         text=json.dumps({"thema": int(tid), **werte}, ensure_ascii=False))
 
 
-def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, lauf=None, fehler=None):
+def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, lauf=None, fehler=None, delta=None):
     """Das Ergebnis des Planers eintragen: geprüft als Entwurf – oder mit den Funden als Fehler (fehler: der Lauf selbst ging
     nicht). Der Lead bekommt einen Auftrag (Ja oder ändern) bzw. eine Meldung. Rückgabe: Nummer des Ereignisses."""
     t = con.execute("SELECT * FROM thema WHERE id = ? AND projekt_id = ?", (tid, pid)).fetchone()
@@ -341,7 +351,7 @@ def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, l
         entwurf, fehler = None, [f"Planer-Lauf: {fehler}"]
     else:
         try:
-            entwurf, fehler = pruefen(ergebnis, con, pid, tid), None
+            entwurf, fehler = pruefen(ergebnis, con, pid, tid, delta=delta), None
         except PlanFehler as e:
             entwurf, fehler = None, e.fehler
     lead = kern.lead(con, pid)
@@ -357,11 +367,27 @@ def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, l
             elif entwurf["nichts_zu_bauen"]:
                 kern._posten(con, pid, "AMW", lead, "auftrag", f"Planentwurf TH{tid} „{t['name'][:50]}“: nichts zu bauen – stimmt das?",
                              f"Grund des Planers: {entwurf['grund']}\n\nJa oder neu planen lassen. ({kosten})")
+            elif _delta_melden(con, pid, lead, t, tid, entwurf, modell, kosten):   # A2027: Freigabe als Block
+                pass
             else:
                 kern._posten(con, pid, "AMW", lead, "auftrag",
                              f"Planentwurf TH{tid} „{t['name'][:50]}“: {len(entwurf['meilensteine'])} Meilenstein(e), "
                              f"{len(entwurf['pakete'])} Pakete – Ja oder ändern", zusammenfassung(entwurf) + f"\n\n({modell or '–'}, {kosten})")
     return eid
+
+
+def _delta_melden(con, pid, lead, t, tid, entwurf, modell, kosten):
+    """A2027: Ist der Entwurf ein Delta, sagt die AMW dem Lead, dass der Mensch (bzw. Co + Lead nach feinplan_freigabe) es als
+    einen Block freigibt. Rückgabe: True, wenn gemeldet. In der Transaktion des Aufrufers."""
+    e = entwurf or {}
+    if not e.get("delta"):
+        return False
+    kern._posten(con, pid, "AMW", lead, "meldung",
+                 f"Delta TH{tid} „{t['name'][:40]}“: {len(e['pakete'])} neu, {len(e['aendern'])} ändern,"
+                 f" {len(e['verwerfen'])} verwerfen – Freigabe als Block"[:140],
+                 zusammenfassung(e) + f"\n\n({modell or '–'}, {kosten})\nFreigeben: amw thema plan-ja TH{tid}"
+                 " (der Mensch; bei feinplan_freigabe = co+lead Co und Lead je ein Ja)")
+    return True
 
 
 def zusammenfassung(entwurf):
@@ -383,6 +409,9 @@ def zusammenfassung(entwurf):
                     zeilen.append(f"    Bereiche: {p['bereiche']}" + (f" · {p['pakettyp']}" if p.get("pakettyp") else ""))
                 if p.get("interaktiv_grund"):                                                       # A2004
                     zeilen.append(f"    Interaktiv, Grund: {p['interaktiv_grund']}")
+    if entwurf.get("delta"):                            # A2027
+        from . import planer_delta
+        zeilen = planer_delta.zeilen(entwurf) + zeilen
     hinweise = achtung(entwurf)
     if hinweise:
         zeilen += ["", "Achtung (p ist die Vorgabe):"] + [f"  {h}" for h in hinweise]
@@ -407,12 +436,15 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
     """Ja des Leads (oder des Menschen): den jüngsten (oder genannten) Entwurf anlegen – neue Meilensteine, Pakete mit Größe,
     Art, Ausführung, Modell/Effort, Abnahme-Befehl und Abhängigkeiten, je Paket der Verweis aufs Thema (A1915). geaendert:
     ein vom Lead geänderter Entwurf (gleiches Schema, wird neu geprüft). Rückgabe: {Schlüssel: "M<nr>" | "A<id>"}."""
-    from . import themen
-    if not (von == kern.ENTWICKLER or kern.ist_lead(con, pid, von)):
-        raise kern.AmwFehler("Den Planentwurf nimmt der Lead an (oder der Mensch)")
+    from . import planer_delta, themen
     e = next((x for x in _ereignisse(con, pid, tid, ENTWURF) if x["id"] == eid), None) if eid else letzter_entwurf(con, pid, tid)
+    ist_delta = bool(((e or {}).get("entwurf") or {}).get("delta"))   # A2027: ein Delta gibt der Mensch frei (feinplan_freigabe)
+    if not ist_delta and not (von == kern.ENTWICKLER or kern.ist_lead(con, pid, von)):
+        raise kern.AmwFehler("Den Planentwurf nimmt der Lead an (oder der Mensch)")
     if not e:
         raise kern.AmwFehler(f"TH{tid} hat keinen Planentwurf" + (f" Nr. {eid}" if eid else ""))
+    if ist_delta and geaendert is not None:
+        raise kern.AmwFehler(f"Das Delta zu TH{tid} wird als ein Block freigegeben, nicht geändert – sonst neu planen lassen")
     if erledigt(con, pid, e["id"]):
         raise kern.AmwFehler(f"Der Planentwurf zu TH{tid} ist schon angenommen")
     entwurf = pruefen(geaendert, con, pid, tid) if geaendert is not None else e.get("entwurf")
@@ -430,10 +462,17 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
     with db.schreiben(con):                          # P462 (4): angenommen wird einmal – Marke zuerst, in einer Transaktion
         if erledigt(con, pid, e["id"]):
             raise kern.AmwFehler(f"Der Planentwurf zu TH{tid} ist schon angenommen")
+        if ist_delta:
+            fehlt = planer_delta.stimme(con, pid, von, tid, e["id"])
+            if fehlt:
+                return {"ja_fehlt": fehlt}
         merke = _ereignis(con, pid, von, JA, tid, entwurf=e["id"], angelegt={}, laeuft=True)
     schon = {}
     try:
-        return _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, schon)
+        angelegt = _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, schon)
+        if ist_delta:                                    # A2027: dann ändern und verwerfen, was der Planer vorschlägt
+            planer_delta.anwenden(con, pid, von, tid, e["id"], entwurf)
+        return angelegt
     except Exception as x:
         with db.schreiben(con):
             if not schon:                            # nichts angelegt: die Marke lösen, ein neues Ja darf es noch einmal versuchen
@@ -756,7 +795,7 @@ def anstossen(con, pid, tid, fassung, von="AMW", erneut=False):
 SCHEMA_TEXT = __doc__[__doc__.index("Schema des Planer-Ergebnisses"):].strip()
 
 
-def _dateien(con, pid, t, fassung, ordner):
+def _dateien(con, pid, t, fassung, ordner, delta=None):
     from . import themen
     f = con.execute("SELECT text FROM thema_fassung WHERE thema_id = ? AND nr = ?", (t["id"], fassung)).fetchone()
     if not f:
@@ -783,6 +822,9 @@ def _dateien(con, pid, t, fassung, ordner):
                           + ("\n".join(f"- A{x['id']} [{x['status']}] {x['titel']}" for x in offen if x["id"] not in zum_thema)
                              or "(keine)") + "\n",
              "schema.md": "# Antwort-Format\n\n" + SCHEMA_TEXT + "\n"}
+    if delta:                                            # A2027: was sich am Thema geändert hat und wen es betrifft
+        from . import planer_delta
+        teile["aenderung.md"] = planer_delta.datei(con, pid, delta)
     for name, text in teile.items():
         with open(os.path.join(ordner, name), "w", encoding="utf-8", newline="\n") as d:
             d.write(text)
@@ -798,22 +840,23 @@ def json_aus_text(text):
 
 def planen(con, pid, t, fassung, modell, prog=None, zusatz=None):
     """Der Planer selbst, in einem leeren eigenen Ordner (wie ein Platz). Rückgabe {"ergebnis", "usd", "fehler"}."""
-    from . import arbeiter, platz, versionsprobe
+    from . import arbeiter, planer_delta, platz, versionsprobe
     with tempfile.TemporaryDirectory(prefix="amw-planer-", ignore_cleanup_errors=True) as ordner:
         p = platz.pfade(os.path.join(ordner, "plaetze"), 1)
         os.makedirs(p["klon"])
         subprocess.run(["git", "init", "-q", "-b", "main", p["klon"]], check=True, capture_output=True, creationflags=OHNE_FENSTER)
-        dateien = _dateien(con, pid, t, fassung, p["klon"])
-        r = arbeiter.laufen(p, AUFTRAG + "\n\nDateien: " + ", ".join(dateien), None, modell=modell, effort="medium", prog=prog,
+        delta = planer_delta.kontext(con, pid, t["id"])  # A2027: geändertes, schon geplantes Thema → nur die Änderung
+        dateien = _dateien(con, pid, t, fassung, p["klon"], delta)
+        r = arbeiter.laufen(p, AUFTRAG + ("\n\n" + planer_delta.AUFTRAG if delta else "") + "\n\nDateien: " + ", ".join(dateien), None, modell=modell, effort="medium", prog=prog,
                             zusatz=zusatz, nur_lesen=True, geprueft=versionsprobe.geprueft(con), frist_s=FRIST_S)
     erg = r.get("ergebnis") or {}
     usd = erg.get("total_cost_usd")
     if r.get("abweichungen"):
-        return {"ergebnis": None, "usd": usd, "fehler": "; ".join(r["abweichungen"])[:500]}
+        return {"ergebnis": None, "usd": usd, "fehler": "; ".join(r["abweichungen"])[:500], "delta": delta}
     text = (erg.get("result") or "").strip()
     if r.get("rc") != 0 or erg.get("is_error") or not text:
-        return {"ergebnis": None, "usd": usd, "fehler": r.get("fehler") or f"kein Ergebnis (rc {r.get('rc')})"}
-    return {"ergebnis": json_aus_text(text), "usd": usd, "fehler": None}
+        return {"ergebnis": None, "usd": usd, "fehler": r.get("fehler") or f"kein Ergebnis (rc {r.get('rc')})", "delta": delta}
+    return {"ergebnis": json_aus_text(text), "usd": usd, "fehler": None, "delta": delta}
 
 
 def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
@@ -855,7 +898,8 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
                                + f" · {kosten}")[:500])
         finally:
             belegung.lauf_vergessen(lid)
-    entwurf_eintragen(con, pid, tid, fassung, aus.get("ergebnis"), modell=modell, usd=aus.get("usd"), lauf=lid, fehler=aus.get("fehler"))
+    entwurf_eintragen(con, pid, tid, fassung, aus.get("ergebnis"), modell=modell, usd=aus.get("usd"), lauf=lid, fehler=aus.get("fehler"),
+                      delta=aus.get("delta"))
     if aus.get("fehler"):
         fortschritt(was=f"{name}: nicht geplant", usd=aus.get("usd"), zustand="fehler", fehler=aus["fehler"])
     else:
