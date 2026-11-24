@@ -825,6 +825,11 @@ die der Lead nur noch bestätigt oder ändert.
   mit dem Thema; `amw thema plan TH<n>` zeigt den Entwurf. Kein Anlegen ohne Ja. Jedes Paket bekommt dabei seine
   Fertig-Quelle (A1996): commit und release → `commit`, thema → `thema TH<n>` des Plans, ja und dokument → `ja`; frist → `ja`,
   bis jemand Tage und Version setzt (die stehen nicht im Plan) – dazu eine Meldung an den Lead mit den Paketen.
+- **Ja zu einer Konzeptänderung (A2080, A2085):** gibt frei und startet als ein Block (neuer Meilenstein grob, fein, aktiv; freier Plan eines
+  bestehenden bleibt frei, nur die Pakete dieses Ja werden startklar). Bricht es mittendrin ab: ist nichts geschehen, gilt das Ja nicht und ein
+  neues geht; sonst steht am Ja, was angelegt, geändert, verworfen und offen ist (Lead-Meldung, Karte „nur teilweise umgesetzt“), und ein neues
+  Ja legt nichts doppelt an. Was seit dem Ja entstand, erkennt die AMW an Nummer und Titel – Grenze: legt jemand in denselben Sekunden im selben
+  Projekt ein gleich benanntes Paket an, hielte sie es für ihres.
 - **p als Vorgabe (A2004):** S – und M bei Art mechanisch –, keine Oberfläche: der Planer schneidet es als p mit
   Abnahme-Befehl, `bereiche` (Pflicht für p, keine gesperrten Pfade) und `pakettyp`; ohne Modell/Effort gilt die Empfehlung des
   Projekts. Interaktiv nur mit `interaktiv_grund` (steht dann im Auftrag). Fehlt er, meldet das Ja „Achtung“ an den Lead

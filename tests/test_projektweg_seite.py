@@ -962,5 +962,48 @@ class SeiteAenderungStarten(Rundgang):
             self.assertEqual(fehler, [], f"{g} {th}")
 
 
+class SeiteTeilweise(Rundgang):
+    """A2085: bricht eine Änderung beim Anwenden ab, sagt die Karte, was geändert und was offen ist – der Lead klärt es."""
+    def daten(self):
+        kern.agent_neu(self.con, self.pid, "CC1")
+        for ziel in (grobplan, planer):
+            p = mock.patch.object(ziel, "STARTER", lambda *a, **k: 4711)
+            p.start()
+            self.addCleanup(p.stop)
+        self.t = gescheiterte_aenderung(self.con, self.pid)
+        from amw import planer_delta
+        ids = [r[0] for r in self.con.execute("SELECT id FROM aufgabe WHERE titel IN ('Speichern und Laden', 'Tests für Speichern') ORDER BY id")]
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET status = 'wartet', begonnen_utc = NULL WHERE id IN (?, ?)", ids)
+        plan = {"meilensteine": [], "pakete": [], "aendern": [{"paket": f"A{a}", "titel": f"{t} mit drei Plätzen", "auftrag": "Drei Plätze.", "grund": "Plätze"}
+                                                             for a, t in zip(ids, ("Speichern und Laden", "Tests für Speichern"))]}
+        planer.entwurf_eintragen(self.con, self.pid, self.t[2], 2, plan, modell="sonnet", usd=0.05, delta=planer_delta.kontext(self.con, self.pid, self.t[2]))
+        echt, n = planung.schritt_setzen, [0]
+
+        def setzen(*a, **k):
+            n[0] += 1
+            if n[0] == 2:
+                raise kern.AmwFehler("Platte voll")
+            return echt(*a, **k)
+        with mock.patch.object(planung, "schritt_setzen", setzen):
+            with self.assertRaises(kern.AmwFehler):
+                planer.uebernehmen(self.con, self.pid, kern.ENTWICKLER, self.t[2])
+
+    def test_karte_sagt_was_offen_ist(self):
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.tab.js("zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)")
+        self.warten("document.querySelector('.pjw-delta-fehler li')")
+        text = self.tab.js("document.querySelector('.pjw-delta-fehler').innerText")
+        for teil in ("nur teilweise umgesetzt", "Schon geändert: „Speichern und Laden mit drei Plätzen“.", "Noch offen: „Tests für Speichern“.", "Der Lead weiß Bescheid"):
+            self.assertIn(teil, text)
+
+    def test_rundgang(self):
+        for g, th in (("pc", "hell"), ("pc", "dunkel"), ("handy", "hell"), ("handy", "dunkel")):
+            fehler = self.besuchen("projektweg", "projektweg-teilweise", bereit="document.querySelector('.pjw-schritt')",
+                                   tun="zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)",
+                                   danach="document.querySelector('.pjw-delta-fehler')", g=g, t=th)
+            self.assertEqual(fehler, [], f"{g} {th}")
+
+
 if __name__ == "__main__":
     unittest.main()
