@@ -429,6 +429,49 @@ class Lauf(Grund):
         self.assertEqual(self.con.execute("SELECT rc FROM lauf ORDER BY id DESC LIMIT 1").fetchone()[0], 1)
         self.assertIn("Planer-Lauf: RuntimeError: weg", planer.letzter_entwurf(self.con, self.pid, self.tid)["fehler"][0])
 
+    def test_fortschritt_in_der_amw(self):
+        """A2025: Der Lauf führt seinen Stand als plan_ereignis – während er plant, danach mit Kosten, bei Fehler mit Meldung."""
+        from amw import planansicht, planer_fortschritt as pf
+        with db.schreiben(self.con):
+            planer._ereignis(self.con, self.pid, "AMW", planer.ANGESTOSSEN, self.tid, fassung=1, modell="sonnet")
+        unterwegs = {}
+
+        def planen(*_a, **_k):
+            unterwegs["stand"] = pf.zum_thema(self.con, self.pid, self.tid, art="planer")
+            unterwegs["ansicht"] = planansicht.entwuerfe(self.con, self.pid, {self.tid: "Anmeldung"})["planer_laeuft"]
+            return {"ergebnis": json.dumps(ERGEBNIS), "usd": 0.214, "fehler": None}
+        with mock.patch.object(planer, "planen", side_effect=planen):
+            planer.ausfuehren(self.con, self.pid, self.tid, 1)
+        lid = self.con.execute("SELECT id FROM lauf ORDER BY id DESC LIMIT 1").fetchone()[0]
+        s = unterwegs["stand"]
+        self.assertEqual((s["lauf"], s["art"], s["zustand"], s["modell"]), (lid, "planer", "laeuft", "sonnet"))
+        self.assertIn(f"TH{self.tid}", s["was"])
+        self.assertIn("Fassung 1 wird geplant", s["was"])
+        self.assertTrue(s["agent"])
+        self.assertEqual(unterwegs["ansicht"][0]["fortschritt"]["lauf"], lid)
+        self.assertIn("läuft", unterwegs["ansicht"][0]["fortschritt_zeile"])
+        s = pf.stand(self.con, self.pid, lid)
+        self.assertEqual(s["zustand"], "fertig")
+        self.assertAlmostEqual(s["usd"], 0.214)
+        self.assertEqual(pf.laufende(self.con, self.pid), [])
+        with mock.patch.object(planer, "planen", side_effect=RuntimeError("weg")):
+            planer.ausfuehren(self.con, self.pid, self.tid, 1)
+        lid2 = self.con.execute("SELECT id FROM lauf ORDER BY id DESC LIMIT 1").fetchone()[0]
+        s = pf.stand(self.con, self.pid, lid2)
+        self.assertEqual(s["zustand"], "fehler")
+        self.assertIn("RuntimeError: weg", s["fehler"])
+        self.assertEqual(len(self.con.execute("SELECT id FROM plan_ereignis WHERE art = ?", (pf.ART,)).fetchall()), 2)
+
+    def test_fortschritt_haelt_den_lauf_nicht_auf(self):
+        """A2025: Scheitert das Schreiben des Stands, plant der Planer trotzdem und trägt den Entwurf ein."""
+        from amw import planer_fortschritt as pf
+        with db.schreiben(self.con):
+            planer._ereignis(self.con, self.pid, "AMW", planer.ANGESTOSSEN, self.tid, fassung=1, modell="sonnet")
+        with mock.patch.object(pf, "melden", side_effect=RuntimeError("gesperrt")), \
+                mock.patch.object(planer, "planen", return_value={"ergebnis": json.dumps(ERGEBNIS), "usd": 0.1, "fehler": None}):
+            planer.ausfuehren(self.con, self.pid, self.tid, 1)
+        self.assertEqual(len(planer.letzter_entwurf(self.con, self.pid, self.tid)["entwurf"]["pakete"]), 2)
+
     def test_dateien_fuer_den_planer(self):
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.tid)
         bid = planung.bogen_neu(self.con, self.pid, "TL", "Online", ziel="Online-Seite steht")

@@ -29,6 +29,7 @@ Schema des Planer-Ergebnisses (JSON):
   gesperrter Bereich, Marcels Auge) – sonst meldet die AMW beim Ja „Achtung“.
 """
 import difflib
+import functools
 import json
 import os
 import re
@@ -37,7 +38,7 @@ import sys
 import tempfile
 import time
 
-from . import db, kern
+from . import db, kern, planer_fortschritt
 
 ENTWURF, JA, NICHTS = "thema_planentwurf", "thema_plan_ja", "thema_nichts_zu_bauen"
 FERTIG_QUELLEN = ("commit", "release", "thema", "dokument", "frist", "ja")     # K2 (TH155 2/3/6)
@@ -810,6 +811,11 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
     lid = betrieb.lauf_start(con, pid, agent, f"Planer TH{tid} Fassung {fassung} ({modell}, A1940, automatisch)", None, False, False,
                              None, warten=True, waechter=os.getpid(), befehl=None, ordner=None, selbst=True)   # A1948: kein Weckruf
     belegung.lauf_merken(lid, os.getpid())
+    name = f"TH{tid}" + (f" {t['name']}" if t else "")
+    fortschritt = functools.partial(planer_fortschritt.melden_still, con, pid, lid, art="planer", thema=tid, agent=agent,
+                                    modell=modell)            # A2025: Stand in der AMW, gedrosselt
+    fortschritt(was=f"{name}: wartet auf einen Platz in der Lauf-Schlange",
+                dauer_s=planer_fortschritt.schaetzung(con, pid, "planer"), sofort=True)
     aus = None
     try:
         while True:
@@ -822,6 +828,7 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
         betrieb.lauf_uebernehmen(con, lid, "agent")
         if not t:
             raise kern.AmwFehler(f"TH{tid} gibt es nicht")
+        fortschritt(was=f"{name}: Fassung {fassung} wird geplant", sofort=True)
         aus = planen(con, pid, t, fassung, modell, prog=prog, zusatz=zusatz)
     except Exception as e:                                # noqa: BLE001 – niemand sieht die Ausgabe: als Fehler eintragen
         aus = {"ergebnis": None, "usd": None, "fehler": f"{type(e).__name__}: {e}"[:300]}
@@ -835,6 +842,10 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
         finally:
             belegung.lauf_vergessen(lid)
     entwurf_eintragen(con, pid, tid, fassung, aus.get("ergebnis"), modell=modell, usd=aus.get("usd"), lauf=lid, fehler=aus.get("fehler"))
+    if aus.get("fehler"):
+        fortschritt(was=f"{name}: nicht geplant", usd=aus.get("usd"), zustand="fehler", fehler=aus["fehler"])
+    else:
+        fortschritt(was=f"{name}: Entwurf liegt vor", usd=aus.get("usd"), zustand="fertig")
     return aus
 
 

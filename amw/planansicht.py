@@ -431,12 +431,14 @@ def _geaendert_seit(con, pid, tid, seit_id):
 
 def entwuerfe(con, pid, namen):
     """A1940 (K4): offene Entwürfe des Planers zum Ja/Neu-planen und Planer, die gerade laufen – je Thema."""
-    from . import planer
+    from . import planer, planer_fortschritt
     offen, laufend = [], []
     for tid, name in sorted(namen.items()):
         l = planer.laeuft(con, pid, tid)
         if l:
-            laufend.append({"thema": tid, "name": name, "seit_utc": l["zeit_utc"]})
+            f = planer_fortschritt.zum_thema(con, pid, tid, art="planer")      # A2025: was er tut, Dauer, Kosten
+            laufend.append({"thema": tid, "name": name, "seit_utc": l["zeit_utc"], "fortschritt": f,
+                            "fortschritt_zeile": planer_fortschritt.zeile(f) if f else None})
             continue
         e = planer.letzter_entwurf(con, pid, tid)
         if not e or planer.erledigt(con, pid, e["id"]):

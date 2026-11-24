@@ -16,6 +16,7 @@ Einstellung je Projekt: themen_gegenlesen = haiku (Vorgabe) | sonnet | aus (Lead
 Weitere Rollen (Gliederung, Machbarkeit) sind in ROLLEN vorbereitet, aber nicht gebaut.
 """
 import datetime
+import functools
 import json
 import os
 import subprocess
@@ -23,7 +24,7 @@ import sys
 import tempfile
 import time
 
-from . import db, kern
+from . import db, kern, planer_fortschritt
 
 ANGESTOSSEN, FERTIG = "thema_gegenlesen", "thema_gegengelesen"
 EINSTIEG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "amw-gegenlesen.py")
@@ -207,6 +208,11 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
     lid = betrieb.lauf_start(con, pid, agent, f"Gegenlesen TH{tid} Fassung {fassung} ({modell}, A1914, automatisch)", None, False, False,
                              None, warten=True, waechter=os.getpid(), befehl=None, ordner=None, selbst=True)   # A1948: kein Weckruf
     belegung.lauf_merken(lid, os.getpid())
+    name = f"TH{tid}" + (f" {t['name']}" if t else "")
+    fortschritt = functools.partial(planer_fortschritt.melden_still, con, pid, lid, art="gegenlesen", thema=tid, agent=agent,
+                                    modell=modell)            # A2025: Stand in der AMW, gedrosselt
+    fortschritt(was=f"{name}: wartet auf einen Platz in der Lauf-Schlange",
+                dauer_s=planer_fortschritt.schaetzung(con, pid, "gegenlesen"), sofort=True)
     aus = None
     try:
         while True:
@@ -219,6 +225,7 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
         betrieb.lauf_uebernehmen(con, lid, "agent")
         if not t:
             raise kern.AmwFehler(f"TH{tid} gibt es nicht")
+        fortschritt(was=f"{name}: Fassung {fassung} wird gegengelesen", sofort=True)
         aus = lesen(con, pid, t, fassung, modell, prog=prog, zusatz=zusatz)
     except Exception as e:                                    # noqa: BLE001 – niemand sieht die Ausgabe: als Fehler eintragen
         aus = {"einwaende": None, "usd": None, "fehler": f"{type(e).__name__}: {e}"[:300]}
@@ -233,6 +240,10 @@ def ausfuehren(con, pid, tid, fassung, prog=None, zusatz=None):
         finally:
             belegung.lauf_vergessen(lid)
     abschliessen(con, pid, tid, fassung, aus, lid)
+    if aus.get("fehler"):
+        fortschritt(was=f"{name}: nicht gegengelesen", usd=aus.get("usd"), zustand="fehler", fehler=aus["fehler"])
+    else:
+        fortschritt(was=f"{name}: gegengelesen", usd=aus.get("usd"), zustand="fertig")
     return aus
 
 

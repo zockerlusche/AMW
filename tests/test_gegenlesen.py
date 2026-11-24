@@ -124,6 +124,28 @@ class Lauf(Basis):
         self.assertEqual(self.con.execute("SELECT rc FROM lauf ORDER BY id DESC LIMIT 1").fetchone()[0], 1)
         self.assertIn("RuntimeError: weg", self.post("CC1")[-1][2])
 
+    def test_fortschritt_in_der_amw(self):
+        """A2025: Auch der Gegenleser (Prüfer eines Themas) führt seinen Stand – laufend, fertig mit Kosten, Fehler mit Meldung."""
+        from amw import planer_fortschritt as pf
+        nr = themen.pflegen(self.con, self.pid, "CC1", self.tid, "Text.")
+        unterwegs = []
+
+        def lesen(*_a, **_k):
+            unterwegs.append(pf.zum_thema(self.con, self.pid, self.tid, art="gegenlesen"))
+            return {"einwaende": "- fehlt: Abmelden.", "usd": 0.0187, "fehler": None}
+        with mock.patch.object(gegenlesen, "lesen", side_effect=lesen):
+            gegenlesen.ausfuehren(self.con, self.pid, self.tid, nr)
+        lid = self.con.execute("SELECT id FROM lauf ORDER BY id DESC LIMIT 1").fetchone()[0]
+        self.assertEqual((unterwegs[0]["lauf"], unterwegs[0]["zustand"], unterwegs[0]["modell"]), (lid, "laeuft", "opus"))
+        self.assertIn("wird gegengelesen", unterwegs[0]["was"])
+        s = pf.stand(self.con, self.pid, lid)
+        self.assertEqual((s["zustand"], s["usd"]), ("fertig", 0.0187))
+        with mock.patch.object(gegenlesen, "lesen", side_effect=RuntimeError("weg")):
+            gegenlesen.ausfuehren(self.con, self.pid, self.tid, nr)
+        s = pf.stand(self.con, self.pid, self.con.execute("SELECT id FROM lauf ORDER BY id DESC LIMIT 1").fetchone()[0])
+        self.assertEqual(s["zustand"], "fehler")
+        self.assertIn("RuntimeError: weg", s["fehler"])
+
 
 @unittest.skipUnless(os.name == "nt" and shutil.which("git"), "Arbeiter nur unter Windows (Job-Objekt)")
 class NurLesen(Basis):
