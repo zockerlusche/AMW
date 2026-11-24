@@ -94,10 +94,13 @@ _wartemeldung_faeden = []          # (Strom, Faden) – je Strom höchstens ein 
 def _warten(was):
     """Markiert, worauf gerade gewartet wird (Datenbank öffnen, Schreibsperre) – für die Wartemeldung."""
     _phase["was"], _phase["seit"] = was, time.monotonic()
+    t0 = _phase["seit"]
     try:
         yield
     finally:
         _phase["was"] = None
+        from . import anfragezeit                    # A2035: misst die Workbench gerade eine Anfrage, zählt das Warten mit
+        anfragezeit.teil({"oeffnen": "DB öffnen", "sperre": "DB-Sperre"}.get(was, was), time.monotonic() - t0)
 
 
 def wartemeldung_an(strom=None, takt=1.0):

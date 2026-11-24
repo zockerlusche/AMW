@@ -21,7 +21,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import aktionen, db, herzschlag, kern
+from . import aktionen, anfragezeit, db, herzschlag, kern
 from .betrieb import speicher_frei_gb, speicher_grenze
 
 STANDARD_PORT = 8780
@@ -731,14 +731,16 @@ def daten_benutzer(con, speicher=None):
     """Benutzer der Online-Seite für die Verwaltung am PC – mit Stand aus dem Online-Speicher (nie hochgeladen)."""
     from . import abgleich, benutzer
     sp = speicher if speicher is not None else abgleich.speicher_aus_zugang()
-    stand = benutzer.online_stand(sp)
+    with anfragezeit.messen("Abgleich"):              # A2035: Online-Speicher
+        stand = benutzer.online_stand(sp)
     projekte = [{"id": r[0], "name": r[1]} for r in con.execute("SELECT id, name FROM projekt ORDER BY name")]
     liste = []
     for b in benutzer.liste(con):
         liste.append({k: b[k] for k in ("name", "anzeige", "email", "rolle", "gesperrt", "projekte")}
                      | {"online": stand.get(b["name"], {"stand": "neu"})})
     try:                                              # Firmen-Anmeldung (R2): Einstellungen und was die Seite meldet – ohne Geheimnis
-        sso = abgleich.sso_einstellungen(sp) if sp is not None else None
+        with anfragezeit.messen("Abgleich"):
+            sso = abgleich.sso_einstellungen(sp) if sp is not None else None
     except (OSError, ValueError, KeyError):
         sso = None
     return {"benutzer": liste, "projekte": projekte, "rollen": list(benutzer.ROLLEN), "online": sp is not None, "sso": sso,
@@ -786,7 +788,8 @@ def daten_einstellungen(con, pid, speicher=None):
         z = {}
     sp = speicher or abgleich.speicher_aus_zugang(nur_wenn_an=False)
     try:
-        web = abgleich.web_einstellungen(sp) if sp else None
+        with anfragezeit.messen("Abgleich"):
+            web = abgleich.web_einstellungen(sp) if sp else None
     except (OSError, ValueError, KeyError):
         web = None
     from . import platte                              # Laufwerke und Aufräumvorschläge (alte Sicherungen) – nur Anzeige
@@ -1404,6 +1407,7 @@ def host_ok(host, port, netz):
 
 
 def baue_handler(port, token, netz=None):
+    anfragezeit.einhaengen()                          # A2035: externe Aufrufe je Anfrage mitzählen
     with open(os.path.join(HIER, "workbench.html"), encoding="utf-8") as f:
         seite = f.read().replace("__AMW_TOKEN__", token).encode("utf-8")
 
@@ -1414,6 +1418,7 @@ def baue_handler(port, token, netz=None):
             pass
 
         def _senden(self, code, daten, typ="application/json; charset=utf-8"):
+            self._code = code
             body = daten if isinstance(daten, bytes) else json.dumps(daten, ensure_ascii=False).encode("utf-8")
             self.send_response(code)
             self.send_header("Content-Type", typ)
@@ -1481,6 +1486,20 @@ def baue_handler(port, token, netz=None):
             return con.execute("SELECT min(id) FROM projekt").fetchone()[0]
 
         def do_GET(self):
+            anfragezeit.start("GET " + self.path.split("?", 1)[0])     # A2035: ab 1 s eine Zeile in dienst.log
+            try:
+                self._get()
+            finally:
+                anfragezeit.ende(getattr(self, "_code", None))
+
+        def do_POST(self):
+            anfragezeit.start("POST " + self.path.split("?", 1)[0])
+            try:
+                self._post()
+            finally:
+                anfragezeit.ende(getattr(self, "_code", None))
+
+        def _get(self):
             if not zugelassen(self.client_address[0], netz) or not host_ok(self.headers.get("Host"), port, netz):
                 return self._senden(403, {"fehler": "Host"})
             u = urlparse(self.path)
@@ -1560,7 +1579,7 @@ def baue_handler(port, token, netz=None):
             except Exception as e:
                 return self._senden(500, {"fehler": f"{type(e).__name__}: {e}"})
 
-        def do_POST(self):
+        def _post(self):
             if not zugelassen(self.client_address[0], netz):  # nicht zugelassener Rechner: ablehnen, ohne etwas zu lesen –
                 return self._senden(403, {"fehler": "nicht erlaubt"})   # er hält so keinen Thread auf (CCamwTL P574)
             # A2016: Bei zugelassenen Rechnern den Körper vor den übrigen Prüfungen lesen, auch wenn die Antwort „nicht erlaubt“
