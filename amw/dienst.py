@@ -560,6 +560,13 @@ class Dienst:
                             log.info("Konzeptänderung: %s", e)
                     except Exception as e:
                         log.warning("Konzeptänderung P%s: %s: %s", p["id"], type(e).__name__, e)
+                    try:                                                     # A2123: Bündel ohne Agent (nur mit buendel_ausliefern = an)
+                        from . import buendel_auslieferung
+                        if p["id"] == self.con.execute("SELECT min(id) FROM projekt").fetchone()[0]:
+                            for e in buendel_auslieferung.runde(self.con):
+                                log.info("Bündel: %s", e)
+                    except Exception as e:
+                        log.warning("Bündel: %s: %s", type(e).__name__, e)
                     try:                                                     # A1970: Planer, die an der Tagesgrenze warteten
                         from . import planer
                         for e in planer.nachholen(self.con, p["id"]):

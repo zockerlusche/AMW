@@ -492,18 +492,18 @@ def lauf_und_meldung(con, pid, zweig, warte=None, frist_s=7200):
         _ende(con, pid, zweig, {"rc": rc, "lauf": lid})
 
 
-def _lauf_und_meldung(con, pid, zweig, warte, frist_s):
+def gesamtlauf_rechnen(con, pid, ziel, sha, titel, aufgabe, warte=None, frist_s=7200):
+    """A2123 (aus _lauf_und_meldung): der Gesamtlauf (gesamtlauf_befehl) über die Lauf-Schlange auf genau `sha` im Bündel-Arbeitsbaum
+    `ziel`. Rückgabe (rc, lauf, None) – oder (None, lauf, Grund), wenn er nicht rechnete (vorher beendet, Arbeitsbaum verschoben)."""
     import time
     from . import belegung, betrieb, laufdienst
     warte = warte or time.sleep
-    v = _vermerk(con, pid, zweig)
-    e, ziel = einstellungen(con, pid), arbeitsbaum(con, pid)
+    e = einstellungen(con, pid)
     lead = kern.lead(con, pid)
     agent = lead or con.execute("SELECT kennung FROM agent WHERE projekt_id = ? ORDER BY id LIMIT 1", (pid,)).fetchone()[0]
     befehl = [e["gesamtlauf_befehl"]]
-    lid = betrieb.lauf_start(con, pid, agent, f"Gesamtlauf Bündel {v['version']} {zweig}@{v['sha'][:8]}", None, False, False,
-                             v["drin"][0], warten=True, erwartet_min=40, befehl=befehl, ordner=ziel, waechter=os.getpid(),
-                             selbst=True)                                     # A1948: kein Weckruf
+    lid = betrieb.lauf_start(con, pid, agent, titel, None, False, False, aufgabe, warten=True, erwartet_min=40, befehl=befehl, ordner=ziel,
+                             waechter=os.getpid(), selbst=True)                # A1948: kein Weckruf
     belegung.lauf_merken(lid, os.getpid())
     try:
         while True:
@@ -511,35 +511,56 @@ def _lauf_und_meldung(con, pid, zweig, warte, frist_s):
             if l["status"] == "laeuft":
                 break
             if l["status"] in ("fertig", "abgebrochen"):
-                _melden(con, pid, f"Bündel {v['version']}: Gesamtlauf L{lid} ist {l['status']}, bevor er rechnete – kein Release",
-                        "Neu anstoßen: amw paket buendeln … (das Bündel liegt als Zweig " + zweig + ")")
-                return None, lid
+                return None, lid, f"Gesamtlauf L{lid} ist {l['status']}, bevor er rechnete"
             warte(5)
         if not betrieb.lauf_uebernehmen(con, lid, "agent"):                       # der Dienst rechnet ihn (dieser Prozess galt als tot)
             while betrieb.lauf_zeile(con, pid, lid)["status"] == "laeuft":
                 warte(15)
-            rc = betrieb.lauf_zeile(con, pid, lid)["rc"]
-        else:
-            s = betrieb.pruefstand(befehl, ziel)
-            stand = betrieb.stand_text(s)
-            l = betrieb.lauf_zeile(con, pid, lid)
-            pfad = laufdienst.ergebnis_pfad(l)
-            if not s or s[1] != v["sha"] or not s[2]:
-                betrieb.lauf_ende(con, pid, agent, lid, 1, f"nicht gerechnet: Bündel-Arbeitsbaum steht nicht sauber auf {v['sha'][:8]} ({stand})")
-                _melden(con, pid, f"Bündel {v['version']}: Arbeitsbaum verschoben – kein Gesamtlauf, kein Release",
-                        f"{ziel} steht auf {stand}, erwartet {v['sha']}. Neu bündeln: amw paket buendeln …")
-                return None, lid
-            with open(pfad, "w", encoding="utf-8", errors="replace") as aus:
-                aus.write(f"# AMW L{lid} · {agent} · Gesamtlauf Bündel {v['version']}\n# Befehl: {befehl[0]}\n# Ordner: {ziel}\n# {stand}\n")
-                aus.flush()
-                try:
-                    rc = subprocess.run(befehl[0], shell=True, cwd=ziel, env=laufdienst.umgebung(), stdout=aus, stderr=subprocess.STDOUT,
-                                        stdin=subprocess.DEVNULL, timeout=frist_s, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).returncode
-                except subprocess.TimeoutExpired:
-                    rc = 124
-            betrieb.lauf_ende(con, pid, agent, lid, rc, f"rc {rc} · {stand} · Ausgabe: {pfad}"[:500])
+            return betrieb.lauf_zeile(con, pid, lid)["rc"], lid, None
+        s = betrieb.pruefstand(befehl, ziel)
+        stand = betrieb.stand_text(s)
+        l = betrieb.lauf_zeile(con, pid, lid)
+        pfad = laufdienst.ergebnis_pfad(l)
+        if not s or s[1] != sha or not s[2]:
+            betrieb.lauf_ende(con, pid, agent, lid, 1, f"nicht gerechnet: Bündel-Arbeitsbaum steht nicht sauber auf {sha[:8]} ({stand})")
+            return None, lid, f"Arbeitsbaum {ziel} steht auf {stand}, erwartet {sha}"
+        with open(pfad, "w", encoding="utf-8", errors="replace") as aus:
+            aus.write(f"# AMW L{lid} · {agent} · {titel}\n# Befehl: {befehl[0]}\n# Ordner: {ziel}\n# {stand}\n")
+            aus.flush()
+            try:
+                rc = subprocess.run(befehl[0], shell=True, cwd=ziel, env=laufdienst.umgebung(), stdout=aus, stderr=subprocess.STDOUT,
+                                    stdin=subprocess.DEVNULL, timeout=frist_s, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).returncode
+            except subprocess.TimeoutExpired:
+                rc = 124
+        betrieb.lauf_ende(con, pid, agent, lid, rc, f"rc {rc} · {stand} · Ausgabe: {pfad}"[:500])
+        return rc, lid, None
     finally:
         belegung.lauf_vergessen(lid)
+
+
+def _lauf_und_meldung(con, pid, zweig, warte, frist_s):
+    v = _vermerk(con, pid, zweig)
+    e, ziel = einstellungen(con, pid), arbeitsbaum(con, pid)
+    befehl = [e["gesamtlauf_befehl"]]
+    rc, lid, grund = gesamtlauf_rechnen(con, pid, ziel, v["sha"], f"Gesamtlauf Bündel {v['version']} {zweig}@{v['sha'][:8]}", v["drin"][0],
+                                        warte, frist_s)
+    if grund and grund.startswith("Gesamtlauf"):
+        _melden(con, pid, f"Bündel {v['version']}: {grund} – kein Release",
+                "Neu anstoßen: amw paket buendeln … (das Bündel liegt als Zweig " + zweig + ")")
+        return None, lid
+    if grund:
+        _melden(con, pid, f"Bündel {v['version']}: Arbeitsbaum verschoben – kein Gesamtlauf, kein Release",
+                f"{grund}. Neu bündeln: amw paket buendeln …")
+        return None, lid
+    return bereit_melden(con, pid, zweig, v, rc, lid, befehl[0])
+
+
+def bereit_melden(con, pid, zweig, v, rc, lid, befehl):
+    """Nach dem Gesamtlauf: rot → Meldung; grün → GRÜN mit dem Lead als Prüfer und „Bündel X.Y.Z bereit“ (A1876 F3b). Rückgabe (rc, lid)."""
+    e, ziel = einstellungen(con, pid), arbeitsbaum(con, pid)
+    lead = kern.lead(con, pid)
+    agent = lead or con.execute("SELECT kennung FROM agent WHERE projekt_id = ? ORDER BY id LIMIT 1", (pid,)).fetchone()[0]
+    befehl = [befehl]
     if rc != 0:
         _melden(con, pid, f"Bündel {v['version']}: Gesamtlauf L{lid} rot (rc {rc}) – kein Release",
                 f"Zweig {zweig}@{v['sha'][:8]}. Ausgabe beim Lauf L{lid}. Pakete bleiben in der Merge-Reihe.")

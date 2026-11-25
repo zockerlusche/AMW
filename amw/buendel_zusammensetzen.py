@@ -12,9 +12,15 @@ zusammensetzen(con, pid):
 4. Je Paket seine Commits per cherry-pick im Bündel-Arbeitsbaum (<platz_wurzel>/buendel, neutrale git-Umgebung, keine Hooks).
    Konflikt → alles abgebrochen, der Arbeitsbaum steht wieder sauber auf main; der Befund nennt Paket, Dateien und Meldung.
 
+A2123 (Ergänzungen des Leads): (a) ohne: Pakete, die draußen bleiben (ihre Nachfolger auch) – so setzt die Auslieferung nach einem
+Konflikt ohne das Paket neu zusammen. (b) gebaut: Muster gebauter Dateien (web/inc/seite.html …) – ein Konflikt nur darin ist keiner,
+die Fassung des Pakets gilt, gebaut wird danach einmal neu. (c) Versions-Commits („1.2.3: …“) in einem Paket-Zweig kommen nicht mit.
+(d) Pakete mit demselben Kopf (ein Stapel) zählen einmal: das spätere ist mit drin (mit = das erste), aufgesetzt wird nur einmal.
+
 Ergebnis ist ein Commit auf main im Bündel-Arbeitsbaum. Die Ref main, Zweige und der Projektordner bleiben, wie sie sind: auf main
 kommt ein Stand erst nach Gesamtlauf über die Release-Kette (`release ausliefern`).
 """
+import fnmatch
 import heapq
 import json
 import os
@@ -158,20 +164,39 @@ def _zurueck(repo, ziel, daten, basis):
     buendel.baum_auf(repo, ziel, daten, basis)
 
 
-def _aufsetzen(ziel, daten, basis, kopf):
-    """Die Commits basis..kopf eines Pakets einzeln aufsetzen. Rückgabe (Anzahl, None) oder (Anzahl, {dateien, meldung, commit})."""
+VERSIONS_BETREFF = re.compile(r"\d+\.\d+\.\d+:")                # A2123 (c): Versions-Commit eines alten Stapels
+
+
+def _gebaut(pfad, gebaut):
+    return any(fnmatch.fnmatchcase(pfad, m) for m in gebaut)
+
+
+def _aufsetzen(ziel, daten, basis, kopf, gebaut=()):
+    """Die Commits basis..kopf eines Pakets einzeln aufsetzen. Rückgabe (Anzahl, None) oder (Anzahl, {dateien, meldung, commit}).
+    A2123: Versions-Commits fallen weg; ein Konflikt nur in gebauten Dateien (Muster gebaut) nimmt die Fassung des Pakets."""
     _, merges, _ = _lauf(ziel, daten, "rev-list", "--min-parents=2", f"{basis}..{kopf}")
     if merges:
         return 0, {"dateien": [], "commit": merges.split()[0],
                    "meldung": f"Merge-Commit {merges.split()[0][:8]} im Paket – bitte auf main umsetzen (rebase), dann neu prüfen lassen"}
-    _, commits, _ = _lauf(ziel, daten, "rev-list", "--reverse", "--topo-order", f"{basis}..{kopf}")
+    _, commits, _ = _lauf(ziel, daten, "log", "--reverse", "--topo-order", "--format=%H %s", f"{basis}..{kopf}")
     n = 0
-    for c in commits.split():
+    for zeile in commits.splitlines():
+        c, _, betreff = zeile.partition(" ")
+        if not c or VERSIONS_BETREFF.match(betreff):
+            continue
         rc, aus, fehler = _lauf(ziel, daten, "cherry-pick", c, ok=None)
         if rc == 0:
             n += 1
             continue
         dateien = [x for x in _lauf(ziel, daten, "diff", "--name-only", "--diff-filter=U")[1].splitlines() if x]
+        if dateien and gebaut and all(_gebaut(x, gebaut) for x in dateien):     # (b): die Fassung des Pakets, später neu gebaut
+            _lauf(ziel, daten, "checkout", "--theirs", "--", *dateien)
+            _lauf(ziel, daten, "add", "--", *dateien)
+            rc2, aus2, fehler2 = _lauf(ziel, daten, "-c", "core.editor=true", "cherry-pick", "--continue", ok=None)
+            if rc2 == 0:
+                n += 1
+                continue
+            aus, fehler = aus2, fehler2
         laeuft = _lauf(ziel, daten, "rev-parse", "--verify", "--quiet", "CHERRY_PICK_HEAD", ok=None)[0] == 0
         if laeuft and not dateien and _lauf(ziel, daten, "diff", "--quiet", "HEAD", ok=None)[0] == 0:
             _lauf(ziel, daten, "cherry-pick", "--skip")            # leer: die Änderung ist schon da
@@ -182,8 +207,8 @@ def _aufsetzen(ziel, daten, basis, kopf):
 
 # --- Zusammensetzen -----------------------------------------------------------------------------------------------------------
 
-def zusammensetzen(con, pid):
-    """Rückgabe {"ok", "basis", "sha", "drin", "raus", "befund", "ordner"}. ok False: Konflikt – befund {"aufgabe", "titel", "art",
+def zusammensetzen(con, pid, ohne=(), gebaut=(), nur=None):
+    """ohne, gebaut (A2123): siehe oben; nur: nur diese Pakete (Teilmengen beim Teilen), in der Reihenfolge des Bündels. Rückgabe {"ok", "basis", "sha", "drin", "raus", "befund", "ordner"}. ok False: Konflikt – befund {"aufgabe", "titel", "art",
     "zweig", "kopf", "agent", "commit", "dateien", "meldung", "nach"}, drin ist leer, nichts gesetzt. sha None: kein Paket dabei.
     drin: Pakete in der Reihenfolge des Bündels, je mit „abnahme“ (AMW|Lead) und „gruende“; raus: je mit „grund“."""
     repo = kern.projekt_ordner(con, pid)
@@ -198,7 +223,13 @@ def zusammensetzen(con, pid):
     _, basis, _ = _lauf(repo, daten, "rev-parse", "--verify", "refs/heads/main^{commit}")
     erledigt = {r[0] for r in con.execute("SELECT id FROM aufgabe WHERE status = 'fertig'")}
     raus, bereit = [], []
+    ohne = set(ohne)
     for p in kandidaten(con, pid):
+        if p["id"] in ohne:
+            raus.append({**p, "grund": "bleibt draußen (Konflikt, Befund an den Bauer)"})
+            continue
+        if nur is not None and p["id"] not in nur:
+            continue
         rc, kopf, _ = _lauf(repo, daten, "rev-parse", "--verify", "--quiet", f"{p['kopf']}^{{commit}}", ok=None)
         if rc != 0:
             raus.append({**p, "grund": f"Stand {p['kopf'][:8]} liegt nicht im Projekt-Repo"})
@@ -214,16 +245,19 @@ def zusammensetzen(con, pid):
             raus.append({**p, "grund": hindernis})
         else:
             bereit.append(p)
-    reihe, ohne = ordnen(bereit, {p["id"]: buendel._vor(con, p["id"]) for p in bereit}, erledigt)
-    raus += ohne
+    reihe, fehlt = ordnen(bereit, {p["id"]: buendel._vor(con, p["id"]) for p in bereit}, erledigt)
+    raus += fehlt
     ergebnis = {"ok": True, "basis": basis, "sha": None, "drin": [], "raus": raus, "befund": None, "ordner": ziel}
     if not reihe:
         return ergebnis
     buendel.baum_auf(repo, ziel, daten, basis)
-    drin = []
+    drin, koepfe = [], {}
     try:
         for p in reihe:
-            n, konflikt = _aufsetzen(ziel, daten, basis, p["kopf"])
+            if p["kopf"] in koepfe:                               # (d): ein Stapel – gleicher Stand, einmal aufgesetzt
+                drin.append({**p, "mit": koepfe[p["kopf"]]})
+                continue
+            n, konflikt = _aufsetzen(ziel, daten, basis, p["kopf"], gebaut)
             if konflikt:
                 _zurueck(repo, ziel, daten, basis)
                 befund = {"aufgabe": p["id"], **{k: p[k] for k in ("titel", "art", "zweig", "kopf", "agent")}, **konflikt,
@@ -231,6 +265,7 @@ def zusammensetzen(con, pid):
                 return {**ergebnis, "ok": False, "befund": befund}
             if n:
                 drin.append(p)
+                koepfe[p["kopf"]] = p["id"]
             else:
                 raus.append({**p, "grund": "ist schon in main enthalten (oder in einem Paket davor)"})
         sha = _lauf(ziel, daten, "rev-parse", "HEAD")[1] if drin else None

@@ -256,6 +256,7 @@ PROJEKT_TEXTE = {"entwickler_name": 30}       # Text-Einstellungen: Schlüssel �
 # dateien_online: welche Dateien von Dokumenten von selbst „auch online“ stehen (wunsch = nur auf Wunsch, wie bis 1.10.0)
 PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 "release_modus": ("datei", "tag"),                      # A1923: Version in version_datei oder aus dem Tag
+                "buendel_ausliefern": ("aus", "an"),                    # A2123: Bündel ohne Agent bis „bereit“ oder bis live (nur der Mensch)
                 "thema_freigabe": ("mensch", "co+lead"),                # A1937 (B2913): Co und Lead geben Themen gemeinsam frei
                 # A2032 (TH164 „Freigaben“): wer Grobplan, Feinplan und Abschluss je Meilenstein freigibt – Vorgabe der Mensch
                 "grobplan_freigabe": ("mensch", "co+lead"),
@@ -313,7 +314,7 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # Releases in drei Ebenen (A1928, TH158): meilenstein = release ausliefern ist lokal live (ohne Push und GitHub-
                 # Release); veröffentlicht wird nach der Abnahme des Meilensteins durch den Menschen; sofort = wie früher.
                 "veroeffentlichen": ("meilenstein", "sofort")}
-NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung")
+NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung", "buendel_ausliefern")
 # A1951 (Marcel W2460, B2914: „Wir sind Dev und TL“): Lead oder Mensch – nie ein anderer Agent; ändert der Lead, steht es im Protokoll
 LEAD_ODER_MENSCH_WAHL = ("thema_freigabe", "sicherung_ziel", "grobplan_freigabe", "feinplan_freigabe", "abschluss_freigabe")
 LEAD_GRUND = "W2460/B2914"

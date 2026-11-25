@@ -919,6 +919,14 @@ def cmd_paket(a, con):
         print(f"A{r['aufgabe']} angenommen: {r['zweig']}@{r['kopf'][:8]} steht in der Merge-Liste (bereit zum Merge) –"
               f" freigeben: amw paket freigeben {r['aufgabe']}")
         return
+    if a.aktion == "ausliefern-buendel":             # A2123: Bündel ohne Agent von Hand anstoßen (Lead, Mensch)
+        from . import buendel_auslieferung
+        _rolle_nur_mensch_oder_lead(con, pid, a, "Bündel ohne Agent anstoßen")
+        r = buendel_auslieferung.anstossen(con, pid, _von(a), "von Hand")
+        print(f"Bündel ohne Agent angestoßen (Prozess {r['starter']}) – "
+              + ("liefert bei grünem Gesamtlauf selbst aus" if r["ausliefern"] else "endet bei „bereit“ (buendel_ausliefern = aus)")
+              + "; die Meldung kommt an den Lead")
+        return
     if a.aktion == "buendeln":                        # A1876 (D1306): freigegebene Pakete zu einem Release-Stand (Lead, Mensch)
         from . import buendel
         if a.gesamtlauf:                              # A1909 (3): Gesamtlauf eines vorhandenen Bündels neu anstoßen
@@ -4104,12 +4112,14 @@ def parser():
                                    " | mergeliste [--diff] (bereit zum Merge: diff --stat, Server-Code, Blick nötig)"
                                    " | freigeben --alle | freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch)"
                                    " | buendeln --alle | buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch)"
+                                   " | ausliefern-buendel (Bündel ohne Agent: zusammensetzen, Version, Gesamtlauf, bei buendel_ausliefern = an"
+                                   " ausliefern; Lead, Mensch – A2123)"
                                    " | annehmen N --grund … (E4-Paket nach dem Lesen in die Merge-Liste; Lead, Mensch)"
                                    " | holen [N] (interaktiv: nächste Aufgabe nehmen, Auftrag + Startwissen, Zweig/Arbeitsbaum)"
                                    " | fertig N --sha … --punkte … (interaktiv: Tests-Hinweis, Prüfung C der AMW bzw. Prüfbitte, wartet)"
                                    " | lead-liest N [--aus] (Lead, Mensch: dieses Paket liest immer der Lead – A2054)"
                                    " – Felder setzen: amw aufgabe neu|aendern … --paket p …")
-    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten", "mergeliste", "freigeben", "buendeln", "annehmen",
+    x.add_argument("aktion", choices=["zeigen", "zustand", "liste", "ergebnis", "starten", "mergeliste", "freigeben", "buendeln", "ausliefern-buendel", "annehmen",
                                       "holen", "fertig", "lead-liest"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("--aus", action="store_true", help="lead-liest: die Markierung wieder aufheben")
