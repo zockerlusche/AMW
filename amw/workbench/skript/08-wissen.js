@@ -544,7 +544,7 @@ async function sichtProjektweg() {
   const verlauf = el("aside", { class: "pjw-verlauf" }, el("div", { class: "pjw-kopf" }, el("span", { class: "pjw-lbl", style: "flex:1" }, t("pjw_verlauf")), umschalter),
     eintraege.length ? eintraege.map(eintrag) : el("div", { class: "sehrleise" }, alle ? "–" : t("pjw_v_leer")));
   const verlaufHandy = el("details", { class: "pjw-verlauf-handy" }, el("summary", {}, t("pjw_verlauf_n", { n: eintraege.length })), el("div", { class: "pjw-liste" }, eintraege.map(eintrag)));
-  m.append(el("div", { class: "pjw-seite" + (zustand.pwOffen ? " offen" : "") }, schritte, verlaufHandy, el("div", { class: "pjw-weg" }, ansicht, verlauf)));
+  m.append(el("div", { class: "pjw-seite" + (zustand.pwOffen ? " offen" : "") }, schritte, el("div", { class: "pjw-weg" }, ansicht, verlauf), verlaufHandy));   /* A2091: am Handy auch unter dem geöffneten Schritt */
   pwUeberZeichnen(d);
   pwFensterZeichnen();
   pwNachsehen(d);

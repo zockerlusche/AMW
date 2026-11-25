@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from amw import aktionen, arbeitspaket, db, grobplan, kern, planer, planer_fortschritt, planung, projektweg_seite, themen
+from amw import aktionen, arbeitspaket, db, grobplan, kern, planer, planer_fortschritt, planung, projektweg, projektweg_seite, themen
 from tests.rundgang import Rundgang
 
 THEMEN = (("Aquarium-Ansicht der Welt", "Die Welt liegt wie ein Aquarium vor dir; Kamera frei drehbar."),
@@ -657,6 +657,35 @@ class AenderungStarten(Grund):
         self.assertEqual((fein["zustand"], fein["bei_dir"], d["dran"]), ("dran", True, "fein"))
 
 
+class KonzeptWiederOffen(Grund):
+    """A2091 (10): wird das Konzept wieder offen, zeigt die Leiste weiter, was läuft."""
+    def zeichen(self):
+        d = self.daten()
+        return d["dran"], {s["schritt"]: s["zeichen"] for s in d["schritte"]}, {s["schritt"]: s["bei_dir"] for s in d["schritte"]}
+
+    def test_laufende_pakete_bleiben_dran(self):
+        from amw import feinplanung, planansicht
+        t = demo(self.con, self.pid, "fein")
+        m1 = self.con.execute("SELECT id FROM bogen WHERE titel = 'Welt sichtbar'").fetchone()[0]
+        feinplanung.plan_starten(self.con, self.pid, kern.ENTWICKLER, m1)
+        vorher = self.zeichen()[1]
+        themen.pflegen(self.con, self.pid, "CC1", t[3], "Neue Fassung, wartet auf das Ja.")
+        dran, z, dir_ = self.zeichen()
+        self.assertEqual(dran, "konzept")                                                   # wer dran ist, bleibt
+        self.assertEqual((vorher["grob"], z["konzept"], z["grob"], z["umsetzung"], z["abschluss"]), ("✓", "●", "✓", "●", "○"))
+        self.assertEqual((dir_["konzept"], dir_["grob"], dir_["umsetzung"]), (True, False, False))
+        m3 = self.con.execute("SELECT id FROM bogen WHERE titel = 'Spieler greift ein'").fetchone()[0]
+        planansicht.zurueck(self.con, self.pid, kern.ENTWICKLER, m3, "grob", "nochmal")     # ein Meilenstein ohne Ja: Grobplanung ist nicht ✓
+        self.assertEqual(self.zeichen()[1]["grob"], "○")
+        with self.assertRaises(kern.AmwFehler):                                             # die Regel selbst bleibt: erst das Konzept
+            projektweg.uebergang_pruefen(self.con, self.pid, "umsetzung")
+
+    def test_ohne_laufende_pakete_bleibt_es_offen(self):
+        t = demo(self.con, self.pid, "fein")
+        themen.pflegen(self.con, self.pid, "CC1", t[3], "Neue Fassung, wartet auf das Ja.")
+        self.assertEqual([self.zeichen()[1][s] for s in ("grob", "umsetzung")], ["○", "○"])
+
+
 class Abschluss(Grund):
     def test_abnehmen_ist_das_ja_zum_abschluss(self):
         demo(self.con, self.pid, "abschluss")
@@ -827,6 +856,49 @@ class SeiteBestand(Rundgang):
                                    danach="document.querySelector('.pjw-ansicht .pjw-liste')", g=g, t=th)
             self.assertEqual(fehler, [], f"{g} {th}")
 
+
+
+class SeiteReste(Rundgang):
+    """A2091: Konzept wieder offen bei laufenden Paketen; Handy ohne Seitwärts-Scrollen und mit Verlauf im geöffneten Schritt."""
+    def daten(self):
+        kern.agent_neu(self.con, self.pid, "CC1")
+        for ziel in (grobplan, planer):
+            p = mock.patch.object(ziel, "STARTER", lambda *a, **k: 4711)
+            p.start()
+            self.addCleanup(p.stop)
+        from amw import feinplanung, planansicht
+        t = demo(self.con, self.pid, "fein")
+        m1, m3 = (self.con.execute("SELECT id FROM bogen WHERE titel = ?", (x,)).fetchone()[0] for x in ("Welt sichtbar", "Spieler greift ein"))
+        feinplanung.plan_starten(self.con, self.pid, kern.ENTWICKLER, m1)
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE bogen SET titel = ? WHERE id = ?", ("Spieler greift ein: Gegenstände stellen, Bewohner reagieren, Möbel und Pflanzen verschieben", m3))
+        planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, m3, "grob")               # der neue Titel braucht das Ja noch einmal
+        planung.schritt_setzen(self.con, self.pid, "TL", titel="Gegenstand stellen", bogen_id=m3, groesse="S", art="mechanisch", agent="CC1")
+        themen.pflegen(self.con, self.pid, "CC1", t[3], "Neue Fassung, wartet auf das Ja.")
+
+    def test_leiste(self):
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        z = self.tab.js("[...document.querySelectorAll('.pjw-schritt')].map(x => x.dataset.schritt + x.querySelector('.pjw-zeichen').innerText + x.classList.contains('offen-z'))")
+        self.assertEqual((z[0], z[1], z[3]), ("konzept●false", "grob✓false", "umsetzung●false"))
+        self.assertIn("gewaehlt", self.tab.js("document.querySelector('.pjw-schritt[data-schritt=konzept]').className"))
+
+    def test_handy_verlauf_im_schritt_und_kein_seitwaerts(self):
+        self.groesse("handy")
+        self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.tab.js("zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)")
+        self.warten("document.querySelectorAll('.pjw-chips .pjw-chip').length === 2")
+        self.assertFalse(self.tab.js("document.querySelector('.pjw-chips').getBoundingClientRect().right > innerWidth"
+                                     " || [...document.querySelectorAll('.pjw-chips .pjw-chip')].some(x => x.getBoundingClientRect().right > innerWidth)"))
+        self.assertTrue(self.tab.js("(v => v.offsetParent !== null && v.getBoundingClientRect().top >= document.querySelector('.pjw-ansicht').getBoundingClientRect().bottom)"
+                                    "(document.querySelector('.pjw-verlauf-handy'))"))
+        self.assertIn("Verlauf", self.tab.js("document.querySelector('.pjw-verlauf-handy summary').innerText"))
+
+    def test_rundgang(self):
+        for g, th in (("pc", "hell"), ("pc", "dunkel"), ("handy", "hell"), ("handy", "dunkel")):
+            fehler = self.besuchen("projektweg", "projektweg-reste", bereit="document.querySelector('.pjw-schritt')",
+                                   tun="zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)",
+                                   danach="document.querySelector('.pjw-chips')", g=g, t=th)
+            self.assertEqual(fehler, [], f"{g} {th}")
 
 
 class SeiteUebernahme(Rundgang):

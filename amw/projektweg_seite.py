@@ -435,6 +435,17 @@ def _abnahme_dran(con, pid, schritte, dran, f, u, ab, ich):
     return dran
 
 
+def _trotz_offenem_konzept(schritte, g, u, fr):
+    """A2091 (10): wartet wieder eine Fassung im Konzept, gelten die Schritte danach als offen – laufen aber Meilensteine, stimmt die
+    Anzeige ○ nicht: Umsetzung bleibt ●, die angenommene Grobplanung ✓. Nur die Anzeige; wer dran ist und jede Freigabe-Regel bleiben."""
+    je = {x["schritt"]: x for x in schritte}
+    if not any(p["status"] not in ("fertig", "verworfen") for m in u["meilensteine"] for p in m["pakete"]):
+        return
+    for s, z in (("grob", "erledigt" if g["angenommen"] and fr["grob"]["n"] == fr["grob"]["g"] else None), ("umsetzung", "dran")):
+        if z and je[s]["zustand"] == "offen":
+            je[s].update(zustand=z, zeichen=projektweg.ZEICHEN[z])
+
+
 LAUF_SCHRITT = {"gegenlesen": "konzept", "grobplaner": "grob", "feinplaner": "fein", "planer": "fein", "abschluss": "abschluss"}
 
 
@@ -489,6 +500,7 @@ def daten(con, pid):
     g_themen = k["themen"]
     u, ab = umsetzung(f), abschluss(con, pid, fr)
     dran = _abnahme_dran(con, pid, schritte, dran, f, u, ab, ich)
+    _trotz_offenem_konzept(schritte, g, u, fr)
     return {"schritte": schritte, "dran": dran, "zeile": s["zeile"], "konzept": k, "grob": g,
             "fein": f, "umsetzung": u, "abschluss": ab, "fragen": fragen(con, pid),
             "laeufe": laeufe(con, pid),

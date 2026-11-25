@@ -218,7 +218,8 @@ button.pjw-karte:hover { background: var(--flaeche2); }
   .pjw-verlauf-handy .pjw-eintrag { padding: 6px 14px; }
   .pjw-verlauf-handy > summary { cursor: pointer; color: var(--leise); padding: 6px 0; }
   .pjw-seite:not(.offen) .pjw-ansicht { display: none; }
-  .pjw-seite.offen .pjw-schritte, .pjw-seite.offen .pjw-verlauf-handy { display: none; }
+  .pjw-seite.offen .pjw-schritte { display: none; }
+  .pjw-chip { white-space: normal; overflow-wrap: anywhere; text-align: left; max-width: 100%; }
   .pjw-zurueck { display: inline-block; }
   .pjw-zwei { grid-template-columns: minmax(0, 1fr); }
   .pjw-zeile { grid-template-columns: 46px minmax(0, 1fr) auto; }

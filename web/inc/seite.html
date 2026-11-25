@@ -1380,7 +1380,8 @@ button.pjw-karte:hover { background: var(--flaeche2); }
   .pjw-verlauf-handy .pjw-eintrag { padding: 6px 14px; }
   .pjw-verlauf-handy > summary { cursor: pointer; color: var(--leise); padding: 6px 0; }
   .pjw-seite:not(.offen) .pjw-ansicht { display: none; }
-  .pjw-seite.offen .pjw-schritte, .pjw-seite.offen .pjw-verlauf-handy { display: none; }
+  .pjw-seite.offen .pjw-schritte { display: none; }
+  .pjw-chip { white-space: normal; overflow-wrap: anywhere; text-align: left; max-width: 100%; }
   .pjw-zurueck { display: inline-block; }
   .pjw-zwei { grid-template-columns: minmax(0, 1fr); }
   .pjw-zeile { grid-template-columns: 46px minmax(0, 1fr) auto; }
@@ -4804,7 +4805,7 @@ async function sichtProjektweg() {
   const verlauf = el("aside", { class: "pjw-verlauf" }, el("div", { class: "pjw-kopf" }, el("span", { class: "pjw-lbl", style: "flex:1" }, t("pjw_verlauf")), umschalter),
     eintraege.length ? eintraege.map(eintrag) : el("div", { class: "sehrleise" }, alle ? "–" : t("pjw_v_leer")));
   const verlaufHandy = el("details", { class: "pjw-verlauf-handy" }, el("summary", {}, t("pjw_verlauf_n", { n: eintraege.length })), el("div", { class: "pjw-liste" }, eintraege.map(eintrag)));
-  m.append(el("div", { class: "pjw-seite" + (zustand.pwOffen ? " offen" : "") }, schritte, verlaufHandy, el("div", { class: "pjw-weg" }, ansicht, verlauf)));
+  m.append(el("div", { class: "pjw-seite" + (zustand.pwOffen ? " offen" : "") }, schritte, el("div", { class: "pjw-weg" }, ansicht, verlauf), verlaufHandy));   /* A2091: am Handy auch unter dem geöffneten Schritt */
   pwUeberZeichnen(d);
   pwFensterZeichnen();
   pwNachsehen(d);
