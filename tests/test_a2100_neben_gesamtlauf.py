@@ -96,6 +96,14 @@ class Warten(Grund):
         self.assertEqual(self.status(self.leicht()), "angemeldet")
 
 
+    def test_ein_fehler_der_erkennung_steht_im_protokoll(self):
+        g = self.start("Eins", "A", "Gesamtlauf 1.2.3", schwer=False)                 # ohne Befehl: entscheidet freigabereif
+        with mock.patch("amw.freigabereif.ist_gesamtlauf", side_effect=ValueError("kaputt")), self.assertLogs("amw.betrieb", "WARNING") as log:
+            lid = self.leicht()
+        self.assertEqual(self.status(lid), "laeuft")                                  # die Schlange läuft weiter
+        self.assertTrue(any(f"L{g}" in z and "ValueError: kaputt" in z for z in log.output), log.output)
+
+
 class Unberuehrt(Grund):
     def test_ohne_gesamtlauf_wie_bisher(self):
         a, b = self.leicht("B"), self.leicht("C")

@@ -396,7 +396,10 @@ def _gesamt(con, l):
         if b and not freigabereif._gesamtlauf_befehl(con, l["projekt_id"], False):
             return False                                     # nur die Beschreibung bliebe – die nennt einen Gesamtlauf auch im Vorbeigehen
         return bool(freigabereif.ist_gesamtlauf(con, l["projekt_id"], {"befehl": b, "beschreibung": l["beschreibung"]}))
-    except Exception:                                        # noqa: BLE001 – die Schlange läuft auch ohne diese Auskunft
+    except Exception as e:                                   # noqa: BLE001 – die Schlange läuft auch ohne diese Auskunft, aber nicht still
+        import logging
+        logging.getLogger("amw.betrieb").warning("Gesamtlauf-Erkennung ging nicht (L%s zählt nicht als Gesamtlauf) – %s: %s",
+                                                 dict(l).get("id", "?"), type(e).__name__, e)
         return False
 
 
