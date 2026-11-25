@@ -86,6 +86,13 @@ class Disponent(unittest.TestCase):
             time.sleep(0.5)
         self.fail(f"A{aid} blieb {self.zustand(aid)}")
 
+    def entschieden(self, aid, frist=60):
+        for _ in range(frist * 2):
+            if self.con.execute("SELECT 1 FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_entscheidung'", (aid,)).fetchone():
+                return True
+            time.sleep(0.5)
+        return False
+
     def test_ohne_plaetze_nichts(self):
         aid = self.paket()
         with mock.patch("subprocess.Popen") as popen:
@@ -102,13 +109,14 @@ class Disponent(unittest.TestCase):
         v = disponent.vermerk(self.con, self.pid, aid)
         self.assertEqual(v["basis"], g(self.repo, "rev-parse", "main"))                          # Basis vom Vorbereiten
         self.assertEqual(self.warten(aid, ("merge_reihe", "wartet_interaktiv", "abgebrochen", "unklar")), "merge_reihe")
+        self.assertTrue(self.entschieden(aid))                                                     # A2105: danach sichern und archivieren, dann der Entscheid
         e = [json.loads(r[0]) for r in self.con.execute("SELECT text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_entscheidung'",
                                                         (aid,))]
         self.assertEqual([x["zeile"] for x in e], ["E7"])
         lauf = self.con.execute("SELECT status, beschreibung FROM lauf WHERE aufgabe_id = ?", (aid,)).fetchone()
         self.assertEqual((lauf[0], lauf[1]), ("fertig", f"Prüfung C A{aid}"))                     # über die Lauf-Schlange
         self.assertEqual(self.con.execute("SELECT count(*) FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'kosten'", (aid,)).fetchone()[0], 1)
-        self.assertEqual(disponent.belegte_plaetze(self.con, self.pid), {1: aid})                 # Platz bleibt bis zum Merge
+        self.assertEqual(disponent.belegte_plaetze(self.con, self.pid), {})                       # A2105: Platz frei nach E7
         self.assertEqual(disponent.runde(self.con, prog("bauen")), [])                             # nichts Neues zu starten
 
     def test_regel6_zurueckgestellt(self):

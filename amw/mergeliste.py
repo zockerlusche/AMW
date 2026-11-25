@@ -9,7 +9,8 @@ Marcel F5348/B2900/W2382, TL #29096).
   Prüfung als „Prüfung C (AMW) + Freigabe <wer>“ (GRÜN auf genau diesen Kopf, nie ein eigenes Urteil des Prüfers) und das Merge-OK.
   Damit liefert die Kette wie heute aus, und A1875 (jede Aufgabe im Stand GRÜN) greift unverändert.
 - ausgeliefert(): nach der Auslieferung (planautomatik.ausgeliefert) `merge_reihe → gemergt → fertig` und den Platz zurücksetzen
-  (Archiv, nichts gelöscht).
+  (Archiv, nichts gelöscht) – nur, wenn das Paket ihn noch hält. Seit A2105 gibt schon E7 ihn ab: der geprüfte Kopf liegt als
+  refs/amw/paket-A<nr> im Projekt-Repo, von dort liest die Liste und holt das Bündel den Zweig.
 
 Gebündelt (Pakete aufeinander, Versions-Commit, CHANGELOG) wird in Stufe 1 von Hand aus den Zweigen `paket-A<nr>` (TL #29096 F2)."""
 import fnmatch
@@ -147,6 +148,9 @@ def eintrag(con, pid, aid, diff=True):
     if not (kopf and basis and (p or projekt)):
         e["fehler"] = "kein Stand aus Prüfung C (Kopf, Basis oder Platz fehlt)"
         return e
+    from . import waechter
+    if projekt and waechter.angenommen(con, aid):      # A2105: der Platz gehört ihm nicht mehr (dort kann ein anderes Paket laufen)
+        e["platz"] = None
     if projekt:                                    # lesen aus dem Projekt-Repo (gesicherter Ref), nicht vom Platz
         quelle, neutral = kern.projekt_ordner(con, pid), _neutral(con, pid)
 
@@ -291,16 +295,18 @@ def freigeben(con, pid, von, aids=None, blick=()):
 
 
 def ausgeliefert(con, pid, aid, beleg):
-    """Nach der Auslieferung: ein p-Paket in merge_reihe geht über gemergt nach fertig, der Platz wird zurückgesetzt (Archiv).
+    """Nach der Auslieferung: ein p-Paket in merge_reihe geht über gemergt nach fertig, der Platz wird zurückgesetzt (Archiv) – nur,
+    wenn das Paket ihn noch hält: ein angenommenes hat ihn schon abgegeben, dort kann inzwischen ein anderes laufen (A2105).
     Rückgabe: Text oder None (kein p-Paket in merge_reihe)."""
-    from . import arbeitspaket, platz
+    from . import arbeitspaket, platz, waechter
     f = arbeitspaket.lesen(con, aid)
     if f.get("art") != "p" or f.get("zustand") != "merge_reihe":
         return None
+    abgegeben = waechter.angenommen(con, aid)
     arbeitspaket.zustand_setzen(con, pid, "AMW", aid, "gemergt", grund="ausgeliefert")
     arbeitspaket.zustand_setzen(con, pid, "AMW", aid, "fertig", grund="ausgeliefert", beleg=beleg)
     p, _ = _platz(con, pid, aid)
-    if not p:
+    if abgegeben or not p:
         return "gemergt, fertig"
     r = platz.zuruecksetzen(p, projektordner=kern.projekt_ordner(con, pid), aufgabe=aid)
     return f"gemergt, fertig, Platz {p['nr']} frei" + (f" (Archiv {r.get('archiv')})" if r.get("archiv") else "")

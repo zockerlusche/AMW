@@ -21,7 +21,7 @@ from . import db
 
 REGELN = {
     1: "Art p ohne Abnahme-Befehl oder ohne Bereiche",
-    2: "Bereiche überschneiden sich mit einem laufenden Paket",
+    2: "Bereiche überschneiden sich mit einem anderen Paket",
     3: "Art p mit Grafikkarte/Bildschirm oder Gewicht schwer – nicht in Stufe 1",
     4: "alle Arbeitsplätze belegt",
     5: "gesperrte Bereiche im Paket",
@@ -120,12 +120,14 @@ def _ueberschneiden(a, b):
 
 
 def angenommen(con, aid):
-    """A1897 Zusatz 3 (#29493): vom Lead nach E4 angenommen – Stand im Projekt-Repo, Platz schon archiviert. Ein solches Paket
-    in merge_reihe belegt keinen Platz und hält keine Auslieferung an."""
+    """Angenommen – Stand im Projekt-Repo, Platz schon archiviert: vom Lead nach E4 (A1897 Zusatz 3, #29493) oder von der AMW nach
+    E7 (A2105). Ein solches Paket in merge_reihe belegt keinen Platz und hält keine Auslieferung an. platz_frei false: gesichert, aber
+    der Platz ließ sich nicht zurücksetzen – er bleibt belegt."""
     r = con.execute("SELECT text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_entscheidung' ORDER BY id DESC LIMIT 1",
                     (aid,)).fetchone()
     try:
-        return json.loads((r[0] if r else None) or "{}").get("quelle") == "projekt"
+        d = json.loads((r[0] if r else None) or "{}")
+        return d.get("quelle") == "projekt" and d.get("platz_frei", True) is not False
     except ValueError:
         return False
 
@@ -140,6 +142,15 @@ def laufende(con, pid):
     return [{"id": r["id"], "bereiche": bereiche(r["dateibereich"])} for r in belegt(con, con.execute(
         "SELECT a.id, a.dateibereich, k.zustand FROM paket k JOIN aufgabe a ON a.id = k.aufgabe_id WHERE a.projekt_id = ? AND k.art = 'p'"
         f" AND k.zustand IN ({','.join('?' * len(LAUFEND))})", (pid, *LAUFEND)).fetchall(), "id")]
+
+
+def offene_bereiche(con, pid):
+    """A2105: alle p-Pakete, deren Dateien noch nicht ausgeliefert sind – die laufenden und alle bereit zum Merge, auch wenn ihr Platz
+    schon frei ist (sonst gäbe es Konflikte im Bündel): [{"id", "titel", "bereiche", "angenommen"}]."""
+    return [{"id": r["id"], "titel": r["titel"], "bereiche": bereiche(r["dateibereich"]), "angenommen": r["zustand"] == "merge_reihe"}
+            for r in con.execute("SELECT a.id, a.titel, a.dateibereich, k.zustand FROM paket k JOIN aufgabe a ON a.id = k.aufgabe_id"
+                                 f" WHERE a.projekt_id = ? AND k.art = 'p' AND k.zustand IN ({','.join('?' * len(LAUFEND))}) ORDER BY a.id",
+                                 (pid, *LAUFEND)).fetchall()]
 
 
 def _letzte_enden(con, pid, n=2, nach=0):
@@ -225,9 +236,10 @@ def pruefen(con, pid, aid, limit=None):
     if pc["grenze"] and len(pc["arbeiten"]) >= pc["grenze"]:
         return _nein(4, f"wartet auf einen Platz (PC: {len(pc['arbeiten'])} von {pc['grenze']} belegt: "
                         + ", ".join(f"{n} A{a}" for n, a in pc["arbeiten"]) + ")")
-    for x in lauf:
-        if _ueberschneiden(b, x["bereiche"]):
-            return _nein(2, f"mit A{x['id']}")
+    for x in offene_bereiche(con, pid):
+        if x["id"] != aid and _ueberschneiden(b, x["bereiche"]):
+            return _nein(2, f"mit A{x['id']} „{(x['titel'] or '')[:60]}“ – "
+                            + ("angenommen, aber noch nicht ausgeliefert; startet danach" if x["angenommen"] else "läuft noch"))
     return {"ok": True, "regel": None, "grund": None, "warten": False, "hinweis": hinweis}
 
 

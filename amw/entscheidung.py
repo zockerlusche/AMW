@@ -13,6 +13,7 @@ Kosten, Sitzung). Die Meldung des Arbeiters steuert nur, wohin das Paket geht; o
 | E5  | C/rot – erstes Mal                            | laeuft (neuer Lauf)| –                        | –         |
 | E6  | C/rot – nach Nachbesserung                    | wartet_interaktiv  | Prüfer                   | –         |
 | E7  | alles grün                                    | merge_reihe        | (Merge-Freigabe, S6b)    | –         |
+|     | (A2105: Kopf ins Projekt-Repo gesichert, Platz ins Archiv und frei – nicht erst nach der Auslieferung)           |
 | E8  | nach dem Zusammenführen rot / Konflikt        | wartet_interaktiv  | Prüfer                   | –         |
 
 „Prüfer“ = Projekt-Einstellung paket_pruefer (der operative Lead, z. B. ein Prüf-Agent), sonst der Lead.
@@ -121,7 +122,8 @@ def nachricht(zeile, code, aid, titel, lauf, meldung, befund, notiz=None):
 
 def anwenden(con, pid, aid, zeile, code, lauf=None, meldung=None, befund=None, p=None, quelle=None):
     """Zustand nach der Zeile setzen (über die erlaubten Übergänge), protokollieren, Empfänger benachrichtigen, Platz bei
-    E1/E1n/E2/E3/E4/E6 ins Archiv (nichts gelöscht). Rückgabe {"zeile", "code", "zustand", "an", "archiv"}."""
+    E1/E1n/E2/E3/E4/E6 ins Archiv (nichts gelöscht), bei E7 ebenso, wenn der geprüfte Kopf vorher im Projekt-Repo gesichert ist
+    (A2105). Rückgabe {"zeile", "code", "zustand", "an", "archiv"}."""
     from . import arbeitspaket, db, kern, platz
     z = ZEILEN[zeile]
     titel = (con.execute("SELECT titel FROM aufgabe WHERE id = ?", (aid,)).fetchone() or [""])[0]
@@ -137,6 +139,9 @@ def anwenden(con, pid, aid, zeile, code, lauf=None, meldung=None, befund=None, p
             gesichert = mergeliste.kopf_sichern(con, pid, aid, pruefung_c.repo(p), befund["kopf"]) and mergeliste.gesichert(aid)
         except Exception as e:                                   # noqa: BLE001 – die Entscheidung gilt trotzdem; Befund melden
             notiz = f"Stand nicht gesichert: {type(e).__name__}: {e}"
+    frei = None
+    if zeile == "E7" and p is not None and (befund or {}).get("kopf"):
+        gesichert, archiv, frei, notiz = _platz_frei(con, pid, aid, p, quelle, befund["kopf"])
     if z["archiv"] and p is not None:
         from . import arbeiter
         try:
@@ -149,14 +154,34 @@ def anwenden(con, pid, aid, zeile, code, lauf=None, meldung=None, befund=None, p
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="paket_entscheidung", aufgabe_id=aid,
                      text=json.dumps({"zeile": zeile, "code": code, "an": an, "archiv": archiv, "kopf": (befund or {}).get("kopf"),
-                                      "gesichert": gesichert, **({"ohne_regression": befund["ohne_regression"]}
+                                      "gesichert": gesichert,
+                                      **({"quelle": "projekt", "platz_frei": frei} if frei is not None else {}),   # A2105
+                                      **({"ohne_regression": befund["ohne_regression"]}
                                                                  if (befund or {}).get("ohne_regression") else {}),
                                       **({"riskant": (befund or {})["riskant_beleg"]} if (befund or {}).get("riskant_beleg") else {})},   # A2054
                                      ensure_ascii=False))
         if an:
             kern._posten(con, pid, "AMW", an, "info" if zeile == "E1n" else "meldung", f"{zeile} {code}: A{aid} {titel}"[:140], text,
                          aufgabe_id=aid)
+        elif zeile == "E7" and notiz and (lead := kern.lead(con, pid)):            # A2105: nur der Fehlerfall – sonst sagt E7 nichts
+            kern._posten(con, pid, "AMW", lead, "meldung", f"A{aid} angenommen, Platz {p['nr']} bleibt belegt"[:140],
+                         f"{notiz}\nDas Paket ist bereit zum Merge. Der Platz wird mit der Auslieferung frei.", aufgabe_id=aid)
     return {"zeile": zeile, "code": code, "zustand": z["zustand"], "an": an, "archiv": archiv}
+
+
+def _platz_frei(con, pid, aid, p, quelle, kopf):
+    """A2105: nach E7 den geprüften Kopf ins Projekt-Repo sichern (kopf_sichern vergleicht ihn) und erst dann den Platz ins Archiv
+    zurücksetzen. (Ref, Archiv, frei, Notiz): frei None = nicht gesichert – alles bleibt wie bisher am Platz; False = gesichert, aber
+    der Platz ließ sich nicht zurücksetzen und bleibt belegt."""
+    from . import mergeliste, platz, pruefung_c
+    try:
+        mergeliste.kopf_sichern(con, pid, aid, pruefung_c.repo(p), kopf)
+    except Exception as e:                                       # noqa: BLE001 – die Annahme gilt trotzdem; der Platz bleibt belegt
+        return None, None, None, f"Stand nicht gesichert: {type(e).__name__}: {e}"
+    try:
+        return mergeliste.gesichert(aid), platz.zuruecksetzen(p, projektordner=quelle, aufgabe=aid).get("archiv"), True, None
+    except Exception as e:                                       # noqa: BLE001
+        return mergeliste.gesichert(aid), None, False, f"Platz nicht zurückgesetzt: {type(e).__name__}: {e}"
 
 
 STILLE_MIN, RUNDEN = 20, 15                                   # Vorgaben (§7), je Projekt: haenge_stille_min, haenge_runden
