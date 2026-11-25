@@ -79,7 +79,7 @@ class Seite(Rundgang):
         self.a = planung.schritt_setzen(self.con, self.pid, "TL", titel="Paket", bogen_id=self.b[1], agent="CC1")
 
     def test_planung_und_start_ohne_interne_nummer(self):
-        verboten = re.compile("|".join(rf"(?:Meilenstein |\bM){x}\b" for x in self.b))
+        verboten = re.compile("|".join(rf"(?:Meilenstein |\b[MB]){x}\b" for x in self.b))
         for sicht, bereit in (("start", "document.querySelector('.ue-bogen')"), ("planung", "document.querySelector('main').innerText.includes('Bauen 2')"),
                               ("dokumente", "document.querySelector('main select')")):
             self.oeffnen(sicht, bereit)

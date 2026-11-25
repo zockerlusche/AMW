@@ -416,7 +416,7 @@ function uebersicht(d) {
     c.font = `12px ${getComputedStyle(document.body).fontFamily}`; return x => c.measureText(x).width; })();
   for (const z of zeilen.slice().sort((a, b) => rang(a) - rang(b) || a.start.localeCompare(b.start) || a.e85.localeCompare(b.e85))) {
     z.a = tagNr(z.start); z.m = tagNr(z.e50); z.e = Math.max(tagNr(z.e85), z.m); z.zn = z.ziel ? tagNr(z.ziel) : null; z.t = z.e + z.pause;
-    const name = Math.min(mass(`B${z.b.id}  ${z.b.titel}`) + 14, 254);
+    const name = Math.min(mass(`${bogenRef(z.b.id)}  ${z.b.titel}`) + 14, 254);
     z.aussen = (z.e - z.a) * pxTag < name;
     const links = Math.min(z.a, z.zn ?? z.a), rechts = Math.max(z.t, z.zn === null ? 0 : Math.min(z.zn, bis), z.a + 36 / pxTag,
       z.aussen ? z.t + (name + 6) / pxTag : 0);
@@ -437,7 +437,7 @@ function uebersicht(d) {
   const ende50 = offen.map(z => z.e50).sort().pop(), ende85 = offen.map(z => z.e85).sort().pop();
   const uhrJetzt = new Date().toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" });
   /* Läuft die Jetzt-Linie durch den Namen im Balken? Dann beginnt der Name rechts von der Linie */
-  const jetztDurch = z => { const off = (tagNr(d.heute) - z.a) * pxTag; return off > -4 && off < Math.min(mass(`B${z.b.id}  ${z.b.titel}`) + 8, (z.e - z.a) * pxTag); };
+  const jetztDurch = z => { const off = (tagNr(d.heute) - z.a) * pxTag; return off > -4 && off < Math.min(mass(`${bogenRef(z.b.id)}  ${z.b.titel}`) + 8, (z.e - z.a) * pxTag); };
   const jetztTip = [t("ue_jetzt_tip", { x: `${datumKurz(d.heute)} ${uhrJetzt}` }),
     ...(d.laeuft || []).map(a => `${a.agent || "–"} → A${a.id} ${a.titel}`)].join("\n");
   /* Rechner: je Tag ein Stück auf derselben Achse – so hoch, wie viele Stunden er mit Läufen belegt war (8 Stunden = voll) */
@@ -462,12 +462,12 @@ function uebersicht(d) {
         el("i", { class: "ueb-b50", style: `width:${lang ? (100 * (z.m - z.a) / lang).toFixed(1) : 100}%` }),
         z.e > z.m ? el("i", { class: "ueb-b85", style: `left:${(100 * (z.m - z.a) / lang).toFixed(1)}%` }) : null,
         z.aussen ? null : el("span", { class: "ueb-label", style: jetztDurch(z) ? `left:${Math.round((tagNr(d.heute) - z.a) * pxTag + 7)}px` : null },   /* nie durch den Text (TL #24368) */
-          el("b", {}, (b.status === "fertig" ? "✓ " : "") + "B" + b.id), b.titel, ...pillen()))];
+          el("b", {}, (b.status === "fertig" ? "✓ " : "") + bogenRef(b.id)), b.titel, ...pillen()))];
       if (z.pause) teile.push(el("i", { class: "ueb-token", "data-b": b.id, style: `left:${pos(z.e)};top:${oben}px;width:${breite(z.e, z.t)}`,
         title: `${bogenRef(b.id)} · ${TKZ} ${t("tk_plus", { n: z.pause, x: datumKurz(b.prognose.p50_mit) })}\n${tokenRechenweg(d.token)}` }, el("b", {}, TKZ)));
       if (z.aussen) teile.push(el("span", { class: "ueb-name " + art, title: tip, onclick: () => zuSchritt(null, b.id),
         style: `left:calc(${pos(z.t)} + 5px);top:${oben + 2}px;max-width:min(250px, calc(100% - ${pos(z.t)} - 8px))` },
-        el("b", {}, (b.status === "fertig" ? "✓ " : "") + "B" + b.id), b.titel, ...pillen()));
+        el("b", {}, (b.status === "fertig" ? "✓ " : "") + bogenRef(b.id)), b.titel, ...pillen()));
       if (z.zn !== null) {
         const bisZiel = Math.min(z.zn, bis);
         if (bisZiel > z.e) teile.push(el("i", { class: "ueb-puffer", style: `left:${pos(z.e)};width:${breite(z.e, bisZiel)};top:${oben + 19}px` }));
@@ -502,7 +502,7 @@ function uebersicht(d) {
         style: `left:${pos(tagNr(x.tag) - .5)};width:${breite(0, 1)};height:${Math.round(100 * Math.min(1, Math.max(.2, x.stunden / 8)))}%` }))) : null,
     ohne.length ? el("div", { class: "ueb-ohne-liste" }, el("span", { class: "sehrleise" }, t("ue_ohne_prognose")),
       ohne.map(z => el("button", { type: "button", title: z.ziel ? `${t("pl_zieldatum")} ${datumKurz(z.ziel)}` : "", onclick: () => zuSchritt(null, z.b.id) },
-        el("span", { class: "ref" }, "B" + z.b.id), " " + z.b.titel))) : null,
+        el("span", { class: "ref" }, bogenRef(z.b.id)), " " + z.b.titel))) : null,
     el("div", { class: "ueb-legende" },
       el("span", {}, el("i", { class: "ueb-muster geplant" }), t("lg_geplant")), el("span", {}, el("i", { class: "ueb-muster aktiv" }), t("lg_arbeit")),
       zeilen.some(z => z.b.status !== "fertig" && z.b.prognose?.ampel === "gelb") ? el("span", {}, el("i", { class: "ueb-muster knapp" }), t("lg_knapp")) : null,
