@@ -296,7 +296,7 @@ class Seite(Rundgang):
 
     def daten(self):
         kern.agent_neu(self.con, self.pid, "CC1")
-        self.th = themen.neu(self.con, self.pid, "TL", "Anmeldung", pfleger="TL")
+        self.th = 12                                                         # ohne Themen zeigt die Planung die Meilenstein-Karten gleich
         self.m = planung.bogen_neu(self.con, self.pid, "TL", "Anmelden", abnahme="Vorführung")
         self.a = planung.schritt_setzen(self.con, self.pid, "TL", titel="Abmelden oben rechts", bogen_id=self.m, agent="CC1")
         self.b = planung.schritt_setzen(self.con, self.pid, "TL", titel="Passwort vergessen", bogen_id=self.m, agent="CC1")
