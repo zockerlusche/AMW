@@ -84,7 +84,8 @@ class Vorrang(Grund):
         self.assertEqual(workbench._themen_fuer_dich(self.con, self.pid), [])               # F5359 A: erst die KI
         themen.bestaetigen(self.con, self.pid, "CC1", self.tid)                               # der Pfleger: gilt weiter
         self.um(3)
-        self.assertEqual(self.st()["status"], "dich")
+        self.assertEqual(self.st()["status"], "frei")
+        self.assertEqual(workbench._themen_fuer_dich(self.con, self.pid), [])
 
     def test_vorlage_durch_neuen_beschluss_ueberholt_in_arbeit(self):
         self.vorlage(0)

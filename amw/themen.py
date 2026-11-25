@@ -152,14 +152,19 @@ def pflegen(con, pid, von, name, text):
 
 
 def bestaetigen(con, pid, von, name):
+    """„Gilt weiter“ ohne Textänderung (Pfleger oder Lead). F5359 A: ein vom Menschen freigegebenes Thema bleibt freigegeben und
+    „neu prüfen“ ist aufgehoben; sonst wartet die Fassung wie eine Vorlage auf den Menschen (die Auslegung steht in _status)."""
     t = finden(con, pid, name)
     _lead_oder_pfleger(con, pid, von, t, "Zusammenfassung bestätigen")
     if not _fassung(con, t["id"]):
         raise kern.AmwFehler("es gibt noch keine Zusammenfassung – amw thema pflegen …")
+    vorher = tor(con, pid)
     with db.schreiben(con):
         con.execute("UPDATE thema SET bestaetigt_utc = ?, bestaetigt_von = ? WHERE id = ?", (db.jetzt(), von, t["id"]))
-        if von != kern.ENTWICKLER:                   # A1896: gilt weiter → als Vorlage dem Menschen zeigen
-            _ereignis(con, pid, von, "vorgelegt", t["id"], fassung=_fassung(con, t["id"])["nr"], bestaetigt=True)
+        if von != kern.ENTWICKLER:                   # A1896/A2130: wer, wann, welche Fassung und bis zu welchem Beschluss
+            bis = con.execute("SELECT coalesce(max(id), 0) FROM beschluss").fetchone()[0]
+            _ereignis(con, pid, von, "vorgelegt", t["id"], fassung=_fassung(con, t["id"])["nr"], bestaetigt=True, bis_beschluss=bis)
+            _tor_nachher(con, pid, von, vorher)      # A1913: hebt sie das letzte „neu prüfen“ auf, schließt das Tor wieder
 
 
 def dokument(con, pid, von, name, did, loesen=False):
@@ -256,9 +261,11 @@ def _ereignis(con, pid, von, art, tid, regel=False, **extra):
                  text=json.dumps({"thema": tid, **extra}, ensure_ascii=False))
 
 
-def _neuer_beschluss(con, t, seit):
+def _neuer_beschluss(con, t, seit, bis=None):
+    """Der erste geltende Beschluss nach der Zeit `seit` – mit `bis` (B-Nummer) auch ein späterer in derselben Sekunde (A2130)."""
     return con.execute("SELECT id, stichwort, angelegt_utc FROM beschluss WHERE projekt_id = ? AND thema = ? COLLATE NOCASE"
-                       " AND status = 'gilt' AND angelegt_utc > ? ORDER BY id LIMIT 1", (t["projekt_id"], t["name"], seit)).fetchone()
+                       " AND status = 'gilt' AND (angelegt_utc > ? OR (angelegt_utc = ? AND id > ?)) ORDER BY id LIMIT 1",
+                       (t["projekt_id"], t["name"], seit, seit, 2 ** 62 if bis is None else bis)).fetchone()
 
 
 def status(con, t):
@@ -271,7 +278,9 @@ def _status(con, t):
     """{"status", "text", "grund", "markiert", "fassung", "freigegeben"} nach festem Vorrang (D1326 A16):
     1 Löschen markiert (Flag, Status darunter bleibt) → 2 wartet auf dich: die neueste Fassung ist eine Vorlage eines Agenten (oder
     seine Bestätigung) ohne Freigabe/Zurück/Bearbeitung danach → 3 neu prüfen: nach der letzten Freigabe kam ein neuer Beschluss →
-    4 freigegeben: die letzte Freigabe zeigt auf die neueste Fassung → 5 in Arbeit. Der Grund ist ein abgeleiteter Wert."""
+    4 freigegeben: die letzte Freigabe zeigt auf die neueste Fassung → 5 in Arbeit. Der Grund ist ein abgeleiteter Wert.
+    A2130 (F5359 A): die Bestätigung genau der Fassung, die der Mensch zuletzt selbst freigegeben hat, ist keine Vorlage – sie hebt
+    „neu prüfen“ auf, bis danach wieder ein Beschluss kommt."""
     f = _fassung(con, t["id"])
     nr = f["nr"] if f else None
     ev = _ereignisse(con, t["projekt_id"], t["id"])
@@ -284,15 +293,23 @@ def _status(con, t):
     # Reihenfolge: (Zeit, Ereignis-Nummer) – bei gleicher Sekunde gilt das spätere Ereignis; Fassungen ohne Ereignis (vor A1896)
     # zählen mit Nummer 0
     vorlagen = [(f["zeit_utc"], 0)] if f and f["von"] != kern.ENTWICKLER else []
-    vorlagen += [(e["zeit_utc"], e["id"]) for e in ev if e["art"] == EREIGNIS["vorgelegt"]]
-    if t["bestaetigt_utc"] and t["bestaetigt_von"] != kern.ENTWICKLER:
-        vorlagen.append((t["bestaetigt_utc"], 0))
-    letzte_vorlage = max(vorlagen) if vorlagen else None
+    vorgelegt = [e for e in ev if e["art"] == EREIGNIS["vorgelegt"]]
+    bestaetigt = [(e["zeit_utc"], e["id"], e.get("bis_beschluss")) for e in vorgelegt if e.get("bestaetigt") and e.get("fassung") == nr]
+    if t["bestaetigt_utc"] and t["bestaetigt_von"] != kern.ENTWICKLER:        # auch ohne Ereignis (vor A1896)
+        bestaetigt.append((t["bestaetigt_utc"], 0, None))
     letzte_mensch = mensch[-1] if mensch else None
     freigaben = [e for e in mensch if e["art"] == EREIGNIS["freigegeben"]
                  or (BEARBEITEN_GIBT_FREI and e["art"] == EREIGNIS["bearbeitet"])]
     letzte_frei = freigaben[-1] if freigaben else None
     frei_nr = letzte_frei.get("fassung") if letzte_frei else None
+    frei_gilt = letzte_frei is not None and nr is not None and frei_nr == nr and letzte_mensch is letzte_frei
+    # A2130: nur die Freigabe des Menschen selbst trägt eine Bestätigung (die von Co und Lead schreibt AMW – dort wie bisher)
+    selbst = [e for e in mensch if e["von"] == kern.ENTWICKLER]
+    bleibt_frei = frei_gilt and bool(selbst) and selbst[-1] in freigaben and selbst[-1].get("fassung") == nr
+    vorlagen += [(e["zeit_utc"], e["id"]) for e in vorgelegt if not (bleibt_frei and e.get("bestaetigt"))]
+    if not bleibt_frei:
+        vorlagen += [x[:2] for x in bestaetigt]
+    letzte_vorlage = max(vorlagen) if vorlagen else None
     st, grund, liest = "arbeit", None, None
     if letzte_vorlage and (not letzte_mensch or letzte_vorlage > (letzte_mensch["zeit_utc"], letzte_mensch["id"])):
         st = "dich"
@@ -304,8 +321,11 @@ def _status(con, t):
             g = gegenlesen.laeuft(con, t["projekt_id"], t["id"], nr)
             if g:
                 st, liest = "arbeit", {"seit_utc": g["zeit_utc"], "modell": g.get("modell"), "fassung": nr}
-    elif letzte_frei and nr is not None and frei_nr == nr and letzte_mensch is letzte_frei:
-        b = _neuer_beschluss(con, t, letzte_frei["zeit_utc"])
+    elif letzte_frei and frei_gilt:
+        seit = (letzte_frei["zeit_utc"], letzte_frei["id"], None)
+        if bleibt_frei:                                # „gilt weiter“ nach der Freigabe: erst ein Beschluss danach zählt
+            seit = max([seit, *bestaetigt], key=lambda x: x[:2])
+        b = _neuer_beschluss(con, t, seit[0], seit[2])
         if b:
             st, grund = "pruefen", f"B{b['id']} · {b['angelegt_utc'][8:10]}.{b['angelegt_utc'][5:7]}."
         else:
