@@ -6,6 +6,7 @@ nichts wird doppelt gespeichert, der Altbestand erscheint mit:
 - Umsetzung (nur Pakete mit Meilenstein): zugeteilt, gestartet (Headless je Start, Fenster der erste Start), abgegeben, Prüfung
   grün/rot, fertig/verworfen (nur der letzte Abschluss), ausgeliefert, Meilenstein gestartet.
 - Abschluss: Prüfung angestoßen und Ergebnis, bereit zur Abnahme, abgeschlossen.
+- Pause (A2137, in Umsetzung): an (Grund, Ende) und aufgehoben, auch durch die AMW nach dem Ende.
 Je Tatsache genau eine Quelle: ein Headless-Start steht in headless_start (davor paket_zustand), nicht noch einmal aus begonnen_utc;
 eine Entscheidung der AMW steht nur da, wenn es zum Paket keine Prüfung in der Tabelle pruefung gibt.
 
@@ -22,7 +23,7 @@ ROH = 500                        # so viele jüngste Rohzeilen je Quelle
 GRENZE = 120                     # so viele Einträge je Schritt zeigt die Seite
 BUENDEL_S = 10 * 60
 TITEL_MAX = 70                   # gekürzt wird der Titel, nicht der Satz – was geschah, bleibt lesbar; ganz auf Klick
-RANG = ("weg", "feinplan_angestossen", "feinplan_entwurf", "delta", "ms_start", "schieben", "schieben_ende", "pruefpunkt", "pruefpunkt_ende", "agent", "verteilt", "start", "abgabe", "pruefung", "entscheidung", "abschluss",
+RANG = ("weg", "feinplan_angestossen", "feinplan_entwurf", "delta", "ms_start", "schieben", "schieben_ende", "pruefpunkt", "pruefpunkt_ende", "agent", "pause", "verteilt", "start", "abgabe", "pruefung", "entscheidung", "abschluss",
         "auslieferung", "ab_angestossen", "ab_bereit", "ab_ergebnis", "ms_fertig")
 # Art → (ein Paket, mehrere); {m} Meilenstein, {t} Titel, {n} Anzahl, {x} Zusatz
 TEXTE = {
@@ -230,7 +231,30 @@ def _agenten(con, pid):
     return aus
 
 
-DELTA = ("thema_delta_stimme", "thema_delta_angewandt", "thema_delta_start")
+def _pausen(con, pid):
+    """A2137: Pause an und aus – wer, Grund, Ende in Ortszeit; von „AMW“ aufgehoben heißt: das Ende war erreicht."""
+    from . import pause
+    aus = []
+    for r in _neueste(con, "SELECT id, zeit_utc, von, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?) ORDER BY id DESC",
+                      (pid, pause.AN, pause.AUS)):
+        if r["art"] == pause.AUS:
+            text = "Pause aufgehoben" + (" – Ende erreicht" if r["von"] == "AMW" else "")
+        else:
+            d = _json(r["text"])
+            grund = " ".join((d.get("grund") or "").split())
+            text = "Pause für alles" + (f" bis {_ortszeit(d['bis'], r['zeit_utc'])}" if d.get("bis") else "")
+            text += f" – {grund}" if grund and grund != "Pause" else ""       # „Pause“ setzt pause.an, wenn keiner genannt ist
+        aus.append(_eintrag("pause", r["id"], r["zeit_utc"], _rolle(r["von"]), r["von"], r["art"], "umsetzung", None, None, text=text))
+    return aus
+
+
+def _ortszeit(bis, seit):
+    """HH:MM; liegt das Ende an einem anderen Tag als der Eintrag, mit Datum davor."""
+    ende = db.utc_lesen(bis).astimezone()
+    return ende.strftime("%H:%M" if ende.date() == db.utc_lesen(seit).astimezone().date() else "%d.%m. %H:%M")
+
+
+DELTA = ("thema_delta_stimme","thema_delta_angewandt", "thema_delta_start")
 _ROLLE = {"co": "Co-Entwickler", "lead": "Lead"}
 
 
@@ -332,7 +356,7 @@ def gesamt(con, pid, weg, schritt_von, grenze=GRENZE):
     """Der ganze Verlauf: die Einträge aus verlauf.projektweg (`weg`, schon gebündelt) und die abgeleiteten, älteste zuerst, höchstens
     `grenze` je Schritt. schritt_von(eintrag) → Schritt eines Eintrags aus `weg`."""
     alle = [{**e, "schritt": schritt_von(e), "rang": (0, e["id"]), "zusatz": None, "nummer": None, "titel": None, "ms": None} for e in weg]
-    for quelle in (_umsetzung, _auslieferung, _feinplan, _delta, _abschluss, _eingriffe, _pruefpunkte, _agenten):
+    for quelle in (_umsetzung, _auslieferung, _feinplan, _delta, _abschluss, _eingriffe, _pruefpunkte, _agenten, _pausen):
         alle += quelle(con, pid)
     alle.sort(key=lambda x: (x["zeit"], x["rang"]))
     je, aus = {}, zusammenfassen(alle)
