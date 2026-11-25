@@ -18,7 +18,7 @@
   },
   {
    "titel": "Leicht oder schwer – immer angeben",
-   "text": "`--leicht` für normales Bauen und Testen: läuft parallel (Einstellungen › Dieser PC › „Gleichzeitige leichte Läufe“) und wartet nie auf schwere Läufe. `--schwer` für KI, Grafikkarte, Fenster oder viel Speicher: läuft einzeln. Fehlt beides, lehnt die AMW den Lauf mit dieser Erklärung ab; ein Rezept bringt seine Art mit. Ein Agent rechnet nie zwei Läufe zugleich – beide im selben Ordner gingen schief.",
+   "text": "`--leicht` für normales Bauen und Testen: läuft parallel (Einstellungen › Dieser PC › „Gleichzeitige leichte Läufe“) und wartet nie auf schwere Läufe. `--schwer` für KI, Grafikkarte, Fenster oder viel Speicher: läuft einzeln. Fehlt beides, lehnt die AMW den Lauf mit dieser Erklärung ab; ein Rezept bringt seine Art mit. Ein Agent rechnet nie zwei Läufe zugleich – beide im selben Ordner gingen schief. Läuft oder wartet im Projekt ein Gesamtlauf, wartet ein leichter Lauf von selbst, bis er zu Ende ist. Dringendes rechnet mit `--neben \"Grund\"` trotzdem; der Lead sieht den Grund.",
    "bilder": []
   },
   {
