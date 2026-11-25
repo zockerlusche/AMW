@@ -25,7 +25,7 @@
   },
   {
    "titel": "Aufgaben ohne Meilenstein zuordnen",
-   "text": "Ganz unten in der Zeitleiste steht „Ohne Meilenstein (n)“ mit allen offenen Aufgaben, die zu keinem Meilenstein gehören. Zuordnen: `amw aufgabe aendern <nr> --bogen <nr>`.",
+   "text": "Ganz unten in der Zeitleiste steht „Ohne Meilenstein (n)“ mit allen offenen Aufgaben, die zu keinem Meilenstein gehören. Zuordnen: `amw aufgabe aendern <nr> --bogen M<nr>`.",
    "bilder": []
   }
  ],
@@ -38,7 +38,7 @@
  "fehler": [
   [
    "„Zu welchem Meilenstein gehört die Aufgabe?“",
-   "Der Lead legt eine Aufgabe an, und es gibt einen aktiven oder geplanten Meilenstein. Die Meldung listet sie auf und macht einen Vorschlag. Mit `--bogen <nr>` zuordnen oder bewusst mit `--ohne-bogen` darauf verzichten."
+   "Der Lead legt eine Aufgabe an, und es gibt einen aktiven oder geplanten Meilenstein. Die Meldung listet sie auf und macht einen Vorschlag. Mit `--bogen M<nr>` zuordnen oder bewusst mit `--ohne-bogen` darauf verzichten."
   ],
   [
    "„Kein Meilenstein ist aktiv“",
@@ -75,7 +75,7 @@
   ],
   [
    "Kann ich neue Aufgaben erst sammeln und dann einplanen?",
-   "Ja: Einstellungen › Projekt › „Neue Aufgaben landen“ auf „im Eingang“. Dann landen neue Aufgaben ohne Meilenstein im Eingang (derselbe wie „im Eingang“ im Leitstand); die Planung zeigt sie oben unter „Eingang (n)“. Der Lead zieht sie bewusst in einen Meilenstein: `amw aufgabe aendern <nr> --bogen <nr>`. Wer beim Anlegen `--bogen` nennt – etwa weil die Aufgabe für die Abnahme nötig ist –, landet direkt im Meilenstein."
+   "Ja: Einstellungen › Projekt › „Neue Aufgaben landen“ auf „im Eingang“. Dann landen neue Aufgaben ohne Meilenstein im Eingang (derselbe wie „im Eingang“ im Leitstand); die Planung zeigt sie oben unter „Eingang (n)“. Der Lead zieht sie bewusst in einen Meilenstein: `amw aufgabe aendern <nr> --bogen M<nr>`. Wer beim Anlegen `--bogen` nennt – etwa weil die Aufgabe für die Abnahme nötig ist –, landet direkt im Meilenstein."
   ],
   [
    "Was zeigen „Meilensteine“ und „Pakete“?",
@@ -91,11 +91,15 @@
   ],
   [
    "Was passiert, wenn ein Meilenstein fertig ist?",
-   "Bevor er „bereit zur Abnahme“ steht, laufen der Gesamttest des Projekts und ein Prüfer: Er gleicht jedes Thema des Meilensteins gegen das Gebaute ab und bereitet die Vorführung vor – beides steht danach im Abschlussbericht. Fehlt etwas oder ist der Test rot, legt die AMW Nacharbeit im selben Meilenstein an und startet sie gleich, du bekommst eine Info. Bei der Abnahme kannst du statt „Ja“ auch Nacharbeit anfordern (`amw bogen nacharbeit N --hinweis „was fehlt“`): der Planer plant neue Pakete dazu, sie starten ohne weiteres Ja."
+   "Bevor er „bereit zur Abnahme“ steht, laufen der Gesamttest des Projekts und ein Prüfer: Er gleicht jedes Thema des Meilensteins gegen das Gebaute ab und bereitet die Vorführung vor – beides steht danach im Abschlussbericht. Fehlt etwas oder ist der Test rot, legt die AMW Nacharbeit im selben Meilenstein an und startet sie gleich, du bekommst eine Info. Bei der Abnahme kannst du statt „Ja“ auch Nacharbeit anfordern (`amw bogen nacharbeit N --hinweis „was fehlt“`): der Planer plant neue Pakete dazu, sie starten ohne weiteres Ja. „Wartet auf dich“ steht erst da, wenn du abnehmen kannst: fehlt die Prüfung oder ging sie nicht, klärt das der Lead (`amw bogen pruefung-starten N`), und du siehst nur, wie es steht. Ohne Lead im Projekt bist du dran."
+  ],
+  [
+   "Was ist ein laufender Meilenstein?",
+   "Einer ohne natürliches Ende, zum Beispiel Wartung. Lead oder Mensch schaltet ihn mit `amw bogen laufend N an`; er kommt dann erst zur Abnahme, wenn er mit `amw bogen vorlegen N` vorgelegt wird (ohne offene Pakete, mit derselben Prüfung wie sonst). Kommt danach ein Paket dazu, gilt die Vorlage nicht mehr. Er hält die Planung des nächsten Meilensteins nicht auf. Mit `amw bogen laufend N aus` wird er wieder ein normaler Meilenstein."
   ],
   [
    "Was zeigt die Seite „Projektweg“?",
-   "Den ganzen Weg in fünf Schritten – Konzept, Grobplanung, Feinplanung, Umsetzung, Abschluss – als Leiste: ✓ erledigt, ● dran, ○ noch nicht; „wartet auf dich“ steht nur, wenn dein Ja fehlt. Ein Klick auf einen Schritt zeigt ihn: im Grobplan jede Fassung des Planers mit Änderungen gegenüber der vorigen, im Feinplan die Pakete in Stufen mit „wer“ (Headless oder Fenster-Agent), in der Umsetzung den Stand je Paket und die Fragen des Leads, im Abschluss Gesamttest, Prüfung gegen das Konzept und Vorführung. Ein Klick auf Thema, Meilenstein oder Paket öffnet die Einzelheiten rechts (Esc schließt); dort geht ein Hinweis an den Planer, „Überarbeiten lassen“ gibt ihn weiter. Läuft ein Planer, zeigt ein Fenster seinen Fortschritt und schließt sich, sobald das Ergebnis da ist. Rechts steht der Verlauf: wer wann was getan hat – je Schritt gefiltert, oben umschaltbar auf alle Schritte; Langes öffnet ein Klick. Abnehmen geht erst mit vollständiger Prüfliste (Gesamttest, Prüfung gegen das Konzept, Abschlussbericht); alle wartenden Meilensteine stehen untereinander. Hat ein Projekt schon Meilensteine aus der Zeit vor dem Grobplan, zeigt die Grobplanung diesen Bestand. Freigeben geht am PC, online liest du mit."
+   "Den ganzen Weg in fünf Schritten – Konzept, Grobplanung, Feinplanung, Umsetzung, Abschluss – als Leiste: ✓ erledigt, ● dran, ○ noch nicht; „wartet auf dich“ steht nur, wenn dein Ja fehlt. Ein Klick auf einen Schritt zeigt ihn: im Grobplan jede Fassung des Planers mit Änderungen gegenüber der vorigen, im Feinplan die Pakete in Stufen mit „wer“ (Headless oder Fenster-Agent), in der Umsetzung den Stand je Paket und die Fragen des Leads, im Abschluss Gesamttest, Prüfung gegen das Konzept und Vorführung. Ein Klick auf Thema, Meilenstein oder Paket öffnet die Einzelheiten rechts (Esc schließt); dort geht ein Hinweis an den Planer, „Überarbeiten lassen“ gibt ihn weiter. Läuft ein Planer, zeigt ein Fenster seinen Fortschritt und schließt sich, sobald das Ergebnis da ist. Rechts steht der Verlauf: wer wann was getan hat – je Schritt gefiltert, oben umschaltbar auf alle Schritte; Langes öffnet ein Klick. Abnehmen geht erst mit vollständiger Prüfliste (Gesamttest, Prüfung gegen das Konzept, Abschlussbericht). Die AMW prüft dafür selbst, ob die Commits der Pakete ausgeliefert sind, und der Prüfer sieht den Code. Je Thema steht „erfüllt“, „nicht erfüllt“ oder „nicht prüfbar“ da, Einzelheiten auf Klick. Gibt es Vorbehalte, stehen sie über dem Knopf „Trotz Vorbehalt abnehmen“, der noch einmal nachfragt; Co-Entwickler und Lead können dann nicht allein abnehmen. Alle wartenden Meilensteine stehen untereinander. Hat ein Projekt schon Meilensteine aus der Zeit vor dem Grobplan, zeigt die Grobplanung diesen Bestand. Freigeben geht am PC, online liest du mit."
   ],
   [
    "Die fünf Tore",
