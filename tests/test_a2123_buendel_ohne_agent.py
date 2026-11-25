@@ -203,7 +203,7 @@ class Abbruch(Grund):
         self.p_paket("Plus", T1, {"lib/a.py": "A = 1\n"})
         waechter.wartung_an("von Hand")
         self.assertEqual(self.los(), "abgebrochen")
-        self.assertEqual(waechter.zustand()["wartung"]["grund"], "von Hand")
+        self.assertEqual((waechter.zustand()["wartung"] or {}).get("grund"), "von Hand")
 
 
 class Anstossen(Grund):
