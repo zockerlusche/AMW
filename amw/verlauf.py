@@ -71,7 +71,8 @@ def ereignis(con, pid, rolle, text, von=None, aufgabe_id=None, bogen_id=None, ze
                                                   (aufgabe_id, pid)).fetchone():
         raise kern.AmwFehler(f"Aufgabe {aufgabe_id} gibt es nicht")
     if bogen_id is not None and not con.execute("SELECT 1 FROM bogen WHERE id = ? AND projekt_id = ?", (bogen_id, pid)).fetchone():
-        raise kern.AmwFehler(f"Meilenstein {bogen_id} gibt es nicht")
+        from . import meilensteine
+        raise kern.AmwFehler(meilensteine.unbekannt(bogen_id))
     with db.schreiben(con):
         return db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=zeit_utc, von=von, art=PROTOKOLL,
                             aufgabe_id=aufgabe_id, bogen_id=bogen_id,
@@ -204,7 +205,8 @@ def rueckblick_neu(con, pid, von, bogen_id, art, text):
     if not (text or "").strip():
         raise kern.AmwFehler("Text fehlt")
     if bogen_id is not None and not con.execute("SELECT 1 FROM bogen WHERE id = ? AND projekt_id = ?", (bogen_id, pid)).fetchone():
-        raise kern.AmwFehler(f"Meilenstein {bogen_id} gibt es nicht")
+        from . import meilensteine
+        raise kern.AmwFehler(meilensteine.unbekannt(bogen_id))
     with db.schreiben(con):
         return db.einfuegen(con, "rueckblick", projekt_id=pid, bogen_id=bogen_id, art=art, text=text.strip(), von=von,
                             zeit_utc=db.jetzt())
@@ -222,7 +224,8 @@ def massnahme_uebernehmen(con, pid, von, rid, als, agent=None):
         raise kern.AmwFehler(f"Rückblick-Eintrag {rid} gibt es nicht")
     if r["aufgabe_id"] or r["beschluss_id"]:
         raise kern.AmwFehler(f"schon übernommen ({'A' + str(r['aufgabe_id']) if r['aufgabe_id'] else 'B' + str(r['beschluss_id'])})")
-    herkunft = f"Rückblick {rid}" + (f" zu Meilenstein {r['bogen_id']}" if r["bogen_id"] else "")
+    from . import meilensteine
+    herkunft = f"Rückblick {rid}" + (f" zu {meilensteine.name(con, r['bogen_id'])}" if r["bogen_id"] else "")
     if als == "aufgabe":
         aid = kern.aufgabe_neu(con, pid, von, r["text"][:200], agent, auftrag=f"{r['text']}\n\n(aus {herkunft})", sofort=False)
         with db.schreiben(con):

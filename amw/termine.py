@@ -57,7 +57,8 @@ def neu(con, pid, von, titel, art, am, dauer_min=None, woechentlich=False, bis=N
     if not (titel or "").strip():
         raise kern.AmwFehler("--titel fehlt")
     if bogen_id and not con.execute("SELECT 1 FROM bogen WHERE id = ? AND projekt_id = ?", (bogen_id, pid)).fetchone():
-        raise kern.AmwFehler(f"Meilenstein {bogen_id} gibt es nicht")
+        from . import meilensteine
+        raise kern.AmwFehler(meilensteine.unbekannt(bogen_id))
     with db.schreiben(con):
         return db.einfuegen(con, "termin", projekt_id=pid, titel=titel.strip()[:200], art=art, beginn_utc=zeit_lesen(am),
                             dauer_min=dauer_min, woechentlich=int(bool(woechentlich)), bis_datum=bis or None,

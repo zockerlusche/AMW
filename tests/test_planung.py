@@ -93,7 +93,7 @@ class Spezifikation(Grund):
             planung.spec_entscheiden(self.con, self.pid, "Entwickler", bid, "anforderungen", True)   # Klärung offen
         kern.frage_antworten(self.con, self.pid, fragen[0], "text", "mind. 12 Zeichen", "seite")
         planung.spec_entscheiden(self.con, self.pid, "Entwickler", bid, "anforderungen", True)
-        self.assertIn(f"Meilenstein {bid} „Erster Bogen“: anforderungen FREIGEGEBEN", self.an("TL"))
+        self.assertIn(f"M{self.con.execute('SELECT nr FROM bogen WHERE id = ?', (bid,)).fetchone()[0]} „Erster Bogen“: anforderungen FREIGEGEBEN", self.an("TL"))
         self.assertEqual(planung.spec_vorlegen(self.con, self.pid, "TL", bid, "anforderungen") if False else
                          planung.spec(self.con, bid, "anforderungen")["status"], "frei")
 

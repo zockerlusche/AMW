@@ -83,7 +83,8 @@ def leitbild_setzen(con, pid, von, ziel=None, kennzahlen=None, nicht_ziele=None,
 def bogen_zeile(con, pid, bid):
     b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
     if not b:
-        raise kern.AmwFehler(f"Meilenstein {bid} gibt es nicht")
+        from . import meilensteine
+        raise kern.AmwFehler(meilensteine.unbekannt(bid))
     return b
 
 
@@ -105,11 +106,12 @@ def bogen_aendern(con, pid, von, bid, titel=None, ziel=None, abnahme=None, zield
     """Zieldatum eines aktiven Bogens mit Baseline ändern = Änderungssteuerung: nur mit Grund, wird protokolliert."""
     _lead(con, pid, von, "Meilensteine ändern")
     b = bogen_zeile(con, pid, bid)
+    from . import meilensteine
     felder = {k: v for k, v in (("titel", titel), ("ziel", ziel), ("abnahme", abnahme), ("nr", nr)) if v is not None}
     if zieldatum is not None:
         neu = _datum(zieldatum)
         if b["baseline_datum"] and neu != b["zieldatum"] and not (grund or "").strip():
-            raise kern.AmwFehler(f"Meilenstein {bid} hat eine Baseline ({b['baseline_datum']}) – neues Zieldatum nur mit --grund")
+            raise kern.AmwFehler(f"{meilensteine.name(con, bid)} hat eine Baseline ({b['baseline_datum']}) – neues Zieldatum nur mit --grund")
         felder["zieldatum"] = neu
     if not felder:
         return b
@@ -129,25 +131,26 @@ def bogen_vorziehen(con, pid, von, bid):
     davor; die Reihenfolge (nr) aller Meilensteine wird dabei neu durchgezählt. Der Lead bekommt eine Meldung."""
     if von != MENSCH:
         raise kern.AmwFehler("Vorziehen ist der Knopf des Menschen – der Lead ändert die Reihenfolge mit `amw bogen aendern --nr`")
+    from . import meilensteine
     b = bogen_zeile(con, pid, bid)
     if b["status"] not in ("geplant", "aktiv"):
-        raise kern.AmwFehler(f"Meilenstein {bid} ist {b['status']} – vorziehen geht nur bei geplanten und aktiven")
+        raise kern.AmwFehler(f"{meilensteine.name(con, bid)} ist {b['status']} – vorziehen geht nur bei geplanten und aktiven")
     alle = con.execute("SELECT id, titel, status FROM bogen WHERE projekt_id = ? ORDER BY nr, id", (pid,)).fetchall()
     i = next(n for n, x in enumerate(alle) if x["id"] == bid)
     vor = next((n for n in range(i - 1, -1, -1) if alle[n]["status"] in ("geplant", "aktiv")), None)
     if vor is None:
-        raise kern.AmwFehler(f"Meilenstein {bid} steht schon vorn")
+        raise kern.AmwFehler(f"{meilensteine.name(con, bid)} steht schon vorn")
     neu = [x["id"] for x in alle]
     neu.insert(vor, neu.pop(i))
     with db.schreiben(con):
         for nr, x in enumerate(neu, 1):
             con.execute("UPDATE bogen SET nr = ? WHERE id = ?", (nr, x))
         con.execute("UPDATE bogen SET geaendert_utc = ? WHERE id = ?", (db.jetzt(), bid))
-        _log(con, pid, von, "bogen_vorziehen", f"vor Meilenstein {alle[vor]['id']}", bogen_id=bid)
+        _log(con, pid, von, "bogen_vorziehen", f"vor {meilensteine.name(con, alle[vor]['id'])}", bogen_id=bid)
         lead = kern.lead(con, pid)
         if lead:
-            kern._posten(con, pid, von, lead, "info", f"Meilenstein {bid} „{b['titel'][:80]}“ vorgezogen – steht jetzt vor "
-                         f"Meilenstein {alle[vor]['id']} „{alle[vor]['titel'][:60]}“",
+            kern._posten(con, pid, von, lead, "info", f"{meilensteine.name(con, bid)} „{b['titel'][:80]}“ vorgezogen – steht jetzt vor "
+                         f"{meilensteine.name(con, alle[vor]['id'])} „{alle[vor]['titel'][:60]}“",
                          "Bitte die Reihenfolge der Aufgaben danach ausrichten (amw bogen liste).", bezug=f"M{bid}")
     return {"bogen": bid, "vor": alle[vor]["id"]}
 
@@ -160,16 +163,17 @@ def bogen_status(con, pid, von, bid, status, erzwingen=False, automatik=False):
     if status not in ("geplant", "aktiv", "fertig", "verworfen"):
         raise kern.AmwFehler("Status: geplant | aktiv | fertig | verworfen")
     b = bogen_zeile(con, pid, bid)
+    from . import meilensteine
     if status == "fertig" and not erzwingen:
         offen = con.execute("SELECT count(*) FROM aufgabe WHERE bogen_id = ? AND status NOT IN ('fertig', 'verworfen')",
                             (bid,)).fetchone()[0]
         if offen:
-            raise kern.AmwFehler(f"Meilenstein {bid} hat noch {offen} offene Schritte – erst abschließen (oder --erzwingen)")
+            raise kern.AmwFehler(f"{meilensteine.name(con, bid)} hat noch {offen} offene Schritte – erst abschließen (oder --erzwingen)")
     if status == "fertig" and not (erzwingen and von == kern.ENTWICKLER):   # Versions-Pflicht: nur der Mensch kann darüber hinweg
         vs = kern.versions_stand(con, pid)
         letzte_fertig = con.execute("SELECT max(fertig_utc) FROM aufgabe WHERE bogen_id = ? AND status = 'fertig'", (bid,)).fetchone()[0]
         if vs["versionen"] == "pflicht" and letzte_fertig and (not vs["letzte_utc"] or vs["letzte_utc"] < letzte_fertig):
-            raise kern.AmwFehler(f"Meilenstein {bid}: nach seiner letzten fertigen Aufgabe ist keine Version eingetragen (Versionen sind"
+            raise kern.AmwFehler(f"{meilensteine.name(con, bid)}: nach seiner letzten fertigen Aufgabe ist keine Version eingetragen (Versionen sind"
                                  f" Pflicht) – erst ausliefern und `amw release version --version {vs['vorschlag'][0]} --titel …`;"
                                  " nur der Mensch kann mit --erzwingen abschließen")
     with db.schreiben(con):
@@ -229,7 +233,8 @@ def spec(con, bid, teil):
     s = con.execute("SELECT * FROM spezifikation WHERE bogen_id = ? AND teil = ?", (bid, teil)).fetchone()
     if not s:
         if not hat_spec(con, bid):
-            raise kern.AmwFehler(f"Meilenstein {bid} hat keine Spezifikation – das Konzept steht in Themen"
+            from . import meilensteine
+            raise kern.AmwFehler(f"{meilensteine.name(con, bid)} hat keine Spezifikation – das Konzept steht in Themen"
                                  " (amw thema …; Aufgaben verweisen mit amw aufgabe aendern <nr> --thema TH<n>)")
         raise kern.AmwFehler(f"Teil {teil} gibt es nicht (anforderungen | entwurf | schritte)")
     return s
@@ -250,6 +255,7 @@ def spec_unterschied(alt, neu):
 def spec_schreiben(con, pid, von, bid, teil, text):
     """Neuer Text. War der Teil schon freigegeben oder vorgelegt, beginnt eine neue Version (muss neu vorgelegt werden) –
     Entwickler und Lead erfahren das mit dem Unterschied (nie still zurücksetzen)."""
+    from . import meilensteine
     b = bogen_zeile(con, pid, bid)
     s = spec(con, bid, teil)
     with db.schreiben(con):
@@ -262,7 +268,7 @@ def spec_schreiben(con, pid, von, bid, teil, text):
             an = ",".join(x for x in dict.fromkeys([MENSCH, kern.lead(con, pid) or MENSCH]) if x != von)
             if an:
                 kern._posten(con, pid, "AMW", an, "meldung",
-                             f"Meilenstein {bid} „{b['titel']}“: {was} von {teil} v{s['version']} aufgehoben – {von} schreibt v{version}"
+                             f"{meilensteine.name(con, bid)} „{b['titel']}“: {was} von {teil} v{s['version']} aufgehoben – {von} schreibt v{version}"
                              " (muss neu vorgelegt werden)", text=spec_unterschied(s["text"], text))
     return version
 
@@ -284,6 +290,7 @@ def _offene_klaerungen(con, pid, bid, teil):
 def spec_vorlegen(con, pid, von, bid, teil):
     """Zur Freigabe vorlegen. Reihenfolge wie Spec Kit: Entwurf erst nach freigegebenen Anforderungen, Schritte erst
     nach freigegebenem Entwurf. Jede Stelle [KLÄREN: …] wird eine Frage an den Entwickler (blockiert die Freigabe)."""
+    from . import meilensteine
     b = bogen_zeile(con, pid, bid)
     if kern.projekt_wahl(con, pid, "spec_vorlegen") == "lead" and not kern.ist_lead(con, pid, von):
         raise kern.AmwFehler(f"Spezifikationen legt in diesem Projekt nur der Lead vor – melde {kern.lead(con, pid) or 'dem Lead'},"
@@ -299,10 +306,10 @@ def spec_vorlegen(con, pid, von, bid, teil):
         if not con.execute("SELECT 1 FROM frage WHERE projekt_id = ? AND fundstellen = ? AND kurz = ?",
                            (pid, f"bogen:{bid}:{teil}", punkt.strip()[:300])).fetchone():
             fragen.append(kern.frage_neu(con, pid, von, "entwickler", punkt.strip()[:300],
-                                         [("A", "beantworten (Text)")], "A", f"Klärung für Meilenstein {bid} „{b['titel']}“, Teil {teil}",
-                                         worum=f"Spezifikation Meilenstein {bid} ({teil}) enthält: [KLÄREN: {punkt.strip()}]",
+                                         [("A", "beantworten (Text)")], "A", f"Klärung für {meilensteine.name(con, bid)} „{b['titel']}“, Teil {teil}",
+                                         worum=f"Spezifikation {meilensteine.name(con, bid)} ({teil}) enthält: [KLÄREN: {punkt.strip()}]",
                                          fundstellen=f"bogen:{bid}:{teil}", blockiert=True,
-                                         geprueft=f"von der AMW gestellt (KLÄREN in Meilenstein {bid})", pruefen=False))
+                                         geprueft=f"von der AMW gestellt (KLÄREN in {meilensteine.name(con, bid)})", pruefen=False))
     with db.schreiben(con):
         con.execute("UPDATE spezifikation SET status = 'vorgelegt', geaendert_utc = ? WHERE id = ?", (db.jetzt(), s["id"]))
         _log(con, pid, von, "spec_vorgelegt", f"{teil} v{s['version']}" + (f", {len(fragen)} Klärung(en)" if fragen else ""),
@@ -316,6 +323,7 @@ def spec_entscheiden(con, pid, von, bid, teil, frei, kommentar=None):
     if von != MENSCH and not (kern.projekt_wahl(con, pid, "spec_frei") == "lead" and kern.ist_lead(con, pid, von)):
         raise kern.AmwFehler("Spezifikationen gibt nur der Entwickler frei" + ("" if kern.projekt_wahl(con, pid, "spec_frei") == "lead"
                              else " (der Lead nur, wenn das Projekt es erlaubt: Einstellung spec_frei = lead)"))
+    from . import meilensteine
     b = bogen_zeile(con, pid, bid)
     s = spec(con, bid, teil)
     if s["status"] != "vorgelegt":
@@ -334,7 +342,7 @@ def spec_entscheiden(con, pid, von, bid, teil, frei, kommentar=None):
             "SELECT kennung FROM agent WHERE projekt_id = ? AND rolle = 'lead'", (pid,)))
         if an and an != MENSCH:
             kern._posten(con, pid, von, an, "freigabe" if frei else "korrektur",
-                         f"Meilenstein {bid} „{b['titel']}“: {teil} {'FREIGEGEBEN' if frei else 'ZURÜCK'}", kommentar)
+                         f"{meilensteine.name(con, bid)} „{b['titel']}“: {teil} {'FREIGEGEBEN' if frei else 'ZURÜCK'}", kommentar)
 
 
 # --- Abhängigkeiten ------------------------------------------------------------------------------
@@ -867,7 +875,7 @@ def pruefen(con, pid, prog=None, mit_akzeptierten=False):
         g, bid, r = f"bogen:{b['id']}", b["id"], f"B{b['id']}"
         p = prog["boegen"].get(b["id"]) or {}
         tt = lambda x: f"{x[8:10]}.{x[5:7]}.{x[:4]}" if x else "–"          # Texte lesen Menschen: TT.MM.JJJJ
-        bw = {"b": b["id"], "titel": b["titel"], "ziel": tt(b["zieldatum"]), "p50": tt(p.get("p50")), "p85": tt(p.get("p85"))}
+        bw = {"b": b["nr"], "titel": b["titel"], "ziel": tt(b["zieldatum"]), "p50": tt(p.get("p50")), "p85": tt(p.get("p85"))}
         if not (b["abnahme"] or "").strip():
             add("bogen_ohne_abnahme", r, g, bid, **bw)
         if not b["zieldatum"]:
@@ -885,7 +893,7 @@ def pruefen(con, pid, prog=None, mit_akzeptierten=False):
             add("anforderung_ungedeckt", f"{r}:{','.join(fehlt)}", g, bid, n=len(fehlt), liste=", ".join(fehlt), **bw)
         for a in con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? AND status NOT IN ('fertig', 'verworfen') ORDER BY rang, id",
                              (b["id"],)):
-            aw = {"a": a["id"], "titel": a["titel"], "k": a["komplexitaet"], "ab": PLAN_AB_KOMPLEXITAET, "b": b["id"]}
+            aw = {"a": a["id"], "titel": a["titel"], "k": a["komplexitaet"], "ab": PLAN_AB_KOMPLEXITAET, "b": b["nr"]}
             ra = f"A{a['id']}"
             if b["status"] == "aktiv" and not _json(a["kriterien"], []):
                 add("schritt_ohne_kriterien", ra, g, bid, a["id"], **aw)
@@ -1027,7 +1035,7 @@ def kontext_zeilen(con, pid, kennung):
         z.append("Definition of Done: " + " | ".join(lb["dod"]))
     aktiv = [b for b in boegen(con, pid) if b["status"] == "aktiv"]
     if aktiv:
-        z.append("Aktive Meilensteine: " + "; ".join(f"Meilenstein {b['id']} „{b['titel']}“ {b['fertig']}/{b['gesamt'] - b['verworfen']} fertig"
+        z.append("Aktive Meilensteine: " + "; ".join(f"Meilenstein {b['nr']} „{b['titel']}“ {b['fertig']}/{b['gesamt'] - b['verworfen']} fertig"
                                                + (f", Ziel {b['zieldatum']}" if b["zieldatum"] else "") for b in aktiv)
                  + " – nächster Schritt: amw schritt naechster --von " + kennung)
     return z

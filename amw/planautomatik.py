@@ -386,7 +386,7 @@ def meilenstein_projekt(con, pid):
                 planung.bogen_status(con, pid, "AMW", b["id"], "fertig", automatik=True)
                 if lead:
                     with db.schreiben(con):
-                        kern._posten(con, pid, "AMW", lead, "info", f"Meilenstein {b['id']} „{b['titel'][:80]}“ abgeschlossen – alle Aufgaben fertig",
+                        kern._posten(con, pid, "AMW", lead, "info", f"M{b['nr']} „{b['titel'][:80]}“ abgeschlossen – alle Aufgaben fertig",
                                      f"{n[1] or 0} von {n[0]} Aufgaben fertig, der Rest verworfen. Die AMW hat ihn abgeschlossen"
                                      " (Einstellungen › Projekt › Meilenstein fertig: automatisch).")
                 aus.append((b["id"], "fertig"))
@@ -398,9 +398,9 @@ def meilenstein_projekt(con, pid):
                          text=f"{n[1] or 0}/{n[0]} fertig" + (f" · {grund[:200]}" if grund else ""))
             if lead:
                 kern._posten(con, pid, "AMW", lead, "meldung",
-                             f"Meilenstein {b['id']} „{b['titel'][:80]}“: alle Aufgaben fertig – abschließen?",
+                             f"M{b['nr']} „{b['titel'][:80]}“: alle Aufgaben fertig – abschließen?",
                              f"{n[1] or 0} von {n[0]} Aufgaben fertig, keine offen. Abschließen: Planung › Meilenstein › „Abschließen“"
-                             f" oder amw bogen status {b['id']} fertig."
+                             f" oder amw bogen status M{b['nr']} fertig."
                              + (f" Automatisch ging es nicht: {grund}" if grund else ""))
         aus.append((b["id"], "vorschlag"))
     return aus

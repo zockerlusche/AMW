@@ -414,14 +414,15 @@ def _leer_weckruf(con, pid, lead, leere):
         neu.append((k, seit, frei_min, signatur))
     if not neu:
         return None
+    from . import meilensteine
     frei = freie_bogen_aufgaben(con, pid)
-    namen = ", ".join(k for k, *_ in neu)
+    namen =", ".join(k for k, *_ in neu)
     kurz = f"Leerlauf: {namen} {'hat' if len(neu) == 1 else 'haben'} nichts zu tun"
     zeilen = [f"{k}: seit {seit[11:16]} UTC frei ({int(frei_min)} min), keine Aufgabe in „läuft“ oder ohne Wartegrund,"
               " wartet auf keinen eigenen Lauf und keine Prüfung." for k, seit, frei_min, _ in neu]
     if frei:
         zeilen.append("Freie Aufgaben in aktiven Meilensteinen (ohne Bearbeiter): "
-                      + "; ".join(f"A{a['id']} {a['titel'][:70]} (M{a['bogen_id']})" for a in frei[:LEER_FREI_ZEIGEN])
+                      + "; ".join(f"A{a['id']} {a['titel'][:70]} ({meilensteine.name(con, a['bogen_id'])})" for a in frei[:LEER_FREI_ZEIGEN])
                       + (f" … und {len(frei) - LEER_FREI_ZEIGEN} weitere" if len(frei) > LEER_FREI_ZEIGEN else ""))
     else:
         zeilen.append("In den aktiven Meilensteinen gibt es keine freie Aufgabe ohne Bearbeiter.")

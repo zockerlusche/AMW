@@ -302,7 +302,7 @@ class LeerWeckruf(Grund):
             self.cc2 = self.con.execute("SELECT id FROM agent WHERE kennung = 'CC2'").fetchone()[0]
             db.einfuegen(self.con, "sitzung", agent_id=self.cc2, gestartet_utc=utc(self.jetzt - 7200), schluessel_datei="x.key",
                          ereignis="frei", ereignis_utc=utc(self.jetzt - 12 * 60))
-            self.bogen = db.einfuegen(self.con, "bogen", projekt_id=self.pid, nr=1, titel="Stufe 1", status="aktiv", angelegt_von="TL",
+            self.bogen = db.einfuegen(self.con, "bogen", projekt_id=self.pid, nr=7, titel="Stufe 1", status="aktiv", angelegt_von="TL",
                                       angelegt_utc=db.jetzt())
         self.frei = kern.aufgabe_neu(self.con, self.pid, "TL", "Liste schneller machen")
         with db.schreiben(self.con):
@@ -327,7 +327,7 @@ class LeerWeckruf(Grund):
         kurz, text = self.weckrufe()[0]
         self.assertEqual(kurz, "Leerlauf: CC2 hat nichts zu tun")
         self.assertIn(f"CC2: seit {utc(self.jetzt - 12 * 60)[11:16]} UTC frei (12 min)", text)
-        self.assertIn(f"A{self.frei} Liste schneller machen (M{self.bogen})", text)
+        self.assertIn(f"A{self.frei} Liste schneller machen (M7)", text)
         self.assertNotIn(f"A{self.a} ", text)                                             # hat einen Bearbeiter
 
     def test_wartet_auf_eigenen_lauf_oder_pruefung_kein_weckruf(self):

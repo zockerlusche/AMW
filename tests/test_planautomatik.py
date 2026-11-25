@@ -224,6 +224,9 @@ class MeilensteinFertig(Grund):
                                  (st, db.jetzt() if st != "wartet" else None, a))
         return bid
 
+    def nr(self, bid):
+        return self.con.execute("SELECT nr FROM bogen WHERE id = ?", (bid,)).fetchone()[0]
+
     def bstatus(self, bid):
         return self.con.execute("SELECT status FROM bogen WHERE id = ?", (bid,)).fetchone()[0]
 
@@ -231,9 +234,9 @@ class MeilensteinFertig(Grund):
         offen, alle = self.bogen("fertig", "wartet"), self.bogen("fertig", "verworfen")
         self.assertEqual(planautomatik.meilenstein_projekt(self.con, self.pid), [(alle, "vorschlag")])
         self.assertEqual(self.bstatus(alle), "geplant")                                   # nur ein Vorschlag
-        m = self.con.execute("SELECT art, kurz, text FROM nachricht WHERE kurz LIKE 'Meilenstein%abschließen?'").fetchone()
+        m = self.con.execute("SELECT art, kurz, text FROM nachricht WHERE kurz LIKE 'M%abschließen?'").fetchone()
         self.assertEqual(m["art"], "meldung")
-        self.assertIn(f"amw bogen status {alle} fertig", m["text"])
+        self.assertIn(f"amw bogen status M{self.nr(alle)} fertig", m["text"])
         self.assertEqual(planautomatik.meilenstein_projekt(self.con, self.pid), [])   # nicht noch einmal
         self.assertEqual(self.bstatus(offen), "geplant")
 
@@ -247,7 +250,7 @@ class MeilensteinFertig(Grund):
         self.assertEqual(planautomatik.meilenstein_projekt(self.con, self.pid), [(bid2, "vorschlag")])   # Version fehlt
         self.assertEqual(self.bstatus(bid2), "geplant")
         self.assertIn("Automatisch ging es nicht", self.con.execute(
-            "SELECT text FROM nachricht WHERE kurz LIKE ? ORDER BY id DESC", (f"Meilenstein {bid2}%",)).fetchone()[0])
+            "SELECT text FROM nachricht WHERE kurz LIKE ? ORDER BY id DESC", (f"M{self.nr(bid2)} %",)).fetchone()[0])
 
     def test_aus_ohne_planung_automatisch(self):
         kern.projekt_einstellen(self.con, self.pid, "TL", plan_automatik="aus")

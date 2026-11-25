@@ -65,7 +65,8 @@ def _darf(con, pid, von, was):
 def _bogen(con, pid, bid):
     b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
     if not b:
-        raise kern.AmwFehler(f"Meilenstein {bid} gibt es nicht")
+        from . import meilensteine
+        raise kern.AmwFehler(meilensteine.unbekannt(bid))
     if b["status"] not in ("geplant", "aktiv"):
         raise kern.AmwFehler(f"M{b['nr']} „{b['titel']}“ ist {b['status']}")
     return b

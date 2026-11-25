@@ -256,7 +256,7 @@ def bericht_erstellen(con, pid, bid, bereit=False):
                 kern._posten(con, pid, "AMW", wer, "meldung", f"Meilenstein {b['nr']} „{b['titel'][:50]}“ bereit zur Abnahme (D{did})",
                              f"Alle Pakete sind fertig. Der Meilenstein endet mit: {b['abnahme']}. Die AMW hat den Abschlussbericht"
                              f" erstellt (D{did}, mit Resten und Lehren). Fertig wird der Meilenstein erst mit dem Ja zum Abschluss"
-                             f" ({wer_ja}): Planung › Meilensteine (Ja oder Zurück mit Notiz) oder amw bogen freigeben {bid} --art abschluss.")
+                             f" ({wer_ja}): Planung › Meilensteine (Ja oder Zurück mit Notiz) oder amw bogen freigeben M{b['nr']} --art abschluss.")
         return did
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=BERICHT, bogen_id=bid,
@@ -361,7 +361,7 @@ def runde(con, pid):
         if not _neu_fertig(con, pid, b):
             continue
         if bericht(con, pid, bid) is None and con.execute("SELECT 1 FROM aufgabe WHERE bogen_id = ? LIMIT 1", (bid,)).fetchone():
-            aus.append(f"Abschlussbericht M{bid}: D{bericht_erstellen(con, pid, bid)}")
+            aus.append(f"Abschlussbericht M{b['nr']}: D{bericht_erstellen(con, pid, bid)}")
     aus += prognose_pruefen(con, pid)
     s = stand(con, pid)
     zuletzt = {}

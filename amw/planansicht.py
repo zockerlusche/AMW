@@ -99,7 +99,8 @@ def darf_freigeben(con, pid, von):
 def _bogen(con, pid, bid):
     b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
     if not b:
-        raise kern.AmwFehler(f"Meilenstein {bid} gibt es nicht")
+        from . import meilensteine
+        raise kern.AmwFehler(meilensteine.unbekannt(bid))
     return b
 
 
@@ -131,7 +132,7 @@ def freigeben(con, pid, von, bid, art):
             raise kern.AmwFehler(f"Meilenstein {b['nr']}: {vorbehalte(con, pid, b)['warum']} – damit nimmt nur der Mensch ab. Grund beheben und"
                                  f" erneut prüfen: amw bogen pruefung-starten M{b['nr']}")
         if tore.bericht(con, pid, bid) is None:
-            raise kern.AmwFehler(f"Meilenstein {b['nr']}: der Abschlussbericht fehlt noch (die AMW erstellt ihn; sonst amw bogen bericht {bid})")
+            raise kern.AmwFehler(f"Meilenstein {b['nr']}: der Abschlussbericht fehlt noch (die AMW erstellt ihn; sonst amw bogen bericht M{b['nr']})")
     elif b["status"] not in ("geplant", "aktiv"):
         raise kern.AmwFehler(f"Meilenstein {b['nr']} ist {b['status']}")
     z = _zustaende(con, pid)
@@ -204,7 +205,7 @@ def zurueck(con, pid, von, bid, art, notiz):
                          f"{kern.entwickler_name(con, pid) if von == kern.ENTWICKLER else von} hat "
                          f"{ {'plan': 'den Plan', 'abschluss': 'den Abschlussbericht'}.get(art, 'den Meilenstein')} {b['nr']} „{b['titel']}“"
                          f" zurückgegeben:\n{notiz.strip()}"
-                         + ("\nNach der Nacharbeit: amw bogen bericht " + str(bid) + " (neuer Bericht)" if art == "abschluss" else ""))
+                         + ("\nNach der Nacharbeit: amw bogen bericht M" + str(b["nr"]) + " (neuer Bericht)" if art == "abschluss" else ""))
 
 
 def verschieben(con, pid, von, bid, richtung):

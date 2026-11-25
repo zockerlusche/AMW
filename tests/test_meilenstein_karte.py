@@ -44,9 +44,9 @@ class Vorziehen(Grund):
         r = aktionen.planen(self.con, self.pid, "bogen", {"aktion": "vorziehen", "bogen": b3})
         self.assertEqual(r, {"bogen": b3, "vor": b2})
         self.assertEqual(self.reihe(), [b1, b3, b2])
-        self.assertTrue(any(f"Meilenstein {b3} „Drei“ vorgezogen" in k and f"Meilenstein {b2}" in k for k in self.an_lead()))
+        self.assertTrue(any("M2 „Drei“ vorgezogen" in k and "vor M3 " in k for k in self.an_lead()))     # neu durchgezählt: Drei = M2, Zwei = M3
         art = self.con.execute("SELECT art, text FROM plan_ereignis WHERE bogen_id = ? ORDER BY id DESC LIMIT 1", (b3,)).fetchone()
-        self.assertEqual((art["art"], art["text"]), ("bogen_vorziehen", f"vor Meilenstein {b2}"))
+        self.assertEqual((art["art"], art["text"]), ("bogen_vorziehen", "vor M3"))
         with self.assertRaisesRegex(aktionen.Ungueltig, "schon vorn"):     # davor nur noch der fertige
             aktionen.planen(self.con, self.pid, "bogen", {"aktion": "vorziehen", "bogen": b3})
 
