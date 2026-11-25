@@ -94,7 +94,7 @@ class Uebersicht(unittest.TestCase):
         import collections
         import re
         s = io.StringIO(workbench.seite()).read()
-        for anfang, ende in (('n_start: "Übersicht"', 'n_start: "Overview"'), ('n_start: "Overview"', "\n  },")):
+        for anfang, ende in (('n_start: "Leitstand"', 'n_start: "Control room"'), ('n_start: "Control room"', "\n  },")):
             i = s.index(anfang)
             blk = s[i:s.index(ende, i + 1)]
             doppelt = sorted(k for k, n in collections.Counter(re.findall(r'(?:^|[ ,{])([a-z_0-9]+): "', blk)).items() if n > 1)

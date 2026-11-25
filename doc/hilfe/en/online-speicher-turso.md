@@ -13,7 +13,7 @@ The online storage is where your PC and the online page exchange data. You creat
 2. **Copy the address** The database page shows the address (“Database URL”). It starts with `libsql://` and ends in `.turso.io`.
 3. **Create a key** On the same page choose “Create Token”: read and write, no expiry. Copy the key – it is shown only once.
 4. **Enter it on the PC** In the AMW: Settings › Storage and sync. Paste address and key and save. The AMW checks the connection, creates the tables and switches the sync on. The command `amw web einrichten` does the same.
-5. **Restart the service** The AMW says so: the sync starts with the next start of the service (control center › Service › Restart).
+5. **Restart the service** The AMW says so: the sync starts with the next start of the service (Control room › Controls › Service › Restart).
 6. **Check** Settings › Storage and sync shows “key saved” and the sync is on; “Test connection” reports “Signed in” and “The database is set up”. `amw web status` shows the last upload.
 
 ## Values to enter

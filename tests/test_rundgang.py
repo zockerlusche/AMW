@@ -129,12 +129,12 @@ class Seiten(Daten, Rundgang):
         plan_mit_verbrauch(self.con, self.pid)
         self.ueberall("start", "start-leitstand", bereit="document.querySelector('#ls-token')",
                       tun="document.getElementById('leitstand').scrollIntoView({ block: 'start' })", danach="true")
-        spalten = "new Set([...document.querySelectorAll('#leitstand > div')].map(e => Math.round(e.getBoundingClientRect().left))).size"
+        spalten = "new Set([...document.querySelectorAll('#steuerung > div')].map(e => Math.round(e.getBoundingClientRect().left))).size"
         for g, n in (("handy", 1), ("ipad", 2), ("pc", 4)):
             self.besuchen("start", "start-leitstand", bereit="document.querySelector('#ls-token')", g=g)
             self.assertEqual(self.tab.js(spalten), n, g)
             self.assertEqual(self.tab.js("Math.round(document.querySelector('#ls-token').getBoundingClientRect().right)"),
-                             self.tab.js("Math.round(document.querySelector('#leitstand').getBoundingClientRect().right) - 1"), g)   # ganze Breite
+                             self.tab.js("Math.round(document.querySelector('#steuerung').getBoundingClientRect().right) - 1"), g)   # ganze Breite
 
     def test_nachrichten_eingang_und_gesendet(self):
         self.ueberall("nachrichten", "nachrichten-eingang", bereit="document.querySelector('.nr-liste')")

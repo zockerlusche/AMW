@@ -118,7 +118,7 @@ def mitlesen(con, pid, nr):
     from . import arbeiter, platz
     p = next((x for x in platz.plaetze(con, pid) if x["nr"] == nr), None)
     if not p:
-        raise kern.AmwFehler(f"Platz {nr} gibt es nicht")
+        raise kern.AmwFehler(f"Headless {nr} gibt es nicht")
     datei = os.path.join(arbeiter.ordner(p), "lauf.jsonl")
     try:
         with open(datei, encoding="utf-8", errors="replace") as f:
@@ -207,5 +207,5 @@ def notbremse(con, pid, nr, aid=None):
     from . import arbeiter, platz
     p = next((x for x in platz.plaetze(con, pid) if x["nr"] == nr), None)
     if not p:
-        raise kern.AmwFehler(f"Platz {nr} gibt es nicht")
+        raise kern.AmwFehler(f"Headless {nr} gibt es nicht")
     return {"text": arbeiter.notbremse_ziehen(con, pid, p, kern.ENTWICKLER, aid)}

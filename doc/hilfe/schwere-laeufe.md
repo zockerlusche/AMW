@@ -13,7 +13,7 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
    Läuft oder wartet im Projekt ein Gesamtlauf, wartet ein leichter Lauf von selbst, bis er zu Ende ist. Dringendes rechnet mit `--neben "Grund"` trotzdem; der Lead sieht den Grund.
 4. **Eigene Befehle ergänzen** Unter Einstellungen › Projekt › „Weitere schwere Befehle“ je Zeile einen Eintrag `Name = Muster` eintragen, zum Beispiel `Karten rechnen = karten\.py`.
 5. **Bedarf nennen** Wer weiß, was ein Lauf braucht, gibt es an: `--braucht-gb 4` (Arbeitsspeicher), wahlweise `--braucht-vram-gb` (Grafikspeicher) und `--braucht-platte-gb` (freier Platz). Ohne Angabe nimmt die AMW, was gleiche Läufe desselben Agenten zuletzt wirklich gebraucht haben (gemessen, mit etwas Zuschlag) – beim ersten Mal die Speicher-Grenze des Projekts. Schätzen muss niemand.
-6. **Nachsehen** Übersicht › Leitstand › „Rechner“ zeigt, wie viele Läufe laufen und warten und wann der Rechner voraussichtlich frei ist.
+6. **Nachsehen** Leitstand › Steuerung › „Rechner“ zeigt, wie viele Läufe laufen und warten und wann der Rechner voraussichtlich frei ist.
 
 ## Diese Werte trägst du ein
 | Feld in der AMW | Woher |
@@ -23,19 +23,19 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 | Aufrücken nach Wartezeit (Dieser PC) | nach so vielen Minuten Warten eine Stufe höher, Vorgabe 30, 0 = aus |
 | Platz freihalten für Vorrang (Dieser PC) | an lassen; aus heißt: andere Läufe starten, auch wenn danach der Speicher für den Vorrang-Lauf fehlt |
 | Arbeitsspeicher-Reserve (Dieser PC) | so viel bleibt für dich frei, Vorgabe 3 GB |
-| Dauerhaft belegt anzeigen ab (Dieser PC) | ab so viel Arbeitsspeicher erscheint ein Programm außerhalb der Warteschlange im Leitstand, Vorgabe 4 GB, 0 = aus |
+| Dauerhaft belegt anzeigen ab (Dieser PC) | ab so viel Arbeitsspeicher erscheint ein Programm außerhalb der Warteschlange in der Steuerung, Vorgabe 4 GB, 0 = aus |
 | Weitere schwere Befehle (Projekt) | Name = Muster, ein Eintrag je Zeile; das Muster ist ein regulärer Ausdruck |
 
 ## Typische Fehler
 - **Ein Agent startet Tests weiter direkt** – Sein Ordner hat den Hook noch nicht: `amw einrichten agenten-ordner <ordner>` ausführen.
-- **Ein Lauf wartet lange** – Im Leitstand steht, warum: der Rechner ist belegt, es ist zu wenig Arbeitsspeicher frei oder ein Lauf davor wartet – dann steht dabei, wie viel Arbeitsspeicher er braucht und wie viel nutzbar ist. Der Mensch kann einen Lauf vorziehen – in der Rechner-Kachel mit „Vorziehen“ oder mit `amw lauf vorziehen <nr>`; der Lauf steht dann ganz vorn, vor jeder Vorrang-Stufe. Ein Lead kann nur innerhalb seines Projekts vorziehen: vor die anderen Läufe des Projekts, nicht vor Läufe anderer Projekte. In der Liste steht deshalb „vom Entwickler vorgezogen“ oder „im Projekt vorgezogen“.
+- **Ein Lauf wartet lange** – In der Steuerung steht, warum: der Rechner ist belegt, es ist zu wenig Arbeitsspeicher frei oder ein Lauf davor wartet – dann steht dabei, wie viel Arbeitsspeicher er braucht und wie viel nutzbar ist. Der Mensch kann einen Lauf vorziehen – in der Rechner-Kachel mit „Vorziehen“ oder mit `amw lauf vorziehen <nr>`; der Lauf steht dann ganz vorn, vor jeder Vorrang-Stufe. Ein Lead kann nur innerhalb seines Projekts vorziehen: vor die anderen Läufe des Projekts, nicht vor Läufe anderer Projekte. In der Liste steht deshalb „vom Entwickler vorgezogen“ oder „im Projekt vorgezogen“.
 - **Ein Gesamtlauf zählt nicht für die Auslieferung** – Ein Lauf merkt sich beim Start den Stand des Ordners, in den sein Befehl mit `cd` wechselt, sonst den des Ordners, aus dem du ihn einreihst. Wechselt erst ein Skript den Ordner, sieht die AMW das nicht: Befehl mit `cd /d <Ordner> &&` beginnen oder aus dem Arbeitsbaum einreihen, den er prüft. Den gemerkten Stand zeigt die Zeile „# Stand …“ oben in der Ausgabe.
 - **Ein Gesamtlauf hängt** – Steht ein Test länger als 5 Minuten still, beendet der Gesamtlauf diesen einen Testprozess samt Browser, zeigt das Modul mit dem Test als rot („Zeitgrenze“) und läuft mit den übrigen Modulen weiter. Ein Gesamtlauf endet spätestens nach der Frist (Vorgabe 60 Minuten, Projekt-Einstellung `gesamtlauf_frist_min`); vorher schreibt er unter „Läuft gerade“, welcher Test zuletzt lief, und der Lead bekommt eine Meldung.
 - **„!! Baum während des Laufs geändert“** – Während des Gesamtlaufs hat sich im geprüften Ordner etwas geändert (ein neuer Commit oder geänderte Dateien, ohne `daten/`), zum Beispiel weil dort gebaut wurde. Der Lauf endet dann mit FAILED und gilt nicht als Beleg. Baue in einem anderen Ordner und starte den Lauf neu.
 - **Ein einzelner kurzer Test wird abgewiesen** – Das Muster ist zu weit gefasst. Einzelne Test-Module bleiben frei; eigene Muster enger fassen.
 - **„Muster ungültig“** – Das Muster ist kein gültiger regulärer Ausdruck, zum Beispiel fehlt eine Klammer.
 
-- **Der Rechner ist frei, trotzdem startet nichts** – Ein Programm außerhalb der Warteschlange belegt den Arbeitsspeicher, zum Beispiel ein lokaler KI-Server oder eine virtuelle Maschine. Im Leitstand steht unter „Rechner“, welches Programm das ist, wie viel es belegt und seit wann. Beende es selbst, wenn du es nicht mehr brauchst – die AMW beendet nichts.
+- **Der Rechner ist frei, trotzdem startet nichts** – Ein Programm außerhalb der Warteschlange belegt den Arbeitsspeicher, zum Beispiel ein lokaler KI-Server oder eine virtuelle Maschine. In der Steuerung steht unter „Rechner“, welches Programm das ist, wie viel es belegt und seit wann. Beende es selbst, wenn du es nicht mehr brauchst – die AMW beendet nichts.
 
 ## Danach
 - Als schwer gelten ab Werk: ganze Test-Suiten, Browser-Tests, Builds und der Abzug des Web-Zweigs.
@@ -44,7 +44,7 @@ Mehrere Projekte teilen sich einen PC. Starten Test-Suiten, Builds oder Bild-Lä
 
 ## Häufige Fragen
 ### Wie bekommt ein Projekt Vorrang?
-Unter Einstellungen › Dieser PC › „Vorrang der Projekte“ stellst du je Projekt hoch, normal oder niedrig ein. Wartende Läufe kommen dann in dieser Reihenfolge dran: zuerst, was du selbst vorgezogen hast, dann „hoch“, dann „normal“, dann „niedrig“ – innerhalb einer Stufe der Reihe nach. Ein Lauf, der schon läuft, wird nie abgebrochen. Der Wartegrund nennt den Vorrang; im Zeitstrahl „Rechner – heute“ sind Vorrang-Läufe mit ▲ markiert, im Leitstand steht die Liste kurz. Die Einstellung gehört dem PC, nicht einem Projekt – Namen anderer Projekte siehst du nur am PC. Innerhalb derselben Stufe kommt danach die Rangfolge der Projekte (`amw pc einstellen projekt_rang=AMW,GlassWorld,LayerIT`, nur du; nicht genannte Projekte danach), erst dann die Ankunft.
+Unter Einstellungen › Dieser PC › „Vorrang der Projekte“ stellst du je Projekt hoch, normal oder niedrig ein. Wartende Läufe kommen dann in dieser Reihenfolge dran: zuerst, was du selbst vorgezogen hast, dann „hoch“, dann „normal“, dann „niedrig“ – innerhalb einer Stufe der Reihe nach. Ein Lauf, der schon läuft, wird nie abgebrochen. Der Wartegrund nennt den Vorrang; im Zeitstrahl „Rechner – heute“ sind Vorrang-Läufe mit ▲ markiert, in der Steuerung steht die Liste kurz. Die Einstellung gehört dem PC, nicht einem Projekt – Namen anderer Projekte siehst du nur am PC. Innerhalb derselben Stufe kommt danach die Rangfolge der Projekte (`amw pc einstellen projekt_rang=AMW,GlassWorld,LayerIT`, nur du; nicht genannte Projekte danach), erst dann die Ankunft.
 
 ### Kann ein Projekt schwere Läufe nur zu bestimmten Zeiten rechnen?
 Ja: `amw projekt einstellen lauf_fenster=18:00-07:00` (du oder der Lead; Ortszeit, auch über Mitternacht; leer = jederzeit). Schwere Läufe dieses Projekts starten dann nur in diesem Fenster. Außerhalb steht beim Lauf „wartet auf das Zeitfenster ab 18:00“, und er hält niemanden auf – andere Läufe ziehen vorbei. Leichte Läufe und KI-Aufträge (die haben ihr eigenes KI-Fenster) sind nicht betroffen; ein Lauf, der schon läuft, wird nie abgebrochen. Grafikkarte und Bildschirm rechnet auf dem ganzen PC immer nur ein Lauf zur Zeit.
@@ -74,7 +74,7 @@ Dann läuft der Befehl ganz normal – gesperrt wird bei einem Fehler nie. Der F
 Ein Programm, das nicht über die Warteschlange läuft und seit mehr als 10 Minuten viel Arbeitsspeicher belegt. Die AMW liest dafür nur Name, Arbeitsspeicher und Startzeit der Prozesse – keine Befehlszeilen. Viele kleine Prozesse, etwa ein Browser, zählen nicht.
 
 ### Was tut die AMW, wenn die Festplatte voll wird?
-Sie warnt: im Leitstand unter „Rechner“ und mit einer Nachricht an Lead und dich, sobald auf einem Laufwerk mit der Datenbank oder einem Projektordner weniger als 15 % frei sind, und dringend unter 5 %. Unter Einstellungen › Dieser PC stehen die Laufwerke und die Aufräumvorschläge: alte Sicherungen mit Größe und Alter. Gelöscht wird nichts von selbst. Ist ein Archiv-Ordner eingetragen, verschiebst du alte Sicherungen mit einem Klick dorthin; jede Verschiebung steht in archiv-protokoll.txt.
+Sie warnt: in der Steuerung unter „Rechner“ und mit einer Nachricht an Lead und dich, sobald auf einem Laufwerk mit der Datenbank oder einem Projektordner weniger als 15 % frei sind, und dringend unter 5 %. Unter Einstellungen › Dieser PC stehen die Laufwerke und die Aufräumvorschläge: alte Sicherungen mit Größe und Alter. Gelöscht wird nichts von selbst. Ist ein Archiv-Ordner eingetragen, verschiebst du alte Sicherungen mit einem Klick dorthin; jede Verschiebung steht in archiv-protokoll.txt.
 
 Auch die Arbeitsordner der Claude-Sitzungen (%TEMP%\claude) misst die AMW – je Sitzung mit Agent und Projekt, unter Einstellungen › Dieser PC › „Claude-Ablagen“. Belegt eine Sitzung mehr als 10 GB, bekommen ihr Lead und du eine Meldung. Alte Arbeitskopien darin (Ordner mit .git, seit über einem Tag unverändert) stehen mit einem fertigen PowerShell-Befehl zum Entfernen da; die AMW führt ihn nie aus.
 

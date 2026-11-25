@@ -87,9 +87,8 @@ class ThemenSeite(Rundgang):
 
 
 class ThemenTor(Rundgang):
-    """A1913 (W2449): oben steht, wo das Projekt steht („Konzept · n von g Themen freigegeben“, markierte zählen nicht). Kein Knopf
-    „Tor schließen“: das Freigeben des letzten offenen Themas fragt vorher „Damit schließt das Tor Konzept“ – erst danach gilt
-    es; dann zeigt die Zeile das nächste Tor (Grobplanung). Bilder vorher/nachher über AMW_RUNDGANG_BILDER."""
+    """A1913 (W2449): Kein Knopf zum Abschließen: das Freigeben des letzten offenen Themas fragt vorher „Damit ist der Schritt Konzept
+    abgeschlossen“ – erst danach gilt es. Wo das Projekt steht, zeigt der Projektweg (A2018). Bilder vorher/nachher über AMW_RUNDGANG_BILDER."""
 
     def daten(self):
         kern.agent_neu(self.con, self.pid, "CC1")
@@ -101,26 +100,24 @@ class ThemenTor(Rundgang):
         weg = themen.neu(self.con, self.pid, "TL", "Altes Menü", pfleger="CC1")
         themen.markieren(self.con, self.pid, kern.ENTWICKLER, weg)                    # zählt nicht
 
-    KONZEPT = "document.querySelector('#inhalt .th-tore .tor[data-t=konzept]')"     # A1972: nur noch die Chips, keine Zahlenzeile
     DICH = "document.querySelector('#inhalt .tore-dich')"
     OFFEN = ("document.querySelector('.th-zeile[data-th=\"%d\"]').click()",
              "document.querySelector('.th-thema h2')?.textContent === 'Anmeldung' && document.querySelector('.th-knoepfe button[data-h=freigeben]')")
 
     def test_letzte_freigabe_fragt_und_schliesst_das_tor(self):
         schon = len(themen.tor_ereignisse(self.con, self.pid))       # in daten() schloss das erste Thema allein das Tor schon einmal
-        self.oeffnen("themen", f"document.querySelector('.th-liste .th-zeile') && {self.KONZEPT} && {self.DICH}")
-        self.assertEqual(self.tab.js(f"{self.KONZEPT}.className"), "tor jetzt")
+        self.oeffnen("themen", f"document.querySelector('.th-liste .th-zeile') && {self.DICH}")
+        self.assertIsNone(self.tab.js("document.querySelector('#inhalt .tor')"))
         self.assertEqual(self.tab.js(f"{self.DICH}.innerText"), "Wartet auf dich: 1 Thema")
         self.tab.js(self.OFFEN[0] % self.letzt)
         self.warten(self.OFFEN[1])
         self.tab.js("window.__fragen = []; window.confirm = x => { window.__fragen.push(x); return false; };"
                     " document.querySelector('.th-knoepfe button[data-h=freigeben]').click()")
-        self.assertEqual(self.tab.js("window.__fragen"), ["Damit schließt das Tor Konzept. Als Nächstes kommt die Grobplanung."])
+        self.assertEqual(self.tab.js("window.__fragen"), ["Damit ist der Schritt Konzept abgeschlossen. Als Nächstes kommt die Grobplanung."])
         self.assertEqual(themen.status(self.con, themen.finden(self.con, self.pid, self.letzt))["status"], "dich")   # abgebrochen
         self.tab.js("window.confirm = x => { window.__fragen.push(x); return true; };"
                     " document.querySelector('.th-knoepfe button[data-h=freigeben]').click()")
-        self.warten(f"{self.KONZEPT}?.className === 'tor zu'")
-        self.assertEqual(self.tab.js(f"document.querySelector('#inhalt .tore-leiste').dataset.tor"), "grobplanung")
+        self.warten(f"!{self.DICH} && document.querySelector('.th-zeile[data-th=\"{self.letzt}\"] .th-status.frei')")
         self.assertIsNone(self.tab.js(self.DICH))                                     # nichts mehr für dich: keine Zeile
         self.assertEqual(len(themen.tor_ereignisse(self.con, self.pid)), schon + 1)
         self.assertEqual(self.tab.js("window.__fragen.length"), 2)

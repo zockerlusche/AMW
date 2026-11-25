@@ -248,12 +248,12 @@ def p_quote_melden(con, pid, jetzt=None):
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=P_MELDUNG,
                      text=json.dumps({"tag": heute, "anteil": q["anteil"], "n": q["n"]}, ensure_ascii=False))
-        kern._posten(con, pid, "AMW", lead, "meldung", f"Anteil p {round(q['anteil'] * 100)} % (Ziel ≥ {round(ZIEL_P * 100)} %)",
+        kern._posten(con, pid, "AMW", lead, "meldung", f"Anteil Headless {round(q['anteil'] * 100)} % (Ziel ≥ {round(ZIEL_P * 100)} %)",
                      f"In den letzten 7 Tagen liefen {q['p']} von {q['n']} fertigen Paketen als p. p ist die Vorgabe für S und"
                      " M-mechanisch ohne Oberfläche; interaktiv nur mit Grund. Je Tag: "
                      + ", ".join(f"{t['tag'][5:]} {t['p']}/{t['n']}" for t in q["tage"])
                      + ". Kosten p gegen interaktiv: amw messung --p.")
-    return f"Anteil p {round(q['anteil'] * 100)} % – Meldung an {lead}"
+    return f"Anteil Headless {round(q['anteil'] * 100)} % – Meldung an {lead}"
 
 
 def p_quote_runde(con, jetzt=None):

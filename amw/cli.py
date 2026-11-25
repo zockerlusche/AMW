@@ -309,7 +309,7 @@ def cmd_agent(a, con):
         if a.aktion == "alle-beenden":
             if _von(a) != kern.ENTWICKLER or _aus_agenten_sitzung():   # Prozesse beendet nur der Mensch (G14), nie aus einer Sitzung
                 raise kern.AmwFehler("Alle speichern & beenden lässt nur der Mensch: in seinem eigenen Terminal mit --von Entwickler"
-                                     " oder in der Workbench am PC (Leitstand › Sitzungen)")
+                                     " oder in der Workbench am PC (Leitstand › Steuerung › Sitzungen)")
             for name, r in steuerung.alle_beenden(con, projekte, a.frist).items():
                 print(f"{name}: " + (f"{', '.join(r['agenten'])} sichern – beendet spätestens {_zeit(r['bis_utc'])}" if r["agenten"]
                                      else "keine laufende Sitzung"))
@@ -1826,7 +1826,7 @@ def cmd_messung(a, con):
     if getattr(a, "p", False):                       # A2004: Anteil p je Tag, Kosten p gegen interaktiv
         q = messung.p_quote(con, pid, tage=a.tage or 7)
         ziel = f"Ziel ≥ {round(q['ziel'] * 100)} %"
-        print(f"Anteil p (letzte {a.tage or 7} Tage): " + (f"{q['p']} von {q['n']} = {round(q['anteil'] * 100)} % · {ziel}"
+        print(f"Anteil Headless (letzte {a.tage or 7} Tage): " + (f"{q['p']} von {q['n']} = {round(q['anteil'] * 100)} % · {ziel}"
                                                           + (" – erreicht" if q["anteil"] >= q["ziel"] else " – darunter")
                                                           if q["n"] else f"keine fertigen Pakete · {ziel}"))
         for t in q["tage"]:
@@ -2078,7 +2078,7 @@ def cmd_platz(a, con):
                   + (" – leeren kann nur der Mensch" if loe else ""))
         for p in ps:
             da = os.path.isdir(os.path.join(p["klon"], ".git"))
-            print(f"Platz {p['nr']}: {p['klon']} · Daten {p['daten']} · Port {p['port']} · "
+            print(f"Headless {p['nr']}: {p['klon']} · Daten {p['daten']} · Port {p['port']} · "
                   + (("sauber" if platz.sauber(p) else "nicht sauber") if da else "noch nicht angelegt"))
         return
     if a.aktion == "notbremse":                       # A1848: nur der Mensch – beendet den Arbeiter samt Kindern
@@ -2087,7 +2087,7 @@ def cmd_platz(a, con):
             raise kern.AmwFehler("Die Notbremse zieht nur der Mensch an diesem PC (amw platz notbremse N --von Entwickler)")
         p = next((x for x in ps if x["nr"] == a.nr), None)
         if not p:
-            raise kern.AmwFehler(f"Platz {a.nr} gibt es nicht ({len(ps)} eingerichtet)")
+            raise kern.AmwFehler(f"Headless {a.nr} gibt es nicht ({len(ps)} eingerichtet)")
         print(arbeiter.notbremse_ziehen(con, pid, p, _von(a), a.aufgabe))
         return
     if not kern.ist_lead(con, pid, _von(a)):
@@ -2100,16 +2100,16 @@ def cmd_platz(a, con):
         return
     p = next((x for x in ps if x["nr"] == a.nr), None)
     if not p:
-        raise kern.AmwFehler(f"Platz {a.nr} gibt es nicht ({len(ps)} eingerichtet)")
+        raise kern.AmwFehler(f"Headless {a.nr} gibt es nicht ({len(ps)} eingerichtet)")
     if a.aktion == "vorbereiten":
         quelle = kern.projekt_ordner(con, pid)
         if not quelle:
             raise kern.AmwFehler("Das Projekt hat keinen Ordner (amw projekt ordner …)")
         r = platz.vorbereiten(p, quelle, a.zweig or f"platz{p['nr']}", aufgabe=a.aufgabe)
-        print(f"Platz {p['nr']} bereit: {r['klon']} · Zweig {r['zweig']} ab main {r['basis'][:8]} · Port {p['port']}")
+        print(f"Headless {p['nr']} bereit: {r['klon']} · Zweig {r['zweig']} ab main {r['basis'][:8]} · Port {p['port']}")
     else:
         r = platz.zuruecksetzen(p, projektordner=kern.projekt_ordner(con, pid), aufgabe=a.aufgabe)
-        print(f"Platz {p['nr']} " + ("sauber" if r["sauber"] else "NICHT sauber – bitte ansehen")
+        print(f"Headless {p['nr']} " + ("sauber" if r["sauber"] else "NICHT sauber – bitte ansehen")
               + (f" · Reste im Archiv: {r['archiv']}" if r["archiv"] else " · nichts zu sichern"))
 
 
@@ -3208,8 +3208,8 @@ def cmd_thema(a, con):
         print(f"{a.name}: {'zum Löschen markiert' if z['markiert'] else z['text']}")
         nachher = themen.tor(con, pid)
         if nachher["konzept_zu"] != vorher["konzept_zu"]:                  # A1913: das Tor schließt bzw. öffnet von selbst
-            print("Damit ist das Tor Konzept geschlossen – " + _tor_zeile(nachher) if nachher["konzept_zu"]
-                  else "Das Tor Konzept ist wieder offen – " + _tor_zeile(nachher))
+            print("Damit ist der Schritt Konzept abgeschlossen – " + _tor_zeile(nachher) if nachher["konzept_zu"]
+                  else "Der Schritt Konzept ist wieder offen – " + _tor_zeile(nachher))
         return
     if not a.name:
         raise kern.AmwFehler(f"amw thema {a.aktion} <TH-Nr. oder Name>")

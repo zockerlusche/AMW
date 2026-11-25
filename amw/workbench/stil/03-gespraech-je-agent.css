@@ -124,6 +124,12 @@ details.vor summary::before { content: "▸ "; } details.vor[open] summary::befo
   font: 14px var(--titel); letter-spacing: .04em; white-space: nowrap; }
 .reiter button.an { color: var(--tinte); border-bottom-color: var(--bernstein); }
 .reiter .rechts { margin-left: auto; display: flex; gap: 8px; padding-bottom: 6px; }
+/* Die Seiten eines Menüpunkts (A2018): ruhige Reiter im Seitenkopf, gewählt = Unterstrich; schmal waagrecht wischbar */
+.bereich-reihe { display: flex; gap: 4px; margin: 0 0 14px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
+.bereich-reihe::-webkit-scrollbar { display: none; }
+.bereich-reihe button { flex: none; background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 10px; cursor: pointer; color: var(--leise); font: 14px var(--titel);
+  letter-spacing: .03em; white-space: nowrap; }
+.bereich-reihe button.an { color: var(--tinte); border-bottom-color: var(--leise); }
 .reiter select, .reiter input { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 3px; padding: 5px 8px; min-width: 0; }
 
 .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }

@@ -130,9 +130,9 @@ class Messung(Grund):
         self.paket(False)
         self.assertIsNone(messung.p_quote_melden(self.con, self.pid))                           # ohne Plätze kein p möglich
         self.plaetze()
-        self.assertIn("Anteil p 33 %", messung.p_quote_melden(self.con, self.pid))
-        m = [k for art, k in self.post("TL") if art == "meldung" and k.startswith("Anteil p")]
-        self.assertEqual(m, ["Anteil p 33 % (Ziel ≥ 50 %)"])
+        self.assertIn("Anteil Headless 33 %", messung.p_quote_melden(self.con, self.pid))
+        m = [k for art, k in self.post("TL") if art == "meldung" and k.startswith("Anteil Headless")]
+        self.assertEqual(m, ["Anteil Headless 33 % (Ziel ≥ 50 %)"])
         self.assertIsNone(messung.p_quote_melden(self.con, self.pid))                           # heute schon gemeldet
         self.assertEqual(messung.p_quote_runde(self.con), [])
 
@@ -150,7 +150,7 @@ class Messung(Grund):
         aus = io.StringIO()
         with contextlib.redirect_stdout(aus):
             cli.main(["--projekt", "Produkt", "messung", "--p", "--von", "TL"])
-        self.assertIn("Anteil p (letzte 7 Tage): 1 von 2 = 50 % · Ziel ≥ 50 % – erreicht", aus.getvalue())
+        self.assertIn("Anteil Headless (letzte 7 Tage): 1 von 2 = 50 % · Ziel ≥ 50 % – erreicht", aus.getvalue())
         self.assertIn("Kosten p: Median 0.26 $ · Summe 0.26 $ · n = 1", aus.getvalue())
         self.assertIn("Kosten interaktiv: Median 3.00 $", aus.getvalue())
 

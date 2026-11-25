@@ -140,22 +140,24 @@ class Seite(Wiederholt, Grund):
         self.tab.senden("Emulation.setDeviceMetricsOverride", width=390, height=844, deviceScaleFactor=1, mobile=True)
         self.oeffnen("arbeit", "document.querySelector('#mehr') && document.querySelector('.reiter')")
         sichtbar = "[...document.querySelectorAll('nav a')].filter(a => a.offsetParent !== null).map(a => a.dataset.sicht || a.id)"
-        self.assertEqual(self.tab.js(sichtbar), ["start", "fragen", "planung", "nachrichten", "mehr"])   # sieben Menüpunkte (A1657)
-        self.assertTrue(self.tab.js("document.querySelector('nav a[data-sicht=planung]').classList.contains('an')"))   # Aufgaben gehören zu Planung
+        self.assertEqual(self.tab.js(sichtbar), ["start", "projektweg", "fragen", "wissen", "mehr"])   # TH156 (A2018)
+        self.assertTrue(self.tab.js("document.querySelector('nav a[data-sicht=projektweg]').classList.contains('an')"))   # Aufgaben gehören zum Projektweg
         breite = self.tab.js("Math.min(...[...document.querySelectorAll('nav a')].filter(a => a.offsetParent !== null).map(a => a.getBoundingClientRect().width))")
         self.assertGreaterEqual(breite, 48)                                          # Daumen-Ziel
         r = self.tab.js("(() => { const x = document.querySelector('.reiter .rechts select, .reiter .rechts input').getBoundingClientRect();"
                         " return [x.left, x.right, innerWidth]; })()")
         self.assertTrue(r[0] >= 0 and r[1] <= r[2], r)                               # Filter der Aufgaben sichtbar, nicht weggescrollt
         self.tab.js("document.getElementById('mehr').click()")
-        self.warten("document.querySelectorAll('.mehr-liste button').length === 5")              # Projektweg (A2033), Themen (A1896), Wissen, Betrieb, Einstellungen
-        for x in ("Projektweg", "Themen", "Wissen", "Betrieb", "Einstellungen"):
+        self.warten("document.querySelectorAll('.mehr-liste button').length === 2")              # A2018
+        for x in ("Betrieb", "Einstellungen"):
             self.assertTrue(self.tab.js(f"[...document.querySelectorAll('.mehr-liste button')].some(b => b.textContent.includes({x!r}))"), x)
-        self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Wissen')).click()")
-        self.warten("zustand.sicht === 'wissen' && document.getElementById('mehr').classList.contains('an')"
+        self.tab.js("[...document.querySelectorAll('.mehr-liste button')].find(b => b.textContent.includes('Betrieb')).click()")
+        self.warten("zustand.sicht === 'betrieb' && document.getElementById('mehr').classList.contains('an')")
+        self.tab.js("document.querySelector('nav a[data-sicht=wissen]').click()")
+        self.warten("zustand.sicht === 'wissen' && document.querySelector('nav a[data-sicht=wissen]').classList.contains('an')"
                     " && [...document.querySelectorAll('#inhalt .reiter button')].some(b => b.textContent === 'Dokumente')")   # Reiter laden nach
         self.tab.js("[...document.querySelectorAll('#inhalt .reiter button')].find(b => b.textContent === 'Dokumente').click()")   # früher eigener Menüpunkt
-        self.warten("zustand.sicht === 'dokumente' && document.getElementById('mehr').classList.contains('an')")
+        self.warten("zustand.sicht === 'dokumente' && document.querySelector('nav a[data-sicht=wissen]').classList.contains('an')")
 
     def test_nachrichten_reiter_und_startkarte(self):
         """Nachrichten: Eingang · Gesendet als eine Leiste – Fragen haben seit 1.91.0 ihre eigene Seite mit eigenem Kopf;
@@ -208,7 +210,7 @@ class Seite(Wiederholt, Grund):
         self.warten("document.querySelectorAll('.tm-linien .tm-bogen').length === 0")
 
     def test_leitstand_und_aktionsmenue(self):
-        self.oeffnen("start", "document.querySelector('#leitstand') && document.querySelector('#team .mehr-knopf')")
+        self.oeffnen("start", "document.querySelector('#steuerung') && document.querySelector('#team .mehr-knopf')")
         # Team: als Baum (du → Lead → Agenten; Vorgabe am breiten Schirm), umschaltbar auf die Liste – die Wahl bleibt
         self.tab.js("[...document.querySelectorAll('.tm-schalter button')][0].click()")
         self.warten("document.querySelector('.tm-baum') && document.querySelectorAll('.tm-linien path').length")
@@ -219,8 +221,8 @@ class Seite(Wiederholt, Grund):
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.tm-liste .tm-z[data-k]')].map(k => k.dataset.k)"), ["TL", "CC1"])
         self.tab.js("zeige('start', true)")
         self.warten("document.querySelector('.tm-liste')")
-        self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 5)       # Arbeit, Bildschirm, Sitzungen, Dienst, Rechner
-        self.assertNotIn("im Eingang", self.tab.js("document.querySelector('#leitstand').innerText"))   # leerer Eingang: kein Hinweis
+        self.assertEqual(self.tab.js("document.querySelectorAll('#steuerung > div').length"), 5)       # Arbeit, Bildschirm, Sitzungen, Dienst, Rechner
+        self.assertNotIn("im Eingang", self.tab.js("document.querySelector('#steuerung').innerText"))   # leerer Eingang: kein Hinweis
         rechner = self.tab.js("document.querySelector('#ls-rechner').innerText")
         self.assertIn("Frei", rechner)                                                                 # kein Lauf angemeldet
         self.assertIn("gemeinsamen Warteschlange", rechner)
@@ -255,10 +257,10 @@ class Seite(Wiederholt, Grund):
             self.assertIn("Keine", zeile)
             self.assertIn("Die AMW löscht nichts", zeile)
         self.tab.js("zeige('start', true)")                                                            # zurück zur Startseite
-        self.warten("document.querySelector('#ls-rechner') && document.querySelector('#leitstand button')")
+        self.warten("document.querySelector('#ls-rechner') && document.querySelector('#steuerung button')")
         self.assertFalse(self.tab.js("document.querySelector('header').innerText.includes('null')"))   # leere Hinweise sind keine Texte
         self.assertFalse(self.tab.js("!!document.querySelector('#halt-knopf')"))                       # Anhalten steht im Leitstand
-        self.assertTrue(self.tab.js("[...document.querySelectorAll('#leitstand button')].some(b => b.textContent === 'Alle anhalten')"))
+        self.assertTrue(self.tab.js("[...document.querySelectorAll('#steuerung button')].some(b => b.textContent === 'Alle anhalten')"))
         self.tab.js("document.querySelector('#team .mehr-knopf').click()")
         self.warten("document.querySelector('.menue')")
         texte = self.tab.js("[...document.querySelectorAll('.menue button')].map(b => b.textContent)")
@@ -348,7 +350,7 @@ class Seite(Wiederholt, Grund):
         self.oeffnen("start", "document.querySelector('#ls-token')")
         self.assertIn("88 % verbraucht", self.tab.js("document.querySelector('#ls-token').innerText"))
         self.assertIn("Wochenlimit", self.tab.js("document.querySelector('#ls-token').textContent"))   # (in der Anzeige groß geschrieben)
-        self.assertEqual(self.tab.js("document.querySelectorAll('#leitstand > div').length"), 6)       # … dazu Rechner und Wochenlimit
+        self.assertEqual(self.tab.js("document.querySelectorAll('#steuerung > div').length"), 6)       # … dazu Rechner und Wochenlimit
         # Ampel mit Pause: hält der Termin nur ohne Pause, steht „(mit Pause)“ am Datum
         from amw import db, planung
         bid = self.con.execute("SELECT id FROM bogen WHERE projekt_id = ? ORDER BY id DESC", (self.pid,)).fetchone()[0]

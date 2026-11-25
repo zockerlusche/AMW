@@ -7,10 +7,10 @@ Some runs need the screen: they open a window, click and type themselves – for
 - To recognise a remote session: the program that only runs during a connection (Settings › This PC › “Remote access program”, for TeamViewer e.g. TeamViewer_Desktop.exe).
 
 ## Steps
-1. **Release** Overview › Screen for agents › “Free for agents …” – optionally with a time until when.
+1. **Release** Control room › Screen for agents › “Free for agents …” – optionally with a time until when.
 2. **Extend or shorten (optional)** While the screen is free, “Change until” in the tile only changes the time: enter a new time and “Apply”, or use “+1 hour”, “until 22:00”, “no end”. The release continues; the history shows the change. On the command line: `amw schirm frei --bis 15:00` (without `--bis`: no end).
 3. **Agents work** Runs with a window start one after the other; best leave the PC alone meanwhile.
-4. **Back at the PC** The release closes by itself – or end it yourself: Overview › Screen for agents › “End sharing”.
+4. **Back at the PC** The release closes by itself – or end it yourself: Control room › Screen for agents › “End sharing”.
 5. **Only here for a moment (optional)** Right-click the AMW symbol in the notification area of the taskbar › “I'm here for a moment” › 15, 30 or 60 minutes: the screen stays released, your input does not close it. Running runs continue; new runs with a window only start once the PC has been idle for 2 minutes – so you never type into a test window. “Gone again” ends it earlier.
 
 ## Values to enter
@@ -23,7 +23,7 @@ Some runs need the screen: they open a window, click and type themselves – for
 
 ## Common problems
 - **The release closes although you only wanted a quick look** – Input at the PC or remote session is on. If you want to look in via a remote session or move the mouse without interrupting the agents: switch these triggers off.
-- **An agent moves the mouse while you are watching** – This happens when “Input at the PC” is off: the AMW does not notice you are there, and runs with a window start even while you work. End the release yourself then (Overview › Screen for agents › “End sharing”).
+- **An agent moves the mouse while you are watching** – This happens when “Input at the PC” is off: the AMW does not notice you are there, and runs with a window start even while you work. End the release yourself then (Control room › Screen for agents › “End sharing”).
 - **Remote session not recognised** – The program is not entered or has a different name.
 
 ## Next

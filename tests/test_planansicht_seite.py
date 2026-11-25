@@ -22,7 +22,7 @@ class PlanAnsicht(Rundgang):
 
     def ueber_rand(self):
         return self.tab.js("document.documentElement.scrollWidth > innerWidth + 1 || [...document.querySelectorAll('header, nav, .kopf,"
-                           " .pm-stand, .tore-leiste, .bereich-reiter, .th-kopf')].some(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX"
+                           " .pm-stand, .bereich-reihe, .bereich-reiter, .th-kopf')].some(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX"
                            " !== 'auto')")
 
     def test_grob_freigeben_und_tor_zeile(self):
@@ -97,15 +97,13 @@ class PlanAnsicht(Rundgang):
                 self.assertEqual(self.besuchen("planung", "planung-k8", bereit="document.querySelector('#inhalt .pm-zeile')", tun=tun,
                                                danach="document.querySelector('.pm-geaendert')", g=g, t=th_), [], f"{g} {th_}")
 
-    def test_k7_tore_leiste_und_abschluss(self):
-        """K7 (A1944): die Tor-Leiste zeigt alle fünf Tore (● jetzt, ✓ zu); ein fertiger Meilenstein bekommt den Abschlussbericht der
-        AMW und das Ja dazu – danach ist das Tor Abschluss zu. Die Themen-Seite zeigt dieselbe Leiste."""
+    def test_k7_abschluss(self):
+        """K7 (A1944): ein fertiger Meilenstein bekommt den Abschlussbericht der AMW und das Ja dazu – danach ist der Schritt Abschluss
+        fertig. Die alte Leiste mit den fünf Toren gibt es nicht mehr (A2018)."""
         from amw import db, tore
         self.groesse("pc")
-        self.oeffnen("planung", "document.querySelector('#inhalt .tore-leiste')")
-        self.assertEqual(self.tab.js("[...document.querySelectorAll('#inhalt .tore .tor')].map(e => e.dataset.t + ':' + e.className).join(',')"),
-                         "konzept:tor jetzt,grobplanung:tor spaeter,feinplanung:tor spaeter,umsetzung:tor spaeter,abschluss:tor spaeter")
-        self.assertEqual(self.tab.js("document.querySelector('#inhalt .tore-text').textContent"), "Konzept · 0 von 1 Themen freigegeben")
+        self.oeffnen("planung", "document.querySelector('#inhalt .pm-stand')")
+        self.assertIsNone(self.tab.js("document.querySelector('#inhalt .tore-leiste')"))
         kern.projekt_einstellen(self.con, self.pid, "TL", versionen="aus")
         tore.runde(self.con, self.pid)                                          # Stichtag (erste Dienst-Runde mit K7)
         with db.schreiben(self.con):
@@ -126,8 +124,6 @@ class PlanAnsicht(Rundgang):
         self.tab.js("document.querySelector('.pm-abschluss button[data-h=ab-ja]').click()")
         self.warten("document.querySelector('.pm-abschluss[data-ab=frei]')")
         self.assertTrue(next(x for x in tore.stand(self.con, self.pid)["tore"] if x["tor"] == "abschluss")["n"] == 1)
-        self.oeffnen("themen", "document.querySelector('#inhalt .th-tore .tore-leiste')")
-        self.assertEqual(self.tab.js("document.querySelectorAll('#inhalt .th-tore .tor').length"), 5)
 
     def test_a2002_bereit_zur_abnahme_dann_ja(self):
         """A2002: endet der Meilenstein mit einem Urteil (hier „Vorführung“), steht er nach dem letzten Paket auf „bereit zur

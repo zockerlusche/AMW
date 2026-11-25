@@ -196,7 +196,7 @@ class Ausgeliefert(Grund):
         self.assertEqual(disponent.belegte_plaetze(self.con, self.pid), {1: a})
         aus = planautomatik.ausgeliefert(self.con, self.pid, "1.0.1", kopf, lambda s: True)
         self.assertEqual([x["aufgabe"] for x in aus], [a])
-        self.assertIn("gemergt, fertig, Platz 1 frei", aus[0]["paket"])
+        self.assertIn("gemergt, fertig, Headless 1 frei", aus[0]["paket"])
         self.assertEqual((arbeitspaket.lesen(self.con, a)["zustand"],
                           self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (a,)).fetchone()[0]), ("fertig", "fertig"))
         self.assertIn("gemergt", [neu for _, _, neu, _ in arbeitspaket.verlauf(self.con, a)])

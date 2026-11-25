@@ -136,8 +136,8 @@ class Eingriffe(Grund):
         with mock.patch.object(arbeiter, "notbremse", return_value=True), mock.patch.dict(
                 os.environ, {"AMW_AGENT": "", "CLAUDE_CODE_MESSAGING_SOCKET": "", "CLAUDECODE": ""}):
             r = self.tun("notbremse", {"platz": 1, "aufgabe": self.a})
-        self.assertIn("Platz 1", r["text"])
-        self.assertIn("Platz 1", self.ereignisse("notbremse")[-1])
+        self.assertIn("Headless 1", r["text"])
+        self.assertIn("Headless 1", self.ereignisse("notbremse")[-1])
 
     def test_keine_steuerung_online(self):
         for was, daten in (("vorziehen", {"aufgabe": self.a}), ("zurueckstellen", {"aufgabe": self.a}), ("pause", {"an": True}),

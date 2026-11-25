@@ -288,7 +288,7 @@ def bericht_erstellen(con, pid, bid, bereit=False):
         for wer in [x for x in (kern.ENTWICKLER if not an else None, an, kern.lead(con, pid) if an else None) if x]:
             kern._posten(con, pid, "AMW", wer, "info", f"Abschlussbericht Meilenstein {b['nr']} „{b['titel'][:50]}“ (D{did})",
                          f"Der Meilenstein ist fertig. Die AMW hat den Bericht gegen die Erfolgskriterien erstellt (D{did}, mit Resten"
-                         " und Lehren). Das Tor Abschluss schließt mit dem Ja dazu: Planung › Meilensteine (Ja oder Zurück mit Notiz).")
+                         " und Lehren). Der Schritt Abschluss ist mit dem Ja dazu fertig: Projektweg › Planung › Meilensteine (Ja oder Zurück mit Notiz).")
     return did
 
 
@@ -396,5 +396,5 @@ def runde(con, pid):
             with db.schreiben(con):
                 db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=STAND,
                              text=json.dumps({"tor": x["tor"], "zu": x["zu"], "womit": x["text"]}, ensure_ascii=False))
-            aus.append(f"Tor {x['name']} {'geschlossen' if x['zu'] else 'wieder offen'}")
+            aus.append(f"Schritt {x['name']} {'abgeschlossen' if x['zu'] else 'wieder offen'}")
     return aus

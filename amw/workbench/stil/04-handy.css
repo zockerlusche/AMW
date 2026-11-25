@@ -76,6 +76,7 @@
   .knopf { min-height: 46px; flex: 1 1 auto; }
   textarea { font-size: 16px; }   /* iOS zoomt sonst beim Tippen */
   .board { grid-template-columns: 1fr; }
+  .bereich-reihe button { padding: 10px; }
   .reiter { flex-wrap: wrap; }
   .reiter button { padding: 8px 10px; }
   .reiter .rechts { margin-left: 0; flex: 1 0 100%; padding: 8px 0; }
@@ -89,19 +90,19 @@
   .toast { left: 12px; right: 12px; bottom: 80px; }
   .neuer-stand { left: 12px; right: 12px; bottom: 80px; transform: none; max-width: none; justify-content: space-between; }
 }
-/* Leitstand (A1707): bis Tablet-Breite (iPad hoch: Inhalt ~600 px) zwei Spalten, am Handy eine; die Token-Kachel geht dann
+/* Steuerung (A1707): bis Tablet-Breite (iPad hoch: Inhalt ~600 px) zwei Spalten, am Handy eine; die Token-Kachel geht dann
    über die ganze Breite (ihr „span 3“ erzeugte im Zweier-Raster eine dritte Spalte – die übrigen wurden schmal wie ein Wort,
    die Texte liefen ineinander) */
 @media (max-width: 1000px) {
   .ae-raster { grid-template-columns: minmax(0, 1fr); }
   .ae-wahl { display: flex; flex-wrap: wrap; } .ae-wahl > button { width: auto; flex: 1 1 30%; border-right: 1px solid var(--linie); } .ae-wahl > button .tm-fach { display: none; } .ae-neu { flex: 1 1 100%; }
   .ae-raster.klebt > .ae-wahl { position: static; max-height: none; }
-  .leitstand { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .leitstand > div { border-right: 0; border-bottom: 1px solid var(--linie); } .leitstand > div:nth-child(odd) { border-right: 1px solid var(--linie); }
-  .leitstand > div:last-child { border-bottom: 0; } .leitstand > #ls-token { grid-column: 1 / -1; border-right: 0; }
+  .steuerung { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .steuerung > div { border-right: 0; border-bottom: 1px solid var(--linie); } .steuerung > div:nth-child(odd) { border-right: 1px solid var(--linie); }
+  .steuerung > div:last-child { border-bottom: 0; } .steuerung > #ls-token { grid-column: 1 / -1; border-right: 0; }
 }
-@media (max-width: 560px) {   /* Handy: Leitstand-Kacheln untereinander (A1707) */
-  .leitstand { grid-template-columns: minmax(0, 1fr); } .leitstand > div:nth-child(odd) { border-right: 0; }
+@media (max-width: 560px) {   /* Handy: Steuerung-Kacheln untereinander (A1707) */
+  .steuerung { grid-template-columns: minmax(0, 1fr); } .steuerung > div:nth-child(odd) { border-right: 0; }
 }
 /* A2033: Projektweg nach Kleinprobe D1516 v3 (TH156: Bernstein nur für „wartet auf dich“, Grün nur für erledigt) */
 .pjw-lbl { font: 600 12px var(--titel); letter-spacing: .08em; text-transform: uppercase; color: var(--sehrleise); }

@@ -41,7 +41,7 @@ Grenze: Die AMW sieht nur Läufe, die über `amw lauf start --schirm` angemeldet
 Vor einem Update sollen Agenten ihren Stand festhalten und ihre Sitzung enden – ohne dass der Mensch jedes Fenster
 einzeln schließt und ohne dass Arbeit mitten im Schritt abreißt.
 
-- **Auslöser:** nur der Mensch am PC – Leitstand „Alle sichern & beenden“ oder Aktionsmenü ⋯ einer Kachel. Nicht über
+- **Auslöser:** nur der Mensch am PC – Steuerung „Alle sichern & beenden“ oder Aktionsmenü ⋯ einer Kachel. Nicht über
   die Online-Seite, nicht über die Brücke, nicht per Befehl eines Agenten.
 - **Sammelbefehl (A2048):** `amw agent alle-beenden [--alle-projekte] [--frist N] --von Entwickler` im eigenen Terminal des
   Menschen (nie aus einer Agenten-Sitzung, nie ein Agent) – alle laufenden Fenster-Agenten des Projekts bzw. aller Projekte.
@@ -783,7 +783,7 @@ unten ab, eins nach dem anderen. Der Umfang darf groß sein.
   Aufgabe die laufende still zurück – das entfällt.
 - **Neues kommt in den Eingang (seit 1.55.0):** Legt jemand eine Aufgabe für einen Agenten an, der gerade ein Stück in
   Arbeit hat, landet sie im Eingang (früher „Pool“) statt in seiner Liste. Der Lead plant sie mit `amw liste ordnen`
-  ein – frühestens hinter das laufende Stück. Wer sie gleich einplanen will, legt sie mit `--sofort` an. Der Leitstand
+  ein – frühestens hinter das laufende Stück. Wer sie gleich einplanen will, legt sie mit `--sofort` an. Die Steuerung
   zeigt „n im Eingang“.
 - **Dazwischenschieben (seit 1.56.0)** entscheidet nur der Mensch: in der Workbench bei der Aufgabe „Dazwischenschieben“
   (mit Grund) oder `amw aufgabe dazwischen <nr> --grund …`. Das laufende Stück wartet dann auf die eingeschobene
@@ -886,7 +886,7 @@ die der Lead nur noch bestätigt oder ändert.
   (auch `plan-ja` im Terminal); `amw aufgabe neu` sagt bei S/M-mechanisch ohne `--paket` „p möglich – oder Grund“.
 - **Anteil p (A2004):** Je Aufsichtsrunde prüft der Dienst den Anteil p an den fertigen Paketen der letzten 7 Tage; liegt
   er unter 50 %, bekommt der Lead einmal je Tag eine Meldung (Ereignis `p_quote_meldung`) – nur in Projekten mit
-  Arbeitsplätzen. Zahlen: `amw messung --p` (je Tag, Kosten und Wartezeiten p gegen interaktiv), Betrieb › „Anteil p“.
+  Arbeitsplätzen. Zahlen: `amw messung --p` (je Tag, Kosten und Wartezeiten p gegen interaktiv), Betrieb › „Anteil Headless“.
 - **Projekt-Schalter (A1999):** wie der Gegenleser nur bei eingeschaltetem Projekt – steht `amw projekt schalter` auf aus
   oder probe, stößt weder die Freigabe noch die Dienst-Runde einen Planer an; `amw thema planen` antwortet „Projekt ist
   ausgeschaltet – Planer läuft erst nach dem Einschalten“ (bzw. „Projekt steht auf Probe – …“). Ein Thema, das an der
@@ -1187,7 +1187,7 @@ jemand daran denken muss.
   seit dem letzten Test fertig und gemergt wurde) und schickt alles an den Entwickler, Kopie an den Lead.
 - Ist die Frist erreicht und nichts gemeldet, bekommt der Lead einmal eine weckende Zeile. Der Entwickler bekommt 1 h vor
   dem Test eine Push-Nachricht.
-- Sichtbar: Pflicht-Kontext („Nächster Testtermin …“), Startseite (Band „Nächster Test“), Planung › Termine. Online
+- Sichtbar: Pflicht-Kontext („Nächster Testtermin …“), Startseite (Band „Nächster Test“), Betrieb › Termine. Online
   genauso.
 
 ## Federführung (seit 1.11.0)

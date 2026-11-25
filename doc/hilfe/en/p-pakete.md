@@ -1,6 +1,6 @@
 # Writing p packages (for the lead)
 
-A p package is a small, clearly checkable task that a fresh `claude -p` worker does alongside the interactive agents. The lead plans it so that AMW can start it, check it and present it for approval without asking: with an acceptance command, narrow areas and the details of what to work with.
+A p package is a small, clearly checkable task that a fresh `claude -p` worker does alongside the agents in windows. The lead plans it so that AMW can start it, check it and present it for approval without asking: with an acceptance command, narrow areas and the details of what to work with.
 
 ## You need
 - A task that can be finished on its own – small, without visual design and without decisions a person has to see.
@@ -17,7 +17,7 @@ A p package is a small, clearly checkable task that a fresh `claude -p` worker d
 ## Values to enter
 | Field in AMW | Where it comes from |
 |---|---|
-| `--paket` | `p` for a `claude -p` worker; `agent` (default) for an existing interactive agent; `sitzung` for a new session |
+| `--paket` | `p` for a `claude -p` worker; `agent` (default) for an existing agent in a window; `sitzung` for a new session |
 | `--pruefbefehl` | the acceptance command – required for `p`, red before the work |
 | `--dateien` | the areas – required for `p`, as narrow as possible |
 | `--modell`, `--effort` | like `claude --model` / `--effort`; default claude-opus-5-5 and high, medium is often enough for simple packages |
@@ -36,14 +36,14 @@ A p package is a small, clearly checkable task that a fresh `claude -p` worker d
 
 ## Next
 - **Follow it in the Workbench:** Work › Packages shows every package with type, state, cost and – if it does not start – the reason in words (e.g. “Does not start: all workspaces in use”). For “waiting for lead/you” it says whose turn it is. On the PC you can move a package up or defer it, pause all new starts, watch a running worker with “Follow along” and end it with its sub-processes using “Emergency stop” – every intervention is in the planning log. Online and on the phone you only see the list; control happens on the PC. “What do the states mean?” below the list shows which state counts as done, running, waiting or blocked.
-- AMW takes every p package through its states: draft → ready to start → running → handed in → in acceptance → ready to merge → merged → done. Alongside: blocked (question open), unclear (no final line), waiting for interactive, aborted, deferred. In Planning and the overview a p package shows like any task as running, waiting, blocked or done.
+- AMW takes every p package through its states: draft → ready to start → running → handed in → in acceptance → ready to merge → merged → done. Alongside: blocked (question open), unclear (no final line), waiting for lead, aborted, deferred. In Planning and the overview a p package shows like any task as running, waiting, blocked or done.
 - Tasks with `--paket agent` (the default) have none of these states – the task status applies to them as before.
 - **Approve what is ready to merge:** Below the list, “Ready to merge” shows every fully checked package: which files it changes (`diff --stat`) and the changes themselves to expand. On the PC, “Approve all” approves them all at once; in the terminal use `amw paket freigeben --alle` (package reviewer, lead or you). AMW then fetches exactly each package's state as branch `paket-A<number>` into the project and records “Prüfung C (AMW) + approval” and the merge OK; delivery runs through the chain as always. Afterwards the package is “merged” and “done”, and its workspace is free again.
 - **Bundle and deliver:** `amw paket buendeln --alle` (lead or you) puts the approved packages one after another on top of the current state – in a separate working folder, never in the live folder. AMW raises the version number (MINOR if a package brings something new, otherwise PATCH), writes the release notes from the packages' notes and runs the full test run through the run queue. If it is green, you get “Bündel X.Y.Z bereit” with the changed files, the release notes and the two commands to approve and deliver – only you or the lead approve the release. If a package does not fit on top of the others (conflict), it stays out and waits for you; packages that come “after” it stay out as well. What a project needs for this is in the project settings `version_datei`, `changelog_datei`, `gesamtlauf_befehl` and optionally `buendel_schritt` (follow-up step, e.g. building the web page). If a bundle's full test run stops before it ran, `amw paket buendeln --gesamtlauf buendel-X.Y.Z` starts it again for the same bundle. If a bundle is not delivered, its packages stay approved: the next `amw paket buendeln --alle` takes them along again without you approving them again.
 
 ## Questions
 ### Is p the default?
-Yes. Packages of size S – and M of type mechanical – that are not user interface work, need no locked area and neither the screen nor the graphics card run as p. The planner cuts them that way (with an acceptance command, narrow areas and, if needed, package type `test-schreiben`); it then takes model and effort from the project's recommendation. Such a package stays interactive only with a reason (look and feel, exploration, locked area, your eye) – the reason is in the task (“Interaktiv, Grund: …”). If it is missing, the yes to the plan reports “Achtung”, and `amw aufgabe neu` says “p possible – or a reason” for S or M-mechanical without `--paket`. How many packages really run as p is shown by `amw messung --p` (per day, with cost and waiting times p versus interactive) and Operations › “Share p”; if the share of the last seven days is below 50 %, the lead gets one notice a day (only in projects with work places).
+Yes. Packages of size S – and M of type mechanical – that are not user interface work, need no locked area and neither the screen nor the graphics card run as p. The planner cuts them that way (with an acceptance command, narrow areas and, if needed, package type `test-schreiben`); it then takes model and effort from the project's recommendation. Such a package stays interactive only with a reason (look and feel, exploration, locked area, your eye) – the reason is in the task (“Interaktiv, Grund: …”). If it is missing, the yes to the plan reports “Achtung”, and `amw aufgabe neu` says “p possible – or a reason” for S or M-mechanical without `--paket`. How many packages really run as p is shown by `amw messung --p` (per day, with cost and waiting times p versus interactive) and Operations › “Share headless”; if the share of the last seven days is below 50 %, the lead gets one notice a day (only in projects with work places).
 
 ### What makes a good acceptance command?
 One that checks exactly what the package should deliver, runs fast and is red today. A whole test run is too broad; a single new test or a small test class is ideal. If you put the test in place beforehand as `tests/abnahme_<topic>.py` (the worker may not change `tests/`), AMW renames it to `tests/test_abnahme_<topic>.py` when bundling – from then on it runs in every full test run.
@@ -57,8 +57,8 @@ Not measured yet – that is what packages of the same size and kind with the sa
 ### A package waits for me after the check – but it is fine. How does it get into the merge list?
 Some packages always go to you or the lead after the check first, for example the package type “test-schreiben” or a hint about outside access that turns out to be harmless when you read it. AMW keeps the checked state. Once you have read it and it is fine: `amw paket annehmen <no> --grund "what you read"` (lead or you). The package then appears under “Ready to merge” and is approved and delivered like any other.
 
-### A p package is stuck – how do I hand it to an interactive agent?
-If it is “waiting for interactive”, “blocked”, “unclear” or “aborted”: `amw aufgabe aendern <no> --paket agent --agent <id>`. From then on the normal task status applies again; the states up to then stay in the planning log.
+### A p package is stuck – how do I hand it to an agent in a window?
+If it is “waiting for lead”, “blocked”, “unclear” or “aborted”: `amw aufgabe aendern <no> --paket agent --agent <id>`. From then on the normal task status applies again; the states up to then stay in the planning log.
 
 ### What does the package type “test-schreiben” do?
 For packages that write a test for a change. Their acceptance command is naturally not red before the work; instead the new test must be red against the old state and green against the new one. If that holds and nothing is risky, AMW accepts the package itself; otherwise the lead reads it.

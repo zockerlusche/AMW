@@ -7,10 +7,10 @@ Manche Läufe brauchen den Bildschirm: Sie öffnen ein Fenster, klicken und tipp
 - Für das Erkennen einer Fernsitzung: das Programm, das nur während einer Verbindung läuft (Einstellungen › Dieser PC › „Programm für den Fernzugriff“, bei TeamViewer z. B. TeamViewer_Desktop.exe).
 
 ## Schritte
-1. **Freigeben** Übersicht › Bildschirm für Agenten › „Für Agenten freigeben …“ – auf Wunsch mit Uhrzeit, bis wann.
+1. **Freigeben** Leitstand › Bildschirm für Agenten › „Für Agenten freigeben …“ – auf Wunsch mit Uhrzeit, bis wann.
 2. **Verlängern oder kürzen (optional)** Ist der Bildschirm frei, ändert „Bis ändern“ in der Kachel nur die Uhrzeit: neue Uhrzeit eintragen und „Übernehmen“, oder „+1 Stunde“, „bis 22:00“, „ohne Ende“. Die Freigabe läuft weiter, im Verlauf steht die Änderung. Über die Befehlszeile: `amw schirm frei --bis 15:00` (ohne `--bis`: ohne Ende).
 3. **Agenten arbeiten** Läufe mit Fenster starten nacheinander; in der Zeit am besten nichts am PC tun.
-4. **Zurück am PC** Die Freigabe schließt von selbst – oder du beendest sie selbst: Übersicht › Bildschirm für Agenten › „Freigabe beenden“.
+4. **Zurück am PC** Die Freigabe schließt von selbst – oder du beendest sie selbst: Leitstand › Bildschirm für Agenten › „Freigabe beenden“.
 5. **Nur kurz da (optional)** Rechtsklick auf das AMW-Symbol im Infobereich der Taskleiste › „Ich bin kurz da“ › 15, 30 oder 60 Minuten: Der Bildschirm bleibt frei, deine Eingaben schließen ihn nicht. Laufende Läufe laufen weiter; neue Läufe mit Fenster starten erst, wenn der PC 2 Minuten ruht – so tippst du nie in ein Testfenster. „Bin wieder weg“ beendet es vorher.
 
 ## Diese Werte trägst du ein
@@ -23,7 +23,7 @@ Manche Läufe brauchen den Bildschirm: Sie öffnen ein Fenster, klicken und tipp
 
 ## Typische Fehler
 - **Die Freigabe geht zu, obwohl du nur kurz reinschauen wolltest** – Eingabe am PC oder Fernsitzung stehen auf an. Wenn du zwischendurch per Fernsitzung schauen oder die Maus bewegen willst, ohne die Agenten zu unterbrechen: diese Auslöser ausschalten.
-- **Ein Agent bewegt die Maus, während du hinschaust** – Das passiert, wenn „Eingabe am PC“ aus ist: Die AMW merkt nicht, dass du da bist, und Läufe mit Fenster starten auch, während du arbeitest. Schließ die Freigabe dann bewusst selbst (Übersicht › Bildschirm für Agenten › „Freigabe beenden“).
+- **Ein Agent bewegt die Maus, während du hinschaust** – Das passiert, wenn „Eingabe am PC“ aus ist: Die AMW merkt nicht, dass du da bist, und Läufe mit Fenster starten auch, während du arbeitest. Schließ die Freigabe dann bewusst selbst (Leitstand › Bildschirm für Agenten › „Freigabe beenden“).
 - **Fernsitzung wird nicht erkannt** – Das Programm ist nicht eingetragen oder heißt anders.
 
 ## Danach

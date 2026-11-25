@@ -266,7 +266,7 @@ def _e8(con, pid, aid, grund):
         if lead:
             kern._posten(con, pid, "AMW", lead, "meldung", f"A{aid}: Konflikt beim Bündeln (E8) – wartet auf dich",
                          f"{grund}\nDas Paket bleibt draußen, der Rest wird gebündelt. Möglich: Paket ändern und nochmal frisch,"
-                         " an einen interaktiven Agenten, verwerfen.", aufgabe_id=aid)
+                         " an einen Agenten im Fenster, verwerfen.", aufgabe_id=aid)
 
 
 # --- Bündeln -----------------------------------------------------------------------------------------------------------------

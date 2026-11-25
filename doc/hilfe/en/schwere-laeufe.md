@@ -13,7 +13,7 @@ Several projects share one PC. If test suites, builds or image runs start at the
    If a full test run is running or waiting in the project, a light run waits by itself until it is finished. Urgent work runs anyway with `--neben "reason"`; the lead sees the reason.
 4. **Add your own commands** Under Settings › Project › “More heavy commands”, enter one `Name = pattern` per line, for example `Render maps = maps\.py`.
 5. **State the need** If you know what a run needs, say so: `--braucht-gb 4` (memory), optionally `--braucht-vram-gb` (graphics memory) and `--braucht-platte-gb` (free disk space). Without it the AMW uses what the same kind of run by the same agent really needed recently (measured, with a margin) – the first time, the project's memory limit. Nobody has to guess.
-6. **Check** Overview › control panel › “Computer” shows how many runs are in progress and waiting, and when the computer is expected to be free.
+6. **Check** Control room › Controls › “Computer” shows how many runs are in progress and waiting, and when the computer is expected to be free.
 
 ## Values to enter
 | Field in the AMW | Where it comes from |
@@ -23,19 +23,19 @@ Several projects share one PC. If test suites, builds or image runs start at the
 | Move up after waiting (This PC) | one level higher after waiting this many minutes, default 30, 0 = off |
 | Keep room for priority (This PC) | leave it on; off means other runs start even if the memory for the priority run is then missing |
 | Memory reserve (This PC) | how much stays free for you, default 3 GB |
-| Show long-term memory use from (This PC) | a program outside the queue that uses at least this much memory appears in the control panel, default 4 GB, 0 = off |
+| Show long-term memory use from (This PC) | a program outside the queue that uses at least this much memory appears in the controls, default 4 GB, 0 = off |
 | More heavy commands (Project) | Name = pattern, one entry per line; the pattern is a regular expression |
 
 ## Common problems
 - **An agent still starts tests directly** – Its folder does not have the hook yet: run `amw einrichten agenten-ordner <folder>`.
-- **A run waits for a long time** – The control panel says why: the computer is busy, too little memory is free or a run ahead is waiting – then it also says how much memory that run needs and how much is usable. The human can move a run to the front – with “Move up” in the Computer tile or with `amw lauf vorziehen <nr>`; the run is then at the very front, ahead of every priority level. A lead can only move runs up within their project: ahead of the project's other runs, not ahead of other projects' runs. The list therefore says “moved up by the developer” or “moved up within the project”.
+- **A run waits for a long time** – The controls say why: the computer is busy, too little memory is free or a run ahead is waiting – then it also says how much memory that run needs and how much is usable. The human can move a run to the front – with “Move up” in the Computer tile or with `amw lauf vorziehen <nr>`; the run is then at the very front, ahead of every priority level. A lead can only move runs up within their project: ahead of the project's other runs, not ahead of other projects' runs. The list therefore says “moved up by the developer” or “moved up within the project”.
 - **A full run does not count for a release** – At its start a run records the commit of the folder its command switches to with `cd`, otherwise of the folder you queue it from. If only a script changes the folder, AMW cannot see it: start the command with `cd /d <folder> &&` or queue it from the worktree it checks. The line “# Stand …” at the top of the output shows the recorded commit.
 - **A full run hangs** – If a test makes no progress for more than 5 minutes, the full run stops that one test process together with its browser, shows the module and the test as failed (“Zeitgrenze”, time limit) and continues with the remaining modules. A full run ends at the latest after its deadline (default 60 minutes, project setting `gesamtlauf_frist_min`); before that it writes under “Läuft gerade” (running now) which test ran last, and the lead gets a message.
 - **“!! Baum während des Laufs geändert” (tree changed during the run)** – Something changed in the checked folder during the full run (a new commit or changed files, except `daten/`), for example because someone built there. The run then ends with FAILED and does not count as evidence. Build in another folder and start the run again.
 - **A single short test is rejected** – The pattern is too broad. Single test modules stay free; make your own patterns narrower.
 - **“Muster ungültig”** – The pattern is not a valid regular expression, for example a bracket is missing.
 
-- **The computer is idle, but nothing starts** – A program outside the queue is using the memory, for example a local AI server or a virtual machine. The control panel shows under “Computer” which program it is, how much it uses and since when. Close it yourself when you no longer need it – the AMW never closes anything.
+- **The computer is idle, but nothing starts** – A program outside the queue is using the memory, for example a local AI server or a virtual machine. The controls show under “Computer” which program it is, how much it uses and since when. Close it yourself when you no longer need it – the AMW never closes anything.
 
 ## Next
 - Heavy by default: whole test suites, browser tests, builds and the split of the web branch.
@@ -44,7 +44,7 @@ Several projects share one PC. If test suites, builds or image runs start at the
 
 ## Questions
 ### How does a project get priority?
-Under Settings › This PC › “Project priority” you set high, normal or low for each project. Waiting runs then go in this order: first what you moved up yourself, then “high”, then “normal”, then “low” – in order of arrival within a level. A run that is already running is never stopped. The waiting reason names the priority; in the timeline “Computer – today” priority runs are marked with ▲, and the control panel lists them briefly. The setting belongs to the PC, not to a project – you only see the names of other projects on the PC. Within the same level, the project ranking comes next (`amw pc einstellen projekt_rang=AMW,GlassWorld,LayerIT`, only you; projects not listed come after), and only then arrival.
+Under Settings › This PC › “Project priority” you set high, normal or low for each project. Waiting runs then go in this order: first what you moved up yourself, then “high”, then “normal”, then “low” – in order of arrival within a level. A run that is already running is never stopped. The waiting reason names the priority; in the timeline “Computer – today” priority runs are marked with ▲, and the controls list them briefly. The setting belongs to the PC, not to a project – you only see the names of other projects on the PC. Within the same level, the project ranking comes next (`amw pc einstellen projekt_rang=AMW,GlassWorld,LayerIT`, only you; projects not listed come after), and only then arrival.
 
 ### Can a project run heavy jobs only at certain times?
 Yes: `amw projekt einstellen lauf_fenster=18:00-07:00` (you or the lead; local time, may span midnight; empty = any time). Heavy runs of this project then start only within that window. Outside it the run shows “wartet auf das Zeitfenster ab 18:00” (waiting for the time window from 18:00) and holds nobody up – other runs move past. Light runs and AI jobs (they have their own AI window) are not affected; a run that is already running is never stopped. On the whole PC only one run at a time uses the graphics card and the screen.
@@ -74,7 +74,7 @@ Then the command simply runs – an error never blocks anything. The error is wr
 A program that does not run through the queue and has been using a lot of memory for more than 10 minutes. The AMW only reads the name, memory and start time of the processes – no command lines. Many small processes, such as a browser, do not count.
 
 ### What does the AMW do when the disk fills up?
-It warns: in the control panel under “Computer” and with a message to the lead and you as soon as a drive holding the database or a project folder has less than 15 % free, and urgently below 5 %. Settings › This PC lists the drives and the clean-up suggestions: old backups with size and age. Nothing is deleted automatically. If an archive folder is set, you move old backups there with one click; every move is listed in archiv-protokoll.txt.
+It warns: in the controls under “Computer” and with a message to the lead and you as soon as a drive holding the database or a project folder has less than 15 % free, and urgently below 5 %. Settings › This PC lists the drives and the clean-up suggestions: old backups with size and age. Nothing is deleted automatically. If an archive folder is set, you move old backups there with one click; every move is listed in archiv-protokoll.txt.
 
 The AMW also measures the work folders of the Claude sessions (%TEMP%\claude) – per session with agent and project, under Settings › This PC › “Claude work folders”. If a session uses more than 10 GB, its lead and you get a notice. Old working copies in it (folders with .git, unchanged for over a day) are listed with a ready PowerShell command to remove them; the AMW never runs it.
 

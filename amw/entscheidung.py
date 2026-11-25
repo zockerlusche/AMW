@@ -115,7 +115,7 @@ def nachricht(zeile, code, aid, titel, lauf, meldung, befund, notiz=None):
     if notiz:
         teile.append(f"Übergabe-Notiz: {_kurz(notiz, 800)}")
     teile.append(f"Kosten: {e.get('total_cost_usd', 'unbekannt')} $ · Runden {e.get('num_turns', '–')} · Sitzung {(lauf or {}).get('sitzung') or '–'}")
-    teile.append("Antworten (Stufe 1): nochmal frisch · Paket ändern (Chat-TL) · an interaktiven Agenten · verwerfen · Frage an Marcel"
+    teile.append("Antworten (Stufe 1): nochmal frisch · Paket ändern (Chat-TL) · an einen Agenten im Fenster · verwerfen · Frage an Marcel"
                  + (f" · gelesen und passt: amw paket annehmen {aid} --grund …" if zeile == "E4" else ""))   # A1894
     return "\n".join(teile)
 
@@ -164,8 +164,8 @@ def anwenden(con, pid, aid, zeile, code, lauf=None, meldung=None, befund=None, p
             kern._posten(con, pid, "AMW", an, "info" if zeile == "E1n" else "meldung", f"{zeile} {code}: A{aid} {titel}"[:140], text,
                          aufgabe_id=aid)
         elif zeile == "E7" and p is not None and notiz and (lead := kern.lead(con, pid)):            # A2105: nur der Fehlerfall – sonst sagt E7 nichts
-            kern._posten(con, pid, "AMW", lead, "meldung", f"A{aid} angenommen, Platz {p['nr']} bleibt belegt"[:140],
-                         f"{notiz}\nDas Paket ist bereit zum Merge. Der Platz wird mit der Auslieferung frei.", aufgabe_id=aid)
+            kern._posten(con, pid, "AMW", lead, "meldung", f"A{aid} angenommen, Headless {p['nr']} bleibt belegt"[:140],
+                         f"{notiz}\nDas Paket ist bereit zum Merge. Headless {p['nr']} wird mit der Auslieferung frei.", aufgabe_id=aid)
     return {"zeile": zeile, "code": code, "zustand": z["zustand"], "an": an, "archiv": archiv}
 
 

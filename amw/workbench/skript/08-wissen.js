@@ -40,12 +40,12 @@ async function sichtThemen() {
   let liste; try { liste = await holen("/api/themen"); } catch (e) { m.append(el("div", { class: "leer" }, String(e.message || e))); return; }
   const zaehlen = liste.filter(x => !x.zustand.markiert);                       /* D1326 A28: Markierte zählen nicht */
   const neuKnopf = !API && (liste[0]?.neu_erlaubt ?? true) ? el("button", { class: "klein-knopf th-neu", type: "button", onclick: () => thNeu() }, t("th2_neu")) : null;
-  /* A1972 (Marcel W2464, TH156): oben nur die fünf Tor-Chips (Werte auf Klick), darunter höchstens EINE Zeile – nur wenn du handeln
-     musst. Zählungen der Meilensteine stehen in der Planung, Co/Lead-Interna nie hier. */
-  const toreFeld = el("div", { class: "th-tore" }), dichFeld = el("div", { class: "th-dich" });
-  m.append(el("div", { class: "th-stand" }, toreFeld, neuKnopf), dichFeld);
+  /* A1972 (Marcel W2464, TH156): höchstens EINE Zeile, nur wenn du handeln musst. Den Stand zeigt die Schritt-Leiste im Projektweg
+     (A2018: die alte Leiste entfällt), Co/Lead-Interna nie hier. */
+  const dichFeld = el("div", { class: "th-dich" });
+  m.append(...(neuKnopf ? [el("div", { class: "th-stand" }, neuKnopf)] : []), dichFeld);
   const zumThema = () => { const x = zaehlen.find(y => y.zustand.status === "dich"); if (x) { zustand.themaOffen = x.id; zeige("themen", true); } };
-  holen("/api/tore").then(d => { const l = toreLeiste(d, true); if (l) toreFeld.replaceChildren(l);
+  holen("/api/tore").then(d => {
     const z = toreDich(d.fuer_dich, zumThema); dichFeld.replaceChildren(...(z ? [z] : [])); }).catch(() => {});
   const neuKasten = el("div", { class: "th-kasten" }); m.append(neuKasten);
   function thNeu() {                                                            /* F5360 A: Titel und Text, danach in Arbeit */
@@ -76,7 +76,7 @@ async function sichtThemen() {
     if (!offen) { rechts.replaceChildren(el("div", { class: "leer" }, t("th2_waehlen"))); return; }
     let s; try { s = await holen(`/api/thema?id=${offen}`); } catch (e) { rechts.replaceChildren(el("div", { class: "leer" }, String(e.message || e))); return; }
     const z = s.zustand, text = s.zusammenfassung?.text || "", kasten = el("div", { class: "th-kasten" });
-    const schliesst = h => (s.tor?.schliesst || []).includes(h);              /* A1913: diese Handlung schlösse das Tor Konzept */
+    const schliesst = h => (s.tor?.schliesst || []).includes(h);              /* A1913: diese Handlung schlösse den Schritt Konzept ab */
     const tun = async (was, daten, ok) => { if (schliesst(was) && !confirm(t("th2_tor_frage"))) return;   /* W2449: Hinweis vorher, kein eigener Knopf */
       try { const r = await schicken(`/api/thema/${was}`, { thema: s.id, ...daten }) || {}; toast(schliesst(was) ? t("th2_ok_tor") : typeof ok === "function" ? ok(r) : ok); zustand.themaOffen = s.id; zeige("themen", true); }
       catch (e) { toast(t("fehler", { x: e.message }), true); } };

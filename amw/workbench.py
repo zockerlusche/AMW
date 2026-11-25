@@ -238,6 +238,7 @@ _STAND_QUELLEN = {
 STAND_SICHTEN = {
     "fragen": ("frage", "frage_verlauf", "dokument"),
     "arbeit": ("aufgabe", "abhaengigkeit", "frage", "pruefung", "lauf"),
+    "termine": ("termin", "bogen"),                                                                                    # A2018
     "planung": ("bogen", "aufgabe", "abhaengigkeit", "spezifikation", "risiko", "rueckblick", "plan_ereignis", "termin", "frage"),
     "projektweg": ("bogen", "aufgabe", "abhaengigkeit", "plan_ereignis", "frage", "thema", "thema_fassung", "lauf"),   # A2033
     "verlauf": ("nachricht", "aufgabe", "lauf", "pruefung", "beschluss"),
@@ -315,6 +316,20 @@ def _themen_fuer_dich(con, pid):
         return themen.fuer_dich(con, pid)
     except Exception:
         return []
+
+
+def _projektweg_zahl(con, pid, wartet, themen_dich):
+    """A2018 (TH156): die Zahl am Menüpunkt Projektweg – jedes Ding einmal und nur, was der Mensch tun muss: seine Themen, vorgelegte
+    Spezifikationen (wenn nicht der Lead sie freigibt), Pläne, für die er verantwortlich ist, und seine eigenen Aufgaben ohne geparkte.
+    Entwürfe zählen nicht, auch keine zurückgestellten (A2118). Aus Daten, die die Startseite ohnehin lädt."""
+    lead_frei = bool(wartet["spezifikationen"]) and kern.projekt_wahl(con, pid, "spec_frei") == "lead" and kern.lead(con, pid)
+    dinge = set() if lead_frei else {("S", x["bogen_id"], x["teil"]) for x in wartet["spezifikationen"]}
+    dinge |= {("A", a["id"]) for a in wartet["plaene"]} | {("A", a["id"]) for a in wartet["eigene"] if a.get("einstufung") != "geparkt"}
+    if themen_dich:
+        from . import projektweg
+        mensch = kern.entwickler_name(con, pid) in projektweg._freigebende(con, pid, "thema")
+        dinge |= {("TH", x["id"]) for x in themen_dich if x["status"] == "dich" and (mensch or x.get("nur_mensch"))}
+    return len(dinge)
 
 
 def _pruefpunkte(con, pid):
@@ -437,7 +452,8 @@ def daten_start(con, pid):
             a.pop("auftrag", None)
     except Exception:
         planung_wartet = {"spezifikationen": [], "plaene": [], "eigene": []}
-    zaehler["freigaben"] = sum(len(v) for v in planung_wartet.values())
+    themen_dich = _themen_fuer_dich(con, pid)
+    zaehler["projektweg"] = _projektweg_zahl(con, pid, planung_wartet, themen_dich)          # A2018: Menüzahl (Freigaben und Themen)
     from . import __version__, hook, ueberwachung
     try:
         unangemeldet = hook.unangemeldet(con, pid)     # laufende Agenten-Sitzungen, die der Wächter nicht wecken kann
@@ -473,7 +489,7 @@ def daten_start(con, pid):
             "dienst_rot": [g["teil"] for g in gesund["teile"] if g["zustand"] == "rot"], "uebersicht": _uebersicht(con, pid, gesund),
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "startvorschlaege": _startvorschlaege(con, pid),
-            "themen_fuer_dich": _themen_fuer_dich(con, pid),
+            "themen_fuer_dich": themen_dich,
             "zur_abnahme": _zur_abnahme(con, pid), "aufgaben_zur_abnahme": _aufgaben_zur_abnahme(con, pid), "pruefpunkte": _pruefpunkte(con, pid),
             "bogen_nr": {str(r[0]): r[1] for r in con.execute("SELECT id, nr FROM bogen WHERE projekt_id = ?", (pid,))},   # A2089: intern → Projektnummer
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}

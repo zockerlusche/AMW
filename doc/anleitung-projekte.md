@@ -50,7 +50,7 @@ Projekt“ und unter Einstellungen › Projekt; online nur zum Lesen – angeleg
    und eine **erste Aufgabe** oder einen Bogen anlegen ([Planung](anleitung-planung.md)). Projektwissen (Technik, Build,
    Stil) gehört in eine `CLAUDE.md` im Projektordner – die legt die AMW nicht an. Regeln erst als Beschluss, dann als
    Regel ([Installation](installation.md), Abschnitt 5).
-5. Start › Kachel eines Agenten › **Starten**. Es öffnet sich ein Tab „CC1 · <Projekt>“. **Beim allerersten Start in
+5. Leitstand › Kachel eines Agenten › **Starten**. Es öffnet sich ein Tab „CC1 · <Projekt>“. **Beim allerersten Start in
    einem neuen Ordner** fragt Claude Code einmal, ob du dem Ordner vertraust – im Tab mit „Yes, proceed“ bestätigen;
    vorher laufen weder Hook noch Startsatz. Danach steht im Fenster „AMW: als CC1 angemeldet“. Der Agent liest Regeln und Nachrichten, holt seine Arbeit und meldet sich.
 

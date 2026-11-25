@@ -293,7 +293,7 @@ class Arbeiter(unittest.TestCase):
             self.assertEqual(e["aufgabe_id"], 7)
             self.assertIn("letzter Commit", e["text"])
             n = con.execute("SELECT n.kurz FROM nachricht n JOIN empfang m ON m.nachricht_id = n.id WHERE m.agent = 'TL'").fetchall()
-            self.assertTrue(any("Notbremse: Platz 1 (A7)" in r[0] for r in n))
+            self.assertTrue(any("Notbremse: Headless 1 (A7)" in r[0] for r in n))
 
     def test_ohne_klon_kein_start(self):
         p = platz.pfade(os.path.join(self.ordner.name, "leer"), 2)

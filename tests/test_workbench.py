@@ -102,7 +102,7 @@ class Workbench(unittest.TestCase):
         d = json.loads(self.anfrage("GET", "/api/planung")[1])
         self.assertEqual(d["boegen"][0]["specs"]["anforderungen"]["status"], "vorgelegt")
         self.assertEqual(len(d["wartet"]["spezifikationen"]), 1)
-        self.assertEqual(json.loads(self.anfrage("GET", "/api/start")[1])["zaehler"]["freigaben"], 1)
+        self.assertEqual(json.loads(self.anfrage("GET", "/api/start")[1])["zaehler"]["projektweg"], 1)
         status, text = self.anfrage("POST", "/api/plan/spec", {"bogen": bid, "teil": "anforderungen", "frei": False}, kopf)
         self.assertEqual(status, 400)                                             # zurück nur mit Kommentar
         status, _ = self.anfrage("POST", "/api/plan/spec", {"bogen": bid, "teil": "anforderungen", "frei": True}, kopf)

@@ -4,7 +4,7 @@ Der Dienst der AMW arbeitet in mehreren Teilen nebeneinander: die Hauptschleife 
 
 ## Schritte
 1. **Ansehen** Unter Betrieb › Dienst steht je Teil, ob er läuft, wann seine letzte Runde war, wie lange sie gedauert hat, wie oft er neu gestartet wurde und sein letzter Fehler.
-2. **Auf die Farbe achten** Grün: alles in Ordnung. Gelb: die letzte Runde hatte einen Fehler, der Teil ist länger still als erlaubt oder wurde in der letzten Stunde neu gestartet. Rot: der Teil steht – dann zeigt auch die Übersicht ein Band.
+2. **Auf die Farbe achten** Grün: alles in Ordnung. Gelb: die letzte Runde hatte einen Fehler, der Teil ist länger still als erlaubt oder wurde in der letzten Stunde neu gestartet. Rot: der Teil steht – dann zeigt auch der Leitstand ein Band.
 3. **Nichts tun müssen** Steht ein Teil länger still als erlaubt, startet die AMW ihn selbst neu und schickt dir einmal eine Nachricht. Die anderen Teile laufen dabei weiter.
 4. **Nur bei der Hauptschleife eingreifen** Die Hauptschleife kann sich nicht selbst ersetzen. Steht sie, kommt eine Nachricht; dann den Dienst neu starten: `amw dienst neustart`.
 

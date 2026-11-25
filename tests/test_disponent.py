@@ -105,7 +105,7 @@ class Disponent(unittest.TestCase):
         self.plaetze()
         aid = self.paket()
         aus = disponent.runde(self.con, prog("bauen"))
-        self.assertTrue(any(f"A{aid} gestartet auf Platz 1" in x for x in aus), aus)
+        self.assertTrue(any(f"A{aid} gestartet als Headless 1" in x for x in aus), aus)
         v = disponent.vermerk(self.con, self.pid, aid)
         self.assertEqual(v["basis"], g(self.repo, "rev-parse", "main"))                          # Basis vom Vorbereiten
         self.assertEqual(self.warten(aid, ("merge_reihe", "wartet_interaktiv", "abgebrochen", "unklar")), "merge_reihe")
@@ -181,7 +181,7 @@ class Disponent(unittest.TestCase):
         self.assertTrue(any("kein startklares p-Paket in M12 „" in x for x in aus), aus)        # A2089: die Projektnummer, nicht die interne
         self.assertFalse(any(f"M{b} " in x for x in aus), aus)
         self.assertEqual(disponent.runde(self.con, prog("bauen")), [])                             # gleicher Anlass: nicht nochmal
-        n = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'Platz frei%'").fetchall()
+        n = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'Headless frei%'").fetchall()
         self.assertEqual(len(n), 1)
         self.assertIn(f"A{aid} plus reparieren [entwurf]", n[0][0])
         with db.schreiben(self.con):                                                             # alles fertig → neuer Anlass

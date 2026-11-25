@@ -114,7 +114,7 @@ class Anwenden(Grundlage):
             self.assertIn(teil, text)
         self.assertEqual([x[0] for x in self.post("TL") if x[1].startswith("E1n ")], ["info"])     # E1n: nur Info an den Lead
         self.assertEqual([x[1].split(", ")[1] for x in self.post("TL") if x[0] == "meldung" and " angenommen, " in x[1]],
-                         ["Platz 1 bleibt belegt"])                                               # A2105: Kopf „abc“ lässt sich nicht sichern
+                         ["Headless 1 bleibt belegt"])                                               # A2105: Kopf „abc“ lässt sich nicht sichern
         self.assertEqual({a for a, _ in self.post("PRUEF")}, {"meldung"})                          # P269 (1): kein „auftrag“
 
     def test_e5_dann_e6_und_e8(self):

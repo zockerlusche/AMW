@@ -141,7 +141,8 @@ function uebersichtKarten(d) {
 async function sichtStart() {
   await kopfAktualisieren(); const d = zustand.start;
   if (!d) { if (zustand.startFehler) rahmen(t("n_start")).append(el("div", { class: "leer" }, zustand.startFehler)); return; }   /* A1998 */
-  const m = rahmen(t("n_start"), el("span", { class: "leise" }, t("stand", { t: zeit(d.zeit) })));
+  const m = rahmen(t("n_start"), el("span", { class: "leise" }, t("stand", { t: zeit(d.zeit) })),
+    el("button", { class: "knopf still kopf-aktion", type: "button", id: "zur-steuerung", onclick: zurSteuerung }, t("ls_titel")));   /* A2018 (TH156): Eingriffe über den Knopf „Steuerung“ */
   /* „Seit du weg warst“: letzter Besuch je Gerät (localStorage); in dieser Sitzung bleibt der Wert stehen */
   let seitBesuch = null;
   try {
@@ -175,15 +176,15 @@ async function sichtStart() {
       el("div", {}, [sz.seit_utc ? t("schirm_seit", { x: seit(sz.seit_utc) }) : null, sz.bis_utc ? t("schirm_bis", { x: zeit(sz.bis_utc) }) : null,
         sz.grund, laeuft.length ? t("schirm_laeuft", { x: laeuft.map(l => `L${l.id} ${l.agent}`).join(", ") }) : null,
         wartet.length ? t("schirm_wartet", { n: wartet.length }) : null].filter(Boolean).join(" · ")),
-      el("button", { class: "klein-knopf", type: "button", title: t("schirm_zum_leitstand_h"),
-        onclick: () => document.getElementById("leitstand")?.scrollIntoView({ behavior: "smooth", block: "center" }) }, t("schirm_zum_leitstand"))));
+      el("button", { class: "klein-knopf", type: "button", title: t("schirm_zur_steuerung_h"),
+        onclick: () => zurSteuerung() }, t("schirm_zur_steuerung"))));
   }
   const nt = d.naechster_test;                              /* Terminplaner: nächster Testtermin mit Frist und Ampel */
   if (nt) m.append(el("div", { class: "band-termin" + (nt.ampel === "rot" ? " rot" : "") }, el("b", {}, t("tm_naechster").toUpperCase()),
     el("div", {}, [`${tmZeit(nt.am_utc)} · ${nt.titel}`, nt.frist_utc ? t("tm_frist", { x: tmZeit(nt.frist_utc) }) : null,
       nt.ampel ? t("tm_ampel", { b: bogenNr(nt.bogen_id), a: t("ampel_" + nt.ampel) }) : null,
       nt.bereit ? t("tm_bereit") : null].filter(Boolean).join(" · ")),
-    el("button", { class: "klein-knopf", type: "button", onclick: () => { zustand.planReiter = "termine"; zeige("planung"); } }, t("tm_alle"))));
+    el("button", { class: "klein-knopf", type: "button", onclick: () => zeige("termine") }, t("tm_alle"))));
   const ohne = (d.unangemeldet || []).filter(u => !u.doppelt);
   if (ohne.length) m.append(el("div", { class: "band-halt" }, el("b", {}, t("nicht_angemeldet")),
     el("div", {}, ohne.map(u => `${u.kennung || "?"} · ${t("sitzung_pid", { s: u.sitzung, p: u.pid })} · ${u.ordner}`).join(" | ")),
@@ -201,7 +202,7 @@ async function sichtStart() {
   m.append(uebersichtKarten(d));                          /* A1657: Für dich · Läuft gerade · Stand · Zustand */
   m.append(el("h2", {}, t("tm_titel")));
   m.append(teamAnsicht(d));
-  m.append(leitstand(d));
+  m.append(el("h2", { id: "steuerung-titel" }, t("ls_titel")), steuerung(d));
 
 }
 /* Aktionsmenü – ein Baustein: eintraege = Liste aus { titel } (Überschrift), "-" (Trennlinie) oder
@@ -286,8 +287,8 @@ function agentMenue(a, knopf) {
     a.startbar && darfStartbefehl() ? { text: t("m_startbefehl"), tun: () => startbefehlDialog(k) } : null,
     "-", { text: t("m_profil"), tun: () => zeige("einstellungen") }]);
 }
-/* Leitstand: alles Steuerbare an einer Stelle – Arbeit anhalten, Bildschirm, Sitzungen (nur am PC), Wächter (nur am PC) */
-function leitstand(d) {
+/* Steuerung (bis A2018 „Leitstand“): alles Steuerbare an einer Stelle – Arbeit anhalten, Bildschirm, Sitzungen (nur am PC), Wächter (nur am PC) */
+function steuerung(d) {
   const feld = (titel, farbe, stand, erkl, ...knoepfe) => el("div", {}, el("div", { class: "lt" }, titel),
     el("div", { class: "stand" }, el("span", { class: "punkt " + farbe }), stand), el("div", { class: "erkl" }, erkl), el("div", { class: "zeile" }, knoepfe));
   const kn = (text, tun, klasse, gesperrt) => el("button", { class: "knopf " + (klasse || ""), type: "button", onclick: tun,
@@ -303,7 +304,7 @@ function leitstand(d) {
   const sitzStand = ende.length ? t("ls_sitz_ende", { n: ende.length, x: zeit(ende[0].bis_utc) })
     : [t(laufen.length === 1 ? "ls_sitz_laufen1" : "ls_sitz_laufen", { n: laufen.length }), ruhen.length ? t("ls_sitz_ruhen", { n: ruhen.length }) : null,
        fehlen.length ? t(fehlen.length === 1 ? "ls_sitz_fehlen1" : "ls_sitz_fehlen", { n: fehlen.length }) : null].filter(Boolean).join(" · ");
-  return el("div", { class: "leitstand", id: "leitstand" },
+  return el("div", { class: "steuerung", id: "steuerung" },
     feld(t("ls_arbeit"), halt ? "rot" : "gruen", t(halt ? "ls_steht" : "ls_laeuft") + (d.eingang ? " · " + t(d.eingang === 1 ? "ls_eingang1" : "ls_eingang", { n: d.eingang }) : ""),
       [t("ls_arbeit_e"), d.eingang ? t("ls_eingang_e") : null].filter(Boolean).join(" "),
       halt ? kn(t("weiter"), () => weiterGeben(), "haupt") : kn(t("halt"), () => haltDialog(), "warn")),
@@ -326,7 +327,7 @@ function leitstand(d) {
       f.querySelector(".stand").after(el("div", { class: "tk-balken" }, el("i", { style: `width:${Math.min(100, Math.max(0, k.wert))}%` })));
       return f; })() : null);
 }
-/* Leitstand › Rechner: schwere Läufe aller Projekte auf diesem PC teilen sich eine Warteschlange. Gezeigt werden nur
+/* Steuerung › Rechner: schwere Läufe aller Projekte auf diesem PC teilen sich eine Warteschlange. Gezeigt werden nur
    Zahlen – wie viele laufen und warten, wie viele davon aus diesem Projekt, wann der Rechner voraussichtlich frei ist. */
 function rechnerFeld(r, feld) {
   if (!r) return null;
@@ -351,7 +352,7 @@ function rechnerFeld(r, feld) {
         catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("re_vorziehen"))))));
   return f;
 }
-function zumLeitstand() { Promise.resolve(zustand.sicht === "start" ? null : zeige("start")).then(() => setTimeout(() => $("#leitstand")?.scrollIntoView({ behavior: "smooth", block: "center" }), 60)); }
+function zurSteuerung() { Promise.resolve(zustand.sicht === "start" ? null : zeige("start")).then(() => setTimeout(() => $("#steuerung-titel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60)); }
 /* „1204 · A1204 Titel“ → „A1204 Titel“ (alte Titel tragen die Nummer schon) */
 function ohneDoppel(x) { const [nr, ...rest] = x.split(" · "); const titel = rest.join(" · "); return titel.startsWith("A" + nr) ? titel : `A${nr} · ${titel}`; }
 /* Kachel: Zustand, was er gerade macht (eigene Angabe › laufende Aufgabe › Aufgabe aus der letzten Meldung),

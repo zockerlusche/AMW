@@ -169,16 +169,6 @@
 .pm-frei-von { font-size: 13px; margin: -2px 0 8px; }
 .pm-themen { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .pm-chip { border: 1px solid var(--linie2); border-radius: 6px; padding: 1px 8px; font-size: 13px; color: var(--leise); } .pm-chip b { color: var(--sehrleise); }
-.tore-leiste { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0 0 8px; }
-.tore { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 0; padding: 0; }
-.tor { font-size: 12.5px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--linie); color: var(--leise); white-space: nowrap; }
-.tor.zu { color: var(--tinte); }
-.tor.jetzt { border-color: var(--bernstein); color: var(--bernstein); font-weight: 600; }
-.tor-zeichen { font-size: 11px; }
-.tore-text { font-size: 13px; }
-button.tor { background: none; font: inherit; font-size: 12.5px; cursor: pointer; }   /* A1972: Chip öffnet die Werte des Tors */
-button.tor[aria-expanded="true"] { border-color: var(--tinte); }
-.tore-info { flex-basis: 100%; font-size: 13px; color: var(--leise); }
 .tore-dich { font-size: 14px; margin: -4px 0 12px; } .tore-dich .verweis { cursor: pointer; }
 .pm-abschluss { border: 1px solid var(--linie); border-radius: 8px; padding: 10px 12px; margin: 10px 0; display: grid; gap: 6px; }
 .pm-abschluss[data-ab="wartet"] { border-color: var(--bernstein); }
@@ -308,7 +298,7 @@ table.pm-pakete { width: 100%; border-collapse: collapse; font-size: 14px; margi
 .tk-stueck { color: var(--token); font-weight: 600; white-space: nowrap; cursor: help; }
 .tk-woche { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin: 0 0 10px; padding: 7px 12px; border: 1px dashed var(--token); font-size: 13px; cursor: help; }
 .tk-woche b { color: var(--token); font: 600 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
-.leitstand > #ls-token { grid-column: span 3; } .leitstand > #ls-token .tk-balken { max-width: 420px; }
+.steuerung > #ls-token { grid-column: span 3; } .steuerung > #ls-token .tk-balken { max-width: 420px; }
 .tk-balken { height: 6px; margin: 6px 0 2px; border: 1px solid var(--linie); background: var(--grund); } .tk-balken i { display: block; height: 100%; background: var(--token); }
 .ueb-muster.schraffur { box-shadow: none; background: repeating-linear-gradient(135deg, var(--leise) 0 3px, transparent 3px 6px); }
 .ueb-legende .ueb-puffer { width: 18px; }
@@ -754,17 +744,17 @@ main.geteilt-seite { padding-bottom: 16px; }
 .tm-z .tm-wer { display: flex; align-items: center; gap: 8px; min-width: 0; } .tm-z .tm-name { font-size: 16px; } .tm-astz { color: var(--linie2); font-family: var(--mono); }
 .tm-z .tm-auf { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .tm-z .tm-fuss { margin-top: 0; min-width: 0; }
-/* Leitstand: alles Steuerbare an einer Stelle, direkt unter den Agenten (Start) */
-.leitstand { margin-top: 16px; border: 1px solid var(--linie2); background: linear-gradient(180deg, var(--flaeche2), var(--flaeche));
+/* Steuerung: alles Steuerbare an einer Stelle, direkt unter den Agenten im Leitstand */
+.steuerung { margin-top: 16px; border: 1px solid var(--linie2); background: linear-gradient(180deg, var(--flaeche2), var(--flaeche));
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); scroll-margin-top: 12px; }
-.leitstand > div { padding: 12px 14px; border-right: 1px solid var(--linie); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.leitstand > div:last-child { border-right: 0; }
-.leitstand .lt { font: 600 11px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--sehrleise); }
-.leitstand .stand { font: 600 16px var(--titel); letter-spacing: .02em; display: flex; align-items: center; gap: 8px; }
-.leitstand .erkl { font-size: 12px; color: var(--leise); flex: 1; }
-.leitstand .zeile { display: flex; gap: 8px; flex-wrap: wrap; }
-.leitstand .knopf.warn { border-color: var(--rot); color: var(--rot); }
-.leitstand .erkl, .leitstand .stand { overflow-wrap: anywhere; }
+.steuerung > div { padding: 12px 14px; border-right: 1px solid var(--linie); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.steuerung > div:last-child { border-right: 0; }
+.steuerung .lt { font: 600 11px var(--titel); letter-spacing: .14em; text-transform: uppercase; color: var(--sehrleise); }
+.steuerung .stand { font: 600 16px var(--titel); letter-spacing: .02em; display: flex; align-items: center; gap: 8px; }
+.steuerung .erkl { font-size: 12px; color: var(--leise); flex: 1; }
+.steuerung .zeile { display: flex; gap: 8px; flex-wrap: wrap; }
+.steuerung .knopf.warn { border-color: var(--rot); color: var(--rot); }
+.steuerung .erkl, .steuerung .stand { overflow-wrap: anywhere; }
 .schirm-schnell { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .schirm-schnell { margin: 2px 0 6px; } .re-wartend { display: grid; gap: 6px; } .laden { display: grid; place-items: center; gap: 10px; padding: 34px 0 28px; color: var(--leise); font-size: 13px; } .laden svg { width: 110px; height: auto; overflow: visible; } .laden.ruhig svg { animation: lade-atmen 2.4s ease-in-out infinite; } @keyframes lade-atmen { 50% { opacity: .5; } } #ladeanzeige { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 60; } #ladeanzeige .laden { background: var(--flaeche); border: 1px solid var(--linie); border-radius: 12px; padding: 22px 34px 18px; box-shadow: var(--schatten); animation: lade-ein .2s ease-out; } @keyframes lade-ein { from { opacity: 0; } } .cl-sitzung { padding: 6px 0; border-top: 1px solid var(--linie); } .cl-kopie { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 4px; font-size: 12.5px; } .cl-kopie .klein-knopf { flex: none; } .re-w { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 12.5px; } .re-w-text { min-width: 0; overflow-wrap: anywhere; color: var(--leise); } .re-w .klein-knopf { flex: none; } .tl-alle-fertig { color: var(--gruen); font-weight: 600; }
 .feld-fehler { border-color: var(--rot) !important; outline: 1px solid var(--rot); } .feld-meldung { color: var(--rot); font-size: 12.5px; margin-top: 3px; } .dialog input[type=time] { width: auto; }

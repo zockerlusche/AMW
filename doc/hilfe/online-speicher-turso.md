@@ -13,7 +13,7 @@ Der Online-Speicher ist die Ablage, über die dein PC und die Online-Seite Daten
 2. **Adresse kopieren** Auf der Seite der Datenbank steht die Adresse („Database URL“). Sie beginnt mit `libsql://` und endet auf `.turso.io`.
 3. **Schlüssel erzeugen** Auf derselben Seite „Create Token“ wählen: Lesen und Schreiben, ohne Ablauf. Den Schlüssel kopieren – er wird nur einmal gezeigt.
 4. **Am PC eintragen** In der AMW: Einstellungen › Speicher und Synchronisierung. Adresse und Schlüssel einfügen und speichern. Die AMW prüft die Verbindung, legt die Tabellen an und schaltet die Synchronisierung ein. Als Befehl geht dasselbe mit `amw web einrichten`.
-5. **Dienst neu starten** Die AMW sagt es dazu: Die Synchronisierung beginnt mit dem nächsten Start des Dienstes (Leitstand › Dienst › Neu starten).
+5. **Dienst neu starten** Die AMW sagt es dazu: Die Synchronisierung beginnt mit dem nächsten Start des Dienstes (Leitstand › Steuerung › Dienst › Neu starten).
 6. **Prüfen** Unter Einstellungen › Speicher und Synchronisierung steht „Schlüssel gespeichert“ und die Synchronisierung ist an; „Verbindung testen“ meldet „Anmeldung erfolgreich“ und „Die Datenbank ist eingerichtet“. `amw web status` zeigt, wann zuletzt hochgeladen wurde.
 
 ## Diese Werte trägst du ein

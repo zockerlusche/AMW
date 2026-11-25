@@ -165,7 +165,7 @@ class Fehler(Grund):
         self.assertEqual((d.get("quelle"), d["gesichert"], d["archiv"]), (None, None, None))
         self.assertEqual((self.belegt(), arbeitspaket.lesen(self.con, aid)["zustand"]), ({1: aid}, "merge_reihe"))
         (kurz, text), = self.meldungen()
-        self.assertEqual(kurz, f"A{aid} angenommen, Platz 1 bleibt belegt")
+        self.assertEqual(kurz, f"A{aid} angenommen, Headless 1 bleibt belegt")
         self.assertIn("Stand nicht gesichert: AmwFehler: kein git", text)
         e = mergeliste.eintrag(self.con, self.pid, aid)                                              # gelesen wird wie bisher vom Platz
         self.assertEqual((e["fehler"], e["platz"], e["geaendert"]), (None, 1, ["lib/a.py"]))
@@ -207,7 +207,7 @@ class Fehler(Grund):
         self.assertIn("Platz nicht zurückgesetzt: PlatzFehler: gesperrt", self.meldungen()[0][1])
         self.assertTrue(mergeliste.freigeben(self.con, self.pid, "TL", [aid])[0]["ok"])              # gelesen aus dem Projekt-Repo
         aus = mergeliste.ausgeliefert(self.con, self.pid, aid, kopf[:7])
-        self.assertIn("Platz 1 frei", aus or "")
+        self.assertIn("Headless 1 frei", aus or "")
         self.assertEqual(self.belegt(), {})
 
     def test_ohne_platz_bleibt_alles_wie_bisher(self):
@@ -235,7 +235,7 @@ class Auslieferung(Grund):
         aid, kopf, _ = bereit(self.con, self.pid, self.repo, "alt", {"lib/alt.py": "x = 1\n"}, 1)   # wie vor A2105
         self.assertEqual(self.belegt(), {1: aid})
         mergeliste.freigeben(self.con, self.pid, "TL", [aid])
-        self.assertIn("Platz 1 frei", mergeliste.ausgeliefert(self.con, self.pid, aid, str(kopf)[:7]) or "")
+        self.assertIn("Headless 1 frei", mergeliste.ausgeliefert(self.con, self.pid, aid, str(kopf)[:7]) or "")
         self.assertEqual(self.belegt(), {})
 
     def wartet_nicht(self):
@@ -261,7 +261,7 @@ class Auslieferung(Grund):
         mergeliste.freigeben(self.con, self.pid, "TL", [aid])
         g(self.repo, "merge", "-q", "--ff-only", f"paket-A{aid}")
         aus = planautomatik.ausgeliefert(self.con, self.pid, "1.2.4", str(kopf), lambda s: True)
-        self.assertIn("Platz 1 frei", aus[0]["paket"])
+        self.assertIn("Headless 1 frei", aus[0]["paket"])
         self.assertEqual((arbeitspaket.lesen(self.con, aid)["zustand"], self.belegt(), g(p["klon"], "status", "--porcelain")), ("fertig", {}, ""))
 
 
@@ -296,13 +296,13 @@ class EchterWeg(unittest.TestCase):
     def test_naechstes_paket_startet_auf_dem_freien_platz(self):
         self.plaetze(1)
         a = self.paket()
-        self.assertTrue(any(f"A{a} gestartet auf Platz 1" in x for x in disponent.runde(self.con, test_disponent.prog("bauen"))))
+        self.assertTrue(any(f"A{a} gestartet als Headless 1" in x for x in disponent.runde(self.con, test_disponent.prog("bauen"))))
         self.assertEqual(self.warten(a, ("merge_reihe", "wartet_interaktiv", "abgebrochen", "unklar")), "merge_reihe")
         self.assertTrue(self.entschieden(a))                                                         # der Entscheid folgt dem Zustand
         self.assertEqual(disponent.belegte_plaetze(self.con, self.pid), {})
         gleich, b = self.paket(), self.paket(bereiche="lib2/")
         aus = disponent.runde(self.con, test_disponent.prog("bauen"))
-        self.assertTrue(any(f"A{b} gestartet auf Platz 1" in x for x in aus), aus)
+        self.assertTrue(any(f"A{b} gestartet als Headless 1" in x for x in aus), aus)
         self.assertEqual(self.zustand(gleich), "startklar")
         self.assertIn(f"mit A{a}", waechter.protokoll(self.con, self.pid, gleich)[0]["text"])
         self.warten(b, ("merge_reihe", "wartet_interaktiv", "abgebrochen", "unklar", "startklar", "zurueckgestellt"))

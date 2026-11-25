@@ -4,9 +4,9 @@
 http://127.0.0.1:8780 (am Handy dieselbe Seite über die Online-Adresse). Oben in ganzen Wörtern: „Wächter läuft“,
 „x von y Agenten laufen“, „Arbeitsspeicher: n GB frei“ und die Suche (Aufgaben, Beschlüsse, Fragen, Wortlaut,
 Nachrichten). Die erste Zeile zeigt nur Zustände; weicht etwas vom Normalfall ab („Angehalten“, „Bildschirm: frei für
-Agenten“, „n werden beendet“), steht es dort als Hinweis, ein Klick führt zum Leitstand.
+Agenten“, „n werden beendet“), steht es dort als Hinweis, ein Klick führt zur Steuerung.
 
-**Leitstand** (Start, direkt unter den Agenten) – alles Steuerbare an einer Stelle:
+**Steuerung** (im Leitstand, direkt unter den Agenten) – alles Steuerbare an einer Stelle:
 
 | Feld | Zustand | Knöpfe |
 |---|---|---|
@@ -49,11 +49,11 @@ Zeile, die sich waagrecht wischen lässt.
   zurück. Antworten geht auch geparkt. Der TL und die Agenten parken mit `amw frage parken <nr> --grund "…"` (der Lead und
   der Fragesteller; auch über die TL-Brücke), `amw frage aufnehmen <nr>` holt sie zurück, `amw frage liste --geparkt`
   zeigt sie. Parken und Aufnehmen stehen im Verlauf der Frage, der Fragesteller bekommt eine Info.
-- **Anhalten:** im Leitstand „Alle anhalten“ (alle oder einen Agenten) oder im Aktionsmenü ⋯ des Agenten „Anhalten (nur
+- **Anhalten:** in der Steuerung „Alle anhalten“ (alle oder einen Agenten) oder im Aktionsmenü ⋯ des Agenten „Anhalten (nur
   diesen)“; „Weiterarbeiten“ hebt auf. Agenten beginnen nichts Neues, Läufe starten nicht.
 - **Starten, fortsetzen, beenden:** Aktionsmenü ⋯ des Agenten (oder Klick › Übersicht). „Fortsetzen“ setzt die letzte
   Sitzung fort (Gesprächsverlauf bleibt), „Neue Sitzung beginnen“ startet frisch mit dem Startsatz. „Fehlende starten“
-  im Leitstand startet alle, die laufen sollen und nicht laufen, nacheinander. Ordner, Modell, Rechte und Startsatz: Zahnrad › Agenten › Block „Sitzung“.
+  in der Steuerung startet alle, die laufen sollen und nicht laufen, nacheinander. Ordner, Modell, Rechte und Startsatz: Zahnrad › Agenten › Block „Sitzung“.
 - **Agenten einstellen (Zahnrad › Agenten):** links die Agenten, rechts der gewählte in vier Blöcken. *Wer:* Lead (ein
   Schalter – führt das Projekt), Fachgebiet (frei, mit Vorschlägen), Arbeitsweise. *Auftrag:* „Zuständig für“ und „Fasst
   nicht an“ – beides steht im Pflicht-Kontext jeder Sitzung des Agenten. *Sitzung:* Ordner, Modell, Rechte, Startsatz (nur
@@ -63,7 +63,7 @@ Zeile, die sich waagrecht wischen lässt.
   sollen. „Vorschlag aus der Datenbank“ leitet Fachgebiet und Zuständigkeit aus den fertigen Aufgaben des Agenten ab –
   er füllt nur leere Felder, gespeichert wird erst mit „Speichern“. Per Befehl: `amw agent profil <kennung> --rolle lead|""
   --fachgebiet … --arbeitsweise terminal|desktop|chat --zustaendig … --nicht …`.
-- **Sichern & beenden (z. B. vor einem Update):** im Leitstand für alle, im Aktionsmenü für einen. Der Agent bekommt
+- **Sichern & beenden (z. B. vor einem Update):** in der Steuerung für alle, im Aktionsmenü für einen. Der Agent bekommt
   die Bitte, seinen Stand festzuhalten und sich abzumelden (`amw abmelden`); sobald er abgemeldet ist, beendet die AMW
   seine Sitzung – nach 5 Minuten auch ohne Abmeldung. Das Fenster bleibt offen; „Starten / fortsetzen“ holt ihn zurück.
   Nur am PC.
@@ -115,14 +115,14 @@ Arbeitsspeicher: frei − Reserve − vorgemerkt ≥ Bedarf des Laufs. „Vorgem
 Bedarf minus dem, was er schon belegt – solange er läuft, nicht nur kurz nach dem Start. Was er belegt, misst die AMW
 am Prozess, wenn der Lauf über `amw lauf ausfuehren` gestartet wurde; sonst gilt sein ganzer Bedarf als vorgemerkt. Die Reserve (Vorgabe 3 GB,
 Zahnrad › Dieser PC) bleibt für den Menschen am Rechner. Was außerhalb der Warteschlange Arbeitsspeicher belegt (ein
-lokaler KI-Server, eine virtuelle Maschine), steckt in der Messung „frei“ schon drin; der Leitstand und der Wartegrund
+lokaler KI-Server, eine virtuelle Maschine), steckt in der Messung „frei“ schon drin; die Steuerung und der Wartegrund
 nennen das Programm (`amw/belegung.py`: Name, Größe, seit wann – nur lesen, nie beenden). Den Bedarf nennt der Lauf selbst:
 `--braucht-gb` (Arbeitsspeicher; ohne Angabe gilt das Rezept, sonst die Grenze des Projekts), dazu wahlweise
 `--braucht-vram-gb` (Grafikspeicher) und `--braucht-platte-gb` (freier Platz auf dem Laufwerk des Projekts) – diese beiden
 werden nur geprüft, wenn sie angegeben sind und sich der freie Wert messen lässt. Jeder Lauf trägt den Namen des Rechners,
 auf dem er angemeldet wurde; die Warteschlange zählt nur Läufe ihres eigenen Rechners. Ein Lead zieht nur Läufe seines eigenen Projekts vor (sie tauschen untereinander die Plätze); über
 Projekte hinweg zieht nur der Mensch vor. Über Läufe eines anderen Projekts erfährt man nur die Belegung – „L12 (anderes
-Projekt, läuft seit 16:05, voraussichtlich bis 16:20)“ –, nie Agent, Beschreibung oder Projekt. Der Leitstand zeigt unter
+Projekt, läuft seit 16:05, voraussichtlich bis 16:20)“ –, nie Agent, Beschreibung oder Projekt. Die Steuerung zeigt unter
 „Rechner“, wie viele Läufe laufen und warten und wann er voraussichtlich frei ist. Eine Datenbank steht für einen Rechner;
 Agenten auf einem anderen Rechner haben ihre eigene Warteschlange.
 
@@ -159,7 +159,7 @@ die Statusline der Sitzungen meldet) und rechnet daraus (`amw/tokenprognose.py`,
 - **Diese Woche:** Rest ÷ Tempo = „leer am“; liegt das vor dem Reset, ist bis dahin Pause. **Folgewochen:** 100 ÷ Tempo
   Tage Arbeit (höchstens 7), der Rest ist Pause.
 
-Angezeigt wird das als **Wochenlimit** im Leitstand der Startseite und über der Übersicht der Planung, und als eigenes
+Angezeigt wird das als **Wochenlimit** in der Steuerung im Leitstand und über der Übersicht der Planung, und als eigenes
 Stück ⧗ hinter jedem Prognose-Datum: `Prognose 27.11. – 01.12. ⧗ +12 T → ≈ 09.12.`. In der Übersicht hängt es als
 schraffiertes Stück in eigener Farbe hinten am Balken. Das Prognose-Datum selbst bleibt, wie es ohne Grenze wäre – so ist
 sichtbar, was Arbeit ist und was Warten. Der Rechenweg steht im Hinweistext. Grenzen der Aussage: Die 5-Stunden-Grenze
@@ -179,7 +179,7 @@ Geheimnisse stehen nie in der Datenbank des PCs – nur im Online-Speicher, gese
 ## 6 Einstellungen dieses PCs
 Zahnrad › Dieser PC, oder von Hand in `%LOCALAPPDATA%\amw\einstellungen.json` (JSON, nur Schlüssel, die von der
 Vorgabe abweichen, z. B. `{"port": 8790}`). Was der Wächter nur beim Start liest, trägt im Zahnrad das Zeichen ↻ und
-wirkt nach `amw dienst neustart` (oder Start › Leitstand › Neu starten); alles andere gilt sofort.
+wirkt nach `amw dienst neustart` (oder Leitstand › Steuerung › Neu starten); alles andere gilt sofort.
 
 **Betriebsart** (`amw/betriebsart.py`): „Nur dieser PC“ · „Eigener Server im Firmennetz“ · „Cloud“. Sie legt fest, wohin
 diese Installation Verbindungen aufbauen darf, und wird an jeder Stelle geprüft, an der die AMW nach außen geht (Abgleich
@@ -213,12 +213,12 @@ testen“ (erreichbar über https, läuft dort eine AMW-Seite?). Schlüssel blei
 | `statusline_weiter` | leer | bisherige Statusline, die die Statusline-Brücke weiterreicht (setzt `amw einrichten`) |
 | `claude_befehl` | `claude` | wie Claude Code gestartet wird (falls nötig mit vollem Pfad) |
 | `speicher_reserve_gb` | 3 | so viel Arbeitsspeicher bleibt frei, bevor ein schwerer Lauf startet (0–64) |
-| `platte_gelb_prozent` | 15 | ist auf einem Laufwerk mit Datenbank oder Projektordner weniger frei, warnt die AMW (Leitstand, Nachricht an Lead und Mensch) |
+| `platte_gelb_prozent` | 15 | ist auf einem Laufwerk mit Datenbank oder Projektordner weniger frei, warnt die AMW (Steuerung, Nachricht an Lead und Mensch) |
 | `platte_rot_prozent` | 5 | darunter warnt sie dringend |
 | (ohne Einstellung) | – | Ordnergrößen: Der Dienst misst einmal am Tag (nie während eines schweren Laufs) die Projektordner, ihre Ablagerungen (Build-Reste, Caches, Temp-Ordner) und weitere Git-Arbeitsbäume sowie den Ordner der Sicherungen (Schema 25, Tabelle `ordner_messung`, 90 Tage). Anzeige unter Dieser PC und in `amw rechner` – je Projekt nur dessen Ordner. |
 | `archiv_ordner` | leer | dorthin verschiebt der Mensch Aufräumvorschläge mit einem Klick (Einstellungen › Dieser PC); nie löschen, Protokoll `archiv-protokoll.txt` im Ordner |
 | `sicherungen_behalten` | 10 | so viele neueste Sicherungen bleiben, dazu je veröffentlichter Version die letzte davor; ältere erscheinen als Aufräumvorschlag (gelöscht wird nichts) |
-| `dauer_ab_gb` | 4 | Programme außerhalb der Warteschlange, die länger als 10 Minuten mindestens so viel Arbeitsspeicher belegen, zeigt der Leitstand unter „Rechner“ (0 = aus) |
+| `dauer_ab_gb` | 4 | Programme außerhalb der Warteschlange, die länger als 10 Minuten mindestens so viel Arbeitsspeicher belegen, zeigt die Steuerung unter „Rechner“ (0 = aus) |
 | `lauf_hook` | an | schwere Befehle abweisen und über die Warteschlange schicken (Hook in den Agenten-Ordnern) |
 | `sprache` | auto | Sprache der Oberfläche, solange im Browser nichts gewählt ist: `auto` (wie der Browser), `de`, `en` |
 | `claude_link` | an | Knopf „In Claude öffnen“ auf der Agenten-Seite zeigen |

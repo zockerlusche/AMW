@@ -3,7 +3,7 @@
 Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Stelle – aus allen Projekten auf diesem PC zusammen. Jede Zeile zeigt ihr Projekt mit Farbmarke; oben wählst du „Alle Projekte“ oder ein einzelnes. Meldungen der Workbench selbst stehen mit dem Absender „System“. Je Empfänger siehst du, wie weit eine Nachricht ist – und solange sie niemand gelesen hat, kannst du sie zurückziehen.
 
 ## Du brauchst
-- Die Workbench am PC oder die Online-Seite. Menü › Nachrichten.
+- Die Workbench am PC oder die Online-Seite. Wissen › Nachrichten.
 
 ## Schritte
 1. **Schreiben** Nachrichten › „+ Schreiben“ – Empfänger wählen (ein Agent oder alle), Art, Text. Aus einem Agenten heraus („Nachricht“) ist er schon eingetragen.
@@ -14,7 +14,7 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 6. **Zurückziehen** Gesendet › Nachricht wählen › „Zurückziehen“ – solange **kein** Empfänger sie gelesen oder erledigt hat. Sie verschwindet bei allen Empfängern und bleibt bei dir als „zurückgezogen“.
 
 ## Typische Fehler
-- **Eine Nachricht bleibt lange bei „gesendet“** – Der Agent läuft nicht oder ist ein Chat-Lead, der nur in seinem Rhythmus liest. In der Übersicht siehst du, ob er läuft.
+- **Eine Nachricht bleibt lange bei „gesendet“** – Der Agent läuft nicht oder ist ein Chat-Lead, der nur in seinem Rhythmus liest. Im Leitstand siehst du, ob er läuft.
 - **„Zurückziehen“ ist ausgegraut** – Ein Empfänger hat sie schon gelesen. Schick eine neue Nachricht („bitte ignorieren“).
 - **Der Bezug fehlt** – Nachrichten über „+ Schreiben“ im Menü sind allgemein; schreib über „✉ Nachricht dazu“ am Objekt, dann geht er mit.
 
@@ -23,7 +23,7 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 - Dich fragt nur der Lead (und der Co-Entwickler). Fragt ein anderer Agent, geht die Frage an den Lead: Er klärt sie selbst oder stellt sie dir – dann als seine Frage, vorher überarbeitet oder mit anderen gebündelt; wer sie ursprünglich gestellt hat, steht im Verlauf. Auch Aufträge und Fragen als Nachricht an dich gehen erst an den Lead; Infos (z. B. „live“) kommen weiter direkt.
 - Jede Zeile zeigt ihre Art: ✉ Nachricht eines Agenten, ⚙ Meldung der Workbench. Mehrere offene hakst du auf einmal ab: Häkchen setzen (oder „alle ungelesenen markieren“), dann „Erledigt“.
 - Was Agenten und Lead untereinander schreiben, steht unter „Mitlesen“ – aus allen Projekten, nur zum Lesen, es zählt nie.
-- Die Übersicht zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt zu „An dich“. Die Zahl im Menü gilt für das gewählte Projekt, „n zu tun für dich“ auf der Seite für alle.
+- Der Leitstand zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt zu „An dich“. Die Zahl im Menü gilt für das gewählte Projekt, „n zu tun für dich“ auf der Seite für alle.
 - Am PC scrollen Liste und Nachricht getrennt, wie im Mail-Programm: Du kannst rechts lesen, ohne die Liste zu verlieren.
 
 ## Häufige Fragen

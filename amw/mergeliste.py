@@ -83,7 +83,7 @@ def annehmen(con, pid, von, aid, grund):
         raise kern.AmwFehler("Ein Paket nach E4 annehmen darf der Lead oder der Mensch")
     f = arbeitspaket.lesen(con, aid)
     if f.get("art") != "p" or f.get("zustand") != "wartet_interaktiv":
-        raise kern.AmwFehler(f"A{aid} ist nicht „wartet auf interaktiv“ (Zustand {f.get('zustand') or '–'}) – annehmen gilt nur nach E4")
+        raise kern.AmwFehler(f"A{aid} ist nicht „wartet auf Lead“ (Zustand {f.get('zustand') or '–'}) – annehmen gilt nur nach E4")
     d = _entscheidung(con, pid, aid)
     wieder = d.get("zeile") == "E7" and d.get("code") == "lead_nach_e4"   # A1897 Zusatz 3: schon einmal angenommen, kurz herausgenommen
     if (d.get("zeile") != "E4" and not wieder) or not d.get("kopf"):
@@ -309,4 +309,4 @@ def ausgeliefert(con, pid, aid, beleg):
     if abgegeben or not p:
         return "gemergt, fertig"
     r = platz.zuruecksetzen(p, projektordner=kern.projekt_ordner(con, pid), aufgabe=aid)
-    return f"gemergt, fertig, Platz {p['nr']} frei" + (f" (Archiv {r.get('archiv')})" if r.get("archiv") else "")
+    return f"gemergt, fertig, Headless {p['nr']} frei" + (f" (Archiv {r.get('archiv')})" if r.get("archiv") else "")

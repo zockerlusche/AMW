@@ -198,7 +198,7 @@ def starten(con, pid, aid, p, quelle, prog=None, umgebung=None, von="AMW"):
     von: AMW (Disponent) oder wer von Hand startet – steht im gespeicherten Grund (A2047)."""
     with _Platzsperre(p):
         if p["nr"] in belegte_plaetze(con, pid):                  # nach dem Sperren nochmal: ein anderer Start war schneller
-            raise PlatzBelegt(f"Platz {p['nr']} ist inzwischen belegt")
+            raise PlatzBelegt(f"Headless {p['nr']} ist inzwischen belegt")
         return _starten(con, pid, aid, p, quelle, prog, umgebung, von)
 
 
@@ -220,7 +220,7 @@ def _starten(con, pid, aid, p, quelle, prog=None, umgebung=None, von="AMW"):
                          aufgabe_id=aid)
         return f"A{aid} nicht gestartet, Regel 6: {rot.get('grund')}"
     g = _start_grund(con, pid, aid, p, von)                    # A2047: vor dem Zustand rechnen – danach läuft es schon
-    arbeitspaket.zustand_setzen(con, pid, "AMW", aid, "laeuft", grund=f"Start auf Platz {p['nr']}")
+    arbeitspaket.zustand_setzen(con, pid, "AMW", aid, "laeuft", grund=f"Start als Headless {p['nr']}")
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=START_GRUND, aufgabe_id=aid,
                      text=json.dumps(g, ensure_ascii=False))
@@ -239,7 +239,7 @@ def _starten(con, pid, aid, p, quelle, prog=None, umgebung=None, von="AMW"):
                             creationflags=flags, env=umgebung, start_new_session=os.name != "nt")
     with db.schreiben(con):
         con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?", (json.dumps(dict(v, starter_pid=proc.pid)), vid))
-    return f"A{aid} gestartet auf Platz {p['nr']} (Starter {proc.pid}, Basis {r['basis'][:8]})"
+    return f"A{aid} gestartet als Headless {p['nr']} (Starter {proc.pid}, Basis {r['basis'][:8]})"
 
 
 def _anbieter_von(con, pid, modell):
@@ -401,7 +401,7 @@ def weckruf(con, pid, platz_frei):
         kurz = f"M{b['nr']} „{b['titel']}“: alle p-Pakete fertig – nächste Planung"   # A2089: die Projektnummer
         text = kurz + f". {len(pakete)} Paket(e) erledigt. Was fehlt: Meilenstein abschließen oder neue Pakete schneiden."
     else:
-        kurz = f"Platz frei, kein startklares p-Paket in M{b['nr']} „{b['titel']}“"
+        kurz = f"Headless frei, kein startklares p-Paket in M{b['nr']} „{b['titel']}“"
         text = (kurz + ". Offene Pakete: " + "; ".join(f"A{x['id']} {x['titel']} [{x['zustand']}]" for x in offen[:12])
                 + ". Was fehlt: ein Paket startklar setzen (Felder vollständig), Abhängigkeiten lösen oder Wartendes beantworten.")
     with db.schreiben(con):
@@ -554,7 +554,7 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
                                     umgebung_projekt=arbeiter.projekt_werkzeuge(con, pid),      # A1922: Werkzeuge des Projekts
                                     anbieter=_anbieter_von(con, pid, f.get("modell")))          # A1931
             notbremse = bool(con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'notbremse' AND zeit_utc >= ?"
-                                         " AND (aufgabe_id = ? OR text LIKE ?)", (pid, start_utc, aid, f"Platz {nr}:%")).fetchone())
+                                         " AND (aufgabe_id = ? OR text LIKE ? OR text LIKE ?)", (pid, start_utc, aid, f"Headless {nr}:%", f"Platz {nr}:%")).fetchone())
             befund = None
             meldung = r.get("meldung")
             if not notbremse and not r.get("abweichungen") and r.get("rc") == 0 and meldung and meldung.get("status") == "erledigt":

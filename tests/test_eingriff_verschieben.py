@@ -346,10 +346,10 @@ class EchterStart(unittest.TestCase):
         self.assertEqual([x["id"] for x in waechter.reihenfolge(self.con, self.pid)], [a, b])
         paket_schieben.verschieben(self.con, self.pid, "TL", b, "frueher", "Messung zuerst")
         aus = disponent.runde(self.con, test_disponent.prog("bauen"))
-        self.assertTrue(any(f"A{b} gestartet auf Platz 1" in x for x in aus), aus)
+        self.assertTrue(any(f"A{b} gestartet als Headless 1" in x for x in aus), aus)
         self.assertIn("von Hand früher (TL: Messung zuerst)", (disponent.warum(self.con, self.pid, b) or {})["grund"])
         aus = disponent.runde(self.con, test_disponent.prog("bauen"))
-        self.assertTrue(any(f"A{a} gestartet auf Platz 2" in x for x in aus), aus)
+        self.assertTrue(any(f"A{a} gestartet als Headless 2" in x for x in aus), aus)
         for aid in (a, b):
             self.warten(aid, ("merge_reihe", "wartet_interaktiv", "abgebrochen", "unklar", "startklar", "zurueckgestellt"))
 

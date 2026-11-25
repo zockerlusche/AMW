@@ -372,7 +372,7 @@ def notbremse(p):
                 break
             time.sleep(0.1)
         if aktive(job) > 0:
-            raise ArbeiterFehler(f"Notbremse Platz {p['nr']}: {aktive(job)} Prozess(e) laufen noch – bitte ansehen")
+            raise ArbeiterFehler(f"Notbremse Headless {p['nr']}: {aktive(job)} Prozess(e) laufen noch – bitte ansehen")
         return ok
     finally:
         k.CloseHandle(job)
@@ -389,15 +389,15 @@ def notbremse_ziehen(con, pid, p, von, aufgabe=None):
     # (vorher war er schneller als dieser Eintrag, und eine Notbremse zählte zur Fehlserie)
     with db.schreiben(con):
         eid = db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="notbremse", aufgabe_id=aufgabe,
-                           text=f"Platz {p['nr']}: Notbremse gezogen")
+                           text=f"Headless {p['nr']}: Notbremse gezogen")
     lief = notbremse(p)
     notiz = uebergabe(p) if os.path.isdir(os.path.join(p["klon"], ".git")) else "kein Klon"
-    text = (f"Platz {p['nr']}: " + ("Arbeiter samt Kindprozessen beendet" if lief else "kein laufender Arbeiter") + f" – {notiz}")[:1500]
+    text = (f"Headless {p['nr']}: " + ("Arbeiter samt Kindprozessen beendet" if lief else "kein laufender Arbeiter") + f" – {notiz}")[:1500]
     with db.schreiben(con):
         con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?", (text, eid))
         if lief:
             kern._posten(con, pid, "AMW", kern.lead(con, pid) or kern.ENTWICKLER, "info",
-                         f"Notbremse: Platz {p['nr']}" + (f" (A{aufgabe})" if aufgabe else "") + " beendet", text)
+                         f"Notbremse: Headless {p['nr']}" + (f" (A{aufgabe})" if aufgabe else "") + " beendet", text)
     return text
 
 
@@ -437,7 +437,7 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
     if os.name != "nt":
         raise ArbeiterFehler("Arbeiter nur unter Windows (Job-Objekt)")
     if not os.path.isdir(os.path.join(p["klon"], ".git")):
-        raise ArbeiterFehler(f"Platz {p['nr']} ist nicht vorbereitet (kein Klon)")
+        raise ArbeiterFehler(f"Headless {p['nr']} ist nicht vorbereitet (kein Klon)")
     o = ordner(p)
     os.makedirs(o, exist_ok=True)
     for d in (p["lad"], p["tmp"]):
@@ -447,7 +447,7 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
         alt = k0.OpenJobObjectW(0x0004, False, job_name(p))
         if alt:
             k0.CloseHandle(alt)
-            raise ArbeiterFehler(f"Platz {p['nr']}: dort läuft schon ein Arbeiter")
+            raise ArbeiterFehler(f"Headless {p['nr']}: dort läuft schon ein Arbeiter")
     from . import rueckmeldung as rm
     werkzeuge = ()
     liste = WERKZEUGE_LESEN if nur_lesen else WERKZEUGE
@@ -478,7 +478,7 @@ def laufen(p, auftrag, pruefbefehl, modell=None, effort=None, mcp=None, mcp_name
         raise ArbeiterFehler("Job-Objekt ließ sich nicht anlegen – ohne Notbremse kein Start")
     if _grenzen(job) != 0:                                     # den Namen gab es schon (fremdes oder altes Objekt): nicht hinein
         _kernel().CloseHandle(job)
-        raise ArbeiterFehler(f"Platz {p['nr']}: Job-Objekt {job_name(p)} besteht schon mit laufenden Prozessen – kein Start")
+        raise ArbeiterFehler(f"Headless {p['nr']}: Job-Objekt {job_name(p)} besteht schon mit laufenden Prozessen – kein Start")
     import ctypes
     from ctypes import wintypes
     k = _kernel()

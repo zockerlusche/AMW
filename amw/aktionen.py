@@ -201,7 +201,7 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             return {"text": steuerung.beenden(con, pid, daten.get("kennung") or "")}
         except (kern.AmwFehler, LookupError, OSError) as e:
             raise Ungueltig(str(e)) from None
-    if weg in ("/api/agent/ende", "/api/agent/start-fehlende", "/api/dienst/neustart"):   # Leitstand – nur am PC
+    if weg in ("/api/agent/ende", "/api/agent/start-fehlende", "/api/dienst/neustart"):   # Steuerung – nur am PC
         if kanal != "seite":
             raise Ungueltig("Sitzungen und den Dienst steuerst du nur am PC")
         from . import steuerung

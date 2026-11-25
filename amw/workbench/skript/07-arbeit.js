@@ -119,7 +119,7 @@ async function arbeitPakete(m) {
     el("span", { class: "pk-titel" }, x.titel),
     el("span", { class: "etikett" }, x.art === "p" ? t("pk_art_p") : t("pk_art_sitzung")),
     el("span", { class: "pk-zustand" }, el("span", { class: "etikett " + PK_GRUPPE[x.gruppe] }, t("pk_g_" + x.gruppe)), " ",
-      x.zustand ? el("span", { class: "leise", title: x.seit ? zeit(x.seit) : "" }, t("pk_z_" + x.zustand)) : null),
+      x.zustand ? el("span", { class: "leise", title: x.seit ? zeit(x.seit) : "" }, t(x.zustand === "wartet_interaktiv" && x.dran === "mensch" ? "pk_z_wartet_dich" : "pk_z_" + x.zustand)) : null),
     (() => {   /* A1955 + TH156 Regel 7: ein Wert in der Spalte (gemessen, sonst ≈ P50); die Spanne nur im Tooltip und auf Antippen */
       const geld = v => v.toLocaleString(gebiet(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       if (!x.spanne) return el("span", { class: "pk-kosten mono" }, x.usd ? `${geld(x.usd)} $` : "–");

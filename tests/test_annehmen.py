@@ -70,7 +70,7 @@ class Annehmen(Grund):
         with self.assertRaisesRegex(kern.AmwFehler, "geht nicht"):                                # sonst kein Weg in die Merge-Reihe
             arbeitspaket.zustand_setzen(self.con, self.pid, "TL", aid, "merge_reihe")
         mergeliste.annehmen(self.con, self.pid, kern.ENTWICKLER, aid, "gelesen")
-        with self.assertRaisesRegex(kern.AmwFehler, "nicht „wartet auf interaktiv“"):              # nur einmal, nur aus E4
+        with self.assertRaisesRegex(kern.AmwFehler, "nicht „wartet auf Lead“"):              # nur einmal, nur aus E4
             mergeliste.annehmen(self.con, self.pid, "TL", aid, "nochmal")
 
     def test_angenommen_belegt_keinen_platz_und_haelt_keine_auslieferung(self):   # A1897 Zusatz 3 (#29493)

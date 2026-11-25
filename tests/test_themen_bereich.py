@@ -362,7 +362,7 @@ class Tor(Grund):
         with mock.patch.object(cli, "_projekt", return_value=self.pid), mock.patch.object(cli, "_von", return_value=kern.ENTWICKLER), \
                 mock.patch.object(cli, "_aus_agenten_sitzung", return_value=False), contextlib.redirect_stdout(io.StringIO()) as aus:
             cli.cmd_thema(a, self.con)
-        self.assertIn("Damit ist das Tor Konzept geschlossen – Grobplanung · Konzept fertig: 2 von 2 Themen freigegeben", aus.getvalue())
+        self.assertIn("Damit ist der Schritt Konzept abgeschlossen – Grobplanung · Konzept fertig: 2 von 2 Themen freigegeben", aus.getvalue())
 
 
 if __name__ == "__main__":

@@ -53,7 +53,7 @@ class Startgrund(Grund):
         self.paket("anderes", rang=5)
         aid = self.paket("dieses", rang=1)
         aus = disponent.starten(self.con, self.pid, aid, self.p, self.ordner.name)
-        self.assertIn(f"A{aid} gestartet auf Platz 1", aus)
+        self.assertIn(f"A{aid} gestartet als Headless 1", aus)
         g = self.gruende(aid)
         self.assertEqual(len(g), 1)
         self.assertEqual((g[0]["aufgabe"], g[0]["platz"], g[0]["von"]), (aid, 1, "AMW"))

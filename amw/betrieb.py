@@ -628,7 +628,7 @@ def vorrang_stufe(con, pid, v=None):
 
 
 def vorrang_liste(con):
-    """Projekte dieses Rechners mit Vorrang ≠ normal: [{"projekt", "stufe"}] – hoch zuerst (für den Leitstand, nur am PC)."""
+    """Projekte dieses Rechners mit Vorrang ≠ normal: [{"projekt", "stufe"}] – hoch zuerst (für die Steuerung, nur am PC)."""
     v = vorrang()
     namen = [r["name"] for r in con.execute("SELECT name FROM projekt ORDER BY name")]
     return sorted(({"projekt": n, "stufe": v[n]} for n in namen if n in v), key=lambda x: (-VORRANG[x["stufe"]], x["projekt"]))
@@ -717,7 +717,7 @@ def vorrang_meldungen(con, jetzt=None):
         with db.schreiben(con):
             kern._posten(con, l["projekt_id"], "AMW", kern.lead(con, l["projekt_id"]) or kern.ENTWICKLER, "meldung", kurz,
                          f"{l['agent']}: {l['beschreibung']}\n\nWarum: {grund}\n\nNichts wird abgebrochen. Vorziehen im Projekt (Lead oder Mensch): "
-                         f"amw lauf vorziehen {l['id']} (oder in der Workbench: Start › Leitstand › Rechner › „Vorziehen“; über alle Projekte nur der Mensch)."
+                         f"amw lauf vorziehen {l['id']} (oder in der Workbench: Leitstand › Steuerung › Rechner › „Vorziehen“; über alle Projekte nur der Mensch)."
                          f" Beginnt oder endet der Lauf, schließt sich diese Meldung von selbst.", bezug=f"L{l['id']}", aufgabe_id=l["aufgabe_id"])
         aus.append(kurz)
     return aus

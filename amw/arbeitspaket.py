@@ -51,7 +51,7 @@ SPIEGEL = {"laeuft": "laeuft", "fertig": "fertig",
 
 TEXT = {"entwurf": "Entwurf", "startklar": "startklar", "laeuft": "läuft", "abgegeben": "abgegeben", "abnahme": "in der Abnahme",
         "merge_reihe": "bereit zum Merge", "gemergt": "gemergt", "fertig": "fertig", "blockiert": "blockiert (Frage offen)",
-        "unklar": "unklar (keine Schlusszeile)", "wartet_interaktiv": "wartet auf interaktiv", "abgebrochen": "abgebrochen",
+        "unklar": "unklar (keine Schlusszeile)", "wartet_interaktiv": "wartet auf Lead", "abgebrochen": "abgebrochen",
         "zurueckgestellt": "zurückgestellt"}
 
 

@@ -21,15 +21,15 @@ async function kopfLaden() {
             el("span", { class: "punkt " + f }), t({ gruen: "s_dienst", bernstein: "s_dienst", rot: "s_dienst_stoerung", "": "s_dienst_aus" }[f])); })(),
       el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: sollen.length }) + (extra ? " · " + t("s_extra", { n: extra }) : "")),
       el("span", { class: "signal unwichtig", title: pcHinweis() }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: Math.round(sp) })),
-      /* Steuern geschieht im Leitstand (Start, unter den Agenten); hier steht nur, was vom Normalfall abweicht – Klick führt hin */
-      d.halt.length ? el("span", { class: "signal knopflich", title: t("ls_hin"), onclick: zumLeitstand }, el("span", { class: "punkt rot" }), t("halt_an")) : null,
-      d.schirm?.frei ? el("span", { class: "signal knopflich", title: [d.schirm.grund, t("ls_hin")].filter(Boolean).join(" · "), onclick: zumLeitstand },
+      /* Steuern geschieht in der Steuerung (Leitstand, unter den Agenten); hier steht nur, was vom Normalfall abweicht – Klick führt hin */
+      d.halt.length ? el("span", { class: "signal knopflich", title: t("ls_hin"), onclick: zurSteuerung }, el("span", { class: "punkt rot" }), t("halt_an")) : null,
+      d.schirm?.frei ? el("span", { class: "signal knopflich", title: [d.schirm.grund, t("ls_hin")].filter(Boolean).join(" · "), onclick: zurSteuerung },
         el("span", { class: "punkt bernstein" }), t("s_schirm_frei")) : null,
-      (d.ende || []).length ? el("span", { class: "signal knopflich", title: t("ls_hin"), onclick: zumLeitstand }, el("span", { class: "punkt bernstein" }),
+      (d.ende || []).length ? el("span", { class: "signal knopflich", title: t("ls_hin"), onclick: zurSteuerung }, el("span", { class: "punkt bernstein" }),
         t("s_ende", { n: d.ende.length, x: zeit(d.ende[0].bis_utc) })) : null,
     ].filter(Boolean));
     for (const z of document.querySelectorAll("[data-zahl]")) {
-      const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", ["fragen", "freigaben"].includes(z.dataset.zahl) && n > 0);
+      const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", ["fragen", "projektweg"].includes(z.dataset.zahl) && n > 0);
     }
   } catch (e) {
     zustand.startFehler = String(e.message || e);      /* A1998: die Startseite zeigt den Grund (z. B. „Noch kein Abgleich …“) */
@@ -39,9 +39,20 @@ async function kopfLaden() {
 }
 /* ruhig = Selbst-Aktualisierung: keine Einblend-Animation, Scrollposition bleibt (sonst „springen“ die Kacheln) */
 let ruhig = false;
-/* Sieben Menüpunkte (A1657, Marcel 14.11.): was früher ein eigener Punkt war, ist jetzt ein Reiter seines Bereichs. Die alten
-   Adressen (#arbeit, #verlauf, #teamchat, #dokumente, #releases) bleiben gültig und zeigen den Reiter. */
-const BEREICH = { arbeit: "planung", verlauf: "planung", teamchat: "nachrichten", runde: "nachrichten", dokumente: "wissen", releases: "wissen" };
+/* Menü nach TH156 (A2018): Leitstand · Projektweg · Fragen (bis „Für dich“) · Wissen · Betrieb · Einstellungen. Was früher ein eigener
+   Punkt war, gehört jetzt zu einem dieser Bereiche; jede alte Adresse (#planung, #themen, #nachrichten, #arbeit …) bleibt gültig. */
+const BEREICH = { planung: "projektweg", themen: "projektweg", arbeit: "projektweg", verlauf: "projektweg", nachrichten: "wissen", teamchat: "wissen",
+  runde: "wissen", dokumente: "wissen", releases: "wissen", termine: "betrieb" };
+/* Die Reihe eines Bereichs steht im Seitenkopf jeder seiner Seiten (rahmen): so ist alles erreichbar, was im Menü keinen Punkt mehr hat.
+   Wissen hat seine Reiter schon auf der Seite – nur die Nachrichten bekommen sie hier. */
+const REIHEN = { projektweg: [["projektweg", "n_projektweg"], ["themen", "n_themen"], ["planung", "n_planung"]], betrieb: [["betrieb", "n_betrieb"], ["termine", "pr_termine"]] };
+const REIHE_AN = { arbeit: "planung", verlauf: "planung" };
+function bereichReihe(sicht) {
+  if (["nachrichten", "teamchat", "runde"].includes(sicht)) { const r = wissenReiter("nachrichten"); r.className = "bereich-reihe"; return r; }
+  const teile = REIHEN[BEREICH[sicht] || sicht];
+  return teile ? el("div", { class: "bereich-reihe" }, teile.map(([s, n]) => el("button", { type: "button", class: s === (REIHE_AN[sicht] || sicht) ? "an" : "",
+    "data-s": s, onclick: () => zeige(s) }, t(n)))) : null;
+}
 function bereichReiter(teile, aktiv, ...rechts) {
   return el("div", { class: "reiter bereich-reiter" }, teile.map(([k, text, tun]) => el("button", { type: "button", class: k === aktiv ? "an" : "", onclick: tun }, text)), ...rechts);
 }
@@ -49,18 +60,20 @@ function planReiter(aktiv, n = {}) {
   const plan = k => () => { zustand.planReiter = k; zeige("planung"); };
   return bereichReiter([...(n.meilensteine ? [["meilensteine", t("pm_meilensteine"), plan("meilensteine")], ["pakete", t("pm_pakete"), plan("pakete")]] : []),   /* A1950 */
     ["zeitleiste", t("pr_zeitleiste"), plan("zeitleiste")], ["arbeit", t("n_aufgaben"), () => zeige("arbeit")],
-    ["termine", t("pr_termine"), plan("termine")], ["verlauf", t("n_verlauf"), () => zeige("verlauf")], ["leitbild", t("pr_leitbild"), plan("leitbild")],
+    ["verlauf", t("n_verlauf"), () => zeige("verlauf")], ["leitbild", t("pr_leitbild"), plan("leitbild")],
     ["risiken", t("pr_risiken") + (n.risiken !== undefined ? ` (${n.risiken})` : ""), plan("risiken")],
     ["check", t("pr_check") + (n.check ? ` (${n.check})` : ""), plan("check")], ["protokoll", t("pr_protokoll"), plan("protokoll")]], aktiv);
 }
 function wissenReiter(aktiv) {
   const w = k => () => { zustand.wissenReiter = k; zeige("wissen"); };
   return bereichReiter([...["themen", "beschluesse", "regeln", "wortlaut", "notizen"].map(k => [k, t("rb_" + k), w(k)]),
-    ["dokumente", t("n_dokumente"), () => zeige("dokumente")], ["releases", t("n_releases"), () => zeige("releases")]], aktiv);
+    ["nachrichten", t("n_nachrichten"), () => zeige("nachrichten")], ["dokumente", t("n_dokumente"), () => zeige("dokumente")],
+    ["releases", t("n_releases"), () => zeige("releases")]], aktiv);
 }
-const wissenExtern = () => [["dokumente", "n_dokumente"], ["releases", "n_releases"]].map(([s, k]) =>
+const wissenExtern = () => [["nachrichten", "n_nachrichten"], ["dokumente", "n_dokumente"], ["releases", "n_releases"]].map(([s, k]) =>
   el("button", { type: "button", onclick: () => zeige(s) }, t(k)));
 function zeige(sicht, still = false) {
+  if (sicht === "steuerung") return zurSteuerung();                     /* A2018: Adresse #steuerung */
   if (!still) { wechselNr++; seitenNr++; }                              /* A1907: was die vorige Seite noch lädt, zeichnet nicht mehr */
   ruhig = still;
   const pos = [$("#inhalt").scrollTop, window.scrollY];
@@ -69,12 +82,12 @@ function zeige(sicht, still = false) {
   zustand.sicht = sicht;
   gezeichnet.sicht = sicht; gezeichnet.stempel = stempel(sicht); gezeichnet.um = Date.now();
   $("#neuer-stand")?.remove();
-  const bereich = BEREICH[sicht] || sicht;               /* A1657: Unterseiten gehören zu einem der sieben Menüpunkte */
+  const bereich = BEREICH[sicht] || sicht;               /* A1657: Unterseiten gehören zu einem Menüpunkt */
   for (const a of document.querySelectorAll("nav a[data-sicht]")) a.classList.toggle("an", a.dataset.sicht === bereich);
   $("#mehr")?.classList.toggle("an", !!document.querySelector(`nav a.im-mehr[data-sicht="${bereich}"]`));
   try { localStorage.setItem(ablage("amw-sicht"), sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
-  const fertig = ({ start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, projektweg: sichtProjektweg, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, runde: sichtRunde, wissen: sichtWissen, themen: sichtThemen, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
+  const fertig = ({ start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, projektweg: sichtProjektweg, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, runde: sichtRunde, wissen: sichtWissen, themen: sichtThemen, termine: sichtTermine, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return fertig; }
   return Promise.resolve(fertig).then(() => {
     if (offen?.size) for (const s of $("#inhalt").querySelectorAll("details > summary")) if (offen.has(s.textContent)) s.parentElement.open = true;
@@ -136,8 +149,9 @@ function rahmen(titel, ...rest) {
   const gleich = kopfStand.sicht === zustand.sicht;            /* dieselbe Seite neu gezeichnet: Untermenüs bleiben waagrecht, wo sie waren */
   kopfStand.lage = gleich ? Object.fromEntries([...m.querySelectorAll(":scope > .seitenkopf > *")].map(e => [e.classList[0], (e.querySelector(".reiter-zeile") || e).scrollLeft])) : {};
   kopfStand.sicht = zustand.sicht; kopfStand.weg = 0;
-  const k = el("div", { class: "seitenkopf" }, el("div", { class: "kopf" }, el("h1", {}, titel), ...rest));
-  m.replaceChildren(k); kopfStand.groesse.disconnect(); kopfStand.groesse.observe(k); return m;
+  const k = el("div", { class: "seitenkopf" }, el("div", { class: "kopf" }, el("h1", {}, titel), ...rest)), reihe = bereichReihe(zustand.sicht);
+  if (reihe) k.append(reihe);                            /* läuft mit dem Titel hinaus – fest bleiben nur die Reiter der Seite */
+  m.replaceChildren(k); if (reihe) reihe.querySelector(".an")?.scrollIntoView({ block: "nearest", inline: "nearest" }); kopfStand.groesse.disconnect(); kopfStand.groesse.observe(k); return m;
 }
 /* Liste links, Inhalt rechts (A1628) – wie im Mail-Programm: am PC füllen beide Spalten das Fenster unter dem Kopf und
    scrollen je für sich; die Seite selbst scrollt dann nicht, die Liste bleibt stehen, wenn man rechts liest. Am Handy

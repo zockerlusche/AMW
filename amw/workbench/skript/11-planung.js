@@ -1,3 +1,8 @@
+/* A2018 (TH156): Termine gehören zum Betrieb – dieselben Daten wie die Planung, kein eigener Abruf-Weg */
+async function sichtTermine() {
+  let d; try { d = await holen("/api/planung"); } catch (e) { rahmen(t("betrieb")).append(el("div", { class: "leer" }, String(e.message || e))); return; }
+  rahmen(t("betrieb")).append(termineAnsicht(d.termine || [], d.ki_fenster));
+}
 /* --- Planung ------------------------------------------------------------------------------- */
 const datumKurz = x => x ? new Date(x + "T12:00:00").toLocaleDateString(gebiet(), { day: "2-digit", month: "2-digit" }) : "–";
 const ampelKlasse = a => a === "gruen" ? "gruen" : a === "gelb" ? "bernstein" : a === "rot" ? "rot" : "";
@@ -38,30 +43,6 @@ function termineAnsicht(l, kf) {
    „Jetzt starten“. Ein Status je Eintrag, nur mögliche Knöpfe, Werte statt Sätze; am Handy zuerst die Liste (W2431). */
 function pmZeit(utc) { return utc ? new Date(utc).toLocaleString(gebiet(), { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""; }
 function pmGeld(x) { return x == null ? "–" : x.toFixed(2).replace(".", sprache === "de" ? "," : ".") + " $"; }
-function toreLeiste(d, kurz) {                                        /* K7 (A1944): alle fünf Tore, abgeleitet – ✓ zu, ● jetzt */
-  if (!d || !d.tore) return null;
-  const text = x => x.tor === "grobplanung" ? t("tor_t_grob", { n: x.n, g: x.g }) + (x.mg ? " · " + t("tor_t_grob_m", { n: x.mn, g: x.mg }) : "")
-    : x.tor === "feinplanung" ? (x.g ? t("tor_t_fein", { n: x.n, g: x.g }) : t("tor_t_fein_leer"))
-    : x.tor === "umsetzung" ? (x.laufend ? t("tor_t_um", { n: x.n, g: x.g }) : t("tor_t_um_m", { n: x.mn, g: x.mg }))
-    : x.tor === "abschluss" ? t("tor_t_ab", { n: x.n, g: x.g }) : t("th2_stand", { n: x.n, g: x.g });
-  const jetzt = d.tore.find(x => x.tor === d.aktuell);
-  const art = x => x.zu ? "zu" : x.tor === d.aktuell ? "jetzt" : "spaeter", zeichen = x => x.zu ? "✓" : x.tor === d.aktuell ? "●" : "○";
-  if (kurz) {                                   /* A1972 (TH156 Regel 3/5/7): nur die fünf Chips – die Werte eines Tors auf Klick */
-    const info = el("div", { class: "tore-info" }); info.hidden = true;
-    let offen = null;
-    const chips = d.tore.map(x => el("button", { type: "button", class: "tor " + art(x), "data-t": x.tor, "aria-expanded": "false",
-      onclick: () => { offen = offen === x.tor ? null : x.tor; info.hidden = !offen;
-        chips.forEach(c => c.setAttribute("aria-expanded", String(c.dataset.t === offen)));
-        if (offen) info.replaceChildren(...(x.tor === "konzept" ? [text(x)] : [el("b", {}, t("tor_" + x.tor)), " · ", text(x)])); } },
-      el("span", { class: "tor-zeichen" }, zeichen(x)), " ", t("tor_" + x.tor)));
-    return el("div", { class: "tore-leiste kurz", "data-tor": d.aktuell || "fertig" }, el("div", { class: "tore" }, chips), info);
-  }
-  return el("div", { class: "tore-leiste", "data-tor": d.aktuell || "fertig" },
-    el("ol", { class: "tore" }, ...d.tore.map(x => el("li", { class: "tor " + (x.zu ? "zu" : x.tor === d.aktuell ? "jetzt" : "spaeter"),
-      "data-t": x.tor, title: text(x) }, el("span", { class: "tor-zeichen" }, x.zu ? "✓" : x.tor === d.aktuell ? "●" : "○"), " ", t("tor_" + x.tor)))),
-    el("span", { class: "tore-text" }, jetzt ? (jetzt.tor === "konzept" ? text(jetzt) : `${t("tor_" + jetzt.tor)} · ${text(jetzt)}`) : t("tor_alle_zu")),
-    (d.nichts_offen || []).length ? el("span", { class: "tore-text sehrleise" }, t("tor_nichts_offen", { n: d.nichts_offen.length })) : null);
-}
 function toreDich(f, zumThema) {                /* A1972 (TH156 Regel 6): höchstens EINE Zeile, nur wenn du handeln musst – Anzahl + Sprung */
   if (!f || !(f.themen || f.meilensteine)) return null;
   const sprung = (text, art, tun) => el("a", { href: "#", class: "verweis", "data-sprung": art, onclick: e => { e.preventDefault(); tun(); } }, text);
@@ -76,7 +57,7 @@ function pmStand(pa) {
   const text = pa.tor === "umsetzung" ? t("pm_stand_um", { n: ms.filter(m => m.status === "aktiv").length })
     : pa.tor === "fein" ? t("pm_stand_fein", { n: voll.filter(m => m.plan.frei).length, g: voll.length, p: pakete, k: pmGeld(summe) })
     : t("pm_stand_grob", { n: offen.filter(m => m.grob.frei).length, g: offen.length });
-  return el("div", {}, toreLeiste(pa.tore), el("div", { class: "th-stand pm-stand", "data-tor": pa.tor }, el("span", {}, text)));
+  return el("div", { class: "th-stand pm-stand", "data-schritt": pa.tor }, el("span", {}, text));
 }
 function pmAbschluss(x, tun) {                                 /* K7 (A1944): Abschlussbericht und Ja dazu */
   const ab = x.abschluss, k = el("div", { class: "th-kasten" }), ja = () => tun("freigeben", { art: "abschluss" }, t("pm_ab_ok"));
@@ -246,12 +227,11 @@ async function sichtPlanung() {
     el("div", { class: "sehrleise" }, t("pl_luecken_h")),
     ...lu.thema_ohne_paket.map(x => el("div", { class: "pl-luecke" }, el("span", { class: "ref" }, "TH" + x.id), " ", x.name, " – ", t("pl_luecke_t"))),
     ...lu.paket_ohne_thema.map(x => el("div", { class: "pl-luecke" }, el("span", { class: "ref" }, "A" + x.id), " ", x.titel, " – ", t("pl_luecke_p")))));
-  const reiter = [...(d.planansicht?.hat_themen ? ["meilensteine", "pakete"] : []), "zeitleiste", "termine", "leitbild", "risiken", "check", "protokoll"], offeneBefunde = d.pruefung.filter(x => !x.akzeptiert).length;
+  const reiter = [...(d.planansicht?.hat_themen ? ["meilensteine", "pakete"] : []), "zeitleiste", "leitbild", "risiken", "check", "protokoll"], offeneBefunde = d.pruefung.filter(x => !x.akzeptiert).length;
   m.append(planReiter(reiter.includes(r) ? r : "zeitleiste", { check: offeneBefunde, risiken: d.risiken.filter(x => x.status !== "erledigt").length,
     meilensteine: !!d.planansicht?.hat_themen }));
   if (r === "meilensteine" || r === "pakete") m.append(pmAnsicht(d.planansicht, r === "meilensteine" ? "grob" : "plan"));
   if (r === "zeitleiste") m.append(standJetzt(d), uebersicht(d) || "", rechnerHeute(d) || "", zeitleiste(d));
-  if (r === "termine") m.append(termineAnsicht(d.termine || [], d.ki_fenster));
   if (r === "leitbild") m.append(leitbildAnsicht(d.leitbild));
   if (r === "risiken") m.append(risikoAnsicht(d));
   if (r === "check") m.append(checkAnsicht(d));

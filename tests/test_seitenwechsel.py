@@ -75,7 +75,7 @@ class Seitenwechsel(Rundgang):
         for g in ("pc", "handy"):
             with self.subTest(g=g):
                 self.groesse(g)
-                self.oeffnen("start", "document.querySelector('#inhalt h1')?.textContent === 'Übersicht'")
+                self.oeffnen("start", "document.querySelector('#inhalt h1')?.textContent === 'Leitstand'")
                 self.tab.js("window.__langsam = true; zeige('start'); zeige('nachrichten')")
                 self.warten("document.querySelector('.nr-eintrag')")
                 self.bleibt("Nachrichten", ".nr-eintrag")

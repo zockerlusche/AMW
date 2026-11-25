@@ -22,4 +22,4 @@ A test date says when you test. The AMW derives the deadline “test build ready
 - **A single date is cancelled** – `amw termin absagen <date> --am "20.11. 18:00"` cancels only that occurrence.
 
 ## Next
-- Dates are under Planning › Dates; the next test is also in the Overview.
+- Dates are under Operations › Dates; the next test is also in the control room.
