@@ -127,10 +127,12 @@ def _pyright_version():
     """Version des installierten pyright aus seiner package.json – None, wenn es sich nicht sagen lässt (dann rechnet jede Prüfung selbst)."""
     from . import pruefung_c
     prog = pruefung_c.pyright_programm()
+    if not prog:
+        return None
     try:
         with open(os.path.join(os.path.dirname(prog[1]), "package.json"), encoding="utf-8") as f:
             return json.load(f).get("version")
-    except (TypeError, OSError, ValueError, AttributeError):
+    except (OSError, ValueError, AttributeError):
         return None
 
 
