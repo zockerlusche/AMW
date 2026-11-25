@@ -22,7 +22,8 @@ class Abnahme(Rundgang):
         self.oeffnen("start", self.ZEILE)
         text = self.tab.js(f"{self.ZEILE}.textContent")
         self.assertIn("„AMW 2.0 Stufe 1 – Mischbetrieb“ ist fertig – abnehmen", text)
-        self.assertEqual(self.tab.js(f"{self.ZEILE}.querySelector('.ref').textContent"), f"M{self.bogen}")
+        self.assertNotEqual(self.bogen, 50)                                  # A2089: die Projektnummer, nicht die interne
+        self.assertEqual(self.tab.js(f"{self.ZEILE}.querySelector('.ref').textContent"), "M50")
         self.assertIn("Danach veröffentlicht die AMW", text)
         self.assertEqual(self.tab.js(f"{self.ZEILE}.querySelector('button')?.textContent"), "Abnehmen")
         self.assertEqual(self.tab.js(f"{self.ZEILE}.dataset.bogen"), str(self.bogen))
