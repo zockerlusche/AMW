@@ -4696,7 +4696,7 @@ function pwAbschlussKarte(x, einzig, haupt) {
     : !p ? (x.pruefung_laeuft ? t("pjw_a_laeuft_lang") : t("pjw_a_ohne_lang"))
     : p.fehler ? t("pjw_a_pruefer_fehler") : x.lage === "nicht_erfuellt" ? t("pjw_a_nicht_erfuellt") : unpruefbar ? t("pjw_ll_nicht_pruefbar_du") : t("pjw_bericht_kommt")));
   const trotzdem = !abnehmbar && x.lage_zaehlt && fragen.length && x.bericht ? pwKnopf(t("pjw_trotzdem"), pwTrotzdem(fragen, abnehmen)) : null;   /* verboten ist es nicht */
-  einzig = einzig && x.bei_dir && !fragen.length && !(abnehmbar && !test.befehl);   /* A2088: Vorbehalt und „kein Gesamttest“ stehen über dem Knopf */                                       /* oben steht nur, was der Mensch tun soll */
+  einzig = einzig && x.bei_dir && !(abnehmbar && (fragen.length || !test.befehl));   /* A2088: Vorbehalt und „kein Gesamttest“ stehen über dem Knopf */                                       /* oben steht nur, was der Mensch tun soll */
   if (handlung && einzig) pwHaupt = handlung;
   const id = "pjw-hw-" + x.bogen;
   karte.append(pwHinweisFeld(t("pjw_nacharbeit_ph"), id),
