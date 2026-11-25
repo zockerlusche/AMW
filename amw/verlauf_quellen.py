@@ -215,7 +215,8 @@ def _abschluss(con, pid):
     nr = {r["id"]: r["nr"] for r in con.execute("SELECT id, nr FROM bogen WHERE projekt_id = ?", (pid,))}
     aus, t = [], None
     for r in _neueste(con, "SELECT id, zeit_utc, von, art, text, bogen_id FROM plan_ereignis WHERE projekt_id = ? AND (art IN ('abschluss_angestossen',"
-                           " 'abschluss_ergebnis', 'bogen_bereit_abnahme') OR (art = 'bogen_status' AND (text LIKE '%→ fertig' OR text LIKE '%→ aktiv')))"
+                           " 'abschluss_ergebnis', 'bogen_bereit_abnahme') OR (art = 'abschluss_abnehmbar' AND text LIKE '%ausgeliefert_: true%')"
+                           " OR (art = 'bogen_status' AND (text LIKE '%→ fertig' OR text LIKE '%→ aktiv')))"
                            " ORDER BY id DESC", (pid,)):
         m = f"M{nr.get(r['bogen_id'], '?')}"
         rolle, von, d = _rolle(r["von"]), r["von"], _json(r["text"])
@@ -226,7 +227,10 @@ def _abschluss(con, pid):
         elif r["art"] == "abschluss_angestossen":
             aus.append(_eintrag("ab_angestossen", r["id"], r["zeit_utc"], "amw", "AMW", r["art"], "abschluss", r["bogen_id"], None, text=f"{m}: Prüfung gestartet"))
         elif r["art"] == "bogen_bereit_abnahme":
-            aus.append(_eintrag("ab_bereit", r["id"], r["zeit_utc"], "amw", "AMW", r["art"], "abschluss", r["bogen_id"], None, text=f"{m}: bereit zur Abnahme"))
+            aus.append(_eintrag("ab_bereit", r["id"], r["zeit_utc"], "amw", "AMW", r["art"], "abschluss", r["bogen_id"], None,
+                                text=f"{m}: " + ("wartet auf Auslieferung" if ": wartet auf Auslieferung –" in (r["text"] or "") else "bereit zur Abnahme")))   # A2116
+        elif r["art"] == "abschluss_abnehmbar":                          # A2116: nach der Auslieferung
+            aus.append(_eintrag("ab_bereit", r["id"], r["zeit_utc"], "amw", "AMW", r["art"], "abschluss", r["bogen_id"], None, text=f"{m}: ausgeliefert, bereit zur Abnahme"))
         else:
             if d.get("fehler"):
                 t = t or workbench.texte("de")

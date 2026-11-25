@@ -13,7 +13,7 @@ Ereignisse (plan_ereignis, Text JSON):
   bogen_laufend        {"an": bool}
   bogen_vorgelegt      {"stand"}
   abschluss_beim_lead  {"stand", "lage", "ergebnis"}   – einmal je Stand und Ergebnis
-  abschluss_abnehmbar  {"stand"}                       – „bereit zur Abnahme“ ging raus, nachdem es beim Lead lag
+  abschluss_abnehmbar  {"stand", "ausgeliefert"}                       – „bereit zur Abnahme“ ging raus, nachdem es beim Lead lag
 
 A2116: Vor der Auslieferung nimmt niemand ab (lage „auslieferung“, auslieferstand.py): kein Knopf, keine Meldung, niemand ist dran. Das
 Ereignis abschluss_beim_lead mit dieser Lage merkt es; ist alles ausgeliefert, geht „bereit zur Abnahme“ hinaus.
@@ -203,7 +203,7 @@ def melden(con, pid, b):
         lid, gemeldet = _letztes(con, b["id"], BEIM_LEAD)
         if l and gemeldet.get("lage") == AUSLIEFERUNG and gemeldet.get("stand") == st and _letztes(con, b["id"], ABNEHMBAR)[0] < lid:
             with db.schreiben(con):
-                _ereignis(con, pid, "AMW", ABNEHMBAR, b["id"], stand=st)
+                _ereignis(con, pid, "AMW", ABNEHMBAR, b["id"], stand=st, ausgeliefert=True)
             tore.bericht_erstellen(con, pid, b["id"], bereit=True)
             return "abnehmbar"
         return None
@@ -226,7 +226,7 @@ def melden(con, pid, b):
         if gemeldet.get("stand") != st or (aid > lid and schon.get("stand") == st):
             return None
         with db.schreiben(con):
-            _ereignis(con, pid, "AMW", ABNEHMBAR, b["id"], stand=st)
+            _ereignis(con, pid, "AMW", ABNEHMBAR, b["id"], stand=st, ausgeliefert=gemeldet.get("lage") == AUSLIEFERUNG)
         tore.bericht_erstellen(con, pid, b["id"], bereit=True)
         return "abnehmbar"
     return None

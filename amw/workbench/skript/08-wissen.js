@@ -167,12 +167,12 @@ function pwWert(d, i) {
     return t("pjw_w_ums", { m: pwM(ms[0]), f: ms[0].fertig, n: ms[0].pakete.length }) + fr; }
   const offen = a.filter(x => x.bereit && !x.frei), w = offen.filter(x => x.bei_dir);            /* A2082: „bereit zur Abnahme“ nur, was der Mensch abnehmen kann */
   if (w.length) return `${w.map(x => pwM(x)).join(", ")} · ${t("pjw_bereit")}`;
-  if (offen.length) return offen.map(x => `${pwM(x)} · ${pwLage(x)}`).join(", ");
+  if (offen.length) return offen.map(x => `${pwM(x)} · ${pwLage(x)}${x.auslieferung?.length ? ` (${pwPaketListe(x)})` : ""}`).join(", ");
   const z = a.filter(x => x.frei).at(-1); return z ? `${pwM(z)} · ${t("pjw_abgenommen")}` : "–";
 }
-/* A2116: die Lage vor der Abnahme in Worten; wartet sie auf die Auslieferung, stehen die Pakete dabei. */
-const pwPaketListe = x => (x.auslieferung || []).slice(0, 4).map(a => "A" + a).join(", ") + ((x.auslieferung || []).length > 4 ? " …" : "");
-const pwLage = x => t("pjw_l_" + x.lage, { x: pwPaketListe(x) });
+/* A2116: die Lage vor der Abnahme in Worten; wartet sie auf die Auslieferung, stehen die Pakete im langen Satz und in der Leiste. */
+const pwPaketListe = x => (x.auslieferung || []).slice(0, 4).map(a => "A" + a).join(", ") + ((x.auslieferung || []).length > 4 ? ` +${x.auslieferung.length - 4}` : "");
+const pwLage = x => t("pjw_l_" + x.lage);
 const pwLageLang = x => t("pjw_ll_" + x.lage, { x: pwPaketListe(x) });
 const pwStatus = (text, art) => el("span", { class: "pjw-status" + (art ? " " + art : "") }, text);
 const pwKnopf = (text, onclick, haupt) => el("button", { class: "knopf" + (haupt ? " haupt" : ""), type: "button", onclick }, text);
@@ -394,7 +394,7 @@ function pwAbschlussKarte(x, einzig, haupt) {
   const zeile = (ok, text) => el("div", {}, el("span", { class: ok === null ? "leise" : ok ? "pjw-ok" : x.bei_dir ? "pjw-nein" : "leise" }, ok === null ? "–" : ok ? "✓" : "○"), el("span", {}, text));   /* A2082: Farbe nur, wenn der Mensch dran ist (TH156 Regel 4) */
   const testOk = !!p && (!test.befehl || test.rc === 0), abnehmbar = x.lage === "abnehmbar";
   const karte = el("div", { class: "pjw-karte pjw-ab-karte", "data-bogen": x.bogen, "data-lage": x.lage },
-    el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x)} ${x.titel}`), x.bei_dir ? pwStatus(t("pjw_wartet_dich"), "dran") : pwStatus(pwLage(x))));
+    el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x)} ${x.titel}`), x.bei_dir ? pwStatus(t("pjw_wartet_dich"), "dran") : pwStatus(pwLage(x), "umbruch")));
   const ja = x.bei_dir ? zeile(false, t("pjw_dein_ja")) : null;
   if (!p) karte.append(el("div", { class: "pjw-pruefung" }, zeile(false, x.pruefung_laeuft ? t("pjw_a_laeuft") : t("pjw_a_ohne")), ja));
   else {

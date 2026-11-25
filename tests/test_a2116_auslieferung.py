@@ -7,7 +7,7 @@ import subprocess
 import unittest
 from unittest import mock
 
-from amw import abschlusslage, aktionen, auslieferstand, belege, db, kern, planansicht, planung, tore
+from amw import abschlusslage, aktionen, auslieferstand, belege, db, kern, planansicht, planung, tore, verlauf_quellen
 from tests import test_a2082_abschlusslage as a2082
 
 FRUEH, VERSION, SPAET = "2026-11-25T10:00:00Z", "2026-11-25T11:30:50Z", "2026-11-25T11:35:48Z"
@@ -105,10 +105,9 @@ class Frage(Grund):
         kern.projekt_einstellen(self.con, self.pid, "TL", versionen="empfohlen")
         self.assertEqual(self.fehlt(), [])
         kern.projekt_einstellen(self.con, self.pid, "TL", versionen="pflicht")
-        with db.schreiben(self.con):
-            self.con.execute("DELETE FROM release")
         self.setzen(self.a1, "Ja von Alex", FRUEH)
-        self.assertEqual(self.fehlt(), [self.a2])
+        with mock.patch.object(auslieferstand, "_version", return_value=(None, None)):
+            self.assertEqual(self.fehlt(), [self.a2])                                           # noch gar keine Version: was Code hat, fehlt
 
     def test_gemerkt(self):
         self.assertEqual(self.fehlt(), [])
@@ -155,6 +154,8 @@ class Ablauf(Grund):
         self.runde()
         self.runde()
         self.assertEqual((self.lage(), self.bereit(), self.bereit("TL")), ("abnehmbar", 1, 1))   # genau einmal
+        texte = [e["text"] for e in verlauf_quellen.gesamt(self.con, self.pid, [], lambda e: "abschluss") if e["art"] in ("bogen_bereit_abnahme", "abschluss_abnehmbar")]
+        self.assertEqual(texte, ["M19: wartet auf Auslieferung", "M19: ausgeliefert, bereit zur Abnahme"])   # der Verlauf sagt nie zu früh „bereit“
         self.assertNotIn("Auslieferung", tore.bericht_text(self.con, self.pid, self.m))
         planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m, "abschluss")
         self.assertEqual(self.b()["status"], "fertig")
@@ -255,7 +256,8 @@ class Seite(a2082.Seite):
     def test_kein_knopf_bis_zur_auslieferung(self):
         self.zeigen()
         self.assertEqual(self.tab.js("document.querySelector('.pjw-ab-karte').dataset.lage"), "auslieferung")
-        self.assertIn(f"wartet auf Auslieferung (A{self.aids[0]}", self.text())
+        self.assertIn(f"wartet auf Auslieferung (A{self.aids[0]}", self.leiste())
+        self.assertIn(f"Wartet auf die Auslieferung von A{self.aids[0]}", self.text())
         self.assertNotIn("wartet auf dich", self.text() + self.leiste())
         for k in ("pjw_trotzdem", "pjw_a_starten", "pjw_a_erneut"):
             self.assertFalse(self.tab.js("!!" + self.knopf(k)), k)

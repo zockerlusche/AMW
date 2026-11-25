@@ -327,13 +327,14 @@ def _schon_bereit(con, b, letzte):
 
 def _bereit_melden(con, pid, b, letzte):
     """A2002: einmal je Stand – Abschlussbericht erstellen (er geht als „bereit zur Abnahme“ an Lead und Co bzw. den Menschen)."""
-    from . import tore
+    from . import abschlusslage, tore
     stand = _stand(con, b, letzte)
     if _schon_bereit(con, b, letzte):
         return None
+    wie = abschlusslage.TEXT[abschlusslage.AUSLIEFERUNG] if abschlusslage.auslieferung(con, pid, b) else BEREIT_TEXT      # A2116: der Verlauf sagt es so
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=BEREIT, bogen_id=b["id"],
-                     text=f"Meilenstein {b['nr']}: {BEREIT_TEXT} – {b['abnahme'][:200]} {stand}")
+                     text=f"Meilenstein {b['nr']}: {wie} – {b['abnahme'][:200]} {stand}")
     tore.bericht_erstellen(con, pid, b["id"], bereit=True)
     return (b["id"], "bereit")
 
