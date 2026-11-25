@@ -460,6 +460,14 @@ class Anzeige(Grund):
         s = workbench.daten_planung(self.con, self.pid)["schieben"]
         self.assertEqual((s[b]["frueher"]["geht"], s[b]["frueher"]["mit"], s[a]["frueher"]["grund"]), (True, a, "steht schon vorn"))
 
+    def test_ein_fehler_steht_im_protokoll_und_die_planung_geht_trotzdem(self):
+        self.paket("A")
+        with mock.patch("amw.paket_schieben.moeglich_alle", side_effect=ValueError("kaputt")), self.assertLogs("amw.workbench", "WARNING") as log:
+            d = workbench.daten_planung(self.con, self.pid)
+        self.assertEqual(d["schieben"], {})
+        self.assertIn("ValueError: kaputt", log.output[0])
+        self.assertTrue(d["boegen"])
+
     def test_aktion_der_seite_pc_und_online(self):
         a, b = self.paket("A", groesse="L"), self.paket("B")
         for kanal, richtung, reihe in (("seite", "frueher", [b, a]), ("netz", "spaeter", [a, b])):

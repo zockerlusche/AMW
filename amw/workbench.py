@@ -585,7 +585,9 @@ def daten_planung(con, pid):
     from . import paket_schieben, planansicht, themen as _themen
     try:
         schieben = paket_schieben.moeglich_alle(con, pid)     # A2094: je Paket früher/später – geht oder gesperrt mit Grund
-    except Exception:                                          # noqa: BLE001 – die Ansicht geht auch ohne
+    except Exception as e:                                     # noqa: BLE001 – die Ansicht geht auch ohne, aber nicht still
+        import logging
+        logging.getLogger("amw.workbench").warning("Planung: was sich schieben lässt, ging nicht zu berechnen – %s: %s", type(e).__name__, e)
         schieben = {}
     return {"planansicht": planansicht.daten(con, pid), "schieben": schieben, "luecken": _themen.luecken(con, pid), "laeuft": laeuft, "ohne_bogen": ohne_bogen, "neue_aufgaben": kern.projekt_wahl(con, pid, "neue_aufgaben"), "rechner_heute": betrieb.tagesverlauf(con, pid), "token": tokenprognose.als_daten(token), "termine": termin_liste, "ki_fenster": ki_fenster, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
             "pruefung": planung.pruefen(con, pid, prog, mit_akzeptierten=True), "status": planung.status(con, pid, prog),
