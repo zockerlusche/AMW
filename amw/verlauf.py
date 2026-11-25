@@ -125,6 +125,8 @@ def _weg_text(art, d, nr):
         t = f"TH{d.get('thema', '?')}: Plan nur teilweise angelegt"
     if art == "meilenstein_frei" and d.get("quelle") == "uebernahme":
         t = f"M{nr if nr is not None else '?'} grob freigegeben – Bestand übernommen"
+    if art == "meilenstein_frei" and d.get("quelle") == "delta":                  # A2077 (A2034, Befund 5): durch das Ja zu einer Änderung
+        t += f" – Änderung zu TH{d['anlass_thema']}" if d.get("anlass_thema") else " – durch eine Änderung am Konzept"
     if art == "meilenstein_frei" and d.get("an") is False:
         t = t.replace(" freigegeben", ": Freigabe zurückgenommen")
     if art in ("thema_ja", "meilenstein_ja", "konzept_abschluss_ja", "grobplan_ja_stimme") and d.get("rolle"):
@@ -178,6 +180,9 @@ def projektweg(con, pid, ab_utc=None, bis_utc=None, rolle=None, grenze=2000, bue
     aus, je = [], {}
     for r in con.execute(sql + " ORDER BY e.zeit_utc, e.id", par):
         d = _json(r["text"])
+        if r["art"] == "meilenstein_frei" and d.get("quelle") == "delta" and d.get("ja"):
+            j = con.execute("SELECT text FROM plan_ereignis WHERE id = ? AND projekt_id = ?", (d["ja"], pid)).fetchone()
+            d["anlass_thema"] = _json(j["text"]).get("thema") if j else None
         u = _uebernahme(r["art"], r["id"], d) if buendeln else None
         if u is not None:
             je[r["id"]] = (u, r["nr"])

@@ -109,6 +109,28 @@ class EchterWeg(Grund):
         self.assertIn("„Anmeldung bauen“ gestartet", aus.getvalue())
         self.assertIn("umsetzung", aus.getvalue())
 
+    def protokoll(self, *mehr):
+        aus = io.StringIO()
+        with contextlib.redirect_stdout(aus), mock.patch("sys.argv", ["amw"]):
+            rc = cli.main(["--von", "TL", "verlauf", "--art", "protokoll", *mehr])
+        return rc, aus.getvalue().strip().splitlines()
+
+    def test_befehl_filtert_vor_der_grenze(self):
+        a = self.paket("Von CC1")
+        kern.aufgabe_status(self.con, self.pid, "CC1", a, "start")
+        for i in range(1, 4):
+            verlauf.ereignis(self.con, self.pid, "agent", f"später {i}", von="CC2", zeit_utc=f"2099-01-0{i}T00:00:00Z")
+        rc, zeilen = self.protokoll("--agent", "CC1", "--grenze", "1")       # vorher: erst die letzte Zeile (CC2), dann gefiltert – leer
+        self.assertEqual(len(zeilen), 1)
+        self.assertIn("„Von CC1“ gestartet", zeilen[0])
+
+    def test_befehl_protokoll_steht_allein(self):
+        fehler = io.StringIO()
+        with contextlib.redirect_stderr(fehler):
+            rc, zeilen = self.protokoll("--art", "lauf")
+        self.assertTrue(rc)
+        self.assertIn("steht allein", fehler.getvalue() + " ".join(zeilen))
+
 
 class JeQuelleEinmal(Grund):
     """Dieselbe Tatsache steht an zwei Stellen – im Verlauf einmal."""
@@ -202,6 +224,22 @@ class Feinplan(Grund):
         self.ereignis("thema_delta_start", z(11), thema=t, entwurf=1, gestartet=[], fehler={"M1": "x"}, offen={})
         self.assertEqual(self.zeilen("fein"), ["Thema „Anmeldung“: Ja zur Änderung (Lead)", "Thema „Anmeldung“: Änderung angewandt, 1 Paket blieb unverändert",
                                                "Thema „Anmeldung“: Änderung gestartet", "Thema „Anmeldung“: Änderung nicht ganz gestartet"])
+
+    def test_freigabe_durch_eine_aenderung_nennt_den_anlass(self):
+        """A2034, Befund 5: „Feinplan freigegeben“ stand nach dem Ja zu einer Änderung ohne Anlass ein zweites Mal da."""
+        t = themen.neu(self.con, self.pid, "TL", "Anmeldung", pfleger="CC1")
+        self.ereignis("meilenstein_frei", z(8), von=kern.ENTWICKLER, bogen=self.m, text=json.dumps({"art": "plan", "an": True}))
+        ja = self.ereignis("thema_plan_ja", z(9), von=kern.ENTWICKLER, thema=t, entwurf=1, angelegt={})
+        self.ereignis("meilenstein_frei", z(9, 0, 1), von=kern.ENTWICKLER, bogen=self.m,
+                      text=json.dumps({"art": "plan", "an": True, "quelle": "delta", "ja": ja}))
+        self.ereignis("meilenstein_frei", z(9, 0, 2), von=kern.ENTWICKLER, bogen=self.m,
+                      text=json.dumps({"art": "grob", "an": True, "quelle": "delta", "ja": ja}))
+        self.ereignis("meilenstein_frei", z(9, 0, 3), von=kern.ENTWICKLER, bogen=self.m,
+                      text=json.dumps({"art": "plan", "an": True, "quelle": "delta", "ja": 999999}))     # Ja nicht mehr da
+        self.assertEqual(self.zeilen("fein"), ["M1: Feinplan freigegeben", "Thema „Anmeldung“: Plan angenommen",
+                                               "M1: Feinplan freigegeben – Änderung zu Thema „Anmeldung“",
+                                               "M1: Feinplan freigegeben – durch eine Änderung am Konzept"])
+        self.assertEqual(self.zeilen("grob"), ["M1: Grobplan freigegeben – Änderung zu Thema „Anmeldung“"])
 
     def test_abgebrochenes_ja_und_hinweis_zum_paket(self):
         """Aus A2086: „Plan angenommen“ bei Abbruch, „Hinweis … zu :“."""

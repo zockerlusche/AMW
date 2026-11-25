@@ -1432,9 +1432,10 @@ def cmd_verlauf(a, con):
         return
     if "protokoll" in (a.art or []):                     # A2077: der Projektweg – wer hat was getan, je Schritt
         from . import projektweg_seite
-        for e in projektweg_seite.verlauf_gesamt(con, pid)[-a.grenze:]:
-            if e["zeit"] >= ab and (not a.agent or e["von"] == a.agent):
-                print(f"{_zeit(e['zeit'])}  {e['schritt']:<9} {e['von'] or '–':<10} {e['zeile'][:140]}")
+        if set(a.art) != {"protokoll"}:
+            raise kern.AmwFehler("--art protokoll steht allein – es zeigt den Projektweg je Schritt, die anderen Arten den Verlauf der Arbeit")
+        for e in [x for x in projektweg_seite.verlauf_gesamt(con, pid) if x["zeit"] >= ab and (not a.agent or x["von"] == a.agent)][-a.grenze:]:
+            print(f"{_zeit(e['zeit'])}  {e['schritt']:<9} {e['von'] or '–':<10} {e['zeile'][:140]}")
         return
     for x in reversed(verlauf.verlauf(con, pid, ab, agent=a.agent, arten=a.art, grenze=a.grenze)):
         print(f"{_zeit(x['zeit'])}  {x['art']:<9} {x['wer'] or '–':<10} {x['ref']:<7} {x['text'][:110]}"
