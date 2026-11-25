@@ -500,7 +500,7 @@ class LaeufeDerAmw(Grund):
             return mock.Mock(returncode=0)
         with mock.patch.object(kern, "projekt_ordner", return_value=self.ordner.name), \
                 mock.patch("amw.freigabereif._gesamtlauf_befehl", return_value="suite"), mock.patch.object(betrieb, "pruefstand", return_value=None), \
-                mock.patch.object(abschluss.subprocess, "run", rechnen):
+                mock.patch.object(abschluss, "_ausgeliefert", return_value=None), mock.patch.object(abschluss.subprocess, "run", rechnen):
             abschluss.gesamttest(self.con, self.pid, {"nr": 1})
         self.assertEqual(gesehen, [(os.getpid(), "agent")])
 
