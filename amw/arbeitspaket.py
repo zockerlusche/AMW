@@ -167,9 +167,22 @@ JSON_FELDER = ("ressourcen", "nie_gleichzeitig")
 PLANER_FEHLT = "Paketfelder setzt der Lead (oder der Mensch) – er plant, wer was ausführt"
 
 
+def _alle(con):
+    """A2145: alle Paketzeilen {aufgabe_id: Zeile} – in einer Anfrage oder Runde (einmal.merken) einmal gelesen statt je Paket. None
+    außerhalb davon und in einer Schreib-Transaktion: dann einzeln wie bisher; jede Änderung macht den Merker leer."""
+    from . import einmal
+    if getattr(con, "merker", None) is None or (con.in_transaction and not getattr(con, "schnappschuss", False)):
+        return None
+    return einmal.einmal(con, ("paket",), lambda: {r["aufgabe_id"]: r for r in con.execute("SELECT * FROM paket")})
+
+
 def _zeile(con, aid):
     import json
-    r = con.execute("SELECT * FROM paket WHERE aufgabe_id = ?", (aid,)).fetchone()
+    k = _alle(con)
+    if k is not None and isinstance(aid, int):            # eine Nummer als Text o. Ä. vergleicht SQLite anders: dann einzeln
+        r = k.get(aid)
+    else:
+        r = con.execute("SELECT * FROM paket WHERE aufgabe_id = ?", (aid,)).fetchone()
     if not r:
         return None
     d = dict(r)

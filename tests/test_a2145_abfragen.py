@@ -5,7 +5,7 @@ import os
 import tempfile
 import unittest
 
-from amw import aufwand, db, eignung, einmal, kern, planer, planung, themen, zwischenpruefung
+from amw import arbeitspaket, aufwand, db, eignung, einmal, kern, planer, planung, themen, zwischenpruefung
 
 
 def z(i):
@@ -252,6 +252,47 @@ class Eignung(Basis):
             self.assertEqual({x["aufgabe"]: x["ohne"] for x in inter}, {x["aufgabe"]: x["aufgabe"] not in rot for x in inter})
         self.assertEqual(zahlen[20], zahlen[400], zahlen)
         self.assertLessEqual(zahlen[400], 1, zahlen)
+
+
+class Paketzeile(Basis):
+    """Commit 5: arbeitspaket._zeile las die Paketzeile je Aufgabe (3582 Abfragen in neun Ansichten)."""
+
+    def bestand(self, n):
+        con, pid = self.neu(f"paket{n}")
+        with db.schreiben(con):
+            ids = [db.einfuegen(con, "aufgabe", projekt_id=pid, titel=f"T{i}", agent="CC1", angelegt_von="TL", angelegt_utc=z(i)) for i in range(n)]
+            for i, aid in enumerate(ids):
+                if i % 3:                        # jede dritte ohne Paketzeile (Standardwerte)
+                    db.einfuegen(con, "paket", aufgabe_id=aid, art=("agent", "sitzung", "p")[i % 3], modell="opus" if i % 2 else None,
+                                 ressourcen='["gpu"]' if i % 4 == 1 else None, geaendert_utc=z(i))
+        return con, pid, ids
+
+    def alle(self, con, ids):
+        return [(arbeitspaket._zeile(con, a), arbeitspaket.lesen(con, a)) for a in ids + [999999]]
+
+    def test_gleich_und_unabhaengig_von_der_menge(self):
+        zahlen = {}
+        for n in (20, 400):
+            con, _, ids = self.bestand(n)
+            ohne = self.alle(con, ids)
+            with einmal.merken(con, schnappschuss=True):
+                mit, zahlen[n] = self.zaehlen(con, lambda: self.alle(con, ids), nur="FROM paket")
+                self.assertEqual(arbeitspaket._zeile(con, str(ids[1])), ohne[1][0])     # Nummer als Text: einzeln, wie SQLite vergleicht
+            self.assertEqual(mit, ohne)
+            self.assertIsNone(ohne[0][0])
+        self.assertEqual(zahlen[20], zahlen[400], zahlen)
+        self.assertLessEqual(zahlen[400], 1, zahlen)
+
+    def test_kopie_und_geschriebenes_sofort_sichtbar(self):
+        con, pid, ids = self.bestand(20)
+        with einmal.merken(con):
+            arbeitspaket._zeile(con, ids[1])["ressourcen"].append("bildschirm")
+            self.assertEqual(arbeitspaket._zeile(con, ids[1])["ressourcen"], ["gpu"])
+            self.assertIsNone(arbeitspaket._zeile(con, ids[0]))
+            arbeitspaket.setzen(con, pid, "TL", ids[0], modell="sonnet")
+            self.assertEqual(arbeitspaket._zeile(con, ids[0])["modell"], "sonnet")
+            arbeitspaket.setzen(con, pid, "TL", ids[1], modell="haiku")
+            self.assertEqual(arbeitspaket.lesen(con, ids[1])["modell"], "haiku")
 
 
 if __name__ == "__main__":
