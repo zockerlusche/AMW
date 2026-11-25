@@ -233,6 +233,21 @@ Nummer und schrieb die Versionshinweise.
   das, an dem das Grün des Leads hängt. Dafür geht beim Neubündeln das Merge-OK eines Pakets auch dann ins neue Bündel mit,
   wenn dessen Stand schon grün ist (21.11., 1.152.6: nach Bündel 1.152.4 rot und neuer Freigabe ging nur Grün mit, das OK nicht –
   fünf Pakete blieben offen). Außerhalb von Bündeln braucht ein schon grüner Stand weiter sein eigenes Merge-OK.
+- **Bündel ohne Agent (A2123, TH158 F5, `buendel_auslieferung.py`):** ein losgelöster Prozess setzt alle abgenommenen Pakete zusammen
+  (A2120), schreibt Version und CHANGELOG (A2121), baut gebaute Dateien einmal neu (eigener Commit), legt `buendel-X.Y.Z` an und rechnet
+  den Gesamtlauf über die Schlange. Ein Paket mit Konflikt bleibt mit seinen Nachfolgern draußen, der Rest wird ohne es neu
+  zusammengesetzt (Ereignis `buendel_befund`); ein Konflikt nur in gebauten Dateien (`web/inc/seite.html`, `web/hilfe/*.json`,
+  `web/inc/VERSION`) ist keiner. Versions-Commits alter Stapel in Paket-Zweigen kommen nicht mit, Pakete mit demselben Kopf zählen einmal.
+  Grün und `buendel_ausliefern = an` (nur der Mensch stellt es, Vorgabe aus; nur das AMW-Projekt): je Paket GRÜN und Merge-OK der AMW
+  auf den Bündel-Stand mit einer Marke, die nur dieser Prozess setzt – nur mit ihr nimmt die Kette ein Merge-OK der AMW für ein Bündel
+  an –, dann die Kette als AMW (Wartungsmodus mit ihrem Prozess, eine Sicherung, ein Neustart). Sonst endet es bei „Bündel X.Y.Z bereit“
+  wie oben. Rot: teilen (A2122), jede Teilmenge mit eigenem Versions-Commit ohne Zweig gerechnet, höchstens 3 Teilungsläufe; die grün
+  gelaufene Menge geht weiter wie bei Grün, das schuldige Paket als `buendel_befund`. Nach jedem Schritt beenden eine Pause oder ein
+  fremder Wartungsmodus den Prozess; bei jedem Abbruch steht der Arbeitsbaum wieder auf main, ein eigener Wartungsmodus ist aufgehoben,
+  der Lead bekommt eine Meldung mit Stand und Zweig. Anstoß: Dienst-Runde nur mit `buendel_ausliefern = an`, wenn der Auslöser (A2119)
+  es sagt; von Hand `amw paket ausliefern-buendel` (Lead, Mensch). Nie bei offenem Bündel, laufendem oder wartendem Gesamtlauf,
+  Wartungsmodus, Pause oder Wochenlimit-Halt. Ereignisse `buendel_auslieferung` (angestossen, zusammengesetzt, gesamtlauf, freigabe,
+  ausgeliefert, bereit, geteilt, abgebrochen).
 - **Zeilenenden der Arbeitsplätze und von Prüfung C (A1911):** Arbeiter-Klone und der frische Checkout von Prüfung C checken
   mit `core.autocrlf` des Projekts aus (der Wert steht auch in der Konfiguration des Klons, denn der Arbeiter ruft git ohne
   System-Konfiguration auf). Vorher bekamen sie den Systemwert (CRLF bei einem LF-Projekt): Der Arbeiter sah angefasste
@@ -1230,6 +1245,7 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 | `amw projekt einstellen` | `thema_freigabe` | `mensch` (Vorgabe) oder `co+lead`: wer Themen freigibt (Lead oder Mensch stellt um, A1951) |
 | `amw projekt einstellen` | `grobplan_freigabe`, `feinplan_freigabe`, `abschluss_freigabe` | `mensch` (Vorgabe) oder `co+lead`: wer Meilensteine, Pläne und Abschlüsse freigibt (Lead oder Mensch stellt um, A2032) |
 | `amw projekt einstellen` | `release_sicherung` | `aus` (Vorgabe) oder `an`: Sicherung der Projektdaten vor `release ausliefern` (Projekte, die nicht die AMW sind) |
+| `amw projekt einstellen` | `buendel_ausliefern` | `aus` (Vorgabe: Bündel ohne Agent bis „bereit“) oder `an` (die AMW liefert selbst aus) – nur der Mensch (A2123) |
 | `amw projekt einstellen` | `release_modus` | `datei` (Version in `version_datei`) oder `tag` (Version aus dem Tag) – für Bündel |
 | `amw projekt einstellen` | `changelog_format` | `amw` oder `keepachangelog` ([Unreleased] → [X.Y.Z]) – für Bündel |
 | `amw projekt einstellen` | `arbeiter_umgebung` | zusätzliche Variablen und PATH-Ordner für Arbeiter (keine Zugangsdaten, kein Netz) |
