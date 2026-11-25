@@ -112,7 +112,7 @@ class Frei(Grund):
 class Bereiche(Grund):
     def test_gleicher_bereich_wartet_bis_nach_der_auslieferung(self):
         a, kopf, _ = self.e7("Plus bauen", "lib/rechnen.py", {"lib/rechnen.py": "def plus(a, b):\n    return a + b\n"}, 1)
-        b, frei = self.neu("B", "lib/"), self.neu("C", "web/")
+        b, frei = self.neu("B", "lib/"), self.neu("C", "doc/hilfe/")
         r = self.pruefen(b)
         self.assertEqual((r["regel"], r["warten"]), (2, True))
         self.assertIn(f"mit A{a} „Plus bauen“ – angenommen, aber noch nicht ausgeliefert; startet danach", r["grund"])
@@ -141,12 +141,12 @@ class Bereiche(Grund):
         self.assertNotIn(b, [x["id"] for x in waechter.reihenfolge(self.con, self.pid)])
 
     def test_vom_lead_angenommen_zaehlt_bei_den_bereichen(self):
-        aid = self.neu("Tests", "tests/test_plus.py")
+        aid = self.neu("Plus", "lib/plus.py")
         p, basis = self.laeuft(aid, 1)
         kopf = self.bauen(aid, p, basis, {"tests/test_plus.py": "x = 1\n"})
         entscheidung.anwenden(self.con, self.pid, aid, "E4", "riskant", befund={"kopf": kopf}, p=p, quelle=self.repo)
         mergeliste.annehmen(self.con, self.pid, "TL", aid, "gelesen")
-        r = self.pruefen(self.neu("B", "tests/"))
+        r = self.pruefen(self.neu("B", "lib/"))
         self.assertEqual(r["regel"], 2)
         self.assertEqual(self.belegt(), {})
 
