@@ -212,6 +212,30 @@ def hand_abgelaufen(con, pid):
     return aus
 
 
+def neue_startklar(con, pid, starter, bid, aids):
+    """A2083 (aus delta_start, A2080): in einem LAUFENDEN Meilenstein nur diese – gerade angelegten – Pakete startklar setzen
+    (Pflichtfelder wie starten) und verteilen. Kein anderes Paket (zurückgehaltene bleiben), der Plan-Stand bleibt – der erste
+    Start eines Meilensteins ist starten. Rückgabe: {aid: [fehlende Felder]}."""
+    from . import arbeitspaket, verteilen
+    fehlt = {}
+    aids = {int(a) for a in aids}
+    if not aids:
+        return fehlt
+    for a in con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? AND projekt_id = ? AND status IN ('wartet', 'laeuft', 'blockiert') ORDER BY id",
+                         (bid, pid)).fetchall():
+        if a["id"] not in aids:
+            continue
+        f_ = fehlende_felder(con, pid, a)
+        if f_:
+            fehlt[a["id"]] = f_
+            continue
+        f = arbeitspaket.lesen(con, a["id"])
+        if f["art"] == "p" and f["zustand"] in (None, "entwurf"):
+            arbeitspaket.zustand_setzen(con, pid, starter, a["id"], "startklar", grund="mit neuen Paketen gestartet")
+    verteilen.verteilen(con, pid)
+    return fehlt
+
+
 # --- Plan-Stand und Abweichung ------------------------------------------------------------------------------------------------
 
 def plan_stand_merken(con, pid, von, bid):

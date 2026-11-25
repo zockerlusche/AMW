@@ -121,6 +121,69 @@ class VorDerAbnahme(Grund):
         self.assertIn("keine nacharbeit", " ".join(x.exception.fehler))
 
 
+class NurDieEigenen(Grund):
+    """A2083: Nacharbeit in einem laufenden Meilenstein startet nur die eigenen Pakete; zurückgehaltene und der Plan-Stand bleiben."""
+    def setUp(self):
+        super().setUp()
+        from amw import arbeitspaket, fertigquelle, reihenfolge
+        self.nachbar = planung.schritt_setzen(self.con, self.pid, "TL", titel="Zurückgehalten", auftrag="später", bogen_id=self.m, groesse="S",
+                                              art="mechanisch", pruefbefehl="python -m unittest tests.test_y", dateibereich="app/y.py")
+        arbeitspaket.setzen(self.con, self.pid, "TL", self.nachbar, art="p", modell="sonnet")
+        themen.verweise_setzen(self.con, self.pid, "TL", self.nachbar, [self.t1])
+        with db.schreiben(self.con):
+            db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=db.jetzt(), von="TL", art=fertigquelle.ART, aufgabe_id=self.nachbar,
+                         text=json.dumps({"art": "commit"}))
+            reihenfolge.plan_stand_merken(self.con, self.pid, "TL", self.m)
+        a = self.con.execute("SELECT * FROM aufgabe WHERE id = ?", (self.nachbar,)).fetchone()
+        self.assertEqual(reihenfolge.fehlende_felder(self.con, self.pid, a), [])                  # könnte starten – der Lead hält es zurück
+        self.vorher = self.plan_stand()
+        self.assertEqual(len(self.vorher), 1)
+
+    def plan_stand(self):
+        from amw import reihenfolge
+        return [tuple(r) for r in self.con.execute("SELECT id, text FROM plan_ereignis WHERE art = ? AND bogen_id = ?", (reihenfolge.PLAN_STAND, self.m))]
+
+    def zustand(self, titel):
+        from amw import arbeitspaket
+        return arbeitspaket.lesen(self.con, self.con.execute("SELECT id FROM aufgabe WHERE titel = ?", (titel,)).fetchone()[0])["zustand"]
+
+    def paket(self, schluessel="N1"):
+        return {"schluessel": schluessel, "meilenstein": "M1", "thema": f"TH{self.t1}", "titel": "SSO ergänzen", "auftrag": "Firmenkonto anbinden.", "groesse": "S",
+                "art": "mechanisch", "ausfuehrung": "p", "fertig_quelle": "commit", "abnahme_befehl": "python -m unittest tests.test_sso", "bereiche": "app/sso.py"}
+
+    def automatisch(self):
+        abschluss.eintragen(self.con, self.pid, self.m, "[Probe]", {"lauf": 7, "rc": 0, "befehl": "x"}, self.urteil((False, True), [self.paket()]))
+
+    def angefordert(self):
+        abschluss.nacharbeit(self.con, self.pid, kern.ENTWICKLER, self.m, "Firmenkonto fehlt")
+        feinplanung.entwurf_eintragen(self.con, self.pid, [self.m], 1, {"pakete": [self.paket("P1")]})
+
+    def pruefe(self):
+        self.assertEqual(self.zustand("SSO ergänzen"), "startklar")
+        self.assertEqual(self.zustand("Zurückgehalten"), "entwurf")
+        self.assertEqual(self.plan_stand(), self.vorher)
+
+    def test_automatische_nacharbeit(self):
+        self.automatisch()
+        self.pruefe()
+
+    def test_angeforderte_nacharbeit(self):
+        self.angefordert()
+        self.pruefe()
+
+    def test_fehlende_angaben_stehen_in_der_meldung(self):
+        from amw import reihenfolge
+        for weg in (self.automatisch, self.angefordert):
+            with self.subTest(weg=weg.__name__), mock.patch.object(reihenfolge, "fehlende_felder", return_value=["Bereiche"]):
+                weg()
+                text = self.con.execute("SELECT n.text FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id WHERE e.agent = 'TL' AND n.von = 'AMW'"
+                                        " AND n.kurz LIKE '%Nacharbeit%' ORDER BY n.id DESC").fetchone()[0]
+                self.assertIn("Starten noch nicht, Angaben fehlen", text)
+                self.assertIn("SSO ergänzen: Bereiche", text)
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE aufgabe SET status = 'verworfen', beleg = 'Probe' WHERE titel = 'SSO ergänzen'")
+
+
 class NacharbeitAnfordern(Grund):
     def test_feinplaner_mit_hinweis_und_sofort_gestartet(self):
         r = abschluss.nacharbeit(self.con, self.pid, kern.ENTWICKLER, self.m, "Die Anmeldung braucht noch das Firmenkonto")

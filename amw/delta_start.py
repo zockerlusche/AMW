@@ -131,20 +131,8 @@ def _starter(con, pid, von):
 
 def _neue_startklar(con, pid, von, bid, neu, aus):
     """In einem laufenden Meilenstein nur die Pakete dieses Ja startklar setzen (Pflichtfelder wie reihenfolge.starten) und verteilen."""
-    from . import arbeitspaket, reihenfolge, verteilen
-    if not neu:
-        return                                            # nur geändert oder verworfen: nichts zu starten
-    for a in con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? AND status IN ('wartet', 'laeuft', 'blockiert') ORDER BY id", (bid,)).fetchall():
-        if a["id"] not in neu:
-            continue
-        fehlt = reihenfolge.fehlende_felder(con, pid, a)
-        if fehlt:
-            aus["fehlt"][str(a["id"])] = fehlt
-            continue
-        f = arbeitspaket.lesen(con, a["id"])
-        if f["art"] == "p" and f["zustand"] in (None, "entwurf"):
-            arbeitspaket.zustand_setzen(con, pid, _starter(con, pid, von), a["id"], "startklar", grund="Änderung freigegeben")
-    verteilen.verteilen(con, pid)
+    from . import reihenfolge
+    aus["fehlt"].update({str(a): f for a, f in reihenfolge.neue_startklar(con, pid, _starter(con, pid, von), bid, neu).items()})   # leer: nur geändert
 
 
 def _ergebnis(con, pid, tid, eid, ja, aus):

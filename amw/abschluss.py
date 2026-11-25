@@ -380,15 +380,15 @@ def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None, roh=
                        " finden und beheben, bis er grün ist.", "groesse": "M", "art": "fehlersuche", "ausfuehrung": "agent",
             "modell": None, "effort": None, "fertig_quelle": "commit", "abnahme_befehl": None, "bereiche": None, "pakettyp": None,
             "interaktiv_grund": "Fehlersuche über die ganze Suite"}]}
-    angelegt, grenze = {}, False
+    angelegt, grenze, fehlt = {}, False, {}
     runden = sum(1 for x in _ereignisse(con, pid, ERGEBNIS, bid) if x.get("angelegt"))
     if e and not e["ok"] and e["pakete"] and runden >= MAX_RUNDEN:
         grenze = True                                     # TL #31785 (b): keine dritte Runde – „bereit“ mit offenen Punkten
     elif e and not e["ok"] and e["pakete"]:
         angelegt = feinplanung._anlegen(con, pid, [b], {"pakete": e["pakete"]})
         starter = kern.lead(con, pid) or kern.ENTWICKLER
-        if b["status"] == "aktiv":
-            reihenfolge.starten(con, pid, starter, bid)
+        if b["status"] == "aktiv":                        # A2083: nur diese Pakete, der Plan-Stand bleibt
+            fehlt = reihenfolge.neue_startklar(con, pid, starter, bid, [int(v[1:]) for v in angelegt.values()])
     if e and e.get("ziel"):
         werte["ziel"] = e["ziel"]
     if nachgebessert:                                     # A2072: die erste Antwort passte nicht – sichtbar im Ergebnis
@@ -409,7 +409,8 @@ def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None, roh=
                     continue
                 kern._posten(con, pid, "AMW", wer, art, f"Meilenstein {b['nr']}: Nacharbeit – {len(angelegt)} Paket(e) gestartet"[:140],
                              f"Die Abschlussprüfung von Meilenstein {b['nr']} „{b['titel']}“ ergab: {grund}. Die AMW hat die Nacharbeit"
-                             f" im selben Meilenstein angelegt und gestartet: {', '.join(angelegt.values())}. Danach prüft sie erneut.")
+                             f" im selben Meilenstein angelegt und gestartet: {', '.join(angelegt.values())}. Danach prüft sie erneut."
+                             + (feinplanung.reihenfolge_fehlt(con, fehlt) if fehlt and wer == lead else ""))
         elif grenze:
             kern._posten(con, pid, "AMW", lead, "meldung", f"Meilenstein {b['nr']}: nach {MAX_RUNDEN} Nacharbeits-Runden noch offen"[:140],
                          f"Die Abschlussprüfung von Meilenstein {b['nr']} „{b['titel']}“ findet noch Lücken, aber die AMW legt nach"

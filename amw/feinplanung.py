@@ -603,6 +603,12 @@ def _anlegen(con, pid, zeilen, entwurf):
     return angelegt
 
 
+def reihenfolge_fehlt(con, fehlt):
+    """A2083: Zeilen „starten noch nicht – Angaben fehlen“ für Meldungen an den Lead."""
+    titel = {a: (con.execute("SELECT titel FROM aufgabe WHERE id = ?", (a,)).fetchone() or [""])[0] for a in fehlt}
+    return "\n\nStarten noch nicht, Angaben fehlen:\n" + "\n".join(f"- A{a} {titel[a]}: {', '.join(f)}" for a, f in fehlt.items())
+
+
 def entwurf_eintragen(con, pid, boegen, fassung, ergebnis, modell=None, usd=None, lauf=None, fehler=None):
     """Das Ergebnis eines Laufs als Fassung eintragen: geprüft → die Pakete anlegen (die der vorigen Fassung, nicht begonnen,
     verwerfen) – oder mit den Funden als Fehler. Fragen gehen an den Lead (A2021), der Lead bekommt eine Meldung; der Plan
@@ -613,7 +619,7 @@ def entwurf_eintragen(con, pid, boegen, fassung, ergebnis, modell=None, usd=None
     namen = ", ".join(f"M{b['nr']}" for b in zeilen)
     an = next((e for e in _ereignisse(con, pid, ANGESTOSSEN, boegen) if e.get("fassung") == fassung), {})
     nacharbeit = bool(an.get("nacharbeit"))                 # A2029: neue Pakete im laufenden Meilenstein, starten gleich
-    entwurf, funde, angelegt, verworfen = None, None, {}, []
+    entwurf, funde, angelegt, verworfen, fehlt = None, None, {}, [], {}
     if fehler:
         funde = [f"Feinplaner-Lauf: {fehler}"]
     else:
@@ -632,8 +638,9 @@ def entwurf_eintragen(con, pid, boegen, fassung, ergebnis, modell=None, usd=None
         angelegt = _anlegen(con, pid, zeilen, entwurf)
         if nacharbeit:                                    # kein neues Start-Ja: der Meilenstein läuft schon
             from . import reihenfolge
-            for b in zeilen:
-                reihenfolge.starten(con, pid, kern.lead(con, pid) or kern.ENTWICKLER, b["id"])
+            for b in zeilen:                              # A2083: nur diese Pakete, der Plan-Stand bleibt
+                fehlt.update(reihenfolge.neue_startklar(con, pid, kern.lead(con, pid) or kern.ENTWICKLER, b["id"],
+                                                        [int(v[1:]) for v in angelegt.values()]))
     werte = {"boegen": boegen, "fassung": fassung, "modell": modell, "usd": usd, "lauf": lauf, **({"nacharbeit": True} if nacharbeit else {})}
     werte.update({"entwurf": entwurf, "angelegt": angelegt} if entwurf else {"fehler": funde})
     lead = kern.lead(con, pid) or kern.ENTWICKLER
@@ -650,6 +657,7 @@ def entwurf_eintragen(con, pid, boegen, fassung, ergebnis, modell=None, usd=None
                           f"Feinplan {namen} Fassung {fassung}: {len(angelegt)} Pakete angelegt – wartet auf das Ja")[:140],
                          planer.zusammenfassung({"nichts_zu_bauen": False, "pakete": entwurf["pakete"],
                                                  "meilensteine": [{"schluessel": f"M{b['nr']}", "bestehend": b["nr"]} for b in zeilen]})
+                         + (reihenfolge_fehlt(con, fehlt) if fehlt else "")
                          + (f"\n\nVerworfen (vorige Fassung, nicht begonnen): {', '.join(f'A{x}' for x in verworfen)}" if verworfen else "")
                          + f"\n\n({modell or '–'}, {kosten})\nJa = Start: Planung › Pakete › „Plan freigeben und starten“"
                          f" (amw bogen freigeben {boegen[0]} --art plan --starten) · überarbeiten: amw bogen feinplanen {boegen[0]} --hinweis …")
