@@ -394,7 +394,7 @@ class SeiteMitLead(Seite):
         self.assertIn("dein Ja", self.text())
         self.assertIn("wartet auf dich", self.leiste())
         self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-ab-karte .pjw-nein').length"), 1)     # „dein Ja“
-        k = "document.querySelector('.pjw-ansicht > .pjw-kopf button.haupt')"
+        k = "document.querySelector('.pjw-ansicht button.haupt')"              # A2088: ohne Gesamttest steht der Knopf in der Karte, unter dem Hinweis
         self.assertIn("abnehmen", self.tab.js(k + ".textContent").lower())
         self.tab.js(k + ".click()")
         self.warten("!document.querySelector('.pjw-ab-karte')")

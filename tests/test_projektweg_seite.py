@@ -89,7 +89,8 @@ def demo(con, pid, bis="grob2"):
         abschluss._ereignis(con, pid, abschluss.ERGEBNIS, bogen=m1, stand=stand, test={"befehl": "godot --headless -s tests/alle.gd", "lauf": 7, "rc": 0},
                             themen=[{"thema": f"TH{t[0]}", "erfuellt": True, "beleg": "Aquarium-Szene mit Kamera"},
                                     {"thema": f"TH{t[2]}", "erfuellt": True, "beleg": "Speichern und Laden"}],
-                            vorfuehrung=["Aquarium starten", "Welt speichern", "neu laden – alles ist noch da"], ok=True, angelegt={})
+                            vorfuehrung=["Aquarium starten", "Welt speichern", "neu laden – alles ist noch da"], ok=True, angelegt={},
+                            belege={"zweig": "main", "sha": "c" * 40, "pakete": []})         # A2088: mit geprüften Belegen
     with mock.patch.object(abschluss, "vor_bereit", return_value="melden"):  # Gesamttest und Prüfer: hier schon durch
         planautomatik.meilenstein_projekt(con, pid)
     return t

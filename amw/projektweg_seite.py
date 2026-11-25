@@ -319,7 +319,7 @@ def pruefung_starten(con, pid, von, bid):
     if not planautomatik.bereit_zur_abnahme(con, b):
         raise kern.AmwFehler(f"M{b['nr']} ist nicht bereit zur Abnahme – die Prüfung startet die AMW selbst, wenn alle Pakete fertig sind")
     e = abschlusslage.ergebnis(con, pid, b)
-    if e and not (e.get("fehler") and not e.get("angelegt")):    # A2072: ein Ergebnis mit Fehler zählt nicht – erneut starten geht
+    if e and not ab.erneut_moeglich(con, pid, e):                  # A2072: ein Ergebnis mit Fehler zählt nicht – erneut starten geht; A2088: auch
         raise kern.AmwFehler(f"M{b['nr']} hat schon ein Prüf-Ergebnis – bei Bedarf Nacharbeit anfordern")
     stand = abschlusslage.stand(con, b)
     if ab._laeuft(con, pid, bid, stand):
@@ -340,7 +340,19 @@ def abschluss(con, pid, freigaben):
                     "pakete": con.execute("SELECT count(*) FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (a["bogen"],)).fetchone()[0],
                     "pruefung": {"test": e.get("test"), "themen": e.get("themen") or [], "vorfuehrung": e.get("vorfuehrung") or [],
                                  "ok": e.get("ok"), "fehler": bool(e.get("fehler")), "gruende": ab.deuten(e.get("fehler")),
-                                 "ziel": e.get("ziel")} if e else None})
+                                 "ziel": e.get("ziel"), **_belege(con, e, a["frei"])} if e else None})
+    return aus
+
+
+def _belege(con, e, frei):
+    """A2088: Vorbehalte und – solange nicht abgenommen – die geprüften Pakete je Thema für die Karte (Einzelheiten auf Klick)."""
+    from . import abschluss as ab
+    aus = {"vorbehalte": e.get("vorbehalte") or [], "alt": ab.alt(e), "nicht_pruefbar": bool(e.get("nicht_pruefbar")), "stand": None, "pakete": []}
+    b = e.get("belege")
+    if b and not frei:
+        aus["stand"] = {"zweig": b.get("zweig"), "sha": (b.get("sha") or "")[:8] or None}
+        aus["pakete"] = [{"id": p["paket"], "titel": p["titel"], "befund": p["befund"], "grund": p["grund"], "sha": (p["sha"] or "")[:8] or None,
+                          "dateien": p["dateien"], "mehr": p["mehr"], "themen": [f"TH{t}" for t in p["themen"]]} for p in b["pakete"]]
     return aus
 
 

@@ -21,7 +21,7 @@ import os
 from . import db, kern
 
 LAUFEND, VORGELEGT, BEIM_LEAD, ABNEHMBAR = "bogen_laufend", "bogen_vorgelegt", "abschluss_beim_lead", "abschluss_abnehmbar"
-LEAD_KLAERT = ("fehlt", "fehler", "nicht_erfuellt")
+LEAD_KLAERT = ("fehlt", "fehler", "nicht_erfuellt", "nicht_pruefbar")
 
 
 def _ereignis(con, pid, von, art, bid, **werte):
@@ -115,7 +115,7 @@ def vorlegen(con, pid, von, bid):
 # --- wie steht der Abschluss? ------------------------------------------------------------------------------------------------
 
 TEXT = {"abnehmbar": "bereit zur Abnahme", "laeuft": "Prüfung läuft", "fehlt": "Prüfung fehlt", "fehler": "Prüfung ging nicht",
-        "nicht_erfuellt": "Prüfung nicht erfüllt", "bericht": "Abschlussbericht kommt"}
+        "nicht_erfuellt": "Prüfung nicht erfüllt", "nicht_pruefbar": "nicht prüfbar, Belege fehlen", "bericht": "Abschlussbericht kommt"}
 
 
 def ergebnis(con, pid, b):
@@ -125,7 +125,7 @@ def ergebnis(con, pid, b):
 
 
 def lage(con, pid, b):
-    """„abnehmbar“ | „laeuft“ | „fehlt“ | „fehler“ | „nicht_erfuellt“ | „bericht“ – oder None: nicht bereit zur Abnahme."""
+    """„abnehmbar“ | „laeuft“ | „fehlt“ | „fehler“ | „nicht_erfuellt“ | „nicht_pruefbar“ (A2088: nur Belege fehlen) | „bericht“ – oder None: nicht bereit zur Abnahme."""
     from . import abschluss, planautomatik, tore
     if not planautomatik.bereit_zur_abnahme(con, b):
         return None
@@ -138,7 +138,11 @@ def lage(con, pid, b):
         return "fehler"
     test, themen, ziel = e.get("test") or {}, e.get("themen") or [], e.get("ziel")
     themen_ok = all(x.get("erfuellt") for x in themen) and (bool(ziel.get("erfuellt")) if ziel else bool(themen))
-    if not themen_ok or (test.get("befehl") and test.get("rc") != 0):
+    rot = bool(test.get("befehl") and test.get("rc") != 0)
+    if not themen_ok and not rot and all(x.get("erfuellt") or x.get("zustand") == "nicht_pruefbar" for x in [*themen, *([ziel] if ziel else [])]) \
+            and any(x.get("zustand") == "nicht_pruefbar" for x in [*themen, *([ziel] if ziel else [])]):
+        return "nicht_pruefbar"                           # A2088: sonst ist alles erfüllt – es fehlen Belege
+    if not themen_ok or rot:
         return "nicht_erfuellt"
     return "abnehmbar" if tore.bericht(con, pid, b["id"]) is not None else "bericht"
 

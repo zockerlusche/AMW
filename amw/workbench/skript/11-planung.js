@@ -79,7 +79,8 @@ function pmStand(pa) {
   return el("div", {}, toreLeiste(pa.tore), el("div", { class: "th-stand pm-stand", "data-tor": pa.tor }, el("span", {}, text)));
 }
 function pmAbschluss(x, tun) {                                 /* K7 (A1944): Abschlussbericht und Ja dazu */
-  const ab = x.abschluss, k = el("div", { class: "th-kasten" });
+  const ab = x.abschluss, k = el("div", { class: "th-kasten" }), ja = () => tun("freigeben", { art: "abschluss" }, t("pm_ab_ok"));
+  const fragen = [...(ab.nicht_pruefbar ? [t("pjw_l_nicht_pruefbar")] : []), ...(ab.vorbehalte || []).map(pwVorbehalt)];   /* A2088 */
   return el("div", { class: "pm-abschluss", "data-ab": ab.frei ? "frei" : ab.bericht ? "wartet" : "kommt" },
     el("div", { class: "pm-entwuerfe-kopf" }, t("pm_ab_kopf")),
     ab.bericht ? el("div", {}, el("a", { href: "#", class: "ref", onclick: e => { e.preventDefault(); dokumentDialog(ab.bericht); } }, "D" + ab.bericht),
@@ -87,8 +88,10 @@ function pmAbschluss(x, tun) {                                 /* K7 (A1944): Ab
     ab.frei ? el("div", { class: "sehrleise" }, t("pm_ab_frei", { x: ab.durch ? t("pm_co_lead", { x: ab.durch.join(", ") }) : ab.von === "Entwickler" ? t("pm_du") : ab.von }))
       : ab.ja_fehlt?.length ? el("div", { class: "pm-ja-fehlt sehrleise" }, t("pm_ja_fehlt", { x: ab.ja_fehlt.join(", ") })) : null,
     !ab.frei && ab.notiz ? el("div", { class: "th-grund" }, t("pm_zurueck_notiz", { x: ab.notiz })) : null,
+    ab.alt ? el("div", { class: "sehrleise" }, t("pjw_a_alt")) : null,
+    fragen.length ? el("div", { class: "pjw-vorbehalte" }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, fragen.map(v => el("li", {}, v)))) : null,
     !ab.frei && ab.bericht && !API ? el("div", { class: "th-knoepfe" },
-      el("button", { class: "klein-knopf haupt", type: "button", "data-h": "ab-ja", onclick: () => tun("freigeben", { art: "abschluss" }, t("pm_ab_ok")) }, t("pm_ab_ja")),
+      el("button", { class: "klein-knopf haupt", type: "button", "data-h": "ab-ja", onclick: fragen.length ? pwTrotzdem(fragen, ja) : ja }, t(fragen.length ? "pjw_trotzdem" : "pm_ab_ja")),
       el("button", { class: "klein-knopf", type: "button", "data-h": "ab-zurueck", onclick: () => {
         const feld = el("textarea", { class: "th-feld", placeholder: t("th2_notiz_ph") });
         k.replaceChildren(feld, el("div", { class: "th-knoepfe" },

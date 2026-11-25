@@ -184,6 +184,8 @@ button.pjw-karte:hover { background: var(--flaeche2); }
 .pjw-pruefung { display: flex; flex-direction: column; gap: 6px; }
 .pjw-pruefung > div { display: grid; grid-template-columns: 22px minmax(0, 1fr); }
 .pjw-ok { color: var(--gruen); } .pjw-nein { color: var(--bernstein); }
+.pjw-beleg summary { cursor: pointer; } .pjw-beleg-paket { padding: 6px 0 0 14px; font-size: 14px; overflow-wrap: anywhere; }
+.pjw-vorbehalte { border-left: 3px solid var(--bernstein); padding: 4px 0 4px 12px; } .pjw-vorbehalte ul { margin: 4px 0 0; padding-left: 18px; } .pjw-vorbehalte li { overflow-wrap: anywhere; }
 .pjw-ums { display: flex; flex-direction: column; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid var(--linie); }
 .pjw-fertig summary { cursor: pointer; color: var(--leise); font-size: 14px; padding: 4px 0; }
 .pjw-ab-karte { cursor: default; gap: 10px; }

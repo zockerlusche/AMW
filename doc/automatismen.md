@@ -951,7 +951,7 @@ die der Lead nur noch bestätigt oder ändert.
   Abnahme“ meldet, stößt sie einmal je Stand (welche Pakete, wann zuletzt fertig) die Abschlussprüfung an
   (`amw-planer.py --abschluss`, Ereignis `abschluss_angestossen`). Ist der Planer aus, meldet sie gleich „bereit“ wie bisher.
 - **Was läuft:** erst der Gesamttest – `gesamtlauf_befehl` des Projekts im Projektordner als schwerer Lauf der Schlange (ohne
-  Befehl: „nicht eingestellt“, hält nichts auf) –, dann ein Prüfer (frischer `claude -p`, nur lesend, Sonnet): er bewertet
+  Befehl: ein Vorbehalt, wenn es einen Code-Stand gibt, sonst nur ein Hinweis) –, dann ein Prüfer (frischer `claude -p`, nur lesend, Sonnet): er bewertet
   jedes Thema des Meilensteins gegen die fertigen Pakete (erfüllt mit Beleg oder was fehlt), schreibt die Vorführung und
   schlägt bei Lücken oder rotem Test Nacharbeits-Pakete nach dem Feinplan-Schema vor (`abschluss_ergebnis`).
 - **Danach:** Erfüllt und grün → „bereit zur Abnahme“; der Abschlussbericht enthält Gesamttest, Prüfung je Thema und Vorführung.
@@ -969,6 +969,20 @@ die der Lead nur noch bestätigt oder ändert.
   Feinplanung des nächsten nicht auf; auf der Seite steht leise „laufend“. `amw bogen vorlegen N` (ohne offene Pakete, Ereignis
   `bogen_vorgelegt` mit Stand) stößt dieselbe Abschlussprüfung an; ein neues Paket macht die Vorlage ungültig. `aus` bei gültiger
   Vorlage: normaler Weg ohne zweiten Prüflauf. Aus dem Abnahme-Text wird nichts abgelesen.
+- **Belege prüft die AMW selbst (A2088, `belege.py`):** vor dem Prüfer, ohne Modell, git nur lesend, im Projektordner gegen `main`
+  (sonst `master`). Bei der Fertig-Quelle commit muss ein Hex-Teil oder Versions-Tag aus dem Beleg ein Commit auf dem Zweig sein;
+  thema, frist und ja nach ihrer Art. Nirgends gefunden oder gar kein Beleg: das Thema (Pakete ohne Thema: das Ziel) ist **nicht
+  prüfbar**, egal was der Prüfer schreibt – keine Nacharbeit von selbst, Meldung an den Lead mit den Vorschlägen des Prüfers.
+  Commit da, aber nicht auf dem Zweig, oder ein anderer Beleg als verlangt: **Vorbehalt**. Kein Projektordner mit main oder master:
+  Vorbehalt „Code nicht geprüft“, kein Fehler. Der Befund steht in pakete.md, im Ergebnis (`belege`) und im Bericht.
+- **Der Prüfer sieht den Code (A2088):** die versionierten Dateien des geprüften Stands liegen unter code/ (als Blobs, ohne Filter und
+  Haken; keine Verweise, Untermodule, Binär-, Zugangs- und Steuerdateien; höchstens 2000 Dateien, 400 KB je Datei, 20 MB, zuerst die
+  vom Meilenstein geänderten). Was fehlt, nennt code-grenze.md ohne Inhalt. Er liest nur, und sein „erfüllt“ überstimmt die Belege nie.
+- **Vorbehalte (A2088):** der Prüfer nennt sie im eigenen Feld (höchstens 8, je höchstens 160 Zeichen; ein Beleg höchstens 220).
+  Zu Langes wird nicht gekürzt, der Fund geht einmal zurück. Sie stehen über dem Knopf; der heißt dann „Trotz Vorbehalt abnehmen“ und
+  fragt nach. Mit Vorbehalt oder „nicht prüfbar“ nimmt nur der Mensch ab, Co und Lead nicht allein (`planansicht.freigeben`).
+  Ergebnisse von vor A2088 heißen „Prüfung von vor dieser Version“; von selbst prüft die AMW nicht nach, `amw bogen pruefung-starten N`
+  geht dann (auch nach „nicht prüfbar“ und wenn der Grund eines Vorbehalts der AMW behoben sein kann; nicht für eine zweite Meinung).
 - **Antwort lesen (A2072):** Die Antwort des Prüfers wird als JSON gelesen, auch mit Text drumherum oder im Codeblock. Passt sie
   nicht zum Schema, bekommt der Prüfer die Funde einmal zurück und antwortet neu (Kosten zusammen, die Tagesgrenze gilt auch
   dafür); erst eine zweite unpassende Antwort heißt „Abschlussprüfung ging nicht“ – dann mit dem Anfang der Rohantwort im

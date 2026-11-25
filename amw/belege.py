@@ -24,7 +24,7 @@ DOKUMENT = re.compile(r"\bD(\d+)\b")
 MAX_DATEIEN_JE_PAKET = 40
 # Grenzen des Codes für den Prüfer
 MAX_DATEIEN, MAX_DATEI, MAX_GESAMT = 2000, 400 * 1024, 20 * 1024 * 1024
-WEG_NAMEN = re.compile(r"(?i)(^|/)(\.env[^/]*|\.git[^/]*|\.claude|CLAUDE\.md|\.mcp\.json|id_[a-z0-9]+(\.pub)?|\.npmrc|\.netrc|\.pgpass|credentials[^/]*|secrets?[^/]*)(/|$)")
+WEG_NAMEN = re.compile(r"(?i)(^|/)(\.env[^/]*|\.git[^/]*|\.claude|CLAUDE(\.local)?\.md|\.mcp\.json|id_[a-z0-9]+(\.pub)?|\.npmrc|\.netrc|\.pgpass|credentials[^/]*|secrets?[^/]*)(/|$)")
 WEG_ENDUNG = re.compile(r"(?i)\.(pem|key|pfx|p12|cer|crt|der|jks|keystore|kdbx|ppk|gpg|asc)$")
 GERAET = re.compile(r"(?i)^(con|prn|aux|nul|com\d|lpt\d)(\.|$)")
 
@@ -168,6 +168,47 @@ def meilenstein(con, pid, bid):
     for p in pakete:
         p["dateien"], p["mehr"] = je.get(p["sha"], ([], False))
     return {"zweig": st[0] if st else None, "sha": st[1] if st else None, "pakete": pakete}
+
+
+# --- was daraus folgt ------------------------------------------------------------------------------------------------------
+
+TEXT = {"commit_fehlt": ("1 Paket ohne gefundenen Commit", "{n} Pakete ohne gefundenen Commit"),
+        "kein_beleg": ("1 Paket ohne Beleg", "{n} Pakete ohne Beleg"),
+        "commit_daneben": ("1 Paket: Commit gefunden, liegt aber nicht auf main", "{n} Pakete: Commit gefunden, liegt aber nicht auf main"),
+        "kein_commit": ("1 Paket: im Beleg steht kein Commit", "{n} Pakete: im Beleg steht kein Commit"),
+        "thema_offen": ("1 Paket: sein Thema ist nicht freigegeben", "{n} Pakete: ihr Thema ist nicht freigegeben"),
+        "frist_offen": ("1 Paket: die Frist ist nicht erfüllt", "{n} Pakete: die Frist ist nicht erfüllt"),
+        "dokument_fehlt": ("1 Paket: das genannte Dokument gibt es nicht", "{n} Pakete: das genannte Dokument gibt es nicht"),
+        "code_ungeprueft": ("Code nicht geprüft", "Code nicht geprüft"),
+        "kein_gesamttest": ("kein Gesamttest eingestellt – Projekt-Einstellung", "kein Gesamttest eingestellt – Projekt-Einstellung")}
+
+
+def text(x):
+    """Ein Grund bzw. Vorbehalt {"art", "n"} in Worten (Meldungen, Abschlussbericht; die Seite hat dafür pjw_vb_<art>)."""
+    if x["art"] == "pruefer":
+        return x["text"]
+    return TEXT[x["art"]][0 if x.get("n") == 1 else 1].format(n=x.get("n"))
+
+
+def auswerten(bef, themen_, test=None):
+    """test: der Gesamttest – mit Code-Stand, aber ohne eingestellten Gesamttest ist das ein Vorbehalt (Lead #32815; ohne Code-Stand
+    nur ein Hinweis auf der Karte). Was die Befunde für das Urteil heißen: {"themen": {Thema: [Gründe]}, "ziel": [Gründe], "vorbehalte": [...]} – Gründe {"art",
+    "n"}, warum ein Thema bzw. das Ziel nicht prüfbar ist. Ein Paket ohne Thema dieses Meilensteins zählt fürs Ziel."""
+    je, vorbehalt = {}, {}
+    for p in bef["pakete"]:
+        if p["befund"] == "nicht_pruefbar":
+            for z in sorted(set(p["themen"]) & set(themen_)) or [None]:
+                je.setdefault(z, {}).setdefault(p["grund"], []).append(p["paket"])
+        elif p["befund"] == "vorbehalt":
+            vorbehalt.setdefault(p["grund"], []).append(p["paket"])
+    if not bef["sha"] or bef.get("code") is False:        # kein Repo, kein main/master oder der Code ließ sich nicht holen
+        vorbehalt.setdefault("code_ungeprueft", [])
+    if bef["sha"] and test is not None and not test.get("befehl"):
+        vorbehalt["kein_gesamttest"] = []
+
+    def liste(x):
+        return [{"art": g, "n": len(a), "pakete": a} for g, a in x.items()]
+    return {"themen": {k: liste(v) for k, v in je.items() if k is not None}, "ziel": liste(je.get(None) or {}), "vorbehalte": liste(vorbehalt)}
 
 
 # --- Code für den Prüfer ---------------------------------------------------------------------------------------------------

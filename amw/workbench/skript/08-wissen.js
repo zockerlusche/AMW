@@ -362,6 +362,20 @@ function pwUmsetzung(d) {
   teile.push(el("div", { class: "pjw-werte" }, el("a", { href: "#start", onclick: e => { e.preventDefault(); zeige("start"); } }, t("pjw_lagebild"))));
   return teile;
 }
+/* A2088: Vorbehalte und Gründe {art, n} bzw. {art: "pruefer", text} in Worten – auch für Planung › Meilensteine */
+const pwVorbehalt = v => v.art === "pruefer" ? v.text : t("pjw_vb_" + v.art + (v.n === 1 ? "1" : ""), { n: v.n });
+const pwTrotzdem = (liste, tun) => () => { if (confirm(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"))) tun(); };
+function pwUrteil(x, name, p) {
+  /* je Thema ein Wort und ein kurzer Satz; Pakete, Commits und Dateien auf Klick */
+  const z = x.zustand || (x.erfuellt ? "erfuellt" : "nicht_erfuellt");
+  const satz = z === "nicht_pruefbar" ? (x.gruende || []).map(pwVorbehalt).join(" · ") : z === "erfuellt" ? x.beleg : x.fehlt;
+  const pakete = (p.pakete || []).filter(k => x.thema ? k.themen.includes(x.thema) : !k.themen.some(th => p.themen.some(y => y.thema === th)));
+  const kopf = [el("b", {}, t("pjw_z_" + z, { x: name })), satz ? " – " + satz : null];
+  if (!pakete.length) return el("span", {}, kopf);
+  return el("details", { class: "pjw-beleg" }, el("summary", {}, kopf), z === "nicht_pruefbar" && (x.beleg || x.fehlt) ? el("div", { class: "leise" }, t("pjw_pruefer_sagt", { x: x.fehlt || x.beleg })) : null,
+    ...pakete.map(k => el("div", { class: "pjw-beleg-paket" }, el("div", {}, k.titel), el("div", { class: "leise" },
+      [k.sha, k.grund ? t("pjw_bg_" + k.grund) : k.befund === "urteil" ? t("pjw_bg_urteil") : null, k.dateien.length ? k.dateien.join(", ") + (k.mehr ? " …" : "") : null].filter(Boolean).join(" · ")))));
+}
 function pwAbschlussKarte(x, einzig, haupt) {
   /* A2082 (B2938): x.lage kommt vom Server (abschlusslage.lage). Dran ist der Mensch nur, wenn x.bei_dir – sonst steht neutral da,
      was fehlt und dass der Lead es klärt; die Knöpfe bleiben, als normale Knöpfe. */
@@ -376,25 +390,30 @@ function pwAbschlussKarte(x, einzig, haupt) {
   if (!p) karte.append(el("div", { class: "pjw-pruefung" }, zeile(false, x.pruefung_laeuft ? t("pjw_a_laeuft") : t("pjw_a_ohne")), ja));
   else {
     karte.append(el("div", { class: "pjw-pruefung" },
-      zeile(test.befehl ? testOk : null, !test.befehl ? t("pjw_test_kein") : test.rc === 0 ? t("pjw_test_gruen", { n: x.pakete }) : t("pjw_test_rot", { l: test.lauf })),
-      ...p.themen.map(th => zeile(th.erfuellt, th.erfuellt ? t("pjw_thema_ok", { x: th.thema }) + (th.beleg ? " – " + th.beleg : "") : t("pjw_thema_fehlt", { x: th.thema, y: th.fehlt || "–" }))),
-      p.ziel ? zeile(p.ziel.erfuellt, p.ziel.erfuellt ? t("pjw_thema_ok", { x: t("pjw_ziel_fertig") }) + (p.ziel.beleg ? " – " + p.ziel.beleg : "")
-                                                      : t("pjw_thema_fehlt", { x: t("pjw_ziel_fertig"), y: p.ziel.fehlt || "–" })) : null,
+      p.vorbehalte.some(v => v.art === "kein_gesamttest") ? null : zeile(test.befehl ? testOk : null, !test.befehl ? t("pjw_test_kein") : test.rc === 0 ? t("pjw_test_gruen", { n: x.pakete }) : t("pjw_test_rot", { l: test.lauf })),
+      ...p.themen.map(th => zeile(th.erfuellt, pwUrteil(th, th.thema, p))),
+      p.ziel ? zeile(p.ziel.erfuellt, pwUrteil(p.ziel, t("pjw_ziel_fertig"), p)) : null,
       p.fehler ? zeile(false, t("pjw_a_pruefer_fehler_z", { x: p.gruende.map(g => t("pjw_ax_" + g.art, g.x)).join(" · ") })) : null, ja));
     if (p.vorfuehrung.length) karte.append(el("div", { class: "pjw-wie" }, el("span", { class: "pjw-lbl" }, t("pjw_vorfuehrung")), el("ol", {}, p.vorfuehrung.map(s => el("li", {}, s)))));
   }
   if (x.bericht) karte.append(el("div", { class: "pjw-werte" }, el("a", { href: "#", onclick: e => { e.preventDefault(); dokumentDialog(x.bericht); } }, t("pjw_bericht"))));
+  /* A2088: Vorbehalte über dem Knopf; gibt es welche, heißt er „Trotz Vorbehalt abnehmen“ und fragt nach. Verboten wird es nicht. */
+  const vorbehalte = p ? p.vorbehalte.map(pwVorbehalt) : [], unpruefbar = !!p && p.nicht_pruefbar && x.lage === "nicht_pruefbar";
+  if (p && p.alt) karte.append(el("div", { class: "leise pjw-a-alt" }, t("pjw_a_alt")));
+  if (vorbehalte.length) karte.append(el("div", { class: "pjw-vorbehalte" }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, vorbehalte.map(v => el("li", {}, v)))));
   if (API) return karte;
+  const abnehmen = () => pwTun("/api/meilenstein/freigeben", { bogen: x.bogen, art: "abschluss" }, t("pjw_ok_abgenommen"));
+  const fragen = [...(unpruefbar ? [t("pjw_l_nicht_pruefbar")] : []), ...vorbehalte];
   /* Die Handlung dieser Karte: abnehmen (Prüfliste vollständig) – oder die Prüfung nachholen (A2064, TL #32217: Meilensteine,
      die vor A2029 bereit wurden, bekommen sie nie von selbst). Hauptknopf nur auf der ersten Karte (eine Hauptaktion je Ansicht). */
-  const handlung = abnehmbar
-    ? pwKnopf(t("pjw_abnehmen_m", { m: pwM(x) }), () => pwTun("/api/meilenstein/freigeben", { bogen: x.bogen, art: "abschluss" }, t("pjw_ok_abgenommen")), haupt)
+  const handlung = abnehmbar && !fragen.length ? pwKnopf(t("pjw_abnehmen_m", { m: pwM(x) }), abnehmen, haupt)
+    : abnehmbar || unpruefbar ? pwKnopf(t("pjw_trotzdem"), pwTrotzdem(fragen, abnehmen), haupt && abnehmbar && x.bei_dir)
     : (!p || p.fehler) && !x.pruefung_laeuft ? pwKnopf(t(p ? "pjw_a_erneut" : "pjw_a_starten"),       // A2072: nach einem Fehler erneut
         () => pwTun("/api/projektweg/pruefung-starten", { bogen: x.bogen }, t("pjw_ok_pruefung")), haupt && x.bei_dir) : null;
   if (!abnehmbar) karte.append(el("div", { class: "leise pjw-a-lage" }, !x.bei_dir ? t("pjw_ll_" + x.lage)
     : !p ? (x.pruefung_laeuft ? t("pjw_a_laeuft_lang") : t("pjw_a_ohne_lang"))
-    : p.fehler ? t("pjw_a_pruefer_fehler") : x.lage === "nicht_erfuellt" ? t("pjw_a_nicht_erfuellt") : t("pjw_bericht_kommt")));
-  einzig = einzig && x.bei_dir;                                       /* oben steht nur, was der Mensch tun soll */
+    : p.fehler ? t("pjw_a_pruefer_fehler") : x.lage === "nicht_erfuellt" ? t("pjw_a_nicht_erfuellt") : unpruefbar ? t("pjw_ll_nicht_pruefbar_du") : t("pjw_bericht_kommt")));
+  einzig = einzig && x.bei_dir && !fragen.length && !(abnehmbar && !test.befehl);   /* A2088: Vorbehalt und „kein Gesamttest“ stehen über dem Knopf */                                       /* oben steht nur, was der Mensch tun soll */
   if (handlung && einzig) pwHaupt = handlung;
   const id = "pjw-hw-" + x.bogen;
   karte.append(pwHinweisFeld(t("pjw_nacharbeit_ph"), id),

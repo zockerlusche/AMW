@@ -127,6 +127,9 @@ def freigeben(con, pid, von, bid, art):
         if b["status"] != "fertig" and not bereit:
             raise kern.AmwFehler(f"Meilenstein {b['nr']} ist noch nicht {planautomatik.BEREIT_TEXT} – erst alle Pakete fertig,"
                                  " dann der Abschluss")
+        if von != kern.ENTWICKLER and vorbehalte(con, pid, b)["nur_mensch"]:     # A2088
+            raise kern.AmwFehler(f"Meilenstein {b['nr']}: die Abschlussprüfung hat Vorbehalte – damit nimmt nur der Mensch ab. Grund beheben und"
+                                 f" erneut prüfen: amw bogen pruefung-starten {bid}")
         if tore.bericht(con, pid, bid) is None:
             raise kern.AmwFehler(f"Meilenstein {b['nr']}: der Abschlussbericht fehlt noch (die AMW erstellt ihn; sonst amw bogen bericht {bid})")
     elif b["status"] not in ("geplant", "aktiv"):
@@ -165,6 +168,17 @@ def freigeben(con, pid, von, bid, art):
                      f"{j['co']} (Co-Entwickler) und {j['lead']} (Lead) haben {'den ' + was if art != 'grob' else 'den Meilenstein'}"
                      f" {b['nr']} „{b['titel']}“ freigegeben (B2913). Zurückholen kannst du jederzeit (Planung › Zurück).")
     return {"frei": True}
+
+
+def vorbehalte(con, pid, b):
+    """A2088: Vorbehalte des gültigen Prüf-Ergebnisses: {"liste": [{"art", "n" | "text"}], "alt": Prüfung von vor dieser Version,
+    "nicht_pruefbar",
+    "nur_mensch": Co und Lead dürfen nicht allein abnehmen (Vorbehalt oder nicht prüfbar)}."""
+    from . import abschluss, abschlusslage
+    e = abschlusslage.ergebnis(con, pid, b) if b["status"] != "fertig" else abschluss.ergebnis(con, pid, b["id"])
+    e = e or {}
+    liste = e.get("vorbehalte") or []
+    return {"liste": liste, "alt": abschluss.alt(e), "nicht_pruefbar": bool(e.get("nicht_pruefbar")), "nur_mensch": bool(liste or e.get("nicht_pruefbar"))}
 
 
 def zurueck(con, pid, von, bid, art, notiz):
@@ -307,7 +321,9 @@ def _abschluss(con, pid, b, ab, fehlt):
         return None
     if not bereit and not tore._neu_fertig(con, pid, b) and tore.bericht(con, pid, b["id"]) is None:
         return None                                  # Altbestand vor dem Stichtag: kein Abschluss nötig
+    vb = vorbehalte(con, pid, b) if not ab.get("an") else {"liste": [], "alt": False, "nicht_pruefbar": False}
     return {"bericht": tore.bericht(con, pid, b["id"]), "frei": bool(ab.get("an")), "von": ab.get("von"), "durch": ab.get("durch"),
+            "vorbehalte": vb["liste"], "alt": vb["alt"], "nicht_pruefbar": vb["nicht_pruefbar"],           # A2088
             "notiz": None if ab.get("an") else ab.get("notiz"), "ja_fehlt": fehlt(b["id"], "abschluss", ab.get("an"))}
 
 
