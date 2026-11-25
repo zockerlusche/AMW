@@ -1073,7 +1073,8 @@ options:
   --nr NR               Reihenfolge
   --grund GRUND         nötig, wenn das Zieldatum nach der Baseline geändert
                         wird
-  --erzwingen
+  --erzwingen           status fertig: trotz offener Pakete (Lead) bzw. vor
+                        der Auslieferung (nur der Mensch) abschließen
   --art {grob,plan,abschluss}
                         freigeben/zurueck: Meilenstein (grob), sein Plan oder
                         sein Abschlussbericht – K6/K7

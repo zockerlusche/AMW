@@ -167,9 +167,13 @@ function pwWert(d, i) {
     return t("pjw_w_ums", { m: pwM(ms[0]), f: ms[0].fertig, n: ms[0].pakete.length }) + fr; }
   const offen = a.filter(x => x.bereit && !x.frei), w = offen.filter(x => x.bei_dir);            /* A2082: „bereit zur Abnahme“ nur, was der Mensch abnehmen kann */
   if (w.length) return `${w.map(x => pwM(x)).join(", ")} · ${t("pjw_bereit")}`;
-  if (offen.length) return offen.map(x => `${pwM(x)} · ${t("pjw_l_" + x.lage)}`).join(", ");
+  if (offen.length) return offen.map(x => `${pwM(x)} · ${pwLage(x)}`).join(", ");
   const z = a.filter(x => x.frei).at(-1); return z ? `${pwM(z)} · ${t("pjw_abgenommen")}` : "–";
 }
+/* A2116: die Lage vor der Abnahme in Worten; wartet sie auf die Auslieferung, stehen die Pakete dabei. */
+const pwPaketListe = x => (x.auslieferung || []).slice(0, 4).map(a => "A" + a).join(", ") + ((x.auslieferung || []).length > 4 ? " …" : "");
+const pwLage = x => t("pjw_l_" + x.lage, { x: pwPaketListe(x) });
+const pwLageLang = x => t("pjw_ll_" + x.lage, { x: pwPaketListe(x) });
 const pwStatus = (text, art) => el("span", { class: "pjw-status" + (art ? " " + art : "") }, text);
 const pwKnopf = (text, onclick, haupt) => el("button", { class: "knopf" + (haupt ? " haupt" : ""), type: "button", onclick }, text);
 const pwHandlungen = (...k) => el("div", { class: "pjw-handlungen" }, ...k.filter(Boolean));
@@ -368,7 +372,7 @@ function pwUmsetzung(d) {
 const pwVorbehalt = v => v.art === "pruefer" ? v.text : t("pjw_vb_" + v.art + (v.n === 1 ? "1" : ""), { n: v.n, z: v.zweig || "main" });
 const pwTrotzdem = (liste, tun) => () => { if (confirm(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"))) tun(); };
 /* A2088 (Lead #32824): was beim Abnehmen dagegen spricht – auf Projektweg und Planung gleich. null: gerade geht es nicht. */
-const pwDagegen = (lage, zaehlt, vorbehalte, alt) => ["laeuft", "bericht"].includes(lage) ? null
+const pwDagegen = (lage, zaehlt, vorbehalte, alt) => ["laeuft", "bericht", "auslieferung"].includes(lage) ? null
   : [...(zaehlt ? [t("pjw_l_" + lage)] : []), ...(alt ? [t("pjw_a_alt_" + alt)] : []), ...(vorbehalte || []).map(pwVorbehalt)];
 function pwUrteil(x, name, p, text) {
   /* je Thema ein Wort und ein kurzer Satz; Pakete, Commits und Dateien auf Klick */
@@ -390,7 +394,7 @@ function pwAbschlussKarte(x, einzig, haupt) {
   const zeile = (ok, text) => el("div", {}, el("span", { class: ok === null ? "leise" : ok ? "pjw-ok" : x.bei_dir ? "pjw-nein" : "leise" }, ok === null ? "–" : ok ? "✓" : "○"), el("span", {}, text));   /* A2082: Farbe nur, wenn der Mensch dran ist (TH156 Regel 4) */
   const testOk = !!p && (!test.befehl || test.rc === 0), abnehmbar = x.lage === "abnehmbar";
   const karte = el("div", { class: "pjw-karte pjw-ab-karte", "data-bogen": x.bogen, "data-lage": x.lage },
-    el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x)} ${x.titel}`), x.bei_dir ? pwStatus(t("pjw_wartet_dich"), "dran") : pwStatus(t("pjw_l_" + x.lage))));
+    el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x)} ${x.titel}`), x.bei_dir ? pwStatus(t("pjw_wartet_dich"), "dran") : pwStatus(pwLage(x))));
   const ja = x.bei_dir ? zeile(false, t("pjw_dein_ja")) : null;
   if (!p) karte.append(el("div", { class: "pjw-pruefung" }, zeile(false, x.pruefung_laeuft ? t("pjw_a_laeuft") : t("pjw_a_ohne")), ja));
   else {
@@ -413,9 +417,9 @@ function pwAbschlussKarte(x, einzig, haupt) {
      die vor A2029 bereit wurden, bekommen sie nie von selbst). Hauptknopf nur auf der ersten Karte (eine Hauptaktion je Ansicht). */
   const handlung = abnehmbar && !fragen.length ? pwKnopf(t("pjw_abnehmen_m", { m: pwM(x) }), abnehmen, haupt)
     : abnehmbar ? pwKnopf(t("pjw_trotzdem"), pwTrotzdem(fragen, abnehmen), haupt && x.bei_dir)
-    : (!p || p.fehler) && !x.pruefung_laeuft ? pwKnopf(t(p ? "pjw_a_erneut" : "pjw_a_starten"),       // A2072: nach einem Fehler erneut
+    : (!p || p.fehler) && !x.pruefung_laeuft && x.lage !== "auslieferung" ? pwKnopf(t(p ? "pjw_a_erneut" : "pjw_a_starten"),       // A2072: nach einem Fehler erneut
         () => pwTun("/api/projektweg/pruefung-starten", { bogen: x.bogen }, t("pjw_ok_pruefung")), haupt && x.bei_dir) : null;
-  if (!abnehmbar) karte.append(el("div", { class: "leise pjw-a-lage" }, !x.bei_dir ? t("pjw_ll_" + x.lage)
+  if (!abnehmbar) karte.append(el("div", { class: "leise pjw-a-lage" }, !x.bei_dir ? pwLageLang(x)
     : !p ? (x.pruefung_laeuft ? t("pjw_a_laeuft_lang") : t("pjw_a_ohne_lang"))
     : p.fehler ? t("pjw_a_pruefer_fehler") : x.lage === "nicht_erfuellt" ? t("pjw_a_nicht_erfuellt") : unpruefbar ? t("pjw_ll_nicht_pruefbar_du") : t("pjw_bericht_kommt")));
   const trotzdem = !abnehmbar && x.lage_zaehlt && fragen.length && x.bericht ? pwKnopf(t("pjw_trotzdem"), pwTrotzdem(fragen, abnehmen)) : null;   /* verboten ist es nicht */

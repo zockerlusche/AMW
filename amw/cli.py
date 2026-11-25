@@ -4341,7 +4341,8 @@ def parser():
     x.add_argument("--federfuehrend", help="aendern: wer den Meilenstein führt (Lead/Entwickler; leer = weg)")
     x.add_argument("--nr", type=int, help="Reihenfolge")
     x.add_argument("--grund", help="nötig, wenn das Zieldatum nach der Baseline geändert wird")
-    x.add_argument("--erzwingen", action="store_true")
+    x.add_argument("--erzwingen", action="store_true", help="status fertig: trotz offener Pakete (Lead) bzw. vor der Auslieferung (nur der Mensch)"
+                                                            " abschließen")
     x.add_argument("--art", choices=["grob", "plan", "abschluss"], help="freigeben/zurueck: Meilenstein (grob), sein Plan oder sein"
                                                                        " Abschlussbericht – K6/K7")
     x.add_argument("--notiz", help="zurueck: was soll anders werden (Pflicht)")

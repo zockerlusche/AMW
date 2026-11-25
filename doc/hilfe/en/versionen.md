@@ -14,7 +14,7 @@ Every delivery gets a number of the form MAJOR.MINOR.PATCH, for example 1.4.0. T
 ## Common problems
 - **“does not have the form MAJOR.MINOR.PATCH”** – Without a leading “v” and with three numbers: 1.4.0, not v1.4 or 1.4.
 - **“is not greater than the last one”** – The message names the next numbers that fit.
-- **A milestone cannot be closed** – With mandatory versions, a version must be recorded after its last finished task. Only you can close it anyway (`amw bogen status <nr> fertig --erzwingen`).
+- **A milestone cannot be closed** – With mandatory versions, its finished packages must be delivered; until then it shows “waiting for delivery” with the packages. Packages without code of their own (such as a demonstration) need no version.
 
 ## Next
 - With mandatory versions the plan check reports an error while no version is recorded; with “recommended” a hint.

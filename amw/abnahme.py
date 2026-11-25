@@ -72,6 +72,7 @@ GESPERRT = (
     ("amw/feinplanung.py", "fest", "Feinplaner je Meilenstein – startet claude -p (A2031)"),
     ("amw/abschluss.py", "fest", "Prüfer zum Abschluss je Meilenstein – startet claude -p (A2029)"),
     ("amw/belege.py", "fest", "Beleg-Prüfung und Code für den Prüfer – welche Dateien er sieht (A2088)"),
+    ("amw/auslieferstand.py", "fest", "Ist ein Meilenstein ausgeliefert? Bedingung der Abnahme (A2116)"),
     ("amw/riskant.py", "fest", "Riskant-Einordnung: was der Lead liest – Teil der Prüfung (A2054)"),
     ("amw/fensterpruefung.py", "fest", "Prüfung C für Fenster-Pakete, Auto-Grün der AMW (A2054)"),
     ("amw/folgen.py", "fest", "Folgenprüfer eigener Änderungen – startet claude -p (A1957)"),

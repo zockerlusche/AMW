@@ -91,7 +91,7 @@ function pmAbschluss(x, tun) {                                 /* K7 (A1944): Ab
     fragen.length ? el("div", { class: "pjw-vorbehalte" + (x.bei_dir || !ab.lage ? "" : " ruhig") }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, fragen.map(v => el("li", {}, v)))) : null,
     !ab.frei && ab.bericht && !API ? el("div", { class: "th-knoepfe" },
       dagegen ? el("button", { class: "klein-knopf" + (ab.lage_zaehlt ? "" : " haupt"), type: "button", "data-h": "ab-ja", onclick: fragen.length ? pwTrotzdem(fragen, ja) : ja }, t(fragen.length ? "pjw_trotzdem" : "pm_ab_ja"))
-        : el("span", { class: "leise" }, t("pjw_ll_" + ab.lage)),
+        : el("span", { class: "leise" }, pwLageLang({ ...x, lage: ab.lage })),
       el("button", { class: "klein-knopf", type: "button", "data-h": "ab-zurueck", onclick: () => {
         const feld = el("textarea", { class: "th-feld", placeholder: t("th2_notiz_ph") });
         k.replaceChildren(feld, el("div", { class: "th-knoepfe" },
@@ -103,7 +103,7 @@ function pmAbschluss(x, tun) {                                 /* K7 (A1944): Ab
 function pmStatus(m, art) {                                       /* ein Status je Eintrag */
   if (m.status === "fertig") return art === "grob" && m.abschluss && m.abschluss.bericht && !m.abschluss.frei
     ? ["dich", t("pm_ab_wartet")] : ["frei", t("pm_fertig")];
-  if (m.bereit) return m.bei_dir ? ["dich", t("pm_bereit")] : ["arbeit", t("pjw_l_" + m.lage)];   /* A2002: alle Pakete fertig, das Ja zum Abschluss fehlt; A2082: nur, wenn es geht */
+  if (m.bereit) return m.bei_dir ? ["dich", t("pm_bereit")] : ["arbeit", pwLage(m)];   /* A2002: alle Pakete fertig, das Ja zum Abschluss fehlt; A2082: nur, wenn es geht */
   if (m.status === "aktiv") return ["frei", t("pm_laeuft")];
   if (art === "plan" && !m.pakete.length) return ["arbeit", t("pm_spaeter")];
   const z = m[art];

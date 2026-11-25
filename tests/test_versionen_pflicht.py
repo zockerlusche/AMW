@@ -77,7 +77,7 @@ class Versionen(unittest.TestCase):
         self.aufgabe_fertig(bogen=bid)
         with self.assertRaises(kern.AmwFehler) as e:
             planung.bogen_status(self.con, self.pid, "TL", bid, "fertig")
-        self.assertIn("keine Version", str(e.exception))
+        self.assertIn("wartet auf die Auslieferung von A", str(e.exception))
         with self.assertRaises(kern.AmwFehler):
             planung.bogen_status(self.con, self.pid, "TL", bid, "fertig", erzwingen=True)          # nur der Mensch erzwingt
         wissen.release_version(self.con, self.pid, "TL", "0.2.0", "mit Etappe")

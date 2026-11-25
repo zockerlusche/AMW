@@ -168,14 +168,14 @@ def bogen_status(con, pid, von, bid, status, erzwingen=False, automatik=False):
         offen = con.execute("SELECT count(*) FROM aufgabe WHERE bogen_id = ? AND status NOT IN ('fertig', 'verworfen')",
                             (bid,)).fetchone()[0]
         if offen:
-            raise kern.AmwFehler(f"{meilensteine.name(con, bid)} hat noch {offen} offene Schritte – erst abschließen (oder --erzwingen)")
+            raise kern.AmwFehler(f"{meilensteine.name(con, bid)} hat noch {'ein offenes Paket' if offen == 1 else f'{offen} offene Pakete'}"
+                                 " – erst abschließen")
     if status == "fertig" and not (erzwingen and von == kern.ENTWICKLER):   # Versions-Pflicht: nur der Mensch kann darüber hinweg
-        vs = kern.versions_stand(con, pid)
-        letzte_fertig = con.execute("SELECT max(fertig_utc) FROM aufgabe WHERE bogen_id = ? AND status = 'fertig'", (bid,)).fetchone()[0]
-        if vs["versionen"] == "pflicht" and letzte_fertig and (not vs["letzte_utc"] or vs["letzte_utc"] < letzte_fertig):
-            raise kern.AmwFehler(f"{meilensteine.name(con, bid)}: nach seiner letzten fertigen Aufgabe ist keine Version eingetragen (Versionen sind"
-                                 f" Pflicht) – erst ausliefern und `amw release version --version {vs['vorschlag'][0]} --titel …`;"
-                                 " nur der Mensch kann mit --erzwingen abschließen")
+        from . import auslieferstand                  # A2116: dieselbe Frage wie vor der Abnahme
+        if fehlt := auslieferstand.fehlt(con, pid, bid):
+            raise kern.AmwFehler(auslieferstand.satz(b["nr"], fehlt) + (  # dem Menschen nie ein Befehl; der Lead im Terminal bekommt ihn
+                "" if von == kern.ENTWICKLER or automatik else " Erst ausliefern und die Version eintragen:"
+                f" amw release version --version {kern.versions_stand(con, pid)['vorschlag'][0]} --titel …"))
     with db.schreiben(con):
         felder = {"status": status, "geaendert_utc": db.jetzt()}
         if status == "aktiv" and not b["baseline_datum"] and b["zieldatum"]:

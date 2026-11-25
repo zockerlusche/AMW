@@ -128,11 +128,15 @@ def freigeben(con, pid, von, bid, art):
         if b["status"] != "fertig" and not bereit:
             raise kern.AmwFehler(f"Meilenstein {b['nr']} ist noch nicht {planautomatik.BEREIT_TEXT} – erst alle Pakete fertig,"
                                  " dann der Abschluss")
+        from . import abschlusslage, auslieferstand
+        if bereit and (fehlt := abschlusslage.auslieferung(con, pid, b)):        # A2116
+            raise kern.AmwFehler(auslieferstand.satz(b["nr"], fehlt) + " Danach geht die Abnahme.")
         if von != kern.ENTWICKLER and vorbehalte(con, pid, b)["nur_mensch"]:     # A2088
             raise kern.AmwFehler(f"Meilenstein {b['nr']}: {vorbehalte(con, pid, b)['warum']} – damit nimmt nur der Mensch ab. Grund beheben und"
                                  f" erneut prüfen: amw bogen pruefung-starten M{b['nr']}")
         if tore.bericht(con, pid, bid) is None:
-            raise kern.AmwFehler(f"Meilenstein {b['nr']}: der Abschlussbericht fehlt noch (die AMW erstellt ihn; sonst amw bogen bericht M{b['nr']})")
+            raise kern.AmwFehler(f"Meilenstein {b['nr']}: Der Abschlussbericht fehlt noch, die AMW erstellt ihn."     # A2116: dem Menschen kein Befehl
+                                 + ("" if von == kern.ENTWICKLER else f" Sonst: amw bogen bericht M{b['nr']}"))
     elif b["status"] not in ("geplant", "aktiv"):
         raise kern.AmwFehler(f"Meilenstein {b['nr']} ist {b['status']}")
     z = _zustaende(con, pid)
@@ -292,7 +296,8 @@ def daten(con, pid):
         lage = abschlusslage.lage(con, pid, b)            # A2082
         ms.append({"id": b["id"], "nr": b["nr"], "titel": b["titel"], "status": b["status"], "endet_mit": b["abnahme"],
                    "bereit": planautomatik.bereit_zur_abnahme(con, b),                                   # A2002
-                   "lage": lage, "bei_dir": abschlusslage.bei_mensch(con, pid, lage), "laufend": abschlusslage.laufend(con, b["id"]),
+                   "lage": lage, "auslieferung": abschlusslage.auslieferung(con, pid, b) if lage == abschlusslage.AUSLIEFERUNG else [],     # A2116
+                   "bei_dir": abschlusslage.bei_mensch(con, pid, lage), "laufend": abschlusslage.laufend(con, b["id"]),
                    "themen": [{"id": k, "name": v} for k, v in sorted(th.items())], "pakete": pakete,
                    "summe": round(sum(p["usd"] for p in pakete if p["usd"]), 2) if any(p["usd"] for p in pakete) else None,
                    "geaendert": geaendert,

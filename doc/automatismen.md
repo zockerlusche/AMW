@@ -985,6 +985,10 @@ die der Lead nur noch bestätigt oder ändert.
   Sonst legt die AMW die Nacharbeit im selben Meilenstein an und startet sie ohne neues Start-Ja (bei rotem Test ohne
   Vorschlag: ein Paket „Gesamttest rot beheben“); Meldung an den Lead, Info an den Menschen. Danach prüft sie erneut. Ging der
   Prüfer nicht, klärt es der Lead (siehe „Wer ist dran“).
+- **Erst ausgeliefert, dann abgenommen (A2116, `auslieferstand.fehlt`):** Sind Versionen Pflicht, fragt die AMW je fertiges Paket, ob sein
+  Commit in der höchsten eingetragenen Version steckt (Beleg, sonst Commits mit Betreff „A<nr>:“). Pakete ohne eigenen Code brauchen keine
+  Version; lässt es sich nicht entscheiden, zählt die Zeit. Fehlt die Auslieferung, steht „wartet auf Auslieferung (A…)“, es gibt keinen
+  Knopf, niemand ist dran, und „bereit zur Abnahme“ geht erst danach hinaus. Dieselbe Frage stellt der Abschluss selbst (`planung.bogen_status`).
 - **Wer ist dran (A2082, `abschlusslage.lage`):** Der Mensch sieht „wartet auf dich“ und bekommt „bereit zur Abnahme“ erst, wenn
   er abnehmen kann: Gesamttest, Prüfung und Bericht sind zum aktuellen Stand da und erfüllt. Ein Ergebnis von vor neuen Paketen zählt
   nicht. Fehlt die Prüfung, ging sie nicht oder ist sie nicht erfüllt, ist der Lead dran: Meldung mit Befehl, einmal je Stand

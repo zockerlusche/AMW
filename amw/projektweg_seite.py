@@ -336,7 +336,9 @@ def abschluss(con, pid, freigaben):
         lage = abschlusslage.lage(con, pid, b)            # A2082: wie es steht und wer dran ist – die Seite rechnet nichts davon selbst
         e = {} if lage == "laeuft" else (abschlusslage.ergebnis(con, pid, b) if lage else ab.ergebnis(con, pid, a["bogen"])) or {}
         aus.append({"bogen": a["bogen"], "nr": a["nr"], "titel": a["titel"], "status": b["status"], "frei": a["frei"],
-                    "bereit": lage is not None, "bericht": a["bericht"], "lage": lage, "bei_dir": abschlusslage.bei_mensch(con, pid, lage),
+                    "bereit": lage is not None, "bericht": a["bericht"], "lage": lage,
+                    "auslieferung": abschlusslage.auslieferung(con, pid, b) if lage == abschlusslage.AUSLIEFERUNG else [],               # A2116
+                    "bei_dir": abschlusslage.bei_mensch(con, pid, lage),
                     "lage_zaehlt": abschlusslage.wie_vorbehalt(con, pid, lage),
                     "pruefung_laeuft": lage == "laeuft",
                     "pakete": con.execute("SELECT count(*) FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (a["bogen"],)).fetchone()[0],
@@ -441,7 +443,10 @@ def _abnahme_dran(con, pid, schritte, dran, f, u, ab, ich):
         z = "offen" if geplant else "erledigt"
         um.update(zustand=z, zeichen=projektweg.ZEICHEN[z], wer=[], bei_dir=False)
     if any(x["bereit"] and not x["frei"] for x in ab):
-        wer = (projektweg._freigebende(con, pid, "abschluss") if any(x["bei_dir"] and not x["frei"] for x in ab)
+        from . import abschlusslage
+        offen = [x for x in ab if x["bereit"] and not x["frei"]]
+        wer = ([] if all(x["lage"] == abschlusslage.AUSLIEFERUNG for x in offen) and not kern.lead(con, pid)      # A2116: niemand ist dran
+               else projektweg._freigebende(con, pid, "abschluss") if any(x["bei_dir"] and not x["frei"] for x in ab)
                else projektweg._lead(con, pid))              # A2082 (B2938): fehlt die Prüfung oder ging sie nicht, ist der Lead dran
         je["abschluss"].update(zustand="dran", zeichen=projektweg.ZEICHEN["dran"], wer=wer, bei_dir=ich in wer)
         if dran is None or (dran == "umsetzung" and alles_fertig):

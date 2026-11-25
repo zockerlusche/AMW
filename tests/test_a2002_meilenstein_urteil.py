@@ -79,7 +79,7 @@ class Urteil(Basis):
         self.fertig(self.a1, self.a2)
         planautomatik.meilenstein_projekt(self.con, self.pid)
         kern.projekt_einstellen(self.con, self.pid, "TL", versionen="pflicht")
-        with self.assertRaisesRegex(kern.AmwFehler, "keine Version eingetragen"):
+        with self.assertRaisesRegex(kern.AmwFehler, "wartet auf die Auslieferung von A"):
             planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "abschluss")
         self.assertEqual(self.status(self.m1)["status"], "aktiv")
         self.assertFalse(self.m(self.m1)["abschluss"]["frei"])                                   # nichts halb freigegeben

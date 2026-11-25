@@ -183,10 +183,13 @@ def bericht_text(con, pid, bid):
         zellen = empfehlung.zellen(con, pid)
     except Exception:                                    # noqa: BLE001
         zellen = {}
+    from . import auslieferstand
+    wartet = [] if b["status"] == "fertig" else auslieferstand.fehlt(con, pid, bid)
     z = [f"# Abschlussbericht Meilenstein {b['nr']} „{b['titel']}“", "",
          f"Ziel: {b['ziel'] or '–'}  ", f"Endet mit (Erfolgskriterium): {b['abnahme'] or '–'}  ",
          f"Zieldatum: {b['zieldatum'] or '–'} · "
          + (f"fertig: {(b['fertig_utc'] or '–')[:10]}" if b["status"] == "fertig"
+            else f"wartet auf die Auslieferung von {auslieferstand.liste(wartet)}" if wartet          # A2116
             else "bereit zur Abnahme – fertig mit dem Ja zum Abschluss"),   # A2002
          "", "## Erfolgskriterien", ""]
     offen_k, summe, prog = [], 0.0, 0.0

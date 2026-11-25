@@ -14,7 +14,7 @@ Jede Auslieferung bekommt eine Nummer der Form MAJOR.MINOR.PATCH, zum Beispiel 1
 ## Typische Fehler
 - **„hat nicht die Form MAJOR.MINOR.PATCH“** – Ohne „v“ davor und mit drei Zahlen: 1.4.0, nicht v1.4 oder 1.4.
 - **„ist nicht größer als die letzte“** – Die Meldung nennt die passenden nächsten Nummern.
-- **Meilenstein lässt sich nicht abschließen** – Bei Pflicht muss nach seiner letzten fertigen Aufgabe eine Version eingetragen sein. Nur du kannst trotzdem abschließen (`amw bogen status <nr> fertig --erzwingen`).
+- **Meilenstein lässt sich nicht abschließen** – Bei Pflicht müssen seine fertigen Pakete ausgeliefert sein; bis dahin steht dort „wartet auf Auslieferung“ mit den Paketen. Pakete ohne eigenen Code (z. B. eine Vorführung) brauchen keine Version.
 
 ## Danach
 - Der Plan-Check meldet bei Pflicht einen Fehler, solange keine Version eingetragen ist, bei „empfohlen“ einen Hinweis.
