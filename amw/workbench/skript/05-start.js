@@ -906,7 +906,7 @@ async function sichtNachrichten() {
     bezuege.length ? el("select", { "data-filter": "1", onchange: e => { bezugWahl = e.target.value; zeichnen(); } }, el("option", { value: "" }, t("nr_alle_bezuege")),
       bezuege.map(([k, txt]) => el("option", { value: k }, txt.length > 48 ? txt.slice(0, 47) + "…" : txt))) : null,
     el("select", { "data-filter": "1", onchange: e => { agent = e.target.value; zeichnen(); } }, el("option", { value: "" }, t("nr_alle_agenten")), agenten.map(a => el("option", { value: a }, wer(a)))),
-    el("label", { class: "leise" }, el("input", { type: "checkbox", "data-filter": "1", class: "nr-nur-offen", onchange: e => { nurOffen[reiter] = e.target.checked; zeichnen(); } }), " " + t("nr_nur_offen")),
+    el("label", { class: "leise" }, el("input", { type: "checkbox", "data-filter": "1", class: "nr-nur-offen", onchange: e => { nurOffen[reiter] = e.target.checked; zeichnen(); } }), " ", el("span", { class: "nr-nur-text" }, t("nr_nur_offen"))),
     el("input", { "data-filter": "1", placeholder: t("nr_suchen"), oninput: e => { such = e.target.value.toLowerCase(); zeichnen(); } }),
     el("button", { class: "knopf haupt", type: "button", onclick: () => nachrichtDialog(null) }, "+ " + t("nr_schreiben")));
   const kopf = el("div", { class: "nr-leiste" }), chips = el("div", { class: "nr-chipzeile" });
@@ -980,6 +980,7 @@ async function sichtNachrichten() {
     kopf.replaceChildren(nrReiterLeiste(reiter, n, k => { reiter = k; gewaehlt = null; markiert.clear(); zeichnen(); }),
       el("span", { class: "nr-offen" + (n ? "" : " null") }, t("nr_offen_dich", { n })), filter);
     filter.querySelector(".nr-nur-offen").checked = !!nurOffen[reiter];
+    filter.querySelector(".nr-nur-text").textContent = t(reiter === "eingang" ? "nr_nur_ungelesen" : "nr_nur_offen");   /* A2111: „An dich“ filtert Ungelesenes, „zu tun“ ist die Zahl */
     const c = mehrere ? nrProjektChips(projektWahl, uid => { projektWahl = uid; gewaehlt = null; markiert.clear(); zeichnen(); }) : null;
     chips.replaceChildren(...(c ? [c] : []));
   }

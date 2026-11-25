@@ -10,7 +10,7 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 2. **Von überall schreiben** Wo du etwas ansiehst – Thema, Meilenstein, Beschluss, Lauf, Prüfung –, gibt es „✉ Nachricht dazu“: Der Bezug ist eingetragen, der Empfänger vorgeschlagen (änderbar). Beim Thema und beim Meilenstein steht unten „Nachrichten dazu“ als kleines Gespräch. Bei Aufgaben und Dokumenten schreibst du wie bisher in deren eigenem Feld – auch das trägt den Bezug.
 3. **Stand verfolgen** Reiter „Gesendet“: je Empfänger gesendet › benachrichtigt › gelesen › erledigt. Fährst du über einen Schritt, siehst du die Uhrzeit.
 4. **Verlauf lesen** Ein Klick auf eine Nachricht zeigt rechts den ganzen Verlauf wie im Mail-Programm: alles zum selben Bezug (oder zur selben Antwortkette), auch was Agenten untereinander dazu schrieben – Ältestes oben, die gewählte Nachricht ist umrandet. In der Liste steht „· n im Verlauf“. Lange Verläufe zeigen zuerst die letzten 30 („Ältere zeigen“). Am Handy öffnet es sich als eigene Ansicht („‹ An dich“ führt zurück).
-5. **An dich abarbeiten** Reiter „An dich“ zeigt zuerst nur Offenes („nur offene“ ist an); oben steht „n offen für dich“ über alle Projekte. Ungelesenes ist fett. Antippen öffnet sie und hakt sie als gelesen ab – sie bleibt stehen, bis du die Seite verlässt, zählt aber nicht mehr. „Antworten“ schreibt zurück, der Bezug geht mit; „Erledigt“ hakt die gerade gezeigte ab, „Alle erledigt“ alle offenen – wie `amw erledigt`, auch online und am Handy.
+5. **An dich abarbeiten** Reiter „An dich“ zeigt zuerst nur Ungelesenes („nur ungelesene“ ist an); oben steht „n zu tun für dich“ über alle Projekte. Ungelesenes ist fett. Antippen öffnet sie und hakt sie als gelesen ab – sie bleibt stehen, bis du die Seite verlässt, zählt aber nicht mehr. „Antworten“ schreibt zurück, der Bezug geht mit; „Erledigt“ hakt die gerade gezeigte ab, „Alle erledigt“ alle offenen – wie `amw erledigt`, auch online und am Handy.
 6. **Zurückziehen** Gesendet › Nachricht wählen › „Zurückziehen“ – solange **kein** Empfänger sie gelesen oder erledigt hat. Sie verschwindet bei allen Empfängern und bleibt bei dir als „zurückgezogen“.
 
 ## Typische Fehler
@@ -21,9 +21,9 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 ## Danach
 - Fragen an dich stehen nur unter dem Menüpunkt „Fragen“ – mit Rückfragen, Nachträgen und deiner Antwort. Unter Nachrichten steht oben nur ein Hinweis, wie viele offen sind.
 - Dich fragt nur der Lead (und der Co-Entwickler). Fragt ein anderer Agent, geht die Frage an den Lead: Er klärt sie selbst oder stellt sie dir – dann als seine Frage, vorher überarbeitet oder mit anderen gebündelt; wer sie ursprünglich gestellt hat, steht im Verlauf. Auch Aufträge und Fragen als Nachricht an dich gehen erst an den Lead; Infos (z. B. „live“) kommen weiter direkt.
-- Jede Zeile zeigt ihre Art: ✉ Nachricht eines Agenten, ⚙ Meldung der Workbench. Mehrere offene hakst du auf einmal ab: Häkchen setzen (oder „alle offenen markieren“), dann „Erledigt“.
+- Jede Zeile zeigt ihre Art: ✉ Nachricht eines Agenten, ⚙ Meldung der Workbench. Mehrere offene hakst du auf einmal ab: Häkchen setzen (oder „alle ungelesenen markieren“), dann „Erledigt“.
 - Was Agenten und Lead untereinander schreiben, steht unter „Mitlesen“ – aus allen Projekten, nur zum Lesen, es zählt nie.
-- Die Übersicht zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt zu „An dich“. Die Zahl im Menü gilt für das gewählte Projekt, „n offen für dich“ auf der Seite für alle.
+- Die Übersicht zeigt nur eine Karte mit den neuesten Nachrichten an dich – ein Klick führt zu „An dich“. Die Zahl im Menü gilt für das gewählte Projekt, „n zu tun für dich“ auf der Seite für alle.
 - Am PC scrollen Liste und Nachricht getrennt, wie im Mail-Programm: Du kannst rechts lesen, ohne die Liste zu verlieren.
 
 ## Häufige Fragen

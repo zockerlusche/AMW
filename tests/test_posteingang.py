@@ -1,6 +1,6 @@
 """Posteingang neu (A1889, Kleinprobe D1310, F5357 A): Nachrichten über alle Projekte dieses PCs – jede Zeile mit Projekt
 (Farbmarke + Name) und Projekt-Chips als Filter; Reiter An dich · Mitlesen · Gesendet; An dich zeigt zuerst nur Offenes und
-„n offen für dich“ über alle Projekte; rechts der Verlauf als Gespräch (gleicher Bezug, auch Agenten untereinander);
+„n zu tun für dich“ über alle Projekte; rechts der Verlauf als Gespräch (gleicher Bezug, auch Agenten untereinander);
 Gelesen hakt im richtigen Projekt ab; Mitlesen ebenfalls über alle Projekte. Fragen bleiben ein eigener Menüpunkt (B2699).
 Bilder PC/Handy hell/dunkel über AMW_RUNDGANG_BILDER."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
@@ -43,7 +43,7 @@ class Posteingang(Daten, Rundgang):
         self.oeffnen("nachrichten", "document.querySelectorAll('.nr-eintrag').length >= 2")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.firstChild.textContent)").__getitem__(slice(0, 3)),
                          ["An dich", "Mitlesen", "Gesendet"])
-        self.assertEqual(self.tab.js("document.querySelector('.nr-offen').textContent"), "2 offen für dich")   # P und Zweitprojekt
+        self.assertEqual(self.tab.js("document.querySelector('.nr-offen').textContent"), "2 zu tun für dich")   # P und Zweitprojekt
         liste = self.tab.js("document.querySelector('.nr-liste').innerText")
         for x in ("Mache ich", "Meilenstein im Zweitprojekt abschließen?"):
             self.assertIn(x, liste)
@@ -73,7 +73,7 @@ class Posteingang(Daten, Rundgang):
         self.assertIn("CC1 → TL", blasen[1])                                                     # Agenten untereinander gehört dazu
         self.assertIn("CC1 → dich", blasen[2])
         self.assertTrue(self.tab.js("document.querySelector('.nr-gespraech .nr-blase').classList.contains('ich')"))
-        self.warten("document.querySelector('.nr-offen').textContent === '1 offen für dich'")   # antippen = gelesen (A1837)
+        self.warten("document.querySelector('.nr-offen').textContent === '1 zu tun für dich'")   # antippen = gelesen (A1837)
         self.assertEqual(self.offen(self.mache), "erledigt")
         self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-liste').innerText"))   # bleibt stehen, bis du gehst
 
@@ -82,7 +82,7 @@ class Posteingang(Daten, Rundgang):
         self.oeffnen("nachrichten", "document.querySelectorAll('.nr-eintrag').length >= 2")
         self.tab.js(f"{self.zeile('Zweitprojekt abschließen')}.click()")                       # schicken(..., p) an das Zweitprojekt
         self.warten("document.querySelector('.nr-gespraech h3')?.textContent.includes('Zweitprojekt abschließen')")
-        self.warten("document.querySelector('.nr-offen').textContent === '1 offen für dich'")
+        self.warten("document.querySelector('.nr-offen').textContent === '1 zu tun für dich'")
         self.assertEqual(self.offen(self.quer), "erledigt")
         self.assertEqual(self.offen(self.mache), "offen")                                        # das andere Projekt bleibt unberührt
 
@@ -95,12 +95,12 @@ class Posteingang(Daten, Rundgang):
         self.assertEqual(self.offen(self.quer), "offen")                                         # gewählt ist noch nicht erledigt
         self.assertFalse(self.tab.js("[...document.querySelectorAll('button')].some(b => b.textContent.startsWith('Gelesen'))"))
         self.tab.js(self.KNOPF.format(wo=".nr-gespraech .aktionen", text="Erledigt") + ".click()")
-        self.warten("document.querySelector('.nr-offen').textContent === '1 offen für dich'")
+        self.warten("document.querySelector('.nr-offen').textContent === '1 zu tun für dich'")
         self.assertEqual(self.offen(self.quer), "erledigt")
         self.assertEqual(self.offen(self.mache), "offen")
         self.assertEqual(self.tab.js(self.KNOPF.format(wo=".nr-sammel", text="Alle erledigt") + ".textContent"), "Alle erledigt (1)")
         self.tab.js(self.KNOPF.format(wo=".nr-sammel", text="Alle erledigt") + ".click()")
-        self.warten("document.querySelector('.nr-offen').textContent === '0 offen für dich'")
+        self.warten("document.querySelector('.nr-offen').textContent === '0 zu tun für dich'")
         self.assertEqual(self.offen(self.mache), "erledigt")
 
     def test_knopf_erledigt_am_handy(self):

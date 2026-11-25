@@ -63,6 +63,7 @@
 .schritt-titel { overflow-wrap: anywhere; } .schritt-meta { grid-column: 2 / 4; font-size: 12px; }
 .spec-text { white-space: pre-wrap; font: 13.5px/1.5 var(--mono); background: var(--grund); border: 1px solid var(--linie); border-radius: 4px; padding: 12px; max-height: 50vh; overflow: auto; }
 .verweis { cursor: pointer; color: var(--bernstein); border-bottom: 1px dotted currentColor; }
+:where(button).verweis { background: none; border: 0; border-bottom: 1px dotted currentColor; border-radius: 0; padding: 0; font: inherit; text-align: left; }   /* A2111: ein Verweis als Knopf sieht aus wie ein Verweis */
 .check { display: grid; gap: 6px; } .check > div { padding: 6px 0; border-bottom: 1px solid var(--linie); font-size: 14px; }
 .gruen-text { color: var(--gruen); }
 .rm-huelle { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
@@ -645,7 +646,7 @@ main.geteilt-seite { padding-bottom: 16px; }
 .nr-eintrag { border-left: 3px solid transparent; } .nr-eintrag.post.neu { border-left-color: var(--blau); } .nr-eintrag.system { border-left-color: var(--sehrleise); }
 .nr-sym { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; background: color-mix(in srgb, var(--blau) 18%, transparent); color: var(--blau); }
 .nr-eintrag.system .nr-sym { background: var(--flaeche2); color: var(--leise); }
-.nr-wahl { margin: 0 2px 0 0; } .nr-hinweis { margin: -4px 0 10px; } .nr-sammel { display: flex; gap: 12px; align-items: center; margin: -4px 0 8px; } .nr-sammel:empty { display: none; }
+.nr-wahl { margin: 0 2px 0 0; } .nr-hinweis { margin: -4px 0 10px; } .nr-sammel { display: flex; gap: 12px; align-items: center; margin: -4px 0 8px; } .nr-sammel:empty { display: none; } .nr-sammel label { display: inline-flex; align-items: center; gap: 4px; }
 .tc-liste { border: 1px solid var(--linie); border-radius: 6px; background: var(--flaeche); }
 .tc-eintrag { padding: 10px 12px; border-bottom: 1px solid var(--linie); display: grid; gap: 4px; } .tc-eintrag:last-child { border-bottom: 0; }
 .tc-text summary { cursor: pointer; color: var(--leise); font-size: 12.5px; } .nr-eintrag.neu .nr-kurz { font-weight: 650; } .nr-eintrag.weg { opacity: .55; }
