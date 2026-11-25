@@ -28,6 +28,7 @@ EINGEORDNET_FREI = {
     "amw/gespraech.py": "Muster zum Ausblenden von Geheimnissen (Anzeige)",
     "amw/messung.py": "Wort „tokens“ in Kostenwerten",
     "amw/nummernsuche.py": "liest die Spalte „kanal“ der Wortlaute, nur lesend (A2114)",
+    "amw/buendel_teilen.py": "reine Rechnung: keine Datenbank, kein git, den Lauf macht der übergebene Prüfer (A2122)",
     "amw/planung.py": "Lead-Sperren für Planung (Bögen, Pakete)",
     "amw/platte.py": "Absender Entwickler in Meldungen",
     "amw/runde.py": "Lead-Runde (Nachrichten zwischen Leads)",
