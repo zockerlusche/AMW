@@ -4,6 +4,7 @@ import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im 
 import json
 import os
 import unittest
+from typing import Any, cast
 from unittest import mock
 
 from amw import feinplanung, planer
@@ -70,7 +71,13 @@ class Planer(unittest.TestCase):
 
 
 class Feinplaner(unittest.TestCase):
-    setUp = a2031.Feinplaner.setUp
+    con: Any
+    pid: int
+    m1: int
+    t1: int
+
+    def setUp(self):
+        a2031.Feinplaner.setUp(cast(a2031.Feinplaner, self))
 
     def plan(self, nach):
         nr = self.con.execute("SELECT nr FROM bogen WHERE id = ?", (self.m1,)).fetchone()[0]
