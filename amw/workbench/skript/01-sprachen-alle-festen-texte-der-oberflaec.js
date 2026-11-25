@@ -54,10 +54,16 @@ async function abrufen(weg, p = projekt) {               /* p: anderes Projekt (
         return await r.json(); }
   finally { if (fuerDich) laden.aus(); }
 }
+/* A2117: zwischen Drücken und Loslassen nicht neu zeichnen – sonst ist der Knopf weg und der Klick verloren (höchstens 3 s) */
+let gedrueckt = 0;
+window.addEventListener("pointerdown", () => { gedrueckt = Date.now(); }, true);
+for (const art of ["pointerup", "pointercancel"]) window.addEventListener(art, () => { setTimeout(() => { gedrueckt = 0; }, 0); }, true);
+const haeltGedrueckt = () => gedrueckt > 0 && Date.now() - gedrueckt < 3000;
 async function holen(weg, p = projekt) {
   const nr = wechselNr;
   let d;
   try { d = await abrufen(weg, p); } catch (e) { if (nr === wechselNr) throw e; return veraltet(); }   /* auch Fehler der alten Seite nicht zeigen */
+  while (haeltGedrueckt()) await new Promise(r => setTimeout(r, 60));     /* A2117: die Antwort kam mitten im Drücken */
   return nr === wechselNr ? d : veraltet();
 }
 /* Ladeanzeige (A1676, Marcel W2076, F5341 A): das AMW-Logo, die zwei Kreise wandern auf den Linien des Schriftzugs, der
@@ -90,10 +96,37 @@ const laden = {
   aus() { if (--this.offen > 0) return; this.offen = 0; clearTimeout(this.uhr); document.getElementById("ladeanzeige")?.remove(); },
 };
 for (const art of ["pointerdown", "keydown", "hashchange", "popstate"]) window.addEventListener(art, () => { laden.eingabe = Date.now(); }, true);
+/* A2117 (Marcel 25.11.): nach einem Neustart der Workbench gilt das alte Zeichen der Seite nicht mehr. Die Seite holt sich dann
+   einmal das neue und schickt dasselbe genau einmal noch – der Server hatte vorher nichts getan. Die Leiste bleibt danach stehen. */
+let frischesZeichen = null;
+async function zeichenHolen() {
+  try { const r = await fetch("/", { cache: "no-store" }); const m = r.ok && (await r.text()).match(/const TOKEN = "([^"]+)"/);
+    return m && m[1] !== "__AMW_" + "TOKEN__" ? m[1] : null; } catch (e) { return null; }
+}
+/* A2117: ein Knopf, der freigibt oder abnimmt, wirkt je Klick einmal – solange seine Anfrage läuft, ist er aus; bei einem Fehler
+   wieder an. Rückgabe von tun() oder null (lief schon, oder Fehler – dann steht der Satz da). */
+let letzterKnopf = null;
+window.addEventListener("click", e => { letzterKnopf = e.target.closest?.("button") || null; }, true);
+const einmalLaeuft = new Set();
+async function einmalTun(schluessel, tun) {
+  if (einmalLaeuft.has(schluessel)) return null;
+  einmalLaeuft.add(schluessel);
+  const knopf = letzterKnopf; if (knopf) knopf.disabled = true;
+  const frei = () => { einmalLaeuft.delete(schluessel); if (knopf) knopf.disabled = false; };
+  try { const r = await tun(); setTimeout(frei, 1500); return r === undefined ? true : r; }       /* meist ist dann schon neu gezeichnet */
+  catch (e) { frei(); toast(fehlerSatz(e), true); return null; }
+}
+/* A2117: ein Satz ohne Technik: kein „Failed to fetch“, keine nackte Zahl */
+const fehlerSatz = e => e instanceof TypeError && /fetch|network|load failed/i.test(e.message) ? t("ohne_verbindung") : /^\d*$/.test(String(e.message)) ? t("ging_nicht") : t("fehler", { x: e.message });
 async function schicken(weg, daten, p = projekt) {      /* p: Projekt, an das es geht (Nachrichten über alle Projekte) */
   const knopf = document.activeElement?.tagName === "BUTTON" ? document.activeElement : null;   /* die Stelle für „wird übertragen …“ */
-  const r = await fetch(ziel(weg, p), { method: "POST", headers: { "Content-Type": "application/json", "X-AMW-Token": TOKEN }, body: JSON.stringify(daten) });
-  const j = await r.json().catch(() => ({}));
+  const ab = () => fetch(ziel(weg, p), { method: "POST", headers: { "Content-Type": "application/json", "X-AMW-Token": frischesZeichen || TOKEN }, body: JSON.stringify(daten) });
+  let r = await ab(), j = await r.json().catch(() => ({}));
+  if (j.neu_laden && !API) {
+    const neu = await zeichenHolen();
+    if (neu && neu !== (frischesZeichen || TOKEN)) { frischesZeichen = neu; r = await ab(); j = await r.json().catch(() => ({})); }
+    neuLadenLeiste();
+  }
   if (j.neu_laden) { neuLadenLeiste(); throw new Error(t("neu_laden")); }
   if (!r.ok) throw new Error(j.fehler || r.status);
   if (j.unterwegs) uebertragung.merken(j.eingang, knopf);

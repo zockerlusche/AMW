@@ -979,6 +979,8 @@
   "text_fehlt": "Bitte Text eingeben",
   "rueckfrage_fehlt": "Bitte die Rückfrage eingeben",
   "fehler": "Fehler: {x}",
+  "ohne_verbindung": "Keine Verbindung zur Workbench. Sieh nach, ob es gewirkt hat, und klicke sonst noch einmal.",
+  "ging_nicht": "Das hat nicht geklappt. Bitte noch einmal klicken.",
   "aufgaben": "Aufgaben",
   "t_offen": "Offen",
   "t_geparkt": "Geparkt",

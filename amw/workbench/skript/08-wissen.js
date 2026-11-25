@@ -140,10 +140,9 @@ function pwFragenIn(d, i) {                    /* Paket im laufenden Meilenstein
   return d.fragen.filter(f => f.bogen ? (aktiv.has(f.bogen) ? 3 : 2) === i : i === dran);
 }
 async function pwTun(weg, daten, ok) {
-  try { const r = await schicken(weg, daten) || {};
+  return einmalTun(weg + JSON.stringify(daten), async () => { const r = await schicken(weg, daten) || {};
     const fehlt = r.ja_fehlt ? (Array.isArray(r.ja_fehlt) ? r.ja_fehlt.join(", ") : r.ja_fehlt) : null;
-    toast(fehlt ? t("pjw_ja_fehlt", { x: fehlt }) : ok); zustand.pwFenster = null; zeige("projektweg", true); return r; }
-  catch (e) { toast(t("fehler", { x: e.message }), true); return null; }
+    toast(fehlt ? t("pjw_ja_fehlt", { x: fehlt }) : ok); zustand.pwFenster = null; zeige("projektweg", true); return r; });
 }
 function pwWert(d, i) {
   const k = d.konzept, g = d.grob, f = d.fein, u = d.umsetzung, a = d.abschluss;

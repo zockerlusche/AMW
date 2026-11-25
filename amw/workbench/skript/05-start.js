@@ -35,8 +35,7 @@ function startvorschlagZeile(v) {
 /* A1928 (TH158): ein fertiger Meilenstein wartet auf deine Abnahme – danach veröffentlicht die AMW (Push, GitHub-Release) */
 function abnahmeZeile(b) {
   const tun = async () => { if (!confirm(t("ab_frage", { m: b.nr, x: b.titel }))) return;
-    try { const r = await schicken("/api/bogen/abnehmen", { bogen: b.id }); toast(r.text); zeige("start", true); }
-    catch (e) { toast(t("fehler", { x: e.message }), true); } };
+    await einmalTun("abnehmen/" + b.id, async () => { const r = await schicken("/api/bogen/abnehmen", { bogen: b.id }); toast(r.text); zeige("start", true); }); };
   return el("div", { class: "ue-zeile ab-zeile", "data-bogen": b.id }, el("span", { class: "ref" }, `M${b.nr}`),
     el("span", { class: "ue-text" }, el("b", {}, t("ab_fertig", { x: b.titel })), " ", el("span", { class: "leise" }, t("ab_grund"))),
     API ? el("span", { class: "sehrleise" }, t("ab_nur_pc")) : el("button", { class: "klein-knopf ue-knopf", type: "button", onclick: tun }, t("ab_knopf")));
@@ -46,8 +45,8 @@ function urteilZeile(x) {
   const tun = async ja => { let grund = null;
     if (ja) { if (!confirm(t("ua_frage", { a: x.id, x: x.titel }))) return; }
     else { grund = prompt(t("ua_zurueck_frage", { a: x.id })); if (!grund || !grund.trim()) return; }
-    try { const r = await schicken("/api/aufgabe/abnehmen", { aufgabe: x.id, ja, grund }); toast(t(r.text === "fertig" ? "ua_ok" : "ua_ok_zurueck", { a: x.id }));
-      zeige("start", true); } catch (e) { toast(t("fehler", { x: e.message }), true); } };
+    await einmalTun("urteil/" + x.id, async () => { const r = await schicken("/api/aufgabe/abnehmen", { aufgabe: x.id, ja, grund }); toast(t(r.text === "fertig" ? "ua_ok" : "ua_ok_zurueck", { a: x.id }));
+      zeige("start", true); }); };
   const g = t("ua_" + x.grund_art, { r: x.grund_ref }) + (x.offen.length ? " · " + t(x.offen.length === 1 ? "ua_offen1" : "ua_offen", { n: x.offen.length }) : "");
   return el("div", { class: "ue-zeile ua-zeile", "data-aufgabe": x.id }, el("span", { class: "ref" }, `A${x.id}`),
     el("span", { class: "ue-text" }, el("b", {}, t(x.pruefpunkt ? "ua_pruefpunkt" : "ua_bereit", { x: x.titel })), " ", el("span", { class: "leise" }, g)),   /* A2096 */

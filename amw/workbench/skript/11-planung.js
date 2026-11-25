@@ -110,8 +110,7 @@ function pmStatus(m, art) {                                       /* ein Status 
   return z.frei ? ["frei", t("th2_frei")] : z.notiz ? ["arbeit", t("pm_zurueck_an_lead")] : ["dich", t("th2_dich")];
 }
 async function pmPlanJa(e) {
-  try { await schicken("/api/meilenstein/plan-ja", { thema: e.thema, eid: e.eid }); toast(e.ja ? pwDeltaOk(e.ja) : t("pm_ok_angelegt")); zeige("planung", true); }
-  catch (x) { toast(t("fehler", { x: x.message }), true); }
+  await einmalTun("plan-ja/" + e.eid, async () => { await schicken("/api/meilenstein/plan-ja", { thema: e.thema, eid: e.eid }); toast(e.ja ? pwDeltaOk(e.ja) : t("pm_ok_angelegt")); zeige("planung", true); });
 }
 function pmAnsicht(pa, art) {
   const m = el("div", { class: "pm-ansicht", "data-pm": art });
@@ -119,8 +118,7 @@ function pmAnsicht(pa, art) {
   if (art === "plan" && pa.starten && !API) m.append(el("div", { class: "pm-start" },   /* „Jetzt starten“ nur, wenn alles freigegeben ist */
     el("span", {}, t("pm_start_text", { n: pa.meilensteine.filter(x => x.status === "geplant" && x.pakete.length).length })),
     el("button", { class: "knopf pm-start-knopf", type: "button", onclick: async () => { if (!confirm(t("pm_start_frage"))) return;
-      try { const r = await schicken("/api/meilenstein/starten", {}); toast(t("pm_ok_start", { x: r.gestartet.join(", ") })); zeige("planung", true); }
-      catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("pm_start"))));
+      await einmalTun("ms/starten", async () => { const r = await schicken("/api/meilenstein/starten", {}); toast(t("pm_ok_start", { x: r.gestartet.join(", ") })); zeige("planung", true); }); } }, t("pm_start"))));
   if (art === "grob" && (pa.aenderungen || []).length) m.append(el("div", { class: "pm-entwuerfe pm-aenderungen" },   /* A1957 */
     el("div", { class: "pm-entwuerfe-kopf" }, t("pm_aenderungen", { n: pa.aenderungen.length })),
     ...pa.aenderungen.map(x => el("div", { class: "pm-entwurf", "data-ae": x.aenderung, "data-stand": x.stand },
@@ -130,11 +128,9 @@ function pmAnsicht(pa, art) {
         ...x.folgen.map(f => el("li", { class: "sehrleise" }, f))),
       x.stand !== "prueft" && !API ? el("div", { class: "th-knoepfe" },
         el("button", { class: "klein-knopf haupt", type: "button", "data-h": "ae-ja", onclick: async () => {
-          try { await schicken("/api/meilenstein/aenderung-ja", { aenderung: x.aenderung }); toast(t("pm_ae_ok_ja")); zeige("planung", true); }
-          catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("pm_ae_ja")),
+          await einmalTun("ae/" + x.aenderung, async () => { await schicken("/api/meilenstein/aenderung-ja", { aenderung: x.aenderung }); toast(t("pm_ae_ok_ja")); zeige("planung", true); }); } }, t("pm_ae_ja")),
         el("button", { class: "klein-knopf", type: "button", "data-h": "ae-weg", onclick: async () => {
-          try { await schicken("/api/meilenstein/aenderung-verwerfen", { aenderung: x.aenderung }); toast(t("pm_ae_ok_weg")); zeige("planung", true); }
-          catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("pm_ae_verwerfen"))) : null))));
+          await einmalTun("ae/" + x.aenderung, async () => { await schicken("/api/meilenstein/aenderung-verwerfen", { aenderung: x.aenderung }); toast(t("pm_ae_ok_weg")); zeige("planung", true); }); } }, t("pm_ae_verwerfen"))) : null))));
   if (art === "grob" && ((pa.entwuerfe || []).length || (pa.planer_laeuft || []).length)) m.append(el("div", { class: "pm-entwuerfe" + (pa.entwuerfe.some(e => !e.wartet) ? "" : " ruhig") },   /* A1940: Entwürfe des Planers; A2118: Farbe nur, wenn einer auf das Ja wartet */
     el("div", { class: "pm-entwuerfe-kopf" }, t(pa.entwuerfe.some(e => e.ja) ? "pm_entwuerfe_n" : "pm_entwuerfe", { n: pa.entwuerfe.length })),   /* A2112: eine Änderung gibt man frei */
     ...pa.planer_laeuft.map(l => el("div", { class: "pm-entwurf sehrleise", "data-th": l.thema }, t("pm_planer_laeuft", { x: `TH${l.thema} ${l.name}`, z: pmZeit(l.seit_utc) }))),
@@ -168,7 +164,7 @@ function pmAnsicht(pa, art) {
   function zeichneDetail() {
     const x = liste.find(y => y.id === offen), z = x[art], [k, s] = pmStatus(x, art), kasten = el("div", { class: "th-kasten" });
     const tun = async (was, extra, ok) => { zustand[schluessel] = x.id;   /* vor dem Senden: schicken zeichnet selbst neu */
-      try { await schicken(`/api/meilenstein/${was}`, { bogen: x.id, art, ...extra }); toast(ok); zeige("planung", true); } catch (e) { toast(t("fehler", { x: e.message }), true); } };
+      await einmalTun(`ms/${was}/${x.id}/${art}${JSON.stringify(extra)}`, async () => { await schicken(`/api/meilenstein/${was}`, { bogen: x.id, art, ...extra }); toast(ok); zeige("planung", true); }); };
     const offenNr = pa.meilensteine.filter(y => ["geplant", "aktiv"].includes(y.status)), i = offenNr.findIndex(y => y.id === x.id);
     const knoepfe = API ? [el("span", { class: "sehrleise" }, t("pm_nur_pc"))] : [
       x.status === "geplant" && !z.frei && (art === "grob" || (x.grob.frei && x.pakete.length)) ? el("button", { class: "klein-knopf haupt", type: "button",

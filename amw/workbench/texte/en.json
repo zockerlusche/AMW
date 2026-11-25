@@ -979,6 +979,8 @@
   "text_fehlt": "Please enter a text",
   "rueckfrage_fehlt": "Please enter your question",
   "fehler": "Error: {x}",
+  "ohne_verbindung": "No connection to the Workbench. Check whether it took effect, otherwise click again.",
+  "ging_nicht": "That did not work. Please click again.",
   "aufgaben": "Tasks",
   "t_offen": "Open",
   "t_geparkt": "Parked",

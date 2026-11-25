@@ -109,6 +109,7 @@ function neuerStandLeiste() {
   document.body.append(el("div", { class: "karte neuer-stand", id: "neuer-stand", role: "status" }, el("span", { class: "leise", style: "flex:1;min-width:0" }, t("neuer_stand")), k));
 }
 function frischZeichnen(dialogErlaubt = false) {
+  if (haeltGedrueckt()) { setTimeout(() => frischZeichnen(dialogErlaubt), 200); return; }
   if (zustand.sicht === "einstellungen") return;
   if (stoerfrei(dialogErlaubt)) zeige(zustand.sicht, true); else neuerStandLeiste();
 }
