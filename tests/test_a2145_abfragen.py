@@ -5,7 +5,7 @@ import os
 import tempfile
 import unittest
 
-from amw import aufwand, db, einmal, kern, planer, planung, themen, zwischenpruefung
+from amw import aufwand, db, eignung, einmal, kern, planer, planung, themen, zwischenpruefung
 
 
 def z(i):
@@ -27,10 +27,10 @@ class Basis(unittest.TestCase):
         kern.agent_neu(con, pid, "CC1")
         return con, pid
 
-    def zaehlen(self, con, tun):
-        """(Ergebnis, Zahl der Anweisungen) für tun()."""
+    def zaehlen(self, con, tun, nur=None):
+        """(Ergebnis, Zahl der Anweisungen) für tun() – mit nur: nur Anweisungen, die diesen Text enthalten."""
         n = [0]
-        con.set_trace_callback(lambda _s: n.__setitem__(0, n[0] + 1))
+        con.set_trace_callback(lambda s: n.__setitem__(0, n[0] + (nur is None or nur in s)))
         try:
             return tun(), n[0]
         finally:
@@ -214,6 +214,44 @@ class ThemenEreignisse(Basis):
             self.assertEqual(len(themen._ereignisse(con, pid, 9)), vorher_t + 1)
             self.assertEqual(planer._ereignisse(con, pid, 9, planer.JA)[-1]["eid"], 1)
             self.assertEqual(len(planer._ereignisse(con, pid, 9, planer.JA)), vorher_p + 1)
+
+
+class Eignung(Basis):
+    """Commit 4: eignung._zeilen fragte je fertiger Aufgabe nach einer roten Prüfung (123 Abfragen in AMW, in sechs Ansichten).
+    messung.zeiten in derselben Schleife bleibt, wie es ist (Vorgabe des Leads)."""
+
+    def bestand(self, n):
+        con, pid = self.neu(f"eignung{n}")
+        gid = kern.agent_zeile(con, pid, "CC1")["id"]
+        with db.schreiben(con):
+            fremd = db.einfuegen(con, "projekt", name="Q", angelegt_utc=db.jetzt())
+            rot = set()
+            for i in range(n):
+                aid = db.einfuegen(con, "aufgabe", projekt_id=pid, titel=f"T{i}", agent="CC1", angelegt_von="TL", angelegt_utc=z(3 * i),
+                                   status="fertig", beleg="abc1234", begonnen_utc=z(3 * i), fertig_utc=z(3 * i + 2),
+                                   art=("text", "fehlersuche", "konzept")[i % 3], groesse=("S", "M", "L")[i % 3])
+                for j, erg in enumerate(("gruen", "rot", "offen")):
+                    if (i + j) % 4 == 0:
+                        db.einfuegen(con, "pruefung", projekt_id=pid if i % 5 else fremd, aufgabe_id=aid, zweig="z", sha="abc", bauer="CC1",
+                                     pruefer="TL", ergebnis=erg, angefragt_utc=z(3 * i))
+                        if erg == "rot":
+                            rot.add(aid)
+            sid = db.einfuegen(con, "sitzung", agent_id=gid, gestartet_utc=z(0), modell="Opus 5.5", denkstufe="high")
+            for i in range(3 * n):
+                db.einfuegen(con, "verbrauch", sitzung_id=sid, agent="CC1", zeit_utc=z(i)[:-3] + "30Z", kosten_usd=0.5 * i)
+        return con, pid, rot
+
+    def test_gleich_und_unabhaengig_von_der_menge(self):
+        zahlen = {}
+        for n in (20, 400):
+            con, pid, rot = self.bestand(n)
+            zeilen, zahlen[n] = self.zaehlen(con, lambda: eignung._zeilen(con, pid), nur="ergebnis = 'rot'")
+            inter = [x for x in zeilen if x["quelle"] == "interaktiv"]
+            self.assertGreater(len(inter), n // 2)
+            self.assertTrue(rot and any(x["aufgabe"] in rot for x in inter))
+            self.assertEqual({x["aufgabe"]: x["ohne"] for x in inter}, {x["aufgabe"]: x["aufgabe"] not in rot for x in inter})
+        self.assertEqual(zahlen[20], zahlen[400], zahlen)
+        self.assertLessEqual(zahlen[400], 1, zahlen)
 
 
 if __name__ == "__main__":

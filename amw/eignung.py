@@ -94,6 +94,8 @@ def _zeilen(con, pid):
     p_ids = {x["aufgabe"] for x in aus}
     agenten = [k for (k,) in con.execute("SELECT DISTINCT agent FROM aufgabe WHERE projekt_id = ? AND status = 'fertig' AND agent IS NOT NULL"
                                          " AND agent != ? AND begonnen_utc IS NOT NULL", (pid, kern.ENTWICKLER)).fetchall()]
+    rote = {x for (x,) in con.execute("SELECT DISTINCT p.aufgabe_id FROM pruefung p JOIN aufgabe a ON a.id = p.aufgabe_id"
+                                      " WHERE a.projekt_id = ? AND p.ergebnis = 'rot'", (pid,))}     # A2145: einmal statt je Aufgabe
     for kennung in agenten:
         gemessen = aufwand.je_agent_alle(con, pid, kennung)
         for a in con.execute("SELECT id, art, groesse FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'fertig'"
@@ -103,11 +105,10 @@ def _zeilen(con, pid):
                 continue
             meist = max(e["modelle"].items(), key=lambda x: x[1])[0]          # „Modell/Stufe“ mit den meisten Kosten
             m, _, s = meist.partition("/")
-            rot = con.execute("SELECT 1 FROM pruefung WHERE aufgabe_id = ? AND ergebnis = 'rot'", (a["id"],)).fetchone()
             z = messung.zeiten(con, pid, a["id"]) or {}
             aus.append({"aufgabe": a["id"], "quelle": "interaktiv", "zelle": _zelle(a, empfehlung), "paar": f"{kurz(m)}/{s or '?'}",
                         "pakettyp": "interaktiv", "usd": round(e["usd"], 4) if e.get("usd") is not None else None,
-                        "dauer_s": z.get("aktiv_s"), "ohne": not rot})
+                        "dauer_s": z.get("aktiv_s"), "ohne": a["id"] not in rote})
     return aus
 
 
