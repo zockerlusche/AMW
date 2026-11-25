@@ -163,7 +163,7 @@ def stand(con, pid):
     ms_dich = (sum(1 for m in geplant if (mensch["grob"] and not m["grob"]) or (mensch["plan"] and m["grob"] and m["pakete"] and not m["plan"]))
                + (sum(1 for m in zu_schliessen if not m["abschluss"] and bericht(con, pid, m["id"]) is not None) if mensch["abschluss"] else 0))
     fuer_dich = {"themen": len(themen.fuer_dich(con, pid)), "meilensteine": ms_dich}
-    zeile =(f"{aktuell['name']} · {aktuell['text']}" if aktuell else "Abschluss · alle Tore geschlossen")
+    zeile =(f"{aktuell['name']} · {aktuell['text']}" if aktuell else "Abschluss · alle Schritte abgeschlossen")
     return {"tore": t, "aktuell": aktuell["tor"] if aktuell else None, "zeile": zeile, "fuer_dich": fuer_dich,
             "nichts_offen": [{"id": tid, "name": frei.get(tid, f"TH{tid}"), "grund": d["grund"], "von": d["von"]}
                              for tid, d in sorted(nichts.items()) if not d["bestaetigt"] and tid in frei]}

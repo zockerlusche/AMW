@@ -89,7 +89,7 @@ class Ableitung(Basis):
         self.assertEqual((ab["bericht"], ab["frei"]), (did, False))
         planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, self.m1, "abschluss")
         s = tore.stand(self.con, self.pid)
-        self.assertEqual((s["aktuell"], s["zeile"]), (None, "Abschluss · alle Tore geschlossen"))
+        self.assertEqual((s["aktuell"], s["zeile"]), (None, "Abschluss · alle Schritte abgeschlossen"))
 
     def test_a1972_fuer_dich_nur_was_der_mensch_tun_muss(self):
         """A1972: Themen, die auf dich warten, und Meilensteine, deren Freigabe (grob, Plan, Abschluss) bei dir liegt; bei co+lead
@@ -147,10 +147,10 @@ class Ableitung(Basis):
         themen.freigeben(self.con, self.pid, kern.ENTWICKLER, self.th)
         for b in (self.m1, self.m2):
             planansicht.freigeben(self.con, self.pid, kern.ENTWICKLER, b, "grob")
-        self.assertEqual(tore.runde(self.con, self.pid), ["Tor Grobplanung geschlossen"])
+        self.assertEqual(tore.runde(self.con, self.pid), ["Schritt Grobplanung abgeschlossen"])
         self.assertEqual(tore.runde(self.con, self.pid), [])
         planansicht.zurueck(self.con, self.pid, kern.ENTWICKLER, self.m2, "grob", "anders")
-        self.assertEqual(tore.runde(self.con, self.pid), ["Tor Grobplanung wieder offen"])
+        self.assertEqual(tore.runde(self.con, self.pid), ["Schritt Grobplanung wieder offen"])
         e = [json.loads(r[0]) for r in self.con.execute("SELECT text FROM plan_ereignis WHERE art = 'tor_stand' ORDER BY id")]
         self.assertEqual([(x["tor"], x["zu"]) for x in e], [("grobplanung", True), ("grobplanung", False)])
 

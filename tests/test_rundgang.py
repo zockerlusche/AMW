@@ -128,7 +128,7 @@ class Seiten(Daten, Rundgang):
         from tests.test_tokenprognose import plan_mit_verbrauch
         plan_mit_verbrauch(self.con, self.pid)
         self.ueberall("start", "start-leitstand", bereit="document.querySelector('#ls-token')",
-                      tun="document.getElementById('leitstand').scrollIntoView({ block: 'start' })", danach="true")
+                      tun="document.getElementById('steuerung').scrollIntoView({ block: 'start' })", danach="true")
         spalten = "new Set([...document.querySelectorAll('#steuerung > div')].map(e => Math.round(e.getBoundingClientRect().left))).size"
         for g, n in (("handy", 1), ("ipad", 2), ("pc", 4)):
             self.besuchen("start", "start-leitstand", bereit="document.querySelector('#ls-token')", g=g)
