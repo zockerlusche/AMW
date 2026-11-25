@@ -112,7 +112,8 @@ def _weg_text(art, d, nr):
     elif art == "grobplan_ja":
         x = ", ".join((d.get("angelegt") or {}).values()) or "wird angelegt"
     elif art == "plan_hinweis":
-        x = (("Grobplan" if d.get("plan") == "grob" else d.get("plan") or "?") + (f", zu {d['bezug']}" if d.get("bezug") else "")
+        b = re.sub(r"^P(?=\d)", "Paket ", str(d.get("bezug") or ""))          # A2077: „P6“ ist das Paket 6 des Entwurfs – die Seite filtert P-Nummern
+        x = (("Grobplan" if d.get("plan") == "grob" else d.get("plan") or "?") + (f", zu {b}" if b else "")
              + f": {str(d.get('text') or '')[:200]}")
     t = muster.format(t=d.get("thema", "?"), f=d.get("fassung", "?"), m=nr if nr is not None else "?", x=x,
                       n=len(d.get("themen") or {}))
@@ -120,6 +121,8 @@ def _weg_text(art, d, nr):
         fest = None                                                              # A2071: kein Planer lief – die Rolle ist die AMW
         t = (f"Bestand übernommen: Grobplan Fassung 0 mit {len((d.get('entwurf') or {}).get('meilensteine') or [])} Meilensteinen"
              if art == "grobplan_entwurf" else f"Bestand übernommen – Fassung 0 gilt als angenommen ({x})")
+    if art == "thema_plan_ja" and d.get("abgebrochen"):                           # A2077 (P641): brach beim Anlegen ab – nicht „angenommen“
+        t = f"TH{d.get('thema', '?')}: Plan nur teilweise angelegt"
     if art == "meilenstein_frei" and d.get("quelle") == "uebernahme":
         t = f"M{nr if nr is not None else '?'} grob freigegeben – Bestand übernommen"
     if art == "meilenstein_frei" and d.get("an") is False:

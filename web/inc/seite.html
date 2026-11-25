@@ -1376,7 +1376,7 @@ button.pjw-karte:hover { background: var(--flaeche2); }
   .pjw-weg { grid-template-columns: minmax(0, 1fr); }
   .pjw-verlauf { display: none; }
   .pjw-verlauf-handy { display: block; margin-top: 14px; }
-  .pjw-verlauf-handy summary { cursor: pointer; color: var(--leise); padding: 6px 0; }
+  .pjw-verlauf-handy > summary { cursor: pointer; color: var(--leise); padding: 6px 0; }
   .pjw-seite:not(.offen) .pjw-ansicht { display: none; }
   .pjw-seite.offen .pjw-schritte, .pjw-seite.offen .pjw-verlauf-handy { display: none; }
   .pjw-zurueck { display: inline-block; }
@@ -4792,7 +4792,7 @@ async function sichtProjektweg() {
     e.lang ? el("details", { class: "pjw-lang" }, el("summary", {}, wer(e), " ", e.zeile), el("div", { class: "leise" }, e.lang))
       : el("span", {}, wer(e), " ", e.zeile || e.text));
   const alle = !!zustand.pwVerlaufAlle;
-  const eintraege = d.verlauf.filter(e => alle || e.schritt === PW_SCHRITTE[v]).slice(-80).reverse();
+  const eintraege = d.verlauf.filter(e => alle || e.schritt === PW_SCHRITTE[v]).slice(-120).reverse();
   const umschalter = el("button", { class: "pjw-chip", type: "button", onclick: () => { zustand.pwVerlaufAlle = !alle; zeige("projektweg", true); } },
     alle ? t("pjw_v_schritt") : t("pjw_v_alle"));
   const verlauf = el("aside", { class: "pjw-verlauf" }, el("div", { class: "pjw-kopf" }, el("span", { class: "pjw-lbl", style: "flex:1" }, t("pjw_verlauf")), umschalter),

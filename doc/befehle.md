@@ -1173,7 +1173,7 @@ options:
 ## verlauf
 ```
 usage: amw verlauf [-h] [--stunden STUNDEN] [--agent AGENT]
-                   [--art {nachricht,erledigt,lauf,pruefung,frage,beschluss,plan,sitzung,dokument}]
+                   [--art {nachricht,erledigt,lauf,pruefung,frage,beschluss,plan,sitzung,dokument,protokoll}]
                    [--grenze GRENZE] [--zusammenfassung] [--von VON]
                    [--projekt PROJEKT]
 
@@ -1181,7 +1181,7 @@ options:
   -h, --help            show this help message and exit
   --stunden STUNDEN
   --agent AGENT
-  --art {nachricht,erledigt,lauf,pruefung,frage,beschluss,plan,sitzung,dokument}
+  --art {nachricht,erledigt,lauf,pruefung,frage,beschluss,plan,sitzung,dokument,protokoll}
   --grenze GRENZE
   --zusammenfassung     nur Zahlen
   --von VON

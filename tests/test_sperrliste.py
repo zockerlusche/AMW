@@ -38,6 +38,7 @@ EINGEORDNET_FREI = {
     "amw/tore.py": "Tore abgeleitet, Abschlussbericht, Bestätigung „nichts zu bauen“ durch den Co (Fach-Regel TH154 wie planansicht.py) – keine Abschottung/Rechte",
     "amw/konzept_uebernahme.py": "Lead/Co legen Themen-Entwürfe aus einem Konzept an (Fach-Regel wie themen.py, A1994) – keine Abschottung/Rechte",
     "amw/verlauf.py": "Absender Entwickler (Anzeige)",
+    "amw/verlauf_quellen.py": "Absender Entwickler im Verlauf (Anzeige, liest nur) – wie verlauf.py (A2077)",
     "amw/wartegrund.py": "Absender Entwickler in Wartegründen",
 }
 AUTOMATISCH = ("sitecustomize.py", "lib/sitecustomize.py", "usercustomize.py", "tests/usercustomize.py", "conftest.py",

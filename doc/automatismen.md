@@ -974,6 +974,17 @@ die der Lead nur noch bestätigt oder ändert.
   der Feinplaner plant mit dem Hinweis neue Pakete im laufenden Meilenstein, die AMW legt sie an und startet sie gleich.
   Nach dem Ja zum Abschluss plant die AMW den nächsten Meilenstein fein (A2031).
 
+### Verlauf im Projektweg (A2024, A2077, TH164 „Verlauf“)
+
+- **Was:** je Schritt, wer was getan hat – Themen, Grobplan und Freigaben wie gespeichert (`verlauf.projektweg`), alles Übrige abgeleitet
+  (`verlauf_quellen`): Feinplaner je Fassung, auch abgelehnt mit Grund; Konzeptänderung; zugeteilt, gestartet, abgegeben, Prüfung
+  grün/rot, fertig/verworfen, ausgeliefert; Abschlussprüfung, bereit zur Abnahme, abgeschlossen. Nichts wird doppelt gespeichert,
+  der Altbestand erscheint mit.
+- **Regeln:** nur Pakete mit Meilenstein; je Tatsache eine Quelle; beim Fenster-Paket der erste Start; wieder geöffnet und neu
+  geschlossen steht nur der letzte Abschluss da. Gleiches hintereinander (dieselbe Art, derselbe, derselbe Meilenstein, höchstens
+  10 min Abstand) ist eine Zeile; Titel und Nummern (P, A, Commit) auf Klick. Höchstens 120 Zeilen je Schritt.
+- **Befehl:** `amw verlauf --art protokoll [--stunden 24] [--agent CC1]`.
+
 ### Thema → Meilenstein → Paket (K8, A1942, TH163)
 
 - **Auslöser:** ein freigegebenes Thema bekommt eine neue Fassung (wie A1915) oder wird zurückgegeben.

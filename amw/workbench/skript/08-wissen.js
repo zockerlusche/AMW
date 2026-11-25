@@ -536,7 +536,7 @@ async function sichtProjektweg() {
     e.lang ? el("details", { class: "pjw-lang" }, el("summary", {}, wer(e), " ", e.zeile), el("div", { class: "leise" }, e.lang))
       : el("span", {}, wer(e), " ", e.zeile || e.text));
   const alle = !!zustand.pwVerlaufAlle;
-  const eintraege = d.verlauf.filter(e => alle || e.schritt === PW_SCHRITTE[v]).slice(-80).reverse();
+  const eintraege = d.verlauf.filter(e => alle || e.schritt === PW_SCHRITTE[v]).slice(-120).reverse();
   const umschalter = el("button", { class: "pjw-chip", type: "button", onclick: () => { zustand.pwVerlaufAlle = !alle; zeige("projektweg", true); } },
     alle ? t("pjw_v_schritt") : t("pjw_v_alle"));
   const verlauf = el("aside", { class: "pjw-verlauf" }, el("div", { class: "pjw-kopf" }, el("span", { class: "pjw-lbl", style: "flex:1" }, t("pjw_verlauf")), umschalter),

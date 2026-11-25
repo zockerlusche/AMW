@@ -381,8 +381,17 @@ def verlauf_lesbar(eintraege, namen, saetze=None):
         grund = saetze(e["fehler"]) if saetze and e.get("fehler") else None
         if grund:
             lang = (lang + " – " if lang else "") + " ".join(grund)
-        aus.append({**{k: v for k, v in e.items() if k not in ("fehler", "mehr")}, "schritt": _schritt_des_eintrags(e), "zeile": zeile, "lang": lang})
+        aus.append({**{k: v for k, v in e.items() if k not in ("fehler", "mehr")}, "schritt": e.get("schritt") or _schritt_des_eintrags(e), "zeile": zeile, "lang": lang})
     return aus
+
+
+def verlauf_gesamt(con, pid, namen=None):
+    """Der Verlauf der Seite (A2077): gespeicherte Ereignisse des Projektwegs und die abgeleiteten (verlauf_quellen), je Schritt."""
+    from . import planfunde, verlauf, verlauf_quellen
+    if namen is None:
+        namen = {r["id"]: r["name"] for r in con.execute("SELECT id, name FROM thema WHERE projekt_id = ?", (pid,))}
+    weg = verlauf.projektweg(con, pid, grenze=VERLAUF_GRENZE, buendeln=True)
+    return verlauf_lesbar(verlauf_quellen.gesamt(con, pid, weg, _schritt_des_eintrags), namen, lambda x: planfunde.saetze(con, pid, x))
 
 
 def _abnahme_dran(con, pid, schritte, dran, f, u, ab, ich):
@@ -422,7 +431,6 @@ def laeufe(con, pid):
 
 def daten(con, pid):
     """Alles für die Seite in einer Antwort (eine Anfrage je Neuzeichnen, auch online)."""
-    from . import planfunde, verlauf
     s = projektweg.sicht(con, pid)
     fr = s["freigaben"]
     f = fein(con, pid, fr)
@@ -462,5 +470,4 @@ def daten(con, pid):
     return {"schritte": schritte, "dran": dran, "zeile": s["zeile"], "konzept": k, "grob": g,
             "fein": f, "umsetzung": u, "abschluss": ab, "fragen": fragen(con, pid),
             "laeufe": laeufe(con, pid),
-            "verlauf": verlauf_lesbar(verlauf.projektweg(con, pid, grenze=VERLAUF_GRENZE, buendeln=True),
-                                      {t["id"]: t["name"] for t in g_themen}, lambda x: planfunde.saetze(con, pid, x))}
+            "verlauf": verlauf_gesamt(con, pid, {t["id"]: t["name"] for t in g_themen})}

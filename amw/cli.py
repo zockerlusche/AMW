@@ -1430,6 +1430,12 @@ def cmd_verlauf(a, con):
     if a.zusammenfassung:
         print(verlauf.kurztext(verlauf.zusammenfassung(con, pid, ab)))
         return
+    if "protokoll" in (a.art or []):                     # A2077: der Projektweg – wer hat was getan, je Schritt
+        from . import projektweg_seite
+        for e in projektweg_seite.verlauf_gesamt(con, pid)[-a.grenze:]:
+            if e["zeit"] >= ab and (not a.agent or e["von"] == a.agent):
+                print(f"{_zeit(e['zeit'])}  {e['schritt']:<9} {e['von'] or '–':<10} {e['zeile'][:140]}")
+        return
     for x in reversed(verlauf.verlauf(con, pid, ab, agent=a.agent, arten=a.art, grenze=a.grenze)):
         print(f"{_zeit(x['zeit'])}  {x['art']:<9} {x['wer'] or '–':<10} {x['ref']:<7} {x['text'][:110]}"
               + (f"  [{x['zusatz']}]" if x["zusatz"] and x["art"] != "nachricht" else ""))
@@ -4289,7 +4295,7 @@ def parser():
     x.add_argument("--stunden", type=int, default=24)
     x.add_argument("--agent")
     x.add_argument("--art", action="append", choices=["nachricht", "erledigt", "lauf", "pruefung", "frage", "beschluss", "plan", "sitzung",
-                                                       "dokument"])
+                                                       "dokument", "protokoll"])
     x.add_argument("--grenze", type=int, default=200)
     x.add_argument("--zusammenfassung", action="store_true", help="nur Zahlen")
     x.set_defaults(f=cmd_verlauf)
