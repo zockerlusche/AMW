@@ -41,9 +41,9 @@ def offene_paare(con, pid):
 
 
 def _offene_paare(con, pid):
-    # über den Index (bogen_id, art): die Ereignisse eines Handgriffs tragen den Meilenstein, in dem er galt
-    zeilen = con.execute("SELECT id, zeit_utc, von, art, text, aufgabe_id, bogen_id FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?)"
-                         " AND bogen_id IN (SELECT id FROM bogen WHERE projekt_id = ?) ORDER BY id DESC", (pid, ART, ENDE, pid)).fetchall()
+    # über den Index (bogen_id, art), CROSS JOIN hält die Reihenfolge fest: die Ereignisse eines Handgriffs tragen den Meilenstein, in dem er galt
+    zeilen = con.execute("SELECT e.id, e.zeit_utc, e.von, e.art, e.text, e.aufgabe_id, e.bogen_id FROM bogen b CROSS JOIN plan_ereignis e"
+                         " ON e.bogen_id = b.id AND e.art IN (?, ?) WHERE b.projekt_id = ? ORDER BY e.id DESC", (ART, ENDE, pid)).fetchall()
     zu, aus = {_json(r["text"]).get("zu") for r in zeilen if r["art"] == ENDE}, []
     for r in zeilen:
         d = _json(r["text"])
