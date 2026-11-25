@@ -272,23 +272,45 @@ def nur_projekt(pfad, pid):
         k.close()
 
 
+def _freier_name(ziel):
+    """A2136: den automatisch gebildeten Namen belegen – gibt es ihn schon (zwei Sicherungen in einer Minute), kommt ein Zähler dazu
+    („…-1850-2.db“). Die leere Datei reserviert ihn (VACUUM INTO nimmt eine leere an); überschrieben wird nie."""
+    stamm, i = ziel[:-3], 1
+    while True:
+        pfad = ziel if i == 1 else f"{stamm}-{i}.db"
+        try:
+            os.close(os.open(pfad, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+            return pfad
+        except FileExistsError:
+            i += 1
+
+
 def sichern(ziel=None, pfad=None, pid=None, name=None):
     """Vollständige Kopie der Datenbank (VACUUM INTO – geht auch, während Agenten schreiben). Rückgabe: Zielpfad.
-    pid: nur dieses Projekt (name: für den Dateinamen) – eine eigene, lauffähige AMW-Datenbank."""
+    pid: nur dieses Projekt (name: für den Dateinamen) – eine eigene, lauffähige AMW-Datenbank. Ein selbst genannter Dateiname, den es
+    schon gibt, bleibt ein Fehler; ein automatischer bekommt einen Zähler (A2136)."""
     pfad = pfad or db_pfad()
     teil = f"-{kurzname(name or str(pid), pid)}" if pid else ""
+    automatisch = not ziel or os.path.isdir(ziel) or not ziel.lower().endswith(".db")
     if not ziel:
         ziel = os.path.join(os.path.dirname(pfad), f"sicherung{teil}-{datetime.now().strftime('%Y-%m-%d-%H%M')}.db")
     elif os.path.isdir(ziel) or not ziel.lower().endswith(".db"):          # ein Ordner (wird angelegt)
         os.makedirs(ziel, exist_ok=True)
         ziel = os.path.join(ziel, f"amw-sicherung{teil}-{datetime.now().strftime('%Y-%m-%d-%H%M')}.db")
-    if os.path.exists(ziel):
+    if automatisch:
+        ziel = _freier_name(ziel)
+    elif os.path.exists(ziel):
         raise FileExistsError(f"{ziel} gibt es schon")
-    q = sqlite3.connect(f"file:{pfad}?mode=ro", uri=True, timeout=30)
     try:
-        q.execute("VACUUM INTO ?", (ziel,))
-    finally:
-        q.close()
+        q = sqlite3.connect(f"file:{pfad}?mode=ro", uri=True, timeout=30)
+        try:
+            q.execute("VACUUM INTO ?", (ziel,))
+        finally:
+            q.close()
+    except BaseException:
+        if automatisch and os.path.exists(ziel) and not os.path.getsize(ziel):      # nur die eigene leere Reservierung
+            os.remove(ziel)
+        raise
     if pid:
         nur_projekt(ziel, pid)
     return ziel

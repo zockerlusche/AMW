@@ -14,7 +14,7 @@ import time
 
 from . import db, einstellungen, kern
 
-SICHERUNG = re.compile(r"^(?:amw-)?sicherung(?:-.+)?-(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)\.db$")
+SICHERUNG = re.compile(r"^(?:amw-)?sicherung(?:-.+)?-(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)(?:-(\d+))?\.db$")   # am Ende: Zähler (A2136)
 PRUEFEN_S = 600               # so oft misst der Wächter die Laufwerke
 STUFEN = {None: 0, "gelb": 1, "rot": 2}
 
@@ -90,7 +90,7 @@ def sicherungen(ordner=None):
         if not m:
             continue
         try:
-            zeit = datetime.datetime(*(int(x) for x in m.groups()))
+            zeit = datetime.datetime(*(int(x) for x in m.groups()[:5]))
             pfad = os.path.join(ordner, n)
             st = os.stat(pfad)
             merk = (pfad, st.st_size, st.st_mtime_ns)          # A2001: eine Sicherung ändert sich nicht – Größe einmal zählen
@@ -101,10 +101,10 @@ def sicherungen(ordner=None):
                 if os.path.isdir(ablage):
                     groesse += _groesse(ablage)
                 _SICHERUNG_GROESSE[merk] = groesse
-            aus.append({"name": n, "zeit": zeit, "bytes": groesse})
+            aus.append((int(m.group(6) or 1), {"name": n, "zeit": zeit, "bytes": groesse}))
         except (OSError, ValueError):
             pass
-    return sorted(aus, key=lambda x: x["zeit"], reverse=True)
+    return [x for _, x in sorted(aus, key=lambda t: (t[1]["zeit"], t[0]), reverse=True)]
 
 
 def versionen(con):

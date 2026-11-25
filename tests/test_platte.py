@@ -138,6 +138,32 @@ class Sicherungen(Grund):
 
 
 class Archiv(Grund):
+    def test_a2136_zwei_sicherungen_in_einer_minute(self):
+        import sqlite3
+        a, b, c = db.sichern(), db.sichern(), db.sichern()
+        self.assertEqual(len({a, b, c}), 3)
+        for p in (a, b, c):
+            k = sqlite3.connect(p)
+            self.assertEqual(k.execute("PRAGMA quick_check").fetchone()[0], "ok")
+            self.assertTrue(k.execute("SELECT count(*) FROM projekt").fetchone()[0])
+            k.close()
+        namen = [x["name"] for x in platte.sicherungen()]
+        self.assertEqual([n for n in namen if os.path.basename(a)[:-3] in n], [os.path.basename(x) for x in (c, b, a)])   # die neueste zuerst
+        with self.assertRaises(FileExistsError):                                                  # ein selbst genannter Name bleibt ein Fehler
+            db.sichern(a)
+        with mock.patch("amw.db.sqlite3.connect", side_effect=sqlite3.OperationalError("weg")):   # nichts Halbes bleibt liegen
+            with self.assertRaises(sqlite3.OperationalError):
+                db.sichern()
+        self.assertEqual(len([n for n in os.listdir(os.path.dirname(a)) if n.startswith("sicherung") and n.endswith(".db")]), len(namen))
+
+    def test_a2136_ordner_als_ziel_und_projekt_im_namen(self):
+        ordner = os.path.join(os.path.dirname(db.db_pfad()), "sicher")
+        self.assertNotEqual(db.sichern(ordner), db.sichern(ordner))
+        for n, zeit in (("sicherung-2026-11-25-1850-2.db", (18, 50)), ("amw-sicherung-mein-shop-2026-11-25-1850-12.db", (18, 50)),
+                        ("sicherung-2026-11-25-1850.db", (18, 50))):
+            m = platte.SICHERUNG.match(n)
+            self.assertEqual((int(m.group(4)), int(m.group(5))) if m else None, zeit, n)
+
     def test_vorschlaege_ins_archiv_verschieben_nie_loeschen(self):
         self.sicherung("sicherung-2026-11-01-0800.db", 1, dokumente_mb=1)
         self.sicherung("sicherung-2026-11-02-0800.db", 1)

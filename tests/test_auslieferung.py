@@ -196,6 +196,34 @@ class Kette(unittest.TestCase):
         self.assertIn("amw waechter weiter", str(e.exception))
         self.assertEqual(waechter.zustand()["wartung"]["grund"], "Auslieferung der AMW")
 
+    def test_zwei_sicherungen_in_einer_minute_und_die_naechste_kette_beendet_die_wartung(self):
+        """A2136 (1.196.0, 25.11.): die erste Kette brach an der Sicherung ab und ließ die Wartung an – die zweite hielt sie für von Hand."""
+        from amw import waechter
+        self.lad()
+        self.gruen()
+        self.gesamtlauf()
+        with mock.patch.object(db, "sichern", side_effect=FileExistsError("gibt es schon")):
+            with self.assertRaises(auslieferung.Stopp):
+                self.kette().ausliefern("neu")
+        self.assertTrue(waechter.zustand()["wartung"])
+        db.sichern()                                                                              # gerade von Hand gesichert: gleiche Minute
+        self.kette().ausliefern("neu")
+        self.assertIsNone(waechter.zustand()["wartung"])
+
+    def test_wartung_einer_noch_laufenden_kette_bleibt(self):
+        from amw import waechter
+        self.lad()
+        with mock.patch("amw.steuerung.lebt", return_value=True):
+            waechter.wartung_an("Auslieferung der AMW", kette=os.getpid() + 1)
+            self.assertFalse(waechter.wartung_von_kette())
+            waechter.wartung_an("Auslieferung der AMW")                                          # derselbe Text, von Hand
+            self.assertFalse(waechter.wartung_von_kette())
+        with mock.patch("amw.steuerung.lebt", return_value=False):
+            waechter.wartung_an("Auslieferung der AMW", kette=os.getpid() + 1)
+            self.assertTrue(waechter.wartung_von_kette())
+            waechter.wartung_an("Auslieferung der AMW")
+            self.assertFalse(waechter.wartung_von_kette())
+
     def test_wartungsmodus_von_hand_bleibt_wie_er_war(self):
         from amw import waechter
         self.lad()

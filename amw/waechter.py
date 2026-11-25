@@ -73,8 +73,16 @@ def _jetzt():
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def wartung_an(grund):
-    _setzen(wartung={"seit": _jetzt(), "grund": grund})
+def wartung_an(grund, kette=None):
+    """kette (A2136): Prozess der Auslieferung, die ihn setzt – bricht sie ab, darf die nächste ihn übernehmen und beenden."""
+    _setzen(wartung={"seit": _jetzt(), "grund": grund, **({"kette": kette} if kette else {})})
+
+
+def wartung_von_kette():
+    """Hat eine Auslieferung den Wartungsmodus gesetzt, die nicht mehr läuft (oder dieser Prozess selbst)? Ein von Hand gesetzter nie."""
+    from . import steuerung
+    k = (zustand()["wartung"] or {}).get("kette")
+    return bool(k) and (k == os.getpid() or not steuerung.lebt(k))
 
 
 def wartung_aus():

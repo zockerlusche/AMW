@@ -564,9 +564,9 @@ class Kette:
             self.stopp("Projekt", f"Version {version}: die AMW liest ihre Version aus amw/__init__.py (release_modus datei) –"
                        " Einstellung des Projekts prüfen; nichts geändert, kein Tag gesetzt")
         from . import waechter                         # A1847/P253: während jeder Auslieferung keine neuen p-Starts
-        wartung = not waechter.zustand()["wartung"]     # schon an (von Hand): bleibt, wie es war
+        wartung = not waechter.zustand()["wartung"] or waechter.wartung_von_kette()   # von Hand an: bleibt; von einer abgebrochenen Kette (A2136): übernehmen
         if wartung:
-            waechter.wartung_an("Auslieferung der AMW")
+            waechter.wartung_an("Auslieferung der AMW", kette=os.getpid())
         self.wartung_an = True                           # bricht die Kette ab, bleibt er an – stopp() sagt es
         if waechter.p_laufend(self.con):
             fertig, rest = waechter.vor_auslieferung(self.con)
