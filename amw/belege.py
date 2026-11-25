@@ -35,7 +35,9 @@ class GitFehler(RuntimeError):
 
 def _umgebung():
     u = {k: v for k, v in os.environ.items() if not k.upper().startswith("GIT_")}
-    u.update(GIT_TERMINAL_PROMPT="0", GIT_CONFIG_NOSYSTEM="1", GIT_OPTIONAL_LOCKS="0", GIT_LFS_SKIP_SMUDGE="1", LC_ALL="C")
+    u.update(GIT_TERMINAL_PROMPT="0", GIT_CONFIG_NOSYSTEM="1", GIT_OPTIONAL_LOCKS="0", GIT_LFS_SKIP_SMUDGE="1", LC_ALL="C",
+             GIT_NO_REPLACE_OBJECTS="1",                  # ein ersetztes Objekt zeigte etwas anderes als das ausgelieferte
+             GIT_NO_LAZY_FETCH="1")                       # Teil-Klon: nichts aus dem Netz nachholen
     return u
 
 

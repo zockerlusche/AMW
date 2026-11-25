@@ -240,6 +240,17 @@ class Code(Repo):
         self.assertIn("z_geaendert.txt", self.namen(ziel))
         self.assertEqual((e["dateien"], [g for _, g in e["weg"]]), (2, ["Grenze"] * 4))
 
+    def test_ersetzte_objekte_zaehlen_nicht(self):
+        self.commit("a.txt", "echt\n")
+        alt = self.git("rev-parse", "HEAD:a.txt")
+        self.schreib("../neu.txt", "ersetzt\n")
+        self.git("replace", alt, self.git("hash-object", "-w", "--no-filters", "--", os.path.join(self.ordner.name, "neu.txt")))
+        self.assertEqual(self.git("cat-file", "-p", "HEAD:a.txt"), "ersetzt")                       # git selbst zeigt den Ersatz
+        _, ziel = self.ablegen()
+        with open(os.path.join(ziel, "a.txt"), encoding="utf-8") as f:
+            self.assertEqual(f.read(), "echt\n")
+        self.assertEqual((belege._umgebung()["GIT_NO_REPLACE_OBJECTS"], belege._umgebung()["GIT_NO_LAZY_FETCH"]), ("1", "1"))
+
     def test_filter_des_repos_laufen_nicht(self):
         self.schreib(".gitattributes", "*.txt filter=probe\n")
         self.schreib("a.txt", "roh\n")
