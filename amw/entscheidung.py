@@ -139,9 +139,9 @@ def anwenden(con, pid, aid, zeile, code, lauf=None, meldung=None, befund=None, p
             gesichert = mergeliste.kopf_sichern(con, pid, aid, pruefung_c.repo(p), befund["kopf"]) and mergeliste.gesichert(aid)
         except Exception as e:                                   # noqa: BLE001 – die Entscheidung gilt trotzdem; Befund melden
             notiz = f"Stand nicht gesichert: {type(e).__name__}: {e}"
-    frei = None
-    if zeile == "E7" and p is not None and (befund or {}).get("kopf"):
-        gesichert, archiv, frei, notiz = _platz_frei(con, pid, aid, p, quelle, befund["kopf"])
+    frei, kopf = None, (befund or {}).get("kopf")
+    if zeile == "E7" and p is not None and kopf:
+        gesichert, archiv, frei, notiz = _platz_frei(con, pid, aid, p, quelle, kopf)
     if z["archiv"] and p is not None:
         from . import arbeiter
         try:
@@ -156,14 +156,14 @@ def anwenden(con, pid, aid, zeile, code, lauf=None, meldung=None, befund=None, p
                      text=json.dumps({"zeile": zeile, "code": code, "an": an, "archiv": archiv, "kopf": (befund or {}).get("kopf"),
                                       "gesichert": gesichert,
                                       **({"quelle": "projekt", "platz_frei": frei} if frei is not None else {}),   # A2105
-                                      **({"ohne_regression": befund["ohne_regression"]}
+                                      **({"ohne_regression": (befund or {})["ohne_regression"]}
                                                                  if (befund or {}).get("ohne_regression") else {}),
                                       **({"riskant": (befund or {})["riskant_beleg"]} if (befund or {}).get("riskant_beleg") else {})},   # A2054
                                      ensure_ascii=False))
         if an:
             kern._posten(con, pid, "AMW", an, "info" if zeile == "E1n" else "meldung", f"{zeile} {code}: A{aid} {titel}"[:140], text,
                          aufgabe_id=aid)
-        elif zeile == "E7" and notiz and (lead := kern.lead(con, pid)):            # A2105: nur der Fehlerfall – sonst sagt E7 nichts
+        elif zeile == "E7" and p is not None and notiz and (lead := kern.lead(con, pid)):            # A2105: nur der Fehlerfall – sonst sagt E7 nichts
             kern._posten(con, pid, "AMW", lead, "meldung", f"A{aid} angenommen, Platz {p['nr']} bleibt belegt"[:140],
                          f"{notiz}\nDas Paket ist bereit zum Merge. Der Platz wird mit der Auslieferung frei.", aufgabe_id=aid)
     return {"zeile": zeile, "code": code, "zustand": z["zustand"], "an": an, "archiv": archiv}
