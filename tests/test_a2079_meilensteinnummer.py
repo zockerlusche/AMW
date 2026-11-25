@@ -184,9 +184,9 @@ class Mcp(Grund):
         for wert in ("M2", 5):
             self.assertIsNone(mcp_server._pruefen("bogen_zeigen", {"id": wert}))
             self.assertEqual(mcp_server.befehlszeile("bogen_zeigen", {"id": wert}), ["bogen", "zeigen", str(wert)])
-        self.assertIn("M<nr>", mcp_server._pruefen("bogen_zeigen", {"id": [1]}))
-        self.assertIn("nicht mit -", mcp_server._pruefen("bogen_zeigen", {"id": "--von"}))         # keine Optionen durch die Hintertür
-        self.assertIn("muss", mcp_server._pruefen("bogen_zeigen", {"id": True}))
+        self.assertIn("M<nr>", str(mcp_server._pruefen("bogen_zeigen", {"id": [1]})))
+        self.assertIn("nicht mit -", str(mcp_server._pruefen("bogen_zeigen", {"id": "--von"})))         # keine Optionen durch die Hintertür
+        self.assertIn("muss", str(mcp_server._pruefen("bogen_zeigen", {"id": True})))
 
 
 if __name__ == "__main__":
