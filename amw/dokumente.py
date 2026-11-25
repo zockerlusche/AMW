@@ -16,7 +16,7 @@ import sqlite3
 import time
 import zipfile
 
-from . import db, kern
+from . import db, kern, nummernsuche
 
 ARTEN = ("ergebnis", "bericht", "entwurf", "mockup", "bild", "quelle")
 # Endung → (Format, MIME-Typ, Vorschau). Vorschau: text | bild | mockup | pdf | video | download
@@ -380,11 +380,19 @@ def liste(con, pid, art=None, bezug_art=None, bezug_id=None, von=None, q=None, s
         if wert not in (None, ""):
             sql += f" AND {spalte} = ?"
             par.append(wert)
+    selbst = nummernsuche.dokument_nr(q) if q else None
+    aus = []
+    if selbst is not None:                            # „D1714“ / „1714“: das Dokument selbst zuerst (Filter gelten weiter)
+        aus = [dict(r) for r in con.execute(sql + " AND d.id = ? AND d.status != 'geloescht' LIMIT ?",
+                                            (*par, selbst, grenze))]
+        sql += " AND d.id != ?"
+        par.append(selbst)
     if q:
         sql += (" AND (d.titel LIKE ? OR EXISTS (SELECT 1 FROM dokument_version x WHERE x.dokument_id = d.id"
                 " AND x.suchtext LIKE ?))")
         par += [f"%{q}%"] * 2
-    aus = [dict(r) for r in con.execute(sql + " ORDER BY v.zeit_utc DESC, d.id DESC LIMIT ?", (*par, grenze))]
+    aus += [dict(r) for r in con.execute(sql + " ORDER BY v.zeit_utc DESC, d.id DESC LIMIT ?",
+                                         (*par, max(grenze - len(aus), 0)))]
     for d in aus:
         d["format"], _, d["vorschau"] = FORMATE.get(d["endung"], ("?", "", "download"))
     return aus
