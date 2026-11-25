@@ -367,15 +367,15 @@ const pwVorbehalt = v => v.art === "pruefer" ? v.text : t("pjw_vb_" + v.art + (v
 const pwTrotzdem = (liste, tun) => () => { if (confirm(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"))) tun(); };
 /* A2088 (Lead #32824): was beim Abnehmen dagegen spricht – auf Projektweg und Planung gleich. null: gerade geht es nicht. */
 const pwDagegen = (lage, zaehlt, vorbehalte, alt) => ["laeuft", "bericht"].includes(lage) ? null
-  : [...(zaehlt ? [t("pjw_l_" + lage)] : []), ...(alt ? [t("pjw_a_alt")] : []), ...(vorbehalte || []).map(pwVorbehalt)];
-function pwUrteil(x, name, p) {
+  : [...(zaehlt ? [t("pjw_l_" + lage)] : []), ...(alt ? [t("pjw_a_alt_" + alt)] : []), ...(vorbehalte || []).map(pwVorbehalt)];
+function pwUrteil(x, name, p, text) {
   /* je Thema ein Wort und ein kurzer Satz; Pakete, Commits und Dateien auf Klick */
   const z = x.zustand || (x.erfuellt ? "erfuellt" : "nicht_erfuellt");
   const satz = z === "nicht_pruefbar" ? (x.gruende || []).map(pwVorbehalt).join(" · ") : z === "erfuellt" ? x.beleg : x.fehlt;
   const pakete = (p.pakete || []).filter(k => x.thema ? k.themen.includes(x.thema) : !k.themen.some(th => p.themen.some(y => y.thema === th)));
   const kopf = [el("b", {}, t("pjw_z_" + z, { x: name })), satz ? " – " + satz : null];
-  if (!pakete.length) return el("span", {}, kopf);
-  return el("details", { class: "pjw-beleg" }, el("summary", {}, kopf), z === "nicht_pruefbar" && (x.beleg || x.fehlt) ? el("div", { class: "leise" }, t("pjw_pruefer_sagt", { x: x.fehlt || x.beleg })) : null,
+  if (!pakete.length && !text) return el("span", {}, kopf);
+  return el("details", { class: "pjw-beleg" }, el("summary", {}, kopf), text ? el("div", { class: "pjw-zielsatz" }, text) : null, z === "nicht_pruefbar" && (x.beleg || x.fehlt) ? el("div", { class: "leise" }, t("pjw_pruefer_sagt", { x: x.fehlt || x.beleg })) : null,
     ...pakete.map(k => el("div", { class: "pjw-beleg-paket" }, el("div", {}, k.titel), el("div", { class: "leise" },
       [[...new Set([...k.commits.slice(0, 3), ...(k.sha ? [k.sha] : [])])].join(", ") + (k.commits.length > 3 ? " …" : ""), k.grund ? t("pjw_bg_" + k.grund, { z: p.stand?.zweig || "main" }) : k.befund === "urteil" ? t("pjw_bg_urteil") : null, k.dateien.length ? k.dateien.join(", ") + (k.mehr ? " …" : "") : null].filter(Boolean).join(" · ")))));
 }
@@ -395,14 +395,14 @@ function pwAbschlussKarte(x, einzig, haupt) {
     karte.append(el("div", { class: "pjw-pruefung" },
       p.vorbehalte.some(v => v.art === "kein_gesamttest") ? null : zeile(test.befehl ? testOk : null, !test.befehl ? t("pjw_test_kein") : test.rc === 0 ? t("pjw_test_gruen", { n: x.pakete, l: test.lauf }) : t("pjw_test_rot", { l: test.lauf })),
       ...p.themen.map(th => zeile(th.erfuellt, pwUrteil(th, th.thema, p))),
-      p.ziel ? zeile(p.ziel.erfuellt, pwUrteil(p.ziel, t("pjw_ziel_fertig"), p)) : null,
+      p.ziel ? zeile(p.ziel.erfuellt, pwUrteil(p.ziel, t(p.zielsatz?.[0] === "ziel" ? "pjw_ziel" : "pjw_ziel_fertig"), p, p.zielsatz?.[1])) : null,   /* A2098: „fertig, wenn“ wie ein Thema, sein Text auf Klick */
       p.fehler ? zeile(false, t("pjw_a_pruefer_fehler_z", { x: p.gruende.map(g => t("pjw_ax_" + g.art, g.x)).join(" · ") })) : null, ja));
     if (p.vorfuehrung.length) karte.append(el("div", { class: "pjw-wie" }, el("span", { class: "pjw-lbl" }, t("pjw_vorfuehrung")), el("ol", {}, p.vorfuehrung.map(s => el("li", {}, s)))));
   }
   if (x.bericht) karte.append(el("div", { class: "pjw-werte" }, el("a", { href: "#", onclick: e => { e.preventDefault(); dokumentDialog(x.bericht); } }, t("pjw_bericht"))));
   /* A2088: Vorbehalte über dem Knopf; gibt es welche, heißt er „Trotz Vorbehalt abnehmen“ und fragt nach. Verboten wird es nicht. */
   const vorbehalte = p ? p.vorbehalte.map(pwVorbehalt) : [], unpruefbar = x.lage === "nicht_pruefbar";
-  if (p && p.alt) karte.append(el("div", { class: "leise pjw-a-alt" }, t("pjw_a_alt")));
+  if (p && p.alt) karte.append(el("div", { class: "leise pjw-a-alt" }, t("pjw_a_alt_" + p.alt)));
   if (vorbehalte.length) karte.append(el("div", { class: "pjw-vorbehalte" + (x.bei_dir ? "" : " ruhig") }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, vorbehalte.map(v => el("li", {}, v)))));
   if (API) return karte;
   const abnehmen = () => pwTun("/api/meilenstein/freigeben", { bogen: x.bogen, art: "abschluss" }, t("pjw_ok_abgenommen"));

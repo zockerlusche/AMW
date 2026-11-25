@@ -178,9 +178,9 @@ def vorbehalte(con, pid, b):
     offen = b["status"] != "fertig"
     e = (abschlusslage.ergebnis(con, pid, b) if offen else abschluss.ergebnis(con, pid, b["id"])) or {}
     lage = abschlusslage.lage(con, pid, b) if offen else None
-    zaehlt, liste, alt = abschlusslage.wie_vorbehalt(con, pid, lage), e.get("vorbehalte") or [], abschluss.alt(e)
+    zaehlt, liste, alt = abschlusslage.wie_vorbehalt(con, pid, lage), e.get("vorbehalte") or [], abschluss.alt(con, e)
     return {"liste": liste, "alt": alt, "lage": lage, "lage_zaehlt": zaehlt, "nur_mensch": bool(liste or zaehlt or alt or e.get("nicht_pruefbar")),
-            "warum": abschlusslage.TEXT[lage] if lage and zaehlt else "die Prüfung ist von vor dieser Version, der Prüfer sah den Code nicht" if alt
+            "warum": abschlusslage.TEXT[lage] if lage and zaehlt else "die Prüfung ist von vor dieser Version, " + ("der Prüfer sah den Code nicht" if alt == "code" else "„fertig, wenn“ ist nicht beurteilt") if alt
             else "die Abschlussprüfung hat Vorbehalte"}
 
 

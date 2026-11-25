@@ -999,8 +999,13 @@ die der Lead nur noch bestätigt oder ändert.
   Ergebnis (`roh`) und im Bericht. Ein Ergebnis mit Fehler zählt nicht als Prüfung: auf der Seite Projektweg startet
   „Prüfung erneut starten“ (Mensch oder Lead, Weg von A2064) sie noch einmal. Die Karte nennt den Grund
   je Art in Menschensprache (`abschluss.deuten`, Texte `pjw_ax_…`), der technische Wortlaut steht nur im Abschlussbericht.
-- **Meilenstein ohne Themen (A2072, z. B. Wartung):** Der Prüfer urteilt im Feld `ziel`, ob die Pakete Ziel und „fertig, wenn“
-  erfüllen; die Karte und der Bericht zeigen die Zeile „Ziel und „fertig, wenn““.
+- **„Fertig, wenn“ zählt immer (A2098):** Nennt der Meilenstein „Fertig, wenn“ (ohne diesen Text: ein Ziel), urteilt der Prüfer im Feld
+  `ziel` zusätzlich zu den Themen darüber; Karte und Bericht zeigen die Zeile „Fertig, wenn“, den Text auf Klick. Nicht erfüllt →
+  Nacharbeit wie sonst. Verlangt es etwas, das kein Code zeigt (Bericht oder Probe eines anderen, Entscheidung, Messung), braucht es einen
+  Nachweis: ein Dokument am Meilenstein, an einem seiner Pakete oder einer Frage dazu, oder eine beantwortete Frage zu einem Paket. Fehlt
+  er, ist „Fertig, wenn“ **nicht prüfbar**: keine Nacharbeit, Meldung an den Lead mit dem, was fehlt. Die Vorführung, die der Mensch bei der
+  Abnahme sieht, fehlt nie. Ein Ergebnis von vorher, das „Fertig, wenn“ nicht beurteilt, zählt wie eine Prüfung von vor dieser Version. Ein
+  Meilenstein ohne Themen (A2072, z. B. Wartung) wird nur danach beurteilt.
 - **Grenzen (TL #31785):** Die Kosten des Prüfers zählen zur gemeinsamen Tagesgrenze der Planer (`planer_tagesgrenze_usd`);
   ist sie erreicht, startet keine Prüfung, und der Lead bekommt eine Meldung. Höchstens 2 automatische
   Nacharbeits-Runden je Meilenstein – danach legt die AMW keine weiteren Pakete an, die offenen

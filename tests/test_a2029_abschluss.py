@@ -55,6 +55,7 @@ class Grund(unittest.TestCase):
     def urteil(self, erfuellt=(True, True), nacharbeit=None):
         return {"themen": [{"thema": f"TH{self.t1}", "erfuellt": erfuellt[0], "beleg": "A%d Login" % self.a1, "fehlt": None if erfuellt[0] else "SSO fehlt"},
                            {"thema": f"TH{self.t2}", "erfuellt": erfuellt[1], "beleg": "A%d" % self.a2}],
+                "ziel": {"erfuellt": True, "beleg": "alles für die Vorführung da"},                  # A2098
                 "vorfuehrung": ["Seite öffnen", "mit Firmenkonto anmelden"], **({"nacharbeit": nacharbeit} if nacharbeit else {})}
 
     def post(self, an):
@@ -408,7 +409,7 @@ class ErneutStarten(Grund):
 
 
 class OhneThemen(Grund):
-    """A2072: Meilenstein ohne Themen (M18 Wartung) – der Prüfer urteilt im Feld ziel über Ziel und „fertig wenn“."""
+    """A2072: Meilenstein ohne Themen (M18 Wartung) – der Prüfer urteilt im Feld ziel über „fertig, wenn“."""
 
     def setUp(self):
         super().setUp()
@@ -432,12 +433,12 @@ class OhneThemen(Grund):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
             abschluss._dateien(self.con, self.pid, self.b, {"befehl": None}, d)
             with open(os.path.join(d, "meilenstein.md"), encoding="utf-8") as f:
-                self.assertIn("keine: urteile im Feld ziel", f.read())
+                self.assertIn("Themen: – (keine)", f.read())
         self.assertIn("Feld ziel", abschluss.AUFTRAG)
         self.assertIn('"ziel"', abschluss.SCHEMA_TEXT)
         abschluss.eintragen(self.con, self.pid, self.w, "s1", {"befehl": None, "rc": None},
                             json.dumps({"themen": [], "ziel": {"erfuellt": True, "beleg": "alle Fehler behoben"}}))
-        self.assertIn("- Ziel und „fertig wenn“: erfüllt – alle Fehler behoben", abschluss.bericht_teil(self.con, self.pid, self.w))
+        self.assertIn("- „Fertig, wenn“: erfüllt – alle Fehler behoben", abschluss.bericht_teil(self.con, self.pid, self.w))
 
 
 if __name__ == "__main__":

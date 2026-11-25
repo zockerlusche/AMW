@@ -342,14 +342,14 @@ def abschluss(con, pid, freigaben):
                     "pakete": con.execute("SELECT count(*) FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (a["bogen"],)).fetchone()[0],
                     "pruefung": {"test": e.get("test"), "themen": e.get("themen") or [], "vorfuehrung": e.get("vorfuehrung") or [],
                                  "ok": e.get("ok"), "fehler": bool(e.get("fehler")), "gruende": ab.deuten(e.get("fehler")),
-                                 "ziel": e.get("ziel"), **_belege(con, e, a["frei"])} if e else None})
+                                 "ziel": e.get("ziel"), "zielsatz": ab.zielsatz(b), **_belege(con, e, a["frei"])} if e else None})
     return aus
 
 
 def _belege(con, e, frei):
     """A2088: Vorbehalte und – solange nicht abgenommen – die geprüften Pakete je Thema für die Karte (Einzelheiten auf Klick)."""
     from . import abschluss as ab
-    aus = {"vorbehalte": e.get("vorbehalte") or [], "alt": ab.alt(e), "nicht_pruefbar": bool(e.get("nicht_pruefbar")), "stand": None, "pakete": []}
+    aus = {"vorbehalte": e.get("vorbehalte") or [], "alt": ab.alt(con, e), "nicht_pruefbar": bool(e.get("nicht_pruefbar")), "stand": None, "pakete": []}
     b = e.get("belege")
     if b and not frei:
         aus["stand"] = {"zweig": b.get("zweig"), "sha": (b.get("sha") or "")[:8] or None}

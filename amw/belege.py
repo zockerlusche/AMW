@@ -204,6 +204,7 @@ TEXT = {"commit_fehlt": ("1 Paket ohne gefundenen Commit", "{n} Pakete ohne gefu
         "dokument_fehlt": ("1 Paket: das genannte Dokument gibt es nicht", "{n} Pakete: das genannte Dokument gibt es nicht"),
         "code_ungeprueft": ("Code nicht geprüft", "Code nicht geprüft"),
         "test_anderer_stand": ("der Gesamttest lief auf einem anderen oder unsauberen Stand", "der Gesamttest lief auf einem anderen oder unsauberen Stand"),
+        "fertig_wenn": ("der Beleg für „fertig, wenn“ fehlt", "der Beleg für „fertig, wenn“ fehlt"),
         "kein_gesamttest": ("kein Gesamttest eingestellt – Projekt-Einstellung", "kein Gesamttest eingestellt – Projekt-Einstellung")}
 
 

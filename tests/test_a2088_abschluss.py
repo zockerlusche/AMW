@@ -369,7 +369,7 @@ class TexteVollstaendig(Grund):
         for s in ("de", "en"):
             with open(os.path.join(pfad, f"{s}.json"), encoding="utf-8") as f:
                 t = json.load(f)
-            allgemein = {"kein_gesamttest", "test_anderer_stand"}                             # gelten dem Meilenstein, nicht einem Paket
+            allgemein = {"kein_gesamttest", "test_anderer_stand", "fertig_wenn"}                             # gelten dem Meilenstein, nicht einem Paket
             for art in allgemein:
                 self.assertIn(f"pjw_vb_{art}", t, s)
             for art in set(belege.TEXT) - allgemein:
@@ -408,6 +408,7 @@ class Seite(Rundgang):
                        (2, "Nachtsicherung", "ok", None, "b" * 40, ["app/sicherung.py", "tests/test_sicherung.py"], t2))]
             u = {"themen": [{"thema": f"TH{t1}", "erfuellt": True, "beleg": "app/login.py, Funktion login: Anmeldung mit Firmenkonto"},
                             {"thema": f"TH{t2}", "erfuellt": True, "beleg": "app/sicherung.py, Funktion nachts"}],
+                 "ziel": {"erfuellt": True, "beleg": "Anmeldung und Sicherung sind für die Vorführung da"},
                  "vorbehalte": ["Der Ausfall des Firmenkontos ließ sich am Code nicht prüfen"], "vorfuehrung": ["Seite öffnen", "mit Firmenkonto anmelden"]}
             abschluss.eintragen(self.con, self.pid, m, abschlusslage.stand(self.con, b), {"befehl": None, "rc": None}, json.dumps(u),
                                 bef={"zweig": "main", "sha": "c" * 40, "pakete": pak, "code": {"dateien": 2, "bytes": 10, "weg": 0}})
