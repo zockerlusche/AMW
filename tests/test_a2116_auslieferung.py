@@ -240,10 +240,10 @@ class Texte(Grund):
 class Seite(a2082.Seite):
     """Karte im Projektweg und in Planung › Meilensteine, im echten Browser."""
     def daten(self):
-        super().daten()
         auslieferstand._GEMERKT.clear()
-        self.ergebnis()
         kern.projekt_einstellen(self.con, self.pid, kern.ENTWICKLER, versionen="pflicht")          # noch keine Version: nichts ausgeliefert
+        super().daten()
+        self.ergebnis()
         self.aids = [r[0] for r in self.con.execute("SELECT id FROM aufgabe WHERE bogen_id = ? AND status = 'fertig' ORDER BY id", (self.m1,))]
 
     PLANUNG = "document.querySelector('.pm-abschluss')"
@@ -259,17 +259,23 @@ class Seite(a2082.Seite):
         self.assertIn(f"wartet auf Auslieferung (A{self.aids[0]}", self.leiste())
         self.assertIn(f"Wartet auf die Auslieferung von A{self.aids[0]}", self.text())
         self.assertNotIn("wartet auf dich", self.text() + self.leiste())
+        verlauf = self.tab.js("document.body.innerText")
+        self.assertIn("M1: wartet auf Auslieferung", verlauf)
+        self.assertNotIn("bereit zur Abnahme", verlauf)
         for k in ("pjw_trotzdem", "pjw_a_starten", "pjw_a_erneut"):
             self.assertFalse(self.tab.js("!!" + self.knopf(k)), k)
         self.assertFalse(self.tab.js("[...document.querySelectorAll('.pjw-ansicht button')].some(b => b.textContent.includes('abnehmen'))"))
         self.planung_zeigen()
         self.assertFalse(self.tab.js("!!document.querySelector('.pm-abschluss button[data-h=ab-ja]')"))
         self.assertIn("Wartet auf die Auslieferung von", self.tab.js(self.PLANUNG + ".innerText"))
+        self.assertEqual(self.tab.js(self.PLANUNG + ".dataset.ab"), "ruhig")                      # keine Farbe, solange niemand dran ist
         with db.schreiben(self.con):
             db.einfuegen(self.con, "release", projekt_id=self.pid, art="version", version="1.0.0", zeit_utc="2099-01-01T00:00:00Z", titel="x", eingetragen_von="TL")
         self.zeigen()
         self.assertEqual(self.tab.js("document.querySelector('.pjw-ab-karte').dataset.lage"), "abnehmbar")
         self.assertIn("wartet auf dich", self.text())
+        self.planung_zeigen()
+        self.assertEqual(self.tab.js(self.PLANUNG + ".dataset.ab"), "wartet")
 
     def test_rundgang(self):
         self.ueberall("projektweg", "a2116-projektweg", bereit="document.querySelector('.pjw-schritt')",

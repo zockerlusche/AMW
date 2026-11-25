@@ -81,7 +81,7 @@ function pmStand(pa) {
 function pmAbschluss(x, tun) {                                 /* K7 (A1944): Abschlussbericht und Ja dazu */
   const ab = x.abschluss, k = el("div", { class: "th-kasten" }), ja = () => tun("freigeben", { art: "abschluss" }, t("pm_ab_ok"));
   const dagegen = pwDagegen(ab.lage, ab.lage_zaehlt, ab.vorbehalte, ab.alt), fragen = dagegen || [];   /* A2088: wie auf Projektweg */
-  return el("div", { class: "pm-abschluss", "data-ab": ab.frei ? "frei" : ab.bericht ? "wartet" : "kommt" },
+  return el("div", { class: "pm-abschluss", "data-ab": ab.frei ? "frei" : !ab.bericht ? "kommt" : x.bei_dir || !ab.lage ? "wartet" : "ruhig" },   /* A2116: Farbe nur, wenn der Mensch dran ist (TH156 Regel 4) */
     el("div", { class: "pm-entwuerfe-kopf" }, t("pm_ab_kopf")),
     ab.bericht ? el("div", {}, el("a", { href: "#", class: "ref", onclick: e => { e.preventDefault(); dokumentDialog(ab.bericht); } }, "D" + ab.bericht),
       " ", t("pm_ab_bericht")) : el("div", { class: "sehrleise" }, t("pm_ab_kommt")),
