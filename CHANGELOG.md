@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.195.0 – 25.11.2026 · Nur was du tun musst zählt, Headless-Plätze werden früher frei
+- **Verbessert:** Als Nachricht an dich zählt nur noch, was du tun musst: Fragen, Prüfbitten und Aufträge, Antworten auf deine Nachrichten und Meldungen der AMW, die etwas von dir brauchen. Infos und Berichte bleiben auf der Seite Nachrichten lesbar. „Bereit zur Abnahme“ verschwindet von selbst, sobald der Meilenstein es nicht mehr ist. Dass ein Lauf mit Vorrang lange wartet oder ein Paket hängt, erfährt der Lead. Server-Code der Online-Seite geändert (api.php): online zählt gleich.
+- **Verbessert:** Ein Arbeitsplatz für Headless-Pakete wird frei, sobald sein Paket angenommen ist; die Auslieferung wartet nicht mehr auf angenommene Pakete.
+- **Neu:** Ein Versions-Commit, der mehr als CHANGELOG, Versionsdatei und `web/inc/VERSION` ändert, fällt schon bei der Prüfbitte auf, und ein Gesamtlauf startet dort nur mit `--trotzdem "Grund"`. Der Gesamtlauf fährt die schnellen Wächter-Tests zuerst und bricht sofort ab, wenn einer rot ist.
+- **Verbessert:** Auch Planung, Termine, Wartegründe, Verlauf und Abnahme nennen Meilensteine mit der Projektnummer (M19).
+- **Intern:** Die Konzept-Übernahme kann ähnliche Themennamen melden und Abschnitte zuordnen oder ausschließen (nur Logik). Die Nachweise der Abschlussprüfung nennen bei beantworteten Fragen den Text der Option.
+
 ## 1.194.0 – 25.11.2026 · Pakete früher oder später, Tests stören den Gesamtlauf nicht
 - **Neu:** Mensch und Lead schieben ein Paket in seinem Meilenstein früher oder später: `amw aufgabe schieben N` zeigt, was geht, `amw aufgabe frueher N` und `spaeter N --grund …` schieben. Was nicht geht, nennt den Grund („braucht …“, „… läuft schon“). Reihenfolge, Zeitplan und Prognose rechnen neu, der Disponent hält sich daran; der Vergleich für den Verzug bleibt. Was der Mensch gesetzt hat, dreht der Lead nicht um. Endet ein Handgriff, ohne erfüllt zu sein, steht es im Verlauf, und der Lead bekommt eine Nachricht. Knöpfe auf der Seite folgen.
 - **Verbessert:** Leichte Läufe eines Agenten warten von selbst, solange im selben Projekt ein Gesamtlauf rechnet oder wartet. Dringendes rechnet mit `--neben "Grund"` trotzdem; der Grund steht im Lauf, und der Lead bekommt eine Meldung. Läufe ohne Tests mit `--dauer` bis 2 Minuten laufen weiter daneben.
