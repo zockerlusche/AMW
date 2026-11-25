@@ -150,7 +150,10 @@ class MeldungAnDenLead(Grund):
         with mock.patch.dict("os.environ", {"AMW_PLANER_AUS": "1"}):
             self.assertEqual(self.runde(), [(self.m, "bereit")])
             self.runde()
+            x, schritt, _ = self.karte()
         self.assertEqual((self.anzahl(kern.ENTWICKLER, "bereit zur Abnahme"), self.anzahl("TL", "Abschlussprüfung fehlt")), (1, 0))
+        self.assertEqual((x["lage"], x["bei_dir"], schritt["bei_dir"]), ("fehlt", True, True))        # Seite und Nachricht sagen dasselbe
+        self.assertEqual(self.karte()[0]["bei_dir"], False)                                            # Planer wieder an: der Lead holt nach
 
 
 class Befehl(Grund):

@@ -144,8 +144,9 @@ def lage(con, pid, b):
 
 
 def bei_mensch(con, pid, lage_):
-    """Ist der Mensch dran? Mit Lead nur, wenn er abnehmen kann; ohne Lead wie bisher, sobald der Meilenstein bereit ist."""
-    return lage_ == "abnehmbar" or bool(lage_ and not kern.lead(con, pid))
+    """Ist der Mensch dran? Mit Lead nur, wenn er abnehmen kann; ohne Lead oder mit ausgeschaltetem Planer (dann kann niemand eine
+    Prüfung nachholen) wie bisher, sobald der Meilenstein bereit ist – dieselbe Regel wie für die Nachricht (nur_lead)."""
+    return lage_ == "abnehmbar" or bool(lage_ and not (kern.lead(con, pid) and pruefer_geht(con, pid)))
 
 
 def pruefer_geht(con, pid):
