@@ -401,7 +401,7 @@ class Federfuehrung(Grund):
         rc, aus = self.cli("--von", "TL", "bogen", "aendern", str(self.b), "--federfuehrend", "CC3")
         self.assertEqual(rc, 0, aus)
         self.assertEqual(kern.zustaendig(self.con, self.pid, self.a), "CC3")                   # Bogen
-        self.assertIn("Du führst jetzt Meilenstein", kern.offene(self.con, self.pid, "CC3")[0]["kurz"])
+        self.assertIn("Du führst jetzt M", kern.offene(self.con, self.pid, "CC3")[0]["kurz"])
         kern.federfuehrung_setzen(self.con, self.pid, "TL", "aufgabe", self.a, "CC2")
         self.assertEqual(kern.zustaendig(self.con, self.pid, self.a), "CC2")                   # Aufgabe vor Bogen
         _, namen = kern.posten(self.con, self.pid, "CC1", "zustaendig", "frage", "passt das?", aufgabe_id=self.a)

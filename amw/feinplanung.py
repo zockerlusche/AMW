@@ -248,7 +248,8 @@ def _zeilen(con, pid, boegen):
     for bid in boegen:
         b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
         if not b:
-            raise kern.AmwFehler(f"Meilenstein {bid} gibt es nicht")
+            from . import meilensteine
+            raise kern.AmwFehler(meilensteine.unbekannt(bid))
         aus.append(b)
     return sorted(aus, key=lambda x: (x["nr"], x["id"]))
 

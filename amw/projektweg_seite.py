@@ -313,7 +313,8 @@ def pruefung_starten(con, pid, von, bid):
         raise kern.AmwFehler("Die Abschlussprüfung holen der Mensch oder der Lead nach")
     b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
     if not b:
-        raise kern.AmwFehler(f"Meilenstein {bid} gibt es nicht")
+        from . import meilensteine
+        raise kern.AmwFehler(meilensteine.unbekannt(bid))
     if abschlusslage.ruht(con, b):
         raise kern.AmwFehler(f"M{b['nr']} ist laufend – die Prüfung startet, wenn er vorgelegt wird: amw bogen vorlegen M{b['nr']}")
     if not planautomatik.bereit_zur_abnahme(con, b):

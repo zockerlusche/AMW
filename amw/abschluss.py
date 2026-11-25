@@ -539,11 +539,11 @@ def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None, roh=
             kern._posten(con, pid, "AMW", lead, "meldung", f"Meilenstein {b['nr']}: nach {MAX_RUNDEN} Nacharbeits-Runden noch offen"[:140],
                          f"Die Abschlussprüfung von Meilenstein {b['nr']} „{b['titel']}“ findet noch Lücken, aber die AMW legt nach"
                          f" {MAX_RUNDEN} automatischen Runden keine weitere Nacharbeit an. Die offenen Punkte stehen im Abschlussbericht."
-                         f" Nacharbeit von Hand: amw bogen nacharbeit {bid} --hinweis …")
+                         f" Nacharbeit von Hand: amw bogen nacharbeit M{b['nr']} --hinweis …")
         elif fehler:
             kern._posten(con, pid, "AMW", lead, "meldung", f"Meilenstein {b['nr']}: Abschlussprüfung ging nicht"[:140],
                          f"{fehler}\nDie Prüfung gegen das Konzept fehlt im Bericht; der Meilenstein wartet noch nicht auf die Abnahme."
-                         f" Ursache klären, dann erneut starten: amw bogen pruefung-starten {bid}")   # A2082
+                         f" Ursache klären, dann erneut starten: amw bogen pruefung-starten M{b['nr']}")   # A2082
         if werte.get("nicht_pruefbar"):
             _meldung_nicht_pruefbar(con, pid, b, lead, werte)
     return {**werte, "id": eid}
@@ -576,7 +576,8 @@ def nacharbeit(con, pid, von, bid, hinweis):
         raise kern.AmwFehler("Nacharbeit: was fehlt? (--hinweis …)")
     b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
     if not b or b["status"] != "aktiv":
-        raise kern.AmwFehler(f"Meilenstein {bid}: Nacharbeit nur für einen laufenden Meilenstein (auch wenn er auf die Abnahme wartet)")
+        from . import meilensteine
+        raise kern.AmwFehler(f"{meilensteine.name(con, bid) if b else meilensteine.unbekannt(bid)}: Nacharbeit nur für einen laufenden Meilenstein (auch wenn er auf die Abnahme wartet)")
     return feinplanung.anstossen(con, pid, [bid], von=von, hinweis=hinweis, nacharbeit=True)
 
 

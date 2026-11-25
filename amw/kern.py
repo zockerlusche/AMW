@@ -997,7 +997,7 @@ def zustaendig(con, pid, aufgabe_id):
 
 def fuehrt(con, pid, kennung):
     """Was ein Agent federführend leitet: (Bögen, Aufgaben) – nur offene."""
-    boegen = con.execute("SELECT id, titel FROM bogen WHERE projekt_id = ? AND federfuehrend = ? AND status IN ('geplant', 'aktiv')"
+    boegen = con.execute("SELECT id, nr, titel FROM bogen WHERE projekt_id = ? AND federfuehrend = ? AND status IN ('geplant', 'aktiv')"
                          " ORDER BY id", (pid, kennung)).fetchall()
     aufgaben = con.execute("SELECT id, titel FROM aufgabe WHERE projekt_id = ? AND federfuehrend = ?"
                            " AND status IN ('wartet', 'laeuft', 'blockiert') ORDER BY id", (pid, kennung)).fetchall()
@@ -1621,14 +1621,16 @@ def federfuehrung_setzen(con, pid, von, art, nr, kennung):
     tabelle = {"bogen": "bogen", "aufgabe": "aufgabe"}[art]
     r = con.execute(f"SELECT id, titel FROM {tabelle} WHERE id = ? AND projekt_id = ?", (nr, pid)).fetchone()
     if not r:
-        raise AmwFehler(f"{'Meilenstein ' if art == 'bogen' else 'A'}{nr} gibt es nicht")
+        from . import meilensteine
+        raise AmwFehler(meilensteine.unbekannt(nr) if art == "bogen" else f"A{nr} gibt es nicht")
     kennung = (kennung or "").strip()
     if kennung:
         kennung = agent_zeile(con, pid, kennung)["kennung"]
     with db.schreiben(con):
         con.execute(f"UPDATE {tabelle} SET federfuehrend = ? WHERE id = ?", (kennung or None, nr))
         if kennung and kennung != von:
-            was = f"Meilenstein {nr}" if art == "bogen" else f"A{nr}"
+            from . import meilensteine
+            was = meilensteine.name(con, nr) if art == "bogen" else f"A{nr}"
             _posten(con, pid, von, kennung, "auftrag", f"Du führst jetzt {was}: {r['titel'][:120]}",
                     "Federführung: Prüfergebnisse, Merge-Bitten und Fragen dazu kommen zu dir (--an zustaendig)."
                     " Du verteilst Schritte, nimmst ab und meldest dem Lead Abschluss und Abweichungen. Beim Lead bleiben:"
@@ -1989,7 +1991,7 @@ def kontext(con, pid, kennung):
     boegen, gefuehrt = fuehrt(con, pid, kennung)
     if boegen or gefuehrt:
         z.append("Du führst (federführend – Prüfergebnisse, Merge-Bitten, Fragen dazu kommen zu dir): " + "; ".join(
-            [f"Meilenstein {b['id']} {b['titel'][:60]}" for b in boegen] + [f"A{x['id']} {x['titel'][:60]}" for x in gefuehrt]))
+            [f"M{b['nr']} {b['titel'][:60]}" for b in boegen] + [f"A{x['id']} {x['titel'][:60]}" for x in gefuehrt]))
     from . import arbeitsliste
     liste = arbeitsliste.liste(con, pid, kennung)
     andere = [x for x in eigene if x["id"] not in {y["id"] for y in liste}]

@@ -70,7 +70,8 @@ def _alt(con, pid, ebene, oid):
     if ebene == "meilenstein":
         r = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (oid, pid)).fetchone()
         if not r:
-            raise FolgenFehler(f"Meilenstein {oid} gibt es nicht")
+            from . import meilensteine
+            raise FolgenFehler(meilensteine.unbekannt(oid))
         return {k: r[k] for k in FELDER["meilenstein"]}
     r = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (oid, pid)).fetchone()
     if not r:
@@ -135,7 +136,8 @@ def vorschlagen(con, pid, von, ebene, oid, grund=None, **neu):
     if ebene == "meilenstein" and "zieldatum" in neu and not (grund or "").strip():   # (6): wie bogen_aendern, aber gleich
         b = con.execute("SELECT baseline_datum FROM bogen WHERE id = ?", (oid,)).fetchone()
         if b and b["baseline_datum"]:
-            raise FolgenFehler(f"Meilenstein {oid} hat eine Baseline ({b['baseline_datum']}) – neues Zieldatum nur mit Grund")
+            from . import meilensteine
+            raise FolgenFehler(f"{meilensteine.name(con, oid)} hat eine Baseline ({b['baseline_datum']}) – neues Zieldatum nur mit Grund")
     v = {"ebene": ebene, "id": oid, "alt": {k: alt.get(k) for k in neu}, "neu": neu, "grund": grund}
     if _aus(con, pid):                                  # wie bisher: gilt sofort
         _anwenden(con, pid, v)
@@ -241,7 +243,8 @@ def abschliessen(con, pid, eid, ergebnis, modell_=None, usd=None, lauf=None, feh
 def _was(con, pid, v):
     if v["ebene"] == "meilenstein":
         r = con.execute("SELECT nr, titel FROM bogen WHERE id = ?", (v["id"],)).fetchone()
-        ziel = f"Meilenstein {r['nr']} „{r['titel'][:50]}“" if r else f"Meilenstein {v['id']}"
+        from . import meilensteine
+        ziel = f"Meilenstein {r['nr']} „{r['titel'][:50]}“" if r else meilensteine.unbekannt(v["id"])
     else:
         r = con.execute("SELECT titel FROM aufgabe WHERE id = ?", (v["id"],)).fetchone()
         ziel = f"A{v['id']} „{(r['titel'] if r else '')[:50]}“"

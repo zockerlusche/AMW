@@ -69,7 +69,7 @@ class Ebenen(unittest.TestCase):
         with self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
             veroeffentlichung.abnehmen(self.con, self.pid, "TL", bid, lauf=self.lauf)
         text = veroeffentlichung.abnehmen(self.con, self.pid, kern.ENTWICKLER, bid, lauf=self.lauf)
-        self.assertIn(f"M{bid} abgenommen", text)
+        self.assertIn("M1 abgenommen", text)
         self.assertEqual(self.fern("main"), self.sha)                                     # jetzt gepusht
         self.assertEqual(self.fern("refs/tags/v1.1.0^{commit}"), self.sha)
         gh = [b for b in self.extern_aufrufe if b[0] == "gh"]

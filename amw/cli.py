@@ -1335,7 +1335,7 @@ def cmd_bogen(a, con):
         from . import abschlusslage
         b = next((x for x in planung.boegen(con, pid) if x["id"] == a.id), None)
         if not b:
-            raise kern.AmwFehler(f"Meilenstein {a.id} gibt es nicht")
+            raise kern.AmwFehler(meilensteine.unbekannt(a.id))
         print(f"{ms} [{b['status']}] {b['titel']} · Ziel: {b['ziel'] or '–'} · Abnahme: {b['abnahme'] or '–'}"
               f" · Zieldatum {b['zieldatum'] or '–'} (Baseline {b['baseline_datum'] or '–'})"
               + (f" · federführend {b['federfuehrend']}" if b.get("federfuehrend") else "")

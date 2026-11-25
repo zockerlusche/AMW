@@ -102,7 +102,8 @@ def veroeffentlichen(con, pid, von, bogen_id=None, lauf=None, repo=None):
                          text=json.dumps({"version": neu, "versionen": versionen, "bogen": bogen_id}, ensure_ascii=False))
         text = (f"Veröffentlicht: {neu}" + (f" (mit {', '.join(versionen[:-1])})" if len(versionen) > 1 else "")
                 + " – main und Tags gepusht, ein GitHub-Release mit allen Abschnitten")
-    melden(text + (f" (M{bogen_id} abgenommen)" if bogen_id else ""), text + ".")
+    from . import meilensteine
+    melden(text + (f" ({meilensteine.name(con, bogen_id)} abgenommen)" if bogen_id else ""), text + ".")
     return text
 
 
@@ -118,14 +119,15 @@ def abnehmen(con, pid, von, bid, lauf=None, repo=None):
         raise kern.AmwFehler("Einen Meilenstein nimmt nur der Mensch ab")
     b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
     if not b:
-        raise kern.AmwFehler(f"Meilenstein {bid} gibt es nicht")
+        from . import meilensteine
+        raise kern.AmwFehler(meilensteine.unbekannt(bid))
     if b["status"] != "fertig":
-        raise kern.AmwFehler(f"M{bid} ist {b['status']} – abnehmen lässt sich nur ein fertiger Meilenstein")
+        raise kern.AmwFehler(f"M{b['nr']} ist {b['status']} – abnehmen lässt sich nur ein fertiger Meilenstein")
     if not abgenommen(con, pid, bid):
         with db.schreiben(con):
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=ABNAHME, bogen_id=bid,
-                         text=f"M{bid} abgenommen")
-    return f"M{bid} abgenommen. " + veroeffentlichen(con, pid, von, bid, lauf, repo)
+                         text=f"M{b['nr']} abgenommen")
+    return f"M{b['nr']} abgenommen. " + veroeffentlichen(con, pid, von, bid, lauf, repo)
 
 
 def zur_abnahme(con, pid):

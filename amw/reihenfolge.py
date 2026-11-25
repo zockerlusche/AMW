@@ -297,11 +297,11 @@ def starten(con, pid, von, bid):
         raise kern.AmwFehler("Einen Meilenstein startet der Lead oder der Mensch")
     b = planung.bogen_zeile(con, pid, bid)
     if b["status"] in ("fertig", "verworfen"):
-        raise kern.AmwFehler(f"Meilenstein {bid} ist {b['status']}")
+        raise kern.AmwFehler(f"M{b['nr']} ist {b['status']}")
     pakete = con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? AND status IN ('wartet', 'laeuft', 'blockiert') ORDER BY id",
                          (bid,)).fetchall()
     if not pakete:
-        raise kern.AmwFehler(f"Meilenstein {bid} hat keine offenen Pakete")
+        raise kern.AmwFehler(f"M{b['nr']} hat keine offenen Pakete")
     fehlt = {a["id"]: f for a in pakete if (f := fehlende_felder(con, pid, a))}
     if b["status"] != "aktiv":
         planung.bogen_status(con, pid, von, bid, "aktiv")
@@ -309,7 +309,7 @@ def starten(con, pid, von, bid):
     for aid in klar:
         f = arbeitspaket.lesen(con, aid)
         if f["art"] == "p" and f["zustand"] in (None, "entwurf"):
-            arbeitspaket.zustand_setzen(con, pid, von, aid, "startklar", grund=f"Meilenstein {bid} gestartet")
+            arbeitspaket.zustand_setzen(con, pid, von, aid, "startklar", grund=f"M{b['nr']} gestartet")
     with db.schreiben(con):
         plan_stand_merken(con, pid, von, bid)
     verteilt = verteilen.verteilen(con, pid)
@@ -317,7 +317,7 @@ def starten(con, pid, von, bid):
     lead = kern.lead(con, pid)
     if lead and lead != von:
         with db.schreiben(con):
-            kern._posten(con, pid, "AMW", lead, "info", f"Meilenstein {bid} „{b['titel'][:80]}“ gestartet – {len(klar)} Pakete startklar",
+            kern._posten(con, pid, "AMW", lead, "info", f"M{b['nr']} „{b['titel'][:80]}“ gestartet – {len(klar)} Pakete startklar",
                          "Reihenfolge (die AMW rechnet sie):\n" + "\n".join(f"{z['platz']}. A{z['aid']} {z['titel'][:70]} – {z['grund']}"
                                                                             for z in reihe[:30])
                          + ("\nNoch nicht startklar: " + "; ".join(f"A{k}: {', '.join(v)}" for k, v in fehlt.items()) if fehlt else ""))
