@@ -4,6 +4,12 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.194.0 – 25.11.2026 · Pakete früher oder später, Tests stören den Gesamtlauf nicht
+- **Neu:** Mensch und Lead schieben ein Paket in seinem Meilenstein früher oder später: `amw aufgabe schieben N` zeigt, was geht, `amw aufgabe frueher N` und `spaeter N --grund …` schieben. Was nicht geht, nennt den Grund („braucht …“, „… läuft schon“). Reihenfolge, Zeitplan und Prognose rechnen neu, der Disponent hält sich daran; der Vergleich für den Verzug bleibt. Was der Mensch gesetzt hat, dreht der Lead nicht um. Endet ein Handgriff, ohne erfüllt zu sein, steht es im Verlauf, und der Lead bekommt eine Nachricht. Knöpfe auf der Seite folgen.
+- **Verbessert:** Leichte Läufe eines Agenten warten von selbst, solange im selben Projekt ein Gesamtlauf rechnet oder wartet. Dringendes rechnet mit `--neben "Grund"` trotzdem; der Grund steht im Lauf, und der Lead bekommt eine Meldung. Läufe ohne Tests mit `--dauer` bis 2 Minuten laufen weiter daneben.
+- **Behoben:** Die Abschlussprüfung rechnet die Dateien des Versions-Eintrags nicht mehr dem Paket zu; die Dateiliste zeigt nur, was das Paket geändert hat. Der Verlauf zählt jedes Paket einmal, „1 Paket“ steht in der Einzahl, und „Fertig, wenn:“ steht nicht mehr doppelt.
+- **Intern:** Zwei lesende Bausteine als Vorbereitung auf spätere Eingriffe (Agent herausnehmen, Prüfpunkt einfügen); sie sind noch nirgends eingebaut.
+
 ## 1.193.0 – 25.11.2026 · Meilensteine überall mit ihrer Nummer, schnellere Datenbank
 - **Verbessert:** Die AMW nennt Meilensteine auf der Seite, in Meldungen und in Befehlen mit der Projektnummer (M19). Die Suche findet sie mit „M19“, dazu die Nachrichten mit Bezug auf sie; online findet „M1“ auch „M19“. Einige Texte (Plan-Check und gespeicherte Titel) nennen noch die interne Nummer.
 - **Verbessert:** Sieben Indizes machen Aufgaben-Ansichten, Planung und die Synchronisierung mit der Online-Seite schneller. Dafür steigt das Schema der Datenbank auf 35; Daten ändern sich nicht.
