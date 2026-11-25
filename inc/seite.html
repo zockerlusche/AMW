@@ -1285,6 +1285,7 @@ table.tab td { padding: 7px 8px; border-bottom: 1px solid var(--linie); vertical
 .pjw-zurueck { display: none; }
 .pjw-status { font-size: 13px; padding: 1px 10px; border-radius: 11px; border: 1px solid var(--linie2); color: var(--leise); white-space: nowrap; }
 .pjw-laufend { color: var(--sehrleise); font-weight: 400; font-size: 13px; white-space: nowrap; }
+.pjw-status.umbruch { white-space: normal; }
 .pjw-status.dran { border-color: var(--bernstein); color: var(--bernstein); font-weight: 600; }
 .pjw-status.frei { border-color: transparent; color: var(--sehrleise); }
 .pjw-status.laeuft { border-color: var(--tinte); color: var(--tinte); }
@@ -1523,7 +1524,7 @@ const TEXTE = {
     sb_letzte: "Letzte Sitzung", sb_zuletzt: "zuletzt aktiv", sb_nie: "noch keine", sb_keine_sitzung: "Noch keine Sitzung – „Neu starten“ benutzen.", sb_h: "Genau so startet die AMW den Agenten auch selbst. In ein Terminal einfügen und Enter drücken; Geheimnisse stehen nicht darin.", sb_grund_weise: "Wird nicht gestartet – dieser Agent arbeitet als Chat bzw. in der Desktop-App.",
     sb_grund_ordner: "Kein Ordner eingetragen – erst im Block „Sitzung“ den Ordner setzen.", sb_fehlt: "Für diesen Agenten gibt es keinen Startbefehl.", band_ansehen: "{x} ansehen", band_ansehen_h: "Übersicht von {x} öffnen – dort steht, was er gerade tut und was an ihn ging", e_ende_frist: "Frist für „Sichern & beenden“ (Minuten)", e_ende_frist_h: "So lange hat ein Agent nach „Sichern & beenden“ Zeit, seinen Stand zu sichern und sich abzumelden; danach beendet der Dienst die Sitzung.",
     gra_titel: "Abgleich mit dem {v}", gra_zahl: "{f} fehlen · {a} vermutlich abgedeckt · {d} übernommen", gra_h: "Nur ein Vorschlag: Vorhandene Regeln bleiben, wie sie sind. „Übernehmen“ legt eine fehlende Grundregel mit der nächsten freien Nummer an; ein Beschluss nennt die Quelle.", gra_drin: "übernommen", gra_aehnlich: "vermutlich durch eine eigene Regel abgedeckt", gra_fehlt: "fehlt",
-    gra_wie: "ähnlich wie {r}", gra_uebernehmen: "Übernehmen", gra_frage: "{x} als neue Arbeitsregel übernehmen?", gra_ok: "{x} übernommen als KR{r}", ck_o_versionen: "Versionshinweise", e_versionen_h: "Pflicht: Der Plan-Check meldet einen Fehler, solange keine Version eingetragen ist, und ein Meilenstein schließt erst, wenn nach seiner letzten fertigen Aufgabe eine Version eingetragen ist. Empfohlen: nur Hinweise.",
+    gra_wie: "ähnlich wie {r}", gra_uebernehmen: "Übernehmen", gra_frage: "{x} als neue Arbeitsregel übernehmen?", gra_ok: "{x} übernommen als KR{r}", ck_o_versionen: "Versionshinweise", e_versionen_h: "Pflicht: Der Plan-Check meldet einen Fehler, solange keine Version eingetragen ist, und ein Meilenstein schließt erst, wenn seine fertigen Pakete ausgeliefert sind. Empfohlen: nur Hinweise.",
     e_versionen_empfohlen: "empfohlen", e_versionen_pflicht: "Pflicht", e_versionen_aus: "aus", e_version_frist: "Warnen, wenn Fertiges ohne Version liegt (Tage)", e_version_frist_h: "Liegt die älteste fertige Aufgabe seit der letzten Version so viele Tage, warnt der Plan-Check.", e_merge_dienst: "Zuständig für Merges",
     e_merge_dienst_h: "Der Agent, der mergt (bekommt die Merge-Anfragen mit Zweig und genauem Stand).", e_merge_dienst_keiner: "– keiner –", e_spec_vorlegen: "Spezifikationen vorlegen", e_spec_vorlegen_h: "Wer eine Spezifikation zur Freigabe vorlegt. „nur der Lead“: die Agenten schreiben, der Lead prüft und legt vor.", e_spec_vorlegen_lead: "nur der Lead", e_spec_vorlegen_alle: "jeder Agent",
     e_spec_frei: "Spezifikationen freigeben", e_spec_frei_h: "„auch der Lead“: Der Lead gibt konforme Spezifikationen selbst frei, an dich gehen nur Einzelfragen. Du kannst immer freigeben.", e_spec_frei_entwickler: "nur du", e_spec_frei_lead: "auch der Lead", e_info_ablage: "Infos ausblenden nach (Stunden)", e_info_ablage_h: "Infos an dich ohne Bezug zu einer Aufgabe werden nach so vielen Stunden unter „Ältere Infos“ eingeklappt und zählen nicht mehr mit.",
@@ -1810,31 +1811,32 @@ const TEXTE = {
     pjw_bg_thema_offen: "Thema nicht freigegeben", pjw_bg_frist_offen: "Frist nicht erfüllt", pjw_bg_dokument_fehlt: "Dokument fehlt", pjw_bg_code_ungeprueft: "Code nicht geprüft", pjw_bg_urteil: "Urteil, kein Commit nötig", pjw_ax_abgebrochen: "der Gesamttest wurde abgebrochen",
     pjw_ax_testfrist: "der Gesamttest brauchte zu lange", pjw_ax_geaendert: "der Stand hat sich während des Gesamttests geändert", pjw_ax_lesbar: "Antwort des Prüfers nicht lesbar", pjw_ax_unvollstaendig: "Antwort des Prüfers unvollständig", pjw_ax_grenze: "Tagesgrenze der Planer erreicht", pjw_ax_start: "Prüfer startete nicht",
     pjw_ax_frist: "Prüfer brauchte zu lange", pjw_ax_lauf: "Prüfer brach ab", pjw_ax_sonst: "unerwarteter Grund – Näheres im Abschlussbericht", pjw_a_pruefer_fehler_z: "Prüfung ging nicht: {x}", pjw_a_pruefer_fehler: "Die Prüfung gegen das Konzept ging nicht – starte sie erneut oder fordere Nacharbeit an.", pjw_l_fehlt: "Prüfung fehlt",
-    pjw_l_fehler: "Prüfung ging nicht", pjw_l_laeuft: "Prüfung läuft", pjw_l_nicht_erfuellt: "Prüfung nicht erfüllt", pjw_l_bericht: "Abschlussbericht kommt", pjw_l_abnehmbar: "bereit zur Abnahme", pjw_ll_fehlt: "Prüfung fehlt, der Lead holt sie nach.",
-    pjw_ll_fehler: "Prüfung ging nicht, der Lead klärt es.", pjw_ll_laeuft: "Prüfung läuft.", pjw_ll_nicht_erfuellt: "Prüfung nicht erfüllt, der Lead klärt es.", pjw_ll_bericht: "Der Abschlussbericht wird gerade erstellt.", pjw_laufend: "laufend", pjw_a_laufend_z: "{m} {x}: laufend – kommt zur Abnahme, wenn der Lead ihn vorlegt.",
-    pjw_a_nicht_erfuellt: "Noch nicht alles erfüllt – fordere Nacharbeit an.", pjw_abnehmen_m: "{m} abnehmen", pjw_laeuft: "läuft", pjw_w_ums_n: "{n} Meilensteine laufen · {f} von {g} Paketen fertig", pjw_k_bestand: "Das Projekt hat schon {n} Meilensteine (Bestand). „Konzept abschließen“ kommt mit der Übernahme in den Grobplan – heute würde der Planer alles neu anlegen.", pjw_k_bestand1: "Das Projekt hat schon 1 Meilenstein (Bestand). „Konzept abschließen“ kommt mit der Übernahme in den Grobplan – heute würde der Planer alles neu anlegen.",
-    pjw_g_bestand: "Noch kein Grobplan – das Projekt hat {n} Meilensteine aus der Zeit davor. Die Übernahme (Themen den vorhandenen Meilensteinen zuordnen, nur Fehlendes planen) kommt.", pjw_g_bestand1: "Noch kein Grobplan – das Projekt hat 1 Meilenstein aus der Zeit davor. Die Übernahme (Themen dem vorhandenen Meilenstein zuordnen, nur Fehlendes planen) kommt.", pjw_w_grob_bestand: "Bestand · {n} Meilensteine", pjw_w_grob_bestand1: "Bestand · 1 Meilenstein", pjw_f_fehler: "Feinplan M{n} (Fassung {f}) passte nicht – die AMW hat ihn nicht angelegt:", pjw_f_fehler_ph: "z. B. Pakete mit Tests als Fenster-Agent planen",
-    pjw_w_fein_fehler: "{m} · Plan passte nicht", pjw_w_delta_fehler1: "Änderung {t} · Plan passte nicht", pjw_w_delta_teil1: "Änderung {t} · teilweise umgesetzt", pjw_w_delta_teil_n: "{n} Änderungen · teilweise umgesetzt", pjw_w_delta_klaeren_n: "{n} Änderungen · zu klären", pjw_w_naechster: "als Nächstes {m}",
-    pjw_w_delta_fehler_n: "{n} Änderungen · Plan passte nicht", pjw_delta_fehler: "Der Plan zu dieser Änderung passte nicht – die AMW hat nichts angelegt:", pjw_delta_fehler_ph: "Was soll der Planer anders machen?", pjw_fx_lauf: "Der Planer ist nicht bis zum Ende gekommen.", pjw_fx_laeuft: "„{p}“ wird gerade gebaut und bleibt, wie es ist. Die Anpassung muss ein neues Paket danach sein.", pjw_fx_offen: "„{p}“ ist noch nicht begonnen. Es braucht keine Nacharbeit, es lässt sich direkt ändern.",
-    pjw_fx_fertig: "„{p}“ ist schon fertig. Es lässt sich nicht mehr ändern, nur mit einem neuen Paket nacharbeiten.", pjw_fx_fremd: "„{p}“ gehört nicht zu diesem Thema oder ist nicht betroffen.", pjw_fx_lang: "Ein Text ist zu lang (höchstens {n} Zeichen).", pjw_fx_gebaut: "Ein vorgeschlagenes Paket ist schon gebaut.", pjw_fx_pfade: "Ein Paket sollte Dateien ändern, die gesperrt sind.", pjw_fx_befehl: "Der Befehl zur Abnahme eines Pakets ist nicht erlaubt oder fehlt.",
-    pjw_fx_sperre: "Der Befehl zur Abnahme eines Pakets enthält etwas Gesperrtes, zum Beispiel „python -c“ oder „git“.", pjw_fx_kette: "Der Befehl zur Abnahme eines Pakets besteht aus mehreren Befehlen. Erlaubt ist nur ein einzelner.", pjw_fx_kreis: "Pakete warten gegenseitig aufeinander.", pjw_fx_doppelt: "Etwas kommt doppelt vor.", pjw_fx_form: "Die Antwort des Planers war nicht lesbar.", pjw_fx_fehlt: "Im Plan fehlt eine Angabe.",
-    pjw_fx_sonst: "Der Plan hält eine Regel nicht ein. Den genauen Wortlaut hat der Lead.", pjw_delta_start_n: "Änderung {t} freigeben und starten ({p}{m})", pjw_ein_paket: "1 Paket", pjw_so_viele_pakete: "{n} Pakete", pjw_lead_klaert: "{x} klärt es", pjw_neuem_ms: "neuem Meilenstein „{x}“",
-    pjw_paket_w: "Paket", pjw_start_fehlt: "Diese Pakete starten noch nicht, weil Angaben fehlen: {x}. Der Lead ergänzt sie.", pjw_mehr: "mehr", pjw_delta_neu: ", neuer Meilenstein", pjw_delta_in: " in {m}", pjw_delta_wer: "Das Ja gibt: {x}",
-    pjw_ok_delta_start: "Änderung freigegeben – sie startet.", pjw_delta_nachholen: "M{n} aus Änderung {t} freigeben und starten", pjw_delta_nicht_gestartet: "Dieser Meilenstein ließ sich nicht starten:", pjw_delta_teilweise: "Diese Änderung wurde nur teilweise umgesetzt:", pjw_fx_teil_angelegt: "Schon angelegt: {x}.", pjw_fx_teil_geaendert: "Schon geändert: {x}.",
-    pjw_fx_teil_verworfen: "Schon verworfen: {x}.", pjw_fx_teil_offen: "Noch offen: {x}.", pjw_fx_teil_lead: "Der Lead weiß Bescheid. Mit einem Hinweis lässt du den Rest neu planen.", pjw_pakete_w: "Pakete", pjw_plan_starten: "Plan M{n} freigeben und starten", pjw_ok_plan: "Plan freigegeben – die Umsetzung startet.",
-    pjw_f_hinweis_ph: "z. B. Speichern zuerst als Kleinprobe", pjw_delta: "Änderung am Konzept: {x}", pjw_delta_ja: "Änderung als Block freigeben", pjw_ok_delta: "Änderung freigegeben.", pjw_u_leer: "Noch läuft kein Meilenstein.", pjw_lagebild: "Was gerade läuft: Lagebild →",
-    pjw_p_laeuft: "läuft", pjw_p_fertig: "fertig", pjw_p_blockiert: "blockiert", pjw_p_wartet: "wartet", pjw_p_offen: "offen", pjw_a_leer: "Noch kein Meilenstein fertig.",
-    pjw_a_wartet: "Gesamttest und Prüfer laufen, sobald alle Pakete fertig sind.", pjw_test_gruen: "Gesamttest grün (L{l}) · {n} Pakete", pjw_test_gruen1: "Gesamttest grün (L{l}) · 1 Paket", pjw_test_rot: "Gesamttest rot (L{l})", pjw_test_kein: "kein Gesamttest eingestellt", pjw_vorfuehrung: "Vorführung",
-    pjw_dein_ja: "dein Ja", pjw_abnehmen: "Abnehmen", pjw_nacharbeit: "Nacharbeit anfordern", pjw_nacharbeit_ph: "Nur für Nacharbeit: was fehlt?", pjw_ok_abgenommen: "Meilenstein abgenommen.", pjw_ok_nacharbeit: "Nacharbeit angefordert – der Planer plant sie.",
-    pjw_bericht: "Abschlussbericht", pjw_bericht_kommt: "Der Abschlussbericht kommt in wenigen Minuten – danach kannst du abnehmen.", pjw_lead_fragt: "Lead fragt", pjw_fragt: "{x} fragt", pjw_aus_paket: "aus Paket „{x}“", pjw_status: "Status",
-    pjw_reihenfolge: "Reihenfolge", pjw_aufwand: "Aufwand", pjw_kosten: "Kosten", pjw_themen: "Themen", pjw_ziel: "Ziel", pjw_wer: "Wer",
-    pjw_modell: "Modell", pjw_groesse: "Größe", pjw_dateien: "Dateien", pjw_abnahme: "Abnahme", pjw_nach_k: "Nach", pjw_auftrag: "Auftrag",
-    pjw_thema_oeffnen: "Thema öffnen →", pjw_ergaenzen: "Ergänzen oder ändern", pjw_ergaenzen_ph: "geht als Hinweis an den Planer", pjw_als_hinweis: "Als Hinweis an den Planer", pjw_ok_hinweis: "Hinweis gemerkt – „Überarbeiten lassen“ gibt ihn an den Planer.", pjw_mit_hinweis: "Überarbeiten lassen mit diesem Hinweis",
-    pjw_schliessen: "Schließen", pjw_lt_gegenlesen: "Gegenleser prüft {th} Fassung {f}", pjw_lt_grobplaner: "Grob-Planer plant Fassung {f}", pjw_lt_feinplaner: "Feinplaner zerlegt {z} in Pakete", pjw_lt_planer: "Planer der Änderung plant {th} Fassung {f}", pjw_lt_abschluss: "Prüfer gleicht {z} gegen das Konzept ab",
-    pjw_lt_sonst: "Planer arbeitet", pjw_laeuft_gerade: "läuft gerade: {x}", pjw_rolle_lead: "Lead", pjw_rolle_co: "Co-Entwickler", pjw_lauf_was: "Gerade", pjw_lauf_dauer: "Dauer",
-    pjw_l_hintergrund: "Im Hintergrund weiterlaufen lassen", n_themen: "Themen", th2_stand: "Konzept · {n} von {g} Themen freigegeben", th2_leer: "Noch keine Themen.", th2_waehlen: "Thema wählen.", th2_dich: "wartet auf dich",
-    th2_pruefen: "neu prüfen", th2_arbeit: "in Arbeit", th2_frei: "freigegeben", th2_markiert: "zum Löschen markiert", th2_grund: "wegen: {x}", th2_ja_fehlt: "Ja fehlt noch: {x}",
-    th2_nur_mensch: "Gibst nur du frei (Löschen, Kosten, Schema oder Außenwirkung)", ua_bereit: "„{x}“ ist bereit zur Abnahme", ua_gemeldet: "gemeldet von {r}", ua_pruefung: "Prüfung {r} grün", ua_dokument: "Ergebnis {r} abgelegt", ua_offen: "{n} offene Kriterien hakt dein Ja ab",
+    pjw_l_fehler: "Prüfung ging nicht", pjw_l_laeuft: "Prüfung läuft", pjw_l_nicht_erfuellt: "Prüfung nicht erfüllt", pjw_l_bericht: "Abschlussbericht kommt", pjw_l_abnehmbar: "bereit zur Abnahme", pjw_l_auslieferung: "wartet auf Auslieferung",
+    pjw_ll_fehlt: "Prüfung fehlt, der Lead holt sie nach.", pjw_ll_fehler: "Prüfung ging nicht, der Lead klärt es.", pjw_ll_laeuft: "Prüfung läuft.", pjw_ll_nicht_erfuellt: "Prüfung nicht erfüllt, der Lead klärt es.", pjw_ll_bericht: "Der Abschlussbericht wird gerade erstellt.", pjw_ll_auslieferung: "Wartet auf die Auslieferung von {x}. Danach geht die Abnahme.",
+    pjw_laufend: "laufend", pjw_a_laufend_z: "{m} {x}: laufend – kommt zur Abnahme, wenn der Lead ihn vorlegt.", pjw_a_nicht_erfuellt: "Noch nicht alles erfüllt – fordere Nacharbeit an.", pjw_abnehmen_m: "{m} abnehmen", pjw_laeuft: "läuft", pjw_w_ums_n: "{n} Meilensteine laufen · {f} von {g} Paketen fertig",
+    pjw_k_bestand: "Das Projekt hat schon {n} Meilensteine (Bestand). „Konzept abschließen“ kommt mit der Übernahme in den Grobplan – heute würde der Planer alles neu anlegen.", pjw_k_bestand1: "Das Projekt hat schon 1 Meilenstein (Bestand). „Konzept abschließen“ kommt mit der Übernahme in den Grobplan – heute würde der Planer alles neu anlegen.", pjw_g_bestand: "Noch kein Grobplan – das Projekt hat {n} Meilensteine aus der Zeit davor. Die Übernahme (Themen den vorhandenen Meilensteinen zuordnen, nur Fehlendes planen) kommt.", pjw_g_bestand1: "Noch kein Grobplan – das Projekt hat 1 Meilenstein aus der Zeit davor. Die Übernahme (Themen dem vorhandenen Meilenstein zuordnen, nur Fehlendes planen) kommt.", pjw_w_grob_bestand: "Bestand · {n} Meilensteine", pjw_w_grob_bestand1: "Bestand · 1 Meilenstein",
+    pjw_f_fehler: "Feinplan M{n} (Fassung {f}) passte nicht – die AMW hat ihn nicht angelegt:", pjw_f_fehler_ph: "z. B. Pakete mit Tests als Fenster-Agent planen", pjw_w_fein_fehler: "{m} · Plan passte nicht", pjw_w_delta_fehler1: "Änderung {t} · Plan passte nicht", pjw_w_delta_teil1: "Änderung {t} · teilweise umgesetzt", pjw_w_delta_teil_n: "{n} Änderungen · teilweise umgesetzt",
+    pjw_w_delta_klaeren_n: "{n} Änderungen · zu klären", pjw_w_naechster: "als Nächstes {m}", pjw_w_delta_fehler_n: "{n} Änderungen · Plan passte nicht", pjw_delta_fehler: "Der Plan zu dieser Änderung passte nicht – die AMW hat nichts angelegt:", pjw_delta_fehler_ph: "Was soll der Planer anders machen?", pjw_fx_lauf: "Der Planer ist nicht bis zum Ende gekommen.",
+    pjw_fx_laeuft: "„{p}“ wird gerade gebaut und bleibt, wie es ist. Die Anpassung muss ein neues Paket danach sein.", pjw_fx_offen: "„{p}“ ist noch nicht begonnen. Es braucht keine Nacharbeit, es lässt sich direkt ändern.", pjw_fx_fertig: "„{p}“ ist schon fertig. Es lässt sich nicht mehr ändern, nur mit einem neuen Paket nacharbeiten.", pjw_fx_fremd: "„{p}“ gehört nicht zu diesem Thema oder ist nicht betroffen.", pjw_fx_lang: "Ein Text ist zu lang (höchstens {n} Zeichen).", pjw_fx_gebaut: "Ein vorgeschlagenes Paket ist schon gebaut.",
+    pjw_fx_pfade: "Ein Paket sollte Dateien ändern, die gesperrt sind.", pjw_fx_befehl: "Der Befehl zur Abnahme eines Pakets ist nicht erlaubt oder fehlt.", pjw_fx_sperre: "Der Befehl zur Abnahme eines Pakets enthält etwas Gesperrtes, zum Beispiel „python -c“ oder „git“.", pjw_fx_kette: "Der Befehl zur Abnahme eines Pakets besteht aus mehreren Befehlen. Erlaubt ist nur ein einzelner.", pjw_fx_kreis: "Pakete warten gegenseitig aufeinander.", pjw_fx_doppelt: "Etwas kommt doppelt vor.",
+    pjw_fx_form: "Die Antwort des Planers war nicht lesbar.", pjw_fx_fehlt: "Im Plan fehlt eine Angabe.", pjw_fx_sonst: "Der Plan hält eine Regel nicht ein. Den genauen Wortlaut hat der Lead.", pjw_delta_start_n: "Änderung {t} freigeben und starten ({p}{m})", pjw_ein_paket: "1 Paket", pjw_so_viele_pakete: "{n} Pakete",
+    pjw_lead_klaert: "{x} klärt es", pjw_neuem_ms: "neuem Meilenstein „{x}“", pjw_paket_w: "Paket", pjw_start_fehlt: "Diese Pakete starten noch nicht, weil Angaben fehlen: {x}. Der Lead ergänzt sie.", pjw_mehr: "mehr", pjw_delta_neu: ", neuer Meilenstein",
+    pjw_delta_in: " in {m}", pjw_delta_wer: "Das Ja gibt: {x}", pjw_delta_lead_startet: "Nach dem Ja startet der Lead.", pjw_ok_delta_start: "Änderung freigegeben – sie startet.", pjw_ok_delta_lead: "Änderung freigegeben. Der Lead startet sie.", pjw_delta_nachholen: "M{n} aus Änderung {t} freigeben und starten",
+    pjw_delta_nicht_gestartet: "Dieser Meilenstein ließ sich nicht starten:", pjw_delta_teilweise: "Diese Änderung wurde nur teilweise umgesetzt:", pjw_fx_teil_angelegt: "Schon angelegt: {x}.", pjw_fx_teil_geaendert: "Schon geändert: {x}.", pjw_fx_teil_verworfen: "Schon verworfen: {x}.", pjw_fx_teil_offen: "Noch offen: {x}.",
+    pjw_fx_teil_lead: "Der Lead weiß Bescheid. Mit einem Hinweis lässt du den Rest neu planen.", pjw_pakete_w: "Pakete", pjw_plan_starten: "Plan M{n} freigeben und starten", pjw_ok_plan: "Plan freigegeben – die Umsetzung startet.", pjw_f_hinweis_ph: "z. B. Speichern zuerst als Kleinprobe", pjw_delta: "Änderung am Konzept: {x}",
+    pjw_delta_ja: "Änderung als Block freigeben", pjw_ok_delta: "Änderung freigegeben.", pjw_u_leer: "Noch läuft kein Meilenstein.", pjw_lagebild: "Was gerade läuft: Lagebild →", pjw_p_laeuft: "läuft", pjw_p_fertig: "fertig",
+    pjw_p_blockiert: "blockiert", pjw_p_wartet: "wartet", pjw_p_offen: "offen", pjw_a_leer: "Noch kein Meilenstein fertig.", pjw_a_wartet: "Gesamttest und Prüfer laufen, sobald alle Pakete fertig sind.", pjw_test_gruen: "Gesamttest grün (L{l}) · {n} Pakete",
+    pjw_test_gruen1: "Gesamttest grün (L{l}) · 1 Paket", pjw_test_rot: "Gesamttest rot (L{l})", pjw_test_kein: "kein Gesamttest eingestellt", pjw_vorfuehrung: "Vorführung", pjw_dein_ja: "dein Ja", pjw_abnehmen: "Abnehmen",
+    pjw_nacharbeit: "Nacharbeit anfordern", pjw_nacharbeit_ph: "Nur für Nacharbeit: was fehlt?", pjw_ok_abgenommen: "Meilenstein abgenommen.", pjw_ok_nacharbeit: "Nacharbeit angefordert – der Planer plant sie.", pjw_bericht: "Abschlussbericht", pjw_bericht_kommt: "Der Abschlussbericht kommt in wenigen Minuten – danach kannst du abnehmen.",
+    pjw_lead_fragt: "Lead fragt", pjw_fragt: "{x} fragt", pjw_aus_paket: "aus Paket „{x}“", pjw_status: "Status", pjw_reihenfolge: "Reihenfolge", pjw_aufwand: "Aufwand",
+    pjw_kosten: "Kosten", pjw_themen: "Themen", pjw_ziel: "Ziel", pjw_wer: "Wer", pjw_modell: "Modell", pjw_groesse: "Größe",
+    pjw_dateien: "Dateien", pjw_abnahme: "Abnahme", pjw_nach_k: "Nach", pjw_auftrag: "Auftrag", pjw_thema_oeffnen: "Thema öffnen →", pjw_ergaenzen: "Ergänzen oder ändern",
+    pjw_ergaenzen_ph: "geht als Hinweis an den Planer", pjw_als_hinweis: "Als Hinweis an den Planer", pjw_ok_hinweis: "Hinweis gemerkt – „Überarbeiten lassen“ gibt ihn an den Planer.", pjw_mit_hinweis: "Überarbeiten lassen mit diesem Hinweis", pjw_schliessen: "Schließen", pjw_lt_gegenlesen: "Gegenleser prüft {th} Fassung {f}",
+    pjw_lt_grobplaner: "Grob-Planer plant Fassung {f}", pjw_lt_feinplaner: "Feinplaner zerlegt {z} in Pakete", pjw_lt_planer: "Planer der Änderung plant {th} Fassung {f}", pjw_lt_abschluss: "Prüfer gleicht {z} gegen das Konzept ab", pjw_lt_sonst: "Planer arbeitet", pjw_laeuft_gerade: "läuft gerade: {x}",
+    pjw_rolle_lead: "Lead", pjw_rolle_co: "Co-Entwickler", pjw_lauf_was: "Gerade", pjw_lauf_dauer: "Dauer", pjw_l_hintergrund: "Im Hintergrund weiterlaufen lassen", n_themen: "Themen",
+    th2_stand: "Konzept · {n} von {g} Themen freigegeben", th2_leer: "Noch keine Themen.", th2_waehlen: "Thema wählen.", th2_dich: "wartet auf dich", th2_pruefen: "neu prüfen", th2_arbeit: "in Arbeit",
+    th2_frei: "freigegeben", th2_markiert: "zum Löschen markiert", th2_grund: "wegen: {x}", th2_ja_fehlt: "Ja fehlt noch: {x}", th2_nur_mensch: "Gibst nur du frei (Löschen, Kosten, Schema oder Außenwirkung)", ua_pruefpunkt: "Stand ist gepackt – testen",
+    pp_wartet_auf: "wartet auf {x}", ua_bereit: "„{x}“ ist bereit zur Abnahme", ua_gemeldet: "gemeldet von {r}", ua_pruefung: "Prüfung {r} grün", ua_dokument: "Ergebnis {r} abgelegt", ua_offen: "{n} offene Kriterien hakt dein Ja ab",
     ua_offen1: "1 offenes Kriterium hakt dein Ja ab", ua_ja: "Ja", ua_zurueck: "Zurück", ua_nur_pc: "abnehmen am PC", ua_frage: "A{a} „{x}“ abnehmen? Die AMW setzt sie auf fertig.", ua_zurueck_frage: "A{a} zurück – was fehlt noch?",
     ua_ok: "A{a} abgenommen – fertig", ua_ok_zurueck: "A{a} zurück an den Bearbeiter", mk_themen: "Themen", mk_fassung: "Fassung {n}", mk_verweis_fehlt: "{r} gibt es nicht", ab_fertig: "„{x}“ ist fertig – abnehmen",
     ab_grund: "Danach veröffentlicht die AMW alle Versionen seit der letzten Veröffentlichung (GitHub).", ab_knopf: "Abnehmen", ab_nur_pc: "abnehmen am PC", ab_frage: "M{m} „{x}“ abnehmen? Danach veröffentlicht die AMW (Push und GitHub-Release).", th2_gegenlesen: "wird gegengelesen · seit {z}", th2_gegengelesen: "Gegengelesen: Fassung {n} · {m} · {k}",
@@ -1852,16 +1854,16 @@ const TEXTE = {
     pm_nur_pc: "freigeben am PC", pm_frueher: "Früher", pm_spaeter_k: "Später", pm_ok_verschoben: "Reihenfolge geändert", pm_t_paket: "Paket", pm_t_wer: "Wer",
     pm_t_nach: "Nach", pm_t_pruefung: "Prüfung", pm_t_kosten: "Kosten", pm_gemessen: "gemessen", pm_geschaetzt: "geschätzt aus Größe und Art", pm_start: "Jetzt starten",
     pm_start_text: "{n} Meilenstein(e) voll geplant – alles freigegeben.", pm_start_frage: "Jetzt starten? Die geplanten Meilensteine gehen in die Umsetzung.", pm_ok_start: "Gestartet: Meilenstein {x}", pm_geaendert_grob: "Seit der Freigabe geändert – bitte neu freigeben", pm_geaendert_plan: "Plan seit der Freigabe geändert – bitte neu freigeben", pm_co_lead: "Co und Lead ({x})",
-    pm_ja_fehlt: "Ja fehlt noch: {x}", pm_entwuerfe: "Entwürfe des Planers ({n}) – Ja legt alles an", pm_planer_laeuft: "Planer läuft: {x} · seit {z}", pm_entwurf_fehler: "Entwurf ging nicht", pm_entwurf_nichts: "nichts zu bauen", pm_entwurf_umfang: "{m} Meilenstein(e), {p} Pakete",
-    pm_ja_anlegen: "Ja – anlegen", pm_ja_nichts: "Ja – nichts zu bauen", pm_neu_planen: "Neu planen", pm_ok_angelegt: "Angelegt", pm_ok_neu_planen: "Planer angestoßen", pm_thema_geaendert: "Thema geändert: {x} (Fassung {n}) – prüfen, ob der Plan noch passt",
-    pm_anhalten: "Nicht begonnene anhalten", pm_anhalten_frage: "{n} nicht begonnene Pakete anhalten? Laufende bauen zu Ende.", pm_ok_angehalten: "{n} Pakete angehalten", pm_feld_titel: "Titel", pm_feld_ziel: "Ziel", pm_feld_abnahme: "Abnahme",
-    pm_feld_zieldatum: "Zieldatum", pm_feld_auftrag: "Auftrag", pm_feld_kriterien: "Kriterien", pm_feld_bogen_id: "Meilenstein", pm_aenderungen: "Deine Änderungen ({n})", pm_ae_prueft: "wird geprüft · seit {z}",
-    pm_ae_wartet: "berührt {x} – gilt erst mit deinem Ja", pm_ae_fehler: "Prüfung fehlgeschlagen – Ja übernimmt trotzdem", pm_ae_ja: "Ja – übernehmen", pm_ae_verwerfen: "Verwerfen", pm_ae_ok_ja: "Änderung gilt", pm_ae_ok_weg: "Änderung verworfen",
-    tor_konzept: "Konzept", tor_grobplanung: "Grobplanung", tor_feinplanung: "Feinplanung", tor_umsetzung: "Umsetzung", tor_abschluss: "Abschluss", tor_t_grob: "{n} von {g} Themen in Meilensteinen",
-    tor_t_grob_m: "{n} von {g} Meilensteinen freigegeben", tor_t_fein: "{n} von {g} Plänen freigegeben – dann „Jetzt starten“", tor_t_fein_leer: "noch kein Meilenstein mit Paketen", tor_t_um: "{n} von {g} Paketen fertig", tor_t_um_m: "{n} von {g} Meilensteinen fertig", tor_t_ab: "{n} von {g} Abschlussberichten bestätigt",
-    tor_alle_zu: "Alle Tore geschlossen", tor_nichts_offen: "„nichts zu bauen“: {n} wartet auf den Co", tor_dich: "Wartet auf dich:", tor_dich_th: "{n} Themen", tor_dich_th1: "1 Thema", tor_dich_ms: "{n} Meilensteine",
-    tor_dich_ms1: "1 Meilenstein", pm_ab_kopf: "Abschluss", pm_ab_bericht: "Abschlussbericht gegen die Erfolgskriterien, mit Resten und Lehren", pm_ab_kommt: "Die AMW erstellt den Abschlussbericht in wenigen Minuten.", pm_ab_ja: "Ja – Bericht bestätigen", pm_ab_ok: "Abschluss bestätigt",
-    pm_ab_frei: "bestätigt von {x}", pm_ab_wartet: "Abschluss wartet auf dich", pm_bereit: "bereit zur Abnahme",
+    pm_ja_fehlt: "Ja fehlt noch: {x}", pm_entwuerfe: "Entwürfe des Planers ({n}) – Ja legt alles an", pm_entwuerfe_n: "Entwürfe des Planers ({n})", pm_planer_laeuft: "Planer läuft: {x} · seit {z}", pm_entwurf_fehler: "Entwurf ging nicht", pm_entwurf_nichts: "nichts zu bauen",
+    pm_entwurf_umfang: "{m} Meilenstein(e), {p} Pakete", pm_ja_anlegen: "Ja – anlegen", pm_ja_nichts: "Ja – nichts zu bauen", pm_neu_planen: "Neu planen", pm_ok_angelegt: "Angelegt", pm_ok_neu_planen: "Planer angestoßen",
+    pm_thema_geaendert: "Thema geändert: {x} (Fassung {n}) – prüfen, ob der Plan noch passt", pm_anhalten: "Nicht begonnene anhalten", pm_anhalten_frage: "{n} nicht begonnene Pakete anhalten? Laufende bauen zu Ende.", pm_ok_angehalten: "{n} Pakete angehalten", pm_feld_titel: "Titel", pm_feld_ziel: "Ziel",
+    pm_feld_abnahme: "Abnahme", pm_feld_zieldatum: "Zieldatum", pm_feld_auftrag: "Auftrag", pm_feld_kriterien: "Kriterien", pm_feld_bogen_id: "Meilenstein", pm_aenderungen: "Deine Änderungen ({n})",
+    pm_ae_prueft: "wird geprüft · seit {z}", pm_ae_wartet: "berührt {x} – gilt erst mit deinem Ja", pm_ae_fehler: "Prüfung fehlgeschlagen – Ja übernimmt trotzdem", pm_ae_ja: "Ja – übernehmen", pm_ae_verwerfen: "Verwerfen", pm_ae_ok_ja: "Änderung gilt",
+    pm_ae_ok_weg: "Änderung verworfen", tor_konzept: "Konzept", tor_grobplanung: "Grobplanung", tor_feinplanung: "Feinplanung", tor_umsetzung: "Umsetzung", tor_abschluss: "Abschluss",
+    tor_t_grob: "{n} von {g} Themen in Meilensteinen", tor_t_grob_m: "{n} von {g} Meilensteinen freigegeben", tor_t_fein: "{n} von {g} Plänen freigegeben – dann „Jetzt starten“", tor_t_fein_leer: "noch kein Meilenstein mit Paketen", tor_t_um: "{n} von {g} Paketen fertig", tor_t_um_m: "{n} von {g} Meilensteinen fertig",
+    tor_t_ab: "{n} von {g} Abschlussberichten bestätigt", tor_alle_zu: "Alle Tore geschlossen", tor_nichts_offen: "„nichts zu bauen“: {n} wartet auf den Co", tor_dich: "Wartet auf dich:", tor_dich_th: "{n} Themen", tor_dich_th1: "1 Thema",
+    tor_dich_ms: "{n} Meilensteine", tor_dich_ms1: "1 Meilenstein", pm_ab_kopf: "Abschluss", pm_ab_bericht: "Abschlussbericht gegen die Erfolgskriterien, mit Resten und Lehren", pm_ab_kommt: "Die AMW erstellt den Abschlussbericht in wenigen Minuten.", pm_ab_ja: "Ja – Bericht bestätigen",
+    pm_ab_ok: "Abschluss bestätigt", pm_ab_frei: "bestätigt von {x}", pm_ab_wartet: "Abschluss wartet auf dich", pm_bereit: "bereit zur Abnahme",
   },
   en: {
     marke: "Agent Management Workbench", suche: "Search tasks, decisions, questions, your words, messages", g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
@@ -1943,7 +1945,7 @@ const TEXTE = {
     sb_letzte: "Last session", sb_zuletzt: "last active", sb_nie: "none yet", sb_keine_sitzung: "No session yet – use “Start fresh”.", sb_h: "This is exactly how AMW starts the agent itself. Paste into a terminal and press Enter; it contains no secrets.", sb_grund_weise: "Not started by AMW – this agent works as a chat or in the desktop app.",
     sb_grund_ordner: "No folder set – set the folder in the “Session” block first.", sb_fehlt: "There is no start command for this agent.", band_ansehen: "View {x}", band_ansehen_h: "Open the overview of {x} – it shows what it is doing and what was sent to it", e_ende_frist: "Deadline for “Save & end” (minutes)", e_ende_frist_h: "This is how long an agent has after “Save & end” to save its state and sign off; then the service ends the session.",
     gra_titel: "Comparison with the {v}", gra_zahl: "{f} missing · {a} probably covered · {d} adopted", gra_h: "A proposal only: existing rules stay as they are. “Adopt” adds a missing base rule with the next free number; a decision records the source.", gra_drin: "adopted", gra_aehnlich: "probably covered by an own rule", gra_fehlt: "missing",
-    gra_wie: "similar to {r}", gra_uebernehmen: "Adopt", gra_frage: "Adopt {x} as a new work rule?", gra_ok: "{x} adopted as KR{r}", ck_o_versionen: "Release notes", e_versionen_h: "Mandatory: the plan check reports an error while no version is recorded, and a milestone only closes once a version is recorded after its last finished task. Recommended: hints only.",
+    gra_wie: "similar to {r}", gra_uebernehmen: "Adopt", gra_frage: "Adopt {x} as a new work rule?", gra_ok: "{x} adopted as KR{r}", ck_o_versionen: "Release notes", e_versionen_h: "Mandatory: the plan check reports an error while no version is recorded, and a milestone only closes once its finished packages are delivered. Recommended: hints only.",
     e_versionen_empfohlen: "recommended", e_versionen_pflicht: "mandatory", e_versionen_aus: "off", e_version_frist: "Warn when finished work has no version (days)", e_version_frist_h: "If the oldest task finished since the last version is this many days old, the plan check warns.", e_merge_dienst: "Merges handled by",
     e_merge_dienst_h: "The agent that merges (receives merge requests with branch and exact commit).", e_merge_dienst_keiner: "– none –", e_spec_vorlegen: "Submit specifications", e_spec_vorlegen_h: "Who submits a specification for approval. “lead only”: agents write, the lead reviews and submits.", e_spec_vorlegen_lead: "lead only", e_spec_vorlegen_alle: "any agent",
     e_spec_frei: "Approve specifications", e_spec_frei_h: "“lead too”: the lead approves conforming specifications, only single questions reach you. You can always approve.", e_spec_frei_entwickler: "only you", e_spec_frei_lead: "lead too", e_info_ablage: "Hide infos after (hours)", e_info_ablage_h: "Infos to you not linked to a task are collapsed under “Older infos” after this many hours and are no longer counted.",
@@ -2230,31 +2232,32 @@ const TEXTE = {
     pjw_bg_thema_offen: "topic not approved", pjw_bg_frist_offen: "waiting time not met", pjw_bg_dokument_fehlt: "document missing", pjw_bg_code_ungeprueft: "code not checked", pjw_bg_urteil: "judgement, no commit needed", pjw_ax_abgebrochen: "the full test was cancelled",
     pjw_ax_testfrist: "the full test took too long", pjw_ax_geaendert: "the state changed during the full test", pjw_ax_lesbar: "the checker's answer could not be read", pjw_ax_unvollstaendig: "the checker's answer was incomplete", pjw_ax_grenze: "the planners' daily limit is reached", pjw_ax_start: "the checker did not start",
     pjw_ax_frist: "the checker took too long", pjw_ax_lauf: "the checker stopped early", pjw_ax_sonst: "unexpected reason – see the closing report", pjw_a_pruefer_fehler_z: "Check failed: {x}", pjw_a_pruefer_fehler: "The check against the concept failed – start it again or request rework.", pjw_l_fehlt: "check missing",
-    pjw_l_fehler: "check failed", pjw_l_laeuft: "check running", pjw_l_nicht_erfuellt: "check not met", pjw_l_bericht: "closing report coming", pjw_l_abnehmbar: "ready for acceptance", pjw_ll_fehlt: "The check is missing, the lead will catch up on it.",
-    pjw_ll_fehler: "The check failed, the lead is looking into it.", pjw_ll_laeuft: "The check is running.", pjw_ll_nicht_erfuellt: "The check was not met, the lead is looking into it.", pjw_ll_bericht: "The closing report is being written.", pjw_laufend: "ongoing", pjw_a_laufend_z: "{m} {x}: ongoing – comes up for acceptance when the lead submits it.",
-    pjw_a_nicht_erfuellt: "Not everything is met yet – request rework.", pjw_abnehmen_m: "Accept {m}", pjw_laeuft: "running", pjw_w_ums_n: "{n} milestones running · {f} of {g} packages done", pjw_k_bestand: "The project already has {n} milestones. “Complete concept” comes with the takeover into the rough plan – today the planner would create everything anew.", pjw_k_bestand1: "The project already has 1 milestone. “Complete concept” comes with the takeover into the rough plan – today the planner would create everything anew.",
-    pjw_g_bestand: "No rough plan yet – the project has {n} milestones from before. The takeover (mapping topics to the existing milestones, planning only what is missing) is coming.", pjw_g_bestand1: "No rough plan yet – the project has 1 milestone from before. The takeover (mapping topics to the existing milestone, planning only what is missing) is coming.", pjw_w_grob_bestand: "Existing · {n} milestones", pjw_w_grob_bestand1: "Existing · 1 milestone", pjw_f_fehler: "Detailed plan M{n} (version {f}) did not fit – the AMW did not create it:", pjw_f_fehler_ph: "e.g. plan packages with tests as a window agent",
-    pjw_w_fein_fehler: "{m} · plan did not fit", pjw_w_delta_fehler1: "Change {t} · plan did not fit", pjw_w_delta_teil1: "Change {t} · partly applied", pjw_w_delta_teil_n: "{n} changes · partly applied", pjw_w_delta_klaeren_n: "{n} changes · to be settled", pjw_w_naechster: "next: {m}",
-    pjw_w_delta_fehler_n: "{n} changes · plan did not fit", pjw_delta_fehler: "The plan for this change did not fit – the AMW created nothing:", pjw_delta_fehler_ph: "What should the planner do differently?", pjw_fx_lauf: "The planner did not finish.", pjw_fx_laeuft: "“{p}” is being built and stays as it is. The adjustment has to be a new package after it.", pjw_fx_offen: "“{p}” has not been started. It needs no rework, it can be changed directly.",
-    pjw_fx_fertig: "“{p}” is already done. It can no longer be changed, only reworked with a new package.", pjw_fx_fremd: "“{p}” does not belong to this topic or is not affected.", pjw_fx_lang: "A text is too long (at most {n} characters).", pjw_fx_gebaut: "A suggested package has already been built.", pjw_fx_pfade: "A package was meant to change files that are locked.", pjw_fx_befehl: "The acceptance command of a package is not allowed or missing.",
-    pjw_fx_sperre: "The acceptance command of a package contains something blocked, for example “python -c” or “git”.", pjw_fx_kette: "The acceptance command of a package consists of several commands. Only a single one is allowed.", pjw_fx_kreis: "Packages wait for each other.", pjw_fx_doppelt: "Something appears twice.", pjw_fx_form: "The planner's answer could not be read.", pjw_fx_fehlt: "The plan is missing a detail.",
-    pjw_fx_sonst: "The plan breaks a rule. The lead has the exact wording.", pjw_delta_start_n: "Approve change {t} and start ({p}{m})", pjw_ein_paket: "1 package", pjw_so_viele_pakete: "{n} packages", pjw_lead_klaert: "{x} is sorting it out", pjw_neuem_ms: "new milestone “{x}”",
-    pjw_paket_w: "package", pjw_start_fehlt: "These packages do not start yet because details are missing: {x}. The lead adds them.", pjw_mehr: "more", pjw_delta_neu: ", new milestone", pjw_delta_in: " in {m}", pjw_delta_wer: "Approved by: {x}",
-    pjw_ok_delta_start: "Change approved – it starts.", pjw_delta_nachholen: "Approve M{n} from change {t} and start", pjw_delta_nicht_gestartet: "This milestone could not be started:", pjw_delta_teilweise: "This change was only partly applied:", pjw_fx_teil_angelegt: "Already created: {x}.", pjw_fx_teil_geaendert: "Already changed: {x}.",
-    pjw_fx_teil_verworfen: "Already dropped: {x}.", pjw_fx_teil_offen: "Still open: {x}.", pjw_fx_teil_lead: "The lead has been told. With a note you have the rest planned again.", pjw_pakete_w: "packages", pjw_plan_starten: "Approve and start plan M{n}", pjw_ok_plan: "Plan approved – the delivery starts.",
-    pjw_f_hinweis_ph: "e.g. saving first as a small trial", pjw_delta: "Concept change: {x}", pjw_delta_ja: "Approve change as one block", pjw_ok_delta: "Change approved.", pjw_u_leer: "No milestone is running yet.", pjw_lagebild: "What is running: overview →",
-    pjw_p_laeuft: "running", pjw_p_fertig: "done", pjw_p_blockiert: "blocked", pjw_p_wartet: "waiting", pjw_p_offen: "open", pjw_a_leer: "No milestone finished yet.",
-    pjw_a_wartet: "Full test and checker run once all packages are done.", pjw_test_gruen: "Full test green (L{l}) · {n} packages", pjw_test_gruen1: "Full test green (L{l}) · 1 package", pjw_test_rot: "Full test red (L{l})", pjw_test_kein: "no full test set up", pjw_vorfuehrung: "Demo",
-    pjw_dein_ja: "your yes", pjw_abnehmen: "Accept", pjw_nacharbeit: "Request rework", pjw_nacharbeit_ph: "Only for rework: what is missing?", pjw_ok_abgenommen: "Milestone accepted.", pjw_ok_nacharbeit: "Rework requested – the planner plans it.",
-    pjw_bericht: "Closing report", pjw_bericht_kommt: "The closing report arrives within a few minutes – then you can accept.", pjw_lead_fragt: "Lead asks", pjw_fragt: "{x} asks", pjw_aus_paket: "from package “{x}”", pjw_status: "Status",
-    pjw_reihenfolge: "Order", pjw_aufwand: "Effort", pjw_kosten: "Cost", pjw_themen: "Topics", pjw_ziel: "Goal", pjw_wer: "Who",
-    pjw_modell: "Model", pjw_groesse: "Size", pjw_dateien: "Files", pjw_abnahme: "Acceptance", pjw_nach_k: "After", pjw_auftrag: "Task",
-    pjw_thema_oeffnen: "Open topic →", pjw_ergaenzen: "Add or change", pjw_ergaenzen_ph: "goes to the planner as a note", pjw_als_hinweis: "Send as note to the planner", pjw_ok_hinweis: "Note kept – “Have it revised” passes it to the planner.", pjw_mit_hinweis: "Have it revised with this note",
-    pjw_schliessen: "Close", pjw_lt_gegenlesen: "Reviewer checks {th} version {f}", pjw_lt_grobplaner: "Rough planner plans version {f}", pjw_lt_feinplaner: "Detail planner splits {z} into packages", pjw_lt_planer: "Change planner plans {th} version {f}", pjw_lt_abschluss: "Checker compares {z} with the concept",
-    pjw_lt_sonst: "Planner is working", pjw_laeuft_gerade: "running now: {x}", pjw_rolle_lead: "lead", pjw_rolle_co: "co-developer", pjw_lauf_was: "Now", pjw_lauf_dauer: "Duration",
-    pjw_l_hintergrund: "Let it run in the background", n_themen: "Topics", th2_stand: "Concept · {n} of {g} topics approved", th2_leer: "No topics yet.", th2_waehlen: "Pick a topic.", th2_dich: "waiting for you",
-    th2_pruefen: "check again", th2_arbeit: "in progress", th2_frei: "approved", th2_markiert: "marked for deletion", th2_grund: "because of: {x}", th2_ja_fehlt: "Still missing a yes from: {x}",
-    th2_nur_mensch: "Only you approve this (deletion, cost, schema or external effect)", ua_bereit: "“{x}” is ready for your acceptance", ua_gemeldet: "reported by {r}", ua_pruefung: "review {r} green", ua_dokument: "result {r} filed", ua_offen: "your yes ticks {n} open criteria",
+    pjw_l_fehler: "check failed", pjw_l_laeuft: "check running", pjw_l_nicht_erfuellt: "check not met", pjw_l_bericht: "closing report coming", pjw_l_abnehmbar: "ready for acceptance", pjw_l_auslieferung: "waiting for delivery",
+    pjw_ll_fehlt: "The check is missing, the lead will catch up on it.", pjw_ll_fehler: "The check failed, the lead is looking into it.", pjw_ll_laeuft: "The check is running.", pjw_ll_nicht_erfuellt: "The check was not met, the lead is looking into it.", pjw_ll_bericht: "The closing report is being written.", pjw_ll_auslieferung: "Waiting for the delivery of {x}. After that it can be accepted.",
+    pjw_laufend: "ongoing", pjw_a_laufend_z: "{m} {x}: ongoing – comes up for acceptance when the lead submits it.", pjw_a_nicht_erfuellt: "Not everything is met yet – request rework.", pjw_abnehmen_m: "Accept {m}", pjw_laeuft: "running", pjw_w_ums_n: "{n} milestones running · {f} of {g} packages done",
+    pjw_k_bestand: "The project already has {n} milestones. “Complete concept” comes with the takeover into the rough plan – today the planner would create everything anew.", pjw_k_bestand1: "The project already has 1 milestone. “Complete concept” comes with the takeover into the rough plan – today the planner would create everything anew.", pjw_g_bestand: "No rough plan yet – the project has {n} milestones from before. The takeover (mapping topics to the existing milestones, planning only what is missing) is coming.", pjw_g_bestand1: "No rough plan yet – the project has 1 milestone from before. The takeover (mapping topics to the existing milestone, planning only what is missing) is coming.", pjw_w_grob_bestand: "Existing · {n} milestones", pjw_w_grob_bestand1: "Existing · 1 milestone",
+    pjw_f_fehler: "Detailed plan M{n} (version {f}) did not fit – the AMW did not create it:", pjw_f_fehler_ph: "e.g. plan packages with tests as a window agent", pjw_w_fein_fehler: "{m} · plan did not fit", pjw_w_delta_fehler1: "Change {t} · plan did not fit", pjw_w_delta_teil1: "Change {t} · partly applied", pjw_w_delta_teil_n: "{n} changes · partly applied",
+    pjw_w_delta_klaeren_n: "{n} changes · to be settled", pjw_w_naechster: "next: {m}", pjw_w_delta_fehler_n: "{n} changes · plan did not fit", pjw_delta_fehler: "The plan for this change did not fit – the AMW created nothing:", pjw_delta_fehler_ph: "What should the planner do differently?", pjw_fx_lauf: "The planner did not finish.",
+    pjw_fx_laeuft: "“{p}” is being built and stays as it is. The adjustment has to be a new package after it.", pjw_fx_offen: "“{p}” has not been started. It needs no rework, it can be changed directly.", pjw_fx_fertig: "“{p}” is already done. It can no longer be changed, only reworked with a new package.", pjw_fx_fremd: "“{p}” does not belong to this topic or is not affected.", pjw_fx_lang: "A text is too long (at most {n} characters).", pjw_fx_gebaut: "A suggested package has already been built.",
+    pjw_fx_pfade: "A package was meant to change files that are locked.", pjw_fx_befehl: "The acceptance command of a package is not allowed or missing.", pjw_fx_sperre: "The acceptance command of a package contains something blocked, for example “python -c” or “git”.", pjw_fx_kette: "The acceptance command of a package consists of several commands. Only a single one is allowed.", pjw_fx_kreis: "Packages wait for each other.", pjw_fx_doppelt: "Something appears twice.",
+    pjw_fx_form: "The planner's answer could not be read.", pjw_fx_fehlt: "The plan is missing a detail.", pjw_fx_sonst: "The plan breaks a rule. The lead has the exact wording.", pjw_delta_start_n: "Approve change {t} and start ({p}{m})", pjw_ein_paket: "1 package", pjw_so_viele_pakete: "{n} packages",
+    pjw_lead_klaert: "{x} is sorting it out", pjw_neuem_ms: "new milestone “{x}”", pjw_paket_w: "package", pjw_start_fehlt: "These packages do not start yet because details are missing: {x}. The lead adds them.", pjw_mehr: "more", pjw_delta_neu: ", new milestone",
+    pjw_delta_in: " in {m}", pjw_delta_wer: "Approved by: {x}", pjw_delta_lead_startet: "After you approve, the lead starts it.", pjw_ok_delta_start: "Change approved – it starts.", pjw_ok_delta_lead: "Change approved. The lead starts it.", pjw_delta_nachholen: "Approve M{n} from change {t} and start",
+    pjw_delta_nicht_gestartet: "This milestone could not be started:", pjw_delta_teilweise: "This change was only partly applied:", pjw_fx_teil_angelegt: "Already created: {x}.", pjw_fx_teil_geaendert: "Already changed: {x}.", pjw_fx_teil_verworfen: "Already dropped: {x}.", pjw_fx_teil_offen: "Still open: {x}.",
+    pjw_fx_teil_lead: "The lead has been told. With a note you have the rest planned again.", pjw_pakete_w: "packages", pjw_plan_starten: "Approve and start plan M{n}", pjw_ok_plan: "Plan approved – the delivery starts.", pjw_f_hinweis_ph: "e.g. saving first as a small trial", pjw_delta: "Concept change: {x}",
+    pjw_delta_ja: "Approve change as one block", pjw_ok_delta: "Change approved.", pjw_u_leer: "No milestone is running yet.", pjw_lagebild: "What is running: overview →", pjw_p_laeuft: "running", pjw_p_fertig: "done",
+    pjw_p_blockiert: "blocked", pjw_p_wartet: "waiting", pjw_p_offen: "open", pjw_a_leer: "No milestone finished yet.", pjw_a_wartet: "Full test and checker run once all packages are done.", pjw_test_gruen: "Full test green (L{l}) · {n} packages",
+    pjw_test_gruen1: "Full test green (L{l}) · 1 package", pjw_test_rot: "Full test red (L{l})", pjw_test_kein: "no full test set up", pjw_vorfuehrung: "Demo", pjw_dein_ja: "your yes", pjw_abnehmen: "Accept",
+    pjw_nacharbeit: "Request rework", pjw_nacharbeit_ph: "Only for rework: what is missing?", pjw_ok_abgenommen: "Milestone accepted.", pjw_ok_nacharbeit: "Rework requested – the planner plans it.", pjw_bericht: "Closing report", pjw_bericht_kommt: "The closing report arrives within a few minutes – then you can accept.",
+    pjw_lead_fragt: "Lead asks", pjw_fragt: "{x} asks", pjw_aus_paket: "from package “{x}”", pjw_status: "Status", pjw_reihenfolge: "Order", pjw_aufwand: "Effort",
+    pjw_kosten: "Cost", pjw_themen: "Topics", pjw_ziel: "Goal", pjw_wer: "Who", pjw_modell: "Model", pjw_groesse: "Size",
+    pjw_dateien: "Files", pjw_abnahme: "Acceptance", pjw_nach_k: "After", pjw_auftrag: "Task", pjw_thema_oeffnen: "Open topic →", pjw_ergaenzen: "Add or change",
+    pjw_ergaenzen_ph: "goes to the planner as a note", pjw_als_hinweis: "Send as note to the planner", pjw_ok_hinweis: "Note kept – “Have it revised” passes it to the planner.", pjw_mit_hinweis: "Have it revised with this note", pjw_schliessen: "Close", pjw_lt_gegenlesen: "Reviewer checks {th} version {f}",
+    pjw_lt_grobplaner: "Rough planner plans version {f}", pjw_lt_feinplaner: "Detail planner splits {z} into packages", pjw_lt_planer: "Change planner plans {th} version {f}", pjw_lt_abschluss: "Checker compares {z} with the concept", pjw_lt_sonst: "Planner is working", pjw_laeuft_gerade: "running now: {x}",
+    pjw_rolle_lead: "lead", pjw_rolle_co: "co-developer", pjw_lauf_was: "Now", pjw_lauf_dauer: "Duration", pjw_l_hintergrund: "Let it run in the background", n_themen: "Topics",
+    th2_stand: "Concept · {n} of {g} topics approved", th2_leer: "No topics yet.", th2_waehlen: "Pick a topic.", th2_dich: "waiting for you", th2_pruefen: "check again", th2_arbeit: "in progress",
+    th2_frei: "approved", th2_markiert: "marked for deletion", th2_grund: "because of: {x}", th2_ja_fehlt: "Still missing a yes from: {x}", th2_nur_mensch: "Only you approve this (deletion, cost, schema or external effect)", ua_pruefpunkt: "Build is packed – please test",
+    pp_wartet_auf: "waiting for {x}", ua_bereit: "“{x}” is ready for your acceptance", ua_gemeldet: "reported by {r}", ua_pruefung: "review {r} green", ua_dokument: "result {r} filed", ua_offen: "your yes ticks {n} open criteria",
     ua_offen1: "your yes ticks 1 open criterion", ua_ja: "Yes", ua_zurueck: "Send back", ua_nur_pc: "accept on the PC", ua_frage: "Accept A{a} “{x}”? AMW sets it to done.", ua_zurueck_frage: "Send A{a} back – what is still missing?",
     ua_ok: "A{a} accepted – done", ua_ok_zurueck: "A{a} sent back to the assignee", mk_themen: "Topics", mk_fassung: "version {n}", mk_verweis_fehlt: "{r} does not exist", ab_fertig: "“{x}” is done – accept",
     ab_grund: "Then AMW publishes all versions since the last publication (GitHub).", ab_knopf: "Accept", ab_nur_pc: "accept on the PC", ab_frage: "Accept M{m} “{x}”? AMW then publishes (push and GitHub release).", th2_gegenlesen: "being cross-read · since {z}", th2_gegengelesen: "Cross-read: version {n} · {m} · {k}",
@@ -2272,16 +2275,16 @@ const TEXTE = {
     pm_nur_pc: "approve on the PC", pm_frueher: "Earlier", pm_spaeter_k: "Later", pm_ok_verschoben: "Order changed", pm_t_paket: "Package", pm_t_wer: "Who",
     pm_t_nach: "After", pm_t_pruefung: "Review", pm_t_kosten: "Cost", pm_gemessen: "measured", pm_geschaetzt: "estimated from size and kind", pm_start: "Start now",
     pm_start_text: "{n} milestone(s) fully planned – everything approved.", pm_start_frage: "Start now? The planned milestones go into implementation.", pm_ok_start: "Started: milestone {x}", pm_geaendert_grob: "Changed since approval – please approve again", pm_geaendert_plan: "Plan changed since approval – please approve again", pm_co_lead: "co-developer and lead ({x})",
-    pm_ja_fehlt: "Yes still missing: {x}", pm_entwuerfe: "Planner drafts ({n}) – yes creates everything", pm_planer_laeuft: "Planner running: {x} · since {z}", pm_entwurf_fehler: "Draft failed", pm_entwurf_nichts: "nothing to build", pm_entwurf_umfang: "{m} milestone(s), {p} packages",
-    pm_ja_anlegen: "Yes – create", pm_ja_nichts: "Yes – nothing to build", pm_neu_planen: "Plan again", pm_ok_angelegt: "Created", pm_ok_neu_planen: "Planner started", pm_thema_geaendert: "Topic changed: {x} (version {n}) – check whether the plan still fits",
-    pm_anhalten: "Hold packages not started", pm_anhalten_frage: "Hold {n} packages that have not started? Running ones finish.", pm_ok_angehalten: "{n} packages on hold", pm_feld_titel: "Title", pm_feld_ziel: "Goal", pm_feld_abnahme: "Acceptance",
-    pm_feld_zieldatum: "Target date", pm_feld_auftrag: "Task", pm_feld_kriterien: "Criteria", pm_feld_bogen_id: "Milestone", pm_aenderungen: "Your changes ({n})", pm_ae_prueft: "being checked · since {z}",
-    pm_ae_wartet: "affects {x} – applies only with your yes", pm_ae_fehler: "Check failed – yes applies it anyway", pm_ae_ja: "Yes – apply", pm_ae_verwerfen: "Discard", pm_ae_ok_ja: "Change applied", pm_ae_ok_weg: "Change discarded",
-    tor_konzept: "Concept", tor_grobplanung: "Rough planning", tor_feinplanung: "Detailed planning", tor_umsetzung: "Delivery", tor_abschluss: "Closing", tor_t_grob: "{n} of {g} topics in milestones",
-    tor_t_grob_m: "{n} of {g} milestones approved", tor_t_fein: "{n} of {g} plans approved – then “Start now”", tor_t_fein_leer: "no milestone with packages yet", tor_t_um: "{n} of {g} packages done", tor_t_um_m: "{n} of {g} milestones done", tor_t_ab: "{n} of {g} closing reports confirmed",
-    tor_alle_zu: "All gates closed", tor_nichts_offen: "“Nothing to build”: {n} waiting for the co-developer", tor_dich: "Waiting for you:", tor_dich_th: "{n} topics", tor_dich_th1: "1 topic", tor_dich_ms: "{n} milestones",
-    tor_dich_ms1: "1 milestone", pm_ab_kopf: "Closing", pm_ab_bericht: "Closing report against the success criteria, with leftovers and lessons", pm_ab_kommt: "AMW will create the closing report within a few minutes.", pm_ab_ja: "Yes – confirm report", pm_ab_ok: "Closing confirmed",
-    pm_ab_frei: "confirmed by {x}", pm_ab_wartet: "Closing waits for you", pm_bereit: "ready for acceptance",
+    pm_ja_fehlt: "Yes still missing: {x}", pm_entwuerfe: "Planner drafts ({n}) – yes creates everything", pm_entwuerfe_n: "Planner drafts ({n})", pm_planer_laeuft: "Planner running: {x} · since {z}", pm_entwurf_fehler: "Draft failed", pm_entwurf_nichts: "nothing to build",
+    pm_entwurf_umfang: "{m} milestone(s), {p} packages", pm_ja_anlegen: "Yes – create", pm_ja_nichts: "Yes – nothing to build", pm_neu_planen: "Plan again", pm_ok_angelegt: "Created", pm_ok_neu_planen: "Planner started",
+    pm_thema_geaendert: "Topic changed: {x} (version {n}) – check whether the plan still fits", pm_anhalten: "Hold packages not started", pm_anhalten_frage: "Hold {n} packages that have not started? Running ones finish.", pm_ok_angehalten: "{n} packages on hold", pm_feld_titel: "Title", pm_feld_ziel: "Goal",
+    pm_feld_abnahme: "Acceptance", pm_feld_zieldatum: "Target date", pm_feld_auftrag: "Task", pm_feld_kriterien: "Criteria", pm_feld_bogen_id: "Milestone", pm_aenderungen: "Your changes ({n})",
+    pm_ae_prueft: "being checked · since {z}", pm_ae_wartet: "affects {x} – applies only with your yes", pm_ae_fehler: "Check failed – yes applies it anyway", pm_ae_ja: "Yes – apply", pm_ae_verwerfen: "Discard", pm_ae_ok_ja: "Change applied",
+    pm_ae_ok_weg: "Change discarded", tor_konzept: "Concept", tor_grobplanung: "Rough planning", tor_feinplanung: "Detailed planning", tor_umsetzung: "Delivery", tor_abschluss: "Closing",
+    tor_t_grob: "{n} of {g} topics in milestones", tor_t_grob_m: "{n} of {g} milestones approved", tor_t_fein: "{n} of {g} plans approved – then “Start now”", tor_t_fein_leer: "no milestone with packages yet", tor_t_um: "{n} of {g} packages done", tor_t_um_m: "{n} of {g} milestones done",
+    tor_t_ab: "{n} of {g} closing reports confirmed", tor_alle_zu: "All gates closed", tor_nichts_offen: "“Nothing to build”: {n} waiting for the co-developer", tor_dich: "Waiting for you:", tor_dich_th: "{n} topics", tor_dich_th1: "1 topic",
+    tor_dich_ms: "{n} milestones", tor_dich_ms1: "1 milestone", pm_ab_kopf: "Closing", pm_ab_bericht: "Closing report against the success criteria, with leftovers and lessons", pm_ab_kommt: "AMW will create the closing report within a few minutes.", pm_ab_ja: "Yes – confirm report",
+    pm_ab_ok: "Closing confirmed", pm_ab_frei: "confirmed by {x}", pm_ab_wartet: "Closing waits for you", pm_bereit: "ready for acceptance",
   },
 };
 let sprache = "de", spracheGewaehlt = false;      /* gewählt = im Browser gemerkt oder per Adresse – dann gilt die Vorgabe der Installation nicht */
@@ -2879,7 +2882,7 @@ function urteilZeile(x) {
       zeige("start", true); } catch (e) { toast(t("fehler", { x: e.message }), true); } };
   const g = t("ua_" + x.grund_art, { r: x.grund_ref }) + (x.offen.length ? " · " + t(x.offen.length === 1 ? "ua_offen1" : "ua_offen", { n: x.offen.length }) : "");
   return el("div", { class: "ue-zeile ua-zeile", "data-aufgabe": x.id }, el("span", { class: "ref" }, `A${x.id}`),
-    el("span", { class: "ue-text" }, el("b", {}, t("ua_bereit", { x: x.titel })), " ", el("span", { class: "leise" }, g)),
+    el("span", { class: "ue-text" }, el("b", {}, t(x.pruefpunkt ? "ua_pruefpunkt" : "ua_bereit", { x: x.titel })), " ", el("span", { class: "leise" }, g)),   /* A2096 */
     API ? el("span", { class: "sehrleise" }, t("ua_nur_pc")) : el("span", { class: "sv-knoepfe" },
       el("button", { class: "klein-knopf ue-knopf", type: "button", onclick: () => tun(true) }, t("ua_ja")),
       el("button", { class: "klein-knopf", type: "button", onclick: () => tun(false) }, t("ua_zurueck")),
@@ -4453,9 +4456,13 @@ function pwWert(d, i) {
     return t("pjw_w_ums", { m: pwM(ms[0]), f: ms[0].fertig, n: ms[0].pakete.length }) + fr; }
   const offen = a.filter(x => x.bereit && !x.frei), w = offen.filter(x => x.bei_dir);            /* A2082: „bereit zur Abnahme“ nur, was der Mensch abnehmen kann */
   if (w.length) return `${w.map(x => pwM(x)).join(", ")} · ${t("pjw_bereit")}`;
-  if (offen.length) return offen.map(x => `${pwM(x)} · ${t("pjw_l_" + x.lage)}`).join(", ");
+  if (offen.length) return offen.map(x => `${pwM(x)} · ${pwLage(x)}${x.auslieferung?.length ? ` (${pwPaketListe(x)})` : ""}`).join(", ");
   const z = a.filter(x => x.frei).at(-1); return z ? `${pwM(z)} · ${t("pjw_abgenommen")}` : "–";
 }
+/* A2116: die Lage vor der Abnahme in Worten; wartet sie auf die Auslieferung, stehen die Pakete im langen Satz und in der Leiste. */
+const pwPaketListe = x => (x.auslieferung || []).slice(0, 4).map(a => "A" + a).join(", ") + ((x.auslieferung || []).length > 4 ? ` +${x.auslieferung.length - 4}` : "");
+const pwLage = x => t("pjw_l_" + x.lage);
+const pwLageLang = x => t("pjw_ll_" + x.lage, { x: pwPaketListe(x) });
 const pwStatus = (text, art) => el("span", { class: "pjw-status" + (art ? " " + art : "") }, text);
 const pwKnopf = (text, onclick, haupt) => el("button", { class: "knopf" + (haupt ? " haupt" : ""), type: "button", onclick }, text);
 const pwHandlungen = (...k) => el("div", { class: "pjw-handlungen" }, ...k.filter(Boolean));
@@ -4596,16 +4603,21 @@ function pwDeltaFehler(x, haupt, lead) {
       pwTun("/api/projektweg/ueberarbeiten", { plan: `TH${x.thema}`, text: h }, t("pjw_ok_ueberarbeiten")); }, haupt)));
   return karte;
 }
+/* A2112 (Marcel 25.11.): das Ja zu einer Änderung heißt im Projektweg und in Planung › Meilensteine gleich; ja kommt vom Server (planansicht.aenderung_ja). */
+function pwDeltaKnopfText(thema, ja) {
+  const ziele = ja.ziele.map(pwZielText).join(", ");
+  const wohin = ja.neuer_ms ? t("pjw_delta_neu") : ziele ? t("pjw_delta_in", { m: ziele }) : "";     /* A2080: kurz – der Titel steht in der Karte */
+  return t(ja.startet ? "pjw_delta_start_n" : "pjw_delta_ja_n", { t: `TH${thema}`, p: pwPakete(ja.pakete), m: wohin })
+    + (ja.aendern ? " · " + t("pjw_n_geaendert", { n: ja.aendern }) : "") + (ja.verwerfen ? " · " + t("pjw_n_verworfen", { n: ja.verwerfen }) : "");
+}
+const pwDeltaOk = ja => t(ja.startet ? "pjw_ok_delta_start" : ja.lead_startet ? "pjw_ok_delta_lead" : "pjw_ok_delta");
+const pwDeltaDanach = ja => ja.lead_startet ? t("pjw_delta_lead_startet") : null;                  /* der Plan des laufenden Ziels ist geändert: das Ja startet nicht */
 function pwDeltaKarte(x, einzig, haupt) {
   /* A2065 (Marcel 24.11.): die Änderung als Karten in Stufen wie der Feinplan; was der Knopf freigibt, steht auf dem Knopf. */
-  const ziele = x.ziele.map(pwZielText).join(", ");
-  const wohin = x.neuer_ms ? t("pjw_delta_neu") : ziele ? t("pjw_delta_in", { m: ziele }) : "";     /* A2080: kurz – der Titel steht in der Karte */
-  const knopfText = t(x.startet ? "pjw_delta_start_n" : "pjw_delta_ja_n", { t: `TH${x.thema}`, p: pwPakete(x.karten.length), m: wohin })
-    + (x.aendern.length ? " · " + t("pjw_n_geaendert", { n: x.aendern.length }) : "") + (x.verwerfen.length ? " · " + t("pjw_n_verworfen", { n: x.verwerfen.length }) : "");
   const karte = el("div", { class: "pjw-karte pjw-delta", "data-thema": x.thema },
     el("div", { class: "pjw-kopf" }, el("h3", {}, t("pjw_delta", { x: `TH${x.thema} ${x.name}` })), pwStatus(t("pjw_wartet_dich"), "dran")),
     el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, x.karten.length), " ", t(x.karten.length === 1 ? "pjw_paket_w" : "pjw_pakete_w")),
-      el("span", {}, el("b", {}, x.karten.filter(k => k.wer.startsWith("Headless")).length), " Headless"), ziele ? el("span", {}, t("pjw_in_x", { x: x.ziele.map(z => z.neu ? t("pjw_neuem_ms", { x: z.titel }) : `M${z.nr}`).join(", ") })) : null));
+      el("span", {}, el("b", {}, x.karten.filter(k => k.wer.startsWith("Headless")).length), " Headless"), x.ziele.length ? el("span", {}, t("pjw_in_x", { x: x.ziele.map(z => z.neu ? t("pjw_neuem_ms", { x: z.titel }) : `M${z.nr}`).join(", ") })) : null));
   if (x.karten.length) {
     const stufen = [...new Set(x.karten.map(k => k.stufe))].sort((a, b) => a - b);
     karte.append(el("div", { class: "pjw-stufen" }, stufen.map(s => el("div", { class: "pjw-stufe" }, el("span", { class: "pjw-snr" }, s),
@@ -4620,8 +4632,9 @@ function pwDeltaKarte(x, einzig, haupt) {
   if ((x.nacharbeit || []).length) karte.append(el("div", { class: "pjw-hinweise" }, el("div", { class: "pjw-lbl" }, t("pjw_nacharbeit_lbl")),   /* A2059 */
     x.nacharbeit.map(y => el("div", {}, `A${y.aufgabe} ${y.alt || ""}`, y.grund ? el("span", { class: "leise" }, ` – ${y.grund}`) : null))));
   if (x.wer && x.wer.length) karte.append(el("div", { class: "leise" }, t("pjw_delta_wer", { x: x.wer.join(", ") })));   /* A2080 (2) */
-  if (API) return karte;
-  const ja = pwKnopf(knopfText, () => pwTun("/api/meilenstein/plan-ja", { thema: x.thema, eid: x.eid }, t(x.startet ? "pjw_ok_delta_start" : "pjw_ok_delta")), haupt);
+  if (pwDeltaDanach(x.ja)) karte.append(el("div", { class: "leise pjw-danach" }, pwDeltaDanach(x.ja)));   /* A2112 */
+  if (API) { karte.append(el("div", { class: "leise pjw-nur-pc" }, t("pm_nur_pc"))); return karte; }
+  const ja = pwKnopf(pwDeltaKnopfText(x.thema, x.ja), () => pwTun("/api/meilenstein/plan-ja", { thema: x.thema, eid: x.eid }, pwDeltaOk(x.ja)), haupt);
   if (einzig) pwHaupt = ja;
   else karte.append(pwHandlungen(ja));
   return karte;
@@ -4654,7 +4667,7 @@ function pwUmsetzung(d) {
 const pwVorbehalt = v => v.art === "pruefer" ? v.text : t("pjw_vb_" + v.art + (v.n === 1 ? "1" : ""), { n: v.n, z: v.zweig || "main" });
 const pwTrotzdem = (liste, tun) => () => { if (confirm(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"))) tun(); };
 /* A2088 (Lead #32824): was beim Abnehmen dagegen spricht – auf Projektweg und Planung gleich. null: gerade geht es nicht. */
-const pwDagegen = (lage, zaehlt, vorbehalte, alt) => ["laeuft", "bericht"].includes(lage) ? null
+const pwDagegen = (lage, zaehlt, vorbehalte, alt) => ["laeuft", "bericht", "auslieferung"].includes(lage) ? null
   : [...(zaehlt ? [t("pjw_l_" + lage)] : []), ...(alt ? [t("pjw_a_alt_" + alt)] : []), ...(vorbehalte || []).map(pwVorbehalt)];
 function pwUrteil(x, name, p, text) {
   /* je Thema ein Wort und ein kurzer Satz; Pakete, Commits und Dateien auf Klick */
@@ -4676,7 +4689,7 @@ function pwAbschlussKarte(x, einzig, haupt) {
   const zeile = (ok, text) => el("div", {}, el("span", { class: ok === null ? "leise" : ok ? "pjw-ok" : x.bei_dir ? "pjw-nein" : "leise" }, ok === null ? "–" : ok ? "✓" : "○"), el("span", {}, text));   /* A2082: Farbe nur, wenn der Mensch dran ist (TH156 Regel 4) */
   const testOk = !!p && (!test.befehl || test.rc === 0), abnehmbar = x.lage === "abnehmbar";
   const karte = el("div", { class: "pjw-karte pjw-ab-karte", "data-bogen": x.bogen, "data-lage": x.lage },
-    el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x)} ${x.titel}`), x.bei_dir ? pwStatus(t("pjw_wartet_dich"), "dran") : pwStatus(t("pjw_l_" + x.lage))));
+    el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x)} ${x.titel}`), x.bei_dir ? pwStatus(t("pjw_wartet_dich"), "dran") : pwStatus(pwLage(x), "umbruch")));
   const ja = x.bei_dir ? zeile(false, t("pjw_dein_ja")) : null;
   if (!p) karte.append(el("div", { class: "pjw-pruefung" }, zeile(false, x.pruefung_laeuft ? t("pjw_a_laeuft") : t("pjw_a_ohne")), ja));
   else {
@@ -4699,9 +4712,9 @@ function pwAbschlussKarte(x, einzig, haupt) {
      die vor A2029 bereit wurden, bekommen sie nie von selbst). Hauptknopf nur auf der ersten Karte (eine Hauptaktion je Ansicht). */
   const handlung = abnehmbar && !fragen.length ? pwKnopf(t("pjw_abnehmen_m", { m: pwM(x) }), abnehmen, haupt)
     : abnehmbar ? pwKnopf(t("pjw_trotzdem"), pwTrotzdem(fragen, abnehmen), haupt && x.bei_dir)
-    : (!p || p.fehler) && !x.pruefung_laeuft ? pwKnopf(t(p ? "pjw_a_erneut" : "pjw_a_starten"),       // A2072: nach einem Fehler erneut
+    : (!p || p.fehler) && !x.pruefung_laeuft && x.lage !== "auslieferung" ? pwKnopf(t(p ? "pjw_a_erneut" : "pjw_a_starten"),       // A2072: nach einem Fehler erneut
         () => pwTun("/api/projektweg/pruefung-starten", { bogen: x.bogen }, t("pjw_ok_pruefung")), haupt && x.bei_dir) : null;
-  if (!abnehmbar) karte.append(el("div", { class: "leise pjw-a-lage" }, !x.bei_dir ? t("pjw_ll_" + x.lage)
+  if (!abnehmbar) karte.append(el("div", { class: "leise pjw-a-lage" }, !x.bei_dir ? pwLageLang(x)
     : !p ? (x.pruefung_laeuft ? t("pjw_a_laeuft_lang") : t("pjw_a_ohne_lang"))
     : p.fehler ? t("pjw_a_pruefer_fehler") : x.lage === "nicht_erfuellt" ? t("pjw_a_nicht_erfuellt") : unpruefbar ? t("pjw_ll_nicht_pruefbar_du") : t("pjw_bericht_kommt")));
   const trotzdem = !abnehmbar && x.lage_zaehlt && fragen.length && x.bericht ? pwKnopf(t("pjw_trotzdem"), pwTrotzdem(fragen, abnehmen)) : null;   /* verboten ist es nicht */
@@ -5674,7 +5687,7 @@ function pmStand(pa) {
 function pmAbschluss(x, tun) {                                 /* K7 (A1944): Abschlussbericht und Ja dazu */
   const ab = x.abschluss, k = el("div", { class: "th-kasten" }), ja = () => tun("freigeben", { art: "abschluss" }, t("pm_ab_ok"));
   const dagegen = pwDagegen(ab.lage, ab.lage_zaehlt, ab.vorbehalte, ab.alt), fragen = dagegen || [];   /* A2088: wie auf Projektweg */
-  return el("div", { class: "pm-abschluss", "data-ab": ab.frei ? "frei" : ab.bericht ? "wartet" : "kommt" },
+  return el("div", { class: "pm-abschluss", "data-ab": ab.frei ? "frei" : !ab.bericht ? "kommt" : x.bei_dir || !ab.lage ? "wartet" : "ruhig" },   /* A2116: Farbe nur, wenn der Mensch dran ist (TH156 Regel 4) */
     el("div", { class: "pm-entwuerfe-kopf" }, t("pm_ab_kopf")),
     ab.bericht ? el("div", {}, el("a", { href: "#", class: "ref", onclick: e => { e.preventDefault(); dokumentDialog(ab.bericht); } }, "D" + ab.bericht),
       " ", t("pm_ab_bericht")) : el("div", { class: "sehrleise" }, t("pm_ab_kommt")),
@@ -5684,7 +5697,7 @@ function pmAbschluss(x, tun) {                                 /* K7 (A1944): Ab
     fragen.length ? el("div", { class: "pjw-vorbehalte" + (x.bei_dir || !ab.lage ? "" : " ruhig") }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, fragen.map(v => el("li", {}, v)))) : null,
     !ab.frei && ab.bericht && !API ? el("div", { class: "th-knoepfe" },
       dagegen ? el("button", { class: "klein-knopf" + (ab.lage_zaehlt ? "" : " haupt"), type: "button", "data-h": "ab-ja", onclick: fragen.length ? pwTrotzdem(fragen, ja) : ja }, t(fragen.length ? "pjw_trotzdem" : "pm_ab_ja"))
-        : el("span", { class: "leise" }, t("pjw_ll_" + ab.lage)),
+        : el("span", { class: "leise" }, pwLageLang({ ...x, lage: ab.lage })),
       el("button", { class: "klein-knopf", type: "button", "data-h": "ab-zurueck", onclick: () => {
         const feld = el("textarea", { class: "th-feld", placeholder: t("th2_notiz_ph") });
         k.replaceChildren(feld, el("div", { class: "th-knoepfe" },
@@ -5696,7 +5709,7 @@ function pmAbschluss(x, tun) {                                 /* K7 (A1944): Ab
 function pmStatus(m, art) {                                       /* ein Status je Eintrag */
   if (m.status === "fertig") return art === "grob" && m.abschluss && m.abschluss.bericht && !m.abschluss.frei
     ? ["dich", t("pm_ab_wartet")] : ["frei", t("pm_fertig")];
-  if (m.bereit) return m.bei_dir ? ["dich", t("pm_bereit")] : ["arbeit", t("pjw_l_" + m.lage)];   /* A2002: alle Pakete fertig, das Ja zum Abschluss fehlt; A2082: nur, wenn es geht */
+  if (m.bereit) return m.bei_dir ? ["dich", t("pm_bereit")] : ["arbeit", pwLage(m)];   /* A2002: alle Pakete fertig, das Ja zum Abschluss fehlt; A2082: nur, wenn es geht */
   if (m.status === "aktiv") return ["frei", t("pm_laeuft")];
   if (art === "plan" && !m.pakete.length) return ["arbeit", t("pm_spaeter")];
   const z = m[art];
@@ -5725,7 +5738,7 @@ function pmAnsicht(pa, art) {
           try { await schicken("/api/meilenstein/aenderung-verwerfen", { aenderung: x.aenderung }); toast(t("pm_ae_ok_weg")); zeige("planung", true); }
           catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("pm_ae_verwerfen"))) : null))));
   if (art === "grob" && ((pa.entwuerfe || []).length || (pa.planer_laeuft || []).length)) m.append(el("div", { class: "pm-entwuerfe" },   /* A1940: Entwürfe des Planers */
-    el("div", { class: "pm-entwuerfe-kopf" }, t("pm_entwuerfe", { n: pa.entwuerfe.length })),
+    el("div", { class: "pm-entwuerfe-kopf" }, t(pa.entwuerfe.some(e => e.ja) ? "pm_entwuerfe_n" : "pm_entwuerfe", { n: pa.entwuerfe.length })),   /* A2112: eine Änderung gibt man frei */
     ...pa.planer_laeuft.map(l => el("div", { class: "pm-entwurf sehrleise", "data-th": l.thema }, t("pm_planer_laeuft", { x: `TH${l.thema} ${l.name}`, z: pmZeit(l.seit_utc) }))),
     ...pa.entwuerfe.map(e => el("details", { class: "pm-entwurf", "data-th": e.thema },
       el("summary", {}, el("b", {}, `TH${e.thema} ${e.name}`), " · ",
@@ -5733,10 +5746,11 @@ function pmAnsicht(pa, art) {
         e.usd != null ? ` · ${pmGeld(e.usd)}` : ""),
       e.fehler ? el("ul", { class: "pm-entwurf-zeilen" }, ...e.fehler.map(f => el("li", {}, f)))
         : e.nichts ? el("p", { class: "sehrleise" }, e.grund) : el("ul", { class: "pm-entwurf-zeilen" }, ...e.zeilen.map(z => el("li", {}, z))),
+      e.ja && pwDeltaDanach(e.ja) ? el("p", { class: "sehrleise pjw-danach" }, pwDeltaDanach(e.ja)) : null,
       API ? el("span", { class: "sehrleise" }, t("pm_nur_pc")) : el("div", { class: "th-knoepfe" },
         !e.fehler ? el("button", { class: "klein-knopf haupt", type: "button", "data-h": "plan-ja", onclick: async () => {
-          try { await schicken("/api/meilenstein/plan-ja", { thema: e.thema, eid: e.eid }); toast(t("pm_ok_angelegt")); zeige("planung", true); }
-          catch (x) { toast(t("fehler", { x: x.message }), true); } } }, e.nichts ? t("pm_ja_nichts") : t("pm_ja_anlegen")) : null,
+          try { await schicken("/api/meilenstein/plan-ja", { thema: e.thema, eid: e.eid }); toast(e.ja ? pwDeltaOk(e.ja) : t("pm_ok_angelegt")); zeige("planung", true); }
+          catch (x) { toast(t("fehler", { x: x.message }), true); } } }, e.ja ? pwDeltaKnopfText(e.thema, e.ja) : e.nichts ? t("pm_ja_nichts") : t("pm_ja_anlegen")) : null,
         el("button", { class: "klein-knopf", type: "button", "data-h": "neu-planen", onclick: async () => {
           try { await schicken("/api/meilenstein/neu-planen", { thema: e.thema }); toast(t("pm_ok_neu_planen")); zeige("planung", true); }
           catch (x) { toast(t("fehler", { x: x.message }), true); } } }, t("pm_neu_planen")))))));
@@ -5979,6 +5993,8 @@ const tokenStueck = (p, k = zustand.token) => p?.pause_tage ? el("span", { class
   ` ${TKZ} ` + t("tk_plus", { n: p.pause_tage, x: datumKurz(p.p50_mit) })) : null;
 /* Übersicht: echte Zeitachse, gepackt. Ein Block je Bogen von Start bis Prognose (Balken fest bis P50, schraffiert bis P85),
    gestrichelt weiter bis zum Zieldatum (◆). Bögen, die sich zeitlich nicht überschneiden, teilen sich eine Spur. ● deine Schritte, heute. */
+/* A2096: hinter einem Prüfpunkt ist die Zeit unbekannt – „wartet auf <Name>“ statt eines Datums */
+const ppWann = p => p.wartet_auf ? t("pp_wartet_auf", { x: p.wartet_auf }) : `≈ ${datumKurz(p.p50)}`;
 function uebersicht(d) {
   const tagNr = x => Math.round(Date.parse(x + "T12:00:00Z") / 864e5), datum = n => new Date(n * 864e5).toISOString().slice(0, 10);
   const alle = d.boegen.filter(b => b.status !== "verworfen").map(b => {
@@ -6343,7 +6359,7 @@ function bogenKarte(b) {
     b.zieldatum ? el("span", { class: "ziel", style: `left:${proz(b.zieldatum)}`, title: `${t("pl_zieldatum")} ${datumKurz(b.zieldatum)}` }) : null,
     el("span", { class: "mk-marke l" }, t("mk_beginn", { x: datumKurz(beginn) })),
     el("span", { class: "mk-marke r" }, [b.zieldatum ? t("mk_ziel", { x: datumKurz(b.zieldatum) }) : null,
-      p && !fertigB ? t("mk_prog", { a: datumKurz(p.p50), b: datumKurz(p.p85) }) : null, fertigB && b.fertig_utc ? t("mk_fertig_am", { x: datumKurz(b.fertig_utc.slice(0, 10)) }) : null]
+      p && !fertigB ? p.wartet_auf ? t("pp_wartet_auf", { x: p.wartet_auf }) : t("mk_prog", { a: datumKurz(p.p50), b: datumKurz(p.p85) }) : null, fertigB && b.fertig_utc ? t("mk_fertig_am", { x: datumKurz(b.fertig_utc.slice(0, 10)) }) : null]
       .filter(Boolean).join(" · ")));
 
   /* Mini-Zeitlinie je Aufgabe auf derselben Achse: angelegt (Strich), gearbeitet (voll), gewartet (gestrichelt), fertig */
@@ -6365,7 +6381,7 @@ function bogenKarte(b) {
     el("span", { class: "mk-meta" }, [s.agent === "Entwickler" ? t("pl_du") : (s.agent || t("pl_frei")),
       s.status !== "fertig" && s.status !== "verworfen" && mkSeit(s) ? t("mk_seit", { x: zeit(mkSeit(s)) }) : null,
       (s.kriterien || []).length ? `✓ ${s.kriterien.filter(k => k.erfuellt).length}/${s.kriterien.length}` : null,
-      s.prognose && !["fertig", "verworfen"].includes(s.status) ? `≈ ${datumKurz(s.prognose.p50)}` : null].filter(Boolean).join(" · "),
+      s.prognose && !["fertig", "verworfen"].includes(s.status) ? ppWann(s.prognose) : null].filter(Boolean).join(" · "),
       s.dokumente ? el("a", { class: "verweis", style: "margin-left:6px", onclick: () => { zustand.dok = { status: "aktuell", bezug: `aufgabe:${s.id}` }; zeige("dokumente"); } }, `📎 ${s.dokumente}`) : null),
     s.verschoben_aus ? el("span", { class: "mk-verschoben" }, "↪ " + t("mk_verschoben_aus", { b: bogenNr(s.verschoben_aus.bogen), x: datumKurz(s.verschoben_aus.am.slice(0, 10)) })) : null,
     mini(s, u));
@@ -6390,7 +6406,7 @@ function bogenKarte(b) {
       ...(Object.keys(b.specs || {}).length ? ["anforderungen", "entwurf", "schritte"].flatMap(spec) : []),     /* alter Bestand */
       el("dt", {}, t("pl_zieldatum")), el("dd", {}, datumKurz(b.zieldatum),
         b.baseline_datum && b.baseline_datum !== b.zieldatum ? el("span", { class: "sehrleise", title: b.baseline_grund || "" }, ` · ${t("pl_baseline")} ${datumKurz(b.baseline_datum)}`) : null,
-        p ? el("span", { class: "sehrleise" }, ` · ${t("pl_prognose")} ${datumKurz(p.p50)} – ${datumKurz(p.p85)}`, tokenStueck(p),
+        p ? el("span", { class: "sehrleise" }, ` · ${t("pl_prognose")} ${p.wartet_auf ? t("pp_wartet_auf", { x: p.wartet_auf }) : `${datumKurz(p.p50)} – ${datumKurz(p.p85)}`}`, tokenStueck(p),
           p.ampel_ohne_pause ? el("span", { class: "sehrleise", title: t("tk_ampel_h") }, " " + t("tk_ampel")) : null) : null),
       b.zuwachs ? [el("dt", {}, t("mk_hinzu")), el("dd", { title: t("zw_h") }, t("zw_satz", zwText(b.zuwachs)))] : null,
       b.dokumente ? [el("dt", {}, t("mk_dokumente")), el("dd", {}, el("a", { class: "verweis", onclick: () => { zustand.dok = { status: "aktuell", bezug: `bogen:${b.id}` }; zeige("dokumente"); } }, t("dk_n", { n: b.dokumente })))] : null,
@@ -6432,7 +6448,7 @@ function schrittZeile(s, ohneId) {         /* ohneId: in den Details der Meilens
     el("span", { class: "schritt-meta sehrleise" },
       [mensch ? t("pl_du") : (s.agent || t("pl_frei")), k.length ? `✓ ${erfuellt}/${k.length}` : null,
        s.komplexitaet ? `K${s.komplexitaet}` + (s.komplexitaet >= 7 ? (s.plan_status === "frei" ? " · Plan ✓" : " · " + t("pl_plan_fehlt")) : "") : null,
-       s.prognose && s.status !== "fertig" ? `≈ ${datumKurz(s.prognose.p50)}` + (s.prognose.pause_tage ? ` ${TKZ} ${t("tk_plus", { n: s.prognose.pause_tage, x: datumKurz(s.prognose.p50_mit) })}` : "") : null,
+       s.prognose && s.status !== "fertig" ? ppWann(s.prognose) + (s.prognose.pause_tage && !s.prognose.wartet_auf ? ` ${TKZ} ${t("tk_plus", { n: s.prognose.pause_tage, x: datumKurz(s.prognose.p50_mit) })}` : "") : null,
        s.anforderungen].filter(Boolean).join(" · "),
       s.dokumente ? el("a", { class: "verweis", style: "margin-left:6px", onclick: () => { zustand.dok = { status: "aktuell", bezug: `aufgabe:${s.id}` }; zeige("dokumente"); } }, `📎 ${s.dokumente}`) : null));
 }

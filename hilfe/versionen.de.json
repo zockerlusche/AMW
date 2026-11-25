@@ -34,7 +34,7 @@
   ],
   [
    "Meilenstein lässt sich nicht abschließen",
-   "Bei Pflicht muss nach seiner letzten fertigen Aufgabe eine Version eingetragen sein. Nur du kannst trotzdem abschließen (`amw bogen status <nr> fertig --erzwingen`)."
+   "Bei Pflicht müssen seine fertigen Pakete ausgeliefert sein; bis dahin steht dort „wartet auf Auslieferung“ mit den Paketen. Pakete ohne eigenen Code (z. B. eine Vorführung) brauchen keine Version."
   ]
  ],
  "danach": [

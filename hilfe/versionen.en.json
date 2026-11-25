@@ -34,7 +34,7 @@
   ],
   [
    "A milestone cannot be closed",
-   "With mandatory versions, a version must be recorded after its last finished task. Only you can close it anyway (`amw bogen status <nr> fertig --erzwingen`)."
+   "With mandatory versions, its finished packages must be delivered; until then it shows “waiting for delivery” with the packages. Packages without code of their own (such as a demonstration) need no version."
   ]
  ],
  "danach": [
