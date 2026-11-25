@@ -297,7 +297,7 @@ class Migration(unittest.TestCase):
         con.close()
         con = db.verbinde(pfad)
         self.addCleanup(con.close)
-        self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], 34)
+        self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], db.SCHEMA_VERSION)
         self.assertEqual([tuple(r) for r in con.execute("SELECT * FROM paket ORDER BY aufgabe_id")], vorher)   # Zählprobe + Inhalt
         self.assertEqual(len(vorher), 3)
         ap.setzen(con, pid, "TL", aids[2], pakettyp="test-ergaenzen")

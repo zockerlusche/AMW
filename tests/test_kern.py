@@ -193,6 +193,8 @@ class Verlauf(unittest.TestCase):
 
     def test_alte_datenbank_wird_umgestellt(self):
         fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Alt?", [("A", "a")], "A", "weil", geprueft="keine Treffer")
+        for x in ("nachricht_aufgabe", "lauf_aufgabe", "pruefung_aufgabe", "plan_ereignis_aufgabe", "plan_ereignis_bogen", "aufgabe_bogen", "frage_aufgabe"):
+            self.con.execute(f"DROP INDEX {x}")               # Indizes nach Aufgabe und Meilenstein kamen mit Schema 35
         self.con.execute("DROP TABLE frage_verlauf")                 # wie eine Datenbank mit Schema 1
         self.con.execute("UPDATE frage SET antwort_art = 'rueckfrage', antwort = 'Wie gemeint?' WHERE id = ?", (fid,))
         self.con.execute("ALTER TABLE lauf DROP COLUMN rang")          # Schema 2 kannte die Warteschlange nicht

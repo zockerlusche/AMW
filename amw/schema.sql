@@ -121,6 +121,7 @@ CREATE TABLE nachricht (
 CREATE INDEX nachricht_zeit ON nachricht (projekt_id, zeit_utc);
 CREATE INDEX nachricht_bezug ON nachricht (projekt_id, bezug);
 CREATE INDEX nachricht_antwort ON nachricht (antwort_auf);
+CREATE INDEX nachricht_aufgabe ON nachricht (aufgabe_id, id);                  -- Schema 35 (A2090)
 
 CREATE TABLE empfang (
   nachricht_id  INTEGER NOT NULL REFERENCES nachricht(id),
@@ -217,6 +218,7 @@ CREATE TABLE aufgabe (
   geaendert_utc  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 CREATE INDEX aufgabe_offen ON aufgabe (projekt_id, status, agent);
+CREATE INDEX aufgabe_bogen ON aufgabe (bogen_id);                              -- Schema 35 (A2090)
 
 CREATE TABLE abhaengigkeit (
   vor              INTEGER NOT NULL REFERENCES aufgabe(id),
@@ -265,6 +267,8 @@ CREATE TABLE plan_ereignis (
   geaendert_utc    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 CREATE INDEX plan_ereignis_zeit ON plan_ereignis (projekt_id, zeit_utc);
+CREATE INDEX plan_ereignis_aufgabe ON plan_ereignis (aufgabe_id, art, id);     -- Schema 35 (A2090)
+CREATE INDEX plan_ereignis_bogen ON plan_ereignis (bogen_id, art, id);
 
 CREATE TABLE rueckblick (
   id               INTEGER PRIMARY KEY,
@@ -1016,3 +1020,8 @@ CREATE TABLE paket (
   herkunft          TEXT NOT NULL DEFAULT '',
   geaendert_utc     TEXT NOT NULL
 );
+
+-- Schema 35 (A2090): nach Aufgabe suchen, ohne die ganze Tabelle zu lesen
+CREATE INDEX lauf_aufgabe ON lauf (aufgabe_id, id);
+CREATE INDEX pruefung_aufgabe ON pruefung (aufgabe_id, id);
+CREATE INDEX frage_aufgabe ON frage (aufgabe_id);
