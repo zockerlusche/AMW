@@ -10,14 +10,14 @@ Gilt nur, wo Versionen Pflicht sind. Je fertiges Paket, verglichen mit der höch
 - Nicht zu entscheiden (kein Repo, keine Commits, git ging nicht): wie bisher nach der Zeit – fertig nach der Version heißt, es fehlt.
 
 Nur lesende git-Aufrufe (belege.py). Ein Ergebnis „alles ausgeliefert“ bleibt gemerkt (ein Commit verlässt die Version nicht), „es fehlt“
-gilt MERKEN_S lang – die Ansichten fragen oft.
+gilt MERKEN_S lang (eine neue Version oder ein neuer Beleg zählt sofort) – die Ansichten fragen oft.
 """
 import re
 import time
 
 from . import kern
 
-MERKEN_S = 20
+MERKEN_S = 300
 OHNE_CODE = re.compile(r"(?i)^\s*(ja|nein|abgenommen|freigegeben)\b|\bD\d+\b")
 _GEMERKT: dict = {}
 
