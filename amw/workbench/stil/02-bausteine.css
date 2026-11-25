@@ -159,6 +159,7 @@
 .pm-geaendert { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; border-left: 3px solid var(--bernstein); padding-left: 10px; }
 .pm-geaendert-knoepfe { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 .pm-entwuerfe { border: 1px solid var(--bernstein); border-radius: 8px; padding: 8px 14px; margin: 0 0 12px; }
+.pm-entwuerfe.ruhig { border-color: var(--linie); }
 .pm-entwuerfe-kopf { font-weight: 600; margin: 0 0 4px; } .pm-entwurf { padding: 4px 0; border-top: 1px solid var(--linie); }
 .pm-entwurf summary { cursor: pointer; } .pm-entwurf-zeilen { margin: 6px 0; padding-left: 18px; font-size: 13.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .pm-nr { font-weight: 600; color: var(--sehrleise); margin-right: 4px; }

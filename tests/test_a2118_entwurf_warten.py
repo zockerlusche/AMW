@@ -150,6 +150,7 @@ class Seite(Rundgang):
         self.planung()
         self.assertEqual(self.tab.js("document.querySelector('.pm-entwurf .pjw-wartet summary').textContent"), f"wartet: {GRUND}")
         self.assertFalse(self.tab.js(f"!!{a2112.PLANUNG}"))
+        self.assertTrue(self.tab.js("document.querySelector('.pm-entwuerfe').classList.contains('ruhig')"))      # keine Farbe, solange keiner dran ist
 
     def test_trotzdem_freigeben_fragt_nach(self):
         self.groesse("pc")

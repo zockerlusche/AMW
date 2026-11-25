@@ -135,7 +135,7 @@ function pmAnsicht(pa, art) {
         el("button", { class: "klein-knopf", type: "button", "data-h": "ae-weg", onclick: async () => {
           try { await schicken("/api/meilenstein/aenderung-verwerfen", { aenderung: x.aenderung }); toast(t("pm_ae_ok_weg")); zeige("planung", true); }
           catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("pm_ae_verwerfen"))) : null))));
-  if (art === "grob" && ((pa.entwuerfe || []).length || (pa.planer_laeuft || []).length)) m.append(el("div", { class: "pm-entwuerfe" },   /* A1940: Entwürfe des Planers */
+  if (art === "grob" && ((pa.entwuerfe || []).length || (pa.planer_laeuft || []).length)) m.append(el("div", { class: "pm-entwuerfe" + (pa.entwuerfe.some(e => !e.wartet) ? "" : " ruhig") },   /* A1940: Entwürfe des Planers; A2118: Farbe nur, wenn einer auf das Ja wartet */
     el("div", { class: "pm-entwuerfe-kopf" }, t(pa.entwuerfe.some(e => e.ja) ? "pm_entwuerfe_n" : "pm_entwuerfe", { n: pa.entwuerfe.length })),   /* A2112: eine Änderung gibt man frei */
     ...pa.planer_laeuft.map(l => el("div", { class: "pm-entwurf sehrleise", "data-th": l.thema }, t("pm_planer_laeuft", { x: `TH${l.thema} ${l.name}`, z: pmZeit(l.seit_utc) }))),
     ...pa.entwuerfe.map(e => el("details", { class: "pm-entwurf", "data-th": e.thema },
