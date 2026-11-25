@@ -143,7 +143,7 @@ class Reihenfolge(unittest.TestCase):
         ab = reihenfolge.abweichung(self.con, self.pid, self.bid)
         self.assertEqual((ab["bogen"], ab["pakete"].get(voll)), (0, 0))                   # gleich nach dem Start: keine Abweichung
         self.assertIsNone(reihenfolge.abweichung(self.con, self.pid, planung.bogen_neu(self.con, self.pid, "TL", "Ohne Start")))
-        info = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'Meilenstein % gestartet%'").fetchone()[0]
+        info = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE 'M1 „%“ gestartet%'").fetchone()[0]
         self.assertIn(f"Noch nicht startklar: A{luecke}: Ziel (Auftrag), Thema, Fertig-Quelle", info)
         self.assertIn("Reihenfolge (die AMW rechnet sie)", info)
 
