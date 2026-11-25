@@ -34,10 +34,12 @@ class Nummer(unittest.TestCase):
     def stand(self, version, zweig=None):
         if zweig:
             self.g("switch", "-q", "-c", zweig, "main")
-        with open(os.path.join(self.repo, "amw", "__init__.py"), "w", encoding="utf-8") as f:
-            f.write(f'__version__ = "{version}"\n')
         with open(os.path.join(self.repo, "x.txt"), "a", encoding="utf-8") as f:
             f.write(f"{version} {zweig}\n")
+        self.g("add", "-A")
+        self.g("-c", "commit.gpgsign=false", "commit", "-q", "-m", "Inhalt")          # A2103: der Inhalt als eigener Commit vor der Version
+        with open(os.path.join(self.repo, "amw", "__init__.py"), "w", encoding="utf-8") as f:
+            f.write(f'__version__ = "{version}"\n')
         self.g("add", "-A")
         self.g("-c", "commit.gpgsign=false", "commit", "-q", "-m", version)
         sha = self.g("rev-parse", "HEAD")
