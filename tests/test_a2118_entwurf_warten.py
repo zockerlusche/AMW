@@ -68,6 +68,21 @@ class Zurueckstellen(Grund):
         with self.assertRaisesRegex(kern.AmwFehler, "keinen offenen Entwurf"):
             self.warten()
 
+    def test_lead_stellt_nicht_ueber_den_menschen_zurueck(self):
+        self.warten("TL", "Reihenfolge")
+        self.warten(kern.ENTWICKLER, "erst fragen")                                             # der Mensch darf den Grund des Leads ersetzen
+        for wer in ("TL", "CC1"):
+            with self.assertRaisesRegex(kern.AmwFehler, "das hebt nur"):
+                self.warten(wer, "doch anders")
+            with self.assertRaisesRegex(kern.AmwFehler, "das hebt nur"):
+                entwurf_warten.freischalten(self.con, self.pid, wer, f"TH{self.t}")
+        self.assertEqual(self.entwuerfe()[0]["wartet"]["grund"], "erst fragen")
+        self.warten(kern.ENTWICKLER, "noch länger")
+        entwurf_warten.freischalten(self.con, self.pid, kern.ENTWICKLER, f"TH{self.t}")
+        self.warten("CC1", "Co")
+        entwurf_warten.freischalten(self.con, self.pid, "TL", f"TH{self.t}")                    # Lead und Co untereinander dürfen es
+        self.assertIsNone(self.entwuerfe()[0]["wartet"])
+
     def test_ein_neuer_entwurf_wartet_nicht(self):
         self.warten()
         e = planer.letzter_entwurf(self.con, self.pid, self.t) or {}

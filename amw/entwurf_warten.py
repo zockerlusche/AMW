@@ -40,6 +40,12 @@ def _eintragen(con, pid, von, tid, eid, an, grund=None):
                      text=json.dumps({"thema": tid, "entwurf": eid, "an": an, "grund": grund}, ensure_ascii=False))
 
 
+def _vom_menschen(con, pid, von, tid, w):
+    """Wartet er durch den Menschen, ändert nur der Mensch Grund oder Zustand."""
+    if w and w["von"] == kern.ENTWICKLER and von != kern.ENTWICKLER:
+        raise kern.AmwFehler(f"Den Entwurf zu TH{tid} hat {kern.entwickler_name(con, pid)} zurückgestellt – das hebt nur {kern.entwickler_name(con, pid)} auf")
+
+
 def zurueckstellen(con, pid, von, name, grund):
     """`amw thema entwurf-warten TH<n> --grund …`. Rückgabe: Themennummer."""
     grund = " ".join((grund or "").split())
@@ -48,6 +54,7 @@ def zurueckstellen(con, pid, von, name, grund):
     if len(grund) > GRUND_MAX:
         raise kern.AmwFehler(f"Der Grund steht auf der Karte – höchstens {GRUND_MAX} Zeichen")
     tid, e = _entwurf(con, pid, von, name)
+    _vom_menschen(con, pid, von, tid, stand(con, pid, e["id"]))         # sonst wäre der Lead der jüngste Eintrag und schaltete selbst frei
     _eintragen(con, pid, von, tid, e["id"], True, grund)
     return tid
 
@@ -58,8 +65,7 @@ def freischalten(con, pid, von, name):
     w = stand(con, pid, e["id"])
     if not w:
         raise kern.AmwFehler(f"Der Entwurf zu TH{tid} wartet nicht")
-    if w["von"] == kern.ENTWICKLER and von != kern.ENTWICKLER:
-        raise kern.AmwFehler(f"Den Entwurf zu TH{tid} hat {kern.entwickler_name(con, pid)} zurückgestellt – das hebt nur {kern.entwickler_name(con, pid)} auf")
+    _vom_menschen(con, pid, von, tid, w)
     _eintragen(con, pid, von, tid, e["id"], False)
     return tid
 
