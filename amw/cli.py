@@ -1748,6 +1748,26 @@ def cmd_skills(a, con):
     print(f"{len(namen)} Skills in {ziel}" + (f" · ohne Hilfe-Seite (liegen gelassen): {', '.join(verwaist)}" if verwaist else ""))
 
 
+def _anfragen(a, con, pid):
+    """A2144: amw messung --anfragen [--zeilen n] [--zaehlen an|aus]."""
+    from . import anfragezeit, einstellungen
+    if a.zaehlen:
+        if not kern.ist_lead(con, pid, _von(a)) and _von(a) != kern.ENTWICKLER:
+            raise kern.AmwFehler("Das Zählen schalten Lead oder Mensch")
+        einstellungen.speichern({"anfrage_zaehlen": a.zaehlen == "an"})
+    print(f"Zählen: {'an' if einstellungen.wert('anfrage_zaehlen') else 'aus'} (Einstellung dieses PCs, wirkt sofort)")
+    namen = {r["id"]: r["name"] for r in con.execute("SELECT id, name FROM projekt")}
+    zahl = lambda x, n: "–" if x is None else f"{x:.{n}f}"
+    liste = anfragezeit.zusammenfassen(os.path.dirname(db.db_pfad()), a.zeilen)
+    if not liste:
+        print("Keine langsamen Anfragen im Protokoll.")
+    for x in liste:
+        wo = namen.get(x["projekt"], "?") if x["projekt"] else "(ohne Zahlen)"
+        print(f"{x['weg']:<32} {wo:<14} {x['n']:>4}× · Median {x['dauer']:.1f} s"
+              + (f" · {x['abfragen']:.0f} Abfragen · Datenbank {zahl(x['bank'], 2)} s · Sperre {zahl(x['sperre'], 2)} s · Rest {zahl(x['rest'], 2)} s"
+                 if x["abfragen"] is not None else ""))
+
+
 def cmd_messung(a, con):
     if getattr(a, "hebel7", False):                  # A1956 (TH168 Hebel 7): Startkontext und Kosten je Agent
         from . import skills
@@ -1765,6 +1785,8 @@ def cmd_messung(a, con):
     """A1844: Wartezeit und Kosten je Aufgabe – nur lesen."""
     from . import messung
     pid = _projekt(con, a)
+    if getattr(a, "anfragen", False):                # A2144: langsame Anfragen je Ansicht, aus dienst.log
+        return _anfragen(a, con, pid)
     if getattr(a, "kosten", False):                  # A2058: Fensterkosten je Tag und Tätigkeit
         from . import taetigkeit
         tage = a.tage or 7
@@ -4307,6 +4329,10 @@ def parser():
                                                          " (Schätzung offener Pakete) und gesamt")
     x.add_argument("--kosten", action="store_true", help="Kosten der Fenster-Agenten je Tag und Tätigkeit (bauen, stapeln, prüfen"
                                                          " lassen, warten, Fehlersuche, sonstiges); mit --tage (Vorgabe 7) – A2058")
+    x.add_argument("--anfragen", action="store_true", help="langsame Anfragen der Workbench (ab 1 s) aus dienst.log: je Ansicht und Projekt"
+                                                           " Median von Dauer, Abfragen, Datenbank, Schreibsperre, Rest – A2144")
+    x.add_argument("--zeilen", type=int, default=50, help="mit --anfragen: die neuesten n Zeilen je Ansicht (Vorgabe 50)")
+    x.add_argument("--zaehlen", choices=["an", "aus"], help="mit --anfragen: die Abfragen je Anfrage zählen (Lead oder Mensch; wirkt sofort)")
     x.set_defaults(f=cmd_messung)
 
     x = s.add_parser("skills", help="Anleitungen als Claude-Code-Skills: bauen (aus doc nach .claude/skills, A1956)")

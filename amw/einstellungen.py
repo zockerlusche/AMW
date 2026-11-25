@@ -245,6 +245,8 @@ FELDER = {
     "sprache": ("auto", _sprache),
     # Knopf „In Claude öffnen“ auf der Agenten-Seite (Link zu claude.ai für eine laufende Sitzung mit Fernsteuerung)
     "claude_link": (True, _wahr),
+    # A2144: je Anfrage der Workbench die Datenbank-Abfragen zählen (Zeile „Langsame Anfrage“ in dienst.log); wirkt sofort
+    "anfrage_zaehlen": (False, _wahr),
     # Betriebsart (amw/betriebsart.py): pc | server | cloud; leer = nicht gewählt, dann gilt, was bisher lief
     "betriebsart": ("", _betriebsart),
 }

@@ -14,6 +14,8 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
+from . import anfragezeit
+
 SCHEMA_VERSION = 35        # Änderungen: amw/migration_<n>.sql, laufen beim ersten Schreib-Zugriff
 HIER = os.path.dirname(os.path.abspath(__file__))
 STANDARD_DB = os.path.join(os.path.dirname(HIER), "daten", "amw.db")
@@ -34,6 +36,18 @@ class _Verbindung(sqlite3.Connection):
     fremd = None                                   # Ordner des Dienstes, wenn dieser Code fremd ist
     merker = None                                  # A2081: einmal.merken – gemerkte Ergebnisse dieser Anfrage bzw. Runde
     schnappschuss = False                          # … und sie liest dafür einen festen Stand
+
+    # A2144: gezählt wird nur in einer Anfrage der Workbench; execute() der Verbindung holt seinen Cursor nicht über cursor()
+    def cursor(self, factory=None):
+        if factory is None and anfragezeit.zaehlt():
+            factory = anfragezeit.Zaehler
+        return super().cursor(factory) if factory else super().cursor()
+
+    def execute(self, *a):
+        return self.cursor().execute(*a) if anfragezeit.zaehlt() else super().execute(*a)
+
+    def executemany(self, *a):
+        return self.cursor().executemany(*a) if anfragezeit.zaehlt() else super().executemany(*a)
 
 
 def vermerk_pfad(pfad):
@@ -96,13 +110,11 @@ _wartemeldung_faeden = []          # (Strom, Faden) – je Strom höchstens ein 
 def _warten(was):
     """Markiert, worauf gerade gewartet wird (Datenbank öffnen, Schreibsperre) – für die Wartemeldung."""
     _phase["was"], _phase["seit"] = was, time.monotonic()
-    t0 = _phase["seit"]
-    try:
-        yield
+    try:                                             # A2035: misst die Workbench gerade eine Anfrage, zählt das Warten mit
+        with anfragezeit.messen({"oeffnen": "DB öffnen", "sperre": "DB-Sperre"}.get(was, was)):
+            yield
     finally:
         _phase["was"] = None
-        from . import anfragezeit                    # A2035: misst die Workbench gerade eine Anfrage, zählt das Warten mit
-        anfragezeit.teil({"oeffnen": "DB öffnen", "sperre": "DB-Sperre"}.get(was, was), time.monotonic() - t0)
 
 
 def wartemeldung_an(strom=None, takt=1.0):

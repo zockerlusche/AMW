@@ -1545,9 +1545,9 @@ def baue_handler(port, token, netz=None):
 
         def _projekt(self, con, q):
             name = q.get("projekt", [""])[0]
-            if name:
-                return db.projekt_id(con, name)
-            return con.execute("SELECT min(id) FROM projekt").fetchone()[0]
+            pid = db.projekt_id(con, name) if name else con.execute("SELECT min(id) FROM projekt").fetchone()[0]
+            anfragezeit.projekt(pid)
+            return pid
 
         def do_GET(self):
             anfragezeit.start("GET " + self.path.split("?", 1)[0])     # A2035: ab 1 s eine Zeile in dienst.log

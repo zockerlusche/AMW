@@ -827,34 +827,43 @@ options:
 ```
 usage: amw messung [-h] [--seit SEIT] [--agent AGENT] [--vergleich] [--hebel7]
                    [--basis] [--p] [--tage TAGE] [--prognose] [--gesamt]
-                   [--kosten] [--von VON] [--projekt PROJEKT]
+                   [--kosten] [--anfragen] [--zeilen ZEILEN]
+                   [--zaehlen {an,aus}] [--von VON] [--projekt PROJEKT]
                    [nr]
 
 positional arguments:
-  nr                 eine Aufgabe (A12 oder 12); ohne: alle begonnenen
+  nr                  eine Aufgabe (A12 oder 12); ohne: alle begonnenen
 
 options:
-  -h, --help         show this help message and exit
-  --seit SEIT        nur Aufgaben, die ab dann noch liefen (17.11. oder ISO-
-                     Zeit)
+  -h, --help          show this help message and exit
+  --seit SEIT         nur Aufgaben, die ab dann noch liefen (17.11. oder ISO-
+                      Zeit)
   --agent AGENT
-  --vergleich        letzte 7 Tage gegen die 7 Tage davor (Mediane, D1258 v2
-                     §8)
-  --hebel7           Startkontext je Agent (Zeilen/Zeichen) und Kosten je
-                     Paket (Median der letzten 10) – A1956, TH168 Hebel 7
-  --basis            mit --hebel7: als Basis festhalten (Ereignis
-                     basis_hebel7; Lead oder Mensch)
-  --p                Anteil p an fertigen Paketen je Tag (Ziel ≥ 50 %) und
-                     Kosten p gegen interaktiv (Median, Summe) – A2004
-  --tage TAGE        mit --p: so viele Tage zurück (Vorgabe 7)
-  --prognose         Prognose messen: Schätzung (P50) gegen Ist je fertigem
-                     Paket, Trefferquote im Rahmen 0,67–1,5× und Median-
-                     Faktor, je Quelle; mit --seit – A2046
-  --gesamt           Kosten des Projekts: bisher (gemessen, Fenster-Agenten
-                     und Headless), noch (Schätzung offener Pakete) und gesamt
-  --kosten           Kosten der Fenster-Agenten je Tag und Tätigkeit (bauen,
-                     stapeln, prüfen lassen, warten, Fehlersuche, sonstiges);
-                     mit --tage (Vorgabe 7) – A2058
+  --vergleich         letzte 7 Tage gegen die 7 Tage davor (Mediane, D1258 v2
+                      §8)
+  --hebel7            Startkontext je Agent (Zeilen/Zeichen) und Kosten je
+                      Paket (Median der letzten 10) – A1956, TH168 Hebel 7
+  --basis             mit --hebel7: als Basis festhalten (Ereignis
+                      basis_hebel7; Lead oder Mensch)
+  --p                 Anteil p an fertigen Paketen je Tag (Ziel ≥ 50 %) und
+                      Kosten p gegen interaktiv (Median, Summe) – A2004
+  --tage TAGE         mit --p: so viele Tage zurück (Vorgabe 7)
+  --prognose          Prognose messen: Schätzung (P50) gegen Ist je fertigem
+                      Paket, Trefferquote im Rahmen 0,67–1,5× und Median-
+                      Faktor, je Quelle; mit --seit – A2046
+  --gesamt            Kosten des Projekts: bisher (gemessen, Fenster-Agenten
+                      und Headless), noch (Schätzung offener Pakete) und
+                      gesamt
+  --kosten            Kosten der Fenster-Agenten je Tag und Tätigkeit (bauen,
+                      stapeln, prüfen lassen, warten, Fehlersuche, sonstiges);
+                      mit --tage (Vorgabe 7) – A2058
+  --anfragen          langsame Anfragen der Workbench (ab 1 s) aus dienst.log:
+                      je Ansicht und Projekt Median von Dauer, Abfragen,
+                      Datenbank, Schreibsperre, Rest – A2144
+  --zeilen ZEILEN     mit --anfragen: die neuesten n Zeilen je Ansicht
+                      (Vorgabe 50)
+  --zaehlen {an,aus}  mit --anfragen: die Abfragen je Anfrage zählen (Lead
+                      oder Mensch; wirkt sofort)
   --von VON
   --projekt PROJEKT
 ```
