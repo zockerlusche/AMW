@@ -96,7 +96,7 @@ def _abnahmen(con, pid, merk):
             v, b = z.get((x["bogen"], "abschluss")) or {}, berichte.get(x["bogen"]) or {}
             if v.get("notiz") and b.get("eid", 0) < v["id"]:
                 continue                                         # zurückgegeben, noch kein neuer Bericht: der Lead ist dran
-            aus.append(_eintrag(f"M{x['bogen']}", "abnahme", f"M{x['nr']}", x["titel"], "abnehmen", b.get("zeit_utc"),
+            aus.append(_eintrag(("bogen", x["bogen"]), "abnahme", f"M{x['nr']}", x["titel"], "abnehmen", b.get("zeit_utc"),
                                 {"sicht": "projektweg", "schritt": "abschluss", "nr": x["bogen"]}))
     merk["noch_dran"] = noch_dran
     return aus
@@ -105,7 +105,7 @@ def _abnahmen(con, pid, merk):
 def _veroeffentlichung(con, pid, merk):
     """A1928: fertige Meilensteine, nach deren Abnahme die AMW veröffentlicht."""
     from . import veroeffentlichung
-    return [_eintrag(f"M{b['id']}", "abnahme", f"M{b['nr']}", b["titel"], "abnehmen", b["fertig_utc"], {"sicht": "start", "nr": b["id"]})
+    return [_eintrag(("bogen", b["id"]), "abnahme", f"M{b['nr']}", b["titel"], "abnehmen", b["fertig_utc"], {"sicht": "start", "nr": b["id"]})
             for b in veroeffentlichung.zur_abnahme(con, pid)]
 
 
@@ -122,7 +122,7 @@ def _fein(con, pid, merk):
         seit, stand = con.execute("SELECT max(angelegt_utc), max(geaendert_utc) FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (bid,)).fetchone()
         ziel = {"sicht": "projektweg", "schritt": "fein", "nr": bid}
         if m["delta_start"]:
-            aus.append(_eintrag(f"M{bid}", "start", f"M{m['nr']}", m["titel"], "starten", seit, {**ziel, "thema": m["delta_start"]["thema"]}))
+            aus.append(_eintrag(("bogen", bid), "start", f"M{m['nr']}", m["titel"], "starten", seit, {**ziel, "thema": m["delta_start"]["thema"]}))
             continue
         if m["frei"]:
             continue
@@ -130,7 +130,7 @@ def _fein(con, pid, merk):
         v = z.get((bid, art)) or {}
         zurueck = v.get("notiz") and (stand or "") <= v["zeit_utc"]              # zurückgegeben, seitdem nichts geändert: der Lead ist dran
         if not zurueck and _mensch_gibt(con, pid, art):
-            aus.append(_eintrag(f"M{bid}", art, f"M{m['nr']}", m["titel"], "freigeben", seit, ziel if art == "plan" else {"sicht": "planung", "nr": bid}))
+            aus.append(_eintrag(("bogen", bid), art, f"M{m['nr']}", m["titel"], "freigeben", seit, ziel if art == "plan" else {"sicht": "planung", "nr": bid}))
     ich = kern.entwickler_name(con, pid)
     for x in f["delta"]:
         if ich in x["wer"]:
@@ -200,11 +200,11 @@ def _dargestellt(con, pid, n, dinge, noch_dran):
     if n["von"] == "AMW":
         if m := M_BEREIT.match(kurz):
             bid = int(bezug[1:]) if re.fullmatch(r"M\d+", bezug) else _bogen(con, pid, m.group(1))    # Altbestand ohne Bezug: die Nummer im Text
-            return bid is not None and (f"M{bid}" in dinge or (noch_dran is not None and bid not in noch_dran))
+            return bid is not None and (("bogen", bid) in dinge or (noch_dran is not None and bid not in noch_dran))
         if M_GROB.match(kurz):
             return "G" in dinge
         if m := M_FEIN.match(kurz):
-            return any(f"M{_bogen(con, pid, x[1:])}" in dinge for x in m.group(1).split(", "))
+            return any(("bogen", _bogen(con, pid, x[1:])) in dinge for x in m.group(1).split(", "))
         if m := M_AUFGABE.match(kurz):
             return dinge.get(f"A{m.group(1)}") in ("aufgabe", "pruefpunkt")
         if bezug[:1] == "F" and bezug in dinge:
