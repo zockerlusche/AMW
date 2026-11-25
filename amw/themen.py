@@ -6,7 +6,7 @@ Zusammenfassung „veraltet seit B…“ und weckt den Pfleger, bis er sie anpas
 (`thema bestaetigen`). Alte Beschlüsse werden nicht gelöscht, sondern „ueberholt“ (ersetzt durch B…) oder „unklar“.
 Ein Thema kann der Projekt-Stil sein (stil): Grafik-Arbeit richtet sich danach, Bilder hängen als Dokumente daran.
 """
-from . import db, kern
+from . import db, einmal, kern
 
 
 def _lead_oder_pfleger(con, pid, von, t, was):
@@ -241,11 +241,35 @@ NEU_PRUEFEN_FUER_DICH = False    # F5359 A: „neu prüfen“ prüft erst die KI
 MENSCH_LEGT_AN = True            # F5360 A: „+ Thema“ für den Menschen (B: Themen nur aus dem Gespräch)
 
 
+def ereignisse_je_thema(con, pid):
+    """A2145: alle Ereignisse des Projekts, deren Text mit {"thema": … beginnt, nach dem Text zwischen „{"thema": “ und dem ersten Komma
+    (dem Thema, wie es LIKE '{"thema": <tid>,%' trifft; dazu genau '{"thema": <tid>}', vermerkt als ohne Komma) – in einer Anfrage oder Runde (einmal.merken) nur einmal gelesen statt je Thema.
+    None außerhalb davon und in einer Schreib-Transaktion: dann einzeln wie bisher; jede Änderung macht den Merker leer."""
+    if getattr(con, "merker", None) is None or (con.in_transaction and not getattr(con, "schnappschuss", False)):
+        return None
+
+    def lesen():
+        k = {}                                     # Thema -> [(mit_komma, Zeile)]; ohne Komma nur genau '{"thema": N}' (A2140, thema_nichts_ja)
+        for r in con.execute("""SELECT id, art, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND text LIKE '{"thema": %' ORDER BY id""",
+                             (pid,)):
+            t, i = r["text"], r["text"].find(",")
+            if i > 10:
+                k.setdefault(t[10:i], []).append((True, dict(r)))
+            elif i < 0 and t.startswith('{"thema": ') and t.endswith("}") and len(t) > 11:
+                k.setdefault(t[10:-1], []).append((False, dict(r)))
+        return k
+    return einmal.einmal(con, ("thema_ereignisse", pid), lesen)
+
+
 def _ereignisse(con, pid, tid):
     import json
     aus = []
-    for r in con.execute(f"SELECT id, art, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art IN"
-                         f" ({','.join('?' * len(EREIGNIS))}) AND text LIKE ? ORDER BY id", (pid, *EREIGNIS.values(), f'{{"thema": {tid},%')):
+    k = ereignisse_je_thema(con, pid)
+    arten = set(EREIGNIS.values())
+    zeilen = ([r for komma, r in k.get(str(tid), ()) if komma and r["art"] in arten] if k is not None else con.execute(
+        f"SELECT id, art, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art IN"
+        f" ({','.join('?' * len(EREIGNIS))}) AND text LIKE ? ORDER BY id", (pid, *EREIGNIS.values(), f'{{"thema": {tid},%')))
+    for r in zeilen:
         try:
             aus.append({**dict(r), **json.loads(r["text"])})
         except ValueError:

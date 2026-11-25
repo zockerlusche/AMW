@@ -5,7 +5,7 @@ import os
 import tempfile
 import unittest
 
-from amw import aufwand, db, einmal, kern, planung, zwischenpruefung
+from amw import aufwand, db, einmal, kern, planer, planung, themen, zwischenpruefung
 
 
 def z(i):
@@ -139,6 +139,81 @@ class Vorgaenger(Basis):
             with db.schreiben(con):
                 con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234' WHERE id = ?", (a,))
             self.assertNotIn(a, planung.offene_vorgaenger(con, b))   # Status des Vorgängers geändert: neu gelesen
+
+
+class ThemenEreignisse(Basis):
+    """Commit 3: themen._ereignisse und planer._ereignisse lasen plan_ereignis je Thema (und Art) – LIKE '{"thema": <tid>,%'."""
+    ARTEN = ("thema_vorgelegt", "thema_ja", planer.ENTWURF, planer.JA, planer.NICHTS, planer.ANGESTOSSEN, "anderes")
+
+    def bestand(self, n):
+        con, pid = self.neu(f"themen{n}")
+        with db.schreiben(con):
+            fremd = db.einfuegen(con, "projekt", name="Q", angelegt_utc=db.jetzt())
+            for i in range(1, n + 1):
+                for j, art in enumerate(self.ARTEN):
+                    if (i + j) % 3:
+                        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=z(i), von="TL", art=art,
+                                     text=f'{{"thema": {i}, "fassung": {j}, "liste": [1, 2]}}')
+                db.einfuegen(con, "plan_ereignis", projekt_id=fremd, zeit_utc=z(i), von="TL", art="thema_ja", text=f'{{"thema": {i}, "fremd": 1}}')
+            for text in ('{"thema": 12}', '{"thema": 120, "x": 1}', '{"thema": 5, kaputt', '{"THEMA": 7, "gross": 1}', '{"thema": "3", "s": 1}',
+                         '{"thema": 012, "null": 1}', 'kein json'):
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=z(1), von="TL", art="thema_ja", text=text)
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=z(1), von="TL", art=planer.ENTWURF, text=text)
+        return con, pid
+
+    def alle(self, con, pid, n):
+        return [(themen._ereignisse(con, pid, t), [planer._ereignisse(con, pid, t, a) for a in self.ARTEN]) for t in range(1, n + 1)]
+
+    def test_gleich_und_unabhaengig_von_der_menge(self):
+        zahlen = {}
+        for n in (20, 400):
+            con, pid = self.bestand(n)
+            ohne = self.alle(con, pid, n)
+            with einmal.merken(con, schnappschuss=True):
+                mit, zahlen[n] = self.zaehlen(con, lambda: self.alle(con, pid, n))
+            self.assertEqual(mit, ohne)
+            self.assertTrue(ohne[6][0] and ohne[6][1][2])                 # der Bestand trifft wirklich etwas (auch Thema 7, groß geschrieben)
+        self.assertEqual(zahlen[20], zahlen[400], zahlen)
+        self.assertLessEqual(zahlen[400], 3, zahlen)
+
+    def test_geliefert_ist_eine_kopie(self):
+        con, pid = self.bestand(20)
+        with einmal.merken(con, schnappschuss=True):
+            planer._ereignisse(con, pid, 8, planer.ENTWURF)[0]["liste"].append(99)
+            themen._ereignisse(con, pid, 8)[0]["von"] = "verändert"
+            self.assertEqual(planer._ereignisse(con, pid, 8, planer.ENTWURF)[0]["liste"], [1, 2])
+            self.assertEqual(themen._ereignisse(con, pid, 8)[0]["von"], "TL")
+
+    def test_nichts_ja_ohne_weitere_felder_mit_und_ohne_merker(self):
+        """Lead #33760: tore.nichts_bestaetigen schreibt genau {"thema": N} – planer._ereignisse findet es seit A2140, mit Merker ebenso;
+        themen._ereignisse sucht wie bisher nur Texte mit Komma."""
+        import json
+        from amw import tore
+        con, pid = self.bestand(20)
+        with db.schreiben(con):
+            eid = db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=z(2), von="TL", art=planer.ENTWURF, text='{"thema": 8, "x": 1}')
+            ja = db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=z(3), von="CC1", art=tore.NICHTS_JA, text=json.dumps({"thema": 8}))
+            for text in ('{"thema": 8 }', '{"thema": 8}x', '{"Thema": 8}'):                # anderes trifft auch ohne Merker nicht
+                db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=z(3), von="CC1", art=tore.NICHTS_JA, text=text)
+        ohne = (planer._ereignisse(con, pid, 8, tore.NICHTS_JA), themen._ereignisse(con, pid, 8), planer.geklaert(con, pid, 8, eid))
+        with einmal.merken(con, schnappschuss=True):
+            mit = (planer._ereignisse(con, pid, 8, tore.NICHTS_JA), themen._ereignisse(con, pid, 8), planer.geklaert(con, pid, 8, eid))
+        self.assertEqual(mit, ohne)
+        self.assertEqual([x["id"] for x in ohne[0]], [ja])
+        self.assertTrue(ohne[2])
+        self.assertNotIn(ja, [x["id"] for x in ohne[1]])
+
+    def test_geschriebenes_sofort_sichtbar(self):
+        con, pid = self.bestand(20)
+        with einmal.merken(con):
+            vorher_t, vorher_p = len(themen._ereignisse(con, pid, 9)), len(planer._ereignisse(con, pid, 9, planer.JA))
+            with db.schreiben(con):
+                themen._ereignis(con, pid, "TL", "ja", 9, fassung=3)
+                self.assertEqual(len(themen._ereignisse(con, pid, 9)), vorher_t + 1)     # in der Transaktion: einzeln gelesen
+                planer._ereignis(con, pid, "TL", planer.JA, 9, eid=1)
+            self.assertEqual(len(themen._ereignisse(con, pid, 9)), vorher_t + 1)
+            self.assertEqual(planer._ereignisse(con, pid, 9, planer.JA)[-1]["eid"], 1)
+            self.assertEqual(len(planer._ereignisse(con, pid, 9, planer.JA)), vorher_p + 1)
 
 
 if __name__ == "__main__":

@@ -372,9 +372,13 @@ def reihenfolge(entwurf):
 # --- Ereignisse -----------------------------------------------------------------------------------------------------------
 
 def _ereignisse(con, pid, tid, art):
+    from . import themen
     aus = []
-    for r in con.execute("SELECT id, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND (text LIKE ? OR text = ?)"
-                         " ORDER BY id", (pid, art, f'{{"thema": {int(tid)},%', f'{{"thema": {int(tid)}}}')):      # A2140: auch ohne weitere Felder (thema_nichts_ja)
+    k = themen.ereignisse_je_thema(con, pid)              # A2145: je Anfrage einmal statt je Thema und Art; beide Formen wie A2140
+    zeilen = ([r for _, r in k.get(str(int(tid)), ()) if r["art"] == art] if k is not None else con.execute(
+        "SELECT id, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND (text LIKE ? OR text = ?) ORDER BY id",
+        (pid, art, f'{{"thema": {int(tid)},%', f'{{"thema": {int(tid)}}}')))      # A2140: auch ohne weitere Felder (thema_nichts_ja)
+    for r in zeilen:
         try:
             aus.append({"id": r["id"], "von": r["von"], "zeit_utc": r["zeit_utc"], **json.loads(r["text"])})
         except ValueError:
