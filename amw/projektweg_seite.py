@@ -171,9 +171,9 @@ def fein(con, pid, freigaben):
                                  "gruende": planfunde.deuten(con, pid, letzter["fehler"]),
                                  "hinweise": planhinweis.offene(con, pid, x["thema"])})
         if d.get("delta"):
-            delta.append({"wer": delta_start.wer(con, pid, d), "neuer_ms": delta_start.legt_an(d),
-                          "startet": delta_start.legt_an(d) or _laeuft_frei(con, pid, d, aus),
-                          **{k: v for k, v in x.items() if k != "zeilen"}, **_entwurf_karten(con, pid, d),
+            ja = x.get("ja") or planansicht.aenderung_ja(con, pid, d)           # A2112: derselbe Knopf wie in Planung › Meilensteine
+            delta.append({**{k: v for k, v in x.items() if k != "zeilen"}, "wer": delta_start.wer(con, pid, d), "ja": ja,
+                          "neuer_ms": ja["neuer_ms"], "startet": ja["startet"], **_entwurf_karten(con, pid, d),
                           "hinweise": planhinweis.offene(con, pid, x["thema"])})
     delta_fehler += _teilweise(con, pid, namen)
     da = {x["bogen"] for x in aus}
@@ -195,12 +195,6 @@ def lead_klaert(con, pid):
     """B2938: Ein gescheiterter Planer ist zuerst Sache des Leads – sein Name, oder None (kein Lead: der Mensch)."""
     lead = kern.lead(con, pid)
     return lead if lead and lead != kern.ENTWICKLER else None
-
-
-def _laeuft_frei(con, pid, d, meilensteine):
-    """Zielt die Änderung auf einen laufenden Meilenstein mit freiem Plan? Dann starten die neuen Pakete mit dem Ja (A2080)."""
-    ziele = {m["bestehend"] for m in d.get("meilensteine") or [] if m.get("bestehend")}
-    return any(m["nr"] in ziele and m["frei"] and m["status"] == "aktiv" for m in meilensteine)
 
 
 def _teilweise(con, pid, namen):

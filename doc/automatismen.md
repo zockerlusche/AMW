@@ -960,6 +960,8 @@ die der Lead nur noch bestätigt oder ändert.
   (`amw thema plan-ja TH<n>`), bei `feinplan_freigabe = co+lead` Co-Entwickler und Lead je ein Ja. Ändern lässt sich ein Delta
   nicht (dann neu planen). Mit der Freigabe legt die AMW die neuen Pakete an und führt `aendern`/`verwerfen` aus (Ereignis
   `thema_delta_angewandt`).
+- **Knopf (A2112):** Projektweg und Planung › Meilensteine zeigen denselben Text (`planansicht.aenderung_ja`). Läuft das Ziel und ist sein Plan
+  seit der Freigabe geändert, steht „Nach dem Ja startet der Lead.“ dabei; online steht „freigeben am PC“.
 
 ### Hinweise an den Planer und „Überarbeiten lassen“ (A2028, TH164)
 

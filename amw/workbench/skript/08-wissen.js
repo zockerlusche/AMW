@@ -314,16 +314,21 @@ function pwDeltaFehler(x, haupt, lead) {
       pwTun("/api/projektweg/ueberarbeiten", { plan: `TH${x.thema}`, text: h }, t("pjw_ok_ueberarbeiten")); }, haupt)));
   return karte;
 }
+/* A2112 (Marcel 25.11.): das Ja zu einer Änderung heißt im Projektweg und in Planung › Meilensteine gleich; ja kommt vom Server (planansicht.aenderung_ja). */
+function pwDeltaKnopfText(thema, ja) {
+  const ziele = ja.ziele.map(pwZielText).join(", ");
+  const wohin = ja.neuer_ms ? t("pjw_delta_neu") : ziele ? t("pjw_delta_in", { m: ziele }) : "";     /* A2080: kurz – der Titel steht in der Karte */
+  return t(ja.startet ? "pjw_delta_start_n" : "pjw_delta_ja_n", { t: `TH${thema}`, p: pwPakete(ja.pakete), m: wohin })
+    + (ja.aendern ? " · " + t("pjw_n_geaendert", { n: ja.aendern }) : "") + (ja.verwerfen ? " · " + t("pjw_n_verworfen", { n: ja.verwerfen }) : "");
+}
+const pwDeltaOk = ja => t(ja.startet ? "pjw_ok_delta_start" : ja.lead_startet ? "pjw_ok_delta_lead" : "pjw_ok_delta");
+const pwDeltaDanach = ja => ja.lead_startet ? t("pjw_delta_lead_startet") : null;                  /* der Plan des laufenden Ziels ist geändert: das Ja startet nicht */
 function pwDeltaKarte(x, einzig, haupt) {
   /* A2065 (Marcel 24.11.): die Änderung als Karten in Stufen wie der Feinplan; was der Knopf freigibt, steht auf dem Knopf. */
-  const ziele = x.ziele.map(pwZielText).join(", ");
-  const wohin = x.neuer_ms ? t("pjw_delta_neu") : ziele ? t("pjw_delta_in", { m: ziele }) : "";     /* A2080: kurz – der Titel steht in der Karte */
-  const knopfText = t(x.startet ? "pjw_delta_start_n" : "pjw_delta_ja_n", { t: `TH${x.thema}`, p: pwPakete(x.karten.length), m: wohin })
-    + (x.aendern.length ? " · " + t("pjw_n_geaendert", { n: x.aendern.length }) : "") + (x.verwerfen.length ? " · " + t("pjw_n_verworfen", { n: x.verwerfen.length }) : "");
   const karte = el("div", { class: "pjw-karte pjw-delta", "data-thema": x.thema },
     el("div", { class: "pjw-kopf" }, el("h3", {}, t("pjw_delta", { x: `TH${x.thema} ${x.name}` })), pwStatus(t("pjw_wartet_dich"), "dran")),
     el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, x.karten.length), " ", t(x.karten.length === 1 ? "pjw_paket_w" : "pjw_pakete_w")),
-      el("span", {}, el("b", {}, x.karten.filter(k => k.wer.startsWith("Headless")).length), " Headless"), ziele ? el("span", {}, t("pjw_in_x", { x: x.ziele.map(z => z.neu ? t("pjw_neuem_ms", { x: z.titel }) : `M${z.nr}`).join(", ") })) : null));
+      el("span", {}, el("b", {}, x.karten.filter(k => k.wer.startsWith("Headless")).length), " Headless"), x.ziele.length ? el("span", {}, t("pjw_in_x", { x: x.ziele.map(z => z.neu ? t("pjw_neuem_ms", { x: z.titel }) : `M${z.nr}`).join(", ") })) : null));
   if (x.karten.length) {
     const stufen = [...new Set(x.karten.map(k => k.stufe))].sort((a, b) => a - b);
     karte.append(el("div", { class: "pjw-stufen" }, stufen.map(s => el("div", { class: "pjw-stufe" }, el("span", { class: "pjw-snr" }, s),
@@ -338,8 +343,9 @@ function pwDeltaKarte(x, einzig, haupt) {
   if ((x.nacharbeit || []).length) karte.append(el("div", { class: "pjw-hinweise" }, el("div", { class: "pjw-lbl" }, t("pjw_nacharbeit_lbl")),   /* A2059 */
     x.nacharbeit.map(y => el("div", {}, `A${y.aufgabe} ${y.alt || ""}`, y.grund ? el("span", { class: "leise" }, ` – ${y.grund}`) : null))));
   if (x.wer && x.wer.length) karte.append(el("div", { class: "leise" }, t("pjw_delta_wer", { x: x.wer.join(", ") })));   /* A2080 (2) */
-  if (API) return karte;
-  const ja = pwKnopf(knopfText, () => pwTun("/api/meilenstein/plan-ja", { thema: x.thema, eid: x.eid }, t(x.startet ? "pjw_ok_delta_start" : "pjw_ok_delta")), haupt);
+  if (pwDeltaDanach(x.ja)) karte.append(el("div", { class: "leise pjw-danach" }, pwDeltaDanach(x.ja)));   /* A2112 */
+  if (API) { karte.append(el("div", { class: "leise pjw-nur-pc" }, t("pm_nur_pc"))); return karte; }
+  const ja = pwKnopf(pwDeltaKnopfText(x.thema, x.ja), () => pwTun("/api/meilenstein/plan-ja", { thema: x.thema, eid: x.eid }, pwDeltaOk(x.ja)), haupt);
   if (einzig) pwHaupt = ja;
   else karte.append(pwHandlungen(ja));
   return karte;

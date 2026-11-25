@@ -132,7 +132,7 @@ function pmAnsicht(pa, art) {
           try { await schicken("/api/meilenstein/aenderung-verwerfen", { aenderung: x.aenderung }); toast(t("pm_ae_ok_weg")); zeige("planung", true); }
           catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("pm_ae_verwerfen"))) : null))));
   if (art === "grob" && ((pa.entwuerfe || []).length || (pa.planer_laeuft || []).length)) m.append(el("div", { class: "pm-entwuerfe" },   /* A1940: Entwürfe des Planers */
-    el("div", { class: "pm-entwuerfe-kopf" }, t("pm_entwuerfe", { n: pa.entwuerfe.length })),
+    el("div", { class: "pm-entwuerfe-kopf" }, t(pa.entwuerfe.some(e => e.ja) ? "pm_entwuerfe_n" : "pm_entwuerfe", { n: pa.entwuerfe.length })),   /* A2112: eine Änderung gibt man frei */
     ...pa.planer_laeuft.map(l => el("div", { class: "pm-entwurf sehrleise", "data-th": l.thema }, t("pm_planer_laeuft", { x: `TH${l.thema} ${l.name}`, z: pmZeit(l.seit_utc) }))),
     ...pa.entwuerfe.map(e => el("details", { class: "pm-entwurf", "data-th": e.thema },
       el("summary", {}, el("b", {}, `TH${e.thema} ${e.name}`), " · ",
@@ -140,10 +140,11 @@ function pmAnsicht(pa, art) {
         e.usd != null ? ` · ${pmGeld(e.usd)}` : ""),
       e.fehler ? el("ul", { class: "pm-entwurf-zeilen" }, ...e.fehler.map(f => el("li", {}, f)))
         : e.nichts ? el("p", { class: "sehrleise" }, e.grund) : el("ul", { class: "pm-entwurf-zeilen" }, ...e.zeilen.map(z => el("li", {}, z))),
+      e.ja && pwDeltaDanach(e.ja) ? el("p", { class: "sehrleise pjw-danach" }, pwDeltaDanach(e.ja)) : null,
       API ? el("span", { class: "sehrleise" }, t("pm_nur_pc")) : el("div", { class: "th-knoepfe" },
         !e.fehler ? el("button", { class: "klein-knopf haupt", type: "button", "data-h": "plan-ja", onclick: async () => {
-          try { await schicken("/api/meilenstein/plan-ja", { thema: e.thema, eid: e.eid }); toast(t("pm_ok_angelegt")); zeige("planung", true); }
-          catch (x) { toast(t("fehler", { x: x.message }), true); } } }, e.nichts ? t("pm_ja_nichts") : t("pm_ja_anlegen")) : null,
+          try { await schicken("/api/meilenstein/plan-ja", { thema: e.thema, eid: e.eid }); toast(e.ja ? pwDeltaOk(e.ja) : t("pm_ok_angelegt")); zeige("planung", true); }
+          catch (x) { toast(t("fehler", { x: x.message }), true); } } }, e.ja ? pwDeltaKnopfText(e.thema, e.ja) : e.nichts ? t("pm_ja_nichts") : t("pm_ja_anlegen")) : null,
         el("button", { class: "klein-knopf", type: "button", "data-h": "neu-planen", onclick: async () => {
           try { await schicken("/api/meilenstein/neu-planen", { thema: e.thema }); toast(t("pm_ok_neu_planen")); zeige("planung", true); }
           catch (x) { toast(t("fehler", { x: x.message }), true); } } }, t("pm_neu_planen")))))));

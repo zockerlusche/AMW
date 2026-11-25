@@ -467,6 +467,21 @@ def _geaendert_seit(con, pid, tid, seit_id):
     return z[-1].get("fassung") if z else None
 
 
+def aenderung_ja(con, pid, d):
+    """A2112: was das Ja zu einer Konzeptänderung tut – Projektweg und Planung zeigen daraus denselben Knopf: {"pakete", "aendern",
+    "verwerfen" (Zahlen), "ziele": [{"nr", "titel", "neu"}], "neuer_ms", "startet", "lead_startet"}. lead_startet: ein Ziel läuft, sein
+    Plan ist aber nicht (mehr) frei – die neuen Pakete startet der Lead (delta_start lässt den Plan offen)."""
+    from . import delta_start, projektweg_seite
+    k, z = projektweg_seite._entwurf_karten(con, pid, d), _zustaende(con, pid)
+    nummern = {m["bestehend"] for m in d.get("meilensteine") or [] if m.get("bestehend")}
+    laufend = [bool((z.get((r["id"], "plan")) or {}).get("an")) for r in con.execute(
+        "SELECT id, nr FROM bogen WHERE projekt_id = ? AND status = 'aktiv' ORDER BY id", (pid,)).fetchall() if r["nr"] in nummern]
+    neu = delta_start.legt_an(d)
+    startet = neu or any(laufend)
+    return {"pakete": len(k["karten"]), "aendern": len(k["aendern"]), "verwerfen": len(k["verwerfen"]), "ziele": k["ziele"], "neuer_ms": neu,
+            "startet": startet, "lead_startet": bool(k["karten"] and not startet and laufend and kern.lead(con, pid))}
+
+
 def entwuerfe(con, pid, namen):
     """A1940 (K4): offene Entwürfe des Planers zum Ja/Neu-planen und Planer, die gerade laufen – je Thema."""
     from . import planer, planer_fortschritt
@@ -486,7 +501,8 @@ def entwuerfe(con, pid, namen):
                       "fehler": e.get("fehler"), "nichts": bool(d and d["nichts_zu_bauen"]), "grund": d.get("grund") if d else None,
                       "meilensteine": len(d["meilensteine"]) if d and not d["nichts_zu_bauen"] else 0,
                       "pakete": len(d["pakete"]) if d and not d["nichts_zu_bauen"] else 0,
-                      "zeilen": planer.zusammenfassung(d).split(chr(10)) if d and not d["nichts_zu_bauen"] else []})
+                      "zeilen": planer.zusammenfassung(d).split(chr(10)) if d and not d["nichts_zu_bauen"] else [],
+                      "ja": aenderung_ja(con, pid, d) if d and d.get("delta") and not d["nichts_zu_bauen"] and not e.get("fehler") else None})     # A2112
     return {"entwuerfe": offen, "planer_laeuft": laufend}
 
 
