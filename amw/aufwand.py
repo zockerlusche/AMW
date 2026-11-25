@@ -6,6 +6,7 @@ hatte: von den Aufgaben, die er begonnen und noch nicht abgeschlossen hatte, die
 anderen, G19); eine Aufgabe, die zu dem Zeitpunkt einen offenen Wartegrund hat, hat Nachrang (A1844). Bleiben mehrere,
 ist es eine Näherung (naeherung). Kein KI-Aufruf, kein Schema.
 """
+import json
 import statistics
 
 LETZTE = 10                                   # je Agent: Median über so viele zuletzt fertige Aufgaben mit Messwert
@@ -56,10 +57,10 @@ def _zuordnen(con, pid, kennung, aufgaben, ab):
     zeilen = _zeilen(con, pid, kennung, ab)
     marken = taetigkeit.marken(con, pid, kennung)
     aus, vorher = {}, {}
-    warten = {}                                   # A1844: Wartegründe je Aufgabe – eine wartende Aufgabe hat Nachrang
-    for a in aufgaben:
-        warten[a["id"]] = [(g["angelegt_utc"], g["erledigt_utc"] or "9") for g in con.execute(
-            "SELECT angelegt_utc, erledigt_utc FROM wartegrund WHERE aufgabe_id = ?", (a["id"],))]
+    warten = {a["id"]: [] for a in aufgaben}      # A1844: Wartegründe je Aufgabe – eine wartende Aufgabe hat Nachrang
+    for g in con.execute("SELECT aufgabe_id, angelegt_utc, erledigt_utc FROM wartegrund WHERE aufgabe_id IN (SELECT value FROM json_each(?))",
+                         (json.dumps(list(warten)),)):     # A2145: eine Abfrage statt einer je Aufgabe
+        warten[g["aufgabe_id"]].append((g["angelegt_utc"], g["erledigt_utc"] or "9"))
     for z in zeilen:
         alt = vorher.get(z["sitzung_id"])
         vorher[z["sitzung_id"]] = z["kosten_usd"]
