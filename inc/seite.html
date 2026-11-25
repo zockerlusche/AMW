@@ -2910,7 +2910,7 @@ function uebersichtKarten(d) {
     ...(d.zur_abnahme || []).map(abnahmeZeile)];                                                    /* A1928: fertig → abnehmen */
   const anzahl = fragen.length + pw.spezifikationen.length + pw.plaene.length + pw.eigene.length + (d.startvorschlaege || []).length
     + (d.themen_fuer_dich || []).length + (d.aufgaben_zur_abnahme || []).length + (d.zur_abnahme || []).length;
-  const frisch = (d.an_dich || []).filter(n => !n.abgelegt), aelterIds = (d.an_dich || []).filter(n => n.abgelegt).map(n => n.id);
+  const frisch = (d.an_dich || []).filter(n => n.zaehlt), aelterIds = (d.an_dich || []).filter(n => n.abgelegt).map(n => n.id);
   const zuNachrichten = () => { try { localStorage.setItem(ablage("amw-nr"), "eingang"); } catch (e) {} zeige("nachrichten"); };
   const fuer = ueKarte("uk_fuer_dich", anzahl,
     fragenGruppe,
@@ -3709,8 +3709,8 @@ async function sichtNachrichten() {
   const faden = nrFaeden(d.eingang, d.gesendet, mit.flatMap(({ p, d: x }) => (x.nachrichten || []).map(n => ({ ...n, projekt: p }))));
   const mehrere = nrProjekte().length > 1;
   const m = rahmen(t("n_nachrichten"), el("span", { class: "leise" }, t("nr_unter"), " ", hilfeKnopf("nachrichten")));
-  const wahl = gemerkt("amw-nr");                     /* ohne gemerkte Wahl: An dich, wenn dort Offenes liegt (D940 Fund 7) */
-  let reiter = wahl === "eingang" || wahl === "gesendet" ? wahl : d.zaehler.eingang_offen ? "eingang" : "gesendet", gewaehlt = null, such = "", agent = "", bezugWahl = "", projektWahl = "";
+  const wahl = gemerkt("amw-nr");                     /* ohne gemerkte Wahl: An dich, wenn dort Ungelesenes liegt (D940 Fund 7) – auch wenn es nicht zählt (A2108) */
+  let reiter = wahl === "eingang" || wahl === "gesendet" ? wahl : d.eingang.some(x => x.stand !== "erledigt") ? "eingang" : "gesendet", gewaehlt = null, such = "", agent = "", bezugWahl = "", projektWahl = "";
   const nurOffen = { eingang: true, gesendet: false };  /* A1889: Standard „an dich + offen“ (Marcel, A1629 Punkt 2) */
   const alt = gezeichnet.sicht === "nachrichten" ? nrMerk : null;   /* erst nach dem Laden lesen: ein Klick währenddessen gilt */
   if (alt) { ({ reiter, gewaehlt } = alt); projektWahl = alt.projektWahl || ""; Object.assign(nurOffen, alt.nurOffen || {}); }
@@ -3797,7 +3797,7 @@ async function sichtNachrichten() {
     try {
       for (const [p, ids] of Object.entries(jeProjekt)) await schicken("/api/gelesen", { ids }, p);
       neu.forEach(x => { x.stand = "erledigt"; gesehen.add(schl(x)); }); markiert.clear();
-      d.zaehler.eingang_offen = Math.max(0, (d.zaehler.eingang_offen || 0) - neu.length);
+      d.zaehler.eingang_offen = Math.max(0, (d.zaehler.eingang_offen || 0) - neu.filter(x => x.zaehlt).length);   /* A2108 */
       nachGelesen(neu); gezeichnet.um = Date.now();    /* selbst gezeichnet: nachAktion zeichnet nicht noch einmal */
       kopfAktualisieren().catch(() => {});
     } catch (e) { toast(t("fehler", { x: e.message }), true); if (knopf) knopf.disabled = false; }
@@ -4663,7 +4663,7 @@ function pwUrteil(x, name, p, text) {
   const pakete = (p.pakete || []).filter(k => x.thema ? k.themen.includes(x.thema) : !k.themen.some(th => p.themen.some(y => y.thema === th)));
   const kopf = [el("b", {}, t("pjw_z_" + z, { x: name })), satz ? " – " + satz : null];
   if (!pakete.length && !text) return el("span", {}, kopf);
-  return el("details", { class: "pjw-beleg" }, el("summary", {}, kopf), text ? el("div", { class: "pjw-beleg-paket pjw-zielsatz" }, text) : null, z === "nicht_pruefbar" && (x.beleg || x.fehlt) ? el("div", { class: "leise" }, t("pjw_pruefer_sagt", { x: x.fehlt || x.beleg })) : null,
+  return el("details", { class: "pjw-beleg" }, el("summary", {}, kopf), text ? el("div", { class: "pjw-beleg-paket pjw-zielsatz" }, text) : null, z === "nicht_pruefbar" && (x.beleg || x.fehlt) ? el("div", { class: "pjw-beleg-paket leise" }, t("pjw_pruefer_sagt", { x: x.fehlt || x.beleg })) : null,
     ...pakete.map(k => el("div", { class: "pjw-beleg-paket" }, el("div", {}, k.titel), el("div", { class: "leise" },
       [[...new Set([...k.commits.slice(0, 3), ...(k.sha ? [k.sha] : [])])].join(", ") + (k.commits.length > 3 ? " …" : ""), k.grund ? t("pjw_bg_" + k.grund, { z: p.stand?.zweig || "main" }) : k.befund === "urteil" ? t("pjw_bg_urteil") : null, k.dateien.length ? k.dateien.join(", ") + (k.mehr ? " …" : "") : null].filter(Boolean).join(" · ")))));
 }

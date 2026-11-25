@@ -395,9 +395,9 @@ try {
         $gelesen = [];                                    // schon als gelesen markiert, aber noch im Briefkasten
         foreach ($offen as [$w, $dat]) if ($w === '/api/gelesen') $gelesen = array_merge($gelesen, json_decode($dat, true)['ids'] ?? []);
         if (isset($d['an_dich'])) {
-            $vorher = count($d['an_dich']);
+            $weg = count(array_filter($d['an_dich'], fn($n) => in_array($n['id'], $gelesen, true) && ($n['zaehlt'] ?? 1)));   // A2108: nur was zählt
             $d['an_dich'] = array_values(array_filter($d['an_dich'], fn($n) => !in_array($n['id'], $gelesen, true)));
-            foreach (['an_dich', 'nachrichten'] as $k) if (isset($d['zaehler'][$k])) $d['zaehler'][$k] = max(0, $d['zaehler'][$k] - ($vorher - count($d['an_dich'])));
+            foreach (['an_dich', 'nachrichten'] as $k) if (isset($d['zaehler'][$k])) $d['zaehler'][$k] = max(0, $d['zaehler'][$k] - $weg);
         }
     }
     if ($pfad === '/api/nachrichten' || $pfad === '/api/fragen') {   // A1837: schon als gelesen markiert, noch im Briefkasten
@@ -405,7 +405,7 @@ try {
         foreach ($offen as [$w, $dat]) if ($w === '/api/gelesen') $gelesen = array_merge($gelesen, json_decode($dat, true)['ids'] ?? []);
         if ($gelesen && $pfad === '/api/nachrichten' && isset($d['eingang'])) {
             $n = 0;
-            foreach ($d['eingang'] as &$x) if (in_array($x['id'], $gelesen, true) && ($x['stand'] ?? '') !== 'erledigt') { $x['stand'] = 'erledigt'; $n++; }
+            foreach ($d['eingang'] as &$x) if (in_array($x['id'], $gelesen, true) && ($x['stand'] ?? '') !== 'erledigt') { $x['stand'] = 'erledigt'; if ($x['zaehlt'] ?? 1) $n++; }
             unset($x);
             if (isset($d['zaehler']['eingang_offen'])) $d['zaehler']['eingang_offen'] = max(0, $d['zaehler']['eingang_offen'] - $n);
         }
