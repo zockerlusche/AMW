@@ -18,7 +18,7 @@
   },
   {
    "titel": "Light or heavy – always say which",
-   "text": "`--leicht` for normal building and testing: runs in parallel (Settings › This PC › “Light runs at the same time”) and never waits for heavy runs. `--schwer` for AI, graphics card, a window or a lot of memory: runs one at a time. Without either, the AMW rejects the run with this explanation; a recipe brings its own kind. An agent never runs two runs at once – both in the same folder would go wrong.",
+   "text": "`--leicht` for normal building and testing: runs in parallel (Settings › This PC › “Light runs at the same time”) and never waits for heavy runs. `--schwer` for AI, graphics card, a window or a lot of memory: runs one at a time. Without either, the AMW rejects the run with this explanation; a recipe brings its own kind. An agent never runs two runs at once – both in the same folder would go wrong. If a full test run is running or waiting in the project, a light run waits by itself until it is finished. Urgent work runs anyway with `--neben \"reason\"`; the lead sees the reason.",
    "bilder": []
   },
   {
