@@ -65,6 +65,8 @@ def grob(con, pid):
     gültigen Fassung; dazu die Hinweise an den Planer und ob er gerade läuft oder der Grobplan schon angenommen ist."""
     from . import grobplan, planhinweis
     fassungen, vorige = [], None
+    ja = grobplan.angenommen(con, pid)
+    weg = _verworfene_schluessel(con, pid, ja)
     for f in grobplan.fassungen(con, pid):
         if f.get("laeuft"):
             continue
@@ -81,8 +83,10 @@ def grob(con, pid):
                 x["aenderung"] = {"neu": v["neu"], "geaendert": [{"titel": t, "felder": fe} for t, fe in v["geaendert"]],
                                   "entfallen": v["entfallen"]}
             vorige = d
+            if ja and weg and f["fassung"] == ja.get("fassung"):           # A2086 (1): verworfene auch in Liste und Zuordnung weglassen
+                x["meilensteine"] = [{**m, **{k: [y for y in m.get(k) or [] if y not in weg] for k in ("nach", "gleichzeitig")}}
+                                     for m in x["meilensteine"] if m.get("schluessel") not in weg]
         fassungen.append(x)
-    ja = grobplan.angenommen(con, pid)
     return {"fassungen": fassungen, "laeuft": bool(grobplan.laeuft(con, pid)), "bestand": bestand(con, pid),
             "angenommen": {"fassung": ja.get("fassung"), "angelegt": ja.get("angelegt") or {}, "n": _gueltige(con, pid, ja)} if ja else None,
             "hinweise": planhinweis.alle(con, pid, "grob") if fassungen else []}
@@ -91,8 +95,17 @@ def grob(con, pid):
 def _gueltige(con, pid, ja):
     """A2075: Meilensteine des angenommenen Grobplans ohne die verworfenen – wie der Verlauf „Bestand übernommen: n“."""
     nrn = {int(str(v).lstrip("Mm")) for v in (ja.get("angelegt") or {}).values() if str(v).lstrip("Mm").isdigit()}
-    weg = {r[0] for r in con.execute("SELECT nr FROM bogen WHERE projekt_id = ? AND status = 'verworfen'", (pid,))}
-    return len(nrn - weg)
+    return len(nrn - _verworfene(con, pid))
+
+
+def _verworfene(con, pid):
+    return {r[0] for r in con.execute("SELECT nr FROM bogen WHERE projekt_id = ? AND status = 'verworfen'", (pid,))}
+
+
+def _verworfene_schluessel(con, pid, ja):
+    """A2086 (1): die Schlüssel („M4“) des angenommenen Grobplans, deren Meilenstein verworfen ist – nur für die Anzeige."""
+    weg = {f"M{n}" for n in _verworfene(con, pid)}
+    return {k for k, v in ((ja or {}).get("angelegt") or {}).items() if str(v).upper() in weg}
 
 
 def _wer(ap, aufgabe):
@@ -163,7 +176,10 @@ def fein(con, pid, freigaben):
                           **{k: v for k, v in x.items() if k != "zeilen"}, **_entwurf_karten(con, pid, d),
                           "hinweise": planhinweis.offene(con, pid, x["thema"])})
     delta_fehler += _teilweise(con, pid, namen)
-    return {"meilensteine": aus, "delta": delta, "delta_fehler": delta_fehler, "lead_klaert": lead_klaert(con, pid)}
+    da = {x["bogen"] for x in aus}
+    naechster = next(({"bogen": b["id"], "nr": b["nr"], "titel": b["titel"]} for b in _meilensteine(con, pid)      # A2086 (8)
+                      if b["status"] == "geplant" and b["id"] not in da), None)
+    return {"meilensteine": aus, "delta": delta, "delta_fehler": delta_fehler, "lead_klaert": lead_klaert(con, pid), "naechster": naechster}
 
 
 def _geklaert(con, pid, tid, eid):
@@ -206,6 +222,12 @@ def _teilweise(con, pid, namen):
             aus.append({"thema": tid, "name": name, "eid": e["id"], "fassung": e.get("fassung"), "teilweise": True,
                         "gruende": gruende + [{"art": "teil_lead", "x": {}}], "hinweise": planhinweis.offene(con, pid, tid)})
     return aus
+
+
+def _fehler_wort(fehler):
+    """A2086 (4): nur teilweise umgesetzt ist kein „Plan passte nicht“."""
+    teil = sum(1 for x in fehler if x.get("teilweise"))
+    return "teilweise umgesetzt" if teil == len(fehler) else "der Plan passte nicht" if not teil else "zu klären"
 
 
 def _ist_aenderung(con, pid, tid, e):
@@ -458,7 +480,7 @@ def daten(con, pid):
             if x["schritt"] == "fein":
                 x.update(zustand="dran", zeichen=projektweg.ZEICHEN["dran"], wer=wer_plan, bei_dir=ich in wer_plan,
                          fehlt=(f"{len(f['delta'])} Änderung(en) am Konzept warten auf das Ja" if f["delta"]
-                                else f"{len(f['delta_fehler'])} Änderung(en) am Konzept: der Plan passte nicht" if f["delta_fehler"]
+                                else f"{len(f['delta_fehler'])} Änderung(en) am Konzept: {_fehler_wort(f['delta_fehler'])}" if f["delta_fehler"]
                                 else f"{len(start)} Meilenstein(e) einer Änderung warten auf das Starten"))
         nur_lead = lead and not f["delta"] and not start     # B2938: was der Lead klärt, holt den Menschen nicht von seinem Schritt weg
         if not nur_lead and dran in (None, "umsetzung", "abschluss") or (dran == "grob" and start and g["angenommen"]):   # früher Offenes geht vor –

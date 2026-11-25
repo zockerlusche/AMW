@@ -400,6 +400,38 @@ class UebernahmeImVerlauf(Grund):
         self.assertEqual((a["n"], len(a["angelegt"])), (2, 3))                              # wie „Bestand übernommen: 2 Meilensteine“
         self.assertIn("Bestand übernommen: 2 Meilensteine", [e["zeile"] for e in self.daten()["verlauf"]])
 
+    def test_verworfene_auch_nicht_in_liste_und_zuordnung(self):
+        """A2086 (1): nur die Anzeige – der angenommene Grobplan selbst bleibt, wie er ist."""
+        _, alt, neu = bestand(self.con, self.pid)
+        weg = planung.bogen_neu(self.con, self.pid, "TL", "Verworfen")
+        nr = self.con.execute("SELECT nr FROM bogen WHERE id = ?", (weg,)).fetchone()[0]
+        grobplan.uebernehmen(self.con, self.pid)
+        ja = grobplan.angenommen(self.con, self.pid) or {}
+        schluessel = next(k for k, v in ja["angelegt"].items() if v == f"M{nr}")
+        d = (grobplan.entwurf(self.con, self.pid, ja["fassung"]) or {})["entwurf"]
+        erster = d["meilensteine"][0]["schluessel"]
+        with db.schreiben(self.con):                                                        # ein anderer Meilenstein kommt „nach“ dem verworfenen
+            for r in self.con.execute("SELECT id, text FROM plan_ereignis WHERE art = ?", (grobplan.ENTWURF,)).fetchall():
+                x = json.loads(r["text"])
+                x["entwurf"]["meilensteine"][0]["nach"] = [schluessel]
+                self.con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?", (json.dumps(x), r["id"]))
+
+        def ms():
+            return {m["schluessel"]: m for m in self.daten()["grob"]["fassungen"][-1]["meilensteine"]}
+        self.assertEqual((len(ms()), ms()[erster]["nach"]), (3, [schluessel]))
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE bogen SET status = 'verworfen' WHERE id = ?", (weg,))
+        self.assertEqual((sorted(set(ms())), ms()[erster]["nach"]), (sorted(set(ja["angelegt"]) - {schluessel}), []))
+        self.assertEqual(len((grobplan.entwurf(self.con, self.pid, ja["fassung"]) or {})["entwurf"]["meilensteine"]), 3)
+
+    def test_naechster_meilenstein_ohne_plan(self):
+        """A2086 (8): nach der Abnahme nennt die Feinplanung den Meilenstein, der als Nächstes geplant wird."""
+        bestand(self.con, self.pid)
+        self.assertIsNone(self.daten()["fein"]["naechster"])
+        m = planung.bogen_neu(self.con, self.pid, "TL", "Noch ohne Plan")
+        n = self.daten()["fein"]["naechster"]
+        self.assertEqual((n["bogen"], n["titel"]), (m, "Noch ohne Plan"))
+
     def test_zahl_stimmt_auch_wenn_die_grenze_schneidet(self):
         from amw import verlauf
         bestand(self.con, self.pid)
@@ -415,6 +447,24 @@ class UebernahmeImVerlauf(Grund):
         p = [x for m in self.daten()["fein"]["meilensteine"] if m["bogen"] == neu for x in m["pakete"]]
         self.assertEqual({(x["auftrag_mehr"], len(x["auftrag"])) for x in p if x["status"] != "fertig"}, {(True, projektweg_seite.AUFTRAG_KURZ)})
         self.assertEqual({x["auftrag_mehr"] for x in p if x["status"] == "fertig"}, {False})
+
+
+class FehlerWort(unittest.TestCase):
+    def test_teilweise_ist_kein_passte_nicht(self):
+        """A2086 (4)"""
+        t, n = {"teilweise": True}, {}
+        self.assertEqual([projektweg_seite._fehler_wort(x) for x in ([n, n], [t], [t, n])], ["der Plan passte nicht", "teilweise umgesetzt", "zu klären"])
+
+
+class Gespeichert(Grund):
+    def test_nach_dem_speichern_weiss_die_seite_was_gilt(self):
+        """A2086 (7): eigene Bearbeitung gilt als freigegeben – und ob der Planer läuft."""
+        t = demo(self.con, self.pid, "fein")[2]
+        for laeuft in (True, False):
+            f = self.con.execute("SELECT max(nr) FROM thema_fassung WHERE thema_id = ?", (t,)).fetchone()[0]
+            with mock.patch.object(planer, "laeuft", return_value=laeuft):
+                r = aktionen.ausfuehren(self.con, self.pid, "/api/thema/bearbeiten", {"thema": t, "text": f"Neu {laeuft}", "fassung": f})
+            self.assertEqual((r["status"], r["planer"]), ("frei", laeuft))
 
 
 class PruefungNachholen(Grund):
@@ -1121,6 +1171,10 @@ class SeiteTeilweise(Rundgang):
 
     def test_karte_sagt_was_offen_ist(self):
         self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
+        self.assertIn("teilweise umgesetzt", self.tab.js("document.querySelectorAll('.pjw-schritt .pjw-wert')[2].innerText"))   # A2086 (4)
+        self.assertNotIn("passte nicht", self.tab.js("document.querySelector('.pjw-schritte').innerText"))
+        leer = "{ ...zustand.pwDaten, fein: { ...zustand.pwDaten.fein, meilensteine: [], delta: [], delta_fehler: [], naechster: %s } }"
+        self.assertEqual([self.tab.js(f"pwWert({leer % n}, 2)") for n in ("{ nr: 5 }", "null")], ["als Nächstes M5", "–"])   # A2086 (8)
         self.tab.js("zustand.pwSicht = 2; zustand.pwOffen = true; zeige('projektweg', true)")
         self.warten("document.querySelector('.pjw-delta-fehler li')")
         text = self.tab.js("document.querySelector('.pjw-delta-fehler').innerText")

@@ -78,14 +78,14 @@ async function sichtThemen() {
     const z = s.zustand, text = s.zusammenfassung?.text || "", kasten = el("div", { class: "th-kasten" });
     const schliesst = h => (s.tor?.schliesst || []).includes(h);              /* A1913: diese Handlung schlösse das Tor Konzept */
     const tun = async (was, daten, ok) => { if (schliesst(was) && !confirm(t("th2_tor_frage"))) return;   /* W2449: Hinweis vorher, kein eigener Knopf */
-      try { await schicken(`/api/thema/${was}`, { thema: s.id, ...daten }); toast(schliesst(was) ? t("th2_ok_tor") : ok); zustand.themaOffen = s.id; zeige("themen", true); }
+      try { const r = await schicken(`/api/thema/${was}`, { thema: s.id, ...daten }) || {}; toast(schliesst(was) ? t("th2_ok_tor") : typeof ok === "function" ? ok(r) : ok); zustand.themaOffen = s.id; zeige("themen", true); }
       catch (e) { toast(t("fehler", { x: e.message }), true); } };
     const eingabe = h => {
       const feld = el("textarea", { class: "th-feld", placeholder: h === "zurueck" ? t("th2_notiz_ph") : "" });
       if (h === "bearbeiten") feld.value = text;
       kasten.replaceChildren(feld, el("div", { class: "th-knoepfe" },
         el("button", { class: "klein-knopf haupt", type: "button", onclick: () => { if (!feld.value.trim()) { feld.focus(); return; }
-          if (h === "zurueck") tun("zurueck", { notiz: feld.value }, t("th2_ok_zurueck")); else tun("bearbeiten", { text: feld.value, fassung: z.fassung }, t("th2_ok_bearbeiten"));   /* D1326 A40: gegen die erwartete Fassung */ } },
+          if (h === "zurueck") tun("zurueck", { notiz: feld.value }, t("th2_ok_zurueck")); else tun("bearbeiten", { text: feld.value, fassung: z.fassung }, r => t(r.status !== "frei" ? "th2_ok_bearbeiten" : r.planer ? "th2_ok_bearbeiten_planer" : "th2_ok_bearbeiten_frei"));   /* D1326 A40: gegen die erwartete Fassung */ } },
           t(h === "zurueck" ? "th2_zurueckgeben" : "th2_speichern")),
         el("button", { class: "klein-knopf", type: "button", onclick: () => kasten.replaceChildren() }, t("abbrechen"))));
       feld.focus();
@@ -152,11 +152,13 @@ function pwWert(d, i) {
     const l = g.fassungen.at(-1); return l ? t("pjw_fassung", { n: l.fassung }) : "–"; }
   if (i === 2) { const l = f.meilensteine.find(m => m.laeuft); if (l) return t("pjw_in_arbeit");
     const w = pwFeinOffen(d); if (w) return w.fehler ? t("pjw_w_fein_fehler", { m: pwM(w) }) : t("pjw_w_fein", { m: pwM(w), p: pwPakete(w.pakete.length) });
-    if (f.delta_fehler.length && !f.delta.length) return f.delta_fehler.length === 1 ? t("pjw_w_delta_fehler1", { t: `TH${f.delta_fehler[0].thema}` })   /* A2076 */
-      : t("pjw_w_delta_fehler_n", { n: f.delta_fehler.length });
+    if (f.delta_fehler.length && !f.delta.length) { const n = f.delta_fehler.length, teil = f.delta_fehler.filter(x => x.teilweise).length;   /* A2076; A2086: teilweise umgesetzt */
+      const wort = teil === n ? "pjw_w_delta_teil" : teil ? "pjw_w_delta_klaeren" : "pjw_w_delta_fehler";
+      return n === 1 ? t(wort + "1", { t: `TH${f.delta_fehler[0].thema}` }) : t(wort + "_n", { n }); }
     if (f.delta.length) return f.delta.length === 1 ? t("pjw_w_delta1", { t: `TH${f.delta[0].thema}`, p: pwPakete(f.delta[0].karten.length) })   /* A2068 */
       : t("pjw_w_delta_n", { n: f.delta.length });
-    const z = f.meilensteine.filter(m => m.frei && m.status !== "fertig").at(-1); return z ? `${pwM(z)} · ${t("pjw_freigegeben")}` : "–"; }
+    const z = f.meilensteine.filter(m => m.frei && m.status !== "fertig").at(-1); if (z) return `${pwM(z)} · ${t("pjw_freigegeben")}`;
+    return f.naechster ? t("pjw_w_naechster", { m: pwM(f.naechster) }) : "–"; }                     /* A2086: nach der Abnahme steht da, was als Nächstes geplant wird */
   if (i === 3) { const ms = u.meilensteine; if (!ms.length) return "–";
     const q = pwFragenIn(d, 3).length, fr = q ? " · " + (q === 1 ? t("pjw_frage1") : t("pjw_fragen", { n: q })) : "";
     if (ms.length > 1) return t("pjw_w_ums_n", { n: ms.length, f: ms.reduce((s, m) => s + m.fertig, 0), g: ms.reduce((s, m) => s + m.pakete.length, 0) }) + fr;   /* A2061 */

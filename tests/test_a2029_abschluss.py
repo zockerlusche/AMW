@@ -196,6 +196,9 @@ class NacharbeitAnfordern(Grund):
         self.assertTrue(e.get("nacharbeit"))
         self.assertEqual(self.offen(), ["Firmenkonto anbinden"])
         self.assertIn(("meldung", "Nacharbeit M1: 1 Pakete angelegt und gestartet"), self.post("TL"))
+        text = self.con.execute("SELECT text FROM nachricht WHERE von = 'AMW' AND kurz LIKE 'Nacharbeit M1:%'").fetchone()[0]
+        self.assertIn("es braucht kein neues Ja", text)                                    # A2086 (9)
+        self.assertNotIn("Ja = Start", text)
 
     def test_rechte_und_hinweis(self):
         with self.assertRaisesRegex(kern.AmwFehler, "Mensch oder der Lead"):

@@ -659,8 +659,10 @@ def entwurf_eintragen(con, pid, boegen, fassung, ergebnis, modell=None, usd=None
                                                  "meilensteine": [{"schluessel": f"M{b['nr']}", "bestehend": b["nr"]} for b in zeilen]})
                          + (reihenfolge_fehlt(con, fehlt) if fehlt else "")
                          + (f"\n\nVerworfen (vorige Fassung, nicht begonnen): {', '.join(f'A{x}' for x in verworfen)}" if verworfen else "")
-                         + f"\n\n({modell or '–'}, {kosten})\nJa = Start: Planung › Pakete › „Plan freigeben und starten“"
-                         f" (amw bogen freigeben {boegen[0]} --art plan --starten) · überarbeiten: amw bogen feinplanen {boegen[0]} --hinweis …")
+                         + f"\n\n({modell or '–'}, {kosten})\n"
+                         + ("Der Meilenstein läuft schon – es braucht kein neues Ja." if nacharbeit else      # A2086 (9)
+                            f"Ja = Start: Planung › Pakete › „Plan freigeben und starten“ (amw bogen freigeben {boegen[0]} --art plan --starten)"
+                            f" · überarbeiten: amw bogen feinplanen {boegen[0]} --hinweis …"))
     for q in (entwurf or {}).get("fragen") or []:
         try:
             kern.frage_neu(con, pid, "AMW", "tl", f"Feinplan {namen}: {q['frage']}"[:200], list(q["optionen"].items()),

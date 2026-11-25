@@ -244,7 +244,7 @@ class Uebernahme(Grund):
         self.assertEqual(g["angenommen"]["fassung"], 0)
         m = g["fassungen"][0]["meilensteine"][0]                                                  # Befund 2: Grob nicht leer
         self.assertEqual((m["schluessel"], m["bestehend"], sorted(m["themen"]), m["status"]), ("M1", 1, sorted([self.t1, self.t2]), "aktiv"))
-        self.assertEqual([x["status"] for x in g["fassungen"][0]["meilensteine"]], ["aktiv", "fertig", "verworfen"])
+        self.assertEqual([x["status"] for x in g["fassungen"][0]["meilensteine"]], ["aktiv", "fertig"])     # A2086: verworfene zeigt die Seite nicht mehr
         self.assertNotEqual(projektweg.sicht(self.con, self.pid)["dran"], "grob")
         self.assertIsNone(grobplan.uebernehmen(self.con, self.pid))                               # einmal
         with self.assertRaisesRegex(kern.AmwFehler, "schon angenommen"):

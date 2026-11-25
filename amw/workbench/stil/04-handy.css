@@ -110,7 +110,7 @@
 .pjw-schritt:hover { background: var(--flaeche); }
 .pjw-schritt.gewaehlt { background: var(--flaeche2); box-shadow: inset 0 -3px 0 var(--leise); }
 .pjw-schritt .pjw-name { font: 600 14px var(--titel); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pjw-schritt .pjw-wert { font-size: 13px; color: var(--leise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pjw-schritt .pjw-wert { font-size: 13px; color: var(--leise); overflow-wrap: anywhere; }
 .pjw-schritt.offen-z { opacity: .62; }
 .pjw-schritt .pjw-zeichen { display: inline-block; width: 1.2em; }
 .pjw-schritt.ok-z .pjw-zeichen { color: var(--gruen); }
@@ -208,7 +208,8 @@ button.pjw-karte:hover { background: var(--flaeche2); }
 .pjw-felder > span:nth-child(even) { overflow-wrap: anywhere; white-space: pre-line; }
 @media (max-width: 760px) {
   .pjw-schritte { grid-template-columns: minmax(0, 1fr); gap: 0; border: 1px solid var(--linie); border-radius: 8px; background: var(--flaeche); }
-  .pjw-schritt { border: 0; border-bottom: 1px solid var(--linie); border-radius: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 11px 12px; }
+  .pjw-schritt { border: 0; border-bottom: 1px solid var(--linie); border-radius: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 14px; align-items: center; padding: 11px 12px; }
+  .pjw-schritt .pjw-wert { text-align: right; }
   .pjw-schritt:last-child { border-bottom: 0; }
   .pjw-schritt.gewaehlt { box-shadow: none; background: transparent; }
   .pjw-weg { grid-template-columns: minmax(0, 1fr); }
