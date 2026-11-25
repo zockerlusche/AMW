@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.192.0 – 25.11.2026 · Der Abschluss sieht den Code
+- **Neu:** Die AMW prüft vor der Abnahme selbst, ob die Commits der Pakete auf dem ausgelieferten Zweig liegen, und der Prüfer sieht den Code dieses Stands. Ein Thema ist nur erfüllt, wenn es sich belegen lässt. Fehlt der Commit, steht da „nicht prüfbar“: Der Lead bekommt eine Meldung, und die AMW legt dafür keine Nacharbeit an.
+- **Neu:** Vorbehalte stehen auf der Karte über dem Knopf (zum Beispiel „Commit gefunden, liegt aber nicht auf main“ oder „kein Gesamttest eingestellt“). Der Knopf heißt dann „Trotz Vorbehalt abnehmen“ und fragt nach; Co-Entwickler und Lead können so nicht allein abnehmen. Je Thema steht ein Wort da, Pakete und Dateien öffnen sich auf Klick. Auf Projektweg und in der Planung gilt dasselbe. Ergebnisse von vorher heißen „Prüfung von vor dieser Version“ und zählen wie ein Vorbehalt. Grenze: In Projekten ohne Repo, ohne main oder master oder ohne eingestellten Gesamttest gibt es immer einen Vorbehalt.
+- **Neu:** Ein Meilenstein ohne festes Ende (zum Beispiel Wartung) lässt sich als laufend schalten: `amw bogen laufend M19 an`. Er kommt erst zur Abnahme, wenn du oder der Lead ihn mit `amw bogen vorlegen M19` vorlegt.
+- **Verbessert:** „wartet auf dich“ steht erst da, wenn du abnehmen kannst. Fehlt die Prüfung, ging sie nicht oder ist sie nicht erfüllt, klärt es der Lead; er startet sie mit `amw bogen pruefung-starten M19`.
+- **Geändert:** M<Nummer> ist in Befehlen und Bezügen die Nummer des Meilensteins im Projekt, nicht mehr die interne. Eine nackte Zahl (`--bogen 57`) bleibt die interne Nummer; eine Nummer ohne Treffer wird abgelehnt und nennt die passende.
+- **Behoben:** Antwortest du auf eine Frage mit einer Option und einem Text, kommt der Text beim Fragesteller an. Nehmen Unterbefehle kein `--text`, sagen sie es jetzt, statt den Text still wegzulassen.
+
 ## 1.191.0 – 25.11.2026 · Projektweg: ganzer Verlauf, klarere Leiste
 - **Neu:** Der Verlauf auf „Projektweg“ zeigt je Schritt, was geschah: Feinplaner, Änderungen am Konzept, Pakete von der Zuteilung bis zur Auslieferung, Prüfungen und Abschluss, zusammengefasst und mit fester Reihenfolge (höchstens 120 Einträge je Schritt, Text wie bisher deutsch). Auf der Kommandozeile: `amw verlauf --art protokoll`. Am Handy steht er auch unter dem geöffneten Schritt.
 - **Verbessert:** Nacharbeit an einem laufenden Meilenstein startet nur ihre eigenen Pakete. Zurückgehaltene Pakete bleiben zurückgehalten, der Verzug bleibt sichtbar, und fehlende Angaben stehen in der Meldung an den Lead.
