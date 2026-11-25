@@ -1314,6 +1314,10 @@ def pruefbitte(con, pid, bauer, pruefer, zweig, sha, punkte=None, aufgabe_id=Non
             raise kern.AmwFehler("Betreff nennt eine andere Aufgabe – die Release-Kette zählt sie als Aufgabe dieses Stands und hält beim"
                                  " Ausliefern: " + ", ".join(f"Commit {c[:8]} nennt A{n}" for c, n in fremd)
                                  + " – Betreff umformulieren (Verweis in den Text des Commits, ohne „A“ vor der Nummer)")
+    from . import auslieferung                       # A2103: die Kette hielte erst nach dem Gesamtlauf an
+    fehler = auslieferung.versions_fehler(con, pid, kern.projekt_ordner(con, pid), sha)
+    if fehler:
+        raise kern.AmwFehler("; ".join(fehler))
     from . import versionsnummer                     # A1753: Nummer frei? (nicht live, kein Tag, nicht von einer anderen Aufgabe belegt)
     versionsnummer.pruefen(con, pid, sha, aufgabe_id)
     from . import pruefstufe                         # A1656: welche Dateien der Stand ändert → Prüfstufe (vor dem Schreiben, ruft git)

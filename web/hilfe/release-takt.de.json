@@ -20,7 +20,7 @@
   },
   {
    "titel": "Höher einstufen",
-   "text": "Wer baut, kann eine Prüfbitte höher einstufen: `amw pruefung bitte … --stufe hoch`. Niedriger geht nicht.",
+   "text": "Wer baut, kann eine Prüfbitte höher einstufen: `amw pruefung bitte … --stufe hoch`. Niedriger geht nicht. Ändert der Versions-Commit mehr als CHANGELOG, Versionsdatei und `web/inc/VERSION`, sagt es schon die Prüfbitte, und ein Gesamtlauf startet dort nur mit `--trotzdem \"Grund\"`.",
    "bilder": []
   },
   {

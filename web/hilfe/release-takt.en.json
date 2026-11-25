@@ -20,7 +20,7 @@
   },
   {
    "titel": "Raise the level",
-   "text": "The builder can raise a review request: `amw pruefung bitte … --stufe hoch`. Lowering is not possible.",
+   "text": "The builder can raise a review request: `amw pruefung bitte … --stufe hoch`. Lowering is not possible. If the version commit changes more than CHANGELOG, the version file and `web/inc/VERSION`, the review request already says so, and a full run only starts there with `--trotzdem \"reason\"`.",
    "bilder": []
   },
   {

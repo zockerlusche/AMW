@@ -89,6 +89,49 @@ class Lauf(LaufGrund):
         self.assertEqual(aus.splitlines()[-1], "FAILED (failures=1, errors=1, skipped=1)")
 
 
+class WaechterZuerst(LaufGrund):
+    """A2103: die schnellen Wächter vor allen anderen; rot → sofort Ende (25.11.: zweimal je 50 min verloren)."""
+    def merkt(self, name):
+        z = os.path.join(self.ordner.name, name)
+        self.datei(f"{name}.py", f"import unittest\n\nclass M(unittest.TestCase):\n    def test_merkt(self):\n        open({z!r}, 'w').close()\n")
+
+    def lief(self, name):
+        return os.path.exists(os.path.join(self.ordner.name, name))
+
+    def test_rot_bricht_sofort_ab(self):
+        self.datei("test_sperrliste.py", ROT)
+        self.merkt("test_hilfen")                                                     # die anderen Wächter laufen noch
+        self.merkt("test_lang")
+        rc, aus = self.lauf(2)
+        self.assertEqual((rc, self.lief("test_hilfen"), self.lief("test_lang")), (1, True, False), aus)
+        for teil in ("Wächter zuerst: 2 Module", "!! Wächter rot – Gesamtlauf nach", "1 Module nicht gelaufen", "FAIL: test_rot (test_sperrliste.T.test_rot)"):
+            self.assertIn(teil, aus)
+        self.assertEqual(aus.splitlines()[-1], "FAILED (failures=1, skipped=1)")
+
+    def test_gruen_laeuft_alles_einmal(self):
+        for n in ("test_sperrliste", "test_zeilenenden", "test_a", "test_b"):
+            self.datei(f"{n}.py", GRUEN)
+        rc, aus = self.lauf(2)
+        self.assertEqual(rc, 0, aus)
+        self.assertRegex(aus, r"Ran 12 tests in")
+        reihe = [z.split()[1] for z in aus.splitlines() if z.startswith("[")]
+        self.assertEqual((sorted(reihe[:2]), sorted(reihe[2:])), (["test_sperrliste", "test_zeilenenden"], ["test_a", "test_b"]))
+
+    def test_anderes_modul_rot_bricht_nicht_ab(self):
+        self.datei("test_sperrliste.py", GRUEN)
+        self.datei("test_a.py", ROT)
+        self.merkt("test_b")
+        rc, aus = self.lauf(1)
+        self.assertEqual((rc, self.lief("test_b")), (1, True))
+        self.assertNotIn("Wächter rot", aus)
+
+    def test_jeder_waechter_ist_da_und_kein_browser_test(self):
+        da = dict(testlauf.module(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        for n in testlauf.WAECHTER:
+            self.assertIn(n, da)
+            self.assertFalse(testlauf.ist_browser(da[n]), n)
+
+
 SCHLAEFT = ("import time\nimport unittest\n\nclass S(unittest.TestCase):\n    def test_vorher(self):\n        print('vor dem Hänger')\n\n"
             "    def test_haengt(self):\n        print('jetzt hänge ich', flush=True)\n        time.sleep(120)\n")
 

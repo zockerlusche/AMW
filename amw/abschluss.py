@@ -394,7 +394,9 @@ def _nachweise(con, pid, b):
     z, rest = ["# Nachweise", "", "Dokumente und Antworten zu diesem Meilenstein und seinen Paketen. Wer etwas geschrieben hat, steht dabei.", "", "## Antworten"], NACHWEISE_ZEICHEN
     for f in fragen:
         if f["status"] == "beantwortet":
-            z.append(f"- F{f['id']} (A{f['aufgabe_id']}, an {f['an']}, {(f['antwort_utc'] or '')[:10]}): {' '.join(f['kurz'].split())[:300]} → {' '.join((f['antwort'] or '').split())[:600]}")
+            v = con.execute("SELECT text FROM frage_verlauf WHERE frage_id = ? AND art = 'antwort' ORDER BY id DESC LIMIT 1", (f["id"],)).fetchone()     # mit dem Text der Option (A2103)
+            antwort = " ".join((v["text"] if v else f["antwort"] or "").split())[:600]
+            z.append(f"- F{f['id']} (A{f['aufgabe_id']}, an {f['an']}, {(f['antwort_utc'] or '')[:10]}): {' '.join(f['kurz'].split())[:300]} → {antwort}")
     z += ["- keine"] if z[-1] == "## Antworten" else []
     z += ["", "## Dokumente"] + ([] if doks else ["- keine"])
     for d in doks:

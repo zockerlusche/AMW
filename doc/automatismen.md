@@ -422,7 +422,11 @@ Code; ein anderes Projekt hat eigene heikle Stellen (Zugänge, Sicherheit, Zahlu
 - **„Lead liest“:** `amw paket lead-liest <nr> [--aus]` (Lead, Mensch) bzw. Planfeld `"lead_liest": true` (Grob- und Feinplaner);
   gespeichert als `plan_ereignis lead_liest` ohne Schemaänderung.
 - **Merge-Tor Versions-Commit:** `release ausliefern` stoppt, wenn ein Commit, der die Versionsdatei ändert, mehr ändert als
-  CHANGELOG, Versionsdatei und `web/inc/VERSION`.
+  CHANGELOG, Versionsdatei und `web/inc/VERSION`. Dieselbe Prüfung läuft schon früher (A2103, `auslieferung.versions_fehler`): `pruefung bitte`
+  bricht mit dem Grund ab, und ein Gesamtlauf über `amw lauf ausfuehren|start` startet nicht ohne `--trotzdem "Grund"` (steht dann in der
+  Beschreibung des Laufs). Stände ohne Versions-Commit bleiben unberührt; ohne Projektordner oder `main` prüft sie nichts.
+- **Wächter zuerst (A2103):** `python -m amw.testlauf` fährt die schnellen Wächter-Module (`testlauf.WAECHTER`: Sperrliste, Zeilenenden, Texte,
+  Hilfe, Befehlsreferenz, Paket …) vor allen anderen. Ist einer rot, endet der Gesamtlauf sofort mit FAILED.
 - **Messen:** einmal je Woche (ISO) eine Info an den Lead – automatisch abgenommen (erstes E7, p und Fenster) von allen entschiedenen
   Paketen der Vorwoche und welche danach zurückgenommen wurden (E8, zurückgenommene Prüfung, Revert in main).
 

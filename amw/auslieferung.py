@@ -90,6 +90,18 @@ def _laufen(befehl, ordner, frist=600):
         return 1, f"{type(e).__name__}: {e}"
 
 
+def versions_fehler(con, pid, ordner, sha):
+    """A2103: dieselbe Prüfung wie in der Kette (Kette.versions_commits), bevor ein Gesamtlauf rechnet oder jemand prüft – schon bei der
+    Prüfbitte und vor dem Start eines Gesamtlaufs. [] auch, wenn git dort nichts vergleichen kann (kein Ordner, kein main)."""
+    if not ordner or not sha:
+        return []
+    k = Kette(con, pid, "AMW", ordner, ausgabe=lambda _: None)
+    try:
+        return k.versions_commits(sha, k.release_art())
+    except Stopp:
+        return []
+
+
 class Kette:
     """extern(befehl, ordner) → (rc, Ausgabe) für git/gh/Dienst; start_version() → Version, die der Dienst meldet (Tests)."""
 

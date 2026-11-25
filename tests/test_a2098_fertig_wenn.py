@@ -110,7 +110,7 @@ class Nachweise(Grund):
         status("fertig")
         self.laufen(self.mit(beleg="D1"))
         n = self.gesehen[0]["nachweise.md"]
-        for teil in ("5 Verweise gefunden", f"[bericht, A{self.a1}, von CC1", "[bericht, Meilenstein, von CC1", "Am Paket gemessen: 3 s.", "Gilt die Probe?", "gekürzt: 6000 von 9000"):
+        for teil in ("5 Verweise gefunden", f"[bericht, A{self.a1}, von CC1", "[bericht, Meilenstein, von CC1", "Am Paket gemessen: 3 s.", "Gilt die Probe? → A) ja", "gekürzt: 6000 von 9000"):
             self.assertIn(teil, n)
         self.assertNotIn("woanders", n)
         self.assertNotIn("- keine", n)

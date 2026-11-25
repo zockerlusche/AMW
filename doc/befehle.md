@@ -1221,9 +1221,10 @@ usage: amw lauf [-h] [--warten] [--hoechstens HOECHSTENS] [--frist FRIST]
                 [--dauer DAUER] [--braucht-gb GB] [--braucht-vram-gb GB]
                 [--braucht-platte-gb GB] [--beschreibung BESCHREIBUNG]
                 [--rezept REZEPT] [--leicht] [--neben GRUND] [--schwer]
-                [--dauerlauf] [--schirm] [--gpu] [--aufgabe AUFGABE] [--rc RC]
-                [--ergebnis ERGEBNIS] [--abgebrochen] [--grenze GRENZE]
-                [--von VON] [--projekt PROJEKT]
+                [--dauerlauf] [--schirm] [--trotzdem GRUND] [--gpu]
+                [--aufgabe AUFGABE] [--rc RC] [--ergebnis ERGEBNIS]
+                [--abgebrochen] [--grenze GRENZE] [--von VON]
+                [--projekt PROJEKT]
                 {start,ende,liste,vorziehen,zeige,warte,ausfuehren,fehlalarm}
                 [id]
 
@@ -1266,6 +1267,9 @@ options:
                         schweren Lauf, die Grenze wird vorgemerkt, der Dienst
                         passt auf, dass er sie hält
   --schirm
+  --trotzdem GRUND      start/ausfuehren: Gesamtlauf auch auf einem Stand,
+                        dessen Versions-Commit die Release-Kette nicht
+                        ausliefert
   --gpu                 belegt die Grafikkarte: PC-weit nur ein GPU-Lauf zur
                         Zeit (auch KI-Aufträge; ein Lauf mit Fenster wartet
                         ebenfalls)

@@ -2279,6 +2279,22 @@ def _lauf_vom_dienst(con, pid, lid):
         time.sleep(5)
 
 
+def _versions_sperre(con, pid, a, beschreibung, befehl=()):
+    """A2103: ein Gesamtlauf auf einem Stand, den die Release-Kette wegen seines Versions-Commits nicht ausliefert, startet nicht ohne
+    --trotzdem „Grund“. Rückgabe: die Beschreibung, mit dem Grund."""
+    from . import auslieferung, laufdienst
+    trotzdem = (getattr(a, "trotzdem", None) or "").strip()
+    if KANAL.get() == "cli" and laufdienst.ist_gesamtlauf(con, pid, befehl, beschreibung):
+        s = betrieb.pruefstand(list(befehl), os.getcwd())
+        fehler = auslieferung.versions_fehler(con, pid, s[0], s[1]) if s else []
+        if fehler and not trotzdem:
+            raise kern.AmwFehler("Gesamtlauf nicht gestartet – die Release-Kette hielte danach an: " + "; ".join(fehler)
+                                 + ". Erst neu aufsetzen, oder: --trotzdem „Grund“")
+        if fehler:
+            return f"{beschreibung} (trotzdem: {trotzdem})"
+    return beschreibung
+
+
 def _lauf_ausfuehren(con, pid, a):
     """Einreihen → warten → Befehl starten → Ausgabe in die Ergebnis-Datei → rc durchreichen → lauf ende. Beim Lauf mit Fenster:
     geht der Bildschirm zu oder beendet jemand den Lauf, endet der eigene Befehl (Prozessbaum) und der Lauf gilt als abgebrochen.
@@ -2291,7 +2307,7 @@ def _lauf_ausfuehren(con, pid, a):
         raise kern.AmwFehler("lauf ausfuehren geht nur im Terminal des Agenten")
     if not befehl:
         raise kern.AmwFehler("lauf ausfuehren --leicht|--schwer --beschreibung … [--schirm] -- <befehl …> (der Befehl steht nach --)")
-    beschreibung = a.beschreibung or a.rezept or " ".join(befehl)[:120]
+    beschreibung = _versions_sperre(con, pid, a, a.beschreibung or a.rezept or " ".join(befehl)[:120], befehl)
     von = _von(a)
     from . import laufdienst
     gesamt = laufdienst.ist_gesamtlauf(con, pid, befehl, beschreibung)
@@ -2497,7 +2513,7 @@ def cmd_lauf(a, con):
     if a.aktion == "start":
         if not a.beschreibung and not a.rezept:
             raise kern.AmwFehler("--beschreibung oder --rezept angeben")
-        lid = betrieb.lauf_start(con, pid, _von(a), a.beschreibung or a.rezept, a.rezept, _schwer(a, a.rezept, getattr(a, "dauerlauf", False)), a.schirm, a.aufgabe,
+        lid = betrieb.lauf_start(con, pid, _von(a), _versions_sperre(con, pid, a, a.beschreibung or a.rezept), a.rezept, _schwer(a, a.rezept, getattr(a, "dauerlauf", False)), a.schirm, a.aufgabe,
                                  warten=a.warten, erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb,
                                  braucht_vram_gb=a.braucht_vram_gb, braucht_platte_gb=a.braucht_platte_gb, dauerlauf=a.dauerlauf,
                                  leise=True, neben=getattr(a, "neben", None))
@@ -4419,6 +4435,7 @@ def parser():
     x.add_argument("--dauerlauf", action="store_true", help="start/ausfuehren: kopflos, ohne KI/GPU/Fenster, mit --braucht-gb als"
                    " fester Grenze – läuft neben dem schweren Lauf, die Grenze wird vorgemerkt, der Dienst passt auf, dass er sie hält")
     x.add_argument("--schirm", action="store_true")
+    x.add_argument("--trotzdem", metavar="GRUND", help="start/ausfuehren: Gesamtlauf auch auf einem Stand, dessen Versions-Commit die Release-Kette nicht ausliefert")
     x.add_argument("--gpu", action="store_true", help="belegt die Grafikkarte: PC-weit nur ein GPU-Lauf zur Zeit"
                                                      " (auch KI-Aufträge; ein Lauf mit Fenster wartet ebenfalls)")
     x.add_argument("--aufgabe", type=nummer)

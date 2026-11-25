@@ -22,6 +22,8 @@ Aufruf (der gesamtlauf_befehl der AMW): `python -X utf8 -m amw.testlauf` im Wurz
 - Baum (A2055): am Anfang und am Ende Stand (HEAD) und geänderte Dateien des Repos (git status, ohne daten/) samt Größe und
   Zeit; hat sich etwas geändert (jemand baut im selben Baum), steht „!! Baum während des Laufs geändert: …“ da, das Ergebnis
   ist FAILED und rc 3 – der Lauf gilt nicht als Beleg. Kein Git-Repo: keine Prüfung.
+- Wächter zuerst (A2103): die schnellen Module WAECHTER (Sperrliste, Zeilenenden, Texte, Hilfe, Befehlsreferenz …) laufen vor allen
+  anderen in einem Prozess, zusammen unter 30 s. Ist einer rot, endet der Lauf sofort (FAILED, rc 1) – nicht erst nach 50 Minuten.
 """
 import json
 import os
@@ -35,6 +37,8 @@ import typing
 import unittest
 
 TESTS = "tests"
+WAECHTER = ("test_sperrliste", "test_zeilenenden", "test_hilfen", "test_menue", "test_web_einbetten", "test_a2089_texte", "test_assistent", "test_paket",
+            "test_dokumente_pruefen")                     # A2103: schnell und ohne Browser; je Modul höchstens wenige Sekunden
 MUSTER = re.compile(r"^test_\w+\.py$")
 BROWSER = re.compile(r"test_aktualisieren import|tests\.rundgang|from tests import rundgang|\bmsedge\b|--headless")
 DAUER_DATEI = os.path.join(os.environ.get("LOCALAPPDATA") or tempfile.gettempdir(), "AMW", "testdauer.json")
@@ -422,21 +426,32 @@ def steuern(n=None, wurzel=".", aus=sys.stdout, dauer_datei=None, grenze_s=None,
     ende = ende if ende is not None else lauf_ende()
     mods = module(wurzel)
     browser = {name for name, p in mods if ist_browser(p)}
-    gruppen = verteilen(mods, n or prozesse(), dauern_lesen(dauer_datei), browser)
+    zuerst = [name for name, _ in mods if name in WAECHTER and name not in browser]
+    gruppen = verteilen([x for x in mods if x[0] not in zuerst], n or prozesse(), dauern_lesen(dauer_datei), browser)
     s = _Steuerung(wurzel, aus, browser, len(mods))
-    for i, namen in enumerate(gruppen):
-        s.starten(i, namen)
     print(f"Gesamtlauf parallel: {len(mods)} Module auf {len(gruppen)} Prozesse"
           + (f" (Browser-Tests: {len(browser)} Module nacheinander in Prozess 0)" if browser else "")
-          + f" · Zeitgrenze {grenze_s:g} s ohne neuen Test", file=aus, flush=True)
+          + (f" · Wächter zuerst: {len(zuerst)} Module" if zuerst else "") + f" · Zeitgrenze {grenze_s:g} s ohne neuen Test", file=aus, flush=True)
+
+    def warten():
+        while s.laufend:
+            if ende and time.time() >= ende - RESERVE_S:
+                s.frist()
+                return True
+            time.sleep(SCHAU_S)
+            s.runde(grenze_s)
+        return False
     frist = False
-    while s.laufend:
-        if ende and time.time() >= ende - RESERVE_S:
-            s.frist()
-            frist = True
-            break
-        time.sleep(SCHAU_S)
-        s.runde(grenze_s)
+    if zuerst:                                            # A2103
+        s.starten("w", zuerst)
+        frist = warten()
+    rot = bool(s.summe["failures"] or s.summe["errors"] or s.summe["unexpected_successes"])
+    if rot and not frist:
+        print(f"!! Wächter rot – Gesamtlauf nach {time.monotonic() - t0:.0f} s abgebrochen, {sum(len(g) for g in gruppen)} Module nicht gelaufen", file=aus, flush=True)
+    if not rot and not frist:
+        for i, namen in enumerate(gruppen):
+            s.starten(i, namen)
+        frist = warten()
     for b in s.berichte:
         print(b, file=aus)
     dauern_schreiben(s.dauern, dauer_datei)
