@@ -346,7 +346,7 @@ class EchterStart(unittest.TestCase):
         paket_schieben.verschieben(self.con, self.pid, "TL", b, "frueher", "Messung zuerst")
         aus = disponent.runde(self.con, test_disponent.prog("bauen"))
         self.assertTrue(any(f"A{b} gestartet auf Platz 1" in x for x in aus), aus)
-        self.assertIn("von Hand früher (TL: Messung zuerst)", disponent.warum(self.con, self.pid, b)["grund"])
+        self.assertIn("von Hand früher (TL: Messung zuerst)", (disponent.warum(self.con, self.pid, b) or {})["grund"])
         aus = disponent.runde(self.con, test_disponent.prog("bauen"))
         self.assertTrue(any(f"A{a} gestartet auf Platz 2" in x for x in aus), aus)
         for aid in (a, b):
