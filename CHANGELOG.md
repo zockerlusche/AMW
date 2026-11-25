@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.196.0 – 25.11.2026 · Erst ausgeliefert, dann abgenommen; Agenten herausnehmen, Prüfpunkte setzen
+- **Behoben:** Abnehmen geht erst, wenn alle fertigen Pakete eines Meilensteins ausgeliefert sind; bis dahin steht „wartet auf Auslieferung“ mit den Paketen, ohne Knopf und ohne Meldung. Die AMW fragt, ob der Commit des Pakets in der Version steckt, nicht nach der Uhrzeit. Pakete ohne eigenen Code brauchen keine Version. Beim Klick auf Abnehmen stehen keine Befehle mehr in der Fehlermeldung.
+- **Neu:** Einen Agenten herausnehmen und wieder freigeben: `amw agent folgen CC2` zeigt vorher, was geschieht, `amw agent herausnehmen CC2 --grund …` und `amw agent freigeben CC2`. Seine wartenden Pakete gehen in den Pool und werden neu verteilt, das laufende macht er zu Ende oder gibt es mit Übergabe-Notiz zurück. Läufe und Prozesse beendet die AMW nie.
+- **Neu:** Einen Prüfpunkt hinter ein Paket setzen: `amw aufgabe pruefpunkt N --grund …`. Ein Paket „Stand packen“ legt den Stand bereit, die Pakete dahinter warten, bis der Mensch Ja sagt.
+- **Verbessert:** Das Ja zu einer Konzeptänderung heißt in Planung und Projektweg gleich; online steht „freigeben am PC“.
+- **Verbessert:** Pläne mit derselben Datei in zwei gleichzeitigen Paketen weist die AMW schon beim Planen ab; der Planer bessert einmal nach.
+- **Verbessert:** Die Suche nach einer Nummer (D12, A12, M19 …) findet das Ding selbst zuerst. „Gilt weiter“ nach „neu prüfen“ legt ein Thema nicht wieder dem Menschen vor.
+- **Intern:** Zwei Bausteine für das automatische Bündeln (Auslöser, Zusammensetzen); sie sind noch nirgends eingebaut.
+
 ## 1.195.0 – 25.11.2026 · Nur was du tun musst zählt, Headless-Plätze werden früher frei
 - **Verbessert:** Als Nachricht an dich zählt nur noch, was du tun musst: Fragen, Prüfbitten und Aufträge, Antworten auf deine Nachrichten und Meldungen der AMW, die etwas von dir brauchen. Infos und Berichte bleiben auf der Seite Nachrichten lesbar. „Bereit zur Abnahme“ verschwindet von selbst, sobald der Meilenstein es nicht mehr ist. Dass ein Lauf mit Vorrang lange wartet oder ein Paket hängt, erfährt der Lead. Server-Code der Online-Seite geändert (api.php): online zählt gleich.
 - **Verbessert:** Ein Arbeitsplatz für Headless-Pakete wird frei, sobald sein Paket angenommen ist; die Auslieferung wartet nicht mehr auf angenommene Pakete.
