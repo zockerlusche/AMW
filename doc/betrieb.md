@@ -139,7 +139,7 @@ Pflicht-Kontext; mit `<AMW-Ordner>\bin` im Pfad geht überall kurz `amw`.
 - Warnungen stehen oben auf der Startseite, gehen einmal als Nachricht an den Lead und als Push an dich.
 
 ## 5 Sichern und wiederherstellen
-- `amw sichern` → `sicherung-<Datum>-<Uhrzeit>.db` neben der Datenbank (vollständige Kopie, auch im laufenden Betrieb);
+- `amw sichern` → `sicherung-<Datum>-<Uhrzeit>.db` neben der Datenbank (gibt es den Namen schon, mit Zähler „…-2.db“; vollständige Kopie, auch im laufenden Betrieb);
   `amw sichern --ziel D:\Sicherung` legt sie in diesen Ordner (wird angelegt), `--ziel D:\x.db` als genau diese Datei.
 - Wiederherstellen: Wächter anhalten (`amw dienst entfernen --ja` oder die Aufgabe in der Aufgabenplanung beenden),
   `daten\amw.db` durch die Sicherung ersetzen (die Dateien `amw.db-wal` und `amw.db-shm` daneben löschen), Wächter wieder
