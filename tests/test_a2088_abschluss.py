@@ -315,7 +315,7 @@ class AltUndErneut(Grund):
         self.alt()
         self.alt_bereit()
         x, _, _ = self.karte()
-        self.assertEqual((x["pruefung"]["alt"], x["lage"]), (True, "abnehmbar"))
+        self.assertEqual((x["pruefung"]["alt"], x["lage"]), ("code", "abnehmbar"))
         self.runde()
         self.assertEqual(self.gestartet, [])                                                # nichts von selbst
         self.assertIn("Prüfung von vor dieser Version", "\n".join(abschluss.bericht_teil(self.con, self.pid, self.m)))

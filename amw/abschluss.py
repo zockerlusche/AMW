@@ -198,7 +198,7 @@ def alt(con, e):
         return False
     if "belege" not in e:
         return "code"
-    b = con.execute("SELECT * FROM bogen WHERE id = ?", (e["bogen"],)).fetchone()
+    b = con.execute("SELECT * FROM bogen WHERE id = ?", (e.get("bogen"),)).fetchone()
     return "fertig_wenn" if b and zielsatz(b) and not e.get("ziel") else False
 
 
