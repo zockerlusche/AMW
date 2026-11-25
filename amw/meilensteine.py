@@ -68,6 +68,11 @@ def aufloesen(con, pid, a):
                 setattr(a, k, n)
 
 
+def unbekannt(bid):
+    """Fehlertext, wenn es zu einer internen Nummer keinen Meilenstein im Projekt gibt – eine Projektnummer gibt es dann nicht."""
+    return f"Meilenstein gibt es nicht (interne Nummer {int(bid)})"
+
+
 def name(con, bid):
     """„M19“ – oder „Meilenstein 57“, wenn es ihn nicht gibt."""
     r = con.execute("SELECT nr FROM bogen WHERE id = ?", (int(bid),)).fetchone()
