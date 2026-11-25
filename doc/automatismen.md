@@ -188,7 +188,7 @@ Nummer und schrieb die Versionshinweise.
 
 - **Der Platz wird mit der Annahme frei (A2105):** Nimmt die AMW ein Paket an (E7), sichert sie den geprüften Kopf als
   `refs/amw/paket-A<nr>` im Projekt-Repo, vergleicht ihn und setzt erst dann den Platz zurück (Archiv, nichts gelöscht). Das Paket
-  bleibt bereit zum Merge und kommt von dort ins Bündel; die Auslieferung wartet nicht mehr darauf. Geht das Sichern oder
+  bleibt bereit zum Merge und kommt von dort ins Bündel. Die Auslieferung wartet nur auf Pakete, an denen gearbeitet wird, nie auf angenommene. Geht das Sichern oder
   Zurücksetzen nicht, bleibt der Platz bis zur Auslieferung belegt und der Lead bekommt eine Meldung. Ein Paket mit denselben
   Bereichen wie ein angenommenes, noch nicht ausgeliefertes startet weiter nicht (Regel 2); Vorgänger zählen erst ausgeliefert als
   erledigt. Nach der Auslieferung wird nur ein Platz zurückgesetzt, den das Paket noch hält. Vom Lead nach E4 angenommene ebenso.

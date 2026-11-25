@@ -314,20 +314,23 @@ def reihenfolge(con, pid):
 
 
 def p_laufend(con):
-    """Laufen auf diesem PC p-Pakete (alle Projekte)? Ohne Tabelle paket (ältere Datenbank): nein."""
+    """Wird auf diesem PC an p-Paketen gearbeitet (alle Projekte)? Angenommene (merge_reihe) zählen nie (A2105). Ohne Tabelle paket
+    (ältere Datenbank): nein."""
     import sqlite3
     try:
-        return bool(belegt(con, con.execute(f"SELECT aufgabe_id, zustand FROM paket WHERE art = 'p' AND zustand IN"
-                                            f" ({','.join('?' * len(LAUFEND))})", LAUFEND).fetchall()))
+        return con.execute(f"SELECT 1 FROM paket WHERE art = 'p' AND zustand IN ({','.join('?' * len(ARBEITEND))}) LIMIT 1",
+                           ARBEITEND).fetchone() is not None
     except sqlite3.Error:
         return False
 
 
 def vor_auslieferung(con, frist_s=1800, warte_s=15, schlafen=time.sleep):
-    """Auslieferung der AMW: Wartungsmodus setzen und warten, bis keine p-Pakete mehr laufen (alle Projekte dieses PCs).
+    """Auslieferung der AMW: Wartungsmodus setzen und warten, bis an keinem p-Paket mehr gearbeitet wird (alle Projekte dieses PCs). Ein
+    angenommenes Paket (merge_reihe) hält sie nie auf, ob es seinen Platz schon abgegeben hat oder nicht: frei wird es erst durch sie
+    (1.194.0 wartete am 25.11. auf zwei solche und wäre nie fertig geworden; A2105).
     Rückgabe (fertig: bool, noch_laufend: [A-Nummern]). Ohne laufende p-Pakete sofort fertig."""
-    ids = lambda: [r["aufgabe_id"] for r in belegt(con, con.execute(   # A1897 Zusatz 3: angenommene Pakete halten nicht an
-        f"SELECT aufgabe_id, zustand FROM paket WHERE art = 'p' AND zustand IN ({','.join('?' * len(LAUFEND))})", LAUFEND).fetchall())]
+    ids = lambda: [r["aufgabe_id"] for r in con.execute(
+        f"SELECT aufgabe_id FROM paket WHERE art = 'p' AND zustand IN ({','.join('?' * len(ARBEITEND))}) ORDER BY aufgabe_id", ARBEITEND).fetchall()]
     if not zustand()["wartung"]:
         wartung_an("Auslieferung der AMW")
     ende = time.monotonic() + frist_s

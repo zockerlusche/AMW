@@ -238,6 +238,32 @@ class Auslieferung(Grund):
         self.assertIn("Platz 1 frei", mergeliste.ausgeliefert(self.con, self.pid, aid, str(kopf)[:7]) or "")
         self.assertEqual(self.belegt(), {})
 
+    def wartet_nicht(self):
+        with mock.patch.object(waechter, "wartung_an"), mock.patch.object(waechter, "zustand", return_value={"wartung": True}):
+            return waechter.vor_auslieferung(self.con, frist_s=0, schlafen=lambda s: None)
+
+    def test_wartet_nur_auf_pakete_an_denen_gearbeitet_wird(self):
+        for ziel in waechter.ARBEITEND:
+            a = self.neu("A", "lib/a.py")
+            for z in waechter.ARBEITEND:
+                arbeitspaket.zustand_setzen(self.con, self.pid, "AMW", a, z)
+                if z == ziel:
+                    break
+            self.assertEqual((self.wartet_nicht(), waechter.p_laufend(self.con)), ((False, [a]), True), ziel)
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE paket SET zustand = 'merge_reihe' WHERE aufgabe_id = ?", (a,))      # angenommen, ohne quelle
+            self.assertEqual((self.wartet_nicht(), waechter.p_laufend(self.con)), ((True, []), False), ziel)
+
+    def test_altes_e7_haelt_nicht_an_und_die_auslieferung_macht_es_fertig(self):
+        """1.194.0 (25.11.): zwei E7 ohne quelle hielten die Auslieferung an, die sie erst frei gemacht hätte."""
+        aid, kopf, p = bereit(self.con, self.pid, self.repo, "alt", {"lib/alt.py": "x = 1\n"}, 1)
+        self.assertEqual((self.belegt(), self.wartet_nicht()), ({1: aid}, (True, [])))
+        mergeliste.freigeben(self.con, self.pid, "TL", [aid])
+        g(self.repo, "merge", "-q", "--ff-only", f"paket-A{aid}")
+        aus = planautomatik.ausgeliefert(self.con, self.pid, "1.2.4", str(kopf), lambda s: True)
+        self.assertIn("Platz 1 frei", aus[0]["paket"])
+        self.assertEqual((arbeitspaket.lesen(self.con, aid)["zustand"], self.belegt(), g(p["klon"], "status", "--porcelain")), ("fertig", {}, ""))
+
 
 class AuslieferungNachE4(Grund):
     """Derselbe Fehler bestand schon bei vom Lead angenommenen Paketen (A1894)."""
