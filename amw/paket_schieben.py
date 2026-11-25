@@ -358,7 +358,7 @@ def abgelaufen(con, pid):
         for i in _vertraeglich([p for p in paare if p["id"] not in zu], kanten)[1]:
             zu[i] = "ring"
         titel = _titel(con, {p[k] for p in paare for k in ("vor", "nach")})
-        for p in paare:
+        for p in reversed(paare):                                              # älteste zuerst
             art = zu.get(p["id"])
             if not art:
                 continue

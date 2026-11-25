@@ -182,8 +182,9 @@ class Rechte(Grund):
             self.schieben(b, von="TL", grund=" ")
         self.schieben(b, von=MENSCH, grund="")                                                      # der Mensch darf ohne
         self.assertEqual(self.reihe(), [b, a])
-        n = self.con.execute("SELECT von, an, kurz FROM nachricht WHERE kurz LIKE 'M1: A%früher%'").fetchone()
-        self.assertEqual((n["von"], n["an"]), (MENSCH, "TL"))                                       # der Lead erfährt es
+        n = self.con.execute("SELECT n.von, e.agent, n.kurz FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id"
+                             " WHERE n.kurz LIKE 'M1: A%früher%'").fetchone()
+        self.assertEqual((n["von"], n["agent"]), (MENSCH, "TL"))                                       # der Lead erfährt es
         self.assertIn(f"A{b} früher – jetzt vor A{a}", n["kurz"])
 
     def test_mensch_geht_vor_lead(self):
@@ -495,7 +496,7 @@ class Zufall(Grund):
         for saat in range(4):
             z = random.Random(saat)
             with db.schreiben(self.con):
-                self.con.execute("UPDATE aufgabe SET status = 'verworfen'")
+                self.con.execute("UPDATE aufgabe SET status = 'verworfen', beleg = 'x'")
             b2 = planung.bogen_neu(self.con, self.pid, "TL", f"Zwei {saat}")
             ids, von = [], ("TL", MENSCH)
             for i in range(10):
