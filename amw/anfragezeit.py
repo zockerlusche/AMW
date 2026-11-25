@@ -195,7 +195,7 @@ class Zaehler(sqlite3.Cursor):
             self._dazu(t)
 
 
-_LITERAL = re.compile(r"'(?:[^']|'')*'")
+_LITERAL = re.compile(r"""'(?:[^']|'')*'|"[^"]*"|--[^\n]*""")       # Texte, auch doppelt gequotet, und Kommentare
 _TABELLE = re.compile(r"\b(?:FROM|JOIN|INTO|UPDATE)\s+([A-Za-z_][A-Za-z0-9_]*)", re.IGNORECASE)
 _WORT = re.compile(r"[A-Za-z]+")
 

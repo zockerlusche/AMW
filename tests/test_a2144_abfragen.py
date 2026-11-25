@@ -84,6 +84,29 @@ class Zaehlen(Basis):
         self.assertEqual(len(re.findall(r"\(4×, ", z)) + z.count(" – PRAGMA") + z.count("PRAGMA"), 3, z)
         self.assertEqual(z.split("teuerste Abfragen: ")[1].split(" – ")[0].count("×"), 3)
 
+    def test_text_im_sql_wird_nie_zur_tabelle(self):
+        def tun():
+            con = db.verbinde(nur_lesen=True)
+            con.execute("SELECT id FROM wortlaut WHERE text LIKE '%schreibt FROM kunde_eins und JOIN vertrag_zwei%'").fetchall()
+            con.execute("SELECT id FROM frage WHERE kurz = 'a'' FROM kunde_drei' -- UPDATE kunde_vier").fetchall()
+            con.execute("SELECT 'x FROM kunde_fuenf'").fetchall()
+            con.close()
+        z = self.zeile(tun)
+        self.assertNotIn("kunde", z)
+        self.assertNotIn("vertrag", z)
+        self.assertEqual([anfragezeit._name(s) for s in ("SELECT 1 FROM a WHERE t = 'FROM b'", 'SELECT 1 FROM a WHERE t = "JOIN b"', "PRAGMA foreign_keys = ON")],
+                         ["a", "a", "PRAGMA"])
+
+    def test_datenbankzeit_ist_nicht_rest(self):
+        def tun():
+            con = db.verbinde(nur_lesen=True)                                              # rechnet in SQLite, nicht in Python
+            con.execute("WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM r WHERE x < 1500000) SELECT sum(x) FROM r").fetchone()
+            con.close()
+        z = self.zeile(tun)
+        wert = lambda was: float(re.findall(was + r" (\S+) s", z)[0])
+        self.assertGreater(wert("Datenbank"), 0.1, z)
+        self.assertLess(wert(r"Rest \(Rechnen\)"), wert("Datenbank") / 2, z)
+
     def test_schreibsperre_zaehlt_nicht_als_datenbank(self):
         frei = threading.Event()
         halter = sqlite3.connect(os.environ["AMW_DB"], isolation_level=None, check_same_thread=False)
@@ -109,6 +132,7 @@ class Zaehlen(Basis):
         sperre, bank = wert("Schreibsperre"), wert("Datenbank")
         self.assertGreaterEqual(sperre, 0.4)
         self.assertLess(bank, sperre / 2)
+        self.assertLess(wert(r"Rest \(Rechnen\)"), sperre / 2)                           # … und nicht als Rest
 
     def test_gleiche_ergebnisse(self):
         def alles(con):
