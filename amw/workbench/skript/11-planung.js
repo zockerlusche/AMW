@@ -29,7 +29,7 @@ function termineAnsicht(l, kf) {
           el("span", { class: "etikett" }, t("tm_art_" + v.art)), " ", el("b", {}, v.titel), " ", el("span", { class: "ref" }, `T${v.termin_id}`),
           v.woechentlich ? el("span", { class: "sehrleise" }, " · " + t("tm_woechentlich")) : null),
         v.frist_utc ? el("div", { class: "leise", style: "margin-top:4px" }, t("tm_frist", { x: tmZeit(v.frist_utc) }),
-          v.ampel ? el("span", {}, " · ", el("span", { class: "punkt " + ampelKlasse(v.ampel) }), " ", t("tm_ampel", { b: v.bogen_id, a: t("ampel_" + v.ampel) })) : null) : null,
+          v.ampel ? el("span", {}, " · ", el("span", { class: "punkt " + ampelKlasse(v.ampel) }), " ", t("tm_ampel", { b: bogenNr(v.bogen_id), a: t("ampel_" + v.ampel) })) : null) : null,
         v.bereit ? el("div", { class: "gruen-text", style: "margin-top:4px;white-space:pre-wrap" }, "✓ " + t("tm_bereit") + " – " + (v.bereit.text || ""))
           : v.art === "test" ? el("div", { class: "sehrleise", style: "margin-top:4px" }, t("tm_offen")) : null,
         v.notiz ? el("div", { class: "sehrleise", style: "margin-top:4px" }, v.notiz) : null)))));
@@ -225,6 +225,7 @@ function pmAnsicht(pa, art) {
   return m;
 }
 async function sichtPlanung() {
+  if (!zustand.start) { try { await kopfAktualisieren(); } catch (e) {} }        /* A2089: bogenNr liest die Startdaten */
   let d; try { d = await holen("/api/planung"); } catch (e) { rahmen(t("n_planung")).append(el("div", { class: "leer" }, String(e))); return; }
   const r = zustand.planReiter || (d.planansicht?.hat_themen ? "meilensteine" : "zeitleiste");   /* A1950: mit Themen zuerst die Meilensteine */
   const chip = (name, wert, grund) => el("span", { class: "signal", title: grund || "" }, el("span", { class: "punkt " + ampelKlasse(wert) }),
@@ -237,7 +238,7 @@ async function sichtPlanung() {
   const w = d.wartet, offen = w.spezifikationen.length + w.plaene.length;
   if (offen) m.append(el("div", { class: "band-warn" }, el("b", {}, t("pl_freigaben", { n: offen }).toUpperCase()),
     ...w.spezifikationen.map(s => el("div", {}, el("a", { class: "verweis", onclick: () => specDialog(d.boegen.find(b => b.id === s.bogen_id), s.teil) },
-      t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })))),
+      t("pl_spec_frei", { b: bogenNr(s.bogen_id), x: s.titel, teil: t("teil_" + s.teil), v: s.version })))),
     ...w.plaene.map(p => el("div", {}, el("a", { class: "verweis", onclick: () => planDialog(p) }, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" }))))));
   const lu = d.luecken || { thema_ohne_paket: [], paket_ohne_thema: [] }, luT = lu.thema_ohne_paket.length, luP = lu.paket_ohne_thema.length;
   if (luT || luP) m.append(el("details", { class: "pl-luecken", "data-luecken": `${luT}/${luP}` },   /* A1947: Lücken Thema ↔ Paket als Fakt */
@@ -658,7 +659,7 @@ function bogenKarte(b) {
   const boegen = zustand.planBoegen || [], lead = zustand.planLead;
   const davor = boegen.slice(0, boegen.findIndex(x => x.id === b.id)).some(x => ["aktiv", "geplant"].includes(x.status));
   const vorziehen = offenB && davor ? el("button", { class: "knopf haupt mk-vorziehen", type: "button", title: t("mk_vorziehen_h"), onclick: async () => {
-      if (!confirm(t("mk_vorziehen_frage", { b: b.id, x: b.titel }))) return;
+      if (!confirm(t("mk_vorziehen_frage", { b: bogenNr(b.id), x: b.titel }))) return;
       try { await schicken("/api/plan/bogen", { aktion: "vorziehen", bogen: b.id }); toast(t("mk_vorgezogen")); zeige("planung", true); }
       catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("mk_vorziehen")) : null;
   const menue = el("div", { class: "mk-menue", hidden: "" }, el("span", {}, t("mk_fuer_lead")),
@@ -773,7 +774,7 @@ function bogenKarte(b) {
       (s.kriterien || []).length ? `✓ ${s.kriterien.filter(k => k.erfuellt).length}/${s.kriterien.length}` : null,
       s.prognose && !["fertig", "verworfen"].includes(s.status) ? `≈ ${datumKurz(s.prognose.p50)}` : null].filter(Boolean).join(" · "),
       s.dokumente ? el("a", { class: "verweis", style: "margin-left:6px", onclick: () => { zustand.dok = { status: "aktuell", bezug: `aufgabe:${s.id}` }; zeige("dokumente"); } }, `📎 ${s.dokumente}`) : null),
-    s.verschoben_aus ? el("span", { class: "mk-verschoben" }, "↪ " + t("mk_verschoben_aus", { b: s.verschoben_aus.bogen, x: datumKurz(s.verschoben_aus.am.slice(0, 10)) })) : null,
+    s.verschoben_aus ? el("span", { class: "mk-verschoben" }, "↪ " + t("mk_verschoben_aus", { b: bogenNr(s.verschoben_aus.bogen), x: datumKurz(s.verschoben_aus.am.slice(0, 10)) })) : null,
     mini(s, u));
   const rang = { dich: 0, laeuft: 1, lauf: 2, pruefung: 3, aufgabe: 4, agent: 5, sonst: 6, offen: 7 };
   const offenSortiert = offen.slice().sort((x, y) => rang[x.u.art] - rang[y.u.art]);
@@ -824,7 +825,7 @@ function bogenKarte(b) {
         erledigt.map(s => aufgabeZeile(s, { art: "fertig" }))) : null,
       (b.weg || []).length ? el("details", { class: "mk-fertige" }, el("summary", { class: "mk-gruppe" }, t("mk_weg", { n: b.weg.length })),
         b.weg.map(w => el("div", { class: "mk-a weg", onclick: () => aufgabeDialog(w.id) }, el("span", { class: "mk-nr" }, "A" + w.id), el("span", { class: "mk-t" }, w.titel),
-          el("span", { class: "mk-verschoben" }, "↪ " + (w.nach ? t("mk_verschoben_nach", { b: w.nach, x: datumKurz(w.am.slice(0, 10)) }) : t("mk_herausgenommen", { x: datumKurz(w.am.slice(0, 10)) })))))) : null)
+          el("span", { class: "mk-verschoben" }, "↪ " + (w.nach ? t("mk_verschoben_nach", { b: bogenNr(w.nach), x: datumKurz(w.am.slice(0, 10)) }) : t("mk_herausgenommen", { x: datumKurz(w.am.slice(0, 10)) })))))) : null)
       : el("div", { class: "sehrleise", style: "margin-top:8px" }, t("pl_keine_schritte")),
     details);
 }
@@ -1145,7 +1146,7 @@ function rueckblickDialog(b) {
       a === "massnahme" && !r.aufgabe_id && !r.beschluss_id ? el("div", { style: "display:flex;gap:6px;margin-top:4px;flex-wrap:wrap" },
         el("button", { class: "klein-knopf", type: "button", onclick: () => uebernehmen(r, "aufgabe") }, t("rb_zu_aufgabe")),
         el("button", { class: "klein-knopf", type: "button", onclick: () => uebernehmen(r, "beschluss") }, t("rb_zu_beschluss"))) : null)));
-  const hg = dialog(t("rb_titel", { b: b.id, x: b.titel }), el("p", { class: "leise", style: "margin-top:0" }, t("rb_h")),
+  const hg = dialog(t("rb_titel", { b: bogenNr(b.id), x: b.titel }), el("p", { class: "leise", style: "margin-top:0" }, t("rb_h")),
     el("div", { class: "rb-raster" }, arten.map(spalte)),
     el("div", { class: "rb-neu" }, art, text, neu));
   neu.addEventListener("click", async () => {

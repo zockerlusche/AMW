@@ -214,7 +214,8 @@ async function hochladenTeile(blob, name, fortschritt) {
   }
   return id;
 }
-const bogenRef = id => t("ref_bogen", { b: id });
+const bogenNr = id => zustand.start?.bogen_nr?.[id] ?? "?";                 /* A2089: gespeichert ist die interne Nummer, gezeigt die Projektnummer */
+const bogenRef = id => t("ref_bogen", { b: bogenNr(id) });
 const bezugRef = (art, id) => art === "bogen" ? bogenRef(id) : { aufgabe: "A", frage: "F", beschluss: "B" }[art] + id;
 const bezugKurz = b => !b ? "" : bezugRef(b.slice(0, b.indexOf(":")), b.slice(b.indexOf(":") + 1));
 function bezugLesen(s) {

@@ -34,10 +34,10 @@ function startvorschlagZeile(v) {
 }
 /* A1928 (TH158): ein fertiger Meilenstein wartet auf deine Abnahme – danach veröffentlicht die AMW (Push, GitHub-Release) */
 function abnahmeZeile(b) {
-  const tun = async () => { if (!confirm(t("ab_frage", { m: b.id, x: b.titel }))) return;
+  const tun = async () => { if (!confirm(t("ab_frage", { m: b.nr, x: b.titel }))) return;
     try { const r = await schicken("/api/bogen/abnehmen", { bogen: b.id }); toast(r.text); zeige("start", true); }
     catch (e) { toast(t("fehler", { x: e.message }), true); } };
-  return el("div", { class: "ue-zeile ab-zeile", "data-bogen": b.id }, el("span", { class: "ref" }, `M${b.id}`),
+  return el("div", { class: "ue-zeile ab-zeile", "data-bogen": b.id }, el("span", { class: "ref" }, `M${b.nr}`),
     el("span", { class: "ue-text" }, el("b", {}, t("ab_fertig", { x: b.titel })), " ", el("span", { class: "leise" }, t("ab_grund"))),
     API ? el("span", { class: "sehrleise" }, t("ab_nur_pc")) : el("button", { class: "klein-knopf ue-knopf", type: "button", onclick: tun }, t("ab_knopf")));
 }
@@ -70,7 +70,7 @@ function uebersichtKarten(d) {
   const fragenGruppe = fragen.length ? el("div", { class: "ue-gruppe", id: "ue-fragen" },     /* A1990: eine Gruppe, je Frage eine Zeile */
     el("h4", {}, t("uk_fragen_gruppe"), el("b", {}, String(fragenN))), fragen.slice(0, 6).map(frageZeile)) : null;
   const dran = [
-    ...pw.spezifikationen.map(x => ueZeile(bogenRef(x.bogen_id), t("pl_spec_frei", { b: x.bogen_id, x: x.titel, teil: t("teil_" + x.teil), v: x.version }),
+    ...pw.spezifikationen.map(x => ueZeile(bogenRef(x.bogen_id), t("pl_spec_frei", { b: bogenNr(x.bogen_id), x: x.titel, teil: t("teil_" + x.teil), v: x.version }),
       t("uk_ansehen"), () => { zustand.planReiter = "zeitleiste"; zeige("planung"); })),
     ...pw.plaene.map(p => ueZeile(`A${p.id}`, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" }), t("uk_ansehen"), () => zeige("planung"))),
     ...pw.eigene.map(a => ueZeile(`A${a.id}`, a.titel, t("uk_oeffnen"), () => aufgabeDialog(a.id))),
@@ -182,7 +182,7 @@ async function sichtStart() {
   const nt = d.naechster_test;                              /* Terminplaner: nächster Testtermin mit Frist und Ampel */
   if (nt) m.append(el("div", { class: "band-termin" + (nt.ampel === "rot" ? " rot" : "") }, el("b", {}, t("tm_naechster").toUpperCase()),
     el("div", {}, [`${tmZeit(nt.am_utc)} · ${nt.titel}`, nt.frist_utc ? t("tm_frist", { x: tmZeit(nt.frist_utc) }) : null,
-      nt.ampel ? t("tm_ampel", { b: nt.bogen_id, a: t("ampel_" + nt.ampel) }) : null,
+      nt.ampel ? t("tm_ampel", { b: bogenNr(nt.bogen_id), a: t("ampel_" + nt.ampel) }) : null,
       nt.bereit ? t("tm_bereit") : null].filter(Boolean).join(" · ")),
     el("button", { class: "klein-knopf", type: "button", onclick: () => { zustand.planReiter = "termine"; zeige("planung"); } }, t("tm_alle"))));
   const ohne = (d.unangemeldet || []).filter(u => !u.doppelt);

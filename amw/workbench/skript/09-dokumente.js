@@ -10,6 +10,7 @@ function dokSymbol(d) {
   return d.vorschau === "bild" && !nurAmPc(d) ? el("img", { src: dokUrl(d.id, d.version), alt: "", loading: "lazy", onerror: e => e.target.replaceWith(symbol()) }) : symbol();
 }
 async function sichtDokumente() {
+  if (!zustand.start) { try { await kopfAktualisieren(); } catch (e) {} }        /* A2089: bogenNr liest die Startdaten */
   const f = zustand.dok ||= { art: "", von: "", bezug: "", q: "", status: "aktuell", liste: false };
   const qs = new URLSearchParams({ status: f.status });
   if (f.art) qs.set("art", f.art); if (f.von) qs.set("von", f.von); if (f.q) qs.set("q", f.q);

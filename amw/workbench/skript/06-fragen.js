@@ -5,7 +5,7 @@ function freigabenListe() {
   const pw = zustand.start?.planung_wartet || { spezifikationen: [], plaene: [] };
   const karten = [...pw.spezifikationen.map(s => el("div", { class: "karte klickbar", onclick: () => zuSchritt(null, s.bogen_id) },
       el("div", { class: "meta" }, el("span", { class: "ref" }, bogenRef(s.bogen_id)), el("span", { class: "etikett bernstein" }, t("pl_freigabe_noetig"))),
-      el("p", {}, t("pl_spec_frei", { b: s.bogen_id, x: s.titel, teil: t("teil_" + s.teil), v: s.version })),
+      el("p", {}, t("pl_spec_frei", { b: bogenNr(s.bogen_id), x: s.titel, teil: t("teil_" + s.teil), v: s.version })),
       el("p", { class: "leise", style: "margin:0;font-size:12.5px" }, specWer({ ...s, status: "vorgelegt" }).slice(3)),
       el("div", { class: "sehrleise", style: "margin-top:6px" }, t("f_freigabe_weg")))),
     ...pw.plaene.map(p => el("div", { class: "karte klickbar", onclick: () => zuSchritt(p.id, null) },

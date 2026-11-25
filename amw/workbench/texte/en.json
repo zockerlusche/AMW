@@ -1761,7 +1761,7 @@
   "farbe_grau": "Grey",
   "k_nr": "#",
   "k_art": "Type",
-  "ref_bogen": "Milestone {b}",
+  "ref_bogen": "M{b}",
   "zitat": "“{x}”",
   "k_fuer": "For",
   "k_von": "By",

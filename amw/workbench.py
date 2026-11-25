@@ -357,7 +357,7 @@ def daten_start(con, pid):
         l = arbeitsliste.liste(con, pid, a["kennung"])
         a["liste_n"], a["liste_lauf"] = len(l), next((x["pos"] for x in l if x["status"] == "laeuft"), None)
         boegen, gefuehrt = kern.fuehrt(con, pid, a["kennung"])          # Federführung auf der Kachel
-        a["fuehrt"] = [f"B{b['id']}" for b in boegen] + [f"A{x['id']}" for x in gefuehrt]
+        a["fuehrt"] = [f"M{b['nr']}" for b in boegen] + [f"A{x['id']}" for x in gefuehrt]
         a.update(gerade_felder(con, pid, a["kennung"]))                  # A1953: abgeleitet, mit Quelle und Alter
         a["wartet"] = [{"aufgabe": r["aufgabe_id"], "auf": r["auf"]} for r in con.execute(   # Wartegründe auf der Kachel
             "SELECT w.aufgabe_id, group_concat(w.bezug, ', ') AS auf FROM wartegrund w JOIN aufgabe x ON x.id = w.aufgabe_id"
@@ -461,6 +461,7 @@ def daten_start(con, pid):
             "startvorschlaege": _startvorschlaege(con, pid),
             "themen_fuer_dich": _themen_fuer_dich(con, pid),
             "zur_abnahme": _zur_abnahme(con, pid), "aufgaben_zur_abnahme": _aufgaben_zur_abnahme(con, pid),
+            "bogen_nr": {str(r[0]): r[1] for r in con.execute("SELECT id, nr FROM bogen WHERE projekt_id = ?", (pid,))},   # A2089: intern → Projektnummer
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 
 
