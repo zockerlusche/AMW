@@ -352,7 +352,8 @@ function rechnerFeld(r, feld) {
         catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("re_vorziehen"))))));
   return f;
 }
-function zurSteuerung() { Promise.resolve(zustand.sicht === "start" ? null : zeige("start")).then(() => setTimeout(() => $("#steuerung-titel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60)); }
+function zurSteuerung() { Promise.resolve(zustand.sicht === "start" && $("#steuerung-titel") ? null : zeige("start"))   /* A2018: auch beim frischen Laden mit #steuerung */
+  .then(() => setTimeout(() => $("#steuerung-titel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60)); }
 /* „1204 · A1204 Titel“ → „A1204 Titel“ (alte Titel tragen die Nummer schon) */
 function ohneDoppel(x) { const [nr, ...rest] = x.split(" · "); const titel = rest.join(" · "); return titel.startsWith("A" + nr) ? titel : `A${nr} · ${titel}`; }
 /* Kachel: Zustand, was er gerade macht (eigene Angabe › laufende Aufgabe › Aufgabe aus der letzten Meldung),

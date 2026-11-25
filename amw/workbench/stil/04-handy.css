@@ -19,6 +19,7 @@
   .pw-liste { left: 0 !important; right: 0; top: auto !important; bottom: 0; width: auto; max-width: none; border-radius: 16px 16px 0 0;
     padding: 10px 12px max(18px, env(safe-area-inset-bottom)); }
   .pw-liste h3 { display: block; font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin: 4px 10px 8px; }
+  .pw-liste .dialog-zu { display: block; position: absolute; top: 6px; right: 8px; margin: 0; }   /* A2018: das Blatt von unten schließt am Handy mit ✕ */
   .signale { order: 2; flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow: hidden; }
   .signale .signal { padding: 3px 7px; font-size: 11px; }
   .signale .signal.unwichtig { display: none; }
