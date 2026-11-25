@@ -7,12 +7,17 @@ das der Befund „Sprachprüfung nicht gelaufen“ mit Grund – nie still. Proj
 pyrightconfig.json im Projektordner) | pyright | aus.
 
 Ereignisse (plan_ereignis, ohne Schemaänderung):
-  sprache_angestossen {"pruefung", "prozess", "basis"}
-  sprache_befund      {"pruefung", "stand": "ok" | "neu" | "kein_vergleich" | "nicht_gelaufen", "neu": n, "text", "lauf", "basis"}
+  sprache_angestossen {"pruefung", "prozess", "basis", "kennung"}
+  sprache_befund      {"pruefung", "stand": "ok" | "neu" | "kein_vergleich" | "nicht_gelaufen", "neu": n, "text", "lauf", "basis", "kennung",
+                       "uebernommen": P-Nummer | None}
 
 A2057: die Vergleichsbasis ist der Start-Commit des Pakets – git merge-base <Stand> main ZUM ZEITPUNKT DER PRÜFBITTE, gespeichert in
 sprache_angestossen. Rückt main während der Prüfung vor (oder ist der Stand schon gemergt), vergleicht die Prüfung trotzdem mit
 dem Start-Commit; ist die Basis der geprüfte Stand selbst, heißt der Befund „kein Vergleich möglich“ statt „keine neuen Fehler“.
+
+A2135: gleicher Stand, gleiche Basis, gleiches pyright, gleiche Einstellung (kennung) wird nur einmal gerechnet. Liegt ein Befund vor, wird er
+übernommen (eigener Eintrag, „übernommen von P…“, ohne Lauf); rechnet gerade eine frühere Prüfung daran, wartet die neue auf sie. „nicht
+gelaufen“ wird nie übernommen, und ist der Prozess der früheren weg, rechnet die nächste selbst. Der Prüfer bekommt je Kennung eine Meldung.
 """
 import json
 import os
@@ -27,6 +32,10 @@ ANGESTOSSEN, BEFUND = "sprache_angestossen", "sprache_befund"
 EINSTIEG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "amw-vorpruefung.py")
 OHNE_FENSTER = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 NICHT_GELAUFEN = "Sprachprüfung nicht gelaufen"
+UEBERNEHMBAR = ("ok", "neu", "kein_vergleich")
+WARTEN_S = 5                     # so oft sieht eine wartende Prüfung nach
+START_FRIST_S = 120              # so lange darf ein Anstoß noch keine Prozessnummer haben
+ALT_S = 6 * 3600                 # ein älterer Anstoß ohne Befund hält niemanden mehr auf (Prozessnummern werden neu vergeben)
 
 
 def einstellung(con, pid):
@@ -61,9 +70,14 @@ def anstossen(con, pid, prid):
     if not p:
         return ""
     basis = start_commit(con, pid, p["sha"])         # A2057: jetzt festhalten – main rückt bis zum Lauf vielleicht vor
+    k = kennung(con, pid, p["sha"], basis)
     with db.schreiben(con):
         eid = db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=ANGESTOSSEN, aufgabe_id=p["aufgabe_id"],
-                           text=json.dumps({"pruefung": prid, "basis": basis}, ensure_ascii=False))
+                           text=json.dumps({"pruefung": prid, "basis": basis, "kennung": k}, ensure_ascii=False))
+    v = vorhanden(con, pid, k)
+    if v:                                                # A2135: schon gerechnet
+        return "\n\n" + zeile(uebernehmen(con, pid, prid, v))
+    vor = vor_mir(con, pid, prid, k)
     try:
         prozess = STARTER(pid, prid)
     except OSError as e:
@@ -71,7 +85,9 @@ def anstossen(con, pid, prid):
         return f"\n\nSprachprüfung: nicht gelaufen ({e})"
     with db.schreiben(con):
         con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?",
-                    (json.dumps({"pruefung": prid, "prozess": prozess, "basis": basis}, ensure_ascii=False), eid))
+                    (json.dumps({"pruefung": prid, "prozess": prozess, "basis": basis, "kennung": k}, ensure_ascii=False), eid))
+    if vor:
+        return f"\n\nSprachprüfung: wartet auf die von P{vor} (gleicher Stand) – Befund folgt"
     return "\n\nSprachprüfung: läuft (pyright, nur neue Fehler gegen den Start-Commit) – Befund folgt als Meldung"
 
 
@@ -86,16 +102,74 @@ def start_commit(con, pid, sha):
         return None
 
 
-def gemerkte_basis(con, pid, prid):
-    """Die bei der Prüfbitte gemerkte Basis (A2057) oder None."""
-    for (t,) in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id DESC", (pid, ANGESTOSSEN)):
+def _ereignisse(con, pid, art, neueste=True):
+    """[(Ereignis-Nummer, Zeit, Inhalt)]."""
+    for r in con.execute(f"SELECT id, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? ORDER BY id {'DESC' if neueste else ''}", (pid, art)).fetchall():
         try:
-            e = json.loads(t or "{}")
+            yield r["id"], r["zeit_utc"], json.loads(r["text"] or "{}")
         except ValueError:
             continue
-        if e.get("pruefung") == prid:
-            return e.get("basis")
+
+
+def _angestossen(con, pid, prid):
+    """(Ereignis-Nummer, Inhalt) des jüngsten Anstoßes dieser Prüfung – (0, {}) ohne."""
+    return next(((i, e) for i, _, e in _ereignisse(con, pid, ANGESTOSSEN) if e.get("pruefung") == prid), (0, {}))
+
+
+def gemerkte_basis(con, pid, prid):
+    """Die bei der Prüfbitte gemerkte Basis (A2057) oder None."""
+    return _angestossen(con, pid, prid)[1].get("basis")
+
+
+# --- A2135: gleicher Stand wird nur einmal gerechnet --------------------------------------------------------------------------
+
+def _pyright_version():
+    """Version des installierten pyright aus seiner package.json – None, wenn es sich nicht sagen lässt (dann rechnet jede Prüfung selbst)."""
+    from . import pruefung_c
+    prog = pruefung_c.pyright_programm()
+    try:
+        with open(os.path.join(os.path.dirname(prog[1]), "package.json"), encoding="utf-8") as f:
+            return json.load(f).get("version")
+    except (TypeError, OSError, ValueError, AttributeError):
+        return None
+
+
+def kennung(con, pid, sha, basis):
+    """Woran der Befund hängt: Stand, Start-Commit, pyright-Version, Einstellung (die pyright-Konfiguration steckt im Stand) – oder None."""
+    version = _pyright_version() if basis and len(sha or "") == 40 else None
+    return f"{sha}|{basis}|{version}|{einstellung(con, pid)}" if version else None
+
+
+def vorhanden(con, pid, k):
+    """Der selbst gerechnete Befund zu dieser Kennung – oder None. „nicht gelaufen“ zählt nie."""
+    return next((e for _, _, e in _ereignisse(con, pid, BEFUND) if k and e.get("kennung") == k and not e.get("uebernommen")
+                 and e.get("stand") in UEBERNEHMBAR), None)
+
+
+def vor_mir(con, pid, prid, k):
+    """P-Nummer einer früher angestoßenen Prüfung mit derselben Kennung, die noch daran ist (Prozess lebt) – oder None."""
+    from . import steuerung
+    if not k:
+        return None
+    ich = _angestossen(con, pid, prid)[0]
+    fertig = {}
+    for i, _, e in _ereignisse(con, pid, BEFUND, neueste=False):
+        fertig[e.get("pruefung")] = i
+    for i, zeit, e in _ereignisse(con, pid, ANGESTOSSEN, neueste=False):
+        if i >= ich or e.get("kennung") != k or fertig.get(e.get("pruefung"), 0) > i or e.get("pruefung") == prid:
+            continue
+        alter = time.time() - db.utc_sek(zeit)
+        if alter < ALT_S and (steuerung.lebt(e["prozess"]) if e.get("prozess") else alter < START_FRIST_S):
+            return e["pruefung"]
     return None
+
+
+def uebernehmen(con, pid, prid, e):
+    """Den Befund einer anderen Prüfung für diese eintragen – ohne Lauf. Rückgabe wie pruefen."""
+    aus = {"stand": e["stand"], "neu": e.get("neu"), "basis": e.get("basis"), "uebernommen": e["pruefung"],
+           "text": f"Übernommen von P{e['pruefung']}: gleicher Stand, gleicher Start-Commit.\n{e.get('text') or ''}".strip()}
+    abschliessen(con, pid, prid, aus, e.get("lauf"))
+    return aus
 
 
 def _git(args, umgebung, cwd=None):
@@ -140,23 +214,29 @@ def pruefen(con, pid, sha, arbeit, werkzeuge=None, basis=None):
 
 
 def zeile(aus):
+    von = f" (übernommen von P{aus['uebernommen']})" if aus.get("uebernommen") else ""
     if aus.get("stand") == "ok":
-        return "Sprachprüfung: keine neuen Fehler"
+        return "Sprachprüfung: keine neuen Fehler" + von
     if aus.get("stand") == "neu":
-        return f"Sprachprüfung: {aus.get('neu')} neue Fehler"
+        return f"Sprachprüfung: {aus.get('neu')} neue Fehler" + von
     if aus.get("stand") == "kein_vergleich":
-        return "Sprachprüfung: kein Vergleich möglich (Start-Commit = geprüfter Stand)"
+        return "Sprachprüfung: kein Vergleich möglich (Start-Commit = geprüfter Stand)" + von
     return (aus.get("text") or NICHT_GELAUFEN).split("\n")[0][:160]
 
 
 def abschliessen(con, pid, prid, aus, lauf=None):
-    """Befund eintragen und dem Prüfer melden – auch „nicht gelaufen“ (dann prüft der Prüfer selbst)."""
+    """Befund eintragen und dem Prüfer melden – auch „nicht gelaufen“ (dann prüft der Prüfer selbst). Ein übernommener Befund geht nur an
+    einen Prüfer, der zu dieser Kennung noch keine Meldung hat (A2135)."""
     p = con.execute("SELECT * FROM pruefung WHERE id = ? AND projekt_id = ?", (prid, pid)).fetchone()
+    k = _angestossen(con, pid, prid)[1].get("kennung")
+    kennt = {r[0] for _, _, e in _ereignisse(con, pid, BEFUND) if k and e.get("kennung") == k and e.get("stand") in UEBERNEHMBAR
+             for r in con.execute("SELECT pruefer FROM pruefung WHERE id = ?", (e.get("pruefung"),))} if aus.get("uebernommen") else set()
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=BEFUND, aufgabe_id=p["aufgabe_id"] if p else None,
                      text=json.dumps({"pruefung": prid, "stand": aus.get("stand"), "neu": aus.get("neu"), "text": (aus.get("text") or "")[:4000],
-                                      "lauf": lauf, "basis": aus.get("basis")}, ensure_ascii=False))
-        if p:
+                                      "lauf": lauf, "basis": aus.get("basis"), "kennung": k, "uebernommen": aus.get("uebernommen")},
+                                     ensure_ascii=False))
+        if p and p["pruefer"] not in kennt:
             kern._posten(con, pid, "AMW", p["pruefer"], "meldung", f"P{prid} {zeile(aus)}"[:140],
                          (aus.get("text") or NICHT_GELAUFEN) + (f"\n\nStand {p['sha'][:8]} gegen den Start-Commit {aus['basis']}." if aus.get("basis") else ""),
                          aufgabe_id=p["aufgabe_id"])
@@ -174,9 +254,18 @@ def letzter_befund(con, pid, prid):
 
 
 def ausfuehren(con, pid, prid, werkzeuge=None):
-    """Im losgelösten Prozess: als leichter Lauf anmelden, warten bis er dran ist, prüfen, Befund eintragen."""
+    """Im losgelösten Prozess: als leichter Lauf anmelden, warten bis er dran ist, prüfen, Befund eintragen. A2135: rechnet schon eine
+    frühere Prüfung an demselben Stand, erst auf sie warten und ihren Befund übernehmen."""
     from . import belegung, betrieb
     p = con.execute("SELECT * FROM pruefung WHERE id = ? AND projekt_id = ?", (prid, pid)).fetchone()
+    k = _angestossen(con, pid, prid)[1].get("kennung")
+    while p and k:
+        v = vorhanden(con, pid, k)
+        if v:
+            return uebernehmen(con, pid, prid, v)
+        if not vor_mir(con, pid, prid, k):
+            break
+        time.sleep(WARTEN_S)
     agent = kern.lead(con, pid) or kern.ENTWICKLER
     aus, lid = None, None
     try:
