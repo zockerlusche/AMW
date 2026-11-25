@@ -60,7 +60,7 @@ class Liste(Grund):
         x = {p["id"]: p for p in d["pakete"]}
         self.assertEqual((x[self.a]["zustand"], x[self.a]["gruppe"]), ("startklar", "wartet"))
         self.assertEqual(x[self.a]["grund"]["regel"], 4)
-        self.assertIn("alle Arbeitsplätze belegt", x[self.a]["grund"]["text"])
+        self.assertIn("alle Headless-Agenten belegt", x[self.a]["grund"]["text"])
         self.assertEqual((x[self.b]["gruppe"], x[self.b]["dran"]), ("blockiert", "mensch"))
         self.assertEqual(set(d["gruppen"]), set(ap.ZUSTAENDE))                    # Zuordnungstabelle vollständig
         self.assertTrue(set(d["gruppen"].values()) <= {"fertig", "laeuft", "wartet", "blockiert"})

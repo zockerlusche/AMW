@@ -526,6 +526,12 @@ def _regel_7_8(con, pid):
     return None
 
 
+def _notbremse_seit(con, pid, seit_utc, aid, nr):
+    """Zog der Mensch seit dem Start die Notbremse – für diese Aufgabe oder diesen Headless („Platz n:“ ist der Wortlaut bis A2018)?"""
+    return bool(con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'notbremse' AND zeit_utc >= ?"
+                            " AND (aufgabe_id = ? OR text LIKE ? OR text LIKE ?)", (pid, seit_utc, aid, f"Headless {nr}:%", f"Platz {nr}:%")).fetchone())
+
+
 def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, vid=None, nachholen=False):
     """Ablauf eines Pakets im eigenen Prozess: Arbeiter → Prüfung C → Entscheidung (E5: ein Nachbesserungslauf)."""
     from . import arbeiter, arbeitspaket, entscheidung, kern, platz, pruefung_c, rueckmeldung, waechter
@@ -553,8 +559,7 @@ def starter(pid, aid, nr, prog=None, pfad=None, lauf_schlange=True, basis=None, 
                                                                           melden=entscheidung.haenge_melder(pid, aid, pfad)),
                                     umgebung_projekt=arbeiter.projekt_werkzeuge(con, pid),      # A1922: Werkzeuge des Projekts
                                     anbieter=_anbieter_von(con, pid, f.get("modell")))          # A1931
-            notbremse = bool(con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'notbremse' AND zeit_utc >= ?"
-                                         " AND (aufgabe_id = ? OR text LIKE ? OR text LIKE ?)", (pid, start_utc, aid, f"Headless {nr}:%", f"Platz {nr}:%")).fetchone())
+            notbremse = _notbremse_seit(con, pid, start_utc, aid, nr)
             befund = None
             meldung = r.get("meldung")
             if not notbremse and not r.get("abweichungen") and r.get("rc") == 0 and meldung and meldung.get("status") == "erledigt":

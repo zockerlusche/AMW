@@ -298,6 +298,16 @@ class Disponent(unittest.TestCase):
                          text="Platz 2: Arbeiter samt Kindprozessen beendet")
         self.assertEqual(disponent.starter(self.pid, aid, 1, prog("bauen"), lauf_schlange=False, basis=basis, vid=vid), "E7")
 
+    def test_notbremse_auf_demselben_headless_zaehlt(self):
+        """A2018: der Eintrag heißt jetzt „Headless 1: …“ – auch ohne Aufgabe gilt er für das Paket dort, der alte Wortlaut weiter."""
+        for wort in ("Headless", "Platz"):
+            with self.subTest(wort=wort), db.schreiben(self.con):
+                self.con.execute("DELETE FROM plan_ereignis WHERE art = 'notbremse'")
+                db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc="2099-01-01T00:00:00Z", von="Entwickler", art="notbremse",
+                             text=f"{wort} 1: Arbeiter samt Kindprozessen beendet")
+                self.assertTrue(disponent._notbremse_seit(self.con, self.pid, "2026-01-01T00:00:00Z", 7, 1))
+                self.assertFalse(disponent._notbremse_seit(self.con, self.pid, "2026-01-01T00:00:00Z", 7, 11))
+
     def test_platz_sperre(self):
         """P272 (b): wer den Platz gerade vorbereitet, hält die Sperre – ein zweiter Start nimmt ihn nicht."""
         self.plaetze()

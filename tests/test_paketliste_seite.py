@@ -64,7 +64,7 @@ class Pakete(Rundgang):
     def test_liste_grund_und_knoepfe(self):
         self.oeffnen_pakete()
         text = self.tab.js("document.querySelector('#inhalt').innerText").lower()
-        for teil in ("startet nicht: alle arbeitsplätze belegt", "du bist dran", "frage an marcel", "platz 1", "mitlesen"):
+        for teil in ("startet nicht: alle headless-agenten belegt", "du bist dran", "wartet auf dich", "frage an marcel", "headless 1", "mitlesen"):
             self.assertIn(teil, text)
         zelle = f"document.querySelector('.pk-zeile[data-a=\"{self.entwurf}\"] .pk-kosten')"         # A1955: P50–P85 aus fünf Messungen
         self.assertEqual(self.tab.js(f"{zelle}.firstChild.textContent"), "≈ 2,00 $")             # TH156 Regel 7: ein Wert
