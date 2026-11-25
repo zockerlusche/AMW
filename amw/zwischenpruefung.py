@@ -8,6 +8,7 @@ wie bei der Konzeptänderung (auch für p-Pakete nach ihrem Zustand).
 wartende() liest nur. Den Prüfpunkt setzen, entfernen und nachziehen: A2096, unten.
 """
 import json
+import re
 
 from . import db, kern, konzeptaenderung, planung
 
@@ -153,6 +154,26 @@ def _prognose(con, pid):
     return {b: x["p50"] for b, x in planung.prognose(con, pid, laeufe=300)["boegen"].items()}
 
 
+def nur_grund(con, pid, nach, halten=()):
+    """A2134: Pakete, die nur per Wartegrund (A…) auf nach oder auf ein Paket davor warten, aber keine Abhängigkeit dahinter haben – der
+    Prüfpunkt hält sie nicht auf. Nur nicht begonnene; halten: was er aufhält. Wer zusätzlich auf eins davon wartet, wartet ohnehin."""
+    aus = []
+    for x in kern.aufgaben(con, pid):
+        if x["id"] == nach or x["id"] in halten or ist(con, x["id"]) or konzeptaenderung.einteilen(con, x) != "stoppen":
+            continue
+        worauf = {int(m.group(1)) for g in con.execute("SELECT art, bezug FROM wartegrund WHERE aufgabe_id = ? AND erledigt_utc IS NULL", (x["id"],))
+                  for m in [re.fullmatch(r"A(\d+)", g["bezug"] or "") if g["art"] == "aufgabe" else re.fullmatch(r"paket:A(\d+)", g["bezug"] or "")] if m}
+        if worauf & set(halten) or not any(v == nach or planung._erreichbar(con, v, nach) for v in worauf):
+            continue
+        if not planung._erreichbar(con, nach, x["id"]):
+            aus.append(x["id"])
+    return aus
+
+
+def nur_grund_text(aids):
+    return f"nicht aufgehalten: {', '.join(f'A{x}' for x in aids)} ({'wartet' if len(aids) == 1 else 'warten'} nur per Grund)" if aids else ""
+
+
 def _recht(con, pid, von, grund, was):
     if not kern.ist_lead(con, pid, von):
         raise kern.AmwFehler(f"{was} der Mensch oder der Lead")
@@ -164,7 +185,8 @@ def _recht(con, pid, von, grund, was):
 
 def einfuegen(con, pid, von, nach, agent=None, grund=None, hinweis=None):
     """Einen Prüfpunkt hinter das Paket nach setzen (Mensch, oder der Lead mit Grund). Rückgabe: {"paket", "nach", "wartet", "laeuft_schon",
-    "weiter", "kanten", "fehlt", "vorher", "nachher"} – vorher/nachher: Prognose je Meilenstein."""
+    "weiter", "nur_grund", "nur_grund_text", "kanten", "fehlt", "vorher", "nachher"} – nur_grund: was er nicht aufhält (A2134), vorher/nachher: Prognose
+    je Meilenstein."""
     from . import fertigquelle, reihenfolge, themen
     grund = _recht(con, pid, von, grund, "Einen Prüfpunkt setzen")
     a = con.execute("SELECT a.*, b.status AS b_status, b.nr AS b_nr FROM aufgabe a LEFT JOIN bogen b ON b.id = a.bogen_id WHERE a.id = ? AND a.projekt_id = ?",
@@ -179,7 +201,9 @@ def einfuegen(con, pid, von, nach, agent=None, grund=None, hinweis=None):
         raise kern.AmwFehler(f"Hinter A{nach} steht schon ein Prüfpunkt")
     w = wartende(con, pid, nach)
     if not w["wartet"]:
-        raise kern.AmwFehler(f"Hinter A{nach} wartet kein Paket – ein Prüfpunkt hielte nichts auf. Am Ende des Meilensteins testest du bei der Abnahme.")
+        g = nur_grund_text(nur_grund(con, pid, nach))
+        raise kern.AmwFehler(f"Hinter A{nach} wartet kein Paket – ein Prüfpunkt hielte nichts auf. Am Ende des Meilensteins testest du bei der Abnahme."
+                             + (f" ({g})" if g else ""))
     name = kern.entwickler_name(con, pid)
     vorher = _prognose(con, pid)
     aid = planung.schritt_setzen(con, pid, von, titel=f"Stand packen – {name} testet"[:120], auftrag=auftrag(con, pid, a["titel"], hinweis), bogen_id=a["bogen_id"],
@@ -195,14 +219,16 @@ def einfuegen(con, pid, von, nach, agent=None, grund=None, hinweis=None):
         kanten = _kanten_setzen(con, paare)
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=ART, aufgabe_id=aid, bogen_id=a["bogen_id"],
                      text=json.dumps({"nach": nach, "grund": grund or None, "kanten": kanten, "wartet": len(w["wartet"])}, ensure_ascii=False))
+        frei = nur_grund(con, pid, nach, set(w["wartet"]))
         lead = kern.lead(con, pid)
         if lead and lead != von:
             kern._posten(con, pid, von, lead, "info", f"M{a['b_nr']}: Prüfpunkt hinter A{nach} – A{aid}, {len(w['wartet'])} Pakete warten"[:140],
                          f"Hinter „{a['titel']}“ packt A{aid} den Stand, {name} testet ihn. Bis zum Ja warten: " + ", ".join(f"A{x}" for x in w["wartet"]) + "."
+                         + (f" N{nur_grund_text(frei)[1:]}." if frei else "")
                          + (f" Grund: {grund}." if grund else "") + " Reihenfolge, Zeitplan und Prognose sind neu gerechnet, der Plan-Stand bleibt.", aufgabe_id=aid)
     fehlt = reihenfolge.neue_startklar(con, pid, von, a["bogen_id"], [aid]) if a["b_status"] == "aktiv" else {}
-    return {"paket": aid, "nach": nach, "wartet": w["wartet"], "laeuft_schon": w["laeuft_schon"], "weiter": w["weiter"], "kanten": [list(k) for k in kanten],
-            "fehlt": fehlt.get(aid) or [], "vorher": vorher, "nachher": _prognose(con, pid), "wartet_auf": name}
+    return {"paket": aid, "nach": nach, "wartet": w["wartet"], "laeuft_schon": w["laeuft_schon"], "weiter": w["weiter"], "nur_grund": frei,
+            "nur_grund_text": nur_grund_text(frei), "kanten": [list(k) for k in kanten], "fehlt": fehlt.get(aid) or [], "vorher": vorher, "nachher": _prognose(con, pid), "wartet_auf": name}
 
 
 def entfernen(con, pid, von, aid, grund=None):

@@ -79,9 +79,10 @@ def offene_urteile(a):
 
 
 def zur_abnahme(con, pid):
-    """Für „Für dich“: offene Aufgaben mit Fertig-Quelle „ja“, deren Ergebnis steht. [{id, titel, agent, grund, offen, pruefpunkt}]"""
+    """Für „Für dich“: offene Aufgaben mit Fertig-Quelle „ja“, deren Ergebnis steht. [{id, titel, agent, grund, offen, pruefpunkt, davor}] –
+    davor (A2134): Titel des Pakets, hinter dem ein Prüfpunkt steht."""
     from . import zwischenpruefung
-    aus = []
+    aus, nach = [], {p["paket"]: p["nach"] for p in zwischenpruefung.offene(con, pid)}
     for a in con.execute("SELECT * FROM aufgabe WHERE projekt_id = ? AND status NOT IN ('fertig', 'verworfen') AND id IN"
                          " (SELECT aufgabe_id FROM plan_ereignis WHERE projekt_id = ? AND art = 'fertig_quelle') ORDER BY rang, id",
                          (pid, pid)).fetchall():
@@ -89,7 +90,8 @@ def zur_abnahme(con, pid):
             continue
         f = fakt(con, a)
         if f:
-            aus.append({"id": a["id"], "titel": a["titel"], "agent": a["agent"], "grund": GRUND[f[0]].format(r=f[1]),
+            v = con.execute("SELECT titel FROM aufgabe WHERE id = ?", (nach.get(a["id"]),)).fetchone()
+            aus.append({"id": a["id"], "titel": a["titel"], "agent": a["agent"], "grund": GRUND[f[0]].format(r=f[1]), "davor": v[0] if v else None,
                         "grund_art": f[0], "grund_ref": f[1], "offen": offene_urteile(a), "pruefpunkt": zwischenpruefung.ist(con, a["id"])})
     return aus
 

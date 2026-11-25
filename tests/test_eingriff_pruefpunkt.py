@@ -122,6 +122,67 @@ class Einfuegen(Grund):
             kern.projekt_einstellen(self.con, self.pid, "TL", packen_befehl="a\nb")
 
 
+class NurPerGrund(Grund):
+    """A2134: beim Setzen stehen die Pakete dabei, die nur per Wartegrund warten – der Prüfpunkt hält sie nicht auf, und er setzt dort nichts."""
+    def wartet(self, aid, auf):
+        kern.aufgabe_status(self.con, self.pid, "TL", aid, "wartet", auf=auf)
+
+    def test_ohne_solche_pakete(self):
+        r = self.punkt()
+        self.assertEqual((r["nur_grund"], r["nur_grund_text"]), ([], ""))
+        self.assertNotIn("nicht aufgehalten", self.befehl(self.b))
+
+    def befehl(self, aid):
+        aus = io.StringIO()
+        with contextlib.redirect_stdout(aus), contextlib.redirect_stderr(aus):
+            cli.main(["aufgabe", "pruefpunkt", str(aid), "--von", "TL", "--projekt", "Produkt", "--grund", "testen"])
+        return aus.getvalue()
+
+    def test_auf_das_paket_selbst_und_auf_eins_davor(self):
+        davor, spaet = self.paket("Grundlage"), self.paket("Abschluss", agent="CC2")
+        planung.abhaengigkeit_setzen(self.con, self.pid, "TL", self.a, [davor])
+        self.wartet(self.frei, f"A{self.a}")
+        self.wartet(spaet, f"A{davor}")
+        vorher = self.kanten()
+        r = self.punkt()
+        self.assertEqual(sorted(r["nur_grund"]), sorted([self.frei, spaet]))
+        self.assertEqual(r["wartet"], [self.b, self.c])
+        self.assertEqual(self.kanten() - vorher, {(self.a, r["paket"]), (r["paket"], self.b)})                # dort nichts gesetzt
+        self.assertEqual([x["bezug"] for x in wartegrund.offene(self.con, self.frei)], [f"A{self.a}"])
+        text = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE '%Prüfpunkt hinter%' ORDER BY id DESC").fetchone()[0]
+        self.assertIn(f"Nicht aufgehalten: A{self.frei}, A{spaet} (warten nur per Grund).", text)
+
+    def test_befehl_und_aktion_nennen_sie(self):
+        self.wartet(self.frei, f"A{self.a}")
+        self.assertIn(f"nicht aufgehalten: A{self.frei} (wartet nur per Grund)", self.befehl(self.a))
+        p = zwischenpruefung.offene(self.con, self.pid)[0]["paket"]
+        aktionen.planen(self.con, self.pid, "pruefpunkt", {"aufgabe": p, "entfernen": True})
+        self.assertEqual(aktionen.planen(self.con, self.pid, "pruefpunkt", {"aufgabe": self.a})["nur_grund"], [self.frei])
+
+    def test_wer_nicht_dazu_gehoert(self):
+        self.wartet(self.c, f"A{self.a}")                                                   # hat die Abhängigkeit: wartet schon
+        haengt = self.paket("Hängt an b")
+        self.wartet(haengt, f"A{self.b}")                                                   # wartet auf ein aufgehaltenes: wartet ohnehin
+        fremd = self.paket("Anderes")
+        self.wartet(fremd, f"A{self.frei}")                                                 # auf etwas, das nicht davor liegt
+        agent = self.paket("Wartet auf jemand")
+        self.wartet(agent, "CC2")
+        self.wartet(self.frei, f"A{self.a}")
+        self.setze(self.frei, status="laeuft", begonnen_utc=db.jetzt())                     # begonnen: läuft zu Ende
+        self.assertEqual(self.punkt()["nur_grund"], [])
+
+    def test_hinter_dem_paket_wartet_nur_jemand_per_grund(self):
+        self.wartet(self.frei, f"A{self.c}")
+        with self.assertRaisesRegex(kern.AmwFehler, rf"hielte nichts auf.*nicht aufgehalten: A{self.frei} \(wartet nur per Grund\)"):
+            self.punkt(self.c)
+
+    def test_fuer_dich_nennt_das_paket_davor(self):
+        p = self.punkt()["paket"]
+        self.fertig(self.a)
+        self.packen(p)
+        self.assertEqual([(x["id"], x["davor"]) for x in urteil.zur_abnahme(self.con, self.pid)], [(p, "Motor")])
+
+
 class Abnehmen(Grund):
     def test_ja_des_menschen_gibt_frei(self):
         p = self.punkt()["paket"]

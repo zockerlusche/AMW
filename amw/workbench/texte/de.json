@@ -2350,6 +2350,7 @@
   "th2_ja_fehlt": "Ja fehlt noch: {x}",
   "th2_nur_mensch": "Gibst nur du frei (Löschen, Kosten, Schema oder Außenwirkung)",
   "ua_pruefpunkt": "Stand ist gepackt – testen",
+  "ua_pruefpunkt_nach": "Stand ist gepackt – testen: „{x}“",
   "pp_wartet_auf": "wartet auf {x}",
   "ua_bereit": "„{x}“ ist bereit zur Abnahme",
   "ua_gemeldet": "gemeldet von {r}",

@@ -2350,6 +2350,7 @@
   "th2_ja_fehlt": "Still missing a yes from: {x}",
   "th2_nur_mensch": "Only you approve this (deletion, cost, schema or external effect)",
   "ua_pruefpunkt": "Build is packed – please test",
+  "ua_pruefpunkt_nach": "Build is packed – please test: “{x}”",
   "pp_wartet_auf": "waiting for {x}",
   "ua_bereit": "“{x}” is ready for your acceptance",
   "ua_gemeldet": "reported by {r}",

@@ -1027,7 +1027,8 @@ def cmd_aufgabe(a, con):
         else:
             r = zwischenpruefung.einfuegen(con, pid, _von(a), a.id, a.agent, a.grund, a.bemerkung)
             print(f"Prüfpunkt A{r['paket']} hinter A{a.id}: {len(r['wartet'])} Paket(e) warten auf {r['wartet_auf']} ({', '.join(f'A{x}' for x in r['wartet'])})"
-                  + (f" · läuft schon und läuft zu Ende: {', '.join(f'A{x}' for x in r['laeuft_schon'])}" if r["laeuft_schon"] else "") + f" · {r['weiter']} laufen weiter")
+                  + (f" · läuft schon und läuft zu Ende: {', '.join(f'A{x}' for x in r['laeuft_schon'])}" if r["laeuft_schon"] else "") + f" · {r['weiter']} laufen weiter"
+                  + (f" · {r['nur_grund_text']}" if r["nur_grund"] else ""))      # A2134
             if r["fehlt"]:
                 print(f"  noch nicht startklar, es fehlt: {', '.join(r['fehlt'])}")
         from . import meilensteine

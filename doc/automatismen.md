@@ -658,7 +658,8 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   „Zurück“ geht an Packer und Lead (der die Nacharbeit schneidet). Von Hand, mit der Auslieferung oder einem gemergten PR schließt sich das
   Paket nicht. Wegnehmen: `--entfernen` (der Mensch immer, der Lead nur einen eigenen) – genau die Kanten, die der Prüfpunkt gesetzt hat.
   Später dazugekommene Nachfolger warten auch (`zwischenpruefung.nachziehen`, beim Setzen der Abhängigkeit und je Dienst-Runde). Zeitplan und
-  Prognose zeigen dahinter „wartet auf <Name>“ statt einer Zeit; der Plan-Stand bleibt. Ereignisse: `pruefpunkt`, `pruefpunkt_kanten`,
+  Prognose zeigen dahinter „wartet auf <Name>“ statt einer Zeit; der Plan-Stand bleibt. Pakete, die nur per Wartegrund (A…) auf N oder
+  ein Paket davor warten, hält er nicht auf – das Ergebnis nennt sie (A2134). Ereignisse: `pruefpunkt`, `pruefpunkt_kanten`,
   `pruefpunkt_ende`.
 - **Zeitplan (A2045):** `amw bogen zeitplan [N]` bzw. `/api/zeitplan` legt die Pakete in dieser Reihenfolge auf ihre
   Ressourcen – Headless auf die Arbeitsplätze (so viele gleichzeitig wie Plätze), Fenster-Pakete auf ihren Agenten (eins nach
