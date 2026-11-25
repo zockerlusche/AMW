@@ -1,6 +1,6 @@
 """A2089: Textwächter – findet Texte der AMW, die einen Meilenstein mit seiner INTERNEN Nummer nennen („Meilenstein {bid}“, „M{b['id']}“,
 „amw bogen freigeben {bid}“). Sichtbar ist nur die Projektnummer (meilensteine.name/nennen). Über den Syntaxbaum, damit auch mehrzeilige
-und mit + oder % gebaute Texte auffallen. Kein Test (der Name beginnt nicht mit test_); benutzt von test_a2089_texte und streng_a2089."""
+und mit + oder % gebaute Texte auffallen. Kein Test (der Name beginnt nicht mit test_); benutzt von test_a2089_texte."""
 import ast
 import os
 import re

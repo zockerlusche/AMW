@@ -416,7 +416,7 @@ def _leer_weckruf(con, pid, lead, leere):
         return None
     from . import meilensteine
     frei = freie_bogen_aufgaben(con, pid)
-    namen =", ".join(k for k, *_ in neu)
+    namen = ", ".join(k for k, *_ in neu)
     kurz = f"Leerlauf: {namen} {'hat' if len(neu) == 1 else 'haben'} nichts zu tun"
     zeilen = [f"{k}: seit {seit[11:16]} UTC frei ({int(frei_min)} min), keine Aufgabe in „läuft“ oder ohne Wartegrund,"
               " wartet auf keinen eigenen Lauf und keine Prüfung." for k, seit, frei_min, _ in neu]
