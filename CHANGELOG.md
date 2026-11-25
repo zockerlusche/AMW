@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.193.0 – 25.11.2026 · Meilensteine überall mit ihrer Nummer, schnellere Datenbank
+- **Verbessert:** Die AMW nennt Meilensteine auf der Seite, in Meldungen und in Befehlen mit der Projektnummer (M19). Die Suche findet sie mit „M19“, dazu die Nachrichten mit Bezug auf sie; online findet „M1“ auch „M19“. Einige Texte (Plan-Check und gespeicherte Titel) nennen noch die interne Nummer.
+- **Verbessert:** Sieben Indizes machen Aufgaben-Ansichten, Planung und die Synchronisierung mit der Online-Seite schneller. Dafür steigt das Schema der Datenbank auf 35; Daten ändern sich nicht.
+- **Verbessert:** Die Abschlussprüfung nutzt einen vorhandenen grünen Gesamtlauf auf genau dem ausgelieferten Stand, statt neu zu rechnen; die Nummer steht auf der Karte. Prüfen zwei Meilensteine zugleich, rechnet nur einer. Ändert sich der Stand während des Laufs, zählt er nicht.
+- **Verbessert:** Die Abschlussprüfung beurteilt immer auch „fertig, wenn“ des Meilensteins, nicht nur seine Themen. Verlangt es etwas, das kein Code zeigt (zum Beispiel einen Bericht), braucht es ein Dokument oder eine Antwort als Beleg; fehlt der, heißt es „nicht prüfbar“, und der Lead klärt es. Eine ältere Prüfung ohne dieses Urteil zählt wie ein Vorbehalt.
+- **Behoben:** Ein abgebrochener Gesamttest gilt nicht mehr als rot und löst keine Nacharbeit aus. Lief der Gesamttest nicht sauber auf dem ausgelieferten Stand, ist das ein Vorbehalt.
+- **Verbessert:** Die Einzelheiten auf der Abschlusskarte zeigen die Dateien aus allen Commits eines Pakets. Fehlen nur Belege, sagt der Verlauf „nicht prüfbar“, und die Texte nennen den wirklichen Zweig.
+
 ## 1.192.0 – 25.11.2026 · Der Abschluss sieht den Code
 - **Neu:** Die AMW prüft vor der Abnahme selbst, ob die Commits der Pakete auf dem ausgelieferten Zweig liegen, und der Prüfer sieht den Code dieses Stands. Ein Thema ist nur erfüllt, wenn es sich belegen lässt. Fehlt der Commit, steht da „nicht prüfbar“: Der Lead bekommt eine Meldung, und die AMW legt dafür keine Nacharbeit an.
 - **Neu:** Vorbehalte stehen auf der Karte über dem Knopf (zum Beispiel „Commit gefunden, liegt aber nicht auf main“ oder „kein Gesamttest eingestellt“). Der Knopf heißt dann „Trotz Vorbehalt abnehmen“ und fragt nach; Co-Entwickler und Lead können so nicht allein abnehmen. Je Thema steht ein Wort da, Pakete und Dateien öffnen sich auf Klick. Auf Projektweg und in der Planung gilt dasselbe. Ergebnisse von vorher heißen „Prüfung von vor dieser Version“ und zählen wie ein Vorbehalt. Grenze: In Projekten ohne Repo, ohne main oder master oder ohne eingestellten Gesamttest gibt es immer einen Vorbehalt.
