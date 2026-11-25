@@ -3,8 +3,9 @@
 Der Beleg ist Freitext (z. B. „8a31992, Gesamtlauf L3506“ oder „Ja von CCamwTL“). Bei der Fertig-Quelle commit (auch wenn keine
 gespeichert ist) muss mindestens ein Hex-Teil oder Versions-Tag (v1.71.0) daraus ein Commit sein, der auf dem ausgelieferten Zweig liegt (main, sonst master):
 - ok            – gefunden
-- nicht_pruefbar – ein Commit ist genannt, aber keiner liegt auf dem Zweig; oder gar kein erkennbarer Beleg
-- vorbehalt     – der Beleg ist etwas anderes (Ja, D-, P-, B-, R-, L-Nummer, #Nachricht) als die Fertig-Quelle verlangt, oder Code nicht prüfbar
+- nicht_pruefbar – ein genannter Commit ist nirgends im Repo, oder es gibt gar keinen erkennbaren Beleg
+- vorbehalt     – der Commit ist im Repo, liegt aber nicht auf dem Zweig (dann zeigt der Prüfer am Code, ob der Inhalt da ist); der
+                  Beleg ist etwas anderes (Ja, D-, P-, B-, R-, L-Nummer, #Nachricht), als die Fertig-Quelle verlangt; Code nicht prüfbar
 - urteil        – Fertig-Quelle „ja“: ein Mensch oder der Lead hat entschieden, hier ist nichts zu prüfen
 
 Alle git-Aufrufe lesen nur: keine Haken, keine Filter, kein Netz, Umgebung ohne GIT_*. Der Code kommt als Blobs (cat-file), nicht als
@@ -53,7 +54,7 @@ def _git(ordner, *args, eingabe=None, ok=(0,)):
     return r.returncode, r.stdout
 
 
-LESEND = ("rev-parse", "cat-file", "merge-base", "diff-tree", "ls-tree")
+LESEND = ("rev-parse", "rev-list", "cat-file", "diff-tree", "ls-tree")
 
 
 def stand(ordner):
@@ -77,30 +78,44 @@ def hex_teile(text):
 
 
 def commits(ordner, kopf, teile):
-    """Von den Hex-Teilen die Commits, die auf kopf liegen: ([sha], [Teile, die ein Commit sind, aber daneben liegen], [unbekannt])."""
+    """Je Teil, was er ist – ("drauf", sha): Commit auf kopf, ("daneben", sha): Commit im Repo, aber nicht auf kopf, ("fremd", None):
+    kein Commit. Zwei git-Aufrufe für alle Teile zusammen (#32747)."""
+    teile = list(dict.fromkeys(teile))
     if not teile:
-        return [], [], []
+        return {}
     _, aus = _git(ordner, "cat-file", "--batch-check=%(objectname) %(objecttype)", eingabe="".join(f"{t}^{{commit}}\n" for t in teile).encode())
-    drauf, daneben, fremd = [], [], []
-    for t, zeile in zip(teile, aus.decode("utf-8", "replace").splitlines()):
+    _, alle = _git(ordner, "rev-list", kopf)
+    auf = set(alle.decode("ascii", "replace").split())
+    erg = {}
+    for t, zeile in zip(teile, aus.decode("utf-8", "replace").splitlines(), strict=True):
         x = zeile.split()
-        if len(x) != 2 or x[1] != "commit":
-            fremd.append(t)
-            continue
-        rc, _ = _git(ordner, "merge-base", "--is-ancestor", x[0], kopf, ok=(0, 1))
-        (drauf if rc == 0 else daneben).append(x[0] if rc == 0 else t)
-    return drauf, daneben, fremd
+        erg[t] = ("fremd", None) if len(x) != 2 or x[1] != "commit" else ("drauf" if x[0] in auf else "daneben", x[0])
+    return erg
 
 
-def dateien_des(ordner, sha):
-    """Die vom Commit geänderten Dateien (gegen den ersten Vorfahren), höchstens MAX_DATEIEN_JE_PAKET, dazu ob es mehr gab."""
-    _, aus = _git(ordner, "diff-tree", "--root", "--no-commit-id", "--name-only", "-r", "-m", "--first-parent", "--no-ext-diff", "--no-textconv", "-z", sha)
-    alle = list(dict.fromkeys(x for x in aus.decode("utf-8", "replace").split("\0") if x))
-    return alle[:MAX_DATEIEN_JE_PAKET], len(alle) > MAX_DATEIEN_JE_PAKET
+def dateien_der(ordner, shas):
+    """Je Commit die geänderten Dateien (gegen den ersten Vorfahren): {sha: ([höchstens MAX_DATEIEN_JE_PAKET], gab es mehr?)}."""
+    shas = list(dict.fromkeys(shas))
+    if not shas:
+        return {}
+    eingabe = "".join(f"{x}\n" for x in shas).encode()
+    _, eltern = _git(ordner, "rev-list", "--no-walk=unsorted", "--parents", "--stdin", eingabe=eingabe)
+    paare = [" ".join(z.split()[:2]) for z in eltern.decode("ascii", "replace").splitlines()]          # „Commit erster-Vorfahr“
+    _, aus = _git(ordner, "diff-tree", "--stdin", "--root", "--name-only", "-r", "--no-ext-diff", "--no-textconv", "-z",
+                  eingabe="".join(f"{x}\n" for x in paare).encode())
+    je, offen, jetzt = {x: [] for x in shas}, set(shas), None
+    for x in aus.decode("utf-8", "replace").replace("\n", "\0").split("\0"):
+        if x in offen:                                    # die Kopfzeile des Commits; jeder kommt einmal
+            jetzt = x
+            offen.discard(x)
+        elif x and jetzt:
+            je[jetzt].append(x)
+    return {k: (list(dict.fromkeys(v))[:MAX_DATEIEN_JE_PAKET], len(set(v)) > MAX_DATEIEN_JE_PAKET) for k, v in je.items()}
 
 
-def paket(con, pid, a, ordner, st):
-    """Der Befund zu einem fertigen Paket: {"paket", "titel", "quelle", "befund", "grund", "sha", "dateien", "mehr", "themen"}."""
+def paket(con, pid, a, st, gefunden):
+    """Der Befund zu einem fertigen Paket: {"paket", "titel", "quelle", "befund", "grund", "sha", "dateien", "mehr", "themen"}.
+    gefunden: commits() zu allen Belegen, oder None – git antwortete nicht."""
     from . import fertigquelle, themen
     q = fertigquelle.lesen(con, a["id"]) or {"art": "commit"}
     aus = {"paket": a["id"], "titel": a["titel"], "quelle": q["art"], "befund": "ok", "grund": None, "sha": None, "dateien": [], "mehr": False,
@@ -122,17 +137,13 @@ def paket(con, pid, a, ordner, st):
         if ANDERE.search(text):
             return {**aus, "befund": "vorbehalt", "grund": "kein_commit"}
         return {**aus, "befund": "nicht_pruefbar", "grund": "kein_beleg"}
-    if not st:
+    if not st or gefunden is None:
         return {**aus, "befund": "vorbehalt", "grund": "code_ungeprueft"}
-    try:
-        drauf, daneben, _ = commits(ordner, st[1], teile)
-        if not drauf:
-            return {**aus, "befund": "nicht_pruefbar", "grund": "commit_daneben" if daneben else "commit_fehlt"}
-        aus["sha"] = drauf[0]
-        aus["dateien"], aus["mehr"] = dateien_des(ordner, drauf[0])
-    except GitFehler:
-        return {**aus, "befund": "vorbehalt", "grund": "code_ungeprueft"}
-    return aus
+    for art, befund, grund in (("drauf", "ok", None), ("daneben", "vorbehalt", "commit_daneben")):
+        sha = next((gefunden[t][1] for t in teile if gefunden[t][0] == art), None)
+        if sha:
+            return {**aus, "befund": befund, "grund": grund, "sha": sha}
+    return {**aus, "befund": "nicht_pruefbar", "grund": "commit_fehlt"}
 
 
 def meilenstein(con, pid, bid):
@@ -141,7 +152,20 @@ def meilenstein(con, pid, bid):
     ordner = kern.projekt_ordner(con, pid)
     st = stand(ordner)
     zeilen = con.execute("SELECT * FROM aufgabe WHERE bogen_id = ? AND projekt_id = ? AND status = 'fertig' ORDER BY id", (bid, pid)).fetchall()
-    return {"zweig": st[0] if st else None, "sha": st[1] if st else None, "pakete": [paket(con, pid, a, ordner, st) for a in zeilen]}
+    gefunden = None
+    if st:
+        try:
+            gefunden = commits(ordner, st[1], [t for a in zeilen for t in hex_teile(a["beleg"])])
+        except (GitFehler, ValueError):
+            pass                                          # git ging nicht: „Code nicht geprüft“
+    pakete = [paket(con, pid, a, st, gefunden) for a in zeilen]
+    try:
+        je = dateien_der(ordner, [p["sha"] for p in pakete if p["sha"]])
+    except GitFehler:
+        je = {}                                           # der Commit steht fest, nur die Dateiliste fehlt
+    for p in pakete:
+        p["dateien"], p["mehr"] = je.get(p["sha"], ([], False))
+    return {"zweig": st[0] if st else None, "sha": st[1] if st else None, "pakete": pakete}
 
 
 # --- Code für den Prüfer ---------------------------------------------------------------------------------------------------

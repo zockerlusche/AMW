@@ -64,8 +64,10 @@ class Commits(Repo):
         s3 = self.commit("c.txt", "3\n")
         kopf = (belege.stand(self.repo) or ("", ""))[1]
         self.assertEqual(kopf, s3)
-        drauf, daneben, fremd = belege.commits(self.repo, kopf, [s1[:7], s2[:8], "abcdef1"])
-        self.assertEqual((drauf, daneben, fremd), ([s1], [s2[:8]], ["abcdef1"]))
+        self.assertEqual(belege.commits(self.repo, kopf, [s1[:7], s2[:8], "abcdef1", s1[:7]]),
+                         {s1[:7]: ("drauf", s1), s2[:8]: ("daneben", s2), "abcdef1": ("fremd", None)})
+        blob = self.git("rev-parse", "HEAD:a.txt")
+        self.assertEqual(belege.commits(self.repo, kopf, [blob]), {blob: ("fremd", None)})                  # eine Datei ist kein Commit
 
     def test_hex_teile_aus_freitext(self):
         self.assertEqual(belege.hex_teile("8a31992, Gesamtlauf L3506 (bc1f457), Ja von CCamwTL, 8a31992"), ["8a31992", "bc1f457"])
@@ -76,21 +78,28 @@ class Commits(Repo):
         s1 = self.commit("a.txt", "1\n")
         self.git("tag", "-a", "v1.71.0", "-m", "v", s1)
         self.git("switch", "-q", "-c", "seite")
-        self.git("tag", "v1.72.0", self.commit("b.txt", "2\n"))
+        s2 = self.commit("b.txt", "2\n")
+        self.git("tag", "v1.72.0", s2)
         kopf = (belege.stand(self.repo) or ("", ""))[1]
         self.assertEqual(belege.hex_teile("live (v1.71.0)"), ["refs/tags/v1.71.0"])
         self.assertEqual(belege.commits(self.repo, kopf, ["refs/tags/v1.71.0", "refs/tags/v1.72.0", "refs/tags/v9.9.9"]),
-                         ([s1], ["refs/tags/v1.72.0"], ["refs/tags/v9.9.9"]))
+                         {"refs/tags/v1.71.0": ("drauf", s1), "refs/tags/v1.72.0": ("daneben", s2), "refs/tags/v9.9.9": ("fremd", None)})
 
     def test_dateien_des_commits_mit_grenze(self):
-        s = self.commit("x/a.txt")
-        self.assertEqual(belege.dateien_des(self.repo, s), (["x/a.txt"], False))
+        s = self.commit("x/a ü.txt")
         for i in range(belege.MAX_DATEIEN_JE_PAKET + 5):
             self.schreib(f"v/{i}.txt", str(i))
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "viel")
-        d, mehr = belege.dateien_des(self.repo, self.git("rev-parse", "HEAD"))
-        self.assertEqual((len(d), mehr), (belege.MAX_DATEIEN_JE_PAKET, True))
+        viel = self.git("rev-parse", "HEAD")
+        self.git("switch", "-q", "-c", "seite", s)
+        self.commit("neben.txt")
+        self.git("switch", "-q", "main")
+        self.git("merge", "-q", "--no-ff", "-m", "zusammen", "seite")
+        merge = self.git("rev-parse", "HEAD")
+        je = belege.dateien_der(self.repo, [viel, s, merge])
+        self.assertEqual((je[s], je[merge]), ((["x/a ü.txt"], False), (["neben.txt"], False)))               # der Merge: gegen den ersten Vorfahren
+        self.assertEqual((len(je[viel][0]), je[viel][1]), (belege.MAX_DATEIEN_JE_PAKET, True))
 
 
 class Pakete(Repo):
@@ -135,10 +144,23 @@ class Pakete(Repo):
 
     def test_erfundener_und_fremder_commit(self):
         self.assertEqual(self.befund(self.paket("abc1234")), ("nicht_pruefbar", "commit_fehlt"))
-        self.assertEqual(self.befund(self.paket(self.neben)), ("nicht_pruefbar", "commit_daneben"))
+        self.assertEqual(self.befund(self.paket(self.neben)), ("vorbehalt", "commit_daneben"))
         self.assertEqual(self.befund(self.paket(f"{self.neben}, {self.sha}")), ("ok", None))          # einer genügt
         self.assertEqual(self.befund(self.paket("demo002")), ("nicht_pruefbar", "kein_beleg"))         # der Platzhalter der Vorführung
         self.assertEqual(self.befund(self.paket("fertig gebaut")), ("nicht_pruefbar", "kein_beleg"))
+
+    def test_wenige_git_aufrufe_je_meilenstein(self):
+        for _ in range(12):
+            self.paket(self.sha)
+        echt, n = belege._git, []
+
+        def zaehle(ordner, *a, **k):
+            n.append(a[0])
+            return echt(ordner, *a, **k)
+        with mock.patch.object(belege, "_git", zaehle):
+            x = belege.meilenstein(self.con, self.pid, self.m)
+        self.assertEqual(({p["befund"] for p in x["pakete"]}, {tuple(p["dateien"]) for p in x["pakete"]}), ({"ok"}, {("app/login.py",)}))
+        self.assertEqual(n, ["rev-parse", "cat-file", "rev-list", "rev-list", "diff-tree"])
 
     def test_andere_belege_bei_commit_quelle_sind_ein_vorbehalt(self):
         for text in ("Ja von CCamwTL", "D1516", "P640, B2938", "#32703"):
