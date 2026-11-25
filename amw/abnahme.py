@@ -54,6 +54,7 @@ GESPERRT = (
     ("amw/fertigquelle.py", "fest", "Fertig-Quelle und Prüfquellen – die AMW schließt Aufgaben selbst (A1938)"),
     ("amw/urteil.py", "fest", "bereit zur Abnahme und Ja – den Status setzt die AMW (A1939)"),
     ("amw/reihenfolge.py", "fest", "berechnete Reihenfolge, Handordnung mit Grund, Jetzt starten (A1941)"),
+    ("amw/paket_schieben.py", "fest", "Paket früher oder später – ändert die berechnete Reihenfolge, Mensch geht vor Lead (A2094)"),
     ("amw/anbieter_schluessel.py", "fest", "apiKeyHelper – gibt nur freigegebene Schlüsseldateien aus (A1931)"),
     ("amw-anbieter-schluessel.py", "fest", "apiKeyHelper (A1931)"),
     ("amw/gegenlesen.py", "fest", "Gegenleser der Themen – startet claude -p (A1914)"),
