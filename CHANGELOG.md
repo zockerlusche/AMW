@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.191.0 – 25.11.2026 · Projektweg: ganzer Verlauf, klarere Leiste
+- **Neu:** Der Verlauf auf „Projektweg“ zeigt je Schritt, was geschah: Feinplaner, Änderungen am Konzept, Pakete von der Zuteilung bis zur Auslieferung, Prüfungen und Abschluss, zusammengefasst und mit fester Reihenfolge (höchstens 120 Einträge je Schritt, Text wie bisher deutsch). Auf der Kommandozeile: `amw verlauf --art protokoll`. Am Handy steht er auch unter dem geöffneten Schritt.
+- **Verbessert:** Nacharbeit an einem laufenden Meilenstein startet nur ihre eigenen Pakete. Zurückgehaltene Pakete bleiben zurückgehalten, der Verzug bleibt sichtbar, und fehlende Angaben stehen in der Meldung an den Lead.
+- **Verbessert:** Die Leiste auf „Projektweg“ schneidet nichts mehr ab, auch am Handy. Wartet wieder eine Fassung im Konzept, zeigt sie laufende Meilensteine und die angenommene Grobplanung weiter an. Nach einer Abnahme nennt sie den Meilenstein, der als Nächstes geplant wird. Eine teilweise umgesetzte Änderung heißt so.
+- **Verbessert:** Verworfene Meilensteine stehen nicht mehr in der Grobplanung; ein Thema, das nur darin vorkam, zeigt „–“. Nach dem Speichern eines Themas steht da, dass die Änderung als freigegeben gilt und ob die AMW sie plant.
+- **Behoben:** Die Karte einer Änderung am Konzept nennt den richtigen Meilenstein (vorher „in Mnull“ oder einen falschen). Am Handy scrollt die Feinplanung bei langen Meilenstein-Namen nicht mehr seitwärts.
+
 ## 1.190.0 – 24.11.2026 · Schnellere Seiten
 - **Verbessert:** Planung, Projektweg und Startseite laden schneller: Kosten, Reihenfolge und Zustände der Themen rechnet die AMW je Anfrage, Dienst-Runde und Synchronisierung nur einmal. Ändert sich die Datenbank, rechnet sie neu; veraltete Werte zeigt sie nicht.
 
