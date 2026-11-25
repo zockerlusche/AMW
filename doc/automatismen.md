@@ -991,6 +991,14 @@ die der Lead nur noch bestätigt oder ändert.
 - **Entwurf zurückstellen (A2118, `entwurf_warten.py`):** `amw thema entwurf-warten TH<n> --grund …` (Lead, Co, Mensch) – statt des Knopfs steht
   „wartet: <Grund>“, der Entwurf zählt nicht als „wartet auf dich“ und hält die Schritt-Leiste nicht; der Mensch kann ihn mit Rückfrage
   trotzdem freigeben, Lead und Co erst nach `amw thema entwurf-weiter TH<n>`. Ein neuer Entwurf wartet nicht. Ereignis `thema_entwurf_wartet`.
+- **Anhalten bis zum Ja (A2140, `delta_halt.py`):** Liegt so ein Entwurf vor, wartet jedes nicht begonnene Paket, das er ändert oder
+  verwirft, auf „das Ja zur Änderung TH<n>“ – ein eigener Wartegrund, auch ohne Lead. Status, Zustand eines Headless-Pakets und andere
+  Wartegründe bleiben, wie sie sind. Laufende bauen zu Ende (die Meldung an den Lead nennt beides). Verteilen, „nächster Schritt“ und
+  Wächter (Regel 15) lassen solche Pakete aus, von Hand startet sie nur der Mensch. Wieder frei: mit dem Ja (verworfene sind dann
+  verworfen), mit „gilt weiter“ (`amw thema bestaetigen`), mit „nichts zu bauen“ und mit einem neuen Entwurf, der sie nicht mehr nennt.
+  Ein zurückgestellter Entwurf hält weiter an, ein gescheiterter Planer-Lauf ändert nichts. Einzeln lösen Lead, Co oder Mensch:
+  `amw aufgabe wartet <nr> --erledigt "Änderung TH<n>"`; derselbe Entwurf hält es dann nicht noch einmal an. Verlauf: je eine Zeile beim
+  Anhalten und beim Lösen (Ereignisse `delta_angehalten`, `delta_frei`). Es geschieht sofort, dazu alle 10 Minuten im Dienst.
 - **Überholte Entwürfe (A2118):** Ein Vermerk „nichts zu bauen“ (oder ein angenommener Plan) nach dem Entwurf schließt ihn in jeder Anzeige
   (`planer.geklaert`). Ein zu langer Grund bei „nichts zu bauen“ wird auf 1000 Zeichen gekürzt.
 
@@ -1119,8 +1127,8 @@ die der Lead nur noch bestätigt oder ändert.
 - **Auslöser:** ein freigegebenes Thema bekommt eine neue Fassung (wie A1915) oder wird zurückgegeben.
 - **Was geschieht:** Die AMW ermittelt die Meilensteine (geplant/aktiv), deren Pakete auf das Thema verweisen, und darunter die
   Pakete nach Stand (nicht begonnen, laufend, fertig). Der Lead bekommt einen Auftrag mit dieser Liste und dem Vorschlag: neu
-  planen (`amw thema planen TH…`, K4) und die nicht begonnenen anhalten (`amw thema anhalten TH… [--meilenstein N]`). Angehalten
-  wird nichts von selbst; laufende bauen zu Ende.
+  planen (`amw thema planen TH…`, K4) und die nicht begonnenen anhalten (`amw thema anhalten TH… [--meilenstein N]`). Die neue
+  Fassung allein hält nichts an, das tut erst ein Entwurf des Planers (A2140, siehe Delta-Planer); laufende bauen zu Ende.
 - **Anzeige:** Planung › Meilensteine zeigt am Meilenstein „Thema geändert: TH… (Fassung n)“, abgeleitet aus den Ereignissen
   (neue Fassung oder Zurück nach der Freigabe des Meilensteins), mit „Neu planen“ und „Nicht begonnene anhalten“. Anhalten:
   p-Pakete zurückgestellt, die übrigen „wartet“ auf den Lead mit Grund (Ereignis paket_angehalten).

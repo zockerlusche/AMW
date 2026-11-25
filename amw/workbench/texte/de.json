@@ -1901,6 +1901,7 @@
   "mk_st_lauf": "wartet auf Lauf {l}",
   "mk_st_pruefung": "bei der Prüfung ({p})",
   "mk_st_auf": "wartet auf {x}",
+  "grund_aenderung": "das Ja zur Änderung {x}",
   "mk_st_offen": "noch nicht begonnen",
   "mk_st_pause": "angefangen, ruht",
   "mk_st_fertig": "fertig {x}",

@@ -1901,6 +1901,7 @@
   "mk_st_lauf": "waiting for run {l}",
   "mk_st_pruefung": "in review ({p})",
   "mk_st_auf": "waiting for {x}",
+  "grund_aenderung": "the yes to the change of {x}",
   "mk_st_offen": "not started",
   "mk_st_pause": "started, on hold",
   "mk_st_fertig": "done {x}",

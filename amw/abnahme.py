@@ -69,6 +69,7 @@ GESPERRT = (
     ("amw/grobplan.py", "fest", "Grob-Planer über das ganze Konzept – startet claude -p (A2030)"),
     ("amw/planer_delta.py", "fest", "Delta-Planer – wer ein Delta freigibt (feinplan_freigabe), ändert/verwirft Pakete (A2027)"),
     ("amw/delta_start.py", "fest", "Ja zu einer Konzeptänderung – Grob-/Plan-Freigabe und Start (A2080)"),
+    ("amw/delta_halt.py", "fest", "Pakete anhalten und lösen bei einer Konzeptänderung – wer darf (A2140)"),
     ("amw/entwurf_warten.py", "fest", "Entwurf zurückstellen und freischalten – wer darf, Mensch geht vor Lead (A2118)"),
     ("amw/planhinweis.py", "fest", "Hinweise an den Planer – wer Hinweise gibt und überarbeiten lässt (A2028)"),
     ("amw/projektweg_seite.py", "fest", "Seite Projektweg – wer die Abschlussprüfung nachholt (Mensch oder Lead, A2064)"),

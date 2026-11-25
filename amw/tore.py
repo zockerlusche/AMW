@@ -64,6 +64,8 @@ def nichts_bestaetigen(con, pid, von, name):
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=NICHTS_JA,
                      text=json.dumps({"thema": t["id"]}, ensure_ascii=False))
+    from . import delta_halt
+    delta_halt.abgleichen(con, pid, t["id"])         # A2140
     return t["id"]
 
 

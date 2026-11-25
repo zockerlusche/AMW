@@ -59,7 +59,7 @@ def _platz_laeuft(p):
 
 def daten(con, pid, am_pc=True):
     """{"plaetze", "aus", "pause", "wartung", "pakete": [...], "gruppen"} für die Ansicht Arbeit › Pakete."""
-    from . import messung, platz, waechter
+    from . import delta_halt, messung, platz, waechter
     plaetze = platz.plaetze(con, pid)
     z = waechter.zustand()
     pakete = []
@@ -90,7 +90,8 @@ def daten(con, pid, am_pc=True):
             except Exception:                               # noqa: BLE001
                 x["spanne"] = None
         if zust == "startklar":
-            x["grund"] = _startgrund(con, pid, r["id"])
+            g = delta_halt.haelt(con, r["id"])              # A2140: ohne eigene Prüfung, aus dem Wartegrund
+            x["grund"] = {"regel": 15, "text": waechter.REGELN[15] + f" – wartet auf {g}", "zeit": r["zustand_utc"]} if g else _startgrund(con, pid, r["id"])
         if zust == "wartet_interaktiv":
             x["dran"] = _wer_dran(x["letzter_grund"])
         pakete.append(x)

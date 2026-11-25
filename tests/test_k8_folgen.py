@@ -1,6 +1,6 @@
 """K8 / A1942 Teil (a): Änderungen von oben nach unten – ändert sich ein Thema (neue Fassung nach der Freigabe, oder Zurück),
 zeigt die AMW die betroffenen Meilensteine mit ihren Paketen (nicht begonnen / läuft / fertig) und schlägt dem Lead die
-Anpassung vor (neu planen, nicht begonnene anhalten) – angehalten wird nichts von selbst; laufende bauen zu Ende."""
+Anpassung vor (neu planen, nicht begonnene anhalten) – die Textfassung allein hält nichts an (das tut erst der Entwurf, A2140); laufende bauen zu Ende."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import contextlib
 import io
@@ -65,9 +65,10 @@ class K8(unittest.TestCase):
         self.assertEqual((art, kurz), ("auftrag", f"Thema geändert: TH{self.th} „Anmeldung“ (Fassung 2) – betrifft 1 Meilenstein(e)"))
         self.assertIn("2 nicht begonnen, 1 laufend", text)
         self.assertIn(f"amw thema anhalten TH{self.th}", text)
-        self.assertIn("angehalten wird nichts von selbst", text)
+        self.assertIn("Die neue Fassung allein hält nichts an", text)
+        self.assertNotIn("nichts von selbst", text)
         self.assertEqual(self.ms()["geaendert"], [{"id": self.th, "name": "Anmeldung", "fassung": 2, "offen": sorted([self.offen, self.p])}])
-        self.assertEqual(tuple(st(self.offen)), vorher)                                       # nichts von selbst angehalten
+        self.assertEqual(tuple(st(self.offen)), vorher)                                       # die Textfassung allein hält nichts an
         self.assertNotEqual(arbeitspaket.lesen(self.con, self.p)["zustand"], "zurueckgestellt")
 
     def test_zurueck_meldet_auch(self):

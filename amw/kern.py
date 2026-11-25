@@ -1569,6 +1569,9 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
             arbeitsliste.start_pruefen(con, pid, von, a)
             if t := herausnehmen.darf_starten(con, pid, a["agent"] or von, aid):      # A2095
                 raise AmwFehler(t)
+            from . import delta_halt
+            if not automatik and (t := delta_halt.darf_starten(con, von, aid)):       # A2140
+                raise AmwFehler(t)
         t = db.jetzt()
         felder = {"status": neu}
         if zusammenfassung:

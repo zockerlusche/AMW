@@ -373,8 +373,8 @@ def reihenfolge(entwurf):
 
 def _ereignisse(con, pid, tid, art):
     aus = []
-    for r in con.execute("SELECT id, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND text LIKE ? ORDER BY id",
-                         (pid, art, f'{{"thema": {int(tid)},%')):
+    for r in con.execute("SELECT id, von, zeit_utc, text FROM plan_ereignis WHERE projekt_id = ? AND art = ? AND (text LIKE ? OR text = ?)"
+                         " ORDER BY id", (pid, art, f'{{"thema": {int(tid)},%', f'{{"thema": {int(tid)}}}')):      # A2140: auch ohne weitere Felder (thema_nichts_ja)
         try:
             aus.append({"id": r["id"], "von": r["von"], "zeit_utc": r["zeit_utc"], **json.loads(r["text"])})
         except ValueError:
@@ -422,6 +422,8 @@ def entwurf_eintragen(con, pid, tid, fassung, ergebnis, modell=None, usd=None, l
                 kern._posten(con, pid, "AMW", lead, "auftrag",
                              f"Planentwurf TH{tid} „{t['name'][:50]}“: {len(entwurf['meilensteine'])} Meilenstein(e), "
                              f"{len(entwurf['pakete'])} Pakete – Ja oder ändern", zusammenfassung(entwurf) + f"\n\n({modell or '–'}, {kosten})")
+    from . import delta_halt                             # A2140: was der Entwurf ändert oder verwirft, steht bis zum Ja
+    delta_halt.abgleichen(con, pid, tid)
     return eid
 
 
@@ -434,14 +436,16 @@ def _delta_kurz(delta):
 def _delta_melden(con, pid, lead, t, tid, entwurf, modell, kosten):
     """A2027: Ist der Entwurf ein Delta, sagt die AMW dem Lead, dass der Mensch (bzw. Co + Lead nach feinplan_freigabe) es als
     einen Block freigibt. Rückgabe: True, wenn gemeldet. In der Transaktion des Aufrufers."""
+    from . import delta_halt
     e = entwurf or {}
     if not e.get("delta"):
         return False
+    halt = "".join(f"\n{z}" for z in delta_halt.meldung(e))    # A2140
     kern._posten(con, pid, "AMW", lead, "meldung",
                  (f"Delta TH{tid} „{t['name'][:40]}“: {len(e['pakete'])} neu, {len(e['aendern'])} ändern,"
                   f" {len(e['verwerfen'])} verwerfen" + (f", {len(e.get('nacharbeit') or [])} Nacharbeit" if e.get("nacharbeit") else "")
                   + " – Freigabe als Block")[:140],
-                 zusammenfassung(e) + f"\n\n({modell or '–'}, {kosten})\nFreigeben: amw thema plan-ja TH{tid}"
+                 zusammenfassung(e) + f"\n\n({modell or '–'}, {kosten}){halt}\nFreigeben: amw thema plan-ja TH{tid}"
                  " (der Mensch; bei feinplan_freigabe = co+lead Co und Lead je ein Ja)")
     return True
 
@@ -569,6 +573,8 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
                                 f"{', '.join(stand.get('verworfen') or []) or 'nichts'} · noch offen: {', '.join(offen) or 'nichts'}" if ist_delta else "")
                              + "\nDer Rest fehlt – bitte von Hand ergänzen oder das Angelegte prüfen; ein neues Ja legt nichts doppelt an.")
         raise
+    from . import delta_halt
+    delta_halt.abgleichen(con, pid, tid)                 # A2140: mit dem Ja wieder frei – vor dem Start
     if ist_delta and not entwurf["nichts_zu_bauen"]:     # A2080: das Ja ist auch die Freigabe – und startet
         try:
             delta_start.nach_dem_ja(con, pid, von, tid, e["id"], entwurf, angelegt, vorher)

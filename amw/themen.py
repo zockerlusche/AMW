@@ -165,6 +165,8 @@ def bestaetigen(con, pid, von, name):
             bis = con.execute("SELECT coalesce(max(id), 0) FROM beschluss").fetchone()[0]
             _ereignis(con, pid, von, "vorgelegt", t["id"], fassung=_fassung(con, t["id"])["nr"], bestaetigt=True, bis_beschluss=bis)
             _tor_nachher(con, pid, von, vorher)      # A1913: hebt sie das letzte „neu prüfen“ auf, schließt das Tor wieder
+    from . import delta_halt
+    delta_halt.abgleichen(con, pid, t["id"])         # A2140
 
 
 def dokument(con, pid, von, name, did, loesen=False):
@@ -791,6 +793,8 @@ def nichts_zu_bauen(con, pid, von, name, grund, aufheben=False):
     t = finden(con, pid, name)
     with db.schreiben(con):
         _ereignis_frei(con, pid, von, NICHTS_ZU_BAUEN, {"thema": t["id"], "grund": (grund or "").strip()[:1000], "an": not aufheben})
+    from . import delta_halt
+    delta_halt.abgleichen(con, pid, t["id"])         # A2140
     return t["id"]
 
 

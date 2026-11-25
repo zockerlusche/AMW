@@ -13,7 +13,7 @@ async function arbeitslisten(m, a) {
         x.status === "laeuft" ? el("span", { class: "etikett gruen", style: "margin-left:6px" }, t("li_in_arbeit"))
           : x.status === "blockiert" ? el("span", { class: "etikett", style: "margin-left:6px" }, t("sp_blockiert")) : null),
       el("div", { class: "t" }, x.titel.length > 160 ? x.titel.slice(0, 160) + " …" : x.titel),
-      (x.gruende || []).length ? el("div", { class: "w bernstein-text" }, "⇢ " + x.gruende.join(", "))
+      (x.gruende || []).length ? el("div", { class: "w bernstein-text" }, "⇢ " + x.gruende.map(grundText).join(", "))
         : x.wartet_auf && x.status !== "laeuft" ? el("div", { class: "w" }, "⇢ " + x.wartet_auf.slice(0, 120)) : null))))));
   const pool = d.pool.filter(passt);
   m.append(el("h3", { style: "margin:22px 0 8px" }, t("li_pool"), " ", el("span", { class: "sehrleise mono" }, pool.length), " ", hilfeKnopf("reihenfolge")),

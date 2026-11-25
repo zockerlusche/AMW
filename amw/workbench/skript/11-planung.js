@@ -619,6 +619,8 @@ const zwText = z => ({ x: datumKurz(z.seit.slice(0, 10)), n: z.neu, m: z.erledig
    Eingreifen statt Lead-Werkzeuge. Kopf (Verantwortlich, Ziel, „Vorziehen“; Aktivieren/Abschließen/Rückblick/Bearbeiten unter
    „Mehr … · Für den Lead“), Fortschritt als Satz, Zeitschiene, „was läuft, was hängt“ nach Ursache gebündelt mit dem Weg
    zum Eingreifen, dann die Aufgaben selbst (offen zuerst, mit Mini-Zeitlinie, „verschoben aus …“), Details unten in Worten. */
+/* A2140: „das Ja zur Änderung TH12“ – ein Wartegrund der AMW, in der Sprache des Nutzers */
+const grundText = x => { const m = /^das Ja zur Änderung (TH\d+)$/.exec(x || ""); return m ? t("grund_aenderung", { x: m[1] }) : x; };
 const mkMs = x => x ? Date.parse(x.length === 10 ? x + "T12:00:00" : x) : null;
 const mkKurz = (x, n = 90) => !x ? "" : x.length > n ? x.slice(0, n - 1) + "…" : x;
 /* Worauf eine offene Aufgabe hängt – eine Ursache je Aufgabe, in der Reihenfolge, in der der Mensch sie lösen kann */
@@ -646,7 +648,7 @@ function mkStatus(s, u) {
   return { laeuft: () => t("mk_st_laeuft"), dich: () => u.g?.art === "frage" ? t("mk_st_dich_f", { f: u.g.bezug }) : t("mk_st_dich"),
     lauf: () => t("mk_st_lauf", { l: u.g.bezug }), pruefung: () => t("mk_st_pruefung", { p: "P" + s.pruefung.id }),
     aufgabe: () => t("mk_st_auf", { x: u.g.bezug }), agent: () => t("mk_st_auf", { x: u.g.bezug }),
-    sonst: () => u.g ? t("mk_st_auf", { x: u.g.bezug }) : t("sp_" + s.status), offen: () => t(s.begonnen_utc ? "mk_st_pause" : "mk_st_offen") }[u.art]();
+    sonst: () => u.g ? t("mk_st_auf", { x: grundText(u.g.bezug) }) : t("sp_" + s.status), offen: () => t(s.begonnen_utc ? "mk_st_pause" : "mk_st_offen") }[u.art]();
 }
 const mkZeichen = (s, u) => el("i", { class: "mk-z " + (s.status === "fertig" ? "fertig" : s.status === "verworfen" ? "offen" : u.art === "laeuft" ? "laeuft"
   : u.art === "offen" ? "offen" : "wartet") });
@@ -689,7 +691,7 @@ function bogenKarte(b) {
     const kopf = { laeuft: () => t(eins ? "mk_l_laeuft1" : "mk_l_laeuft", { n: a.length }), dich: () => t(eins ? "mk_l_dich1" : "mk_l_dich", { n: a.length }),
       lauf: () => t("mk_l_lauf", { n: a.length, l: u.g.bezug }), pruefung: () => t(eins ? "mk_l_pruefung1" : "mk_l_pruefung", { n: a.length }),
       aufgabe: () => t(eins ? "mk_l_auf1" : "mk_l_auf", { n: a.length, x: u.g.bezug }), agent: () => t(eins ? "mk_l_auf1" : "mk_l_auf", { n: a.length, x: u.g.bezug }),
-      sonst: () => t(eins ? "mk_l_auf1" : "mk_l_auf", { n: a.length, x: u.g?.bezug || t("mk_unbekannt") }) }[u.art]();
+      sonst: () => t(eins ? "mk_l_auf1" : "mk_l_auf", { n: a.length, x: grundText(u.g?.bezug) || t("mk_unbekannt") }) }[u.art]();
     /* je Aufgabe eine Zeile mit dem Weg (läuft, wartet auf dich, Prüfung) – sonst eine Zeile für die ganze Ursache */
     const einzeln = ["laeuft", "dich", "pruefung"].includes(u.art);
     const detail = x => {
@@ -986,7 +988,7 @@ async function aufgabeDialog(id) {
     a.auftrag ? el("div", { class: "au-auftrag" }, markdown(a.auftrag)) : null,
     a.wartet_auf && offen ? el("p", { class: "bernstein-text" }, "⇢ " + a.wartet_auf) : null,
     block(t("au_wartegruende"), a.wartegruende.length, a.wartegruende.map(w => el("div", { class: "au-zeile" + (w.erledigt_utc ? " sehrleise" : "") },
-      (w.erledigt_utc ? "✓ " : "⇢ ") + w.bezug + ` · ${w.angelegt_von} ${zeit(w.angelegt_utc)}` + (w.erledigt_utc ? ` · ${w.erledigt_durch || ""}` : "")))),
+      (w.erledigt_utc ? "✓ " : "⇢ ") + grundText(w.bezug) + ` · ${w.angelegt_von} ${zeit(w.angelegt_utc)}` + (w.erledigt_utc ? ` · ${w.erledigt_durch || ""}` : "")))),
     block(t("au_fragen", { n: a.fragen.length }), a.fragen.length, fr),
     block(t("au_dokumente", { n: a.dokumente.length }), a.dokumente.length, a.dokumente.map(d => el("div", { class: "au-zeile" },
       el("a", { class: "verweis", onclick: () => dokumentDialog(d.id) }, `D${d.id}`), " ", d.titel, el("span", { class: "sehrleise" }, ` · ${t("dka_" + d.art)}`)))),

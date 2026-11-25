@@ -254,15 +254,20 @@ def _ortszeit(bis, seit):
     return ende.strftime("%H:%M" if ende.date() == db.utc_lesen(seit).astimezone().date() else "%d.%m. %H:%M")
 
 
-DELTA = ("thema_delta_stimme", "thema_delta_angewandt", "thema_delta_start", "thema_entwurf_wartet")
+DELTA = ("thema_delta_stimme", "thema_delta_angewandt", "thema_delta_start", "thema_entwurf_wartet", "delta_angehalten", "delta_frei")
 _ROLLE = {"co": "Co-Entwickler", "lead": "Lead"}
 
 
 def _delta(con, pid):
+    from . import delta_halt
     aus = []
-    for r in _neueste(con, "SELECT id, zeit_utc, von, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?, ?, ?)"
+    for r in _neueste(con, "SELECT id, zeit_utc, von, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?, ?, ?, ?, ?)"
                            " ORDER BY id DESC", (pid, *DELTA)):
         d = _json(r["text"])
+        if r["art"] in (delta_halt.ANGEHALTEN, delta_halt.FREI):    # A2140
+            if text := delta_halt.verlauf_text(r["art"], d):
+                aus.append(_eintrag("delta", r["id"], r["zeit_utc"], "amw", "AMW", r["art"], "umsetzung", None, None, text=text))
+            continue
         th = f"TH{d.get('thema', '?')}"
         if r["art"] == "thema_delta_stimme":
             text = f"{th}: Ja zur Änderung" + (f" ({_ROLLE.get(d['rolle'], d['rolle'])})" if d.get("rolle") else "")

@@ -34,9 +34,10 @@ REGELN = {
     12: "Projekt ausgeschaltet (Projekt-Schalter aus oder probe)",
     13: "Anbieter in diesem Projekt nicht freigegeben (gibt nur der Mensch frei)",
     14: "Anbieter mit dieser Claude-Code-Version noch nicht geprüft – die AMW prüft ihn selbst (Negativprobe)",
+    15: "angehalten bis zum Ja zu einer Konzeptänderung",
 }
 ARBEITEND = ("laeuft", "abgegeben", "abnahme")   # A1925: zählt für die PC-Grenze (plaetze_pc) – merge_reihe arbeitet nicht mehr
-WARTEN = {2, 4, 7, 8, 9, 11, 14}               # vorübergehend: später erneut prüfen; die anderen: nicht starten, Lead melden
+WARTEN = {2, 4, 7, 8, 9, 11, 14, 15}               # vorübergehend: später erneut prüfen; die anderen: nicht starten, Lead melden
 LIMIT_PROZENT = 80
 LAUFEND = ("laeuft", "abgegeben", "abnahme", "merge_reihe")   # P245: der Platz bleibt bis zum Merge belegt (Resume nur dort)
 
@@ -190,7 +191,9 @@ def pruefen(con, pid, aid, limit=None):
     plaetze = platz.plaetze(con, pid)
     if not plaetze:
         return _nein(10)
-    from . import kern
+    from . import delta_halt, kern
+    if g := delta_halt.haelt(con, aid):                   # A2140
+        return _nein(15, f"wartet auf {g}")
     s = kern.projekt_schalter(con, pid)
     if s != "an":                                         # A1925 (E5): aus/probe – keine p-Starts
         return _nein(12, f"Schalter {s}")
@@ -301,7 +304,7 @@ def reihenfolge(con, pid):
     aktiver Meilenstein zuerst, dann der längste Rest-Pfad, dann Rang und Nummer); was die Berechnung nicht kennt, kommt danach
     nach Rang und Nummer. Pakete, deren Vorgänger („nach X“) noch nicht fertig/gemergt sind, fehlen. Die Regeln des Wächters
     gelten weiter (pruefen). [{"id", "titel", "rang", "platz"}]"""
-    from . import reihenfolge as rf
+    from . import delta_halt, reihenfolge as rf
     try:
         platz = {z["aid"]: z["platz"] for z in rf.berechnen(con, pid)}
     except Exception:                                    # noqa: BLE001 – ohne Berechnung startet der Disponent wie bisher
@@ -316,7 +319,7 @@ def reihenfolge(con, pid):
             "SELECT 1 FROM abhaengigkeit d JOIN aufgabe v ON v.id = d.vor LEFT JOIN paket pv ON pv.aufgabe_id = v.id"
             " WHERE d.nach = ? AND d.extern IS NULL AND NOT (v.status IN ('fertig', 'verworfen') OR coalesce(pv.zustand, '') IN ('gemergt', 'fertig'))",
             (k["id"],)).fetchone()
-        if not offen:
+        if not offen and not delta_halt.haelt(con, k["id"]):      # A2140: wartet auf das Ja zu einer Konzeptänderung
             aus.append({"id": k["id"], "titel": k["titel"], "rang": k["rang"], "platz": platz.get(k["id"])})
     return aus
 

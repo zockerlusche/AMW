@@ -261,7 +261,8 @@ def daten(con, pid):
     z = _zustaende(con, pid)
     js = _jas(con, pid)
     co_lead = {art: themen.freigabe_regel(con, pid, art) == "co+lead" for art in ARTEN}     # A2032: je Art
-    halt = _angehalten(con, pid)                         # K8: schon angehaltene zählen nicht mehr als „nicht begonnen“
+    from . import delta_halt
+    halt = _angehalten(con, pid) | set(delta_halt.gehalten(con, pid))      # K8, A2140: schon angehaltene zählen nicht mehr als „nicht begonnen“
 
     def fehlt(bid, art, frei):
         if frei or not co_lead[art]:
@@ -410,7 +411,8 @@ def betroffen(con, pid, tid):
 
 def folgen_melden(con, pid, tid, anlass):
     """Nach einer Änderung des Themas (themen.thema_geaendert / zurueck): dem Lead die betroffenen Meilensteine und Pakete mit
-    dem Vorschlag – nichts wird von selbst angehalten. Rückgabe: Liste der Meilenstein-Nummern."""
+    dem Vorschlag – die Textfassung allein hält nichts an; das tut erst der Entwurf des Planers (A2140, delta_halt). Rückgabe: Liste
+    der Meilenstein-Nummern."""
     bt = betroffen(con, pid, tid)
     lead = kern.lead(con, pid)
     if not bt or not lead or lead == kern.ENTWICKLER:
@@ -424,7 +426,8 @@ def folgen_melden(con, pid, tid, anlass):
                      f"Thema geändert: TH{tid} „{(t['name'] if t else '')[:50]}“ ({anlass}) – betrifft {len(bt)} Meilenstein(e)",
                      "Betroffen:\n" + "\n".join(zeilen) + "\n\nVorschlag: neu planen (amw thema planen TH" + str(tid) + ") und die nicht"
                      " begonnenen Pakete anhalten (amw thema anhalten TH" + str(tid) + " [--meilenstein N] oder Planung › Meilensteine)."
-                     " Laufende bauen zu Ende. Du entscheidest – angehalten wird nichts von selbst.")
+                     " Laufende bauen zu Ende. Die neue Fassung allein hält nichts an; schlägt der Planer eine Änderung vor, hält die AMW"
+                     " genau die Pakete an, die er ändert oder verwirft, bis zum Ja.")
     return [x["bogen"]["nr"] for x in bt]
 
 

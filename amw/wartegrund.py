@@ -209,7 +209,11 @@ def von_hand(con, pid, von, aid, auf):
     a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()
     weg = []
     for t in teile(auf):
-        art, bezug = bezug_lesen(con, pid, t)
+        from . import delta_halt
+        halt = delta_halt.lesen(t)                         # A2140: „Änderung TH12“ – angehalten von der AMW
+        if halt and not (kern.ist_lead(con, pid, von) or kern.ist_co(con, pid, von)):
+            raise kern.AmwFehler("Ein angehaltenes Paket geben Lead, Co-Entwickler oder der Mensch frei")
+        art, bezug = halt or bezug_lesen(con, pid, t)
         n = con.execute("UPDATE wartegrund SET erledigt_utc = ?, erledigt_durch = ? WHERE aufgabe_id = ? AND bezug = ?"
                         " AND erledigt_utc IS NULL", (db.jetzt(), f"von Hand: {von}", aid, bezug)).rowcount
         if not n:
@@ -292,7 +296,8 @@ def haelt_fest(con, pid, kennung, jetzt=None):
         if not gruende and (a["wartet_auf"] or "").strip():
             gruende = [{"art": None, "bezug": a["wartet_auf"], "angelegt_utc": a["geaendert_utc"]}]
         for g in gruende:
-            if sorte(g["art"], g["bezug"], g["bezug"]) in FREIGEBEND:
+            from . import delta_halt
+            if sorte(g["art"], g["bezug"], g["bezug"]) in FREIGEBEND or delta_halt.ist(g["art"], g["bezug"]):      # A2140: nie begonnen, bindet ihn nicht
                 continue
             if g["angelegt_utc"] and (jetzt - _sek(g["angelegt_utc"])) / 60 < HALTEN_MIN:
                 return g["bezug"]

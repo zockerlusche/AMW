@@ -412,7 +412,7 @@ function tmNeben(a, d) {
   const z = (d.team?.zusammen || []).find(x => x.von === a.kennung || x.mit === a.kennung);
   if (z) return el("div", { class: "tm-neben tm-mit", title: t("tm_mit_h") }, "⇄ " + (z.von === a.kennung ? z.mit : z.von) + " · " + t("tm_pruefung") + (z.aufgabe ? ` A${z.aufgabe}` : ""));
   const w = a.wartet || [];
-  return w.length ? el("div", { class: "tm-neben bernstein-text" }, t("k_wartet", { a: `A${w[0].aufgabe}`, x: w[0].auf }) + (w.length > 1 ? ` +${w.length - 1}` : "")) : null;
+  return w.length ? el("div", { class: "tm-neben bernstein-text" }, t("k_wartet", { a: `A${w[0].aufgabe}`, x: (w[0].auf || "").split(", ").map(grundText).join(", ") }) + (w.length > 1 ? ` +${w.length - 1}` : "")) : null;
 }
 const tmFuss = a => [tmWeise(a), a.zustand === "aktiv" && a.kontext_prozent != null
   ? el("span", { class: "tm-balken" + (a.kontext_prozent > 85 ? " voll" : a.kontext_prozent > 60 ? " hoch" : ""), title: `${t("b_kontext")} ${Math.round(a.kontext_prozent)} %` }, el("span", { style: `width:${Math.min(100, a.kontext_prozent)}%` }))
