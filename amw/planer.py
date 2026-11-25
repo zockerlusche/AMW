@@ -13,7 +13,7 @@ Ereignisse (plan_ereignis, ohne Schemaänderung, Text JSON mit "thema" vorn wie 
 
 Schema des Planer-Ergebnisses (JSON):
   {"nichts_zu_bauen": false,
-   "meilensteine": [{"schluessel": "M1", "titel": "…", "endet_mit": "vorfuehrung|bericht"}  |  {"schluessel": "M1", "bestehend": 52}],
+   "meilensteine": [{"schluessel": "M1", "titel": "…", "endet_mit": "vorfuehrung|bericht"}  |  {"schluessel": "M1", "bestehend": 3}],   (Projektnummer, M3)
    "pakete": [{"schluessel": "P1", "meilenstein": "M1", "titel": "…", "auftrag": "…", "groesse": "S|M|L|XL",
                "art": "text|mechanisch|fehlersuche|oberflaeche|sicherheit|konzept", "ausfuehrung": "agent|p",
                "modell": "haiku|sonnet|opus", "effort": "low|medium|high", "fertig_quelle": "commit|release|thema|dokument|frist|ja",

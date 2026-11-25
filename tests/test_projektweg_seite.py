@@ -657,6 +657,23 @@ class AenderungStarten(Grund):
         self.assertEqual((fein["zustand"], fein["bei_dir"], d["dran"]), ("dran", True, "fein"))
 
 
+class ZielDerAenderung(Grund):
+    def test_bestehend_ist_die_projektnummer(self):
+        """A2091: die Karte suchte die interne Id – „in Mnull“ oder ein falscher Meilenstein."""
+        with db.schreiben(self.con):
+            anderes = db.einfuegen(self.con, "projekt", name="Q", angelegt_utc=db.jetzt())
+        kern.agent_neu(self.con, anderes, "TLQ", rolle="lead")
+        fremd = planung.bogen_neu(self.con, anderes, "TLQ", "Fremder Meilenstein")          # gleiche Nummer, Id 1
+        m1, m2 = (planung.bogen_neu(self.con, self.pid, "TL", x) for x in ("Eigener erster", "Eigener zweiter"))
+        nr = {b: self.con.execute("SELECT nr FROM bogen WHERE id = ?", (b,)).fetchone()[0] for b in (fremd, m1, m2)}
+        self.assertEqual((nr[fremd], nr[m1], nr[m2]), (1, 1, 2))
+        self.assertNotIn(m2, (nr[m1], nr[m2]))                                              # Id und Nummer verschieden
+        paket = {"schluessel": "P1", "meilenstein": "M1", "titel": "Neu", "ausfuehrung": "p", "groesse": "S", "nach": []}
+        for n, titel in ((1, "Eigener erster"), (2, "Eigener zweiter")):
+            x = projektweg_seite._entwurf_karten(self.con, self.pid, {"meilensteine": [{"schluessel": "M1", "bestehend": n}], "pakete": [paket]})
+            self.assertEqual(x["ziele"], [{"nr": n, "titel": titel, "neu": False}])
+
+
 class KonzeptWiederOffen(Grund):
     """A2091 (10): wird das Konzept wieder offen, zeigt die Leiste weiter, was läuft."""
     def zeichen(self):

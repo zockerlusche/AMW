@@ -257,8 +257,8 @@ def _entwurf_karten(con, pid, d):
     def ziel(k):
         m = ms.get(k) or {}
         if m.get("bestehend"):
-            r = con.execute("SELECT nr, titel FROM bogen WHERE id = ? AND projekt_id = ?", (m["bestehend"], pid)).fetchone()
-            return {"nr": r["nr"] if r else None, "titel": r["titel"] if r else None, "neu": False}
+            r = con.execute("SELECT nr, titel FROM bogen WHERE projekt_id = ? AND nr = ?", (pid, m["bestehend"])).fetchone()   # die Projektnummer
+            return {"nr": m["bestehend"], "titel": r["titel"] if r else None, "neu": False}
         return {"nr": None, "titel": m.get("titel") or k, "neu": True}
     pakete = d.get("pakete") or []
     nach_key = {x.get("schluessel"): [v for v in x.get("nach") or [] if v in {y.get("schluessel") for y in pakete}] for x in pakete}
