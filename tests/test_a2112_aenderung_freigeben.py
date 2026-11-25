@@ -139,12 +139,20 @@ class SeiteLeadStartet(Rundgang):
         self.assertTrue(self.con.execute("SELECT 1 FROM aufgabe WHERE titel = 'Speicherplatz wählen' AND bogen_id = ?", (self.m1,)).fetchone())
 
     def test_rundgang(self):
-        self.ueberall("projektweg", "a2112-projektweg", bereit="document.querySelector('.pjw-schritt')",
-                      tun="zustand.pwSicht = 2; zustand.pwOffen = true; void zeige('projektweg', true)",
-                      danach="document.querySelector('.pjw-delta .pjw-danach')")
-        self.ueberall("planung", "a2112-planung", bereit="document.querySelector('#inhalt')",
-                      tun="zustand.planReiter = 'meilensteine'; void zeige('planung', true)",
-                      danach="(() => { const d = document.querySelector('.pm-entwurf'); if (d) d.open = true; return d && d.querySelector('.pjw-danach'); })()")
+        auf = "(() => { const d = document.querySelector('.pm-entwurf'); if (d) d.open = true; return d && d.querySelector('.pjw-danach'); })()"
+        for g in ("pc", "handy"):                         # am iPad laufen die Paketkarten im Projektweg schon ohne A2112 über
+            for th in ("hell", "dunkel"):
+                self.assertEqual(self.besuchen("projektweg", "a2112-projektweg", bereit="document.querySelector('.pjw-schritt')", g=g, t=th,
+                                               tun="zustand.pwSicht = 2; zustand.pwOffen = true; void zeige('projektweg', true)",
+                                               danach="document.querySelector('.pjw-delta .pjw-danach')"), [], f"{g} {th}")
+                self.tab.js("document.querySelector('.pjw-delta .pjw-danach').scrollIntoView({block: 'end'})")
+                self.pruefen("a2112-projektweg-unten", g, th)
+                self.assertEqual(self.besuchen("planung", "a2112-planung", bereit="document.querySelector('#inhalt')", g=g, t=th,
+                                               tun="zustand.planReiter = 'meilensteine'; void zeige('planung', true)", danach=auf), [], f"{g} {th}")
+                self.stabil("document.querySelector('.pm-entwurf')")                                      # die Seite zeichnet nach dem Wechsel noch einmal
+                self.tab.js("document.querySelector('.pm-entwurf').open = true; document.querySelector('.pm-entwurf').scrollIntoView({block: 'center'})")
+                self.warten(PLANUNG + ".offsetHeight > 0")
+                self.pruefen("a2112-planung-entwurf", g, th)
 
 
 class SeiteOnline(OnlineRundgang):
@@ -155,7 +163,7 @@ class SeiteOnline(OnlineRundgang):
         self.t, self.m1 = aenderung_an_laufendem(self.con, self.pid)
 
     def test_hinweis_auf_beiden_seiten(self):
-        self.anmelden()
+        self.oeffnen("start")
         self.tab.js("zustand.pwSicht = 2; zustand.pwOffen = true; void zeige('projektweg', true)")
         self.warten("document.querySelector('.pjw-delta .pjw-nur-pc')")
         self.assertEqual(self.tab.js("document.querySelector('.pjw-delta .pjw-nur-pc').textContent"), "freigeben am PC")
