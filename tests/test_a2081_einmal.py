@@ -153,7 +153,8 @@ class GleicheAntwort(Grund):
         for name, f in (("planung", lambda: workbench.daten_planung(self.con, self.pid)), ("projektweg", lambda: projektweg_seite.daten(self.con, self.pid)),
                         ("start", lambda: workbench.daten_start(self.con, self.pid))):
             with self.subTest(name), mock.patch("time.time", lambda: 1795900000.0), mock.patch.object(db, "jetzt", lambda: "2026-11-24T22:00:00Z"), \
-                    mock.patch("amw.betrieb.speicher_frei_gb", lambda *a: (32.0, None)):
+                    mock.patch("amw.betrieb.speicher_frei_gb", lambda *a: (32.0, None)), \
+                    mock.patch("amw.workbench.speicher_frei_gb", lambda *a: (32.0, None)):   # dort unter eigenem Namen geladen (L3667: 31,0 ≠ 31,1 GB)
                 ohne = json.dumps(f(), sort_keys=True, default=str)
                 with einmal.merken(self.con, schnappschuss=True):
                     mit = json.dumps(f(), sort_keys=True, default=str)
