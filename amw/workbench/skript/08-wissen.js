@@ -366,7 +366,8 @@ function pwUmsetzung(d) {
 const pwVorbehalt = v => v.art === "pruefer" ? v.text : t("pjw_vb_" + v.art + (v.n === 1 ? "1" : ""), { n: v.n });
 const pwTrotzdem = (liste, tun) => () => { if (confirm(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"))) tun(); };
 /* A2088 (Lead #32824): was beim Abnehmen dagegen spricht – auf Projektweg und Planung gleich. null: gerade geht es nicht. */
-const pwDagegen = (lage, zaehlt, vorbehalte) => ["laeuft", "bericht"].includes(lage) ? null : [...(zaehlt ? [t("pjw_l_" + lage)] : []), ...(vorbehalte || []).map(pwVorbehalt)];
+const pwDagegen = (lage, zaehlt, vorbehalte, alt) => ["laeuft", "bericht"].includes(lage) ? null
+  : [...(zaehlt ? [t("pjw_l_" + lage)] : []), ...(alt ? [t("pjw_a_alt")] : []), ...(vorbehalte || []).map(pwVorbehalt)];
 function pwUrteil(x, name, p) {
   /* je Thema ein Wort und ein kurzer Satz; Pakete, Commits und Dateien auf Klick */
   const z = x.zustand || (x.erfuellt ? "erfuellt" : "nicht_erfuellt");
@@ -402,10 +403,10 @@ function pwAbschlussKarte(x, einzig, haupt) {
   /* A2088: Vorbehalte über dem Knopf; gibt es welche, heißt er „Trotz Vorbehalt abnehmen“ und fragt nach. Verboten wird es nicht. */
   const vorbehalte = p ? p.vorbehalte.map(pwVorbehalt) : [], unpruefbar = x.lage === "nicht_pruefbar";
   if (p && p.alt) karte.append(el("div", { class: "leise pjw-a-alt" }, t("pjw_a_alt")));
-  if (vorbehalte.length) karte.append(el("div", { class: "pjw-vorbehalte" }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, vorbehalte.map(v => el("li", {}, v)))));
+  if (vorbehalte.length) karte.append(el("div", { class: "pjw-vorbehalte" + (x.bei_dir ? "" : " ruhig") }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, vorbehalte.map(v => el("li", {}, v)))));
   if (API) return karte;
   const abnehmen = () => pwTun("/api/meilenstein/freigeben", { bogen: x.bogen, art: "abschluss" }, t("pjw_ok_abgenommen"));
-  const fragen = pwDagegen(x.lage, x.lage_zaehlt, p?.vorbehalte) || [];
+  const fragen = pwDagegen(x.lage, x.lage_zaehlt, p?.vorbehalte, p?.alt) || [];
   /* Die Handlung dieser Karte: abnehmen (Prüfliste vollständig) – oder die Prüfung nachholen (A2064, TL #32217: Meilensteine,
      die vor A2029 bereit wurden, bekommen sie nie von selbst). Hauptknopf nur auf der ersten Karte (eine Hauptaktion je Ansicht). */
   const handlung = abnehmbar && !fragen.length ? pwKnopf(t("pjw_abnehmen_m", { m: pwM(x) }), abnehmen, haupt)

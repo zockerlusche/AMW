@@ -342,7 +342,7 @@ class Seite(Rundgang):
         with db.schreiben(self.con):
             abschluss._ereignis(self.con, self.pid, abschluss.ERGEBNIS, **{
                 "bogen": self.m1, "stand": abschlusslage.stand(self.con, b), "test": {"befehl": None, "lauf": None, "rc": None}, "ok": True,
-                "themen": [{"thema": f"TH{t}", "erfuellt": True, "beleg": "Szene"}], "vorfuehrung": [], "angelegt": {}, **werte})
+                "themen": [{"thema": f"TH{t}", "erfuellt": True, "beleg": "Szene"}], "vorfuehrung": [], "angelegt": {}, "belege": {"zweig": "main", "sha": "c" * 40, "pakete": []}, **werte})
 
     def zeigen(self):
         self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")

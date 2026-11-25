@@ -260,6 +260,17 @@ class Rechte(Grund):
             with mock.patch.object(abschlusslage, "lage", return_value="nicht_erfuellt"):
                 self.assertEqual(self.ja(kern.ENTWICKLER), {"frei": True})                  # der Mensch darf
 
+    def test_alte_pruefung_zaehlt_wie_ein_vorbehalt(self):
+        self.bereit()
+        with db.schreiben(self.con):                                                        # das Ergebnis wie von vor A2088: ohne belege
+            r = self.con.execute("SELECT id, text FROM plan_ereignis WHERE art = ? ORDER BY id DESC LIMIT 1", (abschluss.ERGEBNIS,)).fetchone()
+            self.con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?", (json.dumps({k: v for k, v in json.loads(r["text"]).items() if k != "belege"}), r["id"]))
+        self.assertEqual(self.lage(), "abnehmbar")
+        for von in ("CO", "TL"):
+            with self.assertRaisesRegex(kern.AmwFehler, "von vor dieser Version.*nur der Mensch"):
+                self.ja(von)
+        self.assertEqual(self.ja(kern.ENTWICKLER), {"frei": True})
+
     def test_planer_aus_fehlende_pruefung_wie_bisher(self):
         self.bereit()
         with mock.patch.object(abschlusslage, "lage", return_value="fehlt"), mock.patch.object(abschlusslage, "pruefer_geht", return_value=False):
@@ -394,6 +405,7 @@ class Seite(Rundgang):
         for teil in ("erfüllt – app/login.py, Funktion login", "kein Gesamttest eingestellt – Projekt-Einstellung", "1 Paket: Commit gefunden, liegt aber nicht auf main", "Der Ausfall des Firmenkontos"):
             self.assertIn(teil, text)
         self.assertEqual(text.count("kein Gesamttest eingestellt"), 1)
+        self.assertFalse(self.tab.js("document.querySelector('.pjw-vorbehalte').classList.contains('ruhig')"))
         knopf = "[...document.querySelectorAll('.pjw-ansicht button')].find(b => b.textContent === t('pjw_trotzdem'))"
         self.assertTrue(self.tab.js(f"!!{knopf} && {knopf}.getBoundingClientRect().top > document.querySelector('.pjw-vorbehalte').getBoundingClientRect().bottom"))
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.pjw-ansicht button')].filter(b => b.textContent.startsWith(t('pjw_abnehmen_m', { m: '' }).trim())).length"), 0)
@@ -420,6 +432,34 @@ class Seite(Rundgang):
             self.assertEqual(fehler, [], f"{g} {th}")
 
 
+class SeiteAlt(Seite):
+    """Eine Prüfung von vor dieser Version: „Trotz Vorbehalt abnehmen“, der Satz steht in der Rückfrage – auf beiden Seiten."""
+    def daten(self):
+        super().daten()
+        with db.schreiben(self.con):
+            r = self.con.execute("SELECT id, text FROM plan_ereignis WHERE art = ? ORDER BY id DESC LIMIT 1", (abschluss.ERGEBNIS,)).fetchone()
+            self.con.execute("UPDATE plan_ereignis SET text = ? WHERE id = ?",
+                             (json.dumps({k: v for k, v in json.loads(r["text"]).items() if k not in ("belege", "vorbehalte")}), r["id"]))
+
+    def test_vorbehalt_ueber_dem_knopf_mit_rueckfrage(self):
+        self.assertIn("Prüfung von vor dieser Version", self.auf())
+        knopf = "[...document.querySelectorAll('.pjw-ansicht button')].find(b => b.textContent === t('pjw_trotzdem'))"
+        self.assertFalse(self.tab.js("[...document.querySelectorAll('.pjw-ansicht button')].some(b => b.textContent === t('pjw_abnehmen_m', { m: 'M1' }))"))
+        self.tab.js(f"window.confirm = x => (window._frage = x, false); {knopf}.click()")
+        self.assertIn("der Prüfer sah den Code nicht", self.tab.js("window._frage"))
+        self.oeffnen("planung", "document.querySelector('#inhalt .pm-zeile')")
+        self.tab.js(f"document.querySelector('#inhalt .th-zeile[data-ms=\"{self.m}\"]').click()")
+        self.warten("document.querySelector('[data-h=ab-ja]')")
+        self.tab.js("window.confirm = x => (window._frage2 = x, false); document.querySelector('[data-h=ab-ja]').click()")
+        self.assertIn("der Prüfer sah den Code nicht", self.tab.js("window._frage2"))
+        self.assertEqual(self.con.execute("SELECT status FROM bogen WHERE id = ?", (self.m,)).fetchone()[0], "aktiv")
+
+    def test_rundgang(self):
+        fehler = self.besuchen("projektweg", "projektweg-alt", bereit="document.querySelector('.pjw-schritt')",
+                               tun="zustand.pwSicht = 4; zustand.pwOffen = true; zeige('projektweg', true)", danach="document.querySelector('.pjw-ab-karte')", g="handy", t="hell")
+        self.assertEqual(fehler, [])
+
+
 class SeiteNichtPruefbar(Seite):
     BELEG = "fehlt"
 
@@ -434,6 +474,7 @@ class SeiteNichtPruefbar(Seite):
         for teil in ("nicht prüfbar – 1 Paket ohne gefundenen Commit", "Nicht prüfbar, der Lead klärt die Belege."):
             self.assertIn(teil, text)
         self.assertNotIn("wartet auf dich", text)                                           # zuerst der Lead (B2938)
+        self.assertTrue(self.tab.js("document.querySelector('.pjw-vorbehalte').classList.contains('ruhig')"))     # Farbe nur, wenn der Mensch dran ist
         knopf = "[...document.querySelectorAll('.pjw-ansicht button')].find(b => b.textContent === t('pjw_trotzdem'))"
         self.assertFalse(self.tab.js(f"{knopf}.classList.contains('haupt')"))
         self.assertTrue(self.tab.js(f"!!{knopf}"))                                          # verboten ist es dem Menschen nicht

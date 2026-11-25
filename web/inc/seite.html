@@ -1347,7 +1347,7 @@ button.pjw-karte:hover { background: var(--flaeche2); }
 .pjw-pruefung > div { display: grid; grid-template-columns: 22px minmax(0, 1fr); }
 .pjw-ok { color: var(--gruen); } .pjw-nein { color: var(--bernstein); }
 .pjw-beleg summary { cursor: pointer; } .pjw-beleg-paket { padding: 6px 0 0 14px; font-size: 14px; overflow-wrap: anywhere; }
-.pjw-vorbehalte { border-left: 3px solid var(--bernstein); padding: 4px 0 4px 12px; } .pjw-vorbehalte ul { margin: 4px 0 0; padding-left: 18px; } .pjw-vorbehalte li { overflow-wrap: anywhere; }
+.pjw-vorbehalte { border-left: 3px solid var(--bernstein); padding: 4px 0 4px 12px; } .pjw-vorbehalte.ruhig { border-left-color: var(--linie2); } .pjw-vorbehalte ul { margin: 4px 0 0; padding-left: 18px; } .pjw-vorbehalte li { overflow-wrap: anywhere; }
 .pjw-ums { display: flex; flex-direction: column; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid var(--linie); }
 .pjw-fertig summary { cursor: pointer; color: var(--leise); font-size: 14px; padding: 4px 0; }
 .pjw-ab-karte { cursor: default; gap: 10px; }
@@ -4646,7 +4646,8 @@ function pwUmsetzung(d) {
 const pwVorbehalt = v => v.art === "pruefer" ? v.text : t("pjw_vb_" + v.art + (v.n === 1 ? "1" : ""), { n: v.n });
 const pwTrotzdem = (liste, tun) => () => { if (confirm(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"))) tun(); };
 /* A2088 (Lead #32824): was beim Abnehmen dagegen spricht – auf Projektweg und Planung gleich. null: gerade geht es nicht. */
-const pwDagegen = (lage, zaehlt, vorbehalte) => ["laeuft", "bericht"].includes(lage) ? null : [...(zaehlt ? [t("pjw_l_" + lage)] : []), ...(vorbehalte || []).map(pwVorbehalt)];
+const pwDagegen = (lage, zaehlt, vorbehalte, alt) => ["laeuft", "bericht"].includes(lage) ? null
+  : [...(zaehlt ? [t("pjw_l_" + lage)] : []), ...(alt ? [t("pjw_a_alt")] : []), ...(vorbehalte || []).map(pwVorbehalt)];
 function pwUrteil(x, name, p) {
   /* je Thema ein Wort und ein kurzer Satz; Pakete, Commits und Dateien auf Klick */
   const z = x.zustand || (x.erfuellt ? "erfuellt" : "nicht_erfuellt");
@@ -4682,10 +4683,10 @@ function pwAbschlussKarte(x, einzig, haupt) {
   /* A2088: Vorbehalte über dem Knopf; gibt es welche, heißt er „Trotz Vorbehalt abnehmen“ und fragt nach. Verboten wird es nicht. */
   const vorbehalte = p ? p.vorbehalte.map(pwVorbehalt) : [], unpruefbar = x.lage === "nicht_pruefbar";
   if (p && p.alt) karte.append(el("div", { class: "leise pjw-a-alt" }, t("pjw_a_alt")));
-  if (vorbehalte.length) karte.append(el("div", { class: "pjw-vorbehalte" }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, vorbehalte.map(v => el("li", {}, v)))));
+  if (vorbehalte.length) karte.append(el("div", { class: "pjw-vorbehalte" + (x.bei_dir ? "" : " ruhig") }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, vorbehalte.map(v => el("li", {}, v)))));
   if (API) return karte;
   const abnehmen = () => pwTun("/api/meilenstein/freigeben", { bogen: x.bogen, art: "abschluss" }, t("pjw_ok_abgenommen"));
-  const fragen = pwDagegen(x.lage, x.lage_zaehlt, p?.vorbehalte) || [];
+  const fragen = pwDagegen(x.lage, x.lage_zaehlt, p?.vorbehalte, p?.alt) || [];
   /* Die Handlung dieser Karte: abnehmen (Prüfliste vollständig) – oder die Prüfung nachholen (A2064, TL #32217: Meilensteine,
      die vor A2029 bereit wurden, bekommen sie nie von selbst). Hauptknopf nur auf der ersten Karte (eine Hauptaktion je Ansicht). */
   const handlung = abnehmbar && !fragen.length ? pwKnopf(t("pjw_abnehmen_m", { m: pwM(x) }), abnehmen, haupt)
@@ -5662,7 +5663,7 @@ function pmStand(pa) {
 }
 function pmAbschluss(x, tun) {                                 /* K7 (A1944): Abschlussbericht und Ja dazu */
   const ab = x.abschluss, k = el("div", { class: "th-kasten" }), ja = () => tun("freigeben", { art: "abschluss" }, t("pm_ab_ok"));
-  const dagegen = pwDagegen(ab.lage, ab.lage_zaehlt, ab.vorbehalte), fragen = dagegen || [];   /* A2088: wie auf Projektweg */
+  const dagegen = pwDagegen(ab.lage, ab.lage_zaehlt, ab.vorbehalte, ab.alt), fragen = dagegen || [];   /* A2088: wie auf Projektweg */
   return el("div", { class: "pm-abschluss", "data-ab": ab.frei ? "frei" : ab.bericht ? "wartet" : "kommt" },
     el("div", { class: "pm-entwuerfe-kopf" }, t("pm_ab_kopf")),
     ab.bericht ? el("div", {}, el("a", { href: "#", class: "ref", onclick: e => { e.preventDefault(); dokumentDialog(ab.bericht); } }, "D" + ab.bericht),
@@ -5670,8 +5671,7 @@ function pmAbschluss(x, tun) {                                 /* K7 (A1944): Ab
     ab.frei ? el("div", { class: "sehrleise" }, t("pm_ab_frei", { x: ab.durch ? t("pm_co_lead", { x: ab.durch.join(", ") }) : ab.von === "Entwickler" ? t("pm_du") : ab.von }))
       : ab.ja_fehlt?.length ? el("div", { class: "pm-ja-fehlt sehrleise" }, t("pm_ja_fehlt", { x: ab.ja_fehlt.join(", ") })) : null,
     !ab.frei && ab.notiz ? el("div", { class: "th-grund" }, t("pm_zurueck_notiz", { x: ab.notiz })) : null,
-    ab.alt ? el("div", { class: "sehrleise" }, t("pjw_a_alt")) : null,
-    fragen.length ? el("div", { class: "pjw-vorbehalte" }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, fragen.map(v => el("li", {}, v)))) : null,
+    fragen.length ? el("div", { class: "pjw-vorbehalte" + (x.bei_dir || !ab.lage ? "" : " ruhig") }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, fragen.map(v => el("li", {}, v)))) : null,
     !ab.frei && ab.bericht && !API ? el("div", { class: "th-knoepfe" },
       dagegen ? el("button", { class: "klein-knopf" + (ab.lage_zaehlt ? "" : " haupt"), type: "button", "data-h": "ab-ja", onclick: fragen.length ? pwTrotzdem(fragen, ja) : ja }, t(fragen.length ? "pjw_trotzdem" : "pm_ab_ja"))
         : el("span", { class: "leise" }, t("pjw_ll_" + ab.lage)),

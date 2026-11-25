@@ -172,15 +172,16 @@ def freigeben(con, pid, von, bid, art):
 
 def vorbehalte(con, pid, b):
     """A2088: was beim Abnehmen dagegen spricht: {"liste": Vorbehalte des gültigen Prüf-Ergebnisses [{"art", "n" | "text"}], "alt":
-    Prüfung von vor dieser Version, "lage" (abschlusslage), "lage_zaehlt": sie zählt wie ein Vorbehalt, "nur_mensch": Co und Lead
+    Prüfung von vor dieser Version (zählt wie ein Vorbehalt, Lead #32841), "lage" (abschlusslage), "lage_zaehlt": sie zählt wie ein Vorbehalt, "nur_mensch": Co und Lead
     dürfen nicht allein abnehmen, "warum"}. Ein fertiger Meilenstein hat keine Lage mehr."""
     from . import abschluss, abschlusslage
     offen = b["status"] != "fertig"
     e = (abschlusslage.ergebnis(con, pid, b) if offen else abschluss.ergebnis(con, pid, b["id"])) or {}
     lage = abschlusslage.lage(con, pid, b) if offen else None
-    zaehlt, liste = abschlusslage.wie_vorbehalt(con, pid, lage), e.get("vorbehalte") or []
-    return {"liste": liste, "alt": abschluss.alt(e), "lage": lage, "lage_zaehlt": zaehlt, "nur_mensch": bool(liste or zaehlt or e.get("nicht_pruefbar")),
-            "warum": abschlusslage.TEXT[lage] if lage and zaehlt else "die Abschlussprüfung hat Vorbehalte"}
+    zaehlt, liste, alt = abschlusslage.wie_vorbehalt(con, pid, lage), e.get("vorbehalte") or [], abschluss.alt(e)
+    return {"liste": liste, "alt": alt, "lage": lage, "lage_zaehlt": zaehlt, "nur_mensch": bool(liste or zaehlt or alt or e.get("nicht_pruefbar")),
+            "warum": abschlusslage.TEXT[lage] if lage and zaehlt else "die Prüfung ist von vor dieser Version, der Prüfer sah den Code nicht" if alt
+            else "die Abschlussprüfung hat Vorbehalte"}
 
 
 def zurueck(con, pid, von, bid, art, notiz):

@@ -983,7 +983,7 @@ die der Lead nur noch bestätigt oder ändert.
   fragt nach. Mit Vorbehalt nimmt nur der Mensch ab, Co und Lead nicht allein (`planansicht.freigeben`). Alles außer „abnehmbar“ zählt
   genauso (Prüfung fehlt, ging nicht, nicht erfüllt, nicht prüfbar, läuft), auf Projektweg und Planung gleich; nur „Prüfung fehlt“ bei
   ausgeschaltetem Planer nicht.
-  Ergebnisse von vor A2088 heißen „Prüfung von vor dieser Version“; von selbst prüft die AMW nicht nach, `amw bogen pruefung-starten N`
+  Ergebnisse von vor A2088 heißen „Prüfung von vor dieser Version“ und zählen wie ein Vorbehalt; von selbst prüft die AMW nicht nach, `amw bogen pruefung-starten N`
   geht dann (auch nach „nicht prüfbar“ und wenn der Grund eines Vorbehalts der AMW behoben sein kann; nicht für eine zweite Meinung).
 - **Antwort lesen (A2072):** Die Antwort des Prüfers wird als JSON gelesen, auch mit Text drumherum oder im Codeblock. Passt sie
   nicht zum Schema, bekommt der Prüfer die Funde einmal zurück und antwortet neu (Kosten zusammen, die Tagesgrenze gilt auch
