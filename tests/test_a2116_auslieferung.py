@@ -254,6 +254,7 @@ class Seite(a2082.Seite):
         self.warten(self.PLANUNG)
 
     def test_kein_knopf_bis_zur_auslieferung(self):
+        self.groesse("pc")                                # am Handy steht der Verlauf nicht daneben
         self.zeigen()
         self.assertEqual(self.tab.js("document.querySelector('.pjw-ab-karte').dataset.lage"), "auslieferung")
         self.assertIn(f"wartet auf Auslieferung (A{self.aids[0]}", self.leiste())
