@@ -717,7 +717,7 @@ class AbbruchBeimAnwenden(BlockGrund):
 
     def test_noch_nicht_angelegte_neue_pakete_stehen_da(self):
         from amw import planung, projektweg_seite
-        fuenf = [{**self.paket("M1"), "schluessel": f"N{i}", "titel": t} for i, t in enumerate(
+        fuenf = [{**self.paket("M1"), "schluessel": f"N{i}", "titel": t, "bereiche": f"app/passkey_{i}.py"} for i, t in enumerate(   # A2133: je eine Datei
             ("Schlüssel speichern", "Anzeige im Profil", "Gerät entfernen", "Mail bei neuem Gerät", "Hilfe schreiben"))]
         self.entwurf(neu=False, pakete=fuenf)
         echt, n = planung.schritt_setzen, [0]
