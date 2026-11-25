@@ -120,8 +120,10 @@ class Klick(Rundgang):
         self.seite("pc")
         pos = self.tab.js(f"(() => {{ const r = {KNOPF}.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }})()")
         self.tab.senden("Input.dispatchMouseEvent", type="mousePressed", x=pos[0], y=pos[1], button="left", clickCount=1)
-        self.tab.js("window.__vorher = " + KNOPF + "; pwStand = null; frischZeichnen(true)")     # als hätte sich etwas geändert
+        self.tab.js("window.__zeige = 0; const alt = zeige; zeige = (...a) => { window.__zeige++; return alt(...a); };"
+                    "window.__vorher = " + KNOPF + "; pwStand = null; frischZeichnen(true)")     # als hätte sich etwas geändert
         self.bleibt_stehen()
+        self.assertEqual(self.tab.js("window.__zeige"), 0)                               # auch nicht begonnen: andere Seiten leeren sich zuerst
         self.tab.senden("Input.dispatchMouseEvent", type="mouseReleased", x=pos[0], y=pos[1], button="left", clickCount=1)
         self.assertFalse(self.tab.js("haeltGedrueckt()"))                                # losgelassen: sofort wieder frei, nicht erst nach 3 s
         self.warten(ZULETZT)
