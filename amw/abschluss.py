@@ -16,7 +16,8 @@ den nächsten Meilenstein von selbst fein (A2031). Ist der Planer aus, bleibt es
 Ereignisse (plan_ereignis, Text JSON):
   abschluss_angestossen  {"bogen", "stand", "prozess"}
   abschluss_ergebnis     {"bogen", "stand", "test": {"lauf", "rc", "befehl"}, "themen": [...], "vorfuehrung": [...],
-                          "ok": bool, "angelegt": {"N1": "A123"}, "usd", "fehler"?}
+                          "ok": bool, "angelegt": {"N1": "A123"}, "usd", "fehler"?,
+                          "unpassend"?: [{"titel", "auftrag", "gruende"}]}   (A2139: vorgeschlagene Nacharbeit, die nicht angelegt ist)
 
 Schema des Prüfers (JSON):
   {"themen": [{"thema": "TH12", "erfuellt": true, "beleg": "Datei und Stelle, die es zeigt", "fehlt": "…" | null}],
@@ -46,6 +47,9 @@ im Ergebnis (vorbehalte); mit Vorbehalt nimmt nur der Mensch ab (planansicht.fre
 A2098: „fertig, wenn“ zählt immer, nicht nur ohne Themen. Verlangt es etwas, das kein Code zeigt, braucht es einen Nachweis – Dokumente
 am Meilenstein und an seinen Paketen und beantwortete Fragen zu seinen Paketen (nachweise.md). Fehlt er, ist „fertig, wenn“ nicht
 prüfbar: keine Nacharbeit von selbst, Meldung an den Lead.
+
+A2139: passt nur die Nacharbeit nicht, gilt das Urteil. Jedes Paket zählt für sich: die passenden legt die AMW an, die unpassenden gehen
+mit Text und Grund an den Lead (unpassend). Ist das Urteil selbst ungültig, bleibt es bei der einen Nachbesserung (A2072).
 """
 import datetime
 import json
@@ -220,7 +224,7 @@ def vor_bereit(con, pid, b, stand, erneut=False):
     if e and erneut and erneut_moeglich(con, pid, e):
         e = None
     if e:
-        return "melden" if e.get("ok") or e.get("fehler") or e.get("grenze") or (e.get("nicht_pruefbar") and not e.get("angelegt")) else "nacharbeit"
+        return "nacharbeit" if e.get("angelegt") else "melden"                    # A2139: ist nichts angelegt, wartet auch niemand darauf
     if os.environ.get("AMW_PLANER_AUS") or planer.schalter_text(con, pid):
         return "melden"                                  # ohne Planer wie bisher: gleich bereit
     with db.schreiben(con):
@@ -458,8 +462,8 @@ def pruefer(con, pid, b, test, prog=None, zusatz=None, nachbessern=None, bef=Non
 
 
 def pruefer_mit_nachbesserung(con, pid, b, test, prog=None, zusatz=None, bef=None):
-    """A2072: Prüfer; passt die Antwort nicht (_pruefen), geht der Fund EINMAL zurück an ihn – erst die zweite unpassende Antwort
-    wird „Abschlussprüfung ging nicht“. Kosten beider Läufe zählen zusammen."""
+    """A2072: Prüfer; passt das Urteil nicht (_pruefen), geht der Fund EINMAL zurück an ihn – erst die zweite unpassende Antwort
+    wird „Abschlussprüfung ging nicht“. Kosten beider Läufe zählen zusammen. Passt nur die Nacharbeit nicht, gilt die Antwort (A2139)."""
     from . import planer
     mit = {"bef": bef} if bef else {}
     aus = pruefer(con, pid, b, test, prog=prog, zusatz=zusatz, **mit)
@@ -557,9 +561,34 @@ def _mit_belegen(e, bef, themen, rot, test):
         e["pakete"] = [{**p, "nach": [n for n in p["nach"] if n not in raus]} for p in e["pakete"] if p["schluessel"] not in raus]
 
 
+def _nacharbeit_teilen(nach, con, pid, b):
+    """A2139: jedes vorgeschlagene Paket für sich gegen das Feinplan-Schema. (angenommene, unpassende [{"titel", "auftrag", "gruende"}]).
+    Ein Paket, das auf ein unpassendes wartet, ist auch unpassend – allein gestartet wäre es zu früh dran."""
+    from . import feinplanung, planer
+    offen, gut, pakete, gruende = list(enumerate(nach if isinstance(nach, list) else [nach])), [], [], {}
+    weiter = True
+    while offen and weiter:                               # so lange, bis keins mehr dazukommt: ein Vorgänger darf auch später in der Liste stehen
+        weiter = False
+        for i, p in list(offen):
+            try:
+                pakete = feinplanung.pruefen({"pakete": [*gut, p]}, con, pid, [b["id"]])["pakete"]
+            except planer.PlanFehler as x:
+                gruende[i] = list(x.fehler)
+                continue
+            gut.append(p)
+            offen.remove((i, p))
+            weiter = True
+    unpassend = []
+    for i, p in offen:
+        o = p if isinstance(p, dict) else {}
+        unpassend.append({"titel": str(o.get("titel") or o.get("schluessel") or f"Paket {i + 1}")[:120],
+                          "auftrag": str(o.get("auftrag") or "") if o else json.dumps(p, ensure_ascii=False), "gruende": gruende[i][:10]})
+    return pakete, unpassend
+
+
 def _pruefen(daten, con, pid, b, rot):
     """Prüft das Ergebnis des Prüfers: jedes Thema bewertet, dazu „fertig, wenn“ bzw. das Ziel (A2098); Nacharbeit (Feinplan-Schema) genau dann,
-    wenn etwas fehlt oder der Test rot ist. Rückgabe vereinheitlicht oder planer.PlanFehler."""
+    wenn etwas fehlt oder der Test rot ist. Passt nur sie nicht, gilt das Urteil (unpassend, A2139). Rückgabe vereinheitlicht oder planer.PlanFehler."""
     from . import feinplanung, planer
     daten = _lesen(daten)
     f, themen = [], feinplanung.themen_der(con, pid, b)
@@ -593,19 +622,16 @@ def _pruefen(daten, con, pid, b, rot):
     offen = rot or not all(x["erfuellt"] for x in bewertet.values()) or bool(ziel and not ziel["erfuellt"] and not ziel["nicht_pruefbar"])
     ok = not offen and (ziel is None or ziel["erfuellt"])
     nach = daten.get("nacharbeit") or []
-    pakete = None
+    pakete, unpassend = None, []
     if offen:                                             # A2098: ist nur „fertig, wenn“ nicht prüfbar, gibt es keine Nacharbeit
         if not nach:
             f.append("nicht erfüllt oder Test rot, aber keine nacharbeit")
         else:
-            try:
-                pakete = feinplanung.pruefen({"pakete": nach}, con, pid, [b["id"]])["pakete"]
-            except planer.PlanFehler as x:
-                f += [f"nacharbeit: {m}" for m in x.fehler]
+            pakete, unpassend = _nacharbeit_teilen(nach, con, pid, b)
     if f:
-        raise planer.PlanFehler(f)
+        raise planer.PlanFehler(f + [f"nacharbeit: {m}" for x in unpassend for m in x["gruende"]])
     return {"themen": [bewertet[x] for x in themen], "vorfuehrung": vf, "ok": ok, "pakete": pakete, "vorbehalte": vorbehalte,
-            **({"ziel": ziel} if ziel else {})}
+            **({"ziel": ziel} if ziel else {}), **({"unpassend": unpassend} if unpassend else {})}
 
 
 def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None, roh=None, nachgebessert=None, bef=None):
@@ -627,9 +653,9 @@ def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None, roh=
                                                   "mehr": p["mehr"] or len(p["dateien"]) > DATEIEN_IM_ERGEBNIS} for p in bef["pakete"]]}
         except planer.PlanFehler as x:
             fehler = "; ".join(x.fehler)[:500]
-    if e is None and rot:                                 # rot ohne brauchbare Nacharbeit: ein Paket „Gesamttest rot“
+    if rot and (e is None or not e["pakete"]):            # rot ohne brauchbare Nacharbeit: ein Paket „Gesamttest rot“ – ein gültiges Urteil bleibt (A2139)
         th = feinplanung.themen_der(con, pid, b)
-        e = {"themen": [], "vorfuehrung": [], "ok": False, "pakete": [{
+        e = {**(e or {"themen": [], "vorfuehrung": [], "ok": False}), "pakete": [{
             "schluessel": "N1", "meilenstein": f"M{b['nr']}", "thema": th[0] if th else None, "nach": [],
             "titel": f"Gesamttest rot beheben (L{test.get('lauf')})"[:120],
             "auftrag": f"Der Gesamttest zum Abschluss von Meilenstein {b['nr']} ist rot (L{test.get('lauf')}, rc {test.get('rc')}). Ursache"
@@ -654,7 +680,7 @@ def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None, roh=
     werte.update({"themen": (e or {}).get("themen") or [], "vorfuehrung": (e or {}).get("vorfuehrung") or [],
                   "ok": bool(e and e["ok"]), "angelegt": angelegt, **({"fehler": fehler} if fehler and not angelegt else {}),
                   **({"grenze": True} if grenze else {}),
-                  **{k: e[k] for k in ("vorbehalte", "nicht_pruefbar", "vorschlaege") if e and e.get(k)}})
+                  **{k: e[k] for k in ("vorbehalte", "nicht_pruefbar", "vorschlaege", "unpassend") if e and e.get(k)}})
     lead = kern.lead(con, pid) or kern.ENTWICKLER
     with db.schreiben(con):
         eid = _ereignis(con, pid, ERGEBNIS, **werte)
@@ -677,9 +703,22 @@ def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None, roh=
             kern._posten(con, pid, "AMW", lead, "meldung", f"Meilenstein {b['nr']}: Abschlussprüfung ging nicht"[:140],
                          f"{fehler}\nDie Prüfung gegen das Konzept fehlt im Bericht; der Meilenstein wartet noch nicht auf die Abnahme."
                          f" Ursache klären, dann erneut starten: amw bogen pruefung-starten M{b['nr']}")   # A2082
+        if werte.get("unpassend"):
+            _meldung_unpassend(con, pid, b, lead, werte["unpassend"])
         if werte.get("nicht_pruefbar"):
             _meldung_nicht_pruefbar(con, pid, b, lead, werte)
     return {**werte, "id": eid}
+
+
+def _meldung_unpassend(con, pid, b, lead, unpassend):
+    """A2139: Nacharbeit, die nicht zu den Regeln passt – mit Text und Grund an den Lead."""
+    n = len(unpassend)
+    kern._posten(con, pid, "AMW", lead, "meldung", (f"Meilenstein {b['nr']}: " + ("1 Nacharbeits-Paket passt nicht und ist" if n == 1 else
+                                                    f"{n} Nacharbeits-Pakete passen nicht und sind") + " nicht angelegt")[:140],
+                 f"Das Urteil der Prüfung gilt. {'Dieses vorgeschlagene Paket passt' if n == 1 else 'Diese vorgeschlagenen Pakete passen'} nicht zu den Regeln,"
+                 f" die AMW hat {'es' if n == 1 else 'sie'} nicht angelegt. Schneide {'es' if n == 1 else 'sie'} passend oder lass planen:"
+                 f" amw bogen nacharbeit M{b['nr']} --hinweis …"
+                 + "".join(f"\n\n{x['titel']}\n{x['auftrag']}\nGrund: {'; '.join(x['gruende'])}" for x in unpassend))
 
 
 def _meldung_nicht_pruefbar(con, pid, b, lead, w):
@@ -753,6 +792,7 @@ def bericht_teil(con, pid, bid):
         z.append(f"Prüfer: erste Antwort passte nicht ({len(e['nachgebessert'])} Funde) – einmal nachgebessert")
     if e.get("grenze"):
         z.append(f"Nach {MAX_RUNDEN} automatischen Nacharbeits-Runden noch offen – keine weitere Nacharbeit angelegt:")
+    z += [f"Nicht angelegt, beim Lead: „{x['titel']}“ – {'; '.join(x['gruende'])}" for x in e.get("unpassend") or []]
     vorher = alt(con, e)
     if vorher:
         z.append("Prüfung von vor dieser Version: " + ("ohne geprüfte Belege, der Prüfer sah keinen Code." if vorher == "code" else "„fertig, wenn“ ist nicht beurteilt."))

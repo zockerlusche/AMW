@@ -949,7 +949,9 @@ die der Lead nur noch bestätigt oder ändert.
 
 - **Gesperrte Bereiche und eine Nachbesserung (A2067):** Der Feinplaner bekommt `sperrliste.md` – die feste Sperrliste
   (`abnahme.GESPERRT`), die Testdateien und die Sperrmuster des Projekts – mit der Regel: ein p-Paket nennt keinen gesperrten Pfad,
-  Testdateien nur mit `pakettyp` test-schreiben/test-ergaenzen, sonst `agent` mit `interaktiv_grund` „gesperrter Bereich“. Passt
+  Testdateien nur mit `pakettyp` test-schreiben/test-ergaenzen, sonst `agent` mit `interaktiv_grund` „gesperrter Bereich“. Hat ein
+  p-Paket Testdateien in den Bereichen und keinen Testtyp, setzt die AMW ihn selbst auf test-schreiben, auch bei Planer und
+  Abschlussprüfung (A2139, `planer.typ_mit_tests`). Passt
   seine Antwort nicht zum Schema, gehen die Funde einmal automatisch an ihn zurück (zweiter Lauf, Kosten zählen zusammen); erst
   wenn auch die zweite nicht passt, steht „Plan passte nicht“ da.
 
@@ -1013,7 +1015,9 @@ die der Lead nur noch bestätigt oder ändert.
   schlägt bei Lücken oder rotem Test Nacharbeits-Pakete nach dem Feinplan-Schema vor (`abschluss_ergebnis`).
 - **Danach:** Erfüllt und grün → „bereit zur Abnahme“; der Abschlussbericht enthält Gesamttest, Prüfung je Thema und Vorführung.
   Sonst legt die AMW die Nacharbeit im selben Meilenstein an und startet sie ohne neues Start-Ja (bei rotem Test ohne
-  Vorschlag: ein Paket „Gesamttest rot beheben“); Meldung an den Lead, Info an den Menschen. Danach prüft sie erneut. Ging der
+  Vorschlag: ein Paket „Gesamttest rot beheben“); Meldung an den Lead, Info an den Menschen. Danach prüft sie erneut. Passt nur
+  die vorgeschlagene Nacharbeit nicht zu den Regeln, gilt das Urteil trotzdem (A2139): jedes Paket zählt für sich, die passenden legt
+  die AMW an, die unpassenden (und was auf sie wartet) gehen mit Text und Grund an den Lead und stehen im Abschlussbericht. Ging der
   Prüfer nicht, klärt es der Lead (siehe „Wer ist dran“).
 - **Erst ausgeliefert, dann abgenommen (A2116, `auslieferstand.fehlt`):** Sind Versionen Pflicht, fragt die AMW je fertiges Paket, ob sein
   Commit in der höchsten eingetragenen Version steckt (Beleg, sonst Commits mit Betreff „A<nr>:“). Pakete ohne eigenen Code brauchen keine

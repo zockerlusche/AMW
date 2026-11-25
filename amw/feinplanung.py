@@ -38,6 +38,7 @@ Schema des Feinplans (JSON):
   bekommt mindestens ein Paket. p ist die Vorgabe (A2004): ein Paket der Größe S – oder M bei Art mechanisch –, das keine
   Oberfläche ist, läuft mit "ausfuehrung": "p", mit "abnahme_befehl" und engen "bereiche"; "agent" nur mit "interaktiv_grund".
   "lead_liest": true bei Urteils-Arbeit (Konzepttexte, Architektur) – das Paket nimmt die AMW nie selbst ab (A2054).
+  Ein p-Paket mit Testdatei in "bereiche" setzt die AMW selbst auf test-schreiben, wenn kein Testtyp angegeben ist (A2139).
   "nach": erst wenn das andere Paket gemergt ist. Die Arbeitsschritte im Paket plant niemand vorher.
 """
 import datetime
@@ -396,7 +397,8 @@ def sperrliste_text(con, pid):
     projekt = [f"- `{m}` – Sperrmuster des Projekts" for m in abnahme.projekt_muster(con, pid)]
     return ("# Gesperrte Bereiche – ein p-Paket ändert sie nie\n\n"
             "Regel: Ein Paket mit \"ausfuehrung\": \"p\" nennt in \"bereiche\" keinen dieser Pfade. Testdateien nur mit \"pakettyp\": "
-            "\"test-schreiben\" oder \"test-ergaenzen\" (oder ein eigenes Test-Paket als Vorgänger). Braucht ein Paket einen anderen "
+            "\"test-schreiben\" oder \"test-ergaenzen\" (oder ein eigenes Test-Paket als Vorgänger); fehlt der Typ, setzt die AMW selbst auf "
+            "test-schreiben. Braucht ein Paket einen anderen "
             "gesperrten Pfad, läuft es als \"agent\" mit \"interaktiv_grund\": \"gesperrter Bereich\".\n\n"
             "## Testdateien\n\n" + ("\n".join(test) or "(keine)") + "\n\n## Immer gesperrt\n\n" + ("\n".join(fest) or "(keine)")
             + "\n\n## Muster des Projekts\n\n" + ("\n".join(projekt) or "(keine)") + "\n")

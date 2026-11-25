@@ -29,6 +29,7 @@ Schema des Planer-Ergebnisses (JSON):
   gesperrter Bereich, Marcels Auge) – sonst meldet die AMW beim Ja „Achtung“. "lead_liest": true bei Urteils-Arbeit (Konzepttexte,
   Architektur): dieses Paket nimmt die AMW nie selbst ab, der Lead liest es (A2054, TH167 F4). Pakete, die gleichzeitig laufen können
   (ohne "nach" dazwischen, auch mittelbar), ändern nie dieselben Dateien: legt sie hintereinander oder trennt die Bereiche (A2133).
+  Ein p-Paket mit Testdatei in "bereiche" setzt die AMW selbst auf test-schreiben, wenn kein Testtyp angegeben ist (A2139).
 """
 import difflib
 import functools
@@ -132,6 +133,15 @@ def gebaut_zum_thema(con, pid, tid):
     """Fertige Pakete, die auf das Thema verweisen: [(id, titel)]."""
     from . import themen
     return [(a["id"], a["titel"]) for a in themen.aufgaben_zu(con, pid, tid, alle=True) if a["status"] == "fertig"]
+
+
+def typ_mit_tests(bereiche, typ):
+    """A2139: der Pakettyp eines p-Pakets – Testdateien in den Bereichen sind nur mit einem Testtyp frei, also ist es test-schreiben.
+    Eine Regel für Planer, Feinplaner und Prüfer."""
+    from . import abnahme
+    if typ in abnahme.TESTTYPEN or len(abnahme.startregel(bereiche, abnahme.TEST_SCHREIBEN)) == len(abnahme.startregel(bereiche, typ)):
+        return typ
+    return abnahme.TEST_SCHREIBEN
 
 
 def pruefen(daten, con=None, pid=None, tid=None, delta=None):
@@ -258,8 +268,9 @@ def pruefen(daten, con=None, pid=None, tid=None, delta=None):
             f.append(f"{wo}: ein p-Paket braucht enge Bereiche (bereiche: Dateien/Ordner, die es ändern darf)")
         if aus_p[-1]["ausfuehrung"] == "p" and aus_p[-1]["bereiche"]:
             from . import abnahme
-            gesperrt = abnahme.startregel([x.strip() for x in aus_p[-1]["bereiche"].replace(";", ",").split(",") if x.strip()],
-                                          aus_p[-1]["pakettyp"])
+            bereiche = [x.strip() for x in aus_p[-1]["bereiche"].replace(";", ",").split(",") if x.strip()]
+            aus_p[-1]["pakettyp"] = typ_mit_tests(bereiche, aus_p[-1]["pakettyp"])
+            gesperrt = abnahme.startregel(bereiche, aus_p[-1]["pakettyp"])
             if gesperrt:
                 f.append(f"{wo}: Bereiche enthalten gesperrte Pfade ({', '.join(b for b, _ in gesperrt[:3])}) – dann ausfuehrung agent mit"
                          " interaktiv_grund „gesperrter Bereich“")
