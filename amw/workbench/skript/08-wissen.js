@@ -365,6 +365,8 @@ function pwUmsetzung(d) {
 /* A2088: Vorbehalte und Gründe {art, n} bzw. {art: "pruefer", text} in Worten – auch für Planung › Meilensteine */
 const pwVorbehalt = v => v.art === "pruefer" ? v.text : t("pjw_vb_" + v.art + (v.n === 1 ? "1" : ""), { n: v.n });
 const pwTrotzdem = (liste, tun) => () => { if (confirm(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"))) tun(); };
+/* A2088 (Lead #32824): was beim Abnehmen dagegen spricht – auf Projektweg und Planung gleich. null: gerade geht es nicht. */
+const pwDagegen = (lage, zaehlt, vorbehalte) => ["laeuft", "bericht"].includes(lage) ? null : [...(zaehlt ? [t("pjw_l_" + lage)] : []), ...(vorbehalte || []).map(pwVorbehalt)];
 function pwUrteil(x, name, p) {
   /* je Thema ein Wort und ein kurzer Satz; Pakete, Commits und Dateien auf Klick */
   const z = x.zustand || (x.erfuellt ? "erfuellt" : "nicht_erfuellt");
@@ -398,27 +400,28 @@ function pwAbschlussKarte(x, einzig, haupt) {
   }
   if (x.bericht) karte.append(el("div", { class: "pjw-werte" }, el("a", { href: "#", onclick: e => { e.preventDefault(); dokumentDialog(x.bericht); } }, t("pjw_bericht"))));
   /* A2088: Vorbehalte über dem Knopf; gibt es welche, heißt er „Trotz Vorbehalt abnehmen“ und fragt nach. Verboten wird es nicht. */
-  const vorbehalte = p ? p.vorbehalte.map(pwVorbehalt) : [], unpruefbar = !!p && p.nicht_pruefbar && x.lage === "nicht_pruefbar";
+  const vorbehalte = p ? p.vorbehalte.map(pwVorbehalt) : [], unpruefbar = x.lage === "nicht_pruefbar";
   if (p && p.alt) karte.append(el("div", { class: "leise pjw-a-alt" }, t("pjw_a_alt")));
   if (vorbehalte.length) karte.append(el("div", { class: "pjw-vorbehalte" }, el("div", { class: "pjw-lbl" }, t("pjw_vorbehalte")), el("ul", {}, vorbehalte.map(v => el("li", {}, v)))));
   if (API) return karte;
   const abnehmen = () => pwTun("/api/meilenstein/freigeben", { bogen: x.bogen, art: "abschluss" }, t("pjw_ok_abgenommen"));
-  const fragen = [...(unpruefbar ? [t("pjw_l_nicht_pruefbar")] : []), ...vorbehalte];
+  const fragen = pwDagegen(x.lage, x.lage_zaehlt, p?.vorbehalte) || [];
   /* Die Handlung dieser Karte: abnehmen (Prüfliste vollständig) – oder die Prüfung nachholen (A2064, TL #32217: Meilensteine,
      die vor A2029 bereit wurden, bekommen sie nie von selbst). Hauptknopf nur auf der ersten Karte (eine Hauptaktion je Ansicht). */
   const handlung = abnehmbar && !fragen.length ? pwKnopf(t("pjw_abnehmen_m", { m: pwM(x) }), abnehmen, haupt)
-    : abnehmbar || unpruefbar ? pwKnopf(t("pjw_trotzdem"), pwTrotzdem(fragen, abnehmen), haupt && abnehmbar && x.bei_dir)
+    : abnehmbar ? pwKnopf(t("pjw_trotzdem"), pwTrotzdem(fragen, abnehmen), haupt && x.bei_dir)
     : (!p || p.fehler) && !x.pruefung_laeuft ? pwKnopf(t(p ? "pjw_a_erneut" : "pjw_a_starten"),       // A2072: nach einem Fehler erneut
         () => pwTun("/api/projektweg/pruefung-starten", { bogen: x.bogen }, t("pjw_ok_pruefung")), haupt && x.bei_dir) : null;
   if (!abnehmbar) karte.append(el("div", { class: "leise pjw-a-lage" }, !x.bei_dir ? t("pjw_ll_" + x.lage)
     : !p ? (x.pruefung_laeuft ? t("pjw_a_laeuft_lang") : t("pjw_a_ohne_lang"))
     : p.fehler ? t("pjw_a_pruefer_fehler") : x.lage === "nicht_erfuellt" ? t("pjw_a_nicht_erfuellt") : unpruefbar ? t("pjw_ll_nicht_pruefbar_du") : t("pjw_bericht_kommt")));
+  const trotzdem = !abnehmbar && x.lage_zaehlt && fragen.length && x.bericht ? pwKnopf(t("pjw_trotzdem"), pwTrotzdem(fragen, abnehmen)) : null;   /* verboten ist es nicht */
   einzig = einzig && x.bei_dir && !fragen.length && !(abnehmbar && !test.befehl);   /* A2088: Vorbehalt und „kein Gesamttest“ stehen über dem Knopf */                                       /* oben steht nur, was der Mensch tun soll */
   if (handlung && einzig) pwHaupt = handlung;
   const id = "pjw-hw-" + x.bogen;
   karte.append(pwHinweisFeld(t("pjw_nacharbeit_ph"), id),
     pwHandlungen(handlung && !einzig ? handlung : null, pwKnopf(t("pjw_nacharbeit"), () => { const h = pwHinweisText(id); if (!h) { toast(t("pjw_text_fehlt"), true); return; }
-      pwTun("/api/meilenstein/nacharbeit", { bogen: x.bogen, hinweis: h }, t("pjw_ok_nacharbeit")); })));
+      pwTun("/api/meilenstein/nacharbeit", { bogen: x.bogen, hinweis: h }, t("pjw_ok_nacharbeit")); }), trotzdem));
   return karte;
 }
 function pwAbschluss(d) {

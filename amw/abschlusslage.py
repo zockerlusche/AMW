@@ -158,6 +158,12 @@ def pruefer_geht(con, pid):
     return not (os.environ.get("AMW_PLANER_AUS") or planer.schalter_text(con, pid))
 
 
+def wie_vorbehalt(con, pid, lage_):
+    """A2088 (Lead #32824): alles außer „abnehmbar“ zählt beim Abnehmen wie ein Vorbehalt – Co und Lead nicht allein, der Mensch mit
+    Rückfrage. Nur „fehlt“ bei ausgeschaltetem Planer nicht: dann kann niemand eine Prüfung nachholen (wie bei bei_mensch)."""
+    return bool(lage_ and lage_ != "abnehmbar" and (lage_ != "fehlt" or pruefer_geht(con, pid)))
+
+
 def nur_lead(con, pid, b):
     """Geht „bereit zur Abnahme“ noch nicht an den Menschen und den Co? Mit Lead und Prüfer, solange nicht abnehmbar. Ist der Planer
     aus, kann niemand eine Prüfung nachholen – dann wie bisher."""

@@ -980,7 +980,9 @@ die der Lead nur noch bestätigt oder ändert.
   vom Meilenstein geänderten). Was fehlt, nennt code-grenze.md ohne Inhalt. Er liest nur, und sein „erfüllt“ überstimmt die Belege nie.
 - **Vorbehalte (A2088):** der Prüfer nennt sie im eigenen Feld (höchstens 8, je höchstens 160 Zeichen; ein Beleg höchstens 220).
   Zu Langes wird nicht gekürzt, der Fund geht einmal zurück. Sie stehen über dem Knopf; der heißt dann „Trotz Vorbehalt abnehmen“ und
-  fragt nach. Mit Vorbehalt oder „nicht prüfbar“ nimmt nur der Mensch ab, Co und Lead nicht allein (`planansicht.freigeben`).
+  fragt nach. Mit Vorbehalt nimmt nur der Mensch ab, Co und Lead nicht allein (`planansicht.freigeben`). Alles außer „abnehmbar“ zählt
+  genauso (Prüfung fehlt, ging nicht, nicht erfüllt, nicht prüfbar, läuft), auf Projektweg und Planung gleich; nur „Prüfung fehlt“ bei
+  ausgeschaltetem Planer nicht.
   Ergebnisse von vor A2088 heißen „Prüfung von vor dieser Version“; von selbst prüft die AMW nicht nach, `amw bogen pruefung-starten N`
   geht dann (auch nach „nicht prüfbar“ und wenn der Grund eines Vorbehalts der AMW behoben sein kann; nicht für eine zweite Meinung).
 - **Antwort lesen (A2072):** Die Antwort des Prüfers wird als JSON gelesen, auch mit Text drumherum oder im Codeblock. Passt sie

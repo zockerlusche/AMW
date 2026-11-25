@@ -248,6 +248,26 @@ class Rechte(Grund):
         self.assertTrue(self.ja("TL")["frei"])
         self.assertEqual(self.b()["status"], "fertig")
 
+    def test_alles_ausser_abnehmbar_zaehlt_wie_ein_vorbehalt(self):
+        self.bereit()
+        with mock.patch.object(abschlusslage, "pruefer_geht", return_value=True):
+            for lage in ("fehlt", "fehler", "nicht_erfuellt", "nicht_pruefbar", "laeuft"):
+                with self.subTest(lage=lage), mock.patch.object(abschlusslage, "lage", return_value=lage):
+                    for von in ("CO", "TL"):
+                        with self.assertRaisesRegex(kern.AmwFehler, f"{abschlusslage.TEXT[lage]} – damit nimmt nur der Mensch ab"):
+                            self.ja(von)
+                    self.assertTrue(planansicht.vorbehalte(self.con, self.pid, self.b())["lage_zaehlt"])
+            with mock.patch.object(abschlusslage, "lage", return_value="nicht_erfuellt"):
+                self.assertEqual(self.ja(kern.ENTWICKLER), {"frei": True})                  # der Mensch darf
+
+    def test_planer_aus_fehlende_pruefung_wie_bisher(self):
+        self.bereit()
+        with mock.patch.object(abschlusslage, "lage", return_value="fehlt"), mock.patch.object(abschlusslage, "pruefer_geht", return_value=False):
+            self.assertFalse(planansicht.vorbehalte(self.con, self.pid, self.b())["lage_zaehlt"])
+            self.assertFalse(self.ja("CO")["frei"])
+        with mock.patch.object(abschlusslage, "lage", return_value="fehler"), self.assertRaisesRegex(kern.AmwFehler, "nur der Mensch"):
+            self.ja("TL")
+
     def test_nicht_pruefbar_nur_der_mensch(self):
         self.belege("abc1234", self.sha)
         self.bereit()
@@ -311,7 +331,8 @@ class AltUndErneut(Grund):
         self.assertEqual([(k["titel"], k["sha"], k["grund"], k["dateien"], k["themen"]) for k in p["pakete"]],
                          [("Login", self.neben[:8], "commit_daneben", ["app/neben.py"], [f"TH{self.t1}"]), ("Nachtsicherung", None, "kein_commit", [], [f"TH{self.t2}"])])
         ab = next(m for m in planansicht.daten(self.con, self.pid)["meilensteine"] if m["id"] == self.m)["abschluss"]
-        self.assertEqual(([v["art"] for v in ab["vorbehalte"]], ab["alt"], ab["nicht_pruefbar"]), (["commit_daneben", "kein_commit"], False, False))
+        self.assertEqual(([v["art"] for v in ab["vorbehalte"]], ab["alt"], ab["lage_zaehlt"]), (["commit_daneben", "kein_commit"], False, False))
+        self.assertEqual((ab["lage"], self.karte()[0]["lage_zaehlt"]), ("abnehmbar", False))
 
 
 class TexteVollstaendig(Grund):
@@ -416,4 +437,13 @@ class SeiteNichtPruefbar(Seite):
         knopf = "[...document.querySelectorAll('.pjw-ansicht button')].find(b => b.textContent === t('pjw_trotzdem'))"
         self.assertFalse(self.tab.js(f"{knopf}.classList.contains('haupt')"))
         self.assertTrue(self.tab.js(f"!!{knopf}"))                                          # verboten ist es dem Menschen nicht
+        self.tab.js(f"window.confirm = x => (window._frage = x, false); {knopf}.click()")
+        self.assertIn("nicht prüfbar, Belege fehlen", self.tab.js("window._frage"))
+        self.oeffnen("planung", "document.querySelector('#inhalt .pm-zeile')")              # Planung › Meilensteine: dieselbe Rückfrage
+        self.tab.js(f"document.querySelector('#inhalt .th-zeile[data-ms=\"{self.m}\"]').click()")
+        self.warten("document.querySelector('[data-h=ab-ja]')")
+        self.assertEqual(self.tab.js("document.querySelector('[data-h=ab-ja]').textContent"), "Trotz Vorbehalt abnehmen")
+        self.tab.js("window.confirm = x => (window._frage2 = x, false); document.querySelector('[data-h=ab-ja]').click()")
+        self.assertIn("nicht prüfbar, Belege fehlen", self.tab.js("window._frage2"))
+        self.assertEqual(self.con.execute("SELECT status FROM bogen WHERE id = ?", (self.m,)).fetchone()[0], "aktiv")
 

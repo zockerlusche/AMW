@@ -336,6 +336,7 @@ def abschluss(con, pid, freigaben):
         e = {} if lage == "laeuft" else (abschlusslage.ergebnis(con, pid, b) if lage else ab.ergebnis(con, pid, a["bogen"])) or {}
         aus.append({"bogen": a["bogen"], "nr": a["nr"], "titel": a["titel"], "status": b["status"], "frei": a["frei"],
                     "bereit": lage is not None, "bericht": a["bericht"], "lage": lage, "bei_dir": abschlusslage.bei_mensch(con, pid, lage),
+                    "lage_zaehlt": abschlusslage.wie_vorbehalt(con, pid, lage),
                     "pruefung_laeuft": lage == "laeuft",
                     "pakete": con.execute("SELECT count(*) FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (a["bogen"],)).fetchone()[0],
                     "pruefung": {"test": e.get("test"), "themen": e.get("themen") or [], "vorfuehrung": e.get("vorfuehrung") or [],
