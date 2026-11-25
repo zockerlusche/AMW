@@ -352,8 +352,8 @@ function agentenEinstellungen(d, h) {
   const neuerAgent = () => { const k = h.text(""); k.placeholder = t("e_neu_ph");
     const knopf = el("button", { class: "klein-knopf", type: "button" }, t("e_anlegen"));
     knopf.addEventListener("click", async () => { const name = k.value.trim(); if (!name) { k.focus(); return; }
-      try { await schicken("/api/einstellungen/agent", { kennung: name, neu: true }); try { localStorage.setItem(ablage("amw-ae"), name); } catch (e) {} toast(t("gespeichert")); zeige("einstellungen", true); }
-      catch (e) { toast(t("fehler", { x: e.message }), true); } });
+      await einmalTun("agent/" + name, async () => { await schicken("/api/einstellungen/agent", { kennung: name, neu: true });      /* A2117: wirkt beim ersten Klick */
+        try { localStorage.setItem(ablage("amw-ae"), name); } catch (e) {} toast(t("gespeichert")); zeige("einstellungen", true); }); });
     return el("div", { class: "ae-neu" }, k, knopf); };
   const formular = a => {
     const wahl = (werte, v) => { const x = el("select", {}, werte.map(([w, l]) => el("option", { value: w }, l))); x.value = v; return x; };
@@ -398,7 +398,7 @@ function agentenEinstellungen(d, h) {
         if (!API && w === "terminal") await schicken("/api/einstellungen/profil", { kennung: a.kennung, ordner: f.ordner.value.trim(), zusatzordner: f.zusatz.value,
           denkstufe: f.denkstufe.value, modell: f.modell.value.trim(), rechte: f.rechte.value, fernsteuerung: f.fern.checked, neustart_auto: f.neustart.checked, startsatz: f.startsatz.value.trim() });
         toast(t("gespeichert")); zeige("einstellungen", true);
-      } catch (e) { toast(t("fehler", { x: e.message }), true); } finally { speichernKnopf.disabled = false; } });
+      } catch (e) { toast(fehlerSatz(e), true); } finally { speichernKnopf.disabled = false; } });
     const form = el("div", { class: "ae-form", "data-k": a.kennung }, fachListe,
       block(t("ae_wer"), h.feld(t("e_kennung"), el("span", { class: "tm-name" }, a.kennung), t("ae_kennung_h")),
         h.feld(t("ae_lead"), el("label", { class: "ae-haken" }, f.lead, " " + t("ae_lead_x")), t("ae_lead_h")), h.feld(t("ae_fach"), f.fach, t("ae_fach_h")),

@@ -68,6 +68,21 @@ class Klick(Rundgang):
         self.assertTrue(self.tab.js("!!document.getElementById('neu-laden')"))          # die Seite ist alt: die Leiste steht noch da
         self.assertEqual(self.pruefen("a2117-neustart", g, t), [])
 
+    def test_agent_anlegen_und_speichern_nach_neustart(self):
+        """Marcel 25.11.: Einstellungen › Agenten – Anlegen wirkte erst beim zweiten Mal."""
+        self.groesse("pc")
+        self.oeffnen("einstellungen", "document.querySelector('.ae-neu button')")
+        self.neu_starten()
+        self.tab.js("document.querySelector('.ae-neu input').value = 'CC7'; document.querySelector('.ae-neu button').click()")
+        self.warten("document.querySelector('.ae-form[data-k=CC7]')")
+        self.con.commit()
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM agent WHERE kennung = 'CC7'").fetchone()[0], 1)
+        self.neu_starten()
+        self.tab.js("document.querySelectorAll('.toast').forEach(x => x.remove()); const z = [...document.querySelectorAll('.ae-form textarea')][0]; z.value = 'Seiten'; document.querySelector('.ae-form .ae-knoepfe button').click()")
+        self.warten("[...document.querySelectorAll('.toast')].some(x => /espeichert/.test(x.textContent))")
+        self.con.commit()
+        self.assertEqual(self.con.execute("SELECT zustaendig FROM agent WHERE kennung = 'CC7'").fetchone()[0], "Seiten")
+
     def test_doppelklick_gibt_ein_ereignis(self):
         self.seite("pc")
         self.tab.js(f"const b = {KNOPF}; b.click(); b.click(); b.click()")
