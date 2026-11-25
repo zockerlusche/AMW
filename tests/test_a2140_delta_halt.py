@@ -267,8 +267,12 @@ class Starten(Grund):
         with db.schreiben(self.con):                                                           # der erste Weckruf ist lange her
             self.con.execute("UPDATE nachricht SET zeit_utc = '2026-01-01T08:00:00Z' WHERE aufgabe_id = ?", (self.p3,))
             self.con.execute("UPDATE plan_ereignis SET text = ? WHERE art = 'startklar_geweckt'", (f"{self.p3}:2026-01-01T08:00:00Z",))
+        self.con.execute("CREATE TEMP TABLE beruehrt (aid INTEGER)")                          # das Lösen fasst die Aufgabe an: neuer Weckruf
+        self.con.execute(f"CREATE TEMP TRIGGER zaehlen AFTER UPDATE OF geaendert_utc ON aufgabe WHEN NEW.id = {self.p3}"
+                         " BEGIN INSERT INTO beruehrt VALUES (NEW.id); END")
         planer.entwurf_eintragen(self.con, self.pid, self.tid, 2, {"nichts_zu_bauen": True, "grund": "x"},
                                  delta=planer_delta.kontext(self.con, self.pid, self.tid))
+        self.assertTrue(self.con.execute("SELECT count(*) FROM beruehrt").fetchone()[0])
         self.assertIn(f"Co geweckt: A{self.p3} startklar", wartegrund.startklar_wecken(self.con, self.pid))
 
 
