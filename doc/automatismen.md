@@ -1020,7 +1020,9 @@ die der Lead nur noch bestätigt oder ändert.
 - **Kein Umdeuten:** Gibt es M57 im Projekt nicht, wohl aber die interne 57, sagt der Fehler die richtige Nummer. Auch bei gleicher
   Zahl ist M12 immer die Projektnummer.
 - **Gespeichert** wird weiter die interne Nummer, auch im Feld `bezug` einer Nachricht; alte Bezüge zeigen damit richtig, und die
-  Seite darf das gespeicherte Kürzel unverändert zurückschicken. Texte der AMW ziehen in A2089 nach.
+  Seite darf das gespeicherte Kürzel unverändert zurückschicken. Auch die Texte der AMW nennen nur die
+  Projektnummer (A2089, Textwächter `tests/test_a2089_texte.py`); die Seite liest die Zuordnung aus den Startdaten (`bogen_nr`), und
+  die Suche nach M19 findet den Meilenstein und die Nachrichten mit Bezug auf ihn.
 
 ### Thema → Meilenstein → Paket (K8, A1942, TH163)
 
