@@ -1220,8 +1220,8 @@ options:
 usage: amw lauf [-h] [--warten] [--hoechstens HOECHSTENS] [--frist FRIST]
                 [--dauer DAUER] [--braucht-gb GB] [--braucht-vram-gb GB]
                 [--braucht-platte-gb GB] [--beschreibung BESCHREIBUNG]
-                [--rezept REZEPT] [--leicht] [--schwer] [--dauerlauf]
-                [--schirm] [--gpu] [--aufgabe AUFGABE] [--rc RC]
+                [--rezept REZEPT] [--leicht] [--neben GRUND] [--schwer]
+                [--dauerlauf] [--schirm] [--gpu] [--aufgabe AUFGABE] [--rc RC]
                 [--ergebnis ERGEBNIS] [--abgebrochen] [--grenze GRENZE]
                 [--von VON] [--projekt PROJEKT]
                 {start,ende,liste,vorziehen,zeige,warte,ausfuehren,fehlalarm}
@@ -1253,7 +1253,12 @@ options:
   --beschreibung BESCHREIBUNG
   --rezept REZEPT
   --leicht              Pflicht (oder --schwer): normales Bauen/Testen – läuft
-                        parallel, wartet nie auf schwere
+                        parallel, wartet nie auf schwere, aber auf einen
+                        Gesamtlauf desselben Projekts (rechnend oder wartend);
+                        ohne Tests mit --dauer bis 2 läuft er daneben
+  --neben GRUND         start/ausfuehren: ein leichter Lauf rechnet trotzdem
+                        neben dem Gesamtlauf – der Grund steht im Lauf und
+                        geht als Meldung an den Lead
   --schwer              Pflicht (oder --leicht): KI, Grafikkarte, Fenster oder
                         viel Speicher – läuft einzeln
   --dauerlauf           start/ausfuehren: kopflos, ohne KI/GPU/Fenster, mit

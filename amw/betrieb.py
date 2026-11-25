@@ -379,6 +379,64 @@ def ist_gesamt(befehl):
     return bool(GESAMT.search(" ".join(text.split())))
 
 
+# --- Neben einem Gesamtlauf rechnet kein leichter Lauf eines Agenten (A2100) -------------------------------------------
+LEISE = "lauf_leise"             # plan_ereignis {"lauf": n}: dieser wartende leichte Lauf lässt Gesamtläufen den Vortritt
+KURZ_MIN = 2                     # ohne Tests und mit --dauer bis hier: startet daneben (gemessen 25.11.: 11 von 11 blieben darunter)
+TESTLAUF = re.compile(r"unittest|pytest|testlauf|\btests?[./\\]|\btest_|\bt_dev")
+
+
+def _gesamt(con, l):
+    """Ist dieser Lauf die ganze Test-Suite? Mit Befehl entscheidet der Befehl (auch der eingestellte des Projekts), ohne Befehl
+    (von Hand angemeldet) die Beschreibung."""
+    b = _befehl_von(l)
+    if b and ist_gesamt(b):
+        return True
+    from . import freigabereif
+    try:
+        if b and not freigabereif._gesamtlauf_befehl(con, l["projekt_id"], False):
+            return False                                     # nur die Beschreibung bliebe – die nennt einen Gesamtlauf auch im Vorbeigehen
+        return bool(freigabereif.ist_gesamtlauf(con, l["projekt_id"], {"befehl": b, "beschreibung": l["beschreibung"]}))
+    except Exception:                                        # noqa: BLE001 – die Schlange läuft auch ohne diese Auskunft
+        return False
+
+
+def kurz_ohne_tests(befehl, erwartet_min):
+    text = " ".join(befehl) if isinstance(befehl, (list, tuple)) else str(befehl or "")
+    return bool(text and erwartet_min and erwartet_min <= KURZ_MIN and not TESTLAUF.search(text))
+
+
+def gesamt_vor(con, pid, speicher_frei=None):
+    """Der Gesamtlauf dieses Projekts, der rechnet – oder in der Schlange steht und drankommen kann (lebt, kein Halt, kein
+    Zeitfenster, Speicher reicht irgendwann). None: keiner. Er hat Vorrang, auch wenn er später kam."""
+    for l in con.execute("SELECT l.* FROM lauf l WHERE l.projekt_id = ? AND l.status = 'laeuft' AND " + HIER + " ORDER BY l.id",
+                         (pid, rechner())).fetchall():
+        if _gesamt(con, l):
+            return l
+    for l in wartende(con, pid):
+        if l["projekt_id"] == pid and not l["schirm"] and not l["ki_auftrag"] and _gesamt(con, l) and _lebt(con, pid, l) \
+                and not _passt_nie(con, l, speicher_frei):
+            return l
+    return None
+
+
+def _leise(con, l):
+    return not (l["schwer"] or l["schirm"] or l["gpu"]) and con.execute(
+        "SELECT 1 FROM plan_ereignis WHERE art = ? AND text = ?", (LEISE, json.dumps({"lauf": l["id"]}))).fetchone() is not None
+
+
+def gesamt_text(g):
+    return (f"wartet auf L{g['id']} von {g['agent']}: Gesamtlauf {'rechnet' if g['status'] == 'laeuft' else 'steht in der Schlange'}"
+            " – daneben rechnet nichts (dringend: --neben „Grund“)")
+
+
+def _leise_grund(con, l, speicher_frei=None):
+    """Der Gesamtlauf, auf den dieser wartende leichte Lauf wartet (Text) – oder None."""
+    if not _leise(con, l):
+        return None
+    g = gesamt_vor(con, l["projekt_id"], speicher_frei)
+    return gesamt_text(g) if g else None
+
+
 def _plaetze(schwer, schirm, gpu=0, agent=None, pid=None, gesamt=False):
     """Spuren: Grafikkarte und Schirm (PC-weit ein Lauf zur Zeit; ein Fenster rechnet auf der Grafikkarte), „cpu“ für schwere
     Läufe ohne beides (cpu_laeufe() zugleich) und – A1822 – „leicht“ für leichte Läufe (leichte_laeufe() zugleich; sie warten
@@ -744,6 +802,8 @@ def _gesperrt(con, pid, wartend, schirm_zu, bis=None, speicher_frei=None):
             hier = {"schirm"}
         elif not _lebt(con, w["projekt_id"], w):     # jeder Lauf nach den Regeln seines eigenen Projekts
             continue
+        elif _leise_grund(con, w, speicher_frei):    # A2100: lässt dem Gesamtlauf den Vortritt – hält selbst niemanden auf
+            continue
         else:
             _, platz = _besetzt(con, w["projekt_id"], pw)
             if not platz and _passt_nie(con, w, speicher_frei):
@@ -785,7 +845,7 @@ def wartende(con, pid=None):
 def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=False, aufgabe_id=None,
                speicher_frei=None, warten=False, erwartet_min=None, gpu=False, dazu=None, sperre=None,
                braucht_gb=None, braucht_vram_gb=None, braucht_platte_gb=None, befehl=None, ordner=None, ergebnis_datei=None,
-               frist_min=None, waechter=None, dauerlauf=False, selbst=False):
+               frist_min=None, waechter=None, dauerlauf=False, selbst=False, leise=False, neben=None):
     """Meldet einen Lauf an und startet ihn, wenn er darf. befehl/ordner/ergebnis_datei/frist_min/waechter: von „amw lauf
     ausfuehren“ – stirbt der Warte-Prozess (waechter), startet der Dienst genau diesen Befehl in diesem Ordner (A1640).
     Ohne --braucht-gb (und ohne Rezept) gilt der gelernte Bedarf früherer gleicher Läufe (A1641), sonst die Grenze. Regeln: kein Halt; Schirm und Grafikkarte PC-weit ein Lauf
@@ -795,7 +855,9 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
     dazu(lid): läuft in derselben Transaktion (KI-Auftrag zum Lauf) – nie ein Lauf ohne seinen Auftrag.
     sperre: Grund, warum er jetzt nicht starten darf, obwohl der Platz frei wäre (KI-Auftrag mit --nachts).
     selbst (A1948): die AMW führt den Lauf selbst aus und beendet ihn (Gegenlesen, Planer, Negativprobe, Arbeiter, Bündel …) –
-    kommt er aus der Schlange dran, gibt es keine Meldung und keinen Weckruf („jetzt starten“ wäre falsch und kostet Tokens)."""
+    kommt er aus der Schlange dran, gibt es keine Meldung und keinen Weckruf („jetzt starten“ wäre falsch und kostet Tokens).
+    leise (A2100): ein Agent startet ihn – leicht wartet er, solange im Projekt ein Gesamtlauf rechnet oder wartet (außer sehr kurz
+    ohne Tests). neben: Grund, trotzdem daneben zu rechnen – steht in der Beschreibung und geht als Meldung an den Lead."""
     if kern.halt_gilt(con, pid, agent):
         raise kern.AmwFehler("HALT gilt – keine Läufe starten")
     if dauerlauf:                                # A1759: kopflos, ohne KI/GPU/Fenster, feste Grenze
@@ -825,6 +887,12 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
         speicher_frei = speicher_frei_gb()[0]
     plaetze = _plaetze(schwer, schirm, gpu, None if dazu else agent, pid, ist_gesamt(befehl))
     sperre = sperre or fenster_sperre(con, pid, schwer, bool(dazu))   # A1924: Zeitfenster des Projekts
+    neben = " ".join(neben.split())[:200] if neben is not None else None
+    if neben == "":
+        raise kern.AmwFehler("--neben nur mit Grund")
+    roh = json.dumps(list(befehl), ensure_ascii=False) if befehl else None
+    leise = leise and not (schwer or schirm or gpu or dauerlauf or selbst or dazu) and not kurz_ohne_tests(befehl, erwartet_min) \
+        and not _gesamt(con, {"befehl": roh, "beschreibung": beschreibung, "projekt_id": pid})
     with db.schreiben(con):
         w = wartende(con, pid)
         eigene = VORRANG[vorrang_stufe(con, pid)]          # nur wer nach der Reihenfolge vor ihm stünde, hält ihn auf
@@ -833,7 +901,10 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
                  or (lauf_stufe(con, x), VORRANG[vorrang_stufe(con, x["projekt_id"])], -rang.get(x["projekt_id"], len(rang)))
                  >= (eigene, eigene, -rang.get(pid, len(rang)))]   # Gleichstand wie wartende() (A1924: dann projekt_rang)
         schirm_zu = schirm_mod.sperrgrund(con) if schirm or any(x["schirm"] for x in w) else None
-        grund = sperre or (schirm_zu if schirm else None) or _besetzt(con, pid, plaetze)[0]
+        g = gesamt_vor(con, pid, speicher_frei) if leise else None      # A2100
+        grund = sperre or (schirm_zu if schirm else None) or (gesamt_text(g) if g and not neben else None) or _besetzt(con, pid, plaetze)[0]
+        if g and neben:
+            beschreibung = f"{beschreibung} (neben Gesamtlauf L{g['id']}: {neben})"
         gesperrt = _gesperrt(con, pid, w_vor, schirm_zu, speicher_frei=speicher_frei) if not sperre else {}
         vor = sorted({x["id"]: x for p in plaetze for x in gesperrt.get(p, [])}.values(), key=lambda x: x["id"])
         if not grund and vor:
@@ -854,10 +925,16 @@ def lauf_start(con, pid, agent, beschreibung, rezept=None, schwer=True, schirm=F
                            status="angemeldet" if grund else "laeuft", angemeldet_utc=t, start_utc=None if grund else t,
                            speicher_frei_gb=speicher_frei, aufgabe_id=aufgabe_id, erwartet_min=erwartet_min,
                            braucht_gb=braucht_gb, braucht_vram_gb=braucht_vram_gb, braucht_platte_gb=braucht_platte_gb, rechner=rechner(),
-                           befehl=json.dumps(list(befehl), ensure_ascii=False) if befehl else None, ordner=ordner,
+                           befehl=roh, ordner=ordner,
                            ergebnis_datei=ergebnis_datei, frist_min=frist_min, waechter=waechter)
         if selbst:                               # A1948: Kennzeichen ohne Schemaänderung – die Schlange meldet ihn nicht
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=t, von="AMW", art=SELBST, text=json.dumps({"lauf": lid}))
+        if leise and grund and not neben:        # wartet er (worauf auch immer): ein Gesamtlauf, der noch kommt, geht vor
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=t, von="AMW", art=LEISE, text=json.dumps({"lauf": lid}))
+        lead = kern.lead(con, pid)
+        if g and neben and lead and lead != agent:
+            kern._posten(con, pid, "AMW", lead, "meldung", f"L{lid} von {agent} rechnet neben dem Gesamtlauf L{g['id']}"[:140],
+                         f"Grund: {neben}\n{beschreibung}", aufgabe_id=aufgabe_id)
         if dazu:
             dazu(lid)
         else:                                    # ein KI-Auftrag rechnet nicht im Namen des Agenten
@@ -942,6 +1019,8 @@ def warteschlange(con, pid=None, speicher_frei=None):
                 continue
             lp = l["projekt_id"]                     # jeder Lauf nach den Regeln seines eigenen Projekts
             if not _lebt(con, lp, l):                # KI-Auftrag: rechnet der Dienst, der Agent darf schlafen
+                continue
+            if _leise_grund(con, l, speicher_frei):  # A2100: der Gesamtlauf geht vor; hält selbst niemanden auf
                 continue
             _, platz = _besetzt(con, lp, plaetze)
             if platz:                                # hält nur auf, wer genau diesen Platz braucht
@@ -1047,6 +1126,9 @@ def wartegrund(con, pid, l, speicher_frei=None):
         gruende.append(zf)
     if kern.halt_gilt(con, pid, l["agent"]):
         gruende.append("HALT gilt")
+    ls = _leise_grund(con, l, frei) if l["status"] == "angemeldet" else None      # A2100
+    if ls:
+        gruende.append(ls)
     b = _besetzt(con, pid, plaetze)[0]
     if b:
         gruende.append(b)
@@ -1103,6 +1185,10 @@ def warteposition(con, pid, l):
     vor = sorted({x["id"]: x for p in plaetze for x in (_gesperrt(con, pid, w, schirm_zu, bis=l["id"], speicher_frei=speicher_frei_gb()[0]) if platz else {}).get(p, [])}.values(),
                  key=lambda x: x["id"])
     auf = [{"lauf": x["id"], "projekt": namen.get(x["projekt_id"]), "agent": x["agent"], "laeuft": False} for x in vor]
+    g = gesamt_vor(con, pid, speicher_frei_gb()[0]) if _leise(con, l) else None         # A2100
+    if g:
+        auf = [{"lauf": g["id"], "projekt": namen.get(pid), "agent": g["agent"], "laeuft": g["status"] == "laeuft"}] \
+            + [x for x in auf if x["lauf"] != g["id"]]
     if not auf:                                      # niemand davor: wer hält die Spur bzw. den Speicher gerade?
         spur = []
         if plaetze & {"gpu", "schirm"}:

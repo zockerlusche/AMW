@@ -120,8 +120,15 @@ wird, wenn ein Meilenstein fertig ist und der Mensch ihn nach der Vorführung ab
 - **Ein Gesamtlauf zur Zeit (A1979, #30758):** ein Gesamtlauf belegt den ganzen Rechner. Die Lauf-Schlange gibt jedem Lauf, der
   die ganze Suite rechnet (paralleler Runner oder `unittest discover` ohne `-k`/`-p`/`-t`), zusätzlich den Platz „gesamt“ –
   läuft schon einer (auch aus einem anderen Projekt), wartet der zweite in der Schlange („Gesamtlauf … belegt den Rechner –
-  höchstens einer zur Zeit“). Teil-Läufe laufen daneben weiter. Die Workbench schließt ihre Datenbank-Verbindung, bevor sie
+  höchstens einer zur Zeit“). Die Workbench schließt ihre Datenbank-Verbindung, bevor sie
   antwortet – ein Client, der sofort aufräumt, findet die Datei nicht mehr gesperrt.
+- **Neben einem Gesamtlauf rechnet kein leichter Lauf eines Agenten (A2100):** `amw lauf start|ausfuehren --leicht` wartet von selbst,
+  solange im selben Projekt ein Gesamtlauf rechnet ODER in der Schlange steht und drankommen kann („wartet auf L…: Gesamtlauf
+  rechnet“). Der Gesamtlauf geht vor, auch wenn er später kam; danach starten die Wartenden in ihrer Reihenfolge, und ein Wartender
+  hält niemanden auf. Nicht betroffen: Läufe der AMW selbst (Sprachprüfung, Gegenleser, Planer, Prüfer, Web-Abzug), andere Projekte,
+  schwere Läufe, Läufe mit Fenster oder Grafikkarte, Dauerläufe und sehr kurze ohne Tests (`--dauer` bis 2 min). Trotzdem daneben:
+  `--neben "Grund"` – der Grund steht im Lauf und geht als Meldung an den Lead. Ein wartender Gesamtlauf im Halt, außerhalb seines
+  Zeitfensters oder mit Speicher, der nie reicht, hält niemanden auf.
 - **Versionszeile nach dem Schließen (A1985, Befund 23.11.):** die Kette setzt erst die Aufgaben des Stands auf fertig und trägt
   DANN die Versionszeile ein – sie fasst die seit der letzten Version fertigen Aufgaben zusammen. Vorher war es umgekehrt, und jede
   Version trug die Hinweise der vorigen Auslieferung. Die Zusammenfassung, die die AMW selbst schreibt („Ausgeliefert in …“,

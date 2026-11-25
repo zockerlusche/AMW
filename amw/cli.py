@@ -2301,7 +2301,7 @@ def _lauf_ausfuehren(con, pid, a):
                              erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb, braucht_vram_gb=a.braucht_vram_gb,
                              braucht_platte_gb=a.braucht_platte_gb, befehl=befehl, ordner=os.getcwd(),
                              ergebnis_datei=os.path.abspath(a.ergebnis) if a.ergebnis else None, frist_min=a.frist,
-                             waechter=os.getpid(), dauerlauf=a.dauerlauf)
+                             waechter=os.getpid(), dauerlauf=a.dauerlauf, leise=True, neben=getattr(a, "neben", None))
     print(f"L{lid} angemeldet: {beschreibung}", flush=True)
     from . import belegung                           # solange dieser Befehl wartet, gilt der Lauf als lebendig (siehe betrieb._lebt)
     belegung.lauf_merken(lid, os.getpid())
@@ -2499,7 +2499,8 @@ def cmd_lauf(a, con):
             raise kern.AmwFehler("--beschreibung oder --rezept angeben")
         lid = betrieb.lauf_start(con, pid, _von(a), a.beschreibung or a.rezept, a.rezept, _schwer(a, a.rezept, getattr(a, "dauerlauf", False)), a.schirm, a.aufgabe,
                                  warten=a.warten, erwartet_min=a.dauer, gpu=a.gpu, braucht_gb=a.braucht_gb,
-                                 braucht_vram_gb=a.braucht_vram_gb, braucht_platte_gb=a.braucht_platte_gb, dauerlauf=a.dauerlauf)
+                                 braucht_vram_gb=a.braucht_vram_gb, braucht_platte_gb=a.braucht_platte_gb, dauerlauf=a.dauerlauf,
+                                 leise=True, neben=getattr(a, "neben", None))
         w = [r["id"] for r in betrieb.wartende(con, pid)]
         if lid in w:
             print(f"L{lid} eingereiht (Platz {w.index(lid) + 1} von {len(w)}) – noch nicht rechnen. Der Dienst benachrichtigt dich mit"
@@ -4410,7 +4411,10 @@ def parser():
                    help="start/ausfuehren: benötigter freier Platz auf dem Laufwerk des Projekts")
     x.add_argument("--beschreibung")
     x.add_argument("--rezept")
-    x.add_argument("--leicht", action="store_true", help="Pflicht (oder --schwer): normales Bauen/Testen – läuft parallel, wartet nie auf schwere")
+    x.add_argument("--leicht", action="store_true", help="Pflicht (oder --schwer): normales Bauen/Testen – läuft parallel, wartet nie auf schwere,"
+                   " aber auf einen Gesamtlauf desselben Projekts (rechnend oder wartend); ohne Tests mit --dauer bis 2 läuft er daneben")
+    x.add_argument("--neben", metavar="GRUND", help="start/ausfuehren: ein leichter Lauf rechnet trotzdem neben dem Gesamtlauf – der Grund"
+                                                    " steht im Lauf und geht als Meldung an den Lead")
     x.add_argument("--schwer", action="store_true", help="Pflicht (oder --leicht): KI, Grafikkarte, Fenster oder viel Speicher – läuft einzeln")
     x.add_argument("--dauerlauf", action="store_true", help="start/ausfuehren: kopflos, ohne KI/GPU/Fenster, mit --braucht-gb als"
                    " fester Grenze – läuft neben dem schweren Lauf, die Grenze wird vorgemerkt, der Dienst passt auf, dass er sie hält")
