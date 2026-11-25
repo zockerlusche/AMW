@@ -53,6 +53,8 @@ MODELL, EFFORT = "sonnet", "medium"
 FRIST_S = 20 * 60
 ROH_ZEICHEN = 4000             # A2072: so viel der Rohantwort bleibt bei einem Fehler im Ergebnis
 TEST_FRIST_S = 2 * 3600
+WARTE_S, WARTE_FRIST_S = 5, 4 * 3600      # A2093: so oft nachsehen; so lange höchstens auf den Gesamttest einer anderen Prüfung warten
+GESAMTTEST = "Gesamttest Meilenstein {nr} (Abschluss, A2029, automatisch)"
 LAEUFT_H = 6
 BELEG_ZEICHEN, FEHLT_ZEICHEN = 220, 300       # A2088: angefordert, nie abgeschnitten
 VORBEHALTE_MAX, VORBEHALT_ZEICHEN = 8, 160
@@ -102,7 +104,7 @@ def ergebnis(con, pid, bid, stand=None):
     return e[-1] if e else None
 
 
-_GRUENDE = (("grenze", r"Tagesgrenze"), ("start", r"ließ sich nicht starten"), ("lesbar", r"kein JSON|oben muss ein Objekt"),
+_GRUENDE = (("geaendert", r"Stand hat sich geändert"), ("grenze", r"Tagesgrenze"), ("start", r"ließ sich nicht starten"), ("lesbar", r"kein JSON|oben muss ein Objekt"),
             ("laenge", r"zu lang:|höchstens \d+ vorbehalte"), ("unvollstaendig", r"nicht bewertet|gehört nicht zu M|braucht erfuellt|keine nacharbeit|nacharbeit:"),
             ("frist", r"Frist .*überschritten|TimeoutExpired"), ("lauf", r"kein Ergebnis \(rc|^\w*(Error|Fehler|Exception): "))
 
@@ -210,9 +212,37 @@ def vor_bereit(con, pid, b, stand, erneut=False):
 
 # --- der losgelöste Prozess: Gesamttest, Prüfer, Ergebnis ------------------------------------------------------------------
 
+def _ausgeliefert(ordner):
+    """Der SHA des ausgelieferten Zweigs (main, sonst master) oder None."""
+    from . import belege
+    st = belege.stand(ordner)
+    return st[1] if st else None
+
+
+def _vorhandener(con, pid, ordner, befehl, amw):
+    """A2093: ein abgeschlossener grüner Gesamtlauf mit „Stand <sha> sauber“ auf genau dem ausgelieferten Stand (freigabereif) –
+    als Ergebnis, ohne zu rechnen. Keine anderen Stände, keine unsauberen Bäume, keine roten Läufe."""
+    from . import freigabereif
+    sha = _ausgeliefert(ordner)
+    l = freigabereif.gruener_gesamtlauf(con, pid, sha, amw) if sha else None
+    if not l:
+        return None
+    return {"lauf": l["id"], "rc": 0, "befehl": befehl, "uebernommen": True, "stand": sha,
+            "ende": f"Vorhandener grüner Gesamtlauf L{l['id']} auf genau diesem Stand ({sha}): {l['ergebnis'] or ''}"[:2000]}
+
+
+def _andere(con, pid, vor=None):
+    """Offene Gesamttests anderer Abschlussprüfungen dieses Projekts (vor: nur ältere als dieser Lauf) – der älteste rechnet."""
+    r = con.execute("SELECT id FROM lauf WHERE projekt_id = ? AND status IN ('angemeldet', 'laeuft') AND beschreibung LIKE ? AND (? IS NULL OR id < ?)"
+                    " ORDER BY id LIMIT 1", (pid, GESAMTTEST.format(nr="%"), vor, vor)).fetchone()
+    return r[0] if r else None
+
+
 def gesamttest(con, pid, b):
-    """Der Gesamttest des Projekts als Lauf der Schlange (schwer, ein Gesamtlauf zur Zeit): {"lauf", "rc", "befehl", "ende"} –
-    oder {"rc": None, "befehl": None}, wenn das Projekt keinen gesamtlauf_befehl hat."""
+    """Der Gesamttest des Projekts: ein vorhandener grüner Gesamtlauf auf genau dem ausgelieferten Stand (A2093), sonst ein Lauf der
+    Schlange (schwer, ein Gesamtlauf zur Zeit): {"lauf", "rc", "befehl", "ende"} – oder {"rc": None, "befehl": None}, wenn das Projekt
+    keinen gesamtlauf_befehl hat. Läuft schon der Gesamttest einer anderen Prüfung, wartet diese darauf und sieht dann noch einmal
+    nach. Änderte sich der Stand während des Laufs, zählt er nicht: "geaendert" ist True."""
     import time
     from . import belegung, betrieb, einrichtung, freigabereif, laufdienst
     ordner = kern.projekt_ordner(con, pid)
@@ -221,10 +251,21 @@ def gesamttest(con, pid, b):
     if not befehl or not ordner or not os.path.isdir(ordner):
         return {"lauf": None, "rc": None, "befehl": None, "ende": ""}
     agent = kern.lead(con, pid) or kern.ENTWICKLER
-    lid = betrieb.lauf_start(con, pid, agent, f"Gesamttest Meilenstein {b['nr']} (Abschluss, A2029, automatisch)", None, True, False,
-                             None, warten=True, erwartet_min=40, befehl=[befehl], ordner=ordner, waechter=os.getpid(), selbst=True)
+    lid, ende = None, time.monotonic() + WARTE_FRIST_S
+    while lid is None:
+        da = _vorhandener(con, pid, ordner, befehl, amw)
+        if da:
+            return da
+        if time.monotonic() < ende and _andere(con, pid):
+            time.sleep(WARTE_S)
+            continue
+        lid = betrieb.lauf_start(con, pid, agent, GESAMTTEST.format(nr=b["nr"]), None, True, False,
+                                 None, warten=True, erwartet_min=40, befehl=[befehl], ordner=ordner, waechter=os.getpid(), selbst=True)
+        if time.monotonic() < ende and _andere(con, pid, vor=lid):   # zwei zugleich: der ältere rechnet, dieser wartet
+            betrieb.lauf_ende(con, pid, agent, lid, 1, "doppelt – eine andere Abschlussprüfung rechnet schon", abgebrochen=True, melden=False)
+            lid = None
     belegung.lauf_merken(lid, os.getpid())
-    rc = None
+    rc, text = None, f"Gesamttest Meilenstein {b['nr']}"
     try:
         while True:
             l = betrieb.lauf_zeile(con, pid, lid)
@@ -232,10 +273,14 @@ def gesamttest(con, pid, b):
                 break
             if l["status"] in ("fertig", "abgebrochen"):
                 return {"lauf": lid, "rc": l["rc"], "befehl": befehl, "ende": f"L{lid} {l['status']}"}
-            time.sleep(5)
+            time.sleep(WARTE_S)
+        da = _vorhandener(con, pid, ordner, befehl, amw)     # inzwischen fertig geworden, während dieser wartete
+        if da:
+            text = f"nicht nötig – L{da['lauf']} ist grün auf diesem Stand"
+            return da
         betrieb.lauf_uebernehmen(con, lid, "agent")
         pfad = laufdienst.ergebnis_pfad(betrieb.lauf_zeile(con, pid, lid))
-        s = betrieb.pruefstand([befehl], ordner)
+        s, zweig = betrieb.pruefstand([befehl], ordner), _ausgeliefert(ordner)
         with open(pfad, "w", encoding="utf-8", errors="replace") as aus:
             aus.write(f"# AMW L{lid} · Gesamttest Meilenstein {b['nr']}\n# Befehl: {befehl}\n# Ordner: {ordner}\n# {betrieb.stand_text(s)}\n")
             aus.flush()
@@ -246,11 +291,15 @@ def gesamttest(con, pid, b):
             except subprocess.TimeoutExpired:
                 rc = 124
         with open(pfad, encoding="utf-8", errors="replace") as f:
-            ende = "".join(f.readlines()[-60:])
-        return {"lauf": lid, "rc": rc, "befehl": befehl, "ende": ende}
+            zeilen = "".join(f.readlines()[-60:])
+        danach = betrieb.pruefstand([befehl], ordner)
+        geaendert = (s and s[1]) != (danach and danach[1]) or zweig != _ausgeliefert(ordner)
+        stand = betrieb.stand_text(s if not (s and danach) else (s[0], s[1], s[2] and danach[2]))   # „sauber“ nur, wenn er es am Ende noch war
+        text = f"Gesamttest Meilenstein {b['nr']}: rc {rc} · " + ("Stand hat sich geändert" if geaendert else stand)
+        return {"lauf": lid, "rc": rc, "befehl": befehl, "ende": zeilen, **({"geaendert": True} if geaendert else {"stand": zweig})}
     finally:
         try:
-            betrieb.lauf_ende(con, pid, agent, lid, rc if rc is not None else 1, f"Gesamttest Meilenstein {b['nr']}: rc {rc}"[:500])
+            betrieb.lauf_ende(con, pid, agent, lid, rc, text[:500], abgebrochen=rc is None)
         except kern.AmwFehler:
             pass                                          # schon beendet (abgebrochen)
         belegung.lauf_vergessen(lid)
@@ -365,6 +414,8 @@ def ausfuehren(con, pid, bid, stand, prog=None, zusatz=None):
     try:
         test = gesamttest(con, pid, b)
         bef = belege.meilenstein(con, pid, bid)           # A2088: erst die AMW selbst, dann der Prüfer
+        if test.get("geaendert") or (test.get("stand") and bef["sha"] and test["stand"] != bef["sha"]):      # A2093: weder erfüllt noch nicht erfüllt – der Lead startet neu
+            return eintragen(con, pid, bid, stand, None, None, fehler=f"Stand hat sich geändert, während der Gesamttest (L{test['lauf']}) lief – das Ergebnis zählt nicht")
         aus = pruefer_mit_nachbesserung(con, pid, b, test, prog=prog, zusatz=zusatz, bef=bef)
     except Exception as x:                                # noqa: BLE001 – niemand sieht die Ausgabe: als Fehler eintragen
         aus = {"ergebnis": None, "usd": None, "fehler": f"{type(x).__name__}: {x}"[:300]}
@@ -484,7 +535,7 @@ def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None, roh=
     b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
     test = test or {"befehl": None, "rc": None}
     rot = test.get("befehl") is not None and test.get("rc") != 0
-    werte = {"bogen": bid, "stand": stand, "test": {k: test.get(k) for k in ("lauf", "rc", "befehl")}, "usd": usd}
+    werte = {"bogen": bid, "stand": stand, "test": {k: test.get(k) for k in ("lauf", "rc", "befehl", "uebernommen") if k != "uebernommen" or test.get(k)}, "usd": usd}
     e = None
     if not fehler:
         try:
@@ -608,7 +659,7 @@ def bericht_teil(con, pid, bid):
     t = e.get("test") or {}
     z = ["", "## Prüfung gegen das Konzept", "",
          "Gesamttest: " + ("nicht eingestellt" if not t.get("befehl") else f"L{t.get('lauf')} · rc {t.get('rc')}"
-                           + (" · grün" if t.get("rc") == 0 else " · rot"))]
+                           + (" · grün" if t.get("rc") == 0 else " · rot") + (" · vorhandener Gesamtlauf auf genau diesem Stand" if t.get("uebernommen") else ""))]
     if e.get("fehler"):
         z.append(f"Prüfer: ging nicht – {e['fehler']}")
         if e.get("roh"):

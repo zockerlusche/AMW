@@ -393,7 +393,7 @@ function pwAbschlussKarte(x, einzig, haupt) {
   if (!p) karte.append(el("div", { class: "pjw-pruefung" }, zeile(false, x.pruefung_laeuft ? t("pjw_a_laeuft") : t("pjw_a_ohne")), ja));
   else {
     karte.append(el("div", { class: "pjw-pruefung" },
-      p.vorbehalte.some(v => v.art === "kein_gesamttest") ? null : zeile(test.befehl ? testOk : null, !test.befehl ? t("pjw_test_kein") : test.rc === 0 ? t("pjw_test_gruen", { n: x.pakete }) : t("pjw_test_rot", { l: test.lauf })),
+      p.vorbehalte.some(v => v.art === "kein_gesamttest") ? null : zeile(test.befehl ? testOk : null, !test.befehl ? t("pjw_test_kein") : test.rc === 0 ? t("pjw_test_gruen", { n: x.pakete, l: test.lauf }) : t("pjw_test_rot", { l: test.lauf })),
       ...p.themen.map(th => zeile(th.erfuellt, pwUrteil(th, th.thema, p))),
       p.ziel ? zeile(p.ziel.erfuellt, pwUrteil(p.ziel, t("pjw_ziel_fertig"), p)) : null,
       p.fehler ? zeile(false, t("pjw_a_pruefer_fehler_z", { x: p.gruende.map(g => t("pjw_ax_" + g.art, g.x)).join(" · ") })) : null, ja));
