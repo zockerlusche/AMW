@@ -4634,7 +4634,7 @@ function pwAbschlussKarte(x, einzig, haupt) {
   /* A2064: Abnehmen nur mit Prüfliste – Gesamttest ✓ (oder keiner eingestellt), jedes Thema erfüllt, Prüfer ohne Fehler,
      Abschlussbericht da. Sonst steht da, was noch fehlt; Nacharbeit geht immer. */
   const p = x.pruefung, test = (p && p.test) || {};
-  const zeile = (ok, text) => el("div", {}, el("span", { class: ok === null ? "leise" : ok ? "pjw-ok" : "pjw-nein" }, ok === null ? "–" : ok ? "✓" : "○"), el("span", {}, text));
+  const zeile = (ok, text) => el("div", {}, el("span", { class: ok === null ? "leise" : ok ? "pjw-ok" : x.bei_dir ? "pjw-nein" : "leise" }, ok === null ? "–" : ok ? "✓" : "○"), el("span", {}, text));   /* A2082: Farbe nur, wenn der Mensch dran ist (TH156 Regel 4) */
   const testOk = !!p && (!test.befehl || test.rc === 0), abnehmbar = x.lage === "abnehmbar";
   const karte = el("div", { class: "pjw-karte pjw-ab-karte", "data-bogen": x.bogen, "data-lage": x.lage },
     el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x)} ${x.titel}`), x.bei_dir ? pwStatus(t("pjw_wartet_dich"), "dran") : pwStatus(t("pjw_l_" + x.lage))));

@@ -367,6 +367,7 @@ class SeiteMitLead(Seite):
         self.assertNotIn("dein Ja", self.text())
         self.assertNotIn("wartet auf dich", self.leiste())
         self.assertIn("Prüfung fehlt", self.leiste())
+        self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-ab-karte .pjw-nein').length"), 0)     # keine Farbe, solange der Lead dran ist
         k = self.knopf("pjw_a_starten")
         self.assertFalse(self.tab.js(f"{k}.classList.contains('haupt')"))                       # normaler Knopf
         oben = "[...document.querySelectorAll('.pjw-ansicht > .pjw-kopf button')].map(b => b.textContent)"
@@ -392,6 +393,7 @@ class SeiteMitLead(Seite):
         self.assertIn("wartet auf dich", self.text())
         self.assertIn("dein Ja", self.text())
         self.assertIn("wartet auf dich", self.leiste())
+        self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-ab-karte .pjw-nein').length"), 1)     # „dein Ja“
         k = "document.querySelector('.pjw-ansicht > .pjw-kopf button.haupt')"
         self.assertIn("abnehmen", self.tab.js(k + ".textContent").lower())
         self.tab.js(k + ".click()")
