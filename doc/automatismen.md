@@ -982,8 +982,14 @@ die der Lead nur noch bestätigt oder ändert.
   (`amw thema plan-ja TH<n>`), bei `feinplan_freigabe = co+lead` Co-Entwickler und Lead je ein Ja. Ändern lässt sich ein Delta
   nicht (dann neu planen). Mit der Freigabe legt die AMW die neuen Pakete an und führt `aendern`/`verwerfen` aus (Ereignis
   `thema_delta_angewandt`).
-- **Knopf (A2112):** Projektweg und Planung › Meilensteine zeigen denselben Text (`planansicht.aenderung_ja`). Läuft das Ziel und ist sein Plan
-  seit der Freigabe geändert, steht „Nach dem Ja startet der Lead.“ dabei; online steht „freigeben am PC“.
+- **Knopf (A2112, A2118):** Projektweg und Planung › Meilensteine zeigen denselben Text (`planansicht.aenderung_ja`); online steht „freigeben
+  am PC“. Läuft das Ziel, starten die Pakete dieses Ja auch dann, wenn sein Plan seit der Freigabe geändert ist – der Plan bleibt offen,
+  kein anderes Paket startet (`delta_start.nach_dem_ja`).
+- **Entwurf zurückstellen (A2118, `entwurf_warten.py`):** `amw thema entwurf-warten TH<n> --grund …` (Lead, Co, Mensch) – statt des Knopfs steht
+  „wartet: <Grund>“, der Entwurf zählt nicht als „wartet auf dich“ und hält die Schritt-Leiste nicht; der Mensch kann ihn mit Rückfrage
+  trotzdem freigeben, Lead und Co erst nach `amw thema entwurf-weiter TH<n>`. Ein neuer Entwurf wartet nicht. Ereignis `thema_entwurf_wartet`.
+- **Überholte Entwürfe (A2118):** Ein Vermerk „nichts zu bauen“ (oder ein angenommener Plan) nach dem Entwurf schließt ihn in jeder Anzeige
+  (`planer.geklaert`). Ein zu langer Grund bei „nichts zu bauen“ wird auf 1000 Zeichen gekürzt.
 
 ### Hinweise an den Planer und „Überarbeiten lassen“ (A2028, TH164)
 
