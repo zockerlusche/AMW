@@ -992,6 +992,19 @@ def cmd_aufgabe(a, con):
         print(f"Frage F{nr} an den Menschen gestellt: A{a.id} dazwischenschieben? – „Ja“ führt es aus" if art == "frage"
               else f"A{a.id} kommt jetzt dran" + (f"; A{nr} wartet und kommt danach wieder dran" if nr else ""))
         return
+    if a.aktion in ("schieben", "frueher", "spaeter"):    # A2094: innerhalb des Meilensteins, mit dem Nachbarn
+        from . import paket_schieben
+        if not a.id:
+            raise kern.AmwFehler("amw aufgabe schieben <nr> (zeigt, was geht) | frueher <nr> --grund … | spaeter <nr> --grund …")
+        if a.aktion != "schieben":
+            r = paket_schieben.verschieben(con, pid, _von(a), a.id, a.aktion, a.grund)
+            v, n = r["vorher"], r["nachher"]
+            print(f"A{a.id} {paket_schieben.WORT[a.aktion]}: Platz {v['platz']} → {n['platz']}"
+                  + (f" · geplant {_zeit(v['start_utc'])} → {_zeit(n['start_utc'])}" if v["start_utc"] and n["start_utc"] else "")
+                  + (f" · Meilenstein P50 {v['meilenstein_p50']} → {n['meilenstein_p50']}" if v["meilenstein_p50"] else ""))
+        for k, m in paket_schieben.moeglich(con, pid, a.id, _von(a)).items():
+            print(f"  {paket_schieben.WORT[k]}: " + (f"geht (tauscht mit A{m['mit']})" if m["geht"] else f"gesperrt – {m['grund']}"))
+        return
     if a.aktion == "neu":
         _bogen_pruefen(con, pid, a)
         thema_hinweis = _thema_pruefen(con, pid, a)          # A1947: kein Paket ohne Thema
@@ -3909,10 +3922,11 @@ def parser():
     x = s.add_parser("aufgabe", help="neu | aendern N | liste | zeige N [--kurz] | start | fertig | … | kriterium N nr |"
                                      " bereit N (Ergebnis steht, bei --fertig-wenn ja) | abnehmen N [--zurueck --kommentar] |"
                                      " plan N --text | planfrei N [--zurueck --kommentar] | nachtrag N --titel … (Folgearbeit"
-                                     " zu einer fertigen Aufgabe)")
+                                     " zu einer fertigen Aufgabe) | schieben N (was geht) · frueher N | spaeter N --grund …"
+                                     " (Paket im Meilenstein verschieben, Mensch und Lead)")
     x.add_argument("aktion", choices=["neu", "aendern", "liste", "zeige", "start", "blockiert", "wartet", "fertig", "verwerfen",
                                        "parken", "aktiv", "keine_prio", "pool", "kriterium", "plan", "planfrei", "nachtrag",
-                                       "dazwischen", "bereit", "abnehmen", "hinweis"])
+                                       "dazwischen", "schieben", "frueher", "spaeter", "bereit", "abnehmen", "hinweis"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("nr", type=int, nargs="?", help="kriterium: Nummer des Kriteriums")
     x.add_argument("--titel")
@@ -3966,7 +3980,7 @@ def parser():
     x.add_argument("--kurz", action="store_true", help="zeige: nur Status, Agent, Titel und Wartegründe")
     x.add_argument("--federfuehrend", help="aendern: wer diese Aufgabe führt (Lead/Entwickler; leer = weg)")
     x.add_argument("--pool", action="store_true", help="neu: in den Eingang (noch in keiner Arbeitsliste)")
-    x.add_argument("--grund", help="dazwischen: warum diese Aufgabe vor das laufende Stück muss (Pflicht)")
+    x.add_argument("--grund", help="dazwischen: warum diese Aufgabe vor das laufende Stück muss (Pflicht); frueher|spaeter: warum (Pflicht für den Lead)")
     x.add_argument("--hinweis", help="fertig|hinweis: ein Satz für die Versionshinweise, in der Sprache der Nutzer (ohne: die AMW leitet"
                    " ihn ab – aus Commit-Betreff, Thema oder Titel)")
     x.add_argument("--gruppe", choices=["neu", "verbessert", "behoben", "intern"], help="fertig|hinweis: Gruppe in den Versionshinweisen"

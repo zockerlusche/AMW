@@ -12,7 +12,8 @@ Reihenfolge (berechnen):
 1. aktiver Meilenstein vor geplantem vor „ohne Meilenstein“, dann nach Nummer des Meilensteins,
 2. was läuft vor startklar vor wartend (startklar = wartet ohne offenen Wartegrund und ohne offenen Vorgänger),
 3. längerer Rest-Pfad zuerst – kritischer Pfad über die Abhängigkeiten „nach“ (Summe der Dauern bis zum Ende),
-4. Rang (nur noch Gleichstand-Brecher), dann Nummer.
+4. Rang (nur noch Gleichstand-Brecher), dann Nummer,
+5. zuletzt die Handgriffe „Paket früher/später“ (A2094, paket_schieben), nur innerhalb eines Meilensteins.
 „nie gleichzeitig“ und „gleiche Ressource“ rechnet die Reihenfolge nicht – das bleibt bei Disponent und Lauf-Schlange.
 
 Handordnung (liste_hand): `amw liste ordnen <Agent> A… --grund …` gilt, bis sich die offene Liste des Agenten ändert (ein Paket
@@ -128,11 +129,15 @@ def _berechnen(con, pid):
         zeilen.append((schluessel, {"aid": a["id"], "titel": a["titel"], "agent": a["agent"], "bogen": a["bogen_id"],
                                     "dauer_h": d[a["id"]][0], "quelle": d[a["id"]][1], "rest_h": rest[a["id"]], "zustand": zustand}))
     zeilen.sort(key=lambda x: x[0])
+    from . import paket_schieben                         # A2094: Handgriffe „früher/später“, nur innerhalb eines Meilensteins
     aus = []
-    for i, (_, z) in enumerate(zeilen, 1):
+    for i, z in enumerate(paket_schieben.anwenden(con, pid, [z for _, z in zeilen]), 1):
         z["platz"] = i
         z["grund"] = (f"{'läuft' if z['zustand'] == 'laeuft' else z['zustand']} · Rest-Pfad {z['rest_h']:g} h"
                       f" · {z['dauer_h']:g} h {z['quelle']}")
+        if z.get("hand"):
+            wer = kern.entwickler_name(con, pid) if z["hand"]["von"] == kern.ENTWICKLER else z["hand"]["von"]
+            z["grund"] += f" · von Hand {paket_schieben.WORT.get(z['hand']['richtung'], '')} ({wer}" + (f": {z['hand']['grund']}" if z["hand"]["grund"] else "") + ")"
         aus.append(z)
     return aus
 

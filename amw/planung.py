@@ -509,12 +509,13 @@ def naechster(con, pid, von, nehmen=False):
     nehmen=True übernimmt ihn in derselben Transaktion (Bearbeiter = von, Status läuft)."""
     if nehmen and kern.halt_gilt(con, pid, von):
         raise kern.AmwFehler("HALT gilt – keine neuen Schritte")
+    from . import paket_schieben                         # A2094: dieselbe Auswahl, Handgriffe „früher/später“ gelten auch hier
     with db.schreiben(con) if nehmen else _nichts():
-        for a in con.execute(
+        for a in paket_schieben.nachziehen(con, pid, con.execute(
                 "SELECT a.* FROM aufgabe a LEFT JOIN bogen b ON b.id = a.bogen_id WHERE a.projekt_id = ? AND a.status = 'wartet'"
                 " AND a.einstufung IN ('aktiv', 'keine_prio') AND (a.agent = ? OR a.agent IS NULL OR a.agent = '')"
                 " AND (b.id IS NULL OR b.status = 'aktiv')"
-                " ORDER BY (b.id IS NULL), b.nr, (a.agent IS NULL), a.rang, a.id", (pid, von)).fetchall():
+                " ORDER BY (b.id IS NULL), b.nr, (a.agent IS NULL), a.rang, a.id", (pid, von)).fetchall()):
             if offene_vorgaenger(con, a["id"]):
                 continue
             if nehmen:

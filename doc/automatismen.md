@@ -614,6 +614,16 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
 - **Reihenfolge:** aktiver Meilenstein vor geplantem vor „ohne Meilenstein“ (dann nach Nummer) · was läuft vor startklar vor
   wartend · längerer Rest-Pfad zuerst (kritischer Pfad über „nach“) · Rang nur noch bei Gleichstand · Nummer.
   `amw bogen reihenfolge [N]` zeigt sie mit Grund, Dauer und Prognose (P50/P85).
+- **Paket früher oder später (A2094, TH164 „Eingriffe“):** Mensch und Lead schieben ein Paket mit seinem Nachbarn im selben Meilenstein:
+  `amw aufgabe schieben N` zeigt je Richtung „geht“ oder den Sperrgrund, `amw aufgabe frueher|spaeter N --grund …` schiebt (der Lead
+  mit Grund, der Mensch auch ohne; Seite: `/api/plan/schieben`, am PC und online wie Vorziehen). Gesperrt: vor ein laufendes Paket,
+  gegen eine Abhängigkeit (auch mittelbar), über die Meilenstein-Grenze; was der Mensch so gesetzt hat, dreht der Lead nicht um.
+  Gespeichert ist das Paar „A12 vor A15“ – Reihenfolge, Disponent, Verteilen, Zeitplan und Prognose folgen ihm, auch wenn Pakete
+  dazukommen; Weckruf und `amw schritt naechster` ordnen ihre Auswahl danach (ohne Handgriff wie bisher). Der Plan-Stand bleibt, der
+  Verzug wird also sichtbar. Es ist eine Reihenfolge, keine Abhängigkeit: kann das vordere gerade nicht beginnen, startet das hintere.
+  Der neueste Handgriff gilt, auch gegenüber `amw liste ordnen`. Ein Paar endet mit Grund im Protokoll: erfüllt, das hintere begann
+  zuerst, neue Abhängigkeit, anderer Meilenstein, verworfen oder zurückgestellt, ersetzt. Was nicht erfüllt wurde, steht im Verlauf,
+  und der Lead bekommt je Runde und Meilenstein eine Nachricht.
 - **Zeitplan (A2045):** `amw bogen zeitplan [N]` bzw. `/api/zeitplan` legt die Pakete in dieser Reihenfolge auf ihre
   Ressourcen – Headless auf die Arbeitsplätze (so viele gleichzeitig wie Plätze), Fenster-Pakete auf ihren Agenten (eins nach
   dem anderen), dazu die offenen Vorgänger. Ergebnis je Paket: geplante Start- und Endzeit, Dauer, „gleichzeitig mit“ (gleiche

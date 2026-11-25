@@ -483,9 +483,9 @@ class Dienst:
         except Exception as e:
             log.warning("Wochenlimit-Halt: %s: %s", type(e).__name__, e)
         try:                                                                 # A1941 (K5): Handordnung endet, wenn die Liste sich ändert
-            from . import reihenfolge
+            from . import paket_schieben, reihenfolge                        # A2094: Handgriffe „früher/später“ ebenso
             for (pid_,) in self.con.execute("SELECT id FROM projekt").fetchall():
-                for e in reihenfolge.hand_abgelaufen(self.con, pid_):
+                for e in reihenfolge.hand_abgelaufen(self.con, pid_) + paket_schieben.abgelaufen(self.con, pid_):
                     log.info("Reihenfolge: %s", e)
         except Exception as e:
             log.warning("Reihenfolge: %s: %s", type(e).__name__, e)

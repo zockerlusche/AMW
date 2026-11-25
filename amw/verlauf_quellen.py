@@ -22,7 +22,7 @@ ROH = 500                        # so viele jüngste Rohzeilen je Quelle
 GRENZE = 120                     # so viele Einträge je Schritt zeigt die Seite
 BUENDEL_S = 10 * 60
 TITEL_MAX = 70                   # gekürzt wird der Titel, nicht der Satz – was geschah, bleibt lesbar; ganz auf Klick
-RANG = ("weg", "feinplan_angestossen", "feinplan_entwurf", "delta", "ms_start", "verteilt", "start", "abgabe", "pruefung", "entscheidung", "abschluss",
+RANG = ("weg", "feinplan_angestossen", "feinplan_entwurf", "delta", "ms_start", "schieben", "schieben_ende", "verteilt", "start", "abgabe", "pruefung", "entscheidung", "abschluss",
         "auslieferung", "ab_angestossen", "ab_bereit", "ab_ergebnis", "ms_fertig")
 # Art → (ein Paket, mehrere); {m} Meilenstein, {t} Titel, {n} Anzahl, {x} Zusatz
 TEXTE = {
@@ -167,6 +167,28 @@ def _feinplan(con, pid):
     return aus
 
 
+def _eingriffe(con, pid):
+    """A2094: Paket früher/später – wer, was, warum; ein Handgriff, der endet, ohne erfüllt zu sein (ersetzt: der neue steht da)."""
+    from . import paket_schieben
+    zeilen = _neueste(con, "SELECT e.id, e.zeit_utc, e.von, e.art, e.text, e.aufgabe_id, e.bogen_id, b.nr FROM plan_ereignis e"
+                           " JOIN bogen b ON b.id = e.bogen_id WHERE e.projekt_id = ? AND e.art IN (?, ?) ORDER BY e.id DESC",
+                      (pid, paket_schieben.ART, paket_schieben.ENDE))
+    titel = {r["id"]: r["titel"] for r in con.execute("SELECT id, titel FROM aufgabe WHERE projekt_id = ?", (pid,))} if zeilen else {}
+    aus = []
+    for r in zeilen:
+        d, t = _json(r["text"]), titel.get(r["aufgabe_id"], "?")
+        if r["art"] == paket_schieben.ART:
+            frueher = d.get("richtung") == "frueher"
+            nachbar = titel.get(d.get("nach") if frueher else d.get("vor"), "?")
+            text = f"M{r['nr']}: „{t}“ {'früher, vor' if frueher else 'später, hinter'} „{nachbar}“" + (f" – {d['grund']}" if d.get("grund") else "")
+            aus.append(_eintrag("schieben", r["id"], r["zeit_utc"], _rolle(r["von"]), r["von"], "schieben", "umsetzung", r["bogen_id"], None,
+                                text=text, aufgabe=r["aufgabe_id"]))
+        elif d.get("art") not in ("erfuellt", "ersetzt"):
+            aus.append(_eintrag("schieben_ende", r["id"], r["zeit_utc"], _rolle(r["von"]), r["von"], "schieben_ende", "umsetzung", r["bogen_id"], None,
+                                text=f"M{r['nr']}: Verschiebung von „{t}“ gilt nicht mehr – {d.get('grund') or '?'}", aufgabe=r["aufgabe_id"]))
+    return aus
+
+
 DELTA = ("thema_delta_stimme", "thema_delta_angewandt", "thema_delta_start")
 _ROLLE = {"co": "Co-Entwickler", "lead": "Lead"}
 
@@ -260,7 +282,7 @@ def gesamt(con, pid, weg, schritt_von, grenze=GRENZE):
     """Der ganze Verlauf: die Einträge aus verlauf.projektweg (`weg`, schon gebündelt) und die abgeleiteten, älteste zuerst, höchstens
     `grenze` je Schritt. schritt_von(eintrag) → Schritt eines Eintrags aus `weg`."""
     alle = [{**e, "schritt": schritt_von(e), "rang": (0, e["id"]), "zusatz": None, "nummer": None, "titel": None, "ms": None} for e in weg]
-    for quelle in (_umsetzung, _auslieferung, _feinplan, _delta, _abschluss):
+    for quelle in (_umsetzung, _auslieferung, _feinplan, _delta, _abschluss, _eingriffe):
         alle += quelle(con, pid)
     alle.sort(key=lambda x: (x["zeit"], x["rang"]))
     je, aus = {}, zusammenfassen(alle)

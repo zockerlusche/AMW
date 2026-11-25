@@ -11,7 +11,7 @@ Gemeinsam für alle: `--von <Name>` (wer handelt; sonst `AMW_AGENT`), `--projekt
 | [`posten`](#posten) | Nachricht schicken: --an CC2 (oder alle, Entwickler) --art auftrag¦frage¦info¦… --kurz … |
 | [`lesen`](#lesen) | ohne Nummer: offene Liste; mit Nummern: ganze Nachrichten (lesen 16707 16589) |
 | [`erledigt`](#erledigt) | Nachrichten als erledigt markieren: amw erledigt 12 13 ¦ --info [--vor 04.11.] |
-| [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N [--kurz] ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ bereit N (Ergebnis steht, bei --fertig-wenn ja) ¦ abnehmen N [--zurueck --kommentar] ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] ¦ nachtrag N --titel … (Folgearbeit zu einer fertigen Aufgabe) |
+| [`aufgabe`](#aufgabe) | neu ¦ aendern N ¦ liste ¦ zeige N [--kurz] ¦ start ¦ fertig ¦ … ¦ kriterium N nr ¦ bereit N (Ergebnis steht, bei --fertig-wenn ja) ¦ abnehmen N [--zurueck --kommentar] ¦ plan N --text ¦ planfrei N [--zurueck --kommentar] ¦ nachtrag N --titel … (Folgearbeit zu einer fertigen Aufgabe) ¦ schieben N (was geht) · frueher N ¦ spaeter N --grund … (Paket im Meilenstein verschieben, Mensch und Lead) |
 | [`paket`](#paket) | Arbeitspakete (Mischbetrieb): zeigen N ¦ zustand N <zustand> [--grund … --beleg …] ¦ liste [--zustand …] ¦ ergebnis N (--json - über stdin oder --status/--zusammenfassung/--frage/--frage-an/--grund/--hinweis; nur der zugeteilte Agent, Art agent/sitzung, Paket läuft) ¦ starten N (Lead/Mensch: ein startklares p-Paket jetzt starten – der Wächter entscheidet) ¦ mergeliste [--diff] (bereit zum Merge: diff --stat, Server-Code, Blick nötig) ¦ freigeben --alle ¦ freigeben N [--blick] (Prüfer der Pakete, Lead, Mensch) ¦ buendeln --alle ¦ buendeln N [--titel …] (freigegebene Pakete zu einem Release-Stand; Lead, Mensch) ¦ annehmen N --grund … (E4-Paket nach dem Lesen in die Merge-Liste; Lead, Mensch) ¦ holen [N] (interaktiv: nächste Aufgabe nehmen, Auftrag + Startwissen, Zweig/Arbeitsbaum) ¦ fertig N --sha … --punkte … (interaktiv: Tests-Hinweis, Prüfung C der AMW bzw. Prüfbitte, wartet) ¦ lead-liest N [--aus] (Lead, Mensch: dieses Paket liest immer der Lead – A2054) – Felder setzen: amw aufgabe neu¦aendern … --paket p … |
 | [`thema`](#thema) | Design-Dokument je Thema: liste [--suche] ¦ zeige TH12 ¦ neu "Name" [--pfleger X] [--stil] ¦ einstellen TH12 --pfleger X ¦ --stil ¦ pflegen TH12 --text-datei … ¦ bestaetigen TH12 ¦ dokument TH12 --dokument D5 [--loesen] ¦ status (ein Status je Thema) ¦ freigeben TH12 ¦ zurueck TH12 --notiz … ¦ markieren¦entmarkieren TH12 (nur der Mensch; bei thema_freigabe=co+lead gibt freigeben von Co und Lead je ein Ja, B2913) ¦ nur_mensch TH12 (Pfleger, Lead, Mensch) ¦ nicht_nur_mensch TH12 (nur der Mensch) ¦ vermerk TH12 --nichts-zu-bauen --grund … [--aufheben] ¦ luecken (Thema ohne Paket, Paket ohne Thema) ¦ planen TH12 (Planer anstoßen, Lead/Co) ¦ plan TH12 (Entwurf zeigen) ¦ plan-ja TH12 [--datei geändert.json] (Lead) ¦ anhalten TH12 [--meilenstein N] (nicht begonnene Pakete eines geänderten Themas, Lead/Co) ¦ uebernehmen --datei konzept.md [--ebene 2] [--anlegen] (Konzept-Markdown aus dem Projektordner in Themen-Entwürfe, mit Zählprobe; ohne --anlegen nur Vorschau – Lead/Co) ¦ konzept-abschliessen (alle Themen frei: Konzept-Ja, startet die Grobplanung über alle Themen) ¦ grobplan [--fassung N] [--neu] (Fassungen und Entwurf zeigen, neu planen lassen) ¦ grobplan-ja [--fassung N] (legt die Meilensteine an – wer Ja sagt wie bei den Themen) – A2030 ¦ hinweis grob¦TH12 --text … [--zu TH3¦M2¦P4¦A123] (Ergänzung an den Planer) ¦ ueberarbeiten grob¦TH12 (Planer legt mit den offenen Hinweisen eine neue Fassung vor; Mensch, Lead, Co) – A2028 |
 | [`termin`](#termin) | Terminplaner: neu --titel … --art test¦frist¦schirm¦sonstig --am "2026-11-06 18:00" [--woechentlich --bis 2026-12-31] [--vorlauf 4] [--bogen N] ¦ liste [--tage 21] ¦ aendern N ¦ absagen N [--am …] ¦ bereit N --text "was testen" ¦ kurzliste N (Planen: Lead/Entwickler) |
@@ -282,11 +282,11 @@ usage: amw aufgabe [-h] [--titel TITEL] [--agent AGENT] [--auftrag AUFTRAG]
                    [--nie-gleichzeitig NIE_GLEICHZEITIG]
                    [--gleiche-ressource GLEICHE_RESSOURCE] [--von VON]
                    [--projekt PROJEKT]
-                   {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen,bereit,abnehmen,hinweis}
+                   {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen,schieben,frueher,spaeter,bereit,abnehmen,hinweis}
                    [id] [nr]
 
 positional arguments:
-  {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen,bereit,abnehmen,hinweis}
+  {neu,aendern,liste,zeige,start,blockiert,wartet,fertig,verwerfen,parken,aktiv,keine_prio,pool,kriterium,plan,planfrei,nachtrag,dazwischen,schieben,frueher,spaeter,bereit,abnehmen,hinweis}
   id
   nr                    kriterium: Nummer des Kriteriums
 
@@ -376,7 +376,8 @@ options:
                         leer = weg)
   --pool                neu: in den Eingang (noch in keiner Arbeitsliste)
   --grund GRUND         dazwischen: warum diese Aufgabe vor das laufende Stück
-                        muss (Pflicht)
+                        muss (Pflicht); frueher|spaeter: warum (Pflicht für
+                        den Lead)
   --hinweis HINWEIS     fertig|hinweis: ein Satz für die Versionshinweise, in
                         der Sprache der Nutzer (ohne: die AMW leitet ihn ab –
                         aus Commit-Betreff, Thema oder Titel)

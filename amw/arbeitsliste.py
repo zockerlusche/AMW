@@ -124,6 +124,8 @@ def dazwischen_ausfuehren(con, pid, von, a, grund):
                      text=f"für A{aid}: {grund}")
     rest = [y["id"] for y in liste(con, pid, agent) if y["id"] not in (aid, x["id"] if x else None)]
     reihe = [aid] + ([x["id"]] if x else []) + rest
+    from . import paket_schieben                         # A2094: der neueste Handgriff gilt
+    paket_schieben.liste_geordnet(con, pid, von, reihe)
     _nummerieren(con, reihe)
     from . import reihenfolge                            # A1941: eine Entscheidung des Menschen – Handordnung mit seinem Grund
     reihenfolge.hand_setzen(con, pid, von, agent, reihe, f"dazwischen: {grund}")
@@ -170,8 +172,9 @@ def ordnen(con, pid, von, agent, ids, grund=None):
                         " THEN 'aktiv' ELSE einstufung END WHERE id = ?", (agent, aid))
         rest = [x["id"] for x in liste(con, pid, agent) if x["id"] not in ids]
         reihe, _ = _hinter_laufendem(con, pid, agent, list(ids) + rest)   # das laufende Stück bleibt vorn
+        from . import paket_schieben, reihenfolge
+        paket_schieben.liste_geordnet(con, pid, von, reihe)               # A2094: ein Handgriff des Menschen bleibt stehen
         _nummerieren(con, reihe)
-        from . import reihenfolge
         reihenfolge.hand_setzen(con, pid, von, agent, reihe, grund.strip())
     return liste(con, pid, agent)
 
@@ -206,8 +209,9 @@ def schieben(con, pid, von, aid, vor=None, nach=None, pos=None, oben=False, unte
     ids.insert(i, aid)
     ids, _ = _hinter_laufendem(con, pid, agent, ids)          # nie vor das laufende Stück
     with db.schreiben(con):
+        from . import paket_schieben, reihenfolge
+        paket_schieben.liste_geordnet(con, pid, von, ids)
         _nummerieren(con, ids)
-        from . import reihenfolge
         reihenfolge.hand_setzen(con, pid, von, agent, ids, grund)
     return liste(con, pid, agent)
 

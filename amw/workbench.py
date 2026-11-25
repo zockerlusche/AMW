@@ -582,8 +582,12 @@ def daten_planung(con, pid):
     ohne_bogen = zeilen(con.execute("SELECT id, titel, agent, status, einstufung FROM aufgabe WHERE projekt_id = ? AND bogen_id IS NULL"
                                     " AND status NOT IN ('fertig', 'verworfen') ORDER BY status = 'laeuft' DESC, einstufung = 'pool', rang, id",
                                     (pid,)))
-    from . import planansicht, themen as _themen
-    return {"planansicht": planansicht.daten(con, pid), "luecken": _themen.luecken(con, pid), "laeuft": laeuft, "ohne_bogen": ohne_bogen, "neue_aufgaben": kern.projekt_wahl(con, pid, "neue_aufgaben"), "rechner_heute": betrieb.tagesverlauf(con, pid), "token": tokenprognose.als_daten(token), "termine": termin_liste, "ki_fenster": ki_fenster, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
+    from . import paket_schieben, planansicht, themen as _themen
+    try:
+        schieben = paket_schieben.moeglich_alle(con, pid)     # A2094: je Paket früher/später – geht oder gesperrt mit Grund
+    except Exception:                                          # noqa: BLE001 – die Ansicht geht auch ohne
+        schieben = {}
+    return {"planansicht": planansicht.daten(con, pid), "schieben": schieben, "luecken": _themen.luecken(con, pid), "laeuft": laeuft, "ohne_bogen": ohne_bogen, "neue_aufgaben": kern.projekt_wahl(con, pid, "neue_aufgaben"), "rechner_heute": betrieb.tagesverlauf(con, pid), "token": tokenprognose.als_daten(token), "termine": termin_liste, "ki_fenster": ki_fenster, "leitbild": planung.leitbild(con, pid), "boegen": boegen, "risiken": planung.risiken(con, pid),
             "pruefung": planung.pruefen(con, pid, prog, mit_akzeptierten=True), "status": planung.status(con, pid, prog),
             "check_texte": {k: {"wer": v[1], "ziel": v[2], **v[3]} for k, v in planung.CHECKS.items()}, "lead": kern.lead(con, pid),
             "wartet": planung.freigaben_offen(con, pid), "heute": datetime.date.today().isoformat(),   # lokales Datum für die Heute-Linie

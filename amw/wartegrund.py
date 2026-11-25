@@ -278,7 +278,8 @@ def freie_arbeit(con, pid, kennung):
                                        or planung.offene_vorgaenger(con, a["id"])):
             continue
         aus.append(a)
-    return aus
+    from . import paket_schieben                          # A2094: dieselbe Auswahl, Handgriffe „früher/später“ gelten auch hier
+    return paket_schieben.nachziehen(con, pid, aus)
 
 
 def haelt_fest(con, pid, kennung, jetzt=None):

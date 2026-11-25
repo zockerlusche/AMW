@@ -588,6 +588,11 @@ def planen(con, pid, was, d):
             r = folgen.vorschlagen(con, pid, e, "meilenstein", zahl("bogen"), grund=d.get("grund"), titel=d.get("titel"),
                                    ziel=d.get("ziel"), abnahme=d.get("abnahme"), zieldatum=d.get("zieldatum") or None)
             return {"ok": True, **r}
+        if was == "schieben":                      # A2094: Paket früher/später (wie Vorziehen: am PC und online)
+            from . import paket_schieben
+            if zahl("aufgabe") is None:
+                raise Ungueltig("Aufgabe fehlt")
+            return {"ok": True, **paket_schieben.verschieben(con, pid, e, zahl("aufgabe"), d.get("richtung"), str(d.get("grund") or ""))}
         if was == "check":                         # Befund bewusst akzeptieren oder wieder zählen lassen
             if d.get("wieder"):
                 planung.check_wieder(con, pid, e, d.get("schluessel") or "")
