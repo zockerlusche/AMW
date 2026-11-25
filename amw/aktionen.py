@@ -145,14 +145,7 @@ def _ausfuehren(con, pid, weg, daten, kanal="seite", speicher=None):
             fid = int(teile[2])
         except ValueError:
             raise Ungueltig("Fragenummer")
-        st = kern.frage_antworten(con, pid, fid, art, wert, kanal)
-        if art == "option" and (daten.get("anmerkung") or "").strip():
-            with db.schreiben(con):
-                t = db.jetzt()
-                db.einfuegen(con, "wortlaut", projekt_id=pid, zeit_utc=t, text=daten["anmerkung"].strip(),
-                             kanal=kanal, erfasst_von="amw", erfasst_utc=t,
-                             bemerkung=f"Anmerkung zur Antwort auf F{fid} (Option {wert})")
-        return {"status": st}
+        return {"status": kern.frage_antworten(con, pid, fid, art, wert, kanal, anmerkung=str(daten.get("anmerkung") or "") or None)}
     if teile[:2] == ["api", "frage"] and len(teile) == 4 and teile[3] in ("parken", "aufnehmen"):
         try:
             fid = int(teile[2])

@@ -124,7 +124,7 @@ WERKZEUGE = {
                    F("blockiert", "b", "die Arbeit steht, bis sie beantwortet ist", "--blockiert")]),
     "frage_antworten": ("Eine Frage an dich beantworten.", ["frage", "antworten"],
                         [NR("der Frage"), F("option", "s", "Kürzel der gewählten Option", "--option"),
-                         F("text", "s", "Antwort als Text", "--text"), F("rueckfrage", "s", "Rückfrage statt Antwort", "--rueckfrage")]),
+                         F("text", "s", "Antwort als Text – oder die Begründung neben option", "--text"), F("rueckfrage", "s", "Rückfrage statt Antwort", "--rueckfrage")]),
     "beschluss_neu": ("Beschluss festhalten.", ["beschluss", "neu"],
                       [F("text", "s", "der Beschluss", "--text", True), F("stichwort", "s", "Stichwort", "--stichwort"),
                        F("thema", "s", "Thema (TH-Nr. oder Name)", "--thema"), F("neues_thema", "b", "Thema neu anlegen", "--neues-thema"),

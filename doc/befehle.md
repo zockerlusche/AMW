@@ -597,9 +597,9 @@ usage: amw frage [-h] [--an {entwickler,tl,zustaendig}] [--kurz KURZ]
                  [--worum WORUM] [--option OPTION] [--empfehlung EMPFEHLUNG]
                  [--fundstellen FUNDSTELLEN] [--geprueft GEPRUEFT]
                  [--aufgabe AUFGABE] [--blockiert] [--text TEXT]
-                 [--rueckfrage RUECKFRAGE] [--grund GRUND] [--geparkt]
-                 [--buendeln BUENDELN] [--anhang ANHANG] [--von VON]
-                 [--projekt PROJEKT]
+                 [--text-datei TEXT_DATEI] [--rueckfrage RUECKFRAGE]
+                 [--grund GRUND] [--geparkt] [--buendeln BUENDELN]
+                 [--anhang ANHANG] [--von VON] [--projekt PROJEKT]
                  {neu,liste,zeige,antworten,nachtrag,verlauf,parken,aufnehmen,weiterleiten}
                  [id]
 
@@ -623,7 +623,10 @@ options:
                         mindestens einen
   --aufgabe AUFGABE
   --blockiert
-  --text TEXT
+  --text TEXT           antworten: die Antwort – oder neben --option die
+                        Begründung; nachtrag, weiterleiten: der Text
+  --text-datei TEXT_DATEI
+                        wie --text, aus einer Datei (UTF-8)
   --rueckfrage RUECKFRAGE
   --grund GRUND         neu: warum du das empfiehlst; parken/aufnehmen: warum
                         (steht im Verlauf)

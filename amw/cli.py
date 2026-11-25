@@ -1087,7 +1087,7 @@ def cmd_aufgabe(a, con):
                   + (f"  · Quelle: {q['art']}{(' ' + str(q.get('befehl') or q.get('thema') or q.get('mindestens'))) if len(q) > 1 else ''}" if q else "")
                   + (f"  · {k['beleg']}" if k.get("beleg") else ""))
     elif a.aktion == "plan":
-        planung.plan_vorlegen(con, pid, _von(a), a.id, a.text or "")
+        planung.plan_vorlegen(con, pid, _von(a), a.id, _text(a))
         print(f"Plan für A{a.id} vorgelegt – umsetzen erst nach Freigabe")
     elif a.aktion == "planfrei":
         planung.plan_entscheiden(con, pid, _von(a), a.id, not a.zurueck, a.kommentar)
@@ -1547,7 +1547,7 @@ def cmd_frage(a, con):
     elif a.aktion == "weiterleiten":
         if not a.id:
             raise kern.AmwFehler("frage weiterleiten <nr> [--text \"Notiz\"] [--kurz … --worum … --option A=… --empfehlung A --grund …]")
-        kern.frage_weiterleiten(con, pid, _von(a), a.id, a.text, kurz=a.kurz, worum=a.worum,          # A2021: vorher überarbeiten
+        kern.frage_weiterleiten(con, pid, _von(a), a.id, _text(a) or None, kurz=a.kurz, worum=a.worum,          # A2021: vorher überarbeiten
                                 optionen=_frage_optionen(a.option) or None, empfehlung=a.empfehlung, grund=a.grund)
         print(f"F{a.id} an den Entwickler weitergeleitet – er sieht sie als deine Frage")
     elif a.aktion in ("parken", "aufnehmen"):
@@ -1567,9 +1567,9 @@ def cmd_frage(a, con):
                   + (f"\n   {opt}" if opt else "") + (f"  → Empfehlung {r['empfehlung']}" if r["empfehlung"] else "")
                   + ("\n   hängt: " + ", ".join(f"A{x['aufgabe']}" + (f" ({x['agent']})" if x["agent"] else "") for x in h) if h else ""))
     elif a.aktion == "nachtrag":                    # Fragesteller: Antwort auf eine Rückfrage oder Ergänzung
-        if not a.id or not a.text:
-            raise kern.AmwFehler("frage nachtrag <nr> --text \"…\"")
-        print(f"Nachtrag zu F{a.id} – Nachricht #{kern.frage_nachtrag(con, pid, _von(a), a.id, a.text)}")
+        if not a.id or not _text(a):
+            raise kern.AmwFehler("frage nachtrag <nr> --text \"…\" | --text-datei <datei>")
+        print(f"Nachtrag zu F{a.id} – Nachricht #{kern.frage_nachtrag(con, pid, _von(a), a.id, _text(a))}")
     elif a.aktion == "zeige":                            # A1780: ganze Frage mit Optionen und Antwort ohne SQL
         if not a.id:
             raise kern.AmwFehler("frage zeige <nr>")
@@ -1600,11 +1600,16 @@ def cmd_frage(a, con):
         for v in con.execute("SELECT zeit_utc, von, art, text FROM frage_verlauf WHERE frage_id = ? ORDER BY id", (a.id,)):
             print(f"  {_zeit(v['zeit_utc'])} {v['von']} [{v['art']}]: {v['text']}")
     elif a.aktion == "antworten":
-        art, wert = ("option", a.option[0]) if a.option else ("rueckfrage", a.rueckfrage) if a.rueckfrage else ("text", a.text)
+        if a.rueckfrage and (a.option or a.text or a.text_datei):        # A2087: nichts still weglassen
+            raise kern.AmwFehler("--rueckfrage steht allein – ohne --option und --text")
+        if a.option and len(a.option) > 1:
+            raise kern.AmwFehler("eine Antwort, eine Option – mehreres gehört in --text")
+        text = _text(a)
+        art, wert = ("option", a.option[0]) if a.option else ("rueckfrage", a.rueckfrage) if a.rueckfrage else ("text", text)
         if not wert:
-            raise kern.AmwFehler("--option, --text oder --rueckfrage angeben")
+            raise kern.AmwFehler("--option (auch mit --text als Begründung), --text, --text-datei oder --rueckfrage angeben")
         # kein stilles „Entwickler“ als Absender: der Entwickler antwortet in der Workbench, wer hier antwortet, nennt sich
-        print(f"F{a.id} → {kern.frage_antworten(con, pid, a.id, art, wert, 'cli', _von(a))}")
+        print(f"F{a.id} → {kern.frage_antworten(con, pid, a.id, art, wert, 'cli', _von(a), anmerkung=text if a.option else None)}")
 
 
 def cmd_halt(a, con):
@@ -2790,6 +2795,38 @@ def cmd_rezept(a, con):
             print(f"{r['name']:<24} {r['beschreibung'] or ''}")
 
 
+# A2087: welche Unterbefehle --text/--text-datei überhaupt nehmen – bei allen anderen ging der Text still verloren
+TEXT_AKTIONEN = {"aufgabe": ("plan", "nachtrag"), "thema": ("hinweis", "pflegen"), "termin": ("bereit",),
+                 "frage": ("antworten", "nachtrag", "weiterleiten"), "runde": ("schreiben",), "spec": ("schreiben",), "hinweis": ("setzen",),
+                 "ki": ("vermerk",), "beschluss": ("neu",), "dokument": ("kommentar", "ueberarbeiten"), "notiz": ("setzen",),
+                 "regelwerk": ("uebernehmen",), "release": ("merge", "version")}
+
+TEXT_STATT = {("frage", "neu"): "--kurz (die Frage) und --worum (der Zusammenhang)", ("aufgabe", "neu"): "--auftrag", ("aufgabe", "aendern"): "--auftrag",
+              ("aufgabe", "fertig"): "--zusammenfassung", ("aufgabe", "wartet"): "--wartet-auf", ("frage", "parken"): "--grund"}
+
+
+def _text_pruefen(a):
+    """Vor dem Befehl: ein angegebener Text, den dieser Unterbefehl nicht nimmt, ist ein Fehler – nichts wird getan."""
+    text, datei = getattr(a, "text", None), getattr(a, "text_datei", None)
+    if not (isinstance(text, str) or datei):
+        return
+    nimmt = TEXT_AKTIONEN.get(a.cmd)
+    if nimmt and getattr(a, "aktion", None) not in nimmt:
+        raise kern.AmwFehler(f"amw {a.cmd} {a.aktion} nimmt kein {'--text-datei' if datei else '--text'} – nichts getan."
+                             + (f" Gemeint: {TEXT_STATT[(a.cmd, a.aktion)]}." if (a.cmd, a.aktion) in TEXT_STATT else "")
+                             + f" Text geht bei: {', '.join(nimmt)}")
+    if isinstance(text, str) and text and datei and not (a.cmd == "aufgabe" and a.aktion == "nachtrag"):   # nachtrag nimmt beides (A2073)
+        raise kern.AmwFehler("--text oder --text-datei – eins von beiden")
+
+
+class _Sammeln(argparse.Action):
+    """A2087: mehrfach angegeben wird gesammelt (mit Komma) – vorher gewann still die letzte Angabe."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        vorher = getattr(namespace, self.dest, None)
+        setattr(namespace, self.dest, f"{vorher},{values}" if vorher else values)
+
+
 def _text(a):
     if getattr(a, "text_datei", None):
         with open(a.text_datei, encoding="utf-8") as f:
@@ -2913,7 +2950,7 @@ def cmd_thema(a, con):
         if not a.name:
             raise kern.AmwFehler("Welcher Plan? grob oder TH<n>")
         if a.aktion == "hinweis":
-            planhinweis.hinweis(con, pid, _von(a), a.name, a.text, a.zu)
+            planhinweis.hinweis(con, pid, _von(a), a.name, _text(a), a.zu)
             n = len(planhinweis.offene(con, pid, a.name))
             print(f"Hinweis vermerkt ({n} offen) – überarbeiten lassen: amw thema ueberarbeiten {a.name}")
             return 0
@@ -3885,10 +3922,10 @@ def parser():
     x.add_argument("--pruefer")
     x.add_argument("--beleg")
     x.add_argument("--wartet-auf", help="wartet/blockiert: Erklärung als Text (zusätzlich zu --auf)")
-    x.add_argument("--auf", help="wartet/blockiert: worauf, als Verweise – F12,A120,L7,CC2,Entwickler,Monitor:<was>"
+    x.add_argument("--auf", action=_Sammeln, help="wartet/blockiert: worauf, als Verweise – F12,A120,L7,CC2,Entwickler,Monitor:<was>"
                                  " (Pflicht; erledigt sich von selbst und benachrichtigt dich). Fügt Gründe HINZU – alte bleiben"
                                  " offen, bis sie sich erledigen oder du sie mit --erledigt abhakst")
-    x.add_argument("--erledigt", help="wartet/blockiert: diese Gründe von Hand abhaken, z. B. F12 oder CCamw (allein: Status bleibt;"
+    x.add_argument("--erledigt", action=_Sammeln, help="wartet/blockiert: diese Gründe von Hand abhaken, z. B. F12 oder CCamw (allein: Status bleibt;"
                                       " mit --auf: alten Grund abhaken und neuen setzen in einem Schritt)")
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
@@ -4083,7 +4120,8 @@ def parser():
                                       " Fragen an den Entwickler; findet die AMW Treffer, nenne mindestens einen")
     x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--blockiert", action="store_true")
-    x.add_argument("--text")
+    x.add_argument("--text", help="antworten: die Antwort – oder neben --option die Begründung; nachtrag, weiterleiten: der Text")
+    x.add_argument("--text-datei", help="wie --text, aus einer Datei (UTF-8)")
     x.add_argument("--rueckfrage")
     x.add_argument("--grund", help="neu: warum du das empfiehlst; parken/aufnehmen: warum (steht im Verlauf)")
     x.add_argument("--geparkt", action="store_true", help="liste: nur die geparkten")
@@ -4770,6 +4808,7 @@ def main(argv=None):
         else:
             con = db.verbinde()
             try:
+                _text_pruefen(a)
                 _heutige_kennungen(con, a)
                 meilensteine.aufloesen(con, lambda: _projekt(con, a), a)      # A2079: M<nr> = Projektnummer
                 if a.cmd in ("lesen", "kontext", "takt") and _von(a) not in (kern.ENTWICKLER, "AMW"):   # A1757: Nachlesen messen

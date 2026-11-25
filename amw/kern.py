@@ -1800,8 +1800,10 @@ def frage_weiterleiten(con, pid, von, fid, notiz=None, kurz=None, worum=None, op
     return fid
 
 
-def frage_antworten(con, pid, fid, antwort_art, antwort, kanal, von=ENTWICKLER):
-    """Speichert die Antwort und benachrichtigt den Fragesteller (weckt). Text des Entwicklers → wortlaut."""
+def frage_antworten(con, pid, fid, antwort_art, antwort, kanal, von=ENTWICKLER, anmerkung=None):
+    """Speichert die Antwort und benachrichtigt den Fragesteller (weckt). Text des Entwicklers → wortlaut. anmerkung (A2087): der Text
+    neben einer Option – die Option bleibt die Antwort, der Text steht im Verlauf und ganz in der Nachricht an den Fragesteller."""
+    anmerkung = (anmerkung or "").strip() if antwort_art == "option" else ""
     f = con.execute("SELECT * FROM frage WHERE id = ? AND projekt_id = ?", (fid, pid)).fetchone()
     if not f:
         raise AmwFehler(f"Frage F{fid} gibt es nicht")
@@ -1819,14 +1821,20 @@ def frage_antworten(con, pid, fid, antwort_art, antwort, kanal, von=ENTWICKLER):
         if von == ENTWICKLER and antwort_art in ("text", "rueckfrage"):
             db.einfuegen(con, "wortlaut", projekt_id=pid, zeit_utc=t, text=antwort, kanal=kanal,
                          erfasst_von="amw", erfasst_utc=t, bemerkung=f"Antwort auf F{fid}")
+        if von == ENTWICKLER and anmerkung:
+            db.einfuegen(con, "wortlaut", projekt_id=pid, zeit_utc=t, text=anmerkung, kanal=kanal, erfasst_von="amw", erfasst_utc=t,
+                         bemerkung=f"Anmerkung zur Antwort auf F{fid} (Option {antwort})")
         art = "frage" if antwort_art == "rueckfrage" else "antwort"
         nid = None
         if f["von"] != von:
-            nid, _ = _posten(con, pid, von, f["von"], art, f"{'Rückfrage' if art == 'frage' else 'Antwort'} zu F{fid}: {antwort[:120]}",
-                             text=antwort if len(antwort) > 120 else None, aufgabe_id=f["aufgabe_id"], bezug=f"F{fid}")
+            voll = f"{antwort} – {anmerkung}" if anmerkung else antwort
+            nid, _ = _posten(con, pid, von, f["von"], art, f"{'Rückfrage' if art == 'frage' else 'Antwort'} zu F{fid}: {' '.join(voll.split())[:120] if anmerkung else voll[:120]}",
+                             text=voll if len(voll) > 120 or anmerkung else None, aufgabe_id=f["aufgabe_id"], bezug=f"F{fid}")
         roh = antwort
         if antwort_art == "option":                    # im Verlauf mit dem Text der Option
             antwort = next((f"{o['kenn']}) {o['text']}" for o in json.loads(f["optionen"]) if o["kenn"] == antwort), antwort)
+            if anmerkung:
+                antwort += f" – {anmerkung}"
         db.einfuegen(con, "frage_verlauf", frage_id=fid, zeit_utc=t, von=von,
                      art="rueckfrage" if antwort_art == "rueckfrage" else "antwort", text=antwort, nachricht_id=nid)
         if status == "beantwortet":                    # wer auf diese Frage gewartet hat, wird geweckt (L2)
