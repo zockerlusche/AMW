@@ -20,13 +20,13 @@ class Daten:
         kern.agent_neu(self.con, self.q, "QTL", rolle="lead")
         kern.agent_neu(self.con, self.q, "QC1")
         self.aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Linien aufräumen", "CC1")
-        kern.posten(self.con, self.pid, E, "CC1", "auftrag", "Bitte Linien aufräumen", bezug=f"A{self.aid}")
+        auftrag = kern.posten(self.con, self.pid, E, "CC1", "auftrag", "Bitte Linien aufräumen", bezug=f"A{self.aid}")[0]
         kern.posten(self.con, self.pid, "CC1", "TL", "info", "Prüfbitte an TL gestellt", bezug=f"A{self.aid}")   # Agenten untereinander
-        self.mache = kern.posten(self.con, self.pid, "CC1", E, "info", "Mache ich")[0]       # hängt sich an den Auftrag, erbt den Bezug
+        self.mache = kern.posten(self.con, self.pid, "CC1", E, "antwort", "Mache ich", antwort_auf=auftrag)[0]   # A2108: die Antwort auf deinen Auftrag zählt
         alt = kern.posten(self.con, self.pid, "CC1", E, "meldung", "Schon erledigte Meldung")[0]
         with db.schreiben(self.con):
             self.con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ? WHERE nachricht_id = ?", (db.jetzt(), alt))
-        self.quer = kern.posten(self.con, self.q, "QTL", E, "meldung", "Meilenstein im Zweitprojekt abschließen?")[0]
+        self.quer = kern.posten(self.con, self.q, "AMW", E, "meldung", "Meilenstein im Zweitprojekt abschließen?")[0]   # A2108: Meldung der AMW zählt
         kern.posten(self.con, self.q, "QTL", "QC1", "auftrag", "Zwischenstand bitte")
 
 

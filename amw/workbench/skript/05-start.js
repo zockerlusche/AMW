@@ -880,8 +880,8 @@ async function sichtNachrichten() {
   const faden = nrFaeden(d.eingang, d.gesendet, mit.flatMap(({ p, d: x }) => (x.nachrichten || []).map(n => ({ ...n, projekt: p }))));
   const mehrere = nrProjekte().length > 1;
   const m = rahmen(t("n_nachrichten"), el("span", { class: "leise" }, t("nr_unter"), " ", hilfeKnopf("nachrichten")));
-  const wahl = gemerkt("amw-nr");                     /* ohne gemerkte Wahl: An dich, wenn dort Offenes liegt (D940 Fund 7) */
-  let reiter = wahl === "eingang" || wahl === "gesendet" ? wahl : d.zaehler.eingang_offen ? "eingang" : "gesendet", gewaehlt = null, such = "", agent = "", bezugWahl = "", projektWahl = "";
+  const wahl = gemerkt("amw-nr");                     /* ohne gemerkte Wahl: An dich, wenn dort Ungelesenes liegt (D940 Fund 7) – auch wenn es nicht zählt (A2108) */
+  let reiter = wahl === "eingang" || wahl === "gesendet" ? wahl : d.eingang.some(x => x.stand !== "erledigt") ? "eingang" : "gesendet", gewaehlt = null, such = "", agent = "", bezugWahl = "", projektWahl = "";
   const nurOffen = { eingang: true, gesendet: false };  /* A1889: Standard „an dich + offen“ (Marcel, A1629 Punkt 2) */
   const alt = gezeichnet.sicht === "nachrichten" ? nrMerk : null;   /* erst nach dem Laden lesen: ein Klick währenddessen gilt */
   if (alt) { ({ reiter, gewaehlt } = alt); projektWahl = alt.projektWahl || ""; Object.assign(nurOffen, alt.nurOffen || {}); }

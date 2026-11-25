@@ -75,6 +75,18 @@ class Nachrichten(Daten, Rundgang):
         self.warten("document.querySelector('.nr-raster').classList.contains('detail') && getComputedStyle(document.querySelector('.nr-zurueck')).display !== 'none'")
         self.assertEqual(self.pruefen("nachrichten-handy", "handy", "hell"), [])
 
+    def test_nur_ungelesene_infos_an_dich_offen(self):
+        """A2108 (L3719): Infos zählen nicht, sind aber da – ohne gemerkte Wahl öffnet „An dich“, nicht ein leeres „Gesendet“."""
+        for g in ("pc", "handy"):
+            with self.subTest(g=g):
+                self.groesse(g)
+                self.oeffnen("nachrichten", "document.querySelector('.nr-reiter button.an')")
+                self.tab.js("try { Object.keys(localStorage).filter(k => k.includes('amw-nr')).forEach(k => localStorage.removeItem(k)) } catch (e) {}")
+                self.oeffnen("nachrichten", "document.querySelectorAll('.nr-eintrag').length >= 40")
+                self.assertIn("An dich", self.tab.js("document.querySelector('.nr-reiter button.an').textContent"))
+                self.assertEqual(self.tab.js("document.querySelector('.nr-offen').textContent"), "0 offen für dich")
+                self.assertEqual(self.pruefen("nachrichten-nur-infos", g, "hell"), [])
+
     def test_ohne_gemerkte_wahl_eingang_wenn_neues(self):
         self.groesse("pc")
         self.oeffnen("nachrichten", "document.querySelector('.nr-reiter button.an')")
