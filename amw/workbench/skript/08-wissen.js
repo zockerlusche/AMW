@@ -375,7 +375,7 @@ function pwUrteil(x, name, p, text) {
   const pakete = (p.pakete || []).filter(k => x.thema ? k.themen.includes(x.thema) : !k.themen.some(th => p.themen.some(y => y.thema === th)));
   const kopf = [el("b", {}, t("pjw_z_" + z, { x: name })), satz ? " – " + satz : null];
   if (!pakete.length && !text) return el("span", {}, kopf);
-  return el("details", { class: "pjw-beleg" }, el("summary", {}, kopf), text ? el("div", { class: "pjw-zielsatz" }, text) : null, z === "nicht_pruefbar" && (x.beleg || x.fehlt) ? el("div", { class: "leise" }, t("pjw_pruefer_sagt", { x: x.fehlt || x.beleg })) : null,
+  return el("details", { class: "pjw-beleg" }, el("summary", {}, kopf), text ? el("div", { class: "pjw-beleg-paket pjw-zielsatz" }, text) : null, z === "nicht_pruefbar" && (x.beleg || x.fehlt) ? el("div", { class: "leise" }, t("pjw_pruefer_sagt", { x: x.fehlt || x.beleg })) : null,
     ...pakete.map(k => el("div", { class: "pjw-beleg-paket" }, el("div", {}, k.titel), el("div", { class: "leise" },
       [[...new Set([...k.commits.slice(0, 3), ...(k.sha ? [k.sha] : [])])].join(", ") + (k.commits.length > 3 ? " …" : ""), k.grund ? t("pjw_bg_" + k.grund, { z: p.stand?.zweig || "main" }) : k.befund === "urteil" ? t("pjw_bg_urteil") : null, k.dateien.length ? k.dateien.join(", ") + (k.mehr ? " …" : "") : null].filter(Boolean).join(" · ")))));
 }
