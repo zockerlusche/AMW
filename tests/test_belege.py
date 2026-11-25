@@ -163,7 +163,7 @@ class Pakete(Repo):
         self.assertEqual(n, ["rev-parse", "cat-file", "rev-list", "rev-list", "rev-list", "diff-tree"])
 
     def test_commits_des_pakets_fuer_die_dateiliste(self):
-        """A2092: der Beleg nennt den Versions-Commit – die Dateien kommen auch aus den Commits „A<nr>: …“, zuerst."""
+        """A2092: der Beleg nennt den Versions-Commit – die Dateien kommen aus den Commits „A<nr>: …“."""
         aid = self.paket("wird gesetzt")
         eins = self.commit("app/eins.py", "1\n", f"A{aid}: erster Teil")
         zwei = self.commit("app/zwei.py", "2\n", f"A{aid}: zweiter Teil")
@@ -176,7 +176,7 @@ class Pakete(Repo):
         with db.schreiben(self.con):
             self.con.execute("UPDATE aufgabe SET beleg = ? WHERE id = ?", (version[:7], aid))
         p = belege.meilenstein(self.con, self.pid, self.m)["pakete"][0]
-        self.assertEqual((p["befund"], p["sha"], p["commits"], p["dateien"]), ("ok", version, [zwei, eins], ["app/zwei.py", "app/eins.py", "CHANGELOG.md"]))
+        self.assertEqual((p["befund"], p["sha"], p["commits"], p["dateien"]), ("ok", version, [zwei, eins], ["app/zwei.py", "app/eins.py"]))     # A2106: der Versions-Commit nicht
         with db.schreiben(self.con):                                                        # der Befund bleibt am Beleg
             self.con.execute("UPDATE aufgabe SET beleg = 'abc1234' WHERE id = ?", (aid,))
         p = belege.meilenstein(self.con, self.pid, self.m)["pakete"][0]

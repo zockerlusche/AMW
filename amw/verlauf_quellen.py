@@ -264,9 +264,11 @@ def zusammenfassen(liste):
         gruppen.append(g)
     aus = []
     for g in gruppen:
-        e, n = g["teile"][-1], len(g["teile"])
+        e = g["teile"][-1]
+        je = list({x["aufgabe_id"] or x["titel"]: x for x in g["teile"]}.values())      # A2106: je Paket einmal (mehrere Prüfungen desselben Pakets)
+        n = len(je)
         if g["schluessel"]:
-            mehr = " · ".join(f"{(x['nummer'] + ' ') if x['nummer'] else ''}{x['titel']}" for x in g["teile"]) if n > 1 else (
+            mehr = " · ".join(f"{(x['nummer'] + ' ') if x['nummer'] else ''}{x['titel']}" for x in je) if n > 1 else (
                 " · ".join(x for x in (e["nummer"], e["titel"] if len(e["titel"] or "") > TITEL_MAX else None) if x) or None)
             e = {**e, "text": _satz(e["art"], e["ms"], e["titel"], e["zusatz"], n), "mehr": mehr}
         else:

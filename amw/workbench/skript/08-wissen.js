@@ -132,6 +132,8 @@ const pwM = m => "M" + m.nr;                         /* eine Nummer je Meilenste
 const pwThemaName = (d, id) => (d.konzept.themen.find(x => x.id === id) || {}).name || "";
 const pwFeinOffen = d => { const o = d.fein.meilensteine.filter(m => (!m.frei || m.delta_start) && !m.laeuft && (m.pakete.length || m.fehler) && m.status === "geplant");
   return o.find(m => !m.fehler) || o[0]; };                            /* ein Plan, der auf dich wartet, geht vor einem abgelehnten */
+/* A2106: Einzahl, wenn es genau eins ist und der Text eine hat (Schlüssel + "1") */
+const pwN = (k, n, v = {}) => t(n === 1 && (k + "1") in TEXTE.de ? k + "1" : k, { n, ...v });
 const pwPakete = n => n === 1 ? t("pjw_ein_paket") : t("pjw_so_viele_pakete", { n });   /* A2061: laufende sind Umsetzung */
 function pwFragenIn(d, i) {                    /* Paket im laufenden Meilenstein → Umsetzung, sonst Feinplan; ohne Paket → wo es gerade steht */
   const aktiv = new Set(d.umsetzung.meilensteine.map(m => m.bogen)), dran = Math.min(pwDranNr(d), 3);
@@ -147,8 +149,8 @@ function pwWert(d, i) {
   const k = d.konzept, g = d.grob, f = d.fein, u = d.umsetzung, a = d.abschluss;
   if (i === 0) return t("pjw_w_konzept", { n: k.n, g: k.g });
   if (i === 1) { if (g.laeuft) return t("pjw_in_arbeit");
-    if (g.angenommen) return t("pjw_w_grob_ok", { n: g.angenommen.n });
-    if (!g.fassungen.length && (g.bestand || []).length) return t("pjw_w_grob_bestand", { n: g.bestand.length });
+    if (g.angenommen) return pwN("pjw_w_grob_ok", g.angenommen.n);
+    if (!g.fassungen.length && (g.bestand || []).length) return pwN("pjw_w_grob_bestand", g.bestand.length);
     const l = g.fassungen.at(-1); return l ? t("pjw_fassung", { n: l.fassung }) : "–"; }
   if (i === 2) { const l = f.meilensteine.find(m => m.laeuft); if (l) return t("pjw_in_arbeit");
     const w = pwFeinOffen(d); if (w) return w.fehler ? t("pjw_w_fein_fehler", { m: pwM(w) }) : t("pjw_w_fein", { m: pwM(w), p: pwPakete(w.pakete.length) });
@@ -199,7 +201,7 @@ function pwKonzept(d) {
     pwStatus(x.markiert ? t("th2_markiert") : t("th2_" + (x.status || "arbeit")), x.status === "dich" ? "dran" : x.status === "frei" ? "frei" : ""))))];
   if (!k.zu) teile.push(el("div", { class: "leise" }, t("pjw_k_erst", { n: k.n, g: k.g }), " ",
     el("a", { href: "#themen", onclick: e => { e.preventDefault(); zeige("themen"); } }, t("pjw_zu_themen"))));
-  else if (k.bestand) teile.push(el("div", { class: "leise" }, t("pjw_k_bestand", { n: k.bestand })));   /* A2061: A2030 kennt keine Übernahme */
+  else if (k.bestand) teile.push(el("div", { class: "leise" }, pwN("pjw_k_bestand", k.bestand)));   /* A2061: A2030 kennt keine Übernahme */
   else if (!API && !k.abgeschlossen && !k.grob_angenommen && !k.grob_laeuft)
     pwHaupt = pwKnopf(t("pjw_k_abschliessen"), () => pwTun("/api/projektweg/konzept-abschliessen", {}, t("pjw_ok_abgeschlossen")), true);
   return teile;
@@ -207,7 +209,7 @@ function pwKonzept(d) {
 function pwGrob(d) {
   const g = d.grob, teile = [];
   if (g.laeuft) teile.push(el("div", { class: "leer" }, t("pjw_g_laeuft")));
-  if (!g.fassungen.length && (g.bestand || []).length) return [el("div", { class: "leise" }, t("pjw_g_bestand", { n: g.bestand.length })),   /* A2061 */
+  if (!g.fassungen.length && (g.bestand || []).length) return [el("div", { class: "leise" }, pwN("pjw_g_bestand", g.bestand.length)),   /* A2061 */
     el("div", { class: "pjw-liste" }, g.bestand.map(b => el("div", { class: "pjw-zeile pjw-zeile-statisch" }, el("span", { class: "pjw-nr" }, pwM(b)), el("span", {}, b.titel),
       el("span", { class: "pjw-rechts" }, b.status === "fertig" ? t("pjw_p_fertig") : t("pjw_f_von_n", { f: b.fertig, n: b.pakete })))))];
   if (!g.fassungen.length) return g.laeuft ? teile : [el("div", { class: "leer" }, t("pjw_g_leer"))];
@@ -352,11 +354,11 @@ function pwUmsetzung(d) {
       el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(m)} ${m.titel}`, (d.laufende || []).some(x => x.bogen === m.bogen) ? el("span", { class: "pjw-laufend" }, " · " + t("pjw_laufend")) : null),
         pwStatus(t("pjw_f_von_n", { f: m.fertig, n: m.pakete.length }))),
       el("div", { class: "pjw-balken" }, el("span", { style: `width:${m.pakete.length ? Math.round(m.fertig / m.pakete.length * 100) : 0}%` })),
-      offen.length ? el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, jetzt), " ", t("pjw_laeuft_jetzt")),
+      offen.length ? el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, jetzt), " ", pwN("pjw_laeuft_jetzt", jetzt)),
         el("span", {}, el("b", {}, offen.length - jetzt), " ", t("pjw_noch_offen"))) : null,
       ...fragen.filter(f => f.bogen === m.bogen).map(pwFrage),
       offen.length ? pwStufen(offen, true) : null,
-      fertig.length ? el("details", { class: "pjw-fertig" }, el("summary", {}, t("pjw_fertige_pakete", { n: fertig.length })), pwStufen(fertig, true)) : null);
+      fertig.length ? el("details", { class: "pjw-fertig" }, el("summary", {}, pwN("pjw_fertige_pakete", fertig.length)), pwStufen(fertig, true)) : null);
     teile.push(block);
   }
   teile.push(el("div", { class: "pjw-werte" }, el("a", { href: "#start", onclick: e => { e.preventDefault(); zeige("start"); } }, t("pjw_lagebild"))));
@@ -393,7 +395,7 @@ function pwAbschlussKarte(x, einzig, haupt) {
   if (!p) karte.append(el("div", { class: "pjw-pruefung" }, zeile(false, x.pruefung_laeuft ? t("pjw_a_laeuft") : t("pjw_a_ohne")), ja));
   else {
     karte.append(el("div", { class: "pjw-pruefung" },
-      p.vorbehalte.some(v => v.art === "kein_gesamttest") ? null : zeile(test.befehl ? testOk : null, !test.befehl ? t("pjw_test_kein") : test.rc === 0 ? t("pjw_test_gruen", { n: x.pakete, l: test.lauf }) : t("pjw_test_rot", { l: test.lauf })),
+      p.vorbehalte.some(v => v.art === "kein_gesamttest") ? null : zeile(test.befehl ? testOk : null, !test.befehl ? t("pjw_test_kein") : test.rc === 0 ? pwN("pjw_test_gruen", x.pakete, { l: test.lauf }) : t("pjw_test_rot", { l: test.lauf })),
       ...p.themen.map(th => zeile(th.erfuellt, pwUrteil(th, th.thema, p))),
       p.ziel ? zeile(p.ziel.erfuellt, pwUrteil(p.ziel, t(p.zielsatz?.[0] === "ziel" ? "pjw_ziel" : "pjw_ziel_fertig"), p, p.zielsatz?.[1])) : null,   /* A2098: „fertig, wenn“ wie ein Thema, sein Text auf Klick */
       p.fehler ? zeile(false, t("pjw_a_pruefer_fehler_z", { x: p.gruende.map(g => t("pjw_ax_" + g.art, g.x)).join(" · ") })) : null, ja));

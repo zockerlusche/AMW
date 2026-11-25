@@ -999,7 +999,7 @@ die der Lead nur noch bestätigt oder ändert.
   prüfbar**, egal was der Prüfer schreibt – keine Nacharbeit von selbst, Meldung an den Lead mit den Vorschlägen des Prüfers.
   Commit da, aber nicht auf dem Zweig, oder ein anderer Beleg als verlangt: **Vorbehalt**. Kein Projektordner mit main oder master:
   Vorbehalt „Code nicht geprüft“, kein Fehler. Für die Liste der geänderten Dateien (und was zuerst in den Code kommt) zählen auch die
-  Commits auf dem Zweig, deren Betreff mit „A<nr>:“ der Aufgabe beginnt (A2092). Der Befund steht in pakete.md, im Ergebnis (`belege`) und im Bericht.
+  Commits auf dem Zweig, deren Betreff mit „A<nr>:“ der Aufgabe beginnt (A2092); die Dateien eines Versions-Commits zählen nicht als Arbeit des Pakets (A2106). Der Befund steht in pakete.md, im Ergebnis (`belege`) und im Bericht.
 - **Der Prüfer sieht den Code (A2088):** die versionierten Dateien des geprüften Stands liegen unter code/ (als Blobs, ohne Filter und
   Haken; keine Verweise, Untermodule, Binär-, Zugangs- und Steuerdateien; höchstens 2000 Dateien, 400 KB je Datei, 20 MB, zuerst die
   vom Meilenstein geänderten). Was fehlt, nennt code-grenze.md ohne Inhalt. Er liest nur, und sein „erfüllt“ überstimmt die Belege nie.

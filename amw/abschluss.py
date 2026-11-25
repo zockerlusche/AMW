@@ -50,6 +50,7 @@ prüfbar: keine Nacharbeit von selbst, Meldung an den Lead.
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -181,6 +182,14 @@ def erneut_moeglich(con, pid, e):
         return True
     arten = {v["art"] for v in e.get("vorbehalte") or []} - {"pruefer"}
     return bool(arten - {"code_ungeprueft"}) or ("code_ungeprueft" in arten and belege.stand(kern.projekt_ordner(con, pid)) is not None)
+
+
+_VORSATZ = re.compile(r"^\s*[„“\"]?(fertig,? wenn|done when)[“”\"]?\s*[:–-]\s*", re.I)
+
+
+def ohne_vorsatz(x):
+    """A2106: das Urteil über „fertig, wenn“ für die Anzeige – der Satz des Prüfers ohne sein „Fertig, wenn:“ am Anfang (steht schon da)."""
+    return {**x, **{k: _VORSATZ.sub("", x[k]) for k in ("beleg", "fehlt") if x.get(k)}} if x else x
 
 
 def zielsatz(b):
@@ -752,7 +761,7 @@ def bericht_teil(con, pid, bid):
     z += [f"- {x['thema']}: {_urteil(x)}" + (f" – {x['beleg']}" if x.get("beleg") else "")
           + (f" – fehlt: {x['fehlt']}" if x.get("fehlt") else "") for x in e.get("themen") or []]
     if e.get("ziel"):                                     # A2098
-        x = e["ziel"]
+        x = ohne_vorsatz(e["ziel"])
         b = con.execute("SELECT * FROM bogen WHERE id = ?", (bid,)).fetchone()
         z.append(f"- {'Ziel' if (zielsatz(b) or ('',))[0] == 'ziel' else '„Fertig, wenn“'}: {_urteil(x)}" + (f" – {x['beleg']}" if x.get("beleg") else "")
                  + (f" – fehlt: {x['fehlt']}" if x.get("fehlt") else ""))

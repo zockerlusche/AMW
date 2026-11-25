@@ -342,7 +342,7 @@ def abschluss(con, pid, freigaben):
                     "pakete": con.execute("SELECT count(*) FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (a["bogen"],)).fetchone()[0],
                     "pruefung": {"test": e.get("test"), "themen": e.get("themen") or [], "vorfuehrung": e.get("vorfuehrung") or [],
                                  "ok": e.get("ok"), "fehler": bool(e.get("fehler")), "gruende": ab.deuten(e.get("fehler")),
-                                 "ziel": e.get("ziel"), "zielsatz": ab.zielsatz(b), **_belege(con, e, a["frei"])} if e else None})
+                                 "ziel": ab.ohne_vorsatz(e.get("ziel")), "zielsatz": ab.zielsatz(b), **_belege(con, e, a["frei"])} if e else None})
     return aus
 
 

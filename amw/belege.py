@@ -24,6 +24,7 @@ DOKUMENT = re.compile(r"\bD(\d+)\b")
 MAX_DATEIEN_JE_PAKET = 40
 MAX_COMMITS_JE_PAKET = 20
 BETREFF = re.compile(r"A(\d+):")         # A2092: so beginnt der Betreff eines Commits zu Aufgabe A<nr>
+VERSIONS_COMMIT = re.compile(r"\d+\.\d+\.\d+:")     # A2106: so beginnt ein Versions-Commit (Stapel, Bündel) – seine Dateien sind nicht die eines Pakets
 # Grenzen des Codes für den Prüfer
 MAX_DATEIEN, MAX_DATEI, MAX_GESAMT = 2000, 400 * 1024, 20 * 1024 * 1024
 WEG_NAMEN = re.compile(r"(?i)(^|/)(\.env[^/]*|\.git[^/]*|\.claude|CLAUDE(\.local)?\.md|\.mcp\.json|id_[a-z0-9]+(\.pub)?|\.npmrc|\.netrc|\.pgpass|credentials[^/]*|secrets?[^/]*)(/|$)")
@@ -118,18 +119,21 @@ def dateien_der(ordner, shas):
 
 
 def commits_zu(ordner, kopf, aids):
-    """A2092: {Aufgabe: [sha, neueste zuerst]} – Commits auf kopf, deren Betreff mit „A<nr>:“ genau dieser Aufgabe beginnt. Nur für die
-    Dateiliste (der Beleg nennt oft den Versions-Commit); die Beleg-Prüfung selbst bleibt am Beleg."""
-    aids, aus = set(aids), {}
+    """A2092: ({Aufgabe: [sha, neueste zuerst]}, {Versions-Commits}) – Commits auf kopf, deren Betreff mit „A<nr>:“ genau dieser Aufgabe
+    beginnt, und die, deren Betreff mit einer Version beginnt (A2106). Nur für die Dateiliste (der Beleg nennt oft den Versions-Commit);
+    die Beleg-Prüfung selbst bleibt am Beleg."""
+    aids, aus, versionen = set(aids), {}, set()
     if not aids:
-        return aus
+        return aus, versionen
     _, zeilen = _git(ordner, "rev-list", "--format=%H%x00%s", kopf)
     for z in zeilen.decode("utf-8", "replace").splitlines():
         sha, trenner, betreff = z.partition("\0")         # ohne Trenner: die Kopfzeile „commit <sha>“
         m = BETREFF.match(betreff) if trenner else None
         if m and int(m[1]) in aids and len(aus.setdefault(int(m[1]), [])) < MAX_COMMITS_JE_PAKET:
             aus[int(m[1])].append(sha)
-    return aus
+        elif trenner and VERSIONS_COMMIT.match(betreff):
+            versionen.add(sha)
+    return aus, versionen
 
 
 def paket(con, pid, a, st, gefunden):
@@ -178,16 +182,16 @@ def meilenstein(con, pid, bid):
         except (GitFehler, ValueError):
             pass                                          # git ging nicht: „Code nicht geprüft“
     pakete = [paket(con, pid, a, st, gefunden) for a in zeilen]
-    eigene, je = {}, {}
+    eigene, versionen, je = {}, set(), {}
     if st:
         try:
-            eigene = commits_zu(ordner, st[1], [p["paket"] for p in pakete])
+            eigene, versionen = commits_zu(ordner, st[1], [p["paket"] for p in pakete])
             je = dateien_der(ordner, [s for p in pakete for s in [*eigene.get(p["paket"], []), p["sha"]] if s])
         except GitFehler:
             pass                                          # der Befund steht fest, nur die Dateiliste fehlt
-    for p in pakete:                                      # erst die eigenen Commits, dann der Beleg
+    for p in pakete:                                      # erst die eigenen Commits, dann der Beleg – außer er ist ein Versions-Commit (A2106)
         p["commits"] = eigene.get(p["paket"], [])
-        teile = [je.get(s, ([], False)) for s in dict.fromkeys([*p["commits"], p["sha"]]) if s]
+        teile = [je.get(s, ([], False)) for s in dict.fromkeys([*p["commits"], p["sha"]]) if s and s not in versionen]
         alle = list(dict.fromkeys(d for t in teile for d in t[0]))
         p["dateien"], p["mehr"] = alle[:MAX_DATEIEN_JE_PAKET], len(alle) > MAX_DATEIEN_JE_PAKET or any(t[1] for t in teile)
     return {"zweig": st[0] if st else None, "sha": st[1] if st else None, "pakete": pakete}
