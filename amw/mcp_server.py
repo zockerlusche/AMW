@@ -30,7 +30,7 @@ ANWEISUNG = ("Werkzeuge der AMW (Agentenmanagement) für dieses Projekt. Beginne
              " (ids), schreiben mit `posten`. Du handelst als der Agent, für den dieser Server gestartet wurde.")
 
 
-# Feld: (name, typ, beschreibung, ziel, pflicht, auswahl). typ: s Text, i Zahl, b ja/nein, ai Liste Zahlen, as Liste Texte.
+# Feld: (name, typ, beschreibung, ziel, pflicht, auswahl). typ: s Text, i Zahl, m Meilenstein (A2079: M<nr> oder interne Zahl), b ja/nein, ai Liste Zahlen, as Liste Texte.
 # ziel: "--option" (Liste: je Eintrag einmal) oder "#" (Position, in der Reihenfolge der Felder). Ein Werkzeug ist damit nur
 # (Beschreibung, feste Befehlszeile, Felder) – Schema, Prüfung und Befehlszeile entstehen daraus; jedes ruft cli.main.
 def F(name, typ, text, ziel, pflicht=False, auswahl=None):
@@ -70,19 +70,19 @@ WERKZEUGE = {
                 F("kurz", "s", "worum es geht, ein Satz", "--kurz", True), F("text", "s", "ausführlicher Text", "--text"),
                 F("antwort_auf", "i", "Nummer der Nachricht, auf die du antwortest", "--antwort-auf"),
                 F("aufgabe", "i", "Nummer der Aufgabe", "--aufgabe"),
-                F("bezug", "s", "worum es geht: A<nr>, F<nr>, D<nr>, M<nr>, P<nr>, L<nr>, T<nr>, B<nr> oder @Kennung", "--bezug")]),
+                F("bezug", "s", "worum es geht: A<nr>, F<nr>, D<nr>, M<nr> (Projektnummer), P<nr>, L<nr>, T<nr>, B<nr> oder @Kennung", "--bezug")]),
     "erledigt": ("Nachrichten als erledigt markieren.", ["erledigt"],
                  [F("ids", "ai", "Nummern der Nachrichten", "#", True), F("bemerkung", "s", "warum/wie erledigt", "--bemerkung")]),
     "kontext": ("Startinformationen: Regeln, Liste, Läufe, Bildschirm – für dich oder einen Agenten.", ["kontext"],
                 [F("agent", "s", "Kennung eines Agenten (leer: du)", "#")]),
     "aufgabe_liste": ("Aufgaben des Projekts (offen; mit alle auch fertige).", ["aufgabe", "liste"],
-                      [F("agent", "s", "nur dieser Agent", "--agent"), F("bogen", "i", "nur dieser Meilenstein", "--bogen"),
+                      [F("agent", "s", "nur dieser Agent", "--agent"), F("bogen", "m", "nur dieser Meilenstein", "--bogen"),
                        F("alle", "b", "auch fertige und verworfene", "--alle")]),
     "aufgabe_zeige": ("Eine Aufgabe ganz: Auftrag, Status, Wartegründe, Kriterien.", ["aufgabe", "zeige"],
                       [NR("der Aufgabe"), F("kurz", "b", "nur Status, Agent, Titel und Wartegründe", "--kurz")]),
     "aufgabe_neu": ("Neue Aufgabe anlegen.", ["aufgabe", "neu"],
                     [F("titel", "s", "kurzer Titel", "--titel", True), F("agent", "s", "Bearbeiter (Kennung oder Entwickler)", "--agent"),
-                     F("auftrag", "s", "was genau zu tun ist", "--auftrag"), F("bogen", "i", "Meilenstein", "--bogen"),
+                     F("auftrag", "s", "was genau zu tun ist", "--auftrag"), F("bogen", "m", "Meilenstein", "--bogen"),
                      F("ohne_bogen", "b", "bewusst ohne Meilenstein (Lead)", "--ohne-bogen"),
                      F("thema", "s", "Thema bzw. Themen, z. B. TH3,TH5 (A1947: kein Paket ohne Thema)", "--thema"),
                      F("ohne_thema_grund", "s", "bewusst ohne Thema – Grund (interne Pflege)", "--ohne-thema-grund"),
@@ -90,7 +90,7 @@ WERKZEUGE = {
                      F("groesse", "s", "Größe", "--groesse", False, GROESSE), *PAKET]),
     "aufgabe_aendern": ("Eine Aufgabe ändern (nur die angegebenen Felder).", ["aufgabe", "aendern"],
                         [NR("der Aufgabe"), F("titel", "s", "neuer Titel", "--titel"), F("agent", "s", "neuer Bearbeiter", "--agent"),
-                         F("auftrag", "s", "neuer Auftrag", "--auftrag"), F("bogen", "i", "Meilenstein", "--bogen"),
+                         F("auftrag", "s", "neuer Auftrag", "--auftrag"), F("bogen", "m", "Meilenstein", "--bogen"),
                          F("kriterien", "as", "Abnahmekriterien (ersetzt die Liste)", "--kriterium"), F("rang", "i", "Rang", "--rang"),
                          F("groesse", "s", "Größe", "--groesse", False, GROESSE), *PAKET]),
     "paket_zeigen": ("Paket einer Aufgabe: Art, Zustand, Abnahme-Befehl, Bereiche, Modell, Effort … (mit Vorgaben) und letzte"
@@ -99,7 +99,7 @@ WERKZEUGE = {
                       [NR("der Aufgabe"), F("zustand", "s", "neuer Zustand", "#", True, ZUSTAENDE),
                        F("grund", "s", "warum", "--grund"), F("beleg", "s", "bei fertig: Commit", "--beleg")]),
     "bogen_liste": ("Meilensteine mit Stand (fertig/offen je Meilenstein).", ["bogen", "liste"], []),
-    "bogen_zeigen": ("Ein Meilenstein ganz, mit seinen Aufgaben.", ["bogen", "zeigen"], [NR("des Meilensteins")]),
+    "bogen_zeigen": ("Ein Meilenstein ganz, mit seinen Aufgaben.", ["bogen", "zeigen"], [F("id", "m", "Meilenstein", "#", True)]),
     "pruefung_liste": ("Prüfbitten (offen; mit alle auch erledigte).", ["pruefung", "liste"], [F("alle", "b", "auch erledigte", "--alle")]),
     "pruefung_zeige": ("Eine Prüfbitte ganz (Punkte, Stand, Bemerkung).", ["pruefung", "zeige"], [NR("der Prüfbitte")]),
     "pruefung_urteil": ("Ergebnis einer Prüfbitte eintragen: grün oder rot.", ["pruefung"],
@@ -175,14 +175,14 @@ WERKZEUGE = {
                 F("grund", "s", "frei/zu: Grund", "--grund"), F("bis", "s", "frei: bis Ortszeit HH:MM", "--bis"),
                 F("verlauf", "b", "zeige: die letzten Wechsel", "--verlauf")]),
 }
-TYP = {"s": "string", "i": "integer", "b": "boolean", "ai": "array", "as": "array"}
-TYP_TEXT = {"s": "Text", "i": "eine Zahl", "b": "true/false", "ai": "eine Liste von Zahlen", "as": "eine Liste von Texten"}
+TYP = {"s": "string", "i": "integer", "m": ["string", "integer"], "b": "boolean", "ai": "array", "as": "array"}
+TYP_TEXT = {"s": "Text", "i": "eine Zahl", "m": "M<nr> (Projektnummer) oder die interne Zahl", "b": "true/false", "ai": "eine Liste von Zahlen", "as": "eine Liste von Texten"}
 
 
 def _schema(felder):
     props = {}
     for name, typ, text, _, _, auswahl in felder:
-        d = {"type": TYP[typ], "description": text}
+        d: dict = {"type": TYP[typ], "description": text + (" – M<nr> ist die Projektnummer; eine nackte Zahl die interne Nummer" if typ == "m" else "")}
         if typ in ("ai", "as"):
             d["items"] = {"type": "integer" if typ == "ai" else "string"}
         if auswahl:
@@ -220,7 +220,7 @@ def _pruefen(name, args):
         if k not in felder:
             return f"unbekanntes Feld: {k} (erlaubt: {', '.join(felder) or 'keine'})"
         typ, ziel, auswahl = felder[k][1], felder[k][3], felder[k][5]
-        gut = {"s": isinstance(v, str), "i": _ist_zahl(v), "b": isinstance(v, bool),
+        gut = {"s": isinstance(v, str), "i": _ist_zahl(v), "m": _ist_zahl(v) or isinstance(v, str), "b": isinstance(v, bool),
                "ai": isinstance(v, list) and all(_ist_zahl(x) for x in v),
                "as": isinstance(v, list) and all(isinstance(x, str) for x in v)}[typ]
         if not gut:

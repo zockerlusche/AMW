@@ -7,7 +7,7 @@ Ein Testtermin legt fest, wann du testest. Die AMW leitet daraus für alle die F
 
 ## Schritte
 1. **Termin anlegen** `amw termin neu --titel "Wochentest" --art test --am "13.11. 18:00"` – wöchentlich mit `--woechentlich`, bis zu einem Tag mit `--bis JJJJ-MM-TT`.
-2. **Mit einem Meilenstein verknüpfen (optional)** `--bogen <nummer>` anhängen. Die Ampel vergleicht dann seine Prognose mit der Frist.
+2. **Mit einem Meilenstein verknüpfen (optional)** `--bogen M<nummer>` anhängen. Die Ampel vergleicht dann seine Prognose mit der Frist.
 3. **Vorlauf anpassen (optional)** Standard: Der Testbuild ist 4 Stunden vor dem Termin fällig. Anders mit `--vorlauf <stunden>`.
 
 ## Diese Werte trägst du ein

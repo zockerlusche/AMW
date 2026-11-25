@@ -1180,7 +1180,8 @@ BEZUG_ARTEN = {"A": ("aufgabe", "titel"), "F": ("frage", "kurz"), "D": ("dokumen
 
 
 def bezug_pruefen(con, pid, bezug):
-    """Kürzel für den Bezug einer Nachricht prüfen und vereinheitlichen: A/F/D/M/P/L/T/B<nr> oder @Kennung."""
+    """Kürzel für den Bezug einer Nachricht prüfen und vereinheitlichen: A/F/D/M/P/L/T/B<nr> oder @Kennung. M ist hier die interne
+    Nummer (so gespeichert, so schickt es die Seite zurück); was jemand tippt, übersetzt vorher meilensteine.bezug (A2079)."""
     if bezug is None or not str(bezug).strip():
         return None
     b = str(bezug).strip()
@@ -1205,6 +1206,9 @@ def bezug_text(con, bezug):
     if bezug.startswith("@"):
         return bezug[1:]
     tab, spalte = BEZUG_ARTEN.get(bezug[0], (None, None))
+    if bezug[0] == "M":                              # A2079: gespeichert ist die interne Nummer, gezeigt wird die Projektnummer
+        r = con.execute("SELECT nr, titel FROM bogen WHERE id = ?", (int(bezug[1:]),)).fetchone()
+        return f"M{r['nr']} {str(r['titel'])[:60]}" if r else bezug
     r = con.execute(f"SELECT {spalte} FROM {tab} WHERE id = ?", (int(bezug[1:]),)).fetchone() if tab else None
     return f"{bezug} {str(r[0])[:60]}" if r and r[0] else bezug
 

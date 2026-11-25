@@ -117,7 +117,7 @@ class MeldungAnDenLead(Grund):
             self.runde()
         self.assertEqual(self.anzahl("TL", "Abschlussprüfung fehlt"), 1)
         text = self.con.execute("SELECT text FROM nachricht WHERE kurz LIKE '%Abschlussprüfung fehlt%'").fetchone()[0]
-        self.assertIn(f"amw bogen pruefung-starten {self.m}", text)
+        self.assertIn("amw bogen pruefung-starten M1", text)                   # A2079: die Projektnummer
         self.assertEqual(self.anzahl(kern.ENTWICKLER, "Abschlussprüfung fehlt"), 0)
         self.ohne_lead()
         self.runde()

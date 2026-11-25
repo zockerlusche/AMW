@@ -12,7 +12,7 @@
   },
   {
    "titel": "Link a milestone (optional)",
-   "text": "Add `--bogen <number>`. The traffic light then compares its forecast with the deadline.",
+   "text": "Add `--bogen M<number>`. The traffic light then compares its forecast with the deadline.",
    "bilder": []
   },
   {

@@ -395,14 +395,15 @@ def _alter(utc):
 
 
 def cmd_posten(a, con):
+    from . import meilensteine
     pid = _projekt(con, a)
     text = a.text
     if a.text_datei:
         with open(a.text_datei, encoding="utf-8") as f:
             text = f.read()
     hinweise = []
-    nid, namen = kern.posten(con, pid, _von(a), a.an, a.art, a.kurz, text, a.antwort_auf, a.aufgabe, hinweise, bis=a.bis, bezug=a.bezug,
-                             faden=not a.neuer_faden)
+    nid, namen = kern.posten(con, pid, _von(a), a.an, a.art, a.kurz, text, a.antwort_auf, a.aufgabe, hinweise, bis=a.bis,
+                             bezug=meilensteine.bezug(con, pid, a.bezug), faden=not a.neuer_faden)
     print(f"#{nid} an {', '.join(namen)}")
     for h in hinweise:
         print(h)
@@ -457,7 +458,7 @@ def _listenzeile(x):
 
 def cmd_termin(a, con):
     """Terminplaner: neu | liste | aendern | absagen | bereit | kurzliste."""
-    from . import termine
+    from . import meilensteine, termine
     pid = _projekt(con, a)
     if a.aktion == "neu":
         if not a.am:
@@ -487,7 +488,7 @@ def cmd_termin(a, con):
         print(f"T{v['termin_id']:<4} {termine.lokal(v['am_utc'])}  [{v['art']}] {v['titel']}"
               + (" (wöchentlich)" if v["woechentlich"] else "")
               + (f" · Testbuild fertig bis {termine.lokal(v['frist_utc'])}" if v.get("frist_utc") else "")
-              + (f" · Meilenstein {v['bogen_id']}: {v['ampel']}" if v.get("ampel") else "")
+              + (f" · {meilensteine.name(con, v['bogen_id'])}: {v['ampel']}" if v.get("ampel") else "")
               + (" · gemeldet" if v["bereit"] else ""))
     if not l:
         print(f"keine Termine in den nächsten {a.tage} Tagen")
@@ -638,13 +639,13 @@ def _bogen_pruefen(con, pid, a):
     z = con.execute("SELECT rolle FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, von)).fetchone()
     if von != kern.ENTWICKLER and not (z and z["rolle"] == "lead"):
         return
-    offen = con.execute("SELECT id, titel, status FROM bogen WHERE projekt_id = ? AND status IN ('aktiv', 'geplant')"
+    offen = con.execute("SELECT id, nr, titel, status FROM bogen WHERE projekt_id = ? AND status IN ('aktiv', 'geplant')"
                         " ORDER BY status = 'aktiv' DESC, zieldatum IS NULL, zieldatum, nr, id", (pid,)).fetchall()
     if not offen:
         return
-    liste = "\n".join(f"  --bogen {b['id']}   B{b['id']} {b['titel']} ({b['status']})" for b in offen)
+    liste = "\n".join(f"  --bogen M{b['nr']}   {b['titel']} ({b['status']})" for b in offen)
     raise kern.AmwFehler(f"Zu welchem Meilenstein gehört die Aufgabe? Ohne --bogen steht sie in der Planung nur unter „Ohne Meilenstein“.\n"
-                         f"{liste}\nVorschlag: --bogen {offen[0]['id']}. Bewusst ohne Meilenstein: --ohne-bogen")
+                         f"{liste}\nVorschlag: --bogen M{offen[0]['nr']}. Bewusst ohne Meilenstein: --ohne-bogen")
 
 
 def _thema_pruefen(con, pid, a):
@@ -1207,11 +1208,12 @@ def cmd_leitbild(a, con):
 
 
 def cmd_bogen(a, con):
-    from . import planung
+    from . import meilensteine, planung
     pid = _projekt(con, a)
+    ms = meilensteine.nennen(con, a.id) if a.id else ""
     if a.aktion == "neu":
         bid = planung.bogen_neu(con, pid, _von(a), a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr)
-        print(f"Meilenstein {bid} angelegt – Ziel und Abnahme dürfen auf Themen und Dokumente verweisen (TH<n>, D<n>);"
+        print(f"{meilensteine.name(con, bid)} angelegt – Ziel und Abnahme dürfen auf Themen und Dokumente verweisen (TH<n>, D<n>);"
               " seine Themen kommen aus den Aufgaben (amw aufgabe aendern <nr> --thema TH<n>)")
     elif a.aktion in ("freigeben", "zurueck"):        # K6/K7: Ja (Co, Lead; der Mensch allein) bzw. zurück mit Notiz
         from . import planansicht
@@ -1220,7 +1222,7 @@ def cmd_bogen(a, con):
             raise kern.AmwFehler(f"amw bogen {a.aktion} <Nummer> --art grob|plan|abschluss" + (" --notiz …" if a.aktion == "zurueck" else ""))
         if a.aktion == "zurueck":
             planansicht.zurueck(con, pid, _von(a), a.id, a.art, a.notiz)
-            print(f"Meilenstein {a.id} ({a.art}): zurück")
+            print(f"{ms} ({a.art}): zurück")
         else:
             if a.starten and a.art != "plan":
                 raise kern.AmwFehler("--starten gibt es nur mit --art plan")
@@ -1231,7 +1233,7 @@ def cmd_bogen(a, con):
                 r = dict(planansicht.freigeben(con, pid, _von(a), a.id, a.art))
             fehlt = [str(x) for x in (r.get("ja_fehlt") or [])]
             gestartet = r.get("gestartet") or {}
-            print(f"Meilenstein {a.id} ({a.art}): " + ("freigegeben" if r.get("frei") else "dein Ja steht – fehlt noch: " + ", ".join(fehlt))
+            print(f"{ms} ({a.art}): " + ("freigegeben" if r.get("frei") else "dein Ja steht – fehlt noch: " + ", ".join(fehlt))
                   + (f" · gestartet, {len(gestartet.get('startklar') or [])} Pakete startklar" if gestartet else ""))
     elif a.aktion == "nacharbeit":                    # A2029: „Nacharbeit anfordern“ – neue Pakete im selben Meilenstein, starten gleich
         from . import abschluss
@@ -1292,23 +1294,23 @@ def cmd_bogen(a, con):
             r = folgen.vorschlagen(con, pid, kern.ENTWICKLER, "meilenstein", a.id, grund=a.grund, titel=a.titel, ziel=a.ziel,
                                    abnahme=a.abnahme, zieldatum=a.zieldatum)
             if r["stand"] == "prueft":
-                print(f"Meilenstein {a.id}: Änderung wird geprüft (Ä{r['aenderung']}) – gilt von selbst, wenn Ziel, Erfolg und Kosten"
+                print(f"{ms}: Änderung wird geprüft (Ä{r['aenderung']}) – gilt von selbst, wenn Ziel, Erfolg und Kosten"
                       " nicht berührt sind; sonst Ja in der Planung")
         else:
             planung.bogen_aendern(con, pid, _von(a), a.id, a.titel, a.ziel, a.abnahme, a.zieldatum, a.nr, a.grund)
         if a.federfuehrend is not None:
             ff = kern.federfuehrung_setzen(con, pid, _von(a), "bogen", a.id, a.federfuehrend)
-            print(f"Meilenstein {a.id}: federführend {ff or '– (Lead)'}")
-        print(f"Meilenstein {a.id} geändert")
+            print(f"{ms}: federführend {ff or '– (Lead)'}")
+        print(f"{ms} geändert")
     elif a.aktion == "status":
         planung.bogen_status(con, pid, _von(a), a.id, a.wert, a.erzwingen)
-        print(f"Meilenstein {a.id} → {a.wert}")
+        print(f"{ms} → {a.wert}")
     elif a.aktion == "starten":                       # A1941 (K5): Jetzt starten – an den Disponenten
         if not a.id:
             raise kern.AmwFehler("bogen starten <Nummer des Meilensteins>")
         from . import reihenfolge
         r = reihenfolge.starten(con, pid, _von(a), a.id)
-        print(f"Meilenstein {a.id} gestartet – {len(r['startklar'])} Pakete startklar" + (f", verteilt: {'; '.join(r['verteilt'])}" if r["verteilt"] else ""))
+        print(f"{ms} gestartet – {len(r['startklar'])} Pakete startklar" + (f", verteilt: {'; '.join(r['verteilt'])}" if r["verteilt"] else ""))
         for aid, f in r["fehlt"].items():
             print(f"  noch nicht startklar: A{aid} – fehlt {', '.join(f)}")
     elif a.aktion == "reihenfolge":                   # A1941 (K5): die berechnete Reihenfolge
@@ -1334,7 +1336,7 @@ def cmd_bogen(a, con):
         b = next((x for x in planung.boegen(con, pid) if x["id"] == a.id), None)
         if not b:
             raise kern.AmwFehler(f"Meilenstein {a.id} gibt es nicht")
-        print(f"Meilenstein {b['id']} [{b['status']}] {b['titel']} · Ziel: {b['ziel'] or '–'} · Abnahme: {b['abnahme'] or '–'}"
+        print(f"{ms} [{b['status']}] {b['titel']} · Ziel: {b['ziel'] or '–'} · Abnahme: {b['abnahme'] or '–'}"
               f" · Zieldatum {b['zieldatum'] or '–'} (Baseline {b['baseline_datum'] or '–'})"
               + (f" · federführend {b['federfuehrend']}" if b.get("federfuehrend") else "")
               + (" · laufend" if abschlusslage.laufend(con, b["id"]) else ""))
@@ -1362,7 +1364,7 @@ def cmd_bogen(a, con):
         prog = planung.prognose(con, pid, laeufe=300)
         for b in planung.boegen(con, pid):
             p = prog["boegen"].get(b["id"], {})
-            print(f"Meilenstein {b['id']:<3} [{b['status']:<9}] {b['fertig']}/{b['gesamt'] - b['verworfen']} fertig"
+            print(f"{'M' + str(b['nr']):<4} [{b['status']:<9}] {b['fertig']}/{b['gesamt'] - b['verworfen']} fertig"
                   + (f", {b['blockiert']} blockiert" if b["blockiert"] else "")
                   + (f" · seit Start {b['zuwachs']['seit'][:10]}: +{b['zuwachs']['neu']} neu, {b['zuwachs']['erledigt']} erledigt, {b['zuwachs']['offen']} offen"
                      if b.get("zuwachs") else "")
@@ -1371,8 +1373,9 @@ def cmd_bogen(a, con):
 
 
 def cmd_spec(a, con):
-    from . import planung
+    from . import meilensteine, planung
     pid = _projekt(con, a)
+    ms = meilensteine.nennen(con, a.bogen)
     if a.aktion == "schreiben":
         text = a.text
         if a.datei:
@@ -1380,13 +1383,13 @@ def cmd_spec(a, con):
                 text = f.read()
         if not text:
             raise kern.AmwFehler("--text oder --datei")
-        print(f"Meilenstein {a.bogen} {a.teil}: Version {planung.spec_schreiben(con, pid, _von(a), a.bogen, a.teil, text)} (Entwurf)")
+        print(f"{ms} {a.teil}: Version {planung.spec_schreiben(con, pid, _von(a), a.bogen, a.teil, text)} (Entwurf)")
     elif a.aktion == "vorlegen":
         fragen = planung.spec_vorlegen(con, pid, _von(a), a.bogen, a.teil)
-        print(f"Meilenstein {a.bogen} {a.teil} vorgelegt" + (f" – Klärungsfragen: {', '.join('F' + str(f) for f in fragen)}" if fragen else ""))
+        print(f"{ms} {a.teil} vorgelegt" + (f" – Klärungsfragen: {', '.join('F' + str(f) for f in fragen)}" if fragen else ""))
     elif a.aktion in ("frei", "zurueck"):
         planung.spec_entscheiden(con, pid, _von(a), a.bogen, a.teil, a.aktion == "frei", a.kommentar)
-        print(f"Meilenstein {a.bogen} {a.teil}: {a.aktion}")
+        print(f"{ms} {a.teil}: {a.aktion}")
     else:
         for t in ([a.teil] if a.teil else planung.TEILE):
             s = planung.spec(con, a.bogen, t)
@@ -1395,13 +1398,13 @@ def cmd_spec(a, con):
 
 
 def cmd_schritt(a, con):
-    from . import planung
+    from . import meilensteine, planung
     pid = _projekt(con, a)
     s = planung.naechster(con, pid, _von(a), nehmen=a.nehmen)
     if not s:
         print("kein bereiter Schritt – alles vergeben, blockiert oder kein aktiver Meilenstein")
         return
-    print(f"A{s['id']} [{s.get('status')}] {s['titel']}" + (f" (Meilenstein {s['bogen_id']})" if s.get("bogen_id") else ""))
+    print(f"A{s['id']} [{s.get('status')}] {s['titel']}" + (f" ({meilensteine.name(con, s['bogen_id'])})" if s.get("bogen_id") else ""))
     for k in planung._json(s.get("kriterien"), []):
         print(f"  Kriterium: {k['text']}")
     for k in ("pruefbefehl", "dateibereich", "hinweis"):
@@ -1460,7 +1463,7 @@ def cmd_verlauf(a, con):
 
 
 def cmd_plan(a, con):
-    from . import planung
+    from . import meilensteine, planung
     pid = _projekt(con, a)
     if a.aktion == "pruefen":
         alle = planung.pruefen(con, pid, mit_akzeptierten=True)
@@ -1476,7 +1479,7 @@ def cmd_plan(a, con):
         for x in sorted(liste, key=lambda x: (x["gruppe"] != "projekt", x["bogen_id"] or 0, planung.STUFEN.index(x["stufe"]))):
             if x["gruppe"] != gruppe:
                 gruppe = x["gruppe"]
-                print("\n" + (f"Meilenstein {x['bogen_id']} „{titel.get(x['bogen_id'], '')}“" if gruppe.startswith("bogen:")
+                print("\n" + (f"{meilensteine.name(con, x['bogen_id'])} „{titel.get(x['bogen_id'], '')}“" if gruppe.startswith("bogen:")
                               else "Risiken" if gruppe == "risiken" else "Projekt"))
             print(f"  {x['stufe'].upper():<8} {x['text']}   [{x['schluessel']}]")
             if not a.kurz:
@@ -1505,7 +1508,7 @@ def cmd_plan(a, con):
         for aid, p in sorted(prog["schritte"].items(), key=lambda x: x[1]["p50"]):
             print(f"A{aid:<5} {p['bearbeiter'] or 'frei':<10} P50 {p['p50']}  P85 {p['p85']}")
         for bid, p in prog["boegen"].items():
-            print(f"Meilenstein {bid}: P50 {p['p50']} P85 {p['p85']} Ampel {p['ampel'] or '–'}")
+            print(f"{meilensteine.name(con, bid)}: P50 {p['p50']} P85 {p['p85']} Ampel {p['ampel'] or '–'}")
 
 
 def _frage_optionen(liste):
@@ -2993,10 +2996,7 @@ def cmd_thema(a, con):
         t = themen.finden(con, pid, a.name)
         bid = None
         if a.meilenstein is not None:
-            r = con.execute("SELECT id FROM bogen WHERE projekt_id = ? AND nr = ?", (pid, a.meilenstein)).fetchone()
-            if not r:
-                raise kern.AmwFehler(f"Meilenstein {a.meilenstein} gibt es nicht")
-            bid = r[0]
+            bid = a.meilenstein
         weg = planansicht.anhalten(con, pid, _von(a), t["id"], bid)
         print(f"TH{t['id']}: " + (f"angehalten: {', '.join(f'A{x}' for x in weg)}" if weg else "keine nicht begonnenen Pakete"))
         return
@@ -3113,6 +3113,14 @@ TEXT_ENDUNGEN = (".md", ".txt", ".html", ".htm", ".json", ".csv", ".svg", ".py",
 INHALT_MAX = 20000
 
 
+def _dok_bezug(con, d):
+    """Bezug eines Dokuments für die Ausgabe; ein Meilenstein mit seiner Projektnummer (A2079)."""
+    from . import meilensteine
+    if not d["bezug_art"]:
+        return None
+    return meilensteine.name(con, d["bezug_id"]) if d["bezug_art"] == "bogen" else f"{d['bezug_art']} {d['bezug_id']}"
+
+
 def cmd_dokument(a, con):
     from . import dokumente
     pid = _projekt(con, a)
@@ -3130,7 +3138,7 @@ def cmd_dokument(a, con):
         b_art = next((k for k, v in bezug.items() if v), None)
         for d in dokumente.liste(con, pid, a.art, b_art, int(str(bezug[b_art]).lstrip("ABFabf")) if b_art else None,
                                  a.agent, a.suche, None if a.alle else "aktuell"):
-            b = f"{d['bezug_art']} {d['bezug_id']}" if d["bezug_art"] else "–"
+            b = _dok_bezug(con, d) or "–"
             print(f"D{d['id']:<5} v{d['version']:<3} {d['art']:<9} {d['endung']:<6} {max(1, d['groesse'] // 1024):7d} KB"
                   f"  {d['angelegt_von']:<10} {b:<16} {d['titel'][:80]}" + (f"  [{d['status']}]" if d["status"] != "aktuell" else ""))
         return
@@ -3141,7 +3149,7 @@ def cmd_dokument(a, con):
     if a.aktion == "zeigen":
         d = dokumente.dokument(con, pid, nr)
         print(f"D{d['id']} „{d['titel']}“ · {d['art']} · {d['status']}" + (" · online" if d["online"] else "")
-              + (f" · zu {d['bezug_art']} {d['bezug_id']}" if d["bezug_art"] else "") + f" · von {d['angelegt_von']}")
+              + (f" · zu {_dok_bezug(con, d)}" if d["bezug_art"] else "") + f" · von {d['angelegt_von']}")
         for v in d["versionen"]:
             print(f"  v{v['nr']} {v['zeit_utc']} {v['von']:<10} {v['endung']} {max(1, v['groesse'] // 1024)} KB"
                   + (f" – {v['notiz']}" if v["notiz"] else "") + f"\n     {dokumente.datei_pfad(v['sha256'], v['endung'])}")
@@ -3172,7 +3180,7 @@ def cmd_dokument(a, con):
     elif a.aktion == "zuordnen":
         neu = {"bogen": None} if a.loesen else {k: v for k, v in bezug.items() if v}     # leer = Bezug unverändert
         d = dokumente.setzen(con, pid, _von(a), nr, a.titel, a.art, **neu)
-        print(f"D{nr}: " + (f"zu {d['bezug_art']} {d['bezug_id']}" if d["bezug_art"] else "ohne Bezug") + f" · {d['art']} · {d['titel']}")
+        print(f"D{nr}: " + (f"zu {_dok_bezug(con, d)}" if d["bezug_art"] else "ohne Bezug") + f" · {d['art']} · {d['titel']}")
     elif a.aktion in ("archivieren", "wiederherstellen"):
         dokumente.status_setzen(con, pid, _von(a), nr, "archiviert" if a.aktion == "archivieren" else "aktuell")
         print(f"D{nr} {'archiviert' if a.aktion == 'archivieren' else 'wieder aktuell'}")
@@ -3766,6 +3774,7 @@ def cmd_push(a):
 # --- Aufbau --------------------------------------------------------------------------------------
 
 def parser():
+    from . import meilensteine
     from . import __version__
     p = Parser(prog="amw", description="Agentenmanagement Workbench")
     p.add_argument("--version", action="version", version=f"AMW {__version__}")
@@ -3838,7 +3847,7 @@ def parser():
     x.add_argument("--aufgabe", type=nummer)
     x.add_argument("--bis", help="die Meldung erledigt sich von selbst, sobald das erfüllt ist: leitbild | aufgabe (du hast eine)"
                                  " | A<nr> (fertig) | F<nr> (beantwortet)")
-    x.add_argument("--bezug", help="worum es geht: A<nr> Aufgabe, F<nr> Frage, D<nr> Dokument, M<nr> Meilenstein, P<nr> Prüfung,"
+    x.add_argument("--bezug", help="worum es geht: A<nr> Aufgabe, F<nr> Frage, D<nr> Dokument, M<nr> Meilenstein (Projektnummer), P<nr> Prüfung,"
                                    " L<nr> Lauf, T<nr> Thema, B<nr> Beschluss, @Kennung Agent; ohne: aus --aufgabe oder geerbt"
                                    " von der Nachricht in --antwort-auf")
     x.add_argument("--neuer-faden", action="store_true", help="an den Menschen: nicht von selbst an seine letzte Nachricht an dich"
@@ -3883,7 +3892,7 @@ def parser():
                                       " mit --auf: alten Grund abhaken und neuen setzen in einem Schritt)")
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
-    x.add_argument("--bogen", type=nummer, help="Planung: gehört zu Meilenstein N (neu: Pflicht, solange es einen aktiven oder"
+    x.add_argument("--bogen", type=meilensteine.typ, help="Planung: gehört zu Meilenstein N (neu: Pflicht, solange es einen aktiven oder"
                                               " geplanten gibt)")
     x.add_argument("--ohne-bogen", action="store_true", help="neu: Lead – bewusst ohne Meilenstein; steht dann in der Planung"
                                                             " unter „Ohne Meilenstein“")
@@ -4008,7 +4017,7 @@ def parser():
     x.add_argument("--ebene", type=int, choices=range(1, 7), metavar="1-6",
                    help="uebernehmen: welche Überschriften-Ebene zu Themen wird (Vorgabe: die Gliederung unter dem Titel)")
     x.add_argument("--anlegen", action="store_true", help="uebernehmen: wirklich anlegen (ohne: nur Vorschau, nichts geschrieben)")
-    x.add_argument("--meilenstein", type=int, help="anhalten: nur in diesem Meilenstein (Nummer) – K8")
+    x.add_argument("--meilenstein", type=meilensteine.typ_projektnummer, help="anhalten: nur in diesem Meilenstein (M<Projektnummer>) – K8")
     x.add_argument("--nichts-zu-bauen", action="store_true", help="vermerk: das Thema braucht kein Paket (mit --grund) – A1947")
     x.add_argument("--aufheben", action="store_true", help="vermerk: den Vermerk „nichts zu bauen“ wieder aufheben")
     x.add_argument("--bestaetigen", action="store_true", help="vermerk: „nichts zu bauen“ bestätigen (Co-Entwickler oder Mensch) – K7")
@@ -4040,7 +4049,7 @@ def parser():
     x.add_argument("--woechentlich", action="store_true")
     x.add_argument("--bis", help="wöchentlich bis zu diesem Tag (JJJJ-MM-TT)")
     x.add_argument("--vorlauf", type=float, help="test: Testbuild fertig so viele Stunden vorher (Vorgabe 4)")
-    x.add_argument("--bogen", type=nummer, help="Ampel: Prognose dieses Meilensteins gegen die Frist")
+    x.add_argument("--bogen", type=meilensteine.typ, help="Ampel: Prognose dieses Meilensteins gegen die Frist")
     x.add_argument("--notiz")
     x.add_argument("--text", help="bereit: was ist neu, was soll getestet werden")
     x.add_argument("--tage", type=int, default=21)
@@ -4253,7 +4262,7 @@ def parser():
     x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status", "abnehmen", "freigeben", "zurueck", "bericht",
                                       "tore", "starten", "reihenfolge", "zeitplan", "feinplanen", "nacharbeit", "laufend", "vorlegen",
                                       "pruefung-starten"])
-    x.add_argument("id", type=nummer, nargs="?")
+    x.add_argument("id", type=meilensteine.typ, nargs="?", help="M<nr> = Projektnummer; eine nackte Zahl ist die interne Nummer (Skripte)")
     x.add_argument("wert", nargs="?", help="status: aktiv | fertig | geplant | verworfen; laufend: an | aus")
     x.add_argument("--titel")
     x.add_argument("--ziel")
@@ -4274,7 +4283,7 @@ def parser():
     x = s.add_parser("spec", help="Spezifikation je Meilenstein: zeigen N [teil] | schreiben N teil --text/--datei | vorlegen N teil |"
                                   " frei N teil | zurueck N teil --kommentar  (teil: anforderungen | entwurf | schritte)")
     x.add_argument("aktion", choices=["zeigen", "schreiben", "vorlegen", "frei", "zurueck"])
-    x.add_argument("bogen", type=nummer)
+    x.add_argument("bogen", type=meilensteine.typ)
     x.add_argument("teil", nargs="?", choices=["anforderungen", "entwurf", "schritte"])
     x.add_argument("--text")
     x.add_argument("--datei")
@@ -4299,12 +4308,12 @@ def parser():
     x.add_argument("--verantwortlich")
     x.add_argument("--ausloeser")
     x.add_argument("--status", choices=["offen", "eingetreten", "erledigt"])
-    x.add_argument("--bogen", type=nummer)
+    x.add_argument("--bogen", type=meilensteine.typ)
     x.set_defaults(f=cmd_risiko)
 
     x = s.add_parser("rueckblick", help="Rückblick je Meilenstein: amw rueckblick <bogen> [--gut … --schlecht … --massnahme … --gelernt …]"
                                         " | --uebernehmen <nr> --als aufgabe|beschluss")
-    x.add_argument("bogen", type=nummer, nargs="?")
+    x.add_argument("bogen", type=meilensteine.typ, nargs="?")
     for art in ("gut", "schlecht", "massnahme", "gelernt"):
         x.add_argument("--" + art)
     x.add_argument("--uebernehmen", type=int, help="Nummer eines Maßnahmen-Eintrags")
@@ -4498,7 +4507,7 @@ def parser():
     x.add_argument("--parameter", help="auftrag: JSON, z. B. {\"temperature\": 0.2, \"system\": \"…\"}")
     x.add_argument("--titel")
     x.add_argument("--aufgabe", type=nummer)
-    x.add_argument("--bogen", type=nummer)
+    x.add_argument("--bogen", type=meilensteine.typ)
     x.add_argument("--frist", type=float, help="auftrag: höchstens so viele Minuten rechnen (Vorgabe 60)")
     x.add_argument("--nachts", action="store_true", help="auftrag: erst im KI-Fenster starten (Vorgabe 22–06 Uhr), nie vor einem"
                                                          " Testtermin – eilt nicht, belegt die Grafikkarte nicht, während du am PC bist")
@@ -4556,7 +4565,7 @@ def parser():
     x.add_argument("--art", choices=["ergebnis", "bericht", "entwurf", "mockup", "bild", "quelle"])
     x.add_argument("--notiz", help="was diese Version ist bzw. was sich geändert hat")
     for k in ("bogen", "aufgabe", "frage", "beschluss"):
-        x.add_argument("--" + k, help=f"Bezug: {k} (Nummer)")
+        x.add_argument("--" + k, **({"type": meilensteine.typ} if k == "bogen" else {}), help=f"Bezug: {k} (Nummer)")
     x.add_argument("--loesen", action="store_true", help="zuordnen: Bezug entfernen")
     x.add_argument("--online", action="store_true", help="ablegen: Datei auch online zeigen (Texte sind es immer)")
     x.add_argument("--agent", help="liste: nur von diesem Agenten")
@@ -4750,6 +4759,7 @@ def main(argv=None):
     if "--" in argv:                                  # lauf ausfuehren … -- <befehl …>: alles danach ist der Befehl
         i = argv.index("--")
         argv, befehl = argv[:i], argv[i + 1:]
+    from . import meilensteine
     a = parser().parse_args(argv)
     a.befehl = befehl
     _pfade_umsetzen(a)
@@ -4761,6 +4771,7 @@ def main(argv=None):
             con = db.verbinde()
             try:
                 _heutige_kennungen(con, a)
+                meilensteine.aufloesen(con, lambda: _projekt(con, a), a)      # A2079: M<nr> = Projektnummer
                 if a.cmd in ("lesen", "kontext", "takt") and _von(a) not in (kern.ENTWICKLER, "AMW"):   # A1757: Nachlesen messen
                     from . import nachlesen
                     try:

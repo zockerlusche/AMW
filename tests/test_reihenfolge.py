@@ -161,7 +161,7 @@ class Reihenfolge(unittest.TestCase):
         self.assertIn("Rest-Pfad 6 h", t)
         self.assertNotEqual(rc, 0)
         self.assertIn("nur mit Grund", t)
-        self.assertIn(f"Meilenstein {self.bid} gestartet – 0 Pakete startklar", t)
+        self.assertIn(f"M1 (intern {self.bid}) gestartet – 0 Pakete startklar", t)
         self.assertIn("noch nicht startklar: A", t)
 
 

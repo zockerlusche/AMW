@@ -6611,7 +6611,7 @@ function bogenDialog(b) {
     zeile(t("pl_abnahme"), f.abnahme, t("pl_abnahme_h")), zeile(t("pl_zieldatum"), f.zieldatum),
     b?.baseline_datum ? zeile(t("pl_grund"), f.grund, t("pl_grund_h", { x: datumKurz(b.baseline_datum) })) : null,
     el("div", { class: "aktionen" }, knopf, el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))),
-    b ? gespraechZu(`M${b.id}`, `M${b.id} ${b.titel}`) : null);
+    b ? gespraechZu(`M${b.id}`, `M${b.nr} ${b.titel}`) : null);
   knopf.addEventListener("click", async () => {
     const daten = { titel: f.titel.value.trim(), ziel: f.ziel.value.trim(), abnahme: f.abnahme.value.trim(), zieldatum: f.zieldatum.value || null };
     try { await schicken("/api/plan/bogen", b ? { ...daten, bogen: b.id, grund: f.grund.value.trim() || null } : { ...daten, aktion: "neu" });

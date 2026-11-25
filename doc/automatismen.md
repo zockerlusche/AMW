@@ -996,6 +996,16 @@ die der Lead nur noch bestätigt oder ändert.
   10 min Abstand) ist eine Zeile; Titel und Nummern (P, A, Commit) auf Klick. Höchstens 120 Zeilen je Schritt.
 - **Befehl:** `amw verlauf --art protokoll [--stunden 24] [--agent CC1]`.
 
+### Eine Nummer je Meilenstein (A2079)
+
+- **M<nr> = Projektnummer** in allen Befehlen, im MCP und in Bezügen (`--bezug M19`), im Projekt des Befehls (`meilensteine.py`,
+  aufgelöst an einer Stelle: `cli.main`). Eine nackte Zahl bleibt die interne Nummer (Skripte); die Ausgabe nennt dann beides:
+  „M19 (intern 57)“.
+- **Kein Umdeuten:** Gibt es M57 im Projekt nicht, wohl aber die interne 57, sagt der Fehler die richtige Nummer. Auch bei gleicher
+  Zahl ist M12 immer die Projektnummer.
+- **Gespeichert** wird weiter die interne Nummer, auch im Feld `bezug` einer Nachricht; alte Bezüge zeigen damit richtig, und die
+  Seite darf das gespeicherte Kürzel unverändert zurückschicken. Texte der AMW ziehen in A2089 nach.
+
 ### Thema → Meilenstein → Paket (K8, A1942, TH163)
 
 - **Auslöser:** ein freigegebenes Thema bekommt eine neue Fassung (wie A1915) oder wird zurückgegeben.

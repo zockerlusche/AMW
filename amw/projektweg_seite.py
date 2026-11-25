@@ -315,7 +315,7 @@ def pruefung_starten(con, pid, von, bid):
     if not b:
         raise kern.AmwFehler(f"Meilenstein {bid} gibt es nicht")
     if abschlusslage.ruht(con, b):
-        raise kern.AmwFehler(f"M{b['nr']} ist laufend – die Prüfung startet, wenn er vorgelegt wird: amw bogen vorlegen {bid}")
+        raise kern.AmwFehler(f"M{b['nr']} ist laufend – die Prüfung startet, wenn er vorgelegt wird: amw bogen vorlegen M{b['nr']}")
     if not planautomatik.bereit_zur_abnahme(con, b):
         raise kern.AmwFehler(f"M{b['nr']} ist nicht bereit zur Abnahme – die Prüfung startet die AMW selbst, wenn alle Pakete fertig sind")
     e = abschlusslage.ergebnis(con, pid, b)

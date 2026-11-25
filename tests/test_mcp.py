@@ -178,7 +178,7 @@ class Schema(unittest.TestCase):
     def test_jedes_werkzeug_ergibt_eine_gueltige_befehlszeile(self):
         """Für jedes Werkzeug mit allen Feldern: die Befehlszeile versteht der echte Parser – kein Werkzeug zeigt ins Leere."""
         from amw import cli
-        beispiel = {"s": "x", "i": 7, "b": True, "ai": [7, 8], "as": ["x"]}
+        beispiel = {"s": "x", "m": "M2", "i": 7, "b": True, "ai": [7, 8], "as": ["x"]}
         for name, (_, _, felder) in mcp_server.WERKZEUGE.items():
             args = {f[0]: (([f[5][0]] if f[1] in ("ai", "as") else f[5][0]) if f[5] else beispiel[f[1]]) for f in felder}
             if name == "frage_neu":

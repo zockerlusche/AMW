@@ -120,8 +120,8 @@ class NeueAufgabe(Grund):
         bid = planung.bogen_neu(self.con, self.pid, "TL", "Karten-Look", ziel="z", abnahme="a")
         rc, aus = self.cli("aufgabe", "neu", "--titel", "Neu", "--von", "TL", "--projekt", "Eins")
         self.assertNotEqual(rc, 0)
-        self.assertIn(f"--bogen {bid}   B{bid} Karten-Look (geplant)", aus)
-        self.assertIn(f"Vorschlag: --bogen {bid}", aus)
+        self.assertIn("--bogen M1   Karten-Look (geplant)", aus)                                # A2079: die Projektnummer
+        self.assertIn("Vorschlag: --bogen M1", aus)
         self.assertIn("--ohne-bogen", aus)
         self.assertEqual(self.con.execute("SELECT count(*) FROM aufgabe WHERE titel = 'Neu'").fetchone()[0], 0)
         rc, aus = self.cli("aufgabe", "neu", "--titel", "Neu", "--von", "TL", "--projekt", "Eins", "--ohne-bogen")
@@ -134,8 +134,8 @@ class NeueAufgabe(Grund):
         planung.bogen_status(self.con, self.pid, "TL", bid, "aktiv")
         b2 = planung.bogen_neu(self.con, self.pid, "TL", "Später", ziel="z", abnahme="a")
         rc, aus = self.cli("aufgabe", "neu", "--titel", "Wieder", "--von", "Entwickler", "--projekt", "Eins")
-        self.assertIn(f"Vorschlag: --bogen {bid}", aus)                             # der aktive zuerst
-        self.assertIn(f"B{b2} Später (geplant)", aus)
+        self.assertIn("Vorschlag: --bogen M1", aus)                             # der aktive zuerst
+        self.assertIn("M2   Später (geplant)", aus)
 
 
 class Seite(unittest.TestCase):

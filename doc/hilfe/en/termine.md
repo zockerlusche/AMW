@@ -7,7 +7,7 @@ A test date says when you test. The AMW derives the deadline “test build ready
 
 ## Steps
 1. **Create the date** `amw termin neu --titel "Weekly test" --art test --am "13.11. 18:00"` – weekly with `--woechentlich`, until a day with `--bis YYYY-MM-DD`.
-2. **Link a milestone (optional)** Add `--bogen <number>`. The traffic light then compares its forecast with the deadline.
+2. **Link a milestone (optional)** Add `--bogen M<number>`. The traffic light then compares its forecast with the deadline.
 3. **Adjust the lead time (optional)** Default: the test build is due 4 hours before the date. Change it with `--vorlauf <hours>`.
 
 ## Values to enter

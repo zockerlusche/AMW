@@ -12,7 +12,7 @@
   },
   {
    "titel": "Mit einem Meilenstein verknüpfen (optional)",
-   "text": "`--bogen <nummer>` anhängen. Die Ampel vergleicht dann seine Prognose mit der Frist.",
+   "text": "`--bogen M<nummer>` anhängen. Die Ampel vergleicht dann seine Prognose mit der Frist.",
    "bilder": []
   },
   {

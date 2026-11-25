@@ -201,10 +201,10 @@ options:
                         erfüllt ist: leitbild | aufgabe (du hast eine) | A<nr>
                         (fertig) | F<nr> (beantwortet)
   --bezug BEZUG         worum es geht: A<nr> Aufgabe, F<nr> Frage, D<nr>
-                        Dokument, M<nr> Meilenstein, P<nr> Prüfung, L<nr>
-                        Lauf, T<nr> Thema, B<nr> Beschluss, @Kennung Agent;
-                        ohne: aus --aufgabe oder geerbt von der Nachricht in
-                        --antwort-auf
+                        Dokument, M<nr> Meilenstein (Projektnummer), P<nr>
+                        Prüfung, L<nr> Lauf, T<nr> Thema, B<nr> Beschluss,
+                        @Kennung Agent; ohne: aus --aufgabe oder geerbt von
+                        der Nachricht in --antwort-auf
   --neuer-faden         an den Menschen: nicht von selbst an seine letzte
                         Nachricht an dich hängen (sonst tut die AMW das, wenn
                         sie höchstens 2 Tage alt ist)
@@ -510,7 +510,8 @@ options:
   --anlegen             uebernehmen: wirklich anlegen (ohne: nur Vorschau,
                         nichts geschrieben)
   --meilenstein MEILENSTEIN
-                        anhalten: nur in diesem Meilenstein (Nummer) – K8
+                        anhalten: nur in diesem Meilenstein (M<Projektnummer>)
+                        – K8
   --nichts-zu-bauen     vermerk: das Thema braucht kein Paket (mit --grund) –
                         A1947
   --aufheben            vermerk: den Vermerk „nichts zu bauen“ wieder aufheben
@@ -1048,7 +1049,8 @@ usage: amw bogen [-h] [--titel TITEL] [--ziel ZIEL] [--abnahme ABNAHME]
 
 positional arguments:
   {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore,starten,reihenfolge,zeitplan,feinplanen,nacharbeit,laufend,vorlegen,pruefung-starten}
-  id
+  id                    M<nr> = Projektnummer; eine nackte Zahl ist die
+                        interne Nummer (Skripte)
   wert                  status: aktiv | fertig | geplant | verworfen; laufend:
                         an | aus
 

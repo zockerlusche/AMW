@@ -66,7 +66,7 @@ Schritte sind Aufgaben mit Bogen. Ein guter Schritt („bereit“) hat: Abnahmek
 dazu nach Bedarf Schätzung (Stunden), Komplexität 1–10, Prüfbefehl (wie der Agent selbst prüft), Dateibereich (was er
 anfassen darf) und die abgedeckten Anforderungen (`R1,R3`).
 ```
-amw aufgabe neu --titel "Login-Formular" --bogen 1 --agent CC1 --kriterium "Formular sendet" --kriterium "Fehler sichtbar" \
+amw aufgabe neu --titel "Login-Formular" --bogen M1 --agent CC1 --kriterium "Formular sendet" --kriterium "Fehler sichtbar" \
     --anforderungen R1 --schaetzung 3 --komplexitaet 4 --pruefbefehl "pytest tests/login" --nach 1201,1203
 ```
 (`--nach`: Nummern der Vorgänger-Schritte – die gibt es in deinem Projekt natürlich unter anderen Nummern.)

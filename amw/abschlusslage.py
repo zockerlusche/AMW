@@ -80,7 +80,7 @@ def schalten(con, pid, von, bid, an):
         return f"{name} ist schon {'laufend' if an else 'nicht laufend'}"
     with db.schreiben(con):
         _ereignis(con, pid, von, LAUFEND, bid, an=an)
-    return (f"{name} ist laufend – er kommt erst zur Abnahme, wenn du ihn vorlegst: amw bogen vorlegen {bid}" if an
+    return (f"{name} ist laufend – er kommt erst zur Abnahme, wenn du ihn vorlegst: amw bogen vorlegen M{b['nr']}" if an
             else f"{name} ist nicht mehr laufend – sind alle Pakete fertig, kommt er von selbst zur Abnahme")
 
 
@@ -179,8 +179,8 @@ def melden(con, pid, b):
             if l == "fehlt":
                 kern._posten(con, pid, "AMW", lead, "meldung", f"M{b['nr']} „{b['titel'][:60]}“: Abschlussprüfung fehlt – bitte nachholen",
                              "Alle Pakete sind fertig, aber zu diesem Stand gibt es keine Prüfung gegen das Konzept. Solange sie fehlt, wartet"
-                             f" der Meilenstein nicht auf die Abnahme. Nachholen: amw bogen pruefung-starten {b['id']}\n"
-                             f"Soll er offen bleiben (laufende Wartung): amw bogen laufend {b['id']} an")
+                             f" der Meilenstein nicht auf die Abnahme. Nachholen: amw bogen pruefung-starten M{b['nr']}\n"
+                             f"Soll er offen bleiben (laufende Wartung): amw bogen laufend M{b['nr']} an")
         return "lead"
     if l == "abnehmbar":
         lid, gemeldet = _letztes(con, b["id"], BEIM_LEAD)
